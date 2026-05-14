@@ -34,8 +34,8 @@
 
 #include "PerfettoConfig.hpp"
 
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {
@@ -212,7 +212,8 @@ private:
  */
 class PerfettoManager {
 public:
-    static PerfettoManager& instance() {
+    static PerfettoManager& instance()
+    {
         static PerfettoManager instance;
         return instance;
     }

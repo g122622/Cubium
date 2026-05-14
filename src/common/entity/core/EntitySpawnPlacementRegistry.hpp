@@ -3,7 +3,7 @@
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../util/math/random/Random.hpp"
-#include "../../world/chunk/IChunk.hpp"  // 包含 HeightmapType
+#include "../../world/chunk/IChunk.hpp" // 包含 HeightmapType
 #include <functional>
 #include <unordered_map>
 
@@ -14,9 +14,9 @@ class BlockState;
 class Block;
 
 namespace entity {
-    class EntityType;
-    enum class EntityClassification : u8;
-}
+class EntityType;
+enum class EntityClassification : u8;
+} // namespace entity
 
 namespace world::spawn {
 
@@ -84,25 +84,43 @@ enum class SpawnReason : u8 {
  * @param reason 生成原因
  * @return 名称字符串（如 "natural", "chunk_generation"）
  */
-[[nodiscard]] inline const char* getSpawnReasonName(SpawnReason reason) {
+[[nodiscard]] inline const char* getSpawnReasonName(SpawnReason reason)
+{
     switch (reason) {
-        case SpawnReason::Natural:          return "natural";
-        case SpawnReason::ChunkGeneration:  return "chunk_generation";
-        case SpawnReason::Spawner:          return "spawner";
-        case SpawnReason::Structure:        return "structure";
-        case SpawnReason::Breeding:         return "breeding";
-        case SpawnReason::MobSummons:       return "mob_summons";
-        case SpawnReason::Jockey:           return "jockey";
-        case SpawnReason::Event:            return "event";
-        case SpawnReason::Conversion:       return "conversion";
-        case SpawnReason::Reinforcement:    return "reinforcement";
-        case SpawnReason::Trigger:          return "trigger";
-        case SpawnReason::Bucket:           return "bucket";
-        case SpawnReason::SpawnEgg:         return "spawn_egg";
-        case SpawnReason::Command:          return "command";
-        case SpawnReason::Dispenser:        return "dispenser";
-        case SpawnReason::Patrol:           return "patrol";
-        default:                            return "unknown";
+        case SpawnReason::Natural:
+            return "natural";
+        case SpawnReason::ChunkGeneration:
+            return "chunk_generation";
+        case SpawnReason::Spawner:
+            return "spawner";
+        case SpawnReason::Structure:
+            return "structure";
+        case SpawnReason::Breeding:
+            return "breeding";
+        case SpawnReason::MobSummons:
+            return "mob_summons";
+        case SpawnReason::Jockey:
+            return "jockey";
+        case SpawnReason::Event:
+            return "event";
+        case SpawnReason::Conversion:
+            return "conversion";
+        case SpawnReason::Reinforcement:
+            return "reinforcement";
+        case SpawnReason::Trigger:
+            return "trigger";
+        case SpawnReason::Bucket:
+            return "bucket";
+        case SpawnReason::SpawnEgg:
+            return "spawn_egg";
+        case SpawnReason::Command:
+            return "command";
+        case SpawnReason::Dispenser:
+            return "dispenser";
+        case SpawnReason::Patrol:
+            return "patrol";
+        default:
+            return "unknown";
     }
 }
 
@@ -112,23 +130,24 @@ enum class SpawnReason : u8 {
  * @param name 名称字符串（如 "natural", "chunk_generation"）
  * @return 生成原因，如果名称无效返回 SpawnReason::Natural
  */
-[[nodiscard]] inline SpawnReason getSpawnReasonByName(const std::string& name) {
-    if (name == "natural")          return SpawnReason::Natural;
+[[nodiscard]] inline SpawnReason getSpawnReasonByName(const std::string& name)
+{
+    if (name == "natural") return SpawnReason::Natural;
     if (name == "chunk_generation") return SpawnReason::ChunkGeneration;
-    if (name == "spawner")          return SpawnReason::Spawner;
-    if (name == "structure")        return SpawnReason::Structure;
-    if (name == "breeding")         return SpawnReason::Breeding;
-    if (name == "mob_summons")      return SpawnReason::MobSummons;
-    if (name == "jockey")           return SpawnReason::Jockey;
-    if (name == "event")            return SpawnReason::Event;
-    if (name == "conversion")       return SpawnReason::Conversion;
-    if (name == "reinforcement")    return SpawnReason::Reinforcement;
-    if (name == "trigger")          return SpawnReason::Trigger;
-    if (name == "bucket")           return SpawnReason::Bucket;
-    if (name == "spawn_egg")        return SpawnReason::SpawnEgg;
-    if (name == "command")          return SpawnReason::Command;
-    if (name == "dispenser")        return SpawnReason::Dispenser;
-    if (name == "patrol")           return SpawnReason::Patrol;
+    if (name == "spawner") return SpawnReason::Spawner;
+    if (name == "structure") return SpawnReason::Structure;
+    if (name == "breeding") return SpawnReason::Breeding;
+    if (name == "mob_summons") return SpawnReason::MobSummons;
+    if (name == "jockey") return SpawnReason::Jockey;
+    if (name == "event") return SpawnReason::Event;
+    if (name == "conversion") return SpawnReason::Conversion;
+    if (name == "reinforcement") return SpawnReason::Reinforcement;
+    if (name == "trigger") return SpawnReason::Trigger;
+    if (name == "bucket") return SpawnReason::Bucket;
+    if (name == "spawn_egg") return SpawnReason::SpawnEgg;
+    if (name == "command") return SpawnReason::Command;
+    if (name == "dispenser") return SpawnReason::Dispenser;
+    if (name == "patrol") return SpawnReason::Patrol;
     return SpawnReason::Natural;
 }
 
@@ -213,11 +232,8 @@ public:
      * @param entityType 实体类型（用于类型检查）
      * @return 是否可以生成
      */
-    using PlacementPredicate = std::function<bool(
-        const ISpawnWorldReader& world,
-        const Vector3i& pos,
-        const std::string& entityTypeId
-    )>;
+    using PlacementPredicate =
+        std::function<bool(const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)>;
 
     /**
      * @brief 放置条目
@@ -251,12 +267,10 @@ public:
      * @param heightmapType 高度图类型
      * @param predicate 额外的放置条件检查函数（可选）
      */
-    static void registerPlacement(
-        const std::string& entityTypeId,
+    static void registerPlacement(const std::string& entityTypeId,
         PlacementType placementType,
         HeightmapType heightmapType,
-        PlacementPredicate predicate = nullptr
-    );
+        PlacementPredicate predicate = nullptr);
 
     /**
      * @brief 获取实体放置类型
@@ -295,12 +309,10 @@ public:
      *
      * 参考 MC 1.16.5 canCreatureTypeSpawnAtLocation
      */
-    [[nodiscard]] static bool canSpawnAtLocation(
-        PlacementType placementType,
+    [[nodiscard]] static bool canSpawnAtLocation(PlacementType placementType,
         const ISpawnWorldReader& world,
         const Vector3i& pos,
-        const std::string& entityTypeId
-    );
+        const std::string& entityTypeId);
 
     /**
      * @brief 检查实体是否可以在指定位置生成
@@ -316,13 +328,11 @@ public:
      *
      * 参考 MC 1.16.5 EntitySpawnPlacementRegistry.canSpawnEntity
      */
-    [[nodiscard]] static bool canSpawnEntity(
-        const std::string& entityTypeId,
+    [[nodiscard]] static bool canSpawnEntity(const std::string& entityTypeId,
         ISpawnWorldReader& world,
         SpawnReason reason,
         const Vector3i& pos,
-        math::Random& random
-    );
+        math::Random& random);
 
     /**
      * @brief 检查地面生成条件
@@ -336,10 +346,7 @@ public:
      * @return 是否可以生成
      */
     [[nodiscard]] static bool checkOnGroundSpawn(
-        const ISpawnWorldReader& world,
-        const Vector3i& pos,
-        const std::string& entityTypeId
-    );
+        const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId);
 
     /**
      * @brief 检查水中生成条件
@@ -353,10 +360,7 @@ public:
      * @return 是否可以生成
      */
     [[nodiscard]] static bool checkInWaterSpawn(
-        const ISpawnWorldReader& world,
-        const Vector3i& pos,
-        const std::string& entityTypeId
-    );
+        const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId);
 
     /**
      * @brief 检查岩浆中生成条件
@@ -367,10 +371,7 @@ public:
      * @return 是否可以生成
      */
     [[nodiscard]] static bool checkInLavaSpawn(
-        const ISpawnWorldReader& world,
-        const Vector3i& pos,
-        const std::string& entityTypeId
-    );
+        const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId);
 
     /**
      * @brief 初始化默认的实体放置规则
@@ -400,10 +401,7 @@ private:
      * @return 是否允许生成
      */
     [[nodiscard]] static bool isValidSpawnBlock(
-        const ISpawnWorldReader& world,
-        const Vector3i& pos,
-        const std::string& entityTypeId
-    );
+        const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId);
 
     /**
      * @brief 检查方块是否阻止生成

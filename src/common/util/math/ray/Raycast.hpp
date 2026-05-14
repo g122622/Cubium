@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Ray.hpp"
 #include "../../../core/BlockRaycastResult.hpp"
 #include "../../../world/IWorld.hpp"
+#include "Ray.hpp"
 
 namespace mc {
 
@@ -14,7 +14,7 @@ namespace mc {
  */
 struct RaycastContext {
     Ray ray;
-    f32 maxDistance = 5.0f;  ///< MC默认5格，创造模式更远
+    f32 maxDistance = 5.0f; ///< MC默认5格，创造模式更远
 
     RaycastContext() = default;
 
@@ -26,16 +26,12 @@ struct RaycastContext {
     explicit RaycastContext(const Ray& r, f32 dist = 5.0f)
         : ray(r)
         , maxDistance(dist)
-    {
-    }
+    {}
 
     /**
      * @brief 获取射线终点
      */
-    [[nodiscard]] Vector3 endPosition() const
-    {
-        return ray.at(maxDistance);
-    }
+    [[nodiscard]] Vector3 endPosition() const { return ray.at(maxDistance); }
 };
 
 /**
@@ -54,8 +50,6 @@ struct RaycastContext {
  * @param world 方块读取器
  * @return 检测结果，若未击中返回miss
  */
-[[nodiscard]] BlockRaycastResult raycastBlocks(
-    const RaycastContext& context,
-    const IWorld& world);
+[[nodiscard]] BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& world);
 
 } // namespace mc

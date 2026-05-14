@@ -1,22 +1,22 @@
 #include "DebugScreenWidget.hpp"
+#include "client/network/NetworkClient.hpp"
+#include "client/renderer/Camera.hpp"
+#include "client/renderer/trident/sky/CelestialCalculations.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
+#include "client/world/ClientWorld.hpp"
+#include "client/world/entity/ClientEntityManager.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/PlatformInfo.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/time/GameTime.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/core/BlockRaycastResult.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/core/Constants.hpp"
-#include "client/network/NetworkClient.hpp"
-#include "client/renderer/Camera.hpp"
-#include "client/world/ClientWorld.hpp"
-#include "client/world/entity/ClientEntityManager.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "client/renderer/trident/sky/CelestialCalculations.hpp"
-#include <spdlog/spdlog.h>
 #include <iomanip>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft {
 
@@ -27,7 +27,8 @@ DebugScreenWidget::DebugScreenWidget()
     setActive(true);
 }
 
-void DebugScreenWidget::setGpuInfo(const DebugGpuInfo& info) {
+void DebugScreenWidget::setGpuInfo(const DebugGpuInfo& info)
+{
     m_gpuVendor = std::string(info.vendor.begin(), info.vendor.end());
     m_gpuName = std::string(info.name.begin(), info.name.end());
     m_gpuDriverVersion = std::string(info.driverVersion.begin(), info.driverVersion.end());
@@ -38,7 +39,8 @@ void DebugScreenWidget::setGpuInfo(const DebugGpuInfo& info) {
     m_gpuInfoSet = true;
 }
 
-void DebugScreenWidget::tick(f32 dt) {
+void DebugScreenWidget::tick(f32 dt)
+{
     if (!isVisible()) return;
 
     updateFps(dt);
@@ -48,7 +50,8 @@ void DebugScreenWidget::tick(f32 dt) {
     measureTexts();
 }
 
-void DebugScreenWidget::updateFps(f32 dt) {
+void DebugScreenWidget::updateFps(f32 dt)
+{
     m_frameTime = dt;
     m_fpsAccumulator += dt;
     m_frameCount++;
@@ -62,7 +65,8 @@ void DebugScreenWidget::updateFps(f32 dt) {
     }
 }
 
-void DebugScreenWidget::updateSystemInfo() {
+void DebugScreenWidget::updateSystemInfo()
+{
     m_systemInfoTimer += m_frameTime;
     if (m_systemInfoTimer >= SYSTEM_INFO_UPDATE_INTERVAL) {
         m_systemInfoTimer = 0.0f;
@@ -73,7 +77,8 @@ void DebugScreenWidget::updateSystemInfo() {
     }
 }
 
-void DebugScreenWidget::buildLeftDebugText() {
+void DebugScreenWidget::buildLeftDebugText()
+{
     m_leftLines.clear();
 
     std::ostringstream oss;
@@ -96,10 +101,8 @@ void DebugScreenWidget::buildLeftDebugText() {
     // 服务器信息
     if (m_networkClient != nullptr) {
         oss.str("");
-        oss << "Integrated server @ " << std::fixed << std::setprecision(0)
-            << m_serverTickTimeMs << " ms ticks, "
-            << m_networkClient->packetsSent() << " tx, "
-            << m_networkClient->packetsReceived() << " rx";
+        oss << "Integrated server @ " << std::fixed << std::setprecision(0) << m_serverTickTimeMs << " ms ticks, "
+            << m_networkClient->packetsSent() << " tx, " << m_networkClient->packetsReceived() << " rx";
         m_leftLines.push_back(oss.str());
     } else {
         m_leftLines.push_back("Server: local (integrated)");
@@ -108,8 +111,7 @@ void DebugScreenWidget::buildLeftDebugText() {
     // 渲染统计
     if (m_world != nullptr) {
         oss.str("");
-        oss << "ChunkCount: 0/" << m_world->chunkCount()
-            << ", RenderDistance: " << m_renderDistance
+        oss << "ChunkCount: 0/" << m_world->chunkCount() << ", RenderDistance: " << m_renderDistance
             << ", LightUpdates: 0"
             << ", EntityCount: " << (m_entityManager ? m_entityManager->entityCount() : 0);
         m_leftLines.push_back(oss.str());
@@ -152,8 +154,7 @@ void DebugScreenWidget::buildLeftDebugText() {
         }
 
         oss.str("");
-        oss << "XYZ: " << std::fixed << std::setprecision(3)
-            << posX << " / " << posY << " / " << posZ;
+        oss << "XYZ: " << std::fixed << std::setprecision(3) << posX << " / " << posY << " / " << posZ;
         m_leftLines.push_back(oss.str());
 
         i32 blockX = static_cast<i32>(std::floor(posX));
@@ -170,15 +171,13 @@ void DebugScreenWidget::buildLeftDebugText() {
         i32 relY = blockY & 15;
         i32 relZ = blockZ & 15;
         oss.str("");
-        oss << "Chunk: " << relX << " " << relY << " " << relZ
-            << " in " << chunkX << " " << chunkY << " " << chunkZ;
+        oss << "Chunk: " << relX << " " << relY << " " << relZ << " in " << chunkX << " " << chunkY << " " << chunkZ;
         m_leftLines.push_back(oss.str());
 
         auto [dirName, dirDesc] = getFacingDirection(yaw);
         oss.str("");
         oss << "Facing: " << dirName << " (" << dirDesc << ")"
-            << " (" << std::fixed << std::setprecision(1)
-            << yaw << " / " << pitch << ")";
+            << " (" << std::fixed << std::setprecision(1) << yaw << " / " << pitch << ")";
         m_leftLines.push_back(oss.str());
 
         // 光照信息
@@ -190,9 +189,8 @@ void DebugScreenWidget::buildLeftDebugText() {
                 u8 blockLight = m_world->getBlockLight(blockX, blockY, blockZ);
                 u8 totalLight = std::max(skyLight, blockLight);
                 oss.str("");
-                oss << "Client Light: " << static_cast<i32>(totalLight)
-                    << " (" << static_cast<i32>(skyLight) << " sky, "
-                    << static_cast<i32>(blockLight) << " block)";
+                oss << "Client Light: " << static_cast<i32>(totalLight) << " (" << static_cast<i32>(skyLight)
+                    << " sky, " << static_cast<i32>(blockLight) << " block)";
                 m_leftLines.push_back(oss.str());
                 m_leftLines.push_back("Server Light: (?? sky, ?? block)");
             } else {
@@ -207,10 +205,8 @@ void DebugScreenWidget::buildLeftDebugText() {
                     m_leftLines.push_back(oss.str());
 
                     oss.str("");
-                    oss << "Climate: T=" << std::fixed << std::setprecision(2)
-                        << biome->temperature()
-                        << " H=" << biome->humidity()
-                        << " C=" << biome->continentalness();
+                    oss << "Climate: T=" << std::fixed << std::setprecision(2) << biome->temperature()
+                        << " H=" << biome->humidity() << " C=" << biome->continentalness();
                     m_leftLines.push_back(oss.str());
                 }
 
@@ -241,7 +237,8 @@ void DebugScreenWidget::buildLeftDebugText() {
     }
 }
 
-void DebugScreenWidget::buildRightDebugText() {
+void DebugScreenWidget::buildRightDebugText()
+{
     m_rightLines.clear();
 
     std::ostringstream oss;
@@ -253,15 +250,13 @@ void DebugScreenWidget::buildRightDebugText() {
 
     // 内存信息
     oss.str("");
-    oss << "Mem: " << std::setw(3) << m_memoryPercent << "% "
-        << std::setw(4) << m_processMemoryMB << "/"
+    oss << "Mem: " << std::setw(3) << m_memoryPercent << "% " << std::setw(4) << m_processMemoryMB << "/"
         << std::setw(4) << m_totalMemoryMB << "MB";
     m_rightLines.push_back(oss.str());
 
     oss.str("");
-    f32 allocatedPercent = m_totalMemoryMB > 0
-        ? (static_cast<f32>(m_processMemoryMB) / m_totalMemoryMB) * 100.0f
-        : 0.0f;
+    f32 allocatedPercent =
+        m_totalMemoryMB > 0 ? (static_cast<f32>(m_processMemoryMB) / m_totalMemoryMB) * 100.0f : 0.0f;
     oss << "Allocated: " << std::setw(3) << static_cast<i32>(allocatedPercent) << "%";
     m_rightLines.push_back(oss.str());
 
@@ -331,7 +326,8 @@ void DebugScreenWidget::buildRightDebugText() {
     }
 }
 
-std::pair<std::string, std::string> DebugScreenWidget::getFacingDirection(f32 yaw) const {
+std::pair<std::string, std::string> DebugScreenWidget::getFacingDirection(f32 yaw) const
+{
     yaw = math::wrapDegrees(yaw);
 
     if (yaw >= -45.0f && yaw < 45.0f) {
@@ -345,7 +341,8 @@ std::pair<std::string, std::string> DebugScreenWidget::getFacingDirection(f32 ya
     }
 }
 
-void DebugScreenWidget::measureTexts() {
+void DebugScreenWidget::measureTexts()
+{
     m_leftMaxWidth = 0.0f;
     m_rightMaxWidth = 0.0f;
 
@@ -364,7 +361,8 @@ void DebugScreenWidget::measureTexts() {
     }
 }
 
-void DebugScreenWidget::paint(kagero::widget::PaintContext& ctx) {
+void DebugScreenWidget::paint(kagero::widget::PaintContext& ctx)
+{
     if (!isVisible()) return;
     if (m_leftLines.empty() && m_rightLines.empty()) return;
 
@@ -413,7 +411,8 @@ void DebugScreenWidget::paint(kagero::widget::PaintContext& ctx) {
     }
 }
 
-void DebugScreenWidget::setTextWidthCallback(TextWidthCallback callback) {
+void DebugScreenWidget::setTextWidthCallback(TextWidthCallback callback)
+{
     m_textWidthCallback = std::move(callback);
 }
 

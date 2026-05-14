@@ -5,11 +5,13 @@
 
 namespace mc::text {
 
-void ITextComponent::appendText(const std::string& text) {
+void ITextComponent::appendText(const std::string& text)
+{
     append(std::make_unique<StringTextComponent>(text));
 }
 
-std::unique_ptr<ITextComponent> ITextComponent::fromJson(const nlohmann::json& json) {
+std::unique_ptr<ITextComponent> ITextComponent::fromJson(const nlohmann::json& json)
+{
     // 空值或无效 JSON
     if (json.is_null()) {
         return std::make_unique<StringTextComponent>("");
@@ -56,7 +58,8 @@ std::unique_ptr<ITextComponent> ITextComponent::fromJson(const nlohmann::json& j
     return createStringFromJson(json);
 }
 
-std::unique_ptr<ITextComponent> ITextComponent::fromJsonArray(const nlohmann::json& jsonArray) {
+std::unique_ptr<ITextComponent> ITextComponent::fromJsonArray(const nlohmann::json& jsonArray)
+{
     if (!jsonArray.is_array() || jsonArray.empty()) {
         return std::make_unique<StringTextComponent>("");
     }

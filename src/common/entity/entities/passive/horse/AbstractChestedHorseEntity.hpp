@@ -19,8 +19,7 @@ public:
      */
     AbstractChestedHorseEntity(LegacyEntityType type, EntityId id)
         : AbstractHorseEntity(type, id)
-    {
-    }
+    {}
 
     ~AbstractChestedHorseEntity() override = default;
 

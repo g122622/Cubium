@@ -1,13 +1,13 @@
 #include "PacketHandler.hpp"
-#include "PlayerManager.hpp"
 #include "ConnectionManager.hpp"
-#include "TeleportManager.hpp"
 #include "KeepAliveManager.hpp"
+#include "PlayerManager.hpp"
 #include "PositionTracker.hpp"
+#include "TeleportManager.hpp"
 #include "TimeManager.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/network/packet/EntityPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
 #include <spdlog/spdlog.h>
@@ -15,12 +15,12 @@
 namespace mc::server::core {
 
 PacketHandler::PacketHandler(PlayerManager& playerManager,
-                              ConnectionManager& connectionManager,
-                              TeleportManager& teleportManager,
-                              KeepAliveManager& keepAliveManager,
-                              PositionTracker& positionTracker,
-                              TimeManager& timeManager,
-                              const ServerCoreConfig& config)
+    ConnectionManager& connectionManager,
+    TeleportManager& teleportManager,
+    KeepAliveManager& keepAliveManager,
+    PositionTracker& positionTracker,
+    TimeManager& timeManager,
+    const ServerCoreConfig& config)
     : m_playerManager(playerManager)
     , m_connectionManager(connectionManager)
     , m_teleportManager(teleportManager)
@@ -28,10 +28,10 @@ PacketHandler::PacketHandler(PlayerManager& playerManager,
     , m_positionTracker(positionTracker)
     , m_timeManager(timeManager)
     , m_config(config)
-{
-}
+{}
 
-PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, size_t size)
+{
     if (size < network::PACKET_HEADER_SIZE) {
         spdlog::warn("PacketHandler: Packet too small from session {}", sessionId);
         return PacketHandleResult::Error;
@@ -85,14 +85,15 @@ PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, si
             return handleChatMessage(sessionId, payload, payloadSize);
 
         default:
-            spdlog::trace("PacketHandler: Unhandled packet type {} from session {}",
-                         static_cast<int>(packetType), sessionId);
+            spdlog::trace(
+                "PacketHandler: Unhandled packet type {} from session {}", static_cast<int>(packetType), sessionId);
             return PacketHandleResult::Ignore;
     }
 }
 
-LoginResult PacketHandler::handleLoginRequest(u32 sessionId, network::ConnectionPtr connection,
-                                               const u8* data, size_t size) {
+LoginResult PacketHandler::handleLoginRequest(
+    u32 sessionId, network::ConnectionPtr connection, const u8* data, size_t size)
+{
     LoginResult result;
 
     network::PacketDeserializer deser(data, size);
@@ -157,7 +158,8 @@ LoginResult PacketHandler::handleLoginRequest(u32 sessionId, network::Connection
     return result;
 }
 
-PacketHandleResult PacketHandler::handlePlayerMove(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handlePlayerMove(u32 sessionId, const u8* data, size_t size)
+{
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
         spdlog::trace("PacketHandler: Player move from unknown session {}", sessionId);
@@ -175,13 +177,13 @@ PacketHandleResult PacketHandler::handlePlayerMove(u32 sessionId, const u8* data
     auto& packet = result.value();
     const auto& pos = packet.position();
 
-    m_positionTracker.updatePosition(playerId, pos.x, pos.y, pos.z,
-                                      pos.yaw, pos.pitch, pos.onGround);
+    m_positionTracker.updatePosition(playerId, pos.x, pos.y, pos.z, pos.yaw, pos.pitch, pos.onGround);
 
     return PacketHandleResult::Success;
 }
 
-PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* data, size_t size)
+{
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
         spdlog::trace("PacketHandler: Player input from unknown session {}", sessionId);
@@ -205,13 +207,17 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
     // TODO: 将输入传递给玩家骑乘的载具
     // 这需要通过玩家ID获取玩家实体，然后获取其骑乘的载具
     spdlog::trace("PacketHandler: Player {} input: strafe={:.2f}, forward={:.2f}, jump={}, sneak={}",
-                  playerId, packet.strafeSpeed(), packet.forwardSpeed(),
-                  packet.isJumping(), packet.isSneaking());
+        playerId,
+        packet.strafeSpeed(),
+        packet.forwardSpeed(),
+        packet.isJumping(),
+        packet.isSneaking());
 
     return PacketHandleResult::Success;
 }
 
-PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* data, size_t size)
+{
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
         spdlog::trace("PacketHandler: Move vehicle from unknown session {}", sessionId);
@@ -231,12 +237,18 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
 
     // TODO: 验证并更新载具位置
     spdlog::trace("PacketHandler: Player {} move vehicle: ({:.2f}, {:.2f}, {:.2f}) yaw={:.1f} pitch={:.1f}",
-                  playerId, packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
+        playerId,
+        packet.x(),
+        packet.y(),
+        packet.z(),
+        packet.yaw(),
+        packet.pitch());
 
     return PacketHandleResult::Success;
 }
 
-PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* data, size_t size)
+{
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
         spdlog::trace("PacketHandler: Entity action from unknown session {}", sessionId);
@@ -260,12 +272,15 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
     // - StopSprinting: 停止疾跑
 
     spdlog::trace("PacketHandler: Player {} entity action: {} aux={}",
-                  playerId, static_cast<i32>(packet.action()), packet.auxData());
+        playerId,
+        static_cast<i32>(packet.action()),
+        packet.auxData());
 
     return PacketHandleResult::Success;
 }
 
-PacketHandleResult PacketHandler::handleTeleportConfirm(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handleTeleportConfirm(u32 sessionId, const u8* data, size_t size)
+{
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
         spdlog::trace("PacketHandler: Teleport confirm from unknown session {}", sessionId);
@@ -290,7 +305,8 @@ PacketHandleResult PacketHandler::handleTeleportConfirm(u32 sessionId, const u8*
     return PacketHandleResult::Success;
 }
 
-PacketHandleResult PacketHandler::handleKeepAlive(u32 sessionId, const u8* data, size_t size, u64 currentTimeMs) {
+PacketHandleResult PacketHandler::handleKeepAlive(u32 sessionId, const u8* data, size_t size, u64 currentTimeMs)
+{
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
         spdlog::error("PacketHandler: Keepalive from unknown session {}", sessionId);
@@ -310,7 +326,8 @@ PacketHandleResult PacketHandler::handleKeepAlive(u32 sessionId, const u8* data,
     return PacketHandleResult::Success;
 }
 
-PacketHandleResult PacketHandler::handleChatMessage(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handleChatMessage(u32 sessionId, const u8* data, size_t size)
+{
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
         spdlog::error("PacketHandler: Chat message from unknown session {}", sessionId);
@@ -343,7 +360,8 @@ PacketHandleResult PacketHandler::handleChatMessage(u32 sessionId, const u8* dat
     return PacketHandleResult::Success;
 }
 
-PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data, size_t size) {
+PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data, size_t size)
+{
     // MC 1.16.5: ServerPlayNetHandler.processUseEntity()
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
@@ -385,21 +403,25 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
         case network::UseEntityAction::Interact:
             // player->interactOn(*target, packet.hand());
             spdlog::trace("PacketHandler: Player {} INTERACT entity {} hand={}",
-                         playerId, packet.entityId(), static_cast<int>(packet.hand()));
+                playerId,
+                packet.entityId(),
+                static_cast<int>(packet.hand()));
             break;
 
         case network::UseEntityAction::Attack:
             // player->attack(*target);
-            spdlog::trace("PacketHandler: Player {} ATTACK entity {}",
-                         playerId, packet.entityId());
+            spdlog::trace("PacketHandler: Player {} ATTACK entity {}", playerId, packet.entityId());
             break;
 
         case network::UseEntityAction::InteractAt:
             // TODO: entity->applyPlayerInteraction(player, packet.hitPosition(), packet.hand())
             spdlog::trace("PacketHandler: Player {} INTERACT_AT entity {} pos=({},{},{}) hand={}",
-                         playerId, packet.entityId(),
-                         packet.hitX(), packet.hitY(), packet.hitZ(),
-                         static_cast<int>(packet.hand()));
+                playerId,
+                packet.entityId(),
+                packet.hitX(),
+                packet.hitY(),
+                packet.hitZ(),
+                static_cast<int>(packet.hand()));
             break;
     }
 

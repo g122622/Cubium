@@ -3,9 +3,9 @@
 #include "../../../item/core/ItemRegistry.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <random>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -21,7 +21,8 @@ bool WanderingTraderTrades::s_initialized = false;
 // 初始化
 // ============================================================================
 
-void WanderingTraderTrades::initialize() {
+void WanderingTraderTrades::initialize()
+{
     if (s_initialized) {
         return;
     }
@@ -38,15 +39,15 @@ void WanderingTraderTrades::initialize() {
     registerRareItemTrades();
 
     s_initialized = true;
-    spdlog::info("Wandering trader trades initialized: {} normal, {} rare",
-                 s_normalTrades.size(), s_rareTrades.size());
+    spdlog::info("Wandering trader trades initialized: {} normal, {} rare", s_normalTrades.size(), s_rareTrades.size());
 }
 
 // ============================================================================
 // 交易生成
 // ============================================================================
 
-std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateNormalOffers(u64 seed, i32 count) {
+std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateNormalOffers(u64 seed, i32 count)
+{
     auto offers = std::make_unique<MerchantOffers>();
 
     if (s_normalTrades.empty()) {
@@ -84,7 +85,8 @@ std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateNormalOffers(u64 
     return offers;
 }
 
-std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateRareOffers(u64 seed, i32 count) {
+std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateRareOffers(u64 seed, i32 count)
+{
     auto offers = std::make_unique<MerchantOffers>();
 
     if (s_rareTrades.empty()) {
@@ -122,7 +124,8 @@ std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateRareOffers(u64 se
     return offers;
 }
 
-std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateOffers(u64 seed) {
+std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateOffers(u64 seed)
+{
     auto offers = std::make_unique<MerchantOffers>();
 
     // 流浪商人交易生成规则（参考 MC 1.16.5）：
@@ -155,12 +158,10 @@ std::unique_ptr<MerchantOffers> WanderingTraderTrades::generateOffers(u64 seed) 
 // ============================================================================
 
 WanderingTraderTrades::TradeFactory WanderingTraderTrades::sellForEmeralds(
-    const char* sellItem, i32 sellCount,
-    i32 emeraldCount,
-    i32 maxUses, i32 xp) {
+    const char* sellItem, i32 sellCount, i32 emeraldCount, i32 maxUses, i32 xp)
+{
 
-    return [sellItem, sellCount, emeraldCount, maxUses, xp]
-           (u64 seed) -> std::unique_ptr<MerchantOffer> {
+    return [sellItem, sellCount, emeraldCount, maxUses, xp](u64 seed) -> std::unique_ptr<MerchantOffer> {
         (void)seed;
 
         const Item* sell = ItemRegistry::instance().getItem(ResourceLocation(sellItem));
@@ -174,18 +175,15 @@ WanderingTraderTrades::TradeFactory WanderingTraderTrades::sellForEmeralds(
         ItemStack sellStack(*sell, sellCount);
         ItemStack emeraldStack(*emerald, emeraldCount);
 
-        return std::make_unique<MerchantOffer>(
-            emeraldStack, sellStack, maxUses, xp, 0.05f);
+        return std::make_unique<MerchantOffer>(emeraldStack, sellStack, maxUses, xp, 0.05f);
     };
 }
 
 WanderingTraderTrades::TradeFactory WanderingTraderTrades::buyForEmeralds(
-    i32 emeraldCount,
-    const char* buyItem, i32 buyCount,
-    i32 maxUses, i32 xp) {
+    i32 emeraldCount, const char* buyItem, i32 buyCount, i32 maxUses, i32 xp)
+{
 
-    return [emeraldCount, buyItem, buyCount, maxUses, xp]
-           (u64 seed) -> std::unique_ptr<MerchantOffer> {
+    return [emeraldCount, buyItem, buyCount, maxUses, xp](u64 seed) -> std::unique_ptr<MerchantOffer> {
         (void)seed;
 
         const Item* buy = ItemRegistry::instance().getItem(ResourceLocation(buyItem));
@@ -199,16 +197,17 @@ WanderingTraderTrades::TradeFactory WanderingTraderTrades::buyForEmeralds(
         ItemStack emeraldStack(*emerald, emeraldCount);
         ItemStack buyStack(*buy, buyCount);
 
-        return std::make_unique<MerchantOffer>(
-            emeraldStack, buyStack, maxUses, xp, 0.05f);
+        return std::make_unique<MerchantOffer>(emeraldStack, buyStack, maxUses, xp, 0.05f);
     };
 }
 
-void WanderingTraderTrades::registerNormalTrade(TradeFactory factory) {
+void WanderingTraderTrades::registerNormalTrade(TradeFactory factory)
+{
     s_normalTrades.push_back(std::move(factory));
 }
 
-void WanderingTraderTrades::registerRareTrade(TradeFactory factory) {
+void WanderingTraderTrades::registerRareTrade(TradeFactory factory)
+{
     s_rareTrades.push_back(std::move(factory));
 }
 
@@ -216,7 +215,8 @@ void WanderingTraderTrades::registerRareTrade(TradeFactory factory) {
 // 海洋物品交易
 // ============================================================================
 
-void WanderingTraderTrades::registerOceanTrades() {
+void WanderingTraderTrades::registerOceanTrades()
+{
     // 海泡菜：2 绿宝石 -> 1 海泡菜
     registerNormalTrade(buyForEmeralds(2, "sea_pickle", 1, 5, 1));
 
@@ -240,7 +240,8 @@ void WanderingTraderTrades::registerOceanTrades() {
 // 植物交易
 // ============================================================================
 
-void WanderingTraderTrades::registerPlantTrades() {
+void WanderingTraderTrades::registerPlantTrades()
+{
     // 蕨：1 绿宝石 -> 1 蕨
     registerNormalTrade(buyForEmeralds(1, "fern", 1, 12, 1));
 
@@ -279,7 +280,8 @@ void WanderingTraderTrades::registerPlantTrades() {
 // 花朵交易
 // ============================================================================
 
-void WanderingTraderTrades::registerFlowerTrades() {
+void WanderingTraderTrades::registerFlowerTrades()
+{
     // 蒲公英：1 绿宝石 -> 1 蒲公英
     registerNormalTrade(buyForEmeralds(1, "dandelion", 1, 12, 1));
 
@@ -321,7 +323,8 @@ void WanderingTraderTrades::registerFlowerTrades() {
 // 种子交易
 // ============================================================================
 
-void WanderingTraderTrades::registerSeedTrades() {
+void WanderingTraderTrades::registerSeedTrades()
+{
     // 小麦种子：1 绿宝石 -> 1 小麦种子
     registerNormalTrade(buyForEmeralds(1, "wheat_seeds", 1, 12, 1));
 
@@ -339,7 +342,8 @@ void WanderingTraderTrades::registerSeedTrades() {
 // 树苗交易
 // ============================================================================
 
-void WanderingTraderTrades::registerSaplingTrades() {
+void WanderingTraderTrades::registerSaplingTrades()
+{
     // 金合欢树苗：5 绿宝石 -> 1 金合欢树苗
     registerNormalTrade(buyForEmeralds(5, "acacia_sapling", 1, 8, 1));
 
@@ -363,7 +367,8 @@ void WanderingTraderTrades::registerSaplingTrades() {
 // 染料交易
 // ============================================================================
 
-void WanderingTraderTrades::registerDyeTrades() {
+void WanderingTraderTrades::registerDyeTrades()
+{
     // 所有染料：1 绿宝石 -> 3 染料
     registerNormalTrade(buyForEmeralds(1, "red_dye", 3, 12, 1));
     registerNormalTrade(buyForEmeralds(1, "white_dye", 3, 12, 1));
@@ -387,7 +392,8 @@ void WanderingTraderTrades::registerDyeTrades() {
 // 珊瑚方块交易
 // ============================================================================
 
-void WanderingTraderTrades::registerCoralTrades() {
+void WanderingTraderTrades::registerCoralTrades()
+{
     // 脑纹珊瑚方块：3 绿宝石 -> 1 脑纹珊瑚方块
     registerNormalTrade(buyForEmeralds(3, "brain_coral_block", 1, 8, 1));
 
@@ -408,7 +414,8 @@ void WanderingTraderTrades::registerCoralTrades() {
 // 稀有物品交易
 // ============================================================================
 
-void WanderingTraderTrades::registerRareItemTrades() {
+void WanderingTraderTrades::registerRareItemTrades()
+{
     // 浮冰：3 绿宝石 -> 1 浮冰
     registerRareTrade(buyForEmeralds(3, "packed_ice", 1, 6, 1));
 

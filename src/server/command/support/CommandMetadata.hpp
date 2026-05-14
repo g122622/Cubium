@@ -15,13 +15,12 @@ namespace mc::command::support {
  * @param implemented 命令是否已完整实现
  * @return 适用于命令节点的元数据对象
  */
-[[nodiscard]] inline CommandNode<ServerCommandSource>::Metadata makeMetadata(
-    std::string description,
+[[nodiscard]] inline CommandNode<ServerCommandSource>::Metadata makeMetadata(std::string description,
     std::string usage,
     i32 permissionLevel,
     std::vector<std::string> aliases = {},
-    bool implemented = true
-) {
+    bool implemented = true)
+{
     CommandNode<ServerCommandSource>::Metadata metadata;
     metadata.description = std::move(description);
     metadata.usage = std::move(usage);
@@ -37,10 +36,9 @@ namespace mc::command::support {
  * @param node 目标命令节点
  * @param metadata 命令元数据
  */
-inline void applyMetadata(
-    const std::shared_ptr<LiteralCommandNode<ServerCommandSource>>& node,
-    const CommandNode<ServerCommandSource>::Metadata& metadata
-) {
+inline void applyMetadata(const std::shared_ptr<LiteralCommandNode<ServerCommandSource>>& node,
+    const CommandNode<ServerCommandSource>::Metadata& metadata)
+{
     node->setMetadataInfo(metadata);
 }
 

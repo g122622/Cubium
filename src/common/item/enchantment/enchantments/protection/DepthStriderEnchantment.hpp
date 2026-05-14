@@ -21,37 +21,30 @@ class DepthStriderEnchantment : public Enchantment {
 public:
     DepthStriderEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:depth_strider";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:depth_strider"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.depth_strider";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::ArmorFeet;
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::ArmorFeet; }
+
+    [[nodiscard]] i32 minLevel() const override { return 1; }
+
+    [[nodiscard]] i32 maxLevel() const override { return 3; }
+
+    [[nodiscard]] EnchantmentRarity rarity() const override
+    {
+        return EnchantmentRarity::Rare; // MC 1.16.5: RARE
     }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + (level - 1) * 10; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 3;
-    }
-
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Rare;  // MC 1.16.5: RARE
-    }
-
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 10 + (level - 1) * 10;
-    }
-
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 15;  // MC 1.16.5: getMinEnchantability + 15
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 15; // MC 1.16.5: getMinEnchantability + 15
     }
 
     /**
@@ -59,7 +52,8 @@ public:
      * @param level 附魔等级
      * @return 速度乘数 (0.0-1.0)
      */
-    [[nodiscard]] static f32 getWaterSpeedMultiplier(i32 level) {
+    [[nodiscard]] static f32 getWaterSpeedMultiplier(i32 level)
+    {
         // 每级减少 1/3 的水下移动惩罚
         return static_cast<f32>(level) / 3.0f;
     }

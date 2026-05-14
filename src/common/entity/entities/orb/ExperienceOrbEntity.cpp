@@ -1,17 +1,17 @@
 #include "ExperienceOrbEntity.hpp"
+#include "../../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../player/Player.hpp"
 #include "../../core/EntityRegistry.hpp"
 #include "../../core/EntityUtils.hpp"
-#include "../../experience/ExperienceUtils.hpp"
 #include "../../experience/ExperienceManager.hpp"
+#include "../../experience/ExperienceUtils.hpp"
 #include "../../inventory/PlayerInventory.hpp"
-#include "../../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include <cmath>
+#include "../player/Player.hpp"
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace mc {
@@ -35,25 +35,26 @@ ExperienceOrbEntity::ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32
     initData();
 }
 
-std::unique_ptr<Entity> ExperienceOrbEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ExperienceOrbEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<ExperienceOrbEntity>(1);
 }
 
-void ExperienceOrbEntity::initData() {
+void ExperienceOrbEntity::initData()
+{
     // 设置初始速度为随机值
     math::Random rng(static_cast<u64>(std::hash<i32>{}(static_cast<i32>(m_id))));
-    setVelocity(
-        static_cast<f32>(rng.nextDouble() * 0.2 - 0.1),
+    setVelocity(static_cast<f32>(rng.nextDouble() * 0.2 - 0.1),
         static_cast<f32>(rng.nextDouble() * 0.2),
-        static_cast<f32>(rng.nextDouble() * 0.2 - 0.1)
-    );
+        static_cast<f32>(rng.nextDouble() * 0.2 - 0.1));
 }
 
 // ============================================================================
 // Entity 接口
 // ============================================================================
 
-void ExperienceOrbEntity::tick() {
+void ExperienceOrbEntity::tick()
+{
     Entity::tick();
 
     m_age++;
@@ -72,7 +73,8 @@ void ExperienceOrbEntity::tick() {
     }
 }
 
-void ExperienceOrbEntity::baseTick() {
+void ExperienceOrbEntity::baseTick()
+{
     Entity::baseTick();
 
     // 减少着火时间
@@ -85,11 +87,13 @@ void ExperienceOrbEntity::baseTick() {
 // 经验相关
 // ============================================================================
 
-void ExperienceOrbEntity::setXpValue(i32 value) {
+void ExperienceOrbEntity::setXpValue(i32 value)
+{
     m_xpValue = std::clamp(value, 1, MAX_ORB_SIZE);
 }
 
-i32 ExperienceOrbEntity::getOrbSize() const {
+i32 ExperienceOrbEntity::getOrbSize() const
+{
     return entity::experience::utils::getOrbSize(m_xpValue);
 }
 
@@ -97,7 +101,8 @@ i32 ExperienceOrbEntity::getOrbSize() const {
 // 合并
 // ============================================================================
 
-bool ExperienceOrbEntity::tryMergeWith(ExperienceOrbEntity& other) {
+bool ExperienceOrbEntity::tryMergeWith(ExperienceOrbEntity& other)
+{
     if (!canMergeWith(other)) {
         return false;
     }
@@ -122,7 +127,8 @@ bool ExperienceOrbEntity::tryMergeWith(ExperienceOrbEntity& other) {
     return true;
 }
 
-bool ExperienceOrbEntity::canMergeWith(const ExperienceOrbEntity& other) const {
+bool ExperienceOrbEntity::canMergeWith(const ExperienceOrbEntity& other) const
+{
     // 不能和自己合并
     if (this == &other) {
         return false;
@@ -135,7 +141,8 @@ bool ExperienceOrbEntity::canMergeWith(const ExperienceOrbEntity& other) const {
 
     // 检查距离
     f32 distSq = distanceSqTo(other);
-    constexpr f32 MERGE_DISTANCE_SQ = entity::experience::constants::ORB_MERGE_DISTANCE * entity::experience::constants::ORB_MERGE_DISTANCE;
+    constexpr f32 MERGE_DISTANCE_SQ =
+        entity::experience::constants::ORB_MERGE_DISTANCE * entity::experience::constants::ORB_MERGE_DISTANCE;
 
     if (distSq > MERGE_DISTANCE_SQ) {
         return false;
@@ -154,7 +161,8 @@ bool ExperienceOrbEntity::canMergeWith(const ExperienceOrbEntity& other) const {
 // 拾取
 // ============================================================================
 
-void ExperienceOrbEntity::onCollideWithPlayer(Player& player) {
+void ExperienceOrbEntity::onCollideWithPlayer(Player& player)
+{
     // 检查拾取延迟
     if (!canBePickedUp()) {
         return;
@@ -182,17 +190,13 @@ void ExperienceOrbEntity::onCollideWithPlayer(Player& player) {
         player.setXpCooldown(2);
 
         // MC 1.16.5: 播放拾取音效
-        // world.playSound(position, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 0.1F, 0.5F * ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.8F))
+        // world.playSound(position, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 0.1F, 0.5F *
+        // ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.8F))
         if (m_world != nullptr) {
             math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_age));
             f32 pitch = 0.5f * ((rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.8f);
             m_world->playSound(
-                SoundEvents::ENTITY_EXPERIENCE_ORB_PICKUP,
-                sound::SoundCategory::Players,
-                m_position,
-                0.1f,
-                pitch
-            );
+                SoundEvents::ENTITY_EXPERIENCE_ORB_PICKUP, sound::SoundCategory::Players, m_position, 0.1f, pitch);
         }
 
         remove();
@@ -203,7 +207,8 @@ void ExperienceOrbEntity::onCollideWithPlayer(Player& player) {
 // 静态工具方法
 // ============================================================================
 
-i32 ExperienceOrbEntity::getXPSplit(i32 totalXp) {
+i32 ExperienceOrbEntity::getXPSplit(i32 totalXp)
+{
     return entity::experience::utils::getXPSplit(totalXp);
 }
 
@@ -211,7 +216,8 @@ i32 ExperienceOrbEntity::getXPSplit(i32 totalXp) {
 // 私有方法
 // ============================================================================
 
-void ExperienceOrbEntity::updateMovement() {
+void ExperienceOrbEntity::updateMovement()
+{
     Vector3 vel = velocity();
 
     if (isInWater()) {
@@ -233,13 +239,11 @@ void ExperienceOrbEntity::updateMovement() {
     vel = velocity();
     if (onGround()) {
         // MC 1.16.5: 获取脚下方块的实际滑度
-        f32 slipperiness = 0.6f;  // 默认滑度
+        f32 slipperiness = 0.6f; // 默认滑度
         if (m_world != nullptr) {
-            BlockPos groundPos(
-                static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y - 0.2)),  // 脚下方块
-                static_cast<i32>(std::floor(m_position.z))
-            );
+            BlockPos groundPos(static_cast<i32>(std::floor(m_position.x)),
+                static_cast<i32>(std::floor(m_position.y - 0.2)), // 脚下方块
+                static_cast<i32>(std::floor(m_position.z)));
             const BlockState* groundState = m_world->getBlockState(groundPos);
             if (groundState != nullptr) {
                 slipperiness = groundState->getBlock().getSlipperiness(*groundState, m_world, &groundPos, this);
@@ -248,7 +252,7 @@ void ExperienceOrbEntity::updateMovement() {
         f32 groundFriction = slipperiness * 0.98f;
         vel.x *= groundFriction;
         vel.z *= groundFriction;
-        vel.y *= -0.9f;  // Y轴反弹
+        vel.y *= -0.9f; // Y轴反弹
     } else {
         vel.x *= 0.98;
         vel.z *= 0.98;
@@ -262,12 +266,12 @@ void ExperienceOrbEntity::updateMovement() {
     setVelocity(vel);
 }
 
-void ExperienceOrbEntity::followNearestPlayer() {
+void ExperienceOrbEntity::followNearestPlayer()
+{
     constexpr i32 SEARCH_INTERVAL_BASE = 20;
 
     if (m_lastSearchTick < m_tickCounter - SEARCH_INTERVAL_BASE + (static_cast<i32>(id()) % 100)) {
-        if (m_trackingPlayer == nullptr ||
-            m_trackingPlayer->isRemoved() || m_trackingPlayer->isSpectator() ||
+        if (m_trackingPlayer == nullptr || m_trackingPlayer->isRemoved() || m_trackingPlayer->isSpectator() ||
             distanceSqTo(*m_trackingPlayer) > TRACKING_RANGE * TRACKING_RANGE) {
             m_trackingPlayer = findNearestPlayer();
         }
@@ -306,17 +310,14 @@ void ExperienceOrbEntity::followNearestPlayer() {
     }
 }
 
-Player* ExperienceOrbEntity::findNearestPlayer() const {
+Player* ExperienceOrbEntity::findNearestPlayer() const
+{
     return EntityUtils::findClosestEntity<Player>(
-        m_world,
-        position(),
-        TRACKING_RANGE,
-        nullptr,
-        [](Player* p) { return p->isAlive() && !p->isSpectator(); }
-    );
+        m_world, position(), TRACKING_RANGE, nullptr, [](Player* p) { return p->isAlive() && !p->isSpectator(); });
 }
 
-bool ExperienceOrbEntity::handleMending(Player& player) {
+bool ExperienceOrbEntity::handleMending(Player& player)
+{
     // 经验修补：每2点经验修复1点耐久
     // 参考 MC 1.16.5 ExperienceOrbEntity.damageItem
 
@@ -346,10 +347,10 @@ bool ExperienceOrbEntity::handleMending(Player& player) {
 
     // 护甲
     constexpr i32 armorSlots[] = {
-        InventorySlots::ARMOR_HEAD,   // 头盔
-        InventorySlots::ARMOR_CHEST,  // 胸甲
-        InventorySlots::ARMOR_LEGS,   // 护腿
-        InventorySlots::ARMOR_FEET    // 靴子
+        InventorySlots::ARMOR_HEAD,  // 头盔
+        InventorySlots::ARMOR_CHEST, // 胸甲
+        InventorySlots::ARMOR_LEGS,  // 护腿
+        InventorySlots::ARMOR_FEET   // 靴子
     };
 
     for (i32 slot : armorSlots) {
@@ -362,7 +363,7 @@ bool ExperienceOrbEntity::handleMending(Player& player) {
     }
 
     if (damagedSlots.empty()) {
-        return false;  // 没有需要修复的物品
+        return false; // 没有需要修复的物品
     }
 
     // 随机选择一个损坏的物品
@@ -406,7 +407,8 @@ bool ExperienceOrbEntity::handleMending(Player& player) {
     return true;
 }
 
-i32 ExperienceOrbEntity::giveExperienceToPlayer(Player& player) {
+i32 ExperienceOrbEntity::giveExperienceToPlayer(Player& player)
+{
     if (m_xpValue <= 0) {
         return 0;
     }

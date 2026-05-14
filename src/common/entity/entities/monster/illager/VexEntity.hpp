@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../MonsterEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -131,7 +131,7 @@ protected:
 private:
     // 生命周期
     bool m_limitedLife = true;
-    i32 m_lifeTime = 2400;  // 约2分钟
+    i32 m_lifeTime = 2400; // 约2分钟
 
     // 主人
     LivingEntity* m_owner = nullptr;

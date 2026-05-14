@@ -1,8 +1,8 @@
 #include "TridentPipeline.hpp"
 #include "../TridentContext.hpp"
-#include <spdlog/spdlog.h>
 #include <fstream>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident {
 
@@ -13,91 +13,140 @@ namespace mc::client::renderer::trident {
 /**
  * @brief 将 API BlendFactor 转换为 Vulkan VkBlendFactor
  */
-static VkBlendFactor toVulkanBlendFactor(api::BlendFactor factor) {
+static VkBlendFactor toVulkanBlendFactor(api::BlendFactor factor)
+{
     switch (factor) {
-        case api::BlendFactor::Zero: return VK_BLEND_FACTOR_ZERO;
-        case api::BlendFactor::One: return VK_BLEND_FACTOR_ONE;
-        case api::BlendFactor::SrcColor: return VK_BLEND_FACTOR_SRC_COLOR;
-        case api::BlendFactor::OneMinusSrcColor: return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-        case api::BlendFactor::DstColor: return VK_BLEND_FACTOR_DST_COLOR;
-        case api::BlendFactor::OneMinusDstColor: return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-        case api::BlendFactor::SrcAlpha: return VK_BLEND_FACTOR_SRC_ALPHA;
-        case api::BlendFactor::OneMinusSrcAlpha: return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        case api::BlendFactor::DstAlpha: return VK_BLEND_FACTOR_DST_ALPHA;
-        case api::BlendFactor::OneMinusDstAlpha: return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-        case api::BlendFactor::ConstantColor: return VK_BLEND_FACTOR_CONSTANT_COLOR;
-        case api::BlendFactor::OneMinusConstantColor: return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
-        case api::BlendFactor::ConstantAlpha: return VK_BLEND_FACTOR_CONSTANT_ALPHA;
-        case api::BlendFactor::OneMinusConstantAlpha: return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
-        case api::BlendFactor::SrcAlphaSaturate: return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
-        default: return VK_BLEND_FACTOR_ZERO;
+        case api::BlendFactor::Zero:
+            return VK_BLEND_FACTOR_ZERO;
+        case api::BlendFactor::One:
+            return VK_BLEND_FACTOR_ONE;
+        case api::BlendFactor::SrcColor:
+            return VK_BLEND_FACTOR_SRC_COLOR;
+        case api::BlendFactor::OneMinusSrcColor:
+            return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+        case api::BlendFactor::DstColor:
+            return VK_BLEND_FACTOR_DST_COLOR;
+        case api::BlendFactor::OneMinusDstColor:
+            return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+        case api::BlendFactor::SrcAlpha:
+            return VK_BLEND_FACTOR_SRC_ALPHA;
+        case api::BlendFactor::OneMinusSrcAlpha:
+            return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        case api::BlendFactor::DstAlpha:
+            return VK_BLEND_FACTOR_DST_ALPHA;
+        case api::BlendFactor::OneMinusDstAlpha:
+            return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+        case api::BlendFactor::ConstantColor:
+            return VK_BLEND_FACTOR_CONSTANT_COLOR;
+        case api::BlendFactor::OneMinusConstantColor:
+            return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+        case api::BlendFactor::ConstantAlpha:
+            return VK_BLEND_FACTOR_CONSTANT_ALPHA;
+        case api::BlendFactor::OneMinusConstantAlpha:
+            return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
+        case api::BlendFactor::SrcAlphaSaturate:
+            return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+        default:
+            return VK_BLEND_FACTOR_ZERO;
     }
 }
 
 /**
  * @brief 将 API BlendOp 转换为 Vulkan VkBlendOp
  */
-static VkBlendOp toVulkanBlendOp(api::BlendOp op) {
+static VkBlendOp toVulkanBlendOp(api::BlendOp op)
+{
     switch (op) {
-        case api::BlendOp::Add: return VK_BLEND_OP_ADD;
-        case api::BlendOp::Subtract: return VK_BLEND_OP_SUBTRACT;
-        case api::BlendOp::ReverseSubtract: return VK_BLEND_OP_REVERSE_SUBTRACT;
-        case api::BlendOp::Min: return VK_BLEND_OP_MIN;
-        case api::BlendOp::Max: return VK_BLEND_OP_MAX;
-        default: return VK_BLEND_OP_ADD;
+        case api::BlendOp::Add:
+            return VK_BLEND_OP_ADD;
+        case api::BlendOp::Subtract:
+            return VK_BLEND_OP_SUBTRACT;
+        case api::BlendOp::ReverseSubtract:
+            return VK_BLEND_OP_REVERSE_SUBTRACT;
+        case api::BlendOp::Min:
+            return VK_BLEND_OP_MIN;
+        case api::BlendOp::Max:
+            return VK_BLEND_OP_MAX;
+        default:
+            return VK_BLEND_OP_ADD;
     }
 }
 
 /**
  * @brief 将 API CompareOp 转换为 Vulkan VkCompareOp
  */
-static VkCompareOp toVulkanCompareOp(api::CompareOp op) {
+static VkCompareOp toVulkanCompareOp(api::CompareOp op)
+{
     switch (op) {
-        case api::CompareOp::Never: return VK_COMPARE_OP_NEVER;
-        case api::CompareOp::Less: return VK_COMPARE_OP_LESS;
-        case api::CompareOp::Equal: return VK_COMPARE_OP_EQUAL;
-        case api::CompareOp::LessEqual: return VK_COMPARE_OP_LESS_OR_EQUAL;
-        case api::CompareOp::Greater: return VK_COMPARE_OP_GREATER;
-        case api::CompareOp::NotEqual: return VK_COMPARE_OP_NOT_EQUAL;
-        case api::CompareOp::GreaterEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
-        case api::CompareOp::Always: return VK_COMPARE_OP_ALWAYS;
-        default: return VK_COMPARE_OP_LESS;
+        case api::CompareOp::Never:
+            return VK_COMPARE_OP_NEVER;
+        case api::CompareOp::Less:
+            return VK_COMPARE_OP_LESS;
+        case api::CompareOp::Equal:
+            return VK_COMPARE_OP_EQUAL;
+        case api::CompareOp::LessEqual:
+            return VK_COMPARE_OP_LESS_OR_EQUAL;
+        case api::CompareOp::Greater:
+            return VK_COMPARE_OP_GREATER;
+        case api::CompareOp::NotEqual:
+            return VK_COMPARE_OP_NOT_EQUAL;
+        case api::CompareOp::GreaterEqual:
+            return VK_COMPARE_OP_GREATER_OR_EQUAL;
+        case api::CompareOp::Always:
+            return VK_COMPARE_OP_ALWAYS;
+        default:
+            return VK_COMPARE_OP_LESS;
     }
 }
 
 /**
  * @brief 将 API CullMode 转换为 Vulkan VkCullModeFlags
  */
-static VkCullModeFlags toVulkanCullMode(api::CullMode mode) {
+static VkCullModeFlags toVulkanCullMode(api::CullMode mode)
+{
     switch (mode) {
-        case api::CullMode::None: return VK_CULL_MODE_NONE;
-        case api::CullMode::Front: return VK_CULL_MODE_FRONT_BIT;
-        case api::CullMode::Back: return VK_CULL_MODE_BACK_BIT;
-        case api::CullMode::FrontAndBack: return VK_CULL_MODE_FRONT_AND_BACK;
-        default: return VK_CULL_MODE_BACK_BIT;
+        case api::CullMode::None:
+            return VK_CULL_MODE_NONE;
+        case api::CullMode::Front:
+            return VK_CULL_MODE_FRONT_BIT;
+        case api::CullMode::Back:
+            return VK_CULL_MODE_BACK_BIT;
+        case api::CullMode::FrontAndBack:
+            return VK_CULL_MODE_FRONT_AND_BACK;
+        default:
+            return VK_CULL_MODE_BACK_BIT;
     }
 }
 
 /**
  * @brief 将 API FrontFace 转换为 Vulkan VkFrontFace
  */
-static VkFrontFace toVulkanFrontFace(api::FrontFace face) {
+static VkFrontFace toVulkanFrontFace(api::FrontFace face)
+{
     switch (face) {
-        case api::FrontFace::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        case api::FrontFace::Clockwise: return VK_FRONT_FACE_CLOCKWISE;
-        default: return VK_FRONT_FACE_CLOCKWISE;
+        case api::FrontFace::CounterClockwise:
+            return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        case api::FrontFace::Clockwise:
+            return VK_FRONT_FACE_CLOCKWISE;
+        default:
+            return VK_FRONT_FACE_CLOCKWISE;
     }
 }
 
 /**
  * @brief 将 API PolygonMode 转换为 Vulkan VkPolygonMode
  */
-static VkPolygonMode toVulkanPolygonMode(api::PolygonMode mode) {
+static VkPolygonMode toVulkanPolygonMode(api::PolygonMode mode)
+{
     switch (mode) {
-        case api::PolygonMode::Fill: return VK_POLYGON_MODE_FILL;
-        case api::PolygonMode::Line: return VK_POLYGON_MODE_LINE;
-        case api::PolygonMode::Point: return VK_POLYGON_MODE_POINT;
-        default: return VK_POLYGON_MODE_FILL;
+        case api::PolygonMode::Fill:
+            return VK_POLYGON_MODE_FILL;
+        case api::PolygonMode::Line:
+            return VK_POLYGON_MODE_LINE;
+        case api::PolygonMode::Point:
+            return VK_POLYGON_MODE_POINT;
+        default:
+            return VK_POLYGON_MODE_FILL;
     }
 }
 
@@ -107,7 +156,8 @@ static VkPolygonMode toVulkanPolygonMode(api::PolygonMode mode) {
 
 TridentPipeline::TridentPipeline() = default;
 
-TridentPipeline::~TridentPipeline() {
+TridentPipeline::~TridentPipeline()
+{
     destroy();
 }
 
@@ -124,7 +174,8 @@ TridentPipeline::TridentPipeline(TridentPipeline&& other) noexcept
     other.m_layout = VK_NULL_HANDLE;
 }
 
-TridentPipeline& TridentPipeline::operator=(TridentPipeline&& other) noexcept {
+TridentPipeline& TridentPipeline::operator=(TridentPipeline&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -141,7 +192,8 @@ TridentPipeline& TridentPipeline::operator=(TridentPipeline&& other) noexcept {
     return *this;
 }
 
-Result<void> TridentPipeline::create(TridentContext* context, const TridentPipelineConfig& config) {
+Result<void> TridentPipeline::create(TridentContext* context, const TridentPipelineConfig& config)
+{
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }
@@ -163,7 +215,8 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
 
     VkResult result = vkCreatePipelineLayout(m_context->device(), &layoutInfo, nullptr, &m_layout);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed, "Failed to create pipeline layout: " + std::to_string(static_cast<i32>(result)));
+        return Error(ErrorCode::InitializationFailed,
+            "Failed to create pipeline layout: " + std::to_string(static_cast<i32>(result)));
     }
 
     // 加载着色器（如果尚未通过 createFromDesc 加载）
@@ -206,7 +259,8 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
     vertexInputInfo.vertexBindingDescriptionCount = static_cast<u32>(config.vertexBindings.size());
     vertexInputInfo.pVertexBindingDescriptions = config.vertexBindings.empty() ? nullptr : config.vertexBindings.data();
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(config.vertexAttributes.size());
-    vertexInputInfo.pVertexAttributeDescriptions = config.vertexAttributes.empty() ? nullptr : config.vertexAttributes.data();
+    vertexInputInfo.pVertexAttributeDescriptions =
+        config.vertexAttributes.empty() ? nullptr : config.vertexAttributes.data();
 
     // 输入装配
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -218,9 +272,9 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
-    viewportState.pViewports = nullptr;  // 动态
+    viewportState.pViewports = nullptr; // 动态
     viewportState.scissorCount = 1;
-    viewportState.pScissors = nullptr;   // 动态
+    viewportState.pScissors = nullptr; // 动态
 
     // 光栅化
     VkPipelineRasterizationStateCreateInfo rasterizer{};
@@ -282,10 +336,7 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
     colorBlending.blendConstants[3] = 0.0f;
 
     // 动态状态
-    std::vector<VkDynamicState> dynamicStates = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
+    std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -314,7 +365,8 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
     result = vkCreateGraphicsPipelines(m_context->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline);
     if (result != VK_SUCCESS) {
         destroy();
-        return Error(ErrorCode::InitializationFailed, "Failed to create graphics pipeline: " + std::to_string(static_cast<i32>(result)));
+        return Error(ErrorCode::InitializationFailed,
+            "Failed to create graphics pipeline: " + std::to_string(static_cast<i32>(result)));
     }
 
     // 销毁着色器模块（管线已创建，不再需要）
@@ -331,9 +383,7 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
 }
 
 Result<void> TridentPipeline::createFromDesc(
-    TridentContext* context,
-    const api::PipelineDesc& desc,
-    VkRenderPass renderPass)
+    TridentContext* context, const api::PipelineDesc& desc, VkRenderPass renderPass)
 {
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
@@ -394,10 +444,9 @@ Result<void> TridentPipeline::createFromDesc(
         shaderModule.stage = shader.stage == api::ShaderStage::Vertex
             ? VK_SHADER_STAGE_VERTEX_BIT
             : (shader.stage == api::ShaderStage::Fragment
-                ? VK_SHADER_STAGE_FRAGMENT_BIT
-                : (shader.stage == api::ShaderStage::Geometry
-                    ? VK_SHADER_STAGE_GEOMETRY_BIT
-                    : VK_SHADER_STAGE_VERTEX_BIT));
+                      ? VK_SHADER_STAGE_FRAGMENT_BIT
+                      : (shader.stage == api::ShaderStage::Geometry ? VK_SHADER_STAGE_GEOMETRY_BIT
+                                                                    : VK_SHADER_STAGE_VERTEX_BIT));
         shaderModule.entryPoint = shader.entryPoint;
         m_shaders.push_back(shaderModule);
     }
@@ -405,7 +454,8 @@ Result<void> TridentPipeline::createFromDesc(
     return create(context, config);
 }
 
-void TridentPipeline::destroy() {
+void TridentPipeline::destroy()
+{
     if (m_context == nullptr) return;
 
     for (auto& shader : m_shaders) {
@@ -429,16 +479,12 @@ void TridentPipeline::destroy() {
     m_context = nullptr;
 }
 
-void TridentPipeline::bind(void* commandBuffer) {
-    vkCmdBindPipeline(
-        static_cast<VkCommandBuffer>(commandBuffer),
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_pipeline);
+void TridentPipeline::bind(void* commandBuffer)
+{
+    vkCmdBindPipeline(static_cast<VkCommandBuffer>(commandBuffer), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }
 
-Result<VkShaderModule> TridentPipeline::createShaderModule(
-    TridentContext* context,
-    const std::vector<u8>& code)
+Result<VkShaderModule> TridentPipeline::createShaderModule(TridentContext* context, const std::vector<u8>& code)
 {
     if (code.size() % 4 != 0) {
         return Error(ErrorCode::InvalidData, "Shader code size must be a multiple of 4");
@@ -452,7 +498,8 @@ Result<VkShaderModule> TridentPipeline::createShaderModule(
     VkShaderModule shaderModule;
     VkResult result = vkCreateShaderModule(context->device(), &createInfo, nullptr, &shaderModule);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed, "Failed to create shader module: " + std::to_string(static_cast<i32>(result)));
+        return Error(ErrorCode::InitializationFailed,
+            "Failed to create shader module: " + std::to_string(static_cast<i32>(result)));
     }
 
     return shaderModule;
@@ -460,9 +507,7 @@ Result<VkShaderModule> TridentPipeline::createShaderModule(
 
 // 辅助函数：加载着色器
 static Result<TridentShaderModule> loadShaderFromFile(
-    TridentContext* context,
-    const std::string& path,
-    api::ShaderStage stage)
+    TridentContext* context, const std::string& path, api::ShaderStage stage)
 {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -489,7 +534,8 @@ static Result<TridentShaderModule> loadShaderFromFile(
     return shader;
 }
 
-Result<TridentShaderModule> TridentPipeline::loadShader(const std::string& path, api::ShaderStage stage) {
+Result<TridentShaderModule> TridentPipeline::loadShader(const std::string& path, api::ShaderStage stage)
+{
     return loadShaderFromFile(m_context, path, stage);
 }
 
@@ -499,7 +545,8 @@ Result<TridentShaderModule> TridentPipeline::loadShader(const std::string& path,
 
 TridentPipelineCache::TridentPipelineCache() = default;
 
-TridentPipelineCache::~TridentPipelineCache() {
+TridentPipelineCache::~TridentPipelineCache()
+{
     destroy();
 }
 
@@ -512,7 +559,8 @@ TridentPipelineCache::TridentPipelineCache(TridentPipelineCache&& other) noexcep
     other.m_cache = VK_NULL_HANDLE;
 }
 
-TridentPipelineCache& TridentPipelineCache::operator=(TridentPipelineCache&& other) noexcept {
+TridentPipelineCache& TridentPipelineCache::operator=(TridentPipelineCache&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -525,7 +573,8 @@ TridentPipelineCache& TridentPipelineCache::operator=(TridentPipelineCache&& oth
     return *this;
 }
 
-Result<void> TridentPipelineCache::create(TridentContext* context, const std::string& cachePath) {
+Result<void> TridentPipelineCache::create(TridentContext* context, const std::string& cachePath)
+{
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }
@@ -557,13 +606,15 @@ Result<void> TridentPipelineCache::create(TridentContext* context, const std::st
 
     VkResult result = vkCreatePipelineCache(context->device(), &cacheInfo, nullptr, &m_cache);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed, "Failed to create pipeline cache: " + std::to_string(static_cast<i32>(result)));
+        return Error(ErrorCode::InitializationFailed,
+            "Failed to create pipeline cache: " + std::to_string(static_cast<i32>(result)));
     }
 
     return {};
 }
 
-void TridentPipelineCache::destroy() {
+void TridentPipelineCache::destroy()
+{
     if (m_context == nullptr) return;
 
     // 保存缓存到文件
@@ -577,7 +628,8 @@ void TridentPipelineCache::destroy() {
 
             std::ofstream file(m_cachePath, std::ios::binary);
             if (file.is_open()) {
-                file.write(reinterpret_cast<const char*>(cacheData.data()), static_cast<std::streamsize>(cacheData.size()));
+                file.write(
+                    reinterpret_cast<const char*>(cacheData.data()), static_cast<std::streamsize>(cacheData.size()));
                 spdlog::info("Saved pipeline cache to: {} ({} bytes)", m_cachePath, cacheData.size());
             }
         }

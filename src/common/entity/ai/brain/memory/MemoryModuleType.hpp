@@ -37,27 +37,17 @@ class MemoryModuleTypeBase {
 public:
     explicit MemoryModuleTypeBase(const std::string& name)
         : m_name(name)
-    {
-    }
+    {}
 
     virtual ~MemoryModuleTypeBase() = default;
 
-    [[nodiscard]] const std::string& getName() const
-    {
-        return m_name;
-    }
+    [[nodiscard]] const std::string& getName() const { return m_name; }
 
     [[nodiscard]] virtual size_t getTypeHash() const = 0;
 
-    bool operator==(const MemoryModuleTypeBase& other) const
-    {
-        return m_name == other.m_name;
-    }
+    bool operator==(const MemoryModuleTypeBase& other) const { return m_name == other.m_name; }
 
-    bool operator!=(const MemoryModuleTypeBase& other) const
-    {
-        return !(*this == other);
-    }
+    bool operator!=(const MemoryModuleTypeBase& other) const { return !(*this == other); }
 
 protected:
     std::string m_name;
@@ -71,13 +61,9 @@ class MemoryModuleType : public MemoryModuleTypeBase {
 public:
     explicit MemoryModuleType(const std::string& name)
         : MemoryModuleTypeBase(name)
-    {
-    }
+    {}
 
-    [[nodiscard]] size_t getTypeHash() const override
-    {
-        return std::hash<std::string>{}(m_name);
-    }
+    [[nodiscard]] size_t getTypeHash() const override { return std::hash<std::string>{}(m_name); }
 };
 
 /**
@@ -127,7 +113,7 @@ public:
 
     // ========== 门相关 (MC 1.16.5) ==========
     static const MemoryModuleType<std::vector<GlobalPos>>* INTERACTABLE_DOORS;  // 可交互的门列表
-    static const MemoryModuleType<std::unordered_set<GlobalPos>>* OPENED_DOORS;  // 打开的门集合 (MC: Set<GlobalPos>)
+    static const MemoryModuleType<std::unordered_set<GlobalPos>>* OPENED_DOORS; // 打开的门集合 (MC: Set<GlobalPos>)
 
     // ========== 战斗相关 (MC 1.16.5) ==========
     static const MemoryModuleType<bool>* ATTACK_COOLING_DOWN;
@@ -147,19 +133,19 @@ public:
     static const MemoryModuleType<bool>* DANCING;
     static const MemoryModuleType<bool>* ATE_RECENTLY;
     static const MemoryModuleType<bool>* PACIFIED;
-    static const MemoryModuleType<bool>* GOLEM_DETECTED_RECENTLY;  // MC: field_242309_E
+    static const MemoryModuleType<bool>* GOLEM_DETECTED_RECENTLY; // MC: field_242309_E
     static const MemoryModuleType<bool>* UNIVERSAL_ANGER;
 
     // ========== 计时器相关 (MC 1.16.5) ==========
-    static const MemoryModuleType<i32>* TIME_TRYING_TO_REACH_ADMIRE_ITEM;  // MC: field_242310_O
-    static const MemoryModuleType<bool>* DISABLE_WALK_TO_ADMIRE_ITEM;      // MC: field_242311_P
+    static const MemoryModuleType<i32>* TIME_TRYING_TO_REACH_ADMIRE_ITEM; // MC: field_242310_O
+    static const MemoryModuleType<bool>* DISABLE_WALK_TO_ADMIRE_ITEM;     // MC: field_242311_P
 
     // ========== 玩家相关 (MC 1.16.5) ==========
     static const MemoryModuleType<Player*>* TEMPTING_PLAYER;
     static const MemoryModuleType<Player*>* NEAREST_PLAYER_HOLDING_WANTED_ITEM;
 
     // ========== UUID 相关 (MC 1.16.5) ==========
-    static const MemoryModuleType<u64>* ANGRY_AT;  // 原 UUID 类型，使用 u64 存储
+    static const MemoryModuleType<u64>* ANGRY_AT; // 原 UUID 类型，使用 u64 存储
 
     // ========== 猪灵/猪灵相关 (MC 1.16.5) ==========
     // TODO：需要 HoglinEntity 和 AbstractPiglinEntity 类型
@@ -207,8 +193,8 @@ public:
     static const MemoryModuleType<i32>* LISTENING_NOTEBLOCK_COOLDOWN_TICKS;
 
     // 1.17+ 青蛙/山羊相关 (保留用于未来扩展)
-    static const MemoryModuleType<BlockPos>* TONGUE_TARGET;  // 青蛙舌头目标
-    static const MemoryModuleType<Entity*>* RAM_TARGET;      // 山羊冲撞目标
+    static const MemoryModuleType<BlockPos>* TONGUE_TARGET; // 青蛙舌头目标
+    static const MemoryModuleType<Entity*>* RAM_TARGET;     // 山羊冲撞目标
 
     // 1.19+ Sniffer 相关 (保留用于未来扩展)
     static const MemoryModuleType<BlockPos>* SNIFFER_SNIFFING_TARGET;

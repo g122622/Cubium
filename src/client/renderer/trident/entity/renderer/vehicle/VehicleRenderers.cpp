@@ -7,7 +7,7 @@
 namespace mc::client::renderer::entity::renderer::vehicle {
 
 namespace {
-    using mc::math::PI_DOUBLE;
+using mc::math::PI_DOUBLE;
 }
 
 // ==================== 船模型 ====================
@@ -19,7 +19,8 @@ BoatModel::BoatModel()
     setupParts();
 }
 
-void BoatModel::setupParts() {
+void BoatModel::setupParts()
+{
     // 参考 MC 1.16.5 BoatModel
     // 纹理尺寸：128x64
 
@@ -94,7 +95,8 @@ void BoatModel::setupParts() {
     m_noWater->setRotateAngleX(static_cast<f32>(PI_DOUBLE / 2.0));
 }
 
-void BoatModel::render(f64 scale) {
+void BoatModel::render(f64 scale)
+{
     if (m_bottom) m_bottom->render(scale);
     if (m_right) m_right->render(scale);
     if (m_left) m_left->render(scale);
@@ -104,11 +106,13 @@ void BoatModel::render(f64 scale) {
     if (m_paddleRight) m_paddleRight->render(scale);
 }
 
-void BoatModel::renderNoWater(f64 scale) {
+void BoatModel::renderNoWater(f64 scale)
+{
     if (m_noWater) m_noWater->render(scale);
 }
 
-void BoatModel::setPaddleAngle(i32 paddleIndex, f32 angle) {
+void BoatModel::setPaddleAngle(i32 paddleIndex, f32 angle)
+{
     if (paddleIndex == 0 && m_paddleLeft) {
         m_paddleLeft->setRotateAngleX(angle);
     } else if (paddleIndex == 1 && m_paddleRight) {
@@ -127,7 +131,8 @@ BoatRenderer::BoatRenderer(BoatType type)
     m_shadowAlpha = 0.8f;
 }
 
-void BoatRenderer::render(Entity& entity, f64 partialTicks) {
+void BoatRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 BoatRenderer.render()
     // 1. 计算船的朝向和倾斜
     // 2. 处理受损抖动
@@ -142,19 +147,19 @@ void BoatRenderer::render(Entity& entity, f64 partialTicks) {
     (void)partialTicks;
 }
 
-ResourceLocation BoatRenderer::getTexture() const {
-    static const ResourceLocation textures[] = {
-        ResourceLocation("minecraft", "textures/entity/boat/oak.png"),
+ResourceLocation BoatRenderer::getTexture() const
+{
+    static const ResourceLocation textures[] = {ResourceLocation("minecraft", "textures/entity/boat/oak.png"),
         ResourceLocation("minecraft", "textures/entity/boat/spruce.png"),
         ResourceLocation("minecraft", "textures/entity/boat/birch.png"),
         ResourceLocation("minecraft", "textures/entity/boat/jungle.png"),
         ResourceLocation("minecraft", "textures/entity/boat/acacia.png"),
-        ResourceLocation("minecraft", "textures/entity/boat/dark_oak.png")
-    };
+        ResourceLocation("minecraft", "textures/entity/boat/dark_oak.png")};
     return textures[static_cast<size_t>(m_type)];
 }
 
-f64 BoatRenderer::calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const {
+f64 BoatRenderer::calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const
+{
     // 参考 MC 1.16.5 BoatRenderer
     // 计算船的摇晃角度
     // 基于船在水面上的起伏和速度
@@ -165,11 +170,13 @@ f64 BoatRenderer::calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks
 
 // ==================== 矿车模型 ====================
 
-MinecartModel::MinecartModel() {
+MinecartModel::MinecartModel()
+{
     setupParts();
 }
 
-void MinecartModel::setupParts() {
+void MinecartModel::setupParts()
+{
     // 参考 MC 1.16.5 MinecartModel
     // 纹理尺寸：64x32
     // 6个面：底部、左侧、右侧、前面、后面、内部底
@@ -222,7 +229,8 @@ void MinecartModel::setupParts() {
     m_sides[5]->setRotateAngleX(static_cast<f32>(-PI_DOUBLE / 2.0));
 }
 
-void MinecartModel::render(f64 scale) {
+void MinecartModel::render(f64 scale)
+{
     for (auto& side : m_sides) {
         if (side) {
             side->render(scale);
@@ -230,7 +238,8 @@ void MinecartModel::render(f64 scale) {
     }
 }
 
-void MinecartModel::setInsideOffset(f32 yOffset) {
+void MinecartModel::setInsideOffset(f32 yOffset)
+{
     if (m_sides[5]) {
         m_sides[5]->setRotationPointY(4.0f - yOffset);
     }
@@ -246,7 +255,8 @@ MinecartRenderer::MinecartRenderer()
     m_shadowAlpha = 0.8f;
 }
 
-void MinecartRenderer::render(Entity& entity, f64 partialTicks) {
+void MinecartRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 MinecartRenderer.render()
     // 1. 计算矿车方向和位置
     // 2. 处理受损抖动
@@ -261,63 +271,55 @@ void MinecartRenderer::render(Entity& entity, f64 partialTicks) {
     (void)partialTicks;
 }
 
-ResourceLocation MinecartRenderer::getMinecartTexture() {
+ResourceLocation MinecartRenderer::getMinecartTexture()
+{
     return ResourceLocation("minecraft", "textures/entity/minecart.png");
 }
 
-void MinecartRenderer::calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks) {
+void MinecartRenderer::calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks)
+{
     (void)minecart;
     (void)partialTicks;
 }
 
 // ==================== 注册函数 ====================
 
-void registerVehicleRenderers(::mc::client::renderer::entity::EntityRendererManager& manager) {
+void registerVehicleRenderers(::mc::client::renderer::entity::EntityRendererManager& manager)
+{
     // 注册各种木材类型的船
-    manager.registerRenderer("minecraft:boat", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<BoatRenderer>(BoatType::Oak);
-    });
+    manager.registerRenderer("minecraft:boat",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Oak); });
 
-    manager.registerRenderer("minecraft:spruce_boat", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<BoatRenderer>(BoatType::Spruce);
-    });
+    manager.registerRenderer("minecraft:spruce_boat",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Spruce); });
 
-    manager.registerRenderer("minecraft:birch_boat", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<BoatRenderer>(BoatType::Birch);
-    });
+    manager.registerRenderer("minecraft:birch_boat",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Birch); });
 
-    manager.registerRenderer("minecraft:jungle_boat", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<BoatRenderer>(BoatType::Jungle);
-    });
+    manager.registerRenderer("minecraft:jungle_boat",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Jungle); });
 
-    manager.registerRenderer("minecraft:acacia_boat", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<BoatRenderer>(BoatType::Acacia);
-    });
+    manager.registerRenderer("minecraft:acacia_boat",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Acacia); });
 
-    manager.registerRenderer("minecraft:dark_oak_boat", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<BoatRenderer>(BoatType::DarkOak);
-    });
+    manager.registerRenderer("minecraft:dark_oak_boat",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::DarkOak); });
 
     // 注册矿车
-    manager.registerRenderer("minecraft:minecart", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<MinecartRenderer>();
-    });
+    manager.registerRenderer("minecraft:minecart",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
 
-    manager.registerRenderer("minecraft:chest_minecart", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<MinecartRenderer>();
-    });
+    manager.registerRenderer("minecraft:chest_minecart",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
 
-    manager.registerRenderer("minecraft:furnace_minecart", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<MinecartRenderer>();
-    });
+    manager.registerRenderer("minecraft:furnace_minecart",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
 
-    manager.registerRenderer("minecraft:hopper_minecart", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<MinecartRenderer>();
-    });
+    manager.registerRenderer("minecraft:hopper_minecart",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
 
-    manager.registerRenderer("minecraft:tnt_minecart", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<MinecartRenderer>();
-    });
+    manager.registerRenderer("minecraft:tnt_minecart",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::vehicle

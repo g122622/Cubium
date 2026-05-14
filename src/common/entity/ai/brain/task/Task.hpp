@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../../../util/math/random/Random.hpp"
+#include "../Brain.hpp"
 #include "../memory/MemoryModuleStatus.hpp"
 #include "../memory/MemoryModuleType.hpp"
 #include "../schedule/Activity.hpp"
-#include "../Brain.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace mc {
 
@@ -22,10 +22,7 @@ namespace task {
 /**
  * @brief Brain任务状态
  */
-enum class TaskStatus {
-    STOPPED,
-    RUNNING
-};
+enum class TaskStatus { STOPPED, RUNNING };
 
 /**
  * @brief Brain任务基类
@@ -51,7 +48,8 @@ public:
         , m_status(TaskStatus::STOPPED)
         , m_stopTime(0)
         , m_durationMin(durationMin)
-        , m_durationMax(durationMax) {}
+        , m_durationMax(durationMax)
+    {}
 
     virtual ~Task() = default;
 
@@ -68,7 +66,8 @@ public:
      * @param random 随机数生成器（MC 1.16.5使用world.getRandom()）
      * @return 是否成功启动
      */
-    bool start(IWorld* world, E* owner, i64 gameTime, math::Random& random) {
+    bool start(IWorld* world, E* owner, i64 gameTime, math::Random& random)
+    {
         if (hasRequiredMemories(owner) && shouldExecute(world, owner)) {
             m_status = TaskStatus::RUNNING;
 
@@ -93,7 +92,8 @@ public:
      * @param owner 实体
      * @param gameTime 游戏时间
      */
-    void tick(IWorld* world, E* owner, i64 gameTime) {
+    void tick(IWorld* world, E* owner, i64 gameTime)
+    {
         if (!isTimedOut(gameTime) && shouldContinueExecuting(world, owner, gameTime)) {
             updateTask(world, owner, gameTime);
         } else {
@@ -107,7 +107,8 @@ public:
      * @param owner 实体
      * @param gameTime 游戏时间
      */
-    void stop(IWorld* world, E* owner, i64 gameTime) {
+    void stop(IWorld* world, E* owner, i64 gameTime)
+    {
         m_status = TaskStatus::STOPPED;
         resetTask(world, owner, gameTime);
     }
@@ -115,24 +116,18 @@ public:
     /**
      * @brief 获取任务名称
      */
-    [[nodiscard]] virtual std::string getName() const {
-        return "Task";
-    }
+    [[nodiscard]] virtual std::string getName() const { return "Task"; }
 
 protected:
     /**
      * @brief 检查是否应该执行
      */
-    virtual bool shouldExecute(IWorld* /*world*/, E* /*owner*/) {
-        return true;
-    }
+    virtual bool shouldExecute(IWorld* /*world*/, E* /*owner*/) { return true; }
 
     /**
      * @brief 检查是否应该继续执行
      */
-    virtual bool shouldContinueExecuting(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {
-        return false;
-    }
+    virtual bool shouldContinueExecuting(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) { return false; }
 
     /**
      * @brief 开始执行时的回调
@@ -152,9 +147,7 @@ protected:
     /**
      * @brief 检查是否超时
      */
-    [[nodiscard]] bool isTimedOut(i64 gameTime) const {
-        return gameTime > m_stopTime;
-    }
+    [[nodiscard]] bool isTimedOut(i64 gameTime) const { return gameTime > m_stopTime; }
 
     MemoryStateMap m_requiredMemoryState;
 
@@ -163,7 +156,8 @@ private:
      * @brief 检查实体是否有所需的记忆状态
      * MC 1.16.5: Task.hasRequiredMemories()
      */
-    bool hasRequiredMemories(E* owner) {
+    bool hasRequiredMemories(E* owner)
+    {
         if (!owner) {
             return false;
         }

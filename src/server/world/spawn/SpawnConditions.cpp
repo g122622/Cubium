@@ -1,8 +1,8 @@
 #include "SpawnConditions.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/util/AxisAlignedBB.hpp"
-#include "common/core/Constants.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -15,7 +15,8 @@ namespace mc::world::spawn {
  * 怪物: 光照等级 <= 7
  * 动物: 光照等级 > 7 (通常需要光照等级 7+)
  */
-bool SpawnConditions::checkLightLevel(i32 skyLight, i32 blockLight, bool isMonster) {
+bool SpawnConditions::checkLightLevel(i32 skyLight, i32 blockLight, bool isMonster)
+{
     // 计算有效光照等级
     i32 effectiveLight = std::max(skyLight, blockLight);
 
@@ -28,8 +29,8 @@ bool SpawnConditions::checkLightLevel(i32 skyLight, i32 blockLight, bool isMonst
     }
 }
 
-bool SpawnConditions::canSpawnAtPosition(IWorld& world, i32 x, i32 y, i32 z,
-                                          f32 entityWidth, f32 entityHeight) {
+bool SpawnConditions::canSpawnAtPosition(IWorld& world, i32 x, i32 y, i32 z, f32 entityWidth, f32 entityHeight)
+{
     // 边界检查
     if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return false;
@@ -54,8 +55,8 @@ bool SpawnConditions::canSpawnAtPosition(IWorld& world, i32 x, i32 y, i32 z,
     return true;
 }
 
-bool SpawnConditions::hasCollisionSpace(IWorld& world, i32 x, i32 y, i32 z,
-                                         f32 width, f32 height) {
+bool SpawnConditions::hasCollisionSpace(IWorld& world, i32 x, i32 y, i32 z, f32 width, f32 height)
+{
     // 创建实体的碰撞箱
     // 实体中心在 x.5, y, z.5
     f32 halfWidth = width / 2.0f;
@@ -88,7 +89,8 @@ bool SpawnConditions::hasCollisionSpace(IWorld& world, i32 x, i32 y, i32 z,
     return !world.hasBlockCollision(box);
 }
 
-bool SpawnConditions::blockPreventsSpawn(bool isLiquid, bool isAir) {
+bool SpawnConditions::blockPreventsSpawn(bool isLiquid, bool isAir)
+{
     // 液体方块阻止生成
     if (isLiquid) {
         return true;
@@ -102,7 +104,8 @@ bool SpawnConditions::blockPreventsSpawn(bool isLiquid, bool isAir) {
     return false;
 }
 
-i32 SpawnConditions::getGroundHeight(IWorld& world, i32 x, i32 z) {
+i32 SpawnConditions::getGroundHeight(IWorld& world, i32 x, i32 z)
+{
     // 从最高点向下搜索第一个可站立方块
     i32 height = world.getHeight(x, z);
 
@@ -117,11 +120,13 @@ i32 SpawnConditions::getGroundHeight(IWorld& world, i32 x, i32 z) {
     return height;
 }
 
-bool SpawnConditions::isInWater(IWorld& world, i32 x, i32 y, i32 z) {
+bool SpawnConditions::isInWater(IWorld& world, i32 x, i32 y, i32 z)
+{
     return world.isWaterAt(x, y, z);
 }
 
-bool SpawnConditions::isInLava(IWorld& world, i32 x, i32 y, i32 z) {
+bool SpawnConditions::isInLava(IWorld& world, i32 x, i32 y, i32 z)
+{
     return world.isLavaAt(x, y, z);
 }
 

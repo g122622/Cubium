@@ -9,7 +9,7 @@ namespace mc {
 // Forward declarations
 class Player;
 class BoostHelper;
-class MobEntity;  // MobEntity 定义在 mc 命名空间
+class MobEntity; // MobEntity 定义在 mc 命名空间
 
 namespace entity {
 
@@ -41,17 +41,13 @@ public:
      * @brief 当玩家开始骑乘时调用
      * @param player 骑乘的玩家
      */
-    virtual void onPlayerStartRiding(Player* player) {
-        MC_UNUSED(player);
-    }
+    virtual void onPlayerStartRiding(Player* player) { MC_UNUSED(player); }
 
     /**
      * @brief 当玩家停止骑乘时调用
      * @param player 下马的玩家
      */
-    virtual void onPlayerStopRiding(Player* player) {
-        MC_UNUSED(player);
-    }
+    virtual void onPlayerStopRiding(Player* player) { MC_UNUSED(player); }
 
     /**
      * @brief 获取骑乘时的移动速度
@@ -93,9 +89,7 @@ public:
      * MC 1.16.5: travelTowards(Vector3d)
      * 用于接收玩家的移动输入
      */
-    virtual void travelTowards(const Vector3& travelVec) {
-        MC_UNUSED(travelVec);
-    }
+    virtual void travelTowards(const Vector3& travelVec) { MC_UNUSED(travelVec); }
 
     /**
      * @brief 执行骑乘移动逻辑

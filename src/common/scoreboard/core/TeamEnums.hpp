@@ -50,7 +50,8 @@ enum class TeamCollisionRule : u8 {
  * @param visibility 可见性枚举值
  * @return 字符串表示
  */
-[[nodiscard]] inline const char* teamVisibilityToString(TeamVisibility visibility) noexcept {
+[[nodiscard]] inline const char* teamVisibilityToString(TeamVisibility visibility) noexcept
+{
     switch (visibility) {
         case TeamVisibility::Always:
             return "always";
@@ -71,7 +72,8 @@ enum class TeamCollisionRule : u8 {
  * @param str 字符串表示
  * @return 可见性枚举值，解析失败返回 Always
  */
-[[nodiscard]] inline TeamVisibility teamVisibilityFromString(const std::string& str) noexcept {
+[[nodiscard]] inline TeamVisibility teamVisibilityFromString(const std::string& str) noexcept
+{
     if (str == "never") {
         return TeamVisibility::Never;
     } else if (str == "hideForOtherTeams") {
@@ -88,7 +90,8 @@ enum class TeamCollisionRule : u8 {
  * @param rule 碰撞规则枚举值
  * @return 字符串表示
  */
-[[nodiscard]] inline const char* teamCollisionRuleToString(TeamCollisionRule rule) noexcept {
+[[nodiscard]] inline const char* teamCollisionRuleToString(TeamCollisionRule rule) noexcept
+{
     switch (rule) {
         case TeamCollisionRule::Always:
             return "always";
@@ -109,7 +112,8 @@ enum class TeamCollisionRule : u8 {
  * @param str 字符串表示
  * @return 碰撞规则枚举值，解析失败返回 Always
  */
-[[nodiscard]] inline TeamCollisionRule teamCollisionRuleFromString(const std::string& str) noexcept {
+[[nodiscard]] inline TeamCollisionRule teamCollisionRuleFromString(const std::string& str) noexcept
+{
     if (str == "never") {
         return TeamCollisionRule::Never;
     } else if (str == "pushOtherTeams") {

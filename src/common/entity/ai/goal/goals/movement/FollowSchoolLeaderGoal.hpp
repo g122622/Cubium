@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../Goal.hpp"
 
 namespace mc {
 
@@ -55,7 +55,7 @@ private:
     AbstractGroupFishEntity* m_fish;
     AbstractGroupFishEntity* m_leader = nullptr;
     i32 m_navigateTimer = 0;
-    i32 m_cooldown = 0;  // 搜索冷却
+    i32 m_cooldown = 0; // 搜索冷却
 };
 
 } // namespace entity::ai::goal

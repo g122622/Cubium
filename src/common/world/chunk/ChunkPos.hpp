@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Constants.hpp"
-#include "../../util/math/MathUtils.hpp"
+#include "../../core/Types.hpp"
 #include "../../util/Direction.hpp"
+#include "../../util/math/MathUtils.hpp"
 #include "../block/BlockPos.hpp"
 
 #include <cstdint>
@@ -25,56 +25,37 @@ public:
     ChunkPos() noexcept
         : x(0)
         , z(0)
-    {
-    }
+    {}
 
     ChunkPos(ChunkCoord x, ChunkCoord z) noexcept
         : x(x)
         , z(z)
-    {
-    }
+    {}
 
     explicit ChunkPos(const BlockPos& pos) noexcept
         : x(pos.chunkX())
         , z(pos.chunkZ())
-    {
-    }
+    {}
 
     explicit ChunkPos(const Vector3& pos) noexcept
         : x(math::toChunkCoord(pos.x))
         , z(math::toChunkCoord(pos.z))
-    {
-    }
+    {}
 
     // 静态常量
     static ChunkPos zero() { return {0, 0}; }
 
     // 算术运算
-    [[nodiscard]] ChunkPos operator+(const ChunkPos& other) const noexcept
-    {
-        return {x + other.x, z + other.z};
-    }
+    [[nodiscard]] ChunkPos operator+(const ChunkPos& other) const noexcept { return {x + other.x, z + other.z}; }
 
-    [[nodiscard]] ChunkPos operator-(const ChunkPos& other) const noexcept
-    {
-        return {x - other.x, z - other.z};
-    }
+    [[nodiscard]] ChunkPos operator-(const ChunkPos& other) const noexcept { return {x - other.x, z - other.z}; }
 
-    [[nodiscard]] ChunkPos operator*(i32 scalar) const noexcept
-    {
-        return {x * scalar, z * scalar};
-    }
+    [[nodiscard]] ChunkPos operator*(i32 scalar) const noexcept { return {x * scalar, z * scalar}; }
 
     // 比较运算
-    [[nodiscard]] bool operator==(const ChunkPos& other) const noexcept
-    {
-        return x == other.x && z == other.z;
-    }
+    [[nodiscard]] bool operator==(const ChunkPos& other) const noexcept { return x == other.x && z == other.z; }
 
-    [[nodiscard]] bool operator!=(const ChunkPos& other) const noexcept
-    {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator!=(const ChunkPos& other) const noexcept { return !(*this == other); }
 
     [[nodiscard]] bool operator<(const ChunkPos& other) const noexcept
     {
@@ -88,18 +69,13 @@ public:
     // 区块中心坐标
     [[nodiscard]] Vector3 center(f32 y = 0.0f) const noexcept
     {
-        return {
-            static_cast<f32>(worldX()) + world::CHUNK_WIDTH / 2.0f,
+        return {static_cast<f32>(worldX()) + world::CHUNK_WIDTH / 2.0f,
             y,
-            static_cast<f32>(worldZ()) + world::CHUNK_WIDTH / 2.0f
-        };
+            static_cast<f32>(worldZ()) + world::CHUNK_WIDTH / 2.0f};
     }
 
     // 转换为64位唯一ID
-    [[nodiscard]] u64 toId() const noexcept
-    {
-        return math::chunkPosToId(x, z);
-    }
+    [[nodiscard]] u64 toId() const noexcept { return math::chunkPosToId(x, z); }
 
     // 从64位ID创建
     [[nodiscard]] static ChunkPos fromId(u64 id) noexcept
@@ -138,12 +114,9 @@ public:
 
 // 哈希函数支持
 namespace std {
-template<>
+template <>
 struct hash<mc::ChunkPos> {
-    size_t operator()(const mc::ChunkPos& pos) const noexcept
-    {
-        return static_cast<size_t>(pos.toId());
-    }
+    size_t operator()(const mc::ChunkPos& pos) const noexcept { return static_cast<size_t>(pos.toId()); }
 };
 } // namespace std
 

@@ -1,29 +1,32 @@
 #include "DropperBlock.hpp"
+#include "../../../../entity/core/EntityRegistry.hpp"
+#include "../../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../../entity/inventory/IInventory.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../entity/inventory/IInventory.hpp"
-#include "../../../../entity/core/EntityRegistry.hpp"
-#include "../../../../entity/entities/item/ItemEntity.hpp"
 #include <unordered_map>
 
 namespace mc {
 namespace blocks {
 
 DropperBlock::DropperBlock(const BlockProperties& properties)
-    : DispenserBlock(properties) {
+    : DispenserBlock(properties)
+{
     // 投掷器继承自发射器，复用基本功能
 }
 
-void DropperBlock::dispense(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DropperBlock::dispense(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 投掷器使用简单的投掷行为
     if (tryDispense(world, pos, state)) {
         playDispenseSound(world, pos);
     }
 }
 
-bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state) {
+bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 获取方块实体
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity == nullptr) {
@@ -31,8 +34,7 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     }
 
     // 转换为发射器方块实体（投掷器使用相同的方块实体类型）
-    blockentity::DispenserBlockEntity* dropper =
-        dynamic_cast<blockentity::DispenserBlockEntity*>(blockEntity);
+    blockentity::DispenserBlockEntity* dropper = dynamic_cast<blockentity::DispenserBlockEntity*>(blockEntity);
     if (dropper == nullptr) {
         return false;
     }
@@ -40,7 +42,7 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     // 使用储水池采样算法选择非空槽位
     i32 slot = dropper->getDispenseSlot();
     if (slot < 0) {
-        return false;  // 没有物品可投掷
+        return false; // 没有物品可投掷
     }
 
     // 获取物品
@@ -121,8 +123,7 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     f32 vz = static_cast<f32>(Directions::zOffset(facing)) * DROP_SPEED;
 
     // 创建物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(
-        EntityId(0), dispensedStack, x, y, z, vx, vy, vz);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), dispensedStack, x, y, z, vx, vy, vz);
 
     // 设置拾取延迟
     itemEntity->setPickupDelay(10);

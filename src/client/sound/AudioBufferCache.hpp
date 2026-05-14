@@ -1,15 +1,15 @@
 #pragma once
 
+#include "client/sound/SoundLoader.hpp"
 #include "client/sound/backend/AudioBuffer.hpp"
 #include "client/sound/backend/IAudioBackend.hpp"
-#include "client/sound/SoundLoader.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
-#include <unordered_map>
 #include <memory>
-#include <vector>
 #include <mutex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::client::sound {
 
@@ -125,10 +125,7 @@ public:
      * @return 音频缓冲区，或错误
      */
     [[nodiscard]] Result<std::shared_ptr<IAudioBuffer>> getOrCreate(
-        const ResourceLocation& location,
-        IAudioBackend& backend,
-        SoundLoader& loader
-    );
+        const ResourceLocation& location, IAudioBackend& backend, SoundLoader& loader);
 
     /**
      * @brief 预加载音频文件
@@ -141,11 +138,7 @@ public:
      * @param loader 音频加载器
      * @return 成功加载的数量
      */
-    size_t preload(
-        const std::vector<ResourceLocation>& locations,
-        IAudioBackend& backend,
-        SoundLoader& loader
-    );
+    size_t preload(const std::vector<ResourceLocation>& locations, IAudioBackend& backend, SoundLoader& loader);
 
     /**
      * @brief 清理未使用的缓冲区
@@ -179,8 +172,8 @@ private:
      * @brief 缓存条目
      */
     struct CacheEntry {
-        std::weak_ptr<IAudioBuffer> buffer;  ///< 弱引用，允许缓冲区被释放
-        bool isPreloaded = false;             ///< 是否为预加载缓冲区
+        std::weak_ptr<IAudioBuffer> buffer; ///< 弱引用，允许缓冲区被释放
+        bool isPreloaded = false;           ///< 是否为预加载缓冲区
     };
 
     /// 缓存映射（资源位置 -> 缓冲区）

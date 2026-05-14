@@ -1,12 +1,13 @@
-#include <gtest/gtest.h>
 #include "client/resource/BlockModelLoader.hpp"
 #include "client/resource/BlockStateLoader.hpp"
 #include "common/resource/FolderResourcePack.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
 // Direction测试
-TEST(DirectionTest, ParseDirection) {
+TEST(DirectionTest, ParseDirection)
+{
     EXPECT_EQ(parseDirection("down"), Direction::Down);
     EXPECT_EQ(parseDirection("up"), Direction::Up);
     EXPECT_EQ(parseDirection("north"), Direction::North);
@@ -16,7 +17,8 @@ TEST(DirectionTest, ParseDirection) {
     EXPECT_EQ(parseDirection("invalid"), Direction::None);
 }
 
-TEST(DirectionTest, DirectionToString) {
+TEST(DirectionTest, DirectionToString)
+{
     EXPECT_EQ(directionToString(Direction::Down), "down");
     EXPECT_EQ(directionToString(Direction::Up), "up");
     EXPECT_EQ(directionToString(Direction::North), "north");
@@ -27,7 +29,8 @@ TEST(DirectionTest, DirectionToString) {
 }
 
 // BlockStateDefinition测试
-TEST(BlockStateDefinitionTest, ParseSimpleVariant) {
+TEST(BlockStateDefinitionTest, ParseSimpleVariant)
+{
     const char* json = R"({
         "variants": {
             "normal": { "model": "stone" }
@@ -45,7 +48,8 @@ TEST(BlockStateDefinitionTest, ParseSimpleVariant) {
     EXPECT_EQ(variants->variants[0].y, 0);
 }
 
-TEST(BlockStateDefinitionTest, ParseVariantWithRotation) {
+TEST(BlockStateDefinitionTest, ParseVariantWithRotation)
+{
     const char* json = R"({
         "variants": {
             "axis=x": { "model": "oak_log", "x": 90, "y": 90 }
@@ -62,7 +66,8 @@ TEST(BlockStateDefinitionTest, ParseVariantWithRotation) {
     EXPECT_EQ(variants->variants[0].y, 90);
 }
 
-TEST(BlockStateDefinitionTest, ParseVariantArray) {
+TEST(BlockStateDefinitionTest, ParseVariantArray)
+{
     const char* json = R"({
         "variants": {
             "normal": [
@@ -82,7 +87,8 @@ TEST(BlockStateDefinitionTest, ParseVariantArray) {
     EXPECT_EQ(variants->variants[1].weight, 1);
 }
 
-TEST(BlockStateDefinitionTest, VariantLookupIgnoresPropertyOrder) {
+TEST(BlockStateDefinitionTest, VariantLookupIgnoresPropertyOrder)
+{
     const char* json = R"({
         "variants": {
             "facing=north,lit=true": { "model": "block/redstone_lamp_on" }
@@ -98,7 +104,8 @@ TEST(BlockStateDefinitionTest, VariantLookupIgnoresPropertyOrder) {
     EXPECT_EQ(variants->variants[0].model.toString(), "minecraft:block/redstone_lamp_on");
 }
 
-TEST(BlockStateDefinitionTest, EmptyAndNormalStateKeyAreEquivalent) {
+TEST(BlockStateDefinitionTest, EmptyAndNormalStateKeyAreEquivalent)
+{
     const char* json = R"({
         "variants": {
             "": { "model": "block/stone" }
@@ -112,7 +119,8 @@ TEST(BlockStateDefinitionTest, EmptyAndNormalStateKeyAreEquivalent) {
     EXPECT_NE(result.value().getVariants("normal"), nullptr);
 }
 
-TEST(BlockStateDefinitionTest, MultipartProvidesNormalFallbackVariant) {
+TEST(BlockStateDefinitionTest, MultipartProvidesNormalFallbackVariant)
+{
     const char* json = R"({
         "multipart": [
             { "apply": { "model": "block/redstone_dust_dot" } },
@@ -133,7 +141,8 @@ TEST(BlockStateDefinitionTest, MultipartProvidesNormalFallbackVariant) {
 // BlockModelLoader测试 - 使用实际资源包
 class BlockModelLoaderTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         pack = std::make_unique<FolderResourcePack>("z:/方块概念材质");
         auto result = pack->initialize();
         packInitialized = result.success();
@@ -143,7 +152,8 @@ protected:
     bool packInitialized = false;
 };
 
-TEST_F(BlockModelLoaderTest, LoadSimpleModel) {
+TEST_F(BlockModelLoaderTest, LoadSimpleModel)
+{
     if (!packInitialized) {
         GTEST_SKIP() << "Resource pack not available";
     }
@@ -164,7 +174,8 @@ TEST_F(BlockModelLoaderTest, LoadSimpleModel) {
     }
 }
 
-TEST_F(BlockModelLoaderTest, BakeModel) {
+TEST_F(BlockModelLoaderTest, BakeModel)
+{
     if (!packInitialized) {
         GTEST_SKIP() << "Resource pack not available";
     }
@@ -185,7 +196,8 @@ TEST_F(BlockModelLoaderTest, BakeModel) {
     }
 }
 
-TEST_F(BlockModelLoaderTest, LoadOakLogModel) {
+TEST_F(BlockModelLoaderTest, LoadOakLogModel)
+{
     if (!packInitialized) {
         GTEST_SKIP() << "Resource pack not available";
     }
@@ -207,7 +219,8 @@ TEST_F(BlockModelLoaderTest, LoadOakLogModel) {
 // BlockStateLoader测试
 class BlockStateLoaderTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         pack = std::make_unique<FolderResourcePack>("z:/方块概念材质");
         auto result = pack->initialize();
         packInitialized = result.success();
@@ -217,7 +230,8 @@ protected:
     bool packInitialized = false;
 };
 
-TEST_F(BlockStateLoaderTest, LoadBlockStates) {
+TEST_F(BlockStateLoaderTest, LoadBlockStates)
+{
     if (!packInitialized) {
         GTEST_SKIP() << "Resource pack not available";
     }
@@ -230,7 +244,8 @@ TEST_F(BlockStateLoaderTest, LoadBlockStates) {
     EXPECT_FALSE(loadedStates.empty());
 }
 
-TEST_F(BlockStateLoaderTest, GetOakLogVariant) {
+TEST_F(BlockStateLoaderTest, GetOakLogVariant)
+{
     if (!packInitialized) {
         GTEST_SKIP() << "Resource pack not available";
     }
@@ -246,7 +261,8 @@ TEST_F(BlockStateLoaderTest, GetOakLogVariant) {
     }
 }
 
-TEST_F(BlockStateLoaderTest, GetCobblestoneVariant) {
+TEST_F(BlockStateLoaderTest, GetCobblestoneVariant)
+{
     if (!packInitialized) {
         GTEST_SKIP() << "Resource pack not available";
     }

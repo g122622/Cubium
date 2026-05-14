@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../IGrowable.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../Block.hpp"
+#include "../../IGrowable.hpp"
 #include <array>
 
 namespace mc {
@@ -37,16 +37,12 @@ public:
     /**
      * @brief 获取 AGE 属性 (0-1)
      */
-    static const IntegerProperty& AGE() {
-        return BlockStateProperties::AGE_0_1();
-    }
+    static const IntegerProperty& AGE() { return BlockStateProperties::AGE_0_1(); }
 
     /**
      * @brief 获取 STAGE 属性 (0-1)
      */
-    static const IntegerProperty& STAGE() {
-        return BlockStateProperties::STAGE_0_1();
-    }
+    static const IntegerProperty& STAGE() { return BlockStateProperties::STAGE_0_1(); }
 
     /**
      * @brief 获取 BAMBOO_LEAVES 属性
@@ -58,12 +54,9 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -79,22 +72,12 @@ public:
     // ========== IGrowable 接口 ==========
 
     [[nodiscard]] bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const override;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     [[nodiscard]] bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
-    void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 形状 ==========
 
@@ -104,7 +87,8 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -114,9 +98,8 @@ public:
     /**
      * @brief 检查是否可以传播天光
      */
-    [[nodiscard]] bool propagatesSkylightDown(const BlockState& state,
-                                               IWorld* world,
-                                               const BlockPos* pos) const override;
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world, const BlockPos* pos) const override;
 
 private:
     /// 正常形状
@@ -137,11 +120,7 @@ private:
      * @brief 生长竹子
      */
     void growBamboo(
-        const BlockState& currentState,
-        IWorld& world,
-        const BlockPos& pos,
-        math::IRandom& random,
-        i32 bambooHeight);
+        const BlockState& currentState, IWorld& world, const BlockPos& pos, math::IRandom& random, i32 bambooHeight);
 };
 
 /**
@@ -164,12 +143,9 @@ public:
     // ========== 放置逻辑 ==========
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -185,22 +161,12 @@ public:
     // ========== IGrowable 接口 ==========
 
     [[nodiscard]] bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const override;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     [[nodiscard]] bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
-    void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 形状 ==========
 
@@ -208,7 +174,8 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

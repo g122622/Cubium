@@ -1,7 +1,7 @@
 #include "RedstoneParticleData.hpp"
 #include "../ParticleRegistry.hpp"
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 
 namespace mc::client::renderer::trident::particle::data {
 
@@ -12,11 +12,13 @@ RedstoneParticleData::RedstoneParticleData(const glm::vec3& color)
     m_color = glm::clamp(color, glm::vec3(0.0f), glm::vec3(1.0f));
 }
 
-std::string RedstoneParticleData::getTypeName() const {
+std::string RedstoneParticleData::getTypeName() const
+{
     return ParticleRegistry::instance().getTypeName(ParticleTypeId::Redstone);
 }
 
-std::string RedstoneParticleData::getParameters() const {
+std::string RedstoneParticleData::getParameters() const
+{
     // 红石粒子参数格式: r g b
     // 例如: 1.0 0.0 0.0
     std::ostringstream ss;
@@ -25,7 +27,8 @@ std::string RedstoneParticleData::getParameters() const {
     return ss.str();
 }
 
-std::unique_ptr<ParticleData> RedstoneParticleData::clone() const {
+std::unique_ptr<ParticleData> RedstoneParticleData::clone() const
+{
     return std::make_unique<RedstoneParticleData>(m_color);
 }
 

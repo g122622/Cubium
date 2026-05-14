@@ -1,9 +1,9 @@
 #include "JungleTempleStructure.hpp"
-#include "../../../biome/Biome.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
 #include "../StructureBoundingBox.hpp"
 
 namespace mc {
@@ -21,29 +21,20 @@ JungleTempleStructure::JungleTempleStructure()
     initializeBiomes();
 }
 
-void JungleTempleStructure::initializeBiomes() {
-    m_validBiomes = {
-        Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge
-    };
+void JungleTempleStructure::initializeBiomes()
+{
+    m_validBiomes = {Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge};
 }
 
 bool JungleTempleStructure::canGenerate(
-    IWorld& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     // 检查生物群系是否合适
     return true;
 }
 
 std::unique_ptr<StructureStart> JungleTempleStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -64,10 +55,7 @@ std::unique_ptr<StructureStart> JungleTempleStructure::generate(
     return start;
 }
 
-void JungleTempleStructure::generateTemple(
-    IWorldWriter& world,
-    math::Random& rng,
-    const BlockPos& startPos) const
+void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
     const BlockState* mossyCobblestone = VanillaBlocks::getState(VanillaBlocks::MOSSY_COBBLESTONE);
@@ -81,14 +69,12 @@ void JungleTempleStructure::generateTemple(
     i32 baseX = startPos.x;
     i32 baseY = startPos.y;
     i32 baseZ = startPos.z;
-    i32 width = 12;   // X轴宽度
-    i32 length = 15;  // Z轴深度
-    i32 height = 10;  // 高度
+    i32 width = 12;  // X轴宽度
+    i32 length = 15; // Z轴深度
+    i32 height = 10; // 高度
 
     // 辅助lambda: 随机选择苔石或普通圆石
-    auto randomCobble = [&]() -> const BlockState* {
-        return rng.nextInt(100) < 30 ? mossyCobblestone : cobblestone;
-    };
+    auto randomCobble = [&]() -> const BlockState* { return rng.nextInt(100) < 30 ? mossyCobblestone : cobblestone; };
 
     // 辅助lambda: 随机选择石砖类型
     auto randomBrick = [&]() -> const BlockState* {
@@ -226,10 +212,19 @@ void JungleTempleStructure::generateTemple(
         // 选择一面墙
         i32 side = rng.nextInt(4);
         i32 wx, wz;
-        if (side == 0) { wx = 0; wz = vz; }
-        else if (side == 1) { wx = width - 1; wz = vz; }
-        else if (side == 2) { wx = vx; wz = 0; }
-        else { wx = vx; wz = length - 1; }
+        if (side == 0) {
+            wx = 0;
+            wz = vz;
+        } else if (side == 1) {
+            wx = width - 1;
+            wz = vz;
+        } else if (side == 2) {
+            wx = vx;
+            wz = 0;
+        } else {
+            wx = vx;
+            wz = length - 1;
+        }
 
         // 放置藤蔓
         if (rng.nextInt(100) < 40) {

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../block/BlockPos.hpp"
-#include "../../../util/Direction.hpp"
 #include "../../../core/Types.hpp"
-#include <vector>
+#include "../../../util/Direction.hpp"
+#include "../../block/BlockPos.hpp"
 #include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -17,12 +17,12 @@ class BlockState;
  * 包含检测到的传送门的位置和尺寸信息。
  */
 struct PortalSizeResult {
-    BlockPos corner;        ///< 传送门内部左下角位置
-    i32 width = 0;          ///< 内部宽度 (2-21)
-    i32 height = 0;         ///< 内部高度 (3-21)
-    Axis axis;              ///< 传送门轴向 (X 或 Z)
+    BlockPos corner;          ///< 传送门内部左下角位置
+    i32 width = 0;            ///< 内部宽度 (2-21)
+    i32 height = 0;           ///< 内部高度 (3-21)
+    Axis axis;                ///< 传送门轴向 (X 或 Z)
     i32 portalBlockCount = 0; ///< 已存在的传送门方块数量
-    bool valid = false;     ///< 是否有效
+    bool valid = false;       ///< 是否有效
 
     [[nodiscard]] std::vector<BlockPos> getPortalBlocks() const;
 };
@@ -50,9 +50,7 @@ public:
      * @return 检测结果
      */
     [[nodiscard]] static std::optional<PortalSizeResult> findNetherPortal(
-        IWorld& world,
-        const BlockPos& pos,
-        bool preferXAxis = true);
+        IWorld& world, const BlockPos& pos, bool preferXAxis = true);
 
     /**
      * @brief 点燃下界传送门
@@ -66,33 +64,17 @@ public:
 
 private:
     [[nodiscard]] static std::optional<PortalSizeResult> tryFindPortalOnAxis(
-        IWorld& world,
-        const BlockPos& pos,
-        Direction rightDir);
+        IWorld& world, const BlockPos& pos, Direction rightDir);
 
-    [[nodiscard]] static std::optional<BlockPos> findBottomLeft(
-        IWorld& world,
-        const BlockPos& pos,
-        Direction rightDir);
+    [[nodiscard]] static std::optional<BlockPos> findBottomLeft(IWorld& world, const BlockPos& pos, Direction rightDir);
 
-    [[nodiscard]] static i32 calculateWidth(
-        IWorld& world,
-        const BlockPos& bottomLeft,
-        Direction rightDir);
+    [[nodiscard]] static i32 calculateWidth(IWorld& world, const BlockPos& bottomLeft, Direction rightDir);
 
     [[nodiscard]] static i32 calculateHeight(
-        IWorld& world,
-        const BlockPos& bottomLeft,
-        Direction rightDir,
-        i32 width,
-        i32& outPortalBlockCount);
+        IWorld& world, const BlockPos& bottomLeft, Direction rightDir, i32 width, i32& outPortalBlockCount);
 
     [[nodiscard]] static bool checkTopFrame(
-        IWorld& world,
-        const BlockPos& bottomLeft,
-        Direction rightDir,
-        i32 width,
-        i32 height);
+        IWorld& world, const BlockPos& bottomLeft, Direction rightDir, i32 width, i32 height);
 
     [[nodiscard]] static bool isPortalFrame(const BlockState& state);
 };

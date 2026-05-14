@@ -34,13 +34,11 @@ public:
      * @param result 结果物品
      * @param count 结果数量
      */
-    StonecuttingRecipe(
-        const ResourceLocation& id,
+    StonecuttingRecipe(const ResourceLocation& id,
         const std::string& group,
         const Ingredient& ingredient,
         const ItemStack& result,
-        i32 count = 1
-    );
+        i32 count = 1);
 
     ~StonecuttingRecipe() override = default;
 
@@ -57,7 +55,8 @@ public:
     /**
      * @brief 切石机配方始终可以适应（只有一个输入槽）
      */
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override {
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override
+    {
         (void)width;
         (void)height;
         return true;
@@ -90,7 +89,7 @@ private:
     Ingredient m_ingredient;
     ItemStack m_result;
     i32 m_count;
-    mutable std::vector<Ingredient> m_ingredients;  ///< 缓存的原料列表
+    mutable std::vector<Ingredient> m_ingredients; ///< 缓存的原料列表
 };
 
 } // namespace crafting

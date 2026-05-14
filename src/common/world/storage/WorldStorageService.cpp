@@ -1,8 +1,8 @@
 #include "WorldStorageService.hpp"
-#include "world/storage/db/ColumnFamilies.hpp"
 #include "perfetto/TraceEvents.hpp"
-#include <spdlog/spdlog.h>
+#include "world/storage/db/ColumnFamilies.hpp"
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
 
@@ -12,8 +12,7 @@ namespace mc::world::storage {
 
 WorldStorageService::WorldStorageService()
     : m_worldListService(std::make_unique<WorldListService>(WorldStoragePaths::defaultPaths()))
-{
-}
+{}
 
 WorldStorageService::~WorldStorageService()
 {
@@ -87,11 +86,9 @@ void WorldStorageService::setIoWorkerPool(util::ServerWorkerPool* workerPool)
 // 生命周期管理
 // ============================================================================
 
-Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
-                                        const WorldStorageConfig& config)
+Result<void> WorldStorageService::open(const std::filesystem::path& worldPath, const WorldStorageConfig& config)
 {
-    MC_TRACE_EVENT("server.world", "WorldStorageService::open",
-                   "path", worldPath.string());
+    MC_TRACE_EVENT("server.world", "WorldStorageService::open", "path", worldPath.string());
 
     if (isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage already open");
@@ -110,9 +107,9 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
         if (config.enableBackup) {
             std::filesystem::create_directories(backupPath);
         }
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                     fmt::format("Failed to create directories: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create directories: {}", e.what()));
     }
 
     // 2. 获取会话锁
@@ -139,8 +136,7 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
         if (backupResult.success()) {
             m_backupManager = backupResult.value();
         } else {
-            spdlog::warn("Failed to initialize backup manager: {}",
-                         backupResult.error().message());
+            spdlog::warn("Failed to initialize backup manager: {}", backupResult.error().message());
         }
     }
 
@@ -158,8 +154,8 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
     m_sectionManagers.clear();
 
     spdlog::info("WorldStorageService opened at {} (consistency: {})",
-                 worldPath.string(),
-                 static_cast<i32>(config.consistencyMode));
+        worldPath.string(),
+        static_cast<i32>(config.consistencyMode));
 
     return {};
 }
@@ -175,8 +171,7 @@ void WorldStorageService::close()
     // 1. 刷新所有脏数据
     auto flushResult = flushAllDirty();
     if (!flushResult.success()) {
-        spdlog::error("Failed to flush dirty sections: {}",
-                      flushResult.error().message());
+        spdlog::error("Failed to flush dirty sections: {}", flushResult.error().message());
     }
 
     // 2. 清空 SectionManager
@@ -229,8 +224,7 @@ Result<size_t> WorldStorageService::flushAllDirty()
     if (m_playerDataManager) {
         auto playerResult = m_playerDataManager->saveAllDirty();
         if (playerResult.failed()) {
-            spdlog::error("Failed to flush dirty player data: {}",
-                         playerResult.error().message());
+            spdlog::error("Failed to flush dirty player data: {}", playerResult.error().message());
         } else {
             totalFlushed += playerResult.value();
         }
@@ -269,8 +263,7 @@ Result<size_t> WorldStorageService::saveAll()
     if (m_playerDataManager) {
         auto playerResult = m_playerDataManager->saveAll();
         if (playerResult.failed()) {
-            spdlog::error("Failed to save all player data: {}",
-                         playerResult.error().message());
+            spdlog::error("Failed to save all player data: {}", playerResult.error().message());
         } else {
             totalSaved += playerResult.value();
         }
@@ -304,8 +297,8 @@ SectionManager& WorldStorageService::sectionManager(DimensionId dimension)
     // 创建新的 SectionManager
     auto* manager = createSectionManager(dimension);
     if (!manager) {
-        throw std::runtime_error(fmt::format("Failed to create SectionManager for dimension {}",
-                                              static_cast<i32>(dimension)));
+        throw std::runtime_error(
+            fmt::format("Failed to create SectionManager for dimension {}", static_cast<i32>(dimension)));
     }
     return *manager;
 }
@@ -319,8 +312,7 @@ const SectionManager& WorldStorageService::sectionManager(DimensionId dimension)
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     auto it = m_sectionManagers.find(dimension);
     if (it == m_sectionManagers.end()) {
-        throw std::runtime_error(fmt::format("SectionManager not found for dimension {}",
-                                              static_cast<i32>(dimension)));
+        throw std::runtime_error(fmt::format("SectionManager not found for dimension {}", static_cast<i32>(dimension)));
     }
     return *it->second;
 }
@@ -333,8 +325,8 @@ bool WorldStorageService::hasSectionManager(DimensionId dimension) const
 
 SectionManager* WorldStorageService::createSectionManager(DimensionId dimension)
 {
-    MC_TRACE_EVENT("server.world", "WorldStorageService::createSectionManager",
-                   "dimension", static_cast<i32>(dimension));
+    MC_TRACE_EVENT(
+        "server.world", "WorldStorageService::createSectionManager", "dimension", static_cast<i32>(dimension));
 
     SectionManager::Config config;
     config.cacheCapacity = m_config.sectionCacheCapacity;
@@ -351,7 +343,8 @@ SectionManager* WorldStorageService::createSectionManager(DimensionId dimension)
     }
 
     spdlog::debug("Created SectionManager for dimension {} with cache capacity {}",
-                  static_cast<i32>(dimension), m_config.sectionCacheCapacity);
+        static_cast<i32>(dimension),
+        m_config.sectionCacheCapacity);
 
     return it->second.get();
 }
@@ -437,8 +430,7 @@ void WorldStorageService::clearAllCaches()
 // 备份管理
 // ============================================================================
 
-Result<BackupID> WorldStorageService::createBackup(const std::string& name,
-                                                    const std::string& description)
+Result<BackupID> WorldStorageService::createBackup(const std::string& name, const std::string& description)
 {
     if (!m_backupManager) {
         return Error(ErrorCode::InvalidState, "Backup manager not enabled");

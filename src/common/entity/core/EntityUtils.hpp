@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../util/math/Vector3.hpp"
+#include "../../world/IWorld.hpp"
 #include "Entity.hpp"
 #include "LivingEntity.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../util/math/Vector3.hpp"
 #include <functional>
 #include <type_traits>
 
@@ -27,9 +27,8 @@ namespace EntityUtils {
  * @param predicate 过滤条件（可选）
  * @return 最近的实体指针，如果没有找到返回 nullptr
  */
-template<typename T>
-T* findClosestEntity(
-    IWorld* world,
+template <typename T>
+T* findClosestEntity(IWorld* world,
     const Vector3& pos,
     f32 range,
     const Entity* except = nullptr,
@@ -70,8 +69,7 @@ T* findClosestEntity(
  *
  * 便捷方法，等价于 findClosestEntity<LivingEntity>
  */
-inline LivingEntity* findClosestLiving(
-    IWorld* world,
+inline LivingEntity* findClosestLiving(IWorld* world,
     const Vector3& pos,
     f32 range,
     const Entity* except = nullptr,
@@ -91,9 +89,8 @@ inline LivingEntity* findClosestLiving(
  * @param predicate 过滤条件（可选）
  * @return 匹配的实体列表
  */
-template<typename T>
-std::vector<T*> findEntities(
-    IWorld* world,
+template <typename T>
+std::vector<T*> findEntities(IWorld* world,
     const Vector3& pos,
     f32 range,
     const Entity* except = nullptr,
@@ -126,7 +123,8 @@ std::vector<T*> findEntities(
  * @param rangeSq 范围的平方
  * @return 是否在范围内
  */
-inline bool isInRange(const Entity& entity, const Vector3& pos, f32 rangeSq) {
+inline bool isInRange(const Entity& entity, const Vector3& pos, f32 rangeSq)
+{
     return pos.distanceSquared(entity.position()) <= rangeSq;
 }
 
@@ -138,7 +136,8 @@ inline bool isInRange(const Entity& entity, const Vector3& pos, f32 rangeSq) {
  * @param range 范围
  * @return 是否在范围内
  */
-inline bool isInRange(const Entity& a, const Entity& b, f32 range) {
+inline bool isInRange(const Entity& a, const Entity& b, f32 range)
+{
     return a.distanceSqTo(b) <= range * range;
 }
 
@@ -149,7 +148,8 @@ inline bool isInRange(const Entity& a, const Entity& b, f32 range) {
  * @param target 目标实体
  * @return 偏航角（度），范围 [-180, 180]
  */
-inline f32 calculateYawTo(const Entity& source, const Entity& target) {
+inline f32 calculateYawTo(const Entity& source, const Entity& target)
+{
     f64 dx = target.x() - source.x();
     f64 dz = target.z() - source.z();
     return static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
@@ -163,7 +163,8 @@ inline f32 calculateYawTo(const Entity& source, const Entity& target) {
  * @param targetZ 目标Z坐标
  * @return 偏航角（度）
  */
-inline f32 calculateYawTo(const Entity& source, f64 targetX, f64 targetZ) {
+inline f32 calculateYawTo(const Entity& source, f64 targetX, f64 targetZ)
+{
     f64 dx = targetX - source.x();
     f64 dz = targetZ - source.z();
     return static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
@@ -176,7 +177,8 @@ inline f32 calculateYawTo(const Entity& source, f64 targetX, f64 targetZ) {
  * @param target 目标实体
  * @return 俯仰角（度），正值向下看，负值向上看
  */
-inline f32 calculatePitchTo(const Entity& source, const Entity& target) {
+inline f32 calculatePitchTo(const Entity& source, const Entity& target)
+{
     f64 dx = target.x() - source.x();
     f64 dy = (target.y() + target.eyeHeight()) - (source.y() + source.eyeHeight());
     f64 dz = target.z() - source.z();

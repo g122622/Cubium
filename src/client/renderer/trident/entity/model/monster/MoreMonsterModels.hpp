@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/EntityModel.hpp"
 #include "../base/BipedModel.hpp"
+#include "../core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
@@ -11,13 +11,13 @@ namespace mc::client::renderer::entity::model::monster {
  * 参考 MC 1.16.5 AbstractIllagerEntity.ArmPose
  */
 enum class IllagerArmPose {
-    Crossed,         // 交叉手臂
-    Attacking,       // 攻击
-    Spellcasting,    // 施法
-    BowAndArrow,     // 拉弓
-    CrossbowCharge,  // 装填弩
-    CrossbowHold,    // 持有弩
-    Celebrating      // 庆祝
+    Crossed,        // 交叉手臂
+    Attacking,      // 攻击
+    Spellcasting,   // 施法
+    BowAndArrow,    // 拉弓
+    CrossbowCharge, // 装填弩
+    CrossbowHold,   // 持有弩
+    Celebrating     // 庆祝
 };
 
 /**
@@ -32,9 +32,8 @@ public:
     ~IllagerModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
     [[nodiscard]] std::shared_ptr<ModelRenderer> getHat() const { return m_hat; }
@@ -76,9 +75,8 @@ public:
     VexModel();
     ~VexModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置充电状态
@@ -112,9 +110,8 @@ public:
     ~IronGolemModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     [[nodiscard]] std::shared_ptr<ModelRenderer> getRightArm() const { return m_rightArm; }
 
@@ -140,9 +137,8 @@ public:
     ~SnowGolemModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
 
@@ -167,9 +163,8 @@ public:
     ~BeeModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -197,9 +192,8 @@ public:
     ~FoxModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -228,9 +222,8 @@ public:
     ~PandaModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts(i32 textureOffset, f32 scale);
@@ -254,9 +247,8 @@ public:
     ~ParrotModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -285,9 +277,8 @@ public:
     ~PhantomModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -312,9 +303,8 @@ public:
     ~RavagerModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();

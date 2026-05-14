@@ -12,27 +12,27 @@ namespace mc::time {
  * - 0 = 日出, 6000 = 正午, 12000 = 日落, 18000 = 午夜
  */
 namespace TimeConstants {
-    /// 一天的 tick 数
-    constexpr i64 TICKS_PER_DAY = 24000;
+/// 一天的 tick 数
+constexpr i64 TICKS_PER_DAY = 24000;
 
-    /// 正午时刻 (太阳最高点)
-    constexpr i64 NOON = 6000;
+/// 正午时刻 (太阳最高点)
+constexpr i64 NOON = 6000;
 
-    /// 日落时刻
-    constexpr i64 SUNSET = 12000;
+/// 日落时刻
+constexpr i64 SUNSET = 12000;
 
-    /// 午夜时刻
-    constexpr i64 MIDNIGHT = 18000;
+/// 午夜时刻
+constexpr i64 MIDNIGHT = 18000;
 
-    /// 日出时刻
-    constexpr i64 SUNRISE = 0;
+/// 日出时刻
+constexpr i64 SUNRISE = 0;
 
-    /// 时间同步间隔 (ticks)
-    constexpr i64 TIME_SYNC_INTERVAL = 20;
+/// 时间同步间隔 (ticks)
+constexpr i64 TIME_SYNC_INTERVAL = 20;
 
-    /// 默认日光周期更新间隔 (毫秒)
-    constexpr i64 DEFAULT_MS_PER_TICK = 50;
-}
+/// 默认日光周期更新间隔 (毫秒)
+constexpr i64 DEFAULT_MS_PER_TICK = 50;
+} // namespace TimeConstants
 
 /**
  * @brief 游戏时间管理类

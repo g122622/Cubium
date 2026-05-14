@@ -2,8 +2,8 @@
 
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/world/biome/Biome.hpp"
-#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 
 using namespace mc;
 using namespace mc::network;
@@ -12,7 +12,8 @@ using namespace mc::network;
 // ChunkView 测试
 // ============================================================================
 
-TEST(ChunkView, IsChunkInView) {
+TEST(ChunkView, IsChunkInView)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
@@ -31,7 +32,8 @@ TEST(ChunkView, IsChunkInView) {
     EXPECT_FALSE(view.isChunkInView(10, 10));
 }
 
-TEST(ChunkView, GetChunksInView) {
+TEST(ChunkView, GetChunksInView)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
@@ -53,7 +55,8 @@ TEST(ChunkView, GetChunksInView) {
     EXPECT_TRUE(hasCenter);
 }
 
-TEST(ChunkView, CalculateChunkDiff) {
+TEST(ChunkView, CalculateChunkDiff)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
@@ -91,15 +94,17 @@ TEST(ChunkView, CalculateChunkDiff) {
 // PlayerChunkTracker 测试
 // ============================================================================
 
-TEST(PlayerChunkTracker, Construction) {
+TEST(PlayerChunkTracker, Construction)
+{
     PlayerChunkTracker tracker(12345);
 
     EXPECT_EQ(tracker.playerId(), 12345u);
-    EXPECT_EQ(tracker.viewDistance(), 10);  // 默认视距
+    EXPECT_EQ(tracker.viewDistance(), 10); // 默认视距
     EXPECT_EQ(tracker.loadedChunks().size(), 0u);
 }
 
-TEST(PlayerChunkTracker, AddRemoveChunk) {
+TEST(PlayerChunkTracker, AddRemoveChunk)
+{
     PlayerChunkTracker tracker(1);
 
     tracker.addLoadedChunk(10, 20);
@@ -115,7 +120,8 @@ TEST(PlayerChunkTracker, AddRemoveChunk) {
     EXPECT_EQ(tracker.loadedChunks().size(), 1u);
 }
 
-TEST(PlayerChunkTracker, UpdateCenter) {
+TEST(PlayerChunkTracker, UpdateCenter)
+{
     PlayerChunkTracker tracker(1);
 
     tracker.updateCenter(100, 200);
@@ -124,7 +130,8 @@ TEST(PlayerChunkTracker, UpdateCenter) {
     EXPECT_EQ(tracker.view().centerZ, 200);
 }
 
-TEST(PlayerChunkTracker, SetViewDistance) {
+TEST(PlayerChunkTracker, SetViewDistance)
+{
     PlayerChunkTracker tracker(1);
 
     tracker.setViewDistance(5);
@@ -132,15 +139,16 @@ TEST(PlayerChunkTracker, SetViewDistance) {
 
     // 边界测试
     tracker.setViewDistance(1);
-    EXPECT_EQ(tracker.viewDistance(), 2);  // 最小值2
+    EXPECT_EQ(tracker.viewDistance(), 2); // 最小值2
 
     tracker.setViewDistance(100);
-    EXPECT_EQ(tracker.viewDistance(), 32);  // 最大值32
+    EXPECT_EQ(tracker.viewDistance(), 32); // 最大值32
 }
 
-TEST(PlayerChunkTracker, CalculateChunkUpdates) {
+TEST(PlayerChunkTracker, CalculateChunkUpdates)
+{
     PlayerChunkTracker tracker(1);
-    tracker.setViewDistance(2);  // 视距2: 5x5 = 25区块
+    tracker.setViewDistance(2); // 视距2: 5x5 = 25区块
     tracker.updateCenter(0, 0);
 
     // 初始状态，没有已加载区块
@@ -175,7 +183,8 @@ TEST(PlayerChunkTracker, CalculateChunkUpdates) {
     EXPECT_EQ(toLoad.size(), 25u);
 }
 
-TEST(PlayerChunkTracker, Clear) {
+TEST(PlayerChunkTracker, Clear)
+{
     PlayerChunkTracker tracker(1);
 
     tracker.addLoadedChunk(0, 0);
@@ -193,7 +202,8 @@ TEST(PlayerChunkTracker, Clear) {
 // ChunkSyncManager 测试
 // ============================================================================
 
-TEST(ChunkSyncManager, GetTracker) {
+TEST(ChunkSyncManager, GetTracker)
+{
     ChunkSyncManager manager;
 
     auto tracker1 = manager.getTracker(1);
@@ -205,7 +215,8 @@ TEST(ChunkSyncManager, GetTracker) {
     EXPECT_EQ(tracker1, tracker1Again);
 }
 
-TEST(ChunkSyncManager, RemoveTracker) {
+TEST(ChunkSyncManager, RemoveTracker)
+{
     ChunkSyncManager manager;
 
     auto tracker = manager.getTracker(1);
@@ -218,17 +229,19 @@ TEST(ChunkSyncManager, RemoveTracker) {
     EXPECT_NE(newTracker, tracker);
 }
 
-TEST(ChunkSyncManager, UpdatePlayerPosition) {
+TEST(ChunkSyncManager, UpdatePlayerPosition)
+{
     ChunkSyncManager manager;
 
     manager.updatePlayerPosition(1, 100.0, 200.0);
 
     auto tracker = manager.getTracker(1);
-    EXPECT_EQ(tracker->view().centerX, 6);   // 100 / 16 = 6
-    EXPECT_EQ(tracker->view().centerZ, 12);  // 200 / 16 = 12
+    EXPECT_EQ(tracker->view().centerX, 6);  // 100 / 16 = 6
+    EXPECT_EQ(tracker->view().centerZ, 12); // 200 / 16 = 12
 }
 
-TEST(ChunkSyncManager, MarkChunkSent) {
+TEST(ChunkSyncManager, MarkChunkSent)
+{
     ChunkSyncManager manager;
 
     manager.markChunkSent(1, 10, 20);
@@ -242,7 +255,8 @@ TEST(ChunkSyncManager, MarkChunkSent) {
     EXPECT_EQ(subscribers[0], 1u);
 }
 
-TEST(ChunkSyncManager, MarkChunkUnloaded) {
+TEST(ChunkSyncManager, MarkChunkUnloaded)
+{
     ChunkSyncManager manager;
 
     manager.markChunkSent(1, 10, 20);
@@ -256,7 +270,8 @@ TEST(ChunkSyncManager, MarkChunkUnloaded) {
     EXPECT_EQ(subscribers.size(), 0u);
 }
 
-TEST(ChunkSyncManager, MultiplePlayers) {
+TEST(ChunkSyncManager, MultiplePlayers)
+{
     ChunkSyncManager manager;
 
     // 两个玩家加载同一区块
@@ -273,9 +288,10 @@ TEST(ChunkSyncManager, MultiplePlayers) {
     EXPECT_EQ(subscribers[0], 2u);
 }
 
-TEST(ChunkSyncManager, CalculateUpdates) {
+TEST(ChunkSyncManager, CalculateUpdates)
+{
     ChunkSyncManager manager;
-    manager.setDefaultViewDistance(2);  // 视距2: 5x5 = 25区块
+    manager.setDefaultViewDistance(2); // 视距2: 5x5 = 25区块
 
     // 初始化玩家位置
     manager.updatePlayerPosition(1, 0.0, 0.0);
@@ -290,7 +306,8 @@ TEST(ChunkSyncManager, CalculateUpdates) {
     EXPECT_EQ(toUnload.size(), 0u);
 }
 
-TEST(ChunkSyncManager, BlockToChunk) {
+TEST(ChunkSyncManager, BlockToChunk)
+{
     EXPECT_EQ(ChunkSyncManager::blockToChunk(0.0), 0);
     EXPECT_EQ(ChunkSyncManager::blockToChunk(15.9), 0);
     EXPECT_EQ(ChunkSyncManager::blockToChunk(16.0), 1);
@@ -305,12 +322,11 @@ TEST(ChunkSyncManager, BlockToChunk) {
 
 class ChunkSerializerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(ChunkSerializerTest, SerializeEmptyChunk) {
+TEST_F(ChunkSerializerTest, SerializeEmptyChunk)
+{
     ChunkData chunk(10, -5);
 
     auto result = ChunkSerializer::serializeChunk(chunk);
@@ -320,7 +336,8 @@ TEST_F(ChunkSerializerTest, SerializeEmptyChunk) {
     EXPECT_FALSE(data.empty());
 }
 
-TEST_F(ChunkSerializerTest, SerializeChunkWithBlocks) {
+TEST_F(ChunkSerializerTest, SerializeChunkWithBlocks)
+{
     ChunkData chunk(0, 0);
 
     // 填充一些方块
@@ -345,7 +362,8 @@ TEST_F(ChunkSerializerTest, SerializeChunkWithBlocks) {
     EXPECT_EQ(data.size(), expectedSize);
 }
 
-TEST_F(ChunkSerializerTest, DeserializeChunk) {
+TEST_F(ChunkSerializerTest, DeserializeChunk)
+{
     // 创建并序列化一个区块
     ChunkData original(100, -200);
 
@@ -371,7 +389,8 @@ TEST_F(ChunkSerializerTest, DeserializeChunk) {
     EXPECT_TRUE(restored->isFullyGenerated());
 }
 
-TEST_F(ChunkSerializerTest, DeserializeChunkPreservesBiomeData) {
+TEST_F(ChunkSerializerTest, DeserializeChunkPreservesBiomeData)
+{
     ChunkData original(3, 7);
 
     BiomeContainer biomes;
@@ -390,7 +409,8 @@ TEST_F(ChunkSerializerTest, DeserializeChunkPreservesBiomeData) {
     EXPECT_EQ(restored->getBiomeAtBlock(15, 63, 15), Biomes::Badlands);
 }
 
-TEST_F(ChunkSerializerTest, SectionMask) {
+TEST_F(ChunkSerializerTest, SectionMask)
+{
     ChunkData chunk(0, 0);
 
     // 空区块，位掩码应为0
@@ -403,10 +423,11 @@ TEST_F(ChunkSerializerTest, SectionMask) {
     section->setBlockStateId(0, 0, 0, stoneStateId);
 
     mask = ChunkSerializer::calculateSectionMask(chunk);
-    EXPECT_EQ(mask, (1 << 5));  // 第5位应该被设置
+    EXPECT_EQ(mask, (1 << 5)); // 第5位应该被设置
 }
 
-TEST_F(ChunkSerializerTest, SectionSize) {
+TEST_F(ChunkSerializerTest, SectionSize)
+{
     ChunkSection section;
 
     size_t size = ChunkSerializer::calculateSectionSize(section);
@@ -420,12 +441,11 @@ TEST_F(ChunkSerializerTest, SectionSize) {
 
 class ChunkViewExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(ChunkViewExtendedTest, NegativeCoordinates) {
+TEST_F(ChunkViewExtendedTest, NegativeCoordinates)
+{
     ChunkView view;
     view.centerX = -10;
     view.centerZ = -20;
@@ -445,11 +465,12 @@ TEST_F(ChunkViewExtendedTest, NegativeCoordinates) {
     EXPECT_FALSE(view.isChunkInView(-10, -26));
 }
 
-TEST_F(ChunkViewExtendedTest, LargeViewDistance) {
+TEST_F(ChunkViewExtendedTest, LargeViewDistance)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
-    view.viewDistance = 32;  // 最大视距
+    view.viewDistance = 32; // 最大视距
 
     // 边缘区块
     EXPECT_TRUE(view.isChunkInView(32, 0));
@@ -462,7 +483,8 @@ TEST_F(ChunkViewExtendedTest, LargeViewDistance) {
     EXPECT_FALSE(view.isChunkInView(0, 33));
 }
 
-TEST_F(ChunkViewExtendedTest, ZeroViewDistance) {
+TEST_F(ChunkViewExtendedTest, ZeroViewDistance)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
@@ -475,20 +497,21 @@ TEST_F(ChunkViewExtendedTest, ZeroViewDistance) {
     EXPECT_FALSE(view.isChunkInView(-1, 0));
 }
 
-TEST_F(ChunkViewExtendedTest, GetChunksInViewCount) {
+TEST_F(ChunkViewExtendedTest, GetChunksInViewCount)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
 
     // 视距 n = (2n+1)^2 个区块
     view.viewDistance = 0;
-    EXPECT_EQ(view.getChunksInView().size(), 1u);   // 1x1
+    EXPECT_EQ(view.getChunksInView().size(), 1u); // 1x1
 
     view.viewDistance = 1;
-    EXPECT_EQ(view.getChunksInView().size(), 9u);   // 3x3
+    EXPECT_EQ(view.getChunksInView().size(), 9u); // 3x3
 
     view.viewDistance = 2;
-    EXPECT_EQ(view.getChunksInView().size(), 25u);  // 5x5
+    EXPECT_EQ(view.getChunksInView().size(), 25u); // 5x5
 
     view.viewDistance = 5;
     EXPECT_EQ(view.getChunksInView().size(), 121u); // 11x11
@@ -497,7 +520,8 @@ TEST_F(ChunkViewExtendedTest, GetChunksInViewCount) {
     EXPECT_EQ(view.getChunksInView().size(), 441u); // 21x21
 }
 
-TEST_F(ChunkViewExtendedTest, GetChunksInViewOffsetCenter) {
+TEST_F(ChunkViewExtendedTest, GetChunksInViewOffsetCenter)
+{
     ChunkView view;
     view.centerX = 100;
     view.centerZ = -50;
@@ -527,7 +551,8 @@ TEST_F(ChunkViewExtendedTest, GetChunksInViewOffsetCenter) {
     EXPECT_TRUE(hasCorner);
 }
 
-TEST_F(ChunkViewExtendedTest, CalculateChunkDiffPartialOverlap) {
+TEST_F(ChunkViewExtendedTest, CalculateChunkDiffPartialOverlap)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
@@ -553,7 +578,8 @@ TEST_F(ChunkViewExtendedTest, CalculateChunkDiffPartialOverlap) {
     EXPECT_EQ(toUnload.size(), 0u);
 }
 
-TEST_F(ChunkViewExtendedTest, CalculateChunkDiffMoveAway) {
+TEST_F(ChunkViewExtendedTest, CalculateChunkDiffMoveAway)
+{
     ChunkView view;
     view.centerX = 100;
     view.centerZ = 100;
@@ -571,11 +597,12 @@ TEST_F(ChunkViewExtendedTest, CalculateChunkDiffMoveAway) {
     view.calculateChunkDiff(currentChunks, toLoad, toUnload);
 
     // 应卸载所有旧区块，加载所有新区块
-    EXPECT_EQ(toLoad.size(), 9u);    // 3x3
-    EXPECT_EQ(toUnload.size(), 3u);  // 原有的 3 个
+    EXPECT_EQ(toLoad.size(), 9u);   // 3x3
+    EXPECT_EQ(toUnload.size(), 3u); // 原有的 3 个
 }
 
-TEST_F(ChunkViewExtendedTest, CalculateChunkDiffSamePosition) {
+TEST_F(ChunkViewExtendedTest, CalculateChunkDiffSamePosition)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
@@ -599,7 +626,8 @@ TEST_F(ChunkViewExtendedTest, CalculateChunkDiffSamePosition) {
     EXPECT_EQ(toUnload.size(), 0u);
 }
 
-TEST_F(ChunkViewExtendedTest, ViewDistanceChangeEffect) {
+TEST_F(ChunkViewExtendedTest, ViewDistanceChangeEffect)
+{
     ChunkView view;
     view.centerX = 0;
     view.centerZ = 0;
@@ -634,12 +662,11 @@ TEST_F(ChunkViewExtendedTest, ViewDistanceChangeEffect) {
 
 class PlayerChunkTrackerNetworkTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(PlayerChunkTrackerNetworkTest, MultipleChunkOperations) {
+TEST_F(PlayerChunkTrackerNetworkTest, MultipleChunkOperations)
+{
     PlayerChunkTracker tracker(1);
 
     // 添加多个区块
@@ -667,7 +694,8 @@ TEST_F(PlayerChunkTrackerNetworkTest, MultipleChunkOperations) {
     EXPECT_FALSE(tracker.hasChunk(4, 4));
 }
 
-TEST_F(PlayerChunkTrackerNetworkTest, DuplicateOperations) {
+TEST_F(PlayerChunkTrackerNetworkTest, DuplicateOperations)
+{
     PlayerChunkTracker tracker(1);
 
     // 重复添加同一区块
@@ -686,7 +714,8 @@ TEST_F(PlayerChunkTrackerNetworkTest, DuplicateOperations) {
     EXPECT_EQ(tracker.loadedChunks().size(), 0u);
 }
 
-TEST_F(PlayerChunkTrackerNetworkTest, NegativeChunkCoordinates) {
+TEST_F(PlayerChunkTrackerNetworkTest, NegativeChunkCoordinates)
+{
     PlayerChunkTracker tracker(1);
 
     tracker.addLoadedChunk(-100, -200);
@@ -704,23 +733,25 @@ TEST_F(PlayerChunkTrackerNetworkTest, NegativeChunkCoordinates) {
     EXPECT_FALSE(tracker.hasChunk(-100, -200));
 }
 
-TEST_F(PlayerChunkTrackerNetworkTest, ViewDistanceBoundaryValues) {
+TEST_F(PlayerChunkTrackerNetworkTest, ViewDistanceBoundaryValues)
+{
     PlayerChunkTracker tracker(1);
 
     // 最小视距
     tracker.setViewDistance(1);
-    EXPECT_EQ(tracker.viewDistance(), 2);  // 最小值为 2
+    EXPECT_EQ(tracker.viewDistance(), 2); // 最小值为 2
 
     // 最大视距
     tracker.setViewDistance(100);
-    EXPECT_EQ(tracker.viewDistance(), 32);  // 最大值为 32
+    EXPECT_EQ(tracker.viewDistance(), 32); // 最大值为 32
 
     // 正常值
     tracker.setViewDistance(10);
     EXPECT_EQ(tracker.viewDistance(), 10);
 }
 
-TEST_F(PlayerChunkTrackerNetworkTest, CalculateChunkUpdatesWithExistingChunks) {
+TEST_F(PlayerChunkTrackerNetworkTest, CalculateChunkUpdatesWithExistingChunks)
+{
     PlayerChunkTracker tracker(1);
     tracker.setViewDistance(3);
     tracker.updateCenter(0, 0);
@@ -743,7 +774,8 @@ TEST_F(PlayerChunkTrackerNetworkTest, CalculateChunkUpdatesWithExistingChunks) {
     EXPECT_EQ(toUnload.size(), 0u);
 }
 
-TEST_F(PlayerChunkTrackerNetworkTest, CalculateChunkUpdatesPlayerMove) {
+TEST_F(PlayerChunkTrackerNetworkTest, CalculateChunkUpdatesPlayerMove)
+{
     PlayerChunkTracker tracker(1);
     tracker.setViewDistance(2);
     tracker.updateCenter(0, 0);
@@ -768,7 +800,8 @@ TEST_F(PlayerChunkTrackerNetworkTest, CalculateChunkUpdatesPlayerMove) {
     EXPECT_EQ(toUnload.size(), 25u); // 5x5 旧区块
 }
 
-TEST_F(PlayerChunkTrackerNetworkTest, ClearTracker) {
+TEST_F(PlayerChunkTrackerNetworkTest, ClearTracker)
+{
     PlayerChunkTracker tracker(1);
 
     // 添加大量区块
@@ -787,7 +820,8 @@ TEST_F(PlayerChunkTrackerNetworkTest, ClearTracker) {
     EXPECT_FALSE(tracker.hasChunk(50, 50));
 }
 
-TEST_F(PlayerChunkTrackerNetworkTest, LargeCoordinateValues) {
+TEST_F(PlayerChunkTrackerNetworkTest, LargeCoordinateValues)
+{
     PlayerChunkTracker tracker(1);
 
     // 测试大坐标值
@@ -808,12 +842,11 @@ TEST_F(PlayerChunkTrackerNetworkTest, LargeCoordinateValues) {
 
 class ChunkSyncManagerExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(ChunkSyncManagerExtendedTest, MultiplePlayersSameChunk) {
+TEST_F(ChunkSyncManagerExtendedTest, MultiplePlayersSameChunk)
+{
     ChunkSyncManager manager;
 
     // 多个玩家加载同一区块
@@ -832,7 +865,8 @@ TEST_F(ChunkSyncManagerExtendedTest, MultiplePlayersSameChunk) {
     EXPECT_NE(std::find(subscribers.begin(), subscribers.end(), 4), subscribers.end());
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, PlayerDisconnectionCleanup) {
+TEST_F(ChunkSyncManagerExtendedTest, PlayerDisconnectionCleanup)
+{
     ChunkSyncManager manager;
 
     // 玩家加载多个区块
@@ -855,7 +889,8 @@ TEST_F(ChunkSyncManagerExtendedTest, PlayerDisconnectionCleanup) {
     EXPECT_EQ(manager.getChunkSubscribers(1, 1).size(), 0u);
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, CalculateUpdatesForMultiplePlayers) {
+TEST_F(ChunkSyncManagerExtendedTest, CalculateUpdatesForMultiplePlayers)
+{
     ChunkSyncManager manager;
     manager.setDefaultViewDistance(2);
 
@@ -867,27 +902,27 @@ TEST_F(ChunkSyncManagerExtendedTest, CalculateUpdatesForMultiplePlayers) {
 
     std::vector<ChunkPos> toLoad1, toUnload1;
     manager.calculateUpdates(1, toLoad1, toUnload1);
-    EXPECT_EQ(toLoad1.size(), 25u);  // 5x5
+    EXPECT_EQ(toLoad1.size(), 25u); // 5x5
 
     std::vector<ChunkPos> toLoad2, toUnload2;
     manager.calculateUpdates(2, toLoad2, toUnload2);
-    EXPECT_EQ(toLoad2.size(), 25u);  // 5x5
+    EXPECT_EQ(toLoad2.size(), 25u); // 5x5
 
     // 验证两个玩家的加载区域不重叠
     auto isInRange = [](const std::vector<ChunkPos>& chunks, ChunkCoord x, ChunkCoord z) {
-        return std::find_if(chunks.begin(), chunks.end(), [&](const ChunkPos& p) {
-            return p.x == x && p.z == z;
-        }) != chunks.end();
+        return std::find_if(chunks.begin(), chunks.end(), [&](const ChunkPos& p) { return p.x == x && p.z == z; }) !=
+            chunks.end();
     };
 
     EXPECT_TRUE(isInRange(toLoad1, 0, 0));
-    EXPECT_FALSE(isInRange(toLoad1, 6, 6));  // 玩家 1 的范围外
+    EXPECT_FALSE(isInRange(toLoad1, 6, 6)); // 玩家 1 的范围外
 
-    EXPECT_TRUE(isInRange(toLoad2, 6, 6));   // 玩家 2 的范围（100/16 = 6）
+    EXPECT_TRUE(isInRange(toLoad2, 6, 6)); // 玩家 2 的范围（100/16 = 6）
     EXPECT_FALSE(isInRange(toLoad2, 0, 0));
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, ViewDistanceChange) {
+TEST_F(ChunkSyncManagerExtendedTest, ViewDistanceChange)
+{
     ChunkSyncManager manager;
     manager.setDefaultViewDistance(5);
 
@@ -898,7 +933,7 @@ TEST_F(ChunkSyncManagerExtendedTest, ViewDistanceChange) {
 
     // 改变默认视距不影响已有玩家
     manager.setDefaultViewDistance(10);
-    EXPECT_EQ(tracker->viewDistance(), 5);  // 保持原来的视距
+    EXPECT_EQ(tracker->viewDistance(), 5); // 保持原来的视距
 
     // 新玩家使用新视距
     manager.updatePlayerPosition(2, 0.0, 0.0);
@@ -906,7 +941,8 @@ TEST_F(ChunkSyncManagerExtendedTest, ViewDistanceChange) {
     EXPECT_EQ(tracker2->viewDistance(), 10);
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, BlockToChunkEdgeCases) {
+TEST_F(ChunkSyncManagerExtendedTest, BlockToChunkEdgeCases)
+{
     // 边界情况测试
     EXPECT_EQ(ChunkSyncManager::blockToChunk(0.0), 0);
     EXPECT_EQ(ChunkSyncManager::blockToChunk(15.9), 0);
@@ -920,30 +956,32 @@ TEST_F(ChunkSyncManagerExtendedTest, BlockToChunkEdgeCases) {
     EXPECT_EQ(ChunkSyncManager::blockToChunk(-1000000.0), -62500);
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, UpdatePlayerPositionTriggersCenterChange) {
+TEST_F(ChunkSyncManagerExtendedTest, UpdatePlayerPositionTriggersCenterChange)
+{
     ChunkSyncManager manager;
     manager.setDefaultViewDistance(5);
 
     // 初始位置
     manager.updatePlayerPosition(1, 100.0, 200.0);
     auto tracker = manager.getTracker(1);
-    EXPECT_EQ(tracker->view().centerX, 6);   // 100 / 16 = 6.25 → floor = 6
-    EXPECT_EQ(tracker->view().centerZ, 12);  // 200 / 16 = 12.5 → floor = 12
+    EXPECT_EQ(tracker->view().centerX, 6);  // 100 / 16 = 6.25 → floor = 6
+    EXPECT_EQ(tracker->view().centerZ, 12); // 200 / 16 = 12.5 → floor = 12
 
     // 移动到同一区块内的不同位置（不触发更新）
     // 105/16 = 6.5625 → floor = 6（同一区块）
     // 210/16 = 13.125 → floor = 13（不同区块！）
     manager.updatePlayerPosition(1, 105.0, 210.0);
     EXPECT_EQ(tracker->view().centerX, 6);
-    EXPECT_EQ(tracker->view().centerZ, 13);  // 210 / 16 = 13.125 → floor = 13
+    EXPECT_EQ(tracker->view().centerZ, 13); // 210 / 16 = 13.125 → floor = 13
 
     // 移动到新区块
     manager.updatePlayerPosition(1, 120.0, 230.0);
-    EXPECT_EQ(tracker->view().centerX, 7);    // 120 / 16 = 7.5 → floor = 7
-    EXPECT_EQ(tracker->view().centerZ, 14);   // 230 / 16 = 14.375 → floor = 14
+    EXPECT_EQ(tracker->view().centerX, 7);  // 120 / 16 = 7.5 → floor = 7
+    EXPECT_EQ(tracker->view().centerZ, 14); // 230 / 16 = 14.375 → floor = 14
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, ChunkSentAndUnloadSequence) {
+TEST_F(ChunkSyncManagerExtendedTest, ChunkSentAndUnloadSequence)
+{
     ChunkSyncManager manager;
 
     // 玩家连接
@@ -971,7 +1009,8 @@ TEST_F(ChunkSyncManagerExtendedTest, ChunkSentAndUnloadSequence) {
     EXPECT_EQ(manager.getChunkSubscribers(0, 1).size(), 1u);
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, ReconnectPlayer) {
+TEST_F(ChunkSyncManagerExtendedTest, ReconnectPlayer)
+{
     ChunkSyncManager manager;
 
     // 玩家连接并加载区块
@@ -990,7 +1029,8 @@ TEST_F(ChunkSyncManagerExtendedTest, ReconnectPlayer) {
     EXPECT_EQ(tracker->loadedChunks().size(), 0u);
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, GetNonExistentTracker) {
+TEST_F(ChunkSyncManagerExtendedTest, GetNonExistentTracker)
+{
     ChunkSyncManager manager;
 
     // 获取不存在的玩家 tracker 会自动创建
@@ -999,7 +1039,8 @@ TEST_F(ChunkSyncManagerExtendedTest, GetNonExistentTracker) {
     EXPECT_EQ(tracker->playerId(), 999u);
 }
 
-TEST_F(ChunkSyncManagerExtendedTest, NonExistentChunkSubscribers) {
+TEST_F(ChunkSyncManagerExtendedTest, NonExistentChunkSubscribers)
+{
     ChunkSyncManager manager;
 
     // 不存在的区块应该返回空列表
@@ -1013,12 +1054,11 @@ TEST_F(ChunkSyncManagerExtendedTest, NonExistentChunkSubscribers) {
 
 class ChunkSerializerExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(ChunkSerializerExtendedTest, SerializeDeserializeConsistency) {
+TEST_F(ChunkSerializerExtendedTest, SerializeDeserializeConsistency)
+{
     // 创建一个复杂的区块
     ChunkData original(42, -100);
 
@@ -1068,7 +1108,8 @@ TEST_F(ChunkSerializerExtendedTest, SerializeDeserializeConsistency) {
     }
 }
 
-TEST_F(ChunkSerializerExtendedTest, SerializeChunkWithAir) {
+TEST_F(ChunkSerializerExtendedTest, SerializeChunkWithAir)
+{
     ChunkData chunk(0, 0);
     auto section = chunk.createSection(0);
     ASSERT_NE(section, nullptr);
@@ -1087,7 +1128,8 @@ TEST_F(ChunkSerializerExtendedTest, SerializeChunkWithAir) {
     EXPECT_TRUE(result.success());
 }
 
-TEST_F(ChunkSerializerExtendedTest, EmptySectionMask) {
+TEST_F(ChunkSerializerExtendedTest, EmptySectionMask)
+{
     ChunkData chunk(0, 0);
 
     // 不创建任何区块段
@@ -1095,7 +1137,8 @@ TEST_F(ChunkSerializerExtendedTest, EmptySectionMask) {
     EXPECT_EQ(mask, 0);
 }
 
-TEST_F(ChunkSerializerExtendedTest, MultipleSectionsMask) {
+TEST_F(ChunkSerializerExtendedTest, MultipleSectionsMask)
+{
     ChunkData chunk(0, 0);
 
     // 创建多个区块段
@@ -1113,7 +1156,8 @@ TEST_F(ChunkSerializerExtendedTest, MultipleSectionsMask) {
     EXPECT_EQ(mask, (1 << 0) | (1 << 5) | (1 << 10));
 }
 
-TEST_F(ChunkSerializerExtendedTest, DeserializeInvalidData) {
+TEST_F(ChunkSerializerExtendedTest, DeserializeInvalidData)
+{
     // 太小的数据
     std::vector<u8> smallData = {0x01, 0x02, 0x03};
     auto result1 = ChunkSerializer::deserializeChunk(0, 0, smallData);
@@ -1127,7 +1171,8 @@ TEST_F(ChunkSerializerExtendedTest, DeserializeInvalidData) {
     EXPECT_FALSE(result2.success());
 }
 
-TEST_F(ChunkSerializerExtendedTest, ChunkSizeCalculation) {
+TEST_F(ChunkSerializerExtendedTest, ChunkSizeCalculation)
+{
     ChunkData chunk(0, 0);
 
     // 空区块
@@ -1153,15 +1198,14 @@ TEST_F(ChunkSerializerExtendedTest, ChunkSizeCalculation) {
 
 class ChunkSerializerLightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(ChunkSerializerLightTest, SerializeDeserializeLightData) {
+TEST_F(ChunkSerializerLightTest, SerializeDeserializeLightData)
+{
     // 创建一个区块并设置光照数据
     ChunkData original(0, 0);
-    auto section = original.createSection(4);  // Y=64-79
+    auto section = original.createSection(4); // Y=64-79
     ASSERT_NE(section, nullptr);
 
     // 设置一些方块
@@ -1204,7 +1248,8 @@ TEST_F(ChunkSerializerLightTest, SerializeDeserializeLightData) {
     EXPECT_EQ(restoredSection->getBlockLight(10, 10, 10), 12);
 }
 
-TEST_F(ChunkSerializerLightTest, LightDataNibbleArrayFormat) {
+TEST_F(ChunkSerializerLightTest, LightDataNibbleArrayFormat)
+{
     // 测试 NibbleArray 的打包和解包
     ChunkData original(0, 0);
     auto section = original.createSection(0);
@@ -1233,14 +1278,14 @@ TEST_F(ChunkSerializerLightTest, LightDataNibbleArrayFormat) {
 
     // 验证所有光照值
     for (int i = 0; i < 16; ++i) {
-        EXPECT_EQ(restoredSection->getSkyLight(i, 0, 0), static_cast<u8>(i))
-            << "Sky light mismatch at i=" << i;
+        EXPECT_EQ(restoredSection->getSkyLight(i, 0, 0), static_cast<u8>(i)) << "Sky light mismatch at i=" << i;
         EXPECT_EQ(restoredSection->getBlockLight(0, i, 0), static_cast<u8>(15 - i))
             << "Block light mismatch at i=" << i;
     }
 }
 
-TEST_F(ChunkSerializerLightTest, MultipleSectionsLightData) {
+TEST_F(ChunkSerializerLightTest, MultipleSectionsLightData)
+{
     // 测试多个区块段的光照数据
     ChunkData original(0, 0);
 
@@ -1279,7 +1324,8 @@ TEST_F(ChunkSerializerLightTest, MultipleSectionsLightData) {
     }
 }
 
-TEST_F(ChunkSerializerLightTest, LightDataSectionSizeCalculation) {
+TEST_F(ChunkSerializerLightTest, LightDataSectionSizeCalculation)
+{
     // 测试区块段大小计算是否包含光照数据
     ChunkSection section;
 

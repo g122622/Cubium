@@ -14,13 +14,15 @@ namespace loot {
 
 const LootTable LootTable::EMPTY;
 
-void LootTable::addPool(std::unique_ptr<LootPool> pool) {
+void LootTable::addPool(std::unique_ptr<LootPool> pool)
+{
     if (pool) {
         m_pools.push_back(std::move(pool));
     }
 }
 
-LootPool* LootTable::getPool(const std::string& name) {
+LootPool* LootTable::getPool(const std::string& name)
+{
     for (auto& pool : m_pools) {
         if (pool->getName() == name) {
             return pool.get();
@@ -29,7 +31,8 @@ LootPool* LootTable::getPool(const std::string& name) {
     return nullptr;
 }
 
-std::unique_ptr<LootPool> LootTable::removePool(const std::string& name) {
+std::unique_ptr<LootPool> LootTable::removePool(const std::string& name)
+{
     for (auto it = m_pools.begin(); it != m_pools.end(); ++it) {
         if ((*it)->getName() == name) {
             auto pool = std::move(*it);
@@ -40,7 +43,8 @@ std::unique_ptr<LootPool> LootTable::removePool(const std::string& name) {
     return nullptr;
 }
 
-std::vector<ItemStack> LootTable::generate(LootContext& context) const {
+std::vector<ItemStack> LootTable::generate(LootContext& context) const
+{
     std::vector<ItemStack> items;
 
     // 处理物品堆叠
@@ -54,7 +58,7 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const {
                         i32 toAdd = std::min(space, stack.getCount());
                         existing.grow(toAdd);
                         if (toAdd >= stack.getCount()) {
-                            return;  // 完全合并
+                            return; // 完全合并
                         }
                         // 部分合并，创建新堆
                         ItemStack remaining(stack.copy());
@@ -73,11 +77,13 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const {
     return items;
 }
 
-void LootTable::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const {
+void LootTable::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     recursiveGenerate(consumer, context);
 }
 
-void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer, LootContext& context) const {
+void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     // 循环检测
     if (!context.pushLootTable(this)) {
         // 检测到循环引用，跳过
@@ -92,11 +98,13 @@ void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer
     context.popLootTable(this);
 }
 
-Result<std::unique_ptr<LootTable>> LootTable::fromJson(const std::string& json) {
+Result<std::unique_ptr<LootTable>> LootTable::fromJson(const std::string& json)
+{
     return LootSerializers::parseLootTable(json);
 }
 
-std::string LootTable::toJson() const {
+std::string LootTable::toJson() const
+{
     return LootSerializers::toJsonString(*this, 2);
 }
 
@@ -104,7 +112,8 @@ std::string LootTable::toJson() const {
 // LootTableBuilder
 // ============================================================================
 
-std::unique_ptr<LootTable> LootTableBuilder::build() const {
+std::unique_ptr<LootTable> LootTableBuilder::build() const
+{
     auto table = std::make_unique<LootTable>();
     table->setId(m_id);
     table->setParameterSet(m_paramSet);
@@ -120,14 +129,16 @@ std::unique_ptr<LootTable> LootTableBuilder::build() const {
 // LootTableManager
 // ============================================================================
 
-void LootTableManager::registerTable(const std::string& id, std::unique_ptr<LootTable> table) {
+void LootTableManager::registerTable(const std::string& id, std::unique_ptr<LootTable> table)
+{
     if (table) {
         table->setId(id);
         m_tables[id] = std::move(table);
     }
 }
 
-const LootTable* LootTableManager::getTable(const std::string& id) const {
+const LootTable* LootTableManager::getTable(const std::string& id) const
+{
     auto it = m_tables.find(id);
     if (it != m_tables.end()) {
         return it->second.get();
@@ -135,11 +146,13 @@ const LootTable* LootTableManager::getTable(const std::string& id) const {
     return nullptr;
 }
 
-bool LootTableManager::hasTable(const std::string& id) const {
+bool LootTableManager::hasTable(const std::string& id) const
+{
     return m_tables.find(id) != m_tables.end();
 }
 
-std::vector<std::string> LootTableManager::getAllTableIds() const {
+std::vector<std::string> LootTableManager::getAllTableIds() const
+{
     std::vector<std::string> ids;
     ids.reserve(m_tables.size());
     for (const auto& [id, table] : m_tables) {
@@ -148,11 +161,13 @@ std::vector<std::string> LootTableManager::getAllTableIds() const {
     return ids;
 }
 
-const LootTable& LootTableManager::getEmptyTable() {
+const LootTable& LootTableManager::getEmptyTable()
+{
     return LootTable::EMPTY;
 }
 
-void LootTableManager::initializeDefaultTables() {
+void LootTableManager::initializeDefaultTables()
+{
     // ========================================================================
     // 实体掉落表
     // ========================================================================
@@ -161,11 +176,7 @@ void LootTableManager::initializeDefaultTables() {
     {
         auto table = std::make_unique<LootTable>();
         auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 3.0f));
-        pool->addEntry(std::make_unique<ItemLootEntry>(
-            "minecraft:porkchop",
-            RandomValueRange(1.0f, 3.0f),
-            1, 0
-        ));
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:porkchop", RandomValueRange(1.0f, 3.0f), 1, 0));
         table->addPool(std::move(pool));
         registerTable("minecraft:entities/pig", std::move(table));
     }
@@ -174,11 +185,7 @@ void LootTableManager::initializeDefaultTables() {
     {
         auto table = std::make_unique<LootTable>();
         auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 3.0f));
-        pool->addEntry(std::make_unique<ItemLootEntry>(
-            "minecraft:beef",
-            RandomValueRange(1.0f, 3.0f),
-            1, 0
-        ));
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:beef", RandomValueRange(1.0f, 3.0f), 1, 0));
         table->addPool(std::move(pool));
         registerTable("minecraft:entities/cow", std::move(table));
     }
@@ -188,19 +195,11 @@ void LootTableManager::initializeDefaultTables() {
         auto table = std::make_unique<LootTable>();
         // 羊毛掉落
         auto woolPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        woolPool->addEntry(std::make_unique<ItemLootEntry>(
-            "minecraft:wool",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        ));
+        woolPool->addEntry(std::make_unique<ItemLootEntry>("minecraft:wool", RandomValueRange(1.0f, 1.0f), 1, 0));
         table->addPool(std::move(woolPool));
         // 羊肉掉落
         auto meatPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 2.0f));
-        meatPool->addEntry(std::make_unique<ItemLootEntry>(
-            "minecraft:mutton",
-            RandomValueRange(1.0f, 2.0f),
-            1, 0
-        ));
+        meatPool->addEntry(std::make_unique<ItemLootEntry>("minecraft:mutton", RandomValueRange(1.0f, 2.0f), 1, 0));
         table->addPool(std::move(meatPool));
         registerTable("minecraft:entities/sheep", std::move(table));
     }
@@ -209,16 +208,8 @@ void LootTableManager::initializeDefaultTables() {
     {
         auto table = std::make_unique<LootTable>();
         auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 2.0f));
-        pool->addEntry(std::make_unique<ItemLootEntry>(
-            "minecraft:chicken",
-            RandomValueRange(1.0f, 2.0f),
-            1, 0
-        ));
-        pool->addEntry(std::make_unique<ItemLootEntry>(
-            "minecraft:feather",
-            RandomValueRange(0.0f, 2.0f),
-            1, 0
-        ));
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:chicken", RandomValueRange(1.0f, 2.0f), 1, 0));
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:feather", RandomValueRange(0.0f, 2.0f), 1, 0));
         table->addPool(std::move(pool));
         registerTable("minecraft:entities/chicken", std::move(table));
     }
@@ -235,22 +226,15 @@ void LootTableManager::initializeDefaultTables() {
 
         // 池1: 精准采集时掉落原矿
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:diamond_ore",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry =
+            std::make_unique<ItemLootEntry>("minecraft:diamond_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 池2: 无精准采集时掉落钻石（受时运影响）
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:diamond",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto normalEntry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f, 1.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         // 添加时运加成函数（OreDrops 公式）
         normalEntry->addFunction(std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops));
@@ -268,22 +252,14 @@ void LootTableManager::initializeDefaultTables() {
 
         // 精准采集时掉落石头
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:stone",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry = std::make_unique<ItemLootEntry>("minecraft:stone", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 无精准采集时掉落圆石
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:cobblestone",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto normalEntry = std::make_unique<ItemLootEntry>("minecraft:cobblestone", RandomValueRange(1.0f, 1.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));
@@ -299,22 +275,14 @@ void LootTableManager::initializeDefaultTables() {
 
         // 精准采集时掉落煤矿
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:coal_ore",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry = std::make_unique<ItemLootEntry>("minecraft:coal_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 无精准采集时掉落煤炭（受时运影响）
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:coal",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto normalEntry = std::make_unique<ItemLootEntry>("minecraft:coal", RandomValueRange(1.0f, 1.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         // 添加时运加成函数（OreDrops 公式）
         normalEntry->addFunction(std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops));
@@ -332,22 +300,14 @@ void LootTableManager::initializeDefaultTables() {
 
         // 精准采集时掉落铁矿
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:iron_ore",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry = std::make_unique<ItemLootEntry>("minecraft:iron_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 无精准采集时掉落粗铁
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:raw_iron",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto normalEntry = std::make_unique<ItemLootEntry>("minecraft:raw_iron", RandomValueRange(1.0f, 1.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));
@@ -363,22 +323,14 @@ void LootTableManager::initializeDefaultTables() {
 
         // 精准采集时掉落金矿
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:gold_ore",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry = std::make_unique<ItemLootEntry>("minecraft:gold_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 无精准采集时掉落粗金
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:raw_gold",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto normalEntry = std::make_unique<ItemLootEntry>("minecraft:raw_gold", RandomValueRange(1.0f, 1.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));
@@ -394,22 +346,15 @@ void LootTableManager::initializeDefaultTables() {
 
         // 精准采集时掉落红石矿
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:redstone_ore",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry =
+            std::make_unique<ItemLootEntry>("minecraft:redstone_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 无精准采集时掉落红石（4-5个）
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:redstone",
-            RandomValueRange(4.0f, 5.0f),
-            1, 0
-        );
+        auto normalEntry = std::make_unique<ItemLootEntry>("minecraft:redstone", RandomValueRange(4.0f, 5.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));
@@ -425,22 +370,16 @@ void LootTableManager::initializeDefaultTables() {
 
         // 精准采集时掉落青金石矿
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:lapis_ore",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry =
+            std::make_unique<ItemLootEntry>("minecraft:lapis_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 无精准采集时掉落青金石（4-9个）
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:lapis_lazuli",
-            RandomValueRange(4.0f, 9.0f),
-            1, 0
-        );
+        auto normalEntry =
+            std::make_unique<ItemLootEntry>("minecraft:lapis_lazuli", RandomValueRange(4.0f, 9.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));
@@ -452,11 +391,7 @@ void LootTableManager::initializeDefaultTables() {
     {
         auto table = std::make_unique<LootTable>();
         auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        pool->addEntry(std::make_unique<ItemLootEntry>(
-            "minecraft:cobblestone",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        ));
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:cobblestone", RandomValueRange(1.0f, 1.0f), 1, 0));
         table->addPool(std::move(pool));
         registerTable("minecraft:blocks/cobblestone", std::move(table));
     }
@@ -469,22 +404,15 @@ void LootTableManager::initializeDefaultTables() {
 
         // 精准采集时掉落下界金矿
         auto silkTouchPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto silkTouchEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:nether_gold_ore",
-            RandomValueRange(1.0f, 1.0f),
-            1, 0
-        );
+        auto silkTouchEntry =
+            std::make_unique<ItemLootEntry>("minecraft:nether_gold_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
         silkTouchEntry->addCondition(std::make_unique<SilkTouchCondition>());
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
         // 无精准采集时掉落金粒（2-6个）
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
-        auto normalEntry = std::make_unique<ItemLootEntry>(
-            "minecraft:gold_nugget",
-            RandomValueRange(2.0f, 6.0f),
-            1, 0
-        );
+        auto normalEntry = std::make_unique<ItemLootEntry>("minecraft:gold_nugget", RandomValueRange(2.0f, 6.0f), 1, 0);
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));

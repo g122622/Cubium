@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/sound/instance/SoundInstance.hpp"
 #include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
@@ -27,14 +27,12 @@ public:
      * @param volume 音量
      * @param pitch 音调
      */
-    MovingTickableSound(
-        const ResourceLocation& soundEventId,
+    MovingTickableSound(const ResourceLocation& soundEventId,
         SoundCategory category,
         const EntitySoundHandler* handler,
         EntityId entityId,
         f32 volume,
-        f32 pitch
-    );
+        f32 pitch);
 
     /**
      * @brief 每帧更新

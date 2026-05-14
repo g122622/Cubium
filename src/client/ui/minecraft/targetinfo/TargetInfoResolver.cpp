@@ -5,9 +5,9 @@
 #include "client/world/entity/ClientEntityManager.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 
 #include <algorithm>
@@ -33,9 +33,7 @@ struct SegmentAabbHit {
 };
 
 [[nodiscard]] std::optional<SegmentAabbHit> intersectSegmentAabb(
-    const Vector3& start,
-    const Vector3& end,
-    const AxisAlignedBB& box)
+    const Vector3& start, const Vector3& end, const AxisAlignedBB& box)
 {
     constexpr f32 EPSILON = 1.0e-7f;
 
@@ -74,20 +72,16 @@ struct SegmentAabbHit {
     }
 
     const f32 hitT = std::clamp(tMin, 0.0f, 1.0f);
-    const Vector3 hitPosition(
-        start.x + delta.x * hitT,
-        start.y + delta.y * hitT,
-        start.z + delta.z * hitT);
+    const Vector3 hitPosition(start.x + delta.x * hitT, start.y + delta.y * hitT, start.z + delta.z * hitT);
 
     return SegmentAabbHit{hitPosition.distanceSquared(start), hitPosition};
 }
 
 [[nodiscard]] std::optional<SegmentAabbHit> rayTraceEntity(
-    const Vector3& start,
-    const Vector3& end,
-    const ClientEntity& entity)
+    const Vector3& start, const Vector3& end, const ClientEntity& entity)
 {
-    const AxisAlignedBB entityBox = AxisAlignedBB::fromPosition(entity.position(), entity.width(), entity.height()).grow(ENTITY_SEARCH_MARGIN * 0.1f);
+    const AxisAlignedBB entityBox = AxisAlignedBB::fromPosition(entity.position(), entity.width(), entity.height())
+                                        .grow(ENTITY_SEARCH_MARGIN * 0.1f);
 
     if (entityBox.contains(start)) {
         return SegmentAabbHit{0.0f, start};
@@ -97,8 +91,7 @@ struct SegmentAabbHit {
 }
 
 [[nodiscard]] std::string makeEntityTitle(
-    const ClientEntity& entity,
-    const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
+    const ClientEntity& entity, const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
     const ResourceLocation typeLocation = ResourceLocation::parse(entity.typeId());
     const std::string typePath = typeLocation.path();
@@ -136,9 +129,7 @@ struct SegmentAabbHit {
     return humanizeResourceLocation(typeLocation);
 }
 
-[[nodiscard]] std::vector<std::string> makeEntityDetails(
-    const ClientEntity& entity,
-    f32 distance)
+[[nodiscard]] std::vector<std::string> makeEntityDetails(const ClientEntity& entity, f32 distance)
 {
     std::vector<std::string> details;
     details.reserve(4);
@@ -161,14 +152,10 @@ struct SegmentAabbHit {
     return details;
 }
 
-[[nodiscard]] TargetInfoSnapshot makeBlockSnapshot(
-    const BlockRaycastResult& blockRaycast,
-    const ClientWorld& world)
+[[nodiscard]] TargetInfoSnapshot makeBlockSnapshot(const BlockRaycastResult& blockRaycast, const ClientWorld& world)
 {
-    const BlockState* state = world.getBlockState(
-        blockRaycast.blockPos().x,
-        blockRaycast.blockPos().y,
-        blockRaycast.blockPos().z);
+    const BlockState* state =
+        world.getBlockState(blockRaycast.blockPos().x, blockRaycast.blockPos().y, blockRaycast.blockPos().z);
 
     if (state == nullptr) {
         return TargetInfoSnapshot::none();
@@ -186,17 +173,14 @@ struct SegmentAabbHit {
         details.emplace_back("State: " + blockStateKey);
     }
 
-    return TargetInfoSnapshot(
-        TargetInfoKind::Block,
+    return TargetInfoSnapshot(TargetInfoKind::Block,
         humanizeResourceLocation(state->blockLocation()),
         std::move(details),
         BLOCK_ACCENT_COLOR);
 }
 
 [[nodiscard]] TargetInfoSnapshot makeEntitySnapshot(
-    const ClientEntity& entity,
-    f32 distance,
-    const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
+    const ClientEntity& entity, f32 distance, const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
     const ResourceLocation typeLocation = ResourceLocation::parse(entity.typeId());
     const std::string typePath = typeLocation.path();
@@ -213,23 +197,15 @@ struct SegmentAabbHit {
         accentColor = XP_ACCENT_COLOR;
     }
 
-    return TargetInfoSnapshot(
-        TargetInfoKind::Entity,
-        std::move(title),
-        std::move(details),
-        accentColor);
+    return TargetInfoSnapshot(TargetInfoKind::Entity, std::move(title), std::move(details), accentColor);
 }
 
 [[nodiscard]] std::optional<SegmentAabbHit> rayTraceClientEntities(
-    const Vector3& start,
-    const Vector3& end,
-    const ClientEntityManager& entityManager,
-    const ClientEntity*& hitEntity)
+    const Vector3& start, const Vector3& end, const ClientEntityManager& entityManager, const ClientEntity*& hitEntity)
 {
     hitEntity = nullptr;
 
-    AxisAlignedBB searchBox(
-        std::min(start.x, end.x) - ENTITY_SEARCH_MARGIN,
+    AxisAlignedBB searchBox(std::min(start.x, end.x) - ENTITY_SEARCH_MARGIN,
         std::min(start.y, end.y) - ENTITY_SEARCH_MARGIN,
         std::min(start.z, end.z) - ENTITY_SEARCH_MARGIN,
         std::max(start.x, end.x) + ENTITY_SEARCH_MARGIN,
@@ -238,7 +214,8 @@ struct SegmentAabbHit {
 
     std::optional<SegmentAabbHit> nearestHit;
     entityManager.forEachEntity([&](const ClientEntity& entity) {
-        const AxisAlignedBB entityBox = AxisAlignedBB::fromPosition(entity.position(), entity.width(), entity.height()).grow(ENTITY_SEARCH_MARGIN * 0.1f);
+        const AxisAlignedBB entityBox = AxisAlignedBB::fromPosition(entity.position(), entity.width(), entity.height())
+                                            .grow(ENTITY_SEARCH_MARGIN * 0.1f);
         if (!searchBox.intersects(entityBox)) {
             return;
         }
@@ -259,8 +236,7 @@ struct SegmentAabbHit {
 
 } // namespace
 
-TargetInfoSnapshot TargetInfoResolver::resolve(
-    const Vector3& eyePosition,
+TargetInfoSnapshot TargetInfoResolver::resolve(const Vector3& eyePosition,
     const Vector3& forward,
     const ClientWorld& world,
     const ClientEntityManager& entityManager,

@@ -1,20 +1,17 @@
 #include "PistonRenderer.hpp"
-#include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/util/Direction.hpp"
 #include "client/resource/BlockModelCache.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 
 namespace mc::client::renderer::trident::blockentity {
 
 PistonRenderer::PistonRenderer()
     : BlockEntityRenderer<mc::blockentity::PistonBlockEntity>()
-    , m_helper() {
-}
+    , m_helper()
+{}
 
-void PistonRenderer::render(
-    const mc::blockentity::PistonBlockEntity& entity,
-    f32 partialTick,
-    u32 light)
+void PistonRenderer::render(const mc::blockentity::PistonBlockEntity& entity, f32 partialTick, u32 light)
 {
     // MC 1.16.5 PistonTileEntityRenderer.render():
     // 如果方块状态为空气，不渲染
@@ -86,10 +83,7 @@ void PistonRenderer::render(
     }
 }
 
-void PistonRenderer::renderPistonHead(
-    const mc::blockentity::PistonBlockEntity& entity,
-    f32 progress,
-    u32 light)
+void PistonRenderer::renderPistonHead(const mc::blockentity::PistonBlockEntity& entity, f32 progress, u32 light)
 {
     // MC 1.16.5 PistonTileEntityRenderer:
     // 渲染活塞头（收回时需要单独渲染）
@@ -122,11 +116,7 @@ void PistonRenderer::renderPistonHead(
 }
 
 void PistonRenderer::renderMovingBlock(
-    const mc::blockentity::PistonBlockEntity& entity,
-    f32 offsetX,
-    f32 offsetY,
-    f32 offsetZ,
-    u32 light)
+    const mc::blockentity::PistonBlockEntity& entity, f32 offsetX, f32 offsetY, f32 offsetZ, u32 light)
 {
     const BlockState* pistonState = entity.getPistonState();
     if (pistonState == nullptr) {

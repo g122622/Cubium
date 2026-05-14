@@ -1,12 +1,12 @@
 #pragma once
 
-#include "PathPoint.hpp"
-#include "PathNodeType.hpp"
-#include "Region.hpp"
 #include "../../../core/Types.hpp"
-#include <vector>
-#include <unordered_map>
+#include "PathNodeType.hpp"
+#include "PathPoint.hpp"
+#include "Region.hpp"
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::entity::ai::pathfinding {
 
@@ -35,7 +35,8 @@ public:
      * @param width 实体宽度
      * @param height 实体高度
      */
-    void setEntitySize(f32 width, f32 height) {
+    void setEntitySize(f32 width, f32 height)
+    {
         m_entityWidth = width;
         m_entityHeight = height;
     }
@@ -49,7 +50,8 @@ public:
      * @param z Z坐标
      * @return 路径点，如果位置无效返回nullptr
      */
-    [[nodiscard]] PathPoint* getNode(i32 x, i32 y, i32 z) {
+    [[nodiscard]] PathPoint* getNode(i32 x, i32 y, i32 z)
+    {
         // 检查缓存
         u64 hash = makeHash(x, y, z);
         auto it = m_nodeCache.find(hash);
@@ -91,7 +93,8 @@ public:
     /**
      * @brief 清除缓存
      */
-    virtual void clear() {
+    virtual void clear()
+    {
         m_nodeCache.clear();
         m_openNodes.clear();
     }
@@ -134,10 +137,10 @@ protected:
     /**
      * @brief 生成哈希值
      */
-    [[nodiscard]] static u64 makeHash(i32 x, i32 y, i32 z) {
-        return (static_cast<u64>(static_cast<u16>(y)) << 48) |
-               (static_cast<u64>(static_cast<u32>(x)) << 16) |
-               static_cast<u64>(static_cast<u32>(z));
+    [[nodiscard]] static u64 makeHash(i32 x, i32 y, i32 z)
+    {
+        return (static_cast<u64>(static_cast<u16>(y)) << 48) | (static_cast<u64>(static_cast<u32>(x)) << 16) |
+            static_cast<u64>(static_cast<u32>(z));
     }
 };
 

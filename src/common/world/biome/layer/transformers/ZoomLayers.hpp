@@ -22,8 +22,8 @@ public:
      * @brief 缩放模式
      */
     enum class Mode {
-        Normal,     // 普通缩放：使用众数算法
-        Fuzzy       // 模糊缩放：随机选择
+        Normal, // 普通缩放：使用众数算法
+        Fuzzy   // 模糊缩放：随机选择
     };
 
     explicit ZoomLayer(Mode mode = Mode::Normal);
@@ -35,8 +35,7 @@ public:
     [[nodiscard]] i32 getOffsetZ(i32 z) const override { return z >> 1; }
 
     [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
-        std::unique_ptr<IAreaFactory> input) override;
+        IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input) override;
 
 private:
     Mode m_mode;

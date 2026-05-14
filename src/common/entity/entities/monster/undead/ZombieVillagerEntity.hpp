@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../undead/ZombieEntity.hpp"
-#include "../../villager/VillagerEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../entity/core/DataParameter.hpp"
+#include "../../villager/VillagerEntity.hpp"
+#include "../undead/ZombieEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -87,9 +87,7 @@ public:
     /**
      * @brief 获取村民职业
      */
-    [[nodiscard]] entity::VillagerProfession getProfession() const {
-        return m_villagerData.profession();
-    }
+    [[nodiscard]] entity::VillagerProfession getProfession() const { return m_villagerData.profession(); }
 
     /**
      * @brief 设置村民职业
@@ -99,9 +97,7 @@ public:
     /**
      * @brief 获取村民类型
      */
-    [[nodiscard]] entity::VillagerType getVillagerType() const {
-        return m_villagerData.type();
-    }
+    [[nodiscard]] entity::VillagerType getVillagerType() const { return m_villagerData.type(); }
 
     /**
      * @brief 设置村民类型
@@ -178,16 +174,12 @@ public:
     /**
      * @brief 获取治愈发起者的UUID
      */
-    [[nodiscard]] const std::string& getConversionStarterUuid() const {
-        return m_conversionStarterUuid;
-    }
+    [[nodiscard]] const std::string& getConversionStarterUuid() const { return m_conversionStarterUuid; }
 
     /**
      * @brief 设置治愈发起者的UUID
      */
-    void setConversionStarterUuid(const std::string& uuid) {
-        m_conversionStarterUuid = uuid;
-    }
+    void setConversionStarterUuid(const std::string& uuid) { m_conversionStarterUuid = uuid; }
 
     // ========== 属性 ==========
 
@@ -258,7 +250,7 @@ private:
     // 治愈状态
     bool m_converting = false;
     i32 m_conversionTime = 0;
-    std::string m_conversionStarterUuid;  // 发起治愈的玩家UUID
+    std::string m_conversionStarterUuid; // 发起治愈的玩家UUID
 
     // 数据参数
     static entity::DataParameter<bool> CONVERTING_PARAM;
@@ -267,9 +259,9 @@ private:
     static entity::DataParameter<i32> VILLAGER_LEVEL_PARAM;
 
     // 常量
-    static constexpr i32 DEFAULT_CONVERSION_TIME = 3600;  // 3分钟（游戏时间）
-    static constexpr i32 MIN_CONVERSION_TIME = 1;         // 最小治愈时间
-    static constexpr i32 MAX_CONVERSION_TIME = 6000;      // 最大治愈时间（5分钟）
+    static constexpr i32 DEFAULT_CONVERSION_TIME = 3600;   // 3分钟（游戏时间）
+    static constexpr i32 MIN_CONVERSION_TIME = 1;          // 最小治愈时间
+    static constexpr i32 MAX_CONVERSION_TIME = 6000;       // 最大治愈时间（5分钟）
     static constexpr f32 CONVERSION_SPEEDUP_CHANCE = 0.3f; // 铁栏杆/床加速概率
     static constexpr i32 CONVERSION_SPEEDUP_RANGE = 4;     // 检测范围 4x4x4
 };

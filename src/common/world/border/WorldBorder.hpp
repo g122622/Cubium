@@ -3,8 +3,8 @@
 #include "../../core/Types.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include <functional>
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -21,9 +21,9 @@ namespace border {
  * 参考: net.minecraft.world.border.BorderStatus
  */
 enum class BorderStatus : u8 {
-    Stationary = 0,  // 静止 - 灰色
-    Shrinking = 1,   // 收缩中 - 红色
-    Growing = 2      // 扩大中 - 绿色
+    Stationary = 0, // 静止 - 灰色
+    Shrinking = 1,  // 收缩中 - 红色
+    Growing = 2     // 扩大中 - 绿色
 };
 
 /**
@@ -425,7 +425,7 @@ public:
         double centerZ = 0.0;
         double size = 6.0E7;
         double targetSize = 6.0E7;
-        u64 timeUntilTarget = 0;  // 过渡剩余时间（毫秒）
+        u64 timeUntilTarget = 0; // 过渡剩余时间（毫秒）
         double damagePerBlock = 0.2;
         double damageBuffer = 5.0;
         i32 warningTime = 15;
@@ -465,15 +465,15 @@ private:
     void updateCachedBounds();
 
 private:
-    double m_centerX = 0.0;            // 边界中心 X
-    double m_centerZ = 0.0;            // 边界中心 Z
-    double m_damagePerBlock = 0.2;     // 每格伤害量
-    double m_damageBuffer = 5.0;       // 伤害缓冲距离
-    i32 m_warningTime = 15;            // 警告时间（秒）
-    i32 m_warningDistance = 5;         // 警告距离（格）
+    double m_centerX = 0.0;        // 边界中心 X
+    double m_centerZ = 0.0;        // 边界中心 Z
+    double m_damagePerBlock = 0.2; // 每格伤害量
+    double m_damageBuffer = 5.0;   // 伤害缓冲距离
+    i32 m_warningTime = 15;        // 警告时间（秒）
+    i32 m_warningDistance = 5;     // 警告距离（格）
 
-    std::unique_ptr<IBorderState> m_state;  // 边界状态（静止/移动）
-    std::vector<std::weak_ptr<IBorderListener>> m_listeners;  // 监听器列表
+    std::unique_ptr<IBorderState> m_state;                   // 边界状态（静止/移动）
+    std::vector<std::weak_ptr<IBorderListener>> m_listeners; // 监听器列表
 };
 
 } // namespace border

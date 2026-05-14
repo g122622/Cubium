@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include <string>
 #include <functional>
 #include <sstream>
+#include <string>
 #include <vector>
 
 namespace mc::assert {
@@ -12,22 +12,22 @@ namespace mc::assert {
  * @brief 断言级别
  */
 enum class AssertLevel : u8 {
-    Debug,      // 仅在 Debug 模式启用
-    Release,    // 始终启用
-    Fatal       // 始终启用，失败时终止程序
+    Debug,   // 仅在 Debug 模式启用
+    Release, // 始终启用
+    Fatal    // 始终启用，失败时终止程序
 };
 
 /**
  * @brief 断言失败信息
  */
 struct AssertFailure {
-    std::string expression;      // 断言表达式
-    std::string message;         // 自定义消息
-    std::string file;            // 文件名
+    std::string expression; // 断言表达式
+    std::string message;    // 自定义消息
+    std::string file;       // 文件名
     i32 line;               // 行号
-    std::string function;        // 函数名
+    std::string function;   // 函数名
     AssertLevel level;      // 断言级别
-    std::string stackTrace;      // 堆栈跟踪（可选）
+    std::string stackTrace; // 堆栈跟踪（可选）
 };
 
 /**
@@ -87,14 +87,12 @@ public:
      * @param function 函数名
      * @param level 断言级别
      */
-    [[noreturn]] void handleFailure(
-        const char* expression,
+    [[noreturn]] void handleFailure(const char* expression,
         const char* message,
         const char* file,
         i32 line,
         const char* function,
-        AssertLevel level
-    );
+        AssertLevel level);
 
     /**
      * @brief 处理可恢复的断言失败（仅 Debug 级别）
@@ -102,12 +100,7 @@ public:
      * @return 是否继续执行
      */
     bool handleRecoverableFailure(
-        const char* expression,
-        const char* message,
-        const char* file,
-        i32 line,
-        const char* function
-    );
+        const char* expression, const char* message, const char* file, i32 line, const char* function);
 
     /**
      * @brief 捕获堆栈跟踪
@@ -166,18 +159,14 @@ namespace detail {
  * @brief 格式化断言失败消息
  */
 std::string formatFailureMessage(
-    const char* expression,
-    const char* message,
-    const char* file,
-    i32 line,
-    const char* function
-);
+    const char* expression, const char* message, const char* file, i32 line, const char* function);
 
 /**
  * @brief 值格式化帮助器
  */
-template<typename T>
-std::string formatValue(const T& value) {
+template <typename T>
+std::string formatValue(const T& value)
+{
     std::ostringstream oss;
     oss << value;
     return oss.str();
@@ -186,22 +175,25 @@ std::string formatValue(const T& value) {
 /**
  * @brief 字符串值格式化（带引号）
  */
-inline std::string formatValue(const char* value) {
+inline std::string formatValue(const char* value)
+{
     if (value == nullptr) {
         return "nullptr";
     }
     return "\"" + std::string(value) + "\"";
 }
 
-inline std::string formatValue(const std::string& value) {
+inline std::string formatValue(const std::string& value)
+{
     return "\"" + value + "\"";
 }
 
 /**
  * @brief 指针格式化
  */
-template<typename T>
-std::string formatValue(T* value) {
+template <typename T>
+std::string formatValue(T* value)
+{
     if (value == nullptr) {
         return "nullptr";
     }
@@ -213,21 +205,18 @@ std::string formatValue(T* value) {
 /**
  * @brief 布尔值格式化
  */
-inline std::string formatValue(bool value) {
+inline std::string formatValue(bool value)
+{
     return value ? "true" : "false";
 }
 
 /**
  * @brief 格式化比较断言消息
  */
-template<typename T, typename U>
+template <typename T, typename U>
 std::string formatComparisonMessage(
-    const char* op,
-    const char* aName,
-    const T& aValue,
-    const char* bName,
-    const U& bValue
-) {
+    const char* op, const char* aName, const T& aValue, const char* bName, const U& bValue)
+{
     std::ostringstream oss;
     oss << op << "\n"
         << "  " << aName << " = " << formatValue(aValue) << "\n"

@@ -18,9 +18,8 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 获取头部模型
@@ -33,7 +32,7 @@ private:
     std::shared_ptr<model::ModelRenderer> m_head;
     std::shared_ptr<model::ModelRenderer> m_neck;
     std::shared_ptr<model::ModelRenderer> m_body;
-    std::array<std::shared_ptr<model::ModelRenderer>, 8> m_legs;  // 8条腿
+    std::array<std::shared_ptr<model::ModelRenderer>, 8> m_legs; // 8条腿
 };
 
 } // namespace mc::client::renderer::entity::model::monster

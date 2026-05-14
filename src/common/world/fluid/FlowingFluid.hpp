@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Fluid.hpp"
-#include "../../util/property/FluidProperties.hpp"
 #include "../../util/Direction.hpp"
+#include "../../util/property/FluidProperties.hpp"
 #include "../block/BlockPos.hpp"
+#include "Fluid.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -50,14 +50,14 @@ public:
      */
     [[nodiscard]] virtual i32 getLevelDecrease(IWorld& world) const = 0;
 
-     /**
-      * @brief 斜坡搜索距离（用于水平扩散路径搜索）
-      *
-      * 参考 MC 1.16.5 getSlopeFindDistance：
-      * 水: 4格
-      * 岩浆(主世界): 2格
-      * 岩浆(下界): 4格
-      */
+    /**
+     * @brief 斜坡搜索距离（用于水平扩散路径搜索）
+     *
+     * 参考 MC 1.16.5 getSlopeFindDistance：
+     * 水: 4格
+     * 岩浆(主世界): 2格
+     * 岩浆(下界): 4格
+     */
     [[nodiscard]] virtual i32 getSpreadDistance(IWorld& world) const = 0;
 
     /**
@@ -81,11 +81,10 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, FluidState& state) override;
 
-    [[nodiscard]] Vector3 getFlow(IBlockReader& world, const BlockPos& pos,
-                                   const FluidState& state) const override;
+    [[nodiscard]] Vector3 getFlow(IBlockReader& world, const BlockPos& pos, const FluidState& state) const override;
 
-    [[nodiscard]] CollisionShape getShape(const FluidState& state, IBlockReader& world,
-                                           const BlockPos& pos) const override;
+    [[nodiscard]] CollisionShape getShape(
+        const FluidState& state, IBlockReader& world, const BlockPos& pos) const override;
 
 protected:
     /**
@@ -93,9 +92,8 @@ protected:
      *
      * 默认直接使用流体自身的基础 tick 延迟；岩浆会在此基础上做额外节流。
      */
-    [[nodiscard]] virtual i32 getTickDelay(IWorld& world, const BlockPos& pos,
-                                           const FluidState& state,
-                                           const FluidState& correctState) const;
+    [[nodiscard]] virtual i32 getTickDelay(
+        IWorld& world, const BlockPos& pos, const FluidState& state, const FluidState& correctState) const;
 
     /**
      * @brief 替换方块前的处理
@@ -106,8 +104,7 @@ protected:
      * @param pos 位置
      * @param state 被替换的方块状态
      */
-    virtual void beforeReplacingBlock(IWorld& world, const BlockPos& pos,
-                                       const BlockState* state) = 0;
+    virtual void beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state) = 0;
 
     /**
      * @brief 执行流动扩散
@@ -139,8 +136,8 @@ protected:
      * @param dir 流入方向
      * @param state 流入的流体状态
      */
-    virtual void flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
-                          Direction dir, const FluidState& state);
+    virtual void flowInto(
+        IWorld& world, const BlockPos& pos, const BlockState* blockState, Direction dir, const FluidState& state);
 
     /**
      * @brief 计算正确的流动状态
@@ -153,9 +150,8 @@ protected:
      * @param blockState 当前方块状态
      * @return 正确的流体状态，如果应该消失则返回空
      */
-    [[nodiscard]] FluidState calculateCorrectFlowingState(IWorld& world,
-                                                           const BlockPos& pos,
-                                                           const BlockState* blockState) const;
+    [[nodiscard]] FluidState calculateCorrectFlowingState(
+        IWorld& world, const BlockPos& pos, const BlockState* blockState) const;
 
     /**
      * @brief 检查是否可以流向指定位置
@@ -170,10 +166,14 @@ protected:
      * @param fluid 流入的流体类型
      * @return 是否可以流动
      */
-    [[nodiscard]] bool canFlow(IWorld& world, const BlockPos& fromPos,
-                                const BlockState* fromBlock, Direction dir,
-                                const BlockPos& toPos, const BlockState* toBlock,
-                                const FluidState& toFluid, const Fluid& fluid) const;
+    [[nodiscard]] bool canFlow(IWorld& world,
+        const BlockPos& fromPos,
+        const BlockState* fromBlock,
+        Direction dir,
+        const BlockPos& toPos,
+        const BlockState* toBlock,
+        const FluidState& toFluid,
+        const Fluid& fluid) const;
 
     /**
      * @brief 检查是否可以流入指定位置
@@ -188,10 +188,14 @@ protected:
      * @param fluidIn 用于阻挡判断的流体类型
      * @return 是否可以流入
      */
-    [[nodiscard]] bool canFlowInto(IWorld& world, const BlockPos& fromPos,
-                                    const BlockState* fromBlock, Direction dir,
-                                    const BlockPos& toPos, const BlockState* toBlock,
-                                    const FluidState& toFluid, const Fluid& fluidIn) const;
+    [[nodiscard]] bool canFlowInto(IWorld& world,
+        const BlockPos& fromPos,
+        const BlockState* fromBlock,
+        Direction dir,
+        const BlockPos& toPos,
+        const BlockState* toBlock,
+        const FluidState& toFluid,
+        const Fluid& fluidIn) const;
 
     /**
      * @brief 检查侧面是否有孔洞
@@ -206,10 +210,12 @@ protected:
      * @param neighborState 相邻方块状态
      * @return 是否有孔洞
      */
-    [[nodiscard]] bool doesSideHaveHoles(Direction dir, IWorld& world,
-                                          const BlockPos& pos, const BlockState* state,
-                                          const BlockPos& neighborPos,
-                                          const BlockState* neighborState) const;
+    [[nodiscard]] bool doesSideHaveHoles(Direction dir,
+        IWorld& world,
+        const BlockPos& pos,
+        const BlockState* state,
+        const BlockPos& neighborPos,
+        const BlockState* neighborState) const;
 
     /**
      * @brief 检查是否可以形成源头
@@ -241,8 +247,7 @@ protected:
      * @param fluid 流体类型
      * @return 是否可替换
      */
-    [[nodiscard]] bool isBlocked(IWorld& world, const BlockPos& pos,
-                                  const BlockState* block, const Fluid& fluid) const;
+    [[nodiscard]] bool isBlocked(IWorld& world, const BlockPos& pos, const BlockState* block, const Fluid& fluid) const;
 
     /**
      * @brief 检查是否为相同流体或空
@@ -301,8 +306,7 @@ protected:
      * @param state 流体状态
      * @param blockState 方块状态
      */
-    void spreadHorizontally(IWorld& world, const BlockPos& pos,
-                             const FluidState& state, const BlockState* blockState);
+    void spreadHorizontally(IWorld& world, const BlockPos& pos, const FluidState& state, const BlockState* blockState);
 
     /**
      * @brief 检查是否可以向下流动
@@ -315,9 +319,12 @@ protected:
      * @param belowBlock 下方方块状态
      * @return 是否可以向下流动
      */
-    [[nodiscard]] bool canFlowDown(IWorld& world, const Fluid& fluid,
-                                    const BlockPos& pos, const BlockState* blockState,
-                                    const BlockPos& belowPos, const BlockState* belowBlock) const;
+    [[nodiscard]] bool canFlowDown(IWorld& world,
+        const Fluid& fluid,
+        const BlockPos& pos,
+        const BlockState* blockState,
+        const BlockPos& belowPos,
+        const BlockState* belowBlock) const;
 
     /**
      * @brief 检查是否可以流入指定位置
@@ -344,11 +351,14 @@ protected:
      * @param fallCache 下落缓存
      * @return 最小衰减值
      */
-    [[nodiscard]] i32 calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 decay,
-                                          Direction excludeDir, const BlockState* blockState,
-                                          const BlockPos& sourcePos,
-                                          std::unordered_map<i16, std::pair<const BlockState*, const FluidState*>>& stateCache,
-                                          std::unordered_map<i16, bool>& fallCache) const;
+    [[nodiscard]] i32 calculateFlowDecay(IWorld& world,
+        const BlockPos& pos,
+        i32 decay,
+        Direction excludeDir,
+        const BlockState* blockState,
+        const BlockPos& sourcePos,
+        std::unordered_map<i16, std::pair<const BlockState*, const FluidState*>>& stateCache,
+        std::unordered_map<i16, bool>& fallCache) const;
 
     /**
      * @brief 打包相对位置为16位整数

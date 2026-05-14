@@ -12,38 +12,23 @@ namespace command {
 void PublishCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto publishNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("publish");
-    publishNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(4);
-    });
-    support::applyMetadata(
-        publishNode,
+    publishNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(4); });
+    support::applyMetadata(publishNode,
         support::makeMetadata(
-            "Opens the singleplayer world to the LAN.",
-            "/publish [port] [allowCheats]",
-            4,
-            {},
-            true));
+            "Opens the singleplayer world to the LAN.", "/publish [port] [allowCheats]", 4, {}, true));
 
     // /publish [port] [allowCheats]
-    auto portArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "port",
-        IntegerArgumentType::integer(1, 65535));
-    auto cheatsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-        "allowCheats",
-        BoolArgumentType::boolArg());
-    cheatsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return publishToWorld(ctx);
-    });
+    auto portArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("port", IntegerArgumentType::integer(1, 65535));
+    auto cheatsArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("allowCheats", BoolArgumentType::boolArg());
+    cheatsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return publishToWorld(ctx); });
     portArg->addChild(cheatsArg);
-    portArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return publishToWorld(ctx);
-    });
+    portArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return publishToWorld(ctx); });
     publishNode->addChild(portArg);
 
     // 默认参数
-    publishNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return publishToWorld(ctx);
-    });
+    publishNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return publishToWorld(ctx); });
 
     dispatcher.registerCommand(publishNode);
 }

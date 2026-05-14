@@ -5,12 +5,14 @@
 namespace mc {
 namespace crafting {
 
-RecipeManager& RecipeManager::instance() {
+RecipeManager& RecipeManager::instance()
+{
     static RecipeManager instance;
     return instance;
 }
 
-bool RecipeManager::registerRecipe(std::unique_ptr<CraftingRecipe> recipe) {
+bool RecipeManager::registerRecipe(std::unique_ptr<CraftingRecipe> recipe)
+{
     if (!recipe) {
         return false;
     }
@@ -39,7 +41,8 @@ bool RecipeManager::registerRecipe(std::unique_ptr<CraftingRecipe> recipe) {
     return true;
 }
 
-bool RecipeManager::registerSmeltingRecipe(std::unique_ptr<SmeltingRecipe> recipe) {
+bool RecipeManager::registerSmeltingRecipe(std::unique_ptr<SmeltingRecipe> recipe)
+{
     if (!recipe) {
         return false;
     }
@@ -61,7 +64,8 @@ bool RecipeManager::registerSmeltingRecipe(std::unique_ptr<SmeltingRecipe> recip
     return true;
 }
 
-const CraftingRecipe* RecipeManager::getRecipe(const ResourceLocation& id) const {
+const CraftingRecipe* RecipeManager::getRecipe(const ResourceLocation& id) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_recipesById.find(id);
@@ -71,13 +75,15 @@ const CraftingRecipe* RecipeManager::getRecipe(const ResourceLocation& id) const
     return nullptr;
 }
 
-bool RecipeManager::hasRecipe(const ResourceLocation& id) const {
+bool RecipeManager::hasRecipe(const ResourceLocation& id) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_recipesById.find(id) != m_recipesById.end() ||
-           m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end();
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end();
 }
 
-std::vector<const CraftingRecipe*> RecipeManager::getAllRecipes() const {
+std::vector<const CraftingRecipe*> RecipeManager::getAllRecipes() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<const CraftingRecipe*> result;
@@ -90,7 +96,8 @@ std::vector<const CraftingRecipe*> RecipeManager::getAllRecipes() const {
     return result;
 }
 
-std::vector<const CraftingRecipe*> RecipeManager::getRecipesByType(RecipeType type) const {
+std::vector<const CraftingRecipe*> RecipeManager::getRecipesByType(RecipeType type) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_recipesByType.find(type);
@@ -100,7 +107,8 @@ std::vector<const CraftingRecipe*> RecipeManager::getRecipesByType(RecipeType ty
     return {};
 }
 
-std::vector<const SmeltingRecipe*> RecipeManager::getSmeltingRecipesByType(RecipeType type) const {
+std::vector<const SmeltingRecipe*> RecipeManager::getSmeltingRecipesByType(RecipeType type) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_smeltingRecipesByType.find(type);
@@ -110,7 +118,8 @@ std::vector<const SmeltingRecipe*> RecipeManager::getSmeltingRecipesByType(Recip
     return {};
 }
 
-const SmeltingRecipe* RecipeManager::getSmeltingRecipe(const ItemStack& input, RecipeType type) const {
+const SmeltingRecipe* RecipeManager::getSmeltingRecipe(const ItemStack& input, RecipeType type) const
+{
     if (input.isEmpty()) {
         return nullptr;
     }
@@ -134,8 +143,8 @@ const SmeltingRecipe* RecipeManager::getSmeltingRecipe(const ItemStack& input, R
     return nullptr;
 }
 
-const CraftingRecipe* RecipeManager::findMatchingRecipe(
-    const CraftingInventory& inventory) const {
+const CraftingRecipe* RecipeManager::findMatchingRecipe(const CraftingInventory& inventory) const
+{
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -179,8 +188,8 @@ const CraftingRecipe* RecipeManager::findMatchingRecipe(
     return nullptr;
 }
 
-std::vector<const CraftingRecipe*> RecipeManager::findAllMatchingRecipes(
-    const CraftingInventory& inventory) const {
+std::vector<const CraftingRecipe*> RecipeManager::findAllMatchingRecipes(const CraftingInventory& inventory) const
+{
 
     std::vector<const CraftingRecipe*> result;
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -194,8 +203,8 @@ std::vector<const CraftingRecipe*> RecipeManager::findAllMatchingRecipes(
     return result;
 }
 
-std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(
-    const Item& result) const {
+std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(const Item& result) const
+{
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -206,8 +215,8 @@ std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(
     return {};
 }
 
-std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(
-    const ItemStack& result) const {
+std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(const ItemStack& result) const
+{
 
     if (result.isEmpty()) {
         return {};
@@ -215,12 +224,14 @@ std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(
     return getRecipesForResult(*result.getItem());
 }
 
-size_t RecipeManager::getRecipeCount() const {
+size_t RecipeManager::getRecipeCount() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_recipesById.size() + m_smeltingRecipesById.size();
 }
 
-void RecipeManager::clear() {
+void RecipeManager::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_recipesById.clear();
     m_smeltingRecipesById.clear();
@@ -229,8 +240,8 @@ void RecipeManager::clear() {
     m_recipesByResult.clear();
 }
 
-void RecipeManager::forEachRecipe(
-    std::function<void(const CraftingRecipe&)> callback) const {
+void RecipeManager::forEachRecipe(std::function<void(const CraftingRecipe&)> callback) const
+{
 
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto& pair : m_recipesById) {

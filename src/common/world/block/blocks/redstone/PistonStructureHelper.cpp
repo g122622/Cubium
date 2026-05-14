@@ -1,29 +1,27 @@
 #include "PistonStructureHelper.hpp"
-#include "PistonBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockPos.hpp"
-#include "../../Block.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "../../Material.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../IWorld.hpp"
+#include "../../Block.hpp"
+#include "../../BlockPos.hpp"
+#include "../../Material.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "PistonBlock.hpp"
 
 namespace mc {
 namespace blocks {
 
 PistonStructureHelper::PistonStructureHelper(
-    IWorld& world,
-    const BlockPos& pistonPos,
-    Direction pistonFacing,
-    bool extending)
+    IWorld& world, const BlockPos& pistonPos, Direction pistonFacing, bool extending)
     : m_world(world)
     , m_pistonPos(pistonPos)
     , m_facing(pistonFacing)
     , m_extending(extending)
     , m_blockToMove(extending ? pistonPos.offset(pistonFacing) : pistonPos.offset(pistonFacing, 2))
-    , m_moveDirection(extending ? pistonFacing : Directions::opposite(pistonFacing)) {
-}
+    , m_moveDirection(extending ? pistonFacing : Directions::opposite(pistonFacing))
+{}
 
-bool PistonStructureHelper::canMove() {
+bool PistonStructureHelper::canMove()
+{
     m_toMove.clear();
     m_toDestroy.clear();
 
@@ -61,7 +59,8 @@ bool PistonStructureHelper::canMove() {
     return true;
 }
 
-bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facingIn) {
+bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facingIn)
+{
     const BlockState* blockState = m_world.getBlockState(origin);
 
     // 空气方块
@@ -109,7 +108,8 @@ bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facin
         }
 
         // 检查是否可以被推动
-        if (!PistonBlock::canPush(*blockState, m_world, prevPos, m_moveDirection, false, Directions::opposite(m_moveDirection))) {
+        if (!PistonBlock::canPush(
+                *blockState, m_world, prevPos, m_moveDirection, false, Directions::opposite(m_moveDirection))) {
             break;
         }
 
@@ -197,12 +197,13 @@ bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facin
     }
 }
 
-void PistonStructureHelper::reorderListAtCollision(i32 p1, i32 p2) {
+void PistonStructureHelper::reorderListAtCollision(i32 p1, i32 p2)
+{
     // MC 1.16.5: reorderListAtCollision
     // 将移动列表分成三部分并重新排序
-    std::vector<BlockPos> list1;  // 前半部分
-    std::vector<BlockPos> list2;  // 新添加的部分
-    std::vector<BlockPos> list3;  // 后半部分
+    std::vector<BlockPos> list1; // 前半部分
+    std::vector<BlockPos> list2; // 新添加的部分
+    std::vector<BlockPos> list3; // 后半部分
 
     // list1: 0 到 p2
     for (i32 i = 0; i < p2 && i < static_cast<i32>(m_toMove.size()); ++i) {
@@ -229,7 +230,8 @@ void PistonStructureHelper::reorderListAtCollision(i32 p1, i32 p2) {
     m_toMove.insert(m_toMove.end(), list3.begin(), list3.end());
 }
 
-bool PistonStructureHelper::addBranchingBlocks(const BlockPos& fromPos) {
+bool PistonStructureHelper::addBranchingBlocks(const BlockPos& fromPos)
+{
     const BlockState* blockState = m_world.getBlockState(fromPos);
     if (!blockState) {
         return true;

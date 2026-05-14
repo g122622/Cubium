@@ -28,14 +28,15 @@ enum class CompareOp : u8 {
  * 参考 MC 1.16.5 RenderStateDepthTest。
  */
 struct DepthState {
-    bool testEnabled = true;       // 是否启用深度测试
-    bool writeEnabled = true;      // 是否写入深度缓冲
-    CompareOp compareOp = CompareOp::Less;  // 深度比较函数
+    bool testEnabled = true;               // 是否启用深度测试
+    bool writeEnabled = true;              // 是否写入深度缓冲
+    CompareOp compareOp = CompareOp::Less; // 深度比较函数
 
     /**
      * @brief 创建禁用深度测试的状态
      */
-    static DepthState disabled() {
+    static DepthState disabled()
+    {
         DepthState state;
         state.testEnabled = false;
         state.writeEnabled = false;
@@ -47,7 +48,8 @@ struct DepthState {
      *
      * 用于透明物体，需要深度测试但不写入深度
      */
-    static DepthState readOnly() {
+    static DepthState readOnly()
+    {
         DepthState state;
         state.testEnabled = true;
         state.writeEnabled = false;
@@ -60,7 +62,8 @@ struct DepthState {
      *
      * 用于不透明物体
      */
-    static DepthState readWrite() {
+    static DepthState readWrite()
+    {
         DepthState state;
         state.testEnabled = true;
         state.writeEnabled = true;
@@ -73,7 +76,8 @@ struct DepthState {
      *
      * 用于 decals 或需要精确匹配的效果
      */
-    static DepthState equal() {
+    static DepthState equal()
+    {
         DepthState state;
         state.testEnabled = true;
         state.writeEnabled = false;
@@ -81,15 +85,12 @@ struct DepthState {
         return state;
     }
 
-    bool operator==(const DepthState& other) const {
-        return testEnabled == other.testEnabled &&
-               writeEnabled == other.writeEnabled &&
-               compareOp == other.compareOp;
+    bool operator==(const DepthState& other) const
+    {
+        return testEnabled == other.testEnabled && writeEnabled == other.writeEnabled && compareOp == other.compareOp;
     }
 
-    bool operator!=(const DepthState& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const DepthState& other) const { return !(*this == other); }
 };
 
 } // namespace mc::client::renderer::api

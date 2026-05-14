@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <string>
+#include "common/core/Types.hpp"
 #include <stdexcept>
+#include <string>
 
 namespace mc::command {
 
@@ -14,39 +14,39 @@ namespace mc::command {
  */
 enum class CommandErrorType {
     // 分发器错误
-    DispatcherUnknownCommand,       // 未知命令
-    DispatcherUnknownArgument,      // 未知参数
-    DispatcherExpectedArgumentSeparator,  // 期望参数分隔符
-    DispatcherExpectedLiteral,      // 期望字面量
+    DispatcherUnknownCommand,            // 未知命令
+    DispatcherUnknownArgument,           // 未知参数
+    DispatcherExpectedArgumentSeparator, // 期望参数分隔符
+    DispatcherExpectedLiteral,           // 期望字面量
 
     // 参数错误
-    IntegerExpected,                // 期望整数
-    IntegerTooLow,                  // 整数太小
-    IntegerTooHigh,                 // 整数太大
-    FloatExpected,                  // 期望浮点数
-    FloatTooLow,                    // 浮点数太小
-    FloatTooHigh,                   // 浮点数太大
-    BoolExpected,                   // 期望布尔值
-    StringExpected,                 // 期望字符串
-    StringQuotedExpected,           // 期望引号字符串
+    IntegerExpected,      // 期望整数
+    IntegerTooLow,        // 整数太小
+    IntegerTooHigh,       // 整数太大
+    FloatExpected,        // 期望浮点数
+    FloatTooLow,          // 浮点数太小
+    FloatTooHigh,         // 浮点数太大
+    BoolExpected,         // 期望布尔值
+    StringExpected,       // 期望字符串
+    StringQuotedExpected, // 期望引号字符串
 
     // 实体选择器错误
-    EntityNotFound,                 // 实体未找到
-    PlayerNotFound,                 // 玩家未找到
-    EntityTooMany,                  // 实体太多
-    PlayerTooMany,                  // 玩家太多
-    EntitySelectorNotAllowed,       // 选择器不允许
-    EntitySelectorInvalid,          // 无效的选择器
+    EntityNotFound,           // 实体未找到
+    PlayerNotFound,           // 玩家未找到
+    EntityTooMany,            // 实体太多
+    PlayerTooMany,            // 玩家太多
+    EntitySelectorNotAllowed, // 选择器不允许
+    EntitySelectorInvalid,    // 无效的选择器
 
     // 位置参数错误
-    BlockPosUnloaded,               // 方块位置未加载
-    BlockPosOutOfWorld,             // 方块位置超出世界
+    BlockPosUnloaded,   // 方块位置未加载
+    BlockPosOutOfWorld, // 方块位置超出世界
 
     // 权限错误
-    PermissionDenied,               // 权限不足
+    PermissionDenied, // 权限不足
 
     // 通用错误
-    Unknown,                        // 未知错误
+    Unknown, // 未知错误
 };
 
 /**
@@ -61,13 +61,15 @@ public:
         : std::runtime_error(message)
         , m_type(type)
         , m_message(message)
-        , m_cursor(-1) {}
+        , m_cursor(-1)
+    {}
 
     CommandException(CommandErrorType type, const std::string& message, i32 cursor)
         : std::runtime_error(message)
         , m_type(type)
         , m_message(message)
-        , m_cursor(cursor) {}
+        , m_cursor(cursor)
+    {}
 
     [[nodiscard]] CommandErrorType type() const noexcept { return m_type; }
     [[nodiscard]] const std::string& message() const noexcept { return m_message; }
@@ -77,7 +79,8 @@ public:
      * @brief 创建带有上下文的异常
      * @param input 原始输入字符串
      */
-    [[nodiscard]] CommandException withInput(std::string_view input) const {
+    [[nodiscard]] CommandException withInput(std::string_view input) const
+    {
         CommandException result(m_type, m_message, m_cursor);
         result.m_input = std::string(input);
         return result;
@@ -105,13 +108,14 @@ private:
 class SimpleCommandException {
 public:
     explicit SimpleCommandException(CommandErrorType type, const std::string& message)
-        : m_type(type), m_message(message) {}
+        : m_type(type)
+        , m_message(message)
+    {}
 
-    [[nodiscard]] CommandException create() const {
-        return CommandException(m_type, m_message);
-    }
+    [[nodiscard]] CommandException create() const { return CommandException(m_type, m_message); }
 
-    [[nodiscard]] CommandException createWithContext(i32 cursor, std::string_view input) const {
+    [[nodiscard]] CommandException createWithContext(i32 cursor, std::string_view input) const
+    {
         CommandException result(m_type, m_message, cursor);
         result.setInput(std::string(input));
         return result;
@@ -127,25 +131,30 @@ private:
  *
  * 用于创建带参数的异常消息
  */
-template<typename... Args>
+template <typename... Args>
 class DynamicCommandException {
 public:
     explicit DynamicCommandException(CommandErrorType type, const std::string& format)
-        : m_type(type), m_format(format) {}
+        : m_type(type)
+        , m_format(format)
+    {}
 
-    [[nodiscard]] CommandException create(Args... args) const {
+    [[nodiscard]] CommandException create(Args... args) const
+    {
         return CommandException(m_type, formatMessage(args...));
     }
 
 private:
-    std::string formatMessage(Args... args) const {
+    std::string formatMessage(Args... args) const
+    {
         std::string result = m_format;
         // 简单实现：支持 {} 占位符
         ((replaceFirst(result, "{}", std::to_string(args))), ...);
         return result;
     }
 
-    static void replaceFirst(std::string& str, const std::string& from, const std::string& to) {
+    static void replaceFirst(std::string& str, const std::string& from, const std::string& to)
+    {
         size_t pos = str.find(from);
         if (pos != std::string::npos) {
             str.replace(pos, from.length(), to);

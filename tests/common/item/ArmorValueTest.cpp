@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
-#include "common/item/Items.hpp"
-#include "common/item/items/armor/ArmorItem.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 
@@ -21,27 +21,32 @@ namespace {
  */
 class ArmorTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));
         return ++m_lastEntityId;
     }
 
-    Entity* getEntity(EntityId id) override {
+    Entity* getEntity(EntityId id) override
+    {
         for (auto* e : m_spawnedEntities) {
             if (e && e->id() == static_cast<u32>(id)) return e;
         }
         return nullptr;
     }
 
-    const Entity* getEntity(EntityId id) const override {
+    const Entity* getEntity(EntityId id) const override
+    {
         for (const auto* e : m_spawnedEntities) {
             if (e && e->id() == static_cast<u32>(id)) return e;
         }
@@ -52,7 +57,8 @@ public:
 
     [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
 
-    void clearSpawnedEntities() {
+    void clearSpawnedEntities()
+    {
         m_spawnedEntities.clear();
         m_ownedEntities.clear();
     }
@@ -71,16 +77,16 @@ private:
 
 class ArmorValueTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // Items 清理由静态析构处理
     }
 };
 
-TEST_F(ArmorValueTest, EmptyArmorReturnsZero) {
+TEST_F(ArmorValueTest, EmptyArmorReturnsZero)
+{
     // 创建一个玩家，不穿戴任何护甲
     Player player(1, "TestPlayer");
 
@@ -88,11 +94,11 @@ TEST_F(ArmorValueTest, EmptyArmorReturnsZero) {
     EXPECT_EQ(player.armorValue(), 0);
 }
 
-TEST_F(ArmorValueTest, TotalArmorValueWithFullDiamondArmor) {
+TEST_F(ArmorValueTest, TotalArmorValueWithFullDiamondArmor)
+{
     // 钻石护甲值（MC 1.16.5）：
     // 头盔: 3, 胸甲: 8, 护腿: 6, 靴子: 3 = 20
-    if (Items::DIAMOND_HELMET && Items::DIAMOND_CHESTPLATE &&
-        Items::DIAMOND_LEGGINGS && Items::DIAMOND_BOOTS) {
+    if (Items::DIAMOND_HELMET && Items::DIAMOND_CHESTPLATE && Items::DIAMOND_LEGGINGS && Items::DIAMOND_BOOTS) {
 
         Player player(1, "TestPlayer");
         PlayerInventory& inv = player.inventory();
@@ -109,11 +115,11 @@ TEST_F(ArmorValueTest, TotalArmorValueWithFullDiamondArmor) {
     }
 }
 
-TEST_F(ArmorValueTest, TotalArmorValueWithFullIronArmor) {
+TEST_F(ArmorValueTest, TotalArmorValueWithFullIronArmor)
+{
     // 铁护甲值（MC 1.16.5）：
     // 头盔: 2, 胸甲: 6, 护腿: 5, 靴子: 2 = 15
-    if (Items::IRON_HELMET && Items::IRON_CHESTPLATE &&
-        Items::IRON_LEGGINGS && Items::IRON_BOOTS) {
+    if (Items::IRON_HELMET && Items::IRON_CHESTPLATE && Items::IRON_LEGGINGS && Items::IRON_BOOTS) {
 
         Player player(1, "TestPlayer");
         PlayerInventory& inv = player.inventory();
@@ -128,7 +134,8 @@ TEST_F(ArmorValueTest, TotalArmorValueWithFullIronArmor) {
     }
 }
 
-TEST_F(ArmorValueTest, TotalArmorValueWithPartialArmor) {
+TEST_F(ArmorValueTest, TotalArmorValueWithPartialArmor)
+{
     // 只穿戴部分护甲
     if (Items::DIAMOND_HELMET && Items::DIAMOND_CHESTPLATE) {
         Player player(1, "TestPlayer");
@@ -143,10 +150,10 @@ TEST_F(ArmorValueTest, TotalArmorValueWithPartialArmor) {
     }
 }
 
-TEST_F(ArmorValueTest, TotalArmorValueWithMixedArmor) {
+TEST_F(ArmorValueTest, TotalArmorValueWithMixedArmor)
+{
     // 混合护甲
-    if (Items::DIAMOND_HELMET && Items::IRON_CHESTPLATE &&
-        Items::DIAMOND_LEGGINGS && Items::IRON_BOOTS) {
+    if (Items::DIAMOND_HELMET && Items::IRON_CHESTPLATE && Items::DIAMOND_LEGGINGS && Items::IRON_BOOTS) {
 
         Player player(1, "TestPlayer");
         PlayerInventory& inv = player.inventory();
@@ -161,7 +168,8 @@ TEST_F(ArmorValueTest, TotalArmorValueWithMixedArmor) {
     }
 }
 
-TEST_F(ArmorValueTest, NonArmorItemsDoNotContribute) {
+TEST_F(ArmorValueTest, NonArmorItemsDoNotContribute)
+{
     // 非护甲物品不应该贡献护甲值
     if (Items::STONE && Items::IRON_HELMET) {
         Player player(1, "TestPlayer");
@@ -181,7 +189,8 @@ TEST_F(ArmorValueTest, NonArmorItemsDoNotContribute) {
     }
 }
 
-TEST_F(ArmorValueTest, EmptyStackDoesNotContribute) {
+TEST_F(ArmorValueTest, EmptyStackDoesNotContribute)
+{
     // 空物品堆不应该贡献护甲值
     Player player(1, "TestPlayer");
     PlayerInventory& inv = player.inventory();
@@ -195,7 +204,8 @@ TEST_F(ArmorValueTest, EmptyStackDoesNotContribute) {
     EXPECT_EQ(player.armorValue(), 0);
 }
 
-TEST_F(ArmorValueTest, ArmorValueStaticMethod) {
+TEST_F(ArmorValueTest, ArmorValueStaticMethod)
+{
     // 测试静态方法 ArmorItem::getTotalArmorValue
     if (Items::DIAMOND_HELMET && Items::DIAMOND_CHESTPLATE) {
         Player player(1, "TestPlayer");
@@ -213,7 +223,8 @@ TEST_F(ArmorValueTest, ArmorValueStaticMethod) {
 // ArmorItem 护甲韧性测试
 // ============================================================================
 
-TEST_F(ArmorValueTest, ArmorToughnessDiamondArmor) {
+TEST_F(ArmorValueTest, ArmorToughnessDiamondArmor)
+{
     // 钻石护甲韧性：每件2点，全套8点
     if (Items::DIAMOND_HELMET) {
         Player player(1, "TestPlayer");
@@ -229,7 +240,8 @@ TEST_F(ArmorValueTest, ArmorToughnessDiamondArmor) {
     }
 }
 
-TEST_F(ArmorValueTest, ArmorToughnessNetheriteArmor) {
+TEST_F(ArmorValueTest, ArmorToughnessNetheriteArmor)
+{
     // 下界合金护甲韧性：每件3点，全套12点
     if (Items::NETHERITE_HELMET) {
         Player player(1, "TestPlayer");
@@ -250,7 +262,8 @@ TEST_F(ArmorValueTest, ArmorToughnessNetheriteArmor) {
 // PlayerInventory::getDestroySpeed 测试
 // ============================================================================
 
-TEST_F(ArmorValueTest, GetDestroySpeedWithEmptyHand) {
+TEST_F(ArmorValueTest, GetDestroySpeedWithEmptyHand)
+{
     Player player(1, "TestPlayer");
 
     // 空手应该返回 1.0

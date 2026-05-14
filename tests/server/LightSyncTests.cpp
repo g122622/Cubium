@@ -1,14 +1,14 @@
-#include <gtest/gtest.h>
-#include "server/world/ServerWorld.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/util/NibbleArray.hpp"
-#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
-#include "common/world/lighting/LightType.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
-#include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/lighting/LightType.hpp"
+#include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <vector>
+#include <gtest/gtest.h>
 
 namespace mc::server {
 namespace {
@@ -20,12 +20,12 @@ namespace {
  */
 class LightSyncTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建一个最小化的测试环境
     }
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 };
 
 /**
@@ -33,7 +33,8 @@ protected:
  *
  * 验证 NibbleArray 可以正确复制，这是光照同步的基础。
  */
-TEST_F(LightSyncTest, NibbleArrayCopy) {
+TEST_F(LightSyncTest, NibbleArrayCopy)
+{
     // 创建一个有数据的 NibbleArray
     NibbleArray array;
     array.set(0, 0, 0, 15);
@@ -58,7 +59,8 @@ TEST_F(LightSyncTest, NibbleArrayCopy) {
  *
  * 验证 ChunkSection 可以正确设置和获取光照值。
  */
-TEST_F(LightSyncTest, ChunkSectionLightAccess) {
+TEST_F(LightSyncTest, ChunkSectionLightAccess)
+{
     ChunkSection section;
 
     // 设置天空光照
@@ -84,7 +86,8 @@ TEST_F(LightSyncTest, ChunkSectionLightAccess) {
  *
  * 验证 ChunkSection 可以正确填充光照值。
  */
-TEST_F(LightSyncTest, ChunkSectionLightFill) {
+TEST_F(LightSyncTest, ChunkSectionLightFill)
+{
     ChunkSection section;
 
     // 填充天空光照
@@ -103,7 +106,8 @@ TEST_F(LightSyncTest, ChunkSectionLightFill) {
  *
  * 验证 ChunkData 可以正确设置和获取光照值。
  */
-TEST_F(LightSyncTest, ChunkDataLightAccess) {
+TEST_F(LightSyncTest, ChunkDataLightAccess)
+{
     ChunkData chunk(0, 0);
 
     // 设置天空光照（需要先创建区块段）
@@ -116,7 +120,7 @@ TEST_F(LightSyncTest, ChunkDataLightAccess) {
 
     // 边界检查
     EXPECT_EQ(chunk.getSkyLight(-1, 0, 0), 15);  // 边界外默认全亮
-    EXPECT_EQ(chunk.getBlockLight(-1, 0, 0), 0);  // 边界外默认无光
+    EXPECT_EQ(chunk.getBlockLight(-1, 0, 0), 0); // 边界外默认无光
 }
 
 /**
@@ -124,7 +128,8 @@ TEST_F(LightSyncTest, ChunkDataLightAccess) {
  *
  * 验证 ChunkSection 序列化后光照数据可以正确恢复。
  */
-TEST_F(LightSyncTest, ChunkSectionSerializePreservesLight) {
+TEST_F(LightSyncTest, ChunkSectionSerializePreservesLight)
+{
     ChunkSection original;
     original.setSkyLight(5, 10, 7, 12);
     original.setBlockLight(3, 8, 2, 8);
@@ -147,7 +152,8 @@ TEST_F(LightSyncTest, ChunkSectionSerializePreservesLight) {
  *
  * 验证 SectionPos 可以正确编码和解码。
  */
-TEST_F(LightSyncTest, SectionPosEncodeDecode) {
+TEST_F(LightSyncTest, SectionPosEncodeDecode)
+{
     SectionPos pos(10, 5, -20);
     i64 encoded = pos.toLong();
     SectionPos decoded = SectionPos::fromLong(encoded);
@@ -162,7 +168,8 @@ TEST_F(LightSyncTest, SectionPosEncodeDecode) {
  *
  * 验证 SectionPos 可以正确计算列位置。
  */
-TEST_F(LightSyncTest, SectionPosColumnPos) {
+TEST_F(LightSyncTest, SectionPosColumnPos)
+{
     SectionPos pos(10, 5, -20);
     i64 columnPos = pos.toColumnLong();
 
@@ -178,7 +185,8 @@ TEST_F(LightSyncTest, SectionPosColumnPos) {
  *
  * 验证 WorldLightManager 可以正确创建方块光照和天空光照引擎。
  */
-TEST_F(LightSyncTest, WorldLightManagerCreation) {
+TEST_F(LightSyncTest, WorldLightManagerCreation)
+{
     // 创建一个简单的 StarLightLightingProvider 实现
     class TestLightProvider : public StarLightLightingProvider {
     public:
@@ -213,7 +221,8 @@ TEST_F(LightSyncTest, WorldLightManagerCreation) {
  * 验证 WorldLightManager 在正确设置缓存环境后可以设置和获取光照数据。
  * 注意：引擎的 setData/getData 需要缓存环境，这通常在区块加载时设置。
  */
-TEST_F(LightSyncTest, WorldLightManagerDataAccess) {
+TEST_F(LightSyncTest, WorldLightManagerDataAccess)
+{
     class TestLightProvider : public StarLightLightingProvider {
     public:
         IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override { return nullptr; }
@@ -269,7 +278,8 @@ TEST_F(LightSyncTest, WorldLightManagerDataAccess) {
  *
  * 验证通过引用直接修改 ChunkSection 的光照数组。
  */
-TEST_F(LightSyncTest, ChunkSectionDirectNibbleArrayModification) {
+TEST_F(LightSyncTest, ChunkSectionDirectNibbleArrayModification)
+{
     ChunkSection section;
 
     // 创建测试数据

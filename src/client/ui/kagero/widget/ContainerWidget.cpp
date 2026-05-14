@@ -4,7 +4,8 @@
 
 namespace mc::client::ui::kagero::widget {
 
-void ContainerWidget::paint(PaintContext& ctx) {
+void ContainerWidget::paint(PaintContext& ctx)
+{
     if (!isVisible()) {
         return;
     }
@@ -19,7 +20,8 @@ void ContainerWidget::paint(PaintContext& ctx) {
     paintChildren(ctx);
 }
 
-void ContainerWidget::tick(f32 dt) {
+void ContainerWidget::tick(f32 dt)
+{
     tickChildren(dt);
 
     if (m_layoutDirty) {
@@ -29,56 +31,66 @@ void ContainerWidget::tick(f32 dt) {
 
 // ========== 鼠标事件 ==========
 
-bool ContainerWidget::onClick(i32 mouseX, i32 mouseY, i32 button) {
+bool ContainerWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
+{
     return handleClickInChildren(mouseX, mouseY, button);
 }
 
-bool ContainerWidget::onRelease(i32 mouseX, i32 mouseY, i32 button) {
+bool ContainerWidget::onRelease(i32 mouseX, i32 mouseY, i32 button)
+{
     return handleReleaseInChildren(mouseX, mouseY, button);
 }
 
-bool ContainerWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) {
+bool ContainerWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+{
     return handleDragInChildren(mouseX, mouseY, deltaX, deltaY);
 }
 
-bool ContainerWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta) {
+bool ContainerWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta)
+{
     return handleScrollInChildren(mouseX, mouseY, delta);
 }
 
 // ========== 键盘事件 ==========
 
-bool ContainerWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+bool ContainerWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     return handleKeyInChildren(key, scanCode, action, mods);
 }
 
-bool ContainerWidget::onChar(u32 codePoint) {
+bool ContainerWidget::onChar(u32 codePoint)
+{
     return handleCharInChildren(codePoint);
 }
 
 // ========== 布局系统 ==========
 
-void ContainerWidget::setLayoutType(ContainerLayoutType type) {
+void ContainerWidget::setLayoutType(ContainerLayoutType type)
+{
     if (m_layoutType != type) {
         m_layoutType = type;
         requestLayout();
     }
 }
 
-void ContainerWidget::setFlexConfig(const layout::FlexConfig& config) {
+void ContainerWidget::setFlexConfig(const layout::FlexConfig& config)
+{
     m_flexConfig = config;
     if (m_layoutType == ContainerLayoutType::Flex) {
         requestLayout();
     }
 }
 
-void ContainerWidget::setGridConfig(const layout::GridConfig& config) {
+void ContainerWidget::setGridConfig(const layout::GridConfig& config)
+{
     m_gridConfig = config;
     if (m_layoutType == ContainerLayoutType::Grid) {
         requestLayout();
     }
 }
 
-void ContainerWidget::requestLayout() {
+void ContainerWidget::requestLayout()
+{
     m_layoutDirty = true;
     if (parent() != nullptr) {
         if (auto* container = dynamic_cast<ContainerWidget*>(parent())) {
@@ -87,7 +99,8 @@ void ContainerWidget::requestLayout() {
     }
 }
 
-void ContainerWidget::relayout() {
+void ContainerWidget::relayout()
+{
     if (!m_layoutDirty || m_layoutType == ContainerLayoutType::None) {
         return;
     }
@@ -120,7 +133,8 @@ void ContainerWidget::relayout() {
     }
 }
 
-void ContainerWidget::onResize(i32 width, i32 height) {
+void ContainerWidget::onResize(i32 width, i32 height)
+{
     Widget::onResize(width, height);
     requestLayout();
 }

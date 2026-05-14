@@ -2,56 +2,44 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "server/application/IServer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "common/entity/entities/player/Player.hpp"
 
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
     auto killNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("kill");
-    killNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    killNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(
-        killNode,
-        support::makeMetadata(
-            "Kill entities (players, mobs, etc.).",
-            "/kill [<target>]",
-            2,
-            {},
-            false));
+        killNode, support::makeMetadata("Kill entities (players, mobs, etc.).", "/kill [<target>]", 2, {}, false));
 
     // /kill - 杀死自己
-    killNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return killSelf(ctx);
-    });
+    killNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killSelf(ctx); });
 
     // /kill <target> - 杀死目标实体
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target",
-        EntityArgumentType::entities()
-    );
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return killEntities(ctx);
-    });
+        "target", EntityArgumentType::entities());
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killEntities(ctx); });
     killNode->addChild(targetArg);
 
     dispatcher.registerCommand(killNode);
 }
 
-i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context) {
+i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     // 检查命令源是否是实体（玩家）
@@ -76,7 +64,8 @@ i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context) {
     return 1;
 }
 
-i32 KillCommand::killEntities(CommandContext<ServerCommandSource>& context) {
+i32 KillCommand::killEntities(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("target");
 

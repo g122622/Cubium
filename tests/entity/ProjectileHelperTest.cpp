@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <utility>
@@ -41,8 +41,7 @@ public:
     }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
-        const AxisAlignedBB& box,
-        const Entity* except = nullptr) const override
+        const AxisAlignedBB& box, const Entity* except = nullptr) const override
     {
         std::vector<Entity*> result;
         for (const auto& entity : m_entities) {
@@ -56,10 +55,7 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
-        const Vector3&,
-        f32,
-        const Entity* = nullptr) const override
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity* = nullptr) const override
     {
         return {};
     }
@@ -75,10 +71,12 @@ public:
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ProjectileHelperTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ProjectileHelperTestWorld::tickManager not implemented");
     }
 
@@ -92,8 +90,7 @@ public:
     TestTargetEntity(EntityId id, bool collidable)
         : Entity(LegacyEntityType::Unknown, id)
         , m_collidable(collidable)
-    {
-    }
+    {}
 
     [[nodiscard]] bool canBeCollidedWith() const override { return m_collidable; }
 
@@ -105,16 +102,14 @@ class RotationProbeEntity : public Entity {
 public:
     explicit RotationProbeEntity(EntityId id)
         : Entity(LegacyEntityType::Unknown, id)
-    {
-    }
+    {}
 };
 
 class ExposedProjectileEntity : public entity::ProjectileEntity {
 public:
     explicit ExposedProjectileEntity(EntityId id)
         : ProjectileEntity(LegacyEntityType::Unknown, id)
-    {
-    }
+    {}
 
     void setLeftShooterFlag(bool value) { m_leftShooter = value; }
 };
@@ -144,16 +139,10 @@ TEST(ProjectileHelperTest, RayTraceEntitiesReturnsNearestCollidableTarget)
 
     const Vector3 start = projectile.position();
     const Vector3 end = start + Vector3(5.0f, 0.0f, 0.0f);
-    const AxisAlignedBB searchBox =
-        entity::ProjectileHelper::createMovementSearchBox(projectile, end - start, 1.0f);
+    const AxisAlignedBB searchBox = entity::ProjectileHelper::createMovementSearchBox(projectile, end - start, 1.0f);
 
     const entity::RayTraceResult result = entity::ProjectileHelper::rayTraceEntities(
-        world,
-        projectile,
-        start,
-        end,
-        searchBox,
-        [](const Entity& candidate) {
+        world, projectile, start, end, searchBox, [](const Entity& candidate) {
             return candidate.canBeCollidedWith();
         });
 

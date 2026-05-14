@@ -1,8 +1,8 @@
 #include "Raycast.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../AxisAlignedBB.hpp"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <optional>
 
@@ -34,9 +34,7 @@ struct RayAabbHit {
 };
 
 [[nodiscard]] std::optional<RayAabbHit> intersectSegmentAabb(
-    const Vector3& origin,
-    const Vector3& delta,
-    const AxisAlignedBB& box)
+    const Vector3& origin, const Vector3& delta, const AxisAlignedBB& box)
 {
     constexpr f32 EPSILON = 1.0e-7f;
 
@@ -44,8 +42,8 @@ struct RayAabbHit {
     f32 tMax = 1.0f;
     Direction enterFace = Direction::None;
 
-    const auto updateAxis = [&](f32 axisOrigin, f32 axisDelta, f32 axisMin, f32 axisMax,
-                                Direction minFace, Direction maxFace) -> bool {
+    const auto updateAxis =
+        [&](f32 axisOrigin, f32 axisDelta, f32 axisMin, f32 axisMax, Direction minFace, Direction maxFace) -> bool {
         if (std::abs(axisDelta) < EPSILON) {
             return axisOrigin >= axisMin && axisOrigin <= axisMax;
         }
@@ -94,8 +92,7 @@ struct RayAabbHit {
     return hit;
 }
 
-[[nodiscard]] bool traceBlockShape(
-    const BlockState& state,
+[[nodiscard]] bool traceBlockShape(const BlockState& state,
     i32 blockX,
     i32 blockY,
     i32 blockZ,
@@ -116,14 +113,12 @@ struct RayAabbHit {
     bool hitAny = false;
 
     for (const auto& localBox : shape.boxes()) {
-        const AxisAlignedBB worldBox(
-            static_cast<f32>(blockX) + localBox.minX,
+        const AxisAlignedBB worldBox(static_cast<f32>(blockX) + localBox.minX,
             static_cast<f32>(blockY) + localBox.minY,
             static_cast<f32>(blockZ) + localBox.minZ,
             static_cast<f32>(blockX) + localBox.maxX,
             static_cast<f32>(blockY) + localBox.maxY,
-            static_cast<f32>(blockZ) + localBox.maxZ
-        );
+            static_cast<f32>(blockZ) + localBox.maxZ);
 
         auto hit = intersectSegmentAabb(adjustedStart, delta, worldBox);
         if (!hit.has_value()) {
@@ -142,10 +137,7 @@ struct RayAabbHit {
     }
 
     outHitPos = Vector3(
-        adjustedStart.x + delta.x * bestT,
-        adjustedStart.y + delta.y * bestT,
-        adjustedStart.z + delta.z * bestT
-    );
+        adjustedStart.x + delta.x * bestT, adjustedStart.y + delta.y * bestT, adjustedStart.z + delta.z * bestT);
     outFace = bestFace;
     outDistance = outHitPos.distance(originalStart);
     if (outDistance < 1.0e-5f) {
@@ -156,9 +148,7 @@ struct RayAabbHit {
 
 } // anonymous namespace
 
-BlockRaycastResult raycastBlocks(
-    const RaycastContext& context,
-    const IWorld& world)
+BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& world)
 {
     const Vector3& start = context.ray.origin;
     const Vector3& dir = context.ray.direction;
@@ -183,17 +173,11 @@ BlockRaycastResult raycastBlocks(
 
     // 偏移后的终点：从终点向起点方向微移
     const Vector3 adjustedEnd(
-        end.x + (start.x - end.x) * eps,
-        end.y + (start.y - end.y) * eps,
-        end.z + (start.z - end.z) * eps
-    );
+        end.x + (start.x - end.x) * eps, end.y + (start.y - end.y) * eps, end.z + (start.z - end.z) * eps);
 
     // 偏移后的起点：从起点向终点方向微移
     const Vector3 adjustedStart(
-        start.x + (end.x - start.x) * eps,
-        start.y + (end.y - start.y) * eps,
-        start.z + (end.z - start.z) * eps
-    );
+        start.x + (end.x - start.x) * eps, start.y + (end.y - start.y) * eps, start.z + (end.z - start.z) * eps);
 
     // DDA方向向量：从偏移后终点到偏移后起点（负方向）
     // 这与MC的实现一致：d6 = d0 - d3 = adjustedEnd - adjustedStart
@@ -214,15 +198,17 @@ BlockRaycastResult raycastBlocks(
             Vector3 hitPos;
             Direction hitFace = Direction::None;
             f32 hitDistance = 0.0f;
-            if (traceBlockShape(*state, currentX, currentY, currentZ,
-                                adjustedStart, ddaDelta, start,
-                                hitPos, hitFace, hitDistance)) {
-                return BlockRaycastResult::hit(
+            if (traceBlockShape(*state,
+                    currentX,
+                    currentY,
+                    currentZ,
+                    adjustedStart,
+                    ddaDelta,
                     start,
-                    BlockPos(currentX, currentY, currentZ),
+                    hitPos,
                     hitFace,
-                    0.0f
-                );
+                    hitDistance)) {
+                return BlockRaycastResult::hit(start, BlockPos(currentX, currentY, currentZ), hitFace, 0.0f);
             }
         }
     }
@@ -241,11 +227,11 @@ BlockRaycastResult raycastBlocks(
     // 计算到下一个边界的初始t值
     // 使用偏移后的起点计算
     f32 tMaxX = (stepX == 0) ? std::numeric_limits<f32>::max()
-        : tDeltaX * (stepX > 0 ? (1.0f - fract(adjustedStart.x)) : fract(adjustedStart.x));
+                             : tDeltaX * (stepX > 0 ? (1.0f - fract(adjustedStart.x)) : fract(adjustedStart.x));
     f32 tMaxY = (stepY == 0) ? std::numeric_limits<f32>::max()
-        : tDeltaY * (stepY > 0 ? (1.0f - fract(adjustedStart.y)) : fract(adjustedStart.y));
+                             : tDeltaY * (stepY > 0 ? (1.0f - fract(adjustedStart.y)) : fract(adjustedStart.y));
     f32 tMaxZ = (stepZ == 0) ? std::numeric_limits<f32>::max()
-        : tDeltaZ * (stepZ > 0 ? (1.0f - fract(adjustedStart.z)) : fract(adjustedStart.z));
+                             : tDeltaZ * (stepZ > 0 ? (1.0f - fract(adjustedStart.z)) : fract(adjustedStart.z));
 
     // DDA步进
     // MC使用 1.0 作为循环条件（代表遍历完整的射线）
@@ -295,18 +281,12 @@ BlockRaycastResult raycastBlocks(
         Vector3 hitPos;
         Direction hitFace = Direction::None;
         f32 hitDistance = 0.0f;
-        if (!traceBlockShape(*state, currentX, currentY, currentZ,
-                             adjustedStart, ddaDelta, start,
-                             hitPos, hitFace, hitDistance)) {
+        if (!traceBlockShape(
+                *state, currentX, currentY, currentZ, adjustedStart, ddaDelta, start, hitPos, hitFace, hitDistance)) {
             continue;
         }
 
-        return BlockRaycastResult::hit(
-            hitPos,
-            BlockPos(currentX, currentY, currentZ),
-            hitFace,
-            hitDistance
-        );
+        return BlockRaycastResult::hit(hitPos, BlockPos(currentX, currentY, currentZ), hitFace, hitDistance);
     }
 
     // 未击中任何方块

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "RedstoneTorchBlock.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "RedstoneTorchBlock.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,22 +38,20 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 

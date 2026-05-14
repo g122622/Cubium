@@ -11,21 +11,24 @@ namespace crafting {
 // 空 Ingredient 常量定义
 const Ingredient Ingredient::EMPTY;
 
-Ingredient Ingredient::fromItem(const Item& item) {
+Ingredient Ingredient::fromItem(const Item& item)
+{
     return fromItem(&item);
 }
 
-Ingredient Ingredient::fromItem(const Item* item) {
+Ingredient Ingredient::fromItem(const Item* item)
+{
     if (item == nullptr) {
         return Ingredient();
     }
     Ingredient ing;
     ing.m_matchingStacks.emplace_back(*item, 1);
-    ing.m_isSimple = true;  // 单个物品总是简单的
+    ing.m_isSimple = true; // 单个物品总是简单的
     return ing;
 }
 
-Ingredient Ingredient::fromItems(std::vector<const Item*> items) {
+Ingredient Ingredient::fromItems(std::vector<const Item*> items)
+{
     Ingredient ing;
     ing.m_matchingStacks.reserve(items.size());
     for (const Item* item : items) {
@@ -37,7 +40,8 @@ Ingredient Ingredient::fromItems(std::vector<const Item*> items) {
     return ing;
 }
 
-Ingredient Ingredient::fromTag(const std::string& tag) {
+Ingredient Ingredient::fromTag(const std::string& tag)
+{
     Ingredient ing;
     ing.m_tag = tag;
     ing.m_hasTag = true;
@@ -54,16 +58,18 @@ Ingredient Ingredient::fromTag(const std::string& tag) {
     return ing;
 }
 
-Ingredient Ingredient::fromStacks(std::vector<ItemStack> stacks) {
+Ingredient Ingredient::fromStacks(std::vector<ItemStack> stacks)
+{
     Ingredient ing;
     ing.m_matchingStacks = std::move(stacks);
     ing.updateSimple();
     return ing;
 }
 
-Ingredient Ingredient::merge(const std::vector<Ingredient>& parts) {
+Ingredient Ingredient::merge(const std::vector<Ingredient>& parts)
+{
     Ingredient result;
-    std::set<ItemId> addedIds;  // 去重
+    std::set<ItemId> addedIds; // 去重
 
     for (const Ingredient& part : parts) {
         // 添加物品列表
@@ -94,7 +100,8 @@ Ingredient Ingredient::merge(const std::vector<Ingredient>& parts) {
     return result;
 }
 
-bool Ingredient::test(const ItemStack& stack) const {
+bool Ingredient::test(const ItemStack& stack) const
+{
     // 空 Ingredient 只匹配空物品堆（MC 原版行为）
     if (isEmpty()) {
         return stack.isEmpty();
@@ -126,11 +133,13 @@ bool Ingredient::test(const ItemStack& stack) const {
     return false;
 }
 
-bool Ingredient::test(const Item& item) const {
+bool Ingredient::test(const Item& item) const
+{
     return test(&item);
 }
 
-bool Ingredient::test(const Item* item) const {
+bool Ingredient::test(const Item* item) const
+{
     if (isEmpty()) {
         return item == nullptr;
     }
@@ -160,7 +169,8 @@ bool Ingredient::test(const Item* item) const {
     return false;
 }
 
-bool Ingredient::isSimple() const {
+bool Ingredient::isSimple() const
+{
     // MC 原版行为：this == EMPTY 时返回 true
     if (isEmpty()) {
         return true;
@@ -168,7 +178,8 @@ bool Ingredient::isSimple() const {
     return m_isSimple;
 }
 
-bool Ingredient::hasNoMatchingItems() const {
+bool Ingredient::hasNoMatchingItems() const
+{
     if (m_hasTag) {
         resolveTagIfNeeded();
         return m_tagItems.empty();
@@ -176,7 +187,8 @@ bool Ingredient::hasNoMatchingItems() const {
     return m_matchingStacks.empty();
 }
 
-void Ingredient::updateSimple() {
+void Ingredient::updateSimple()
+{
     m_isSimple = true;
 
     for (const ItemStack& stack : m_matchingStacks) {
@@ -192,7 +204,8 @@ void Ingredient::updateSimple() {
     }
 }
 
-void Ingredient::resolveTagIfNeeded() const {
+void Ingredient::resolveTagIfNeeded() const
+{
     if (m_hasTag && !m_tagResolved) {
         item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(m_tag);
         m_tagItems.clear();
@@ -203,7 +216,8 @@ void Ingredient::resolveTagIfNeeded() const {
     }
 }
 
-bool Ingredient::operator==(const Ingredient& other) const {
+bool Ingredient::operator==(const Ingredient& other) const
+{
     if (m_hasTag != other.m_hasTag) {
         return false;
     }
@@ -228,7 +242,8 @@ bool Ingredient::operator==(const Ingredient& other) const {
     return thisItems == otherItems;
 }
 
-size_t Ingredient::hash() const {
+size_t Ingredient::hash() const
+{
     size_t h = 0;
 
     if (m_hasTag) {
@@ -248,7 +263,8 @@ size_t Ingredient::hash() const {
     return h;
 }
 
-void Ingredient::serialize(network::PacketSerializer& ser) const {
+void Ingredient::serialize(network::PacketSerializer& ser) const
+{
     // 序列化匹配物品数量
     ser.writeVarUInt(static_cast<u32>(m_matchingStacks.size()));
 
@@ -264,7 +280,8 @@ void Ingredient::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<Ingredient> Ingredient::deserialize(network::PacketDeserializer& deser) {
+Result<Ingredient> Ingredient::deserialize(network::PacketDeserializer& deser)
+{
     // 读取匹配物品数量
     auto countResult = deser.readVarUInt();
     if (countResult.failed()) {

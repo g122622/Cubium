@@ -1,15 +1,15 @@
 #include "SaveAllCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "server/command/support/CommandMetadata.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/world/storage/WorldStorageService.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/application/IServer.hpp"
-#include "server/world/ServerWorld.hpp"
+#include "server/command/support/CommandMetadata.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "common/world/storage/WorldStorageService.hpp"
-#include "common/world/storage/player/PlayerDataManager.hpp"
-#include "common/entity/entities/player/Player.hpp"
+#include "server/world/ServerWorld.hpp"
 
 #include <sstream>
 #include <spdlog/spdlog.h>
@@ -17,36 +17,26 @@
 namespace mc {
 namespace command {
 
-void SaveAllCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void SaveAllCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto saveAllNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("save-all");
-    saveAllNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(4);
-    });
+    saveAllNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(4); });
     support::applyMetadata(
-        saveAllNode,
-        support::makeMetadata(
-            "Saves the server to disk.",
-            "/save-all [flush]",
-            4,
-            {},
-            false));
+        saveAllNode, support::makeMetadata("Saves the server to disk.", "/save-all [flush]", 4, {}, false));
 
     // /save-all
-    saveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return saveAll(ctx);
-    });
+    saveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return saveAll(ctx); });
 
     // /save-all flush
     auto flushNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("flush");
-    flushNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return saveAllFlush(ctx);
-    });
+    flushNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return saveAllFlush(ctx); });
 
     saveAllNode->addChild(flushNode);
     dispatcher.registerCommand(saveAllNode);
 }
 
-i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context) {
+i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
 
@@ -76,9 +66,8 @@ i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context) {
 
     // 保存玩家数据
     size_t savedPlayers = 0;
-    auto* playerDataManager = serverWorld && serverWorld->isStorageOpen()
-        ? serverWorld->storage().playerDataManager()
-        : nullptr;
+    auto* playerDataManager =
+        serverWorld && serverWorld->isStorageOpen() ? serverWorld->storage().playerDataManager() : nullptr;
 
     if (playerDataManager) {
         // 遍历所有在线玩家并保存
@@ -88,21 +77,19 @@ i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context) {
             if (saveResult.success()) {
                 ++savedPlayers;
             } else {
-                spdlog::warn("Failed to save player {}: {}",
-                           playerData.username, saveResult.error().message());
+                spdlog::warn("Failed to save player {}: {}", playerData.username, saveResult.error().message());
             }
         });
     }
 
-    source.sendMessage(fmt::format("Saved the game ({} sections, {} players)",
-                                   totalSections, savedPlayers));
-    spdlog::info("Game saved by {} ({} sections, {} players)",
-                 source.name(), totalSections, savedPlayers);
+    source.sendMessage(fmt::format("Saved the game ({} sections, {} players)", totalSections, savedPlayers));
+    spdlog::info("Game saved by {} ({} sections, {} players)", source.name(), totalSections, savedPlayers);
 
     return 1;
 }
 
-i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context) {
+i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
 
@@ -135,9 +122,8 @@ i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context) {
 
     // 保存玩家数据
     size_t savedPlayers = 0;
-    auto* playerDataManager = serverWorld && serverWorld->isStorageOpen()
-        ? serverWorld->storage().playerDataManager()
-        : nullptr;
+    auto* playerDataManager =
+        serverWorld && serverWorld->isStorageOpen() ? serverWorld->storage().playerDataManager() : nullptr;
 
     if (playerDataManager) {
         // 遍历所有在线玩家并保存
@@ -147,8 +133,7 @@ i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context) {
             if (saveResult.success()) {
                 ++savedPlayers;
             } else {
-                spdlog::warn("Failed to save player {}: {}",
-                             playerData.username, saveResult.error().message());
+                spdlog::warn("Failed to save player {}: {}", playerData.username, saveResult.error().message());
             }
         });
 
@@ -156,10 +141,8 @@ i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context) {
         playerDataManager->clearCache();
     }
 
-    source.sendMessage(fmt::format("Saved the game (flushed, {} sections, {} players)",
-                                   totalSections, savedPlayers));
-    spdlog::info("Game saved with flush by {} ({} sections, {} players)",
-                 source.name(), totalSections, savedPlayers);
+    source.sendMessage(fmt::format("Saved the game (flushed, {} sections, {} players)", totalSections, savedPlayers));
+    spdlog::info("Game saved with flush by {} ({} sections, {} players)", source.name(), totalSections, savedPlayers);
 
     return 1;
 }

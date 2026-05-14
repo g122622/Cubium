@@ -10,7 +10,7 @@
 
 namespace mc::command {
 
-template<typename S>
+template <typename S>
 class CommandContext;
 
 /**
@@ -22,12 +22,14 @@ class Suggestion {
 public:
     Suggestion(i32 start, std::string text)
         : m_start(start)
-        , m_text(std::move(text)) {}
+        , m_text(std::move(text))
+    {}
 
     Suggestion(i32 start, std::string text, std::string tooltip)
         : m_start(start)
         , m_text(std::move(text))
-        , m_tooltip(std::move(tooltip)) {}
+        , m_tooltip(std::move(tooltip))
+    {}
 
     [[nodiscard]] i32 getStart() const noexcept { return m_start; }
     [[nodiscard]] const std::string& getText() const noexcept { return m_text; }
@@ -39,7 +41,8 @@ public:
      * @param input 原始输入
      * @return 应用建议后的完整字符串
      */
-    [[nodiscard]] std::string apply(std::string_view input) const {
+    [[nodiscard]] std::string apply(std::string_view input) const
+    {
         std::string result;
         if (m_start > 0) {
             result += input.substr(0, static_cast<size_t>(m_start));
@@ -48,13 +51,9 @@ public:
         return result;
     }
 
-    bool operator<(const Suggestion& other) const {
-        return m_text < other.m_text;
-    }
+    bool operator<(const Suggestion& other) const { return m_text < other.m_text; }
 
-    bool operator==(const Suggestion& other) const {
-        return m_start == other.m_start && m_text == other.m_text;
-    }
+    bool operator==(const Suggestion& other) const { return m_start == other.m_start && m_text == other.m_text; }
 
 private:
     i32 m_start;
@@ -71,7 +70,8 @@ class Suggestions {
 public:
     Suggestions() = default;
     explicit Suggestions(std::vector<Suggestion> suggestions)
-        : m_suggestions(std::move(suggestions)) {
+        : m_suggestions(std::move(suggestions))
+    {
         sort();
     }
 
@@ -82,7 +82,8 @@ public:
     /**
      * @brief 合并两组建议
      */
-    static Suggestions merge(const Suggestions& a, const Suggestions& b) {
+    static Suggestions merge(const Suggestions& a, const Suggestions& b)
+    {
         std::vector<Suggestion> merged = a.m_suggestions;
         merged.insert(merged.end(), b.m_suggestions.begin(), b.m_suggestions.end());
         return Suggestions(std::move(merged));
@@ -91,14 +92,10 @@ public:
     /**
      * @brief 创建空建议
      */
-    static Suggestions empty() {
-        return Suggestions();
-    }
+    static Suggestions empty() { return Suggestions(); }
 
 private:
-    void sort() {
-        std::sort(m_suggestions.begin(), m_suggestions.end());
-    }
+    void sort() { std::sort(m_suggestions.begin(), m_suggestions.end()); }
 
     std::vector<Suggestion> m_suggestions;
 };
@@ -111,7 +108,8 @@ private:
 class SuggestionsBuilder {
 public:
     explicit SuggestionsBuilder(std::string_view input, i32 start = 0)
-        : SuggestionsBuilder(input, start, static_cast<i32>(input.size())) {}
+        : SuggestionsBuilder(input, start, static_cast<i32>(input.size()))
+    {}
 
     /**
      * @brief 构建指定范围的建议构建器
@@ -122,14 +120,14 @@ public:
     SuggestionsBuilder(std::string_view input, i32 start, i32 end)
         : m_input(input)
         , m_start(start)
-        , m_remaining(input.substr(
-              static_cast<size_t>(start),
-              static_cast<size_t>(std::max<i32>(0, end - start)))) {}
+        , m_remaining(input.substr(static_cast<size_t>(start), static_cast<size_t>(std::max<i32>(0, end - start))))
+    {}
 
     /**
      * @brief 添加建议
      */
-    SuggestionsBuilder& suggest(const std::string& text) {
+    SuggestionsBuilder& suggest(const std::string& text)
+    {
         m_suggestions.emplace_back(m_start, text);
         return *this;
     }
@@ -137,7 +135,8 @@ public:
     /**
      * @brief 添加带工具提示的建议
      */
-    SuggestionsBuilder& suggest(const std::string& text, const std::string& tooltip) {
+    SuggestionsBuilder& suggest(const std::string& text, const std::string& tooltip)
+    {
         m_suggestions.emplace_back(m_start, text, tooltip);
         return *this;
     }
@@ -145,7 +144,8 @@ public:
     /**
      * @brief 添加建议（指定起始位置）
      */
-    SuggestionsBuilder& suggest(i32 start, const std::string& text) {
+    SuggestionsBuilder& suggest(i32 start, const std::string& text)
+    {
         m_suggestions.emplace_back(start, text);
         return *this;
     }
@@ -153,8 +153,9 @@ public:
     /**
      * @brief 添加候选词列表
      */
-    template<typename Container>
-    SuggestionsBuilder& suggestAll(const Container& candidates) {
+    template <typename Container>
+    SuggestionsBuilder& suggestAll(const Container& candidates)
+    {
         for (const auto& candidate : candidates) {
             if (startsWith(candidate, m_remaining)) {
                 suggest(std::string(candidate));
@@ -166,14 +167,13 @@ public:
     /**
      * @brief 构建最终建议
      */
-    [[nodiscard]] Suggestions build() const {
-        return Suggestions(m_suggestions);
-    }
+    [[nodiscard]] Suggestions build() const { return Suggestions(m_suggestions); }
 
     /**
      * @brief 构建一个已就绪的异步结果
      */
-    [[nodiscard]] std::future<Suggestions> buildFuture() const {
+    [[nodiscard]] std::future<Suggestions> buildFuture() const
+    {
         std::promise<Suggestions> promise;
         promise.set_value(build());
         return promise.get_future();
@@ -186,12 +186,14 @@ public:
     /**
      * @brief 创建子构建器
      */
-    [[nodiscard]] SuggestionsBuilder createOffset(i32 offset) const {
+    [[nodiscard]] SuggestionsBuilder createOffset(i32 offset) const
+    {
         return SuggestionsBuilder(m_input, m_start + offset);
     }
 
 private:
-    static bool startsWith(std::string_view str, std::string_view prefix) {
+    static bool startsWith(std::string_view str, std::string_view prefix)
+    {
         if (prefix.length() > str.length()) return false;
         for (size_t i = 0; i < prefix.length(); ++i) {
             const unsigned char left = static_cast<unsigned char>(str[i]);
@@ -212,7 +214,7 @@ private:
 /**
  * @brief 建议提供者接口
  */
-template<typename S>
+template <typename S>
 class ISuggestionProvider {
 public:
     virtual ~ISuggestionProvider() = default;
@@ -223,10 +225,7 @@ public:
      * @param builder 建议构建器
      * @return 建议结果
      */
-    virtual std::future<Suggestions> getSuggestions(
-        CommandContext<S>& context,
-        SuggestionsBuilder& builder
-    ) = 0;
+    virtual std::future<Suggestions> getSuggestions(CommandContext<S>& context, SuggestionsBuilder& builder) = 0;
 };
 
 // ========== 预定义建议提供者 ==========
@@ -234,16 +233,15 @@ public:
 /**
  * @brief 候选词建议提供者
  */
-template<typename S>
+template <typename S>
 class CandidateSuggestionProvider : public ISuggestionProvider<S> {
 public:
     explicit CandidateSuggestionProvider(std::vector<std::string> candidates)
-        : m_candidates(std::move(candidates)) {}
+        : m_candidates(std::move(candidates))
+    {}
 
-    std::future<Suggestions> getSuggestions(
-        CommandContext<S>& /*context*/,
-        SuggestionsBuilder& builder
-    ) override {
+    std::future<Suggestions> getSuggestions(CommandContext<S>& /*context*/, SuggestionsBuilder& builder) override
+    {
         builder.suggestAll(m_candidates);
         return builder.buildFuture();
     }

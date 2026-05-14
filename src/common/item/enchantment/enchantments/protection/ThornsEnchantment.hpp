@@ -24,38 +24,25 @@ class ThornsEnchantment : public Enchantment {
 public:
     ThornsEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:thorns";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:thorns"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.thorns";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::ArmorChest;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::ArmorChest; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 3;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 3; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::VeryRare;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::VeryRare; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 10 + (level - 1) * 20;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + (level - 1) * 20; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 50;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 
     /**
      * @brief 检查是否触发荆棘效果
@@ -78,7 +65,8 @@ public:
      * @param level 附魔等级
      * @return 触发概率 (0.0-1.0)
      */
-    [[nodiscard]] static f32 getTriggerChance(i32 level) {
+    [[nodiscard]] static f32 getTriggerChance(i32 level)
+    {
         // 每级 15%
         return static_cast<f32>(level) * 0.15f;
     }

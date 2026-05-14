@@ -1,10 +1,10 @@
 #include "KelpFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../WorldConstants.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 
@@ -13,7 +13,8 @@ namespace mc {
 namespace {
 
 // 获取海底高度，如果无法找到则返回 -1。
-[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
+{
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
     if (oceanFloorY > 0) {
         return oceanFloorY;
@@ -44,10 +45,7 @@ namespace {
 // ============================================================================
 
 bool KelpFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const KelpFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const KelpFeatureConfig& config)
 {
     if (!config.kelpState || !config.kelpTopState) {
         return false;
@@ -75,14 +73,13 @@ bool KelpFeature::place(
         const i32 height = 1 + random.nextInt(maxHeight);
         for (i32 y = 0; y <= height; ++y) {
             const BlockPos abovePos = currentPos.up();
-            const bool canGrowHere = isWater(world, currentPos) && isWater(world, abovePos) && canPlaceAt(world, currentPos);
+            const bool canGrowHere =
+                isWater(world, currentPos) && isWater(world, abovePos) && canPlaceAt(world, currentPos);
 
             if (canGrowHere) {
                 if (y == height) {
                     const i32 age = random.nextInt(4) + 20;
-                    world.setBlockState(
-                        currentPos,
-                        &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
+                    world.setBlockState(currentPos, &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
                     placedAny = true;
                 } else {
                     world.setBlockState(currentPos, config.kelpState);
@@ -92,14 +89,12 @@ bool KelpFeature::place(
                 const BlockPos belowBelowPos = belowPos.down();
                 const BlockState* belowBelowState = world.getBlockState(belowBelowPos);
 
-                const bool belowHasKelp =
-                    (VanillaBlocks::KELP != nullptr && belowBelowState != nullptr && belowBelowState->is(VanillaBlocks::KELP));
+                const bool belowHasKelp = (VanillaBlocks::KELP != nullptr && belowBelowState != nullptr &&
+                    belowBelowState->is(VanillaBlocks::KELP));
 
                 if (canPlaceAt(world, belowPos) && !belowHasKelp) {
                     const i32 age = random.nextInt(4) + 20;
-                    world.setBlockState(
-                        belowPos,
-                        &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
+                    world.setBlockState(belowPos, &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
                     placedAny = true;
                 }
                 break;
@@ -147,20 +142,13 @@ bool KelpFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 // ConfiguredKelpFeature 实现
 // ============================================================================
 
-ConfiguredKelpFeature::ConfiguredKelpFeature(
-    std::unique_ptr<KelpFeatureConfig> config,
-    const char* featureName)
+ConfiguredKelpFeature::ConfiguredKelpFeature(std::unique_ptr<KelpFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredKelpFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);

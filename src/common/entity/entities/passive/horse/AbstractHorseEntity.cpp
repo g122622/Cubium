@@ -1,24 +1,24 @@
 #include "AbstractHorseEntity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/DataParameter.hpp"
-#include "../../../../world/IWorld.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../../world/blockentity/core/SimpleInventory.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../../util/math/random/Random.hpp"
+#include "../../../../network/packet/EntityPackets.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/MathUtils.hpp"
-#include "../../../../network/packet/EntityPackets.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/blockentity/core/SimpleInventory.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/DataParameter.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../entities/player/Player.hpp"
 #include <cmath>
 
 namespace mc {
@@ -40,21 +40,24 @@ AbstractHorseEntity::AbstractHorseEntity(LegacyEntityType type, EntityId id)
     initHorseChest();
 }
 
-void AbstractHorseEntity::registerData() {
+void AbstractHorseEntity::registerData()
+{
     AnimalEntity::registerData();
 
     // MC 1.16.5 AbstractHorseEntity.registerData()
     m_dataManager.registerParam(STATUS_PARAM, static_cast<i8>(0));
-    m_dataManager.registerParam(OWNER_UUID_PARAM, static_cast<i64>(0));  // 0 = 无主人
+    m_dataManager.registerParam(OWNER_UUID_PARAM, static_cast<i64>(0)); // 0 = 无主人
 }
 
 // ========== 状态标志辅助方法 ==========
 
-bool AbstractHorseEntity::getHorseWatchableBoolean(i8 flag) const {
+bool AbstractHorseEntity::getHorseWatchableBoolean(i8 flag) const
+{
     return (m_dataManager.get(STATUS_PARAM) & flag) != 0;
 }
 
-void AbstractHorseEntity::setHorseWatchableBoolean(i8 flag, bool value) {
+void AbstractHorseEntity::setHorseWatchableBoolean(i8 flag, bool value)
+{
     i8 status = m_dataManager.get(STATUS_PARAM);
     if (value) {
         m_dataManager.set(STATUS_PARAM, static_cast<i8>(status | flag));
@@ -63,12 +66,14 @@ void AbstractHorseEntity::setHorseWatchableBoolean(i8 flag, bool value) {
     }
 }
 
-void AbstractHorseEntity::setSaddle(bool saddle) {
+void AbstractHorseEntity::setSaddle(bool saddle)
+{
     m_saddled = saddle;
     setHorseWatchableBoolean(STATUS_FLAG_SADDLE, saddle);
 }
 
-void AbstractHorseEntity::onJump() {
+void AbstractHorseEntity::onJump()
+{
     if (!m_saddled || !m_isJumping) {
         return;
     }
@@ -76,22 +81,26 @@ void AbstractHorseEntity::onJump() {
     performJump();
 }
 
-void AbstractHorseEntity::setJumpPower(i32 power) {
+void AbstractHorseEntity::setJumpPower(i32 power)
+{
     // MC 1.16.5: jumpPower 范围 0-100
     m_jumpPower = std::clamp(power, 0, 100);
 }
 
-f32 AbstractHorseEntity::getMaxJumpHeight() const {
+f32 AbstractHorseEntity::getMaxJumpHeight() const
+{
     // 根据跳跃强度计算最大跳跃高度
     // MC 公式: 0.6 * jumpStrength^2 + 0.1 * jumpStrength + 0.3
     return 0.6f * m_jumpStrength * m_jumpStrength + 0.1f * m_jumpStrength + 0.3f;
 }
 
-bool AbstractHorseEntity::canJump() const {
+bool AbstractHorseEntity::canJump() const
+{
     return m_saddled && m_jumpCooldown <= 0;
 }
 
-void AbstractHorseEntity::startJumping(i32 jumpPower) {
+void AbstractHorseEntity::startJumping(i32 jumpPower)
+{
     if (!canJump()) {
         return;
     }
@@ -101,7 +110,8 @@ void AbstractHorseEntity::startJumping(i32 jumpPower) {
     setJumpPower(jumpPower);
 }
 
-void AbstractHorseEntity::stopJumping() {
+void AbstractHorseEntity::stopJumping()
+{
     if (!m_isJumping) {
         return;
     }
@@ -113,11 +123,13 @@ void AbstractHorseEntity::stopJumping() {
     m_jumpCooldown = 10; // 跳跃冷却
 }
 
-bool AbstractHorseEntity::isBeingRidden() const {
+bool AbstractHorseEntity::isBeingRidden() const
+{
     return m_rider != nullptr;
 }
 
-bool AbstractHorseEntity::canBeRiddenBy(Player* player) const {
+bool AbstractHorseEntity::canBeRiddenBy(Player* player) const
+{
     // 已被骑乘或未驯服
     if (m_rider != nullptr) {
         return false;
@@ -131,28 +143,32 @@ bool AbstractHorseEntity::canBeRiddenBy(Player* player) const {
     return true;
 }
 
-void AbstractHorseEntity::setTame(bool tame) {
+void AbstractHorseEntity::setTame(bool tame)
+{
     m_tame = tame;
     setHorseWatchableBoolean(STATUS_FLAG_TAME, tame);
 }
 
 // ========== 库存初始化 ==========
 
-void AbstractHorseEntity::initHorseChest() {
+void AbstractHorseEntity::initHorseChest()
+{
     // MC 1.16.5: 创建马背包（鞍槽 + 马铠槽）
     m_inventory = std::make_unique<blockentity::SimpleInventory>(getInventorySize());
 }
 
 // ========== IEquipable 接口实现 ==========
 
-ItemStack AbstractHorseEntity::getEquipment(i32 slot) const {
+ItemStack AbstractHorseEntity::getEquipment(i32 slot) const
+{
     if (!m_inventory || slot < 0 || slot >= getInventorySize()) {
         return ItemStack::EMPTY;
     }
     return m_inventory->getItem(slot);
 }
 
-void AbstractHorseEntity::setEquipment(i32 slot, const ItemStack& item) {
+void AbstractHorseEntity::setEquipment(i32 slot, const ItemStack& item)
+{
     if (!m_inventory || slot < 0 || slot >= getInventorySize()) {
         return;
     }
@@ -168,7 +184,8 @@ void AbstractHorseEntity::setEquipment(i32 slot, const ItemStack& item) {
     }
 }
 
-bool AbstractHorseEntity::canEquip(const ItemStack& item, i32 slot) const {
+bool AbstractHorseEntity::canEquip(const ItemStack& item, i32 slot) const
+{
     if (item.isEmpty()) {
         return true;
     }
@@ -183,7 +200,8 @@ bool AbstractHorseEntity::canEquip(const ItemStack& item, i32 slot) const {
 
 // ========== 鞍系统 ==========
 
-bool AbstractHorseEntity::increaseTemper(i32 amount) {
+bool AbstractHorseEntity::increaseTemper(i32 amount)
+{
     m_temper += amount;
 
     if (m_temper >= m_maxTemper) {
@@ -196,18 +214,21 @@ bool AbstractHorseEntity::increaseTemper(i32 amount) {
     return false;
 }
 
-bool AbstractHorseEntity::isTameItem(const ItemStack& itemStack) const {
+bool AbstractHorseEntity::isTameItem(const ItemStack& itemStack) const
+{
     // 默认情况下，马不响应任何驯服物品
     // 子类应覆盖此方法
     (void)itemStack;
     return false;
 }
 
-f32 AbstractHorseEntity::getSpeed() const {
+f32 AbstractHorseEntity::getSpeed() const
+{
     return m_speed;
 }
 
-void AbstractHorseEntity::tick() {
+void AbstractHorseEntity::tick()
+{
     AnimalEntity::tick();
 
     // 更新跳跃冷却
@@ -227,7 +248,8 @@ void AbstractHorseEntity::tick() {
     updateRiding();
 }
 
-void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward) {
+void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
+{
     // MC 1.16.5 AbstractHorseEntity.travel()
     if (!isAlive()) {
         return;
@@ -309,7 +331,8 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward) {
     }
 }
 
-void AbstractHorseEntity::registerAttributes() {
+void AbstractHorseEntity::registerAttributes()
+{
     AnimalEntity::registerAttributes();
 
     // 马类基础属性
@@ -321,7 +344,8 @@ void AbstractHorseEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
 }
 
-void AbstractHorseEntity::registerGoals() {
+void AbstractHorseEntity::registerGoals()
+{
     AnimalEntity::registerGoals();
 
     // MC 1.16.5 AbstractHorseEntity.registerGoals()
@@ -330,12 +354,14 @@ void AbstractHorseEntity::registerGoals() {
     m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::RunAroundLikeCrazyGoal>(this, 1.2));
 }
 
-void AbstractHorseEntity::updateRiding() {
+void AbstractHorseEntity::updateRiding()
+{
     // TODO: 更新骑乘者位置
     // TODO: 处理骑乘者控制
 }
 
-void AbstractHorseEntity::updateJumpPower() {
+void AbstractHorseEntity::updateJumpPower()
+{
     // MC 1.16.5: jumpPower 范围 0-100
     if (m_jumpPower < 100) {
         // 蓄力增加
@@ -344,7 +370,8 @@ void AbstractHorseEntity::updateJumpPower() {
     }
 }
 
-void AbstractHorseEntity::performJump() {
+void AbstractHorseEntity::performJump()
+{
     if (!canJump() || m_jumpPower <= 0) {
         return;
     }
@@ -362,7 +389,8 @@ void AbstractHorseEntity::performJump() {
     m_jumpCooldown = 10;
 }
 
-void AbstractHorseEntity::updateBoost() {
+void AbstractHorseEntity::updateBoost()
+{
     if (m_boostTime > 0) {
         m_boostTime--;
 
@@ -372,7 +400,8 @@ void AbstractHorseEntity::updateBoost() {
     }
 }
 
-void AbstractHorseEntity::initRandomAttributes() {
+void AbstractHorseEntity::initRandomAttributes()
+{
     math::Random rng(ticksExisted());
 
     // 随机生成马特有属性
@@ -383,7 +412,8 @@ void AbstractHorseEntity::initRandomAttributes() {
 
 // ========== 驯服系统 ==========
 
-bool AbstractHorseEntity::setTamedBy(Player* player) {
+bool AbstractHorseEntity::setTamedBy(Player* player)
+{
     if (player == nullptr) {
         return false;
     }
@@ -411,7 +441,8 @@ bool AbstractHorseEntity::setTamedBy(Player* player) {
     return true;
 }
 
-void AbstractHorseEntity::makeMad() {
+void AbstractHorseEntity::makeMad()
+{
     // MC 1.16.5: if (!this.isRearing()) { this.makeHorseRear(); ... }
     if (!isRearing()) {
         makeHorseRear();
@@ -425,7 +456,8 @@ void AbstractHorseEntity::makeMad() {
     }
 }
 
-void AbstractHorseEntity::makeHorseRear() {
+void AbstractHorseEntity::makeHorseRear()
+{
     // MC 1.16.5: if (this.canPassengerSteer() || this.isServerWorld()) {
     //     this.jumpRearingCounter = 1;
     //     this.setRearing(true);
@@ -435,11 +467,13 @@ void AbstractHorseEntity::makeHorseRear() {
     setRearing(true);
 }
 
-bool AbstractHorseEntity::isRearing() const {
+bool AbstractHorseEntity::isRearing() const
+{
     return getHorseWatchableBoolean(STATUS_FLAG_REARING);
 }
 
-void AbstractHorseEntity::setRearing(bool rearing) {
+void AbstractHorseEntity::setRearing(bool rearing)
+{
     // MC 1.16.5: if (rearing) { this.setEatingHaystack(false); }
     if (rearing) {
         setHorseWatchableBoolean(STATUS_FLAG_EATING, false);
@@ -447,7 +481,8 @@ void AbstractHorseEntity::setRearing(bool rearing) {
     setHorseWatchableBoolean(STATUS_FLAG_REARING, rearing);
 }
 
-std::string AbstractHorseEntity::getOwnerUuid() const {
+std::string AbstractHorseEntity::getOwnerUuid() const
+{
     i64 ownerId = m_dataManager.get(OWNER_UUID_PARAM);
     if (ownerId == 0) {
         return "";
@@ -457,7 +492,8 @@ std::string AbstractHorseEntity::getOwnerUuid() const {
     return std::to_string(ownerId);
 }
 
-void AbstractHorseEntity::setOwnerUuid(const std::string& uuid) {
+void AbstractHorseEntity::setOwnerUuid(const std::string& uuid)
+{
     // 将 UUID 字符串转换为 i64
     // 简化实现：直接存储哈希值或解析数字
     if (uuid.empty()) {
@@ -467,7 +503,8 @@ void AbstractHorseEntity::setOwnerUuid(const std::string& uuid) {
         try {
             i64 ownerId = std::stoll(uuid);
             m_dataManager.set(OWNER_UUID_PARAM, ownerId);
-        } catch (...) {
+        }
+        catch (...) {
             // 解析失败，使用哈希值
             i64 hash = 0;
             for (char c : uuid) {

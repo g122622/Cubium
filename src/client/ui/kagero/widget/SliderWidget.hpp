@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Widget.hpp"
-#include "../paint/PaintContext.hpp"
 #include "../../Glyph.hpp"
+#include "../paint/PaintContext.hpp"
+#include "Widget.hpp"
 #include <functional>
 #include <string>
 
@@ -54,20 +54,21 @@ public:
      * @param maxVal 最大值
      * @param value 当前值
      */
-    SliderWidget(std::string id, i32 x, i32 y, i32 width, i32 height,
-                 f64 minVal, f64 maxVal, f64 value)
+    SliderWidget(std::string id, i32 x, i32 y, i32 width, i32 height, f64 minVal, f64 maxVal, f64 value)
         : Widget(std::move(id))
         , m_minValue(minVal)
         , m_maxValue(maxVal)
-        , m_value(minVal)  // 先设为最小值，后面再用 setValue 设置
-        , m_stepSize(0.0) {
+        , m_value(minVal) // 先设为最小值，后面再用 setValue 设置
+        , m_stepSize(0.0)
+    {
         setBounds(Rect(x, y, width, height));
-        m_value = clampValue(value);  // 现在可以安全调用 clampValue
+        m_value = clampValue(value); // 现在可以安全调用 clampValue
     }
 
     // ==================== 生命周期 ====================
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         if (!isVisible()) return;
         ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 45, 45, 45));
         ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 90, 90, 90));
@@ -81,7 +82,8 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    {
         if (!isActive() || !isVisible()) return false;
         if (button != 0) return false; // 只响应左键
 
@@ -95,7 +97,8 @@ public:
         return true;
     }
 
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -113,7 +116,8 @@ public:
         return false;
     }
 
-    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override {
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override
+    {
         (void)deltaX;
         (void)deltaY;
 
@@ -123,7 +127,8 @@ public:
         return true;
     }
 
-    bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override {
+    bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -136,7 +141,8 @@ public:
         return true;
     }
 
-    bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override {
+    bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
+    {
         (void)scanCode;
         (void)mods;
 
@@ -164,7 +170,8 @@ public:
     /**
      * @brief 设置值
      */
-    virtual void setValue(f64 value) {
+    virtual void setValue(f64 value)
+    {
         f64 newValue = clampValue(value);
         if (m_value != newValue) {
             m_value = newValue;
@@ -182,7 +189,8 @@ public:
     /**
      * @brief 设置最小值
      */
-    void setMinValue(f64 minVal) {
+    void setMinValue(f64 minVal)
+    {
         m_minValue = minVal;
         setValue(m_value); // 重新约束
     }
@@ -195,7 +203,8 @@ public:
     /**
      * @brief 设置最大值
      */
-    void setMaxValue(f64 maxVal) {
+    void setMaxValue(f64 maxVal)
+    {
         m_maxValue = maxVal;
         setValue(m_value); // 重新约束
     }
@@ -208,7 +217,8 @@ public:
     /**
      * @brief 设置值范围
      */
-    void setRange(f64 minVal, f64 maxVal) {
+    void setRange(f64 minVal, f64 maxVal)
+    {
         m_minValue = minVal;
         m_maxValue = maxVal;
         setValue(m_value); // 重新约束
@@ -217,9 +227,7 @@ public:
     /**
      * @brief 设置步长
      */
-    void setStepSize(f64 step) {
-        m_stepSize = step;
-    }
+    void setStepSize(f64 step) { m_stepSize = step; }
 
     /**
      * @brief 获取步长
@@ -229,7 +237,8 @@ public:
     /**
      * @brief 获取滑块位置比例（0.0-1.0）
      */
-    [[nodiscard]] f64 getRatio() const {
+    [[nodiscard]] f64 getRatio() const
+    {
         if (m_maxValue <= m_minValue) return 0.0;
         return (m_value - m_minValue) / (m_maxValue - m_minValue);
     }
@@ -237,7 +246,8 @@ public:
     /**
      * @brief 从比例设置值
      */
-    void setFromRatio(f64 ratio) {
+    void setFromRatio(f64 ratio)
+    {
         ratio = std::max(0.0, std::min(1.0, ratio));
         setValue(m_minValue + ratio * (m_maxValue - m_minValue));
     }
@@ -247,14 +257,13 @@ public:
     /**
      * @brief 设置显示文本
      */
-    void setDisplayText(const std::string& text) {
-        m_displayText = text;
-    }
+    void setDisplayText(const std::string& text) { m_displayText = text; }
 
     /**
      * @brief 获取显示文本
      */
-    [[nodiscard]] std::string displayText() const {
+    [[nodiscard]] std::string displayText() const
+    {
         if (m_formatCallback) {
             return m_formatCallback(m_value);
         }
@@ -267,23 +276,17 @@ public:
     /**
      * @brief 设置格式化回调
      */
-    void setFormatCallback(FormatCallback callback) {
-        m_formatCallback = std::move(callback);
-    }
+    void setFormatCallback(FormatCallback callback) { m_formatCallback = std::move(callback); }
 
     /**
      * @brief 设置值变化回调
      */
-    void setOnValueChanged(OnValueChangedCallback callback) {
-        m_onValueChanged = std::move(callback);
-    }
+    void setOnValueChanged(OnValueChangedCallback callback) { m_onValueChanged = std::move(callback); }
 
     /**
      * @brief 设置是否显示值
      */
-    void setShowValue(bool show) {
-        m_showValue = show;
-    }
+    void setShowValue(bool show) { m_showValue = show; }
 
     /**
      * @brief 是否显示值
@@ -293,7 +296,8 @@ public:
     /**
      * @brief 获取滑块手柄位置（像素）
      */
-    [[nodiscard]] i32 getHandlePosition() const {
+    [[nodiscard]] i32 getHandlePosition() const
+    {
         i32 sliderWidth = width() - 8; // 减去手柄宽度
         return x() + static_cast<i32>(getRatio() * sliderWidth);
     }
@@ -307,7 +311,8 @@ protected:
     /**
      * @brief 从鼠标位置设置值
      */
-    void setValueFromMouse(i32 mouseX) {
+    void setValueFromMouse(i32 mouseX)
+    {
         i32 sliderX = x() + 4; // 手柄宽度/2
         i32 sliderWidth = width() - 8;
 
@@ -327,7 +332,8 @@ protected:
     /**
      * @brief 约束值到有效范围
      */
-    [[nodiscard]] f64 clampValue(f64 value) const {
+    [[nodiscard]] f64 clampValue(f64 value) const
+    {
         if (m_stepSize > 0) {
             value = std::round(value / m_stepSize) * m_stepSize;
         }
@@ -337,7 +343,8 @@ protected:
     /**
      * @brief 格式化值显示
      */
-    [[nodiscard]] virtual std::string formatValue(f64 val) const {
+    [[nodiscard]] virtual std::string formatValue(f64 val) const
+    {
         // 默认显示整数或两位小数
         if (m_stepSize >= 1.0) {
             return std::to_string(static_cast<i32>(val));
@@ -373,22 +380,14 @@ class IntSliderWidget : public SliderWidget {
 public:
     using SliderWidget::SliderWidget;
 
-    void setValue(f64 value) override {
-        SliderWidget::setValue(std::round(value));
-    }
+    void setValue(f64 value) override { SliderWidget::setValue(std::round(value)); }
 
-    [[nodiscard]] i32 intValue() const {
-        return static_cast<i32>(value());
-    }
+    [[nodiscard]] i32 intValue() const { return static_cast<i32>(value()); }
 
-    void setIntValue(i32 val) {
-        setValue(static_cast<f64>(val));
-    }
+    void setIntValue(i32 val) { setValue(static_cast<f64>(val)); }
 
 protected:
-    [[nodiscard]] std::string formatValue(f64 val) const override {
-        return std::to_string(static_cast<i32>(val));
-    }
+    [[nodiscard]] std::string formatValue(f64 val) const override { return std::to_string(static_cast<i32>(val)); }
 };
 
 } // namespace mc::client::ui::kagero::widget

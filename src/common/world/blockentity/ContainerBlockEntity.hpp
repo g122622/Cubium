@@ -1,8 +1,8 @@
 #pragma once
 
-#include "world/blockentity/BlockEntity.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "util/assert/AssertMacros.hpp"
+#include "world/blockentity/BlockEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -63,7 +63,8 @@ public:
      * @brief 检查容器是否为空
      * @return 如果容器为空返回true
      */
-    [[nodiscard]] virtual bool isEmpty() const {
+    [[nodiscard]] virtual bool isEmpty() const
+    {
         const IInventory* inv = getInventory();
         return inv ? inv->isEmpty() : true;
     }
@@ -73,7 +74,8 @@ public:
      *
      * 清除所有槽位的内容。
      */
-    virtual void clearContainer() {
+    virtual void clearContainer()
+    {
         IInventory* inv = getInventory();
         if (inv) {
             inv->clear();
@@ -95,7 +97,8 @@ public:
      * @brief 保存数据到JSON
      * @param data 输出JSON数据
      */
-    void save(nlohmann::json& data) const override {
+    void save(nlohmann::json& data) const override
+    {
         BlockEntity::save(data);
 
         // 保存背包内容
@@ -124,7 +127,8 @@ public:
      * @param data JSON数据
      * @return 是否成功
      */
-    bool load(const nlohmann::json& data) override {
+    bool load(const nlohmann::json& data) override
+    {
         if (!BlockEntity::load(data)) {
             return false;
         }
@@ -171,7 +175,8 @@ public:
 protected:
     ContainerBlockEntity(BlockEntityType type, const BlockPos& pos)
         : BlockEntity(type, pos)
-        , m_openCount(0) {}
+        , m_openCount(0)
+    {}
 
     i32 m_openCount;
 };

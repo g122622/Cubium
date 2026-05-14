@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/skin/core/SkinTextures.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <unordered_map>
-#include <mutex>
-#include <filesystem>
+#include "common/skin/core/SkinTextures.hpp"
 #include <chrono>
+#include <filesystem>
+#include <mutex>
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::skin {
@@ -19,11 +19,11 @@ namespace mc::skin {
  * 存储单个皮肤文件的缓存信息。
  */
 struct CacheEntry {
-    ResourceLocation location;                                  // 纹理资源位置
-    std::string hash;                                                // 文件哈希
-    std::filesystem::file_time_type lastAccess;                 // 最后访问时间
-    std::filesystem::file_time_type lastModified;               // 最后修改时间
-    size_t fileSize = 0;                                        // 文件大小（字节）
+    ResourceLocation location;                    // 纹理资源位置
+    std::string hash;                             // 文件哈希
+    std::filesystem::file_time_type lastAccess;   // 最后访问时间
+    std::filesystem::file_time_type lastModified; // 最后修改时间
+    size_t fileSize = 0;                          // 文件大小（字节）
 };
 
 /**
@@ -209,8 +209,8 @@ private:
     /**
      * @brief 通用保存方法
      */
-    Result<std::filesystem::path> saveTexture(const std::string& type, const std::string& hash,
-                                               const std::vector<u8>& data);
+    Result<std::filesystem::path> saveTexture(
+        const std::string& type, const std::string& hash, const std::vector<u8>& data);
 
     /**
      * @brief 通用读取方法

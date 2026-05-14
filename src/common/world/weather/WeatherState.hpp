@@ -15,9 +15,9 @@ namespace mc::weather {
  * 表示世界的基本天气状态
  */
 enum class WeatherType : u8 {
-    Clear = 0,   ///< 晴天 - 无降水
-    Rain = 1,    ///< 降雨 - 正在下雨（非雷暴）
-    Thunder = 2  ///< 雷暴 - 正在下雷暴（需要同时有降雨）
+    Clear = 0,  ///< 晴天 - 无降水
+    Rain = 1,   ///< 降雨 - 正在下雨（非雷暴）
+    Thunder = 2 ///< 雷暴 - 正在下雷暴（需要同时有降雨）
 };
 
 /**
@@ -129,7 +129,8 @@ public:
      *
      * @return 天气类型枚举
      */
-    [[nodiscard]] WeatherType weatherType() const noexcept {
+    [[nodiscard]] WeatherType weatherType() const noexcept
+    {
         if (thundering && raining) {
             return WeatherType::Thunder;
         }
@@ -146,9 +147,7 @@ public:
      *
      * @return 如果降雨强度 > 0.2 返回 true
      */
-    [[nodiscard]] bool isRaining() const noexcept {
-        return rainStrength > WeatherConstants::RAIN_THRESHOLD;
-    }
+    [[nodiscard]] bool isRaining() const noexcept { return rainStrength > WeatherConstants::RAIN_THRESHOLD; }
 
     /**
      * @brief 是否正在雷暴（强度检查）
@@ -157,9 +156,7 @@ public:
      *
      * @return 如果雷暴强度 > 0.9 返回 true
      */
-    [[nodiscard]] bool isThundering() const noexcept {
-        return thunderStrength > WeatherConstants::THUNDER_THRESHOLD;
-    }
+    [[nodiscard]] bool isThundering() const noexcept { return thunderStrength > WeatherConstants::THUNDER_THRESHOLD; }
 
     /**
      * @brief 获取插值后的降雨强度
@@ -167,7 +164,8 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 getRainStrength(f32 partialTick) const noexcept {
+    [[nodiscard]] f32 getRainStrength(f32 partialTick) const noexcept
+    {
         return mc::math::lerp(prevRainStrength, rainStrength, partialTick);
     }
 
@@ -177,7 +175,8 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 getThunderStrength(f32 partialTick) const noexcept {
+    [[nodiscard]] f32 getThunderStrength(f32 partialTick) const noexcept
+    {
         return mc::math::lerp(prevThunderStrength, thunderStrength, partialTick);
     }
 
@@ -191,7 +190,8 @@ public:
      * @param dayTime 当前一天内的时间 (0-23999)
      * @return 是否可以睡觉
      */
-    [[nodiscard]] bool canSleep(i64 dayTime) const noexcept {
+    [[nodiscard]] bool canSleep(i64 dayTime) const noexcept
+    {
         // 雷暴时任何时间都可以睡觉
         if (isThundering()) {
             return true;
@@ -199,13 +199,11 @@ public:
 
         // 降雨时的睡眠时间范围
         if (isRaining()) {
-            return dayTime >= WeatherConstants::RAIN_BED_START_TIME ||
-                   dayTime <= WeatherConstants::RAIN_BED_END_TIME;
+            return dayTime >= WeatherConstants::RAIN_BED_START_TIME || dayTime <= WeatherConstants::RAIN_BED_END_TIME;
         }
 
         // 晴天时的睡眠时间范围
-        return dayTime >= WeatherConstants::CLEAR_BED_START_TIME &&
-               dayTime <= WeatherConstants::CLEAR_BED_END_TIME;
+        return dayTime >= WeatherConstants::CLEAR_BED_START_TIME && dayTime <= WeatherConstants::CLEAR_BED_END_TIME;
     }
 
     /**
@@ -215,7 +213,8 @@ public:
      *
      * @return 天空光照上限 (0-15)，0 表示无限制
      */
-    [[nodiscard]] u8 skyLightLimit() const noexcept {
+    [[nodiscard]] u8 skyLightLimit() const noexcept
+    {
         if (isThundering()) {
             return WeatherConstants::THUNDER_SKY_LIGHT_LIMIT;
         }
@@ -232,7 +231,8 @@ public:
      *
      * 立即清除所有天气效果，用于玩家睡觉后
      */
-    void resetWeather() noexcept {
+    void resetWeather() noexcept
+    {
         clearWeatherTime = 0;
         rainTime = 0;
         thunderTime = 0;

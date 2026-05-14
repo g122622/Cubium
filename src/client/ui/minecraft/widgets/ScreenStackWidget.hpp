@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../../kagero/widget/ContainerWidget.hpp"
 #include "../../kagero/paint/PaintContext.hpp"
+#include "../../kagero/widget/ContainerWidget.hpp"
 #include "../screens/Screen.hpp"
 #include "common/screen/IScreen.hpp"
-#include <vector>
-#include <memory>
 #include <functional>
+#include <memory>
 #include <variant>
+#include <vector>
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
@@ -20,10 +20,9 @@ namespace mc::client::ui::minecraft::widgets {
  *
  * 使用 std::variant 同时支持新的 Screen Widget 和旧的 IScreen
  */
-using ScreenItem = std::variant<
-    std::unique_ptr<Screen>,    // 新的 Widget-based Screen
-    std::unique_ptr<IScreen>    // 旧的 IScreen 接口
->;
+using ScreenItem = std::variant<std::unique_ptr<Screen>, // 新的 Widget-based Screen
+    std::unique_ptr<IScreen>                             // 旧的 IScreen 接口
+    >;
 
 /**
  * @brief 屏幕栈Widget
@@ -98,9 +97,7 @@ public:
     /**
      * @brief 设置屏幕变化回调
      */
-    void setScreenChangeCallback(ScreenChangeCallback callback) {
-        m_onScreenChange = std::move(callback);
-    }
+    void setScreenChangeCallback(ScreenChangeCallback callback) { m_onScreenChange = std::move(callback); }
 
     /**
      * @brief 设置部分 tick 时间（用于 IScreen::render）
@@ -110,7 +107,8 @@ public:
     /**
      * @brief 设置鼠标位置（用于 IScreen::render）
      */
-    void setMousePosition(i32 mouseX, i32 mouseY) {
+    void setMousePosition(i32 mouseX, i32 mouseY)
+    {
         m_mouseX = mouseX;
         m_mouseY = mouseY;
     }
@@ -118,9 +116,7 @@ public:
     /**
      * @brief 设置 GuiRenderer（用于 IScreen::render）
      */
-    void setGuiRenderer(renderer::trident::gui::GuiRenderer* renderer) {
-        m_guiRenderer = renderer;
-    }
+    void setGuiRenderer(renderer::trident::gui::GuiRenderer* renderer) { m_guiRenderer = renderer; }
 
     // ========== Widget接口 ==========
 
@@ -182,7 +178,7 @@ private:
      */
     struct ScreenWrapper {
         ScreenItem item;
-        bool modal = true;  // 在 onOpenScreen 中从 Screen::isModal() 初始化
+        bool modal = true; // 在 onOpenScreen 中从 Screen::isModal() 初始化
 
         // 公共状态
         bool visible = true;
@@ -192,9 +188,7 @@ private:
          * @brief 检查是否为 Widget Screen
          * @note 从 variant 索引推导，无需存储
          */
-        [[nodiscard]] bool isWidgetScreen() const {
-            return item.index() == 0;
-        }
+        [[nodiscard]] bool isWidgetScreen() const { return item.index() == 0; }
     };
 
     std::vector<ScreenWrapper> m_screens;

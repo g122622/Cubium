@@ -9,7 +9,8 @@ namespace compat {
 std::mutex TextureMapper::s_mutex;
 TextureMapper* TextureMapper::s_instance = nullptr;
 
-const TextureMapper& TextureMapper::instance() {
+const TextureMapper& TextureMapper::instance()
+{
     std::lock_guard<std::mutex> lock(s_mutex);
     if (!s_instance) {
         s_instance = new TextureMapper();
@@ -17,13 +18,14 @@ const TextureMapper& TextureMapper::instance() {
     return *s_instance;
 }
 
-TextureMapper::TextureMapper() {
+TextureMapper::TextureMapper()
+{
     initializeMappings();
-    spdlog::info("[TextureMapper] Initialized with {} texture name mappings",
-                 m_modernToLegacy.size());
+    spdlog::info("[TextureMapper] Initialized with {} texture name mappings", m_modernToLegacy.size());
 }
 
-void TextureMapper::initializeMappings() {
+void TextureMapper::initializeMappings()
+{
     // =========================================================================
     // 原木纹理（顺序反转）
     // MC 1.12: log_oak, log_oak_top, log_spruce, ...
@@ -121,7 +123,7 @@ void TextureMapper::initializeMappings() {
         {"lime_wool", "wool_colored_lime"},
         {"pink_wool", "wool_colored_pink"},
         {"gray_wool", "wool_colored_gray"},
-        {"light_gray_wool", "wool_colored_silver"},  // silver -> light_gray
+        {"light_gray_wool", "wool_colored_silver"}, // silver -> light_gray
         {"cyan_wool", "wool_colored_cyan"},
         {"purple_wool", "wool_colored_purple"},
         {"blue_wool", "wool_colored_blue"},
@@ -327,10 +329,10 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     static const std::vector<std::pair<std::string, std::string>> flowerMappings = {
         {"dandelion", "flower_dandelion"},
-        {"poppy", "flower_rose"},  // rose -> poppy
+        {"poppy", "flower_rose"}, // rose -> poppy
         {"blue_orchid", "flower_blue_orchid"},
         {"allium", "flower_allium"},
-        {"azure_bluet", "flower_houstonia"},  // houstonia -> azure_bluet
+        {"azure_bluet", "flower_houstonia"}, // houstonia -> azure_bluet
         {"red_tulip", "flower_tulip_red"},
         {"orange_tulip", "flower_tulip_orange"},
         {"white_tulip", "flower_tulip_white"},
@@ -350,7 +352,7 @@ void TextureMapper::initializeMappings() {
         {"short_grass", "tallgrass"},
         {"tall_grass_top", "double_plant_grass_top"},
         {"tall_grass_bottom", "double_plant_grass_bottom"},
-        {"fern", "fern"},  // fern 保持不变
+        {"fern", "fern"}, // fern 保持不变
         {"large_fern_top", "double_plant_fern_top"},
         {"large_fern_bottom", "double_plant_fern_bottom"},
     };
@@ -709,20 +711,23 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
 }
 
-std::string TextureMapper::getLegacyName(std::string_view modernName) const {
+std::string TextureMapper::getLegacyName(std::string_view modernName) const
+{
     auto it = m_modernToLegacy.find(std::string(modernName));
     return it != m_modernToLegacy.end() ? it->second : std::string();
 }
 
-std::string TextureMapper::getModernName(std::string_view legacyName) const {
+std::string TextureMapper::getModernName(std::string_view legacyName) const
+{
     auto it = m_legacyToModern.find(std::string(legacyName));
     return it != m_legacyToModern.end() ? it->second : std::string();
 }
 
-std::vector<std::string> TextureMapper::getNameVariants(std::string_view name) const {
+std::vector<std::string> TextureMapper::getNameVariants(std::string_view name) const
+{
     std::vector<std::string> variants;
     std::string nameStr(name);
-    variants.push_back(nameStr);  // 始终包含原名称
+    variants.push_back(nameStr); // 始终包含原名称
 
     // 检查是否是具有旧版映射的现代名称
     std::string legacy = getLegacyName(name);
@@ -739,12 +744,14 @@ std::vector<std::string> TextureMapper::getNameVariants(std::string_view name) c
     return variants;
 }
 
-bool TextureMapper::hasMapping(std::string_view name) const {
+bool TextureMapper::hasMapping(std::string_view name) const
+{
     std::string nameStr(name);
     return m_modernToLegacy.count(nameStr) > 0 || m_legacyToModern.count(nameStr) > 0;
 }
 
-std::string TextureMapper::toModernPath(std::string_view legacyPath) const {
+std::string TextureMapper::toModernPath(std::string_view legacyPath) const
+{
     std::string path(legacyPath);
 
     // 将 textures/blocks/ 替换为 textures/block/
@@ -778,7 +785,8 @@ std::string TextureMapper::toModernPath(std::string_view legacyPath) const {
     return path;
 }
 
-std::string TextureMapper::toLegacyPath(std::string_view modernPath) const {
+std::string TextureMapper::toLegacyPath(std::string_view modernPath) const
+{
     std::string path(modernPath);
 
     // 将 textures/block/ 替换为 textures/blocks/
@@ -812,7 +820,8 @@ std::string TextureMapper::toLegacyPath(std::string_view modernPath) const {
     return path;
 }
 
-std::vector<std::string> TextureMapper::getPathVariants(std::string_view path) const {
+std::vector<std::string> TextureMapper::getPathVariants(std::string_view path) const
+{
     std::vector<std::string> variants;
     std::string pathStr(path);
 

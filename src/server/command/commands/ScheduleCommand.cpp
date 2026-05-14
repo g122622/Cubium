@@ -12,13 +12,9 @@ namespace command {
 void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto scheduleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("schedule");
-    scheduleNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        scheduleNode,
-        support::makeMetadata(
-            "Schedules a function to run at a later time.",
+    scheduleNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(scheduleNode,
+        support::makeMetadata("Schedules a function to run at a later time.",
             "/schedule function <function> <time> [append|replace]",
             2,
             {},
@@ -27,30 +23,22 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     // /schedule function <function> <time> [append|replace]
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
     auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "function",
-        StringArgumentType::string());
-    auto timeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "time",
-        IntegerArgumentType::integer(1));
+        "function", StringArgumentType::string());
+    auto timeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(1));
 
     // append 模式
     auto appendNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("append");
-    appendNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return scheduleFunction(ctx, true);
-    });
+    appendNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return scheduleFunction(ctx, true); });
     timeArg->addChild(appendNode);
 
     // replace 模式
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return scheduleFunction(ctx, false);
-    });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return scheduleFunction(ctx, false); });
     timeArg->addChild(replaceNode);
 
     // 默认为 replace
-    timeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return scheduleFunction(ctx, false);
-    });
+    timeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return scheduleFunction(ctx, false); });
 
     nameArg->addChild(timeArg);
     functionNode->addChild(nameArg);
@@ -59,11 +47,8 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     // /schedule clear <function>
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
     auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "function",
-        StringArgumentType::string());
-    clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return clearSchedule(ctx);
-    });
+        "function", StringArgumentType::string());
+    clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearSchedule(ctx); });
     clearNode->addChild(clearNameArg);
     scheduleNode->addChild(clearNode);
 

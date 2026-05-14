@@ -1,18 +1,18 @@
 #pragma once
 
-#include "EntityRenderer.hpp"
-#include "IEntityRenderer.hpp"
-#include "AnimationContext.hpp"
 #include "../layer/core/LayerRenderer.hpp"
 #include "../model/core/EntityModel.hpp"
-#include "common/entity/core/LivingEntity.hpp"
+#include "AnimationContext.hpp"
+#include "EntityRenderer.hpp"
+#include "IEntityRenderer.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
-#include <vulkan/vulkan.h>
+#include "common/entity/core/LivingEntity.hpp"
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::entity::pipeline {
-class EntityPipeline;  // 前向声明
+class EntityPipeline; // 前向声明
 }
 
 namespace mc::client::renderer::entity::core {
@@ -28,13 +28,10 @@ namespace mc::client::renderer::entity::core {
  * @tparam TEntity 实体类型（必须继承自 LivingEntity）
  * @tparam TModel 模型类型（必须继承自 EntityModel）
  */
-template<typename TEntity, typename TModel>
-class LivingRenderer : public EntityRenderer,
-                        public IEntityRenderer<TEntity, TModel> {
-    static_assert(std::is_base_of_v<::mc::LivingEntity, TEntity>,
-                  "TEntity must derive from LivingEntity");
-    static_assert(std::is_base_of_v<model::EntityModel, TModel>,
-                  "TModel must derive from EntityModel");
+template <typename TEntity, typename TModel>
+class LivingRenderer : public EntityRenderer, public IEntityRenderer<TEntity, TModel> {
+    static_assert(std::is_base_of_v<::mc::LivingEntity, TEntity>, "TEntity must derive from LivingEntity");
+    static_assert(std::is_base_of_v<model::EntityModel, TModel>, "TModel must derive from EntityModel");
 
 public:
     using LayerRendererType = layer::core::LayerRenderer<TEntity>;
@@ -68,12 +65,11 @@ public:
      *
      * 实现 EntityRenderer 接口，调用所有注册的层渲染器。
      */
-    void renderLayersPipeline(
-        Entity& entity,
+    void renderLayersPipeline(Entity& entity,
         VkCommandBuffer cmd,
         const AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override {
+        pipeline::EntityPipeline& pipeline) override
+    {
         auto& living = static_cast<TEntity&>(entity);
         renderLayersPipeline(living, cmd, context, pipeline);
     }
@@ -83,12 +79,10 @@ public:
      *
      * 此方法供管线路径使用，在渲染前调用以更新模型状态。
      */
-    void computeAnimationContext(
-        Entity& entity,
+    void computeAnimationContext(Entity& entity,
         f64 partialTicks,
         AnimationContext& context,
-        std::unique_ptr<model::EntityModel>& model
-    ) override;
+        std::unique_ptr<model::EntityModel>& model) override;
 
     // ========== 层渲染器管理 ==========
 
@@ -98,10 +92,10 @@ public:
      * @tparam TArgs 构造函数参数类型
      * @param args 构造函数参数
      */
-    template<typename TLayer, typename... TArgs>
-    void addLayer(TArgs&&... args) {
-        static_assert(std::is_base_of_v<LayerRendererType, TLayer>,
-                      "TLayer must derive from LayerRenderer<TEntity>");
+    template <typename TLayer, typename... TArgs>
+    void addLayer(TArgs&&... args)
+    {
+        static_assert(std::is_base_of_v<LayerRendererType, TLayer>, "TLayer must derive from LayerRenderer<TEntity>");
         m_layers.push_back(std::make_unique<TLayer>(std::forward<TArgs>(args)...));
     }
 
@@ -122,7 +116,8 @@ public:
      * @param partialTicks 部分 tick
      * @param context 输出的动画上下文
      */
-    void computeAnimationContext(TEntity& entity, f64 partialTicks, AnimationContext& context) {
+    void computeAnimationContext(TEntity& entity, f64 partialTicks, AnimationContext& context)
+    {
         // 计算动画参数
         context.partialTicks = partialTicks;
         context.limbSwing = getLimbSwing(entity, partialTicks);
@@ -149,14 +144,12 @@ public:
         context.computeHash();
 
         // 设置模型角度
-        m_model.setAngles(
-            context.limbSwing,
+        m_model.setAngles(context.limbSwing,
             context.limbSwingAmount,
             context.ageInTicks,
             context.netHeadYaw,
             context.headPitch,
-            context.scale
-        );
+            context.scale);
     }
 
     /**
@@ -172,11 +165,8 @@ public:
      * @param pipeline 实体管线
      */
     void renderLayersPipeline(
-        TEntity& entity,
-        VkCommandBuffer cmd,
-        const AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) {
+        TEntity& entity, VkCommandBuffer cmd, const AnimationContext& context, pipeline::EntityPipeline& pipeline)
+    {
         for (auto& layer : m_layers) {
             if (layer && layer->shouldRender(entity)) {
                 layer->renderPipeline(entity, cmd, context, pipeline);
@@ -207,13 +197,13 @@ protected:
      * @param scale 缩放因子
      */
     void renderLayers(TEntity& entity,
-                      f32 limbSwing,
-                      f32 limbSwingAmount,
-                      f32 partialTicks,
-                      f32 ageInTicks,
-                      f32 netHeadYaw,
-                      f32 headPitch,
-                      f32 scale);
+        f32 limbSwing,
+        f32 limbSwingAmount,
+        f32 partialTicks,
+        f32 ageInTicks,
+        f32 netHeadYaw,
+        f32 headPitch,
+        f32 scale);
 
     /**
      * @brief 计算步态动画周期
@@ -259,8 +249,9 @@ protected:
 
 // ==================== 模板实现 ====================
 
-template<typename TEntity, typename TModel>
-void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks) {
+template <typename TEntity, typename TModel>
+void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks)
+{
     // 转换为 TEntity
     auto& living = static_cast<TEntity&>(entity);
 
@@ -282,13 +273,13 @@ void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks) {
 
     // 渲染所有层
     renderLayers(living,
-                 static_cast<f32>(limbSwing),
-                 static_cast<f32>(limbSwingAmount),
-                 static_cast<f32>(partialTicks),
-                 static_cast<f32>(ageInTicks),
-                 static_cast<f32>(headYaw),
-                 static_cast<f32>(headPitch),
-                 static_cast<f32>(scale));
+        static_cast<f32>(limbSwing),
+        static_cast<f32>(limbSwingAmount),
+        static_cast<f32>(partialTicks),
+        static_cast<f32>(ageInTicks),
+        static_cast<f32>(headYaw),
+        static_cast<f32>(headPitch),
+        static_cast<f32>(scale));
 
     // 渲染阴影
     if (m_shadowSize > 0.0f) {
@@ -296,25 +287,26 @@ void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks) {
     }
 }
 
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 void LivingRenderer<TEntity, TModel>::renderLayers(TEntity& entity,
-                                                     f32 limbSwing,
-                                                     f32 limbSwingAmount,
-                                                     f32 partialTicks,
-                                                     f32 ageInTicks,
-                                                     f32 netHeadYaw,
-                                                     f32 headPitch,
-                                                     f32 scale) {
+    f32 limbSwing,
+    f32 limbSwingAmount,
+    f32 partialTicks,
+    f32 ageInTicks,
+    f32 netHeadYaw,
+    f32 headPitch,
+    f32 scale)
+{
     for (auto& layer : m_layers) {
         if (layer && layer->shouldRender(entity)) {
-            layer->render(entity, limbSwing, limbSwingAmount, partialTicks,
-                          ageInTicks, netHeadYaw, headPitch, scale);
+            layer->render(entity, limbSwing, limbSwingAmount, partialTicks, ageInTicks, netHeadYaw, headPitch, scale);
         }
     }
 }
 
-template<typename TEntity, typename TModel>
-void LivingRenderer<TEntity, TModel>::setModelAngles(TEntity& entity, f64 partialTicks) {
+template <typename TEntity, typename TModel>
+void LivingRenderer<TEntity, TModel>::setModelAngles(TEntity& entity, f64 partialTicks)
+{
     f64 limbSwing = getLimbSwing(entity, partialTicks);
     f64 limbSwingAmount = getLimbSwingAmount(entity, partialTicks);
     f64 ageInTicks = getAgeInTicks(entity) + partialTicks;
@@ -325,8 +317,9 @@ void LivingRenderer<TEntity, TModel>::setModelAngles(TEntity& entity, f64 partia
     m_model.setAngles(limbSwing, limbSwingAmount, ageInTicks, headYaw, headPitch, scale);
 }
 
-template<typename TEntity, typename TModel>
-f64 LivingRenderer<TEntity, TModel>::getLimbSwing(TEntity& entity, f64 partialTicks) const {
+template <typename TEntity, typename TModel>
+f64 LivingRenderer<TEntity, TModel>::getLimbSwing(TEntity& entity, f64 partialTicks) const
+{
     // MC 1.16.5 公式 (LivingRenderer.java:100):
     // f5 = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks);
     f64 limbSwingAmount = entity.limbSwingAmount();
@@ -343,8 +336,9 @@ f64 LivingRenderer<TEntity, TModel>::getLimbSwing(TEntity& entity, f64 partialTi
     return result;
 }
 
-template<typename TEntity, typename TModel>
-f64 LivingRenderer<TEntity, TModel>::getLimbSwingAmount(TEntity& entity, f64 partialTicks) const {
+template <typename TEntity, typename TModel>
+f64 LivingRenderer<TEntity, TModel>::getLimbSwingAmount(TEntity& entity, f64 partialTicks) const
+{
     // MC 1.16.5 公式 (LivingRenderer.java:99):
     // f8 = MathHelper.lerp(partialTicks, entity.prevLimbSwingAmount, entity.limbSwingAmount);
     f64 prevAmount = entity.prevLimbSwingAmount();
@@ -360,36 +354,44 @@ f64 LivingRenderer<TEntity, TModel>::getLimbSwingAmount(TEntity& entity, f64 par
     return result;
 }
 
-template<typename TEntity, typename TModel>
-f64 LivingRenderer<TEntity, TModel>::getHeadYaw(TEntity& entity, f64 partialTicks) const {
+template <typename TEntity, typename TModel>
+f64 LivingRenderer<TEntity, TModel>::getHeadYaw(TEntity& entity, f64 partialTicks) const
+{
     // 头部偏航角（相对于身体）
-    f64 bodyYaw = entity.prevRenderYawOffset() + (entity.renderYawOffset() - entity.prevRenderYawOffset()) * partialTicks;
-    f64 headYaw = entity.prevRotationYawHead() + (entity.rotationYawHead() - entity.prevRotationYawHead()) * partialTicks;
+    f64 bodyYaw =
+        entity.prevRenderYawOffset() + (entity.renderYawOffset() - entity.prevRenderYawOffset()) * partialTicks;
+    f64 headYaw =
+        entity.prevRotationYawHead() + (entity.rotationYawHead() - entity.prevRotationYawHead()) * partialTicks;
     f64 diff = headYaw - bodyYaw;
 
     // 归一化到 -180 到 180
-    while (diff < -180.0f) diff += 360.0f;
-    while (diff > 180.0f) diff -= 360.0f;
+    while (diff < -180.0f)
+        diff += 360.0f;
+    while (diff > 180.0f)
+        diff -= 360.0f;
 
     return diff;
 }
 
-template<typename TEntity, typename TModel>
-f64 LivingRenderer<TEntity, TModel>::getHeadPitch(TEntity& entity, f64 partialTicks) const {
+template <typename TEntity, typename TModel>
+f64 LivingRenderer<TEntity, TModel>::getHeadPitch(TEntity& entity, f64 partialTicks) const
+{
     // 头部俯仰角
     f64 prevPitch = entity.prevPitch();
     f64 pitch = entity.pitch();
     return prevPitch + (pitch - prevPitch) * partialTicks;
 }
 
-template<typename TEntity, typename TModel>
-f64 LivingRenderer<TEntity, TModel>::getAgeInTicks(TEntity& entity) const {
+template <typename TEntity, typename TModel>
+f64 LivingRenderer<TEntity, TModel>::getAgeInTicks(TEntity& entity) const
+{
     // 年龄（用于空闲动画）
     return static_cast<f64>(entity.ticksExisted());
 }
 
-template<typename TEntity, typename TModel>
-f64 LivingRenderer<TEntity, TModel>::getScale(TEntity& entity) const {
+template <typename TEntity, typename TModel>
+f64 LivingRenderer<TEntity, TModel>::getScale(TEntity& entity) const
+{
     // 幼体缩放 - 检查是否为 AgeableEntity
     // AgeableEntity 实现了 isChild() 方法
     // 使用动态转换来检查，避免模板约束问题
@@ -398,20 +400,17 @@ f64 LivingRenderer<TEntity, TModel>::getScale(TEntity& entity) const {
     // 如果转换成功且为幼体，返回幼体缩放因子
     if constexpr (std::is_base_of_v<::mc::AgeableEntity, TEntity>) {
         if (entity.isChild()) {
-            return 0.5f;  // 幼体缩放为成体的一半
+            return 0.5f; // 幼体缩放为成体的一半
         }
     }
 
     return 1.0f;
 }
 
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 void LivingRenderer<TEntity, TModel>::computeAnimationContext(
-    Entity& entity,
-    f64 partialTicks,
-    AnimationContext& context,
-    std::unique_ptr<model::EntityModel>& model
-) {
+    Entity& entity, f64 partialTicks, AnimationContext& context, std::unique_ptr<model::EntityModel>& model)
+{
     auto& living = static_cast<TEntity&>(entity);
 
     // 计算动画参数
@@ -440,19 +439,17 @@ void LivingRenderer<TEntity, TModel>::computeAnimationContext(
     context.computeHash();
 
     // 设置模型角度
-    m_model.setAngles(
-        context.limbSwing,
+    m_model.setAngles(context.limbSwing,
         context.limbSwingAmount,
         context.ageInTicks,
         context.netHeadYaw,
         context.headPitch,
-        context.scale
-    );
+        context.scale);
 
     // 将模型指针传递出去（用于网格生成）
     // 注意：这里我们使用裸指针转换，因为 m_model 是成员变量
     // 调用者不应该持有这个 unique_ptr，只是用于类型擦除
-    model.reset();  // 清空输入的 unique_ptr
+    model.reset(); // 清空输入的 unique_ptr
     // 调用者需要知道 m_model 的生命周期由 LivingRenderer 管理
     // 这里我们不创建新的 unique_ptr，因为 m_model 是成员变量
     // 调用者应该使用返回的 AnimationContext 和直接访问 getModel()

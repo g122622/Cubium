@@ -1,7 +1,7 @@
 #include "ClientSettings.hpp"
 
-#include <spdlog/spdlog.h>
 #include <fstream>
+#include <spdlog/spdlog.h>
 
 namespace mc::client {
 
@@ -16,24 +16,24 @@ ClientSettings::ClientSettings()
     , fullscreen("fullscreen", false)
     , vsync("vsync", true)
     , graphics("graphics",
-               {static_cast<u8>(GraphicsMode::Fast), static_cast<u8>(GraphicsMode::Fancy)},
-               static_cast<u8>(GraphicsMode::Fancy),
-               {"fast", "fancy"})
+          {static_cast<u8>(GraphicsMode::Fast), static_cast<u8>(GraphicsMode::Fancy)},
+          static_cast<u8>(GraphicsMode::Fancy),
+          {"fast", "fancy"})
     , clouds("clouds",
-             {static_cast<u8>(CloudMode::Off), static_cast<u8>(CloudMode::Fast), static_cast<u8>(CloudMode::Fancy)},
-             static_cast<u8>(CloudMode::Fancy),
-             {"off", "fast", "fancy"})
+          {static_cast<u8>(CloudMode::Off), static_cast<u8>(CloudMode::Fast), static_cast<u8>(CloudMode::Fancy)},
+          static_cast<u8>(CloudMode::Fancy),
+          {"off", "fast", "fancy"})
     , mipmapLevels("mipmapLevels", 0, 4, 4)
     , fovEffectScale("fovEffectScale", 0.0f, 1.0f, 1.0f)
     , screenShakeScale("screenShakeScale", 0.0f, 1.0f, 1.0f)
     , fogDensity("fogDensity", 0.0f, 2.0f, 1.0f)
     , ambientOcclusion("ambientOcclusion",
-                       {static_cast<u8>(AmbientOcclusionMode::Off),
-                        static_cast<u8>(AmbientOcclusionMode::Min),
-                        static_cast<u8>(AmbientOcclusionMode::Max)},
-                       static_cast<u8>(AmbientOcclusionMode::Max),
-                       {"off", "min", "max"})
-    , biomeBlendRadius("biomeBlendRadius", 0, 7, 2)  // MC 默认 2 (5x5 混合区域)
+          {static_cast<u8>(AmbientOcclusionMode::Off),
+              static_cast<u8>(AmbientOcclusionMode::Min),
+              static_cast<u8>(AmbientOcclusionMode::Max)},
+          static_cast<u8>(AmbientOcclusionMode::Max),
+          {"off", "min", "max"})
+    , biomeBlendRadius("biomeBlendRadius", 0, 7, 2) // MC 默认 2 (5x5 混合区域)
     , antiAliasing("antiAliasing", true)
 
     // 音频设置
@@ -135,64 +135,39 @@ void ClientSettings::initializeKeyBindings()
     s_keyBindings.clear();
 
     // 移动控制
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.forward", Keys::W, "key.categories.movement"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.left", Keys::A, "key.categories.movement"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.back", Keys::S, "key.categories.movement"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.right", Keys::D, "key.categories.movement"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.jump", Keys::Space, "key.categories.movement"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.sneak", Keys::LeftShift, "key.categories.movement"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.sprint", Keys::LeftControl, "key.categories.movement"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.forward", Keys::W, "key.categories.movement"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.left", Keys::A, "key.categories.movement"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.back", Keys::S, "key.categories.movement"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.right", Keys::D, "key.categories.movement"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.jump", Keys::Space, "key.categories.movement"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.sneak", Keys::LeftShift, "key.categories.movement"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.sprint", Keys::LeftControl, "key.categories.movement"));
 
     // 游戏控制
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.inventory", Keys::E, "key.categories.gameplay"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.use", Keys::Mouse::Right, "key.categories.gameplay"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.attack", Keys::Mouse::Left, "key.categories.gameplay"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.pickItem", Keys::Mouse::Middle, "key.categories.gameplay"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.chat", Keys::T, "key.categories.gameplay"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.playerlist", Keys::Tab, "key.categories.gameplay"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.inventory", Keys::E, "key.categories.gameplay"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.use", Keys::Mouse::Right, "key.categories.gameplay"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.attack", Keys::Mouse::Left, "key.categories.gameplay"));
+    s_keyBindings.push_back(
+        std::make_unique<KeyBinding>("key.pickItem", Keys::Mouse::Middle, "key.categories.gameplay"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.chat", Keys::T, "key.categories.gameplay"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.playerlist", Keys::Tab, "key.categories.gameplay"));
 
     // 物品栏
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.1", Keys::D1, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.2", Keys::D2, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.3", Keys::D3, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.4", Keys::D4, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.5", Keys::D5, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.6", Keys::D6, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.7", Keys::D7, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.8", Keys::D8, "key.categories.inventory"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.hotbar.9", Keys::D9, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.1", Keys::D1, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.2", Keys::D2, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.3", Keys::D3, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.4", Keys::D4, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.5", Keys::D5, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.6", Keys::D6, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.7", Keys::D7, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.8", Keys::D8, "key.categories.inventory"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.hotbar.9", Keys::D9, "key.categories.inventory"));
 
     // 功能键
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.screenshot", Keys::F2, "key.categories.misc"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.toggleDebug", Keys::F3, "key.categories.misc"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.fullscreen", Keys::F11, "key.categories.misc"));
-    s_keyBindings.push_back(std::make_unique<KeyBinding>(
-        "key.smoothCamera", Keys::F8, "key.categories.misc"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.screenshot", Keys::F2, "key.categories.misc"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.toggleDebug", Keys::F3, "key.categories.misc"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.fullscreen", Keys::F11, "key.categories.misc"));
+    s_keyBindings.push_back(std::make_unique<KeyBinding>("key.smoothCamera", Keys::F8, "key.categories.misc"));
 
     spdlog::info("Initialized {} key bindings", s_keyBindings.size());
 }
@@ -276,7 +251,8 @@ Result<void> ClientSettings::saveSettings(const std::filesystem::path& path)
     return Result<void>::ok();
 }
 
-f32 ClientSettings::getVolumeForCategory(sound::SoundCategory category) const {
+f32 ClientSettings::getVolumeForCategory(sound::SoundCategory category) const
+{
     using namespace sound;
 
     switch (category) {
@@ -305,7 +281,8 @@ f32 ClientSettings::getVolumeForCategory(sound::SoundCategory category) const {
     }
 }
 
-void ClientSettings::setVolumeForCategory(sound::SoundCategory category, f32 volume) {
+void ClientSettings::setVolumeForCategory(sound::SoundCategory category, f32 volume)
+{
     using namespace sound;
 
     volume = std::clamp(volume, 0.0f, 1.0f);

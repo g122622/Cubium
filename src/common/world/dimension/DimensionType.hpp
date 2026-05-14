@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Constants.hpp"
+#include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
-#include <string>
 #include <optional>
+#include <string>
 
 namespace mc {
 
@@ -173,10 +173,7 @@ public:
      * @return 转换后的坐标
      */
     [[nodiscard]] static Vector3d transformPosition(
-        const Vector3d& pos,
-        const DimensionType& from,
-        const DimensionType& to
-    );
+        const Vector3d& pos, const DimensionType& from, const DimensionType& to);
 
     // ========== 光照和时间 ==========
 

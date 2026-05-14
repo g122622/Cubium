@@ -15,14 +15,14 @@
 #pragma once
 
 #include "common/core/Result.hpp"
-#include "common/entity/loot/LootTable.hpp"
-#include "common/entity/loot/LootPool.hpp"
-#include "common/entity/loot/LootEntry.hpp"
 #include "common/entity/loot/LootConditions.hpp"
+#include "common/entity/loot/LootEntry.hpp"
 #include "common/entity/loot/LootFunctions.hpp"
+#include "common/entity/loot/LootPool.hpp"
+#include "common/entity/loot/LootTable.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
-#include <nlohmann/json.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace loot {

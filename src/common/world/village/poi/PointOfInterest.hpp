@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PointOfInterestType.hpp"
-#include "../../../world/block/BlockPos.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../world/block/BlockPos.hpp"
+#include "PointOfInterestType.hpp"
 #include <optional>
 #include <vector>
 
@@ -11,7 +11,7 @@ namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
+} // namespace nbt
 
 namespace world {
 namespace village {
@@ -149,7 +149,8 @@ private:
  * @brief POI比较器（用于空间索引）
  */
 struct POIComparator {
-    bool operator()(const PointOfInterest& a, const PointOfInterest& b) const {
+    bool operator()(const PointOfInterest& a, const PointOfInterest& b) const
+    {
         if (a.getPosition().y != b.getPosition().y) {
             return a.getPosition().y < b.getPosition().y;
         }

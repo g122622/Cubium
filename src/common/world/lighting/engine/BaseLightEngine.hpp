@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "../../../core/Constants.hpp"
-#include "LightEngineUtils.hpp"
-#include "../storage/SWMRNibbleArray.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../util/NibbleArray.hpp"
 #include "../../block/Block.hpp"
 #include "../../chunk/ChunkPos.hpp"
-#include "../../../util/NibbleArray.hpp"
-#include <vector>
+#include "../storage/SWMRNibbleArray.hpp"
+#include "LightEngineUtils.hpp"
 #include <array>
 #include <cstdint>
+#include <vector>
 
 namespace mc {
 
@@ -35,60 +35,88 @@ class ChunkSection;
  * 而 LightAxisDirection 包含六个具体方向。
  */
 enum class LightAxisDirection : u8 {
-    POSITIVE_X = 0,  // 东
-    NEGATIVE_X = 1,  // 西
-    POSITIVE_Z = 2,  // 南
-    NEGATIVE_Z = 3,  // 北
-    POSITIVE_Y = 4,  // 上
-    NEGATIVE_Y = 5   // 下
+    POSITIVE_X = 0, // 东
+    NEGATIVE_X = 1, // 西
+    POSITIVE_Z = 2, // 南
+    NEGATIVE_Z = 3, // 北
+    POSITIVE_Y = 4, // 上
+    NEGATIVE_Y = 5  // 下
 };
 
 /** 所有方向数组（顺序与 Starlight 一致） */
-constexpr LightAxisDirection ALL_AXIS_DIRECTIONS[6] = {
-    LightAxisDirection::POSITIVE_X,
+constexpr LightAxisDirection ALL_AXIS_DIRECTIONS[6] = {LightAxisDirection::POSITIVE_X,
     LightAxisDirection::NEGATIVE_X,
     LightAxisDirection::POSITIVE_Z,
     LightAxisDirection::NEGATIVE_Z,
     LightAxisDirection::POSITIVE_Y,
-    LightAxisDirection::NEGATIVE_Y
-};
+    LightAxisDirection::NEGATIVE_Y};
 
 /** 仅水平方向 */
-constexpr LightAxisDirection ONLY_HORIZONTAL_DIRECTIONS[4] = {
-    LightAxisDirection::POSITIVE_X,
+constexpr LightAxisDirection ONLY_HORIZONTAL_DIRECTIONS[4] = {LightAxisDirection::POSITIVE_X,
     LightAxisDirection::NEGATIVE_X,
     LightAxisDirection::POSITIVE_Z,
-    LightAxisDirection::NEGATIVE_Z
-};
+    LightAxisDirection::NEGATIVE_Z};
 
 /** 所有方向位集 */
-constexpr i32 ALL_DIRECTIONS_BITSET = 0x3F;  // 0b111111
+constexpr i32 ALL_DIRECTIONS_BITSET = 0x3F; // 0b111111
 
 /**
  * @brief 获取方向的偏移量
  */
-inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& dy, i32& dz) {
+inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& dy, i32& dz)
+{
     switch (dir) {
-        case LightAxisDirection::POSITIVE_X: dx = 1;  dy = 0;  dz = 0;  break;
-        case LightAxisDirection::NEGATIVE_X: dx = -1; dy = 0;  dz = 0;  break;
-        case LightAxisDirection::POSITIVE_Z: dx = 0;  dy = 0;  dz = 1;  break;
-        case LightAxisDirection::NEGATIVE_Z: dx = 0;  dy = 0;  dz = -1; break;
-        case LightAxisDirection::POSITIVE_Y: dx = 0;  dy = 1;  dz = 0;  break;
-        case LightAxisDirection::NEGATIVE_Y: dx = 0;  dy = -1; dz = 0;  break;
+        case LightAxisDirection::POSITIVE_X:
+            dx = 1;
+            dy = 0;
+            dz = 0;
+            break;
+        case LightAxisDirection::NEGATIVE_X:
+            dx = -1;
+            dy = 0;
+            dz = 0;
+            break;
+        case LightAxisDirection::POSITIVE_Z:
+            dx = 0;
+            dy = 0;
+            dz = 1;
+            break;
+        case LightAxisDirection::NEGATIVE_Z:
+            dx = 0;
+            dy = 0;
+            dz = -1;
+            break;
+        case LightAxisDirection::POSITIVE_Y:
+            dx = 0;
+            dy = 1;
+            dz = 0;
+            break;
+        case LightAxisDirection::NEGATIVE_Y:
+            dx = 0;
+            dy = -1;
+            dz = 0;
+            break;
     }
 }
 
 /**
  * @brief 获取方向的 NMS Direction（用于面遮挡查询）
  */
-inline constexpr Direction getNMSDirection(LightAxisDirection dir) {
+inline constexpr Direction getNMSDirection(LightAxisDirection dir)
+{
     switch (dir) {
-        case LightAxisDirection::POSITIVE_X: return Direction::East;
-        case LightAxisDirection::NEGATIVE_X: return Direction::West;
-        case LightAxisDirection::POSITIVE_Z: return Direction::South;
-        case LightAxisDirection::NEGATIVE_Z: return Direction::North;
-        case LightAxisDirection::POSITIVE_Y: return Direction::Up;
-        case LightAxisDirection::NEGATIVE_Y: return Direction::Down;
+        case LightAxisDirection::POSITIVE_X:
+            return Direction::East;
+        case LightAxisDirection::NEGATIVE_X:
+            return Direction::West;
+        case LightAxisDirection::POSITIVE_Z:
+            return Direction::South;
+        case LightAxisDirection::NEGATIVE_Z:
+            return Direction::North;
+        case LightAxisDirection::POSITIVE_Y:
+            return Direction::Up;
+        case LightAxisDirection::NEGATIVE_Y:
+            return Direction::Down;
     }
     return Direction::None;
 }
@@ -97,28 +125,32 @@ inline constexpr Direction getNMSDirection(LightAxisDirection dir) {
  * @brief 获取相反方向
  * 偶数 XOR 1 得奇数（负方向），奇数 XOR 1 得偶数（正方向）
  */
-inline constexpr LightAxisDirection getOppositeDirection(LightAxisDirection dir) {
+inline constexpr LightAxisDirection getOppositeDirection(LightAxisDirection dir)
+{
     return static_cast<LightAxisDirection>(static_cast<u8>(dir) ^ 1);
 }
 
 /**
  * @brief 获取方向位集
  */
-inline constexpr i32 getDirectionBitset(LightAxisDirection dir) {
+inline constexpr i32 getDirectionBitset(LightAxisDirection dir)
+{
     return 1 << static_cast<u8>(dir);
 }
 
 /**
  * @brief 获取排除某方向后的位集
  */
-inline constexpr i32 getEverythingButDirection(LightAxisDirection dir) {
+inline constexpr i32 getEverythingButDirection(LightAxisDirection dir)
+{
     return ALL_DIRECTIONS_BITSET ^ getDirectionBitset(dir);
 }
 
 /**
  * @brief 获取排除某方向及其反方向后的位集
  */
-inline constexpr i32 getEverythingButOppositeDirection(LightAxisDirection dir) {
+inline constexpr i32 getEverythingButOppositeDirection(LightAxisDirection dir)
+{
     return ALL_DIRECTIONS_BITSET ^ (getDirectionBitset(dir) | getDirectionBitset(getOppositeDirection(dir)));
 }
 
@@ -165,16 +197,15 @@ public:
     /**
      * @brief 获取待处理更新数量
      */
-    [[nodiscard]] i32 queuedUpdateSize() const noexcept {
+    [[nodiscard]] i32 queuedUpdateSize() const noexcept
+    {
         return static_cast<i32>(m_increaseQueueInitialLength + m_decreaseQueueInitialLength);
     }
 
     /**
      * @brief 检查是否有待处理的工作
      */
-    [[nodiscard]] bool hasWork() const noexcept {
-        return m_needsUpdate || queuedUpdateSize() > 0;
-    }
+    [[nodiscard]] bool hasWork() const noexcept { return m_needsUpdate || queuedUpdateSize() > 0; }
 
     /**
      * @brief 重置队列状态
@@ -182,7 +213,8 @@ public:
      * 在新的光照操作开始前调用，确保队列状态干净。
      * 与 Moonrise StarLightEngine.light() 中的重置逻辑一致。
      */
-    void resetQueueState() {
+    void resetQueueState()
+    {
         m_increaseQueueInitialLength = 0;
         m_decreaseQueueInitialLength = 0;
         m_needsUpdate = false;
@@ -195,12 +227,12 @@ public:
      *
      * @param pos 编码的世界位置
      */
-    void scheduleUpdate(i64 pos) {
+    void scheduleUpdate(i64 pos)
+    {
         // 使用最大级别和所有方向
         // 对于增加队列，使用级别 15（表示需要计算）
-        appendToIncreaseQueue(static_cast<u64>(pos) |
-                              (static_cast<u64>(15) << 28) |
-                              (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32));
+        appendToIncreaseQueue(
+            static_cast<u64>(pos) | (static_cast<u64>(15) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32));
         m_needsUpdate = true;
     }
 
@@ -255,8 +287,12 @@ public:
     /**
      * @brief 初始化缓存
      */
-    void setupCaches(StarLightLightingProvider* lightAccess, i32 centerX, i32 centerY, i32 centerZ,
-                     bool relaxed, bool loadTwoRadius);
+    void setupCaches(StarLightLightingProvider* lightAccess,
+        i32 centerX,
+        i32 centerY,
+        i32 centerZ,
+        bool relaxed,
+        bool loadTwoRadius);
 
     /**
      * @brief 清除缓存
@@ -275,17 +311,20 @@ public:
     /**
      * @brief 处理区块内方块变化
      */
-    void blocksChangedInChunk(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ,
-                              const std::vector<BlockPos>& positions, const std::vector<bool>& changedSections);
+    void blocksChangedInChunk(StarLightLightingProvider* lightAccess,
+        i32 chunkX,
+        i32 chunkZ,
+        const std::vector<BlockPos>& positions,
+        const std::vector<bool>& changedSections);
 
     /**
      * @brief 处理空区块段变化
      * @return 如果空映射变更返回新的空映射，否则返回 nullptr
      */
     std::vector<bool> handleEmptySectionChanges(StarLightLightingProvider* lightAccess,
-                                                  const IChunk* chunk,
-                                                  const std::vector<bool>& emptinessChanges,
-                                                  bool isUnlit);
+        const IChunk* chunk,
+        const std::vector<bool>& emptinessChanges,
+        bool isUnlit);
 
     /**
      * @brief 强制处理空区块段变化
@@ -300,9 +339,8 @@ public:
      * @param chunk 区块
      * @param emptySections 空区块段标记数组
      */
-    void forceHandleEmptySectionChanges(StarLightLightingProvider* lightAccess,
-                                         const IChunk* chunk,
-                                         const std::vector<bool>& emptySections);
+    void forceHandleEmptySectionChanges(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, const std::vector<bool>& emptySections);
 
     /**
      * @brief 检查区块边缘
@@ -362,26 +400,24 @@ protected:
     virtual void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ) = 0;
 
     /** 计算光照值（用于验证和重新计算） */
-    [[nodiscard]] virtual i32 calculateLightValue(StarLightLightingProvider* lightAccess,
-                                                   i32 worldX, i32 worldY, i32 worldZ,
-                                                   i32 expected) = 0;
+    [[nodiscard]] virtual i32 calculateLightValue(
+        StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 expected) = 0;
 
     /** 传播方块变化 */
-    virtual void propagateBlockChanges(StarLightLightingProvider* lightAccess,
-                                        const IChunk* chunk,
-                                        const std::vector<BlockPos>& positions) = 0;
+    virtual void propagateBlockChanges(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, const std::vector<BlockPos>& positions) = 0;
 
     /** 检查区块边缘（子类可扩展） */
-    virtual void checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                                  i32 fromSection, i32 toSection);
+    virtual void checkChunkEdges(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, i32 fromSection, i32 toSection);
 
     /** 检查单个区块段边缘 */
-    void checkChunkEdge(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                        i32 chunkX, i32 chunkY, i32 chunkZ);
+    void checkChunkEdge(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, i32 chunkX, i32 chunkY, i32 chunkZ);
 
     /** 从邻居传播光照到区块 */
-    void propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                                   i32 fromSection, i32 toSection);
+    void propagateNeighbourLevels(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, i32 fromSection, i32 toSection);
 
     // ========================================================================
     // 缓存访问方法
@@ -481,9 +517,8 @@ protected:
      * @param direction 光线传播方向（从源到目标）
      * @return true 如果面被完全遮挡（光线无法通过）
      */
-    [[nodiscard]] static bool isFaceOccluded(const BlockState* fromState,
-                                              const BlockState* toState,
-                                              LightAxisDirection direction);
+    [[nodiscard]] static bool isFaceOccluded(
+        const BlockState* fromState, const BlockState* toState, LightAxisDirection direction);
 
     /**
      * @brief 检查方块是否使用形状进行光照遮挡

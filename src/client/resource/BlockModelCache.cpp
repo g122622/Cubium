@@ -74,9 +74,7 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(u32 stateId) const
     return getMissingAppearance();
 }
 
-const BlockAppearance* BlockModelCache::getBlockAppearance(
-    u32 blockId,
-    const std::string& properties) const
+const BlockAppearance* BlockModelCache::getBlockAppearance(u32 blockId, const std::string& properties) const
 {
     if (!m_resourceManager || !m_initialized) {
         return getMissingAppearance();
@@ -114,8 +112,7 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(
         }
     }
 
-    const BlockAppearance* appearance = m_resourceManager->getBlockAppearance(
-        block->blockLocation(), props);
+    const BlockAppearance* appearance = m_resourceManager->getBlockAppearance(block->blockLocation(), props);
 
     return appearance ? appearance : getMissingAppearance();
 }
@@ -189,8 +186,7 @@ void BlockModelCache::buildStateCache()
         }
     });
 
-    spdlog::info("BlockModelCache built: {} successes, {} failures",
-                 successCount, failCount);
+    spdlog::info("BlockModelCache built: {} successes, {} failures", successCount, failCount);
 }
 
 void BlockModelCache::createMissingAppearance()
@@ -219,7 +215,7 @@ void BlockModelCache::createMissingAppearance()
     // 使用 DefaultTextureAtlas 中第一个位置的 UV 坐标
     // DefaultTextureAtlas: ATLAS_SIZE=256, TILE_SIZE=16, tilesPerRow=16
     // 第一个位置 (0,0) 是缺失纹理，UV 坐标是 (0, 0, 1/16, 1/16)
-    constexpr f32 tileUV = 1.0f / 16.0f;  // 0.0625
+    constexpr f32 tileUV = 1.0f / 16.0f; // 0.0625
     TextureRegion missingRegion(0.0f, 0.0f, tileUV, tileUV);
     m_missingAppearance->faceTextures["down"] = missingRegion;
     m_missingAppearance->faceTextures["up"] = missingRegion;
@@ -229,9 +225,12 @@ void BlockModelCache::createMissingAppearance()
     m_missingAppearance->faceTextures["east"] = missingRegion;
 
     spdlog::debug("BlockModelCache: Created missing appearance with {} elements, {} faceTextures, UV=({},{},{},{})",
-                 m_missingAppearance->elements.size(),
-                 m_missingAppearance->faceTextures.size(),
-                 missingRegion.u0, missingRegion.v0, missingRegion.u1, missingRegion.v1);
+        m_missingAppearance->elements.size(),
+        m_missingAppearance->faceTextures.size(),
+        missingRegion.u0,
+        missingRegion.v0,
+        missingRegion.u1,
+        missingRegion.v1);
 }
 
 } // namespace mc

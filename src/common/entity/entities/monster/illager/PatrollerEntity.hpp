@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../MonsterEntity.hpp"
 #include <optional>
 
 namespace mc {

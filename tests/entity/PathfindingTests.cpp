@@ -1,17 +1,18 @@
-#include <gtest/gtest.h>
+#include "core/Types.hpp"
+#include "entity/ai/pathfinding/Path.hpp"
+#include "entity/ai/pathfinding/PathHeap.hpp"
 #include "entity/ai/pathfinding/PathNodeType.hpp"
 #include "entity/ai/pathfinding/PathPoint.hpp"
-#include "entity/ai/pathfinding/PathHeap.hpp"
-#include "entity/ai/pathfinding/Path.hpp"
-#include "core/Types.hpp"
 #include <cstdlib>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity::ai::pathfinding;
 
 // ==================== PathNodeType Tests ====================
 
-TEST(PathNodeTypeTest, GetCostPenalty) {
+TEST(PathNodeTypeTest, GetCostPenalty)
+{
     // 阻塞类型代价为-1（不可通行）- MC 1.16.5: BLOCKED priority = -1.0F
     EXPECT_EQ(getPathCostPenalty(PathNodeType::Blocked), -1.0f);
 
@@ -30,7 +31,8 @@ TEST(PathNodeTypeTest, GetCostPenalty) {
     EXPECT_EQ(getPathCostPenalty(PathNodeType::DamageCactus), -1.0f);
 }
 
-TEST(PathNodeTypeTest, IsWalkable) {
+TEST(PathNodeTypeTest, IsWalkable)
+{
     EXPECT_TRUE(isWalkable(PathNodeType::Walkable));
     EXPECT_TRUE(isWalkable(PathNodeType::WalkableDoor));
     EXPECT_TRUE(isWalkable(PathNodeType::Water));
@@ -43,7 +45,8 @@ TEST(PathNodeTypeTest, IsWalkable) {
 
 // ==================== PathPoint Tests ====================
 
-TEST(PathPointTest, Construction) {
+TEST(PathPointTest, Construction)
+{
     PathPoint point(10, 64, -5);
 
     EXPECT_EQ(point.x(), 10);
@@ -55,7 +58,8 @@ TEST(PathPointTest, Construction) {
     EXPECT_FALSE(point.isVisited());
 }
 
-TEST(PathPointTest, DistanceCalculation) {
+TEST(PathPointTest, DistanceCalculation)
+{
     PathPoint p1(0, 0, 0);
     PathPoint p2(3, 4, 0);
 
@@ -69,7 +73,8 @@ TEST(PathPointTest, DistanceCalculation) {
     EXPECT_EQ(p1.distanceManhattan(p2), 7);
 }
 
-TEST(PathPointTest, EqualityAndHash) {
+TEST(PathPointTest, EqualityAndHash)
+{
     PathPoint p1(10, 20, 30);
     PathPoint p2(10, 20, 30);
     PathPoint p3(10, 21, 30);
@@ -80,7 +85,8 @@ TEST(PathPointTest, EqualityAndHash) {
     EXPECT_NE(p1.hash(), p3.hash());
 }
 
-TEST(PathPointTest, Clone) {
+TEST(PathPointTest, Clone)
+{
     PathPoint original(5, 10, 15);
     original.setNodeType(PathNodeType::Water);
     original.setCostMalus(0.5f);
@@ -100,7 +106,8 @@ TEST(PathPointTest, Clone) {
     EXPECT_EQ(clone.costFromStart(), 0.0f);
 }
 
-TEST(PathPointTest, CostCalculation) {
+TEST(PathPointTest, CostCalculation)
+{
     PathPoint point(0, 0, 0);
 
     point.setCostFromStart(10.0f);
@@ -113,7 +120,8 @@ TEST(PathPointTest, CostCalculation) {
 
 // ==================== PathHeap Tests ====================
 
-TEST(PathHeapTest, EmptyHeap) {
+TEST(PathHeapTest, EmptyHeap)
+{
     PathHeap heap;
 
     EXPECT_TRUE(heap.empty());
@@ -121,7 +129,8 @@ TEST(PathHeapTest, EmptyHeap) {
     EXPECT_EQ(heap.pop(), nullptr);
 }
 
-TEST(PathHeapTest, InsertAndPop) {
+TEST(PathHeapTest, InsertAndPop)
+{
     PathHeap heap;
     PathPoint p1(0, 0, 0);
     PathPoint p2(0, 0, 0);
@@ -146,13 +155,14 @@ TEST(PathHeapTest, InsertAndPop) {
     EXPECT_EQ(heap.size(), 3u);
 
     // 应该按代价从小到大弹出
-    EXPECT_EQ(heap.pop(), &p2);  // cost=5
-    EXPECT_EQ(heap.pop(), &p1);  // cost=10
-    EXPECT_EQ(heap.pop(), &p3);  // cost=15
+    EXPECT_EQ(heap.pop(), &p2); // cost=5
+    EXPECT_EQ(heap.pop(), &p1); // cost=10
+    EXPECT_EQ(heap.pop(), &p3); // cost=15
     EXPECT_TRUE(heap.empty());
 }
 
-TEST(PathHeapTest, Update) {
+TEST(PathHeapTest, Update)
+{
     PathHeap heap;
     PathPoint p1(0, 0, 0);
     PathPoint p2(0, 0, 0);
@@ -177,7 +187,8 @@ TEST(PathHeapTest, Update) {
     EXPECT_EQ(heap.pop(), &p1);
 }
 
-TEST(PathHeapTest, HeapProperty) {
+TEST(PathHeapTest, HeapProperty)
+{
     PathHeap heap;
 
     // 创建指向堆的指针数组，避免vector重分配导致指针失效
@@ -205,7 +216,8 @@ TEST(PathHeapTest, HeapProperty) {
 
 // ==================== Path Tests ====================
 
-TEST(PathTest, EmptyPath) {
+TEST(PathTest, EmptyPath)
+{
     Path path;
 
     EXPECT_TRUE(path.empty());
@@ -215,7 +227,8 @@ TEST(PathTest, EmptyPath) {
     EXPECT_TRUE(path.isFinished());
 }
 
-TEST(PathTest, AddPoints) {
+TEST(PathTest, AddPoints)
+{
     Path path;
 
     path.addPoint(PathPoint(0, 0, 0));
@@ -233,7 +246,8 @@ TEST(PathTest, AddPoints) {
     EXPECT_EQ(path.getEnd()->x(), 2);
 }
 
-TEST(PathTest, Navigation) {
+TEST(PathTest, Navigation)
+{
     Path path;
     path.addPoint(PathPoint(0, 0, 0));
     path.addPoint(PathPoint(1, 0, 0));
@@ -262,7 +276,8 @@ TEST(PathTest, Navigation) {
     EXPECT_FALSE(path.isFinished());
 }
 
-TEST(PathTest, BuildFromEnd) {
+TEST(PathTest, BuildFromEnd)
+{
     // 创建一个简单的路径点链：0 -> 1 -> 2 -> 3
     PathPoint p0(0, 0, 0);
     PathPoint p1(1, 0, 0);
@@ -281,18 +296,20 @@ TEST(PathTest, BuildFromEnd) {
     EXPECT_EQ(path.getEnd()->x(), 3);
 }
 
-TEST(PathTest, ReachesTarget) {
+TEST(PathTest, ReachesTarget)
+{
     Path path;
     path.addPoint(PathPoint(0, 0, 0));
     path.addPoint(PathPoint(5, 10, 15));
 
     EXPECT_TRUE(path.reachesTarget(5, 10, 15, 0.0f));
     EXPECT_TRUE(path.reachesTarget(5, 10, 15, 1.0f));
-    EXPECT_TRUE(path.reachesTarget(6, 10, 15, 2.0f));  // 在容差范围内
+    EXPECT_TRUE(path.reachesTarget(6, 10, 15, 2.0f)); // 在容差范围内
     EXPECT_FALSE(path.reachesTarget(10, 10, 15, 1.0f));
 }
 
-TEST(PathTest, TrimStart) {
+TEST(PathTest, TrimStart)
+{
     Path path;
     path.addPoint(PathPoint(0, 0, 0));
     path.addPoint(PathPoint(1, 0, 0));

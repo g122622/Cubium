@@ -1,11 +1,11 @@
 #pragma once
 
-#include "IChunk.hpp"
-#include "ChunkStatus.hpp"
-#include "ChunkData.hpp"
 #include "../block/Block.hpp"
 #include "../gen/spawn/WorldGenSpawner.hpp"
 #include "../gen/structure/Structure.hpp"
+#include "ChunkData.hpp"
+#include "ChunkStatus.hpp"
+#include "IChunk.hpp"
 #include <array>
 #include <memory>
 #include <unordered_map>
@@ -82,7 +82,8 @@ public:
 
     // 高度图
     [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override;
-    void updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
+    void updateHeightmap(
+        HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
 
     // 状态
     [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
@@ -109,9 +110,7 @@ public:
     /**
      * @brief 检查是否已完成指定阶段
      */
-    [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const {
-        return m_chunkStatus->isAtLeast(status);
-    }
+    [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const { return m_chunkStatus->isAtLeast(status); }
 
     // ============================================================================
     // 生物群系管理
@@ -194,16 +193,12 @@ public:
     /**
      * @brief 添加生成的实体数据
      */
-    void addSpawnedEntity(SpawnedEntityData data) {
-        m_spawnedEntities.push_back(std::move(data));
-    }
+    void addSpawnedEntity(SpawnedEntityData data) { m_spawnedEntities.push_back(std::move(data)); }
 
     /**
      * @brief 清空生成的实体列表
      */
-    void clearSpawnedEntities() {
-        m_spawnedEntities.clear();
-    }
+    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
 
     /**
      * @brief 获取生成的实体数量
@@ -219,7 +214,9 @@ public:
      * @param structureName 结构名称
      * @param start 结构起点实例
      */
-    void addStructureStart(const std::string& structureName, std::unique_ptr<world::gen::structure::StructureStart> start) {
+    void addStructureStart(
+        const std::string& structureName, std::unique_ptr<world::gen::structure::StructureStart> start)
+    {
         m_structureStarts[structureName] = std::move(start);
     }
 
@@ -228,7 +225,8 @@ public:
      * @param structureName 结构名称
      * @return 结构起点指针，如果不存在则返回 nullptr
      */
-    [[nodiscard]] world::gen::structure::StructureStart* getStructureStart(const std::string& structureName) {
+    [[nodiscard]] world::gen::structure::StructureStart* getStructureStart(const std::string& structureName)
+    {
         auto it = m_structureStarts.find(structureName);
         return it != m_structureStarts.end() ? it->second.get() : nullptr;
     }
@@ -236,7 +234,9 @@ public:
     /**
      * @brief 获取所有结构起点
      */
-    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>>& structureStarts() const {
+    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>>&
+    structureStarts() const
+    {
         return m_structureStarts;
     }
 
@@ -273,8 +273,8 @@ public:
     /**
      * @brief 将短整型解包为方块坐标
      */
-    static void unpackFromLocal(u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ,
-                                BlockCoord& x, BlockCoord& y, BlockCoord& z);
+    static void unpackFromLocal(
+        u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ, BlockCoord& x, BlockCoord& y, BlockCoord& z);
 
 private:
     ChunkCoord m_x;

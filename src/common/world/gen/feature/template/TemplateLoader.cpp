@@ -3,8 +3,8 @@
 #include "../../../../util/CompressionUtils.hpp"
 #include "../../../block/Block.hpp"
 #include "../../../block/BlockRegistry.hpp"
-#include <sstream>
 #include <cstring>
+#include <sstream>
 #include <unordered_map>
 
 namespace mc {
@@ -16,9 +16,7 @@ namespace template_ {
 namespace {
 
 const BlockState* applyPropertiesToState(
-    const Block& block,
-    const BlockState* defaultState,
-    const nbt::CompoundTag& propsCompound)
+    const Block& block, const BlockState* defaultState, const nbt::CompoundTag& propsCompound)
 {
     if (!defaultState) {
         return nullptr;
@@ -74,7 +72,8 @@ const BlockState* applyPropertiesToState(
 
 } // anonymous namespace
 
-std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nbt) {
+std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nbt)
+{
     auto templ = std::make_unique<Template>();
 
     // 读取大小: size: [x, y, z]
@@ -179,8 +178,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
 
                 // 读取状态索引: state: int
                 if (blockEntry.value.count("state") != 0) {
-                    rawInfo.stateIndex = static_cast<u32>(
-                        dynamic_cast<const nbt::IntTag&>(*blockEntry.value.at("state")).value);
+                    rawInfo.stateIndex =
+                        static_cast<u32>(dynamic_cast<const nbt::IntTag&>(*blockEntry.value.at("state")).value);
                 }
 
                 // 读取 NBT 数据: nbt: {...}
@@ -204,7 +203,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 blockInfos.reserve(rawBlocks.size());
 
                 for (const auto& rawInfo : rawBlocks) {
-                    u32 stateId = 0;  // 默认空气
+                    u32 stateId = 0; // 默认空气
                     if (rawInfo.stateIndex < palette.size()) {
                         stateId = palette[rawInfo.stateIndex];
                     }
@@ -252,8 +251,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
 
                 // 读取实体类型
                 if (entityEntry.value.count("id") != 0) {
-                    entityInfo.typeId = dynamic_cast<const nbt::StringTag&>(
-                        *entityEntry.value.at("id")).value;
+                    entityInfo.typeId = dynamic_cast<const nbt::StringTag&>(*entityEntry.value.at("id")).value;
                 }
 
                 // 读取精确位置 pos: [double, double, double]
@@ -298,8 +296,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
 }
 
 std::unique_ptr<Template> TemplateLoader::loadFromResourcePack(
-    const IResourcePack& pack,
-    const ResourceLocation& location)
+    const IResourcePack& pack, const ResourceLocation& location)
 {
     // 构建资源路径: assets/<namespace>/structures/<path>.nbt
     // 参考 MC 1.16.5 TemplateManager.func_227458_a_
@@ -319,7 +316,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromResourcePack(
     return loadFromCompressedNbt(result.value());
 }
 
-std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vector<u8>& data) {
+std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vector<u8>& data)
+{
     // 解压 gzip 数据
     std::vector<u8> decompressed = util::decompressGzip(data);
     if (decompressed.empty()) {
@@ -338,12 +336,14 @@ std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vecto
         }
 
         return loadFromNbt(*root);
-    } catch (...) {
+    }
+    catch (...) {
         return nullptr;
     }
 }
 
-BlockPos TemplateLoader::readBlockPos(const nbt::ListTag& list) {
+BlockPos TemplateLoader::readBlockPos(const nbt::ListTag& list)
+{
     i32 x = 0, y = 0, z = 0;
 
     if (list.size() >= 3) {
@@ -355,22 +355,23 @@ BlockPos TemplateLoader::readBlockPos(const nbt::ListTag& list) {
     return BlockPos(x, y, z);
 }
 
-std::unique_ptr<nbt::CompoundTag> TemplateLoader::cloneNbt(const nbt::CompoundTag* source) {
+std::unique_ptr<nbt::CompoundTag> TemplateLoader::cloneNbt(const nbt::CompoundTag* source)
+{
     if (!source) {
         return nullptr;
     }
     return std::make_unique<nbt::CompoundTag>(*source);
 }
 
-u32 TemplateLoader::parseBlockStateId(const nbt::CompoundTag& paletteEntry) {
+u32 TemplateLoader::parseBlockStateId(const nbt::CompoundTag& paletteEntry)
+{
     // NBT 格式:
     // Name: "minecraft:stone"
     // Properties: { ... } (可选)
 
     std::string blockName;
     if (paletteEntry.value.count("Name") != 0) {
-        blockName = dynamic_cast<const nbt::StringTag&>(
-            *paletteEntry.value.at("Name")).value;
+        blockName = dynamic_cast<const nbt::StringTag&>(*paletteEntry.value.at("Name")).value;
     }
 
     if (blockName.empty()) {
@@ -400,9 +401,7 @@ u32 TemplateLoader::parseBlockStateId(const nbt::CompoundTag& paletteEntry) {
 }
 
 TemplateJigsawBlockInfo TemplateLoader::parseJigsawBlock(
-    const nbt::CompoundTag* nbt,
-    const BlockPos& pos,
-    u32 blockStateId)
+    const nbt::CompoundTag* nbt, const BlockPos& pos, u32 blockStateId)
 {
     TemplateJigsawBlockInfo info;
     info.pos = pos;
@@ -436,14 +435,12 @@ TemplateJigsawBlockInfo TemplateLoader::parseJigsawBlock(
 
     // 读取目标模板池
     if (nbt->value.count("target_pool") != 0) {
-        info.targetPool = dynamic_cast<const nbt::StringTag&>(
-            *nbt->value.at("target_pool")).value;
+        info.targetPool = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target_pool")).value;
     }
 
     // 读取目标连接点名称
     if (nbt->value.count("target_name") != 0) {
-        info.targetName = dynamic_cast<const nbt::StringTag&>(
-            *nbt->value.at("target_name")).value;
+        info.targetName = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target_name")).value;
     }
 
     // 读取连接类型

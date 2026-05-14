@@ -1,6 +1,6 @@
 #include "LayerUtil.hpp"
-#include "LayerCacheConfig.hpp"
 #include "../BiomeRegistry.hpp"
+#include "LayerCacheConfig.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 
@@ -12,10 +12,10 @@ namespace mc {
 
 LayerStack::LayerStack(std::unique_ptr<IArea> area)
     : m_area(std::move(area))
-{
-}
+{}
 
-BiomeId LayerStack::sample(i32 x, i32 z) const {
+BiomeId LayerStack::sample(i32 x, i32 z) const
+{
     MC_TRACE_EVENT("world.biome", "LayerStack_Sample", "x", x, "z", z);
     if (!m_area) {
         return Biomes::Plains;
@@ -46,8 +46,10 @@ BiomeId LayerStack::sample(i32 x, i32 z) const {
     return Biomes::Plains;
 }
 
-std::vector<BiomeId> LayerStack::sampleArea(i32 startX, i32 startZ, i32 width, i32 height) const {
-    MC_TRACE_EVENT("world.biome", "LayerStack_SampleArea", "startX", startX, "startZ", startZ, "width", width, "height", height);
+std::vector<BiomeId> LayerStack::sampleArea(i32 startX, i32 startZ, i32 width, i32 height) const
+{
+    MC_TRACE_EVENT(
+        "world.biome", "LayerStack_SampleArea", "startX", startX, "startZ", startZ, "width", width, "height", height);
     std::vector<BiomeId> result;
     result.reserve(static_cast<size_t>(width) * height);
 
@@ -60,8 +62,10 @@ std::vector<BiomeId> LayerStack::sampleArea(i32 startX, i32 startZ, i32 width, i
     return result;
 }
 
-void LayerStack::sampleBatch(i32 startX, i32 startZ, i32 width, i32 height, BiomeId* output) const {
-    MC_TRACE_EVENT("world.biome", "LayerStack_SampleBatch", "startX", startX, "startZ", startZ, "width", width, "height", height);
+void LayerStack::sampleBatch(i32 startX, i32 startZ, i32 width, i32 height, BiomeId* output) const
+{
+    MC_TRACE_EVENT(
+        "world.biome", "LayerStack_SampleBatch", "startX", startX, "startZ", startZ, "width", width, "height", height);
 
     if (!m_area || output == nullptr || width <= 0 || height <= 0) {
         return;
@@ -110,8 +114,7 @@ namespace {
  * @return 气候层工厂
  */
 std::unique_ptr<IAreaFactory> buildClimateLayers(
-    u64 seed,
-    const std::function<std::shared_ptr<LayerContext>(u64)>& createContext)
+    u64 seed, const std::function<std::shared_ptr<LayerContext>(u64)>& createContext)
 {
     MC_TRACE_EVENT("world.biome", "BuildClimateLayers");
 
@@ -186,8 +189,7 @@ std::unique_ptr<IAreaFactory> buildClimateLayers(
 
 } // anonymous namespace
 
-std::unique_ptr<IAreaFactory> repeatZoom(
-    u64 seed,
+std::unique_ptr<IAreaFactory> repeatZoom(u64 seed,
     layer::ZoomLayer& zoom,
     std::unique_ptr<IAreaFactory> input,
     i32 count,
@@ -205,11 +207,7 @@ std::unique_ptr<IAreaFactory> repeatZoom(
 }
 
 std::unique_ptr<IAreaFactory> buildOverworldLayers(
-    u64 seed,
-    bool legacyBiomeInit,
-    bool largeBiomes,
-    i32 biomeSize,
-    i32 riverSize)
+    u64 seed, bool legacyBiomeInit, bool largeBiomes, i32 biomeSize, i32 riverSize)
 {
     MC_TRACE_EVENT("world.biome", "BuildOverworldLayers", "biomeSize", biomeSize, "riverSize", riverSize);
 
@@ -346,8 +344,10 @@ std::unique_ptr<IAreaFactory> buildOverworldLayers(
     return finalFactory;
 }
 
-std::unique_ptr<LayerStack> createOverworldLayers(u64 seed, bool isLargeBiomes) {
-    MC_TRACE_EVENT("world.biome", "CreateOverworldLayers", "seed", static_cast<i64>(seed), "isLargeBiomes", isLargeBiomes);
+std::unique_ptr<LayerStack> createOverworldLayers(u64 seed, bool isLargeBiomes)
+{
+    MC_TRACE_EVENT(
+        "world.biome", "CreateOverworldLayers", "seed", static_cast<i64>(seed), "isLargeBiomes", isLargeBiomes);
     // 初始化生物群系注册表
     BiomeRegistry::instance().initialize();
 
@@ -360,7 +360,8 @@ std::unique_ptr<LayerStack> createOverworldLayers(u64 seed, bool isLargeBiomes) 
     return std::make_unique<LayerStack>(std::move(area));
 }
 
-std::unique_ptr<LayerStack> createNetherLayers(u64 seed) {
+std::unique_ptr<LayerStack> createNetherLayers(u64 seed)
+{
     // 下界使用简化的层堆叠
     BiomeRegistry::instance().initialize();
     auto context = std::make_shared<LayerContext>(LayerCacheConfig::DEFAULT_CACHE_SIZE, seed, 1);
@@ -370,7 +371,8 @@ std::unique_ptr<LayerStack> createNetherLayers(u64 seed) {
     return std::make_unique<LayerStack>(std::move(area));
 }
 
-std::unique_ptr<LayerStack> createEndLayers(u64 seed) {
+std::unique_ptr<LayerStack> createEndLayers(u64 seed)
+{
     // 末地使用简化的层堆叠
     BiomeRegistry::instance().initialize();
     auto context = std::make_shared<LayerContext>(LayerCacheConfig::DEFAULT_CACHE_SIZE, seed, 1);
@@ -389,41 +391,46 @@ std::unique_ptr<LayerStack> createEndLayers(u64 seed) {
 LayerBiomeProvider::LayerBiomeProvider(u64 seed, bool isLargeBiomes)
     : BiomeProvider(seed)
     , m_layerStack(LayerUtil::createOverworldLayers(seed, isLargeBiomes))
-{
-}
+{}
 
-BiomeId LayerBiomeProvider::getBiome(i32 x, i32 y, i32 z) const {
+BiomeId LayerBiomeProvider::getBiome(i32 x, i32 y, i32 z) const
+{
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetBiome", "x", x, "z", z);
-    (void)y;  // Layer 系统不使用 Y 坐标
+    (void)y; // Layer 系统不使用 Y 坐标
     return m_layerStack->sample(x, z);
 }
 
-BiomeId LayerBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
+BiomeId LayerBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
+{
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetNoiseBiome", "noiseX", noiseX, "noiseZ", noiseZ);
-    (void)noiseY;  // Layer 系统不使用 Y 坐标
+    (void)noiseY; // Layer 系统不使用 Y 坐标
     // 对齐 MC 1.16.5 OverworldBiomeProvider：噪声坐标直接传入层采样。
     return m_layerStack->sample(noiseX, noiseZ);
 }
 
-f32 LayerBiomeProvider::getDepth(i32 x, i32 z) const {
+f32 LayerBiomeProvider::getDepth(i32 x, i32 z) const
+{
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetDepth", "x", x, "z", z);
     const BiomeId biomeId = m_layerStack->sample(x, z);
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
     return biome.depth();
 }
 
-f32 LayerBiomeProvider::getScale(i32 x, i32 z) const {
+f32 LayerBiomeProvider::getScale(i32 x, i32 z) const
+{
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetScale", "x", x, "z", z);
     const BiomeId biomeId = m_layerStack->sample(x, z);
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
     return biome.scale();
 }
 
-const Biome& LayerBiomeProvider::getBiomeDefinition(BiomeId id) const {
+const Biome& LayerBiomeProvider::getBiomeDefinition(BiomeId id) const
+{
     return BiomeRegistry::instance().get(id);
 }
 
-void LayerBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) {
+void LayerBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_FillBiomeContainer", "chunkX", chunkX, "chunkZ", chunkZ);
     const i32 startNoiseX = chunkX << 2;
     const i32 startNoiseZ = chunkZ << 2;
@@ -444,18 +451,38 @@ void LayerBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoor
     }
 }
 
-void LayerBiomeProvider::getBiomesBatch(i32 startX, i32 startY, i32 startZ, i32 width, i32 height,
-                                          BiomeId* output) const {
-    MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetBiomesBatch", "startX", startX, "startZ", startZ, "width", width, "height", height);
-    (void)startY;  // Layer 系统不使用 Y 坐标
+void LayerBiomeProvider::getBiomesBatch(
+    i32 startX, i32 startY, i32 startZ, i32 width, i32 height, BiomeId* output) const
+{
+    MC_TRACE_EVENT("world.biome",
+        "LayerBiomeProvider_GetBiomesBatch",
+        "startX",
+        startX,
+        "startZ",
+        startZ,
+        "width",
+        width,
+        "height",
+        height);
+    (void)startY; // Layer 系统不使用 Y 坐标
 
     m_layerStack->sampleBatch(startX, startZ, width, height, output);
 }
 
-void LayerBiomeProvider::getNoiseBiomesBatch(i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ,
-                                              i32 width, i32 height, BiomeId* output) const {
-    MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetNoiseBiomesBatch", "startNoiseX", startNoiseX, "startNoiseZ", startNoiseZ, "width", width, "height", height);
-    (void)startNoiseY;  // Layer 系统不使用 Y 坐标
+void LayerBiomeProvider::getNoiseBiomesBatch(
+    i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ, i32 width, i32 height, BiomeId* output) const
+{
+    MC_TRACE_EVENT("world.biome",
+        "LayerBiomeProvider_GetNoiseBiomesBatch",
+        "startNoiseX",
+        startNoiseX,
+        "startNoiseZ",
+        startNoiseZ,
+        "width",
+        width,
+        "height",
+        height);
+    (void)startNoiseY; // Layer 系统不使用 Y 坐标
 
     if (output == nullptr || width <= 0 || height <= 0) {
         return;

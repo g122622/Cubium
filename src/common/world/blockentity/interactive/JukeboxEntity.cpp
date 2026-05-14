@@ -21,7 +21,8 @@ namespace {
  * @param item 唱片物品。
  * @return 范围 [1, 15] 的信号强度，如果不是有效唱片返回 0。
  */
-[[nodiscard]] i32 getRecordComparatorSignal(const Item* item) {
+[[nodiscard]] i32 getRecordComparatorSignal(const Item* item)
+{
     if (item == nullptr) {
         return 0;
     }
@@ -53,25 +54,29 @@ namespace {
 
 JukeboxEntity::JukeboxEntity(const BlockPos& pos)
     : ContainerBlockEntity(BlockEntityType::Jukebox, pos)
-    , m_inventory(1) {
-}
+    , m_inventory(1)
+{}
 
 JukeboxEntity::~JukeboxEntity() = default;
 
-ItemStack JukeboxEntity::getRecord() const {
+ItemStack JukeboxEntity::getRecord() const
+{
     return m_inventory.getItem(SLOT_RECORD);
 }
 
-void JukeboxEntity::setRecord(const ItemStack& record) {
+void JukeboxEntity::setRecord(const ItemStack& record)
+{
     m_inventory.setItem(SLOT_RECORD, record);
     setChanged();
 }
 
-bool JukeboxEntity::hasRecord() const {
+bool JukeboxEntity::hasRecord() const
+{
     return !m_inventory.getItem(SLOT_RECORD).isEmpty();
 }
 
-void JukeboxEntity::startPlaying(IWorld& world) {
+void JukeboxEntity::startPlaying(IWorld& world)
+{
     MC_UNUSED(world);
 
     const ItemStack record = getRecord();
@@ -87,7 +92,8 @@ void JukeboxEntity::startPlaying(IWorld& world) {
     setChanged();
 }
 
-void JukeboxEntity::stopPlaying(IWorld& world) {
+void JukeboxEntity::stopPlaying(IWorld& world)
+{
     MC_UNUSED(world);
 
     if (!m_isPlaying && m_recordId == 0) {
@@ -99,7 +105,8 @@ void JukeboxEntity::stopPlaying(IWorld& world) {
     setChanged();
 }
 
-i32 JukeboxEntity::getComparatorSignal() const {
+i32 JukeboxEntity::getComparatorSignal() const
+{
     if (!hasRecord()) {
         return 0;
     }
@@ -112,13 +119,15 @@ i32 JukeboxEntity::getComparatorSignal() const {
     return getRecordComparatorSignal(record.getItem());
 }
 
-void JukeboxEntity::tick(IWorld& world) {
+void JukeboxEntity::tick(IWorld& world)
+{
     if (m_isPlaying && !hasRecord()) {
         stopPlaying(world);
     }
 }
 
-bool JukeboxEntity::load(const nlohmann::json& data) {
+bool JukeboxEntity::load(const nlohmann::json& data)
+{
     if (!ContainerBlockEntity::load(data)) {
         return false;
     }
@@ -136,7 +145,8 @@ bool JukeboxEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void JukeboxEntity::save(nlohmann::json& data) const {
+void JukeboxEntity::save(nlohmann::json& data) const
+{
     ContainerBlockEntity::save(data);
 
     const ItemStack record = m_inventory.getItem(SLOT_RECORD);
@@ -148,7 +158,8 @@ void JukeboxEntity::save(nlohmann::json& data) const {
     data["RecordId"] = m_recordId;
 }
 
-std::unique_ptr<BlockEntity> JukeboxEntity::clone() const {
+std::unique_ptr<BlockEntity> JukeboxEntity::clone() const
+{
     auto clone = std::make_unique<JukeboxEntity>(m_pos);
     clone->m_inventory.setItem(SLOT_RECORD, m_inventory.getItem(SLOT_RECORD));
     clone->m_isPlaying = m_isPlaying;

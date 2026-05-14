@@ -1,9 +1,9 @@
 #include "BlockEntityRendererDispatcher.hpp"
 #include "BlockEntityRenderer.hpp"
-#include "common/world/blockentity/BlockEntity.hpp"
-#include "common/world/IWorld.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/resource/BlockModelCache.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "renderers/BeaconRenderer.hpp"
 #include "renderers/ChestRenderer.hpp"
 #include <spdlog/spdlog.h>
@@ -18,21 +18,23 @@ BlockEntityRendererDispatcher::BlockEntityRendererDispatcher() = default;
 BlockEntityRendererDispatcher::~BlockEntityRendererDispatcher() = default;
 
 BlockEntityRendererDispatcher::BlockEntityRendererDispatcher(BlockEntityRendererDispatcher&&) noexcept = default;
-BlockEntityRendererDispatcher& BlockEntityRendererDispatcher::operator=(BlockEntityRendererDispatcher&&) noexcept = default;
+BlockEntityRendererDispatcher& BlockEntityRendererDispatcher::operator=(
+    BlockEntityRendererDispatcher&&) noexcept = default;
 
-void BlockEntityRendererDispatcher::registerRenderer(BlockEntityType type, RendererFactory factory) {
+void BlockEntityRendererDispatcher::registerRenderer(BlockEntityType type, RendererFactory factory)
+{
     if (!factory) {
-        spdlog::warn("BlockEntityRendererDispatcher: Attempted to register null factory for type {}",
-                     static_cast<u16>(type));
+        spdlog::warn(
+            "BlockEntityRendererDispatcher: Attempted to register null factory for type {}", static_cast<u16>(type));
         return;
     }
 
     m_renderers[type] = factory();
-    spdlog::debug("BlockEntityRendererDispatcher: Registered renderer for type {}",
-                  static_cast<u16>(type));
+    spdlog::debug("BlockEntityRendererDispatcher: Registered renderer for type {}", static_cast<u16>(type));
 }
 
-bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick, u32 light) {
+bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick, u32 light)
+{
     const BlockEntityType type = entity.getType();
     auto it = m_renderers.find(type);
 
@@ -44,7 +46,8 @@ bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick,
     return it->second->render(entity, partialTick, light);
 }
 
-void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32 partialTick) {
+void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32 partialTick)
+{
     // MC 1.16.5: 遍历所有全局方块实体并渲染
     // 全局方块实体包括：
     // - 信标光束（isGlobalRenderer = true，渲染距离 256 格）
@@ -67,7 +70,8 @@ void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32
     }
 }
 
-void BlockEntityRendererDispatcher::initializeDefaults() {
+void BlockEntityRendererDispatcher::initializeDefaults()
+{
     spdlog::info("BlockEntityRendererDispatcher: Initializing default renderers");
 
     // MC 1.16.5 TileEntityRendererDispatcher 构造函数中注册的渲染器：
@@ -90,13 +94,11 @@ void BlockEntityRendererDispatcher::initializeDefaults() {
     // - CAMPFIRE -> CampfireTileEntityRenderer
 
     // 注册已实现的渲染器
-    registerRenderer(BlockEntityType::Beacon, []() -> std::unique_ptr<BlockEntityRendererBase> {
-        return std::make_unique<BeaconRenderer>();
-    });
+    registerRenderer(BlockEntityType::Beacon,
+        []() -> std::unique_ptr<BlockEntityRendererBase> { return std::make_unique<BeaconRenderer>(); });
 
-    registerRenderer(BlockEntityType::Chest, []() -> std::unique_ptr<BlockEntityRendererBase> {
-        return std::make_unique<ChestRenderer>();
-    });
+    registerRenderer(BlockEntityType::Chest,
+        []() -> std::unique_ptr<BlockEntityRendererBase> { return std::make_unique<ChestRenderer>(); });
 
     // 注册其他渲染器将在各自实现完成后添加
     // - SignRenderer (告示牌)
@@ -115,16 +117,19 @@ void BlockEntityRendererDispatcher::initializeDefaults() {
     // - MobSpawnerRenderer (刷怪笼)
 }
 
-BlockEntityRendererBase* BlockEntityRendererDispatcher::getRenderer(BlockEntityType type) {
+BlockEntityRendererBase* BlockEntityRendererDispatcher::getRenderer(BlockEntityType type)
+{
     auto it = m_renderers.find(type);
     return it != m_renderers.end() ? it->second.get() : nullptr;
 }
 
-bool BlockEntityRendererDispatcher::hasRenderer(BlockEntityType type) const {
+bool BlockEntityRendererDispatcher::hasRenderer(BlockEntityType type) const
+{
     return m_renderers.find(type) != m_renderers.end();
 }
 
-void BlockEntityRendererDispatcher::clear() {
+void BlockEntityRendererDispatcher::clear()
+{
     m_renderers.clear();
 }
 

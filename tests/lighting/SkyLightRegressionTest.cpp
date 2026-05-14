@@ -1,16 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "common/core/Constants.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
-#include "common/core/Constants.hpp"
 
 namespace {
 
-void ensureVanillaBlocksInitialized() {
+void ensureVanillaBlocksInitialized()
+{
     static bool initialized = false;
     if (!initialized) {
         mc::VanillaBlocks::initialize();
@@ -22,14 +23,13 @@ class SkyLightChunkProvider : public mc::StarLightLightingProvider {
 public:
     SkyLightChunkProvider(mc::i32 minBuildHeight, mc::i32 maxBuildHeight)
         : m_minBuildHeight(minBuildHeight)
-        , m_maxBuildHeight(maxBuildHeight) {
-    }
+        , m_maxBuildHeight(maxBuildHeight)
+    {}
 
-    void setChunk(mc::ChunkData* chunk) {
-        m_chunk = chunk;
-    }
+    void setChunk(mc::ChunkData* chunk) { m_chunk = chunk; }
 
-    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override {
+    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
+    {
         if (m_chunk == nullptr) {
             return nullptr;
         }
@@ -39,7 +39,8 @@ public:
         return m_chunk;
     }
 
-    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override {
+    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override
+    {
         if (m_chunk == nullptr) {
             return nullptr;
         }
@@ -49,7 +50,8 @@ public:
         return m_chunk;
     }
 
-    const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override {
+    const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override
+    {
         if (m_chunk == nullptr) {
             return nullptr;
         }
@@ -59,32 +61,19 @@ public:
         return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
 
-    mc::IWorld* getWorld() override {
-        return nullptr;
-    }
+    mc::IWorld* getWorld() override { return nullptr; }
 
-    const mc::IWorld* getWorld() const override {
-        return nullptr;
-    }
+    const mc::IWorld* getWorld() const override { return nullptr; }
 
-    void markLightChanged(mc::LightType, const mc::SectionPos&) override {
-    }
+    void markLightChanged(mc::LightType, const mc::SectionPos&) override {}
 
-    bool hasSkyLight() const override {
-        return true;
-    }
+    bool hasSkyLight() const override { return true; }
 
-    mc::i32 getMinBuildHeight() const override {
-        return m_minBuildHeight;
-    }
+    mc::i32 getMinBuildHeight() const override { return m_minBuildHeight; }
 
-    mc::i32 getMaxBuildHeight() const override {
-        return m_maxBuildHeight;
-    }
+    mc::i32 getMaxBuildHeight() const override { return m_maxBuildHeight; }
 
-    mc::i32 getSectionCount() const override {
-        return (m_maxBuildHeight - m_minBuildHeight) >> 4;
-    }
+    mc::i32 getSectionCount() const override { return (m_maxBuildHeight - m_minBuildHeight) >> 4; }
 
 private:
     mc::ChunkData* m_chunk = nullptr;
@@ -92,12 +81,13 @@ private:
     mc::i32 m_maxBuildHeight;
 };
 
-TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
+TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight)
+{
     ensureVanillaBlocksInitialized();
 
     SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
-    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态，使光照引擎可以使用它
+    chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态，使光照引擎可以使用它
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
@@ -118,7 +108,7 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     // Section 4 在 LIGHT_SECTIONS 数组中的索引是 4 - (-1) = 5
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
     ASSERT_NE(nibble, nullptr);
 
     // 检查状态
@@ -130,7 +120,8 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     EXPECT_GT(belowLight, static_cast<mc::u8>(0)) << "Light at (8, 69, 8) should be > 0";
 }
 
-TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing) {
+TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing)
+{
     ensureVanillaBlocksInitialized();
 
     SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
@@ -154,17 +145,19 @@ TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing) {
         EXPECT_TRUE(emptinessMap[sectionIndex]);
     }
 
-    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS;
+        ++sectionIndex) {
         EXPECT_FALSE(emptinessMap[sectionIndex]);
     }
 }
 
-TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
+TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15)
+{
     ensureVanillaBlocksInitialized();
 
     SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
-    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
+    chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
@@ -189,7 +182,7 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
     // Section 4 在 LIGHT_SECTIONS 数组中的索引是 4 - minLightSection(-1) + 1 = 5
-    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
     ASSERT_NE(nibble, nullptr);
 
     // 读取 (8, 78, 8) 位置的光照值
@@ -198,12 +191,13 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
     EXPECT_LT(caveSkyLight, static_cast<mc::u8>(15));
 }
 
-TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
+TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight)
+{
     ensureVanillaBlocksInitialized();
 
     SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
-    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
+    chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
@@ -226,10 +220,10 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
     // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
     ASSERT_NE(nibble, nullptr);
 
-    mc::u8 before = nibble->getUpdating(8, 14, 8);  // Y=78 -> localY=14
+    mc::u8 before = nibble->getUpdating(8, 14, 8); // Y=78 -> localY=14
     EXPECT_LT(before, static_cast<mc::u8>(15));
 
     // 打开一个洞
@@ -242,12 +236,13 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
     EXPECT_GT(after, before);
 }
 
-TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock) {
+TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock)
+{
     ensureVanillaBlocksInitialized();
 
     SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
-    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
+    chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
@@ -264,7 +259,7 @@ TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock) {
     // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
     ASSERT_NE(nibble, nullptr);
 
     // Y=69 -> localY=5

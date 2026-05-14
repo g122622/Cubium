@@ -3,7 +3,6 @@
 
 BasedOnStyle: LLVM
 Language: Cpp
-Standard: C++20
 
 # 缩进
 IndentWidth: 4
@@ -14,24 +13,22 @@ IndentPPDirectives: None
 NamespaceIndentation: None
 
 # 列宽
-ColumnLimit: 100
+ColumnLimit: 120
 
 # 大括号
 BreakBeforeBraces: Custom
 BraceWrapping:
-  AfterCaseLabel: true
-  AfterClass: true
-  AfterControlStatement: Always
-  AfterEnum: true
   AfterFunction: true
-  AfterNamespace: true
-  AfterStruct: true
-  AfterUnion: true
-  AfterExternBlock: true
+  AfterControlStatement: false
+  AfterClass: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterExternBlock: false
   BeforeCatch: true
-  BeforeElse: true
+  BeforeElse: false
   BeforeLambdaBody: false
-  BeforeWhile: true
+  BeforeWhile: false
   IndentBraces: false
   SplitEmptyFunction: false
   SplitEmptyRecord: false
@@ -43,10 +40,10 @@ ReferenceAlignment: Left
 DerivePointerAlignment: false
 
 # 函数
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortIfStatementsOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: false
 AllowShortLambdasOnASingleLine: All
 
@@ -55,7 +52,7 @@ AccessModifierOffset: -4
 
 # 构造函数初始化列表
 ConstructorInitializerIndentWidth: 4
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: BeforeComma
 
 # 包含文件
 IncludeBlocks: Preserve
@@ -95,14 +92,14 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 
 # 对齐
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: DontAlign
 AlignArrayOfStructures: None
 AlignConsecutiveAssignments: false
 AlignConsecutiveBitFields: false
 AlignConsecutiveDeclarations: false
 AlignConsecutiveMacros: false
 AlignEscapedNewlines: Left
-AlignOperands: Align
+AlignOperands: DontAlign
 AlignTrailingComments: true
 
 # 换行
@@ -115,8 +112,8 @@ BreakBeforeTernaryOperators: true
 BreakStringLiterals: true
 
 # 其他
-BinPackArguments: true
-BinPackParameters: true
+BinPackArguments: false
+BinPackParameters: false
 CompactNamespaces: false
 Cpp11BracedListStyle: true
 FixNamespaceComments: true

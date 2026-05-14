@@ -2,46 +2,36 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
+#include "server/core/BannedPlayerList.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/core/BannedPlayerList.hpp"
 
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto pardonNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("pardon");
-    pardonNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
+    pardonNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
     support::applyMetadata(
-        pardonNode,
-        support::makeMetadata(
-            "Removes a player from the ban list.",
-            "/pardon <player>",
-            3,
-            {},
-            false));
+        pardonNode, support::makeMetadata("Removes a player from the ban list.", "/pardon <player>", 3, {}, false));
 
     // /pardon <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return pardonPlayer(ctx);
-    });
+        "player", EntityArgumentType::player());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return pardonPlayer(ctx); });
 
     pardonNode->addChild(playerArg);
     dispatcher.registerCommand(pardonNode);
 }
 
-i32 PardonCommand::pardonPlayer(CommandContext<ServerCommandSource>& context) {
+i32 PardonCommand::pardonPlayer(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 

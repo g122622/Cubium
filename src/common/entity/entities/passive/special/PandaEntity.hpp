@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
-#include <random>
 #include <optional>
+#include <random>
 
 namespace mc {
 
@@ -38,13 +38,13 @@ public:
      * @brief 熊猫性格基因
      */
     enum class Personality : u8 {
-        Normal = 0,     // 普通
-        Lazy = 1,       // 懒惰
-        Worried = 2,    // 忧愁
-        Playful = 3,    // 顽皮
-        Aggressive = 4, // 好斗
-        Weak = 5,       // 虚弱
-        Brown = 6,      // 棕色（普通性格）
+        Normal = 0,        // 普通
+        Lazy = 1,          // 懒惰
+        Worried = 2,       // 忧愁
+        Playful = 3,       // 顽皮
+        Aggressive = 4,    // 好斗
+        Weak = 5,          // 虚弱
+        Brown = 6,         // 棕色（普通性格）
         AggressiveLazy = 7 // 好斗懒惰（隐藏）
     };
 

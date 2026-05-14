@@ -24,26 +24,26 @@ public:
     SmokeParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/smoke");
     }
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.0f;   // 烟雾不受重力
+    static constexpr f64 DEFAULT_GRAVITY = 0.0f; // 烟雾不受重力
     static constexpr f64 DEFAULT_SIZE = 0.1f;
-    static constexpr f64 DEFAULT_LIFETIME = 40.0f;  // 约 2 秒
+    static constexpr f64 DEFAULT_LIFETIME = 40.0f; // 约 2 秒
 
     f64 m_initialSize;
 };

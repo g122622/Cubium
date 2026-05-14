@@ -46,14 +46,7 @@ public:
      * @brief 船的类型（木材类型）
      * MC 1.16.5: Type enum
      */
-    enum class Type : u8 {
-        OAK = 0,
-        SPRUCE = 1,
-        BIRCH = 2,
-        JUNGLE = 3,
-        ACACIA = 4,
-        DARK_OAK = 5
-    };
+    enum class Type : u8 { OAK = 0, SPRUCE = 1, BIRCH = 2, JUNGLE = 3, ACACIA = 4, DARK_OAK = 5 };
 
     explicit BoatEntity(Type type = Type::OAK);
     ~BoatEntity() override = default;
@@ -89,7 +82,6 @@ protected:
     void registerData() override;
 
 public:
-
     [[nodiscard]] f32 width() const override { return 1.375f; }
     [[nodiscard]] f32 height() const override { return 0.5625f; }
     [[nodiscard]] f32 eyeHeight() const override { return height(); }
@@ -199,7 +191,8 @@ public:
      * @brief 获取桨角度
      * @param side 0=左桨, 1=右桨
      */
-    [[nodiscard]] f32 getPaddleState(i32 side) const {
+    [[nodiscard]] f32 getPaddleState(i32 side) const
+    {
         if (side < 0 || side > 1) return 0.0f;
         return m_paddlePositions[side];
     }
@@ -207,7 +200,8 @@ public:
     /**
      * @brief 设置桨状态
      */
-    void setPaddleState(bool left, bool right) {
+    void setPaddleState(bool left, bool right)
+    {
         m_leftPaddle = left;
         m_rightPaddle = right;
     }
@@ -226,16 +220,15 @@ public:
     /**
      * @brief 设置船的朝向
      */
-    void setRotation(f32 yaw) {
-        Entity::setRotation(yaw, m_pitch);
-    }
+    void setRotation(f32 yaw) { Entity::setRotation(yaw, m_pitch); }
 
     // ========== 乘客 ==========
 
     /**
      * @brief 是否可以添加乘客
      */
-    [[nodiscard]] bool canFitPassenger() const override {
+    [[nodiscard]] bool canFitPassenger() const override
+    {
         return static_cast<i32>(m_passengers.size()) < MAX_PASSENGERS && m_status != BoatStatus::UnderWater;
     }
 

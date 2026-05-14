@@ -1,23 +1,26 @@
 ﻿#include "BuiltinWidgets.hpp"
-#include <sstream>
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
+#include <sstream>
 
 namespace mc::client::ui::kagero::tpl::bindings {
 
 // ========== BuiltinWidgets实现 ==========
 
-BuiltinWidgets& BuiltinWidgets::instance() {
+BuiltinWidgets& BuiltinWidgets::instance()
+{
     static BuiltinWidgets instance;
     return instance;
 }
 
-BuiltinWidgets::BuiltinWidgets() {
+BuiltinWidgets::BuiltinWidgets()
+{
     // 延迟初始化
 }
 
-void BuiltinWidgets::initialize() {
+void BuiltinWidgets::initialize()
+{
     if (m_initialized) return;
 
     registerScreenWidget();
@@ -37,14 +40,14 @@ void BuiltinWidgets::initialize() {
     m_initialized = true;
 }
 
-void BuiltinWidgets::registerCreator(const std::string& tagName, WidgetCreator creator) {
+void BuiltinWidgets::registerCreator(const std::string& tagName, WidgetCreator creator)
+{
     m_creators[tagName] = std::move(creator);
 }
 
 std::unique_ptr<widget::Widget> BuiltinWidgets::create(
-    const std::string& tagName,
-    const std::string& id,
-    const std::map<std::string, std::string>& attrs) const {
+    const std::string& tagName, const std::string& id, const std::map<std::string, std::string>& attrs) const
+{
 
     auto it = m_creators.find(tagName);
     if (it == m_creators.end()) {
@@ -92,8 +95,9 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
         auto layoutIt = attrs.find("layout");
         if (layoutIt != attrs.end()) {
             std::string layout = layoutIt->second;
-            std::transform(layout.begin(), layout.end(), layout.begin(),
-                          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            std::transform(layout.begin(), layout.end(), layout.begin(), [](unsigned char c) {
+                return static_cast<char>(std::tolower(c));
+            });
             if (auto* container = dynamic_cast<widget::ContainerWidget*>(widget.get())) {
                 if (layout == "flex") {
                     container->setLayoutType(widget::ContainerLayoutType::Flex);
@@ -109,11 +113,13 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
     return widget;
 }
 
-bool BuiltinWidgets::hasTag(const std::string& tagName) const {
+bool BuiltinWidgets::hasTag(const std::string& tagName) const
+{
     return m_creators.find(tagName) != m_creators.end();
 }
 
-std::vector<std::string> BuiltinWidgets::registeredTags() const {
+std::vector<std::string> BuiltinWidgets::registeredTags() const
+{
     std::vector<std::string> tags;
     tags.reserve(m_creators.size());
     for (const auto& [tag, creator] : m_creators) {
@@ -122,14 +128,15 @@ std::vector<std::string> BuiltinWidgets::registeredTags() const {
     return tags;
 }
 
-std::map<std::string, std::string> BuiltinWidgets::getDefaultAttributes(const std::string& tagName) const {
+std::map<std::string, std::string> BuiltinWidgets::getDefaultAttributes(const std::string& tagName) const
+{
     auto it = m_defaultAttributes.find(tagName);
     return it != m_defaultAttributes.end() ? it->second : std::map<std::string, std::string>();
 }
 
-void BuiltinWidgets::registerScreenWidget() {
-    m_creators["screen"] = [](const std::string& id,
-                               const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerScreenWidget()
+{
+    m_creators["screen"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "screen" : id);
         auto titleIt = attrs.find("title");
         if (titleIt != attrs.end()) {
@@ -142,21 +149,20 @@ void BuiltinWidgets::registerScreenWidget() {
         return widget;
     };
 
-    m_defaultAttributes["screen"] = {
-        {"size", "auto,auto"}
-    };
+    m_defaultAttributes["screen"] = {{"size", "auto,auto"}};
 }
 
-void BuiltinWidgets::registerContainerWidget() {
-    m_creators["container"] = [](const std::string& id,
-                                   const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerContainerWidget()
+{
+    m_creators["container"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "container" : id);
 
         auto layoutIt = attrs.find("layout");
         if (layoutIt != attrs.end()) {
             std::string layout = layoutIt->second;
-            std::transform(layout.begin(), layout.end(), layout.begin(),
-                          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            std::transform(layout.begin(), layout.end(), layout.begin(), [](unsigned char c) {
+                return static_cast<char>(std::tolower(c));
+            });
             if (layout == "flex") {
                 widget->setLayoutType(widget::ContainerLayoutType::Flex);
             } else if (layout == "grid") {
@@ -169,14 +175,12 @@ void BuiltinWidgets::registerContainerWidget() {
         return widget;
     };
 
-    m_defaultAttributes["container"] = {
-        {"size", "auto,auto"}
-    };
+    m_defaultAttributes["container"] = {{"size", "auto,auto"}};
 }
 
-void BuiltinWidgets::registerButtonWidget() {
-    m_creators["button"] = [](const std::string& id,
-                               const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerButtonWidget()
+{
+    m_creators["button"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto button = std::make_unique<widget::ButtonWidget>();
 
         if (!id.empty()) {
@@ -191,14 +195,12 @@ void BuiltinWidgets::registerButtonWidget() {
         return button;
     };
 
-    m_defaultAttributes["button"] = {
-        {"size", "200,20"}
-    };
+    m_defaultAttributes["button"] = {{"size", "200,20"}};
 }
 
-void BuiltinWidgets::registerTextWidget() {
-    m_creators["text"] = [](const std::string& id,
-                            const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerTextWidget()
+{
+    m_creators["text"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto text = std::make_unique<widget::TextWidget>();
 
         if (!id.empty()) {
@@ -223,8 +225,9 @@ void BuiltinWidgets::registerTextWidget() {
         auto alignIt = attrs.find("align");
         if (alignIt != attrs.end()) {
             std::string align = alignIt->second;
-            std::transform(align.begin(), align.end(), align.begin(),
-                          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            std::transform(align.begin(), align.end(), align.begin(), [](unsigned char c) {
+                return static_cast<char>(std::tolower(c));
+            });
             if (align == "left") {
                 text->setAlignment(widget::TextAlignment::Left);
             } else if (align == "center") {
@@ -242,15 +245,12 @@ void BuiltinWidgets::registerTextWidget() {
         return text;
     };
 
-    m_defaultAttributes["text"] = {
-        {"color", "#FFFFFF"},
-        {"shadow", "true"}
-    };
+    m_defaultAttributes["text"] = {{"color", "#FFFFFF"}, {"shadow", "true"}};
 }
 
-void BuiltinWidgets::registerTextFieldWidget() {
-    m_creators["textfield"] = [](const std::string& id,
-                                  const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerTextFieldWidget()
+{
+    m_creators["textfield"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto textField = std::make_unique<widget::TextFieldWidget>();
 
         if (!id.empty()) {
@@ -273,14 +273,12 @@ void BuiltinWidgets::registerTextFieldWidget() {
         return textField;
     };
 
-    m_defaultAttributes["textfield"] = {
-        {"size", "200,20"}
-    };
+    m_defaultAttributes["textfield"] = {{"size", "200,20"}};
 }
 
-void BuiltinWidgets::registerSliderWidget() {
-    m_creators["slider"] = [](const std::string& id,
-                               const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerSliderWidget()
+{
+    m_creators["slider"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto slider = std::make_unique<widget::SliderWidget>();
 
         if (!id.empty()) {
@@ -301,15 +299,12 @@ void BuiltinWidgets::registerSliderWidget() {
         return slider;
     };
 
-    m_defaultAttributes["slider"] = {
-        {"size", "200,20"},
-        {"range", "0,100"}
-    };
+    m_defaultAttributes["slider"] = {{"size", "200,20"}, {"range", "0,100"}};
 }
 
-void BuiltinWidgets::registerCheckboxWidget() {
-    m_creators["checkbox"] = [](const std::string& id,
-                                 const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerCheckboxWidget()
+{
+    m_creators["checkbox"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto checkbox = std::make_unique<widget::CheckboxWidget>();
 
         if (!id.empty()) {
@@ -324,14 +319,12 @@ void BuiltinWidgets::registerCheckboxWidget() {
         return checkbox;
     };
 
-    m_defaultAttributes["checkbox"] = {
-        {"size", "20,20"}
-    };
+    m_defaultAttributes["checkbox"] = {{"size", "20,20"}};
 }
 
-void BuiltinWidgets::registerImageWidget() {
-    m_creators["image"] = [](const std::string& id,
-                              const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerImageWidget()
+{
+    m_creators["image"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "image" : id);
 
         auto srcIt = attrs.find("src");
@@ -342,14 +335,12 @@ void BuiltinWidgets::registerImageWidget() {
         return widget;
     };
 
-    m_defaultAttributes["image"] = {
-        {"size", "auto,auto"}
-    };
+    m_defaultAttributes["image"] = {{"size", "auto,auto"}};
 }
 
-void BuiltinWidgets::registerGridWidget() {
-    m_creators["grid"] = [](const std::string& id,
-                             const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerGridWidget()
+{
+    m_creators["grid"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "grid" : id);
         widget->setLayoutType(widget::ContainerLayoutType::Grid);
 
@@ -365,15 +356,12 @@ void BuiltinWidgets::registerGridWidget() {
         return widget;
     };
 
-    m_defaultAttributes["grid"] = {
-        {"cols", "1"},
-        {"rows", "1"}
-    };
+    m_defaultAttributes["grid"] = {{"cols", "1"}, {"rows", "1"}};
 }
 
-void BuiltinWidgets::registerSlotWidget() {
-    m_creators["slot"] = [](const std::string& id,
-                             const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerSlotWidget()
+{
+    m_creators["slot"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto slot = std::make_unique<widget::SlotWidget>();
 
         if (!id.empty()) {
@@ -388,14 +376,12 @@ void BuiltinWidgets::registerSlotWidget() {
         return slot;
     };
 
-    m_defaultAttributes["slot"] = {
-        {"size", "18,18"}
-    };
+    m_defaultAttributes["slot"] = {{"size", "18,18"}};
 }
 
-void BuiltinWidgets::registerScrollableWidget() {
-    m_creators["scrollable"] = [](const std::string& id,
-                                   const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerScrollableWidget()
+{
+    m_creators["scrollable"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto scrollable = std::make_unique<widget::ScrollableWidget>();
 
         if (!id.empty()) {
@@ -407,15 +393,21 @@ void BuiltinWidgets::registerScrollableWidget() {
             if (key == "content-height") {
                 try {
                     scrollable->setContentHeight(std::stoi(value));
-                } catch (...) {}
+                }
+                catch (...) {
+                }
             } else if (key == "content-width") {
                 try {
                     scrollable->setContentWidth(std::stoi(value));
-                } catch (...) {}
+                }
+                catch (...) {
+                }
             } else if (key == "scroll-speed") {
                 try {
                     scrollable->setScrollSpeed(std::stod(value));
-                } catch (...) {}
+                }
+                catch (...) {
+                }
             } else if (key == "show-scrollbar") {
                 scrollable->setShowScrollbar(value == "true");
             }
@@ -425,9 +417,9 @@ void BuiltinWidgets::registerScrollableWidget() {
     };
 }
 
-void BuiltinWidgets::registerListWidget() {
-    m_creators["list"] = [](const std::string& id,
-                             const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerListWidget()
+{
+    m_creators["list"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto list = std::make_unique<widget::ListWidget>();
 
         if (!id.empty()) {
@@ -438,9 +430,9 @@ void BuiltinWidgets::registerListWidget() {
     };
 }
 
-void BuiltinWidgets::registerViewport3DWidget() {
-    m_creators["viewport3d"] = [](const std::string& id,
-                                   const std::map<std::string, std::string>& attrs) {
+void BuiltinWidgets::registerViewport3DWidget()
+{
+    m_creators["viewport3d"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto viewport = std::make_unique<widget::Viewport3DWidget>();
 
         if (!id.empty()) {
@@ -450,16 +442,15 @@ void BuiltinWidgets::registerViewport3DWidget() {
         return viewport;
     };
 
-    m_defaultAttributes["viewport3d"] = {
-        {"size", "100,100"}
-    };
+    m_defaultAttributes["viewport3d"] = {{"size", "100,100"}};
 }
 
 // ========== widget_attrs实现 ==========
 
 namespace widget_attrs {
 
-std::pair<i32, i32> parsePosition(const std::string& value) {
+std::pair<i32, i32> parsePosition(const std::string& value)
+{
     size_t comma = value.find(',');
     if (comma == std::string::npos) {
         return {0, 0};
@@ -469,28 +460,33 @@ std::pair<i32, i32> parsePosition(const std::string& value) {
         i32 x = std::stoi(value.substr(0, comma));
         i32 y = std::stoi(value.substr(comma + 1));
         return {x, y};
-    } catch (...) {
+    }
+    catch (...) {
         return {0, 0};
     }
 }
 
-std::pair<i32, i32> parseSize(const std::string& value) {
+std::pair<i32, i32> parseSize(const std::string& value)
+{
     return parsePosition(value);
 }
 
-void applyPosition(widget::Widget* widget, const std::string& value) {
+void applyPosition(widget::Widget* widget, const std::string& value)
+{
     if (!widget) return;
     auto [x, y] = parsePosition(value);
     widget->setPosition(x, y);
 }
 
-void applySize(widget::Widget* widget, const std::string& value) {
+void applySize(widget::Widget* widget, const std::string& value)
+{
     if (!widget) return;
     auto [width, height] = parseSize(value);
     widget->setSize(width, height);
 }
 
-u32 parseColor(const std::string& value) {
+u32 parseColor(const std::string& value)
+{
     if (value.empty()) {
         return 0xFFFFFFFF;
     }
@@ -510,7 +506,8 @@ u32 parseColor(const std::string& value) {
                 color |= 0xFF000000;
             }
             return color;
-        } catch (...) {
+        }
+        catch (...) {
             return 0xFFFFFFFF;
         }
     }
@@ -527,7 +524,9 @@ u32 parseColor(const std::string& value) {
             while (std::getline(iss, token, ',')) {
                 try {
                     values.push_back(std::stoi(token));
-                } catch (...) {}
+                }
+                catch (...) {
+                }
             }
 
             if (values.size() >= 3) {
@@ -551,7 +550,9 @@ u32 parseColor(const std::string& value) {
             while (std::getline(iss, token, ',')) {
                 try {
                     values.push_back(std::stof(token));
-                } catch (...) {}
+                }
+                catch (...) {
+                }
             }
 
             if (values.size() >= 4) {
@@ -564,8 +565,7 @@ u32 parseColor(const std::string& value) {
         }
     }
 
-    static const std::unordered_map<std::string, u32> namedColors = {
-        {"white", 0xFFFFFFFF},
+    static const std::unordered_map<std::string, u32> namedColors = {{"white", 0xFFFFFFFF},
         {"black", 0xFF000000},
         {"red", 0xFFFF0000},
         {"green", 0xFF00FF00},
@@ -583,12 +583,12 @@ u32 parseColor(const std::string& value) {
         {"orange", 0xFFFFA500},
         {"pink", 0xFFFFC0CB},
         {"purple", 0xFF800080},
-        {"brown", 0xFFA52A2A}
-    };
+        {"brown", 0xFFA52A2A}};
 
     std::string lowerValue = value;
-    std::transform(lowerValue.begin(), lowerValue.end(), lowerValue.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lowerValue.begin(), lowerValue.end(), lowerValue.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
     auto it = namedColors.find(lowerValue);
     if (it != namedColors.end()) {
@@ -598,19 +598,20 @@ u32 parseColor(const std::string& value) {
     return 0xFFFFFFFF;
 }
 
-std::string colorToString(u32 color) {
+std::string colorToString(u32 color)
+{
     std::ostringstream oss;
     oss << "#" << std::hex << std::setfill('0') << std::setw(8) << color;
     return oss.str();
 }
 
-Anchor parseAnchor(const std::string& value) {
+Anchor parseAnchor(const std::string& value)
+{
     std::string lower = value;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(
+        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    static const std::unordered_map<std::string, Anchor> anchors = {
-        {"topleft", Anchor::TopLeft},
+    static const std::unordered_map<std::string, Anchor> anchors = {{"topleft", Anchor::TopLeft},
         {"topcenter", Anchor::TopCenter},
         {"topright", Anchor::TopRight},
         {"centerleft", Anchor::CenterLeft},
@@ -618,53 +619,69 @@ Anchor parseAnchor(const std::string& value) {
         {"centerright", Anchor::CenterRight},
         {"bottomleft", Anchor::BottomLeft},
         {"bottomcenter", Anchor::BottomCenter},
-        {"bottomright", Anchor::BottomRight}
-    };
+        {"bottomright", Anchor::BottomRight}};
 
     auto it = anchors.find(lower);
     return it != anchors.end() ? it->second : Anchor::TopLeft;
 }
 
-std::string anchorToString(Anchor anchor) {
+std::string anchorToString(Anchor anchor)
+{
     switch (anchor) {
-        case Anchor::TopLeft: return "topLeft";
-        case Anchor::TopCenter: return "topCenter";
-        case Anchor::TopRight: return "topRight";
-        case Anchor::CenterLeft: return "centerLeft";
-        case Anchor::Center: return "center";
-        case Anchor::CenterRight: return "centerRight";
-        case Anchor::BottomLeft: return "bottomLeft";
-        case Anchor::BottomCenter: return "bottomCenter";
-        case Anchor::BottomRight: return "bottomRight";
-        default: return "topLeft";
+        case Anchor::TopLeft:
+            return "topLeft";
+        case Anchor::TopCenter:
+            return "topCenter";
+        case Anchor::TopRight:
+            return "topRight";
+        case Anchor::CenterLeft:
+            return "centerLeft";
+        case Anchor::Center:
+            return "center";
+        case Anchor::CenterRight:
+            return "centerRight";
+        case Anchor::BottomLeft:
+            return "bottomLeft";
+        case Anchor::BottomCenter:
+            return "bottomCenter";
+        case Anchor::BottomRight:
+            return "bottomRight";
+        default:
+            return "topLeft";
     }
 }
 
-bool parseBool(const std::string& value) {
+bool parseBool(const std::string& value)
+{
     std::string lower = value;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(
+        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     return lower == "true" || lower == "1" || lower == "yes" || lower == "on";
 }
 
-i32 parseInt(const std::string& value, i32 defaultValue) {
+i32 parseInt(const std::string& value, i32 defaultValue)
+{
     try {
         return std::stoi(value);
-    } catch (...) {
+    }
+    catch (...) {
         return defaultValue;
     }
 }
 
-f32 parseFloat(const std::string& value, f32 defaultValue) {
+f32 parseFloat(const std::string& value, f32 defaultValue)
+{
     try {
         return std::stof(value);
-    } catch (...) {
+    }
+    catch (...) {
         return defaultValue;
     }
 }
 
-std::pair<f32, f32> parseRange(const std::string& value) {
+std::pair<f32, f32> parseRange(const std::string& value)
+{
     size_t comma = value.find(',');
     if (comma == std::string::npos) {
         return {0.0f, 1.0f};
@@ -674,7 +691,8 @@ std::pair<f32, f32> parseRange(const std::string& value) {
         f32 min = std::stof(value.substr(0, comma));
         f32 max = std::stof(value.substr(comma + 1));
         return {min, max};
-    } catch (...) {
+    }
+    catch (...) {
         return {0.0f, 1.0f};
     }
 }
@@ -682,4 +700,3 @@ std::pair<f32, f32> parseRange(const std::string& value) {
 } // namespace widget_attrs
 
 } // namespace mc::client::ui::kagero::tpl::bindings
-

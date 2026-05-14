@@ -1,39 +1,40 @@
 #include "DoorBlock.hpp"
+#include "../../../core/Constants.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include "../../IWorld.hpp"
 #include "../../redstone/RedstoneSystem.hpp"
 #include "../BlockRegistry.hpp"
 #include "../VanillaBlocks.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
 
 DoorBlock::DoorBlock(const BlockProperties& properties, bool isIron)
     : Block(properties)
-    , m_isIron(isIron) {
+    , m_isIron(isIron)
+{
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::OPEN())
-        .add(BlockStateProperties::HINGE())
-        .add(BlockStateProperties::POWERED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::OPEN())
+                         .add(BlockStateProperties::HINGE())
+                         .add(BlockStateProperties::POWERED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     setDefaultState(defaultState()
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::OPEN(), false)
-        .with(BlockStateProperties::HINGE(), BlockStateProperties::DoorHinge::Left)
-        .with(BlockStateProperties::POWERED(), false));
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::OPEN(), false)
+            .with(BlockStateProperties::HINGE(), BlockStateProperties::DoorHinge::Left)
+            .with(BlockStateProperties::POWERED(), false));
 
     m_shapes[0] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
     m_shapes[1] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f);
@@ -45,7 +46,8 @@ DoorBlock::DoorBlock(const BlockProperties& properties, bool isIron)
     m_shapes[7] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
 }
 
-BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     BlockPos pos = context.placementPos();
     IWorld& world = const_cast<IWorld&>(context.getWorld());
 
@@ -58,7 +60,7 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
     }
 
     const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos) ||
-                         world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos.up());
+        world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos.up());
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection())
@@ -68,15 +70,17 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
 }
 
-void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     BlockPos abovePos = pos.up();
-    BlockState upperState = state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    BlockState upperState =
+        state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
     world.setBlockState(abovePos, &upperState, 3);
 }
 
-void DoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
-                                Block& neighborBlock, const BlockPos& neighborPos,
-                                bool isMoving) {
+void DoorBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -91,24 +95,21 @@ void DoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     BlockStateProperties::DoubleBlockHalf otherHalf = (half == BlockStateProperties::DoubleBlockHalf::Lower)
         ? BlockStateProperties::DoubleBlockHalf::Upper
         : BlockStateProperties::DoubleBlockHalf::Lower;
-    BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower)
-        ? BlockPos(pos.x, pos.y + 1, pos.z)
-        : BlockPos(pos.x, pos.y - 1, pos.z);
+    BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower) ? BlockPos(pos.x, pos.y + 1, pos.z)
+                                                                                   : BlockPos(pos.x, pos.y - 1, pos.z);
 
     const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos) ||
-                         world::redstone::RedstoneSystem::instance().isBlockPowered(world, otherHalfPos);
+        world::redstone::RedstoneSystem::instance().isBlockPowered(world, otherHalfPos);
     bool wasPowered = state.get(BlockStateProperties::POWERED());
 
     if (powered != wasPowered) {
         bool wasOpen = state.get(BlockStateProperties::OPEN());
-        BlockState newState = state
-            .with(BlockStateProperties::POWERED(), powered)
-            .with(BlockStateProperties::OPEN(), powered);
+        BlockState newState =
+            state.with(BlockStateProperties::POWERED(), powered).with(BlockStateProperties::OPEN(), powered);
         world.setBlockState(pos, &newState, 2);
 
         const BlockState* otherStatePtr = world.getBlockState(otherHalfPos);
-        if (otherStatePtr != nullptr &&
-            &otherStatePtr->getBlock() == this &&
+        if (otherStatePtr != nullptr && &otherStatePtr->getBlock() == this &&
             otherStatePtr->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == otherHalf) {
             BlockState otherState = newState.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), otherHalf);
             world.setBlockState(otherHalfPos, &otherState, 2);
@@ -119,13 +120,13 @@ void DoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     }
 }
 
-BlockState DoorBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState DoorBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingPos);
 
@@ -136,10 +137,10 @@ BlockState DoorBlock::updatePostPlacement(
         bool isUpDirection = facing == Direction::Up;
 
         if (isLower == isUpDirection) {
-            if (&facingState.getBlock() == this &&
-                facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != half) {
+            if (&facingState.getBlock() == this && facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != half) {
                 return state
-                    .with(BlockStateProperties::HORIZONTAL_FACING(), facingState.get(BlockStateProperties::HORIZONTAL_FACING()))
+                    .with(BlockStateProperties::HORIZONTAL_FACING(),
+                        facingState.get(BlockStateProperties::HORIZONTAL_FACING()))
                     .with(BlockStateProperties::OPEN(), facingState.get(BlockStateProperties::OPEN()))
                     .with(BlockStateProperties::HINGE(), facingState.get(BlockStateProperties::HINGE()))
                     .with(BlockStateProperties::POWERED(), facingState.get(BlockStateProperties::POWERED()));
@@ -159,7 +160,8 @@ BlockState DoorBlock::updatePostPlacement(
     return state;
 }
 
-bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const {
+bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
     if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
         const BlockPos belowPos = pos.down();
@@ -168,18 +170,17 @@ bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
     }
 
     const BlockState* belowState = world.getBlockState(pos.down());
-    return belowState != nullptr &&
-           &belowState->getBlock() == this &&
-           belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+    return belowState != nullptr && &belowState->getBlock() == this &&
+        belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
 }
 
-ActionResultType DoorBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType DoorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(player);
     MC_UNUSED(hand);
@@ -193,7 +194,8 @@ ActionResultType DoorBlock::onBlockActivated(
     return ActionResultType::Success;
 }
 
-void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open) {
+void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open)
+{
     const BlockState* statePtr = world.getBlockState(pos);
     if (statePtr == nullptr || &statePtr->getBlock() != this) {
         return;
@@ -208,9 +210,7 @@ void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open) {
     BlockStateProperties::DoubleBlockHalf otherHalf = (half == BlockStateProperties::DoubleBlockHalf::Lower)
         ? BlockStateProperties::DoubleBlockHalf::Upper
         : BlockStateProperties::DoubleBlockHalf::Lower;
-    BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower)
-        ? pos.up()
-        : pos.down();
+    BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower) ? pos.up() : pos.down();
 
     BlockState newState = state.with(BlockStateProperties::OPEN(), open);
     world.setBlockState(pos, &newState, 10);
@@ -219,24 +219,28 @@ void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open) {
     playSound(world, pos, open);
 }
 
-const CollisionShape& DoorBlock::getShape(const BlockState& state) const {
+const CollisionShape& DoorBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     bool open = state.get(BlockStateProperties::OPEN());
     bool hingeRight = state.get(BlockStateProperties::HINGE()) == BlockStateProperties::DoorHinge::Right;
     return m_shapes[getShapeIndex(facing, open, hingeRight)];
 }
 
-const CollisionShape& DoorBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& DoorBlock::getCollisionShape(const BlockState& state) const
+{
     return getShape(state);
 }
 
-const BlockState& DoorBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& DoorBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& DoorBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& DoorBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }
@@ -250,11 +254,13 @@ const BlockState& DoorBlock::mirror(const BlockState& state, Mirror mirror) cons
     return rotated.with(BlockStateProperties::HINGE(), newHinge);
 }
 
-bool DoorBlock::isOpen(const BlockState& state) {
+bool DoorBlock::isOpen(const BlockState& state)
+{
     return state.get(BlockStateProperties::OPEN());
 }
 
-bool DoorBlock::isWooden(const BlockState& state) {
+bool DoorBlock::isWooden(const BlockState& state)
+{
     const Block* block = &state.getBlock();
     if (auto* doorBlock = dynamic_cast<const DoorBlock*>(block)) {
         const Material& mat = doorBlock->material();
@@ -263,7 +269,8 @@ bool DoorBlock::isWooden(const BlockState& state) {
     return false;
 }
 
-BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContext& context) {
+BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContext& context)
+{
     const IWorld& reader = context.getWorld();
     BlockPos pos = context.placementPos();
     Direction facing = context.horizontalDirection();
@@ -287,12 +294,10 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
     if (rightState != nullptr && rightState->hasOpaqueCollisionShape()) score++;
     if (rightUpState != nullptr && rightUpState->hasOpaqueCollisionShape()) score++;
 
-    bool hasLeftDoor = leftState != nullptr &&
-                       &leftState->getBlock() == this &&
-                       leftState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
-    bool hasRightDoor = rightState != nullptr &&
-                        &rightState->getBlock() == this &&
-                        rightState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+    bool hasLeftDoor = leftState != nullptr && &leftState->getBlock() == this &&
+        leftState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+    bool hasRightDoor = rightState != nullptr && &rightState->getBlock() == this &&
+        rightState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
 
     if ((!hasLeftDoor || hasRightDoor) && score <= 0) {
         if ((!hasRightDoor || hasLeftDoor) && score >= 0) {
@@ -301,9 +306,7 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
             f32 hitX = context.getHitX() - static_cast<f32>(pos.x);
             f32 hitZ = context.getHitZ() - static_cast<f32>(pos.z);
 
-            if ((dx >= 0 || !(hitZ < 0.5f)) &&
-                (dx <= 0 || !(hitZ > 0.5f)) &&
-                (dz >= 0 || !(hitX > 0.5f)) &&
+            if ((dx >= 0 || !(hitZ < 0.5f)) && (dx <= 0 || !(hitZ > 0.5f)) && (dz >= 0 || !(hitX > 0.5f)) &&
                 (dz <= 0 || !(hitX < 0.5f))) {
                 return BlockStateProperties::DoorHinge::Left;
             }
@@ -314,54 +317,75 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
     return BlockStateProperties::DoorHinge::Right;
 }
 
-void DoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
+void DoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening)
+{
     // MC 1.16.5: DoorBlock.playSound()
     const ResourceLocation& soundEvent = isOpening
         ? (m_isIron ? SoundEvents::BLOCK_IRON_DOOR_OPEN : SoundEvents::BLOCK_WOODEN_DOOR_OPEN)
         : (m_isIron ? SoundEvents::BLOCK_IRON_DOOR_CLOSE : SoundEvents::BLOCK_WOODEN_DOOR_CLOSE);
-    world.playSound(soundEvent, sound::SoundCategory::Blocks,
-                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
-                    1.0f, 1.0f);
+    world.playSound(soundEvent,
+        sound::SoundCategory::Blocks,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+        1.0f,
+        1.0f);
 }
 
-i32 DoorBlock::getOpenSound() const {
+i32 DoorBlock::getOpenSound() const
+{
     // 参考 MC 1.16.5: DoorBlock.getOpenSound
     // 铁门开门音效 1005，木门开门音效 1006
     return m_isIron ? 1005 : 1006;
 }
 
-i32 DoorBlock::getCloseSound() const {
+i32 DoorBlock::getCloseSound() const
+{
     // 参考 MC 1.16.5: DoorBlock.getCloseSound
     // 铁门关门音效 1011，木门关门音效 1012
     return m_isIron ? 1011 : 1012;
 }
 
-size_t DoorBlock::getShapeIndex(Direction facing, bool open, bool hingeRight) {
+size_t DoorBlock::getShapeIndex(Direction facing, bool open, bool hingeRight)
+{
     if (!open) {
         switch (facing) {
-            case Direction::East:  return 0;
-            case Direction::South: return 1;
-            case Direction::West:  return 2;
-            case Direction::North: return 3;
-            default: return 0;
+            case Direction::East:
+                return 0;
+            case Direction::South:
+                return 1;
+            case Direction::West:
+                return 2;
+            case Direction::North:
+                return 3;
+            default:
+                return 0;
         }
     }
 
     if (hingeRight) {
         switch (facing) {
-            case Direction::East:  return 5;
-            case Direction::South: return 6;
-            case Direction::West:  return 7;
-            case Direction::North: return 4;
-            default: return 4;
+            case Direction::East:
+                return 5;
+            case Direction::South:
+                return 6;
+            case Direction::West:
+                return 7;
+            case Direction::North:
+                return 4;
+            default:
+                return 4;
         }
     } else {
         switch (facing) {
-            case Direction::East:  return 4;
-            case Direction::South: return 5;
-            case Direction::West:  return 6;
-            case Direction::North: return 7;
-            default: return 4;
+            case Direction::East:
+                return 4;
+            case Direction::South:
+                return 5;
+            case Direction::West:
+                return 6;
+            case Direction::North:
+                return 7;
+            default:
+                return 4;
         }
     }
 }

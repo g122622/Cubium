@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CaveCarver.hpp"
 #include "../../../core/Types.hpp"
+#include "CaveCarver.hpp"
 #include <unordered_set>
 
 namespace mc {

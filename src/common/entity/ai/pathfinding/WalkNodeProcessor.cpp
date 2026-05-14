@@ -2,8 +2,8 @@
 #include "../../../core/Constants.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/BlockTags.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../core/LivingEntity.hpp"
 #include <cmath>
@@ -12,7 +12,8 @@ namespace mc::entity::ai::pathfinding {
 
 using namespace mc::math;
 
-PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z) {
+PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
+{
     if (!m_region) {
         return PathNodeType::Blocked;
     }
@@ -86,7 +87,8 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z) {
     return PathNodeType::Blocked;
 }
 
-PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z) {
+PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
+{
     // 获取基础类型
     PathNodeType type = getNodeType(x, y, z);
 
@@ -197,7 +199,8 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z) {
     return type;
 }
 
-PathPoint* WalkNodeProcessor::getStartNode(i32 x, i32 y, i32 z) {
+PathPoint* WalkNodeProcessor::getStartNode(i32 x, i32 y, i32 z)
+{
     // 找到实体脚下的地面
     i32 groundY = getGroundHeight(x, y, z);
 
@@ -209,7 +212,8 @@ PathPoint* WalkNodeProcessor::getStartNode(i32 x, i32 y, i32 z) {
     return getNode(x, groundY, z);
 }
 
-std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current) {
+std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current)
+{
     std::vector<PathPoint*> neighbors;
     neighbors.reserve(26); // 最多26个相邻节点
 
@@ -236,8 +240,7 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current) {
         // 检查水平移动
         PathNodeType type = getNodeType(nx, y, nz);
 
-        if (type == PathNodeType::Walkable || type == PathNodeType::Water ||
-            type == PathNodeType::Climbable) {
+        if (type == PathNodeType::Walkable || type == PathNodeType::Water || type == PathNodeType::Climbable) {
             // 检查对角线移动时是否被阻挡
             if (isDiagonal) {
                 PathNodeType type1 = getNodeType(x + dx[i], y, z);
@@ -249,23 +252,20 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current) {
             }
 
             addNeighbor(neighbors, nx, y, nz, type);
-        }
-        else if (type == PathNodeType::Open || type == PathNodeType::DangerFall) {
+        } else if (type == PathNodeType::Open || type == PathNodeType::DangerFall) {
             // 检查是否需要跳跃
             PathNodeType upperType = getNodeType(x, y + 1, z);
             if (upperType == PathNodeType::Walkable && canStandOn(nx, y, nz)) {
                 // 可以跳跃上去
                 addNeighbor(neighbors, nx, y + 1, nz, PathNodeType::Walkable);
-            }
-            else if (type == PathNodeType::DangerFall && currentType == PathNodeType::Walkable) {
+            } else if (type == PathNodeType::DangerFall && currentType == PathNodeType::Walkable) {
                 // 可以跌落
                 i32 groundY = getGroundHeight(nx, y, nz);
                 if (groundY >= y - m_maxFallDistance) {
                     addNeighbor(neighbors, nx, groundY, nz, PathNodeType::Walkable);
                 }
             }
-        }
-        else if (type == PathNodeType::Blocked) {
+        } else if (type == PathNodeType::Blocked) {
             // 尝试跳上障碍物
             if (currentType == PathNodeType::Walkable && canStandOn(nx, y, nz)) {
                 PathNodeType upperType = getNodeType(nx, y + 1, nz);
@@ -307,7 +307,8 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current) {
     return neighbors;
 }
 
-std::unique_ptr<PathPoint> WalkNodeProcessor::createNode(i32 x, i32 y, i32 z) {
+std::unique_ptr<PathPoint> WalkNodeProcessor::createNode(i32 x, i32 y, i32 z)
+{
     if (!m_region || !m_region->isLoaded(x, z)) {
         return nullptr;
     }
@@ -325,21 +326,24 @@ std::unique_ptr<PathPoint> WalkNodeProcessor::createNode(i32 x, i32 y, i32 z) {
     return node;
 }
 
-bool WalkNodeProcessor::isWalkableAt(i32 x, i32 y, i32 z) const {
+bool WalkNodeProcessor::isWalkableAt(i32 x, i32 y, i32 z) const
+{
     if (!m_region) return false;
 
     // 检查位置本身是否可以站立
     return m_region->isWalkable(x, y, z);
 }
 
-bool WalkNodeProcessor::canStandOn(i32 x, i32 y, i32 z) const {
+bool WalkNodeProcessor::canStandOn(i32 x, i32 y, i32 z) const
+{
     if (!m_region) return false;
 
     // 检查脚下是否有支撑
     return m_region->isWalkable(x, y, z) && isPassable(x, y + 1, z);
 }
 
-bool WalkNodeProcessor::isSafe(i32 x, i32 y, i32 z) const {
+bool WalkNodeProcessor::isSafe(i32 x, i32 y, i32 z) const
+{
     if (!m_region) return false;
 
     // MC 1.16.5: 检查位置本身和周围是否有危险
@@ -363,7 +367,8 @@ bool WalkNodeProcessor::isSafe(i32 x, i32 y, i32 z) const {
     return true;
 }
 
-bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const {
+bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const
+{
     if (!m_region) return false;
 
     // MC 1.16.5 func_237233_a_:
@@ -427,7 +432,8 @@ bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const {
     return false;
 }
 
-i32 WalkNodeProcessor::getGroundHeight(i32 x, i32 y, i32 z) const {
+i32 WalkNodeProcessor::getGroundHeight(i32 x, i32 y, i32 z) const
+{
     if (!m_region) return y;
 
     // 从指定位置向下搜索地面
@@ -440,14 +446,16 @@ i32 WalkNodeProcessor::getGroundHeight(i32 x, i32 y, i32 z) const {
     return world::MIN_BUILD_HEIGHT;
 }
 
-bool WalkNodeProcessor::isPassable(i32 x, i32 y, i32 z) const {
+bool WalkNodeProcessor::isPassable(i32 x, i32 y, i32 z) const
+{
     if (!m_region) return true;
 
     // 检查位置是否可以穿过（空气、水等）
     return !m_region->isWalkable(x, y, z) || m_region->isWater(x, y, z);
 }
 
-void WalkNodeProcessor::addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 y, i32 z, PathNodeType type) {
+void WalkNodeProcessor::addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 y, i32 z, PathNodeType type)
+{
     PathPoint* node = getNode(x, y, z);
     if (node) {
         node->setNodeType(type);
@@ -456,7 +464,8 @@ void WalkNodeProcessor::addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i
     }
 }
 
-void WalkNodeProcessor::addJumpNeighbor(std::vector<PathPoint*>& neighbors, PathPoint* current, i32 dx, i32 dz) {
+void WalkNodeProcessor::addJumpNeighbor(std::vector<PathPoint*>& neighbors, PathPoint* current, i32 dx, i32 dz)
+{
     // 检查是否可以跳跃到相邻位置
     i32 x = current->x() + dx;
     i32 z = current->z() + dz;
@@ -470,7 +479,8 @@ void WalkNodeProcessor::addJumpNeighbor(std::vector<PathPoint*>& neighbors, Path
     }
 }
 
-void WalkNodeProcessor::addFallNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 startY, i32 z) {
+void WalkNodeProcessor::addFallNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 startY, i32 z)
+{
     // 检查是否可以跌落到相邻位置
     i32 groundY = getGroundHeight(x, startY, z);
     if (groundY >= startY - m_maxFallDistance) {

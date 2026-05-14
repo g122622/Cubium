@@ -10,10 +10,10 @@ namespace jigsaw {
 JigsawPattern::JigsawPattern(const ResourceLocation& name, const ResourceLocation& fallback)
     : m_name(name)
     , m_fallback(fallback)
-{
-}
+{}
 
-void JigsawPattern::addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight) {
+void JigsawPattern::addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight)
+{
     if (piece && weight > 0) {
         for (i32 i = 0; i < weight; ++i) {
             m_pieces.push_back(piece->clone());
@@ -21,7 +21,8 @@ void JigsawPattern::addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight) {
     }
 }
 
-const JigsawPiece* JigsawPattern::getRandomPiece(math::Random& rng) const {
+const JigsawPiece* JigsawPattern::getRandomPiece(math::Random& rng) const
+{
     if (m_pieces.empty()) {
         return nullptr;
     }
@@ -29,7 +30,8 @@ const JigsawPiece* JigsawPattern::getRandomPiece(math::Random& rng) const {
     return m_pieces[index].get();
 }
 
-std::vector<const JigsawPiece*> JigsawPattern::getShuffledPieces(math::Random& rng) const {
+std::vector<const JigsawPiece*> JigsawPattern::getShuffledPieces(math::Random& rng) const
+{
     std::vector<const JigsawPiece*> result;
     result.reserve(m_pieces.size());
 
@@ -44,25 +46,29 @@ std::vector<const JigsawPiece*> JigsawPattern::getShuffledPieces(math::Random& r
     return result;
 }
 
-JigsawPatternRegistry& JigsawPatternRegistry::instance() {
+JigsawPatternRegistry& JigsawPatternRegistry::instance()
+{
     static JigsawPatternRegistry registry;
     return registry;
 }
 
 JigsawPatternRegistry::JigsawPatternRegistry() = default;
 
-void JigsawPatternRegistry::registerPattern(std::unique_ptr<JigsawPattern> pattern) {
+void JigsawPatternRegistry::registerPattern(std::unique_ptr<JigsawPattern> pattern)
+{
     if (pattern) {
         m_patterns[pattern->getName()] = std::move(pattern);
     }
 }
 
-const JigsawPattern* JigsawPatternRegistry::getPattern(const ResourceLocation& name) const {
+const JigsawPattern* JigsawPatternRegistry::getPattern(const ResourceLocation& name) const
+{
     auto it = m_patterns.find(name);
     return it != m_patterns.end() ? it->second.get() : nullptr;
 }
 
-void JigsawPatternRegistry::clear() {
+void JigsawPatternRegistry::clear()
+{
     m_patterns.clear();
 }
 

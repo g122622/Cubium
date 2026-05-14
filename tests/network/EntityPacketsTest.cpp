@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include "network/packet/EntityPackets.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::network;
 using mc::u8;
@@ -8,22 +8,24 @@ using mc::u8;
 
 class SpawnEntityPacketTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         packet.setEntityId(12345);
         packet.setEntityTypeId("minecraft:item");
         packet.setPosition(100.5f, 64.0f, -200.25f);
         packet.setRotation(45.0f, 30.0f);
         packet.setVelocity(100, -50, 200);
 
-        std::array<u8, 16> uuid = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-                                    0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
+        std::array<u8, 16> uuid = {
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
         packet.setUuid(uuid);
     }
 
     SpawnEntityPacket packet;
 };
 
-TEST_F(SpawnEntityPacketTest, SerializeDeserialize) {
+TEST_F(SpawnEntityPacketTest, SerializeDeserialize)
+{
     auto result = packet.serialize();
     ASSERT_TRUE(result.success());
 
@@ -46,7 +48,8 @@ TEST_F(SpawnEntityPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.velocityZ(), 200);
 }
 
-TEST_F(SpawnEntityPacketTest, PacketType) {
+TEST_F(SpawnEntityPacketTest, PacketType)
+{
     EXPECT_EQ(packet.type(), PacketType::SpawnEntity);
 }
 
@@ -54,25 +57,27 @@ TEST_F(SpawnEntityPacketTest, PacketType) {
 
 class SpawnMobPacketTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         packet.setEntityId(54321);
         packet.setEntityTypeId("minecraft:pig");
         packet.setPosition(50.0f, 70.0f, 100.0f);
-        packet.setRotation(0.0f, 0.0f, 0.0f);  // yaw, pitch, headYaw
+        packet.setRotation(0.0f, 0.0f, 0.0f); // yaw, pitch, headYaw
         packet.setVelocity(0, 0, 0);
 
-        std::array<u8, 16> uuid = {0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89,
-                                    0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78};
+        std::array<u8, 16> uuid = {
+            0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78};
         packet.setUuid(uuid);
 
-        std::vector<u8> metadata = {0x01, 0x02, 0x03, static_cast<u8>(0xFF)};  // 示例元数据
+        std::vector<u8> metadata = {0x01, 0x02, 0x03, static_cast<u8>(0xFF)}; // 示例元数据
         packet.setMetadata(metadata);
     }
 
     SpawnMobPacket packet;
 };
 
-TEST_F(SpawnMobPacketTest, SerializeDeserialize) {
+TEST_F(SpawnMobPacketTest, SerializeDeserialize)
+{
     auto result = packet.serialize();
     ASSERT_TRUE(result.success());
 
@@ -92,13 +97,15 @@ TEST_F(SpawnMobPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.metadata()[3], 0xFF);
 }
 
-TEST_F(SpawnMobPacketTest, PacketType) {
+TEST_F(SpawnMobPacketTest, PacketType)
+{
     EXPECT_EQ(packet.type(), PacketType::SpawnMob);
 }
 
 // ==================== EntityVelocityPacket Tests ====================
 
-TEST(EntityVelocityPacketTest, SerializeDeserialize) {
+TEST(EntityVelocityPacketTest, SerializeDeserialize)
+{
     EntityVelocityPacket packet;
     packet.setEntityId(100);
     packet.setVelocity(1000, -500, 2000);
@@ -118,7 +125,8 @@ TEST(EntityVelocityPacketTest, SerializeDeserialize) {
 
 // ==================== EntityTeleportPacket Tests ====================
 
-TEST(EntityTeleportPacketTest, SerializeDeserialize) {
+TEST(EntityTeleportPacketTest, SerializeDeserialize)
+{
     EntityTeleportPacket packet;
     packet.setEntityId(200);
     packet.setPosition(123.45f, 64.0f, -789.0f);
@@ -143,7 +151,8 @@ TEST(EntityTeleportPacketTest, SerializeDeserialize) {
 
 // ==================== EntityDestroyPacket Tests ====================
 
-TEST(EntityDestroyPacketTest, SerializeDeserialize) {
+TEST(EntityDestroyPacketTest, SerializeDeserialize)
+{
     EntityDestroyPacket packet;
     packet.addEntityId(1);
     packet.addEntityId(2);
@@ -162,7 +171,8 @@ TEST(EntityDestroyPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.entityIds()[2], 3u);
 }
 
-TEST(EntityDestroyPacketTest, EmptyList) {
+TEST(EntityDestroyPacketTest, EmptyList)
+{
     EntityDestroyPacket packet;
 
     auto result = packet.serialize();
@@ -177,7 +187,8 @@ TEST(EntityDestroyPacketTest, EmptyList) {
 
 // ==================== EntityAnimationPacket Tests ====================
 
-TEST(EntityAnimationPacketTest, SerializeDeserialize) {
+TEST(EntityAnimationPacketTest, SerializeDeserialize)
+{
     EntityAnimationPacket packet;
     packet.setEntityId(300);
     packet.setAnimation(EntityAnimationPacket::Animation::SwingMainHand);
@@ -193,7 +204,8 @@ TEST(EntityAnimationPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.animation(), EntityAnimationPacket::Animation::SwingMainHand);
 }
 
-TEST(EntityAnimationPacketTest, AllAnimationTypes) {
+TEST(EntityAnimationPacketTest, AllAnimationTypes)
+{
     EntityAnimationPacket packet;
     packet.setEntityId(1);
 
@@ -218,10 +230,11 @@ TEST(EntityAnimationPacketTest, AllAnimationTypes) {
 
 // ==================== EntityMovePacket Tests ====================
 
-TEST(EntityMovePacketTest, SerializeDeserialize) {
+TEST(EntityMovePacketTest, SerializeDeserialize)
+{
     EntityMovePacket packet;
     packet.setEntityId(400);
-    packet.setDelta(100, -50, 200);  // 相对移动（1/32 block）
+    packet.setDelta(100, -50, 200); // 相对移动（1/32 block）
     packet.setRotation(180.0f, 90.0f);
     packet.setOnGround(false);
 
@@ -243,7 +256,8 @@ TEST(EntityMovePacketTest, SerializeDeserialize) {
 
 // ==================== EntityHeadLookPacket Tests ====================
 
-TEST(EntityHeadLookPacketTest, SerializeDeserialize) {
+TEST(EntityHeadLookPacketTest, SerializeDeserialize)
+{
     EntityHeadLookPacket packet;
     packet.setEntityId(500);
     packet.setHeadYaw(270.0f);
@@ -261,7 +275,8 @@ TEST(EntityHeadLookPacketTest, SerializeDeserialize) {
 
 // ==================== EntityStatusPacket Tests ====================
 
-TEST(EntityStatusPacketTest, SerializeDeserialize) {
+TEST(EntityStatusPacketTest, SerializeDeserialize)
+{
     EntityStatusPacket packet;
     packet.setEntityId(600);
     packet.setStatus(EntityStatusPacket::Status::LoveHeart);
@@ -277,7 +292,8 @@ TEST(EntityStatusPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.status(), EntityStatusPacket::Status::LoveHeart);
 }
 
-TEST(EntityStatusPacketTest, AllStatusTypes) {
+TEST(EntityStatusPacketTest, AllStatusTypes)
+{
     EntityStatusPacket packet;
     packet.setEntityId(1);
 
@@ -302,7 +318,8 @@ TEST(EntityStatusPacketTest, AllStatusTypes) {
 
 // ==================== EntityMetadataPacket Tests ====================
 
-TEST(EntityMetadataPacketTest, SerializeDeserialize) {
+TEST(EntityMetadataPacketTest, SerializeDeserialize)
+{
     EntityMetadataPacket packet;
     packet.setEntityId(700);
 
@@ -321,7 +338,8 @@ TEST(EntityMetadataPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.metadata(), metadata);
 }
 
-TEST(EntityMetadataPacketTest, EmptyMetadata) {
+TEST(EntityMetadataPacketTest, EmptyMetadata)
+{
     EntityMetadataPacket packet;
     packet.setEntityId(800);
 
@@ -338,33 +356,37 @@ TEST(EntityMetadataPacketTest, EmptyMetadata) {
 
 // ==================== Error Handling Tests ====================
 
-TEST(EntityPacketsErrorTest, SpawnEntityPacketTooSmall) {
+TEST(EntityPacketsErrorTest, SpawnEntityPacketTooSmall)
+{
     SpawnEntityPacket packet;
-    mc::u8 smallData[] = {0x01, 0x02};  // 数据太小
+    mc::u8 smallData[] = {0x01, 0x02}; // 数据太小
 
     auto result = packet.deserialize(smallData, sizeof(smallData));
     EXPECT_FALSE(result.success());
 }
 
-TEST(EntityPacketsErrorTest, SpawnMobPacketTooSmall) {
+TEST(EntityPacketsErrorTest, SpawnMobPacketTooSmall)
+{
     SpawnMobPacket packet;
-    mc::u8 smallData[] = {0x01, 0x02, 0x03};  // 数据太小
+    mc::u8 smallData[] = {0x01, 0x02, 0x03}; // 数据太小
 
     auto result = packet.deserialize(smallData, sizeof(smallData));
     EXPECT_FALSE(result.success());
 }
 
-TEST(EntityPacketsErrorTest, EntityVelocityPacketTooSmall) {
+TEST(EntityPacketsErrorTest, EntityVelocityPacketTooSmall)
+{
     EntityVelocityPacket packet;
-    mc::u8 smallData[] = {0x01};  // 数据太小
+    mc::u8 smallData[] = {0x01}; // 数据太小
 
     auto result = packet.deserialize(smallData, sizeof(smallData));
     EXPECT_FALSE(result.success());
 }
 
-TEST(EntityPacketsErrorTest, EntityTeleportPacketTooSmall) {
+TEST(EntityPacketsErrorTest, EntityTeleportPacketTooSmall)
+{
     EntityTeleportPacket packet;
-    mc::u8 smallData[] = {0x01, 0x02, 0x03, 0x04};  // 数据太小
+    mc::u8 smallData[] = {0x01, 0x02, 0x03, 0x04}; // 数据太小
 
     auto result = packet.deserialize(smallData, sizeof(smallData));
     EXPECT_FALSE(result.success());
@@ -372,7 +394,8 @@ TEST(EntityPacketsErrorTest, EntityTeleportPacketTooSmall) {
 
 // ==================== PlayerInputPacket Tests ====================
 
-TEST(PlayerInputPacketTest, SerializeDeserialize) {
+TEST(PlayerInputPacketTest, SerializeDeserialize)
+{
     PlayerInputPacket packet;
     packet.setStrafeSpeed(0.5f);
     packet.setForwardSpeed(1.0f);
@@ -392,7 +415,8 @@ TEST(PlayerInputPacketTest, SerializeDeserialize) {
     EXPECT_FALSE(packet2.isSneaking());
 }
 
-TEST(PlayerInputPacketTest, AllFlagsCombinations) {
+TEST(PlayerInputPacketTest, AllFlagsCombinations)
+{
     PlayerInputPacket packet;
     packet.setStrafeSpeed(-0.75f);
     packet.setForwardSpeed(-0.25f);
@@ -415,14 +439,16 @@ TEST(PlayerInputPacketTest, AllFlagsCombinations) {
     }
 }
 
-TEST(PlayerInputPacketTest, PacketType) {
+TEST(PlayerInputPacketTest, PacketType)
+{
     PlayerInputPacket packet;
     EXPECT_EQ(packet.type(), PacketType::PlayerInput);
 }
 
 // ==================== MoveVehiclePacket Tests ====================
 
-TEST(MoveVehiclePacketTest, SerializeDeserialize) {
+TEST(MoveVehiclePacketTest, SerializeDeserialize)
+{
     MoveVehiclePacket packet;
     packet.setPosition(100.5, 64.0, -200.25);
     packet.setRotation(45.0f, 30.0f);
@@ -441,14 +467,16 @@ TEST(MoveVehiclePacketTest, SerializeDeserialize) {
     EXPECT_FLOAT_EQ(packet2.pitch(), 30.0f);
 }
 
-TEST(MoveVehiclePacketTest, PacketType) {
+TEST(MoveVehiclePacketTest, PacketType)
+{
     MoveVehiclePacket packet;
     EXPECT_EQ(packet.type(), PacketType::MoveVehicle);
 }
 
 // ==================== VehicleMovePacket Tests ====================
 
-TEST(VehicleMovePacketTest, SerializeDeserialize) {
+TEST(VehicleMovePacketTest, SerializeDeserialize)
+{
     VehicleMovePacket packet;
     packet.setPosition(123.45, 67.89, -456.78);
     packet.setRotation(180.0f, -45.0f);
@@ -467,18 +495,20 @@ TEST(VehicleMovePacketTest, SerializeDeserialize) {
     EXPECT_FLOAT_EQ(packet2.pitch(), -45.0f);
 }
 
-TEST(VehicleMovePacketTest, PacketType) {
+TEST(VehicleMovePacketTest, PacketType)
+{
     VehicleMovePacket packet;
     EXPECT_EQ(packet.type(), PacketType::VehicleMove);
 }
 
 // ==================== EntityActionPacket Tests ====================
 
-TEST(EntityActionPacketTest, SerializeDeserialize) {
+TEST(EntityActionPacketTest, SerializeDeserialize)
+{
     EntityActionPacket packet;
     packet.setEntityId(12345);
     packet.setAction(mc::network::EntityActionType::StartRidingJump);
-    packet.setAuxData(50);  // Jump power 50%
+    packet.setAuxData(50); // Jump power 50%
 
     auto result = packet.serialize();
     ASSERT_TRUE(result.success());
@@ -492,7 +522,8 @@ TEST(EntityActionPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.auxData(), 50);
 }
 
-TEST(EntityActionPacketTest, AllActionTypes) {
+TEST(EntityActionPacketTest, AllActionTypes)
+{
     EntityActionPacket packet;
     packet.setEntityId(1);
 
@@ -532,19 +563,21 @@ TEST(EntityActionPacketTest, AllActionTypes) {
     EXPECT_EQ(packet4.action(), mc::network::EntityActionType::StartFallFlying);
 }
 
-TEST(EntityActionPacketTest, PacketType) {
+TEST(EntityActionPacketTest, PacketType)
+{
     EntityActionPacket packet;
     EXPECT_EQ(packet.type(), PacketType::EntityAction);
 }
 
-TEST(EntityActionPacketTest, InvalidActionType) {
+TEST(EntityActionPacketTest, InvalidActionType)
+{
     // Create serialized data with invalid action type
     mc::network::PacketSerializer ser;
-    ser.writeVarInt(12345);  // entity id
-    ser.writeVarInt(999);    // invalid action type
-    ser.writeVarInt(0);      // aux data
+    ser.writeVarInt(12345); // entity id
+    ser.writeVarInt(999);   // invalid action type
+    ser.writeVarInt(0);     // aux data
 
     EntityActionPacket packet;
     auto result = packet.deserialize(ser.buffer().data(), ser.buffer().size());
-    EXPECT_FALSE(result.success());  // Should fail for invalid action type
+    EXPECT_FALSE(result.success()); // Should fail for invalid action type
 }

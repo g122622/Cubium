@@ -1,11 +1,11 @@
 #include "CreativeInventory.hpp"
-#include "PlayerInventory.hpp"
 #include "../../item/core/Item.hpp"
 #include "../../item/core/ItemRegistry.hpp"
 #include "../../item/items/block/BlockItem.hpp"
 #include "../../item/items/block/BlockItemRegistry.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/StringUtils.hpp"
+#include "PlayerInventory.hpp"
 
 #include <algorithm>
 #include <string>
@@ -35,35 +35,33 @@ std::vector<CreativeInventoryEntry> buildCreativePaletteEntries()
 
     Item::forEachItem([&entries](Item& item) {
         const i32 stackSize = item.isDamageable() ? 1 : std::clamp(item.maxStackSize(), 1, 64);
-        CreativeInventoryEntry entry{
-            ItemStack(item, stackSize),
-            {}
-        };
+        CreativeInventoryEntry entry{ItemStack(item, stackSize), {}};
         entry.searchKey = buildSearchKey(entry.stack);
         entries.push_back(std::move(entry));
     });
 
-    std::sort(entries.begin(), entries.end(), [](const CreativeInventoryEntry& left, const CreativeInventoryEntry& right) {
-        const auto* leftItem = left.stack.getItem();
-        const auto* rightItem = right.stack.getItem();
+    std::sort(
+        entries.begin(), entries.end(), [](const CreativeInventoryEntry& left, const CreativeInventoryEntry& right) {
+            const auto* leftItem = left.stack.getItem();
+            const auto* rightItem = right.stack.getItem();
 
-        const bool leftIsBlock = leftItem != nullptr && BlockItemRegistry::instance().isBlockItem(leftItem);
-        const bool rightIsBlock = rightItem != nullptr && BlockItemRegistry::instance().isBlockItem(rightItem);
-        if (leftIsBlock != rightIsBlock) {
-            return leftIsBlock > rightIsBlock;
-        }
+            const bool leftIsBlock = leftItem != nullptr && BlockItemRegistry::instance().isBlockItem(leftItem);
+            const bool rightIsBlock = rightItem != nullptr && BlockItemRegistry::instance().isBlockItem(rightItem);
+            if (leftIsBlock != rightIsBlock) {
+                return leftIsBlock > rightIsBlock;
+            }
 
-        const std::string leftId = leftItem != nullptr ? leftItem->itemLocation().toString() : std::string();
-        const std::string rightId = rightItem != nullptr ? rightItem->itemLocation().toString() : std::string();
-        if (leftId != rightId) {
-            return leftId < rightId;
-        }
+            const std::string leftId = leftItem != nullptr ? leftItem->itemLocation().toString() : std::string();
+            const std::string rightId = rightItem != nullptr ? rightItem->itemLocation().toString() : std::string();
+            if (leftId != rightId) {
+                return leftId < rightId;
+            }
 
-        auto leftName = left.stack.getDisplayName();
-        auto rightName = right.stack.getDisplayName();
-        return (leftName ? leftName->getUnformattedText() : std::string())
-             < (rightName ? rightName->getUnformattedText() : std::string());
-    });
+            auto leftName = left.stack.getDisplayName();
+            auto rightName = right.stack.getDisplayName();
+            return (leftName ? leftName->getUnformattedText() : std::string()) <
+                (rightName ? rightName->getUnformattedText() : std::string());
+        });
 
     return entries;
 }
@@ -82,9 +80,8 @@ void fillCreativeModeInventory(PlayerInventory& inventory)
 
     std::vector<const BlockItem*> blockItems;
     blockItems.reserve(BlockItemRegistry::instance().size());
-    BlockItemRegistry::instance().forEachBlockItem([&blockItems](const BlockItem& item) {
-        blockItems.push_back(&item);
-    });
+    BlockItemRegistry::instance().forEachBlockItem(
+        [&blockItems](const BlockItem& item) { blockItems.push_back(&item); });
 
     std::sort(blockItems.begin(), blockItems.end(), [](const BlockItem* left, const BlockItem* right) {
         return left->itemLocation().toString() < right->itemLocation().toString();

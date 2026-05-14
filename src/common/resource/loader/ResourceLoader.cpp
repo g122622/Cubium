@@ -1,9 +1,9 @@
 #include "ResourceLoader.hpp"
 #include "../FolderResourcePack.hpp"
+#include <set>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
-#include <set>
 
 namespace mc {
 namespace resource {
@@ -12,7 +12,8 @@ namespace loader {
 ResourceLoader::ResourceLoader() = default;
 ResourceLoader::~ResourceLoader() = default;
 
-Result<void> ResourceLoader::addResourcePack(ResourcePackPtr pack) {
+Result<void> ResourceLoader::addResourcePack(ResourcePackPtr pack)
+{
     if (!pack) {
         return Error(ErrorCode::InvalidArgument, "资源包为空");
     }
@@ -29,7 +30,8 @@ Result<void> ResourceLoader::addResourcePack(ResourcePackPtr pack) {
     return addResourcePack(std::move(pack), format);
 }
 
-Result<void> ResourceLoader::addResourcePack(ResourcePackPtr pack, compat::PackFormat format) {
+Result<void> ResourceLoader::addResourcePack(ResourcePackPtr pack, compat::PackFormat format)
+{
     if (!pack) {
         return Error(ErrorCode::InvalidArgument, "资源包为空");
     }
@@ -37,19 +39,20 @@ Result<void> ResourceLoader::addResourcePack(ResourcePackPtr pack, compat::PackF
     // 创建适当的映射器
     auto mapper = compat::ResourceMapper::create(format);
 
-    spdlog::info("[ResourceLoader] 添加包 '{}'，格式 {}",
-                 pack->name(), compat::packFormatToString(format));
+    spdlog::info("[ResourceLoader] 添加包 '{}'，格式 {}", pack->name(), compat::packFormatToString(format));
 
     m_packs.push_back({std::move(pack), format, std::move(mapper)});
     return Result<void>::ok();
 }
 
-void ResourceLoader::clearResourcePacks() {
+void ResourceLoader::clearResourcePacks()
+{
     m_packs.clear();
     m_stats.reset();
 }
 
-compat::PackFormat ResourceLoader::detectFormat(const IResourcePack& pack) {
+compat::PackFormat ResourceLoader::detectFormat(const IResourcePack& pack)
+{
     // 尝试读取 pack.mcmeta
     auto result = pack.readTextResource("pack.mcmeta");
     if (result.failed()) {
@@ -64,7 +67,8 @@ compat::PackFormat ResourceLoader::detectFormat(const IResourcePack& pack) {
             i32 format = json["pack"]["pack_format"].get<i32>();
             return compat::detectPackFormat(format);
         }
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         spdlog::warn("[ResourceLoader] 解析 pack.mcmeta 失败: {}", e.what());
     }
 
@@ -72,9 +76,10 @@ compat::PackFormat ResourceLoader::detectFormat(const IResourcePack& pack) {
     return compat::PackFormat::V1_13_to_1_14;
 }
 
-std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures() {
+std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures()
+{
     std::vector<compat::unified::UnifiedTexture> textures;
-    std::set<std::string> loadedLocations;  // 跟踪已加载的位置以避免重复
+    std::set<std::string> loadedLocations; // 跟踪已加载的位置以避免重复
 
     m_stats.texturesLoaded = 0;
     m_stats.texturesFailed = 0;
@@ -170,14 +175,12 @@ std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures() {
         }
     }
 
-    spdlog::info("[ResourceLoader] 加载 {} 个纹理（{} 个失败）",
-                 m_stats.texturesLoaded, m_stats.texturesFailed);
+    spdlog::info("[ResourceLoader] 加载 {} 个纹理（{} 个失败）", m_stats.texturesLoaded, m_stats.texturesFailed);
 
     return textures;
 }
 
-Result<compat::unified::UnifiedTexture> ResourceLoader::loadTexture(
-    const ResourceLocation& location)
+Result<compat::unified::UnifiedTexture> ResourceLoader::loadTexture(const ResourceLocation& location)
 {
     std::string unifiedPath = location.path();
 
@@ -207,13 +210,10 @@ Result<compat::unified::UnifiedTexture> ResourceLoader::loadTexture(
         }
     }
 
-    return Error(ErrorCode::ResourceNotFound,
-                 "未找到纹理: " + location.toString());
+    return Error(ErrorCode::ResourceNotFound, "未找到纹理: " + location.toString());
 }
 
-Result<compat::unified::PixelData> ResourceLoader::readTexturePixels(
-    const IResourcePack& pack,
-    const std::string& path)
+Result<compat::unified::PixelData> ResourceLoader::readTexturePixels(const IResourcePack& pack, const std::string& path)
 {
     auto readResult = pack.readResource(path);
     if (readResult.failed()) {
@@ -222,14 +222,11 @@ Result<compat::unified::PixelData> ResourceLoader::readTexturePixels(
 
     const auto& data = readResult.value();
     int width, height, channels;
-    stbi_uc* pixels = stbi_load_from_memory(
-        data.data(),
-        static_cast<int>(data.size()),
-        &width, &height, &channels, 4);  // 强制 RGBA
+    stbi_uc* pixels =
+        stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &channels, 4); // 强制 RGBA
 
     if (!pixels) {
-        return Error(ErrorCode::TextureLoadFailed,
-                     "解码纹理失败: " + path);
+        return Error(ErrorCode::TextureLoadFailed, "解码纹理失败: " + path);
     }
 
     compat::unified::PixelData pixelData;
@@ -242,7 +239,8 @@ Result<compat::unified::PixelData> ResourceLoader::readTexturePixels(
     return pixelData;
 }
 
-std::vector<compat::unified::UnifiedModel> ResourceLoader::loadModels() {
+std::vector<compat::unified::UnifiedModel> ResourceLoader::loadModels()
+{
     std::vector<compat::unified::UnifiedModel> models;
     std::set<std::string> loadedLocations;
 
@@ -252,19 +250,20 @@ std::vector<compat::unified::UnifiedModel> ResourceLoader::loadModels() {
     // TODO: 实现模型加载
     // 这将解析 JSON 模型文件并创建 UnifiedModel 对象
 
-    spdlog::info("[ResourceLoader] 加载 {} 个模型（{} 个失败）",
-                 m_stats.modelsLoaded, m_stats.modelsFailed);
+    spdlog::info("[ResourceLoader] 加载 {} 个模型（{} 个失败）", m_stats.modelsLoaded, m_stats.modelsFailed);
 
     return models;
 }
 
-Result<compat::unified::UnifiedModel> ResourceLoader::loadModel(const ResourceLocation& location) {
+Result<compat::unified::UnifiedModel> ResourceLoader::loadModel(const ResourceLocation& location)
+{
     // TODO: 实现模型加载
     (void)location;
     return Error(ErrorCode::Unsupported, "模型加载尚未实现");
 }
 
-std::vector<compat::unified::UnifiedBlockState> ResourceLoader::loadBlockStates() {
+std::vector<compat::unified::UnifiedBlockState> ResourceLoader::loadBlockStates()
+{
     std::vector<compat::unified::UnifiedBlockState> blockStates;
     std::set<std::string> loadedLocations;
 
@@ -274,19 +273,21 @@ std::vector<compat::unified::UnifiedBlockState> ResourceLoader::loadBlockStates(
     // TODO: 实现方块状态加载
     // 这将解析 JSON 方块状态文件并创建 UnifiedBlockState 对象
 
-    spdlog::info("[ResourceLoader] 加载 {} 个方块状态（{} 个失败）",
-                 m_stats.blockStatesLoaded, m_stats.blockStatesFailed);
+    spdlog::info(
+        "[ResourceLoader] 加载 {} 个方块状态（{} 个失败）", m_stats.blockStatesLoaded, m_stats.blockStatesFailed);
 
     return blockStates;
 }
 
-Result<compat::unified::UnifiedBlockState> ResourceLoader::loadBlockState(const ResourceLocation& location) {
+Result<compat::unified::UnifiedBlockState> ResourceLoader::loadBlockState(const ResourceLocation& location)
+{
     // TODO: 实现方块状态加载
     (void)location;
     return Error(ErrorCode::Unsupported, "方块状态加载尚未实现");
 }
 
-std::pair<const IResourcePack*, std::string> ResourceLoader::findTexture(const std::string& unifiedPath) {
+std::pair<const IResourcePack*, std::string> ResourceLoader::findTexture(const std::string& unifiedPath)
+{
     for (auto it = m_packs.rbegin(); it != m_packs.rend(); ++it) {
         const auto& ctx = *it;
 

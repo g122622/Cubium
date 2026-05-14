@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include "world/redstone/RedstonePower.hpp"
 #include "world/block/BlockPos.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::world::redstone;
@@ -13,22 +13,26 @@ using namespace mc::world::redstone;
  */
 class RedstonePowerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 清理工作（如果需要）
     }
 };
 
 // ========== 常量测试 ==========
 
-TEST_F(RedstonePowerTest, MaxPowerIs15) {
+TEST_F(RedstonePowerTest, MaxPowerIs15)
+{
     EXPECT_EQ(RedstonePower::MAX_POWER, 15);
 }
 
-TEST_F(RedstonePowerTest, MinPowerIs0) {
+TEST_F(RedstonePowerTest, MinPowerIs0)
+{
     EXPECT_EQ(RedstonePower::MIN_POWER, 0);
 }
 
-TEST_F(RedstonePowerTest, PowerRange) {
+TEST_F(RedstonePowerTest, PowerRange)
+{
     // 验证信号强度范围
     EXPECT_LT(RedstonePower::MIN_POWER, RedstonePower::MAX_POWER);
     EXPECT_EQ(RedstonePower::MAX_POWER - RedstonePower::MIN_POWER, 15);
@@ -36,7 +40,8 @@ TEST_F(RedstonePowerTest, PowerRange) {
 
 // ========== 信号强度逻辑测试 ==========
 
-TEST_F(RedstonePowerTest, SignalStrengthDecay) {
+TEST_F(RedstonePowerTest, SignalStrengthDecay)
+{
     // 红石线每格衰减1，从15到0共15格
     // 信号强度：15 -> 14 -> 13 -> ... -> 1 -> 0
     i32 signal = 15;
@@ -52,12 +57,12 @@ TEST_F(RedstonePowerTest, SignalStrengthDecay) {
     EXPECT_EQ(distance, 15);
 }
 
-TEST_F(RedstonePowerTest, SignalStrengthClamp) {
+TEST_F(RedstonePowerTest, SignalStrengthClamp)
+{
     // 验证信号强度应该在有效范围内
     // 这是一个文档性测试
     auto clampPower = [](i32 power) -> i32 {
-        return std::max(RedstonePower::MIN_POWER,
-                       std::min(RedstonePower::MAX_POWER, power));
+        return std::max(RedstonePower::MIN_POWER, std::min(RedstonePower::MAX_POWER, power));
     };
 
     EXPECT_EQ(clampPower(-5), 0);
@@ -69,7 +74,8 @@ TEST_F(RedstonePowerTest, SignalStrengthClamp) {
 
 // ========== 强信号与弱信号概念测试 ==========
 
-TEST_F(RedstonePowerTest, StrongPowerVsWeakPower) {
+TEST_F(RedstonePowerTest, StrongPowerVsWeakPower)
+{
     // 文档性测试：强信号和弱信号的区别
     //
     // 强信号（Strong Power）:
@@ -91,7 +97,8 @@ TEST_F(RedstonePowerTest, StrongPowerVsWeakPower) {
 
 // ========== 比较器输入计算测试 ==========
 
-TEST_F(RedstonePowerTest, ComparatorInputCalculation) {
+TEST_F(RedstonePowerTest, ComparatorInputCalculation)
+{
     // 比较器输入计算规则：
     // 1. 容器填充率 -> 信号强度 (满则15)
     // 2. 红石线信号直接输入
@@ -130,15 +137,16 @@ TEST_F(RedstonePowerTest, ComparatorInputCalculation) {
 
 // ========== 红石线连接测试 ==========
 
-TEST_F(RedstonePowerTest, RedstoneWireConnections) {
+TEST_F(RedstonePowerTest, RedstoneWireConnections)
+{
     // 红石线连接规则：
     // 1. 水平四个方向连接
     // 2. 向上/向下连接（台阶形状）
     // 3. 连接到信号源
 
     // 连接方向数量
-    constexpr i32 HORIZONTAL_DIRECTIONS = 4;  // 北东南西
-    constexpr i32 VERTICAL_DIRECTIONS = 2;     // 上下
+    constexpr i32 HORIZONTAL_DIRECTIONS = 4; // 北东南西
+    constexpr i32 VERTICAL_DIRECTIONS = 2;   // 上下
 
     // 红石线主要在水平面传播
     // 但可以向上/向下连接一格
@@ -148,7 +156,8 @@ TEST_F(RedstonePowerTest, RedstoneWireConnections) {
 
 // ========== 信号传播距离测试 ==========
 
-TEST_F(RedstonePowerTest, SignalPropagationDistance) {
+TEST_F(RedstonePowerTest, SignalPropagationDistance)
+{
     // 红石线最大传播距离：15格
     // 信号从15衰减到0需要经过15格
     constexpr i32 MAX_WIRE_LENGTH = 15;
@@ -162,7 +171,8 @@ TEST_F(RedstonePowerTest, SignalPropagationDistance) {
 
 // ========== 方向检测测试 ==========
 
-TEST_F(RedstonePowerTest, DirectionCount) {
+TEST_F(RedstonePowerTest, DirectionCount)
+{
     // 红石信号可以在六个方向传播
     // 但红石线只在四个水平方向连接
 
@@ -175,7 +185,8 @@ TEST_F(RedstonePowerTest, DirectionCount) {
 
 // ========== 信号叠加规则测试 ==========
 
-TEST_F(RedstonePowerTest, SignalNoStacking) {
+TEST_F(RedstonePowerTest, SignalNoStacking)
+{
     // 红石信号不叠加
     // 多个信号源取最大值
 
@@ -195,7 +206,8 @@ TEST_F(RedstonePowerTest, SignalNoStacking) {
 
 // ========== 充能状态测试 ==========
 
-TEST_F(RedstonePowerTest, PoweredStateDefinition) {
+TEST_F(RedstonePowerTest, PoweredStateDefinition)
+{
     // 方块被充能的条件：
     // - 相邻方块输出强信号 > 0
     // 或者
@@ -211,7 +223,8 @@ TEST_F(RedstonePowerTest, PoweredStateDefinition) {
 
 // ========== 中继器延迟测试 ==========
 
-TEST_F(RedstonePowerTest, RepeaterDelay) {
+TEST_F(RedstonePowerTest, RepeaterDelay)
+{
     // 中继器延迟：
     // - 1 tick (默认)
     // - 2 tick
@@ -233,26 +246,23 @@ TEST_F(RedstonePowerTest, RepeaterDelay) {
 
 // ========== 比较器模式测试 ==========
 
-TEST_F(RedstonePowerTest, ComparatorModes) {
+TEST_F(RedstonePowerTest, ComparatorModes)
+{
     // 比较器两种模式：
     // 1. 比较模式（Compare）: 输出 = 输入A >= 输入B ? 输入A : 0
     // 2. 减法模式（Subtract）: 输出 = max(0, 输入A - 输入B)
 
-    auto compareMode = [](i32 inputA, i32 inputB) -> i32 {
-        return inputA >= inputB ? inputA : 0;
-    };
+    auto compareMode = [](i32 inputA, i32 inputB) -> i32 { return inputA >= inputB ? inputA : 0; };
 
-    auto subtractMode = [](i32 inputA, i32 inputB) -> i32 {
-        return std::max(0, inputA - inputB);
-    };
+    auto subtractMode = [](i32 inputA, i32 inputB) -> i32 { return std::max(0, inputA - inputB); };
 
     // 比较模式测试
-    EXPECT_EQ(compareMode(10, 5), 10);   // A > B
-    EXPECT_EQ(compareMode(10, 10), 10);  // A == B
-    EXPECT_EQ(compareMode(5, 10), 0);    // A < B
+    EXPECT_EQ(compareMode(10, 5), 10);  // A > B
+    EXPECT_EQ(compareMode(10, 10), 10); // A == B
+    EXPECT_EQ(compareMode(5, 10), 0);   // A < B
 
     // 减法模式测试
-    EXPECT_EQ(subtractMode(10, 5), 5);   // 10 - 5 = 5
-    EXPECT_EQ(subtractMode(10, 10), 0);  // 10 - 10 = 0
-    EXPECT_EQ(subtractMode(5, 10), 0);   // 5 - 10 = -5 -> 0
+    EXPECT_EQ(subtractMode(10, 5), 5);  // 10 - 5 = 5
+    EXPECT_EQ(subtractMode(10, 10), 0); // 10 - 10 = 0
+    EXPECT_EQ(subtractMode(5, 10), 0);  // 5 - 10 = -5 -> 0
 }

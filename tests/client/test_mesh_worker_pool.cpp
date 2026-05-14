@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include "client/renderer/mesh/MeshWorkerPool.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
@@ -6,6 +5,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::client;
@@ -50,10 +50,7 @@ MeshWorkerTask makeTask(ChunkCoord x, ChunkCoord z)
 
 class MeshWorkerPoolTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 TEST_F(MeshWorkerPoolTest, StartStop)
@@ -83,8 +80,7 @@ TEST_F(MeshWorkerPoolTest, SubmitAndDrainSingleTask)
             EXPECT_EQ(result.chunkId, ChunkId(0, 0));
             ++callbackCount;
         },
-        8
-    );
+        8);
 
     EXPECT_EQ(callbackCount, 1);
     EXPECT_EQ(pool.completedTaskCount(), 0u);
@@ -104,12 +100,7 @@ TEST_F(MeshWorkerPoolTest, DrainRespectsMaxCount)
     waitUntilCompletedAtLeast(pool, 6);
 
     i32 callbackCount = 0;
-    pool.drainCompleted(
-        [&callbackCount](MeshWorkerResult&&) {
-            ++callbackCount;
-        },
-        3
-    );
+    pool.drainCompleted([&callbackCount](MeshWorkerResult&&) { ++callbackCount; }, 3);
 
     EXPECT_EQ(callbackCount, 3);
     EXPECT_EQ(pool.completedTaskCount(), 3u);
@@ -145,8 +136,7 @@ TEST_F(MeshWorkerPoolTest, PreCancelledTaskReturnsCancelledResult)
             gotCancelled = result.cancelled;
             EXPECT_FALSE(result.success);
         },
-        2
-    );
+        2);
 
     EXPECT_TRUE(gotCancelled);
 
@@ -181,12 +171,7 @@ TEST_F(MeshWorkerPoolTest, ConcurrentSubmission)
 
     size_t drainedCount = 0;
     while (pool.completedTaskCount() > 0) {
-        pool.drainCompleted(
-            [&drainedCount](MeshWorkerResult&&) {
-                ++drainedCount;
-            },
-            16
-        );
+        pool.drainCompleted([&drainedCount](MeshWorkerResult&&) { ++drainedCount; }, 16);
     }
 
     EXPECT_EQ(drainedCount, expectedCount);

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "common/core/Constants.hpp"
-#include "common/world/WorldConstants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/WorldConstants.hpp"
 
 using namespace mc;
 
@@ -13,7 +13,8 @@ using namespace mc;
 // 基础类型测试
 // ============================================================================
 
-TEST(Types, IntegerSizes) {
+TEST(Types, IntegerSizes)
+{
     // 验证整数类型大小
     EXPECT_EQ(sizeof(i8), 1);
     EXPECT_EQ(sizeof(i16), 2);
@@ -26,12 +27,14 @@ TEST(Types, IntegerSizes) {
     EXPECT_EQ(sizeof(u64), 8);
 }
 
-TEST(Types, FloatSizes) {
+TEST(Types, FloatSizes)
+{
     EXPECT_EQ(sizeof(f32), 4);
     EXPECT_EQ(sizeof(f64), 8);
 }
 
-TEST(Types, TypeAliases) {
+TEST(Types, TypeAliases)
+{
     // 验证类型别名正确
     i32 coord = 100;
     EXPECT_EQ(coord, 100);
@@ -45,12 +48,13 @@ TEST(Types, TypeAliases) {
     EXPECT_EQ(blockX, 15);
 }
 
-TEST(Types, EnumTypes) {
+TEST(Types, EnumTypes)
+{
     // 测试枚举类型
-    DimensionId dim = 0;  // Overworld
+    DimensionId dim = 0; // Overworld
     EXPECT_EQ(dim, 0);
-    EXPECT_EQ(1, 1);  // Nether
-    EXPECT_EQ(2, 2);  // TheEnd
+    EXPECT_EQ(1, 1); // Nether
+    EXPECT_EQ(2, 2); // TheEnd
 
     GameMode mode = GameMode::Creative;
     EXPECT_EQ(static_cast<u8>(mode), 1);
@@ -62,7 +66,8 @@ TEST(Types, EnumTypes) {
     EXPECT_EQ(static_cast<u8>(face), 1);
 }
 
-TEST(Types, BlockFaceValues) {
+TEST(Types, BlockFaceValues)
+{
     EXPECT_EQ(static_cast<u8>(BlockFace::Bottom), 0);
     EXPECT_EQ(static_cast<u8>(BlockFace::Top), 1);
     EXPECT_EQ(static_cast<u8>(BlockFace::North), 2);
@@ -75,7 +80,8 @@ TEST(Types, BlockFaceValues) {
 // Result类型测试
 // ============================================================================
 
-TEST(Result, SuccessWithValue) {
+TEST(Result, SuccessWithValue)
+{
     Result<i32> result = 42;
 
     EXPECT_TRUE(result.success());
@@ -83,7 +89,8 @@ TEST(Result, SuccessWithValue) {
     EXPECT_EQ(result.value(), 42);
 }
 
-TEST(Result, FailureWithError) {
+TEST(Result, FailureWithError)
+{
     Result<i32> result = Error(ErrorCode::InvalidArgument, "Test error");
 
     EXPECT_FALSE(result.success());
@@ -92,7 +99,8 @@ TEST(Result, FailureWithError) {
     EXPECT_EQ(result.error().message(), "Test error");
 }
 
-TEST(Result, ValueOrDefault) {
+TEST(Result, ValueOrDefault)
+{
     Result<i32> success = 42;
     Result<i32> failure = Error(ErrorCode::NotFound, "Not found");
 
@@ -100,7 +108,8 @@ TEST(Result, ValueOrDefault) {
     EXPECT_EQ(failure.valueOr(100), 100);
 }
 
-TEST(Result, VoidResult) {
+TEST(Result, VoidResult)
+{
     Result<void> success;
     EXPECT_TRUE(success.success());
 
@@ -108,7 +117,8 @@ TEST(Result, VoidResult) {
     EXPECT_TRUE(failure.failed());
 }
 
-TEST(Result, ChainingOperations) {
+TEST(Result, ChainingOperations)
+{
     auto divide = [](i32 a, i32 b) -> Result<i32> {
         if (b == 0) {
             return Error(ErrorCode::InvalidArgument, "Division by zero");
@@ -125,7 +135,8 @@ TEST(Result, ChainingOperations) {
     EXPECT_EQ(result2.error().code(), ErrorCode::InvalidArgument);
 }
 
-TEST(Result, StringResult) {
+TEST(Result, StringResult)
+{
     Result<std::string> result = std::string("Hello");
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), "Hello");
@@ -134,7 +145,8 @@ TEST(Result, StringResult) {
     EXPECT_TRUE(error.failed());
 }
 
-TEST(Result, VectorResult) {
+TEST(Result, VectorResult)
+{
     std::vector<i32> vec = {1, 2, 3, 4, 5};
     Result<std::vector<i32>> result = vec;
 
@@ -144,7 +156,8 @@ TEST(Result, VectorResult) {
     EXPECT_EQ(result.value()[4], 5);
 }
 
-TEST(Result, MoveSemantics) {
+TEST(Result, MoveSemantics)
+{
     Result<std::unique_ptr<i32>> result = std::make_unique<i32>(42);
     EXPECT_TRUE(result.success());
 
@@ -153,7 +166,8 @@ TEST(Result, MoveSemantics) {
     EXPECT_EQ(*ptr, 42);
 }
 
-TEST(Result, MoveOnlyValueConstructsAndMoves) {
+TEST(Result, MoveOnlyValueConstructsAndMoves)
+{
     Result<std::unique_ptr<i32>> result(std::make_unique<i32>(7));
 
     EXPECT_TRUE(result.success());
@@ -168,13 +182,15 @@ TEST(Result, MoveOnlyValueConstructsAndMoves) {
 // Error类测试
 // ============================================================================
 
-TEST(ErrorTest, Construction) {
+TEST(ErrorTest, Construction)
+{
     Error err(ErrorCode::InvalidArgument, "Invalid argument");
     EXPECT_EQ(err.code(), ErrorCode::InvalidArgument);
     EXPECT_EQ(err.message(), "Invalid argument");
 }
 
-TEST(ErrorTest, Comparison) {
+TEST(ErrorTest, Comparison)
+{
     Error err1(ErrorCode::NotFound, "Not found");
     Error err2(ErrorCode::NotFound, "Different message");
     Error err3(ErrorCode::InvalidArgument, "Not found");
@@ -184,7 +200,8 @@ TEST(ErrorTest, Comparison) {
     EXPECT_NE(err1.code(), err3.code());
 }
 
-TEST(ErrorTest, ErrorCodeValues) {
+TEST(ErrorTest, ErrorCodeValues)
+{
     // 验证错误码值
     EXPECT_EQ(static_cast<i32>(ErrorCode::Success), 0);
     EXPECT_EQ(static_cast<i32>(ErrorCode::Unknown), -1);
@@ -197,7 +214,8 @@ TEST(ErrorTest, ErrorCodeValues) {
 // 常量测试
 // ============================================================================
 
-TEST(Constants, MathConstants) {
+TEST(Constants, MathConstants)
+{
     EXPECT_FLOAT_EQ(math::PI, 3.14159265f);
     EXPECT_FLOAT_EQ(math::TWO_PI, 2.0f * math::PI);
     EXPECT_FLOAT_EQ(math::HALF_PI, math::PI / 2.0f);
@@ -205,7 +223,8 @@ TEST(Constants, MathConstants) {
     EXPECT_FLOAT_EQ(math::RAD_TO_DEG, 180.0f / math::PI);
 }
 
-TEST(Constants, WorldConstants) {
+TEST(Constants, WorldConstants)
+{
     EXPECT_EQ(world::CHUNK_WIDTH, 16);
     EXPECT_EQ(world::CHUNK_HEIGHT, 256);
     EXPECT_EQ(world::CHUNK_SECTION_HEIGHT, 16);
@@ -216,7 +235,8 @@ TEST(Constants, WorldConstants) {
     EXPECT_EQ(world::SEA_LEVEL, 63);
 }
 
-TEST(Constants, NetworkConstants) {
+TEST(Constants, NetworkConstants)
+{
     // MC 1.16.5 Java版默认端口是 25565
     EXPECT_EQ(network::DEFAULT_PORT, 25565);
     EXPECT_EQ(network::MAX_PACKET_SIZE, 2097152u);
@@ -227,7 +247,8 @@ TEST(Constants, NetworkConstants) {
 // 世界坐标转换测试
 // ============================================================================
 
-TEST(WorldConversion, ToChunkCoord) {
+TEST(WorldConversion, ToChunkCoord)
+{
     // 正数坐标
     EXPECT_EQ(world::toChunkCoord(0), 0);
     EXPECT_EQ(world::toChunkCoord(15), 0);
@@ -240,7 +261,8 @@ TEST(WorldConversion, ToChunkCoord) {
     EXPECT_EQ(world::toChunkCoord(-17), -2);
 }
 
-TEST(WorldConversion, ToLocalCoord) {
+TEST(WorldConversion, ToLocalCoord)
+{
     EXPECT_EQ(world::toLocalCoord(0), 0);
     EXPECT_EQ(world::toLocalCoord(15), 15);
     EXPECT_EQ(world::toLocalCoord(16), 0);
@@ -252,27 +274,31 @@ TEST(WorldConversion, ToLocalCoord) {
     EXPECT_EQ(world::toLocalCoord(-17), 15);
 }
 
-TEST(WorldConversion, ToWorldCoord) {
+TEST(WorldConversion, ToWorldCoord)
+{
     EXPECT_EQ(world::toWorldCoord(0), 0);
     EXPECT_EQ(world::toWorldCoord(1), 16);
     EXPECT_EQ(world::toWorldCoord(10), 160);
     EXPECT_EQ(world::toWorldCoord(-1), -16);
 }
 
-TEST(WorldConversion, ToSectionIndex) {
+TEST(WorldConversion, ToSectionIndex)
+{
     EXPECT_EQ(world::toSectionIndex(0), 0);
     EXPECT_EQ(world::toSectionIndex(15), 0);
     EXPECT_EQ(world::toSectionIndex(16), 1);
     EXPECT_EQ(world::toSectionIndex(255), 15);
 }
 
-TEST(WorldConversion, SectionToY) {
+TEST(WorldConversion, SectionToY)
+{
     EXPECT_EQ(world::sectionToY(0), 0);
     EXPECT_EQ(world::sectionToY(1), 16);
     EXPECT_EQ(world::sectionToY(15), 240);
 }
 
-TEST(WorldConversion, IsValidY) {
+TEST(WorldConversion, IsValidY)
+{
     EXPECT_TRUE(world::isValidY(0));
     EXPECT_TRUE(world::isValidY(128));
     EXPECT_TRUE(world::isValidY(255));

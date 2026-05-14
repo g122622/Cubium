@@ -1,22 +1,22 @@
 #include "BlockDropHandler.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/experience/ExperienceConstants.hpp"
+#include "common/entity/experience/ExperienceUtils.hpp"
+#include "common/entity/loot/LootConditions.hpp"
+#include "common/entity/loot/LootTable.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/physics/PhysicsEngine.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/entity/loot/LootTable.hpp"
-#include "common/entity/loot/LootConditions.hpp"
-#include "common/entity/entities/item/ItemEntity.hpp"
-#include "common/entity/utils/ItemDropHelper.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
-#include "common/entity/experience/ExperienceConstants.hpp"
-#include "common/entity/experience/ExperienceUtils.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/core/Item.hpp"
-#include "common/item/enchantment/EnchantmentHelper.hpp"
-#include "common/world/IWorld.hpp"
 #include "common/world/entity/EntityManager.hpp"
-#include "common/physics/PhysicsEngine.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
 
@@ -26,8 +26,7 @@ namespace mc {
 // BlockDropHandler
 // ============================================================================
 
-std::vector<ItemStack> BlockDropHandler::generateDrops(
-    IWorld& world,
+std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     const Player* player,
@@ -61,8 +60,7 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(
     return drops;
 }
 
-std::vector<EntityId> BlockDropHandler::spawnDrops(
-    server::ServerWorld& world,
+std::vector<EntityId> BlockDropHandler::spawnDrops(server::ServerWorld& world,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
     const std::string& throwerUuid)
@@ -80,8 +78,7 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
     return ItemDropHelper::spawnItemEntities(&world, pos, drops, random, throwerUuid);
 }
 
-std::vector<EntityId> BlockDropHandler::spawnDrops(
-    EntityManager& entityManager,
+std::vector<EntityId> BlockDropHandler::spawnDrops(EntityManager& entityManager,
     PhysicsEngine* physicsEngine,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
@@ -106,13 +103,7 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
             continue;
         }
 
-        auto itemEntity = std::make_unique<ItemEntity>(
-            0,
-            stack,
-            centerX,
-            centerY,
-            centerZ
-        );
+        auto itemEntity = std::make_unique<ItemEntity>(0, stack, centerX, centerY, centerZ);
 
         // 使用 ItemDropHelper 统一随机速度计算
         Vector3 velocity = ItemDropHelper::getBlockDropVelocity(random);
@@ -137,10 +128,7 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
     return spawnedEntities;
 }
 
-bool BlockDropHandler::canHarvestBlock(
-    const BlockState& state,
-    const Player* player,
-    const ItemStack* tool)
+bool BlockDropHandler::canHarvestBlock(const BlockState& state, const Player* player, const ItemStack* tool)
 {
     // 基岩等不可破坏方块
     if (state.hardness() < 0.0f) {
@@ -168,15 +156,15 @@ bool BlockDropHandler::canHarvestBlock(
     return tool->canHarvestBlock(state);
 }
 
-std::vector<ItemStack> BlockDropHandler::getDefaultDrops(const BlockState& state) {
+std::vector<ItemStack> BlockDropHandler::getDefaultDrops(const BlockState& state)
+{
     // 默认掉落逻辑：无掉落
     // 子类或掉落表可以覆盖此行为
     (void)state;
     return {};
 }
 
-std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(
-    IWorld& world,
+std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     const Player* player,
@@ -184,9 +172,9 @@ std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(
     math::Random& random)
 {
     auto context = loot::LootContextBuilder(world)
-        .withRandom(random)
-        .withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z))
-        .build();
+                       .withRandom(random)
+                       .withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z))
+                       .build();
 
     if (!context) {
         return nullptr;
@@ -226,7 +214,8 @@ std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(
     return context;
 }
 
-bool BlockDropHandler::hasSilkTouch(const ItemStack* tool) {
+bool BlockDropHandler::hasSilkTouch(const ItemStack* tool)
+{
     if (!tool || tool->isEmpty()) {
         return false;
     }
@@ -234,7 +223,8 @@ bool BlockDropHandler::hasSilkTouch(const ItemStack* tool) {
     return item::enchant::EnchantmentHelper::hasSilkTouch(*tool);
 }
 
-i32 BlockDropHandler::getFortuneLevel(const ItemStack* tool) {
+i32 BlockDropHandler::getFortuneLevel(const ItemStack* tool)
+{
     if (!tool || tool->isEmpty()) {
         return 0;
     }
@@ -242,7 +232,8 @@ i32 BlockDropHandler::getFortuneLevel(const ItemStack* tool) {
     return item::enchant::EnchantmentHelper::getFortuneLevel(*tool);
 }
 
-i32 BlockDropHandler::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) {
+i32 BlockDropHandler::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random)
+{
     if (fortuneLevel <= 0) {
         return baseCount;
     }
@@ -269,7 +260,8 @@ i32 BlockDropHandler::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::R
 // 经验掉落
 // ============================================================================
 
-OreType BlockDropHandler::getOreType(const BlockState& state) {
+OreType BlockDropHandler::getOreType(const BlockState& state)
+{
     const Block& block = state.owner();
 
     // 检查是否是各种矿石
@@ -299,17 +291,13 @@ OreType BlockDropHandler::getOreType(const BlockState& state) {
 }
 
 i32 BlockDropHandler::spawnOreExperience(
-    server::ServerWorld& world,
-    const BlockPos& pos,
-    OreType oreType,
-    math::Random& rng)
+    server::ServerWorld& world, const BlockPos& pos, OreType oreType, math::Random& rng)
 {
     if (oreType == OreType::None) {
         return 0;
     }
 
-    i32 xp = entity::experience::utils::randomOreExperience(
-        rng, static_cast<i32>(oreType));
+    i32 xp = entity::experience::utils::randomOreExperience(rng, static_cast<i32>(oreType));
 
     if (xp <= 0) {
         return 0;
@@ -337,19 +325,14 @@ i32 BlockDropHandler::spawnOreExperience(
 }
 
 i32 BlockDropHandler::spawnOreExperience(
-    EntityManager& entityManager,
-    PhysicsEngine* physicsEngine,
-    const BlockPos& pos,
-    OreType oreType,
-    math::Random& rng)
+    EntityManager& entityManager, PhysicsEngine* physicsEngine, const BlockPos& pos, OreType oreType, math::Random& rng)
 {
     if (oreType == OreType::None) {
         return 0;
     }
 
     // 使用 ExperienceUtils 计算随机经验值
-    i32 xp = entity::experience::utils::randomOreExperience(
-        rng, static_cast<i32>(oreType));
+    i32 xp = entity::experience::utils::randomOreExperience(rng, static_cast<i32>(oreType));
 
     if (xp <= 0) {
         return 0;
@@ -395,11 +378,7 @@ i32 BlockDropHandler::spawnOreExperience(
 }
 
 i32 BlockDropHandler::handleBlockBreakExperience(
-    server::ServerWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    const ItemStack* tool,
-    math::Random& rng)
+    server::ServerWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, math::Random& rng)
 {
     OreType oreType = getOreType(state);
     if (oreType == OreType::None) {
@@ -423,8 +402,7 @@ i32 BlockDropHandler::handleBlockBreakExperience(
     return spawnOreExperience(world, pos, oreType, rng);
 }
 
-i32 BlockDropHandler::handleBlockBreakExperience(
-    EntityManager& entityManager,
+i32 BlockDropHandler::handleBlockBreakExperience(EntityManager& entityManager,
     PhysicsEngine* physicsEngine,
     const BlockPos& pos,
     const BlockState& state,
@@ -447,12 +425,12 @@ i32 BlockDropHandler::handleBlockBreakExperience(
     // 如果方块需要工具才能采集，检查工具是否有效
     if (state.requiresTool()) {
         if (!tool || tool->isEmpty()) {
-            return 0;  // 需要工具但没有工具
+            return 0; // 需要工具但没有工具
         }
 
         // 使用 ItemStack 的 canHarvestBlock 方法检查
         if (!tool->canHarvestBlock(state)) {
-            return 0;  // 工具不能采集此方块
+            return 0; // 工具不能采集此方块
         }
     }
 

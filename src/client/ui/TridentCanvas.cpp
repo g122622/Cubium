@@ -13,10 +13,11 @@ TridentCanvas::TridentCanvas(renderer::trident::gui::GuiRenderer& renderer, Font
     : m_renderer(renderer)
     , m_font(font)
     , m_clipBounds{0, 0, 0, 0}
-    , m_matrix(kagero::paint::Matrix::identity()) {
-}
+    , m_matrix(kagero::paint::Matrix::identity())
+{}
 
-void TridentCanvas::beginFrame() {
+void TridentCanvas::beginFrame()
+{
     m_clipBounds = kagero::Rect{0, 0, m_width, m_height};
     m_matrix = kagero::paint::Matrix::identity();
     m_clipStack.clear();
@@ -24,12 +25,14 @@ void TridentCanvas::beginFrame() {
     m_alphaStack.clear();
 }
 
-void TridentCanvas::endFrame() {
+void TridentCanvas::endFrame()
+{
     // 所有绘制操作已直接提交到 GuiRenderer
     // 无需额外处理
 }
 
-void TridentCanvas::drawRect(const kagero::Rect& rect, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawRect(const kagero::Rect& rect, const kagero::paint::IPaint& paint)
+{
     const u32 color = extractColor(paint);
     const kagero::paint::PaintStyle style = paint.style();
 
@@ -54,42 +57,41 @@ void TridentCanvas::drawRect(const kagero::Rect& rect, const kagero::paint::IPai
     }
 }
 
-void TridentCanvas::drawRRect(const kagero::paint::RRect& roundRect, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawRRect(const kagero::paint::RRect& roundRect, const kagero::paint::IPaint& paint)
+{
     // MC UI 是方正风格，不需要圆角矩形
     // 退化为普通矩形
     drawRect(roundRect.rect, paint);
 }
 
-void TridentCanvas::drawCircle(f32 cx, f32 cy, f32 radius, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawCircle(f32 cx, f32 cy, f32 radius, const kagero::paint::IPaint& paint)
+{
     // MC UI 是方正风格，不需要圆形
     // 退化为边界矩形
     const u32 color = extractColor(paint);
     transformPoint(cx, cy);
 
     if (paint.style() == kagero::paint::PaintStyle::Fill) {
-        m_renderer.fillRect(
-            cx - radius,
-            cy - radius,
-            radius * 2,
-            radius * 2,
-            color
-        );
+        m_renderer.fillRect(cx - radius, cy - radius, radius * 2, radius * 2, color);
     }
 }
 
-void TridentCanvas::drawOval(const kagero::Rect& bounds, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawOval(const kagero::Rect& bounds, const kagero::paint::IPaint& paint)
+{
     // MC UI 是方正风格，不需要椭圆
     // 退化为普通矩形
     drawRect(bounds, paint);
 }
 
-void TridentCanvas::drawPath(const kagero::paint::IPath& path, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawPath(const kagero::paint::IPath& path, const kagero::paint::IPaint& paint)
+{
     // MC UI 是方正风格，不需要路径绘制
     (void)path;
     (void)paint;
 }
 
-void TridentCanvas::drawLine(f32 x0, f32 y0, f32 x1, f32 y1, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawLine(f32 x0, f32 y0, f32 x1, f32 y1, const kagero::paint::IPaint& paint)
+{
     const u32 color = extractColor(paint);
     const f32 strokeWidth = paint.strokeWidth();
 
@@ -123,7 +125,8 @@ void TridentCanvas::drawLine(f32 x0, f32 y0, f32 x1, f32 y1, const kagero::paint
     m_renderer.fillRect(minX, minY, maxX - minX, maxY - minY, color);
 }
 
-void TridentCanvas::drawGradientRect(const kagero::Rect& rect, u32 color1, u32 color2, bool vertical) {
+void TridentCanvas::drawGradientRect(const kagero::Rect& rect, u32 color1, u32 color2, bool vertical)
+{
     f32 x = static_cast<f32>(rect.x);
     f32 y = static_cast<f32>(rect.y);
     const f32 w = static_cast<f32>(rect.width);
@@ -138,7 +141,8 @@ void TridentCanvas::drawGradientRect(const kagero::Rect& rect, u32 color1, u32 c
     }
 }
 
-void TridentCanvas::drawImage(const kagero::paint::IImage& image, f32 x, f32 y) {
+void TridentCanvas::drawImage(const kagero::paint::IImage& image, f32 x, f32 y)
+{
     // 尝试转换为 TextureImage
     const auto* textureImage = dynamic_cast<const kagero::paint::TextureImage*>(&image);
     if (textureImage == nullptr) {
@@ -156,16 +160,20 @@ void TridentCanvas::drawImage(const kagero::paint::IImage& image, f32 x, f32 y) 
     const f32 h = static_cast<f32>(textureImage->height());
 
     // 绘制纹理矩形，传递图集槽位
-    m_renderer.drawTexturedRect(
-        x, y, w, h,
-        textureImage->u0(), textureImage->v0(),
-        textureImage->u1(), textureImage->v1(),
+    m_renderer.drawTexturedRect(x,
+        y,
+        w,
+        h,
+        textureImage->u0(),
+        textureImage->v0(),
+        textureImage->u1(),
+        textureImage->v1(),
         kagero::paint::TextureImage::DEFAULT_TINT,
-        textureImage->atlasSlot()
-    );
+        textureImage->atlasSlot());
 }
 
-void TridentCanvas::drawImageRect(const kagero::paint::IImage& image, const kagero::Rect& src, const kagero::Rect& dst) {
+void TridentCanvas::drawImageRect(const kagero::paint::IImage& image, const kagero::Rect& src, const kagero::Rect& dst)
+{
     const auto* textureImage = dynamic_cast<const kagero::paint::TextureImage*>(&image);
     if (textureImage == nullptr) {
         spdlog::warn("TridentCanvas::drawImageRect - unsupported image type");
@@ -187,20 +195,28 @@ void TridentCanvas::drawImageRect(const kagero::paint::IImage& image, const kage
     // 从纹理空间到 UV 空间的映射
     const f32 u0 = textureImage->u0() + (textureImage->u1() - textureImage->u0()) * (static_cast<f32>(src.x) / imgW);
     const f32 v0 = textureImage->v0() + (textureImage->v1() - textureImage->v0()) * (static_cast<f32>(src.y) / imgH);
-    const f32 u1 = textureImage->u0() + (textureImage->u1() - textureImage->u0()) * (static_cast<f32>(src.x + src.width) / imgW);
-    const f32 v1 = textureImage->v0() + (textureImage->v1() - textureImage->v0()) * (static_cast<f32>(src.y + src.height) / imgH);
+    const f32 u1 =
+        textureImage->u0() + (textureImage->u1() - textureImage->u0()) * (static_cast<f32>(src.x + src.width) / imgW);
+    const f32 v1 =
+        textureImage->v0() + (textureImage->v1() - textureImage->v0()) * (static_cast<f32>(src.y + src.height) / imgH);
 
-    m_renderer.drawTexturedRect(
-        x, y,
+    m_renderer.drawTexturedRect(x,
+        y,
         static_cast<f32>(dst.width),
         static_cast<f32>(dst.height),
-        u0, v0, u1, v1,
+        u0,
+        v0,
+        u1,
+        v1,
         kagero::paint::TextureImage::DEFAULT_TINT,
-        textureImage->atlasSlot()
-    );
+        textureImage->atlasSlot());
 }
 
-void TridentCanvas::drawImageNine(const kagero::paint::IImage& image, const kagero::Rect& center, const kagero::Rect& dst, const kagero::paint::IPaint* paint) {
+void TridentCanvas::drawImageNine(const kagero::paint::IImage& image,
+    const kagero::Rect& center,
+    const kagero::Rect& dst,
+    const kagero::paint::IPaint* paint)
+{
     const auto* textureImage = dynamic_cast<const kagero::paint::TextureImage*>(&image);
     if (textureImage == nullptr) {
         spdlog::warn("TridentCanvas::drawImageNine - unsupported image type");
@@ -278,30 +294,31 @@ void TridentCanvas::drawImageNine(const kagero::paint::IImage& image, const kage
     };
 
     // 行 0: 上边
-    drawRegion(x0, y0, dstLeftW, dstTopH, u0, v0, u1, v1);                    // 左上
+    drawRegion(x0, y0, dstLeftW, dstTopH, u0, v0, u1, v1); // 左上
     if (dstCenterW > 0) {
-        drawRegion(x1, y0, dstCenterW, dstTopH, u1, v0, u2, v1);              // 中上
+        drawRegion(x1, y0, dstCenterW, dstTopH, u1, v0, u2, v1); // 中上
     }
-    drawRegion(x2, y0, dstRightW, dstTopH, u2, v0, u3, v1);                   // 右上
+    drawRegion(x2, y0, dstRightW, dstTopH, u2, v0, u3, v1); // 右上
 
     // 行 1: 中间
     if (dstCenterH > 0) {
-        drawRegion(x0, y1, dstLeftW, dstCenterH, u0, v1, u1, v2);             // 左中
+        drawRegion(x0, y1, dstLeftW, dstCenterH, u0, v1, u1, v2); // 左中
         if (dstCenterW > 0) {
-            drawRegion(x1, y1, dstCenterW, dstCenterH, u1, v1, u2, v2);       // 中中
+            drawRegion(x1, y1, dstCenterW, dstCenterH, u1, v1, u2, v2); // 中中
         }
-        drawRegion(x2, y1, dstRightW, dstCenterH, u2, v1, u3, v2);            // 右中
+        drawRegion(x2, y1, dstRightW, dstCenterH, u2, v1, u3, v2); // 右中
     }
 
     // 行 2: 下边
-    drawRegion(x0, y2, dstLeftW, dstBottomH, u0, v2, u1, v3);                 // 左下
+    drawRegion(x0, y2, dstLeftW, dstBottomH, u0, v2, u1, v3); // 左下
     if (dstCenterW > 0) {
-        drawRegion(x1, y2, dstCenterW, dstBottomH, u1, v2, u2, v3);           // 中下
+        drawRegion(x1, y2, dstCenterW, dstBottomH, u1, v2, u2, v3); // 中下
     }
-    drawRegion(x2, y2, dstRightW, dstBottomH, u2, v2, u3, v3);                // 右下
+    drawRegion(x2, y2, dstRightW, dstBottomH, u2, v2, u3, v3); // 右下
 }
 
-void TridentCanvas::drawText(const std::string& text, f32 x, f32 y, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawText(const std::string& text, f32 x, f32 y, const kagero::paint::IPaint& paint)
+{
     const u32 color = extractColor(paint);
     transformPoint(x, y);
 
@@ -329,7 +346,8 @@ void TridentCanvas::drawText(const std::string& text, f32 x, f32 y, const kagero
     m_renderer.drawText(utf8Text, x, y, color, false);
 }
 
-void TridentCanvas::drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f32 y, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f32 y, const kagero::paint::IPaint& paint)
+{
     const u32 color = extractColor(paint);
     transformPoint(x, y);
 
@@ -358,69 +376,83 @@ void TridentCanvas::drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f3
     m_renderer.drawText(utf8Text, x, y, color, false);
 }
 
-void TridentCanvas::clipRect(const kagero::Rect& rect) {
+void TridentCanvas::clipRect(const kagero::Rect& rect)
+{
     m_clipBounds = m_clipBounds.intersection(rect);
 }
 
-void TridentCanvas::clipRRect(const kagero::paint::RRect& roundRect) {
+void TridentCanvas::clipRRect(const kagero::paint::RRect& roundRect)
+{
     // 简化实现：退化为矩形裁剪
     clipRect(roundRect.rect);
 }
 
-void TridentCanvas::clipPath(const kagero::paint::IPath& path) {
+void TridentCanvas::clipPath(const kagero::paint::IPath& path)
+{
     // 路径裁剪暂不实现
     (void)path;
 }
 
-void TridentCanvas::clipOutRect(const kagero::Rect& rect) {
+void TridentCanvas::clipOutRect(const kagero::Rect& rect)
+{
     // MC UI 不使用反向裁剪，忽略并记录警告
     spdlog::warn("TridentCanvas::clipOutRect not implemented - MC UI does not require this");
     (void)rect;
 }
 
-bool TridentCanvas::clipIsEmpty() const {
+bool TridentCanvas::clipIsEmpty() const
+{
     return !m_clipBounds.isValid();
 }
 
-kagero::Rect TridentCanvas::getClipBounds() const {
+kagero::Rect TridentCanvas::getClipBounds() const
+{
     return m_clipBounds;
 }
 
-void TridentCanvas::translate(f32 dx, f32 dy) {
+void TridentCanvas::translate(f32 dx, f32 dy)
+{
     // 3x3 仿射矩阵的平移
     m_matrix.m[2] += dx;
     m_matrix.m[5] += dy;
 }
 
-void TridentCanvas::scale(f32 sx, f32 sy) {
+void TridentCanvas::scale(f32 sx, f32 sy)
+{
     // 3x3 仿射矩阵的缩放
     m_matrix.m[0] *= sx;
     m_matrix.m[4] *= sy;
 }
 
-void TridentCanvas::rotate(f32 degrees) {
+void TridentCanvas::rotate(f32 degrees)
+{
     m_matrix.rotate(degrees);
 }
 
-void TridentCanvas::concat(const kagero::paint::Matrix& matrix) {
+void TridentCanvas::concat(const kagero::paint::Matrix& matrix)
+{
     m_matrix = m_matrix * matrix;
 }
 
-void TridentCanvas::setMatrix(const kagero::paint::Matrix& matrix) {
+void TridentCanvas::setMatrix(const kagero::paint::Matrix& matrix)
+{
     m_matrix = matrix;
 }
 
-kagero::paint::Matrix TridentCanvas::getTotalMatrix() const {
+kagero::paint::Matrix TridentCanvas::getTotalMatrix() const
+{
     return m_matrix;
 }
 
-i32 TridentCanvas::save() {
+i32 TridentCanvas::save()
+{
     m_clipStack.push_back(m_clipBounds);
     m_matrixStack.push_back(m_matrix);
     return static_cast<i32>(m_clipStack.size());
 }
 
-void TridentCanvas::restore() {
+void TridentCanvas::restore()
+{
     if (!m_clipStack.empty()) {
         m_clipBounds = m_clipStack.back();
         m_clipStack.pop_back();
@@ -434,13 +466,15 @@ void TridentCanvas::restore() {
     }
 }
 
-void TridentCanvas::restoreToCount(i32 saveCount) {
+void TridentCanvas::restoreToCount(i32 saveCount)
+{
     while (static_cast<i32>(m_clipStack.size()) > saveCount) {
         restore();
     }
 }
 
-i32 TridentCanvas::saveLayer(const kagero::Rect* bounds, const kagero::paint::IPaint* paint) {
+i32 TridentCanvas::saveLayer(const kagero::Rect* bounds, const kagero::paint::IPaint* paint)
+{
     if (bounds != nullptr) {
         clipRect(*bounds);
     }
@@ -450,7 +484,8 @@ i32 TridentCanvas::saveLayer(const kagero::Rect* bounds, const kagero::paint::IP
     return save();
 }
 
-i32 TridentCanvas::saveLayerAlpha(const kagero::Rect* bounds, u8 alpha) {
+i32 TridentCanvas::saveLayerAlpha(const kagero::Rect* bounds, u8 alpha)
+{
     if (bounds != nullptr) {
         clipRect(*bounds);
     }
@@ -459,33 +494,40 @@ i32 TridentCanvas::saveLayerAlpha(const kagero::Rect* bounds, u8 alpha) {
     return save();
 }
 
-i32 TridentCanvas::width() const {
+i32 TridentCanvas::width() const
+{
     return m_width;
 }
 
-i32 TridentCanvas::height() const {
+i32 TridentCanvas::height() const
+{
     return m_height;
 }
 
-f32 TridentCanvas::getTextWidth(const std::string& text) const {
+f32 TridentCanvas::getTextWidth(const std::string& text) const
+{
     return m_font.getStringWidth(text);
 }
 
-u32 TridentCanvas::getFontHeight() const {
+u32 TridentCanvas::getFontHeight() const
+{
     return m_font.getFontHeight();
 }
 
-void TridentCanvas::resize(i32 width, i32 height) {
+void TridentCanvas::resize(i32 width, i32 height)
+{
     m_width = width;
     m_height = height;
     m_clipBounds = kagero::Rect{0, 0, width, height};
 }
 
-void TridentCanvas::transformPoint(f32& x, f32& y) const {
+void TridentCanvas::transformPoint(f32& x, f32& y) const
+{
     m_matrix.transformPoint(x, y);
 }
 
-u32 TridentCanvas::extractColor(const kagero::paint::IPaint& paint) const {
+u32 TridentCanvas::extractColor(const kagero::paint::IPaint& paint) const
+{
     kagero::paint::Color color = paint.color();
 
     // 应用 alpha 堆栈

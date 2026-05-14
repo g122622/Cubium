@@ -4,7 +4,8 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& random) {
+bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& random)
+{
     if (level <= 0) {
         return true;
     }
@@ -14,7 +15,8 @@ bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& ran
     return random.nextFloat() >= chance;
 }
 
-bool UnbreakingEnchantment::shouldArmorConsumeDurability(i32 level, math::Random& random) {
+bool UnbreakingEnchantment::shouldArmorConsumeDurability(i32 level, math::Random& random)
+{
     if (level <= 0) {
         return true;
     }

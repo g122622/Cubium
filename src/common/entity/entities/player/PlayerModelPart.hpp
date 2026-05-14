@@ -73,13 +73,9 @@ enum class PlayerModelPart : u8 {
     return "options.modelPart.cape";
 }
 
-inline constexpr u8 PLAYER_MODEL_PARTS_ALL_MASK =
-    getPlayerModelPartMask(PlayerModelPart::Cape) |
-    getPlayerModelPartMask(PlayerModelPart::Jacket) |
-    getPlayerModelPartMask(PlayerModelPart::LeftSleeve) |
-    getPlayerModelPartMask(PlayerModelPart::RightSleeve) |
-    getPlayerModelPartMask(PlayerModelPart::LeftPantsLeg) |
-    getPlayerModelPartMask(PlayerModelPart::RightPantsLeg) |
-    getPlayerModelPartMask(PlayerModelPart::Hat);
+inline constexpr u8 PLAYER_MODEL_PARTS_ALL_MASK = getPlayerModelPartMask(PlayerModelPart::Cape) |
+    getPlayerModelPartMask(PlayerModelPart::Jacket) | getPlayerModelPartMask(PlayerModelPart::LeftSleeve) |
+    getPlayerModelPartMask(PlayerModelPart::RightSleeve) | getPlayerModelPartMask(PlayerModelPart::LeftPantsLeg) |
+    getPlayerModelPartMask(PlayerModelPart::RightPantsLeg) | getPlayerModelPartMask(PlayerModelPart::Hat);
 
 } // namespace mc

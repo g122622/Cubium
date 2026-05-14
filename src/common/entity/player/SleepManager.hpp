@@ -1,9 +1,9 @@
 #pragma once
 
-#include "SleepResult.hpp"
 #include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "../../util/Direction.hpp"
+#include "../../util/math/Vector3.hpp"
+#include "SleepResult.hpp"
 #include <optional>
 
 namespace mc {
@@ -55,9 +55,7 @@ public:
      * @return 如果找到合适位置返回位置向量，否则返回 nullopt
      */
     [[nodiscard]] static std::optional<Vector3> findWakeUpPosition(
-        const IWorld& world,
-        const BlockPos& bedPos,
-        Direction bedFacing);
+        const IWorld& world, const BlockPos& bedPos, Direction bedFacing);
 
     /**
      * @brief 检查玩家是否在床附近
@@ -82,10 +80,7 @@ public:
      * @param bedFacing 床的朝向
      * @return true 如果床被阻挡
      */
-    [[nodiscard]] static bool isBedObstructed(
-        const IWorld& world,
-        const BlockPos& bedPos,
-        Direction bedFacing);
+    [[nodiscard]] static bool isBedObstructed(const IWorld& world, const BlockPos& bedPos, Direction bedFacing);
 
     /**
      * @brief 检查床周围是否有怪物
@@ -98,10 +93,7 @@ public:
      * @param player 检查的玩家（用于排除）
      * @return true 如果周围有怪物
      */
-    [[nodiscard]] static bool isBedSurroundedByMonsters(
-        IWorld& world,
-        const BlockPos& bedPos,
-        const Player& player);
+    [[nodiscard]] static bool isBedSurroundedByMonsters(IWorld& world, const BlockPos& bedPos, const Player& player);
 
 private:
     /**

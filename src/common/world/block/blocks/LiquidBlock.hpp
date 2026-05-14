@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../Block.hpp"
-#include "../IBucketPickupHandler.hpp"
-#include "../../fluid/Fluid.hpp"
-#include "../../fluid/FlowingFluid.hpp"
-#include "../../IWorld.hpp"
-#include "../BlockPos.hpp"
 #include "../../../util/property/Properties.hpp"
+#include "../../IWorld.hpp"
+#include "../../fluid/FlowingFluid.hpp"
+#include "../../fluid/Fluid.hpp"
+#include "../Block.hpp"
+#include "../BlockPos.hpp"
+#include "../IBucketPickupHandler.hpp"
 #include <memory>
 
 namespace mc {
@@ -52,7 +52,8 @@ public:
      *
      * 液体方块不是空气。
      */
-    [[nodiscard]] bool isAir(const BlockState& state) const override {
+    [[nodiscard]] bool isAir(const BlockState& state) const override
+    {
         (void)state;
         return false;
     }
@@ -69,8 +70,9 @@ public:
      *
      * 液体方块没有实体面。
      */
-    [[nodiscard]] bool isSolidSide(const BlockState& state, IWorld& world,
-                                   const BlockPos& pos, Direction side) const override {
+    [[nodiscard]] bool isSolidSide(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override
+    {
         (void)state;
         (void)world;
         (void)pos;
@@ -83,9 +85,9 @@ public:
      *
      * 液体总是传播天空光（衰减1级）。
      */
-    [[nodiscard]] bool propagatesSkylightDown(const BlockState& state,
-                                               IWorld* world = nullptr,
-                                               const BlockPos* pos = nullptr) const override {
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
         (void)state;
         (void)world;
         (void)pos;
@@ -104,9 +106,8 @@ public:
      *
      * 当邻居方块改变时，重新调度流体tick。
      */
-    void neighborChanged(IWorld& world, const BlockPos& pos,
-                         Block& neighborBlock, const BlockPos& neighborPos,
-                         bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     /**
      * @brief 是否需要随机tick
@@ -120,8 +121,7 @@ public:
      *
      * 委托给流体的randomTick方法。岩浆会在随机tick时尝试点燃周围可燃方块。
      */
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state,
-                    math::IRandom& random) override;
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 获取关联的流体
@@ -155,16 +155,12 @@ public:
     /**
      * @brief 检查方块等级是否表示源头
      */
-    [[nodiscard]] static bool isSourceLevel(i32 blockLevel) {
-        return blockLevel == 0;
-    }
+    [[nodiscard]] static bool isSourceLevel(i32 blockLevel) { return blockLevel == 0; }
 
     /**
      * @brief 检查方块等级是否表示下落
      */
-    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) {
-        return blockLevel >= 8;
-    }
+    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) { return blockLevel >= 8; }
 
     /**
      * @brief 获取放置时的方块状态
@@ -175,7 +171,8 @@ public:
      * @param context 放置上下文
      * @return 方块状态
      */
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override {
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override
+    {
         (void)context;
         return defaultState();
     }
@@ -193,8 +190,7 @@ public:
      * @param facingPos 邻居位置
      * @return 更新后的状态
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -241,10 +237,7 @@ public:
      * @param state 方块状态
      * @return 如果成功舀起返回流体指针，否则返回 nullptr
      */
-    [[nodiscard]] fluid::Fluid* pickupFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    [[nodiscard]] fluid::Fluid* pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
 private:
     fluid::FlowingFluid& m_fluid;

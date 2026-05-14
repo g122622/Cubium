@@ -1,6 +1,6 @@
 #include "ChunkPrimer.hpp"
-#include "../block/BlockRegistry.hpp"
 #include "../WorldConstants.hpp"
+#include "../block/BlockRegistry.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -251,7 +251,7 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
     if (m_data) {
         m_data->setBiomes(m_biomes);
         m_data->setFullyGenerated(true);
-        m_data->setStatus(ChunkLoadStatus::Generated);  // 设置 ChunkData 的状态
+        m_data->setStatus(ChunkLoadStatus::Generated); // 设置 ChunkData 的状态
     }
 
     // 设置状态
@@ -273,8 +273,8 @@ u16 ChunkPrimer::packToLocal(BlockCoord x, BlockCoord y, BlockCoord z)
     return static_cast<u16>((x & 0xF) | ((y & 0xF) << 4) | ((z & 0xF) << 8));
 }
 
-void ChunkPrimer::unpackFromLocal(u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ,
-                                   BlockCoord& x, BlockCoord& y, BlockCoord& z)
+void ChunkPrimer::unpackFromLocal(
+    u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ, BlockCoord& x, BlockCoord& y, BlockCoord& z)
 {
     x = (packed & 0xF) + (chunkX << 4);
     y = ((packed >> 4) & 0xF) + (yOffset << 4);
@@ -287,9 +287,8 @@ void ChunkPrimer::unpackFromLocal(u16 packed, i32 yOffset, ChunkCoord chunkX, Ch
 
 bool ChunkPrimer::isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z)
 {
-    return x >= 0 && x < world::CHUNK_WIDTH &&
-           y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT &&
-           z >= 0 && z < world::CHUNK_WIDTH;
+    return x >= 0 && x < world::CHUNK_WIDTH && y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && z >= 0 &&
+        z < world::CHUNK_WIDTH;
 }
 
 void ChunkPrimer::initializeCarvingMasks()

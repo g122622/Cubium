@@ -4,8 +4,8 @@
 #include "../../resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 

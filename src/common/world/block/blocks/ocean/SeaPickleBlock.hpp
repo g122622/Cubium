@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -58,12 +58,9 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -85,15 +82,14 @@ public:
      * @return u8 发光等级（0-15）
      */
     [[nodiscard]] u8 getLightLevel(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr) const override;
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -108,7 +104,8 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 

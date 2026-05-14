@@ -10,18 +10,22 @@
 
 namespace mc {
 
-CombatEntry::CombatEntry(std::unique_ptr<DamageSource> source, f32 damage, i32 timestamp,
-                         f32 health, const std::string& fallSuffix, f32 fallDistance)
+CombatEntry::CombatEntry(std::unique_ptr<DamageSource> source,
+    f32 damage,
+    i32 timestamp,
+    f32 health,
+    const std::string& fallSuffix,
+    f32 fallDistance)
     : m_source(std::move(source))
     , m_damage(damage)
     , m_timestamp(timestamp)
     , m_health(health)
     , m_fallSuffix(fallSuffix)
     , m_fallDistance(fallDistance)
-{
-}
+{}
 
-bool CombatEntry::isLivingSource() const {
+bool CombatEntry::isLivingSource() const
+{
     // MC 1.16.5: return this.damageSrc.getTrueSource() instanceof LivingEntity;
     // 检查真正的伤害来源是否是 LivingEntity
     if (!m_source) {
@@ -31,11 +35,13 @@ bool CombatEntry::isLivingSource() const {
     return trueSource != nullptr && dynamic_cast<LivingEntity*>(trueSource) != nullptr;
 }
 
-bool CombatEntry::isPlayerSource() const {
+bool CombatEntry::isPlayerSource() const
+{
     return m_source && m_source->isPlayerSource();
 }
 
-f32 CombatEntry::getDamageAmount() const {
+f32 CombatEntry::getDamageAmount() const
+{
     // MC 1.16.5 CombatEntry.getDamageAmount():
     // return this.damageSrc == DamageSource.OUT_OF_WORLD ? Float.MAX_VALUE : this.fallDistance;
     // 注意：这里返回的是 fallDistance，不是 damage！

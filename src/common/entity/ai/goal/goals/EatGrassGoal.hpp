@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../Goal.hpp"
 #include <functional>
 
 namespace mc {
@@ -86,7 +86,7 @@ private:
     IsChildCallback m_isChild;
     i32 m_eatingGrassTimer = 0;
     BlockPos m_targetPos{0, 0, 0};
-    bool m_isEatingGrassBlock = false;  // true = 草方块，false = 草
+    bool m_isEatingGrassBlock = false; // true = 草方块，false = 草
 
     // 动画持续时间
     static constexpr i32 EAT_DURATION = 40;

@@ -6,22 +6,26 @@
 namespace mc::client::renderer::entity::model::animal {
 
 namespace {
-    // Java: MathHelper.rotLerp
-    f32 rotLerp(f32 angle, f32 maxAngle, f32 target) {
-        f32 f = target - maxAngle;
-        while (f < -180.0f) f += 360.0f;
-        while (f >= 180.0f) f -= 360.0f;
-        return maxAngle + angle * f;
-    }
-
-    // Java: MathHelper.lerp
-    f32 lerp(f32 pct, f32 start, f32 end) {
-        return start + pct * (end - start);
-    }
+// Java: MathHelper.rotLerp
+f32 rotLerp(f32 angle, f32 maxAngle, f32 target)
+{
+    f32 f = target - maxAngle;
+    while (f < -180.0f)
+        f += 360.0f;
+    while (f >= 180.0f)
+        f -= 360.0f;
+    return maxAngle + angle * f;
 }
 
+// Java: MathHelper.lerp
+f32 lerp(f32 pct, f32 start, f32 end)
+{
+    return start + pct * (end - start);
+}
+} // namespace
+
 HorseModel::HorseModel(f32 scale)
-    : AgeableModel(true, 16.2f, 1.36f, 2.7272f, 2.0f, 20.0f)  // Java: super(true, 16.2F, 1.36F, 2.7272F, 2.0F, 20.0F)
+    : AgeableModel(true, 16.2f, 1.36f, 2.7272f, 2.0f, 20.0f) // Java: super(true, 16.2F, 1.36F, 2.7272F, 2.0F, 20.0F)
     , m_scale(scale)
 {
     setTextureSize(64, 64);
@@ -38,7 +42,8 @@ HorseModel::HorseModel(f32 scale)
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setTextureOffset(0, 35);
     m_head->addBox(-2.05f, -6.0f, -2.0f, 4.0f, 12.0f, 7.0f, static_cast<f64>(scale));
-    m_head->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 6.0));  // Java: rotateAngleX = mc::math::PI_DOUBLE / 6F
+    m_head->setRotateAngleX(
+        static_cast<f32>(mc::math::PI_DOUBLE / 6.0)); // Java: rotateAngleX = mc::math::PI_DOUBLE / 6F
 
     // 头部子部件 - 马鬃上部 - Java: modelrenderer.addBox(-3.0F, -11.0F, -2.0F, 6.0F, 5.0F, 7.0F, scale);
     auto headTop = m_head->createChild("headTop");
@@ -119,7 +124,8 @@ HorseModel::HorseModel(f32 scale)
     m_tail->setTextureOffset(42, 36);
     m_tail->addBox(-1.5f, 0.0f, 0.0f, 3.0f, 14.0f, 4.0f, static_cast<f64>(scale));
     m_tail->setRotationPoint(0.0f, -5.0f, 2.0f);
-    m_tail->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 6.0));  // Java: rotateAngleX = mc::math::PI_DOUBLE / 6F
+    m_tail->setRotateAngleX(
+        static_cast<f32>(mc::math::PI_DOUBLE / 6.0)); // Java: rotateAngleX = mc::math::PI_DOUBLE / 6F
     m_body->addChild(m_tail);
 
     // 鞍部件 - Java: modelrenderer3 (身体上的鞍)
@@ -174,7 +180,8 @@ HorseModel::HorseModel(f32 scale)
     m_frontLeftLegBaby->setVisible(false);
 }
 
-void HorseModel::addEars(std::shared_ptr<ModelRenderer> head) {
+void HorseModel::addEars(std::shared_ptr<ModelRenderer> head)
+{
     // Java: func_199047_a
     // 右耳 - Java: modelrenderer.addBox(0.55F, -13.0F, 4.0F, 2.0F, 3.0F, 1.0F, -0.001F);
     auto rightEar = head->createChild("rightEar");
@@ -187,20 +194,31 @@ void HorseModel::addEars(std::shared_ptr<ModelRenderer> head) {
     leftEar->addBox(-2.55f, -13.0f, 4.0f, 2.0f, 3.0f, 1.0f, -0.001);
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> HorseModel::getHeadParts() const {
-    return { m_head };
+std::vector<std::shared_ptr<ModelRenderer>> HorseModel::getHeadParts() const
+{
+    return {m_head};
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> HorseModel::getBodyParts() const {
-    return { m_body, m_backRightLeg, m_backLeftLeg, m_frontRightLeg, m_frontLeftLeg,
-             m_backRightLegBaby, m_backLeftLegBaby, m_frontRightLegBaby, m_frontLeftLegBaby };
+std::vector<std::shared_ptr<ModelRenderer>> HorseModel::getBodyParts() const
+{
+    return {m_body,
+        m_backRightLeg,
+        m_backLeftLeg,
+        m_frontRightLeg,
+        m_frontLeftLeg,
+        m_backRightLegBaby,
+        m_backLeftLegBaby,
+        m_frontRightLegBaby,
+        m_frontLeftLegBaby};
 }
 
-void HorseModel::render(f64 scale) {
+void HorseModel::render(f64 scale)
+{
     AgeableModel::render(scale);
 }
 
-void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) {
+void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick)
+{
     AgeableModel::setLivingAnimations(limbSwing, limbSwingAmount, partialTick);
 
     // 参考 MC 1.16.5 HorseModel.setLivingAnimations
@@ -224,8 +242,8 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
         f4 += static_cast<f32>(std::cos(limbSwingFloat * 0.4f) * 0.15f * limbSwingAmountFloat);
     }
 
-    f32 f5 = m_grassEatingAmount;  // getGrassEatingAmount(partialTick)
-    f32 f6 = m_rearingAmount;      // getRearingAmount(partialTick)
+    f32 f5 = m_grassEatingAmount; // getGrassEatingAmount(partialTick)
+    f32 f6 = m_rearingAmount;     // getRearingAmount(partialTick)
     f32 f7 = 1.0f - f6;
     f32 f8 = m_mouthOpennessAngle; // getMouthOpennessAngle(partialTick)
     bool flag = m_tailCounter != 0;
@@ -241,10 +259,12 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
     f32 f10 = m_inWater ? 0.2f : 1.0f;
     f32 f11 = static_cast<f32>(std::cos(f10 * limbSwingFloat * 0.6662f + static_cast<f64>(mc::math::PI_DOUBLE)));
     f32 f12 = f11 * 0.8f * limbSwingAmountFloat;
-    f32 f13 = (1.0f - std::max(f6, f5)) * (static_cast<f32>(mc::math::PI_DOUBLE / 6.0) + f4 + f8 * static_cast<f32>(std::sin(f9)) * 0.05f);
+    f32 f13 = (1.0f - std::max(f6, f5)) *
+        (static_cast<f32>(mc::math::PI_DOUBLE / 6.0) + f4 + f8 * static_cast<f32>(std::sin(f9)) * 0.05f);
 
     m_head->setRotateAngleX(f6 * (0.2617994f + f4) + f5 * (2.1816616f + static_cast<f32>(std::sin(f9)) * 0.05f) + f13);
-    m_head->setRotateAngleY(f6 * f3 * static_cast<f32>(mc::math::PI_DOUBLE / 180.0) + (1.0f - std::max(f6, f5)) * m_head->rotateAngleY());
+    m_head->setRotateAngleY(
+        f6 * f3 * static_cast<f32>(mc::math::PI_DOUBLE / 180.0) + (1.0f - std::max(f6, f5)) * m_head->rotateAngleY());
     m_head->setRotationPointY(f6 * -4.0f + f5 * 11.0f + (1.0f - std::max(f6, f5)) * m_head->rotationPointY());
     m_head->setRotationPointZ(f6 * -4.0f + f5 * -12.0f + (1.0f - std::max(f6, f5)) * m_head->rotationPointZ());
     m_body->setRotateAngleX(f6 * static_cast<f32>(-mc::math::PI_DOUBLE / 4.0) + f7 * m_body->rotateAngleX());
@@ -315,9 +335,9 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
     }
 }
 
-void HorseModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 /*ageInTicks*/, f64 /*netHeadYaw*/,
-                            f64 /*headPitch*/, f64 /*scale*/) {
+void HorseModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 /*ageInTicks*/, f64 /*netHeadYaw*/, f64 /*headPitch*/, f64 /*scale*/)
+{
     // 参考 MC 1.16.5 HorseModel.setRotationAngles
     // 主要动画在 setLivingAnimations 中处理
 

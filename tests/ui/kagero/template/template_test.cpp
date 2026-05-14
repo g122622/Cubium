@@ -1,24 +1,24 @@
-#include <gtest/gtest.h>
 #include <iostream>
+#include <gtest/gtest.h>
 
 // 模板系统核心组件
-#include "client/ui/kagero/template/core/TemplateConfig.hpp"
-#include "client/ui/kagero/template/core/TemplateError.hpp"
-#include "client/ui/kagero/template/parser/Lexer.hpp"
-#include "client/ui/kagero/template/parser/Parser.hpp"
-#include "client/ui/kagero/template/parser/Ast.hpp"
-#include "client/ui/kagero/template/parser/AstVisitor.hpp"
-#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
-#include "client/ui/kagero/template/binder/BindingContext.hpp"
-#include "client/ui/kagero/template/runtime/UpdateScheduler.hpp"
-#include "client/ui/kagero/state/StateStore.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/event/UIEvents.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
+#include "client/ui/kagero/template/core/TemplateConfig.hpp"
+#include "client/ui/kagero/template/core/TemplateError.hpp"
+#include "client/ui/kagero/template/parser/Ast.hpp"
+#include "client/ui/kagero/template/parser/AstVisitor.hpp"
+#include "client/ui/kagero/template/parser/Lexer.hpp"
+#include "client/ui/kagero/template/parser/Parser.hpp"
+#include "client/ui/kagero/template/runtime/UpdateScheduler.hpp"
 
 using namespace mc::client::ui::kagero::tpl;
+using mc::f32;
 using mc::i32;
 using mc::i64;
-using mc::f32;
 using mc::u32;
 using mc::u64;
 
@@ -29,7 +29,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TemplateConfigTest, DefaultConfig) {
+TEST_F(TemplateConfigTest, DefaultConfig)
+{
     auto config = core::TemplateConfig::defaults();
     EXPECT_TRUE(config.strictMode);
     EXPECT_FALSE(config.allowInlineScript);
@@ -40,19 +41,22 @@ TEST_F(TemplateConfigTest, DefaultConfig) {
     EXPECT_TRUE(config.validateCallbackNames);
 }
 
-TEST_F(TemplateConfigTest, DevelopmentConfig) {
+TEST_F(TemplateConfigTest, DevelopmentConfig)
+{
     auto config = core::TemplateConfig::development();
     EXPECT_TRUE(config.debugOutput);
     EXPECT_TRUE(config.strictMode);
 }
 
-TEST_F(TemplateConfigTest, ProductionConfig) {
+TEST_F(TemplateConfigTest, ProductionConfig)
+{
     auto config = core::TemplateConfig::production();
     EXPECT_TRUE(config.enableCache);
     EXPECT_FALSE(config.debugOutput);
 }
 
-TEST_F(TemplateConfigTest, SourceLocationDefault) {
+TEST_F(TemplateConfigTest, SourceLocationDefault)
+{
     core::SourceLocation loc;
     EXPECT_EQ(loc.line, 1u);
     EXPECT_EQ(loc.column, 1u);
@@ -60,19 +64,22 @@ TEST_F(TemplateConfigTest, SourceLocationDefault) {
     EXPECT_TRUE(loc.isValid());
 }
 
-TEST_F(TemplateConfigTest, SourceLocationInvalid) {
+TEST_F(TemplateConfigTest, SourceLocationInvalid)
+{
     auto loc = core::SourceLocation::invalid();
     EXPECT_EQ(loc.line, 0u);
     EXPECT_EQ(loc.column, 0u);
     EXPECT_FALSE(loc.isValid());
 }
 
-TEST_F(TemplateConfigTest, SourceLocationToString) {
+TEST_F(TemplateConfigTest, SourceLocationToString)
+{
     core::SourceLocation loc(10, 20, 100);
     EXPECT_EQ(loc.toString(), "line 10, column 20");
 }
 
-TEST_F(TemplateConfigTest, SourceRangeMerge) {
+TEST_F(TemplateConfigTest, SourceRangeMerge)
+{
     core::SourceLocation start(1, 1, 0);
     core::SourceLocation end(1, 10, 9);
     core::SourceRange range(start, end);
@@ -89,7 +96,8 @@ TEST_F(TemplateConfigTest, SourceRangeMerge) {
     EXPECT_EQ(merged.end.offset, 50u);
 }
 
-TEST_F(TemplateConfigTest, SourceRangeAt) {
+TEST_F(TemplateConfigTest, SourceRangeAt)
+{
     core::SourceLocation loc(5, 10, 50);
     auto range = core::SourceRange::at(loc);
     EXPECT_EQ(range.start.line, 5u);
@@ -103,13 +111,10 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TemplateErrorTest, ErrorInfoCreation) {
+TEST_F(TemplateErrorTest, ErrorInfoCreation)
+{
     core::TemplateErrorInfo info(
-        core::TemplateErrorType::LexerError,
-        "Test error message",
-        core::SourceLocation(5, 10),
-        "test.tpl"
-    );
+        core::TemplateErrorType::LexerError, "Test error message", core::SourceLocation(5, 10), "test.tpl");
 
     EXPECT_EQ(info.type, core::TemplateErrorType::LexerError);
     EXPECT_EQ(info.message, "Test error message");
@@ -117,13 +122,10 @@ TEST_F(TemplateErrorTest, ErrorInfoCreation) {
     EXPECT_EQ(info.sourcePath, "test.tpl");
 }
 
-TEST_F(TemplateErrorTest, ErrorInfoFormat) {
+TEST_F(TemplateErrorTest, ErrorInfoFormat)
+{
     core::TemplateErrorInfo info(
-        core::TemplateErrorType::ParserError,
-        "Syntax error",
-        core::SourceLocation(10, 20),
-        "template.xml"
-    );
+        core::TemplateErrorType::ParserError, "Syntax error", core::SourceLocation(10, 20), "template.xml");
 
     std::string formatted = info.format();
     EXPECT_TRUE(formatted.find("ParserError") != std::string::npos);
@@ -132,34 +134,28 @@ TEST_F(TemplateErrorTest, ErrorInfoFormat) {
     EXPECT_TRUE(formatted.find("template.xml") != std::string::npos);
 }
 
-TEST_F(TemplateErrorTest, ErrorInfoTypeName) {
-    EXPECT_STREQ(core::TemplateErrorInfo(
-        core::TemplateErrorType::LexerError, "").typeName(), "LexerError");
-    EXPECT_STREQ(core::TemplateErrorInfo(
-        core::TemplateErrorType::UnexpectedCharacter, "").typeName(), "LexerError");
-    EXPECT_STREQ(core::TemplateErrorInfo(
-        core::TemplateErrorType::ParserError, "").typeName(), "ParserError");
-    EXPECT_STREQ(core::TemplateErrorInfo(
-        core::TemplateErrorType::SemanticError, "").typeName(), "SemanticError");
-    EXPECT_STREQ(core::TemplateErrorInfo(
-        core::TemplateErrorType::CompileError, "").typeName(), "CompileError");
-    EXPECT_STREQ(core::TemplateErrorInfo(
-        core::TemplateErrorType::RuntimeError, "").typeName(), "RuntimeError");
+TEST_F(TemplateErrorTest, ErrorInfoTypeName)
+{
+    EXPECT_STREQ(core::TemplateErrorInfo(core::TemplateErrorType::LexerError, "").typeName(), "LexerError");
+    EXPECT_STREQ(core::TemplateErrorInfo(core::TemplateErrorType::UnexpectedCharacter, "").typeName(), "LexerError");
+    EXPECT_STREQ(core::TemplateErrorInfo(core::TemplateErrorType::ParserError, "").typeName(), "ParserError");
+    EXPECT_STREQ(core::TemplateErrorInfo(core::TemplateErrorType::SemanticError, "").typeName(), "SemanticError");
+    EXPECT_STREQ(core::TemplateErrorInfo(core::TemplateErrorType::CompileError, "").typeName(), "CompileError");
+    EXPECT_STREQ(core::TemplateErrorInfo(core::TemplateErrorType::RuntimeError, "").typeName(), "RuntimeError");
 }
 
-TEST_F(TemplateErrorTest, TemplateErrorException) {
+TEST_F(TemplateErrorTest, TemplateErrorException)
+{
     core::TemplateError error(
-        core::TemplateErrorType::InvalidBindingPath,
-        "Invalid path: xyz",
-        core::SourceLocation(1, 1)
-    );
+        core::TemplateErrorType::InvalidBindingPath, "Invalid path: xyz", core::SourceLocation(1, 1));
 
     EXPECT_EQ(error.type(), core::TemplateErrorType::InvalidBindingPath);
     EXPECT_EQ(error.location().line, 1u);
     EXPECT_TRUE(std::string(error.what()).find("Invalid path") != std::string::npos);
 }
 
-TEST_F(TemplateErrorTest, TemplateErrorFactoryMethods) {
+TEST_F(TemplateErrorTest, TemplateErrorFactoryMethods)
+{
     auto lexerError = core::TemplateError::lexer("Lexer error", core::SourceLocation(1, 1));
     EXPECT_EQ(lexerError.type(), core::TemplateErrorType::LexerError);
 
@@ -185,7 +181,8 @@ TEST_F(TemplateErrorTest, TemplateErrorFactoryMethods) {
     EXPECT_EQ(scriptError.type(), core::TemplateErrorType::InlineScriptNotAllowed);
 }
 
-TEST_F(TemplateErrorTest, ErrorCollector) {
+TEST_F(TemplateErrorTest, ErrorCollector)
+{
     core::TemplateErrorCollector collector;
 
     EXPECT_FALSE(collector.hasErrors());
@@ -206,7 +203,8 @@ TEST_F(TemplateErrorTest, ErrorCollector) {
     EXPECT_EQ(collector.errorCount(), 0u);
 }
 
-TEST_F(TemplateErrorTest, ErrorCollectorThrowIfErrors) {
+TEST_F(TemplateErrorTest, ErrorCollectorThrowIfErrors)
+{
     core::TemplateErrorCollector collector;
 
     // Should not throw when no errors
@@ -217,7 +215,8 @@ TEST_F(TemplateErrorTest, ErrorCollectorThrowIfErrors) {
     EXPECT_THROW(collector.throwIfErrors(), core::TemplateError);
 }
 
-TEST_F(TemplateErrorTest, ErrorCollectorMerge) {
+TEST_F(TemplateErrorTest, ErrorCollectorMerge)
+{
     core::TemplateErrorCollector collector1;
     core::TemplateErrorCollector collector2;
 
@@ -234,20 +233,19 @@ TEST_F(TemplateErrorTest, ErrorCollectorMerge) {
 
 class LexerTest : public ::testing::Test {
 protected:
-    parser::Lexer createLexer(const std::string& source) {
-        return parser::Lexer(source, "<test>");
-    }
+    parser::Lexer createLexer(const std::string& source) { return parser::Lexer(source, "<test>"); }
 };
 
-TEST_F(LexerTest, EmptySource) {
+TEST_F(LexerTest, EmptySource)
+{
     auto lexer = createLexer("");
     EXPECT_TRUE(lexer.tokenize());
-    EXPECT_TRUE(lexer.tokens().empty() ||
-                lexer.tokens().back().type == parser::TokenType::EndOfFile);
+    EXPECT_TRUE(lexer.tokens().empty() || lexer.tokens().back().type == parser::TokenType::EndOfFile);
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerTest, SimpleTag) {
+TEST_F(LexerTest, SimpleTag)
+{
     auto lexer = createLexer("<screen>");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -259,7 +257,8 @@ TEST_F(LexerTest, SimpleTag) {
     EXPECT_EQ(tokens[2].type, parser::TokenType::CloseTag);
 }
 
-TEST_F(LexerTest, SelfClosingTag) {
+TEST_F(LexerTest, SelfClosingTag)
+{
     auto lexer = createLexer("<text/>");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -274,7 +273,8 @@ TEST_F(LexerTest, SelfClosingTag) {
     EXPECT_TRUE(foundSelfClose);
 }
 
-TEST_F(LexerTest, ClosingTag) {
+TEST_F(LexerTest, ClosingTag)
+{
     auto lexer = createLexer("</screen>");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -285,7 +285,8 @@ TEST_F(LexerTest, ClosingTag) {
     EXPECT_EQ(tokens[2].type, parser::TokenType::CloseTag);
 }
 
-TEST_F(LexerTest, TagWithAttributes) {
+TEST_F(LexerTest, TagWithAttributes)
+{
     auto lexer = createLexer(R"(<button id="btn1" pos="10,20">)");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -305,7 +306,8 @@ TEST_F(LexerTest, TagWithAttributes) {
     EXPECT_TRUE(foundString2);
 }
 
-TEST_F(LexerTest, BindingAttribute) {
+TEST_F(LexerTest, BindingAttribute)
+{
     auto lexer = createLexer(R"(<text bind:text="player.name">)");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -320,7 +322,8 @@ TEST_F(LexerTest, BindingAttribute) {
     EXPECT_TRUE(foundBind);
 }
 
-TEST_F(LexerTest, EventAttribute) {
+TEST_F(LexerTest, EventAttribute)
+{
     auto lexer = createLexer(R"(<button on:click="onButtonClick">)");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -335,7 +338,8 @@ TEST_F(LexerTest, EventAttribute) {
     EXPECT_TRUE(foundEvent);
 }
 
-TEST_F(LexerTest, Comment) {
+TEST_F(LexerTest, Comment)
+{
     auto lexer = createLexer("<!-- This is a comment -->");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -351,7 +355,8 @@ TEST_F(LexerTest, Comment) {
     EXPECT_TRUE(foundComment);
 }
 
-TEST_F(LexerTest, TextContent) {
+TEST_F(LexerTest, TextContent)
+{
     auto lexer = createLexer("Hello World");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -367,7 +372,8 @@ TEST_F(LexerTest, TextContent) {
     EXPECT_TRUE(foundText);
 }
 
-TEST_F(LexerTest, StringEscaping) {
+TEST_F(LexerTest, StringEscaping)
+{
     auto lexer = createLexer(R"(<text value="Hello\nWorld">)");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -384,7 +390,8 @@ TEST_F(LexerTest, StringEscaping) {
     EXPECT_TRUE(foundString);
 }
 
-TEST_F(LexerTest, StringEscapeSequences) {
+TEST_F(LexerTest, StringEscapeSequences)
+{
     auto lexer = createLexer(R"(<text value="tab\there\nnewline\"quote\\slash">)");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -400,7 +407,8 @@ TEST_F(LexerTest, StringEscapeSequences) {
     }
 }
 
-TEST_F(LexerTest, NumberLiteral) {
+TEST_F(LexerTest, NumberLiteral)
+{
     auto lexer = createLexer("<text size=\"100\" width=\"3.14\">");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -418,7 +426,8 @@ TEST_F(LexerTest, NumberLiteral) {
     EXPECT_TRUE(foundFloat);
 }
 
-TEST_F(LexerTest, NestedTags) {
+TEST_F(LexerTest, NestedTags)
+{
     auto lexer = createLexer("<screen><button/><text/></screen>");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
@@ -432,20 +441,23 @@ TEST_F(LexerTest, NestedTags) {
     EXPECT_EQ(tagCount, 4); // screen, button, text, screen
 }
 
-TEST_F(LexerTest, UnterminatedString) {
+TEST_F(LexerTest, UnterminatedString)
+{
     auto lexer = createLexer(R"(<text value="unterminated>)");
     EXPECT_FALSE(lexer.tokenize());
     EXPECT_TRUE(lexer.hasErrors());
     EXPECT_TRUE(lexer.firstError()->type == core::TemplateErrorType::UnterminatedString);
 }
 
-TEST_F(LexerTest, UnterminatedComment) {
+TEST_F(LexerTest, UnterminatedComment)
+{
     auto lexer = createLexer("<!-- This comment is not closed");
     EXPECT_FALSE(lexer.tokenize());
     EXPECT_TRUE(lexer.hasErrors());
 }
 
-TEST_F(LexerTest, TokenFormat) {
+TEST_F(LexerTest, TokenFormat)
+{
     auto lexer = createLexer("<screen>");
     lexer.tokenize();
 
@@ -457,7 +469,8 @@ TEST_F(LexerTest, TokenFormat) {
     EXPECT_TRUE(formatted.find("screen") != std::string::npos);
 }
 
-TEST_F(LexerTest, TokenIsMethods) {
+TEST_F(LexerTest, TokenIsMethods)
+{
     parser::Token idToken(parser::TokenType::Identifier, "test");
     EXPECT_TRUE(idToken.isIdentifier());
     EXPECT_TRUE(idToken.is(parser::TokenType::Identifier));
@@ -477,7 +490,8 @@ TEST_F(LexerTest, TokenIsMethods) {
     EXPECT_TRUE(textToken.isText());
 }
 
-TEST_F(LexerTest, LexerIterator) {
+TEST_F(LexerTest, LexerIterator)
+{
     auto lexer = createLexer("<screen><button/></screen>");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -496,7 +510,8 @@ TEST_F(LexerTest, LexerIterator) {
     EXPECT_TRUE(lexer.hasNext());
 }
 
-TEST_F(LexerTest, LexerPeek) {
+TEST_F(LexerTest, LexerPeek)
+{
     auto lexer = createLexer("<screen>");
     lexer.tokenize();
 
@@ -512,7 +527,8 @@ TEST_F(LexerTest, LexerPeek) {
     EXPECT_EQ(peeked2.type, parser::TokenType::CloseTag);
 }
 
-TEST_F(LexerTest, LexerPosition) {
+TEST_F(LexerTest, LexerPosition)
+{
     auto lexer = createLexer("<screen>");
     lexer.tokenize();
 
@@ -524,7 +540,8 @@ TEST_F(LexerTest, LexerPosition) {
     EXPECT_EQ(lexer.position(), 0u);
 }
 
-TEST_F(LexerTest, LexerSkipWhitespace) {
+TEST_F(LexerTest, LexerSkipWhitespace)
+{
     auto lexer = createLexer("   <screen>   ");
     EXPECT_TRUE(lexer.tokenize());
 
@@ -534,7 +551,8 @@ TEST_F(LexerTest, LexerSkipWhitespace) {
     EXPECT_EQ(lexer.current().type, parser::TokenType::OpenTag);
 }
 
-TEST_F(LexerTest, LexerExpect) {
+TEST_F(LexerTest, LexerExpect)
+{
     auto lexer = createLexer("<screen>");
     lexer.tokenize();
 
@@ -543,7 +561,8 @@ TEST_F(LexerTest, LexerExpect) {
     EXPECT_TRUE(lexer.expect(parser::TokenType::CloseTag));
 }
 
-TEST_F(LexerTest, LexerExpectFailure) {
+TEST_F(LexerTest, LexerExpectFailure)
+{
     auto lexer = createLexer("<screen>");
     lexer.tokenize();
 
@@ -552,7 +571,8 @@ TEST_F(LexerTest, LexerExpectFailure) {
     EXPECT_TRUE(lexer.hasErrors());
 }
 
-TEST_F(LexerTest, LexerGetLineContent) {
+TEST_F(LexerTest, LexerGetLineContent)
+{
     auto lexer = createLexer("line1\nline2\nline3");
     lexer.tokenize();
 
@@ -563,7 +583,8 @@ TEST_F(LexerTest, LexerGetLineContent) {
     EXPECT_EQ(line2, "line2");
 }
 
-TEST_F(LexerTest, LexerGetContext) {
+TEST_F(LexerTest, LexerGetContext)
+{
     auto lexer = createLexer("line1\nline2\nline3\nline4");
     lexer.tokenize();
 
@@ -574,7 +595,8 @@ TEST_F(LexerTest, LexerGetContext) {
     EXPECT_TRUE(context.find("line3") != std::string::npos);
 }
 
-TEST_F(LexerTest, LexerStaticMethods) {
+TEST_F(LexerTest, LexerStaticMethods)
+{
     EXPECT_TRUE(parser::Lexer::isWhitespace(' '));
     EXPECT_TRUE(parser::Lexer::isWhitespace('\t'));
     EXPECT_TRUE(parser::Lexer::isWhitespace('\r'));
@@ -606,11 +628,10 @@ TEST_F(LexerTest, LexerStaticMethods) {
 
 class ParserTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
-    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
+    {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -621,21 +642,24 @@ protected:
     core::TemplateConfig m_config;
 };
 
-TEST_F(ParserTest, SimpleElement) {
+TEST_F(ParserTest, SimpleElement)
+{
     auto doc = parse("<screen/>");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
     EXPECT_EQ(doc->rootElement()->tagName, "screen");
 }
 
-TEST_F(ParserTest, ElementWithId) {
+TEST_F(ParserTest, ElementWithId)
+{
     auto doc = parse(R"(<button id="myButton"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
     EXPECT_EQ(doc->rootElement()->id, "myButton");
 }
 
-TEST_F(ParserTest, ElementWithStaticAttributes) {
+TEST_F(ParserTest, ElementWithStaticAttributes)
+{
     auto doc = parse(R"(<text pos="10,20" size="100,30"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -650,7 +674,8 @@ TEST_F(ParserTest, ElementWithStaticAttributes) {
     EXPECT_EQ(posAttr->rawValue, "10,20");
 }
 
-TEST_F(ParserTest, ElementWithBindingAttribute) {
+TEST_F(ParserTest, ElementWithBindingAttribute)
+{
     auto doc = parse(R"(<text bind:text="player.name"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -666,7 +691,8 @@ TEST_F(ParserTest, ElementWithBindingAttribute) {
     EXPECT_FALSE(attr->binding->isLoopVariable);
 }
 
-TEST_F(ParserTest, ElementWithLoopVariableBinding) {
+TEST_F(ParserTest, ElementWithLoopVariableBinding)
+{
     auto doc = parse(R"(<slot bind:item="$slot.itemId"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -681,7 +707,8 @@ TEST_F(ParserTest, ElementWithLoopVariableBinding) {
     EXPECT_EQ(attr->binding->property, "itemId");
 }
 
-TEST_F(ParserTest, ElementWithEventAttribute) {
+TEST_F(ParserTest, ElementWithEventAttribute)
+{
     auto doc = parse(R"(<button on:click="onButtonClick"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -695,7 +722,8 @@ TEST_F(ParserTest, ElementWithEventAttribute) {
     EXPECT_EQ(attr->callbackName, "onButtonClick");
 }
 
-TEST_F(ParserTest, NestedElements) {
+TEST_F(ParserTest, NestedElements)
+{
     auto doc = parse(R"(
         <screen>
             <text id="title" text="Hello"/>
@@ -708,7 +736,8 @@ TEST_F(ParserTest, NestedElements) {
     EXPECT_EQ(doc->rootElement()->children.size(), 2);
 }
 
-TEST_F(ParserTest, DeepNesting) {
+TEST_F(ParserTest, DeepNesting)
+{
     auto doc = parse(R"(
         <screen>
             <grid>
@@ -729,7 +758,8 @@ TEST_F(ParserTest, DeepNesting) {
     EXPECT_EQ(grid->tagName, "grid");
 }
 
-TEST_F(ParserTest, TextContent) {
+TEST_F(ParserTest, TextContent)
+{
     auto doc = parse(R"(
         <screen>
             Hello World
@@ -753,7 +783,8 @@ TEST_F(ParserTest, TextContent) {
     EXPECT_TRUE(foundText);
 }
 
-TEST_F(ParserTest, CommentParsing) {
+TEST_F(ParserTest, CommentParsing)
+{
     auto doc = parse(R"(
         <screen>
             <!-- This is a comment -->
@@ -775,7 +806,8 @@ TEST_F(ParserTest, CommentParsing) {
     EXPECT_TRUE(foundComment);
 }
 
-TEST_F(ParserTest, AttributeCategorization) {
+TEST_F(ParserTest, AttributeCategorization)
+{
     auto doc = parse(R"(<text pos="10,20" bind:text="player.name" on:click="onClick"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -788,7 +820,8 @@ TEST_F(ParserTest, AttributeCategorization) {
     EXPECT_EQ(elem->eventAttrs.size(), 1u);
 }
 
-TEST_F(ParserTest, LoopInfoExtraction) {
+TEST_F(ParserTest, LoopInfoExtraction)
+{
     // Test that for: directive properly extracts loop info
     auto doc = parse(R"(
         <grid for:slot="slot in player.inventory.slots">
@@ -805,7 +838,8 @@ TEST_F(ParserTest, LoopInfoExtraction) {
     EXPECT_EQ(grid->loop->itemVarName, "slot");
 }
 
-TEST_F(ParserTest, ConditionInfoExtraction) {
+TEST_F(ParserTest, ConditionInfoExtraction)
+{
     auto doc = parse(R"(<text bind:visible="player.isSneaking"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -825,7 +859,8 @@ TEST_F(ParserTest, ConditionInfoExtraction) {
     EXPECT_TRUE(attr->isBinding());
 }
 
-TEST_F(ParserTest, ConditionInfoWithNegation) {
+TEST_F(ParserTest, ConditionInfoWithNegation)
+{
     auto doc = parse(R"(<text bind:visible="!player.hidden"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -841,7 +876,8 @@ TEST_F(ParserTest, ConditionInfoWithNegation) {
     EXPECT_TRUE(attr->rawValue.find("!") != std::string::npos || attr->binding->path.find("!") != std::string::npos);
 }
 
-TEST_F(ParserTest, InvalidTagInStrictMode) {
+TEST_F(ParserTest, InvalidTagInStrictMode)
+{
     m_config.strictMode = true;
 
     parser::Lexer lexer("<invalidTag/>", "<test>");
@@ -854,7 +890,8 @@ TEST_F(ParserTest, InvalidTagInStrictMode) {
     EXPECT_TRUE(parser.hasErrors());
 }
 
-TEST_F(ParserTest, InvalidBindingPath) {
+TEST_F(ParserTest, InvalidBindingPath)
+{
     m_config.validateBindingPaths = true;
 
     parser::Lexer lexer(R"(<text bind:text="123invalid"/>)", "<test>");
@@ -866,7 +903,8 @@ TEST_F(ParserTest, InvalidBindingPath) {
     EXPECT_TRUE(parser.hasErrors());
 }
 
-TEST_F(ParserTest, InvalidCallbackName) {
+TEST_F(ParserTest, InvalidCallbackName)
+{
     m_config.validateCallbackNames = true;
 
     parser::Lexer lexer(R"(<button on:click="123invalid"/>)", "<test>");
@@ -878,7 +916,8 @@ TEST_F(ParserTest, InvalidCallbackName) {
     EXPECT_TRUE(parser.hasErrors());
 }
 
-TEST_F(ParserTest, MissingClosingTag) {
+TEST_F(ParserTest, MissingClosingTag)
+{
     parser::Lexer lexer("<screen><button>", "<test>");
     lexer.tokenize();
 
@@ -888,7 +927,8 @@ TEST_F(ParserTest, MissingClosingTag) {
     EXPECT_TRUE(parser.hasErrors());
 }
 
-TEST_F(ParserTest, MismatchedClosingTag) {
+TEST_F(ParserTest, MismatchedClosingTag)
+{
     parser::Lexer lexer("<screen><button/></text>", "<test>");
     lexer.tokenize();
 
@@ -898,7 +938,8 @@ TEST_F(ParserTest, MismatchedClosingTag) {
     EXPECT_TRUE(parser.hasErrors());
 }
 
-TEST_F(ParserTest, MultipleRootElements) {
+TEST_F(ParserTest, MultipleRootElements)
+{
     auto doc = parse(R"(
         <screen/>
         <button/>
@@ -909,7 +950,8 @@ TEST_F(ParserTest, MultipleRootElements) {
     EXPECT_GE(doc->children.size(), 2u);
 }
 
-TEST_F(ParserTest, NumericAttributeValues) {
+TEST_F(ParserTest, NumericAttributeValues)
+{
     auto doc = parse(R"(<text size=100 width=3.14/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -919,7 +961,8 @@ TEST_F(ParserTest, NumericAttributeValues) {
     EXPECT_TRUE(elem->hasAttribute("width"));
 }
 
-TEST_F(ParserTest, ClassesAttribute) {
+TEST_F(ParserTest, ClassesAttribute)
+{
     // Note: Classes are parsed as regular attributes, not specially handled yet
     auto doc = parse(R"(<text class="title large"/>)");
     ASSERT_NE(doc, nullptr);
@@ -927,7 +970,8 @@ TEST_F(ParserTest, ClassesAttribute) {
     EXPECT_TRUE(doc->rootElement()->hasAttribute("class"));
 }
 
-TEST_F(ParserTest, UniqueIdsNoError) {
+TEST_F(ParserTest, UniqueIdsNoError)
+{
     // 每个元素都有唯一的ID - 不应产生错误
     parser::Lexer lexer(R"(
         <screen>
@@ -935,7 +979,8 @@ TEST_F(ParserTest, UniqueIdsNoError) {
             <text id="subtitle"/>
             <button id="submit"/>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -945,14 +990,16 @@ TEST_F(ParserTest, UniqueIdsNoError) {
     ASSERT_NE(doc, nullptr);
 }
 
-TEST_F(ParserTest, DuplicateIdsError) {
+TEST_F(ParserTest, DuplicateIdsError)
+{
     // 重复的ID - 应该产生DuplicateId错误
     parser::Lexer lexer(R"(
         <screen>
             <text id="duplicate"/>
             <text id="duplicate"/>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -965,7 +1012,8 @@ TEST_F(ParserTest, DuplicateIdsError) {
     EXPECT_TRUE(parser.errors()[0].message.find("duplicate") != std::string::npos);
 }
 
-TEST_F(ParserTest, DuplicateIdsNested) {
+TEST_F(ParserTest, DuplicateIdsNested)
+{
     // 嵌套元素中的重复ID - 应该检测到
     parser::Lexer lexer(R"(
         <screen id="main">
@@ -974,7 +1022,8 @@ TEST_F(ParserTest, DuplicateIdsNested) {
                 <text id="item"/>
             </widget>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -985,7 +1034,8 @@ TEST_F(ParserTest, DuplicateIdsNested) {
     EXPECT_EQ(parser.errors()[0].type, core::TemplateErrorType::DuplicateId);
 }
 
-TEST_F(ParserTest, DuplicateIdsAcrossBranches) {
+TEST_F(ParserTest, DuplicateIdsAcrossBranches)
+{
     // 不同分支中的重复ID - 应该检测到
     parser::Lexer lexer(R"(
         <screen>
@@ -996,7 +1046,8 @@ TEST_F(ParserTest, DuplicateIdsAcrossBranches) {
                 <text id="sameId"/>
             </widget>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -1007,7 +1058,8 @@ TEST_F(ParserTest, DuplicateIdsAcrossBranches) {
     EXPECT_EQ(parser.errors()[0].type, core::TemplateErrorType::DuplicateId);
 }
 
-TEST_F(ParserTest, MultipleDuplicateIds) {
+TEST_F(ParserTest, MultipleDuplicateIds)
+{
     // 多组重复ID - 应该报告多个错误
     parser::Lexer lexer(R"(
         <screen>
@@ -1016,7 +1068,8 @@ TEST_F(ParserTest, MultipleDuplicateIds) {
             <text id="dup2"/>
             <text id="dup2"/>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -1029,14 +1082,16 @@ TEST_F(ParserTest, MultipleDuplicateIds) {
     EXPECT_EQ(parser.errors()[1].type, core::TemplateErrorType::DuplicateId);
 }
 
-TEST_F(ParserTest, DuplicateIdErrorLocation) {
+TEST_F(ParserTest, DuplicateIdErrorLocation)
+{
     // 验证错误位置信息
     parser::Lexer lexer(R"(
         <screen>
             <text id="first"/>
             <text id="first"/>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -1047,7 +1102,8 @@ TEST_F(ParserTest, DuplicateIdErrorLocation) {
     EXPECT_TRUE(parser.errors()[0].location.isValid());
 }
 
-TEST_F(ParserTest, NoIdNoError) {
+TEST_F(ParserTest, NoIdNoError)
+{
     // 没有ID的元素 - 不应产生错误
     parser::Lexer lexer(R"(
         <screen>
@@ -1055,7 +1111,8 @@ TEST_F(ParserTest, NoIdNoError) {
             <text/>
             <text/>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -1065,7 +1122,8 @@ TEST_F(ParserTest, NoIdNoError) {
     ASSERT_NE(doc, nullptr);
 }
 
-TEST_F(ParserTest, CaseSensitiveIds) {
+TEST_F(ParserTest, CaseSensitiveIds)
+{
     // ID区分大小写 - 不同大小写应该被视为不同ID
     parser::Lexer lexer(R"(
         <screen>
@@ -1073,7 +1131,8 @@ TEST_F(ParserTest, CaseSensitiveIds) {
             <text id="myid"/>
             <text id="MYID"/>
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);
@@ -1086,10 +1145,10 @@ TEST_F(ParserTest, CaseSensitiveIds) {
 
 // ==================== AST Tests ====================
 
-class AstTest : public ::testing::Test {
-};
+class AstTest : public ::testing::Test {};
 
-TEST_F(AstTest, NodeTypeNames) {
+TEST_F(AstTest, NodeTypeNames)
+{
     EXPECT_STREQ(ast::nodeTypeName(ast::NodeType::Document), "Document");
     EXPECT_STREQ(ast::nodeTypeName(ast::NodeType::Screen), "Screen");
     EXPECT_STREQ(ast::nodeTypeName(ast::NodeType::Widget), "Widget");
@@ -1101,14 +1160,16 @@ TEST_F(AstTest, NodeTypeNames) {
     EXPECT_STREQ(ast::nodeTypeName(static_cast<ast::NodeType>(255)), "Unknown");
 }
 
-TEST_F(AstTest, BindingInfoParseSimplePath) {
+TEST_F(AstTest, BindingInfoParseSimplePath)
+{
     auto info = ast::BindingInfo::parse("player.name");
     EXPECT_FALSE(info.isLoopVariable);
     EXPECT_EQ(info.path, "player.name");
     EXPECT_TRUE(info.isValid());
 }
 
-TEST_F(AstTest, BindingInfoParseLoopVariable) {
+TEST_F(AstTest, BindingInfoParseLoopVariable)
+{
     auto info = ast::BindingInfo::parse("$item");
     EXPECT_TRUE(info.isLoopVariable);
     EXPECT_EQ(info.loopVarName, "item");
@@ -1116,7 +1177,8 @@ TEST_F(AstTest, BindingInfoParseLoopVariable) {
     EXPECT_TRUE(info.isValid());
 }
 
-TEST_F(AstTest, BindingInfoParseLoopVariableWithProperty) {
+TEST_F(AstTest, BindingInfoParseLoopVariableWithProperty)
+{
     auto info = ast::BindingInfo::parse("$slot.item");
     EXPECT_TRUE(info.isLoopVariable);
     EXPECT_EQ(info.loopVarName, "slot");
@@ -1124,12 +1186,14 @@ TEST_F(AstTest, BindingInfoParseLoopVariableWithProperty) {
     EXPECT_TRUE(info.isValid());
 }
 
-TEST_F(AstTest, BindingInfoParseEmpty) {
+TEST_F(AstTest, BindingInfoParseEmpty)
+{
     auto info = ast::BindingInfo::parse("");
     EXPECT_FALSE(info.isValid());
 }
 
-TEST_F(AstTest, AttributeCreateStatic) {
+TEST_F(AstTest, AttributeCreateStatic)
+{
     auto attr = ast::Attribute::createStatic("pos", "10,20");
     EXPECT_TRUE(attr.isStatic());
     EXPECT_FALSE(attr.isBinding());
@@ -1141,7 +1205,8 @@ TEST_F(AstTest, AttributeCreateStatic) {
     EXPECT_TRUE(std::holds_alternative<std::string>(attr.value));
 }
 
-TEST_F(AstTest, AttributeCreateStaticBoolean) {
+TEST_F(AstTest, AttributeCreateStaticBoolean)
+{
     auto attrTrue = ast::Attribute::createStatic("visible", "true");
     EXPECT_TRUE(std::holds_alternative<bool>(attrTrue.value));
     EXPECT_TRUE(std::get<bool>(attrTrue.value));
@@ -1151,13 +1216,15 @@ TEST_F(AstTest, AttributeCreateStaticBoolean) {
     EXPECT_FALSE(std::get<bool>(attrFalse.value));
 }
 
-TEST_F(AstTest, AttributeCreateStaticInteger) {
+TEST_F(AstTest, AttributeCreateStaticInteger)
+{
     auto attr = ast::Attribute::createStatic("size", "100");
     EXPECT_TRUE(std::holds_alternative<i32>(attr.value));
     EXPECT_EQ(std::get<i32>(attr.value), 100);
 }
 
-TEST_F(AstTest, AttributeCreateStaticFloat) {
+TEST_F(AstTest, AttributeCreateStaticFloat)
+{
     auto attr = ast::Attribute::createStatic("opacity", "0.75");
     EXPECT_TRUE(attr.isStatic());
     // Value type may be float or string depending on parsing
@@ -1167,7 +1234,8 @@ TEST_F(AstTest, AttributeCreateStaticFloat) {
     }
 }
 
-TEST_F(AstTest, AttributeCreateBinding) {
+TEST_F(AstTest, AttributeCreateBinding)
+{
     auto attr = ast::Attribute::createBinding("bind:text", "player.name");
     EXPECT_TRUE(attr.isBinding());
     EXPECT_FALSE(attr.isStatic());
@@ -1177,7 +1245,8 @@ TEST_F(AstTest, AttributeCreateBinding) {
     EXPECT_EQ(attr.binding->path, "player.name");
 }
 
-TEST_F(AstTest, AttributeCreateEvent) {
+TEST_F(AstTest, AttributeCreateEvent)
+{
     auto attr = ast::Attribute::createEvent("on:click", "onButtonClick");
     EXPECT_TRUE(attr.isEvent());
     EXPECT_FALSE(attr.isStatic());
@@ -1186,7 +1255,8 @@ TEST_F(AstTest, AttributeCreateEvent) {
     EXPECT_EQ(attr.callbackName, "onButtonClick");
 }
 
-TEST_F(AstTest, AttributeBaseName) {
+TEST_F(AstTest, AttributeBaseName)
+{
     auto staticAttr = ast::Attribute::createStatic("pos", "10,20");
     EXPECT_EQ(staticAttr.baseName(), "pos");
 
@@ -1197,7 +1267,8 @@ TEST_F(AstTest, AttributeBaseName) {
     EXPECT_EQ(eventAttr.baseName(), "click");
 }
 
-TEST_F(AstTest, ElementNodeBasics) {
+TEST_F(AstTest, ElementNodeBasics)
+{
     ast::ElementNode elem(ast::NodeType::Button);
     elem.tagName = "button";
     elem.id = "myButton";
@@ -1216,7 +1287,8 @@ TEST_F(AstTest, ElementNodeBasics) {
     EXPECT_EQ(missing, nullptr);
 }
 
-TEST_F(AstTest, ElementNodeCategorizeAttributes) {
+TEST_F(AstTest, ElementNodeCategorizeAttributes)
+{
     ast::ElementNode elem(ast::NodeType::Text);
     elem.addAttribute(ast::Attribute::createStatic("pos", "10,20"));
     elem.addAttribute(ast::Attribute::createBinding("bind:text", "player.name"));
@@ -1229,7 +1301,8 @@ TEST_F(AstTest, ElementNodeCategorizeAttributes) {
     EXPECT_EQ(elem.eventAttrs.size(), 1u);
 }
 
-TEST_F(AstTest, ElementNodeClone) {
+TEST_F(AstTest, ElementNodeClone)
+{
     auto original = std::make_unique<ast::ElementNode>(ast::NodeType::Button);
     original->tagName = "button";
     original->id = "btn";
@@ -1250,7 +1323,8 @@ TEST_F(AstTest, ElementNodeClone) {
     EXPECT_EQ(clonedElem->children.size(), 1u);
 }
 
-TEST_F(AstTest, TextNodeClone) {
+TEST_F(AstTest, TextNodeClone)
+{
     auto original = std::make_unique<ast::TextNode>();
     original->text = "Hello World";
     original->isWhitespace = false;
@@ -1262,7 +1336,8 @@ TEST_F(AstTest, TextNodeClone) {
     EXPECT_FALSE(textNode->isWhitespace);
 }
 
-TEST_F(AstTest, CommentNodeClone) {
+TEST_F(AstTest, CommentNodeClone)
+{
     auto original = std::make_unique<ast::CommentNode>();
     original->text = "This is a comment";
 
@@ -1272,7 +1347,8 @@ TEST_F(AstTest, CommentNodeClone) {
     EXPECT_EQ(commentNode->text, "This is a comment");
 }
 
-TEST_F(AstTest, DocumentNodeClone) {
+TEST_F(AstTest, DocumentNodeClone)
+{
     auto original = std::make_unique<ast::DocumentNode>();
     original->sourcePath = "test.tpl";
 
@@ -1287,7 +1363,8 @@ TEST_F(AstTest, DocumentNodeClone) {
     EXPECT_EQ(docNode->children.size(), 1u);
 }
 
-TEST_F(AstTest, DocumentNodeRootElement) {
+TEST_F(AstTest, DocumentNodeRootElement)
+{
     auto doc = std::make_unique<ast::DocumentNode>();
 
     // No children
@@ -1307,7 +1384,8 @@ TEST_F(AstTest, DocumentNodeRootElement) {
     EXPECT_EQ(doc->rootElement(), screenPtr);
 }
 
-TEST_F(AstTest, ValidTagName) {
+TEST_F(AstTest, ValidTagName)
+{
     EXPECT_TRUE(ast::isValidWidgetTag("screen"));
     EXPECT_TRUE(ast::isValidWidgetTag("button"));
     EXPECT_TRUE(ast::isValidWidgetTag("text"));
@@ -1332,7 +1410,8 @@ TEST_F(AstTest, ValidTagName) {
     EXPECT_TRUE(ast::isValidWidgetTag("Button"));
 }
 
-TEST_F(AstTest, ValidBindingPath) {
+TEST_F(AstTest, ValidBindingPath)
+{
     EXPECT_TRUE(ast::isValidBindingPath("player"));
     EXPECT_TRUE(ast::isValidBindingPath("player.name"));
     EXPECT_TRUE(ast::isValidBindingPath("player.inventory.slots"));
@@ -1350,7 +1429,8 @@ TEST_F(AstTest, ValidBindingPath) {
     EXPECT_FALSE(ast::isValidBindingPath("$123"));
 }
 
-TEST_F(AstTest, ValidCallbackName) {
+TEST_F(AstTest, ValidCallbackName)
+{
     EXPECT_TRUE(ast::isValidCallbackName("onClick"));
     EXPECT_TRUE(ast::isValidCallbackName("on_start_game"));
     EXPECT_TRUE(ast::isValidCallbackName("handleClick"));
@@ -1364,7 +1444,8 @@ TEST_F(AstTest, ValidCallbackName) {
     EXPECT_FALSE(ast::isValidCallbackName("obj.method"));
 }
 
-TEST_F(AstTest, ValidAttributeName) {
+TEST_F(AstTest, ValidAttributeName)
+{
     EXPECT_TRUE(ast::isValidAttributeName("pos"));
     EXPECT_TRUE(ast::isValidAttributeName("bind:text"));
     EXPECT_TRUE(ast::isValidAttributeName("on:click"));
@@ -1377,7 +1458,8 @@ TEST_F(AstTest, ValidAttributeName) {
     EXPECT_FALSE(ast::isValidAttributeName("attr with space"));
 }
 
-TEST_F(AstTest, GetNodeTypeFromTagName) {
+TEST_F(AstTest, GetNodeTypeFromTagName)
+{
     EXPECT_EQ(ast::getNodeTypeFromTagName("screen"), ast::NodeType::Screen);
     EXPECT_EQ(ast::getNodeTypeFromTagName("button"), ast::NodeType::Button);
     EXPECT_EQ(ast::getNodeTypeFromTagName("text"), ast::NodeType::Text);
@@ -1394,7 +1476,8 @@ TEST_F(AstTest, GetNodeTypeFromTagName) {
 
 class AstVisitorTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_document = std::make_unique<ast::DocumentNode>();
 
         auto screen = std::make_unique<ast::ElementNode>(ast::NodeType::Screen);
@@ -1417,7 +1500,8 @@ protected:
     std::unique_ptr<ast::DocumentNode> m_document;
 };
 
-TEST_F(AstVisitorTest, FindById) {
+TEST_F(AstVisitorTest, FindById)
+{
     auto* found = ast::traversal::findById(*m_document, "title");
     ASSERT_NE(found, nullptr);
     EXPECT_EQ(found->id, "title");
@@ -1426,7 +1510,8 @@ TEST_F(AstVisitorTest, FindById) {
     EXPECT_EQ(notFound, nullptr);
 }
 
-TEST_F(AstVisitorTest, FindByTagName) {
+TEST_F(AstVisitorTest, FindByTagName)
+{
     auto buttons = ast::traversal::findByTagName(*m_document, "button");
     EXPECT_EQ(buttons.size(), 1u);
 
@@ -1440,7 +1525,8 @@ TEST_F(AstVisitorTest, FindByTagName) {
     EXPECT_EQ(unknowns.size(), 0u);
 }
 
-TEST_F(AstVisitorTest, CountNodes) {
+TEST_F(AstVisitorTest, CountNodes)
+{
     auto total = ast::traversal::countNodes(*m_document);
     EXPECT_EQ(total, 4u); // document + screen + text + button
 
@@ -1454,7 +1540,8 @@ TEST_F(AstVisitorTest, CountNodes) {
     EXPECT_EQ(screenCount, 1u);
 }
 
-TEST_F(AstVisitorTest, PreorderTraversal) {
+TEST_F(AstVisitorTest, PreorderTraversal)
+{
     std::vector<std::string> visitedTags;
     ast::traversal::preorder(*m_document, [&visitedTags](ast::Node& node) {
         if (auto* elem = dynamic_cast<ast::ElementNode*>(&node)) {
@@ -1470,7 +1557,8 @@ TEST_F(AstVisitorTest, PreorderTraversal) {
     EXPECT_EQ(visitedTags[2], "button");
 }
 
-TEST_F(AstVisitorTest, PostorderTraversal) {
+TEST_F(AstVisitorTest, PostorderTraversal)
+{
     std::vector<std::string> visitedTags;
     ast::traversal::postorder(*m_document, [&visitedTags](ast::Node& node) {
         if (auto* elem = dynamic_cast<ast::ElementNode*>(&node)) {
@@ -1486,40 +1574,44 @@ TEST_F(AstVisitorTest, PostorderTraversal) {
     EXPECT_EQ(visitedTags[2], "screen");
 }
 
-TEST_F(AstVisitorTest, FindFirst) {
-    auto* found = ast::traversal::findFirst(*m_document, [](const ast::Node& node) {
-        return node.type == ast::NodeType::Button;
-    });
+TEST_F(AstVisitorTest, FindFirst)
+{
+    auto* found = ast::traversal::findFirst(
+        *m_document, [](const ast::Node& node) { return node.type == ast::NodeType::Button; });
     ASSERT_NE(found, nullptr);
 
-    auto* notFound = ast::traversal::findFirst(*m_document, [](const ast::Node& node) {
-        return node.type == ast::NodeType::Grid;
-    });
+    auto* notFound =
+        ast::traversal::findFirst(*m_document, [](const ast::Node& node) { return node.type == ast::NodeType::Grid; });
     EXPECT_EQ(notFound, nullptr);
 }
 
-TEST_F(AstVisitorTest, FindAll) {
-    auto elements = ast::traversal::findAll(*m_document, [](const ast::Node& node) {
-        return node.type == ast::NodeType::Button || node.type == ast::NodeType::Text;
-    });
+TEST_F(AstVisitorTest, FindAll)
+{
+    auto elements = ast::traversal::findAll(*m_document,
+        [](const ast::Node& node) { return node.type == ast::NodeType::Button || node.type == ast::NodeType::Text; });
     EXPECT_EQ(elements.size(), 2u);
 }
 
-TEST_F(AstVisitorTest, GetDepth) {
+TEST_F(AstVisitorTest, GetDepth)
+{
     // Document depth
     auto docDepth = ast::traversal::getDepth(*m_document);
     EXPECT_EQ(docDepth, 2u); // document -> screen -> (text, button)
 }
 
-TEST_F(AstVisitorTest, VisitorStop) {
+TEST_F(AstVisitorTest, VisitorStop)
+{
     int visitCount = 0;
 
     class CountingVisitor : public ast::AstVisitor {
     public:
         int& count;
-        CountingVisitor(int& c) : count(c) {}
+        CountingVisitor(int& c)
+            : count(c)
+        {}
 
-        void visitElement(ast::ElementNode& node) override {
+        void visitElement(ast::ElementNode& node) override
+        {
             count++;
             traverseChildren(node);
             if (count >= 2) {
@@ -1534,15 +1626,19 @@ TEST_F(AstVisitorTest, VisitorStop) {
     EXPECT_GE(visitCount, 2);
 }
 
-TEST_F(AstVisitorTest, ConstVisitor) {
+TEST_F(AstVisitorTest, ConstVisitor)
+{
     std::vector<std::string> visitedTags;
 
     class ConstTagCollector : public ast::ConstAstVisitor {
     public:
         std::vector<std::string>& tags;
-        ConstTagCollector(std::vector<std::string>& t) : tags(t) {}
+        ConstTagCollector(std::vector<std::string>& t)
+            : tags(t)
+        {}
 
-        void visitElement(const ast::ElementNode& node) override {
+        void visitElement(const ast::ElementNode& node) override
+        {
             tags.push_back(node.tagName);
             traverseChildren(node);
         }
@@ -1558,14 +1654,13 @@ TEST_F(AstVisitorTest, ConstVisitor) {
 
 class TemplateCompilerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
     core::TemplateConfig m_config;
 };
 
-TEST_F(TemplateCompilerTest, SimpleTemplate) {
+TEST_F(TemplateCompilerTest, SimpleTemplate)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile("<screen id=\"main\"/>");
@@ -1576,7 +1671,8 @@ TEST_F(TemplateCompilerTest, SimpleTemplate) {
     EXPECT_NE(result->astRoot(), nullptr);
 }
 
-TEST_F(TemplateCompilerTest, TemplateWithBindings) {
+TEST_F(TemplateCompilerTest, TemplateWithBindings)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -1622,7 +1718,8 @@ TEST_F(TemplateCompilerTest, TemplateWithBindings) {
     EXPECT_TRUE(result->registeredCallbacks().count("onStartGame") > 0);
 }
 
-TEST_F(TemplateCompilerTest, TemplateWithLoop) {
+TEST_F(TemplateCompilerTest, TemplateWithLoop)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -1648,7 +1745,8 @@ TEST_F(TemplateCompilerTest, TemplateWithLoop) {
     EXPECT_TRUE(foundLoopBinding);
 }
 
-TEST_F(TemplateCompilerTest, StrictModeRejectsInlineScript) {
+TEST_F(TemplateCompilerTest, StrictModeRejectsInlineScript)
+{
     m_config.strictMode = true;
     compiler::TemplateCompiler compiler(m_config);
 
@@ -1659,7 +1757,8 @@ TEST_F(TemplateCompilerTest, StrictModeRejectsInlineScript) {
     EXPECT_TRUE(result->hasErrors());
 }
 
-TEST_F(TemplateCompilerTest, StrictModeRejectsInlineExpression) {
+TEST_F(TemplateCompilerTest, StrictModeRejectsInlineExpression)
+{
     m_config.strictMode = true;
     compiler::TemplateCompiler compiler(m_config);
 
@@ -1670,7 +1769,8 @@ TEST_F(TemplateCompilerTest, StrictModeRejectsInlineExpression) {
     EXPECT_FALSE(result->isValid());
 }
 
-TEST_F(TemplateCompilerTest, CompileWithDebug) {
+TEST_F(TemplateCompilerTest, CompileWithDebug)
+{
     m_config.debugOutput = true;
     compiler::TemplateCompiler compiler(m_config);
 
@@ -1685,7 +1785,8 @@ TEST_F(TemplateCompilerTest, CompileWithDebug) {
     EXPECT_TRUE(dump.find("Source:") != std::string::npos);
 }
 
-TEST_F(TemplateCompilerTest, CompileFromFile) {
+TEST_F(TemplateCompilerTest, CompileFromFile)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     // Test with non-existent file
@@ -1696,7 +1797,8 @@ TEST_F(TemplateCompilerTest, CompileFromFile) {
     EXPECT_TRUE(result->hasErrors());
 }
 
-TEST_F(TemplateCompilerTest, CompileAst) {
+TEST_F(TemplateCompilerTest, CompileAst)
+{
     // Create AST manually
     auto document = std::make_unique<ast::DocumentNode>();
     auto screen = std::make_unique<ast::ElementNode>(ast::NodeType::Screen);
@@ -1712,7 +1814,8 @@ TEST_F(TemplateCompilerTest, CompileAst) {
     EXPECT_FALSE(result->hasErrors());
 }
 
-TEST_F(TemplateCompilerTest, CompileNullAst) {
+TEST_F(TemplateCompilerTest, CompileNullAst)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compileAst(nullptr, "<test>");
@@ -1722,7 +1825,8 @@ TEST_F(TemplateCompilerTest, CompileNullAst) {
     EXPECT_TRUE(result->hasErrors());
 }
 
-TEST_F(TemplateCompilerTest, CompileTime) {
+TEST_F(TemplateCompilerTest, CompileTime)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile("<screen/>");
@@ -1733,7 +1837,8 @@ TEST_F(TemplateCompilerTest, CompileTime) {
     EXPECT_TRUE(result->compileTime() >= 0u);
 }
 
-TEST_F(TemplateCompilerTest, InvalidTagInStrictMode) {
+TEST_F(TemplateCompilerTest, InvalidTagInStrictMode)
+{
     m_config.strictMode = true;
     compiler::TemplateCompiler compiler(m_config);
 
@@ -1744,7 +1849,8 @@ TEST_F(TemplateCompilerTest, InvalidTagInStrictMode) {
     EXPECT_TRUE(result->hasErrors());
 }
 
-TEST_F(TemplateCompilerTest, CompiledTemplateWatchedPaths) {
+TEST_F(TemplateCompilerTest, CompiledTemplateWatchedPaths)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -1766,15 +1872,15 @@ TEST_F(TemplateCompilerTest, CompiledTemplateWatchedPaths) {
 
 class BindingContextTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // StateStore and EventBus are singletons - use instance()
         m_ctx = std::make_unique<binder::BindingContext>(
-            mc::client::ui::kagero::state::StateStore::instance(),
-            mc::client::ui::kagero::event::EventBus::instance()
-        );
+            mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // Clear the binding context
         m_ctx.reset();
     }
@@ -1782,7 +1888,8 @@ protected:
     std::unique_ptr<binder::BindingContext> m_ctx;
 };
 
-TEST_F(BindingContextTest, ExposeVariable) {
+TEST_F(BindingContextTest, ExposeVariable)
+{
     std::string playerName = "Steve";
     m_ctx->expose("player.name", &playerName);
 
@@ -1794,7 +1901,8 @@ TEST_F(BindingContextTest, ExposeVariable) {
     EXPECT_EQ(value.asString(), "Steve");
 }
 
-TEST_F(BindingContextTest, ExposeWritableVariable) {
+TEST_F(BindingContextTest, ExposeWritableVariable)
+{
     i32 health = 100;
     m_ctx->exposeWritable("player.health", &health);
 
@@ -1810,25 +1918,25 @@ TEST_F(BindingContextTest, ExposeWritableVariable) {
     EXPECT_EQ(health, 50);
 }
 
-TEST_F(BindingContextTest, ExposeCallback) {
+TEST_F(BindingContextTest, ExposeCallback)
+{
     bool callbackCalled = false;
     std::string callbackArg;
 
-    m_ctx->exposeCallback("onClick", [&](mc::client::ui::kagero::widget::Widget*,
-                                          const mc::client::ui::kagero::event::Event&) {
-        callbackCalled = true;
-    });
+    m_ctx->exposeCallback(
+        "onClick", [&](mc::client::ui::kagero::widget::Widget*, const mc::client::ui::kagero::event::Event&) {
+            callbackCalled = true;
+        });
 
     EXPECT_TRUE(m_ctx->hasCallback("onClick"));
     EXPECT_FALSE(m_ctx->hasCallback("nonexistent"));
 }
 
-TEST_F(BindingContextTest, ExposeSimpleCallback) {
+TEST_F(BindingContextTest, ExposeSimpleCallback)
+{
     bool callbackCalled = false;
 
-    m_ctx->exposeSimpleCallback("onStart", [&]() {
-        callbackCalled = true;
-    });
+    m_ctx->exposeSimpleCallback("onStart", [&]() { callbackCalled = true; });
 
     EXPECT_TRUE(m_ctx->hasCallback("onStart"));
 
@@ -1838,12 +1946,14 @@ TEST_F(BindingContextTest, ExposeSimpleCallback) {
     EXPECT_TRUE(callbackCalled);
 }
 
-TEST_F(BindingContextTest, InvokeNonexistentCallback) {
+TEST_F(BindingContextTest, InvokeNonexistentCallback)
+{
     mc::client::ui::kagero::event::FocusGainedEvent event;
     EXPECT_FALSE(m_ctx->invokeCallback("nonexistent", nullptr, event));
 }
 
-TEST_F(BindingContextTest, LoopVariables) {
+TEST_F(BindingContextTest, LoopVariables)
+{
     m_ctx->setLoopVariable("item", binder::Value(42));
 
     EXPECT_TRUE(m_ctx->hasLoopVariable("item"));
@@ -1856,7 +1966,8 @@ TEST_F(BindingContextTest, LoopVariables) {
     EXPECT_FALSE(m_ctx->hasLoopVariable("item"));
 }
 
-TEST_F(BindingContextTest, ResolveLoopVariable) {
+TEST_F(BindingContextTest, ResolveLoopVariable)
+{
     m_ctx->setLoopVariable("slot", binder::Value(std::string("item_data")));
 
     // Resolve $slot - need to call with loopVar parameter
@@ -1868,14 +1979,14 @@ TEST_F(BindingContextTest, ResolveLoopVariable) {
     EXPECT_EQ(value.asString(), "item_data");
 }
 
-TEST_F(BindingContextTest, Subscribe) {
+TEST_F(BindingContextTest, Subscribe)
+{
     std::string playerName = "Steve";
     m_ctx->expose("player.name", &playerName);
 
     std::string lastValue;
-    u64 subId = m_ctx->subscribe("player.name", [&](const std::string& path, const binder::Value& value) {
-        lastValue = value.asString();
-    });
+    u64 subId = m_ctx->subscribe(
+        "player.name", [&](const std::string& path, const binder::Value& value) { lastValue = value.asString(); });
 
     EXPECT_GT(subId, 0u);
 
@@ -1890,7 +2001,8 @@ TEST_F(BindingContextTest, Subscribe) {
     m_ctx->notifyChange("player.name", binder::Value(std::string("Bob")));
 }
 
-TEST_F(BindingContextTest, Clear) {
+TEST_F(BindingContextTest, Clear)
+{
     std::string name = "Test";
     m_ctx->expose("name", &name);
     m_ctx->exposeCallback("callback", [](auto*, const auto&) {});
@@ -1906,10 +2018,10 @@ TEST_F(BindingContextTest, Clear) {
 
 // ==================== Value Tests ====================
 
-class ValueTest : public ::testing::Test {
-};
+class ValueTest : public ::testing::Test {};
 
-TEST_F(ValueTest, DefaultValue) {
+TEST_F(ValueTest, DefaultValue)
+{
     binder::Value v;
     EXPECT_TRUE(v.isNull());
     EXPECT_FALSE(v.isBool());
@@ -1918,7 +2030,8 @@ TEST_F(ValueTest, DefaultValue) {
     EXPECT_FALSE(v.isString());
 }
 
-TEST_F(ValueTest, BoolValue) {
+TEST_F(ValueTest, BoolValue)
+{
     binder::Value v(true);
     EXPECT_TRUE(v.isBool());
     EXPECT_FALSE(v.isNull());
@@ -1926,7 +2039,8 @@ TEST_F(ValueTest, BoolValue) {
     EXPECT_EQ(v.toString(), "true");
 }
 
-TEST_F(ValueTest, IntegerValue) {
+TEST_F(ValueTest, IntegerValue)
+{
     binder::Value v(42);
     EXPECT_TRUE(v.isInteger());
     EXPECT_TRUE(v.isNumber());
@@ -1935,7 +2049,8 @@ TEST_F(ValueTest, IntegerValue) {
     EXPECT_EQ(v.toString(), "42");
 }
 
-TEST_F(ValueTest, FloatValue) {
+TEST_F(ValueTest, FloatValue)
+{
     binder::Value v(3.14f);
     EXPECT_TRUE(v.isFloat());
     EXPECT_TRUE(v.isNumber());
@@ -1943,14 +2058,16 @@ TEST_F(ValueTest, FloatValue) {
     EXPECT_EQ(v.asInteger(), 3);
 }
 
-TEST_F(ValueTest, StringValue) {
+TEST_F(ValueTest, StringValue)
+{
     binder::Value v(std::string("hello"));
     EXPECT_TRUE(v.isString());
     EXPECT_EQ(v.asString(), "hello");
     EXPECT_EQ(v.toString(), "hello");
 }
 
-TEST_F(ValueTest, FromAny) {
+TEST_F(ValueTest, FromAny)
+{
     auto vBool = binder::Value::fromAny(std::any(true));
     EXPECT_TRUE(vBool.isBool());
 
@@ -1967,7 +2084,8 @@ TEST_F(ValueTest, FromAny) {
     EXPECT_TRUE(vNull.isNull());
 }
 
-TEST_F(ValueTest, TypeConversions) {
+TEST_F(ValueTest, TypeConversions)
+{
     binder::Value vInt(42);
     EXPECT_EQ(vInt.toInteger(), 42);
     EXPECT_FLOAT_EQ(vInt.toFloat(), 42.0f);
@@ -1990,7 +2108,8 @@ TEST_F(ValueTest, TypeConversions) {
     EXPECT_FLOAT_EQ(vString.toFloat(), 42.0f);
 }
 
-TEST_F(ValueTest, Equality) {
+TEST_F(ValueTest, Equality)
+{
     binder::Value v1(42);
     binder::Value v2(42);
     binder::Value v3(43);
@@ -2004,13 +2123,15 @@ TEST_F(ValueTest, Equality) {
     EXPECT_TRUE(v1 != v3);
 }
 
-TEST_F(ValueTest, GetProperty) {
+TEST_F(ValueTest, GetProperty)
+{
     binder::Value v(42);
     auto prop = v.getProperty("anything");
     EXPECT_TRUE(prop.isNull()); // Simple values don't have properties
 }
 
-TEST_F(ValueTest, GetElement) {
+TEST_F(ValueTest, GetElement)
+{
     binder::Value v(42);
     auto elem = v.getElement(0);
     EXPECT_TRUE(elem.isNull()); // Simple values don't have elements
@@ -2018,10 +2139,10 @@ TEST_F(ValueTest, GetElement) {
 
 // ==================== TemplateErrorCollector Tests ====================
 
-class TemplateErrorCollectorTest : public ::testing::Test {
-};
+class TemplateErrorCollectorTest : public ::testing::Test {};
 
-TEST_F(TemplateErrorCollectorTest, BasicOperations) {
+TEST_F(TemplateErrorCollectorTest, BasicOperations)
+{
     core::TemplateErrorCollector collector;
 
     EXPECT_FALSE(collector.hasErrors());
@@ -2050,14 +2171,13 @@ TEST_F(TemplateErrorCollectorTest, BasicOperations) {
 
 class IntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
     core::TemplateConfig m_config;
 };
 
-TEST_F(IntegrationTest, FullTemplateWorkflow) {
+TEST_F(IntegrationTest, FullTemplateWorkflow)
+{
     // 1. Compile template
     compiler::TemplateCompiler compiler(m_config);
     auto compiled = compiler.compile(R"(
@@ -2072,8 +2192,7 @@ TEST_F(IntegrationTest, FullTemplateWorkflow) {
     )");
 
     ASSERT_NE(compiled, nullptr);
-    EXPECT_TRUE(compiled->isValid()) <<
-        (compiled->hasErrors() ? compiled->errors()[0].message : "none");
+    EXPECT_TRUE(compiled->isValid()) << (compiled->hasErrors() ? compiled->errors()[0].message : "none");
 
     // 2. Check that we have binding plans
     EXPECT_GE(compiled->bindingPlans().size(), 1u);
@@ -2085,7 +2204,8 @@ TEST_F(IntegrationTest, FullTemplateWorkflow) {
     EXPECT_GE(compiled->registeredCallbacks().size(), 1u);
 }
 
-TEST_F(IntegrationTest, ErrorRecovery) {
+TEST_F(IntegrationTest, ErrorRecovery)
+{
     // Test error recovery with multiple errors
     compiler::TemplateCompiler compiler(m_config);
 
@@ -2101,12 +2221,11 @@ TEST_F(IntegrationTest, ErrorRecovery) {
     EXPECT_TRUE(result->hasErrors());
 }
 
-TEST_F(IntegrationTest, BindingContextWithTemplate) {
+TEST_F(IntegrationTest, BindingContextWithTemplate)
+{
     // Create binding context using singleton instances
     binder::BindingContext ctx(
-        mc::client::ui::kagero::state::StateStore::instance(),
-        mc::client::ui::kagero::event::EventBus::instance()
-    );
+        mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
 
     // Expose variables
     std::string playerName = "Steve";
@@ -2123,16 +2242,15 @@ TEST_F(IntegrationTest, BindingContextWithTemplate) {
 
     // Test callback
     bool callbackCalled = false;
-    ctx.exposeSimpleCallback("onClose", [&]() {
-        callbackCalled = true;
-    });
+    ctx.exposeSimpleCallback("onClose", [&]() { callbackCalled = true; });
 
     mc::client::ui::kagero::event::FocusGainedEvent event;
     EXPECT_TRUE(ctx.invokeCallback("onClose", nullptr, event));
     EXPECT_TRUE(callbackCalled);
 }
 
-TEST_F(IntegrationTest, ComplexTemplate) {
+TEST_F(IntegrationTest, ComplexTemplate)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -2168,7 +2286,8 @@ TEST_F(IntegrationTest, ComplexTemplate) {
     EXPECT_EQ(result->eventPlans().size(), 1u); // onPause
 }
 
-TEST_F(IntegrationTest, ParseComplexAttributeValues) {
+TEST_F(IntegrationTest, ParseComplexAttributeValues)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -2196,11 +2315,10 @@ TEST_F(IntegrationTest, ParseComplexAttributeValues) {
 
 class LoopDirectiveTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
-    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
+    {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -2211,7 +2329,8 @@ protected:
     core::TemplateConfig m_config;
 };
 
-TEST_F(LoopDirectiveTest, SimpleLoopDirective) {
+TEST_F(LoopDirectiveTest, SimpleLoopDirective)
+{
     auto doc = parse(R"(
         <list for:item="item in items">
             <text bind:text="$item.name"/>
@@ -2227,7 +2346,8 @@ TEST_F(LoopDirectiveTest, SimpleLoopDirective) {
     EXPECT_EQ(list->loop->itemVarName, "item");
 }
 
-TEST_F(LoopDirectiveTest, LoopWithIndex) {
+TEST_F(LoopDirectiveTest, LoopWithIndex)
+{
     auto doc = parse(R"(
         <grid for:item="(item, index) in items">
             <slot bind:item="$item"/>
@@ -2245,7 +2365,8 @@ TEST_F(LoopDirectiveTest, LoopWithIndex) {
     EXPECT_TRUE(grid->loop->hasIndex);
 }
 
-TEST_F(LoopDirectiveTest, LoopAttributeType) {
+TEST_F(LoopDirectiveTest, LoopAttributeType)
+{
     auto doc = parse(R"(<list for:item="item in items"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -2264,7 +2385,8 @@ TEST_F(LoopDirectiveTest, LoopAttributeType) {
     EXPECT_TRUE(foundLoopAttr);
 }
 
-TEST_F(LoopDirectiveTest, LoopWithNestedBindings) {
+TEST_F(LoopDirectiveTest, LoopWithNestedBindings)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -2285,11 +2407,10 @@ TEST_F(LoopDirectiveTest, LoopWithNestedBindings) {
 
 class ConditionDirectiveTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
-    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
+    {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -2300,7 +2421,8 @@ protected:
     core::TemplateConfig m_config;
 };
 
-TEST_F(ConditionDirectiveTest, SimpleConditionDirective) {
+TEST_F(ConditionDirectiveTest, SimpleConditionDirective)
+{
     auto doc = parse(R"(<text if:condition="player.alive"/>)");
 
     ASSERT_NE(doc, nullptr);
@@ -2312,7 +2434,8 @@ TEST_F(ConditionDirectiveTest, SimpleConditionDirective) {
     EXPECT_FALSE(text->condition->negate);
 }
 
-TEST_F(ConditionDirectiveTest, ConditionWithNegation) {
+TEST_F(ConditionDirectiveTest, ConditionWithNegation)
+{
     auto doc = parse(R"(<text if:condition="!player.hidden"/>)");
 
     ASSERT_NE(doc, nullptr);
@@ -2324,7 +2447,8 @@ TEST_F(ConditionDirectiveTest, ConditionWithNegation) {
     EXPECT_TRUE(text->condition->negate);
 }
 
-TEST_F(ConditionDirectiveTest, ConditionAttributeType) {
+TEST_F(ConditionDirectiveTest, ConditionAttributeType)
+{
     auto doc = parse(R"(<panel if:condition="game.isPlaying"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -2343,7 +2467,8 @@ TEST_F(ConditionDirectiveTest, ConditionAttributeType) {
     EXPECT_TRUE(foundConditionAttr);
 }
 
-TEST_F(ConditionDirectiveTest, LegacyVisibleBinding) {
+TEST_F(ConditionDirectiveTest, LegacyVisibleBinding)
+{
     // Test backward compatibility with bind:visible
     auto doc = parse(R"(<text bind:visible="player.isSneaking"/>)");
 
@@ -2361,7 +2486,8 @@ TEST_F(ConditionDirectiveTest, LegacyVisibleBinding) {
     EXPECT_EQ(text->condition->booleanPath, "player.isSneaking");
 }
 
-TEST_F(ConditionDirectiveTest, ConditionWithContent) {
+TEST_F(ConditionDirectiveTest, ConditionWithContent)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     // Use 'widget' as a generic container
@@ -2381,16 +2507,17 @@ TEST_F(ConditionDirectiveTest, ConditionWithContent) {
 
 // ==================== Value Array Tests ====================
 
-class ValueArrayTest : public ::testing::Test {
-};
+class ValueArrayTest : public ::testing::Test {};
 
-TEST_F(ValueArrayTest, EmptyArray) {
+TEST_F(ValueArrayTest, EmptyArray)
+{
     binder::Value v(std::vector<binder::Value>{});
     EXPECT_TRUE(v.isArray());
     EXPECT_EQ(v.arraySize(), 0u);
 }
 
-TEST_F(ValueArrayTest, ArrayWithElements) {
+TEST_F(ValueArrayTest, ArrayWithElements)
+{
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value(1));
     items.emplace_back(binder::Value(2));
@@ -2405,7 +2532,8 @@ TEST_F(ValueArrayTest, ArrayWithElements) {
     EXPECT_EQ(v.arrayGet(2).asInteger(), 3);
 }
 
-TEST_F(ValueArrayTest, ArrayOutOfBounds) {
+TEST_F(ValueArrayTest, ArrayOutOfBounds)
+{
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value(42));
 
@@ -2417,7 +2545,8 @@ TEST_F(ValueArrayTest, ArrayOutOfBounds) {
     EXPECT_TRUE(elem.isNull());
 }
 
-TEST_F(ValueArrayTest, ArrayToString) {
+TEST_F(ValueArrayTest, ArrayToString)
+{
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value(1));
     items.emplace_back(binder::Value(2));
@@ -2429,7 +2558,8 @@ TEST_F(ValueArrayTest, ArrayToString) {
     EXPECT_TRUE(str.find("]") != std::string::npos);
 }
 
-TEST_F(ValueArrayTest, ArrayEquality) {
+TEST_F(ValueArrayTest, ArrayEquality)
+{
     std::vector<binder::Value> items1;
     items1.emplace_back(binder::Value(1));
     items1.emplace_back(binder::Value(2));
@@ -2450,13 +2580,15 @@ TEST_F(ValueArrayTest, ArrayEquality) {
     EXPECT_FALSE(v1 == v3);
 }
 
-TEST_F(ValueArrayTest, FromArrayStatic) {
+TEST_F(ValueArrayTest, FromArrayStatic)
+{
     auto v = binder::Value::fromArray({binder::Value(1), binder::Value(2)});
     EXPECT_TRUE(v.isArray());
     EXPECT_EQ(v.arraySize(), 2u);
 }
 
-TEST_F(ValueArrayTest, EmptyArrayStatic) {
+TEST_F(ValueArrayTest, EmptyArrayStatic)
+{
     auto v = binder::Value::emptyArray();
     EXPECT_TRUE(v.isArray());
     EXPECT_EQ(v.arraySize(), 0u);
@@ -2466,17 +2598,17 @@ TEST_F(ValueArrayTest, EmptyArrayStatic) {
 
 class BindingContextCollectionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_ctx = std::make_unique<binder::BindingContext>(
-            mc::client::ui::kagero::state::StateStore::instance(),
-            mc::client::ui::kagero::event::EventBus::instance()
-        );
+            mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
     }
 
     std::unique_ptr<binder::BindingContext> m_ctx;
 };
 
-TEST_F(BindingContextCollectionTest, ResolveCollection) {
+TEST_F(BindingContextCollectionTest, ResolveCollection)
+{
     // Set up a collection
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value(std::string("item1")));
@@ -2492,12 +2624,14 @@ TEST_F(BindingContextCollectionTest, ResolveCollection) {
     EXPECT_EQ(resolved[2].asString(), "item3");
 }
 
-TEST_F(BindingContextCollectionTest, ResolveEmptyCollection) {
+TEST_F(BindingContextCollectionTest, ResolveEmptyCollection)
+{
     auto resolved = m_ctx->resolveCollection("nonexistent");
     EXPECT_EQ(resolved.size(), 0u);
 }
 
-TEST_F(BindingContextCollectionTest, SetCollectionTemplate) {
+TEST_F(BindingContextCollectionTest, SetCollectionTemplate)
+{
     // Test the template version
     m_ctx->setCollection<i32>("numbers", {1, 2, 3, 4, 5});
 
@@ -2507,7 +2641,8 @@ TEST_F(BindingContextCollectionTest, SetCollectionTemplate) {
     EXPECT_EQ(resolved[4].asInteger(), 5);
 }
 
-TEST_F(BindingContextCollectionTest, LoopVariableWithCollection) {
+TEST_F(BindingContextCollectionTest, LoopVariableWithCollection)
+{
     // Set up a collection
     m_ctx->setCollection<i32>("items", {10, 20, 30});
 
@@ -2559,21 +2694,21 @@ TEST_F(BindingContextCollectionTest, LoopVariableWithCollection) {
 
 class UpdateSchedulerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_scheduler = std::make_unique<runtime::UpdateScheduler>();
-    }
+    void SetUp() override { m_scheduler = std::make_unique<runtime::UpdateScheduler>(); }
 
     std::unique_ptr<runtime::UpdateScheduler> m_scheduler;
 };
 
-TEST_F(UpdateSchedulerTest, ScheduleTask) {
+TEST_F(UpdateSchedulerTest, ScheduleTask)
+{
     u64 taskId = m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     EXPECT_GT(taskId, 0u);
     EXPECT_TRUE(m_scheduler->hasPending());
     EXPECT_EQ(m_scheduler->pendingCount(), 1u);
 }
 
-TEST_F(UpdateSchedulerTest, ScheduleMultipleTasks) {
+TEST_F(UpdateSchedulerTest, ScheduleMultipleTasks)
+{
     m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->schedule("player.name", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->schedule("player.xp", runtime::UpdateScheduler::Priority::Normal);
@@ -2581,7 +2716,8 @@ TEST_F(UpdateSchedulerTest, ScheduleMultipleTasks) {
     EXPECT_EQ(m_scheduler->pendingCount(), 3u);
 }
 
-TEST_F(UpdateSchedulerTest, ScheduleDifferentPriorities) {
+TEST_F(UpdateSchedulerTest, ScheduleDifferentPriorities)
+{
     m_scheduler->schedule("low", runtime::UpdateScheduler::Priority::Low);
     m_scheduler->schedule("high", runtime::UpdateScheduler::Priority::High);
     m_scheduler->schedule("normal", runtime::UpdateScheduler::Priority::Normal);
@@ -2592,7 +2728,8 @@ TEST_F(UpdateSchedulerTest, ScheduleDifferentPriorities) {
     EXPECT_EQ(m_scheduler->pendingCount(runtime::UpdateScheduler::Priority::Low), 1u);
 }
 
-TEST_F(UpdateSchedulerTest, CancelTask) {
+TEST_F(UpdateSchedulerTest, CancelTask)
+{
     u64 taskId = m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     EXPECT_TRUE(m_scheduler->hasPending());
 
@@ -2601,7 +2738,8 @@ TEST_F(UpdateSchedulerTest, CancelTask) {
     // They are cleaned up during executePending
 }
 
-TEST_F(UpdateSchedulerTest, CancelByPath) {
+TEST_F(UpdateSchedulerTest, CancelByPath)
+{
     m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->schedule("player.name", runtime::UpdateScheduler::Priority::Normal);
 
@@ -2609,7 +2747,8 @@ TEST_F(UpdateSchedulerTest, CancelByPath) {
     // Should cancel tasks for that path
 }
 
-TEST_F(UpdateSchedulerTest, CancelAll) {
+TEST_F(UpdateSchedulerTest, CancelAll)
+{
     m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->schedule("player.name", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->schedule("player.xp", runtime::UpdateScheduler::Priority::Normal);
@@ -2619,7 +2758,8 @@ TEST_F(UpdateSchedulerTest, CancelAll) {
     EXPECT_EQ(m_scheduler->pendingCount(), 0u);
 }
 
-TEST_F(UpdateSchedulerTest, ExecutePendingNoCallback) {
+TEST_F(UpdateSchedulerTest, ExecutePendingNoCallback)
+{
     m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
 
     // Execute without a callback should return 0
@@ -2627,7 +2767,8 @@ TEST_F(UpdateSchedulerTest, ExecutePendingNoCallback) {
     EXPECT_EQ(executed, 0u);
 }
 
-TEST_F(UpdateSchedulerTest, ExecuteWithCallback) {
+TEST_F(UpdateSchedulerTest, ExecuteWithCallback)
+{
     std::vector<std::string> updatedPaths;
     m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
         updatedPaths.push_back(path);
@@ -2644,23 +2785,27 @@ TEST_F(UpdateSchedulerTest, ExecuteWithCallback) {
     EXPECT_FALSE(m_scheduler->hasPending());
 }
 
-TEST_F(UpdateSchedulerTest, SetBatchDelay) {
+TEST_F(UpdateSchedulerTest, SetBatchDelay)
+{
     m_scheduler->setBatchDelay(32);
     // No direct way to verify, but should not crash
 }
 
-TEST_F(UpdateSchedulerTest, SetMaxBatchSize) {
+TEST_F(UpdateSchedulerTest, SetMaxBatchSize)
+{
     m_scheduler->setMaxBatchSize(50);
     // No direct way to verify, but should not crash
 }
 
-TEST_F(UpdateSchedulerTest, SetDeferredUpdate) {
+TEST_F(UpdateSchedulerTest, SetDeferredUpdate)
+{
     m_scheduler->setDeferredUpdate(true);
     m_scheduler->setDeferredUpdate(false);
     // No direct way to verify, but should not crash
 }
 
-TEST_F(UpdateSchedulerTest, CurrentTimestamp) {
+TEST_F(UpdateSchedulerTest, CurrentTimestamp)
+{
     u64 ts1 = m_scheduler->currentTimestamp();
     u64 ts2 = m_scheduler->currentTimestamp();
     // Timestamps should be increasing
@@ -2671,14 +2816,13 @@ TEST_F(UpdateSchedulerTest, CurrentTimestamp) {
 
 class CompiledTemplateTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
     core::TemplateConfig m_config;
 };
 
-TEST_F(CompiledTemplateTest, CreateCompiledTemplate) {
+TEST_F(CompiledTemplateTest, CreateCompiledTemplate)
+{
     compiler::CompiledTemplate compiled;
     EXPECT_FALSE(compiled.isValid());
     EXPECT_FALSE(compiled.hasErrors());
@@ -2687,7 +2831,8 @@ TEST_F(CompiledTemplateTest, CreateCompiledTemplate) {
     EXPECT_EQ(compiled.loopPlans().size(), 0u);
 }
 
-TEST_F(CompiledTemplateTest, AddBindingPlan) {
+TEST_F(CompiledTemplateTest, AddBindingPlan)
+{
     compiler::CompiledTemplate compiled;
     compiler::BindingPlan plan;
     plan.widgetPath = "screen.button";
@@ -2700,7 +2845,8 @@ TEST_F(CompiledTemplateTest, AddBindingPlan) {
     EXPECT_EQ(compiled.bindingPlans()[0].statePath, "player.health");
 }
 
-TEST_F(CompiledTemplateTest, AddEventPlan) {
+TEST_F(CompiledTemplateTest, AddEventPlan)
+{
     compiler::CompiledTemplate compiled;
     compiler::EventPlan plan;
     plan.widgetPath = "screen.button";
@@ -2713,7 +2859,8 @@ TEST_F(CompiledTemplateTest, AddEventPlan) {
     EXPECT_EQ(compiled.eventPlans()[0].eventName, "click");
 }
 
-TEST_F(CompiledTemplateTest, AddLoopPlan) {
+TEST_F(CompiledTemplateTest, AddLoopPlan)
+{
     compiler::CompiledTemplate compiled;
     compiler::LoopPlan plan;
     plan.parentPath = "screen.inventory";
@@ -2725,7 +2872,8 @@ TEST_F(CompiledTemplateTest, AddLoopPlan) {
     EXPECT_EQ(compiled.loopPlans()[0].collectionPath, "player.items");
 }
 
-TEST_F(CompiledTemplateTest, AddWatchedPath) {
+TEST_F(CompiledTemplateTest, AddWatchedPath)
+{
     compiler::CompiledTemplate compiled;
     compiled.addWatchedPath("player.health");
     compiled.addWatchedPath("player.name");
@@ -2736,7 +2884,8 @@ TEST_F(CompiledTemplateTest, AddWatchedPath) {
     EXPECT_TRUE(compiled.watchedPaths().count("player.name") > 0);
 }
 
-TEST_F(CompiledTemplateTest, AddRegisteredCallback) {
+TEST_F(CompiledTemplateTest, AddRegisteredCallback)
+{
     compiler::CompiledTemplate compiled;
     compiled.addRegisteredCallback("onClick");
     compiled.addRegisteredCallback("onHover");
@@ -2747,41 +2896,37 @@ TEST_F(CompiledTemplateTest, AddRegisteredCallback) {
     EXPECT_TRUE(compiled.registeredCallbacks().count("onHover") > 0);
 }
 
-TEST_F(CompiledTemplateTest, SetSourcePath) {
+TEST_F(CompiledTemplateTest, SetSourcePath)
+{
     compiler::CompiledTemplate compiled;
     compiled.setSourcePath("templates/main_menu.xml");
     EXPECT_EQ(compiled.sourcePath(), "templates/main_menu.xml");
 }
 
-TEST_F(CompiledTemplateTest, SetCompileTime) {
+TEST_F(CompiledTemplateTest, SetCompileTime)
+{
     compiler::CompiledTemplate compiled;
     compiled.setCompileTime(42);
     EXPECT_EQ(compiled.compileTime(), 42u);
 }
 
-TEST_F(CompiledTemplateTest, AddError) {
+TEST_F(CompiledTemplateTest, AddError)
+{
     compiler::CompiledTemplate compiled;
     compiled.addError(core::TemplateErrorInfo(
-        core::TemplateErrorType::ParserError,
-        "Test error",
-        core::SourceLocation(10, 5),
-        "test.tpl"
-    ));
+        core::TemplateErrorType::ParserError, "Test error", core::SourceLocation(10, 5), "test.tpl"));
 
     EXPECT_TRUE(compiled.hasErrors());
     EXPECT_EQ(compiled.errors().size(), 1u);
     EXPECT_EQ(compiled.errors()[0].message, "Test error");
 }
 
-TEST_F(CompiledTemplateTest, DebugDump) {
+TEST_F(CompiledTemplateTest, DebugDump)
+{
     compiler::CompiledTemplate compiled;
     compiled.setSourcePath("test.tpl");
-    compiled.addBindingPlan(compiler::BindingPlan{
-        "screen.btn", "player.health", "text", false, ""
-    });
-    compiled.addEventPlan(compiler::EventPlan{
-        "screen.btn", "click", "onClick"
-    });
+    compiled.addBindingPlan(compiler::BindingPlan{"screen.btn", "player.health", "text", false, ""});
+    compiled.addEventPlan(compiler::EventPlan{"screen.btn", "click", "onClick"});
 
     std::string dump = compiled.debugDump();
     EXPECT_TRUE(dump.find("Compiled Template") != std::string::npos);
@@ -2794,14 +2939,13 @@ TEST_F(CompiledTemplateTest, DebugDump) {
 
 class TemplateCompilerConfigTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
     core::TemplateConfig m_config;
 };
 
-TEST_F(TemplateCompilerConfigTest, StrictMode) {
+TEST_F(TemplateCompilerConfigTest, StrictMode)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     EXPECT_TRUE(compiler.isStrictMode());
@@ -2810,7 +2954,8 @@ TEST_F(TemplateCompilerConfigTest, StrictMode) {
     EXPECT_FALSE(compiler.isStrictMode());
 }
 
-TEST_F(TemplateCompilerConfigTest, CustomConfig) {
+TEST_F(TemplateCompilerConfigTest, CustomConfig)
+{
     core::TemplateConfig customConfig;
     customConfig.strictMode = false;
     customConfig.debugOutput = true;
@@ -2826,17 +2971,17 @@ TEST_F(TemplateCompilerConfigTest, CustomConfig) {
 
 class BindingContextAdvancedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_ctx = std::make_unique<binder::BindingContext>(
-            mc::client::ui::kagero::state::StateStore::instance(),
-            mc::client::ui::kagero::event::EventBus::instance()
-        );
+            mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
     }
 
     std::unique_ptr<binder::BindingContext> m_ctx;
 };
 
-TEST_F(BindingContextAdvancedTest, PathResolution) {
+TEST_F(BindingContextAdvancedTest, PathResolution)
+{
     i32 health = 100;
     std::string name = "Steve";
 
@@ -2851,7 +2996,8 @@ TEST_F(BindingContextAdvancedTest, PathResolution) {
     EXPECT_EQ(nameValue.asString(), "Steve");
 }
 
-TEST_F(BindingContextAdvancedTest, WritableVariable) {
+TEST_F(BindingContextAdvancedTest, WritableVariable)
+{
     i32 level = 1;
 
     m_ctx->exposeWritable("player.level", &level);
@@ -2868,7 +3014,8 @@ TEST_F(BindingContextAdvancedTest, WritableVariable) {
     EXPECT_EQ(level, 10);
 }
 
-TEST_F(BindingContextAdvancedTest, WritableBoolVariable) {
+TEST_F(BindingContextAdvancedTest, WritableBoolVariable)
+{
     bool visible = true;
     m_ctx->exposeWritable("ui.visible", &visible);
 
@@ -2876,7 +3023,8 @@ TEST_F(BindingContextAdvancedTest, WritableBoolVariable) {
     EXPECT_FALSE(visible);
 }
 
-TEST_F(BindingContextAdvancedTest, WritableFloatVariable) {
+TEST_F(BindingContextAdvancedTest, WritableFloatVariable)
+{
     f32 volume = 0.5f;
     m_ctx->exposeWritable("settings.volume", &volume);
 
@@ -2884,7 +3032,8 @@ TEST_F(BindingContextAdvancedTest, WritableFloatVariable) {
     EXPECT_FLOAT_EQ(volume, 0.8f);
 }
 
-TEST_F(BindingContextAdvancedTest, WritableStringVariable) {
+TEST_F(BindingContextAdvancedTest, WritableStringVariable)
+{
     std::string name = "Alex";
     m_ctx->exposeWritable("player.name", &name);
 
@@ -2892,7 +3041,8 @@ TEST_F(BindingContextAdvancedTest, WritableStringVariable) {
     EXPECT_EQ(name, "Steve");
 }
 
-TEST_F(BindingContextAdvancedTest, NotifyChangeWithSubscriber) {
+TEST_F(BindingContextAdvancedTest, NotifyChangeWithSubscriber)
+{
     i32 health = 100;
     m_ctx->expose("player.health", &health);
 
@@ -2911,19 +3061,16 @@ TEST_F(BindingContextAdvancedTest, NotifyChangeWithSubscriber) {
     m_ctx->unsubscribe(subId);
 }
 
-TEST_F(BindingContextAdvancedTest, MultipleSubscribers) {
+TEST_F(BindingContextAdvancedTest, MultipleSubscribers)
+{
     i32 xp = 0;
     m_ctx->expose("player.xp", &xp);
 
     int callCount1 = 0;
     int callCount2 = 0;
 
-    u64 sub1 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) {
-        callCount1++;
-    });
-    u64 sub2 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) {
-        callCount2++;
-    });
+    u64 sub1 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) { callCount1++; });
+    u64 sub2 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) { callCount2++; });
 
     m_ctx->notifyChange("player.xp", binder::Value(100));
 
@@ -2934,7 +3081,8 @@ TEST_F(BindingContextAdvancedTest, MultipleSubscribers) {
     m_ctx->unsubscribe(sub2);
 }
 
-TEST_F(BindingContextAdvancedTest, CollectionOperations) {
+TEST_F(BindingContextAdvancedTest, CollectionOperations)
+{
     // Test setCollection with integers
     m_ctx->setCollection<i32>("numbers", {1, 2, 3, 4, 5});
 
@@ -2952,27 +3100,29 @@ TEST_F(BindingContextAdvancedTest, CollectionOperations) {
     EXPECT_EQ(names[2].asString(), "Charlie");
 }
 
-TEST_F(BindingContextAdvancedTest, NonexistentPath) {
+TEST_F(BindingContextAdvancedTest, NonexistentPath)
+{
     auto value = m_ctx->resolveBinding("nonexistent.path");
     EXPECT_TRUE(value.isNull());
     EXPECT_FALSE(m_ctx->hasPath("nonexistent.path"));
 }
 
-TEST_F(BindingContextAdvancedTest, ReadOnlyCannotWrite) {
+TEST_F(BindingContextAdvancedTest, ReadOnlyCannotWrite)
+{
     i32 health = 100;
-    m_ctx->expose("player.health", &health);  // Read-only
+    m_ctx->expose("player.health", &health); // Read-only
 
     EXPECT_FALSE(m_ctx->isWritable("player.health"));
     EXPECT_FALSE(m_ctx->setBinding("player.health", binder::Value(50)));
-    EXPECT_EQ(health, 100);  // Unchanged
+    EXPECT_EQ(health, 100); // Unchanged
 }
 
 // ==================== BindingPlan Tests ====================
 
-class BindingPlanTest : public ::testing::Test {
-};
+class BindingPlanTest : public ::testing::Test {};
 
-TEST_F(BindingPlanTest, DefaultConstruction) {
+TEST_F(BindingPlanTest, DefaultConstruction)
+{
     compiler::BindingPlan plan;
     EXPECT_TRUE(plan.widgetPath.empty());
     EXPECT_TRUE(plan.statePath.empty());
@@ -2981,7 +3131,8 @@ TEST_F(BindingPlanTest, DefaultConstruction) {
     EXPECT_TRUE(plan.loopVarName.empty());
 }
 
-TEST_F(BindingPlanTest, ParameterizedConstruction) {
+TEST_F(BindingPlanTest, ParameterizedConstruction)
+{
     compiler::BindingPlan plan("screen.grid.slot", "player.inventory[0]", "item", true, "slot");
 
     EXPECT_EQ(plan.widgetPath, "screen.grid.slot");
@@ -2993,17 +3144,18 @@ TEST_F(BindingPlanTest, ParameterizedConstruction) {
 
 // ==================== EventPlan Tests ====================
 
-class EventPlanTest : public ::testing::Test {
-};
+class EventPlanTest : public ::testing::Test {};
 
-TEST_F(EventPlanTest, DefaultConstruction) {
+TEST_F(EventPlanTest, DefaultConstruction)
+{
     compiler::EventPlan plan;
     EXPECT_TRUE(plan.widgetPath.empty());
     EXPECT_TRUE(plan.eventName.empty());
     EXPECT_TRUE(plan.callbackName.empty());
 }
 
-TEST_F(EventPlanTest, ParameterizedConstruction) {
+TEST_F(EventPlanTest, ParameterizedConstruction)
+{
     compiler::EventPlan plan("screen.btn", "click", "onButtonClick");
 
     EXPECT_EQ(plan.widgetPath, "screen.btn");
@@ -3013,10 +3165,10 @@ TEST_F(EventPlanTest, ParameterizedConstruction) {
 
 // ==================== LoopPlan Tests ====================
 
-class LoopPlanTest : public ::testing::Test {
-};
+class LoopPlanTest : public ::testing::Test {};
 
-TEST_F(LoopPlanTest, DefaultConstruction) {
+TEST_F(LoopPlanTest, DefaultConstruction)
+{
     compiler::LoopPlan plan;
     EXPECT_TRUE(plan.parentPath.empty());
     EXPECT_TRUE(plan.collectionPath.empty());
@@ -3024,7 +3176,8 @@ TEST_F(LoopPlanTest, DefaultConstruction) {
     EXPECT_EQ(plan.itemBindings.size(), 0u);
 }
 
-TEST_F(LoopPlanTest, ParameterizedConstruction) {
+TEST_F(LoopPlanTest, ParameterizedConstruction)
+{
     compiler::LoopPlan plan("screen.inventory", "player.items", "item");
 
     EXPECT_EQ(plan.parentPath, "screen.inventory");
@@ -3036,23 +3189,21 @@ TEST_F(LoopPlanTest, ParameterizedConstruction) {
 
 class DocumentationExampleTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_ctx = std::make_unique<binder::BindingContext>(
-            mc::client::ui::kagero::state::StateStore::instance(),
-            mc::client::ui::kagero::event::EventBus::instance()
-        );
+            mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
     }
 
-    void TearDown() override {
-        m_ctx->clear();
-    }
+    void TearDown() override { m_ctx->clear(); }
 
     std::unique_ptr<binder::BindingContext> m_ctx;
     core::TemplateConfig m_config;
 };
 
 // 文档示例 1: 编译模板
-TEST_F(DocumentationExampleTest, CompileTemplateExample) {
+TEST_F(DocumentationExampleTest, CompileTemplateExample)
+{
     compiler::TemplateCompiler compiler;
     compiler.setStrictMode(true);
 
@@ -3070,7 +3221,8 @@ TEST_F(DocumentationExampleTest, CompileTemplateExample) {
 }
 
 // 文档示例 2: 绑定上下文使用
-TEST_F(DocumentationExampleTest, BindingContextExample) {
+TEST_F(DocumentationExampleTest, BindingContextExample)
+{
     // 暴露只读变量
     std::string playerName = "Steve";
     m_ctx->expose("player.name", &playerName);
@@ -3097,12 +3249,11 @@ TEST_F(DocumentationExampleTest, BindingContextExample) {
 }
 
 // 文档示例 3: 暴露简单回调
-TEST_F(DocumentationExampleTest, SimpleCallbackExample) {
+TEST_F(DocumentationExampleTest, SimpleCallbackExample)
+{
     bool simpleCallbackCalled = false;
 
-    m_ctx->exposeSimpleCallback("onCancel", [&]() {
-        simpleCallbackCalled = true;
-    });
+    m_ctx->exposeSimpleCallback("onCancel", [&]() { simpleCallbackCalled = true; });
 
     EXPECT_TRUE(m_ctx->hasCallback("onCancel"));
     mc::client::ui::kagero::event::FocusGainedEvent event;
@@ -3111,18 +3262,18 @@ TEST_F(DocumentationExampleTest, SimpleCallbackExample) {
 }
 
 // 文档示例 4: 状态订阅
-TEST_F(DocumentationExampleTest, StateSubscriptionExample) {
+TEST_F(DocumentationExampleTest, StateSubscriptionExample)
+{
     i32 health = 100;
     m_ctx->exposeWritable("player.health", &health);
 
     std::string changedPath;
     binder::Value newValue;
 
-    u64 subId = m_ctx->subscribe("player.health",
-        [&](const std::string& path, const binder::Value& value) {
-            changedPath = path;
-            newValue = value;
-        });
+    u64 subId = m_ctx->subscribe("player.health", [&](const std::string& path, const binder::Value& value) {
+        changedPath = path;
+        newValue = value;
+    });
 
     m_ctx->notifyChange("player.health", binder::Value(75));
 
@@ -3134,7 +3285,8 @@ TEST_F(DocumentationExampleTest, StateSubscriptionExample) {
 }
 
 // 文档示例 5: 循环变量
-TEST_F(DocumentationExampleTest, LoopVariableExample) {
+TEST_F(DocumentationExampleTest, LoopVariableExample)
+{
     m_ctx->setLoopVariable("item", binder::Value(42));
 
     // 验证循环变量访问
@@ -3148,12 +3300,13 @@ TEST_F(DocumentationExampleTest, LoopVariableExample) {
 }
 
 // 文档示例 6: 集合解析
-TEST_F(DocumentationExampleTest, CollectionExample) {
+TEST_F(DocumentationExampleTest, CollectionExample)
+{
     // 设置集合 - 测试 Value 对字符串字面量的正确处理
     std::vector<binder::Value> items;
-    items.emplace_back(binder::Value("Item1"));  // const char* 构造
+    items.emplace_back(binder::Value("Item1")); // const char* 构造
     items.emplace_back(binder::Value("Item2"));
-    items.emplace_back(binder::Value(std::string("Item3")));  // std::string 构造
+    items.emplace_back(binder::Value(std::string("Item3"))); // std::string 构造
 
     m_ctx->setCollectionValue("items", items);
 
@@ -3173,9 +3326,10 @@ TEST_F(DocumentationExampleTest, CollectionExample) {
 }
 
 // 文档示例 7: 完整模板编译流程
-TEST_F(DocumentationExampleTest, FullCompileWorkflow) {
+TEST_F(DocumentationExampleTest, FullCompileWorkflow)
+{
     compiler::TemplateCompiler compiler;
-    compiler.setStrictMode(false);  // 关闭严格模式以接受简单标签
+    compiler.setStrictMode(false); // 关闭严格模式以接受简单标签
 
     // 编译简单模板
     auto compiled = compiler.compile(R"(
@@ -3194,7 +3348,8 @@ TEST_F(DocumentationExampleTest, FullCompileWorkflow) {
 }
 
 // 文档示例 8: UpdateScheduler 使用
-TEST_F(DocumentationExampleTest, UpdateSchedulerWorkflow) {
+TEST_F(DocumentationExampleTest, UpdateSchedulerWorkflow)
+{
     runtime::UpdateScheduler scheduler;
 
     std::vector<std::string> executedPaths;
@@ -3228,12 +3383,11 @@ TEST_F(DocumentationExampleTest, UpdateSchedulerWorkflow) {
 
 class LexerEdgeCaseTest : public ::testing::Test {
 protected:
-    parser::Lexer createLexer(const std::string& source) {
-        return parser::Lexer(source, "<test>");
-    }
+    parser::Lexer createLexer(const std::string& source) { return parser::Lexer(source, "<test>"); }
 };
 
-TEST_F(LexerEdgeCaseTest, EmptyAttributeValue) {
+TEST_F(LexerEdgeCaseTest, EmptyAttributeValue)
+{
     // 空属性值
     auto lexer = createLexer(R"(<text id="" text=""/>)");
     EXPECT_TRUE(lexer.tokenize());
@@ -3243,8 +3397,7 @@ TEST_F(LexerEdgeCaseTest, EmptyAttributeValue) {
     bool foundEmptyId = false;
     for (size_t i = 0; i + 2 < tokens.size(); ++i) {
         // Token顺序: Identifier("id") -> Equals("=") -> StringLiteral("")
-        if (tokens[i].value == "id" &&
-            tokens[i + 1].type == parser::TokenType::Equals &&
+        if (tokens[i].value == "id" && tokens[i + 1].type == parser::TokenType::Equals &&
             tokens[i + 2].type == parser::TokenType::StringLiteral) {
             foundEmptyId = true;
             EXPECT_EQ(tokens[i + 2].value, "");
@@ -3254,7 +3407,8 @@ TEST_F(LexerEdgeCaseTest, EmptyAttributeValue) {
     EXPECT_TRUE(foundEmptyId);
 }
 
-TEST_F(LexerEdgeCaseTest, AttributeWithoutValue) {
+TEST_F(LexerEdgeCaseTest, AttributeWithoutValue)
+{
     // 无值属性（HTML风格）
     auto lexer = createLexer("<button disabled>");
     EXPECT_TRUE(lexer.tokenize());
@@ -3262,19 +3416,22 @@ TEST_F(LexerEdgeCaseTest, AttributeWithoutValue) {
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, MultipleConsecutiveNewlines) {
+TEST_F(LexerEdgeCaseTest, MultipleConsecutiveNewlines)
+{
     auto lexer = createLexer("<screen>\n\n\n\n<button/>\n\n\n</screen>");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, LargeWhitespaceBetweenAttributes) {
+TEST_F(LexerEdgeCaseTest, LargeWhitespaceBetweenAttributes)
+{
     auto lexer = createLexer(R"(<text    id="test"     text="hello"/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, CommentContainingTags) {
+TEST_F(LexerEdgeCaseTest, CommentContainingTags)
+{
     // 注释内的标签应被忽略
     auto lexer = createLexer("<!-- <button/> <text id=\"inner\"/> -->");
     EXPECT_TRUE(lexer.tokenize());
@@ -3293,34 +3450,39 @@ TEST_F(LexerEdgeCaseTest, CommentContainingTags) {
     EXPECT_TRUE(foundComment);
 }
 
-TEST_F(LexerEdgeCaseTest, NestedCommentStart) {
+TEST_F(LexerEdgeCaseTest, NestedCommentStart)
+{
     // 嵌套注释开始 - 这可能被视为错误或被忽略
     auto lexer = createLexer("<!-- <!-- inner --> -->");
     EXPECT_TRUE(lexer.tokenize());
     // 行为取决于实现：可能将第一个 --> 作为注释结束
 }
 
-TEST_F(LexerEdgeCaseTest, UnclosedCommentAtEnd) {
+TEST_F(LexerEdgeCaseTest, UnclosedCommentAtEnd)
+{
     auto lexer = createLexer("<!-- This comment is never closed");
     EXPECT_FALSE(lexer.tokenize());
     EXPECT_TRUE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, StringWithMixedEscapeSequences) {
+TEST_F(LexerEdgeCaseTest, StringWithMixedEscapeSequences)
+{
     // 测试所有转义序列
     auto lexer = createLexer(R"(<text value="\t\n\r\"\'\\\/"/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, StringWithInvalidEscapeSequence) {
+TEST_F(LexerEdgeCaseTest, StringWithInvalidEscapeSequence)
+{
     // 无效转义序列 - 行为取决于实现
     auto lexer = createLexer(R"(<text value="\x\y\z"/>)");
     EXPECT_TRUE(lexer.tokenize());
     // 可能保留原始字符或报错
 }
 
-TEST_F(LexerEdgeCaseTest, VeryLongStringLiteral) {
+TEST_F(LexerEdgeCaseTest, VeryLongStringLiteral)
+{
     // 超长字符串
     std::string longValue(10000, 'a');
     std::string source = "<text value=\"" + longValue + "\"/>";
@@ -3337,7 +3499,8 @@ TEST_F(LexerEdgeCaseTest, VeryLongStringLiteral) {
     }
 }
 
-TEST_F(LexerEdgeCaseTest, VeryLongIdentifier) {
+TEST_F(LexerEdgeCaseTest, VeryLongIdentifier)
+{
     // 超长标识符
     std::string longId(1000, 'a');
     std::string source = "<" + longId + "/>";
@@ -3356,49 +3519,56 @@ TEST_F(LexerEdgeCaseTest, VeryLongIdentifier) {
     EXPECT_TRUE(found);
 }
 
-TEST_F(LexerEdgeCaseTest, NumericEdgeCases) {
+TEST_F(LexerEdgeCaseTest, NumericEdgeCases)
+{
     // 边界数值
     auto lexer = createLexer(R"(<text int="0" max="2147483647" neg="-123" float="0.0" bigfloat="999999.999999"/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, ZeroPrefixedNumber) {
+TEST_F(LexerEdgeCaseTest, ZeroPrefixedNumber)
+{
     // 前导零数字
     auto lexer = createLexer(R"(<text value="007"/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, NegativeNumber) {
+TEST_F(LexerEdgeCaseTest, NegativeNumber)
+{
     // 负数处理
     auto lexer = createLexer(R"(<text x="-10" y="-20.5"/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, ScientificNotationNumber) {
+TEST_F(LexerEdgeCaseTest, ScientificNotationNumber)
+{
     // 科学计数法
     auto lexer = createLexer(R"(<text value="1.5e10" value2="2e-5"/>)");
     EXPECT_TRUE(lexer.tokenize());
     // 行为取决于实现
 }
 
-TEST_F(LexerEdgeCaseTest, SpecialCharactersInAttributeValue) {
+TEST_F(LexerEdgeCaseTest, SpecialCharactersInAttributeValue)
+{
     // 属性值中的特殊字符
     auto lexer = createLexer(R"(<text value="<>&'\""/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, UnicodeInStringLiteral) {
+TEST_F(LexerEdgeCaseTest, UnicodeInStringLiteral)
+{
     // Unicode 字符串
     auto lexer = createLexer(R"(<text value="你好世界"/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, UnicodeInIdentifier) {
+TEST_F(LexerEdgeCaseTest, UnicodeInIdentifier)
+{
     // Unicode 标识符 - 当前实现不支持 Unicode 标识符
     // Lexer.isIdentifierChar() 只支持 ASCII 字母数字、下划线、连字符和冒号
     auto lexer = createLexer("<文本/>");
@@ -3407,7 +3577,8 @@ TEST_F(LexerEdgeCaseTest, UnicodeInIdentifier) {
     EXPECT_TRUE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, MultipleTagsOnSameLine) {
+TEST_F(LexerEdgeCaseTest, MultipleTagsOnSameLine)
+{
     auto lexer = createLexer("<screen><text/><button/><text/></screen>");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
@@ -3421,7 +3592,8 @@ TEST_F(LexerEdgeCaseTest, MultipleTagsOnSameLine) {
     EXPECT_EQ(identifierCount, 5); // screen, text, button, text, screen
 }
 
-TEST_F(LexerEdgeCaseTest, DeeplyNestedTags) {
+TEST_F(LexerEdgeCaseTest, DeeplyNestedTags)
+{
     // 深度嵌套
     std::string source;
     for (int i = 0; i < 100; ++i) {
@@ -3437,14 +3609,16 @@ TEST_F(LexerEdgeCaseTest, DeeplyNestedTags) {
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, SelfClosingTagInClosingContext) {
+TEST_F(LexerEdgeCaseTest, SelfClosingTagInClosingContext)
+{
     // 自关闭标签的各种位置
     auto lexer = createLexer("<screen><text/><button/></screen>");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, AttributeNameWithHyphen) {
+TEST_F(LexerEdgeCaseTest, AttributeNameWithHyphen)
+{
     auto lexer = createLexer(R"(<text data-value="test" custom-attr="value"/>)");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
@@ -3459,7 +3633,8 @@ TEST_F(LexerEdgeCaseTest, AttributeNameWithHyphen) {
     EXPECT_TRUE(foundCustomAttr);
 }
 
-TEST_F(LexerEdgeCaseTest, AttributeNameWithColon) {
+TEST_F(LexerEdgeCaseTest, AttributeNameWithColon)
+{
     // bind:, on: 等特殊属性
     auto lexer = createLexer(R"(<text bind:text="player.name" on:click="onClick"/>)");
     EXPECT_TRUE(lexer.tokenize());
@@ -3475,50 +3650,58 @@ TEST_F(LexerEdgeCaseTest, AttributeNameWithColon) {
     EXPECT_TRUE(foundEvent);
 }
 
-TEST_F(LexerEdgeCaseTest, ConsecutiveTagsNoSpaces) {
+TEST_F(LexerEdgeCaseTest, ConsecutiveTagsNoSpaces)
+{
     auto lexer = createLexer("<screen><button/></screen>");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, TextContentWithEntities) {
+TEST_F(LexerEdgeCaseTest, TextContentWithEntities)
+{
     // XML实体（行为取决于实现）
     auto lexer = createLexer("<text>Hello &amp; World</text>");
     EXPECT_TRUE(lexer.tokenize());
     // 实体可能被保留或解析
 }
 
-TEST_F(LexerEdgeCaseTest, EmptySource) {
+TEST_F(LexerEdgeCaseTest, EmptySource)
+{
     auto lexer = createLexer("");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, OnlyWhitespace) {
+TEST_F(LexerEdgeCaseTest, OnlyWhitespace)
+{
     auto lexer = createLexer("   \n\t  \n  ");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, OnlyComment) {
+TEST_F(LexerEdgeCaseTest, OnlyComment)
+{
     auto lexer = createLexer("<!-- Just a comment -->");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
 }
 
-TEST_F(LexerEdgeCaseTest, MalformedTagNoClosing) {
+TEST_F(LexerEdgeCaseTest, MalformedTagNoClosing)
+{
     auto lexer = createLexer("<screen");
     EXPECT_TRUE(lexer.tokenize());
     // 可能报告错误或生成不完整的token
 }
 
-TEST_F(LexerEdgeCaseTest, MalformedTagDoubleOpen) {
+TEST_F(LexerEdgeCaseTest, MalformedTagDoubleOpen)
+{
     auto lexer = createLexer("<<screen>>");
     EXPECT_TRUE(lexer.tokenize());
     // 行为取决于实现
 }
 
-TEST_F(LexerEdgeCaseTest, TagNameWithNumbers) {
+TEST_F(LexerEdgeCaseTest, TagNameWithNumbers)
+{
     auto lexer = createLexer("<text2/>");
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
@@ -3538,11 +3721,10 @@ TEST_F(LexerEdgeCaseTest, TagNameWithNumbers) {
 
 class ParserEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
-    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
+    {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -3550,8 +3732,8 @@ protected:
         return parser.parse();
     }
 
-    std::unique_ptr<ast::DocumentNode> parseWithErrors(const std::string& source,
-                                                        core::TemplateErrorCollector& errors) {
+    std::unique_ptr<ast::DocumentNode> parseWithErrors(const std::string& source, core::TemplateErrorCollector& errors)
+    {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -3568,7 +3750,8 @@ protected:
     core::TemplateConfig m_config;
 };
 
-TEST_F(ParserEdgeCaseTest, DeeplyNestedElements) {
+TEST_F(ParserEdgeCaseTest, DeeplyNestedElements)
+{
     // 测试深度嵌套
     std::string source = "<screen>";
     for (int i = 0; i < 50; ++i) {
@@ -3590,7 +3773,8 @@ TEST_F(ParserEdgeCaseTest, DeeplyNestedElements) {
     EXPECT_EQ(found->id, "deep");
 }
 
-TEST_F(ParserEdgeCaseTest, MultipleAttributesSameType) {
+TEST_F(ParserEdgeCaseTest, MultipleAttributesSameType)
+{
     // 多个同类属性
     auto doc = parse(R"(<text bind:text="name" bind:visible="isVisible" bind:color="textColor"/>)");
     ASSERT_NE(doc, nullptr);
@@ -3601,9 +3785,11 @@ TEST_F(ParserEdgeCaseTest, MultipleAttributesSameType) {
     EXPECT_EQ(elem->bindingAttrs.size(), 3u);
 }
 
-TEST_F(ParserEdgeCaseTest, MultipleEventHandlers) {
+TEST_F(ParserEdgeCaseTest, MultipleEventHandlers)
+{
     // 多个事件处理器
-    auto doc = parse(R"(<button on:click="onClick" on:doubleClick="onDblClick" on:mouseEnter="onEnter" on:mouseLeave="onLeave"/>)");
+    auto doc = parse(
+        R"(<button on:click="onClick" on:doubleClick="onDblClick" on:mouseEnter="onEnter" on:mouseLeave="onLeave"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
 
@@ -3612,7 +3798,8 @@ TEST_F(ParserEdgeCaseTest, MultipleEventHandlers) {
     EXPECT_EQ(elem->eventAttrs.size(), 4u);
 }
 
-TEST_F(ParserEdgeCaseTest, MixedAttributes) {
+TEST_F(ParserEdgeCaseTest, MixedAttributes)
+{
     // 混合属性类型
     auto doc = parse(R"(<text id="myText" text="Hello" bind:text="player.name" on:click="onClick" class="title"/>)");
     ASSERT_NE(doc, nullptr);
@@ -3626,7 +3813,8 @@ TEST_F(ParserEdgeCaseTest, MixedAttributes) {
     EXPECT_TRUE(elem->hasAttribute("class"));
 }
 
-TEST_F(ParserEdgeCaseTest, EmptyElementWithAttributes) {
+TEST_F(ParserEdgeCaseTest, EmptyElementWithAttributes)
+{
     auto doc = parse(R"(<text id="" text="" class=""/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3637,20 +3825,23 @@ TEST_F(ParserEdgeCaseTest, EmptyElementWithAttributes) {
     EXPECT_TRUE(elem->hasAttribute("class"));
 }
 
-TEST_F(ParserEdgeCaseTest, ElementWithAllNumericId) {
+TEST_F(ParserEdgeCaseTest, ElementWithAllNumericId)
+{
     auto doc = parse(R"(<text id="123"/>)");
     // 行为取决于实现 - 数字ID可能被接受或拒绝
     ASSERT_NE(doc, nullptr);
 }
 
-TEST_F(ParserEdgeCaseTest, ElementWithSpecialCharactersInId) {
+TEST_F(ParserEdgeCaseTest, ElementWithSpecialCharactersInId)
+{
     auto doc = parse(R"(<text id="my_text-123"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
     EXPECT_EQ(doc->rootElement()->id, "my_text-123");
 }
 
-TEST_F(ParserEdgeCaseTest, NestedLoopsAndConditions) {
+TEST_F(ParserEdgeCaseTest, NestedLoopsAndConditions)
+{
     // 嵌套循环和条件
     auto doc = parse(R"(
         <screen>
@@ -3670,7 +3861,8 @@ TEST_F(ParserEdgeCaseTest, NestedLoopsAndConditions) {
     EXPECT_GE(grids.size(), 2u);
 }
 
-TEST_F(ParserEdgeCaseTest, ElementWithOnlyLoopDirective) {
+TEST_F(ParserEdgeCaseTest, ElementWithOnlyLoopDirective)
+{
     auto doc = parse(R"(<text for:item="item in items"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3681,7 +3873,8 @@ TEST_F(ParserEdgeCaseTest, ElementWithOnlyLoopDirective) {
     EXPECT_EQ(text->loop->itemVarName, "item");
 }
 
-TEST_F(ParserEdgeCaseTest, ElementWithLoopAndIndex) {
+TEST_F(ParserEdgeCaseTest, ElementWithLoopAndIndex)
+{
     auto doc = parse(R"(<slot for:item="(slot, idx) in player.inventory"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3694,7 +3887,8 @@ TEST_F(ParserEdgeCaseTest, ElementWithLoopAndIndex) {
     EXPECT_TRUE(slot->loop->hasIndex);
 }
 
-TEST_F(ParserEdgeCaseTest, ConditionWithComplexPath) {
+TEST_F(ParserEdgeCaseTest, ConditionWithComplexPath)
+{
     auto doc = parse(R"(<text if:condition="player.inventory.slots[0].isEmpty"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3704,7 +3898,8 @@ TEST_F(ParserEdgeCaseTest, ConditionWithComplexPath) {
     EXPECT_EQ(text->condition->booleanPath, "player.inventory.slots[0].isEmpty");
 }
 
-TEST_F(ParserEdgeCaseTest, MultipleConditionsWithNegation) {
+TEST_F(ParserEdgeCaseTest, MultipleConditionsWithNegation)
+{
     auto doc = parse(R"(
         <screen>
             <text if:condition="player.alive" text="Alive"/>
@@ -3717,7 +3912,8 @@ TEST_F(ParserEdgeCaseTest, MultipleConditionsWithNegation) {
     EXPECT_EQ(doc->rootElement()->children.size(), 3u);
 }
 
-TEST_F(ParserEdgeCaseTest, SelfClosingVsOpenClose) {
+TEST_F(ParserEdgeCaseTest, SelfClosingVsOpenClose)
+{
     // 自关闭 vs 开放-关闭标签
     auto doc = parse(R"(
         <screen>
@@ -3739,7 +3935,8 @@ TEST_F(ParserEdgeCaseTest, SelfClosingVsOpenClose) {
     ASSERT_NE(btn2, nullptr);
 }
 
-TEST_F(ParserEdgeCaseTest, TextWithLeadingAndTrailingWhitespace) {
+TEST_F(ParserEdgeCaseTest, TextWithLeadingAndTrailingWhitespace)
+{
     auto doc = parse(R"(
         <screen>
             Hello World
@@ -3763,7 +3960,8 @@ TEST_F(ParserEdgeCaseTest, TextWithLeadingAndTrailingWhitespace) {
     EXPECT_TRUE(foundNonWhitespace);
 }
 
-TEST_F(ParserEdgeCaseTest, ElementWithLargeNumberOfAttributes) {
+TEST_F(ParserEdgeCaseTest, ElementWithLargeNumberOfAttributes)
+{
     // 大量属性
     std::string source = "<text";
     for (int i = 0; i < 50; ++i) {
@@ -3777,7 +3975,8 @@ TEST_F(ParserEdgeCaseTest, ElementWithLargeNumberOfAttributes) {
     EXPECT_EQ(doc->rootElement()->attributes.size(), 50u);
 }
 
-TEST_F(ParserEdgeCaseTest, BindingPathWithArrayIndex) {
+TEST_F(ParserEdgeCaseTest, BindingPathWithArrayIndex)
+{
     auto doc = parse(R"(<text bind:text="player.inventory[0].name"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3789,7 +3988,8 @@ TEST_F(ParserEdgeCaseTest, BindingPathWithArrayIndex) {
     EXPECT_EQ(attr->binding->path, "player.inventory[0].name");
 }
 
-TEST_F(ParserEdgeCaseTest, BindingPathWithNestedArrayIndex) {
+TEST_F(ParserEdgeCaseTest, BindingPathWithNestedArrayIndex)
+{
     auto doc = parse(R"(<text bind:text="matrix[0][1]"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3800,7 +4000,8 @@ TEST_F(ParserEdgeCaseTest, BindingPathWithNestedArrayIndex) {
     EXPECT_TRUE(attr->isBinding());
 }
 
-TEST_F(ParserEdgeCaseTest, LoopVariableWithDeepPropertyAccess) {
+TEST_F(ParserEdgeCaseTest, LoopVariableWithDeepPropertyAccess)
+{
     auto doc = parse(R"(<text bind:text="$item.data.nested.value"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3814,7 +4015,8 @@ TEST_F(ParserEdgeCaseTest, LoopVariableWithDeepPropertyAccess) {
     EXPECT_EQ(attr->binding->property, "data.nested.value");
 }
 
-TEST_F(ParserEdgeCaseTest, CallbackNameWithUnderscore) {
+TEST_F(ParserEdgeCaseTest, CallbackNameWithUnderscore)
+{
     auto doc = parse(R"(<button on:click="on_button_click"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
@@ -3826,7 +4028,8 @@ TEST_F(ParserEdgeCaseTest, CallbackNameWithUnderscore) {
     EXPECT_EQ(attr->callbackName, "on_button_click");
 }
 
-TEST_F(ParserEdgeCaseTest, MultipleSiblingsWithSameId) {
+TEST_F(ParserEdgeCaseTest, MultipleSiblingsWithSameId)
+{
     // 同ID的多个元素（行为取决于实现）
     auto doc = parse(R"(
         <screen>
@@ -3839,7 +4042,8 @@ TEST_F(ParserEdgeCaseTest, MultipleSiblingsWithSameId) {
     // ID重复可能被允许或报告错误
 }
 
-TEST_F(ParserEdgeCaseTest, NonStrictModeAllowsUnknownTags) {
+TEST_F(ParserEdgeCaseTest, NonStrictModeAllowsUnknownTags)
+{
     m_config.strictMode = false;
 
     parser::Lexer lexer("<customTag id=\"custom\"/>", "<test>");
@@ -3852,7 +4056,8 @@ TEST_F(ParserEdgeCaseTest, NonStrictModeAllowsUnknownTags) {
     ASSERT_NE(doc, nullptr);
 }
 
-TEST_F(ParserEdgeCaseTest, AllWidgetTypes) {
+TEST_F(ParserEdgeCaseTest, AllWidgetTypes)
+{
     auto doc = parse(R"(
         <screen id="root">
             <widget id="w"/>
@@ -3884,10 +4089,10 @@ TEST_F(ParserEdgeCaseTest, AllWidgetTypes) {
 
 // ==================== Value Edge Cases Tests ====================
 
-class ValueEdgeCaseTest : public ::testing::Test {
-};
+class ValueEdgeCaseTest : public ::testing::Test {};
 
-TEST_F(ValueEdgeCaseTest, NullValueOperations) {
+TEST_F(ValueEdgeCaseTest, NullValueOperations)
+{
     binder::Value nullValue;
 
     EXPECT_TRUE(nullValue.isNull());
@@ -3903,7 +4108,8 @@ TEST_F(ValueEdgeCaseTest, NullValueOperations) {
     EXPECT_EQ(nullValue.toString(), "null");
 }
 
-TEST_F(ValueEdgeCaseTest, BoolEdgeCases) {
+TEST_F(ValueEdgeCaseTest, BoolEdgeCases)
+{
     binder::Value trueVal(true);
     binder::Value falseVal(false);
 
@@ -3915,9 +4121,10 @@ TEST_F(ValueEdgeCaseTest, BoolEdgeCases) {
     EXPECT_FLOAT_EQ(falseVal.toFloat(), 0.0f);
 }
 
-TEST_F(ValueEdgeCaseTest, IntegerBoundaryValues) {
+TEST_F(ValueEdgeCaseTest, IntegerBoundaryValues)
+{
     binder::Value maxInt(2147483647);
-    binder::Value minInt(static_cast<i32>(-2147483647 - 1));  // 避免整数溢出警告
+    binder::Value minInt(static_cast<i32>(-2147483647 - 1)); // 避免整数溢出警告
     binder::Value zero(0);
 
     EXPECT_EQ(maxInt.asInteger(), 2147483647);
@@ -3927,9 +4134,10 @@ TEST_F(ValueEdgeCaseTest, IntegerBoundaryValues) {
     EXPECT_FLOAT_EQ(maxInt.asFloat(), 2147483647.0f);
 }
 
-TEST_F(ValueEdgeCaseTest, FloatBoundaryValues) {
+TEST_F(ValueEdgeCaseTest, FloatBoundaryValues)
+{
     binder::Value verySmall(0.00001f);
-    binder::Value veryLarge(999999.0f);  // 使用整数值避免浮点精度问题
+    binder::Value veryLarge(999999.0f); // 使用整数值避免浮点精度问题
     binder::Value negative(-123.456f);
 
     EXPECT_FLOAT_EQ(verySmall.asFloat(), 0.00001f);
@@ -3943,10 +4151,11 @@ TEST_F(ValueEdgeCaseTest, FloatBoundaryValues) {
 
     // 测试浮点截断（非整数值）
     binder::Value truncated(123.999f);
-    EXPECT_EQ(truncated.asInteger(), 123);  // 截断，不是四舍五入
+    EXPECT_EQ(truncated.asInteger(), 123); // 截断，不是四舍五入
 }
 
-TEST_F(ValueEdgeCaseTest, StringEdgeCases) {
+TEST_F(ValueEdgeCaseTest, StringEdgeCases)
+{
     // 空字符串
     binder::Value emptyStr(std::string(""));
     EXPECT_TRUE(emptyStr.isString());
@@ -3962,7 +4171,8 @@ TEST_F(ValueEdgeCaseTest, StringEdgeCases) {
     EXPECT_TRUE(special.isString());
 }
 
-TEST_F(ValueEdgeCaseTest, StringToNumberConversion) {
+TEST_F(ValueEdgeCaseTest, StringToNumberConversion)
+{
     binder::Value intStr(std::string("12345"));
     binder::Value floatStr(std::string("123.456"));
     binder::Value negStr(std::string("-789"));
@@ -3985,7 +4195,8 @@ TEST_F(ValueEdgeCaseTest, StringToNumberConversion) {
     EXPECT_EQ(emptyNumStr.toInteger(), 0);
 }
 
-TEST_F(ValueEdgeCaseTest, ArrayWithMixedTypes) {
+TEST_F(ValueEdgeCaseTest, ArrayWithMixedTypes)
+{
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value(42));
     items.emplace_back(binder::Value("hello"));
@@ -4004,7 +4215,8 @@ TEST_F(ValueEdgeCaseTest, ArrayWithMixedTypes) {
     EXPECT_TRUE(arr.arrayGet(4).isNull());
 }
 
-TEST_F(ValueEdgeCaseTest, NestedArrays) {
+TEST_F(ValueEdgeCaseTest, NestedArrays)
+{
     std::vector<binder::Value> inner1;
     inner1.emplace_back(binder::Value(1));
     inner1.emplace_back(binder::Value(2));
@@ -4027,7 +4239,8 @@ TEST_F(ValueEdgeCaseTest, NestedArrays) {
     EXPECT_EQ(first.arrayGet(0).toInteger(), 1);
 }
 
-TEST_F(ValueEdgeCaseTest, ArrayOutOfBounds) {
+TEST_F(ValueEdgeCaseTest, ArrayOutOfBounds)
+{
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value(1));
 
@@ -4041,7 +4254,8 @@ TEST_F(ValueEdgeCaseTest, ArrayOutOfBounds) {
     EXPECT_TRUE(arr.arrayGet(SIZE_MAX).isNull());
 }
 
-TEST_F(ValueEdgeCaseTest, NonArrayOperations) {
+TEST_F(ValueEdgeCaseTest, NonArrayOperations)
+{
     binder::Value notArr(42);
 
     EXPECT_FALSE(notArr.isArray());
@@ -4050,7 +4264,8 @@ TEST_F(ValueEdgeCaseTest, NonArrayOperations) {
     EXPECT_TRUE(notArr.getElement(0).isNull());
 }
 
-TEST_F(ValueEdgeCaseTest, EqualityEdgeCases) {
+TEST_F(ValueEdgeCaseTest, EqualityEdgeCases)
+{
     // 相同类型
     EXPECT_TRUE(binder::Value(42) == binder::Value(42));
     EXPECT_FALSE(binder::Value(42) == binder::Value(43));
@@ -4072,7 +4287,8 @@ TEST_F(ValueEdgeCaseTest, EqualityEdgeCases) {
     EXPECT_FALSE(binder::Value(arr1) == binder::Value(arr3));
 }
 
-TEST_F(ValueEdgeCaseTest, FromAnyTypeConversions) {
+TEST_F(ValueEdgeCaseTest, FromAnyTypeConversions)
+{
     // bool
     auto boolVal = binder::Value::fromAny(std::any(true));
     EXPECT_TRUE(boolVal.isBool());
@@ -4110,7 +4326,8 @@ TEST_F(ValueEdgeCaseTest, FromAnyTypeConversions) {
     EXPECT_TRUE(emptyVal.isNull());
 }
 
-TEST_F(ValueEdgeCaseTest, GetPropertyReturnsNull) {
+TEST_F(ValueEdgeCaseTest, GetPropertyReturnsNull)
+{
     // 简单值类型不支持属性访问
     binder::Value intVal(42);
     binder::Value strVal(std::string("hello"));
@@ -4125,33 +4342,33 @@ TEST_F(ValueEdgeCaseTest, GetPropertyReturnsNull) {
 
 class BindingContextEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_ctx = std::make_unique<binder::BindingContext>(
-            mc::client::ui::kagero::state::StateStore::instance(),
-            mc::client::ui::kagero::event::EventBus::instance()
-        );
+            mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
     }
 
-    void TearDown() override {
-        m_ctx->clear();
-    }
+    void TearDown() override { m_ctx->clear(); }
 
     std::unique_ptr<binder::BindingContext> m_ctx;
 };
 
-TEST_F(BindingContextEdgeCaseTest, EmptyPathResolution) {
+TEST_F(BindingContextEdgeCaseTest, EmptyPathResolution)
+{
     // 空路径应该返回空值
     auto value = m_ctx->resolveBinding("");
     EXPECT_TRUE(value.isNull());
 }
 
-TEST_F(BindingContextEdgeCaseTest, PathWithLeadingDot) {
+TEST_F(BindingContextEdgeCaseTest, PathWithLeadingDot)
+{
     // 以点开头的路径
     auto value = m_ctx->resolveBinding(".invalid");
     EXPECT_TRUE(value.isNull());
 }
 
-TEST_F(BindingContextEdgeCaseTest, PathWithTrailingDot) {
+TEST_F(BindingContextEdgeCaseTest, PathWithTrailingDot)
+{
     // 以点结尾的路径
     i32 health = 100;
     m_ctx->expose("player.health", &health);
@@ -4160,7 +4377,8 @@ TEST_F(BindingContextEdgeCaseTest, PathWithTrailingDot) {
     EXPECT_TRUE(value.isNull());
 }
 
-TEST_F(BindingContextEdgeCaseTest, PathWithConsecutiveDots) {
+TEST_F(BindingContextEdgeCaseTest, PathWithConsecutiveDots)
+{
     // 连续点的路径
     i32 health = 100;
     m_ctx->expose("player.health", &health);
@@ -4169,7 +4387,8 @@ TEST_F(BindingContextEdgeCaseTest, PathWithConsecutiveDots) {
     EXPECT_TRUE(value.isNull());
 }
 
-TEST_F(BindingContextEdgeCaseTest, PathWithArrayIndex) {
+TEST_F(BindingContextEdgeCaseTest, PathWithArrayIndex)
+{
     // 设置集合
     m_ctx->setCollection<i32>("items", {10, 20, 30});
 
@@ -4181,7 +4400,8 @@ TEST_F(BindingContextEdgeCaseTest, PathWithArrayIndex) {
     EXPECT_EQ(items[2].asInteger(), 30);
 }
 
-TEST_F(BindingContextEdgeCaseTest, ExposeSamePathTwice) {
+TEST_F(BindingContextEdgeCaseTest, ExposeSamePathTwice)
+{
     // 重复暴露同一路径应该覆盖
     i32 value1 = 100;
     i32 value2 = 200;
@@ -4193,7 +4413,8 @@ TEST_F(BindingContextEdgeCaseTest, ExposeSamePathTwice) {
     EXPECT_EQ(m_ctx->resolveBinding("test.value").asInteger(), 200);
 }
 
-TEST_F(BindingContextEdgeCaseTest, ExposeWritableThenRead) {
+TEST_F(BindingContextEdgeCaseTest, ExposeWritableThenRead)
+{
     // 暴露为可写后验证可写性
     i32 value = 42;
     m_ctx->exposeWritable("writable.value", &value);
@@ -4202,7 +4423,8 @@ TEST_F(BindingContextEdgeCaseTest, ExposeWritableThenRead) {
     EXPECT_TRUE(m_ctx->isWritable("writable.value"));
 }
 
-TEST_F(BindingContextEdgeCaseTest, SetBindingOnReadOnlyFails) {
+TEST_F(BindingContextEdgeCaseTest, SetBindingOnReadOnlyFails)
+{
     // 只读变量不应该能被设置
     i32 value = 42;
     m_ctx->expose("readonly.value", &value);
@@ -4212,16 +4434,16 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingOnReadOnlyFails) {
     EXPECT_EQ(value, 42); // 值不变
 }
 
-TEST_F(BindingContextEdgeCaseTest, SetBindingOnNonexistentPath) {
+TEST_F(BindingContextEdgeCaseTest, SetBindingOnNonexistentPath)
+{
     // 设置不存在的路径应该失败
     EXPECT_FALSE(m_ctx->setBinding("nonexistent.path", binder::Value(42)));
 }
 
-TEST_F(BindingContextEdgeCaseTest, CallbackThrowsException) {
+TEST_F(BindingContextEdgeCaseTest, CallbackThrowsException)
+{
     // 回调中抛出异常
-    m_ctx->exposeCallback("throwingCallback", [](auto*, const auto&) {
-        throw std::runtime_error("Test exception");
-    });
+    m_ctx->exposeCallback("throwingCallback", [](auto*, const auto&) { throw std::runtime_error("Test exception"); });
 
     EXPECT_TRUE(m_ctx->hasCallback("throwingCallback"));
     // 调用可能会传播异常
@@ -4229,12 +4451,11 @@ TEST_F(BindingContextEdgeCaseTest, CallbackThrowsException) {
     EXPECT_THROW(m_ctx->invokeCallback("throwingCallback", nullptr, event), std::runtime_error);
 }
 
-TEST_F(BindingContextEdgeCaseTest, SubscribeToNonexistentPath) {
+TEST_F(BindingContextEdgeCaseTest, SubscribeToNonexistentPath)
+{
     // 订阅不存在的路径应该成功（可能在未来创建）
     bool called = false;
-    u64 subId = m_ctx->subscribe("future.path", [&](const std::string&, const binder::Value&) {
-        called = true;
-    });
+    u64 subId = m_ctx->subscribe("future.path", [&](const std::string&, const binder::Value&) { called = true; });
 
     EXPECT_GT(subId, 0u);
 
@@ -4247,7 +4468,8 @@ TEST_F(BindingContextEdgeCaseTest, SubscribeToNonexistentPath) {
     m_ctx->unsubscribe(subId);
 }
 
-TEST_F(BindingContextEdgeCaseTest, UnsubscribeTwice) {
+TEST_F(BindingContextEdgeCaseTest, UnsubscribeTwice)
+{
     // 取消订阅两次应该安全
     i32 value = 42;
     m_ctx->expose("test.value", &value);
@@ -4259,7 +4481,8 @@ TEST_F(BindingContextEdgeCaseTest, UnsubscribeTwice) {
     m_ctx->unsubscribe(subId);
 }
 
-TEST_F(BindingContextEdgeCaseTest, MultipleSubscribersSamePath) {
+TEST_F(BindingContextEdgeCaseTest, MultipleSubscribersSamePath)
+{
     // 同一路径多个订阅者
     i32 value = 42;
     m_ctx->expose("test.value", &value);
@@ -4281,7 +4504,8 @@ TEST_F(BindingContextEdgeCaseTest, MultipleSubscribersSamePath) {
     m_ctx->unsubscribe(sub3);
 }
 
-TEST_F(BindingContextEdgeCaseTest, SubscriberReceivesCorrectValue) {
+TEST_F(BindingContextEdgeCaseTest, SubscriberReceivesCorrectValue)
+{
     // 验证订阅者收到正确的值
     i32 value = 42;
     m_ctx->expose("test.value", &value);
@@ -4302,7 +4526,8 @@ TEST_F(BindingContextEdgeCaseTest, SubscriberReceivesCorrectValue) {
     m_ctx->unsubscribe(subId);
 }
 
-TEST_F(BindingContextEdgeCaseTest, LoopVariableShadowing) {
+TEST_F(BindingContextEdgeCaseTest, LoopVariableShadowing)
+{
     // 循环变量遮蔽
     i32 global = 42;
     m_ctx->expose("item", &global);
@@ -4321,7 +4546,8 @@ TEST_F(BindingContextEdgeCaseTest, LoopVariableShadowing) {
     m_ctx->clearLoopVariable("item");
 }
 
-TEST_F(BindingContextEdgeCaseTest, NestedLoopVariables) {
+TEST_F(BindingContextEdgeCaseTest, NestedLoopVariables)
+{
     // 嵌套循环变量
     m_ctx->setLoopVariable("outer", binder::Value(1));
     m_ctx->setLoopVariable("inner", binder::Value(2));
@@ -4342,7 +4568,8 @@ TEST_F(BindingContextEdgeCaseTest, NestedLoopVariables) {
     EXPECT_FALSE(m_ctx->hasLoopVariable("inner"));
 }
 
-TEST_F(BindingContextEdgeCaseTest, LoopVariableWithPropertyAccess) {
+TEST_F(BindingContextEdgeCaseTest, LoopVariableWithPropertyAccess)
+{
     // 循环变量属性访问
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value(std::string("first")));
@@ -4364,7 +4591,8 @@ TEST_F(BindingContextEdgeCaseTest, LoopVariableWithPropertyAccess) {
     m_ctx->clearLoopVariable("item");
 }
 
-TEST_F(BindingContextEdgeCaseTest, CollectionModification) {
+TEST_F(BindingContextEdgeCaseTest, CollectionModification)
+{
     // 修改集合
     m_ctx->setCollection<i32>("numbers", {1, 2, 3});
 
@@ -4380,7 +4608,8 @@ TEST_F(BindingContextEdgeCaseTest, CollectionModification) {
     EXPECT_EQ(nums2[4].asInteger(), 8);
 }
 
-TEST_F(BindingContextEdgeCaseTest, EmptyCollection) {
+TEST_F(BindingContextEdgeCaseTest, EmptyCollection)
+{
     // 空集合
     m_ctx->setCollection<i32>("empty", {});
 
@@ -4388,7 +4617,8 @@ TEST_F(BindingContextEdgeCaseTest, EmptyCollection) {
     EXPECT_EQ(items.size(), 0u);
 }
 
-TEST_F(BindingContextEdgeCaseTest, ClearRemovesAllBindings) {
+TEST_F(BindingContextEdgeCaseTest, ClearRemovesAllBindings)
+{
     // 清除所有绑定
     i32 value = 42;
     m_ctx->expose("test.value", &value);
@@ -4403,7 +4633,8 @@ TEST_F(BindingContextEdgeCaseTest, ClearRemovesAllBindings) {
     EXPECT_FALSE(m_ctx->hasCallback("test.callback"));
 }
 
-TEST_F(BindingContextEdgeCaseTest, TypeMismatchedSetBinding) {
+TEST_F(BindingContextEdgeCaseTest, TypeMismatchedSetBinding)
+{
     // 类型不匹配的设置
     std::string strValue = "hello";
     m_ctx->exposeWritable("test.string", &strValue);
@@ -4414,7 +4645,8 @@ TEST_F(BindingContextEdgeCaseTest, TypeMismatchedSetBinding) {
     EXPECT_EQ(strValue, "42");
 }
 
-TEST_F(BindingContextEdgeCaseTest, SetBindingBoolToInt) {
+TEST_F(BindingContextEdgeCaseTest, SetBindingBoolToInt)
+{
     // 布尔值设置到整型
     i32 intValue = 0;
     m_ctx->exposeWritable("test.int", &intValue);
@@ -4426,7 +4658,8 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingBoolToInt) {
     EXPECT_EQ(intValue, 0);
 }
 
-TEST_F(BindingContextEdgeCaseTest, SetBindingFloatToInt) {
+TEST_F(BindingContextEdgeCaseTest, SetBindingFloatToInt)
+{
     // 浮点设置到整型（应该截断）
     i32 intValue = 0;
     m_ctx->exposeWritable("test.int", &intValue);
@@ -4438,7 +4671,8 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingFloatToInt) {
     EXPECT_EQ(intValue, -2);
 }
 
-TEST_F(BindingContextEdgeCaseTest, SetBindingStringToInt) {
+TEST_F(BindingContextEdgeCaseTest, SetBindingStringToInt)
+{
     // 字符串设置到整型
     i32 intValue = 0;
     m_ctx->exposeWritable("test.int", &intValue);
@@ -4452,7 +4686,8 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingStringToInt) {
     EXPECT_EQ(intValue, 0);
 }
 
-TEST_F(BindingContextEdgeCaseTest, SetBindingIntToFloat) {
+TEST_F(BindingContextEdgeCaseTest, SetBindingIntToFloat)
+{
     // 整数设置到浮点
     f32 floatValue = 0.0f;
     m_ctx->exposeWritable("test.float", &floatValue);
@@ -4465,14 +4700,13 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingIntToFloat) {
 
 class UpdateSchedulerEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_scheduler = std::make_unique<runtime::UpdateScheduler>();
-    }
+    void SetUp() override { m_scheduler = std::make_unique<runtime::UpdateScheduler>(); }
 
     std::unique_ptr<runtime::UpdateScheduler> m_scheduler;
 };
 
-TEST_F(UpdateSchedulerEdgeCaseTest, ScheduleSamePathMultipleTimes) {
+TEST_F(UpdateSchedulerEdgeCaseTest, ScheduleSamePathMultipleTimes)
+{
     // 同一路径多次调度
     u64 id1 = m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     u64 id2 = m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
@@ -4483,7 +4717,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ScheduleSamePathMultipleTimes) {
     EXPECT_EQ(m_scheduler->pendingCount(), 3u);
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, CancelTwiceSameId) {
+TEST_F(UpdateSchedulerEdgeCaseTest, CancelTwiceSameId)
+{
     // 取消同一个任务两次
     u64 id = m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->cancel(id);
@@ -4494,7 +4729,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, CancelTwiceSameId) {
     EXPECT_EQ(executed, 0u);
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, CancelByPathMultipleSchedules) {
+TEST_F(UpdateSchedulerEdgeCaseTest, CancelByPathMultipleSchedules)
+{
     // 同一路径多个任务
     m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::High);
@@ -4506,7 +4742,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, CancelByPathMultipleSchedules) {
     // 所有任务应该被取消
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, ExecuteByPriority) {
+TEST_F(UpdateSchedulerEdgeCaseTest, ExecuteByPriority)
+{
     std::vector<std::string> executedPaths;
 
     m_scheduler->setUpdateCallback([&executedPaths](const std::string& path) -> bool {
@@ -4537,7 +4774,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ExecuteByPriority) {
     EXPECT_EQ(executedPaths[2], "low");
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithNoCallback) {
+TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithNoCallback)
+{
     // 没有设置回调时执行
     m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
 
@@ -4545,7 +4783,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithNoCallback) {
     EXPECT_EQ(executed, 0u); // 没有回调，无法执行
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithFailingCallback) {
+TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithFailingCallback)
+{
     // 回调返回失败
     int callCount = 0;
     m_scheduler->setUpdateCallback([&callCount](const std::string& path) -> bool {
@@ -4562,20 +4801,23 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithFailingCallback) {
     // executePending 应该报告成功执行的数量
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, ScheduleEmptyPath) {
+TEST_F(UpdateSchedulerEdgeCaseTest, ScheduleEmptyPath)
+{
     // 空路径
     u64 id = m_scheduler->schedule("", runtime::UpdateScheduler::Priority::Normal);
     EXPECT_GT(id, 0u);
     EXPECT_TRUE(m_scheduler->hasPending());
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, CancelNonexistentId) {
+TEST_F(UpdateSchedulerEdgeCaseTest, CancelNonexistentId)
+{
     // 取消不存在的任务ID
     m_scheduler->cancel(999999);
     // 应该安全，不崩溃
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, CancelByNonexistentPath) {
+TEST_F(UpdateSchedulerEdgeCaseTest, CancelByNonexistentPath)
+{
     // 取消不存在路径的任务
     m_scheduler->schedule("existing.path", runtime::UpdateScheduler::Priority::Normal);
     m_scheduler->cancelByPath("nonexistent.path");
@@ -4583,7 +4825,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, CancelByNonexistentPath) {
     EXPECT_EQ(m_scheduler->pendingCount(), 1u);
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, LargeNumberOfTasks) {
+TEST_F(UpdateSchedulerEdgeCaseTest, LargeNumberOfTasks)
+{
     // 大量任务
     for (int i = 0; i < 1000; ++i) {
         m_scheduler->schedule("path" + std::to_string(i), runtime::UpdateScheduler::Priority::Normal);
@@ -4595,7 +4838,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, LargeNumberOfTasks) {
     EXPECT_FALSE(m_scheduler->hasPending());
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, TimestampIncreases) {
+TEST_F(UpdateSchedulerEdgeCaseTest, TimestampIncreases)
+{
     u64 ts1 = m_scheduler->currentTimestamp();
     u64 ts2 = m_scheduler->currentTimestamp();
 
@@ -4603,10 +4847,9 @@ TEST_F(UpdateSchedulerEdgeCaseTest, TimestampIncreases) {
     EXPECT_GE(ts2, ts1);
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, CallbackThrowsException) {
-    m_scheduler->setUpdateCallback([](const std::string&) -> bool {
-        throw std::runtime_error("Test exception");
-    });
+TEST_F(UpdateSchedulerEdgeCaseTest, CallbackThrowsException)
+{
+    m_scheduler->setUpdateCallback([](const std::string&) -> bool { throw std::runtime_error("Test exception"); });
 
     m_scheduler->schedule("test", runtime::UpdateScheduler::Priority::Normal);
 
@@ -4614,7 +4857,8 @@ TEST_F(UpdateSchedulerEdgeCaseTest, CallbackThrowsException) {
     EXPECT_THROW(m_scheduler->executePending(), std::runtime_error);
 }
 
-TEST_F(UpdateSchedulerEdgeCaseTest, ReentrantSchedule) {
+TEST_F(UpdateSchedulerEdgeCaseTest, ReentrantSchedule)
+{
     // 在回调中调度新任务
     // executePending() 会按顺序执行所有优先级：High -> Normal -> Low
     // 在回调中添加的 Low 优先级任务会在同一次 executePending() 中被执行
@@ -4646,14 +4890,13 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ReentrantSchedule) {
 
 class CompiledTemplateEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_config = core::TemplateConfig::defaults();
-    }
+    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
 
     core::TemplateConfig m_config;
 };
 
-TEST_F(CompiledTemplateEdgeCaseTest, VeryLargeTemplate) {
+TEST_F(CompiledTemplateEdgeCaseTest, VeryLargeTemplate)
+{
     // 非常大的模板
     std::string source = "<screen>";
     for (int i = 0; i < 1000; ++i) {
@@ -4671,7 +4914,8 @@ TEST_F(CompiledTemplateEdgeCaseTest, VeryLargeTemplate) {
     EXPECT_EQ(result->bindingPlans().size(), 0u); // 静态文本没有绑定
 }
 
-TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithAllBindingTypes) {
+TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithAllBindingTypes)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -4708,7 +4952,8 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithAllBindingTypes) {
     EXPECT_TRUE(result->registeredCallbacks().count("onClick") > 0);
 }
 
-TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDuplicateIds) {
+TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDuplicateIds)
+{
     // 重复ID - 现在应该在解析阶段检测到错误
     compiler::TemplateCompiler compiler(m_config);
 
@@ -4727,7 +4972,8 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDuplicateIds) {
     EXPECT_TRUE(result->errors()[0].message.find("duplicate") != std::string::npos);
 }
 
-TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDeepNesting) {
+TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDeepNesting)
+{
     // 深度嵌套 - 使用有效标签 widget 而不是 container
     std::string source = "<screen>";
     for (int i = 0; i < 100; ++i) {
@@ -4746,7 +4992,8 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDeepNesting) {
     EXPECT_TRUE(result->isValid()) << (result->hasErrors() ? result->errors()[0].message : "");
 }
 
-TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithEmptyTextContent) {
+TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithEmptyTextContent)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -4761,7 +5008,8 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithEmptyTextContent) {
     EXPECT_TRUE(result->isValid());
 }
 
-TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithSpecialCharactersInValues) {
+TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithSpecialCharactersInValues)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -4776,7 +5024,8 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithSpecialCharactersInValues) {
     // 实体处理取决于实现
 }
 
-TEST_F(CompiledTemplateEdgeCaseTest, MultipleCompilationSameCompiler) {
+TEST_F(CompiledTemplateEdgeCaseTest, MultipleCompilationSameCompiler)
+{
     // 同一编译器多次编译
     compiler::TemplateCompiler compiler(m_config);
 
@@ -4795,24 +5044,24 @@ TEST_F(CompiledTemplateEdgeCaseTest, MultipleCompilationSameCompiler) {
 
 // ==================== AST Edge Cases Tests ====================
 
-class AstEdgeCaseTest : public ::testing::Test {
-};
+class AstEdgeCaseTest : public ::testing::Test {};
 
-TEST_F(AstEdgeCaseTest, BindingInfoParseEdgeCases) {
+TEST_F(AstEdgeCaseTest, BindingInfoParseEdgeCases)
+{
     // 仅美元符号 - 根据实现，单个"$"不满足 size > 1 条件
     // 这是实现的行为：单个$不被视为循环变量，而是作为普通路径
     auto info1 = ast::BindingInfo::parse("$");
     // size=1不满足条件，进入else分支，path="$"，isLoopVariable=false
-    EXPECT_FALSE(info1.isLoopVariable);  // size > 1 条件不满足
-    EXPECT_EQ(info1.path, "$");  // 路径是"$"，不是空
+    EXPECT_FALSE(info1.isLoopVariable); // size > 1 条件不满足
+    EXPECT_EQ(info1.path, "$");         // 路径是"$"，不是空
     // isValid() 检查 !path.empty() || isLoopVariable
     // path="$"非空，所以isValid()返回true
-    EXPECT_TRUE(info1.isValid());  // 路径非空，所以有效
+    EXPECT_TRUE(info1.isValid()); // 路径非空，所以有效
 
     // 美元符号后跟点 - "$.property" 的size > 1，会进入循环变量分支
     // 但变量名为空（点号前的内容为空）
     auto info2 = ast::BindingInfo::parse("$.property");
-    EXPECT_TRUE(info2.isLoopVariable);  // size > 1，进入循环变量分支
+    EXPECT_TRUE(info2.isLoopVariable); // size > 1，进入循环变量分支
     // 变量名为空（substr(1, dotPos-1) 当dotPos=1时为空）
     EXPECT_TRUE(info2.loopVarName.empty());
     EXPECT_EQ(info2.property, "property");
@@ -4834,7 +5083,8 @@ TEST_F(AstEdgeCaseTest, BindingInfoParseEdgeCases) {
     EXPECT_EQ(info5.path, "matrix[0][1]");
 }
 
-TEST_F(AstEdgeCaseTest, IsValidBindingPathEdgeCases) {
+TEST_F(AstEdgeCaseTest, IsValidBindingPathEdgeCases)
+{
     // 空路径
     EXPECT_FALSE(ast::isValidBindingPath(""));
 
@@ -4871,7 +5121,8 @@ TEST_F(AstEdgeCaseTest, IsValidBindingPathEdgeCases) {
     EXPECT_FALSE(ast::isValidBindingPath("$1")); // 数字开头
 }
 
-TEST_F(AstEdgeCaseTest, IsValidCallbackNameEdgeCases) {
+TEST_F(AstEdgeCaseTest, IsValidCallbackNameEdgeCases)
+{
     // 有效名称
     EXPECT_TRUE(ast::isValidCallbackName("a"));
     EXPECT_TRUE(ast::isValidCallbackName("onClick"));
@@ -4887,7 +5138,8 @@ TEST_F(AstEdgeCaseTest, IsValidCallbackNameEdgeCases) {
     EXPECT_FALSE(ast::isValidCallbackName("callback name"));
 }
 
-TEST_F(AstEdgeCaseTest, AttributeCreateEdgeCases) {
+TEST_F(AstEdgeCaseTest, AttributeCreateEdgeCases)
+{
     // 空值静态属性
     auto attr1 = ast::Attribute::createStatic("name", "");
     EXPECT_EQ(attr1.rawValue, "");
@@ -4908,7 +5160,8 @@ TEST_F(AstEdgeCaseTest, AttributeCreateEdgeCases) {
     EXPECT_TRUE(std::holds_alternative<f32>(attr4.value) || std::holds_alternative<std::string>(attr4.value));
 }
 
-TEST_F(AstEdgeCaseTest, ElementNodeAddAttributeOverride) {
+TEST_F(AstEdgeCaseTest, ElementNodeAddAttributeOverride)
+{
     ast::ElementNode elem(ast::NodeType::Text);
 
     elem.addAttribute(ast::Attribute::createStatic("text", "first"));
@@ -4920,7 +5173,8 @@ TEST_F(AstEdgeCaseTest, ElementNodeAddAttributeOverride) {
     EXPECT_EQ(attr->rawValue, "second");
 }
 
-TEST_F(AstEdgeCaseTest, ElementNodeCloneDeep) {
+TEST_F(AstEdgeCaseTest, ElementNodeCloneDeep)
+{
     auto original = std::make_unique<ast::ElementNode>(ast::NodeType::Screen);
     original->tagName = "screen";
     original->id = "original";
@@ -4952,7 +5206,8 @@ TEST_F(AstEdgeCaseTest, ElementNodeCloneDeep) {
 
 class TemplateErrorRecoveryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_config = core::TemplateConfig::defaults();
         m_config.strictMode = false; // 关闭严格模式以测试恢复
     }
@@ -4960,7 +5215,8 @@ protected:
     core::TemplateConfig m_config;
 };
 
-TEST_F(TemplateErrorRecoveryTest, MultipleErrorsContinueParsing) {
+TEST_F(TemplateErrorRecoveryTest, MultipleErrorsContinueParsing)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -4977,7 +5233,8 @@ TEST_F(TemplateErrorRecoveryTest, MultipleErrorsContinueParsing) {
     // 即使有错误，有效的部分也应该被解析
 }
 
-TEST_F(TemplateErrorRecoveryTest, UnclosedTagRecovery) {
+TEST_F(TemplateErrorRecoveryTest, UnclosedTagRecovery)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -4991,7 +5248,8 @@ TEST_F(TemplateErrorRecoveryTest, UnclosedTagRecovery) {
     // 错误恢复应该尝试继续解析
 }
 
-TEST_F(TemplateErrorRecoveryTest, MismatchedTagRecovery) {
+TEST_F(TemplateErrorRecoveryTest, MismatchedTagRecovery)
+{
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -5006,12 +5264,14 @@ TEST_F(TemplateErrorRecoveryTest, MismatchedTagRecovery) {
     // 应该报告不匹配错误
 }
 
-TEST_F(TemplateErrorRecoveryTest, ErrorLocationAccuracy) {
+TEST_F(TemplateErrorRecoveryTest, ErrorLocationAccuracy)
+{
     parser::Lexer lexer(R"(
         <screen>
             <text bind:text="invalid">
         </screen>
-    )", "<test>");
+    )",
+        "<test>");
     lexer.tokenize();
 
     parser::Parser parser(lexer, m_config);

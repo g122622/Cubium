@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../kagero/widget/Widget.hpp"
 #include "../../kagero/paint/PaintContext.hpp"
+#include "../../kagero/widget/Widget.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/packet/TitlePacket.hpp"
 
@@ -85,9 +85,8 @@ public:
      * @param stay 停留时间
      * @param fadeOut 淡出时间
      */
-    void handleTitlePacket(TitleAction action,
-                           const std::optional<std::string>& text,
-                           i32 fadeIn, i32 stay, i32 fadeOut);
+    void handleTitlePacket(
+        TitleAction action, const std::optional<std::string>& text, i32 fadeIn, i32 stay, i32 fadeOut);
 
     // ========== Widget 接口 ==========
 
@@ -101,7 +100,7 @@ private:
      * @brief 标题状态
      */
     struct TitleState {
-        std::optional<std::string> text;     // 文本（JSON格式）
+        std::optional<std::string> text; // 文本（JSON格式）
         f32 remainingTime = 0.0f;        // 剩余显示时间（秒）
         f32 fadeInTime = 0.0f;           // 淡入时间（秒）
         f32 stayTime = 0.0f;             // 停留时间（秒）
@@ -133,23 +132,23 @@ private:
 
     Font* m_font = nullptr;
 
-    TitleState m_title;       // 主标题状态
-    TitleState m_subtitle;    // 副标题状态
-    TitleState m_actionbar;   // 动作栏状态
+    TitleState m_title;     // 主标题状态
+    TitleState m_subtitle;  // 副标题状态
+    TitleState m_actionbar; // 动作栏状态
 
     // 默认时间（以秒为单位，MC 1.16.5 默认值：淡入10tick，停留70tick，淡出20tick）
-    f32 m_defaultFadeIn = 0.5f;    // 10 ticks = 0.5 秒
-    f32 m_defaultStay = 3.5f;      // 70 ticks = 3.5 秒
-    f32 m_defaultFadeOut = 1.0f;   // 20 ticks = 1.0 秒
+    f32 m_defaultFadeIn = 0.5f;  // 10 ticks = 0.5 秒
+    f32 m_defaultStay = 3.5f;    // 70 ticks = 3.5 秒
+    f32 m_defaultFadeOut = 1.0f; // 20 ticks = 1.0 秒
 
     // 标题渲染常量
-    static constexpr f32 TITLE_Y_RATIO = 0.25f;        // 标题Y位置比例
-    static constexpr f32 ACTIONBAR_Y_RATIO = 0.85f;    // 动作栏Y位置比例
-    static constexpr f32 TITLE_SHADOW_ALPHA = 0.25f;   // 标题阴影透明度
+    static constexpr f32 TITLE_Y_RATIO = 0.25f;      // 标题Y位置比例
+    static constexpr f32 ACTIONBAR_Y_RATIO = 0.85f;  // 动作栏Y位置比例
+    static constexpr f32 TITLE_SHADOW_ALPHA = 0.25f; // 标题阴影透明度
 
     // 颜色常量
-    static constexpr u32 TITLE_COLOR = 0xFFFFFFFF;     // 白色标题
-    static constexpr u32 SHADOW_COLOR = 0xFF000000;    // 黑色阴影
+    static constexpr u32 TITLE_COLOR = 0xFFFFFFFF;  // 白色标题
+    static constexpr u32 SHADOW_COLOR = 0xFF000000; // 黑色阴影
 };
 
 } // namespace mc::client::ui::minecraft::widgets

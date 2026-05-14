@@ -2,9 +2,9 @@
 
 #include "Glyph.hpp"
 #include "common/core/Result.hpp"
-#include <vector>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::client {
 
@@ -50,12 +50,8 @@ public:
      * @param bearingY 垂直偏移（从基线到字形顶部）
      * @return 字形信息，如果图集已满则返回错误
      */
-    [[nodiscard]] Result<Glyph> addGlyph(u32 codepoint,
-                                          const u8* pixels,
-                                          u32 width, u32 height,
-                                          f32 advance,
-                                          f32 bearingX = 0.0f,
-                                          f32 bearingY = 0.0f);
+    [[nodiscard]] Result<Glyph> addGlyph(
+        u32 codepoint, const u8* pixels, u32 width, u32 height, f32 advance, f32 bearingX = 0.0f, f32 bearingY = 0.0f);
 
     /**
      * @brief 获取字形
@@ -100,16 +96,21 @@ private:
      * @brief 矩形节点 (用于二叉树打包)
      */
     struct Node {
-        u32 x, y;           // 位置
-        u32 width, height;  // 尺寸
+        u32 x, y;          // 位置
+        u32 width, height; // 尺寸
         Node* left = nullptr;
         Node* right = nullptr;
         bool used = false;
 
         Node(u32 x_, u32 y_, u32 w, u32 h)
-            : x(x_), y(y_), width(w), height(h) {}
+            : x(x_)
+            , y(y_)
+            , width(w)
+            , height(h)
+        {}
 
-        ~Node() {
+        ~Node()
+        {
             delete left;
             delete right;
         }
@@ -144,7 +145,7 @@ private:
     void copyPixels(u32 x, u32 y, u32 width, u32 height, const u8* pixels);
 
     u32 m_textureSize = 0;
-    std::vector<u8> m_pixels;               // 灰度纹理数据
+    std::vector<u8> m_pixels;                // 灰度纹理数据
     std::unordered_map<u32, Glyph> m_glyphs; // 字形映射表
     Node* m_root = nullptr;                  // 打包树根节点
     u32 m_padding = 1;                       // 字形间距（防止纹理 bleeding）

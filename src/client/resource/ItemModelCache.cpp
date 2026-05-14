@@ -4,12 +4,14 @@
 
 namespace mc::client::resource {
 
-ItemModelCache& ItemModelCache::instance() {
+ItemModelCache& ItemModelCache::instance()
+{
     static ItemModelCache instance;
     return instance;
 }
 
-bool ItemModelCache::initialize(const std::vector<IResourcePack*>& resourcePacks) {
+bool ItemModelCache::initialize(const std::vector<IResourcePack*>& resourcePacks)
+{
     if (m_initialized) {
         return true;
     }
@@ -22,13 +24,15 @@ bool ItemModelCache::initialize(const std::vector<IResourcePack*>& resourcePacks
     return true;
 }
 
-void ItemModelCache::cleanup() {
+void ItemModelCache::cleanup()
+{
     m_loader.reset();
     m_itemIdCache.clear();
     m_initialized = false;
 }
 
-const BakedItemModel* ItemModelCache::getItemModel(u32 itemId) const {
+const BakedItemModel* ItemModelCache::getItemModel(u32 itemId) const
+{
     // 检查缓存
     auto cacheIt = m_itemIdCache.find(itemId);
     if (cacheIt != m_itemIdCache.end()) {
@@ -55,7 +59,8 @@ const BakedItemModel* ItemModelCache::getItemModel(u32 itemId) const {
     return model;
 }
 
-const BakedItemModel* ItemModelCache::getItemModel(const ResourceLocation& location) const {
+const BakedItemModel* ItemModelCache::getItemModel(const ResourceLocation& location) const
+{
     if (!m_initialized || !m_loader) {
         return nullptr;
     }
@@ -75,11 +80,13 @@ const BakedItemModel* ItemModelCache::getItemModel(const ResourceLocation& locat
     return m_loader->getModel(location);
 }
 
-const BakedItemModel* ItemModelCache::getItemModel(const ::mc::Item& item) const {
+const BakedItemModel* ItemModelCache::getItemModel(const ::mc::Item& item) const
+{
     return getItemModel(item.itemId());
 }
 
-glm::mat4 ItemModelCache::getTransform(u32 itemId, ItemDisplayContext context) const {
+glm::mat4 ItemModelCache::getTransform(u32 itemId, ItemDisplayContext context) const
+{
     const BakedItemModel* model = getItemModel(itemId);
     if (model == nullptr) {
         return glm::mat4(1.0f);
@@ -87,11 +94,13 @@ glm::mat4 ItemModelCache::getTransform(u32 itemId, ItemDisplayContext context) c
     return getTransform(*model, context);
 }
 
-glm::mat4 ItemModelCache::getTransform(const BakedItemModel& model, ItemDisplayContext context) const {
+glm::mat4 ItemModelCache::getTransform(const BakedItemModel& model, ItemDisplayContext context) const
+{
     return model.getTransform(context).toMatrix();
 }
 
-void ItemModelCache::preloadModels() {
+void ItemModelCache::preloadModels()
+{
     if (!m_initialized || !m_loader) {
         return;
     }

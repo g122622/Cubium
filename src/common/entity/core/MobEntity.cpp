@@ -1,20 +1,20 @@
 #include "MobEntity.hpp"
+#include "../../item/core/ItemStack.hpp"
+#include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../item/enchantment/enchantments/AllEnchantments.hpp"
+#include "../../util/math/MathUtils.hpp"
+#include "../../util/math/random/Random.hpp"
+#include "../../world/IWorld.hpp"
 #include "../ai/EntitySenses.hpp"
+#include "../ai/controller/JumpController.hpp"
 #include "../ai/controller/LookController.hpp"
 #include "../ai/controller/MovementController.hpp"
-#include "../ai/controller/JumpController.hpp"
 #include "../ai/pathfinding/PathNavigator.hpp"
-#include "../experience/ExperienceDropHandler.hpp"
 #include "../attribute/Attributes.hpp"
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
-#include "../../item/core/ItemStack.hpp"
-#include "../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../item/enchantment/enchantments/AllEnchantments.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../../world/IWorld.hpp"
+#include "../experience/ExperienceDropHandler.hpp"
 
 namespace mc {
 
@@ -31,7 +31,8 @@ MobEntity::MobEntity(LegacyEntityType type, EntityId id)
 
 MobEntity::~MobEntity() = default;
 
-void MobEntity::registerAttributes() {
+void MobEntity::registerAttributes()
+{
     // MC 1.16.5 MobEntity.func_233666_p_()
     // 在 LivingEntity 基础上注册和设置属性
     LivingEntity::registerAttributes();
@@ -42,83 +43,101 @@ void MobEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
-entity::ai::controller::LookController* MobEntity::lookController() {
+entity::ai::controller::LookController* MobEntity::lookController()
+{
     return m_lookController.get();
 }
 
-const entity::ai::controller::LookController* MobEntity::lookController() const {
+const entity::ai::controller::LookController* MobEntity::lookController() const
+{
     return m_lookController.get();
 }
 
-entity::ai::controller::MovementController* MobEntity::moveController() {
+entity::ai::controller::MovementController* MobEntity::moveController()
+{
     return m_moveController.get();
 }
 
-const entity::ai::controller::MovementController* MobEntity::moveController() const {
+const entity::ai::controller::MovementController* MobEntity::moveController() const
+{
     return m_moveController.get();
 }
 
-entity::ai::controller::JumpController* MobEntity::jumpController() {
+entity::ai::controller::JumpController* MobEntity::jumpController()
+{
     return m_jumpController.get();
 }
 
-const entity::ai::controller::JumpController* MobEntity::jumpController() const {
+const entity::ai::controller::JumpController* MobEntity::jumpController() const
+{
     return m_jumpController.get();
 }
 
-entity::ai::pathfinding::PathNavigator* MobEntity::navigator() {
+entity::ai::pathfinding::PathNavigator* MobEntity::navigator()
+{
     return m_navigator.get();
 }
 
-const entity::ai::pathfinding::PathNavigator* MobEntity::navigator() const {
+const entity::ai::pathfinding::PathNavigator* MobEntity::navigator() const
+{
     return m_navigator.get();
 }
 
-entity::ai::EntitySenses* MobEntity::senses() {
+entity::ai::EntitySenses* MobEntity::senses()
+{
     return m_senses.get();
 }
 
-const entity::ai::EntitySenses* MobEntity::senses() const {
+const entity::ai::EntitySenses* MobEntity::senses() const
+{
     return m_senses.get();
 }
 
-math::Random MobEntity::getRandom() const {
+math::Random MobEntity::getRandom() const
+{
     // 基于实体ID和tick生成随机数种子
     return math::Random(static_cast<u64>(m_id) | (static_cast<u64>(m_ticksExisted) << 32));
 }
 
-bool MobEntity::isBeingRidden() const {
+bool MobEntity::isBeingRidden() const
+{
     return hasPassengers();
 }
 
-void MobEntity::clearNavigation() {
+void MobEntity::clearNavigation()
+{
     if (m_navigator) {
         m_navigator->clearPath();
     }
 }
 
-void MobEntity::playAmbientSound() {
+void MobEntity::playAmbientSound()
+{
     auto soundEvent = getAmbientSound();
     if (soundEvent.has_value()) {
         playSound(*soundEvent, getSoundVolume(), getSoundPitch());
     }
 }
 
-void MobEntity::playAttackSound(LivingEntity& target) {
+void MobEntity::playAttackSound(LivingEntity& target)
+{
     (void)target;
 }
 
-void MobEntity::lookAt(const Entity& target, f32 deltaYaw, f32 deltaPitch) {
+void MobEntity::lookAt(const Entity& target, f32 deltaYaw, f32 deltaPitch)
+{
     lookAt(target.x(), target.y() + target.eyeHeight(), target.z(), deltaYaw, deltaPitch);
 }
 
-void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch) {
+void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch)
+{
     if (m_lookController) {
         m_lookController->setLookPosition(x, y, z, deltaYaw, deltaPitch);
     }
 }
 
-void MobEntity::tick() {
+void MobEntity::tick()
+{
     // 更新父类（LivingEntity::tick() 已经调用 aiStep()）
     LivingEntity::tick();
 
@@ -174,7 +193,8 @@ void MobEntity::tick() {
     // 注意：aiStep() 已在 LivingEntity::tick() 中调用，这里不需要再次调用
 }
 
-void MobEntity::updateMovementGoalFlags() {
+void MobEntity::updateMovementGoalFlags()
+{
     // MC 1.16.5: 根据骑乘状态更新目标标志
     // 如果被骑乘，禁用 MOVE/JUMP/LOOK 标志
     bool canMove = !isBeingRidden();
@@ -184,26 +204,28 @@ void MobEntity::updateMovementGoalFlags() {
     m_goalSelector.setFlag(entity::ai::GoalFlag::Look, canMove);
 }
 
-std::optional<ResourceLocation> MobEntity::getAmbientSound() const {
+std::optional<ResourceLocation> MobEntity::getAmbientSound() const
+{
     return makeSoundEventId("ambient");
 }
 
-void MobEntity::playHurtSound(DamageSource& source) {
+void MobEntity::playHurtSound(DamageSource& source)
+{
     m_livingSoundTime = -getTalkInterval();
     LivingEntity::playHurtSound(source);
 }
 
-void MobEntity::dropExperience() {
+void MobEntity::dropExperience()
+{
     // 如果有经验值，生成经验球
     if (m_experienceValue > 0 && m_world) {
         math::Random rng = getRandom();
-        entity::ExperienceDropHandler::spawnHostileMobExperience(
-            m_world, x(), y(), z(), m_experienceValue, &rng
-        );
+        entity::ExperienceDropHandler::spawnHostileMobExperience(m_world, x(), y(), z(), m_experienceValue, &rng);
     }
 }
 
-bool MobEntity::isInDaylight() const {
+bool MobEntity::isInDaylight() const
+{
     // MC 1.16.5 MobEntity.isInDaylight()
     // 检查条件：
     // 1. 世界为白天 (isDaytime)
@@ -239,9 +261,8 @@ bool MobEntity::isInDaylight() const {
 
     // MC 1.16.5: 获取检测位置
     // 如果骑乘船，检测位置向上偏移一格
-    BlockPos pos(static_cast<i32>(std::floor(x())),
-                 static_cast<i32>(std::round(y())),
-                 static_cast<i32>(std::floor(z())));
+    BlockPos pos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::round(y())), static_cast<i32>(std::floor(z())));
 
     // MC 1.16.5: 如果实体骑乘船，检测位置向上偏移一格
     // 原因：船在水面上，生物坐在船中位置较低，需要向上偏移才能正确检测天空可见性
@@ -259,7 +280,8 @@ bool MobEntity::isInDaylight() const {
     return m_world->canSeeSky(pos);
 }
 
-bool MobEntity::attackEntityAsMob(LivingEntity& target) {
+bool MobEntity::attackEntityAsMob(LivingEntity& target)
+{
     // MC 1.16.5 MobEntity.attackEntityAsMob()
 
     // 1. 获取攻击伤害属性
@@ -275,12 +297,12 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target) {
     if (!mainHand.isEmpty()) {
         // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
         // 使用 PlayerAttackHelper::getEnchantmentDamageBonus 计算附魔伤害
-        attackDamage += entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(
-            mainHand, target.getCreatureAttribute());
+        attackDamage +=
+            entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(mainHand, target.getCreatureAttribute());
 
         // 击退附魔
-        i32 knockbackLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-            mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
+        i32 knockbackLevel =
+            item::enchant::EnchantmentHelper::getEnchantmentLevel(mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
         if (knockbackLevel > 0) {
             knockbackStrength += static_cast<f32>(knockbackLevel) * 0.5f;
         }
@@ -299,7 +321,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target) {
     // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
     // MC 1.16.5: setFire 接收 ticks，1 秒 = 20 ticks
     if (fireAspectLevel > 0) {
-        target.setFire(20);  // 1 秒 = 20 ticks
+        target.setFire(20); // 1 秒 = 20 ticks
     }
 
     bool attacked = target.hurt(damageSource, attackDamage);
@@ -330,16 +352,15 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target) {
 
                     f64 newVelocityY;
                     if (target.onGround()) {
-                        newVelocityY = std::min(0.4, static_cast<f64>(velocity.y) / 2.0 + static_cast<f64>(knockbackStrength));
+                        newVelocityY =
+                            std::min(0.4, static_cast<f64>(velocity.y) / 2.0 + static_cast<f64>(knockbackStrength));
                     } else {
                         newVelocityY = static_cast<f64>(velocity.y);
                     }
 
-                    target.setVelocity(
-                        static_cast<f32>(static_cast<f64>(velocity.x) / 2.0 - knockbackX),
+                    target.setVelocity(static_cast<f32>(static_cast<f64>(velocity.x) / 2.0 - knockbackX),
                         static_cast<f32>(newVelocityY),
-                        static_cast<f32>(static_cast<f64>(velocity.z) / 2.0 - knockbackZ)
-                    );
+                        static_cast<f32>(static_cast<f64>(velocity.z) / 2.0 - knockbackZ));
                     target.setOnGround(false);
                 }
             }
@@ -348,7 +369,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target) {
         // 7. 应用火焰附加（攻击后应用完整燃烧时间）
         if (fireAspectLevel > 0) {
             // MC 1.16.5: 火焰附加持续时间 = level * 4 秒
-            target.setFire(fireAspectLevel * 4 * 20);  // 20 ticks per second
+            target.setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
         }
 
         // 8. 设置最后攻击者

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 
 namespace mc {
@@ -60,7 +60,7 @@ public:
     [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 64.0; }
 
 private:
-    BlockEntityRendererHelper m_helper;  ///< 渲染辅助工具
+    BlockEntityRendererHelper m_helper; ///< 渲染辅助工具
 
     /**
      * @brief 渲染活塞头
@@ -71,10 +71,7 @@ private:
      * @param progress 插值后的进度
      * @param light 组合光照
      */
-    void renderPistonHead(
-        const mc::blockentity::PistonBlockEntity& entity,
-        f32 progress,
-        u32 light);
+    void renderPistonHead(const mc::blockentity::PistonBlockEntity& entity, f32 progress, u32 light);
 
     /**
      * @brief 渲染被移动的方块
@@ -86,12 +83,8 @@ private:
      * @param light 组合光照
      */
     void renderMovingBlock(
-        const mc::blockentity::PistonBlockEntity& entity,
-        f32 offsetX,
-        f32 offsetY,
-        f32 offsetZ,
-        u32 light);
+        const mc::blockentity::PistonBlockEntity& entity, f32 offsetX, f32 offsetY, f32 offsetZ, u32 light);
 };
 
-} // namespace mc::client::renderer::trident::blockentity
+} // namespace client::renderer::trident::blockentity
 } // namespace mc

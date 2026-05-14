@@ -1,12 +1,12 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
-#include "entity/inventory/Slot.hpp"
-#include "entity/inventory/PlayerInventory.hpp"
-#include "entity/inventory/IInventory.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "entity/entities/player/GameModeUtils.hpp"
-#include "entity/core/Entity.hpp"
-#include "world/block/BlockPos.hpp"
 #include "core/Types.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/entities/player/GameModeUtils.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/inventory/IInventory.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
+#include "entity/inventory/Slot.hpp"
+#include "world/block/BlockPos.hpp"
 #include <cmath>
 
 namespace mc {
@@ -14,36 +14,39 @@ namespace mc {
 AbstractContainerMenu::AbstractContainerMenu(ContainerId id, PlayerInventory* playerInventory)
     : m_id(id)
     , m_playerInventory(playerInventory)
-    , m_carried() {
+    , m_carried()
+{
     // 初始化槽位状态缓存
-    m_lastSlotStates.reserve(64);  // 预分配容量
+    m_lastSlotStates.reserve(64); // 预分配容量
 }
 
 // ========== 静态工具方法 ==========
 
-bool AbstractContainerMenu::isWithinDistance(const Player& player,
-                                              const BlockPos& blockPos,
-                                              f32 maxDistanceSq) {
+bool AbstractContainerMenu::isWithinDistance(const Player& player, const BlockPos& blockPos, f32 maxDistanceSq)
+{
     // MC 1.16.5: 检查玩家是否在指定方块附近
     // 使用 Vector3::distanceSquared 和 BlockPos::center 简化计算
     return player.position().distanceSquared(blockPos.center()) <= maxDistanceSq;
 }
 
-Slot* AbstractContainerMenu::getSlot(i32 index) {
+Slot* AbstractContainerMenu::getSlot(i32 index)
+{
     if (index >= 0 && index < static_cast<i32>(m_slots.size())) {
         return m_slots[index].get();
     }
     return nullptr;
 }
 
-const Slot* AbstractContainerMenu::getSlot(i32 index) const {
+const Slot* AbstractContainerMenu::getSlot(i32 index) const
+{
     if (index >= 0 && index < static_cast<i32>(m_slots.size())) {
         return m_slots[index].get();
     }
     return nullptr;
 }
 
-i32 AbstractContainerMenu::addSlot(std::unique_ptr<Slot> slot) {
+i32 AbstractContainerMenu::addSlot(std::unique_ptr<Slot> slot)
+{
     i32 index = static_cast<i32>(m_slots.size());
     m_slots.push_back(std::move(slot));
     // 同步扩展缓存
@@ -51,7 +54,8 @@ i32 AbstractContainerMenu::addSlot(std::unique_ptr<Slot> slot) {
     return index;
 }
 
-void AbstractContainerMenu::addPlayerInventorySlots(i32 startX, i32 startY) {
+void AbstractContainerMenu::addPlayerInventorySlots(i32 startX, i32 startY)
+{
     m_playerInvStart = static_cast<i32>(m_slots.size());
 
     // 玩家主背包：3行9列（槽位 9-35 在 PlayerInventory 中）
@@ -69,7 +73,8 @@ void AbstractContainerMenu::addPlayerInventorySlots(i32 startX, i32 startY) {
     m_playerInvEnd = static_cast<i32>(m_slots.size()) - 1;
 }
 
-void AbstractContainerMenu::addPlayerHotbarSlots(i32 startX, i32 startY) {
+void AbstractContainerMenu::addPlayerHotbarSlots(i32 startX, i32 startY)
+{
     m_hotbarStart = static_cast<i32>(m_slots.size());
 
     // 快捷栏：1行9列（槽位 0-8 在 PlayerInventory 中）
@@ -82,43 +87,44 @@ void AbstractContainerMenu::addPlayerHotbarSlots(i32 startX, i32 startY) {
     m_hotbarEnd = static_cast<i32>(m_slots.size()) - 1;
 }
 
-void AbstractContainerMenu::addPlayerArmorSlots(i32 startX, i32 startY) {
+void AbstractContainerMenu::addPlayerArmorSlots(i32 startX, i32 startY)
+{
     // 护甲槽位顺序（从上到下）：头盔、胸甲、护腿、靴子
     // 对应 PlayerInventory 的槽位 36-39
     constexpr i32 ARMOR_INDICES[] = {
-        InventorySlots::ARMOR_HEAD,   // 36 头盔
-        InventorySlots::ARMOR_CHEST,  // 37 胸甲
-        InventorySlots::ARMOR_LEGS,   // 38 护腿
-        InventorySlots::ARMOR_FEET    // 39 靴子
+        InventorySlots::ARMOR_HEAD,  // 36 头盔
+        InventorySlots::ARMOR_CHEST, // 37 胸甲
+        InventorySlots::ARMOR_LEGS,  // 38 护腿
+        InventorySlots::ARMOR_FEET   // 39 靴子
     };
 
     for (i32 i = 0; i < 4; ++i) {
         i32 posX = startX;
         i32 posY = startY + i * 18;
         addSlot(std::make_unique<ArmorSlot>(
-            m_playerInventory,
-            ARMOR_INDICES[i],
-            posX, posY,
-            static_cast<ArmorSlot::ArmorType>(i)
-        ));
+            m_playerInventory, ARMOR_INDICES[i], posX, posY, static_cast<ArmorSlot::ArmorType>(i)));
     }
 }
 
-void AbstractContainerMenu::addPlayerOffhandSlot(i32 x, i32 y) {
+void AbstractContainerMenu::addPlayerOffhandSlot(i32 x, i32 y)
+{
     // 副手槽对应 PlayerInventory 的槽位 40
     addSlot(std::make_unique<Slot>(m_playerInventory, InventorySlots::OFFHAND, x, y));
 }
 
-void AbstractContainerMenu::setCarriedItem(const ItemStack& stack) {
+void AbstractContainerMenu::setCarriedItem(const ItemStack& stack)
+{
     m_carried = stack;
 }
 
-void AbstractContainerMenu::broadcastChanges() {
+void AbstractContainerMenu::broadcastChanges()
+{
     // 调用 detectAndSendChanges 实现变化检测
     detectAndSendChanges();
 }
 
-void AbstractContainerMenu::detectAndSendChanges() {
+void AbstractContainerMenu::detectAndSendChanges()
+{
     // 检查槽位变化
     for (i32 i = 0; i < static_cast<i32>(m_slots.size()); ++i) {
         const Slot* slot = m_slots[i].get();
@@ -138,9 +144,8 @@ void AbstractContainerMenu::detectAndSendChanges() {
             if (currentStack.isEmpty() != lastStack.isEmpty()) {
                 changed = true;
             } else if (!currentStack.isEmpty() && !lastStack.isEmpty()) {
-                if (currentStack.getItem() != lastStack.getItem() ||
-                    currentStack.getCount() != lastStack.getCount() ||
-                    !currentStack.isSameItem(lastStack)) {  // 使用 isSameItem 检查物品和 NBT 是否相同
+                if (currentStack.getItem() != lastStack.getItem() || currentStack.getCount() != lastStack.getCount() ||
+                    !currentStack.isSameItem(lastStack)) { // 使用 isSameItem 检查物品和 NBT 是否相同
                     changed = true;
                 }
             }
@@ -163,58 +168,68 @@ void AbstractContainerMenu::detectAndSendChanges() {
     }
 }
 
-i32 AbstractContainerMenu::addListener(std::function<void(i32, ItemStack)> listener) {
+i32 AbstractContainerMenu::addListener(std::function<void(i32, ItemStack)> listener)
+{
     i32 id = m_nextListenerId++;
     m_listeners[id] = std::move(listener);
     return id;
 }
 
-void AbstractContainerMenu::removeListener(i32 listenerId) {
+void AbstractContainerMenu::removeListener(i32 listenerId)
+{
     m_listeners.erase(listenerId);
 }
 
-i32 AbstractContainerMenu::trackInt(std::unique_ptr<IntReferenceHolder> holder) {
+i32 AbstractContainerMenu::trackInt(std::unique_ptr<IntReferenceHolder> holder)
+{
     i32 index = static_cast<i32>(m_trackedInts.size());
     m_trackedInts.push_back(std::move(holder));
     return index;
 }
 
-i32 AbstractContainerMenu::trackInt(std::function<i32()> getter, std::function<void(i32)> setter) {
+i32 AbstractContainerMenu::trackInt(std::function<i32()> getter, std::function<void(i32)> setter)
+{
     return trackInt(std::make_unique<FunctionalIntReferenceHolder>(std::move(getter), std::move(setter)));
 }
 
-IntReferenceHolder* AbstractContainerMenu::getTrackedInt(i32 index) {
+IntReferenceHolder* AbstractContainerMenu::getTrackedInt(i32 index)
+{
     if (index >= 0 && index < static_cast<i32>(m_trackedInts.size())) {
         return m_trackedInts[index].get();
     }
     return nullptr;
 }
 
-const IntReferenceHolder* AbstractContainerMenu::getTrackedInt(i32 index) const {
+const IntReferenceHolder* AbstractContainerMenu::getTrackedInt(i32 index) const
+{
     if (index >= 0 && index < static_cast<i32>(m_trackedInts.size())) {
         return m_trackedInts[index].get();
     }
     return nullptr;
 }
 
-void AbstractContainerMenu::setTrackedInt(i32 index, i32 value) {
+void AbstractContainerMenu::setTrackedInt(i32 index, i32 value)
+{
     IntReferenceHolder* holder = getTrackedInt(index);
     if (holder != nullptr) {
         holder->set(value);
     }
 }
 
-void AbstractContainerMenu::notifyIntChanged(i32 index, i32 value) {
+void AbstractContainerMenu::notifyIntChanged(i32 index, i32 value)
+{
     for (auto& pair : m_intListeners) {
         pair.second(index, value);
     }
 }
 
-bool AbstractContainerMenu::getCanCraft(const Player& player) const {
+bool AbstractContainerMenu::getCanCraft(const Player& player) const
+{
     return m_cannotCraftPlayers.find(player.uuid()) == m_cannotCraftPlayers.end();
 }
 
-void AbstractContainerMenu::setCanCraft(const Player& player, bool canCraft) {
+void AbstractContainerMenu::setCanCraft(const Player& player, bool canCraft)
+{
     if (canCraft) {
         m_cannotCraftPlayers.erase(player.uuid());
     } else {
@@ -222,14 +237,16 @@ void AbstractContainerMenu::setCanCraft(const Player& player, bool canCraft) {
     }
 }
 
-void AbstractContainerMenu::putStackInSlot(i32 slotIndex, const ItemStack& stack) {
+void AbstractContainerMenu::putStackInSlot(i32 slotIndex, const ItemStack& stack)
+{
     Slot* slot = getSlot(slotIndex);
     if (slot != nullptr) {
         slot->set(stack);
     }
 }
 
-void AbstractContainerMenu::setAll(const std::vector<ItemStack>& stacks) {
+void AbstractContainerMenu::setAll(const std::vector<ItemStack>& stacks)
+{
     for (i32 i = 0; i < static_cast<i32>(m_slots.size()) && i < static_cast<i32>(stacks.size()); ++i) {
         Slot* slot = m_slots[i].get();
         if (slot != nullptr) {
@@ -238,7 +255,8 @@ void AbstractContainerMenu::setAll(const std::vector<ItemStack>& stacks) {
     }
 }
 
-void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory) {
+void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory)
+{
     if (inventory == nullptr) {
         return;
     }
@@ -270,13 +288,15 @@ void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory
     }
 }
 
-void AbstractContainerMenu::notifySlotChanged(i32 slotIndex, const ItemStack& stack) {
+void AbstractContainerMenu::notifySlotChanged(i32 slotIndex, const ItemStack& stack)
+{
     for (auto& pair : m_listeners) {
         pair.second(slotIndex, stack);
     }
 }
 
-ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, Player& player) {
+ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, Player& player)
+{
     // 特殊槽位索引：-999 表示点击了屏幕外部
     if (slotIndex == -999) {
         // 点击屏幕外部 - 丢弃鼠标物品
@@ -330,7 +350,8 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
     }
 }
 
-ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button) {
+ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+{
     Player* player = m_playerInventory->getPlayer();
 
     // 左键
@@ -419,7 +440,8 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack) {
+ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
+{
     if (slotStack.isEmpty()) {
         return m_carried;
     }
@@ -436,7 +458,8 @@ ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, cons
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button) {
+ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+{
     // button = 0-8 对应快捷栏槽位，button = 40 对应副手
     PlayerInventory* inv = m_playerInventory;
     if (!inv) {
@@ -445,9 +468,9 @@ ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const Ite
 
     i32 swapSlot = -1;
     if (button >= 0 && button <= 8) {
-        swapSlot = button;  // 快捷栏
+        swapSlot = button; // 快捷栏
     } else if (button == 40) {
-        swapSlot = InventorySlots::OFFHAND;  // 副手
+        swapSlot = InventorySlots::OFFHAND; // 副手
     }
 
     if (swapSlot < 0) {
@@ -470,7 +493,8 @@ ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const Ite
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player) {
+ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player)
+{
     // 创造模式中键复制 - 只在创造模式下可用
     if (!entity::GameModeUtils::isCreative(player.gameMode())) {
         return m_carried;
@@ -486,7 +510,8 @@ ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const It
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button) {
+ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+{
     // Ctrl+点击丢弃全部 (button=1)，普通点击丢弃一个 (button=0)
     if (!slotStack.isEmpty()) {
         i32 toDrop = (button == 1) ? slotStack.getCount() : 1;
@@ -500,7 +525,8 @@ ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const It
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32 button) {
+ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32 button)
+{
     // MC 1.16.5 拖拽分发状态机
     // m_dragMode: 0=均匀分发(左键), 1=逐个分发(右键), 2=全部分发(中键)
 
@@ -508,7 +534,8 @@ ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32
     m_dragEvent = getDragEvent(button);
 
     // 检查状态是否有效
-    if ((prevDragEvent != DragConstants::EVENT_ADD_SLOT || m_dragEvent != DragConstants::EVENT_END) && prevDragEvent != m_dragEvent) {
+    if ((prevDragEvent != DragConstants::EVENT_ADD_SLOT || m_dragEvent != DragConstants::EVENT_END) &&
+        prevDragEvent != m_dragEvent) {
         resetDrag();
     } else if (m_carried.isEmpty()) {
         resetDrag();
@@ -588,21 +615,25 @@ ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32
     return m_carried;
 }
 
-void AbstractContainerMenu::resetDrag() {
+void AbstractContainerMenu::resetDrag()
+{
     m_dragEvent = 0;
-    m_dragMode = DragConstants::DRAG_MODE_NONE;  // MC 1.16.5: 重置为 -1
+    m_dragMode = DragConstants::DRAG_MODE_NONE; // MC 1.16.5: 重置为 -1
     m_dragSlots.clear();
 }
 
-i32 AbstractContainerMenu::getDragEvent(i32 button) {
+i32 AbstractContainerMenu::getDragEvent(i32 button)
+{
     return button & DragConstants::EVENT_MASK;
 }
 
-i32 AbstractContainerMenu::extractDragMode(i32 button) {
+i32 AbstractContainerMenu::extractDragMode(i32 button)
+{
     return (button >> DragConstants::MODE_SHIFT) & DragConstants::MODE_MASK;
 }
 
-bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const {
+bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const
+{
     if (m_playerInventory == nullptr) return false;
 
     const Player* player = m_playerInventory->getPlayer();
@@ -616,7 +647,8 @@ bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const {
     return true;
 }
 
-bool AbstractContainerMenu::canDragIntoSlot(Slot& slot, const ItemStack& stack) const {
+bool AbstractContainerMenu::canDragIntoSlot(Slot& slot, const ItemStack& stack) const
+{
     // 检查是否可以拖拽物品到该槽位
     if (slot.isEmpty()) {
         return slot.mayPlace(stack);
@@ -624,7 +656,8 @@ bool AbstractContainerMenu::canDragIntoSlot(Slot& slot, const ItemStack& stack) 
     return slot.mayPlace(stack) && slot.getItem().canMergeWith(stack);
 }
 
-i32 AbstractContainerMenu::distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount) {
+i32 AbstractContainerMenu::distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount)
+{
     Slot* dragSlot = getSlot(slotIdx);
     if (dragSlot == nullptr) {
         return 0;
@@ -649,7 +682,8 @@ i32 AbstractContainerMenu::distributeToDragSlot(ItemStack& toDistribute, i32 slo
     return amount;
 }
 
-ItemStack AbstractContainerMenu::handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack) {
+ItemStack AbstractContainerMenu::handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
+{
     // 双击拾取全部相同物品
     if (m_carried.isEmpty() && !slotStack.isEmpty()) {
         ItemStack toPickup = slotStack.copy();
@@ -687,7 +721,8 @@ ItemStack AbstractContainerMenu::handlePickupAll(Slot& slot, i32 slotIndex, cons
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::quickMoveStack(i32 slotIndex, Player& player) {
+ItemStack AbstractContainerMenu::quickMoveStack(i32 slotIndex, Player& player)
+{
     (void)player;
     Slot* slot = getSlot(slotIndex);
     if (slot == nullptr || slot->isEmpty()) {
@@ -721,7 +756,8 @@ ItemStack AbstractContainerMenu::quickMoveStack(i32 slotIndex, Player& player) {
     return originalStack;
 }
 
-bool AbstractContainerMenu::moveItemToRange(ItemStack& stack, i32 startIndex, i32 endIndex, bool reverse) {
+bool AbstractContainerMenu::moveItemToRange(ItemStack& stack, i32 startIndex, i32 endIndex, bool reverse)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -795,7 +831,8 @@ bool AbstractContainerMenu::moveItemToRange(ItemStack& stack, i32 startIndex, i3
     return moved;
 }
 
-void AbstractContainerMenu::removed(Player& player) {
+void AbstractContainerMenu::removed(Player& player)
+{
     // MC 1.16.5 对齐: Container.onContainerClosed
     // 如果玩家光标上有物品，丢弃到世界中
     if (!m_carried.isEmpty()) {
@@ -820,7 +857,8 @@ void AbstractContainerMenu::removed(Player& player) {
     m_cannotCraftPlayers.clear();
 }
 
-void AbstractContainerMenu::dropItem(const ItemStack& stack, Player& player, bool retainOwnership) {
+void AbstractContainerMenu::dropItem(const ItemStack& stack, Player& player, bool retainOwnership)
+{
     if (stack.isEmpty()) {
         return;
     }

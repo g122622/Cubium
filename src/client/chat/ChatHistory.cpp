@@ -2,7 +2,8 @@
 
 namespace mc::client::chat {
 
-void ChatHistory::addMessage(const std::string& message, ChatMessageType type, bool permanent) {
+void ChatHistory::addMessage(const std::string& message, ChatMessageType type, bool permanent)
+{
     m_messages.emplace_front(std::make_unique<text::StringTextComponent>(message), type, permanent);
 
     // 限制消息数量
@@ -11,9 +12,8 @@ void ChatHistory::addMessage(const std::string& message, ChatMessageType type, b
     }
 }
 
-void ChatHistory::addMessage(std::unique_ptr<text::ITextComponent> message,
-                              ChatMessageType type,
-                              bool permanent) {
+void ChatHistory::addMessage(std::unique_ptr<text::ITextComponent> message, ChatMessageType type, bool permanent)
+{
     m_messages.emplace_front(std::move(message), type, permanent);
 
     // 限制消息数量
@@ -22,7 +22,8 @@ void ChatHistory::addMessage(std::unique_ptr<text::ITextComponent> message,
     }
 }
 
-void ChatHistory::addSystemMessage(const std::string& message) {
+void ChatHistory::addSystemMessage(const std::string& message)
+{
     // 系统消息使用灰色样式
     auto content = std::make_unique<text::StringTextComponent>(message);
     text::Style style;
@@ -31,11 +32,13 @@ void ChatHistory::addSystemMessage(const std::string& message) {
     addMessage(std::move(content), ChatMessageType::System, false);
 }
 
-void ChatHistory::clear() {
+void ChatHistory::clear()
+{
     m_messages.clear();
 }
 
-std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) const {
+std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) const
+{
     std::vector<ChatMessage> result;
     auto now = std::chrono::steady_clock::now();
 
@@ -54,9 +57,10 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
         } else if (includeFading) {
             // 计算消息年龄
             auto age = std::chrono::duration<float>(now - msg.timestamp).count();
-            if (age < MESSAGE_FADE_TIME + 1.0f) {  // 额外1秒淡出时间
+            if (age < MESSAGE_FADE_TIME + 1.0f) { // 额外1秒淡出时间
                 ChatMessage msgCopy;
-                msgCopy.content = msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>("");
+                msgCopy.content =
+                    msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>("");
                 msgCopy.type = msg.type;
                 msgCopy.timestamp = msg.timestamp;
                 msgCopy.permanent = msg.permanent;
@@ -69,7 +73,8 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
     return result;
 }
 
-void ChatHistory::addToInputHistory(const std::string& input) {
+void ChatHistory::addToInputHistory(const std::string& input)
+{
     if (input.empty()) return;
 
     // 避免重复
@@ -86,7 +91,8 @@ void ChatHistory::addToInputHistory(const std::string& input) {
     m_historyIndex = m_inputHistory.size();
 }
 
-std::string ChatHistory::getPreviousInput() {
+std::string ChatHistory::getPreviousInput()
+{
     if (m_inputHistory.empty()) return "";
 
     if (m_historyIndex == m_inputHistory.size()) {
@@ -102,7 +108,8 @@ std::string ChatHistory::getPreviousInput() {
     return m_inputHistory[0];
 }
 
-std::string ChatHistory::getNextInput() {
+std::string ChatHistory::getNextInput()
+{
     if (m_inputHistory.empty()) return "";
 
     if (m_historyIndex < m_inputHistory.size() - 1) {
@@ -115,12 +122,14 @@ std::string ChatHistory::getNextInput() {
     return m_savedInput;
 }
 
-void ChatHistory::resetInputNavigation() {
+void ChatHistory::resetInputNavigation()
+{
     m_historyIndex = m_inputHistory.size();
     m_savedInput.clear();
 }
 
-void ChatHistory::clearInputHistory() {
+void ChatHistory::clearInputHistory()
+{
     m_inputHistory.clear();
     m_historyIndex = 0;
     m_savedInput.clear();

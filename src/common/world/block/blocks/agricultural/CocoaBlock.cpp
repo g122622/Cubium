@@ -1,10 +1,10 @@
 #include "CocoaBlock.hpp"
-#include "../../BlockTags.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../BlockTags.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,52 +12,59 @@ namespace blocks {
 namespace {
 
 // 将方向转换为索引 (North=0, South=1, West=2, East=3)
-[[nodiscard]] int directionToIndex(Direction facing) {
+[[nodiscard]] int directionToIndex(Direction facing)
+{
     switch (facing) {
-        case Direction::North: return 0;
-        case Direction::South: return 1;
-        case Direction::West:  return 2;
-        case Direction::East:  return 3;
-        default: return 0;  // 不应该发生
+        case Direction::North:
+            return 0;
+        case Direction::South:
+            return 1;
+        case Direction::West:
+            return 2;
+        case Direction::East:
+            return 3;
+        default:
+            return 0; // 不应该发生
     }
 }
 
 } // namespace
 
 CocoaBlock::CocoaBlock(const BlockProperties& properties)
-    : HorizontalBlock(properties) {
+    : HorizontalBlock(properties)
+{
 
     // 创建状态容器，添加 AGE 属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(FACING())
-        .add(AGE())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).add(AGE()).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(FACING(), Direction::North)
-        .with(AGE(), 0));
+    setDefaultState(defaultState().with(FACING(), Direction::North).with(AGE(), 0));
 
     // 初始化形状
     initShapes();
 }
 
-int CocoaBlock::getAge(const BlockState& state) const {
+int CocoaBlock::getAge(const BlockState& state) const
+{
     return static_cast<int>(state.get(AGE()));
 }
 
-const BlockState& CocoaBlock::withAge(const BlockState& state, int age) const {
+const BlockState& CocoaBlock::withAge(const BlockState& state, int age) const
+{
     return state.with(AGE(), std::clamp(age, 0, getMaxAge()));
 }
 
-bool CocoaBlock::isMaxAge(const BlockState& state) const {
+bool CocoaBlock::isMaxAge(const BlockState& state) const
+{
     return getAge(state) >= getMaxAge();
 }
 
-BlockState CocoaBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CocoaBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 遍历玩家朝向的各个方向，找到第一个可以附着的方向
     for (Direction direction : context.getNearestLookingDirections()) {
         if (Directions::isHorizontal(direction)) {
@@ -75,22 +82,20 @@ BlockState CocoaBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState();
 }
 
-bool CocoaBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool CocoaBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     Direction facing = state.get(FACING());
     return canAttachTo(world, pos, facing);
 }
 
-BlockState CocoaBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState CocoaBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -111,7 +116,8 @@ BlockState CocoaBlock::updatePostPlacement(
     return state;
 }
 
-void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 只有未成熟的才生长
     int age = getAge(state);
     if (age >= getMaxAge()) {
@@ -135,11 +141,8 @@ void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
     }
 }
 
-bool CocoaBlock::canGrow(
-    IBlockReader& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    bool isClientSide) const {
+bool CocoaBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -150,10 +153,8 @@ bool CocoaBlock::canGrow(
 }
 
 bool CocoaBlock::canUseBonemeal(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) const {
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(random);
@@ -163,11 +164,8 @@ bool CocoaBlock::canUseBonemeal(
     return true;
 }
 
-void CocoaBlock::grow(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) {
+void CocoaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
 
     MC_UNUSED(random);
 
@@ -179,7 +177,8 @@ void CocoaBlock::grow(
     }
 }
 
-const CollisionShape& CocoaBlock::getShape(const BlockState& state) const {
+const CollisionShape& CocoaBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(FACING());
     int age = getAge(state);
 
@@ -187,10 +186,8 @@ const CollisionShape& CocoaBlock::getShape(const BlockState& state) const {
     return m_shapesByDirectionAndAge[dirIndex][age];
 }
 
-bool CocoaBlock::allowsMovement(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool CocoaBlock::allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -200,7 +197,8 @@ bool CocoaBlock::allowsMovement(
     return true;
 }
 
-void CocoaBlock::initShapes() {
+void CocoaBlock::initShapes()
+{
     // 参考 MC 1.16.5 CocoaBlock 的形状定义
     // 形状基于像素坐标 (0-16)
 
@@ -208,60 +206,49 @@ void CocoaBlock::initShapes() {
     // AGE 0: 11,7,6 到 15,12,10 (4x5x4)
     // AGE 1: 9,5,5 到 15,12,11 (6x7x6)
     // AGE 2: 7,3,4 到 15,12,12 (8x9x8)
-    m_shapesByDirectionAndAge[3][0] = CollisionShape::box(
-        11.0f / 16.0f, 7.0f / 16.0f, 6.0f / 16.0f,
-        15.0f / 16.0f, 12.0f / 16.0f, 10.0f / 16.0f);
-    m_shapesByDirectionAndAge[3][1] = CollisionShape::box(
-        9.0f / 16.0f, 5.0f / 16.0f, 5.0f / 16.0f,
-        15.0f / 16.0f, 12.0f / 16.0f, 11.0f / 16.0f);
-    m_shapesByDirectionAndAge[3][2] = CollisionShape::box(
-        7.0f / 16.0f, 3.0f / 16.0f, 4.0f / 16.0f,
-        15.0f / 16.0f, 12.0f / 16.0f, 12.0f / 16.0f);
+    m_shapesByDirectionAndAge[3][0] =
+        CollisionShape::box(11.0f / 16.0f, 7.0f / 16.0f, 6.0f / 16.0f, 15.0f / 16.0f, 12.0f / 16.0f, 10.0f / 16.0f);
+    m_shapesByDirectionAndAge[3][1] =
+        CollisionShape::box(9.0f / 16.0f, 5.0f / 16.0f, 5.0f / 16.0f, 15.0f / 16.0f, 12.0f / 16.0f, 11.0f / 16.0f);
+    m_shapesByDirectionAndAge[3][2] =
+        CollisionShape::box(7.0f / 16.0f, 3.0f / 16.0f, 4.0f / 16.0f, 15.0f / 16.0f, 12.0f / 16.0f, 12.0f / 16.0f);
 
     // 朝西 - 从丛林原木向西延伸
     // AGE 0: 1,7,6 到 5,12,10
     // AGE 1: 1,5,5 到 7,12,11
     // AGE 2: 1,3,4 到 9,12,12
-    m_shapesByDirectionAndAge[2][0] = CollisionShape::box(
-        1.0f / 16.0f, 7.0f / 16.0f, 6.0f / 16.0f,
-        5.0f / 16.0f, 12.0f / 16.0f, 10.0f / 16.0f);
-    m_shapesByDirectionAndAge[2][1] = CollisionShape::box(
-        1.0f / 16.0f, 5.0f / 16.0f, 5.0f / 16.0f,
-        7.0f / 16.0f, 12.0f / 16.0f, 11.0f / 16.0f);
-    m_shapesByDirectionAndAge[2][2] = CollisionShape::box(
-        1.0f / 16.0f, 3.0f / 16.0f, 4.0f / 16.0f,
-        9.0f / 16.0f, 12.0f / 16.0f, 12.0f / 16.0f);
+    m_shapesByDirectionAndAge[2][0] =
+        CollisionShape::box(1.0f / 16.0f, 7.0f / 16.0f, 6.0f / 16.0f, 5.0f / 16.0f, 12.0f / 16.0f, 10.0f / 16.0f);
+    m_shapesByDirectionAndAge[2][1] =
+        CollisionShape::box(1.0f / 16.0f, 5.0f / 16.0f, 5.0f / 16.0f, 7.0f / 16.0f, 12.0f / 16.0f, 11.0f / 16.0f);
+    m_shapesByDirectionAndAge[2][2] =
+        CollisionShape::box(1.0f / 16.0f, 3.0f / 16.0f, 4.0f / 16.0f, 9.0f / 16.0f, 12.0f / 16.0f, 12.0f / 16.0f);
 
     // 朝北 - 从丛林原木向北延伸
     // AGE 0: 6,7,1 到 10,12,5
     // AGE 1: 5,5,1 到 11,12,7
     // AGE 2: 4,3,1 到 12,12,9
-    m_shapesByDirectionAndAge[0][0] = CollisionShape::box(
-        6.0f / 16.0f, 7.0f / 16.0f, 1.0f / 16.0f,
-        10.0f / 16.0f, 12.0f / 16.0f, 5.0f / 16.0f);
-    m_shapesByDirectionAndAge[0][1] = CollisionShape::box(
-        5.0f / 16.0f, 5.0f / 16.0f, 1.0f / 16.0f,
-        11.0f / 16.0f, 12.0f / 16.0f, 7.0f / 16.0f);
-    m_shapesByDirectionAndAge[0][2] = CollisionShape::box(
-        4.0f / 16.0f, 3.0f / 16.0f, 1.0f / 16.0f,
-        12.0f / 16.0f, 12.0f / 16.0f, 9.0f / 16.0f);
+    m_shapesByDirectionAndAge[0][0] =
+        CollisionShape::box(6.0f / 16.0f, 7.0f / 16.0f, 1.0f / 16.0f, 10.0f / 16.0f, 12.0f / 16.0f, 5.0f / 16.0f);
+    m_shapesByDirectionAndAge[0][1] =
+        CollisionShape::box(5.0f / 16.0f, 5.0f / 16.0f, 1.0f / 16.0f, 11.0f / 16.0f, 12.0f / 16.0f, 7.0f / 16.0f);
+    m_shapesByDirectionAndAge[0][2] =
+        CollisionShape::box(4.0f / 16.0f, 3.0f / 16.0f, 1.0f / 16.0f, 12.0f / 16.0f, 12.0f / 16.0f, 9.0f / 16.0f);
 
     // 朝南 - 从丛林原木向南延伸
     // AGE 0: 6,7,11 到 10,12,15
     // AGE 1: 5,5,9 到 11,12,15
     // AGE 2: 4,3,7 到 12,12,15
-    m_shapesByDirectionAndAge[1][0] = CollisionShape::box(
-        6.0f / 16.0f, 7.0f / 16.0f, 11.0f / 16.0f,
-        10.0f / 16.0f, 12.0f / 16.0f, 15.0f / 16.0f);
-    m_shapesByDirectionAndAge[1][1] = CollisionShape::box(
-        5.0f / 16.0f, 5.0f / 16.0f, 9.0f / 16.0f,
-        11.0f / 16.0f, 12.0f / 16.0f, 15.0f / 16.0f);
-    m_shapesByDirectionAndAge[1][2] = CollisionShape::box(
-        4.0f / 16.0f, 3.0f / 16.0f, 7.0f / 16.0f,
-        12.0f / 16.0f, 12.0f / 16.0f, 15.0f / 16.0f);
+    m_shapesByDirectionAndAge[1][0] =
+        CollisionShape::box(6.0f / 16.0f, 7.0f / 16.0f, 11.0f / 16.0f, 10.0f / 16.0f, 12.0f / 16.0f, 15.0f / 16.0f);
+    m_shapesByDirectionAndAge[1][1] =
+        CollisionShape::box(5.0f / 16.0f, 5.0f / 16.0f, 9.0f / 16.0f, 11.0f / 16.0f, 12.0f / 16.0f, 15.0f / 16.0f);
+    m_shapesByDirectionAndAge[1][2] =
+        CollisionShape::box(4.0f / 16.0f, 3.0f / 16.0f, 7.0f / 16.0f, 12.0f / 16.0f, 12.0f / 16.0f, 15.0f / 16.0f);
 }
 
-bool CocoaBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction facing) const {
+bool CocoaBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction facing) const
+{
     // 检查 FACING 方向的方块是否为丛林原木
     BlockPos attachPos = pos.offset(facing);
     const BlockState* attachState = world.getBlockState(attachPos);

@@ -1,7 +1,7 @@
 #include "GuiSpriteRegistry.hpp"
-#include "GuiTextureAtlas.hpp"
-#include "GuiSpriteManager.hpp"
 #include "GuiSpriteAtlas.hpp"
+#include "GuiSpriteManager.hpp"
+#include "GuiTextureAtlas.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::gui {
@@ -10,9 +10,8 @@ namespace mc::client::renderer::trident::gui {
 // GuiSpriteManager 重载（不依赖Vulkan）
 // ============================================================================
 
-void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteManager& manager,
-                                                i32 atlasWidth,
-                                                i32 atlasHeight) {
+void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteManager& manager, i32 atlasWidth, i32 atlasHeight)
+{
     // 按钮精灵（宽度200，高度20）
     // Y坐标：禁用46，正常66，悬停86
     manager.registerSprite("button_disabled", 0, 46, 200, 20, atlasWidth, atlasHeight);
@@ -41,9 +40,8 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteManager& manager,
     manager.registerSprite("hotbar_offhand_right", 53, 22, 29, 24, atlasWidth, atlasHeight);
 }
 
-void GuiSpriteRegistry::registerIconsSprites(GuiSpriteManager& manager,
-                                              i32 atlasWidth,
-                                              i32 atlasHeight) {
+void GuiSpriteRegistry::registerIconsSprites(GuiSpriteManager& manager, i32 atlasWidth, i32 atlasHeight)
+{
     // ========== 心形图标 (9x9) ==========
     // 基础X坐标：满心52，半心61，空心16
     // Y坐标：正常0， Hardcore（困难模式）+45
@@ -114,9 +112,8 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteManager& manager,
     manager.registerSprite("crosshair", 0, 0, 15, 15, atlasWidth, atlasHeight);
 }
 
-void GuiSpriteRegistry::registerContainerSprites(GuiSpriteManager& manager,
-                                                  i32 atlasWidth,
-                                                  i32 atlasHeight) {
+void GuiSpriteRegistry::registerContainerSprites(GuiSpriteManager& manager, i32 atlasWidth, i32 atlasHeight)
+{
     // 槽位背景 (18x18)
     // 这是程序生成的默认槽位，实际纹理来自各容器纹理
     manager.registerSprite("slot_background", 0, 0, 18, 18, atlasWidth, atlasHeight);
@@ -129,9 +126,8 @@ void GuiSpriteRegistry::registerContainerSprites(GuiSpriteManager& manager,
     manager.registerSprite("inventory_background", 0, 0, 176, 166, atlasWidth, atlasHeight);
 }
 
-void GuiSpriteRegistry::registerAllDefaults(GuiSpriteManager& manager,
-                                             i32 atlasWidth,
-                                             i32 atlasHeight) {
+void GuiSpriteRegistry::registerAllDefaults(GuiSpriteManager& manager, i32 atlasWidth, i32 atlasHeight)
+{
     registerWidgetsSprites(manager, atlasWidth, atlasHeight);
     registerIconsSprites(manager, atlasWidth, atlasHeight);
     registerContainerSprites(manager, atlasWidth, atlasHeight);
@@ -141,9 +137,8 @@ void GuiSpriteRegistry::registerAllDefaults(GuiSpriteManager& manager,
 // GuiTextureAtlas 重载（依赖Vulkan）
 // ============================================================================
 
-void GuiSpriteRegistry::registerWidgetsSprites(GuiTextureAtlas& atlas,
-                                                i32 atlasWidth,
-                                                i32 atlasHeight) {
+void GuiSpriteRegistry::registerWidgetsSprites(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     // 按钮精灵（宽度200，高度20）
     // Y坐标：禁用46，正常66，悬停86
     atlas.registerSprite("button_disabled", 0, 46, 200, 20, atlasWidth, atlasHeight);
@@ -177,9 +172,8 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiTextureAtlas& atlas,
     // 攻击指示器 (待补充)
 }
 
-void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas,
-                                              i32 atlasWidth,
-                                              i32 atlasHeight) {
+void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     // ========== 心形图标 (9x9) ==========
     // 基础X坐标：满心52，半心61，空心16
     // Y坐标：正常0， Hardcore（困难模式）+45
@@ -254,9 +248,8 @@ void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas,
     // 如果需要纹理数字，可以后续添加
 }
 
-void GuiSpriteRegistry::registerContainerSprites(GuiTextureAtlas& atlas,
-                                                  i32 atlasWidth,
-                                                  i32 atlasHeight) {
+void GuiSpriteRegistry::registerContainerSprites(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     // 槽位背景 (18x18)
     // 这是程序生成的默认槽位，实际纹理来自各容器纹理
     atlas.registerSprite("slot_background", 0, 0, 18, 18, atlasWidth, atlasHeight);
@@ -269,9 +262,8 @@ void GuiSpriteRegistry::registerContainerSprites(GuiTextureAtlas& atlas,
     atlas.registerSprite("inventory_background", 0, 0, 176, 166, atlasWidth, atlasHeight);
 }
 
-void GuiSpriteRegistry::registerAllDefaults(GuiTextureAtlas& atlas,
-                                             i32 atlasWidth,
-                                             i32 atlasHeight) {
+void GuiSpriteRegistry::registerAllDefaults(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     registerWidgetsSprites(atlas, atlasWidth, atlasHeight);
     registerIconsSprites(atlas, atlasWidth, atlasHeight);
     registerContainerSprites(atlas, atlasWidth, atlasHeight);
@@ -281,9 +273,8 @@ void GuiSpriteRegistry::registerAllDefaults(GuiTextureAtlas& atlas,
 // GuiSpriteAtlas 重载（整合类）
 // ============================================================================
 
-void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteAtlas& atlas,
-                                                i32 atlasWidth,
-                                                i32 atlasHeight) {
+void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     // 如果未指定尺寸，使用图集的实际尺寸
     if (atlasWidth <= 0 || atlasHeight <= 0) {
         atlasWidth = atlas.atlasWidth();
@@ -291,7 +282,9 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteAtlas& atlas,
     }
 
     spdlog::info("[GuiSpriteRegistry] registerWidgetsSprites: atlasSize={}x{}, hasTexture={}",
-                atlasWidth, atlasHeight, atlas.hasTexture());
+        atlasWidth,
+        atlasHeight,
+        atlas.hasTexture());
 
     // 按钮精灵（宽度200，高度20）
     // Y坐标：禁用46，正常66，悬停86
@@ -321,9 +314,8 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteAtlas& atlas,
     atlas.registerSprite("hotbar_offhand_right", 53, 22, 29, 24, atlasWidth, atlasHeight);
 }
 
-void GuiSpriteRegistry::registerIconsSprites(GuiSpriteAtlas& atlas,
-                                              i32 atlasWidth,
-                                              i32 atlasHeight) {
+void GuiSpriteRegistry::registerIconsSprites(GuiSpriteAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     // 如果未指定尺寸，使用图集的实际尺寸
     if (atlasWidth <= 0 || atlasHeight <= 0) {
         atlasWidth = atlas.atlasWidth();
@@ -331,7 +323,9 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteAtlas& atlas,
     }
 
     spdlog::info("[GuiSpriteRegistry] registerIconsSprites: atlasSize={}x{}, hasTexture={}",
-                atlasWidth, atlasHeight, atlas.hasTexture());
+        atlasWidth,
+        atlasHeight,
+        atlas.hasTexture());
 
     // ========== 心形图标 (9x9) ==========
     // 基础X坐标：满心52，半心61，空心16
@@ -403,9 +397,8 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteAtlas& atlas,
     atlas.registerSprite("crosshair", 0, 0, 15, 15, atlasWidth, atlasHeight);
 }
 
-void GuiSpriteRegistry::registerContainerSprites(GuiSpriteAtlas& atlas,
-                                                  i32 atlasWidth,
-                                                  i32 atlasHeight) {
+void GuiSpriteRegistry::registerContainerSprites(GuiSpriteAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     // 如果未指定尺寸，使用图集的实际尺寸
     if (atlasWidth <= 0 || atlasHeight <= 0) {
         atlasWidth = atlas.atlasWidth();
@@ -424,9 +417,8 @@ void GuiSpriteRegistry::registerContainerSprites(GuiSpriteAtlas& atlas,
     atlas.registerSprite("inventory_background", 0, 0, 176, 166, atlasWidth, atlasHeight);
 }
 
-void GuiSpriteRegistry::registerAllDefaults(GuiSpriteAtlas& atlas,
-                                             i32 atlasWidth,
-                                             i32 atlasHeight) {
+void GuiSpriteRegistry::registerAllDefaults(GuiSpriteAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
+{
     registerWidgetsSprites(atlas, atlasWidth, atlasHeight);
     registerIconsSprites(atlas, atlasWidth, atlasHeight);
     registerContainerSprites(atlas, atlasWidth, atlasHeight);
@@ -436,7 +428,8 @@ void GuiSpriteRegistry::registerAllDefaults(GuiSpriteAtlas& atlas,
 // 获取精灵列表（用于调试）
 // ============================================================================
 
-std::vector<GuiSprite> GuiSpriteRegistry::getWidgetsSpriteList(i32 atlasWidth, i32 atlasHeight) {
+std::vector<GuiSprite> GuiSpriteRegistry::getWidgetsSpriteList(i32 atlasWidth, i32 atlasHeight)
+{
     std::vector<GuiSprite> sprites;
     sprites.emplace_back("button_disabled", 0, 46, 200, 20, atlasWidth, atlasHeight);
     sprites.emplace_back("button_normal", 0, 66, 200, 20, atlasWidth, atlasHeight);
@@ -446,7 +439,8 @@ std::vector<GuiSprite> GuiSpriteRegistry::getWidgetsSpriteList(i32 atlasWidth, i
     return sprites;
 }
 
-std::vector<GuiSprite> GuiSpriteRegistry::getIconsSpriteList(i32 atlasWidth, i32 atlasHeight) {
+std::vector<GuiSprite> GuiSpriteRegistry::getIconsSpriteList(i32 atlasWidth, i32 atlasHeight)
+{
     std::vector<GuiSprite> sprites;
     sprites.emplace_back("heart_full", 52, 0, 9, 9, atlasWidth, atlasHeight);
     sprites.emplace_back("heart_half", 61, 0, 9, 9, atlasWidth, atlasHeight);

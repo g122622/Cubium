@@ -1,30 +1,30 @@
-#include <gtest/gtest.h>
-#include "../src/common/util/property/StateHolder.hpp"
+#include "../src/common/entity/core/Entity.hpp"
+#include "../src/common/item/context/BlockItemUseContext.hpp"
+#include "../src/common/item/core/ItemStack.hpp"
+#include "../src/common/util/math/Vector3.hpp"
+#include "../src/common/util/math/random/Random.hpp"
+#include "../src/common/util/property/Properties.hpp"
 #include "../src/common/util/property/StateContainer.hpp"
-#include "../src/common/world/block/Material.hpp"
+#include "../src/common/util/property/StateHolder.hpp"
+#include "../src/common/world/IWorld.hpp"
 #include "../src/common/world/block/Block.hpp"
 #include "../src/common/world/block/BlockRegistry.hpp"
+#include "../src/common/world/block/Material.hpp"
 #include "../src/common/world/block/VanillaBlocks.hpp"
-#include "../src/common/world/IWorld.hpp"
 #include "../src/common/world/block/blocks/FallingBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "../src/common/world/block/blocks/coral/CoralBlock.hpp"
 #include "../src/common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
-#include "../src/common/item/context/BlockItemUseContext.hpp"
-#include "../src/common/item/core/ItemStack.hpp"
+#include "../src/common/world/border/WorldBorder.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
 #include "../src/common/world/fluid/FluidRegistry.hpp"
-#include "../src/common/entity/core/Entity.hpp"
-#include "../src/common/util/math/random/Random.hpp"
-#include "../src/common/util/math/Vector3.hpp"
-#include "../src/common/util/property/Properties.hpp"
 #include "../src/common/world/tick/manager/TickManager.hpp"
-#include "../src/common/world/border/WorldBorder.hpp"
 #include <atomic>
 #include <memory>
 #include <unordered_map>
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -35,10 +35,11 @@ using namespace mc;
 class TestBlock : public Block {
 public:
     explicit TestBlock(BlockProperties properties)
-        : Block(properties) {
+        : Block(properties)
+    {
         // 创建空状态容器
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .create([](const Block& block, auto values, u32 id) {
+        auto container =
+            StateContainer<Block, BlockState>::Builder(*this).create([](const Block& block, auto values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
             });
         createBlockState(std::move(container));
@@ -48,74 +49,75 @@ public:
 class TestBlockWithAxis : public Block {
 public:
     explicit TestBlockWithAxis(BlockProperties properties)
-        : Block(properties) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .addAxis("axis")
-            .create([](const Block& block, auto values, u32 id) {
+        : Block(properties)
+    {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).addAxis("axis").create(
+            [](const Block& block, auto values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
             });
         createBlockState(std::move(container));
     }
 
     // 从 StateContainer 获取属性
-    static const EnumProperty<Axis>& AXIS(const Block& block) {
-        return *static_cast<const EnumProperty<Axis>*>(
-            block.stateContainer().getProperty("axis"));
+    static const EnumProperty<Axis>& AXIS(const Block& block)
+    {
+        return *static_cast<const EnumProperty<Axis>*>(block.stateContainer().getProperty("axis"));
     }
 };
 
 class TestBlockWithFacing : public Block {
 public:
     explicit TestBlockWithFacing(BlockProperties properties)
-        : Block(properties) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .addHorizontalDirection("facing")
-            .create([](const Block& block, auto values, u32 id) {
+        : Block(properties)
+    {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).addHorizontalDirection("facing").create(
+            [](const Block& block, auto values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
             });
         createBlockState(std::move(container));
     }
 
-    static const DirectionProperty& FACING(const Block& block) {
-        return *static_cast<const DirectionProperty*>(
-            block.stateContainer().getProperty("facing"));
+    static const DirectionProperty& FACING(const Block& block)
+    {
+        return *static_cast<const DirectionProperty*>(block.stateContainer().getProperty("facing"));
     }
 };
 
 class TestBlockWithMultiple : public Block {
 public:
     explicit TestBlockWithMultiple(BlockProperties properties)
-        : Block(properties) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .addHorizontalDirection("facing")
-            .addBoolean("lit")
-            .create([](const Block& block, auto values, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), id);
-            });
+        : Block(properties)
+    {
+        auto container =
+            StateContainer<Block, BlockState>::Builder(*this).addHorizontalDirection("facing").addBoolean("lit").create(
+                [](const Block& block, auto values, u32 id) {
+                    return std::make_unique<BlockState>(block, std::move(values), id);
+                });
         createBlockState(std::move(container));
     }
 
-    static const DirectionProperty& FACING(const Block& block) {
-        return *static_cast<const DirectionProperty*>(
-            block.stateContainer().getProperty("facing"));
+    static const DirectionProperty& FACING(const Block& block)
+    {
+        return *static_cast<const DirectionProperty*>(block.stateContainer().getProperty("facing"));
     }
 
-    static const BooleanProperty& LIT(const Block& block) {
-        return *static_cast<const BooleanProperty*>(
-            block.stateContainer().getProperty("lit"));
+    static const BooleanProperty& LIT(const Block& block)
+    {
+        return *static_cast<const BooleanProperty*>(block.stateContainer().getProperty("lit"));
     }
 };
 
 class TestBlockWithoutExplicitStateContainer : public Block {
 public:
     explicit TestBlockWithoutExplicitStateContainer(BlockProperties properties)
-        : Block(properties) {
-    }
+        : Block(properties)
+    {}
 };
 
 namespace {
 
-ResourceLocation makeUniqueTestBlockId() {
+ResourceLocation makeUniqueTestBlockId()
+{
     static std::atomic<u32> counter{0};
     const u32 suffix = ++counter;
     return ResourceLocation("test:auto_state_block_" + std::to_string(suffix));
@@ -123,7 +125,8 @@ ResourceLocation makeUniqueTestBlockId() {
 
 class BlockRulesTestWorld final : public IBlockReader {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(packPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second;
@@ -131,12 +134,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         if (state != nullptr) {
             const fluid::FluidState* fluidState = state->getFluidState();
@@ -150,21 +155,30 @@ public:
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z, 15); }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_blockLight, x, y, z, 15);
+    }
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z, 15); }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
         return {};
     }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
         return {};
     }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
         return {};
     }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
@@ -177,73 +191,56 @@ public:
     [[nodiscard]] bool isRaining() const override { return m_isRaining; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return m_canRainAt; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         (void)entity;
         ++m_spawnedEntityCount;
         return m_spawnEntityResult;
     }
 
-    void setSpawnEntityResult(EntityId result) {
-        m_spawnEntityResult = result;
-    }
+    void setSpawnEntityResult(EntityId result) { m_spawnEntityResult = result; }
 
-    void setSeed(u64 seed) {
-        m_seed = seed;
-    }
+    void setSeed(u64 seed) { m_seed = seed; }
 
-    void setRaining(bool raining) {
-        m_isRaining = raining;
-    }
+    void setRaining(bool raining) { m_isRaining = raining; }
 
-    void setCanRainAt(bool canRainAt) {
-        m_canRainAt = canRainAt;
-    }
+    void setCanRainAt(bool canRainAt) { m_canRainAt = canRainAt; }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) {
-        m_skyLight[pos] = light;
-    }
+    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) {
-        m_blockLight[pos] = light;
-    }
+    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
 
-    [[nodiscard]] i32 spawnedEntityCount() const {
-        return m_spawnedEntityCount;
-    }
+    [[nodiscard]] i32 spawnedEntityCount() const { return m_spawnedEntityCount; }
 
     // TickManager interface
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
     }
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<BlockRulesTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
     // Random interface
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
-    }
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        return m_worldBorder;
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        return m_worldBorder;
-    }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
 private:
-    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z, u8 fallback) {
+    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z, u8 fallback)
+    {
         const auto it = lights.find(BlockPos(x, y, z));
         if (it != lights.end()) {
             return it->second;
@@ -251,7 +248,8 @@ private:
         return fallback;
     }
 
-    static i64 packPos(i32 x, i32 y, i32 z) {
+    static i64 packPos(i32 x, i32 y, i32 z)
+    {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
     }
 
@@ -259,7 +257,7 @@ private:
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
-    math::Random m_random{12345};  // 固定种子的随机数生成器
+    math::Random m_random{12345}; // 固定种子的随机数生成器
     world::border::WorldBorder m_worldBorder;
     u64 m_seed = 0;
     bool m_isRaining = false;
@@ -268,10 +266,10 @@ private:
     i32 m_spawnedEntityCount = 0;
 };
 
-BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
+BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw)
+{
     static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
-    return BlockItemUseContext(
-        world,
+    return BlockItemUseContext(world,
         nullptr,
         EMPTY_STACK,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
@@ -283,12 +281,14 @@ BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Dir
 class TestCropBlock final : public blocks::CropBlock {
 public:
     explicit TestCropBlock(const BlockProperties& properties)
-        : CropBlock(properties) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::AGE_0_7())
-            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), id);
-            });
+        : CropBlock(properties)
+    {
+        auto container =
+            StateContainer<Block, BlockState>::Builder(*this)
+                .add(BlockStateProperties::AGE_0_7())
+                .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                    return std::make_unique<BlockState>(block, std::move(values), id);
+                });
         createBlockState(std::move(container));
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
     }
@@ -300,12 +300,14 @@ public:
 class TestStemBlock final : public blocks::StemBlock {
 public:
     explicit TestStemBlock(const BlockProperties& properties)
-        : StemBlock(nullptr, properties) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::AGE_0_7())
-            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), id);
-            });
+        : StemBlock(nullptr, properties)
+    {
+        auto container =
+            StateContainer<Block, BlockState>::Builder(*this)
+                .add(BlockStateProperties::AGE_0_7())
+                .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                    return std::make_unique<BlockState>(block, std::move(values), id);
+                });
         createBlockState(std::move(container));
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
     }
@@ -319,7 +321,8 @@ public:
 // Material 测试
 // ============================================================================
 
-TEST(MaterialTest, PredefinedMaterials) {
+TEST(MaterialTest, PredefinedMaterials)
+{
     // 空气
     EXPECT_FALSE(Material::AIR.blocksMovement());
     EXPECT_FALSE(Material::AIR.isSolid());
@@ -351,12 +354,9 @@ TEST(MaterialTest, PredefinedMaterials) {
     EXPECT_FALSE(Material::ORGANIC.isReplaceable());
 }
 
-TEST(MaterialTest, MaterialBuilder) {
-    Material customMaterial = MaterialBuilder()
-        .solid()
-        .flammable()
-        .opaque()
-        .build();
+TEST(MaterialTest, MaterialBuilder)
+{
+    Material customMaterial = MaterialBuilder().solid().flammable().opaque().build();
 
     EXPECT_TRUE(customMaterial.isSolid());
     EXPECT_TRUE(customMaterial.isFlammable());
@@ -368,7 +368,8 @@ TEST(MaterialTest, MaterialBuilder) {
 // BlockProperties 测试
 // ============================================================================
 
-TEST(BlockPropertiesTest, BasicProperties) {
+TEST(BlockPropertiesTest, BasicProperties)
+{
     BlockProperties props{Material::ROCK};
 
     // 注意: BlockProperties 存储 Material 副本，不是引用
@@ -382,12 +383,9 @@ TEST(BlockPropertiesTest, BasicProperties) {
     EXPECT_FALSE(props.isFlammable());
 }
 
-TEST(BlockPropertiesTest, ChainProperties) {
-    BlockProperties props = BlockProperties{Material::WOOD}
-        .hardness(2.0f)
-        .resistance(3.0f)
-        .lightLevel(15)
-        .flammable();
+TEST(BlockPropertiesTest, ChainProperties)
+{
+    BlockProperties props = BlockProperties{Material::WOOD}.hardness(2.0f).resistance(3.0f).lightLevel(15).flammable();
 
     EXPECT_EQ(props.hardness(), 2.0f);
     EXPECT_EQ(props.resistance(), 3.0f);
@@ -395,7 +393,8 @@ TEST(BlockPropertiesTest, ChainProperties) {
     EXPECT_TRUE(props.isFlammable());
 }
 
-TEST(BlockPropertiesTest, SpecialFlags) {
+TEST(BlockPropertiesTest, SpecialFlags)
+{
     BlockProperties noCollision = BlockProperties{Material::ROCK}.noCollision();
     EXPECT_FALSE(noCollision.hasCollision());
 
@@ -406,20 +405,23 @@ TEST(BlockPropertiesTest, SpecialFlags) {
     EXPECT_TRUE(replaceable.isReplaceable());
 }
 
-TEST(BlockPropertiesTest, Strength) {
+TEST(BlockPropertiesTest, Strength)
+{
     BlockProperties props = BlockProperties{Material::ROCK}.strength(2.5f);
 
     EXPECT_EQ(props.hardness(), 2.5f);
     EXPECT_EQ(props.resistance(), 2.5f);
 }
 
-TEST(BlockPropertiesTest, TransparentDefaultOpacityMatchesVanillaRule) {
+TEST(BlockPropertiesTest, TransparentDefaultOpacityMatchesVanillaRule)
+{
     // 非不透明方块在未显式设置 opacity 时，默认应为 1（非全黑遮挡）。
     TestBlock glassLike{BlockProperties{Material::GLASS}.notSolid()};
     EXPECT_EQ(glassLike.defaultState().getOpacity(), 1);
 }
 
-TEST(BlockSoundTypeTest, DirtUsesVanillaGroundSoundEvents) {
+TEST(BlockSoundTypeTest, DirtUsesVanillaGroundSoundEvents)
+{
     const auto& soundType = BlockSoundTypes::DIRT;
 
     EXPECT_EQ(soundType.getBreakSound().toString(), "minecraft:block.gravel.break");
@@ -429,7 +431,8 @@ TEST(BlockSoundTypeTest, DirtUsesVanillaGroundSoundEvents) {
     EXPECT_EQ(soundType.getFallSound().toString(), "minecraft:block.gravel.fall");
 }
 
-TEST(BlockSoundTypeTest, GrassBlockUsesGrassSoundType) {
+TEST(BlockSoundTypeTest, GrassBlockUsesGrassSoundType)
+{
     VanillaBlocks::initialize();
 
     const auto& soundType = VanillaBlocks::GRASS_BLOCK->defaultState().getSoundType();
@@ -441,7 +444,8 @@ TEST(BlockSoundTypeTest, GrassBlockUsesGrassSoundType) {
 // StateContainer 测试
 // ============================================================================
 
-TEST(StateContainerTest, EmptyContainer) {
+TEST(StateContainerTest, EmptyContainer)
+{
     TestBlock block{BlockProperties{Material::ROCK}.hardness(1.0f)};
 
     const auto& container = block.stateContainer();
@@ -454,7 +458,8 @@ TEST(StateContainerTest, EmptyContainer) {
     EXPECT_EQ(baseState.values().size(), 0u);
 }
 
-TEST(StateContainerTest, SingleProperty) {
+TEST(StateContainerTest, SingleProperty)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
 
     const auto& container = block.stateContainer();
@@ -472,7 +477,8 @@ TEST(StateContainerTest, SingleProperty) {
     EXPECT_EQ(prop->name(), "axis");
 }
 
-TEST(StateContainerTest, MultipleProperties) {
+TEST(StateContainerTest, MultipleProperties)
+{
     TestBlockWithMultiple block{BlockProperties{Material::ROCK}};
 
     const auto& container = block.stateContainer();
@@ -481,7 +487,8 @@ TEST(StateContainerTest, MultipleProperties) {
     EXPECT_EQ(container.stateCount(), 8u);
 }
 
-TEST(StateContainerTest, GetProperty) {
+TEST(StateContainerTest, GetProperty)
+{
     TestBlockWithFacing block{BlockProperties{Material::ROCK}};
 
     const auto& container = block.stateContainer();
@@ -499,7 +506,8 @@ TEST(StateContainerTest, GetProperty) {
 // BlockState 测试
 // ============================================================================
 
-TEST(BlockStateTest, GetProperty) {
+TEST(BlockStateTest, GetProperty)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& state = block.defaultState();
 
@@ -508,7 +516,8 @@ TEST(BlockStateTest, GetProperty) {
     EXPECT_EQ(axis, Axis::X);
 }
 
-TEST(BlockStateTest, SetProperty) {
+TEST(BlockStateTest, SetProperty)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& state = block.defaultState();
 
@@ -521,7 +530,8 @@ TEST(BlockStateTest, SetProperty) {
     EXPECT_EQ(state3.get(TestBlockWithAxis::AXIS(block)), Axis::Z);
 }
 
-TEST(BlockStateTest, SetPropertySameValue) {
+TEST(BlockStateTest, SetPropertySameValue)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& state = block.defaultState();
 
@@ -530,7 +540,8 @@ TEST(BlockStateTest, SetPropertySameValue) {
     EXPECT_EQ(&state, &newState);
 }
 
-TEST(BlockStateTest, CycleProperty) {
+TEST(BlockStateTest, CycleProperty)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& state = block.defaultState();
 
@@ -547,7 +558,8 @@ TEST(BlockStateTest, CycleProperty) {
     EXPECT_EQ(state3.get(TestBlockWithAxis::AXIS(block)), Axis::X);
 }
 
-TEST(BlockStateTest, HasProperty) {
+TEST(BlockStateTest, HasProperty)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& state = block.defaultState();
     // 这个测试不需要 litProp
@@ -556,7 +568,8 @@ TEST(BlockStateTest, HasProperty) {
     // 该方块没有 lit 属性，跳过此测试  // 这个方块没有 lit 属性
 }
 
-TEST(BlockStateTest, StateId) {
+TEST(BlockStateTest, StateId)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& states = block.stateContainer().validStates();
 
@@ -568,7 +581,8 @@ TEST(BlockStateTest, StateId) {
     EXPECT_EQ(ids.size(), states.size());
 }
 
-TEST(BlockStateTest, ToString) {
+TEST(BlockStateTest, ToString)
+{
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& state = block.defaultState();
 
@@ -577,17 +591,19 @@ TEST(BlockStateTest, ToString) {
     EXPECT_TRUE(str.find("axis") != std::string::npos);
 }
 
-TEST(BlockStateTest, ToModelKeyUsesStableSortedOrder) {
+TEST(BlockStateTest, ToModelKeyUsesStableSortedOrder)
+{
     TestBlockWithMultiple block{BlockProperties{Material::ROCK}};
     const auto& state = block.defaultState()
-        .with(TestBlockWithMultiple::FACING(block), Direction::West)
-        .with(TestBlockWithMultiple::LIT(block), true);
+                            .with(TestBlockWithMultiple::FACING(block), Direction::West)
+                            .with(TestBlockWithMultiple::LIT(block), true);
 
     const std::string modelKey = state.toModelKey();
     EXPECT_EQ(modelKey, "facing=west,lit=true");
 }
 
-TEST(BlockStateTest, MultiplePropertiesInteraction) {
+TEST(BlockStateTest, MultiplePropertiesInteraction)
+{
     TestBlockWithMultiple block{BlockProperties{Material::ROCK}};
     const auto& state = block.defaultState();
 
@@ -597,10 +613,10 @@ TEST(BlockStateTest, MultiplePropertiesInteraction) {
 
     const auto& state1 = state.with(TestBlockWithMultiple::FACING(block), Direction::East);
     EXPECT_EQ(state1.get(TestBlockWithMultiple::FACING(block)), Direction::East);
-    EXPECT_EQ(state1.get(TestBlockWithMultiple::LIT(block)), lit);  // lit 应该不变
+    EXPECT_EQ(state1.get(TestBlockWithMultiple::LIT(block)), lit); // lit 应该不变
 
     const auto& state2 = state1.with(TestBlockWithMultiple::LIT(block), true);
-    EXPECT_EQ(state2.get(TestBlockWithMultiple::FACING(block)), Direction::East);  // facing 应该不变
+    EXPECT_EQ(state2.get(TestBlockWithMultiple::FACING(block)), Direction::East); // facing 应该不变
     EXPECT_EQ(state2.get(TestBlockWithMultiple::LIT(block)), true);
 }
 
@@ -608,7 +624,8 @@ TEST(BlockStateTest, MultiplePropertiesInteraction) {
 // Block 测试
 // ============================================================================
 
-TEST(BlockTest, BasicProperties) {
+TEST(BlockTest, BasicProperties)
+{
     TestBlock block{BlockProperties{Material::ROCK}.hardness(1.5f).resistance(6.0f)};
 
     EXPECT_EQ(block.hardness(), 1.5f);
@@ -617,14 +634,16 @@ TEST(BlockTest, BasicProperties) {
     EXPECT_EQ(block.material().isSolid(), Material::ROCK.isSolid());
 }
 
-TEST(BlockTest, DefaultState) {
+TEST(BlockTest, DefaultState)
+{
     TestBlock block{BlockProperties{Material::ROCK}};
 
     const auto& state = block.defaultState();
     EXPECT_EQ(&state.owner(), &block);
 }
 
-TEST(BlockTest, IsAir) {
+TEST(BlockTest, IsAir)
+{
     // 初始化 VanillaBlocks 确保 AIR 存在
     VanillaBlocks::initialize();
 
@@ -636,14 +655,16 @@ TEST(BlockTest, IsAir) {
     EXPECT_FALSE(normalBlock.isAir(normalBlock.defaultState()));
 }
 
-TEST(BlockTest, StateCount) {
+TEST(BlockTest, StateCount)
+{
     TestBlockWithMultiple block{BlockProperties{Material::ROCK}};
 
     // 4 directions * 2 lit values = 8 states
     EXPECT_EQ(block.stateContainer().stateCount(), 8u);
 }
 
-TEST(BlockTest, BlockWithoutExplicitStateContainer_HasValidDefaultState) {
+TEST(BlockTest, BlockWithoutExplicitStateContainer_HasValidDefaultState)
+{
     TestBlockWithoutExplicitStateContainer block{BlockProperties{Material::ROCK}};
 
     EXPECT_EQ(block.stateContainer().stateCount(), 1u);
@@ -652,7 +673,8 @@ TEST(BlockTest, BlockWithoutExplicitStateContainer_HasValidDefaultState) {
     EXPECT_EQ(&defaultState.owner(), &block);
 }
 
-TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates) {
+TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates)
+{
     const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 8.0f, 16.0f);
     ASSERT_EQ(shape.boxCount(), 1u);
 
@@ -665,7 +687,8 @@ TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates) {
     EXPECT_FLOAT_EQ(box.maxZ, 1.0f);
 }
 
-TEST(VoxelShapesTest, CubeAcceptsNormalizedCoordinates) {
+TEST(VoxelShapesTest, CubeAcceptsNormalizedCoordinates)
+{
     const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
     ASSERT_EQ(shape.boxCount(), 1u);
 
@@ -682,23 +705,21 @@ TEST(VoxelShapesTest, CubeAcceptsNormalizedCoordinates) {
 // BlockRegistry 测试
 // ============================================================================
 
-TEST(BlockRegistryTest, RegisterBlock) {
+TEST(BlockRegistryTest, RegisterBlock)
+{
     // 注意：由于 VanillaBlocks::initialize() 可能已运行，blockId 可能不为 1
     auto& block = BlockRegistry::instance().registerBlock<TestBlock>(
-        ResourceLocation("test:test_block_reg1"),
-        BlockProperties{Material::ROCK}
-    );
+        ResourceLocation("test:test_block_reg1"), BlockProperties{Material::ROCK});
 
     EXPECT_NE(&block, nullptr);
     EXPECT_EQ(block.blockLocation(), ResourceLocation("test:test_block_reg1"));
-    EXPECT_GT(block.blockId(), 0u);  // ID should be > 0
+    EXPECT_GT(block.blockId(), 0u); // ID should be > 0
 }
 
-TEST(BlockRegistryTest, RegisterBlockWithoutExplicitStateContainer) {
+TEST(BlockRegistryTest, RegisterBlockWithoutExplicitStateContainer)
+{
     auto& block = BlockRegistry::instance().registerBlock<TestBlockWithoutExplicitStateContainer>(
-        makeUniqueTestBlockId(),
-        BlockProperties{Material::ROCK}
-    );
+        makeUniqueTestBlockId(), BlockProperties{Material::ROCK});
 
     EXPECT_EQ(block.stateContainer().stateCount(), 1u);
 
@@ -707,49 +728,41 @@ TEST(BlockRegistryTest, RegisterBlockWithoutExplicitStateContainer) {
     EXPECT_EQ(state->blockId(), block.blockId());
 }
 
-TEST(BlockRegistryTest, GetBlockById) {
+TEST(BlockRegistryTest, GetBlockById)
+{
     auto& registered = BlockRegistry::instance().registerBlock<TestBlock>(
-        ResourceLocation("test:test_block_reg2"),
-        BlockProperties{Material::ROCK}
-    );
+        ResourceLocation("test:test_block_reg2"), BlockProperties{Material::ROCK});
 
     // 通过已注册方块的 ID 查找，确保返回相同的方块
     Block* retrieved = BlockRegistry::instance().getBlock(registered.blockId());
     EXPECT_EQ(retrieved, &registered);
 }
 
-TEST(BlockRegistryTest, GetBlockByLocation) {
+TEST(BlockRegistryTest, GetBlockByLocation)
+{
     auto& registered = BlockRegistry::instance().registerBlock<TestBlock>(
-        ResourceLocation("test:test_block_reg3"),
-        BlockProperties{Material::ROCK}
-    );
+        ResourceLocation("test:test_block_reg3"), BlockProperties{Material::ROCK});
 
     Block* retrieved = BlockRegistry::instance().getBlock(ResourceLocation("test:test_block_reg3"));
     EXPECT_EQ(retrieved, &registered);
 }
 
-TEST(BlockRegistryTest, DuplicateRegistrationReturnsExistingBlock) {
+TEST(BlockRegistryTest, DuplicateRegistrationReturnsExistingBlock)
+{
     const ResourceLocation id("test:duplicate_block_reg");
     const size_t countBefore = BlockRegistry::instance().blockCount();
 
-    auto& first = BlockRegistry::instance().registerBlock<TestBlock>(
-        id,
-        BlockProperties{Material::ROCK}
-    );
-    auto& second = BlockRegistry::instance().registerBlock<TestBlock>(
-        id,
-        BlockProperties{Material::WOOD}
-    );
+    auto& first = BlockRegistry::instance().registerBlock<TestBlock>(id, BlockProperties{Material::ROCK});
+    auto& second = BlockRegistry::instance().registerBlock<TestBlock>(id, BlockProperties{Material::WOOD});
 
     EXPECT_EQ(&first, &second);
     EXPECT_EQ(BlockRegistry::instance().blockCount(), countBefore + 1);
 }
 
-TEST(BlockRegistryTest, GetBlockState) {
+TEST(BlockRegistryTest, GetBlockState)
+{
     auto& block = BlockRegistry::instance().registerBlock<TestBlockWithAxis>(
-        ResourceLocation("test:block_with_axis_reg"),
-        BlockProperties{Material::WOOD}
-    );
+        ResourceLocation("test:block_with_axis_reg"), BlockProperties{Material::WOOD});
 
     // 获取默认状态
     const auto& defaultState = block.defaultState();
@@ -757,34 +770,26 @@ TEST(BlockRegistryTest, GetBlockState) {
     EXPECT_EQ(retrieved, &defaultState);
 }
 
-TEST(BlockRegistryTest, ForEachBlock) {
+TEST(BlockRegistryTest, ForEachBlock)
+{
     BlockRegistry::instance().registerBlock<TestBlock>(
-        ResourceLocation("test:blockA_reg"),
-        BlockProperties{Material::ROCK}
-    );
+        ResourceLocation("test:blockA_reg"), BlockProperties{Material::ROCK});
     BlockRegistry::instance().registerBlock<TestBlock>(
-        ResourceLocation("test:blockB_reg"),
-        BlockProperties{Material::WOOD}
-    );
+        ResourceLocation("test:blockB_reg"), BlockProperties{Material::WOOD});
 
     int count = 0;
-    BlockRegistry::instance().forEachBlock([&count](Block&) {
-        count++;
-    });
+    BlockRegistry::instance().forEachBlock([&count](Block&) { count++; });
 
     EXPECT_GT(count, 0);
 }
 
-TEST(BlockRegistryTest, ForEachBlockState) {
+TEST(BlockRegistryTest, ForEachBlockState)
+{
     BlockRegistry::instance().registerBlock<TestBlockWithAxis>(
-        ResourceLocation("test:block_with_axis_reg2"),
-        BlockProperties{Material::WOOD}
-    );
+        ResourceLocation("test:block_with_axis_reg2"), BlockProperties{Material::WOOD});
 
     int count = 0;
-    BlockRegistry::instance().forEachBlockState([&count](const BlockState&) {
-        count++;
-    });
+    BlockRegistry::instance().forEachBlockState([&count](const BlockState&) { count++; });
 
     // axis has 3 values, so at least 3 states
     EXPECT_GE(count, 3);
@@ -794,7 +799,8 @@ TEST(BlockRegistryTest, ForEachBlockState) {
 // VanillaBlocks 测试
 // ============================================================================
 
-TEST(VanillaBlocksTest, Initialization) {
+TEST(VanillaBlocksTest, Initialization)
+{
     VanillaBlocks::initialize();
 
     // 检查基础方块
@@ -853,11 +859,10 @@ TEST(VanillaBlocksTest, Initialization) {
     EXPECT_TRUE(VanillaBlocks::GLASS->defaultState().propagatesSkylightDown());
 }
 
-TEST(BlockStateTest, Caching) {
+TEST(BlockStateTest, Caching)
+{
     auto& block = BlockRegistry::instance().registerBlock<TestBlockWithMultiple>(
-        ResourceLocation("test:block_caching"),
-        BlockProperties{Material::ROCK}
-    );
+        ResourceLocation("test:block_caching"), BlockProperties{Material::ROCK});
 
     const auto& state1 = block.defaultState();
     const auto& state2 = state1.with(TestBlockWithMultiple::FACING(block), Direction::East);
@@ -877,7 +882,8 @@ TEST(BlockStateTest, Caching) {
 // 方块注册测试 - 验证动态ID分配和资源位置查找
 // ============================================================================
 
-TEST(BlockRegistryTest, BasicBlocksRegistration) {
+TEST(BlockRegistryTest, BasicBlocksRegistration)
+{
     VanillaBlocks::initialize();
 
     // 验证基础方块已注册且可通过资源位置查找
@@ -894,7 +900,8 @@ TEST(BlockRegistryTest, BasicBlocksRegistration) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:gravel")), nullptr);
 }
 
-TEST(BlockRegistryTest, OreBlocksRegistration) {
+TEST(BlockRegistryTest, OreBlocksRegistration)
+{
     VanillaBlocks::initialize();
 
     // 验证矿石方块已注册
@@ -907,7 +914,8 @@ TEST(BlockRegistryTest, OreBlocksRegistration) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:redstone_ore")), nullptr);
 }
 
-TEST(BlockRegistryTest, LogBlocksRegistration) {
+TEST(BlockRegistryTest, LogBlocksRegistration)
+{
     VanillaBlocks::initialize();
 
     // 验证原木和树叶已注册
@@ -925,7 +933,8 @@ TEST(BlockRegistryTest, LogBlocksRegistration) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:dark_oak_leaves")), nullptr);
 }
 
-TEST(BlockRegistryTest, StoneVariantsRegistration) {
+TEST(BlockRegistryTest, StoneVariantsRegistration)
+{
     VanillaBlocks::initialize();
 
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:granite")), nullptr);
@@ -933,7 +942,8 @@ TEST(BlockRegistryTest, StoneVariantsRegistration) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:andesite")), nullptr);
 }
 
-TEST(BlockRegistryTest, VegetationBlocksRegistration) {
+TEST(BlockRegistryTest, VegetationBlocksRegistration)
+{
     VanillaBlocks::initialize();
 
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:short_grass")), nullptr);
@@ -943,7 +953,8 @@ TEST(BlockRegistryTest, VegetationBlocksRegistration) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:poppy")), nullptr);
 }
 
-TEST(BlockRegistryTest, NetherBlocksRegistration) {
+TEST(BlockRegistryTest, NetherBlocksRegistration)
+{
     VanillaBlocks::initialize();
 
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:netherrack")), nullptr);
@@ -956,7 +967,8 @@ TEST(BlockRegistryTest, NetherBlocksRegistration) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_wart_block")), nullptr);
 }
 
-TEST(BlockStateComparisonTest, IsComparisonWorks) {
+TEST(BlockStateComparisonTest, IsComparisonWorks)
+{
     VanillaBlocks::initialize();
 
     // 验证方块状态比较正确工作
@@ -973,7 +985,8 @@ TEST(BlockStateComparisonTest, IsComparisonWorks) {
     EXPECT_FALSE(dirtState->is(VanillaBlocks::STONE));
 }
 
-TEST(BlockRegistryTest, UniqueBlockIds) {
+TEST(BlockRegistryTest, UniqueBlockIds)
+{
     VanillaBlocks::initialize();
 
     // 验证不同方块有不同的ID
@@ -1023,7 +1036,8 @@ TEST(BlockRegistryTest, UniqueBlockIds) {
     EXPECT_EQ(ids.size(), 28u);
 }
 
-TEST(VanillaBlocksTest, SandFamilyRegisteredAsFallingBlocks) {
+TEST(VanillaBlocksTest, SandFamilyRegisteredAsFallingBlocks)
+{
     VanillaBlocks::initialize();
 
     EXPECT_NE(dynamic_cast<blocks::FallingBlock*>(VanillaBlocks::SAND), nullptr);
@@ -1031,7 +1045,8 @@ TEST(VanillaBlocksTest, SandFamilyRegisteredAsFallingBlocks) {
     EXPECT_NE(dynamic_cast<blocks::FallingBlock*>(VanillaBlocks::RED_SAND), nullptr);
 }
 
-TEST(AgriculturalBehaviorTest, SugarCaneRequiresAdjacentWater) {
+TEST(AgriculturalBehaviorTest, SugarCaneRequiresAdjacentWater)
+{
     fluid::FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
@@ -1050,7 +1065,8 @@ TEST(AgriculturalBehaviorTest, SugarCaneRequiresAdjacentWater) {
     EXPECT_TRUE(sugarCaneBlock->isValidPosition(caneState, world, canePos));
 }
 
-TEST(AgriculturalBehaviorTest, DryFarmlandWithoutCropsTurnsToDirt) {
+TEST(AgriculturalBehaviorTest, DryFarmlandWithoutCropsTurnsToDirt)
+{
     fluid::FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
@@ -1070,7 +1086,8 @@ TEST(AgriculturalBehaviorTest, DryFarmlandWithoutCropsTurnsToDirt) {
     EXPECT_TRUE(updated->is(VanillaBlocks::DIRT));
 }
 
-TEST(AgriculturalBehaviorTest, FarmlandRehydratesWhenRaining) {
+TEST(AgriculturalBehaviorTest, FarmlandRehydratesWhenRaining)
+{
     fluid::FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
@@ -1093,7 +1110,8 @@ TEST(AgriculturalBehaviorTest, FarmlandRehydratesWhenRaining) {
     EXPECT_EQ(updated->get(BlockStateProperties::MOISTURE_0_7()), 7);
 }
 
-TEST(AgriculturalBehaviorTest, CropRequiresLightToStayValid) {
+TEST(AgriculturalBehaviorTest, CropRequiresLightToStayValid)
+{
     // 注意：该用例依赖 VanillaBlocks（FARMLAND）已注册，否则会出现空指针访问。
     // 测试不能依赖其它用例的执行顺序，因此这里必须显式初始化。
     fluid::FluidRegistry::instance().initialize();
@@ -1117,7 +1135,8 @@ TEST(AgriculturalBehaviorTest, CropRequiresLightToStayValid) {
     EXPECT_TRUE(crop.isValidPosition(crop.defaultState(), world, cropPos));
 }
 
-TEST(AgriculturalBehaviorTest, CropBonemealGrowthUsesWorldSeedAndPosition) {
+TEST(AgriculturalBehaviorTest, CropBonemealGrowthUsesWorldSeedAndPosition)
+{
     TestCropBlock crop(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
     BlockRulesTestWorld world;
     const BlockPos cropPos(8, 65, 8);
@@ -1141,7 +1160,8 @@ TEST(AgriculturalBehaviorTest, CropBonemealGrowthUsesWorldSeedAndPosition) {
     EXPECT_EQ(crop.getAge(*secondResult), firstAge);
 }
 
-TEST(AgriculturalBehaviorTest, StemBonemealGrowthUsesWorldSeedAndPosition) {
+TEST(AgriculturalBehaviorTest, StemBonemealGrowthUsesWorldSeedAndPosition)
+{
     TestStemBlock stem(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
     BlockRulesTestWorld world;
     const BlockPos stemPos(10, 65, 10);
@@ -1165,14 +1185,14 @@ TEST(AgriculturalBehaviorTest, StemBonemealGrowthUsesWorldSeedAndPosition) {
     EXPECT_EQ(stem.getAge(*secondResult), firstAge);
 }
 
-TEST(CoralBehaviorTest, CoralBlockUsesSourceWaterAndFallsBackToDeadBlock) {
+TEST(CoralBehaviorTest, CoralBlockUsesSourceWaterAndFallsBackToDeadBlock)
+{
     fluid::FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, nullptr);
 
-    blocks::CoralBlock coral(
-        blocks::CoralColor::Tube,
+    blocks::CoralBlock coral(blocks::CoralColor::Tube,
         VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->blockId(),
         BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f));
 
@@ -1191,14 +1211,14 @@ TEST(CoralBehaviorTest, CoralBlockUsesSourceWaterAndFallsBackToDeadBlock) {
     EXPECT_TRUE(dryUpdated.is(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK));
 }
 
-TEST(CoralBehaviorTest, CoralFanUsesSourceWaterAndFallsBackToDeadBlock) {
+TEST(CoralBehaviorTest, CoralFanUsesSourceWaterAndFallsBackToDeadBlock)
+{
     fluid::FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, nullptr);
 
-    blocks::CoralFanBlock coralFan(
-        blocks::CoralColor::Tube,
+    blocks::CoralFanBlock coralFan(blocks::CoralColor::Tube,
         VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->blockId(),
         BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid());
 
@@ -1213,18 +1233,19 @@ TEST(CoralBehaviorTest, CoralFanUsesSourceWaterAndFallsBackToDeadBlock) {
     BlockRulesTestWorld dryWorld;
     const BlockPos dryPos(18, 64, 18);
     const BlockState& dryState = coralFan.defaultState();
-    BlockState dryUpdated = coralFan.updatePostPlacement(dryState, Direction::Up, dryState, dryWorld, dryPos, dryPos.up());
+    BlockState dryUpdated =
+        coralFan.updatePostPlacement(dryState, Direction::Up, dryState, dryWorld, dryPos, dryPos.up());
     EXPECT_TRUE(dryUpdated.is(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK));
 }
 
-TEST(CoralBehaviorTest, CoralWallFanUsesSourceWaterAndFallsBackToDeadBlock) {
+TEST(CoralBehaviorTest, CoralWallFanUsesSourceWaterAndFallsBackToDeadBlock)
+{
     fluid::FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, nullptr);
 
-    blocks::CoralWallFanBlock coralWallFan(
-        blocks::CoralColor::Tube,
+    blocks::CoralWallFanBlock coralWallFan(blocks::CoralColor::Tube,
         VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->blockId(),
         BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid());
 
@@ -1239,11 +1260,13 @@ TEST(CoralBehaviorTest, CoralWallFanUsesSourceWaterAndFallsBackToDeadBlock) {
     BlockRulesTestWorld dryWorld;
     const BlockPos dryPos(22, 64, 22);
     const BlockState& dryState = coralWallFan.defaultState();
-    BlockState dryUpdated = coralWallFan.updatePostPlacement(dryState, Direction::Up, dryState, dryWorld, dryPos, dryPos.up());
+    BlockState dryUpdated =
+        coralWallFan.updatePostPlacement(dryState, Direction::Up, dryState, dryWorld, dryPos, dryPos.up());
     EXPECT_TRUE(dryUpdated.is(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK));
 }
 
-TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {
+TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity)
+{
     fluid::FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
@@ -1272,37 +1295,43 @@ TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {
 #include "physics/PhysicsConstants.hpp"
 #include "world/block/blocks/special/SpecialBlocks.hpp"
 
-TEST(SpecialBlocksSlipperiness, SlimeBlockSlipperiness) {
+TEST(SpecialBlocksSlipperiness, SlimeBlockSlipperiness)
+{
     // MC 1.16.5: 史莱姆块滑度为 0.8
     VanillaBlocks::initialize();
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_SLIME, 0.8f);
 }
 
-TEST(SpecialBlocksSlipperiness, BlueIceSlipperiness) {
+TEST(SpecialBlocksSlipperiness, BlueIceSlipperiness)
+{
     // MC 1.16.5: 蓝冰滑度为 0.989
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_BLUE_ICE, 0.989f);
 }
 
-TEST(SpecialBlocksPhysics, SlimeBlockBounceFactor) {
+TEST(SpecialBlocksPhysics, SlimeBlockBounceFactor)
+{
     // MC 1.16.5: 史莱姆块弹跳系数：活体实体 1.0，非活体实体 0.8
     EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR_LIVING, 1.0f);
     EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING, 0.8f);
 }
 
-TEST(SpecialBlocksPhysics, HoneyBlockFactors) {
+TEST(SpecialBlocksPhysics, HoneyBlockFactors)
+{
     // MC 1.16.5: 蜂蜜块跳跃因子为 0.5
     // 注意：蜂蜜块滑度为 0.98，在 SpecialBlocks.cpp 中直接设置
     EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_JUMP_FACTOR, 0.5f);
     EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_MAX_SLIDE_VELOCITY, 0.05f);
 }
 
-TEST(SpecialBlocksPhysics, CobwebSlowdown) {
+TEST(SpecialBlocksPhysics, CobwebSlowdown)
+{
     // MC 1.16.5: 蜘蛛网减速：XZ 平面 0.25，Y 轴 0.05
     EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN_XZ, 0.25f);
     EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN_Y, 0.05f);
 }
 
-TEST(SpecialBlocksSlimeBlock, OnLandedBouncesDownwardVelocity) {
+TEST(SpecialBlocksSlimeBlock, OnLandedBouncesDownwardVelocity)
+{
     // 测试史莱姆块弹跳逻辑
     // 当实体以向下速度着陆时，Y速度应取反并乘以 0.9
     blocks::SlimeBlock slimeBlock(BlockProperties(Material::SLIME).slipperiness(physics::SLIPPERINESS_SLIME));
@@ -1311,21 +1340,23 @@ TEST(SpecialBlocksSlimeBlock, OnLandedBouncesDownwardVelocity) {
     EXPECT_FLOAT_EQ(slimeBlock.getSlipperiness(slimeBlock.defaultState()), physics::SLIPPERINESS_SLIME);
 }
 
-TEST(SpecialBlocksHoneyBlock, OnLandedStopsFallDamage) {
+TEST(SpecialBlocksHoneyBlock, OnLandedStopsFallDamage)
+{
     // 测试蜂蜜块消除摔落伤害
     // 蜂蜜块不弹跳，只重置 Y 速度为 0
     // 蜂蜜块滑度为 0.98，跳跃因子为 0.5
     constexpr f32 HONEY_BLOCK_SLIPPERINESS = 0.98f;
     blocks::HoneyBlock honeyBlock(BlockProperties(Material::SLIME)
-        .slipperiness(HONEY_BLOCK_SLIPPERINESS)
-        .jumpFactor(physics::HONEY_BLOCK_JUMP_FACTOR));
+            .slipperiness(HONEY_BLOCK_SLIPPERINESS)
+            .jumpFactor(physics::HONEY_BLOCK_JUMP_FACTOR));
 
     // 验证滑度和跳跃因子设置正确
     EXPECT_FLOAT_EQ(honeyBlock.getSlipperiness(honeyBlock.defaultState()), HONEY_BLOCK_SLIPPERINESS);
     EXPECT_FLOAT_EQ(honeyBlock.getJumpFactor(honeyBlock.defaultState()), physics::HONEY_BLOCK_JUMP_FACTOR);
 }
 
-TEST(SpecialBlocksWebBlock, CollisionShapeIsEmpty) {
+TEST(SpecialBlocksWebBlock, CollisionShapeIsEmpty)
+{
     // 测试蜘蛛网碰撞箱为空（实体可以穿过）
     blocks::WebBlock webBlock(BlockProperties(Material::WEB).hardness(4.0f).noCollision());
 
@@ -1333,7 +1364,8 @@ TEST(SpecialBlocksWebBlock, CollisionShapeIsEmpty) {
     EXPECT_TRUE(collisionShape.isEmpty());
 }
 
-TEST(SpecialBlocksLadder, LadderSpeedConstants) {
+TEST(SpecialBlocksLadder, LadderSpeedConstants)
+{
     // MC 1.16.5: 梯子攀爬速度常量
     EXPECT_FLOAT_EQ(physics::LADDER_SPEED_MAX, 0.15f);
     EXPECT_FLOAT_EQ(physics::LADDER_CLIMB_SPEED, 0.15f);
@@ -1344,7 +1376,8 @@ TEST(SpecialBlocksLadder, LadderSpeedConstants) {
 // Nether Wart Block 和 Warped Wart Block 测试
 // ============================================================================
 
-TEST(NetherWartBlocksTest, NetherWartBlockProperties) {
+TEST(NetherWartBlocksTest, NetherWartBlockProperties)
+{
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::NETHER_WART_BLOCK, nullptr);
@@ -1362,7 +1395,8 @@ TEST(NetherWartBlocksTest, NetherWartBlockProperties) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:nether_wart_block")), nullptr);
 }
 
-TEST(NetherWartBlocksTest, WarpedWartBlockProperties) {
+TEST(NetherWartBlocksTest, WarpedWartBlockProperties)
+{
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::WARPED_WART_BLOCK, nullptr);
@@ -1380,7 +1414,8 @@ TEST(NetherWartBlocksTest, WarpedWartBlockProperties) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_wart_block")), nullptr);
 }
 
-TEST(NetherWartBlocksTest, BothWartBlocksHaveSameProperties) {
+TEST(NetherWartBlocksTest, BothWartBlocksHaveSameProperties)
+{
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::NETHER_WART_BLOCK, nullptr);
@@ -1399,7 +1434,8 @@ TEST(NetherWartBlocksTest, BothWartBlocksHaveSameProperties) {
 // Cave Air 和 Void Air 方块测试
 // ============================================================================
 
-TEST(AirVariantsTest, CaveAirBlockProperties) {
+TEST(AirVariantsTest, CaveAirBlockProperties)
+{
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::CAVE_AIR, nullptr);
@@ -1418,7 +1454,8 @@ TEST(AirVariantsTest, CaveAirBlockProperties) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:cave_air")), nullptr);
 }
 
-TEST(AirVariantsTest, VoidAirBlockProperties) {
+TEST(AirVariantsTest, VoidAirBlockProperties)
+{
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::VOID_AIR, nullptr);
@@ -1437,7 +1474,8 @@ TEST(AirVariantsTest, VoidAirBlockProperties) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:void_air")), nullptr);
 }
 
-TEST(AirVariantsTest, AllAirBlocksAreDistinct) {
+TEST(AirVariantsTest, AllAirBlocksAreDistinct)
+{
     VanillaBlocks::initialize();
 
     ASSERT_NE(VanillaBlocks::AIR, nullptr);
@@ -1450,7 +1488,8 @@ TEST(AirVariantsTest, AllAirBlocksAreDistinct) {
     EXPECT_NE(VanillaBlocks::CAVE_AIR->blockId(), VanillaBlocks::VOID_AIR->blockId());
 }
 
-TEST(AirVariantsTest, AllAirBlocksHaveSameMaterial) {
+TEST(AirVariantsTest, AllAirBlocksHaveSameMaterial)
+{
     VanillaBlocks::initialize();
 
     // 三种空气方块应该使用相同的材料
@@ -1459,7 +1498,8 @@ TEST(AirVariantsTest, AllAirBlocksHaveSameMaterial) {
     EXPECT_EQ(&VanillaBlocks::CAVE_AIR->material(), &VanillaBlocks::VOID_AIR->material());
 }
 
-TEST(AirVariantsTest, AllAirBlocksAreAir) {
+TEST(AirVariantsTest, AllAirBlocksAreAir)
+{
     VanillaBlocks::initialize();
 
     // 所有空气方块的默认状态都应该 isAir() == true
@@ -1468,7 +1508,8 @@ TEST(AirVariantsTest, AllAirBlocksAreAir) {
     EXPECT_TRUE(VanillaBlocks::VOID_AIR->defaultState().isAir());
 }
 
-TEST(AirVariantsTest, CaveAirUsedInWorldCarver) {
+TEST(AirVariantsTest, CaveAirUsedInWorldCarver)
+{
     VanillaBlocks::initialize();
 
     // 验证 CAVE_AIR 可以用于世界雕刻器

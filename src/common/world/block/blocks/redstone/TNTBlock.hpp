@@ -29,17 +29,19 @@ public:
 
     // ========== Block 接口实现 ==========
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Normal;
     }

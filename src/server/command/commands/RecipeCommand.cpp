@@ -14,53 +14,35 @@ namespace command {
 void RecipeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto recipeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("recipe");
-    recipeNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        recipeNode,
+    recipeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(recipeNode,
         support::makeMetadata(
-            "Gives or takes recipes from players.",
-            "/recipe <give|take> <targets> <recipe|*>",
-            2,
-            {},
-            true));
+            "Gives or takes recipes from players.", "/recipe <give|take> <targets> <recipe|*>", 2, {}, true));
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::players());
+        "targets", EntityArgumentType::players());
 
     // /recipe give <targets> <recipe|*>
     auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
-    auto giveRecipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "recipe",
-        StringArgumentType::string());
-    giveRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return giveRecipe(ctx);
-    });
+    auto giveRecipeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("recipe", StringArgumentType::string());
+    giveRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return giveRecipe(ctx); });
     giveNode->addChild(giveRecipeArg);
 
     auto giveAllNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
-    giveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return giveRecipe(ctx);
-    });
+    giveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return giveRecipe(ctx); });
     giveNode->addChild(giveAllNode);
     targetsArg->addChild(giveNode);
 
     // /recipe take <targets> <recipe|*>
     auto takeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("take");
-    auto takeRecipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "recipe",
-        StringArgumentType::string());
-    takeRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return takeRecipe(ctx);
-    });
+    auto takeRecipeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("recipe", StringArgumentType::string());
+    takeRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return takeRecipe(ctx); });
     takeNode->addChild(takeRecipeArg);
 
     auto takeAllNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
-    takeAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return takeRecipe(ctx);
-    });
+    takeAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return takeRecipe(ctx); });
     takeNode->addChild(takeAllNode);
     targetsArg->addChild(takeNode);
 

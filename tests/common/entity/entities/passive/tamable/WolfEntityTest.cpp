@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -26,7 +26,8 @@ namespace {
  */
 class WolfTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -34,26 +35,31 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("WolfTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("WolfTestWorld::tickManager not implemented");
     }
 
@@ -66,7 +72,8 @@ private:
 
 class WolfEntityTestFixture : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
@@ -78,7 +85,8 @@ protected:
 // 驯服物品测试
 // ============================================================================
 
-TEST_F(WolfEntityTestFixture, IsTameItem_Bone_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsTameItem_Bone_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     // 骨头是驯服狼的唯一物品
@@ -86,7 +94,8 @@ TEST_F(WolfEntityTestFixture, IsTameItem_Bone_ReturnsTrue) {
     EXPECT_TRUE(wolf.isTameItem(boneStack));
 }
 
-TEST_F(WolfEntityTestFixture, IsTameItem_Meat_ReturnsFalse) {
+TEST_F(WolfEntityTestFixture, IsTameItem_Meat_ReturnsFalse)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     // 肉类不能驯服狼，只能繁殖
@@ -104,70 +113,80 @@ TEST_F(WolfEntityTestFixture, IsTameItem_Meat_ReturnsFalse) {
 // 繁殖物品测试
 // ============================================================================
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_Porkchop_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_Porkchop_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::PORKCHOP, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedPorkchop_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedPorkchop_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::COOKED_PORKCHOP, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_Beef_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_Beef_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::BEEF, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedBeef_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedBeef_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::COOKED_BEEF, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_Chicken_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_Chicken_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::CHICKEN, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedChicken_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedChicken_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::COOKED_CHICKEN, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_Rabbit_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_Rabbit_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::RABBIT, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedRabbit_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedRabbit_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::COOKED_RABBIT, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_Mutton_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_Mutton_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::MUTTON, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedMutton_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedMutton_ReturnsTrue)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack stack(Items::COOKED_MUTTON, 1);
@@ -178,7 +197,8 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedMutton_ReturnsTrue) {
 // 腐肉繁殖测试（MC 1.16.5：狼可以用腐肉繁殖和治疗）
 // ============================================================================
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_RottenFlesh_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_RottenFlesh_ReturnsTrue)
+{
     // 参考: MC 1.16.5 WolfEntity.isBreedingItem()
     // 狼可以用任何肉类繁殖，腐肉在 Foods.java 中标记为 .meat()
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
@@ -187,7 +207,8 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_RottenFlesh_ReturnsTrue) {
     EXPECT_TRUE(wolf.isBreedingItem(stack));
 }
 
-TEST_F(WolfEntityTestFixture, IsFoodItem_RottenFlesh_ReturnsTrue) {
+TEST_F(WolfEntityTestFixture, IsFoodItem_RottenFlesh_ReturnsTrue)
+{
     // 狼的食物（用于治疗）与繁殖物品相同
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
@@ -199,7 +220,8 @@ TEST_F(WolfEntityTestFixture, IsFoodItem_RottenFlesh_ReturnsTrue) {
 // 非肉类物品测试
 // ============================================================================
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_NonMeat_ReturnsFalse) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_NonMeat_ReturnsFalse)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     // 小麦不能用于狼繁殖
@@ -215,7 +237,8 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_NonMeat_ReturnsFalse) {
     EXPECT_FALSE(wolf.isBreedingItem(appleStack));
 }
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     // 骨头只能驯服，不能繁殖
@@ -227,14 +250,16 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse) {
 // 空物品测试
 // ============================================================================
 
-TEST_F(WolfEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse) {
+TEST_F(WolfEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(wolf.isBreedingItem(emptyStack));
 }
 
-TEST_F(WolfEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse) {
+TEST_F(WolfEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
+{
     WolfEntity wolf(LegacyEntityType::Unknown, 0);
 
     ItemStack emptyStack(nullptr, 0);
@@ -245,7 +270,8 @@ TEST_F(WolfEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse) {
 // 生成幼体测试
 // ============================================================================
 
-TEST_F(WolfEntityTestFixture, SpawnBaby_CreatesChildWolf) {
+TEST_F(WolfEntityTestFixture, SpawnBaby_CreatesChildWolf)
+{
     WolfEntity parent1(LegacyEntityType::Unknown, 0);
     WolfEntity parent2(LegacyEntityType::Unknown, 0);
 

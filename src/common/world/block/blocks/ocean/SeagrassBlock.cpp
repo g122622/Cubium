@@ -1,35 +1,35 @@
 #include "SeagrassBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../block/WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../block/WaterLoggableHelpers.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 
 namespace mc {
 namespace blocks {
 
 SeagrassBlock::SeagrassBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 海草没有特殊状态
     // 形状：小型水下植物
     m_shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.5f, 0.875f);
 }
 
-BlockState SeagrassBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState SeagrassBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     MC_UNUSED(context);
     return defaultState();
 }
 
-bool SeagrassBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool SeagrassBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -61,12 +61,14 @@ bool SeagrassBlock::isValidPosition(
     return true;
 }
 
-const CollisionShape& SeagrassBlock::getShape(const BlockState& state) const {
+const CollisionShape& SeagrassBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& SeagrassBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& SeagrassBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
@@ -74,11 +76,8 @@ const CollisionShape& SeagrassBlock::getCollisionShape(const BlockState& state) 
 
 // ========== IGrowable 接口实现 ==========
 
-bool SeagrassBlock::canGrow(
-    IBlockReader& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    bool isClientSide) const {
+bool SeagrassBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
 
     MC_UNUSED(state);
     MC_UNUSED(isClientSide);
@@ -100,10 +99,8 @@ bool SeagrassBlock::canGrow(
 }
 
 bool SeagrassBlock::canUseBonemeal(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) const {
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(random);
@@ -114,11 +111,8 @@ bool SeagrassBlock::canUseBonemeal(
     return true;
 }
 
-void SeagrassBlock::grow(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) {
+void SeagrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
 
     MC_UNUSED(random);
     MC_UNUSED(state);
@@ -147,13 +141,11 @@ void SeagrassBlock::grow(
 
     // 设置下方为高海草的下半部分
     const BlockState* lowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-        BlockStateProperties::DOUBLE_BLOCK_HALF(),
-        BlockStateProperties::DoubleBlockHalf::Lower);
+        BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
 
     // 设置上方为高海草的上半部分
     const BlockState* upperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-        BlockStateProperties::DOUBLE_BLOCK_HALF(),
-        BlockStateProperties::DoubleBlockHalf::Upper);
+        BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
 
     world.setBlockState(pos, lowerState, 3);
     world.setBlockState(abovePos, upperState, 3);
@@ -161,7 +153,8 @@ void SeagrassBlock::grow(
 
 // ========== 流体状态 ==========
 
-const fluid::FluidState* SeagrassBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* SeagrassBlock::getFluidState(const BlockState& state) const
+{
     MC_UNUSED(state);
     // MC 1.16.5: 海草始终返回静止水的流体状态
     // return Fluids.WATER.getStillFluidState(false);

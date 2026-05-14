@@ -23,8 +23,7 @@ public:
 
     // ========== 交互 ==========
 
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -37,7 +36,8 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

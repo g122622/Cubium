@@ -1,22 +1,22 @@
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <unordered_map>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class LivingEntity;
 struct TextureRegion;
-}
+} // namespace mc
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 struct EntityMesh;
-}
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity::layer::cosmetic {
 
@@ -29,7 +29,7 @@ namespace mc::client::renderer::entity::layer::cosmetic {
  *
  * @tparam TEntity 实体类型
  */
-template<typename TEntity>
+template <typename TEntity>
 class ElytraLayer : public core::LayerRenderer<TEntity> {
 public:
     ElytraLayer() = default;
@@ -38,26 +38,22 @@ public:
     /**
      * @brief 渲染鞘翅层（GPU管线路径）
      */
-    void renderPipeline(
-        TEntity& entity,
+    void renderPipeline(TEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染鞘翅层（CPU路径 - 已废弃）
      */
-    void render(
-        TEntity& entity,
+    void render(TEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override;
+        f32 scale) override;
 
     /**
      * @brief 检查是否应该渲染鞘翅
@@ -90,25 +86,19 @@ private:
     /**
      * @brief 计算鞘翅展开角度
      */
-    [[nodiscard]] f32 calculateElytraAngle(TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const;
+    [[nodiscard]] f32 calculateElytraAngle(
+        TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const;
 
     /**
      * @brief 构建鞘翅网格
      */
     void buildElytraMesh(
-        f32 spreadAngle,
-        bool isLeftWing,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+        f32 spreadAngle, bool isLeftWing, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建鞘翅网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateElytraMesh(
-        f32 spreadAngle,
-        pipeline::EntityPipeline& pipeline
-    );
+    [[nodiscard]] pipeline::EntityMesh* getOrCreateElytraMesh(f32 spreadAngle, pipeline::EntityPipeline& pipeline);
 
     const TextureRegion* m_customElytraRegion = nullptr;
     const TextureRegion* m_capeRegion = nullptr;

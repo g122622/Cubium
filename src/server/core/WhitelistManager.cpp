@@ -1,9 +1,9 @@
 #include "WhitelistManager.hpp"
 
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <spdlog/spdlog.h>
 #include <algorithm>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::core {
 
@@ -11,19 +11,22 @@ WhitelistManager::WhitelistManager() = default;
 
 // ========== 白名单开关 ==========
 
-bool WhitelistManager::isEnabled() const {
+bool WhitelistManager::isEnabled() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_enabled;
 }
 
-void WhitelistManager::setEnabled(bool enabled) {
+void WhitelistManager::setEnabled(bool enabled)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_enabled = enabled;
 }
 
 // ========== 条目管理 ==========
 
-bool WhitelistManager::addEntry(const WhitelistEntry& entry) {
+bool WhitelistManager::addEntry(const WhitelistEntry& entry)
+{
     if (!entry.isValid()) {
         return false;
     }
@@ -46,7 +49,8 @@ bool WhitelistManager::addEntry(const WhitelistEntry& entry) {
     return true;
 }
 
-bool WhitelistManager::removeEntry(const std::string& uuid) {
+bool WhitelistManager::removeEntry(const std::string& uuid)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entriesByUuid.find(uuid);
@@ -65,7 +69,8 @@ bool WhitelistManager::removeEntry(const std::string& uuid) {
     return true;
 }
 
-bool WhitelistManager::removeEntryByName(const std::string& name) {
+bool WhitelistManager::removeEntryByName(const std::string& name)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 查找名称映射
@@ -86,12 +91,14 @@ bool WhitelistManager::removeEntryByName(const std::string& name) {
     return true;
 }
 
-bool WhitelistManager::isWhitelisted(const std::string& uuid) const {
+bool WhitelistManager::isWhitelisted(const std::string& uuid) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.contains(uuid);
 }
 
-bool WhitelistManager::isNameWhitelisted(const std::string& name) const {
+bool WhitelistManager::isNameWhitelisted(const std::string& name) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::string lowerName = name;
@@ -100,7 +107,8 @@ bool WhitelistManager::isNameWhitelisted(const std::string& name) const {
     return m_nameToUuid.contains(lowerName);
 }
 
-std::optional<WhitelistEntry> WhitelistManager::getEntry(const std::string& uuid) const {
+std::optional<WhitelistEntry> WhitelistManager::getEntry(const std::string& uuid) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entriesByUuid.find(uuid);
@@ -111,7 +119,8 @@ std::optional<WhitelistEntry> WhitelistManager::getEntry(const std::string& uuid
     return it->second;
 }
 
-std::optional<WhitelistEntry> WhitelistManager::getEntryByName(const std::string& name) const {
+std::optional<WhitelistEntry> WhitelistManager::getEntryByName(const std::string& name) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::string lowerName = name;
@@ -130,7 +139,8 @@ std::optional<WhitelistEntry> WhitelistManager::getEntryByName(const std::string
     return entryIt->second;
 }
 
-std::vector<WhitelistEntry> WhitelistManager::getAllEntries() const {
+std::vector<WhitelistEntry> WhitelistManager::getAllEntries() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<WhitelistEntry> entries;
@@ -143,7 +153,8 @@ std::vector<WhitelistEntry> WhitelistManager::getAllEntries() const {
     return entries;
 }
 
-std::vector<std::string> WhitelistManager::getAllNames() const {
+std::vector<std::string> WhitelistManager::getAllNames() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<std::string> names;
@@ -156,17 +167,20 @@ std::vector<std::string> WhitelistManager::getAllNames() const {
     return names;
 }
 
-size_t WhitelistManager::size() const {
+size_t WhitelistManager::size() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.size();
 }
 
-bool WhitelistManager::empty() const {
+bool WhitelistManager::empty() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.empty();
 }
 
-void WhitelistManager::clear() {
+void WhitelistManager::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entriesByUuid.clear();
     m_nameToUuid.clear();
@@ -174,7 +188,8 @@ void WhitelistManager::clear() {
 
 // ========== 文件操作 ==========
 
-Result<void> WhitelistManager::load(const std::filesystem::path& path) {
+Result<void> WhitelistManager::load(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     m_filePath = path;
@@ -190,9 +205,9 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path) {
         try {
             std::ofstream file(path);
             file << "[]";
-        } catch (const std::exception& e) {
-            return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to create whitelist file: {}", e.what()));
+        }
+        catch (const std::exception& e) {
+            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create whitelist file: {}", e.what()));
         }
         return {};
     }
@@ -201,16 +216,14 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path) {
     try {
         std::ifstream file(path);
         if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed,
-                        fmt::format("Failed to open whitelist file: {}", path.string()));
+            return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open whitelist file: {}", path.string()));
         }
 
         nlohmann::json json;
         file >> json;
 
         if (!json.is_array()) {
-            return Error(ErrorCode::FileCorrupted,
-                        "Whitelist file must be a JSON array");
+            return Error(ErrorCode::FileCorrupted, "Whitelist file must be a JSON array");
         }
 
         for (const auto& item : json) {
@@ -239,8 +252,7 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path) {
 
             // 验证条目
             if (!entry.isValid()) {
-                spdlog::warn("Skipping invalid whitelist entry: uuid={}, name={}",
-                            entry.uuid, entry.name);
+                spdlog::warn("Skipping invalid whitelist entry: uuid={}, name={}", entry.uuid, entry.name);
                 continue;
             }
 
@@ -261,17 +273,17 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path) {
 
         spdlog::info("Loaded {} whitelist entries from {}", m_entriesByUuid.size(), path.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileCorrupted,
-                    fmt::format("Failed to parse whitelist JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed,
-                    fmt::format("Failed to read whitelist file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse whitelist JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read whitelist file: {}", e.what()));
     }
 }
 
-Result<void> WhitelistManager::save(const std::filesystem::path& path) {
+Result<void> WhitelistManager::save(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::filesystem::path savePath = path.empty() ? m_filePath : path;
@@ -302,24 +314,24 @@ Result<void> WhitelistManager::save(const std::filesystem::path& path) {
         std::ofstream file(savePath);
         if (!file.is_open()) {
             return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to open whitelist file for writing: {}", savePath.string()));
+                fmt::format("Failed to open whitelist file for writing: {}", savePath.string()));
         }
 
         file << json.dump(2);
 
         spdlog::info("Saved {} whitelist entries to {}", m_entriesByUuid.size(), savePath.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to serialize whitelist JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to save whitelist file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to serialize whitelist JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save whitelist file: {}", e.what()));
     }
 }
 
-Result<void> WhitelistManager::reload() {
+Result<void> WhitelistManager::reload()
+{
     if (m_filePath.empty()) {
         return Error(ErrorCode::InvalidArgument, "No file path to reload whitelist from");
     }

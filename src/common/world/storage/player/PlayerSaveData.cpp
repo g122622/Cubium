@@ -1,9 +1,9 @@
 #include "PlayerSaveData.hpp"
 #include "common/util/CompressionUtils.hpp"
-#include <sstream>
-#include <zlib.h>
-#include <spdlog/spdlog.h>
 #include <cstdlib>
+#include <sstream>
+#include <spdlog/spdlog.h>
+#include <zlib.h>
 
 namespace mc {
 namespace world::storage {
@@ -13,86 +13,86 @@ namespace world::storage {
 // ============================================================================
 
 namespace nbt_keys {
-    // 基本属性
-    constexpr const char* UUID = "UUID";
-    constexpr const char* UUID_MOST = "UUIDMost";
-    constexpr const char* UUID_LEAST = "UUIDLeast";
-    constexpr const char* NAME = "Name";
+// 基本属性
+constexpr const char* UUID = "UUID";
+constexpr const char* UUID_MOST = "UUIDMost";
+constexpr const char* UUID_LEAST = "UUIDLeast";
+constexpr const char* NAME = "Name";
 
-    // 位置
-    constexpr const char* POS_X = "PosX";
-    constexpr const char* POS_Y = "PosY";
-    constexpr const char* POS_Z = "PosZ";
-    constexpr const char* POS = "Pos";
-    constexpr const char* ROTATION = "Rotation";
-    constexpr const char* YAW = "Yaw";
-    constexpr const char* PITCH = "Pitch";
+// 位置
+constexpr const char* POS_X = "PosX";
+constexpr const char* POS_Y = "PosY";
+constexpr const char* POS_Z = "PosZ";
+constexpr const char* POS = "Pos";
+constexpr const char* ROTATION = "Rotation";
+constexpr const char* YAW = "Yaw";
+constexpr const char* PITCH = "Pitch";
 
-    // 维度
-    constexpr const char* DIMENSION = "Dimension";
-    constexpr const char* SPAWN_X = "SpawnX";
-    constexpr const char* SPAWN_Y = "SpawnY";
-    constexpr const char* SPAWN_Z = "SpawnZ";
-    constexpr const char* SPAWN_FORCED = "SpawnForced";
-    constexpr const char* SPAWN_DIM = "SpawnDimension";
-    constexpr const char* ENTERED_NETHER_POS = "EnteredNetherPosition";
+// 维度
+constexpr const char* DIMENSION = "Dimension";
+constexpr const char* SPAWN_X = "SpawnX";
+constexpr const char* SPAWN_Y = "SpawnY";
+constexpr const char* SPAWN_Z = "SpawnZ";
+constexpr const char* SPAWN_FORCED = "SpawnForced";
+constexpr const char* SPAWN_DIM = "SpawnDimension";
+constexpr const char* ENTERED_NETHER_POS = "EnteredNetherPosition";
 
-    // 游戏模式
-    constexpr const char* PLAYER_GAME_TYPE = "playerGameType";
-    constexpr const char* FLYING = "flying";
+// 游戏模式
+constexpr const char* PLAYER_GAME_TYPE = "playerGameType";
+constexpr const char* FLYING = "flying";
 
-    // 生命值
-    constexpr const char* HEALTH = "Health";
-    constexpr const char* MAX_HEALTH = "MaxHealth";
-    constexpr const char* ABSORPTION = "AbsorptionAmount";
+// 生命值
+constexpr const char* HEALTH = "Health";
+constexpr const char* MAX_HEALTH = "MaxHealth";
+constexpr const char* ABSORPTION = "AbsorptionAmount";
 
-    // 饥饿值
-    constexpr const char* FOOD_LEVEL = "foodLevel";
-    constexpr const char* FOOD_SATURATION = "foodSaturationLevel";
-    constexpr const char* FOOD_EXHAUSTION = "foodExhaustionLevel";
-    constexpr const char* FOOD_TICK_TIMER = "foodTickTimer";
+// 饥饿值
+constexpr const char* FOOD_LEVEL = "foodLevel";
+constexpr const char* FOOD_SATURATION = "foodSaturationLevel";
+constexpr const char* FOOD_EXHAUSTION = "foodExhaustionLevel";
+constexpr const char* FOOD_TICK_TIMER = "foodTickTimer";
 
-    // 经验
-    constexpr const char* XP_LEVEL = "XpLevel";
-    constexpr const char* XP_PROGRESS = "XpP";
-    constexpr const char* XP_TOTAL = "XpTotal";
-    constexpr const char* XP_SEED = "XpSeed";
+// 经验
+constexpr const char* XP_LEVEL = "XpLevel";
+constexpr const char* XP_PROGRESS = "XpP";
+constexpr const char* XP_TOTAL = "XpTotal";
+constexpr const char* XP_SEED = "XpSeed";
 
-    // 能力
-    constexpr const char* INVULNERABLE = "Invulnerable";
-    constexpr const char* MAY_FLY = "MayFly";
-    constexpr const char* FLY_SPEED = "flySpeed";
-    constexpr const char* WALK_SPEED = "walkSpeed";
-    constexpr const char* ABILITIES = "abilities";
+// 能力
+constexpr const char* INVULNERABLE = "Invulnerable";
+constexpr const char* MAY_FLY = "MayFly";
+constexpr const char* FLY_SPEED = "flySpeed";
+constexpr const char* WALK_SPEED = "walkSpeed";
+constexpr const char* ABILITIES = "abilities";
 
-    // 背包
-    constexpr const char* INVENTORY = "Inventory";
-    constexpr const char* SELECTED_ITEM_SLOT = "SelectedItemSlot";
-    constexpr const char* CARRIED_ITEM = "CarriedItem";
+// 背包
+constexpr const char* INVENTORY = "Inventory";
+constexpr const char* SELECTED_ITEM_SLOT = "SelectedItemSlot";
+constexpr const char* CARRIED_ITEM = "CarriedItem";
 
-    // 效果
-    constexpr const char* ACTIVE_EFFECTS = "ActiveEffects";
-    constexpr const char* EFFECT_ID = "Id";
-    constexpr const char* EFFECT_AMPLIFIER = "Amplifier";
-    constexpr const char* EFFECT_DURATION = "Duration";
-    constexpr const char* EFFECT_AMBIENT = "Ambient";
-    constexpr const char* EFFECT_SHOW_PARTICLES = "ShowParticles";
-    constexpr const char* EFFECT_SHOW_ICON = "ShowIcon";
+// 效果
+constexpr const char* ACTIVE_EFFECTS = "ActiveEffects";
+constexpr const char* EFFECT_ID = "Id";
+constexpr const char* EFFECT_AMPLIFIER = "Amplifier";
+constexpr const char* EFFECT_DURATION = "Duration";
+constexpr const char* EFFECT_AMBIENT = "Ambient";
+constexpr const char* EFFECT_SHOW_PARTICLES = "ShowParticles";
+constexpr const char* EFFECT_SHOW_ICON = "ShowIcon";
 
-    // 空气
-    constexpr const char* AIR = "Air";
-    constexpr const char* MAX_AIR = "MaxAir";
+// 空气
+constexpr const char* AIR = "Air";
+constexpr const char* MAX_AIR = "MaxAir";
 
-    // 睡眠
-    constexpr const char* SLEEPING = "Sleeping";
-    constexpr const char* SLEEP_TIMER = "SleepTimer";
-    constexpr const char* BED_POSITION = "BedPosition";
+// 睡眠
+constexpr const char* SLEEPING = "Sleeping";
+constexpr const char* SLEEP_TIMER = "SleepTimer";
+constexpr const char* BED_POSITION = "BedPosition";
 
-    // 其他
-    constexpr const char* ON_GROUND = "OnGround";
-    constexpr const char* SPRINTING = "Sprinting";
-    constexpr const char* SNEAKING = "Sneaking";
-}
+// 其他
+constexpr const char* ON_GROUND = "OnGround";
+constexpr const char* SPRINTING = "Sprinting";
+constexpr const char* SNEAKING = "Sneaking";
+} // namespace nbt_keys
 
 // ============================================================================
 // 辅助函数：安全获取NBT值
@@ -103,7 +103,8 @@ namespace {
 /**
  * @brief 安全获取 compound_tag 中的 int 值
  */
-std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::string& key) {
+std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto it = tag.value.find(key);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Int) {
         return dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
@@ -114,7 +115,8 @@ std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::stri
 /**
  * @brief 安全获取 compound_tag 中的 float 值
  */
-std::optional<f32> tryGetFloat(const nbt::tags::compound_tag& tag, const std::string& key) {
+std::optional<f32> tryGetFloat(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto it = tag.value.find(key);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Float) {
         return dynamic_cast<const nbt::tags::float_tag&>(*it->second).value;
@@ -125,7 +127,8 @@ std::optional<f32> tryGetFloat(const nbt::tags::compound_tag& tag, const std::st
 /**
  * @brief 安全获取 compound_tag 中的 double 值
  */
-std::optional<f64> tryGetDouble(const nbt::tags::compound_tag& tag, const std::string& key) {
+std::optional<f64> tryGetDouble(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto it = tag.value.find(key);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Double) {
         return dynamic_cast<const nbt::tags::double_tag&>(*it->second).value;
@@ -136,7 +139,8 @@ std::optional<f64> tryGetDouble(const nbt::tags::compound_tag& tag, const std::s
 /**
  * @brief 安全获取 compound_tag 中的 byte 值
  */
-std::optional<i8> tryGetByte(const nbt::tags::compound_tag& tag, const std::string& key) {
+std::optional<i8> tryGetByte(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto it = tag.value.find(key);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
         return dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
@@ -147,7 +151,8 @@ std::optional<i8> tryGetByte(const nbt::tags::compound_tag& tag, const std::stri
 /**
  * @brief 安全获取 compound_tag 中的 string 值
  */
-std::optional<std::string> tryGetString(const nbt::tags::compound_tag& tag, const std::string& key) {
+std::optional<std::string> tryGetString(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto it = tag.value.find(key);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::String) {
         return dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
@@ -158,7 +163,8 @@ std::optional<std::string> tryGetString(const nbt::tags::compound_tag& tag, cons
 /**
  * @brief 安全获取 compound_tag 中的 bool 值（存储为 byte）
  */
-std::optional<bool> tryGetBool(const nbt::tags::compound_tag& tag, const std::string& key) {
+std::optional<bool> tryGetBool(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto byteVal = tryGetByte(tag, key);
     return byteVal.has_value() ? std::optional<bool>(*byteVal != 0) : std::nullopt;
 }
@@ -166,7 +172,8 @@ std::optional<bool> tryGetBool(const nbt::tags::compound_tag& tag, const std::st
 /**
  * @brief 安全获取 compound_tag 中的 compound_tag 指针
  */
-const nbt::tags::compound_tag* tryGetCompound(const nbt::tags::compound_tag& tag, const std::string& key) {
+const nbt::tags::compound_tag* tryGetCompound(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto it = tag.value.find(key);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Compound) {
         return &dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
@@ -177,7 +184,8 @@ const nbt::tags::compound_tag* tryGetCompound(const nbt::tags::compound_tag& tag
 /**
  * @brief 安全获取 compound_tag 中的 list_tag 指针
  */
-const nbt::tags::list_tag* tryGetList(const nbt::tags::compound_tag& tag, const std::string& key) {
+const nbt::tags::list_tag* tryGetList(const nbt::tags::compound_tag& tag, const std::string& key)
+{
     auto it = tag.value.find(key);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::List) {
         return &dynamic_cast<const nbt::tags::list_tag&>(*it->second);
@@ -386,10 +394,8 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     auto spawnZ = tryGetInt(tag, nbt_keys::SPAWN_Z);
     if (spawnX.has_value() && spawnY.has_value() && spawnZ.has_value()) {
         GlobalPos spawn;
-        spawn = GlobalPos(
-            tryGetInt(tag, nbt_keys::SPAWN_DIM).value_or(0),  // 默认主世界
-            BlockPos(*spawnX, *spawnY, *spawnZ)
-        );
+        spawn = GlobalPos(tryGetInt(tag, nbt_keys::SPAWN_DIM).value_or(0), // 默认主世界
+            BlockPos(*spawnX, *spawnY, *spawnZ));
         data.spawnPoint = spawn;
         data.spawnForced = tryGetBool(tag, nbt_keys::SPAWN_FORCED).value_or(false);
     }
@@ -541,13 +547,12 @@ Result<std::vector<u8>> PlayerSaveData::serialize() const
     compressed.resize(nbtData.size() + 1024); // 预留压缩空间
 
     uLongf destLen = static_cast<uLongf>(compressed.size());
-    int result = compress2(compressed.data(), &destLen,
-                          nbtData.data(), static_cast<uLong>(nbtData.size()),
-                          Z_BEST_COMPRESSION);
+    int result =
+        compress2(compressed.data(), &destLen, nbtData.data(), static_cast<uLong>(nbtData.size()), Z_BEST_COMPRESSION);
 
     if (result != Z_OK) {
-        return Error(ErrorCode::CompressionFailed,
-                     fmt::format("Failed to compress player data: zlib error {}", result));
+        return Error(
+            ErrorCode::CompressionFailed, fmt::format("Failed to compress player data: zlib error {}", result));
     }
 
     compressed.resize(destLen);
@@ -561,8 +566,7 @@ Result<PlayerSaveData> PlayerSaveData::deserialize(const std::vector<u8>& data)
     decompressed.resize(data.size() * 10); // 预估解压大小
 
     uLongf destLen = static_cast<uLongf>(decompressed.size());
-    int result = uncompress(decompressed.data(), &destLen,
-                           data.data(), static_cast<uLong>(data.size()));
+    int result = uncompress(decompressed.data(), &destLen, data.data(), static_cast<uLong>(data.size()));
 
     if (result != Z_OK) {
         // 尝试不解压直接解析（可能是未压缩的数据）
@@ -582,9 +586,9 @@ Result<PlayerSaveData> PlayerSaveData::deserialize(const std::vector<u8>& data)
         }
 
         return fromNbt(*root);
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData,
-                     fmt::format("Failed to deserialize player data: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::InvalidData, fmt::format("Failed to deserialize player data: {}", e.what()));
     }
 }
 

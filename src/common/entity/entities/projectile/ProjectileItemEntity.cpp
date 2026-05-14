@@ -1,14 +1,14 @@
 #include "ProjectileItemEntity.hpp"
-#include "../../core/LivingEntity.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/potion/PotionUtils.hpp"
-#include "../../../world/IWorld.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "../orb/ExperienceOrbEntity.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../monster/nether/BlazeEntity.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../orb/ExperienceOrbEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -17,7 +17,8 @@ namespace entity {
 namespace {
 
 // 辅助函数：基于实体ID和tick创建随机数生成器
-math::Random createRandomFromEntity(const Entity& entity) {
+math::Random createRandomFromEntity(const Entity& entity)
+{
     u64 seed = static_cast<u64>(entity.id()) << 32 | static_cast<u64>(entity.ticksExisted());
     return math::Random(seed);
 }
@@ -30,10 +31,10 @@ math::Random createRandomFromEntity(const Entity& entity) {
 
 ProjectileItemEntity::ProjectileItemEntity(LegacyEntityType type, EntityId id)
     : ThrowableEntity(type, id)
-{
-}
+{}
 
-void ProjectileItemEntity::tick() {
+void ProjectileItemEntity::tick()
+{
     ThrowableEntity::tick();
     // 气泡粒子已在 ThrowableEntity::tick() 中处理，此处无需重复
 }
@@ -44,18 +45,20 @@ void ProjectileItemEntity::tick() {
 
 SnowballEntity::SnowballEntity(LegacyEntityType type, EntityId id)
     : ProjectileItemEntity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> SnowballEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> SnowballEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<SnowballEntity>(LegacyEntityType::Snowball, 0);
 }
 
-const Item* SnowballEntity::getDefaultItem() const {
+const Item* SnowballEntity::getDefaultItem() const
+{
     return Items::SNOWBALL;
 }
 
-void SnowballEntity::onEntityHit(const RayTraceResult& result) {
+void SnowballEntity::onEntityHit(const RayTraceResult& result)
+{
     if (!result.hitEntity) {
         return;
     }
@@ -79,11 +82,11 @@ void SnowballEntity::onEntityHit(const RayTraceResult& result) {
     }
 }
 
-void SnowballEntity::onImpact(const RayTraceResult& /*result*/) {
+void SnowballEntity::onImpact(const RayTraceResult& /*result*/)
+{
     // 播放破裂粒子效果
     if (m_world) {
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Snowflake,
+        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Snowflake,
             m_position,
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(0.5f, 0.5f, 0.5f),
@@ -99,18 +102,20 @@ void SnowballEntity::onImpact(const RayTraceResult& /*result*/) {
 
 EggEntity::EggEntity(LegacyEntityType type, EntityId id)
     : ProjectileItemEntity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> EggEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> EggEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<EggEntity>(LegacyEntityType::Egg, 0);
 }
 
-const Item* EggEntity::getDefaultItem() const {
+const Item* EggEntity::getDefaultItem() const
+{
     return Items::EGG;
 }
 
-void EggEntity::onEntityHit(const RayTraceResult& result) {
+void EggEntity::onEntityHit(const RayTraceResult& result)
+{
     if (!result.hitEntity) {
         return;
     }
@@ -119,21 +124,19 @@ void EggEntity::onEntityHit(const RayTraceResult& result) {
     (void)result;
 }
 
-void EggEntity::onImpact(const RayTraceResult& /*result*/) {
+void EggEntity::onImpact(const RayTraceResult& /*result*/)
+{
     // 12.5% (1/8) 概率孵化小鸡
     if (tryHatchChicken()) {
         // 孵化成功
         if (m_world) {
             m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Heart,
-                m_position,
-                Vector3(0.0f, 0.0f, 0.0f));
+                client::renderer::trident::particle::ParticleTypeId::Heart, m_position, Vector3(0.0f, 0.0f, 0.0f));
         }
     } else {
         // 播放破裂粒子效果
         if (m_world) {
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Snowflake,
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Snowflake,
                 m_position,
                 Vector3(0.0f, 0.0f, 0.0f),
                 Vector3(0.3f, 0.3f, 0.3f),
@@ -144,7 +147,8 @@ void EggEntity::onImpact(const RayTraceResult& /*result*/) {
     remove();
 }
 
-bool EggEntity::tryHatchChicken() {
+bool EggEntity::tryHatchChicken()
+{
     // 12.5% (1/8) 概率孵化
     if (m_world) {
         math::Random& rng = m_world->getRandom();
@@ -159,18 +163,20 @@ bool EggEntity::tryHatchChicken() {
 
 EnderPearlEntity::EnderPearlEntity(LegacyEntityType type, EntityId id)
     : ProjectileItemEntity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> EnderPearlEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> EnderPearlEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<EnderPearlEntity>(LegacyEntityType::EnderPearl, 0);
 }
 
-const Item* EnderPearlEntity::getDefaultItem() const {
+const Item* EnderPearlEntity::getDefaultItem() const
+{
     return Items::ENDER_PEARL;
 }
 
-void EnderPearlEntity::onEntityHit(const RayTraceResult& result) {
+void EnderPearlEntity::onEntityHit(const RayTraceResult& result)
+{
     mc::Entity* shooter = getShooter();
 
     // 对发射者造成5点伤害（传送伤害）
@@ -184,7 +190,8 @@ void EnderPearlEntity::onEntityHit(const RayTraceResult& result) {
     (void)result;
 }
 
-void EnderPearlEntity::onImpact(const RayTraceResult& result) {
+void EnderPearlEntity::onImpact(const RayTraceResult& result)
+{
     mc::Entity* shooter = getShooter();
 
     // 传送发射者
@@ -195,9 +202,7 @@ void EnderPearlEntity::onImpact(const RayTraceResult& result) {
             // 如果命中实体，不能传送到实体内部
             if (result.type != RayTraceResultType::Entity || !result.hitEntity) {
                 // 传送到落点
-                shooter->setPosition(result.hitPosition.x,
-                                     result.hitPosition.y,
-                                     result.hitPosition.z);
+                shooter->setPosition(result.hitPosition.x, result.hitPosition.y, result.hitPosition.z);
                 // 造成摔落伤害
                 auto damageSource = DamageSources::fall();
                 livingShooter->hurt(damageSource, 5.0f);
@@ -214,20 +219,22 @@ void EnderPearlEntity::onImpact(const RayTraceResult& result) {
 
 PotionEntity::PotionEntity(LegacyEntityType type, EntityId id)
     : ProjectileItemEntity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> PotionEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> PotionEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<PotionEntity>(LegacyEntityType::Potion, 0);
 }
 
-const Item* PotionEntity::getDefaultItem() const {
+const Item* PotionEntity::getDefaultItem() const
+{
     // 返回默认药水物品（喷溅型水瓶）
     // 注意：药水系统尚未完全实现
     return nullptr;
 }
 
-void PotionEntity::onImpact(const RayTraceResult& result) {
+void PotionEntity::onImpact(const RayTraceResult& result)
+{
     // 获取药水效果
     auto effects = potion::PotionUtils::getEffects(m_itemStack);
 
@@ -238,16 +245,14 @@ void PotionEntity::onImpact(const RayTraceResult& result) {
     if (m_world) {
         // 播放破裂音效
         math::Random rng = createRandomFromEntity(*this);
-        playSound(SoundEvents::ENTITY_SPLASH_POTION_BREAK, 1.0f,
-                  0.5f + rng.nextFloat() * 0.3f);
+        playSound(SoundEvents::ENTITY_SPLASH_POTION_BREAK, 1.0f, 0.5f + rng.nextFloat() * 0.3f);
 
         // 生成粒子效果
         // 药水颜色从效果列表获取
         u32 color = potion::PotionUtils::getColor(effects);
 
         // 生成喷溅粒子
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Splash,
+        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Splash,
             m_position,
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(0.5f, 0.5f, 0.5f),
@@ -256,14 +261,12 @@ void PotionEntity::onImpact(const RayTraceResult& result) {
         // 应用效果到范围内的生物
         if (!effects.empty()) {
             // 获取范围内的所有实体
-            AxisAlignedBB searchBox(
-                m_position.x - SPLASH_RADIUS,
+            AxisAlignedBB searchBox(m_position.x - SPLASH_RADIUS,
                 m_position.y - SPLASH_RADIUS,
                 m_position.z - SPLASH_RADIUS,
                 m_position.x + SPLASH_RADIUS,
                 m_position.y + SPLASH_RADIUS,
-                m_position.z + SPLASH_RADIUS
-            );
+                m_position.z + SPLASH_RADIUS);
 
             std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
 
@@ -293,14 +296,12 @@ void PotionEntity::onImpact(const RayTraceResult& result) {
                     }
 
                     // 创建新的效果实例
-                    entity::effect::EffectInstance scaledEffect(
-                        effect.type(),
+                    entity::effect::EffectInstance scaledEffect(effect.type(),
                         duration,
                         effect.amplifier(),
                         effect.isAmbient(),
                         effect.isVisible(),
-                        effect.showIcon()
-                    );
+                        effect.showIcon());
 
                     living->addEffect(scaledEffect);
                 }
@@ -323,18 +324,20 @@ void PotionEntity::onImpact(const RayTraceResult& result) {
 
 ExperienceBottleEntity::ExperienceBottleEntity(LegacyEntityType type, EntityId id)
     : ProjectileItemEntity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> ExperienceBottleEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ExperienceBottleEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<ExperienceBottleEntity>(LegacyEntityType::ExperienceBottle, 0);
 }
 
-const Item* ExperienceBottleEntity::getDefaultItem() const {
+const Item* ExperienceBottleEntity::getDefaultItem() const
+{
     return Items::EXPERIENCE_BOTTLE;
 }
 
-void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/) {
+void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
+{
     // 生成经验球（3-11点经验）
     if (m_world) {
         math::Random& rng = m_world->getRandom();
@@ -343,24 +346,18 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/) {
         // 生成经验球实体
         for (i32 i = 0; i < experience; ++i) {
             auto orb = std::make_unique<ExperienceOrbEntity>(1);
-            orb->setPosition(
-                m_position.x + (rng.nextFloat() - 0.5f) * 0.5f,
+            orb->setPosition(m_position.x + (rng.nextFloat() - 0.5f) * 0.5f,
                 m_position.y + 0.5f,
-                m_position.z + (rng.nextFloat() - 0.5f) * 0.5f
-            );
+                m_position.z + (rng.nextFloat() - 0.5f) * 0.5f);
             orb->setWorld(m_world);
             // 给予随机速度，使经验球散开
             orb->setVelocity(
-                (rng.nextFloat() - 0.5f) * 0.2f,
-                rng.nextFloat() * 0.3f + 0.1f,
-                (rng.nextFloat() - 0.5f) * 0.2f
-            );
+                (rng.nextFloat() - 0.5f) * 0.2f, rng.nextFloat() * 0.3f + 0.1f, (rng.nextFloat() - 0.5f) * 0.2f);
             m_world->spawnEntity(std::move(orb));
         }
 
         // 播放破裂效果
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Snowflake,
+        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Snowflake,
             m_position,
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(0.3f, 0.3f, 0.3f),

@@ -7,10 +7,10 @@
 
 #pragma once
 
-#include "CombatEntry.hpp"
 #include "../../core/Types.hpp"
-#include <vector>
+#include "CombatEntry.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -140,7 +140,7 @@ public:
     [[nodiscard]] i32 combatEndTime() const { return m_combatEndTime; }
 
     // 静态常量
-    static constexpr i32 COMBAT_TIMEOUT = 100;  // 战斗超时时间（5秒 = 100 tick）
+    static constexpr i32 COMBAT_TIMEOUT = 100; // 战斗超时时间（5秒 = 100 tick）
 
 private:
     /**
@@ -170,18 +170,18 @@ private:
      */
     [[nodiscard]] CombatEntry* getBestCombatEntry();
 
-    LivingEntity* m_owner;                  // 拥有者
-    std::vector<CombatEntry> m_entries;     // 战斗记录
-    f32 m_totalDamage = 0.0f;               // 总承受伤害
-    size_t m_bestEntryIndex = 0;            // 最佳伤害记录索引
+    LivingEntity* m_owner;              // 拥有者
+    std::vector<CombatEntry> m_entries; // 战斗记录
+    f32 m_totalDamage = 0.0f;           // 总承受伤害
+    size_t m_bestEntryIndex = 0;        // 最佳伤害记录索引
 
     // MC 1.16.5 新增字段
-    i32 m_lastDamageTime = 0;               // 最后受伤时间
-    i32 m_combatStartTime = 0;              // 战斗开始时间
-    i32 m_combatEndTime = 0;                // 战斗结束时间
-    bool m_inCombat = false;                // 是否在战斗中
-    bool m_takingDamage = false;            // 是否正在受到伤害
-    std::string m_fallSuffix;                    // 当前摔落后缀
+    i32 m_lastDamageTime = 0;    // 最后受伤时间
+    i32 m_combatStartTime = 0;   // 战斗开始时间
+    i32 m_combatEndTime = 0;     // 战斗结束时间
+    bool m_inCombat = false;     // 是否在战斗中
+    bool m_takingDamage = false; // 是否正在受到伤害
+    std::string m_fallSuffix;    // 当前摔落后缀
 };
 
 } // namespace mc

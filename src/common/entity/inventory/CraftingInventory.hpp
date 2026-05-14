@@ -4,9 +4,9 @@
 #include "entity/inventory/IRecipeHelperPopulator.hpp"
 #include "entity/inventory/IRecipeHolder.hpp"
 #include "entity/inventory/Slot.hpp"
-#include <vector>
 #include <functional>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 
@@ -56,9 +56,7 @@ public:
 
     // ========== IInventory接口 ==========
 
-    i32 getContainerSize() const override {
-        return m_width * m_height;
-    }
+    i32 getContainerSize() const override { return m_width * m_height; }
 
     bool isEmpty() const override;
 
@@ -135,17 +133,13 @@ public:
      *
      * 当背包内容改变时调用此回调，用于触发合成结果更新
      */
-    void setContentChangedCallback(std::function<void()> callback) {
-        m_onContentChanged = std::move(callback);
-    }
+    void setContentChangedCallback(std::function<void()> callback) { m_onContentChanged = std::move(callback); }
 
     /**
      * @brief 获取所有物品
      * @return 物品列表的常量引用
      */
-    const std::vector<ItemStack>& getItems() const {
-        return m_items;
-    }
+    const std::vector<ItemStack>& getItems() const { return m_items; }
 
     /**
      * @brief 设置所有物品
@@ -169,8 +163,7 @@ public:
      *
      * 边界框是包含所有非空槽位的最小矩形
      */
-    bool getContentBounds(i32& outMinX, i32& outMinY,
-                          i32& outMaxX, i32& outMaxY) const;
+    bool getContentBounds(i32& outMinX, i32& outMinY, i32& outMaxX, i32& outMaxY) const;
 
     // ========== IRecipeHelperPopulator接口 ==========
 
@@ -218,13 +211,9 @@ public:
 
     // ========== IInventory接口 ==========
 
-    i32 getContainerSize() const override {
-        return 1;
-    }
+    i32 getContainerSize() const override { return 1; }
 
-    bool isEmpty() const override {
-        return m_result.isEmpty();
-    }
+    bool isEmpty() const override { return m_result.isEmpty(); }
 
     ItemStack getItem(i32 slot) const override;
     void setItem(i32 slot, const ItemStack& stack) override;
@@ -241,7 +230,8 @@ public:
      * @brief 设置结果物品
      * @param stack 结果物品堆
      */
-    void setResultItem(const ItemStack& stack) {
+    void setResultItem(const ItemStack& stack)
+    {
         m_result = stack;
         setChanged();
     }
@@ -250,17 +240,13 @@ public:
      * @brief 获取结果物品
      * @return 结果物品堆
      */
-    const ItemStack& getResultItem() const {
-        return m_result;
-    }
+    const ItemStack& getResultItem() const { return m_result; }
 
     /**
      * @brief 检查是否有结果
      * @return 如果结果槽位有物品返回true
      */
-    bool hasResult() const {
-        return !m_result.isEmpty();
-    }
+    bool hasResult() const { return !m_result.isEmpty(); }
 
     // ========== IRecipeHolder接口 ==========
 
@@ -268,17 +254,13 @@ public:
      * @brief 设置当前使用的配方
      * @param recipe 配方指针，nullptr表示清除
      */
-    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override {
-        m_recipeUsed = recipe;
-    }
+    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override { m_recipeUsed = recipe; }
 
     /**
      * @brief 获取当前使用的配方
      * @return 配方指针，如果没有返回nullptr
      */
-    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override {
-        return m_recipeUsed;
-    }
+    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override { return m_recipeUsed; }
 
 private:
     ItemStack m_result;

@@ -4,7 +4,8 @@
 
 namespace mc::client {
 
-ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const std::string& typeId) {
+ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const std::string& typeId)
+{
     // 检查是否已存在
     if (m_entities.find(id) != m_entities.end()) {
         return nullptr;
@@ -23,7 +24,8 @@ ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const std::string& t
     return ptr;
 }
 
-ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId playerId, const std::string& username) {
+ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId playerId, const std::string& username)
+{
     // 如果已有本地玩家，先清除
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
         m_entities.erase(m_localPlayerEntityId);
@@ -41,7 +43,8 @@ ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId 
     return ptr;
 }
 
-bool ClientEntityManager::removeEntity(EntityId id) {
+bool ClientEntityManager::removeEntity(EntityId id)
+{
     // 不能移除本地玩家
     if (id == m_localPlayerEntityId) {
         return false;
@@ -58,7 +61,8 @@ bool ClientEntityManager::removeEntity(EntityId id) {
     return true;
 }
 
-ClientEntity* ClientEntityManager::getEntity(EntityId id) {
+ClientEntity* ClientEntityManager::getEntity(EntityId id)
+{
     auto it = m_entities.find(id);
     if (it == m_entities.end()) {
         return nullptr;
@@ -66,7 +70,8 @@ ClientEntity* ClientEntityManager::getEntity(EntityId id) {
     return it->second.get();
 }
 
-const ClientEntity* ClientEntityManager::getEntity(EntityId id) const {
+const ClientEntity* ClientEntityManager::getEntity(EntityId id) const
+{
     auto it = m_entities.find(id);
     if (it == m_entities.end()) {
         return nullptr;
@@ -74,11 +79,13 @@ const ClientEntity* ClientEntityManager::getEntity(EntityId id) const {
     return it->second.get();
 }
 
-bool ClientEntityManager::hasEntity(EntityId id) const {
+bool ClientEntityManager::hasEntity(EntityId id) const
+{
     return m_entities.find(id) != m_entities.end();
 }
 
-void ClientEntityManager::clear() {
+void ClientEntityManager::clear()
+{
     // 保留本地玩家
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
         auto localPlayerIt = m_entities.find(m_localPlayerEntityId);
@@ -95,7 +102,8 @@ void ClientEntityManager::clear() {
     m_entitiesToRemove.clear();
 }
 
-void ClientEntityManager::clearLocalPlayer() {
+void ClientEntityManager::clearLocalPlayer()
+{
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
         m_entities.erase(m_localPlayerEntityId);
         m_localPlayerEntityId = INVALID_ENTITY_ID;
@@ -103,25 +111,29 @@ void ClientEntityManager::clearLocalPlayer() {
     }
 }
 
-ClientEntity* ClientEntityManager::localPlayer() {
+ClientEntity* ClientEntityManager::localPlayer()
+{
     if (m_localPlayerEntityId == INVALID_ENTITY_ID) {
         return nullptr;
     }
     return getEntity(m_localPlayerEntityId);
 }
 
-const ClientEntity* ClientEntityManager::localPlayer() const {
+const ClientEntity* ClientEntityManager::localPlayer() const
+{
     if (m_localPlayerEntityId == INVALID_ENTITY_ID) {
         return nullptr;
     }
     return getEntity(m_localPlayerEntityId);
 }
 
-bool ClientEntityManager::isLocalPlayer(EntityId entityId) const {
+bool ClientEntityManager::isLocalPlayer(EntityId entityId) const
+{
     return entityId == m_localPlayerEntityId;
 }
 
-size_t ClientEntityManager::entityCount() const {
+size_t ClientEntityManager::entityCount() const
+{
     // 不包括本地玩家
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
         return m_entities.size() - 1;
@@ -129,7 +141,8 @@ size_t ClientEntityManager::entityCount() const {
     return m_entities.size();
 }
 
-void ClientEntityManager::forEachEntity(std::function<void(ClientEntity&)> func) {
+void ClientEntityManager::forEachEntity(std::function<void(ClientEntity&)> func)
+{
     for (auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive()) {
             func(*entity);
@@ -137,7 +150,8 @@ void ClientEntityManager::forEachEntity(std::function<void(ClientEntity&)> func)
     }
 }
 
-void ClientEntityManager::forEachEntity(std::function<void(const ClientEntity&)> func) const {
+void ClientEntityManager::forEachEntity(std::function<void(const ClientEntity&)> func) const
+{
     for (const auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive()) {
             func(*entity);
@@ -145,7 +159,8 @@ void ClientEntityManager::forEachEntity(std::function<void(const ClientEntity&)>
     }
 }
 
-void ClientEntityManager::forEachRemoteEntity(std::function<void(ClientEntity&)> func) {
+void ClientEntityManager::forEachRemoteEntity(std::function<void(ClientEntity&)> func)
+{
     for (auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive() && id != m_localPlayerEntityId) {
             func(*entity);
@@ -153,14 +168,16 @@ void ClientEntityManager::forEachRemoteEntity(std::function<void(ClientEntity&)>
     }
 }
 
-void ClientEntityManager::removeDeadEntities() {
+void ClientEntityManager::removeDeadEntities()
+{
     for (EntityId id : m_entitiesToRemove) {
         m_entities.erase(id);
     }
     m_entitiesToRemove.clear();
 }
 
-std::vector<EntityId> ClientEntityManager::getEntitiesByType(const std::string& typeId) const {
+std::vector<EntityId> ClientEntityManager::getEntitiesByType(const std::string& typeId) const
+{
     std::vector<EntityId> result;
     for (const auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive() && entity->typeId() == typeId) {
@@ -170,7 +187,8 @@ std::vector<EntityId> ClientEntityManager::getEntitiesByType(const std::string& 
     return result;
 }
 
-std::vector<EntityId> ClientEntityManager::getEntitiesInRange(f32 x, f32 y, f32 z, f32 radius) const {
+std::vector<EntityId> ClientEntityManager::getEntitiesInRange(f32 x, f32 y, f32 z, f32 radius) const
+{
     std::vector<EntityId> result;
     f32 radiusSq = radius * radius;
 
@@ -189,7 +207,8 @@ std::vector<EntityId> ClientEntityManager::getEntitiesInRange(f32 x, f32 y, f32 
     return result;
 }
 
-void ClientEntityManager::tick() {
+void ClientEntityManager::tick()
+{
     // 更新所有实体
     for (auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive()) {
@@ -209,7 +228,8 @@ void ClientEntityManager::tick() {
     removeDeadEntities();
 }
 
-void ClientEntityManager::updateInterpolation(f32 deltaTime) {
+void ClientEntityManager::updateInterpolation(f32 deltaTime)
+{
     // 每帧更新所有实体的平滑插值
     for (auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive()) {
@@ -218,7 +238,8 @@ void ClientEntityManager::updateInterpolation(f32 deltaTime) {
     }
 }
 
-void ClientEntityManager::updateAnimations(f32 /*partialTick*/) {
+void ClientEntityManager::updateAnimations(f32 /*partialTick*/)
+{
     // 当前动画更新在tick()中完成
     // 如果需要更精确的插值，可以在这里进行
 }

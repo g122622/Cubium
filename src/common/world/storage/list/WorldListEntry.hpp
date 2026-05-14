@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../WorldConfig.hpp"
 #include "../../../core/Types.hpp"
+#include "../../WorldConfig.hpp"
 #include <chrono>
 #include <filesystem>
 #include <optional>
@@ -13,12 +13,12 @@ namespace mc::world::storage {
  * @brief 世界兼容性状态
  */
 enum class WorldCompatibility : u8 {
-    Current,               ///< 当前版本，可直接加载
-    Older,                 ///< 旧版本，建议备份后升级
-    Newer,                 ///< 未来版本，通常不可加载
-    Unknown,               ///< 版本信息缺失或无法识别
-    UnsupportedStorage,    ///< 不支持的存储格式（如 McRegion）
-    Corrupted              ///< level.dat 损坏
+    Current,            ///< 当前版本，可直接加载
+    Older,              ///< 旧版本，建议备份后升级
+    Newer,              ///< 未来版本，通常不可加载
+    Unknown,            ///< 版本信息缺失或无法识别
+    UnsupportedStorage, ///< 不支持的存储格式（如 McRegion）
+    Corrupted           ///< level.dat 损坏
 };
 
 /**
@@ -92,8 +92,7 @@ struct WorldListEntry {
     /**
      * @brief 构造世界列表条目
      */
-    WorldListEntry(
-        std::string levelId,
+    WorldListEntry(std::string levelId,
         std::filesystem::path worldDir,
         std::string displayName,
         i64 lastPlayedMs,
@@ -109,39 +108,118 @@ struct WorldListEntry {
         std::string versionName,
         i32 dataVersion,
         std::filesystem::path iconPath,
-        std::string errorMessage
-    );
+        std::string errorMessage);
 
     /**
      * @brief Builder 模式
      */
     class Builder {
     public:
-        Builder& levelId(std::string value) { m_levelId = std::move(value); return *this; }
-        Builder& worldDir(std::filesystem::path value) { m_worldDir = std::move(value); return *this; }
-        Builder& displayName(std::string value) { m_displayName = std::move(value); return *this; }
-        Builder& lastPlayedMs(i64 value) { m_lastPlayedMs = value; return *this; }
-        Builder& seed(u64 value) { m_seed = value; return *this; }
-        Builder& worldType(WorldType value) { m_worldType = value; return *this; }
-        Builder& gameMode(GameMode value) { m_gameMode = value; return *this; }
-        Builder& difficulty(Difficulty value) { m_difficulty = value; return *this; }
-        Builder& hardcore(bool value) { m_hardcore = value; return *this; }
-        Builder& allowCommands(bool value) { m_allowCommands = value; return *this; }
-        Builder& locked(bool value) { m_locked = value; return *this; }
-        Builder& requiresConversion(bool value) { m_requiresConversion = value; return *this; }
-        Builder& compatibility(WorldCompatibility value) { m_compatibility = value; return *this; }
-        Builder& versionName(std::string value) { m_versionName = std::move(value); return *this; }
-        Builder& dataVersion(i32 value) { m_dataVersion = value; return *this; }
-        Builder& iconPath(std::filesystem::path value) { m_iconPath = std::move(value); return *this; }
-        Builder& errorMessage(std::string value) { m_errorMessage = std::move(value); return *this; }
+        Builder& levelId(std::string value)
+        {
+            m_levelId = std::move(value);
+            return *this;
+        }
+        Builder& worldDir(std::filesystem::path value)
+        {
+            m_worldDir = std::move(value);
+            return *this;
+        }
+        Builder& displayName(std::string value)
+        {
+            m_displayName = std::move(value);
+            return *this;
+        }
+        Builder& lastPlayedMs(i64 value)
+        {
+            m_lastPlayedMs = value;
+            return *this;
+        }
+        Builder& seed(u64 value)
+        {
+            m_seed = value;
+            return *this;
+        }
+        Builder& worldType(WorldType value)
+        {
+            m_worldType = value;
+            return *this;
+        }
+        Builder& gameMode(GameMode value)
+        {
+            m_gameMode = value;
+            return *this;
+        }
+        Builder& difficulty(Difficulty value)
+        {
+            m_difficulty = value;
+            return *this;
+        }
+        Builder& hardcore(bool value)
+        {
+            m_hardcore = value;
+            return *this;
+        }
+        Builder& allowCommands(bool value)
+        {
+            m_allowCommands = value;
+            return *this;
+        }
+        Builder& locked(bool value)
+        {
+            m_locked = value;
+            return *this;
+        }
+        Builder& requiresConversion(bool value)
+        {
+            m_requiresConversion = value;
+            return *this;
+        }
+        Builder& compatibility(WorldCompatibility value)
+        {
+            m_compatibility = value;
+            return *this;
+        }
+        Builder& versionName(std::string value)
+        {
+            m_versionName = std::move(value);
+            return *this;
+        }
+        Builder& dataVersion(i32 value)
+        {
+            m_dataVersion = value;
+            return *this;
+        }
+        Builder& iconPath(std::filesystem::path value)
+        {
+            m_iconPath = std::move(value);
+            return *this;
+        }
+        Builder& errorMessage(std::string value)
+        {
+            m_errorMessage = std::move(value);
+            return *this;
+        }
 
-        WorldListEntry build() const {
-            return WorldListEntry(
-                m_levelId, m_worldDir, m_displayName, m_lastPlayedMs, m_seed,
-                m_worldType, m_gameMode, m_difficulty, m_hardcore, m_allowCommands,
-                m_locked, m_requiresConversion, m_compatibility, m_versionName,
-                m_dataVersion, m_iconPath, m_errorMessage
-            );
+        WorldListEntry build() const
+        {
+            return WorldListEntry(m_levelId,
+                m_worldDir,
+                m_displayName,
+                m_lastPlayedMs,
+                m_seed,
+                m_worldType,
+                m_gameMode,
+                m_difficulty,
+                m_hardcore,
+                m_allowCommands,
+                m_locked,
+                m_requiresConversion,
+                m_compatibility,
+                m_versionName,
+                m_dataVersion,
+                m_iconPath,
+                m_errorMessage);
         }
 
     private:
@@ -190,8 +268,6 @@ void sortWorldEntries(std::vector<WorldListEntry>& entries);
  * 检查 displayName 或 levelId 是否包含搜索字符串（不区分大小写）。
  */
 std::vector<WorldListEntry> filterWorldEntries(
-    const std::vector<WorldListEntry>& entries,
-    const std::string& searchQuery
-);
+    const std::vector<WorldListEntry>& entries, const std::string& searchQuery);
 
 } // namespace mc::world::storage

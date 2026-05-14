@@ -6,7 +6,8 @@
 
 namespace mc::client {
 
-inline std::filesystem::path resolveShaderPath(std::string_view shaderFileName) {
+inline std::filesystem::path resolveShaderPath(std::string_view shaderFileName)
+{
     namespace fs = std::filesystem;
 
     const fs::path shaderName(shaderFileName);

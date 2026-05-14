@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/entities/hanging/HangingEntity.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 #include <cmath>
 
@@ -19,7 +19,8 @@ namespace {
  */
 class HangingEntityTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
@@ -29,7 +30,8 @@ protected:
 // canPlaceOn 测试
 // ============================================================================
 
-TEST_F(HangingEntityTest, CanPlaceOnReturnsFalseWhenWorldIsNull) {
+TEST_F(HangingEntityTest, CanPlaceOnReturnsFalseWhenWorldIsNull)
+{
     // 创建画作实体
     entity::PaintingEntity painting;
 
@@ -37,7 +39,8 @@ TEST_F(HangingEntityTest, CanPlaceOnReturnsFalseWhenWorldIsNull) {
     EXPECT_FALSE(painting.canPlaceOn());
 }
 
-TEST_F(HangingEntityTest, CanPlaceOnReturnsTrueForValidPosition) {
+TEST_F(HangingEntityTest, CanPlaceOnReturnsTrueForValidPosition)
+{
     // 这个测试需要模拟世界，目前只验证方法存在
     // 实际测试需要 Mock IWorld
     entity::PaintingEntity painting;
@@ -47,7 +50,8 @@ TEST_F(HangingEntityTest, CanPlaceOnReturnsTrueForValidPosition) {
     EXPECT_FALSE(painting.canPlaceOn());
 }
 
-TEST_F(HangingEntityTest, LeashKnotEntityCanBeCreated) {
+TEST_F(HangingEntityTest, LeashKnotEntityCanBeCreated)
+{
     // 验证拴绳结实体可以创建
     entity::LeashKnotEntity leashKnot;
 
@@ -55,7 +59,8 @@ TEST_F(HangingEntityTest, LeashKnotEntityCanBeCreated) {
     EXPECT_EQ(leashKnot.getHeight(), 1);
 }
 
-TEST_F(HangingEntityTest, ItemFrameEntityCanBeCreated) {
+TEST_F(HangingEntityTest, ItemFrameEntityCanBeCreated)
+{
     // 验证物品展示框实体可以创建
     entity::ItemFrameEntity itemFrame;
 
@@ -67,7 +72,8 @@ TEST_F(HangingEntityTest, ItemFrameEntityCanBeCreated) {
     EXPECT_TRUE(itemFrame.isGlowing());
 }
 
-TEST_F(HangingEntityTest, PaintingEntityMotiveCanBeSet) {
+TEST_F(HangingEntityTest, PaintingEntityMotiveCanBeSet)
+{
     entity::PaintingEntity painting;
 
     // 验证默认画作
@@ -82,7 +88,8 @@ TEST_F(HangingEntityTest, PaintingEntityMotiveCanBeSet) {
     EXPECT_EQ(painting.getHeight(), 1);
 }
 
-TEST_F(HangingEntityTest, PaintingEntityDimensions) {
+TEST_F(HangingEntityTest, PaintingEntityDimensions)
+{
     // 验证不同画作的尺寸
     entity::PaintingEntity painting;
 
@@ -102,7 +109,8 @@ TEST_F(HangingEntityTest, PaintingEntityDimensions) {
     EXPECT_EQ(painting.getHeight(), 4);
 }
 
-TEST_F(HangingEntityTest, ItemFrameRotation) {
+TEST_F(HangingEntityTest, ItemFrameRotation)
+{
     entity::ItemFrameEntity itemFrame;
 
     // 初始旋转
@@ -121,10 +129,11 @@ TEST_F(HangingEntityTest, ItemFrameRotation) {
 
     // 旋转超过 7 应该回绕
     itemFrame.setItemRotation(10);
-    EXPECT_EQ(itemFrame.getItemRotation(), 2);  // 10 % 8 = 2
+    EXPECT_EQ(itemFrame.getItemRotation(), 2); // 10 % 8 = 2
 }
 
-TEST_F(HangingEntityTest, LeashKnotCanAttachEntities) {
+TEST_F(HangingEntityTest, LeashKnotCanAttachEntities)
+{
     entity::LeashKnotEntity leashKnot;
 
     // 验证可以绑定和解绑实体
@@ -134,7 +143,8 @@ TEST_F(HangingEntityTest, LeashKnotCanAttachEntities) {
     // 这里只验证方法存在
 }
 
-TEST_F(HangingEntityTest, HangingDirection) {
+TEST_F(HangingEntityTest, HangingDirection)
+{
     entity::PaintingEntity painting;
 
     // 验证默认方向
@@ -153,7 +163,8 @@ TEST_F(HangingEntityTest, HangingDirection) {
     EXPECT_EQ(painting.getDirection(), entity::HangingEntity::Direction::WEST);
 }
 
-TEST_F(HangingEntityTest, ItemRegistration) {
+TEST_F(HangingEntityTest, ItemRegistration)
+{
     // 验证物品已注册
     EXPECT_NE(Items::PAINTING, nullptr);
     EXPECT_NE(Items::ITEM_FRAME, nullptr);

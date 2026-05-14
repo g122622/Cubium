@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Enchantment.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
 #include "common/core/Result.hpp"
-#include <vector>
+#include "common/network/packet/PacketSerializer.hpp"
 #include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
 
 // Forward declaration
@@ -13,9 +13,9 @@ namespace nbt {
 namespace tags {
 struct compound_tag;
 struct list_tag;
-}
-}
-}
+} // namespace tags
+} // namespace nbt
+} // namespace mc
 
 namespace mc {
 namespace item {
@@ -27,13 +27,15 @@ namespace enchant {
  * 存储附魔ID和等级。
  */
 struct EnchantmentInstance {
-    std::string enchantmentId;   ///< 附魔ID
-    i32 level = 1;          ///< 附魔等级
+    std::string enchantmentId; ///< 附魔ID
+    i32 level = 1;             ///< 附魔等级
 
     EnchantmentInstance() = default;
 
     EnchantmentInstance(const std::string& id, i32 lvl)
-        : enchantmentId(id), level(lvl) {}
+        : enchantmentId(id)
+        , level(lvl)
+    {}
 
     /**
      * @brief 获取附魔定义
@@ -42,13 +44,12 @@ struct EnchantmentInstance {
     [[nodiscard]] const Enchantment* getEnchantment() const;
 
     // 比较操作符
-    bool operator==(const EnchantmentInstance& other) const {
+    bool operator==(const EnchantmentInstance& other) const
+    {
         return enchantmentId == other.enchantmentId && level == other.level;
     }
 
-    bool operator!=(const EnchantmentInstance& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const EnchantmentInstance& other) const { return !(*this == other); }
 };
 
 /**
@@ -177,7 +178,8 @@ public:
     /**
      * @brief 比较两个附魔容器是否相等
      */
-    bool operator==(const EnchantmentContainer& other) const {
+    bool operator==(const EnchantmentContainer& other) const
+    {
         if (m_enchantments.size() != other.m_enchantments.size()) {
             return false;
         }
@@ -189,9 +191,7 @@ public:
         return true;
     }
 
-    bool operator!=(const EnchantmentContainer& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const EnchantmentContainer& other) const { return !(*this == other); }
 
 private:
     std::vector<EnchantmentInstance> m_enchantments;

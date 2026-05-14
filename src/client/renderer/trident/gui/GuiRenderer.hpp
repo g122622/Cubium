@@ -1,15 +1,15 @@
 #pragma once
 
-#include "client/ui/Glyph.hpp"
+#include "GuiAtlasRegistry.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/FontRenderer.hpp"
+#include "client/ui/Glyph.hpp"
 #include "common/core/Result.hpp"
-#include "GuiAtlasRegistry.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
-#include <vector>
-#include <unordered_map>
 #include <optional>
+#include <unordered_map>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 // 前向声明
 namespace mc::client {
@@ -62,8 +62,7 @@ public:
      * @param renderPass 渲染通道
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkRenderPass renderPass,
@@ -111,8 +110,7 @@ public:
      * @param shadow 是否绘制阴影
      * @return 文本宽度
      */
-    f64 drawText(const std::string& text, f64 x, f64 y,
-                 u32 color = Colors::WHITE, bool shadow = true);
+    f64 drawText(const std::string& text, f64 x, f64 y, u32 color = Colors::WHITE, bool shadow = true);
 
     /**
      * @brief 绘制居中文本
@@ -122,8 +120,7 @@ public:
      * @param color 颜色
      * @return 文本宽度
      */
-    f64 drawTextCentered(const std::string& text, f64 x, f64 y,
-                         u32 color = Colors::WHITE);
+    f64 drawTextCentered(const std::string& text, f64 x, f64 y, u32 color = Colors::WHITE);
 
     /**
      * @brief 获取文本宽度
@@ -178,9 +175,8 @@ public:
      * @param v1 纹理右下角V
      * @param color 颜色（ARGB，默认白色）
      */
-    void drawTexturedRect(f64 x, f64 y, f64 width, f64 height,
-                          f64 u0, f64 v0, f64 u1, f64 v1,
-                          u32 color = ITEM_TEXTURE_COLOR);
+    void drawTexturedRect(
+        f64 x, f64 y, f64 width, f64 height, f64 u0, f64 v0, f64 u1, f64 v1, u32 color = ITEM_TEXTURE_COLOR);
 
     /**
      * @brief 绘制纹理矩形（指定图集槽位）
@@ -198,9 +194,7 @@ public:
      * @param color 颜色（ARGB）
      * @param atlasSlot 图集槽位ID
      */
-    void drawTexturedRect(f64 x, f64 y, f64 width, f64 height,
-                          f64 u0, f64 v0, f64 u1, f64 v1,
-                          u32 color, u8 atlasSlot);
+    void drawTexturedRect(f64 x, f64 y, f64 width, f64 height, f64 u0, f64 v0, f64 u1, f64 v1, u32 color, u8 atlasSlot);
 
     /**
      * @brief 绘制渐变矩形（垂直）
@@ -211,8 +205,7 @@ public:
      * @param colorTop 顶部颜色
      * @param colorBottom 底部颜色
      */
-    void fillGradientRect(f64 x, f64 y, f64 width, f64 height,
-                          u32 colorTop, u32 colorBottom);
+    void fillGradientRect(f64 x, f64 y, f64 width, f64 height, u32 colorTop, u32 colorBottom);
 
     /**
      * @brief 绘制渐变矩形（水平）
@@ -223,8 +216,7 @@ public:
      * @param colorLeft 左侧颜色
      * @param colorRight 右侧颜色
      */
-    void fillGradientRectHorizontal(f64 x, f64 y, f64 width, f64 height,
-                                     u32 colorLeft, u32 colorRight);
+    void fillGradientRectHorizontal(f64 x, f64 y, f64 width, f64 height, u32 colorLeft, u32 colorRight);
 
     /**
      * @brief 绘制矩形边框
@@ -360,10 +352,10 @@ private:
      * @brief 创建缓冲区
      */
     [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
-                                            VkBufferUsageFlags usage,
-                                            VkMemoryPropertyFlags properties,
-                                            VkBuffer& buffer,
-                                            VkDeviceMemory& memory);
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkBuffer& buffer,
+        VkDeviceMemory& memory);
 
     // Vulkan资源
     VkDevice m_device = VK_NULL_HANDLE;
@@ -378,10 +370,10 @@ private:
     // 缓冲区
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
-    VkDeviceSize m_vertexBufferSize = 64 * 1024;  // 64KB 初始大小
+    VkDeviceSize m_vertexBufferSize = 64 * 1024; // 64KB 初始大小
     VkBuffer m_indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
-    VkDeviceSize m_indexBufferSize = 128 * 1024;  // 128KB 初始大小
+    VkDeviceSize m_indexBufferSize = 128 * 1024; // 128KB 初始大小
     VkBuffer m_fontStagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_fontStagingMemory = VK_NULL_HANDLE;
 

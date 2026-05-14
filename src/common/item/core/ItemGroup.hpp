@@ -2,8 +2,8 @@
 
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
-#include <vector>
 #include <functional>
+#include <vector>
 
 namespace mc {
 
@@ -33,18 +33,18 @@ public:
      * 定义了所有原版物品组的顺序。
      */
     enum class Type : i32 {
-        BuildingBlocks = 0,     ///< 建筑方块
-        Decorations = 1,        ///< 装饰方块
-        Redstone = 2,           ///< 红石
-        Transportation = 3,     ///< 交通工具
-        Misc = 4,               ///< 杂项
-        Food = 5,               ///< 食物
-        Tools = 6,              ///< 工具
-        Combat = 7,             ///< 战斗
-        Brewing = 8,            ///< 酿造
-        Hotbar = 9,             ///< 快捷栏（保存的热门物品）
-        Inventory = 10,         ///< 背包（生存模式物品栏）
-        Search = 11             ///< 搜索
+        BuildingBlocks = 0, ///< 建筑方块
+        Decorations = 1,    ///< 装饰方块
+        Redstone = 2,       ///< 红石
+        Transportation = 3, ///< 交通工具
+        Misc = 4,           ///< 杂项
+        Food = 5,           ///< 食物
+        Tools = 6,          ///< 工具
+        Combat = 7,         ///< 战斗
+        Brewing = 8,        ///< 酿造
+        Hotbar = 9,         ///< 快捷栏（保存的热门物品）
+        Inventory = 10,     ///< 背包（生存模式物品栏）
+        Search = 11         ///< 搜索
     };
 
     /**
@@ -87,9 +87,7 @@ public:
      * @brief 设置填充函数
      * @param fillFunc 填充函数
      */
-    void setFillFunction(std::function<void(std::vector<ItemStack>&)> fillFunc) {
-        m_fillFunc = std::move(fillFunc);
-    }
+    void setFillFunction(std::function<void(std::vector<ItemStack>&)> fillFunc) { m_fillFunc = std::move(fillFunc); }
 
     /**
      * @brief 设置图标物品
@@ -100,16 +98,12 @@ public:
     /**
      * @brief 是否在第一列
      */
-    [[nodiscard]] bool isFirstColumn() const {
-        return static_cast<i32>(m_type) <= 5;
-    }
+    [[nodiscard]] bool isFirstColumn() const { return static_cast<i32>(m_type) <= 5; }
 
     /**
      * @brief 获取标签页索引
      */
-    [[nodiscard]] i32 getTabIndex() const {
-        return static_cast<i32>(m_type);
-    }
+    [[nodiscard]] i32 getTabIndex() const { return static_cast<i32>(m_type); }
 
 private:
     Type m_type;

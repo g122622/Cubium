@@ -1,12 +1,12 @@
 #include "FortressStructure.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../biome/Biomes.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
+#include "../../jigsaw/JigsawManager.hpp"
+#include "../../jigsaw/JigsawPattern.hpp"
 #include "../StructureBoundingBox.hpp"
 #include <cmath>
 
@@ -32,20 +32,17 @@ FortressStructure::FortressStructure(const Config& config)
     initializeBiomes();
 }
 
-void FortressStructure::initializeBiomes() {
+void FortressStructure::initializeBiomes()
+{
     // 下界要塞只生成在下界荒地和灵魂沙谷
     m_validBiomes = {
-        NetherWastes,       // 下界荒地
-        SoulSandValley      // 灵魂沙谷
+        NetherWastes,  // 下界荒地
+        SoulSandValley // 灵魂沙谷
     };
 }
 
 bool FortressStructure::canGenerate(
-    IWorld& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     // MC 1.16.5: 下界要塞只检查概率，不检查生物群系
     // 生物群系检查由维度的 BiomeGenerationSettings 决定
@@ -56,11 +53,7 @@ bool FortressStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> FortressStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -80,14 +73,12 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
 
     if (startPool && !startPool->isEmpty()) {
         // 使用 Jigsaw 系统生成
-        jigsaw::JigsawManager::assembleAndPlace(
-            world,
+        jigsaw::JigsawManager::assembleAndPlace(world,
             patternRegistry,
             *startPool,
-            10,  // 要塞深度
+            10, // 要塞深度
             startPos,
-            rng
-        );
+            rng);
     } else {
         // 回退：生成简单的要塞结构
         generateFallbackFortress(world, rng, startPos);
@@ -96,10 +87,7 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
     return start;
 }
 
-void FortressStructure::generateFallbackFortress(
-    IWorldWriter& world,
-    math::Random& rng,
-    const BlockPos& startPos) const
+void FortressStructure::generateFallbackFortress(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     // 获取方块状态
     const BlockState* netherBricks = VanillaBlocks::getState(VanillaBlocks::NETHERRACK); // 使用下界岩替代
@@ -169,12 +157,7 @@ void FortressStructure::generateFallbackFortress(
 
     // 烈焰人刷怪点标记（中心偏移）
     BlockPos spawnerPos(throneX + 3, throneY + 5, throneZ + 4);
-    world.setBlockState(
-        spawnerPos.x,
-        spawnerPos.y,
-        spawnerPos.z,
-        netherWartBlock ? netherWartBlock : netherBricks,
-        18);
+    world.setBlockState(spawnerPos.x, spawnerPos.y, spawnerPos.z, netherWartBlock ? netherWartBlock : netherBricks, 18);
 
     // 生成地狱疣房间
     // 尺寸: 13x14x13

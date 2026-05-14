@@ -1,12 +1,12 @@
 #include "HopperBlock.hpp"
-#include "../../blockentity/transport/HopperEntity.hpp"
-#include "../../IWorld.hpp"
-#include "../../redstone/RedstoneSystem.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../IWorld.hpp"
+#include "../../blockentity/transport/HopperEntity.hpp"
+#include "../../redstone/RedstoneSystem.hpp"
 
 #include <algorithm>
 
@@ -14,21 +14,23 @@ namespace mc {
 namespace blocks {
 
 HopperBlock::HopperBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::FACING_EXCEPT_UP())
-        .add(BlockStateProperties::ENABLED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::FACING_EXCEPT_UP())
+                         .add(BlockStateProperties::ENABLED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
     setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING_EXCEPT_UP(), Direction::Down)
-        .with(BlockStateProperties::ENABLED(), true));
+            .with(BlockStateProperties::FACING_EXCEPT_UP(), Direction::Down)
+            .with(BlockStateProperties::ENABLED(), true));
     initShapes();
 }
 
-BlockState HopperBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState HopperBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.getClickedFace();
     Direction outputDir = Directions::opposite(facing);
     if (outputDir == Direction::Up) {
@@ -40,16 +42,14 @@ BlockState HopperBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::ENABLED(), true);
 }
 
-void HopperBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void HopperBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     updateState(world, pos, state);
 }
 
 void HopperBlock::neighborChanged(
-    IWorld& world,
-    const BlockPos& pos,
-    Block& neighborBlock,
-    const BlockPos& neighborPos,
-    bool isMoving) {
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
 
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
@@ -61,27 +61,30 @@ void HopperBlock::neighborChanged(
     }
 }
 
-const CollisionShape& HopperBlock::getShape(const BlockState& state) const {
+const CollisionShape& HopperBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
     return m_shapes[static_cast<size_t>(facing)];
 }
 
-const CollisionShape& HopperBlock::getRaytraceShape(const BlockState& state) const {
+const CollisionShape& HopperBlock::getRaytraceShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
     return m_raytraceShapes[static_cast<size_t>(facing)];
 }
 
-std::unique_ptr<BlockEntity> HopperBlock::createBlockEntity(const BlockPos& pos) {
+std::unique_ptr<BlockEntity> HopperBlock::createBlockEntity(const BlockPos& pos)
+{
     return std::make_unique<blockentity::HopperEntity>(pos);
 }
 
-ActionResultType HopperBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType HopperBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(state);
     MC_UNUSED(hand);
@@ -100,10 +103,8 @@ ActionResultType HopperBlock::onBlockActivated(
     return ActionResultType::Pass;
 }
 
-i32 HopperBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+i32 HopperBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -141,11 +142,8 @@ i32 HopperBlock::getComparatorInputOverride(
     return std::min(signal, 15);
 }
 
-void HopperBlock::onEntityCollision(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Entity& entity) {
+void HopperBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
 
     MC_UNUSED(state);
 
@@ -158,7 +156,8 @@ void HopperBlock::onEntityCollision(
     hopper->onEntityCollision(world, &entity);
 }
 
-const BlockState& HopperBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& HopperBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     if (rotated == Direction::Up) {
@@ -167,21 +166,25 @@ const BlockState& HopperBlock::rotate(const BlockState& state, Rotation rotation
     return state.with(BlockStateProperties::FACING_EXCEPT_UP(), rotated);
 }
 
-const BlockState& HopperBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& HopperBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     return rotate(state, rotation);
 }
 
-Direction HopperBlock::getFacing(const BlockState& state) {
+Direction HopperBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::FACING_EXCEPT_UP());
 }
 
-bool HopperBlock::isEnabled(const BlockState& state) {
+bool HopperBlock::isEnabled(const BlockState& state)
+{
     return state.get(BlockStateProperties::ENABLED());
 }
 
-void HopperBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void HopperBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos);
     const bool enabled = !powered;
     if (enabled != isEnabled(state)) {
@@ -190,31 +193,31 @@ void HopperBlock::updateState(IWorld& world, const BlockPos& pos, const BlockSta
     }
 }
 
-void HopperBlock::initShapes() {
+void HopperBlock::initShapes()
+{
     CollisionShape inputShape = CollisionShape::fromPixelBox(0, 10, 0, 16, 16, 16);
     CollisionShape middleShape = CollisionShape::fromPixelBox(4, 4, 4, 12, 10, 12);
-    CollisionShape baseShape = CollisionShape::combine(
-        inputShape, middleShape, CollisionShape::CombineOp::OR);
+    CollisionShape baseShape = CollisionShape::combine(inputShape, middleShape, CollisionShape::CombineOp::OR);
 
     CollisionShape downSpout = CollisionShape::fromPixelBox(6, 0, 6, 10, 4, 10);
-    m_shapes[static_cast<size_t>(Direction::Down)] = CollisionShape::combine(
-        baseShape, downSpout, CollisionShape::CombineOp::OR);
+    m_shapes[static_cast<size_t>(Direction::Down)] =
+        CollisionShape::combine(baseShape, downSpout, CollisionShape::CombineOp::OR);
 
     CollisionShape northSpout = CollisionShape::fromPixelBox(6, 4, 0, 10, 8, 4);
-    m_shapes[static_cast<size_t>(Direction::North)] = CollisionShape::combine(
-        baseShape, northSpout, CollisionShape::CombineOp::OR);
+    m_shapes[static_cast<size_t>(Direction::North)] =
+        CollisionShape::combine(baseShape, northSpout, CollisionShape::CombineOp::OR);
 
     CollisionShape southSpout = CollisionShape::fromPixelBox(6, 4, 12, 10, 8, 16);
-    m_shapes[static_cast<size_t>(Direction::South)] = CollisionShape::combine(
-        baseShape, southSpout, CollisionShape::CombineOp::OR);
+    m_shapes[static_cast<size_t>(Direction::South)] =
+        CollisionShape::combine(baseShape, southSpout, CollisionShape::CombineOp::OR);
 
     CollisionShape westSpout = CollisionShape::fromPixelBox(0, 4, 6, 4, 8, 10);
-    m_shapes[static_cast<size_t>(Direction::West)] = CollisionShape::combine(
-        baseShape, westSpout, CollisionShape::CombineOp::OR);
+    m_shapes[static_cast<size_t>(Direction::West)] =
+        CollisionShape::combine(baseShape, westSpout, CollisionShape::CombineOp::OR);
 
     CollisionShape eastSpout = CollisionShape::fromPixelBox(12, 4, 6, 16, 8, 10);
-    m_shapes[static_cast<size_t>(Direction::East)] = CollisionShape::combine(
-        baseShape, eastSpout, CollisionShape::CombineOp::OR);
+    m_shapes[static_cast<size_t>(Direction::East)] =
+        CollisionShape::combine(baseShape, eastSpout, CollisionShape::CombineOp::OR);
 
     m_shapes[static_cast<size_t>(Direction::Up)] = baseShape;
 

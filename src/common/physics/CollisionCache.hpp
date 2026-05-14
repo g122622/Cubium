@@ -3,11 +3,11 @@
 #include "../core/Types.hpp"
 #include "../util/AxisAlignedBB.hpp"
 #include "../world/chunk/ChunkPos.hpp"
-#include <vector>
-#include <unordered_map>
-#include <shared_mutex>
-#include <optional>
 #include <atomic>
+#include <optional>
+#include <shared_mutex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::physics {
 
@@ -33,8 +33,8 @@ public:
      * @brief 缓存条目
      */
     struct ChunkCache {
-        std::vector<AxisAlignedBB> boxes;  ///< 碰撞箱列表
-        u64 version;                        ///< 区块版本号，用于检测变化
+        std::vector<AxisAlignedBB> boxes; ///< 碰撞箱列表
+        u64 version;                      ///< 区块版本号，用于检测变化
     };
 
     CollisionCache() = default;
@@ -58,8 +58,7 @@ public:
      *
      * 注意：返回的指针在下次修改操作后可能失效
      */
-    [[nodiscard]] const std::vector<AxisAlignedBB>* getChunkCollisionBoxes(
-        ChunkCoord chunkX, ChunkCoord chunkZ) const;
+    [[nodiscard]] const std::vector<AxisAlignedBB>* getChunkCollisionBoxes(ChunkCoord chunkX, ChunkCoord chunkZ) const;
 
     /**
      * @brief 获取区块缓存（包含版本信息）
@@ -67,8 +66,7 @@ public:
      * @param chunkZ 区块Z坐标
      * @return 缓存条目指针（如果不存在返回 nullptr）
      */
-    [[nodiscard]] const ChunkCache* getChunkCache(
-        ChunkCoord chunkX, ChunkCoord chunkZ) const;
+    [[nodiscard]] const ChunkCache* getChunkCache(ChunkCoord chunkX, ChunkCoord chunkZ) const;
 
     /**
      * @brief 缓存区块碰撞箱
@@ -78,9 +76,7 @@ public:
      * @param version 区块版本号（默认为0）
      */
     void cacheChunkCollisionBoxes(
-        ChunkCoord chunkX, ChunkCoord chunkZ,
-        std::vector<AxisAlignedBB>&& boxes,
-        u64 version = 0);
+        ChunkCoord chunkX, ChunkCoord chunkZ, std::vector<AxisAlignedBB>&& boxes, u64 version = 0);
 
     /**
      * @brief 缓存区块碰撞箱（拷贝版本）
@@ -90,9 +86,7 @@ public:
      * @param version 区块版本号（默认为0）
      */
     void cacheChunkCollisionBoxes(
-        ChunkCoord chunkX, ChunkCoord chunkZ,
-        const std::vector<AxisAlignedBB>& boxes,
-        u64 version = 0);
+        ChunkCoord chunkX, ChunkCoord chunkZ, const std::vector<AxisAlignedBB>& boxes, u64 version = 0);
 
     /**
      * @brief 使指定区块的缓存失效

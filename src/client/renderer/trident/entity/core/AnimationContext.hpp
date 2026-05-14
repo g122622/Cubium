@@ -132,16 +132,12 @@ struct AnimationContext {
      *
      * 基于状态哈希进行比较
      */
-    bool operator==(const AnimationContext& other) const {
-        return stateHash == other.stateHash;
-    }
+    bool operator==(const AnimationContext& other) const { return stateHash == other.stateHash; }
 
     /**
      * @brief 比较两个动画上下文是否不相等
      */
-    bool operator!=(const AnimationContext& other) const {
-        return stateHash != other.stateHash;
-    }
+    bool operator!=(const AnimationContext& other) const { return stateHash != other.stateHash; }
 
     /**
      * @brief 检查动画状态是否有显著变化
@@ -150,10 +146,7 @@ struct AnimationContext {
      * @param threshold 角度变化阈值（默认 0.01 弧度）
      * @return 是否有显著变化
      */
-    [[nodiscard]] bool hasSignificantChange(
-        const AnimationContext& other,
-        f64 threshold = 0.01
-    ) const;
+    [[nodiscard]] bool hasSignificantChange(const AnimationContext& other, f64 threshold = 0.01) const;
 };
 
 } // namespace mc::client::renderer::entity::core

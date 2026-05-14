@@ -1,12 +1,12 @@
 #include "FollowSchoolLeaderGoal.hpp"
-#include "../../../../entities/passive/fish/AbstractGroupFishEntity.hpp"
+#include "../../../../../entity/core/EntityUtils.hpp"
+#include "../../../../../util/assert/AssertAll.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
 #include "../../../../core/Entity.hpp"
+#include "../../../../entities/passive/fish/AbstractGroupFishEntity.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
-#include "../../../../../entity/core/EntityUtils.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -26,7 +26,8 @@ FollowSchoolLeaderGoal::FollowSchoolLeaderGoal(AbstractGroupFishEntity* fish)
     MC_ASSERT_RELEASE(fish != nullptr);
 }
 
-bool FollowSchoolLeaderGoal::shouldExecute() {
+bool FollowSchoolLeaderGoal::shouldExecute()
+{
     if (m_fish == nullptr) {
         return false;
     }
@@ -58,16 +59,14 @@ bool FollowSchoolLeaderGoal::shouldExecute() {
     }
 
     // 搜索范围内的所有同类群游鱼
-    auto nearbyFish = EntityUtils::findEntities<AbstractGroupFishEntity>(
-        world,
+    auto nearbyFish = EntityUtils::findEntities<AbstractGroupFishEntity>(world,
         m_fish->position(),
         SEARCH_RANGE,
-        m_fish,  // 排除自己
+        m_fish, // 排除自己
         [](AbstractGroupFishEntity* fish) {
             // MC 1.16.5 谓词：可扩群的首领 或 无首领的游离鱼
             return fish->canGroupGrow() || !fish->hasGroupLeader();
-        }
-    );
+        });
 
     if (nearbyFish.empty()) {
         return false;
@@ -107,7 +106,8 @@ bool FollowSchoolLeaderGoal::shouldExecute() {
     return m_fish->hasGroupLeader();
 }
 
-bool FollowSchoolLeaderGoal::shouldContinueExecuting() {
+bool FollowSchoolLeaderGoal::shouldContinueExecuting()
+{
     if (m_fish == nullptr) {
         return false;
     }
@@ -116,17 +116,20 @@ bool FollowSchoolLeaderGoal::shouldContinueExecuting() {
     return m_fish->hasGroupLeader() && m_fish->inRangeOfGroupLeader();
 }
 
-void FollowSchoolLeaderGoal::startExecuting() {
+void FollowSchoolLeaderGoal::startExecuting()
+{
     m_navigateTimer = 0;
 }
 
-void FollowSchoolLeaderGoal::resetTask() {
+void FollowSchoolLeaderGoal::resetTask()
+{
     // MC 1.16.5: 离开群体
     m_fish->leaveGroup();
     m_leader = nullptr;
 }
 
-void FollowSchoolLeaderGoal::tick() {
+void FollowSchoolLeaderGoal::tick()
+{
     if (m_fish == nullptr) {
         return;
     }
@@ -137,12 +140,11 @@ void FollowSchoolLeaderGoal::tick() {
     }
 
     // MC 1.16.5: 看向首领
-    m_fish->lookController()->setLookPosition(
-        leader->x(),
+    m_fish->lookController()->setLookPosition(leader->x(),
         leader->y() + leader->eyeHeight() * 0.5f,
         leader->z(),
-        10.0f,  // 头部最大转动角度
-        20.0f   // 身体最大转动角度
+        10.0f, // 头部最大转动角度
+        20.0f  // 身体最大转动角度
     );
 
     // MC 1.16.5: 每 10 ticks 导航一次
@@ -152,13 +154,15 @@ void FollowSchoolLeaderGoal::tick() {
     }
 }
 
-AbstractGroupFishEntity* FollowSchoolLeaderGoal::findGroupLeaderToJoin() {
+AbstractGroupFishEntity* FollowSchoolLeaderGoal::findGroupLeaderToJoin()
+{
     // 此方法已被 shouldExecute 中的逻辑取代
     // 保留声明以符合接口，但不再使用
     return nullptr;
 }
 
-i32 FollowSchoolLeaderGoal::getNewCooldown() const {
+i32 FollowSchoolLeaderGoal::getNewCooldown() const
+{
     // MC 1.16.5: 200 + random.nextInt(200) % 20
     // 结果范围：200~219 ticks（约10~11秒）
     math::Random& rng = m_fish->world()->getRandom();

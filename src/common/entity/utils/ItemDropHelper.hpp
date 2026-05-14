@@ -4,8 +4,8 @@
 #include "../../util/math/Vector3.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../entities/item/ItemEntity.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -89,10 +89,7 @@ public:
      * @return 随机速度向量
      */
     [[nodiscard]] static Vector3 getPlayerDropVelocity(
-        math::Random& rng,
-        bool dropAround,
-        f32 yaw = 0.0f,
-        f32 pitch = 0.0f);
+        math::Random& rng, bool dropAround, f32 yaw = 0.0f, f32 pitch = 0.0f);
 
     /**
      * @brief 获取高斯分布的随机速度
@@ -105,10 +102,7 @@ public:
      * @param inaccuracy 不精确度（标准差因子）
      * @return 随机速度向量（只有 X/Z 有高斯偏移）
      */
-    [[nodiscard]] static Vector3 getGaussianVelocity(
-        math::Random& rng,
-        f32 baseVelocity,
-        f32 inaccuracy);
+    [[nodiscard]] static Vector3 getGaussianVelocity(math::Random& rng, f32 baseVelocity, f32 inaccuracy);
 
     // ========== 物品实体生成 ==========
 
@@ -127,10 +121,11 @@ public:
      * @param ownerUuid 所有者UUID（可选，防止立即拾取）
      * @return 生成的物品实体指针，失败返回 nullptr
      */
-    static ItemEntity* spawnItemEntity(
-        IWorld* world,
+    static ItemEntity* spawnItemEntity(IWorld* world,
         const ItemStack& stack,
-        f64 x, f64 y, f64 z,
+        f64 x,
+        f64 y,
+        f64 z,
         math::Random& rng,
         i32 pickupDelay = DEFAULT_PICKUP_DELAY,
         const std::string& ownerUuid = "");
@@ -150,11 +145,14 @@ public:
      * @param ownerUuid 所有者UUID
      * @return 生成的物品实体指针
      */
-    static ItemEntity* spawnItemEntity(
-        IWorld* world,
+    static ItemEntity* spawnItemEntity(IWorld* world,
         const ItemStack& stack,
-        f64 x, f64 y, f64 z,
-        f32 vx, f32 vy, f32 vz,
+        f64 x,
+        f64 y,
+        f64 z,
+        f32 vx,
+        f32 vy,
+        f32 vz,
         i32 pickupDelay = DEFAULT_PICKUP_DELAY,
         const std::string& ownerUuid = "");
 
@@ -169,11 +167,7 @@ public:
      * @return 生成的物品实体指针
      */
     static ItemEntity* spawnItemAtEntity(
-        Entity* entity,
-        const ItemStack& stack,
-        f32 offsetY,
-        math::Random& rng,
-        i32 pickupDelay = DEFAULT_PICKUP_DELAY);
+        Entity* entity, const ItemStack& stack, f32 offsetY, math::Random& rng, i32 pickupDelay = DEFAULT_PICKUP_DELAY);
 
     /**
      * @brief 在方块位置生成多个物品实体
@@ -188,15 +182,14 @@ public:
      * @param throwerUuid 投掷者UUID
      * @return 生成的实体ID列表
      */
-    static std::vector<EntityId> spawnItemEntities(
-        IWorld* world,
+    static std::vector<EntityId> spawnItemEntities(IWorld* world,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
         math::Random& rng,
         const std::string& throwerUuid = "");
 
 private:
-    ItemDropHelper() = delete;  // 静态工具类，禁止实例化
+    ItemDropHelper() = delete; // 静态工具类，禁止实例化
 };
 
 } // namespace mc

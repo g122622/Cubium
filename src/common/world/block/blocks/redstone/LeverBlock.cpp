@@ -1,8 +1,8 @@
 #include "LeverBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -12,46 +12,52 @@ namespace blocks {
 using AttachFace = BlockStateProperties::AttachFace;
 
 LeverBlock::LeverBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::POWERED())
-        .add(BlockStateProperties::ATTACH_FACE())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::POWERED())
+                         .add(BlockStateProperties::ATTACH_FACE())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::POWERED(), false)
-        .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::POWERED(), false)
+            .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
 }
 
-bool LeverBlock::isPowered(const BlockState& state) {
+bool LeverBlock::isPowered(const BlockState& state)
+{
     return state.get(BlockStateProperties::POWERED());
 }
 
-BlockState LeverBlock::withPowered(BlockState state, bool powered) {
+BlockState LeverBlock::withPowered(BlockState state, bool powered)
+{
     return state.with(BlockStateProperties::POWERED(), powered);
 }
 
-Direction LeverBlock::getFacing(const BlockState& state) {
+Direction LeverBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
-void LeverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void LeverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
     // 拉杆放置时不触发信号
 }
 
-void LeverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                 const BlockPos& neighborPos, bool isMoving) {
+void LeverBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -87,10 +93,13 @@ void LeverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neig
     }
 }
 
-BlockState LeverBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState LeverBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
     MC_UNUSED(world);
@@ -100,7 +109,8 @@ BlockState LeverBlock::updatePostPlacement(
     return state;
 }
 
-BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState& state) {
+BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     bool newPowered = !isPowered(state);
     BlockState newState = withPowered(state, newPowered);
     world.setBlockState(pos, &newState, 2);
@@ -114,12 +124,8 @@ BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockSta
     return newState;
 }
 
-i32 LeverBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+i32 LeverBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -129,12 +135,8 @@ i32 LeverBlock::getWeakPower(
     return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
 }
 
-i32 LeverBlock::getStrongPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+i32 LeverBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
@@ -148,7 +150,7 @@ i32 LeverBlock::getStrongPower(
     Direction facing = getFacing(state);
     AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
 
-    Direction outputDir = Direction::North;  // 默认值
+    Direction outputDir = Direction::North; // 默认值
     switch (attachFace) {
         case AttachFace::Floor:
             outputDir = Direction::Up;
@@ -171,24 +173,24 @@ i32 LeverBlock::getStrongPower(
     return 0;
 }
 
-void LeverBlock::playClickSound(IWorld& world, const BlockPos& pos, bool powered) {
+void LeverBlock::playClickSound(IWorld& world, const BlockPos& pos, bool powered)
+{
     // 参考 MC 1.16.5: LeverBlock.playClickSound
     // 注意：拉杆使用木质按钮音效
-    world.playSound(
-        powered ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
+    world.playSound(powered ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
         sound::SoundCategory::Blocks,
         pos.center(),
         0.3f,
-        0.6f
-    );
+        0.6f);
 }
 
-void LeverBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void LeverBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 获取拉杆输出方向
     Direction facing = getFacing(state);
     AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
 
-    Direction outputDir = Direction::North;  // 默认值
+    Direction outputDir = Direction::North; // 默认值
     BlockPos supportPos = pos;
     switch (attachFace) {
         case AttachFace::Floor:

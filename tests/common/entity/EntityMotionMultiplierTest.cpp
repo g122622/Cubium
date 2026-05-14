@@ -15,14 +15,13 @@ namespace {
 class TestEntity : public Entity {
 public:
     TestEntity()
-        : Entity(LegacyEntityType::Player, 1) {
+        : Entity(LegacyEntityType::Player, 1)
+    {
         // 初始化尺寸
         refreshDimensions();
     }
 
-    [[nodiscard]] std::string getTypeId() const override {
-        return "minecraft:test_entity";
-    }
+    [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_entity"; }
 };
 
 /**
@@ -31,7 +30,8 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1) {
+        : LivingEntity(LegacyEntityType::Player, 1)
+    {
         setHealth(maxHealth());
     }
 };
@@ -44,18 +44,15 @@ public:
 
 class EntityMotionMultiplierTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        entity = std::make_unique<TestEntity>();
-    }
+    void SetUp() override { entity = std::make_unique<TestEntity>(); }
 
-    void TearDown() override {
-        entity.reset();
-    }
+    void TearDown() override { entity.reset(); }
 
     std::unique_ptr<TestEntity> entity;
 };
 
-TEST_F(EntityMotionMultiplierTest, DefaultNoMotionMultiplier) {
+TEST_F(EntityMotionMultiplierTest, DefaultNoMotionMultiplier)
+{
     // 默认情况下，实体不应该有运动乘数
     EXPECT_FALSE(entity->hasMotionMultiplier());
     EXPECT_FLOAT_EQ(entity->motionMultiplier().x, 1.0f);
@@ -63,7 +60,8 @@ TEST_F(EntityMotionMultiplierTest, DefaultNoMotionMultiplier) {
     EXPECT_FLOAT_EQ(entity->motionMultiplier().z, 1.0f);
 }
 
-TEST_F(EntityMotionMultiplierTest, SetMotionMultiplier) {
+TEST_F(EntityMotionMultiplierTest, SetMotionMultiplier)
+{
     // 设置运动乘数
     entity->setMotionMultiplier(Vector3(0.8f, 0.75f, 0.8f));
 
@@ -73,7 +71,8 @@ TEST_F(EntityMotionMultiplierTest, SetMotionMultiplier) {
     EXPECT_FLOAT_EQ(entity->motionMultiplier().z, 0.8f);
 }
 
-TEST_F(EntityMotionMultiplierTest, ClearMotionMultiplier) {
+TEST_F(EntityMotionMultiplierTest, ClearMotionMultiplier)
+{
     // 设置运动乘数
     entity->setMotionMultiplier(Vector3(0.5f, 0.5f, 0.5f));
     EXPECT_TRUE(entity->hasMotionMultiplier());
@@ -87,13 +86,12 @@ TEST_F(EntityMotionMultiplierTest, ClearMotionMultiplier) {
     EXPECT_FLOAT_EQ(entity->motionMultiplier().z, 1.0f);
 }
 
-TEST_F(EntityMotionMultiplierTest, SetMotionMultiplierSweetBerryBush) {
+TEST_F(EntityMotionMultiplierTest, SetMotionMultiplierSweetBerryBush)
+{
     // 使用甜浆果丛的减速系数
-    entity->setMotionMultiplier(Vector3(
-        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ,
+    entity->setMotionMultiplier(Vector3(physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ,
         physics::SWEET_BERRY_BUSH_SLOWDOWN_Y,
-        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ
-    ));
+        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ));
 
     EXPECT_TRUE(entity->hasMotionMultiplier());
     EXPECT_FLOAT_EQ(entity->motionMultiplier().x, 0.8f);
@@ -101,7 +99,8 @@ TEST_F(EntityMotionMultiplierTest, SetMotionMultiplierSweetBerryBush) {
     EXPECT_FLOAT_EQ(entity->motionMultiplier().z, 0.8f);
 }
 
-TEST_F(EntityMotionMultiplierTest, BaseTickClearsMotionMultiplier) {
+TEST_F(EntityMotionMultiplierTest, BaseTickClearsMotionMultiplier)
+{
     // 设置运动乘数
     entity->setMotionMultiplier(Vector3(0.5f, 0.5f, 0.5f));
     EXPECT_TRUE(entity->hasMotionMultiplier());
@@ -112,7 +111,8 @@ TEST_F(EntityMotionMultiplierTest, BaseTickClearsMotionMultiplier) {
     EXPECT_FALSE(entity->hasMotionMultiplier());
 }
 
-TEST_F(EntityMotionMultiplierTest, MultipleSetMotionMultiplier) {
+TEST_F(EntityMotionMultiplierTest, MultipleSetMotionMultiplier)
+{
     // 第一次设置
     entity->setMotionMultiplier(Vector3(0.5f, 0.5f, 0.5f));
     EXPECT_TRUE(entity->hasMotionMultiplier());
@@ -125,7 +125,8 @@ TEST_F(EntityMotionMultiplierTest, MultipleSetMotionMultiplier) {
     EXPECT_FLOAT_EQ(entity->motionMultiplier().z, 0.8f);
 }
 
-TEST_F(EntityMotionMultiplierTest, MotionMultiplierDifferentValues) {
+TEST_F(EntityMotionMultiplierTest, MotionMultiplierDifferentValues)
+{
     // 测试不同轴使用不同乘数
     entity->setMotionMultiplier(Vector3(0.1f, 0.2f, 0.3f));
 
@@ -134,7 +135,8 @@ TEST_F(EntityMotionMultiplierTest, MotionMultiplierDifferentValues) {
     EXPECT_FLOAT_EQ(entity->motionMultiplier().z, 0.3f);
 }
 
-TEST_F(EntityMotionMultiplierTest, LivingEntityMotionMultiplier) {
+TEST_F(EntityMotionMultiplierTest, LivingEntityMotionMultiplier)
+{
     // 测试 LivingEntity 也可以使用运动乘数
     auto livingEntity = std::make_unique<TestLivingEntity>();
 
@@ -146,7 +148,8 @@ TEST_F(EntityMotionMultiplierTest, LivingEntityMotionMultiplier) {
     EXPECT_FALSE(livingEntity->hasMotionMultiplier());
 }
 
-TEST_F(EntityMotionMultiplierTest, MotionMultiplierPhysicsConstants) {
+TEST_F(EntityMotionMultiplierTest, MotionMultiplierPhysicsConstants)
+{
     // 验证物理常量正确
     EXPECT_FLOAT_EQ(physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ, 0.8f);
     EXPECT_FLOAT_EQ(physics::SWEET_BERRY_BUSH_SLOWDOWN_Y, 0.75f);

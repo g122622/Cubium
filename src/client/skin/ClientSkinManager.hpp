@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/skin/manager/SkinManager.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <unordered_map>
+#include "common/skin/manager/SkinManager.hpp"
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace mc::client::skin {
 
@@ -50,10 +50,10 @@ public:
      * @return 成功或错误
      */
     Result<void> initialize(VkDevice device,
-                            VkPhysicalDevice physicalDevice,
-                            VkCommandPool commandPool,
-                            VkQueue graphicsQueue,
-                            const std::string& cacheDir = "./cache/skins");
+        VkPhysicalDevice physicalDevice,
+        VkCommandPool commandPool,
+        VkQueue graphicsQueue,
+        const std::string& cacheDir = "./cache/skins");
 
     /**
      * @brief 关闭客户端皮肤管理器
@@ -122,14 +122,12 @@ public:
     /**
      * @brief 获取皮肤纹理图集
      */
-    [[nodiscard]] const renderer::entity::pipeline::EntityTextureAtlas& textureAtlas() const
-        { return *m_textureAtlas; }
+    [[nodiscard]] const renderer::entity::pipeline::EntityTextureAtlas& textureAtlas() const { return *m_textureAtlas; }
 
     /**
      * @brief 获取可修改的纹理图集引用
      */
-    renderer::entity::pipeline::EntityTextureAtlas& textureAtlas()
-        { return *m_textureAtlas; }
+    renderer::entity::pipeline::EntityTextureAtlas& textureAtlas() { return *m_textureAtlas; }
 
     /**
      * @brief 检查纹理图集是否需要重建
@@ -159,9 +157,7 @@ public:
     /**
      * @brief 设置资源包（用于加载默认皮肤）
      */
-    void setResourcePack(IResourcePack* resourcePack) {
-        m_skinManager->setResourcePack(resourcePack);
-    }
+    void setResourcePack(IResourcePack* resourcePack) { m_skinManager->setResourcePack(resourcePack); }
 
 private:
     /**
@@ -172,8 +168,8 @@ private:
     /**
      * @brief 上传皮肤 PNG 数据到图集
      */
-    Result<ResourceLocation> uploadSkinToAtlas(const std::vector<u8>& pngData,
-                                                const ResourceLocation& preferredLocation);
+    Result<ResourceLocation> uploadSkinToAtlas(
+        const std::vector<u8>& pngData, const ResourceLocation& preferredLocation);
 
     /**
      * @brief UUID 转字符串键

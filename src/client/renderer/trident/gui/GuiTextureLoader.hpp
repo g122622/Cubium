@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <vector>
 
 namespace mc {
 class IResourcePack;
 class ResourceLocation;
-}
+} // namespace mc
 
 namespace mc::client::renderer::trident::gui {
 
@@ -78,9 +78,7 @@ public:
      * @param location 纹理资源位置（如 "minecraft:textures/gui/widgets.png"）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadGuiTexture(
-        GuiSpriteAtlas& atlas,
-        const std::string& location);
+    [[nodiscard]] Result<void> loadGuiTexture(GuiSpriteAtlas& atlas, const std::string& location);
 
     /**
      * @brief 从资源包加载GUI纹理到GuiSpriteAtlas（带尺寸指定）
@@ -92,10 +90,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> loadGuiTexture(
-        GuiSpriteAtlas& atlas,
-        const std::string& location,
-        i32 atlasWidth,
-        i32 atlasHeight);
+        GuiSpriteAtlas& atlas, const std::string& location, i32 atlasWidth, i32 atlasHeight);
 
     /**
      * @brief 加载所有GUI资源到GuiSpriteAtlas
@@ -106,9 +101,7 @@ public:
      * @param textureLocation 纹理资源位置（如 "minecraft:textures/gui/icons.png"）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadAllToSpriteAtlas(
-        GuiSpriteAtlas& atlas,
-        const std::string& textureLocation);
+    [[nodiscard]] Result<void> loadAllToSpriteAtlas(GuiSpriteAtlas& atlas, const std::string& textureLocation);
 
     // ==================== GuiTextureAtlas 重载（传统）====================
 
@@ -122,9 +115,7 @@ public:
      * @param location 纹理资源位置（如 "minecraft:textures/gui/widgets.png"）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadGuiTexture(
-        GuiTextureAtlas& atlas,
-        const std::string& location);
+    [[nodiscard]] Result<void> loadGuiTexture(GuiTextureAtlas& atlas, const std::string& location);
 
     /**
      * @brief 从JSON加载精灵定义
@@ -135,9 +126,7 @@ public:
      * @param jsonPath JSON文件路径（如 "minecraft:gui/sprites/widgets.json"）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadSpritesFromJson(
-        GuiTextureAtlas& atlas,
-        const std::string& jsonPath);
+    [[nodiscard]] Result<void> loadSpritesFromJson(GuiTextureAtlas& atlas, const std::string& jsonPath);
 
     /**
      * @brief 加载默认GUI纹理
@@ -177,10 +166,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] static Result<void> decodePng(
-        const std::vector<u8>& data,
-        i32& outWidth,
-        i32& outHeight,
-        std::vector<u8>& outPixels);
+        const std::vector<u8>& data, i32& outWidth, i32& outHeight, std::vector<u8>& outPixels);
 
     /**
      * @brief 从文件加载PNG纹理
@@ -191,10 +177,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] static Result<void> loadPngFromFile(
-        const std::string& filePath,
-        i32& outWidth,
-        i32& outHeight,
-        std::vector<u8>& outPixels);
+        const std::string& filePath, i32& outWidth, i32& outHeight, std::vector<u8>& outPixels);
 
 private:
     /**
@@ -203,9 +186,7 @@ private:
      * @param outData 输出纹理数据
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> findTexture(
-        const std::string& location,
-        std::vector<u8>& outData);
+    [[nodiscard]] Result<void> findTexture(const std::string& location, std::vector<u8>& outData);
 
     /**
      * @brief 构建资源路径

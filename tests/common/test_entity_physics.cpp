@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
+#include "entity/attribute/AttributeMap.hpp"
+#include "entity/attribute/Attributes.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "entity/attribute/AttributeMap.hpp"
-#include "entity/attribute/Attributes.hpp"
 #include "physics/PhysicsConstants.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
@@ -22,14 +22,13 @@ using namespace mc;
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity(EntityId id = 1)
-        : LivingEntity(LegacyEntityType::Player, id, nullptr) {
+        : LivingEntity(LegacyEntityType::Player, id, nullptr)
+    {
         // 设置默认属性
         setHealth(20.0f);
     }
 
-    void tick() override {
-        LivingEntity::tick();
-    }
+    void tick() override { LivingEntity::tick(); }
 };
 
 /**
@@ -38,9 +37,10 @@ public:
 class TestBlock : public Block {
 public:
     explicit TestBlock(BlockProperties properties)
-        : Block(std::move(properties)) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        : Block(std::move(properties))
+    {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+            [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
             });
         createBlockState(std::move(container));
@@ -51,22 +51,26 @@ public:
 // 重力测试
 // ============================================================================
 
-TEST(EntityPhysics, GravityConstant) {
+TEST(EntityPhysics, GravityConstant)
+{
     // 验证重力常量与 MC 1.16.5 一致
     EXPECT_FLOAT_EQ(physics::GRAVITY, 0.08f);
 }
 
-TEST(EntityPhysics, JumpVelocity) {
+TEST(EntityPhysics, JumpVelocity)
+{
     // 验证跳跃初速度与 MC 1.16.5 一致
     EXPECT_FLOAT_EQ(physics::JUMP_VELOCITY, 0.42f);
 }
 
-TEST(EntityPhysics, AirDrag) {
+TEST(EntityPhysics, AirDrag)
+{
     // 验证空气阻力
     EXPECT_FLOAT_EQ(physics::DRAG_AIR, 0.98f);
 }
 
-TEST(EntityPhysics, GroundDrag) {
+TEST(EntityPhysics, GroundDrag)
+{
     // 验证地面基础阻力系数
     // MC 1.16.5: 地面基础阻力为 0.91，实际阻力 = 滑度 * 0.91
     // 默认滑度 0.6 的方块实际阻力为 0.6 * 0.91 = 0.546
@@ -77,7 +81,8 @@ TEST(EntityPhysics, GroundDrag) {
 // 击退测试
 // ============================================================================
 
-TEST(LivingEntityKnockback, BasicKnockback) {
+TEST(LivingEntityKnockback, BasicKnockback)
+{
     TestLivingEntity entity;
     entity.setPosition(0.0f, 0.0f, 0.0f);
     entity.setOnGround(true);
@@ -89,7 +94,7 @@ TEST(LivingEntityKnockback, BasicKnockback) {
     EXPECT_FLOAT_EQ(vel.z, 0.0f);
 
     // 应用击退
-    entity.applyKnockback(1.0f, 1.0f, 0.0f);  // 向-X方向击退
+    entity.applyKnockback(1.0f, 1.0f, 0.0f); // 向-X方向击退
 
     vel = entity.velocity();
     // 击退后应该有负X方向速度
@@ -99,7 +104,8 @@ TEST(LivingEntityKnockback, BasicKnockback) {
     EXPECT_LE(vel.y, 0.4f);
 }
 
-TEST(LivingEntityKnockback, KnockbackResistance) {
+TEST(LivingEntityKnockback, KnockbackResistance)
+{
     TestLivingEntity entity;
     entity.setPosition(0.0f, 0.0f, 0.0f);
     entity.setOnGround(true);
@@ -117,7 +123,8 @@ TEST(LivingEntityKnockback, KnockbackResistance) {
     EXPECT_FLOAT_EQ(vel.z, 0.0f);
 }
 
-TEST(LivingEntityKnockback, AirKnockback) {
+TEST(LivingEntityKnockback, AirKnockback)
+{
     TestLivingEntity entity;
     entity.setPosition(0.0f, 100.0f, 0.0f);
     entity.setOnGround(false);
@@ -131,7 +138,8 @@ TEST(LivingEntityKnockback, AirKnockback) {
     EXPECT_NEAR(vel.y, 0.0f, 0.01f);
 }
 
-TEST(LivingEntityKnockback, KnockbackFromEntity) {
+TEST(LivingEntityKnockback, KnockbackFromEntity)
+{
     TestLivingEntity attacker;
     TestLivingEntity victim;
 
@@ -151,7 +159,8 @@ TEST(LivingEntityKnockback, KnockbackFromEntity) {
 // 碰撞后速度重置测试
 // ============================================================================
 
-TEST(EntityPhysics, VelocityResetAfterCollision) {
+TEST(EntityPhysics, VelocityResetAfterCollision)
+{
     // 测试碰撞后速度重置
     // 注：完整测试需要物理引擎和碰撞世界
     // 这里只测试常量定义
@@ -162,21 +171,24 @@ TEST(EntityPhysics, VelocityResetAfterCollision) {
 // 方块滑度测试
 // ============================================================================
 
-TEST(BlockSlipperiness, DefaultSlipperiness) {
+TEST(BlockSlipperiness, DefaultSlipperiness)
+{
     TestBlock block{BlockProperties(Material::ROCK)};
 
     // 默认滑度应为 0.6f
     EXPECT_FLOAT_EQ(block.getSlipperiness(block.defaultState()), 0.6f);
 }
 
-TEST(BlockSlipperiness, CustomSlipperiness) {
+TEST(BlockSlipperiness, CustomSlipperiness)
+{
     // 创建一个滑度 0.98 的方块（类似冰）
     TestBlock slipperyBlock{BlockProperties(Material::ROCK).slipperiness(0.98f)};
 
     EXPECT_FLOAT_EQ(slipperyBlock.getSlipperiness(slipperyBlock.defaultState()), 0.98f);
 }
 
-TEST(BlockSlipperiness, HoneyBlockSlipperiness) {
+TEST(BlockSlipperiness, HoneyBlockSlipperiness)
+{
     // 蜂蜜块滑度为 0.5
     TestBlock honeyBlock{BlockProperties(Material::ROCK).slipperiness(0.5f)};
 
@@ -187,14 +199,16 @@ TEST(BlockSlipperiness, HoneyBlockSlipperiness) {
 // 方块速度因子测试
 // ============================================================================
 
-TEST(BlockSpeedFactor, DefaultSpeedFactor) {
+TEST(BlockSpeedFactor, DefaultSpeedFactor)
+{
     TestBlock block{BlockProperties(Material::ROCK)};
 
     // 默认速度因子应为 1.0f
     EXPECT_FLOAT_EQ(block.getSpeedFactor(block.defaultState()), 1.0f);
 }
 
-TEST(BlockSpeedFactor, CustomSpeedFactor) {
+TEST(BlockSpeedFactor, CustomSpeedFactor)
+{
     TestBlock slowBlock{BlockProperties(Material::ROCK).speedFactor(0.5f)};
 
     EXPECT_FLOAT_EQ(slowBlock.getSpeedFactor(slowBlock.defaultState()), 0.5f);
@@ -204,7 +218,8 @@ TEST(BlockSpeedFactor, CustomSpeedFactor) {
 // 方块跳跃因子测试
 // ============================================================================
 
-TEST(BlockJumpFactor, DefaultJumpFactor) {
+TEST(BlockJumpFactor, DefaultJumpFactor)
+{
     TestBlock block{BlockProperties(Material::ROCK)};
 
     // 默认跳跃因子应为 1.0f
@@ -215,7 +230,8 @@ TEST(BlockJumpFactor, DefaultJumpFactor) {
 // 击退计算公式测试
 // ============================================================================
 
-TEST(KnockbackCalculation, GroundKnockbackFormula) {
+TEST(KnockbackCalculation, GroundKnockbackFormula)
+{
     // MC 1.16.5 地面击退公式:
     // Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
     // X/Z速度 = 当前速度/2 - 击退方向 * 击退强度
@@ -239,7 +255,8 @@ TEST(KnockbackCalculation, GroundKnockbackFormula) {
 // Sleeping姿态碰撞箱测试
 // ============================================================================
 
-TEST(PlayerPoseWidth, SleepingWidth) {
+TEST(PlayerPoseWidth, SleepingWidth)
+{
     // Sleeping姿态宽度应为 0.2
     Player player(1, "TestPlayer");
     EXPECT_FLOAT_EQ(player.getDimensions(EntityPose::Sleeping).width(), 0.2f);
@@ -249,7 +266,8 @@ TEST(PlayerPoseWidth, SleepingWidth) {
 // 属性测试
 // ============================================================================
 
-TEST(EntityAttributes, KnockbackResistanceAttribute) {
+TEST(EntityAttributes, KnockbackResistanceAttribute)
+{
     // 确认击退抗性属性已定义
     auto attr = entity::attribute::Attributes::knockbackResistance();
     ASSERT_NE(attr, nullptr);
@@ -257,14 +275,16 @@ TEST(EntityAttributes, KnockbackResistanceAttribute) {
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 0.0f);
 }
 
-TEST(EntityAttributes, MovementSpeedAttribute) {
+TEST(EntityAttributes, MovementSpeedAttribute)
+{
     // 确认移动速度属性已定义
     auto attr = entity::attribute::Attributes::movementSpeed();
     ASSERT_NE(attr, nullptr);
     EXPECT_EQ(attr->registryName(), "generic.movement_speed");
 }
 
-TEST(EntityAttributes, EntityGravityAttribute) {
+TEST(EntityAttributes, EntityGravityAttribute)
+{
     // 确认重力属性已定义 (Forge 扩展)
     auto attr = entity::attribute::Attributes::entityGravity();
     ASSERT_NE(attr, nullptr);
@@ -272,7 +292,8 @@ TEST(EntityAttributes, EntityGravityAttribute) {
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 0.08f);
 }
 
-TEST(EntityAttributes, SwimSpeedAttribute) {
+TEST(EntityAttributes, SwimSpeedAttribute)
+{
     // 确认游泳速度属性已定义 (Forge 扩展)
     auto attr = entity::attribute::Attributes::swimSpeed();
     ASSERT_NE(attr, nullptr);
@@ -284,14 +305,16 @@ TEST(EntityAttributes, SwimSpeedAttribute) {
 // 新增物理常量测试
 // ============================================================================
 
-TEST(PhysicsConstants, WaterPhysics) {
+TEST(PhysicsConstants, WaterPhysics)
+{
     // MC 1.16.5: 水中重力 = 地面重力 / 16
     EXPECT_FLOAT_EQ(physics::WATER_BUOYANCY, 0.005f);
     EXPECT_FLOAT_EQ(physics::WATER_DRAG, 0.8f);
     EXPECT_FLOAT_EQ(physics::LAVA_DRAG, 0.5f);
 }
 
-TEST(PhysicsConstants, SlipperinessConstants) {
+TEST(PhysicsConstants, SlipperinessConstants)
+{
     // MC 1.16.5 滑度值
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_DEFAULT, 0.6f);
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_SLIME, 0.8f);
@@ -300,21 +323,24 @@ TEST(PhysicsConstants, SlipperinessConstants) {
     EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_JUMP_FACTOR, 0.5f);
 }
 
-TEST(PhysicsConstants, MovementConstants) {
+TEST(PhysicsConstants, MovementConstants)
+{
     // MC 1.16.5 移动常量
     EXPECT_FLOAT_EQ(physics::FLY_SPEED, 0.05f);
     EXPECT_FLOAT_EQ(physics::WALK_SPEED, 0.1f);
     EXPECT_FLOAT_EQ(physics::JUMP_MOVEMENT_FACTOR, 0.02f);
 }
 
-TEST(PhysicsConstants, LadderConstants) {
+TEST(PhysicsConstants, LadderConstants)
+{
     // MC 1.16.5 梯子物理
     EXPECT_FLOAT_EQ(physics::LADDER_SPEED_MAX, 0.15f);
     EXPECT_FLOAT_EQ(physics::LADDER_CLIMB_SPEED, 0.15f);
     EXPECT_FLOAT_EQ(physics::LADDER_SLIDE_SPEED, -0.15f);
 }
 
-TEST(PhysicsConstants, SpecialBlockConstants) {
+TEST(PhysicsConstants, SpecialBlockConstants)
+{
     // MC 1.16.5 特殊方块
     // 史莱姆块弹跳系数：活体实体 1.0，非活体实体 0.8
     EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR_LIVING, 1.0f);
@@ -325,14 +351,16 @@ TEST(PhysicsConstants, SpecialBlockConstants) {
     EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN_Y, 0.05f);
 }
 
-TEST(PhysicsConstants, ElytraAndSlowFalling) {
+TEST(PhysicsConstants, ElytraAndSlowFalling)
+{
     // MC 1.16.5 鞘翅和缓降
     EXPECT_FLOAT_EQ(physics::SLOW_FALLING_GRAVITY, 0.01f);
     EXPECT_FLOAT_EQ(physics::ELYTRA_DRAG_HORIZONTAL, 0.99f);
     EXPECT_FLOAT_EQ(physics::ELYTRA_DRAG_VERTICAL, 0.98f);
 }
 
-TEST(PhysicsConstants, DolphinGrace) {
+TEST(PhysicsConstants, DolphinGrace)
+{
     // MC 1.16.5 海豚的恩惠
     EXPECT_FLOAT_EQ(physics::DOLPHINS_GRACE_WATER_DRAG, 0.96f);
 }

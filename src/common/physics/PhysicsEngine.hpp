@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../core/Constants.hpp"
 #include "../util/AxisAlignedBB.hpp"
 #include "../util/math/Vector3.hpp"
 #include "../world/block/Block.hpp"
 #include "../world/chunk/ChunkData.hpp"
-#include "../core/Constants.hpp"
 #include "PhysicsConstants.hpp"
 #include <vector>
 
@@ -108,8 +108,7 @@ public:
      * @param searchBox 搜索范围
      * @param boxes 输出的碰撞箱列表
      */
-    void collectCollisionBoxes(const AxisAlignedBB& searchBox,
-                               std::vector<AxisAlignedBB>& boxes) const;
+    void collectCollisionBoxes(const AxisAlignedBB& searchBox, std::vector<AxisAlignedBB>& boxes) const;
 
     /**
      * @brief 设置碰撞世界
@@ -139,8 +138,7 @@ private:
      * 当浮点误差导致实体轻微嵌入地面时，先做一次向上去重叠，
      * 避免后续 calculateYOffset 无法修正而持续下陷。
      */
-    [[nodiscard]] f32 resolveInitialOverlaps(AxisAlignedBB& entityBox,
-                                             const std::vector<AxisAlignedBB>& boxes) const;
+    [[nodiscard]] f32 resolveInitialOverlaps(AxisAlignedBB& entityBox, const std::vector<AxisAlignedBB>& boxes) const;
 
     /**
      * @brief 核心碰撞解决（MC的collideBoundingBox）
@@ -155,9 +153,8 @@ private:
      * @param boxes 碰撞箱列表
      * @return 实际移动向量
      */
-    Vector3 resolveCollision(AxisAlignedBB& entityBox,
-                             const Vector3& movement,
-                             const std::vector<AxisAlignedBB>& boxes);
+    Vector3 resolveCollision(
+        AxisAlignedBB& entityBox, const Vector3& movement, const std::vector<AxisAlignedBB>& boxes);
 
     /**
      * @brief 尝试步进（MC的auto-step）
@@ -177,28 +174,24 @@ private:
      * @return 实际移动向量
      */
     Vector3 attemptStepUp(AxisAlignedBB& entityBox,
-                          const AxisAlignedBB& originalBox,
-                          const Vector3& movement,
-                          f32 stepHeight,
-                          const Vector3& fallbackResult);
+        const AxisAlignedBB& originalBox,
+        const Vector3& movement,
+        f32 stepHeight,
+        const Vector3& fallbackResult);
 
     /**
      * @brief 策略A：整体抬起 + 水平移动
      *
      * 将抬起和水平移动作为一个整体处理。
      */
-    Vector3 tryStepStrategyA(AxisAlignedBB& entityBox,
-                             const Vector3& movement,
-                             f32 stepHeight);
+    Vector3 tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
 
     /**
      * @brief 策略B：先抬起后水平移动
      *
      * MC的标准步进逻辑。
      */
-    Vector3 tryStepStrategyB(AxisAlignedBB& entityBox,
-                             const Vector3& movement,
-                             f32 stepHeight);
+    Vector3 tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
 
     /**
      * @brief 应用下落直到碰到地面
@@ -215,17 +208,15 @@ private:
      * @param boxes 碰撞箱列表
      * @return 实际水平移动向量
      */
-    static Vector3 applyHorizontalCollision(AxisAlignedBB& entityBox,
-                                            const Vector3& movement,
-                                            const std::vector<AxisAlignedBB>& boxes);
+    static Vector3 applyHorizontalCollision(
+        AxisAlignedBB& entityBox, const Vector3& movement, const std::vector<AxisAlignedBB>& boxes);
 
     /**
      * @brief 获取方块碰撞箱
      * @param x, y, z 方块坐标
      * @param boxes 输出的碰撞箱列表
      */
-    void getBlockCollisionBoxes(i32 x, i32 y, i32 z,
-                                std::vector<AxisAlignedBB>& boxes) const;
+    void getBlockCollisionBoxes(i32 x, i32 y, i32 z, std::vector<AxisAlignedBB>& boxes) const;
 
     ICollisionWorld* m_world;
     bool m_collidedVertically = false;

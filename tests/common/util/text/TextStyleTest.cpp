@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
 #include "util/text/TextStyle.hpp"
-#include "util/text/TextEvents.hpp"
 #include "core/Types.hpp"
+#include "util/text/TextEvents.hpp"
+#include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
 using namespace mc::text;
@@ -15,7 +15,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TextFormattingTest, GetFormattingColor) {
+TEST_F(TextFormattingTest, GetFormattingColor)
+{
     // 颜色代码
     EXPECT_EQ(getFormattingColor(TextFormatting::Black), 0xFF000000u);
     EXPECT_EQ(getFormattingColor(TextFormatting::Red), 0xFFFF5555u);
@@ -30,7 +31,8 @@ TEST_F(TextFormattingTest, GetFormattingColor) {
     EXPECT_EQ(getFormattingColor(TextFormatting::None), 0xFFFFFFFFu);
 }
 
-TEST_F(TextFormattingTest, IsColor) {
+TEST_F(TextFormattingTest, IsColor)
+{
     // 颜色代码
     EXPECT_TRUE(isColor(TextFormatting::Black));
     EXPECT_TRUE(isColor(TextFormatting::Red));
@@ -47,7 +49,8 @@ TEST_F(TextFormattingTest, IsColor) {
     EXPECT_FALSE(isColor(TextFormatting::None));
 }
 
-TEST_F(TextFormattingTest, IsStyle) {
+TEST_F(TextFormattingTest, IsStyle)
+{
     // 样式代码
     EXPECT_TRUE(isStyle(TextFormatting::Bold));
     EXPECT_TRUE(isStyle(TextFormatting::Italic));
@@ -64,7 +67,8 @@ TEST_F(TextFormattingTest, IsStyle) {
     EXPECT_FALSE(isStyle(TextFormatting::None));
 }
 
-TEST_F(TextFormattingTest, FromCode) {
+TEST_F(TextFormattingTest, FromCode)
+{
     // 数字代码
     EXPECT_EQ(fromCode('0'), TextFormatting::Black);
     EXPECT_EQ(fromCode('9'), TextFormatting::Blue);
@@ -86,7 +90,8 @@ TEST_F(TextFormattingTest, FromCode) {
     EXPECT_EQ(fromCode('z'), TextFormatting::None);
 }
 
-TEST_F(TextFormattingTest, ToCode) {
+TEST_F(TextFormattingTest, ToCode)
+{
     // 颜色代码
     EXPECT_EQ(toCode(TextFormatting::Black), '0');
     EXPECT_EQ(toCode(TextFormatting::Red), 'c');
@@ -101,7 +106,8 @@ TEST_F(TextFormattingTest, ToCode) {
     EXPECT_EQ(toCode(TextFormatting::None), '\0');
 }
 
-TEST_F(TextFormattingTest, FromName) {
+TEST_F(TextFormattingTest, FromName)
+{
     // 颜色名称
     EXPECT_EQ(fromName("red"), TextFormatting::Red);
     EXPECT_EQ(fromName("dark_blue"), TextFormatting::DarkBlue);
@@ -120,7 +126,8 @@ TEST_F(TextFormattingTest, FromName) {
     EXPECT_EQ(fromName("invalid"), TextFormatting::None);
 }
 
-TEST_F(TextFormattingTest, ToName) {
+TEST_F(TextFormattingTest, ToName)
+{
     EXPECT_EQ(toName(TextFormatting::Red), "red");
     EXPECT_EQ(toName(TextFormatting::DarkBlue), "dark_blue");
     EXPECT_EQ(toName(TextFormatting::Bold), "bold");
@@ -136,7 +143,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(StyleTest, DefaultValues) {
+TEST_F(StyleTest, DefaultValues)
+{
     Style style;
 
     EXPECT_FALSE(style.getColor().has_value());
@@ -148,7 +156,8 @@ TEST_F(StyleTest, DefaultValues) {
     EXPECT_FALSE(style.hasEvents());
 }
 
-TEST_F(StyleTest, SetColor) {
+TEST_F(StyleTest, SetColor)
+{
     Style style;
 
     style.setColor(TextFormatting::Red);
@@ -161,7 +170,8 @@ TEST_F(StyleTest, SetColor) {
     EXPECT_EQ(style.getColorARGB(), 0xFFFFFFFFu);
 }
 
-TEST_F(StyleTest, SetStyles) {
+TEST_F(StyleTest, SetStyles)
+{
     Style style;
 
     style.setBold(true);
@@ -180,7 +190,8 @@ TEST_F(StyleTest, SetStyles) {
     EXPECT_TRUE(style.isObfuscated());
 }
 
-TEST_F(StyleTest, MergeWithParent) {
+TEST_F(StyleTest, MergeWithParent)
+{
     // 父样式：红色 + 粗体
     Style parent;
     parent.setColor(TextFormatting::Red);
@@ -205,7 +216,8 @@ TEST_F(StyleTest, MergeWithParent) {
     EXPECT_TRUE(merged2.isBold());
 }
 
-TEST_F(StyleTest, IsEmpty) {
+TEST_F(StyleTest, IsEmpty)
+{
     Style empty;
     EXPECT_TRUE(empty.isEmpty());
 
@@ -218,7 +230,8 @@ TEST_F(StyleTest, IsEmpty) {
     EXPECT_FALSE(withBold.isEmpty());
 }
 
-TEST_F(StyleTest, JsonSerialization) {
+TEST_F(StyleTest, JsonSerialization)
+{
     // 序列化
     Style style;
     style.setColor(TextFormatting::Red);
@@ -238,7 +251,8 @@ TEST_F(StyleTest, JsonSerialization) {
     EXPECT_FALSE(parsed.isUnderlined());
 }
 
-TEST_F(StyleTest, Equality) {
+TEST_F(StyleTest, Equality)
+{
     Style style1;
     style1.setColor(TextFormatting::Red);
     style1.setBold(true);
@@ -264,7 +278,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(ClickEventTest, BasicOperations) {
+TEST_F(ClickEventTest, BasicOperations)
+{
     ClickEvent event(ClickAction::RunCommand, "/help");
 
     EXPECT_EQ(event.getAction(), ClickAction::RunCommand);
@@ -275,7 +290,8 @@ TEST_F(ClickEventTest, BasicOperations) {
     EXPECT_FALSE(emptyEvent.isValid());
 }
 
-TEST_F(ClickEventTest, JsonSerialization) {
+TEST_F(ClickEventTest, JsonSerialization)
+{
     ClickEvent event(ClickAction::OpenUrl, "https://example.com");
     nlohmann::json json = event.toJson();
 
@@ -296,7 +312,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(HoverEventTest, BasicOperations) {
+TEST_F(HoverEventTest, BasicOperations)
+{
     HoverEvent event = HoverEvent::showText("Hello World");
 
     EXPECT_EQ(event.getAction(), HoverAction::ShowText);
@@ -307,7 +324,8 @@ TEST_F(HoverEventTest, BasicOperations) {
     EXPECT_FALSE(emptyEvent.isValid());
 }
 
-TEST_F(HoverEventTest, JsonSerialization) {
+TEST_F(HoverEventTest, JsonSerialization)
+{
     HoverEvent event = HoverEvent::showText("Test hover");
     nlohmann::json json = event.toJson();
 
@@ -323,7 +341,8 @@ TEST_F(HoverEventTest, JsonSerialization) {
 // GetStyleCodes 测试
 // ============================================================================
 
-TEST_F(StyleTest, GetStyleCodes) {
+TEST_F(StyleTest, GetStyleCodes)
+{
     Style style;
     style.setColor(TextFormatting::Red);
     style.setBold(true);

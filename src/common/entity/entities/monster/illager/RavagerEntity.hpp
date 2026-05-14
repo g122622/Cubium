@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractRaiderEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AbstractRaiderEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -152,10 +152,10 @@ private:
     bool m_canBreakBlocks = true;
 
     // 常量
-    static constexpr i32 ROAR_DURATION = 20;     // 咆哮持续时间
-    static constexpr i32 CHARGE_DURATION = 40;   // 冲撞持续时间
-    static constexpr i32 ATTACK_COOLDOWN = 30;   // 攻击冷却
-    static constexpr f32 ATTACK_DAMAGE = 12.0f;  // 攻击伤害
+    static constexpr i32 ROAR_DURATION = 20;    // 咆哮持续时间
+    static constexpr i32 CHARGE_DURATION = 40;  // 冲撞持续时间
+    static constexpr i32 ATTACK_COOLDOWN = 30;  // 攻击冷却
+    static constexpr f32 ATTACK_DAMAGE = 12.0f; // 攻击伤害
 };
 
 } // namespace mc

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "RecipePackets.hpp"
-#include "InventoryPackets.hpp"
 #include "../../item/crafting/RecipeManager.hpp"
+#include "InventoryPackets.hpp"
+#include "RecipePackets.hpp"
 #include <functional>
 #include <memory>
 
@@ -70,8 +70,7 @@ public:
      * @param title 标题
      * @return 打开包
      */
-    static OpenContainerPacket createOpenContainerPacket(ContainerId containerId, i32 type,
-                                                          const std::string& title);
+    static OpenContainerPacket createOpenContainerPacket(ContainerId containerId, i32 type, const std::string& title);
 
     /**
      * @brief 创建配方列表同步包
@@ -85,8 +84,8 @@ public:
      * @param menu 合成菜单
      * @return 预览包
      */
-    static CraftResultPreviewPacket createCraftResultPreview(ContainerId containerId,
-                                                              const AbstractContainerMenu& menu);
+    static CraftResultPreviewPacket createCraftResultPreview(
+        ContainerId containerId, const AbstractContainerMenu& menu);
 };
 
 /**

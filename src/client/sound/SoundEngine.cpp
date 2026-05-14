@@ -1,17 +1,17 @@
 #include "client/sound/SoundEngine.hpp"
-#include "client/sound/SoundHandler.hpp"
-#include "client/sound/resource/SoundRegistry.hpp"
-#include "client/sound/resource/SoundDefinition.hpp"
 #include "client/settings/ClientSettings.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "client/sound/SoundHandler.hpp"
+#include "client/sound/resource/SoundDefinition.hpp"
+#include "client/sound/resource/SoundRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
-#include <cmath>
 #include <chrono>
+#include <cmath>
 #include <random>
 
 namespace mc::client::sound {
@@ -20,16 +20,17 @@ SoundEngine::SoundEngine(SoundHandler& handler, ClientSettings& settings)
     : m_handler(handler)
     , m_settings(settings)
     , m_rng(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
-{
-}
+{}
 
-SoundEngine::~SoundEngine() {
+SoundEngine::~SoundEngine()
+{
     if (m_loaded) {
         shutdown();
     }
 }
 
-Result<void> SoundEngine::initialize() {
+Result<void> SoundEngine::initialize()
+{
     if (m_loaded) {
         return Error(ErrorCode::InvalidState, "Sound engine already initialized");
     }
@@ -65,8 +66,7 @@ Result<void> SoundEngine::initialize() {
         m_backend = createOpenALBackend();
     }
     if (!m_backend) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to create audio backend");
+        return Error(ErrorCode::InitializationFailed, "Failed to create audio backend");
     }
 
     // 初始化音频后端
@@ -91,7 +91,8 @@ Result<void> SoundEngine::initialize() {
     return {};
 }
 
-void SoundEngine::shutdown() {
+void SoundEngine::shutdown()
+{
     if (!m_loaded) {
         return;
     }
@@ -119,7 +120,8 @@ void SoundEngine::shutdown() {
     spdlog::info("[SoundEngine] Sound engine shutdown complete");
 }
 
-SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
+SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound)
+{
     MC_ASSERT_RELEASE(sound);
     MC_TRACE_CLIENT_SOUND_EVENT("SoundEngine::play", "sound_event", sound->getSoundEventId().toString());
     if (!m_loaded) {
@@ -177,7 +179,8 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     auto loadResult = m_loader->load(resolvedDef.location);
     if (!loadResult.success()) {
         spdlog::warn("[SoundEngine] Failed to load sound: {} - {}",
-                      resolvedDef.location.toString(), loadResult.error().message());
+            resolvedDef.location.toString(),
+            loadResult.error().message());
         return 0;
     }
 
@@ -246,7 +249,7 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     channel.soundId = soundId;
     channel.source = std::move(source);
     channel.buffer = std::move(buffer);
-    channel.bufferId = 0;  // 缓冲区由缓存管理
+    channel.bufferId = 0; // 缓冲区由缓存管理
     channel.isPaused = false;
 
     m_channels[soundId] = std::move(channel);
@@ -255,12 +258,15 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     m_channels[soundId].source->play();
 
     spdlog::info("[SoundEngine] Playing sound: {} -> {} (id={})",
-                  eventDef->location.toString(), resolvedDef.location.toString(), soundId);
+        eventDef->location.toString(),
+        resolvedDef.location.toString(),
+        soundId);
 
     return soundId;
 }
 
-void SoundEngine::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTicks) {
+void SoundEngine::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTicks)
+{
     if (!sound) {
         return;
     }
@@ -268,7 +274,8 @@ void SoundEngine::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTi
     m_delayedSounds.emplace_back(std::move(sound), delayTicks);
 }
 
-void SoundEngine::playOnNextTick(std::unique_ptr<ISoundInstance> sound) {
+void SoundEngine::playOnNextTick(std::unique_ptr<ISoundInstance> sound)
+{
     if (!sound) {
         return;
     }
@@ -276,7 +283,8 @@ void SoundEngine::playOnNextTick(std::unique_ptr<ISoundInstance> sound) {
     m_playOnNextTickQueue.push_back(std::move(sound));
 }
 
-void SoundEngine::stop(SoundInstanceId id) {
+void SoundEngine::stop(SoundInstanceId id)
+{
     if (!m_loaded) {
         return;
     }
@@ -292,7 +300,8 @@ void SoundEngine::stop(SoundInstanceId id) {
     m_pool.remove(id);
 }
 
-void SoundEngine::stop(const ResourceLocation& soundEventId) {
+void SoundEngine::stop(const ResourceLocation& soundEventId)
+{
     if (!m_loaded) {
         return;
     }
@@ -303,7 +312,8 @@ void SoundEngine::stop(const ResourceLocation& soundEventId) {
     }
 }
 
-void SoundEngine::stop(SoundCategory category) {
+void SoundEngine::stop(SoundCategory category)
+{
     if (!m_loaded) {
         return;
     }
@@ -314,7 +324,8 @@ void SoundEngine::stop(SoundCategory category) {
     }
 }
 
-void SoundEngine::stopAll() {
+void SoundEngine::stopAll()
+{
     if (!m_loaded) {
         return;
     }
@@ -331,7 +342,8 @@ void SoundEngine::stopAll() {
     m_pool.clear();
 }
 
-void SoundEngine::pause() {
+void SoundEngine::pause()
+{
     if (!m_loaded || m_paused) {
         return;
     }
@@ -346,7 +358,8 @@ void SoundEngine::pause() {
     }
 }
 
-void SoundEngine::resume() {
+void SoundEngine::resume()
+{
     if (!m_loaded || !m_paused) {
         return;
     }
@@ -361,7 +374,8 @@ void SoundEngine::resume() {
     }
 }
 
-bool SoundEngine::isPlaying(SoundInstanceId id) const {
+bool SoundEngine::isPlaying(SoundInstanceId id) const
+{
     if (!m_loaded) {
         return false;
     }
@@ -374,9 +388,8 @@ bool SoundEngine::isPlaying(SoundInstanceId id) const {
     return it->second.source->getState() == AudioSourceState::Playing;
 }
 
-void SoundEngine::updateListener(const glm::vec3& position,
-                                  const glm::vec3& forward,
-                                  const glm::vec3& up) {
+void SoundEngine::updateListener(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up)
+{
     if (!m_loaded || !m_backend) {
         return;
     }
@@ -388,7 +401,8 @@ void SoundEngine::updateListener(const glm::vec3& position,
     m_backend->setListenerOrientation(forward, up);
 }
 
-void SoundEngine::setListenerVelocity(const glm::vec3& velocity) {
+void SoundEngine::setListenerVelocity(const glm::vec3& velocity)
+{
     if (!m_loaded || !m_backend) {
         return;
     }
@@ -396,7 +410,8 @@ void SoundEngine::setListenerVelocity(const glm::vec3& velocity) {
     m_backend->setListenerVelocity(velocity);
 }
 
-void SoundEngine::setVolume(SoundCategory category, f32 volume) {
+void SoundEngine::setVolume(SoundCategory category, f32 volume)
+{
     volume = std::clamp(volume, 0.0f, 1.0f);
     m_settings.setVolumeForCategory(category, volume);
 
@@ -418,11 +433,13 @@ void SoundEngine::setVolume(SoundCategory category, f32 volume) {
     }
 }
 
-f32 SoundEngine::getVolume(SoundCategory category) const {
+f32 SoundEngine::getVolume(SoundCategory category) const
+{
     return m_settings.getVolumeForCategory(category);
 }
 
-void SoundEngine::tick(bool isPaused) {
+void SoundEngine::tick(bool isPaused)
+{
     MC_TRACE_EVENT("client.sound", "SoundEngine::tick", "isPaused", isPaused);
 
     if (!m_loaded) {
@@ -517,19 +534,23 @@ void SoundEngine::tick(bool isPaused) {
     m_backend->process();
 }
 
-void SoundEngine::addAmbientHandler(std::unique_ptr<IAmbientSoundHandler> handler) {
+void SoundEngine::addAmbientHandler(std::unique_ptr<IAmbientSoundHandler> handler)
+{
     m_ambientHandlers.push_back(std::move(handler));
 }
 
-ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) {
+ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id)
+{
     return m_pool.get(id);
 }
 
-const ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) const {
+const ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) const
+{
     return m_pool.get(id);
 }
 
-f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const {
+f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const
+{
     f32 volume = sound.getVolume();
 
     // 乘以类别音量
@@ -543,14 +564,16 @@ f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const {
     return std::max(0.0f, volume);
 }
 
-f32 SoundEngine::calculatePitch(const ISoundInstance& sound) const {
+f32 SoundEngine::calculatePitch(const ISoundInstance& sound) const
+{
     f32 pitch = sound.getPitch();
 
     // 限制音调范围
     return std::clamp(pitch, 0.5f, 2.0f);
 }
 
-void SoundEngine::updateSoundPosition(ActiveChannel& channel, const ISoundInstance& sound) {
+void SoundEngine::updateSoundPosition(ActiveChannel& channel, const ISoundInstance& sound)
+{
     if (!channel.source || sound.isGlobal()) {
         return;
     }
@@ -558,7 +581,8 @@ void SoundEngine::updateSoundPosition(ActiveChannel& channel, const ISoundInstan
     channel.source->setPosition(sound.getPosition());
 }
 
-void SoundEngine::updateDelayedSounds() {
+void SoundEngine::updateDelayedSounds()
+{
     std::vector<std::pair<std::unique_ptr<ISoundInstance>, u32>> remaining;
 
     for (auto& [sound, delay] : m_delayedSounds) {
@@ -575,17 +599,12 @@ void SoundEngine::updateDelayedSounds() {
     m_delayedSounds = std::move(remaining);
 }
 
-bool SoundEngine::resolveSoundDefinition(
-    SoundDefinition& soundDef,
-    u32 depth,
-    f32& outVolume,
-    f32& outPitch
-) const {
+bool SoundEngine::resolveSoundDefinition(SoundDefinition& soundDef, u32 depth, f32& outVolume, f32& outPitch) const
+{
     // 防止无限递归（最大深度 16）
     constexpr u32 MAX_RESOLVE_DEPTH = 16;
     if (depth > MAX_RESOLVE_DEPTH) {
-        spdlog::warn("[SoundEngine] Max event reference depth exceeded for: {}",
-                     soundDef.location.toString());
+        spdlog::warn("[SoundEngine] Max event reference depth exceeded for: {}", soundDef.location.toString());
         return false;
     }
 
@@ -599,8 +618,7 @@ bool SoundEngine::resolveSoundDefinition(
     // 事件引用：查找被引用的声音事件
     const SoundEventDefinition* refEvent = m_handler.getRegistry().getSoundEvent(soundDef.location);
     if (!refEvent) {
-        spdlog::warn("[SoundEngine] Referenced sound event not found: {}",
-                      soundDef.location.toString());
+        spdlog::warn("[SoundEngine] Referenced sound event not found: {}", soundDef.location.toString());
         return false;
     }
 
@@ -621,7 +639,8 @@ bool SoundEngine::resolveSoundDefinition(
     return resolveSoundDefinition(soundDef, depth + 1, outVolume, outPitch);
 }
 
-bool SoundEngine::isInRange(const ISoundInstance& sound, f32 attenuationDistance) const {
+bool SoundEngine::isInRange(const ISoundInstance& sound, f32 attenuationDistance) const
+{
     // 全局声音始终在范围内
     if (sound.isGlobal()) {
         return true;

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "server/command/ServerCommandSource.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "server/command/ServerCommandSource.hpp"
 
 namespace mc {
 namespace command {
@@ -12,11 +12,11 @@ namespace command {
  * @brief 授予/撤销成就的遍历模式
  */
 enum class GrantMode : u8 {
-    Only,      ///< 仅操作指定成就
+    Only,       ///< 仅操作指定成就
     Everything, ///< 操作所有成就
-    From,      ///< 操作指定成就及其所有子成就
-    Through,   ///< 操作从根到指定成就的路径
-    Until      ///< 操作指定成就及其所有父成就
+    From,       ///< 操作指定成就及其所有子成就
+    Through,    ///< 操作从根到指定成就的路径
+    Until       ///< 操作指定成就及其所有父成就
 };
 
 /**

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AmbientEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "AmbientEntity.hpp"
 #include <memory>
 
 namespace mc {

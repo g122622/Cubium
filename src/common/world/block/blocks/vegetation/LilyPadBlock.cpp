@@ -1,27 +1,27 @@
 #include "LilyPadBlock.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../fluid/Fluid.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
 
 namespace mc {
 namespace blocks {
 
 LilyPadBlock::LilyPadBlock(const BlockProperties& properties)
-    : BushBlock(properties) {
+    : BushBlock(properties)
+{
 
     // 睡莲形状：扁平的圆形，略微高于水面
     m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.015625f, 0.9375f);
 }
 
-BlockState LilyPadBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState LilyPadBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-bool LilyPadBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool LilyPadBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -60,18 +60,21 @@ bool LilyPadBlock::isValidPosition(
     return false;
 }
 
-const CollisionShape& LilyPadBlock::getShape(const BlockState& state) const {
+const CollisionShape& LilyPadBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& LilyPadBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& LilyPadBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 睡莲有很小的碰撞箱，可以踩上去
     return m_shape;
 }
 
-void LilyPadBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void LilyPadBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -81,10 +84,8 @@ void LilyPadBlock::onEntityCollision(const BlockState& state, IWorld& world, con
     // 但如果实体太大可能会破坏睡莲
 }
 
-bool LilyPadBlock::canSustain(
-    const BlockState& groundState,
-    IWorld& world,
-    const BlockPos& groundPos) const {
+bool LilyPadBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(groundPos);

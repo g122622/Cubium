@@ -1,11 +1,12 @@
 #include "BlockStateLoader.hpp"
 #include "common/resource/IResourcePack.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace {
 
-std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr) {
+std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr)
+{
     std::vector<std::pair<std::string, std::string>> conditions;
 
     if (stateStr.empty() || stateStr == "normal") {
@@ -35,8 +36,7 @@ std::vector<std::pair<std::string, std::string>> parseStateConditions(std::strin
     return conditions;
 }
 
-bool matchesProperties(
-    const std::vector<std::pair<std::string, std::string>>& conditions,
+bool matchesProperties(const std::vector<std::pair<std::string, std::string>>& conditions,
     const std::map<std::string, std::string>& properties)
 {
     for (const auto& [key, value] : conditions) {
@@ -52,12 +52,12 @@ bool matchesProperties(
 
 namespace mc {
 
-Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack) {
+Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack)
+{
     m_resourcePack = &resourcePack;
 
     // 列出所有方块状态文件
-    auto result = resourcePack.listResources(
-        "assets/minecraft/blockstates", "json");
+    auto result = resourcePack.listResources("assets/minecraft/blockstates", "json");
 
     if (result.failed()) {
         // 目录可能不存在
@@ -97,15 +97,13 @@ Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack)
     }
 
     if (loaded > 0) {
-        spdlog::info("BlockStateLoader: Loaded {} block states from '{}'",
-                    loaded, resourcePack.name());
+        spdlog::info("BlockStateLoader: Loaded {} block states from '{}'", loaded, resourcePack.name());
     }
 
     return Result<void>::ok();
 }
 
-const BlockStateDefinition* BlockStateLoader::getBlockState(
-    const ResourceLocation& blockId) const
+const BlockStateDefinition* BlockStateLoader::getBlockState(const ResourceLocation& blockId) const
 {
     auto it = m_blockStates.find(blockId);
     if (it != m_blockStates.end()) {
@@ -114,9 +112,7 @@ const BlockStateDefinition* BlockStateLoader::getBlockState(
     return nullptr;
 }
 
-const BlockStateVariant* BlockStateLoader::getVariant(
-    const ResourceLocation& blockId,
-    std::string_view stateStr) const
+const BlockStateVariant* BlockStateLoader::getVariant(const ResourceLocation& blockId, std::string_view stateStr) const
 {
     auto* def = getBlockState(blockId);
     if (!def) {
@@ -132,8 +128,7 @@ const BlockStateVariant* BlockStateLoader::getVariant(
 }
 
 const BlockStateVariant* BlockStateLoader::getVariant(
-    const ResourceLocation& blockId,
-    const std::map<std::string, std::string>& properties) const
+    const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const
 {
     std::string stateStr = propertiesToStateStr(properties);
 
@@ -173,11 +168,13 @@ const BlockStateVariant* BlockStateLoader::getVariant(
     return &bestList->select();
 }
 
-void BlockStateLoader::clearCache() {
+void BlockStateLoader::clearCache()
+{
     m_blockStates.clear();
 }
 
-std::vector<ResourceLocation> BlockStateLoader::getLoadedBlockStates() const {
+std::vector<ResourceLocation> BlockStateLoader::getLoadedBlockStates() const
+{
     std::vector<ResourceLocation> result;
     result.reserve(m_blockStates.size());
 
@@ -188,7 +185,8 @@ std::vector<ResourceLocation> BlockStateLoader::getLoadedBlockStates() const {
     return result;
 }
 
-std::string BlockStateLoader::propertiesToStateStr(const std::map<std::string, std::string>& properties) {
+std::string BlockStateLoader::propertiesToStateStr(const std::map<std::string, std::string>& properties)
+{
     if (properties.empty()) {
         return "normal";
     }
@@ -196,10 +194,8 @@ std::string BlockStateLoader::propertiesToStateStr(const std::map<std::string, s
     std::string result;
 
     // 按键排序以保证一致性
-    std::vector<std::pair<std::string, std::string>> sortedProps(
-        properties.begin(), properties.end());
-    std::sort(sortedProps.begin(), sortedProps.end(),
-        [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::vector<std::pair<std::string, std::string>> sortedProps(properties.begin(), properties.end());
+    std::sort(sortedProps.begin(), sortedProps.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
 
     for (size_t i = 0; i < sortedProps.size(); ++i) {
         if (i > 0) {

@@ -13,26 +13,23 @@ namespace mc::client::sound {
 SoundDefinition::SoundDefinition(std::string_view path)
     : location(ResourceLocation::parse(path))
     , type(SoundType::File)
-{
-}
+{}
 
 SoundDefinition::SoundDefinition(const ResourceLocation& loc)
     : location(loc)
     , type(SoundType::File)
-{
-}
+{}
 
-ResourceLocation SoundDefinition::toOggLocation() const {
+ResourceLocation SoundDefinition::toOggLocation() const
+{
     // sounds.json 中的路径（如 "dig/stone1"）是相对于 sounds/ 目录的
     // SoundLoader::toAudioPath() 会负责添加 "sounds/" 前缀和 ".ogg" 后缀
     // 这里直接返回原始路径，不做转换
     return location;
 }
 
-Result<SoundDefinition> SoundDefinition::parse(
-    const nlohmann::json& json,
-    std::string_view namespace_
-) {
+Result<SoundDefinition> SoundDefinition::parse(const nlohmann::json& json, std::string_view namespace_)
+{
     SoundDefinition def;
 
     if (json.is_string()) {
@@ -120,9 +117,7 @@ Result<SoundDefinition> SoundDefinition::parse(
             if (json["attenuation_distance"].is_number_unsigned()) {
                 def.attenuationDistance = json["attenuation_distance"].get<u32>();
             } else if (json["attenuation_distance"].is_number_integer()) {
-                def.attenuationDistance = static_cast<u32>(
-                    std::max(0, json["attenuation_distance"].get<i32>())
-                );
+                def.attenuationDistance = static_cast<u32>(std::max(0, json["attenuation_distance"].get<i32>()));
             }
         }
 
@@ -148,19 +143,15 @@ Result<SoundDefinition> SoundDefinition::parse(
 
 SoundEventDefinition::SoundEventDefinition(ResourceLocation location)
     : location(std::move(location))
-{
-}
+{}
 
 SoundEventDefinition::SoundEventDefinition(std::string_view eventId)
     : location(ResourceLocation::parse(eventId))
-{
-}
+{}
 
 Result<SoundEventDefinition> SoundEventDefinition::parse(
-    std::string_view eventId,
-    const nlohmann::json& json,
-    std::string_view namespace_
-) {
+    std::string_view eventId, const nlohmann::json& json, std::string_view namespace_)
+{
     SoundEventDefinition def{std::string(eventId)};
 
     if (!json.is_object()) {
@@ -183,8 +174,7 @@ Result<SoundEventDefinition> SoundEventDefinition::parse(
 
     // 解析 sounds 数组
     if (!json.contains("sounds")) {
-        return Error(ErrorCode::InvalidData,
-                      "Sound event definition missing 'sounds' array");
+        return Error(ErrorCode::InvalidData, "Sound event definition missing 'sounds' array");
     }
 
     const auto& soundsJson = json["sounds"];
@@ -197,22 +187,21 @@ Result<SoundEventDefinition> SoundEventDefinition::parse(
         if (result.success()) {
             def.sounds.push_back(std::move(result.value()));
         } else {
-            spdlog::warn("Sound event '{}' skipped invalid sound entry: {}",
-                         std::string(eventId),
-                         result.error().message());
+            spdlog::warn(
+                "Sound event '{}' skipped invalid sound entry: {}", std::string(eventId), result.error().message());
         }
     }
 
     // 至少需要一个有效的声音
     if (def.sounds.empty()) {
-        return Error(ErrorCode::InvalidData,
-                      "Sound event must have at least one valid sound");
+        return Error(ErrorCode::InvalidData, "Sound event must have at least one valid sound");
     }
 
     return def;
 }
 
-u32 SoundEventDefinition::totalWeight() const noexcept {
+u32 SoundEventDefinition::totalWeight() const noexcept
+{
     u32 total = 0;
     for (const auto& sound : sounds) {
         total += sound.weight;
@@ -220,9 +209,8 @@ u32 SoundEventDefinition::totalWeight() const noexcept {
     return total;
 }
 
-const SoundDefinition* SoundEventDefinition::selectSound(
-    mc::math::Random& rng
-) const noexcept {
+const SoundDefinition* SoundEventDefinition::selectSound(mc::math::Random& rng) const noexcept
+{
     if (sounds.empty()) {
         return nullptr;
     }

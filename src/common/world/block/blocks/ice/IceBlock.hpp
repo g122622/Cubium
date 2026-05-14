@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Block.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 
@@ -37,22 +37,13 @@ public:
      * @brief 方块被移除后
      * 冰在非寒冷生物群系会融化成水，在温暖光源附近也会融化
      */
-    void onBlockRemoved(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state
-    ) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     /**
      * @brief 随机刻
      * 在明亮环境中融化
      */
-    void randomTick(
-        IWorld& world,
-        const BlockPos& pos,
-        BlockState& state,
-        math::IRandom& random
-    ) override;
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 是否响应随机刻
@@ -121,8 +112,8 @@ public:
     /**
      * @brief 邻居方块变化
      */
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     /**
      * @brief Tick 更新
@@ -143,16 +134,12 @@ public:
     /**
      * @brief 获取 AGE 属性
      */
-    [[nodiscard]] static const IntegerProperty& AGE_PROP() {
-        return BlockStateProperties::AGE_0_3();
-    }
+    [[nodiscard]] static const IntegerProperty& AGE_PROP() { return BlockStateProperties::AGE_0_3(); }
 
     /**
      * @brief 获取霜冰年龄
      */
-    [[nodiscard]] static i32 getAge(const BlockState& state) {
-        return state.get(AGE_PROP());
-    }
+    [[nodiscard]] static i32 getAge(const BlockState& state) { return state.get(AGE_PROP()); }
 
 private:
     /**

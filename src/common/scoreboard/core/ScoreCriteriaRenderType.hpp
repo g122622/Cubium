@@ -25,7 +25,8 @@ enum class RenderType : u8 {
  * @param renderType 渲染类型枚举值
  * @return 字符串表示
  */
-[[nodiscard]] inline const char* renderTypeToString(RenderType renderType) noexcept {
+[[nodiscard]] inline const char* renderTypeToString(RenderType renderType) noexcept
+{
     return renderType == RenderType::Hearts ? "hearts" : "integer";
 }
 
@@ -35,7 +36,8 @@ enum class RenderType : u8 {
  * @param str 字符串表示
  * @return 渲染类型枚举值，解析失败返回 Integer
  */
-[[nodiscard]] inline RenderType renderTypeFromString(const std::string& str) noexcept {
+[[nodiscard]] inline RenderType renderTypeFromString(const std::string& str) noexcept
+{
     if (str == "hearts") {
         return RenderType::Hearts;
     }

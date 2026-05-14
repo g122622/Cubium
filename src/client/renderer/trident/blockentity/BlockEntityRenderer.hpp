@@ -49,10 +49,7 @@ public:
      * @param light 组合光照
      * @return 是否渲染成功
      */
-    [[nodiscard]] bool renderBlock(
-        const BlockState& state,
-        const BlockPos& pos,
-        u32 light);
+    [[nodiscard]] bool renderBlock(const BlockState& state, const BlockPos& pos, u32 light);
 
     /**
      * @brief 渲染方块模型（带变换）
@@ -66,12 +63,7 @@ public:
      * @return 是否渲染成功
      */
     [[nodiscard]] bool renderBlockWithOffset(
-        const BlockState& state,
-        const BlockPos& pos,
-        f32 offsetX,
-        f32 offsetY,
-        f32 offsetZ,
-        u32 light);
+        const BlockState& state, const BlockPos& pos, f32 offsetX, f32 offsetY, f32 offsetZ, u32 light);
 
     /**
      * @brief 获取方块在指定位置的光照值
@@ -108,5 +100,5 @@ private:
 };
 
 } // namespace blockentity
-} // namespace mc::client::renderer::trident
+} // namespace client::renderer::trident
 } // namespace mc

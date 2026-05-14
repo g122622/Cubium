@@ -5,9 +5,8 @@
 namespace mc::entity {
 
 // 引入 mc 命名空间的类型
-using mc::u8;
 using mc::i32;
-
+using mc::u8;
 
 /**
  * @brief 实体分类枚举
@@ -34,10 +33,10 @@ enum class EntityClassification : u8 {
 struct EntityClassificationInfo {
     EntityClassification classification;
     std::string name;
-    i32 maxCount;           // 每区块最大数量
-    bool isPeaceful;        // 是否为和平生物
-    bool isAnimal;          // 是否为动物
-    i32 despawnDistance;    // 立即消失距离
+    i32 maxCount;                   // 每区块最大数量
+    bool isPeaceful;                // 是否为和平生物
+    bool isAnimal;                  // 是否为动物
+    i32 despawnDistance;            // 立即消失距离
     i32 randomDespawnDistance = 32; // 随机消失距离
 
     static EntityClassificationInfo get(EntityClassification classification);
@@ -48,14 +47,21 @@ struct EntityClassificationInfo {
  * @param classification 实体分类
  * @return 每区块最大数量
  */
-inline i32 getMaxCount(EntityClassification classification) {
+inline i32 getMaxCount(EntityClassification classification)
+{
     switch (classification) {
-        case EntityClassification::Monster: return 70;
-        case EntityClassification::Creature: return 10;
-        case EntityClassification::Ambient: return 15;
-        case EntityClassification::WaterCreature: return 5;
-        case EntityClassification::WaterAmbient: return 20;
-        case EntityClassification::Misc: return -1; // 无限制
+        case EntityClassification::Monster:
+            return 70;
+        case EntityClassification::Creature:
+            return 10;
+        case EntityClassification::Ambient:
+            return 15;
+        case EntityClassification::WaterCreature:
+            return 5;
+        case EntityClassification::WaterAmbient:
+            return 20;
+        case EntityClassification::Misc:
+            return -1; // 无限制
     }
     return -1;
 }
@@ -65,7 +71,8 @@ inline i32 getMaxCount(EntityClassification classification) {
  * @param classification 实体分类
  * @return 是否为和平生物
  */
-inline bool isPeaceful(EntityClassification classification) {
+inline bool isPeaceful(EntityClassification classification)
+{
     return classification != EntityClassification::Monster;
 }
 
@@ -74,7 +81,8 @@ inline bool isPeaceful(EntityClassification classification) {
  * @param classification 实体分类
  * @return 是否为动物
  */
-inline bool isAnimal(EntityClassification classification) {
+inline bool isAnimal(EntityClassification classification)
+{
     return classification == EntityClassification::Creature;
 }
 
@@ -83,14 +91,21 @@ inline bool isAnimal(EntityClassification classification) {
  * @param classification 实体分类
  * @return 立即消失距离（方块）
  */
-inline i32 getDespawnDistance(EntityClassification classification) {
+inline i32 getDespawnDistance(EntityClassification classification)
+{
     switch (classification) {
-        case EntityClassification::Monster: return 128;
-        case EntityClassification::Creature: return 128;
-        case EntityClassification::Ambient: return 128;
-        case EntityClassification::WaterCreature: return 128;
-        case EntityClassification::WaterAmbient: return 64;
-        case EntityClassification::Misc: return 128;
+        case EntityClassification::Monster:
+            return 128;
+        case EntityClassification::Creature:
+            return 128;
+        case EntityClassification::Ambient:
+            return 128;
+        case EntityClassification::WaterCreature:
+            return 128;
+        case EntityClassification::WaterAmbient:
+            return 64;
+        case EntityClassification::Misc:
+            return 128;
     }
     return 128;
 }

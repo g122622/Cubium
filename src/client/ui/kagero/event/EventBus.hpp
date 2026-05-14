@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Event.hpp"
 #include "../Types.hpp"
+#include "Event.hpp"
+#include <algorithm>
+#include <atomic>
 #include <functional>
-#include <unordered_map>
-#include <vector>
 #include <memory>
 #include <mutex>
-#include <atomic>
-#include <algorithm>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::client::ui::kagero::event {
 
@@ -43,7 +43,8 @@ public:
     /**
      * @brief 获取单例实例
      */
-    static EventBus& instance() {
+    static EventBus& instance()
+    {
         static EventBus instance;
         return instance;
     }
@@ -60,8 +61,9 @@ public:
      * @param priority 优先级（数值越大越先执行）
      * @return HandlerId 用于取消订阅
      */
-    template<typename EventT>
-    HandlerId subscribe(std::function<void(const EventT&)> handler, i32 priority = 0) {
+    template <typename EventT>
+    HandlerId subscribe(std::function<void(const EventT&)> handler, i32 priority = 0)
+    {
         static_assert(std::is_base_of_v<Event, EventT>, "EventT must derive from Event");
 
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -69,10 +71,8 @@ public:
         HandlerId id = nextId();
         TypeInfo typeInfo = getTypeInfo<EventT>();
 
-        HandlerEntry entry(id, priority,
-            [handler](const Event& e) {
-                handler(static_cast<const EventT&>(e));
-            }, typeInfo);
+        HandlerEntry entry(
+            id, priority, [handler](const Event& e) { handler(static_cast<const EventT&>(e)); }, typeInfo);
 
         m_handlers[typeInfo].push_back(std::move(entry));
         sortHandlers(typeInfo);
@@ -88,7 +88,8 @@ public:
      * @param id 订阅时返回的HandlerId
      * @return 是否成功取消
      */
-    bool unsubscribe(HandlerId id) {
+    bool unsubscribe(HandlerId id)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         auto typeIt = m_handlerToType.find(id);
@@ -100,10 +101,8 @@ public:
         m_handlerToType.erase(typeIt);
 
         auto& handlers = m_handlers[typeInfo];
-        auto it = std::find_if(handlers.begin(), handlers.end(),
-            [id](const HandlerEntry& entry) {
-                return entry.id == id;
-            });
+        auto it =
+            std::find_if(handlers.begin(), handlers.end(), [id](const HandlerEntry& entry) { return entry.id == id; });
 
         if (it != handlers.end()) {
             handlers.erase(it);
@@ -119,8 +118,9 @@ public:
      * @tparam EventT 事件类型
      * @param event 事件实例
      */
-    template<typename EventT>
-    void publish(const EventT& event) {
+    template <typename EventT>
+    void publish(const EventT& event)
+    {
         static_assert(std::is_base_of_v<Event, EventT>, "EventT must derive from Event");
 
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -161,7 +161,8 @@ public:
      * @param filter 过滤函数，返回 true 继续处理，返回 false 阻止处理
      * @return HandlerId 过滤器ID，用于移除过滤器
      */
-    HandlerId addFilter(EventFilter filter) {
+    HandlerId addFilter(EventFilter filter)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         HandlerId id = nextId();
         m_filters[id] = std::move(filter);
@@ -175,7 +176,8 @@ public:
      * @param filter 过滤函数
      * @deprecated 使用 addFilter(EventFilter) 替代，该方法自动生成ID
      */
-    void addFilterWithId(HandlerId id, EventFilter filter) {
+    void addFilterWithId(HandlerId id, EventFilter filter)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_filters[id] = std::move(filter);
     }
@@ -186,7 +188,8 @@ public:
      * @param id 过滤器ID
      * @return 是否成功移除
      */
-    bool removeFilter(HandlerId id) {
+    bool removeFilter(HandlerId id)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_filters.erase(id) > 0;
     }
@@ -194,7 +197,8 @@ public:
     /**
      * @brief 清除所有处理器
      */
-    void clear() {
+    void clear()
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_handlers.clear();
         m_handlerToType.clear();
@@ -204,8 +208,9 @@ public:
     /**
      * @brief 获取特定类型事件的处理器数量
      */
-    template<typename EventT>
-    size_t handlerCount() const {
+    template <typename EventT>
+    size_t handlerCount() const
+    {
         TypeInfo typeInfo = getTypeInfo<EventT>();
         auto it = m_handlers.find(typeInfo);
         return it != m_handlers.end() ? it->second.size() : 0;
@@ -222,8 +227,9 @@ private:
     /**
      * @brief 获取类型信息
      */
-    template<typename EventT>
-    TypeInfo getTypeInfo() const {
+    template <typename EventT>
+    TypeInfo getTypeInfo() const
+    {
         return std::type_index(typeid(EventT));
     }
 
@@ -234,29 +240,33 @@ private:
         HandlerId id = 0;
         i32 priority = 0;
         std::function<void(const Event&)> handler;
-        TypeInfo typeInfo;  // type_index 没有默认构造函数，需要显式初始化
+        TypeInfo typeInfo; // type_index 没有默认构造函数，需要显式初始化
 
-        HandlerEntry() : typeInfo(typeid(void)) {}
+        HandlerEntry()
+            : typeInfo(typeid(void))
+        {}
         HandlerEntry(HandlerId id_, i32 prio, std::function<void(const Event&)> h, TypeInfo ti)
-            : id(id_), priority(prio), handler(std::move(h)), typeInfo(ti) {}
+            : id(id_)
+            , priority(prio)
+            , handler(std::move(h))
+            , typeInfo(ti)
+        {}
     };
 
     /**
      * @brief 生成下一个ID
      */
-    HandlerId nextId() {
-        return m_nextId++;
-    }
+    HandlerId nextId() { return m_nextId++; }
 
     /**
      * @brief 按优先级排序处理器
      */
-    void sortHandlers(TypeInfo typeInfo) {
+    void sortHandlers(TypeInfo typeInfo)
+    {
         auto& handlers = m_handlers[typeInfo];
-        std::stable_sort(handlers.begin(), handlers.end(),
-            [](const HandlerEntry& a, const HandlerEntry& b) {
-                return a.priority > b.priority; // 数值越大越先执行
-            });
+        std::stable_sort(handlers.begin(), handlers.end(), [](const HandlerEntry& a, const HandlerEntry& b) {
+            return a.priority > b.priority; // 数值越大越先执行
+        });
     }
 
     std::unordered_map<TypeInfo, std::vector<HandlerEntry>> m_handlers;
@@ -281,15 +291,17 @@ private:
  * }
  * @endcode
  */
-template<typename EventT>
+template <typename EventT>
 class EventSubscription {
 public:
     using HandlerType = std::function<void(const EventT&)>;
 
     explicit EventSubscription(HandlerType handler, i32 priority = 0)
-        : m_id(EventBus::instance().subscribe<EventT>(std::move(handler), priority)) {}
+        : m_id(EventBus::instance().subscribe<EventT>(std::move(handler), priority))
+    {}
 
-    ~EventSubscription() {
+    ~EventSubscription()
+    {
         if (m_id != 0) {
             EventBus::instance().unsubscribe(m_id);
         }
@@ -301,11 +313,13 @@ public:
 
     // 允许移动
     EventSubscription(EventSubscription&& other) noexcept
-        : m_id(other.m_id) {
+        : m_id(other.m_id)
+    {
         other.m_id = 0;
     }
 
-    EventSubscription& operator=(EventSubscription&& other) noexcept {
+    EventSubscription& operator=(EventSubscription&& other) noexcept
+    {
         if (this != &other) {
             if (m_id != 0) {
                 EventBus::instance().unsubscribe(m_id);
@@ -329,7 +343,8 @@ public:
     /**
      * @brief 手动取消订阅
      */
-    void unsubscribe() {
+    void unsubscribe()
+    {
         if (m_id != 0) {
             EventBus::instance().unsubscribe(m_id);
             m_id = 0;

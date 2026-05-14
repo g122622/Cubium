@@ -1,8 +1,8 @@
 #include "SaddleLayer.hpp"
 #include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include "../../model/core/ModelRenderer.hpp"
 #include "../../model/base/BipedModel.hpp"
+#include "../../model/core/ModelRenderer.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include <cmath>
@@ -11,12 +11,11 @@
 namespace mc::client::renderer::entity::layer::entity {
 
 // 静态成员定义
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 std::unique_ptr<pipeline::EntityMesh> SaddleLayer<TEntity, TModel>::s_saddleMesh = nullptr;
 
-template<typename TEntity, typename TModel>
-void SaddleLayer<TEntity, TModel>::renderPipeline(
-    TEntity& entity,
+template <typename TEntity, typename TModel>
+void SaddleLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -43,18 +42,13 @@ void SaddleLayer<TEntity, TModel>::renderPipeline(
     // 计算鞍的变换矩阵
     // 鞍位于实体背部
     std::array<f64, 16> saddleTransform;
-    saddleTransform = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    saddleTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 鞍的位置在背部中心
     // 参考 MC 1.16.5 的鞍模型位置
-    saddleTransform[3] = 0.0;      // X - 居中
-    saddleTransform[7] = 1.0;      // Y - 背部高度
-    saddleTransform[11] = 0.0;     // Z - 略微向前
+    saddleTransform[3] = 0.0;  // X - 居中
+    saddleTransform[7] = 1.0;  // Y - 背部高度
+    saddleTransform[11] = 0.0; // Z - 略微向前
 
     // 应用步态动画（鞍跟随身体摆动）
     f64 limbSwing = context.limbSwing;
@@ -67,11 +61,7 @@ void SaddleLayer<TEntity, TModel>::renderPipeline(
     }
 
     // 获取实体位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用实体的受伤时间
     f32 hurtTime = 0.0f;
@@ -81,17 +71,16 @@ void SaddleLayer<TEntity, TModel>::renderPipeline(
         deathTime = static_cast<f32>(entity.deathTime());
     }
 
-    pipeline.drawMesh(cmd, *mesh, saddleTransform, entityPos, 1.0,
-                      Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+    pipeline.drawMesh(
+        cmd, *mesh, saddleTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
     spdlog::trace("SaddleLayer: Rendered saddle on entity");
 
     (void)context;
 }
 
-template<typename TEntity, typename TModel>
-void SaddleLayer<TEntity, TModel>::render(
-    TEntity& entity,
+template <typename TEntity, typename TModel>
+void SaddleLayer<TEntity, TModel>::render(TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -111,8 +100,9 @@ void SaddleLayer<TEntity, TModel>::render(
     (void)scale;
 }
 
-template<typename TEntity, typename TModel>
-bool SaddleLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
+template <typename TEntity, typename TModel>
+bool SaddleLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
+{
     // 检查实体是否装备了鞍
     // MC 1.16.5: AbstractHorseEntity.isSaddled()
     // 或者检查胸部槽位是否有鞍物品
@@ -126,10 +116,8 @@ bool SaddleLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
     return false;
 }
 
-template<typename TEntity, typename TModel>
-void SaddleLayer<TEntity, TModel>::buildSaddleMesh(
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+template <typename TEntity, typename TModel>
+void SaddleLayer<TEntity, TModel>::buildSaddleMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 参考 MC 1.16.5 的鞍模型
     // 鞍是一个简单的扁平形状，位于实体背部
@@ -152,39 +140,39 @@ void SaddleLayer<TEntity, TModel>::buildSaddleMesh(
 
     // 顶面
     vertices.push_back(model::ModelVertex(-hw, hh, -hd, u0, v0, 0.0f, 1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( hw, hh, -hd, u1, v0, 0.0f, 1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( hw, hh,  hd, u1, v1, 0.0f, 1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-hw, hh,  hd, u0, v1, 0.0f, 1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, hh, -hd, u1, v0, 0.0f, 1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, hh, hd, u1, v1, 0.0f, 1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-hw, hh, hd, u0, v1, 0.0f, 1.0f, 0.0f));
 
     // 底面
     vertices.push_back(model::ModelVertex(-hw, -hh, -hd, u0, v0, 0.0f, -1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( hw, -hh, -hd, u1, v0, 0.0f, -1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( hw, -hh,  hd, u1, v1, 0.0f, -1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-hw, -hh,  hd, u0, v1, 0.0f, -1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, -hh, -hd, u1, v0, 0.0f, -1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, -hh, hd, u1, v1, 0.0f, -1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-hw, -hh, hd, u0, v1, 0.0f, -1.0f, 0.0f));
 
     // 前面
     vertices.push_back(model::ModelVertex(-hw, -hh, -hd, u0, v0, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex( hw, -hh, -hd, u1, v0, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex( hw,  hh, -hd, u1, v1, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex(-hw,  hh, -hd, u0, v1, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(hw, -hh, -hd, u1, v0, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(hw, hh, -hd, u1, v1, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(-hw, hh, -hd, u0, v1, 0.0f, 0.0f, -1.0f));
 
     // 后面
-    vertices.push_back(model::ModelVertex(-hw, -hh,  hd, u0, v0, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( hw, -hh,  hd, u1, v0, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( hw,  hh,  hd, u1, v1, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex(-hw,  hh,  hd, u0, v1, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(-hw, -hh, hd, u0, v0, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(hw, -hh, hd, u1, v0, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(hw, hh, hd, u1, v1, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(-hw, hh, hd, u0, v1, 0.0f, 0.0f, 1.0f));
 
     // 左面
     vertices.push_back(model::ModelVertex(-hw, -hh, -hd, u0, v0, -1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-hw, -hh,  hd, u1, v0, -1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-hw,  hh,  hd, u1, v1, -1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-hw,  hh, -hd, u0, v1, -1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-hw, -hh, hd, u1, v0, -1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-hw, hh, hd, u1, v1, -1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-hw, hh, -hd, u0, v1, -1.0f, 0.0f, 0.0f));
 
     // 右面
-    vertices.push_back(model::ModelVertex( hw, -hh, -hd, u0, v0, 1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( hw, -hh,  hd, u1, v0, 1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( hw,  hh,  hd, u1, v1, 1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( hw,  hh, -hd, u0, v1, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, -hh, -hd, u0, v0, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, -hh, hd, u1, v0, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, hh, hd, u1, v1, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(hw, hh, -hd, u0, v1, 1.0f, 0.0f, 0.0f));
 
     // 索引（每个面两个三角形）
     for (u32 face = 0; face < 6; ++face) {
@@ -198,8 +186,9 @@ void SaddleLayer<TEntity, TModel>::buildSaddleMesh(
     }
 }
 
-template<typename TEntity, typename TModel>
-pipeline::EntityMesh* SaddleLayer<TEntity, TModel>::getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline) {
+template <typename TEntity, typename TModel>
+pipeline::EntityMesh* SaddleLayer<TEntity, TModel>::getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline)
+{
     if (s_saddleMesh && s_saddleMesh->indexCount > 0) {
         return s_saddleMesh.get();
     }
@@ -224,6 +213,6 @@ pipeline::EntityMesh* SaddleLayer<TEntity, TModel>::getOrCreateSaddleMesh(pipeli
 }
 
 // 显式实例化
-template class SaddleLayer< ::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
+template class SaddleLayer<::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
 
 } // namespace mc::client::renderer::entity::layer::entity

@@ -23,9 +23,9 @@ enum class BlendFactor : u8 {
     OneMinusDstAlpha, // 1 - 目标透明度
     ConstantColor,    // 常量颜色
     OneMinusConstantColor,
-    ConstantAlpha,    // 常量透明度
+    ConstantAlpha, // 常量透明度
     OneMinusConstantAlpha,
-    SrcAlphaSaturate  // 源透明度饱和
+    SrcAlphaSaturate // 源透明度饱和
 };
 
 /**
@@ -55,21 +55,20 @@ struct BlendState {
     BlendFactor dstAlpha = BlendFactor::Zero;
     BlendOp colorOp = BlendOp::Add;
     BlendOp alphaOp = BlendOp::Add;
-    u8 colorWriteMask = 0xF;  // RGBA 各通道写入掩码
+    u8 colorWriteMask = 0xF; // RGBA 各通道写入掩码
 
     /**
      * @brief 创建禁用混合的状态
      */
-    static BlendState disabled() {
-        return BlendState{};
-    }
+    static BlendState disabled() { return BlendState{}; }
 
     /**
      * @brief 创建标准 Alpha 混合状态
      *
      * 用于半透明物体 (src=SRC_ALPHA, dst=ONE_MINUS_SRC_ALPHA)
      */
-    static BlendState alpha() {
+    static BlendState alpha()
+    {
         BlendState state;
         state.enabled = true;
         state.srcColor = BlendFactor::SrcAlpha;
@@ -84,7 +83,8 @@ struct BlendState {
      *
      * 用于发光效果、粒子等 (src=SRC_ALPHA, dst=ONE)
      */
-    static BlendState additive() {
+    static BlendState additive()
+    {
         BlendState state;
         state.enabled = true;
         state.srcColor = BlendFactor::SrcAlpha;
@@ -99,7 +99,8 @@ struct BlendState {
      *
      * 用于预乘 Alpha 纹理 (src=ONE, dst=ONE_MINUS_SRC_ALPHA)
      */
-    static BlendState premultiplied() {
+    static BlendState premultiplied()
+    {
         BlendState state;
         state.enabled = true;
         state.srcColor = BlendFactor::One;
@@ -114,7 +115,8 @@ struct BlendState {
      *
      * 用于颜色调制效果 (src=DST_COLOR, dst=SRC_COLOR)
      */
-    static BlendState multiply() {
+    static BlendState multiply()
+    {
         BlendState state;
         state.enabled = true;
         state.srcColor = BlendFactor::DstColor;
@@ -124,20 +126,14 @@ struct BlendState {
         return state;
     }
 
-    bool operator==(const BlendState& other) const {
-        return enabled == other.enabled &&
-               srcColor == other.srcColor &&
-               dstColor == other.dstColor &&
-               srcAlpha == other.srcAlpha &&
-               dstAlpha == other.dstAlpha &&
-               colorOp == other.colorOp &&
-               alphaOp == other.alphaOp &&
-               colorWriteMask == other.colorWriteMask;
+    bool operator==(const BlendState& other) const
+    {
+        return enabled == other.enabled && srcColor == other.srcColor && dstColor == other.dstColor &&
+            srcAlpha == other.srcAlpha && dstAlpha == other.dstAlpha && colorOp == other.colorOp &&
+            alphaOp == other.alphaOp && colorWriteMask == other.colorWriteMask;
     }
 
-    bool operator!=(const BlendState& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const BlendState& other) const { return !(*this == other); }
 };
 
 } // namespace mc::client::renderer::api

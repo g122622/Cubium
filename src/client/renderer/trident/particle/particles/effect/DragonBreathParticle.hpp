@@ -24,17 +24,17 @@ public:
     DragonBreathParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/dragon_breath");
     }
 
@@ -61,21 +61,22 @@ public:
     EndRodParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/end_rod");
     }
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
         return 0xF0;
     }
@@ -85,7 +86,7 @@ public:
 private:
     static constexpr f64 DEFAULT_LIFETIME = 60.0;
     f64 m_initialSize;
-    f32 m_brightness;  ///< 初始亮度
+    f32 m_brightness; ///< 初始亮度
 };
 
 /**
@@ -105,19 +106,16 @@ public:
     SweepAttackParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_LIT;
-    }
+    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override;
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
         // MC 1.16.5: 固定高亮度 15728880 (blockLight=15, skyLight=15)
         return 15728880;

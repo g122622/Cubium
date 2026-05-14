@@ -1,27 +1,27 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/items/special/BoneMealItem.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/BoneMealItem.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/Biomes.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/blocks/ocean/SeagrassBlock.hpp"
 #include "common/world/block/blocks/ocean/TallSeagrassBlock.hpp"
-#include "common/world/block/IGrowable.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/biome/Biome.hpp"
-#include "common/world/biome/Biomes.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <map>
 #include <memory>
@@ -38,7 +38,9 @@ namespace {
  */
 class SeagrassTestWorld final : public IBlockReader {
 public:
-    SeagrassTestWorld() : m_random(12345) {
+    SeagrassTestWorld()
+        : m_random(12345)
+    {
         // 初始化方块注册
         VanillaBlocks::initialize();
         BlockTags::initialize();
@@ -74,47 +76,56 @@ public:
         }
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         if (m_chunk == nullptr) return nullptr;
         if (!isWithinWorldBounds(x, y, z)) return nullptr;
         return m_chunk->getBlockState(x, y, z);
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         if (m_chunk == nullptr) return false;
         if (!isWithinWorldBounds(x, y, z)) return false;
         m_chunk->setBlockState(x, y, z, state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         if (state == nullptr) return fluid::Fluid::getFluidState(0);
         return state->getFluidState();
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override {
-        return m_chunk.get();
-    }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return m_chunk.get(); }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override {
-        return true;
-    }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
     [[nodiscard]] u64 seed() const override { return 12345; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
@@ -123,45 +134,46 @@ public:
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
     [[nodiscard]] bool isClientSide() override { return false; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("SeagrassTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("SeagrassTestWorld::tickManager not implemented");
     }
 
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
         throw std::runtime_error("SeagrassTestWorld::worldBorder not implemented");
     }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
         throw std::runtime_error("SeagrassTestWorld::worldBorder not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity>) override {
-        return ++m_lastEntityId;
-    }
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity>) override { return ++m_lastEntityId; }
 
     void addParticle(client::renderer::trident::particle::ParticleTypeId,
-                     const Vector3&,
-                     const Vector3&,
-                     const Vector3& = Vector3(0, 0, 0),
-                     u32 = 1) override {
+        const Vector3&,
+        const Vector3&,
+        const Vector3& = Vector3(0, 0, 0),
+        u32 = 1) override
+    {
         // 测试中忽略粒子效果
     }
 
-    void playSound(const ResourceLocation&,
-                   sound::SoundCategory,
-                   const Vector3&,
-                   f32,
-                   f32) override {
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
+    {
         // 测试中忽略声音
     }
 
     // 设置生物群系
-    void setBiomeAt(i32 x, i32 y, i32 z, BiomeId biome) {
+    void setBiomeAt(i32 x, i32 y, i32 z, BiomeId biome)
+    {
         if (m_chunk == nullptr) return;
         m_chunk->getBiomes().setBiome(x, y, z, biome);
     }
@@ -176,7 +188,8 @@ private:
 // 注意：这些测试使用 BoneMealItemSeagrassIntegration 套件名以避免与
 // tests/common/world/block/blocks/SeagrassBlockTest.cpp 中的 SeagrassBlockTest 冲突
 
-TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenWaterAbove_ReturnsTrue) {
+TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenWaterAbove_ReturnsTrue)
+{
     SeagrassTestWorld world;
 
     // 在 y=41 放置海草（水源方块中）
@@ -195,7 +208,8 @@ TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenWaterAbove_ReturnsTrue) {
     EXPECT_TRUE(growable->canGrow(world, BlockPos(8, 41, 8), *seagrassBlock, false));
 }
 
-TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenNoWaterAbove_ReturnsFalse) {
+TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenNoWaterAbove_ReturnsFalse)
+{
     SeagrassTestWorld world;
 
     // 在 y=62 放置海草（顶部水层）
@@ -214,7 +228,8 @@ TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenNoWaterAbove_ReturnsFalse) {
     EXPECT_FALSE(growable->canGrow(world, BlockPos(8, 62, 8), *seagrassBlock, false));
 }
 
-TEST(BoneMealItemSeagrassIntegration, CanUseBonemeal_AlwaysReturnsTrue) {
+TEST(BoneMealItemSeagrassIntegration, CanUseBonemeal_AlwaysReturnsTrue)
+{
     SeagrassTestWorld world;
     math::Random random(12345);
 
@@ -231,7 +246,8 @@ TEST(BoneMealItemSeagrassIntegration, CanUseBonemeal_AlwaysReturnsTrue) {
     EXPECT_TRUE(growable->canUseBonemeal(world, random, BlockPos(8, 41, 8), *seagrassBlock));
 }
 
-TEST(BoneMealItemSeagrassIntegration, Grow_TransformsSeagrassToTallSeagrass) {
+TEST(BoneMealItemSeagrassIntegration, Grow_TransformsSeagrassToTallSeagrass)
+{
     SeagrassTestWorld world;
     math::Random random(12345);
 
@@ -257,20 +273,19 @@ TEST(BoneMealItemSeagrassIntegration, Grow_TransformsSeagrassToTallSeagrass) {
     EXPECT_TRUE(newState->is(VanillaBlocks::TALL_SEAGRASS));
 
     // 检查是否是下半部分
-    EXPECT_EQ(newState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-              BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(newState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
 
     // 检查上方是否有上半部分
     const BlockState* upperState = world.getBlockState(8, 42, 8);
     ASSERT_NE(upperState, nullptr);
     EXPECT_TRUE(upperState->is(VanillaBlocks::TALL_SEAGRASS));
-    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-              BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
 }
 
 // ========== BoneMealItem::growSeagrass 测试 ==========
 
-TEST(BoneMealItemTest, GrowSeagrass_ReturnsFalseWhenNotWater) {
+TEST(BoneMealItemTest, GrowSeagrass_ReturnsFalseWhenNotWater)
+{
     SeagrassTestWorld world;
     math::Random random(12345);
 
@@ -281,7 +296,8 @@ TEST(BoneMealItemTest, GrowSeagrass_ReturnsFalseWhenNotWater) {
     EXPECT_FALSE(item::items::BoneMealItem::growSeagrass(world, BlockPos(8, 40, 8), random));
 }
 
-TEST(BoneMealItemTest, GrowSeagrass_ReturnsTrueInWater) {
+TEST(BoneMealItemTest, GrowSeagrass_ReturnsTrueInWater)
+{
     SeagrassTestWorld world;
     math::Random random(12345);
 
@@ -289,7 +305,8 @@ TEST(BoneMealItemTest, GrowSeagrass_ReturnsTrueInWater) {
     EXPECT_TRUE(item::items::BoneMealItem::growSeagrass(world, BlockPos(8, 42, 8), random));
 }
 
-TEST(BoneMealItemTest, GrowSeagrass_PlacesSeagrassOrCoral) {
+TEST(BoneMealItemTest, GrowSeagrass_PlacesSeagrassOrCoral)
+{
     SeagrassTestWorld world;
     math::Random random(12345);
 
@@ -300,7 +317,8 @@ TEST(BoneMealItemTest, GrowSeagrass_PlacesSeagrassOrCoral) {
     EXPECT_TRUE(result);
 }
 
-TEST(BoneMealItemTest, GrowSeagrass_InWarmOcean_CanPlaceCoral) {
+TEST(BoneMealItemTest, GrowSeagrass_InWarmOcean_CanPlaceCoral)
+{
     SeagrassTestWorld world;
     math::Random random(54321);
 
@@ -314,9 +332,10 @@ TEST(BoneMealItemTest, GrowSeagrass_InWarmOcean_CanPlaceCoral) {
     EXPECT_TRUE(result);
 }
 
-TEST(BoneMealItemTest, GrowSeagrass_GrowsExistingSeagrass) {
+TEST(BoneMealItemTest, GrowSeagrass_GrowsExistingSeagrass)
+{
     SeagrassTestWorld world;
-    math::Random random(99999);  // 使用特定种子让nextInt(10) == 0
+    math::Random random(99999); // 使用特定种子让nextInt(10) == 0
 
     // 放置海草
     const BlockState* seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
@@ -332,7 +351,8 @@ TEST(BoneMealItemTest, GrowSeagrass_GrowsExistingSeagrass) {
 
 // ========== SeagrassBlock isValidPosition 测试 ==========
 
-TEST(BoneMealItemSeagrassIntegration, IsValidPosition_RequiresWaterAndSolidBelow) {
+TEST(BoneMealItemSeagrassIntegration, IsValidPosition_RequiresWaterAndSolidBelow)
+{
     SeagrassTestWorld world;
 
     const BlockState& seagrassState = VanillaBlocks::SEAGRASS->defaultState();

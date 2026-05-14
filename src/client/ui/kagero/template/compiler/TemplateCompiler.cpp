@@ -1,8 +1,8 @@
 #include "TemplateCompiler.hpp"
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <sstream>
-#include <algorithm>
 
 namespace mc::client::ui::kagero::tpl::compiler {
 
@@ -21,10 +21,11 @@ CompiledTemplate::CompiledTemplate(CompiledTemplate&& other) noexcept
     , m_registeredCallbacks(std::move(other.m_registeredCallbacks))
     , m_errors(std::move(other.m_errors))
     , m_sourcePath(std::move(other.m_sourcePath))
-    , m_compileTime(other.m_compileTime) {
-}
+    , m_compileTime(other.m_compileTime)
+{}
 
-CompiledTemplate& CompiledTemplate::operator=(CompiledTemplate&& other) noexcept {
+CompiledTemplate& CompiledTemplate::operator=(CompiledTemplate&& other) noexcept
+{
     if (this != &other) {
         m_astRoot = std::move(other.m_astRoot);
         m_bindingPlans = std::move(other.m_bindingPlans);
@@ -39,35 +40,43 @@ CompiledTemplate& CompiledTemplate::operator=(CompiledTemplate&& other) noexcept
     return *this;
 }
 
-void CompiledTemplate::setAstRoot(std::unique_ptr<ast::DocumentNode> root) {
+void CompiledTemplate::setAstRoot(std::unique_ptr<ast::DocumentNode> root)
+{
     m_astRoot = std::move(root);
 }
 
-void CompiledTemplate::addBindingPlan(BindingPlan plan) {
+void CompiledTemplate::addBindingPlan(BindingPlan plan)
+{
     m_bindingPlans.push_back(std::move(plan));
 }
 
-void CompiledTemplate::addEventPlan(EventPlan plan) {
+void CompiledTemplate::addEventPlan(EventPlan plan)
+{
     m_eventPlans.push_back(std::move(plan));
 }
 
-void CompiledTemplate::addLoopPlan(LoopPlan plan) {
+void CompiledTemplate::addLoopPlan(LoopPlan plan)
+{
     m_loopPlans.push_back(std::move(plan));
 }
 
-void CompiledTemplate::addWatchedPath(const std::string& path) {
+void CompiledTemplate::addWatchedPath(const std::string& path)
+{
     m_watchedPaths.insert(path);
 }
 
-void CompiledTemplate::addRegisteredCallback(const std::string& name) {
+void CompiledTemplate::addRegisteredCallback(const std::string& name)
+{
     m_registeredCallbacks.insert(name);
 }
 
-void CompiledTemplate::addError(TemplateErrorInfo error) {
+void CompiledTemplate::addError(TemplateErrorInfo error)
+{
     m_errors.push_back(std::move(error));
 }
 
-std::string CompiledTemplate::debugDump() const {
+std::string CompiledTemplate::debugDump() const
+{
     std::ostringstream oss;
 
     oss << "=== Compiled Template ===\n";
@@ -120,16 +129,15 @@ std::string CompiledTemplate::debugDump() const {
 // ========== TemplateCompiler实现 ==========
 
 TemplateCompiler::TemplateCompiler()
-    : m_config(TemplateConfig::defaults()) {
-}
+    : m_config(TemplateConfig::defaults())
+{}
 
 TemplateCompiler::TemplateCompiler(const TemplateConfig& config)
-    : m_config(config) {
-}
+    : m_config(config)
+{}
 
-std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
-    const std::string& source,
-    const std::string& sourcePath) {
+std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(const std::string& source, const std::string& sourcePath)
+{
 
     m_lastErrors.clear();
 
@@ -141,8 +149,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
     // 1. 词法分析
     if (!tokenize(source, sourcePath)) {
         result->setCompileTime(static_cast<u64>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - startTime).count()));
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+                .count()));
         for (const auto& error : m_lastErrors) {
             result->addError(error);
         }
@@ -152,8 +160,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
     // 2. 语法分析
     if (!parse(sourcePath)) {
         result->setCompileTime(static_cast<u64>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - startTime).count()));
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+                .count()));
         for (const auto& error : m_lastErrors) {
             result->addError(error);
         }
@@ -174,8 +182,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
             m_lastErrors.push_back(error);
         }
         result->setCompileTime(static_cast<u64>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - startTime).count()));
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+                .count()));
         return result;
     }
 
@@ -185,8 +193,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
             result->addError(error);
         }
         result->setCompileTime(static_cast<u64>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - startTime).count()));
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+                .count()));
         return result;
     }
 
@@ -198,8 +206,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
     collectCallbacks(result->astRoot(), result.get());
 
     u64 compileTime = static_cast<u64>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - startTime).count());
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+            .count());
     result->setCompileTime(compileTime);
 
     if (m_config.debugOutput) {
@@ -209,16 +217,13 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
     return result;
 }
 
-std::unique_ptr<CompiledTemplate> TemplateCompiler::compileFile(const std::string& filePath) {
+std::unique_ptr<CompiledTemplate> TemplateCompiler::compileFile(const std::string& filePath)
+{
     std::ifstream file(filePath);
     if (!file.is_open()) {
         auto result = std::make_unique<CompiledTemplate>();
         result->addError(TemplateErrorInfo(
-            TemplateErrorType::CompileError,
-            "Failed to open file: " + filePath,
-            SourceLocation(),
-            filePath
-        ));
+            TemplateErrorType::CompileError, "Failed to open file: " + filePath, SourceLocation(), filePath));
         m_lastErrors = result->errors();
         return result;
     }
@@ -231,8 +236,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileFile(const std::strin
 }
 
 std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
-    std::unique_ptr<ast::DocumentNode> document,
-    const std::string& sourcePath) {
+    std::unique_ptr<ast::DocumentNode> document, const std::string& sourcePath)
+{
 
     auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -240,12 +245,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
     result->setSourcePath(sourcePath);
 
     if (!document) {
-        result->addError(TemplateErrorInfo(
-            TemplateErrorType::CompileError,
-            "Null AST document",
-            SourceLocation(),
-            sourcePath
-        ));
+        result->addError(
+            TemplateErrorInfo(TemplateErrorType::CompileError, "Null AST document", SourceLocation(), sourcePath));
         m_lastErrors = result->errors();
         return result;
     }
@@ -257,8 +258,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
             result->addError(error);
         }
         result->setCompileTime(static_cast<u64>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - startTime).count()));
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+                .count()));
         return result;
     }
 
@@ -270,13 +271,14 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
     collectCallbacks(result->astRoot(), result.get());
 
     result->setCompileTime(static_cast<u64>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - startTime).count()));
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+            .count()));
 
     return result;
 }
 
-bool TemplateCompiler::tokenize(const std::string& source, const std::string& sourcePath) {
+bool TemplateCompiler::tokenize(const std::string& source, const std::string& sourcePath)
+{
     Lexer lexer(source, sourcePath);
 
     if (!lexer.tokenize()) {
@@ -288,20 +290,19 @@ bool TemplateCompiler::tokenize(const std::string& source, const std::string& so
     return true;
 }
 
-bool TemplateCompiler::parse(const std::string& sourcePath) {
+bool TemplateCompiler::parse(const std::string& sourcePath)
+{
     // 注意：parse方法会创建新的AST，这里只是为了检查错误
     // 实际的AST在compile()中重新创建
     (void)sourcePath;
     return true;
 }
 
-bool TemplateCompiler::validate(ast::DocumentNode* document) {
+bool TemplateCompiler::validate(ast::DocumentNode* document)
+{
     if (!document) {
-        m_lastErrors.push_back(TemplateErrorInfo(
-            TemplateErrorType::InvalidTemplate,
-            "Null document node",
-            SourceLocation()
-        ));
+        m_lastErrors.push_back(
+            TemplateErrorInfo(TemplateErrorType::InvalidTemplate, "Null document node", SourceLocation()));
         return false;
     }
 
@@ -322,7 +323,8 @@ bool TemplateCompiler::validate(ast::DocumentNode* document) {
     return true;
 }
 
-bool TemplateCompiler::validateNode(const ast::Node* node, TemplateErrorCollector& collector) {
+bool TemplateCompiler::validateNode(const ast::Node* node, TemplateErrorCollector& collector)
+{
     if (!node) return true;
 
     // 根据节点类型验证
@@ -360,15 +362,14 @@ bool TemplateCompiler::validateNode(const ast::Node* node, TemplateErrorCollecto
     return true;
 }
 
-bool TemplateCompiler::validateElement(const ast::ElementNode* element,
-                                        TemplateErrorCollector& collector) {
+bool TemplateCompiler::validateElement(const ast::ElementNode* element, TemplateErrorCollector& collector)
+{
     if (!element) return true;
 
     // 1. 检查标签名白名单
     if (m_config.strictMode && !ast::isValidWidgetTag(element->tagName)) {
-        collector.addError(TemplateErrorType::UnknownTag,
-            "Unknown tag: <" + element->tagName + ">",
-            element->range.start);
+        collector.addError(
+            TemplateErrorType::UnknownTag, "Unknown tag: <" + element->tagName + ">", element->range.start);
         // 非严格模式下继续验证其他内容
         if (m_config.strictMode) {
             return false;
@@ -387,11 +388,10 @@ bool TemplateCompiler::validateElement(const ast::ElementNode* element,
     // 3. 检查内联脚本/表达式（严格模式）
     if (m_config.strictMode) {
         for (const auto& [name, attr] : element->attributes) {
-            if (containsInlineScript(attr.rawValue) ||
-                containsForbiddenPattern(attr.rawValue)) {
+            if (containsInlineScript(attr.rawValue) || containsForbiddenPattern(attr.rawValue)) {
                 collector.addError(TemplateErrorType::InlineScriptNotAllowed,
                     "Inline scripts/expressions are not allowed in strict mode. " +
-                    std::string("Found in attribute '") + name + "'",
+                        std::string("Found in attribute '") + name + "'",
                     attr.location);
                 return false;
             }
@@ -401,16 +401,15 @@ bool TemplateCompiler::validateElement(const ast::ElementNode* element,
     return true;
 }
 
-bool TemplateCompiler::validateAttribute(const ast::Attribute& attr,
-                                          const ast::ElementNode* element,
-                                          TemplateErrorCollector& collector) {
+bool TemplateCompiler::validateAttribute(
+    const ast::Attribute& attr, const ast::ElementNode* element, TemplateErrorCollector& collector)
+{
     (void)element; // 暂时未使用
 
     // 验证属性名格式
     if (!ast::isValidAttributeName(attr.name)) {
-        collector.addError(TemplateErrorType::InvalidAttributeName,
-            "Invalid attribute name: '" + attr.name + "'",
-            attr.location);
+        collector.addError(
+            TemplateErrorType::InvalidAttributeName, "Invalid attribute name: '" + attr.name + "'", attr.location);
         return false;
     }
 
@@ -439,19 +438,10 @@ bool TemplateCompiler::validateAttribute(const ast::Attribute& attr,
     return true;
 }
 
-bool TemplateCompiler::containsInlineScript(const std::string& value) const {
+bool TemplateCompiler::containsInlineScript(const std::string& value) const
+{
     // 检查常见的脚本标记
-    static const std::string scriptPatterns[] = {
-        "<script",
-        "</script>",
-        "{{",
-        "}}",
-        "{%",
-        "%}",
-        "${",
-        "<?php",
-        "?>"
-    };
+    static const std::string scriptPatterns[] = {"<script", "</script>", "{{", "}}", "{%", "%}", "${", "<?php", "?>"};
 
     for (const auto& pattern : scriptPatterns) {
         if (value.find(pattern) != std::string::npos) {
@@ -462,12 +452,11 @@ bool TemplateCompiler::containsInlineScript(const std::string& value) const {
     return false;
 }
 
-bool TemplateCompiler::containsForbiddenPattern(const std::string& value) const {
+bool TemplateCompiler::containsForbiddenPattern(const std::string& value) const
+{
     // 检查禁止的表达式模式
     static const std::string forbiddenPatterns[] = {
-        "==", "!=", "<=", ">=", "&&", "||", "?:", "=>",
-        "function(", "lambda", "eval(", "exec("
-    };
+        "==", "!=", "<=", ">=", "&&", "||", "?:", "=>", "function(", "lambda", "eval(", "exec("};
 
     for (const auto& pattern : forbiddenPatterns) {
         if (value.find(pattern) != std::string::npos) {
@@ -478,8 +467,8 @@ bool TemplateCompiler::containsForbiddenPattern(const std::string& value) const 
     return false;
 }
 
-void TemplateCompiler::generateBindingPlans(ast::DocumentNode* document,
-                                             CompiledTemplate* result) {
+void TemplateCompiler::generateBindingPlans(ast::DocumentNode* document, CompiledTemplate* result)
+{
     if (!document || !result) return;
 
     // 遍历AST，为每个绑定属性生成计划
@@ -489,9 +478,9 @@ void TemplateCompiler::generateBindingPlans(ast::DocumentNode* document,
     }
 }
 
-void TemplateCompiler::generateBindingPlansRecursive(const ast::Node* node,
-                                                       const std::string& parentPath,
-                                                       CompiledTemplate* result) {
+void TemplateCompiler::generateBindingPlansRecursive(
+    const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
+{
     if (!node || !result) return;
 
     std::string currentPath = parentPath;
@@ -535,8 +524,8 @@ void TemplateCompiler::generateBindingPlansRecursive(const ast::Node* node,
     }
 }
 
-void TemplateCompiler::generateEventPlans(ast::DocumentNode* document,
-                                           CompiledTemplate* result) {
+void TemplateCompiler::generateEventPlans(ast::DocumentNode* document, CompiledTemplate* result)
+{
     if (!document || !result) return;
 
     // 遍历AST，为每个事件属性生成计划
@@ -546,9 +535,9 @@ void TemplateCompiler::generateEventPlans(ast::DocumentNode* document,
     }
 }
 
-void TemplateCompiler::generateEventPlansRecursive(const ast::Node* node,
-                                                    const std::string& parentPath,
-                                                    CompiledTemplate* result) {
+void TemplateCompiler::generateEventPlansRecursive(
+    const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
+{
     if (!node || !result) return;
 
     std::string currentPath = parentPath;
@@ -580,8 +569,8 @@ void TemplateCompiler::generateEventPlansRecursive(const ast::Node* node,
     }
 }
 
-void TemplateCompiler::collectWatchedPaths(ast::DocumentNode* document,
-                                            CompiledTemplate* result) {
+void TemplateCompiler::collectWatchedPaths(ast::DocumentNode* document, CompiledTemplate* result)
+{
     if (!document || !result) return;
 
     // 从绑定计划中收集状态路径
@@ -599,8 +588,8 @@ void TemplateCompiler::collectWatchedPaths(ast::DocumentNode* document,
     }
 }
 
-void TemplateCompiler::collectCallbacks(ast::DocumentNode* document,
-                                          CompiledTemplate* result) {
+void TemplateCompiler::collectCallbacks(ast::DocumentNode* document, CompiledTemplate* result)
+{
     if (!document || !result) return;
 
     // 从事件计划中收集回调名称
@@ -611,8 +600,8 @@ void TemplateCompiler::collectCallbacks(ast::DocumentNode* document,
     }
 }
 
-std::string TemplateCompiler::generateWidgetPath(const ast::ElementNode* element,
-                                             const std::string& parentPath) {
+std::string TemplateCompiler::generateWidgetPath(const ast::ElementNode* element, const std::string& parentPath)
+{
     if (!element) return parentPath;
 
     std::string path = parentPath;
@@ -629,9 +618,10 @@ std::string TemplateCompiler::generateWidgetPath(const ast::ElementNode* element
 }
 
 void TemplateCompiler::extractBindings(const ast::ElementNode* element,
-                                         const std::string& widgetPath,
-                                         std::vector<BindingPlan>& plans,
-                                         std::vector<LoopPlan>& loopPlans) {
+    const std::string& widgetPath,
+    std::vector<BindingPlan>& plans,
+    std::vector<LoopPlan>& loopPlans)
+{
     if (!element) return;
 
     // 检查是否有循环指令 (bind:items)
@@ -646,8 +636,7 @@ void TemplateCompiler::extractBindings(const ast::ElementNode* element,
 
         // 推断循环变量名
         for (const auto& [name, attr] : element->attributes) {
-            if (name.find("bind:") == 0 && attr.binding.has_value() &&
-                attr.binding->isLoopVariable) {
+            if (name.find("bind:") == 0 && attr.binding.has_value() && attr.binding->isLoopVariable) {
                 loopPlan.itemVarName = attr.binding->loopVarName;
                 break;
             }

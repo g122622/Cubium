@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
 #include "common/util/assert/AssertAll.hpp"
 #include <sstream>
 #include <stdexcept>
+#include <gtest/gtest.h>
 
 using namespace mc::assert;
 
@@ -11,12 +11,14 @@ using namespace mc::assert;
 
 class AssertTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 保存原始配置
         originalConfig_ = AssertManager::instance().config();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 恢复原始配置
         AssertManager::instance().setConfig(originalConfig_);
     }
@@ -28,13 +30,15 @@ protected:
 // AssertManager 测试
 // ============================================================================
 
-TEST_F(AssertTest, AssertManagerSingleton) {
+TEST_F(AssertTest, AssertManagerSingleton)
+{
     auto& instance1 = AssertManager::instance();
     auto& instance2 = AssertManager::instance();
     EXPECT_EQ(&instance1, &instance2);
 }
 
-TEST_F(AssertTest, AssertManagerConfig) {
+TEST_F(AssertTest, AssertManagerConfig)
+{
     AssertConfig config;
     config.captureStackTrace = true;
     config.breakOnFailure = false;
@@ -50,7 +54,8 @@ TEST_F(AssertTest, AssertManagerConfig) {
 // AssertException 测试
 // ============================================================================
 
-TEST_F(AssertTest, AssertExceptionBasic) {
+TEST_F(AssertTest, AssertExceptionBasic)
+{
     AssertFailure failure;
     failure.expression = "x == 42";
     failure.message = "Expected x to be 42";
@@ -76,7 +81,8 @@ TEST_F(AssertTest, AssertExceptionBasic) {
 // 自定义处理器测试
 // ============================================================================
 
-TEST_F(AssertTest, CustomHandlerCalled) {
+TEST_F(AssertTest, CustomHandlerCalled)
+{
     bool handlerCalled = false;
     std::string capturedExpression;
 
@@ -90,52 +96,58 @@ TEST_F(AssertTest, CustomHandlerCalled) {
 
     AssertManager::instance().setConfig(config);
 
-    EXPECT_THROW({
-        AssertManager::instance().handleFailure(
-            "test_expr", "test_msg", "test.cpp", 1, "testFunc", AssertLevel::Debug
-        );
-    }, std::runtime_error);
+    EXPECT_THROW(
+        {
+            AssertManager::instance().handleFailure(
+                "test_expr", "test_msg", "test.cpp", 1, "testFunc", AssertLevel::Debug);
+        },
+        std::runtime_error);
 
     EXPECT_TRUE(handlerCalled);
     EXPECT_EQ("test_expr", capturedExpression);
 }
 
-TEST_F(AssertTest, ThrowAssertHandler) {
-    EXPECT_THROW({
-        throwAssertHandler(AssertFailure{
-            "expr", "msg", "file.cpp", 10, "func", AssertLevel::Debug, ""
-        });
-    }, AssertException);
+TEST_F(AssertTest, ThrowAssertHandler)
+{
+    EXPECT_THROW(
+        { throwAssertHandler(AssertFailure{"expr", "msg", "file.cpp", 10, "func", AssertLevel::Debug, ""}); },
+        AssertException);
 }
 
 // ============================================================================
 // 格式化帮助函数测试
 // ============================================================================
 
-TEST_F(AssertTest, FormatValueInt) {
+TEST_F(AssertTest, FormatValueInt)
+{
     EXPECT_EQ("42", detail::formatValue(42));
     EXPECT_EQ("-123", detail::formatValue(-123));
 }
 
-TEST_F(AssertTest, FormatValueFloat) {
+TEST_F(AssertTest, FormatValueFloat)
+{
     EXPECT_EQ("3.14", detail::formatValue(3.14));
 }
 
-TEST_F(AssertTest, FormatValueBool) {
+TEST_F(AssertTest, FormatValueBool)
+{
     EXPECT_EQ("true", detail::formatValue(true));
     EXPECT_EQ("false", detail::formatValue(false));
 }
 
-TEST_F(AssertTest, FormatValueCString) {
+TEST_F(AssertTest, FormatValueCString)
+{
     EXPECT_EQ("nullptr", detail::formatValue(static_cast<const char*>(nullptr)));
     EXPECT_EQ("\"hello\"", detail::formatValue("hello"));
 }
 
-TEST_F(AssertTest, FormatValueString) {
+TEST_F(AssertTest, FormatValueString)
+{
     EXPECT_EQ("\"test string\"", detail::formatValue(std::string("test string")));
 }
 
-TEST_F(AssertTest, FormatValuePointer) {
+TEST_F(AssertTest, FormatValuePointer)
+{
     int x = 42;
     std::string result = detail::formatValue(&x);
     // 指针格式化结果不应该为空
@@ -146,7 +158,8 @@ TEST_F(AssertTest, FormatValuePointer) {
     EXPECT_EQ("nullptr", detail::formatValue(nullPtr));
 }
 
-TEST_F(AssertTest, FormatComparisonMessage) {
+TEST_F(AssertTest, FormatComparisonMessage)
+{
     std::string msg = detail::formatComparisonMessage("not equal", "a", 42, "b", 100);
 
     EXPECT_NE(msg.find("not equal"), std::string::npos);
@@ -160,7 +173,8 @@ TEST_F(AssertTest, FormatComparisonMessage) {
 
 class MacroTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         originalConfig_ = AssertManager::instance().config();
 
         AssertConfig config;
@@ -174,9 +188,7 @@ protected:
         failureCount_ = 0;
     }
 
-    void TearDown() override {
-        AssertManager::instance().setConfig(originalConfig_);
-    }
+    void TearDown() override { AssertManager::instance().setConfig(originalConfig_); }
 
     AssertConfig originalConfig_;
     AssertFailure lastFailure_;
@@ -187,31 +199,27 @@ protected:
 // MC_ASSERT_RELEASE 测试 - 在所有构建中都启用
 // ============================================================================
 
-TEST_F(MacroTest, MC_ASSERT_RELEASE_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_RELEASE(true);
-    });
+TEST_F(MacroTest, MC_ASSERT_RELEASE_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_RELEASE(true); });
     EXPECT_EQ(0, failureCount_);
 }
 
-TEST_F(MacroTest, MC_ASSERT_RELEASE_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_RELEASE(false);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_RELEASE_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_RELEASE(false); }, AssertException);
     EXPECT_EQ(1, failureCount_);
 }
 
-TEST_F(MacroTest, MC_ASSERT_RELEASE_MSG_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_RELEASE_MSG(true, "Should not fail");
-    });
+TEST_F(MacroTest, MC_ASSERT_RELEASE_MSG_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_RELEASE_MSG(true, "Should not fail"); });
     EXPECT_EQ(0, failureCount_);
 }
 
-TEST_F(MacroTest, MC_ASSERT_RELEASE_MSG_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_RELEASE_MSG(false, "Custom message");
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_RELEASE_MSG_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_RELEASE_MSG(false, "Custom message"); }, AssertException);
 
     EXPECT_EQ(1, failureCount_);
     EXPECT_EQ("Custom message", lastFailure_.message);
@@ -221,23 +229,20 @@ TEST_F(MacroTest, MC_ASSERT_RELEASE_MSG_Fails) {
 // MC_ASSERT_FATAL 测试 - 在所有构建中都启用
 // ============================================================================
 
-TEST_F(MacroTest, MC_ASSERT_FATAL_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_FATAL(true);
-    });
+TEST_F(MacroTest, MC_ASSERT_FATAL_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_FATAL(true); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_FATAL_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_FATAL(false);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_FATAL_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_FATAL(false); }, AssertException);
     EXPECT_EQ(AssertLevel::Fatal, lastFailure_.level);
 }
 
-TEST_F(MacroTest, MC_ASSERT_FATAL_MSG_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_FATAL_MSG(false, "Fatal error");
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_FATAL_MSG_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_FATAL_MSG(false, "Fatal error"); }, AssertException);
     EXPECT_EQ("Fatal error", lastFailure_.message);
     EXPECT_EQ(AssertLevel::Fatal, lastFailure_.level);
 }
@@ -246,161 +251,131 @@ TEST_F(MacroTest, MC_ASSERT_FATAL_MSG_Fails) {
 // 指针断言测试
 // ============================================================================
 
-TEST_F(MacroTest, MC_ASSERT_NULL_RELEASE_Passes) {
+TEST_F(MacroTest, MC_ASSERT_NULL_RELEASE_Passes)
+{
     int* ptr = nullptr;
-    EXPECT_NO_THROW({
-        MC_ASSERT_NULL_RELEASE(ptr);
-    });
+    EXPECT_NO_THROW({ MC_ASSERT_NULL_RELEASE(ptr); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_NULL_RELEASE_Fails) {
+TEST_F(MacroTest, MC_ASSERT_NULL_RELEASE_Fails)
+{
     int x = 42;
-    EXPECT_THROW({
-        MC_ASSERT_NULL_RELEASE(&x);
-    }, AssertException);
+    EXPECT_THROW({ MC_ASSERT_NULL_RELEASE(&x); }, AssertException);
 }
 
-TEST_F(MacroTest, MC_ASSERT_NOT_NULL_RELEASE_Passes) {
+TEST_F(MacroTest, MC_ASSERT_NOT_NULL_RELEASE_Passes)
+{
     int x = 42;
-    EXPECT_NO_THROW({
-        MC_ASSERT_NOT_NULL_RELEASE(&x);
-    });
+    EXPECT_NO_THROW({ MC_ASSERT_NOT_NULL_RELEASE(&x); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_NOT_NULL_RELEASE_Fails) {
+TEST_F(MacroTest, MC_ASSERT_NOT_NULL_RELEASE_Fails)
+{
     int* ptr = nullptr;
-    EXPECT_THROW({
-        MC_ASSERT_NOT_NULL_RELEASE(ptr);
-    }, AssertException);
+    EXPECT_THROW({ MC_ASSERT_NOT_NULL_RELEASE(ptr); }, AssertException);
 }
 
 // ============================================================================
 // 比较断言测试（带值输出）
 // ============================================================================
 
-TEST_F(MacroTest, MC_ASSERT_EQ_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_EQ(42, 42);
-    });
-    EXPECT_NO_THROW({
-        MC_ASSERT_EQ(std::string("hello"), std::string("hello"));
-    });
+TEST_F(MacroTest, MC_ASSERT_EQ_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_EQ(42, 42); });
+    EXPECT_NO_THROW({ MC_ASSERT_EQ(std::string("hello"), std::string("hello")); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_EQ_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_EQ(42, 100);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_EQ_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_EQ(42, 100); }, AssertException);
 
     // 检查失败消息包含值
     EXPECT_NE(lastFailure_.message.find("42"), std::string::npos);
     EXPECT_NE(lastFailure_.message.find("100"), std::string::npos);
 }
 
-TEST_F(MacroTest, MC_ASSERT_NE_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_NE(42, 100);
-    });
+TEST_F(MacroTest, MC_ASSERT_NE_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_NE(42, 100); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_NE_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_NE(42, 42);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_NE_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_NE(42, 42); }, AssertException);
 }
 
-TEST_F(MacroTest, MC_ASSERT_LT_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_LT(1, 2);
-    });
+TEST_F(MacroTest, MC_ASSERT_LT_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_LT(1, 2); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_LT_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_LT(2, 1);
-    }, AssertException);
-    EXPECT_THROW({
-        MC_ASSERT_LT(1, 1);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_LT_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_LT(2, 1); }, AssertException);
+    EXPECT_THROW({ MC_ASSERT_LT(1, 1); }, AssertException);
 }
 
-TEST_F(MacroTest, MC_ASSERT_LE_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_LE(1, 2);
-    });
-    EXPECT_NO_THROW({
-        MC_ASSERT_LE(1, 1);
-    });
+TEST_F(MacroTest, MC_ASSERT_LE_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_LE(1, 2); });
+    EXPECT_NO_THROW({ MC_ASSERT_LE(1, 1); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_LE_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_LE(2, 1);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_LE_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_LE(2, 1); }, AssertException);
 }
 
-TEST_F(MacroTest, MC_ASSERT_GT_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_GT(2, 1);
-    });
+TEST_F(MacroTest, MC_ASSERT_GT_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_GT(2, 1); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_GT_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_GT(1, 2);
-    }, AssertException);
-    EXPECT_THROW({
-        MC_ASSERT_GT(1, 1);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_GT_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_GT(1, 2); }, AssertException);
+    EXPECT_THROW({ MC_ASSERT_GT(1, 1); }, AssertException);
 }
 
-TEST_F(MacroTest, MC_ASSERT_GE_Passes) {
-    EXPECT_NO_THROW({
-        MC_ASSERT_GE(2, 1);
-    });
-    EXPECT_NO_THROW({
-        MC_ASSERT_GE(1, 1);
-    });
+TEST_F(MacroTest, MC_ASSERT_GE_Passes)
+{
+    EXPECT_NO_THROW({ MC_ASSERT_GE(2, 1); });
+    EXPECT_NO_THROW({ MC_ASSERT_GE(1, 1); });
 }
 
-TEST_F(MacroTest, MC_ASSERT_GE_Fails) {
-    EXPECT_THROW({
-        MC_ASSERT_GE(1, 2);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_GE_Fails)
+{
+    EXPECT_THROW({ MC_ASSERT_GE(1, 2); }, AssertException);
 }
 
 // ============================================================================
 // 特殊断言测试
 // ============================================================================
 
-TEST_F(MacroTest, MC_ASSERT_UNREACHABLE) {
-    EXPECT_THROW({
-        MC_ASSERT_UNREACHABLE();
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_UNREACHABLE)
+{
+    EXPECT_THROW({ MC_ASSERT_UNREACHABLE(); }, AssertException);
     EXPECT_EQ(AssertLevel::Fatal, lastFailure_.level);
     EXPECT_NE(lastFailure_.expression.find("unreachable"), std::string::npos);
 }
 
-TEST_F(MacroTest, MC_ASSERT_UNREACHABLE_MSG) {
-    EXPECT_THROW({
-        MC_ASSERT_UNREACHABLE_MSG("This code path");
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_UNREACHABLE_MSG)
+{
+    EXPECT_THROW({ MC_ASSERT_UNREACHABLE_MSG("This code path"); }, AssertException);
     EXPECT_EQ(AssertLevel::Fatal, lastFailure_.level);
     EXPECT_NE(lastFailure_.message.find("This code path"), std::string::npos);
 }
 
-TEST_F(MacroTest, MC_ASSERT_FAIL) {
-    EXPECT_THROW({
-        MC_ASSERT_FAIL("This is a test failure");
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_FAIL)
+{
+    EXPECT_THROW({ MC_ASSERT_FAIL("This is a test failure"); }, AssertException);
     EXPECT_EQ(AssertLevel::Fatal, lastFailure_.level);
     EXPECT_EQ("This is a test failure", lastFailure_.message);
 }
 
-TEST_F(MacroTest, MC_ASSERT_NOT_IMPLEMENTED) {
-    EXPECT_THROW({
-        MC_ASSERT_NOT_IMPLEMENTED();
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_NOT_IMPLEMENTED)
+{
+    EXPECT_THROW({ MC_ASSERT_NOT_IMPLEMENTED(); }, AssertException);
     EXPECT_EQ(AssertLevel::Fatal, lastFailure_.level);
     // 消息是函数名
     EXPECT_FALSE(lastFailure_.message.empty());
@@ -410,7 +385,8 @@ TEST_F(MacroTest, MC_ASSERT_NOT_IMPLEMENTED) {
 // MC_UNUSED 测试
 // ============================================================================
 
-TEST_F(MacroTest, MC_UNUSED) {
+TEST_F(MacroTest, MC_UNUSED)
+{
     int unused = 42;
     // 不应该产生警告
     MC_UNUSED(unused);
@@ -423,25 +399,22 @@ TEST_F(MacroTest, MC_UNUSED) {
 
 #ifndef NDEBUG
 
-TEST_F(MacroTest, MC_ASSERT_Passes_Debug) {
-    EXPECT_NO_THROW({
-        MC_ASSERT(true);
-    });
+TEST_F(MacroTest, MC_ASSERT_Passes_Debug)
+{
+    EXPECT_NO_THROW({ MC_ASSERT(true); });
     EXPECT_EQ(0, failureCount_);
 }
 
-TEST_F(MacroTest, MC_ASSERT_Fails_Debug) {
-    EXPECT_THROW({
-        MC_ASSERT(false);
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_Fails_Debug)
+{
+    EXPECT_THROW({ MC_ASSERT(false); }, AssertException);
     EXPECT_EQ(1, failureCount_);
     EXPECT_EQ("false", lastFailure_.expression);
 }
 
-TEST_F(MacroTest, MC_ASSERT_MSG_Fails_Debug) {
-    EXPECT_THROW({
-        MC_ASSERT_MSG(false, "Custom message");
-    }, AssertException);
+TEST_F(MacroTest, MC_ASSERT_MSG_Fails_Debug)
+{
+    EXPECT_THROW({ MC_ASSERT_MSG(false, "Custom message"); }, AssertException);
     EXPECT_EQ(1, failureCount_);
     EXPECT_EQ("Custom message", lastFailure_.message);
 }
@@ -452,7 +425,8 @@ TEST_F(MacroTest, MC_ASSERT_MSG_Fails_Debug) {
 // 堆栈跟踪测试
 // ============================================================================
 
-TEST_F(AssertTest, CaptureStackTrace) {
+TEST_F(AssertTest, CaptureStackTrace)
+{
     AssertConfig config;
     config.captureStackTrace = true;
     AssertManager::instance().setConfig(config);
@@ -464,7 +438,8 @@ TEST_F(AssertTest, CaptureStackTrace) {
     EXPECT_FALSE(stackTrace.empty());
 }
 
-TEST_F(AssertTest, NoStackTraceWhenDisabled) {
+TEST_F(AssertTest, NoStackTraceWhenDisabled)
+{
     AssertConfig config;
     config.captureStackTrace = false;
     AssertManager::instance().setConfig(config);
@@ -475,27 +450,26 @@ TEST_F(AssertTest, NoStackTraceWhenDisabled) {
     };
     AssertManager::instance().setConfig(config);
 
-    EXPECT_THROW({
-        AssertManager::instance().handleFailure(
-            "test", nullptr, "test.cpp", 1, "testFunc", AssertLevel::Debug
-        );
-    }, AssertException);
+    EXPECT_THROW(
+        { AssertManager::instance().handleFailure("test", nullptr, "test.cpp", 1, "testFunc", AssertLevel::Debug); },
+        AssertException);
 }
 
 // ============================================================================
 // 集成测试
 // ============================================================================
 
-TEST_F(MacroTest, MultipleAssertions) {
+TEST_F(MacroTest, MultipleAssertions)
+{
     // 测试多个连续断言
     int count = 0;
 
     auto testFunc = [&]() {
-        MC_ASSERT_RELEASE(true);  // 通过
+        MC_ASSERT_RELEASE(true); // 通过
         count++;
-        MC_ASSERT_RELEASE_MSG(true, "Should pass");  // 通过
+        MC_ASSERT_RELEASE_MSG(true, "Should pass"); // 通过
         count++;
-        MC_ASSERT_EQ(1, 1);  // 通过
+        MC_ASSERT_EQ(1, 1); // 通过
         count++;
     };
 
@@ -503,19 +477,17 @@ TEST_F(MacroTest, MultipleAssertions) {
     EXPECT_EQ(3, count);
 }
 
-TEST_F(MacroTest, AssertInLambda) {
-    auto failingLambda = []() {
-        MC_ASSERT_RELEASE(false);
-    };
+TEST_F(MacroTest, AssertInLambda)
+{
+    auto failingLambda = []() { MC_ASSERT_RELEASE(false); };
 
     EXPECT_THROW(failingLambda(), AssertException);
 }
 
-TEST_F(MacroTest, AssertInNestedFunction) {
+TEST_F(MacroTest, AssertInNestedFunction)
+{
     auto outerFunc = []() {
-        auto innerFunc = []() {
-            MC_ASSERT_RELEASE_MSG(false, "Inner function failed");
-        };
+        auto innerFunc = []() { MC_ASSERT_RELEASE_MSG(false, "Inner function failed"); };
         innerFunc();
     };
 
@@ -527,7 +499,8 @@ TEST_F(MacroTest, AssertInNestedFunction) {
 // 性能测试（可选）
 // ============================================================================
 
-TEST_F(MacroTest, AssertPerformance) {
+TEST_F(MacroTest, AssertPerformance)
+{
     // 确保断言通过时没有显著性能开销
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -541,21 +514,17 @@ TEST_F(MacroTest, AssertPerformance) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
     // 100万次断言应该很快（这里只是粗略检查）
-    EXPECT_LT(duration.count(), 1000);  // 应该小于1秒
+    EXPECT_LT(duration.count(), 1000); // 应该小于1秒
 }
 
 // ============================================================================
 // 默认处理器测试
 // ============================================================================
 
-TEST_F(AssertTest, DefaultHandlerFormat) {
-    std::string message = detail::formatFailureMessage(
-        "x == 42",
-        "Expected x to be 42",
-        "test.cpp",
-        100,
-        "testFunction"
-    );
+TEST_F(AssertTest, DefaultHandlerFormat)
+{
+    std::string message =
+        detail::formatFailureMessage("x == 42", "Expected x to be 42", "test.cpp", 100, "testFunction");
 
     EXPECT_NE(message.find("x == 42"), std::string::npos);
     EXPECT_NE(message.find("Expected x to be 42"), std::string::npos);

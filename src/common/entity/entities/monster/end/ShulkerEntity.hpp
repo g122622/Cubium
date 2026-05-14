@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../MonsterEntity.hpp"
 #include <memory>
 #include <optional>
 
@@ -31,33 +31,33 @@ public:
      * @brief 潜影贝颜色
      */
     enum class ShulkerColor : u8 {
-        Purple = 0,     // 紫色（默认）
-        White = 1,      // 白色
-        Orange = 2,     // 橙色
-        Magenta = 3,    // 品红
-        LightBlue = 4,  // 浅蓝
-        Yellow = 5,     // 黄色
-        Lime = 6,       // 黄绿
-        Pink = 7,       // 粉色
-        Gray = 8,       // 灰色
-        LightGray = 9,  // 浅灰
-        Cyan = 10,      // 青色
-        Purple2 = 11,   // 紫色
-        Blue = 12,      // 蓝色
-        Brown = 13,     // 棕色
-        Green = 14,     // 绿色
-        Red = 15,       // 红色
-        Black = 16      // 黑色
+        Purple = 0,    // 紫色（默认）
+        White = 1,     // 白色
+        Orange = 2,    // 橙色
+        Magenta = 3,   // 品红
+        LightBlue = 4, // 浅蓝
+        Yellow = 5,    // 黄色
+        Lime = 6,      // 黄绿
+        Pink = 7,      // 粉色
+        Gray = 8,      // 灰色
+        LightGray = 9, // 浅灰
+        Cyan = 10,     // 青色
+        Purple2 = 11,  // 紫色
+        Blue = 12,     // 蓝色
+        Brown = 13,    // 棕色
+        Green = 14,    // 绿色
+        Red = 15,      // 红色
+        Black = 16     // 黑色
     };
 
     /**
      * @brief 贝壳状态
      */
     enum class ShellState : u8 {
-        Closed = 0,     // 闭合
-        Opening = 1,    // 正在打开
-        Open = 2,       // 打开
-        Closing = 3     // 正在关闭
+        Closed = 0,  // 闭合
+        Opening = 1, // 正在打开
+        Open = 2,    // 打开
+        Closing = 3  // 正在关闭
     };
 
     /**
@@ -246,10 +246,10 @@ private:
     BlockPos m_attachmentPos;
 
     // 常量
-    static constexpr i32 OPEN_DURATION = 20;      // 打开动画时间
-    static constexpr i32 CLOSE_DURATION = 20;     // 关闭动画时间
-    static constexpr i32 ATTACK_COOLDOWN = 40;    // 攻击冷却
-    static constexpr f32 BULLET_DAMAGE = 4.0f;    // 子弹伤害
+    static constexpr i32 OPEN_DURATION = 20;        // 打开动画时间
+    static constexpr i32 CLOSE_DURATION = 20;       // 关闭动画时间
+    static constexpr i32 ATTACK_COOLDOWN = 40;      // 攻击冷却
+    static constexpr f32 BULLET_DAMAGE = 4.0f;      // 子弹伤害
     static constexpr i32 LEVITATION_DURATION = 100; // 悬浮持续时间
 };
 

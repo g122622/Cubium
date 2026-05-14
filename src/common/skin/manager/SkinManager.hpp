@@ -1,21 +1,21 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/skin/core/SkinTypes.hpp"
-#include "common/skin/core/SkinTextures.hpp"
+#include "common/core/Types.hpp"
 #include "common/skin/core/GameProfile.hpp"
-#include "common/skin/network/PlayerSkinInfo.hpp"
-#include "common/skin/manager/SkinCache.hpp"
+#include "common/skin/core/SkinTextures.hpp"
+#include "common/skin/core/SkinTypes.hpp"
 #include "common/skin/manager/DefaultSkinProvider.hpp"
-#include <unordered_map>
+#include "common/skin/manager/SkinCache.hpp"
+#include "common/skin/network/PlayerSkinInfo.hpp"
+#include <atomic>
+#include <functional>
 #include <memory>
 #include <mutex>
-#include <functional>
-#include <atomic>
+#include <unordered_map>
 
 namespace mc {
-class IResourcePack;  // 前向声明
+class IResourcePack; // 前向声明
 }
 
 namespace mc::skin {
@@ -199,9 +199,8 @@ private:
     /**
      * @brief 从 textures 属性解析并加载皮肤
      */
-    void loadFromTextures(const GameProfile& profile,
-                          std::shared_ptr<PlayerSkinInfo> info,
-                          const SkinLoadCallbacks& callbacks);
+    void loadFromTextures(
+        const GameProfile& profile, std::shared_ptr<PlayerSkinInfo> info, const SkinLoadCallbacks& callbacks);
 
     /**
      * @brief 使用默认皮肤
@@ -218,7 +217,7 @@ private:
     std::unique_ptr<DefaultSkinProvider> m_defaultSkinProvider;
 
     mutable std::mutex m_playerInfosMutex;
-    std::unordered_map<std::string, std::shared_ptr<PlayerSkinInfo>> m_playerInfos;  // key: uuid string
+    std::unordered_map<std::string, std::shared_ptr<PlayerSkinInfo>> m_playerInfos; // key: uuid string
 
     IResourcePack* m_resourcePack = nullptr;
 

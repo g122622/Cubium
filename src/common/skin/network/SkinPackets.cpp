@@ -9,9 +9,8 @@ namespace mc::skin {
 // PlayerListEntry 实现
 // ============================================================================
 
-PlayerListEntry PlayerListEntry::createAdd(const GameProfile& profile,
-                                            GameMode gameMode,
-                                            i32 ping) {
+PlayerListEntry PlayerListEntry::createAdd(const GameProfile& profile, GameMode gameMode, i32 ping)
+{
     PlayerListEntry entry;
     entry.uuid = profile.uuid();
     entry.name = profile.name();
@@ -21,28 +20,32 @@ PlayerListEntry PlayerListEntry::createAdd(const GameProfile& profile,
     return entry;
 }
 
-PlayerListEntry PlayerListEntry::createRemove(const std::array<u8, 16>& uuid) {
+PlayerListEntry PlayerListEntry::createRemove(const std::array<u8, 16>& uuid)
+{
     PlayerListEntry entry;
     entry.uuid = uuid;
     return entry;
 }
 
-PlayerListEntry PlayerListEntry::createUpdateLatency(const std::array<u8, 16>& uuid, i32 ping) {
+PlayerListEntry PlayerListEntry::createUpdateLatency(const std::array<u8, 16>& uuid, i32 ping)
+{
     PlayerListEntry entry;
     entry.uuid = uuid;
     entry.ping = ping;
     return entry;
 }
 
-PlayerListEntry PlayerListEntry::createUpdateGameMode(const std::array<u8, 16>& uuid, GameMode gameMode) {
+PlayerListEntry PlayerListEntry::createUpdateGameMode(const std::array<u8, 16>& uuid, GameMode gameMode)
+{
     PlayerListEntry entry;
     entry.uuid = uuid;
     entry.gameMode = gameMode;
     return entry;
 }
 
-PlayerListEntry PlayerListEntry::createUpdateDisplayName(const std::array<u8, 16>& uuid,
-                                                          const std::optional<std::string>& displayName) {
+PlayerListEntry PlayerListEntry::createUpdateDisplayName(
+    const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName)
+{
     PlayerListEntry entry;
     entry.uuid = uuid;
     entry.displayName = displayName;
@@ -50,15 +53,18 @@ PlayerListEntry PlayerListEntry::createUpdateDisplayName(const std::array<u8, 16
 }
 
 // static
-std::string PlayerListEntry::serializeText(const text::ITextComponent& text) {
+std::string PlayerListEntry::serializeText(const text::ITextComponent& text)
+{
     return text.toJson().dump();
 }
 
-void PlayerListEntry::setDisplayName(const text::ITextComponent& text) {
+void PlayerListEntry::setDisplayName(const text::ITextComponent& text)
+{
     displayName = serializeText(text);
 }
 
-std::unique_ptr<text::ITextComponent> PlayerListEntry::getDisplayNameAsText() const {
+std::unique_ptr<text::ITextComponent> PlayerListEntry::getDisplayNameAsText() const
+{
     if (!displayName.has_value() || displayName->empty()) {
         return nullptr;
     }
@@ -66,13 +72,15 @@ std::unique_ptr<text::ITextComponent> PlayerListEntry::getDisplayNameAsText() co
     try {
         nlohmann::json json = nlohmann::json::parse(*displayName);
         return text::ITextComponent::fromJson(json);
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         spdlog::warn("PlayerListEntry: Failed to parse displayName JSON: {}", e.what());
         return nullptr;
     }
 }
 
-void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction action) const {
+void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction action) const
+{
     // UUID: 16 bytes
     for (size_t i = 0; i < 16; ++i) {
         ser.writeU8(uuid[i]);
@@ -139,8 +147,8 @@ void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction
     }
 }
 
-Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer& deser,
-                                                       PlayerListAction action) {
+Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer& deser, PlayerListAction action)
+{
     PlayerListEntry entry;
 
     // UUID: 16 bytes
@@ -262,14 +270,16 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 // ============================================================================
 
 PlayerListItemPacket::PlayerListItemPacket()
-    : Packet(network::PacketType::PlayerListItem) {
-}
+    : Packet(network::PacketType::PlayerListItem)
+{}
 
 PlayerListItemPacket::PlayerListItemPacket(PlayerListAction action)
-    : Packet(network::PacketType::PlayerListItem), m_action(action) {
-}
+    : Packet(network::PacketType::PlayerListItem)
+    , m_action(action)
+{}
 
-Result<std::vector<u8>> PlayerListItemPacket::serialize() const {
+Result<std::vector<u8>> PlayerListItemPacket::serialize() const
+{
     network::PacketSerializer ser;
 
     // Action: VarInt
@@ -286,7 +296,8 @@ Result<std::vector<u8>> PlayerListItemPacket::serialize() const {
     return ser.buffer();
 }
 
-Result<void> PlayerListItemPacket::deserialize(const u8* data, size_t size) {
+Result<void> PlayerListItemPacket::deserialize(const u8* data, size_t size)
+{
     network::PacketDeserializer deser(data, size);
 
     // Action: VarInt

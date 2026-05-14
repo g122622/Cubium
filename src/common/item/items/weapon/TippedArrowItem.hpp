@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ArrowItem.hpp"
 #include "../../potion/Potion.hpp"
+#include "ArrowItem.hpp"
 #include <vector>
 
 namespace mc {
@@ -36,9 +36,7 @@ public:
      * @return 箭矢实体指针（调用者负责管理）
      */
     [[nodiscard]] entity::AbstractArrowEntity* createArrow(
-        IWorld& world,
-        const ItemStack& stack,
-        LivingEntity& shooter) const override;
+        IWorld& world, const ItemStack& stack, LivingEntity& shooter) const override;
 
     /**
      * @brief 检查箭矢是否无限
@@ -51,9 +49,7 @@ public:
      * @return 是否无限（总是返回 false）
      */
     [[nodiscard]] bool isInfinite(
-        const ItemStack& arrowStack,
-        const ItemStack& bowStack,
-        Player& player) const override;
+        const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const override;
 
     /**
      * @brief 获取药水类型

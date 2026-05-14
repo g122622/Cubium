@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../Enchantment.hpp"
-#include "common/core/Types.hpp"  // CreatureAttribute
+#include "common/core/Types.hpp" // CreatureAttribute
 
 namespace mc {
 namespace item {
@@ -21,38 +21,25 @@ class ImpalingEnchantment : public Enchantment {
 public:
     ImpalingEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:impaling";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:impaling"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.impaling";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Trident;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Trident; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 5;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 5; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Rare;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Rare; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 1 + (level - 1) * 8;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 1 + (level - 1) * 8; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 20;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 20; }
 
     /**
      * @brief 获取对水生生物的伤害加成
@@ -62,7 +49,8 @@ public:
      *
      * MC 1.16.5: 对水生生物 (CreatureAttribute::Water) 造成额外伤害
      */
-    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override {
+    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override
+    {
         const CreatureAttribute creatureType = static_cast<CreatureAttribute>(entityType);
         if (creatureType == CreatureAttribute::Water) {
             return static_cast<f32>(level) * 2.5f;

@@ -1,10 +1,10 @@
 #include "LanternBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../WaterLoggableHelpers.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -14,16 +14,16 @@ LanternBlock::LanternBlock(BlockProperties properties, u8 lightValue)
     , m_lightValue(lightValue)
 {
     // 创建状态容器（HANGING 属性）
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HANGING())
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::HANGING())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::HANGING(), false)
-        .with(BlockStateProperties::WATERLOGGED(), false));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::HANGING(), false).with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建形状
     // 站立形状：底部到中部
@@ -32,7 +32,8 @@ LanternBlock::LanternBlock(BlockProperties properties, u8 lightValue)
     m_hangingShape = CollisionShape::box(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
 }
 
-BlockState LanternBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState LanternBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction clickedFace = context.getClickedFace();
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
@@ -53,10 +54,7 @@ BlockState LanternBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-bool LanternBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const
+bool LanternBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     // 参考 MC 1.16.5: LanternBlock.isValidPosition
     // 根据悬挂状态检查支撑方块
@@ -74,8 +72,7 @@ bool LanternBlock::isValidPosition(
     return supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir));
 }
 
-BlockState LanternBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState LanternBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
@@ -109,14 +106,16 @@ BlockState LanternBlock::updatePostPlacement(
     return state;
 }
 
-const CollisionShape& LanternBlock::getShape(const BlockState& state) const {
+const CollisionShape& LanternBlock::getShape(const BlockState& state) const
+{
     bool hanging = state.get(BlockStateProperties::HANGING());
     return hanging ? m_hangingShape : m_standingShape;
 }
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* LanternBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* LanternBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }

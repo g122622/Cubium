@@ -7,17 +7,17 @@
 
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/item/items/tool/PickaxeItem.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/items/tool/PickaxeItem.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::entity::effect;
@@ -29,7 +29,8 @@ namespace {
  */
 class PlayerDiggingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块和物品
         VanillaBlocks::initialize();
         Items::initialize();
@@ -42,14 +43,13 @@ protected:
         m_player->setOnGround(true);
     }
 
-    void TearDown() override {
-        m_player.reset();
-    }
+    void TearDown() override { m_player.reset(); }
 
     /**
      * @brief 设置玩家手持物品
      */
-    void setHeldItem(const Item& item, i32 count = 1) {
+    void setHeldItem(const Item& item, i32 count = 1)
+    {
         PlayerInventory& inventory = m_player->inventory();
         inventory.setSelectedSlot(0);
         inventory.setItem(0, ItemStack(item, count));
@@ -58,7 +58,8 @@ protected:
     /**
      * @brief 设置玩家头盔
      */
-    void setHelmet(const Item& item) {
+    void setHelmet(const Item& item)
+    {
         PlayerInventory& inventory = m_player->inventory();
         // 头盔槽位是 39 (PlayerInventory::ARMOR_SLOT_START + 3)
         inventory.setItem(39, ItemStack(item, 1));
@@ -67,7 +68,8 @@ protected:
     /**
      * @brief 给玩家添加效果
      */
-    void addEffect(EffectType type, i32 duration, i32 amplifier) {
+    void addEffect(EffectType type, i32 duration, i32 amplifier)
+    {
         m_player->addEffect(EffectInstance(type, duration, amplifier));
     }
 
@@ -78,7 +80,8 @@ protected:
 // 基础挖掘速度测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, EmptyHandHasBaseDigSpeed) {
+TEST_F(PlayerDiggingTest, EmptyHandHasBaseDigSpeed)
+{
     // 空手对任何方块的基础挖掘速度是 1.0
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     ASSERT_NE(stoneState, nullptr);
@@ -88,7 +91,8 @@ TEST_F(PlayerDiggingTest, EmptyHandHasBaseDigSpeed) {
     EXPECT_FLOAT_EQ(digSpeed, 1.0f);
 }
 
-TEST_F(PlayerDiggingTest, ToolHasCorrectDigSpeed) {
+TEST_F(PlayerDiggingTest, ToolHasCorrectDigSpeed)
+{
     // 木镐对石头的挖掘速度
     // 木工具效率是 2.0
     const Item* woodenPickaxe = Items::WOODEN_PICKAXE;
@@ -103,7 +107,8 @@ TEST_F(PlayerDiggingTest, ToolHasCorrectDigSpeed) {
     }
 }
 
-TEST_F(PlayerDiggingTest, WrongToolHasLowDigSpeed) {
+TEST_F(PlayerDiggingTest, WrongToolHasLowDigSpeed)
+{
     // 木斧对石头的挖掘速度应该很低
     const Item* woodenAxe = Items::WOODEN_AXE;
     if (woodenAxe) {
@@ -121,7 +126,8 @@ TEST_F(PlayerDiggingTest, WrongToolHasLowDigSpeed) {
 // 效率附魔测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, EfficiencyEnchantmentIncreasesDigSpeed) {
+TEST_F(PlayerDiggingTest, EfficiencyEnchantmentIncreasesDigSpeed)
+{
     // 获取钻石镐
     const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
     if (!diamondPickaxe) {
@@ -145,7 +151,8 @@ TEST_F(PlayerDiggingTest, EfficiencyEnchantmentIncreasesDigSpeed) {
 // 急迫效果测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, HasteEffectIncreasesDigSpeed) {
+TEST_F(PlayerDiggingTest, HasteEffectIncreasesDigSpeed)
+{
     const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
     if (!diamondPickaxe) {
         GTEST_SKIP() << "钻石镐未注册";
@@ -158,7 +165,7 @@ TEST_F(PlayerDiggingTest, HasteEffectIncreasesDigSpeed) {
     f32 baseSpeed = m_player->getDigSpeed(*stoneState);
 
     // 添加急迫 II 效果
-    addEffect(EffectType::Haste, 600, 1);  // 30秒，等级 II (amplifier=1)
+    addEffect(EffectType::Haste, 600, 1); // 30秒，等级 II (amplifier=1)
 
     f32 hasteSpeed = m_player->getDigSpeed(*stoneState);
 
@@ -168,7 +175,8 @@ TEST_F(PlayerDiggingTest, HasteEffectIncreasesDigSpeed) {
     EXPECT_FLOAT_EQ(hasteSpeed, baseSpeed * 1.4f);
 }
 
-TEST_F(PlayerDiggingTest, ConduitPowerIncreasesDigSpeed) {
+TEST_F(PlayerDiggingTest, ConduitPowerIncreasesDigSpeed)
+{
     const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
     if (!diamondPickaxe) {
         GTEST_SKIP() << "钻石镐未注册";
@@ -181,7 +189,7 @@ TEST_F(PlayerDiggingTest, ConduitPowerIncreasesDigSpeed) {
     f32 baseSpeed = m_player->getDigSpeed(*stoneState);
 
     // 添加潮涌能量效果
-    addEffect(EffectType::ConduitPower, 600, 0);  // 潮涌能量 I
+    addEffect(EffectType::ConduitPower, 600, 0); // 潮涌能量 I
 
     f32 conduitSpeed = m_player->getDigSpeed(*stoneState);
 
@@ -194,7 +202,8 @@ TEST_F(PlayerDiggingTest, ConduitPowerIncreasesDigSpeed) {
 // 挖掘疲劳效果测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, MiningFatigueReducesDigSpeed) {
+TEST_F(PlayerDiggingTest, MiningFatigueReducesDigSpeed)
+{
     const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
     if (!diamondPickaxe) {
         GTEST_SKIP() << "钻石镐未注册";
@@ -207,7 +216,7 @@ TEST_F(PlayerDiggingTest, MiningFatigueReducesDigSpeed) {
     f32 baseSpeed = m_player->getDigSpeed(*stoneState);
 
     // 添加挖掘疲劳 II 效果
-    addEffect(EffectType::MiningFatigue, 600, 1);  // 挖掘疲劳 II
+    addEffect(EffectType::MiningFatigue, 600, 1); // 挖掘疲劳 II
 
     f32 fatigueSpeed = m_player->getDigSpeed(*stoneState);
 
@@ -216,7 +225,8 @@ TEST_F(PlayerDiggingTest, MiningFatigueReducesDigSpeed) {
     EXPECT_FLOAT_EQ(fatigueSpeed, baseSpeed * 0.09f);
 }
 
-TEST_F(PlayerDiggingTest, MiningFatigueLevels) {
+TEST_F(PlayerDiggingTest, MiningFatigueLevels)
+{
     const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
     if (!diamondPickaxe) {
         GTEST_SKIP() << "钻石镐未注册";
@@ -248,7 +258,8 @@ TEST_F(PlayerDiggingTest, MiningFatigueLevels) {
 // canHarvestBlock 测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, CanHarvestBlockWithoutTool) {
+TEST_F(PlayerDiggingTest, CanHarvestBlockWithoutTool)
+{
     // 不需要工具的方块（如泥土、沙子）
     const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
     if (dirtState && !dirtState->requiresTool()) {
@@ -257,7 +268,8 @@ TEST_F(PlayerDiggingTest, CanHarvestBlockWithoutTool) {
     }
 }
 
-TEST_F(PlayerDiggingTest, CannotHarvestStoneWithEmptyHand) {
+TEST_F(PlayerDiggingTest, CannotHarvestStoneWithEmptyHand)
+{
     // 石头需要镐才能采集
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     if (stoneState && stoneState->requiresTool()) {
@@ -266,7 +278,8 @@ TEST_F(PlayerDiggingTest, CannotHarvestStoneWithEmptyHand) {
     }
 }
 
-TEST_F(PlayerDiggingTest, CanHarvestStoneWithPickaxe) {
+TEST_F(PlayerDiggingTest, CanHarvestStoneWithPickaxe)
+{
     const Item* woodenPickaxe = Items::WOODEN_PICKAXE;
     if (!woodenPickaxe) {
         GTEST_SKIP() << "木镐未注册";
@@ -279,7 +292,8 @@ TEST_F(PlayerDiggingTest, CanHarvestStoneWithPickaxe) {
     EXPECT_TRUE(m_player->canHarvestBlock(*stoneState));
 }
 
-TEST_F(PlayerDiggingTest, CannotHarvestDiamondOreWithWoodenPickaxe) {
+TEST_F(PlayerDiggingTest, CannotHarvestDiamondOreWithWoodenPickaxe)
+{
     const Item* woodenPickaxe = Items::WOODEN_PICKAXE;
     if (!woodenPickaxe) {
         GTEST_SKIP() << "木镐未注册";
@@ -295,7 +309,8 @@ TEST_F(PlayerDiggingTest, CannotHarvestDiamondOreWithWoodenPickaxe) {
     }
 }
 
-TEST_F(PlayerDiggingTest, CanHarvestDiamondOreWithIronPickaxe) {
+TEST_F(PlayerDiggingTest, CanHarvestDiamondOreWithIronPickaxe)
+{
     const Item* ironPickaxe = Items::IRON_PICKAXE;
     if (!ironPickaxe) {
         GTEST_SKIP() << "铁镐未注册";
@@ -314,7 +329,8 @@ TEST_F(PlayerDiggingTest, CanHarvestDiamondOreWithIronPickaxe) {
 // 水下挖掘测试（需要模拟 Player 状态）
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, UnderwaterPenaltyWithoutAquaAffinity) {
+TEST_F(PlayerDiggingTest, UnderwaterPenaltyWithoutAquaAffinity)
+{
     // 注意：这个测试需要 Player 处于水中状态
     // 由于 areEyesInWater() 是 Entity 的方法，需要设置相关状态
     // 这里我们先测试基本功能
@@ -339,7 +355,8 @@ TEST_F(PlayerDiggingTest, UnderwaterPenaltyWithoutAquaAffinity) {
 // 空中挖掘惩罚测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, OffGroundPenalty) {
+TEST_F(PlayerDiggingTest, OffGroundPenalty)
+{
     // 注意：这个测试需要 Player 不在地面状态
     // 由于 onGround 是 protected 成员，需要特殊方式设置
     // 这里我们先测试基本功能
@@ -364,7 +381,8 @@ TEST_F(PlayerDiggingTest, OffGroundPenalty) {
 // Block::getPlayerRelativeBlockHardness 测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, PlayerRelativeBlockHardnessBase) {
+TEST_F(PlayerDiggingTest, PlayerRelativeBlockHardnessBase)
+{
     const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
     if (!dirtState) {
         GTEST_SKIP() << "泥土方块未注册";
@@ -385,7 +403,8 @@ TEST_F(PlayerDiggingTest, PlayerRelativeBlockHardnessBase) {
     (void)expectedHardness;
 }
 
-TEST_F(PlayerDiggingTest, CreativeModeInstantBreak) {
+TEST_F(PlayerDiggingTest, CreativeModeInstantBreak)
+{
     // 创造模式应该瞬间破坏任何方块
     m_player->setGameMode(GameMode::Creative);
 
@@ -406,7 +425,8 @@ TEST_F(PlayerDiggingTest, CreativeModeInstantBreak) {
 // 综合测试
 // ============================================================================
 
-TEST_F(PlayerDiggingTest, CombinedEffects) {
+TEST_F(PlayerDiggingTest, CombinedEffects)
+{
     const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
     if (!diamondPickaxe) {
         GTEST_SKIP() << "钻石镐未注册";

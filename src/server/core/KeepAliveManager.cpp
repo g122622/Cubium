@@ -8,10 +8,10 @@ KeepAliveManager::KeepAliveManager(PlayerManager& playerManager, const ServerCor
     : m_playerManager(playerManager)
     , m_keepAliveInterval(config.keepAliveInterval)
     , m_keepAliveTimeout(config.keepAliveTimeout)
-{
-}
+{}
 
-bool KeepAliveManager::needsKeepAlive(PlayerId playerId, u64 currentTickMs) const {
+bool KeepAliveManager::needsKeepAlive(PlayerId playerId, u64 currentTickMs) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return false;
 
@@ -19,7 +19,8 @@ bool KeepAliveManager::needsKeepAlive(PlayerId playerId, u64 currentTickMs) cons
     return (currentTickMs - lastSent) >= static_cast<u64>(m_keepAliveInterval);
 }
 
-std::vector<PlayerId> KeepAliveManager::getPlayersNeedingKeepAlive(u64 currentTickMs) const {
+std::vector<PlayerId> KeepAliveManager::getPlayersNeedingKeepAlive(u64 currentTickMs) const
+{
     std::vector<PlayerId> result;
     result.reserve(m_playerManager.playerCount());
     m_playerManager.forEachPlayer([&](const ServerPlayerData& player) {
@@ -31,7 +32,8 @@ std::vector<PlayerId> KeepAliveManager::getPlayersNeedingKeepAlive(u64 currentTi
     return result;
 }
 
-void KeepAliveManager::recordKeepAliveSent(PlayerId playerId, u64 timestamp, u64 tick) {
+void KeepAliveManager::recordKeepAliveSent(PlayerId playerId, u64 timestamp, u64 tick)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return;
 
@@ -40,7 +42,8 @@ void KeepAliveManager::recordKeepAliveSent(PlayerId playerId, u64 timestamp, u64
     spdlog::trace("KeepAliveManager: Sent keepalive to player {} at {}", playerId, timestamp);
 }
 
-void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp, u64 currentTimeMs) {
+void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp, u64 currentTimeMs)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return;
 
@@ -59,14 +62,16 @@ void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp,
     spdlog::trace("KeepAliveManager: Player {} keepalive response, ping={}ms", playerId, ping);
 }
 
-void KeepAliveManager::updateKeepAlive(PlayerId playerId, u64 timestamp) {
+void KeepAliveManager::updateKeepAlive(PlayerId playerId, u64 timestamp)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return;
 
     player->lastKeepAliveReceived = timestamp;
 }
 
-bool KeepAliveManager::isTimedOut(PlayerId playerId, u64 currentTickMs) const {
+bool KeepAliveManager::isTimedOut(PlayerId playerId, u64 currentTickMs) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return false;
 
@@ -74,7 +79,8 @@ bool KeepAliveManager::isTimedOut(PlayerId playerId, u64 currentTickMs) const {
     return (currentTickMs - lastReceived) >= static_cast<u64>(m_keepAliveTimeout);
 }
 
-std::vector<PlayerId> KeepAliveManager::getTimedOutPlayers(u64 currentTickMs) const {
+std::vector<PlayerId> KeepAliveManager::getTimedOutPlayers(u64 currentTickMs) const
+{
     std::vector<PlayerId> result;
     m_playerManager.forEachPlayer([&](const ServerPlayerData& player) {
         u64 lastReceived = player.lastKeepAliveReceived;
@@ -85,17 +91,20 @@ std::vector<PlayerId> KeepAliveManager::getTimedOutPlayers(u64 currentTickMs) co
     return result;
 }
 
-u32 KeepAliveManager::getPlayerPing(PlayerId playerId) const {
+u32 KeepAliveManager::getPlayerPing(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     return player ? player->ping : 0;
 }
 
-u64 KeepAliveManager::getLastKeepAliveSent(PlayerId playerId) const {
+u64 KeepAliveManager::getLastKeepAliveSent(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     return player ? player->lastKeepAliveSent : 0;
 }
 
-u64 KeepAliveManager::getLastKeepAliveReceived(PlayerId playerId) const {
+u64 KeepAliveManager::getLastKeepAliveReceived(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     return player ? player->lastKeepAliveReceived : 0;
 }

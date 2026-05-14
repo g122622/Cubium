@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include "../../core/Item.hpp"
 #include "../../core/ItemStack.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../core/Types.hpp"
 
 namespace mc {
 

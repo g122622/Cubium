@@ -3,7 +3,8 @@
 
 namespace mc::entity::combat {
 
-f32 CombatRules::getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness) {
+f32 CombatRules::getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness)
+{
     if (damage <= 0.0f) {
         return 0.0f;
     }
@@ -16,18 +17,15 @@ f32 CombatRules::getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness)
     const f32 protectionFactor = TOUGHNESS_BASE + toughness / TOUGHNESS_FACTOR;
 
     const f32 minArmor = totalArmor * ARMOR_MIN_RATIO;
-    const f32 effectiveArmor = std::clamp(
-        totalArmor - damage / protectionFactor,
-        minArmor,
-        ARMOR_MAX_EFFECTIVE
-    );
+    const f32 effectiveArmor = std::clamp(totalArmor - damage / protectionFactor, minArmor, ARMOR_MAX_EFFECTIVE);
 
     // 减伤比例 = effectiveArmor / 25
     // 最终伤害 = damage * (1 - 减伤比例)
     return damage * (1.0f - effectiveArmor / ARMOR_DIVISOR);
 }
 
-f32 CombatRules::getDamageAfterMagicAbsorb(f32 damage, f32 enchantmentProtectionFactor) {
+f32 CombatRules::getDamageAfterMagicAbsorb(f32 damage, f32 enchantmentProtectionFactor)
+{
     if (damage <= 0.0f) {
         return 0.0f;
     }
@@ -43,7 +41,8 @@ f32 CombatRules::getDamageAfterMagicAbsorb(f32 damage, f32 enchantmentProtection
     return damage * (1.0f - clampedEPF / ARMOR_DIVISOR);
 }
 
-f32 CombatRules::getDamageAfterResistance(f32 damage, i32 resistanceLevel) {
+f32 CombatRules::getDamageAfterResistance(f32 damage, i32 resistanceLevel)
+{
     if (damage <= 0.0f || resistanceLevel <= 0) {
         return damage;
     }
@@ -58,7 +57,8 @@ f32 CombatRules::getDamageAfterResistance(f32 damage, i32 resistanceLevel) {
     return damage * std::max(0.0f, 1.0f - reduction);
 }
 
-std::pair<f32, f32> CombatRules::applyAbsorption(f32 damage, f32 absorption) {
+std::pair<f32, f32> CombatRules::applyAbsorption(f32 damage, f32 absorption)
+{
     if (damage <= 0.0f || absorption <= 0.0f) {
         return {0.0f, damage};
     }

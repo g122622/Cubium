@@ -12,19 +12,19 @@
  * - UniformManager Uniform 缓冲区管理
  */
 
-#include <gtest/gtest.h>
-#include <GLFW/glfw3.h>
-#include "client/renderer/trident/core/Trident.hpp"
-#include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
-#include "client/renderer/trident/core/texture/TridentTexture.hpp"
-#include "client/renderer/trident/core/pipeline/TridentPipeline.hpp"
-#include "client/renderer/trident/core/render/FrameManager.hpp"
-#include "client/renderer/trident/core/render/UniformManager.hpp"
-#include "client/renderer/trident/core/render/DescriptorManager.hpp"
 #include "client/renderer/api/Types.hpp"
 #include "client/renderer/api/mesh/MeshData.hpp"
-#include <vector>
+#include "client/renderer/trident/core/Trident.hpp"
+#include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
+#include "client/renderer/trident/core/pipeline/TridentPipeline.hpp"
+#include "client/renderer/trident/core/render/DescriptorManager.hpp"
+#include "client/renderer/trident/core/render/FrameManager.hpp"
+#include "client/renderer/trident/core/render/UniformManager.hpp"
+#include "client/renderer/trident/core/texture/TridentTexture.hpp"
 #include <cmath>
+#include <vector>
+#include <GLFW/glfw3.h>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::client::renderer::trident;
@@ -44,18 +44,18 @@ protected:
     static GLFWwindow* s_window;
     static TridentContext* s_context;
 
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 初始化 GLFW
         ASSERT_TRUE(glfwInit()) << "Failed to initialize GLFW";
 
         // 设置 GLFW 错误回调
-        glfwSetErrorCallback([](int error, const char* description) {
-            FAIL() << "GLFW Error " << error << ": " << description;
-        });
+        glfwSetErrorCallback(
+            [](int error, const char* description) { FAIL() << "GLFW Error " << error << ": " << description; });
 
         // 创建无上下文窗口（仅用于 Vulkan surface）
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // 隐藏窗口
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // 隐藏窗口
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         s_window = glfwCreateWindow(800, 600, "TridentTest", nullptr, nullptr);
@@ -64,14 +64,15 @@ protected:
         // 创建 Trident 上下文
         s_context = new TridentContext();
         TridentConfig config;
-        config.enableValidation = true;  // 启用验证层
+        config.enableValidation = true; // 启用验证层
         config.enableVSync = false;
 
         auto result = s_context->initialize(s_window, config);
         ASSERT_TRUE(result.success()) << "Failed to initialize TridentContext: " << result.error().message();
     }
 
-    static void TearDownTestSuite() {
+    static void TearDownTestSuite()
+    {
         // 清理上下文
         if (s_context) {
             s_context->destroy();
@@ -87,20 +88,20 @@ protected:
         glfwTerminate();
     }
 
-    void SetUp() override {
+    void SetUp() override
+    {
         ASSERT_NE(s_context, nullptr) << "TridentContext not initialized";
         ASSERT_TRUE(s_context->isInitialized()) << "TridentContext not ready";
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 确保设备空闲
         s_context->waitIdle();
     }
 
     // 辅助方法：轮询事件
-    void pollEvents() {
-        glfwPollEvents();
-    }
+    void pollEvents() { glfwPollEvents(); }
 };
 
 // 静态成员定义
@@ -116,7 +117,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TridentConfigTest, DefaultConfiguration) {
+TEST_F(TridentConfigTest, DefaultConfiguration)
+{
     TridentConfig config;
 
     EXPECT_EQ(config.appName, "Trident");
@@ -126,7 +128,8 @@ TEST_F(TridentConfigTest, DefaultConfiguration) {
     EXPECT_EQ(config.maxFramesInFlight, 2u);
 }
 
-TEST_F(TridentConfigTest, RequiredExtensions) {
+TEST_F(TridentConfigTest, RequiredExtensions)
+{
     TridentConfig config;
 
     // 必须包含交换链扩展
@@ -140,7 +143,8 @@ TEST_F(TridentConfigTest, RequiredExtensions) {
     EXPECT_TRUE(hasSwapchain) << "Swapchain extension should be required by default";
 }
 
-TEST_F(TridentConfigTest, OptionalExtensions) {
+TEST_F(TridentConfigTest, OptionalExtensions)
+{
     TridentConfig config;
 
     // 检查可选扩展
@@ -156,7 +160,8 @@ TEST_F(TridentConfigTest, OptionalExtensions) {
     EXPECT_TRUE(hasSynchronization2);
 }
 
-TEST_F(TridentConfigTest, CustomConfiguration) {
+TEST_F(TridentConfigTest, CustomConfiguration)
+{
     TridentConfig config;
     config.appName = "CustomApp";
     config.engineName = "CustomEngine";
@@ -180,7 +185,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(VulkanVersionTest, ToString) {
+TEST_F(VulkanVersionTest, ToString)
+{
     VulkanVersion v1{1, 0, 0};
     EXPECT_EQ(v1.toString(), "1.0.0");
 
@@ -200,7 +206,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(QueueFamilyIndicesTest, DefaultIncomplete) {
+TEST_F(QueueFamilyIndicesTest, DefaultIncomplete)
+{
     QueueFamilyIndices indices;
 
     EXPECT_FALSE(indices.isComplete());
@@ -208,7 +215,8 @@ TEST_F(QueueFamilyIndicesTest, DefaultIncomplete) {
     EXPECT_FALSE(indices.hasCompute());
 }
 
-TEST_F(QueueFamilyIndicesTest, CompleteWithGraphicsAndPresent) {
+TEST_F(QueueFamilyIndicesTest, CompleteWithGraphicsAndPresent)
+{
     QueueFamilyIndices indices;
     indices.graphicsFamily = 0;
     indices.presentFamily = 0;
@@ -218,7 +226,8 @@ TEST_F(QueueFamilyIndicesTest, CompleteWithGraphicsAndPresent) {
     EXPECT_FALSE(indices.hasCompute());
 }
 
-TEST_F(QueueFamilyIndicesTest, CompleteWithAllQueues) {
+TEST_F(QueueFamilyIndicesTest, CompleteWithAllQueues)
+{
     QueueFamilyIndices indices;
     indices.graphicsFamily = 0;
     indices.presentFamily = 0;
@@ -236,12 +245,11 @@ TEST_F(QueueFamilyIndicesTest, CompleteWithAllQueues) {
 
 class TridentContextTest : public TridentTestBase {
 protected:
-    void SetUp() override {
-        TridentTestBase::SetUp();
-    }
+    void SetUp() override { TridentTestBase::SetUp(); }
 };
 
-TEST_F(TridentContextTest, InitializationSuccessful) {
+TEST_F(TridentContextTest, InitializationSuccessful)
+{
     EXPECT_TRUE(s_context->isInitialized());
     EXPECT_NE(s_context->instance(), VK_NULL_HANDLE);
     EXPECT_NE(s_context->physicalDevice(), VK_NULL_HANDLE);
@@ -249,12 +257,14 @@ TEST_F(TridentContextTest, InitializationSuccessful) {
     EXPECT_NE(s_context->surface(), VK_NULL_HANDLE);
 }
 
-TEST_F(TridentContextTest, QueuesValid) {
+TEST_F(TridentContextTest, QueuesValid)
+{
     EXPECT_NE(s_context->graphicsQueue(), VK_NULL_HANDLE);
     EXPECT_NE(s_context->presentQueue(), VK_NULL_HANDLE);
 }
 
-TEST_F(TridentContextTest, QueueFamiliesComplete) {
+TEST_F(TridentContextTest, QueueFamiliesComplete)
+{
     const auto& families = s_context->queueFamilies();
 
     EXPECT_TRUE(families.isComplete());
@@ -262,15 +272,17 @@ TEST_F(TridentContextTest, QueueFamiliesComplete) {
     EXPECT_TRUE(families.presentFamily.has_value());
 }
 
-TEST_F(TridentContextTest, DevicePropertiesValid) {
+TEST_F(TridentContextTest, DevicePropertiesValid)
+{
     const auto& props = s_context->deviceProperties();
 
     // 检查设备属性是否有效
-    EXPECT_NE(props.deviceName[0], '\0');  // 设备名称非空
-    EXPECT_GT(props.apiVersion, 0u);  // API 版本有效
+    EXPECT_NE(props.deviceName[0], '\0'); // 设备名称非空
+    EXPECT_GT(props.apiVersion, 0u);      // API 版本有效
 }
 
-TEST_F(TridentContextTest, MemoryPropertiesValid) {
+TEST_F(TridentContextTest, MemoryPropertiesValid)
+{
     const auto& memProps = s_context->memoryProperties();
 
     // 至少有一种内存类型
@@ -279,7 +291,8 @@ TEST_F(TridentContextTest, MemoryPropertiesValid) {
     EXPECT_GT(memProps.memoryHeapCount, 0u);
 }
 
-TEST_F(TridentContextTest, SwapChainSupportQuery) {
+TEST_F(TridentContextTest, SwapChainSupportQuery)
+{
     auto support = s_context->querySwapChainSupport();
 
     // 检查表面能力
@@ -294,36 +307,34 @@ TEST_F(TridentContextTest, SwapChainSupportQuery) {
     EXPECT_FALSE(support.presentModes.empty());
 }
 
-TEST_F(TridentContextTest, FindMemoryType) {
+TEST_F(TridentContextTest, FindMemoryType)
+{
     // 查找设备本地内存
-    auto result = s_context->findMemoryType(
-        0xFFFFFFFF,  // 所有类型位
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-    );
+    auto result = s_context->findMemoryType(0xFFFFFFFF, // 所有类型位
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     EXPECT_TRUE(result.success());
     EXPECT_GE(result.value(), 0u);
 
     // 查找主机可见内存
     result = s_context->findMemoryType(
-        0xFFFFFFFF,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-    );
+        0xFFFFFFFF, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     EXPECT_TRUE(result.success());
 }
 
-TEST_F(TridentContextTest, FindDepthFormat) {
+TEST_F(TridentContextTest, FindDepthFormat)
+{
     auto result = s_context->findDepthFormat();
     EXPECT_TRUE(result.success());
 
     VkFormat format = result.value();
     // 常见深度格式
-    bool isValidFormat = (format == VK_FORMAT_D32_SFLOAT ||
-                          format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
-                          format == VK_FORMAT_D24_UNORM_S8_UINT);
+    bool isValidFormat = (format == VK_FORMAT_D32_SFLOAT || format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+        format == VK_FORMAT_D24_UNORM_S8_UINT);
     EXPECT_TRUE(isValidFormat);
 }
 
-TEST_F(TridentContextTest, SingleTimeCommands) {
+TEST_F(TridentContextTest, SingleTimeCommands)
+{
     // 测试单次命令缓冲区
     VkCommandBuffer cmd = s_context->beginSingleTimeCommands();
     EXPECT_NE(cmd, VK_NULL_HANDLE);
@@ -334,21 +345,23 @@ TEST_F(TridentContextTest, SingleTimeCommands) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(
-        cmd,
+    vkCmdPipelineBarrier(cmd,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         0,
-        1, &barrier,
-        0, nullptr,
-        0, nullptr
-    );
+        1,
+        &barrier,
+        0,
+        nullptr,
+        0,
+        nullptr);
 
     // 提交命令
     s_context->endSingleTimeCommands(cmd);
 }
 
-TEST_F(TridentContextTest, ValidationEnabled) {
+TEST_F(TridentContextTest, ValidationEnabled)
+{
     EXPECT_TRUE(s_context->isValidationEnabled());
 }
 
@@ -358,12 +371,11 @@ TEST_F(TridentContextTest, ValidationEnabled) {
 
 class TridentBufferTest : public TridentTestBase {
 protected:
-    void SetUp() override {
-        TridentTestBase::SetUp();
-    }
+    void SetUp() override { TridentTestBase::SetUp(); }
 };
 
-TEST_F(TridentBufferTest, CreateVertexBuffer) {
+TEST_F(TridentBufferTest, CreateVertexBuffer)
+{
     TridentVertexBuffer vbo;
 
     auto result = vbo.create(s_context, 1024, sizeof(Vertex));
@@ -377,7 +389,8 @@ TEST_F(TridentBufferTest, CreateVertexBuffer) {
     EXPECT_FALSE(vbo.isValid());
 }
 
-TEST_F(TridentBufferTest, VertexBufferUploadViaStaging) {
+TEST_F(TridentBufferTest, VertexBufferUploadViaStaging)
+{
     // VertexBuffer 是设备本地内存，需要使用 StagingBuffer 来传输数据
     TridentStagingBuffer staging;
     ASSERT_TRUE(staging.create(s_context, sizeof(Vertex) * 4).success());
@@ -386,12 +399,10 @@ TEST_F(TridentBufferTest, VertexBufferUploadViaStaging) {
     ASSERT_TRUE(vbo.create(s_context, sizeof(Vertex) * 4, sizeof(Vertex)).success());
 
     // 创建测试顶点数据
-    Vertex vertices[4] = {
-        {0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
+    Vertex vertices[4] = {{0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
         {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f},
         {1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f}
-    };
+        {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f}};
 
     // 上传到暂存缓冲区
     auto result = staging.upload(vertices, sizeof(vertices));
@@ -410,7 +421,8 @@ TEST_F(TridentBufferTest, VertexBufferUploadViaStaging) {
     vbo.destroy();
 }
 
-TEST_F(TridentBufferTest, VertexBufferCannotMapDeviceLocal) {
+TEST_F(TridentBufferTest, VertexBufferCannotMapDeviceLocal)
+{
     // VertexBuffer 是设备本地内存，不能直接映射
     TridentVertexBuffer vbo;
     ASSERT_TRUE(vbo.create(s_context, 1024, sizeof(Vertex)).success());
@@ -422,7 +434,8 @@ TEST_F(TridentBufferTest, VertexBufferCannotMapDeviceLocal) {
     vbo.destroy();
 }
 
-TEST_F(TridentBufferTest, VertexBufferVertexCount) {
+TEST_F(TridentBufferTest, VertexBufferVertexCount)
+{
     TridentVertexBuffer vbo;
     const u64 bufferSize = sizeof(Vertex) * 100;
     ASSERT_TRUE(vbo.create(s_context, bufferSize, sizeof(Vertex)).success());
@@ -432,7 +445,8 @@ TEST_F(TridentBufferTest, VertexBufferVertexCount) {
     vbo.destroy();
 }
 
-TEST_F(TridentBufferTest, CreateIndexBuffer) {
+TEST_F(TridentBufferTest, CreateIndexBuffer)
+{
     TridentIndexBuffer ibo;
 
     auto result = ibo.create(s_context, sizeof(u32) * 6, IndexType::U32);
@@ -447,7 +461,8 @@ TEST_F(TridentBufferTest, CreateIndexBuffer) {
     EXPECT_FALSE(ibo.isValid());
 }
 
-TEST_F(TridentBufferTest, IndexBufferUploadViaStaging) {
+TEST_F(TridentBufferTest, IndexBufferUploadViaStaging)
+{
     // IndexBuffer 是设备本地内存，需要使用 StagingBuffer 来传输数据
     TridentStagingBuffer staging;
     ASSERT_TRUE(staging.create(s_context, sizeof(u32) * 6).success());
@@ -474,7 +489,8 @@ TEST_F(TridentBufferTest, IndexBufferUploadViaStaging) {
     ibo.destroy();
 }
 
-TEST_F(TridentBufferTest, CreateUniformBuffer) {
+TEST_F(TridentBufferTest, CreateUniformBuffer)
+{
     TridentUniformBuffer ubo;
 
     auto result = ubo.create(s_context, sizeof(CameraUBO), 2);
@@ -487,7 +503,8 @@ TEST_F(TridentBufferTest, CreateUniformBuffer) {
     EXPECT_FALSE(ubo.isValid());
 }
 
-TEST_F(TridentBufferTest, UniformBufferFrameAdvancement) {
+TEST_F(TridentBufferTest, UniformBufferFrameAdvancement)
+{
     TridentUniformBuffer ubo;
     ASSERT_TRUE(ubo.create(s_context, sizeof(CameraUBO), 2).success());
 
@@ -497,12 +514,13 @@ TEST_F(TridentBufferTest, UniformBufferFrameAdvancement) {
     EXPECT_EQ(ubo.currentFrameIndex(), 1u);
 
     ubo.advanceFrame();
-    EXPECT_EQ(ubo.currentFrameIndex(), 0u);  // 循环回第 0 帧
+    EXPECT_EQ(ubo.currentFrameIndex(), 0u); // 循环回第 0 帧
 
     ubo.destroy();
 }
 
-TEST_F(TridentBufferTest, UniformBufferUpload) {
+TEST_F(TridentBufferTest, UniformBufferUpload)
+{
     TridentUniformBuffer ubo;
     ASSERT_TRUE(ubo.create(s_context, sizeof(CameraUBO), 2).success());
 
@@ -517,7 +535,8 @@ TEST_F(TridentBufferTest, UniformBufferUpload) {
     ubo.destroy();
 }
 
-TEST_F(TridentBufferTest, CreateStagingBuffer) {
+TEST_F(TridentBufferTest, CreateStagingBuffer)
+{
     TridentStagingBuffer staging;
 
     auto result = staging.create(s_context, 4096);
@@ -530,7 +549,8 @@ TEST_F(TridentBufferTest, CreateStagingBuffer) {
     EXPECT_FALSE(staging.isValid());
 }
 
-TEST_F(TridentBufferTest, StagingBufferUploadAndCopy) {
+TEST_F(TridentBufferTest, StagingBufferUploadAndCopy)
+{
     // 创建暂存缓冲区
     TridentStagingBuffer staging;
     ASSERT_TRUE(staging.create(s_context, sizeof(Vertex) * 4).success());
@@ -559,7 +579,8 @@ TEST_F(TridentBufferTest, StagingBufferUploadAndCopy) {
     vbo.destroy();
 }
 
-TEST_F(TridentBufferTest, BufferMoveSemantics) {
+TEST_F(TridentBufferTest, BufferMoveSemantics)
+{
     TridentVertexBuffer vbo1;
     ASSERT_TRUE(vbo1.create(s_context, 1024, sizeof(Vertex)).success());
 
@@ -569,7 +590,7 @@ TEST_F(TridentBufferTest, BufferMoveSemantics) {
     TridentVertexBuffer vbo2(std::move(vbo1));
 
     EXPECT_EQ(vbo2.buffer(), originalBuffer);
-    EXPECT_FALSE(vbo1.isValid());  // 原对象应该无效
+    EXPECT_FALSE(vbo1.isValid()); // 原对象应该无效
 
     vbo2.destroy();
 }
@@ -580,12 +601,11 @@ TEST_F(TridentBufferTest, BufferMoveSemantics) {
 
 class TridentTextureTest : public TridentTestBase {
 protected:
-    void SetUp() override {
-        TridentTestBase::SetUp();
-    }
+    void SetUp() override { TridentTestBase::SetUp(); }
 };
 
-TEST_F(TridentTextureTest, CreateTexture2D) {
+TEST_F(TridentTextureTest, CreateTexture2D)
+{
     TridentTexture texture;
 
     TextureDesc desc{};
@@ -608,14 +628,15 @@ TEST_F(TridentTextureTest, CreateTexture2D) {
     EXPECT_FALSE(texture.isValid());
 }
 
-TEST_F(TridentTextureTest, CreateTextureWithMipmaps) {
+TEST_F(TridentTextureTest, CreateTextureWithMipmaps)
+{
     TridentTexture texture;
 
     TextureDesc desc{};
     desc.width = 256;
     desc.height = 256;
     desc.format = TextureFormat::R8G8B8A8_SRGB;
-    desc.mipLevels = 8;  // log2(256) + 1 = 8
+    desc.mipLevels = 8; // log2(256) + 1 = 8
     desc.generateMipmaps = true;
 
     auto result = texture.create(s_context, desc);
@@ -625,7 +646,8 @@ TEST_F(TridentTextureTest, CreateTextureWithMipmaps) {
     texture.destroy();
 }
 
-TEST_F(TridentTextureTest, TextureUpload) {
+TEST_F(TridentTextureTest, TextureUpload)
+{
     TridentTexture texture;
 
     TextureDesc desc{};
@@ -645,7 +667,8 @@ TEST_F(TridentTextureTest, TextureUpload) {
     texture.destroy();
 }
 
-TEST_F(TridentTextureTest, TextureFormatConversion) {
+TEST_F(TridentTextureTest, TextureFormatConversion)
+{
     // 测试不同纹理格式
     struct FormatTest {
         TextureFormat apiFormat;
@@ -656,7 +679,7 @@ TEST_F(TridentTextureTest, TextureFormatConversion) {
         {TextureFormat::R8G8B8A8_SRGB, true},
         {TextureFormat::R8G8B8A8_UNORM, true},
         {TextureFormat::R8_UNORM, true},
-        {TextureFormat::BC1_RGB_SRGB, false},  // 需要块压缩支持
+        {TextureFormat::BC1_RGB_SRGB, false}, // 需要块压缩支持
     };
 
     for (const auto& test : formats) {
@@ -683,12 +706,11 @@ TEST_F(TridentTextureTest, TextureFormatConversion) {
 
 class TridentTextureAtlasTest : public TridentTestBase {
 protected:
-    void SetUp() override {
-        TridentTestBase::SetUp();
-    }
+    void SetUp() override { TridentTestBase::SetUp(); }
 };
 
-TEST_F(TridentTextureAtlasTest, CreateAtlas) {
+TEST_F(TridentTextureAtlasTest, CreateAtlas)
+{
     TridentTextureAtlas atlas;
 
     auto result = atlas.create(s_context, 256, 256, 16);
@@ -697,13 +719,14 @@ TEST_F(TridentTextureAtlasTest, CreateAtlas) {
     EXPECT_EQ(atlas.width(), 256u);
     EXPECT_EQ(atlas.height(), 256u);
     EXPECT_EQ(atlas.tileSize(), 16u);
-    EXPECT_EQ(atlas.tilesPerRow(), 16u);  // 256 / 16 = 16
+    EXPECT_EQ(atlas.tilesPerRow(), 16u); // 256 / 16 = 16
 
     atlas.destroy();
     EXPECT_FALSE(atlas.isValid());
 }
 
-TEST_F(TridentTextureAtlasTest, GetRegion) {
+TEST_F(TridentTextureAtlasTest, GetRegion)
+{
     TridentTextureAtlas atlas;
     ASSERT_TRUE(atlas.create(s_context, 256, 256, 16).success());
 
@@ -724,7 +747,8 @@ TEST_F(TridentTextureAtlasTest, GetRegion) {
     atlas.destroy();
 }
 
-TEST_F(TridentTextureAtlasTest, GetRegionByIndex) {
+TEST_F(TridentTextureAtlasTest, GetRegionByIndex)
+{
     TridentTextureAtlas atlas;
     ASSERT_TRUE(atlas.create(s_context, 256, 256, 16).success());
 
@@ -746,7 +770,8 @@ TEST_F(TridentTextureAtlasTest, GetRegionByIndex) {
     atlas.destroy();
 }
 
-TEST_F(TridentTextureAtlasTest, UploadAtlasData) {
+TEST_F(TridentTextureAtlasTest, UploadAtlasData)
+{
     TridentTextureAtlas atlas;
     ASSERT_TRUE(atlas.create(s_context, 64, 64, 16).success());
 
@@ -769,12 +794,11 @@ TEST_F(TridentTextureAtlasTest, UploadAtlasData) {
 
 class FrameManagerTest : public TridentTestBase {
 protected:
-    void SetUp() override {
-        TridentTestBase::SetUp();
-    }
+    void SetUp() override { TridentTestBase::SetUp(); }
 };
 
-TEST_F(FrameManagerTest, CreateFrameManager) {
+TEST_F(FrameManagerTest, CreateFrameManager)
+{
     FrameManager frameManager;
 
     auto result = frameManager.initialize(s_context, 2);
@@ -787,7 +811,8 @@ TEST_F(FrameManagerTest, CreateFrameManager) {
     EXPECT_FALSE(frameManager.isValid());
 }
 
-TEST_F(FrameManagerTest, FrameIndexCycling) {
+TEST_F(FrameManagerTest, FrameIndexCycling)
+{
     FrameManager frameManager;
     ASSERT_TRUE(frameManager.initialize(s_context, 2).success());
 
@@ -805,24 +830,24 @@ TEST_F(FrameManagerTest, FrameIndexCycling) {
 
 class UniformManagerTest : public TridentTestBase {
 protected:
-    void SetUp() override {
-        TridentTestBase::SetUp();
-    }
+    void SetUp() override { TridentTestBase::SetUp(); }
 };
 
 // 注意：UniformManager 需要 DescriptorManager，这里只测试结构大小
 
-TEST_F(UniformManagerTest, CameraUBOSize) {
+TEST_F(UniformManagerTest, CameraUBOSize)
+{
     // CameraUBO 应该对齐到 256 字节（Vulkan 要求）
     EXPECT_EQ(sizeof(CameraUBO), sizeof(glm::mat4) * 3);
 }
 
-TEST_F(UniformManagerTest, LightingUBOSize) {
+TEST_F(UniformManagerTest, LightingUBOSize)
+{
     // LightingUBO 大小检查
     EXPECT_GE(sizeof(LightingUBO),
-              sizeof(glm::vec3) + sizeof(f32) +  // sunDirection + sunIntensity
-              sizeof(glm::vec3) + sizeof(f32) +  // moonDirection + moonIntensity
-              sizeof(f32) + sizeof(f32));        // dayTime + gameTime
+        sizeof(glm::vec3) + sizeof(f32) +     // sunDirection + sunIntensity
+            sizeof(glm::vec3) + sizeof(f32) + // moonDirection + moonIntensity
+            sizeof(f32) + sizeof(f32));       // dayTime + gameTime
 }
 
 // ============================================================================
@@ -834,7 +859,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TridentPipelineConfigTest, DefaultConfiguration) {
+TEST_F(TridentPipelineConfigTest, DefaultConfiguration)
+{
     TridentPipelineConfig config;
 
     EXPECT_EQ(config.topology, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
@@ -847,7 +873,8 @@ TEST_F(TridentPipelineConfigTest, DefaultConfiguration) {
     EXPECT_DOUBLE_EQ(config.lineWidth, 1.0);
 }
 
-TEST_F(TridentPipelineConfigTest, DepthStencilDefaults) {
+TEST_F(TridentPipelineConfigTest, DepthStencilDefaults)
+{
     TridentPipelineConfig config;
 
     EXPECT_EQ(config.depthTestEnable, VK_TRUE);
@@ -856,7 +883,8 @@ TEST_F(TridentPipelineConfigTest, DepthStencilDefaults) {
     EXPECT_EQ(config.stencilTestEnable, VK_FALSE);
 }
 
-TEST_F(TridentPipelineConfigTest, BlendDefaults) {
+TEST_F(TridentPipelineConfigTest, BlendDefaults)
+{
     TridentPipelineConfig config;
 
     EXPECT_EQ(config.blendEnable, VK_FALSE);
@@ -874,7 +902,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(ExtendedRenderStateTest, BlendFactorValues) {
+TEST_F(ExtendedRenderStateTest, BlendFactorValues)
+{
     // 验证 BlendFactor 枚举值与 Vulkan 匹配
     EXPECT_EQ(static_cast<VkBlendFactor>(BlendFactor::Zero), VK_BLEND_FACTOR_ZERO);
     EXPECT_EQ(static_cast<VkBlendFactor>(BlendFactor::One), VK_BLEND_FACTOR_ONE);
@@ -884,7 +913,8 @@ TEST_F(ExtendedRenderStateTest, BlendFactorValues) {
     EXPECT_EQ(static_cast<VkBlendFactor>(BlendFactor::OneMinusDstAlpha), VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA);
 }
 
-TEST_F(ExtendedRenderStateTest, CompareOpValues) {
+TEST_F(ExtendedRenderStateTest, CompareOpValues)
+{
     // 验证 CompareOp 枚举值与 Vulkan 匹配
     EXPECT_EQ(static_cast<VkCompareOp>(CompareOp::Never), VK_COMPARE_OP_NEVER);
     EXPECT_EQ(static_cast<VkCompareOp>(CompareOp::Less), VK_COMPARE_OP_LESS);
@@ -896,7 +926,8 @@ TEST_F(ExtendedRenderStateTest, CompareOpValues) {
     EXPECT_EQ(static_cast<VkCompareOp>(CompareOp::Always), VK_COMPARE_OP_ALWAYS);
 }
 
-TEST_F(ExtendedRenderStateTest, CullModeValues) {
+TEST_F(ExtendedRenderStateTest, CullModeValues)
+{
     // 验证 CullMode 枚举值与 Vulkan 匹配
     EXPECT_EQ(static_cast<VkCullModeFlags>(CullMode::None), VK_CULL_MODE_NONE);
     EXPECT_EQ(static_cast<VkCullModeFlags>(CullMode::Front), VK_CULL_MODE_FRONT_BIT);
@@ -904,7 +935,8 @@ TEST_F(ExtendedRenderStateTest, CullModeValues) {
     EXPECT_EQ(static_cast<VkCullModeFlags>(CullMode::FrontAndBack), VK_CULL_MODE_FRONT_AND_BACK);
 }
 
-TEST_F(ExtendedRenderStateTest, RenderStateCopy) {
+TEST_F(ExtendedRenderStateTest, RenderStateCopy)
+{
     RenderState original = RenderState::solid();
     RenderState copy = original;
 
@@ -914,7 +946,8 @@ TEST_F(ExtendedRenderStateTest, RenderStateCopy) {
     EXPECT_EQ(original.rasterizer.cullMode, copy.rasterizer.cullMode);
 }
 
-TEST_F(ExtendedRenderStateTest, RenderTypePredefined) {
+TEST_F(ExtendedRenderStateTest, RenderTypePredefined)
+{
     // 测试所有预定义渲染类型
     auto solid = RenderType::solid();
     EXPECT_TRUE(solid.isValid());
@@ -942,30 +975,30 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(ExtendedMeshDataTest, LargeMeshReserve) {
+TEST_F(ExtendedMeshDataTest, LargeMeshReserve)
+{
     MeshData mesh;
-    mesh.reserve(10000, 60000);  // 10000 顶点, 60000 索引
+    mesh.reserve(10000, 60000); // 10000 顶点, 60000 索引
 
     // reserve 不改变 size
     EXPECT_EQ(mesh.vertexCount(), 0u);
     EXPECT_EQ(mesh.indexCount(), 0u);
 }
 
-TEST_F(ExtendedMeshDataTest, AddMultipleFaces) {
+TEST_F(ExtendedMeshDataTest, AddMultipleFaces)
+{
     MeshData mesh;
 
-    for (int i = 0; i < 6; ++i) {  // 立方体的 6 个面
-        std::array<Vertex, 4> faceVertices = {
-            Vertex(0, 0, 0, 0, 1, 0, 0, 0),
+    for (int i = 0; i < 6; ++i) { // 立方体的 6 个面
+        std::array<Vertex, 4> faceVertices = {Vertex(0, 0, 0, 0, 1, 0, 0, 0),
             Vertex(1, 0, 0, 0, 1, 0, 1, 0),
             Vertex(1, 1, 0, 0, 1, 0, 1, 1),
-            Vertex(0, 1, 0, 0, 1, 0, 0, 1)
-        };
+            Vertex(0, 1, 0, 0, 1, 0, 0, 1)};
         mesh.addFace(faceVertices, i * 4);
     }
 
-    EXPECT_EQ(mesh.vertexCount(), 24u);  // 6 面 * 4 顶点
-    EXPECT_EQ(mesh.indexCount(), 36u);   // 6 面 * 6 索引
+    EXPECT_EQ(mesh.vertexCount(), 24u); // 6 面 * 4 顶点
+    EXPECT_EQ(mesh.indexCount(), 36u);  // 6 面 * 6 索引
 }
 
 // main 函数由 gtest_main 库提供

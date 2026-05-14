@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -24,7 +24,10 @@ struct BasaltColumnFeatureConfig : public IFeatureConfig {
     BasaltColumnFeatureConfig() = default;
 
     explicit BasaltColumnFeatureConfig(i32 minH, i32 maxH, bool reach = false)
-        : minHeight(minH), maxHeight(maxH), reachCeiling(reach) {}
+        : minHeight(minH)
+        , maxHeight(maxH)
+        , reachCeiling(reach)
+    {}
 };
 
 /**
@@ -39,10 +42,7 @@ public:
      * @brief 放置玄武岩柱
      */
     bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const BasaltColumnFeatureConfig& config);
+        WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltColumnFeatureConfig& config);
 
 private:
     /**
@@ -53,8 +53,7 @@ private:
     /**
      * @brief 获取柱高度
      */
-    [[nodiscard]] i32 getColumnHeight(WorldGenRegion& world, const BlockPos& pos,
-                                       i32 minH, i32 maxH) const;
+    [[nodiscard]] i32 getColumnHeight(WorldGenRegion& world, const BlockPos& pos, i32 minH, i32 maxH) const;
 };
 
 /**
@@ -62,12 +61,9 @@ private:
  */
 class ConfiguredBasaltColumnFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredBasaltColumnFeature(
-        std::unique_ptr<BasaltColumnFeatureConfig> config,
-        const char* featureName);
+    ConfiguredBasaltColumnFeature(std::unique_ptr<BasaltColumnFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
@@ -119,7 +115,10 @@ struct BasaltDeltaFeatureConfig : public IFeatureConfig {
     BasaltDeltaFeatureConfig() = default;
 
     explicit BasaltDeltaFeatureConfig(i32 s, f32 magma, bool basalt = true)
-        : size(s), magmaChance(magma), useBasalt(basalt) {}
+        : size(s)
+        , magmaChance(magma)
+        , useBasalt(basalt)
+    {}
 };
 
 /**
@@ -134,10 +133,7 @@ public:
      * @brief 放置玄武岩三角洲特征
      */
     bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const BasaltDeltaFeatureConfig& config);
+        WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltDeltaFeatureConfig& config);
 };
 
 /**
@@ -145,12 +141,9 @@ public:
  */
 class ConfiguredBasaltDeltaFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredBasaltDeltaFeature(
-        std::unique_ptr<BasaltDeltaFeatureConfig> config,
-        const char* featureName);
+    ConfiguredBasaltDeltaFeature(std::unique_ptr<BasaltDeltaFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

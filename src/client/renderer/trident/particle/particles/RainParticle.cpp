@@ -1,11 +1,11 @@
 #include "RainParticle.hpp"
-#include "weather/SplashParticle.hpp"
-#include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/physics/PhysicsConstants.hpp"
-#include "common/world/block/Block.hpp"
 #include "client/world/ClientWorld.hpp"
+#include "common/physics/PhysicsConstants.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/Block.hpp"
+#include "weather/SplashParticle.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -64,9 +64,9 @@ RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setGravity(physics::RAIN_GRAVITY);
     setSize(DEFAULT_SIZE);
     setBoundingBox(RAIN_BBOX_WIDTH, RAIN_BBOX_HEIGHT);
-    setColor(glm::vec4(0.7f, 0.8f, 1.0f, 0.6f));  // 淡蓝色半透明
+    setColor(glm::vec4(0.7f, 0.8f, 1.0f, 0.6f)); // 淡蓝色半透明
     setFriction(physics::DRAG_AIR);
-    setHasPhysics(false);  // 雨滴使用自定义碰撞检测
+    setHasPhysics(false); // 雨滴使用自定义碰撞检测
 
     // 雨滴生命周期较短
     // 参考 MC: maxAge = (int)(8.0D / (Math.random() * 0.8D + 0.2D))
@@ -76,9 +76,7 @@ RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> RainParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<RainParticle>(pos, velocity);
@@ -120,14 +118,7 @@ void RainParticle::tick(mc::client::ClientWorld* world)
         AxisAlignedBB bbox = getBoundingBox();
 
         // 稍微向下探测，避免刚好贴着方块表面时漏检
-        AxisAlignedBB probeBox(
-            bbox.minX,
-            bbox.minY - GROUND_PROBE_EPSILON,
-            bbox.minZ,
-            bbox.maxX,
-            bbox.minY,
-            bbox.maxZ
-        );
+        AxisAlignedBB probeBox(bbox.minX, bbox.minY - GROUND_PROBE_EPSILON, bbox.minZ, bbox.maxX, bbox.minY, bbox.maxZ);
 
         if (hasGroundCollision(world, probeBox)) {
             m_collisionContext.onGround = true;
@@ -143,10 +134,7 @@ void RainParticle::tick(mc::client::ClientWorld* world)
             mc::math::Random rng;
             for (int i = 0; i < 2; ++i) {
                 glm::vec3 splashVelocity(
-                    (rng.nextFloat() - 0.5f) * 0.1f,
-                    rng.nextFloat() * 0.1f + 0.02f,
-                    (rng.nextFloat() - 0.5f) * 0.1f
-                );
+                    (rng.nextFloat() - 0.5f) * 0.1f, rng.nextFloat() * 0.1f + 0.02f, (rng.nextFloat() - 0.5f) * 0.1f);
                 m_emitCallback(ParticleTypeId::Splash, m_position, splashVelocity);
             }
         }

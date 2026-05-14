@@ -1,11 +1,11 @@
 #include "RedstonePower.hpp"
-#include "RedstoneHelper.hpp"
+#include "../../util/Direction.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockPos.hpp"
 #include "../block/VanillaBlocks.hpp"
 #include "../block/blocks/redstone/RedstoneWireBlock.hpp"
-#include "../../util/Direction.hpp"
+#include "RedstoneHelper.hpp"
 
 namespace mc {
 namespace world {
@@ -13,7 +13,8 @@ namespace redstone {
 
 // ========== 强信号 ==========
 
-i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos, Direction side) {
+i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos, Direction side)
+{
     const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         return MIN_POWER;
@@ -23,7 +24,8 @@ i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos, Direction 
     return state->getBlock().getStrongPower(*state, world, pos, side);
 }
 
-i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos) {
+i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos)
+{
     i32 maxPower = MIN_POWER;
 
     // 遍历六个方向
@@ -34,7 +36,7 @@ i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos) {
         maxPower = std::max(maxPower, power);
 
         if (maxPower >= MAX_POWER) {
-            break;  // 已经是最大值，无需继续
+            break; // 已经是最大值，无需继续
         }
     }
 
@@ -43,7 +45,8 @@ i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos) {
 
 // ========== 弱信号 ==========
 
-i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos, Direction side) {
+i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos, Direction side)
+{
     const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         return MIN_POWER;
@@ -53,7 +56,8 @@ i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos, Direction si
     return state->getBlock().getWeakPower(*state, world, pos, side);
 }
 
-i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos) {
+i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos)
+{
     i32 maxPower = MIN_POWER;
 
     // 遍历六个方向
@@ -64,7 +68,7 @@ i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos) {
         maxPower = std::max(maxPower, power);
 
         if (maxPower >= MAX_POWER) {
-            break;  // 已经是最大值，无需继续
+            break; // 已经是最大值，无需继续
         }
     }
 
@@ -73,12 +77,14 @@ i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos) {
 
 // ========== 充能检测 ==========
 
-bool RedstonePower::isPowered(IWorld& world, const BlockPos& pos) {
+bool RedstonePower::isPowered(IWorld& world, const BlockPos& pos)
+{
     // 检查是否被间接充能（相邻方块有强信号输出）
     return isIndirectlyPowered(world, pos);
 }
 
-bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos) {
+bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos)
+{
     // 遍历六个方向检查是否有强信号
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
@@ -95,7 +101,8 @@ bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos) {
     return false;
 }
 
-bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction side) {
+bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction side)
+{
     BlockPos neighborPos = pos.offset(side);
 
     const BlockState* neighborState = world.getBlockState(neighborPos);
@@ -118,7 +125,8 @@ bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction 
 
 // ========== 特殊信号计算 ==========
 
-i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
+i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos)
+{
     i32 maxPower = MIN_POWER;
 
     // 1. 从相邻信号源获取强信号
@@ -188,7 +196,8 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
     return maxPower;
 }
 
-i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direction facing) {
+i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direction facing)
+{
     // 输入端在比较器的背面（朝向的反方向）
     BlockPos inputPos = pos.offset(Directions::opposite(facing));
 
@@ -214,7 +223,7 @@ i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direct
     i32 power = MIN_POWER;
 
     // 从输入端方向获取信号
-    Direction inputDir = facing;  // 信号从输入端传来
+    Direction inputDir = facing; // 信号从输入端传来
     i32 weakPower = inputBlock.getWeakPower(*inputState, world, inputPos, inputDir);
     i32 strongPower = inputBlock.getStrongPower(*inputState, world, inputPos, inputDir);
 
@@ -223,7 +232,8 @@ i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direct
     return power;
 }
 
-i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& pos) {
+i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& pos)
+{
     i32 maxPower = MIN_POWER;
 
     for (Direction dir : Directions::all()) {
@@ -264,7 +274,8 @@ i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& 
 
 // ========== 私有方法 ==========
 
-bool RedstonePower::canConnectRedstone(const BlockState& state) {
+bool RedstonePower::canConnectRedstone(const BlockState& state)
+{
     // 检查方块是否可以连接红石
     // 可以输出红石信号或可以被红石充能的方块
     return state.getBlock().canProvidePower(state);

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "world/blockentity/ContainerBlockEntity.hpp"
-#include "entity/inventory/CraftingInventory.hpp"  // 包含 CraftingInventory 和 CraftResultInventory
+#include "entity/inventory/CraftingInventory.hpp" // 包含 CraftingInventory 和 CraftResultInventory
 #include "item/crafting/RecipeManager.hpp"
+#include "world/blockentity/ContainerBlockEntity.hpp"
 
 namespace mc {
 
@@ -31,7 +31,8 @@ public:
         : ContainerBlockEntity(BlockEntityType::CraftingTable, pos)
         , m_craftingGrid(GRID_WIDTH, GRID_HEIGHT)
         , m_result()
-        , m_currentRecipe(nullptr) {}
+        , m_currentRecipe(nullptr)
+    {}
 
     /**
      * @brief 获取合成网格
@@ -58,9 +59,7 @@ public:
      * @brief 获取容器大小
      * @return 9 (3x3网格)
      */
-    [[nodiscard]] i32 getContainerSize() const override {
-        return GRID_WIDTH * GRID_HEIGHT;
-    }
+    [[nodiscard]] i32 getContainerSize() const override { return GRID_WIDTH * GRID_HEIGHT; }
 
     /**
      * @brief 更新合成结果
@@ -70,9 +69,9 @@ public:
      *
      * @return 如果找到匹配配方返回true
      */
-    bool updateCraftingResult() {
-        const crafting::CraftingRecipe* recipe =
-            crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
+    bool updateCraftingResult()
+    {
+        const crafting::CraftingRecipe* recipe = crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
 
         if (recipe != m_currentRecipe) {
             m_currentRecipe = recipe;
@@ -91,9 +90,7 @@ public:
      * @brief 获取当前匹配的配方
      * @return 配方指针，如果没有匹配返回nullptr
      */
-    [[nodiscard]] const crafting::CraftingRecipe* getCurrentRecipe() const {
-        return m_currentRecipe;
-    }
+    [[nodiscard]] const crafting::CraftingRecipe* getCurrentRecipe() const { return m_currentRecipe; }
 
     /**
      * @brief 执行合成
@@ -103,7 +100,8 @@ public:
      *
      * @return 合成结果物品堆
      */
-    ItemStack craft() {
+    ItemStack craft()
+    {
         if (m_currentRecipe == nullptr) {
             return ItemStack();
         }
@@ -135,7 +133,8 @@ public:
      *
      * 清除网格和结果槽位的所有物品。
      */
-    void clear() {
+    void clear()
+    {
         m_craftingGrid.clear();
         m_result.clear();
         m_currentRecipe = nullptr;
@@ -147,7 +146,8 @@ public:
      * @param data JSON数据
      * @return 是否成功
      */
-    bool load(const nlohmann::json& data) override {
+    bool load(const nlohmann::json& data) override
+    {
         if (!ContainerBlockEntity::load(data)) {
             return false;
         }
@@ -165,7 +165,8 @@ public:
      * @brief 保存数据到JSON
      * @param data 输出JSON数据
      */
-    void save(nlohmann::json& data) const override {
+    void save(nlohmann::json& data) const override
+    {
         ContainerBlockEntity::save(data);
 
         // 保存网格内容（可选）
@@ -176,7 +177,8 @@ public:
      * @brief 克隆方块实体
      * @return 副本
      */
-    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override {
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override
+    {
         auto copy = std::make_unique<CraftingTableEntity>(m_pos);
         copy->m_customName = m_customName;
         // 注：不复制物品内容
@@ -187,17 +189,13 @@ public:
      * @brief 设置自定义名称
      * @param name 名称
      */
-    void setCustomName(const std::string& name) override {
-        m_customName = name;
-    }
+    void setCustomName(const std::string& name) override { m_customName = name; }
 
     /**
      * @brief 获取自定义名称
      * @return 自定义名称
      */
-    [[nodiscard]] std::string getCustomName() const override {
-        return m_customName;
-    }
+    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
 
 private:
     CraftingInventory m_craftingGrid;

@@ -9,60 +9,60 @@
  */
 
 // 保护类附魔
-#include "protection/ProtectionEnchantment.hpp"
 #include "protection/AllProtectionEnchantment.hpp"
-#include "protection/FireProtectionEnchantment.hpp"
-#include "protection/FeatherFallingEnchantment.hpp"
-#include "protection/BlastProtectionEnchantment.hpp"
-#include "protection/ProjectileProtectionEnchantment.hpp"
-#include "protection/ThornsEnchantment.hpp"
-#include "protection/RespirationEnchantment.hpp"
 #include "protection/AquaAffinityEnchantment.hpp"
+#include "protection/BlastProtectionEnchantment.hpp"
 #include "protection/DepthStriderEnchantment.hpp"
+#include "protection/FeatherFallingEnchantment.hpp"
+#include "protection/FireProtectionEnchantment.hpp"
 #include "protection/FrostWalkerEnchantment.hpp"
+#include "protection/ProjectileProtectionEnchantment.hpp"
+#include "protection/ProtectionEnchantment.hpp"
+#include "protection/RespirationEnchantment.hpp"
+#include "protection/ThornsEnchantment.hpp"
 
 // 武器类附魔
+#include "weapon/BaneOfArthropodsEnchantment.hpp"
 #include "weapon/DamageEnchantment.hpp"
+#include "weapon/FireAspectEnchantment.hpp"
+#include "weapon/KnockbackEnchantment.hpp"
+#include "weapon/LootingEnchantment.hpp"
 #include "weapon/SharpnessEnchantment.hpp"
 #include "weapon/SmiteEnchantment.hpp"
-#include "weapon/BaneOfArthropodsEnchantment.hpp"
-#include "weapon/KnockbackEnchantment.hpp"
-#include "weapon/FireAspectEnchantment.hpp"
-#include "weapon/LootingEnchantment.hpp"
 #include "weapon/SweepingEnchantment.hpp"
 
 // 工具类附魔
-#include "tool/EfficiencyEnchantment.hpp"
-#include "tool/UnbreakingEnchantment.hpp"
 #include "FortuneEnchantment.hpp"
 #include "SilkTouchEnchantment.hpp"
+#include "tool/EfficiencyEnchantment.hpp"
+#include "tool/UnbreakingEnchantment.hpp"
 
 // 弓类附魔
-#include "bow/PowerEnchantment.hpp"
-#include "bow/PunchEnchantment.hpp"
 #include "bow/FlameEnchantment.hpp"
 #include "bow/InfinityEnchantment.hpp"
+#include "bow/PowerEnchantment.hpp"
+#include "bow/PunchEnchantment.hpp"
 
 // 钓鱼类附魔
 #include "fishing/LuckOfTheSeaEnchantment.hpp"
 #include "fishing/LureEnchantment.hpp"
 
 // 三叉戟附魔
-#include "trident/LoyaltyEnchantment.hpp"
-#include "trident/ImpalingEnchantment.hpp"
-#include "trident/RiptideEnchantment.hpp"
 #include "trident/ChannelingEnchantment.hpp"
+#include "trident/ImpalingEnchantment.hpp"
+#include "trident/LoyaltyEnchantment.hpp"
+#include "trident/RiptideEnchantment.hpp"
 
 // 弩类附魔
 #include "crossbow/MultishotEnchantment.hpp"
-#include "crossbow/QuickChargeEnchantment.hpp"
 #include "crossbow/PiercingEnchantment.hpp"
+#include "crossbow/QuickChargeEnchantment.hpp"
 
 // 特殊附魔
-#include "special/MendingEnchantment.hpp"
-#include "special/VanishingCurseEnchantment.hpp"
 #include "special/BindingCurseEnchantment.hpp"
+#include "special/MendingEnchantment.hpp"
 #include "special/SoulSpeedEnchantment.hpp"
+#include "special/VanishingCurseEnchantment.hpp"
 
 namespace mc {
 namespace item {

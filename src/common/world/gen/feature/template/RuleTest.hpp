@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../../../core/Types.hpp"
-#include "../../../block/BlockPos.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/nbt/Nbt.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 
@@ -74,14 +74,10 @@ class AlwaysTrueRuleTest : public RuleTest {
 public:
     AlwaysTrueRuleTest() = default;
 
-    [[nodiscard]] bool test(const BlockState* /*state*/, math::Random& /*rng*/) const override {
-        return true;
-    }
+    [[nodiscard]] bool test(const BlockState* /*state*/, math::Random& /*rng*/) const override { return true; }
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AlwaysTrue); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
-        return std::make_unique<AlwaysTrueRuleTest>();
-    }
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override { return std::make_unique<AlwaysTrueRuleTest>(); }
 };
 
 /**
@@ -96,7 +92,8 @@ public:
     [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::BlockMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
+    {
         return std::make_unique<BlockMatchRuleTest>(m_blockId);
     }
 
@@ -118,7 +115,8 @@ public:
     [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::BlockStateMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
+    {
         return std::make_unique<BlockStateMatchRuleTest>(m_stateId);
     }
 
@@ -140,7 +138,8 @@ public:
     [[nodiscard]] bool test(const BlockState* state, math::Random& rng) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::RandomBlockMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
+    {
         return std::make_unique<RandomBlockMatchRuleTest>(m_blockId, m_probability);
     }
 
@@ -164,7 +163,8 @@ public:
     [[nodiscard]] bool test(const BlockState* state, math::Random& rng) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::RandomBlockStateMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
+    {
         return std::make_unique<RandomBlockStateMatchRuleTest>(m_stateId, m_probability);
     }
 
@@ -193,7 +193,8 @@ public:
     [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::TagMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
+    {
         return std::make_unique<TagMatchRuleTest>(m_tagId);
     }
 
@@ -221,10 +222,7 @@ public:
      * @return 是否匹配
      */
     [[nodiscard]] virtual bool test(
-        const BlockPos& originalPos,
-        const BlockPos& worldPos,
-        const BlockPos& seedPos,
-        math::Random& rng) const = 0;
+        const BlockPos& originalPos, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const = 0;
 
     /**
      * @brief 获取测试类型ID
@@ -246,16 +244,17 @@ class AlwaysTruePosRuleTest : public PosRuleTest {
 public:
     AlwaysTruePosRuleTest() = default;
 
-    [[nodiscard]] bool test(
-        const BlockPos& /*originalPos*/,
+    [[nodiscard]] bool test(const BlockPos& /*originalPos*/,
         const BlockPos& /*worldPos*/,
         const BlockPos& /*seedPos*/,
-        math::Random& /*rng*/) const override {
+        math::Random& /*rng*/) const override
+    {
         return true;
     }
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AlwaysTruePos); }
-    [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override {
+    [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
+    {
         return std::make_unique<AlwaysTruePosRuleTest>();
     }
 };
@@ -277,14 +276,14 @@ public:
      */
     LinearPosRuleTest(i32 minDistance, i32 maxDistance, f32 minProbability, f32 maxProbability);
 
-    [[nodiscard]] bool test(
-        const BlockPos& originalPos,
+    [[nodiscard]] bool test(const BlockPos& originalPos,
         const BlockPos& worldPos,
         const BlockPos& seedPos,
         math::Random& rng) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::LinearPos); }
-    [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override {
+    [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
+    {
         return std::make_unique<LinearPosRuleTest>(m_minDistance, m_maxDistance, m_minProbability, m_maxProbability);
     }
 
@@ -313,15 +312,16 @@ public:
      */
     AxisAlignedLinearPosTest(f32 minProbability, f32 maxProbability, i32 minDistance, i32 maxDistance, Axis axis);
 
-    [[nodiscard]] bool test(
-        const BlockPos& originalPos,
+    [[nodiscard]] bool test(const BlockPos& originalPos,
         const BlockPos& worldPos,
         const BlockPos& seedPos,
         math::Random& rng) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AxisAlignedLinearPos); }
-    [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override {
-        return std::make_unique<AxisAlignedLinearPosTest>(m_minProbability, m_maxProbability, m_minDistance, m_maxDistance, m_axis);
+    [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
+    {
+        return std::make_unique<AxisAlignedLinearPosTest>(
+            m_minProbability, m_maxProbability, m_minDistance, m_maxDistance, m_axis);
     }
 
 private:
@@ -348,17 +348,13 @@ public:
      * @param outputStateId 输出方块状态ID
      * @param outputNbt 输出NBT数据（可选，用于方块实体）
      */
-    RuleEntry(
-        std::unique_ptr<RuleTest> inputPredicate,
+    RuleEntry(std::unique_ptr<RuleTest> inputPredicate,
         std::unique_ptr<RuleTest> locationPredicate,
         std::unique_ptr<PosRuleTest> posPredicate,
         u32 outputStateId,
         std::optional<nbt::tags::compound_tag> outputNbt = std::nullopt);
 
-    RuleEntry(
-        std::unique_ptr<RuleTest> inputPredicate,
-        std::unique_ptr<RuleTest> locationPredicate,
-        u32 outputStateId);
+    RuleEntry(std::unique_ptr<RuleTest> inputPredicate, std::unique_ptr<RuleTest> locationPredicate, u32 outputStateId);
 
     /**
      * @brief 测试是否匹配规则
@@ -369,8 +365,7 @@ public:
      * @param seedPos 种子位置
      * @param rng 随机数生成器
      */
-    [[nodiscard]] bool matches(
-        const BlockState* inputState,
+    [[nodiscard]] bool matches(const BlockState* inputState,
         const BlockState* locationState,
         const BlockPos& originalPos,
         const BlockPos& worldPos,

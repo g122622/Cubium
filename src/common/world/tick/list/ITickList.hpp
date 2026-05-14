@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../base/TickPriority.hpp"
 #include "../../block/BlockPos.hpp"
+#include "../base/TickPriority.hpp"
 
 namespace mc::world::tick {
 
@@ -28,7 +28,7 @@ namespace mc::world::tick {
  *
  * @tparam T 目标类型（Block、Fluid等）
  */
-template<typename T>
+template <typename T>
 class ITickList {
 public:
     virtual ~ITickList() = default;
@@ -64,7 +64,8 @@ public:
      * @param target 目标
      * @param delay 延迟tick数（相对于当前游戏刻）
      */
-    virtual void scheduleTick(const BlockPos& pos, T& target, i32 delay) {
+    virtual void scheduleTick(const BlockPos& pos, T& target, i32 delay)
+    {
         scheduleTick(pos, target, delay, TickPriority::Normal);
     }
 
@@ -76,8 +77,7 @@ public:
      * @param delay 延迟tick数
      * @param priority 优先级
      */
-    virtual void scheduleTick(const BlockPos& pos, T& target, i32 delay,
-                              TickPriority priority) = 0;
+    virtual void scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority) = 0;
 
     /**
      * @brief 取消tick
@@ -88,7 +88,8 @@ public:
      * @param target 目标
      * @return 是否成功取消
      */
-    virtual bool cancelTick(const BlockPos& pos, T& target) {
+    virtual bool cancelTick(const BlockPos& pos, T& target)
+    {
         // 默认实现不支持取消
         return false;
     }

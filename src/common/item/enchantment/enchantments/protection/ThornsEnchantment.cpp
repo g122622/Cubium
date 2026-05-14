@@ -8,7 +8,8 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-bool ThornsEnchantment::shouldTrigger(i32 level, math::Random& random) {
+bool ThornsEnchantment::shouldTrigger(i32 level, math::Random& random)
+{
     if (level <= 0) {
         return false;
     }
@@ -17,7 +18,8 @@ bool ThornsEnchantment::shouldTrigger(i32 level, math::Random& random) {
     return random.nextFloat() < static_cast<f32>(level) * 0.15f;
 }
 
-i32 ThornsEnchantment::getThornsDamage(i32 level, math::Random& random) {
+i32 ThornsEnchantment::getThornsDamage(i32 level, math::Random& random)
+{
     // MC 1.16.5: getDamage(int level, Random rnd)
     // return level > 10 ? level - 10 : 1 + rnd.nextInt(4);
     // 等级 > 10 时返回 level - 10，否则返回 1-4
@@ -27,15 +29,15 @@ i32 ThornsEnchantment::getThornsDamage(i32 level, math::Random& random) {
     return 1 + random.nextInt(4);
 }
 
-void ThornsEnchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const {
+void ThornsEnchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const
+{
     // MC 1.16.5: ThornsEnchantment.onUserHurt()
     if (level <= 0 || &user == &attacker) {
         return;
     }
 
     // 使用用户实体的随机数生成器
-    math::Random rng(static_cast<u64>(user.id()) ^
-                    static_cast<u64>(user.ticksExisted()));
+    math::Random rng(static_cast<u64>(user.id()) ^ static_cast<u64>(user.ticksExisted()));
 
     // 检查是否触发荆棘效果
     if (!shouldTrigger(level, rng)) {

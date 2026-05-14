@@ -17,19 +17,25 @@ using VertexScalar = f64;
 // ============================================================================
 
 struct Vertex {
-    VertexScalar x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
-    VertexScalar nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
-    VertexScalar u = 0.0f, v = 0.0f;                 // 纹理坐标
-    u32 color = 0xFFFFFFFF;                  // 顶点颜色 (RGBA)
-    u8 light = 255;                          // 光照 (R8_UNORM 编码，0-255)
+    VertexScalar x = 0.0f, y = 0.0f, z = 0.0f;    // 位置
+    VertexScalar nx = 0.0f, ny = 0.0f, nz = 0.0f; // 法线
+    VertexScalar u = 0.0f, v = 0.0f;              // 纹理坐标
+    u32 color = 0xFFFFFFFF;                       // 顶点颜色 (RGBA)
+    u8 light = 255;                               // 光照 (R8_UNORM 编码，0-255)
 
     Vertex() = default;
     Vertex(f64 px, f64 py, f64 pz, f64 nu, f64 nv, f64 nw, f64 tu, f64 tv, u32 col = 0xFFFFFFFF, u8 l = 255)
-        : x(px), y(py), z(pz)
-        , nx(nu), ny(nv), nz(nw)
-        , u(tu), v(tv)
+        : x(px)
+        , y(py)
+        , z(pz)
+        , nx(nu)
+        , ny(nv)
+        , nz(nw)
+        , u(tu)
+        , v(tv)
         , color(col)
-        , light(l) {}
+        , light(l)
+    {}
 };
 
 // ============================================================================
@@ -37,12 +43,12 @@ struct Vertex {
 // ============================================================================
 
 enum class Face : u8 {
-    Bottom = 0,  // Y- (下)
-    Top = 1,     // Y+ (上)
-    North = 2,   // Z- (北)
-    South = 3,   // Z+ (南)
-    West = 4,    // X- (西)
-    East = 5,    // X+ (东)
+    Bottom = 0, // Y- (下)
+    Top = 1,    // Y+ (上)
+    North = 2,  // Z- (北)
+    South = 3,  // Z+ (南)
+    West = 4,   // X- (西)
+    East = 5,   // X+ (东)
     Count = 6
 };
 
@@ -84,27 +90,23 @@ struct MeshData {
     std::vector<Vertex> vertices;
     std::vector<u32> indices;
 
-    void clear() {
+    void clear()
+    {
         vertices.clear();
         indices.clear();
     }
 
-    void reserve(size_t vertexCount, size_t indexCount) {
+    void reserve(size_t vertexCount, size_t indexCount)
+    {
         vertices.reserve(vertexCount);
         indices.reserve(indexCount);
     }
 
-    [[nodiscard]] bool empty() const {
-        return vertices.empty();
-    }
+    [[nodiscard]] bool empty() const { return vertices.empty(); }
 
-    [[nodiscard]] size_t vertexCount() const {
-        return vertices.size();
-    }
+    [[nodiscard]] size_t vertexCount() const { return vertices.size(); }
 
-    [[nodiscard]] size_t indexCount() const {
-        return indices.size();
-    }
+    [[nodiscard]] size_t indexCount() const { return indices.size(); }
 
     // 添加一个面 (4个顶点 + 6个索引)
     void addFace(const std::array<Vertex, 4>& faceVertices, u32 baseIndex);
@@ -115,12 +117,16 @@ struct MeshData {
 // ============================================================================
 
 struct TextureRegion {
-    f64 u0, v0;  // 左上角
-    f64 u1, v1;  // 右下角
+    f64 u0, v0; // 左上角
+    f64 u1, v1; // 右下角
 
     TextureRegion() = default;
     TextureRegion(f64 u0_, f64 v0_, f64 u1_, f64 v1_)
-        : u0(u0_), v0(v0_), u1(u1_), v1(v1_) {}
+        : u0(u0_)
+        , v0(v0_)
+        , u1(u1_)
+        , v1(v1_)
+    {}
 };
 
 // ============================================================================

@@ -7,12 +7,14 @@ namespace resource {
 namespace compat {
 namespace v1_13 {
 
-std::string ResourceMapperV113::toLegacyTextureName(std::string_view name) const {
+std::string ResourceMapperV113::toLegacyTextureName(std::string_view name) const
+{
     // 为了与旧版资源包兼容
     return TextureMapper::instance().getLegacyName(name);
 }
 
-std::vector<std::string> ResourceMapperV113::getTexturePathVariants(std::string_view unifiedPath) const {
+std::vector<std::string> ResourceMapperV113::getTexturePathVariants(std::string_view unifiedPath) const
+{
     std::vector<std::string> variants;
 
     // 主要: 先尝试现代路径

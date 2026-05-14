@@ -22,38 +22,28 @@ class QuickChargeEnchantment : public Enchantment {
 public:
     QuickChargeEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:quick_charge";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:quick_charge"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.quick_charge";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Crossbow;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Crossbow; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 3;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 3; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Uncommon;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 12 + (level - 1) * 20;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 12 + (level - 1) * 20; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
         (void)level;
-        return 50;  // MC 1.16.5: 固定 50
+        return 50; // MC 1.16.5: 固定 50
     }
 
     /**
@@ -61,7 +51,8 @@ public:
      * @param level 附魔等级
      * @return 装填时间（tick）
      */
-    [[nodiscard]] static i32 getChargeTime(i32 level) {
+    [[nodiscard]] static i32 getChargeTime(i32 level)
+    {
         // 基础 1.25 秒 = 25 tick, 每级减少 0.25 秒 = 5 tick
         return 25 - level * 5;
     }
@@ -71,9 +62,7 @@ public:
      * @param level 附魔等级
      * @return 装填时间（秒）
      */
-    [[nodiscard]] static f32 getChargeTimeSeconds(i32 level) {
-        return static_cast<f32>(getChargeTime(level)) / 20.0f;
-    }
+    [[nodiscard]] static f32 getChargeTimeSeconds(i32 level) { return static_cast<f32>(getChargeTime(level)) / 20.0f; }
 };
 
 } // namespace enchant

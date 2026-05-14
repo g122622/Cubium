@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../../core/ActionResult.hpp"
 #include "../../core/Item.hpp"
 #include "../../core/UseAction.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../../core/Types.hpp"
 
 namespace mc {
 
@@ -13,7 +13,7 @@ class World;
 class ItemStack;
 
 namespace entity {
-    class FishingBobberEntity;
+class FishingBobberEntity;
 }
 
 namespace item {
@@ -63,10 +63,7 @@ public:
      *
      * 抛出或收回浮标。
      */
-    [[nodiscard]] ItemActionResult onItemRightClick(
-        IWorld& world,
-        Player& player,
-        Hand hand) override;
+    [[nodiscard]] ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     // ========== 钓鱼竿特有方法 ==========
 

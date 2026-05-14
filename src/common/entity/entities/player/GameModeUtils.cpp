@@ -1,6 +1,6 @@
 #include "GameModeUtils.hpp"
-#include "Player.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
+#include "Player.hpp"
 
 namespace mc {
 namespace entity {
@@ -18,22 +18,23 @@ struct ModeConfig {
     f32 walkSpeed;
 };
 
-constexpr size_t MODE_COUNT = 4;  // Survival, Creative, Adventure, Spectator
+constexpr size_t MODE_COUNT = 4; // Survival, Creative, Adventure, Spectator
 
 constexpr ModeConfig MODE_CONFIGS[] = {
-    {false, false, false, false, true,  physics::FLY_SPEED, physics::WALK_SPEED},   // Survival (0)
-    {true,  true,  false, true,  true,  physics::FLY_SPEED, physics::WALK_SPEED},    // Creative (1)
-    {false, false, false, false, false, physics::FLY_SPEED, physics::WALK_SPEED},    // Adventure (2)
-    {false, true,  true,  true,  false, physics::FLY_SPEED, physics::WALK_SPEED},    // Spectator (3)
+    {false, false, false, false, true, physics::FLY_SPEED, physics::WALK_SPEED},  // Survival (0)
+    {true, true, false, true, true, physics::FLY_SPEED, physics::WALK_SPEED},     // Creative (1)
+    {false, false, false, false, false, physics::FLY_SPEED, physics::WALK_SPEED}, // Adventure (2)
+    {false, true, true, true, false, physics::FLY_SPEED, physics::WALK_SPEED},    // Spectator (3)
 };
 } // namespace
 
-PlayerAbilities GameModeUtils::getAbilitiesForGameMode(GameMode mode) {
+PlayerAbilities GameModeUtils::getAbilitiesForGameMode(GameMode mode)
+{
     PlayerAbilities abilities;
 
     size_t index = static_cast<size_t>(mode);
     if (index >= MODE_COUNT) {
-        index = 0;  // 默认为 Survival
+        index = 0; // 默认为 Survival
     }
 
     const auto& config = MODE_CONFIGS[index];
@@ -48,31 +49,38 @@ PlayerAbilities GameModeUtils::getAbilitiesForGameMode(GameMode mode) {
     return abilities;
 }
 
-bool GameModeUtils::canFly(GameMode mode) {
+bool GameModeUtils::canFly(GameMode mode)
+{
     return mode == GameMode::Creative || mode == GameMode::Spectator;
 }
 
-bool GameModeUtils::isInvulnerable(GameMode mode) {
+bool GameModeUtils::isInvulnerable(GameMode mode)
+{
     return mode == GameMode::Creative || mode == GameMode::Spectator;
 }
 
-bool GameModeUtils::canEdit(GameMode mode) {
+bool GameModeUtils::canEdit(GameMode mode)
+{
     return mode != GameMode::Adventure && mode != GameMode::Spectator;
 }
 
-bool GameModeUtils::isCreative(GameMode mode) {
+bool GameModeUtils::isCreative(GameMode mode)
+{
     return mode == GameMode::Creative;
 }
 
-bool GameModeUtils::isSurvival(GameMode mode) {
+bool GameModeUtils::isSurvival(GameMode mode)
+{
     return mode == GameMode::Survival;
 }
 
-bool GameModeUtils::isAdventure(GameMode mode) {
+bool GameModeUtils::isAdventure(GameMode mode)
+{
     return mode == GameMode::Adventure;
 }
 
-bool GameModeUtils::isSpectator(GameMode mode) {
+bool GameModeUtils::isSpectator(GameMode mode)
+{
     return mode == GameMode::Spectator;
 }
 

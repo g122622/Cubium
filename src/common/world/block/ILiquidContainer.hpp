@@ -11,7 +11,7 @@ class BlockState;
 namespace fluid {
 class Fluid;
 class FluidState;
-}
+} // namespace fluid
 
 /**
  * @brief 液体容器接口
@@ -38,9 +38,8 @@ public:
      * @param fluid 要容纳的流体
      * @return 是否可以容纳
      */
-    [[nodiscard]] virtual bool canContainFluid(IWorld& world, const BlockPos& pos,
-                                                const BlockState& state,
-                                                const fluid::Fluid& fluid) const = 0;
+    [[nodiscard]] virtual bool canContainFluid(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid) const = 0;
 
     /**
      * @brief 接收流体
@@ -53,9 +52,8 @@ public:
      * @param fluidState 流入的流体状态
      * @return 是否成功接收
      */
-    virtual bool receiveFluid(IWorld& world, const BlockPos& pos,
-                              const BlockState& state,
-                              const fluid::FluidState& fluidState) = 0;
+    virtual bool receiveFluid(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::FluidState& fluidState) = 0;
 
     /**
      * @brief 检查是否包含流体
@@ -65,8 +63,7 @@ public:
      * @param state 当前方块状态
      * @return 是否包含流体
      */
-    [[nodiscard]] virtual bool containsFluid(IWorld& world, const BlockPos& pos,
-                                              const BlockState& state) const = 0;
+    [[nodiscard]] virtual bool containsFluid(IWorld& world, const BlockPos& pos, const BlockState& state) const = 0;
 };
 
 } // namespace mc

@@ -1,15 +1,15 @@
 #include "BeeEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -36,11 +36,13 @@ BeeEntity::BeeEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void BeeEntity::registerData() {
+void BeeEntity::registerData()
+{
     AnimalEntity::registerData();
 
     // MC 1.16.5 BeeEntity.registerData()
@@ -52,11 +54,13 @@ void BeeEntity::registerData() {
 // 数据参数辅助方法
 // ============================================================================
 
-bool BeeEntity::getBeeFlag(i8 flag) const {
+bool BeeEntity::getBeeFlag(i8 flag) const
+{
     return (m_dataManager.get(DATA_FLAGS_PARAM) & flag) != 0;
 }
 
-void BeeEntity::setBeeFlag(i8 flag, bool value) {
+void BeeEntity::setBeeFlag(i8 flag, bool value)
+{
     i8 flags = m_dataManager.get(DATA_FLAGS_PARAM);
     if (value) {
         m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(flags | flag));
@@ -69,22 +73,26 @@ void BeeEntity::setBeeFlag(i8 flag, bool value) {
 // 花粉状态（使用 DataParameter 同步）
 // ============================================================================
 
-bool BeeEntity::hasNectar() const {
+bool BeeEntity::hasNectar() const
+{
     return getBeeFlag(FLAG_HAS_NECTAR);
 }
 
-void BeeEntity::setHasNectar(bool nectar) {
+void BeeEntity::setHasNectar(bool nectar)
+{
     if (nectar != m_hasNectar) {
         m_hasNectar = nectar;
         setBeeFlag(FLAG_HAS_NECTAR, nectar);
     }
 }
 
-bool BeeEntity::hasStung() const {
+bool BeeEntity::hasStung() const
+{
     return getBeeFlag(FLAG_HAS_STUNG);
 }
 
-void BeeEntity::setHasStung(bool stung) {
+void BeeEntity::setHasStung(bool stung)
+{
     if (stung != m_hasStung) {
         m_hasStung = stung;
         setBeeFlag(FLAG_HAS_STUNG, stung);
@@ -95,16 +103,19 @@ void BeeEntity::setHasStung(bool stung) {
 // IAngerable 接口实现
 // ============================================================================
 
-i32 BeeEntity::getAngerTime() const {
+i32 BeeEntity::getAngerTime() const
+{
     return m_dataManager.get(ANGER_TIME_PARAM);
 }
 
-void BeeEntity::setAngerTime(i32 time) {
+void BeeEntity::setAngerTime(i32 time)
+{
     m_angerTime = time;
     m_dataManager.set(ANGER_TIME_PARAM, time);
 }
 
-void BeeEntity::setAngry(bool angry) {
+void BeeEntity::setAngry(bool angry)
+{
     if (angry) {
         // MC 1.16.5: 设置随机愤怒时间 (20-39 ticks)
         // 这里简化为设置最大愤怒时间
@@ -114,14 +125,16 @@ void BeeEntity::setAngry(bool angry) {
     }
 }
 
-void BeeEntity::setRevengeTarget(LivingEntity* target) {
+void BeeEntity::setRevengeTarget(LivingEntity* target)
+{
     m_attackTarget = target;
     if (target != nullptr) {
         setAngry(true);
     }
 }
 
-void BeeEntity::updateAnger() {
+void BeeEntity::updateAnger()
+{
     i32 angerTime = getAngerTime();
     if (angerTime > 0) {
         setAngerTime(angerTime - 1);
@@ -138,24 +151,28 @@ void BeeEntity::updateAnger() {
 // 生命周期
 // ============================================================================
 
-void BeeEntity::setHivePos(const BlockPos& pos) {
+void BeeEntity::setHivePos(const BlockPos& pos)
+{
     m_hivePos = pos;
     m_hasHive = true;
 }
 
-void BeeEntity::setFlowerPos(const BlockPos& pos) {
+void BeeEntity::setFlowerPos(const BlockPos& pos)
+{
     m_flowerPos = pos;
     m_hasFlower = true;
 }
 
-bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // TODO: 检查是否是花朵
     // return itemStack.getItem().isIn(ItemTags::FLOWERS);
     (void)itemStack;
     return false;
 }
 
-std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& partner) {
+std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& partner)
+{
     // TODO: 创建小蜜蜂
     // auto baby = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
     // baby->setChild(true);
@@ -168,7 +185,8 @@ std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& partner) {
 // 生命周期
 // ============================================================================
 
-void BeeEntity::tick() {
+void BeeEntity::tick()
+{
     AnimalEntity::tick();
 
     // MC 1.16.5: 更新愤怒计时器
@@ -192,7 +210,8 @@ void BeeEntity::tick() {
     // }
 }
 
-void BeeEntity::registerGoals() {
+void BeeEntity::registerGoals()
+{
     // 调用父类方法注册基础动物 AI
     // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
@@ -209,7 +228,8 @@ void BeeEntity::registerGoals() {
     // - BeeWanderGoal: 飞行漫步
 }
 
-void BeeEntity::registerAttributes() {
+void BeeEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 

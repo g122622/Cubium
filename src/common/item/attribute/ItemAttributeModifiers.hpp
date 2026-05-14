@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../entity/attribute/AttributeModifier.hpp"
 #include "../../entity/attribute/Attribute.hpp"
+#include "../../entity/attribute/AttributeModifier.hpp"
 #include "../../entity/core/LivingEntity.hpp"
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 
@@ -39,12 +39,13 @@ public:
     struct Entry {
         const entity::attribute::Attribute* attribute;
         entity::attribute::AttributeModifier modifier;
-        i32 equipmentSlot;  // 使用int代替EquipmentSlot避免循环依赖
+        i32 equipmentSlot; // 使用int代替EquipmentSlot避免循环依赖
 
-        Entry(const entity::attribute::Attribute* attr,
-              const entity::attribute::AttributeModifier& mod,
-              i32 slot)
-            : attribute(attr), modifier(mod), equipmentSlot(slot) {}
+        Entry(const entity::attribute::Attribute* attr, const entity::attribute::AttributeModifier& mod, i32 slot)
+            : attribute(attr)
+            , modifier(mod)
+            , equipmentSlot(slot)
+        {}
     };
 
     /**
@@ -54,8 +55,8 @@ public:
      * @param slot 装备槽位
      */
     void add(const entity::attribute::Attribute* attribute,
-             const entity::attribute::AttributeModifier& modifier,
-             i32 equipmentSlot);
+        const entity::attribute::AttributeModifier& modifier,
+        i32 equipmentSlot);
 
     /**
      * @brief 获取所有修饰符

@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Types.hpp"
 #include <glm/glm.hpp>
+#include <gtest/gtest.h>
 
 using namespace mc::client::renderer::trident::particle;
 
@@ -12,7 +12,8 @@ using namespace mc::client::renderer::trident::particle;
  */
 class ParticleManagerPendingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 确保 ParticleRegistry 已初始化
         ParticleRegistry::instance();
     }
@@ -21,20 +22,22 @@ protected:
 /**
  * @brief 测试添加待处理粒子
  */
-TEST_F(ParticleManagerPendingTest, AddPendingParticle) {
+TEST_F(ParticleManagerPendingTest, AddPendingParticle)
+{
     ParticleManager manager;
 
     // 添加待处理粒子
     manager.addPendingParticle(ParticleTypeId::Flame, glm::vec3(0.0f), glm::vec3(0.0f, 0.1f, 0.0f));
 
     EXPECT_EQ(manager.pendingParticleCount(), 1);
-    EXPECT_EQ(manager.particleCount(), 0);  // 还没有处理
+    EXPECT_EQ(manager.particleCount(), 0); // 还没有处理
 }
 
 /**
  * @brief 测试清除待处理粒子
  */
-TEST_F(ParticleManagerPendingTest, ClearPending) {
+TEST_F(ParticleManagerPendingTest, ClearPending)
+{
     ParticleManager manager;
 
     manager.addPendingParticle(ParticleTypeId::Flame, glm::vec3(0.0f), glm::vec3(0.0f));
@@ -52,7 +55,8 @@ TEST_F(ParticleManagerPendingTest, ClearPending) {
  *
  * 注意：processPendingParticles 是私有方法，通过 tick() 间接测试
  */
-TEST_F(ParticleManagerPendingTest, ProcessPendingParticles) {
+TEST_F(ParticleManagerPendingTest, ProcessPendingParticles)
+{
     ParticleManager manager;
 
     // 添加待处理粒子
@@ -76,14 +80,13 @@ TEST_F(ParticleManagerPendingTest, ProcessPendingParticles) {
 /**
  * @brief 测试待处理粒子数量限制
  */
-TEST_F(ParticleManagerPendingTest, PendingParticleLimit) {
+TEST_F(ParticleManagerPendingTest, PendingParticleLimit)
+{
     ParticleManager manager;
 
     // 添加超过最大粒子数的待处理粒子
     for (size_t i = 0; i < 20000; ++i) {
-        manager.addPendingParticle(ParticleTypeId::Flame,
-                                   glm::vec3(static_cast<float>(i)),
-                                   glm::vec3(0.0f));
+        manager.addPendingParticle(ParticleTypeId::Flame, glm::vec3(static_cast<float>(i)), glm::vec3(0.0f));
     }
 
     // 应该被限制在 MAX_PARTICLES
@@ -95,15 +98,14 @@ TEST_F(ParticleManagerPendingTest, PendingParticleLimit) {
  */
 class ParticleManagerDistanceCullingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        ParticleRegistry::instance();
-    }
+    void SetUp() override { ParticleRegistry::instance(); }
 };
 
 /**
  * @brief 测试设置相机位置
  */
-TEST_F(ParticleManagerDistanceCullingTest, SetCameraPosition) {
+TEST_F(ParticleManagerDistanceCullingTest, SetCameraPosition)
+{
     ParticleManager manager;
 
     manager.setCameraPosition(glm::vec3(100.0f, 64.0f, 100.0f));
@@ -115,7 +117,8 @@ TEST_F(ParticleManagerDistanceCullingTest, SetCameraPosition) {
 /**
  * @brief 测试设置最大粒子距离
  */
-TEST_F(ParticleManagerDistanceCullingTest, SetMaxParticleDistance) {
+TEST_F(ParticleManagerDistanceCullingTest, SetMaxParticleDistance)
+{
     ParticleManager manager;
 
     manager.setMaxParticleDistance(128.0f);
@@ -129,7 +132,8 @@ TEST_F(ParticleManagerDistanceCullingTest, SetMaxParticleDistance) {
  *
  * MC 1.16.5 默认为 256 格
  */
-TEST_F(ParticleManagerDistanceCullingTest, DefaultMaxDistance) {
+TEST_F(ParticleManagerDistanceCullingTest, DefaultMaxDistance)
+{
     // 默认值在头文件中定义，通过行为间接测试
     ParticleManager manager;
 
@@ -149,7 +153,8 @@ TEST_F(ParticleManagerDistanceCullingTest, DefaultMaxDistance) {
 /**
  * @brief 测试距离裁剪禁用
  */
-TEST_F(ParticleManagerDistanceCullingTest, DisableDistanceCulling) {
+TEST_F(ParticleManagerDistanceCullingTest, DisableDistanceCulling)
+{
     ParticleManager manager;
 
     // 设置距离为 0 表示禁用距离裁剪
@@ -173,15 +178,14 @@ TEST_F(ParticleManagerDistanceCullingTest, DisableDistanceCulling) {
  */
 class ParticleManagerAliveCountTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        ParticleRegistry::instance();
-    }
+    void SetUp() override { ParticleRegistry::instance(); }
 };
 
 /**
  * @brief 测试空 ParticleManager 的存活粒子计数
  */
-TEST_F(ParticleManagerAliveCountTest, EmptyManager) {
+TEST_F(ParticleManagerAliveCountTest, EmptyManager)
+{
     ParticleManager manager;
 
     EXPECT_EQ(manager.aliveParticleCount(), 0);
@@ -191,7 +195,8 @@ TEST_F(ParticleManagerAliveCountTest, EmptyManager) {
 /**
  * @brief 测试清除所有粒子
  */
-TEST_F(ParticleManagerAliveCountTest, ClearParticles) {
+TEST_F(ParticleManagerAliveCountTest, ClearParticles)
+{
     ParticleManager manager;
 
     manager.clear();
@@ -205,15 +210,14 @@ TEST_F(ParticleManagerAliveCountTest, ClearParticles) {
  */
 class ParticleManagerInitTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        ParticleRegistry::instance();
-    }
+    void SetUp() override { ParticleRegistry::instance(); }
 };
 
 /**
  * @brief 测试未初始化状态
  */
-TEST_F(ParticleManagerInitTest, NotInitializedByDefault) {
+TEST_F(ParticleManagerInitTest, NotInitializedByDefault)
+{
     ParticleManager manager;
 
     EXPECT_FALSE(manager.isInitialized());

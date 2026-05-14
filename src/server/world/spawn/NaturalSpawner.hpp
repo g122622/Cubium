@@ -1,18 +1,18 @@
 #pragma once
 
-#include "common/world/spawn/MobSpawnInfo.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassification.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/spawn/MobSpawnInfo.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 
@@ -82,8 +82,8 @@ public:
      * @param densityTracker 密度追踪器
      */
     EntityDensityManager(i32 viewDistance,
-                         std::unordered_map<entity::EntityClassification, i32> entityCounts,
-                         MobDensityTracker& densityTracker);
+        std::unordered_map<entity::EntityClassification, i32> entityCounts,
+        MobDensityTracker& densityTracker);
 
     /**
      * @brief 检查是否可以生成指定类型的实体
@@ -99,9 +99,8 @@ public:
      * @param spawnCosts 生成成本
      * @return 是否可以生成
      */
-    [[nodiscard]] bool canSpawnWithDensity(const std::string& entityTypeId,
-                                            const Vector3& pos,
-                                            const SpawnCosts& spawnCosts) const;
+    [[nodiscard]] bool canSpawnWithDensity(
+        const std::string& entityTypeId, const Vector3& pos, const SpawnCosts& spawnCosts) const;
 
     /**
      * @brief 记录实体生成后的密度变化
@@ -109,9 +108,7 @@ public:
      * @param pos 生成位置
      * @param spawnCosts 生成成本
      */
-    void onSpawn(const std::string& entityTypeId,
-                 const Vector3& pos,
-                 const SpawnCosts& spawnCosts);
+    void onSpawn(const std::string& entityTypeId, const Vector3& pos, const SpawnCosts& spawnCosts);
 
     /**
      * @brief 获取指定分类的当前实体数量
@@ -168,8 +165,8 @@ public:
      * @param spawnInfo 生物群系生成信息
      * @param random 随机数生成器
      */
-    void spawnInChunk(mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ,
-                      const MobSpawnInfo& spawnInfo, math::Random& random);
+    void spawnInChunk(
+        mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ, const MobSpawnInfo& spawnInfo, math::Random& random);
 
     /**
      * @brief 在世界中进行自然生成（每tick调用）
@@ -241,9 +238,9 @@ public:
     static constexpr i32 MAX_WATER_CREATURES = 5;
 
 private:
-    i32 m_spawnDistance = 8;   // 生成距离（区块）
-    i32 m_spawnRange = 20;     // 玩家周围生成范围（方块）
-    i32 m_maxEntities = 200;   // 最大实体数量
+    i32 m_spawnDistance = 8; // 生成距离（区块）
+    i32 m_spawnRange = 20;   // 玩家周围生成范围（方块）
+    i32 m_maxEntities = 200; // 最大实体数量
 
     /// 密度追踪器
     MobDensityTracker m_densityTracker;
@@ -259,8 +256,7 @@ private:
     /**
      * @brief 在指定区块中为指定分类执行生成
      */
-    void spawnForClassificationInChunk(
-        entity::EntityClassification classification,
+    void spawnForClassificationInChunk(entity::EntityClassification classification,
         mc::server::ServerWorld& world,
         const ChunkData* chunk,
         const Vector3& playerPos,
@@ -271,40 +267,35 @@ private:
      * @brief 在指定位置尝试生成实体
      * @return 生成的实体数量
      */
-    i32 trySpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z,
-                   const SpawnEntry& entry, math::Random& random);
+    i32 trySpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random);
 
     /**
      * @brief 随机选择生成条目
      */
-    [[nodiscard]] const SpawnEntry* selectEntry(
-        const std::vector<SpawnEntry>& entries, math::Random& random) const;
+    [[nodiscard]] const SpawnEntry* selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random) const;
 
     /**
      * @brief 检查位置是否可以生成
      */
-    [[nodiscard]] bool canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z,
-                                   const SpawnEntry& entry) const;
+    [[nodiscard]] bool canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry) const;
 
     /**
      * @brief 检查光照条件
      */
-    [[nodiscard]] bool checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z,
-                                        bool isMonster) const;
+    [[nodiscard]] bool checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster) const;
 
     /**
      * @brief 获取生成高度
      */
-    [[nodiscard]] i32 getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z,
-                                      HeightmapType heightmapType) const;
+    [[nodiscard]] i32 getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const;
 
     /**
      * @brief 获取区块内的随机高度位置
      */
     [[nodiscard]] Vector3i getRandomSpawnPosition(mc::server::ServerWorld& world,
-                                                   const ChunkData* chunk,
-                                                   HeightmapType heightmapType,
-                                                   math::Random& random) const;
+        const ChunkData* chunk,
+        HeightmapType heightmapType,
+        math::Random& random) const;
 
     /**
      * @brief 检查位置是否在玩家附近的有效生成区域
@@ -313,17 +304,15 @@ private:
      * @param playerDistanceSq 玩家距离的平方
      * @return 是否可以生成
      */
-    [[nodiscard]] bool isValidSpawnPosition(mc::server::ServerWorld& world,
-                                             const Vector3i& pos,
-                                             f64 playerDistanceSq) const;
+    [[nodiscard]] bool isValidSpawnPosition(
+        mc::server::ServerWorld& world, const Vector3i& pos, f64 playerDistanceSq) const;
 
     /**
      * @brief 选择指定分类的生成条目
      *
      * 参考 MC 1.16.5 WorldEntitySpawner.getRandomSpawnEntry
      */
-    [[nodiscard]] const SpawnEntry* getRandomSpawnEntry(
-        mc::server::ServerWorld& world,
+    [[nodiscard]] const SpawnEntry* getRandomSpawnEntry(mc::server::ServerWorld& world,
         const ChunkData* chunk,
         entity::EntityClassification classification,
         const Vector3i& pos,
@@ -345,9 +334,7 @@ private:
      * @return 可生成区块的坐标列表
      */
     [[nodiscard]] std::vector<ChunkPos> getSpawnableChunks(
-        mc::server::ServerWorld& world,
-        i32 maxChunks,
-        math::Random& random) const;
+        mc::server::ServerWorld& world, i32 maxChunks, math::Random& random) const;
 
     /**
      * @brief 检查实体类型是否应该在当前条件下生成
@@ -358,9 +345,7 @@ private:
      * @param worldTime 世界时间（游戏刻）
      * @return 是否可以生成该分类
      */
-    [[nodiscard]] bool isSpawnCategoryReady(
-        entity::EntityClassification classification,
-        u64 worldTime) const;
+    [[nodiscard]] bool isSpawnCategoryReady(entity::EntityClassification classification, u64 worldTime) const;
 };
 
 } // namespace world::spawn

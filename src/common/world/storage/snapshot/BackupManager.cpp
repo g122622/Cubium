@@ -1,8 +1,8 @@
 #include "BackupManager.hpp"
 #include "../db/RocksDBDatabase.hpp"
 #include "perfetto/TraceEvents.hpp"
-#include <spdlog/spdlog.h>
 #include <rocksdb/utilities/backup_engine.h>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
 
@@ -21,8 +21,7 @@ struct BackupManager::Impl {
 BackupManager::BackupManager(const std::filesystem::path& backupDir)
     : m_impl(std::make_unique<Impl>())
     , m_backupDir(backupDir)
-{
-}
+{}
 
 BackupManager::~BackupManager() = default;
 
@@ -35,15 +34,14 @@ BackupManager& BackupManager::operator=(BackupManager&&) noexcept = default;
 
 Result<std::unique_ptr<BackupManager>> BackupManager::open(const std::filesystem::path& backupDir)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::open",
-                   "path", backupDir.string());
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::open", "path", backupDir.string());
 
     // 创建备份目录
     try {
         std::filesystem::create_directories(backupDir);
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                     fmt::format("Failed to create backup directory: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create backup directory: {}", e.what()));
     }
 
     auto manager = std::unique_ptr<BackupManager>(new BackupManager(backupDir));
@@ -54,8 +52,7 @@ Result<std::unique_ptr<BackupManager>> BackupManager::open(const std::filesystem
     rocksdb::Status status = rocksdb::BackupEngine::Open(rocksdb::Env::Default(), options, &engine);
 
     if (!status.ok()) {
-        return Error(ErrorCode::RocksDBError,
-                     fmt::format("Failed to open backup engine: {}", status.ToString()));
+        return Error(ErrorCode::RocksDBError, fmt::format("Failed to open backup engine: {}", status.ToString()));
     }
 
     manager->m_impl->engine.reset(engine);
@@ -68,12 +65,10 @@ Result<std::unique_ptr<BackupManager>> BackupManager::open(const std::filesystem
 // 备份操作
 // ============================================================================
 
-Result<BackupID> BackupManager::createBackup(RocksDBDatabase& db,
-                                              const std::string& name,
-                                              const std::string& description)
+Result<BackupID> BackupManager::createBackup(
+    RocksDBDatabase& db, const std::string& name, const std::string& description)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::createBackup",
-                   "name", name);
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::createBackup", "name", name);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -83,10 +78,10 @@ Result<BackupID> BackupManager::createBackup(RocksDBDatabase& db,
     std::string metadata;
     if (!name.empty() || !description.empty()) {
         metadata = fmt::format(R"({{"name":"{}","description":"{}","timestamp":{}}})",
-                               name, description,
-                               std::chrono::duration_cast<std::chrono::milliseconds>(
-                                   std::chrono::system_clock::now().time_since_epoch()
-                               ).count());
+            name,
+            description,
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count());
     }
 
     // 创建备份
@@ -98,8 +93,7 @@ Result<BackupID> BackupManager::createBackup(RocksDBDatabase& db,
     }
 
     if (!status.ok()) {
-        return Error(ErrorCode::RocksDBError,
-                     fmt::format("Failed to create backup: {}", status.ToString()));
+        return Error(ErrorCode::RocksDBError, fmt::format("Failed to create backup: {}", status.ToString()));
     }
 
     // 获取最新的备份ID
@@ -134,7 +128,7 @@ Result<std::vector<SnapshotMetadata>> BackupManager::listBackups()
         meta.timestamp = info.timestamp;
         meta.size = info.size;
         meta.fileCount = static_cast<u32>(info.number_files);
-        meta.name = "";  // 从 metadata 解析
+        meta.name = ""; // 从 metadata 解析
         meta.description = "";
 
         // 解析元数据
@@ -162,19 +156,16 @@ Result<std::vector<SnapshotMetadata>> BackupManager::listBackups()
     }
 
     // 按时间戳降序排序
-    std::sort(result.begin(), result.end(),
-              [](const SnapshotMetadata& a, const SnapshotMetadata& b) {
-                  return a.timestamp > b.timestamp;
-              });
+    std::sort(result.begin(), result.end(), [](const SnapshotMetadata& a, const SnapshotMetadata& b) {
+        return a.timestamp > b.timestamp;
+    });
 
     return result;
 }
 
-Result<void> BackupManager::restoreBackup(BackupID id,
-                                            const std::filesystem::path& targetDir)
+Result<void> BackupManager::restoreBackup(BackupID id, const std::filesystem::path& targetDir)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::restoreBackup",
-                   "id", id, "target", targetDir.string());
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::restoreBackup", "id", id, "target", targetDir.string());
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -193,20 +184,17 @@ Result<void> BackupManager::restoreBackup(BackupID id,
     }
 
     if (!found) {
-        return Error(ErrorCode::SnapshotNotFound,
-                     fmt::format("Backup {} not found", id));
+        return Error(ErrorCode::SnapshotNotFound, fmt::format("Backup {} not found", id));
     }
 
     // 恢复备份
-    rocksdb::Status status = m_impl->engine->RestoreDBFromBackup(
-        static_cast<rocksdb::BackupID>(id),
-        targetDir.string(),  // db_dir
-        targetDir.string()   // wal_dir
+    rocksdb::Status status = m_impl->engine->RestoreDBFromBackup(static_cast<rocksdb::BackupID>(id),
+        targetDir.string(), // db_dir
+        targetDir.string()  // wal_dir
     );
 
     if (!status.ok()) {
-        return Error(ErrorCode::SnapshotRestoreFailed,
-                     fmt::format("Failed to restore backup: {}", status.ToString()));
+        return Error(ErrorCode::SnapshotRestoreFailed, fmt::format("Failed to restore backup: {}", status.ToString()));
     }
 
     spdlog::info("Restored backup {} to {}", id, targetDir.string());
@@ -215,8 +203,7 @@ Result<void> BackupManager::restoreBackup(BackupID id,
 
 Result<void> BackupManager::deleteBackup(BackupID id)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::deleteBackup",
-                   "id", id);
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::deleteBackup", "id", id);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -225,8 +212,7 @@ Result<void> BackupManager::deleteBackup(BackupID id)
     rocksdb::Status status = m_impl->engine->DeleteBackup(static_cast<rocksdb::BackupID>(id));
 
     if (!status.ok()) {
-        return Error(ErrorCode::RocksDBError,
-                     fmt::format("Failed to delete backup: {}", status.ToString()));
+        return Error(ErrorCode::RocksDBError, fmt::format("Failed to delete backup: {}", status.ToString()));
     }
 
     spdlog::info("Deleted backup {}", id);
@@ -235,8 +221,7 @@ Result<void> BackupManager::deleteBackup(BackupID id)
 
 Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::pruneOldBackups",
-                   "keepCount", keepCount);
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::pruneOldBackups", "keepCount", keepCount);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -247,7 +232,7 @@ Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
     m_impl->engine->GetBackupInfo(&infos);
 
     if (infos.size() <= keepCount) {
-        return 0;  // 无需删除
+        return 0; // 无需删除
     }
 
     size_t toDelete = infos.size() - keepCount;
@@ -257,8 +242,7 @@ Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
     rocksdb::Status status = m_impl->engine->PurgeOldBackups(static_cast<u32>(keepCount));
 
     if (!status.ok()) {
-        return Error(ErrorCode::RocksDBError,
-                     fmt::format("Failed to purge old backups: {}", status.ToString()));
+        return Error(ErrorCode::RocksDBError, fmt::format("Failed to purge old backups: {}", status.ToString()));
     }
 
     spdlog::info("Purged {} old backups, keeping {}", toDelete, keepCount);
@@ -267,8 +251,7 @@ Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
 
 Result<bool> BackupManager::verifyBackup(BackupID id)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::verifyBackup",
-                   "id", id);
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::verifyBackup", "id", id);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -278,10 +261,9 @@ Result<bool> BackupManager::verifyBackup(BackupID id)
 
     if (!status.ok()) {
         if (status.IsNotFound()) {
-            return false;  // 备份不存在
+            return false; // 备份不存在
         }
-        return Error(ErrorCode::SnapshotCorrupted,
-                     fmt::format("Backup verification failed: {}", status.ToString()));
+        return Error(ErrorCode::SnapshotCorrupted, fmt::format("Backup verification failed: {}", status.ToString()));
     }
 
     return true;

@@ -1,17 +1,17 @@
 #include "BlazeFireballAttackGoal.hpp"
-#include "../../../../entities/monster/nether/BlazeEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
+#include "../../../../../core/Types.hpp"
+#include "../../../../../util/assert/AssertAll.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../attribute/Attributes.hpp"
 #include "../../../../core/Entity.hpp"
+#include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/monster/nether/BlazeEntity.hpp"
+#include "../../../../entities/projectile/AbstractFireballEntity.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../controller/MovementController.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
-#include "../../../../entities/projectile/AbstractFireballEntity.hpp"
-#include "../../../../../core/Types.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -22,7 +22,8 @@ BlazeFireballAttackGoal::BlazeFireballAttackGoal(BlazeEntity* blaze)
     MC_ASSERT_RELEASE(blaze != nullptr);
 }
 
-bool BlazeFireballAttackGoal::shouldExecute() {
+bool BlazeFireballAttackGoal::shouldExecute()
+{
     if (m_blaze == nullptr) {
         return false;
     }
@@ -42,7 +43,8 @@ bool BlazeFireballAttackGoal::shouldExecute() {
     return true;
 }
 
-bool BlazeFireballAttackGoal::shouldContinueExecuting() {
+bool BlazeFireballAttackGoal::shouldContinueExecuting()
+{
     if (m_blaze == nullptr || m_target == nullptr) {
         return false;
     }
@@ -55,14 +57,16 @@ bool BlazeFireballAttackGoal::shouldContinueExecuting() {
     return true;
 }
 
-void BlazeFireballAttackGoal::startExecuting() {
+void BlazeFireballAttackGoal::startExecuting()
+{
     // MC 1.16.5: 重置攻击状态
     m_attackStep = 0;
     m_attackTime = 0;
     m_unseenTime = 0;
 }
 
-void BlazeFireballAttackGoal::resetTask() {
+void BlazeFireballAttackGoal::resetTask()
+{
     // MC 1.16.5: 清除燃烧状态
     m_target = nullptr;
     m_attackStep = 0;
@@ -74,7 +78,8 @@ void BlazeFireballAttackGoal::resetTask() {
     }
 }
 
-void BlazeFireballAttackGoal::tick() {
+void BlazeFireballAttackGoal::tick()
+{
     if (m_blaze == nullptr || m_target == nullptr) {
         return;
     }
@@ -134,7 +139,8 @@ void BlazeFireballAttackGoal::tick() {
     }
 }
 
-bool BlazeFireballAttackGoal::isTargetValid(LivingEntity* target) const {
+bool BlazeFireballAttackGoal::isTargetValid(LivingEntity* target) const
+{
     if (target == nullptr) {
         return false;
     }
@@ -152,16 +158,18 @@ bool BlazeFireballAttackGoal::isTargetValid(LivingEntity* target) const {
     return true;
 }
 
-f64 BlazeFireballAttackGoal::getFollowDistance() const {
+f64 BlazeFireballAttackGoal::getFollowDistance() const
+{
     if (m_blaze == nullptr) {
-        return 16.0;  // 默认追踪范围
+        return 16.0; // 默认追踪范围
     }
 
     // MC 1.16.5: 从属性获取追踪范围
     return m_blaze->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
-void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 distanceToTargetSq) {
+void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 distanceToTargetSq)
+{
     if (m_blaze == nullptr || target == nullptr) {
         return;
     }
@@ -176,11 +184,11 @@ void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 di
 
         if (m_attackStep == 1) {
             // 阶段1：开始充能
-            m_attackTime = CHARGE_TIME;  // 60 ticks
+            m_attackTime = CHARGE_TIME; // 60 ticks
             m_blaze->setCharging(true);
         } else if (m_attackStep <= MAX_FIREBALLS + 1) {
             // 阶段2-4：发射火球（最多3个）
-            m_attackTime = FIREBALL_INTERVAL;  // 6 ticks
+            m_attackTime = FIREBALL_INTERVAL; // 6 ticks
 
             // 计算散布
             // MC 1.16.5: float f = MathHelper.sqrt(MathHelper.sqrt(distSq)) * 0.5F
@@ -189,8 +197,7 @@ void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 di
             math::Random& rng = m_blaze->world()->getRandom();
 
             // 创建并发射小火球
-            auto fireball = std::make_unique<SmallFireballEntity>(
-                LegacyEntityType::SmallFireball, EntityId(0));
+            auto fireball = std::make_unique<SmallFireballEntity>(LegacyEntityType::SmallFireball, EntityId(0));
 
             // 设置世界
             fireball->setWorld(m_blaze->world());
@@ -212,10 +219,7 @@ void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 di
             // MC 1.16.5: 小火球使用加速度而非速度
             // 加速度 = 方向 * 0.1
             fireball->setAcceleration(
-                static_cast<f32>(accelX * 0.1),
-                static_cast<f32>(accelY * 0.1),
-                static_cast<f32>(accelZ * 0.1)
-            );
+                static_cast<f32>(accelX * 0.1), static_cast<f32>(accelY * 0.1), static_cast<f32>(accelZ * 0.1));
 
             // 在世界中生成火球
             if (m_blaze->world()) {
@@ -226,7 +230,7 @@ void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 di
             }
         } else {
             // 阶段5：冷却
-            m_attackTime = COOLDOWN_TIME;  // 100 ticks
+            m_attackTime = COOLDOWN_TIME; // 100 ticks
             m_attackStep = 0;
             m_blaze->setCharging(false);
         }

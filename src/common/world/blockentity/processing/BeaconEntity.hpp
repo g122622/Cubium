@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "world/blockentity/BlockEntity.hpp"
 #include "entity/effect/EffectType.hpp"
 #include "item/core/ItemStack.hpp"
+#include "world/blockentity/BlockEntity.hpp"
 #include <array>
 #include <memory>
 #include <vector>
@@ -30,10 +30,14 @@ struct BeaconBeamSegment {
     BeaconBeamSegment() = default;
 
     explicit BeaconBeamSegment(f32 r, f32 g, f32 b)
-        : colors{r, g, b}, height(1) {}
+        : colors{r, g, b}
+        , height(1)
+    {}
 
     explicit BeaconBeamSegment(const std::array<f32, 3>& colorArray)
-        : colors(colorArray), height(1) {}
+        : colors(colorArray)
+        , height(1)
+    {}
 
     /**
      * @brief 增加高度
@@ -116,7 +120,10 @@ public:
      * @brief 获取主效果
      * @return 主效果类型
      */
-    [[nodiscard]] const EffectType* getPrimaryEffect() const { return m_primaryEffect.has_value() ? &m_primaryEffect.value() : nullptr; }
+    [[nodiscard]] const EffectType* getPrimaryEffect() const
+    {
+        return m_primaryEffect.has_value() ? &m_primaryEffect.value() : nullptr;
+    }
 
     /**
      * @brief 设置主效果
@@ -128,7 +135,10 @@ public:
      * @brief 获取辅助效果
      * @return 辅助效果类型
      */
-    [[nodiscard]] const EffectType* getSecondaryEffect() const { return m_secondaryEffect.has_value() ? &m_secondaryEffect.value() : nullptr; }
+    [[nodiscard]] const EffectType* getSecondaryEffect() const
+    {
+        return m_secondaryEffect.has_value() ? &m_secondaryEffect.value() : nullptr;
+    }
 
     /**
      * @brief 设置辅助效果
@@ -235,15 +245,14 @@ private:
      * @return 叠加后的颜色
      */
     [[nodiscard]] static std::array<f32, 3> blendColors(
-        const std::array<f32, 3>& current,
-        const std::array<f32, 3>& newColor);
+        const std::array<f32, 3>& current, const std::array<f32, 3>& newColor);
 
-    i32 m_level = 0;                            ///< 金字塔等级 (0-4)
-    i32 m_tickCount = 0;                        ///< tick计数器
-    std::optional<EffectType> m_primaryEffect;   ///< 主效果
-    std::optional<EffectType> m_secondaryEffect; ///< 辅助效果
-    ItemStack m_paymentItem;                    ///< 支付物品槽位
-    bool m_lastBeamState = false;               ///< 上一帧光束状态
+    i32 m_level = 0;                               ///< 金字塔等级 (0-4)
+    i32 m_tickCount = 0;                           ///< tick计数器
+    std::optional<EffectType> m_primaryEffect;     ///< 主效果
+    std::optional<EffectType> m_secondaryEffect;   ///< 辅助效果
+    ItemStack m_paymentItem;                       ///< 支付物品槽位
+    bool m_lastBeamState = false;                  ///< 上一帧光束状态
     std::vector<BeaconBeamSegment> m_beamSegments; ///< 光束段列表（客户端渲染用）
 
     /// 等级对应的有效效果
@@ -252,7 +261,3 @@ private:
 
 } // namespace blockentity
 } // namespace mc
-
-
-
-

@@ -1,18 +1,18 @@
 #include "ChestRenderer.hpp"
-#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/block/Block.hpp"
-#include <ctime>
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include <cmath>
+#include <ctime>
 
 namespace mc::client::renderer::trident::blockentity {
 
 ChestRenderer::ChestRenderer()
     : BlockEntityRenderer<mc::blockentity::ChestEntity>()
     , m_model()
-{
-}
+{}
 
-bool ChestRenderer::isChristmas() {
+bool ChestRenderer::isChristmas()
+{
     // MC 1.16.5: 12月24-26日使用圣诞节纹理
     const std::time_t now = std::time(nullptr);
     std::tm localTime{};
@@ -22,7 +22,7 @@ bool ChestRenderer::isChristmas() {
     localtime_r(&now, &localTime);
 #endif
 
-    const int month = localTime.tm_mon + 1;  // tm_mon 是 0-11
+    const int month = localTime.tm_mon + 1; // tm_mon 是 0-11
     const int day = localTime.tm_mday;
 
     return month == 12 && day >= 24 && day <= 26;
@@ -39,10 +39,7 @@ mc::client::renderer::blockentity::model::ChestModel::ChestType ChestRenderer::d
     return mc::client::renderer::blockentity::model::ChestModel::ChestType::Single;
 }
 
-void ChestRenderer::render(
-    const mc::blockentity::ChestEntity& entity,
-    f32 partialTick,
-    u32 light)
+void ChestRenderer::render(const mc::blockentity::ChestEntity& entity, f32 partialTick, u32 light)
 {
     // 获取插值后的盖子角度
     const f32 lidAngle = entity.getInterpolatedLidAngle(partialTick);

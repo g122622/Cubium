@@ -28,8 +28,7 @@ public:
      * @param lightManager 光照管理器引用
      * @param chunkManager 区块管理器引用
      */
-    LightSyncManager(WorldLightManager& lightManager,
-                     ServerChunkManager& chunkManager);
+    LightSyncManager(WorldLightManager& lightManager, ServerChunkManager& chunkManager);
 
     /**
      * @brief 区块加载后初始化光照

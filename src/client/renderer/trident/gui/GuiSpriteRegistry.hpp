@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "client/renderer/trident/gui/GuiSprite.hpp"
+#include "common/core/Types.hpp"
 #include <vector>
 
 namespace mc::client::renderer::trident::gui {
@@ -31,30 +31,22 @@ public:
     /**
      * @brief 注册widgets.png中的默认精灵到 GuiSpriteManager
      */
-    static void registerWidgetsSprites(GuiSpriteManager& manager,
-                                        i32 atlasWidth = 256,
-                                        i32 atlasHeight = 256);
+    static void registerWidgetsSprites(GuiSpriteManager& manager, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     /**
      * @brief 注册icons.png中的默认精灵到 GuiSpriteManager
      */
-    static void registerIconsSprites(GuiSpriteManager& manager,
-                                      i32 atlasWidth = 256,
-                                      i32 atlasHeight = 256);
+    static void registerIconsSprites(GuiSpriteManager& manager, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     /**
      * @brief 注册容器GUI精灵到 GuiSpriteManager
      */
-    static void registerContainerSprites(GuiSpriteManager& manager,
-                                          i32 atlasWidth = 256,
-                                          i32 atlasHeight = 256);
+    static void registerContainerSprites(GuiSpriteManager& manager, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     /**
      * @brief 注册所有默认精灵到 GuiSpriteManager
      */
-    static void registerAllDefaults(GuiSpriteManager& manager,
-                                     i32 atlasWidth = 256,
-                                     i32 atlasHeight = 256);
+    static void registerAllDefaults(GuiSpriteManager& manager, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     // ==================== GuiTextureAtlas 重载（依赖Vulkan）====================
 
@@ -70,9 +62,7 @@ public:
      * @param atlasWidth 图集宽度（默认256）
      * @param atlasHeight 图集高度（默认256）
      */
-    static void registerWidgetsSprites(GuiTextureAtlas& atlas,
-                                        i32 atlasWidth = 256,
-                                        i32 atlasHeight = 256);
+    static void registerWidgetsSprites(GuiTextureAtlas& atlas, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     /**
      * @brief 注册icons.png中的默认精灵到 GuiTextureAtlas
@@ -89,9 +79,7 @@ public:
      * @param atlasWidth 图集宽度（默认256）
      * @param atlasHeight 图集高度（默认256）
      */
-    static void registerIconsSprites(GuiTextureAtlas& atlas,
-                                      i32 atlasWidth = 256,
-                                      i32 atlasHeight = 256);
+    static void registerIconsSprites(GuiTextureAtlas& atlas, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     /**
      * @brief 注册容器GUI精灵到 GuiTextureAtlas
@@ -104,9 +92,7 @@ public:
      * @param atlasWidth 图集宽度（默认256）
      * @param atlasHeight 图集高度（默认256）
      */
-    static void registerContainerSprites(GuiTextureAtlas& atlas,
-                                          i32 atlasWidth = 256,
-                                          i32 atlasHeight = 256);
+    static void registerContainerSprites(GuiTextureAtlas& atlas, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     /**
      * @brief 注册所有默认精灵到 GuiTextureAtlas
@@ -117,9 +103,7 @@ public:
      * @param atlasWidth 图集宽度（默认256）
      * @param atlasHeight 图集高度（默认256）
      */
-    static void registerAllDefaults(GuiTextureAtlas& atlas,
-                                     i32 atlasWidth = 256,
-                                     i32 atlasHeight = 256);
+    static void registerAllDefaults(GuiTextureAtlas& atlas, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     // ==================== GuiSpriteAtlas 重载（整合类）====================
 
@@ -130,9 +114,7 @@ public:
      * @param atlasWidth 图集宽度（0=自动使用图集实际尺寸）
      * @param atlasHeight 图集高度（0=自动使用图集实际尺寸）
      */
-    static void registerWidgetsSprites(GuiSpriteAtlas& atlas,
-                                        i32 atlasWidth = 0,
-                                        i32 atlasHeight = 0);
+    static void registerWidgetsSprites(GuiSpriteAtlas& atlas, i32 atlasWidth = 0, i32 atlasHeight = 0);
 
     /**
      * @brief 注册icons.png中的默认精灵到 GuiSpriteAtlas
@@ -141,9 +123,7 @@ public:
      * @param atlasWidth 图集宽度（0=自动使用图集实际尺寸）
      * @param atlasHeight 图集高度（0=自动使用图集实际尺寸）
      */
-    static void registerIconsSprites(GuiSpriteAtlas& atlas,
-                                      i32 atlasWidth = 0,
-                                      i32 atlasHeight = 0);
+    static void registerIconsSprites(GuiSpriteAtlas& atlas, i32 atlasWidth = 0, i32 atlasHeight = 0);
 
     /**
      * @brief 注册容器GUI精灵到 GuiSpriteAtlas
@@ -152,9 +132,7 @@ public:
      * @param atlasWidth 图集宽度（0=自动使用图集实际尺寸）
      * @param atlasHeight 图集高度（0=自动使用图集实际尺寸）
      */
-    static void registerContainerSprites(GuiSpriteAtlas& atlas,
-                                          i32 atlasWidth = 0,
-                                          i32 atlasHeight = 0);
+    static void registerContainerSprites(GuiSpriteAtlas& atlas, i32 atlasWidth = 0, i32 atlasHeight = 0);
 
     /**
      * @brief 注册所有默认精灵到 GuiSpriteAtlas
@@ -163,9 +141,7 @@ public:
      * @param atlasWidth 图集宽度（0=自动使用图集实际尺寸）
      * @param atlasHeight 图集高度（0=自动使用图集实际尺寸）
      */
-    static void registerAllDefaults(GuiSpriteAtlas& atlas,
-                                     i32 atlasWidth = 0,
-                                     i32 atlasHeight = 0);
+    static void registerAllDefaults(GuiSpriteAtlas& atlas, i32 atlasWidth = 0, i32 atlasHeight = 0);
 
     // ==================== 精灵列表获取（用于调试）====================
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ItemUseContext.hpp"
 #include "../../world/block/Block.hpp"
+#include "ItemUseContext.hpp"
 
 namespace mc {
 
@@ -26,12 +26,12 @@ public:
      * @param playerYaw 玩家yaw角度（用于计算水平朝向）
      */
     BlockItemUseContext(IWorld& world,
-                        Player* player,
-                        const ItemStack& stack,
-                        const Vector3& hitPos,
-                        const BlockPos& blockPos,
-                        Direction face,
-                        f32 playerYaw = 0.0f);
+        Player* player,
+        const ItemStack& stack,
+        const Vector3& hitPos,
+        const BlockPos& blockPos,
+        Direction face,
+        f32 playerYaw = 0.0f);
 
     ~BlockItemUseContext() override = default;
 

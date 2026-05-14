@@ -17,9 +17,8 @@ PigModel::PigModel()
     m_textureHeight = 32;
 }
 
-void PigModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale) {
+void PigModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 调用基类动画
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
@@ -81,9 +80,8 @@ CowModel::CowModel()
     m_textureHeight = 32;
 }
 
-void CowModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale) {
+void CowModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
     (void)scale;
@@ -127,9 +125,8 @@ SheepModel::SheepModel()
     m_textureHeight = 32;
 }
 
-void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 ageInTicks, f64 netHeadYaw,
-                            f64 headPitch, f64 scale) {
+void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
     // 参考 MC 1.16.5 SheepModel.setRotationAngles
@@ -141,7 +138,8 @@ void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     (void)ageInTicks;
 }
 
-void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/) {
+void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
+{
     // 参考 MC 1.16.5 SheepModel.setLivingAnimations
     // Java:
     //   this.headModel.rotationPointY = 6.0F + entityIn.getHeadRotationPointY(partialTick) * 9.0F;
@@ -155,7 +153,7 @@ void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
 // ==================== ChickenModel ====================
 
 ChickenModel::ChickenModel()
-    : AgeableModel()  // 使用 AgeableModel 默认构造函数
+    : AgeableModel() // 使用 AgeableModel 默认构造函数
 {
     // 参考 MC 1.16.5 ChickenModel
     m_head = std::make_shared<ModelRenderer>("head");
@@ -221,7 +219,8 @@ ChickenModel::ChickenModel()
     m_textureHeight = 32;
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getHeadParts() const {
+std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getHeadParts() const
+{
     std::vector<std::shared_ptr<ModelRenderer>> parts;
     parts.push_back(m_head);
     parts.push_back(m_beak);
@@ -232,7 +231,8 @@ std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getHeadParts() const {
     return parts;
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getBodyParts() const {
+std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getBodyParts() const
+{
     std::vector<std::shared_ptr<ModelRenderer>> parts;
     parts.push_back(m_body);
     parts.push_back(m_rightWing);
@@ -242,13 +242,14 @@ std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getBodyParts() const {
     return parts;
 }
 
-void ChickenModel::render(f64 scale) {
+void ChickenModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void ChickenModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void ChickenModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 头部旋转
     m_head->setRotateAngleX(static_cast<f32>(math::toRadians(static_cast<f32>(headPitch))));
     m_head->setRotateAngleY(static_cast<f32>(math::toRadians(static_cast<f32>(netHeadYaw))));

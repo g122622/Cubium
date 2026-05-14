@@ -16,59 +16,40 @@ namespace command {
 void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto lootNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("loot");
-    lootNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        lootNode,
+    lootNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(lootNode,
         support::makeMetadata(
-            "Drops items from a loot table.",
-            "/loot <give|insert|replace|spawn> <target> <loot_table>",
-            2,
-            {},
-            true));
+            "Drops items from a loot table.", "/loot <give|insert|replace|spawn> <target> <loot_table>", 2, {}, true));
 
     // /loot give <targets> <loot_table>
     auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
     auto giveTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::players());
+        "targets", EntityArgumentType::players());
     auto giveLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "loot_table",
-        StringArgumentType::string());
-    giveLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return giveLoot(ctx);
-    });
+        "loot_table", StringArgumentType::string());
+    giveLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return giveLoot(ctx); });
     giveTargetsArg->addChild(giveLootArg);
     giveNode->addChild(giveTargetsArg);
     lootNode->addChild(giveNode);
 
     // /loot spawn <pos> <loot_table>
     auto spawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawn");
-    auto spawnPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
+    auto spawnPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
     auto spawnLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "loot_table",
-        StringArgumentType::string());
-    spawnLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return spawnLoot(ctx);
-    });
+        "loot_table", StringArgumentType::string());
+    spawnLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return spawnLoot(ctx); });
     spawnPosArg->addChild(spawnLootArg);
     spawnNode->addChild(spawnPosArg);
     lootNode->addChild(spawnNode);
 
     // /loot insert <pos> <loot_table>
     auto insertNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("insert");
-    auto insertPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
+    auto insertPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
     auto insertLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "loot_table",
-        StringArgumentType::string());
-    insertLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return insertLoot(ctx);
-    });
+        "loot_table", StringArgumentType::string());
+    insertLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return insertLoot(ctx); });
     insertPosArg->addChild(insertLootArg);
     insertNode->addChild(insertPosArg);
     lootNode->addChild(insertNode);
@@ -78,35 +59,25 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto entityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
     auto entityTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::entities());
-    auto entitySlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "slot",
-        StringArgumentType::string());
+        "targets", EntityArgumentType::entities());
+    auto entitySlotArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("slot", StringArgumentType::string());
     auto entityLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "loot_table",
-        StringArgumentType::string());
-    entityLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return replaceLoot(ctx);
-    });
+        "loot_table", StringArgumentType::string());
+    entityLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceLoot(ctx); });
     entitySlotArg->addChild(entityLootArg);
     entityTargetsArg->addChild(entitySlotArg);
     entityNode->addChild(entityTargetsArg);
     replaceNode->addChild(entityNode);
 
     auto blockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto blockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
-    auto blockSlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "slot",
-        StringArgumentType::string());
+    auto blockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    auto blockSlotArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("slot", StringArgumentType::string());
     auto blockLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "loot_table",
-        StringArgumentType::string());
-    blockLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return replaceLoot(ctx);
-    });
+        "loot_table", StringArgumentType::string());
+    blockLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceLoot(ctx); });
     blockSlotArg->addChild(blockLootArg);
     blockPosArg->addChild(blockSlotArg);
     blockNode->addChild(blockPosArg);

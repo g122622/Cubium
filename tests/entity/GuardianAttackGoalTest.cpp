@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
 #include <memory>
+#include <gtest/gtest.h>
 
+#include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/special/GuardianAttackGoal.hpp"
+#include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/core/EntityUtils.hpp"
-#include "common/core/EnumSet.hpp"
 #include "common/util/math/random/Random.hpp"
 
 using namespace mc;
@@ -17,7 +17,8 @@ using namespace mc;
 
 class GuardianAttackGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 设置代码
     }
 };
@@ -26,17 +27,18 @@ protected:
 // 常量验证测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, AttackDistances_AreCorrect) {
+TEST_F(GuardianAttackGoalTest, AttackDistances_AreCorrect)
+{
     // MC 1.16.5 GuardianEntity 常量验证
     // 攻击范围：15 格 (激光攻击范围)
     // 充能时间：60 tick (3 秒)
     // 冷却时间：20 tick (1 秒)
 
     // 这些常量在 GuardianAttackGoal.hpp 中定义
-    constexpr i32 CHARGE_DURATION = 60;    // 充能时间
-    constexpr i32 COOLDOWN_DURATION = 20;  // 冷却时间
-    constexpr f32 ATTACK_RANGE = 15.0f;    // 攻击范围
-    constexpr f32 LASER_DAMAGE = 4.0f;     // 激光伤害
+    constexpr i32 CHARGE_DURATION = 60;   // 充能时间
+    constexpr i32 COOLDOWN_DURATION = 20; // 冷却时间
+    constexpr f32 ATTACK_RANGE = 15.0f;   // 攻击范围
+    constexpr f32 LASER_DAMAGE = 4.0f;    // 激光伤害
 
     EXPECT_EQ(CHARGE_DURATION, 60);
     EXPECT_EQ(COOLDOWN_DURATION, 20);
@@ -44,10 +46,11 @@ TEST_F(GuardianAttackGoalTest, AttackDistances_AreCorrect) {
     EXPECT_FLOAT_EQ(LASER_DAMAGE, 4.0f);
 }
 
-TEST_F(GuardianAttackGoalTest, TargetSelectionDistance_IsCorrect) {
+TEST_F(GuardianAttackGoalTest, TargetSelectionDistance_IsCorrect)
+{
     // MC 1.16.5: 守卫者只攻击距离 > 3 格的目标
     // 参考 GuardianEntity.TargetPredicate.test()
-    constexpr f64 MIN_TARGET_DISTANCE_SQ = 9.0;  // 3.0 * 3.0
+    constexpr f64 MIN_TARGET_DISTANCE_SQ = 9.0; // 3.0 * 3.0
 
     EXPECT_DOUBLE_EQ(MIN_TARGET_DISTANCE_SQ, 9.0);
 }
@@ -56,27 +59,23 @@ TEST_F(GuardianAttackGoalTest, TargetSelectionDistance_IsCorrect) {
 // 目标类型筛选测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, TargetTypes_PlayerAndSquidOnly) {
+TEST_F(GuardianAttackGoalTest, TargetTypes_PlayerAndSquidOnly)
+{
     // MC 1.16.5: 守卫者只攻击玩家和鱿鱼
     // 参考 GuardianEntity.TargetPredicate.test():
     // return (p_test_1_ instanceof PlayerEntity || p_test_1_ instanceof SquidEntity)
     //     && p_test_1_.getDistanceSq(this.parentEntity) > 9.0D;
 
     // 验证目标类型筛选逻辑
-    std::vector<LegacyEntityType> validTargets = {
-        LegacyEntityType::Player,
-        LegacyEntityType::Squid
-    };
+    std::vector<LegacyEntityType> validTargets = {LegacyEntityType::Player, LegacyEntityType::Squid};
 
-    std::vector<LegacyEntityType> invalidTargets = {
-        LegacyEntityType::Zombie,
+    std::vector<LegacyEntityType> invalidTargets = {LegacyEntityType::Zombie,
         LegacyEntityType::Skeleton,
         LegacyEntityType::Cow,
         LegacyEntityType::Pig,
         LegacyEntityType::Dolphin,  // 同为水生生物，但不被攻击
-        LegacyEntityType::Guardian,  // 同类
-        LegacyEntityType::ElderGuardian
-    };
+        LegacyEntityType::Guardian, // 同类
+        LegacyEntityType::ElderGuardian};
 
     // 验证有效目标
     for (auto type : validTargets) {
@@ -95,7 +94,8 @@ TEST_F(GuardianAttackGoalTest, TargetTypes_PlayerAndSquidOnly) {
 // GoalFlag 配置测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, GoalFlags_MoveAndLook) {
+TEST_F(GuardianAttackGoalTest, GoalFlags_MoveAndLook)
+{
     // GuardianAttackGoal 使用 MOVE 和 LOOK 标志
     // 参考 GuardianEntity.AttackGoal 构造函数:
     // this.setMutexFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
@@ -113,29 +113,31 @@ TEST_F(GuardianAttackGoalTest, GoalFlags_MoveAndLook) {
 // 距离计算测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, DistanceCheck_GreaterThanThree) {
+TEST_F(GuardianAttackGoalTest, DistanceCheck_GreaterThanThree)
+{
     // MC 1.16.5: 目标必须距离 > 3 格
 
     // 距离平方 <= 9 应该被排除
-    f64 distSq1 = 8.0;   // 2.83 格
-    f64 distSq2 = 9.0;   // 正好 3 格
-    f64 distSq3 = 10.0;  // 3.16 格
+    f64 distSq1 = 8.0;  // 2.83 格
+    f64 distSq2 = 9.0;  // 正好 3 格
+    f64 distSq3 = 10.0; // 3.16 格
 
-    EXPECT_FALSE(distSq1 > 9.0);  // 2.83 格，太近，应该排除
-    EXPECT_FALSE(distSq2 > 9.0);  // 正好 3 格，应该排除
-    EXPECT_TRUE(distSq3 > 9.0);   // 3.16 格，应该接受
+    EXPECT_FALSE(distSq1 > 9.0); // 2.83 格，太近，应该排除
+    EXPECT_FALSE(distSq2 > 9.0); // 正好 3 格，应该排除
+    EXPECT_TRUE(distSq3 > 9.0);  // 3.16 格，应该接受
 }
 
-TEST_F(GuardianAttackGoalTest, AttackRange_WithinFifteen) {
+TEST_F(GuardianAttackGoalTest, AttackRange_WithinFifteen)
+{
     // MC 1.16.5: 激光攻击范围是 15 格
 
     constexpr f32 ATTACK_RANGE = 15.0f;
     constexpr f32 ATTACK_RANGE_SQ = ATTACK_RANGE * ATTACK_RANGE;
 
     // 15 格内应该可以攻击
-    f64 distSq1 = 100.0;   // 10 格
-    f64 distSq2 = 225.0;   // 正好 15 格
-    f64 distSq3 = 256.0;   // 16 格
+    f64 distSq1 = 100.0; // 10 格
+    f64 distSq2 = 225.0; // 正好 15 格
+    f64 distSq3 = 256.0; // 16 格
 
     EXPECT_TRUE(distSq1 <= ATTACK_RANGE_SQ);
     EXPECT_TRUE(distSq2 <= ATTACK_RANGE_SQ);
@@ -146,7 +148,8 @@ TEST_F(GuardianAttackGoalTest, AttackRange_WithinFifteen) {
 // 充能和冷却时序测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, Timing_SequenceCorrect) {
+TEST_F(GuardianAttackGoalTest, Timing_SequenceCorrect)
+{
     // MC 1.16.5: 激光攻击的时序
     // 1. shouldExecute() - 检查是否有目标
     // 2. startExecuting() - 初始化攻击状态
@@ -158,16 +161,17 @@ TEST_F(GuardianAttackGoalTest, Timing_SequenceCorrect) {
     constexpr i32 COOLDOWN_DURATION = 20; // 冷却时间
     constexpr i32 TOTAL_CYCLE = CHARGE_DURATION + COOLDOWN_DURATION;
 
-    EXPECT_EQ(CHARGE_DURATION, 60);    // 3 秒充能
-    EXPECT_EQ(COOLDOWN_DURATION, 20);  // 1 秒冷却
-    EXPECT_EQ(TOTAL_CYCLE, 80);        // 完整攻击周期
+    EXPECT_EQ(CHARGE_DURATION, 60);   // 3 秒充能
+    EXPECT_EQ(COOLDOWN_DURATION, 20); // 1 秒冷却
+    EXPECT_EQ(TOTAL_CYCLE, 80);       // 完整攻击周期
 }
 
 // ============================================================================
 // EntityUtils 搜索功能测试（验证搜索逻辑）
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate) {
+TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate)
+{
     // 验证 EntityUtils::findClosestEntity 的谓词逻辑
     // 这与我们实现 selectTarget() 的逻辑一致
 
@@ -189,16 +193,16 @@ TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate) {
     };
 
     // 测试玩家在有效距离
-    EXPECT_TRUE(guardianTargetPredicate(LegacyEntityType::Player, 10.0));  // 3.16 格
+    EXPECT_TRUE(guardianTargetPredicate(LegacyEntityType::Player, 10.0)); // 3.16 格
 
     // 测试玩家太近
-    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Player, 8.0));  // 2.83 格
+    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Player, 8.0)); // 2.83 格
 
     // 测试玩家正好在边界
-    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Player, 9.0));  // 正好 3 格
+    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Player, 9.0)); // 正好 3 格
 
     // 测试鱿鱼在有效距离
-    EXPECT_TRUE(guardianTargetPredicate(LegacyEntityType::Squid, 16.0));  // 4 格
+    EXPECT_TRUE(guardianTargetPredicate(LegacyEntityType::Squid, 16.0)); // 4 格
 
     // 测试其他生物被排除
     EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Zombie, 10.0));
@@ -210,7 +214,8 @@ TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate) {
 // 目标选择器配置测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, TargetSelector_ConfigurationCorrect) {
+TEST_F(GuardianAttackGoalTest, TargetSelector_ConfigurationCorrect)
+{
     // MC 1.16.5 GuardianEntity.registerGoals() 中的目标选择器配置:
     // this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(
     //     this, LivingEntity.class, 10, true, false, new TargetPredicate(this)));
@@ -229,7 +234,7 @@ TEST_F(GuardianAttackGoalTest, TargetSelector_ConfigurationCorrect) {
     constexpr bool NEARBY_ONLY = false;
 
     EXPECT_EQ(TARGET_SELECTOR_PRIORITY, 1);
-    EXPECT_EQ(CHECK_INTERVAL, 10);  // 每 0.5 秒检查一次
+    EXPECT_EQ(CHECK_INTERVAL, 10); // 每 0.5 秒检查一次
     EXPECT_TRUE(CHECK_SIGHT);
     EXPECT_FALSE(NEARBY_ONLY);
 }
@@ -238,7 +243,8 @@ TEST_F(GuardianAttackGoalTest, TargetSelector_ConfigurationCorrect) {
 // 远古守卫者伤害加成测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, ElderGuardian_DamageBonus) {
+TEST_F(GuardianAttackGoalTest, ElderGuardian_DamageBonus)
+{
     // MC 1.16.5: 远古守卫者额外伤害
     // 基础魔法伤害: 1.0
     // 困难模式加成: +2.0
@@ -269,7 +275,8 @@ TEST_F(GuardianAttackGoalTest, ElderGuardian_DamageBonus) {
 // 行为目标优先级测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, GoalSelector_PrioritiesCorrect) {
+TEST_F(GuardianAttackGoalTest, GoalSelector_PrioritiesCorrect)
+{
     // MC 1.16.5 GuardianEntity.registerGoals() 行为目标优先级:
     // 优先级 4: AttackGoal (激光攻击)
     // 优先级 5: MoveTowardsRestrictionGoal (向限制区域移动)
@@ -296,7 +303,8 @@ TEST_F(GuardianAttackGoalTest, GoalSelector_PrioritiesCorrect) {
 // EnumSet 基本操作测试
 // ============================================================================
 
-TEST_F(GuardianAttackGoalTest, EnumSet_BasicOperations) {
+TEST_F(GuardianAttackGoalTest, EnumSet_BasicOperations)
+{
     // 测试 EnumSet 可以正确存储 GoalFlag
     EnumSet<mc::entity::ai::GoalFlag> flags;
     flags.set(mc::entity::ai::GoalFlag::Move);
@@ -310,7 +318,8 @@ TEST_F(GuardianAttackGoalTest, EnumSet_BasicOperations) {
     EXPECT_EQ(flags.count(), 2);
 }
 
-TEST_F(GuardianAttackGoalTest, EnumSet_InitializerList) {
+TEST_F(GuardianAttackGoalTest, EnumSet_InitializerList)
+{
     // 使用初始化列表创建 EnumSet
     EnumSet<mc::entity::ai::GoalFlag> flags{mc::entity::ai::GoalFlag::Move, mc::entity::ai::GoalFlag::Look};
 
@@ -320,7 +329,8 @@ TEST_F(GuardianAttackGoalTest, EnumSet_InitializerList) {
     EXPECT_FALSE(flags.test(mc::entity::ai::GoalFlag::Target));
 }
 
-TEST_F(GuardianAttackGoalTest, AllGoalFlags_ReturnsAllFlags) {
+TEST_F(GuardianAttackGoalTest, AllGoalFlags_ReturnsAllFlags)
+{
     auto all = mc::entity::ai::allGoalFlags();
 
     EXPECT_TRUE(all.test(mc::entity::ai::GoalFlag::Move));

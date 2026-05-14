@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Fluid.hpp"
 #include "../../core/Result.hpp"
+#include "Fluid.hpp"
 #include <functional>
 #include <memory>
 
@@ -48,8 +48,9 @@ public:
      * @param id 流体资源位置
      * @return 流体指针
      */
-    template<typename FluidType>
-    Fluid* registerFluid(const ResourceLocation& id) {
+    template <typename FluidType>
+    Fluid* registerFluid(const ResourceLocation& id)
+    {
         auto fluid = std::make_unique<FluidType>();
         Fluid* ptr = fluid.get();
 

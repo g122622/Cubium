@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/WorldConfig.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/WorldConfig.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -15,18 +15,21 @@ namespace {
  */
 class DebugChunkGeneratorTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 初始化所有方块
         VanillaBlocks::initialize();
     }
 
-    static void TearDownTestSuite() {
+    static void TearDownTestSuite()
+    {
         // 清理（如果需要）
     }
 };
 
 // 测试生成器创建
-TEST_F(DebugChunkGeneratorTest, CreateGenerator) {
+TEST_F(DebugChunkGeneratorTest, CreateGenerator)
+{
     DebugChunkGenerator generator;
 
     EXPECT_EQ(generator.seed(), 0);
@@ -35,7 +38,8 @@ TEST_F(DebugChunkGeneratorTest, CreateGenerator) {
 }
 
 // 测试初始化所有方块状态
-TEST_F(DebugChunkGeneratorTest, InitializeValidStates) {
+TEST_F(DebugChunkGeneratorTest, InitializeValidStates)
+{
     // 初始化之前状态列表可能为空
     DebugChunkGenerator::initializeValidStates();
 
@@ -52,7 +56,8 @@ TEST_F(DebugChunkGeneratorTest, InitializeValidStates) {
 }
 
 // 测试方块位置映射
-TEST_F(DebugChunkGeneratorTest, GetBlockStateFor) {
+TEST_F(DebugChunkGeneratorTest, GetBlockStateFor)
+{
     DebugChunkGenerator::initializeValidStates();
 
     // 原点应该返回空气
@@ -81,7 +86,8 @@ TEST_F(DebugChunkGeneratorTest, GetBlockStateFor) {
 }
 
 // 测试方块网格索引计算
-TEST_F(DebugChunkGeneratorTest, GridIndexCalculation) {
+TEST_F(DebugChunkGeneratorTest, GridIndexCalculation)
+{
     DebugChunkGenerator::initializeValidStates();
 
     i32 gridWidth = DebugChunkGenerator::getGridWidth();
@@ -90,7 +96,7 @@ TEST_F(DebugChunkGeneratorTest, GridIndexCalculation) {
     // 测试多个位置的方块状态
     for (i32 gx = 0; gx < std::min(gridWidth, 5); ++gx) {
         for (i32 gz = 0; gz < std::min(DebugChunkGenerator::getGridHeight(), 5); ++gz) {
-            i32 worldX = gx * 2 + 1;  // 转换为世界坐标
+            i32 worldX = gx * 2 + 1; // 转换为世界坐标
             i32 worldZ = gz * 2 + 1;
 
             const BlockState* state = DebugChunkGenerator::getBlockStateFor(worldX, worldZ);
@@ -99,15 +105,15 @@ TEST_F(DebugChunkGeneratorTest, GridIndexCalculation) {
             // 计算预期索引
             i32 expectedIndex = std::abs(gx * gridWidth + gz);
             if (expectedIndex < static_cast<i32>(states.size())) {
-                EXPECT_EQ(state, states[expectedIndex])
-                    << "State mismatch at grid (" << gx << ", " << gz << ")";
+                EXPECT_EQ(state, states[expectedIndex]) << "State mismatch at grid (" << gx << ", " << gz << ")";
             }
         }
     }
 }
 
 // 测试生物群系始终返回平原
-TEST_F(DebugChunkGeneratorTest, BiomeAlwaysPlains) {
+TEST_F(DebugChunkGeneratorTest, BiomeAlwaysPlains)
+{
     DebugChunkGenerator generator;
 
     EXPECT_EQ(generator.getBiome(0, 0, 0), Biomes::Plains);
@@ -119,7 +125,8 @@ TEST_F(DebugChunkGeneratorTest, BiomeAlwaysPlains) {
 }
 
 // 测试高度返回
-TEST_F(DebugChunkGeneratorTest, GetHeight) {
+TEST_F(DebugChunkGeneratorTest, GetHeight)
+{
     DebugChunkGenerator generator;
     DebugChunkGenerator::initializeValidStates();
 
@@ -134,7 +141,8 @@ TEST_F(DebugChunkGeneratorTest, GetHeight) {
 }
 
 // 测试屏障方块基座层
-TEST_F(DebugChunkGeneratorTest, BarrierBaseLayer) {
+TEST_F(DebugChunkGeneratorTest, BarrierBaseLayer)
+{
     // 初始化
     DebugChunkGenerator::initializeValidStates();
 
@@ -146,35 +154,31 @@ TEST_F(DebugChunkGeneratorTest, BarrierBaseLayer) {
 }
 
 // 测试空操作方法
-TEST_F(DebugChunkGeneratorTest, NoOpMethods) {
+TEST_F(DebugChunkGeneratorTest, NoOpMethods)
+{
     DebugChunkGenerator generator;
 
     // 这些方法应该是空操作，不应该崩溃
-    EXPECT_NO_THROW(generator.generateStructureStarts(
-        *static_cast<WorldGenRegion*>(nullptr),
-        *static_cast<ChunkPrimer*>(nullptr)));
+    EXPECT_NO_THROW(
+        generator.generateStructureStarts(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
     EXPECT_NO_THROW(generator.generateStructureReferences(
-        *static_cast<WorldGenRegion*>(nullptr),
-        *static_cast<ChunkPrimer*>(nullptr)));
-    EXPECT_NO_THROW(generator.buildSurface(
-        *static_cast<WorldGenRegion*>(nullptr),
-        *static_cast<ChunkPrimer*>(nullptr)));
-    EXPECT_NO_THROW(generator.applyCarvers(
-        *static_cast<WorldGenRegion*>(nullptr),
-        *static_cast<ChunkPrimer*>(nullptr), true));
-    EXPECT_NO_THROW(generator.placeFeatures(
-        *static_cast<WorldGenRegion*>(nullptr),
-        *static_cast<ChunkPrimer*>(nullptr)));
+        *static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
+    EXPECT_NO_THROW(
+        generator.buildSurface(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
+    EXPECT_NO_THROW(
+        generator.applyCarvers(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr), true));
+    EXPECT_NO_THROW(
+        generator.placeFeatures(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
 
     std::vector<SpawnedEntityData> entities;
     EXPECT_EQ(generator.spawnInitialMobs(
-        *static_cast<WorldGenRegion*>(nullptr),
-        *static_cast<ChunkPrimer*>(nullptr),
-        entities), 0);
+                  *static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr), entities),
+        0);
 }
 
 // 测试网格尺寸一致性
-TEST_F(DebugChunkGeneratorTest, GridSizeConsistency) {
+TEST_F(DebugChunkGeneratorTest, GridSizeConsistency)
+{
     DebugChunkGenerator::initializeValidStates();
 
     i32 gridWidth = DebugChunkGenerator::getGridWidth();
@@ -187,7 +191,8 @@ TEST_F(DebugChunkGeneratorTest, GridSizeConsistency) {
 }
 
 // 测试 WorldConfig 枚举
-TEST(DebugWorldConfigTest, WorldTypeEnum) {
+TEST(DebugWorldConfigTest, WorldTypeEnum)
+{
     EXPECT_EQ(worldTypeName(WorldType::Default), "default");
     EXPECT_EQ(worldTypeName(WorldType::Flat), "flat");
     EXPECT_EQ(worldTypeName(WorldType::LargeBiomes), "largeBiomes");
@@ -195,7 +200,8 @@ TEST(DebugWorldConfigTest, WorldTypeEnum) {
     EXPECT_EQ(worldTypeName(WorldType::Debug), "debug_all_block_states");
 }
 
-TEST(DebugWorldConfigTest, ParseWorldType) {
+TEST(DebugWorldConfigTest, ParseWorldType)
+{
     EXPECT_EQ(parseWorldType("flat"), WorldType::Flat);
     EXPECT_EQ(parseWorldType("largeBiomes"), WorldType::LargeBiomes);
     EXPECT_EQ(parseWorldType("large_biomes"), WorldType::LargeBiomes);
@@ -206,9 +212,10 @@ TEST(DebugWorldConfigTest, ParseWorldType) {
     EXPECT_EQ(parseWorldType("default"), WorldType::Default);
 }
 
-TEST(DebugWorldConfigTest, WorldConfigDebugCheck) {
+TEST(DebugWorldConfigTest, WorldConfigDebugCheck)
+{
     WorldConfig config;
-    EXPECT_FALSE(config.isDebugWorld());  // 默认不是调试模式
+    EXPECT_FALSE(config.isDebugWorld()); // 默认不是调试模式
 
     config.worldType = WorldType::Debug;
     EXPECT_TRUE(config.isDebugWorld());
@@ -221,12 +228,14 @@ TEST(DebugWorldConfigTest, WorldConfigDebugCheck) {
 // isDebugGenerator() 测试
 // ============================================================================
 
-TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_ReturnsTrue) {
+TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_ReturnsTrue)
+{
     DebugChunkGenerator generator;
     EXPECT_TRUE(generator.isDebugGenerator());
 }
 
-TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_VirtualDispatch) {
+TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_VirtualDispatch)
+{
     // 通过基类指针调用，验证虚函数分派
     DebugChunkGenerator debugGen;
     IChunkGenerator* basePtr = &debugGen;
@@ -237,25 +246,29 @@ TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_VirtualDispatch) {
 // NoiseChunkGenerator::isDebugGenerator() 测试
 // ============================================================================
 
-TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_ReturnsFalse) {
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_ReturnsFalse)
+{
     NoiseChunkGenerator generator(12345ULL, DimensionSettings::overworld());
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 
-TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch) {
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch)
+{
     // 通过基类指针调用，验证虚函数分派
     NoiseChunkGenerator noiseGen(12345ULL, DimensionSettings::overworld());
     IChunkGenerator* basePtr = &noiseGen;
     EXPECT_FALSE(basePtr->isDebugGenerator());
 }
 
-TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_FlatSettings) {
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_FlatSettings)
+{
     // 使用 flat 设置也应该返回 false
     NoiseChunkGenerator generator(12345ULL, DimensionSettings::flat());
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 
-TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_AmplifiedSettings) {
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_AmplifiedSettings)
+{
     // 使用 amplified 设置也应该返回 false
     NoiseChunkGenerator generator(12345ULL, DimensionSettings::amplified());
     EXPECT_FALSE(generator.isDebugGenerator());

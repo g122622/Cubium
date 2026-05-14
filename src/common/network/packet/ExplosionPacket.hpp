@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Packet.hpp"
-#include "PacketSerializer.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include <vector>
+#include "Packet.hpp"
+#include "PacketSerializer.hpp"
 #include <unordered_map>
+#include <vector>
 
 namespace mc::network {
 
@@ -54,8 +54,7 @@ public:
      * @param playerKnockback 玩家击退向量（玩家ID -> 击退向量）
      * @param targetPlayerId 目标玩家ID（用于从 playerKnockback 中获取击退向量）
      */
-    ExplosionPacket(
-        const Vector3& position,
+    ExplosionPacket(const Vector3& position,
         f32 strength,
         const std::vector<BlockPos>& affectedBlocks,
         const std::unordered_map<u64, Vector3>& playerKnockback,
@@ -83,37 +82,35 @@ public:
 
     // ========== Setters ==========
 
-    void setPosition(f32 x, f32 y, f32 z) {
+    void setPosition(f32 x, f32 y, f32 z)
+    {
         m_x = x;
         m_y = y;
         m_z = z;
     }
 
-    void setPosition(const Vector3& pos) {
+    void setPosition(const Vector3& pos)
+    {
         m_x = pos.x;
         m_y = pos.y;
         m_z = pos.z;
     }
 
-    void setStrength(f32 strength) {
-        m_strength = strength;
-    }
+    void setStrength(f32 strength) { m_strength = strength; }
 
-    void setAffectedBlocks(const std::vector<BlockPos>& blocks) {
-        m_affectedBlocks = blocks;
-    }
+    void setAffectedBlocks(const std::vector<BlockPos>& blocks) { m_affectedBlocks = blocks; }
 
-    void setAffectedBlocks(std::vector<BlockPos>&& blocks) {
-        m_affectedBlocks = std::move(blocks);
-    }
+    void setAffectedBlocks(std::vector<BlockPos>&& blocks) { m_affectedBlocks = std::move(blocks); }
 
-    void setMotion(f32 mx, f32 my, f32 mz) {
+    void setMotion(f32 mx, f32 my, f32 mz)
+    {
         m_motionX = mx;
         m_motionY = my;
         m_motionZ = mz;
     }
 
-    void setMotion(const Vector3& motion) {
+    void setMotion(const Vector3& motion)
+    {
         m_motionX = motion.x;
         m_motionY = motion.y;
         m_motionZ = motion.z;
@@ -125,9 +122,7 @@ public:
      * @param playerKnockback 玩家ID到击退向量的映射
      * @param playerId 当前玩家ID
      */
-    void setKnockbackForPlayer(
-        const std::unordered_map<u64, Vector3>& playerKnockback,
-        u64 playerId);
+    void setKnockbackForPlayer(const std::unordered_map<u64, Vector3>& playerKnockback, u64 playerId);
 
 private:
     f32 m_x = 0.0f;

@@ -54,9 +54,7 @@ public:
      * @return 可用的目录名（不含路径）
      */
     static Result<std::string> findAvailableLevelId(
-        const std::filesystem::path& savesDir,
-        const std::string& requestedName
-    );
+        const std::filesystem::path& savesDir, const std::string& requestedName);
 
     /**
      * @brief 检查世界目录名是否可用
@@ -67,10 +65,7 @@ public:
      * @param levelId 目录名
      * @return 可用返回 true，不可用或错误返回 false
      */
-    static bool isLevelIdAvailable(
-        const std::filesystem::path& savesDir,
-        const std::string& levelId
-    );
+    static bool isLevelIdAvailable(const std::filesystem::path& savesDir, const std::string& levelId);
 
     /**
      * @brief 从显示名生成默认目录名
@@ -89,11 +84,7 @@ private:
      *
      * 如果名称形如 "Name (3)"，提取 "Name" 和序号 3。
      */
-    static bool parseExistingNameWithNumber(
-        const std::string& name,
-        std::string& baseName,
-        i32& number
-    );
+    static bool parseExistingNameWithNumber(const std::string& name, std::string& baseName, i32& number);
 };
 
 } // namespace mc::world::storage

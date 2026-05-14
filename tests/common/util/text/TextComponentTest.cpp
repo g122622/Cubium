@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+#include "core/Types.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"
-#include "util/text/TranslationTextComponent.hpp"
 #include "util/text/TextParser.hpp"
-#include "core/Types.hpp"
+#include "util/text/TranslationTextComponent.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::text;
 
@@ -16,7 +16,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(StringTextComponentTest, BasicConstruction) {
+TEST_F(StringTextComponentTest, BasicConstruction)
+{
     StringTextComponent text("Hello World");
 
     EXPECT_EQ(text.getText(), "Hello World");
@@ -25,7 +26,8 @@ TEST_F(StringTextComponentTest, BasicConstruction) {
     EXPECT_TRUE(text.getStyle().isEmpty());
 }
 
-TEST_F(StringTextComponentTest, EmptyText) {
+TEST_F(StringTextComponentTest, EmptyText)
+{
     StringTextComponent text("");
 
     EXPECT_EQ(text.getText(), "");
@@ -33,7 +35,8 @@ TEST_F(StringTextComponentTest, EmptyText) {
     EXPECT_EQ(text.getFormattedText(), "");
 }
 
-TEST_F(StringTextComponentTest, WithStyle) {
+TEST_F(StringTextComponentTest, WithStyle)
+{
     StringTextComponent text("Hello");
     Style style;
     style.setColor(TextFormatting::Red);
@@ -45,7 +48,8 @@ TEST_F(StringTextComponentTest, WithStyle) {
     EXPECT_EQ(text.getFormattedText(), "§c§lHello");
 }
 
-TEST_F(StringTextComponentTest, DeepCopy) {
+TEST_F(StringTextComponentTest, DeepCopy)
+{
     StringTextComponent original("Hello");
     Style style;
     style.setColor(TextFormatting::Red);
@@ -65,7 +69,8 @@ TEST_F(StringTextComponentTest, DeepCopy) {
     EXPECT_EQ(copy->getStyle().getColor(), TextFormatting::Red);
 }
 
-TEST_F(StringTextComponentTest, ShallowCopy) {
+TEST_F(StringTextComponentTest, ShallowCopy)
+{
     StringTextComponent original("Hello");
     Style style;
     style.setColor(TextFormatting::Red);
@@ -75,10 +80,11 @@ TEST_F(StringTextComponentTest, ShallowCopy) {
 
     EXPECT_EQ(copy->getUnformattedText(), "Hello");
     EXPECT_EQ(copy->getStyle().getColor(), TextFormatting::Red);
-    EXPECT_EQ(copy->getSiblings().size(), 0u);  // 浅拷贝不包含子组件
+    EXPECT_EQ(copy->getSiblings().size(), 0u); // 浅拷贝不包含子组件
 }
 
-TEST_F(StringTextComponentTest, JsonSerialization) {
+TEST_F(StringTextComponentTest, JsonSerialization)
+{
     StringTextComponent text("Hello");
     Style style;
     style.setColor(TextFormatting::Red);
@@ -96,7 +102,8 @@ TEST_F(StringTextComponentTest, JsonSerialization) {
     EXPECT_EQ(parsed->getUnformattedText(), "Hello World");
 }
 
-TEST_F(StringTextComponentTest, AppendSiblings) {
+TEST_F(StringTextComponentTest, AppendSiblings)
+{
     StringTextComponent text("Hello");
 
     text.append(std::make_unique<StringTextComponent>(" "));
@@ -106,7 +113,8 @@ TEST_F(StringTextComponentTest, AppendSiblings) {
     EXPECT_EQ(text.getUnformattedText(), "Hello World");
 }
 
-TEST_F(StringTextComponentTest, AppendText) {
+TEST_F(StringTextComponentTest, AppendText)
+{
     StringTextComponent text("Hello");
     text.appendText(" ");
     text.appendText("World");
@@ -124,14 +132,16 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TranslationTextComponentTest, BasicConstruction) {
+TEST_F(TranslationTextComponentTest, BasicConstruction)
+{
     TranslationTextComponent text("chat.type.text");
 
     EXPECT_EQ(text.getKey(), "chat.type.text");
     EXPECT_TRUE(text.getParams().empty());
 }
 
-TEST_F(TranslationTextComponentTest, WithParams) {
+TEST_F(TranslationTextComponentTest, WithParams)
+{
     std::vector<std::unique_ptr<ITextComponent>> params;
     params.push_back(std::make_unique<StringTextComponent>("Player"));
     params.push_back(std::make_unique<StringTextComponent>("Hello!"));
@@ -142,14 +152,16 @@ TEST_F(TranslationTextComponentTest, WithParams) {
     EXPECT_EQ(text.getParams().size(), 2u);
 }
 
-TEST_F(TranslationTextComponentTest, AddParam) {
+TEST_F(TranslationTextComponentTest, AddParam)
+{
     TranslationTextComponent text("chat.type.text");
     text.addParam(std::make_unique<StringTextComponent>("Player"));
 
     EXPECT_EQ(text.getParams().size(), 1u);
 }
 
-TEST_F(TranslationTextComponentTest, DeepCopy) {
+TEST_F(TranslationTextComponentTest, DeepCopy)
+{
     TranslationTextComponent original("translation.key");
     original.addParam(std::make_unique<StringTextComponent>("param1"));
     Style style;
@@ -165,7 +177,8 @@ TEST_F(TranslationTextComponentTest, DeepCopy) {
     EXPECT_EQ(copy->getStyle().getColor(), TextFormatting::Blue);
 }
 
-TEST_F(TranslationTextComponentTest, JsonSerialization) {
+TEST_F(TranslationTextComponentTest, JsonSerialization)
+{
     TranslationTextComponent text("chat.type.announcement");
     text.addParam(std::make_unique<StringTextComponent>("Server"));
     text.addParam(std::make_unique<StringTextComponent>("Hello!"));
@@ -189,7 +202,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(ITextComponentFactoryTest, FromJsonString) {
+TEST_F(ITextComponentFactoryTest, FromJsonString)
+{
     nlohmann::json json = "Hello World";
 
     auto component = ITextComponent::fromJson(json);
@@ -200,12 +214,9 @@ TEST_F(ITextComponentFactoryTest, FromJsonString) {
     EXPECT_EQ(stringComp->getText(), "Hello World");
 }
 
-TEST_F(ITextComponentFactoryTest, FromJsonObject) {
-    nlohmann::json json = {
-        {"text", "Hello"},
-        {"color", "red"},
-        {"bold", true}
-    };
+TEST_F(ITextComponentFactoryTest, FromJsonObject)
+{
+    nlohmann::json json = {{"text", "Hello"}, {"color", "red"}, {"bold", true}};
 
     auto component = ITextComponent::fromJson(json);
     ASSERT_NE(component, nullptr);
@@ -215,14 +226,11 @@ TEST_F(ITextComponentFactoryTest, FromJsonObject) {
     EXPECT_TRUE(component->getStyle().isBold());
 }
 
-TEST_F(ITextComponentFactoryTest, FromJsonWithExtra) {
-    nlohmann::json json = {
-        {"text", "Hello "},
+TEST_F(ITextComponentFactoryTest, FromJsonWithExtra)
+{
+    nlohmann::json json = {{"text", "Hello "},
         {"color", "red"},
-        {"extra", nlohmann::json::array({
-            {{"text", "World"}, {"color", "blue"}}
-        })}
-    };
+        {"extra", nlohmann::json::array({{{"text", "World"}, {"color", "blue"}}})}};
 
     auto component = ITextComponent::fromJson(json);
     ASSERT_NE(component, nullptr);
@@ -232,11 +240,10 @@ TEST_F(ITextComponentFactoryTest, FromJsonWithExtra) {
     EXPECT_EQ(component->getSiblings().size(), 1u);
 }
 
-TEST_F(ITextComponentFactoryTest, FromJsonTranslation) {
+TEST_F(ITextComponentFactoryTest, FromJsonTranslation)
+{
     nlohmann::json json = {
-        {"translate", "chat.type.announcement"},
-        {"with", nlohmann::json::array({"Server", "Hello!"})}
-    };
+        {"translate", "chat.type.announcement"}, {"with", nlohmann::json::array({"Server", "Hello!"})}};
 
     auto component = ITextComponent::fromJson(json);
     ASSERT_NE(component, nullptr);
@@ -247,12 +254,10 @@ TEST_F(ITextComponentFactoryTest, FromJsonTranslation) {
     EXPECT_EQ(transComp->getParams().size(), 2u);
 }
 
-TEST_F(ITextComponentFactoryTest, FromJsonArray) {
-    nlohmann::json json = nlohmann::json::array({
-        {{"text", "Hello"}, {"color", "red"}},
-        {{"text", " "}},
-        {{"text", "World"}, {"color", "blue"}}
-    });
+TEST_F(ITextComponentFactoryTest, FromJsonArray)
+{
+    nlohmann::json json = nlohmann::json::array(
+        {{{"text", "Hello"}, {"color", "red"}}, {{"text", " "}}, {{"text", "World"}, {"color", "blue"}}});
 
     auto component = ITextComponent::fromJsonArray(json);
     ASSERT_NE(component, nullptr);
@@ -270,7 +275,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TextParserTest, ParsePlainText) {
+TEST_F(TextParserTest, ParsePlainText)
+{
     auto component = TextParser::parse("Hello World");
 
     ASSERT_NE(component, nullptr);
@@ -278,7 +284,8 @@ TEST_F(TextParserTest, ParsePlainText) {
     EXPECT_TRUE(component->getStyle().isEmpty());
 }
 
-TEST_F(TextParserTest, ParseColorCode) {
+TEST_F(TextParserTest, ParseColorCode)
+{
     auto component = TextParser::parse("§cHello World");
 
     ASSERT_NE(component, nullptr);
@@ -286,7 +293,8 @@ TEST_F(TextParserTest, ParseColorCode) {
     EXPECT_EQ(component->getStyle().getColor(), TextFormatting::Red);
 }
 
-TEST_F(TextParserTest, ParseMultipleColors) {
+TEST_F(TextParserTest, ParseMultipleColors)
+{
     auto component = TextParser::parse("§cHello §9World");
 
     ASSERT_NE(component, nullptr);
@@ -297,7 +305,8 @@ TEST_F(TextParserTest, ParseMultipleColors) {
     EXPECT_GE(siblings.size(), 1u);
 }
 
-TEST_F(TextParserTest, ParseStyleCodes) {
+TEST_F(TextParserTest, ParseStyleCodes)
+{
     auto component = TextParser::parse("§lBold");
 
     ASSERT_NE(component, nullptr);
@@ -305,7 +314,8 @@ TEST_F(TextParserTest, ParseStyleCodes) {
     EXPECT_TRUE(component->getStyle().isBold());
 }
 
-TEST_F(TextParserTest, ParseMultipleStyleCodes) {
+TEST_F(TextParserTest, ParseMultipleStyleCodes)
+{
     auto component = TextParser::parse("§l§oBold Italic");
 
     ASSERT_NE(component, nullptr);
@@ -313,14 +323,16 @@ TEST_F(TextParserTest, ParseMultipleStyleCodes) {
     EXPECT_TRUE(component->getStyle().isItalic());
 }
 
-TEST_F(TextParserTest, ParseResetCode) {
+TEST_F(TextParserTest, ParseResetCode)
+{
     auto component = TextParser::parse("§cRed§rPlain");
 
     ASSERT_NE(component, nullptr);
     EXPECT_EQ(component->getUnformattedText(), "RedPlain");
 }
 
-TEST_F(TextParserTest, ParseColorAndStyle) {
+TEST_F(TextParserTest, ParseColorAndStyle)
+{
     auto component = TextParser::parse("§c§lRed Bold");
 
     ASSERT_NE(component, nullptr);
@@ -328,7 +340,8 @@ TEST_F(TextParserTest, ParseColorAndStyle) {
     EXPECT_TRUE(component->getStyle().isBold());
 }
 
-TEST_F(TextParserTest, ToLegacyFormat) {
+TEST_F(TextParserTest, ToLegacyFormat)
+{
     StringTextComponent text("Hello");
     Style style;
     style.setColor(TextFormatting::Red);
@@ -339,7 +352,8 @@ TEST_F(TextParserTest, ToLegacyFormat) {
     EXPECT_EQ(legacy, "§c§lHello");
 }
 
-TEST_F(TextParserTest, RoundTrip) {
+TEST_F(TextParserTest, RoundTrip)
+{
     std::string original = "§cHello §lWorld!";
 
     auto component = TextParser::parse(original);
@@ -351,16 +365,18 @@ TEST_F(TextParserTest, RoundTrip) {
     EXPECT_EQ(component->getUnformattedText(), "Hello World!");
 }
 
-TEST_F(TextParserTest, InvalidCode) {
+TEST_F(TextParserTest, InvalidCode)
+{
     auto component = TextParser::parse("§xInvalid");
 
     ASSERT_NE(component, nullptr);
     // 无效代码应该作为普通文本保留
     EXPECT_TRUE(component->getUnformattedText().find("§x") != std::string::npos ||
-                component->getUnformattedText().find("x") != std::string::npos);
+        component->getUnformattedText().find("x") != std::string::npos);
 }
 
-TEST_F(TextParserTest, EmptyText) {
+TEST_F(TextParserTest, EmptyText)
+{
     auto component = TextParser::parse("");
 
     ASSERT_NE(component, nullptr);

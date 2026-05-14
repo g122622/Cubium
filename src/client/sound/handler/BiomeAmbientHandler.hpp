@@ -1,11 +1,11 @@
 #pragma once
 
-#include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "client/sound/SoundEngine.hpp"
-#include "common/sound/SoundCategory.hpp"
+#include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/biome/BiomeAmbientSounds.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeAmbientSounds.hpp"
 
 #include <optional>
 #include <unordered_map>
@@ -73,7 +73,8 @@ public:
      * @param y 玩家Y坐标（眼睛高度）
      * @param z 玩家Z坐标
      */
-    void setPlayerPosition(f64 x, f64 y, f64 z) {
+    void setPlayerPosition(f64 x, f64 y, f64 z)
+    {
         m_playerX = x;
         m_playerY = y;
         m_playerZ = z;
@@ -85,7 +86,8 @@ public:
      * @param skyLight 天空光照等级 (0-15)
      * @param blockLight 方块光照等级 (0-15)
      */
-    void setLightLevel(u8 skyLight, u8 blockLight) {
+    void setLightLevel(u8 skyLight, u8 blockLight)
+    {
         m_skyLight = skyLight;
         m_blockLight = blockLight;
     }

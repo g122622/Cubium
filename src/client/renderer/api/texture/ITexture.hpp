@@ -9,22 +9,22 @@ namespace mc::client::renderer::api {
  * @brief 纹理格式
  */
 enum class TextureFormat : u8 {
-    R8_UNORM,       // 单通道 8 位无符号归一化
-    R8G8_UNORM,     // 双通道 8 位无符号归一化
-    R8G8B8_UNORM,   // 三通道 8 位无符号归一化
-    R8G8B8A8_UNORM, // 四通道 8 位无符号归一化
-    R8G8B8_SRGB,    // 三通道 8 位 sRGB
-    R8G8B8A8_SRGB,  // 四通道 8 位 sRGB
-    R16_FLOAT,      // 单通道 16 位浮点
-    R16G16_FLOAT,   // 双通道 16 位浮点
+    R8_UNORM,           // 单通道 8 位无符号归一化
+    R8G8_UNORM,         // 双通道 8 位无符号归一化
+    R8G8B8_UNORM,       // 三通道 8 位无符号归一化
+    R8G8B8A8_UNORM,     // 四通道 8 位无符号归一化
+    R8G8B8_SRGB,        // 三通道 8 位 sRGB
+    R8G8B8A8_SRGB,      // 四通道 8 位 sRGB
+    R16_FLOAT,          // 单通道 16 位浮点
+    R16G16_FLOAT,       // 双通道 16 位浮点
     R16G16B16A16_FLOAT, // 四通道 16 位浮点
-    R32_FLOAT,      // 单通道 32 位浮点
-    R32G32_FLOAT,   // 双通道 32 位浮点
+    R32_FLOAT,          // 单通道 32 位浮点
+    R32G32_FLOAT,       // 双通道 32 位浮点
     R32G32B32A32_FLOAT, // 四通道 32 位浮点
-    D16_UNORM,      // 深度 16 位
-    D24_UNORM_S8_UINT, // 深度 24 位 + 模板 8 位
-    D32_FLOAT,      // 深度 32 位浮点
-    BC1_RGB_SRGB,   // 压缩格式
+    D16_UNORM,          // 深度 16 位
+    D24_UNORM_S8_UINT,  // 深度 24 位 + 模板 8 位
+    D32_FLOAT,          // 深度 32 位浮点
+    BC1_RGB_SRGB,       // 压缩格式
     BC2_SRGB,
     BC3_SRGB,
     BC4_UNORM,
@@ -36,8 +36,8 @@ enum class TextureFormat : u8 {
  * @brief 纹理过滤模式
  */
 enum class TextureFilter : u8 {
-    Nearest,  // 最近邻
-    Linear,   // 线性
+    Nearest,              // 最近邻
+    Linear,               // 线性
     NearestMipmapNearest, // 最近邻 + 最近邻 mipmap
     LinearMipmapNearest,  // 线性 + 最近邻 mipmap
     NearestMipmapLinear,  // 最近邻 + 线性 mipmap
@@ -48,10 +48,10 @@ enum class TextureFilter : u8 {
  * @brief 纹理寻址模式
  */
 enum class TextureAddressMode : u8 {
-    Repeat,          // 重复
-    MirroredRepeat,  // 镜像重复
-    ClampToEdge,     // 边缘夹紧
-    ClampToBorder,   // 边界夹紧
+    Repeat,           // 重复
+    MirroredRepeat,   // 镜像重复
+    ClampToEdge,      // 边缘夹紧
+    ClampToBorder,    // 边界夹紧
     MirrorClampToEdge // 镜像边缘夹紧
 };
 

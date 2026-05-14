@@ -23,31 +23,17 @@ inline constexpr std::string_view DEFAULT_KICK_REASON = "Kicked by an operator";
 void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto kickNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("kick");
-    kickNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
-    support::applyMetadata(
-        kickNode,
-        support::makeMetadata(
-            "Disconnect players from the server.",
-            "/kick <targets> [reason]",
-            3,
-            {},
-            true));
+    kickNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    support::applyMetadata(kickNode,
+        support::makeMetadata("Disconnect players from the server.", "/kick <targets> [reason]", 3, {}, true));
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::players());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return kickPlayers(ctx);
-    });
+        "targets", EntityArgumentType::players());
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return kickPlayers(ctx); });
 
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "reason",
-        StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return kickPlayers(ctx);
-    });
+        "reason", StringArgumentType::greedyString());
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return kickPlayers(ctx); });
 
     targetsArg->addChild(reasonArg);
     kickNode->addChild(targetsArg);
@@ -69,9 +55,8 @@ i32 KickCommand::kickPlayers(CommandContext<ServerCommandSource>& context)
 
     const EntitySelector selector = context.getArgument<EntitySelector>("targets");
     const auto playerIds = support::resolvePlayerIds(source, selector);
-    const std::string reason = context.hasArgument("reason")
-        ? context.getArgument<std::string>("reason")
-        : std::string(DEFAULT_KICK_REASON);
+    const std::string reason =
+        context.hasArgument("reason") ? context.getArgument<std::string>("reason") : std::string(DEFAULT_KICK_REASON);
 
     i32 kickedCount = 0;
     for (const PlayerId playerId : playerIds) {

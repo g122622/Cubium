@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include "world/redstone/RedstoneSystem.hpp"
 #include "world/block/BlockPos.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::world::redstone;
@@ -12,18 +12,15 @@ using namespace mc::world::redstone;
  */
 class RedstoneSystemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        RedstoneSystem::instance().clear();
-    }
+    void SetUp() override { RedstoneSystem::instance().clear(); }
 
-    void TearDown() override {
-        RedstoneSystem::instance().clear();
-    }
+    void TearDown() override { RedstoneSystem::instance().clear(); }
 };
 
 // ========== 烧毁跟踪测试 ==========
 
-TEST_F(RedstoneSystemTest, TorchFlipNotBurnedInitially) {
+TEST_F(RedstoneSystemTest, TorchFlipNotBurnedInitially)
+{
     BlockPos pos(0, 0, 0);
 
     // 第一次翻转不应触发烧毁
@@ -31,7 +28,8 @@ TEST_F(RedstoneSystemTest, TorchFlipNotBurnedInitially) {
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 0));
 }
 
-TEST_F(RedstoneSystemTest, TorchFlipNotBurnedAfterFewFlips) {
+TEST_F(RedstoneSystemTest, TorchFlipNotBurnedAfterFewFlips)
+{
     BlockPos pos(0, 0, 0);
 
     // 7次翻转不应触发烧毁（需要8次）
@@ -41,7 +39,8 @@ TEST_F(RedstoneSystemTest, TorchFlipNotBurnedAfterFewFlips) {
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 35));
 }
 
-TEST_F(RedstoneSystemTest, TorchBurnoutAfter8Flips) {
+TEST_F(RedstoneSystemTest, TorchBurnoutAfter8Flips)
+{
     BlockPos pos(0, 0, 0);
 
     // 8次翻转触发烧毁（在60 tick窗口内）
@@ -55,7 +54,8 @@ TEST_F(RedstoneSystemTest, TorchBurnoutAfter8Flips) {
     EXPECT_TRUE(RedstoneSystem::instance().isTorchBurnedOut(pos, 35));
 }
 
-TEST_F(RedstoneSystemTest, TorchBurnoutWithinWindow) {
+TEST_F(RedstoneSystemTest, TorchBurnoutWithinWindow)
+{
     BlockPos pos(0, 0, 0);
 
     // 在60 tick窗口内进行8次翻转
@@ -65,7 +65,8 @@ TEST_F(RedstoneSystemTest, TorchBurnoutWithinWindow) {
     EXPECT_TRUE(RedstoneSystem::instance().checkAndRecordTorchFlip(pos, 7));
 }
 
-TEST_F(RedstoneSystemTest, TorchNoBurnoutOutsideWindow) {
+TEST_F(RedstoneSystemTest, TorchNoBurnoutOutsideWindow)
+{
     BlockPos pos(0, 0, 0);
 
     // 第一次翻转在 tick 0
@@ -79,7 +80,8 @@ TEST_F(RedstoneSystemTest, TorchNoBurnoutOutsideWindow) {
     }
 }
 
-TEST_F(RedstoneSystemTest, TorchBurnoutCooldown) {
+TEST_F(RedstoneSystemTest, TorchBurnoutCooldown)
+{
     BlockPos pos(0, 0, 0);
 
     // 触发烧毁
@@ -95,7 +97,8 @@ TEST_F(RedstoneSystemTest, TorchBurnoutCooldown) {
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 167));
 }
 
-TEST_F(RedstoneSystemTest, TorchMultiplePositions) {
+TEST_F(RedstoneSystemTest, TorchMultiplePositions)
+{
     BlockPos pos1(0, 0, 0);
     BlockPos pos2(10, 0, 0);
     BlockPos pos3(20, 0, 0);
@@ -116,7 +119,8 @@ TEST_F(RedstoneSystemTest, TorchMultiplePositions) {
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos2, 10));
 }
 
-TEST_F(RedstoneSystemTest, TorchClearRecord) {
+TEST_F(RedstoneSystemTest, TorchClearRecord)
+{
     BlockPos pos(0, 0, 0);
 
     // 触发烧毁
@@ -130,7 +134,8 @@ TEST_F(RedstoneSystemTest, TorchClearRecord) {
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 10));
 }
 
-TEST_F(RedstoneSystemTest, TorchCleanupExpiredRecords) {
+TEST_F(RedstoneSystemTest, TorchCleanupExpiredRecords)
+{
     BlockPos pos(0, 0, 0);
 
     // 触发烧毁
@@ -145,12 +150,14 @@ TEST_F(RedstoneSystemTest, TorchCleanupExpiredRecords) {
 
 // ========== 递归保护测试 ==========
 
-TEST_F(RedstoneSystemTest, IsUpdatingInitiallyFalse) {
+TEST_F(RedstoneSystemTest, IsUpdatingInitiallyFalse)
+{
     BlockPos pos(0, 0, 0);
     EXPECT_FALSE(RedstoneSystem::instance().isUpdating(pos));
 }
 
-TEST_F(RedstoneSystemTest, BeginEndUpdate) {
+TEST_F(RedstoneSystemTest, BeginEndUpdate)
+{
     BlockPos pos(10, 20, 30);
 
     EXPECT_FALSE(RedstoneSystem::instance().isUpdating(pos));
@@ -162,7 +169,8 @@ TEST_F(RedstoneSystemTest, BeginEndUpdate) {
     EXPECT_FALSE(RedstoneSystem::instance().isUpdating(pos));
 }
 
-TEST_F(RedstoneSystemTest, DepthManagement) {
+TEST_F(RedstoneSystemTest, DepthManagement)
+{
     EXPECT_EQ(RedstoneSystem::instance().canPushDepth(), true);
 
     RedstoneSystem::instance().pushDepth();
@@ -180,7 +188,8 @@ TEST_F(RedstoneSystemTest, DepthManagement) {
 
 // ========== 常量测试 ==========
 
-TEST_F(RedstoneSystemTest, BurnoutConstants) {
+TEST_F(RedstoneSystemTest, BurnoutConstants)
+{
     EXPECT_EQ(RedstoneSystem::BURNOUT_WINDOW, 60);
     EXPECT_EQ(RedstoneSystem::BURNOUT_FLIPS, 8);
     EXPECT_EQ(RedstoneSystem::BURNOUT_COOLDOWN, 160);

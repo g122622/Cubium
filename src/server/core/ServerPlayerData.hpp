@@ -1,25 +1,25 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Constants.hpp"
-#include "common/util/math/Vector2.hpp"
-#include "common/util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/sync/ChunkSync.hpp"
-#include "common/entity/inventory/ContainerTypes.hpp"
-#include "common/entity/effect/EffectInstance.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <algorithm>
 #include <memory>
 #include <unordered_set>
 #include <vector>
-#include <algorithm>
 
 namespace mc {
-class AbstractContainerMenu;  // 前向声明
-class PlayerInventory;         // 前向声明
-}
+class AbstractContainerMenu; // 前向声明
+class PlayerInventory;       // 前向声明
+} // namespace mc
 
 namespace mc::server {
-class PlayerAdvancements;  // 前向声明
+class PlayerAdvancements; // 前向声明
 }
 
 namespace mc::server {
@@ -65,7 +65,7 @@ struct ServerPlayerData {
 
     // 位置（内部使用 f32，网络边界使用 f64）
     f32 x = 0.0f;
-    f32 y = static_cast<f32>(world::SEA_LEVEL) + 1.0f;  // 默认出生高度：海平面+1
+    f32 y = static_cast<f32>(world::SEA_LEVEL) + 1.0f; // 默认出生高度：海平面+1
     f32 z = 0.0f;
     f32 yaw = 0.0f;
     f32 pitch = 0.0f;
@@ -81,8 +81,8 @@ struct ServerPlayerData {
     // 心跳统计
     u64 lastKeepAliveSent = 0;
     u64 lastKeepAliveReceived = 0;
-    u64 lastKeepAliveSentTick = 0;  // 发送心跳时的 tick
-    u32 ping = 0;  // 延迟（毫秒）
+    u64 lastKeepAliveSentTick = 0; // 发送心跳时的 tick
+    u32 ping = 0;                  // 延迟（毫秒）
 
     // 已加载的区块
     std::unordered_set<ChunkId> loadedChunks;
@@ -106,21 +106,22 @@ struct ServerPlayerData {
      * @param name 用户名
      */
     explicit ServerPlayerData(PlayerId id, const std::string& name)
-        : playerId(id), username(name) {}
+        : playerId(id)
+        , username(name)
+    {}
 
     /**
      * @brief 获取连接（如果有效）
      * @return 连接共享指针，如果已断开则返回 nullptr
      */
-    [[nodiscard]] network::ConnectionPtr getConnection() const {
-        return connection.lock();
-    }
+    [[nodiscard]] network::ConnectionPtr getConnection() const { return connection.lock(); }
 
     /**
      * @brief 检查连接是否有效
      * @return true 如果连接有效
      */
-    [[nodiscard]] bool hasConnection() const {
+    [[nodiscard]] bool hasConnection() const
+    {
         auto conn = connection.lock();
         return conn && conn->isConnected();
     }
@@ -131,7 +132,8 @@ struct ServerPlayerData {
      * @param size 数据大小
      * @return true 如果发送成功
      */
-    bool send(const u8* data, size_t size) const {
+    bool send(const u8* data, size_t size) const
+    {
         auto conn = connection.lock();
         if (conn && conn->isConnected()) {
             conn->send(data, size);
@@ -143,30 +145,28 @@ struct ServerPlayerData {
     /**
      * @brief 获取区块坐标 X
      */
-    [[nodiscard]] ChunkCoord chunkX() const {
+    [[nodiscard]] ChunkCoord chunkX() const
+    {
         return static_cast<ChunkCoord>(std::floor(x / static_cast<f32>(mc::world::CHUNK_WIDTH)));
     }
 
     /**
      * @brief 获取区块坐标 Z
      */
-    [[nodiscard]] ChunkCoord chunkZ() const {
+    [[nodiscard]] ChunkCoord chunkZ() const
+    {
         return static_cast<ChunkCoord>(std::floor(z / static_cast<f32>(mc::world::CHUNK_WIDTH)));
     }
 
     /**
      * @brief 获取位置向量
      */
-    [[nodiscard]] Vector3f position() const {
-        return Vector3f(x, y, z);
-    }
+    [[nodiscard]] Vector3f position() const { return Vector3f(x, y, z); }
 
     /**
      * @brief 获取旋转向量
      */
-    [[nodiscard]] Vector2f rotation() const {
-        return Vector2f(yaw, pitch);
-    }
+    [[nodiscard]] Vector2f rotation() const { return Vector2f(yaw, pitch); }
 
     // ========== 效果系统 ==========
 
@@ -175,7 +175,8 @@ struct ServerPlayerData {
      * @param effect 效果实例
      * @return true 如果成功添加或合并
      */
-    bool addEffect(const entity::effect::EffectInstance& effect) {
+    bool addEffect(const entity::effect::EffectInstance& effect)
+    {
         // 查找是否已有同类型效果
         for (auto& existing : effects) {
             if (existing.type() == effect.type()) {
@@ -193,29 +194,26 @@ struct ServerPlayerData {
      * @brief 移除效果
      * @param type 效果类型
      */
-    void removeEffect(entity::effect::EffectType type) {
-        effects.erase(
-            std::remove_if(effects.begin(), effects.end(),
-                [type](const entity::effect::EffectInstance& e) {
-                    return e.type() == type;
-                }),
-            effects.end()
-        );
+    void removeEffect(entity::effect::EffectType type)
+    {
+        effects.erase(std::remove_if(effects.begin(),
+                          effects.end(),
+                          [type](const entity::effect::EffectInstance& e) { return e.type() == type; }),
+            effects.end());
     }
 
     /**
      * @brief 移除所有效果
      */
-    void removeAllEffects() {
-        effects.clear();
-    }
+    void removeAllEffects() { effects.clear(); }
 
     /**
      * @brief 检查是否有指定效果
      * @param type 效果类型
      * @return true 如果有该效果
      */
-    [[nodiscard]] bool hasEffect(entity::effect::EffectType type) const {
+    [[nodiscard]] bool hasEffect(entity::effect::EffectType type) const
+    {
         for (const auto& effect : effects) {
             if (effect.type() == type) {
                 return true;
@@ -229,7 +227,8 @@ struct ServerPlayerData {
      * @param type 效果类型
      * @return 效果实例指针，如果不存在返回 nullptr
      */
-    [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const {
+    [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const
+    {
         for (const auto& effect : effects) {
             if (effect.type() == type) {
                 return &effect;
@@ -241,9 +240,7 @@ struct ServerPlayerData {
     /**
      * @brief 获取所有效果
      */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const {
-        return effects;
-    }
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const { return effects; }
 };
 
 } // namespace mc::server

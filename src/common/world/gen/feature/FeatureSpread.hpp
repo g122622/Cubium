@@ -19,23 +19,22 @@ public:
      * @brief 构造固定值扩散
      * @param value 固定值
      */
-    static FeatureSpread fixed(i32 value) {
-        return FeatureSpread(value, 0);
-    }
+    static FeatureSpread fixed(i32 value) { return FeatureSpread(value, 0); }
 
     /**
      * @brief 构造随机扩散
      * @param base 基础值
      * @param spread 扩散范围（0到spread的随机值）
      */
-    static FeatureSpread spread(i32 base, i32 spread) {
-        return FeatureSpread(base, spread);
-    }
+    static FeatureSpread spread(i32 base, i32 spread) { return FeatureSpread(base, spread); }
 
     /**
      * @brief 默认构造（值为0）
      */
-    FeatureSpread() : m_base(0), m_spread(0) {}
+    FeatureSpread()
+        : m_base(0)
+        , m_spread(0)
+    {}
 
     /**
      * @brief 构造扩散配置
@@ -43,7 +42,9 @@ public:
      * @param spread 扩散范围
      */
     FeatureSpread(i32 base, i32 spread)
-        : m_base(base), m_spread(spread) {}
+        : m_base(base)
+        , m_spread(spread)
+    {}
 
     /**
      * @brief 获取随机值

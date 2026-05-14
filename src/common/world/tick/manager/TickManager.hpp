@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../list/ITickList.hpp"
-#include "../list/ServerTickList.hpp"
-#include "../list/EmptyTickList.hpp"
+#include "../../../core/Types.hpp"
 #include "../../block/Block.hpp"
 #include "../../fluid/Fluid.hpp"
-#include "../../../core/Types.hpp"
+#include "../list/EmptyTickList.hpp"
+#include "../list/ITickList.hpp"
+#include "../list/ServerTickList.hpp"
 #include <memory>
 
 namespace mc {
@@ -174,8 +174,7 @@ public:
      * @param remove 是否从列表中移除
      * @return tick列表
      */
-    [[nodiscard]] std::vector<ScheduledTick<Block>> getPendingBlockTicks(
-        i32 chunkX, i32 chunkZ, bool remove);
+    [[nodiscard]] std::vector<ScheduledTick<Block>> getPendingBlockTicks(i32 chunkX, i32 chunkZ, bool remove);
 
     /**
      * @brief 获取区块范围内的待处理流体tick
@@ -185,8 +184,7 @@ public:
      * @param remove 是否从列表中移除
      * @return tick列表
      */
-    [[nodiscard]] std::vector<ScheduledTick<fluid::Fluid>> getPendingFluidTicks(
-        i32 chunkX, i32 chunkZ, bool remove);
+    [[nodiscard]] std::vector<ScheduledTick<fluid::Fluid>> getPendingFluidTicks(i32 chunkX, i32 chunkZ, bool remove);
 
     // ========== 统计 ==========
 

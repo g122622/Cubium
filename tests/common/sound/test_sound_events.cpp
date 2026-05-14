@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-#include "common/sound/SoundEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -11,14 +11,16 @@ using namespace mc;
  */
 class SoundEventsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化工作（如果需要）
     }
 };
 
 // ========== 环境音效测试 ==========
 
-TEST_F(SoundEventsTest, AmbientSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, AmbientSoundEvents_ValidResourceLocations)
+{
     // 验证环境音效
     EXPECT_EQ(SoundEvents::AMBIENT_CAVE.toString(), "minecraft:ambient.cave");
 
@@ -32,13 +34,16 @@ TEST_F(SoundEventsTest, AmbientSoundEvents_ValidResourceLocations) {
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_EXIT.toString(), "minecraft:ambient.underwater.exit");
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP.toString(), "minecraft:ambient.underwater.loop");
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS.toString(), "minecraft:ambient.underwater.loop.additions");
-    EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE.toString(), "minecraft:ambient.underwater.loop.additions.rare");
-    EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE.toString(), "minecraft:ambient.underwater.loop.additions.ultra_rare");
+    EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE.toString(),
+        "minecraft:ambient.underwater.loop.additions.rare");
+    EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE.toString(),
+        "minecraft:ambient.underwater.loop.additions.ultra_rare");
 }
 
 // ========== 方块音效测试 ==========
 
-TEST_F(SoundEventsTest, BlockSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, BlockSoundEvents_ValidResourceLocations)
+{
     // 门音效
     EXPECT_EQ(SoundEvents::BLOCK_WOODEN_DOOR_OPEN.toString(), "minecraft:block.wooden_door.open");
     EXPECT_EQ(SoundEvents::BLOCK_WOODEN_DOOR_CLOSE.toString(), "minecraft:block.wooden_door.close");
@@ -52,35 +57,43 @@ TEST_F(SoundEventsTest, BlockSoundEvents_ValidResourceLocations) {
     EXPECT_EQ(SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF.toString(), "minecraft:block.wooden_button.click_off");
 
     // 压力板音效
-    EXPECT_EQ(SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_ON.toString(), "minecraft:block.stone_pressure_plate.click_on");
-    EXPECT_EQ(SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF.toString(), "minecraft:block.stone_pressure_plate.click_off");
+    EXPECT_EQ(
+        SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_ON.toString(), "minecraft:block.stone_pressure_plate.click_on");
+    EXPECT_EQ(
+        SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF.toString(), "minecraft:block.stone_pressure_plate.click_off");
 
     // 气泡柱音效
-    EXPECT_EQ(SoundEvents::BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE.toString(), "minecraft:block.bubble_column.upwards_inside");
-    EXPECT_EQ(SoundEvents::BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE.toString(), "minecraft:block.bubble_column.whirlpool_inside");
+    EXPECT_EQ(
+        SoundEvents::BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE.toString(), "minecraft:block.bubble_column.upwards_inside");
+    EXPECT_EQ(
+        SoundEvents::BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE.toString(), "minecraft:block.bubble_column.whirlpool_inside");
 }
 
 // ========== 实体音效测试 ==========
 
-TEST_F(SoundEventsTest, PlayerSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, PlayerSoundEvents_ValidResourceLocations)
+{
     EXPECT_EQ(SoundEvents::ENTITY_PLAYER_BURP.toString(), "minecraft:entity.player.burp");
     EXPECT_EQ(SoundEvents::ENTITY_PLAYER_HURT.toString(), "minecraft:entity.player.hurt");
     EXPECT_EQ(SoundEvents::ENTITY_PLAYER_HURT_DROWN.toString(), "minecraft:entity.player.hurt_drown");
     EXPECT_EQ(SoundEvents::ENTITY_PLAYER_HURT_ON_FIRE.toString(), "minecraft:entity.player.hurt_on_fire");
-    EXPECT_EQ(SoundEvents::ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH.toString(), "minecraft:entity.player.hurt_sweet_berry_bush");
+    EXPECT_EQ(
+        SoundEvents::ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH.toString(), "minecraft:entity.player.hurt_sweet_berry_bush");
     EXPECT_EQ(SoundEvents::ENTITY_PLAYER_DEATH.toString(), "minecraft:entity.player.death");
     EXPECT_EQ(SoundEvents::ENTITY_PLAYER_BIG_FALL.toString(), "minecraft:entity.player.big_fall");
     EXPECT_EQ(SoundEvents::ENTITY_PLAYER_SMALL_FALL.toString(), "minecraft:entity.player.small_fall");
 }
 
-TEST_F(SoundEventsTest, ZombieSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, ZombieSoundEvents_ValidResourceLocations)
+{
     EXPECT_EQ(SoundEvents::ENTITY_ZOMBIE_AMBIENT.toString(), "minecraft:entity.zombie.ambient");
     EXPECT_EQ(SoundEvents::ENTITY_ZOMBIE_DEATH.toString(), "minecraft:entity.zombie.death");
     EXPECT_EQ(SoundEvents::ENTITY_ZOMBIE_HURT.toString(), "minecraft:entity.zombie.hurt");
     EXPECT_EQ(SoundEvents::ENTITY_ZOMBIE_STEP.toString(), "minecraft:entity.zombie.step");
 }
 
-TEST_F(SoundEventsTest, PassiveMobSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, PassiveMobSoundEvents_ValidResourceLocations)
+{
     // 鸡
     EXPECT_EQ(SoundEvents::ENTITY_CHICKEN_AMBIENT.toString(), "minecraft:entity.chicken.ambient");
     EXPECT_EQ(SoundEvents::ENTITY_CHICKEN_DEATH.toString(), "minecraft:entity.chicken.death");
@@ -102,7 +115,8 @@ TEST_F(SoundEventsTest, PassiveMobSoundEvents_ValidResourceLocations) {
 
 // ========== 物品音效测试 ==========
 
-TEST_F(SoundEventsTest, ItemSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, ItemSoundEvents_ValidResourceLocations)
+{
     // 盔甲装备
     EXPECT_EQ(SoundEvents::ITEM_ARMOR_EQUIP_CHAIN.toString(), "minecraft:item.armor.equip_chain");
     EXPECT_EQ(SoundEvents::ITEM_ARMOR_EQUIP_DIAMOND.toString(), "minecraft:item.armor.equip_diamond");
@@ -119,7 +133,8 @@ TEST_F(SoundEventsTest, ItemSoundEvents_ValidResourceLocations) {
 
 // ========== 武器音效测试 ==========
 
-TEST_F(SoundEventsTest, WeaponSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, WeaponSoundEvents_ValidResourceLocations)
+{
     // 三叉戟
     EXPECT_EQ(SoundEvents::ITEM_TRIDENT_THROW.toString(), "minecraft:item.trident.throw");
     EXPECT_EQ(SoundEvents::ITEM_TRIDENT_RIPTIDE_1.toString(), "minecraft:item.trident.riptide_1");
@@ -136,7 +151,8 @@ TEST_F(SoundEventsTest, WeaponSoundEvents_ValidResourceLocations) {
 
 // ========== 音乐音效测试 ==========
 
-TEST_F(SoundEventsTest, MusicSoundEvents_ValidResourceLocations) {
+TEST_F(SoundEventsTest, MusicSoundEvents_ValidResourceLocations)
+{
     EXPECT_EQ(SoundEvents::MUSIC_MENU.toString(), "minecraft:music.menu");
     EXPECT_EQ(SoundEvents::MUSIC_GAME.toString(), "minecraft:music.game");
     EXPECT_EQ(SoundEvents::MUSIC_CREATIVE.toString(), "minecraft:music.creative");
@@ -149,7 +165,8 @@ TEST_F(SoundEventsTest, MusicSoundEvents_ValidResourceLocations) {
 
 // ========== ResourceLocation 格式验证 ==========
 
-TEST_F(SoundEventsTest, SoundEvents_HaveMinecraftNamespace) {
+TEST_F(SoundEventsTest, SoundEvents_HaveMinecraftNamespace)
+{
     // 验证所有音效都有 minecraft: 命名空间
     EXPECT_TRUE(SoundEvents::AMBIENT_CAVE.toString().find("minecraft:") == 0);
     EXPECT_TRUE(SoundEvents::BLOCK_STONE_BUTTON_CLICK_ON.toString().find("minecraft:") == 0);

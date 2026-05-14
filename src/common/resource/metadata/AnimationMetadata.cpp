@@ -3,7 +3,8 @@
 
 namespace mc::resource::metadata {
 
-AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json) {
+AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json)
+{
     AnimationMetadata metadata;
 
     if (!json.is_object()) {
@@ -37,19 +38,19 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json) {
                 const i32 index = frame.get<i32>();
                 // MC 1.16.5: 帧索引必须 >= 0
                 if (index < 0) {
-                    continue;  // 跳过无效帧
+                    continue; // 跳过无效帧
                 }
                 metadata.frames.emplace_back(index, -1);
             } else if (frame.is_object()) {
                 // 对象形式：{ "index": N, "time": M }
                 // MC 1.16.5: index是必需字段
                 if (!frame.contains("index")) {
-                    continue;  // 跳过无效帧
+                    continue; // 跳过无效帧
                 }
                 const i32 index = frame["index"].get<i32>();
                 // MC 1.16.5: 帧索引必须 >= 0
                 if (index < 0) {
-                    continue;  // 跳过无效帧
+                    continue; // 跳过无效帧
                 }
 
                 i32 time = -1;
@@ -57,7 +58,7 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json) {
                     time = frame["time"].get<i32>();
                     // MC 1.16.5: 如果显式指定time，必须 >= 1
                     if (time < 1) {
-                        time = -1;  // 使用默认值
+                        time = -1; // 使用默认值
                     }
                 }
                 metadata.frames.emplace_back(index, time);
@@ -68,10 +69,7 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json) {
     return metadata;
 }
 
-AnimationMetadata AnimationMetadata::fromMcmeta(
-    const std::vector<u8>& mcmetaData,
-    u32 imageWidth,
-    u32 imageHeight)
+AnimationMetadata AnimationMetadata::fromMcmeta(const std::vector<u8>& mcmetaData, u32 imageWidth, u32 imageHeight)
 {
     if (mcmetaData.empty() || imageWidth == 0 || imageHeight == 0) {
         return AnimationMetadata();
@@ -104,8 +102,7 @@ AnimationMetadata AnimationMetadata::fromMcmeta(
             return AnimationMetadata();
         }
 
-        if (static_cast<u32>(metadata.width) > imageWidth ||
-            static_cast<u32>(metadata.height) > imageHeight) {
+        if (static_cast<u32>(metadata.width) > imageWidth || static_cast<u32>(metadata.height) > imageHeight) {
             return AnimationMetadata();
         }
 
@@ -120,7 +117,8 @@ AnimationMetadata AnimationMetadata::fromMcmeta(
         // 注意：帧序列会在AnimatedSprite中根据实际帧数填充
 
         return metadata;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         // JSON解析失败
         return AnimationMetadata();
     }

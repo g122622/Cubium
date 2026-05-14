@@ -67,7 +67,8 @@ public:
      * @param predecessor 前驱节点
      * @return 如果更新了返回true
      */
-    bool updateBest(f32 distance, PathPoint* predecessor) {
+    bool updateBest(f32 distance, PathPoint* predecessor)
+    {
         if (distance < m_bestDistance) {
             m_bestDistance = distance;
             m_bestPredecessor = predecessor;

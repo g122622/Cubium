@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include "common/core/Types.hpp"
 #include <memory>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc::client {
 
@@ -24,10 +24,10 @@ struct SkyUBO {
     alignas(16) glm::vec4 sunriseColor;     // 日出日落颜色 (A=强度)
     alignas(16) glm::vec4 sunriseDirection; // 日出日落中心方向 (xyz)
     alignas(16) glm::vec4 cameraForward;    // 摄像机前向 (xyz)
-    alignas(4)  float celestialAngle;       // 天体角度 (0.0-1.0)
-    alignas(4)  float starBrightness;       // 星星亮度
-    alignas(4)  int32_t moonPhase;          // 月相 (0-7)
-    alignas(4)  float padding;
+    alignas(4) float celestialAngle;        // 天体角度 (0.0-1.0)
+    alignas(4) float starBrightness;        // 星星亮度
+    alignas(4) int32_t moonPhase;           // 月相 (0-7)
+    alignas(4) float padding;
 };
 
 /**
@@ -55,8 +55,7 @@ public:
      * @param extent 交换链图像尺寸
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -84,8 +83,7 @@ public:
      * @param rainStrength 雨强度 (0.0-1.0)
      * @param thunderStrength 雷暴强度 (0.0-1.0)
      */
-    void update(i64 dayTime, i64 gameTime, f64 partialTick,
-                f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
+    void update(i64 dayTime, i64 gameTime, f64 partialTick, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
 
     /**
      * @brief 渲染天空
@@ -96,11 +94,11 @@ public:
      * @param cameraForward 相机前向（用于下半天空晨昏填充）
      */
     void render(VkCommandBuffer cmd,
-             const glm::mat4& projection,
-             const glm::mat4& view,
-             const glm::vec3& cameraPos,
-             const glm::vec3& cameraForward,
-             u32 frameIndex);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        const glm::vec3& cameraForward,
+        u32 frameIndex);
 
     // ========== 状态查询 ==========
 
@@ -192,10 +190,10 @@ private:
      * @brief 创建缓冲区
      */
     [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
-                                            VkBufferUsageFlags usage,
-                                            VkMemoryPropertyFlags properties,
-                                            VkBuffer& buffer,
-                                            VkDeviceMemory& memory);
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkBuffer& buffer,
+        VkDeviceMemory& memory);
 
     /**
      * @brief 开始单次命令
@@ -244,11 +242,11 @@ private:
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
     // 管线
-    VkPipeline m_skyPipeline = VK_NULL_HANDLE;       // 天空穹顶管线
-    VkPipeline m_skyStarPipeline = VK_NULL_HANDLE;   // 天空+星星管线 (夜晚)
-    VkPipeline m_sunPipeline = VK_NULL_HANDLE;       // 太阳管线
-    VkPipeline m_moonPipeline = VK_NULL_HANDLE;      // 月亮管线
-    VkPipeline m_starPipeline = VK_NULL_HANDLE;      // 星星管线
+    VkPipeline m_skyPipeline = VK_NULL_HANDLE;     // 天空穹顶管线
+    VkPipeline m_skyStarPipeline = VK_NULL_HANDLE; // 天空+星星管线 (夜晚)
+    VkPipeline m_sunPipeline = VK_NULL_HANDLE;     // 太阳管线
+    VkPipeline m_moonPipeline = VK_NULL_HANDLE;    // 月亮管线
+    VkPipeline m_starPipeline = VK_NULL_HANDLE;    // 星星管线
 
     // 顶点缓冲区
     VkBuffer m_skyDomeVBO = VK_NULL_HANDLE;

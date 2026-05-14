@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "server/sync/BlockUpdateSyncManager.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "server/sync/BlockUpdateSyncManager.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -21,7 +21,8 @@ struct SentBlockUpdate {
 
 class BlockUpdateSyncManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_ticketManager.setViewDistance(8);
         m_manager = std::make_unique<BlockUpdateSyncManager>(m_ticketManager);
         m_manager->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
@@ -29,12 +30,14 @@ protected:
         });
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_manager.reset();
         m_sentUpdates.clear();
     }
 
-    void addTrackingPlayer(PlayerId playerId, ChunkCoord chunkX, ChunkCoord chunkZ) {
+    void addTrackingPlayer(PlayerId playerId, ChunkCoord chunkX, ChunkCoord chunkZ)
+    {
         m_ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
     }
 
@@ -46,8 +49,8 @@ protected:
 
 } // namespace
 
-
-TEST_F(BlockUpdateSyncManagerTest, DeduplicatesSameBlockWithinTick) {
+TEST_F(BlockUpdateSyncManagerTest, DeduplicatesSameBlockWithinTick)
+{
     addTrackingPlayer(1, 0, 0);
 
     m_manager->queueBlockUpdate(1, 64, 1, 5u);
@@ -60,7 +63,8 @@ TEST_F(BlockUpdateSyncManagerTest, DeduplicatesSameBlockWithinTick) {
     EXPECT_EQ(m_sentUpdates[0].blockStateId, 7u);
 }
 
-TEST_F(BlockUpdateSyncManagerTest, SendsDistinctPositionsSeparately) {
+TEST_F(BlockUpdateSyncManagerTest, SendsDistinctPositionsSeparately)
+{
     addTrackingPlayer(1, 0, 0);
 
     m_manager->queueBlockUpdate(1, 64, 1, 5u);
@@ -76,7 +80,8 @@ TEST_F(BlockUpdateSyncManagerTest, SendsDistinctPositionsSeparately) {
     EXPECT_EQ(m_sentUpdates[1].blockStateId, 6u);
 }
 
-TEST_F(BlockUpdateSyncManagerTest, SendsToAllTrackingPlayers) {
+TEST_F(BlockUpdateSyncManagerTest, SendsToAllTrackingPlayers)
+{
     addTrackingPlayer(1, 0, 0);
     addTrackingPlayer(2, 0, 0);
 
@@ -84,9 +89,9 @@ TEST_F(BlockUpdateSyncManagerTest, SendsToAllTrackingPlayers) {
     m_manager->flushPendingUpdates();
 
     ASSERT_EQ(m_sentUpdates.size(), 2u);
-    std::sort(m_sentUpdates.begin(), m_sentUpdates.end(), [](const SentBlockUpdate& left, const SentBlockUpdate& right) {
-        return left.playerId < right.playerId;
-    });
+    std::sort(m_sentUpdates.begin(),
+        m_sentUpdates.end(),
+        [](const SentBlockUpdate& left, const SentBlockUpdate& right) { return left.playerId < right.playerId; });
 
     EXPECT_EQ(m_sentUpdates[0].playerId, 1u);
     EXPECT_EQ(m_sentUpdates[0].pos, BlockPos(1, 64, 1));
@@ -96,7 +101,8 @@ TEST_F(BlockUpdateSyncManagerTest, SendsToAllTrackingPlayers) {
     EXPECT_EQ(m_sentUpdates[1].blockStateId, 5u);
 }
 
-TEST_F(BlockUpdateSyncManagerTest, SkipsPlayersWhoStopTrackingBeforeFlush) {
+TEST_F(BlockUpdateSyncManagerTest, SkipsPlayersWhoStopTrackingBeforeFlush)
+{
     addTrackingPlayer(1, 0, 0);
 
     m_manager->queueBlockUpdate(1, 64, 1, 5u);

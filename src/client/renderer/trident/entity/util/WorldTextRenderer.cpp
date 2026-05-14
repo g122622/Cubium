@@ -20,11 +20,7 @@ u8 WorldTextRenderer::s_bgColorB = 0;
 u8 WorldTextRenderer::s_bgColorA = 128;
 Vector3d WorldTextRenderer::s_cameraPosition(0.0, 0.0, 0.0);
 std::array<f64, 16> WorldTextRenderer::s_viewMatrix = {
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0
-};
+    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 mc::math::frustum::Frustum WorldTextRenderer::s_frustum;
 Vector3f WorldTextRenderer::s_cameraForward(0.0f, 0.0f, -1.0f);
 std::unordered_map<u32, WorldGlyphMesh> WorldTextRenderer::s_glyphMeshCache;
@@ -40,8 +36,7 @@ VkDeviceMemory WorldTextRenderer::s_fontTextureMemory = VK_NULL_HANDLE;
 VkImageView WorldTextRenderer::s_fontTextureView = VK_NULL_HANDLE;
 VkSampler WorldTextRenderer::s_fontSampler = VK_NULL_HANDLE;
 
-bool WorldTextRenderer::initialize(
-    VkDevice device,
+bool WorldTextRenderer::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
@@ -70,7 +65,7 @@ bool WorldTextRenderer::initialize(
 
     // 预缓存常用 ASCII 字符
     // 从 FontTextureAtlas 获取字形并创建世界空间网格
-    for (u32 c = 32; c <= 126; ++c) {  // 可打印 ASCII 字符
+    for (u32 c = 32; c <= 126; ++c) { // 可打印 ASCII 字符
         const Glyph* glyph = font->getGlyph(c);
         if (glyph != nullptr) {
             WorldGlyphMesh mesh = createGlyphMeshFromGlyph(*glyph);
@@ -88,20 +83,21 @@ bool WorldTextRenderer::initialize(
     createBackgroundMesh(1.0f, 1.0f);
 
     s_initialized = true;
-    spdlog::info("WorldTextRenderer: Initialized successfully with {} cached glyphs and font texture",
-                 s_glyphMeshCache.size());
+    spdlog::info(
+        "WorldTextRenderer: Initialized successfully with {} cached glyphs and font texture", s_glyphMeshCache.size());
 
-    (void)pipeline;  // 管线用于后续绘制
+    (void)pipeline; // 管线用于后续绘制
     return true;
 }
 
-WorldGlyphMesh WorldTextRenderer::createGlyphMeshFromGlyph(const Glyph& glyph) {
+WorldGlyphMesh WorldTextRenderer::createGlyphMeshFromGlyph(const Glyph& glyph)
+{
     WorldGlyphMesh mesh;
 
     // 创建字符四边形（billboard 格式，面向 +Z）
     // 字形原点在左上角
     f32 x0 = glyph.bearingX;
-    f32 y0 = -glyph.bearingY;  // 从基线向上
+    f32 y0 = -glyph.bearingY; // 从基线向上
     f32 x1 = x0 + glyph.width;
     f32 y1 = y0 + glyph.height;
 
@@ -115,13 +111,13 @@ WorldGlyphMesh WorldTextRenderer::createGlyphMeshFromGlyph(const Glyph& glyph) {
     // 使用 ModelVertex 格式
     mesh.vertices = {
         // 第一个三角形
-        model::ModelVertex(x0, y0, 0.0,  u0, v0,  0.0, 0.0, 1.0),
-        model::ModelVertex(x1, y0, 0.0,  u1, v0,  0.0, 0.0, 1.0),
-        model::ModelVertex(x1, y1, 0.0,  u1, v1,  0.0, 0.0, 1.0),
+        model::ModelVertex(x0, y0, 0.0, u0, v0, 0.0, 0.0, 1.0),
+        model::ModelVertex(x1, y0, 0.0, u1, v0, 0.0, 0.0, 1.0),
+        model::ModelVertex(x1, y1, 0.0, u1, v1, 0.0, 0.0, 1.0),
         // 第二个三角形
-        model::ModelVertex(x0, y0, 0.0,  u0, v0,  0.0, 0.0, 1.0),
-        model::ModelVertex(x1, y1, 0.0,  u1, v1,  0.0, 0.0, 1.0),
-        model::ModelVertex(x0, y1, 0.0,  u0, v1,  0.0, 0.0, 1.0),
+        model::ModelVertex(x0, y0, 0.0, u0, v0, 0.0, 0.0, 1.0),
+        model::ModelVertex(x1, y1, 0.0, u1, v1, 0.0, 0.0, 1.0),
+        model::ModelVertex(x0, y1, 0.0, u0, v1, 0.0, 0.0, 1.0),
     };
 
     // 索引（两个三角形）
@@ -134,7 +130,8 @@ WorldGlyphMesh WorldTextRenderer::createGlyphMeshFromGlyph(const Glyph& glyph) {
     return mesh;
 }
 
-bool WorldTextRenderer::createFontTexture() {
+bool WorldTextRenderer::createFontTexture()
+{
     if (s_font == nullptr || !s_font->isValid()) {
         spdlog::error("WorldTextRenderer: Font not valid");
         return false;
@@ -159,7 +156,7 @@ bool WorldTextRenderer::createFontTexture() {
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
     imageInfo.arrayLayers = 1;
-    imageInfo.format = VK_FORMAT_R8_UNORM;  // 字体图集是灰度图
+    imageInfo.format = VK_FORMAT_R8_UNORM; // 字体图集是灰度图
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -175,8 +172,8 @@ bool WorldTextRenderer::createFontTexture() {
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(device, s_fontTexture, &memRequirements);
 
-    auto memTypeResult = VulkanUtils::findMemoryType(s_physicalDevice, memRequirements.memoryTypeBits,
-                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = VulkanUtils::findMemoryType(
+        s_physicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!memTypeResult.success()) {
         vkDestroyImage(device, s_fontTexture, nullptr);
         s_fontTexture = VK_NULL_HANDLE;
@@ -216,8 +213,9 @@ bool WorldTextRenderer::createFontTexture() {
     }
 
     vkGetBufferMemoryRequirements(device, stagingBuffer, &memRequirements);
-    memTypeResult = VulkanUtils::findMemoryType(s_physicalDevice, memRequirements.memoryTypeBits,
-                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    memTypeResult = VulkanUtils::findMemoryType(s_physicalDevice,
+        memRequirements.memoryTypeBits,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (!memTypeResult.success()) {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         return false;
@@ -261,8 +259,8 @@ bool WorldTextRenderer::createFontTexture() {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(
+        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -282,8 +280,16 @@ bool WorldTextRenderer::createFontTexture() {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     VulkanUtils::endSingleTimeCommands(device, s_commandPool, s_graphicsQueue, cmd);
 
@@ -310,7 +316,7 @@ bool WorldTextRenderer::createFontTexture() {
     // 创建采样器
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;  // 像素风格字体
+    samplerInfo.magFilter = VK_FILTER_NEAREST; // 像素风格字体
     samplerInfo.minFilter = VK_FILTER_NEAREST;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -335,11 +341,12 @@ bool WorldTextRenderer::createFontTexture() {
     return true;
 }
 
-void WorldTextRenderer::cleanup() {
+void WorldTextRenderer::cleanup()
+{
     s_glyphMeshCache.clear();
 
     // 销毁背景网格
-    s_backgroundMesh = nullptr;  // 由 EntityPipeline 管理
+    s_backgroundMesh = nullptr; // 由 EntityPipeline 管理
 
     // 销毁 Vulkan 资源
     if (s_fontSampler != VK_NULL_HANDLE) {
@@ -367,29 +374,28 @@ void WorldTextRenderer::cleanup() {
     spdlog::info("WorldTextRenderer: Cleaned up");
 }
 
-bool WorldTextRenderer::isInitialized() {
+bool WorldTextRenderer::isInitialized()
+{
     return s_initialized;
 }
 
-void WorldTextRenderer::setCameraPosition(const Vector3d& position) {
+void WorldTextRenderer::setCameraPosition(const Vector3d& position)
+{
     s_cameraPosition = position;
 }
 
-void WorldTextRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
+void WorldTextRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix)
+{
     s_viewMatrix = viewMatrix;
 
     // 从视图矩阵提取相机前向向量（用于背面剔除）
     // 视图矩阵的第三列（Z轴）是相机的前向方向（在视图空间中指向相机前方）
     // 由于视图矩阵是相机的逆矩阵，我们取第三行的负值作为前向向量
-    s_cameraForward = Vector3f(
-        static_cast<f32>(-viewMatrix[8]),
-        static_cast<f32>(-viewMatrix[9]),
-        static_cast<f32>(-viewMatrix[10])
-    );
+    s_cameraForward =
+        Vector3f(static_cast<f32>(-viewMatrix[8]), static_cast<f32>(-viewMatrix[9]), static_cast<f32>(-viewMatrix[10]));
     // 手动归一化
-    f32 len = std::sqrt(s_cameraForward.x * s_cameraForward.x +
-                        s_cameraForward.y * s_cameraForward.y +
-                        s_cameraForward.z * s_cameraForward.z);
+    f32 len = std::sqrt(s_cameraForward.x * s_cameraForward.x + s_cameraForward.y * s_cameraForward.y +
+        s_cameraForward.z * s_cameraForward.z);
     if (len > 0.0001f) {
         s_cameraForward.x /= len;
         s_cameraForward.y /= len;
@@ -397,11 +403,13 @@ void WorldTextRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
     }
 }
 
-void WorldTextRenderer::setFrustum(const mc::math::frustum::Frustum& frustum) {
+void WorldTextRenderer::setFrustum(const mc::math::frustum::Frustum& frustum)
+{
     s_frustum = frustum;
 }
 
-void WorldTextRenderer::setCameraForward(const Vector3f& forward) {
+void WorldTextRenderer::setCameraForward(const Vector3f& forward)
+{
     // 手动归一化
     f32 len = std::sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
     if (len > 0.0001f) {
@@ -413,7 +421,8 @@ void WorldTextRenderer::setCameraForward(const Vector3f& forward) {
     }
 }
 
-const WorldGlyphMesh* WorldTextRenderer::getGlyphMesh(u32 codepoint) {
+const WorldGlyphMesh* WorldTextRenderer::getGlyphMesh(u32 codepoint)
+{
     auto it = s_glyphMeshCache.find(codepoint);
     if (it != s_glyphMeshCache.end()) {
         return &it->second;
@@ -432,8 +441,7 @@ const WorldGlyphMesh* WorldTextRenderer::getGlyphMesh(u32 codepoint) {
     return nullptr;
 }
 
-void WorldTextRenderer::renderText(
-    VkCommandBuffer cmd,
+void WorldTextRenderer::renderText(VkCommandBuffer cmd,
     const std::string& text,
     const Vector3f& position,
     f32 scale,
@@ -446,11 +454,9 @@ void WorldTextRenderer::renderText(
     }
 
     // 计算到相机的距离
-    Vector3 cameraPosF(
-        static_cast<f32>(s_cameraPosition.x),
+    Vector3 cameraPosF(static_cast<f32>(s_cameraPosition.x),
         static_cast<f32>(s_cameraPosition.y),
-        static_cast<f32>(s_cameraPosition.z)
-    );
+        static_cast<f32>(s_cameraPosition.z));
     Vector3 toCamera = cameraPosF - Vector3(position.x, position.y, position.z);
     f32 distance = toCamera.length();
 
@@ -508,19 +514,17 @@ void WorldTextRenderer::renderText(
             auto& bgMesh = bgMeshResult.value();
             Vector3f bgPos(0, 0, 0);
             // 使用背景颜色渲染（半透明）
-            Vector4f bgColor(
-                static_cast<f32>(s_bgColorR) / 255.0f,
+            Vector4f bgColor(static_cast<f32>(s_bgColorR) / 255.0f,
                 static_cast<f32>(s_bgColorG) / 255.0f,
                 static_cast<f32>(s_bgColorB) / 255.0f,
-                static_cast<f32>(s_bgColorA) / 255.0f
-            );
+                static_cast<f32>(s_bgColorA) / 255.0f);
             pipeline.drawMesh(cmd, bgMesh, billboardMatrix, bgPos, 1.0f, bgColor, 0.0f, 0.0f);
             pipeline.destroyMesh(bgMesh);
         }
     }
 
     // 渲染文本字符
-    f32 cursorX = -textWidth * 0.5f;  // 居中起始位置
+    f32 cursorX = -textWidth * 0.5f; // 居中起始位置
 
     // 绑定管线
     pipeline.bind(cmd);
@@ -534,7 +538,7 @@ void WorldTextRenderer::renderText(
 
         const WorldGlyphMesh* glyph = getGlyphMesh(codepoint);
         if (glyph == nullptr) {
-            cursorX += CHAR_WIDTH * effectiveScale;  // 使用默认宽度
+            cursorX += CHAR_WIDTH * effectiveScale; // 使用默认宽度
             continue;
         }
 
@@ -553,7 +557,7 @@ void WorldTextRenderer::renderText(
             auto& mesh = meshResult.value();
 
             // 使用 billboard 矩阵绘制
-            Vector3f meshPos(0, 0, 0);  // 位置已在矩阵中
+            Vector3f meshPos(0, 0, 0); // 位置已在矩阵中
             pipeline.drawMesh(cmd, mesh, billboardMatrix, meshPos, 1.0, color, 0.0f, 0.0f);
 
             // 销毁临时网格
@@ -563,12 +567,10 @@ void WorldTextRenderer::renderText(
         cursorX += glyph->advanceX * effectiveScale;
     }
 
-    spdlog::trace("WorldTextRenderer: Rendered '{}' at ({}, {}, {})",
-                  text, position.x, position.y, position.z);
+    spdlog::trace("WorldTextRenderer: Rendered '{}' at ({}, {}, {})", text, position.x, position.y, position.z);
 }
 
-void WorldTextRenderer::renderNameTag(
-    VkCommandBuffer cmd,
+void WorldTextRenderer::renderNameTag(VkCommandBuffer cmd,
     const std::string& name,
     const Vector3f& entityPosition,
     f32 entityHeight,
@@ -579,37 +581,40 @@ void WorldTextRenderer::renderNameTag(
     tagPos.y += entityHeight + HEIGHT_OFFSET;
 
     // 渲染文本
-    renderText(
-        cmd,
+    renderText(cmd,
         name,
         tagPos,
-        1.0f,  // 使用默认缩放
-        Vector4f(1.0f, 1.0f, 1.0f, 1.0f),  // 白色文本
+        1.0f,                             // 使用默认缩放
+        Vector4f(1.0f, 1.0f, 1.0f, 1.0f), // 白色文本
         s_showBackground,
-        pipeline
-    );
+        pipeline);
 }
 
-void WorldTextRenderer::setMaxDistance(f32 distance) {
+void WorldTextRenderer::setMaxDistance(f32 distance)
+{
     s_maxDistance = distance;
 }
 
-f32 WorldTextRenderer::maxDistance() {
+f32 WorldTextRenderer::maxDistance()
+{
     return s_maxDistance;
 }
 
-void WorldTextRenderer::setBackgroundColor(u8 r, u8 g, u8 b, u8 a) {
+void WorldTextRenderer::setBackgroundColor(u8 r, u8 g, u8 b, u8 a)
+{
     s_bgColorR = r;
     s_bgColorG = g;
     s_bgColorB = b;
     s_bgColorA = a;
 }
 
-void WorldTextRenderer::setShowBackground(bool show) {
+void WorldTextRenderer::setShowBackground(bool show)
+{
     s_showBackground = show;
 }
 
-void WorldTextRenderer::createBackgroundMesh(f32 width, f32 height) {
+void WorldTextRenderer::createBackgroundMesh(f32 width, f32 height)
+{
     // 创建背景四边形
     f32 halfWidth = width * 0.5f;
     f32 halfHeight = height * 0.5f;
@@ -621,9 +626,7 @@ void WorldTextRenderer::createBackgroundMesh(f32 width, f32 height) {
     (void)halfHeight;
 }
 
-void WorldTextRenderer::computeBillboardMatrix(
-    const Vector3f& position,
-    std::array<f64, 16>& outMatrix)
+void WorldTextRenderer::computeBillboardMatrix(const Vector3f& position, std::array<f64, 16>& outMatrix)
 {
     // 参考 MC 1.16.5: 名称标签始终面向相机（billboard）
     // 从视图矩阵中提取旋转部分，然后反转
@@ -658,7 +661,8 @@ void WorldTextRenderer::computeBillboardMatrix(
     outMatrix[15] = 1.0;
 }
 
-f32 WorldTextRenderer::calculateTextWidth(const std::string& text, f32 scale) {
+f32 WorldTextRenderer::calculateTextWidth(const std::string& text, f32 scale)
+{
     if (s_font == nullptr) {
         return static_cast<f32>(text.size()) * CHAR_WIDTH * scale;
     }
@@ -679,9 +683,7 @@ f32 WorldTextRenderer::calculateTextWidth(const std::string& text, f32 scale) {
     return width;
 }
 
-bool WorldTextRenderer::shouldRenderText(
-    const Vector3f& position,
-    f32 distance)
+bool WorldTextRenderer::shouldRenderText(const Vector3f& position, f32 distance)
 {
     // 距离检查
     if (distance > s_maxDistance) {
@@ -705,13 +707,12 @@ bool WorldTextRenderer::shouldRenderText(
     return true;
 }
 
-bool WorldTextRenderer::isBackFacing(const Vector3f& textPosition) {
+bool WorldTextRenderer::isBackFacing(const Vector3f& textPosition)
+{
     // 计算从文本位置指向相机的方向向量
-    Vector3f toCamera(
-        static_cast<f32>(s_cameraPosition.x - textPosition.x),
+    Vector3f toCamera(static_cast<f32>(s_cameraPosition.x - textPosition.x),
         static_cast<f32>(s_cameraPosition.y - textPosition.y),
-        static_cast<f32>(s_cameraPosition.z - textPosition.z)
-    );
+        static_cast<f32>(s_cameraPosition.z - textPosition.z));
 
     f32 distanceSq = toCamera.x * toCamera.x + toCamera.y * toCamera.y + toCamera.z * toCamera.z;
 
@@ -728,15 +729,14 @@ bool WorldTextRenderer::isBackFacing(const Vector3f& textPosition) {
 
     // 计算相机前向向量与"到相机方向"的点积
     // 如果点积 >= 0，表示相机背对文本位置（文本在相机后方）
-    f32 dot = toCamera.x * s_cameraForward.x +
-              toCamera.y * s_cameraForward.y +
-              toCamera.z * s_cameraForward.z;
+    f32 dot = toCamera.x * s_cameraForward.x + toCamera.y * s_cameraForward.y + toCamera.z * s_cameraForward.z;
 
     // 点积 >= 0 表示文本在相机背后（toCamera 与 cameraForward 方向相同）
     return dot >= 0.0f;
 }
 
-u32 WorldTextRenderer::decodeCodepoint(const std::string& text, size_t& pos) {
+u32 WorldTextRenderer::decodeCodepoint(const std::string& text, size_t& pos)
+{
     if (pos >= text.size()) {
         return 0;
     }
@@ -758,19 +758,15 @@ u32 WorldTextRenderer::decodeCodepoint(const std::string& text, size_t& pos) {
         if (pos + 1 >= text.size()) return c;
         u8 c2 = static_cast<u8>(text[pos++]);
         u8 c3 = static_cast<u8>(text[pos++]);
-        return (static_cast<u32>(c & 0x0F) << 12) |
-               (static_cast<u32>(c2 & 0x3F) << 6) |
-               static_cast<u32>(c3 & 0x3F);
+        return (static_cast<u32>(c & 0x0F) << 12) | (static_cast<u32>(c2 & 0x3F) << 6) | static_cast<u32>(c3 & 0x3F);
     } else if ((c & 0xF8) == 0xF0) {
         // 四字节
         if (pos + 2 >= text.size()) return c;
         u8 c2 = static_cast<u8>(text[pos++]);
         u8 c3 = static_cast<u8>(text[pos++]);
         u8 c4 = static_cast<u8>(text[pos++]);
-        return (static_cast<u32>(c & 0x07) << 18) |
-               (static_cast<u32>(c2 & 0x3F) << 12) |
-               (static_cast<u32>(c3 & 0x3F) << 6) |
-               static_cast<u32>(c4 & 0x3F);
+        return (static_cast<u32>(c & 0x07) << 18) | (static_cast<u32>(c2 & 0x3F) << 12) |
+            (static_cast<u32>(c3 & 0x3F) << 6) | static_cast<u32>(c4 & 0x3F);
     }
 
     return c;

@@ -1,10 +1,10 @@
 #include "DripParticle.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "client/world/ClientWorld.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "client/world/ClientWorld.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -29,22 +29,23 @@ DripParticle::DripParticle(const glm::vec3& pos, const glm::vec3& velocity, Drip
     // 根据类型设置颜色
     switch (type) {
         case DripType::Lava:
-            setColor(glm::vec4(1.0f, 0.3f, 0.0f, 1.0f));  // 橙红色
+            setColor(glm::vec4(1.0f, 0.3f, 0.0f, 1.0f)); // 橙红色
             break;
         case DripType::Honey:
-            setColor(glm::vec4(1.0f, 0.7f, 0.2f, 1.0f));  // 金黄色
+            setColor(glm::vec4(1.0f, 0.7f, 0.2f, 1.0f)); // 金黄色
             break;
         case DripType::ObsidianTear:
-            setColor(glm::vec4(0.2f, 0.1f, 0.3f, 1.0f));  // 紫色
+            setColor(glm::vec4(0.2f, 0.1f, 0.3f, 1.0f)); // 紫色
             break;
         case DripType::Water:
         default:
-            setColor(glm::vec4(0.7f, 0.7f, 1.0f, 1.0f));  // 淡蓝色
+            setColor(glm::vec4(0.7f, 0.7f, 1.0f, 1.0f)); // 淡蓝色
             break;
     }
 }
 
-ResourceLocation DripParticle::getTextureLocation() const {
+ResourceLocation DripParticle::getTextureLocation() const
+{
     // 根据类型和状态返回不同纹理
     if (m_dripState == DripState::Landed) {
         switch (m_type) {
@@ -65,7 +66,8 @@ ResourceLocation DripParticle::getTextureLocation() const {
     }
 }
 
-u32 DripParticle::getLightColor(mc::client::ClientWorld* world) const {
+u32 DripParticle::getLightColor(mc::client::ClientWorld* world) const
+{
     // MC 1.16.5: 熔岩滴是发光粒子
     if (m_type == DripType::Lava) {
         // 熔岩滴发光：基础光照 + 随生命周期的变化
@@ -79,9 +81,7 @@ u32 DripParticle::getLightColor(mc::client::ClientWorld* world) const {
 }
 
 std::unique_ptr<Particle> DripParticle::createDrippingLava(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::Lava);
@@ -89,35 +89,29 @@ std::unique_ptr<Particle> DripParticle::createDrippingLava(
 }
 
 std::unique_ptr<Particle> DripParticle::createFallingLava(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::Lava);
     particle->m_dripState = DripState::Falling;
     particle->m_dripProgress = 1.0f;
-    particle->setGravity(0.06f);  // MC 1.16.5: 下落时重力 0.06
+    particle->setGravity(0.06f); // MC 1.16.5: 下落时重力 0.06
     return particle;
 }
 
 std::unique_ptr<Particle> DripParticle::createLandingLava(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::Lava);
     particle->m_dripState = DripState::Landed;
-    particle->setMaxAge(16.0f);  // MC 1.16.5: 落地后 16 tick
+    particle->setMaxAge(16.0f); // MC 1.16.5: 落地后 16 tick
     particle->setSize(0.04f);
     return particle;
 }
 
 std::unique_ptr<Particle> DripParticle::createDrippingHoney(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::Honey);
@@ -125,22 +119,18 @@ std::unique_ptr<Particle> DripParticle::createDrippingHoney(
 }
 
 std::unique_ptr<Particle> DripParticle::createFallingHoney(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::Honey);
     particle->m_dripState = DripState::Falling;
     particle->m_dripProgress = 1.0f;
-    particle->setGravity(0.01f);  // MC 1.16.5: 蜂蜜下落重力更小
+    particle->setGravity(0.01f); // MC 1.16.5: 蜂蜜下落重力更小
     return particle;
 }
 
 std::unique_ptr<Particle> DripParticle::createLandingHoney(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::Honey);
@@ -150,7 +140,8 @@ std::unique_ptr<Particle> DripParticle::createLandingHoney(
     return particle;
 }
 
-void DripParticle::tick(mc::client::ClientWorld* world) {
+void DripParticle::tick(mc::client::ClientWorld* world)
+{
     m_prevPosition = m_position;
     m_prevRoll = m_roll;
 
@@ -182,7 +173,8 @@ void DripParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-void DripParticle::tickHanging(mc::client::ClientWorld* world) {
+void DripParticle::tickHanging(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     // MC 1.16.5 Dripping.tick():
@@ -203,7 +195,8 @@ void DripParticle::tickHanging(mc::client::ClientWorld* world) {
     m_position = m_hangPosition;
 }
 
-void DripParticle::tickFalling(mc::client::ClientWorld* world) {
+void DripParticle::tickFalling(mc::client::ClientWorld* world)
+{
     // MC 1.16.5 FallingLiquidParticle.tick():
     // 应用重力
     m_velocity.y -= static_cast<f32>(m_gravity * mc::physics::PARTICLE_GRAVITY_MULTIPLIER);
@@ -256,18 +249,20 @@ void DripParticle::tickFalling(mc::client::ClientWorld* world) {
     }
 }
 
-void DripParticle::onLand(mc::client::ClientWorld* world) {
+void DripParticle::onLand(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
     m_dripState = DripState::Landed;
     m_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    setMaxAge(m_age + 16.0f);  // 落地后存在 16 tick
+    setMaxAge(m_age + 16.0f); // 落地后存在 16 tick
 
     // MC 1.16.5: 根据 m_type 生成对应的落地粒子
     // Water -> SplashParticle, Lava -> LandingLava, Honey -> LandingHoney
     // 需要在 ParticleManager 支持粒子生成时实现
 }
 
-f64 DripParticle::getScale(f64 partialTick) const {
+f64 DripParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     // MC 1.16.5: 悬挂时根据进度缩放，下落后固定
     if (m_dripState == DripState::Hanging) {

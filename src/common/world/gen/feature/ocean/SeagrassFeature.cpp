@@ -1,10 +1,10 @@
 #include "SeagrassFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../WorldConstants.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 
@@ -12,7 +12,8 @@ namespace mc {
 
 namespace {
 
-[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
+{
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
     if (oceanFloorY > 0) {
         return oceanFloorY;
@@ -36,10 +37,7 @@ namespace {
 }
 
 std::unique_ptr<ConfiguredSeagrassFeature> createSeagrassFeature(
-    const char* featureName,
-    f32 tallChance,
-    i32 tries,
-    i32 spread)
+    const char* featureName, f32 tallChance, i32 tries, i32 spread)
 {
     auto config = std::make_unique<SeagrassFeatureConfig>();
     if (VanillaBlocks::SEAGRASS != nullptr) {
@@ -47,11 +45,9 @@ std::unique_ptr<ConfiguredSeagrassFeature> createSeagrassFeature(
     }
     if (VanillaBlocks::TALL_SEAGRASS != nullptr) {
         config->tallSeagrassLowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-            BlockStateProperties::DOUBLE_BLOCK_HALF(),
-            BlockStateProperties::DoubleBlockHalf::Lower);
+            BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
         config->tallSeagrassUpperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-            BlockStateProperties::DOUBLE_BLOCK_HALF(),
-            BlockStateProperties::DoubleBlockHalf::Upper);
+            BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
     }
 
     config->tallSeagrassChance = tallChance;
@@ -68,10 +64,7 @@ std::unique_ptr<ConfiguredSeagrassFeature> createSeagrassFeature(
 // ============================================================================
 
 bool SeagrassFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const SeagrassFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SeagrassFeatureConfig& config)
 {
     if (!config.seagrassState) {
         return false;
@@ -98,11 +91,8 @@ bool SeagrassFeature::place(
             continue;
         }
 
-        const bool shouldPlaceTall =
-            config.tallSeagrassChance > 0.0f &&
-            config.tallSeagrassLowerState != nullptr &&
-            config.tallSeagrassUpperState != nullptr &&
-            random.nextFloat() < config.tallSeagrassChance;
+        const bool shouldPlaceTall = config.tallSeagrassChance > 0.0f && config.tallSeagrassLowerState != nullptr &&
+            config.tallSeagrassUpperState != nullptr && random.nextFloat() < config.tallSeagrassChance;
 
         if (shouldPlaceTall) {
             const BlockPos abovePos(placePos.x, placePos.y + 1, placePos.z);
@@ -120,10 +110,7 @@ bool SeagrassFeature::place(
     return placedAny;
 }
 
-bool SeagrassFeature::canPlaceAt(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    const BlockState& seagrassState) const
+bool SeagrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& seagrassState) const
 {
     MC_UNUSED(seagrassState);
 
@@ -152,9 +139,7 @@ bool SeagrassFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 }
 
 bool SeagrassFeature::placeTallSeagrass(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    const SeagrassFeatureConfig& config) const
+    WorldGenRegion& world, const BlockPos& pos, const SeagrassFeatureConfig& config) const
 {
     // 放置下半部分
     world.setBlockState(pos, config.tallSeagrassLowerState);
@@ -171,19 +156,13 @@ bool SeagrassFeature::placeTallSeagrass(
 // ============================================================================
 
 ConfiguredSeagrassFeature::ConfiguredSeagrassFeature(
-    std::unique_ptr<SeagrassFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<SeagrassFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredSeagrassFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);

@@ -1,18 +1,18 @@
 #include "BanIpCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "server/command/support/CommandMetadata.hpp"
+#include "common/util/TimeUtils.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/command/support/CommandMetadata.hpp"
 #include "server/core/BannedIpList.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "common/util/TimeUtils.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
 
-#include <sstream>
-#include <iomanip>
 #include <ctime>
+#include <iomanip>
 #include <regex>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -23,7 +23,8 @@ namespace {
  * @brief 获取当前时间的格式化字符串
  * @return 格式化的时间字符串 (yyyy-MM-dd HH:mm:ss Z)
  */
-std::string getCurrentTimeString() {
+std::string getCurrentTimeString()
+{
     auto now = std::chrono::system_clock::now();
     auto now_time = std::chrono::system_clock::to_time_t(now);
 
@@ -44,54 +45,40 @@ std::string getCurrentTimeString() {
  * @param str 字符串
  * @return true 如果是有效的 IPv4 地址
  */
-bool isValidIpv4(const std::string& str) {
+bool isValidIpv4(const std::string& str)
+{
     // IPv4 正则表达式
     static const std::regex ipv4Regex(
-        R"(^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)"
-    );
+        R"(^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
     return std::regex_match(str, ipv4Regex);
 }
 
 } // anonymous namespace
 
-void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto banIpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("ban-ip");
-    banIpNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
-    support::applyMetadata(
-        banIpNode,
-        support::makeMetadata(
-            "Bans an IP address from the server.",
-            "/ban-ip <target> [reason]",
-            3,
-            {},
-            false));
+    banIpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    support::applyMetadata(banIpNode,
+        support::makeMetadata("Bans an IP address from the server.", "/ban-ip <target> [reason]", 3, {}, false));
 
     // /ban-ip <target>
-    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "target",
-        StringArgumentType::string()
-    );
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return banIp(ctx);
-    });
+    auto targetArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banIp(ctx); });
 
     // /ban-ip <target> <reason>
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "reason",
-        StringArgumentType::greedyString()
-    );
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return banIp(ctx);
-    });
+        "reason", StringArgumentType::greedyString());
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banIp(ctx); });
 
     targetArg->addChild(reasonArg);
     banIpNode->addChild(targetArg);
     dispatcher.registerCommand(banIpNode);
 }
 
-i32 BanIpCommand::banIp(CommandContext<ServerCommandSource>& context) {
+i32 BanIpCommand::banIp(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     std::string target = context.getArgument<std::string>("target");
 
@@ -150,13 +137,11 @@ i32 BanIpCommand::banIp(CommandContext<ServerCommandSource>& context) {
     }
 
     // 创建封禁条目
-    server::core::BannedIpEntry entry(
-        ipAddress,
+    server::core::BannedIpEntry entry(ipAddress,
         getCurrentTimeString(),
         bannedBy,
-        "forever",  // 永久封禁
-        reason
-    );
+        "forever", // 永久封禁
+        reason);
 
     // 添加到封禁列表
     if (!banList.addEntry(entry)) {

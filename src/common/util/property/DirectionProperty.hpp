@@ -32,7 +32,8 @@ public:
      * @param name 属性名称
      * @return 属性实例
      */
-    [[nodiscard]] static std::unique_ptr<DirectionProperty> create(const std::string& name) {
+    [[nodiscard]] static std::unique_ptr<DirectionProperty> create(const std::string& name)
+    {
         auto all = Directions::all();
         return create(name, std::vector<Direction>(all.begin(), all.end()));
     }
@@ -43,7 +44,9 @@ public:
      * @param values 方向列表
      * @return 属性实例
      */
-    [[nodiscard]] static std::unique_ptr<DirectionProperty> create(const std::string& name, const std::vector<Direction>& values) {
+    [[nodiscard]] static std::unique_ptr<DirectionProperty> create(
+        const std::string& name, const std::vector<Direction>& values)
+    {
         return std::unique_ptr<DirectionProperty>(new DirectionProperty(name, values));
     }
 
@@ -52,7 +55,8 @@ public:
      * @param name 属性名称
      * @return 属性实例
      */
-    [[nodiscard]] static std::unique_ptr<DirectionProperty> createHorizontal(const std::string& name) {
+    [[nodiscard]] static std::unique_ptr<DirectionProperty> createHorizontal(const std::string& name)
+    {
         auto horiz = Directions::horizontal();
         return create(name, std::vector<Direction>(horiz.begin(), horiz.end()));
     }
@@ -63,7 +67,9 @@ public:
      * @param filter 过滤函数
      * @return 属性实例
      */
-    [[nodiscard]] static std::unique_ptr<DirectionProperty> create(const std::string& name, std::function<bool(Direction)> filter) {
+    [[nodiscard]] static std::unique_ptr<DirectionProperty> create(
+        const std::string& name, std::function<bool(Direction)> filter)
+    {
         std::vector<Direction> values;
         for (Direction dir : Directions::all()) {
             if (filter(dir)) {
@@ -76,14 +82,12 @@ public:
     /**
      * @brief 获取类型名称
      */
-    [[nodiscard]] const char* typeName() const override {
-        return "DirectionProperty";
-    }
+    [[nodiscard]] const char* typeName() const override { return "DirectionProperty"; }
 
 private:
     DirectionProperty(const std::string& name, const std::vector<Direction>& values)
-        : EnumProperty<Direction>(name, values) {
-    }
+        : EnumProperty<Direction>(name, values)
+    {}
 };
 
 /**
@@ -98,7 +102,8 @@ public:
      * @param name 属性名称
      * @return 属性实例
      */
-    [[nodiscard]] static std::unique_ptr<EnumProperty<Axis>> create(const std::string& name) {
+    [[nodiscard]] static std::unique_ptr<EnumProperty<Axis>> create(const std::string& name)
+    {
         auto all = Axes::all();
         return EnumProperty<Axis>::create(name, std::vector<Axis>(all.begin(), all.end()));
     }

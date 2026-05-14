@@ -13,11 +13,11 @@
 
 #include <gtest/gtest.h>
 
+#include "client/sound/MusicPlayer.hpp"
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/handler/WeatherSoundHandler.hpp"
 #include "client/sound/instance/UnderwaterLoopSound.hpp"
-#include "client/sound/MusicPlayer.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 
@@ -30,37 +30,40 @@ using namespace mc;
 
 class BiomeAmbientHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        handler = std::make_unique<BiomeAmbientHandler>();
-    }
+    void SetUp() override { handler = std::make_unique<BiomeAmbientHandler>(); }
 
     std::unique_ptr<BiomeAmbientHandler> handler;
 };
 
-TEST_F(BiomeAmbientHandlerTest, InitialState) {
+TEST_F(BiomeAmbientHandlerTest, InitialState)
+{
     EXPECT_EQ(handler->getBiomeId(), 0u);
 }
 
-TEST_F(BiomeAmbientHandlerTest, SetBiomeId) {
+TEST_F(BiomeAmbientHandlerTest, SetBiomeId)
+{
     handler->setBiomeId(42);
     EXPECT_EQ(handler->getBiomeId(), 42u);
 }
 
-TEST_F(BiomeAmbientHandlerTest, SetPlayerPosition) {
+TEST_F(BiomeAmbientHandlerTest, SetPlayerPosition)
+{
     // 测试设置玩家位置不会崩溃
     handler->setPlayerPosition(100.5, 64.0, -200.3);
     // 无异常即成功
 }
 
-TEST_F(BiomeAmbientHandlerTest, SetLightLevel) {
+TEST_F(BiomeAmbientHandlerTest, SetLightLevel)
+{
     // 测试设置光照等级不会崩溃
-    handler->setLightLevel(15, 0);  // 完全天空光
-    handler->setLightLevel(0, 15);  // 完全方块光
-    handler->setLightLevel(0, 0);   // 完全黑暗
+    handler->setLightLevel(15, 0); // 完全天空光
+    handler->setLightLevel(0, 15); // 完全方块光
+    handler->setLightLevel(0, 0);  // 完全黑暗
     // 无异常即成功
 }
 
-TEST_F(BiomeAmbientHandlerTest, BiomeChangeTracking) {
+TEST_F(BiomeAmbientHandlerTest, BiomeChangeTracking)
+{
     // 测试群系变化追踪
     handler->setBiomeId(1);
     EXPECT_EQ(handler->getBiomeId(), 1u);
@@ -75,18 +78,18 @@ TEST_F(BiomeAmbientHandlerTest, BiomeChangeTracking) {
 
 class UnderwaterAmbientHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        handler = std::make_unique<UnderwaterAmbientHandler>();
-    }
+    void SetUp() override { handler = std::make_unique<UnderwaterAmbientHandler>(); }
 
     std::unique_ptr<UnderwaterAmbientHandler> handler;
 };
 
-TEST_F(UnderwaterAmbientHandlerTest, InitialState) {
+TEST_F(UnderwaterAmbientHandlerTest, InitialState)
+{
     EXPECT_FALSE(handler->isUnderwater());
 }
 
-TEST_F(UnderwaterAmbientHandlerTest, SetUnderwater) {
+TEST_F(UnderwaterAmbientHandlerTest, SetUnderwater)
+{
     handler->setUnderwater(true);
     EXPECT_TRUE(handler->isUnderwater());
 
@@ -94,7 +97,8 @@ TEST_F(UnderwaterAmbientHandlerTest, SetUnderwater) {
     EXPECT_FALSE(handler->isUnderwater());
 }
 
-TEST_F(UnderwaterAmbientHandlerTest, UnderwaterTransitions) {
+TEST_F(UnderwaterAmbientHandlerTest, UnderwaterTransitions)
+{
     // 测试进入水中
     handler->setUnderwater(true);
     EXPECT_TRUE(handler->isUnderwater());
@@ -110,20 +114,20 @@ TEST_F(UnderwaterAmbientHandlerTest, UnderwaterTransitions) {
 
 class UnderwaterLoopSoundTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        sound = std::make_unique<UnderwaterLoopSound>();
-    }
+    void SetUp() override { sound = std::make_unique<UnderwaterLoopSound>(); }
 
     std::unique_ptr<UnderwaterLoopSound> sound;
 };
 
-TEST_F(UnderwaterLoopSoundTest, InitialState) {
+TEST_F(UnderwaterLoopSoundTest, InitialState)
+{
     EXPECT_TRUE(sound->canBeSilent());
     EXPECT_FALSE(sound->canSwim());
     EXPECT_EQ(sound->getSoundEventId(), SoundEvents::AMBIENT_UNDERWATER_LOOP);
 }
 
-TEST_F(UnderwaterLoopSoundTest, SetCanSwim) {
+TEST_F(UnderwaterLoopSoundTest, SetCanSwim)
+{
     sound->setCanSwim(true);
     EXPECT_TRUE(sound->canSwim());
 
@@ -131,7 +135,8 @@ TEST_F(UnderwaterLoopSoundTest, SetCanSwim) {
     EXPECT_FALSE(sound->canSwim());
 }
 
-TEST_F(UnderwaterLoopSoundTest, VolumeFadeIn) {
+TEST_F(UnderwaterLoopSoundTest, VolumeFadeIn)
+{
     sound->setCanSwim(true);
 
     // 初始音量为0
@@ -146,7 +151,8 @@ TEST_F(UnderwaterLoopSoundTest, VolumeFadeIn) {
     EXPECT_FLOAT_EQ(sound->getVolume(), 1.0f);
 }
 
-TEST_F(UnderwaterLoopSoundTest, VolumeFadeOut) {
+TEST_F(UnderwaterLoopSoundTest, VolumeFadeOut)
+{
     // 先淡入
     sound->setCanSwim(true);
     for (int i = 0; i < 40; ++i) {
@@ -164,7 +170,8 @@ TEST_F(UnderwaterLoopSoundTest, VolumeFadeOut) {
     EXPECT_FLOAT_EQ(sound->getVolume(), 0.0f);
 }
 
-TEST_F(UnderwaterLoopSoundTest, SoundDoneWhenNegativeTicks) {
+TEST_F(UnderwaterLoopSoundTest, SoundDoneWhenNegativeTicks)
+{
     sound->setCanSwim(false);
 
     // 初始状态不应该完成
@@ -183,10 +190,10 @@ TEST_F(UnderwaterLoopSoundTest, SoundDoneWhenNegativeTicks) {
 // MusicPlayer Tests
 // ============================================================================
 
-class MusicPlayerTypesTest : public ::testing::Test {
-};
+class MusicPlayerTypesTest : public ::testing::Test {};
 
-TEST_F(MusicPlayerTypesTest, MusicTypeEnumValues) {
+TEST_F(MusicPlayerTypesTest, MusicTypeEnumValues)
+{
     // 测试音乐类型枚举值
     EXPECT_EQ(static_cast<int>(MusicPlayer::MusicType::None), 0);
     EXPECT_EQ(static_cast<int>(MusicPlayer::MusicType::Menu), 1);
@@ -194,14 +201,16 @@ TEST_F(MusicPlayerTypesTest, MusicTypeEnumValues) {
     EXPECT_EQ(static_cast<int>(MusicPlayer::MusicType::Creative), 3);
 }
 
-TEST_F(MusicPlayerTypesTest, MusicSelectorDefaults) {
+TEST_F(MusicPlayerTypesTest, MusicSelectorDefaults)
+{
     MusicPlayer::MusicSelector selector;
     EXPECT_EQ(selector.minDelayTicks, 12000u);
     EXPECT_EQ(selector.maxDelayTicks, 24000u);
     EXPECT_FALSE(selector.replaceCurrent);
 }
 
-TEST_F(MusicPlayerTypesTest, MusicSelectorReplaceCurrent) {
+TEST_F(MusicPlayerTypesTest, MusicSelectorReplaceCurrent)
+{
     MusicPlayer::MusicSelector selector;
     selector.soundEventId = ResourceLocation("minecraft:music.dragon");
     selector.minDelayTicks = 0;
@@ -217,10 +226,10 @@ TEST_F(MusicPlayerTypesTest, MusicSelectorReplaceCurrent) {
 // SoundEvents Tests
 // ============================================================================
 
-class SoundEventsTest : public ::testing::Test {
-};
+class SoundEventsTest : public ::testing::Test {};
 
-TEST_F(SoundEventsTest, AmbientSoundEvents) {
+TEST_F(SoundEventsTest, AmbientSoundEvents)
+{
     // 测试环境音效事件
     EXPECT_EQ(SoundEvents::AMBIENT_CAVE.toString(), "minecraft:ambient.cave");
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP.toString(), "minecraft:ambient.underwater.loop");
@@ -228,7 +237,8 @@ TEST_F(SoundEventsTest, AmbientSoundEvents) {
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_EXIT.toString(), "minecraft:ambient.underwater.exit");
 }
 
-TEST_F(SoundEventsTest, EntitySoundEvents) {
+TEST_F(SoundEventsTest, EntitySoundEvents)
+{
     // 测试实体音效事件
     EXPECT_EQ(SoundEvents::ENTITY_BEE_LOOP.toString(), "minecraft:entity.bee.loop");
     EXPECT_EQ(SoundEvents::ENTITY_BEE_LOOP_AGGRESSIVE.toString(), "minecraft:entity.bee.loop_aggressive");
@@ -236,7 +246,8 @@ TEST_F(SoundEventsTest, EntitySoundEvents) {
     EXPECT_EQ(SoundEvents::ITEM_ELYTRA_FLYING.toString(), "minecraft:item.elytra.flying");
 }
 
-TEST_F(SoundEventsTest, MusicSoundEvents) {
+TEST_F(SoundEventsTest, MusicSoundEvents)
+{
     // 测试音乐事件
     EXPECT_EQ(SoundEvents::MUSIC_GAME.toString(), "minecraft:music.game");
     EXPECT_EQ(SoundEvents::MUSIC_MENU.toString(), "minecraft:music.menu");
@@ -245,17 +256,18 @@ TEST_F(SoundEventsTest, MusicSoundEvents) {
     EXPECT_EQ(SoundEvents::MUSIC_DRAGON.toString(), "minecraft:music.dragon");
 }
 
-TEST_F(SoundEventsTest, UnderwaterAdditionsSoundEvents) {
+TEST_F(SoundEventsTest, UnderwaterAdditionsSoundEvents)
+{
     // 测试水下附加音效
-    EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS.toString(),
-              "minecraft:ambient.underwater.loop.additions");
+    EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS.toString(), "minecraft:ambient.underwater.loop.additions");
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE.toString(),
-              "minecraft:ambient.underwater.loop.additions.rare");
+        "minecraft:ambient.underwater.loop.additions.rare");
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE.toString(),
-              "minecraft:ambient.underwater.loop.additions.ultra_rare");
+        "minecraft:ambient.underwater.loop.additions.ultra_rare");
 }
 
-TEST_F(SoundEventsTest, NetherMusicSoundEvents) {
+TEST_F(SoundEventsTest, NetherMusicSoundEvents)
+{
     // 测试下界音乐事件
     EXPECT_EQ(SoundEvents::MUSIC_NETHER_BASALT_DELTAS.toString(), "minecraft:music.nether.basalt_deltas");
     EXPECT_EQ(SoundEvents::MUSIC_NETHER_CRIMSON_FOREST.toString(), "minecraft:music.nether.crimson_forest");
@@ -263,7 +275,8 @@ TEST_F(SoundEventsTest, NetherMusicSoundEvents) {
     EXPECT_EQ(SoundEvents::MUSIC_NETHER_SOUL_SAND_VALLEY.toString(), "minecraft:music.nether.soul_sand_valley");
 }
 
-TEST_F(SoundEventsTest, BlockSoundEvents) {
+TEST_F(SoundEventsTest, BlockSoundEvents)
+{
     // 测试方块音效事件
     EXPECT_EQ(SoundEvents::BLOCK_STONE_BREAK.toString(), "minecraft:block.stone.break");
     EXPECT_EQ(SoundEvents::BLOCK_STONE_PLACE.toString(), "minecraft:block.stone.place");
@@ -277,14 +290,13 @@ TEST_F(SoundEventsTest, BlockSoundEvents) {
 
 class RandomTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        rng = std::make_unique<mc::math::Random>(12345);
-    }
+    void SetUp() override { rng = std::make_unique<mc::math::Random>(12345); }
 
     std::unique_ptr<mc::math::Random> rng;
 };
 
-TEST_F(RandomTest, NextFloatRange) {
+TEST_F(RandomTest, NextFloatRange)
+{
     for (int i = 0; i < 1000; ++i) {
         f32 value = rng->nextFloat();
         EXPECT_GE(value, 0.0f);
@@ -292,7 +304,8 @@ TEST_F(RandomTest, NextFloatRange) {
     }
 }
 
-TEST_F(RandomTest, NextIntRange) {
+TEST_F(RandomTest, NextIntRange)
+{
     for (int i = 0; i < 1000; ++i) {
         i32 value = rng->nextInt(100);
         EXPECT_GE(value, 0);
@@ -300,7 +313,8 @@ TEST_F(RandomTest, NextIntRange) {
     }
 }
 
-TEST_F(RandomTest, NextIntWithRange) {
+TEST_F(RandomTest, NextIntWithRange)
+{
     for (int i = 0; i < 1000; ++i) {
         i32 value = rng->nextInt(10, 20);
         EXPECT_GE(value, 10);
@@ -308,7 +322,8 @@ TEST_F(RandomTest, NextIntWithRange) {
     }
 }
 
-TEST_F(RandomTest, UnderwaterProbabilityDistribution) {
+TEST_F(RandomTest, UnderwaterProbabilityDistribution)
+{
     // 测试水下附加音效概率分布
     // 普通: 0.9%, 稀有: 0.09%, 超稀有: 0.01%
 
@@ -333,8 +348,8 @@ TEST_F(RandomTest, UnderwaterProbabilityDistribution) {
     f32 rareProb = static_cast<f32>(rare) / iterations;
     f32 ultraRareProb = static_cast<f32>(ultraRare) / iterations;
 
-    EXPECT_NEAR(normalProb, 0.009f, 0.002f);    // ~0.9%
-    EXPECT_NEAR(rareProb, 0.0009f, 0.0003f);   // ~0.09%
+    EXPECT_NEAR(normalProb, 0.009f, 0.002f);      // ~0.9%
+    EXPECT_NEAR(rareProb, 0.0009f, 0.0003f);      // ~0.09%
     EXPECT_NEAR(ultraRareProb, 0.0001f, 0.0001f); // ~0.01%
 }
 
@@ -342,10 +357,10 @@ TEST_F(RandomTest, UnderwaterProbabilityDistribution) {
 // BiomeLoopSound Behavioral Tests
 // ============================================================================
 
-class BiomeAmbientBehaviorTest : public ::testing::Test {
-};
+class BiomeAmbientBehaviorTest : public ::testing::Test {};
 
-TEST_F(BiomeAmbientBehaviorTest, MoodSoundTimerLogic) {
+TEST_F(BiomeAmbientBehaviorTest, MoodSoundTimerLogic)
+{
     // 测试心境音效计时器逻辑
     // 在完全黑暗中，计时器应该增加
     // 在有光照的地方，计时器应该减少
@@ -389,19 +404,19 @@ TEST_F(BiomeAmbientBehaviorTest, MoodSoundTimerLogic) {
 
 class WeatherSoundHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        handler = std::make_unique<WeatherSoundHandler>();
-    }
+    void SetUp() override { handler = std::make_unique<WeatherSoundHandler>(); }
 
     std::unique_ptr<WeatherSoundHandler> handler;
 };
 
-TEST_F(WeatherSoundHandlerTest, InitialState) {
+TEST_F(WeatherSoundHandlerTest, InitialState)
+{
     EXPECT_FALSE(handler->isRaining());
     EXPECT_FALSE(handler->isThundering());
 }
 
-TEST_F(WeatherSoundHandlerTest, UpdateWeatherState) {
+TEST_F(WeatherSoundHandlerTest, UpdateWeatherState)
+{
     // 测试设置天气状态
     handler->updateWeatherState(0.5f, 0.0f, 64.0f, true);
     EXPECT_TRUE(handler->isRaining());
@@ -416,7 +431,8 @@ TEST_F(WeatherSoundHandlerTest, UpdateWeatherState) {
     EXPECT_FALSE(handler->isThundering());
 }
 
-TEST_F(WeatherSoundHandlerTest, RainThreshold) {
+TEST_F(WeatherSoundHandlerTest, RainThreshold)
+{
     // 雨量低于阈值不算下雨
     handler->updateWeatherState(0.009f, 0.0f, 64.0f, true);
     EXPECT_FALSE(handler->isRaining());
@@ -430,7 +446,8 @@ TEST_F(WeatherSoundHandlerTest, RainThreshold) {
     EXPECT_TRUE(handler->isRaining());
 }
 
-TEST_F(WeatherSoundHandlerTest, ThunderThreshold) {
+TEST_F(WeatherSoundHandlerTest, ThunderThreshold)
+{
     // 雷暴强度低于阈值不算雷暴
     handler->updateWeatherState(0.5f, 0.89f, 64.0f, true);
     EXPECT_FALSE(handler->isThundering());
@@ -444,14 +461,16 @@ TEST_F(WeatherSoundHandlerTest, ThunderThreshold) {
     EXPECT_TRUE(handler->isThundering());
 }
 
-TEST_F(WeatherSoundHandlerTest, CanSeeSkyAffectsRain) {
+TEST_F(WeatherSoundHandlerTest, CanSeeSkyAffectsRain)
+{
     // 看不到天空时，即使下雨也不应该播放雨声
     handler->updateWeatherState(0.5f, 0.0f, 64.0f, false);
-    EXPECT_TRUE(handler->isRaining());  // 状态是下雨
+    EXPECT_TRUE(handler->isRaining()); // 状态是下雨
     // 但雨声是否播放取决于 tick() 中对 canSeeSky 的检查
 }
 
-TEST_F(WeatherSoundHandlerTest, PlayerHeightForRainAbove) {
+TEST_F(WeatherSoundHandlerTest, PlayerHeightForRainAbove)
+{
     // MC 1.16.5: 玩家高度 > SEA_LEVEL + 63 时使用 WEATHER_RAIN_ABOVE
     // SEA_LEVEL = 63，所以阈值为 126
 
@@ -464,7 +483,8 @@ TEST_F(WeatherSoundHandlerTest, PlayerHeightForRainAbove) {
     EXPECT_TRUE(handler->isRaining());
 }
 
-TEST_F(WeatherSoundHandlerTest, ThunderTiming) {
+TEST_F(WeatherSoundHandlerTest, ThunderTiming)
+{
     // 测试雷声计时器行为
     // MC 1.16.5: 雷声间隔 5-30 秒 (100-600 ticks)
 
@@ -474,11 +494,12 @@ TEST_F(WeatherSoundHandlerTest, ThunderTiming) {
 
     // 看不到天空时不应该播放雷声
     handler->updateWeatherState(1.0f, 1.0f, 64.0f, false);
-    EXPECT_TRUE(handler->isThundering());  // 状态仍是雷暴
+    EXPECT_TRUE(handler->isThundering()); // 状态仍是雷暴
     // 但雷声不应该播放（在 tick() 中处理）
 }
 
-TEST_F(WeatherSoundHandlerTest, WeatherSoundEvents) {
+TEST_F(WeatherSoundHandlerTest, WeatherSoundEvents)
+{
     // 验证天气相关音效事件存在
     EXPECT_EQ(SoundEvents::WEATHER_RAIN.toString(), "minecraft:weather.rain");
     EXPECT_EQ(SoundEvents::WEATHER_RAIN_ABOVE.toString(), "minecraft:weather.rain.above");

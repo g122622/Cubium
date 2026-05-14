@@ -5,10 +5,11 @@ namespace mc {
 namespace blocks {
 
 DragonBreathBlock::DragonBreathBlock(const BlockProperties& properties)
-    : Block(properties) {
-}
+    : Block(properties)
+{}
 
-void DragonBreathBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void DragonBreathBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -16,13 +17,15 @@ void DragonBreathBlock::onEntityCollision(const BlockState& state, IWorld& world
     // TODO: 造成伤害
 }
 
-const CollisionShape& DragonBreathBlock::getShape(const BlockState& state) const {
+const CollisionShape& DragonBreathBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-const CollisionShape& DragonBreathBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& DragonBreathBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;

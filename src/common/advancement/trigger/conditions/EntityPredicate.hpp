@@ -1,19 +1,19 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "../../MinMaxBounds.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 // 前向声明
 namespace mc {
-    class Entity;
-    class DamageSource;
-}
+class Entity;
+class DamageSource;
+} // namespace mc
 
 namespace mc::advancement {
 
@@ -90,7 +90,7 @@ public:
     [[nodiscard]] const std::optional<ResourceLocation>& getType() const noexcept { return m_type; }
 
 private:
-    std::optional<ResourceLocation> m_type;      ///< 实体类型
+    std::optional<ResourceLocation> m_type; ///< 实体类型
     // TODO: 更多匹配条件（距离、位置、效果、NBT等）
     bool m_isAny = true;
 };

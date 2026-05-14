@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/attribute/Attribute.hpp"
-#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/AttributeInstance.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 
 using namespace mc::entity::attribute;
@@ -12,7 +12,8 @@ using namespace mc::entity::attribute;
 // Attribute 测试
 // ============================================================================
 
-TEST(Attribute, Construction) {
+TEST(Attribute, Construction)
+{
     Attribute attr("test.attribute", 10.0, 0.0, 100.0);
 
     EXPECT_EQ(attr.registryName(), "test.attribute");
@@ -21,7 +22,8 @@ TEST(Attribute, Construction) {
     EXPECT_DOUBLE_EQ(attr.maxValue(), 100.0);
 }
 
-TEST(Attribute, Comparison) {
+TEST(Attribute, Comparison)
+{
     Attribute attr1("test.attribute", 10.0, 0.0, 100.0);
     Attribute attr2("test.attribute", 20.0, 5.0, 50.0);
     Attribute attr3("other.attribute", 10.0, 0.0, 100.0);
@@ -30,7 +32,8 @@ TEST(Attribute, Comparison) {
     EXPECT_FALSE(attr1 == attr3); // 不同名称
 }
 
-TEST(Attribute, Clone) {
+TEST(Attribute, Clone)
+{
     Attribute attr("test.attribute", 10.0, 0.0, 100.0);
     auto clone = attr.clone();
 
@@ -44,7 +47,8 @@ TEST(Attribute, Clone) {
 // AttributeModifier 测试
 // ============================================================================
 
-TEST(AttributeModifier, Construction) {
+TEST(AttributeModifier, Construction)
+{
     AttributeModifier mod("modifier-1", "Test Modifier", 5.0, Operation::Addition);
 
     EXPECT_EQ(mod.id(), "modifier-1");
@@ -53,14 +57,16 @@ TEST(AttributeModifier, Construction) {
     EXPECT_EQ(mod.operation(), Operation::Addition);
 }
 
-TEST(AttributeModifier, SetAmount) {
+TEST(AttributeModifier, SetAmount)
+{
     AttributeModifier mod("modifier-1", "Test", 5.0, Operation::Addition);
 
     mod.setAmount(10.0);
     EXPECT_DOUBLE_EQ(mod.amount(), 10.0);
 }
 
-TEST(AttributeModifier, Comparison) {
+TEST(AttributeModifier, Comparison)
+{
     AttributeModifier mod1("id-1", "A", 1.0, Operation::Addition);
     AttributeModifier mod2("id-1", "B", 2.0, Operation::MultiplyBase);
     AttributeModifier mod3("id-2", "A", 1.0, Operation::Addition);
@@ -73,7 +79,8 @@ TEST(AttributeModifier, Comparison) {
 // AttributeInstance 测试
 // ============================================================================
 
-TEST(AttributeInstance, Construction) {
+TEST(AttributeInstance, Construction)
+{
     auto attr = Attributes::maxHealth();
     AttributeInstance instance(*attr);
 
@@ -81,7 +88,8 @@ TEST(AttributeInstance, Construction) {
     EXPECT_DOUBLE_EQ(instance.getValue(), attr->defaultValue());
 }
 
-TEST(AttributeInstance, SetBaseValue) {
+TEST(AttributeInstance, SetBaseValue)
+{
     auto attr = Attributes::maxHealth();
     AttributeInstance instance(*attr);
 
@@ -90,58 +98,64 @@ TEST(AttributeInstance, SetBaseValue) {
     EXPECT_DOUBLE_EQ(instance.getValue(), 30.0);
 }
 
-TEST(AttributeInstance, BaseValueClamping) {
+TEST(AttributeInstance, BaseValueClamping)
+{
     Attribute attr("test", 50.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
     instance.setBaseValue(150.0);
-    EXPECT_DOUBLE_EQ(instance.baseValue(), 100.0);  // 限制到最大值
+    EXPECT_DOUBLE_EQ(instance.baseValue(), 100.0); // 限制到最大值
 
     instance.setBaseValue(-10.0);
-    EXPECT_DOUBLE_EQ(instance.baseValue(), 0.0);  // 限制到最小值
+    EXPECT_DOUBLE_EQ(instance.baseValue(), 0.0); // 限制到最小值
 }
 
-TEST(AttributeInstance, AdditionModifier) {
+TEST(AttributeInstance, AdditionModifier)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
     AttributeModifier mod("mod-1", "Add 5", 5.0, Operation::Addition);
     instance.addModifier(mod);
 
-    EXPECT_DOUBLE_EQ(instance.getValue(), 15.0);  // 10 + 5
+    EXPECT_DOUBLE_EQ(instance.getValue(), 15.0); // 10 + 5
 }
 
-TEST(AttributeInstance, MultipleAdditionModifiers) {
+TEST(AttributeInstance, MultipleAdditionModifiers)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
     instance.addModifier(AttributeModifier("mod-1", "Add 5", 5.0, Operation::Addition));
     instance.addModifier(AttributeModifier("mod-2", "Add 10", 10.0, Operation::Addition));
 
-    EXPECT_DOUBLE_EQ(instance.getValue(), 25.0);  // 10 + 5 + 10
+    EXPECT_DOUBLE_EQ(instance.getValue(), 25.0); // 10 + 5 + 10
 }
 
-TEST(AttributeInstance, MultiplyBaseModifier) {
+TEST(AttributeInstance, MultiplyBaseModifier)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
     AttributeModifier mod("mod-1", "Multiply Base", 0.5, Operation::MultiplyBase);
     instance.addModifier(mod);
 
-    EXPECT_DOUBLE_EQ(instance.getValue(), 15.0);  // 10 + (10 * 0.5) = 15
+    EXPECT_DOUBLE_EQ(instance.getValue(), 15.0); // 10 + (10 * 0.5) = 15
 }
 
-TEST(AttributeInstance, MultiplyTotalModifier) {
+TEST(AttributeInstance, MultiplyTotalModifier)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
     AttributeModifier mod("mod-1", "Multiply Total", 0.5, Operation::MultiplyTotal);
     instance.addModifier(mod);
 
-    EXPECT_DOUBLE_EQ(instance.getValue(), 15.0);  // 10 * 1.5 = 15
+    EXPECT_DOUBLE_EQ(instance.getValue(), 15.0); // 10 * 1.5 = 15
 }
 
-TEST(AttributeInstance, MixedModifiers) {
+TEST(AttributeInstance, MixedModifiers)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
@@ -157,7 +171,8 @@ TEST(AttributeInstance, MixedModifiers) {
     EXPECT_DOUBLE_EQ(instance.getValue(), 22.0);
 }
 
-TEST(AttributeInstance, RemoveModifier) {
+TEST(AttributeInstance, RemoveModifier)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
@@ -170,7 +185,8 @@ TEST(AttributeInstance, RemoveModifier) {
     EXPECT_FALSE(instance.removeModifier("non-existent"));
 }
 
-TEST(AttributeInstance, ClearModifiers) {
+TEST(AttributeInstance, ClearModifiers)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
@@ -183,7 +199,8 @@ TEST(AttributeInstance, ClearModifiers) {
     EXPECT_DOUBLE_EQ(instance.getValue(), 10.0);
 }
 
-TEST(AttributeInstance, HasModifier) {
+TEST(AttributeInstance, HasModifier)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
@@ -193,7 +210,8 @@ TEST(AttributeInstance, HasModifier) {
     EXPECT_FALSE(instance.hasModifier("mod-2"));
 }
 
-TEST(AttributeInstance, GetModifier) {
+TEST(AttributeInstance, GetModifier)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
@@ -208,13 +226,14 @@ TEST(AttributeInstance, GetModifier) {
     EXPECT_EQ(instance.getModifier("non-existent"), nullptr);
 }
 
-TEST(AttributeInstance, DirtyFlag) {
+TEST(AttributeInstance, DirtyFlag)
+{
     Attribute attr("test", 10.0, 0.0, 100.0);
     AttributeInstance instance(attr);
 
     EXPECT_TRUE(instance.isDirty());
 
-    instance.getValue();  // 计算缓存值
+    instance.getValue(); // 计算缓存值
     EXPECT_FALSE(instance.isDirty());
 
     instance.setBaseValue(20.0);
@@ -234,15 +253,17 @@ TEST(AttributeInstance, DirtyFlag) {
 // AttributeMap 测试
 // ============================================================================
 
-TEST(AttributeMap, RegisterAttribute) {
+TEST(AttributeMap, RegisterAttribute)
+{
     AttributeMap map;
 
     auto attr = Attributes::maxHealth();
     EXPECT_TRUE(map.registerAttribute(*attr));
-    EXPECT_FALSE(map.registerAttribute(*attr));  // 重复注册
+    EXPECT_FALSE(map.registerAttribute(*attr)); // 重复注册
 }
 
-TEST(AttributeMap, GetValue) {
+TEST(AttributeMap, GetValue)
+{
     AttributeMap map;
 
     map.registerAttribute(*Attributes::maxHealth());
@@ -251,7 +272,8 @@ TEST(AttributeMap, GetValue) {
     EXPECT_DOUBLE_EQ(map.getValue("non-existent", 99.0), 99.0);
 }
 
-TEST(AttributeMap, SetBaseValue) {
+TEST(AttributeMap, SetBaseValue)
+{
     AttributeMap map;
 
     map.registerAttribute(*Attributes::maxHealth());
@@ -260,22 +282,22 @@ TEST(AttributeMap, SetBaseValue) {
     EXPECT_DOUBLE_EQ(map.getValue(Attributes::MAX_HEALTH), 30.0);
 }
 
-TEST(AttributeMap, AddModifier) {
+TEST(AttributeMap, AddModifier)
+{
     AttributeMap map;
 
     map.registerAttribute(*Attributes::maxHealth());
-    map.addModifier(Attributes::MAX_HEALTH,
-        AttributeModifier("mod-1", "Add 10", 10.0, Operation::Addition));
+    map.addModifier(Attributes::MAX_HEALTH, AttributeModifier("mod-1", "Add 10", 10.0, Operation::Addition));
 
-    EXPECT_DOUBLE_EQ(map.getValue(Attributes::MAX_HEALTH), 30.0);  // 20 + 10
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::MAX_HEALTH), 30.0); // 20 + 10
 }
 
-TEST(AttributeMap, RemoveModifier) {
+TEST(AttributeMap, RemoveModifier)
+{
     AttributeMap map;
 
     map.registerAttribute(*Attributes::maxHealth());
-    map.addModifier(Attributes::MAX_HEALTH,
-        AttributeModifier("mod-1", "Add 10", 10.0, Operation::Addition));
+    map.addModifier(Attributes::MAX_HEALTH, AttributeModifier("mod-1", "Add 10", 10.0, Operation::Addition));
 
     EXPECT_DOUBLE_EQ(map.getValue(Attributes::MAX_HEALTH), 30.0);
 
@@ -283,7 +305,8 @@ TEST(AttributeMap, RemoveModifier) {
     EXPECT_DOUBLE_EQ(map.getValue(Attributes::MAX_HEALTH), 20.0);
 }
 
-TEST(AttributeMap, HasAttribute) {
+TEST(AttributeMap, HasAttribute)
+{
     AttributeMap map;
 
     EXPECT_FALSE(map.hasAttribute(Attributes::MAX_HEALTH));
@@ -293,7 +316,8 @@ TEST(AttributeMap, HasAttribute) {
     EXPECT_TRUE(map.hasAttribute(Attributes::MAX_HEALTH));
 }
 
-TEST(AttributeMap, MultipleAttributes) {
+TEST(AttributeMap, MultipleAttributes)
+{
     AttributeMap map;
 
     map.registerAttribute(*Attributes::maxHealth());
@@ -308,14 +332,14 @@ TEST(AttributeMap, MultipleAttributes) {
     EXPECT_DOUBLE_EQ(map.getValue(Attributes::ATTACK_DAMAGE), 2.0);
 }
 
-TEST(AttributeMap, CopyFrom) {
+TEST(AttributeMap, CopyFrom)
+{
     AttributeMap map1;
     AttributeMap map2;
 
     map1.registerAttribute(*Attributes::maxHealth());
     map1.setBaseValue(Attributes::MAX_HEALTH, 30.0);
-    map1.addModifier(Attributes::MAX_HEALTH,
-        AttributeModifier("mod-1", "Add 10", 10.0, Operation::Addition));
+    map1.addModifier(Attributes::MAX_HEALTH, AttributeModifier("mod-1", "Add 10", 10.0, Operation::Addition));
 
     map2.registerAttribute(*Attributes::maxHealth());
     map2.copyFrom(map1);
@@ -327,7 +351,8 @@ TEST(AttributeMap, CopyFrom) {
 // Standard Attributes 测试
 // ============================================================================
 
-TEST(Attributes, MaxHealth) {
+TEST(Attributes, MaxHealth)
+{
     auto attr = Attributes::maxHealth();
 
     EXPECT_EQ(attr->registryName(), Attributes::MAX_HEALTH);
@@ -337,24 +362,27 @@ TEST(Attributes, MaxHealth) {
     EXPECT_DOUBLE_EQ(attr->maxValue(), 1024.0);
 }
 
-TEST(Attributes, MovementSpeed) {
+TEST(Attributes, MovementSpeed)
+{
     auto attr = Attributes::movementSpeed();
 
     EXPECT_EQ(attr->registryName(), Attributes::MOVEMENT_SPEED);
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 0.7);
 }
 
-TEST(Attributes, AttackDamage) {
+TEST(Attributes, AttackDamage)
+{
     auto attr = Attributes::attackDamage();
 
     EXPECT_EQ(attr->registryName(), Attributes::ATTACK_DAMAGE);
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 2.0);
 }
 
-TEST(Attributes, KnockbackResistance) {
+TEST(Attributes, KnockbackResistance)
+{
     auto attr = Attributes::knockbackResistance();
 
     EXPECT_EQ(attr->registryName(), Attributes::KNOCKBACK_RESISTANCE);
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 0.0);
-    EXPECT_DOUBLE_EQ(attr->maxValue(), 1.0);  // 最大值为1（完全免疫）
+    EXPECT_DOUBLE_EQ(attr->maxValue(), 1.0); // 最大值为1（完全免疫）
 }

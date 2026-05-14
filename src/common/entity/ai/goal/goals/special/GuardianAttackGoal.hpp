@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../Goal.hpp"
 
 namespace mc {
 
@@ -54,14 +54,14 @@ private:
 
     GuardianEntity* m_guardian;
     LivingEntity* m_target = nullptr;
-    i32 m_tickCounter = 0;          // MC 1.16.5: tickCounter
-    bool m_isElder = false;         // 是否为远古守卫者
+    i32 m_tickCounter = 0;  // MC 1.16.5: tickCounter
+    bool m_isElder = false; // 是否为远古守卫者
 
     // MC 1.16.5 常量
-    static constexpr i32 ATTACK_DURATION = 80;  // 攻击周期（ticks）
-    static constexpr f32 ATTACK_RANGE = 15.0f;   // 攻击范围
-    static constexpr f32 LASER_DAMAGE = 4.0f;    // 激光伤害（普通守卫者）
-    static constexpr f32 ELDER_BONUS_DAMAGE = 2.0f;  // 远古守卫者额外伤害
+    static constexpr i32 ATTACK_DURATION = 80;      // 攻击周期（ticks）
+    static constexpr f32 ATTACK_RANGE = 15.0f;      // 攻击范围
+    static constexpr f32 LASER_DAMAGE = 4.0f;       // 激光伤害（普通守卫者）
+    static constexpr f32 ELDER_BONUS_DAMAGE = 2.0f; // 远古守卫者额外伤害
 };
 
 } // namespace entity::ai::goal

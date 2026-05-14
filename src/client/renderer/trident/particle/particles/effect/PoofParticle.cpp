@@ -28,15 +28,14 @@ PoofParticle::PoofParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> PoofParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<PoofParticle>(pos, velocity);
 }
 
-void PoofParticle::tick(mc::client::ClientWorld* world) {
+void PoofParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -51,7 +50,7 @@ void PoofParticle::tick(mc::client::ClientWorld* world) {
     // 轻微随机运动
     mc::math::Random rng;
     m_velocity.x += (rng.nextFloat() - 0.5f) * 0.005f;
-    m_velocity.y += 0.001f;  // 轻微上升
+    m_velocity.y += 0.001f; // 轻微上升
     m_velocity.z += (rng.nextFloat() - 0.5f) * 0.005f;
 
     m_position += m_velocity;
@@ -65,7 +64,8 @@ void PoofParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(1.0f - lifeRatio);
 }
 
-f64 PoofParticle::getScale(f64 partialTick) const {
+f64 PoofParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }

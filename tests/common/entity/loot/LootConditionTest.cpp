@@ -1,24 +1,24 @@
 #include <gtest/gtest.h>
 
-#include "entity/loot/LootContext.hpp"
-#include "entity/loot/LootTable.hpp"
-#include "entity/loot/LootPool.hpp"
-#include "entity/loot/LootEntry.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/loot/LootConditions.hpp"
-#include "entity/loot/StatePropertiesPredicate.hpp"
+#include "entity/loot/LootContext.hpp"
+#include "entity/loot/LootEntry.hpp"
+#include "entity/loot/LootPool.hpp"
+#include "entity/loot/LootTable.hpp"
 #include "entity/loot/RandomRanges.hpp"
-#include "item/core/ItemRegistry.hpp"
+#include "entity/loot/StatePropertiesPredicate.hpp"
 #include "item/Items.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/VanillaBlocks.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/chunk/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "core/Constants.hpp"
-#include "util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::loot;
@@ -26,30 +26,36 @@ using namespace mc::loot;
 // Test implementation of IWorld for loot testing
 class LootConditionTestWorld : public test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("LootConditionTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("LootConditionTestWorld::tickManager not implemented");
     }
-
 };
 
 class LootConditionsTest : public ::testing::Test {
 protected:
     LootConditionTestWorld m_world;
 
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块和物品系统
         VanillaBlocks::initialize();
         Items::initialize();
     }
 };
 
-TEST_F(LootConditionsTest, RandomChanceCondition_Basic) {
+TEST_F(LootConditionsTest, RandomChanceCondition_Basic)
+{
     math::Random random(12345);
 
     // 100% 概率
@@ -74,7 +80,8 @@ TEST_F(LootConditionsTest, RandomChanceCondition_Basic) {
     EXPECT_LT(trueCount, 600);
 }
 
-TEST_F(LootConditionsTest, NotCondition_Basic) {
+TEST_F(LootConditionsTest, NotCondition_Basic)
+{
     math::Random random(12345);
 
     RandomChanceCondition alwaysTrue(1.0f);
@@ -90,7 +97,8 @@ TEST_F(LootConditionsTest, NotCondition_Basic) {
     EXPECT_TRUE(notNeverTrue.test(*LootContextBuilder(m_world).withRandom(random).build()));
 }
 
-TEST_F(LootConditionsTest, AndCondition_AllTrue) {
+TEST_F(LootConditionsTest, AndCondition_AllTrue)
+{
     math::Random random(12345);
 
     auto condition = std::make_unique<AndCondition>();
@@ -101,18 +109,20 @@ TEST_F(LootConditionsTest, AndCondition_AllTrue) {
     EXPECT_TRUE(condition->test(*LootContextBuilder(m_world).withRandom(random).build()));
 }
 
-TEST_F(LootConditionsTest, AndCondition_OneFalse) {
+TEST_F(LootConditionsTest, AndCondition_OneFalse)
+{
     math::Random random(12345);
 
     auto condition = std::make_unique<AndCondition>();
     condition->addCondition(std::make_unique<RandomChanceCondition>(1.0f));
-    condition->addCondition(std::make_unique<RandomChanceCondition>(0.0f));  // 这个为 false
+    condition->addCondition(std::make_unique<RandomChanceCondition>(0.0f)); // 这个为 false
     condition->addCondition(std::make_unique<RandomChanceCondition>(1.0f));
 
     EXPECT_FALSE(condition->test(*LootContextBuilder(m_world).withRandom(random).build()));
 }
 
-TEST_F(LootConditionsTest, OrCondition_AllFalse) {
+TEST_F(LootConditionsTest, OrCondition_AllFalse)
+{
     math::Random random(12345);
 
     auto condition = std::make_unique<OrCondition>();
@@ -123,24 +133,24 @@ TEST_F(LootConditionsTest, OrCondition_AllFalse) {
     EXPECT_FALSE(condition->test(*LootContextBuilder(m_world).withRandom(random).build()));
 }
 
-TEST_F(LootConditionsTest, OrCondition_OneTrue) {
+TEST_F(LootConditionsTest, OrCondition_OneTrue)
+{
     math::Random random(12345);
 
     auto condition = std::make_unique<OrCondition>();
     condition->addCondition(std::make_unique<RandomChanceCondition>(0.0f));
-    condition->addCondition(std::make_unique<RandomChanceCondition>(1.0f));  // 这个为 true
+    condition->addCondition(std::make_unique<RandomChanceCondition>(1.0f)); // 这个为 true
     condition->addCondition(std::make_unique<RandomChanceCondition>(0.0f));
 
     EXPECT_TRUE(condition->test(*LootContextBuilder(m_world).withRandom(random).build()));
 }
 
-TEST_F(LootConditionsTest, FortuneCondition_GetLevel) {
+TEST_F(LootConditionsTest, FortuneCondition_GetLevel)
+{
     // FortuneCondition::getFortuneLevel 从 LootContext 的 FORTUNE_LEVEL 参数获取
     math::Random random(12345);
 
-    auto context = LootContextBuilder(m_world)
-        .withRandom(random)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(random).build();
 
     // 使用 setOwnedValue 设置时运等级
     context->setOwnedValue(LootParams::FORTUNE_LEVEL, 3);
@@ -148,14 +158,13 @@ TEST_F(LootConditionsTest, FortuneCondition_GetLevel) {
     EXPECT_EQ(FortuneCondition::getFortuneLevel(*context), 3);
 
     // 测试默认值（未设置时返回 0）
-    auto context2 = LootContextBuilder(m_world)
-        .withRandom(random)
-        .build();
+    auto context2 = LootContextBuilder(m_world).withRandom(random).build();
 
     EXPECT_EQ(FortuneCondition::getFortuneLevel(*context2), 0);
 }
 
-TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus) {
+TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus)
+{
     math::Random random(12345);
 
     // Fortune 0 - 无加成
@@ -176,7 +185,7 @@ TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus) {
     for (i32 i = 0; i < 1000; ++i) {
         i32 result = FortuneCondition::applyFortuneBonus(1, 3, random);
         EXPECT_GE(result, 1);
-        EXPECT_LE(result, 4);  // 1 + 3 = 4
+        EXPECT_LE(result, 4); // 1 + 3 = 4
     }
 }
 
@@ -184,7 +193,8 @@ TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus) {
 // LootConditionBuilder 测试
 // ============================================================================
 
-TEST(LootConditionBuilderTest, FactoryMethods) {
+TEST(LootConditionBuilderTest, FactoryMethods)
+{
     auto silkTouch = LootConditionBuilder::silkTouch();
     EXPECT_NE(silkTouch, nullptr);
     EXPECT_EQ(silkTouch->getType(), "silk_touch");
@@ -225,18 +235,20 @@ class LootEntryConditionTest : public ::testing::Test {
 protected:
     LootConditionTestWorld m_world;
 
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
 };
 
-TEST_F(LootEntryConditionTest, EntryWithCondition) {
+TEST_F(LootEntryConditionTest, EntryWithCondition)
+{
     math::Random random(12345);
 
     // 创建一个带条件的物品条目
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f, 1.0f), 1, 0);
-    entry.addCondition(std::make_unique<RandomChanceCondition>(0.0f));  // 永远不满足
+    entry.addCondition(std::make_unique<RandomChanceCondition>(0.0f)); // 永远不满足
 
     // 创建 LootContext
     auto context = LootContextBuilder(m_world).withRandom(random).build();
@@ -245,7 +257,8 @@ TEST_F(LootEntryConditionTest, EntryWithCondition) {
     EXPECT_FALSE(entry.testConditions(*context));
 }
 
-TEST_F(LootEntryConditionTest, EntryWithMultipleConditions) {
+TEST_F(LootEntryConditionTest, EntryWithMultipleConditions)
+{
     math::Random random(12345);
 
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f, 1.0f), 1, 0);
@@ -261,7 +274,8 @@ TEST_F(LootEntryConditionTest, EntryWithMultipleConditions) {
     EXPECT_FALSE(entry.testConditions(*context));
 }
 
-TEST_F(LootEntryConditionTest, EntryConditionCloning) {
+TEST_F(LootEntryConditionTest, EntryConditionCloning)
+{
     ItemLootEntry original("minecraft:diamond", RandomValueRange(1.0f, 1.0f), 1, 0);
     original.addCondition(std::make_unique<RandomChanceCondition>(0.5f));
 
@@ -278,7 +292,8 @@ TEST_F(LootEntryConditionTest, EntryConditionCloning) {
 // LootPool 条件测试
 // ============================================================================
 
-TEST_F(LootEntryConditionTest, PoolWithEntryCondition) {
+TEST_F(LootEntryConditionTest, PoolWithEntryCondition)
+{
     // LootPool 本身不支持条件，但可以通过在 Entry 上添加条件实现相同效果
     math::Random random(12345);
 
@@ -303,7 +318,8 @@ TEST_F(LootEntryConditionTest, PoolWithEntryCondition) {
 // 边界情况测试
 // ============================================================================
 
-TEST_F(LootConditionsTest, ClonePreservesState) {
+TEST_F(LootConditionsTest, ClonePreservesState)
+{
     FortuneCondition original(2);
     auto cloned = original.clone();
 
@@ -313,7 +329,8 @@ TEST_F(LootConditionsTest, ClonePreservesState) {
     ASSERT_NE(fortuneClone, nullptr);
 }
 
-TEST_F(LootConditionsTest, NotConditionWithNullCondition) {
+TEST_F(LootConditionsTest, NotConditionWithNullCondition)
+{
     // NotCondition 应该安全处理 null 内部条件
     NotCondition notNull(nullptr);
     math::Random random(12345);
@@ -323,7 +340,8 @@ TEST_F(LootConditionsTest, NotConditionWithNullCondition) {
     EXPECT_TRUE(notNull.test(*context));
 }
 
-TEST_F(LootConditionsTest, EmptyAndCondition) {
+TEST_F(LootConditionsTest, EmptyAndCondition)
+{
     // 空 AndCondition 应该返回 true（所有 0 个条件都满足）
     AndCondition emptyAnd;
     math::Random random(12345);
@@ -332,7 +350,8 @@ TEST_F(LootConditionsTest, EmptyAndCondition) {
     EXPECT_TRUE(emptyAnd.test(*context));
 }
 
-TEST_F(LootConditionsTest, EmptyOrCondition) {
+TEST_F(LootConditionsTest, EmptyOrCondition)
+{
     // 空 OrCondition 应该返回 false（没有条件满足）
     OrCondition emptyOr;
     math::Random random(12345);
@@ -347,13 +366,15 @@ TEST_F(LootConditionsTest, EmptyOrCondition) {
 
 class StatePropertiesPredicateTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
 };
 
-TEST_F(StatePropertiesPredicateTest, EmptyPredicate) {
+TEST_F(StatePropertiesPredicateTest, EmptyPredicate)
+{
     // 空谓词应该匹配任何方块状态
     StatePropertiesPredicate empty;
     EXPECT_TRUE(empty.isEmpty());
@@ -364,7 +385,8 @@ TEST_F(StatePropertiesPredicateTest, EmptyPredicate) {
     EXPECT_TRUE(empty.matches(state));
 }
 
-TEST_F(StatePropertiesPredicateTest, ExactMatcher_BooleanProperty) {
+TEST_F(StatePropertiesPredicateTest, ExactMatcher_BooleanProperty)
+{
     // 测试布尔属性的精确匹配
     StatePropertiesPredicate predicate;
     predicate.addExactMatch("lit", "true");
@@ -388,7 +410,8 @@ TEST_F(StatePropertiesPredicateTest, ExactMatcher_BooleanProperty) {
     EXPECT_EQ(unlitCount, 1);
 }
 
-TEST_F(StatePropertiesPredicateTest, ExactMatcher_IntegerProperty) {
+TEST_F(StatePropertiesPredicateTest, ExactMatcher_IntegerProperty)
+{
     // 测试整数属性的精确匹配 - 使用红石灯
     StatePropertiesPredicate predicate;
     predicate.addExactMatch("lit", "false");
@@ -400,7 +423,8 @@ TEST_F(StatePropertiesPredicateTest, ExactMatcher_IntegerProperty) {
     EXPECT_TRUE(predicate.matches(defaultState));
 }
 
-TEST_F(StatePropertiesPredicateTest, MultipleMatchers) {
+TEST_F(StatePropertiesPredicateTest, MultipleMatchers)
+{
     // 测试多属性匹配 - 使用门
     StatePropertiesPredicate predicate;
     predicate.addExactMatch("facing", "north");
@@ -419,7 +443,8 @@ TEST_F(StatePropertiesPredicateTest, MultipleMatchers) {
     EXPECT_GT(matchCount, 0);
 }
 
-TEST_F(StatePropertiesPredicateTest, Clone) {
+TEST_F(StatePropertiesPredicateTest, Clone)
+{
     StatePropertiesPredicate original;
     original.addExactMatch("age", "3");
     original.addRangeMatch("power", "5", "10");
@@ -430,7 +455,8 @@ TEST_F(StatePropertiesPredicateTest, Clone) {
     EXPECT_EQ(original.matcherCount(), 2);
 }
 
-TEST_F(StatePropertiesPredicateTest, ToJson) {
+TEST_F(StatePropertiesPredicateTest, ToJson)
+{
     StatePropertiesPredicate predicate;
     predicate.addExactMatch("age", "3");
 
@@ -453,13 +479,15 @@ class BlockStateConditionTest : public ::testing::Test {
 protected:
     LootConditionTestWorld m_world;
 
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
 };
 
-TEST_F(BlockStateConditionTest, BlockIdOnly) {
+TEST_F(BlockStateConditionTest, BlockIdOnly)
+{
     math::Random random(12345);
 
     // 创建一个只检查方块 ID 的条件
@@ -468,23 +496,24 @@ TEST_F(BlockStateConditionTest, BlockIdOnly) {
     // 测试不匹配的方块
     const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
     auto dirtContext = LootContextBuilder(m_world)
-        .withRandom(random)
-        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&dirtState))
-        .build();
+                           .withRandom(random)
+                           .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&dirtState))
+                           .build();
 
     EXPECT_FALSE(condition.test(*dirtContext));
 
     // 测试匹配的方块
     const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
     auto stoneContext = LootContextBuilder(m_world)
-        .withRandom(random)
-        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&stoneState))
-        .build();
+                            .withRandom(random)
+                            .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&stoneState))
+                            .build();
 
     EXPECT_TRUE(condition.test(*stoneContext));
 }
 
-TEST_F(BlockStateConditionTest, NoBlockState) {
+TEST_F(BlockStateConditionTest, NoBlockState)
+{
     math::Random random(12345);
 
     BlockStateCondition condition("minecraft:stone");
@@ -494,7 +523,8 @@ TEST_F(BlockStateConditionTest, NoBlockState) {
     EXPECT_FALSE(condition.test(*context));
 }
 
-TEST_F(BlockStateConditionTest, WithProperties_ExactMatch) {
+TEST_F(BlockStateConditionTest, WithProperties_ExactMatch)
+{
     math::Random random(12345);
 
     // 创建带属性匹配的条件 - 使用红石灯的 lit 属性
@@ -510,9 +540,9 @@ TEST_F(BlockStateConditionTest, WithProperties_ExactMatch) {
     for (size_t i = 0; i < lampStates.size(); ++i) {
         const BlockState* state = lampStates[i].get();
         auto context = LootContextBuilder(m_world)
-            .withRandom(random)
-            .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(state))
-            .build();
+                           .withRandom(random)
+                           .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(state))
+                           .build();
 
         if (condition.test(*context)) {
             matchCount++;
@@ -523,7 +553,8 @@ TEST_F(BlockStateConditionTest, WithProperties_ExactMatch) {
     EXPECT_EQ(matchCount, 1);
 }
 
-TEST_F(BlockStateConditionTest, WithProperties_WrongBlock) {
+TEST_F(BlockStateConditionTest, WithProperties_WrongBlock)
+{
     math::Random random(12345);
 
     StatePropertiesPredicate properties;
@@ -534,15 +565,16 @@ TEST_F(BlockStateConditionTest, WithProperties_WrongBlock) {
     // 用石头测试（没有 lit 属性）
     const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
     auto context = LootContextBuilder(m_world)
-        .withRandom(random)
-        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&stoneState))
-        .build();
+                       .withRandom(random)
+                       .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&stoneState))
+                       .build();
 
     // 方块 ID 不匹配
     EXPECT_FALSE(condition.test(*context));
 }
 
-TEST_F(BlockStateConditionTest, Clone) {
+TEST_F(BlockStateConditionTest, Clone)
+{
     StatePropertiesPredicate properties;
     properties.addExactMatch("lit", "true");
 
@@ -555,7 +587,8 @@ TEST_F(BlockStateConditionTest, Clone) {
     EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 1);
 }
 
-TEST_F(BlockStateConditionTest, BuilderMethods) {
+TEST_F(BlockStateConditionTest, BuilderMethods)
+{
     // 测试只有方块 ID 的构建
     auto condition1 = LootConditionBuilder::blockState("minecraft:stone");
     EXPECT_NE(condition1, nullptr);

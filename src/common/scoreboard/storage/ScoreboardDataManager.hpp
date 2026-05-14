@@ -93,10 +93,8 @@ public:
      * @param locked 是否锁定（用于 trigger）
      * @return 成功或错误
      */
-    Result<void> saveScore(const std::string& objectiveName,
-                           const std::string& playerName,
-                           i32 score,
-                           bool locked = false);
+    Result<void> saveScore(
+        const std::string& objectiveName, const std::string& playerName, i32 score, bool locked = false);
 
     /**
      * @brief 加载分数
@@ -106,8 +104,7 @@ public:
      * @return 分数数据（如果存在）
      */
     [[nodiscard]] Result<std::optional<ScoreboardSaveData::ScoreData>> loadScore(
-        const std::string& objectiveName,
-        const std::string& playerName);
+        const std::string& objectiveName, const std::string& playerName);
 
     /**
      * @brief 删除分数
@@ -241,8 +238,7 @@ private:
     /**
      * @brief 生成分数键
      */
-    [[nodiscard]] static std::vector<u8> makeScoreKey(const std::string& objectiveName,
-                                                       const std::string& playerName);
+    [[nodiscard]] static std::vector<u8> makeScoreKey(const std::string& objectiveName, const std::string& playerName);
 
     /**
      * @brief 生成队伍键
@@ -266,7 +262,7 @@ private:
 
     // 脏数据追踪
     std::unordered_set<std::string> m_dirtyObjectives;
-    std::unordered_set<std::string> m_dirtyScores;      // 格式: "objective:player"
+    std::unordered_set<std::string> m_dirtyScores; // 格式: "objective:player"
     std::unordered_set<std::string> m_dirtyTeams;
     bool m_dirtyDisplaySlots = false;
 

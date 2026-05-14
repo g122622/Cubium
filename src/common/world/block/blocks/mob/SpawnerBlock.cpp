@@ -4,17 +4,18 @@ namespace mc {
 namespace blocks {
 
 SpawnerBlock::SpawnerBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
     // 刷怪笼没有特殊状态
 }
 
-ActionResultType SpawnerBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType SpawnerBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(state);
     MC_UNUSED(world);

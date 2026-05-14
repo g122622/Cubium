@@ -1,8 +1,8 @@
 #include "ChunkLoadTicketManager.hpp"
 #include "ChunkLoadTicket.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <mutex>
+#include <spdlog/spdlog.h>
 
 namespace {
 
@@ -22,50 +22,53 @@ namespace mc::world {
 // ============================================================================
 
 namespace TicketTypes {
-    // 玩家加载票据
-    const ChunkLoadTicketType<ChunkPos> PLAYER = ChunkLoadTicketType<ChunkPos>::create("player");
+// 玩家加载票据
+const ChunkLoadTicketType<ChunkPos> PLAYER = ChunkLoadTicketType<ChunkPos>::create("player");
 
-    // 强制加载票据
-    const ChunkLoadTicketType<ChunkPos> FORCED = ChunkLoadTicketType<ChunkPos>::create("forced");
+// 强制加载票据
+const ChunkLoadTicketType<ChunkPos> FORCED = ChunkLoadTicketType<ChunkPos>::create("forced");
 
-    // 传送门票据（300 tick 生命周期）
-    const ChunkLoadTicketType<ChunkPos> PORTAL = ChunkLoadTicketType<ChunkPos>::create("portal", 300);
+// 传送门票据（300 tick 生命周期）
+const ChunkLoadTicketType<ChunkPos> PORTAL = ChunkLoadTicketType<ChunkPos>::create("portal", 300);
 
-    // 传送后票据（5 tick 生命周期）
-    const ChunkLoadTicketType<u32> POST_TELEPORT = ChunkLoadTicketType<u32>::create("post_teleport", 5);
+// 传送后票据（5 tick 生命周期）
+const ChunkLoadTicketType<u32> POST_TELEPORT = ChunkLoadTicketType<u32>::create("post_teleport", 5);
 
-    // 未知票据
-    const ChunkLoadTicketType<ChunkPos> UNKNOWN = ChunkLoadTicketType<ChunkPos>::create("unknown");
+// 未知票据
+const ChunkLoadTicketType<ChunkPos> UNKNOWN = ChunkLoadTicketType<ChunkPos>::create("unknown");
 
-    // 世界启动票据
-    const ChunkLoadTicketType<Unit> START = ChunkLoadTicketType<Unit>::create("start");
+// 世界启动票据
+const ChunkLoadTicketType<Unit> START = ChunkLoadTicketType<Unit>::create("start");
 
-    // 末影龙战斗票据
-    const ChunkLoadTicketType<Unit> DRAGON = ChunkLoadTicketType<Unit>::create("dragon");
+// 末影龙战斗票据
+const ChunkLoadTicketType<Unit> DRAGON = ChunkLoadTicketType<Unit>::create("dragon");
 
-    // 光照计算票据
-    const ChunkLoadTicketType<ChunkPos> LIGHT = ChunkLoadTicketType<ChunkPos>::create("light");
+// 光照计算票据
+const ChunkLoadTicketType<ChunkPos> LIGHT = ChunkLoadTicketType<ChunkPos>::create("light");
 
-    void initializeTicketTypes() {
-        // 票据类型已在静态初始化时创建，此函数保留用于未来扩展
-    }
+void initializeTicketTypes()
+{
+    // 票据类型已在静态初始化时创建，此函数保留用于未来扩展
+}
 } // namespace TicketTypes
 
 // ============================================================================
 // ChunkTicketSet 实现
 // ============================================================================
 
-void ChunkTicketSet::addTicket(ChunkLoadTicket ticket) {
+void ChunkTicketSet::addTicket(ChunkLoadTicket ticket)
+{
     // 检查是否已存在相同的票据
     for (const auto& t : m_tickets) {
         if (t == ticket) {
-            return;  // 已存在，不重复添加
+            return; // 已存在，不重复添加
         }
     }
     m_tickets.push_back(std::move(ticket));
 }
 
-bool ChunkTicketSet::removeTicket(const ChunkLoadTicket& ticket) {
+bool ChunkTicketSet::removeTicket(const ChunkLoadTicket& ticket)
+{
     for (auto it = m_tickets.begin(); it != m_tickets.end(); ++it) {
         if (*it == ticket) {
             m_tickets.erase(it);
@@ -75,7 +78,8 @@ bool ChunkTicketSet::removeTicket(const ChunkLoadTicket& ticket) {
     return false;
 }
 
-i32 ChunkTicketSet::getMinLevel() const {
+i32 ChunkTicketSet::getMinLevel() const
+{
     if (m_tickets.empty()) {
         return static_cast<i32>(ChunkLoadLevel::MaxLevel);
     }
@@ -89,7 +93,8 @@ i32 ChunkTicketSet::getMinLevel() const {
     return minLevel;
 }
 
-void ChunkTicketSet::removeExpired(u64 currentTime) {
+void ChunkTicketSet::removeExpired(u64 currentTime)
+{
     auto it = m_tickets.begin();
     while (it != m_tickets.end()) {
         if (it->isExpired(currentTime)) {
@@ -115,7 +120,8 @@ ChunkLoadTicketManager::ChunkLoadTicketManager()
     });
 }
 
-void ChunkLoadTicketManager::setupTrackerCallback(PlayerChunkTracker* tracker) {
+void ChunkLoadTicketManager::setupTrackerCallback(PlayerChunkTracker* tracker)
+{
     tracker->setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
         if (m_levelChangeCallback) {
             m_levelChangeCallback(x, z, oldLevel, newLevel);
@@ -123,7 +129,8 @@ void ChunkLoadTicketManager::setupTrackerCallback(PlayerChunkTracker* tracker) {
     });
 }
 
-void ChunkLoadTicketManager::addTicket(ChunkPos pos, ChunkLoadTicket ticket) {
+void ChunkLoadTicketManager::addTicket(ChunkPos pos, ChunkLoadTicket ticket)
+{
     u64 key = posToKey(pos.x, pos.z);
 
     auto& ticketSet = m_chunkTickets[key];
@@ -133,7 +140,8 @@ void ChunkLoadTicketManager::addTicket(ChunkPos pos, ChunkLoadTicket ticket) {
     m_dirtyChunks.insert(key);
 }
 
-void ChunkLoadTicketManager::removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket) {
+void ChunkLoadTicketManager::removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket)
+{
     u64 key = posToKey(pos.x, pos.z);
 
     auto it = m_chunkTickets.find(key);
@@ -150,7 +158,8 @@ void ChunkLoadTicketManager::removeTicket(ChunkPos pos, const ChunkLoadTicket& t
     }
 }
 
-void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord x, ChunkCoord z) {
+void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord x, ChunkCoord z)
+{
     ChunkPos newPos(x, z);
 
     // 获取旧的追踪区块集合
@@ -166,7 +175,7 @@ void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord 
         ChunkPos oldPos = posIt->second;
 
         if (oldPos.x == x && oldPos.z == z) {
-            return;  // 位置没变
+            return; // 位置没变
         }
 
         // 移除旧位置的票据
@@ -246,7 +255,8 @@ void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord 
     processUpdates();
 }
 
-void ChunkLoadTicketManager::removePlayer(PlayerId playerId) {
+void ChunkLoadTicketManager::removePlayer(PlayerId playerId)
+{
     // 获取玩家追踪的区块
     std::unordered_set<u64> trackedChunks;
     auto trackerIt = m_playerTrackers.find(playerId);
@@ -295,7 +305,8 @@ void ChunkLoadTicketManager::removePlayer(PlayerId playerId) {
     processUpdates();
 }
 
-i32 ChunkLoadTicketManager::getChunkLevel(ChunkCoord x, ChunkCoord z) const {
+i32 ChunkLoadTicketManager::getChunkLevel(ChunkCoord x, ChunkCoord z) const
+{
     u64 key = posToKey(x, z);
 
     // 首先检查票据集合
@@ -324,7 +335,8 @@ i32 ChunkLoadTicketManager::getChunkLevel(ChunkCoord x, ChunkCoord z) const {
     return m_distanceGraph.getLevel(x, z);
 }
 
-void ChunkLoadTicketManager::tick() {
+void ChunkLoadTicketManager::tick()
+{
     ++m_currentTime;
 
     // 清理过期票据
@@ -333,7 +345,7 @@ void ChunkLoadTicketManager::tick() {
     }
 
     // 移除空的票据集合
-    for (auto it = m_chunkTickets.begin(); it != m_chunkTickets.end(); ) {
+    for (auto it = m_chunkTickets.begin(); it != m_chunkTickets.end();) {
         if (it->second.empty()) {
             it = m_chunkTickets.erase(it);
         } else {
@@ -345,7 +357,8 @@ void ChunkLoadTicketManager::tick() {
     processUpdates();
 }
 
-void ChunkLoadTicketManager::setViewDistance(i32 distance) {
+void ChunkLoadTicketManager::setViewDistance(i32 distance)
+{
     const i32 clampedDistance = std::clamp(distance, 2, 32);
 
     if (m_viewDistance == clampedDistance) {
@@ -412,7 +425,8 @@ void ChunkLoadTicketManager::setViewDistance(i32 distance) {
     processUpdates();
 }
 
-size_t ChunkLoadTicketManager::totalTicketCount() const {
+size_t ChunkLoadTicketManager::totalTicketCount() const
+{
     size_t count = 0;
     for (const auto& [key, ticketSet] : m_chunkTickets) {
         count += ticketSet.size();
@@ -420,7 +434,8 @@ size_t ChunkLoadTicketManager::totalTicketCount() const {
     return count;
 }
 
-void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force) {
+void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
+{
     ChunkPos pos(x, z);
     ChunkLoadTicket ticket(TicketTypes::FORCED, static_cast<i32>(ChunkLoadLevel::Full), pos);
 
@@ -433,7 +448,8 @@ void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force) 
     processUpdates();
 }
 
-void ChunkLoadTicketManager::processUpdates() {
+void ChunkLoadTicketManager::processUpdates()
+{
     // 处理所有玩家追踪器的更新
     for (auto& [playerId, tracker] : m_playerTrackers) {
         tracker->processUpdates(1000);
@@ -458,10 +474,11 @@ void ChunkLoadTicketManager::processUpdates() {
     m_dirtyChunks.clear();
 
     // 处理距离图更新
-    m_distanceGraph.processUpdates(1000);  // 每次最多处理 1000 个更新
+    m_distanceGraph.processUpdates(1000); // 每次最多处理 1000 个更新
 }
 
-const ChunkTicketSet* ChunkLoadTicketManager::getChunkTickets(ChunkCoord x, ChunkCoord z) const {
+const ChunkTicketSet* ChunkLoadTicketManager::getChunkTickets(ChunkCoord x, ChunkCoord z) const
+{
     u64 key = posToKey(x, z);
     auto it = m_chunkTickets.find(key);
     if (it != m_chunkTickets.end()) {
@@ -470,7 +487,8 @@ const ChunkTicketSet* ChunkLoadTicketManager::getChunkTickets(ChunkCoord x, Chun
     return nullptr;
 }
 
-std::vector<PlayerId> ChunkLoadTicketManager::getTrackingPlayers(ChunkCoord x, ChunkCoord z) const {
+std::vector<PlayerId> ChunkLoadTicketManager::getTrackingPlayers(ChunkCoord x, ChunkCoord z) const
+{
     u64 key = posToKey(x, z);
     std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
 
@@ -482,7 +500,8 @@ std::vector<PlayerId> ChunkLoadTicketManager::getTrackingPlayers(ChunkCoord x, C
     return result;
 }
 
-bool ChunkLoadTicketManager::isPlayerTracking(PlayerId playerId, ChunkCoord x, ChunkCoord z) const {
+bool ChunkLoadTicketManager::isPlayerTracking(PlayerId playerId, ChunkCoord x, ChunkCoord z) const
+{
     u64 key = posToKey(x, z);
     std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
 
@@ -493,14 +512,16 @@ bool ChunkLoadTicketManager::isPlayerTracking(PlayerId playerId, ChunkCoord x, C
     return it->second.find(playerId) != it->second.end();
 }
 
-bool ChunkLoadTicketManager::hasTrackingPlayers(u64 chunkKey) const {
+bool ChunkLoadTicketManager::hasTrackingPlayers(u64 chunkKey) const
+{
     std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
 
     auto it = m_chunkTrackingPlayers.find(chunkKey);
     return it != m_chunkTrackingPlayers.end() && !it->second.empty();
 }
 
-std::vector<ChunkPos> ChunkLoadTicketManager::getForcedChunks() const {
+std::vector<ChunkPos> ChunkLoadTicketManager::getForcedChunks() const
+{
     std::vector<ChunkPos> result;
 
     // 遍历所有票据集合，找出包含 FORCED 票据的区块
@@ -510,7 +531,7 @@ std::vector<ChunkPos> ChunkLoadTicketManager::getForcedChunks() const {
                 ChunkCoord x = static_cast<ChunkCoord>(key >> 32);
                 ChunkCoord z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
                 result.emplace_back(x, z);
-                break;  // 一个区块只需添加一次
+                break; // 一个区块只需添加一次
             }
         }
     }
@@ -518,7 +539,8 @@ std::vector<ChunkPos> ChunkLoadTicketManager::getForcedChunks() const {
     return result;
 }
 
-bool ChunkLoadTicketManager::isForcedChunk(ChunkCoord x, ChunkCoord z) const {
+bool ChunkLoadTicketManager::isForcedChunk(ChunkCoord x, ChunkCoord z) const
+{
     const ChunkTicketSet* tickets = getChunkTickets(x, z);
     if (tickets == nullptr) {
         return false;

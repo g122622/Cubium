@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../core/LayoutResult.hpp"
 #include "../constraints/LayoutConstraints.hpp"
+#include "../core/LayoutResult.hpp"
 #include "../integration/WidgetLayoutAdaptor.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc::client::ui::kagero::layout {
 
@@ -24,37 +24,38 @@ namespace mc::client::ui::kagero::layout {
  * @endcode
  */
 struct FlexConfig {
-    Direction direction = Direction::Row;          ///< 主轴方向
-    JustifyContent justifyContent = JustifyContent::Start;  ///< 主轴对齐
-    Align alignItems = Align::Stretch;             ///< 交叉轴对齐（默认拉伸）
-    Wrap wrap = Wrap::NoWrap;                      ///< 换行方式
-    i32 gap = 0;                                   ///< 子元素间距
+    Direction direction = Direction::Row;                  ///< 主轴方向
+    JustifyContent justifyContent = JustifyContent::Start; ///< 主轴对齐
+    Align alignItems = Align::Stretch;                     ///< 交叉轴对齐（默认拉伸）
+    Wrap wrap = Wrap::NoWrap;                              ///< 换行方式
+    i32 gap = 0;                                           ///< 子元素间距
 
     /**
      * @brief 检查是否是水平方向
      */
-    [[nodiscard]] bool isHorizontal() const {
+    [[nodiscard]] bool isHorizontal() const
+    {
         return direction == Direction::Row || direction == Direction::RowReverse;
     }
 
     /**
      * @brief 检查是否是垂直方向
      */
-    [[nodiscard]] bool isVertical() const {
+    [[nodiscard]] bool isVertical() const
+    {
         return direction == Direction::Column || direction == Direction::ColumnReverse;
     }
 
     /**
      * @brief 检查是否需要换行
      */
-    [[nodiscard]] bool shouldWrap() const {
-        return wrap != Wrap::NoWrap;
-    }
+    [[nodiscard]] bool shouldWrap() const { return wrap != Wrap::NoWrap; }
 
     /**
      * @brief 检查是否是反向排列
      */
-    [[nodiscard]] bool isReverse() const {
+    [[nodiscard]] bool isReverse() const
+    {
         return direction == Direction::RowReverse || direction == Direction::ColumnReverse;
     }
 };
@@ -65,19 +66,20 @@ struct FlexConfig {
  * 在换行模式下，存储每一行的布局信息。
  */
 struct FlexLine {
-    std::vector<size_t> indices;               ///< 子元素在原始数组中的索引
-    std::vector<WidgetLayoutAdaptor*> items;   ///< 该行的子元素
-    i32 mainSize = 0;                           ///< 主轴尺寸
-    i32 crossSize = 0;                          ///< 交叉轴尺寸
-    i32 offsetX = 0;                            ///< 主轴偏移
-    i32 offsetY = 0;                            ///< 交叉轴偏移
-    f32 totalGrow = 0.0f;                       ///< 总增长因子
-    f32 totalShrink = 0.0f;                     ///< 总缩小因子
+    std::vector<size_t> indices;             ///< 子元素在原始数组中的索引
+    std::vector<WidgetLayoutAdaptor*> items; ///< 该行的子元素
+    i32 mainSize = 0;                        ///< 主轴尺寸
+    i32 crossSize = 0;                       ///< 交叉轴尺寸
+    i32 offsetX = 0;                         ///< 主轴偏移
+    i32 offsetY = 0;                         ///< 交叉轴偏移
+    f32 totalGrow = 0.0f;                    ///< 总增长因子
+    f32 totalShrink = 0.0f;                  ///< 总缩小因子
 
     /**
      * @brief 添加子元素到行
      */
-    void addItem(size_t idx, WidgetLayoutAdaptor* item, i32 itemMainSize) {
+    void addItem(size_t idx, WidgetLayoutAdaptor* item, i32 itemMainSize)
+    {
         indices.push_back(idx);
         items.push_back(item);
         mainSize += itemMainSize;
@@ -170,11 +172,9 @@ public:
      * @param containerConstraints 容器约束（可选）
      * @return 每个子元素的布局结果
      */
-    [[nodiscard]] std::vector<LayoutResult> compute(
-        const Rect& containerBounds,
+    [[nodiscard]] std::vector<LayoutResult> compute(const Rect& containerBounds,
         const std::vector<WidgetLayoutAdaptor*>& children,
-        const LayoutConstraints& containerConstraints = LayoutConstraints{}
-    );
+        const LayoutConstraints& containerConstraints = LayoutConstraints{});
 
     /**
      * @brief 测量容器尺寸
@@ -187,10 +187,7 @@ public:
      * @return 容器的测量尺寸
      */
     [[nodiscard]] Size measure(
-        const MeasureSpec& widthSpec,
-        const MeasureSpec& heightSpec,
-        const std::vector<WidgetLayoutAdaptor*>& children
-    );
+        const MeasureSpec& widthSpec, const MeasureSpec& heightSpec, const std::vector<WidgetLayoutAdaptor*>& children);
 
 private:
     // ==================== 内部辅助方法 ====================
@@ -198,94 +195,53 @@ private:
     /**
      * @brief 测量所有子元素
      */
-    void measureChildren(
-        const std::vector<WidgetLayoutAdaptor*>& children,
-        i32 mainAxisSize,
-        bool isHorizontal
-    );
+    void measureChildren(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal);
 
     /**
      * @brief 收集行（换行模式下）
      */
-    void collectLines(
-        const std::vector<WidgetLayoutAdaptor*>& children,
-        i32 mainAxisSize,
-        bool isHorizontal
-    );
+    void collectLines(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal);
 
     /**
      * @brief 计算单行布局
      */
-    void layoutLine(
-        FlexLine& line,
-        i32 mainAxisSize,
-        i32 crossAxisSize,
-        i32 lineOffset,
-        bool isHorizontal
-    );
+    void layoutLine(FlexLine& line, i32 mainAxisSize, i32 crossAxisSize, i32 lineOffset, bool isHorizontal);
 
     /**
      * @brief 应用主轴对齐
      */
-    void applyJustifyContent(
-        FlexLine& line,
-        i32 mainAxisSize,
-        bool isHorizontal
-    );
+    void applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHorizontal);
 
     /**
      * @brief 应用交叉轴对齐
      */
-    void applyAlignItems(
-        FlexLine& line,
-        i32 crossAxisSize,
-        bool isHorizontal
-    );
+    void applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHorizontal);
 
     /**
      * @brief 分配剩余空间（grow）
      */
-    void distributeFreeSpace(
-        FlexLine& line,
-        i32 freeSpace,
-        bool isHorizontal
-    );
+    void distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHorizontal);
 
     /**
      * @brief 缩小空间（shrink）
      */
-    void shrinkSpace(
-        FlexLine& line,
-        i32 overflow,
-        bool isHorizontal
-    );
+    void shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal);
 
     /**
      * @brief 设置子元素位置
      */
-    void positionChildren(
-        const Rect& containerBounds,
-        bool isHorizontal
-    );
+    void positionChildren(const Rect& containerBounds, bool isHorizontal);
 
     /**
      * @brief 计算子元素的主轴尺寸
      */
-    [[nodiscard]] i32 calculateMainAxisSize(
-        WidgetLayoutAdaptor* child,
-        const MeasureSpec& mainSpec,
-        bool isHorizontal
-    );
+    [[nodiscard]] i32 calculateMainAxisSize(WidgetLayoutAdaptor* child, const MeasureSpec& mainSpec, bool isHorizontal);
 
     /**
      * @brief 计算子元素的交叉轴尺寸
      */
     [[nodiscard]] i32 calculateCrossAxisSize(
-        WidgetLayoutAdaptor* child,
-        const MeasureSpec& crossSpec,
-        bool isHorizontal,
-        i32 baseline = 0
-    );
+        WidgetLayoutAdaptor* child, const MeasureSpec& crossSpec, bool isHorizontal, i32 baseline = 0);
 
     // ================= 成员变量 =================
 
@@ -302,14 +258,16 @@ private:
 /**
  * @brief 创建默认Flex布局配置
  */
-[[nodiscard]] inline FlexConfig defaultFlexConfig() {
+[[nodiscard]] inline FlexConfig defaultFlexConfig()
+{
     return FlexConfig{};
 }
 
 /**
  * @brief 创建水平居中Flex布局配置
  */
-[[nodiscard]] inline FlexConfig centerRowFlexConfig() {
+[[nodiscard]] inline FlexConfig centerRowFlexConfig()
+{
     FlexConfig config;
     config.direction = Direction::Row;
     config.justifyContent = JustifyContent::Center;
@@ -320,7 +278,8 @@ private:
 /**
  * @brief 创建垂直居中Flex布局配置
  */
-[[nodiscard]] inline FlexConfig centerColumnFlexConfig() {
+[[nodiscard]] inline FlexConfig centerColumnFlexConfig()
+{
     FlexConfig config;
     config.direction = Direction::Column;
     config.justifyContent = JustifyContent::Center;
@@ -331,7 +290,8 @@ private:
 /**
  * @brief 创建两端对齐Flex布局配置
  */
-[[nodiscard]] inline FlexConfig spaceBetweenFlexConfig() {
+[[nodiscard]] inline FlexConfig spaceBetweenFlexConfig()
+{
     FlexConfig config;
     config.direction = Direction::Row;
     config.justifyContent = JustifyContent::SpaceBetween;

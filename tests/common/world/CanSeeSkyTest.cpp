@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gtest/gtest.h>
 
 #include <unordered_map>
 
@@ -30,19 +30,17 @@ public:
 
     // ========== IWorld 接口实现 ==========
 
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override {
-        return m_skyLightValue;
-    }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return m_skyLightValue; }
 
-    [[nodiscard]] bool hasSkyLight() const override {
-        return m_hasSkyLight;
-    }
+    [[nodiscard]] bool hasSkyLight() const override { return m_hasSkyLight; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("MockWorldForCanSeeSky::tickManager not implemented");
     }
 
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("MockWorldForCanSeeSky::tickManager not implemented");
     }
 
@@ -63,16 +61,15 @@ private:
  */
 class CanSeeSkyTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     MockWorldForCanSeeSky world;
 };
 
 // ========== 基础功能测试 ==========
 
-TEST_F(CanSeeSkyTest, ReturnsTrueWhenSkyLightIsMax) {
+TEST_F(CanSeeSkyTest, ReturnsTrueWhenSkyLightIsMax)
+{
     // 天空光照为 15 时，canSeeSky 应返回 true
     world.setSkyLightValue(15);
 
@@ -81,7 +78,8 @@ TEST_F(CanSeeSkyTest, ReturnsTrueWhenSkyLightIsMax) {
     EXPECT_TRUE(world.canSeeSky(BlockPos(-50, 255, -50)));
 }
 
-TEST_F(CanSeeSkyTest, ReturnsFalseWhenSkyLightIsBelowMax) {
+TEST_F(CanSeeSkyTest, ReturnsFalseWhenSkyLightIsBelowMax)
+{
     // 天空光照 < 15 时，canSeeSky 应返回 false
 
     world.setSkyLightValue(14);
@@ -94,16 +92,18 @@ TEST_F(CanSeeSkyTest, ReturnsFalseWhenSkyLightIsBelowMax) {
     EXPECT_FALSE(world.canSeeSky(BlockPos(0, 64, 0)));
 }
 
-TEST_F(CanSeeSkyTest, ReturnsFalseWhenNoSkyLight) {
+TEST_F(CanSeeSkyTest, ReturnsFalseWhenNoSkyLight)
+{
     // 无天空光照的维度（如末地、下界），canSeeSky 应返回 false
 
     world.setHasSkyLight(false);
-    world.setSkyLightValue(15);  // 即使天空光照设为 15
+    world.setSkyLightValue(15); // 即使天空光照设为 15
 
     EXPECT_FALSE(world.canSeeSky(BlockPos(0, 64, 0)));
 }
 
-TEST_F(CanSeeSkyTest, ReturnsFalseWhenNoSkyLightRegardlessOfLightValue) {
+TEST_F(CanSeeSkyTest, ReturnsFalseWhenNoSkyLightRegardlessOfLightValue)
+{
     // 无天空光照维度，任何光照值都应该返回 false
 
     world.setHasSkyLight(false);
@@ -115,7 +115,8 @@ TEST_F(CanSeeSkyTest, ReturnsFalseWhenNoSkyLightRegardlessOfLightValue) {
     }
 }
 
-TEST_F(CanSeeSkyTest, AllPositionsReturnSameResult) {
+TEST_F(CanSeeSkyTest, AllPositionsReturnSameResult)
+{
     // canSeeSky 的结果应该只取决于天空光照，不取决于位置
 
     world.setSkyLightValue(15);
@@ -131,7 +132,8 @@ TEST_F(CanSeeSkyTest, AllPositionsReturnSameResult) {
 
 // ========== 边界条件测试 ==========
 
-TEST_F(CanSeeSkyTest, SkyLightBoundaryValues) {
+TEST_F(CanSeeSkyTest, SkyLightBoundaryValues)
+{
     // 测试天空光照边界值
 
     // 正好 15：应该返回 true
@@ -153,7 +155,8 @@ TEST_F(CanSeeSkyTest, SkyLightBoundaryValues) {
 
 // ========== MC 1.16.5 对齐测试 ==========
 
-TEST_F(CanSeeSkyTest, AlignsWithMC116Implementation) {
+TEST_F(CanSeeSkyTest, AlignsWithMC116Implementation)
+{
     /**
      * MC 1.16.5 实现参考：
      *
@@ -174,7 +177,7 @@ TEST_F(CanSeeSkyTest, AlignsWithMC116Implementation) {
     EXPECT_TRUE(world.canSeeSky(BlockPos(0, 64, 0)));
 
     // 模拟被遮挡位置：天空光照 < 15
-    world.setSkyLightValue(12);  // 被部分遮挡
+    world.setSkyLightValue(12); // 被部分遮挡
     EXPECT_FALSE(world.canSeeSky(BlockPos(0, 64, 0)));
 
     // 模拟室内位置：天空光照 = 0

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include <unordered_map>
 #include <optional>
+#include <unordered_map>
 
 namespace mc {
 
@@ -47,11 +47,13 @@ public:
      * @brief 单个物品的冷却信息
      */
     struct Cooldown {
-        i32 createTicks;    ///< 冷却开始时的游戏 tick
-        i32 expireTicks;    ///< 冷却结束时的游戏 tick
+        i32 createTicks; ///< 冷却开始时的游戏 tick
+        i32 expireTicks; ///< 冷却结束时的游戏 tick
 
         Cooldown(i32 create, i32 expire)
-            : createTicks(create), expireTicks(expire) {}
+            : createTicks(create)
+            , expireTicks(expire)
+        {}
     };
 
     CooldownTracker() = default;

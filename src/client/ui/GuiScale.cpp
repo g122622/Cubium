@@ -22,7 +22,8 @@ GuiScaleState calculateGuiScale(i32 requestedScale, i32 windowWidth, i32 windowH
     }
 
     i32 scaleFactor = MIN_GUI_SCALE;
-    const i32 targetScale = requestedScale <= 0 ? MAX_GUI_SCALE : std::clamp(requestedScale, MIN_GUI_SCALE, MAX_GUI_SCALE);
+    const i32 targetScale =
+        requestedScale <= 0 ? MAX_GUI_SCALE : std::clamp(requestedScale, MIN_GUI_SCALE, MAX_GUI_SCALE);
 
     while (scaleFactor < targetScale) {
         const i32 nextScale = scaleFactor + 1;

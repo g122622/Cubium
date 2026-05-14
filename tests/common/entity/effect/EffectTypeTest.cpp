@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include "entity/effect/EffectType.hpp"
 #include "resource/ResourceLocation.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity::effect;
@@ -12,15 +12,15 @@ using namespace mc::entity::effect;
  */
 class EffectTypeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 };
 
 // ============================================================================
 // getEffectById 测试
 // ============================================================================
 
-TEST_F(EffectTypeTest, GetEffectById_ValidIds) {
+TEST_F(EffectTypeTest, GetEffectById_ValidIds)
+{
     // 测试有效ID
     EXPECT_EQ(EffectType::Speed, getEffectById(1).value());
     EXPECT_EQ(EffectType::Slowness, getEffectById(2).value());
@@ -30,7 +30,8 @@ TEST_F(EffectTypeTest, GetEffectById_ValidIds) {
     EXPECT_EQ(EffectType::HeroOfTheVillage, getEffectById(32).value());
 }
 
-TEST_F(EffectTypeTest, GetEffectById_InvalidIds) {
+TEST_F(EffectTypeTest, GetEffectById_InvalidIds)
+{
     // 测试无效ID
     EXPECT_FALSE(getEffectById(0).has_value());
     EXPECT_FALSE(getEffectById(-1).has_value());
@@ -42,17 +43,22 @@ TEST_F(EffectTypeTest, GetEffectById_InvalidIds) {
 // getEffectByResourceLocation 测试
 // ============================================================================
 
-TEST_F(EffectTypeTest, GetEffectByResourceLocation_FullResourceLocation) {
+TEST_F(EffectTypeTest, GetEffectByResourceLocation_FullResourceLocation)
+{
     // 测试完整资源位置格式
     EXPECT_EQ(EffectType::Speed, getEffectByResourceLocation(ResourceLocation("minecraft:speed")).value());
     EXPECT_EQ(EffectType::Poison, getEffectByResourceLocation(ResourceLocation("minecraft:poison")).value());
-    EXPECT_EQ(EffectType::InstantHealth, getEffectByResourceLocation(ResourceLocation("minecraft:instant_health")).value());
-    EXPECT_EQ(EffectType::HeroOfTheVillage, getEffectByResourceLocation(ResourceLocation("minecraft:hero_of_the_village")).value());
+    EXPECT_EQ(
+        EffectType::InstantHealth, getEffectByResourceLocation(ResourceLocation("minecraft:instant_health")).value());
+    EXPECT_EQ(EffectType::HeroOfTheVillage,
+        getEffectByResourceLocation(ResourceLocation("minecraft:hero_of_the_village")).value());
     EXPECT_EQ(EffectType::SlowFalling, getEffectByResourceLocation(ResourceLocation("minecraft:slow_falling")).value());
-    EXPECT_EQ(EffectType::DolphinsGrace, getEffectByResourceLocation(ResourceLocation("minecraft:dolphins_grace")).value());
+    EXPECT_EQ(
+        EffectType::DolphinsGrace, getEffectByResourceLocation(ResourceLocation("minecraft:dolphins_grace")).value());
 }
 
-TEST_F(EffectTypeTest, GetEffectByResourceLocation_PathOnly) {
+TEST_F(EffectTypeTest, GetEffectByResourceLocation_PathOnly)
+{
     // 测试仅路径格式（不带命名空间）
     EXPECT_EQ(EffectType::Speed, getEffectByResourceLocation(ResourceLocation("speed")).value());
     EXPECT_EQ(EffectType::Poison, getEffectByResourceLocation(ResourceLocation("poison")).value());
@@ -60,7 +66,8 @@ TEST_F(EffectTypeTest, GetEffectByResourceLocation_PathOnly) {
     EXPECT_EQ(EffectType::NightVision, getEffectByResourceLocation(ResourceLocation("night_vision")).value());
 }
 
-TEST_F(EffectTypeTest, GetEffectByResourceLocation_InvalidName) {
+TEST_F(EffectTypeTest, GetEffectByResourceLocation_InvalidName)
+{
     // 测试无效名称
     EXPECT_FALSE(getEffectByResourceLocation(ResourceLocation("minecraft:invalid_effect")).has_value());
     EXPECT_FALSE(getEffectByResourceLocation(ResourceLocation("invalid_effect")).has_value());
@@ -71,7 +78,8 @@ TEST_F(EffectTypeTest, GetEffectByResourceLocation_InvalidName) {
 // getEffectResourceLocation 测试
 // ============================================================================
 
-TEST_F(EffectTypeTest, GetEffectResourceLocation_CommonEffects) {
+TEST_F(EffectTypeTest, GetEffectResourceLocation_CommonEffects)
+{
     // 测试常见效果
     EXPECT_EQ(ResourceLocation("minecraft:speed"), getEffectResourceLocation(EffectType::Speed));
     EXPECT_EQ(ResourceLocation("minecraft:poison"), getEffectResourceLocation(EffectType::Poison));
@@ -79,7 +87,8 @@ TEST_F(EffectTypeTest, GetEffectResourceLocation_CommonEffects) {
     EXPECT_EQ(ResourceLocation("minecraft:regeneration"), getEffectResourceLocation(EffectType::Regeneration));
 }
 
-TEST_F(EffectTypeTest, GetEffectResourceLocation_AllEffects) {
+TEST_F(EffectTypeTest, GetEffectResourceLocation_AllEffects)
+{
     // 验证所有效果都有有效的资源位置
     for (i32 id = 1; id <= 32; ++id) {
         auto type = getEffectById(id);
@@ -95,7 +104,8 @@ TEST_F(EffectTypeTest, GetEffectResourceLocation_AllEffects) {
 // getEffectResourceName 测试
 // ============================================================================
 
-TEST_F(EffectTypeTest, GetEffectResourceName_CommonEffects) {
+TEST_F(EffectTypeTest, GetEffectResourceName_CommonEffects)
+{
     EXPECT_STREQ("speed", getEffectResourceName(EffectType::Speed));
     EXPECT_STREQ("poison", getEffectResourceName(EffectType::Poison));
     EXPECT_STREQ("instant_health", getEffectResourceName(EffectType::InstantHealth));
@@ -103,7 +113,8 @@ TEST_F(EffectTypeTest, GetEffectResourceName_CommonEffects) {
     EXPECT_STREQ("slow_falling", getEffectResourceName(EffectType::SlowFalling));
 }
 
-TEST_F(EffectTypeTest, GetEffectResourceName_InvalidEffect) {
+TEST_F(EffectTypeTest, GetEffectResourceName_InvalidEffect)
+{
     // 无效效果应该返回 "unknown"
     EXPECT_STREQ("unknown", getEffectResourceName(static_cast<EffectType>(0)));
     EXPECT_STREQ("unknown", getEffectResourceName(static_cast<EffectType>(100)));
@@ -113,14 +124,16 @@ TEST_F(EffectTypeTest, GetEffectResourceName_InvalidEffect) {
 // isInstantEffect 测试
 // ============================================================================
 
-TEST_F(EffectTypeTest, IsInstantEffect_InstantEffects) {
+TEST_F(EffectTypeTest, IsInstantEffect_InstantEffects)
+{
     // 瞬间效果
     EXPECT_TRUE(isInstantEffect(EffectType::InstantHealth));
     EXPECT_TRUE(isInstantEffect(EffectType::InstantDamage));
     EXPECT_TRUE(isInstantEffect(EffectType::Saturation));
 }
 
-TEST_F(EffectTypeTest, IsInstantEffect_NonInstantEffects) {
+TEST_F(EffectTypeTest, IsInstantEffect_NonInstantEffects)
+{
     // 非瞬间效果
     EXPECT_FALSE(isInstantEffect(EffectType::Speed));
     EXPECT_FALSE(isInstantEffect(EffectType::Poison));
@@ -133,7 +146,8 @@ TEST_F(EffectTypeTest, IsInstantEffect_NonInstantEffects) {
 // 往返转换测试
 // ============================================================================
 
-TEST_F(EffectTypeTest, RoundTrip_ResourceLocation) {
+TEST_F(EffectTypeTest, RoundTrip_ResourceLocation)
+{
     // 验证从类型到资源位置再转回类型的一致性
     for (i32 id = 1; id <= 32; ++id) {
         auto originalType = getEffectById(id);
@@ -148,7 +162,8 @@ TEST_F(EffectTypeTest, RoundTrip_ResourceLocation) {
     }
 }
 
-TEST_F(EffectTypeTest, RoundTrip_NumericId) {
+TEST_F(EffectTypeTest, RoundTrip_NumericId)
+{
     // 验证从类型到数值ID再转回类型的一致性
     for (i32 id = 1; id <= 32; ++id) {
         auto originalType = getEffectById(id);
@@ -163,7 +178,8 @@ TEST_F(EffectTypeTest, RoundTrip_NumericId) {
 // getEffectName 测试（已有函数，确保未被破坏）
 // ============================================================================
 
-TEST_F(EffectTypeTest, GetEffectName_CommonEffects) {
+TEST_F(EffectTypeTest, GetEffectName_CommonEffects)
+{
     // 确保显示名称函数正常工作
     EXPECT_STREQ("Speed", getEffectName(EffectType::Speed));
     EXPECT_STREQ("Poison", getEffectName(EffectType::Poison));
@@ -176,7 +192,8 @@ TEST_F(EffectTypeTest, GetEffectName_CommonEffects) {
 // isBeneficialEffect 测试（已有函数，确保未被破坏）
 // ============================================================================
 
-TEST_F(EffectTypeTest, IsBeneficialEffect_BeneficialEffects) {
+TEST_F(EffectTypeTest, IsBeneficialEffect_BeneficialEffects)
+{
     // 有益效果
     EXPECT_TRUE(isBeneficialEffect(EffectType::Speed));
     EXPECT_TRUE(isBeneficialEffect(EffectType::Regeneration));
@@ -185,7 +202,8 @@ TEST_F(EffectTypeTest, IsBeneficialEffect_BeneficialEffects) {
     EXPECT_TRUE(isBeneficialEffect(EffectType::HeroOfTheVillage));
 }
 
-TEST_F(EffectTypeTest, IsBeneficialEffect_NonBeneficialEffects) {
+TEST_F(EffectTypeTest, IsBeneficialEffect_NonBeneficialEffects)
+{
     // 无益/有害效果
     EXPECT_FALSE(isBeneficialEffect(EffectType::Poison));
     EXPECT_FALSE(isBeneficialEffect(EffectType::Wither));

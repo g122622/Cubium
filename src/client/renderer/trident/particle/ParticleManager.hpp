@@ -4,12 +4,12 @@
 #include "ParticleTextureAtlas.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
-#include <vector>
-#include <memory>
 #include <array>
+#include <memory>
 #include <unordered_map>
+#include <vector>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc::client {
 class ClientWorld;
@@ -21,10 +21,10 @@ namespace mc::client::renderer::trident::particle {
  * @brief 粒子管理器 Uniform 缓冲区数据结构
  */
 struct ParticleUBO {
-    alignas(16) glm::mat4 projection;   ///< 投影矩阵
-    alignas(16) glm::mat4 view;         ///< 视图矩阵
-    alignas(16) glm::vec3 cameraPos;    ///< 相机位置
-    alignas(4) f32 partialTick;         ///< 部分 tick
+    alignas(16) glm::mat4 projection; ///< 投影矩阵
+    alignas(16) glm::mat4 view;       ///< 视图矩阵
+    alignas(16) glm::vec3 cameraPos;  ///< 相机位置
+    alignas(4) f32 partialTick;       ///< 部分 tick
 };
 
 /**
@@ -34,10 +34,10 @@ struct ParticleUBO {
  * 参考 MC 1.16.5 ParticleManager.pendingEffects
  */
 struct PendingParticle {
-    ParticleTypeId type;       ///< 粒子类型
-    glm::vec3 position;        ///< 位置
-    glm::vec3 velocity;        ///< 速度
-    ClientWorld* world;        ///< 世界指针（可为空）
+    ParticleTypeId type; ///< 粒子类型
+    glm::vec3 position;  ///< 位置
+    glm::vec3 velocity;  ///< 速度
+    ClientWorld* world;  ///< 世界指针（可为空）
 };
 
 /**
@@ -77,8 +77,7 @@ public:
      * @param extent 交换链图像尺寸
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -118,10 +117,8 @@ public:
      * @param velocity 速度
      * @param world 世界指针（可为空）
      */
-    void addPendingParticle(ParticleTypeId type,
-                           const glm::vec3& pos,
-                           const glm::vec3& velocity,
-                           ClientWorld* world = nullptr);
+    void addPendingParticle(
+        ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity, ClientWorld* world = nullptr);
 
     /**
      * @brief 设置相机位置（用于距离裁剪）
@@ -201,10 +198,10 @@ public:
      * @param frameIndex 当前帧索引
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                u32 frameIndex);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        u32 frameIndex);
 
     /**
      * @brief 渲染粒子（带视锥剔除）
@@ -219,11 +216,11 @@ public:
      * @param frustum 视锥体（用于剔除）
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                u32 frameIndex,
-                const mc::math::frustum::Frustum& frustum);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        u32 frameIndex,
+        const mc::math::frustum::Frustum& frustum);
 
     // ========================================================================
     // 纹理图集
@@ -269,10 +266,10 @@ private:
 
     [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
     [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
-                                            VkBufferUsageFlags usage,
-                                            VkMemoryPropertyFlags properties,
-                                            VkBuffer& buffer,
-                                            VkDeviceMemory& memory);
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkBuffer& buffer,
+        VkDeviceMemory& memory);
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer cmd);
 
@@ -288,13 +285,13 @@ private:
 
     // 粒子数据
     std::vector<std::unique_ptr<Particle>> m_particles;
-    std::vector<PendingParticle> m_pendingParticles;  ///< 待处理粒子队列
+    std::vector<PendingParticle> m_pendingParticles; ///< 待处理粒子队列
     std::vector<ParticleVertex> m_vertexData;
-    static constexpr size_t MAX_PARTICLES = 16384;  ///< 最大粒子数量
+    static constexpr size_t MAX_PARTICLES = 16384; ///< 最大粒子数量
 
     // 距离裁剪
-    glm::vec3 m_cameraPosition = glm::vec3(0.0f);    ///< 相机位置（用于距离裁剪）
-    f32 m_maxParticleDistance = 256.0f;              ///< 最大粒子距离（MC 1.16.5 默认 256 格）
+    glm::vec3 m_cameraPosition = glm::vec3(0.0f); ///< 相机位置（用于距离裁剪）
+    f32 m_maxParticleDistance = 256.0f;           ///< 最大粒子距离（MC 1.16.5 默认 256 格）
 
     // 纹理图集
     ParticleTextureAtlas m_textureAtlas;

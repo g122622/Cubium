@@ -1,7 +1,7 @@
 #pragma once
 
-#include "TransformerTraits.hpp"
 #include "../BiomeValues.hpp"
+#include "TransformerTraits.hpp"
 
 namespace mc {
 namespace layer {

@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <unordered_map>
 
@@ -74,18 +74,17 @@ public:
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
     }
 
 private:
-    [[nodiscard]] const BlockState* getAirState() const
-    {
-        return &VanillaBlocks::AIR->defaultState();
-    }
+    [[nodiscard]] const BlockState* getAirState() const { return &VanillaBlocks::AIR->defaultState(); }
 };
 
 class SpawnLocationHelperTest : public ::testing::Test {

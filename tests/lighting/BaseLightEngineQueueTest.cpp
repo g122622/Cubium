@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
+#include "common/core/Constants.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
-#include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/core/Constants.hpp"
 
 #include <unordered_map>
 #include <vector>
@@ -20,7 +20,8 @@ namespace {
 class TestBaseLightEngine final : public mc::StarLightEngine {
 public:
     TestBaseLightEngine()
-        : StarLightEngine(false) {  // false = 方块光照
+        : StarLightEngine(false)
+    { // false = 方块光照
         // 设置世界高度范围
         m_minSection = 0;
         m_maxSection = 15;
@@ -33,13 +34,9 @@ public:
         bool isDecreasing = false;
     };
 
-    [[nodiscard]] const std::vector<Visit>& visits() const {
-        return m_visits;
-    }
+    [[nodiscard]] const std::vector<Visit>& visits() const { return m_visits; }
 
-    void clearVisits() {
-        m_visits.clear();
-    }
+    void clearVisits() { m_visits.clear(); }
 
     // 实现抽象方法
     [[nodiscard]] const bool* getEmptinessMap(const mc::IChunk*) const override { return nullptr; }
@@ -51,12 +48,14 @@ public:
     void setNibbleNull(mc::i32, mc::i32, mc::i32) override {}
 
     void checkBlock(mc::StarLightLightingProvider*, mc::i32, mc::i32, mc::i32) override {}
-    [[nodiscard]] mc::i32 calculateLightValue(mc::StarLightLightingProvider*,
-                                               mc::i32, mc::i32, mc::i32,
-                                               mc::i32 expected) override { return expected; }
-    void propagateBlockChanges(mc::StarLightLightingProvider*,
-                               const mc::IChunk*,
-                               const std::vector<mc::BlockPos>&) override {}
+    [[nodiscard]] mc::i32 calculateLightValue(
+        mc::StarLightLightingProvider*, mc::i32, mc::i32, mc::i32, mc::i32 expected) override
+    {
+        return expected;
+    }
+    void propagateBlockChanges(
+        mc::StarLightLightingProvider*, const mc::IChunk*, const std::vector<mc::BlockPos>&) override
+    {}
     void lightChunk(mc::StarLightLightingProvider*, const mc::IChunk*, bool) override {}
 
     [[nodiscard]] mc::u8 getLightFor(mc::i32, mc::i32, mc::i32) const override { return 0; }
@@ -64,14 +63,15 @@ public:
     [[nodiscard]] mc::SWMRNibbleArray* getData(const mc::SectionPos&) override { return nullptr; }
 
     // 暴露 protected 方法用于测试
-    using mc::StarLightEngine::setupEncodeOffset;
-    using mc::StarLightEngine::appendToIncreaseQueue;
     using mc::StarLightEngine::appendToDecreaseQueue;
-    using mc::StarLightEngine::performLightIncrease;
+    using mc::StarLightEngine::appendToIncreaseQueue;
     using mc::StarLightEngine::performLightDecrease;
+    using mc::StarLightEngine::performLightIncrease;
+    using mc::StarLightEngine::setupEncodeOffset;
 
 protected:
-    void notifyNeighborsOfLightUpdate(mc::i64 pos, mc::i32 level, bool isDecreasing) {
+    void notifyNeighborsOfLightUpdate(mc::i64 pos, mc::i32 level, bool isDecreasing)
+    {
         m_visits.push_back(Visit{pos, isDecreasing});
     }
 
@@ -82,54 +82,39 @@ private:
 
 class TestChunkProvider final : public mc::StarLightLightingProvider {
 public:
-    void setChunk(mc::ChunkData* chunk) {
-        m_chunk = chunk;
-    }
+    void setChunk(mc::ChunkData* chunk) { m_chunk = chunk; }
 
-    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override {
+    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
+    {
         if (m_chunk != nullptr && m_chunk->x() == x && m_chunk->z() == z) {
             return m_chunk;
         }
         return nullptr;
     }
 
-    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override {
+    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override
+    {
         if (m_chunk != nullptr && m_chunk->x() == x && m_chunk->z() == z) {
             return m_chunk;
         }
         return nullptr;
     }
 
-    const mc::BlockState* getBlockStateForLight(const mc::BlockPos&) const override {
-        return nullptr;
-    }
+    const mc::BlockState* getBlockStateForLight(const mc::BlockPos&) const override { return nullptr; }
 
-    mc::IWorld* getWorld() override {
-        return nullptr;
-    }
+    mc::IWorld* getWorld() override { return nullptr; }
 
-    const mc::IWorld* getWorld() const override {
-        return nullptr;
-    }
+    const mc::IWorld* getWorld() const override { return nullptr; }
 
-    void markLightChanged(mc::LightType, const mc::SectionPos&) override {
-    }
+    void markLightChanged(mc::LightType, const mc::SectionPos&) override {}
 
-    bool hasSkyLight() const override {
-        return false;
-    }
+    bool hasSkyLight() const override { return false; }
 
-    mc::i32 getMinBuildHeight() const override {
-        return 0;
-    }
+    mc::i32 getMinBuildHeight() const override { return 0; }
 
-    mc::i32 getMaxBuildHeight() const override {
-        return mc::world::MAX_BUILD_HEIGHT;
-    }
+    mc::i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
 
-    mc::i32 getSectionCount() const override {
-        return mc::world::CHUNK_SECTIONS;
-    }
+    mc::i32 getSectionCount() const override { return mc::world::CHUNK_SECTIONS; }
 
 private:
     mc::ChunkData* m_chunk = nullptr;
@@ -145,16 +130,16 @@ private:
  * - 位 28-31: 传播级别
  * - 位 32-37: 传播方向位集
  */
-mc::u64 encodeQueueEntry(mc::i32 x, mc::i32 y, mc::i32 z, mc::i32 level, mc::i32 directionBitset) {
+mc::u64 encodeQueueEntry(mc::i32 x, mc::i32 y, mc::i32 z, mc::i32 level, mc::i32 directionBitset)
+{
     // 编码格式参考 BaseLightEngine.hpp
-    return static_cast<mc::u64>(x & 0x3F) |
-           (static_cast<mc::u64>(z & 0x3F) << 6) |
-           (static_cast<mc::u64>(y & 0xFFFF) << 12) |
-           (static_cast<mc::u64>(level & 0xF) << 28) |
-           (static_cast<mc::u64>(directionBitset & 0x3F) << 32);
+    return static_cast<mc::u64>(x & 0x3F) | (static_cast<mc::u64>(z & 0x3F) << 6) |
+        (static_cast<mc::u64>(y & 0xFFFF) << 12) | (static_cast<mc::u64>(level & 0xF) << 28) |
+        (static_cast<mc::u64>(directionBitset & 0x3F) << 32);
 }
 
-TEST(BaseLightEngineQueueTest, ScheduleUpdateWorks) {
+TEST(BaseLightEngineQueueTest, ScheduleUpdateWorks)
+{
     TestBaseLightEngine graph;
 
     const mc::i64 posA = mc::LightEngineUtils::packPos(0, 64, 0);
@@ -171,7 +156,8 @@ TEST(BaseLightEngineQueueTest, ScheduleUpdateWorks) {
     EXPECT_TRUE(graph.hasWork());
 }
 
-TEST(BaseLightEngineQueueTest, HasWorkReturnsFalseWhenEmpty) {
+TEST(BaseLightEngineQueueTest, HasWorkReturnsFalseWhenEmpty)
+{
     TestBaseLightEngine graph;
 
     EXPECT_FALSE(graph.needsUpdate());
@@ -179,7 +165,8 @@ TEST(BaseLightEngineQueueTest, HasWorkReturnsFalseWhenEmpty) {
     EXPECT_FALSE(graph.hasWork());
 }
 
-TEST(BaseLightEngineQueueTest, IncreaseQueueAcceptsEntries) {
+TEST(BaseLightEngineQueueTest, IncreaseQueueAcceptsEntries)
+{
     TestBaseLightEngine graph;
 
     // 设置编码偏移
@@ -194,7 +181,8 @@ TEST(BaseLightEngineQueueTest, IncreaseQueueAcceptsEntries) {
     EXPECT_TRUE(graph.needsUpdate());
 }
 
-TEST(BaseLightEngineQueueTest, DecreaseQueueAcceptsEntries) {
+TEST(BaseLightEngineQueueTest, DecreaseQueueAcceptsEntries)
+{
     TestBaseLightEngine graph;
 
     // 设置编码偏移
@@ -208,7 +196,8 @@ TEST(BaseLightEngineQueueTest, DecreaseQueueAcceptsEntries) {
     EXPECT_TRUE(graph.needsUpdate());
 }
 
-TEST(BaseLightEngineQueueTest, MixedQueuesWork) {
+TEST(BaseLightEngineQueueTest, MixedQueuesWork)
+{
     TestBaseLightEngine graph;
 
     // 设置编码偏移
@@ -224,7 +213,8 @@ TEST(BaseLightEngineQueueTest, MixedQueuesWork) {
     EXPECT_TRUE(graph.hasWork());
 }
 
-TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap) {
+TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap)
+{
     TestChunkProvider provider;
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
@@ -244,12 +234,14 @@ TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap) {
         EXPECT_TRUE(emptinessMap[sectionIndex]);
     }
 
-    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS;
+        ++sectionIndex) {
         EXPECT_FALSE(emptinessMap[sectionIndex]);
     }
 }
 
-TEST(BaseLightEngineQueueTest, ChunkDataEmptinessMapsRoundTripWithoutNullCrash) {
+TEST(BaseLightEngineQueueTest, ChunkDataEmptinessMapsRoundTripWithoutNullCrash)
+{
     mc::ChunkData chunk(0, 0);
 
     std::array<bool, mc::ChunkData::LIGHT_SECTIONS> skyMap{};

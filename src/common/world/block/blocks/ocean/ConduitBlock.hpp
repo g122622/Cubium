@@ -60,26 +60,19 @@ public:
      * @brief 方块被添加时
      * 创建方块实体并检测周围框架
      */
-    void onBlockAdded(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     /**
      * @brief 方块被移除时
      * 清除方块实体和效果
      */
-    void onBlockRemoved(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     /**
      * @brief 邻居更新
      * 检测框架变化
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -89,7 +82,8 @@ public:
     /**
      * @brief 是否透明
      */
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -105,9 +99,8 @@ public:
      * @return 光照等级 (15)
      */
     [[nodiscard]] u8 getLightLevel(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr) const override {
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);

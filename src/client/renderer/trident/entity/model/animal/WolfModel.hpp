@@ -20,9 +20,8 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置生物动画状态（每帧调用）
@@ -45,8 +44,11 @@ public:
     /**
      * @brief 设置着色颜色（湿状态）
      */
-    void setTint(f32 r, f32 g, f32 b) {
-        m_tintR = r; m_tintG = g; m_tintB = b;
+    void setTint(f32 r, f32 g, f32 b)
+    {
+        m_tintR = r;
+        m_tintG = g;
+        m_tintB = b;
     }
 
 protected:
@@ -62,12 +64,12 @@ protected:
 
 private:
     // 头部部件
-    std::shared_ptr<ModelRenderer> m_head;        // 头部旋转点
-    std::shared_ptr<ModelRenderer> m_headChild;   // 头部实际盒子
+    std::shared_ptr<ModelRenderer> m_head;      // 头部旋转点
+    std::shared_ptr<ModelRenderer> m_headChild; // 头部实际盒子
 
     // 身体部件
-    std::shared_ptr<ModelRenderer> m_body;        // 身体
-    std::shared_ptr<ModelRenderer> m_mane;        // 鬃毛
+    std::shared_ptr<ModelRenderer> m_body; // 身体
+    std::shared_ptr<ModelRenderer> m_mane; // 鬃毛
 
     // 腿部部件
     std::shared_ptr<ModelRenderer> m_legFrontLeft;
@@ -76,8 +78,8 @@ private:
     std::shared_ptr<ModelRenderer> m_legBackRight;
 
     // 尾巴部件
-    std::shared_ptr<ModelRenderer> m_tail;        // 尾巴旋转点
-    std::shared_ptr<ModelRenderer> m_tailChild;   // 尾巴实际盒子
+    std::shared_ptr<ModelRenderer> m_tail;      // 尾巴旋转点
+    std::shared_ptr<ModelRenderer> m_tailChild; // 尾巴实际盒子
 
     // 动画状态
     bool m_isSitting = false;

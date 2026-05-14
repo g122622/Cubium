@@ -8,14 +8,16 @@ namespace mc::client::ui::kagero::tpl::runtime {
 UpdateScheduler::UpdateScheduler()
     : m_batchDelayMs(16)
     , m_maxBatchSize(100)
-    , m_deferredUpdate(true) {
-}
+    , m_deferredUpdate(true)
+{}
 
-UpdateScheduler::~UpdateScheduler() {
+UpdateScheduler::~UpdateScheduler()
+{
     cancelAll();
 }
 
-u64 UpdateScheduler::schedule(const std::string& path, Priority priority) {
+u64 UpdateScheduler::schedule(const std::string& path, Priority priority)
+{
     auto task = std::make_unique<UpdateTask>(path, priority, m_nextTimestamp++);
     u64 taskId = reinterpret_cast<u64>(task.get());
     m_pathToTasks[path].push_back(taskId);
@@ -23,7 +25,8 @@ u64 UpdateScheduler::schedule(const std::string& path, Priority priority) {
     return taskId;
 }
 
-void UpdateScheduler::cancel(u64 taskId) {
+void UpdateScheduler::cancel(u64 taskId)
+{
     for (auto& task : m_tasks) {
         if (reinterpret_cast<u64>(task.get()) == taskId) {
             task->cancelled = true;
@@ -38,7 +41,8 @@ void UpdateScheduler::cancel(u64 taskId) {
     }
 }
 
-void UpdateScheduler::cancelByPath(const std::string& path) {
+void UpdateScheduler::cancelByPath(const std::string& path)
+{
     auto it = m_pathToTasks.find(path);
     if (it != m_pathToTasks.end()) {
         for (u64 taskId : it->second) {
@@ -53,12 +57,14 @@ void UpdateScheduler::cancelByPath(const std::string& path) {
     }
 }
 
-void UpdateScheduler::cancelAll() {
+void UpdateScheduler::cancelAll()
+{
     m_tasks.clear();
     m_pathToTasks.clear();
 }
 
-u32 UpdateScheduler::executePending() {
+u32 UpdateScheduler::executePending()
+{
     deduplicatePaths();
 
     u32 count = 0;
@@ -68,29 +74,30 @@ u32 UpdateScheduler::executePending() {
 
     // 清理已完成的任务
     m_tasks.erase(
-        std::remove_if(m_tasks.begin(), m_tasks.end(),
-            [](const std::unique_ptr<UpdateTask>& task) {
-                return task->cancelled;
-            }),
-        m_tasks.end()
-    );
+        std::remove_if(
+            m_tasks.begin(), m_tasks.end(), [](const std::unique_ptr<UpdateTask>& task) { return task->cancelled; }),
+        m_tasks.end());
 
     return count;
 }
 
-u32 UpdateScheduler::executeHighPriority() {
+u32 UpdateScheduler::executeHighPriority()
+{
     return executePriority(Priority::High);
 }
 
-u32 UpdateScheduler::executeNormalPriority() {
+u32 UpdateScheduler::executeNormalPriority()
+{
     return executePriority(Priority::Normal);
 }
 
-u32 UpdateScheduler::executeLowPriority() {
+u32 UpdateScheduler::executeLowPriority()
+{
     return executePriority(Priority::Low);
 }
 
-u32 UpdateScheduler::executeBatch() {
+u32 UpdateScheduler::executeBatch()
+{
     if (!m_updateCallback) return 0;
 
     deduplicatePaths();
@@ -113,7 +120,8 @@ u32 UpdateScheduler::executeBatch() {
     return count;
 }
 
-u32 UpdateScheduler::pendingCount() const {
+u32 UpdateScheduler::pendingCount() const
+{
     u32 count = 0;
     for (const auto& task : m_tasks) {
         if (!task->cancelled) ++count;
@@ -121,7 +129,8 @@ u32 UpdateScheduler::pendingCount() const {
     return count;
 }
 
-u32 UpdateScheduler::pendingCount(Priority priority) const {
+u32 UpdateScheduler::pendingCount(Priority priority) const
+{
     u32 count = 0;
     for (const auto& task : m_tasks) {
         if (!task->cancelled && task->priority == priority) ++count;
@@ -129,11 +138,13 @@ u32 UpdateScheduler::pendingCount(Priority priority) const {
     return count;
 }
 
-u64 UpdateScheduler::currentTimestamp() const {
+u64 UpdateScheduler::currentTimestamp() const
+{
     return m_nextTimestamp;
 }
 
-u32 UpdateScheduler::executePriority(Priority priority) {
+u32 UpdateScheduler::executePriority(Priority priority)
+{
     if (!m_updateCallback) return 0;
 
     // 先收集要执行的任务，避免在迭代过程中修改容器
@@ -172,7 +183,8 @@ u32 UpdateScheduler::executePriority(Priority priority) {
     return count;
 }
 
-void UpdateScheduler::deduplicatePaths() {
+void UpdateScheduler::deduplicatePaths()
+{
     // 对每个路径只保留最新任务
     for (auto& [path, taskIds] : m_pathToTasks) {
         if (taskIds.size() <= 1) continue;
@@ -182,8 +194,7 @@ void UpdateScheduler::deduplicatePaths() {
         u64 latestTimestamp = 0;
         for (u64 taskId : taskIds) {
             for (const auto& task : m_tasks) {
-                if (reinterpret_cast<u64>(task.get()) == taskId &&
-                    task->timestamp > latestTimestamp) {
+                if (reinterpret_cast<u64>(task.get()) == taskId && task->timestamp > latestTimestamp) {
                     latestTaskId = taskId;
                     latestTimestamp = task->timestamp;
                 }

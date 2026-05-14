@@ -13,45 +13,29 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 {
     auto triggerNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("trigger");
     // Trigger 命令权限为 0，所有玩家可用
-    triggerNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(0);
-    });
-    support::applyMetadata(
-        triggerNode,
+    triggerNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
+    support::applyMetadata(triggerNode,
         support::makeMetadata(
-            "Sets a trigger to be activated.",
-            "/trigger <objective> [add|set] [value]",
-            0,
-            {},
-            true));
+            "Sets a trigger to be activated.", "/trigger <objective> [add|set] [value]", 0, {}, true));
 
     // /trigger <objective>
     auto objectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "objective",
-        StringArgumentType::string());
-    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return trigger(ctx);
-    });
+        "objective", StringArgumentType::string());
+    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return trigger(ctx); });
 
     // /trigger <objective> add <value>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "value",
-        IntegerArgumentType::integer());
-    addValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return triggerAdd(ctx);
-    });
+    auto addValueArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer());
+    addValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return triggerAdd(ctx); });
     addNode->addChild(addValueArg);
     objectiveArg->addChild(addNode);
 
     // /trigger <objective> set <value>
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto setValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "value",
-        IntegerArgumentType::integer());
-    setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return triggerSet(ctx);
-    });
+    auto setValueArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer());
+    setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return triggerSet(ctx); });
     setNode->addChild(setValueArg);
     objectiveArg->addChild(setNode);
 

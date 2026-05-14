@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include "common/core/Types.hpp"
 #include <memory>
 #include <vector>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class ResourceManager;
@@ -22,9 +22,9 @@ namespace mc::client::renderer::trident::cloud {
  * - Fancy: 精致模式，渲染完整 3D 立方体
  */
 enum class CloudMode : u8 {
-    Off = 0,    ///< 关闭云渲染
-    Fast = 1,   ///< 快速模式（单层平面）
-    Fancy = 2   ///< 精致模式（3D 立方体）
+    Off = 0,  ///< 关闭云渲染
+    Fast = 1, ///< 快速模式（单层平面）
+    Fancy = 2 ///< 精致模式（3D 立方体）
 };
 
 /**
@@ -33,13 +33,13 @@ enum class CloudMode : u8 {
  * 传递给云着色器的 Uniform 数据。
  */
 struct CloudUBO {
-    alignas(16) glm::vec4 cloudColor;       ///< 云颜色 (RGBA)
-    alignas(4)  f32 cloudHeight;            ///< 云高度 (192.0f 主世界)
-    alignas(4)  f32 time;                   ///< 时间（用于动画）
-    alignas(4)  f32 textureScale;           ///< 纹理缩放因子
-    alignas(4)  f32 cameraY;                ///< 相机 Y 坐标（用于高度雾）
-    alignas(4)  f32 textureOffsetX;         ///< 纹理 X 偏移（基于相机位置）
-    alignas(4)  f32 textureOffsetZ;         ///< 纹理 Z 偏移（基于相机位置）
+    alignas(16) glm::vec4 cloudColor; ///< 云颜色 (RGBA)
+    alignas(4) f32 cloudHeight;       ///< 云高度 (192.0f 主世界)
+    alignas(4) f32 time;              ///< 时间（用于动画）
+    alignas(4) f32 textureScale;      ///< 纹理缩放因子
+    alignas(4) f32 cameraY;           ///< 相机 Y 坐标（用于高度雾）
+    alignas(4) f32 textureOffsetX;    ///< 纹理 X 偏移（基于相机位置）
+    alignas(4) f32 textureOffsetZ;    ///< 纹理 Z 偏移（基于相机位置）
 };
 
 /**
@@ -85,8 +85,7 @@ public:
      * @param extent 交换链图像尺寸
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -134,8 +133,7 @@ public:
      * @param cloudHeight 云高度（维度相关，NaN 表示无云）
      * @param cloudColor 云颜色（来自 SkyRenderer）
      */
-    void update(i64 dayTime, i64 gameTime, f64 partialTick,
-                f64 cloudHeight, const glm::vec4& cloudColor);
+    void update(i64 dayTime, i64 gameTime, f64 partialTick, f64 cloudHeight, const glm::vec4& cloudColor);
 
     /**
      * @brief 渲染云
@@ -148,11 +146,11 @@ public:
      * @param frameIndex 当前帧索引
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                CloudMode mode,
-                u32 frameIndex);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        CloudMode mode,
+        u32 frameIndex);
 
     // ========================================================================
     // 状态查询
@@ -263,10 +261,10 @@ private:
      * @brief 创建缓冲区
      */
     [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
-                                            VkBufferUsageFlags usage,
-                                            VkMemoryPropertyFlags properties,
-                                            VkBuffer& buffer,
-                                            VkDeviceMemory& memory);
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkBuffer& buffer,
+        VkDeviceMemory& memory);
 
     /**
      * @brief 开始单次命令
@@ -341,15 +339,15 @@ private:
 
     // 管线
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline m_fastPipeline = VK_NULL_HANDLE;   // Fast 模式管线
-    VkPipeline m_fancyPipeline = VK_NULL_HANDLE;  // Fancy 模式管线
+    VkPipeline m_fastPipeline = VK_NULL_HANDLE;  // Fast 模式管线
+    VkPipeline m_fancyPipeline = VK_NULL_HANDLE; // Fancy 模式管线
 
     // 顶点缓冲区
-    VkBuffer m_fastVBO = VK_NULL_HANDLE;          // Fast 模式顶点缓冲区
+    VkBuffer m_fastVBO = VK_NULL_HANDLE; // Fast 模式顶点缓冲区
     VkDeviceMemory m_fastVBOMemory = VK_NULL_HANDLE;
     u32 m_fastVertexCount = 0;
 
-    VkBuffer m_fancyVBO = VK_NULL_HANDLE;         // Fancy 模式顶点缓冲区
+    VkBuffer m_fancyVBO = VK_NULL_HANDLE; // Fancy 模式顶点缓冲区
     VkDeviceMemory m_fancyVBOMemory = VK_NULL_HANDLE;
     u32 m_fancyVertexCount = 0;
 
@@ -371,20 +369,20 @@ private:
     i64 m_dayTime = 0;
     i64 m_gameTime = 0;
     f64 m_partialTick = 0.0f;
-    f64 m_cloudHeight = 192.0f;    // 主世界云高度
+    f64 m_cloudHeight = 192.0f; // 主世界云高度
     glm::vec4 m_cloudColor = glm::vec4(1.0f);
     glm::vec3 m_cameraPos = glm::vec3(0.0f);
-    f64 m_cloudOffsetX = 0.0f;     // 云 X 偏移（用于动画）
+    f64 m_cloudOffsetX = 0.0f; // 云 X 偏移（用于动画）
 
     // 云网格更新检测
     // 参考 MC 1.16.5: 当整数网格坐标变化时重建 VBO
-    i32 m_cloudsCheckX = 0;        // 上一次检查时的 X 网格坐标
-    i32 m_cloudsCheckY = 0;        // 上一次检查时的 Y 网格坐标
-    i32 m_cloudsCheckZ = 0;        // 上一次检查时的 Z 网格坐标
-    i32 m_cloudGridX = 0;          // 当前 VBO 使用的 X 网格偏移
-    i32 m_cloudGridY = 0;          // 当前 VBO 使用的 Y 网格偏移
-    i32 m_cloudGridZ = 0;          // 当前 VBO 使用的 Z 网格偏移
-    bool m_cloudMeshDirty = true;  // 云网格是否需要更新
+    i32 m_cloudsCheckX = 0;       // 上一次检查时的 X 网格坐标
+    i32 m_cloudsCheckY = 0;       // 上一次检查时的 Y 网格坐标
+    i32 m_cloudsCheckZ = 0;       // 上一次检查时的 Z 网格坐标
+    i32 m_cloudGridX = 0;         // 当前 VBO 使用的 X 网格偏移
+    i32 m_cloudGridY = 0;         // 当前 VBO 使用的 Y 网格偏移
+    i32 m_cloudGridZ = 0;         // 当前 VBO 使用的 Z 网格偏移
+    bool m_cloudMeshDirty = true; // 云网格是否需要更新
 
     // 云纹理二值掩码（按纹理 alpha 提取）
     std::vector<u8> m_cloudMask;

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateManager.hpp"
+#include "../Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -15,8 +15,8 @@ namespace mc::world::gen::structure {
  * 参考 MC 1.16.5 OceanRuinStructure.Type
  */
 enum class OceanRuinType : u8 {
-    Warm,  ///< 暖海废墟（砂岩材质）
-    Cold   ///< 冷海废墟（石砖材质）
+    Warm, ///< 暖海废墟（砂岩材质）
+    Cold  ///< 冷海废墟（石砖材质）
 };
 
 /**
@@ -47,8 +47,7 @@ public:
      * @param type 海底废墟类型
      * @param isLarge 是否为大型废墟
      */
-    OceanRuinPiece(
-        const std::string& templateName,
+    OceanRuinPiece(const std::string& templateName,
         const BlockPos& position,
         Rotation rotation,
         f32 integrity,
@@ -57,9 +56,11 @@ public:
 
     ~OceanRuinPiece() override = default;
 
-    void generate(IWorldWriter& world, math::Random& rng,
-                  i32 chunkX, i32 chunkZ,
-                  const StructureBoundingBox& chunkBounds) override;
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
 
     /**
      * @brief 设置模板管理器
@@ -101,18 +102,10 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 设置模板管理器
@@ -150,8 +143,7 @@ private:
      * @param isLarge 是否为大型废墟
      * @param integrity 完整度
      */
-    void generatePiece(
-        feature::template_::TemplateManager& templateManager,
+    void generatePiece(feature::template_::TemplateManager& templateManager,
         const BlockPos& pos,
         Rotation rotation,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -169,8 +161,7 @@ private:
      * @param config 配置
      * @param pieces 输出片段列表
      */
-    void generateClusterPieces(
-        feature::template_::TemplateManager& templateManager,
+    void generateClusterPieces(feature::template_::TemplateManager& templateManager,
         math::Random& rng,
         Rotation rotation,
         const BlockPos& pos,
@@ -184,12 +175,11 @@ private:
      * @param z Z 坐标
      * @return 候选位置列表
      */
-    [[nodiscard]] std::vector<BlockPos> getCandidatePositions(
-        math::Random& rng, i32 x, i32 z) const;
+    [[nodiscard]] std::vector<BlockPos> getCandidatePositions(math::Random& rng, i32 x, i32 z) const;
 
     [[nodiscard]] bool isWarmBiome(BiomeId biomeId) const;
 
-    static constexpr StructureSeparationSettings m_settings{20, 8, 14357621};  // MC 1.16.5: 14357621
+    static constexpr StructureSeparationSettings m_settings{20, 8, 14357621}; // MC 1.16.5: 14357621
     static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
     OceanRuinConfig m_config;

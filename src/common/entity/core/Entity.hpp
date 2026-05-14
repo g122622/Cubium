@@ -1,23 +1,23 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "EntityPose.hpp"
-#include "EntitySize.hpp"
-#include "EntityDataManager.hpp"
-#include "MoverType.hpp"
+#include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundCategory.hpp"
+#include "../../util/AxisAlignedBB.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../../util/text/ITextComponent.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include <string>
-#include <memory>
+#include "EntityDataManager.hpp"
+#include "EntityPose.hpp"
+#include "EntitySize.hpp"
+#include "MoverType.hpp"
 #include <array>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <set>
+#include <string>
 
 namespace mc {
 
@@ -34,9 +34,9 @@ class DamageSource;
  * 参考 MC 1.16.5 net.minecraft.block.material.PushReaction
  */
 enum class PushReaction : u8 {
-    Normal,   // 正常推动
-    Destroy,  // 被推动时销毁
-    Ignore    // 忽略推动
+    Normal,  // 正常推动
+    Destroy, // 被推动时销毁
+    Ignore   // 忽略推动
 };
 
 // ============================================================================
@@ -49,8 +49,8 @@ enum class PushReaction : u8 {
 enum class LegacyEntityType : u32 {
     Unknown = 0,
     Player = 1,
-    Item = 2,           // 物品实体
-    ExperienceOrb = 3,  // 经验球实体
+    Item = 2,          // 物品实体
+    ExperienceOrb = 3, // 经验球实体
 
     // 被动生物
     Pig = 10,
@@ -170,15 +170,18 @@ enum class EntityFlags : u8 {
     FallFlying = 1 << 7
 };
 
-inline EntityFlags operator|(EntityFlags a, EntityFlags b) {
+inline EntityFlags operator|(EntityFlags a, EntityFlags b)
+{
     return static_cast<EntityFlags>(static_cast<u8>(a) | static_cast<u8>(b));
 }
 
-inline EntityFlags operator&(EntityFlags a, EntityFlags b) {
+inline EntityFlags operator&(EntityFlags a, EntityFlags b)
+{
     return static_cast<EntityFlags>(static_cast<u8>(a) & static_cast<u8>(b));
 }
 
-inline bool hasFlag(EntityFlags flags, EntityFlags flag) {
+inline bool hasFlag(EntityFlags flags, EntityFlags flag)
+{
     return (static_cast<u8>(flags) & static_cast<u8>(flag)) != 0;
 }
 
@@ -296,18 +299,14 @@ public:
      * @param other 另一个实体
      * @return 距离（非平方）
      */
-    [[nodiscard]] f32 distanceTo(const Entity& other) const {
-        return m_position.distance(other.m_position);
-    }
+    [[nodiscard]] f32 distanceTo(const Entity& other) const { return m_position.distance(other.m_position); }
 
     /**
      * @brief 计算到另一个实体的距离平方
      * @param other 另一个实体
      * @return 距离的平方（避免开方运算，适合比较）
      */
-    [[nodiscard]] f32 distanceSqTo(const Entity& other) const {
-        return m_position.distanceSquared(other.m_position);
-    }
+    [[nodiscard]] f32 distanceSqTo(const Entity& other) const { return m_position.distanceSquared(other.m_position); }
 
     /**
      * @brief 计算到指定位置的距离平方
@@ -316,7 +315,8 @@ public:
      * @param pz 目标Z坐标
      * @return 距离的平方
      */
-    [[nodiscard]] f32 distanceSqTo(f32 px, f32 py, f32 pz) const {
+    [[nodiscard]] f32 distanceSqTo(f32 px, f32 py, f32 pz) const
+    {
         f32 dx = px - m_position.x;
         f32 dy = py - m_position.y;
         f32 dz = pz - m_position.z;
@@ -326,7 +326,8 @@ public:
     /**
      * @brief 计算到指定位置的水平距离平方（忽略Y轴）
      */
-    [[nodiscard]] f32 distanceHorizontalSqTo(f32 px, f32 pz) const {
+    [[nodiscard]] f32 distanceHorizontalSqTo(f32 px, f32 pz) const
+    {
         f32 dx = px - m_position.x;
         f32 dz = pz - m_position.z;
         return dx * dx + dz * dz;
@@ -427,7 +428,8 @@ public:
      * @param dy Y方向增量
      * @param dz Z方向增量
      */
-    void addVelocity(f32 dx, f32 dy, f32 dz) {
+    void addVelocity(f32 dx, f32 dy, f32 dz)
+    {
         m_velocity.x += dx;
         m_velocity.y += dy;
         m_velocity.z += dz;
@@ -446,7 +448,8 @@ public:
      * MC 1.16.5: setMotion(getMotion().scale(factor))
      * 用于阻力计算。
      */
-    void scaleVelocity(f32 factor) {
+    void scaleVelocity(f32 factor)
+    {
         m_velocity.x *= factor;
         m_velocity.y *= factor;
         m_velocity.z *= factor;
@@ -476,7 +479,8 @@ public:
      *
      * @param onGround 是否在地面上
      */
-    void setOnGround(bool onGround) {
+    void setOnGround(bool onGround)
+    {
         if (onGround && !m_onGround) {
             // 落地时清空攀爬位置
             // MC 1.16.5: this.field_233624_bE_ = Optional.empty();
@@ -490,9 +494,7 @@ public:
     // 标志操作
     void addFlag(EntityFlags flag);
     void removeFlag(EntityFlags flag);
-    [[nodiscard]] bool hasFlag(EntityFlags flag) const {
-        return mc::hasFlag(m_flags, flag);
-    }
+    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return mc::hasFlag(m_flags, flag); }
 
     /**
      * @brief 检查是否正在鞘翅飞行
@@ -502,9 +504,7 @@ public:
      *
      * @return 如果正在鞘翅飞行返回 true
      */
-    [[nodiscard]] bool isElytraFlying() const {
-        return hasFlag(EntityFlags::FallFlying);
-    }
+    [[nodiscard]] bool isElytraFlying() const { return hasFlag(EntityFlags::FallFlying); }
 
     /**
      * @brief 检查实体是否发光
@@ -584,7 +584,8 @@ public:
      * @brief 获取实体碰撞箱
      * @return 基于当前位置的AABB碰撞箱
      */
-    [[nodiscard]] AxisAlignedBB boundingBox() const {
+    [[nodiscard]] AxisAlignedBB boundingBox() const
+    {
         if (!m_dimensionsInitialized) {
             const_cast<Entity*>(this)->refreshDimensions();
         }
@@ -642,9 +643,7 @@ public:
      *
      * @return 推动反应类型
      */
-    [[nodiscard]] virtual PushReaction getPushReaction() const {
-        return PushReaction::Normal;
-    }
+    [[nodiscard]] virtual PushReaction getPushReaction() const { return PushReaction::Normal; }
 
     // ========== 物理 ==========
 
@@ -950,7 +949,8 @@ public:
      *
      * @param player 与此实体碰撞的玩家
      */
-    virtual void onCollideWithPlayer(class Player& player) {
+    virtual void onCollideWithPlayer(class Player& player)
+    {
         // 默认实现：无操作
         (void)player;
     }
@@ -1129,7 +1129,8 @@ public:
      *
      * @param ticks 燃烧时间（tick）
      */
-    void setFire(i32 ticks) {
+    void setFire(i32 ticks)
+    {
         if (m_fire < ticks) {
             m_fire = ticks;
         }
@@ -1143,9 +1144,7 @@ public:
      *
      * @param ticks 火焰计时器值
      */
-    void forceFireTicks(i32 ticks) {
-        m_fire = ticks;
-    }
+    void forceFireTicks(i32 ticks) { m_fire = ticks; }
 
     /**
      * @brief 检查是否免疫火焰
@@ -1226,15 +1225,14 @@ public:
      * @brief 获取自定义名称组件
      * @return 自定义名称组件指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const {
-        return m_customName.get();
-    }
+    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const { return m_customName.get(); }
 
     /**
      * @brief 获取自定义名称的纯文本
      * @return 自定义名称纯文本，如果没有返回空字符串
      */
-    [[nodiscard]] std::string customNameText() const {
+    [[nodiscard]] std::string customNameText() const
+    {
         return m_customName ? m_customName->getUnformattedText() : std::string();
     }
 
@@ -1242,9 +1240,7 @@ public:
      * @brief 检查是否有自定义名称
      * @return 如果有自定义名称返回true
      */
-    [[nodiscard]] bool hasCustomName() const {
-        return m_customName != nullptr;
-    }
+    [[nodiscard]] bool hasCustomName() const { return m_customName != nullptr; }
 
     /**
      * @brief 获取显示名称
@@ -1366,7 +1362,8 @@ public:
      *
      * @param multiplier 速度乘数 (x, y, z 分量)
      */
-    void setMotionMultiplier(const Vector3& multiplier) {
+    void setMotionMultiplier(const Vector3& multiplier)
+    {
         m_motionMultiplier = multiplier;
         m_hasMotionMultiplier = true;
     }
@@ -1376,7 +1373,8 @@ public:
      *
      * 当实体退出减速方块时调用。
      */
-    void clearMotionMultiplier() {
+    void clearMotionMultiplier()
+    {
         m_motionMultiplier = Vector3(1.0f, 1.0f, 1.0f);
         m_hasMotionMultiplier = false;
     }
@@ -1558,7 +1556,8 @@ public:
      * @brief 获取第一个乘客
      * @return 第一个乘客的实体ID，如果没有则返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityId getFirstPassenger() const {
+    [[nodiscard]] EntityId getFirstPassenger() const
+    {
         return m_passengers.empty() ? INVALID_ENTITY_ID : m_passengers.front();
     }
 
@@ -1569,9 +1568,7 @@ public:
      * MC 1.16.5: getControllingPassenger()
      * 子类可重写此方法以返回不同的控制乘客
      */
-    [[nodiscard]] virtual EntityId getControllingPassenger() const {
-        return getFirstPassenger();
-    }
+    [[nodiscard]] virtual EntityId getControllingPassenger() const { return getFirstPassenger(); }
 
     /**
      * @brief 检查是否可以由乘客控制方向
@@ -1593,7 +1590,8 @@ public:
      * 子类可重写此方法添加额外检查（如 BoatEntity 检查是否在水下）。
      * 默认实现只检查乘客数量限制。
      */
-    [[nodiscard]] virtual bool canFitPassenger() const {
+    [[nodiscard]] virtual bool canFitPassenger() const
+    {
         return static_cast<i32>(m_passengers.size()) < getMaxPassengers();
     }
 
@@ -1801,21 +1799,21 @@ protected:
 
     EntityId m_id;
     LegacyEntityType m_legacyType;
-    std::string m_uuid;              // UUID 字符串
-    std::string m_typeId;            // 资源标识符（如 minecraft:pig）
-    Vector3 m_position;         // 当前位置
-    Vector3 m_prevPosition;     // 上一帧位置
-    Vector3 m_velocity;         // 速度
+    std::string m_uuid;     // UUID 字符串
+    std::string m_typeId;   // 资源标识符（如 minecraft:pig）
+    Vector3 m_position;     // 当前位置
+    Vector3 m_prevPosition; // 上一帧位置
+    Vector3 m_velocity;     // 速度
 
-    f32 m_yaw = 0.0f;           // 偏航角 (Y轴旋转)
-    f32 m_pitch = 0.0f;         // 俯仰角 (X轴旋转)
+    f32 m_yaw = 0.0f;   // 偏航角 (Y轴旋转)
+    f32 m_pitch = 0.0f; // 俯仰角 (X轴旋转)
     f32 m_prevYaw = 0.0f;
     f32 m_prevPitch = 0.0f;
 
     bool m_onGround = false;
     bool m_removed = false;
-    bool m_noClip = false;       // 是否无视碰撞（用于三叉戟返回等）
-    bool m_glowing = false;      // 发光状态（服务端使用）
+    bool m_noClip = false;  // 是否无视碰撞（用于三叉戟返回等）
+    bool m_glowing = false; // 发光状态（服务端使用）
     EntityPose m_pose = EntityPose::Standing;
     EntityFlags m_flags = EntityFlags::None;
     entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);
@@ -1832,10 +1830,10 @@ protected:
     u32 m_ticksExisted = 0;
 
     // 传送门相关
-    i32 m_portalCooldown = 0;    // 传送冷却（防止频繁传送，单位：tick）
-    i32 m_portalTime = 0;        // 在传送门中的累计时间（单位：tick）
-    bool m_inPortal = false;     // 是否在传送门中
-    BlockPos m_portalPos;        // 所在传送门方块的位置
+    i32 m_portalCooldown = 0; // 传送冷却（防止频繁传送，单位：tick）
+    i32 m_portalTime = 0;     // 在传送门中的累计时间（单位：tick）
+    bool m_inPortal = false;  // 是否在传送门中
+    BlockPos m_portalPos;     // 所在传送门方块的位置
 
     // 世界引用
     IWorld* m_world = nullptr;
@@ -1846,24 +1844,24 @@ protected:
     // 环境状态
     bool m_inWater = false;
     bool m_inLava = false;
-    bool m_eyesInWater = false;    // 眼睛是否在水下
-    bool m_eyesInLava = false;     // 眼睛是否在岩浆中
-    f32 m_fluidHeight = 0.0f;      // 流体高度（方块单位，已废弃）
-    f32 m_waterHeight = 0.0f;      // 水浸入高度（0.0-1.0）
-    f32 m_lavaHeight = 0.0f;       // 岩浆浸入高度（0.0-1.0）
-    i32 m_fire = 0;                // 着火时间（tick）
+    bool m_eyesInWater = false; // 眼睛是否在水下
+    bool m_eyesInLava = false;  // 眼睛是否在岩浆中
+    f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位，已废弃）
+    f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
+    f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
+    i32 m_fire = 0;             // 着火时间（tick）
 
     // 攀爬追踪（用于摔落死亡消息）
-    std::optional<BlockPos> m_lastClimbPos;  // 最后攀爬位置
+    std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置
 
     // 空气值
-    i32 m_air = 300;            // 默认最大空气值
+    i32 m_air = 300; // 默认最大空气值
 
     // 无敌
     bool m_invulnerable = false;
 
     // 自定义名称
-    std::unique_ptr<text::ITextComponent> m_customName;  ///< 自定义名称
+    std::unique_ptr<text::ITextComponent> m_customName; ///< 自定义名称
     bool m_customNameVisible = false;
 
     // 静音
@@ -1882,9 +1880,9 @@ protected:
     bool m_hasMotionMultiplier = false;
 
     // 乘客/骑乘系统
-    std::vector<EntityId> m_passengers;  // 乘客列表
-    EntityId m_vehicle = INVALID_ENTITY_ID;  // 正在骑乘的车辆
-    i32 m_rideCooldown = 0;  // 骑乘冷却（tick），用于防止快速上下骑乘
+    std::vector<EntityId> m_passengers;     // 乘客列表
+    EntityId m_vehicle = INVALID_ENTITY_ID; // 正在骑乘的车辆
+    i32 m_rideCooldown = 0;                 // 骑乘冷却（tick），用于防止快速上下骑乘
 
     /**
      * @brief 设置车辆（内部方法）

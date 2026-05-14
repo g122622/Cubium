@@ -1,10 +1,10 @@
 #pragma once
 
-#include "world/blockentity/BlockEntityType.hpp"
-#include "world/block/BlockPos.hpp"
 #include "resource/ResourceLocation.hpp"
-#include <nlohmann/json.hpp>
+#include "world/block/BlockPos.hpp"
+#include "world/blockentity/BlockEntityType.hpp"
 #include <memory>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -67,7 +67,8 @@ public:
      * 从区块数据加载方块实体状态。
      * 子类应重写此方法以加载自定义数据。
      */
-    virtual bool load(const nlohmann::json& data) {
+    virtual bool load(const nlohmann::json& data)
+    {
         (void)data;
         return true;
     }
@@ -79,7 +80,8 @@ public:
      * 保存方块实体状态到区块数据。
      * 子类应重写此方法以保存自定义数据。
      */
-    virtual void save(nlohmann::json& data) const {
+    virtual void save(nlohmann::json& data) const
+    {
         data["id"] = blockEntityTypeToId(m_type).toString();
         data["x"] = m_pos.x;
         data["y"] = m_pos.y;
@@ -93,9 +95,7 @@ public:
      * 服务端每游戏tick调用一次。
      * 用于处理熔炉燃烧、漏斗传输等逻辑。
      */
-    virtual void tick(IWorld& world) {
-        (void)world;
-    }
+    virtual void tick(IWorld& world) { (void)world; }
 
     /**
      * @brief 检查是否需要tick
@@ -103,9 +103,7 @@ public:
      *
      * 用于优化性能，静态方块实体可以返回false。
      */
-    [[nodiscard]] virtual bool needsTick() const {
-        return false;
-    }
+    [[nodiscard]] virtual bool needsTick() const { return false; }
 
     /**
      * @brief 获取方块实体的方块状态
@@ -168,9 +166,7 @@ public:
      * @brief 设置自定义名称
      * @param name 名称
      */
-    virtual void setCustomName(const std::string& name) {
-        (void)name;
-    }
+    virtual void setCustomName(const std::string& name) { (void)name; }
 
     /**
      * @brief 创建方块实体的副本
@@ -189,7 +185,8 @@ protected:
         , m_pos(pos)
         , m_world(nullptr)
         , m_changed(false)
-        , m_removed(false) {}
+        , m_removed(false)
+    {}
 
     BlockEntityType m_type;
     BlockPos m_pos;

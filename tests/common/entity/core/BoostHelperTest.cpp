@@ -12,8 +12,8 @@
 
 #include "entity/core/BoostHelper.hpp"
 #include "entity/core/EntityDataManager.hpp"
-#include "util/nbt/Nbt.hpp"
 #include "util/math/random/Random.hpp"
+#include "util/nbt/Nbt.hpp"
 
 using namespace mc;
 using namespace mc::nbt;
@@ -27,7 +27,8 @@ using namespace mc::nbt;
  * @param dataManager 数据管理器
  * @return 初始化好的 BoostHelper
  */
-static BoostHelper createTestBoostHelper(entity::EntityDataManager& dataManager) {
+static BoostHelper createTestBoostHelper(entity::EntityDataManager& dataManager)
+{
     auto boostTimeParam = entity::EntityDataManager::createKey<i32>();
     auto saddledParam = entity::EntityDataManager::createKey<bool>();
     dataManager.registerParam(boostTimeParam, static_cast<i32>(0));
@@ -42,7 +43,8 @@ static BoostHelper createTestBoostHelper(entity::EntityDataManager& dataManager)
 // 初始化测试
 // ============================================================================
 
-TEST(BoostHelper, Initialization) {
+TEST(BoostHelper, Initialization)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -56,7 +58,8 @@ TEST(BoostHelper, Initialization) {
 // 鞍状态测试
 // ============================================================================
 
-TEST(BoostHelper, SetSaddledFromBoolean) {
+TEST(BoostHelper, SetSaddledFromBoolean)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -76,7 +79,8 @@ TEST(BoostHelper, SetSaddledFromBoolean) {
 // 加速测试
 // ============================================================================
 
-TEST(BoostHelper, Boost) {
+TEST(BoostHelper, Boost)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
     math::Random rng(12345);
@@ -100,7 +104,8 @@ TEST(BoostHelper, Boost) {
     EXPECT_FALSE(boosted);
 }
 
-TEST(BoostHelper, Tick) {
+TEST(BoostHelper, Tick)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
     math::Random rng(12345);
@@ -126,7 +131,8 @@ TEST(BoostHelper, Tick) {
 // NBT 写入测试
 // ============================================================================
 
-TEST(BoostHelper, WriteToNbt_WithoutSaddle) {
+TEST(BoostHelper, WriteToNbt_WithoutSaddle)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -143,7 +149,8 @@ TEST(BoostHelper, WriteToNbt_WithoutSaddle) {
     EXPECT_EQ(value, 0);
 }
 
-TEST(BoostHelper, WriteToNbt_WithSaddle) {
+TEST(BoostHelper, WriteToNbt_WithSaddle)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -167,7 +174,8 @@ TEST(BoostHelper, WriteToNbt_WithSaddle) {
 // NBT 读取测试
 // ============================================================================
 
-TEST(BoostHelper, ReadFromNbt_NoSaddle) {
+TEST(BoostHelper, ReadFromNbt_NoSaddle)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -180,7 +188,8 @@ TEST(BoostHelper, ReadFromNbt_NoSaddle) {
     EXPECT_FALSE(helper.getSaddled());
 }
 
-TEST(BoostHelper, ReadFromNbt_WithSaddle) {
+TEST(BoostHelper, ReadFromNbt_WithSaddle)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -193,7 +202,8 @@ TEST(BoostHelper, ReadFromNbt_WithSaddle) {
     EXPECT_TRUE(helper.getSaddled());
 }
 
-TEST(BoostHelper, ReadFromNbt_MissingKey) {
+TEST(BoostHelper, ReadFromNbt_MissingKey)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -205,7 +215,8 @@ TEST(BoostHelper, ReadFromNbt_MissingKey) {
     EXPECT_FALSE(helper.getSaddled());
 }
 
-TEST(BoostHelper, ReadFromNbt_NonzeroValue) {
+TEST(BoostHelper, ReadFromNbt_NonzeroValue)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
 
@@ -222,7 +233,8 @@ TEST(BoostHelper, ReadFromNbt_NonzeroValue) {
 // NBT 往返测试
 // ============================================================================
 
-TEST(BoostHelper, NbtRoundTrip_NoSaddle) {
+TEST(BoostHelper, NbtRoundTrip_NoSaddle)
+{
     entity::EntityDataManager dataManager1;
     auto helper1 = createTestBoostHelper(dataManager1);
 
@@ -243,7 +255,8 @@ TEST(BoostHelper, NbtRoundTrip_NoSaddle) {
     EXPECT_FALSE(helper2.getSaddled());
 }
 
-TEST(BoostHelper, NbtRoundTrip_WithSaddle) {
+TEST(BoostHelper, NbtRoundTrip_WithSaddle)
+{
     entity::EntityDataManager dataManager1;
     auto helper1 = createTestBoostHelper(dataManager1);
 
@@ -268,7 +281,8 @@ TEST(BoostHelper, NbtRoundTrip_WithSaddle) {
 // 加速状态不被持久化测试
 // ============================================================================
 
-TEST(BoostHelper, BoostStateNotPersisted) {
+TEST(BoostHelper, BoostStateNotPersisted)
+{
     entity::EntityDataManager dataManager1;
     auto helper1 = createTestBoostHelper(dataManager1);
     math::Random rng(12345);
@@ -296,7 +310,8 @@ TEST(BoostHelper, BoostStateNotPersisted) {
 // syncFromDataManager 测试
 // ============================================================================
 
-TEST(BoostHelper, SyncFromDataManager) {
+TEST(BoostHelper, SyncFromDataManager)
+{
     entity::EntityDataManager dataManager;
     auto helper = createTestBoostHelper(dataManager);
     math::Random rng(12345);

@@ -1,10 +1,10 @@
 #include "ResourceManager.hpp"
-#include "common/resource/FolderResourcePack.hpp"
-#include "common/resource/compat/TextureMapper.hpp"
-#include "common/resource/compat/ResourceMapper.hpp"
 #include "ItemModelCache.hpp"
-#include <spdlog/spdlog.h>
+#include "common/resource/FolderResourcePack.hpp"
+#include "common/resource/compat/ResourceMapper.hpp"
+#include "common/resource/compat/TextureMapper.hpp"
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 #include "common/perfetto/TraceEvents.hpp"
 #include <cctype>
@@ -15,29 +15,33 @@
 namespace mc {
 namespace resource {
 namespace compat {
-    // Import for easy access
-    using TextureMapper = mc::resource::compat::TextureMapper;
-}}}
+// Import for easy access
+using TextureMapper = mc::resource::compat::TextureMapper;
+} // namespace compat
+} // namespace resource
+} // namespace mc
 
 namespace mc {
 
 namespace {
 
-bool isAsciiWhitespace(char ch) {
+bool isAsciiWhitespace(char ch)
+{
     switch (ch) {
-    case ' ':
-    case '\t':
-    case '\n':
-    case '\r':
-    case '\f':
-    case '\v':
-        return true;
-    default:
-        return false;
+        case ' ':
+        case '\t':
+        case '\n':
+        case '\r':
+        case '\f':
+        case '\v':
+            return true;
+        default:
+            return false;
     }
 }
 
-std::string_view trimStateToken(std::string_view token) {
+std::string_view trimStateToken(std::string_view token)
+{
     // MC_TRACE_EVENT("client.resource", "ResourceManager::trimStateToken");
 
     size_t start = 0;
@@ -53,7 +57,8 @@ std::string_view trimStateToken(std::string_view token) {
     return token.substr(start, end - start);
 }
 
-std::string normalizeStateString(std::string_view stateStr) {
+std::string normalizeStateString(std::string_view stateStr)
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::normalizeStateString");
 
     const std::string_view trimmed = trimStateToken(stateStr);
@@ -103,7 +108,8 @@ std::string normalizeStateString(std::string_view stateStr) {
     return normalized;
 }
 
-std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr) {
+std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr)
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::parseStateConditions");
 
     std::vector<std::pair<std::string, std::string>> conditions;
@@ -136,8 +142,7 @@ std::vector<std::pair<std::string, std::string>> parseStateConditions(std::strin
     return conditions;
 }
 
-bool matchConditions(
-    const std::vector<std::pair<std::string, std::string>>& conditions,
+bool matchConditions(const std::vector<std::pair<std::string, std::string>>& conditions,
     const std::map<std::string, std::string>& properties)
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::matchConditions");
@@ -152,11 +157,7 @@ bool matchConditions(
 }
 
 [[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
-    const std::vector<u8>& mcmetaData,
-    u32 imageWidth,
-    u32 imageHeight,
-    u32& outFrameWidth,
-    u32& outFrameHeight)
+    const std::vector<u8>& mcmetaData, u32 imageWidth, u32 imageHeight, u32& outFrameWidth, u32& outFrameHeight)
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::parseAnimatedFrameSizeFromMcmeta");
 
@@ -195,27 +196,27 @@ bool matchConditions(
             return false;
         }
 
-        if (frameWidth > static_cast<i32>(imageWidth)
-            || frameHeight > static_cast<i32>(imageHeight)) {
+        if (frameWidth > static_cast<i32>(imageWidth) || frameHeight > static_cast<i32>(imageHeight)) {
             return false;
         }
 
-        if ((imageWidth % static_cast<u32>(frameWidth)) != 0
-            || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
+        if ((imageWidth % static_cast<u32>(frameWidth)) != 0 || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
             return false;
         }
 
         outFrameWidth = static_cast<u32>(frameWidth);
         outFrameHeight = static_cast<u32>(frameHeight);
         return true;
-    } catch (const nlohmann::json::exception&) {
+    }
+    catch (const nlohmann::json::exception&) {
         return false;
     }
 }
 
 } // namespace
 
-Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack) {
+Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack)
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::addResourcePack");
 
     if (!resourcePack) {
@@ -233,7 +234,8 @@ Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack) {
     return Result<void>::ok();
 }
 
-Result<void> ResourceManager::loadAllResources() {
+Result<void> ResourceManager::loadAllResources()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::loadAllResources");
 
     // 设置模型加载器的资源包列表
@@ -264,13 +266,14 @@ Result<void> ResourceManager::loadAllResources() {
     client::resource::ItemModelCache::instance().initialize(packPtrs);
 
     spdlog::info("ResourceManager: Loaded {} block states, {} models",
-                m_blockStateLoader.getLoadedBlockStates().size(),
-                m_bakedModels.size());
+        m_blockStateLoader.getLoadedBlockStates().size(),
+        m_bakedModels.size());
 
     return Result<void>::ok();
 }
 
-Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
+Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::buildTextureAtlas");
 
     // 收集所需纹理
@@ -311,10 +314,12 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
                     auto readResult = pack->readResource(filePath);
                     if (readResult.success()) {
                         int width, height, channels;
-                        stbi_uc* pixels = stbi_load_from_memory(
-                            readResult.value().data(),
+                        stbi_uc* pixels = stbi_load_from_memory(readResult.value().data(),
                             static_cast<int>(readResult.value().size()),
-                            &width, &height, &channels, 4);
+                            &width,
+                            &height,
+                            &channels,
+                            4);
 
                         if (pixels) {
                             std::vector<u8> pixelData(pixels, pixels + width * height * 4);
@@ -327,8 +332,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
                             if (pack->hasResource(mcmetaPath)) {
                                 const auto mcmetaResult = pack->readResource(mcmetaPath);
                                 if (mcmetaResult.success()) {
-                                    static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
-                                        mcmetaResult.value(),
+                                    static_cast<void>(parseAnimatedFrameSizeFromMcmeta(mcmetaResult.value(),
                                         static_cast<u32>(width),
                                         static_cast<u32>(height),
                                         frameWidth,
@@ -337,8 +341,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
                             }
 
                             // 用原始请求名称注册
-                            builder.addTextureFrame(
-                                texLoc,
+                            builder.addTextureFrame(texLoc,
                                 pixelData,
                                 static_cast<u32>(width),
                                 static_cast<u32>(height),
@@ -364,8 +367,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
         }
     }
 
-    spdlog::info("Texture atlas: {} added ({} via variant mapping), {} failed",
-                 addedCount, variantCount, failedCount);
+    spdlog::info("Texture atlas: {} added ({} via variant mapping), {} failed", addedCount, variantCount, failedCount);
 
     // 输出失败纹理的详细信息
     if (failedCount > 0) {
@@ -395,8 +397,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
 }
 
 const BlockAppearance* ResourceManager::getBlockAppearance(
-    const ResourceLocation& blockId,
-    const std::map<std::string, std::string>& properties) const
+    const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::getBlockAppearance");
 
@@ -441,8 +442,7 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
         // 1) "namespace:block"
         // 2) "namespace:block?prop=value,..."
         const bool isExactKey = appearanceKey.size() == blockPrefixSize;
-        const bool isStateKey = appearanceKey.size() > blockPrefixSize &&
-                                appearanceKey[blockPrefixSize] == '?';
+        const bool isStateKey = appearanceKey.size() > blockPrefixSize && appearanceKey[blockPrefixSize] == '?';
         if (!isExactKey && !isStateKey) {
             continue;
         }
@@ -453,8 +453,8 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
 
         std::string_view statePart = "normal";
         if (isStateKey && appearanceKey.size() > blockPrefixSize + 1) {
-            statePart = std::string_view(appearanceKey.data() + blockPrefixSize + 1,
-                                   appearanceKey.size() - blockPrefixSize - 1);
+            statePart = std::string_view(
+                appearanceKey.data() + blockPrefixSize + 1, appearanceKey.size() - blockPrefixSize - 1);
         }
 
         const auto conditions = parseStateConditions(statePart);
@@ -480,8 +480,7 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
     return nullptr;
 }
 
-const TextureRegion* ResourceManager::getTextureRegion(
-    const ResourceLocation& textureLocation) const
+const TextureRegion* ResourceManager::getTextureRegion(const ResourceLocation& textureLocation) const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::getTextureRegion");
 
@@ -506,14 +505,12 @@ const TextureRegion* ResourceManager::getTextureRegion(
     return nullptr;
 }
 
-Result<DecodedTexture> ResourceManager::loadTextureRGBA(
-    const ResourceLocation& textureLocation) const
+Result<DecodedTexture> ResourceManager::loadTextureRGBA(const ResourceLocation& textureLocation) const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::loadTextureRGBA");
 
     if (m_resourcePacks.empty()) {
-        return Error(ErrorCode::NotFound,
-                     "No resource packs available for texture: " + textureLocation.toString());
+        return Error(ErrorCode::NotFound, "No resource packs available for texture: " + textureLocation.toString());
     }
 
     const auto& texMapper = resource::compat::TextureMapper::instance();
@@ -537,12 +534,7 @@ Result<DecodedTexture> ResourceManager::loadTextureRGBA(
             int height = 0;
             int channels = 0;
             stbi_uc* pixels = stbi_load_from_memory(
-                readResult.value().data(),
-                static_cast<int>(readResult.value().size()),
-                &width,
-                &height,
-                &channels,
-                4);
+                readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
 
             if (pixels == nullptr || width <= 0 || height <= 0) {
                 if (pixels != nullptr) {
@@ -555,20 +547,17 @@ Result<DecodedTexture> ResourceManager::loadTextureRGBA(
             decoded.width = static_cast<u32>(width);
             decoded.height = static_cast<u32>(height);
             decoded.pixels.assign(
-                pixels,
-                pixels + (static_cast<size_t>(decoded.width) * static_cast<size_t>(decoded.height) * 4));
+                pixels, pixels + (static_cast<size_t>(decoded.width) * static_cast<size_t>(decoded.height) * 4));
             stbi_image_free(pixels);
 
             return decoded;
         }
     }
 
-    return Error(ErrorCode::NotFound,
-                 "Texture not found in any resource pack: " + textureLocation.toString());
+    return Error(ErrorCode::NotFound, "Texture not found in any resource pack: " + textureLocation.toString());
 }
 
-const BakedBlockModel* ResourceManager::getBakedModel(
-    const ResourceLocation& modelLocation)
+const BakedBlockModel* ResourceManager::getBakedModel(const ResourceLocation& modelLocation)
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::getBakedModel");
 
@@ -593,15 +582,15 @@ const BakedBlockModel* ResourceManager::getBakedModel(
     return &m_bakedModels[modelLocation];
 }
 
-const BlockStateDefinition* ResourceManager::getBlockState(
-    const ResourceLocation& blockId) const
+const BlockStateDefinition* ResourceManager::getBlockState(const ResourceLocation& blockId) const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::getBlockState");
 
     return m_blockStateLoader.getBlockState(blockId);
 }
 
-void ResourceManager::clear() {
+void ResourceManager::clear()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::clear");
 
     m_resourcePacks.clear();
@@ -617,13 +606,15 @@ void ResourceManager::clear() {
     client::resource::ItemModelCache::instance().cleanup();
 }
 
-void ResourceManager::clearResourcePacks() {
+void ResourceManager::clearResourcePacks()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::clearResourcePacks");
 
     m_resourcePacks.clear();
 }
 
-Result<void> ResourceManager::reload() {
+Result<void> ResourceManager::reload()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::reload");
 
     // 清除缓存但保留资源包列表
@@ -639,7 +630,8 @@ Result<void> ResourceManager::reload() {
     return loadAllResources();
 }
 
-Result<void> ResourceManager::bakeAllModels() {
+Result<void> ResourceManager::bakeAllModels()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::bakeAllModels");
 
     // 获取所有方块状态
@@ -663,8 +655,9 @@ Result<void> ResourceManager::bakeAllModels() {
                     } else {
                         if (failCount < 50) {
                             spdlog::warn("Failed to bake model '{}' for block '{}': {}",
-                                         variant.model.toString(), blockId.toString(),
-                                         result.error().toString());
+                                variant.model.toString(),
+                                blockId.toString(),
+                                result.error().toString());
                         } else if (failCount == 50) {
                             spdlog::warn("More model bake failures... (suppressed)");
                         }
@@ -676,8 +669,7 @@ Result<void> ResourceManager::bakeAllModels() {
     }
 
     if (failCount > 0) {
-        spdlog::warn("ResourceManager: Baked {} models ({} failed)",
-                     successCount, failCount);
+        spdlog::warn("ResourceManager: Baked {} models ({} failed)", successCount, failCount);
     } else {
         spdlog::info("ResourceManager: Baked {} models successfully", successCount);
     }
@@ -685,7 +677,8 @@ Result<void> ResourceManager::bakeAllModels() {
     return Result<void>::ok();
 }
 
-void ResourceManager::computeBlockAppearances() {
+void ResourceManager::computeBlockAppearances()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::computeBlockAppearances");
 
     // 获取所有方块状态
@@ -754,8 +747,7 @@ void ResourceManager::computeBlockAppearances() {
 
                         // 收集全部层，支持草方块侧面 overlay 等多层模型
                         appearance.faceTextureLayers[dirStr].push_back(
-                            BlockAppearance::FaceTextureLayer{*region, face.tintIndex}
-                        );
+                            BlockAppearance::FaceTextureLayer{*region, face.tintIndex});
                     }
                 }
             }
@@ -769,12 +761,11 @@ void ResourceManager::computeBlockAppearances() {
         }
     }
 
-    spdlog::info("computeBlockAppearances: {} total, {} with textures",
-                 totalAppearances, appearancesWithTextures);
-
+    spdlog::info("computeBlockAppearances: {} total, {} with textures", totalAppearances, appearancesWithTextures);
 }
 
-const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& texLoc) const {
+const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& texLoc) const
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::findTextureRegion");
 
     // 1. 尝试原始路径
@@ -798,7 +789,8 @@ const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& 
     return nullptr;
 }
 
-std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const {
+std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::collectRequiredTextures");
 
     std::set<ResourceLocation> textures;
@@ -810,8 +802,8 @@ std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const {
             std::string texPath = texLoc.path();
             if (!texPath.empty() && texPath[0] == '#') {
                 // 纹理变量引用，不应该出现在烘焙模型中
-                spdlog::warn("Texture variable reference found in baked model {}: {}={}",
-                            loc.toString(), name, texPath);
+                spdlog::warn(
+                    "Texture variable reference found in baked model {}: {}={}", loc.toString(), name, texPath);
                 continue;
             }
 
@@ -824,7 +816,8 @@ std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const {
     return textures;
 }
 
-ResourceLocation ResourceManager::texturePathToLocation(std::string_view path) {
+ResourceLocation ResourceManager::texturePathToLocation(std::string_view path)
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::texturePathToLocation");
 
     // 处理纹理路径
@@ -844,7 +837,8 @@ ResourceLocation ResourceManager::texturePathToLocation(std::string_view path) {
     return ResourceLocation(p);
 }
 
-IResourcePack* ResourceManager::getFirstResourcePack() {
+IResourcePack* ResourceManager::getFirstResourcePack()
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::getFirstResourcePack");
 
     if (m_resourcePacks.empty()) {
@@ -853,7 +847,8 @@ IResourcePack* ResourceManager::getFirstResourcePack() {
     return m_resourcePacks[0].get();
 }
 
-IResourcePack* ResourceManager::getResourcePack(size_t index) {
+IResourcePack* ResourceManager::getResourcePack(size_t index)
+{
     MC_TRACE_EVENT("client.resource", "ResourceManager::getResourcePack");
 
     if (index >= m_resourcePacks.size()) {

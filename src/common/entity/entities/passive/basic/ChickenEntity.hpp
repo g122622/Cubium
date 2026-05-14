@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AnimalEntity.hpp"
 
 namespace mc {
 
@@ -125,7 +125,7 @@ protected:
     [[nodiscard]] f32 getBaseHeight() const override { return 0.7f; }
 
 private:
-    i32 m_eggTimer = 0;        // 下蛋计时器
+    i32 m_eggTimer = 0; // 下蛋计时器
 
     // 翅膀动画
     f32 m_wingRotation = 0.0f;
@@ -135,8 +135,8 @@ private:
     // 鸡骑士标记
     bool m_chickenJockey = false;
 
-    static constexpr i32 EGG_TIME_MIN = 6000;   // 最小下蛋时间（5分钟）
-    static constexpr i32 EGG_TIME_MAX = 12000;  // 最大下蛋时间（10分钟）
+    static constexpr i32 EGG_TIME_MIN = 6000;  // 最小下蛋时间（5分钟）
+    static constexpr i32 EGG_TIME_MAX = 12000; // 最大下蛋时间（10分钟）
 };
 
 } // namespace mc

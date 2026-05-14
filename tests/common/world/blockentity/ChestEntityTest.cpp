@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
 #include "world/blockentity/storage/ChestEntity.hpp"
-#include "world/blockentity/storage/TrappedChestEntity.hpp"
-#include "world/blockentity/core/SimpleInventory.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/blockentity/core/SimpleInventory.hpp"
+#include "world/blockentity/storage/TrappedChestEntity.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::blockentity;
@@ -16,7 +16,8 @@ namespace {
  * @param path 资源路径。
  * @return 已注册物品指针。
  */
-Item* ensureTestItem(const char* path) {
+Item* ensureTestItem(const char* path)
+{
     auto& registry = ItemRegistry::instance();
     const ResourceLocation id("minecraft", path);
     if (Item* existing = registry.getItem(id); existing != nullptr) {
@@ -32,7 +33,8 @@ Item* ensureTestItem(const char* path) {
 
 class ChestEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         chest_ = std::make_unique<ChestEntity>(BlockPos(10, 20, 30));
         m_diamond = ensureTestItem("diamond");
@@ -44,29 +46,35 @@ protected:
     Item* m_stick = nullptr;
 };
 
-TEST_F(ChestEntityTest, Create_HasCorrectType) {
+TEST_F(ChestEntityTest, Create_HasCorrectType)
+{
     EXPECT_EQ(chest_->getType(), BlockEntityType::Chest);
 }
 
-TEST_F(ChestEntityTest, Create_HasCorrectPosition) {
+TEST_F(ChestEntityTest, Create_HasCorrectPosition)
+{
     EXPECT_EQ(chest_->getPos(), BlockPos(10, 20, 30));
 }
 
-TEST_F(ChestEntityTest, Create_HasCorrectSize) {
+TEST_F(ChestEntityTest, Create_HasCorrectSize)
+{
     EXPECT_EQ(chest_->getContainerSize(), ChestEntity::CHEST_SIZE);
-    EXPECT_EQ(ChestEntity::CHEST_SIZE, 27);  // 标准箱子大小
+    EXPECT_EQ(ChestEntity::CHEST_SIZE, 27); // 标准箱子大小
 }
 
-TEST_F(ChestEntityTest, Create_LidAngleIsZero) {
+TEST_F(ChestEntityTest, Create_LidAngleIsZero)
+{
     EXPECT_FLOAT_EQ(chest_->getLidAngle(), 0.0f);
     EXPECT_FLOAT_EQ(chest_->getPrevLidAngle(), 0.0f);
 }
 
-TEST_F(ChestEntityTest, Create_OpenCountIsZero) {
+TEST_F(ChestEntityTest, Create_OpenCountIsZero)
+{
     EXPECT_EQ(chest_->getOpenCount(), 0);
 }
 
-TEST_F(ChestEntityTest, OpenContainer_IncrementsCount) {
+TEST_F(ChestEntityTest, OpenContainer_IncrementsCount)
+{
     chest_->openContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 1);
 
@@ -74,7 +82,8 @@ TEST_F(ChestEntityTest, OpenContainer_IncrementsCount) {
     EXPECT_EQ(chest_->getOpenCount(), 2);
 }
 
-TEST_F(ChestEntityTest, CloseContainer_DecrementsCount) {
+TEST_F(ChestEntityTest, CloseContainer_DecrementsCount)
+{
     chest_->openContainer(nullptr);
     chest_->openContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 2);
@@ -83,7 +92,8 @@ TEST_F(ChestEntityTest, CloseContainer_DecrementsCount) {
     EXPECT_EQ(chest_->getOpenCount(), 1);
 }
 
-TEST_F(ChestEntityTest, CloseContainer_NotBelowZero) {
+TEST_F(ChestEntityTest, CloseContainer_NotBelowZero)
+{
     chest_->closeContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 0);
 
@@ -91,17 +101,20 @@ TEST_F(ChestEntityTest, CloseContainer_NotBelowZero) {
     EXPECT_EQ(chest_->getOpenCount(), 0);
 }
 
-TEST_F(ChestEntityTest, NeedsTick_ReturnsTrue) {
+TEST_F(ChestEntityTest, NeedsTick_ReturnsTrue)
+{
     EXPECT_TRUE(chest_->needsTick());
 }
 
-TEST_F(ChestEntityTest, GetInventory_ReturnsValidPointer) {
+TEST_F(ChestEntityTest, GetInventory_ReturnsValidPointer)
+{
     IInventory* inventory = chest_->getInventory();
     ASSERT_NE(inventory, nullptr);
     EXPECT_EQ(inventory->getContainerSize(), ChestEntity::CHEST_SIZE);
 }
 
-TEST_F(ChestEntityTest, Save_ContainsBasicInfo) {
+TEST_F(ChestEntityTest, Save_ContainsBasicInfo)
+{
     nlohmann::json data;
     chest_->save(data);
 
@@ -112,7 +125,8 @@ TEST_F(ChestEntityTest, Save_ContainsBasicInfo) {
     EXPECT_TRUE(data.contains("z"));
 }
 
-TEST_F(ChestEntityTest, Clone_CreatesCopy) {
+TEST_F(ChestEntityTest, Clone_CreatesCopy)
+{
     std::unique_ptr<BlockEntity> copy = chest_->clone();
 
     ASSERT_NE(copy, nullptr);
@@ -120,13 +134,15 @@ TEST_F(ChestEntityTest, Clone_CreatesCopy) {
     EXPECT_EQ(copy->getPos(), BlockPos(10, 20, 30));
 }
 
-TEST_F(ChestEntityTest, SetChanged_MarksAsChanged) {
+TEST_F(ChestEntityTest, SetChanged_MarksAsChanged)
+{
     EXPECT_FALSE(chest_->isChanged());
     chest_->setChanged();
     EXPECT_TRUE(chest_->isChanged());
 }
 
-TEST_F(ChestEntityTest, Tick_LidAnimationOpensWhenCountPositive) {
+TEST_F(ChestEntityTest, Tick_LidAnimationOpensWhenCountPositive)
+{
     // MC 1.16.5: 动画通过tick()更新，每tick增加LID_OPEN_SPEED(0.1f)
     // 打开箱子后，盖子角度应逐渐增加到1.0
     chest_->openContainer(nullptr);
@@ -147,13 +163,15 @@ TEST_F(ChestEntityTest, Tick_LidAnimationOpensWhenCountPositive) {
     EXPECT_EQ(chest_->getOpenCount(), 1);
 }
 
-TEST_F(ChestEntityTest, Tick_LidAnimationClosesWhenCountZero) {
+TEST_F(ChestEntityTest, Tick_LidAnimationClosesWhenCountZero)
+{
     // 验证关闭状态
     EXPECT_FLOAT_EQ(chest_->getLidAngle(), 0.0f);
     EXPECT_EQ(chest_->getOpenCount(), 0);
 }
 
-TEST_F(ChestEntityTest, GetInterpolatedLidAngle_ReturnsCorrectValue) {
+TEST_F(ChestEntityTest, GetInterpolatedLidAngle_ReturnsCorrectValue)
+{
     // MC 1.16.5: 插值角度 = prevLidAngle + (lidAngle - prevLidAngle) * partialTick
     // 测试插值计算
     EXPECT_FLOAT_EQ(chest_->getInterpolatedLidAngle(0.0f), 0.0f);
@@ -161,7 +179,8 @@ TEST_F(ChestEntityTest, GetInterpolatedLidAngle_ReturnsCorrectValue) {
     EXPECT_FLOAT_EQ(chest_->getInterpolatedLidAngle(1.0f), 0.0f);
 }
 
-TEST_F(ChestEntityTest, SaveLoad_PreservesItemsBySlot) {
+TEST_F(ChestEntityTest, SaveLoad_PreservesItemsBySlot)
+{
     IInventory* inventory = chest_->getInventory();
     ASSERT_NE(inventory, nullptr);
     inventory->setItem(0, ItemStack(m_diamond, 7));
@@ -181,7 +200,8 @@ TEST_F(ChestEntityTest, SaveLoad_PreservesItemsBySlot) {
     EXPECT_EQ(loadedInventory->getItem(4).getCount(), 3);
 }
 
-TEST_F(ChestEntityTest, Clone_CopiesInventoryContents) {
+TEST_F(ChestEntityTest, Clone_CopiesInventoryContents)
+{
     IInventory* inventory = chest_->getInventory();
     ASSERT_NE(inventory, nullptr);
     inventory->setItem(2, ItemStack(m_diamond, 11));
@@ -202,7 +222,8 @@ TEST_F(ChestEntityTest, Clone_CopiesInventoryContents) {
 
 class TrappedChestEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         trappedChest_ = std::make_unique<TrappedChestEntity>(BlockPos(5, 10, 15));
         m_diamond = ensureTestItem("diamond");
@@ -212,20 +233,24 @@ protected:
     Item* m_diamond = nullptr;
 };
 
-TEST_F(TrappedChestEntityTest, Create_HasCorrectType) {
+TEST_F(TrappedChestEntityTest, Create_HasCorrectType)
+{
     EXPECT_EQ(trappedChest_->getType(), BlockEntityType::TrappedChest);
 }
 
-TEST_F(TrappedChestEntityTest, Create_HasCorrectPosition) {
+TEST_F(TrappedChestEntityTest, Create_HasCorrectPosition)
+{
     EXPECT_EQ(trappedChest_->getPos(), BlockPos(5, 10, 15));
 }
 
-TEST_F(TrappedChestEntityTest, OpenContainer_IncrementsCount) {
+TEST_F(TrappedChestEntityTest, OpenContainer_IncrementsCount)
+{
     trappedChest_->openContainer(nullptr);
     EXPECT_EQ(trappedChest_->getOpenCount(), 1);
 }
 
-TEST_F(TrappedChestEntityTest, GetRedstoneSignal_ReturnsOpenCount) {
+TEST_F(TrappedChestEntityTest, GetRedstoneSignal_ReturnsOpenCount)
+{
     EXPECT_EQ(trappedChest_->getOpenCount(), 0);
 
     trappedChest_->openContainer(nullptr);
@@ -236,7 +261,8 @@ TEST_F(TrappedChestEntityTest, GetRedstoneSignal_ReturnsOpenCount) {
     EXPECT_EQ(trappedChest_->getOpenCount(), 3);
 }
 
-TEST_F(TrappedChestEntityTest, Clone_CreatesCopy) {
+TEST_F(TrappedChestEntityTest, Clone_CreatesCopy)
+{
     std::unique_ptr<BlockEntity> copy = trappedChest_->clone();
 
     ASSERT_NE(copy, nullptr);
@@ -244,7 +270,8 @@ TEST_F(TrappedChestEntityTest, Clone_CreatesCopy) {
     EXPECT_EQ(copy->getPos(), BlockPos(5, 10, 15));
 }
 
-TEST_F(TrappedChestEntityTest, Clone_CopiesInventoryContents) {
+TEST_F(TrappedChestEntityTest, Clone_CopiesInventoryContents)
+{
     IInventory* inventory = trappedChest_->getInventory();
     ASSERT_NE(inventory, nullptr);
     inventory->setItem(1, ItemStack(m_diamond, 5));
@@ -265,7 +292,8 @@ TEST_F(TrappedChestEntityTest, Clone_CopiesInventoryContents) {
 
 class SimpleInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         inventory_ = std::make_unique<SimpleInventory>(27);
         m_diamond = ensureTestItem("diamond");
@@ -277,51 +305,58 @@ protected:
     Item* m_stick = nullptr;
 };
 
-TEST_F(SimpleInventoryTest, Create_HasCorrectSize) {
+TEST_F(SimpleInventoryTest, Create_HasCorrectSize)
+{
     EXPECT_EQ(inventory_->getContainerSize(), 27);
 }
 
-TEST_F(SimpleInventoryTest, Create_IsEmpty) {
+TEST_F(SimpleInventoryTest, Create_IsEmpty)
+{
     EXPECT_TRUE(inventory_->isEmpty());
 }
 
-TEST_F(SimpleInventoryTest, SetItem_GetItem) {
+TEST_F(SimpleInventoryTest, SetItem_GetItem)
+{
     EXPECT_TRUE(inventory_->isEmpty());
 
     ItemStack emptyStack = inventory_->getItem(0);
     EXPECT_TRUE(emptyStack.isEmpty());
 }
 
-TEST_F(SimpleInventoryTest, SetChanged_Callback) {
+TEST_F(SimpleInventoryTest, SetChanged_Callback)
+{
     bool callbackCalled = false;
-    SimpleInventory invWithCallback(10, [&callbackCalled]() {
-        callbackCalled = true;
-    });
+    SimpleInventory invWithCallback(10, [&callbackCalled]() { callbackCalled = true; });
 
     invWithCallback.setChanged();
     EXPECT_TRUE(callbackCalled);
 }
 
-TEST_F(SimpleInventoryTest, RemoveItem_ReturnsEmptyForEmptySlot) {
+TEST_F(SimpleInventoryTest, RemoveItem_ReturnsEmptyForEmptySlot)
+{
     ItemStack removed = inventory_->removeItem(0, 1);
     EXPECT_TRUE(removed.isEmpty());
 }
 
-TEST_F(SimpleInventoryTest, Clear_MakesAllSlotsEmpty) {
+TEST_F(SimpleInventoryTest, Clear_MakesAllSlotsEmpty)
+{
     inventory_->clear();
     EXPECT_TRUE(inventory_->isEmpty());
 }
 
-TEST_F(SimpleInventoryTest, CanPlaceItem_ReturnsFalseForEmptyStack) {
+TEST_F(SimpleInventoryTest, CanPlaceItem_ReturnsFalseForEmptyStack)
+{
     ItemStack emptyStack;
     EXPECT_FALSE(inventory_->canPlaceItem(0, emptyStack));
 }
 
-TEST_F(SimpleInventoryTest, GetMaxStackSize_ReturnsDefault) {
+TEST_F(SimpleInventoryTest, GetMaxStackSize_ReturnsDefault)
+{
     EXPECT_EQ(inventory_->getMaxStackSize(), 64);
 }
 
-TEST_F(SimpleInventoryTest, SaveLoad_RoundTripPreservesSlotData) {
+TEST_F(SimpleInventoryTest, SaveLoad_RoundTripPreservesSlotData)
+{
     inventory_->setItem(0, ItemStack(m_diamond, 12));
     inventory_->setItem(5, ItemStack(m_stick, 9));
 

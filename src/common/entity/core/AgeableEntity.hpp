@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CreatureEntity.hpp"
 #include "../../core/Types.hpp"
+#include "CreatureEntity.hpp"
 
 namespace mc {
 
@@ -105,11 +105,11 @@ public:
 
     // ========== 常量 ==========
 
-    static constexpr i32 BABY_AGE = -24000;     // 幼体起始年龄（20分钟）
-    static constexpr i32 MAX_AGE = 0;           // 成体年龄
+    static constexpr i32 BABY_AGE = -24000;        // 幼体起始年龄（20分钟）
+    static constexpr i32 MAX_AGE = 0;              // 成体年龄
     static constexpr i32 BREEDING_COOLDOWN = 6000; // 繁殖冷却（5分钟）
-    static constexpr i32 LOVE_TIMER_MAX = 600;  // 爱心状态持续时间（30秒）
-    static constexpr f32 BABY_SCALE = 0.5f;     // 幼体缩放比例
+    static constexpr i32 LOVE_TIMER_MAX = 600;     // 爱心状态持续时间（30秒）
+    static constexpr f32 BABY_SCALE = 0.5f;        // 幼体缩放比例
 
     /**
      * @brief 设置爱心状态
@@ -158,16 +158,12 @@ protected:
     /**
      * @brief 获取实体宽度（考虑幼体缩放）
      */
-    [[nodiscard]] f32 width() const override {
-        return getBaseWidth() * (isChild() ? BABY_SCALE : 1.0f);
-    }
+    [[nodiscard]] f32 width() const override { return getBaseWidth() * (isChild() ? BABY_SCALE : 1.0f); }
 
     /**
      * @brief 获取实体高度（考虑幼体缩放）
      */
-    [[nodiscard]] f32 height() const override {
-        return getBaseHeight() * (isChild() ? BABY_SCALE : 1.0f);
-    }
+    [[nodiscard]] f32 height() const override { return getBaseHeight() * (isChild() ? BABY_SCALE : 1.0f); }
 
     /**
      * @brief 幼体变成成体时调用
@@ -175,11 +171,11 @@ protected:
     virtual void onGrowUp() {}
 
 private:
-    i32 m_growingAge = 0;      // 年龄（负数=幼体）
-    i32 m_loveTimer = 0;       // 繁殖冷却/爱心计时器
-    f32 m_growthSpeed = 1.0f;  // 成长速度倍率
-    i32 m_forcedAge = 0;       // 强制成长值（用于加速）
-    i32 m_forcedAgeTimer = 0;  // 强制成长计时器
+    i32 m_growingAge = 0;     // 年龄（负数=幼体）
+    i32 m_loveTimer = 0;      // 繁殖冷却/爱心计时器
+    f32 m_growthSpeed = 1.0f; // 成长速度倍率
+    i32 m_forcedAge = 0;      // 强制成长值（用于加速）
+    i32 m_forcedAgeTimer = 0; // 强制成长计时器
 };
 
 } // namespace mc

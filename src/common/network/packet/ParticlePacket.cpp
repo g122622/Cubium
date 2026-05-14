@@ -2,8 +2,7 @@
 
 namespace mc::network {
 
-ParticlePacket::ParticlePacket(
-    client::renderer::trident::particle::ParticleTypeId type,
+ParticlePacket::ParticlePacket(client::renderer::trident::particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
@@ -20,17 +19,18 @@ ParticlePacket::ParticlePacket(
     , m_offsetY(offset.y)
     , m_offsetZ(offset.z)
     , m_count(count)
-{
-}
+{}
 
-size_t ParticlePacket::expectedSize() const {
+size_t ParticlePacket::expectedSize() const
+{
     // 基础大小：包头 + VarInt(粒子类型) + 3*f64(位置) + 3*f32(速度) + 3*f32(偏移) + VarInt(数量) + VarInt(数据长度)
     // 保守估计：12 (header) + 5 + 24 + 12 + 12 + 5 + 5 = 75 bytes
     // 加上可选数据
     return sizeof(PacketHeader) + 64 + m_optionalData.size();
 }
 
-Result<std::vector<u8>> ParticlePacket::serialize() const {
+Result<std::vector<u8>> ParticlePacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     // 写入粒子类型ID
@@ -65,7 +65,8 @@ Result<std::vector<u8>> ParticlePacket::serialize() const {
     return result;
 }
 
-Result<void> ParticlePacket::deserialize(const u8* data, size_t size) {
+Result<void> ParticlePacket::deserialize(const u8* data, size_t size)
+{
     if (size < sizeof(PacketHeader)) {
         return Error(ErrorCode::InvalidData, "ParticlePacket: insufficient data for header");
     }
@@ -172,20 +173,19 @@ Result<void> ParticlePacket::deserialize(const u8* data, size_t size) {
 }
 
 // static
-ParticlePacket ParticlePacket::create(
-    client::renderer::trident::particle::ParticleTypeId type,
+ParticlePacket ParticlePacket::create(client::renderer::trident::particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
-    u32 count) {
+    u32 count)
+{
     return ParticlePacket(type, pos, velocity, offset, count);
 }
 
 // static
 ParticlePacket ParticlePacket::createSingle(
-    client::renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity) {
+    client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+{
     return ParticlePacket(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1);
 }
 

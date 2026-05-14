@@ -10,11 +10,13 @@ HuskEntity::HuskEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> HuskEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> HuskEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<HuskEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void HuskEntity::registerAttributes() {
+void HuskEntity::registerAttributes()
+{
     // 调用父类方法
     ZombieEntity::registerAttributes();
 

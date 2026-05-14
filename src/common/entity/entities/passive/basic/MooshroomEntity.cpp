@@ -1,15 +1,15 @@
 #include "MooshroomEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../entities/passive/basic/CowEntity.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <memory>
 
@@ -23,11 +23,13 @@ MooshroomEntity::MooshroomEntity(LegacyEntityType type, EntityId id)
     registerGoals();
 }
 
-std::unique_ptr<Entity> MooshroomEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> MooshroomEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<MooshroomEntity>(LegacyEntityType::Unknown, 0);
 }
 
-std::vector<ItemStack> MooshroomEntity::shear(Player* player) {
+std::vector<ItemStack> MooshroomEntity::shear(Player* player)
+{
     // MC 1.16.5: MooshroomEntity.shear()
     // 剪毛后变成普通牛，掉落5个蘑菇
     MC_UNUSED(player);
@@ -52,16 +54,11 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player) {
         f32 offsetZ = (random.nextFloat() - 0.5f) * width();
 
         worldPtr->addParticle(
-            ParticleTypeId::Explosion,
-            Vector3(x() + offsetX, y() + offsetY, z() + offsetZ),
-            Vector3(0.0f, 0.0f, 0.0f)
-        );
+            ParticleTypeId::Explosion, Vector3(x() + offsetX, y() + offsetY, z() + offsetZ), Vector3(0.0f, 0.0f, 0.0f));
     }
 
     // 获取对应类型的蘑菇物品
-    const Block* mushroomBlock = isRed()
-        ? VanillaBlocks::RED_MUSHROOM
-        : VanillaBlocks::BROWN_MUSHROOM;
+    const Block* mushroomBlock = isRed() ? VanillaBlocks::RED_MUSHROOM : VanillaBlocks::BROWN_MUSHROOM;
 
     const BlockItem* mushroomItem = BlockItemRegistry::instance().getBlockItem(*mushroomBlock);
     if (mushroomItem != nullptr) {
@@ -105,16 +102,18 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player) {
     return drops;
 }
 
-bool MooshroomEntity::canBeStewed(const ItemStack& itemStack) const {
+bool MooshroomEntity::canBeStewed(const ItemStack& itemStack) const
+{
     // MC 1.16.5: 检查是否是空碗且成年
     if (isChild()) {
-        return false;  // 幼年哞菇不能被取汤
+        return false; // 幼年哞菇不能被取汤
     }
     const Item* item = itemStack.getItem();
     return item != nullptr && item == Items::BOWL;
 }
 
-ItemStack MooshroomEntity::getStew() {
+ItemStack MooshroomEntity::getStew()
+{
     // MC 1.16.5: 返回蘑菇汤
     // 注意：棕色哞菇可以返回迷之炖菜（如果有效果），这里暂时只返回普通蘑菇汤
     if (Items::MUSHROOM_STEW != nullptr) {
@@ -123,7 +122,8 @@ ItemStack MooshroomEntity::getStew() {
     return ItemStack();
 }
 
-std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner) {
+std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
+{
     // MC 1.16.5: MooshroomEntity.createChild()
     auto baby = std::make_unique<MooshroomEntity>(LegacyEntityType::Unknown, 0);
 
@@ -160,7 +160,8 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner) 
     return baby;
 }
 
-void MooshroomEntity::onStruckByLightning() {
+void MooshroomEntity::onStruckByLightning()
+{
     // MC 1.16.5: MooshroomEntity.func_241841_a() (onStruckByLightning)
     // 红色哞菇 -> 棕色哞菇
     // 棕色哞菇 -> 红色哞菇
@@ -186,16 +187,15 @@ void MooshroomEntity::onStruckByLightning() {
             f32 offsetY = random.nextFloat() * height();
             f32 offsetZ = (random.nextFloat() - 0.5f) * width();
 
-            world()->addParticle(
-                ParticleTypeId::Explosion,
+            world()->addParticle(ParticleTypeId::Explosion,
                 Vector3(x() + offsetX, y() + offsetY, z() + offsetZ),
-                Vector3(0.0f, 0.0f, 0.0f)
-            );
+                Vector3(0.0f, 0.0f, 0.0f));
         }
     }
 }
 
-void MooshroomEntity::registerGoals() {
+void MooshroomEntity::registerGoals()
+{
     // 调用父类方法（牛的行为）
     CowEntity::registerGoals();
 

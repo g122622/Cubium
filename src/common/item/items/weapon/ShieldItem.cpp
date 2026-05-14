@@ -1,9 +1,9 @@
 #include "ShieldItem.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../core/ItemStack.hpp"
 
 namespace mc {
 namespace item {
@@ -12,20 +12,22 @@ namespace item {
 
 ShieldItem::ShieldItem(const ItemProperties& properties)
     : Item(properties)
-{
-}
+{}
 
 // ========== Item 接口重写 ==========
 
-i32 ShieldItem::getUseDuration(const ItemStack& /*stack*/) const {
+i32 ShieldItem::getUseDuration(const ItemStack& /*stack*/) const
+{
     return MAX_USE_DURATION;
 }
 
-UseAction ShieldItem::getUseAction(const ItemStack& /*stack*/) const {
+UseAction ShieldItem::getUseAction(const ItemStack& /*stack*/) const
+{
     return UseAction::Block;
 }
 
-ItemActionResult ShieldItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
+ItemActionResult ShieldItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand)
+{
     ItemStack shieldStack = player.getHeldItem(hand);
 
     // 进入格挡状态
@@ -35,7 +37,8 @@ ItemActionResult ShieldItem::onItemRightClick(IWorld& /*world*/, Player& player,
 
 // ========== 静态方法 ==========
 
-bool ShieldItem::isShield(const ItemStack& stack) {
+bool ShieldItem::isShield(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }

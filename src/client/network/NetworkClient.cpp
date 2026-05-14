@@ -1,24 +1,24 @@
 #include "NetworkClient.hpp"
-#include "common/network/packet/Packet.hpp"
-#include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/SetPassengersPacket.hpp"
+#include "common/core/Constants.hpp"
+#include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
+#include "common/network/packet/Packet.hpp"
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
-#include "common/network/packet/BlockBreakAnimPacket.hpp"
-#include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/network/packet/SetPassengersPacket.hpp"
 #include "common/network/packet/SleepPacket.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
-#include "common/sound/network/SoundPackets.hpp"
-#include "common/skin/core/GameProfile.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/skin/core/GameProfile.hpp"
+#include "common/sound/network/SoundPackets.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
-#include "common/core/Constants.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
-#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client {
 
@@ -27,9 +27,9 @@ namespace mc::client {
 // ============================================================================
 
 namespace {
-    constexpr size_t RECEIVE_BUFFER_SIZE = 64 * 1024;  // 64KB 初始缓冲区
-    // 使用 Constants.hpp 中定义的 mc::network::MAX_PACKET_SIZE (2MB)
-}
+constexpr size_t RECEIVE_BUFFER_SIZE = 64 * 1024; // 64KB 初始缓冲区
+// 使用 Constants.hpp 中定义的 mc::network::MAX_PACKET_SIZE (2MB)
+} // namespace
 
 // ============================================================================
 // NetworkClient 实现
@@ -38,14 +38,15 @@ namespace {
 NetworkClient::NetworkClient()
     : m_receiveBuffer(RECEIVE_BUFFER_SIZE)
     , m_packetBuffer()
-{
-}
+{}
 
-NetworkClient::~NetworkClient() {
+NetworkClient::~NetworkClient()
+{
     disconnect("Destructor");
 }
 
-Result<void> NetworkClient::connect(const NetworkClientConfig& config) {
+Result<void> NetworkClient::connect(const NetworkClientConfig& config)
+{
     if (m_state != ClientState::Disconnected) {
         return Error(ErrorCode::InvalidState, "Already connected or connecting");
     }
@@ -63,10 +64,7 @@ Result<void> NetworkClient::connect(const NetworkClientConfig& config) {
     try {
         // 解析服务器地址
         asio::ip::tcp::resolver resolver(m_ioContext);
-        auto endpoints = resolver.resolve(
-            config.serverAddress,
-            std::to_string(config.serverPort)
-        );
+        auto endpoints = resolver.resolve(config.serverAddress, std::to_string(config.serverPort));
 
         // 同步连接 (在主线程)
         asio::connect(*m_socket, endpoints);
@@ -79,25 +77,23 @@ Result<void> NetworkClient::connect(const NetworkClientConfig& config) {
 
         // 启动接收线程
         m_running = true;
-        m_ioThread = std::make_unique<std::thread>([this]() {
-            receiveLoop();
-        });
+        m_ioThread = std::make_unique<std::thread>([this]() { receiveLoop(); });
 
         // 发送登录请求
         sendLoginRequest();
 
         spdlog::info("Connected to {}:{}", config.serverAddress, config.serverPort);
         return Result<void>::ok();
-
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         setState(ClientState::Disconnected);
         spdlog::error("Failed to connect: {}", e.what());
         return Error(ErrorCode::ConnectionFailed, e.what());
     }
 }
 
-Result<void> NetworkClient::connectLocal(network::LocalEndpoint* endpoint,
-                                         const NetworkClientConfig& config) {
+Result<void> NetworkClient::connectLocal(network::LocalEndpoint* endpoint, const NetworkClientConfig& config)
+{
     if (m_state != ClientState::Disconnected) {
         return Error(ErrorCode::InvalidState, "Already connected or connecting");
     }
@@ -120,7 +116,8 @@ Result<void> NetworkClient::connectLocal(network::LocalEndpoint* endpoint,
     return Result<void>::ok();
 }
 
-void NetworkClient::disconnect(const std::string& reason) {
+void NetworkClient::disconnect(const std::string& reason)
+{
     if (m_state == ClientState::Disconnected) {
         return;
     }
@@ -154,22 +151,26 @@ void NetworkClient::disconnect(const std::string& reason) {
     spdlog::info("Disconnected: {}", reason);
 }
 
-bool NetworkClient::isConnected() const {
+bool NetworkClient::isConnected() const
+{
     if (m_localEndpoint) {
         return m_localEndpoint->isConnected() && m_state != ClientState::Disconnected;
     }
     return m_socket && m_socket->is_open() && m_state != ClientState::Disconnected;
 }
 
-ClientState NetworkClient::state() const {
+ClientState NetworkClient::state() const
+{
     return m_state;
 }
 
-void NetworkClient::setCallbacks(const NetworkClientCallbacks& callbacks) {
+void NetworkClient::setCallbacks(const NetworkClientCallbacks& callbacks)
+{
     m_callbacks = callbacks;
 }
 
-void NetworkClient::sendLoginRequest() {
+void NetworkClient::sendLoginRequest()
+{
     network::LoginRequestPacket packet(m_username, network::protocol::VERSION);
 
     network::PacketSerializer ser;
@@ -187,7 +188,8 @@ void NetworkClient::sendLoginRequest() {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendPlayerMove(const network::PlayerPosition& pos, network::PlayerMovePacket::MoveType type) {
+void NetworkClient::sendPlayerMove(const network::PlayerPosition& pos, network::PlayerMovePacket::MoveType type)
+{
     network::PlayerMovePacket packet(pos, type);
 
     network::PacketSerializer ser;
@@ -204,8 +206,8 @@ void NetworkClient::sendPlayerMove(const network::PlayerPosition& pos, network::
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action,
-                                         i32 x, i32 y, i32 z, Direction face) {
+void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action, i32 x, i32 y, i32 z, Direction face)
+{
     network::BlockInteractionPacket packet(action, x, y, z, face);
 
     // spdlog::debug("[Mining] Queue block interaction action={} pos=({}, {}, {}) face={}",
@@ -225,12 +227,18 @@ void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action,
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendBlockPlacement(i32 x, i32 y, i32 z, Direction face,
-                                        f32 hitX, f32 hitY, f32 hitZ, u8 hand) {
+void NetworkClient::sendBlockPlacement(i32 x, i32 y, i32 z, Direction face, f32 hitX, f32 hitY, f32 hitZ, u8 hand)
+{
     network::PlayerTryUseItemOnBlockPacket packet(x, y, z, face, hitX, hitY, hitZ, hand);
 
     spdlog::info("[Place] Send block placement pos=({}, {}, {}) face={} hit=({:.2f}, {:.2f}, {:.2f})",
-                 x, y, z, static_cast<i32>(face), hitX, hitY, hitZ);
+        x,
+        y,
+        z,
+        static_cast<i32>(face),
+        hitX,
+        hitY,
+        hitZ);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -246,7 +254,8 @@ void NetworkClient::sendBlockPlacement(i32 x, i32 y, i32 z, Direction face,
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendHotbarSelect(i32 slot) {
+void NetworkClient::sendHotbarSelect(i32 slot)
+{
     HotbarSelectPacket packet(slot);
 
     network::PacketSerializer ser;
@@ -263,7 +272,8 @@ void NetworkClient::sendHotbarSelect(i32 slot) {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendTeleportConfirm(u32 teleportId) {
+void NetworkClient::sendTeleportConfirm(u32 teleportId)
+{
     network::TeleportConfirmPacket packet(teleportId);
 
     network::PacketSerializer ser;
@@ -280,7 +290,8 @@ void NetworkClient::sendTeleportConfirm(u32 teleportId) {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendKeepAlive(u64 id) {
+void NetworkClient::sendKeepAlive(u64 id)
+{
     network::KeepAlivePacket packet;
     packet.setTimestamp(id);
 
@@ -289,12 +300,13 @@ void NetworkClient::sendKeepAlive(u64 id) {
         sendRawData(result.value().data(), result.value().size());
     }
 
-    m_lastKeepAliveSent = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()
-    ).count();
+    m_lastKeepAliveSent =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+            .count();
 }
 
-void NetworkClient::sendChatMessage(const std::string& message) {
+void NetworkClient::sendChatMessage(const std::string& message)
+{
     network::ChatMessagePacket packet(message, m_playerId);
 
     network::PacketSerializer ser;
@@ -311,7 +323,8 @@ void NetworkClient::sendChatMessage(const std::string& message) {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet) {
+void NetworkClient::sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet)
+{
     network::PacketSerializer ser;
     packet.serialize(ser);
 
@@ -326,7 +339,8 @@ void NetworkClient::sendCreativeInventoryAction(const CreativeInventoryActionPac
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendContainerClick(const ContainerClickPacket& packet) {
+void NetworkClient::sendContainerClick(const ContainerClickPacket& packet)
+{
     network::PacketSerializer ser;
     packet.serialize(ser);
 
@@ -341,7 +355,8 @@ void NetworkClient::sendContainerClick(const ContainerClickPacket& packet) {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendCloseContainer(ContainerId containerId) {
+void NetworkClient::sendCloseContainer(ContainerId containerId)
+{
     CloseContainerPacket packet(containerId);
 
     network::PacketSerializer ser;
@@ -358,7 +373,8 @@ void NetworkClient::sendCloseContainer(ContainerId containerId) {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jumping, bool sneaking) {
+void NetworkClient::sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jumping, bool sneaking)
+{
     network::PlayerInputPacket packet;
     packet.setStrafeSpeed(strafeSpeed);
     packet.setForwardSpeed(forwardSpeed);
@@ -371,7 +387,8 @@ void NetworkClient::sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jump
     }
 }
 
-void NetworkClient::sendMoveVehicle(f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
+void NetworkClient::sendMoveVehicle(f64 x, f64 y, f64 z, f32 yaw, f32 pitch)
+{
     network::MoveVehiclePacket packet;
     packet.setPosition(x, y, z);
     packet.setRotation(yaw, pitch);
@@ -382,7 +399,8 @@ void NetworkClient::sendMoveVehicle(f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
     }
 }
 
-void NetworkClient::sendEntityAction(network::EntityActionType action, i32 auxData) {
+void NetworkClient::sendEntityAction(network::EntityActionType action, i32 auxData)
+{
     network::EntityActionPacket packet;
     packet.setEntityId(static_cast<u32>(m_playerId));
     packet.setAction(action);
@@ -394,7 +412,8 @@ void NetworkClient::sendEntityAction(network::EntityActionType action, i32 auxDa
     }
 }
 
-void NetworkClient::poll() {
+void NetworkClient::poll()
+{
     if (!m_running) return;
 
     if (m_localEndpoint) {
@@ -416,15 +435,13 @@ void NetworkClient::poll() {
     // TCP 模式原有逻辑
     // 处理接收到的数据包
     processIncomingData();
-
 }
 
-void NetworkClient::receiveLoop() {
+void NetworkClient::receiveLoop()
+{
     while (m_running) {
         try {
-            size_t bytesRead = m_socket->read_some(
-                asio::buffer(m_receiveBuffer)
-            );
+            size_t bytesRead = m_socket->read_some(asio::buffer(m_receiveBuffer));
 
             if (bytesRead > 0) {
                 m_bytesReceived += bytesRead;
@@ -432,12 +449,10 @@ void NetworkClient::receiveLoop() {
                 // 将数据添加到处理缓冲区
                 std::lock_guard<std::mutex> lock(m_receiveMutex);
                 m_packetBuffer.insert(
-                    m_packetBuffer.end(),
-                    m_receiveBuffer.begin(),
-                    m_receiveBuffer.begin() + bytesRead
-                );
+                    m_packetBuffer.end(), m_receiveBuffer.begin(), m_receiveBuffer.begin() + bytesRead);
             }
-        } catch (const asio::system_error& e) {
+        }
+        catch (const asio::system_error& e) {
             if (m_running) {
                 spdlog::error("Receive error: {}", e.what());
                 disconnect("Connection error: " + std::string(e.what()));
@@ -447,7 +462,8 @@ void NetworkClient::receiveLoop() {
     }
 }
 
-void NetworkClient::processIncomingData() {
+void NetworkClient::processIncomingData()
+{
     std::vector<u8> dataToProcess;
     {
         std::lock_guard<std::mutex> lock(m_receiveMutex);
@@ -458,10 +474,8 @@ void NetworkClient::processIncomingData() {
     size_t offset = 0;
     while (offset + network::PACKET_HEADER_SIZE <= dataToProcess.size()) {
         // 读取包大小
-        u32 packetSize =
-            (static_cast<u32>(dataToProcess[offset]) << 24) |
-            (static_cast<u32>(dataToProcess[offset + 1]) << 16) |
-            (static_cast<u32>(dataToProcess[offset + 2]) << 8) |
+        u32 packetSize = (static_cast<u32>(dataToProcess[offset]) << 24) |
+            (static_cast<u32>(dataToProcess[offset + 1]) << 16) | (static_cast<u32>(dataToProcess[offset + 2]) << 8) |
             static_cast<u32>(dataToProcess[offset + 3]);
 
         if (packetSize > mc::network::MAX_PACKET_SIZE) {
@@ -485,15 +499,12 @@ void NetworkClient::processIncomingData() {
     // 保留未处理的数据
     if (offset < dataToProcess.size()) {
         std::lock_guard<std::mutex> lock(m_receiveMutex);
-        m_packetBuffer.insert(
-            m_packetBuffer.begin(),
-            dataToProcess.begin() + offset,
-            dataToProcess.end()
-        );
+        m_packetBuffer.insert(m_packetBuffer.begin(), dataToProcess.begin() + offset, dataToProcess.end());
     }
 }
 
-void NetworkClient::processPacket(const u8* data, size_t size) {
+void NetworkClient::processPacket(const u8* data, size_t size)
+{
     MC_TRACE_EVENT("client.network", "NetworkClient::processPacket", "size", size);
 
     MC_ASSERT_RELEASE(size >= network::PACKET_HEADER_SIZE);
@@ -609,7 +620,7 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
-        // ========== 实体包 ==========
+            // ========== 实体包 ==========
 
         case network::PacketType::SpawnEntity: {
             handleSpawnEntity(bodyDeser);
@@ -782,7 +793,8 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
     }
 }
 
-void NetworkClient::sendRawData(const u8* data, size_t size) {
+void NetworkClient::sendRawData(const u8* data, size_t size)
+{
     if (m_localEndpoint) {
         // 本地连接模式
         if (m_localEndpoint->isConnected()) {
@@ -802,20 +814,22 @@ void NetworkClient::sendRawData(const u8* data, size_t size) {
         asio::write(*m_socket, asio::buffer(data, size));
         m_bytesSent += size;
         m_packetsSent++;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         spdlog::error("Send error: {}", e.what());
     }
 }
 
-void NetworkClient::setState(ClientState state) {
+void NetworkClient::setState(ClientState state)
+{
     m_state = state;
 }
 
-
-void NetworkClient::handleKeepAlive(u64 id) {
-    m_lastKeepAliveReceived = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()
-    ).count();
+void NetworkClient::handleKeepAlive(u64 id)
+{
+    m_lastKeepAliveReceived =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+            .count();
 
     if (m_lastKeepAliveSent > 0) {
         m_ping = static_cast<u32>(m_lastKeepAliveReceived - m_lastKeepAliveSent);
@@ -824,9 +838,8 @@ void NetworkClient::handleKeepAlive(u64 id) {
     sendKeepAlive(id);
 }
 
-
-
-void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
+void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser)
+{
     auto result = network::LoginResponsePacket::deserialize(deser);
     if (result.failed()) {
         if (m_callbacks.onLoginFailed) {
@@ -842,7 +855,8 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
         EntityId entityId = response.entityId();
         setState(ClientState::Playing);
 
-        spdlog::info("[NetworkClient::handleLoginResponse] Login successful: playerId={}, entityId={}", m_playerId, entityId);
+        spdlog::info(
+            "[NetworkClient::handleLoginResponse] Login successful: playerId={}, entityId={}", m_playerId, entityId);
 
         if (m_callbacks.onLoginSuccess) {
             m_callbacks.onLoginSuccess(m_playerId, entityId, response.username());
@@ -858,11 +872,13 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleCommandTree(const u8* data, size_t size) {
+void NetworkClient::handleCommandTree(const u8* data, size_t size)
+{
     network::CommandTreePacket packet;
     auto result = packet.deserialize(data, size);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleCommandTree] Failed to deserialize command tree packet: {}", result.error().message());
+        spdlog::error("[NetworkClient::handleCommandTree] Failed to deserialize command tree packet: {}",
+            result.error().message());
         return;
     }
 
@@ -871,7 +887,8 @@ void NetworkClient::handleCommandTree(const u8* data, size_t size) {
     }
 }
 
-void NetworkClient::handleTeleport(network::PacketDeserializer& deser) {
+void NetworkClient::handleTeleport(network::PacketDeserializer& deser)
+{
     auto result = network::TeleportPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("[NetworkClient::handleTeleport] Failed to deserialize teleport packet");
@@ -885,33 +902,37 @@ void NetworkClient::handleTeleport(network::PacketDeserializer& deser) {
 
     // 回调通知
     if (m_callbacks.onTeleport) {
-        m_callbacks.onTeleport(
-            packet.x(), packet.y(), packet.z(),
-            packet.yaw(), packet.pitch(),
-            packet.teleportId()
-        );
+        m_callbacks.onTeleport(packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch(), packet.teleportId());
     }
 }
 
-void NetworkClient::handleChunkData(network::PacketDeserializer& deser) {
+void NetworkClient::handleChunkData(network::PacketDeserializer& deser)
+{
     auto result = network::ChunkDataPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleChunkData] Failed to deserialize chunk data packet: {}", result.error().message());
+        spdlog::error(
+            "[NetworkClient::handleChunkData] Failed to deserialize chunk data packet: {}", result.error().message());
         return;
     }
 
     auto& packet = result.value();
-    spdlog::debug("[NetworkClient::handleChunkData] Received chunk data: ({}, {}) dim={} size: {} bytes", packet.x(), packet.z(), packet.dimension(), packet.data().size());
+    spdlog::debug("[NetworkClient::handleChunkData] Received chunk data: ({}, {}) dim={} size: {} bytes",
+        packet.x(),
+        packet.z(),
+        packet.dimension(),
+        packet.data().size());
 
     if (m_callbacks.onChunkData) {
         m_callbacks.onChunkData(packet.x(), packet.z(), packet.dimension(), packet.data());
     }
 }
 
-void NetworkClient::handleTimeUpdate(network::PacketDeserializer& deser) {
+void NetworkClient::handleTimeUpdate(network::PacketDeserializer& deser)
+{
     auto result = network::TimeUpdatePacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleTimeUpdate] Failed to deserialize time update packet: {}", result.error().message());
+        spdlog::error(
+            "[NetworkClient::handleTimeUpdate] Failed to deserialize time update packet: {}", result.error().message());
         return;
     }
 
@@ -922,7 +943,8 @@ void NetworkClient::handleTimeUpdate(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser) {
+void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser)
+{
     auto result = network::UnloadChunkPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("[NetworkClient::handleUnloadChunk] Failed to deserialize unload chunk packet");
@@ -930,14 +952,18 @@ void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser) {
     }
 
     auto& packet = result.value();
-    spdlog::debug("[NetworkClient::handleUnloadChunk] Received unload chunk: ({}, {}) dim={}", packet.x(), packet.z(), packet.dimension());
+    spdlog::debug("[NetworkClient::handleUnloadChunk] Received unload chunk: ({}, {}) dim={}",
+        packet.x(),
+        packet.z(),
+        packet.dimension());
 
     if (m_callbacks.onChunkUnload) {
         m_callbacks.onChunkUnload(packet.x(), packet.z(), packet.dimension());
     }
 }
 
-void NetworkClient::handlePlayerSpawn(network::PacketDeserializer& deser) {
+void NetworkClient::handlePlayerSpawn(network::PacketDeserializer& deser)
+{
     auto result = network::PlayerSpawnPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("[NetworkClient::handlePlayerSpawn] Failed to deserialize player spawn packet");
@@ -948,13 +974,12 @@ void NetworkClient::handlePlayerSpawn(network::PacketDeserializer& deser) {
 
     if (m_callbacks.onPlayerSpawn) {
         m_callbacks.onPlayerSpawn(
-            packet.playerId(), packet.username(),
-            packet.position().x, packet.position().y, packet.position().z
-        );
+            packet.playerId(), packet.username(), packet.position().x, packet.position().y, packet.position().z);
     }
 }
 
-void NetworkClient::handlePlayerDespawn(network::PacketDeserializer& deser) {
+void NetworkClient::handlePlayerDespawn(network::PacketDeserializer& deser)
+{
     auto result = network::PlayerDespawnPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("[NetworkClient::handlePlayerDespawn] Failed to deserialize player despawn packet");
@@ -968,7 +993,8 @@ void NetworkClient::handlePlayerDespawn(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser) {
+void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser)
+{
     auto result = network::BlockUpdatePacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("[NetworkClient::handleBlockUpdate] Failed to deserialize block update packet");
@@ -982,21 +1008,20 @@ void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser) {
 
     MC_TRACE_INSTANT("client.lighting",
         "ReceiveBlockUpdate",
-        "pos", fmt::format("({}, {}, {})", packet.x(), packet.y(), packet.z()),
-        "stateId", packet.blockStateId(),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(packet.x(), packet.y(), packet.z()).toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        fmt::format("({}, {}, {})", packet.x(), packet.y(), packet.z()),
+        "stateId",
+        packet.blockStateId(),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(packet.x(), packet.y(), packet.z()).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     if (m_callbacks.onBlockUpdate) {
-        m_callbacks.onBlockUpdate(
-            packet.x(), packet.y(), packet.z(),
-            packet.blockStateId()
-        );
+        m_callbacks.onBlockUpdate(packet.x(), packet.y(), packet.z(), packet.blockStateId());
     }
 }
 
-void NetworkClient::handleChatMessage(network::PacketDeserializer& deser) {
+void NetworkClient::handleChatMessage(network::PacketDeserializer& deser)
+{
     auto result = network::ChatMessagePacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("[NetworkClient::handleChatMessage] Failed to deserialize chat message packet");
@@ -1010,7 +1035,8 @@ void NetworkClient::handleChatMessage(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handlePlayerInventory(network::PacketDeserializer& deser) {
+void NetworkClient::handlePlayerInventory(network::PacketDeserializer& deser)
+{
     auto result = PlayerInventoryPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to deserialize player inventory packet");
@@ -1023,7 +1049,8 @@ void NetworkClient::handlePlayerInventory(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleOpenContainer(network::PacketDeserializer& deser) {
+void NetworkClient::handleOpenContainer(network::PacketDeserializer& deser)
+{
     auto result = OpenContainerPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to deserialize open container packet: {}", result.error().message());
@@ -1035,7 +1062,8 @@ void NetworkClient::handleOpenContainer(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleContainerContent(network::PacketDeserializer& deser) {
+void NetworkClient::handleContainerContent(network::PacketDeserializer& deser)
+{
     auto result = ContainerContentPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to deserialize container content packet: {}", result.error().message());
@@ -1047,7 +1075,8 @@ void NetworkClient::handleContainerContent(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleContainerSlot(network::PacketDeserializer& deser) {
+void NetworkClient::handleContainerSlot(network::PacketDeserializer& deser)
+{
     auto result = ContainerSlotPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to deserialize container slot packet: {}", result.error().message());
@@ -1059,7 +1088,8 @@ void NetworkClient::handleContainerSlot(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleCloseContainer(network::PacketDeserializer& deser) {
+void NetworkClient::handleCloseContainer(network::PacketDeserializer& deser)
+{
     auto result = CloseContainerPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to deserialize close container packet: {}", result.error().message());
@@ -1075,7 +1105,8 @@ void NetworkClient::handleCloseContainer(network::PacketDeserializer& deser) {
 // 实体包处理
 // ============================================================================
 
-void NetworkClient::handleSpawnEntity(network::PacketDeserializer& deser) {
+void NetworkClient::handleSpawnEntity(network::PacketDeserializer& deser)
+{
     // 获取原始数据指针
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1088,25 +1119,30 @@ void NetworkClient::handleSpawnEntity(network::PacketDeserializer& deser) {
     }
 
     spdlog::info("Received SpawnEntity: id={}, type={}, pos=({:.1f}, {:.1f}, {:.1f}){}",
-                  packet.entityId(), packet.entityTypeId().c_str(),
-                  packet.x(), packet.y(), packet.z(),
-                  packet.hasItemStack() ? " (with ItemStack)" : "");
+        packet.entityId(),
+        packet.entityTypeId().c_str(),
+        packet.x(),
+        packet.y(),
+        packet.z(),
+        packet.hasItemStack() ? " (with ItemStack)" : "");
 
     if (m_callbacks.onSpawnEntity) {
-        m_callbacks.onSpawnEntity(
-            packet.entityId(),
+        m_callbacks.onSpawnEntity(packet.entityId(),
             packet.entityTypeId(),
-            packet.x(), packet.y(), packet.z(),
-            packet.yaw(), packet.pitch(),
+            packet.x(),
+            packet.y(),
+            packet.z(),
+            packet.yaw(),
+            packet.pitch(),
             static_cast<f32>(packet.velocityX()) / 8000.0f,
             static_cast<f32>(packet.velocityY()) / 8000.0f,
             static_cast<f32>(packet.velocityZ()) / 8000.0f,
-            packet.itemStack()
-        );
+            packet.itemStack());
     }
 }
 
-void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser) {
+void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1122,12 +1158,14 @@ void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser) {
     //             packet.x(), packet.y(), packet.z(), packet.metadata().size());
 
     if (m_callbacks.onSpawnMob) {
-        m_callbacks.onSpawnMob(
-            packet.entityId(),
+        m_callbacks.onSpawnMob(packet.entityId(),
             packet.entityTypeId(),
-            packet.x(), packet.y(), packet.z(),
-            packet.yaw(), packet.pitch(), packet.headYaw()
-        );
+            packet.x(),
+            packet.y(),
+            packet.z(),
+            packet.yaw(),
+            packet.pitch(),
+            packet.headYaw());
     }
 
     if (m_callbacks.onEntityMetadata) {
@@ -1135,7 +1173,8 @@ void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleEntityDestroy(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityDestroy(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1153,7 +1192,8 @@ void NetworkClient::handleEntityDestroy(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleEntityMove(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityMove(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1167,16 +1207,15 @@ void NetworkClient::handleEntityMove(network::PacketDeserializer& deser) {
     if (m_callbacks.onEntityMove) {
         // 相对移动转换为绝对位置需要客户端缓存
         // 这里简化处理，发送相对移动信息
-        m_callbacks.onEntityMove(
-            packet.entityId(),
-            packet.deltaX() / 32.0f,  // 转换为方块单位
+        m_callbacks.onEntityMove(packet.entityId(),
+            packet.deltaX() / 32.0f, // 转换为方块单位
             packet.deltaY() / 32.0f,
-            packet.deltaZ() / 32.0f
-        );
+            packet.deltaZ() / 32.0f);
     }
 }
 
-void NetworkClient::handleEntityTeleport(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityTeleport(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1189,14 +1228,12 @@ void NetworkClient::handleEntityTeleport(network::PacketDeserializer& deser) {
 
     if (m_callbacks.onEntityTeleport) {
         m_callbacks.onEntityTeleport(
-            packet.entityId(),
-            packet.x(), packet.y(), packet.z(),
-            packet.yaw(), packet.pitch()
-        );
+            packet.entityId(), packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
     }
 }
 
-void NetworkClient::handleEntityVelocity(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityVelocity(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1208,16 +1245,12 @@ void NetworkClient::handleEntityVelocity(network::PacketDeserializer& deser) {
     }
 
     if (m_callbacks.onEntityVelocity) {
-        m_callbacks.onEntityVelocity(
-            packet.entityId(),
-            packet.velocityX(),
-            packet.velocityY(),
-            packet.velocityZ()
-        );
+        m_callbacks.onEntityVelocity(packet.entityId(), packet.velocityX(), packet.velocityY(), packet.velocityZ());
     }
 }
 
-void NetworkClient::handleEntityMetadata(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityMetadata(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1228,15 +1261,16 @@ void NetworkClient::handleEntityMetadata(network::PacketDeserializer& deser) {
         return;
     }
 
-    spdlog::debug("Received EntityMetadata for entity {}, metadata size: {}",
-                  packet.entityId(), packet.metadata().size());
+    spdlog::debug(
+        "Received EntityMetadata for entity {}, metadata size: {}", packet.entityId(), packet.metadata().size());
 
     if (m_callbacks.onEntityMetadata) {
         m_callbacks.onEntityMetadata(packet.entityId(), packet.metadata());
     }
 }
 
-void NetworkClient::handleEntityAnimation(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityAnimation(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1248,14 +1282,12 @@ void NetworkClient::handleEntityAnimation(network::PacketDeserializer& deser) {
     }
 
     if (m_callbacks.onEntityAnimation) {
-        m_callbacks.onEntityAnimation(
-            packet.entityId(),
-            static_cast<u8>(packet.animation())
-        );
+        m_callbacks.onEntityAnimation(packet.entityId(), static_cast<u8>(packet.animation()));
     }
 }
 
-void NetworkClient::handleEntityHeadLook(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityHeadLook(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1267,14 +1299,12 @@ void NetworkClient::handleEntityHeadLook(network::PacketDeserializer& deser) {
     }
 
     if (m_callbacks.onEntityHeadLook) {
-        m_callbacks.onEntityHeadLook(
-            packet.entityId(),
-            packet.headYaw()
-        );
+        m_callbacks.onEntityHeadLook(packet.entityId(), packet.headYaw());
     }
 }
 
-void NetworkClient::handleEntityStatus(network::PacketDeserializer& deser) {
+void NetworkClient::handleEntityStatus(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1286,14 +1316,12 @@ void NetworkClient::handleEntityStatus(network::PacketDeserializer& deser) {
     }
 
     if (m_callbacks.onEntityStatus) {
-        m_callbacks.onEntityStatus(
-            packet.entityId(),
-            static_cast<u8>(packet.status())
-        );
+        m_callbacks.onEntityStatus(packet.entityId(), static_cast<u8>(packet.status()));
     }
 }
 
-void NetworkClient::handleCollectItem(network::PacketDeserializer& deser) {
+void NetworkClient::handleCollectItem(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1309,7 +1337,8 @@ void NetworkClient::handleCollectItem(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser) {
+void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser)
+{
     // GameStateChangePacket 使用原始数据 deserialize，需要获取底层数据
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1361,13 +1390,13 @@ void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser) {
             break;
 
         default:
-            spdlog::warn("GameStateChange: unhandled reason={}, value={}",
-                          static_cast<u8>(reason), value);
+            spdlog::warn("GameStateChange: unhandled reason={}, value={}", static_cast<u8>(reason), value);
             break;
     }
 }
 
-void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser) {
+void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1378,23 +1407,27 @@ void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser) {
         return;
     }
 
-    spdlog::info("[NetworkClient::handlePlayerAbilities] PlayerAbilities: invulnerable={}, flying={}, canFly={}, creativeMode={}, flySpeed={}, walkSpeed={}",
-                  packet.invulnerable(), packet.flying(), packet.canFly(),
-                  packet.creativeMode(), packet.flySpeed(), packet.walkSpeed());
+    spdlog::info("[NetworkClient::handlePlayerAbilities] PlayerAbilities: invulnerable={}, flying={}, canFly={}, "
+                 "creativeMode={}, flySpeed={}, walkSpeed={}",
+        packet.invulnerable(),
+        packet.flying(),
+        packet.canFly(),
+        packet.creativeMode(),
+        packet.flySpeed(),
+        packet.walkSpeed());
 
     if (m_callbacks.onPlayerAbilities) {
-        m_callbacks.onPlayerAbilities(
-            packet.invulnerable(),
+        m_callbacks.onPlayerAbilities(packet.invulnerable(),
             packet.flying(),
             packet.canFly(),
             packet.creativeMode(),
             packet.flySpeed(),
-            packet.walkSpeed()
-        );
+            packet.walkSpeed());
     }
 }
 
-void NetworkClient::handleServerDifficulty(network::PacketDeserializer& deser) {
+void NetworkClient::handleServerDifficulty(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1406,14 +1439,16 @@ void NetworkClient::handleServerDifficulty(network::PacketDeserializer& deser) {
     }
 
     spdlog::info("[NetworkClient::handleServerDifficulty] Difficulty: {}, locked: {}",
-                  static_cast<i32>(packet.difficulty()), packet.locked());
+        static_cast<i32>(packet.difficulty()),
+        packet.locked());
 
     if (m_callbacks.onDifficultyChange) {
         m_callbacks.onDifficultyChange(packet.difficulty(), packet.locked());
     }
 }
 
-void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser) {
+void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser)
+{
     auto result = network::LightUpdatePacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to deserialize LightUpdate packet: {}", result.error().message());
@@ -1421,28 +1456,30 @@ void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser) {
     }
 
     const auto& packet = result.value();
-        MC_TRACE_EVENT("client.lighting",
+    MC_TRACE_EVENT("client.lighting",
         "NetworkClient::handleLightUpdate",
-        "Section", fmt::format("({}, {}, {})", packet.chunkX(), packet.sectionY(), packet.chunkZ()),
-        "SkyLightSize", packet.skyLight().size(),
-        "BlockLightSize", packet.blockLight().size(),
-        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(packet.chunkX(), packet.sectionY(), packet.chunkZ()).toLong())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "Section",
+        fmt::format("({}, {}, {})", packet.chunkX(), packet.sectionY(), packet.chunkZ()),
+        "SkyLightSize",
+        packet.skyLight().size(),
+        "BlockLightSize",
+        packet.blockLight().size(),
+        [flow = ::perfetto::Flow::ProcessScoped(
+             SectionPos(packet.chunkX(), packet.sectionY(), packet.chunkZ()).toLong())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     if (m_callbacks.onLightUpdate) {
-        m_callbacks.onLightUpdate(
-            packet.chunkX(),
+        m_callbacks.onLightUpdate(packet.chunkX(),
             packet.chunkZ(),
             packet.sectionY(),
             packet.skyLight(),
             packet.blockLight(),
-            packet.trustEdges()
-        );
+            packet.trustEdges());
     }
 }
 
-void NetworkClient::handleBlockBreakAnim(network::PacketDeserializer& deser) {
+void NetworkClient::handleBlockBreakAnim(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1455,16 +1492,12 @@ void NetworkClient::handleBlockBreakAnim(network::PacketDeserializer& deser) {
 
     if (m_callbacks.onBlockBreakAnim) {
         m_callbacks.onBlockBreakAnim(
-            packet.breakerEntityId(),
-            packet.position().x,
-            packet.position().y,
-            packet.position().z,
-            packet.stage()
-        );
+            packet.breakerEntityId(), packet.position().x, packet.position().y, packet.position().z, packet.stage());
     }
 }
 
-void NetworkClient::handlePlaySound(network::PacketDeserializer& deser) {
+void NetworkClient::handlePlaySound(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1477,21 +1510,21 @@ void NetworkClient::handlePlaySound(network::PacketDeserializer& deser) {
 
     const glm::vec3 pos = packet.getPosition();
     spdlog::debug("[NetworkClient] Received PlaySound: {} at ({}, {}, {}) vol={} pitch={}",
-                  packet.getSoundEventId().toString(), pos.x, pos.y, pos.z,
-                  packet.getVolume(), packet.getPitch());
+        packet.getSoundEventId().toString(),
+        pos.x,
+        pos.y,
+        pos.z,
+        packet.getVolume(),
+        packet.getPitch());
 
     if (m_callbacks.onPlaySound) {
-        m_callbacks.onPlaySound(packet.getSoundEventId(),
-                                packet.getCategory(),
-                                pos.x,
-                                pos.y,
-                                pos.z,
-                                packet.getVolume(),
-                                packet.getPitch());
+        m_callbacks.onPlaySound(
+            packet.getSoundEventId(), packet.getCategory(), pos.x, pos.y, pos.z, packet.getVolume(), packet.getPitch());
     }
 }
 
-void NetworkClient::handleStopSound(network::PacketDeserializer& deser) {
+void NetworkClient::handleStopSound(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1507,7 +1540,8 @@ void NetworkClient::handleStopSound(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handlePlaySoundEffect(network::PacketDeserializer& deser) {
+void NetworkClient::handlePlaySoundEffect(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1521,17 +1555,13 @@ void NetworkClient::handlePlaySoundEffect(network::PacketDeserializer& deser) {
     // 当前客户端没有区分 sound 与 sound effect，统一通过 onPlaySound 回调播放
     if (m_callbacks.onPlaySound) {
         const glm::vec3 pos = packet.getPosition();
-        m_callbacks.onPlaySound(packet.getSoundEventId(),
-                                packet.getCategory(),
-                                pos.x,
-                                pos.y,
-                                pos.z,
-                                packet.getVolume(),
-                                packet.getPitch());
+        m_callbacks.onPlaySound(
+            packet.getSoundEventId(), packet.getCategory(), pos.x, pos.y, pos.z, packet.getVolume(), packet.getPitch());
     }
 }
 
-void NetworkClient::handleSetExperience(network::PacketDeserializer& deser) {
+void NetworkClient::handleSetExperience(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1547,7 +1577,8 @@ void NetworkClient::handleSetExperience(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleSpawnExperienceOrb(network::PacketDeserializer& deser) {
+void NetworkClient::handleSpawnExperienceOrb(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1560,16 +1591,12 @@ void NetworkClient::handleSpawnExperienceOrb(network::PacketDeserializer& deser)
 
     if (m_callbacks.onSpawnExperienceOrb) {
         m_callbacks.onSpawnExperienceOrb(
-            static_cast<u32>(packet.entityId()),
-            packet.x(),
-            packet.y(),
-            packet.z(),
-            packet.xpValue()
-        );
+            static_cast<u32>(packet.entityId()), packet.x(), packet.y(), packet.z(), packet.xpValue());
     }
 }
 
-void NetworkClient::handlePlayerListItem(network::PacketDeserializer& deser) {
+void NetworkClient::handlePlayerListItem(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1629,7 +1656,8 @@ void NetworkClient::handlePlayerListItem(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleParticle(network::PacketDeserializer& deser) {
+void NetworkClient::handleParticle(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1641,16 +1669,22 @@ void NetworkClient::handleParticle(network::PacketDeserializer& deser) {
     }
 
     if (m_callbacks.onParticle) {
-        m_callbacks.onParticle(
-            packet.particleType(),
-            packet.x(), packet.y(), packet.z(),
-            packet.velocityX(), packet.velocityY(), packet.velocityZ(),
-            packet.offsetX(), packet.offsetY(), packet.offsetZ(),
+        m_callbacks.onParticle(packet.particleType(),
+            packet.x(),
+            packet.y(),
+            packet.z(),
+            packet.velocityX(),
+            packet.velocityY(),
+            packet.velocityZ(),
+            packet.offsetX(),
+            packet.offsetY(),
+            packet.offsetZ(),
             packet.count());
     }
 }
 
-void NetworkClient::handleMovingSound(network::PacketDeserializer& deser) {
+void NetworkClient::handleMovingSound(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1662,21 +1696,22 @@ void NetworkClient::handleMovingSound(network::PacketDeserializer& deser) {
     }
 
     spdlog::debug("[NetworkClient] Received MovingSound: {} for entity {} vol={} pitch={}",
-                  packet.getSoundEventId().toString(), packet.getEntityId(),
-                  packet.getVolume(), packet.getPitch());
+        packet.getSoundEventId().toString(),
+        packet.getEntityId(),
+        packet.getVolume(),
+        packet.getPitch());
 
     if (m_callbacks.onMovingSound) {
-        m_callbacks.onMovingSound(
-            packet.getSoundEventId(),
+        m_callbacks.onMovingSound(packet.getSoundEventId(),
             packet.getCategory(),
             packet.getEntityId(),
             packet.getVolume(),
-            packet.getPitch()
-        );
+            packet.getPitch());
     }
 }
 
-void NetworkClient::handleWorldEvent(network::PacketDeserializer& deser) {
+void NetworkClient::handleWorldEvent(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1688,21 +1723,19 @@ void NetworkClient::handleWorldEvent(network::PacketDeserializer& deser) {
     }
 
     spdlog::debug("[NetworkClient] Received WorldEvent: id={}, pos=({},{},{}), data={}",
-                  packet.getEventId(), packet.getX(), packet.getY(), packet.getZ(),
-                  packet.getData());
+        packet.getEventId(),
+        packet.getX(),
+        packet.getY(),
+        packet.getZ(),
+        packet.getData());
 
     if (m_callbacks.onWorldEvent) {
-        m_callbacks.onWorldEvent(
-            packet.getEventId(),
-            packet.getX(),
-            packet.getY(),
-            packet.getZ(),
-            packet.getData()
-        );
+        m_callbacks.onWorldEvent(packet.getEventId(), packet.getX(), packet.getY(), packet.getZ(), packet.getData());
     }
 }
 
-void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser) {
+void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1714,14 +1747,16 @@ void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser) {
     }
 
     spdlog::debug("[NetworkClient] Received SetPassengers: vehicle={}, passengers={}",
-                  packet.entityId(), packet.passengerIds().size());
+        packet.entityId(),
+        packet.passengerIds().size());
 
     if (m_callbacks.onSetPassengers) {
         m_callbacks.onSetPassengers(packet.entityId(), packet.passengerIds());
     }
 }
 
-void NetworkClient::handleRespawn(network::PacketDeserializer& deser) {
+void NetworkClient::handleRespawn(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1733,24 +1768,25 @@ void NetworkClient::handleRespawn(network::PacketDeserializer& deser) {
     }
 
     spdlog::info("[NetworkClient] Received Respawn: dimensionType={}, dimension={}, gameMode={}, keepData={}",
-                 packet.dimensionType(), static_cast<i32>(packet.dimension()),
-                 static_cast<i32>(packet.gameMode()), packet.keepData());
+        packet.dimensionType(),
+        static_cast<i32>(packet.dimension()),
+        static_cast<i32>(packet.gameMode()),
+        packet.keepData());
 
     if (m_callbacks.onRespawn) {
-        m_callbacks.onRespawn(
-            packet.dimensionType(),
+        m_callbacks.onRespawn(packet.dimensionType(),
             packet.dimension(),
             packet.hashedSeed(),
             packet.gameMode(),
             packet.previousGameMode(),
             packet.isDebug(),
             packet.isFlat(),
-            packet.keepData()
-        );
+            packet.keepData());
     }
 }
 
-void NetworkClient::handleDimensionInfo(network::PacketDeserializer& deser) {
+void NetworkClient::handleDimensionInfo(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1774,7 +1810,8 @@ void NetworkClient::handleDimensionInfo(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleSpawnPosition(network::PacketDeserializer& deser) {
+void NetworkClient::handleSpawnPosition(network::PacketDeserializer& deser)
+{
     network::SpawnPositionPacket packet;
     auto result = packet.deserialize(deser.data(), deser.size());
     if (result.failed()) {
@@ -1791,7 +1828,8 @@ void NetworkClient::handleSpawnPosition(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleVehicleMove(network::PacketDeserializer& deser) {
+void NetworkClient::handleVehicleMove(network::PacketDeserializer& deser)
+{
     network::VehicleMovePacket packet;
     auto result = packet.deserialize(deser.data(), deser.size());
     if (result.failed()) {
@@ -1800,14 +1838,19 @@ void NetworkClient::handleVehicleMove(network::PacketDeserializer& deser) {
     }
 
     spdlog::debug("[NetworkClient] Received VehicleMove: pos=({:.2f}, {:.2f}, {:.2f}), yaw={:.1f}, pitch={:.1f}",
-                  packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
+        packet.x(),
+        packet.y(),
+        packet.z(),
+        packet.yaw(),
+        packet.pitch());
 
     if (m_callbacks.onVehicleMove) {
         m_callbacks.onVehicleMove(packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
     }
 }
 
-void NetworkClient::handleSleep(network::PacketDeserializer& deser) {
+void NetworkClient::handleSleep(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 
@@ -1821,7 +1864,10 @@ void NetworkClient::handleSleep(network::PacketDeserializer& deser) {
     if (packet.isSleeping()) {
         const auto& bedPos = packet.bedPosition();
         spdlog::info("[NetworkClient] Received Sleep: entity {} sleeping at ({}, {}, {})",
-                     packet.entityId(), bedPos->x, bedPos->y, bedPos->z);
+            packet.entityId(),
+            bedPos->x,
+            bedPos->y,
+            bedPos->z);
     } else {
         spdlog::info("[NetworkClient] Received Sleep: entity {} woke up", packet.entityId());
     }
@@ -1836,7 +1882,8 @@ void NetworkClient::handleSleep(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleHotbarSet(network::PacketDeserializer& deser) {
+void NetworkClient::handleHotbarSet(network::PacketDeserializer& deser)
+{
     auto result = HotbarSetPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to deserialize HotbarSet packet: {}", result.error().message());
@@ -1851,7 +1898,8 @@ void NetworkClient::handleHotbarSet(network::PacketDeserializer& deser) {
     }
 }
 
-void NetworkClient::handleTitle(network::PacketDeserializer& deser) {
+void NetworkClient::handleTitle(network::PacketDeserializer& deser)
+{
     const u8* data = deser.data();
     size_t size = deser.size();
 

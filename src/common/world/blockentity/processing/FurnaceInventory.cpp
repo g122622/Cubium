@@ -6,16 +6,18 @@ namespace mc {
 namespace blockentity {
 
 FurnaceInventory::FurnaceInventory()
-    : m_items{} {
+    : m_items{}
+{
     // 所有槽位初始化为空物品堆
 }
 
 FurnaceInventory::FurnaceInventory(std::function<void()> onChanged)
     : m_items{}
-    , m_onChanged(std::move(onChanged)) {
-}
+    , m_onChanged(std::move(onChanged))
+{}
 
-bool FurnaceInventory::isEmpty() const {
+bool FurnaceInventory::isEmpty() const
+{
     for (const auto& item : m_items) {
         if (!item.isEmpty()) {
             return false;
@@ -24,20 +26,23 @@ bool FurnaceInventory::isEmpty() const {
     return true;
 }
 
-ItemStack FurnaceInventory::getItem(i32 slot) const {
+ItemStack FurnaceInventory::getItem(i32 slot) const
+{
     if (!isValidSlot(slot)) {
         return ItemStack();
     }
     return m_items[static_cast<std::size_t>(slot)];
 }
 
-void FurnaceInventory::setItem(i32 slot, const ItemStack& stack) {
+void FurnaceInventory::setItem(i32 slot, const ItemStack& stack)
+{
     MC_ASSERT(isValidSlot(slot) && "Slot index out of bounds");
     m_items[static_cast<std::size_t>(slot)] = stack;
     onChanged();
 }
 
-ItemStack FurnaceInventory::removeItem(i32 slot, i32 count) {
+ItemStack FurnaceInventory::removeItem(i32 slot, i32 count)
+{
     if (!isValidSlot(slot) || count <= 0) {
         return ItemStack();
     }
@@ -58,7 +63,8 @@ ItemStack FurnaceInventory::removeItem(i32 slot, i32 count) {
     return result;
 }
 
-ItemStack FurnaceInventory::removeItemNoUpdate(i32 slot) {
+ItemStack FurnaceInventory::removeItemNoUpdate(i32 slot)
+{
     if (!isValidSlot(slot)) {
         return ItemStack();
     }
@@ -69,18 +75,21 @@ ItemStack FurnaceInventory::removeItemNoUpdate(i32 slot) {
     return result;
 }
 
-void FurnaceInventory::clear() {
+void FurnaceInventory::clear()
+{
     for (auto& item : m_items) {
         item = ItemStack();
     }
     onChanged();
 }
 
-void FurnaceInventory::setChanged() {
+void FurnaceInventory::setChanged()
+{
     onChanged();
 }
 
-bool FurnaceInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
+bool FurnaceInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
+{
     if (!isValidSlot(slot) || stack.isEmpty()) {
         return false;
     }
@@ -102,14 +111,16 @@ bool FurnaceInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
     return existing.getCount() + stack.getCount() <= maxCount;
 }
 
-void FurnaceInventory::serialize(network::PacketSerializer& ser) const {
+void FurnaceInventory::serialize(network::PacketSerializer& ser) const
+{
     ser.writeVarInt(SLOT_COUNT);
     for (const auto& item : m_items) {
         item.serialize(ser);
     }
 }
 
-ItemStack FurnaceInventory::addToOutput(const ItemStack& stack) {
+ItemStack FurnaceInventory::addToOutput(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return ItemStack();
     }
@@ -143,7 +154,8 @@ ItemStack FurnaceInventory::addToOutput(const ItemStack& stack) {
     return stack;
 }
 
-bool FurnaceInventory::canAcceptOutput(const ItemStack& stack) const {
+bool FurnaceInventory::canAcceptOutput(const ItemStack& stack) const
+{
     if (stack.isEmpty()) {
         return true;
     }
@@ -162,7 +174,8 @@ bool FurnaceInventory::canAcceptOutput(const ItemStack& stack) const {
     return output.getCount() + stack.getCount() <= maxCount;
 }
 
-void FurnaceInventory::onChanged() {
+void FurnaceInventory::onChanged()
+{
     if (m_onChanged) {
         m_onChanged();
     }

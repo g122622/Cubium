@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../MonsterEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -207,15 +207,15 @@ private:
     // 溺水转化
     bool m_converting = false;
     i32 m_conversionTime = 0;
-    i32 m_inWaterTime = 0;  // 在水中的时间
+    i32 m_inWaterTime = 0; // 在水中的时间
 
     // 婴儿状态
     bool m_isBaby = false;
 
     // 常量
-    static constexpr i32 CONVERSION_DURATION = 300;   // 15秒转化时间 (300 ticks)
-    static constexpr i32 IN_WATER_TIME_THRESHOLD = 600;  // 水下30秒开始转化
-    static constexpr f32 BABY_SPEED_BOOST = 0.5f;      // 婴儿速度加成 50%
+    static constexpr i32 CONVERSION_DURATION = 300;     // 15秒转化时间 (300 ticks)
+    static constexpr i32 IN_WATER_TIME_THRESHOLD = 600; // 水下30秒开始转化
+    static constexpr f32 BABY_SPEED_BOOST = 0.5f;       // 婴儿速度加成 50%
 
     /**
      * @brief 更新溺水转化

@@ -31,21 +31,17 @@ public:
      * @param min 最小值（包含）
      * @param max 最大值（包含）
      */
-    explicit UniformIntDistribution(i32 min = 0,
-                                     i32 max = std::numeric_limits<i32>::max())
+    explicit UniformIntDistribution(i32 min = 0, i32 max = std::numeric_limits<i32>::max())
         : m_min(min)
         , m_max(max)
-    {
-    }
+    {}
 
     /**
      * @brief 使用指定的随机数生成器生成随机数
      * @param random 随机数生成器
      * @return [min, max] 范围内的随机整数
      */
-    [[nodiscard]] i32 operator()(IRandom& random) const {
-        return random.nextInt(m_min, m_max);
-    }
+    [[nodiscard]] i32 operator()(IRandom& random) const { return random.nextInt(m_min, m_max); }
 
     /**
      * @brief 创建一个新的 Random 并生成随机数（便捷方法）

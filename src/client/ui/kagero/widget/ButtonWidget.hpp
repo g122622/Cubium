@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Widget.hpp"
-#include "../paint/PaintContext.hpp"
 #include "../../Glyph.hpp"
+#include "../paint/PaintContext.hpp"
+#include "Widget.hpp"
 #include <functional>
 #include <string>
 
@@ -38,15 +38,15 @@ public:
      * @brief 按钮样式
      */
     struct Style {
-        u32 normalColor = Colors::fromARGB(255, 60, 60, 60);      ///< 正常状态颜色
-        u32 hoverColor = Colors::fromARGB(255, 80, 80, 80);       ///< 悬停状态颜色
-        u32 disabledColor = Colors::fromARGB(255, 40, 40, 40);    ///< 禁用状态颜色
-        u32 textColor = Colors::WHITE;                             ///< 文本颜色
+        u32 normalColor = Colors::fromARGB(255, 60, 60, 60);          ///< 正常状态颜色
+        u32 hoverColor = Colors::fromARGB(255, 80, 80, 80);           ///< 悬停状态颜色
+        u32 disabledColor = Colors::fromARGB(255, 40, 40, 40);        ///< 禁用状态颜色
+        u32 textColor = Colors::WHITE;                                ///< 文本颜色
         u32 disabledTextColor = Colors::fromARGB(255, 128, 128, 128); ///< 禁用文本颜色
-        u32 borderColor = Colors::fromARGB(255, 100, 100, 100);   ///< 边框颜色
-        u32 hoverBorderColor = Colors::fromARGB(255, 150, 150, 150); ///< 悬停边框颜色
-        i32 cornerRadius = 3;                                      ///< 圆角半径
-        bool drawBorder = true;                                    ///< 是否绘制边框
+        u32 borderColor = Colors::fromARGB(255, 100, 100, 100);       ///< 边框颜色
+        u32 hoverBorderColor = Colors::fromARGB(255, 150, 150, 150);  ///< 悬停边框颜色
+        i32 cornerRadius = 3;                                         ///< 圆角半径
+        bool drawBorder = true;                                       ///< 是否绘制边框
     };
 
     /**
@@ -75,7 +75,8 @@ public:
      */
     ButtonWidget(std::string id, i32 x, i32 y, i32 width, i32 height, std::string text)
         : Widget(std::move(id))
-        , m_text(std::move(text)) {
+        , m_text(std::move(text))
+    {
         setBounds(Rect(x, y, width, height));
     }
 
@@ -89,21 +90,23 @@ public:
      * @param text 按钮文本
      * @param onPress 点击回调
      */
-    ButtonWidget(std::string id, i32 x, i32 y, i32 width, i32 height,
-                 std::string text, OnPressCallback onPress)
+    ButtonWidget(std::string id, i32 x, i32 y, i32 width, i32 height, std::string text, OnPressCallback onPress)
         : Widget(std::move(id))
         , m_text(std::move(text))
-        , m_onPress(std::move(onPress)) {
+        , m_onPress(std::move(onPress))
+    {
         setBounds(Rect(x, y, width, height));
     }
 
     // ==================== 生命周期 ====================
 
-    void init() override {
+    void init() override
+    {
         // 初始化按钮状态
     }
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         if (!isVisible()) return;
         ctx.drawFilledRect(bounds(), getBackgroundColor());
         if (m_style.drawBorder) {
@@ -115,7 +118,8 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -133,7 +137,8 @@ public:
         return true;
     }
 
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
         (void)button;
@@ -145,9 +150,7 @@ public:
     /**
      * @brief 设置按钮文本
      */
-    void setText(const std::string& text) {
-        m_text = text;
-    }
+    void setText(const std::string& text) { m_text = text; }
 
     /**
      * @brief 获取按钮文本
@@ -157,23 +160,17 @@ public:
     /**
      * @brief 设置点击回调
      */
-    void setOnPress(OnPressCallback callback) {
-        m_onPress = std::move(callback);
-    }
+    void setOnPress(OnPressCallback callback) { m_onPress = std::move(callback); }
 
     /**
      * @brief 设置提示回调
      */
-    void setOnTooltip(OnTooltipCallback callback) {
-        m_onTooltip = std::move(callback);
-    }
+    void setOnTooltip(OnTooltipCallback callback) { m_onTooltip = std::move(callback); }
 
     /**
      * @brief 设置样式
      */
-    void setStyle(const Style& style) {
-        m_style = style;
-    }
+    void setStyle(const Style& style) { m_style = style; }
 
     /**
      * @brief 获取样式
@@ -188,7 +185,8 @@ public:
     /**
      * @brief 获取当前渲染状态（0=禁用，1=正常，2=悬停）
      */
-    [[nodiscard]] i32 getRenderState() const {
+    [[nodiscard]] i32 getRenderState() const
+    {
         if (!isActive()) return 0;
         if (isHovered()) return 2;
         return 1;
@@ -197,20 +195,22 @@ public:
     /**
      * @brief 获取当前背景颜色
      */
-    [[nodiscard]] u32 getBackgroundColor() const {
+    [[nodiscard]] u32 getBackgroundColor() const
+    {
         switch (getRenderState()) {
-            case 0: return m_style.disabledColor;
-            case 2: return m_style.hoverColor;
-            default: return m_style.normalColor;
+            case 0:
+                return m_style.disabledColor;
+            case 2:
+                return m_style.hoverColor;
+            default:
+                return m_style.normalColor;
         }
     }
 
     /**
      * @brief 获取当前文本颜色
      */
-    [[nodiscard]] u32 getTextColor() const {
-        return isActive() ? m_style.textColor : m_style.disabledTextColor;
-    }
+    [[nodiscard]] u32 getTextColor() const { return isActive() ? m_style.textColor : m_style.disabledTextColor; }
 
 protected:
     /**
@@ -219,14 +219,12 @@ protected:
      * 子类可重写以自定义音效。
      * 默认播放 minecraft:ui.button.click，音量 0.25（MC 1.16.5 标准）。
      */
-    virtual void playClickSound() {
-        Widget::playUiSound("minecraft:ui.button.click");
-    }
+    virtual void playClickSound() { Widget::playUiSound("minecraft:ui.button.click"); }
 
-    std::string m_text;                      ///< 按钮文本
-    OnPressCallback m_onPress;          ///< 点击回调
-    OnTooltipCallback m_onTooltip;      ///< 提示回调
-    Style m_style;                      ///< 按钮样式
+    std::string m_text;            ///< 按钮文本
+    OnPressCallback m_onPress;     ///< 点击回调
+    OnTooltipCallback m_onTooltip; ///< 提示回调
+    Style m_style;                 ///< 按钮样式
 };
 
 /**
@@ -248,15 +246,17 @@ public:
      * @param hoveredVU 悬停时的U偏移
      * @param texturePath 纹理路径
      */
-    ImageButtonWidget(std::string id, i32 x, i32 y, i32 width, i32 height,
-                      i32 u, i32 v, i32 hoveredVU, std::string texturePath)
+    ImageButtonWidget(
+        std::string id, i32 x, i32 y, i32 width, i32 height, i32 u, i32 v, i32 hoveredVU, std::string texturePath)
         : ButtonWidget(std::move(id), x, y, width, height, "")
         , m_u(u)
         , m_v(v)
         , m_hoveredU(hoveredVU)
-        , m_texturePath(std::move(texturePath)) {}
+        , m_texturePath(std::move(texturePath))
+    {}
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         if (!isVisible()) return;
         (void)ctx;
         // TODO: 实际渲染逻辑
@@ -266,7 +266,8 @@ public:
     /**
      * @brief 设置纹理坐标
      */
-    void setTextureCoords(i32 u, i32 v, i32 hoveredU) {
+    void setTextureCoords(i32 u, i32 v, i32 hoveredU)
+    {
         m_u = u;
         m_v = v;
         m_hoveredU = hoveredU;
@@ -275,15 +276,13 @@ public:
     /**
      * @brief 设置纹理路径
      */
-    void setTexturePath(std::string path) {
-        m_texturePath = std::move(path);
-    }
+    void setTexturePath(std::string path) { m_texturePath = std::move(path); }
 
 private:
-    i32 m_u = 0;            ///< 纹理U坐标
-    i32 m_v = 0;            ///< 纹理V坐标
-    i32 m_hoveredU = 0;     ///< 悬停时的U偏移
-    std::string m_texturePath;   ///< 纹理路径
+    i32 m_u = 0;               ///< 纹理U坐标
+    i32 m_v = 0;               ///< 纹理V坐标
+    i32 m_hoveredU = 0;        ///< 悬停时的U偏移
+    std::string m_texturePath; ///< 纹理路径
 };
 
 } // namespace mc::client::ui::kagero::widget

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "common/world/explosion/Explosion.hpp"
-#include "common/world/explosion/ExplosionMode.hpp"
-#include "common/world/explosion/ExplosionContext.hpp"
+#include "common/core/Constants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/core/Constants.hpp"
+#include "common/world/explosion/Explosion.hpp"
+#include "common/world/explosion/ExplosionContext.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
 
 #include <memory>
 
@@ -20,15 +20,17 @@ namespace {
 class BlastResistantBlock final : public Block {
 public:
     BlastResistantBlock()
-        : Block(makeProperties()) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        : Block(makeProperties())
+    {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+            [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
             });
         createBlockState(std::move(container));
     }
 
-    [[nodiscard]] static BlockProperties makeProperties() {
+    [[nodiscard]] static BlockProperties makeProperties()
+    {
         return BlockProperties(Material::ROCK).resistance(1200.0f);
     }
 };
@@ -39,24 +41,24 @@ public:
 class FragileBlock final : public Block {
 public:
     FragileBlock()
-        : Block(makeProperties()) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        : Block(makeProperties())
+    {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+            [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
             });
         createBlockState(std::move(container));
     }
 
-    [[nodiscard]] static BlockProperties makeProperties() {
-        return BlockProperties(Material::EARTH).resistance(0.5f);
-    }
+    [[nodiscard]] static BlockProperties makeProperties() { return BlockProperties(Material::EARTH).resistance(0.5f); }
 };
 
 // ============================================================================
 // ExplosionMode 测试
 // ============================================================================
 
-TEST(ExplosionModeTest, EnumValues) {
+TEST(ExplosionModeTest, EnumValues)
+{
     EXPECT_EQ(static_cast<int>(ExplosionMode::None), 0);
     EXPECT_EQ(static_cast<int>(ExplosionMode::Break), 1);
     EXPECT_EQ(static_cast<int>(ExplosionMode::Destroy), 2);
@@ -66,7 +68,8 @@ TEST(ExplosionModeTest, EnumValues) {
 // ExplosionContext 测试
 // ============================================================================
 
-TEST(ExplosionContextTest, DefaultResistance) {
+TEST(ExplosionContextTest, DefaultResistance)
+{
     ExplosionContext context;
 
     // 创建测试方块状态
@@ -79,7 +82,8 @@ TEST(ExplosionContextTest, DefaultResistance) {
     EXPECT_FLOAT_EQ(resistance.value(), 0.5f);
 }
 
-TEST(ExplosionContextTest, CanDestroyBlock) {
+TEST(ExplosionContextTest, CanDestroyBlock)
+{
     ExplosionContext context;
 
     FragileBlock fragileBlock;
@@ -89,7 +93,8 @@ TEST(ExplosionContextTest, CanDestroyBlock) {
     EXPECT_TRUE(context.canDestroyBlock(fragileState, 1.0f));
 }
 
-TEST(ExplosionContextTest, BlastResistantBlock) {
+TEST(ExplosionContextTest, BlastResistantBlock)
+{
     ExplosionContext context;
 
     BlastResistantBlock resistantBlock;
@@ -105,7 +110,8 @@ TEST(ExplosionContextTest, BlastResistantBlock) {
 // EntityExplosionContext 测试
 // ============================================================================
 
-TEST(EntityExplosionContextTest, DefaultBehavior) {
+TEST(EntityExplosionContextTest, DefaultBehavior)
+{
     EntityExplosionContext context(nullptr);
 
     FragileBlock fragileBlock;
@@ -123,37 +129,43 @@ TEST(EntityExplosionContextTest, DefaultBehavior) {
 // 常量测试
 // ============================================================================
 
-TEST(ExplosionConstantsTest, RayGridSize) {
+TEST(ExplosionConstantsTest, RayGridSize)
+{
     using namespace mc::game::explosion;
     EXPECT_EQ(RAY_GRID_SIZE, 16);
 }
 
-TEST(ExplosionConstantsTest, RayStepSize) {
+TEST(ExplosionConstantsTest, RayStepSize)
+{
     using namespace mc::game::explosion;
     EXPECT_FLOAT_EQ(RAY_STEP_SIZE, 0.3f);
 }
 
-TEST(ExplosionConstantsTest, ResistanceCoefficients) {
+TEST(ExplosionConstantsTest, ResistanceCoefficients)
+{
     using namespace mc::game::explosion;
     EXPECT_FLOAT_EQ(RESISTANCE_COEFFICIENT, 0.3f);
     EXPECT_FLOAT_EQ(INITIAL_STRENGTH_MIN, 0.7f);
     EXPECT_FLOAT_EQ(INITIAL_STRENGTH_RANGE, 0.6f);
 }
 
-TEST(ExplosionConstantsTest, TNTConstants) {
+TEST(ExplosionConstantsTest, TNTConstants)
+{
     using namespace mc::game::explosion;
     EXPECT_FLOAT_EQ(TNT_RADIUS, 4.0f);
     EXPECT_FLOAT_EQ(CREEPER_RADIUS, 3.0f);
     EXPECT_FLOAT_EQ(CHARGED_CREEPER_RADIUS_MULTIPLIER, 2.0f);
 }
 
-TEST(ExplosionConstantsTest, DamageConstants) {
+TEST(ExplosionConstantsTest, DamageConstants)
+{
     using namespace mc::game::explosion;
     EXPECT_FLOAT_EQ(DAMAGE_MULTIPLIER, 7.0f);
     EXPECT_FLOAT_EQ(ENTITY_RANGE_MULTIPLIER, 2.0f);
 }
 
-TEST(ExplosionConstantsTest, OtherConstants) {
+TEST(ExplosionConstantsTest, OtherConstants)
+{
     using namespace mc::game::explosion;
     EXPECT_FLOAT_EQ(EXPLOSION_VOLUME, 4.0f);
     EXPECT_FLOAT_EQ(EXPLOSION_PITCH_BASE, 0.7f);

@@ -8,11 +8,11 @@
  * - 睡眠计时器和位置管理
  */
 
-#include <gtest/gtest.h>
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/core/EntityPose.hpp"
-#include "common/entity/player/SleepResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityPose.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/player/SleepResult.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -22,34 +22,33 @@ namespace {
  */
 class PlayerSleepTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
-    }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer"); }
 
-    void TearDown() override {
-        player.reset();
-    }
+    void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
 };
 
 // ========== tryStartSleeping 基类测试 ==========
 
-TEST_F(PlayerSleepTest, TryStartSleepingReturnsOK) {
+TEST_F(PlayerSleepTest, TryStartSleepingReturnsOK)
+{
     // Player 基类的 tryStartSleeping 应该返回 OK
     BlockPos bedPos(100, 64, 100);
     entity::SleepResult result = player->tryStartSleeping(bedPos);
     EXPECT_EQ(result, entity::SleepResult::OK);
 }
 
-TEST_F(PlayerSleepTest, TryStartSleepingSetsSleepingState) {
+TEST_F(PlayerSleepTest, TryStartSleepingSetsSleepingState)
+{
     // tryStartSleeping 应该设置睡眠状态
     BlockPos bedPos(100, 64, 100);
     player->tryStartSleeping(bedPos);
     EXPECT_TRUE(player->isSleeping());
 }
 
-TEST_F(PlayerSleepTest, TryStartSleepingSetsSleepingPosition) {
+TEST_F(PlayerSleepTest, TryStartSleepingSetsSleepingPosition)
+{
     // tryStartSleeping 应该设置睡眠位置
     BlockPos bedPos(100, 64, 100);
     player->tryStartSleeping(bedPos);
@@ -59,14 +58,16 @@ TEST_F(PlayerSleepTest, TryStartSleepingSetsSleepingPosition) {
     EXPECT_EQ(sleepingPos.value(), bedPos);
 }
 
-TEST_F(PlayerSleepTest, TryStartSleepingResetsSleepTimer) {
+TEST_F(PlayerSleepTest, TryStartSleepingResetsSleepTimer)
+{
     // tryStartSleeping 应该重置睡眠计时器
     BlockPos bedPos(100, 64, 100);
     player->tryStartSleeping(bedPos);
     EXPECT_EQ(player->getSleepTimer(), 0);
 }
 
-TEST_F(PlayerSleepTest, TryStartSleepingClearsVelocity) {
+TEST_F(PlayerSleepTest, TryStartSleepingClearsVelocity)
+{
     // tryStartSleeping 应该清除速度
     player->setVelocity(Vector3(1.0f, 2.0f, 3.0f));
     BlockPos bedPos(100, 64, 100);
@@ -80,7 +81,8 @@ TEST_F(PlayerSleepTest, TryStartSleepingClearsVelocity) {
 
 // ========== startSleeping 测试 ==========
 
-TEST_F(PlayerSleepTest, StartSleepingSetsCorrectPosition) {
+TEST_F(PlayerSleepTest, StartSleepingSetsCorrectPosition)
+{
     BlockPos bedPos(200, 70, 200);
     player->startSleeping(bedPos);
 
@@ -89,14 +91,16 @@ TEST_F(PlayerSleepTest, StartSleepingSetsCorrectPosition) {
     EXPECT_EQ(sleepingPos.value(), bedPos);
 }
 
-TEST_F(PlayerSleepTest, StartSleepingWithoutWorldDoesNotCrash) {
+TEST_F(PlayerSleepTest, StartSleepingWithoutWorldDoesNotCrash)
+{
     // 不设置世界
     // 调用 startSleeping 不应该崩溃
     BlockPos bedPos(100, 64, 100);
     EXPECT_NO_THROW(player->startSleeping(bedPos));
 }
 
-TEST_F(PlayerSleepTest, StartSleepingSetsSleepingFlag) {
+TEST_F(PlayerSleepTest, StartSleepingSetsSleepingFlag)
+{
     BlockPos bedPos(100, 64, 100);
     player->startSleeping(bedPos);
     EXPECT_TRUE(player->isSleeping());
@@ -104,7 +108,8 @@ TEST_F(PlayerSleepTest, StartSleepingSetsSleepingFlag) {
 
 // ========== stopSleeping 测试 ==========
 
-TEST_F(PlayerSleepTest, StopSleepingWithoutWorldDoesNotCrash) {
+TEST_F(PlayerSleepTest, StopSleepingWithoutWorldDoesNotCrash)
+{
     // 不设置世界，但先开始睡眠
     BlockPos bedPos(100, 64, 100);
     player->startSleeping(bedPos);
@@ -113,7 +118,8 @@ TEST_F(PlayerSleepTest, StopSleepingWithoutWorldDoesNotCrash) {
     EXPECT_NO_THROW(player->stopSleeping());
 }
 
-TEST_F(PlayerSleepTest, StopSleepingClearsSleepingState) {
+TEST_F(PlayerSleepTest, StopSleepingClearsSleepingState)
+{
     // 开始睡眠
     BlockPos bedPos(100, 64, 100);
     player->startSleeping(bedPos);
@@ -124,7 +130,8 @@ TEST_F(PlayerSleepTest, StopSleepingClearsSleepingState) {
     EXPECT_FALSE(player->isSleeping());
 }
 
-TEST_F(PlayerSleepTest, StopSleepingClearsSleepingPosition) {
+TEST_F(PlayerSleepTest, StopSleepingClearsSleepingPosition)
+{
     // 开始睡眠
     BlockPos bedPos(100, 64, 100);
     player->startSleeping(bedPos);
@@ -136,7 +143,8 @@ TEST_F(PlayerSleepTest, StopSleepingClearsSleepingPosition) {
     EXPECT_FALSE(sleepingPos.has_value());
 }
 
-TEST_F(PlayerSleepTest, StopSleepingWhenNotSleepingDoesNothing) {
+TEST_F(PlayerSleepTest, StopSleepingWhenNotSleepingDoesNothing)
+{
     // 不先开始睡眠
     // 调用 stopSleeping 不应该做任何事情
     EXPECT_NO_THROW(player->stopSleeping());
@@ -144,12 +152,14 @@ TEST_F(PlayerSleepTest, StopSleepingWhenNotSleepingDoesNothing) {
 
 // ========== 睡眠计时器测试 ==========
 
-TEST_F(PlayerSleepTest, SleepTimerStartsAtZero) {
+TEST_F(PlayerSleepTest, SleepTimerStartsAtZero)
+{
     // 新玩家的睡眠计时器应该是 0
     EXPECT_EQ(player->getSleepTimer(), 0);
 }
 
-TEST_F(PlayerSleepTest, SleepTimerResetsOnStartSleeping) {
+TEST_F(PlayerSleepTest, SleepTimerResetsOnStartSleeping)
+{
     // 先递增计时器（通过 tick）
     player->startSleeping(BlockPos(100, 64, 100));
     player->tick();
@@ -164,7 +174,8 @@ TEST_F(PlayerSleepTest, SleepTimerResetsOnStartSleeping) {
 
 // ========== 睡眠状态转换测试 ==========
 
-TEST_F(PlayerSleepTest, MultipleSleepWakeCycles) {
+TEST_F(PlayerSleepTest, MultipleSleepWakeCycles)
+{
     // 第一轮
     BlockPos bedPos1(100, 64, 100);
     player->startSleeping(bedPos1);
@@ -182,7 +193,8 @@ TEST_F(PlayerSleepTest, MultipleSleepWakeCycles) {
     EXPECT_FALSE(player->isSleeping());
 }
 
-TEST_F(PlayerSleepTest, TryStartSleepingWhileAlreadySleeping) {
+TEST_F(PlayerSleepTest, TryStartSleepingWhileAlreadySleeping)
+{
     // 开始睡眠
     BlockPos bedPos1(100, 64, 100);
     player->tryStartSleeping(bedPos1);
@@ -204,7 +216,8 @@ TEST_F(PlayerSleepTest, TryStartSleepingWhileAlreadySleeping) {
 
 // ========== 多态性测试 ==========
 
-TEST_F(PlayerSleepTest, TryStartSleepingIsVirtual) {
+TEST_F(PlayerSleepTest, TryStartSleepingIsVirtual)
+{
     // 验证 tryStartSleeping 是虚方法
     // 通过基类指针调用应该正确工作
     Player* basePtr = player.get();
@@ -213,7 +226,8 @@ TEST_F(PlayerSleepTest, TryStartSleepingIsVirtual) {
     EXPECT_EQ(result, entity::SleepResult::OK);
 }
 
-TEST_F(PlayerSleepTest, StartSleepingIsVirtual) {
+TEST_F(PlayerSleepTest, StartSleepingIsVirtual)
+{
     // 验证 startSleeping 可以被子类重写
     // 通过基类指针调用
     Player* basePtr = player.get();
@@ -222,7 +236,8 @@ TEST_F(PlayerSleepTest, StartSleepingIsVirtual) {
     EXPECT_TRUE(basePtr->isSleeping());
 }
 
-TEST_F(PlayerSleepTest, StopSleepingIsVirtual) {
+TEST_F(PlayerSleepTest, StopSleepingIsVirtual)
+{
     // 验证 stopSleeping 可以被子类重写
     Player* basePtr = player.get();
     BlockPos bedPos(100, 64, 100);
@@ -233,7 +248,8 @@ TEST_F(PlayerSleepTest, StopSleepingIsVirtual) {
 
 // ========== 姿态切换测试 ==========
 
-TEST_F(PlayerSleepTest, SleepingSetsCorrectPose) {
+TEST_F(PlayerSleepTest, SleepingSetsCorrectPose)
+{
     // 睡眠应该设置正确的姿态
     BlockPos bedPos(100, 64, 100);
     player->startSleeping(bedPos);
@@ -243,7 +259,8 @@ TEST_F(PlayerSleepTest, SleepingSetsCorrectPose) {
     EXPECT_EQ(player->pose(), EntityPose::Sleeping);
 }
 
-TEST_F(PlayerSleepTest, StopSleepingChangesPoseFromSleeping) {
+TEST_F(PlayerSleepTest, StopSleepingChangesPoseFromSleeping)
+{
     // 开始睡眠
     BlockPos bedPos(100, 64, 100);
     player->startSleeping(bedPos);

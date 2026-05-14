@@ -1,10 +1,10 @@
 #pragma once
 
-#include "UnifiedResource.hpp"
 #include "../../../core/Types.hpp"
-#include <vector>
-#include <optional>
+#include "UnifiedResource.hpp"
 #include <functional>
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace resource {
@@ -17,11 +17,11 @@ namespace unified {
  * 表示具有旋转和 UV 锁定的单个模型变体。
  */
 struct ModelVariant {
-    ResourceLocation model;       ///< 使用的模型
-    i32 x = 0;                    ///< X 轴旋转 (0, 90, 180, 270)
-    i32 y = 0;                    ///< Y 轴旋转 (0, 90, 180, 270)
-    bool uvLock = false;          ///< 旋转时锁定 UV
-    i32 weight = 1;               ///< 随机变体选择权重
+    ResourceLocation model; ///< 使用的模型
+    i32 x = 0;              ///< X 轴旋转 (0, 90, 180, 270)
+    i32 y = 0;              ///< Y 轴旋转 (0, 90, 180, 270)
+    bool uvLock = false;    ///< 旋转时锁定 UV
+    i32 weight = 1;         ///< 随机变体选择权重
 };
 
 /**
@@ -32,18 +32,15 @@ struct ModelVariant {
 struct VariantList {
     std::vector<ModelVariant> variants;
 
-    bool empty() const noexcept {
-        return variants.empty();
-    }
+    bool empty() const noexcept { return variants.empty(); }
 
-    size_t size() const noexcept {
-        return variants.size();
-    }
+    size_t size() const noexcept { return variants.size(); }
 
     /**
      * @brief 获取所有变体的总权重
      */
-    i32 totalWeight() const noexcept {
+    i32 totalWeight() const noexcept
+    {
         i32 total = 0;
         for (const auto& v : variants) {
             total += v.weight;
@@ -56,7 +53,8 @@ struct VariantList {
      * @param random 范围 [0, totalWeight) 内的随机值
      * @return 选中的变体
      */
-    const ModelVariant& selectByWeight(i32 random) const {
+    const ModelVariant& selectByWeight(i32 random) const
+    {
         i32 accumulated = 0;
         for (const auto& v : variants) {
             accumulated += v.weight;
@@ -87,7 +85,8 @@ struct MultipartCondition {
      * @param properties 方块状态属性
      * @return 如果匹配则返回 true
      */
-    bool matches(const std::map<std::string, std::string>& props) const {
+    bool matches(const std::map<std::string, std::string>& props) const
+    {
         // 如果有 OR 条件，检查是否有任何一个匹配
         if (!orConditions.empty()) {
             for (const auto& orCond : orConditions) {
@@ -104,8 +103,7 @@ struct MultipartCondition {
 
 private:
     static bool matchesProperties(
-        const std::map<std::string, std::string>& conditions,
-        const std::map<std::string, std::string>& properties)
+        const std::map<std::string, std::string>& conditions, const std::map<std::string, std::string>& properties)
     {
         for (const auto& [key, value] : conditions) {
             auto it = properties.find(key);
@@ -129,9 +127,7 @@ struct MultipartSelector {
     /**
      * @brief 检查此选择器是否适用于给定属性
      */
-    bool appliesTo(const std::map<std::string, std::string>& properties) const {
-        return condition.matches(properties);
-    }
+    bool appliesTo(const std::map<std::string, std::string>& properties) const { return condition.matches(properties); }
 };
 
 /**
@@ -151,23 +147,17 @@ struct UnifiedBlockState : public UnifiedResource {
     /// 多部分格式: 条件模型部件
     std::optional<std::vector<MultipartSelector>> multipart;
 
-    UnifiedBlockState() {
-        type = ResourceType::BlockState;
-    }
+    UnifiedBlockState() { type = ResourceType::BlockState; }
 
     /**
      * @brief 检查方块状态是否使用变体格式
      */
-    bool isVariantFormat() const noexcept {
-        return !variants.empty();
-    }
+    bool isVariantFormat() const noexcept { return !variants.empty(); }
 
     /**
      * @brief 检查方块状态是否使用多部分格式
      */
-    bool isMultipartFormat() const noexcept {
-        return multipart.has_value() && !multipart->empty();
-    }
+    bool isMultipartFormat() const noexcept { return multipart.has_value() && !multipart->empty(); }
 
     /**
      * @brief 获取属性字符串的变体
@@ -175,7 +165,8 @@ struct UnifiedBlockState : public UnifiedResource {
      * @param propString 属性字符串（例如 "facing=north,half=top"）
      * @return 变体列表，如果未找到则返回 nullptr
      */
-    const VariantList* getVariants(const std::string& propString) const {
+    const VariantList* getVariants(const std::string& propString) const
+    {
         auto it = variants.find(propString);
         return it != variants.end() ? &it->second : nullptr;
     }
@@ -186,8 +177,7 @@ struct UnifiedBlockState : public UnifiedResource {
      * @param properties 方块状态属性
      * @return 适用的变体列表向量
      */
-    std::vector<const VariantList*> getApplicableMultipart(
-        const std::map<std::string, std::string>& properties) const
+    std::vector<const VariantList*> getApplicableMultipart(const std::map<std::string, std::string>& properties) const
     {
         std::vector<const VariantList*> result;
 
@@ -207,9 +197,7 @@ struct UnifiedBlockState : public UnifiedResource {
     /**
      * @brief 检查方块状态是否有任何变体
      */
-    bool empty() const noexcept {
-        return variants.empty() && (!multipart.has_value() || multipart->empty());
-    }
+    bool empty() const noexcept { return variants.empty() && (!multipart.has_value() || multipart->empty()); }
 };
 
 } // namespace unified

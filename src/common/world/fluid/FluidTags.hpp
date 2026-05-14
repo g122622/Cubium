@@ -4,8 +4,8 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace mc::fluid {
@@ -32,7 +32,9 @@ public:
      *
      * @param id 标签资源位置
      */
-    explicit FluidTag(const ResourceLocation& id) : m_id(id) {}
+    explicit FluidTag(const ResourceLocation& id)
+        : m_id(id)
+    {}
 
     /**
      * @brief 获取标签ID
@@ -52,16 +54,15 @@ public:
      *
      * @param fluidId 流体资源位置
      */
-    void add(const ResourceLocation& fluidId) {
-        m_fluids.insert(fluidId);
-    }
+    void add(const ResourceLocation& fluidId) { m_fluids.insert(fluidId); }
 
     /**
      * @brief 批量添加流体
      *
      * @param fluidIds 流体资源位置列表
      */
-    void addAll(const std::vector<ResourceLocation>& fluidIds) {
+    void addAll(const std::vector<ResourceLocation>& fluidIds)
+    {
         for (const auto& id : fluidIds) {
             m_fluids.insert(id);
         }
@@ -70,9 +71,7 @@ public:
     /**
      * @brief 获取标签中的所有流体ID
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& fluids() const noexcept {
-        return m_fluids;
-    }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& fluids() const noexcept { return m_fluids; }
 
 private:
     ResourceLocation m_id;

@@ -1,9 +1,9 @@
 #include "DesertPyramidStructure.hpp"
-#include "../../../biome/Biome.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
 #include "../StructureBoundingBox.hpp"
 
 namespace mc {
@@ -21,29 +21,20 @@ DesertPyramidStructure::DesertPyramidStructure()
     initializeBiomes();
 }
 
-void DesertPyramidStructure::initializeBiomes() {
-    m_validBiomes = {
-        Desert, DesertHills, DesertLakes
-    };
+void DesertPyramidStructure::initializeBiomes()
+{
+    m_validBiomes = {Desert, DesertHills, DesertLakes};
 }
 
 bool DesertPyramidStructure::canGenerate(
-    IWorld& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     // 检查生物群系是否合适
     return true;
 }
 
 std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -64,10 +55,7 @@ std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
     return start;
 }
 
-void DesertPyramidStructure::generatePyramid(
-    IWorldWriter& world,
-    math::Random& rng,
-    const BlockPos& startPos) const
+void DesertPyramidStructure::generatePyramid(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     const BlockState* sandstone = VanillaBlocks::getState(VanillaBlocks::SANDSTONE);
     const BlockState* cutSandstone = VanillaBlocks::getState(VanillaBlocks::CUT_SANDSTONE);
@@ -79,7 +67,7 @@ void DesertPyramidStructure::generatePyramid(
     i32 baseX = startPos.x;
     i32 baseY = startPos.y;
     i32 baseZ = startPos.z;
-    i32 size = 21;  // 神殿宽度/深度
+    i32 size = 21; // 神殿宽度/深度
     i32 halfSize = size / 2;
 
     // 生成基础平台
@@ -185,7 +173,7 @@ void DesertPyramidStructure::generatePyramid(
     }
 
     // 宝藏室中央（使用金块作为宝箱占位符，宝箱方块尚未实现）
-    if (rng.nextInt(100) < 80) {  // 80% 概率生成宝藏
+    if (rng.nextInt(100) < 80) { // 80% 概率生成宝藏
         i32 chestX = chamberX + 3;
         i32 chestZ = chamberZ + 3;
         if (goldBlock) {

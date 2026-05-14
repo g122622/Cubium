@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
-#include "../../../interfaces/IAngerable.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../../../interfaces/IAngerable.hpp"
+#include "../MonsterEntity.hpp"
 #include <memory>
 #include <optional>
 
@@ -232,7 +232,7 @@ private:
 
     // 愤怒状态
     bool m_angry = false;
-    bool m_screaming = false;  // 被注视状态
+    bool m_screaming = false; // 被注视状态
     i32 m_angerTime = 0;
 
     // 搬方块
@@ -243,11 +243,11 @@ private:
     i32 m_teleportCooldown = 0;
 
     // MC 1.16.5 常量
-    static constexpr i32 TELEPORT_COOLDOWN = 50;      // 瞬移冷却 (ticks)
-    static constexpr i32 ANGER_DURATION = 600;        // 愤怒持续时间 (ticks)
-    static constexpr f32 TELEPORT_RANGE = 64.0f;      // 瞬移范围
-    static constexpr f32 WATER_DAMAGE = 1.0f;         // 水伤害
-    static constexpr i32 WATER_DAMAGE_INTERVAL = 10;  // 水伤害间隔
+    static constexpr i32 TELEPORT_COOLDOWN = 50;     // 瞬移冷却 (ticks)
+    static constexpr i32 ANGER_DURATION = 600;       // 愤怒持续时间 (ticks)
+    static constexpr f32 TELEPORT_RANGE = 64.0f;     // 瞬移范围
+    static constexpr f32 WATER_DAMAGE = 1.0f;        // 水伤害
+    static constexpr i32 WATER_DAMAGE_INTERVAL = 10; // 水伤害间隔
 
     /**
      * @brief 检查是否在水中或雨中

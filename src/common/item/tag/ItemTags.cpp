@@ -3,12 +3,14 @@
 namespace mc {
 namespace item::tag {
 
-std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>>& ItemTags::tags() {
+std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>>& ItemTags::tags()
+{
     static std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>> s_tags;
     return s_tags;
 }
 
-ItemTag& ItemTags::registerTag(const ResourceLocation& id) {
+ItemTag& ItemTags::registerTag(const ResourceLocation& id)
+{
     auto& allTags = tags();
 
     auto it = allTags.find(id);
@@ -20,7 +22,8 @@ ItemTag& ItemTags::registerTag(const ResourceLocation& id) {
     return *inserted.first->second;
 }
 
-ItemTag* ItemTags::getTag(const ResourceLocation& id) {
+ItemTag* ItemTags::getTag(const ResourceLocation& id)
+{
     auto& allTags = tags();
     auto it = allTags.find(id);
     if (it == allTags.end()) {
@@ -29,11 +32,13 @@ ItemTag* ItemTags::getTag(const ResourceLocation& id) {
     return it->second.get();
 }
 
-ItemTag* ItemTags::getTag(const std::string& id) {
+ItemTag* ItemTags::getTag(const std::string& id)
+{
     return getTag(ResourceLocation(id));
 }
 
-void ItemTags::forEachTag(std::function<void(ItemTag&)> callback) {
+void ItemTags::forEachTag(std::function<void(ItemTag&)> callback)
+{
     for (auto& pair : tags()) {
         callback(*pair.second);
     }

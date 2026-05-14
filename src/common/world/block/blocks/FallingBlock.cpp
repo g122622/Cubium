@@ -1,40 +1,41 @@
 #include "FallingBlock.hpp"
-#include "../BlockRegistry.hpp"
-#include "../BlockTags.hpp"
+#include "../../../core/Constants.hpp"
+#include "../../../entity/entities/misc/MiscEntities.hpp"
 #include "../../IWorld.hpp"
 #include "../../tick/manager/TickManager.hpp"
-#include "../../../entity/entities/misc/MiscEntities.hpp"
-#include "../../../core/Constants.hpp"
+#include "../BlockRegistry.hpp"
+#include "../BlockTags.hpp"
 #include "../Material.hpp"
 
 namespace mc {
 namespace blocks {
 
 FallingBlock::FallingBlock(const BlockProperties& properties)
-    : Block(properties) {
-}
+    : Block(properties)
+{}
 
-void FallingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void FallingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(state);
     world.tickManager().scheduleBlockTick(pos, *this, getFallDelay(), world::tick::TickPriority::Normal);
 }
 
-void FallingBlock::neighborChanged(IWorld& world, const BlockPos& pos,
-                                   Block& neighborBlock, const BlockPos& neighborPos,
-                                   bool isMoving) {
+void FallingBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
     world.tickManager().scheduleBlockTick(pos, *this, getFallDelay(), world::tick::TickPriority::Normal);
 }
 
-BlockState FallingBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState FallingBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
     // 参考: net.minecraft.block.FallingBlock#updatePostPlacement
     // 当邻居更新时也调度 tick
     MC_UNUSED(facing);
@@ -45,7 +46,8 @@ BlockState FallingBlock::updatePostPlacement(
     return state;
 }
 
-void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(state);
     MC_UNUSED(random);
 
@@ -74,10 +76,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     }
 
     auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
-    fallingEntity->setPosition(
-        static_cast<f32>(pos.x) + 0.5f,
-        static_cast<f32>(pos.y),
-        static_cast<f32>(pos.z) + 0.5f);
+    fallingEntity->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
     fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
     fallingEntity->setBlockId(currentState->blockId());
     fallingEntity->setFallStartPos(static_cast<f64>(pos.y));
@@ -92,7 +91,8 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
 }
 
 // 参考: net.minecraft.block.FallingBlock#canFallThrough
-bool FallingBlock::canFallThrough(const BlockState* state) {
+bool FallingBlock::canFallThrough(const BlockState* state)
+{
     // 空气可穿透
     if (state == nullptr || state->isAir()) {
         return true;

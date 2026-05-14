@@ -6,9 +6,9 @@
 #include <AL/alc.h>
 
 #include <memory>
-#include <vector>
-#include <unordered_map>
 #include <mutex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::client::sound {
 
@@ -193,10 +193,7 @@ public:
      * @param data 音频数据
      * @return 缓冲区，或错误
      */
-    [[nodiscard]] static Result<std::unique_ptr<OpenALBuffer>> create(
-        AudioBufferId id,
-        const AudioData& data
-    );
+    [[nodiscard]] static Result<std::unique_ptr<OpenALBuffer>> create(AudioBufferId id, const AudioData& data);
 
 private:
     AudioBufferId m_id;

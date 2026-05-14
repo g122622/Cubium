@@ -2,10 +2,10 @@
 
 #include "ClientEntity.hpp"
 #include "common/core/Types.hpp"
-#include <unordered_map>
-#include <memory>
-#include <vector>
 #include <functional>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::client {
 

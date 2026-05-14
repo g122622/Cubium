@@ -10,8 +10,8 @@ namespace mc::network {
  * @brief 服务端连接类型
  */
 enum class ConnectionType : u8 {
-    Tcp,    ///< TCP 远程连接
-    Local   ///< 本地进程内连接
+    Tcp,  ///< TCP 远程连接
+    Local ///< 本地进程内连接
 };
 
 /**

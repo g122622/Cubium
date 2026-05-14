@@ -136,100 +136,77 @@ public:
 
     [[nodiscard]] ClientAppState state() const noexcept { return m_state; }
 
-    [[nodiscard]] bool isInitializing() const noexcept {
-        return m_state == ClientAppState::Initializing;
-    }
+    [[nodiscard]] bool isInitializing() const noexcept { return m_state == ClientAppState::Initializing; }
 
-    [[nodiscard]] bool isInMainMenu() const noexcept {
-        return m_state == ClientAppState::MainMenu;
-    }
+    [[nodiscard]] bool isInMainMenu() const noexcept { return m_state == ClientAppState::MainMenu; }
 
-    [[nodiscard]] bool isLoadingWorld() const noexcept {
-        return m_state == ClientAppState::LoadingWorld;
-    }
+    [[nodiscard]] bool isLoadingWorld() const noexcept { return m_state == ClientAppState::LoadingWorld; }
 
-    [[nodiscard]] bool isInGame() const noexcept {
-        return m_state == ClientAppState::InGame;
-    }
+    [[nodiscard]] bool isInGame() const noexcept { return m_state == ClientAppState::InGame; }
 
-    [[nodiscard]] bool isPaused() const noexcept {
-        return m_state == ClientAppState::Paused;
-    }
+    [[nodiscard]] bool isPaused() const noexcept { return m_state == ClientAppState::Paused; }
 
-    [[nodiscard]] bool isLeavingWorld() const noexcept {
-        return m_state == ClientAppState::LeavingWorld;
-    }
+    [[nodiscard]] bool isLeavingWorld() const noexcept { return m_state == ClientAppState::LeavingWorld; }
 
-    [[nodiscard]] bool isShuttingDown() const noexcept {
-        return m_state == ClientAppState::ShuttingDown;
-    }
+    [[nodiscard]] bool isShuttingDown() const noexcept { return m_state == ClientAppState::ShuttingDown; }
 
     /**
      * @brief 是否有活跃的游戏会话
      *
      * 包含 InGame、Paused、LeavingWorld 状态，用于判断是否需要清理游戏资源。
      */
-    [[nodiscard]] bool hasActiveGameSession() const noexcept {
-        return m_state == ClientAppState::InGame ||
-               m_state == ClientAppState::Paused ||
-               m_state == ClientAppState::LeavingWorld;
+    [[nodiscard]] bool hasActiveGameSession() const noexcept
+    {
+        return m_state == ClientAppState::InGame || m_state == ClientAppState::Paused ||
+            m_state == ClientAppState::LeavingWorld;
     }
 
     /**
      * @brief 是否可以捕获鼠标
      * 只有 InGame 状态下才能捕获鼠标。
      */
-    [[nodiscard]] bool canCaptureMouse() const noexcept {
-        return m_state == ClientAppState::InGame;
-    }
+    [[nodiscard]] bool canCaptureMouse() const noexcept { return m_state == ClientAppState::InGame; }
 
     /**
      * @brief 是否可以暂停
      * 只有 InGame 状态下才能打开暂停菜单。
      */
-    [[nodiscard]] bool canPause() const noexcept {
-        return m_state == ClientAppState::InGame;
-    }
+    [[nodiscard]] bool canPause() const noexcept { return m_state == ClientAppState::InGame; }
 
-    [[nodiscard]] bool canResumeFromPause() const noexcept {
-        return m_state == ClientAppState::Paused;
-    }
+    [[nodiscard]] bool canResumeFromPause() const noexcept { return m_state == ClientAppState::Paused; }
 
-    [[nodiscard]] bool canStartWorld() const noexcept {
-        return m_state == ClientAppState::MainMenu;
-    }
+    [[nodiscard]] bool canStartWorld() const noexcept { return m_state == ClientAppState::MainMenu; }
 
-    [[nodiscard]] bool canReturnToMainMenu() const noexcept {
+    [[nodiscard]] bool canReturnToMainMenu() const noexcept
+    {
         return m_state == ClientAppState::Paused || m_state == ClientAppState::LeavingWorld;
     }
 
-    [[nodiscard]] bool canShutdown() const noexcept {
-        return m_state == ClientAppState::MainMenu ||
-               m_state == ClientAppState::LeavingWorld;
+    [[nodiscard]] bool canShutdown() const noexcept
+    {
+        return m_state == ClientAppState::MainMenu || m_state == ClientAppState::LeavingWorld;
     }
 
     /**
      * @brief 是否需要渲染游戏世界
      * 包含 InGame、Paused、LoadingWorld 状态。
      */
-    [[nodiscard]] bool needsWorldRendering() const noexcept {
-        return m_state == ClientAppState::InGame ||
-               m_state == ClientAppState::Paused ||
-               m_state == ClientAppState::LoadingWorld;
+    [[nodiscard]] bool needsWorldRendering() const noexcept
+    {
+        return m_state == ClientAppState::InGame || m_state == ClientAppState::Paused ||
+            m_state == ClientAppState::LoadingWorld;
     }
 
     /**
      * @brief 是否需要渲染 HUD
      * 包含 InGame、Paused 状态。
      */
-    [[nodiscard]] bool needsHudRendering() const noexcept {
-        return m_state == ClientAppState::InGame ||
-               m_state == ClientAppState::Paused;
+    [[nodiscard]] bool needsHudRendering() const noexcept
+    {
+        return m_state == ClientAppState::InGame || m_state == ClientAppState::Paused;
     }
 
-    [[nodiscard]] bool needsGameTick() const noexcept {
-        return m_state == ClientAppState::InGame;
-    }
+    [[nodiscard]] bool needsGameTick() const noexcept { return m_state == ClientAppState::InGame; }
 
     // ========== 状态转换 ==========
 
@@ -240,7 +217,8 @@ public:
      *
      * @return 是否成功转换
      */
-    bool finishInitializing() {
+    bool finishInitializing()
+    {
         if (m_state != ClientAppState::Initializing) {
             return false;
         }
@@ -256,7 +234,8 @@ public:
      * @param config 世界启动配置
      * @return 是否成功转换
      */
-    bool startLoadingWorld(const WorldLaunchConfig& config) {
+    bool startLoadingWorld(const WorldLaunchConfig& config)
+    {
         if (m_state != ClientAppState::MainMenu) {
             return false;
         }
@@ -272,7 +251,8 @@ public:
      *
      * @return 是否成功转换
      */
-    bool finishLoadingWorld() {
+    bool finishLoadingWorld()
+    {
         if (m_state != ClientAppState::LoadingWorld) {
             return false;
         }
@@ -287,7 +267,8 @@ public:
      *
      * @return 是否成功转换
      */
-    bool pause() {
+    bool pause()
+    {
         if (m_state != ClientAppState::InGame) {
             return false;
         }
@@ -302,7 +283,8 @@ public:
      *
      * @return 是否成功转换
      */
-    bool resume() {
+    bool resume()
+    {
         if (m_state != ClientAppState::Paused) {
             return false;
         }
@@ -317,7 +299,8 @@ public:
      *
      * @return 是否成功转换
      */
-    bool startLeavingWorld() {
+    bool startLeavingWorld()
+    {
         if (m_state != ClientAppState::InGame && m_state != ClientAppState::Paused) {
             return false;
         }
@@ -332,7 +315,8 @@ public:
      *
      * @return 是否成功转换
      */
-    bool finishLeavingWorld() {
+    bool finishLeavingWorld()
+    {
         if (m_state != ClientAppState::LeavingWorld) {
             return false;
         }
@@ -348,7 +332,8 @@ public:
      *
      * @return 是否成功转换
      */
-    bool startShutdown() {
+    bool startShutdown()
+    {
         if (!canShutdown()) {
             return false;
         }
@@ -364,7 +349,8 @@ public:
      *
      * @param newState 新状态
      */
-    void forceState(ClientAppState newState) {
+    void forceState(ClientAppState newState)
+    {
         if (m_state != newState) {
             ClientAppState oldState = m_state;
             m_state = newState;
@@ -377,16 +363,12 @@ public:
     /**
      * @brief 设置状态变更回调
      */
-    void setOnStateChanged(StateChangeCallback callback) {
-        m_onStateChanged = std::move(callback);
-    }
+    void setOnStateChanged(StateChangeCallback callback) { m_onStateChanged = std::move(callback); }
 
     /**
      * @brief 设置加载进度回调
      */
-    void setLoadingProgressCallback(LoadingProgressCallback callback) {
-        m_onLoadingProgress = std::move(callback);
-    }
+    void setLoadingProgressCallback(LoadingProgressCallback callback) { m_onLoadingProgress = std::move(callback); }
 
     // ========== 世界配置访问 ==========
 
@@ -395,9 +377,7 @@ public:
      *
      * 仅在 LoadingWorld、InGame、Paused、LeavingWorld 状态有效。
      */
-    [[nodiscard]] const std::optional<WorldLaunchConfig>& worldConfig() const noexcept {
-        return m_worldConfig;
-    }
+    [[nodiscard]] const std::optional<WorldLaunchConfig>& worldConfig() const noexcept { return m_worldConfig; }
 
     /**
      * @brief 报告加载进度（仅 LoadingWorld 状态有效）
@@ -405,7 +385,8 @@ public:
      * @param stage 当前加载阶段名称
      * @param progress 进度（0.0 - 1.0）
      */
-    void reportLoadingProgress(const std::string& stage, f32 progress) {
+    void reportLoadingProgress(const std::string& stage, f32 progress)
+    {
         if (m_state == ClientAppState::LoadingWorld && m_onLoadingProgress) {
             m_onLoadingProgress(stage, progress);
         }
@@ -416,16 +397,25 @@ public:
     /**
      * @brief 将状态转换为字符串
      */
-    [[nodiscard]] static const char* stateToString(ClientAppState state) noexcept {
+    [[nodiscard]] static const char* stateToString(ClientAppState state) noexcept
+    {
         switch (state) {
-            case ClientAppState::Initializing:   return "Initializing";
-            case ClientAppState::MainMenu:       return "MainMenu";
-            case ClientAppState::LoadingWorld:   return "LoadingWorld";
-            case ClientAppState::InGame:         return "InGame";
-            case ClientAppState::Paused:         return "Paused";
-            case ClientAppState::LeavingWorld:   return "LeavingWorld";
-            case ClientAppState::ShuttingDown:   return "ShuttingDown";
-            default:                             return "Unknown";
+            case ClientAppState::Initializing:
+                return "Initializing";
+            case ClientAppState::MainMenu:
+                return "MainMenu";
+            case ClientAppState::LoadingWorld:
+                return "LoadingWorld";
+            case ClientAppState::InGame:
+                return "InGame";
+            case ClientAppState::Paused:
+                return "Paused";
+            case ClientAppState::LeavingWorld:
+                return "LeavingWorld";
+            case ClientAppState::ShuttingDown:
+                return "ShuttingDown";
+            default:
+                return "Unknown";
         }
     }
 
@@ -436,13 +426,15 @@ private:
     StateChangeCallback m_onStateChanged;
     LoadingProgressCallback m_onLoadingProgress;
 
-    void transitionTo(ClientAppState newState) {
+    void transitionTo(ClientAppState newState)
+    {
         ClientAppState oldState = m_state;
         m_state = newState;
         notifyStateChange(oldState, newState);
     }
 
-    void notifyStateChange(ClientAppState from, ClientAppState to) {
+    void notifyStateChange(ClientAppState from, ClientAppState to)
+    {
         if (m_onStateChanged) {
             m_onStateChanged(from, to);
         }

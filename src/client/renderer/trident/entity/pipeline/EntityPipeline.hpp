@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
-#include <vulkan/vulkan.h>
+#include <filesystem>
 #include <memory>
 #include <vector>
-#include <filesystem>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::entity::pipeline {
 
@@ -16,7 +16,8 @@ namespace mc::client::renderer::entity::pipeline {
 class UniformBuffer;
 
 // 物理设备内存属性回调
-using FindMemoryTypeCallback = Result<u32> (*)(VkPhysicalDevice physicalDevice, u32 typeFilter, VkMemoryPropertyFlags properties);
+using FindMemoryTypeCallback = Result<u32> (*)(
+    VkPhysicalDevice physicalDevice, u32 typeFilter, VkMemoryPropertyFlags properties);
 
 /**
  * @brief 混合模式枚举
@@ -24,10 +25,10 @@ using FindMemoryTypeCallback = Result<u32> (*)(VkPhysicalDevice physicalDevice, 
  * 用于不同渲染效果的混合模式
  */
 enum class BlendMode : u8 {
-    None,       // 无混合
-    Alpha,      // Alpha 混合（默认）
-    Additive,   // 叠加混合（用于眼睛发光、能量光效等）
-    Multiply    // 乘法混合
+    None,     // 无混合
+    Alpha,    // Alpha 混合（默认）
+    Additive, // 叠加混合（用于眼睛发光、能量光效等）
+    Multiply  // 乘法混合
 };
 
 /**
@@ -81,8 +82,7 @@ public:
      * @param descriptorPool 描述符池
      * @param commandPool 命令池（用于缓冲区复制）
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkQueue graphicsQueue,
         VkRenderPass renderPass,
@@ -109,8 +109,8 @@ public:
      * @param indices 索引数据
      * @return 实体网格
      */
-    [[nodiscard]] Result<EntityMesh> createMesh(const std::vector<model::ModelVertex>& vertices,
-                                                 const std::vector<u32>& indices);
+    [[nodiscard]] Result<EntityMesh> createMesh(
+        const std::vector<model::ModelVertex>& vertices, const std::vector<u32>& indices);
 
     /**
      * @brief 更新实体网格
@@ -119,9 +119,8 @@ public:
      * @param indices 新索引数据
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> updateMesh(EntityMesh& mesh,
-                                          const std::vector<model::ModelVertex>& vertices,
-                                          const std::vector<u32>& indices);
+    [[nodiscard]] Result<void> updateMesh(
+        EntityMesh& mesh, const std::vector<model::ModelVertex>& vertices, const std::vector<u32>& indices);
 
     /**
      * @brief 销毁实体网格
@@ -141,13 +140,13 @@ public:
      * @param deathTime 死亡时间
      */
     void drawMesh(VkCommandBuffer cmd,
-                  const EntityMesh& mesh,
-                  const std::array<f64, 16>& modelMatrix,
-                  const Vector3f& position,
-                  f64 scale = 1.0f,
-                  const Vector4f& overlayColor = Vector4f(0.0f, 0.0f, 0.0f, 0.0f),
-                  f32 hurtTime = 0.0f,
-                  f32 deathTime = 0.0f);
+        const EntityMesh& mesh,
+        const std::array<f64, 16>& modelMatrix,
+        const Vector3f& position,
+        f64 scale = 1.0f,
+        const Vector4f& overlayColor = Vector4f(0.0f, 0.0f, 0.0f, 0.0f),
+        f32 hurtTime = 0.0f,
+        f32 deathTime = 0.0f);
 
     /**
      * @brief 绑定纹理描述符集
@@ -176,8 +175,8 @@ private:
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-    VkPipeline m_pipeline = VK_NULL_HANDLE;                   // Alpha 混合管线
-    VkPipeline m_additiveBlendPipeline = VK_NULL_HANDLE;      // 叠加混合管线
+    VkPipeline m_pipeline = VK_NULL_HANDLE;              // Alpha 混合管线
+    VkPipeline m_additiveBlendPipeline = VK_NULL_HANDLE; // 叠加混合管线
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_textureDescriptorLayout = VK_NULL_HANDLE;
@@ -214,34 +213,29 @@ private:
     /**
      * @brief 创建图形管线
      */
-    [[nodiscard]] Result<void> createGraphicsPipeline(VkRenderPass renderPass,
-                                                       VkDescriptorSetLayout cameraDescriptorLayout,
-                                                       VkSampleCountFlagBits sampleCount);
+    [[nodiscard]] Result<void> createGraphicsPipeline(
+        VkRenderPass renderPass, VkDescriptorSetLayout cameraDescriptorLayout, VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 创建缓冲区
      */
     [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
-                                            VkBufferUsageFlags usage,
-                                            VkMemoryPropertyFlags properties,
-                                            VkBuffer& buffer,
-                                            VkDeviceMemory& memory);
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkBuffer& buffer,
+        VkDeviceMemory& memory);
 
     /**
      * @brief 确保复用暂存缓冲区容量满足需求
      */
-    [[nodiscard]] Result<void> ensureReusableStagingBuffer(VkDeviceSize requiredSize,
-                                                           VkBuffer& buffer,
-                                                           VkDeviceMemory& memory,
-                                                           VkDeviceSize& capacity);
+    [[nodiscard]] Result<void> ensureReusableStagingBuffer(
+        VkDeviceSize requiredSize, VkBuffer& buffer, VkDeviceMemory& memory, VkDeviceSize& capacity);
 
     /**
      * @brief 通过复用暂存缓冲区上传数据到设备本地缓冲区
      */
-    [[nodiscard]] Result<void> uploadToDeviceBuffer(const void* sourceData,
-                                                    VkDeviceSize size,
-                                                    VkBuffer destinationBuffer,
-                                                    bool useVertexStagingBuffer);
+    [[nodiscard]] Result<void> uploadToDeviceBuffer(
+        const void* sourceData, VkDeviceSize size, VkBuffer destinationBuffer, bool useVertexStagingBuffer);
 
     /**
      * @brief 销毁复用暂存缓冲区

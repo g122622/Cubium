@@ -1,8 +1,8 @@
 #include "ChainBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../IWorld.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -11,16 +11,16 @@ ChainBlock::ChainBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 创建状态容器（AXIS 属性）
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AXIS())
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AXIS())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::AXIS(), Axis::Y)
-        .with(BlockStateProperties::WATERLOGGED(), false));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::AXIS(), Axis::Y).with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建形状 - 锁链是细长的柱子
     // Y轴：垂直锁链
@@ -31,7 +31,8 @@ ChainBlock::ChainBlock(const BlockProperties& properties)
     m_zShape = CollisionShape::box(6.0f, 6.0f, 0.0f, 10.0f, 10.0f, 16.0f);
 }
 
-BlockState ChainBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState ChainBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 根据点击面确定轴向
     Direction face = context.getClickedFace();
     Axis axis = Directions::getAxis(face);
@@ -46,7 +47,8 @@ BlockState ChainBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-const BlockState& ChainBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& ChainBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Axis axis = state.get(BlockStateProperties::AXIS());
 
     if (rotation == Rotation::Clockwise90 || rotation == Rotation::CounterClockwise90) {
@@ -61,7 +63,8 @@ const BlockState& ChainBlock::rotate(const BlockState& state, Rotation rotation)
     return state;
 }
 
-const CollisionShape& ChainBlock::getShape(const BlockState& state) const {
+const CollisionShape& ChainBlock::getShape(const BlockState& state) const
+{
     Axis axis = state.get(BlockStateProperties::AXIS());
 
     switch (axis) {
@@ -75,13 +78,13 @@ const CollisionShape& ChainBlock::getShape(const BlockState& state) const {
     }
 }
 
-BlockState ChainBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState ChainBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
@@ -97,7 +100,8 @@ BlockState ChainBlock::updatePostPlacement(
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* ChainBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* ChainBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }

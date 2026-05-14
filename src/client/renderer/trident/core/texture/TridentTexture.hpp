@@ -2,8 +2,8 @@
 
 #include "../../../api/texture/ITexture.hpp"
 #include "../../../api/texture/ITextureAtlas.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -48,12 +48,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> createFromExisting(
-        TridentContext* context,
-        VkImage image,
-        VkImageView imageView,
-        VkFormat format,
-        u32 width,
-        u32 height);
+        TridentContext* context, VkImage image, VkImageView imageView, VkFormat format, u32 width, u32 height);
 
     // ITexture 接口实现
     void destroy() override;
@@ -75,8 +70,7 @@ public:
     /**
      * @brief 转换图像布局
      */
-    void transitionLayout(
-        VkCommandBuffer cmd,
+    void transitionLayout(VkCommandBuffer cmd,
         VkImageLayout oldLayout,
         VkImageLayout newLayout,
         VkPipelineStageFlags srcStage,
@@ -103,7 +97,7 @@ private:
     u32 m_depth = 1;
     u32 m_mipLevels = 1;
     u32 m_arrayLayers = 1;
-    bool m_ownsImage = true;  // 是否拥有图像资源
+    bool m_ownsImage = true; // 是否拥有图像资源
 
     /**
      * @brief 创建图像
@@ -118,10 +112,7 @@ private:
     /**
      * @brief 创建采样器
      */
-    [[nodiscard]] Result<void> createSampler(
-        VkFilter magFilter,
-        VkFilter minFilter,
-        VkSamplerAddressMode addressMode);
+    [[nodiscard]] Result<void> createSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerAddressMode addressMode);
 
     /**
      * @brief 查找内存类型
@@ -170,11 +161,7 @@ public:
      * @param tileSize 瓦片大小
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(
-        TridentContext* context,
-        u32 width,
-        u32 height,
-        u32 tileSize = 16);
+    [[nodiscard]] Result<void> create(TridentContext* context, u32 width, u32 height, u32 tileSize = 16);
 
     /**
      * @brief 从构建结果上传图集数据
@@ -216,8 +203,8 @@ private:
     u32 m_height = 0;
     u32 m_tileSize = 16;
     u32 m_tilesPerRow = 0;
-    f64 m_tileU = 0.0f;  // 单个瓦片在U方向的宽度
-    f64 m_tileV = 0.0f;  // 单个瓦片在V方向的高度
+    f64 m_tileU = 0.0f; // 单个瓦片在U方向的宽度
+    f64 m_tileV = 0.0f; // 单个瓦片在V方向的高度
 };
 
 } // namespace mc::client::renderer::trident

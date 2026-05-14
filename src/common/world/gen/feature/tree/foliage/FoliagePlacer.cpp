@@ -1,26 +1,21 @@
 #include "FoliagePlacer.hpp"
-#include "../../../chunk/IChunkGenerator.hpp"
+#include "../../../../../core/Constants.hpp"
+#include "../../../../../core/Types.hpp"
 #include "../../../../block/BlockRegistry.hpp"
 #include "../../../../block/VanillaBlocks.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../core/Constants.hpp"
-#include <cmath>
+#include "../../../chunk/IChunkGenerator.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
 FoliagePlacer::FoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset)
     : m_radius(radius)
     , m_offset(offset)
-{
-}
+{}
 
-bool FoliagePlacer::shouldSkip(
-    math::Random& /*random*/,
-    i32 dx, i32 /*dy*/, i32 dz,
-    i32 radius,
-    bool trunkTop
-) const {
+bool FoliagePlacer::shouldSkip(math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool trunkTop) const
+{
     // 基类默认实现：跳过角落
     // 参考 MC FoliagePlacer.func_230373_a_
     if (trunkTop) {
@@ -33,25 +28,22 @@ bool FoliagePlacer::shouldSkip(
     return std::abs(dx) == radius && std::abs(dz) == radius;
 }
 
-void FoliagePlacer::placeFoliage(
-    WorldGenRegion& world,
+void FoliagePlacer::placeFoliage(WorldGenRegion& world,
     math::Random& random,
     i32 trunkHeight,
     const std::vector<FoliagePosition>& foliagePositions,
     const std::set<BlockPos>& /*trunkBlocks*/,
     i32 /*trunkOffset*/,
     const BlockState* foliageBlock,
-    std::set<BlockPos>& outFoliageBlocks
-) {
+    std::set<BlockPos>& outFoliageBlocks)
+{
     for (const auto& foliagePos : foliagePositions) {
         i32 radius = m_radius.get(random);
         i32 offset = m_offset.get(random);
         i32 foliageHeight = getFoliageHeight(random, trunkHeight);
 
         placeFoliageInternal(
-            world, random, trunkHeight, foliagePos,
-            foliageHeight, radius, offset, outFoliageBlocks, foliageBlock
-        );
+            world, random, trunkHeight, foliagePos, foliageHeight, radius, offset, outFoliageBlocks, foliageBlock);
     }
 
     // 子类只负责计算并收集树叶坐标，这里统一执行实际放置。
@@ -66,28 +58,24 @@ void FoliagePlacer::placeFoliage(
         }
 
         const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
-        if (state == nullptr || state->isAir() ||
-            state->is(VanillaBlocks::OAK_LEAVES) ||
-            state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-            state->is(VanillaBlocks::BIRCH_LEAVES) ||
-            state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-            state->is(VanillaBlocks::ACACIA_LEAVES) ||
+        if (state == nullptr || state->isAir() || state->is(VanillaBlocks::OAK_LEAVES) ||
+            state->is(VanillaBlocks::SPRUCE_LEAVES) || state->is(VanillaBlocks::BIRCH_LEAVES) ||
+            state->is(VanillaBlocks::JUNGLE_LEAVES) || state->is(VanillaBlocks::ACACIA_LEAVES) ||
             state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
             world.setBlockState(pos, foliageBlock);
         }
     }
 }
 
-void FoliagePlacer::placeFoliageLayer(
-    WorldGenRegion& world,
+void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& centerPos,
     i32 radius,
     std::set<BlockPos>& foliageBlocks,
     i32 y,
     bool trunkTop,
-    const BlockState* foliageBlock
-) {
+    const BlockState* foliageBlock)
+{
     // 遍历半径范围内的所有方块
     i32 radiusOffset = trunkTop ? 1 : 0;
     BlockPos pos;
@@ -112,12 +100,9 @@ void FoliagePlacer::placeFoliageLayer(
             const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
             if (state == nullptr || state->isAir()) {
                 // 空气可以放置
-            } else if (state->is(VanillaBlocks::OAK_LEAVES) ||
-                       state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-                       state->is(VanillaBlocks::BIRCH_LEAVES) ||
-                       state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-                       state->is(VanillaBlocks::ACACIA_LEAVES) ||
-                       state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+            } else if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
+                state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
+                state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
                 // 树叶可以替换
             } else {
                 continue;

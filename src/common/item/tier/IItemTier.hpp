@@ -4,7 +4,7 @@
 
 namespace mc {
 namespace crafting {
-class Ingredient;  // Forward declaration
+class Ingredient; // Forward declaration
 }
 
 namespace item {

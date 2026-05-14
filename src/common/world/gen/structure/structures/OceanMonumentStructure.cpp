@@ -1,9 +1,9 @@
 #include "OceanMonumentStructure.hpp"
-#include "../../../biome/Biome.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
 #include "../StructureBoundingBox.hpp"
 
 namespace mc {
@@ -21,18 +21,13 @@ OceanMonumentStructure::OceanMonumentStructure()
     initializeBiomes();
 }
 
-void OceanMonumentStructure::initializeBiomes() {
-    m_validBiomes = {
-        DeepOcean, DeepWarmOcean, DeepLukewarmOcean, DeepColdOcean, DeepFrozenOcean
-    };
+void OceanMonumentStructure::initializeBiomes()
+{
+    m_validBiomes = {DeepOcean, DeepWarmOcean, DeepLukewarmOcean, DeepColdOcean, DeepFrozenOcean};
 }
 
 bool OceanMonumentStructure::canGenerate(
-    IWorld& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     // MC 1.16.5: OceanMonumentStructure.func_230363_a_
     // 需要检查两个条件:
@@ -51,7 +46,7 @@ bool OceanMonumentStructure::canGenerate(
     // 检查 29x29 区块范围 (约 464x464 方块范围)
     // MC 1.16.5 使用 29 区块半径检查所有生物群系都是海洋或河流
     constexpr i32 checkRadius = 29;
-    constexpr i32 checkStep = 16;  // 每 16 格检查一次
+    constexpr i32 checkStep = 16; // 每 16 格检查一次
 
     for (i32 dx = -checkRadius; dx <= checkRadius; dx += checkStep) {
         for (i32 dz = -checkRadius; dz <= checkRadius; dz += checkStep) {
@@ -70,7 +65,8 @@ bool OceanMonumentStructure::canGenerate(
     return true;
 }
 
-bool OceanMonumentStructure::isOceanOrRiverBiome(BiomeId biomeId) const {
+bool OceanMonumentStructure::isOceanOrRiverBiome(BiomeId biomeId) const
+{
     // MC 1.16.5: 检查生物群系是否属于海洋或河流类别
     // 包括所有海洋变种和河流变种
     using namespace mc::Biomes;
@@ -97,11 +93,7 @@ bool OceanMonumentStructure::isOceanOrRiverBiome(BiomeId biomeId) const {
 }
 
 std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -121,10 +113,7 @@ std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
     return start;
 }
 
-void OceanMonumentStructure::generateMonument(
-    IWorldWriter& world,
-    math::Random& rng,
-    const BlockPos& startPos) const
+void OceanMonumentStructure::generateMonument(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     const BlockState* prismarine = VanillaBlocks::getState(VanillaBlocks::PRISMARINE);
     const BlockState* prismarineBricks = VanillaBlocks::getState(VanillaBlocks::PRISMARINE_BRICKS);
@@ -139,9 +128,9 @@ void OceanMonumentStructure::generateMonument(
     i32 baseX = startPos.x;
     i32 baseY = startPos.y;
     i32 baseZ = startPos.z;
-    i32 width = 58;   // X轴宽度
-    i32 height = 23;  // 高度
-    i32 depth = 58;   // Z轴深度
+    i32 width = 58;  // X轴宽度
+    i32 height = 23; // 高度
+    i32 depth = 58;  // Z轴深度
 
     // 辅助lambda: 随机选择海晶石类型
     auto randomPrismarine = [&]() -> const BlockState* {
@@ -239,9 +228,15 @@ void OceanMonumentStructure::generateMonument(
     }
 
     // 主体内部中空（生成房间）
-    generateRoom(world, prismarine, seaLantern,
-        baseX + mainX + 1, baseY + 1, baseZ + mainZ + 1,
-        mainWidth - 2, wallHeight + 3, mainDepth - 2);
+    generateRoom(world,
+        prismarine,
+        seaLantern,
+        baseX + mainX + 1,
+        baseY + 1,
+        baseZ + mainZ + 1,
+        mainWidth - 2,
+        wallHeight + 3,
+        mainDepth - 2);
 
     // 中央宝箱房间（海绵室）
     i32 spongeRoomY = baseY + wallHeight + 6;
@@ -256,8 +251,8 @@ void OceanMonumentStructure::generateMonument(
         for (i32 z = mainZ + 4; z < mainZ + mainDepth - 4; ++z) {
             // 随机放置海绵
             if (rng.nextInt(100) < 60) {
-                world.setBlockState(baseX + x, spongeRoomY + 1, baseZ + z,
-                    rng.nextInt(100) < 50 ? sponge : wetSponge, 18);
+                world.setBlockState(
+                    baseX + x, spongeRoomY + 1, baseZ + z, rng.nextInt(100) < 50 ? sponge : wetSponge, 18);
             }
         }
     }
@@ -273,14 +268,30 @@ void OceanMonumentStructure::generateMonument(
     i32 wingHeight = wallHeight;
 
     // 左翼
-    generateWing(world, prismarine, darkPrismarine, seaLantern,
-        baseX + 5, baseY + 1, baseZ + 10,
-        wingWidth, wingHeight, wingDepth, true);
+    generateWing(world,
+        prismarine,
+        darkPrismarine,
+        seaLantern,
+        baseX + 5,
+        baseY + 1,
+        baseZ + 10,
+        wingWidth,
+        wingHeight,
+        wingDepth,
+        true);
 
     // 右翼
-    generateWing(world, prismarine, darkPrismarine, seaLantern,
-        baseX + width - 5 - wingWidth, baseY + 1, baseZ + 10,
-        wingWidth, wingHeight, wingDepth, false);
+    generateWing(world,
+        prismarine,
+        darkPrismarine,
+        seaLantern,
+        baseX + width - 5 - wingWidth,
+        baseY + 1,
+        baseZ + 10,
+        wingWidth,
+        wingHeight,
+        wingDepth,
+        false);
 
     // ========================================================================
     // 生成顶部结构
@@ -331,13 +342,16 @@ void OceanMonumentStructure::generateMonument(
     }
 }
 
-void OceanMonumentStructure::generateWing(
-    IWorldWriter& world,
+void OceanMonumentStructure::generateWing(IWorldWriter& world,
     const BlockState* prismarine,
     const BlockState* darkPrismarine,
     const BlockState* seaLantern,
-    i32 baseX, i32 baseY, i32 baseZ,
-    i32 width, i32 height, i32 depth,
+    i32 baseX,
+    i32 baseY,
+    i32 baseZ,
+    i32 width,
+    i32 height,
+    i32 depth,
     bool isLeft) const
 {
     // 翼楼墙壁
@@ -369,12 +383,15 @@ void OceanMonumentStructure::generateWing(
     world.setBlockState(baseX + width / 2, baseY + height / 2, baseZ + midZ - 5, seaLantern, 18);
 }
 
-void OceanMonumentStructure::generateRoom(
-    IWorldWriter& world,
+void OceanMonumentStructure::generateRoom(IWorldWriter& world,
     const BlockState* prismarine,
     const BlockState* seaLantern,
-    i32 baseX, i32 baseY, i32 baseZ,
-    i32 width, i32 height, i32 depth) const
+    i32 baseX,
+    i32 baseY,
+    i32 baseZ,
+    i32 width,
+    i32 height,
+    i32 depth) const
 {
     // 房间内部清空（已经是水环境）
     // 这里我们只添加一些装饰性结构

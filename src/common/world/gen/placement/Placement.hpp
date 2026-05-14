@@ -39,7 +39,9 @@ struct CountPlacementConfig : public IPlacementConfig {
     /// 每区块尝试次数
     i32 count;
 
-    explicit CountPlacementConfig(i32 count) : count(count) {}
+    explicit CountPlacementConfig(i32 count)
+        : count(count)
+    {}
 };
 
 /**
@@ -65,23 +67,25 @@ struct HeightRangePlacementConfig : public IPlacementConfig {
      * @param max 最大高度限制
      */
     HeightRangePlacementConfig(i32 bottom, i32 top, i32 max)
-        : bottomOffset(bottom), topOffset(top), maximum(max) {}
+        : bottomOffset(bottom)
+        , topOffset(top)
+        , maximum(max)
+    {}
 
     /**
      * @brief 创建均匀分布的高度范围
      * @param minY 最小Y
      * @param maxY 最大Y
      */
-    static HeightRangePlacementConfig uniform(i32 minY, i32 maxY) {
-        return HeightRangePlacementConfig(minY, 0, maxY);
-    }
+    static HeightRangePlacementConfig uniform(i32 minY, i32 maxY) { return HeightRangePlacementConfig(minY, 0, maxY); }
 
     /**
      * @brief 创建三角形分布（青金石风格）
      * @param baseHeight 基准高度
      * @param spread 扩散范围
      */
-    static HeightRangePlacementConfig triangle(i32 baseHeight, i32 spread) {
+    static HeightRangePlacementConfig triangle(i32 baseHeight, i32 spread)
+    {
         return HeightRangePlacementConfig(baseHeight - spread, 0, baseHeight + spread);
     }
 
@@ -103,7 +107,8 @@ struct BiomePlacementConfig : public IPlacementConfig {
     std::vector<u32> allowedBiomes;
 
     explicit BiomePlacementConfig(std::vector<u32> biomes)
-        : allowedBiomes(std::move(biomes)) {}
+        : allowedBiomes(std::move(biomes))
+    {}
 
     /**
      * @brief 检查生物群系是否允许
@@ -122,7 +127,9 @@ struct ChancePlacementConfig : public IPlacementConfig {
     /// 成功概率（0.0 - 1.0）
     f32 chance;
 
-    explicit ChancePlacementConfig(f32 c) : chance(c) {}
+    explicit ChancePlacementConfig(f32 c)
+        : chance(c)
+    {}
 };
 
 /**
@@ -139,7 +146,9 @@ struct SurfacePlacementConfig : public IPlacementConfig {
     bool requireSunlight;
 
     explicit SurfacePlacementConfig(i32 waterDepth = 0, bool sunlight = false)
-        : maxWaterDepth(waterDepth), requireSunlight(sunlight) {}
+        : maxWaterDepth(waterDepth)
+        , requireSunlight(sunlight)
+    {}
 };
 
 /**
@@ -160,8 +169,7 @@ public:
      * @param basePos 基础位置（通常是区块坐标）
      * @return 放置位置列表
      */
-    [[nodiscard]] virtual std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] virtual std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const = 0;
@@ -179,8 +187,7 @@ public:
  */
 class CountPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -195,8 +202,7 @@ public:
  */
 class HeightRangePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -211,8 +217,7 @@ public:
  */
 class SquarePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -227,8 +232,7 @@ public:
  */
 class BiomePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -243,8 +247,7 @@ public:
  */
 class ChancePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -260,8 +263,7 @@ public:
  */
 class SurfacePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -276,16 +278,13 @@ public:
  */
 class ConfiguredPlacement {
 public:
-    ConfiguredPlacement(std::unique_ptr<Placement> placement,
-                        std::unique_ptr<IPlacementConfig> config);
+    ConfiguredPlacement(std::unique_ptr<Placement> placement, std::unique_ptr<IPlacementConfig> config);
 
     /**
      * @brief 获取放置位置
      */
     [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
-        math::Random& random,
-        const BlockPos& basePos) const;
+        WorldGenRegion& region, math::Random& random, const BlockPos& basePos) const;
 
     /**
      * @brief 链式添加放置器
@@ -294,16 +293,13 @@ public:
      * @return 新的配置化放置器
      */
     [[nodiscard]] std::unique_ptr<ConfiguredPlacement> then(
-        std::unique_ptr<Placement> placement,
-        std::unique_ptr<IPlacementConfig> config) const;
+        std::unique_ptr<Placement> placement, std::unique_ptr<IPlacementConfig> config) const;
 
     /**
      * @brief 设置下一个放置器
      * @param next 下一个放置器
      */
-    void setNext(std::unique_ptr<ConfiguredPlacement> next) {
-        m_next = std::move(next);
-    }
+    void setNext(std::unique_ptr<ConfiguredPlacement> next) { m_next = std::move(next); }
 
     [[nodiscard]] ConfiguredPlacement* next() { return m_next.get(); }
     [[nodiscard]] const ConfiguredPlacement* next() const { return m_next.get(); }

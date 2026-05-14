@@ -1,15 +1,15 @@
 #pragma once
 
+#include "../../core/AnimationContext.hpp"
 #include "../../model/core/EntityModel.hpp"
 #include "../../model/core/ModelRenderer.hpp"
-#include "../../core/AnimationContext.hpp"
 #include "common/core/Types.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::entity::pipeline {
-class EntityPipeline;  // 前向声明
+class EntityPipeline; // 前向声明
 }
 
 namespace mc::client::renderer::entity::layer::core {
@@ -22,7 +22,7 @@ namespace mc::client::renderer::entity::layer::core {
  *
  * @tparam TEntity 实体类型
  */
-template<typename TEntity>
+template <typename TEntity>
 class LayerRenderer {
 public:
     virtual ~LayerRenderer() = default;
@@ -41,16 +41,15 @@ public:
      * @param headPitch 头部俯仰角
      * @param scale 缩放因子
      */
-    virtual void render(
-        TEntity& entity,
+    virtual void render(TEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) {
+        f32 scale)
+    {
         // 默认空实现，子类可选择实现此方法或 renderPipeline()
         (void)entity;
         (void)limbSwing;
@@ -72,24 +71,23 @@ public:
      * @param context 动画上下文
      * @param pipeline 实体渲染管线
      */
-    virtual void renderPipeline(
-        TEntity& entity,
+    virtual void renderPipeline(TEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) {
+        pipeline::EntityPipeline& pipeline)
+    {
         // 默认实现：调用旧的 render 方法（如果子类实现了）
         // 子类应该重写此方法以使用 GPU 渲染
         (void)cmd;
         (void)pipeline;
         render(entity,
-               static_cast<f32>(context.limbSwing),
-               static_cast<f32>(context.limbSwingAmount),
-               static_cast<f32>(context.partialTicks),
-               static_cast<f32>(context.ageInTicks),
-               static_cast<f32>(context.netHeadYaw),
-               static_cast<f32>(context.headPitch),
-               static_cast<f32>(context.scale));
+            static_cast<f32>(context.limbSwing),
+            static_cast<f32>(context.limbSwingAmount),
+            static_cast<f32>(context.partialTicks),
+            static_cast<f32>(context.ageInTicks),
+            static_cast<f32>(context.netHeadYaw),
+            static_cast<f32>(context.headPitch),
+            static_cast<f32>(context.scale));
     }
 
     /**
@@ -97,7 +95,8 @@ public:
      * @param entity 实体
      * @return 是否应该渲染
      */
-    [[nodiscard]] virtual bool shouldRender(const TEntity& entity) const {
+    [[nodiscard]] virtual bool shouldRender(const TEntity& entity) const
+    {
         (void)entity;
         return true;
     }

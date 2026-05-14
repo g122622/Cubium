@@ -25,9 +25,9 @@ public:
      * @brief 箱子类型
      */
     enum class ChestType : u8 {
-        Single,  ///< 单箱
-        Left,    ///< 双箱左半
-        Right    ///< 双箱右半
+        Single, ///< 单箱
+        Left,   ///< 双箱左半
+        Right   ///< 双箱右半
     };
 
     ChestModel();

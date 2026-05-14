@@ -10,21 +10,11 @@ namespace command {
 void ReloadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto reloadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reload");
-    reloadNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        reloadNode,
-        support::makeMetadata(
-            "Reloads loot tables, advancements, and functions from disk.",
-            "/reload",
-            2,
-            {},
-            true));
+    reloadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(reloadNode,
+        support::makeMetadata("Reloads loot tables, advancements, and functions from disk.", "/reload", 2, {}, true));
 
-    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return reload(ctx);
-    });
+    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return reload(ctx); });
 
     dispatcher.registerCommand(reloadNode);
 }

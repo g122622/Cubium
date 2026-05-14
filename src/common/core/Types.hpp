@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <optional>
 
 namespace mc {
 
@@ -47,9 +47,11 @@ using PtrDiff = std::ptrdiff_t;
 
 // 前向声明
 namespace math {
-template<typename T> class Vector2;
-template<typename T> class Vector3;
-}
+template <typename T>
+class Vector2;
+template <typename T>
+class Vector3;
+} // namespace math
 
 // ============================================================================
 // 游戏特定类型
@@ -95,7 +97,7 @@ namespace constants {
 inline constexpr u16 MAX_BLOCK_STATES = 16;
 
 // 游戏刻
-inline constexpr f32 TICK_RATE = 20.0f;          // 每秒20刻
+inline constexpr f32 TICK_RATE = 20.0f;            // 每秒20刻
 inline constexpr f32 TICK_DURATION = 1.0f / 20.0f; // 每刻50ms
 
 } // namespace constants
@@ -115,18 +117,13 @@ enum class GameMode : u8 {
     Creative = 1,
     Adventure = 2,
     Spectator = 3,
-    NotSet = 255    // 未设置（用于命令等场景）
+    NotSet = 255 // 未设置（用于命令等场景）
 };
 
 /**
  * @brief 难度等级
  */
-enum class Difficulty : u8 {
-    Peaceful = 0,
-    Easy = 1,
-    Normal = 2,
-    Hard = 3
-};
+enum class Difficulty : u8 { Peaceful = 0, Easy = 1, Normal = 2, Hard = 3 };
 
 /**
  * @brief 方块朝向
@@ -143,12 +140,7 @@ enum class BlockFace : u8 {
 /**
  * @brief 方块形状（用于碰撞）
  */
-enum class BlockShape : u8 {
-    Empty = 0,
-    Full = 1,
-    Partial = 2,
-    Custom = 3
-};
+enum class BlockShape : u8 { Empty = 0, Full = 1, Partial = 2, Custom = 3 };
 
 /**
  * @brief 手部（用于交互）
@@ -156,8 +148,8 @@ enum class BlockShape : u8 {
  * 参考 MC 1.16.5 Hand
  */
 enum class Hand : u8 {
-    MainHand = 0,   ///< 主手
-    OffHand = 1     ///< 副手
+    MainHand = 0, ///< 主手
+    OffHand = 1   ///< 副手
 };
 
 /**
@@ -170,8 +162,8 @@ enum class Hand : u8 {
  * 参考 MC 1.16.5 HandSide
  */
 enum class HandSide : u8 {
-    Left = 0,   ///< 左手
-    Right = 1   ///< 右手
+    Left = 0, ///< 左手
+    Right = 1 ///< 右手
 };
 
 /**
@@ -182,11 +174,11 @@ enum class HandSide : u8 {
  * 参考 MC 1.16.5 CreatureAttribute
  */
 enum class CreatureAttribute : u8 {
-    Undefined = 0,  ///< 未定义
-    Undead = 1,     ///< 亡灵（僵尸、骷髅、凋灵等）
-    Arthropod = 2,  ///< 节肢动物（蜘蛛、末影螨、蠹虫等）
-    Illager = 3,    ///< 灾厄村民（掠夺者、唤魔者等）
-    Water = 4       ///< 水生生物（守卫者、鱿鱼等）
+    Undefined = 0, ///< 未定义
+    Undead = 1,    ///< 亡灵（僵尸、骷髅、凋灵等）
+    Arthropod = 2, ///< 节肢动物（蜘蛛、末影螨、蠹虫等）
+    Illager = 3,   ///< 灾厄村民（掠夺者、唤魔者等）
+    Water = 4      ///< 水生生物（守卫者、鱿鱼等）
 };
 
 // ============================================================================

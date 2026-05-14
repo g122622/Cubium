@@ -1,13 +1,13 @@
 #pragma once
 
-#include "MeasureSpec.hpp"
-#include "LayoutResult.hpp"
-#include "../constraints/LayoutConstraints.hpp"
 #include "../algorithms/FlexLayout.hpp"
+#include "../constraints/LayoutConstraints.hpp"
 #include "../integration/WidgetLayoutAdaptor.hpp"
-#include <memory>
-#include <map>
+#include "LayoutResult.hpp"
+#include "MeasureSpec.hpp"
 #include <functional>
+#include <map>
+#include <memory>
 
 namespace mc::client::ui::kagero::layout {
 
@@ -28,11 +28,9 @@ public:
      * @param containerConstraints 容器约束
      * @return 子元素的布局结果
      */
-    [[nodiscard]] virtual std::vector<LayoutResult> compute(
-        const Rect& containerBounds,
+    [[nodiscard]] virtual std::vector<LayoutResult> compute(const Rect& containerBounds,
         const std::vector<WidgetLayoutAdaptor*>& children,
-        const LayoutConstraints& containerConstraints
-    ) = 0;
+        const LayoutConstraints& containerConstraints) = 0;
 
     /**
      * @brief 测量容器尺寸
@@ -42,11 +40,9 @@ public:
      * @param children 子元素列表
      * @return 容器的测量尺寸
      */
-    [[nodiscard]] virtual Size measure(
-        const MeasureSpec& widthSpec,
+    [[nodiscard]] virtual Size measure(const MeasureSpec& widthSpec,
         const MeasureSpec& heightSpec,
-        const std::vector<WidgetLayoutAdaptor*>& children
-    ) = 0;
+        const std::vector<WidgetLayoutAdaptor*>& children) = 0;
 
     /**
      * @brief 获取算法名称
@@ -58,11 +54,11 @@ public:
  * @brief 布局类型枚举
  */
 enum class LayoutType : u8 {
-    None,       ///< 无布局（绝对定位）
-    Flex,       ///< 弹性布局
-    Grid,       ///< 网格布局
-    Anchor,     ///< 锚点布局
-    Stack       ///< 堆叠布局
+    None,   ///< 无布局（绝对定位）
+    Flex,   ///< 弹性布局
+    Grid,   ///< 网格布局
+    Anchor, ///< 锚点布局
+    Stack   ///< 堆叠布局
 };
 
 /**
@@ -150,9 +146,7 @@ public:
      * @param container 容器适配器
      * @param availableSpace 可用空间
      */
-    void layoutWith(const std::string& algorithmName,
-                   WidgetLayoutAdaptor* container,
-                   const Rect& availableSpace);
+    void layoutWith(const std::string& algorithmName, WidgetLayoutAdaptor* container, const Rect& availableSpace);
 
     // ==================== Flex布局便捷方法 ====================
 
@@ -163,9 +157,8 @@ public:
      * @param availableSpace 可用空间
      * @param config Flex配置
      */
-    void layoutFlex(WidgetLayoutAdaptor* container,
-                   const Rect& availableSpace,
-                   const FlexConfig& config = FlexConfig{});
+    void layoutFlex(
+        WidgetLayoutAdaptor* container, const Rect& availableSpace, const FlexConfig& config = FlexConfig{});
 
     // ==================== 统计信息 ====================
 
@@ -201,27 +194,17 @@ private:
      * @brief 递归布局单个节点
      */
     LayoutResult layoutNode(
-        WidgetLayoutAdaptor* node,
-        const MeasureSpec& widthSpec,
-        const MeasureSpec& heightSpec,
-        i32 depth
-    );
+        WidgetLayoutAdaptor* node, const MeasureSpec& widthSpec, const MeasureSpec& heightSpec, i32 depth);
 
     /**
      * @brief 收集dirty节点
      */
-    void collectDirtyNodes(
-        WidgetLayoutAdaptor* node,
-        std::vector<WidgetLayoutAdaptor*>& out
-    );
+    void collectDirtyNodes(WidgetLayoutAdaptor* node, std::vector<WidgetLayoutAdaptor*>& out);
 
     /**
      * @brief 选择布局算法
      */
-    [[nodiscard]] ILayoutAlgorithm* selectAlgorithm(
-        LayoutType type,
-        const std::string& name
-    );
+    [[nodiscard]] ILayoutAlgorithm* selectAlgorithm(LayoutType type, const std::string& name);
 
     std::map<std::string, std::unique_ptr<ILayoutAlgorithm>> m_algorithms;
     LayoutStats m_stats;
@@ -240,26 +223,25 @@ private:
 class FlexLayoutAlgorithm : public ILayoutAlgorithm {
 public:
     explicit FlexLayoutAlgorithm(const FlexConfig& config = FlexConfig{})
-        : m_config(config) {}
+        : m_config(config)
+    {}
 
     void setConfig(const FlexConfig& config) { m_config = config; }
     [[nodiscard]] const FlexConfig& config() const { return m_config; }
 
-    [[nodiscard]] std::vector<LayoutResult> compute(
-        const Rect& containerBounds,
+    [[nodiscard]] std::vector<LayoutResult> compute(const Rect& containerBounds,
         const std::vector<WidgetLayoutAdaptor*>& children,
-        const LayoutConstraints& containerConstraints
-    ) override {
+        const LayoutConstraints& containerConstraints) override
+    {
         FlexLayout layout;
         layout.setConfig(m_config);
         return layout.compute(containerBounds, children, containerConstraints);
     }
 
-    [[nodiscard]] Size measure(
-        const MeasureSpec& widthSpec,
+    [[nodiscard]] Size measure(const MeasureSpec& widthSpec,
         const MeasureSpec& heightSpec,
-        const std::vector<WidgetLayoutAdaptor*>& children
-    ) override {
+        const std::vector<WidgetLayoutAdaptor*>& children) override
+    {
         FlexLayout layout;
         layout.setConfig(m_config);
         return layout.measure(widthSpec, heightSpec, children);

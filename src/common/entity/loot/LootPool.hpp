@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "LootEntry.hpp"
 #include "LootConditions.hpp"
+#include "LootEntry.hpp"
 #include "RandomRanges.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -29,8 +29,7 @@ public:
      * @param rolls 掷骰次数
      * @param bonusRolls 额外掷骰次数（受幸运值影响）
      */
-    explicit LootPool(const RandomValueRange& rolls,
-                     const RandomValueRange& bonusRolls = RandomValueRange(0.0f, 0.0f));
+    explicit LootPool(const RandomValueRange& rolls, const RandomValueRange& bonusRolls = RandomValueRange(0.0f, 0.0f));
 
     ~LootPool() = default;
 
@@ -57,9 +56,7 @@ public:
     /**
      * @brief 获取所有条目
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootEntry>>& getEntries() const {
-        return m_entries;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootEntry>>& getEntries() const { return m_entries; }
 
     // ========== 掷骰配置 ==========
 
@@ -130,7 +127,8 @@ public:
     /**
      * @brief 设置掷骰次数
      */
-    LootPoolBuilder& rolls(const RandomValueRange& rolls) {
+    LootPoolBuilder& rolls(const RandomValueRange& rolls)
+    {
         m_rolls = rolls;
         return *this;
     }
@@ -138,7 +136,8 @@ public:
     /**
      * @brief 设置掷骰次数（固定值）
      */
-    LootPoolBuilder& rolls(i32 value) {
+    LootPoolBuilder& rolls(i32 value)
+    {
         m_rolls = RandomValueRange(static_cast<f32>(value), static_cast<f32>(value));
         return *this;
     }
@@ -146,7 +145,8 @@ public:
     /**
      * @brief 设置额外掷骰次数
      */
-    LootPoolBuilder& bonusRolls(f32 min, f32 max) {
+    LootPoolBuilder& bonusRolls(f32 min, f32 max)
+    {
         m_bonusRolls = RandomValueRange(min, max);
         return *this;
     }
@@ -154,7 +154,8 @@ public:
     /**
      * @brief 设置名称
      */
-    LootPoolBuilder& name(const std::string& name) {
+    LootPoolBuilder& name(const std::string& name)
+    {
         m_name = name;
         return *this;
     }
@@ -162,7 +163,8 @@ public:
     /**
      * @brief 添加条目
      */
-    LootPoolBuilder& entry(std::unique_ptr<LootEntry> entry) {
+    LootPoolBuilder& entry(std::unique_ptr<LootEntry> entry)
+    {
         m_entries.push_back(std::move(entry));
         return *this;
     }

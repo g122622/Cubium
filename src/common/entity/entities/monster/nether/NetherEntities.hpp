@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
 #include "../../../interfaces/IFlinging.hpp"
-#include "../../../../core/Types.hpp"
+#include "../MonsterEntity.hpp"
 
 namespace mc {
 
@@ -144,7 +144,8 @@ public:
     // ========== 交易相关 ==========
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    void setBaby(bool baby) {
+    void setBaby(bool baby)
+    {
         if (m_isBaby == baby) {
             return;
         }
@@ -252,7 +253,8 @@ public:
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    void setBaby(bool baby) {
+    void setBaby(bool baby)
+    {
         if (m_isBaby == baby) {
             return;
         }
@@ -296,7 +298,8 @@ public:
     ~ZoglinEntity() override = default;
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    void setBaby(bool baby) {
+    void setBaby(bool baby)
+    {
         if (m_isBaby == baby) {
             return;
         }

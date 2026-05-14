@@ -10,7 +10,7 @@
 namespace mc::client {
 class ClientEntityManager;
 class ClientWorld;
-}
+} // namespace mc::client
 
 namespace mc::client::ui::minecraft::targetinfo {
 
@@ -18,8 +18,7 @@ class TargetInfoResolver {
 public:
     using PlayerNameLookup = std::function<std::string(EntityId)>;
 
-    [[nodiscard]] static TargetInfoSnapshot resolve(
-        const Vector3& eyePosition,
+    [[nodiscard]] static TargetInfoSnapshot resolve(const Vector3& eyePosition,
         const Vector3& forward,
         const ClientWorld& world,
         const ClientEntityManager& entityManager,

@@ -15,10 +15,10 @@
 
 #include "GameRule.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include <unordered_map>
+#include <functional>
 #include <memory>
 #include <string>
-#include <functional>
+#include <unordered_map>
 
 namespace mc::server {
 class MinecraftServer;
@@ -320,7 +320,8 @@ public:
      * @param server Minecraft 服务器实例（可选）
      * @return 是否设置成功（规则存在且值有效）
      */
-    bool setFromString(const std::string& ruleName, const std::string& value, server::MinecraftServer* server = nullptr);
+    bool setFromString(
+        const std::string& ruleName, const std::string& value, server::MinecraftServer* server = nullptr);
 
     // ============================================================================
     // 序列化

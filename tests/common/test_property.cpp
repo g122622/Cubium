@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
-#include "../src/common/util/property/IProperty.hpp"
-#include "../src/common/util/property/Property.hpp"
-#include "../src/common/util/property/BooleanProperty.hpp"
-#include "../src/common/util/property/IntegerProperty.hpp"
-#include "../src/common/util/property/EnumProperty.hpp"
-#include "../src/common/util/property/DirectionProperty.hpp"
-#include "../src/common/util/property/Properties.hpp"
 #include "../src/common/util/Direction.hpp"
+#include "../src/common/util/property/BooleanProperty.hpp"
+#include "../src/common/util/property/DirectionProperty.hpp"
+#include "../src/common/util/property/EnumProperty.hpp"
+#include "../src/common/util/property/IProperty.hpp"
+#include "../src/common/util/property/IntegerProperty.hpp"
+#include "../src/common/util/property/Properties.hpp"
+#include "../src/common/util/property/Property.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -14,7 +14,8 @@ using namespace mc;
 // BooleanProperty 测试
 // ============================================================================
 
-TEST(BooleanPropertyTest, CreateAndBasicOperations) {
+TEST(BooleanPropertyTest, CreateAndBasicOperations)
+{
     auto prop = BooleanProperty::create("lit");
 
     EXPECT_EQ(prop->name(), "lit");
@@ -22,16 +23,18 @@ TEST(BooleanPropertyTest, CreateAndBasicOperations) {
     EXPECT_STREQ(prop->typeName(), "BooleanProperty");
 }
 
-TEST(BooleanPropertyTest, AllowedValues) {
+TEST(BooleanPropertyTest, AllowedValues)
+{
     auto prop = BooleanProperty::create("powered");
 
     const auto& values = prop->allowedValues();
     ASSERT_EQ(values.size(), 2);
-    EXPECT_FALSE(values[0]);  // false comes first
-    EXPECT_TRUE(values[1]);   // true comes second
+    EXPECT_FALSE(values[0]); // false comes first
+    EXPECT_TRUE(values[1]);  // true comes second
 }
 
-TEST(BooleanPropertyTest, IndexOf) {
+TEST(BooleanPropertyTest, IndexOf)
+{
     auto prop = BooleanProperty::create("open");
 
     auto falseIdx = prop->indexOf(false);
@@ -43,14 +46,16 @@ TEST(BooleanPropertyTest, IndexOf) {
     EXPECT_EQ(trueIdx.value(), 1);
 }
 
-TEST(BooleanPropertyTest, ValueAt) {
+TEST(BooleanPropertyTest, ValueAt)
+{
     auto prop = BooleanProperty::create("waterlogged");
 
     EXPECT_FALSE(prop->valueAt(0));
     EXPECT_TRUE(prop->valueAt(1));
 }
 
-TEST(BooleanPropertyTest, ValueToString) {
+TEST(BooleanPropertyTest, ValueToString)
+{
     auto prop = BooleanProperty::create("enabled");
 
     EXPECT_EQ(prop->valueToString(false), "false");
@@ -59,7 +64,8 @@ TEST(BooleanPropertyTest, ValueToString) {
     EXPECT_EQ(prop->valueToString(1), "true");
 }
 
-TEST(BooleanPropertyTest, ParseValue) {
+TEST(BooleanPropertyTest, ParseValue)
+{
     auto prop = BooleanProperty::create("active");
 
     auto trueValue = prop->parse("true");
@@ -75,7 +81,8 @@ TEST(BooleanPropertyTest, ParseValue) {
     EXPECT_FALSE(invalid.has_value());
 }
 
-TEST(BooleanPropertyTest, ParseValueIndex) {
+TEST(BooleanPropertyTest, ParseValueIndex)
+{
     auto prop = BooleanProperty::create("snowy");
 
     auto trueIdx = prop->parseValue(std::string_view("true"));
@@ -91,7 +98,8 @@ TEST(BooleanPropertyTest, ParseValueIndex) {
     EXPECT_FALSE(invalid.has_value());
 }
 
-TEST(BooleanPropertyTest, Equals) {
+TEST(BooleanPropertyTest, Equals)
+{
     auto prop1 = BooleanProperty::create("lit");
     auto prop2 = BooleanProperty::create("lit");
     auto prop3 = BooleanProperty::create("powered");
@@ -101,7 +109,8 @@ TEST(BooleanPropertyTest, Equals) {
     EXPECT_TRUE(prop1->equals(*prop1));
 }
 
-TEST(BooleanPropertyTest, HashCode) {
+TEST(BooleanPropertyTest, HashCode)
+{
     auto prop1 = BooleanProperty::create("lit");
     auto prop2 = BooleanProperty::create("lit");
 
@@ -112,7 +121,8 @@ TEST(BooleanPropertyTest, HashCode) {
 // IntegerProperty 测试
 // ============================================================================
 
-TEST(IntegerPropertyTest, CreateAndBasicOperations) {
+TEST(IntegerPropertyTest, CreateAndBasicOperations)
+{
     auto prop = IntegerProperty::create("age", 0, 7);
 
     EXPECT_EQ(prop->name(), "age");
@@ -122,7 +132,8 @@ TEST(IntegerPropertyTest, CreateAndBasicOperations) {
     EXPECT_STREQ(prop->typeName(), "IntegerProperty");
 }
 
-TEST(IntegerPropertyTest, AllowedValues) {
+TEST(IntegerPropertyTest, AllowedValues)
+{
     auto prop = IntegerProperty::create("power", 0, 15);
 
     const auto& values = prop->allowedValues();
@@ -133,7 +144,8 @@ TEST(IntegerPropertyTest, AllowedValues) {
     }
 }
 
-TEST(IntegerPropertyTest, IndexOf) {
+TEST(IntegerPropertyTest, IndexOf)
+{
     auto prop = IntegerProperty::create("level", 0, 8);
 
     auto idx0 = prop->indexOf(0);
@@ -155,7 +167,8 @@ TEST(IntegerPropertyTest, IndexOf) {
     EXPECT_FALSE(invalid2.has_value());
 }
 
-TEST(IntegerPropertyTest, ValueToString) {
+TEST(IntegerPropertyTest, ValueToString)
+{
     auto prop = IntegerProperty::create("note", 0, 24);
 
     EXPECT_EQ(prop->valueToString(0), "0");
@@ -163,7 +176,8 @@ TEST(IntegerPropertyTest, ValueToString) {
     EXPECT_EQ(prop->valueToString(24), "24");
 }
 
-TEST(IntegerPropertyTest, ParseValue) {
+TEST(IntegerPropertyTest, ParseValue)
+{
     auto prop = IntegerProperty::create("delay", 1, 4);
 
     auto val1 = prop->parse("1");
@@ -183,7 +197,8 @@ TEST(IntegerPropertyTest, ParseValue) {
     EXPECT_FALSE(invalid3.has_value());
 }
 
-TEST(IntegerPropertyTest, InvalidRange) {
+TEST(IntegerPropertyTest, InvalidRange)
+{
     // min < 0 should throw
     EXPECT_THROW(IntegerProperty::create("invalid1", -1, 5), std::invalid_argument);
 
@@ -192,29 +207,32 @@ TEST(IntegerPropertyTest, InvalidRange) {
     EXPECT_THROW(IntegerProperty::create("invalid3", 5, 3), std::invalid_argument);
 }
 
-TEST(IntegerPropertyTest, Equals) {
+TEST(IntegerPropertyTest, Equals)
+{
     auto prop1 = IntegerProperty::create("age", 0, 7);
     auto prop2 = IntegerProperty::create("age", 0, 7);
     auto prop3 = IntegerProperty::create("age", 0, 15);
     auto prop4 = IntegerProperty::create("power", 0, 7);
 
     EXPECT_TRUE(prop1->equals(*prop2));
-    EXPECT_FALSE(prop1->equals(*prop3));  // different range
-    EXPECT_FALSE(prop1->equals(*prop4));  // different name
+    EXPECT_FALSE(prop1->equals(*prop3)); // different range
+    EXPECT_FALSE(prop1->equals(*prop4)); // different name
 }
 
 // ============================================================================
 // EnumProperty<Direction> 测试
 // ============================================================================
 
-TEST(EnumPropertyDirectionTest, CreateAll) {
+TEST(EnumPropertyDirectionTest, CreateAll)
+{
     auto prop = DirectionProperty::create("facing");
 
     EXPECT_EQ(prop->name(), "facing");
     EXPECT_EQ(prop->valueCount(), 6);
 }
 
-TEST(EnumPropertyDirectionTest, ValueToString) {
+TEST(EnumPropertyDirectionTest, ValueToString)
+{
     auto prop = DirectionProperty::create("facing");
 
     EXPECT_EQ(prop->valueToString(Direction::Down), "down");
@@ -225,7 +243,8 @@ TEST(EnumPropertyDirectionTest, ValueToString) {
     EXPECT_EQ(prop->valueToString(Direction::East), "east");
 }
 
-TEST(EnumPropertyDirectionTest, ParseValue) {
+TEST(EnumPropertyDirectionTest, ParseValue)
+{
     auto prop = DirectionProperty::create("facing");
 
     auto north = prop->parse("north");
@@ -241,14 +260,15 @@ TEST(EnumPropertyDirectionTest, ParseValue) {
     EXPECT_FALSE(invalid.has_value());
 }
 
-TEST(EnumPropertyDirectionTest, Subset) {
-    auto prop = DirectionProperty::create("horizontal_facing",
-        {Direction::North, Direction::South, Direction::East, Direction::West});
+TEST(EnumPropertyDirectionTest, Subset)
+{
+    auto prop = DirectionProperty::create(
+        "horizontal_facing", {Direction::North, Direction::South, Direction::East, Direction::West});
 
     EXPECT_EQ(prop->valueCount(), 4);
 
     auto upIdx = prop->indexOf(Direction::Up);
-    EXPECT_FALSE(upIdx.has_value());  // Up not in subset
+    EXPECT_FALSE(upIdx.has_value()); // Up not in subset
 
     auto northIdx = prop->indexOf(Direction::North);
     ASSERT_TRUE(northIdx.has_value());
@@ -258,14 +278,16 @@ TEST(EnumPropertyDirectionTest, Subset) {
 // EnumProperty<Axis> 测试
 // ============================================================================
 
-TEST(EnumPropertyAxisTest, CreateAll) {
+TEST(EnumPropertyAxisTest, CreateAll)
+{
     auto prop = AxisProperty::create("axis");
 
     EXPECT_EQ(prop->name(), "axis");
     EXPECT_EQ(prop->valueCount(), 3);
 }
 
-TEST(EnumPropertyAxisTest, ValueToString) {
+TEST(EnumPropertyAxisTest, ValueToString)
+{
     auto prop = AxisProperty::create("axis");
 
     EXPECT_EQ(prop->valueToString(Axis::X), "x");
@@ -273,7 +295,8 @@ TEST(EnumPropertyAxisTest, ValueToString) {
     EXPECT_EQ(prop->valueToString(Axis::Z), "z");
 }
 
-TEST(EnumPropertyAxisTest, ParseValue) {
+TEST(EnumPropertyAxisTest, ParseValue)
+{
     auto prop = AxisProperty::create("axis");
 
     auto x = prop->parse("x");
@@ -297,7 +320,8 @@ TEST(EnumPropertyAxisTest, ParseValue) {
 // DirectionProperty 测试
 // ============================================================================
 
-TEST(DirectionPropertyTest, CreateAll) {
+TEST(DirectionPropertyTest, CreateAll)
+{
     auto prop = DirectionProperty::create("facing");
 
     EXPECT_EQ(prop->name(), "facing");
@@ -305,7 +329,8 @@ TEST(DirectionPropertyTest, CreateAll) {
     EXPECT_STREQ(prop->typeName(), "DirectionProperty");
 }
 
-TEST(DirectionPropertyTest, CreateHorizontal) {
+TEST(DirectionPropertyTest, CreateHorizontal)
+{
     auto prop = DirectionProperty::createHorizontal("facing");
 
     EXPECT_EQ(prop->valueCount(), 4);
@@ -328,10 +353,9 @@ TEST(DirectionPropertyTest, CreateHorizontal) {
     EXPECT_TRUE(westIdx.has_value());
 }
 
-TEST(DirectionPropertyTest, CreateWithFilter) {
-    auto prop = DirectionProperty::create("facing", [](Direction d) {
-        return d != Direction::Up;
-    });
+TEST(DirectionPropertyTest, CreateWithFilter)
+{
+    auto prop = DirectionProperty::create("facing", [](Direction d) { return d != Direction::Up; });
 
     EXPECT_EQ(prop->valueCount(), 5);
 
@@ -343,7 +367,8 @@ TEST(DirectionPropertyTest, CreateWithFilter) {
 // BlockStateProperties 测试
 // ============================================================================
 
-TEST(BlockStatePropertiesTest, BooleanProperties) {
+TEST(BlockStatePropertiesTest, BooleanProperties)
+{
     // 测试各种布尔属性
     EXPECT_EQ(BlockStateProperties::LIT().name(), "lit");
     EXPECT_EQ(BlockStateProperties::POWERED().name(), "powered");
@@ -354,7 +379,8 @@ TEST(BlockStatePropertiesTest, BooleanProperties) {
     EXPECT_EQ(BlockStateProperties::LIT().valueCount(), 2);
 }
 
-TEST(BlockStatePropertiesTest, DirectionProperties) {
+TEST(BlockStatePropertiesTest, DirectionProperties)
+{
     EXPECT_EQ(BlockStateProperties::FACING().name(), "facing");
     EXPECT_EQ(BlockStateProperties::FACING().valueCount(), 6);
 
@@ -362,7 +388,8 @@ TEST(BlockStatePropertiesTest, DirectionProperties) {
     EXPECT_EQ(BlockStateProperties::HORIZONTAL_FACING().valueCount(), 4);
 }
 
-TEST(BlockStatePropertiesTest, AxisProperties) {
+TEST(BlockStatePropertiesTest, AxisProperties)
+{
     EXPECT_EQ(BlockStateProperties::AXIS().name(), "axis");
     EXPECT_EQ(BlockStateProperties::AXIS().valueCount(), 3);
 
@@ -370,7 +397,8 @@ TEST(BlockStatePropertiesTest, AxisProperties) {
     EXPECT_EQ(BlockStateProperties::HORIZONTAL_AXIS().valueCount(), 2);
 }
 
-TEST(BlockStatePropertiesTest, IntegerProperties) {
+TEST(BlockStatePropertiesTest, IntegerProperties)
+{
     EXPECT_EQ(BlockStateProperties::AGE_0_15().name(), "age");
     EXPECT_EQ(BlockStateProperties::AGE_0_15().valueCount(), 16);
 
@@ -385,17 +413,20 @@ TEST(BlockStatePropertiesTest, IntegerProperties) {
 // Direction 工具函数测试
 // ============================================================================
 
-TEST(DirectionUtilTest, AllDirections) {
+TEST(DirectionUtilTest, AllDirections)
+{
     auto all = Directions::all();
     ASSERT_EQ(all.size(), 6);
 }
 
-TEST(DirectionUtilTest, HorizontalDirections) {
+TEST(DirectionUtilTest, HorizontalDirections)
+{
     auto horiz = Directions::horizontal();
     ASSERT_EQ(horiz.size(), 4);
 }
 
-TEST(DirectionUtilTest, Opposite) {
+TEST(DirectionUtilTest, Opposite)
+{
     EXPECT_EQ(Directions::opposite(Direction::Down), Direction::Up);
     EXPECT_EQ(Directions::opposite(Direction::Up), Direction::Down);
     EXPECT_EQ(Directions::opposite(Direction::North), Direction::South);
@@ -404,7 +435,8 @@ TEST(DirectionUtilTest, Opposite) {
     EXPECT_EQ(Directions::opposite(Direction::East), Direction::West);
 }
 
-TEST(DirectionUtilTest, Offset) {
+TEST(DirectionUtilTest, Offset)
+{
     EXPECT_EQ(Directions::xOffset(Direction::East), 1);
     EXPECT_EQ(Directions::xOffset(Direction::West), -1);
     EXPECT_EQ(Directions::xOffset(Direction::Up), 0);
@@ -416,7 +448,8 @@ TEST(DirectionUtilTest, Offset) {
     EXPECT_EQ(Directions::zOffset(Direction::North), -1);
 }
 
-TEST(DirectionUtilTest, Axis) {
+TEST(DirectionUtilTest, Axis)
+{
     EXPECT_EQ(Directions::getAxis(Direction::Up), Axis::Y);
     EXPECT_EQ(Directions::getAxis(Direction::Down), Axis::Y);
     EXPECT_EQ(Directions::getAxis(Direction::East), Axis::X);
@@ -425,7 +458,8 @@ TEST(DirectionUtilTest, Axis) {
     EXPECT_EQ(Directions::getAxis(Direction::South), Axis::Z);
 }
 
-TEST(DirectionUtilTest, RotateY) {
+TEST(DirectionUtilTest, RotateY)
+{
     EXPECT_EQ(Directions::rotateY(Direction::North), Direction::East);
     EXPECT_EQ(Directions::rotateY(Direction::East), Direction::South);
     EXPECT_EQ(Directions::rotateY(Direction::South), Direction::West);
@@ -435,7 +469,8 @@ TEST(DirectionUtilTest, RotateY) {
     EXPECT_EQ(Directions::rotateY(Direction::Down), Direction::Down);
 }
 
-TEST(DirectionUtilTest, FromName) {
+TEST(DirectionUtilTest, FromName)
+{
     EXPECT_EQ(Directions::fromName("down"), Direction::Down);
     EXPECT_EQ(Directions::fromName("up"), Direction::Up);
     EXPECT_EQ(Directions::fromName("north"), Direction::North);
@@ -445,7 +480,8 @@ TEST(DirectionUtilTest, FromName) {
     EXPECT_FALSE(Directions::fromName("invalid").has_value());
 }
 
-TEST(DirectionUtilTest, ToString) {
+TEST(DirectionUtilTest, ToString)
+{
     EXPECT_EQ(Directions::toString(Direction::Down), "down");
     EXPECT_EQ(Directions::toString(Direction::Up), "up");
     EXPECT_EQ(Directions::toString(Direction::North), "north");
@@ -455,25 +491,29 @@ TEST(DirectionUtilTest, ToString) {
 // Axis 工具函数测试
 // ============================================================================
 
-TEST(AxisUtilTest, AllAxes) {
+TEST(AxisUtilTest, AllAxes)
+{
     auto all = Axes::all();
     ASSERT_EQ(all.size(), 3);
 }
 
-TEST(AxisUtilTest, FromName) {
+TEST(AxisUtilTest, FromName)
+{
     EXPECT_EQ(Axes::fromName("x"), Axis::X);
     EXPECT_EQ(Axes::fromName("y"), Axis::Y);
     EXPECT_EQ(Axes::fromName("z"), Axis::Z);
     EXPECT_FALSE(Axes::fromName("w").has_value());
 }
 
-TEST(AxisUtilTest, ToString) {
+TEST(AxisUtilTest, ToString)
+{
     EXPECT_EQ(Axes::toString(Axis::X), "x");
     EXPECT_EQ(Axes::toString(Axis::Y), "y");
     EXPECT_EQ(Axes::toString(Axis::Z), "z");
 }
 
-TEST(AxisUtilTest, IsHorizontalVertical) {
+TEST(AxisUtilTest, IsHorizontalVertical)
+{
     EXPECT_TRUE(Axes::isHorizontal(Axis::X));
     EXPECT_TRUE(Axes::isHorizontal(Axis::Z));
     EXPECT_FALSE(Axes::isHorizontal(Axis::Y));
@@ -487,7 +527,8 @@ TEST(AxisUtilTest, IsHorizontalVertical) {
 // StructureMode 枚举属性测试
 // ============================================================================
 
-TEST(StructureModeTest, PropertyCreation) {
+TEST(StructureModeTest, PropertyCreation)
+{
     const auto& prop = BlockStateProperties::STRUCTURE_MODE();
 
     EXPECT_EQ(prop.name(), "mode");
@@ -495,7 +536,8 @@ TEST(StructureModeTest, PropertyCreation) {
     EXPECT_STREQ(prop.typeName(), "EnumProperty");
 }
 
-TEST(StructureModeTest, AllowedValues) {
+TEST(StructureModeTest, AllowedValues)
+{
     const auto& prop = BlockStateProperties::STRUCTURE_MODE();
 
     const auto& values = prop.allowedValues();
@@ -508,7 +550,8 @@ TEST(StructureModeTest, AllowedValues) {
     EXPECT_EQ(values[3], BlockStateProperties::StructureMode::Data);
 }
 
-TEST(StructureModeTest, IndexOf) {
+TEST(StructureModeTest, IndexOf)
+{
     const auto& prop = BlockStateProperties::STRUCTURE_MODE();
 
     auto saveIdx = prop.indexOf(BlockStateProperties::StructureMode::Save);
@@ -527,7 +570,8 @@ TEST(StructureModeTest, IndexOf) {
     EXPECT_EQ(dataIdx.value(), 3);
 }
 
-TEST(StructureModeTest, ValueAt) {
+TEST(StructureModeTest, ValueAt)
+{
     const auto& prop = BlockStateProperties::STRUCTURE_MODE();
 
     EXPECT_EQ(prop.valueAt(0), BlockStateProperties::StructureMode::Save);
@@ -536,7 +580,8 @@ TEST(StructureModeTest, ValueAt) {
     EXPECT_EQ(prop.valueAt(3), BlockStateProperties::StructureMode::Data);
 }
 
-TEST(StructureModeTest, ValueToString) {
+TEST(StructureModeTest, ValueToString)
+{
     const auto& prop = BlockStateProperties::STRUCTURE_MODE();
 
     EXPECT_EQ(prop.valueToString(BlockStateProperties::StructureMode::Save), "save");
@@ -545,7 +590,8 @@ TEST(StructureModeTest, ValueToString) {
     EXPECT_EQ(prop.valueToString(BlockStateProperties::StructureMode::Data), "data");
 }
 
-TEST(StructureModeTest, ParseValue) {
+TEST(StructureModeTest, ParseValue)
+{
     const auto& prop = BlockStateProperties::STRUCTURE_MODE();
 
     auto save = prop.parse("save");
@@ -569,7 +615,8 @@ TEST(StructureModeTest, ParseValue) {
     EXPECT_FALSE(invalid.has_value());
 }
 
-TEST(StructureModeTest, RoundTrip) {
+TEST(StructureModeTest, RoundTrip)
+{
     const auto& prop = BlockStateProperties::STRUCTURE_MODE();
 
     // 测试所有枚举值的往返转换

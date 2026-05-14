@@ -18,13 +18,13 @@ namespace mc::world::tick {
  *
  * @tparam T 目标类型（Block、Fluid等）
  */
-template<typename T>
+template <typename T>
 struct ScheduledTick {
-    BlockPos position;          ///< 方块位置
-    T* target;                  ///< 目标对象指针
-    u64 scheduledTick;          ///< 调度执行的游戏刻
-    TickPriority priority;      ///< 执行优先级
-    u64 tickEntryId;            ///< 唯一ID（用于排序）
+    BlockPos position;     ///< 方块位置
+    T* target;             ///< 目标对象指针
+    u64 scheduledTick;     ///< 调度执行的游戏刻
+    TickPriority priority; ///< 执行优先级
+    u64 tickEntryId;       ///< 唯一ID（用于排序）
 
     /**
      * @brief 默认构造
@@ -33,7 +33,8 @@ struct ScheduledTick {
         : target(nullptr)
         , scheduledTick(0)
         , priority(TickPriority::Normal)
-        , tickEntryId(0) {}
+        , tickEntryId(0)
+    {}
 
     /**
      * @brief 创建调度条目
@@ -43,13 +44,13 @@ struct ScheduledTick {
      * @param priority 优先级
      * @param tickEntryId 唯一ID
      */
-    ScheduledTick(const BlockPos& pos, T* target, u64 scheduledTick,
-                  TickPriority priority, u64 tickEntryId)
+    ScheduledTick(const BlockPos& pos, T* target, u64 scheduledTick, TickPriority priority, u64 tickEntryId)
         : position(pos)
         , target(target)
         , scheduledTick(scheduledTick)
         , priority(priority)
-        , tickEntryId(tickEntryId) {}
+        , tickEntryId(tickEntryId)
+    {}
 
     /**
      * @brief 比较器，用于排序
@@ -57,7 +58,8 @@ struct ScheduledTick {
      * 排序顺序: scheduledTick -> priority -> tickEntryId
      * 返回true表示this应该排在other之前（优先执行）
      */
-    [[nodiscard]] bool operator<(const ScheduledTick& other) const {
+    [[nodiscard]] bool operator<(const ScheduledTick& other) const
+    {
         if (scheduledTick != other.scheduledTick) {
             return scheduledTick < other.scheduledTick;
         }
@@ -73,14 +75,16 @@ struct ScheduledTick {
      * 注意：用于HashSet去重，只比较位置和目标，
      * 不比较scheduledTick和priority
      */
-    [[nodiscard]] bool operator==(const ScheduledTick& other) const {
+    [[nodiscard]] bool operator==(const ScheduledTick& other) const
+    {
         return position == other.position && target == other.target;
     }
 
     /**
      * @brief 哈希值，基于位置和目标
      */
-    [[nodiscard]] size_t hashCode() const {
+    [[nodiscard]] size_t hashCode() const
+    {
         size_t h = position.toId();
         // 混合目标指针
         h ^= reinterpret_cast<size_t>(target) + 0x9e3779b9 + (h << 6) + (h >> 2);
@@ -91,11 +95,9 @@ struct ScheduledTick {
 /**
  * @brief ScheduledTick的哈希函数
  */
-template<typename T>
+template <typename T>
 struct ScheduledTickHash {
-    size_t operator()(const ScheduledTick<T>& tick) const {
-        return tick.hashCode();
-    }
+    size_t operator()(const ScheduledTick<T>& tick) const { return tick.hashCode(); }
 };
 
 } // namespace mc::world::tick

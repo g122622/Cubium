@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
-#include <limits>
 #include <cmath>
+#include <limits>
 #include <memory>
-#include <vector>
 #include <utility>
+#include <vector>
 
 namespace mc::math {
 
@@ -183,8 +183,9 @@ public:
      * rng.shuffle(items);  // 随机打乱
      * @endcode
      */
-    template<typename T>
-    void shuffle(std::vector<T>& vec) {
+    template <typename T>
+    void shuffle(std::vector<T>& vec)
+    {
         for (size_t i = vec.size(); i > 1; --i) {
             size_t j = static_cast<size_t>(nextInt(static_cast<i32>(i)));
             std::swap(vec[i - 1], vec[j]);

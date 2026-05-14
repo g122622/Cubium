@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
-#include "server/world/ServerChunkManager.hpp"
-#include "server/world/ServerWorld.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/WorldConstants.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
-#include <thread>
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <chrono>
+#include <thread>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::server;
@@ -18,7 +18,8 @@ using namespace mc::server;
 
 class ServerChunkManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
 
@@ -32,15 +33,13 @@ protected:
         m_world = std::make_unique<ServerWorld>(config);
 
         // 创建区块管理器
-        auto generator = std::make_unique<NoiseChunkGenerator>(
-            config.seed,
-            DimensionSettings::overworld()
-        );
+        auto generator = std::make_unique<NoiseChunkGenerator>(config.seed, DimensionSettings::overworld());
         m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
         m_manager->setWorkerPool(m_workerPool.get());
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_manager.reset();
         m_workerPool.reset();
         m_world.reset();
@@ -55,13 +54,15 @@ protected:
 // 构造和生命周期测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, Constructor) {
+TEST_F(ServerChunkManagerTest, Constructor)
+{
     EXPECT_EQ(m_manager->loadedChunkCount(), 0);
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0);
     EXPECT_FALSE(m_workerPool->isRunning());
 }
 
-TEST_F(ServerChunkManagerTest, Initialize) {
+TEST_F(ServerChunkManagerTest, Initialize)
+{
     m_workerPool->start();
     auto result = m_manager->initialize();
     EXPECT_TRUE(result.success());
@@ -70,7 +71,8 @@ TEST_F(ServerChunkManagerTest, Initialize) {
     m_workerPool->shutdown();
 }
 
-TEST_F(ServerChunkManagerTest, Shutdown) {
+TEST_F(ServerChunkManagerTest, Shutdown)
+{
     m_workerPool->start();
     m_manager->initialize();
     EXPECT_TRUE(m_workerPool->isRunning());
@@ -85,17 +87,20 @@ TEST_F(ServerChunkManagerTest, Shutdown) {
 // 同步区块访问测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, GetChunk_NotExists) {
+TEST_F(ServerChunkManagerTest, GetChunk_NotExists)
+{
     ChunkData* chunk = m_manager->tryToGetChunkInMem(0, 0);
     EXPECT_EQ(chunk, nullptr);
 }
 
-TEST_F(ServerChunkManagerTest, HasChunk_NotExists) {
+TEST_F(ServerChunkManagerTest, HasChunk_NotExists)
+{
     EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
     EXPECT_FALSE(m_manager->hasChunkInMem(100, 100));
 }
 
-TEST_F(ServerChunkManagerTest, GetChunkSync_CreatesChunk) {
+TEST_F(ServerChunkManagerTest, GetChunkSync_CreatesChunk)
+{
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
 
     ASSERT_NE(chunk, nullptr);
@@ -104,14 +109,16 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_CreatesChunk) {
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 }
 
-TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk) {
+TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk)
+{
     ChunkData* chunk1 = m_manager->getChunkSync(5, 10);
     ChunkData* chunk2 = m_manager->getChunkSync(5, 10);
 
     EXPECT_EQ(chunk1, chunk2);
 }
 
-TEST_F(ServerChunkManagerTest, GetChunkSync_AfterGeneration) {
+TEST_F(ServerChunkManagerTest, GetChunkSync_AfterGeneration)
+{
     m_manager->getChunkSync(3, 7);
 
     ChunkData* chunk = m_manager->tryToGetChunkInMem(3, 7);
@@ -120,7 +127,8 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_AfterGeneration) {
     EXPECT_EQ(chunk->z(), 7);
 }
 
-TEST_F(ServerChunkManagerTest, GetChunkSync_MultipleChunks) {
+TEST_F(ServerChunkManagerTest, GetChunkSync_MultipleChunks)
+{
     for (int x = -2; x <= 2; ++x) {
         for (int z = -2; z <= 2; ++z) {
             ChunkData* chunk = m_manager->getChunkSync(x, z);
@@ -141,7 +149,8 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_MultipleChunks) {
 // 异步区块访问测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, GetChunkAsync_NotInitialized) {
+TEST_F(ServerChunkManagerTest, GetChunkAsync_NotInitialized)
+{
     // 未初始化 Worker 时，异步生成应该失败或立即返回
     auto future = m_manager->getChunkAsync(0, 0, &ChunkStatuses::FULL);
 
@@ -154,7 +163,8 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_NotInitialized) {
     // 这是预期的行为
 }
 
-TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit) {
+TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
+{
     m_workerPool->start();
     m_manager->initialize();
 
@@ -174,14 +184,17 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit) {
     m_workerPool->shutdown();
 }
 
-TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback) {
+TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback)
+{
     m_workerPool->start();
     m_manager->initialize();
 
     std::atomic<bool> completed{false};
     ChunkData* resultChunk = nullptr;
 
-    m_manager->getChunkAsync(5, 5,
+    m_manager->getChunkAsync(
+        5,
+        5,
         [&](bool success, ChunkData* chunk) {
             completed = true;
             resultChunk = chunk;
@@ -200,7 +213,8 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback) {
     m_workerPool->shutdown();
 }
 
-TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached) {
+TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached)
+{
     m_workerPool->start();
     m_manager->initialize();
 
@@ -215,7 +229,7 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached) {
     EXPECT_NE(status, std::future_status::timeout);
 
     ChunkData* asyncChunk = future.get();
-    EXPECT_EQ(syncChunk, asyncChunk);  // 应该是同一个实例
+    EXPECT_EQ(syncChunk, asyncChunk); // 应该是同一个实例
 
     m_manager->shutdown();
     m_workerPool->shutdown();
@@ -225,7 +239,8 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached) {
 // 区块卸载测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, UnloadChunk) {
+TEST_F(ServerChunkManagerTest, UnloadChunk)
+{
     m_manager->getChunkSync(0, 0);
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 
@@ -237,7 +252,8 @@ TEST_F(ServerChunkManagerTest, UnloadChunk) {
 // 票据管理测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, UpdatePlayerPosition) {
+TEST_F(ServerChunkManagerTest, UpdatePlayerPosition)
+{
     m_workerPool->start();
     m_manager->initialize();
 
@@ -250,7 +266,8 @@ TEST_F(ServerChunkManagerTest, UpdatePlayerPosition) {
     m_workerPool->shutdown();
 }
 
-TEST_F(ServerChunkManagerTest, RemovePlayer) {
+TEST_F(ServerChunkManagerTest, RemovePlayer)
+{
     m_workerPool->start();
     m_manager->initialize();
 
@@ -263,7 +280,8 @@ TEST_F(ServerChunkManagerTest, RemovePlayer) {
     m_workerPool->shutdown();
 }
 
-TEST_F(ServerChunkManagerTest, SetViewDistance) {
+TEST_F(ServerChunkManagerTest, SetViewDistance)
+{
     m_manager->setViewDistance(8);
     EXPECT_EQ(m_manager->viewDistance(), 8);
 
@@ -275,7 +293,8 @@ TEST_F(ServerChunkManagerTest, SetViewDistance) {
 // Tick 测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, Tick) {
+TEST_F(ServerChunkManagerTest, Tick)
+{
     m_workerPool->start();
     m_manager->initialize();
 
@@ -292,7 +311,8 @@ TEST_F(ServerChunkManagerTest, Tick) {
 // 统计测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, LoadedChunkCount) {
+TEST_F(ServerChunkManagerTest, LoadedChunkCount)
+{
     EXPECT_EQ(m_manager->loadedChunkCount(), 0);
 
     m_manager->getChunkSync(0, 0);
@@ -303,7 +323,8 @@ TEST_F(ServerChunkManagerTest, LoadedChunkCount) {
     EXPECT_EQ(m_manager->loadedChunkCount(), 3);
 }
 
-TEST_F(ServerChunkManagerTest, PendingTaskCount) {
+TEST_F(ServerChunkManagerTest, PendingTaskCount)
+{
     m_workerPool->start();
     m_manager->initialize();
 
@@ -318,11 +339,13 @@ TEST_F(ServerChunkManagerTest, PendingTaskCount) {
 // 生成器测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, GeneratorNotNull) {
+TEST_F(ServerChunkManagerTest, GeneratorNotNull)
+{
     EXPECT_NE(m_manager->generator(), nullptr);
 }
 
-TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks) {
+TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks)
+{
     m_workerPool->start();
     m_manager->initialize();
 
@@ -353,7 +376,8 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks) {
 // 线程安全测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess) {
+TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
+{
     m_workerPool->start();
     m_manager->initialize();
 

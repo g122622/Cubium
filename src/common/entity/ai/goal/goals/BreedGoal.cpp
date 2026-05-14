@@ -1,16 +1,16 @@
 #include "BreedGoal.hpp"
-#include "../../../entities/passive/basic/AnimalEntity.hpp"
-#include "../../../entities/orb/ExperienceOrbEntity.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../core/AgeableEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/EntityUtils.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../entities/orb/ExperienceOrbEntity.hpp"
+#include "../../../entities/passive/basic/AnimalEntity.hpp"
 #include "../../controller/LookController.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../GoalConstants.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -24,7 +24,8 @@ BreedGoal::BreedGoal(AnimalEntity* animal, f64 speed)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool BreedGoal::shouldExecute() {
+bool BreedGoal::shouldExecute()
+{
     if (!m_animal) return false;
 
     // MC 1.16.5: 检查是否处于爱心状态
@@ -37,7 +38,8 @@ bool BreedGoal::shouldExecute() {
     return m_targetMate != nullptr;
 }
 
-bool BreedGoal::shouldContinueExecuting() {
+bool BreedGoal::shouldContinueExecuting()
+{
     if (!m_targetMate) return false;
 
     // MC 1.16.5: 检查配偶是否存活且仍处于爱心状态，且未超时
@@ -48,11 +50,13 @@ bool BreedGoal::shouldContinueExecuting() {
     return m_spawnBabyDelay < SPAWN_BABY_DELAY;
 }
 
-void BreedGoal::startExecuting() {
+void BreedGoal::startExecuting()
+{
     m_spawnBabyDelay = 0;
 }
 
-void BreedGoal::resetTask() {
+void BreedGoal::resetTask()
+{
     m_targetMate = nullptr;
     m_spawnBabyDelay = 0;
     if (m_animal) {
@@ -60,7 +64,8 @@ void BreedGoal::resetTask() {
     }
 }
 
-void BreedGoal::tick() {
+void BreedGoal::tick()
+{
     if (!m_animal || !m_targetMate) return;
 
     // MC 1.16.5: 使用 LookController 看向配偶
@@ -83,23 +88,20 @@ void BreedGoal::tick() {
     }
 }
 
-AnimalEntity* BreedGoal::findNearbyMate() {
+AnimalEntity* BreedGoal::findNearbyMate()
+{
     if (!m_animal || !m_animal->world()) return nullptr;
 
     // MC 1.16.5: 在 8 格范围内寻找配偶，使用 EntityPredicate
     // EntityPredicate.setDistance(8.0D).allowInvulnerable().allowFriendlyFire().setLineOfSiteRequired()
     return EntityUtils::findClosestEntity<AnimalEntity>(
-        m_animal->world(),
-        m_animal->position(),
-        BREED_DETECTION_RANGE,
-        m_animal,
-        [this](AnimalEntity* animal) {
+        m_animal->world(), m_animal->position(), BREED_DETECTION_RANGE, m_animal, [this](AnimalEntity* animal) {
             return m_animal->canMateWith(*animal);
-        }
-    );
+        });
 }
 
-void BreedGoal::spawnBaby() {
+void BreedGoal::spawnBaby()
+{
     if (!m_animal || !m_targetMate) return;
 
     // MC 1.16.5: 重置爱心状态
@@ -137,8 +139,8 @@ void BreedGoal::spawnBaby() {
             // MC 1.16.5: 生成 1-7 个经验球
             i32 xpCount = 1 + rng.nextInt(7);
             for (i32 i = 0; i < xpCount; ++i) {
-                auto xpOrb = std::make_unique<ExperienceOrbEntity>(
-                    world, m_animal->x(), m_animal->y(), m_animal->z(), 1);
+                auto xpOrb =
+                    std::make_unique<ExperienceOrbEntity>(world, m_animal->x(), m_animal->y(), m_animal->z(), 1);
                 // 添加随机速度
                 f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
                 f32 vy = rng.nextFloat() * 0.2f;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/Types.hpp"
 #include "../core/Result.hpp"
+#include "../core/Types.hpp"
 #include "PackMetadata.hpp"
 #include <memory>
 #include <vector>
@@ -34,8 +34,7 @@ public:
 
     // 列出目录下的所有资源
     [[nodiscard]] virtual Result<std::vector<std::string>> listResources(
-        std::string_view directory,
-        std::string_view extension = "") const = 0;
+        std::string_view directory, std::string_view extension = "") const = 0;
 
     // 获取资源包路径/名称
     [[nodiscard]] virtual std::string name() const = 0;

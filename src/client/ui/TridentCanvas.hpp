@@ -1,14 +1,14 @@
 #pragma once
 
-#include "kagero/paint/contracts/ICanvas.hpp"
-#include "kagero/Types.hpp"
 #include "Glyph.hpp"
+#include "kagero/Types.hpp"
+#include "kagero/paint/contracts/ICanvas.hpp"
 #include <vector>
 
 namespace mc::client {
 class Font;
 class FontRenderer;
-}
+} // namespace mc::client
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
@@ -78,7 +78,10 @@ public:
 
     void drawImage(const kagero::paint::IImage& image, f32 x, f32 y) override;
     void drawImageRect(const kagero::paint::IImage& image, const kagero::Rect& src, const kagero::Rect& dst) override;
-    void drawImageNine(const kagero::paint::IImage& image, const kagero::Rect& center, const kagero::Rect& dst, const kagero::paint::IPaint* paint) override;
+    void drawImageNine(const kagero::paint::IImage& image,
+        const kagero::Rect& center,
+        const kagero::Rect& dst,
+        const kagero::paint::IPaint* paint) override;
 
     void drawText(const std::string& text, f32 x, f32 y, const kagero::paint::IPaint& paint) override;
     void drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f32 y, const kagero::paint::IPaint& paint) override;
@@ -151,7 +154,7 @@ private:
     kagero::paint::Matrix m_matrix;
     std::vector<kagero::Rect> m_clipStack;
     std::vector<kagero::paint::Matrix> m_matrixStack;
-    std::vector<f32> m_alphaStack;  ///< 用于 saveLayerAlpha
+    std::vector<f32> m_alphaStack; ///< 用于 saveLayerAlpha
 };
 
 } // namespace mc::client::ui

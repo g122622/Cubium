@@ -39,9 +39,7 @@ public:
      * @return 侧面背包指针，如果不可用返回 nullptr
      */
     [[nodiscard]] virtual std::unique_ptr<ISidedInventory> createInventory(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos) = 0;
+        const BlockState& state, IWorld& world, const BlockPos& pos) = 0;
 };
 
 } // namespace mc

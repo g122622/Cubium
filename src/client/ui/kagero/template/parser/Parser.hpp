@@ -1,33 +1,33 @@
 #pragma once
 
-#include "Lexer.hpp"
-#include "Ast.hpp"
 #include "../core/TemplateConfig.hpp"
 #include "../core/TemplateError.hpp"
-#include <memory>
-#include <functional>
+#include "Ast.hpp"
+#include "Lexer.hpp"
 #include <algorithm>
+#include <functional>
+#include <memory>
 #include <unordered_set>
 
 namespace mc::client::ui::kagero::tpl::parser {
 
 // 引入core命名空间的类型
+using core::SourceLocation;
 using core::TemplateConfig;
 using core::TemplateError;
-using core::TemplateErrorType;
-using core::TemplateErrorInfo;
 using core::TemplateErrorCollector;
-using core::SourceLocation;
+using core::TemplateErrorInfo;
+using core::TemplateErrorType;
 
 // 引入ast命名空间的类型
-using ast::LoopInfo;
-using ast::ConditionInfo;
-using ast::ElementNode;
-using ast::DocumentNode;
-using ast::TextNode;
-using ast::CommentNode;
 using ast::Attribute;
+using ast::CommentNode;
+using ast::ConditionInfo;
+using ast::DocumentNode;
+using ast::ElementNode;
+using ast::LoopInfo;
 using ast::NodeType;
+using ast::TextNode;
 
 /**
  * @brief 语法分析器
@@ -44,7 +44,7 @@ using ast::NodeType;
  * - 条件指令: bind:visible="booleanPath"
  *
  * 使用示例：
- * @code 
+ * @code
  * Lexer lexer(source);
  * lexer.tokenize();
  *
@@ -63,16 +63,14 @@ public:
      * @param tokens Token列表
      * @param config 解析配置
      */
-    explicit Parser(const std::vector<Token>& tokens,
-                    const TemplateConfig& config = TemplateConfig::defaults());
+    explicit Parser(const std::vector<Token>& tokens, const TemplateConfig& config = TemplateConfig::defaults());
 
     /**
      * @brief 从Lexer构造
      * @param lexer 词法分析器
      * @param config 解析配置
      */
-    explicit Parser(const Lexer& lexer,
-                    const TemplateConfig& config = TemplateConfig::defaults());
+    explicit Parser(const Lexer& lexer, const TemplateConfig& config = TemplateConfig::defaults());
 
     /**
      * @brief 解析模板
@@ -96,9 +94,7 @@ public:
     /**
      * @brief 获取第一个错误
      */
-    [[nodiscard]] const TemplateErrorInfo* firstError() const {
-        return m_errors.empty() ? nullptr : &m_errors.front();
-    }
+    [[nodiscard]] const TemplateErrorInfo* firstError() const { return m_errors.empty() ? nullptr : &m_errors.front(); }
 
     /**
      * @brief 获取当前Token
@@ -282,8 +278,7 @@ private:
     /**
      * @brief 添加错误
      */
-    void addError(TemplateErrorType type, const std::string& message,
-                  const SourceLocation& loc = SourceLocation());
+    void addError(TemplateErrorType type, const std::string& message, const SourceLocation& loc = SourceLocation());
 
     /**
      * @brief 添加错误（带上下文）

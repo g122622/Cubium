@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/projectile/TridentEntity.hpp"
-#include "item/core/ItemStack.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "item/core/ItemStack.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity;
@@ -14,7 +14,8 @@ using namespace mc::entity;
 
 class ArrowPickupTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化物品注册表
         Items::initialize();
 
@@ -24,8 +25,7 @@ protected:
         m_trident = Items::TRIDENT;
     }
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 
     Item* m_arrow = nullptr;
     Item* m_spectralArrow = nullptr;
@@ -36,7 +36,8 @@ protected:
 // ArrowEntity::getArrowStack 测试
 // ============================================================================
 
-TEST_F(ArrowPickupTest, ArrowEntity_GetArrowStack_ReturnsArrowItem) {
+TEST_F(ArrowPickupTest, ArrowEntity_GetArrowStack_ReturnsArrowItem)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
 
@@ -47,7 +48,8 @@ TEST_F(ArrowPickupTest, ArrowEntity_GetArrowStack_ReturnsArrowItem) {
     EXPECT_EQ(stack.getCount(), 1);
 }
 
-TEST_F(ArrowPickupTest, ArrowEntity_GetArrowStack_WithEffects_ReturnsTippedArrow) {
+TEST_F(ArrowPickupTest, ArrowEntity_GetArrowStack_WithEffects_ReturnsTippedArrow)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
 
@@ -65,7 +67,8 @@ TEST_F(ArrowPickupTest, ArrowEntity_GetArrowStack_WithEffects_ReturnsTippedArrow
 // SpectralArrowEntity::getArrowStack 测试
 // ============================================================================
 
-TEST_F(ArrowPickupTest, SpectralArrowEntity_GetArrowStack_ReturnsSpectralArrow) {
+TEST_F(ArrowPickupTest, SpectralArrowEntity_GetArrowStack_ReturnsSpectralArrow)
+{
     auto spectralArrow = std::make_unique<SpectralArrowEntity>(LegacyEntityType::Unknown, 1);
     spectralArrow->setPosition(0, 0, 0);
 
@@ -80,7 +83,8 @@ TEST_F(ArrowPickupTest, SpectralArrowEntity_GetArrowStack_ReturnsSpectralArrow) 
 // TridentEntity::getArrowStack 测试
 // ============================================================================
 
-TEST_F(ArrowPickupTest, TridentEntity_GetArrowStack_ReturnsTridentItem) {
+TEST_F(ArrowPickupTest, TridentEntity_GetArrowStack_ReturnsTridentItem)
+{
     auto trident = std::make_unique<TridentEntity>(LegacyEntityType::Unknown, 1);
     trident->setPosition(0, 0, 0);
 
@@ -99,18 +103,20 @@ TEST_F(ArrowPickupTest, TridentEntity_GetArrowStack_ReturnsTridentItem) {
 // AbstractArrowEntity::onPlayerPickup 前置条件测试
 // ============================================================================
 
-TEST_F(ArrowPickupTest, OnPlayerPickup_Disallowed_ReturnsFalse) {
+TEST_F(ArrowPickupTest, OnPlayerPickup_Disallowed_ReturnsFalse)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
     arrow->setPickupStatus(PickupStatus::Disallowed);
-    arrow->setInGround(true);  // 必须插在地方才能拾取
+    arrow->setInGround(true); // 必须插在地方才能拾取
 
     // 验证基本逻辑：Disallowed 状态应该拒绝拾取
     EXPECT_EQ(arrow->pickupStatus(), PickupStatus::Disallowed);
     EXPECT_TRUE(arrow->isInGround());
 }
 
-TEST_F(ArrowPickupTest, OnPlayerPickup_Allowed_InGround_CanPickup) {
+TEST_F(ArrowPickupTest, OnPlayerPickup_Allowed_InGround_CanPickup)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
     arrow->setPickupStatus(PickupStatus::Allowed);
@@ -121,17 +127,19 @@ TEST_F(ArrowPickupTest, OnPlayerPickup_Allowed_InGround_CanPickup) {
     EXPECT_TRUE(arrow->isInGround());
 }
 
-TEST_F(ArrowPickupTest, OnPlayerPickup_NotInGround_CannotPickup) {
+TEST_F(ArrowPickupTest, OnPlayerPickup_NotInGround_CannotPickup)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
     arrow->setPickupStatus(PickupStatus::Allowed);
-    arrow->setInGround(false);  // 未插在方块中
+    arrow->setInGround(false); // 未插在方块中
 
     // 验证箭矢状态
     EXPECT_FALSE(arrow->isInGround());
 }
 
-TEST_F(ArrowPickupTest, OnPlayerPickup_CreativeOnly_OnlyCreativeCanPickup) {
+TEST_F(ArrowPickupTest, OnPlayerPickup_CreativeOnly_OnlyCreativeCanPickup)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
     arrow->setPickupStatus(PickupStatus::CreativeOnly);
@@ -145,7 +153,8 @@ TEST_F(ArrowPickupTest, OnPlayerPickup_CreativeOnly_OnlyCreativeCanPickup) {
 // PickupStatus 枚举值测试
 // ============================================================================
 
-TEST_F(ArrowPickupTest, PickupStatus_Values) {
+TEST_F(ArrowPickupTest, PickupStatus_Values)
+{
     // 验证枚举值
     EXPECT_EQ(static_cast<int>(PickupStatus::Disallowed), 0);
     EXPECT_EQ(static_cast<int>(PickupStatus::Allowed), 1);
@@ -156,42 +165,49 @@ TEST_F(ArrowPickupTest, PickupStatus_Values) {
 // 箭矢属性测试
 // ============================================================================
 
-TEST_F(ArrowPickupTest, ArrowEntity_DefaultDamage) {
+TEST_F(ArrowPickupTest, ArrowEntity_DefaultDamage)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     EXPECT_FLOAT_EQ(arrow->damage(), 2.0f);
 }
 
-TEST_F(ArrowPickupTest, ArrowEntity_SetDamage) {
+TEST_F(ArrowPickupTest, ArrowEntity_SetDamage)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setDamage(5.5f);
     EXPECT_FLOAT_EQ(arrow->damage(), 5.5f);
 }
 
-TEST_F(ArrowPickupTest, ArrowEntity_CriticalFlag) {
+TEST_F(ArrowPickupTest, ArrowEntity_CriticalFlag)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     EXPECT_FALSE(arrow->isCritical());
     arrow->setCritical(true);
     EXPECT_TRUE(arrow->isCritical());
 }
 
-TEST_F(ArrowPickupTest, ArrowEntity_PierceLevel) {
+TEST_F(ArrowPickupTest, ArrowEntity_PierceLevel)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     EXPECT_EQ(arrow->pierceLevel(), 0);
     arrow->setPierceLevel(3);
     EXPECT_EQ(arrow->pierceLevel(), 3);
 }
 
-TEST_F(ArrowPickupTest, SpectralArrowEntity_DefaultDamage) {
+TEST_F(ArrowPickupTest, SpectralArrowEntity_DefaultDamage)
+{
     auto spectralArrow = std::make_unique<SpectralArrowEntity>(LegacyEntityType::Unknown, 1);
     EXPECT_FLOAT_EQ(spectralArrow->damage(), 2.0f);
 }
 
-TEST_F(ArrowPickupTest, TridentEntity_DefaultDamage) {
+TEST_F(ArrowPickupTest, TridentEntity_DefaultDamage)
+{
     auto trident = std::make_unique<TridentEntity>(LegacyEntityType::Unknown, 1);
     EXPECT_FLOAT_EQ(trident->damage(), 8.0f);
 }
 
-TEST_F(ArrowPickupTest, TridentEntity_DefaultPickupStatus) {
+TEST_F(ArrowPickupTest, TridentEntity_DefaultPickupStatus)
+{
     auto trident = std::make_unique<TridentEntity>(LegacyEntityType::Unknown, 1);
     // 三叉戟默认应该可以拾取
     EXPECT_EQ(trident->pickupStatus(), PickupStatus::Allowed);
@@ -201,7 +217,8 @@ TEST_F(ArrowPickupTest, TridentEntity_DefaultPickupStatus) {
 // 抽象基类测试 - getArrowStack 必须实现
 // ============================================================================
 
-TEST_F(ArrowPickupTest, ArrowEntity_IsAbstractArrowEntity) {
+TEST_F(ArrowPickupTest, ArrowEntity_IsAbstractArrowEntity)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     AbstractArrowEntity* base = arrow.get();
     EXPECT_NE(base, nullptr);
@@ -211,7 +228,8 @@ TEST_F(ArrowPickupTest, ArrowEntity_IsAbstractArrowEntity) {
     EXPECT_NE(stack.getItem(), nullptr);
 }
 
-TEST_F(ArrowPickupTest, SpectralArrowEntity_IsAbstractArrowEntity) {
+TEST_F(ArrowPickupTest, SpectralArrowEntity_IsAbstractArrowEntity)
+{
     auto spectralArrow = std::make_unique<SpectralArrowEntity>(LegacyEntityType::Unknown, 1);
     AbstractArrowEntity* base = spectralArrow.get();
     EXPECT_NE(base, nullptr);
@@ -221,7 +239,8 @@ TEST_F(ArrowPickupTest, SpectralArrowEntity_IsAbstractArrowEntity) {
     EXPECT_NE(stack.getItem(), nullptr);
 }
 
-TEST_F(ArrowPickupTest, TridentEntity_IsAbstractArrowEntity) {
+TEST_F(ArrowPickupTest, TridentEntity_IsAbstractArrowEntity)
+{
     auto trident = std::make_unique<TridentEntity>(LegacyEntityType::Unknown, 1);
     AbstractArrowEntity* base = trident.get();
     EXPECT_NE(base, nullptr);
@@ -239,11 +258,12 @@ TEST_F(ArrowPickupTest, TridentEntity_IsAbstractArrowEntity) {
 // onCollideWithPlayer 测试
 // ============================================================================
 
-TEST_F(ArrowPickupTest, OnCollideWithPlayer_NotInGround_DoesNotPickup) {
+TEST_F(ArrowPickupTest, OnCollideWithPlayer_NotInGround_DoesNotPickup)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
     arrow->setPickupStatus(PickupStatus::Allowed);
-    arrow->setInGround(false);  // 未插在方块中
+    arrow->setInGround(false); // 未插在方块中
 
     // 验证状态
     EXPECT_FALSE(arrow->isInGround());
@@ -251,7 +271,8 @@ TEST_F(ArrowPickupTest, OnCollideWithPlayer_NotInGround_DoesNotPickup) {
     // 未插在方块中时不应该触发拾取
 }
 
-TEST_F(ArrowPickupTest, OnCollideWithPlayer_Disallowed_DoesNotPickup) {
+TEST_F(ArrowPickupTest, OnCollideWithPlayer_Disallowed_DoesNotPickup)
+{
     auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 1);
     arrow->setPosition(0, 0, 0);
     arrow->setPickupStatus(PickupStatus::Disallowed);

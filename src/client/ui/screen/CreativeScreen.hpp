@@ -11,7 +11,7 @@
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
 class GuiTextureManager;
-}
+} // namespace mc::client::renderer::trident::gui
 
 namespace mc::client::renderer::trident::item {
 class ItemRenderer;
@@ -43,8 +43,8 @@ public:
      * @param itemRenderer 物品渲染器
      */
     void setRenderers(renderer::trident::gui::GuiRenderer* gui,
-                      renderer::trident::gui::GuiTextureManager* textureManager,
-                      renderer::trident::item::ItemRenderer* itemRenderer);
+        renderer::trident::gui::GuiTextureManager* textureManager,
+        renderer::trident::item::ItemRenderer* itemRenderer);
 
     /**
      * @brief 设置屏幕尺寸

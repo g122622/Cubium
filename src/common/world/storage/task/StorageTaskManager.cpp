@@ -4,8 +4,7 @@ namespace mc::world::storage {
 
 StorageTaskManager::StorageTaskManager(util::ServerWorkerPool& workerPool)
     : m_workerPool(&workerPool)
-{
-}
+{}
 
 void StorageTaskManager::setWorkerPool(util::ServerWorkerPool* workerPool)
 {
@@ -13,9 +12,9 @@ void StorageTaskManager::setWorkerPool(util::ServerWorkerPool* workerPool)
 }
 
 u64 StorageTaskManager::submit(std::unique_ptr<StorageTask> task,
-                               util::TaskPriority priority,
-                               util::TaskCallback callback,
-                               std::shared_ptr<std::atomic<bool>> cancelToken)
+    util::TaskPriority priority,
+    util::TaskCallback callback,
+    std::shared_ptr<std::atomic<bool>> cancelToken)
 {
     if (!m_workerPool || !task) {
         if (callback) {

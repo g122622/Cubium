@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ThrowableEntity.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "ThrowableEntity.hpp"
 #include <memory>
 
 namespace mc {

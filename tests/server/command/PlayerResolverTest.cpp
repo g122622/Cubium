@@ -13,13 +13,21 @@
 
 #include <gtest/gtest.h>
 
-#include "server/command/support/PlayerResolver.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
+#include "common/network/connection/IServerConnection.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "server/application/IServer.hpp"
-#include "server/command/ServerCommandSource.hpp"
 #include "server/command/CommandRegistry.hpp"
+#include "server/command/ServerCommandSource.hpp"
+#include "server/command/support/PlayerResolver.hpp"
+#include "server/core/BannedIpList.hpp"
+#include "server/core/BannedPlayerList.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/GameModeManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
@@ -28,15 +36,7 @@
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/core/WhitelistManager.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/OpListManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
-#include "common/command/arguments/EntityArgument.hpp"
-#include "common/network/connection/IServerConnection.hpp"
-#include "common/sound/SoundCategory.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/util/UuidUtils.hpp"
 
 #include <memory>
 #include <vector>
@@ -47,7 +47,7 @@ class ServerDimensionManager;
 class WorldLightManager;
 class PhysicsEngine;
 class EntityManager;
-}
+} // namespace mc
 
 namespace mc::server {
 class ServerWorld;
@@ -56,19 +56,19 @@ class EntityTracker;
 class ItemPickupManager;
 class WeatherManager;
 class ServerPlayerEntityManager;
-}
+} // namespace mc::server
 
 namespace mc::server::sync {
 class EntitySyncManager;
 class ChunkSendManager;
 class LightSyncManager;
-}
+} // namespace mc::server::sync
 
 namespace mc::server::interaction {
 class BlockInteractionManager;
 class MiningManager;
 class ContainerManager;
-}
+} // namespace mc::server::interaction
 
 namespace mc::command {
 namespace {
@@ -118,18 +118,16 @@ public:
         , m_teleportManager(m_playerManager)
         , m_keepAliveManager(m_playerManager, m_config)
         , m_positionTracker(m_playerManager, m_config)
-        , m_packetHandler(
-            m_playerManager,
-            m_connectionManager,
-            m_teleportManager,
-            m_keepAliveManager,
-            m_positionTracker,
-            m_timeManager,
-            m_config)
+        , m_packetHandler(m_playerManager,
+              m_connectionManager,
+              m_teleportManager,
+              m_keepAliveManager,
+              m_positionTracker,
+              m_timeManager,
+              m_config)
         , m_gameModeManager(m_playerManager, m_connectionManager)
         , m_commandRegistry()
-    {
-    }
+    {}
 
     // IServer 接口实现
     [[nodiscard]] Result<void> initialize() override { return Result<void>::ok(); }
@@ -140,7 +138,10 @@ public:
     [[nodiscard]] server::core::PlayerManager& playerManager() override { return m_playerManager; }
     [[nodiscard]] const server::core::PlayerManager& playerManager() const override { return m_playerManager; }
     [[nodiscard]] server::core::ConnectionManager& connectionManager() override { return m_connectionManager; }
-    [[nodiscard]] const server::core::ConnectionManager& connectionManager() const override { return m_connectionManager; }
+    [[nodiscard]] const server::core::ConnectionManager& connectionManager() const override
+    {
+        return m_connectionManager;
+    }
     [[nodiscard]] server::core::TimeManager& timeManager() override { return m_timeManager; }
     [[nodiscard]] const server::core::TimeManager& timeManager() const override { return m_timeManager; }
     [[nodiscard]] server::core::TeleportManager& teleportManager() override { return m_teleportManager; }
@@ -163,9 +164,15 @@ public:
     [[nodiscard]] const server::core::OpListManager& opListManager() const override { return m_opListManager; }
 
     [[nodiscard]] mc::ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const mc::ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const mc::ServerDimensionManager& dimensionManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::ServerWorld& world() override { throw std::logic_error("world not available in unit test"); }
-    [[nodiscard]] const server::ServerWorld& world() const override { throw std::logic_error("world not available in unit test"); }
+    [[nodiscard]] const server::ServerWorld& world() const override
+    {
+        throw std::logic_error("world not available in unit test");
+    }
     [[nodiscard]] server::ServerChunkManager& chunkManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::ServerChunkManager& chunkManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] WorldLightManager* lightManager() override { return nullptr; }
@@ -179,25 +186,67 @@ public:
     [[nodiscard]] server::WeatherManager& weatherManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::WeatherManager& weatherManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::ItemPickupManager& itemPickupManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override { throw std::logic_error("playerEntityManager not available in unit test"); }
-    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override { throw std::logic_error("playerEntityManager not available in unit test"); }
-    [[nodiscard]] server::interaction::BlockInteractionManager& blockInteractionManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::BlockInteractionManager& blockInteractionManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override
+    {
+        throw std::logic_error("playerEntityManager not available in unit test");
+    }
+    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        throw std::logic_error("playerEntityManager not available in unit test");
+    }
+    [[nodiscard]] server::interaction::BlockInteractionManager& blockInteractionManager() override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] const server::interaction::BlockInteractionManager& blockInteractionManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::interaction::MiningManager& miningManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::MiningManager& miningManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::interaction::ContainerManager& containerManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::ContainerManager& containerManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::interaction::MiningManager& miningManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] server::interaction::ContainerManager& containerManager() override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] const server::interaction::ContainerManager& containerManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::interaction::InventoryManager& inventoryManager() override { return m_inventoryManager; }
-    [[nodiscard]] const server::interaction::InventoryManager& inventoryManager() const override { return m_inventoryManager; }
-    [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override { return m_inventoryManager.getInventory(playerId); }
-    [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override { return m_inventoryManager.getInventory(playerId); }
+    [[nodiscard]] const server::interaction::InventoryManager& inventoryManager() const override
+    {
+        return m_inventoryManager;
+    }
+    [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override
+    {
+        return m_inventoryManager.getInventory(playerId);
+    }
+    [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override
+    {
+        return m_inventoryManager.getInventory(playerId);
+    }
     [[nodiscard]] server::sync::EntitySyncManager& entitySyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::EntitySyncManager& entitySyncManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::sync::EntitySyncManager& entitySyncManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::sync::ChunkSendManager& chunkSendManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::ChunkSendManager& chunkSendManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::sync::ChunkSendManager& chunkSendManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::sync::LightSyncManager& lightSyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::LightSyncManager& lightSyncManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::sync::LightSyncManager& lightSyncManager() const override
+    {
+        throw std::logic_error("unused");
+    }
 
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
@@ -213,16 +262,16 @@ public:
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override { m_idleTimeoutMinutes = timeoutMinutes; }
     void broadcastServerMessage(std::string_view message) override { m_lastBroadcastMessage = std::string(message); }
-    void requestStop() override { m_stopRequested = true; m_running = false; }
+    void requestStop() override
+    {
+        m_stopRequested = true;
+        m_running = false;
+    }
 
     void broadcastParticleInRange(u32, f64, f64, f64, f32, f32, f32, f32, f32, f32, u32, f32) override {}
 
-    void sendSoundToPlayer(PlayerId,
-                          const ResourceLocation&,
-                          sound::SoundCategory,
-                          const Vector3&,
-                          f32,
-                          f32) override {}
+    void sendSoundToPlayer(PlayerId, const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
+    {}
 
     /**
      * @brief 添加测试玩家（仅 PlayerManager 条目，无实体）。
@@ -269,24 +318,24 @@ private:
 } // namespace mc::command
 
 // 全局命名空间中引入需要的类型
-using mc::command::IntRange;
-using mc::command::FloatRange;
-using mc::command::EntitySelector;
-using mc::command::EntitySelectorType;
-using mc::command::EntitySelectorSort;
-using mc::command::ServerCommandSource;
-using mc::command::CommandRegistry;
-using mc::command::support::resolveSinglePlayerId;
-using mc::command::support::resolvePlayerIds;
-using mc::command::support::getGameModeCommandName;
-using mc::command::support::getDifficultyCommandName;
-using mc::PlayerId;
-using mc::GameMode;
 using mc::Difficulty;
-using mc::Vector3d;
+using mc::GameMode;
+using mc::PlayerId;
+using mc::ResourceLocation;
 using mc::Vector2f;
 using mc::Vector3;
-using mc::ResourceLocation;
+using mc::Vector3d;
+using mc::command::CommandRegistry;
+using mc::command::EntitySelector;
+using mc::command::EntitySelectorSort;
+using mc::command::EntitySelectorType;
+using mc::command::FloatRange;
+using mc::command::IntRange;
+using mc::command::ServerCommandSource;
+using mc::command::support::getDifficultyCommandName;
+using mc::command::support::getGameModeCommandName;
+using mc::command::support::resolvePlayerIds;
+using mc::command::support::resolveSinglePlayerId;
 using mc::sound::SoundCategory;
 
 // ========== IntRange 测试（等级过滤核心逻辑）==========
@@ -381,13 +430,9 @@ TEST_F(IntRangeTest, HighLevelHandling)
 
 class PlayerResolverTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-    }
+    void SetUp() override {}
 
-    void TearDown() override
-    {
-    }
+    void TearDown() override {}
 
     mc::command::PlayerResolverTestServer m_server;
 };
@@ -468,9 +513,7 @@ TEST_F(PlayerResolverTest, ResolveSelfReturnsOwnPlayerId)
     m_server.addTestPlayer(1, "Alice");
     m_server.addTestPlayer(2, "Bob");
 
-    ServerCommandSource source(
-        &m_server, nullptr, nullptr,
-        Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Alice");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Alice");
 
     EntitySelector selector = EntitySelector::self();
 
@@ -500,7 +543,7 @@ TEST_F(PlayerResolverTest, ResolveNearestPlayer)
     selector.setSort(EntitySelectorSort::Nearest);
 
     PlayerId result = resolveSinglePlayerId(source, selector);
-    EXPECT_EQ(result, 2);  // Bob 最近
+    EXPECT_EQ(result, 2); // Bob 最近
 }
 
 TEST_F(PlayerResolverTest, ResolveFurthestPlayer)
@@ -527,7 +570,7 @@ TEST_F(PlayerResolverTest, ResolveFurthestPlayer)
 
     auto result = resolvePlayerIds(source, selector);
     ASSERT_EQ(result.size(), 1);
-    EXPECT_EQ(result[0], 3);  // Charlie 最远
+    EXPECT_EQ(result[0], 3); // Charlie 最远
 }
 
 TEST_F(PlayerResolverTest, ResolveWithDistanceFilter)
@@ -553,7 +596,7 @@ TEST_F(PlayerResolverTest, ResolveWithDistanceFilter)
     selector.distance().setMax(30);
 
     auto result = resolvePlayerIds(source, selector);
-    EXPECT_EQ(result.size(), 1);  // 只有 Bob 在范围内
+    EXPECT_EQ(result.size(), 1); // 只有 Bob 在范围内
     EXPECT_EQ(result[0], 2);
 }
 
@@ -637,7 +680,7 @@ TEST_F(PlayerResolverTest, GameModeFilterByNumber)
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector(EntitySelectorType::AllPlayers);
-    selector.setGameMode("1");  // Creative = 1
+    selector.setGameMode("1"); // Creative = 1
 
     auto result = resolvePlayerIds(source, selector);
 
@@ -663,11 +706,11 @@ TEST_F(PlayerResolverTest, GameModeFilterNegated)
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector(EntitySelectorType::AllPlayers);
-    selector.setGameMode("creative", true);  // Negated: 不是创造模式
+    selector.setGameMode("creative", true); // Negated: 不是创造模式
 
     auto result = resolvePlayerIds(source, selector);
 
-    ASSERT_EQ(result.size(), 2);  // Alice 和 Charlie
+    ASSERT_EQ(result.size(), 2); // Alice 和 Charlie
 }
 
 TEST_F(PlayerResolverTest, GameModeFilterAdventure)
@@ -762,8 +805,8 @@ TEST_F(FloatRangeAngleTest, UnboundedRangeAcceptsAnyAngle)
     EXPECT_TRUE(range.testAngle(-90.0f));
     EXPECT_TRUE(range.testAngle(180.0f));
     EXPECT_TRUE(range.testAngle(-180.0f));
-    EXPECT_TRUE(range.testAngle(270.0f));   // 会被规范化为 -90
-    EXPECT_TRUE(range.testAngle(-270.0f));  // 会被规范化为 90
+    EXPECT_TRUE(range.testAngle(270.0f));  // 会被规范化为 -90
+    EXPECT_TRUE(range.testAngle(-270.0f)); // 会被规范化为 90
 }
 
 TEST_F(FloatRangeAngleTest, NormalRangeNoWraparound)
@@ -790,7 +833,7 @@ TEST_F(FloatRangeAngleTest, WraparoundRange)
 
     // 在范围内（接近正北）
     EXPECT_TRUE(range.testAngle(175.0f));
-    EXPECT_TRUE(range.testAngle(180.0f));   // 180 会被规范化为 -180
+    EXPECT_TRUE(range.testAngle(180.0f)); // 180 会被规范化为 -180
     EXPECT_TRUE(range.testAngle(-180.0f));
     EXPECT_TRUE(range.testAngle(-175.0f));
     EXPECT_TRUE(range.testAngle(-170.0f));
@@ -833,16 +876,16 @@ TEST_F(FloatRangeAngleTest, PitchRangeNegative90To90)
     range.setMin(-45.0f);
     range.setMax(45.0f);
 
-    EXPECT_TRUE(range.testAngle(0.0f));     // 正视前方
-    EXPECT_TRUE(range.testAngle(30.0f));    // 向上看 30 度
-    EXPECT_TRUE(range.testAngle(-30.0f));   // 向下看 30 度
-    EXPECT_TRUE(range.testAngle(45.0f));    // 边界
-    EXPECT_TRUE(range.testAngle(-45.0f));   // 边界
+    EXPECT_TRUE(range.testAngle(0.0f));   // 正视前方
+    EXPECT_TRUE(range.testAngle(30.0f));  // 向上看 30 度
+    EXPECT_TRUE(range.testAngle(-30.0f)); // 向下看 30 度
+    EXPECT_TRUE(range.testAngle(45.0f));  // 边界
+    EXPECT_TRUE(range.testAngle(-45.0f)); // 边界
 
-    EXPECT_FALSE(range.testAngle(60.0f));   // 太高
-    EXPECT_FALSE(range.testAngle(-60.0f));  // 太低
-    EXPECT_FALSE(range.testAngle(90.0f));   // 直视上方
-    EXPECT_FALSE(range.testAngle(-90.0f));  // 直视下方
+    EXPECT_FALSE(range.testAngle(60.0f));  // 太高
+    EXPECT_FALSE(range.testAngle(-60.0f)); // 太低
+    EXPECT_FALSE(range.testAngle(90.0f));  // 直视上方
+    EXPECT_FALSE(range.testAngle(-90.0f)); // 直视下方
 }
 
 TEST_F(FloatRangeAngleTest, OnlyMinBound)
@@ -858,14 +901,14 @@ TEST_F(FloatRangeAngleTest, OnlyMinBound)
     // 在跨越边界范围内 [45, 180) ∪ [-180, -1]
     EXPECT_TRUE(range.testAngle(45.0f));
     EXPECT_TRUE(range.testAngle(90.0f));
-    EXPECT_TRUE(range.testAngle(180.0f));   // 规范化为 -180，在 [-180, -1] 范围内
-    EXPECT_TRUE(range.testAngle(-180.0f));  // 在范围内
-    EXPECT_TRUE(range.testAngle(-1.0f));    // 在范围内边界
+    EXPECT_TRUE(range.testAngle(180.0f));  // 规范化为 -180，在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-180.0f)); // 在范围内
+    EXPECT_TRUE(range.testAngle(-1.0f));   // 在范围内边界
     EXPECT_TRUE(range.testAngle(170.0f));
-    EXPECT_TRUE(range.testAngle(-170.0f));  // 在 [-180, -1] 范围内
-    EXPECT_TRUE(range.testAngle(-2.0f));    // 在 [-180, -1] 范围内
-    EXPECT_TRUE(range.testAngle(-90.0f));   // 在 [-180, -1] 范围内
-    EXPECT_TRUE(range.testAngle(-179.0f));  // 在范围内
+    EXPECT_TRUE(range.testAngle(-170.0f)); // 在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-2.0f));   // 在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-90.0f));  // 在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-179.0f)); // 在范围内
 
     // 不在范围内：[-0.999, 44.999]
     // 这个范围是 "缺口"，即不包含的角度
@@ -939,9 +982,9 @@ TEST_F(FloatRangeAngleTest, FullCircleRange)
 
     // 只有 -180（或规范化为 -180 的值，如 180）匹配
     EXPECT_TRUE(range.testAngle(-180.0f));
-    EXPECT_TRUE(range.testAngle(180.0f));   // 180 规范化为 -180
+    EXPECT_TRUE(range.testAngle(180.0f)); // 180 规范化为 -180
     EXPECT_TRUE(range.testAngle(-180.0f));
-    EXPECT_TRUE(range.testAngle(540.0f));   // 540 = 180 + 360，规范化为 -180
+    EXPECT_TRUE(range.testAngle(540.0f)); // 540 = 180 + 360，规范化为 -180
 
     // 其他值不匹配（因为 180 规范化后 min == max == -180）
     EXPECT_FALSE(range.testAngle(-90.0f));
@@ -965,7 +1008,7 @@ TEST_F(FloatRangeAngleTest, FullCircleRangeWraparound)
     EXPECT_TRUE(range.testAngle(179.0f));
 
     // 不在范围内
-    EXPECT_FALSE(range.testAngle(180.0f));    // 规范化为 -180
+    EXPECT_FALSE(range.testAngle(180.0f)); // 规范化为 -180
     EXPECT_FALSE(range.testAngle(-180.0f));
 }
 

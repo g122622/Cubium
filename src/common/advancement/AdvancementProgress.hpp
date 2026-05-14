@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "Advancement.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <chrono>
 #include <map>
 #include <optional>
-#include <chrono>
+#include <nlohmann/json.hpp>
 
 namespace mc::advancement {
 
@@ -56,7 +56,7 @@ public:
     [[nodiscard]] nlohmann::json toJson() const;
 
 private:
-    std::optional<i64> m_obtainedTime;  // 完成时间戳（毫秒）
+    std::optional<i64> m_obtainedTime; // 完成时间戳（毫秒）
 };
 
 /**

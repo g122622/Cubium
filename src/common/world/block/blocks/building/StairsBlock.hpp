@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -51,14 +51,12 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
         const BlockPos& currentPos,
-        const BlockPos& facingPos
-    ) override;
+        const BlockPos& facingPos) override;
 
     // ========== 形状 ==========
 
@@ -101,7 +99,8 @@ public:
      * @param state 方块状态
      * @return 是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
@@ -114,9 +113,7 @@ private:
      * @return 楼梯形状
      */
     [[nodiscard]] BlockStateProperties::StairsShape calculateShape(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos) const;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查邻居是否为楼梯
@@ -126,9 +123,7 @@ private:
      * @return 如果是楼梯返回其形状，否则返回nullopt
      */
     [[nodiscard]] std::optional<BlockStateProperties::StairsShape> neighborIsStairs(
-        IWorld& world,
-        const BlockPos& pos,
-        Direction facing) const;
+        IWorld& world, const BlockPos& pos, Direction facing) const;
 
     /**
      * @brief 获取形状索引
@@ -138,9 +133,7 @@ private:
      * @return 形状索引 (0-39)
      */
     [[nodiscard]] static size_t getShapeIndex(
-        Direction facing,
-        BlockStateProperties::DoubleBlockHalf half,
-        BlockStateProperties::StairsShape shape);
+        Direction facing, BlockStateProperties::DoubleBlockHalf half, BlockStateProperties::StairsShape shape);
 
     /// 源方块状态（用于继承属性如硬度、抗性等）
     const BlockState* m_baseState;

@@ -103,5 +103,5 @@ private:
     ResourcePackList& m_resourcePacks;
 };
 
-} // namespace mc::client::sound
+} // namespace client::sound
 } // namespace mc

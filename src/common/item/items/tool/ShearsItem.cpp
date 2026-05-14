@@ -1,26 +1,27 @@
 #include "ShearsItem.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/BlockTags.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/interfaces/IShearable.hpp"
-#include "../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockTags.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../core/ActionResult.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
 ShearsItem::ShearsItem(ItemProperties properties)
-    : Item(std::move(properties)) {
-}
+    : Item(std::move(properties))
+{}
 
-f32 ShearsItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
+f32 ShearsItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
+{
     (void)stack;
 
     // MC 1.16.5: 对蜘蛛网和树叶返回 15.0
@@ -42,7 +43,8 @@ f32 ShearsItem::getDestroySpeed(const ItemStack& stack, const BlockState& state)
     return 1.0f;
 }
 
-bool ShearsItem::canHarvestBlock(const BlockState& state) const {
+bool ShearsItem::canHarvestBlock(const BlockState& state) const
+{
     // MC 1.16.5: 剪刀可以采集蜘蛛网、红石线、绊线
     if (VanillaBlocks::COBWEB && &state.owner() == VanillaBlocks::COBWEB) {
         return true;
@@ -58,11 +60,9 @@ bool ShearsItem::canHarvestBlock(const BlockState& state) const {
     return state.getHarvestTool() == TOOL_TYPE_NONE;
 }
 
-bool ShearsItem::onBlockDestroyed(ItemStack& stack,
-                                   IWorld& world,
-                                   const BlockState& state,
-                                   const BlockPos& pos,
-                                   LivingEntity& entity) {
+bool ShearsItem::onBlockDestroyed(
+    ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& entity)
+{
     (void)world;
     (void)pos;
     (void)entity;
@@ -70,31 +70,31 @@ bool ShearsItem::onBlockDestroyed(ItemStack& stack,
     // MC 1.16.5: 以下方块不消耗耐久（参考 ShearsItem.java:26）
     // 树叶、蛛网、草、蕨、枯萎灌木、藤蔓、绊线、羊毛
     if (BlockTags::LEAVES().contains(state)) {
-        return true;  // 树叶不消耗耐久
+        return true; // 树叶不消耗耐久
     }
     if (BlockTags::WOOL().contains(state)) {
-        return true;  // 羊毛不消耗耐久
+        return true; // 羊毛不消耗耐久
     }
 
     // 检查特定方块
     const Block& block = state.owner();
     if (VanillaBlocks::COBWEB && &block == VanillaBlocks::COBWEB) {
-        return true;  // 蛛网不消耗耐久
+        return true; // 蛛网不消耗耐久
     }
     if (VanillaBlocks::SHORT_GRASS && &block == VanillaBlocks::SHORT_GRASS) {
-        return true;  // 草不消耗耐久
+        return true; // 草不消耗耐久
     }
     if (VanillaBlocks::FERN && &block == VanillaBlocks::FERN) {
-        return true;  // 蕨不消耗耐久
+        return true; // 蕨不消耗耐久
     }
     if (VanillaBlocks::DEAD_BUSH && &block == VanillaBlocks::DEAD_BUSH) {
-        return true;  // 枯萎灌木不消耗耐久
+        return true; // 枯萎灌木不消耗耐久
     }
     if (VanillaBlocks::VINE && &block == VanillaBlocks::VINE) {
-        return true;  // 藤蔓不消耗耐久
+        return true; // 藤蔓不消耗耐久
     }
     if (VanillaBlocks::TRIPWIRE && &block == VanillaBlocks::TRIPWIRE) {
-        return true;  // 绊线不消耗耐久
+        return true; // 绊线不消耗耐久
     }
 
     // MC 1.16.5: 火方块不消耗耐久（参考 ShearsItem.java:20）
@@ -109,10 +109,8 @@ bool ShearsItem::onBlockDestroyed(ItemStack& stack,
     return true;
 }
 
-bool ShearsItem::itemInteractionForEntity(ItemStack& stack,
-                                           Player& player,
-                                           LivingEntity& target,
-                                           Hand hand) {
+bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
+{
     MC_UNUSED(hand);
 
     // MC 1.16.5: ShearsItem.itemInteractionForEntity()
@@ -141,16 +139,14 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack,
             if (!drop.isEmpty()) {
                 // 使用 ItemDropHelper 统一生成物品实体
                 // 参考 MC 1.16.5 ShearsItem.itemInteractionForEntity()
-                ItemDropHelper::spawnItemEntity(
-                    world,
+                ItemDropHelper::spawnItemEntity(world,
                     drop,
                     target.x(),
                     target.y() + 0.5,
                     target.z(),
                     rng,
                     ItemDropHelper::DEFAULT_PICKUP_DELAY,
-                    player.uuid()
-                );
+                    player.uuid());
             }
         }
     }

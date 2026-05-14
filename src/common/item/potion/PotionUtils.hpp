@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Potion.hpp"
-#include "../core/ItemStack.hpp"
 #include "../../entity/effect/EffectInstance.hpp"
+#include "../core/ItemStack.hpp"
+#include "Potion.hpp"
 #include <string>
 #include <vector>
 

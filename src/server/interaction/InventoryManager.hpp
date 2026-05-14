@@ -1,18 +1,18 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
 
 namespace mc::server {
 
 namespace core {
 class PlayerManager;
 class ConnectionManager;
-}
+} // namespace core
 
 namespace interaction {
 

@@ -12,9 +12,7 @@ namespace mc::client::ui::kagero::layout {
 class AnchorLayout {
 public:
     [[nodiscard]] std::vector<LayoutResult> compute(
-        const Rect& containerBounds,
-        const std::vector<WidgetLayoutAdaptor*>& children
-    ) const;
+        const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children) const;
 
 private:
     [[nodiscard]] Rect computeChildBounds(const Rect& containerBounds, const WidgetLayoutAdaptor& child) const;

@@ -38,8 +38,12 @@ public:
      * @param childBodyScale 身体缩放
      * @param childBodyOffsetY 身体 Y 偏移
      */
-    AgeableModel(bool isChildHeadScaled, f32 childHeadOffsetY, f32 childHeadOffsetZ,
-                 f32 childHeadScale, f32 childBodyScale, f32 childBodyOffsetY);
+    AgeableModel(bool isChildHeadScaled,
+        f32 childHeadOffsetY,
+        f32 childHeadOffsetZ,
+        f32 childHeadScale,
+        f32 childBodyScale,
+        f32 childBodyOffsetY);
 
     ~AgeableModel() override = default;
 
@@ -51,13 +55,10 @@ public:
      * @param indices 索引输出缓冲区
      * @param scale 模型空间到渲染空间的缩放因子
      */
-    void generateMesh(std::vector<ModelVertex>& vertices,
-                      std::vector<u32>& indices,
-                      f64 scale) const override;
+    void generateMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 scale) const override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置生物动画状态（每帧调用）
@@ -85,25 +86,21 @@ protected:
      * @brief 获取头部部件
      * @return 头部模型部件列表
      */
-    virtual std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const {
-        return {};
-    }
+    virtual std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const { return {}; }
 
     /**
      * @brief 获取身体部件
      * @return 身体模型部件列表
      */
-    virtual std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const {
-        return m_parts;
-    }
+    virtual std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const { return m_parts; }
 
     // ========== 幼体参数 ==========
     bool m_isChildHeadScaled = false;
-    f32 m_childHeadOffsetY = 5.0f;   // 默认值来自 Java
-    f32 m_childHeadOffsetZ = 2.0f;   // 默认值来自 Java
-    f32 m_childHeadScale = 2.0f;     // 头部缩放
-    f32 m_childBodyScale = 2.0f;     // 身体缩放
-    f32 m_childBodyOffsetY = 24.0f;  // 身体 Y 偏移
+    f32 m_childHeadOffsetY = 5.0f;  // 默认值来自 Java
+    f32 m_childHeadOffsetZ = 2.0f;  // 默认值来自 Java
+    f32 m_childHeadScale = 2.0f;    // 头部缩放
+    f32 m_childBodyScale = 2.0f;    // 身体缩放
+    f32 m_childBodyOffsetY = 24.0f; // 身体 Y 偏移
 
     bool m_isChild = false;
 };

@@ -2,7 +2,8 @@
 
 namespace mc {
 
-BlockRegistry& BlockRegistry::instance() {
+BlockRegistry& BlockRegistry::instance()
+{
     static BlockRegistry instance;
     return instance;
 }

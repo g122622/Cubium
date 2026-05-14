@@ -18,9 +18,8 @@ public:
     explicit ZombieVillagerModel(f32 scale, bool slim);
     ~ZombieVillagerModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     void setHeadVisible(bool visible);
 
@@ -43,9 +42,8 @@ public:
     explicit DrownedModel(f32 scale, bool slim);
     ~DrownedModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight);

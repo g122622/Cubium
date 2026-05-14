@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "LootContext.hpp"
 #include "LootConditions.hpp"
+#include "LootContext.hpp"
 #include "RandomRanges.hpp"
+#include "common/core/Types.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc {
 
@@ -67,9 +67,7 @@ public:
     /**
      * @brief 获取所有条件
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const {
-        return m_conditions;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
 
     /**
      * @brief 检查所有条件是否满足
@@ -131,9 +129,9 @@ public:
      * 参考 MC 1.16.5 的三种加成公式
      */
     enum class BonusType : u8 {
-        Uniform,        // 均匀分布: count + random(0, bonusMultiplier * fortune)
-        Binomial,       // 二项分布: count + binomial(fortune + extra, probability)
-        OreDrops        // 矿石掉落: count * random(1, fortune + 1)
+        Uniform,  // 均匀分布: count + random(0, bonusMultiplier * fortune)
+        Binomial, // 二项分布: count + binomial(fortune + extra, probability)
+        OreDrops  // 矿石掉落: count * random(1, fortune + 1)
     };
 
     /**
@@ -143,10 +141,8 @@ public:
      * @param extra Binomial 类型的额外试验次数（默认1）
      * @param probability Binomial 类型的成功概率
      */
-    explicit ApplyBonusFunction(BonusType bonusType = BonusType::OreDrops,
-                                i32 bonusMultiplier = 1,
-                                i32 extra = 1,
-                                f32 probability = 1.0f);
+    explicit ApplyBonusFunction(
+        BonusType bonusType = BonusType::OreDrops, i32 bonusMultiplier = 1, i32 extra = 1, f32 probability = 1.0f);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
@@ -188,7 +184,8 @@ public:
      * @param random 随机数生成器
      * @return 掉落数量
      */
-    [[nodiscard]] static i32 calculateUniformBonus(i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random);
+    [[nodiscard]] static i32 calculateUniformBonus(
+        i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random);
 
     /**
      * @brief 计算二项分布加成
@@ -205,13 +202,14 @@ public:
      * @param random 随机数生成器
      * @return 掉落数量
      */
-    [[nodiscard]] static i32 calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random);
+    [[nodiscard]] static i32 calculateBinomialBonus(
+        i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random);
 
 private:
     BonusType m_bonusType;
-    i32 m_bonusMultiplier;  // Uniform 类型使用
-    i32 m_extra;            // Binomial 类型使用
-    f32 m_probability;      // Binomial 类型使用
+    i32 m_bonusMultiplier; // Uniform 类型使用
+    i32 m_extra;           // Binomial 类型使用
+    f32 m_probability;     // Binomial 类型使用
 };
 
 /**
@@ -232,8 +230,7 @@ public:
      * @param count 额外数量范围
      * @param limit 最大数量限制（0表示无限制）
      */
-    explicit LootingEnchantBonusFunction(const RandomValueRange& count = RandomValueRange(0.0f, 1.0f),
-                                         i32 limit = 0);
+    explicit LootingEnchantBonusFunction(const RandomValueRange& count = RandomValueRange(0.0f, 1.0f), i32 limit = 0);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
@@ -244,7 +241,7 @@ public:
 
 private:
     RandomValueRange m_count;
-    i32 m_limit;  // 0 表示无限制
+    i32 m_limit; // 0 表示无限制
 };
 
 /**
@@ -490,10 +487,10 @@ public:
      * @brief 名称来源
      */
     enum class Source : u8 {
-        This,           // 当前实体
-        Killer,         // 击杀者
-        KillerPlayer,   // 击杀玩家
-        BlockEntity     // 方块实体
+        This,         // 当前实体
+        Killer,       // 击杀者
+        KillerPlayer, // 击杀玩家
+        BlockEntity   // 方块实体
     };
 
     /**
@@ -527,8 +524,7 @@ public:
      * @param blockId 方块ID
      * @param properties 要复制的属性名列表（空表示复制所有）
      */
-    explicit CopyBlockStateFunction(const std::string& blockId,
-                                    const std::vector<std::string>& properties = {});
+    explicit CopyBlockStateFunction(const std::string& blockId, const std::vector<std::string>& properties = {});
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
@@ -556,19 +552,19 @@ public:
      * @brief NBT来源
      */
     enum class Source : u8 {
-        This,           // 当前实体
-        Killer,         // 击杀者
-        KillerPlayer,   // 击杀玩家
-        BlockEntity     // 方块实体
+        This,         // 当前实体
+        Killer,       // 击杀者
+        KillerPlayer, // 击杀玩家
+        BlockEntity   // 方块实体
     };
 
     /**
      * @brief NBT操作类型
      */
     enum class Operation : u8 {
-        Replace,    // 替换
-        Append,     // 追加
-        Merge       // 合并
+        Replace, // 替换
+        Append,  // 追加
+        Merge    // 合并
     };
 
     /**
@@ -644,16 +640,27 @@ public:
      * @brief 属性修饰符定义
      */
     struct Modifier {
-        std::string name;                 // 修饰符名称
-        std::string attributeId;          // 属性ID（如 "minecraft:generic.attack_damage"）
-        math::RandomValueRange amount;    // 数值范围（支持随机）
-        u8 operation;                     // 操作类型（0=Addition, 1=MultiplyBase, 2=MultiplyTotal）
-        std::vector<std::string> slots;   // 装备槽位列表（随机选择一个）
-        std::string uuid;                 // 可选UUID，如果为空则在运行时随机生成
+        std::string name;               // 修饰符名称
+        std::string attributeId;        // 属性ID（如 "minecraft:generic.attack_damage"）
+        math::RandomValueRange amount;  // 数值范围（支持随机）
+        u8 operation;                   // 操作类型（0=Addition, 1=MultiplyBase, 2=MultiplyTotal）
+        std::vector<std::string> slots; // 装备槽位列表（随机选择一个）
+        std::string uuid;               // 可选UUID，如果为空则在运行时随机生成
 
         Modifier() = default;
-        Modifier(const std::string& n, const std::string& attr, const math::RandomValueRange& amt, u8 op, const std::vector<std::string>& s, const std::string& u = "")
-            : name(n), attributeId(attr), amount(amt), operation(op), slots(s), uuid(u) {}
+        Modifier(const std::string& n,
+            const std::string& attr,
+            const math::RandomValueRange& amt,
+            u8 op,
+            const std::vector<std::string>& s,
+            const std::string& u = "")
+            : name(n)
+            , attributeId(attr)
+            , amount(amt)
+            , operation(op)
+            , slots(s)
+            , uuid(u)
+        {}
     };
 
     /**
@@ -769,11 +776,11 @@ public:
      * @brief 地图目的地类型
      */
     enum class Destination : u8 {
-        BuriedTreasure,     // 埋藏的宝藏
-        Mansion,            // 林地府邸
-        Monument,           // 海底神殿
-        Shipwreck,          // 沉船
-        RuinedPortal        // 废弃传送门
+        BuriedTreasure, // 埋藏的宝藏
+        Mansion,        // 林地府邸
+        Monument,       // 海底神殿
+        Shipwreck,      // 沉船
+        RuinedPortal    // 废弃传送门
     };
 
     /**
@@ -806,8 +813,8 @@ public:
      * @brief 效果定义
      */
     struct EffectEntry {
-        std::string effectId;        // 效果ID
-        RandomValueRange duration;  // 持续时间（秒）
+        std::string effectId;      // 效果ID
+        RandomValueRange duration; // 持续时间（秒）
     };
 
     SetStewEffectFunction() = default;
@@ -865,8 +872,7 @@ public:
      * @brief 创建掠夺加成函数
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> lootingEnchantBonus(
-        const RandomValueRange& count = RandomValueRange(0.0f, 1.0f),
-        i32 limit = 0);
+        const RandomValueRange& count = RandomValueRange(0.0f, 1.0f), i32 limit = 0);
 
     /**
      * @brief 创建设置损坏函数
@@ -881,7 +887,8 @@ public:
     /**
      * @brief 创建设置描述函数
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> setLore(const std::vector<std::string>& lore, bool replace = true);
+    [[nodiscard]] static std::unique_ptr<LootFunction> setLore(
+        const std::vector<std::string>& lore, bool replace = true);
 
     /**
      * @brief 创建限制数量函数

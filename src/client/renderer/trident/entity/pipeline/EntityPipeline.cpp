@@ -1,12 +1,12 @@
 #include "EntityPipeline.hpp"
-#include "client/renderer/util/ShaderPath.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/renderer/util/ShaderPath.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <spdlog/spdlog.h>
-#include <cstring>
-#include <array>
 #include <algorithm>
+#include <array>
+#include <cstring>
 #include <fstream>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::pipeline {
 
@@ -14,7 +14,8 @@ namespace mc::client::renderer::entity::pipeline {
 using model::ModelVertex;
 
 // 辅助函数：从文件读取着色器
-static std::vector<u8> readShaderFile(const std::filesystem::path& path) {
+static std::vector<u8> readShaderFile(const std::filesystem::path& path)
+{
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         return {};
@@ -27,7 +28,8 @@ static std::vector<u8> readShaderFile(const std::filesystem::path& path) {
 }
 
 // 辅助函数：创建着色器模块
-static Result<VkShaderModule> createShaderModule(VkDevice device, const std::vector<u8>& code) {
+static Result<VkShaderModule> createShaderModule(VkDevice device, const std::vector<u8>& code)
+{
     if (code.empty() || code.size() % 4 != 0) {
         return Error(ErrorCode::InvalidData, "Invalid shader code");
     }
@@ -46,7 +48,8 @@ static Result<VkShaderModule> createShaderModule(VkDevice device, const std::vec
     return shaderModule;
 }
 
-static u32 growCapacity(u32 currentCapacity, u32 requiredCapacity) {
+static u32 growCapacity(u32 currentCapacity, u32 requiredCapacity)
+{
     if (currentCapacity >= requiredCapacity) {
         return currentCapacity;
     }
@@ -65,11 +68,13 @@ static u32 growCapacity(u32 currentCapacity, u32 requiredCapacity) {
 
 EntityPipeline::EntityPipeline() = default;
 
-EntityPipeline::~EntityPipeline() {
+EntityPipeline::~EntityPipeline()
+{
     destroy();
 }
 
-VkVertexInputBindingDescription EntityPipeline::getVertexBindingDescription() {
+VkVertexInputBindingDescription EntityPipeline::getVertexBindingDescription()
+{
     VkVertexInputBindingDescription desc{};
     desc.binding = 0;
     desc.stride = sizeof(ModelVertex);
@@ -77,7 +82,8 @@ VkVertexInputBindingDescription EntityPipeline::getVertexBindingDescription() {
     return desc;
 }
 
-std::vector<VkVertexInputAttributeDescription> EntityPipeline::getVertexAttributeDescriptions() {
+std::vector<VkVertexInputAttributeDescription> EntityPipeline::getVertexAttributeDescriptions()
+{
     std::vector<VkVertexInputAttributeDescription> descs(3);
 
     // 位置
@@ -101,15 +107,15 @@ std::vector<VkVertexInputAttributeDescription> EntityPipeline::getVertexAttribut
     return descs;
 }
 
-Result<void> EntityPipeline::initialize(
-    VkDevice device,
+Result<void> EntityPipeline::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
     VkDescriptorSetLayout cameraDescriptorLayout,
     VkDescriptorPool descriptorPool,
-       VkCommandPool commandPool,
-       VkSampleCountFlagBits sampleCount) {
+    VkCommandPool commandPool,
+    VkSampleCountFlagBits sampleCount)
+{
     if (m_initialized) {
         return Result<void>::ok();
     }
@@ -117,7 +123,7 @@ Result<void> EntityPipeline::initialize(
     m_device = device;
     m_physicalDevice = physicalDevice;
 
-        destroy();
+    destroy();
     m_graphicsQueue = graphicsQueue;
     m_descriptorPool = descriptorPool;
     m_commandPool = commandPool;
@@ -143,8 +149,8 @@ Result<void> EntityPipeline::initialize(
         return result.error();
     }
 
-       // 创建图形管线
-       result = createGraphicsPipeline(renderPass, cameraDescriptorLayout, sampleCount);
+    // 创建图形管线
+    result = createGraphicsPipeline(renderPass, cameraDescriptorLayout, sampleCount);
     if (!result.success()) {
         destroy();
         return result.error();
@@ -155,15 +161,12 @@ Result<void> EntityPipeline::initialize(
     return Result<void>::ok();
 }
 
-void EntityPipeline::destroy() {
-    const bool hadResources = m_initialized ||
-        m_pipeline != VK_NULL_HANDLE ||
-        m_additiveBlendPipeline != VK_NULL_HANDLE ||
-        m_pipelineLayout != VK_NULL_HANDLE ||
-        m_textureSampler != VK_NULL_HANDLE ||
-        m_textureDescriptorLayout != VK_NULL_HANDLE ||
-        m_vertexStagingBuffer != VK_NULL_HANDLE ||
-        m_indexStagingBuffer != VK_NULL_HANDLE;
+void EntityPipeline::destroy()
+{
+    const bool hadResources = m_initialized || m_pipeline != VK_NULL_HANDLE ||
+        m_additiveBlendPipeline != VK_NULL_HANDLE || m_pipelineLayout != VK_NULL_HANDLE ||
+        m_textureSampler != VK_NULL_HANDLE || m_textureDescriptorLayout != VK_NULL_HANDLE ||
+        m_vertexStagingBuffer != VK_NULL_HANDLE || m_indexStagingBuffer != VK_NULL_HANDLE;
 
     // 销毁管线
     if (m_pipeline != VK_NULL_HANDLE) {
@@ -204,7 +207,8 @@ void EntityPipeline::destroy() {
     }
 }
 
-void EntityPipeline::bind(VkCommandBuffer cmd, BlendMode blendMode) {
+void EntityPipeline::bind(VkCommandBuffer cmd, BlendMode blendMode)
+{
     // 根据混合模式选择管线
     VkPipeline pipelineToBind = m_pipeline;
     switch (blendMode) {
@@ -221,8 +225,8 @@ void EntityPipeline::bind(VkCommandBuffer cmd, BlendMode blendMode) {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineToBind);
 }
 
-Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& vertices,
-                                               const std::vector<u32>& indices) {
+Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& vertices, const std::vector<u32>& indices)
+{
     EntityMesh mesh;
     mesh.vertexCount = static_cast<u32>(vertices.size());
     mesh.indexCount = static_cast<u32>(indices.size());
@@ -230,26 +234,24 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
     mesh.indexCapacity = mesh.indexCount;
 
     if (vertices.empty() || indices.empty()) {
-        return mesh;  // 隐式转换为Result<EntityMesh>
+        return mesh; // 隐式转换为Result<EntityMesh>
     }
 
     for (u32 index : indices) {
         if (index >= vertices.size()) {
-            return Error(
-                ErrorCode::InvalidData,
+            return Error(ErrorCode::InvalidData,
                 "Entity mesh index out of range: index=" + std::to_string(index) +
-                ", vertexCount=" + std::to_string(vertices.size())
-            );
+                    ", vertexCount=" + std::to_string(vertices.size()));
         }
     }
 
     // 创建设备本地顶点缓冲区
     const VkDeviceSize vertexBufferSize = sizeof(ModelVertex) * vertices.size();
     auto result = createBuffer(vertexBufferSize,
-                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                               mesh.vertexBuffer,
-                               mesh.vertexMemory);
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        mesh.vertexBuffer,
+        mesh.vertexMemory);
     if (!result.success()) {
         return result.error();
     }
@@ -263,10 +265,10 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
     // 创建设备本地索引缓冲区
     const VkDeviceSize indexBufferSize = sizeof(u32) * indices.size();
     result = createBuffer(indexBufferSize,
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                          mesh.indexBuffer,
-                          mesh.indexMemory);
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        mesh.indexBuffer,
+        mesh.indexMemory);
     if (!result.success()) {
         destroyMesh(mesh);
         return result.error();
@@ -278,12 +280,12 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
         return result.error();
     }
 
-    return mesh;  // 隐式转换为Result<EntityMesh>
+    return mesh; // 隐式转换为Result<EntityMesh>
 }
 
-Result<void> EntityPipeline::updateMesh(EntityMesh& mesh,
-                                        const std::vector<ModelVertex>& vertices,
-                                        const std::vector<u32>& indices) {
+Result<void> EntityPipeline::updateMesh(
+    EntityMesh& mesh, const std::vector<ModelVertex>& vertices, const std::vector<u32>& indices)
+{
     if (vertices.empty() || indices.empty()) {
         destroyMesh(mesh);
         return Result<void>::ok();
@@ -291,24 +293,18 @@ Result<void> EntityPipeline::updateMesh(EntityMesh& mesh,
 
     for (u32 index : indices) {
         if (index >= vertices.size()) {
-            return Error(
-                ErrorCode::InvalidData,
+            return Error(ErrorCode::InvalidData,
                 "Entity mesh index out of range during update: index=" + std::to_string(index) +
-                ", vertexCount=" + std::to_string(vertices.size())
-            );
+                    ", vertexCount=" + std::to_string(vertices.size()));
         }
     }
 
     const u32 requiredVertexCount = static_cast<u32>(vertices.size());
     const u32 requiredIndexCount = static_cast<u32>(indices.size());
 
-    const bool needsVertexRecreate =
-        mesh.vertexBuffer == VK_NULL_HANDLE ||
-        mesh.vertexMemory == VK_NULL_HANDLE ||
+    const bool needsVertexRecreate = mesh.vertexBuffer == VK_NULL_HANDLE || mesh.vertexMemory == VK_NULL_HANDLE ||
         mesh.vertexCapacity < requiredVertexCount;
-    const bool needsIndexRecreate =
-        mesh.indexBuffer == VK_NULL_HANDLE ||
-        mesh.indexMemory == VK_NULL_HANDLE ||
+    const bool needsIndexRecreate = mesh.indexBuffer == VK_NULL_HANDLE || mesh.indexMemory == VK_NULL_HANDLE ||
         mesh.indexCapacity < requiredIndexCount;
 
     VkBuffer replacementVertexBuffer = VK_NULL_HANDLE;
@@ -324,10 +320,10 @@ Result<void> EntityPipeline::updateMesh(EntityMesh& mesh,
         const VkDeviceSize replacementVertexSize =
             sizeof(ModelVertex) * static_cast<VkDeviceSize>(replacementVertexCapacity);
         auto result = createBuffer(replacementVertexSize,
-                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                   replacementVertexBuffer,
-                                   replacementVertexMemory);
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            replacementVertexBuffer,
+            replacementVertexMemory);
         if (!result.success()) {
             return result.error();
         }
@@ -335,13 +331,12 @@ Result<void> EntityPipeline::updateMesh(EntityMesh& mesh,
 
     if (needsIndexRecreate) {
         replacementIndexCapacity = growCapacity(mesh.indexCapacity, requiredIndexCount);
-        const VkDeviceSize replacementIndexSize =
-            sizeof(u32) * static_cast<VkDeviceSize>(replacementIndexCapacity);
+        const VkDeviceSize replacementIndexSize = sizeof(u32) * static_cast<VkDeviceSize>(replacementIndexCapacity);
         auto result = createBuffer(replacementIndexSize,
-                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                   replacementIndexBuffer,
-                                   replacementIndexMemory);
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            replacementIndexBuffer,
+            replacementIndexMemory);
         if (!result.success()) {
             if (replacementVertexBuffer != VK_NULL_HANDLE) {
                 vkDestroyBuffer(m_device, replacementVertexBuffer, nullptr);
@@ -397,7 +392,8 @@ Result<void> EntityPipeline::updateMesh(EntityMesh& mesh,
     return Result<void>::ok();
 }
 
-void EntityPipeline::destroyMesh(EntityMesh& mesh) {
+void EntityPipeline::destroyMesh(EntityMesh& mesh)
+{
     VkDevice device = m_device;
 
     if (mesh.vertexBuffer != VK_NULL_HANDLE) {
@@ -427,20 +423,21 @@ void EntityPipeline::destroyMesh(EntityMesh& mesh) {
 }
 
 void EntityPipeline::drawMesh(VkCommandBuffer cmd,
-                               const EntityMesh& mesh,
-                               const std::array<f64, 16>& modelMatrix,
-                               const Vector3f& position,
-                               f64 scale,
-                               const Vector4f& overlayColor,
-                               f32 hurtTime,
-                               f32 deathTime) {
+    const EntityMesh& mesh,
+    const std::array<f64, 16>& modelMatrix,
+    const Vector3f& position,
+    f64 scale,
+    const Vector4f& overlayColor,
+    f32 hurtTime,
+    f32 deathTime)
+{
     if (mesh.vertexCount == 0 || mesh.indexCount == 0) {
         return;
     }
 
     // 绑定顶点缓冲区
-    VkBuffer vertexBuffers[] = { mesh.vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
+    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
+    VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
 
     // 绑定索引缓冲区
@@ -495,21 +492,27 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
     pc._padding0 = 0.0f;
     pc._padding1 = 0.0f;
 
-    vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                       0, sizeof(PushConstants), &pc);
+    vkCmdPushConstants(cmd,
+        m_pipelineLayout,
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        0,
+        sizeof(PushConstants),
+        &pc);
 
     // 绘制
     vkCmdDrawIndexed(cmd, mesh.indexCount, 1, 0, 0, 0);
 }
 
-void EntityPipeline::bindTextureDescriptor(VkCommandBuffer cmd) {
+void EntityPipeline::bindTextureDescriptor(VkCommandBuffer cmd)
+{
     if (m_textureDescriptorSet != VK_NULL_HANDLE) {
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_pipelineLayout, 1, 1, &m_textureDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 1, 1, &m_textureDescriptorSet, 0, nullptr);
     }
 }
 
-void EntityPipeline::setTextureAtlas(VkImageView textureView, VkSampler sampler) {
+void EntityPipeline::setTextureAtlas(VkImageView textureView, VkSampler sampler)
+{
     if (m_textureDescriptorSet == VK_NULL_HANDLE || textureView == VK_NULL_HANDLE) {
         return;
     }
@@ -534,11 +537,13 @@ void EntityPipeline::setTextureAtlas(VkImageView textureView, VkSampler sampler)
     vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
 }
 
-VkPipelineLayout EntityPipeline::pipelineLayout() const {
+VkPipelineLayout EntityPipeline::pipelineLayout() const
+{
     return m_pipelineLayout;
 }
 
-Result<void> EntityPipeline::createDescriptorLayouts() {
+Result<void> EntityPipeline::createDescriptorLayouts()
+{
     VkDevice device = m_device;
 
     // 纹理采样器描述符布局（绑定到 set 1）
@@ -554,22 +559,21 @@ Result<void> EntityPipeline::createDescriptorLayouts() {
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &samplerBinding;
 
-    VkResult result = vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr,
-                                                   &m_textureDescriptorLayout);
+    VkResult result = vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_textureDescriptorLayout);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to create texture descriptor layout");
+        return Error(ErrorCode::InitializationFailed, "Failed to create texture descriptor layout");
     }
 
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::createTextureSampler() {
+Result<void> EntityPipeline::createTextureSampler()
+{
     VkDevice device = m_device;
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;  // 实体使用最近邻过滤以保持像素风格
+    samplerInfo.magFilter = VK_FILTER_NEAREST; // 实体使用最近邻过滤以保持像素风格
     samplerInfo.minFilter = VK_FILTER_NEAREST;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -587,14 +591,14 @@ Result<void> EntityPipeline::createTextureSampler() {
 
     VkResult result = vkCreateSampler(device, &samplerInfo, nullptr, &m_textureSampler);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to create texture sampler");
+        return Error(ErrorCode::InitializationFailed, "Failed to create texture sampler");
     }
 
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::createDescriptorSets() {
+Result<void> EntityPipeline::createDescriptorSets()
+{
     VkDevice device = m_device;
 
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -605,16 +609,15 @@ Result<void> EntityPipeline::createDescriptorSets() {
 
     VkResult result = vkAllocateDescriptorSets(device, &allocInfo, &m_textureDescriptorSet);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to allocate texture descriptor set");
+        return Error(ErrorCode::InitializationFailed, "Failed to allocate texture descriptor set");
     }
 
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
-                                                      VkDescriptorSetLayout cameraDescriptorLayout,
-                                                      VkSampleCountFlagBits sampleCount) {
+Result<void> EntityPipeline::createGraphicsPipeline(
+    VkRenderPass renderPass, VkDescriptorSetLayout cameraDescriptorLayout, VkSampleCountFlagBits sampleCount)
+{
     // 着色器路径
     const auto vertPath = resolveShaderPath("entity.vert.spv");
     const auto fragPath = resolveShaderPath("entity.frag.spv");
@@ -684,7 +687,7 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_NONE;  // 实体模型禁用剔除
+    rasterizer.cullMode = VK_CULL_MODE_NONE; // 实体模型禁用剔除
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -692,7 +695,7 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-   multisampling.rasterizationSamples = sampleCount;
+    multisampling.rasterizationSamples = sampleCount;
 
     // 深度/模板
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
@@ -705,8 +708,8 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
 
     // 颜色混合 - 启用alpha混合
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_TRUE;
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -722,10 +725,7 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     colorBlending.pAttachments = &colorBlendAttachment;
 
     // 动态状态
-    std::array<VkDynamicState, 2> dynamicStates = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
+    std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -733,15 +733,13 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     dynamicState.pDynamicStates = dynamicStates.data();
 
     // 管线布局
-    std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = {
-        cameraDescriptorLayout,
-        m_textureDescriptorLayout
-    };
+    std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = {cameraDescriptorLayout, m_textureDescriptorLayout};
 
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f32) * 28;  // mat4(16) + vec3(3) + float(1) + vec4(4) + float(4) = 28 floats = 112 bytes
+    pushConstantRange.size =
+        sizeof(f32) * 28; // mat4(16) + vec3(3) + float(1) + vec4(4) + float(4) = 28 floats = 112 bytes
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -789,8 +787,8 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     // 创建叠加混合管线（用于眼睛发光等效果）
     // 参考 MC 1.16.5 EyesLayer: GlintResourceManager.RenderTypes.entityGlintDirect()
     VkPipelineColorBlendAttachmentState additiveBlendAttachment{};
-    additiveBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    additiveBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     additiveBlendAttachment.blendEnable = VK_TRUE;
     // 叠加混合: src * srcAlpha + dst * 1
     additiveBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -818,17 +816,18 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
 }
 
 Result<void> EntityPipeline::createBuffer(VkDeviceSize size,
-                                           VkBufferUsageFlags usage,
-                                           VkMemoryPropertyFlags properties,
-                                           VkBuffer& buffer,
-                                           VkDeviceMemory& memory) {
-    return ::mc::client::renderer::VulkanUtils::createBuffer(m_device, m_physicalDevice, size, usage, properties, buffer, memory);
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer& buffer,
+    VkDeviceMemory& memory)
+{
+    return ::mc::client::renderer::VulkanUtils::createBuffer(
+        m_device, m_physicalDevice, size, usage, properties, buffer, memory);
 }
 
-Result<void> EntityPipeline::ensureReusableStagingBuffer(VkDeviceSize requiredSize,
-                                                         VkBuffer& buffer,
-                                                         VkDeviceMemory& memory,
-                                                         VkDeviceSize& capacity) {
+Result<void> EntityPipeline::ensureReusableStagingBuffer(
+    VkDeviceSize requiredSize, VkBuffer& buffer, VkDeviceMemory& memory, VkDeviceSize& capacity)
+{
     if (requiredSize == 0) {
         return Result<void>::ok();
     }
@@ -848,10 +847,10 @@ Result<void> EntityPipeline::ensureReusableStagingBuffer(VkDeviceSize requiredSi
     capacity = 0;
 
     auto result = createBuffer(requiredSize,
-                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               buffer,
-                               memory);
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        buffer,
+        memory);
     if (!result.success()) {
         return result.error();
     }
@@ -860,10 +859,9 @@ Result<void> EntityPipeline::ensureReusableStagingBuffer(VkDeviceSize requiredSi
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::uploadToDeviceBuffer(const void* sourceData,
-                                                  VkDeviceSize size,
-                                                  VkBuffer destinationBuffer,
-                                                  bool useVertexStagingBuffer) {
+Result<void> EntityPipeline::uploadToDeviceBuffer(
+    const void* sourceData, VkDeviceSize size, VkBuffer destinationBuffer, bool useVertexStagingBuffer)
+{
     if (sourceData == nullptr || destinationBuffer == VK_NULL_HANDLE || size == 0) {
         return Error(ErrorCode::InvalidArgument, "Invalid upload arguments for EntityPipeline::uploadToDeviceBuffer");
     }
@@ -890,7 +888,8 @@ Result<void> EntityPipeline::uploadToDeviceBuffer(const void* sourceData,
     return Result<void>::ok();
 }
 
-void EntityPipeline::destroyReusableStagingBuffers() {
+void EntityPipeline::destroyReusableStagingBuffers()
+{
     if (m_vertexStagingBuffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(m_device, m_vertexStagingBuffer, nullptr);
         m_vertexStagingBuffer = VK_NULL_HANDLE;
@@ -912,7 +911,8 @@ void EntityPipeline::destroyReusableStagingBuffers() {
     m_indexStagingCapacity = 0;
 }
 
-void EntityPipeline::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void EntityPipeline::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
     VkCommandBuffer cmd = beginSingleTimeCommands();
 
     VkBufferCopy copyRegion{};
@@ -924,11 +924,13 @@ void EntityPipeline::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
     endSingleTimeCommands(cmd);
 }
 
-VkCommandBuffer EntityPipeline::beginSingleTimeCommands() {
+VkCommandBuffer EntityPipeline::beginSingleTimeCommands()
+{
     return ::mc::client::renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void EntityPipeline::endSingleTimeCommands(VkCommandBuffer cmd) {
+void EntityPipeline::endSingleTimeCommands(VkCommandBuffer cmd)
+{
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     ::mc::client::renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);
 }

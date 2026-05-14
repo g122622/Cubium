@@ -1,8 +1,8 @@
 #pragma once
 
+#include "util/math/random/Random.hpp"
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
-#include "util/math/random/Random.hpp"
 
 namespace mc {
 

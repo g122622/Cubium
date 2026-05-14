@@ -1,7 +1,7 @@
 #include "TrunkPlacers.hpp"
-#include "../../../chunk/IChunkGenerator.hpp"
 #include "../../../../block/BlockRegistry.hpp"
 #include "../../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -12,11 +12,9 @@ namespace mc {
 
 DarkOakTrunkPlacer::DarkOakTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     : TrunkPlacer(baseHeight, heightRandA, heightRandB)
-{
-}
+{}
 
-std::vector<FoliagePosition> DarkOakTrunkPlacer::placeTrunk(
-    WorldGenRegion& world,
+std::vector<FoliagePosition> DarkOakTrunkPlacer::placeTrunk(WorldGenRegion& world,
     math::Random& random,
     i32 height,
     const BlockPos& startPos,
@@ -33,8 +31,8 @@ std::vector<FoliagePosition> DarkOakTrunkPlacer::placeTrunk(
     placeDirtUnder(world, BlockPos(below.x + 1, below.y, below.z + 1));
 
     // MC 第37-39行: 随机方向和弯曲参数
-    i32 bendStart = height - random.nextInt(4);  // i: 开始弯曲的高度
-    i32 bendLength = 2 - random.nextInt(3);       // j: 弯曲长度
+    i32 bendStart = height - random.nextInt(4); // i: 开始弯曲的高度
+    i32 bendLength = 2 - random.nextInt(3);     // j: 弯曲长度
 
     i32 x = startPos.x;
     i32 z = startPos.z;
@@ -71,20 +69,19 @@ std::vector<FoliagePosition> DarkOakTrunkPlacer::placeTrunk(
     for (i32 cornerX = -1; cornerX <= 2; ++cornerX) {
         for (i32 cornerZ = -1; cornerZ <= 2; ++cornerZ) {
             // 只处理角落位置 (不是中心2x2区域)
-            if ((cornerX < 0 || cornerX > 1 || cornerZ < 0 || cornerZ > 1) &&
-                random.nextInt(3) <= 0) {
+            if ((cornerX < 0 || cornerX > 1 || cornerZ < 0 || cornerZ > 1) && random.nextInt(3) <= 0) {
                 // MC 第69-73行: 生成枝干
-                i32 branchLength = random.nextInt(3) + 2;  // j3: 2-4格高
+                i32 branchLength = random.nextInt(3) + 2; // j3: 2-4格高
 
                 for (i32 b = 0; b < branchLength; ++b) {
                     placeBlock(world,
                         BlockPos(startPos.x + cornerX, topY - b - 1, startPos.z + cornerZ),
-                        trunkBlocks, trunkBlock);
+                        trunkBlocks,
+                        trunkBlock);
                 }
 
                 // MC 第75行: 枝干末端树叶位置
-                foliagePositions.emplace_back(
-                    BlockPos(x + cornerX, topY, z + cornerZ), 0, false);
+                foliagePositions.emplace_back(BlockPos(x + cornerX, topY, z + cornerZ), 0, false);
             }
         }
     }
@@ -92,7 +89,8 @@ std::vector<FoliagePosition> DarkOakTrunkPlacer::placeTrunk(
     return foliagePositions;
 }
 
-std::unique_ptr<TrunkPlacer> DarkOakTrunkPlacer::clone() const {
+std::unique_ptr<TrunkPlacer> DarkOakTrunkPlacer::clone() const
+{
     return std::make_unique<DarkOakTrunkPlacer>(m_baseHeight, m_heightRandA, m_heightRandB);
 }
 
@@ -102,11 +100,9 @@ std::unique_ptr<TrunkPlacer> DarkOakTrunkPlacer::clone() const {
 
 FancyTrunkPlacer::FancyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     : TrunkPlacer(baseHeight, heightRandA, heightRandB)
-{
-}
+{}
 
-std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(
-    WorldGenRegion& world,
+std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
     math::Random& random,
     i32 height,
     const BlockPos& startPos,
@@ -123,11 +119,12 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(
     placeDirtUnder(world, startPos);
 
     // MC 第42行: 计算分支数量
-    i32 branchCount = std::min(1, static_cast<i32>(std::floor(1.382 + std::pow(static_cast<f64>(trunkHeight) / 13.0, 2.0))));
+    i32 branchCount =
+        std::min(1, static_cast<i32>(std::floor(1.382 + std::pow(static_cast<f64>(trunkHeight) / 13.0, 2.0))));
 
     // MC 第43-46行: 初始化树叶位置列表
     i32 baseY = startPos.y + foliageHeight;
-    i32 topY = startPos.y + trunkHeight - 5;  // j1 = trunkHeight - 5
+    i32 topY = startPos.y + trunkHeight - 5; // j1 = trunkHeight - 5
 
     // 内部结构用于跟踪分支
     struct BranchFoliage {
@@ -151,10 +148,7 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(
             f32 dz = actualLength * std::cos(angle) + 0.5f;
 
             BlockPos branchEnd(
-                startPos.x + static_cast<i32>(dx),
-                startPos.y + y - 1,
-                startPos.z + static_cast<i32>(dz)
-            );
+                startPos.x + static_cast<i32>(dx), startPos.y + y - 1, startPos.z + static_cast<i32>(dz));
             BlockPos branchTop = branchEnd.up(5);
 
             // MC 第59行: 检查分支路径是否可行
@@ -162,7 +156,8 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(
                 // MC 第60-63行: 计算分支连接点
                 i32 relX = startPos.x - branchEnd.x;
                 i32 relZ = startPos.z - branchEnd.z;
-                f64 dist = static_cast<f64>(branchEnd.y) - std::sqrt(static_cast<f64>(relX * relX + relZ * relZ)) * 0.381;
+                f64 dist =
+                    static_cast<f64>(branchEnd.y) - std::sqrt(static_cast<f64>(relX * relX + relZ * relZ)) * 0.381;
                 i32 connectionY = dist > static_cast<f64>(baseY) ? baseY : static_cast<i32>(dist);
 
                 BlockPos connectionPos(startPos.x, connectionY, startPos.z);
@@ -199,7 +194,8 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(
     return foliagePositions;
 }
 
-f32 FancyTrunkPlacer::getBranchLength(i32 trunkHeight, i32 y) const {
+f32 FancyTrunkPlacer::getBranchLength(i32 trunkHeight, i32 y) const
+{
     // MC 第148-163行
     if (static_cast<f32>(y) < static_cast<f32>(trunkHeight) * 0.3f) {
         return -1.0f;
@@ -218,8 +214,7 @@ f32 FancyTrunkPlacer::getBranchLength(i32 trunkHeight, i32 y) const {
     return result * 0.5f;
 }
 
-bool FancyTrunkPlacer::checkAndPlaceBranch(
-    WorldGenRegion& world,
+bool FancyTrunkPlacer::checkAndPlaceBranch(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& start,
     const BlockPos& end,
@@ -240,11 +235,9 @@ bool FancyTrunkPlacer::checkAndPlaceBranch(
     f32 stepZ = static_cast<f32>(delta.z) / static_cast<f32>(steps);
 
     for (i32 i = 0; i <= steps; ++i) {
-        BlockPos pos(
-            static_cast<i32>(0.5f + static_cast<f32>(i) * stepX + static_cast<f32>(start.x)),
+        BlockPos pos(static_cast<i32>(0.5f + static_cast<f32>(i) * stepX + static_cast<f32>(start.x)),
             static_cast<i32>(0.5f + static_cast<f32>(i) * stepY + static_cast<f32>(start.y)),
-            static_cast<i32>(0.5f + static_cast<f32>(i) * stepZ + static_cast<f32>(start.z))
-        );
+            static_cast<i32>(0.5f + static_cast<f32>(i) * stepZ + static_cast<f32>(start.z)));
 
         if (place) {
             placeBlock(world, pos, trunkBlocks, trunkBlock);
@@ -258,8 +251,7 @@ bool FancyTrunkPlacer::checkAndPlaceBranch(
     return true;
 }
 
-void FancyTrunkPlacer::placeLine(
-    WorldGenRegion& world,
+void FancyTrunkPlacer::placeLine(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& start,
     const BlockPos& end,
@@ -270,7 +262,8 @@ void FancyTrunkPlacer::placeLine(
     checkAndPlaceBranch(world, random, start, end, place, trunkBlocks, trunkBlock);
 }
 
-i32 FancyTrunkPlacer::getSteps(const BlockPos& delta) const {
+i32 FancyTrunkPlacer::getSteps(const BlockPos& delta) const
+{
     // MC 第110-115行
     i32 absX = std::abs(delta.x);
     i32 absY = std::abs(delta.y);
@@ -278,12 +271,14 @@ i32 FancyTrunkPlacer::getSteps(const BlockPos& delta) const {
     return std::max({absX, absY, absZ});
 }
 
-bool FancyTrunkPlacer::shouldKeepFoliage(i32 trunkHeight, i32 relY) const {
+bool FancyTrunkPlacer::shouldKeepFoliage(i32 trunkHeight, i32 relY) const
+{
     // MC 第133-135行
     return static_cast<f64>(relY) >= static_cast<f64>(trunkHeight) * 0.2;
 }
 
-std::unique_ptr<TrunkPlacer> FancyTrunkPlacer::clone() const {
+std::unique_ptr<TrunkPlacer> FancyTrunkPlacer::clone() const
+{
     return std::make_unique<FancyTrunkPlacer>(m_baseHeight, m_heightRandA, m_heightRandB);
 }
 
@@ -293,11 +288,9 @@ std::unique_ptr<TrunkPlacer> FancyTrunkPlacer::clone() const {
 
 ForkyTrunkPlacer::ForkyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     : TrunkPlacer(baseHeight, heightRandA, heightRandB)
-{
-}
+{}
 
-std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(
-    WorldGenRegion& world,
+std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(WorldGenRegion& world,
     math::Random& random,
     i32 height,
     const BlockPos& startPos,
@@ -325,21 +318,16 @@ std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(
         BlockPos branchEnd = generateBranch(world, random, branchStart, branchLength, trunkBlocks, trunkBlock);
 
         // 在分叉末端添加树叶
-        foliagePositions.emplace_back(
-            BlockPos(branchEnd.x, branchEnd.y + 1, branchEnd.z),
-            2 + random.nextInt(2), true);
+        foliagePositions.emplace_back(BlockPos(branchEnd.x, branchEnd.y + 1, branchEnd.z), 2 + random.nextInt(2), true);
     }
 
     // 顶部树叶
-    foliagePositions.emplace_back(
-        BlockPos(startPos.x, startPos.y + height, startPos.z),
-        2, true);
+    foliagePositions.emplace_back(BlockPos(startPos.x, startPos.y + height, startPos.z), 2, true);
 
     return foliagePositions;
 }
 
-BlockPos ForkyTrunkPlacer::generateBranch(
-    WorldGenRegion& world,
+BlockPos ForkyTrunkPlacer::generateBranch(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& startPos,
     i32 length,
@@ -347,7 +335,7 @@ BlockPos ForkyTrunkPlacer::generateBranch(
     const BlockState* trunkBlock)
 {
     // 随机方向
-    i32 dx = random.nextInt(3) - 1;  // -1, 0, 1
+    i32 dx = random.nextInt(3) - 1; // -1, 0, 1
     i32 dz = random.nextInt(3) - 1;
 
     // 确保方向不为零
@@ -373,7 +361,8 @@ BlockPos ForkyTrunkPlacer::generateBranch(
     return BlockPos(x, y, z);
 }
 
-std::unique_ptr<TrunkPlacer> ForkyTrunkPlacer::clone() const {
+std::unique_ptr<TrunkPlacer> ForkyTrunkPlacer::clone() const
+{
     return std::make_unique<ForkyTrunkPlacer>(m_baseHeight, m_heightRandA, m_heightRandB);
 }
 
@@ -383,11 +372,9 @@ std::unique_ptr<TrunkPlacer> ForkyTrunkPlacer::clone() const {
 
 GiantTrunkPlacer::GiantTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     : TrunkPlacer(baseHeight, heightRandA, heightRandB)
-{
-}
+{}
 
-std::vector<FoliagePosition> GiantTrunkPlacer::placeTrunk(
-    WorldGenRegion& world,
+std::vector<FoliagePosition> GiantTrunkPlacer::placeTrunk(WorldGenRegion& world,
     math::Random& random,
     i32 height,
     const BlockPos& startPos,
@@ -398,8 +385,7 @@ std::vector<FoliagePosition> GiantTrunkPlacer::placeTrunk(
 
     // 2x2 树干
     for (i32 y = 0; y < height; ++y) {
-        placeTrunkLayer2x2(world, BlockPos(startPos.x, startPos.y + y, startPos.z),
-                           trunkBlocks, trunkBlock);
+        placeTrunkLayer2x2(world, BlockPos(startPos.x, startPos.y + y, startPos.z), trunkBlocks, trunkBlock);
     }
 
     // 顶部多个树叶位置
@@ -410,7 +396,8 @@ std::vector<FoliagePosition> GiantTrunkPlacer::placeTrunk(
     return foliagePositions;
 }
 
-std::unique_ptr<TrunkPlacer> GiantTrunkPlacer::clone() const {
+std::unique_ptr<TrunkPlacer> GiantTrunkPlacer::clone() const
+{
     return std::make_unique<GiantTrunkPlacer>(m_baseHeight, m_heightRandA, m_heightRandB);
 }
 
@@ -420,11 +407,9 @@ std::unique_ptr<TrunkPlacer> GiantTrunkPlacer::clone() const {
 
 MegaJungleTrunkPlacer::MegaJungleTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     : TrunkPlacer(baseHeight, heightRandA, heightRandB)
-{
-}
+{}
 
-std::vector<FoliagePosition> MegaJungleTrunkPlacer::placeTrunk(
-    WorldGenRegion& world,
+std::vector<FoliagePosition> MegaJungleTrunkPlacer::placeTrunk(WorldGenRegion& world,
     math::Random& random,
     i32 height,
     const BlockPos& startPos,
@@ -435,13 +420,12 @@ std::vector<FoliagePosition> MegaJungleTrunkPlacer::placeTrunk(
 
     // MC 第29-31行: 先调用父类 GiantTrunkPlacer 放置基础树干和树叶
     foliagePositions = GiantTrunkPlacer(m_baseHeight, m_heightRandA, m_heightRandB)
-        .placeTrunk(world, random, height, startPos, trunkBlocks, trunkBlock);
+                           .placeTrunk(world, random, height, startPos, trunkBlocks, trunkBlock);
 
     // MC 第33-46行: 在树干上生成分支
     // 从 height-2-随机(4) 开始，每隔 2+随机(4) 格，向下到 height/2
-    for (i32 branchHeight = height - 2 - random.nextInt(4);
-         branchHeight > height / 2;
-         branchHeight -= 2 + random.nextInt(4)) {
+    for (i32 branchHeight = height - 2 - random.nextInt(4); branchHeight > height / 2;
+        branchHeight -= 2 + random.nextInt(4)) {
 
         // MC 第34行: 随机角度
         f32 angle = random.nextFloat() * 2.0f * math::PI;
@@ -453,26 +437,21 @@ std::vector<FoliagePosition> MegaJungleTrunkPlacer::placeTrunk(
             dx = static_cast<i32>(1.5f + std::cos(angle) * static_cast<f32>(step));
             dz = static_cast<i32>(1.5f + std::sin(angle) * static_cast<f32>(step));
 
-            BlockPos branchPos(
-                startPos.x + dx,
-                startPos.y + branchHeight - 3 + step / 2,
-                startPos.z + dz
-            );
+            BlockPos branchPos(startPos.x + dx, startPos.y + branchHeight - 3 + step / 2, startPos.z + dz);
 
             // 放置分支方块（使用2x2方式）
             placeTrunkLayer2x2(world, branchPos, trunkBlocks, trunkBlock);
         }
 
         // MC 第45行: 添加分支末端的树叶位置
-        foliagePositions.emplace_back(
-            BlockPos(startPos.x + dx, startPos.y + branchHeight, startPos.z + dz),
-            -2, false);
+        foliagePositions.emplace_back(BlockPos(startPos.x + dx, startPos.y + branchHeight, startPos.z + dz), -2, false);
     }
 
     return foliagePositions;
 }
 
-std::unique_ptr<TrunkPlacer> MegaJungleTrunkPlacer::clone() const {
+std::unique_ptr<TrunkPlacer> MegaJungleTrunkPlacer::clone() const
+{
     return std::make_unique<MegaJungleTrunkPlacer>(m_baseHeight, m_heightRandA, m_heightRandB);
 }
 

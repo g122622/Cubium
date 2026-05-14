@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
-#include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 
 using namespace mc;
@@ -27,14 +27,13 @@ public:
     }
 
     // 设置位置用于测试
-    void setPositionForTest(f64 x, f64 y, f64 z) {
+    void setPositionForTest(f64 x, f64 y, f64 z)
+    {
         setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     }
 
     // 设置空闲时间
-    void setIdleTimeForTest(i32 time) {
-        m_idleTime = time;
-    }
+    void setIdleTimeForTest(i32 time) { m_idleTime = time; }
 };
 
 // ============================================================================
@@ -43,7 +42,8 @@ public:
 
 class RandomWalkingGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         creature = std::make_unique<TestCreatureEntity>();
         creature->setPositionForTest(0.0, 64.0, 0.0);
         creature->setIdleTimeForTest(0);
@@ -52,7 +52,8 @@ protected:
         goal = std::make_unique<RandomWalkingGoal>(creature.get(), 1.0, 1);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         goal.reset();
         creature.reset();
     }
@@ -61,12 +62,14 @@ protected:
     std::unique_ptr<RandomWalkingGoal> goal;
 };
 
-TEST_F(RandomWalkingGoalTest, ShouldExecuteReturnsFalseWhenNullCreature) {
+TEST_F(RandomWalkingGoalTest, ShouldExecuteReturnsFalseWhenNullCreature)
+{
     RandomWalkingGoal nullGoal(nullptr, 1.0);
     EXPECT_FALSE(nullGoal.shouldExecute());
 }
 
-TEST_F(RandomWalkingGoalTest, ShouldExecuteReturnsTrueWhenConditionsMet) {
+TEST_F(RandomWalkingGoalTest, ShouldExecuteReturnsTrueWhenConditionsMet)
+{
     // 注意：creature 没有 world，所以 RandomPositionGenerator 无法找到目标位置
     // MC 1.16.5: 应该返回 false，因为无法找到随机目标
     // 要测试成功情况，需要提供一个带有世界的 creature
@@ -76,17 +79,20 @@ TEST_F(RandomWalkingGoalTest, ShouldExecuteReturnsTrueWhenConditionsMet) {
 // 注意：isBeingRidden 测试需要乘客系统支持，Entity::isBeingRidden 基于 hasPassengers()
 // 该测试在集成测试中覆盖
 
-TEST_F(RandomWalkingGoalTest, ShouldExecuteReturnsFalseWhenIdleTimeTooHigh) {
+TEST_F(RandomWalkingGoalTest, ShouldExecuteReturnsFalseWhenIdleTimeTooHigh)
+{
     creature->setIdleTimeForTest(100);
     EXPECT_FALSE(goal->shouldExecute());
 }
 
-TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsFalseWhenNullCreature) {
+TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsFalseWhenNullCreature)
+{
     RandomWalkingGoal nullGoal(nullptr, 1.0);
     EXPECT_FALSE(nullGoal.shouldContinueExecuting());
 }
 
-TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsFalseWhenNoPath) {
+TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsFalseWhenNoPath)
+{
     // MC 1.16.5: shouldContinueExecuting 返回 !navigator.noPath() && !isBeingRidden()
     // 由于测试中的 creature 没有 world，navigator 是 null 或没有路径
     // 所以 noPath() 返回 true，shouldContinueExecuting 返回 false
@@ -97,7 +103,8 @@ TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsFalseWhenNoPath) {
     EXPECT_FALSE(goal->shouldContinueExecuting());
 }
 
-TEST_F(RandomWalkingGoalTest, StartExecutingDoesNotCrash) {
+TEST_F(RandomWalkingGoalTest, StartExecutingDoesNotCrash)
+{
     static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
 
@@ -105,7 +112,8 @@ TEST_F(RandomWalkingGoalTest, StartExecutingDoesNotCrash) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(RandomWalkingGoalTest, ResetTaskClearsNavigation) {
+TEST_F(RandomWalkingGoalTest, ResetTaskClearsNavigation)
+{
     static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
     goal->resetTask();
@@ -114,7 +122,8 @@ TEST_F(RandomWalkingGoalTest, ResetTaskClearsNavigation) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(RandomWalkingGoalTest, TickDoesNotCrash) {
+TEST_F(RandomWalkingGoalTest, TickDoesNotCrash)
+{
     static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
 
@@ -126,7 +135,8 @@ TEST_F(RandomWalkingGoalTest, TickDoesNotCrash) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(RandomWalkingGoalTest, MakeUpdateForcesNextExecution) {
+TEST_F(RandomWalkingGoalTest, MakeUpdateForcesNextExecution)
+{
     // 设置高空闲时间，正常情况下不应该执行
     creature->setIdleTimeForTest(200);
 
@@ -135,10 +145,11 @@ TEST_F(RandomWalkingGoalTest, MakeUpdateForcesNextExecution) {
     // 注意：由于没有 world，RandomPositionGenerator 仍然无法找到目标位置
     // 所以 shouldExecute 返回 false
     // 这个测试验证 makeUpdate 不会崩溃，并且 m_forceUpdate 标志被设置
-    EXPECT_FALSE(goal->shouldExecute());  // 无 world 时仍然返回 false
+    EXPECT_FALSE(goal->shouldExecute()); // 无 world 时仍然返回 false
 }
 
-TEST_F(RandomWalkingGoalTest, SetExecutionChance) {
+TEST_F(RandomWalkingGoalTest, SetExecutionChance)
+{
     goal->setExecutionChance(100);
     // 设置概率后，目标应该正常工作
     EXPECT_TRUE(true); // 基本验证不会崩溃
@@ -150,19 +161,19 @@ TEST_F(RandomWalkingGoalTest, SetExecutionChance) {
 
 class CreatureEntityMoveTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         creature = std::make_unique<TestCreatureEntity>();
         creature->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override {
-        creature.reset();
-    }
+    void TearDown() override { creature.reset(); }
 
     std::unique_ptr<TestCreatureEntity> creature;
 };
 
-TEST_F(CreatureEntityMoveTest, TryMoveToUsesMovementControllerWhenNoNavigator) {
+TEST_F(CreatureEntityMoveTest, TryMoveToUsesMovementControllerWhenNoNavigator)
+{
     // CreatureEntity 默认没有 PathNavigator（需要 world 才能创建）
     // 所以 tryMoveTo 应该使用 MovementController
 
@@ -177,7 +188,8 @@ TEST_F(CreatureEntityMoveTest, TryMoveToUsesMovementControllerWhenNoNavigator) {
     EXPECT_TRUE(moveCtrl->isUpdating());
 }
 
-TEST_F(CreatureEntityMoveTest, TryMoveToSetsCorrectTargetPosition) {
+TEST_F(CreatureEntityMoveTest, TryMoveToSetsCorrectTargetPosition)
+{
     creature->tryMoveTo(100.0, 70.0, 200.0, 0.5);
 
     auto* moveCtrl = creature->moveController();
@@ -189,7 +201,8 @@ TEST_F(CreatureEntityMoveTest, TryMoveToSetsCorrectTargetPosition) {
     EXPECT_DOUBLE_EQ(moveCtrl->speed(), 0.5);
 }
 
-TEST_F(CreatureEntityMoveTest, TryMoveToReturnsTrueWithMovementController) {
+TEST_F(CreatureEntityMoveTest, TryMoveToReturnsTrueWithMovementController)
+{
     // 即使没有 PathNavigator，也应该成功（使用 MovementController fallback）
     bool result = creature->tryMoveTo(10.0, 64.0, 10.0, 1.0);
     EXPECT_TRUE(result);
@@ -201,19 +214,19 @@ TEST_F(CreatureEntityMoveTest, TryMoveToReturnsTrueWithMovementController) {
 
 class MovementControllerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         creature = std::make_unique<TestCreatureEntity>();
         creature->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override {
-        creature.reset();
-    }
+    void TearDown() override { creature.reset(); }
 
     std::unique_ptr<TestCreatureEntity> creature;
 };
 
-TEST_F(MovementControllerTest, IsUpdatingReturnsTrueWhenMoveToSet) {
+TEST_F(MovementControllerTest, IsUpdatingReturnsTrueWhenMoveToSet)
+{
     auto* moveCtrl = creature->moveController();
     ASSERT_NE(moveCtrl, nullptr);
 
@@ -225,7 +238,8 @@ TEST_F(MovementControllerTest, IsUpdatingReturnsTrueWhenMoveToSet) {
     EXPECT_TRUE(moveCtrl->isUpdating());
 }
 
-TEST_F(MovementControllerTest, SetMoveToStoresTarget) {
+TEST_F(MovementControllerTest, SetMoveToStoresTarget)
+{
     auto* moveCtrl = creature->moveController();
     ASSERT_NE(moveCtrl, nullptr);
 
@@ -237,7 +251,8 @@ TEST_F(MovementControllerTest, SetMoveToStoresTarget) {
     EXPECT_DOUBLE_EQ(moveCtrl->speed(), 0.8);
 }
 
-TEST_F(MovementControllerTest, TickUpdatesEntityRotation) {
+TEST_F(MovementControllerTest, TickUpdatesEntityRotation)
+{
     auto* moveCtrl = creature->moveController();
     ASSERT_NE(moveCtrl, nullptr);
 
@@ -258,7 +273,8 @@ TEST_F(MovementControllerTest, TickUpdatesEntityRotation) {
     EXPECT_TRUE(yaw >= 330.0f || yaw <= 30.0f || yaw >= 240.0f);
 }
 
-TEST_F(MovementControllerTest, TickStopsWhenNearTarget) {
+TEST_F(MovementControllerTest, TickStopsWhenNearTarget)
+{
     auto* moveCtrl = creature->moveController();
     ASSERT_NE(moveCtrl, nullptr);
 
@@ -274,7 +290,8 @@ TEST_F(MovementControllerTest, TickStopsWhenNearTarget) {
     EXPECT_FALSE(moveCtrl->isUpdating());
 }
 
-TEST_F(MovementControllerTest, ActionTransitionsCorrectly) {
+TEST_F(MovementControllerTest, ActionTransitionsCorrectly)
+{
     auto* moveCtrl = creature->moveController();
     ASSERT_NE(moveCtrl, nullptr);
 
@@ -296,7 +313,8 @@ TEST_F(MovementControllerTest, ActionTransitionsCorrectly) {
 
 class RandomWalkingGoalIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         creature = std::make_unique<TestCreatureEntity>();
         creature->setPositionForTest(100.0, 64.0, 100.0);
         creature->setIdleTimeForTest(0);
@@ -304,7 +322,8 @@ protected:
         goal = std::make_unique<RandomWalkingGoal>(creature.get(), 1.0, 1);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         goal.reset();
         creature.reset();
     }
@@ -313,7 +332,8 @@ protected:
     std::unique_ptr<RandomWalkingGoal> goal;
 };
 
-TEST_F(RandomWalkingGoalIntegrationTest, FullWalkCycle) {
+TEST_F(RandomWalkingGoalIntegrationTest, FullWalkCycle)
+{
     // 注意：creature 没有 world，所以 RandomPositionGenerator 无法找到目标位置
     // shouldExecute 返回 false
     EXPECT_FALSE(goal->shouldExecute());
@@ -333,7 +353,8 @@ TEST_F(RandomWalkingGoalIntegrationTest, FullWalkCycle) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(RandomWalkingGoalIntegrationTest, MovementControllerFallbackWorks) {
+TEST_F(RandomWalkingGoalIntegrationTest, MovementControllerFallbackWorks)
+{
     // MobEntity 创建时自动创建了 PathNavigator，但 PathFinder 为 null
     // 由于没有 world，shouldExecute 返回 false
     EXPECT_FALSE(goal->shouldExecute());
@@ -343,7 +364,8 @@ TEST_F(RandomWalkingGoalIntegrationTest, MovementControllerFallbackWorks) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(RandomWalkingGoalIntegrationTest, StopsWhenNoPath) {
+TEST_F(RandomWalkingGoalIntegrationTest, StopsWhenNoPath)
+{
     // MC 1.16.5: shouldContinueExecuting 返回 !navigator.noPath() && !isBeingRidden()
     // 由于测试中的 creature 没有有效的路径，noPath() 应该返回 true
 
@@ -354,7 +376,8 @@ TEST_F(RandomWalkingGoalIntegrationTest, StopsWhenNoPath) {
     EXPECT_FALSE(goal->shouldContinueExecuting());
 }
 
-TEST_F(RandomWalkingGoalIntegrationTest, MakeUpdateBypassesIdleTimeCheck) {
+TEST_F(RandomWalkingGoalIntegrationTest, MakeUpdateBypassesIdleTimeCheck)
+{
     // 设置高空闲时间，正常情况下不应该执行
     creature->setIdleTimeForTest(200);
 
@@ -362,5 +385,5 @@ TEST_F(RandomWalkingGoalIntegrationTest, MakeUpdateBypassesIdleTimeCheck) {
     // 由于没有 world，RandomPositionGenerator 仍然无法找到目标位置
     // 所以 shouldExecute 返回 false
     goal->makeUpdate();
-    EXPECT_FALSE(goal->shouldExecute());  // 无 world 时返回 false
+    EXPECT_FALSE(goal->shouldExecute()); // 无 world 时返回 false
 }

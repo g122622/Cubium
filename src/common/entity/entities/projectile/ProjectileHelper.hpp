@@ -21,15 +21,12 @@ public:
      * @brief 为当前位移构造实体搜索范围
      */
     [[nodiscard]] static AxisAlignedBB createMovementSearchBox(
-        const Entity& projectile,
-        const Vector3& movement,
-        f32 margin = 1.0f);
+        const Entity& projectile, const Vector3& movement, f32 margin = 1.0f);
 
     /**
      * @brief 在线段上查找最近的实体命中
      */
-    [[nodiscard]] static RayTraceResult rayTraceEntities(
-        const IWorld& world,
+    [[nodiscard]] static RayTraceResult rayTraceEntities(const IWorld& world,
         const Entity& projectile,
         const Vector3& start,
         const Vector3& end,

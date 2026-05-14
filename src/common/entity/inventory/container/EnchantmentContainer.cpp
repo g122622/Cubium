@@ -1,12 +1,12 @@
 #include "EnchantmentContainer.hpp"
-#include "entity/inventory/Slot.hpp"
-#include "entity/inventory/PlayerInventory.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "item/core/Item.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
+#include "entity/inventory/Slot.hpp"
 #include "item/Items.hpp"
-#include "item/items/special/EnchantedBookItem.hpp"
-#include "item/enchantment/EnchantmentRegistry.hpp"
+#include "item/core/Item.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
+#include "item/enchantment/EnchantmentRegistry.hpp"
+#include "item/items/special/EnchantedBookItem.hpp"
 #include "network/packet/PacketSerializer.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
@@ -24,36 +24,38 @@ namespace {
  */
 class EnchantmentInventory : public IInventory {
 public:
-    static constexpr i32 SIZE = 2;  // 物品槽 + 青金石槽
+    static constexpr i32 SIZE = 2; // 物品槽 + 青金石槽
 
     i32 getContainerSize() const override { return SIZE; }
 
-    bool isEmpty() const override {
-        return m_items[0].isEmpty() && m_items[1].isEmpty();
-    }
+    bool isEmpty() const override { return m_items[0].isEmpty() && m_items[1].isEmpty(); }
 
-    ItemStack getItem(i32 slot) const override {
+    ItemStack getItem(i32 slot) const override
+    {
         if (slot >= 0 && slot < SIZE) {
             return m_items[slot];
         }
         return ItemStack();
     }
 
-    void setItem(i32 slot, const ItemStack& stack) override {
+    void setItem(i32 slot, const ItemStack& stack) override
+    {
         if (slot >= 0 && slot < SIZE) {
             m_items[slot] = stack;
             setChanged();
         }
     }
 
-    ItemStack removeItem(i32 slot, i32 count) override {
+    ItemStack removeItem(i32 slot, i32 count) override
+    {
         if (slot >= 0 && slot < SIZE) {
             return m_items[slot].split(count);
         }
         return ItemStack();
     }
 
-    ItemStack removeItemNoUpdate(i32 slot) override {
+    ItemStack removeItemNoUpdate(i32 slot) override
+    {
         if (slot >= 0 && slot < SIZE) {
             ItemStack result = std::move(m_items[slot]);
             m_items[slot] = ItemStack();
@@ -62,18 +64,18 @@ public:
         return ItemStack();
     }
 
-    void clear() override {
+    void clear() override
+    {
         for (auto& item : m_items) {
             item = ItemStack();
         }
         setChanged();
     }
 
-    void setChanged() override {
-        m_changed = true;
-    }
+    void setChanged() override { m_changed = true; }
 
-    void serialize(network::PacketSerializer& ser) const override {
+    void serialize(network::PacketSerializer& ser) const override
+    {
         ser.writeVarInt(SIZE);
         for (const auto& item : m_items) {
             item.serialize(ser);
@@ -94,9 +96,11 @@ private:
 class EnchantmentItemSlot : public Slot {
 public:
     EnchantmentItemSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y)
-        : Slot(inventory, slotIndex, x, y) {}
+        : Slot(inventory, slotIndex, x, y)
+    {}
 
-    bool mayPlace(const ItemStack& stack) const override {
+    bool mayPlace(const ItemStack& stack) const override
+    {
         if (stack.isEmpty() || stack.getItem() == nullptr) {
             return false;
         }
@@ -105,7 +109,8 @@ public:
         return enchantability > 0;
     }
 
-    i32 getMaxStackSize(const ItemStack& stack) const override {
+    i32 getMaxStackSize(const ItemStack& stack) const override
+    {
         // 附魔物品只能放一个
         return 1;
     }
@@ -117,12 +122,13 @@ public:
 class LapisSlot : public Slot {
 public:
     LapisSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y)
-        : Slot(inventory, slotIndex, x, y) {}
+        : Slot(inventory, slotIndex, x, y)
+    {}
 
-    bool mayPlace(const ItemStack& stack) const override {
+    bool mayPlace(const ItemStack& stack) const override
+    {
         // 只接受青金石
-        return !stack.isEmpty() && stack.getItem() != nullptr &&
-               stack.getItem() == Items::LAPIS_LAZULI;
+        return !stack.isEmpty() && stack.getItem() != nullptr && stack.getItem() == Items::LAPIS_LAZULI;
     }
 };
 
@@ -130,20 +136,20 @@ public:
 
 // ========== EnchantmentContainer 实现 ==========
 
-EnchantmentContainer::EnchantmentContainer(ContainerId id,
-                                           PlayerInventory* playerInventory,
-                                           const BlockPos& position,
-                                           IWorld* world)
+EnchantmentContainer::EnchantmentContainer(
+    ContainerId id, PlayerInventory* playerInventory, const BlockPos& position, IWorld* world)
     : AbstractContainerMenu(id, playerInventory)
     , m_enchantmentInventory(std::make_unique<EnchantmentInventory>())
     , m_position(position)
     , m_world(world)
-    , m_random(0) {  // 初始化随机数生成器，种子稍后设置
+    , m_random(0)
+{ // 初始化随机数生成器，种子稍后设置
     initSlots(playerInventory);
     m_enchantPower = calculateEnchantPower();
 }
 
-void EnchantmentContainer::initSlots(PlayerInventory* playerInventory) {
+void EnchantmentContainer::initSlots(PlayerInventory* playerInventory)
+{
     // 添加附魔台槽位
     addSlot(std::make_unique<EnchantmentItemSlot>(m_enchantmentInventory.get(), SLOT_ITEM, ITEM_SLOT_X, ITEM_SLOT_Y));
     addSlot(std::make_unique<LapisSlot>(m_enchantmentInventory.get(), SLOT_LAPIS, LAPIS_SLOT_X, LAPIS_SLOT_Y));
@@ -153,40 +159,47 @@ void EnchantmentContainer::initSlots(PlayerInventory* playerInventory) {
     addPlayerHotbarSlots(PLAYER_INV_Y, HOTBAR_Y);
 }
 
-ItemStack EnchantmentContainer::getItemSlot() const {
+ItemStack EnchantmentContainer::getItemSlot() const
+{
     return m_enchantmentInventory->getItem(SLOT_ITEM);
 }
 
-ItemStack EnchantmentContainer::getLapisSlot() const {
+ItemStack EnchantmentContainer::getLapisSlot() const
+{
     return m_enchantmentInventory->getItem(SLOT_LAPIS);
 }
 
-i32 EnchantmentContainer::getEnchantmentLevel(i32 index) const {
+i32 EnchantmentContainer::getEnchantmentLevel(i32 index) const
+{
     if (index >= 0 && index < ENCHANTMENT_OPTIONS) {
         return m_enchantmentLevels[index];
     }
     return 0;
 }
 
-std::string EnchantmentContainer::getEnchantmentClue(i32 index) const {
+std::string EnchantmentContainer::getEnchantmentClue(i32 index) const
+{
     if (index >= 0 && index < ENCHANTMENT_OPTIONS) {
         return m_enchantmentClues[index];
     }
     return "";
 }
 
-std::string EnchantmentContainer::getEnchantmentClueId(i32 index) const {
+std::string EnchantmentContainer::getEnchantmentClueId(i32 index) const
+{
     return getEnchantmentClue(index);
 }
 
-i32 EnchantmentContainer::getEnchantmentWorldClue(i32 index) const {
+i32 EnchantmentContainer::getEnchantmentWorldClue(i32 index) const
+{
     if (index >= 0 && index < ENCHANTMENT_OPTIONS) {
         return m_enchantmentWorldClues[index];
     }
     return 0;
 }
 
-bool EnchantmentContainer::isEnchantmentOptionAvailable(i32 index) const {
+bool EnchantmentContainer::isEnchantmentOptionAvailable(i32 index) const
+{
     if (index < 0 || index >= ENCHANTMENT_OPTIONS) {
         return false;
     }
@@ -203,7 +216,7 @@ bool EnchantmentContainer::isEnchantmentOptionAvailable(i32 index) const {
 
     // 检查青金石是否足够
     ItemStack lapis = getLapisSlot();
-    i32 lapisNeeded = index + 1;  // 槽位0需要1个，槽位1需要2个，槽位2需要3个
+    i32 lapisNeeded = index + 1; // 槽位0需要1个，槽位1需要2个，槽位2需要3个
     if (lapis.getCount() < lapisNeeded) {
         return false;
     }
@@ -211,7 +224,8 @@ bool EnchantmentContainer::isEnchantmentOptionAvailable(i32 index) const {
     return true;
 }
 
-bool EnchantmentContainer::isPlayerCreative() const {
+bool EnchantmentContainer::isPlayerCreative() const
+{
     if (m_playerInventory == nullptr) {
         return false;
     }
@@ -219,7 +233,8 @@ bool EnchantmentContainer::isPlayerCreative() const {
     return player != nullptr && player->isCreative();
 }
 
-bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
+bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
+{
     if (!isEnchantmentOptionAvailable(optionIndex)) {
         return false;
     }
@@ -255,8 +270,7 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
     math::Random enchantRandom(m_enchantmentSeed + optionIndex);
 
     // 构建附魔列表
-    auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(
-        enchantRandom, item, level, false);
+    auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(enchantRandom, item, level, false);
 
     if (enchantments.empty()) {
         // 如果没有可用附魔，仍然更新种子
@@ -268,8 +282,7 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
     // 检查是否是书 -> 附魔书转换
     // 参考 MC 1.16.5: EnchantmentContainer.enchantItem()
     // 如果物品是书，需要转换为附魔书
-    bool isBook = item.getItem() != nullptr &&
-                  item.getItem() == Items::BOOK;
+    bool isBook = item.getItem() != nullptr && item.getItem() == Items::BOOK;
 
     if (isBook) {
         // 创建附魔书物品
@@ -324,13 +337,15 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
     return true;
 }
 
-bool EnchantmentContainer::stillValid(const Player& player) const {
+bool EnchantmentContainer::stillValid(const Player& player) const
+{
     // MC 1.16.5: 检查玩家是否在附魔台附近（64格范围内）
     // 参考: net.minecraft.inventory.container.EnchantmentContainer.canInteractWith
     return isWithinDistance(player, m_position);
 }
 
-void EnchantmentContainer::slotsChanged(IInventory* inventory) {
+void EnchantmentContainer::slotsChanged(IInventory* inventory)
+{
     if (inventory == m_enchantmentInventory.get()) {
         // 物品变化时更新附魔选项
         updateEnchantmentOptions();
@@ -338,7 +353,8 @@ void EnchantmentContainer::slotsChanged(IInventory* inventory) {
     AbstractContainerMenu::slotsChanged(inventory);
 }
 
-ItemStack EnchantmentContainer::quickMoveStack(i32 slotIndex, Player& player) {
+ItemStack EnchantmentContainer::quickMoveStack(i32 slotIndex, Player& player)
+{
     (void)player;
 
     Slot* slot = getSlot(slotIndex);
@@ -381,7 +397,8 @@ ItemStack EnchantmentContainer::quickMoveStack(i32 slotIndex, Player& player) {
     return result;
 }
 
-void EnchantmentContainer::updateEnchantmentOptions() {
+void EnchantmentContainer::updateEnchantmentOptions()
+{
     ItemStack item = getItemSlot();
 
     if (item.isEmpty()) {
@@ -400,16 +417,16 @@ void EnchantmentContainer::updateEnchantmentOptions() {
 
     for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
         // 计算附魔等级
-        m_enchantmentLevels[i] = item::enchant::EnchantmentHelper::calcItemStackEnchantability(
-            m_random, i, m_enchantPower, item);
+        m_enchantmentLevels[i] =
+            item::enchant::EnchantmentHelper::calcItemStackEnchantability(m_random, i, m_enchantPower, item);
 
         // 生成附魔预览
         if (m_enchantmentLevels[i] > 0) {
             // 参考 MC 1.16.5: getEnchantmentList 使用 xpSeed + slot 作为种子
             // 这样每个槽位的预览是确定性的
             m_random.setSeed(m_enchantmentSeed + i);
-            auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(
-                m_random, item, m_enchantmentLevels[i], false);
+            auto enchantments =
+                item::enchant::EnchantmentHelper::buildEnchantmentList(m_random, item, m_enchantmentLevels[i], false);
 
             if (!enchantments.empty()) {
                 // 只显示第一个附魔作为预览
@@ -435,13 +452,15 @@ void EnchantmentContainer::updateEnchantmentOptions() {
     detectAndSendChanges();
 }
 
-void EnchantmentContainer::updateEnchantmentSeed(Player& player) {
+void EnchantmentContainer::updateEnchantmentSeed(Player& player)
+{
     // 使用玩家的 XP 种子更新附魔种子
     // 参考 MC 1.16.5: container.xpSeed = player.getXPSeed()
     m_enchantmentSeed = static_cast<i64>(player.xpSeed());
 }
 
-i32 EnchantmentContainer::calculateEnchantPower() const {
+i32 EnchantmentContainer::calculateEnchantPower() const
+{
     if (!m_world) {
         return 0;
     }
@@ -501,10 +520,11 @@ i32 EnchantmentContainer::calculateEnchantPower() const {
         }
     }
 
-    return std::min(power, 15);  // 最大15
+    return std::min(power, 15); // 最大15
 }
 
-bool EnchantmentContainer::isValidBookshelf(const BlockPos& pos) const {
+bool EnchantmentContainer::isValidBookshelf(const BlockPos& pos) const
+{
     if (!m_world) {
         return false;
     }
@@ -519,13 +539,14 @@ bool EnchantmentContainer::isValidBookshelf(const BlockPos& pos) const {
     return &block == VanillaBlocks::BOOKSHELF;
 }
 
-bool EnchantmentContainer::isAirBlock(const BlockPos& pos) const {
+bool EnchantmentContainer::isAirBlock(const BlockPos& pos) const
+{
     if (!m_world) {
         return false;
     }
     const BlockState* blockState = m_world->getBlockState(pos);
     if (!blockState) {
-        return true;  // 未加载的区块视为空气
+        return true; // 未加载的区块视为空气
     }
     return blockState->getBlock().isAir(*blockState);
 }

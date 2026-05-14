@@ -1,15 +1,15 @@
 #pragma once
 
 #include "client/sound/instance/ISoundInstance.hpp"
-#include "common/sound/SoundCategory.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
 
 #include <memory>
-#include <vector>
 #include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -21,7 +21,7 @@ class SoundEngine;
 // 前向声明
 class ClientSettings;
 class ClientWorld;
-}
+} // namespace client
 
 namespace client::sound {
 
@@ -61,25 +61,28 @@ public:
      * 定义特定音乐类型的选择规则。
      */
     struct MusicSelector {
-        ResourceLocation soundEventId;   // 声音事件ID
-        u32 minDelayTicks = 12000;       // 最小延迟（ticks，600秒 = 10分钟）
-        u32 maxDelayTicks = 24000;       // 最大延迟（ticks，1200秒 = 20分钟）
-        bool replaceCurrent = false;     // 是否替换当前音乐
+        ResourceLocation soundEventId; // 声音事件ID
+        u32 minDelayTicks = 12000;     // 最小延迟（ticks，600秒 = 10分钟）
+        u32 maxDelayTicks = 24000;     // 最大延迟（ticks，1200秒 = 20分钟）
+        bool replaceCurrent = false;   // 是否替换当前音乐
 
         MusicSelector() = default;
         MusicSelector(const ResourceLocation& id, u32 minDelay, u32 maxDelay, bool replace)
-            : soundEventId(id), minDelayTicks(minDelay), maxDelayTicks(maxDelay), replaceCurrent(replace) {}
+            : soundEventId(id)
+            , minDelayTicks(minDelay)
+            , maxDelayTicks(maxDelay)
+            , replaceCurrent(replace)
+        {}
 
         /**
          * @brief 从生物群系音乐配置创建选择器
          */
-        static MusicSelector fromBiomeMusic(const world::biome::BiomeMusic& biomeMusic) {
-            return MusicSelector(
-                biomeMusic.soundEvent(),
+        static MusicSelector fromBiomeMusic(const world::biome::BiomeMusic& biomeMusic)
+        {
+            return MusicSelector(biomeMusic.soundEvent(),
                 biomeMusic.minDelayTicks(),
                 biomeMusic.maxDelayTicks(),
-                biomeMusic.replaceCurrent()
-            );
+                biomeMusic.replaceCurrent());
         }
     };
 
@@ -114,9 +117,13 @@ public:
      * @param inBossFight 是否在Boss战斗中
      * @param biomeMusic 当前生物群系的音乐配置（可选）
      */
-    void tick(bool isPaused, bool inMenu, i32 dimension = 0, bool inWater = false,
-              bool inCreative = false, bool inBossFight = false,
-              const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
+    void tick(bool isPaused,
+        bool inMenu,
+        i32 dimension = 0,
+        bool inWater = false,
+        bool inCreative = false,
+        bool inBossFight = false,
+        const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
 
     /**
      * @brief 停止当前音乐
@@ -214,7 +221,7 @@ private:
     u32 m_fadeCounter = 0;
 
     /// 淡出持续时间（ticks）
-    static constexpr u32 FADE_DURATION = 40;  // 2秒 @ 20 TPS
+    static constexpr u32 FADE_DURATION = 40; // 2秒 @ 20 TPS
 
     /// 随机数生成器
     mutable math::Random m_rng{0};

@@ -1,19 +1,19 @@
 #include "Template.hpp"
-#include "RuleTest.hpp"
-#include "../../../../world/IWorldWriter.hpp"
+#include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/EntityRegistry.hpp"
+#include "../../../../entity/core/EntityType.hpp"
+#include "../../../../util/assert/AssertMacros.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/BlockRegistry.hpp"
+#include "../../../../world/IWorldWriter.hpp"
 #include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
+#include "../../../../world/block/BlockRegistry.hpp"
 #include "../../../../world/block/ILiquidContainer.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../../world/blockentity/BlockEntity.hpp"
 #include "../../../../world/blockentity/BlockEntityType.hpp"
 #include "../../../../world/fluid/Fluid.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../entity/core/EntityType.hpp"
-#include "../../../../entity/core/EntityRegistry.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/assert/AssertMacros.hpp"
+#include "RuleTest.hpp"
 #include <algorithm>
 #include <unordered_map>
 
@@ -48,17 +48,21 @@ static constexpr f32 CRACKED_STONE_BRICK_CHANCE = 0.5f;
 // BlockInfo
 // ============================================================================
 
-BlockInfo::BlockInfo() : pos(), blockStateId(0), nbt(nullptr)
-{
-}
+BlockInfo::BlockInfo()
+    : pos()
+    , blockStateId(0)
+    , nbt(nullptr)
+{}
 
 BlockInfo::BlockInfo(const BlockPos& p, u32 stateId)
-    : pos(p), blockStateId(stateId), nbt(nullptr)
-{
-}
+    : pos(p)
+    , blockStateId(stateId)
+    , nbt(nullptr)
+{}
 
 BlockInfo::BlockInfo(const BlockInfo& other)
-    : pos(other.pos), blockStateId(other.blockStateId)
+    : pos(other.pos)
+    , blockStateId(other.blockStateId)
 {
     if (other.nbt) {
         nbt = std::make_unique<nbt::CompoundTag>(*other.nbt);
@@ -69,10 +73,10 @@ BlockInfo::BlockInfo(BlockInfo&& other) noexcept
     : pos(std::move(other.pos))
     , blockStateId(other.blockStateId)
     , nbt(std::move(other.nbt))
-{
-}
+{}
 
-BlockInfo& BlockInfo::operator=(const BlockInfo& other) {
+BlockInfo& BlockInfo::operator=(const BlockInfo& other)
+{
     if (this != &other) {
         pos = other.pos;
         blockStateId = other.blockStateId;
@@ -85,7 +89,8 @@ BlockInfo& BlockInfo::operator=(const BlockInfo& other) {
     return *this;
 }
 
-BlockInfo& BlockInfo::operator=(BlockInfo&& other) noexcept {
+BlockInfo& BlockInfo::operator=(BlockInfo&& other) noexcept
+{
     if (this != &other) {
         pos = std::move(other.pos);
         blockStateId = other.blockStateId;
@@ -101,7 +106,8 @@ BlockInfo::~BlockInfo() = default;
 // ============================================================================
 
 ProcessedBlockInfo::ProcessedBlockInfo(const ProcessedBlockInfo& other)
-    : pos(other.pos), blockStateId(other.blockStateId)
+    : pos(other.pos)
+    , blockStateId(other.blockStateId)
 {
     if (other.nbt) {
         nbt = std::make_unique<nbt::CompoundTag>(*other.nbt);
@@ -112,10 +118,10 @@ ProcessedBlockInfo::ProcessedBlockInfo(ProcessedBlockInfo&& other) noexcept
     : pos(std::move(other.pos))
     , blockStateId(other.blockStateId)
     , nbt(std::move(other.nbt))
-{
-}
+{}
 
-ProcessedBlockInfo& ProcessedBlockInfo::operator=(const ProcessedBlockInfo& other) {
+ProcessedBlockInfo& ProcessedBlockInfo::operator=(const ProcessedBlockInfo& other)
+{
     if (this != &other) {
         pos = other.pos;
         blockStateId = other.blockStateId;
@@ -128,7 +134,8 @@ ProcessedBlockInfo& ProcessedBlockInfo::operator=(const ProcessedBlockInfo& othe
     return *this;
 }
 
-ProcessedBlockInfo& ProcessedBlockInfo::operator=(ProcessedBlockInfo&& other) noexcept {
+ProcessedBlockInfo& ProcessedBlockInfo::operator=(ProcessedBlockInfo&& other) noexcept
+{
     if (this != &other) {
         pos = std::move(other.pos);
         blockStateId = other.blockStateId;
@@ -143,8 +150,7 @@ ProcessedBlockInfo::~ProcessedBlockInfo() = default;
 // StructureProcessor
 // ============================================================================
 
-std::optional<ProcessedBlockInfo> StructureProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> StructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -158,13 +164,18 @@ std::optional<ProcessedBlockInfo> StructureProcessor::process(
 // TemplateEntityInfo
 // ============================================================================
 
-TemplateEntityInfo::TemplateEntityInfo() : posx(0.0), posy(0.0), posz(0.0), blockPos()
-{
-}
+TemplateEntityInfo::TemplateEntityInfo()
+    : posx(0.0)
+    , posy(0.0)
+    , posz(0.0)
+    , blockPos()
+{}
 
 TemplateEntityInfo::TemplateEntityInfo(const TemplateEntityInfo& other)
     : typeId(other.typeId)
-    , posx(other.posx), posy(other.posy), posz(other.posz)
+    , posx(other.posx)
+    , posy(other.posy)
+    , posz(other.posz)
     , blockPos(other.blockPos)
 {
     if (other.nbt) {
@@ -174,13 +185,15 @@ TemplateEntityInfo::TemplateEntityInfo(const TemplateEntityInfo& other)
 
 TemplateEntityInfo::TemplateEntityInfo(TemplateEntityInfo&& other) noexcept
     : typeId(std::move(other.typeId))
-    , posx(other.posx), posy(other.posy), posz(other.posz)
+    , posx(other.posx)
+    , posy(other.posy)
+    , posz(other.posz)
     , blockPos(std::move(other.blockPos))
     , nbt(std::move(other.nbt))
-{
-}
+{}
 
-TemplateEntityInfo& TemplateEntityInfo::operator=(const TemplateEntityInfo& other) {
+TemplateEntityInfo& TemplateEntityInfo::operator=(const TemplateEntityInfo& other)
+{
     if (this != &other) {
         typeId = other.typeId;
         posx = other.posx;
@@ -196,7 +209,8 @@ TemplateEntityInfo& TemplateEntityInfo::operator=(const TemplateEntityInfo& othe
     return *this;
 }
 
-TemplateEntityInfo& TemplateEntityInfo::operator=(TemplateEntityInfo&& other) noexcept {
+TemplateEntityInfo& TemplateEntityInfo::operator=(TemplateEntityInfo&& other) noexcept
+{
     if (this != &other) {
         typeId = std::move(other.typeId);
         posx = other.posx;
@@ -220,45 +234,52 @@ PlacementSettings::PlacementSettings()
     , m_boundingBox(nullptr)
     , m_centerOffset(0, 0, 0)
     , m_blockUpdateFlags(18)
-{
-}
+{}
 
-PlacementSettings& PlacementSettings::setRotation(Rotation rotation) {
+PlacementSettings& PlacementSettings::setRotation(Rotation rotation)
+{
     m_rotation = rotation;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setMirror(Mirror mirror) {
+PlacementSettings& PlacementSettings::setMirror(Mirror mirror)
+{
     m_mirror = mirror;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setIgnoreEntities(bool ignore) {
+PlacementSettings& PlacementSettings::setIgnoreEntities(bool ignore)
+{
     m_ignoreEntities = ignore;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setBoundingBox(const structure::StructureBoundingBox* bounds) {
+PlacementSettings& PlacementSettings::setBoundingBox(const structure::StructureBoundingBox* bounds)
+{
     m_boundingBox = bounds;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setCenterOffset(const BlockPos& offset) {
+PlacementSettings& PlacementSettings::setCenterOffset(const BlockPos& offset)
+{
     m_centerOffset = offset;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setBlockUpdateFlags(u32 flags) {
+PlacementSettings& PlacementSettings::setBlockUpdateFlags(u32 flags)
+{
     m_blockUpdateFlags = flags;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setKeepLiquids(bool keep) {
+PlacementSettings& PlacementSettings::setKeepLiquids(bool keep)
+{
     m_keepLiquids = keep;
     return *this;
 }
 
-math::Random PlacementSettings::getRandom(const BlockPos& pos) const {
+math::Random PlacementSettings::getRandom(const BlockPos& pos) const
+{
     // MC 1.16.5: PlacementSettings.getRandom(BlockPos)
     // 如果设置了预设随机数，则返回副本；否则基于位置种子创建
     if (m_random) {
@@ -268,7 +289,8 @@ math::Random PlacementSettings::getRandom(const BlockPos& pos) const {
     return math::Random(math::getPositionRandom(pos.x, pos.y, pos.z));
 }
 
-PlacementSettings PlacementSettings::copy() const {
+PlacementSettings PlacementSettings::copy() const
+{
     PlacementSettings result;
     result.m_rotation = m_rotation;
     result.m_mirror = m_mirror;
@@ -283,7 +305,8 @@ PlacementSettings PlacementSettings::copy() const {
     return result;
 }
 
-PlacementSettings& PlacementSettings::setProcessors(const StructureProcessorList* processors) {
+PlacementSettings& PlacementSettings::setProcessors(const StructureProcessorList* processors)
+{
     m_processors = processors;
     return *this;
 }
@@ -294,10 +317,10 @@ PlacementSettings& PlacementSettings::setProcessors(const StructureProcessorList
 
 Palette::Palette(std::vector<BlockInfo> blocks)
     : m_blocks(std::move(blocks))
-{
-}
+{}
 
-const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block) const {
+const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block) const
+{
     // 检查缓存
     auto it = m_blockTypeCache.find(&block);
     if (it != m_blockTypeCache.end()) {
@@ -319,7 +342,8 @@ const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block
     return empty;
 }
 
-void Palette::buildCache() const {
+void Palette::buildCache() const
+{
     // MC 1.16.5: Palette.func_237158_a_ 按方块类型缓存
     auto& registry = BlockRegistry::instance();
 
@@ -337,24 +361,27 @@ void Palette::buildCache() const {
 // Template
 // ============================================================================
 
-Template::Template() : m_size(0, 0, 0)
-{
-}
+Template::Template()
+    : m_size(0, 0, 0)
+{}
 
 Template::~Template() = default;
 
-void Template::addPalette(Palette palette) {
+void Template::addPalette(Palette palette)
+{
     m_palettes.push_back(std::move(palette));
 }
 
-const Palette* Template::getPalette(size_t index) const {
+const Palette* Template::getPalette(size_t index) const
+{
     if (index < m_palettes.size()) {
         return &m_palettes[index];
     }
     return nullptr;
 }
 
-const Palette* Template::selectPalette(math::Random& rng) const {
+const Palette* Template::selectPalette(math::Random& rng) const
+{
     if (m_palettes.empty()) {
         return nullptr;
     }
@@ -364,7 +391,8 @@ const Palette* Template::selectPalette(math::Random& rng) const {
     return &m_palettes[index];
 }
 
-const std::vector<BlockInfo>& Template::getBlocks() const {
+const std::vector<BlockInfo>& Template::getBlocks() const
+{
     // 兼容旧接口：返回第一个调色板的方块
     static const std::vector<BlockInfo> empty;
     if (m_palettes.empty()) {
@@ -373,7 +401,8 @@ const std::vector<BlockInfo>& Template::getBlocks() const {
     return m_palettes[0].blocks();
 }
 
-size_t Template::getBlockCount() const {
+size_t Template::getBlockCount() const
+{
     size_t count = 0;
     for (const auto& palette : m_palettes) {
         count += palette.size();
@@ -381,17 +410,17 @@ size_t Template::getBlockCount() const {
     return count;
 }
 
-void Template::addJigsawBlock(const TemplateJigsawBlockInfo& jigsawInfo) {
+void Template::addJigsawBlock(const TemplateJigsawBlockInfo& jigsawInfo)
+{
     m_jigsawBlocks.push_back(jigsawInfo);
 }
 
-void Template::addEntity(const TemplateEntityInfo& entityInfo) {
+void Template::addEntity(const TemplateEntityInfo& entityInfo)
+{
     m_entities.push_back(entityInfo);
 }
 
-structure::StructureBoundingBox Template::getBoundingBox(
-    const PlacementSettings& settings,
-    const BlockPos& pos) const
+structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings& settings, const BlockPos& pos) const
 {
     // 即使没有方块，也使用模板尺寸
     if (m_size.x == 0 && m_size.y == 0 && m_size.z == 0) {
@@ -415,20 +444,16 @@ structure::StructureBoundingBox Template::getBoundingBox(
 
     // 注意：镜像不影响尺寸，只影响位置
 
-    return structure::StructureBoundingBox(
-        pos.x, pos.y, pos.z,
+    return structure::StructureBoundingBox(pos.x,
+        pos.y,
+        pos.z,
         pos.x + sizeX - 1,
-        pos.y + m_size.y - 1,  // Y尺寸不变
-        pos.z + sizeZ - 1
-    );
+        pos.y + m_size.y - 1, // Y尺寸不变
+        pos.z + sizeZ - 1);
 }
 
 bool Template::place(
-    IWorldWriter& world,
-    const BlockPos& pos,
-    const PlacementSettings& settings,
-    math::Random& rng,
-    u32 flags) const
+    IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags) const
 {
     // MC 1.16.5: Template.func_237146_a_
     // 选择调色板
@@ -436,7 +461,7 @@ bool Template::place(
     if (!selectedPalette || selectedPalette->empty()) {
         // 没有调色板或调色板为空，检查旧格式的方块列表
         if (m_palettes.empty()) {
-            return true;  // 空模板，无需放置
+            return true; // 空模板，无需放置
         }
         selectedPalette = &m_palettes[0];
         if (selectedPalette->empty()) {
@@ -456,10 +481,7 @@ bool Template::place(
     for (const auto& block : blocks) {
         // 计算变换后的位置
         BlockPos transformedPos = transformBlockPos(
-            block.pos,
-            settings.getMirror(),
-            settings.getRotation(),
-            BlockPos(0, 0, 0)  // 相对于原点变换
+            block.pos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0) // 相对于原点变换
         );
 
         // 加上目标位置偏移
@@ -494,7 +516,7 @@ bool Template::place(
                     auto result = processor->process(pos, worldPos, rawInfo, blockInfo, settings);
                     if (!result) {
                         shouldKeep = false;
-                        break;  // 处理器返回空，跳过此方块
+                        break; // 处理器返回空，跳过此方块
                     }
                     processedBlock = *result;
                     // 更新 blockInfo 供下一个处理器使用
@@ -507,7 +529,7 @@ bool Template::place(
             }
 
             if (!shouldKeep) {
-                continue;  // 跳过此方块
+                continue; // 跳过此方块
             }
         }
 
@@ -522,8 +544,8 @@ bool Template::place(
     // 最终顺序：普通方块 -> 其他方块 -> 方块实体
 
     // 分类方块
-    std::vector<ProcessedBlockInfo> normalBlocks;    // 有opaque碰撞箱的方块
-    std::vector<ProcessedBlockInfo> otherBlocks;      // 透明/变量透明度方块
+    std::vector<ProcessedBlockInfo> normalBlocks;      // 有opaque碰撞箱的方块
+    std::vector<ProcessedBlockInfo> otherBlocks;       // 透明/变量透明度方块
     std::vector<ProcessedBlockInfo> blockEntityBlocks; // 有NBT的方块
 
     for (auto& block : processedBlocks) {
@@ -578,14 +600,14 @@ bool Template::place(
             if (processedBlock.pos.x < bounds->minX() || processedBlock.pos.x > bounds->maxX() ||
                 processedBlock.pos.y < bounds->minY() || processedBlock.pos.y > bounds->maxY() ||
                 processedBlock.pos.z < bounds->minZ() || processedBlock.pos.z > bounds->maxZ()) {
-                continue;  // 跳过边界外的方块
+                continue; // 跳过边界外的方块
             }
         }
 
         // 获取方块状态
         const BlockState* state = BlockRegistry::instance().getBlockState(processedBlock.blockStateId);
         if (!state) {
-            continue;  // 跳过无效的方块状态
+            continue; // 跳过无效的方块状态
         }
 
         // 应用镜像和旋转变换到方块状态
@@ -602,7 +624,11 @@ bool Template::place(
         }
 
         // 放置方块
-        world.setBlockState(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, static_cast<i32>(flags));
+        world.setBlockState(processedBlock.pos.x,
+            processedBlock.pos.y,
+            processedBlock.pos.z,
+            transformedState,
+            static_cast<i32>(flags));
 
         // 方块实体数据由 placeInWorld 方法处理
         // 此处仅负责方块状态放置
@@ -616,11 +642,7 @@ bool Template::place(
 }
 
 bool Template::placeInWorld(
-    IWorld& world,
-    const BlockPos& pos,
-    const PlacementSettings& settings,
-    math::Random& rng,
-    u32 flags) const
+    IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags) const
 {
     // MC 1.16.5: Template.func_237146_a_
     // 选择调色板
@@ -643,8 +665,8 @@ bool Template::placeInWorld(
     processedBlocks.reserve(blocks.size());
 
     for (const auto& block : blocks) {
-        BlockPos transformedPos = transformBlockPos(
-            block.pos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+        BlockPos transformedPos =
+            transformBlockPos(block.pos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
         BlockPos worldPos = pos + transformedPos;
 
         BlockInfo blockInfo(worldPos, block.blockStateId);
@@ -737,8 +759,11 @@ bool Template::placeInWorld(
         }
 
         // 放置方块
-        bool placed = world.setBlockState(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z,
-                                          transformedState, static_cast<i32>(flags));
+        bool placed = world.setBlockState(processedBlock.pos.x,
+            processedBlock.pos.y,
+            processedBlock.pos.z,
+            transformedState,
+            static_cast<i32>(flags));
 
         if (!placed) {
             continue;
@@ -769,7 +794,9 @@ bool Template::placeInWorld(
         if (fluidState && !fluidState->isEmpty()) {
             Block& block = const_cast<Block&>(transformedState->getBlock());
             ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
-            if (liquidContainer && liquidContainer->canContainFluid(world, processedBlock.pos, *transformedState, fluidState->getFluid())) {
+            if (liquidContainer &&
+                liquidContainer->canContainFluid(
+                    world, processedBlock.pos, *transformedState, fluidState->getFluid())) {
                 liquidContainer->receiveFluid(world, processedBlock.pos, *transformedState, *fluidState);
                 // 如果不是源头，记录位置以便后续处理
                 if (!fluidState->isSource()) {
@@ -786,8 +813,7 @@ bool Template::placeInWorld(
         // 完整实现：追踪相邻流体并填充容器
         // 参考 MC 1.16.5: 使用 Direction.UP, NORTH, EAST, SOUTH, WEST 顺序查找
         static const Direction directions[] = {
-            Direction::Up, Direction::North, Direction::East, Direction::South, Direction::West
-        };
+            Direction::Up, Direction::North, Direction::East, Direction::South, Direction::West};
 
         bool changed = true;
         while (changed && !fluidUpdatePositions.empty()) {
@@ -807,7 +833,8 @@ bool Template::placeInWorld(
                     if (!adjacentFluid || adjacentFluid->isEmpty()) continue;
 
                     // 比较流体高度：更高的流体或源流体优先
-                    if (adjacentFluid->getActualHeight(world, adjacentPos) > bestFluid->getActualHeight(world, bestPos) ||
+                    if (adjacentFluid->getActualHeight(world, adjacentPos) >
+                            bestFluid->getActualHeight(world, bestPos) ||
                         (adjacentFluid->isSource() && !bestFluid->isSource())) {
                         bestFluid = adjacentFluid;
                         bestPos = adjacentPos;
@@ -820,7 +847,8 @@ bool Template::placeInWorld(
                     if (blockState) {
                         Block& block = const_cast<Block&>(blockState->getBlock());
                         ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
-                        if (liquidContainer && liquidContainer->canContainFluid(world, fluidPos, *blockState, bestFluid->getFluid())) {
+                        if (liquidContainer &&
+                            liquidContainer->canContainFluid(world, fluidPos, *blockState, bestFluid->getFluid())) {
                             liquidContainer->receiveFluid(world, fluidPos, *blockState, *bestFluid);
                             changed = true;
                             it = fluidUpdatePositions.erase(it);
@@ -839,8 +867,8 @@ bool Template::placeInWorld(
     if (!settings.ignoreEntities() && !m_entities.empty()) {
         for (const auto& entityInfo : m_entities) {
             // 变换实体位置
-            BlockPos transformedBlockPos = transformBlockPos(
-                entityInfo.blockPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+            BlockPos transformedBlockPos =
+                transformBlockPos(entityInfo.blockPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
             BlockPos entityBlockPos = pos + transformedBlockPos;
 
             // 检查边界框
@@ -861,10 +889,10 @@ bool Template::placeInWorld(
 
             // 应用镜像到精确位置
             switch (settings.getMirror()) {
-                case Mirror::LeftRight:  // Z轴镜像
+                case Mirror::LeftRight: // Z轴镜像
                     entityZ = 1.0 - entityZ;
                     break;
-                case Mirror::FrontBack:  // X轴镜像
+                case Mirror::FrontBack: // X轴镜像
                     entityX = 1.0 - entityX;
                     break;
                 default:
@@ -888,9 +916,8 @@ bool Template::placeInWorld(
                     auto entity = entityType->create(&world);
                     if (entity) {
                         // 设置位置
-                        entity->setPosition(static_cast<f32>(entityX),
-                                           static_cast<f32>(entityY),
-                                           static_cast<f32>(entityZ));
+                        entity->setPosition(
+                            static_cast<f32>(entityX), static_cast<f32>(entityY), static_cast<f32>(entityZ));
 
                         // 应用镜像和旋转到实体朝向
                         // 参考 MC 1.16.5 Entity.getMirroredYaw 和 getRotatedYaw
@@ -945,11 +972,7 @@ bool Template::placeInWorld(
     return true;
 }
 
-BlockPos Template::transformBlockPos(
-    const BlockPos& pos,
-    Mirror mirror,
-    Rotation rotation,
-    const BlockPos& center)
+BlockPos Template::transformBlockPos(const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center)
 {
     BlockPos result = pos;
 
@@ -958,10 +981,10 @@ BlockPos Template::transformBlockPos(
 
     // 应用镜像
     switch (mirror) {
-        case Mirror::LeftRight:  // Z 轴镜像（左右）
+        case Mirror::LeftRight: // Z 轴镜像（左右）
             result = BlockPos(result.x, result.y, -result.z);
             break;
-        case Mirror::FrontBack:  // X 轴镜像（前后）
+        case Mirror::FrontBack: // X 轴镜像（前后）
             result = BlockPos(-result.x, result.y, result.z);
             break;
         default:
@@ -989,10 +1012,7 @@ BlockPos Template::transformBlockPos(
     return result;
 }
 
-BlockPos Template::getTransformedPosition(
-    const BlockPos& pos,
-    Rotation rotation,
-    const BlockPos& size)
+BlockPos Template::getTransformedPosition(const BlockPos& pos, Rotation rotation, const BlockPos& size)
 {
     // 计算旋转后的位置（相对于模板中心）
     // 用于将模板内的坐标转换为世界坐标
@@ -1018,11 +1038,9 @@ BlockPos Template::getTransformedPosition(
 GravityStructureProcessor::GravityStructureProcessor(i32 heightmapType, i32 offset)
     : m_heightmapType(heightmapType)
     , m_offset(offset)
-{
-}
+{}
 
-std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1048,11 +1066,9 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(
 
 BlockIgnoreStructureProcessor::BlockIgnoreStructureProcessor(const std::vector<u32>& blocksToIgnore)
     : m_blocksToIgnore(blocksToIgnore.begin(), blocksToIgnore.end())
-{
-}
+{}
 
-std::optional<ProcessedBlockInfo> BlockIgnoreStructureProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> BlockIgnoreStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1060,19 +1076,16 @@ std::optional<ProcessedBlockInfo> BlockIgnoreStructureProcessor::process(
 {
     // 使用 unordered_set 进行 O(1) 查找
     if (m_blocksToIgnore.count(blockInfo.blockStateId) > 0) {
-        return std::nullopt;  // 跳过此方块
+        return std::nullopt; // 跳过此方块
     }
 
     // 保留方块
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
-JigsawReplacementStructureProcessor::JigsawReplacementStructureProcessor()
-{
-}
+JigsawReplacementStructureProcessor::JigsawReplacementStructureProcessor() {}
 
-std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1135,7 +1148,8 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
     return result;
 }
 
-u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string& stateStr) {
+u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string& stateStr)
+{
     // 解析方块状态字符串
     // 格式: "minecraft:stone[axis=y,facing=north]" 或 "minecraft:stone"
 
@@ -1158,7 +1172,8 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
         size_t start = 0;
         size_t end = propsStr.find(',');
         while (start < propsStr.size()) {
-            std::string prop = (end == std::string::npos) ? propsStr.substr(start) : propsStr.substr(start, end - start);
+            std::string prop =
+                (end == std::string::npos) ? propsStr.substr(start) : propsStr.substr(start, end - start);
             size_t eqPos = prop.find('=');
             if (eqPos != std::string::npos) {
                 std::string key = prop.substr(0, eqPos);
@@ -1223,11 +1238,9 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
 
 IntegrityProcessor::IntegrityProcessor(f32 integrity)
     : m_integrity(integrity)
-{
-}
+{}
 
-std::optional<ProcessedBlockInfo> IntegrityProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> IntegrityProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1265,11 +1278,9 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(
 
 RuleStructureProcessor::RuleStructureProcessor(std::vector<std::unique_ptr<RuleEntry>> rules)
     : m_rules(std::move(rules))
-{
-}
+{}
 
-std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
-    const BlockPos& seedPos,
+std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(const BlockPos& seedPos,
     const BlockPos& /*pos*/,
     const BlockInfo& rawBlockInfo,
     const BlockInfo& blockInfo,
@@ -1292,14 +1303,7 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
     }
 
     for (const auto& rule : m_rules) {
-        if (rule && rule->matches(
-            inputState,
-            locationState,
-            rawBlockInfo.pos,
-            blockInfo.pos,
-            seedPos,
-            rng))
-        {
+        if (rule && rule->matches(inputState, locationState, rawBlockInfo.pos, blockInfo.pos, seedPos, rng)) {
             // 找到匹配的规则，返回输出方块状态
             ProcessedBlockInfo result;
             result.pos = blockInfo.pos;
@@ -1317,8 +1321,7 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
 // NopStructureProcessor
 // ============================================================================
 
-std::optional<ProcessedBlockInfo> NopStructureProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> NopStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1332,8 +1335,7 @@ std::optional<ProcessedBlockInfo> NopStructureProcessor::process(
 // LavaSubmergingProcessor
 // ============================================================================
 
-std::optional<ProcessedBlockInfo> LavaSubmergingProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> LavaSubmergingProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1381,7 +1383,7 @@ std::optional<ProcessedBlockInfo> LavaSubmergingProcessor::process(
     ProcessedBlockInfo result;
     result.pos = blockInfo.pos;
     // 使用静止岩浆 (ID = 11)
-    result.blockStateId = 11;  // lava
+    result.blockStateId = 11; // lava
     return result;
 }
 
@@ -1391,11 +1393,9 @@ std::optional<ProcessedBlockInfo> LavaSubmergingProcessor::process(
 
 BlockAgeProcessor::BlockAgeProcessor(f32 mossiness)
     : m_mossiness(mossiness)
-{
-}
+{}
 
-std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
-    const BlockPos& seedPos,
+std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& seedPos,
     const BlockPos& pos,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1417,7 +1417,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
 
     ProcessedBlockInfo result;
     result.pos = blockInfo.pos;
-    result.blockStateId = blockInfo.blockStateId;  // 默认保持原样
+    result.blockStateId = blockInfo.blockStateId; // 默认保持原样
 
     // MC 1.16.5: 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
     if (VanillaBlocks::OBSIDIAN && &block == VanillaBlocks::OBSIDIAN) {
@@ -1432,8 +1432,8 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
 
     // MC 1.16.5: 石砖类方块处理（石砖、石头、錾刻石砖）
     bool isStoneBrickType = (VanillaBlocks::STONE_BRICKS && &block == VanillaBlocks::STONE_BRICKS) ||
-                            (VanillaBlocks::STONE && &block == VanillaBlocks::STONE) ||
-                            (VanillaBlocks::CHISELED_STONE_BRICKS && &block == VanillaBlocks::CHISELED_STONE_BRICKS);
+        (VanillaBlocks::STONE && &block == VanillaBlocks::STONE) ||
+        (VanillaBlocks::CHISELED_STONE_BRICKS && &block == VanillaBlocks::CHISELED_STONE_BRICKS);
 
     if (isStoneBrickType) {
         // 50% 概率不替换
@@ -1537,7 +1537,7 @@ BlackstoneReplacementProcessor::BlackstoneReplacementProcessor()
         if (block) {
             return block->blockId();
         }
-        return 0;  // 空气/未找到
+        return 0; // 空气/未找到
     };
 
     // 基础方块替换映射
@@ -1660,8 +1660,7 @@ BlackstoneReplacementProcessor::BlackstoneReplacementProcessor()
     }
 }
 
-std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(
-    const BlockPos& /*seedPos*/,
+std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
@@ -1736,8 +1735,8 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(
                             auto sourceFacingValueIt = targetState->values().find(targetFacingProp);
                             bool facingMatches = (targetFacingProp == nullptr) ||
                                 (targetFacingValueIt != candidate->values().end() &&
-                                 sourceFacingValueIt != targetState->values().end() &&
-                                 targetFacingValueIt->second == sourceFacingValueIt->second);
+                                    sourceFacingValueIt != targetState->values().end() &&
+                                    targetFacingValueIt->second == sourceFacingValueIt->second);
                             if (!facingMatches) continue;
 
                             auto targetValueIt = candidate->values().find(targetHalfProp);
@@ -1789,12 +1788,12 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
-void StructureProcessorList::addProcessor(std::unique_ptr<StructureProcessor> processor) {
+void StructureProcessorList::addProcessor(std::unique_ptr<StructureProcessor> processor)
+{
     m_processors.push_back(std::move(processor));
 }
 
-std::optional<ProcessedBlockInfo> StructureProcessorList::process(
-    const BlockPos& seedPos,
+std::optional<ProcessedBlockInfo> StructureProcessorList::process(const BlockPos& seedPos,
     const BlockPos& pos,
     const BlockInfo& rawBlockInfo,
     const BlockInfo& blockInfo,
@@ -1834,7 +1833,8 @@ namespace ProcessorLists {
 
 static std::unique_ptr<StructureProcessorList> s_emptyList;
 
-const StructureProcessorList& empty() {
+const StructureProcessorList& empty()
+{
     if (!s_emptyList) {
         s_emptyList = std::make_unique<StructureProcessorList>();
     }

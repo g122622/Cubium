@@ -11,8 +11,7 @@ namespace mc::world::storage {
 SaveManager::SaveManager(WorldStorageService& storage)
     : m_storage(storage)
     , m_autoSave(std::make_unique<AutoSave>(storage))
-{
-}
+{}
 
 SaveManager::~SaveManager()
 {
@@ -50,8 +49,7 @@ void SaveManager::shutdown()
     // 保存所有缓存数据，确保关服前完整落盘。
     auto result = saveAll();
     if (result.failed()) {
-        spdlog::error("Failed to save data during shutdown: {}",
-                      result.error().message());
+        spdlog::error("Failed to save data during shutdown: {}", result.error().message());
     }
 
     m_initialized = false;

@@ -1,62 +1,67 @@
 #include "TurtleEggBlock.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../gamerule/GameRules.hpp"
 #include "../../../lighting/InternalLightUtils.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../core/Types.hpp"
 
 namespace mc {
 namespace blocks {
 
 TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::EGGS_1_4())
-        .add(BlockStateProperties::HATCH_0_2())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::EGGS_1_4())
+                         .add(BlockStateProperties::HATCH_0_2())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::EGGS_1_4(), 1)
-        .with(BlockStateProperties::HATCH_0_2(), 0));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::EGGS_1_4(), 1).with(BlockStateProperties::HATCH_0_2(), 0));
 
     // 创建各蛋数量的形状 (MC 1.16.5: box(3, 0, 3, 12, 7, 12) for 1 egg, box(1, 0, 1, 15, 7, 15) for 4)
     // 1个蛋: 3/16=0.1875, 12/16=0.75, 7/16=0.4375
     // MC实际形状: 1 egg: (3, 0, 3, 12, 7, 12), 2 eggs: (1, 0, 3, 15, 7, 12), etc
-    m_shapesByEggCount[0] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.75f, 0.4375f, 0.75f);   // 1 egg
-    m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.1875f, 0.9375f, 0.4375f, 0.75f); // 2 eggs
+    m_shapesByEggCount[0] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.75f, 0.4375f, 0.75f);     // 1 egg
+    m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.1875f, 0.9375f, 0.4375f, 0.75f);   // 2 eggs
     m_shapesByEggCount[2] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 3 eggs
     m_shapesByEggCount[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 4 eggs
 }
 
-i32 TurtleEggBlock::getEggs(const BlockState& state) const {
+i32 TurtleEggBlock::getEggs(const BlockState& state) const
+{
     return state.get(BlockStateProperties::EGGS_1_4());
 }
 
-BlockState TurtleEggBlock::withEggs(i32 count) const {
+BlockState TurtleEggBlock::withEggs(i32 count) const
+{
     return defaultState().with(BlockStateProperties::EGGS_1_4(), std::clamp(count, 1, 4));
 }
 
-i32 TurtleEggBlock::getHatch(const BlockState& state) const {
+i32 TurtleEggBlock::getHatch(const BlockState& state) const
+{
     return state.get(BlockStateProperties::HATCH_0_2());
 }
 
-BlockState TurtleEggBlock::withHatch(i32 hatch) const {
+BlockState TurtleEggBlock::withHatch(i32 hatch) const
+{
     return defaultState().with(BlockStateProperties::HATCH_0_2(), std::clamp(hatch, 0, 2));
 }
 
-BlockState TurtleEggBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState TurtleEggBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
@@ -73,10 +78,8 @@ BlockState TurtleEggBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState();
 }
 
-bool TurtleEggBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool TurtleEggBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -92,7 +95,8 @@ bool TurtleEggBlock::isValidPosition(
     return BlockTags::SAND().contains(*belowState);
 }
 
-bool TurtleEggBlock::canGrow(IWorld& world, math::IRandom& random) const {
+bool TurtleEggBlock::canGrow(IWorld& world, math::IRandom& random) const
+{
     // MC 1.16.5 TurtleEggBlock.canGrow():
     // float f = world.func_242415_f(1.0F);  // getCelestialAngle
     // if ((double)f < 0.69D && (double)f > 0.65D) {
@@ -120,7 +124,8 @@ bool TurtleEggBlock::canGrow(IWorld& world, math::IRandom& random) const {
     }
 }
 
-void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // MC 1.16.5: 孵化逻辑
     // 检查是否在沙子上
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
@@ -138,13 +143,11 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         // 孵化进度增加
         // MC 1.16.5: 播放裂开音效
         if (!world.isClientSide()) {
-            world.playSound(
-                SoundEvents::ENTITY_TURTLE_EGG_CRACK,
+            world.playSound(SoundEvents::ENTITY_TURTLE_EGG_CRACK,
                 sound::SoundCategory::Blocks,
                 pos.center(),
                 0.7f,
-                0.9f + random.nextFloat() * 0.2f
-            );
+                0.9f + random.nextFloat() * 0.2f);
         }
         const BlockState& newState = state.with(BlockStateProperties::HATCH_0_2(), hatch + 1);
         world.setBlockState(pos, &newState, 2);
@@ -152,13 +155,11 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         // 孵化完成，生成海龟
         // MC 1.16.5: 播放孵化音效
         if (!world.isClientSide()) {
-            world.playSound(
-                SoundEvents::ENTITY_TURTLE_EGG_HATCH,
+            world.playSound(SoundEvents::ENTITY_TURTLE_EGG_HATCH,
                 sound::SoundCategory::Blocks,
                 pos.center(),
                 0.7f,
-                0.9f + random.nextFloat() * 0.2f
-            );
+                0.9f + random.nextFloat() * 0.2f);
         }
         i32 eggs = getEggs(state);
 
@@ -193,11 +194,9 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
                 // 设置位置：多个蛋时错开位置
                 // x = pos.x + 0.3 + i * 0.2
                 // z = pos.z + 0.3
-                turtle->setPosition(
-                    static_cast<f32>(pos.x) + 0.3f + static_cast<f32>(i) * 0.2f,
+                turtle->setPosition(static_cast<f32>(pos.x) + 0.3f + static_cast<f32>(i) * 0.2f,
                     static_cast<f32>(pos.y),
-                    static_cast<f32>(pos.z) + 0.3f
-                );
+                    static_cast<f32>(pos.z) + 0.3f);
                 turtle->setRotation(0.0f, 0.0f);
 
                 // 生成到世界
@@ -207,17 +206,15 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     }
 }
 
-void TurtleEggBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const {
+void TurtleEggBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
     // MC 1.16.5: 实体走过时尝试踩破蛋
     tryTrample(world, pos, state, entity, 100);
 }
 
 void TurtleEggBlock::onFallenUpon(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    Entity& entity,
-    f32 fallDistance) {
+    IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
+{
 
     // MC 1.16.5: 实体摔落时尝试踩破蛋
     // 僵尸类生物不会踩破蛋（它们会直接走过去）
@@ -232,14 +229,16 @@ void TurtleEggBlock::onFallenUpon(
     tryTrample(world, pos, state, entity, 3);
 }
 
-bool TurtleEggBlock::hasProperHabitat(IBlockReader& world, const BlockPos& pos) const {
+bool TurtleEggBlock::hasProperHabitat(IBlockReader& world, const BlockPos& pos) const
+{
     // MC 1.16.5: 检查下方是否为沙子
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
     return belowState != nullptr && BlockTags::SAND().contains(*belowState);
 }
 
-bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const {
+bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const
+{
     // MC 1.16.5: 只有玩家或满足 mobGriefing 的生物才能踩破蛋
     // 海龟和蝙蝠不能踩破蛋
 
@@ -248,7 +247,8 @@ bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const {
     //     if (!(trampler instanceof LivingEntity)) {
     //         return false;
     //     } else {
-    //         return trampler instanceof PlayerEntity || net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(worldIn, trampler);
+    //         return trampler instanceof PlayerEntity ||
+    //         net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(worldIn, trampler);
     //     }
     // } else {
     //     return false;
@@ -280,7 +280,9 @@ bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const {
     return world.getGameRules().getBoolean(mc::world::gamerule::GameRuleKeys::MOB_GRIEFING);
 }
 
-void TurtleEggBlock::tryTrample(IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, i32 chance) const {
+void TurtleEggBlock::tryTrample(
+    IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, i32 chance) const
+{
     // MC 1.16.5: 尝试踩破蛋
     if (!canTrample(world, entity)) {
         return;
@@ -295,25 +297,23 @@ void TurtleEggBlock::tryTrample(IWorld& world, const BlockPos& pos, const BlockS
     removeOneEgg(world, pos, state);
 }
 
-void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // MC 1.16.5: 移除一个蛋
     // 播放破碎音效
     if (!world.isClientSide()) {
-        world.playSound(
-            SoundEvents::ENTITY_TURTLE_EGG_BREAK,
+        world.playSound(SoundEvents::ENTITY_TURTLE_EGG_BREAK,
             sound::SoundCategory::Blocks,
             pos.center(),
             0.7f,
-            0.9f + world.getRandom().nextFloat() * 0.2f
-        );
+            0.9f + world.getRandom().nextFloat() * 0.2f);
     }
 
     i32 eggs = getEggs(state);
     if (eggs > 1) {
         // 减少蛋数量，重置孵化进度
-        const BlockState& newState = state
-            .with(BlockStateProperties::EGGS_1_4(), eggs - 1)
-            .with(BlockStateProperties::HATCH_0_2(), 0);
+        const BlockState& newState =
+            state.with(BlockStateProperties::EGGS_1_4(), eggs - 1).with(BlockStateProperties::HATCH_0_2(), 0);
         world.setBlockState(pos, &newState, 2);
     } else {
         // 移除方块
@@ -324,7 +324,8 @@ void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const Bloc
     }
 }
 
-bool TurtleEggBlock::isZombieType(Entity& entity) const {
+bool TurtleEggBlock::isZombieType(Entity& entity) const
+{
     // MC 1.16.5: 检查实体是否为僵尸类
     // 使用 instanceof ZombieEntity 检查，由于 ZombieEntity 是基类，
     // HuskEntity、DrownedEntity 等是子类
@@ -346,7 +347,8 @@ bool TurtleEggBlock::isZombieType(Entity& entity) const {
     }
 }
 
-const CollisionShape& TurtleEggBlock::getShape(const BlockState& state) const {
+const CollisionShape& TurtleEggBlock::getShape(const BlockState& state) const
+{
     i32 eggs = getEggs(state);
     return m_shapesByEggCount[static_cast<std::size_t>(std::min(eggs - 1, 3))];
 }

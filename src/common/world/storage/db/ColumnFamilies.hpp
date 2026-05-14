@@ -54,8 +54,7 @@ constexpr const char* SCOREBOARD = "scoreboard";
 // ============================================================================
 
 /// 所有列族名称
-inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {
-    META,
+inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {META,
     SECTIONS_OVERWORLD,
     SECTIONS_NETHER,
     SECTIONS_THE_END,
@@ -67,8 +66,7 @@ inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {
     POI_THE_END,
     SNAPSHOTS,
     PLAYERS,
-    SCOREBOARD
-};
+    SCOREBOARD};
 
 // ============================================================================
 // 工具函数
@@ -79,13 +77,18 @@ inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {
  * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
-inline const char* getSectionCF(DimensionId dim) {
+inline const char* getSectionCF(DimensionId dim)
+{
     // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
-        case 0: return SECTIONS_OVERWORLD;
-        case -1: return SECTIONS_NETHER;
-        case 1: return SECTIONS_THE_END;
-        default: return SECTIONS_OVERWORLD;
+        case 0:
+            return SECTIONS_OVERWORLD;
+        case -1:
+            return SECTIONS_NETHER;
+        case 1:
+            return SECTIONS_THE_END;
+        default:
+            return SECTIONS_OVERWORLD;
     }
 }
 
@@ -94,13 +97,18 @@ inline const char* getSectionCF(DimensionId dim) {
  * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
-inline const char* getEntityCF(DimensionId dim) {
+inline const char* getEntityCF(DimensionId dim)
+{
     // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
-        case 0: return ENTITIES_OVERWORLD;
-        case -1: return ENTITIES_NETHER;
-        case 1: return ENTITIES_THE_END;
-        default: return ENTITIES_OVERWORLD;
+        case 0:
+            return ENTITIES_OVERWORLD;
+        case -1:
+            return ENTITIES_NETHER;
+        case 1:
+            return ENTITIES_THE_END;
+        default:
+            return ENTITIES_OVERWORLD;
     }
 }
 
@@ -109,13 +117,18 @@ inline const char* getEntityCF(DimensionId dim) {
  * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
-inline const char* getPoiCF(DimensionId dim) {
+inline const char* getPoiCF(DimensionId dim)
+{
     // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
-        case 0: return POI_OVERWORLD;
-        case -1: return POI_NETHER;
-        case 1: return POI_THE_END;
-        default: return POI_OVERWORLD;
+        case 0:
+            return POI_OVERWORLD;
+        case -1:
+            return POI_NETHER;
+        case 1:
+            return POI_THE_END;
+        default:
+            return POI_OVERWORLD;
     }
 }
 

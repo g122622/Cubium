@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -42,9 +42,7 @@ struct GrassFeatureConfig : public IFeatureConfig {
     /**
      * @brief 添加方块状态
      */
-    void addState(const BlockState* state) {
-        states.push_back(state);
-    }
+    void addState(const BlockState* state) { states.push_back(state); }
 
     /**
      * @brief 获取随机方块状态
@@ -68,20 +66,13 @@ public:
      * @param config 草丛配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const GrassFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const GrassFeatureConfig& config);
 
 private:
     /**
      * @brief 检查草丛是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        const GrassFeatureConfig& config) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const GrassFeatureConfig& config) const;
 
     /**
      * @brief 检查下方方块是否支持草丛生长
@@ -94,12 +85,9 @@ private:
  */
 class ConfiguredGrassFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredGrassFeature(
-        std::unique_ptr<GrassFeatureConfig> config,
-        const char* featureName);
+    ConfiguredGrassFeature(std::unique_ptr<GrassFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

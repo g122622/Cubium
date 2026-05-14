@@ -32,10 +32,7 @@ public:
      * @param attackSpeed 攻击速度修正（通常为 -2.8）
      * @param properties 物品属性
      */
-    PickaxeItem(const tier::IItemTier& tier,
-                i32 attackDamage,
-                f32 attackSpeed,
-                ItemProperties properties);
+    PickaxeItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties);
 
     ~PickaxeItem() override = default;
 
@@ -60,8 +57,7 @@ public:
      * @param state 目标方块状态
      * @return 挖掘速度倍率
      */
-    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
-                                        const BlockState& state) const override;
+    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
 
 protected:
     /**

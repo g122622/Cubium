@@ -1,8 +1,8 @@
 #pragma once
 
-#include "TieredItem.hpp"
 #include "../../../world/block/Material.hpp"
 #include "../../attribute/ItemAttributeModifiers.hpp"
+#include "TieredItem.hpp"
 
 namespace mc {
 
@@ -38,10 +38,7 @@ public:
      * @param attackSpeed 攻击速度修正（通常为 -2.4）
      * @param properties 物品属性
      */
-    SwordItem(const tier::IItemTier& tier,
-              i32 attackDamage,
-              f32 attackSpeed,
-              ItemProperties properties);
+    SwordItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties);
 
     ~SwordItem() override = default;
 
@@ -54,8 +51,7 @@ public:
      * @param state 目标方块状态
      * @return 挖掘速度倍率
      */
-    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
-                                        const BlockState& state) const override;
+    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
 
     /**
      * @brief 检查是否能采集方块
@@ -77,9 +73,7 @@ public:
      * @param attacker 攻击者实体
      * @return 是否成功
      */
-    bool hitEntity(ItemStack& stack,
-                   LivingEntity& target,
-                   LivingEntity& attacker) override;
+    bool hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker) override;
 
     /**
      * @brief 破坏方块时调用
@@ -93,11 +87,8 @@ public:
      * @param entity 破坏者实体
      * @return 是否成功
      */
-    bool onBlockDestroyed(ItemStack& stack,
-                          IWorld& world,
-                          const BlockState& state,
-                          const BlockPos& pos,
-                          LivingEntity& entity) override;
+    bool onBlockDestroyed(
+        ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& entity) override;
 
     /**
      * @brief 获取总攻击伤害
@@ -124,8 +115,7 @@ public:
      * @param equipmentSlot 装备槽位
      * @return 属性修饰符
      */
-    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(
-        i32 equipmentSlot) const override;
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
 
 private:
     f32 m_attackDamage;

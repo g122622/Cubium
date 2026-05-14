@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
+#include "../Goal.hpp"
 #include <functional>
 
 namespace mc {
@@ -73,14 +73,14 @@ protected:
 
     MobEntity* m_mob;
     LivingEntity* m_lookTarget = nullptr;
-    EntityFilter m_filter;       // 实体过滤函数
+    EntityFilter m_filter; // 实体过滤函数
     f32 m_maxDistance;
     f32 m_chance;
     i32 m_lookTime = 0;
 
-    static constexpr i32 LOOK_AT_MIN_TIME = 40;  // 2秒
-    static constexpr i32 LOOK_AT_MAX_TIME = 80;  // 4秒
-    static constexpr f32 DEFAULT_LOOK_CHANCE = 0.02f;  // 2%
+    static constexpr i32 LOOK_AT_MIN_TIME = 40;       // 2秒
+    static constexpr i32 LOOK_AT_MAX_TIME = 80;       // 4秒
+    static constexpr f32 DEFAULT_LOOK_CHANCE = 0.02f; // 2%
 };
 
 /**
@@ -108,13 +108,13 @@ public:
 
 private:
     MobEntity* m_mob;
-    f64 m_lookX = 0.0;   // MC 1.16.5: 方向向量的 X 分量 (cos(angle))
-    f64 m_lookZ = 0.0;   // MC 1.16.5: 方向向量的 Z 分量 (sin(angle))
-    i32 m_idleTime = 0;  // MC 1.16.5: idleTime
+    f64 m_lookX = 0.0;  // MC 1.16.5: 方向向量的 X 分量 (cos(angle))
+    f64 m_lookZ = 0.0;  // MC 1.16.5: 方向向量的 Z 分量 (sin(angle))
+    i32 m_idleTime = 0; // MC 1.16.5: idleTime
 
-    static constexpr f32 RANDOM_LOOK_CHANCE = 0.02f;  // 2%
-    static constexpr i32 RANDOM_LOOK_MIN_TIME = 20;   // 1秒
-    static constexpr i32 RANDOM_LOOK_MAX_TIME = 40;   // 2秒
+    static constexpr f32 RANDOM_LOOK_CHANCE = 0.02f; // 2%
+    static constexpr i32 RANDOM_LOOK_MIN_TIME = 20;  // 1秒
+    static constexpr i32 RANDOM_LOOK_MAX_TIME = 40;  // 2秒
 };
 
 } // namespace entity::ai::goal

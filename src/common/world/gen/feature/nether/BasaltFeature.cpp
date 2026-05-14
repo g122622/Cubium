@@ -1,8 +1,8 @@
 #include "BasaltFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -12,10 +12,7 @@ namespace mc {
 // ============================================================================
 
 bool BasaltColumnFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const BasaltColumnFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltColumnFeatureConfig& config)
 {
     // 检查起始位置是否在地面上
     if (!canPlaceAt(world, pos)) {
@@ -59,10 +56,7 @@ bool BasaltColumnFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos)
     return false;
 }
 
-i32 BasaltColumnFeature::getColumnHeight(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    i32 minH, i32 maxH) const
+i32 BasaltColumnFeature::getColumnHeight(WorldGenRegion& world, const BlockPos& pos, i32 minH, i32 maxH) const
 {
     // 计算到天花板的距离
     i32 spaceAbove = 0;
@@ -84,19 +78,13 @@ i32 BasaltColumnFeature::getColumnHeight(
 // ============================================================================
 
 ConfiguredBasaltColumnFeature::ConfiguredBasaltColumnFeature(
-    std::unique_ptr<BasaltColumnFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<BasaltColumnFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredBasaltColumnFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -109,38 +97,39 @@ bool ConfiguredBasaltColumnFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::s_features;
 
-void BasaltColumnFeatures::initialize() {
+void BasaltColumnFeatures::initialize()
+{
     if (!s_features.empty()) return;
 
     s_features.push_back(createNormal());
     s_features.push_back(createLarge());
 }
 
-const std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>>& BasaltColumnFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>>& BasaltColumnFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::getAllFeaturesAndClear()
+{
     auto result = std::move(s_features);
     s_features.clear();
     return result;
 }
 
-std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createNormal() {
-    auto config = std::make_unique<BasaltColumnFeatureConfig>(
-        0,   // minHeight
-        5,   // maxHeight
-        false
-    );
+std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createNormal()
+{
+    auto config = std::make_unique<BasaltColumnFeatureConfig>(0, // minHeight
+        5,                                                       // maxHeight
+        false);
     return std::make_unique<ConfiguredBasaltColumnFeature>(std::move(config), "basalt_column");
 }
 
-std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createLarge() {
-    auto config = std::make_unique<BasaltColumnFeatureConfig>(
-        3,   // minHeight
-        10,  // maxHeight
-        true
-    );
+std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createLarge()
+{
+    auto config = std::make_unique<BasaltColumnFeatureConfig>(3, // minHeight
+        10,                                                      // maxHeight
+        true);
     return std::make_unique<ConfiguredBasaltColumnFeature>(std::move(config), "basalt_column_large");
 }
 
@@ -149,10 +138,7 @@ std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createLarge
 // ============================================================================
 
 bool BasaltDeltaFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const BasaltDeltaFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltDeltaFeatureConfig& config)
 {
     // 获取方块状态
     const BlockState* basalt = VanillaBlocks::getState(VanillaBlocks::BASALT);
@@ -216,19 +202,13 @@ bool BasaltDeltaFeature::place(
 // ============================================================================
 
 ConfiguredBasaltDeltaFeature::ConfiguredBasaltDeltaFeature(
-    std::unique_ptr<BasaltDeltaFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<BasaltDeltaFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredBasaltDeltaFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -241,26 +221,29 @@ bool ConfiguredBasaltDeltaFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> BasaltDeltaFeatures::s_features;
 
-void BasaltDeltaFeatures::initialize() {
+void BasaltDeltaFeatures::initialize()
+{
     if (!s_features.empty()) return;
     s_features.push_back(createNormal());
 }
 
-const std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>>& BasaltDeltaFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>>& BasaltDeltaFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> BasaltDeltaFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> BasaltDeltaFeatures::getAllFeaturesAndClear()
+{
     auto result = std::move(s_features);
     s_features.clear();
     return result;
 }
 
-std::unique_ptr<ConfiguredBasaltDeltaFeature> BasaltDeltaFeatures::createNormal() {
-    auto config = std::make_unique<BasaltDeltaFeatureConfig>(
-        8,    // size
-        0.2f, // magmaChance
-        true  // useBasalt
+std::unique_ptr<ConfiguredBasaltDeltaFeature> BasaltDeltaFeatures::createNormal()
+{
+    auto config = std::make_unique<BasaltDeltaFeatureConfig>(8, // size
+        0.2f,                                                   // magmaChance
+        true                                                    // useBasalt
     );
     return std::make_unique<ConfiguredBasaltDeltaFeature>(std::move(config), "basalt_delta");
 }

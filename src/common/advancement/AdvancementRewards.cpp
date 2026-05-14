@@ -2,7 +2,8 @@
 
 namespace mc::advancement {
 
-Result<AdvancementRewards> AdvancementRewards::fromJson(const nlohmann::json& json) {
+Result<AdvancementRewards> AdvancementRewards::fromJson(const nlohmann::json& json)
+{
     if (!json.is_object()) {
         return Error(ErrorCode::ResourceParseError, "Rewards must be a JSON object");
     }
@@ -42,7 +43,8 @@ Result<AdvancementRewards> AdvancementRewards::fromJson(const nlohmann::json& js
     return AdvancementRewards(experience, std::move(loot), std::move(recipes), std::move(function));
 }
 
-nlohmann::json AdvancementRewards::toJson() const {
+nlohmann::json AdvancementRewards::toJson() const
+{
     if (isEmpty()) {
         return nullptr;
     }

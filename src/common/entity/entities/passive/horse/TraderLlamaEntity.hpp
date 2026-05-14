@@ -22,8 +22,7 @@ public:
      */
     TraderLlamaEntity(LegacyEntityType type, EntityId id)
         : LlamaEntity(type, id)
-    {
-    }
+    {}
 
     ~TraderLlamaEntity() override = default;
 
@@ -58,10 +57,7 @@ public:
     /**
      * @brief 以流浪商人倒计时同步自身倒计时
      */
-    void syncDespawnDelayFromTrader(i32 traderDespawnDelay)
-    {
-        m_despawnDelay = traderDespawnDelay - 1;
-    }
+    void syncDespawnDelayFromTrader(i32 traderDespawnDelay) { m_despawnDelay = traderDespawnDelay - 1; }
 
     /**
      * @brief 当前是否允许自然消失
@@ -69,10 +65,7 @@ public:
      * 先补最小语义：被驯服或被骑乘时不消失。
      * 拴绳和 trader 关联逻辑后续补齐。
      */
-    [[nodiscard]] bool canDespawn() const
-    {
-        return !isTame() && !isBeingRidden();
-    }
+    [[nodiscard]] bool canDespawn() const { return !isTame() && !isBeingRidden(); }
 
     void tick() override
     {

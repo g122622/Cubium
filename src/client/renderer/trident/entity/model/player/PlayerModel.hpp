@@ -10,8 +10,8 @@ namespace mc::client::renderer::entity::model::player {
  * 参考 MC 1.16.5 HandSide
  */
 enum class HandSide {
-    Right = 0,  // 右手
-    Left = 1    // 左手
+    Right = 0, // 右手
+    Left = 1   // 左手
 };
 
 /**
@@ -47,9 +47,8 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     // ========== 手臂姿态 ==========
 
@@ -135,25 +134,25 @@ private:
     void updateCapePosition(bool wearingChestplate, bool crouching);
 
     // 外观层部件
-    std::shared_ptr<model::ModelRenderer> m_leftArmwear;   // 左袖外层
-    std::shared_ptr<model::ModelRenderer> m_rightArmwear;  // 右袖外层
-    std::shared_ptr<model::ModelRenderer> m_leftLegwear;   // 左裤腿外层
-    std::shared_ptr<model::ModelRenderer> m_rightLegwear;  // 右裤腿外层
-    std::shared_ptr<model::ModelRenderer> m_bodywear;      // 外套外层
+    std::shared_ptr<model::ModelRenderer> m_leftArmwear;  // 左袖外层
+    std::shared_ptr<model::ModelRenderer> m_rightArmwear; // 右袖外层
+    std::shared_ptr<model::ModelRenderer> m_leftLegwear;  // 左裤腿外层
+    std::shared_ptr<model::ModelRenderer> m_rightLegwear; // 右裤腿外层
+    std::shared_ptr<model::ModelRenderer> m_bodywear;     // 外套外层
 
     // 斗篷和耳朵
-    std::shared_ptr<model::ModelRenderer> m_cape;          // 斗篷
-    std::shared_ptr<model::ModelRenderer> m_ears;          // 耳朵（Deadmau5）
+    std::shared_ptr<model::ModelRenderer> m_cape; // 斗篷
+    std::shared_ptr<model::ModelRenderer> m_ears; // 耳朵（Deadmau5）
 
     // 手臂姿态
     ArmPose m_leftArmPose = ArmPose::Empty;
     ArmPose m_rightArmPose = ArmPose::Empty;
 
     // 状态
-    bool m_slimArms = false;    // 纤细手臂
-    bool m_crouching = false;   // 蹲伏
-    bool m_swimming = false;    // 游泳
-    bool m_sprinting = false;   // 疾跑
+    bool m_slimArms = false;  // 纤细手臂
+    bool m_crouching = false; // 蹲伏
+    bool m_swimming = false;  // 游泳
+    bool m_sprinting = false; // 疾跑
 };
 
 } // namespace mc::client::renderer::entity::model::player

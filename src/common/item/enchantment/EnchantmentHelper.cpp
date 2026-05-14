@@ -1,10 +1,10 @@
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
-#include "common/item/core/Item.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <algorithm>
 
@@ -16,39 +16,45 @@ namespace enchant {
 // EnchantmentHelper 实现
 // ============================================================================
 
-i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const std::string& enchantmentId) {
+i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const std::string& enchantmentId)
+{
     if (stack.isEmpty()) {
         return 0;
     }
     return stack.getEnchantmentLevel(enchantmentId);
 }
 
-i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const Enchantment* enchantment) {
+i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const Enchantment* enchantment)
+{
     if (!enchantment || stack.isEmpty()) {
         return 0;
     }
     return getEnchantmentLevel(stack, enchantment->id());
 }
 
-bool EnchantmentHelper::hasEnchantment(const ItemStack& stack, const std::string& enchantmentId) {
+bool EnchantmentHelper::hasEnchantment(const ItemStack& stack, const std::string& enchantmentId)
+{
     return getEnchantmentLevel(stack, enchantmentId) > 0;
 }
 
-bool EnchantmentHelper::hasEnchantmentType(const ItemStack& stack, EnchantmentType type) {
+bool EnchantmentHelper::hasEnchantmentType(const ItemStack& stack, EnchantmentType type)
+{
     if (stack.isEmpty()) {
         return false;
     }
     return stack.getEnchantments().hasType(type);
 }
 
-bool EnchantmentHelper::hasEnchantments(const ItemStack& stack) {
+bool EnchantmentHelper::hasEnchantments(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
     return stack.hasEnchantments();
 }
 
-std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getEnchantments(const ItemStack& stack) {
+std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getEnchantments(const ItemStack& stack)
+{
     std::vector<std::pair<const Enchantment*, i32>> result;
 
     if (stack.isEmpty()) {
@@ -68,7 +74,9 @@ std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getEnchantmen
     return result;
 }
 
-void EnchantmentHelper::setEnchantments(const std::vector<std::pair<const Enchantment*, i32>>& enchantments, ItemStack& stack) {
+void EnchantmentHelper::setEnchantments(
+    const std::vector<std::pair<const Enchantment*, i32>>& enchantments, ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return;
     }
@@ -86,79 +94,98 @@ void EnchantmentHelper::setEnchantments(const std::vector<std::pair<const Enchan
 
 // ========== 特定附魔便捷方法 ==========
 
-bool EnchantmentHelper::hasSilkTouch(const ItemStack& stack) {
+bool EnchantmentHelper::hasSilkTouch(const ItemStack& stack)
+{
     return hasEnchantment(stack, "minecraft:silk_touch");
 }
 
-i32 EnchantmentHelper::getFortuneLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getFortuneLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:fortune");
 }
 
-i32 EnchantmentHelper::getSharpnessLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getSharpnessLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:sharpness");
 }
 
-i32 EnchantmentHelper::getUnbreakingLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getUnbreakingLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:unbreaking");
 }
 
-i32 EnchantmentHelper::getKnockbackLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getKnockbackLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:knockback");
 }
 
-i32 EnchantmentHelper::getFireAspectLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getFireAspectLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:fire_aspect");
 }
 
-i32 EnchantmentHelper::getLootingLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getLootingLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:looting");
 }
 
-i32 EnchantmentHelper::getEfficiencyLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getEfficiencyLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:efficiency");
 }
 
-i32 EnchantmentHelper::getRespirationLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getRespirationLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:respiration");
 }
 
-i32 EnchantmentHelper::getDepthStriderLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getDepthStriderLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:depth_strider");
 }
 
-bool EnchantmentHelper::hasAquaAffinity(const ItemStack& stack) {
+bool EnchantmentHelper::hasAquaAffinity(const ItemStack& stack)
+{
     return hasEnchantment(stack, "minecraft:aqua_affinity");
 }
 
-bool EnchantmentHelper::hasFrostWalker(const ItemStack& stack) {
+bool EnchantmentHelper::hasFrostWalker(const ItemStack& stack)
+{
     return hasEnchantment(stack, "minecraft:frost_walker");
 }
 
-bool EnchantmentHelper::hasSoulSpeed(const ItemStack& stack) {
+bool EnchantmentHelper::hasSoulSpeed(const ItemStack& stack)
+{
     return hasEnchantment(stack, "minecraft:soul_speed");
 }
 
-bool EnchantmentHelper::hasBindingCurse(const ItemStack& stack) {
+bool EnchantmentHelper::hasBindingCurse(const ItemStack& stack)
+{
     return hasEnchantment(stack, "minecraft:binding_curse");
 }
 
-bool EnchantmentHelper::hasVanishingCurse(const ItemStack& stack) {
+bool EnchantmentHelper::hasVanishingCurse(const ItemStack& stack)
+{
     return hasEnchantment(stack, "minecraft:vanishing_curse");
 }
 
-i32 EnchantmentHelper::getLoyaltyLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getLoyaltyLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:loyalty");
 }
 
-i32 EnchantmentHelper::getRiptideLevel(const ItemStack& stack) {
+i32 EnchantmentHelper::getRiptideLevel(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:riptide");
 }
 
-bool EnchantmentHelper::hasChanneling(const ItemStack& stack) {
+bool EnchantmentHelper::hasChanneling(const ItemStack& stack)
+{
     return hasEnchantment(stack, "minecraft:channeling");
 }
 
-f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack) {
+f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack)
+{
     i32 level = getEnchantmentLevel(stack, "minecraft:sweeping");
     if (level <= 0) {
         return 0.0f;
@@ -167,17 +194,20 @@ f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack) {
     return 1.0f - 1.0f / static_cast<f32>(1 + level);
 }
 
-i32 EnchantmentHelper::getFishingLuckBonus(const ItemStack& stack) {
+i32 EnchantmentHelper::getFishingLuckBonus(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:luck_of_the_sea");
 }
 
-i32 EnchantmentHelper::getFishingSpeedBonus(const ItemStack& stack) {
+i32 EnchantmentHelper::getFishingSpeedBonus(const ItemStack& stack)
+{
     return getEnchantmentLevel(stack, "minecraft:lure");
 }
 
 // ========== 附魔计算 ==========
 
-i32 EnchantmentHelper::getTotalProtection(const ItemStack& stack, u32 damageType) {
+i32 EnchantmentHelper::getTotalProtection(const ItemStack& stack, u32 damageType)
+{
     if (stack.isEmpty()) {
         return 0;
     }
@@ -193,7 +223,8 @@ i32 EnchantmentHelper::getTotalProtection(const ItemStack& stack, u32 damageType
     return total;
 }
 
-f32 EnchantmentHelper::getTotalDamageBonus(const ItemStack& stack, u32 entityType) {
+f32 EnchantmentHelper::getTotalDamageBonus(const ItemStack& stack, u32 entityType)
+{
     if (stack.isEmpty()) {
         return 0.0f;
     }
@@ -211,9 +242,8 @@ f32 EnchantmentHelper::getTotalDamageBonus(const ItemStack& stack, u32 entityTyp
 
 // ========== 护甲附魔保护计算 ==========
 
-i32 EnchantmentHelper::getTotalArmorProtection(
-    const std::array<const ItemStack*, 4>& armorSlots,
-    u32 damageType) {
+i32 EnchantmentHelper::getTotalArmorProtection(const std::array<const ItemStack*, 4>& armorSlots, u32 damageType)
+{
 
     i32 totalEPF = 0;
 
@@ -227,7 +257,8 @@ i32 EnchantmentHelper::getTotalArmorProtection(
     return std::min(totalEPF, 20);
 }
 
-i32 EnchantmentHelper::getProtectionFactor(const ItemStack& stack, u32 damageType) {
+i32 EnchantmentHelper::getProtectionFactor(const ItemStack& stack, u32 damageType)
+{
     if (stack.isEmpty()) {
         return 0;
     }
@@ -245,7 +276,8 @@ i32 EnchantmentHelper::getProtectionFactor(const ItemStack& stack, u32 damageTyp
 
 // ========== 耐久计算 ==========
 
-bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::Random& random) {
+bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::Random& random)
+{
     if (level <= 0) {
         return false;
     }
@@ -262,10 +294,8 @@ bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math
 
 // ========== 附魔回调分发 ==========
 
-void EnchantmentHelper::applyArthropodEnchantmentDamage(
-    LivingEntity& user,
-    Entity& target,
-    const ItemStack& weapon) {
+void EnchantmentHelper::applyArthropodEnchantmentDamage(LivingEntity& user, Entity& target, const ItemStack& weapon)
+{
 
     if (weapon.isEmpty()) {
         return;
@@ -282,9 +312,8 @@ void EnchantmentHelper::applyArthropodEnchantmentDamage(
 }
 
 void EnchantmentHelper::applyThornsEnchantments(
-    LivingEntity& user,
-    Entity& attacker,
-    const std::array<const ItemStack*, 4>& armorSlots) {
+    LivingEntity& user, Entity& attacker, const std::array<const ItemStack*, 4>& armorSlots)
+{
 
     // 遍历所有护甲槽位
     for (const ItemStack* slot : armorSlots) {
@@ -310,7 +339,8 @@ void EnchantmentHelper::applyThornsEnchantments(
 // ========== 附魔生成（附魔台用） ==========
 
 i32 EnchantmentHelper::calcItemStackEnchantability(
-    math::Random& random, i32 slotIndex, i32 power, const ItemStack& stack) {
+    math::Random& random, i32 slotIndex, i32 power, const ItemStack& stack)
+{
 
     if (stack.isEmpty()) {
         return 0;
@@ -337,18 +367,19 @@ i32 EnchantmentHelper::calcItemStackEnchantability(
     // 根据槽位调整
     switch (slotIndex) {
         case 0:
-            return std::max(j / 3, 1);      // 槽位0：1/3
+            return std::max(j / 3, 1); // 槽位0：1/3
         case 1:
-            return j * 2 / 3 + 1;           // 槽位1：2/3 + 1
+            return j * 2 / 3 + 1; // 槽位1：2/3 + 1
         case 2:
-            return std::max(j, power * 2);  // 槽位2：最大值
+            return std::max(j, power * 2); // 槽位2：最大值
         default:
             return 0;
     }
 }
 
 std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmentDatas(
-    i32 level, const ItemStack& stack, bool allowTreasure) {
+    i32 level, const ItemStack& stack, bool allowTreasure)
+{
 
     std::vector<EnchantmentData> result;
 
@@ -394,7 +425,7 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmen
 
             if (level >= minCost && level <= maxCost) {
                 result.emplace_back(enchantment.get(), lvl);
-                break;  // 只添加最高有效等级
+                break; // 只添加最高有效等级
             }
         }
     }
@@ -403,7 +434,8 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmen
 }
 
 std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantmentList(
-    math::Random& random, const ItemStack& stack, i32 level, bool allowTreasure) {
+    math::Random& random, const ItemStack& stack, i32 level, bool allowTreasure)
+{
 
     std::vector<EnchantmentData> result;
 
@@ -464,23 +496,23 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantm
     return result;
 }
 
-void EnchantmentHelper::removeIncompatible(std::vector<EnchantmentData>& list, const Enchantment* enchantment) {
+void EnchantmentHelper::removeIncompatible(std::vector<EnchantmentData>& list, const Enchantment* enchantment)
+{
     if (enchantment == nullptr) {
         return;
     }
 
-    list.erase(
-        std::remove_if(list.begin(), list.end(),
-            [enchantment](const EnchantmentData& data) {
-                return data.enchantment != nullptr &&
-                       !enchantment->isCompatibleWith(*data.enchantment);
-            }),
-        list.end()
-    );
+    list.erase(std::remove_if(list.begin(),
+                   list.end(),
+                   [enchantment](const EnchantmentData& data) {
+                       return data.enchantment != nullptr && !enchantment->isCompatibleWith(*data.enchantment);
+                   }),
+        list.end());
 }
 
 EnchantmentHelper::EnchantmentData EnchantmentHelper::getRandomEnchantment(
-    math::Random& random, std::vector<EnchantmentData>& list) {
+    math::Random& random, std::vector<EnchantmentData>& list)
+{
 
     if (list.empty()) {
         return EnchantmentData(nullptr, 0);
@@ -511,7 +543,8 @@ EnchantmentHelper::EnchantmentData EnchantmentHelper::getRandomEnchantment(
     return list.back();
 }
 
-ItemStack EnchantmentHelper::addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure) {
+ItemStack EnchantmentHelper::addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure)
+{
     if (stack.isEmpty()) {
         return stack;
     }

@@ -1,8 +1,8 @@
 #include "BreakProgressManager.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <unordered_map>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace client {
@@ -10,16 +10,19 @@ namespace renderer {
 namespace trident {
 namespace block {
 
-BreakProgressManager& BreakProgressManager::instance() {
+BreakProgressManager& BreakProgressManager::instance()
+{
     static BreakProgressManager instance;
     return instance;
 }
 
-void BreakProgressManager::initialize() {
+void BreakProgressManager::initialize()
+{
     spdlog::info("BreakProgressManager: Initialized");
 }
 
-void BreakProgressManager::cleanup() {
+void BreakProgressManager::cleanup()
+{
     m_localBreaking = false;
     m_localProgress = 0.0f;
     m_localDamageStage = 0;
@@ -28,22 +31,24 @@ void BreakProgressManager::cleanup() {
     spdlog::info("BreakProgressManager: Cleaned up");
 }
 
-void BreakProgressManager::tick(f64 deltaTime, u64 currentTick) {
+void BreakProgressManager::tick(f64 deltaTime, u64 currentTick)
+{
     m_currentTick = currentTick;
     cleanupStaleProgress(currentTick);
 }
 
-void BreakProgressManager::startBreaking(const BlockPos& pos) {
+void BreakProgressManager::startBreaking(const BlockPos& pos)
+{
     m_localBreaking = true;
     m_localBreakPos = pos;
     m_localProgress = 0.0f;
     m_localDamageStage = 0;
 
-    spdlog::debug("BreakProgressManager: Started breaking at ({}, {}, {})",
-                  pos.x, pos.y, pos.z);
+    spdlog::debug("BreakProgressManager: Started breaking at ({}, {}, {})", pos.x, pos.y, pos.z);
 }
 
-u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress) {
+u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress)
+{
     if (!m_localBreaking || m_localBreakPos != pos) {
         startBreaking(pos);
     }
@@ -66,18 +71,21 @@ u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress) 
     return m_localDamageStage;
 }
 
-void BreakProgressManager::stopBreaking() {
+void BreakProgressManager::stopBreaking()
+{
     if (m_localBreaking) {
         spdlog::debug("BreakProgressManager: Stopped breaking at ({}, {}, {})",
-                      m_localBreakPos.x, m_localBreakPos.y, m_localBreakPos.z);
+            m_localBreakPos.x,
+            m_localBreakPos.y,
+            m_localBreakPos.z);
     }
     m_localBreaking = false;
     m_localProgress = 0.0f;
     m_localDamageStage = 0;
 }
 
-void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockPos& pos,
-                                                 i8 stage, u64 currentTick) {
+void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockPos& pos, i8 stage, u64 currentTick)
+{
     if (stage < 0 || stage > static_cast<i8>(MAX_DAMAGE_STAGE)) {
         removeRemoteProgress(breakerId);
         return;
@@ -96,7 +104,11 @@ void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockP
         updatePositionIndex(progress);
 
         spdlog::debug("BreakProgressManager: Created remote progress for entity {} at ({}, {}, {}), stage {}",
-                      breakerId, pos.x, pos.y, pos.z, stage);
+            breakerId,
+            pos.x,
+            pos.y,
+            pos.z,
+            stage);
     } else {
         BlockPos oldPos = it->second.position;
 
@@ -109,12 +121,12 @@ void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockP
         it->second.damageStage = static_cast<u8>(stage);
         it->second.lastUpdateTick = currentTick;
 
-        spdlog::trace("BreakProgressManager: Updated remote progress for entity {}, stage {}",
-                      breakerId, stage);
+        spdlog::trace("BreakProgressManager: Updated remote progress for entity {}, stage {}", breakerId, stage);
     }
 }
 
-void BreakProgressManager::removeRemoteProgress(EntityId breakerId) {
+void BreakProgressManager::removeRemoteProgress(EntityId breakerId)
+{
     auto it = m_remoteProgressByEntity.find(breakerId);
     if (it != m_remoteProgressByEntity.end()) {
         BlockPos pos = it->second.position;
@@ -125,12 +137,14 @@ void BreakProgressManager::removeRemoteProgress(EntityId breakerId) {
     }
 }
 
-void BreakProgressManager::clearRemoteProgress() {
+void BreakProgressManager::clearRemoteProgress()
+{
     m_remoteProgressByEntity.clear();
     m_remoteProgressByPos.clear();
 }
 
-u8 BreakProgressManager::getDamageStage(const BlockPos& pos) const {
+u8 BreakProgressManager::getDamageStage(const BlockPos& pos) const
+{
     u8 maxStage = 0;
     bool hasProgress = false;
 
@@ -155,8 +169,8 @@ u8 BreakProgressManager::getDamageStage(const BlockPos& pos) const {
     return hasProgress ? maxStage : 255;
 }
 
-std::vector<const BlockBreakProgress*>
-BreakProgressManager::getProgressAtPos(const BlockPos& pos) const {
+std::vector<const BlockBreakProgress*> BreakProgressManager::getProgressAtPos(const BlockPos& pos) const
+{
     std::vector<const BlockBreakProgress*> result;
 
     auto posIt = m_remoteProgressByPos.find(pos);
@@ -172,8 +186,8 @@ BreakProgressManager::getProgressAtPos(const BlockPos& pos) const {
     return result;
 }
 
-std::vector<std::pair<BlockPos, u8>>
-BreakProgressManager::getVisibleProgress(const Vector3& cameraPos) const {
+std::vector<std::pair<BlockPos, u8>> BreakProgressManager::getVisibleProgress(const Vector3& cameraPos) const
+{
     std::vector<std::pair<BlockPos, u8>> result;
 
     // 使用 unordered_map 去重同一位置的多个进度
@@ -217,8 +231,9 @@ BreakProgressManager::getVisibleProgress(const Vector3& cameraPos) const {
     return result;
 }
 
-void BreakProgressManager::getVisibleProgress(const Vector3& cameraPos,
-                                               std::vector<std::pair<BlockPos, u8>>& outProgress) const {
+void BreakProgressManager::getVisibleProgress(
+    const Vector3& cameraPos, std::vector<std::pair<BlockPos, u8>>& outProgress) const
+{
     outProgress.clear();
 
     // 快速路径：如果没有任何进度，直接返回
@@ -266,7 +281,8 @@ void BreakProgressManager::getVisibleProgress(const Vector3& cameraPos,
     }
 }
 
-bool BreakProgressManager::hasProgressAt(const BlockPos& pos) const {
+bool BreakProgressManager::hasProgressAt(const BlockPos& pos) const
+{
     if (m_localBreaking && m_localBreakPos == pos) {
         return true;
     }
@@ -274,7 +290,8 @@ bool BreakProgressManager::hasProgressAt(const BlockPos& pos) const {
     return m_remoteProgressByPos.find(pos) != m_remoteProgressByPos.end();
 }
 
-void BreakProgressManager::cleanupStaleProgress(u64 currentTick) {
+void BreakProgressManager::cleanupStaleProgress(u64 currentTick)
+{
     std::vector<EntityId> toRemove;
 
     for (const auto& [breakerId, progress] : m_remoteProgressByEntity) {
@@ -288,7 +305,8 @@ void BreakProgressManager::cleanupStaleProgress(u64 currentTick) {
     }
 }
 
-void BreakProgressManager::updatePositionIndex(const BlockBreakProgress& progress) {
+void BreakProgressManager::updatePositionIndex(const BlockBreakProgress& progress)
+{
     auto& entityList = m_remoteProgressByPos[progress.position];
 
     for (EntityId id : entityList) {
@@ -300,14 +318,12 @@ void BreakProgressManager::updatePositionIndex(const BlockBreakProgress& progres
     entityList.push_back(progress.breakerId);
 }
 
-void BreakProgressManager::removeFromPositionIndex(const BlockPos& pos, EntityId breakerId) {
+void BreakProgressManager::removeFromPositionIndex(const BlockPos& pos, EntityId breakerId)
+{
     auto posIt = m_remoteProgressByPos.find(pos);
     if (posIt != m_remoteProgressByPos.end()) {
         auto& entityList = posIt->second;
-        entityList.erase(
-            std::remove(entityList.begin(), entityList.end(), breakerId),
-            entityList.end()
-        );
+        entityList.erase(std::remove(entityList.begin(), entityList.end(), breakerId), entityList.end());
 
         if (entityList.empty()) {
             m_remoteProgressByPos.erase(posIt);

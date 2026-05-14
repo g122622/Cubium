@@ -8,10 +8,10 @@ namespace v1_12 {
 
 ResourceMapperV112::ResourceMapperV112()
     : m_textureMapper(TextureMapper::instance())
-{
-}
+{}
 
-std::string ResourceMapperV112::toUnifiedTexturePath(std::string_view path) const {
+std::string ResourceMapperV112::toUnifiedTexturePath(std::string_view path) const
+{
     std::string result(path);
 
     // 将 textures/blocks/ 替换为 textures/block/
@@ -45,7 +45,8 @@ std::string ResourceMapperV112::toUnifiedTexturePath(std::string_view path) cons
     return result;
 }
 
-std::vector<std::string> ResourceMapperV112::getTexturePathVariants(std::string_view unifiedPath) const {
+std::vector<std::string> ResourceMapperV112::getTexturePathVariants(std::string_view unifiedPath) const
+{
     std::vector<std::string> variants;
 
     // 首先，将统一（现代）路径转换为旧版格式
@@ -120,27 +121,32 @@ std::vector<std::string> ResourceMapperV112::getTexturePathVariants(std::string_
     return variants;
 }
 
-std::string ResourceMapperV112::toModernTextureName(std::string_view name) const {
+std::string ResourceMapperV112::toModernTextureName(std::string_view name) const
+{
     return m_textureMapper.getModernName(name);
 }
 
-std::string ResourceMapperV112::toLegacyTextureName(std::string_view name) const {
+std::string ResourceMapperV112::toLegacyTextureName(std::string_view name) const
+{
     return m_textureMapper.getLegacyName(name);
 }
 
-std::string ResourceMapperV112::toUnifiedModelPath(std::string_view path) const {
+std::string ResourceMapperV112::toUnifiedModelPath(std::string_view path) const
+{
     // 模型路径在 1.12 和 1.13+ 之间通常是一致的
     // 大多数模型不需要转换
     return std::string(path);
 }
 
-std::vector<std::string> ResourceMapperV112::getModelPathVariants(std::string_view unifiedPath) const {
+std::vector<std::string> ResourceMapperV112::getModelPathVariants(std::string_view unifiedPath) const
+{
     // 模型路径通常相同
     // 只返回统一路径
-    return { std::string(unifiedPath) };
+    return {std::string(unifiedPath)};
 }
 
-std::string ResourceMapperV112::toUnifiedBlockStatePath(std::string_view path) const {
+std::string ResourceMapperV112::toUnifiedBlockStatePath(std::string_view path) const
+{
     // 方块状态路径是一致的
     // 注意: 方块 ID 在 1.13 中有变化（扁平化），但文件路径相似
     return std::string(path);

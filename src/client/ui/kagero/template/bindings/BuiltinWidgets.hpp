@@ -1,23 +1,23 @@
 #pragma once
 
-#include "../../widget/Widget.hpp"
-#include "../../widget/ButtonWidget.hpp"
-#include "../../widget/TextWidget.hpp"
-#include "../../widget/TextFieldWidget.hpp"
-#include "../../widget/SliderWidget.hpp"
-#include "../../widget/CheckboxWidget.hpp"
-#include "../../widget/SlotWidget.hpp"
-#include "../../widget/ScrollableWidget.hpp"
-#include "../../widget/ListWidget.hpp"
-#include "../../widget/Viewport3DWidget.hpp"
-#include "../../widget/ContainerWidget.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../event/InputEvents.hpp"
 #include "../../event/UIEvents.hpp"
+#include "../../widget/ButtonWidget.hpp"
+#include "../../widget/CheckboxWidget.hpp"
+#include "../../widget/ContainerWidget.hpp"
+#include "../../widget/ListWidget.hpp"
+#include "../../widget/ScrollableWidget.hpp"
+#include "../../widget/SliderWidget.hpp"
+#include "../../widget/SlotWidget.hpp"
+#include "../../widget/TextFieldWidget.hpp"
+#include "../../widget/TextWidget.hpp"
+#include "../../widget/Viewport3DWidget.hpp"
+#include "../../widget/Widget.hpp"
 #include <functional>
-#include <unordered_map>
-#include <memory>
 #include <map>
+#include <memory>
+#include <unordered_map>
 
 namespace mc::client::ui::kagero::tpl::bindings {
 
@@ -62,9 +62,7 @@ public:
      * @return 创建的Widget，如果标签未知返回nullptr
      */
     [[nodiscard]] std::unique_ptr<widget::Widget> create(
-        const std::string& tagName,
-        const std::string& id,
-        const std::map<std::string, std::string>& attrs) const;
+        const std::string& tagName, const std::string& id, const std::map<std::string, std::string>& attrs) const;
 
     /**
      * @brief 检查标签名是否注册
@@ -211,7 +209,8 @@ void applySize(widget::Widget* widget, const std::string& value);
  *
  * 调用 BuiltinWidgets::instance().initialize()
  */
-inline void registerBuiltinWidgets() {
+inline void registerBuiltinWidgets()
+{
     BuiltinWidgets::instance().initialize();
 }
 

@@ -1,19 +1,19 @@
 #include "PandaEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../damage/DamageSource.hpp"
 
 namespace mc {
 
@@ -30,11 +30,13 @@ PandaEntity::PandaEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<PandaEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void PandaEntity::randomizePersonality() {
+void PandaEntity::randomizePersonality()
+{
     math::Random rng = getRandom();
 
     // 熊猫性格概率分布
@@ -75,14 +77,16 @@ void PandaEntity::randomizePersonality() {
     m_hiddenGene = static_cast<u8>(rng.nextInt(0, 5));
 }
 
-bool PandaEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool PandaEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // TODO: 检查是否是竹子
     // return itemStack.getItem() == Items::BAMBOO;
     (void)itemStack;
     return false;
 }
 
-std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner) {
+std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner)
+{
     // TODO: 创建小熊猫
     // auto baby = std::make_unique<PandaEntity>(LegacyEntityType::Unknown, 0);
     // baby->setChild(true);
@@ -110,7 +114,8 @@ std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner) {
     return nullptr;
 }
 
-void PandaEntity::tick() {
+void PandaEntity::tick()
+{
     AnimalEntity::tick();
 
     // 更新各种状态计时器
@@ -144,7 +149,8 @@ void PandaEntity::tick() {
     }
 }
 
-void PandaEntity::registerGoals() {
+void PandaEntity::registerGoals()
+{
     // 调用父类方法注册基础动物 AI
     // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
@@ -160,7 +166,8 @@ void PandaEntity::registerGoals() {
     // - PandaEatBambooGoal: 吃竹子
 }
 
-void PandaEntity::registerAttributes() {
+void PandaEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
@@ -182,7 +189,8 @@ void PandaEntity::registerAttributes() {
     }
 }
 
-std::optional<ResourceLocation> PandaEntity::getAmbientSound() const {
+std::optional<ResourceLocation> PandaEntity::getAmbientSound() const
+{
     // MC 1.16.5: 根据性格返回不同音效
     if (isAggressive()) {
         return SoundEvents::ENTITY_PANDA_AGGRESSIVE_AMBIENT;
@@ -193,23 +201,28 @@ std::optional<ResourceLocation> PandaEntity::getAmbientSound() const {
     return SoundEvents::ENTITY_PANDA_AMBIENT;
 }
 
-std::optional<ResourceLocation> PandaEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> PandaEntity::getHurtSound(DamageSource& /*source*/) const
+{
     return SoundEvents::ENTITY_PANDA_HURT;
 }
 
-std::optional<ResourceLocation> PandaEntity::getDeathSound() const {
+std::optional<ResourceLocation> PandaEntity::getDeathSound() const
+{
     return SoundEvents::ENTITY_PANDA_DEATH;
 }
 
-void PandaEntity::playEatSound() {
+void PandaEntity::playEatSound()
+{
     playSound(SoundEvents::ENTITY_PANDA_EAT, 1.0f, 1.0f);
 }
 
-void PandaEntity::playSneezeSound() {
+void PandaEntity::playSneezeSound()
+{
     playSound(SoundEvents::ENTITY_PANDA_SNEEZE, 1.0f, 1.0f);
 }
 
-void PandaEntity::playBiteSound() {
+void PandaEntity::playBiteSound()
+{
     playSound(SoundEvents::ENTITY_PANDA_BITE, 1.0f, 1.0f);
 }
 

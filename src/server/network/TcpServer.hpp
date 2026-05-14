@@ -1,22 +1,22 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "TcpSession.hpp"
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <mutex>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::server {
 
 // TCP服务器配置
 struct TcpServerConfig {
-    u16 port = 25565;           // 监听端口
-    u32 maxConnections = 100;   // 最大连接数
-    u32 backlog = 10;           // 连接队列长度
-    bool noDelay = true;        // TCP_NODELAY选项
+    u16 port = 25565;         // 监听端口
+    u32 maxConnections = 100; // 最大连接数
+    u32 backlog = 10;         // 连接队列长度
+    bool noDelay = true;      // TCP_NODELAY选项
 };
 
 // TCP服务器

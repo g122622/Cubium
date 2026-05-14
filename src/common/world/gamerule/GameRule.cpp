@@ -12,12 +12,14 @@ namespace mc::world::gamerule {
 // ============================================================================
 
 template <>
-[[nodiscard]] std::string GameRuleValue<bool>::toString() const {
+[[nodiscard]] std::string GameRuleValue<bool>::toString() const
+{
     return m_value ? "true" : "false";
 }
 
 template <>
-bool GameRuleValue<bool>::fromString(const std::string& value) {
+bool GameRuleValue<bool>::fromString(const std::string& value)
+{
     // MC 1.16.5 使用 Boolean.parseBoolean，支持 "true"（大小写不敏感）
     if (value == "true" || value == "TRUE" || value == "1") {
         m_value = true;
@@ -36,12 +38,14 @@ bool GameRuleValue<bool>::fromString(const std::string& value) {
 // ============================================================================
 
 template <>
-[[nodiscard]] std::string GameRuleValue<i32>::toString() const {
+[[nodiscard]] std::string GameRuleValue<i32>::toString() const
+{
     return std::to_string(m_value);
 }
 
 template <>
-bool GameRuleValue<i32>::fromString(const std::string& value) {
+bool GameRuleValue<i32>::fromString(const std::string& value)
+{
     if (value.empty()) {
         m_value = 0;
         return false;
@@ -50,7 +54,8 @@ bool GameRuleValue<i32>::fromString(const std::string& value) {
     try {
         m_value = std::stoi(value);
         return true;
-    } catch (const std::exception&) {
+    }
+    catch (const std::exception&) {
         // 解析失败，保持原值不变
         return false;
     }

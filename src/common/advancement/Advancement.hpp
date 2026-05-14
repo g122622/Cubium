@@ -1,17 +1,17 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "Criterion.hpp"
 #include "AdvancementDisplay.hpp"
 #include "AdvancementRewards.hpp"
-#include <nlohmann/json.hpp>
-#include <memory>
+#include "Criterion.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <map>
-#include <vector>
+#include <memory>
 #include <optional>
 #include <string>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 // 前向声明
 namespace mc::text {
@@ -27,8 +27,8 @@ namespace mc::advancement {
  * 参考 MC 1.16.5: net.minecraft.advancements.IRequirementsStrategy
  */
 enum class RequirementsStrategy : u8 {
-    AND,  ///< 所有条件都必须满足（默认）
-    OR    ///< 任一条件满足即可
+    AND, ///< 所有条件都必须满足（默认）
+    OR   ///< 任一条件满足即可
 };
 
 /**
@@ -78,11 +78,11 @@ public:
      * @param requirements 需求矩阵
      */
     Advancement(ResourceLocation id,
-                std::optional<ResourceLocation> parent,
-                std::optional<AdvancementDisplay> display,
-                std::optional<AdvancementRewards> rewards,
-                std::map<std::string, Criterion> criteria,
-                std::vector<std::vector<std::string>> requirements);
+        std::optional<ResourceLocation> parent,
+        std::optional<AdvancementDisplay> display,
+        std::optional<AdvancementRewards> rewards,
+        std::map<std::string, Criterion> criteria,
+        std::vector<std::vector<std::string>> requirements);
 
     // ========== 基本信息 ==========
 
@@ -121,7 +121,10 @@ public:
      * - 每个需求组内的条件是OR关系（任一满足）
      * - 需求组之间是AND关系（所有组都必须满足）
      */
-    [[nodiscard]] const std::vector<std::vector<std::string>>& getRequirements() const noexcept { return m_requirements; }
+    [[nodiscard]] const std::vector<std::vector<std::string>>& getRequirements() const noexcept
+    {
+        return m_requirements;
+    }
 
     // ========== 子成就（运行时填充） ==========
 
@@ -176,7 +179,9 @@ public:
     class Builder {
     public:
         Builder() = default;
-        explicit Builder(ResourceLocation id) : m_id(std::move(id)) {}
+        explicit Builder(ResourceLocation id)
+            : m_id(std::move(id))
+        {}
 
         Builder& parent(const ResourceLocation& parent);
         Builder& display(AdvancementDisplay display);

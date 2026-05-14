@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../LayerContext.hpp"
 #include "../BiomeValues.hpp"
+#include "../LayerContext.hpp"
 
 namespace mc {
 namespace layer {

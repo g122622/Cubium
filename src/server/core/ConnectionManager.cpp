@@ -6,10 +6,10 @@ namespace mc::server::core {
 
 ConnectionManager::ConnectionManager(PlayerManager& playerManager)
     : m_playerManager(playerManager)
-{
-}
+{}
 
-bool ConnectionManager::sendToPlayer(PlayerId playerId, const u8* data, size_t size) {
+bool ConnectionManager::sendToPlayer(PlayerId playerId, const u8* data, size_t size)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         spdlog::trace("ConnectionManager: Player {} not found", playerId);
@@ -18,27 +18,30 @@ bool ConnectionManager::sendToPlayer(PlayerId playerId, const u8* data, size_t s
     return player->send(data, size);
 }
 
-bool ConnectionManager::sendPacketToPlayer(PlayerId playerId, network::PacketType type, const std::vector<u8>& payload) {
+bool ConnectionManager::sendPacketToPlayer(PlayerId playerId, network::PacketType type, const std::vector<u8>& payload)
+{
     auto packet = encapsulatePacket(type, payload);
     return sendSerializedPacket(playerId, packet);
 }
 
-bool ConnectionManager::sendSerializedPacket(PlayerId playerId, const std::vector<u8>& serializedPacket) {
+bool ConnectionManager::sendSerializedPacket(PlayerId playerId, const std::vector<u8>& serializedPacket)
+{
     return sendToPlayer(playerId, serializedPacket.data(), serializedPacket.size());
 }
 
-void ConnectionManager::broadcast(const u8* data, size_t size) {
-    m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
-        player.send(data, size);
-    });
+void ConnectionManager::broadcast(const u8* data, size_t size)
+{
+    m_playerManager.forEachPlayer([&](ServerPlayerData& player) { player.send(data, size); });
 }
 
-void ConnectionManager::broadcastPacket(network::PacketType type, const std::vector<u8>& payload) {
+void ConnectionManager::broadcastPacket(network::PacketType type, const std::vector<u8>& payload)
+{
     auto packet = encapsulatePacket(type, payload);
     broadcast(packet.data(), packet.size());
 }
 
-void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const u8* data, size_t size) {
+void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const u8* data, size_t size)
+{
     m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
         if (player.playerId != excludePlayerId) {
             player.send(data, size);
@@ -46,12 +49,15 @@ void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const u8* data
     });
 }
 
-void ConnectionManager::broadcastPacketExcept(PlayerId excludePlayerId, network::PacketType type, const std::vector<u8>& payload) {
+void ConnectionManager::broadcastPacketExcept(
+    PlayerId excludePlayerId, network::PacketType type, const std::vector<u8>& payload)
+{
     auto packet = encapsulatePacket(type, payload);
     broadcastExcept(excludePlayerId, packet.data(), packet.size());
 }
 
-void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& reason) {
+void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& reason)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return;
 
@@ -69,12 +75,12 @@ void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& r
     m_playerManager.removePlayer(playerId);
 }
 
-void ConnectionManager::disconnectAll(const std::string& reason) {
+void ConnectionManager::disconnectAll(const std::string& reason)
+{
     // 先收集所有需要断开的连接，避免在遍历时修改
     std::vector<std::pair<PlayerId, std::string>> toDisconnect;
-    m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
-        toDisconnect.emplace_back(player.playerId, player.username);
-    });
+    m_playerManager.forEachPlayer(
+        [&](ServerPlayerData& player) { toDisconnect.emplace_back(player.playerId, player.username); });
 
     for (const auto& [playerId, username] : toDisconnect) {
         auto* player = m_playerManager.getPlayer(playerId);
@@ -98,7 +104,8 @@ void ConnectionManager::disconnectAll(const std::string& reason) {
     }
 }
 
-size_t ConnectionManager::cleanupDisconnectedPlayers(std::vector<PlayerId>* removedPlayers) {
+size_t ConnectionManager::cleanupDisconnectedPlayers(std::vector<PlayerId>* removedPlayers)
+{
     std::vector<PlayerId> toRemove;
     toRemove.reserve(m_playerManager.playerCount());
 
@@ -119,13 +126,16 @@ size_t ConnectionManager::cleanupDisconnectedPlayers(std::vector<PlayerId>* remo
     return toRemove.size();
 }
 
-std::vector<u8> ConnectionManager::encapsulatePacket(network::PacketType type, const std::vector<u8>& payload) {
+std::vector<u8> ConnectionManager::encapsulatePacket(network::PacketType type, const std::vector<u8>& payload)
+{
     network::PacketSerializer packet;
     encapsulatePacket(type, payload, packet);
     return packet.buffer();
 }
 
-void ConnectionManager::encapsulatePacket(network::PacketType type, const std::vector<u8>& payload, network::PacketSerializer& out) {
+void ConnectionManager::encapsulatePacket(
+    network::PacketType type, const std::vector<u8>& payload, network::PacketSerializer& out)
+{
     out.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + payload.size()));
     out.writeU16(static_cast<u16>(type));
     out.writeU16(0); // flags

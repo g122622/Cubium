@@ -8,10 +8,10 @@
  * 3. hashWorldSeed 功能（MC 协议）
  * 4. 辅助函数（字节序转换、十六进制输出）
  */
-#include <gtest/gtest.h>
 #include "common/util/crypto/Sha256.hpp"
 #include <array>
 #include <cstdint>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::util::crypto;
@@ -19,7 +19,8 @@ using namespace mc::util::crypto;
 class Sha256Test : public ::testing::Test {
 protected:
     // 辅助函数：将十六进制字符串转换为字节数组
-    static std::vector<u8> hexToBytes(const std::string& hex) {
+    static std::vector<u8> hexToBytes(const std::string& hex)
+    {
         std::vector<u8> bytes;
         for (size_t i = 0; i < hex.length(); i += 2) {
             u8 byte = static_cast<u8>(std::stoi(hex.substr(i, 2), nullptr, 16));
@@ -40,7 +41,8 @@ protected:
  * 空字符串的 SHA-256:
  * e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
  */
-TEST_F(Sha256Test, EmptyString) {
+TEST_F(Sha256Test, EmptyString)
+{
     Sha256::Digest hash = Sha256::hash("");
     std::string hex = Sha256::toHexString(hash);
 
@@ -54,7 +56,8 @@ TEST_F(Sha256Test, EmptyString) {
  * SHA256("abc") =
  * ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
  */
-TEST_F(Sha256Test, AbcString) {
+TEST_F(Sha256Test, AbcString)
+{
     Sha256::Digest hash = Sha256::hash("abc");
     std::string hex = Sha256::toHexString(hash);
 
@@ -68,7 +71,8 @@ TEST_F(Sha256Test, AbcString) {
  * SHA256("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq") =
  * 248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1
  */
-TEST_F(Sha256Test, LongerString) {
+TEST_F(Sha256Test, LongerString)
+{
     Sha256::Digest hash = Sha256::hash("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq");
     std::string hex = Sha256::toHexString(hash);
 
@@ -81,7 +85,8 @@ TEST_F(Sha256Test, LongerString) {
  * SHA256("Hello, World!") =
  * dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f
  */
-TEST_F(Sha256Test, HelloWorld) {
+TEST_F(Sha256Test, HelloWorld)
+{
     Sha256::Digest hash = Sha256::hash("Hello, World!");
     std::string hex = Sha256::toHexString(hash);
 
@@ -97,7 +102,8 @@ TEST_F(Sha256Test, HelloWorld) {
  *
  * 验证 hashUint64 使用大端序正确编码整数
  */
-TEST_F(Sha256Test, HashUint64Zero) {
+TEST_F(Sha256Test, HashUint64Zero)
+{
     // 测试 seed = 0
     // 大端序编码后为: 00 00 00 00 00 00 00 00
     // SHA256 的前 8 字节（小端序解释为 u64）
@@ -115,7 +121,8 @@ TEST_F(Sha256Test, HashUint64Zero) {
 /**
  * @brief 测试 64 位整数的边界值
  */
-TEST_F(Sha256Test, HashUint64MaxValue) {
+TEST_F(Sha256Test, HashUint64MaxValue)
+{
     // 测试最大值
     Sha256::Digest hash1 = Sha256::hashUint64(UINT64_MAX);
     Sha256::Digest hash2 = Sha256::hashUint64(UINT64_MAX);
@@ -129,7 +136,8 @@ TEST_F(Sha256Test, HashUint64MaxValue) {
 /**
  * @brief 测试特定种子值的哈希
  */
-TEST_F(Sha256Test, HashUint64SpecificValue) {
+TEST_F(Sha256Test, HashUint64SpecificValue)
+{
     // 测试种子值 12345
     u64 seed = 12345;
     Sha256::Digest hash = Sha256::hashUint64(seed);
@@ -151,7 +159,8 @@ TEST_F(Sha256Test, HashUint64SpecificValue) {
  *
  * 验证 hashWorldSeed 对同一种子总是返回相同的值
  */
-TEST_F(Sha256Test, HashWorldSeedConsistency) {
+TEST_F(Sha256Test, HashWorldSeedConsistency)
+{
     u64 seed1 = 12345678901234ULL;
     u64 seed2 = 98765432109876ULL;
 
@@ -171,10 +180,11 @@ TEST_F(Sha256Test, HashWorldSeedConsistency) {
 /**
  * @brief 测试 hashWorldSeed 边界值
  */
-TEST_F(Sha256Test, HashWorldSeedBoundaryValues) {
+TEST_F(Sha256Test, HashWorldSeedBoundaryValues)
+{
     // 测试种子 = 0
     u64 hashZero = Sha256::hashWorldSeed(0);
-    EXPECT_NE(hashZero, 0);  // 哈希应该不是 0
+    EXPECT_NE(hashZero, 0); // 哈希应该不是 0
 
     // 测试种子 = 1
     u64 hashOne = Sha256::hashWorldSeed(1);
@@ -203,11 +213,12 @@ TEST_F(Sha256Test, HashWorldSeedBoundaryValues) {
  * 2. 计算 SHA-256 得到 32 字节
  * 3. 取前 8 字节以小端序解释为 long 返回
  */
-TEST_F(Sha256Test, HashWorldSeedMCBehavior) {
+TEST_F(Sha256Test, HashWorldSeedMCBehavior)
+{
     // 测试几个典型的世界种子
     struct TestCase {
         u64 seed;
-        u64 expectedNonZero;  // 只验证结果非零且一致
+        u64 expectedNonZero; // 只验证结果非零且一致
     };
 
     TestCase cases[] = {
@@ -239,7 +250,8 @@ TEST_F(Sha256Test, HashWorldSeedMCBehavior) {
 /**
  * @brief 测试 bytesToU64LE（小端序转换）
  */
-TEST_F(Sha256Test, BytesToU64LE) {
+TEST_F(Sha256Test, BytesToU64LE)
+{
     // 小端序: 01 02 03 04 05 06 07 08 = 0x0807060504030201
     std::array<u8, 8> bytes = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
     u64 value = Sha256::bytesToU64LE(std::span<const u8, 8>(bytes));
@@ -259,7 +271,8 @@ TEST_F(Sha256Test, BytesToU64LE) {
 /**
  * @brief 测试 bytesToU64BE（大端序转换）
  */
-TEST_F(Sha256Test, BytesToU64BE) {
+TEST_F(Sha256Test, BytesToU64BE)
+{
     // 大端序: 01 02 03 04 05 06 07 08 = 0x0102030405060708
     std::array<u8, 8> bytes = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
     u64 value = Sha256::bytesToU64BE(std::span<const u8, 8>(bytes));
@@ -279,7 +292,8 @@ TEST_F(Sha256Test, BytesToU64BE) {
 /**
  * @brief 测试 toHexString 输出格式
  */
-TEST_F(Sha256Test, ToHexString) {
+TEST_F(Sha256Test, ToHexString)
+{
     // 所有字节为 0
     Sha256::Digest zeros = {};
     std::string hex = Sha256::toHexString(zeros);
@@ -312,7 +326,8 @@ TEST_F(Sha256Test, ToHexString) {
 /**
  * @brief 测试字节数组输入
  */
-TEST_F(Sha256Test, ByteSpanInput) {
+TEST_F(Sha256Test, ByteSpanInput)
+{
     // 测试与字符串输入一致性
     const char* str = "abc";
     std::vector<u8> bytes(str, str + 3);
@@ -326,7 +341,8 @@ TEST_F(Sha256Test, ByteSpanInput) {
 /**
  * @brief 测试空字节数组
  */
-TEST_F(Sha256Test, EmptyByteSpan) {
+TEST_F(Sha256Test, EmptyByteSpan)
+{
     std::vector<u8> empty;
     Sha256::Digest hash = Sha256::hash(std::span<const u8>(empty.data(), 0));
 
@@ -342,7 +358,8 @@ TEST_F(Sha256Test, EmptyByteSpan) {
 /**
  * @brief 测试大量计算的稳定性
  */
-TEST_F(Sha256Test, StabilityTest) {
+TEST_F(Sha256Test, StabilityTest)
+{
     // 连续计算大量哈希，验证没有内存泄漏或崩溃
     for (int i = 0; i < 1000; ++i) {
         Sha256::Digest hash = Sha256::hashUint64(static_cast<u64>(i));
@@ -351,14 +368,15 @@ TEST_F(Sha256Test, StabilityTest) {
 
     for (int i = 0; i < 1000; ++i) {
         u64 hash = Sha256::hashWorldSeed(static_cast<u64>(i));
-        (void)hash;  // 避免 unused variable 警告
+        (void)hash; // 避免 unused variable 警告
     }
 }
 
 /**
  * @brief 测试长消息
  */
-TEST_F(Sha256Test, LongMessage) {
+TEST_F(Sha256Test, LongMessage)
+{
     // 1MB 数据
     std::vector<u8> data(1024 * 1024, 0xAB);
 

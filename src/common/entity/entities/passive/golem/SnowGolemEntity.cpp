@@ -1,6 +1,6 @@
 #include "SnowGolemEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
@@ -14,11 +14,13 @@ SnowGolemEntity::SnowGolemEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SnowGolemEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> SnowGolemEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<SnowGolemEntity>(LegacyEntityType::Unknown, 0);
 }
 
-std::vector<ItemStack> SnowGolemEntity::shear(Player* /*player*/) {
+std::vector<ItemStack> SnowGolemEntity::shear(Player* /*player*/)
+{
     std::vector<ItemStack> drops;
     if (m_hasPumpkin) {
         m_hasPumpkin = false;
@@ -28,14 +30,16 @@ std::vector<ItemStack> SnowGolemEntity::shear(Player* /*player*/) {
     return drops;
 }
 
-bool SnowGolemEntity::willMelt() const {
+bool SnowGolemEntity::willMelt() const
+{
     // TODO: 检查温度
     // 在热带、沙漠、下界等高温生物群系会融化
     // 在水中也会融化
     return false;
 }
 
-void SnowGolemEntity::tick() {
+void SnowGolemEntity::tick()
+{
     GolemEntity::tick();
 
     // 更新攻击冷却
@@ -68,7 +72,8 @@ void SnowGolemEntity::tick() {
     // }
 }
 
-void SnowGolemEntity::registerGoals() {
+void SnowGolemEntity::registerGoals()
+{
     // 调用父类方法
     GolemEntity::registerGoals();
 
@@ -77,7 +82,8 @@ void SnowGolemEntity::registerGoals() {
     // - SnowGolemFollowOwnerGoal: 跟随创造者（如果有）
 }
 
-void SnowGolemEntity::registerAttributes() {
+void SnowGolemEntity::registerAttributes()
+{
     // 调用父类方法
     GolemEntity::registerAttributes();
 

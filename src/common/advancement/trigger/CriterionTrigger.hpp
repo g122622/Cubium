@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <nlohmann/json.hpp>
+#include <functional>
 #include <memory>
 #include <set>
-#include <unordered_map>
-#include <functional>
 #include <typeindex>
+#include <unordered_map>
+#include <nlohmann/json.hpp>
 
 namespace mc::advancement {
 
@@ -49,16 +49,15 @@ public:
 /**
  * @brief 触发器实例模板
  */
-template<typename T>
+template <typename T>
 class CriterionInstance : public ICriterionInstance {
 public:
     using InstanceType = T;
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(T::TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(T::TRIGGER_ID); }
 
-    [[nodiscard]] nlohmann::json toJson() const override {
+    [[nodiscard]] nlohmann::json toJson() const override
+    {
         nlohmann::json json;
         json["trigger"] = getId().toString();
 
@@ -72,7 +71,7 @@ public:
 };
 
 // 前向声明
-template<typename T>
+template <typename T>
 class CriterionListener;
 
 /**
@@ -81,7 +80,7 @@ class CriterionListener;
  * 关联一个触发器实例、成就和条件名称。
  * 当触发器触发时，调用监听器来授予条件。
  */
-template<typename T>
+template <typename T>
 class CriterionListener {
 public:
     using InstanceType = T;
@@ -89,7 +88,8 @@ public:
     CriterionListener(const T& instance, AdvancementPtr advancement, std::string criterion)
         : m_instance(instance)
         , m_advancement(std::move(advancement))
-        , m_criterion(std::move(criterion)) {}
+        , m_criterion(std::move(criterion))
+    {}
 
     /**
      * @brief 获取触发器实例
@@ -114,14 +114,16 @@ public:
     /**
      * @brief 比较运算符（用于set）
      */
-    bool operator<(const CriterionListener& other) const {
+    bool operator<(const CriterionListener& other) const
+    {
         if (m_advancement != other.m_advancement) {
             return m_advancement < other.m_advancement;
         }
         return m_criterion < other.m_criterion;
     }
 
-    bool operator==(const CriterionListener& other) const {
+    bool operator==(const CriterionListener& other) const
+    {
         return m_advancement == other.m_advancement && m_criterion == other.m_criterion;
     }
 
@@ -157,7 +159,7 @@ public:
  * - 反序列化条件
  * - 触发检测
  */
-template<typename T>
+template <typename T>
 class ICriterionTrigger : public ICriterionTriggerBase {
 public:
     using Listener = CriterionListener<T>;
@@ -186,7 +188,8 @@ public:
     /**
      * @brief 从JSON反序列化触发器实例
      */
-    Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override {
+    Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override
+    {
         auto instance = std::make_shared<T>();
         auto result = instance->fromJson(json);
         if (result.failed()) {
@@ -202,16 +205,18 @@ public:
  * 提供监听器管理的通用实现。
  * 参考 MC 1.16.5: net.minecraft.advancements.criterion.AbstractCriterionTrigger
  */
-template<typename T>
+template <typename T>
 class AbstractCriterionTrigger : public ICriterionTrigger<T> {
 public:
     using Listener = typename ICriterionTrigger<T>::Listener;
 
-    void addListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) override {
+    void addListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) override
+    {
         m_listeners[&advancements].insert(listener);
     }
 
-    void removeListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) override {
+    void removeListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) override
+    {
         auto it = m_listeners.find(&advancements);
         if (it != m_listeners.end()) {
             it->second.erase(listener);
@@ -221,7 +226,8 @@ public:
         }
     }
 
-    void removeAllListeners(::mc::server::PlayerAdvancements& advancements) override {
+    void removeAllListeners(::mc::server::PlayerAdvancements& advancements) override
+    {
         m_listeners.erase(&advancements);
     }
 
@@ -234,13 +240,14 @@ public:
      * @param advancements 玩家成就进度
      * @param predicate 检测谓词，返回true表示条件满足
      */
-    template<typename PredicateT>
+    template <typename PredicateT>
     void trigger(::mc::server::PlayerAdvancements& advancements, PredicateT&& predicate);
 
     /**
      * @brief 获取玩家的所有监听器
      */
-    [[nodiscard]] const std::set<Listener>& getListeners(::mc::server::PlayerAdvancements& advancements) const {
+    [[nodiscard]] const std::set<Listener>& getListeners(::mc::server::PlayerAdvancements& advancements) const
+    {
         static const std::set<Listener> empty;
         auto it = m_listeners.find(&advancements);
         return it != m_listeners.end() ? it->second : empty;
@@ -249,7 +256,8 @@ public:
     /**
      * @brief 检查是否有玩家的监听器
      */
-    [[nodiscard]] bool hasListeners(::mc::server::PlayerAdvancements& advancements) const {
+    [[nodiscard]] bool hasListeners(::mc::server::PlayerAdvancements& advancements) const
+    {
         auto it = m_listeners.find(&advancements);
         return it != m_listeners.end() && !it->second.empty();
     }
@@ -262,9 +270,10 @@ private:
 
 // 哈希特化
 namespace std {
-template<typename T>
+template <typename T>
 struct hash<mc::advancement::CriterionListener<T>> {
-    size_t operator()(const mc::advancement::CriterionListener<T>& listener) const {
+    size_t operator()(const mc::advancement::CriterionListener<T>& listener) const
+    {
         size_t h1 = hash<mc::advancement::AdvancementPtr>()(listener.getAdvancement());
         size_t h2 = hash<string>()(listener.getCriterion());
         return h1 ^ (h2 << 1);

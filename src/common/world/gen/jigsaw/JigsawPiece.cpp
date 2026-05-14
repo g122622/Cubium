@@ -1,8 +1,8 @@
 #include "JigsawPiece.hpp"
-#include "../feature/template/TemplateManager.hpp"
-#include "../feature/template/TemplateLoader.hpp"
 #include "../../../resource/IResourcePack.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../feature/template/TemplateLoader.hpp"
+#include "../feature/template/TemplateManager.hpp"
 
 namespace mc {
 namespace world {
@@ -11,8 +11,8 @@ namespace jigsaw {
 
 // 使用 template_ 命名空间中的类型
 using feature::template_::Template;
-using feature::template_::TemplateManager;
 using feature::template_::TemplateJigsawBlockInfo;
+using feature::template_::TemplateManager;
 
 // 静态模板管理器实例（用于加载 Jigsaw 模板）
 static TemplateManager s_jigsawTemplateManager;
@@ -21,20 +21,22 @@ std::string EmptyJigsawPiece::s_typeName = "empty_pool_element";
 std::string SingleJigsawPiece::s_typeName = "single_pool_element";
 std::string ListJigsawPiece::s_typeName = "list_pool_element";
 
-EmptyJigsawPiece& EmptyJigsawPiece::instance() {
+EmptyJigsawPiece& EmptyJigsawPiece::instance()
+{
     static EmptyJigsawPiece instance;
     return instance;
 }
 
-std::unique_ptr<JigsawPiece> EmptyJigsawPiece::clone() const {
+std::unique_ptr<JigsawPiece> EmptyJigsawPiece::clone() const
+{
     // MC 1.16.5: EmptyJigsawPiece 返回自身的克隆（单例模式，但仍需返回有效指针）
     // 参考: EmptyJigsawPiece.java - INSTANCE 单例，但在 JigsawPattern 中仍需有效指针
     return std::make_unique<EmptyJigsawPiece>();
 }
 
-bool JigsawPiece::loadJointsFromTemplate(const std::string& templateName,
-                                          std::vector<JigsawJoint>& joints,
-                                          BlockPos& size) {
+bool JigsawPiece::loadJointsFromTemplate(
+    const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size)
+{
     ResourceLocation loc(templateName);
     const Template* templ = s_jigsawTemplateManager.getTemplate(loc);
 
@@ -96,10 +98,10 @@ SingleJigsawPiece::SingleJigsawPiece(const std::string& templateName, JigsawPlac
 
 ListJigsawPiece::ListJigsawPiece(JigsawPlacementBehaviour behaviour)
     : JigsawPiece(behaviour)
-{
-}
+{}
 
-std::unique_ptr<JigsawPiece> ListJigsawPiece::clone() const {
+std::unique_ptr<JigsawPiece> ListJigsawPiece::clone() const
+{
     auto piece = std::make_unique<ListJigsawPiece>(getPlacementBehaviour());
     piece->setGroundLevelDelta(getGroundLevelDelta());
     for (const auto& child : m_pieces) {
@@ -110,7 +112,8 @@ std::unique_ptr<JigsawPiece> ListJigsawPiece::clone() const {
     return piece;
 }
 
-void ListJigsawPiece::addPiece(std::unique_ptr<JigsawPiece> piece) {
+void ListJigsawPiece::addPiece(std::unique_ptr<JigsawPiece> piece)
+{
     if (piece) {
         m_pieces.push_back(std::move(piece));
     }

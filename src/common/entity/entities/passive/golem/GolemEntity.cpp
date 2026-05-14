@@ -10,14 +10,16 @@ GolemEntity::GolemEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-void GolemEntity::setRevengeTarget(LivingEntity* target) {
+void GolemEntity::setRevengeTarget(LivingEntity* target)
+{
     m_attackTarget = target;
     if (target) {
         m_angerTime = MAX_ANGER_TIME;
     }
 }
 
-void GolemEntity::setAngry(bool angry) {
+void GolemEntity::setAngry(bool angry)
+{
     if (angry) {
         m_angerTime = MAX_ANGER_TIME;
     } else {
@@ -26,14 +28,16 @@ void GolemEntity::setAngry(bool angry) {
     }
 }
 
-void GolemEntity::tick() {
+void GolemEntity::tick()
+{
     MobEntity::tick();
 
     // 更新愤怒状态
     updateAnger();
 }
 
-void GolemEntity::registerAttributes() {
+void GolemEntity::registerAttributes()
+{
     // 调用父类方法
     MobEntity::registerAttributes();
 
@@ -41,7 +45,8 @@ void GolemEntity::registerAttributes() {
     // 子类会覆盖具体值
 }
 
-void GolemEntity::updateAnger() {
+void GolemEntity::updateAnger()
+{
     if (m_angerTime > 0) {
         m_angerTime--;
         if (m_angerTime <= 0) {

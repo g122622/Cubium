@@ -7,7 +7,8 @@ using namespace mc::client::sound;
 
 namespace {
 
-SoundEventDefinition makeEvent(const std::string& id, const std::string& soundId, bool replace = false) {
+SoundEventDefinition makeEvent(const std::string& id, const std::string& soundId, bool replace = false)
+{
     SoundEventDefinition definition{ResourceLocation(id)};
     definition.replace = replace;
     definition.sounds.emplace_back(ResourceLocation(soundId));
@@ -16,7 +17,8 @@ SoundEventDefinition makeEvent(const std::string& id, const std::string& soundId
 
 } // namespace
 
-TEST(SoundRegistryTest, MergeSelfIsNoopAndDoesNotThrow) {
+TEST(SoundRegistryTest, MergeSelfIsNoopAndDoesNotThrow)
+{
     SoundRegistry registry;
     registry.registerSoundEvent(makeEvent("minecraft:block.stone.break", "minecraft:dig/stone1"));
 
@@ -29,7 +31,8 @@ TEST(SoundRegistryTest, MergeSelfIsNoopAndDoesNotThrow) {
     EXPECT_EQ(eventDef->sounds[0].location, ResourceLocation("minecraft:dig/stone1"));
 }
 
-TEST(SoundRegistryTest, MergeDifferentRegistriesAvoidsDeadlockAndMergesData) {
+TEST(SoundRegistryTest, MergeDifferentRegistriesAvoidsDeadlockAndMergesData)
+{
     SoundRegistry base;
     SoundRegistry other;
 

@@ -1,13 +1,13 @@
 #pragma once
 
 #include "client/ui/screen/AbstractContainerScreen.hpp"
-#include "server/menu/CraftingMenu.hpp"
 #include "core/Types.hpp"
+#include "server/menu/CraftingMenu.hpp"
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
 class GuiTextureManager;
-}
+} // namespace mc::client::renderer::trident::gui
 
 namespace mc::client {
 
@@ -33,15 +33,13 @@ public:
      * @param menu 工作台菜单
      */
     explicit CraftingScreen(std::unique_ptr<mc::CraftingMenu> menu,
-                            ContainerClickSender clickSender = {},
-                            ContainerCloseSender closeSender = {});
+        ContainerClickSender clickSender = {},
+        ContainerCloseSender closeSender = {});
 
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] std::string getTitle() const override {
-        return "Crafting";
-    }
+    [[nodiscard]] std::string getTitle() const override { return "Crafting"; }
 
 protected:
     /**
@@ -93,16 +91,15 @@ private:
     /**
      * @brief 检查是否是结果槽位
      */
-    [[nodiscard]] bool isResultSlot(i32 slotIndex) const {
-        return slotIndex == mc::CraftingMenu::RESULT_SLOT;
-    }
+    [[nodiscard]] bool isResultSlot(i32 slotIndex) const { return slotIndex == mc::CraftingMenu::RESULT_SLOT; }
 
     /**
      * @brief 检查是否是合成网格槽位
      */
-    [[nodiscard]] bool isGridSlot(i32 slotIndex) const {
+    [[nodiscard]] bool isGridSlot(i32 slotIndex) const
+    {
         return slotIndex >= mc::CraftingMenu::GRID_SLOT_START &&
-               slotIndex < mc::CraftingMenu::GRID_SLOT_START + mc::CraftingMenu::GRID_SLOT_COUNT;
+            slotIndex < mc::CraftingMenu::GRID_SLOT_START + mc::CraftingMenu::GRID_SLOT_COUNT;
     }
 
     // GUI尺寸常量
@@ -149,15 +146,13 @@ public:
      * @param menu 玩家背包合成菜单
      */
     explicit InventoryCraftingScreen(std::unique_ptr<mc::InventoryCraftingMenu> menu,
-                                     ContainerClickSender clickSender = {},
-                                     ContainerCloseSender closeSender = {});
+        ContainerClickSender clickSender = {},
+        ContainerCloseSender closeSender = {});
 
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] std::string getTitle() const override {
-        return "Inventory";
-    }
+    [[nodiscard]] std::string getTitle() const override { return "Inventory"; }
 
 protected:
     /**
@@ -219,30 +214,31 @@ private:
     /**
      * @brief 检查是否是结果槽位
      */
-    [[nodiscard]] bool isResultSlot(i32 slotIndex) const {
-        return slotIndex == mc::InventoryCraftingMenu::RESULT_SLOT;
-    }
+    [[nodiscard]] bool isResultSlot(i32 slotIndex) const { return slotIndex == mc::InventoryCraftingMenu::RESULT_SLOT; }
 
     /**
      * @brief 检查是否是合成网格槽位
      */
-    [[nodiscard]] bool isGridSlot(i32 slotIndex) const {
+    [[nodiscard]] bool isGridSlot(i32 slotIndex) const
+    {
         return slotIndex >= mc::InventoryCraftingMenu::GRID_SLOT_START &&
-               slotIndex <= mc::InventoryCraftingMenu::GRID_SLOT_END;
+            slotIndex <= mc::InventoryCraftingMenu::GRID_SLOT_END;
     }
 
     /**
      * @brief 检查是否是护甲槽位
      */
-    [[nodiscard]] bool isArmorSlot(i32 slotIndex) const {
+    [[nodiscard]] bool isArmorSlot(i32 slotIndex) const
+    {
         return slotIndex >= mc::InventoryCraftingMenu::ARMOR_SLOT_START &&
-               slotIndex < mc::InventoryCraftingMenu::ARMOR_SLOT_START + mc::InventoryCraftingMenu::ARMOR_SLOT_COUNT;
+            slotIndex < mc::InventoryCraftingMenu::ARMOR_SLOT_START + mc::InventoryCraftingMenu::ARMOR_SLOT_COUNT;
     }
 
     /**
      * @brief 检查是否是副手槽位
      */
-    [[nodiscard]] bool isOffhandSlot(i32 slotIndex) const {
+    [[nodiscard]] bool isOffhandSlot(i32 slotIndex) const
+    {
         return slotIndex == mc::InventoryCraftingMenu::OFFHAND_SLOT;
     }
 

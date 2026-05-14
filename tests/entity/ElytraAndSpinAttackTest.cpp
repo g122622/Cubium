@@ -8,11 +8,11 @@
  * - startSpinAttack()/stopSpinAttack(): 管理激流攻击状态
  */
 
-#include <gtest/gtest.h>
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/core/EntityPose.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityPose.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity;
@@ -22,7 +22,9 @@ using namespace mc::entity;
  */
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity() : LivingEntity(LegacyEntityType::Unknown, EntityId(1), nullptr) {
+    TestLivingEntity()
+        : LivingEntity(LegacyEntityType::Unknown, EntityId(1), nullptr)
+    {
         // 注册数据参数
         registerData();
         // 注册属性
@@ -35,19 +37,19 @@ public:
  */
 class ElytraFlyingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        entity = std::make_unique<TestLivingEntity>();
-    }
+    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
 
     std::unique_ptr<TestLivingEntity> entity;
 };
 
-TEST_F(ElytraFlyingTest, DefaultNotFlying) {
+TEST_F(ElytraFlyingTest, DefaultNotFlying)
+{
     // 默认情况下不应该在鞘翅飞行
     EXPECT_FALSE(entity->isElytraFlying());
 }
 
-TEST_F(ElytraFlyingTest, SetFallFlyingFlagReturnsTrue) {
+TEST_F(ElytraFlyingTest, SetFallFlyingFlagReturnsTrue)
+{
     // 设置 FallFlying 标志
     entity->addFlag(EntityFlags::FallFlying);
 
@@ -55,7 +57,8 @@ TEST_F(ElytraFlyingTest, SetFallFlyingFlagReturnsTrue) {
     EXPECT_TRUE(entity->isElytraFlying());
 }
 
-TEST_F(ElytraFlyingTest, RemoveFallFlyingFlagReturnsFalse) {
+TEST_F(ElytraFlyingTest, RemoveFallFlyingFlagReturnsFalse)
+{
     // 设置标志
     entity->addFlag(EntityFlags::FallFlying);
     EXPECT_TRUE(entity->isElytraFlying());
@@ -65,7 +68,8 @@ TEST_F(ElytraFlyingTest, RemoveFallFlyingFlagReturnsFalse) {
     EXPECT_FALSE(entity->isElytraFlying());
 }
 
-TEST_F(ElytraFlyingTest, FlagPersistAcrossMultipleOperations) {
+TEST_F(ElytraFlyingTest, FlagPersistAcrossMultipleOperations)
+{
     // 设置标志
     entity->addFlag(EntityFlags::FallFlying);
     EXPECT_TRUE(entity->isElytraFlying());
@@ -85,7 +89,8 @@ TEST_F(ElytraFlyingTest, FlagPersistAcrossMultipleOperations) {
     EXPECT_TRUE(entity->isElytraFlying());
 }
 
-TEST_F(ElytraFlyingTest, FallFlyingFlagValue) {
+TEST_F(ElytraFlyingTest, FallFlyingFlagValue)
+{
     // 验证 FallFlying 标志值正确（第7位）
     EXPECT_EQ(static_cast<u8>(EntityFlags::FallFlying), 0x80);
 }
@@ -95,20 +100,20 @@ TEST_F(ElytraFlyingTest, FallFlyingFlagValue) {
  */
 class SpinAttackTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        entity = std::make_unique<TestLivingEntity>();
-    }
+    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
 
     std::unique_ptr<TestLivingEntity> entity;
 };
 
-TEST_F(SpinAttackTest, DefaultNotAttacking) {
+TEST_F(SpinAttackTest, DefaultNotAttacking)
+{
     // 默认情况下不应该在旋转攻击
     EXPECT_FALSE(entity->isSpinAttacking());
     EXPECT_EQ(entity->spinAttackDuration(), 0);
 }
 
-TEST_F(SpinAttackTest, StartSpinAttackSetsFlag) {
+TEST_F(SpinAttackTest, StartSpinAttackSetsFlag)
+{
     // 开始旋转攻击
     entity->startSpinAttack(20);
 
@@ -117,7 +122,8 @@ TEST_F(SpinAttackTest, StartSpinAttackSetsFlag) {
     EXPECT_EQ(entity->spinAttackDuration(), 20);
 }
 
-TEST_F(SpinAttackTest, StopSpinAttackClearsFlag) {
+TEST_F(SpinAttackTest, StopSpinAttackClearsFlag)
+{
     // 开始旋转攻击
     entity->startSpinAttack(20);
     EXPECT_TRUE(entity->isSpinAttacking());
@@ -128,7 +134,8 @@ TEST_F(SpinAttackTest, StopSpinAttackClearsFlag) {
     EXPECT_EQ(entity->spinAttackDuration(), 0);
 }
 
-TEST_F(SpinAttackTest, UpdateSpinAttackDecrementsDuration) {
+TEST_F(SpinAttackTest, UpdateSpinAttackDecrementsDuration)
+{
     // 开始旋转攻击
     entity->startSpinAttack(5);
     EXPECT_EQ(entity->spinAttackDuration(), 5);
@@ -149,7 +156,8 @@ TEST_F(SpinAttackTest, UpdateSpinAttackDecrementsDuration) {
     EXPECT_FALSE(entity->isSpinAttacking());
 }
 
-TEST_F(SpinAttackTest, MultipleStartCallsResetDuration) {
+TEST_F(SpinAttackTest, MultipleStartCallsResetDuration)
+{
     // 开始旋转攻击
     entity->startSpinAttack(10);
     EXPECT_EQ(entity->spinAttackDuration(), 10);
@@ -159,7 +167,8 @@ TEST_F(SpinAttackTest, MultipleStartCallsResetDuration) {
     EXPECT_EQ(entity->spinAttackDuration(), 20);
 }
 
-TEST_F(SpinAttackTest, SpinAttackDurationZeroDoesNotAffectFlag) {
+TEST_F(SpinAttackTest, SpinAttackDurationZeroDoesNotAffectFlag)
+{
     // 开始旋转攻击
     entity->startSpinAttack(1);
     EXPECT_TRUE(entity->isSpinAttacking());
@@ -173,20 +182,22 @@ TEST_F(SpinAttackTest, SpinAttackDurationZeroDoesNotAffectFlag) {
 /**
  * @brief EntityPose 测试
  */
-class EntityPoseTest : public ::testing::Test {
-};
+class EntityPoseTest : public ::testing::Test {};
 
-TEST_F(EntityPoseTest, FallFlyingPoseValue) {
+TEST_F(EntityPoseTest, FallFlyingPoseValue)
+{
     // 验证 FallFlying 姿态值正确
     EXPECT_EQ(static_cast<u8>(EntityPose::FallFlying), 1);
 }
 
-TEST_F(EntityPoseTest, SpinAttackPoseValue) {
+TEST_F(EntityPoseTest, SpinAttackPoseValue)
+{
     // 验证 SpinAttack 姿态值正确
     EXPECT_EQ(static_cast<u8>(EntityPose::SpinAttack), 4);
 }
 
-TEST_F(EntityPoseTest, PoseToString) {
+TEST_F(EntityPoseTest, PoseToString)
+{
     // 验证姿态转字符串
     EXPECT_STREQ(getPoseName(EntityPose::Standing), "standing");
     EXPECT_STREQ(getPoseName(EntityPose::FallFlying), "fall_flying");
@@ -196,7 +207,8 @@ TEST_F(EntityPoseTest, PoseToString) {
     EXPECT_STREQ(getPoseName(EntityPose::Crouching), "crouching");
 }
 
-TEST_F(EntityPoseTest, StringToPose) {
+TEST_F(EntityPoseTest, StringToPose)
+{
     // 验证字符串转姿态
     EXPECT_EQ(getPoseByName("standing"), EntityPose::Standing);
     EXPECT_EQ(getPoseByName("fall_flying"), EntityPose::FallFlying);
@@ -211,14 +223,13 @@ TEST_F(EntityPoseTest, StringToPose) {
  */
 class PoseAndFlagIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        entity = std::make_unique<TestLivingEntity>();
-    }
+    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
 
     std::unique_ptr<TestLivingEntity> entity;
 };
 
-TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingSetsPose) {
+TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingSetsPose)
+{
     // 设置鞘翅飞行标志
     entity->addFlag(EntityFlags::FallFlying);
 
@@ -230,7 +241,8 @@ TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingSetsPose) {
     EXPECT_EQ(entity->pose(), EntityPose::FallFlying);
 }
 
-TEST_F(PoseAndFlagIntegrationTest, SpinAttackSetsPose) {
+TEST_F(PoseAndFlagIntegrationTest, SpinAttackSetsPose)
+{
     // 开始旋转攻击
     entity->startSpinAttack(20);
 
@@ -242,7 +254,8 @@ TEST_F(PoseAndFlagIntegrationTest, SpinAttackSetsPose) {
     EXPECT_EQ(entity->pose(), EntityPose::SpinAttack);
 }
 
-TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingHigherPriorityThanSpinAttack) {
+TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingHigherPriorityThanSpinAttack)
+{
     // 鞘翅飞行优先级高于旋转攻击
     // 在 updatePose() 中，鞘翅飞行优先判断
 

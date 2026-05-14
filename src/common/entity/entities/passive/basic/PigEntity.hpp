@@ -1,13 +1,13 @@
 #pragma once
 
-#include "AnimalEntity.hpp"
-#include "common/entity/interfaces/IRideable.hpp"
-#include "common/entity/interfaces/IEquipable.hpp"
-#include "common/entity/core/BoostHelper.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
-#include <optional>
+#include "AnimalEntity.hpp"
+#include "common/entity/core/BoostHelper.hpp"
+#include "common/entity/interfaces/IEquipable.hpp"
+#include "common/entity/interfaces/IRideable.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 
@@ -155,11 +155,11 @@ protected:
     [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
 
 private:
-    BoostHelper m_boostHelper;  ///< 加速辅助器（MC 1.16.5: field_234214_bx_）
+    BoostHelper m_boostHelper; ///< 加速辅助器（MC 1.16.5: field_234214_bx_）
 
     // MC 1.16.5 常量
-    static constexpr f32 PIG_SPEED = 0.25f;       // 基础移动速度
-    static constexpr f32 MOUNTED_SPEED_MULT = 0.225f;  // 骑乘速度乘数
+    static constexpr f32 PIG_SPEED = 0.25f;           // 基础移动速度
+    static constexpr f32 MOUNTED_SPEED_MULT = 0.225f; // 骑乘速度乘数
 };
 
 } // namespace mc

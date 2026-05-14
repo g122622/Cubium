@@ -1,13 +1,13 @@
 #include "entity/inventory/container/AnvilContainer.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
-#include "entity/entities/player/Player.hpp"
+#include "item/Items.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
-#include "item/Items.hpp"
+#include "item/enchantment/Enchantment.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
-#include "item/enchantment/Enchantment.hpp"
 #include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 #include <algorithm>
@@ -26,17 +26,19 @@ constexpr i32 SLOT_SIZE = 18;
  */
 class AnvilResultSlot : public Slot {
 public:
-    AnvilResultSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y,
-                    AnvilContainer* container)
+    AnvilResultSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y, AnvilContainer* container)
         : Slot(inventory, slotIndex, x, y)
-        , m_container(container) {}
+        , m_container(container)
+    {}
 
-    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override {
+    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override
+    {
         (void)stack;
-        return false;  // 结果槽不能放入物品
+        return false; // 结果槽不能放入物品
     }
 
-    [[nodiscard]] bool mayPickup(Player& player) const override {
+    [[nodiscard]] bool mayPickup(Player& player) const override
+    {
         // MC 1.16.5: 创造模式玩家可以无视经验等级要求取出物品
         // 参考 RepairContainer.func_230303_b_
         if (player.isCreative()) {
@@ -55,36 +57,38 @@ private:
  */
 class AnvilInventory : public IInventory {
 public:
-    static constexpr i32 SIZE = 3;  // 输入1 + 输入2 + 输出
+    static constexpr i32 SIZE = 3; // 输入1 + 输入2 + 输出
 
     i32 getContainerSize() const override { return SIZE; }
 
-    bool isEmpty() const override {
-        return m_items[0].isEmpty() && m_items[1].isEmpty() && m_items[2].isEmpty();
-    }
+    bool isEmpty() const override { return m_items[0].isEmpty() && m_items[1].isEmpty() && m_items[2].isEmpty(); }
 
-    ItemStack getItem(i32 slot) const override {
+    ItemStack getItem(i32 slot) const override
+    {
         if (slot >= 0 && slot < SIZE) {
             return m_items[slot];
         }
         return ItemStack();
     }
 
-    void setItem(i32 slot, const ItemStack& stack) override {
+    void setItem(i32 slot, const ItemStack& stack) override
+    {
         if (slot >= 0 && slot < SIZE) {
             m_items[slot] = stack;
             setChanged();
         }
     }
 
-    ItemStack removeItem(i32 slot, i32 count) override {
+    ItemStack removeItem(i32 slot, i32 count) override
+    {
         if (slot >= 0 && slot < SIZE) {
             return m_items[slot].split(count);
         }
         return ItemStack();
     }
 
-    ItemStack removeItemNoUpdate(i32 slot) override {
+    ItemStack removeItemNoUpdate(i32 slot) override
+    {
         if (slot >= 0 && slot < SIZE) {
             ItemStack result = std::move(m_items[slot]);
             m_items[slot] = ItemStack();
@@ -93,18 +97,18 @@ public:
         return ItemStack();
     }
 
-    void clear() override {
+    void clear() override
+    {
         for (auto& item : m_items) {
             item = ItemStack();
         }
         setChanged();
     }
 
-    void setChanged() override {
-        m_changed = true;
-    }
+    void setChanged() override { m_changed = true; }
 
-    void serialize(network::PacketSerializer& ser) const override {
+    void serialize(network::PacketSerializer& ser) const override
+    {
         // 简单序列化：写入槽位数量和每个物品
         ser.writeVarInt(SIZE);
         for (const auto& item : m_items) {
@@ -124,14 +128,13 @@ private:
 
 // ========== 构造函数 ==========
 
-AnvilContainer::AnvilContainer(ContainerId id,
-                               PlayerInventory* playerInventory,
-                               const BlockPos& position,
-                               IWorld* world)
+AnvilContainer::AnvilContainer(
+    ContainerId id, PlayerInventory* playerInventory, const BlockPos& position, IWorld* world)
     : AbstractContainerMenu(id, playerInventory)
     , m_anvilInventory(std::make_unique<AnvilInventory>())
     , m_position(position)
-    , m_world(world) {
+    , m_world(world)
+{
 
     MC_ASSERT(playerInventory != nullptr);
     initSlots(playerInventory);
@@ -139,12 +142,14 @@ AnvilContainer::AnvilContainer(ContainerId id,
 
 // ========== 重命名 ==========
 
-void AnvilContainer::setItemName(const std::string& name) {
+void AnvilContainer::setItemName(const std::string& name)
+{
     m_itemName = name;
     updateRepairOutput();
 }
 
-bool AnvilContainer::isRenameOnly() const {
+bool AnvilContainer::isRenameOnly() const
+{
     if (m_repairCost <= 0) {
         return false;
     }
@@ -168,33 +173,39 @@ bool AnvilContainer::isRenameOnly() const {
 
 // ========== 槽位访问 ==========
 
-ItemStack AnvilContainer::getInputSlot1() const {
+ItemStack AnvilContainer::getInputSlot1() const
+{
     return m_anvilInventory->getItem(SLOT_INPUT_1);
 }
 
-ItemStack AnvilContainer::getInputSlot2() const {
+ItemStack AnvilContainer::getInputSlot2() const
+{
     return m_anvilInventory->getItem(SLOT_INPUT_2);
 }
 
-ItemStack AnvilContainer::getOutputSlot() const {
+ItemStack AnvilContainer::getOutputSlot() const
+{
     return m_anvilInventory->getItem(SLOT_OUTPUT);
 }
 
 // ========== 容器接口 ==========
 
-bool AnvilContainer::stillValid(const Player& player) const {
+bool AnvilContainer::stillValid(const Player& player) const
+{
     // MC 1.16.5: 检查玩家是否在铁砧附近（64格范围内）
     return isWithinDistance(player, m_position);
 }
 
-void AnvilContainer::slotsChanged(IInventory* inventory) {
+void AnvilContainer::slotsChanged(IInventory* inventory)
+{
     if (inventory == m_anvilInventory.get()) {
         updateRepairOutput();
     }
     AbstractContainerMenu::slotsChanged(inventory);
 }
 
-void AnvilContainer::removed(Player& player) {
+void AnvilContainer::removed(Player& player)
+{
     // 返回输入槽的物品给玩家
     ItemStack input1 = getInputSlot1();
     if (!input1.isEmpty()) {
@@ -212,7 +223,8 @@ void AnvilContainer::removed(Player& player) {
     AbstractContainerMenu::removed(player);
 }
 
-ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player) {
+ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)
+{
     (void)player;
 
     Slot* slot = getSlot(slotIndex);
@@ -255,20 +267,18 @@ ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player) {
 
 // ========== 私有方法 ==========
 
-void AnvilContainer::initSlots(PlayerInventory* playerInventory) {
+void AnvilContainer::initSlots(PlayerInventory* playerInventory)
+{
     // ========== 铁砧槽位 ==========
 
     // 输入槽1（左侧）
-    addSlot(std::make_unique<Slot>(m_anvilInventory.get(), SLOT_INPUT_1,
-                                    INPUT_SLOT_X[0], INPUT_SLOT_Y));
+    addSlot(std::make_unique<Slot>(m_anvilInventory.get(), SLOT_INPUT_1, INPUT_SLOT_X[0], INPUT_SLOT_Y));
 
     // 输入槽2（右侧）
-    addSlot(std::make_unique<Slot>(m_anvilInventory.get(), SLOT_INPUT_2,
-                                    INPUT_SLOT_X[1], INPUT_SLOT_Y));
+    addSlot(std::make_unique<Slot>(m_anvilInventory.get(), SLOT_INPUT_2, INPUT_SLOT_X[1], INPUT_SLOT_Y));
 
     // 输出槽（底部中央）
-    addSlot(std::make_unique<AnvilResultSlot>(m_anvilInventory.get(), SLOT_OUTPUT,
-                                               OUTPUT_SLOT_X, OUTPUT_SLOT_Y, this));
+    addSlot(std::make_unique<AnvilResultSlot>(m_anvilInventory.get(), SLOT_OUTPUT, OUTPUT_SLOT_X, OUTPUT_SLOT_Y, this));
 
     // ========== 玩家主背包（3行9列）==========
 
@@ -293,10 +303,11 @@ void AnvilContainer::initSlots(PlayerInventory* playerInventory) {
     }
 }
 
-void AnvilContainer::updateRepairOutput() {
+void AnvilContainer::updateRepairOutput()
+{
     // 参考: net.minecraft.inventory.container.RepairContainer.updateRepairOutput
     ItemStack input1 = getInputSlot1();
-    m_repairCost = 1;  // 基础成本
+    m_repairCost = 1; // 基础成本
     i32 totalCost = 0;
     i32 renameCost = 0;
     m_materialCost = 0;
@@ -321,9 +332,8 @@ void AnvilContainer::updateRepairOutput() {
 
     if (!input2.isEmpty()) {
         // 检查是否是附魔书
-        bool isEnchantedBook = input2.getItem() != nullptr &&
-                               input2.getItem() == Items::ENCHANTED_BOOK &&
-                               input2.hasEnchantments();
+        bool isEnchantedBook =
+            input2.getItem() != nullptr && input2.getItem() == Items::ENCHANTED_BOOK && input2.hasEnchantments();
 
         // 检查是否可以用材料修复
         // 参考: net.minecraft.item.ItemStack.isDamageable() && item.getIsRepairable(stack, material)
@@ -414,7 +424,7 @@ void AnvilContainer::updateRepairOutput() {
                 for (const auto& [enchant1, level1] : enchantments1) {
                     if (enchant1 != enchant2 && !enchant2->isCompatibleWith(*enchant1)) {
                         canApply = false;
-                        ++totalCost;  // 冲突增加成本
+                        ++totalCost; // 冲突增加成本
                         break;
                     }
                 }
@@ -475,7 +485,6 @@ void AnvilContainer::updateRepairOutput() {
                 m_repairCost = 0;
                 return;
             }
-
         }
     }
 
@@ -541,23 +550,26 @@ void AnvilContainer::updateRepairOutput() {
     detectAndSendChanges();
 }
 
-i32 AnvilContainer::getNewRepairCost(i32 oldRepairCost) {
+i32 AnvilContainer::getNewRepairCost(i32 oldRepairCost)
+{
     // 参考: net.minecraft.inventory.container.RepairContainer.getNewRepairCost
     return oldRepairCost * 2 + 1;
 }
 
-bool AnvilContainer::areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const {
+bool AnvilContainer::areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const
+{
     auto* enchantment1 = item::enchant::EnchantmentRegistry::get(ench1);
     auto* enchantment2 = item::enchant::EnchantmentRegistry::get(ench2);
 
     if (enchantment1 == nullptr || enchantment2 == nullptr) {
-        return true;  // 未知附魔，默认兼容
+        return true; // 未知附魔，默认兼容
     }
 
     return enchantment1->isCompatibleWith(*enchantment2);
 }
 
-bool AnvilContainer::isPlayerCreative() const {
+bool AnvilContainer::isPlayerCreative() const
+{
     // MC 1.16.5: 创造模式玩家在铁砧中有特殊权限
     // 参考 RepairContainer.field_234645_f_.abilities.isCreativeMode
     if (m_playerInventory == nullptr) {

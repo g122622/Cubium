@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../../util/property/StateContainer.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../../util/property/StateContainer.hpp"
+#include "../../Block.hpp"
 
 #include <unordered_map>
 
@@ -34,9 +34,7 @@ public:
     /**
      * @brief 获取 LAYERS 属性
      */
-    [[nodiscard]] static const IntegerProperty& LAYERS() {
-        return BlockStateProperties::LAYERS_1_8();
-    }
+    [[nodiscard]] static const IntegerProperty& LAYERS() { return BlockStateProperties::LAYERS_1_8(); }
 
     /**
      * @brief 构造雪层方块
@@ -48,12 +46,7 @@ public:
      *
      * 在光照 > 11 时融化（掉落雪层物品并移除方块）。
      */
-    void randomTick(
-        IWorld& world,
-        const BlockPos& pos,
-        BlockState& state,
-        math::IRandom& random
-    ) override;
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 是否响应随机刻

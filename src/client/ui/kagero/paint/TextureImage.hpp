@@ -39,11 +39,16 @@ public:
      * @param atlasSlot 图集槽位ID（默认1=物品图集）
      * @param debugName 调试名称
      */
-    TextureImage(VkImageView imageView, VkSampler sampler,
-                 i32 width, i32 height,
-                 f32 u0 = 0.0f, f32 v0 = 0.0f, f32 u1 = 1.0f, f32 v1 = 1.0f,
-                 u8 atlasSlot = 1,
-                 std::string debugName = std::string());
+    TextureImage(VkImageView imageView,
+        VkSampler sampler,
+        i32 width,
+        i32 height,
+        f32 u0 = 0.0f,
+        f32 v0 = 0.0f,
+        f32 u1 = 1.0f,
+        f32 v1 = 1.0f,
+        u8 atlasSlot = 1,
+        std::string debugName = std::string());
 
     ~TextureImage() override = default;
 
@@ -119,7 +124,7 @@ private:
     f32 m_v0 = 0.0f;
     f32 m_u1 = 1.0f;
     f32 m_v1 = 1.0f;
-    u8 m_atlasSlot = 1;  ///< 默认使用物品图集槽位
+    u8 m_atlasSlot = 1; ///< 默认使用物品图集槽位
     ImageFormat m_format = ImageFormat::RGBA8;
     std::string m_debugName;
 };

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../Goal.hpp"
 #include <functional>
 
 namespace mc {
@@ -73,7 +73,7 @@ protected:
  *
  * 参考 MC 1.16.5 NearestAttackableTargetGoal
  */
-template<typename T>
+template <typename T>
 class NearestAttackableTargetGoal : public TargetGoal {
 public:
     /**
@@ -101,7 +101,7 @@ public:
 private:
     i32 m_chance;
     T* m_targetEntity = nullptr;
-    TargetPredicate m_predicate;  // 目标筛选谓词（可选）
+    TargetPredicate m_predicate; // 目标筛选谓词（可选）
 };
 
 /**
@@ -182,7 +182,7 @@ public:
  *
  * 参考 MC 1.16.5 NonTamedTargetGoal
  */
-template<typename T>
+template <typename T>
 class NonTamedTargetGoal : public TargetGoal {
 public:
     /**

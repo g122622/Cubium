@@ -5,13 +5,11 @@
 
 namespace mc::advancement {
 
-ItemPredicate::ItemPredicate(
-    std::optional<ResourceLocation> item,
+ItemPredicate::ItemPredicate(std::optional<ResourceLocation> item,
     std::optional<i32> count,
     IntBounds durability,
     std::optional<ResourceLocation> potion,
-    const nbt::tags::compound_tag* nbt
-)
+    const nbt::tags::compound_tag* nbt)
     : m_item(std::move(item))
     , m_count(count)
     , m_durability(std::move(durability))
@@ -21,7 +19,8 @@ ItemPredicate::ItemPredicate(
     MC_UNUSED(nbt);
 }
 
-bool ItemPredicate::test(const ItemStack& stack) const {
+bool ItemPredicate::test(const ItemStack& stack) const
+{
     if (m_isAny) {
         return true;
     }
@@ -59,11 +58,13 @@ bool ItemPredicate::test(const ItemStack& stack) const {
     return true;
 }
 
-bool ItemPredicate::isAny() const noexcept {
+bool ItemPredicate::isAny() const noexcept
+{
     return m_isAny;
 }
 
-Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json) {
+Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return ItemPredicate{};
     }
@@ -98,7 +99,8 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json) {
     return ItemPredicate(std::move(item), count, std::move(durability), std::move(potion), nullptr);
 }
 
-nlohmann::json ItemPredicate::toJson() const {
+nlohmann::json ItemPredicate::toJson() const
+{
     if (m_isAny) {
         return nullptr;
     }

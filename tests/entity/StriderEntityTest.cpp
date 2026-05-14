@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
-#include "common/entity/entities/passive/special/StriderEntity.hpp"
-#include "common/entity/core/Entity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/passive/special/StriderEntity.hpp"
 
 using namespace mc;
 using namespace mc::math;
@@ -25,9 +25,7 @@ namespace {
 
 class StriderEntityMountedYOffsetTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1));
-    }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1)); }
 
     std::unique_ptr<StriderEntity> strider;
 };
@@ -38,7 +36,8 @@ protected:
  * 当 limbSwingAmount = 0 时，波动项为 0，
  * 偏移应等于 height - 0.19
  */
-TEST_F(StriderEntityMountedYOffsetTest, BaseOffsetWhenStationary) {
+TEST_F(StriderEntityMountedYOffsetTest, BaseOffsetWhenStationary)
+{
     // 刚创建的实体，limbSwingAmount 应该为 0
     // 偏移应该是 height - 0.19
     f64 offset = strider->getMountedYOffset();
@@ -50,8 +49,7 @@ TEST_F(StriderEntityMountedYOffsetTest, BaseOffsetWhenStationary) {
     f64 expectedBase = static_cast<f64>(height) - 0.19;
     f64 tolerance = 0.01; // 允许小的波动，因为 limbSwingAmount 可能有初始值
 
-    EXPECT_NEAR(offset, expectedBase, tolerance)
-        << "Expected offset near height - 0.19 when entity is stationary";
+    EXPECT_NEAR(offset, expectedBase, tolerance) << "Expected offset near height - 0.19 when entity is stationary";
 }
 
 /**
@@ -60,7 +58,8 @@ TEST_F(StriderEntityMountedYOffsetTest, BaseOffsetWhenStationary) {
  * 验证公式：
  * offset = height - 0.19 + 0.12 * cos(limbSwing * 1.5) * 2.0 * min(0.25, limbSwingAmount)
  */
-TEST_F(StriderEntityMountedYOffsetTest, FormulaValidation) {
+TEST_F(StriderEntityMountedYOffsetTest, FormulaValidation)
+{
     f32 height = static_cast<Entity*>(strider.get())->height();
     f32 limbSwing = strider->limbSwing();
     f32 limbSwingAmount = strider->limbSwingAmount();
@@ -68,12 +67,11 @@ TEST_F(StriderEntityMountedYOffsetTest, FormulaValidation) {
     // 按照公式计算期望值
     f32 limbSwingAmountClamped = std::min(0.25f, limbSwingAmount);
     f64 expected = static_cast<f64>(height) - 0.19 +
-                   static_cast<f64>(0.12f * std::cos(limbSwing * 1.5f) * 2.0f * limbSwingAmountClamped);
+        static_cast<f64>(0.12f * std::cos(limbSwing * 1.5f) * 2.0f * limbSwingAmountClamped);
 
     f64 actual = strider->getMountedYOffset();
 
-    EXPECT_DOUBLE_EQ(actual, expected)
-        << "Formula calculation mismatch";
+    EXPECT_DOUBLE_EQ(actual, expected) << "Formula calculation mismatch";
 }
 
 /**
@@ -82,7 +80,8 @@ TEST_F(StriderEntityMountedYOffsetTest, FormulaValidation) {
  * limbSwingAmount 被限制在 0.25 以内，
  * 即使超过 0.25，波动也不应超过 0.12 * 2.0 * 0.25 = 0.06
  */
-TEST_F(StriderEntityMountedYOffsetTest, WaveAmplitudeClamped) {
+TEST_F(StriderEntityMountedYOffsetTest, WaveAmplitudeClamped)
+{
     // 最大波动幅度 = 0.12 * 2.0 * 0.25 = 0.06
     // 这发生在 limbSwingAmount >= 0.25 且 cos(limbSwing * 1.5) = 1 或 -1 时
 
@@ -107,7 +106,8 @@ TEST_F(StriderEntityMountedYOffsetTest, WaveAmplitudeClamped) {
  * limbSwing * 1.5 作为 cos 的参数，
  * 验证不同 limbSwing 值会产生正确的波动
  */
-TEST_F(StriderEntityMountedYOffsetTest, CosineWavePeriod) {
+TEST_F(StriderEntityMountedYOffsetTest, CosineWavePeriod)
+{
     // cos(x * 1.5) 的周期是 2π/1.5 ≈ 4.19
     // 验证波动项是周期性的
 
@@ -133,7 +133,8 @@ TEST_F(StriderEntityMountedYOffsetTest, CosineWavePeriod) {
  *
  * 验证 height 对偏移的线性影响
  */
-TEST_F(StriderEntityMountedYOffsetTest, HeightAffectsOffset) {
+TEST_F(StriderEntityMountedYOffsetTest, HeightAffectsOffset)
+{
     // 偏移 = height - 0.19 + wave
     // 所以偏移与 height 是线性关系（加上一个小的波动项）
 
@@ -144,8 +145,7 @@ TEST_F(StriderEntityMountedYOffsetTest, HeightAffectsOffset) {
     // 由于波动项很小（最大 ±0.06），偏移应该接近 height - 0.19
     f64 expectedBase = static_cast<f64>(height) - 0.19;
 
-    EXPECT_NEAR(offset, expectedBase, 0.07)
-        << "Offset should be close to height - 0.19";
+    EXPECT_NEAR(offset, expectedBase, 0.07) << "Offset should be close to height - 0.19";
 }
 
 /**
@@ -156,7 +156,8 @@ TEST_F(StriderEntityMountedYOffsetTest, HeightAffectsOffset) {
  * - 1.5：频率倍数
  * - 2.0：波动放大系数
  */
-TEST_F(StriderEntityMountedYOffsetTest, WaveCoefficients) {
+TEST_F(StriderEntityMountedYOffsetTest, WaveCoefficients)
+{
     // 当 limbSwing = 0 时，cos(0) = 1
     // 波动 = 0.12 * 1 * 2.0 * limbSwingAmountClamped = 0.24 * limbSwingAmountClamped
 
@@ -191,7 +192,8 @@ TEST_F(StriderEntityMountedYOffsetTest, WaveCoefficients) {
 /**
  * @brief 测试边界条件：limbSwingAmount 为 0
  */
-TEST_F(StriderEntityMountedYOffsetTest, ZeroLimbSwingAmount) {
+TEST_F(StriderEntityMountedYOffsetTest, ZeroLimbSwingAmount)
+{
     // 当 limbSwingAmount = 0 时，波动项为 0
     f32 limbSwingAmount = strider->limbSwingAmount();
 
@@ -201,8 +203,7 @@ TEST_F(StriderEntityMountedYOffsetTest, ZeroLimbSwingAmount) {
         f64 expected = static_cast<f64>(height) - 0.19;
         f64 actual = strider->getMountedYOffset();
 
-        EXPECT_DOUBLE_EQ(actual, expected)
-            << "When limbSwingAmount is 0, offset should equal height - 0.19";
+        EXPECT_DOUBLE_EQ(actual, expected) << "When limbSwingAmount is 0, offset should equal height - 0.19";
     } else {
         // 如果 limbSwingAmount 不为 0，验证公式仍然正确
         SUCCEED() << "limbSwingAmount is not 0, skipping zero test";
@@ -214,7 +215,8 @@ TEST_F(StriderEntityMountedYOffsetTest, ZeroLimbSwingAmount) {
  *
  * 当 limbSwingAmount > 0.25 时，应该被限制为 0.25
  */
-TEST_F(StriderEntityMountedYOffsetTest, LimbSwingAmountClampedToQuarter) {
+TEST_F(StriderEntityMountedYOffsetTest, LimbSwingAmountClampedToQuarter)
+{
     // 由于无法直接设置 limbSwingAmount，
     // 这里验证 clamp 逻辑的正确性
 
@@ -230,7 +232,8 @@ TEST_F(StriderEntityMountedYOffsetTest, LimbSwingAmountClampedToQuarter) {
  *
  * MC 1.16.5 返回 double，确保 C++ 返回 f64
  */
-TEST_F(StriderEntityMountedYOffsetTest, ReturnsDoubleType) {
+TEST_F(StriderEntityMountedYOffsetTest, ReturnsDoubleType)
+{
     f64 offset = strider->getMountedYOffset();
 
     // 验证返回值是有效的 double
@@ -248,7 +251,8 @@ TEST_F(StriderEntityMountedYOffsetTest, ReturnsDoubleType) {
  * float f1 = this.limbSwing;
  * return (double)this.getHeight() - 0.19D + (double)(0.12F * MathHelper.cos(f1 * 1.5F) * 2.0F * f);
  */
-TEST_F(StriderEntityMountedYOffsetTest, MC1165Consistency) {
+TEST_F(StriderEntityMountedYOffsetTest, MC1165Consistency)
+{
     // 这个测试验证我们的实现与 MC 1.16.5 公式一致
     f32 height = static_cast<Entity*>(strider.get())->height();
     f32 limbSwing = strider->limbSwing();
@@ -257,13 +261,11 @@ TEST_F(StriderEntityMountedYOffsetTest, MC1165Consistency) {
     // MC 1.16.5 公式
     f32 f = std::min(0.25f, limbSwingAmount);
     f32 f1 = limbSwing;
-    f64 expected = static_cast<f64>(height) - 0.19 +
-                   static_cast<f64>(0.12f * std::cos(f1 * 1.5f) * 2.0f * f);
+    f64 expected = static_cast<f64>(height) - 0.19 + static_cast<f64>(0.12f * std::cos(f1 * 1.5f) * 2.0f * f);
 
     f64 actual = strider->getMountedYOffset();
 
-    EXPECT_DOUBLE_EQ(actual, expected)
-        << "Implementation should match MC 1.16.5 formula exactly";
+    EXPECT_DOUBLE_EQ(actual, expected) << "Implementation should match MC 1.16.5 formula exactly";
 }
 
 /**
@@ -271,7 +273,8 @@ TEST_F(StriderEntityMountedYOffsetTest, MC1165Consistency) {
  *
  * 验证波动项总是有限的，不会导致异常值
  */
-TEST_F(StriderEntityMountedYOffsetTest, WaveTermBounded) {
+TEST_F(StriderEntityMountedYOffsetTest, WaveTermBounded)
+{
     // 对于任意 limbSwing 值，cos 值在 [-1, 1] 范围内
     // 对于任意 limbSwingAmount，clamped 值在 [0, 0.25] 范围内
     // 所以波动项范围是 [-0.06, 0.06]
@@ -300,25 +303,26 @@ TEST_F(StriderEntityMountedYOffsetTest, WaveTermBounded) {
 
 class StriderEntityBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1));
-    }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1)); }
 
     std::unique_ptr<StriderEntity> strider;
 };
 
-TEST_F(StriderEntityBasicTest, IsNotColdInitially) {
+TEST_F(StriderEntityBasicTest, IsNotColdInitially)
+{
     EXPECT_FALSE(strider->isCold());
     EXPECT_EQ(strider->getColdTimer(), 0);
 }
 
-TEST_F(StriderEntityBasicTest, CanSetColdTimer) {
+TEST_F(StriderEntityBasicTest, CanSetColdTimer)
+{
     strider->setColdTimer(50);
     EXPECT_TRUE(strider->isCold());
     EXPECT_EQ(strider->getColdTimer(), 50);
 }
 
-TEST_F(StriderEntityBasicTest, CanSetSaddle) {
+TEST_F(StriderEntityBasicTest, CanSetSaddle)
+{
     EXPECT_FALSE(strider->hasSaddle());
 
     strider->setSaddle(true);
@@ -328,11 +332,13 @@ TEST_F(StriderEntityBasicTest, CanSetSaddle) {
     EXPECT_FALSE(strider->hasSaddle());
 }
 
-TEST_F(StriderEntityBasicTest, IsNotOnLavaSurfaceInitially) {
+TEST_F(StriderEntityBasicTest, IsNotOnLavaSurfaceInitially)
+{
     EXPECT_FALSE(strider->isOnLavaSurface());
 }
 
-TEST_F(StriderEntityBasicTest, CanSetOnLavaSurface) {
+TEST_F(StriderEntityBasicTest, CanSetOnLavaSurface)
+{
     strider->setOnLavaSurface(true);
     EXPECT_TRUE(strider->isOnLavaSurface());
 
@@ -340,20 +346,24 @@ TEST_F(StriderEntityBasicTest, CanSetOnLavaSurface) {
     EXPECT_FALSE(strider->isOnLavaSurface());
 }
 
-TEST_F(StriderEntityBasicTest, IsNotBeingRiddenInitially) {
+TEST_F(StriderEntityBasicTest, IsNotBeingRiddenInitially)
+{
     EXPECT_FALSE(strider->isBeingRidden());
 }
 
-TEST_F(StriderEntityBasicTest, CanBeRidden) {
+TEST_F(StriderEntityBasicTest, CanBeRidden)
+{
     EXPECT_TRUE(strider->canBeRidden());
 }
 
-TEST_F(StriderEntityBasicTest, CannotBeRiddenInWater) {
+TEST_F(StriderEntityBasicTest, CannotBeRiddenInWater)
+{
     // MC 1.16.5: 炽足兽不能在水中骑乘
     EXPECT_FALSE(strider->canBeRiddenInWater());
 }
 
-TEST_F(StriderEntityBasicTest, EyeHeightDependsOnAge) {
+TEST_F(StriderEntityBasicTest, EyeHeightDependsOnAge)
+{
     // 成体眼睛高度 = 1.0
     EXPECT_FLOAT_EQ(strider->eyeHeight(), 1.0f);
 
@@ -370,13 +380,15 @@ TEST_F(StriderEntityBasicTest, EyeHeightDependsOnAge) {
     EXPECT_FLOAT_EQ(childStrider.eyeHeight(), 1.0f);
 }
 
-TEST_F(StriderEntityBasicTest, InitialBoostState) {
+TEST_F(StriderEntityBasicTest, InitialBoostState)
+{
     EXPECT_FALSE(strider->isBoosting());
     // Note: getBoostTime() requires EntityDataManager initialization
     // which is not available in unit tests without a full world setup
 }
 
-TEST_F(StriderEntityBasicTest, CanSetBoostTime) {
+TEST_F(StriderEntityBasicTest, CanSetBoostTime)
+{
     // Note: setBoostTime() requires EntityDataManager initialization
     // The BoostHelper needs to be initialized with a DataParameter
     // This is tested in BoostHelperTest in RidingSystemTests.cpp
@@ -385,7 +397,8 @@ TEST_F(StriderEntityBasicTest, CanSetBoostTime) {
     // Without EntityDataManager, this call is a no-op
 }
 
-TEST_F(StriderEntityBasicTest, HeightAccessorWorks) {
+TEST_F(StriderEntityBasicTest, HeightAccessorWorks)
+{
     // 通过 Entity 基类接口访问 height()
     Entity* entity = strider.get();
     f32 height = entity->height();
@@ -393,7 +406,7 @@ TEST_F(StriderEntityBasicTest, HeightAccessorWorks) {
     // StriderEntity 的基础高度是 1.7（参考 MC 1.16.5）
     // 成体 Strider 高度约 1.7
     EXPECT_GT(height, 0.0f);
-    EXPECT_LT(height, 5.0f);  // 合理的上界
+    EXPECT_LT(height, 5.0f); // 合理的上界
 }
 
 } // namespace

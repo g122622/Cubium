@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Screen.hpp"
 #include "../../kagero/paint/PaintContext.hpp"
-#include <vector>
+#include "Screen.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc::client::ui::minecraft {
 

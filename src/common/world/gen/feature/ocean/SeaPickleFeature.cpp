@@ -1,17 +1,18 @@
 #include "SeaPickleFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../WorldConstants.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include <algorithm>
 
 namespace mc {
 
 namespace {
 
-[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
+{
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
     if (oceanFloorY > 0) {
         return oceanFloorY;
@@ -41,10 +42,7 @@ namespace {
 // ============================================================================
 
 bool SeaPickleFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const SeaPickleFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SeaPickleFeatureConfig& config)
 {
     if (!config.seaPickleState) {
         return false;
@@ -85,10 +83,7 @@ bool SeaPickleFeature::place(
     return placedAny;
 }
 
-bool SeaPickleFeature::canPlaceAt(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    const BlockState& pickleState) const
+bool SeaPickleFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& pickleState) const
 {
     MC_UNUSED(pickleState);
 
@@ -121,19 +116,13 @@ bool SeaPickleFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 // ============================================================================
 
 ConfiguredSeaPickleFeature::ConfiguredSeaPickleFeature(
-    std::unique_ptr<SeaPickleFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<SeaPickleFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredSeaPickleFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);

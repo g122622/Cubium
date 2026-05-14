@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractHorseEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AbstractHorseEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -59,7 +59,8 @@ public:
      * @brief 检查物品是否可用于繁殖
      * 僵尸马不能繁殖
      */
-    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override {
+    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override
+    {
         (void)itemStack;
         return false;
     }
@@ -68,7 +69,8 @@ public:
      * @brief 生成幼体
      * 僵尸马不能繁殖
      */
-    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override {
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override
+    {
         (void)partner;
         return nullptr;
     }

@@ -1,33 +1,33 @@
 #include "Player.hpp"
-#include "GameModeUtils.hpp"
-#include "../../inventory/Slot.hpp"
-#include "../../experience/ExperienceManager.hpp"
+#include "../../../item/core/ActionResult.hpp"
+#include "../../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
+#include "../../../item/items/armor/ArmorItem.hpp"
+#include "../../../item/items/tool/SwordItem.hpp"
+#include "../../../physics/PhysicsConstants.hpp"
+#include "../../../physics/PhysicsEngine.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockSoundType.hpp"
+#include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
 #include "../../damage/DamageSource.hpp"
-#include "../../../physics/PhysicsEngine.hpp"
-#include "../../../physics/PhysicsConstants.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../inventory/CreativeInventory.hpp"
-#include "../../experience/ExperienceDropHandler.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/gamerule/GameRules.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockSoundType.hpp"
-#include "../../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
-#include "../../../item/items/tool/SwordItem.hpp"
-#include "../../../item/items/armor/ArmorItem.hpp"
-#include "../../../item/core/ActionResult.hpp"
 #include "../../entities/item/ItemEntity.hpp"
+#include "../../experience/ExperienceDropHandler.hpp"
+#include "../../experience/ExperienceManager.hpp"
+#include "../../inventory/CreativeInventory.hpp"
+#include "../../inventory/Slot.hpp"
 #include "../../utils/ItemDropHelper.hpp"
+#include "GameModeUtils.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
-#include <cmath>
 #include <chrono>
+#include <cmath>
 
 namespace mc {
 
@@ -35,14 +35,16 @@ namespace {
 
 /// 获取玩家指定姿态的宽度
 /// MC 1.16.5: Sleeping 姿态宽度为 0.2，其他姿态为 0.6
-[[nodiscard]] f32 getPlayerPoseWidth(EntityPose pose) {
+[[nodiscard]] f32 getPlayerPoseWidth(EntityPose pose)
+{
     if (pose == EntityPose::Sleeping) {
-        return 0.2f;  // MC 1.16.5: EntitySize.fixed(0.2F, 0.2F)
+        return 0.2f; // MC 1.16.5: EntitySize.fixed(0.2F, 0.2F)
     }
     return Player::PLAYER_WIDTH;
 }
 
-[[nodiscard]] f32 getPlayerPoseHeight(EntityPose pose) {
+[[nodiscard]] f32 getPlayerPoseHeight(EntityPose pose)
+{
     switch (pose) {
         case EntityPose::Sleeping:
             return 0.2f;
@@ -57,7 +59,8 @@ namespace {
     }
 }
 
-[[nodiscard]] f32 getPlayerPoseEyeHeight(EntityPose pose) {
+[[nodiscard]] f32 getPlayerPoseEyeHeight(EntityPose pose)
+{
     switch (pose) {
         case EntityPose::Sleeping:
             return 0.2f;
@@ -95,7 +98,8 @@ Player::Player(EntityId id, const std::string& username)
 
 Player::~Player() = default;
 
-void Player::setPosition(f32 x, f32 y, f32 z) {
+void Player::setPosition(f32 x, f32 y, f32 z)
+{
     Entity::setPosition(x, y, z);
     snapshotInterpolationState();
 
@@ -114,7 +118,8 @@ void Player::setPosition(f32 x, f32 y, f32 z) {
     m_swimSoundVolume = 0.0f;
 }
 
-void Player::setGameMode(GameMode mode) {
+void Player::setGameMode(GameMode mode)
+{
     m_gameMode = mode;
 
     // 使用 GameModeUtils 更新能力
@@ -122,20 +127,21 @@ void Player::setGameMode(GameMode mode) {
 
     // 同步移动速度到属性系统
     // PlayerAbilities 是配置层，属性系统是计算层
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED,
-                               static_cast<f64>(m_abilities.walkSpeed));
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, static_cast<f64>(m_abilities.walkSpeed));
 }
 
 // ============================================================================
 // 生命值管理（覆盖 LivingEntity 方法）
 // ============================================================================
 
-void Player::setHealth(f32 health) {
+void Player::setHealth(f32 health)
+{
     // 直接调用父类方法
     LivingEntity::setHealth(health);
 }
 
-void Player::heal(f32 amount) {
+void Player::heal(f32 amount)
+{
     // 直接调用父类方法
     LivingEntity::heal(amount);
 }
@@ -144,35 +150,43 @@ void Player::heal(f32 amount) {
 // 经验系统 - 委托给 ExperienceManager
 // ============================================================================
 
-void Player::addExperience(i32 amount) {
+void Player::addExperience(i32 amount)
+{
     m_experienceManager->addExperience(amount);
 }
 
-void Player::setExperienceLevel(i32 level) {
+void Player::setExperienceLevel(i32 level)
+{
     m_experienceManager->setLevel(level);
 }
 
-void Player::addExperienceLevels(i32 levels) {
+void Player::addExperienceLevels(i32 levels)
+{
     m_experienceManager->addLevels(levels);
 }
 
-bool Player::consumeExperience(i32 amount) {
+bool Player::consumeExperience(i32 amount)
+{
     return m_experienceManager->consumeExperience(amount);
 }
 
-bool Player::consumeExperienceLevels(i32 levels) {
+bool Player::consumeExperienceLevels(i32 levels)
+{
     return m_experienceManager->consumeLevels(levels);
 }
 
-i32 Player::experienceBarCapacity() const {
+i32 Player::experienceBarCapacity() const
+{
     return m_experienceManager->getExperienceForNextLevel();
 }
 
-void Player::setExperience(i32 level, f32 progress, i32 totalExperience) {
+void Player::setExperience(i32 level, f32 progress, i32 totalExperience)
+{
     m_experienceManager->setExperience(level, progress, totalExperience);
 }
 
-void Player::sendStatusMessage(const std::string& message, bool actionBar) {
+void Player::sendStatusMessage(const std::string& message, bool actionBar)
+{
     // Player 基类默认实现：空操作
     // ServerPlayer 会重写此方法以发送网络消息
     // 客户端 Player 可能会直接显示在聊天界面
@@ -180,28 +194,30 @@ void Player::sendStatusMessage(const std::string& message, bool actionBar) {
     (void)actionBar;
 }
 
-void Player::dropExperience() {
+void Player::dropExperience()
+{
     // 玩家死亡时掉落经验
     // 参考 MC 1.16.5: min(level * 7, 100)
     if (m_world && m_experienceManager->getLevel() > 0) {
         i32 xpToDrop = m_experienceManager->calculateDeathDropXp();
         if (xpToDrop > 0) {
-            math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
-            entity::ExperienceDropHandler::spawnExperienceOrbs(
-                m_world, x(), y(), z(), xpToDrop, &rng
-            );
+            math::Random rng(
+                static_cast<u64>(m_id) ^ static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
+            entity::ExperienceDropHandler::spawnExperienceOrbs(m_world, x(), y(), z(), xpToDrop, &rng);
         }
     }
 }
 
-ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem) {
+ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem)
+{
     // MC 1.16.5: PlayerEntity.dropItem(ItemStack, boolean, boolean)
     if (stack.isEmpty() || m_world == nullptr) {
         return nullptr;
     }
 
     // 获取随机数生成器
-    math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
+    math::Random rng(
+        static_cast<u64>(m_id) ^ static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
 
     // 计算掉落位置（玩家眼睛高度 - 0.3）
     f64 dropY = static_cast<f64>(y()) + static_cast<f64>(eyeHeight()) - 0.3;
@@ -210,14 +226,16 @@ ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem) 
     Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(rng, dropAround, m_yaw, m_pitch);
 
     // 生成物品实体
-    ItemEntity* itemEntity = ItemDropHelper::spawnItemEntity(
-        m_world,
+    ItemEntity* itemEntity = ItemDropHelper::spawnItemEntity(m_world,
         stack,
-        x(), dropY, z(),
-        velocity.x, velocity.y, velocity.z,
+        x(),
+        dropY,
+        z(),
+        velocity.x,
+        velocity.y,
+        velocity.z,
         ItemDropHelper::DEFAULT_PICKUP_DELAY,
-        traceItem ? uuid() : ""
-    );
+        traceItem ? uuid() : "");
 
     if (itemEntity != nullptr) {
         // 挥手动画（客户端）
@@ -230,21 +248,24 @@ ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem) 
     return itemEntity;
 }
 
-ItemEntity* Player::dropItem(ItemStack& stack, bool unused) {
+ItemEntity* Player::dropItem(ItemStack& stack, bool unused)
+{
     (void)unused;
     // MC 1.16.5: dropItem(ItemStack, boolean) -> ForgeHooks.onPlayerTossEvent
     // 简化实现：直接调用完整版本
     return dropItem(stack, false, true);
 }
 
-void Player::damageArmor(DamageSource& source, f32 amount) {
+void Player::damageArmor(DamageSource& source, f32 amount)
+{
     // MC 1.16.5: PlayerEntity.damageArmor() -> PlayerInventory.damageArmor()
     m_inventory.damageArmor(source, amount);
 }
 
 // ============================================================================
 
-void Player::setSprinting(bool sprinting) {
+void Player::setSprinting(bool sprinting)
+{
     m_isSprinting = sprinting;
     if (sprinting) {
         addFlag(EntityFlags::Sprinting);
@@ -253,7 +274,8 @@ void Player::setSprinting(bool sprinting) {
     }
 }
 
-void Player::setSneaking(bool sneaking) {
+void Player::setSneaking(bool sneaking)
+{
     if (sneaking) {
         m_isSneaking = true;
         addFlag(EntityFlags::Crouching);
@@ -273,7 +295,8 @@ void Player::setSneaking(bool sneaking) {
     setPose(EntityPose::Crouching);
 }
 
-void Player::setSwimming(bool swimming) {
+void Player::setSwimming(bool swimming)
+{
     m_isSwimming = swimming;
     if (swimming) {
         addFlag(EntityFlags::Swimming);
@@ -293,14 +316,16 @@ void Player::setSwimming(bool swimming) {
     setSneaking(true);
 }
 
-void Player::toggleFlying() {
+void Player::toggleFlying()
+{
     if (!m_abilities.canFly) {
         return; // 不允许飞行则无法切换
     }
     m_abilities.flying = !m_abilities.flying;
 }
 
-void Player::setSleeping(bool sleeping) {
+void Player::setSleeping(bool sleeping)
+{
     m_isSleeping = sleeping;
     if (sleeping) {
         setPose(EntityPose::Sleeping);
@@ -317,7 +342,8 @@ void Player::setSleeping(bool sleeping) {
     setSneaking(true);
 }
 
-void Player::startSleeping(const BlockPos& pos) {
+void Player::startSleeping(const BlockPos& pos)
+{
     // 设置睡眠位置
     m_sleepingPosition = pos;
 
@@ -337,14 +363,16 @@ void Player::startSleeping(const BlockPos& pos) {
     }
 }
 
-entity::SleepResult Player::tryStartSleeping(const BlockPos& bedPos) {
+entity::SleepResult Player::tryStartSleeping(const BlockPos& bedPos)
+{
     // 基类实现：简单调用 startSleeping，不做验证
     // ServerPlayer 会重写此方法进行完整验证
     startSleeping(bedPos);
     return entity::SleepResult::OK;
 }
 
-void Player::stopSleeping() {
+void Player::stopSleeping()
+{
     if (!m_isSleeping) {
         return;
     }
@@ -365,34 +393,41 @@ void Player::stopSleeping() {
     // 唤醒后 sleepTimer 会继续增加到 110 然后重置
 }
 
-void Player::setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forced) {
+void Player::setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forced)
+{
     m_spawnPoint = GlobalPos(dimension, pos);
     m_spawnForced = forced;
 }
 
-f32 Player::height() const {
+f32 Player::height() const
+{
     return getPlayerPoseHeight(m_pose);
 }
 
-f32 Player::eyeHeight() const {
+f32 Player::eyeHeight() const
+{
     return getPlayerPoseEyeHeight(m_pose);
 }
 
-entity::EntitySize Player::getDimensions(EntityPose pose) const {
+entity::EntitySize Player::getDimensions(EntityPose pose) const
+{
     // MC 1.16.5: Sleeping 姿态使用固定宽度 0.2
     return entity::EntitySize(getPlayerPoseWidth(pose), getPlayerPoseHeight(pose), getPlayerPoseEyeHeight(pose), false);
 }
 
-bool Player::canFitPose(EntityPose pose) const {
+bool Player::canFitPose(EntityPose pose) const
+{
     if (pose == m_pose || m_world == nullptr) {
         return true;
     }
 
-    AxisAlignedBB candidateBox = getDimensions(pose).makeBoundingBox(m_position.x, m_position.y, m_position.z).shrink(PLAYER_POSE_FIT_EPSILON);
+    AxisAlignedBB candidateBox =
+        getDimensions(pose).makeBoundingBox(m_position.x, m_position.y, m_position.z).shrink(PLAYER_POSE_FIT_EPSILON);
     return !m_world->hasBlockCollision(candidateBox) && !m_world->hasEntityCollision(candidateBox, this);
 }
 
-void Player::tick() {
+void Player::tick()
+{
     LivingEntity::tick();
 
     // 更新 XP 冷却
@@ -451,8 +486,8 @@ void Player::tick() {
     // 只有生存模式和冒险模式才处理饥饿
     if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
         // 从世界获取游戏规则 naturalRegeneration
-        bool naturalRegeneration = m_world ? m_world->getGameRules().getBoolean(
-            world::gamerule::GameRuleKeys::NATURAL_REGENERATION) : true;
+        bool naturalRegeneration =
+            m_world ? m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::NATURAL_REGENERATION) : true;
         // 从世界获取难度，如果没有世界则默认为 Normal
         Difficulty difficulty = m_world ? m_world->difficulty() : Difficulty::Normal;
         m_foodStats.tick(*this, difficulty, naturalRegeneration);
@@ -475,7 +510,8 @@ void Player::tick() {
     checkEntityCollisions();
 }
 
-void Player::checkEntityCollisions() {
+void Player::checkEntityCollisions()
+{
     // 参考 MC 1.16.5 PlayerEntity.tick() 第531-547行
     // 只在存活且非观察者模式时检测碰撞
     if (!isAlive() || isSpectator()) {
@@ -502,7 +538,8 @@ void Player::checkEntityCollisions() {
     }
 }
 
-bool Player::tickPortal() {
+bool Player::tickPortal()
+{
     // 玩家需要 80 tick (4秒) 在传送门中才能传送
     // 创造模式（无敌状态）只需要 1 tick
     // 参考 MC 1.16.5 PlayerEntity.tick()
@@ -533,7 +570,8 @@ bool Player::tickPortal() {
     return false;
 }
 
-void Player::update() {
+void Player::update()
+{
     Entity::update();
 }
 
@@ -559,7 +597,8 @@ void Player::update() {
  * 参考源码: Entity.java:1166-1181, LivingEntity.java:2148-2167
  * 飞行上升/下降: ClientPlayerEntity.java:788-801 - 使用 flySpeed * 3.0F
  */
-void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking)
+{
     m_inputForward = forward;
     m_inputStrafe = strafe;
     m_inputJumping = jumping;
@@ -567,7 +606,8 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
     m_isJumping = jumping;
 }
 
-void Player::applyCachedMovementInput(f32 groundSlipperiness) {
+void Player::applyCachedMovementInput(f32 groundSlipperiness)
+{
     const f32 forward = m_inputForward;
     const f32 strafe = m_inputStrafe;
     const bool jumping = m_inputJumping;
@@ -599,7 +639,10 @@ void Player::applyCachedMovementInput(f32 groundSlipperiness) {
     f32 speedFactor = m_abilities.walkSpeed;
     if (!m_abilities.flying) {
         if (m_onGround) {
-            speedFactor = physics::getGroundMoveFactor(static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_abilities.walkSpeed)), groundSlipperiness);
+            speedFactor = physics::getGroundMoveFactor(
+                static_cast<f32>(
+                    getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_abilities.walkSpeed)),
+                groundSlipperiness);
         } else {
             speedFactor = m_isSprinting ? physics::SPRINT_JUMP_MOVEMENT_FACTOR : physics::JUMP_MOVEMENT_FACTOR;
         }
@@ -641,7 +684,8 @@ void Player::applyCachedMovementInput(f32 groundSlipperiness) {
             verticalInput -= 1;
         }
         if (verticalInput != 0) {
-            f32 verticalSpeed = m_abilities.flySpeed * physics::FLY_VERTICAL_INPUT_MULTIPLIER * (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
+            f32 verticalSpeed = m_abilities.flySpeed * physics::FLY_VERTICAL_INPUT_MULTIPLIER *
+                (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
             m_velocity.y += static_cast<f32>(verticalInput) * verticalSpeed;
         }
     } else {
@@ -651,7 +695,8 @@ void Player::applyCachedMovementInput(f32 groundSlipperiness) {
     }
 }
 
-void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking)
+{
     // 参考 MC 1.16.5 LivingEntity.travel() 水中分支
     // 关键逻辑：
     // 1. 水中重力减弱（浮力）
@@ -689,8 +734,7 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     // 深度守卫对阻力的影响
     // MC: f5 += (0.54600006F - f5) * f7 / 3.0F
     if (depthStriderLevel > 0) {
-        waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) *
-                     static_cast<f32>(depthStriderLevel) / 3.0f;
+        waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) * static_cast<f32>(depthStriderLevel) / 3.0f;
     }
 
     // 海豚的恩惠大幅减少水中阻力
@@ -735,7 +779,7 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     // MC: this.setMotion(this.getMotion().mul((double)f5, (double)0.8F, (double)f5));
     // 垂直方向阻力固定为 0.8
     m_velocity.x *= waterDrag;
-    m_velocity.y *= 0.8f;  // 水中垂直阻力固定为 0.8
+    m_velocity.y *= 0.8f; // 水中垂直阻力固定为 0.8
     m_velocity.z *= waterDrag;
 
     // 应用水中的"浮力"效果
@@ -743,7 +787,7 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     // 重力减少到 1/16 (0.08 / 16 = 0.005)
     if (!m_abilities.flying && !m_noGravity) {
         f32 gravity = physics::GRAVITY;
-        f32 buoyancy = gravity / 16.0f;  // MC 标准：重力 / 16
+        f32 buoyancy = gravity / 16.0f; // MC 标准：重力 / 16
 
         // 下落时应用浮力
         if (m_velocity.y < 0.0f) {
@@ -762,7 +806,8 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     clampMotion();
 }
 
-void Player::handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+void Player::handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking)
+{
     // 参考 MC 1.16.5 LivingEntity.travel() 岩浆分支
     // 岩浆中移动比水中更慢
 
@@ -790,7 +835,7 @@ void Player::handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool snea
 
     // 垂直移动（岩浆中也能向上游，但更慢）
     if (jumping) {
-        m_velocity.y += physics::SWIM_UP_SPEED * 0.5f;  // 岩浆中向上游更慢
+        m_velocity.y += physics::SWIM_UP_SPEED * 0.5f; // 岩浆中向上游更慢
     } else if (sneaking) {
         m_velocity.y -= physics::SWIM_DOWN_SPEED * 0.5f;
     }
@@ -810,7 +855,8 @@ void Player::handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool snea
     clampMotion();
 }
 
-void Player::jump() {
+void Player::jump()
+{
     if (m_onGround && m_jumpTicks == 0) {
         m_velocity.y = physics::JUMP_VELOCITY;
         m_onGround = false;
@@ -834,22 +880,22 @@ void Player::jump() {
  * if (Math.abs(motion.y) < 0.003) motion.y = 0;
  * if (Math.abs(motion.z) < 0.003) motion.z = 0;
  */
-void Player::clampMotion() {
+void Player::clampMotion()
+{
     if (std::abs(m_velocity.x) < physics::MOTION_THRESHOLD) m_velocity.x = 0.0f;
     if (std::abs(m_velocity.y) < physics::MOTION_THRESHOLD) m_velocity.y = 0.0f;
     if (std::abs(m_velocity.z) < physics::MOTION_THRESHOLD) m_velocity.z = 0.0f;
 }
 
-f32 Player::groundSlipperiness() const {
+f32 Player::groundSlipperiness() const
+{
     if (!m_onGround || m_world == nullptr) {
         return physics::SLIPPERINESS_DEFAULT;
     }
 
-    BlockPos blockPos(
-        static_cast<i32>(std::floor(m_position.x)),
+    BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
         static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
-        static_cast<i32>(std::floor(m_position.z))
-    );
+        static_cast<i32>(std::floor(m_position.z)));
     const BlockState* blockState = m_world->getBlockState(blockPos);
     if (blockState == nullptr) {
         return physics::SLIPPERINESS_DEFAULT;
@@ -866,7 +912,8 @@ f32 Player::groundSlipperiness() const {
  * @param movement 期望移动向量
  * @return 修正后的移动向量
  */
-Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const {
+Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const
+{
     // 只在潜行时检测
     if (!m_isSneaking) {
         return movement;
@@ -891,14 +938,12 @@ Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const {
 
     // 检查移动后的位置下方是否有方块
     // 向下检测一小段距离
-    AxisAlignedBB testBox = AxisAlignedBB(
-        newX - PLAYER_WIDTH / 2.0f,
+    AxisAlignedBB testBox = AxisAlignedBB(newX - PLAYER_WIDTH / 2.0f,
         m_position.y - SNEAK_EDGE_DISTANCE,
         newZ - PLAYER_WIDTH / 2.0f,
         newX + PLAYER_WIDTH / 2.0f,
         m_position.y,
-        newZ + PLAYER_WIDTH / 2.0f
-    );
+        newZ + PLAYER_WIDTH / 2.0f);
 
     // 检查是否有碰撞
     std::vector<AxisAlignedBB> boxes;
@@ -912,7 +957,8 @@ Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const {
     return movement;
 }
 
-void Player::updatePhysics() {
+void Player::updatePhysics()
+{
     snapshotInterpolationState();
 
     // 0. 更新跳跃冷却（客户端物理每帧都会调用）
@@ -963,7 +1009,8 @@ void Player::updatePhysics() {
             m_velocity.y *= physics::FLY_VERTICAL_DRAG;
             m_velocity.z *= physics::FLY_HORIZONTAL_DRAG;
         } else {
-            const f32 horizontalDrag = m_onGround ? tickGroundSlipperiness * physics::DRAG_GROUND : physics::DRAG_GROUND;
+            const f32 horizontalDrag =
+                m_onGround ? tickGroundSlipperiness * physics::DRAG_GROUND : physics::DRAG_GROUND;
             m_velocity.x *= horizontalDrag;
             m_velocity.y *= physics::DRAG_AIR;
             m_velocity.z *= horizontalDrag;
@@ -1030,7 +1077,8 @@ void Player::updatePhysics() {
     clampMotion();
 }
 
-void Player::applyMovementSpeed(f32& speed, bool sneaking) const {
+void Player::applyMovementSpeed(f32& speed, bool sneaking) const
+{
     if (m_abilities.flying) {
         speed = m_abilities.flySpeed;
     } else {
@@ -1044,24 +1092,25 @@ void Player::applyMovementSpeed(f32& speed, bool sneaking) const {
     }
 }
 
-network::PlayerPosition Player::playerPosition() const {
-    return network::PlayerPosition(
-        static_cast<f64>(m_position.x),
+network::PlayerPosition Player::playerPosition() const
+{
+    return network::PlayerPosition(static_cast<f64>(m_position.x),
         static_cast<f64>(m_position.y),
         static_cast<f64>(m_position.z),
         m_yaw,
         m_pitch,
-        m_onGround
-    );
+        m_onGround);
 }
 
-i32 Player::armorValue() const {
+i32 Player::armorValue() const
+{
     // MC 1.16.5: 计算总护甲值
     // 参考: PlayerEntity.getTotalArmorValue() -> ArmorItem.getTotalArmorValue()
     return item::items::ArmorItem::getTotalArmorValue(*this);
 }
 
-const ItemStack& Player::getEquipment(EquipmentSlot slot) const {
+const ItemStack& Player::getEquipment(EquipmentSlot slot) const
+{
     // MC 1.16.5: Player 重写 getEquipment 从 PlayerInventory 获取装备
     // 参考: PlayerEntity.getItemStackFromSlot
     switch (slot) {
@@ -1083,7 +1132,8 @@ const ItemStack& Player::getEquipment(EquipmentSlot slot) const {
     }
 }
 
-void Player::setEquipment(EquipmentSlot slot, const ItemStack& stack) {
+void Player::setEquipment(EquipmentSlot slot, const ItemStack& stack)
+{
     // MC 1.16.5: Player 重写 setEquipment 设置装备到 PlayerInventory
     // 参考: PlayerEntity.setItemStackToSlot
     switch (slot) {
@@ -1110,11 +1160,13 @@ void Player::setEquipment(EquipmentSlot slot, const ItemStack& stack) {
     }
 }
 
-void Player::setCreativeModeInventory() {
+void Player::setCreativeModeInventory()
+{
     fillCreativeModeInventory(m_inventory);
 }
 
-void Player::respawn() {
+void Player::respawn()
+{
     setHealth(maxHealth());
     m_foodStats.setFoodLevel(20);
     m_foodStats.setSaturationLevel(5.0f);
@@ -1126,7 +1178,8 @@ void Player::respawn() {
     m_experienceManager->reset();
 }
 
-void Player::serialize(network::PacketSerializer& ser) const {
+void Player::serialize(network::PacketSerializer& ser) const
+{
     // 基本信息
     ser.writeU64(m_playerId);
     ser.writeString(m_username);
@@ -1162,7 +1215,8 @@ void Player::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer& deser) {
+Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer& deser)
+{
     // 读取基本信息
     auto idResult = deser.readU64();
     if (idResult.failed()) return idResult.error();
@@ -1186,9 +1240,8 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
     if (zResult.failed()) return zResult.error();
 
     // 网络协议使用 f64，内部使用 f32
-    player->setPosition(static_cast<f32>(xResult.value()),
-                        static_cast<f32>(yResult.value()),
-                        static_cast<f32>(zResult.value()));
+    player->setPosition(
+        static_cast<f32>(xResult.value()), static_cast<f32>(yResult.value()), static_cast<f32>(zResult.value()));
 
     auto yawResult = deser.readF32();
     if (yawResult.failed()) return yawResult.error();
@@ -1234,11 +1287,7 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
     auto totalResult = deser.readI32();
     if (totalResult.failed()) return totalResult.error();
 
-    player->m_experienceManager->setExperience(
-        levelResult.value(),
-        progressResult.value(),
-        totalResult.value()
-    );
+    player->m_experienceManager->setExperience(levelResult.value(), progressResult.value(), totalResult.value());
 
     // 下界进度追踪位置（可选）
     auto hasNetherPosResult = deser.readBool();
@@ -1260,7 +1309,8 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
 // getHeldItem 实现
 // ============================================================================
 
-ItemStack Player::getHeldItem(Hand hand) const {
+ItemStack Player::getHeldItem(Hand hand) const
+{
     if (hand == Hand::MainHand) {
         return m_inventory.getSelectedStack();
     } else {
@@ -1268,7 +1318,8 @@ ItemStack Player::getHeldItem(Hand hand) const {
     }
 }
 
-ItemStack& Player::getHeldItem(Hand hand) {
+ItemStack& Player::getHeldItem(Hand hand)
+{
     if (hand == Hand::MainHand) {
         return m_inventory.getSelectedStackRef();
     } else {
@@ -1280,7 +1331,8 @@ ItemStack& Player::getHeldItem(Hand hand) {
 // 挖掘系统
 // ============================================================================
 
-f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const {
+f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
+{
     // 参考 MC 1.16.5: PlayerEntity.getDigSpeed(BlockState, BlockPos)
 
     // 1. 获取工具基础挖掘速度
@@ -1328,7 +1380,7 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const {
         if (amplifier >= 0 && static_cast<size_t>(amplifier) < 4) {
             speed *= FATIGUE_MULTIPLIERS[amplifier];
         } else {
-            speed *= 0.00081f;  // IV级及以上使用最小值
+            speed *= 0.00081f; // IV级及以上使用最小值
         }
     }
 
@@ -1350,7 +1402,8 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const {
     return speed;
 }
 
-bool Player::canHarvestBlock(const BlockState& state) const {
+bool Player::canHarvestBlock(const BlockState& state) const
+{
     // 参考 MC 1.16.5: PlayerEntity.canHarvestBlock(BlockState)
     // 以及 ForgeHooks.canHarvestBlock()
 
@@ -1375,7 +1428,8 @@ bool Player::canHarvestBlock(const BlockState& state) const {
 // 受伤/死亡（覆盖 LivingEntity 方法）
 // ============================================================================
 
-bool Player::hurt(DamageSource& source, f32 amount) {
+bool Player::hurt(DamageSource& source, f32 amount)
+{
     // 创造模式无敌检查
     if (m_abilities.invulnerable && !source.canDamageCreative()) {
         return false;
@@ -1384,7 +1438,8 @@ bool Player::hurt(DamageSource& source, f32 amount) {
     return LivingEntity::hurt(source, amount);
 }
 
-void Player::die(DamageSource& cause) {
+void Player::die(DamageSource& cause)
+{
     // 调用父类方法处理死亡
     LivingEntity::die(cause);
 
@@ -1396,7 +1451,8 @@ void Player::die(DamageSource& cause) {
 // 摔落伤害
 // ============================================================================
 
-void Player::handleFallDamage(f32 distance, f32 damageMultiplier) {
+void Player::handleFallDamage(f32 distance, f32 damageMultiplier)
+{
     // 调用父类处理摔落伤害计算（包含摔落音效播放）
     LivingEntity::handleFallDamage(distance, damageMultiplier);
 }
@@ -1405,7 +1461,8 @@ void Player::handleFallDamage(f32 distance, f32 damageMultiplier) {
 // 受伤/死亡声音
 // ============================================================================
 
-std::optional<ResourceLocation> Player::getHurtSound(DamageSource& source) const {
+std::optional<ResourceLocation> Player::getHurtSound(DamageSource& source) const
+{
     // 参考 MC 1.16.5: PlayerEntity.getHurtSound()
     // 根据伤害类型返回不同音效
     if (source.isFire()) {
@@ -1418,12 +1475,14 @@ std::optional<ResourceLocation> Player::getHurtSound(DamageSource& source) const
     return SoundEvents::ENTITY_PLAYER_HURT;
 }
 
-std::optional<ResourceLocation> Player::getDeathSound() const {
+std::optional<ResourceLocation> Player::getDeathSound() const
+{
     // 参考 MC 1.16.5: PlayerEntity.getDeathSound()
     return SoundEvents::ENTITY_PLAYER_DEATH;
 }
 
-std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const {
+std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const
+{
     // 参考 MC 1.16.5: PlayerEntity.getFallSound()
     // 高空摔落 (>4格) 使用 big_fall，否则使用 small_fall
     if (fallHeight > 4) {
@@ -1432,17 +1491,20 @@ std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const {
     return SoundEvents::ENTITY_PLAYER_SMALL_FALL;
 }
 
-ResourceLocation Player::getSplashSound() const {
+ResourceLocation Player::getSplashSound() const
+{
     // 参考 MC 1.16.5: PlayerEntity.getSplashSound()
     return SoundEvents::ENTITY_PLAYER_SPLASH;
 }
 
-ResourceLocation Player::getHighspeedSplashSound() const {
+ResourceLocation Player::getHighspeedSplashSound() const
+{
     // 参考 MC 1.16.5: PlayerEntity.getHighspeedSplashSound()
     return SoundEvents::ENTITY_PLAYER_SPLASH_HIGH_SPEED;
 }
 
-void Player::doWaterSplashEffect() {
+void Player::doWaterSplashEffect()
+{
     // 参考 MC 1.16.5: PlayerEntity.doWaterSplashEffect()
     // 观察者模式不产生水花效果
     if (isSpectator()) {
@@ -1456,7 +1518,8 @@ void Player::doWaterSplashEffect() {
 // 属性注册（覆盖 LivingEntity 方法）
 // ============================================================================
 
-void Player::registerAttributes() {
+void Player::registerAttributes()
+{
     // 先调用父类方法注册基础属性
     LivingEntity::registerAttributes();
 
@@ -1471,7 +1534,8 @@ void Player::registerAttributes() {
 // 移动物理（覆盖 LivingEntity 方法）
 // ============================================================================
 
-void Player::travel(f32 strafing, f32 vertical, f32 forward) {
+void Player::travel(f32 strafing, f32 vertical, f32 forward)
+{
     // 飞行模式处理 - Player 特有
     if (m_abilities.flying && !isRiding()) {
         f32 prevJumpFactor = m_jumpMovementFactor;
@@ -1487,7 +1551,8 @@ void Player::travel(f32 strafing, f32 vertical, f32 forward) {
     updateMoveDistance();
 }
 
-void Player::aiStep() {
+void Player::aiStep()
+{
     // 玩家不使用 AI 步进，由 handleMovementInput 和 updatePhysics 处理
     // 仅更新跳跃冷却
     if (m_jumpTicks > 0) {
@@ -1499,14 +1564,16 @@ void Player::aiStep() {
 // 水中物理和游泳实现
 // ============================================================================
 
-bool Player::isActualSwimming() const {
+bool Player::isActualSwimming() const
+{
     // 游泳条件（MC 1.16.5: LivingEntity.isActualySwimming()）
     // 需要: 眼睛在水中 && 身体在水中 && 不在飞行模式
     // MC: return this.eyesInWater && this.isInWater() && !this.abilities.isFlying;
     return areEyesInWater() && isInWater() && !m_abilities.flying;
 }
 
-void Player::updateSwimming() {
+void Player::updateSwimming()
+{
     // 更新游泳动画
     m_prevSwimAnimation = m_swimAnimation;
 
@@ -1524,15 +1591,14 @@ void Player::updateSwimming() {
     setSwimming(isSwimmingNow);
 }
 
-void Player::updatePose() {
+void Player::updatePose()
+{
     // MC 1.16.5: PlayerEntity.updatePose()
     // 每帧自动判断正确姿态
 
     // 检查是否有足够的游泳空间（用于姿态切换的后备检查）
     // isPoseClear 在 MC 中检查指定姿态的碰撞箱是否与方块冲突
-    auto isPoseClear = [this](EntityPose pose) -> bool {
-        return canFitPose(pose);
-    };
+    auto isPoseClear = [this](EntityPose pose) -> bool { return canFitPose(pose); };
 
     // 如果姿态被禁止，不进行自动更新
     // MC: if (this.forcedPose != null) { this.setPose(this.forcedPose); return; }
@@ -1591,7 +1657,8 @@ void Player::updatePose() {
     setPose(targetPose);
 }
 
-i32 Player::getDepthStriderLevel() const {
+i32 Player::getDepthStriderLevel() const
+{
     // MC 1.16.5: EnchantmentHelper.getDepthStriderModifier(this)
     // 检查靴子上的深度守卫附魔等级
     using namespace item::enchant;
@@ -1602,14 +1669,16 @@ i32 Player::getDepthStriderLevel() const {
     return EnchantmentHelper::getEnchantmentLevel(boots, &AllEnchantments::DEPTH_STRIDER);
 }
 
-void Player::swimUp() {
+void Player::swimUp()
+{
     // 水中向上游泳
     if (isInWater() && !m_abilities.flying) {
         m_velocity.y += physics::SWIM_UP_SPEED;
     }
 }
 
-void Player::updateAirSupply() {
+void Player::updateAirSupply()
+{
     // 创造模式和旁观者模式下不消耗空气
     if (m_abilities.invulnerable) {
         return;
@@ -1634,7 +1703,8 @@ void Player::updateAirSupply() {
     m_wasInWater = inWater;
 }
 
-void Player::updateMoveDistance() {
+void Player::updateMoveDistance()
+{
     // 保存上一帧的距离
     m_prevMoveDistanceWalked = m_moveDistanceWalked;
     m_prevMoveDistanceSwam = m_moveDistanceSwam;
@@ -1643,7 +1713,7 @@ void Player::updateMoveDistance() {
     f32 dx = m_position.x - m_moveDistanceSamplePosition.x;
     f32 dy = m_position.y - m_moveDistanceSamplePosition.y;
     f32 dz = m_position.z - m_moveDistanceSamplePosition.z;
-    f32 distance = std::sqrt(dx * dx + dz * dz);  // 水平距离
+    f32 distance = std::sqrt(dx * dx + dz * dz); // 水平距离
 
     // 重置声音触发标志
     m_shouldPlayStepSound = false;
@@ -1681,11 +1751,9 @@ void Player::updateMoveDistance() {
             m_shouldPlaySwimSound = true;
         } else {
             // 记录脚下方块位置（用于获取正确的声音类型）
-            m_stepSoundPos = BlockPos(
-                static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y - 0.2f)),  // 脚底位置
-                static_cast<i32>(std::floor(m_position.z))
-            );
+            m_stepSoundPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
+                static_cast<i32>(std::floor(m_position.y - 0.2f)), // 脚底位置
+                static_cast<i32>(std::floor(m_position.z)));
             m_shouldPlayStepSound = true;
         }
     }
@@ -1712,7 +1780,8 @@ void Player::updateMoveDistance() {
     }
 }
 
-void Player::updateCameraYaw() {
+void Player::updateCameraYaw()
+{
     m_prevCameraYaw = m_cameraYaw;
 
     if (isRiding()) {
@@ -1727,7 +1796,8 @@ void Player::updateCameraYaw() {
     m_cameraYaw += (targetCameraYaw - m_cameraYaw) * 0.4f;
 }
 
-void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
+void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
+{
     // MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
     // 由客户端在 updateMoveDistance() 检测到 m_shouldPlayStepSound 后调用
 
@@ -1745,7 +1815,8 @@ void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockSta
     Entity::playStepSound(m_stepSoundPos, blockState);
 }
 
-void Player::playSwimSound(f32 volume) {
+void Player::playSwimSound(f32 volume)
+{
     // MC 1.16.5: Entity.playSwimSound(float volume)
     // 播放游泳声音
     if (m_world == nullptr || isSilent()) {
@@ -1755,19 +1826,21 @@ void Player::playSwimSound(f32 volume) {
     // 使用实体ID和tick计数器生成伪随机音调
     u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
     f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f;
-    f32 pitch = 0.8f + randomValue * 0.4f;  // 0.8-1.2 范围
+    f32 pitch = 0.8f + randomValue * 0.4f; // 0.8-1.2 范围
 
     playSound(SoundEvents::ENTITY_PLAYER_SWIM, volume, pitch);
 }
 
-void Player::addExhaustion(f32 exhaustion) {
+void Player::addExhaustion(f32 exhaustion)
+{
     // 只有生存模式和冒险模式才消耗饥饿
     if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
         m_foodStats.addExhaustion(exhaustion);
     }
 }
 
-bool Player::canEat(bool ignoreHunger) const {
+bool Player::canEat(bool ignoreHunger) const
+{
     // MC 1.16.5: PlayerEntity.canEat(boolean ignoreHunger)
     // 创造模式或观察者模式不能进食
     if (isCreative() || isSpectator()) {
@@ -1783,27 +1856,30 @@ bool Player::canEat(bool ignoreHunger) const {
 
 // ========== 攻击冷却系统 ==========
 
-f32 Player::getCooledAttackStrength(f32 adjustTicks) const {
+f32 Player::getCooledAttackStrength(f32 adjustTicks) const
+{
     // MC 1.16.5: getCooledAttackStrength()
     // 冷却进度 = min(ticksSinceLastAttack + adjustTicks, cooldownPeriod) / cooldownPeriod
     // 冷却周期 = 20 / attackSpeed (ticks)
     f32 attackSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_SPEED, 4.0));
     if (attackSpeed <= 0.0f) {
-        attackSpeed = 4.0f;  // 默认攻击速度
+        attackSpeed = 4.0f; // 默认攻击速度
     }
 
-    f32 cooldownPeriod = 20.0f / attackSpeed;  // 冷却周期（ticks）
+    f32 cooldownPeriod = 20.0f / attackSpeed; // 冷却周期（ticks）
     f32 adjustedTicks = static_cast<f32>(m_ticksSinceLastAttack) + adjustTicks;
     f32 progress = adjustedTicks / cooldownPeriod;
 
     return std::min(progress, 1.0f);
 }
 
-void Player::resetCooldown() {
+void Player::resetCooldown()
+{
     m_ticksSinceLastAttack = 0;
 }
 
-void Player::attack(Entity& target) {
+void Player::attack(Entity& target)
+{
     // MC 1.16.5: PlayerEntity.attackTargetEntityWithCurrentItem()
     // 完整的玩家攻击逻辑
 
@@ -1856,8 +1932,8 @@ void Player::attack(Entity& target) {
     // 9. 计算击退
     i32 knockbackLevel = 0;
     if (!mainHand.isEmpty()) {
-        knockbackLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-            mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
+        knockbackLevel =
+            item::enchant::EnchantmentHelper::getEnchantmentLevel(mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
     }
 
     // 疾跑额外击退
@@ -1884,12 +1960,12 @@ void Player::attack(Entity& target) {
     bool wasBurning = false;
     if (fireAspectLevel > 0 && !livingTarget->isOnFire()) {
         wasBurning = true;
-        livingTarget->setFire(20);  // 1 秒 = 20 ticks
+        livingTarget->setFire(20); // 1 秒 = 20 ticks
     }
 
     // 12. 应用暴击倍率
     if (isCritical) {
-        damage *= 1.5f;  // MC 1.16.5: 暴击倍率 1.5
+        damage *= 1.5f; // MC 1.16.5: 暴击倍率 1.5
     }
 
     // 13. 合并伤害
@@ -1905,8 +1981,7 @@ void Player::attack(Entity& target) {
     if (attacked) {
         // 15. 应用击退
         if (knockbackLevel > 0) {
-            entity::combat::PlayerAttackHelper::applyKnockback(
-                *livingTarget, *this, static_cast<f32>(knockbackLevel));
+            entity::combat::PlayerAttackHelper::applyKnockback(*livingTarget, *this, static_cast<f32>(knockbackLevel));
 
             // 疾跑击退后停止疾跑并减少水平速度
             // MC 1.16.5: this.setMotion(this.getMotion().mul(0.6D, 1.0D, 0.6D));
@@ -1921,8 +1996,8 @@ void Player::attack(Entity& target) {
         // MC 1.16.5 条件: distanceWalkedModified - prevDistanceWalkedModified < getAIMoveSpeed()
         // 用于检测玩家是否几乎静止（站立不动才能触发横扫攻击）
         f64 distanceWalkedDelta = static_cast<f64>(m_moveDistanceWalked - m_prevMoveDistanceWalked);
-        bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround()
-                        && (distanceWalkedDelta < static_cast<f64>(aiMoveSpeed()));
+        bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround() &&
+            (distanceWalkedDelta < static_cast<f64>(aiMoveSpeed()));
         if (canSweep) {
             // 检查主手是否持有剑
             const item::tool::SwordItem* sword = dynamic_cast<const item::tool::SwordItem*>(mainHand.getItem());
@@ -1950,7 +2025,7 @@ void Player::attack(Entity& target) {
                         }
 
                         // 检查距离（最大 3 格）
-                        if (distanceSqTo(*entity) > 9.0) {  // 3^2 = 9
+                        if (distanceSqTo(*entity) > 9.0) { // 3^2 = 9
                             continue;
                         }
 
@@ -1978,7 +2053,7 @@ void Player::attack(Entity& target) {
         // 17. 应用火焰附加
         if (fireAspectLevel > 0) {
             // MC 1.16.5: 火焰附加持续时间 = level * 4 秒
-            livingTarget->setFire(fireAspectLevel * 4 * 20);  // 20 ticks per second
+            livingTarget->setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
         }
 
         // 18. 设置最后攻击目标
@@ -2019,12 +2094,13 @@ void Player::attack(Entity& target) {
         playSound(SoundEvents::ENTITY_PLAYER_ATTACK_NODAMAGE, 1.0f, 1.0f);
 
         if (wasBurning) {
-            livingTarget->setFire(0);  // 移除之前点燃的火焰
+            livingTarget->setFire(0); // 移除之前点燃的火焰
         }
     }
 }
 
-ActionResultType Player::interactOn(Entity& target, Hand hand) {
+ActionResultType Player::interactOn(Entity& target, Hand hand)
+{
     // MC 1.16.5: PlayerEntity.interactOn()
 
     // 1. 旁观者模式：只能打开命名容器
@@ -2039,7 +2115,7 @@ ActionResultType Player::interactOn(Entity& target, Hand hand) {
 
     // 2. 获取手持物品
     ItemStack itemstack = getHeldItem(hand);
-    ItemStack itemstackCopy = itemstack;  // 保存副本用于创造模式恢复
+    ItemStack itemstackCopy = itemstack; // 保存副本用于创造模式恢复
 
     // 3. 先调用实体的 processInitialInteract 方法
     // TODO: ActionResultType entityResult = target.processInitialInteract(*this, hand);

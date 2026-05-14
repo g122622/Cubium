@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../agricultural/BushBlock.hpp"
 #include "../../IGrowable.hpp"
+#include "../agricultural/BushBlock.hpp"
 #include <array>
 
 namespace mc {
@@ -41,9 +41,7 @@ public:
     /**
      * @brief 获取 AGE 属性
      */
-    static const IntegerProperty& AGE() {
-        return BlockStateProperties::AGE_0_3();
-    }
+    static const IntegerProperty& AGE() { return BlockStateProperties::AGE_0_3(); }
 
     /**
      * @brief 获取最大年龄
@@ -78,22 +76,12 @@ public:
     // ========== IGrowable 接口 ==========
 
     [[nodiscard]] bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const override;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     [[nodiscard]] bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
-    void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 形状 ==========
 
@@ -117,8 +105,7 @@ public:
      *
      * AGE > 1 时可以采摘浆果。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -132,9 +119,7 @@ protected:
      * 甜浆果丛可以种在草地、泥土、砂土、灰化土、耕地上。
      */
     [[nodiscard]] bool canSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const override;
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
 private:
     /// 各年龄阶段的形状缓存

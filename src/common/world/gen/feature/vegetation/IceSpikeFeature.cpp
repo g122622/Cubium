@@ -1,9 +1,9 @@
 #include "IceSpikeFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -13,10 +13,7 @@ namespace mc {
 // ============================================================================
 
 bool IceSpikeFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const IceSpikeFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const IceSpikeFeatureConfig& config)
 {
     // 寻找雪块表面
     // 参考 MC IceSpikeFeature.java 第23行：检查SNOW_BLOCK
@@ -83,11 +80,7 @@ bool IceSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) con
 }
 
 void IceSpikeFeature::generateSpike(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& basePos,
-    i32 height,
-    i32 baseRadius)
+    WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius)
 {
     // 参考 MC IceSpikeFeature 生成尖塔型冰刺
     // 使用浮冰填充
@@ -110,8 +103,7 @@ void IceSpikeFeature::generateSpike(
                 }
 
                 // 跳过边缘的一些方块（随机）
-                if ((dx == -radius || dx == radius || dz == -radius || dz == radius) &&
-                    random.nextFloat() > 0.75f) {
+                if ((dx == -radius || dx == radius || dz == -radius || dz == radius) && random.nextFloat() > 0.75f) {
                     continue;
                 }
 
@@ -119,10 +111,10 @@ void IceSpikeFeature::generateSpike(
                 BlockPos spikePos(basePos.x + dx, basePos.y + y, basePos.z + dz);
                 const BlockState* currentState = world.getBlockState(spikePos);
 
-                if (currentState && (currentState->isAir() ||
-                    currentState->blockId() == VanillaBlocks::DIRT->blockId() ||
-                    currentState->blockId() == VanillaBlocks::SNOW->blockId() ||
-                    currentState->blockId() == VanillaBlocks::ICE->blockId())) {
+                if (currentState &&
+                    (currentState->isAir() || currentState->blockId() == VanillaBlocks::DIRT->blockId() ||
+                        currentState->blockId() == VanillaBlocks::SNOW->blockId() ||
+                        currentState->blockId() == VanillaBlocks::ICE->blockId())) {
                     if (VanillaBlocks::PACKED_ICE) {
                         world.setBlockState(spikePos, &VanillaBlocks::PACKED_ICE->defaultState());
                     }
@@ -133,10 +125,10 @@ void IceSpikeFeature::generateSpike(
                     BlockPos downPos(basePos.x + dx, basePos.y - y, basePos.z + dz);
                     const BlockState* downState = world.getBlockState(downPos);
 
-                    if (downState && (downState->isAir() ||
-                        downState->blockId() == VanillaBlocks::DIRT->blockId() ||
-                        downState->blockId() == VanillaBlocks::SNOW->blockId() ||
-                        downState->blockId() == VanillaBlocks::ICE->blockId())) {
+                    if (downState &&
+                        (downState->isAir() || downState->blockId() == VanillaBlocks::DIRT->blockId() ||
+                            downState->blockId() == VanillaBlocks::SNOW->blockId() ||
+                            downState->blockId() == VanillaBlocks::ICE->blockId())) {
                         if (VanillaBlocks::PACKED_ICE) {
                             world.setBlockState(downPos, &VanillaBlocks::PACKED_ICE->defaultState());
                         }
@@ -165,8 +157,7 @@ void IceSpikeFeature::generateSpike(
             while (downPos.y > 50 && depth > 0) {
                 const BlockState* state = world.getBlockState(downPos);
 
-                if (state && !state->isAir() &&
-                    state->blockId() != VanillaBlocks::DIRT->blockId() &&
+                if (state && !state->isAir() && state->blockId() != VanillaBlocks::DIRT->blockId() &&
                     state->blockId() != VanillaBlocks::SNOW->blockId() &&
                     state->blockId() != VanillaBlocks::ICE->blockId() &&
                     state->blockId() != VanillaBlocks::PACKED_ICE->blockId()) {
@@ -190,11 +181,7 @@ void IceSpikeFeature::generateSpike(
 }
 
 void IceSpikeFeature::generateIceberg(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& basePos,
-    i32 height,
-    i32 baseRadius)
+    WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius)
 {
     (void)height;
 
@@ -213,9 +200,9 @@ void IceSpikeFeature::generateIceberg(
                 BlockPos icebergPos(basePos.x + dx, basePos.y + y, basePos.z + dz);
                 const BlockState* currentState = world.getBlockState(icebergPos);
 
-                if (currentState && (currentState->isAir() ||
-                    currentState->blockId() == VanillaBlocks::SNOW->blockId() ||
-                    currentState->blockId() == VanillaBlocks::ICE->blockId())) {
+                if (currentState &&
+                    (currentState->isAir() || currentState->blockId() == VanillaBlocks::SNOW->blockId() ||
+                        currentState->blockId() == VanillaBlocks::ICE->blockId())) {
                     // 随机使用冰或浮冰
                     if (random.nextFloat() < 0.3f) {
                         if (VanillaBlocks::PACKED_ICE) {
@@ -237,19 +224,13 @@ void IceSpikeFeature::generateIceberg(
 // ============================================================================
 
 ConfiguredIceSpikeFeature::ConfiguredIceSpikeFeature(
-    std::unique_ptr<IceSpikeFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<IceSpikeFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredIceSpikeFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;

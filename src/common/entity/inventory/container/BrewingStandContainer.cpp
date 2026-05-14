@@ -1,12 +1,12 @@
 #include "entity/inventory/container/BrewingStandContainer.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
-#include "item/core/Item.hpp"
 #include "item/Items.hpp"
+#include "item/core/Item.hpp"
 #include "item/potion/PotionBrewing.hpp"
-#include "world/blockentity/processing/BrewingStandEntity.hpp"
-#include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/blockentity/processing/BrewingStandEntity.hpp"
 
 namespace mc {
 
@@ -23,17 +23,18 @@ constexpr i32 SLOT_SIZE = 18;
 class PotionSlot : public Slot {
 public:
     PotionSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y)
-        : Slot(inventory, slotIndex, x, y) {}
+        : Slot(inventory, slotIndex, x, y)
+    {}
 
-    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override {
+    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override
+    {
         return !stack.isEmpty() && potion::PotionBrewing::isPotionItem(stack);
     }
 
-    [[nodiscard]] i32 getMaxStackSize() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 getMaxStackSize() const override { return 1; }
 
-    [[nodiscard]] i32 getMaxStackSize(const ItemStack& stack) const override {
+    [[nodiscard]] i32 getMaxStackSize(const ItemStack& stack) const override
+    {
         (void)stack;
         return 1;
     }
@@ -47,15 +48,15 @@ public:
 class IngredientSlot : public Slot {
 public:
     IngredientSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y)
-        : Slot(inventory, slotIndex, x, y) {}
+        : Slot(inventory, slotIndex, x, y)
+    {}
 
-    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override {
+    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override
+    {
         return !stack.isEmpty() && potion::PotionBrewing::isReagent(stack);
     }
 
-    [[nodiscard]] i32 getMaxStackSize() const override {
-        return 64;
-    }
+    [[nodiscard]] i32 getMaxStackSize() const override { return 64; }
 };
 
 /**
@@ -66,20 +67,21 @@ public:
 class FuelSlot : public Slot {
 public:
     FuelSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y)
-        : Slot(inventory, slotIndex, x, y) {}
+        : Slot(inventory, slotIndex, x, y)
+    {}
 
-    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override {
+    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override
+    {
         return !stack.isEmpty() && stack.getItem() == Items::BLAZE_POWDER;
     }
 
-    [[nodiscard]] i32 getMaxStackSize() const override {
-        return 64;
-    }
+    [[nodiscard]] i32 getMaxStackSize() const override { return 64; }
 
     /**
      * @brief 检查是否为有效的酿造燃料
      */
-    [[nodiscard]] static bool isValidBrewingFuel(const ItemStack& stack) {
+    [[nodiscard]] static bool isValidBrewingFuel(const ItemStack& stack)
+    {
         return !stack.isEmpty() && stack.getItem() == Items::BLAZE_POWDER;
     }
 };
@@ -89,12 +91,13 @@ public:
 // ========== 构造函数 ==========
 
 BrewingStandContainer::BrewingStandContainer(ContainerId id,
-                                             PlayerInventory* playerInventory,
-                                             IInventory* brewingStandInventory,
-                                             blockentity::BrewingStandEntity* brewingStandEntity)
+    PlayerInventory* playerInventory,
+    IInventory* brewingStandInventory,
+    blockentity::BrewingStandEntity* brewingStandEntity)
     : AbstractContainerMenu(id, playerInventory)
     , m_brewingStandInventory(brewingStandInventory)
-    , m_brewingStandEntity(brewingStandEntity) {
+    , m_brewingStandEntity(brewingStandEntity)
+{
 
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(brewingStandInventory != nullptr);
@@ -105,7 +108,8 @@ BrewingStandContainer::BrewingStandContainer(ContainerId id,
 
 // ========== 容器接口 ==========
 
-bool BrewingStandContainer::stillValid(const Player& player) const {
+bool BrewingStandContainer::stillValid(const Player& player) const
+{
     // MC 1.16.5: 如果没有关联的方块实体，玩家背包可访问
     if (m_brewingStandEntity == nullptr) {
         return true;
@@ -115,19 +119,20 @@ bool BrewingStandContainer::stillValid(const Player& player) const {
     // 参考 net.minecraft.inventory.container.BrewingStandContainer.canInteractWith()
     // -> tileBrewingStand.isUsableByPlayer(playerIn)
     const BlockPos pos = m_brewingStandEntity->getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f,
+    return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
-               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f; // 8^2 = 64
 }
 
-void BrewingStandContainer::slotsChanged(IInventory* inventory) {
+void BrewingStandContainer::slotsChanged(IInventory* inventory)
+{
     (void)inventory;
     // 酿造台会自动检测材料变化并开始酿造
     // 这里不需要额外处理
 }
 
-ItemStack BrewingStandContainer::quickMoveStack(i32 slotIndex, Player& player) {
+ItemStack BrewingStandContainer::quickMoveStack(i32 slotIndex, Player& player)
+{
     (void)player;
 
     Slot* slot = getSlot(slotIndex);
@@ -181,7 +186,8 @@ ItemStack BrewingStandContainer::quickMoveStack(i32 slotIndex, Player& player) {
 
 // ========== 私有方法 ==========
 
-void BrewingStandContainer::initSlots(PlayerInventory* playerInventory) {
+void BrewingStandContainer::initSlots(PlayerInventory* playerInventory)
+{
     // ========== 酿造台槽位 ==========
 
     // 药水槽（3个，中间的槽位更低）
@@ -191,12 +197,11 @@ void BrewingStandContainer::initSlots(PlayerInventory* playerInventory) {
     addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 2, POTION_SLOT_X[2], POTION_SLOT_Y[2]));
 
     // 材料槽（顶部中央）
-    addSlot(std::make_unique<IngredientSlot>(m_brewingStandInventory, SLOT_INGREDIENT,
-                                              INGREDIENT_SLOT_X, INGREDIENT_SLOT_Y));
+    addSlot(std::make_unique<IngredientSlot>(
+        m_brewingStandInventory, SLOT_INGREDIENT, INGREDIENT_SLOT_X, INGREDIENT_SLOT_Y));
 
     // 燃料槽（左侧）
-    addSlot(std::make_unique<FuelSlot>(m_brewingStandInventory, SLOT_FUEL,
-                                        FUEL_SLOT_X, FUEL_SLOT_Y));
+    addSlot(std::make_unique<FuelSlot>(m_brewingStandInventory, SLOT_FUEL, FUEL_SLOT_X, FUEL_SLOT_Y));
 
     // ========== 玩家主背包（3行9列）==========
 

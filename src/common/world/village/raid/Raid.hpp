@@ -1,13 +1,13 @@
 ﻿#pragma once
 
-#include "RaiderType.hpp"
-#include "../../block/BlockPos.hpp"
-#include "../../../core/Types.hpp"
 #include "../../../command/ICommandSource.hpp"
+#include "../../../core/Types.hpp"
+#include "../../block/BlockPos.hpp"
+#include "RaiderType.hpp"
 
 #include <optional>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 class IWorld;
@@ -39,13 +39,16 @@ struct RaidWave {
  * 记录参与袭击的玩家及其贡献，用于在袭击胜利时给予奖励。
  */
 struct RaidParticipant {
-    Uuid uuid;              ///< 玩家 UUID
-    EntityId entityId;      ///< 玩家实体 ID（可能失效）
-    i32 contribution = 0;   ///< 贡献值（击杀袭击者数量）
+    Uuid uuid;            ///< 玩家 UUID
+    EntityId entityId;    ///< 玩家实体 ID（可能失效）
+    i32 contribution = 0; ///< 贡献值（击杀袭击者数量）
 
     RaidParticipant() = default;
     RaidParticipant(Uuid playerUuid, EntityId id)
-        : uuid(playerUuid), entityId(id), contribution(0) {}
+        : uuid(playerUuid)
+        , entityId(id)
+        , contribution(0)
+    {}
 };
 
 /**
@@ -382,8 +385,8 @@ private:
     i32 m_celebrateTicks = 0;
 
     // 英雄追踪（MC 1.16.5: heroes 字段）
-    std::unordered_set<Uuid, UuidHash> m_heroes;           ///< 参与袭击的玩家 UUID
-    std::vector<RaidParticipant> m_participants;           ///< 参与者详细信息
+    std::unordered_set<Uuid, UuidHash> m_heroes; ///< 参与袭击的玩家 UUID
+    std::vector<RaidParticipant> m_participants; ///< 参与者详细信息
 };
 
 } // namespace world::village::raid

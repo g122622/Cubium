@@ -98,5 +98,5 @@ private:
     static constexpr f64 GROUND_TRANSFORM_Y_OFFSET = 0.25;
 };
 
-} // namespace mc::client::renderer::entity::renderer::projectile
+} // namespace client::renderer::entity::renderer::projectile
 } // namespace mc

@@ -1,81 +1,73 @@
 #include "TitleCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
+#include "common/network/packet/TitlePacket.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "common/network/packet/TitlePacket.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
 
 namespace {
-    /**
-     * @brief 发送 TitlePacket 给指定玩家
-     *
-     * @param connMgr 连接管理器
-     * @param playerId 目标玩家ID
-     * @param packet 标题包
-     * @return 是否发送成功
-     */
-    bool sendTitlePacket(
-        server::core::ConnectionManager& connMgr,
-        PlayerId playerId,
-        const network::TitlePacket& packet)
-    {
-        auto result = packet.serialize();
-        if (result.failed()) {
-            spdlog::error("Failed to serialize TitlePacket: {}", result.error().message());
-            return false;
-        }
-
-        return connMgr.sendPacketToPlayer(playerId, network::PacketType::Title, result.value());
+/**
+ * @brief 发送 TitlePacket 给指定玩家
+ *
+ * @param connMgr 连接管理器
+ * @param playerId 目标玩家ID
+ * @param packet 标题包
+ * @return 是否发送成功
+ */
+bool sendTitlePacket(server::core::ConnectionManager& connMgr, PlayerId playerId, const network::TitlePacket& packet)
+{
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize TitlePacket: {}", result.error().message());
+        return false;
     }
 
-    /**
-     * @brief 广播 TitlePacket 给所有指定玩家
-     *
-     * @param source 命令源
-     * @param playerIds 目标玩家ID列表
-     * @param packet 标题包
-     * @return 成功发送的玩家数量
-     */
-    i32 broadcastTitlePacket(
-        ServerCommandSource& source,
-        const std::vector<PlayerId>& playerIds,
-        const network::TitlePacket& packet)
-    {
-        auto* server = source.server();
-        if (!server) {
-            return 0;
-        }
-
-        auto& connMgr = server->connectionManager();
-        i32 successCount = 0;
-
-        for (PlayerId playerId : playerIds) {
-            if (sendTitlePacket(connMgr, playerId, packet)) {
-                successCount++;
-            }
-        }
-
-        return successCount;
-    }
+    return connMgr.sendPacketToPlayer(playerId, network::PacketType::Title, result.value());
 }
 
-void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+/**
+ * @brief 广播 TitlePacket 给所有指定玩家
+ *
+ * @param source 命令源
+ * @param playerIds 目标玩家ID列表
+ * @param packet 标题包
+ * @return 成功发送的玩家数量
+ */
+i32 broadcastTitlePacket(
+    ServerCommandSource& source, const std::vector<PlayerId>& playerIds, const network::TitlePacket& packet)
+{
+    auto* server = source.server();
+    if (!server) {
+        return 0;
+    }
+
+    auto& connMgr = server->connectionManager();
+    i32 successCount = 0;
+
+    for (PlayerId playerId : playerIds) {
+        if (sendTitlePacket(connMgr, playerId, packet)) {
+            successCount++;
+        }
+    }
+
+    return successCount;
+}
+} // namespace
+
+void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto titleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
-    titleNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        titleNode,
-        support::makeMetadata(
-            "Controls screen title display.",
+    titleNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(titleNode,
+        support::makeMetadata("Controls screen title display.",
             "/title <player> (clear|reset|title|subtitle|actionbar|times) ...",
             2,
             {},
@@ -83,72 +75,46 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // /title <player>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::players()
-    );
+        "player", EntityArgumentType::players());
 
     // clear 子命令
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return clearTitle(ctx);
-    });
+    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearTitle(ctx); });
 
     // reset 子命令
     auto resetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
-    resetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return resetTitle(ctx);
-    });
+    resetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return resetTitle(ctx); });
 
     // title <json> 子命令
     auto titleTextNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
     auto titleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "json",
-        StringArgumentType::greedyString()
-    );
-    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setTitle(ctx);
-    });
+        "json", StringArgumentType::greedyString());
+    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTitle(ctx); });
     titleTextNode->addChild(titleJsonNode);
 
     // subtitle <json> 子命令
     auto subtitleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("subtitle");
     auto subtitleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "json",
-        StringArgumentType::greedyString()
-    );
-    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setSubtitle(ctx);
-    });
+        "json", StringArgumentType::greedyString());
+    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setSubtitle(ctx); });
     subtitleNode->addChild(subtitleJsonNode);
 
     // actionbar <json> 子命令
     auto actionbarNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("actionbar");
     auto actionbarJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "json",
-        StringArgumentType::greedyString()
-    );
-    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setActionbar(ctx);
-    });
+        "json", StringArgumentType::greedyString());
+    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setActionbar(ctx); });
     actionbarNode->addChild(actionbarJsonNode);
 
     // times <fadeIn> <stay> <fadeOut> 子命令
     auto timesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("times");
-    auto fadeInNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "fadeIn",
-        IntegerArgumentType::integer(0)
-    );
-    auto stayNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "stay",
-        IntegerArgumentType::integer(0)
-    );
-    auto fadeOutNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "fadeOut",
-        IntegerArgumentType::integer(0)
-    );
-    fadeOutNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setTimes(ctx);
-    });
+    auto fadeInNode =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeIn", IntegerArgumentType::integer(0));
+    auto stayNode =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("stay", IntegerArgumentType::integer(0));
+    auto fadeOutNode =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeOut", IntegerArgumentType::integer(0));
+    fadeOutNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTimes(ctx); });
 
     fadeInNode->addChild(stayNode);
     stayNode->addChild(fadeOutNode);
@@ -165,7 +131,8 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     dispatcher.registerCommand(titleNode);
 }
 
-i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context) {
+i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -180,7 +147,8 @@ i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context) {
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context) {
+i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -195,7 +163,8 @@ i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context) {
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
+i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -213,7 +182,8 @@ i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
+i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -231,7 +201,8 @@ i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
+i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -249,7 +220,8 @@ i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setTimes(CommandContext<ServerCommandSource>& context) {
+i32 TitleCommand::setTimes(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);

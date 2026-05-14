@@ -1,13 +1,13 @@
 #include "JigsawManager.hpp"
-#include "JigsawPiece.hpp"
-#include "../feature/template/TemplateManager.hpp"
-#include "../feature/template/TemplateLoader.hpp"
-#include "../../../world/IWorldWriter.hpp"
+#include "../../../resource/IResourcePack.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/IWorldWriter.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/BlockRegistry.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../resource/IResourcePack.hpp"
+#include "../feature/template/TemplateLoader.hpp"
+#include "../feature/template/TemplateManager.hpp"
+#include "JigsawPiece.hpp"
 
 namespace mc {
 namespace world {
@@ -15,25 +15,26 @@ namespace gen {
 namespace jigsaw {
 
 // 使用 template_ 命名空间中的类型
-using feature::template_::Template;
-using feature::template_::PlacementSettings;
-using feature::template_::TemplateManager;
 using feature::template_::GravityStructureProcessor;
+using feature::template_::PlacementSettings;
 using feature::template_::StructureProcessorList;
+using feature::template_::Template;
+using feature::template_::TemplateManager;
 
 // 静态模板管理器实例定义
 feature::template_::TemplateManager JigsawManager::s_templateManager;
 
-void JigsawManager::setResourcePack(const IResourcePack* pack) {
+void JigsawManager::setResourcePack(const IResourcePack* pack)
+{
     s_templateManager.setResourcePack(pack);
 }
 
-void JigsawManager::clearCache() {
+void JigsawManager::clearCache()
+{
     s_templateManager.clear();
 }
 
-std::vector<PlacedPiece> JigsawManager::assemble(
-    JigsawPatternRegistry& patternRegistry,
+std::vector<PlacedPiece> JigsawManager::assemble(JigsawPatternRegistry& patternRegistry,
     const JigsawPattern& startPool,
     i32 maxDepth,
     const BlockPos& startPos,
@@ -50,7 +51,7 @@ std::vector<PlacedPiece> JigsawManager::assemble(
 
     // 放置起始块
     Rotation rotation = getRandomRotation(rng);
-    Mirror mirror = Mirror::None;  // 起始块不使用镜像
+    Mirror mirror = Mirror::None; // 起始块不使用镜像
     auto boundingBox = calculateBoundingBox(*startPiece, startPos, rotation);
 
     PlacedPiece startPlaced;
@@ -105,8 +106,7 @@ std::vector<PlacedPiece> JigsawManager::assemble(
     return placedPieces;
 }
 
-bool JigsawManager::assembleAndPlace(
-    IWorldWriter& world,
+bool JigsawManager::assembleAndPlace(IWorldWriter& world,
     JigsawPatternRegistry& patternRegistry,
     const JigsawPattern& startPool,
     i32 maxDepth,
@@ -131,10 +131,7 @@ bool JigsawManager::assembleAndPlace(
     return true;
 }
 
-void JigsawManager::placePieceRecursive(
-    IWorldWriter& world,
-    const PlacedPiece& placed,
-    math::Random& rng)
+void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)
 {
     // 尝试加载模板（如果是 SingleJigsawPiece）
     const SingleJigsawPiece* singlePiece = dynamic_cast<const SingleJigsawPiece*>(placed.piece.get());
@@ -190,7 +187,7 @@ void JigsawManager::placePieceRecursive(
             // 为每个子块创建 PlacedPiece
             PlacedPiece childPlaced;
             childPlaced.piece = child->clone();
-            childPlaced.position = placed.position;  // 子块继承父块位置（相对位置在子块内部处理）
+            childPlaced.position = placed.position; // 子块继承父块位置（相对位置在子块内部处理）
             childPlaced.rotation = placed.rotation;
             childPlaced.mirror = placed.mirror;
             childPlaced.groundLevelDelta = child->getGroundLevelDelta();
@@ -205,10 +202,7 @@ void JigsawManager::placePieceRecursive(
     placeFallbackBlocks(world, placed, rng);
 }
 
-void JigsawManager::placeFallbackBlocks(
-    IWorldWriter& world,
-    const PlacedPiece& placed,
-    math::Random& rng)
+void JigsawManager::placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)
 {
     // 当模板未找到时，放置简单的方块来标记结构位置
     const BlockState* markerBlock = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
@@ -218,7 +212,7 @@ void JigsawManager::placeFallbackBlocks(
     }
 
     if (!markerBlock) {
-        return;  // 无法获取任何方块
+        return; // 无法获取任何方块
     }
 
     // 获取边界框并在其中放置方块
@@ -227,9 +221,8 @@ void JigsawManager::placeFallbackBlocks(
         for (i32 x = box.minX(); x <= box.maxX(); ++x) {
             for (i32 z = box.minZ(); z <= box.maxZ(); ++z) {
                 // 只在边缘放置方块（创建框架）
-                if (y == box.minY() || y == box.maxY() ||
-                    x == box.minX() || x == box.maxX() ||
-                    z == box.minZ() || z == box.maxZ()) {
+                if (y == box.minY() || y == box.maxY() || x == box.minX() || x == box.maxX() || z == box.minZ() ||
+                    z == box.maxZ()) {
                     // 添加一些随机性，避免过于规则
                     if (rng.nextInt(100) < 80) {
                         world.setBlockState(x, y, z, markerBlock, 18);
@@ -241,10 +234,7 @@ void JigsawManager::placeFallbackBlocks(
 }
 
 std::vector<JigsawJoint> JigsawManager::getTransformedJoints(
-    const JigsawPiece& piece,
-    const BlockPos& position,
-    Rotation rotation,
-    Mirror mirror)
+    const JigsawPiece& piece, const BlockPos& position, Rotation rotation, Mirror mirror)
 {
     std::vector<JigsawJoint> transformed;
     transformed.reserve(piece.getJoints().size());
@@ -274,8 +264,7 @@ std::vector<JigsawJoint> JigsawManager::getTransformedJoints(
     return transformed;
 }
 
-bool JigsawManager::processJoint(
-    JigsawPatternRegistry& patternRegistry,
+bool JigsawManager::processJoint(JigsawPatternRegistry& patternRegistry,
     std::vector<PlacedPiece>& placedPieces,
     std::queue<PendingJoint>& pendingJoints,
     const PendingJoint& joint,
@@ -285,8 +274,7 @@ bool JigsawManager::processJoint(
     return tryPlacePiece(patternRegistry, placedPieces, pendingJoints, joint, maxDepth, rng);
 }
 
-bool JigsawManager::tryPlacePiece(
-    JigsawPatternRegistry& patternRegistry,
+bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
     std::vector<PlacedPiece>& placedPieces,
     std::queue<PendingJoint>& pendingJoints,
     const PendingJoint& joint,
@@ -336,7 +324,7 @@ bool JigsawManager::tryPlacePiece(
     // 参考: JigsawManager.Assembler.func_236831_a_ 第152-252行
     // 预分配匹配连接点容器（最多有 pieceJoints.size() * 4 个匹配，因为有4种旋转）
     std::vector<std::pair<size_t, Rotation>> matchingJoints;
-    matchingJoints.reserve(16);  // 预估容量避免循环内重复分配
+    matchingJoints.reserve(16); // 预估容量避免循环内重复分配
 
     for (const JigsawPiece* selectedPiece : candidatePieces) {
         if (!selectedPiece || selectedPiece->isEmpty()) {
@@ -345,7 +333,7 @@ bool JigsawManager::tryPlacePiece(
 
         // 尝试找到可以匹配的连接点
         const auto& pieceJoints = selectedPiece->getJoints();
-        matchingJoints.clear();  // 清空复用已分配的内存
+        matchingJoints.clear(); // 清空复用已分配的内存
 
         for (size_t i = 0; i < pieceJoints.size(); ++i) {
             const auto& pieceJoint = pieceJoints[i];
@@ -359,8 +347,11 @@ bool JigsawManager::tryPlacePiece(
                 // 检查名称和方向是否匹配
                 // MC 1.16.5: JigsawBlock.func_220171_a
                 // 匹配条件: source.targetName == target.sourceName && 方向相反
-                if (JigsawMatcher::canMatch(pieceJoint.targetName, joint.sourceName,
-                                             rotatedOrientation, joint.orientation, pieceJoint.jointType)) {
+                if (JigsawMatcher::canMatch(pieceJoint.targetName,
+                        joint.sourceName,
+                        rotatedOrientation,
+                        joint.orientation,
+                        pieceJoint.jointType)) {
                     matchingJoints.emplace_back(i, rotEnum);
                 }
             }
@@ -376,7 +367,8 @@ bool JigsawManager::tryPlacePiece(
 
         // 计算放置位置
         // 连接点的位置需要使两个块连接在一起
-        BlockPos jointOffset = transformPosition(selectedJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize());
+        BlockPos jointOffset =
+            transformPosition(selectedJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize());
         BlockPos placementPos = joint.position - jointOffset;
 
         // 计算边界框
@@ -411,12 +403,11 @@ bool JigsawManager::tryPlacePiece(
         // sourceGroundY: 源地面高度
         // deltaY: 高度偏移量
         // destProjection: 目标放置行为
-        placed.junctions.emplace_back(
-            joint.position.x,    // sourceX
-            sourceGroundY,       // sourceGroundY
-            joint.position.z,    // sourceZ
-            deltaY,              // deltaY
-            joint.projection     // destProjection
+        placed.junctions.emplace_back(joint.position.x, // sourceX
+            sourceGroundY,                              // sourceGroundY
+            joint.position.z,                           // sourceZ
+            deltaY,                                     // deltaY
+            joint.projection                            // destProjection
         );
 
         placedPieces.push_back(std::move(placed));
@@ -434,7 +425,8 @@ bool JigsawManager::tryPlacePiece(
             JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(newJoint.orientation, rotation);
 
             PendingJoint newPending;
-            newPending.position = transformPosition(newJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize()) + placementPos;
+            newPending.position =
+                transformPosition(newJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize()) + placementPos;
             newPending.sourceName = newJoint.sourceName;
             newPending.targetPool = newJoint.targetPool;
             newPending.targetType = newJoint.targetName;
@@ -452,9 +444,7 @@ bool JigsawManager::tryPlacePiece(
 }
 
 structure::StructureBoundingBox JigsawManager::calculateBoundingBox(
-    const JigsawPiece& piece,
-    const BlockPos& pos,
-    Rotation rotation)
+    const JigsawPiece& piece, const BlockPos& pos, Rotation rotation)
 {
     BlockPos size = piece.getSize();
 
@@ -468,14 +458,11 @@ structure::StructureBoundingBox JigsawManager::calculateBoundingBox(
     }
 
     return structure::StructureBoundingBox(
-        pos.x, pos.y, pos.z,
-        pos.x + size.x - 1, pos.y + size.y - 1, pos.z + size.z - 1
-    );
+        pos.x, pos.y, pos.z, pos.x + size.x - 1, pos.y + size.y - 1, pos.z + size.z - 1);
 }
 
 bool JigsawManager::boxesIntersect(
-    const std::vector<PlacedPiece>& placedPieces,
-    const structure::StructureBoundingBox& newBox)
+    const std::vector<PlacedPiece>& placedPieces, const structure::StructureBoundingBox& newBox)
 {
     // MC 1.16.5: 使用 0.25 收缩边界进行碰撞检测
     // 参考: JigsawManager.Assembler.tryFitPiece -> VoxelShapes.combineAndSimplify(..., IBooleanFunction.ONLY_SECOND)
@@ -492,24 +479,23 @@ bool JigsawManager::boxesIntersect(
         const auto& existing = placed.boundingBox;
 
         // AABB 碰撞检测（使用收缩后的边界）
-        if (shrunkMaxX >= static_cast<f32>(existing.minX()) &&
-            shrunkMinX <= static_cast<f32>(existing.maxX()) &&
-            shrunkMaxY >= static_cast<f32>(existing.minY()) &&
-            shrunkMinY <= static_cast<f32>(existing.maxY()) &&
-            shrunkMaxZ >= static_cast<f32>(existing.minZ()) &&
-            shrunkMinZ <= static_cast<f32>(existing.maxZ())) {
+        if (shrunkMaxX >= static_cast<f32>(existing.minX()) && shrunkMinX <= static_cast<f32>(existing.maxX()) &&
+            shrunkMaxY >= static_cast<f32>(existing.minY()) && shrunkMinY <= static_cast<f32>(existing.maxY()) &&
+            shrunkMaxZ >= static_cast<f32>(existing.minZ()) && shrunkMinZ <= static_cast<f32>(existing.maxZ())) {
             return true;
         }
     }
     return false;
 }
 
-Rotation JigsawManager::getRandomRotation(math::Random& rng) {
+Rotation JigsawManager::getRandomRotation(math::Random& rng)
+{
     // 返回 Rotation 枚举值
     return static_cast<Rotation>(rng.nextInt(4));
 }
 
-BlockPos JigsawManager::rotatePosition(const BlockPos& pos, Rotation rotation) {
+BlockPos JigsawManager::rotatePosition(const BlockPos& pos, Rotation rotation)
+{
     switch (rotation) {
         case Rotation::Clockwise90:
             return BlockPos(-pos.z, pos.y, pos.x);
@@ -522,14 +508,15 @@ BlockPos JigsawManager::rotatePosition(const BlockPos& pos, Rotation rotation) {
     }
 }
 
-BlockPos JigsawManager::mirrorPosition(const BlockPos& pos, Mirror mirror, const BlockPos& center) {
+BlockPos JigsawManager::mirrorPosition(const BlockPos& pos, Mirror mirror, const BlockPos& center)
+{
     BlockPos result = pos;
 
     switch (mirror) {
-        case Mirror::FrontBack:  // X 轴镜像
+        case Mirror::FrontBack: // X 轴镜像
             result = BlockPos(center.x * 2 - pos.x, pos.y, pos.z);
             break;
-        case Mirror::LeftRight:  // Z 轴镜像
+        case Mirror::LeftRight: // Z 轴镜像
             result = BlockPos(pos.x, pos.y, center.z * 2 - pos.z);
             break;
         default:
@@ -540,19 +527,16 @@ BlockPos JigsawManager::mirrorPosition(const BlockPos& pos, Mirror mirror, const
 }
 
 BlockPos JigsawManager::transformPosition(
-    const BlockPos& pos,
-    Rotation rotation,
-    Mirror mirror,
-    const BlockPos& templateSize)
+    const BlockPos& pos, Rotation rotation, Mirror mirror, const BlockPos& templateSize)
 {
     BlockPos result = pos;
 
     // 先应用镜像（相对于模板中心）
     switch (mirror) {
-        case Mirror::FrontBack:  // X 轴镜像
+        case Mirror::FrontBack: // X 轴镜像
             result = BlockPos(templateSize.x - 1 - result.x, result.y, result.z);
             break;
-        case Mirror::LeftRight:  // Z 轴镜像
+        case Mirror::LeftRight: // Z 轴镜像
             result = BlockPos(result.x, result.y, templateSize.z - 1 - result.z);
             break;
         default:

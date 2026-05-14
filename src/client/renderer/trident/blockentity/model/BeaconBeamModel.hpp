@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/world/blockentity/processing/BeaconEntity.hpp"
 #include "client/renderer/api/mesh/MeshData.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
-#include <vector>
+#include "common/core/Types.hpp"
+#include "common/world/blockentity/processing/BeaconEntity.hpp"
 #include <array>
+#include <vector>
 
 namespace mc::client::renderer::blockentity::model {
 
@@ -66,8 +66,7 @@ public:
      * @param gameTime 游戏时间（用于纹理动画）
      * @param partialTick 部分tick（用于插值）
      */
-    void generateMesh(
-        std::vector<entity::model::ModelVertex>& vertices,
+    void generateMesh(std::vector<entity::model::ModelVertex>& vertices,
         std::vector<u32>& indices,
         i64 gameTime,
         f32 partialTick) const;
@@ -114,8 +113,7 @@ private:
      * @param vOffset V纹理偏移
      * @param isGlow 是否为光晕层
      */
-    void renderSegment(
-        std::vector<entity::model::ModelVertex>& vertices,
+    void renderSegment(std::vector<entity::model::ModelVertex>& vertices,
         std::vector<u32>& indices,
         i32 yOffset,
         i32 height,
@@ -142,8 +140,7 @@ private:
      * @param b 蓝色
      * @param alpha 透明度
      */
-    void addQuad(
-        std::vector<entity::model::ModelVertex>& vertices,
+    void addQuad(std::vector<entity::model::ModelVertex>& vertices,
         std::vector<u32>& indices,
         f32 yMin,
         f32 yMax,

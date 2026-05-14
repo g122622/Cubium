@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -27,17 +27,18 @@ struct FlowerFeatureConfig : public IFeatureConfig {
     FlowerFeatureConfig() = default;
 
     explicit FlowerFeatureConfig(const BlockState* flower)
-        : flowers{flower} {}
+        : flowers{flower}
+    {}
 
     FlowerFeatureConfig(std::vector<const BlockState*> flowerList, i32 attemptCount)
-        : flowers(std::move(flowerList)), tries(attemptCount) {}
+        : flowers(std::move(flowerList))
+        , tries(attemptCount)
+    {}
 
     /**
      * @brief 添加花卉
      */
-    void addFlower(const BlockState* flower) {
-        flowers.push_back(flower);
-    }
+    void addFlower(const BlockState* flower) { flowers.push_back(flower); }
 
     /**
      * @brief 获取随机花卉
@@ -61,20 +62,13 @@ public:
      * @param config 花卉配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const FlowerFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const FlowerFeatureConfig& config);
 
 private:
     /**
      * @brief 检查花卉是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        const FlowerFeatureConfig& config) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const;
 
     /**
      * @brief 检查下方方块是否支持花卉生长
@@ -87,12 +81,9 @@ private:
  */
 class ConfiguredFlowerFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredFlowerFeature(
-        std::unique_ptr<FlowerFeatureConfig> config,
-        const char* featureName);
+    ConfiguredFlowerFeature(std::unique_ptr<FlowerFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

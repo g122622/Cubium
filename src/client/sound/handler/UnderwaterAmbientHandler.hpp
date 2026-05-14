@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "client/sound/SoundEngine.hpp"
+#include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "common/util/math/random/Random.hpp"
 
 #include <optional>

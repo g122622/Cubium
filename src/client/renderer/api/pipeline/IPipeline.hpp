@@ -1,9 +1,9 @@
 #pragma once
 
-#include "RenderState.hpp"
 #include "../buffer/IBuffer.hpp"
 #include "../texture/ITexture.hpp"
 #include "../texture/ITextureAtlas.hpp"
+#include "RenderState.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
@@ -14,14 +14,7 @@ namespace mc::client::renderer::api {
 /**
  * @brief 着色器阶段
  */
-enum class ShaderStage : u8 {
-    Vertex,
-    Fragment,
-    Geometry,
-    TessControl,
-    TessEvaluation,
-    Compute
-};
+enum class ShaderStage : u8 { Vertex, Fragment, Geometry, TessControl, TessEvaluation, Compute };
 
 /**
  * @brief 着色器模块描述
@@ -29,7 +22,7 @@ enum class ShaderStage : u8 {
 struct ShaderModuleDesc {
     ShaderStage stage;
     std::string entryPoint = "main";
-    std::vector<u8> bytecode;  // SPIR-V 字节码
+    std::vector<u8> bytecode; // SPIR-V 字节码
 };
 
 /**

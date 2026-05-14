@@ -1,14 +1,14 @@
 #include "AdvancementLoader.hpp"
 #include "AdvancementManager.hpp"
-#include <spdlog/spdlog.h>
 #include <filesystem>
 #include <fstream>
+#include <spdlog/spdlog.h>
 
 namespace mc::advancement {
 
 Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDirectory(
-    const std::string& directoryPath,
-    ProgressCallback callback) {
+    const std::string& directoryPath, ProgressCallback callback)
+{
 
     LoadResult result;
 
@@ -51,7 +51,8 @@ Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDirectory(
     return result;
 }
 
-Result<ResourceLocation> AdvancementLoader::loadFile(const std::string& filePath) {
+Result<ResourceLocation> AdvancementLoader::loadFile(const std::string& filePath)
+{
     // 读取文件
     std::ifstream file(filePath);
     if (!file.is_open()) {
@@ -62,7 +63,8 @@ Result<ResourceLocation> AdvancementLoader::loadFile(const std::string& filePath
     nlohmann::json json;
     try {
         file >> json;
-    } catch (const nlohmann::json::parse_error& e) {
+    }
+    catch (const nlohmann::json::parse_error& e) {
         return Error(ErrorCode::ResourceParseError, "JSON parse error: " + std::string(e.what()));
     }
 
@@ -84,23 +86,27 @@ Result<ResourceLocation> AdvancementLoader::loadFile(const std::string& filePath
     return id;
 }
 
-Result<Advancement> AdvancementLoader::loadJson(const ResourceLocation& id, const std::string& jsonString) {
+Result<Advancement> AdvancementLoader::loadJson(const ResourceLocation& id, const std::string& jsonString)
+{
     // 解析JSON
     nlohmann::json json;
     try {
         json = nlohmann::json::parse(jsonString);
-    } catch (const nlohmann::json::parse_error& e) {
+    }
+    catch (const nlohmann::json::parse_error& e) {
         return Error(ErrorCode::ResourceParseError, "JSON parse error: " + std::string(e.what()));
     }
 
     return loadJson(id, json);
 }
 
-Result<Advancement> AdvancementLoader::loadJson(const ResourceLocation& id, const nlohmann::json& json) {
+Result<Advancement> AdvancementLoader::loadJson(const ResourceLocation& id, const nlohmann::json& json)
+{
     return Advancement::fromJson(id, json);
 }
 
-ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& filePath) const {
+ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& filePath) const
+{
     // 路径格式: "data/minecraft/advancements/story/mine_stone.json"
     // ID格式: "minecraft:story/mine_stone"
 
@@ -162,7 +168,8 @@ ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& fileP
     return ResourceLocation(namespaceName, advancementId);
 }
 
-std::vector<std::filesystem::path> AdvancementLoader::findJsonFiles(const std::filesystem::path& directory) const {
+std::vector<std::filesystem::path> AdvancementLoader::findJsonFiles(const std::filesystem::path& directory) const
+{
     std::vector<std::filesystem::path> files;
 
     if (!std::filesystem::exists(directory)) {

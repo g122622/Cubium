@@ -101,9 +101,9 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 private:
-    SimpleInventory m_inventory;    ///< 1格物品存储
-    bool m_isPlaying = false;       ///< 是否正在播放
-    i32 m_recordId = 0;             ///< 当前播放的唱片ID
+    SimpleInventory m_inventory; ///< 1格物品存储
+    bool m_isPlaying = false;    ///< 是否正在播放
+    i32 m_recordId = 0;          ///< 当前播放的唱片ID
 };
 
 } // namespace blockentity

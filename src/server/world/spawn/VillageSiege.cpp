@@ -1,22 +1,22 @@
 #include "VillageSiege.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/village/VillageManager.hpp"
-#include "common/world/village/Village.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityType.hpp"
-#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
-#include "common/entity/entities/monster/MonsterEntity.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/core/Entity.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/Biome.hpp"
-#include "common/util/math/MathConstants.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/village/Village.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -28,15 +28,15 @@ namespace server::spawn {
 // ============================================================================
 
 VillageSiege::VillageSiege()
-    : m_random(0)  // 种子会在使用时设置
-{
-}
+    : m_random(0) // 种子会在使用时设置
+{}
 
 // ============================================================================
 // 主要接口
 // ============================================================================
 
-i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
+i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
+{
     // 条件1: 必须允许生成敌对生物
     if (!spawnHostiles) {
         return 0;
@@ -51,7 +51,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
     // 条件3: 检查是否为夜晚（不是白天）
     // MC 1.16.5: !world.isDaytime()
     const i64 worldDayTime = world.dayTime();
-    const bool isDaytime = (worldDayTime % game::DAY_LENGTH_TICKS) < 12000;  // 0-12000 是白天
+    const bool isDaytime = (worldDayTime % game::DAY_LENGTH_TICKS) < 12000; // 0-12000 是白天
 
     if (isDaytime) {
         // 白天重置状态
@@ -115,7 +115,8 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
 // 内部方法
 // ============================================================================
 
-bool VillageSiege::trySetupSiege(server::ServerWorld& world) {
+bool VillageSiege::trySetupSiege(server::ServerWorld& world)
+{
     // 更新随机种子
     m_random.setSeed(world.dayTime());
 
@@ -133,11 +134,9 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world) {
             continue;
         }
 
-        const BlockPos playerPos(
-            static_cast<i32>(player->position().x),
+        const BlockPos playerPos(static_cast<i32>(player->position().x),
             static_cast<i32>(player->position().y),
-            static_cast<i32>(player->position().z)
-        );
+            static_cast<i32>(player->position().z));
 
         // 条件: 玩家必须在村庄内
         if (!isInValidVillage(world, playerPos)) {
@@ -168,7 +167,10 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world) {
                 m_siegeCount = Config::TOTAL_ZOMBIES;
 
                 spdlog::info("VillageSiege: Setup complete at ({}, {}, {}), {} zombies to spawn",
-                    m_spawnCenter.x, m_spawnCenter.y, m_spawnCenter.z, m_siegeCount);
+                    m_spawnCenter.x,
+                    m_spawnCenter.y,
+                    m_spawnCenter.z,
+                    m_siegeCount);
 
                 return true;
             }
@@ -181,7 +183,8 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world) {
     return false;
 }
 
-bool VillageSiege::spawnZombie(server::ServerWorld& world) {
+bool VillageSiege::spawnZombie(server::ServerWorld& world)
+{
     auto spawnPos = findRandomSpawnPos(world, m_spawnCenter);
 
     if (!spawnPos.has_value()) {
@@ -220,15 +223,13 @@ bool VillageSiege::spawnZombie(server::ServerWorld& world) {
         return false;
     }
 
-    spdlog::debug("VillageSiege: Spawned zombie {} at ({}, {}, {})",
-        entityId, spawnPos->x, spawnPos->y, spawnPos->z);
+    spdlog::debug("VillageSiege: Spawned zombie {} at ({}, {}, {})", entityId, spawnPos->x, spawnPos->y, spawnPos->z);
 
     return true;
 }
 
-std::optional<BlockPos> VillageSiege::findRandomSpawnPos(
-    IWorld& world,
-    const BlockPos& searchCenter) {
+std::optional<BlockPos> VillageSiege::findRandomSpawnPos(IWorld& world, const BlockPos& searchCenter)
+{
 
     for (i32 attempt = 0; attempt < Config::MAX_SPAWN_ATTEMPTS; ++attempt) {
         // 在搜索中心附近随机偏移
@@ -252,7 +253,8 @@ std::optional<BlockPos> VillageSiege::findRandomSpawnPos(
     return std::nullopt;
 }
 
-bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos) {
+bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos)
+{
     // 检查位置是否有固体方块作为地面
     const BlockState* groundState = world.getBlockState(pos.x, pos.y - 1, pos.z);
     if (!groundState || !groundState->isSolid()) {
@@ -275,7 +277,8 @@ bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos) {
     return MonsterEntity::isValidLightLevel(world, pos, m_random);
 }
 
-bool VillageSiege::isMidnight(server::ServerWorld& world) const {
+bool VillageSiege::isMidnight(server::ServerWorld& world) const
+{
     // MC 1.16.5: celestialAngle == 0.5 表示午夜
     // 参考: VillageSiege.func_230253_a_ 第 33-34 行:
     //   float f = world.func_242415_f(0.0F);  // getCelestialAngle
@@ -295,7 +298,8 @@ bool VillageSiege::isMidnight(server::ServerWorld& world) const {
     return worldDayTime == 18000;
 }
 
-bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos) {
+bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos)
+{
     // 获取村庄管理器
     auto* villageManager = world.villageManager();
     if (!villageManager) {
@@ -334,7 +338,8 @@ bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& 
     return true;
 }
 
-bool VillageSiege::isMushroomBiome(server::ServerWorld& world, const BlockPos& pos) {
+bool VillageSiege::isMushroomBiome(server::ServerWorld& world, const BlockPos& pos)
+{
     // MC 1.16.5: world.getBiome(blockpos).getCategory() != Biome.Category.MUSHROOM
     // 蘑菇岛生物群系不会发生僵尸围攻
 

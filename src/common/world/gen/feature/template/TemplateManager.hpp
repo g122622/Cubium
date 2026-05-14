@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../../../../resource/ResourceLocation.hpp"
 #include "Template.hpp"
 #include "TemplateLoader.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace mc {
 
@@ -76,10 +76,7 @@ public:
      * @return 创建的模板
      */
     [[nodiscard]] std::unique_ptr<Template> createProceduralTemplate(
-        const std::string& name,
-        i32 width,
-        i32 height,
-        i32 depth);
+        const std::string& name, i32 width, i32 height, i32 depth);
 
 private:
     [[nodiscard]] std::unique_ptr<Template> loadTemplate(const ResourceLocation& location);

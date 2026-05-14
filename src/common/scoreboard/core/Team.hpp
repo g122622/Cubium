@@ -1,10 +1,10 @@
 #pragma once
 
-#include "TeamEnums.hpp"
 #include "../../util/text/ITextComponent.hpp"
+#include "TeamEnums.hpp"
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
 
 namespace mc::scoreboard {
 
@@ -210,8 +210,7 @@ public:
      * @param name 玩家名称组件
      * @return 格式化后的名称组件
      */
-    [[nodiscard]] virtual std::unique_ptr<text::ITextComponent> formatName(
-        const text::ITextComponent& name) const = 0;
+    [[nodiscard]] virtual std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent& name) const = 0;
 };
 
 } // namespace mc::scoreboard

@@ -9,14 +9,14 @@
  * - 无连接时的行为
  */
 
-#include <gtest/gtest.h>
-#include "server/player/ServerPlayer.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/connection/LocalConnection.hpp"
+#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/network/packet/TitlePacket.hpp"
-#include "common/core/Types.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include <memory>
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -26,7 +26,8 @@ namespace {
  */
 class ServerPlayerMessageTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建本地连接对用于测试
         m_connectionPair = std::make_unique<network::LocalConnectionPair>();
         m_connectionPair->connect();
@@ -35,7 +36,8 @@ protected:
         m_player = std::make_unique<ServerPlayer>(1, "TestPlayer");
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_player.reset();
         m_connectionPair.reset();
     }
@@ -43,16 +45,15 @@ protected:
     /**
      * @brief 创建本地连接
      */
-    network::ConnectionPtr createConnection() {
+    network::ConnectionPtr createConnection()
+    {
         return std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
     /**
      * @brief 获取客户端端点以读取发送的数据
      */
-    network::LocalEndpoint& clientEndpoint() {
-        return m_connectionPair->clientEndpoint();
-    }
+    network::LocalEndpoint& clientEndpoint() { return m_connectionPair->clientEndpoint(); }
 
     /**
      * @brief 解析包类型
@@ -60,7 +61,8 @@ protected:
      * 包头格式: u32 size, u16 type, u16 flags, u16 reserved, u16 padding
      * 类型字段是大端序存储
      */
-    network::PacketType parsePacketType(const std::vector<u8>& packet) {
+    network::PacketType parsePacketType(const std::vector<u8>& packet)
+    {
         if (packet.size() < 12) {
             // 返回一个无效的类型作为错误指示
             return static_cast<network::PacketType>(0xFFFF);
@@ -76,12 +78,14 @@ protected:
 
 // ========== canReceiveMessages 测试 ==========
 
-TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseWithoutConnection) {
+TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseWithoutConnection)
+{
     // 没有连接时，canReceiveMessages 应该返回 false
     EXPECT_FALSE(m_player->canReceiveMessages());
 }
 
-TEST_F(ServerPlayerMessageTest, CanReceiveMessagesTrueWithConnection) {
+TEST_F(ServerPlayerMessageTest, CanReceiveMessagesTrueWithConnection)
+{
     // 设置连接后，canReceiveMessages 应该返回 true
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -89,7 +93,8 @@ TEST_F(ServerPlayerMessageTest, CanReceiveMessagesTrueWithConnection) {
     EXPECT_TRUE(m_player->canReceiveMessages());
 }
 
-TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseAfterDisconnect) {
+TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseAfterDisconnect)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -103,7 +108,8 @@ TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseAfterDisconnect) {
     EXPECT_FALSE(m_player->canReceiveMessages());
 }
 
-TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseAfterNullConnection) {
+TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseAfterNullConnection)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -116,7 +122,8 @@ TEST_F(ServerPlayerMessageTest, CanReceiveMessagesFalseAfterNullConnection) {
 
 // ========== sendStatusMessage 测试 ==========
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageDoesNotThrowWithConnection) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageDoesNotThrowWithConnection)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -127,13 +134,15 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageDoesNotThrowWithConnection) {
     EXPECT_NO_THROW(m_player->sendStatusMessage("block.minecraft.bed.no_sleep", false));
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageDoesNotThrowWithoutConnection) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageDoesNotThrowWithoutConnection)
+{
     // 没有连接时发送消息也不应该抛出异常（只是记录警告）
     EXPECT_NO_THROW(m_player->sendStatusMessage("test.message"));
     EXPECT_NO_THROW(m_player->sendStatusMessage("another.message", true));
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageWithEmptyString) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageWithEmptyString)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -143,7 +152,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageWithEmptyString) {
     EXPECT_NO_THROW(m_player->sendStatusMessage("", true));
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageWithTranslationKeys) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageWithTranslationKeys)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -156,7 +166,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageWithTranslationKeys) {
     EXPECT_NO_THROW(m_player->sendStatusMessage("block.minecraft.bed.not_safe"));
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageWithLongMessage) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageWithLongMessage)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -168,7 +179,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageWithLongMessage) {
 
 // ========== 多态性测试 ==========
 
-TEST_F(ServerPlayerMessageTest, PolymorphicCallThroughBasePointer) {
+TEST_F(ServerPlayerMessageTest, PolymorphicCallThroughBasePointer)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -181,7 +193,8 @@ TEST_F(ServerPlayerMessageTest, PolymorphicCallThroughBasePointer) {
     EXPECT_NO_THROW(basePtr->sendStatusMessage("test.polymorphism"));
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageCallsSendSystemMessage) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageCallsSendSystemMessage)
+{
     // 这个测试验证 sendStatusMessage 调用了 sendSystemMessage
     // 设置连接后应该能正常发送
     auto conn = createConnection();
@@ -194,7 +207,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageCallsSendSystemMessage) {
 
 // ========== 多次发送测试 ==========
 
-TEST_F(ServerPlayerMessageTest, MultipleMessagesInSequence) {
+TEST_F(ServerPlayerMessageTest, MultipleMessagesInSequence)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -205,7 +219,8 @@ TEST_F(ServerPlayerMessageTest, MultipleMessagesInSequence) {
     }
 }
 
-TEST_F(ServerPlayerMessageTest, MessagesAfterReconnect) {
+TEST_F(ServerPlayerMessageTest, MessagesAfterReconnect)
+{
     // 第一次连接
     auto conn1 = createConnection();
     m_player->setConnection(conn1);
@@ -229,7 +244,8 @@ TEST_F(ServerPlayerMessageTest, MessagesAfterReconnect) {
 
 // ========== ActionBar 参数测试 ==========
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarSendsTitlePacket) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarSendsTitlePacket)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -247,7 +263,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarSendsTitlePacket) {
     EXPECT_EQ(type, network::PacketType::Title);
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageChatSendsChatPacket) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageChatSendsChatPacket)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -265,7 +282,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageChatSendsChatPacket) {
     EXPECT_EQ(type, network::PacketType::ChatBroadcast);
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageDefaultSendsChatPacket) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageDefaultSendsChatPacket)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -283,7 +301,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageDefaultSendsChatPacket) {
     EXPECT_EQ(type, network::PacketType::ChatBroadcast);
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarWithEmptyString) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarWithEmptyString)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -301,7 +320,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarWithEmptyString) {
     EXPECT_EQ(type, network::PacketType::Title);
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageMultipleActionBarMessages) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageMultipleActionBarMessages)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -320,7 +340,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageMultipleActionBarMessages) {
     }
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageMixedChatAndActionBar) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageMixedChatAndActionBar)
+{
     // 设置连接
     auto conn = createConnection();
     m_player->setConnection(conn);
@@ -351,7 +372,8 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageMixedChatAndActionBar) {
     EXPECT_EQ(parsePacketType(packet), network::PacketType::Title);
 }
 
-TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarNoConnection) {
+TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarNoConnection)
+{
     // 没有连接时发送 actionBar 消息不应该抛出异常
     EXPECT_NO_THROW(m_player->sendStatusMessage("test.actionbar", true));
     EXPECT_NO_THROW(m_player->sendStatusMessage("test.noplayer", true));

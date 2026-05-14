@@ -1,24 +1,24 @@
 #include <gtest/gtest.h>
 
-#include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/fluid/fluids/WaterFluid.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
-#include "common/world/entity/EntityManager.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
-#include "common/entity/utils/ItemDropHelper.hpp"
-#include "common/entity/loot/LootTable.hpp"
 #include "common/entity/loot/LootContext.hpp"
-#include "common/entity/loot/LootPool.hpp"
 #include "common/entity/loot/LootEntry.hpp"
+#include "common/entity/loot/LootPool.hpp"
+#include "common/entity/loot/LootTable.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/fluids/WaterFluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -31,21 +31,20 @@ namespace {
  */
 class MockLootTableManager : public loot::LootTableManager {
 public:
-    MockLootTableManager() : LootTableManager() {
+    MockLootTableManager()
+        : LootTableManager()
+    {
         // 创建一个简单的测试掉落表
         auto table = std::make_unique<loot::LootTable>();
 
         // 创建一个池，总是掉落 1 个测试物品
-        auto pool = std::make_unique<loot::LootPool>(
-            loot::RandomValueRange(1.0f),
-            loot::RandomValueRange(1.0f));
+        auto pool = std::make_unique<loot::LootPool>(loot::RandomValueRange(1.0f), loot::RandomValueRange(1.0f));
 
         // 添加物品条目 - 使用苹果作为测试物品
-        auto entry = std::make_unique<loot::ItemLootEntry>(
-            "minecraft:apple",
-            loot::RandomValueRange(1.0f, 3.0f),  // 数量 1-3
-            1,  // weight
-            1   // quality
+        auto entry = std::make_unique<loot::ItemLootEntry>("minecraft:apple",
+            loot::RandomValueRange(1.0f, 3.0f), // 数量 1-3
+            1,                                  // weight
+            1                                   // quality
         );
         pool->addEntry(std::move(entry));
         table->addPool(std::move(pool));
@@ -54,9 +53,7 @@ public:
         LootTableManager::registerTable("minecraft:blocks/test_block", std::move(table));
     }
 
-    [[nodiscard]] const loot::LootTable* getTestTable() const {
-        return m_testTable;
-    }
+    [[nodiscard]] const loot::LootTable* getTestTable() const { return m_testTable; }
 
 private:
     loot::LootTable* m_testTable = nullptr;
@@ -76,7 +73,8 @@ public:
 
     // ========== IBlockReader 接口 ==========
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         auto it = m_blocks.find(packPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second;
@@ -84,12 +82,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         if (state != nullptr) {
             const fluid::FluidState* fluidState = state->getFluidState();
@@ -104,10 +104,12 @@ public:
 
     // ========== TickManager 接口 ==========
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("WaterFluidTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("WaterFluidTestWorld::tickManager not implemented");
     }
 
@@ -115,7 +117,8 @@ public:
 
     // ========== Entity 管理 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         if (!entity) {
             return EntityId(0);
         }
@@ -124,18 +127,12 @@ public:
         return id;
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override {
-        return m_entityManager.getEntity(id);
-    }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override {
-        return m_entityManager.getEntity(id);
-    }
+    [[nodiscard]] Entity* getEntity(EntityId id) override { return m_entityManager.getEntity(id); }
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override { return m_entityManager.getEntity(id); }
 
     // ========== 掉落表管理器 ==========
 
-    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override {
-        return m_lootTableManager.get();
-    }
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override { return m_lootTableManager.get(); }
 
     // ========== 辅助方法 ==========
 
@@ -144,16 +141,13 @@ public:
 
     [[nodiscard]] size_t entityCount() const { return m_entityManager.entityCount(); }
 
-    void setLootTableManager(std::unique_ptr<MockLootTableManager> manager) {
-        m_lootTableManager = std::move(manager);
-    }
+    void setLootTableManager(std::unique_ptr<MockLootTableManager> manager) { m_lootTableManager = std::move(manager); }
 
-    void clearLootTableManager() {
-        m_lootTableManager.reset();
-    }
+    void clearLootTableManager() { m_lootTableManager.reset(); }
 
 private:
-    static i64 packPos(i32 x, i32 y, i32 z) {
+    static i64 packPos(i32 x, i32 y, i32 z)
+    {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
     }
 
@@ -162,7 +156,8 @@ private:
     std::unique_ptr<MockLootTableManager> m_lootTableManager;
 };
 
-void ensureRegistriesInitialized() {
+void ensureRegistriesInitialized()
+{
     static std::once_flag s_once;
     std::call_once(s_once, [] {
         fluid::FluidRegistry::instance().initialize();
@@ -177,7 +172,8 @@ void ensureRegistriesInitialized() {
 // WaterFluid 基础测试
 // ============================================================================
 
-TEST(WaterFluidTest, WaterFluidIsRegistered) {
+TEST(WaterFluidTest, WaterFluidIsRegistered)
+{
     ensureRegistriesInitialized();
 
     // 验证水流体的注册
@@ -190,7 +186,8 @@ TEST(WaterFluidTest, WaterFluidIsRegistered) {
     EXPECT_FALSE(flowingWater->isSource(flowingWater->defaultState()));
 }
 
-TEST(WaterFluidTest, WaterFluidIsEquivalent) {
+TEST(WaterFluidTest, WaterFluidIsEquivalent)
+{
     ensureRegistriesInitialized();
 
     fluid::Fluid* water = fluid::Fluid::getFluid(ResourceLocation("minecraft:water"));
@@ -206,7 +203,8 @@ TEST(WaterFluidTest, WaterFluidIsEquivalent) {
     EXPECT_TRUE(flowingWater->isEquivalentTo(*flowingWater));
 }
 
-TEST(WaterFluidTest, WaterFluidProperties) {
+TEST(WaterFluidTest, WaterFluidProperties)
+{
     ensureRegistriesInitialized();
 
     fluid::Fluid* water = fluid::Fluid::getFluid(ResourceLocation("minecraft:water"));
@@ -223,7 +221,8 @@ TEST(WaterFluidTest, WaterFluidProperties) {
 // 掉落生成测试（验证 ItemDropHelper 和 LootTable 集成）
 // ============================================================================
 
-TEST(WaterFluidDropTest, ItemDropHelperSpawnEntities) {
+TEST(WaterFluidDropTest, ItemDropHelperSpawnEntities)
+{
     ensureRegistriesInitialized();
 
     WaterFluidTestWorld world;
@@ -251,7 +250,8 @@ TEST(WaterFluidDropTest, ItemDropHelperSpawnEntities) {
     }
 }
 
-TEST(WaterFluidDropTest, ItemDropHelperEmptyListNoSpawn) {
+TEST(WaterFluidDropTest, ItemDropHelperEmptyListNoSpawn)
+{
     ensureRegistriesInitialized();
 
     WaterFluidTestWorld world;
@@ -268,7 +268,8 @@ TEST(WaterFluidDropTest, ItemDropHelperEmptyListNoSpawn) {
     EXPECT_EQ(world.entityCount(), 0u);
 }
 
-TEST(WaterFluidDropTest, LootTableGeneration) {
+TEST(WaterFluidDropTest, LootTableGeneration)
+{
     ensureRegistriesInitialized();
 
     WaterFluidTestWorld world;
@@ -283,17 +284,13 @@ TEST(WaterFluidDropTest, LootTableGeneration) {
 
     // 创建掉落上下文
     math::Random rng(world.seed());
-    auto context = loot::LootContextBuilder(world)
-        .withRandom(rng)
-        .withSeed(world.seed())
-        .build();
+    auto context = loot::LootContextBuilder(world).withRandom(rng).withSeed(world.seed()).build();
 
     ASSERT_NE(context, nullptr);
 
     // 设置掉落表解析器
-    context->setLootTableResolver([&manager](const std::string& id) -> const loot::LootTable* {
-        return manager->getTable(id);
-    });
+    context->setLootTableResolver(
+        [&manager](const std::string& id) -> const loot::LootTable* { return manager->getTable(id); });
 
     // 生成掉落
     auto drops = table->generate(*context);
@@ -305,11 +302,12 @@ TEST(WaterFluidDropTest, LootTableGeneration) {
     for (const auto& stack : drops) {
         EXPECT_FALSE(stack.isEmpty());
         EXPECT_GE(stack.getCount(), 1);
-        EXPECT_LE(stack.getCount(), 3);  // 数量 1-3
+        EXPECT_LE(stack.getCount(), 3); // 数量 1-3
     }
 }
 
-TEST(WaterFluidDropTest, NoLootTableManagerReturnsNull) {
+TEST(WaterFluidDropTest, NoLootTableManagerReturnsNull)
+{
     ensureRegistriesInitialized();
 
     WaterFluidTestWorld world;
@@ -319,7 +317,8 @@ TEST(WaterFluidDropTest, NoLootTableManagerReturnsNull) {
     EXPECT_EQ(world.lootTableManager(), nullptr);
 }
 
-TEST(WaterFluidDropTest, BlockGetLootTableWithManager) {
+TEST(WaterFluidDropTest, BlockGetLootTableWithManager)
+{
     ensureRegistriesInitialized();
 
     WaterFluidTestWorld world;
@@ -333,14 +332,15 @@ TEST(WaterFluidDropTest, BlockGetLootTableWithManager) {
     // 石头没有设置掉落表ID，所以应该返回 nullptr
     const loot::LootTable* table = stone->getLootTable(*manager);
     // 石头默认没有掉落表，除非在初始化时设置
-    (void)table;  // 避免未使用变量警告
+    (void)table; // 避免未使用变量警告
 }
 
 // ============================================================================
 // 流体替换方块上下文测试
 // ============================================================================
 
-TEST(WaterFluidDropTest, WaterFluidRegisteredCorrectly) {
+TEST(WaterFluidDropTest, WaterFluidRegisteredCorrectly)
+{
     ensureRegistriesInitialized();
 
     // 验证水流体已正确注册
@@ -353,7 +353,8 @@ TEST(WaterFluidDropTest, WaterFluidRegisteredCorrectly) {
     EXPECT_FALSE(flowingWater->isSource(flowingWater->defaultState()));
 }
 
-TEST(WaterFluidDropTest, FluidStateLevels) {
+TEST(WaterFluidDropTest, FluidStateLevels)
+{
     ensureRegistriesInitialized();
 
     fluid::Fluid* water = fluid::Fluid::getFluid(ResourceLocation("minecraft:water"));

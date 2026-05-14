@@ -27,10 +27,10 @@ constexpr u32 RIDING_SOUND_KEY_MASK = 0x80000000;
  */
 class BeeSoundBase : public TickableSound {
 public:
-    BeeSoundBase(const EntitySoundState& state, const ResourceLocation& soundEventId,
-                 EntitySoundHandler* handler, bool isAngry)
-        : TickableSound(soundEventId, SoundCategory::Neutral, state.position, 0.0f, 0.0f,
-                        true, AttenuationType::Linear, 16.0f)
+    BeeSoundBase(
+        const EntitySoundState& state, const ResourceLocation& soundEventId, EntitySoundHandler* handler, bool isAngry)
+        : TickableSound(
+              soundEventId, SoundCategory::Neutral, state.position, 0.0f, 0.0f, true, AttenuationType::Linear, 16.0f)
         , m_handler(handler)
         , m_entityId(state.entityId)
         , m_isAngry(isAngry)
@@ -38,7 +38,8 @@ public:
         setLooping(true);
     }
 
-    void tick() override {
+    void tick() override
+    {
         // 从 handler 获取最新状态
         if (m_handler) {
             const EntitySoundState* state = m_handler->getEntityState(m_entityId);
@@ -50,7 +51,8 @@ public:
 
     [[nodiscard]] bool canBeSilent() const override { return true; }
 
-    void updateFromState(const EntitySoundState& state) {
+    void updateFromState(const EntitySoundState& state)
+    {
         // 检查是否需要切换声音（愤怒状态变化）
         if (state.isAngry != m_isAngry) {
             switchSound();
@@ -67,16 +69,15 @@ public:
         setPosition(state.position);
 
         // 根据水平速度计算音量和音调
-        f32 horizontalSpeed = std::sqrt(state.velocity.x * state.velocity.x +
-                                        state.velocity.z * state.velocity.z);
+        f32 horizontalSpeed = std::sqrt(state.velocity.x * state.velocity.x + state.velocity.z * state.velocity.z);
 
         if (horizontalSpeed >= 0.01f) {
             // 音调范围（幼年蜜蜂更高）
             f32 minPitch = state.isChild ? 1.1f : 0.7f;
             f32 maxPitch = state.isChild ? 1.5f : 1.1f;
 
-            f32 pitch = minPitch + (maxPitch - minPitch) *
-                         std::clamp(horizontalSpeed, minPitch, maxPitch) / (maxPitch - minPitch);
+            f32 pitch = minPitch +
+                (maxPitch - minPitch) * std::clamp(horizontalSpeed, minPitch, maxPitch) / (maxPitch - minPitch);
             setPitch(pitch);
 
             f32 volume = std::clamp(horizontalSpeed, 0.0f, 0.5f) * 2.4f;
@@ -105,11 +106,11 @@ class BeeFlightSoundStateful : public BeeSoundBase {
 public:
     BeeFlightSoundStateful(const EntitySoundState& state, EntitySoundHandler* handler)
         : BeeSoundBase(state, SoundEvents::ENTITY_BEE_LOOP, handler, false)
-    {
-    }
+    {}
 
 protected:
-    void switchSound() override {
+    void switchSound() override
+    {
         // 切换到愤怒声音
         // 注意：这里不能直接创建新声音，需要通过 SoundEngine::playOnNextTick
         // 但由于 TickableSound 没有访问 SoundEngine 的权限，
@@ -132,11 +133,11 @@ class BeeAngrySoundStateful : public BeeSoundBase {
 public:
     BeeAngrySoundStateful(const EntitySoundState& state, EntitySoundHandler* handler)
         : BeeSoundBase(state, SoundEvents::ENTITY_BEE_LOOP_AGGRESSIVE, handler, true)
-    {
-    }
+    {}
 
 protected:
-    void switchSound() override {
+    void switchSound() override
+    {
         // 切换回飞行声音
         markDone();
         m_needsSwitch = true;
@@ -170,14 +171,20 @@ private:
 class GuardianSoundStateful : public TickableSound {
 public:
     GuardianSoundStateful(const EntitySoundState& state, EntitySoundHandler* handler)
-        : TickableSound(SoundEvents::ENTITY_GUARDIAN_ATTACK, SoundCategory::Hostile,
-                        state.position, 0.0f, 0.7f, true, AttenuationType::None, 16.0f)
+        : TickableSound(SoundEvents::ENTITY_GUARDIAN_ATTACK,
+              SoundCategory::Hostile,
+              state.position,
+              0.0f,
+              0.7f,
+              true,
+              AttenuationType::None,
+              16.0f)
         , m_handler(handler)
         , m_entityId(state.entityId)
-    {
-    }
+    {}
 
-    void tick() override {
+    void tick() override
+    {
         ++m_tickCount;
         if (m_handler) {
             const EntitySoundState* state = m_handler->getEntityState(m_entityId);
@@ -189,7 +196,8 @@ public:
 
     [[nodiscard]] bool canBeSilent() const override { return true; }
 
-    void updateFromState(const EntitySoundState& state) {
+    void updateFromState(const EntitySoundState& state)
+    {
         if (state.isRemoved) {
             markDone();
             return;
@@ -233,9 +241,9 @@ private:
     EntitySoundHandler* m_handler = nullptr;
     EntityId m_entityId;
     i32 m_tickCount = 0;
-    i32 m_clientSideAttackTime = 0;  // 模拟 MC 客户端的攻击计时器
+    i32 m_clientSideAttackTime = 0; // 模拟 MC 客户端的攻击计时器
 
-    static constexpr i32 ATTACK_DURATION = 80;  // MC 1.16.5: GuardianEntity.getAttackDuration() = 80
+    static constexpr i32 ATTACK_DURATION = 80; // MC 1.16.5: GuardianEntity.getAttackDuration() = 80
 };
 
 /**
@@ -244,14 +252,20 @@ private:
 class ElytraSoundStateful : public TickableSound {
 public:
     ElytraSoundStateful(const EntitySoundState& state, EntitySoundHandler* handler)
-        : TickableSound(SoundEvents::ITEM_ELYTRA_FLYING, SoundCategory::Players,
-                        state.position, 0.1f, 1.0f, true, AttenuationType::Linear, 16.0f)
+        : TickableSound(SoundEvents::ITEM_ELYTRA_FLYING,
+              SoundCategory::Players,
+              state.position,
+              0.1f,
+              1.0f,
+              true,
+              AttenuationType::Linear,
+              16.0f)
         , m_handler(handler)
         , m_entityId(state.entityId)
-    {
-    }
+    {}
 
-    void tick() override {
+    void tick() override
+    {
         ++m_time;
         if (m_handler) {
             const EntitySoundState* state = m_handler->getEntityState(m_entityId);
@@ -263,7 +277,8 @@ public:
 
     [[nodiscard]] bool canBeSilent() const override { return true; }
 
-    void updateFromState(const EntitySoundState& state) {
+    void updateFromState(const EntitySoundState& state)
+    {
         setPosition(state.position);
 
         // 前 20 tick 静音
@@ -279,9 +294,8 @@ public:
         }
 
         // 计算速度平方
-        f32 speedSquared = state.velocity.x * state.velocity.x +
-                          state.velocity.y * state.velocity.y +
-                          state.velocity.z * state.velocity.z;
+        f32 speedSquared = state.velocity.x * state.velocity.x + state.velocity.y * state.velocity.y +
+            state.velocity.z * state.velocity.z;
 
         if (speedSquared >= 1.0e-7f) {
             f32 volume = std::clamp(speedSquared / 4.0f, 0.0f, 1.0f);
@@ -316,19 +330,22 @@ private:
 
 EntitySoundHandler::EntitySoundHandler() = default;
 
-void EntitySoundHandler::updateEntityState(EntityId entityId, const EntitySoundState& state) {
+void EntitySoundHandler::updateEntityState(EntityId entityId, const EntitySoundState& state)
+{
     std::unique_lock lock(m_stateMutex);
     m_entityStates[entityId] = state;
     m_entityStates[entityId].entityId = entityId;
 }
 
-void EntitySoundHandler::removeEntityState(EntityId entityId) {
+void EntitySoundHandler::removeEntityState(EntityId entityId)
+{
     std::unique_lock lock(m_stateMutex);
     m_entityStates.erase(entityId);
     m_entityTypes.erase(entityId);
 }
 
-void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, const std::string& typeId) {
+void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, const std::string& typeId)
+{
     // 记录实体类型
     m_entityTypes[entityId] = typeId;
 
@@ -341,7 +358,8 @@ void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, c
     }
 }
 
-void EntitySoundHandler::onEntityRemove(EntityId entityId) {
+void EntitySoundHandler::onEntityRemove(EntityId entityId)
+{
     // 标记实体为已移除
     {
         std::unique_lock lock(m_stateMutex);
@@ -355,7 +373,8 @@ void EntitySoundHandler::onEntityRemove(EntityId entityId) {
     m_activeSounds.erase(entityId);
 }
 
-void EntitySoundHandler::onPlayerElytraFlyingChanged(SoundEngine& engine, EntityId playerId, bool isFlying) {
+void EntitySoundHandler::onPlayerElytraFlyingChanged(SoundEngine& engine, EntityId playerId, bool isFlying)
+{
     std::shared_lock lock(m_stateMutex);
     auto stateIt = m_entityStates.find(playerId);
 
@@ -382,7 +401,8 @@ void EntitySoundHandler::onPlayerElytraFlyingChanged(SoundEngine& engine, Entity
     }
 }
 
-void EntitySoundHandler::tick(SoundEngine& engine) {
+void EntitySoundHandler::tick(SoundEngine& engine)
+{
     // 更新所有活动声音的状态
     // 注意：SoundEngine 会在自己的 tick() 中调用 ISoundInstance::tick()
     // 这里我们检查声音切换和状态更新
@@ -402,7 +422,7 @@ void EntitySoundHandler::tick(SoundEngine& engine) {
     // 检查声音切换（蜜蜂愤怒状态变化）
     // 由于 TickableSound::tick() 已经在 SoundEngine::tick() 中被调用，
     // 我们需要检查是否有声音因为状态切换而完成
-    for (auto it = m_activeSounds.begin(); it != m_activeSounds.end(); ) {
+    for (auto it = m_activeSounds.begin(); it != m_activeSounds.end();) {
         EntityId entityId = it->first;
         SoundInstanceId soundId = it->second;
 
@@ -436,26 +456,30 @@ void EntitySoundHandler::tick(SoundEngine& engine) {
     }
 }
 
-void EntitySoundHandler::stopAll() {
+void EntitySoundHandler::stopAll()
+{
     m_activeSounds.clear();
     std::unique_lock lock(m_stateMutex);
     m_entityStates.clear();
     m_entityTypes.clear();
 }
 
-const EntitySoundState* EntitySoundHandler::getEntityState(EntityId entityId) const {
+const EntitySoundState* EntitySoundHandler::getEntityState(EntityId entityId) const
+{
     std::shared_lock lock(m_stateMutex);
     auto it = m_entityStates.find(entityId);
     return it != m_entityStates.end() ? &it->second : nullptr;
 }
 
-EntitySoundState* EntitySoundHandler::getMutableEntityState(EntityId entityId) {
+EntitySoundState* EntitySoundHandler::getMutableEntityState(EntityId entityId)
+{
     std::unique_lock lock(m_stateMutex);
     auto it = m_entityStates.find(entityId);
     return it != m_entityStates.end() ? &it->second : nullptr;
 }
 
-void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId) {
+void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId)
+{
     std::shared_lock lock(m_stateMutex);
     auto stateIt = m_entityStates.find(entityId);
     if (stateIt == m_entityStates.end() || stateIt->second.isRemoved) {
@@ -495,19 +519,20 @@ void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entit
         for (const auto& [playerId, playerState] : m_entityStates) {
             if (playerState.isRiding && playerState.vehicleId == entityId) {
                 // 创建玩家骑乘矿车声音
-                auto ridingSound = std::make_unique<RidingMinecartSoundStateful>(
-                    playerState, state, this);
+                auto ridingSound = std::make_unique<RidingMinecartSoundStateful>(playerState, state, this);
                 SoundInstanceId ridingSoundId = engine.play(std::move(ridingSound));
                 if (ridingSoundId != 0) {
                     // 使用复合键存储骑乘声音
-                    m_activeSounds[static_cast<EntityId>(static_cast<u32>(playerId) | RIDING_SOUND_KEY_MASK)] = ridingSoundId;
+                    m_activeSounds[static_cast<EntityId>(static_cast<u32>(playerId) | RIDING_SOUND_KEY_MASK)] =
+                        ridingSoundId;
                 }
             }
         }
     }
 }
 
-void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityId entityId) {
+void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityId entityId)
+{
     // 检查是否已有守卫者声音
     auto soundIt = m_activeSounds.find(entityId);
     if (soundIt != m_activeSounds.end()) {
@@ -552,7 +577,8 @@ void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityId entityId
     }
 }
 
-void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId targetEntityId) {
+void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId targetEntityId)
+{
     // 如果目标变为 0，停止守卫者声音
     if (targetEntityId == 0) {
         auto soundIt = m_activeSounds.find(entityId);
@@ -573,11 +599,12 @@ void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId tar
 }
 
 void EntitySoundHandler::playMovingSound(SoundEngine& engine,
-                                          const ResourceLocation& soundEventId,
-                                          SoundCategory category,
-                                          EntityId entityId,
-                                          f32 volume,
-                                          f32 pitch) {
+    const ResourceLocation& soundEventId,
+    SoundCategory category,
+    EntityId entityId,
+    f32 volume,
+    f32 pitch)
+{
     // 检查是否已有该实体的移动声音
     // 使用特殊的键来区分移动声音和其他声音
     EntityId movingSoundKey = static_cast<EntityId>(static_cast<u32>(entityId) | MOVING_SOUND_KEY_MASK);
@@ -589,14 +616,7 @@ void EntitySoundHandler::playMovingSound(SoundEngine& engine,
     }
 
     // 创建新的移动声音
-    auto sound = std::make_unique<MovingTickableSound>(
-        soundEventId,
-        category,
-        this,
-        entityId,
-        volume,
-        pitch
-    );
+    auto sound = std::make_unique<MovingTickableSound>(soundEventId, category, this, entityId, volume, pitch);
 
     SoundInstanceId soundId = engine.play(std::move(sound));
     if (soundId != 0) {

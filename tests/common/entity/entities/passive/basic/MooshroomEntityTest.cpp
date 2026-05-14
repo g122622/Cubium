@@ -1,24 +1,24 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
-#include "common/entity/entities/passive/basic/CowEntity.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/damage/DamageSource.hpp"
-#include "common/entity/interfaces/IShearable.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/fluid/Fluid.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
-#include "common/sound/SoundEvents.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/basic/CowEntity.hpp"
+#include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -35,7 +35,8 @@ class MooshroomTestWorld final : public test::BaseTestWorld {
 public:
     MooshroomTestWorld() = default;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -43,12 +44,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
@@ -57,16 +60,19 @@ public:
     [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
     void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
     // TickManager interface
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("MooshroomTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("MooshroomTestWorld::tickManager not implemented");
     }
 
@@ -87,30 +93,29 @@ public:
 
     // 粒子生成记录
     void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity) override {
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
-        u32 count) override {
+        u32 count) override
+    {
         (void)offset;
         (void)count;
         m_particles.push_back({type, pos, velocity});
     }
 
     // 音效播放记录
-    void playSound(
-        const ResourceLocation& sound,
+    void playSound(const ResourceLocation& sound,
         sound::SoundCategory category,
         const Vector3& pos,
         f32 volume,
-        f32 pitch) override {
+        f32 pitch) override
+    {
         m_sounds.push_back({sound, category, pos, volume, pitch});
     }
 
@@ -133,7 +138,8 @@ private:
 
 class MooshroomEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
@@ -144,14 +150,16 @@ protected:
 
 // ==================== 类型系统测试 ====================
 
-TEST_F(MooshroomEntityTest, DefaultType_IsRed) {
+TEST_F(MooshroomEntityTest, DefaultType_IsRed)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
     EXPECT_TRUE(mooshroom.isRed());
     EXPECT_FALSE(mooshroom.isBrown());
 }
 
-TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType) {
+TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
 
     mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
@@ -167,9 +175,10 @@ TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType) {
 
 // ==================== 雷击转换测试 ====================
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown) {
+TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
-    m_world.setClientSide(false);  // 服务端不生成粒子
+    m_world.setClientSide(false); // 服务端不生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
@@ -183,7 +192,8 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown) {
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Brown);
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed) {
+TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
@@ -199,7 +209,8 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed) {
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound) {
+TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
@@ -216,9 +227,10 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound) {
     EXPECT_FLOAT_EQ(sound.pitch, 1.0f);
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide) {
+TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
-    m_world.setClientSide(true);  // 客户端生成粒子
+    m_world.setClientSide(true); // 客户端生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
@@ -235,9 +247,10 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide) {
     }
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide) {
+TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
-    m_world.setClientSide(false);  // 服务端不生成粒子
+    m_world.setClientSide(false); // 服务端不生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
@@ -251,7 +264,8 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide) {
     EXPECT_TRUE(mooshroom.isBrown());
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBounds) {
+TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBounds)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
     m_world.setClientSide(true);
     mooshroom.setWorld(&m_world);
@@ -289,7 +303,8 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBou
 
 // ==================== 继承测试 ====================
 
-TEST_F(MooshroomEntityTest, InheritsFromCowEntity) {
+TEST_F(MooshroomEntityTest, InheritsFromCowEntity)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
 
     // 验证哞菇继承自牛
@@ -301,7 +316,8 @@ TEST_F(MooshroomEntityTest, InheritsFromCowEntity) {
     EXPECT_NE(shearable, nullptr);
 }
 
-TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue) {
+TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
 
     // 哞菇总是可以被剪毛
@@ -310,9 +326,10 @@ TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue) {
 
 // ==================== 剪毛测试 ====================
 
-TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed) {
+TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
-    m_world.setClientSide(false);  // 服务端模式
+    m_world.setClientSide(false); // 服务端模式
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
@@ -333,7 +350,8 @@ TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed) {
     }
 }
 
-TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown) {
+TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
@@ -353,7 +371,8 @@ TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown) {
     }
 }
 
-TEST_F(MooshroomEntityTest, Shear_PlaysShearSound) {
+TEST_F(MooshroomEntityTest, Shear_PlaysShearSound)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
@@ -370,9 +389,10 @@ TEST_F(MooshroomEntityTest, Shear_PlaysShearSound) {
     }
 }
 
-TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles) {
+TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
-    m_world.setClientSide(false);  // 服务端也生成粒子
+    m_world.setClientSide(false); // 服务端也生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
@@ -388,7 +408,8 @@ TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles) {
 
 // ==================== 碗交互测试 ====================
 
-TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsTrue_ForBowl) {
+TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsTrue_ForBowl)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
 
     // 成年哞菇可以用碗取汤
@@ -401,7 +422,8 @@ TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsTrue_ForBowl) {
     }
 }
 
-TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForChild) {
+TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForChild)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
     mooshroom.setChild(true);
 
@@ -414,7 +436,8 @@ TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForChild) {
     }
 }
 
-TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForOtherItems) {
+TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForOtherItems)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
 
     // 非碗物品
@@ -430,7 +453,8 @@ TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForOtherItems) {
 
 // ==================== 蘑菇汤测试 ====================
 
-TEST_F(MooshroomEntityTest, GetStew_ReturnsMushroomStew) {
+TEST_F(MooshroomEntityTest, GetStew_ReturnsMushroomStew)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
 
     // 获取蘑菇汤
@@ -446,7 +470,8 @@ TEST_F(MooshroomEntityTest, GetStew_ReturnsMushroomStew) {
 
 // ==================== 繁殖测试 ====================
 
-TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom) {
+TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom)
+{
     MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
     parent1.setPosition(100.0, 64.0, 100.0);
 
@@ -465,7 +490,8 @@ TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom) {
     }
 }
 
-TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType) {
+TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType)
+{
     MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
     parent1.setMooshroomType(MooshroomEntity::MooshroomType::Red);
     parent1.setPosition(100.0, 64.0, 100.0);
@@ -488,7 +514,8 @@ TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType) {
     }
 }
 
-TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent) {
+TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent)
+{
     MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
     parent1.setPosition(100.0, 64.0, 100.0);
 
@@ -508,7 +535,8 @@ TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent) {
 
 // ==================== IShearable 接口测试 ====================
 
-TEST_F(MooshroomEntityTest, ImplementsIShearable) {
+TEST_F(MooshroomEntityTest, ImplementsIShearable)
+{
     MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
 
     // 验证实现 IShearable 接口

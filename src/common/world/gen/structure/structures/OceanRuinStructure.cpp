@@ -1,16 +1,16 @@
 #include "OceanRuinStructure.hpp"
 
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../../feature/template/TemplateLoader.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "../../feature/template/Template.hpp"
+#include "../../feature/template/TemplateLoader.hpp"
+#include "../../feature/template/TemplateManager.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -19,77 +19,61 @@ namespace mc::world::gen::structure {
 // 静态模板名称
 // ============================================================================
 
-const std::vector<std::string> OceanRuinStructure::s_warmTemplates = {
-    "underwater_ruin/warm_1",
+const std::vector<std::string> OceanRuinStructure::s_warmTemplates = {"underwater_ruin/warm_1",
     "underwater_ruin/warm_2",
     "underwater_ruin/warm_3",
     "underwater_ruin/warm_4",
     "underwater_ruin/warm_5",
     "underwater_ruin/warm_6",
     "underwater_ruin/warm_7",
-    "underwater_ruin/warm_8"
-};
+    "underwater_ruin/warm_8"};
 
-const std::vector<std::string> OceanRuinStructure::s_warmBigTemplates = {
-    "underwater_ruin/big_warm_4",
+const std::vector<std::string> OceanRuinStructure::s_warmBigTemplates = {"underwater_ruin/big_warm_4",
     "underwater_ruin/big_warm_5",
     "underwater_ruin/big_warm_6",
-    "underwater_ruin/big_warm_7"
-};
+    "underwater_ruin/big_warm_7"};
 
-const std::vector<std::string> OceanRuinStructure::s_brickTemplates = {
-    "underwater_ruin/brick_1",
+const std::vector<std::string> OceanRuinStructure::s_brickTemplates = {"underwater_ruin/brick_1",
     "underwater_ruin/brick_2",
     "underwater_ruin/brick_3",
     "underwater_ruin/brick_4",
     "underwater_ruin/brick_5",
     "underwater_ruin/brick_6",
     "underwater_ruin/brick_7",
-    "underwater_ruin/brick_8"
-};
+    "underwater_ruin/brick_8"};
 
-const std::vector<std::string> OceanRuinStructure::s_brickBigTemplates = {
-    "underwater_ruin/big_brick_1",
+const std::vector<std::string> OceanRuinStructure::s_brickBigTemplates = {"underwater_ruin/big_brick_1",
     "underwater_ruin/big_brick_2",
     "underwater_ruin/big_brick_3",
-    "underwater_ruin/big_brick_8"
-};
+    "underwater_ruin/big_brick_8"};
 
-const std::vector<std::string> OceanRuinStructure::s_crackedTemplates = {
-    "underwater_ruin/cracked_1",
+const std::vector<std::string> OceanRuinStructure::s_crackedTemplates = {"underwater_ruin/cracked_1",
     "underwater_ruin/cracked_2",
     "underwater_ruin/cracked_3",
     "underwater_ruin/cracked_4",
     "underwater_ruin/cracked_5",
     "underwater_ruin/cracked_6",
     "underwater_ruin/cracked_7",
-    "underwater_ruin/cracked_8"
-};
+    "underwater_ruin/cracked_8"};
 
-const std::vector<std::string> OceanRuinStructure::s_crackedBigTemplates = {
-    "underwater_ruin/big_cracked_1",
+const std::vector<std::string> OceanRuinStructure::s_crackedBigTemplates = {"underwater_ruin/big_cracked_1",
     "underwater_ruin/big_cracked_2",
     "underwater_ruin/big_cracked_3",
-    "underwater_ruin/big_cracked_8"
-};
+    "underwater_ruin/big_cracked_8"};
 
-const std::vector<std::string> OceanRuinStructure::s_mossyTemplates = {
-    "underwater_ruin/mossy_1",
+const std::vector<std::string> OceanRuinStructure::s_mossyTemplates = {"underwater_ruin/mossy_1",
     "underwater_ruin/mossy_2",
     "underwater_ruin/mossy_3",
     "underwater_ruin/mossy_4",
     "underwater_ruin/mossy_5",
     "underwater_ruin/mossy_6",
     "underwater_ruin/mossy_7",
-    "underwater_ruin/mossy_8"
-};
+    "underwater_ruin/mossy_8"};
 
-const std::vector<std::string> OceanRuinStructure::s_mossyBigTemplates = {
-    "underwater_ruin/big_mossy_1",
+const std::vector<std::string> OceanRuinStructure::s_mossyBigTemplates = {"underwater_ruin/big_mossy_1",
     "underwater_ruin/big_mossy_2",
     "underwater_ruin/big_mossy_3",
-    "underwater_ruin/big_mossy_8"
-};
+    "underwater_ruin/big_mossy_8"};
 
 // ============================================================================
 // 常量
@@ -101,26 +85,29 @@ const std::string OceanRuinStructure::m_name = "ocean_ruin";
 // OceanRuinPiece
 // ============================================================================
 
-OceanRuinPiece::OceanRuinPiece(
-    const std::string& templateName,
+OceanRuinPiece::OceanRuinPiece(const std::string& templateName,
     const BlockPos& position,
     Rotation rotation,
     f32 integrity,
     OceanRuinType type,
     bool isLarge)
     : StructurePiece(StructurePieceTypes::RUINED_PORTAL, // 复用类型 ID
-                     position.x, position.y, position.z,
-                     position.x, position.y, position.z)
+          position.x,
+          position.y,
+          position.z,
+          position.x,
+          position.y,
+          position.z)
     , m_templateName(templateName)
     , m_rotation(rotation)
     , m_integrity(integrity)
     , m_type(type)
     , m_isLarge(isLarge)
     , m_size(1, 1, 1)
-{
-}
+{}
 
-void OceanRuinPiece::loadTemplate() {
+void OceanRuinPiece::loadTemplate()
+{
     if (!m_templateManager) {
         return;
     }
@@ -144,11 +131,7 @@ void OceanRuinPiece::loadTemplate() {
 }
 
 void OceanRuinPiece::generate(
-    IWorldWriter& world,
-    math::Random& rng,
-    i32 /*chunkX*/,
-    i32 /*chunkZ*/,
-    const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
 {
     if (!m_templateManager) {
         return;
@@ -194,9 +177,9 @@ OceanRuinStructure::OceanRuinStructure()
     initializeBiomes();
 }
 
-void OceanRuinStructure::initializeBiomes() {
-    m_validBiomes = {
-        Biomes::Ocean,
+void OceanRuinStructure::initializeBiomes()
+{
+    m_validBiomes = {Biomes::Ocean,
         Biomes::WarmOcean,
         Biomes::LukewarmOcean,
         Biomes::ColdOcean,
@@ -205,26 +188,17 @@ void OceanRuinStructure::initializeBiomes() {
         Biomes::DeepWarmOcean,
         Biomes::DeepLukewarmOcean,
         Biomes::DeepColdOcean,
-        Biomes::DeepFrozenOcean
-    };
+        Biomes::DeepFrozenOcean};
 }
 
 bool OceanRuinStructure::canGenerate(
-    IWorld& /*world*/,
-    IChunkGenerator& /*generator*/,
-    math::Random& rng,
-    i32 /*chunkX*/,
-    i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
     return rng.nextFloat() < 0.4f;
 }
 
 std::unique_ptr<StructureStart> OceanRuinStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -265,13 +239,11 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     std::vector<std::unique_ptr<StructurePiece>> pieces;
 
     // 生成主要片段
-    generatePiece(*templateManager, BlockPos(baseX, floorY, baseZ), rotation,
-                  pieces, rng, config, isLarge, integrity);
+    generatePiece(*templateManager, BlockPos(baseX, floorY, baseZ), rotation, pieces, rng, config, isLarge, integrity);
 
     // 如果是大型废墟，可能生成集群
     if (isLarge && rng.nextFloat() <= config.clusterProbability) {
-        generateClusterPieces(*templateManager, rng, rotation,
-                              BlockPos(baseX, floorY, baseZ), config, pieces);
+        generateClusterPieces(*templateManager, rng, rotation, BlockPos(baseX, floorY, baseZ), config, pieces);
     }
 
     // 将片段添加到 start
@@ -283,8 +255,7 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     return start;
 }
 
-void OceanRuinStructure::generatePiece(
-    feature::template_::TemplateManager& templateManager,
+void OceanRuinStructure::generatePiece(feature::template_::TemplateManager& templateManager,
     const BlockPos& pos,
     Rotation rotation,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -306,8 +277,8 @@ void OceanRuinStructure::generatePiece(
             templateName = s_warmTemplates[index];
         }
 
-        auto piece = std::make_unique<OceanRuinPiece>(
-            templateName, pos, rotation, integrity, config.biomeType, isLarge);
+        auto piece =
+            std::make_unique<OceanRuinPiece>(templateName, pos, rotation, integrity, config.biomeType, isLarge);
         piece->setTemplateManager(&templateManager);
         pieces.push_back(std::move(piece));
     } else {
@@ -327,25 +298,24 @@ void OceanRuinStructure::generatePiece(
 
         // 生成三层叠加，不同完整度
         // MC 1.16.5: 三层叠加，integrity 分别为传入值、0.7、0.5
-        auto brickPiece = std::make_unique<OceanRuinPiece>(
-            brickTemplate, pos, rotation, integrity, config.biomeType, isLarge);
+        auto brickPiece =
+            std::make_unique<OceanRuinPiece>(brickTemplate, pos, rotation, integrity, config.biomeType, isLarge);
         brickPiece->setTemplateManager(&templateManager);
         pieces.push_back(std::move(brickPiece));
 
-        auto crackedPiece = std::make_unique<OceanRuinPiece>(
-            crackedTemplate, pos, rotation, 0.7f, config.biomeType, isLarge);
+        auto crackedPiece =
+            std::make_unique<OceanRuinPiece>(crackedTemplate, pos, rotation, 0.7f, config.biomeType, isLarge);
         crackedPiece->setTemplateManager(&templateManager);
         pieces.push_back(std::move(crackedPiece));
 
-        auto mossyPiece = std::make_unique<OceanRuinPiece>(
-            mossyTemplate, pos, rotation, 0.5f, config.biomeType, isLarge);
+        auto mossyPiece =
+            std::make_unique<OceanRuinPiece>(mossyTemplate, pos, rotation, 0.5f, config.biomeType, isLarge);
         mossyPiece->setTemplateManager(&templateManager);
         pieces.push_back(std::move(mossyPiece));
     }
 }
 
-void OceanRuinStructure::generateClusterPieces(
-    feature::template_::TemplateManager& templateManager,
+void OceanRuinStructure::generateClusterPieces(feature::template_::TemplateManager& templateManager,
     math::Random& rng,
     Rotation mainRotation,
     const BlockPos& mainPos,
@@ -377,8 +347,7 @@ void OceanRuinStructure::generateClusterPieces(
     }
 }
 
-std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(
-    math::Random& rng, i32 x, i32 z) const
+std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(math::Random& rng, i32 x, i32 z) const
 {
     // MC 1.16.5: OceanRuinPieces.func_204044_a
     // 生成 8 个候选位置，围绕主废墟
@@ -405,11 +374,10 @@ std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(
     return positions;
 }
 
-bool OceanRuinStructure::isWarmBiome(BiomeId biomeId) const {
-    return biomeId == Biomes::WarmOcean ||
-           biomeId == Biomes::LukewarmOcean ||
-           biomeId == Biomes::DeepWarmOcean ||
-           biomeId == Biomes::DeepLukewarmOcean;
+bool OceanRuinStructure::isWarmBiome(BiomeId biomeId) const
+{
+    return biomeId == Biomes::WarmOcean || biomeId == Biomes::LukewarmOcean || biomeId == Biomes::DeepWarmOcean ||
+        biomeId == Biomes::DeepLukewarmOcean;
 }
 
 } // namespace mc::world::gen::structure

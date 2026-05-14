@@ -1,13 +1,14 @@
 #include "NetherEntities.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
-#include "../../../../world/IWorld.hpp"
 
 namespace mc {
 
 // GhastEntity
-std::unique_ptr<Entity> GhastEntity::create(IWorld* world) {
+std::unique_ptr<Entity> GhastEntity::create(IWorld* world)
+{
     return std::make_unique<GhastEntity>(LegacyEntityType::Ghast, EntityId(0));
 }
 
@@ -17,7 +18,8 @@ GhastEntity::GhastEntity(LegacyEntityType type, EntityId id)
     setBurnsInDaylight(false);
 }
 
-void GhastEntity::tick() {
+void GhastEntity::tick()
+{
     MonsterEntity::tick();
 
     if (m_attackCooldown > 0) {
@@ -35,16 +37,19 @@ void GhastEntity::tick() {
     }
 }
 
-void GhastEntity::shootFireball() {
+void GhastEntity::shootFireball()
+{
     // TODO: 实现发射火球
 }
 
-void GhastEntity::registerGoals() {
+void GhastEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
     // TODO: 添加恶魂特有AI
 }
 
-void GhastEntity::registerAttributes() {
+void GhastEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
@@ -53,26 +58,29 @@ void GhastEntity::registerAttributes() {
 }
 
 // MagmaCubeEntity
-std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* world) {
+std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* world)
+{
     return std::make_unique<MagmaCubeEntity>(LegacyEntityType::MagmaCube, EntityId(0));
 }
 
 MagmaCubeEntity::MagmaCubeEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
-{
-}
+{}
 
-void MagmaCubeEntity::setSize(i32 size) {
+void MagmaCubeEntity::setSize(i32 size)
+{
     m_size = size;
     // TODO: 更新碰撞箱和属性
 }
 
-void MagmaCubeEntity::registerGoals() {
+void MagmaCubeEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
     // TODO: 添加岩浆怪特有AI
 }
 
-void MagmaCubeEntity::registerAttributes() {
+void MagmaCubeEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
@@ -87,45 +95,51 @@ AbstractPiglinEntity::AbstractPiglinEntity(LegacyEntityType type, EntityId id)
     setBurnsInDaylight(false);
 }
 
-void AbstractPiglinEntity::registerGoals() {
+void AbstractPiglinEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
     // TODO: 添加猪灵基础AI
 }
 
 // PiglinEntity
-std::unique_ptr<Entity> PiglinEntity::create(IWorld* world) {
+std::unique_ptr<Entity> PiglinEntity::create(IWorld* world)
+{
     return std::make_unique<PiglinEntity>(LegacyEntityType::Piglin, EntityId(0));
 }
 
 PiglinEntity::PiglinEntity(LegacyEntityType type, EntityId id)
     : AbstractPiglinEntity(type, id)
-{
-}
+{}
 
-void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge) {
+void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
+{
     // TODO: 实现弩攻击逻辑
     (void)target;
     (void)charge;
 }
 
-void PiglinEntity::onCrossbowLoadComplete(ItemStack& crossbow) {
+void PiglinEntity::onCrossbowLoadComplete(ItemStack& crossbow)
+{
     // TODO: 实现弩装填完成逻辑
     (void)crossbow;
 }
 
-void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) {
+void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge)
+{
     // TODO: 实现弩射击逻辑
     (void)target;
     (void)crossbow;
     (void)charge;
 }
 
-void PiglinEntity::registerGoals() {
+void PiglinEntity::registerGoals()
+{
     AbstractPiglinEntity::registerGoals();
     // TODO: 添加猪灵特有AI
 }
 
-void PiglinEntity::registerAttributes() {
+void PiglinEntity::registerAttributes()
+{
     AbstractPiglinEntity::registerAttributes();
 
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
@@ -134,27 +148,29 @@ void PiglinEntity::registerAttributes() {
 }
 
 // PiglinBruteEntity
-std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world) {
+std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world)
+{
     return std::make_unique<PiglinBruteEntity>(LegacyEntityType::PiglinBrute, EntityId(0));
 }
 
 PiglinBruteEntity::PiglinBruteEntity(LegacyEntityType type, EntityId id)
     : AbstractPiglinEntity(type, id)
-{
-}
+{}
 
-void PiglinBruteEntity::registerGoals() {
+void PiglinBruteEntity::registerGoals()
+{
     AbstractPiglinEntity::registerGoals();
     // TODO: 添加猪灵蛮兵特有AI
 }
 
-void PiglinBruteEntity::registerAttributes() {
+void PiglinBruteEntity::registerAttributes()
+{
     AbstractPiglinEntity::registerAttributes();
 
     // MC 1.16.5 PiglinBruteEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);  // MC 1.16.5: 基础伤害（金斧额外 +4）
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0); // MC 1.16.5: 基础伤害（金斧额外 +4）
 }
 
 // ZombifiedPiglinEntity
@@ -164,7 +180,8 @@ ZombifiedPiglinEntity::ZombifiedPiglinEntity(LegacyEntityType type, EntityId id)
     setBurnsInDaylight(false);
 }
 
-void ZombifiedPiglinEntity::tick() {
+void ZombifiedPiglinEntity::tick()
+{
     MonsterEntity::tick();
 
     if (m_angerTime > 0) {
@@ -175,12 +192,14 @@ void ZombifiedPiglinEntity::tick() {
     }
 }
 
-void ZombifiedPiglinEntity::registerGoals() {
+void ZombifiedPiglinEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
     // TODO: 添加僵尸猪灵特有AI
 }
 
-void ZombifiedPiglinEntity::registerAttributes() {
+void ZombifiedPiglinEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
@@ -189,7 +208,8 @@ void ZombifiedPiglinEntity::registerAttributes() {
 }
 
 // HoglinEntity
-std::unique_ptr<Entity> HoglinEntity::create(IWorld* world) {
+std::unique_ptr<Entity> HoglinEntity::create(IWorld* world)
+{
     return std::make_unique<HoglinEntity>(LegacyEntityType::Hoglin, EntityId(0));
 }
 
@@ -200,7 +220,8 @@ HoglinEntity::HoglinEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-void HoglinEntity::tick() {
+void HoglinEntity::tick()
+{
     MonsterEntity::tick();
 
     if (m_attackCooldown > 0) {
@@ -212,7 +233,8 @@ void HoglinEntity::tick() {
     }
 }
 
-bool HoglinEntity::attackLivingTarget(LivingEntity& target) {
+bool HoglinEntity::attackLivingTarget(LivingEntity& target)
+{
     if (m_attackCooldown > 0) {
         return false;
     }
@@ -222,12 +244,14 @@ bool HoglinEntity::attackLivingTarget(LivingEntity& target) {
     return entity::IFlinging::attackWithFling(*this, target, m_isBaby);
 }
 
-void HoglinEntity::registerGoals() {
+void HoglinEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
     // TODO: 添加疣猪兽特有AI
 }
 
-void HoglinEntity::registerAttributes() {
+void HoglinEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     // 注册攻击属性（MonsterEntity 不自动注册这些）
@@ -239,11 +263,12 @@ void HoglinEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);  // MC 1.16.5: 成年疣猪兽基础伤害
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0); // MC 1.16.5: 成年疣猪兽基础伤害
 }
 
 // ZoglinEntity
-std::unique_ptr<Entity> ZoglinEntity::create(IWorld* world) {
+std::unique_ptr<Entity> ZoglinEntity::create(IWorld* world)
+{
     return std::make_unique<ZoglinEntity>(LegacyEntityType::Zoglin, EntityId(0));
 }
 
@@ -253,7 +278,8 @@ ZoglinEntity::ZoglinEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-void ZoglinEntity::tick() {
+void ZoglinEntity::tick()
+{
     MonsterEntity::tick();
 
     if (m_attackAnimationTicks > 0) {
@@ -261,17 +287,20 @@ void ZoglinEntity::tick() {
     }
 }
 
-bool ZoglinEntity::attackLivingTarget(LivingEntity& target) {
+bool ZoglinEntity::attackLivingTarget(LivingEntity& target)
+{
     m_attackAnimationTicks = 10;
     return entity::IFlinging::attackWithFling(*this, target, m_isBaby);
 }
 
-void ZoglinEntity::registerGoals() {
+void ZoglinEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
     // TODO: 添加僵尸疣兽特有AI
 }
 
-void ZoglinEntity::registerAttributes() {
+void ZoglinEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     // 注册攻击属性（MonsterEntity 不自动注册这些）
@@ -283,7 +312,7 @@ void ZoglinEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);  // MC 1.16.5: 成年僵尸疣兽基础伤害
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0); // MC 1.16.5: 成年僵尸疣兽基础伤害
 }
 
 } // namespace mc

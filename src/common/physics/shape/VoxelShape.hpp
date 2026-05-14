@@ -1,15 +1,15 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
 #include "../../util/AxisAlignedBB.hpp"
+#include "../../util/Direction.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include "DiscreteVoxelShape.hpp"
 #include "BooleanOp.hpp"
-#include <vector>
+#include "DiscreteVoxelShape.hpp"
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -20,13 +20,17 @@ class Shapes;
  * @brief 方块命中结果
  */
 struct BlockHitResult {
-    Vector3 location;           // 命中点（世界坐标）
-    Direction direction;        // 命中面方向
-    BlockPos blockPos;          // 命中方块位置
-    bool inside;                // 是否在方块内部
+    Vector3 location;    // 命中点（世界坐标）
+    Direction direction; // 命中面方向
+    BlockPos blockPos;   // 命中方块位置
+    bool inside;         // 是否在方块内部
 
     BlockHitResult(Vector3 loc, Direction dir, BlockPos pos, bool in)
-        : location(std::move(loc)), direction(dir), blockPos(pos), inside(in) {}
+        : location(std::move(loc))
+        , direction(dir)
+        , blockPos(pos)
+        , inside(in)
+    {}
 };
 
 /**
@@ -52,9 +56,9 @@ public:
     VoxelShape();
     explicit VoxelShape(std::shared_ptr<DiscreteVoxelShape> shape);
     VoxelShape(std::shared_ptr<DiscreteVoxelShape> shape,
-               std::vector<f64> xPoints,
-               std::vector<f64> yPoints,
-               std::vector<f64> zPoints);
+        std::vector<f64> xPoints,
+        std::vector<f64> yPoints,
+        std::vector<f64> zPoints);
 
     virtual ~VoxelShape() = default;
 
@@ -210,7 +214,8 @@ public:
      * @param offset 方块偏移位置
      * @return 命中结果（如果没有命中返回nullopt）
      */
-    [[nodiscard]] std::optional<BlockHitResult> clip(const Vector3& start, const Vector3& end, const BlockPos& offset) const;
+    [[nodiscard]] std::optional<BlockHitResult> clip(
+        const Vector3& start, const Vector3& end, const BlockPos& offset) const;
 
     // === 最近点 ===
 

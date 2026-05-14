@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Block.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 
@@ -32,7 +32,8 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

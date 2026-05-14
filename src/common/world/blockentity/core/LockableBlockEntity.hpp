@@ -40,7 +40,8 @@ public:
      * @brief 设置锁定状态
      * @param locked 锁定状态
      */
-    void setLocked(bool locked) {
+    void setLocked(bool locked)
+    {
         if (m_locked != locked) {
             m_locked = locked;
             setChanged();
@@ -57,7 +58,8 @@ public:
      * @brief 设置锁定钥匙名称
      * @param key 钥匙名称
      */
-    void setLockKey(const std::string& key) {
+    void setLockKey(const std::string& key)
+    {
         m_lockKey = key;
         setChanged();
     }
@@ -99,7 +101,8 @@ protected:
      */
     LockableBlockEntity(BlockEntityType type, const BlockPos& pos)
         : ContainerBlockEntity(type, pos)
-        , m_locked(false) {}
+        , m_locked(false)
+    {}
 
     /**
      * @brief 获取默认显示名称（子类重写）
@@ -108,9 +111,9 @@ protected:
     [[nodiscard]] virtual std::string getDefaultName() const = 0;
 
 private:
-    bool m_locked;          ///< 是否被锁定
-    std::string m_lockKey;       ///< 锁定钥匙名称
-    std::string m_customName;    ///< 自定义名称
+    bool m_locked;            ///< 是否被锁定
+    std::string m_lockKey;    ///< 锁定钥匙名称
+    std::string m_customName; ///< 自定义名称
 };
 
 } // namespace blockentity

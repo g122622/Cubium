@@ -15,46 +15,28 @@ namespace command {
 void SpectateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto spectateNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spectate");
-    spectateNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        spectateNode,
+    spectateNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(spectateNode,
         support::makeMetadata(
-            "Makes a player in spectator mode spectate another entity.",
-            "/spectate <target> [player]",
-            2,
-            {},
-            true));
+            "Makes a player in spectator mode spectate another entity.", "/spectate <target> [player]", 2, {}, true));
 
     // /spectate <target> [player]
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target",
-        EntityArgumentType::entity());
+        "target", EntityArgumentType::entity());
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return startSpectating(ctx);
-    });
+        "player", EntityArgumentType::player());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return startSpectating(ctx); });
     targetArg->addChild(playerArg);
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return startSpectating(ctx);
-    });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return startSpectating(ctx); });
     spectateNode->addChild(targetArg);
 
     // /spectate stop [player]
     auto stopNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("stop");
     auto stopPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player());
-    stopPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return stopSpectating(ctx);
-    });
+        "player", EntityArgumentType::player());
+    stopPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return stopSpectating(ctx); });
     stopNode->addChild(stopPlayerArg);
-    stopNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return stopSpectating(ctx);
-    });
+    stopNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return stopSpectating(ctx); });
     spectateNode->addChild(stopNode);
 
     dispatcher.registerCommand(spectateNode);

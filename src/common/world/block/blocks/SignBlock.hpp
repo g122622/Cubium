@@ -1,13 +1,13 @@
 #pragma once
 
+#include "../../../core/BlockRaycastResult.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../item/core/ActionResult.hpp"
+#include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../util/property/Properties.hpp"
 #include "../Block.hpp"
 #include "../IWaterLoggable.hpp"
 #include "../Material.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../item/core/ActionResult.hpp"
-#include "../../../core/BlockRaycastResult.hpp"
-#include "../../../core/Types.hpp"
 
 namespace mc {
 
@@ -32,8 +32,8 @@ enum class WoodType : u8 {
     Jungle = 3,
     Acacia = 4,
     DarkOak = 5,
-    Crimson = 6,   // 1.16 下界木材
-    Warped = 7     // 1.16 下界木材
+    Crimson = 6, // 1.16 下界木材
+    Warped = 7   // 1.16 下界木材
 };
 
 /**
@@ -60,8 +60,7 @@ public:
 
     // ========== 放置和更新 ==========
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -92,8 +91,7 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果类型
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -102,7 +100,8 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -111,7 +110,8 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
@@ -154,9 +154,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 旋转和镜像 ==========
 
@@ -203,9 +201,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 旋转和镜像 ==========
 

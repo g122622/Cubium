@@ -1,7 +1,7 @@
 #include "SmithingTableBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -9,11 +9,12 @@ namespace blocks {
 // ========== SmithingTableBlock 实现 ==========
 
 SmithingTableBlock::SmithingTableBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 锻造台没有特殊状态属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -22,11 +23,13 @@ SmithingTableBlock::SmithingTableBlock(const BlockProperties& properties)
     m_shape = CollisionShape::fullBlock();
 }
 
-BlockState SmithingTableBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState SmithingTableBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-const CollisionShape& SmithingTableBlock::getShape(const BlockState& state) const {
+const CollisionShape& SmithingTableBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }

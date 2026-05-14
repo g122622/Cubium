@@ -15,13 +15,15 @@ namespace test {
 
 class PerfettoManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 每个测试使用唯一的输出文件
         m_config.outputPath = "test_trace.perfetto-trace";
-        m_config.bufferSizeKb = 1024;  // 1 MB 测试缓冲区
+        m_config.bufferSizeKb = 1024; // 1 MB 测试缓冲区
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 确保每个测试后清理
         if (PerfettoManager::instance().isInitialized()) {
             if (PerfettoManager::instance().isEnabled()) {
@@ -38,13 +40,15 @@ protected:
 // 基础功能测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, SingletonPattern) {
+TEST_F(PerfettoManagerTest, SingletonPattern)
+{
     auto& instance1 = PerfettoManager::instance();
     auto& instance2 = PerfettoManager::instance();
     EXPECT_EQ(&instance1, &instance2);
 }
 
-TEST_F(PerfettoManagerTest, InitializeAndShutdown) {
+TEST_F(PerfettoManagerTest, InitializeAndShutdown)
+{
     EXPECT_FALSE(PerfettoManager::instance().isInitialized());
 
     PerfettoManager::instance().initialize(m_config);
@@ -54,7 +58,8 @@ TEST_F(PerfettoManagerTest, InitializeAndShutdown) {
     EXPECT_FALSE(PerfettoManager::instance().isInitialized());
 }
 
-TEST_F(PerfettoManagerTest, DoubleInitialize) {
+TEST_F(PerfettoManagerTest, DoubleInitialize)
+{
     PerfettoManager::instance().initialize(m_config);
     EXPECT_TRUE(PerfettoManager::instance().isInitialized());
 
@@ -64,7 +69,8 @@ TEST_F(PerfettoManagerTest, DoubleInitialize) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, DoubleShutdown) {
+TEST_F(PerfettoManagerTest, DoubleShutdown)
+{
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().shutdown();
 
@@ -76,7 +82,8 @@ TEST_F(PerfettoManagerTest, DoubleShutdown) {
 // 追踪会话测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, StartStopTracing) {
+TEST_F(PerfettoManagerTest, StartStopTracing)
+{
     PerfettoManager::instance().initialize(m_config);
 
     EXPECT_FALSE(PerfettoManager::instance().isEnabled());
@@ -90,13 +97,15 @@ TEST_F(PerfettoManagerTest, StartStopTracing) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, StartTracingWithoutInitialize) {
+TEST_F(PerfettoManagerTest, StartTracingWithoutInitialize)
+{
     // 未初始化时启动追踪应该安全失败
     EXPECT_NO_THROW(PerfettoManager::instance().startTracing());
     EXPECT_FALSE(PerfettoManager::instance().isEnabled());
 }
 
-TEST_F(PerfettoManagerTest, DoubleStartTracing) {
+TEST_F(PerfettoManagerTest, DoubleStartTracing)
+{
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().startTracing();
 
@@ -107,7 +116,8 @@ TEST_F(PerfettoManagerTest, DoubleStartTracing) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, StopTracingWithoutStart) {
+TEST_F(PerfettoManagerTest, StopTracingWithoutStart)
+{
     PerfettoManager::instance().initialize(m_config);
 
     // 未启动追踪时停止应该安全
@@ -120,7 +130,8 @@ TEST_F(PerfettoManagerTest, StopTracingWithoutStart) {
 // 运行时控制测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, RuntimeEnableDisable) {
+TEST_F(PerfettoManagerTest, RuntimeEnableDisable)
+{
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().startTracing();
 
@@ -136,7 +147,8 @@ TEST_F(PerfettoManagerTest, RuntimeEnableDisable) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, ConfigAccess) {
+TEST_F(PerfettoManagerTest, ConfigAccess)
+{
     PerfettoManager::instance().initialize(m_config);
 
     const auto& config = PerfettoManager::instance().config();
@@ -150,7 +162,8 @@ TEST_F(PerfettoManagerTest, ConfigAccess) {
 // Flush 测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, Flush) {
+TEST_F(PerfettoManagerTest, Flush)
+{
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().startTracing();
 
@@ -164,7 +177,8 @@ TEST_F(PerfettoManagerTest, Flush) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, FlushWithoutTracing) {
+TEST_F(PerfettoManagerTest, FlushWithoutTracing)
+{
     PerfettoManager::instance().initialize(m_config);
 
     // 未启动追踪时刷新应该安全
@@ -179,7 +193,8 @@ TEST_F(PerfettoManagerTest, FlushWithoutTracing) {
 
 #if !MC_ENABLE_TRACING
 
-TEST_F(PerfettoManagerTest, StubImplementation) {
+TEST_F(PerfettoManagerTest, StubImplementation)
+{
     // 当追踪禁用时，所有操作应该是空操作
     EXPECT_FALSE(PerfettoManager::instance().isInitialized());
     EXPECT_FALSE(PerfettoManager::instance().isEnabled());

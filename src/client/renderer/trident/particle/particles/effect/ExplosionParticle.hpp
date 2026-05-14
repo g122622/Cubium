@@ -42,21 +42,19 @@ public:
      * @brief 工厂方法
      */
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_LIT;
-    }
+    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/explosion");
     }
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
         return 0xF0;
     }
@@ -64,8 +62,8 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_LIFETIME = 6.0;  // 约 0.3 秒
-    static constexpr f64 EXPLOSION_LIGHT = 15728880.0;  // MC 爆炸亮度
+    static constexpr f64 DEFAULT_LIFETIME = 6.0;       // 约 0.3 秒
+    static constexpr f64 EXPLOSION_LIGHT = 15728880.0; // MC 爆炸亮度
 
     f64 m_initialSize;
 };
@@ -87,19 +85,16 @@ public:
     LargeExplosionParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_LIT;
-    }
+    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override;
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
         // MC 1.16.5: 固定高亮度 15728880 (blockLight=15, skyLight=15)
         return 15728880;

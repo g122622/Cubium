@@ -22,8 +22,7 @@ public:
     [[nodiscard]] bool hasResource(std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory,
-        std::string_view extension = "") const override;
+        std::string_view directory, std::string_view extension = "") const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
     // 获取根路径

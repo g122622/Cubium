@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../core/Types.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/Direction.hpp"
-#include "../../core/Types.hpp"
 #include <vector>
 
 namespace mc {
@@ -31,25 +31,26 @@ public:
      * @brief 形状类型
      */
     enum class Type : u8 {
-        Empty,      // 无碰撞
-        FullBlock,  // 完整方块 (0,0,0) -> (1,1,1)
-        SimpleBox   // 简单盒（可能有多个碰撞箱）
+        Empty,     // 无碰撞
+        FullBlock, // 完整方块 (0,0,0) -> (1,1,1)
+        SimpleBox  // 简单盒（可能有多个碰撞箱）
     };
 
     // 默认构造：空形状
-    CollisionShape() noexcept : m_type(Type::Empty) {}
+    CollisionShape() noexcept
+        : m_type(Type::Empty)
+    {}
 
     /**
      * @brief 创建空形状（无碰撞）
      */
-    [[nodiscard]] static CollisionShape empty() noexcept {
-        return CollisionShape();
-    }
+    [[nodiscard]] static CollisionShape empty() noexcept { return CollisionShape(); }
 
     /**
      * @brief 创建完整方块形状
      */
-    [[nodiscard]] static CollisionShape fullBlock() noexcept {
+    [[nodiscard]] static CollisionShape fullBlock() noexcept
+    {
         CollisionShape shape;
         shape.m_type = Type::FullBlock;
         shape.m_boxes.emplace_back(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
@@ -61,8 +62,8 @@ public:
      * @param minX, minY, minZ 最小坐标（方块本地坐标，0-1范围）
      * @param maxX, maxY, maxZ 最大坐标（方块本地坐标，0-1范围）
      */
-    [[nodiscard]] static CollisionShape box(f32 minX, f32 minY, f32 minZ,
-                                             f32 maxX, f32 maxY, f32 maxZ) noexcept {
+    [[nodiscard]] static CollisionShape box(f32 minX, f32 minY, f32 minZ, f32 maxX, f32 maxY, f32 maxZ) noexcept
+    {
         CollisionShape shape;
         shape.m_type = Type::SimpleBox;
         shape.m_boxes.emplace_back(minX, minY, minZ, maxX, maxY, maxZ);
@@ -74,19 +75,24 @@ public:
      * @param minX, minY, minZ 最小坐标（像素坐标，0-16范围）
      * @param maxX, maxY, maxZ 最大坐标（像素坐标，0-16范围）
      */
-    [[nodiscard]] static CollisionShape fromPixelBox(f32 minX, f32 minY, f32 minZ,
-                                                      f32 maxX, f32 maxY, f32 maxZ) noexcept {
+    [[nodiscard]] static CollisionShape fromPixelBox(
+        f32 minX, f32 minY, f32 minZ, f32 maxX, f32 maxY, f32 maxZ) noexcept
+    {
         constexpr f32 PIXEL_TO_BLOCK = 1.0f / 16.0f;
-        return box(minX * PIXEL_TO_BLOCK, minY * PIXEL_TO_BLOCK, minZ * PIXEL_TO_BLOCK,
-                   maxX * PIXEL_TO_BLOCK, maxY * PIXEL_TO_BLOCK, maxZ * PIXEL_TO_BLOCK);
+        return box(minX * PIXEL_TO_BLOCK,
+            minY * PIXEL_TO_BLOCK,
+            minZ * PIXEL_TO_BLOCK,
+            maxX * PIXEL_TO_BLOCK,
+            maxY * PIXEL_TO_BLOCK,
+            maxZ * PIXEL_TO_BLOCK);
     }
 
     /**
      * @brief 添加额外的碰撞盒
      * 用于复杂形状（如楼梯）
      */
-    CollisionShape& addBox(f32 minX, f32 minY, f32 minZ,
-                            f32 maxX, f32 maxY, f32 maxZ) {
+    CollisionShape& addBox(f32 minX, f32 minY, f32 minZ, f32 maxX, f32 maxY, f32 maxZ)
+    {
         m_boxes.emplace_back(minX, minY, minZ, maxX, maxY, maxZ);
         if (m_boxes.size() > 1) {
             m_type = Type::SimpleBox;
@@ -98,9 +104,9 @@ public:
      * @brief 合并操作类型
      */
     enum class CombineOp : u8 {
-        OR,     // 并集
-        AND,    // 交集
-        NOT     // 差集
+        OR,  // 并集
+        AND, // 交集
+        NOT  // 差集
     };
 
     /**
@@ -110,14 +116,15 @@ public:
      * @param op 合并操作（目前只支持 OR）
      * @return 合并后的形状
      */
-    [[nodiscard]] static CollisionShape combine(const CollisionShape& a, const CollisionShape& b,
-                                                CombineOp op = CombineOp::OR) {
+    [[nodiscard]] static CollisionShape combine(
+        const CollisionShape& a, const CollisionShape& b, CombineOp op = CombineOp::OR)
+    {
         CollisionShape result;
 
         if (op == CombineOp::OR) {
             // 并集：简单地复制所有碰撞盒
-            result.m_type = (a.m_type == Type::FullBlock || b.m_type == Type::FullBlock)
-                           ? Type::FullBlock : Type::SimpleBox;
+            result.m_type =
+                (a.m_type == Type::FullBlock || b.m_type == Type::FullBlock) ? Type::FullBlock : Type::SimpleBox;
 
             result.m_boxes = a.m_boxes;
             for (const auto& box : b.m_boxes) {
@@ -141,7 +148,8 @@ public:
      * @param blockX, blockY, blockZ 方块在世界中的位置
      * @return 世界坐标下的碰撞箱列表
      */
-    [[nodiscard]] std::vector<AxisAlignedBB> getWorldBoxes(i32 blockX, i32 blockY, i32 blockZ) const {
+    [[nodiscard]] std::vector<AxisAlignedBB> getWorldBoxes(i32 blockX, i32 blockY, i32 blockZ) const
+    {
         std::vector<AxisAlignedBB> worldBoxes;
         worldBoxes.reserve(m_boxes.size());
 
@@ -150,10 +158,12 @@ public:
         f32 bz = static_cast<f32>(blockZ);
 
         for (const auto& localBox : m_boxes) {
-            worldBoxes.emplace_back(
-                bx + localBox.minX, by + localBox.minY, bz + localBox.minZ,
-                bx + localBox.maxX, by + localBox.maxY, bz + localBox.maxZ
-            );
+            worldBoxes.emplace_back(bx + localBox.minX,
+                by + localBox.minY,
+                bz + localBox.minZ,
+                bx + localBox.maxX,
+                by + localBox.maxY,
+                bz + localBox.maxZ);
         }
         return worldBoxes;
     }
@@ -164,8 +174,8 @@ public:
      * @param blockX, blockY, blockZ 方块位置
      * @return 是否相交
      */
-    [[nodiscard]] bool intersects(const AxisAlignedBB& entityBox,
-                                   i32 blockX, i32 blockY, i32 blockZ) const {
+    [[nodiscard]] bool intersects(const AxisAlignedBB& entityBox, i32 blockX, i32 blockY, i32 blockZ) const
+    {
         if (isEmpty()) return false;
 
         f32 bx = static_cast<f32>(blockX);
@@ -173,10 +183,12 @@ public:
         f32 bz = static_cast<f32>(blockZ);
 
         for (const auto& localBox : m_boxes) {
-            AxisAlignedBB worldBox(
-                bx + localBox.minX, by + localBox.minY, bz + localBox.minZ,
-                bx + localBox.maxX, by + localBox.maxY, bz + localBox.maxZ
-            );
+            AxisAlignedBB worldBox(bx + localBox.minX,
+                by + localBox.minY,
+                bz + localBox.minZ,
+                bx + localBox.maxX,
+                by + localBox.maxY,
+                bz + localBox.maxZ);
             if (entityBox.intersects(worldBox)) {
                 return true;
             }
@@ -199,7 +211,8 @@ public:
      * @param direction 方向（Down=0, Up=1, North=2, South=3, West=4, East=5）
      * @return 该方向上的面投影形状
      */
-    [[nodiscard]] CollisionShape getFaceShape(Direction direction) const noexcept {
+    [[nodiscard]] CollisionShape getFaceShape(Direction direction) const noexcept
+    {
         // 空形状和完整方块快速路径
         if (isEmpty()) {
             return empty();
@@ -227,18 +240,30 @@ public:
                 // 正方向：检查 max[axis] ≈ 1.0
                 f32 maxCoord = 0.0f;
                 switch (axis) {
-                    case Axis::X: maxCoord = box.maxX; break;
-                    case Axis::Y: maxCoord = box.maxY; break;
-                    case Axis::Z: maxCoord = box.maxZ; break;
+                    case Axis::X:
+                        maxCoord = box.maxX;
+                        break;
+                    case Axis::Y:
+                        maxCoord = box.maxY;
+                        break;
+                    case Axis::Z:
+                        maxCoord = box.maxZ;
+                        break;
                 }
                 touchesFace = std::abs(maxCoord - 1.0f) < EPSILON;
             } else {
                 // 负方向：检查 min[axis] ≈ 0.0
                 f32 minCoord = 0.0f;
                 switch (axis) {
-                    case Axis::X: minCoord = box.minX; break;
-                    case Axis::Y: minCoord = box.minY; break;
-                    case Axis::Z: minCoord = box.minZ; break;
+                    case Axis::X:
+                        minCoord = box.minX;
+                        break;
+                    case Axis::Y:
+                        minCoord = box.minY;
+                        break;
+                    case Axis::Z:
+                        minCoord = box.minZ;
+                        break;
                 }
                 touchesFace = std::abs(minCoord) < EPSILON;
             }
@@ -271,8 +296,8 @@ public:
         }
         if (result.m_boxes.size() == 1) {
             const auto& singleBox = result.m_boxes[0];
-            if (singleBox.minX == 0.0f && singleBox.minY == 0.0f && singleBox.minZ == 0.0f &&
-                singleBox.maxX == 1.0f && singleBox.maxY == 1.0f && singleBox.maxZ == 1.0f) {
+            if (singleBox.minX == 0.0f && singleBox.minY == 0.0f && singleBox.minZ == 0.0f && singleBox.maxX == 1.0f &&
+                singleBox.maxY == 1.0f && singleBox.maxZ == 1.0f) {
                 return fullBlock();
             }
             result.m_type = Type::SimpleBox;
@@ -285,7 +310,7 @@ public:
 
 private:
     Type m_type = Type::Empty;
-    std::vector<AxisAlignedBB> m_boxes;  // 方块本地坐标 (0-1范围)
+    std::vector<AxisAlignedBB> m_boxes; // 方块本地坐标 (0-1范围)
 };
 
 } // namespace mc

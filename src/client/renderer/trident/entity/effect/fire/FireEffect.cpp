@@ -1,8 +1,8 @@
 #include "FireEffect.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <cstring>
@@ -28,13 +28,9 @@ u32 FireEffect::s_fireTextureWidth = 0;
 u32 FireEffect::s_fireTextureHeight = 0;
 
 // 火焰纹理路径（MC 1.16.5）
-static const char* FIRE_TEXTURE_PATHS[] = {
-    "textures/block/fire_0.png",
-    "textures/block/fire_1.png"
-};
+static const char* FIRE_TEXTURE_PATHS[] = {"textures/block/fire_0.png", "textures/block/fire_1.png"};
 
-bool FireEffect::initialize(
-    VkDevice device,
+bool FireEffect::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
@@ -65,7 +61,8 @@ bool FireEffect::initialize(
     return true;
 }
 
-void FireEffect::cleanup() {
+void FireEffect::cleanup()
+{
     if (!s_initialized) {
         return;
     }
@@ -102,19 +99,23 @@ void FireEffect::cleanup() {
     spdlog::info("FireEffect: Cleaned up");
 }
 
-bool FireEffect::isInitialized() {
+bool FireEffect::isInitialized()
+{
     return s_initialized;
 }
 
-bool FireEffect::isBurning(Entity& entity) {
+bool FireEffect::isBurning(Entity& entity)
+{
     return entity.isOnFire();
 }
 
-bool FireEffect::isBurningClient(::mc::client::ClientEntity& entity) {
+bool FireEffect::isBurningClient(::mc::client::ClientEntity& entity)
+{
     return entity.isOnFire();
 }
 
-void FireEffect::renderFire(Entity& entity, f64 partialTicks) {
+void FireEffect::renderFire(Entity& entity, f64 partialTicks)
+{
     if (!isBurning(entity)) {
         return;
     }
@@ -124,10 +125,7 @@ void FireEffect::renderFire(Entity& entity, f64 partialTicks) {
 }
 
 void FireEffect::renderFire(
-    VkCommandBuffer cmd,
-    ::mc::client::ClientEntity& entity,
-    f64 partialTicks,
-    pipeline::EntityPipeline& pipeline)
+    VkCommandBuffer cmd, ::mc::client::ClientEntity& entity, f64 partialTicks, pipeline::EntityPipeline& pipeline)
 {
     if (!s_initialized || !isBurningClient(entity)) {
         return;
@@ -146,8 +144,7 @@ void FireEffect::renderFire(
     renderFireLayers(cmd, entity, partialTicks, pipeline, cameraYaw);
 }
 
-void FireEffect::renderFireLayers(
-    VkCommandBuffer cmd,
+void FireEffect::renderFireLayers(VkCommandBuffer cmd,
     ::mc::client::ClientEntity& entity,
     f64 partialTicks,
     pipeline::EntityPipeline& pipeline,
@@ -168,9 +165,9 @@ void FireEffect::renderFireLayers(
     f64 height = static_cast<f64>(entity.height());
 
     // 初始参数（参考 MC 1.16.5）
-    f64 f1 = 0.5;           // 火焰半宽
-    f64 f3 = height / fireSize;  // 高度迭代次数
-    f64 f4 = 0.0;           // Y 偏移累计
+    f64 f1 = 0.5;               // 火焰半宽
+    f64 f3 = height / fireSize; // 高度迭代次数
+    f64 f4 = 0.0;               // Y 偏移累计
 
     // 绑定火焰纹理
     if (s_fireTextureView != VK_NULL_HANDLE && s_fireSampler != VK_NULL_HANDLE) {
@@ -250,20 +247,40 @@ void FireEffect::renderFireLayers(
         // 然后每层在 Y 方向有 f4 偏移
 
         // Billboard 矩阵（面向相机）
-        std::array<f64, 16> billboardMatrix1 = {
-            static_cast<f64>(cosYaw), 0.0, static_cast<f64>(-sinYaw), x,
-            0.0, 1.0, 0.0, y - f4,  // Y 偏移累计
-            static_cast<f64>(sinYaw), 0.0, static_cast<f64>(cosYaw), z + zOffset,
-            0.0, 0.0, 0.0, 1.0
-        };
+        std::array<f64, 16> billboardMatrix1 = {static_cast<f64>(cosYaw),
+            0.0,
+            static_cast<f64>(-sinYaw),
+            x,
+            0.0,
+            1.0,
+            0.0,
+            y - f4, // Y 偏移累计
+            static_cast<f64>(sinYaw),
+            0.0,
+            static_cast<f64>(cosYaw),
+            z + zOffset,
+            0.0,
+            0.0,
+            0.0,
+            1.0};
 
         // 第二个 billboard（旋转 90 度）
-        std::array<f64, 16> billboardMatrix2 = {
-            static_cast<f64>(-sinYaw), 0.0, static_cast<f64>(-cosYaw), x,
-            0.0, 1.0, 0.0, y - f4,
-            static_cast<f64>(cosYaw), 0.0, static_cast<f64>(-sinYaw), z + zOffset,
-            0.0, 0.0, 0.0, 1.0
-        };
+        std::array<f64, 16> billboardMatrix2 = {static_cast<f64>(-sinYaw),
+            0.0,
+            static_cast<f64>(-cosYaw),
+            x,
+            0.0,
+            1.0,
+            0.0,
+            y - f4,
+            static_cast<f64>(cosYaw),
+            0.0,
+            static_cast<f64>(-sinYaw),
+            z + zOffset,
+            0.0,
+            0.0,
+            0.0,
+            1.0};
 
         // 绘制两个 billboard
         pipeline.drawMesh(cmd, mesh, billboardMatrix1, meshPos, static_cast<f32>(fireSize), fireColor, 0.0f, 0.0f);
@@ -278,10 +295,15 @@ void FireEffect::renderFireLayers(
         f1 *= 0.9;
     }
 
-    spdlog::trace("FireEffect: Rendered fire at ({}, {}, {}) with {} layers", x, y, z, static_cast<i32>(height / fireSize / 0.45));
+    spdlog::trace("FireEffect: Rendered fire at ({}, {}, {}) with {} layers",
+        x,
+        y,
+        z,
+        static_cast<i32>(height / fireSize / 0.45));
 }
 
-bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePacks) {
+bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePacks)
+{
     // 尝试从资源包加载火焰纹理
     std::vector<u8> combinedPixels;
     u32 frameWidth = 0;
@@ -296,9 +318,7 @@ bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePack
                 // 解码 PNG
                 int width, height, channels;
                 u8* pixels = stbi_load_from_memory(
-                    result.value().data(),
-                    static_cast<int>(result.value().size()),
-                    &width, &height, &channels, 4);
+                    result.value().data(), static_cast<int>(result.value().size()), &width, &height, &channels, 4);
 
                 if (pixels != nullptr) {
                     if (frameWidth == 0) {
@@ -308,7 +328,9 @@ bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePack
                     }
 
                     // 复制像素数据到组合纹理
-                    size_t destOffset = combinedPixels.empty() ? 0 : (combinedPixels.size() / FIRE_FRAME_COUNT) * (&path - FIRE_TEXTURE_PATHS);
+                    size_t destOffset = combinedPixels.empty()
+                        ? 0
+                        : (combinedPixels.size() / FIRE_FRAME_COUNT) * (&path - FIRE_TEXTURE_PATHS);
                     std::memcpy(combinedPixels.data() + destOffset, pixels, width * height * 4);
                     stbi_image_free(pixels);
 
@@ -334,17 +356,17 @@ bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePack
 
                     // 火焰颜色渐变（底部红色到顶部黄色）
                     f32 t = static_cast<f32>(y) / static_cast<f32>(frameHeight);
-                    f32 intensity = 1.0f - t;  // 底部更亮
+                    f32 intensity = 1.0f - t; // 底部更亮
 
                     // 添加一些随机变化
                     f32 variation = static_cast<f32>((x + frame * 8) % 16) / 16.0f * 0.3f;
                     intensity = std::min(1.0f, intensity + variation);
 
                     // 设置 RGBA
-                    combinedPixels[idx + 0] = static_cast<u8>(255 * intensity);                           // R
-                    combinedPixels[idx + 1] = static_cast<u8>(128 * intensity * (1.0f - t * 0.5f));       // G
-                    combinedPixels[idx + 2] = static_cast<u8>(32 * intensity);                            // B
-                    combinedPixels[idx + 3] = static_cast<u8>(255 * intensity);                           // A
+                    combinedPixels[idx + 0] = static_cast<u8>(255 * intensity);                     // R
+                    combinedPixels[idx + 1] = static_cast<u8>(128 * intensity * (1.0f - t * 0.5f)); // G
+                    combinedPixels[idx + 2] = static_cast<u8>(32 * intensity);                      // B
+                    combinedPixels[idx + 3] = static_cast<u8>(255 * intensity);                     // A
                 }
             }
         }
@@ -353,7 +375,8 @@ bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePack
     return createFireTexture(combinedPixels, frameWidth, frameHeight * FIRE_FRAME_COUNT);
 }
 
-bool FireEffect::createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height) {
+bool FireEffect::createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height)
+{
     // 创建图像
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -434,7 +457,8 @@ bool FireEffect::createFireTexture(const std::vector<u8>& pixels, u32 width, u32
     memoryTypeIndex = UINT32_MAX;
     for (u32 i = 0; i < memProps.memoryTypeCount; ++i) {
         if ((memRequirements.memoryTypeBits & (1 << i)) &&
-            (memProps.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) {
+            (memProps.memoryTypes[i].propertyFlags &
+                (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) {
             memoryTypeIndex = i;
             break;
         }
@@ -490,8 +514,8 @@ bool FireEffect::createFireTexture(const std::vector<u8>& pixels, u32 width, u32
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(
+        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -511,8 +535,16 @@ bool FireEffect::createFireTexture(const std::vector<u8>& pixels, u32 width, u32
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     vkEndCommandBuffer(cmd);
 
@@ -576,10 +608,15 @@ bool FireEffect::createFireTexture(const std::vector<u8>& pixels, u32 width, u32
     return true;
 }
 
-void FireEffect::generateFireQuad(
-    f64 x, f64 y, f64 z,
-    f64 width, f64 height,
-    f32 u0, f32 v0, f32 u1, f32 v1,
+void FireEffect::generateFireQuad(f64 x,
+    f64 y,
+    f64 z,
+    f64 width,
+    f64 height,
+    f32 u0,
+    f32 v0,
+    f32 u1,
+    f32 v1,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices,
     u32 transformIndex)
@@ -589,25 +626,13 @@ void FireEffect::generateFireQuad(
     // 四个顶点（火焰四边形）
     // 火焰从底部向上燃烧
     vertices.emplace_back(model::ModelVertex(
-        static_cast<f32>(x - width / 2), static_cast<f32>(y), static_cast<f32>(z),
-        u0, v0,
-        0.0f, 0.0f, 1.0f
-    ));
+        static_cast<f32>(x - width / 2), static_cast<f32>(y), static_cast<f32>(z), u0, v0, 0.0f, 0.0f, 1.0f));
     vertices.emplace_back(model::ModelVertex(
-        static_cast<f32>(x - width / 2), static_cast<f32>(y + height), static_cast<f32>(z),
-        u0, v1,
-        0.0f, 0.0f, 1.0f
-    ));
+        static_cast<f32>(x - width / 2), static_cast<f32>(y + height), static_cast<f32>(z), u0, v1, 0.0f, 0.0f, 1.0f));
     vertices.emplace_back(model::ModelVertex(
-        static_cast<f32>(x + width / 2), static_cast<f32>(y + height), static_cast<f32>(z),
-        u1, v1,
-        0.0f, 0.0f, 1.0f
-    ));
+        static_cast<f32>(x + width / 2), static_cast<f32>(y + height), static_cast<f32>(z), u1, v1, 0.0f, 0.0f, 1.0f));
     vertices.emplace_back(model::ModelVertex(
-        static_cast<f32>(x + width / 2), static_cast<f32>(y), static_cast<f32>(z),
-        u1, v0,
-        0.0f, 0.0f, 1.0f
-    ));
+        static_cast<f32>(x + width / 2), static_cast<f32>(y), static_cast<f32>(z), u1, v0, 0.0f, 0.0f, 1.0f));
 
     // 两个三角形
     indices.push_back(baseIndex + 0);
@@ -617,35 +642,54 @@ void FireEffect::generateFireQuad(
     indices.push_back(baseIndex + 2);
     indices.push_back(baseIndex + 3);
 
-    (void)transformIndex;  // billboard 变换在绘制时应用
+    (void)transformIndex; // billboard 变换在绘制时应用
 }
 
-f64 FireEffect::computeFireOffset(f64 time, f64 seed) {
+f64 FireEffect::computeFireOffset(f64 time, f64 seed)
+{
     // 计算火焰动画偏移
     // 使用正弦波创建火焰摇曳效果
     return std::sin(time * 0.3 + seed) * 0.1;
 }
 
-void FireEffect::computeBillboardMatrices(
-    const Vector3f& position,
-    std::array<std::array<f64, 16>, 2>& outMatrices)
+void FireEffect::computeBillboardMatrices(const Vector3f& position, std::array<std::array<f64, 16>, 2>& outMatrices)
 {
     // 第一个 billboard：面向相机（假设相机在 Z 轴正方向）
     // 这将在渲染时使用实际的视图矩阵
-    outMatrices[0] = {
-        1.0, 0.0, 0.0, static_cast<f64>(position.x),
-        0.0, 1.0, 0.0, static_cast<f64>(position.y),
-        0.0, 0.0, 1.0, static_cast<f64>(position.z),
-        0.0, 0.0, 0.0, 1.0
-    };
+    outMatrices[0] = {1.0,
+        0.0,
+        0.0,
+        static_cast<f64>(position.x),
+        0.0,
+        1.0,
+        0.0,
+        static_cast<f64>(position.y),
+        0.0,
+        0.0,
+        1.0,
+        static_cast<f64>(position.z),
+        0.0,
+        0.0,
+        0.0,
+        1.0};
 
     // 第二个 billboard：与第一个垂直（旋转 90 度）
-    outMatrices[1] = {
-        0.0, 0.0, 1.0, static_cast<f64>(position.x),
-        0.0, 1.0, 0.0, static_cast<f64>(position.y),
-        -1.0, 0.0, 0.0, static_cast<f64>(position.z),
-        0.0, 0.0, 0.0, 1.0
-    };
+    outMatrices[1] = {0.0,
+        0.0,
+        1.0,
+        static_cast<f64>(position.x),
+        0.0,
+        1.0,
+        0.0,
+        static_cast<f64>(position.y),
+        -1.0,
+        0.0,
+        0.0,
+        static_cast<f64>(position.z),
+        0.0,
+        0.0,
+        0.0,
+        1.0};
 }
 
 } // namespace mc::client::renderer::entity::effect::fire

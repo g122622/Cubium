@@ -9,15 +9,15 @@
  * - 区块边界采样
  */
 
-#include <gtest/gtest.h>
-#include <algorithm>
-#include <array>
-#include <memory>
 #include "client/renderer/trident/chunk/AmbientOcclusionCalculator.hpp"
-#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace client {
@@ -35,7 +35,8 @@ namespace test {
  */
 class AmbientOcclusionCalculatorTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
 
@@ -48,14 +49,13 @@ protected:
         }
     }
 
-    void TearDown() override {
-        m_chunk.reset();
-    }
+    void TearDown() override { m_chunk.reset(); }
 
     /**
      * @brief 在指定位置填充实心方块
      */
-    void fillSolidBlock(i32 x, i32 y, i32 z) {
+    void fillSolidBlock(i32 x, i32 y, i32 z)
+    {
         const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stone"));
         if (stone && m_chunk) {
             m_chunk->setBlockState(x, y, z, &stone->defaultState());
@@ -65,7 +65,8 @@ protected:
     /**
      * @brief 在指定位置填充透明方块（玻璃）
      */
-    void fillTransparentBlock(i32 x, i32 y, i32 z) {
+    void fillTransparentBlock(i32 x, i32 y, i32 z)
+    {
         const Block* glass = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:glass"));
         if (glass && m_chunk) {
             m_chunk->setBlockState(x, y, z, &glass->defaultState());
@@ -75,7 +76,8 @@ protected:
     /**
      * @brief 设置指定位置的天空光
      */
-    void setSkyLight(i32 x, i32 y, i32 z, u8 light) {
+    void setSkyLight(i32 x, i32 y, i32 z, u8 light)
+    {
         if (m_chunk) {
             m_chunk->setSkyLight(x, y, z, light);
         }
@@ -84,7 +86,8 @@ protected:
     /**
      * @brief 设置指定位置的方块光
      */
-    void setBlockLight(i32 x, i32 y, i32 z, u8 light) {
+    void setBlockLight(i32 x, i32 y, i32 z, u8 light)
+    {
         if (m_chunk) {
             m_chunk->setBlockLight(x, y, z, light);
         }
@@ -98,15 +101,16 @@ protected:
 // 基础测试
 // ============================================================================
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_ExposedBlock_HighBrightness) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_ExposedBlock_HighBrightness)
+{
     // 创建一个孤立的石头方块在区块中心
     fillSolidBlock(8, 64, 8);
 
     // 设置高天空光
     setSkyLight(7, 64, 8, 15);
     setSkyLight(9, 64, 8, 15);
-    setSkyLight(8, 65, 8, 15);  // 上方
-    setSkyLight(8, 63, 8, 15);  // 下方
+    setSkyLight(8, 65, 8, 15); // 上方
+    setSkyLight(8, 63, 8, 15); // 下方
 
     AmbientOcclusionCalculator calculator;
 
@@ -127,7 +131,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_ExposedBlock_HighBrightness) {
     }
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_SurroundedBlock_LowBrightness) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_SurroundedBlock_LowBrightness)
+{
     // 创建一个被完全包围的方块
     i32 cx = 8, cy = 64, cz = 8;
 
@@ -135,7 +140,7 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_SurroundedBlock_LowBrightness) 
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dy = -1; dy <= 1; ++dy) {
             for (i32 dz = -1; dz <= 1; ++dz) {
-                if (dx == 0 && dy == 0 && dz == 0) continue;  // 跳过中心
+                if (dx == 0 && dy == 0 && dz == 0) continue; // 跳过中心
                 fillSolidBlock(cx + dx, cy + dy, cz + dz);
             }
         }
@@ -155,12 +160,12 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_SurroundedBlock_LowBrightness) 
 
     // AO颜色乘数应该较低（被遮挡）
     for (size_t i = 0; i < 4; ++i) {
-        EXPECT_LT(result.vertexColorMultiplier[i], 0.5f)
-            << "被包围方块的顶点 " << i << " AO乘数应较低";
+        EXPECT_LT(result.vertexColorMultiplier[i], 0.5f) << "被包围方块的顶点 " << i << " AO乘数应较低";
     }
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_TransparentNeighbor_HighAO) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_TransparentNeighbor_HighAO)
+{
     // 测试透明邻居（玻璃）的AO处理
     i32 cx = 8, cy = 64, cz = 8;
 
@@ -184,12 +189,12 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_TransparentNeighbor_HighAO) {
     // 因此顶点AO应该较高
     for (size_t i = 0; i < 4; ++i) {
         // 玻璃是透明的，AO乘数应该接近1.0（取决于其他采样位置）
-        EXPECT_GE(result.vertexColorMultiplier[i], 0.75f)
-            << "透明邻居的顶点 " << i << " AO乘数应较高";
+        EXPECT_GE(result.vertexColorMultiplier[i], 0.75f) << "透明邻居的顶点 " << i << " AO乘数应较高";
     }
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_CornerShading_CorrectInterpolation) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_CornerShading_CorrectInterpolation)
+{
     // 测试角落阴影的正确插值
     i32 cx = 8, cy = 64, cz = 8;
 
@@ -205,8 +210,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_CornerShading_CorrectInterpolat
     // 所以采样位置在Y=baseY平面
     //
     // 放置方块在采样位置：
-    fillSolidBlock(cx + 1, cy, cz);     // 东边缘采样位置
-    fillSolidBlock(cx - 1, cy, cz);     // 西边缘采样位置
+    fillSolidBlock(cx + 1, cy, cz); // 东边缘采样位置
+    fillSolidBlock(cx - 1, cy, cz); // 西边缘采样位置
     // 北和南边缘不放方块（空气）
 
     AmbientOcclusionCalculator calculator;
@@ -238,7 +243,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_CornerShading_CorrectInterpolat
     EXPECT_TRUE(hasVariation || true) << "不对称遮挡可能导致顶点AO值变化";
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_DifferentFaces_DifferentResults) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_DifferentFaces_DifferentResults)
+{
     // 测试不同面的AO计算
     i32 cx = 8, cy = 64, cz = 8;
 
@@ -278,7 +284,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_DifferentFaces_DifferentResults
 // 边界测试
 // ============================================================================
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_ChunkBoundary_SafeSampling) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_ChunkBoundary_SafeSampling)
+{
     // 测试区块边界的采样
     // 方块在区块边缘
     i32 cx = 0, cy = 64, cz = 0;
@@ -306,7 +313,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_ChunkBoundary_SafeSampling) {
     });
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_HeightBoundary_CorrectLighting) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_HeightBoundary_CorrectLighting)
+{
     // 测试高度边界的处理
     i32 cx = 8;
 
@@ -353,7 +361,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_HeightBoundary_CorrectLighting)
 // 光照测试
 // ============================================================================
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_LightValues_PropagatedCorrectly) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_LightValues_PropagatedCorrectly)
+{
     // 测试光照值正确传播到顶点
     i32 cx = 8, cy = 64, cz = 8;
 
@@ -376,7 +385,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_LightValues_PropagatedCorrectly
     }
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_UsesFaceOuterCenterLight_ForFullCubeFace) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_UsesFaceOuterCenterLight_ForFullCubeFace)
+{
     // 场景：中心方块自身无光，但顶面外侧有强天空光。
     // 对齐 Java 1.16.5 时，整方块面应使用面外侧作为中心采样点，
     // 因此顶点天空光应明显大于 0。
@@ -400,12 +410,12 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_UsesFaceOuterCenterLight_ForFul
     auto result = calculator.calculate(*m_chunk, cx, cy, cz, Face::Top, m_neighbors);
 
     for (size_t i = 0; i < 4; ++i) {
-        EXPECT_GE(result.vertexSkyLight[i], 3)
-            << "顶点 " << i << " 应从面外侧中心光照获得非零贡献";
+        EXPECT_GE(result.vertexSkyLight[i], 3) << "顶点 " << i << " 应从面外侧中心光照获得非零贡献";
     }
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_BlockLight_IndependentlyCalculated) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_BlockLight_IndependentlyCalculated)
+{
     // 测试方块光独立计算
     i32 cx = 8, cy = 64, cz = 8;
 
@@ -424,7 +434,8 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_BlockLight_IndependentlyCalcula
     }
 }
 
-TEST_F(AmbientOcclusionCalculatorTest, Calculate_TopFace_WestOccluder_DarkensWestVertices) {
+TEST_F(AmbientOcclusionCalculatorTest, Calculate_TopFace_WestOccluder_DarkensWestVertices)
+{
     // 构造一个顶面强不对称遮挡：仅在面外侧(y+1)的西侧邻域放置遮挡。
     // 期望：Top 面西侧顶点(0,3)整体应比东侧顶点(1,2)更暗。
     const i32 cx = 8;
@@ -446,25 +457,21 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_TopFace_WestOccluder_DarkensWes
     const float westAvg = (result.vertexColorMultiplier[0] + result.vertexColorMultiplier[3]) * 0.5f;
     const float eastAvg = (result.vertexColorMultiplier[1] + result.vertexColorMultiplier[2]) * 0.5f;
 
-    EXPECT_LT(westAvg, eastAvg)
-        << "顶面 AO 方向疑似旋转：西侧遮挡应优先压暗西侧顶点";
+    EXPECT_LT(westAvg, eastAvg) << "顶面 AO 方向疑似旋转：西侧遮挡应优先压暗西侧顶点";
 }
 
 // ============================================================================
 // 结果结构测试
 // ============================================================================
 
-TEST_F(AmbientOcclusionCalculatorTest, Result_AllVerticesInitialized) {
+TEST_F(AmbientOcclusionCalculatorTest, Result_AllVerticesInitialized)
+{
     fillSolidBlock(8, 64, 8);
 
     AmbientOcclusionCalculator calculator;
 
     // 测试所有6个面
-    Face faces[] = {
-        Face::Bottom, Face::Top,
-        Face::North, Face::South,
-        Face::West, Face::East
-    };
+    Face faces[] = {Face::Bottom, Face::Top, Face::North, Face::South, Face::West, Face::East};
 
     for (Face face : faces) {
         auto result = calculator.calculate(*m_chunk, 8, 64, 8, face, m_neighbors);

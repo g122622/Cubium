@@ -1,16 +1,16 @@
 #include "TridentItem.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../enchantment/EnchantmentHelper.hpp"
-#include "../../enchantment/enchantments/AllEnchantments.hpp"
-#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/entities/projectile/TridentEntity.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../core/ItemStack.hpp"
+#include "../../enchantment/EnchantmentHelper.hpp"
+#include "../../enchantment/enchantments/AllEnchantments.hpp"
 #include <cmath>
 
 namespace mc {
@@ -18,31 +18,33 @@ namespace item {
 
 // ========== 常量 ==========
 namespace {
-    constexpr i32 MAX_USE_DURATION = 72000;   // MC 1.16.5: 几乎无限制
-    constexpr i32 MIN_CHARGE_TICKS = 10;       // 最小投掷蓄力时间
-    constexpr f32 THROW_VELOCITY = 2.5f;       // 基础投掷速度
-}
+constexpr i32 MAX_USE_DURATION = 72000; // MC 1.16.5: 几乎无限制
+constexpr i32 MIN_CHARGE_TICKS = 10;    // 最小投掷蓄力时间
+constexpr f32 THROW_VELOCITY = 2.5f;    // 基础投掷速度
+} // namespace
 
 // ========== 构造函数 ==========
 
 TridentItem::TridentItem(const ItemProperties& properties)
     : Item(properties)
-{
-}
+{}
 
 // ========== Item 接口重写 ==========
 
-i32 TridentItem::getUseDuration(const ItemStack& stack) const {
+i32 TridentItem::getUseDuration(const ItemStack& stack) const
+{
     (void)stack;
     return MAX_USE_DURATION;
 }
 
-UseAction TridentItem::getUseAction(const ItemStack& stack) const {
+UseAction TridentItem::getUseAction(const ItemStack& stack) const
+{
     (void)stack;
     return UseAction::Spear;
 }
 
-ItemActionResult TridentItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult TridentItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     (void)world;
 
     ItemStack tridentStack = player.getHeldItem(hand);
@@ -63,11 +65,7 @@ ItemActionResult TridentItem::onItemRightClick(IWorld& world, Player& player, Ha
     return ItemActionResult::success(tridentStack);
 }
 
-void TridentItem::onPlayerStoppedUsing(
-    ItemStack& stack,
-    IWorld& world,
-    LivingEntity& entity,
-    i32 timeLeft)
+void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft)
 {
     // 检查是否是玩家
     Player* player = dynamic_cast<Player*>(&entity);
@@ -161,8 +159,7 @@ void TridentItem::onPlayerStoppedUsing(
     tridentEntity->setItemStack(stack);
 
     // 设置忠诚附魔等级
-    i32 loyaltyLevel = enchant::EnchantmentHelper::getEnchantmentLevel(
-        stack, &enchant::AllEnchantments::LOYALTY);
+    i32 loyaltyLevel = enchant::EnchantmentHelper::getEnchantmentLevel(stack, &enchant::AllEnchantments::LOYALTY);
     tridentEntity->setLoyaltyLevel(static_cast<u8>(loyaltyLevel));
 
     // 创造模式下设置拾取状态
@@ -182,7 +179,8 @@ void TridentItem::onPlayerStoppedUsing(
     }
 }
 
-bool TridentItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker) {
+bool TridentItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker)
+{
     (void)target;
 
     // 消耗耐久度
@@ -191,11 +189,7 @@ bool TridentItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity
 }
 
 bool TridentItem::onBlockDestroyed(
-    ItemStack& stack,
-    IWorld& world,
-    const BlockState& state,
-    const BlockPos& pos,
-    LivingEntity& breaker)
+    ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& breaker)
 {
     (void)world;
     (void)pos;
@@ -211,15 +205,16 @@ bool TridentItem::onBlockDestroyed(
 
 // ========== 私有方法 ==========
 
-bool TridentItem::isWet(const Player& player) {
+bool TridentItem::isWet(const Player& player)
+{
     // MC 1.16.5: isWet() = isInWater() || isInRain()
     // Entity 基类已实现 isWet() 方法
     return player.isWet();
 }
 
-i32 TridentItem::getRiptideLevel(const ItemStack& stack) {
-    return enchant::EnchantmentHelper::getEnchantmentLevel(
-        stack, &enchant::AllEnchantments::RIPTIDE);
+i32 TridentItem::getRiptideLevel(const ItemStack& stack)
+{
+    return enchant::EnchantmentHelper::getEnchantmentLevel(stack, &enchant::AllEnchantments::RIPTIDE);
 }
 
 } // namespace item

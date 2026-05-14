@@ -1,9 +1,9 @@
 #pragma once
 
-#include "world/block/BlockPos.hpp"
-#include "world/IWorld.hpp"
 #include "util/AxisAlignedBB.hpp"
 #include "util/Direction.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/BlockPos.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -55,9 +55,7 @@ public:
      * @brief 获取漏斗输出方向
      * @return 输出方向（默认向下）
      */
-    [[nodiscard]] virtual Direction getOutputDirection() const {
-        return Direction::Down;
-    }
+    [[nodiscard]] virtual Direction getOutputDirection() const { return Direction::Down; }
 
     // ========== 静态工具方法 ==========
 
@@ -77,7 +75,8 @@ public:
      * @param hopper 漏斗
      * @return 输出位置
      */
-    [[nodiscard]] static BlockPos getOutputPosition(const IHopper& hopper) {
+    [[nodiscard]] static BlockPos getOutputPosition(const IHopper& hopper)
+    {
         return hopper.getHopperPos().offset(hopper.getOutputDirection());
     }
 };

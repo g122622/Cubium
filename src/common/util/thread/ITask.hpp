@@ -14,11 +14,11 @@ namespace mc::util {
  * 数值越小优先级越高。
  */
 enum class TaskPriority : i8 {
-    Critical = -3,    ///< 紧急任务（退出游戏、崩溃恢复）
-    High = -2,        ///< 高优先级（玩家附近区块、关键IO）
-    Normal = 0,       ///< 普通任务
-    Low = 2,          ///< 低优先级（后台任务）
-    Background = 3    ///< 最低优先级（导入、压缩）
+    Critical = -3, ///< 紧急任务（退出游戏、崩溃恢复）
+    High = -2,     ///< 高优先级（玩家附近区块、关键IO）
+    Normal = 0,    ///< 普通任务
+    Low = 2,       ///< 低优先级（后台任务）
+    Background = 3 ///< 最低优先级（导入、压缩）
 };
 
 /**
@@ -27,15 +27,15 @@ enum class TaskPriority : i8 {
  * 用于追踪和统计。
  */
 enum class TaskType : u8 {
-    ChunkGenerate,    ///< 区块生成
-    ChunkSave,        ///< 区块保存
-    ChunkLoad,        ///< 区块加载
-    WorldImport,      ///< 世界导入
-    SnapshotCreate,   ///< 快照创建
-    SnapshotRestore,  ///< 快照恢复
-    DBWrite,          ///< 数据库写入
-    DBRead,           ///< 数据库读取
-    Custom            ///< 自定义任务
+    ChunkGenerate,   ///< 区块生成
+    ChunkSave,       ///< 区块保存
+    ChunkLoad,       ///< 区块加载
+    WorldImport,     ///< 世界导入
+    SnapshotCreate,  ///< 快照创建
+    SnapshotRestore, ///< 快照恢复
+    DBWrite,         ///< 数据库写入
+    DBRead,          ///< 数据库读取
+    Custom           ///< 自定义任务
 };
 
 /**

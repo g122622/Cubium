@@ -2,9 +2,9 @@
 
 #include "Merchant.hpp"
 #include "MerchantOffer.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc {
 namespace world {
@@ -96,9 +96,7 @@ private:
      * @return 交易工厂
      */
     static TradeFactory sellForEmeralds(
-        const char* sellItem, i32 sellCount,
-        i32 emeraldCount,
-        i32 maxUses = 12, i32 xp = 1);
+        const char* sellItem, i32 sellCount, i32 emeraldCount, i32 maxUses = 12, i32 xp = 1);
 
     /**
      * @brief 创建绿宝石换物品交易（玩家用绿宝石购买物品）
@@ -110,9 +108,7 @@ private:
      * @return 交易工厂
      */
     static TradeFactory buyForEmeralds(
-        i32 emeraldCount,
-        const char* buyItem, i32 buyCount,
-        i32 maxUses = 12, i32 xp = 1);
+        i32 emeraldCount, const char* buyItem, i32 buyCount, i32 maxUses = 12, i32 xp = 1);
 
     /**
      * @brief 注册普通交易

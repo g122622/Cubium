@@ -24,17 +24,17 @@ public:
     AngryVillagerParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/angry_villager");
     }
 
@@ -60,17 +60,17 @@ public:
     HappyVillagerParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/happy_villager");
     }
 
@@ -96,17 +96,17 @@ public:
     SneezeParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/sneeze");
     }
 

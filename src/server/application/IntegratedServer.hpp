@@ -1,12 +1,12 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
-#include "common/network/connection/LocalConnection.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/network/connection/LocalConnection.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-#include <thread>
 #include <mutex>
+#include <thread>
 
 namespace mc::server {
 
@@ -18,8 +18,8 @@ struct IntegratedServerConfig {
     i64 seed = 0; // TODO 这个会被后面代码覆盖，导致数据流混乱，需要重构配置系统
     GameMode defaultGameMode = GameMode::Survival;
     i32 viewDistance = 6;
-    i32 tickRate = 20;  // TPS
-    WorldType worldType = WorldType::Default;  // 默认使用调试模式
+    i32 tickRate = 20;                        // TPS
+    WorldType worldType = WorldType::Default; // 默认使用调试模式
 };
 
 /**
@@ -49,17 +49,21 @@ protected:
     void pollNetwork() override;
     void broadcastPacket(const u8* data, size_t size) override;
 
-    void broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sectionY,
-                              const std::vector<u8>& skyLight,
-                              const std::vector<u8>& blockLight,
-                              bool trustEdges) override;
+    void broadcastLightUpdate(ChunkCoord x,
+        ChunkCoord z,
+        i32 sectionY,
+        const std::vector<u8>& skyLight,
+        const std::vector<u8>& blockLight,
+        bool trustEdges) override;
 
-    [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override {
+    [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override
+    {
         (void)sessionId;
         return m_clientPlayerId;
     }
 
-    void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override {
+    void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override
+    {
         if (playerId == m_clientPlayerId) {
             sendToClient(data, size);
         }
@@ -76,7 +80,6 @@ protected:
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
 
 public:
-
     // ========== IntegratedServer 特有接口 ==========
 
     /**
@@ -125,7 +128,8 @@ private:
     void setupRaidManagerCallbacks();
 
     // 发送数据包
-    void sendLoginResponse(bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message);
+    void sendLoginResponse(
+        bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message);
     void sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
     void sendPlayerInventory();
     void sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
@@ -140,7 +144,8 @@ private:
     void openCraftingTableMenu();
 
     // 玩家数据便捷方法
-    ServerPlayerData* getPlayerData() {
+    ServerPlayerData* getPlayerData()
+    {
         return m_playerManager ? m_playerManager->getPlayer(m_clientPlayerId) : nullptr;
     }
 
@@ -148,7 +153,10 @@ private:
      * @brief 获取玩家实体管理器
      */
     [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
-    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override { return m_playerEntityManager; }
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        return m_playerEntityManager;
+    }
 
     IntegratedServerConfig m_integratedConfig;
 

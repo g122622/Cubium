@@ -4,11 +4,12 @@
 namespace mc {
 
 namespace {
-    // 静态属性实例
-    std::unique_ptr<EnumProperty<Axis>> g_axisProperty;
-}
+// 静态属性实例
+std::unique_ptr<EnumProperty<Axis>> g_axisProperty;
+} // namespace
 
-const EnumProperty<Axis>& RotatedPillarBlock::AXIS() {
+const EnumProperty<Axis>& RotatedPillarBlock::AXIS()
+{
     if (!g_axisProperty) {
         g_axisProperty = AxisProperty::create("axis");
     }
@@ -16,11 +17,11 @@ const EnumProperty<Axis>& RotatedPillarBlock::AXIS() {
 }
 
 RotatedPillarBlock::RotatedPillarBlock(BlockProperties properties)
-    : Block(properties) {
+    : Block(properties)
+{
     // 创建带有axis属性的状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(AXIS())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(AXIS()).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -28,15 +29,18 @@ RotatedPillarBlock::RotatedPillarBlock(BlockProperties properties)
     setDefaultState(withAxis(defaultState(), Axis::Y));
 }
 
-Axis RotatedPillarBlock::getAxis(const BlockState& state) const {
+Axis RotatedPillarBlock::getAxis(const BlockState& state) const
+{
     return state.get(AXIS());
 }
 
-const BlockState& RotatedPillarBlock::withAxis(const BlockState& state, Axis axis) const {
+const BlockState& RotatedPillarBlock::withAxis(const BlockState& state, Axis axis) const
+{
     return state.with(AXIS(), axis);
 }
 
-const BlockState& RotatedPillarBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& RotatedPillarBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     // 参考: net.minecraft.block.RotatedPillarBlock#rotate
     // 90度旋转时，X轴和Z轴互换
     if (rotation == Rotation::Clockwise90 || rotation == Rotation::CounterClockwise90) {
@@ -51,7 +55,8 @@ const BlockState& RotatedPillarBlock::rotate(const BlockState& state, Rotation r
     return state;
 }
 
-BlockState RotatedPillarBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState RotatedPillarBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 参考: net.minecraft.block.RotatedPillarBlock#getStateForPlacement
     // 根据放置面的轴向设置初始状态
     Direction clickedFace = context.getClickedFace();

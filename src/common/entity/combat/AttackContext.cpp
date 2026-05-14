@@ -1,10 +1,10 @@
 #include "AttackContext.hpp"
-#include "CombatRules.hpp"
-#include "../damage/DamageSource.hpp"
-#include "../attribute/Attributes.hpp"
-#include "../effect/EffectType.hpp"
-#include "../core/LivingEntity.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../attribute/Attributes.hpp"
+#include "../core/LivingEntity.hpp"
+#include "../damage/DamageSource.hpp"
+#include "../effect/EffectType.hpp"
+#include "CombatRules.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -18,9 +18,10 @@ AttackContext::AttackContext(Entity* attacker, LivingEntity* target)
     m_attackerLiving = dynamic_cast<LivingEntity*>(attacker);
 }
 
-f32 AttackContext::calculateFinalDamage() const {
+f32 AttackContext::calculateFinalDamage() const
+{
     f32 baseDamage = m_baseDamage;
-    f32 enchantDamage = 0.0f;  // 附魔伤害单独计算
+    f32 enchantDamage = 0.0f; // 附魔伤害单独计算
 
     // ========== 1. 攻击者增益/减益（应用到基础伤害） ==========
     if (m_attackerLiving && m_attackType == AttackType::Melee) {
@@ -67,18 +68,15 @@ f32 AttackContext::calculateFinalDamage() const {
     if (m_target && !m_bypassArmor) {
         // 获取护甲值和护甲韧性
         f32 armor = static_cast<f32>(m_target->attributes().getValue(entity::attribute::Attributes::ARMOR));
-        f32 armorToughness = static_cast<f32>(m_target->attributes().getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS));
+        f32 armorToughness =
+            static_cast<f32>(m_target->attributes().getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS));
 
         // MC 1.16.5 护甲公式:
         // f = 2 + toughness / 4
         // g = clamp(armor - damage / f, armor * 0.2, 20)
         // final = damage * (1 - g / 25)
         const f32 protectionFactor = 2.0f + armorToughness / 4.0f;
-        const f32 effectiveArmor = std::clamp(
-            armor - damage / protectionFactor,
-            armor * 0.2f,
-            20.0f
-        );
+        const f32 effectiveArmor = std::clamp(armor - damage / protectionFactor, armor * 0.2f, 20.0f);
         damage *= (1.0f - effectiveArmor / 25.0f);
 
         // 抗性药水减伤（MC 1.16.5: 每级 -20%，最高 80%）
@@ -111,24 +109,21 @@ f32 AttackContext::calculateFinalDamage() const {
     return std::max(0.0f, damage);
 }
 
-std::unique_ptr<DamageSource> AttackContext::createDamageSource() const {
+std::unique_ptr<DamageSource> AttackContext::createDamageSource() const
+{
     switch (m_attackType) {
         case AttackType::Melee:
             if (m_attacker) {
                 return std::make_unique<EntityDamageSource>(
-                    m_fireDamage ? DamageType::OnFire : DamageType::MobAttack,
-                    m_attacker
-                );
+                    m_fireDamage ? DamageType::OnFire : DamageType::MobAttack, m_attacker);
             }
             break;
 
         case AttackType::Ranged:
             if (m_attacker) {
-                return std::make_unique<IndirectEntityDamageSource>(
-                    DamageType::Arrow,
-                    nullptr,  // 直接攻击者（箭矢等）
-                    m_attacker
-                );
+                return std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow,
+                    nullptr, // 直接攻击者（箭矢等）
+                    m_attacker);
             }
             break;
 
@@ -146,7 +141,8 @@ std::unique_ptr<DamageSource> AttackContext::createDamageSource() const {
     return std::make_unique<EnvironmentalDamage>(DamageType::Generic);
 }
 
-void AttackContext::setDamageFlagsFromSource(const DamageSource& source) {
+void AttackContext::setDamageFlagsFromSource(const DamageSource& source)
+{
     m_damageFlags = 0;
 
     // 根据伤害来源设置对应的标志位

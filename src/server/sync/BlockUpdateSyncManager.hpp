@@ -40,9 +40,7 @@ public:
      * @param z 方块Z坐标
      * @param blockStateId 方块状态ID
      */
-    void queueBlockUpdate(i32 x, i32 y, i32 z, u32 blockStateId) {
-        queueBlockUpdate(BlockPos(x, y, z), blockStateId);
-    }
+    void queueBlockUpdate(i32 x, i32 y, i32 z, u32 blockStateId) { queueBlockUpdate(BlockPos(x, y, z), blockStateId); }
 
     /**
      * @brief 统一发送待处理的方块更新

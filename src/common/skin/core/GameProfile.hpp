@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include <array>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 namespace mc::skin {
 
@@ -24,9 +24,9 @@ namespace mc::skin {
  * - signature: 可选的签名，用于验证属性真实性
  */
 struct GameProfileProperty {
-    std::string name;                        // 属性名，如 "textures"
-    std::string value;                       // Base64 编码的值
-    std::optional<std::string> signature;    // 可选的签名（用于验证）
+    std::string name;                     // 属性名，如 "textures"
+    std::string value;                    // Base64 编码的值
+    std::optional<std::string> signature; // 可选的签名（用于验证）
 
     GameProfileProperty() = default;
 
@@ -36,9 +36,12 @@ struct GameProfileProperty {
      * @param v 属性值（Base64编码）
      * @param sig 可选的签名
      */
-    GameProfileProperty(const std::string& n, const std::string& v,
-                        const std::optional<std::string>& sig = std::nullopt)
-        : name(n), value(v), signature(sig) {}
+    GameProfileProperty(
+        const std::string& n, const std::string& v, const std::optional<std::string>& sig = std::nullopt)
+        : name(n)
+        , value(v)
+        , signature(sig)
+    {}
 
     /**
      * @brief 检查是否有签名
@@ -118,8 +121,7 @@ public:
     /**
      * @brief 获取所有属性
      */
-    [[nodiscard]] const std::vector<GameProfileProperty>& properties() const
-        { return m_properties; }
+    [[nodiscard]] const std::vector<GameProfileProperty>& properties() const { return m_properties; }
 
     /**
      * @brief 添加属性
@@ -211,9 +213,9 @@ public:
     [[nodiscard]] static Result<GameProfile> deserialize(network::PacketDeserializer& deser);
 
 private:
-    std::array<u8, 16> m_uuid = {};         // 玩家UUID（big-endian）
-    std::string m_name;                           // 玩家名称
-    std::vector<GameProfileProperty> m_properties;  // 属性列表
+    std::array<u8, 16> m_uuid = {};                // 玩家UUID（big-endian）
+    std::string m_name;                            // 玩家名称
+    std::vector<GameProfileProperty> m_properties; // 属性列表
 };
 
 } // namespace mc::skin

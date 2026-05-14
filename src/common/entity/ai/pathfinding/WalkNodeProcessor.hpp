@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
 #include "NodeProcessor.hpp"
 #include "PathNodeType.hpp"
-#include "../../../core/Types.hpp"
 
 namespace mc {
 
@@ -94,7 +94,7 @@ protected:
     [[nodiscard]] std::unique_ptr<PathPoint> createNode(i32 x, i32 y, i32 z) override;
 
 private:
-    LivingEntity* m_entity = nullptr;  // MC 1.16.5: 实体引用
+    LivingEntity* m_entity = nullptr; // MC 1.16.5: 实体引用
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
     bool m_canEnterDoors = false;

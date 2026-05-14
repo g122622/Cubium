@@ -1,7 +1,7 @@
 #include "SWMRNibbleArray.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cstring>
-#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 
@@ -17,10 +17,11 @@ SWMRNibbleArray::SWMRNibbleArray()
     , m_stateVisible(State::Uninit)
     , m_storageUpdating(nullptr)
     , m_storageVisible(nullptr)
-    , m_updatingDirty(false) {
-}
+    , m_updatingDirty(false)
+{}
 
-SWMRNibbleArray::~SWMRNibbleArray() {
+SWMRNibbleArray::~SWMRNibbleArray()
+{
     // 释放可见侧存储（只有当它与更新侧不同时）
     auto* visible = m_storageVisible.load();
     if (visible != nullptr && visible != m_storageUpdating.get()) {
@@ -33,21 +34,23 @@ SWMRNibbleArray::SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> dat
     : m_stateUpdating(data ? State::Init : (isNull ? State::Null : State::Uninit))
     , m_stateVisible(m_stateUpdating)
     , m_storageUpdating(std::move(data))
-    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr)  // 与 Moonrise 一致：初始时指向同一数组
-    , m_updatingDirty(false) {
-}
+    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr) // 与 Moonrise 一致：初始时指向同一数组
+    , m_updatingDirty(false)
+{}
 
 SWMRNibbleArray::SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> data, State state)
     : m_stateUpdating(state)
     , m_stateVisible(state)
     , m_storageUpdating(std::move(data))
-    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr)  // 与 Moonrise 一致：初始时指向同一数组
-    , m_updatingDirty(false) {
+    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr) // 与 Moonrise 一致：初始时指向同一数组
+    , m_updatingDirty(false)
+{
     // 与 Moonrise 一致：data 为空时不允许 Init/Hidden 状态
     MC_ASSERT_RELEASE(!(m_storageUpdating == nullptr && (state == State::Init || state == State::Hidden)));
 }
 
-SWMRNibbleArray SWMRNibbleArray::fromData(const std::vector<u8>& data) {
+SWMRNibbleArray SWMRNibbleArray::fromData(const std::vector<u8>& data)
+{
     if (data.empty()) {
         return SWMRNibbleArray();
     }
@@ -63,11 +66,13 @@ SWMRNibbleArray SWMRNibbleArray::fromData(const std::vector<u8>& data) {
     return SWMRNibbleArray(std::move(storage), State::Init);
 }
 
-SWMRNibbleArray SWMRNibbleArray::createUninitialized() {
+SWMRNibbleArray SWMRNibbleArray::createUninitialized()
+{
     return SWMRNibbleArray(nullptr, false);
 }
 
-SWMRNibbleArray SWMRNibbleArray::createNull() {
+SWMRNibbleArray SWMRNibbleArray::createNull()
+{
     return SWMRNibbleArray(nullptr, true);
 }
 
@@ -75,23 +80,28 @@ SWMRNibbleArray SWMRNibbleArray::createNull() {
 // 状态查询 - 更新侧
 // ============================================================================
 
-bool SWMRNibbleArray::isDirty() const {
+bool SWMRNibbleArray::isDirty() const
+{
     return m_stateUpdating != m_stateVisible.load() || m_updatingDirty;
 }
 
-bool SWMRNibbleArray::isNullUpdating() const {
+bool SWMRNibbleArray::isNullUpdating() const
+{
     return m_stateUpdating == State::Null;
 }
 
-bool SWMRNibbleArray::isUninitializedUpdating() const {
+bool SWMRNibbleArray::isUninitializedUpdating() const
+{
     return m_stateUpdating == State::Uninit;
 }
 
-bool SWMRNibbleArray::isInitializedUpdating() const {
+bool SWMRNibbleArray::isInitializedUpdating() const
+{
     return m_stateUpdating == State::Init;
 }
 
-bool SWMRNibbleArray::isHiddenUpdating() const {
+bool SWMRNibbleArray::isHiddenUpdating() const
+{
     return m_stateUpdating == State::Hidden;
 }
 
@@ -99,19 +109,23 @@ bool SWMRNibbleArray::isHiddenUpdating() const {
 // 状态查询 - 可见侧
 // ============================================================================
 
-bool SWMRNibbleArray::isNullVisible() const {
+bool SWMRNibbleArray::isNullVisible() const
+{
     return m_stateVisible.load() == State::Null;
 }
 
-bool SWMRNibbleArray::isUninitializedVisible() const {
+bool SWMRNibbleArray::isUninitializedVisible() const
+{
     return m_stateVisible.load() == State::Uninit;
 }
 
-bool SWMRNibbleArray::isInitializedVisible() const {
+bool SWMRNibbleArray::isInitializedVisible() const
+{
     return m_stateVisible.load() == State::Init;
 }
 
-bool SWMRNibbleArray::isHiddenVisible() const {
+bool SWMRNibbleArray::isHiddenVisible() const
+{
     return m_stateVisible.load() == State::Hidden;
 }
 
@@ -119,7 +133,8 @@ bool SWMRNibbleArray::isHiddenVisible() const {
 // 状态设置 - 更新侧
 // ============================================================================
 
-void SWMRNibbleArray::setFull() {
+void SWMRNibbleArray::setFull()
+{
     if (m_stateUpdating != State::Hidden) {
         m_stateUpdating = State::Init;
     }
@@ -145,7 +160,8 @@ void SWMRNibbleArray::setFull() {
     m_updatingDirty = true;
 }
 
-void SWMRNibbleArray::setZero() {
+void SWMRNibbleArray::setZero()
+{
     if (m_stateUpdating != State::Hidden) {
         m_stateUpdating = State::Init;
     }
@@ -171,7 +187,8 @@ void SWMRNibbleArray::setZero() {
     m_updatingDirty = true;
 }
 
-void SWMRNibbleArray::setNonNull() {
+void SWMRNibbleArray::setNonNull()
+{
     if (m_stateUpdating == State::Hidden) {
         m_stateUpdating = State::Init;
         return;
@@ -182,7 +199,8 @@ void SWMRNibbleArray::setNonNull() {
     m_stateUpdating = State::Uninit;
 }
 
-void SWMRNibbleArray::setNull() {
+void SWMRNibbleArray::setNull()
+{
     m_stateUpdating = State::Null;
     if (m_updatingDirty && m_storageUpdating != nullptr) {
         freeBytes(std::move(m_storageUpdating));
@@ -191,7 +209,8 @@ void SWMRNibbleArray::setNull() {
     m_updatingDirty = false;
 }
 
-void SWMRNibbleArray::setUninitialized() {
+void SWMRNibbleArray::setUninitialized()
+{
     m_stateUpdating = State::Uninit;
     if (m_storageUpdating != nullptr && m_updatingDirty) {
         freeBytes(std::move(m_storageUpdating));
@@ -200,7 +219,8 @@ void SWMRNibbleArray::setUninitialized() {
     m_updatingDirty = false;
 }
 
-void SWMRNibbleArray::setHidden() {
+void SWMRNibbleArray::setHidden()
+{
     if (m_stateUpdating == State::Hidden) {
         return;
     }
@@ -215,11 +235,13 @@ void SWMRNibbleArray::setHidden() {
 // 元素访问 - 更新侧
 // ============================================================================
 
-u8 SWMRNibbleArray::getUpdating(i32 x, i32 y, i32 z) const {
+u8 SWMRNibbleArray::getUpdating(i32 x, i32 y, i32 z) const
+{
     return getUpdating(getIndex(x, y, z));
 }
 
-u8 SWMRNibbleArray::getUpdating(i32 index) const {
+u8 SWMRNibbleArray::getUpdating(i32 index) const
+{
     if (m_storageUpdating == nullptr) {
         return 0;
     }
@@ -229,31 +251,33 @@ u8 SWMRNibbleArray::getUpdating(i32 index) const {
     return static_cast<u8>((value >> ((index & 1) << 2)) & 0x0F);
 }
 
-void SWMRNibbleArray::set(i32 x, i32 y, i32 z, u8 value) {
+void SWMRNibbleArray::set(i32 x, i32 y, i32 z, u8 value)
+{
     set(getIndex(x, y, z), value);
 }
 
-void SWMRNibbleArray::set(i32 index, u8 value) {
+void SWMRNibbleArray::set(i32 index, u8 value)
+{
     ensureWritable();
 
     const i32 shift = (index & 1) << 2;
     const size_t i = static_cast<size_t>(index >> 1);
 
     // 清除旧值并设置新值
-    (*m_storageUpdating)[i] = static_cast<u8>(
-        ((*m_storageUpdating)[i] & (0xF0 >> shift)) | ((value & 0x0F) << shift)
-    );
+    (*m_storageUpdating)[i] = static_cast<u8>(((*m_storageUpdating)[i] & (0xF0 >> shift)) | ((value & 0x0F) << shift));
 }
 
 // ============================================================================
 // 元素访问 - 可见侧（线程安全）
 // ============================================================================
 
-u8 SWMRNibbleArray::getVisible(i32 x, i32 y, i32 z) const {
+u8 SWMRNibbleArray::getVisible(i32 x, i32 y, i32 z) const
+{
     return getVisible(getIndex(x, y, z));
 }
 
-u8 SWMRNibbleArray::getVisible(i32 index) const {
+u8 SWMRNibbleArray::getVisible(i32 index) const
+{
     auto* storage = m_storageVisible.load(std::memory_order_acquire);
     if (storage == nullptr || m_stateVisible.load() == State::Null) {
         return 0;
@@ -267,7 +291,8 @@ u8 SWMRNibbleArray::getVisible(i32 index) const {
 // 同步操作
 // ============================================================================
 
-bool SWMRNibbleArray::updateVisible() {
+bool SWMRNibbleArray::updateVisible()
+{
     if (!isDirty()) {
         return false;
     }
@@ -297,9 +322,7 @@ bool SWMRNibbleArray::updateVisible() {
         } else {
             // 可见侧已有存储，如果更新侧和可见侧不同则复制数据
             if (m_storageUpdating.get() != currentVisible) {
-                std::memcpy(currentVisible->data(),
-                           m_storageUpdating->data(),
-                           ARRAY_SIZE);
+                std::memcpy(currentVisible->data(), m_storageUpdating->data(), ARRAY_SIZE);
                 // 释放旧的更新侧存储
                 freeBytes(std::move(m_storageUpdating));
                 m_storageUpdating = std::unique_ptr<std::array<u8, ARRAY_SIZE>>(currentVisible);
@@ -317,7 +340,8 @@ bool SWMRNibbleArray::updateVisible() {
 // 扩展操作
 // ============================================================================
 
-void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other) {
+void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other)
+{
     if (other.m_stateUpdating == State::Null) {
         return; // 不能从 null 挤压
     }
@@ -356,12 +380,13 @@ void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other) {
     for (i32 y = 0; y <= 15; ++y) {
         const size_t destOffset = static_cast<size_t>(y) << (8 - 1); // y * 128 字节
         std::copy(other.m_storageUpdating->begin() + start,
-                  other.m_storageUpdating->begin() + end + 1,
-                  m_storageUpdating->begin() + destOffset);
+            other.m_storageUpdating->begin() + end + 1,
+            m_storageUpdating->begin() + destOffset);
     }
 }
 
-SWMRNibbleArray::SaveState SWMRNibbleArray::getSaveState() const {
+SWMRNibbleArray::SaveState SWMRNibbleArray::getSaveState() const
+{
     State state = m_stateVisible.load();
     auto* data = m_storageVisible.load();
 
@@ -382,7 +407,8 @@ SWMRNibbleArray::SaveState SWMRNibbleArray::getSaveState() const {
     return SaveState{std::move(copiedData), state};
 }
 
-std::vector<u8> SWMRNibbleArray::toByteArray() const {
+std::vector<u8> SWMRNibbleArray::toByteArray() const
+{
     auto* data = m_storageVisible.load();
     State state = m_stateVisible.load();
 
@@ -397,7 +423,8 @@ std::vector<u8> SWMRNibbleArray::toByteArray() const {
 // 私有方法
 // ============================================================================
 
-std::unique_ptr<std::array<u8, SWMRNibbleArray::ARRAY_SIZE>> SWMRNibbleArray::allocateBytes() {
+std::unique_ptr<std::array<u8, SWMRNibbleArray::ARRAY_SIZE>> SWMRNibbleArray::allocateBytes()
+{
     // 尝试从对象池获取
     if (!s_bytePool.empty()) {
         auto bytes = std::move(s_bytePool.back());
@@ -408,13 +435,15 @@ std::unique_ptr<std::array<u8, SWMRNibbleArray::ARRAY_SIZE>> SWMRNibbleArray::al
     return std::make_unique<std::array<u8, ARRAY_SIZE>>();
 }
 
-void SWMRNibbleArray::freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes) {
+void SWMRNibbleArray::freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes)
+{
     if (bytes != nullptr) {
         s_bytePool.push_back(std::move(bytes));
     }
 }
 
-bool SWMRNibbleArray::isAllZero(const std::array<u8, ARRAY_SIZE>& data) {
+bool SWMRNibbleArray::isAllZero(const std::array<u8, ARRAY_SIZE>& data)
+{
     // 使用 64 位比较加速
     constexpr size_t numU64 = ARRAY_SIZE / sizeof(u64);
     const u64* ptr = reinterpret_cast<const u64*>(data.data());
@@ -435,7 +464,8 @@ bool SWMRNibbleArray::isAllZero(const std::array<u8, ARRAY_SIZE>& data) {
     return true;
 }
 
-void SWMRNibbleArray::ensureWritable() {
+void SWMRNibbleArray::ensureWritable()
+{
     if (m_updatingDirty) {
         return;
     }

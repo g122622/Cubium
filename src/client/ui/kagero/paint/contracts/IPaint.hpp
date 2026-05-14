@@ -4,23 +4,11 @@
 
 namespace mc::client::ui::kagero::paint {
 
-enum class PaintStyle : u8 {
-    Fill,
-    Stroke,
-    StrokeAndFill
-};
+enum class PaintStyle : u8 { Fill, Stroke, StrokeAndFill };
 
-enum class StrokeCap : u8 {
-    Butt,
-    Round,
-    Square
-};
+enum class StrokeCap : u8 { Butt, Round, Square };
 
-enum class StrokeJoin : u8 {
-    Miter,
-    Round,
-    Bevel
-};
+enum class StrokeJoin : u8 { Miter, Round, Bevel };
 
 /**
  * @brief 画笔接口

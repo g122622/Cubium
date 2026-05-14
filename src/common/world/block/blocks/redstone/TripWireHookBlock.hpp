@@ -31,30 +31,34 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
-    [[nodiscard]] i32 getWeakPower(const BlockState& state, IWorld& world,
-                                   const BlockPos& pos, Direction side) const override;
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
-    [[nodiscard]] i32 getStrongPower(const BlockState& state, IWorld& world,
-                                     const BlockPos& pos, Direction side) const override;
+    [[nodiscard]] i32 getStrongPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Destroy;
     }
@@ -108,8 +112,11 @@ private:
      * @param shouldTriggerOnChange 是否在状态改变时触发
      * @return true 如果成功连接
      */
-    bool calculateState(IWorld& world, const BlockPos& pos, Direction facing,
-                        const BlockState& currentState, bool shouldTriggerOnChange);
+    bool calculateState(IWorld& world,
+        const BlockPos& pos,
+        Direction facing,
+        const BlockState& currentState,
+        bool shouldTriggerOnChange);
 
     /**
      * @brief 检测绊线链
@@ -119,8 +126,8 @@ private:
      * @param outOtherHookPos 输出：另一端绊线钩位置
      * @return true 如果找到完整的绊线链
      */
-    [[nodiscard]] bool checkForTripwire(IWorld& world, const BlockPos& pos,
-                                         Direction facing, BlockPos& outOtherHookPos) const;
+    [[nodiscard]] bool checkForTripwire(
+        IWorld& world, const BlockPos& pos, Direction facing, BlockPos& outOtherHookPos) const;
 };
 
 } // namespace blocks

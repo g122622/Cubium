@@ -3,9 +3,9 @@
 #include "../../core/Types.hpp"
 #include "../../util/Direction.hpp"
 #include "BooleanOp.hpp"
-#include <vector>
 #include <bitset>
 #include <functional>
+#include <vector>
 
 namespace mc {
 
@@ -183,15 +183,13 @@ public:
      * @brief 创建指定范围内的填充形状
      */
     [[nodiscard]] static DiscreteVoxelShape withFilledBounds(
-        i32 xSize, i32 ySize, i32 zSize,
-        i32 minX, i32 minY, i32 minZ,
-        i32 maxX, i32 maxY, i32 maxZ);
+        i32 xSize, i32 ySize, i32 zSize, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
 
 protected:
     i32 m_xSize = 0;
     i32 m_ySize = 0;
     i32 m_zSize = 0;
-    std::vector<bool> m_storage;  // 体素占用状态
+    std::vector<bool> m_storage; // 体素占用状态
 
     // 边界缓存
     mutable i32 m_xMin = 0;

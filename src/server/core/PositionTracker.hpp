@@ -1,10 +1,10 @@
 #pragma once
 
+#include "ServerCoreConfig.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/sync/ChunkSync.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/network/sync/ChunkSync.hpp"
-#include "ServerCoreConfig.hpp"
 #include <vector>
 
 namespace mc::server::core {
@@ -79,9 +79,8 @@ public:
      * @param[out] chunksToLoad 需要加载的区块
      * @param[out] chunksToUnload 需要卸载的区块
      */
-    void calculateChunkUpdates(PlayerId playerId,
-                               std::vector<ChunkPos>& chunksToLoad,
-                               std::vector<ChunkPos>& chunksToUnload);
+    void calculateChunkUpdates(
+        PlayerId playerId, std::vector<ChunkPos>& chunksToLoad, std::vector<ChunkPos>& chunksToUnload);
 
     /**
      * @brief 标记区块为已发送

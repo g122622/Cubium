@@ -37,7 +37,8 @@ public:
      *
      * 默认实现会根据节点类型分发到具体的visit方法
      */
-    virtual void visit(Node& node) {
+    virtual void visit(Node& node)
+    {
         switch (node.type) {
             case NodeType::Document:
                 visitDocument(static_cast<DocumentNode&>(node));
@@ -58,39 +59,32 @@ public:
     /**
      * @brief 访问文档节点
      */
-    virtual void visitDocument(DocumentNode& node) {
-        traverseChildren(node);
-    }
+    virtual void visitDocument(DocumentNode& node) { traverseChildren(node); }
 
     /**
      * @brief 访问元素节点
      *
      * 重写此方法处理元素节点，记得调用traverseChildren或手动遍历子节点
      */
-    virtual void visitElement(ElementNode& node) {
-        traverseChildren(node);
-    }
+    virtual void visitElement(ElementNode& node) { traverseChildren(node); }
 
     /**
      * @brief 访问文本节点
      */
-    virtual void visitText(TextNode& node) {
-        (void)node;
-    }
+    virtual void visitText(TextNode& node) { (void)node; }
 
     /**
      * @brief 访问注释节点
      */
-    virtual void visitComment(CommentNode& node) {
-        (void)node;
-    }
+    virtual void visitComment(CommentNode& node) { (void)node; }
 
     // ========== 遍历控制 ==========
 
     /**
      * @brief 遍历子节点
      */
-    virtual void traverseChildren(Node& node) {
+    virtual void traverseChildren(Node& node)
+    {
         for (auto& child : node.children) {
             visit(*child);
         }
@@ -121,7 +115,8 @@ class ConstAstVisitor {
 public:
     virtual ~ConstAstVisitor() = default;
 
-    virtual void visit(const Node& node) {
+    virtual void visit(const Node& node)
+    {
         switch (node.type) {
             case NodeType::Document:
                 visitDocument(static_cast<const DocumentNode&>(node));
@@ -138,23 +133,16 @@ public:
         }
     }
 
-    virtual void visitDocument(const DocumentNode& node) {
-        traverseChildren(node);
-    }
+    virtual void visitDocument(const DocumentNode& node) { traverseChildren(node); }
 
-    virtual void visitElement(const ElementNode& node) {
-        traverseChildren(node);
-    }
+    virtual void visitElement(const ElementNode& node) { traverseChildren(node); }
 
-    virtual void visitText(const TextNode& node) {
-        (void)node;
-    }
+    virtual void visitText(const TextNode& node) { (void)node; }
 
-    virtual void visitComment(const CommentNode& node) {
-        (void)node;
-    }
+    virtual void visitComment(const CommentNode& node) { (void)node; }
 
-    virtual void traverseChildren(const Node& node) {
+    virtual void traverseChildren(const Node& node)
+    {
         for (const auto& child : node.children) {
             visit(*child);
             if (m_shouldStop) break;

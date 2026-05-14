@@ -4,7 +4,8 @@ namespace mc {
 namespace server {
 namespace stats {
 
-std::optional<StatType> parseStatType(std::string_view prefix) noexcept {
+std::optional<StatType> parseStatType(std::string_view prefix) noexcept
+{
     if (prefix == "mined") {
         return StatType::Mined;
     } else if (prefix == "crafted") {
@@ -27,7 +28,8 @@ std::optional<StatType> parseStatType(std::string_view prefix) noexcept {
     return std::nullopt;
 }
 
-ResourceLocation buildStatLocation(StatType type, const ResourceLocation& id) {
+ResourceLocation buildStatLocation(StatType type, const ResourceLocation& id)
+{
     std::string prefix(getStatTypePrefix(type));
     std::string fullId = "minecraft." + prefix + ":" + id.toString();
     return ResourceLocation(fullId);

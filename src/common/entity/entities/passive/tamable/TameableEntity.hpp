@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
-#include "../../../interfaces/IAngerable.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../util/assert/AssertMacros.hpp"
+#include "../../../interfaces/IAngerable.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <optional>
 
 namespace mc {
@@ -82,9 +82,7 @@ public:
      * @param playerId 玩家ID
      * @return 如果是主人返回true
      */
-    [[nodiscard]] bool isOwner(u64 playerId) const {
-        return m_ownerId.has_value() && m_ownerId.value() == playerId;
-    }
+    [[nodiscard]] bool isOwner(u64 playerId) const { return m_ownerId.has_value() && m_ownerId.value() == playerId; }
 
     /**
      * @brief 获取主人实体

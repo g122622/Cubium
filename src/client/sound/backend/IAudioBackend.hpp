@@ -1,11 +1,11 @@
 #pragma once
 
 #include "client/sound/backend/AudioBuffer.hpp"
-#include "common/sound/SoundTypes.hpp"
 #include "common/core/Result.hpp"
+#include "common/sound/SoundTypes.hpp"
 
-#include <glm/glm.hpp>
 #include <memory>
+#include <glm/glm.hpp>
 
 namespace mc::client::sound {
 
@@ -19,10 +19,10 @@ using ::mc::sound::AudioSourceId;
  * 参考: OpenAL AL_SOURCE_STATE
  */
 enum class AudioSourceState : u8 {
-    Initial,   ///< 初始状态（未播放）
-    Playing,   ///< 正在播放
-    Paused,    ///< 已暂停
-    Stopped    ///< 已停止
+    Initial, ///< 初始状态（未播放）
+    Playing, ///< 正在播放
+    Paused,  ///< 已暂停
+    Stopped  ///< 已停止
 };
 
 /**
@@ -228,7 +228,8 @@ public:
      *
      * @param distance 衰减距离
      */
-    virtual void setLinearAttenuation(f32 distance) {
+    virtual void setLinearAttenuation(f32 distance)
+    {
         setReferenceDistance(0.0f);
         setMaxDistance(distance);
     }
@@ -238,7 +239,8 @@ public:
      *
      * 设置参考距离和最大距离为很大的值。
      */
-    virtual void setNoAttenuation() {
+    virtual void setNoAttenuation()
+    {
         setReferenceDistance(10000.0f);
         setMaxDistance(10000.0f);
     }

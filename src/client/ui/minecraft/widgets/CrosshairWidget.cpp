@@ -13,7 +13,8 @@ CrosshairWidget::CrosshairWidget()
     setActive(true);
 }
 
-void CrosshairWidget::paint(kagero::widget::PaintContext& ctx) {
+void CrosshairWidget::paint(kagero::widget::PaintContext& ctx)
+{
     if (!isVisible()) {
         return;
     }
@@ -23,26 +24,18 @@ void CrosshairWidget::paint(kagero::widget::PaintContext& ctx) {
     const i32 centerY = height() / 2;
 
     // 绘制水平线
-    ctx.drawFilledRect(
-        Rect(
-            static_cast<i32>(centerX - m_size),
-            static_cast<i32>(centerY - m_thickness / 2),
-            static_cast<i32>(m_size * 2),
-            static_cast<i32>(m_thickness)
-        ),
-        m_color
-    );
+    ctx.drawFilledRect(Rect(static_cast<i32>(centerX - m_size),
+                           static_cast<i32>(centerY - m_thickness / 2),
+                           static_cast<i32>(m_size * 2),
+                           static_cast<i32>(m_thickness)),
+        m_color);
 
     // 绘制垂直线
-    ctx.drawFilledRect(
-        Rect(
-            static_cast<i32>(centerX - m_thickness / 2),
-            static_cast<i32>(centerY - m_size),
-            static_cast<i32>(m_thickness),
-            static_cast<i32>(m_size * 2)
-        ),
-        m_color
-    );
+    ctx.drawFilledRect(Rect(static_cast<i32>(centerX - m_thickness / 2),
+                           static_cast<i32>(centerY - m_size),
+                           static_cast<i32>(m_thickness),
+                           static_cast<i32>(m_size * 2)),
+        m_color);
 }
 
 } // namespace mc::client::ui::minecraft::widgets

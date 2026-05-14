@@ -6,26 +6,26 @@
  * 注意：hasFlammableNeighbor 是私有方法，通过 onBlockAdded 间接测试。
  */
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include "common/world/block/blocks/redstone/TNTBlock.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/entity/entities/misc/MiscEntities.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -40,7 +40,8 @@ public:
 
     // ========== 方块访问 ==========
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -48,7 +49,8 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         if (state == nullptr) {
             m_blocks.erase(BlockPos(x, y, z));
         } else {
@@ -57,22 +59,18 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] u64 currentTick() const override {
-        return m_currentTick;
-    }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] bool isClientSide() override {
-        return m_isClientSide;
-    }
+    [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
 
-    void setClientSide(bool isClient) {
-        m_isClientSide = isClient;
-    }
+    void setClientSide(bool isClient) { m_isClientSide = isClient; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         // 记录生成的 TNT 实体
         if (auto* tnt = dynamic_cast<entity::TNTEntity*>(entity.get())) {
             m_spawnedTNTCount++;
@@ -85,12 +83,12 @@ public:
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
-    void playSound(
-        const ResourceLocation& soundEventId,
+    void playSound(const ResourceLocation& soundEventId,
         sound::SoundCategory category,
         const Vector3& position,
         f32 volume,
-        f32 pitch) override {
+        f32 pitch) override
+    {
         m_lastSoundEvent = soundEventId;
         m_lastSoundCategory = category;
         m_lastSoundPosition = position;
@@ -99,12 +97,12 @@ public:
         m_soundPlayed = true;
     }
 
-    void createExplosion(
-        const Vector3& position,
+    void createExplosion(const Vector3& position,
         f32 radius,
         world::explosion::ExplosionMode mode,
         bool causesFire,
-        Entity* source) override {
+        Entity* source) override
+    {
         m_lastExplosionPos = position;
         m_lastExplosionRadius = radius;
         m_lastExplosionMode = mode;
@@ -113,17 +111,20 @@ public:
         m_explosionCount++;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("TNTBlockTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("TNTBlockTestWorld::tickManager not implemented");
     }
 
     // 测试辅助方法
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
         if (state == nullptr) {
             m_blocks.erase(pos);
         } else {
@@ -131,55 +132,32 @@ public:
         }
     }
 
-    void advanceTick() {
-        m_currentTick++;
-    }
+    void advanceTick() { m_currentTick++; }
 
-    [[nodiscard]] i32 spawnedTNTCount() const {
-        return m_spawnedTNTCount;
-    }
+    [[nodiscard]] i32 spawnedTNTCount() const { return m_spawnedTNTCount; }
 
-    [[nodiscard]] const Vector3& lastTNTPosition() const {
-        return m_lastTNTPosition;
-    }
+    [[nodiscard]] const Vector3& lastTNTPosition() const { return m_lastTNTPosition; }
 
-    [[nodiscard]] i32 lastTNTFuse() const {
-        return m_lastTNTFuse;
-    }
+    [[nodiscard]] i32 lastTNTFuse() const { return m_lastTNTFuse; }
 
-    [[nodiscard]] const Vector3& lastTNTVelocity() const {
-        return m_lastTNTVelocity;
-    }
+    [[nodiscard]] const Vector3& lastTNTVelocity() const { return m_lastTNTVelocity; }
 
-    [[nodiscard]] bool soundPlayed() const {
-        return m_soundPlayed;
-    }
+    [[nodiscard]] bool soundPlayed() const { return m_soundPlayed; }
 
-    [[nodiscard]] const ResourceLocation& lastSoundEvent() const {
-        return m_lastSoundEvent;
-    }
+    [[nodiscard]] const ResourceLocation& lastSoundEvent() const { return m_lastSoundEvent; }
 
-    [[nodiscard]] i32 explosionCount() const {
-        return m_explosionCount;
-    }
+    [[nodiscard]] i32 explosionCount() const { return m_explosionCount; }
 
-    [[nodiscard]] const Vector3& lastExplosionPos() const {
-        return m_lastExplosionPos;
-    }
+    [[nodiscard]] const Vector3& lastExplosionPos() const { return m_lastExplosionPos; }
 
-    [[nodiscard]] f32 lastExplosionRadius() const {
-        return m_lastExplosionRadius;
-    }
+    [[nodiscard]] f32 lastExplosionRadius() const { return m_lastExplosionRadius; }
 
-    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const {
-        return m_lastExplosionMode;
-    }
+    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const { return m_lastExplosionMode; }
 
-    [[nodiscard]] bool explosionCausesFire() const {
-        return m_explosionCausesFire;
-    }
+    [[nodiscard]] bool explosionCausesFire() const { return m_explosionCausesFire; }
 
-    void clearState() {
+    void clearState()
+    {
         m_blocks.clear();
         m_spawnedEntities.clear();
         m_spawnedTNTCount = 0;
@@ -221,14 +199,13 @@ private:
  */
 class TNTBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
     }
 
-    void TearDown() override {
-        m_world.clearState();
-    }
+    void TearDown() override { m_world.clearState(); }
 
     TNTBlockTestWorld m_world;
 };
@@ -236,7 +213,8 @@ protected:
 /**
  * @brief 测试 TNTBlock 构造函数
  */
-TEST_F(TNTBlockTest, Construction) {
+TEST_F(TNTBlockTest, Construction)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
     ASSERT_NE(tntBlock, nullptr);
@@ -248,7 +226,8 @@ TEST_F(TNTBlockTest, Construction) {
 /**
  * @brief 测试 isUnstable 静态方法
  */
-TEST_F(TNTBlockTest, IsUnstable) {
+TEST_F(TNTBlockTest, IsUnstable)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
     const BlockState& defaultState = tntBlock->defaultState();
@@ -262,7 +241,8 @@ TEST_F(TNTBlockTest, IsUnstable) {
  *
  * 服务端点燃 TNT 应该生成 TNTEntity 并播放音效
  */
-TEST_F(TNTBlockTest, IgniteOnServerSide) {
+TEST_F(TNTBlockTest, IgniteOnServerSide)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -299,7 +279,8 @@ TEST_F(TNTBlockTest, IgniteOnServerSide) {
  *
  * 客户端点燃 TNT 不应该有任何效果
  */
-TEST_F(TNTBlockTest, IgniteOnClientSide) {
+TEST_F(TNTBlockTest, IgniteOnClientSide)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -323,7 +304,8 @@ TEST_F(TNTBlockTest, IgniteOnClientSide) {
  *
  * MC 1.16.5: TNT 被点燃时有随机的初始速度
  */
-TEST_F(TNTBlockTest, IgniteRandomInitialVelocity) {
+TEST_F(TNTBlockTest, IgniteRandomInitialVelocity)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -346,7 +328,8 @@ TEST_F(TNTBlockTest, IgniteRandomInitialVelocity) {
  *
  * explode() 应该移除方块并创建爆炸
  */
-TEST_F(TNTBlockTest, Explode) {
+TEST_F(TNTBlockTest, Explode)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -375,7 +358,8 @@ TEST_F(TNTBlockTest, Explode) {
 /**
  * @brief 测试自定义爆炸半径
  */
-TEST_F(TNTBlockTest, ExplodeCustomRadius) {
+TEST_F(TNTBlockTest, ExplodeCustomRadius)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -394,7 +378,8 @@ TEST_F(TNTBlockTest, ExplodeCustomRadius) {
  *
  * 当 TNT 被放置在有火焰的位置时，应该点燃
  */
-TEST_F(TNTBlockTest, OnBlockAdded_WithFire) {
+TEST_F(TNTBlockTest, OnBlockAdded_WithFire)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -416,7 +401,8 @@ TEST_F(TNTBlockTest, OnBlockAdded_WithFire) {
  *
  * TNT 爆炸使用 Break 模式，破坏方块但不掉落物品
  */
-TEST_F(TNTBlockTest, ExplosionModeIsBreak) {
+TEST_F(TNTBlockTest, ExplosionModeIsBreak)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -432,7 +418,8 @@ TEST_F(TNTBlockTest, ExplosionModeIsBreak) {
 /**
  * @brief 测试 TNT 爆炸不生成火焰
  */
-TEST_F(TNTBlockTest, ExplosionDoesNotCauseFire) {
+TEST_F(TNTBlockTest, ExplosionDoesNotCauseFire)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -450,7 +437,8 @@ TEST_F(TNTBlockTest, ExplosionDoesNotCauseFire) {
  *
  * TNTEntity 应该正确注册
  */
-TEST_F(TNTBlockTest, TNTEntityIsRegistered) {
+TEST_F(TNTBlockTest, TNTEntityIsRegistered)
+{
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
 

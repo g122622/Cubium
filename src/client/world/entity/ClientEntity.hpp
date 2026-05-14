@@ -2,11 +2,11 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc::client {
@@ -451,7 +451,8 @@ public:
      * @param partialTick 部分 tick
      * @return 插值后的攻击进度
      */
-    [[nodiscard]] f32 getInterpolatedSwingProgress(f32 partialTick) const {
+    [[nodiscard]] f32 getInterpolatedSwingProgress(f32 partialTick) const
+    {
         return m_prevSwingProgress + (m_swingProgress - m_prevSwingProgress) * partialTick;
     }
 
@@ -461,50 +462,38 @@ public:
      * @brief 获取主手物品
      * @return 物品堆指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const ItemStack* getMainHandItem() const {
-        return m_mainHandItem ? &*m_mainHandItem : nullptr;
-    }
+    [[nodiscard]] const ItemStack* getMainHandItem() const { return m_mainHandItem ? &*m_mainHandItem : nullptr; }
     void setMainHandItem(const ItemStack& item) { m_mainHandItem = std::make_unique<ItemStack>(item); }
 
     /**
      * @brief 获取副手物品
      * @return 物品堆指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const ItemStack* getOffHandItem() const {
-        return m_offHandItem ? &*m_offHandItem : nullptr;
-    }
+    [[nodiscard]] const ItemStack* getOffHandItem() const { return m_offHandItem ? &*m_offHandItem : nullptr; }
     void setOffHandItem(const ItemStack& item) { m_offHandItem = std::make_unique<ItemStack>(item); }
 
     /**
      * @brief 获取头部装备
      */
-    [[nodiscard]] const ItemStack* getHeadArmor() const {
-        return m_headArmor ? &*m_headArmor : nullptr;
-    }
+    [[nodiscard]] const ItemStack* getHeadArmor() const { return m_headArmor ? &*m_headArmor : nullptr; }
     void setHeadArmor(const ItemStack& item) { m_headArmor = std::make_unique<ItemStack>(item); }
 
     /**
      * @brief 获取胸甲
      */
-    [[nodiscard]] const ItemStack* getChestArmor() const {
-        return m_chestArmor ? &*m_chestArmor : nullptr;
-    }
+    [[nodiscard]] const ItemStack* getChestArmor() const { return m_chestArmor ? &*m_chestArmor : nullptr; }
     void setChestArmor(const ItemStack& item) { m_chestArmor = std::make_unique<ItemStack>(item); }
 
     /**
      * @brief 获取护腿
      */
-    [[nodiscard]] const ItemStack* getLegsArmor() const {
-        return m_legsArmor ? &*m_legsArmor : nullptr;
-    }
+    [[nodiscard]] const ItemStack* getLegsArmor() const { return m_legsArmor ? &*m_legsArmor : nullptr; }
     void setLegsArmor(const ItemStack& item) { m_legsArmor = std::make_unique<ItemStack>(item); }
 
     /**
      * @brief 获取靴子
      */
-    [[nodiscard]] const ItemStack* getFeetArmor() const {
-        return m_feetArmor ? &*m_feetArmor : nullptr;
-    }
+    [[nodiscard]] const ItemStack* getFeetArmor() const { return m_feetArmor ? &*m_feetArmor : nullptr; }
     void setFeetArmor(const ItemStack& item) { m_feetArmor = std::make_unique<ItemStack>(item); }
 
     // ========== 存活时间 ==========
@@ -574,9 +563,7 @@ public:
      * 用于客户端接收 SpawnEntity 包时设置 ItemEntity 的物品
      * @param stack 物品堆
      */
-    void setItemStack(const ItemStack& stack) {
-        m_itemStack = std::make_unique<ItemStack>(stack);
-    }
+    void setItemStack(const ItemStack& stack) { m_itemStack = std::make_unique<ItemStack>(stack); }
 
     // ========== XP 支持（用于 ExperienceOrb 渲染） ==========
 
@@ -616,20 +603,20 @@ private:
     // 位置
     Vector3 m_position;
     Vector3 m_prevPosition;
-    Vector3 m_targetPosition;  // 从网络包接收的目标位置
+    Vector3 m_targetPosition; // 从网络包接收的目标位置
 
     // 平滑插值配置
     f32 m_interpolationSpeed = 0.3f;   // 插值速度 (0.0-1.0)
-    bool m_smoothInterpolation = true;  // 是否启用平滑插值
+    bool m_smoothInterpolation = true; // 是否启用平滑插值
 
     // 旋转
     f32 m_yaw = 0.0f;
     f32 m_pitch = 0.0f;
     f32 m_prevYaw = 0.0f;
     f32 m_prevPitch = 0.0f;
-    f32 m_headYaw = 0.0f;      // 头部偏航角（动物特有）
+    f32 m_headYaw = 0.0f; // 头部偏航角（动物特有）
     f32 m_prevHeadYaw = 0.0f;
-    f32 m_targetYaw = 0.0f;    // 目标旋转（用于平滑插值）
+    f32 m_targetYaw = 0.0f; // 目标旋转（用于平滑插值）
     f32 m_targetPitch = 0.0f;
     f32 m_targetHeadYaw = 0.0f;
 
@@ -637,10 +624,10 @@ private:
     Vector3 m_velocity;
 
     // 动画状态
-    f32 m_prevLimbSwing = 0.0f;      // 上一帧腿部摆动进度
-    f32 m_limbSwing = 0.0f;          // 腿部摆动进度
-    f32 m_prevLimbSwingAmount = 0.0f;  // 上一帧腿部摆动强度
-    f32 m_limbSwingAmount = 0.0f;    // 腿部摆动强度
+    f32 m_prevLimbSwing = 0.0f;       // 上一帧腿部摆动进度
+    f32 m_limbSwing = 0.0f;           // 腿部摆动进度
+    f32 m_prevLimbSwingAmount = 0.0f; // 上一帧腿部摆动强度
+    f32 m_limbSwingAmount = 0.0f;     // 腿部摆动强度
 
     // 状态
     bool m_onGround = false;
@@ -652,20 +639,20 @@ private:
     f32 m_height = 1.8f;
 
     // 受伤和死亡状态
-    i32 m_hurtTime = 0;    // 受伤时间 (0-10)
-    i32 m_deathTime = 0;   // 死亡时间
+    i32 m_hurtTime = 0;  // 受伤时间 (0-10)
+    i32 m_deathTime = 0; // 死亡时间
 
     // 行为状态
     bool m_sneaking = false;
     bool m_swimming = false;
     bool m_riding = false;
     bool m_sitting = false;
-    bool m_sleeping = false;   // 睡眠状态
+    bool m_sleeping = false; // 睡眠状态
     bool m_onFire = false;
     bool m_invisible = false;
-    EntityId m_vehicleId = 0;  // 正在骑乘的载具ID
-    std::vector<u32> m_passengers;  // 乘客列表（如果此实体是载具）
-    BlockPos m_sleepingPosition{0, 0, 0};  // 睡眠位置（床的方块位置）
+    EntityId m_vehicleId = 0;             // 正在骑乘的载具ID
+    std::vector<u32> m_passengers;        // 乘客列表（如果此实体是载具）
+    BlockPos m_sleepingPosition{0, 0, 0}; // 睡眠位置（床的方块位置）
 
     // 攻击动画
     f32 m_swingProgress = 0.0f;
@@ -686,7 +673,7 @@ private:
     std::unique_ptr<ItemStack> m_itemStack;
 
     // ExperienceOrb 经验值数据
-    i32 m_xpValue = 1;  // 默认值为1
+    i32 m_xpValue = 1; // 默认值为1
 
     // LightningBolt 闪电形状随机种子
     u64 m_boltVertex = 0;

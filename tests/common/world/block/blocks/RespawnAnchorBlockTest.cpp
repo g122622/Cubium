@@ -12,14 +12,14 @@
 
 #include <gtest/gtest.h>
 
-#include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/dimension/DimensionType.hpp"
-#include "world/GlobalPos.hpp"
+#include "core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/property/Properties.hpp"
-#include "core/Constants.hpp"
+#include "world/GlobalPos.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
+#include "world/dimension/DimensionType.hpp"
 
 #include <memory>
 
@@ -32,18 +32,18 @@ using namespace mc::blocks;
 
 class RespawnAnchorBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // 测试重生锚方块存在
-TEST_F(RespawnAnchorBlockTest, RespawnAnchorBlockExists) {
+TEST_F(RespawnAnchorBlockTest, RespawnAnchorBlockExists)
+{
     ASSERT_NE(VanillaBlocks::RESPAWN_ANCHOR, nullptr);
 }
 
 // 测试重生锚默认状态
-TEST_F(RespawnAnchorBlockTest, DefaultState) {
+TEST_F(RespawnAnchorBlockTest, DefaultState)
+{
     ASSERT_NE(VanillaBlocks::RESPAWN_ANCHOR, nullptr);
 
     const BlockState& defaultState = VanillaBlocks::RESPAWN_ANCHOR->defaultState();
@@ -53,7 +53,8 @@ TEST_F(RespawnAnchorBlockTest, DefaultState) {
 }
 
 // 测试充能等级属性
-TEST_F(RespawnAnchorBlockTest, ChargesProperty) {
+TEST_F(RespawnAnchorBlockTest, ChargesProperty)
+{
     const BlockState& state0 = VanillaBlocks::RESPAWN_ANCHOR->defaultState();
 
     // 测试所有充能等级
@@ -64,49 +65,47 @@ TEST_F(RespawnAnchorBlockTest, ChargesProperty) {
 }
 
 // 测试光照等级计算
-TEST_F(RespawnAnchorBlockTest, LightLevelCalculation) {
+TEST_F(RespawnAnchorBlockTest, LightLevelCalculation)
+{
     const Block* block = VanillaBlocks::RESPAWN_ANCHOR;
     ASSERT_NE(block, nullptr);
 
     // 光照等级 = charges * 3.75
     // 0 -> 0, 1 -> 3, 2 -> 7, 3 -> 11, 4 -> 15
 
-    BlockState state0 = VanillaBlocks::RESPAWN_ANCHOR->defaultState()
-        .with(BlockStateProperties::CHARGES_0_4(), 0);
+    BlockState state0 = VanillaBlocks::RESPAWN_ANCHOR->defaultState().with(BlockStateProperties::CHARGES_0_4(), 0);
     EXPECT_EQ(block->getLightLevel(state0, nullptr, nullptr), 0);
 
-    BlockState state1 = VanillaBlocks::RESPAWN_ANCHOR->defaultState()
-        .with(BlockStateProperties::CHARGES_0_4(), 1);
+    BlockState state1 = VanillaBlocks::RESPAWN_ANCHOR->defaultState().with(BlockStateProperties::CHARGES_0_4(), 1);
     EXPECT_EQ(block->getLightLevel(state1, nullptr, nullptr), 3);
 
-    BlockState state2 = VanillaBlocks::RESPAWN_ANCHOR->defaultState()
-        .with(BlockStateProperties::CHARGES_0_4(), 2);
+    BlockState state2 = VanillaBlocks::RESPAWN_ANCHOR->defaultState().with(BlockStateProperties::CHARGES_0_4(), 2);
     EXPECT_EQ(block->getLightLevel(state2, nullptr, nullptr), 7);
 
-    BlockState state3 = VanillaBlocks::RESPAWN_ANCHOR->defaultState()
-        .with(BlockStateProperties::CHARGES_0_4(), 3);
+    BlockState state3 = VanillaBlocks::RESPAWN_ANCHOR->defaultState().with(BlockStateProperties::CHARGES_0_4(), 3);
     EXPECT_EQ(block->getLightLevel(state3, nullptr, nullptr), 11);
 
-    BlockState state4 = VanillaBlocks::RESPAWN_ANCHOR->defaultState()
-        .with(BlockStateProperties::CHARGES_0_4(), 4);
+    BlockState state4 = VanillaBlocks::RESPAWN_ANCHOR->defaultState().with(BlockStateProperties::CHARGES_0_4(), 4);
     EXPECT_EQ(block->getLightLevel(state4, nullptr, nullptr), 15);
 }
 
 // 测试 getCharges 辅助方法
-TEST_F(RespawnAnchorBlockTest, GetChargesHelperMethod) {
+TEST_F(RespawnAnchorBlockTest, GetChargesHelperMethod)
+{
     const Block* block = VanillaBlocks::RESPAWN_ANCHOR;
     ASSERT_NE(block, nullptr);
 
     for (i32 charges = 0; charges <= 4; ++charges) {
-        BlockState state = VanillaBlocks::RESPAWN_ANCHOR->defaultState()
-            .with(BlockStateProperties::CHARGES_0_4(), charges);
+        BlockState state =
+            VanillaBlocks::RESPAWN_ANCHOR->defaultState().with(BlockStateProperties::CHARGES_0_4(), charges);
         // 使用 Block 基类方法或通过状态获取
         EXPECT_EQ(state.get(BlockStateProperties::CHARGES_0_4()), charges);
     }
 }
 
 // 测试重生锚形状为完整方块
-TEST_F(RespawnAnchorBlockTest, ShapeIsFullBlock) {
+TEST_F(RespawnAnchorBlockTest, ShapeIsFullBlock)
+{
     const Block* block = VanillaBlocks::RESPAWN_ANCHOR;
     ASSERT_NE(block, nullptr);
 
@@ -117,20 +116,23 @@ TEST_F(RespawnAnchorBlockTest, ShapeIsFullBlock) {
 }
 
 // 测试维度检查 - 下界可用
-TEST_F(RespawnAnchorBlockTest, RespawnAnchorWorksInNether) {
-    DimensionType netherDim = DimensionType::fromId(-1);  // NETHER = -1
+TEST_F(RespawnAnchorBlockTest, RespawnAnchorWorksInNether)
+{
+    DimensionType netherDim = DimensionType::fromId(-1); // NETHER = -1
     EXPECT_TRUE(netherDim.respawnAnchorWorks());
 }
 
 // 测试维度检查 - 主世界不可用
-TEST_F(RespawnAnchorBlockTest, RespawnAnchorDoesNotWorkInOverworld) {
-    DimensionType overworldDim = DimensionType::fromId(0);  // OVERWORLD = 0
+TEST_F(RespawnAnchorBlockTest, RespawnAnchorDoesNotWorkInOverworld)
+{
+    DimensionType overworldDim = DimensionType::fromId(0); // OVERWORLD = 0
     EXPECT_FALSE(overworldDim.respawnAnchorWorks());
 }
 
 // 测试维度检查 - 末地不可用
-TEST_F(RespawnAnchorBlockTest, RespawnAnchorDoesNotWorkInEnd) {
-    DimensionType endDim = DimensionType::fromId(1);  // THE_END = 1
+TEST_F(RespawnAnchorBlockTest, RespawnAnchorDoesNotWorkInEnd)
+{
+    DimensionType endDim = DimensionType::fromId(1); // THE_END = 1
     EXPECT_FALSE(endDim.respawnAnchorWorks());
 }
 
@@ -144,7 +146,8 @@ TEST_F(RespawnAnchorBlockTest, RespawnAnchorDoesNotWorkInEnd) {
 class TestPlayer final : public mc::Player {
 public:
     TestPlayer(EntityId id, const std::string& name)
-        : mc::Player(id, name) {
+        : mc::Player(id, name)
+    {
         abilities().creativeMode = false;
         abilities().invulnerable = false;
     }
@@ -154,18 +157,21 @@ public:
 
     // 测试辅助方法
     [[nodiscard]] bool hasSpawnPoint() const { return getSpawnPoint().has_value(); }
-    [[nodiscard]] DimensionId spawnDimension() const {
+    [[nodiscard]] DimensionId spawnDimension() const
+    {
         auto sp = getSpawnPoint();
         return sp.has_value() ? sp->getDimensionId() : DimensionId(0);
     }
-    [[nodiscard]] BlockPos spawnPosition() const {
+    [[nodiscard]] BlockPos spawnPosition() const
+    {
         auto sp = getSpawnPoint();
         return sp.has_value() ? sp->getPos() : BlockPos(0, 0, 0);
     }
 };
 
 // 测试玩家重生点设置
-TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointCanBeSet) {
+TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointCanBeSet)
+{
     TestPlayer player(EntityId(1), "TestPlayer");
     BlockPos spawnPos(100, 64, -200);
 
@@ -182,7 +188,8 @@ TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointCanBeSet) {
 }
 
 // 测试玩家重生点的 forced 参数
-TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointForcedParameter) {
+TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointForcedParameter)
+{
     TestPlayer player(EntityId(1), "TestPlayer");
     BlockPos spawnPos(50, 70, 100);
 
@@ -196,7 +203,8 @@ TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointForcedParameter) {
 }
 
 // 测试清除重生点
-TEST_F(RespawnAnchorBlockTest, ClearSpawnPoint) {
+TEST_F(RespawnAnchorBlockTest, ClearSpawnPoint)
+{
     TestPlayer player(EntityId(1), "TestPlayer");
     BlockPos spawnPos(10, 20, 30);
 
@@ -210,7 +218,8 @@ TEST_F(RespawnAnchorBlockTest, ClearSpawnPoint) {
 }
 
 // 测试 GlobalPos 创建
-TEST_F(RespawnAnchorBlockTest, GlobalPosWithNetherDimension) {
+TEST_F(RespawnAnchorBlockTest, GlobalPosWithNetherDimension)
+{
     BlockPos pos(123, 64, -456);
     GlobalPos globalPos(DimensionId(-1), pos);
 
@@ -221,7 +230,8 @@ TEST_F(RespawnAnchorBlockTest, GlobalPosWithNetherDimension) {
 }
 
 // 测试重生点位置和维度正确对应
-TEST_F(RespawnAnchorBlockTest, SpawnPointPositionAndDimensionMatch) {
+TEST_F(RespawnAnchorBlockTest, SpawnPointPositionAndDimensionMatch)
+{
     TestPlayer player(EntityId(1), "TestPlayer");
 
     // 下界重生点
@@ -244,7 +254,8 @@ TEST_F(RespawnAnchorBlockTest, SpawnPointPositionAndDimensionMatch) {
 }
 
 // 测试 GlobalPos 比较
-TEST_F(RespawnAnchorBlockTest, GlobalPosComparison) {
+TEST_F(RespawnAnchorBlockTest, GlobalPosComparison)
+{
     GlobalPos pos1(DimensionId(-1), BlockPos(10, 20, 30));
     GlobalPos pos2(DimensionId(-1), BlockPos(10, 20, 30));
     GlobalPos pos3(DimensionId(0), BlockPos(10, 20, 30));
@@ -258,7 +269,8 @@ TEST_F(RespawnAnchorBlockTest, GlobalPosComparison) {
 }
 
 // 测试 GlobalPos sameDimension 方法
-TEST_F(RespawnAnchorBlockTest, GlobalPosSameDimension) {
+TEST_F(RespawnAnchorBlockTest, GlobalPosSameDimension)
+{
     GlobalPos pos1(DimensionId(-1), BlockPos(10, 20, 30));
     GlobalPos pos2(DimensionId(-1), BlockPos(100, 200, 300));
     GlobalPos pos3(DimensionId(0), BlockPos(10, 20, 30));

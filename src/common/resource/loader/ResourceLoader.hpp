@@ -1,16 +1,16 @@
 #pragma once
 
+#include "../../core/Result.hpp"
+#include "../IResourcePack.hpp"
 #include "../compat/PackFormat.hpp"
 #include "../compat/ResourceMapper.hpp"
 #include "../compat/TextureMapper.hpp"
-#include "../compat/unified/UnifiedResource.hpp"
-#include "../compat/unified/UnifiedModel.hpp"
 #include "../compat/unified/UnifiedBlockState.hpp"
-#include "../IResourcePack.hpp"
-#include "../../core/Result.hpp"
+#include "../compat/unified/UnifiedModel.hpp"
+#include "../compat/unified/UnifiedResource.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc {
 namespace resource {
@@ -27,7 +27,8 @@ struct ResourceLoadStats {
     u32 blockStatesLoaded = 0;
     u32 blockStatesFailed = 0;
 
-    void reset() {
+    void reset()
+    {
         texturesLoaded = 0;
         texturesFailed = 0;
         modelsLoaded = 0;
@@ -92,9 +93,7 @@ public:
     /**
      * @brief 获取已加载资源包的数量
      */
-    size_t getPackCount() const noexcept {
-        return m_packs.size();
-    }
+    size_t getPackCount() const noexcept { return m_packs.size(); }
 
     // -------------------------------------------------------------------------
     // 纹理加载
@@ -125,7 +124,8 @@ public:
      *
      * @param callback 回调函数
      */
-    void setTextureCallback(std::function<void(const std::string&, bool)> callback) {
+    void setTextureCallback(std::function<void(const std::string&, bool)> callback)
+    {
         m_textureCallback = std::move(callback);
     }
 
@@ -174,16 +174,12 @@ public:
     /**
      * @brief 获取加载统计
      */
-    const ResourceLoadStats& getStats() const noexcept {
-        return m_stats;
-    }
+    const ResourceLoadStats& getStats() const noexcept { return m_stats; }
 
     /**
      * @brief 重置加载统计
      */
-    void resetStats() {
-        m_stats.reset();
-    }
+    void resetStats() { m_stats.reset(); }
 
     // -------------------------------------------------------------------------
     // 工具方法
@@ -215,9 +211,7 @@ private:
      * @param path 纹理路径
      * @return 像素数据或错误
      */
-    Result<compat::unified::PixelData> readTexturePixels(
-        const IResourcePack& pack,
-        const std::string& path);
+    Result<compat::unified::PixelData> readTexturePixels(const IResourcePack& pack, const std::string& path);
 
     /**
      * @brief 在包中查找纹理（带路径变体）

@@ -24,7 +24,8 @@ struct RenderState {
      * - 深度读写
      * - 背面剔除
      */
-    static RenderState solid() {
+    static RenderState solid()
+    {
         RenderState state;
         state.blend = BlendState::disabled();
         state.depth = DepthState::readWrite();
@@ -39,7 +40,8 @@ struct RenderState {
      * - 深度读写
      * - 双面渲染
      */
-    static RenderState cutout() {
+    static RenderState cutout()
+    {
         RenderState state;
         state.blend = BlendState::disabled();
         state.depth = DepthState::readWrite();
@@ -52,8 +54,9 @@ struct RenderState {
      *
      * 与 cutout 相同，但使用 mipmap
      */
-    static RenderState cutoutMipped() {
-        return cutout();  // 状态相同，区别在纹理采样
+    static RenderState cutoutMipped()
+    {
+        return cutout(); // 状态相同，区别在纹理采样
     }
 
     /**
@@ -63,7 +66,8 @@ struct RenderState {
      * - 深度测试但不写入
      * - 双面渲染
      */
-    static RenderState translucent() {
+    static RenderState translucent()
+    {
         RenderState state;
         state.blend = BlendState::alpha();
         state.depth = DepthState::readOnly();
@@ -79,7 +83,8 @@ struct RenderState {
      * - 无剔除
      * - 线框模式
      */
-    static RenderState lines() {
+    static RenderState lines()
+    {
         RenderState state;
         state.blend = BlendState::alpha();
         state.depth = DepthState::readWrite();
@@ -92,7 +97,8 @@ struct RenderState {
      *
      * 用于发光效果
      */
-    static RenderState additive() {
+    static RenderState additive()
+    {
         RenderState state;
         state.blend = BlendState::additive();
         state.depth = DepthState::readOnly();
@@ -100,13 +106,12 @@ struct RenderState {
         return state;
     }
 
-    bool operator==(const RenderState& other) const {
+    bool operator==(const RenderState& other) const
+    {
         return blend == other.blend && depth == other.depth && rasterizer == other.rasterizer;
     }
 
-    bool operator!=(const RenderState& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const RenderState& other) const { return !(*this == other); }
 };
 
 } // namespace mc::client::renderer::api

@@ -3,7 +3,8 @@
 
 namespace mc::skin {
 
-std::string SkinTextures::getSkinCacheKey() const {
+std::string SkinTextures::getSkinCacheKey() const
+{
     if (!m_skinHash.has_value() || m_skinHash->empty()) {
         return "";
     }
@@ -16,7 +17,8 @@ std::string SkinTextures::getSkinCacheKey() const {
     return "skins/" + *m_skinHash;
 }
 
-std::string SkinTextures::getCapeCacheKey() const {
+std::string SkinTextures::getCapeCacheKey() const
+{
     if (!m_capeHash.has_value() || m_capeHash->empty()) {
         return "";
     }
@@ -27,7 +29,8 @@ std::string SkinTextures::getCapeCacheKey() const {
     return "capes/" + *m_capeHash;
 }
 
-std::string SkinTextures::getElytraCacheKey() const {
+std::string SkinTextures::getElytraCacheKey() const
+{
     if (!m_elytraHash.has_value() || m_elytraHash->empty()) {
         return "";
     }
@@ -38,7 +41,8 @@ std::string SkinTextures::getElytraCacheKey() const {
     return "elytra/" + *m_elytraHash;
 }
 
-std::string SkinTextures::extractHashFromUrl(const std::string& url) {
+std::string SkinTextures::extractHashFromUrl(const std::string& url)
+{
     // Mojang 皮肤URL格式：http://textures.minecraft.net/texture/<hash>
     // 或：https://textures.minecraft.net/texture/<hash>
 
@@ -61,8 +65,7 @@ std::string SkinTextures::extractHashFromUrl(const std::string& url) {
         }
 
         if (hash.length() != 64) {
-            spdlog::debug("SkinTextures::extractHashFromUrl: Unusual hash length: {} (URL: {})",
-                         hash.length(), url);
+            spdlog::debug("SkinTextures::extractHashFromUrl: Unusual hash length: {} (URL: {})", hash.length(), url);
         }
     }
 

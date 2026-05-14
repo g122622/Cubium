@@ -1,9 +1,9 @@
 #include "ClientSkinManager.hpp"
 #include "common/skin/core/GameProfile.hpp"
-#include <spdlog/spdlog.h>
-#include <cstring>  // for std::memcpy
-#include <fstream>
+#include <cstring> // for std::memcpy
 #include <filesystem>
+#include <fstream>
+#include <spdlog/spdlog.h>
 
 // stb_image is already implemented elsewhere (TextureAtlasBuilder.cpp)
 #include <stb_image.h>
@@ -12,18 +12,20 @@ namespace mc::client::skin {
 
 ClientSkinManager::ClientSkinManager()
     : m_skinManager(std::make_unique<::mc::skin::SkinManager>("./cache/skins"))
-    , m_textureAtlas(std::make_unique<renderer::entity::pipeline::EntityTextureAtlas>()) {
-}
+    , m_textureAtlas(std::make_unique<renderer::entity::pipeline::EntityTextureAtlas>())
+{}
 
-ClientSkinManager::~ClientSkinManager() {
+ClientSkinManager::~ClientSkinManager()
+{
     shutdown();
 }
 
 Result<void> ClientSkinManager::initialize(VkDevice device,
-                                           VkPhysicalDevice physicalDevice,
-                                           VkCommandPool commandPool,
-                                           VkQueue graphicsQueue,
-                                           const std::string& cacheDir) {
+    VkPhysicalDevice physicalDevice,
+    VkCommandPool commandPool,
+    VkQueue graphicsQueue,
+    const std::string& cacheDir)
+{
     if (m_initialized) {
         return {};
     }
@@ -38,10 +40,12 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
     }
 
     // 初始化纹理图集
-    auto atlasResult = m_textureAtlas->initialize(
-        device, physicalDevice, commandPool, graphicsQueue,
-        256,  // 最大纹理数
-        64    // 纹理尺寸（64x64）
+    auto atlasResult = m_textureAtlas->initialize(device,
+        physicalDevice,
+        commandPool,
+        graphicsQueue,
+        256, // 最大纹理数
+        64   // 纹理尺寸（64x64）
     );
     if (!atlasResult.success()) {
         return atlasResult.error();
@@ -50,8 +54,7 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
     // 加载默认皮肤
     auto defaultResult = loadDefaultSkins();
     if (!defaultResult.success()) {
-        spdlog::warn("ClientSkinManager: Failed to load default skins: {}",
-                     defaultResult.error().toString());
+        spdlog::warn("ClientSkinManager: Failed to load default skins: {}", defaultResult.error().toString());
         // 默认皮肤加载失败不是致命错误
     }
 
@@ -66,7 +69,8 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
     return {};
 }
 
-void ClientSkinManager::shutdown() {
+void ClientSkinManager::shutdown()
+{
     const bool wasInitialized = m_initialized;
 
     if (m_textureAtlas) {
@@ -99,7 +103,8 @@ void ClientSkinManager::shutdown() {
     }
 }
 
-Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin::GameProfile& profile) {
+Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin::GameProfile& profile)
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "ClientSkinManager not initialized");
     }
@@ -131,11 +136,9 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
     if (m_skinManager->defaultSkinProvider().isDefaultSkin(location)) {
         // 使用默认皮肤的纹理区域
         if (info->getSkinType() == ::mc::skin::SkinType::Slim) {
-            return m_alexRegion ? ResourceLocation("minecraft:textures/entity/alex.png")
-                               : location;
+            return m_alexRegion ? ResourceLocation("minecraft:textures/entity/alex.png") : location;
         } else {
-            return m_steveRegion ? ResourceLocation("minecraft:textures/entity/steve.png")
-                               : location;
+            return m_steveRegion ? ResourceLocation("minecraft:textures/entity/steve.png") : location;
         }
     }
 
@@ -152,8 +155,7 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
                 // 从文件加载 PNG 数据
                 std::ifstream file(*cachePathOpt, std::ios::binary);
                 if (file.is_open()) {
-                    std::vector<u8> pngData((std::istreambuf_iterator<char>(file)),
-                                            std::istreambuf_iterator<char>());
+                    std::vector<u8> pngData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
                     file.close();
 
                     // 上传到图集
@@ -165,15 +167,15 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
                         // 更新纹理区域映射
                         {
                             std::lock_guard<std::mutex> lock(m_regionMutex);
-                            m_skinRegions[key] = nullptr;  // 将在重建后更新
+                            m_skinRegions[key] = nullptr; // 将在重建后更新
                         }
 
-                        spdlog::info("ClientSkinManager: Uploaded cached skin for {} to atlas",
-                                     profile.name());
+                        spdlog::info("ClientSkinManager: Uploaded cached skin for {} to atlas", profile.name());
                         return location;
                     } else {
                         spdlog::warn("ClientSkinManager: Failed to upload skin for {}: {}",
-                                     profile.name(), uploadResult.error().toString());
+                            profile.name(),
+                            uploadResult.error().toString());
                     }
                 }
             }
@@ -186,7 +188,8 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
                          : ResourceLocation("minecraft:textures/entity/steve.png");
 }
 
-const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& uuid) const {
+const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& uuid) const
+{
     std::string key = uuidToKey(uuid);
 
     {
@@ -205,7 +208,8 @@ const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& 
     return m_steveRegion;
 }
 
-const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& uuid) const {
+const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& uuid) const
+{
     std::string key = uuidToKey(uuid);
 
     std::lock_guard<std::mutex> lock(m_regionMutex);
@@ -213,7 +217,8 @@ const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& 
     return it != m_capeRegions.end() ? it->second : nullptr;
 }
 
-const TextureRegion* ClientSkinManager::getElytraRegion(const std::array<u8, 16>& uuid) const {
+const TextureRegion* ClientSkinManager::getElytraRegion(const std::array<u8, 16>& uuid) const
+{
     std::string key = uuidToKey(uuid);
 
     std::lock_guard<std::mutex> lock(m_regionMutex);
@@ -221,7 +226,8 @@ const TextureRegion* ClientSkinManager::getElytraRegion(const std::array<u8, 16>
     return it != m_elytraRegions.end() ? it->second : nullptr;
 }
 
-::mc::skin::SkinType ClientSkinManager::getSkinType(const std::array<u8, 16>& uuid) const {
+::mc::skin::SkinType ClientSkinManager::getSkinType(const std::array<u8, 16>& uuid) const
+{
     auto info = m_skinManager->getPlayerInfo(uuid);
     if (info) {
         return info->getSkinType();
@@ -229,12 +235,13 @@ const TextureRegion* ClientSkinManager::getElytraRegion(const std::array<u8, 16>
     return m_skinManager->getDefaultSkinType(uuid);
 }
 
-std::shared_ptr<::mc::skin::PlayerSkinInfo> ClientSkinManager::getPlayerInfo(
-    const std::array<u8, 16>& uuid) const {
+std::shared_ptr<::mc::skin::PlayerSkinInfo> ClientSkinManager::getPlayerInfo(const std::array<u8, 16>& uuid) const
+{
     return m_skinManager->getPlayerInfo(uuid);
 }
 
-Result<void> ClientSkinManager::rebuildAtlas() {
+Result<void> ClientSkinManager::rebuildAtlas()
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "ClientSkinManager not initialized");
     }
@@ -304,7 +311,8 @@ Result<void> ClientSkinManager::rebuildAtlas() {
     return {};
 }
 
-Result<void> ClientSkinManager::loadDefaultSkins() {
+Result<void> ClientSkinManager::loadDefaultSkins()
+{
     // 使用默认皮肤提供者的内置数据
     const auto& steveData = m_skinManager->defaultSkinProvider().getSteveSkinData();
     const auto& alexData = m_skinManager->defaultSkinProvider().getAlexSkinData();
@@ -312,9 +320,8 @@ Result<void> ClientSkinManager::loadDefaultSkins() {
     // 添加 Steve 皮肤
     if (!steveData.empty()) {
         ResourceLocation steveLocation("minecraft:textures/entity/steve.png");
-        auto result = m_textureAtlas->addTextureFromPixels(
-            steveData,
-            64,  // Steve 皮肤是 64x64
+        auto result = m_textureAtlas->addTextureFromPixels(steveData,
+            64, // Steve 皮肤是 64x64
             64,
             steveLocation);
         if (result.success()) {
@@ -329,9 +336,8 @@ Result<void> ClientSkinManager::loadDefaultSkins() {
     // 添加 Alex 皮肤
     if (!alexData.empty()) {
         ResourceLocation alexLocation("minecraft:textures/entity/alex.png");
-        auto result = m_textureAtlas->addTextureFromPixels(
-            alexData,
-            64,  // Alex 皮肤是 64x64
+        auto result = m_textureAtlas->addTextureFromPixels(alexData,
+            64, // Alex 皮肤是 64x64
             64,
             alexLocation);
         if (result.success()) {
@@ -347,8 +353,8 @@ Result<void> ClientSkinManager::loadDefaultSkins() {
 }
 
 Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
-    const std::vector<u8>& pngData,
-    const ResourceLocation& preferredLocation) {
+    const std::vector<u8>& pngData, const ResourceLocation& preferredLocation)
+{
 
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "ClientSkinManager not initialized");
@@ -362,13 +368,12 @@ Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
     int width = 0;
     int height = 0;
     int channels = 0;
-    u8* pixels = stbi_load_from_memory(
-        pngData.data(),
+    u8* pixels = stbi_load_from_memory(pngData.data(),
         static_cast<int>(pngData.size()),
         &width,
         &height,
         &channels,
-        4);  // 强制 RGBA
+        4); // 强制 RGBA
 
     if (pixels == nullptr) {
         return Error(ErrorCode::InvalidData, "Failed to decode PNG data");
@@ -408,30 +413,27 @@ Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
         std::memcpy(processedPixels.data(), pixels, processedPixels.size());
     } else {
         stbi_image_free(pixels);
-        return Error(ErrorCode::InvalidData,
-                     "Invalid skin dimensions: " + std::to_string(width) + "x" + std::to_string(height));
+        return Error(
+            ErrorCode::InvalidData, "Invalid skin dimensions: " + std::to_string(width) + "x" + std::to_string(height));
     }
 
     stbi_image_free(pixels);
 
     // 添加到纹理图集
-    auto result = m_textureAtlas->addTextureFromPixels(
-        processedPixels,
-        finalWidth,
-        finalHeight,
-        preferredLocation);
+    auto result = m_textureAtlas->addTextureFromPixels(processedPixels, finalWidth, finalHeight, preferredLocation);
 
     if (!result.success()) {
         return result.error();
     }
 
-    spdlog::info("ClientSkinManager: Uploaded skin to atlas: {} ({}x{})",
-                 preferredLocation.toString(), finalWidth, finalHeight);
+    spdlog::info(
+        "ClientSkinManager: Uploaded skin to atlas: {} ({}x{})", preferredLocation.toString(), finalWidth, finalHeight);
 
     return preferredLocation;
 }
 
-std::string ClientSkinManager::uuidToKey(const std::array<u8, 16>& uuid) {
+std::string ClientSkinManager::uuidToKey(const std::array<u8, 16>& uuid)
+{
     return ::mc::skin::GameProfile(uuid, "").uuidToStringNoDashes();
 }
 

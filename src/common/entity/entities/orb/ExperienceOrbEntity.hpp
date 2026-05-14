@@ -236,15 +236,15 @@ private:
      */
     void initData();
 
-    i32 m_xpValue = 1;           // 经验值
-    i32 m_age = 0;               // 存活时间 (ticks)
-    i32 m_pickupDelay = 0;       // 拾取延迟 (MC原版默认为0)
-    i32 m_health = 5;            // 生命值（可被攻击摧毁）
-    Player* m_trackingPlayer = nullptr;  // 追踪的玩家
+    i32 m_xpValue = 1;                  // 经验值
+    i32 m_age = 0;                      // 存活时间 (ticks)
+    i32 m_pickupDelay = 0;              // 拾取延迟 (MC原版默认为0)
+    i32 m_health = 5;                   // 生命值（可被攻击摧毁）
+    Player* m_trackingPlayer = nullptr; // 追踪的玩家
 
     // 玩家搜索缓存：每 20 + entityId % 100 ticks 搜索一次
-    i32 m_tickCounter = 0;       // 每tick递增的计数器
-    i32 m_lastSearchTick = 0;    // 上次搜索玩家时的 tick 值
+    i32 m_tickCounter = 0;    // 每tick递增的计数器
+    i32 m_lastSearchTick = 0; // 上次搜索玩家时的 tick 值
 };
 
 } // namespace mc

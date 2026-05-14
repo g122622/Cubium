@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "client/sound/SoundEngine.hpp"
+#include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 
@@ -45,7 +45,8 @@ public:
      * @param inBubbleColumn 是否在气泡柱中
      * @param isDrag 是否是向下气泡柱（whirlpool）
      */
-    void setBubbleColumnState(bool inBubbleColumn, bool isDrag) {
+    void setBubbleColumnState(bool inBubbleColumn, bool isDrag)
+    {
         m_isInBubbleColumn = inBubbleColumn;
         m_isDrag = isDrag;
     }

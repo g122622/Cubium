@@ -1,13 +1,13 @@
 #include "TargetGoals.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
+#include "../../../../../util/AxisAlignedBB.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
 #include "../../../../core/EntityUtils.hpp"
+#include "../../../../core/LivingEntity.hpp"
+#include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../controller/LookController.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/AxisAlignedBB.hpp"
 #include <cmath>
 #include <limits>
 #include <type_traits>
@@ -23,7 +23,8 @@ TargetGoal::TargetGoal(MobEntity* mob, bool checkSight)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Target});
 }
 
-bool TargetGoal::shouldContinueExecuting() {
+bool TargetGoal::shouldContinueExecuting()
+{
     if (!m_mob || !m_target) return false;
 
     // 检查目标是否存活
@@ -46,14 +47,16 @@ bool TargetGoal::shouldContinueExecuting() {
     return true;
 }
 
-void TargetGoal::startExecuting() {
+void TargetGoal::startExecuting()
+{
     if (m_mob && m_target) {
         m_mob->setAttackTarget(m_target);
     }
     m_unseenTicks = 0;
 }
 
-void TargetGoal::resetTask() {
+void TargetGoal::resetTask()
+{
     m_target = nullptr;
     m_unseenTicks = 0;
     if (m_mob) {
@@ -61,7 +64,8 @@ void TargetGoal::resetTask() {
     }
 }
 
-bool TargetGoal::isSuitableTarget(LivingEntity* target) const {
+bool TargetGoal::isSuitableTarget(LivingEntity* target) const
+{
     if (!target || !target->isAlive()) {
         return false;
     }
@@ -90,14 +94,15 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const {
     return true;
 }
 
-bool TargetGoal::checkSight() const {
+bool TargetGoal::checkSight() const
+{
     if (!m_mob || !m_target) return false;
     return m_mob->canSee(*m_target);
 }
 
 // ==================== NearestAttackableTargetGoal ====================
 
-template<typename T>
+template <typename T>
 NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance)
     : TargetGoal(mob, checkSight)
     , m_chance(chance)
@@ -107,8 +112,9 @@ NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool
         "NearestAttackableTargetGoal<T> requires T to be derived from LivingEntity");
 }
 
-template<typename T>
-NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance, TargetPredicate predicate)
+template <typename T>
+NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(
+    MobEntity* mob, bool checkSight, i32 chance, TargetPredicate predicate)
     : TargetGoal(mob, checkSight)
     , m_chance(chance)
     , m_predicate(std::move(predicate))
@@ -117,8 +123,9 @@ NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool
         "NearestAttackableTargetGoal<T> requires T to be derived from LivingEntity");
 }
 
-template<typename T>
-bool NearestAttackableTargetGoal<T>::shouldExecute() {
+template <typename T>
+bool NearestAttackableTargetGoal<T>::shouldExecute()
+{
     if (!m_mob) return false;
 
     // MC 1.16.5: 概率检查
@@ -134,16 +141,14 @@ bool NearestAttackableTargetGoal<T>::shouldExecute() {
 
     // MC 1.16.5: 使用跟踪范围作为搜索范围
     // 参考 Entity.getAttributeValue(Attributes.FOLLOW_RANGE)
-    f64 followRange = m_mob->getAttributeValue(
-        entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
     f32 searchRange = static_cast<f32>(followRange);
 
     // 使用EntityUtils查找最近的目标
-    T* nearestTarget = EntityUtils::findClosestEntity<T>(
-        world,
+    T* nearestTarget = EntityUtils::findClosestEntity<T>(world,
         m_mob->position(),
         searchRange,
-        m_mob,  // 排除自己
+        m_mob, // 排除自己
         [this](T* candidate) {
             // 转换为LivingEntity进行目标检查
             LivingEntity* livingTarget = static_cast<LivingEntity*>(candidate);
@@ -160,8 +165,7 @@ bool NearestAttackableTargetGoal<T>::shouldExecute() {
                 return false;
             }
             return true;
-        }
-    );
+        });
 
     if (nearestTarget) {
         m_targetEntity = nearestTarget;
@@ -172,8 +176,9 @@ bool NearestAttackableTargetGoal<T>::shouldExecute() {
     return false;
 }
 
-template<typename T>
-void NearestAttackableTargetGoal<T>::startExecuting() {
+template <typename T>
+void NearestAttackableTargetGoal<T>::startExecuting()
+{
     TargetGoal::startExecuting();
 }
 
@@ -188,10 +193,10 @@ template class NearestAttackableTargetGoal<Player>;
 HurtByTargetGoal::HurtByTargetGoal(MobEntity* mob, bool alertAllies)
     : TargetGoal(mob, true)
     , m_alertAllies(alertAllies)
-{
-}
+{}
 
-bool HurtByTargetGoal::shouldExecute() {
+bool HurtByTargetGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     // MC 1.16.5: 从LivingEntity获取最近攻击者
@@ -216,7 +221,8 @@ bool HurtByTargetGoal::shouldExecute() {
     return true;
 }
 
-void HurtByTargetGoal::startExecuting() {
+void HurtByTargetGoal::startExecuting()
+{
     TargetGoal::startExecuting();
 
     // MC 1.16.5: 警醒盟友
@@ -246,7 +252,8 @@ void HurtByTargetGoal::startExecuting() {
     }
 }
 
-void HurtByTargetGoal::resetTask() {
+void HurtByTargetGoal::resetTask()
+{
     TargetGoal::resetTask();
     m_timestamp = 0;
 }
@@ -255,10 +262,10 @@ void HurtByTargetGoal::resetTask() {
 
 OwnerHurtByTargetGoal::OwnerHurtByTargetGoal(MobEntity* mob)
     : TargetGoal(mob, true)
-{
-}
+{}
 
-bool OwnerHurtByTargetGoal::shouldExecute() {
+bool OwnerHurtByTargetGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     // 检查是否是驯服动物
@@ -286,7 +293,8 @@ bool OwnerHurtByTargetGoal::shouldExecute() {
     return false;
 }
 
-void OwnerHurtByTargetGoal::startExecuting() {
+void OwnerHurtByTargetGoal::startExecuting()
+{
     TargetGoal::startExecuting();
 }
 
@@ -294,10 +302,10 @@ void OwnerHurtByTargetGoal::startExecuting() {
 
 OwnerHurtTargetGoal::OwnerHurtTargetGoal(MobEntity* mob)
     : TargetGoal(mob, true)
-{
-}
+{}
 
-bool OwnerHurtTargetGoal::shouldExecute() {
+bool OwnerHurtTargetGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     // 检查是否是驯服动物
@@ -325,7 +333,8 @@ bool OwnerHurtTargetGoal::shouldExecute() {
     return false;
 }
 
-void OwnerHurtTargetGoal::startExecuting() {
+void OwnerHurtTargetGoal::startExecuting()
+{
     TargetGoal::startExecuting();
 }
 
@@ -336,16 +345,17 @@ void OwnerHurtTargetGoal::startExecuting() {
 template class NonTamedTargetGoal<LivingEntity>;
 template class NonTamedTargetGoal<MobEntity>;
 
-template<typename T>
+template <typename T>
 NonTamedTargetGoal<T>::NonTamedTargetGoal(MobEntity* mob, bool checkSight)
     : TargetGoal(mob, checkSight)
 {
-    static_assert(std::is_base_of<LivingEntity, T>::value,
-        "NonTamedTargetGoal<T> requires T to be derived from LivingEntity");
+    static_assert(
+        std::is_base_of<LivingEntity, T>::value, "NonTamedTargetGoal<T> requires T to be derived from LivingEntity");
 }
 
-template<typename T>
-bool NonTamedTargetGoal<T>::shouldExecute() {
+template <typename T>
+bool NonTamedTargetGoal<T>::shouldExecute()
+{
     if (!m_mob) return false;
 
     // 检查是否是驯服动物
@@ -359,16 +369,14 @@ bool NonTamedTargetGoal<T>::shouldExecute() {
     if (!world) return false;
 
     // MC 1.16.5: 使用跟踪范围作为搜索范围
-    f64 followRange = m_mob->getAttributeValue(
-        entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
     f32 searchRange = static_cast<f32>(followRange);
 
     // 使用EntityUtils查找最近的目标
-    T* nearestTarget = EntityUtils::findClosestEntity<T>(
-        world,
+    T* nearestTarget = EntityUtils::findClosestEntity<T>(world,
         m_mob->position(),
         searchRange,
-        m_mob,  // 排除自己
+        m_mob, // 排除自己
         [this](T* candidate) {
             // 转换为LivingEntity进行目标检查
             LivingEntity* livingTarget = static_cast<LivingEntity*>(candidate);
@@ -381,8 +389,7 @@ bool NonTamedTargetGoal<T>::shouldExecute() {
                 return false;
             }
             return true;
-        }
-    );
+        });
 
     if (nearestTarget) {
         m_targetEntity = nearestTarget;
@@ -393,8 +400,9 @@ bool NonTamedTargetGoal<T>::shouldExecute() {
     return false;
 }
 
-template<typename T>
-void NonTamedTargetGoal<T>::startExecuting() {
+template <typename T>
+void NonTamedTargetGoal<T>::startExecuting()
+{
     TargetGoal::startExecuting();
 }
 

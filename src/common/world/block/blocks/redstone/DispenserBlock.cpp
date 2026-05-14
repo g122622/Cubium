@@ -1,63 +1,69 @@
 #include "DispenserBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
-#include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../../tick/base/TickPriority.hpp"
 #include "../../../../entity/core/EntityRegistry.hpp"
 #include "../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../entity/inventory/IInventory.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../blockentity/BlockEntity.hpp"
+#include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../../tick/base/TickPriority.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../dispense/DispenseItemBehaviorRegistry.hpp"
-#include <unordered_map>
 #include <chrono>
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {
 
 DispenserBlock::DispenserBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::FACING())
-        .add(BlockStateProperties::TRIGGERED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::FACING())
+                         .add(BlockStateProperties::TRIGGERED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING(), Direction::North)
-        .with(BlockStateProperties::TRIGGERED(), false));
+            .with(BlockStateProperties::FACING(), Direction::North)
+            .with(BlockStateProperties::TRIGGERED(), false));
 }
 
-bool DispenserBlock::isTriggered(const BlockState& state) {
+bool DispenserBlock::isTriggered(const BlockState& state)
+{
     return state.get(BlockStateProperties::TRIGGERED());
 }
 
-BlockState DispenserBlock::withTriggered(BlockState state, bool triggered) {
+BlockState DispenserBlock::withTriggered(BlockState state, bool triggered)
+{
     return state.with(BlockStateProperties::TRIGGERED(), triggered);
 }
 
-Direction DispenserBlock::getFacing(const BlockState& state) {
+Direction DispenserBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::FACING());
 }
 
-void DispenserBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DispenserBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
     // 发射器放置时不触发
 }
 
-void DispenserBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                     const BlockPos& neighborPos, bool isMoving) {
+void DispenserBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -82,10 +88,13 @@ void DispenserBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& 
     }
 }
 
-BlockState DispenserBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState DispenserBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
     MC_UNUSED(world);
@@ -95,20 +104,23 @@ BlockState DispenserBlock::updatePostPlacement(
     return state;
 }
 
-void DispenserBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void DispenserBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     // 尝试发射物品
     dispense(world, pos, state);
 }
 
-void DispenserBlock::dispense(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DispenserBlock::dispense(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 尝试发射物品
     if (tryDispense(world, pos, state)) {
         playDispenseSound(world, pos);
     }
 }
 
-bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state) {
+bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 获取方块实体
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity == nullptr) {
@@ -116,8 +128,7 @@ bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const Block
     }
 
     // 转换为发射器方块实体
-    blockentity::DispenserBlockEntity* dispenser =
-        dynamic_cast<blockentity::DispenserBlockEntity*>(blockEntity);
+    blockentity::DispenserBlockEntity* dispenser = dynamic_cast<blockentity::DispenserBlockEntity*>(blockEntity);
     if (dispenser == nullptr) {
         return false;
     }
@@ -125,7 +136,7 @@ bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const Block
     // 使用储水池采样算法选择非空槽位
     i32 slot = dispenser->getDispenseSlot();
     if (slot < 0) {
-        return false;  // 没有物品可发射
+        return false; // 没有物品可发射
     }
 
     // 获取物品
@@ -170,11 +181,8 @@ bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const Block
 }
 
 ItemStack DispenserBlock::defaultDispense(
-    IWorld& world,
-    const BlockPos& pos,
-    Direction facing,
-    const BlockPos& targetPos,
-    ItemStack stack) {
+    IWorld& world, const BlockPos& pos, Direction facing, const BlockPos& targetPos, ItemStack stack)
+{
 
     // 检查目标位置是否有容器
     BlockEntity* targetEntity = world.getBlockEntity(targetPos);
@@ -217,11 +225,8 @@ ItemStack DispenserBlock::defaultDispense(
     return ItemStack::EMPTY;
 }
 
-void DispenserBlock::spawnItemEntity(
-    IWorld& world,
-    const BlockPos& pos,
-    Direction facing,
-    const ItemStack& stack) {
+void DispenserBlock::spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& stack)
+{
 
     // MC 1.16.5: 发射物品实体的位置和速度
     // 位置：发射方向偏移 0.7 格，加上随机偏移
@@ -245,12 +250,11 @@ void DispenserBlock::spawnItemEntity(
     // 使用 thread_local 避免每次创建新对象的开销
     thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
     vx += rng.nextGaussian(0.0f, RANDOM_FACTOR);
-    vy += rng.nextGaussian(0.0f, RANDOM_FACTOR) + 0.1f;  // Y方向额外加一点，模拟发射时的小跳
+    vy += rng.nextGaussian(0.0f, RANDOM_FACTOR) + 0.1f; // Y方向额外加一点，模拟发射时的小跳
     vz += rng.nextGaussian(0.0f, RANDOM_FACTOR);
 
     // 创建物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(
-        EntityId(0), stack, x, y, z, vx, vy, vz);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), stack, x, y, z, vx, vy, vz);
 
     // 设置拾取延迟，防止立即被玩家拾取
     itemEntity->setPickupDelay(10);
@@ -259,15 +263,10 @@ void DispenserBlock::spawnItemEntity(
     world.spawnEntity(std::move(itemEntity));
 }
 
-void DispenserBlock::playDispenseSound(IWorld& world, const BlockPos& pos) {
+void DispenserBlock::playDispenseSound(IWorld& world, const BlockPos& pos)
+{
     // MC 1.16.5: 播放发射音效
-    world.playSound(
-        SoundEvents::BLOCK_DISPENSER_DISPENSE,
-        sound::SoundCategory::Blocks,
-        pos.center(),
-        1.0f,
-        1.0f
-    );
+    world.playSound(SoundEvents::BLOCK_DISPENSER_DISPENSE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 
 } // namespace blocks

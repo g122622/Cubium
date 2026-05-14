@@ -9,7 +9,8 @@ VillagerRenderer::VillagerRenderer()
     setShadowSize(0.5f);
 }
 
-void VillagerRenderer::render(Entity& entity, f64 partialTicks) {
+void VillagerRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 计算动画参数
     f64 limbSwing = 0.0;
     f64 limbSwingAmount = 0.0;
@@ -26,21 +27,23 @@ void VillagerRenderer::render(Entity& entity, f64 partialTicks) {
     }
 }
 
-ResourceLocation VillagerRenderer::getEntityTexture(::mc::VillagerEntity& entity) {
+ResourceLocation VillagerRenderer::getEntityTexture(::mc::VillagerEntity& entity)
+{
     // TODO: 根据村民职业和生物群系选择纹理
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/villager/villager.png");
 }
 
-ResourceLocation VillagerRenderer::getEntityTexture(const ::mc::VillagerEntity& entity) const {
+ResourceLocation VillagerRenderer::getEntityTexture(const ::mc::VillagerEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/villager/villager.png");
 }
 
-void registerVillagerRenderer(EntityRendererManager& manager) {
-    manager.registerRenderer("minecraft:villager", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<VillagerRenderer>();
-    });
+void registerVillagerRenderer(EntityRendererManager& manager)
+{
+    manager.registerRenderer("minecraft:villager",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<VillagerRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

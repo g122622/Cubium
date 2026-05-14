@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "common/world/gen/spawn/WorldGenSpawner.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
-#include "common/world/spawn/MobSpawnInfo.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/spawn/WorldGenSpawner.hpp"
+#include "common/world/spawn/MobSpawnInfo.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -21,7 +21,8 @@ using namespace mc::entity;
  */
 class ChunkSpawnIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化生物群系注册表
         BiomeRegistry::instance().initialize();
 
@@ -29,12 +30,14 @@ protected:
         registerTestEntities();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理实体注册表
         EntityRegistry::instance().clear();
     }
 
-    void registerTestEntities() {
+    void registerTestEntities()
+    {
         auto& registry = EntityRegistry::instance();
 
         // 注册测试猪
@@ -88,7 +91,8 @@ protected:
 };
 
 // 测试 SpawnedEntityData 结构
-TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataStructure) {
+TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataStructure)
+{
     SpawnedEntityData data("minecraft:pig", 100.5f, 64.0f, 200.3f);
 
     EXPECT_EQ(data.entityTypeId, "minecraft:pig");
@@ -99,7 +103,8 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataStructure) {
 }
 
 // 测试 SpawnedEntityData 默认构造
-TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataDefaultConstructor) {
+TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataDefaultConstructor)
+{
     SpawnedEntityData data;
 
     EXPECT_TRUE(data.entityTypeId.empty());
@@ -110,7 +115,8 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataDefaultConstructor) {
 }
 
 // 测试 ChunkPrimer 存储生成实体
-TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerSpawnedEntities) {
+TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerSpawnedEntities)
+{
     ChunkPrimer primer(0, 0);
 
     // 初始为空
@@ -136,7 +142,8 @@ TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerSpawnedEntities) {
 }
 
 // 测试 ChunkPrimer 移动实体数据
-TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerMoveSpawnedEntities) {
+TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerMoveSpawnedEntities)
+{
     ChunkPrimer primer(0, 0);
 
     primer.addSpawnedEntity(SpawnedEntityData("minecraft:pig", 8.0, 64.0, 8.0));
@@ -152,7 +159,8 @@ TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerMoveSpawnedEntities) {
 }
 
 // 测试生物群系生成信息正确关联
-TEST_F(ChunkSpawnIntegrationTest, BiomeSpawnInfoCorrectlyAssociated) {
+TEST_F(ChunkSpawnIntegrationTest, BiomeSpawnInfoCorrectlyAssociated)
+{
     auto& registry = BiomeRegistry::instance();
 
     // 平原生物群系应该有动物生成信息
@@ -166,10 +174,8 @@ TEST_F(ChunkSpawnIntegrationTest, BiomeSpawnInfoCorrectlyAssociated) {
     // 验证至少有猪、牛、羊中的一种
     bool hasPassiveAnimal = false;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:pig" ||
-            entry.entityTypeId == "minecraft:cow" ||
-            entry.entityTypeId == "minecraft:sheep" ||
-            entry.entityTypeId == "minecraft:chicken") {
+        if (entry.entityTypeId == "minecraft:pig" || entry.entityTypeId == "minecraft:cow" ||
+            entry.entityTypeId == "minecraft:sheep" || entry.entityTypeId == "minecraft:chicken") {
             hasPassiveAnimal = true;
             break;
         }
@@ -178,7 +184,8 @@ TEST_F(ChunkSpawnIntegrationTest, BiomeSpawnInfoCorrectlyAssociated) {
 }
 
 // 测试生成概率
-TEST_F(ChunkSpawnIntegrationTest, CreatureSpawnProbability) {
+TEST_F(ChunkSpawnIntegrationTest, CreatureSpawnProbability)
+{
     auto& registry = BiomeRegistry::instance();
     const Biome& plains = registry.get(Biomes::Plains);
 
@@ -189,7 +196,8 @@ TEST_F(ChunkSpawnIntegrationTest, CreatureSpawnProbability) {
 }
 
 // 测试实体注册表查找
-TEST_F(ChunkSpawnIntegrationTest, EntityRegistryLookup) {
+TEST_F(ChunkSpawnIntegrationTest, EntityRegistryLookup)
+{
     auto& registry = EntityRegistry::instance();
 
     // 验证注册的实体类型
@@ -212,7 +220,8 @@ TEST_F(ChunkSpawnIntegrationTest, EntityRegistryLookup) {
 }
 
 // 测试实体创建
-TEST_F(ChunkSpawnIntegrationTest, EntityCreation) {
+TEST_F(ChunkSpawnIntegrationTest, EntityCreation)
+{
     auto& registry = EntityRegistry::instance();
 
     const EntityType* pigType = registry.getType(EntityTypes::PIG);
@@ -224,12 +233,13 @@ TEST_F(ChunkSpawnIntegrationTest, EntityCreation) {
 }
 
 // 测试 SpawnEntry 权重选择
-TEST_F(ChunkSpawnIntegrationTest, SpawnEntryWeightSelection) {
+TEST_F(ChunkSpawnIntegrationTest, SpawnEntryWeightSelection)
+{
     // 创建带权重的生成条目
     std::vector<world::spawn::SpawnEntry> entries = {
-        world::spawn::SpawnEntry("minecraft:pig", 100, 2, 4),      // 权重 100
-        world::spawn::SpawnEntry("minecraft:cow", 50, 2, 3),       // 权重 50
-        world::spawn::SpawnEntry("minecraft:sheep", 75, 2, 4),     // 权重 75
+        world::spawn::SpawnEntry("minecraft:pig", 100, 2, 4),  // 权重 100
+        world::spawn::SpawnEntry("minecraft:cow", 50, 2, 3),   // 权重 50
+        world::spawn::SpawnEntry("minecraft:sheep", 75, 2, 4), // 权重 75
     };
 
     // 计算总权重
@@ -272,7 +282,8 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnEntryWeightSelection) {
 }
 
 // 测试生成数量范围
-TEST_F(ChunkSpawnIntegrationTest, SpawnCountRange) {
+TEST_F(ChunkSpawnIntegrationTest, SpawnCountRange)
+{
     world::spawn::SpawnEntry entry("minecraft:pig", 100, 2, 4);
 
     math::Random rng(54321);
@@ -290,7 +301,8 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnCountRange) {
 }
 
 // 测试 MobSpawnInfo 空生成信息
-TEST_F(ChunkSpawnIntegrationTest, EmptyMobSpawnInfo) {
+TEST_F(ChunkSpawnIntegrationTest, EmptyMobSpawnInfo)
+{
     world::spawn::MobSpawnInfo emptyInfo;
 
     EXPECT_TRUE(emptyInfo.getCreatureSpawns().empty());
@@ -301,7 +313,8 @@ TEST_F(ChunkSpawnIntegrationTest, EmptyMobSpawnInfo) {
 }
 
 // 测试 ChunkPrimer 在 toChunkData 后实体数据仍可访问
-TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerToChunkDataPreservesEntities) {
+TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerToChunkDataPreservesEntities)
+{
     ChunkPrimer primer(10, 20);
 
     // 添加一些生成实体
@@ -328,7 +341,8 @@ TEST_F(ChunkSpawnIntegrationTest, ChunkPrimerToChunkDataPreservesEntities) {
 }
 
 // 测试 SpawnedEntityData 拷贝语义
-TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataCopySemantics) {
+TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataCopySemantics)
+{
     SpawnedEntityData original("minecraft:sheep", 100.0, 64.0, 200.0);
 
     // 拷贝构造
@@ -344,7 +358,8 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataCopySemantics) {
 }
 
 // 测试 SpawnedEntityData 移动语义
-TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataMoveSemantics) {
+TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataMoveSemantics)
+{
     SpawnedEntityData original("minecraft:chicken", 50.0, 70.0, 150.0);
 
     // 移动构造
@@ -360,7 +375,8 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataMoveSemantics) {
 }
 
 // 测试多个 ChunkPrimer 独立存储实体
-TEST_F(ChunkSpawnIntegrationTest, MultipleChunkPrimersIndependent) {
+TEST_F(ChunkSpawnIntegrationTest, MultipleChunkPrimersIndependent)
+{
     ChunkPrimer primer1(0, 0);
     ChunkPrimer primer2(1, 0);
 
@@ -380,7 +396,8 @@ TEST_F(ChunkSpawnIntegrationTest, MultipleChunkPrimersIndependent) {
 }
 
 // 测试生物群系不同的生成信息
-TEST_F(ChunkSpawnIntegrationTest, DifferentBiomeSpawnInfo) {
+TEST_F(ChunkSpawnIntegrationTest, DifferentBiomeSpawnInfo)
+{
     auto& registry = BiomeRegistry::instance();
 
     const Biome& plains = registry.get(Biomes::Plains);
@@ -403,14 +420,13 @@ TEST_F(ChunkSpawnIntegrationTest, DifferentBiomeSpawnInfo) {
 }
 
 // 测试实体类型 canSummon 标志
-TEST_F(ChunkSpawnIntegrationTest, EntityTypeCanSummon) {
+TEST_F(ChunkSpawnIntegrationTest, EntityTypeCanSummon)
+{
     auto& registry = EntityRegistry::instance();
 
     // 注册一个不能被召唤的实体类型
     registry.registerType("test:unsummonable",
-        EntityType::Builder(
-            [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; },
-            EntityClassification::Misc)
+        EntityType::Builder([](IWorld*) -> std::unique_ptr<Entity> { return nullptr; }, EntityClassification::Misc)
             .canSummon(false)
             .build());
 
@@ -425,7 +441,8 @@ TEST_F(ChunkSpawnIntegrationTest, EntityTypeCanSummon) {
 }
 
 // 测试实体类型分类
-TEST_F(ChunkSpawnIntegrationTest, EntityTypeClassification) {
+TEST_F(ChunkSpawnIntegrationTest, EntityTypeClassification)
+{
     auto& registry = EntityRegistry::instance();
 
     // 验证所有注册的动物都是 Creature 分类
@@ -444,7 +461,8 @@ TEST_F(ChunkSpawnIntegrationTest, EntityTypeClassification) {
 }
 
 // 测试生成坐标验证
-TEST_F(ChunkSpawnIntegrationTest, SpawnCoordinatesInChunkRange) {
+TEST_F(ChunkSpawnIntegrationTest, SpawnCoordinatesInChunkRange)
+{
     // 测试生成的实体坐标在区块范围内
     ChunkCoord chunkX = 5;
     ChunkCoord chunkZ = -3;
@@ -456,11 +474,11 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnCoordinatesInChunkRange) {
     i32 startZ = chunkZ * 16;
 
     // 添加在区块范围内的实体
-    primer.addSpawnedEntity(SpawnedEntityData("minecraft:pig",
-        static_cast<f32>(startX + 8.5), 64.0f, static_cast<f32>(startZ + 8.5)));
+    primer.addSpawnedEntity(
+        SpawnedEntityData("minecraft:pig", static_cast<f32>(startX + 8.5), 64.0f, static_cast<f32>(startZ + 8.5)));
 
-    primer.addSpawnedEntity(SpawnedEntityData("minecraft:cow",
-        static_cast<f32>(startX + 15.0), 65.0f, static_cast<f32>(startZ + 0.0)));
+    primer.addSpawnedEntity(
+        SpawnedEntityData("minecraft:cow", static_cast<f32>(startX + 15.0), 65.0f, static_cast<f32>(startZ + 0.0)));
 
     const auto& entities = primer.spawnedEntities();
     EXPECT_EQ(entities.size(), 2);
@@ -473,17 +491,14 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnCoordinatesInChunkRange) {
 }
 
 // 测试批量添加实体
-TEST_F(ChunkSpawnIntegrationTest, BatchAddEntities) {
+TEST_F(ChunkSpawnIntegrationTest, BatchAddEntities)
+{
     ChunkPrimer primer(0, 0);
 
     // 批量添加 10 个实体
     for (int i = 0; i < 10; ++i) {
         SpawnedEntityData data(
-            "minecraft:pig",
-            static_cast<f32>(i * 1.5),
-            static_cast<f32>(64 + i),
-            static_cast<f32>(i * 2.0)
-        );
+            "minecraft:pig", static_cast<f32>(i * 1.5), static_cast<f32>(64 + i), static_cast<f32>(i * 2.0));
         primer.addSpawnedEntity(std::move(data));
     }
 

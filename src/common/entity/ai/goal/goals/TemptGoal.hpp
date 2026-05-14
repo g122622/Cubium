@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
+#include "../Goal.hpp"
 #include <functional>
 
 namespace mc {
@@ -81,7 +81,7 @@ protected:
     i32 m_delayTemptCounter = 0;
     bool m_isRunning = false;
 
-    static constexpr f32 TEMPT_RANGE = 10.0f; // 诱惑范围
+    static constexpr f32 TEMPT_RANGE = 10.0f;  // 诱惑范围
     static constexpr i32 TEMPT_COOLDOWN = 100; // 诱惑冷却（ticks）
 };
 

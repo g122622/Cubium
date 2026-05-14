@@ -9,18 +9,16 @@ namespace layer {
 // AddMushroomIslandLayer 实现
 // ============================================================================
 
-i32 AddMushroomIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 ne, i32 nw, i32 center) {
+i32 AddMushroomIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 ne, i32 nw, i32 center)
+{
     // 参考 MC AddMushroomIslandLayer.apply:
     // return LayerUtil.isShallowOcean(center) && LayerUtil.isShallowOcean(nw) &&
     //        LayerUtil.isShallowOcean(ne) && LayerUtil.isShallowOcean(sw) &&
     //        LayerUtil.isShallowOcean(se) && context.random(100) == 0 ? 14 : center;
 
     // 如果中心和四个对角都是浅海，有 1% 概率生成蘑菇岛
-    if (BiomeValues::isShallowOcean(center) &&
-        BiomeValues::isShallowOcean(nw) &&
-        BiomeValues::isShallowOcean(ne) &&
-        BiomeValues::isShallowOcean(sw) &&
-        BiomeValues::isShallowOcean(se)) {
+    if (BiomeValues::isShallowOcean(center) && BiomeValues::isShallowOcean(nw) && BiomeValues::isShallowOcean(ne) &&
+        BiomeValues::isShallowOcean(sw) && BiomeValues::isShallowOcean(se)) {
         if (ctx.nextInt(100) == 0) {
             return BiomeValues::MushroomFields;
         }
@@ -33,7 +31,8 @@ i32 AddMushroomIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 
 // AddBambooForestLayer 实现
 // ============================================================================
 
-i32 AddBambooForestLayer::apply(IAreaContext& ctx, i32 value) {
+i32 AddBambooForestLayer::apply(IAreaContext& ctx, i32 value)
+{
     // 参考 MC AddBambooForestLayer.apply:
     // return context.random(10) == 0 && value == 21 ? 168 : value;
 
@@ -48,7 +47,8 @@ i32 AddBambooForestLayer::apply(IAreaContext& ctx, i32 value) {
 // StartRiverLayer 实现
 // ============================================================================
 
-i32 StartRiverLayer::apply(IAreaContext& ctx, i32 value) {
+i32 StartRiverLayer::apply(IAreaContext& ctx, i32 value)
+{
     // 参考 MC StartRiverLayer.apply:
     // return LayerUtil.isShallowOcean(value) ? value : context.random(299999) + 2;
 
@@ -63,7 +63,8 @@ i32 StartRiverLayer::apply(IAreaContext& ctx, i32 value) {
 // RiverLayer 实现
 // ============================================================================
 
-i32 RiverLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) {
+i32 RiverLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center)
+{
     // 参考 MC RiverLayer.apply:
     // int i = riverFilter(center);
     // return i == riverFilter(east) && i == riverFilter(north) &&
@@ -80,7 +81,8 @@ i32 RiverLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 wes
     return (c == e && c == n && c == w && c == s) ? -1 : BiomeValues::River;
 }
 
-i32 RiverLayer::riverFilter(i32 value) {
+i32 RiverLayer::riverFilter(i32 value)
+{
     // 参考 MC RiverLayer.riverFilter:
     // return p_151630_0_ >= 2 ? 2 + (p_151630_0_ & 1) : p_151630_0_;
     if (value >= 2) {
@@ -96,30 +98,31 @@ i32 RiverLayer::riverFilter(i32 value) {
 // MC 1.16.5 山丘变体映射表 (field_242940_c)
 // 将基础生物群系映射到稀有变体
 static const std::unordered_map<i32, i32> s_hillsRareBiomes = {
-    {BiomeValues::Plains, BiomeValues::SunflowerPlains},            // 1 -> 129
-    {BiomeValues::Desert, BiomeValues::DesertLakes},                // 2 -> 130
-    {BiomeValues::Mountains, BiomeValues::GravellyMountains},       // 3 -> 131
-    {BiomeValues::Forest, BiomeValues::FlowerForest},               // 4 -> 132
-    {BiomeValues::Taiga, BiomeValues::TaigaMountains},              // 5 -> 133
-    {BiomeValues::Swamp, BiomeValues::SwampHills},                  // 6 -> 134
-    {BiomeValues::SnowyPlains, BiomeValues::IceSpikes},             // 12 -> 140
-    {BiomeValues::Jungle, BiomeValues::ModifiedJungle},             // 21 -> 149
-    {BiomeValues::JungleEdge, BiomeValues::ModifiedJungleEdge},     // 23 -> 151
-    {BiomeValues::BirchForest, BiomeValues::TallBirchForest},       // 27 -> 155
-    {BiomeValues::BirchForestHills, BiomeValues::TallBirchHills},   // 28 -> 156
-    {BiomeValues::DarkForest, BiomeValues::DarkForestHills},        // 29 -> 157
-    {BiomeValues::SnowyTaiga, BiomeValues::SnowyTaigaMountains},    // 30 -> 158
-    {BiomeValues::GiantTreeTaiga, BiomeValues::GiantSpruceTaiga},   // 32 -> 160
-    {BiomeValues::GiantTreeTaigaHills, BiomeValues::GiantSpruceTaigaHills}, // 33 -> 161
-    {BiomeValues::WoodedMountains, BiomeValues::ModifiedGravellyMountains}, // 34 -> 162
-    {BiomeValues::Savanna, BiomeValues::ShatteredSavanna},          // 35 -> 163
-    {BiomeValues::SavannaPlateau, BiomeValues::ShatteredSavannaPlateau}, // 36 -> 164
-    {BiomeValues::Badlands, BiomeValues::ErodedBadlands},           // 37 -> 165
+    {BiomeValues::Plains, BiomeValues::SunflowerPlains},                              // 1 -> 129
+    {BiomeValues::Desert, BiomeValues::DesertLakes},                                  // 2 -> 130
+    {BiomeValues::Mountains, BiomeValues::GravellyMountains},                         // 3 -> 131
+    {BiomeValues::Forest, BiomeValues::FlowerForest},                                 // 4 -> 132
+    {BiomeValues::Taiga, BiomeValues::TaigaMountains},                                // 5 -> 133
+    {BiomeValues::Swamp, BiomeValues::SwampHills},                                    // 6 -> 134
+    {BiomeValues::SnowyPlains, BiomeValues::IceSpikes},                               // 12 -> 140
+    {BiomeValues::Jungle, BiomeValues::ModifiedJungle},                               // 21 -> 149
+    {BiomeValues::JungleEdge, BiomeValues::ModifiedJungleEdge},                       // 23 -> 151
+    {BiomeValues::BirchForest, BiomeValues::TallBirchForest},                         // 27 -> 155
+    {BiomeValues::BirchForestHills, BiomeValues::TallBirchHills},                     // 28 -> 156
+    {BiomeValues::DarkForest, BiomeValues::DarkForestHills},                          // 29 -> 157
+    {BiomeValues::SnowyTaiga, BiomeValues::SnowyTaigaMountains},                      // 30 -> 158
+    {BiomeValues::GiantTreeTaiga, BiomeValues::GiantSpruceTaiga},                     // 32 -> 160
+    {BiomeValues::GiantTreeTaigaHills, BiomeValues::GiantSpruceTaigaHills},           // 33 -> 161
+    {BiomeValues::WoodedMountains, BiomeValues::ModifiedGravellyMountains},           // 34 -> 162
+    {BiomeValues::Savanna, BiomeValues::ShatteredSavanna},                            // 35 -> 163
+    {BiomeValues::SavannaPlateau, BiomeValues::ShatteredSavannaPlateau},              // 36 -> 164
+    {BiomeValues::Badlands, BiomeValues::ErodedBadlands},                             // 37 -> 165
     {BiomeValues::WoodedBadlandsPlateau, BiomeValues::ModifiedWoodedBadlandsPlateau}, // 38 -> 166
-    {BiomeValues::BadlandsPlateau, BiomeValues::ModifiedBadlandsPlateau}, // 39 -> 167
+    {BiomeValues::BadlandsPlateau, BiomeValues::ModifiedBadlandsPlateau},             // 39 -> 167
 };
 
-i32 HillsLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& riverArea, i32 x, i32 z) {
+i32 HillsLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& riverArea, i32 x, i32 z)
+{
     // 参考 MC 1.16.5 HillsLayer.apply (这是最复杂的层之一)
 
     // 采样中心点和周围点
@@ -145,59 +148,59 @@ i32 HillsLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& ri
 
         // MC 1.16.5 的山丘映射逻辑
         switch (biomeValue) {
-            case BiomeValues::Desert:  // 2
-                result = BiomeValues::DesertHills;  // 17
+            case BiomeValues::Desert:              // 2
+                result = BiomeValues::DesertHills; // 17
                 break;
-            case BiomeValues::Forest:  // 4
-                result = BiomeValues::WoodedHills;  // 18
+            case BiomeValues::Forest:              // 4
+                result = BiomeValues::WoodedHills; // 18
                 break;
-            case BiomeValues::BirchForest:  // 27
-                result = BiomeValues::BirchForestHills;  // 28
+            case BiomeValues::BirchForest:              // 27
+                result = BiomeValues::BirchForestHills; // 28
                 break;
-            case BiomeValues::DarkForest:  // 29
-                result = BiomeValues::Plains;  // 1 (MC 奇怪的设计)
+            case BiomeValues::DarkForest:     // 29
+                result = BiomeValues::Plains; // 1 (MC 奇怪的设计)
                 break;
-            case BiomeValues::Taiga:  // 5
-                result = BiomeValues::TaigaHills;  // 19
+            case BiomeValues::Taiga:              // 5
+                result = BiomeValues::TaigaHills; // 19
                 break;
-            case BiomeValues::GiantTreeTaiga:  // 32
-                result = BiomeValues::GiantTreeTaigaHills;  // 33
+            case BiomeValues::GiantTreeTaiga:              // 32
+                result = BiomeValues::GiantTreeTaigaHills; // 33
                 break;
-            case BiomeValues::SnowyTaiga:  // 30
-                result = BiomeValues::SnowyTaigaHills;  // 31
+            case BiomeValues::SnowyTaiga:              // 30
+                result = BiomeValues::SnowyTaigaHills; // 31
                 break;
-            case BiomeValues::Plains:  // 1
-                result = ctx.nextInt(3) == 0 ? BiomeValues::WoodedHills : BiomeValues::Forest;  // 18 或 4
+            case BiomeValues::Plains:                                                          // 1
+                result = ctx.nextInt(3) == 0 ? BiomeValues::WoodedHills : BiomeValues::Forest; // 18 或 4
                 break;
-            case BiomeValues::SnowyPlains:  // 12
-                result = BiomeValues::SnowyMountains;  // 13
+            case BiomeValues::SnowyPlains:            // 12
+                result = BiomeValues::SnowyMountains; // 13
                 break;
-            case BiomeValues::Jungle:  // 21
-                result = BiomeValues::JungleHills;  // 22
+            case BiomeValues::Jungle:              // 21
+                result = BiomeValues::JungleHills; // 22
                 break;
-            case BiomeValues::BambooJungle:  // 168
-                result = BiomeValues::BambooJungleHills;  // 169
+            case BiomeValues::BambooJungle:              // 168
+                result = BiomeValues::BambooJungleHills; // 169
                 break;
-            case BiomeValues::Ocean:  // 0
-                result = BiomeValues::DeepOcean;  // 24
+            case BiomeValues::Ocean:             // 0
+                result = BiomeValues::DeepOcean; // 24
                 break;
-            case BiomeValues::WarmOcean:  // 44
-                result = BiomeValues::DeepWarmOcean;  // 47
+            case BiomeValues::WarmOcean:             // 44
+                result = BiomeValues::DeepWarmOcean; // 47
                 break;
-            case BiomeValues::LukewarmOcean:  // 45
-                result = BiomeValues::DeepLukewarmOcean;  // 48
+            case BiomeValues::LukewarmOcean:             // 45
+                result = BiomeValues::DeepLukewarmOcean; // 48
                 break;
-            case BiomeValues::ColdOcean:  // 46
-                result = BiomeValues::DeepColdOcean;  // 49
+            case BiomeValues::ColdOcean:             // 46
+                result = BiomeValues::DeepColdOcean; // 49
                 break;
-            case BiomeValues::FrozenOcean:  // 10
-                result = BiomeValues::DeepFrozenOcean;  // 50
+            case BiomeValues::FrozenOcean:             // 10
+                result = BiomeValues::DeepFrozenOcean; // 50
                 break;
-            case BiomeValues::Mountains:  // 3
-                result = BiomeValues::WoodedMountains;  // 34
+            case BiomeValues::Mountains:               // 3
+                result = BiomeValues::WoodedMountains; // 34
                 break;
-            case BiomeValues::Savanna:  // 35
-                result = BiomeValues::SavannaPlateau;  // 36
+            case BiomeValues::Savanna:                // 35
+                result = BiomeValues::SavannaPlateau; // 36
                 break;
             default:
                 // 检查是否为恶地类型
@@ -208,10 +211,8 @@ i32 HillsLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& ri
                     }
                 }
                 // 深海有可能变成陆地
-                if ((biomeValue == BiomeValues::DeepOcean ||
-                     biomeValue == BiomeValues::DeepLukewarmOcean ||
-                     biomeValue == BiomeValues::DeepColdOcean ||
-                     biomeValue == BiomeValues::DeepFrozenOcean) &&
+                if ((biomeValue == BiomeValues::DeepOcean || biomeValue == BiomeValues::DeepLukewarmOcean ||
+                        biomeValue == BiomeValues::DeepColdOcean || biomeValue == BiomeValues::DeepFrozenOcean) &&
                     ctx.nextInt(3) == 0) {
                     result = ctx.nextInt(2) == 0 ? BiomeValues::Plains : BiomeValues::Forest;
                 }
@@ -252,9 +253,7 @@ i32 HillsLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& ri
 }
 
 std::unique_ptr<IAreaFactory> HillsLayer::apply(
-    IExtendedAreaContext& context,
-    std::unique_ptr<IAreaFactory> input1,
-    std::unique_ptr<IAreaFactory> input2)
+    IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input1, std::unique_ptr<IAreaFactory> input2)
 {
     auto sharedContext = std::dynamic_pointer_cast<LayerContext>(context.shared_from_this());
     return std::make_unique<MergeFactory>(this, sharedContext, std::move(input1), std::move(input2));
@@ -264,7 +263,8 @@ std::unique_ptr<IAreaFactory> HillsLayer::apply(
 // MixRiverLayer 实现
 // ============================================================================
 
-i32 MixRiverLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& riverArea, i32 x, i32 z) {
+i32 MixRiverLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& riverArea, i32 x, i32 z)
+{
     // 参考 MC MixRiverLayer.apply:
     // int i = biomeArea.getValue(this.getOffsetX(x), this.getOffsetZ(z));
     // int j = riverArea.getValue(this.getOffsetX(x), this.getOffsetZ(z));
@@ -280,7 +280,7 @@ i32 MixRiverLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea&
     //     return i;
     // }
 
-    (void)ctx;  // 不使用
+    (void)ctx; // 不使用
 
     i32 biome = biomeArea.getValue(getOffsetX(x), getOffsetZ(z));
     i32 river = riverArea.getValue(getOffsetX(x), getOffsetZ(z));
@@ -306,9 +306,7 @@ i32 MixRiverLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea&
 }
 
 std::unique_ptr<IAreaFactory> MixRiverLayer::apply(
-    IExtendedAreaContext& context,
-    std::unique_ptr<IAreaFactory> input1,
-    std::unique_ptr<IAreaFactory> input2)
+    IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input1, std::unique_ptr<IAreaFactory> input2)
 {
     auto sharedContext = std::dynamic_pointer_cast<LayerContext>(context.shared_from_this());
     return std::make_unique<MergeFactory>(this, sharedContext, std::move(input1), std::move(input2));
@@ -318,7 +316,8 @@ std::unique_ptr<IAreaFactory> MixRiverLayer::apply(
 // MixOceansLayer 实现
 // ============================================================================
 
-i32 MixOceansLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& oceanArea, i32 x, i32 z) {
+i32 MixOceansLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& oceanArea, i32 x, i32 z)
+{
     // 参考 MC 1.16.5 MixOceansLayer.apply:
     // int i = biomeArea.getValue(this.getOffsetX(x), this.getOffsetZ(z));  // 生物群系值
     // int j = oceanArea.getValue(this.getOffsetX(x), this.getOffsetZ(z));  // 海洋温度值
@@ -346,7 +345,7 @@ i32 MixOceansLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea
     //     return j;  // 返回海洋温度
     // }
 
-    (void)ctx;  // 不使用
+    (void)ctx; // 不使用
 
     i32 biome = biomeArea.getValue(getOffsetX(x), getOffsetZ(z));
     i32 ocean = oceanArea.getValue(getOffsetX(x), getOffsetZ(z));
@@ -363,26 +362,26 @@ i32 MixOceansLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea
             if (!BiomeValues::isOcean(neighbor)) {
                 // 有陆地相邻，调整极端海洋温度
                 if (ocean == BiomeValues::WarmOcean) {
-                    return BiomeValues::LukewarmOcean;  // 44 -> 45
+                    return BiomeValues::LukewarmOcean; // 44 -> 45
                 }
                 if (ocean == BiomeValues::FrozenOcean) {
-                    return BiomeValues::ColdOcean;  // 10 -> 46
+                    return BiomeValues::ColdOcean; // 10 -> 46
                 }
             }
         }
     }
 
     // 深海根据海洋温度调整
-    if (biome == BiomeValues::DeepOcean) {  // 24
+    if (biome == BiomeValues::DeepOcean) { // 24
         switch (ocean) {
-            case BiomeValues::LukewarmOcean:  // 45
-                return BiomeValues::DeepLukewarmOcean;  // 48
-            case BiomeValues::Ocean:  // 0
-                return BiomeValues::DeepOcean;  // 24
-            case BiomeValues::ColdOcean:  // 46
-                return BiomeValues::DeepColdOcean;  // 49
-            case BiomeValues::FrozenOcean:  // 10
-                return BiomeValues::DeepFrozenOcean;  // 50
+            case BiomeValues::LukewarmOcean:           // 45
+                return BiomeValues::DeepLukewarmOcean; // 48
+            case BiomeValues::Ocean:                   // 0
+                return BiomeValues::DeepOcean;         // 24
+            case BiomeValues::ColdOcean:               // 46
+                return BiomeValues::DeepColdOcean;     // 49
+            case BiomeValues::FrozenOcean:             // 10
+                return BiomeValues::DeepFrozenOcean;   // 50
             default:
                 return ocean;
         }
@@ -392,9 +391,7 @@ i32 MixOceansLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea
 }
 
 std::unique_ptr<IAreaFactory> MixOceansLayer::apply(
-    IExtendedAreaContext& context,
-    std::unique_ptr<IAreaFactory> input1,
-    std::unique_ptr<IAreaFactory> input2)
+    IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input1, std::unique_ptr<IAreaFactory> input2)
 {
     auto sharedContext = std::dynamic_pointer_cast<LayerContext>(context.shared_from_this());
     return std::make_unique<MergeFactory>(this, sharedContext, std::move(input1), std::move(input2));

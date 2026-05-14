@@ -1,11 +1,11 @@
 #include "ItemDropHelper.hpp"
-#include "../entities/item/ItemEntity.hpp"
-#include "../core/Entity.hpp"
 #include "../../item/core/ItemStack.hpp"
+#include "../../util/math/MathConstants.hpp"
+#include "../../util/math/random/Random.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../util/math/MathConstants.hpp"
+#include "../core/Entity.hpp"
+#include "../entities/item/ItemEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -14,7 +14,8 @@ namespace mc {
 // 随机速度计算
 // ============================================================================
 
-Vector3 ItemDropHelper::getBlockDropVelocity(math::Random& rng) {
+Vector3 ItemDropHelper::getBlockDropVelocity(math::Random& rng)
+{
     // 参考 MC 1.16.5 InventoryHelper.spawnItemStack()
     // 速度范围：
     // X: (random - 0.5) * 0.1 + random * 0.2 => [-0.05, 0.25]
@@ -26,7 +27,8 @@ Vector3 ItemDropHelper::getBlockDropVelocity(math::Random& rng) {
     return Vector3(vx, vy, vz);
 }
 
-Vector3 ItemDropHelper::getSimpleDropVelocity(math::Random& rng) {
+Vector3 ItemDropHelper::getSimpleDropVelocity(math::Random& rng)
+{
     // 参考 MC 1.16.5 ItemEntity 构造函数
     // 速度范围：
     // X: random * 0.2 - 0.1 => [-0.1, 0.1]
@@ -38,11 +40,7 @@ Vector3 ItemDropHelper::getSimpleDropVelocity(math::Random& rng) {
     return Vector3(vx, vy, vz);
 }
 
-Vector3 ItemDropHelper::getPlayerDropVelocity(
-    math::Random& rng,
-    bool dropAround,
-    f32 yaw,
-    f32 pitch)
+Vector3 ItemDropHelper::getPlayerDropVelocity(math::Random& rng, bool dropAround, f32 yaw, f32 pitch)
 {
     if (dropAround) {
         // 参考 MC 1.16.5 PlayerEntity.dropItem(dropAround=true)
@@ -78,33 +76,27 @@ Vector3 ItemDropHelper::getPlayerDropVelocity(
     }
 }
 
-Vector3 ItemDropHelper::getGaussianVelocity(
-    math::Random& rng,
-    f32 baseVelocity,
-    f32 inaccuracy)
+Vector3 ItemDropHelper::getGaussianVelocity(math::Random& rng, f32 baseVelocity, f32 inaccuracy)
 {
     // 参考 MC 1.16.5 DispenserBlock 和 ProjectileEntity.shoot()
-    constexpr f32 GAUSSIAN_FACTOR = 0.007499999832361937f;  // MC 原版常量
+    constexpr f32 GAUSSIAN_FACTOR = 0.007499999832361937f; // MC 原版常量
 
     f32 gaussianX = static_cast<f32>(rng.nextGaussian(0.0, GAUSSIAN_FACTOR * inaccuracy));
     f32 gaussianY = static_cast<f32>(rng.nextGaussian(0.0, GAUSSIAN_FACTOR * inaccuracy));
     f32 gaussianZ = static_cast<f32>(rng.nextGaussian(0.0, GAUSSIAN_FACTOR * inaccuracy));
 
-    return Vector3(
-        baseVelocity + gaussianX,
-        0.1f + gaussianY,
-        baseVelocity + gaussianZ
-    );
+    return Vector3(baseVelocity + gaussianX, 0.1f + gaussianY, baseVelocity + gaussianZ);
 }
 
 // ============================================================================
 // 物品实体生成
 // ============================================================================
 
-ItemEntity* ItemDropHelper::spawnItemEntity(
-    IWorld* world,
+ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
     const ItemStack& stack,
-    f64 x, f64 y, f64 z,
+    f64 x,
+    f64 y,
+    f64 z,
     math::Random& rng,
     i32 pickupDelay,
     const std::string& ownerUuid)
@@ -116,18 +108,17 @@ ItemEntity* ItemDropHelper::spawnItemEntity(
     // 获取随机速度
     Vector3 velocity = getBlockDropVelocity(rng);
 
-    return spawnItemEntity(
-        world, stack, x, y, z,
-        velocity.x, velocity.y, velocity.z,
-        pickupDelay, ownerUuid
-    );
+    return spawnItemEntity(world, stack, x, y, z, velocity.x, velocity.y, velocity.z, pickupDelay, ownerUuid);
 }
 
-ItemEntity* ItemDropHelper::spawnItemEntity(
-    IWorld* world,
+ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
     const ItemStack& stack,
-    f64 x, f64 y, f64 z,
-    f32 vx, f32 vy, f32 vz,
+    f64 x,
+    f64 y,
+    f64 z,
+    f32 vx,
+    f32 vy,
+    f32 vz,
     i32 pickupDelay,
     const std::string& ownerUuid)
 {
@@ -136,14 +127,14 @@ ItemEntity* ItemDropHelper::spawnItemEntity(
     }
 
     // 创建物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(
-        EntityId(0),  // ID 将由世界分配
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), // ID 将由世界分配
         stack,
         static_cast<f32>(x),
         static_cast<f32>(y),
         static_cast<f32>(z),
-        vx, vy, vz
-    );
+        vx,
+        vy,
+        vz);
 
     // 设置拾取延迟
     itemEntity->setPickupDelay(pickupDelay);
@@ -159,36 +150,23 @@ ItemEntity* ItemDropHelper::spawnItemEntity(
     // 生成到世界
     EntityId entityId = world->spawnEntity(std::move(itemEntity));
     if (entityId == EntityId(0)) {
-        return nullptr;  // 生成失败
+        return nullptr; // 生成失败
     }
 
     return result;
 }
 
 ItemEntity* ItemDropHelper::spawnItemAtEntity(
-    Entity* entity,
-    const ItemStack& stack,
-    f32 offsetY,
-    math::Random& rng,
-    i32 pickupDelay)
+    Entity* entity, const ItemStack& stack, f32 offsetY, math::Random& rng, i32 pickupDelay)
 {
     if (entity == nullptr || entity->world() == nullptr || stack.isEmpty()) {
         return nullptr;
     }
 
-    return spawnItemEntity(
-        entity->world(),
-        stack,
-        entity->x(),
-        entity->y() + offsetY,
-        entity->z(),
-        rng,
-        pickupDelay
-    );
+    return spawnItemEntity(entity->world(), stack, entity->x(), entity->y() + offsetY, entity->z(), rng, pickupDelay);
 }
 
-std::vector<EntityId> ItemDropHelper::spawnItemEntities(
-    IWorld* world,
+std::vector<EntityId> ItemDropHelper::spawnItemEntities(IWorld* world,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
     math::Random& rng,
@@ -220,14 +198,14 @@ std::vector<EntityId> ItemDropHelper::spawnItemEntities(
         Vector3 velocity = getBlockDropVelocity(rng);
 
         // 创建物品实体
-        auto itemEntity = std::make_unique<ItemEntity>(
-            EntityId(0),
+        auto itemEntity = std::make_unique<ItemEntity>(EntityId(0),
             stack,
             static_cast<f32>(offsetX),
             static_cast<f32>(offsetY),
             static_cast<f32>(offsetZ),
-            velocity.x, velocity.y, velocity.z
-        );
+            velocity.x,
+            velocity.y,
+            velocity.z);
 
         // 设置拾取延迟
         itemEntity->setPickupDelay(DEFAULT_PICKUP_DELAY);

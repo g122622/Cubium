@@ -9,23 +9,23 @@
  */
 
 // 基础类型
-#include "Types.hpp"
 #include "BlendMode.hpp"
 #include "CompareOp.hpp"
 #include "CullMode.hpp"
+#include "Types.hpp"
 
 // 缓冲区
 #include "buffer/IBuffer.hpp"
 
 // 纹理
 #include "texture/ITexture.hpp"
-#include "texture/TextureRegion.hpp"
 #include "texture/ITextureAtlas.hpp"
+#include "texture/TextureRegion.hpp"
 
 // 管线
+#include "pipeline/IPipeline.hpp"
 #include "pipeline/RenderState.hpp"
 #include "pipeline/RenderType.hpp"
-#include "pipeline/IPipeline.hpp"
 
 // 相机
 #include "camera/CameraConfig.hpp"

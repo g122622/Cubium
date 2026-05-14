@@ -1,10 +1,10 @@
 #pragma once
 
-#include "PotionType.hpp"
 #include "../../entity/effect/EffectInstance.hpp"
 #include "../../resource/ResourceLocation.hpp"
-#include <vector>
+#include "PotionType.hpp"
 #include <string>
+#include <vector>
 
 namespace mc {
 namespace potion {
@@ -48,12 +48,12 @@ public:
      * @param baseName 基础名称
      * @param effects 效果数组
      */
-    template<std::size_t N>
+    template <std::size_t N>
     Potion(std::string_view baseName, const entity::effect::EffectInstance (&effects)[N])
         : m_baseName(baseName)
         , m_effects(effects, effects + N)
-        , m_id(nullptr) {
-    }
+        , m_id(nullptr)
+    {}
 
     // ========== 属性获取 ==========
 
@@ -93,9 +93,7 @@ public:
      * @brief 获取药水ID
      * @return 资源位置，未注册返回空ResourceLocation
      */
-    [[nodiscard]] ResourceLocation id() const {
-        return m_id ? *m_id : ResourceLocation();
-    }
+    [[nodiscard]] ResourceLocation id() const { return m_id ? *m_id : ResourceLocation(); }
 
     // ========== 内部方法（供注册表使用） ==========
 
@@ -108,7 +106,7 @@ public:
 private:
     std::string m_baseName;
     std::vector<entity::effect::EffectInstance> m_effects;
-    const ResourceLocation* m_id = nullptr;  // 指向注册表中的ID
+    const ResourceLocation* m_id = nullptr; // 指向注册表中的ID
 
     friend class PotionRegistry;
 };

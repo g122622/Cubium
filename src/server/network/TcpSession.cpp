@@ -1,7 +1,7 @@
 ﻿#include "TcpSession.hpp"
 #include "TcpServer.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
 #include "common/core/Constants.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -14,7 +14,8 @@ TcpSession::TcpSession(SessionId id, TcpServer* server)
     m_receiveBuffer.reserve(4096);
 }
 
-TcpSession::~TcpSession() {
+TcpSession::~TcpSession()
+{
     if (m_state != SessionState::Disconnected) {
         disconnect("Session destroyed");
     }
@@ -26,7 +27,8 @@ TcpSession::~TcpSession() {
  * @param size 数据大小
  * @note 仅负责排队，真正发送由 TcpServer::sendSessionData 在网络线程执行。
  */
-void TcpSession::send(const u8* data, size_t size) {
+void TcpSession::send(const u8* data, size_t size)
+{
     {
         std::lock_guard<std::mutex> lock(m_sendMutex);
         m_sendQueue.emplace_back(data, data + size);
@@ -35,7 +37,8 @@ void TcpSession::send(const u8* data, size_t size) {
     m_stats.packetsSent++;
 }
 
-void TcpSession::sendPacket(const network::Packet& packet) {
+void TcpSession::sendPacket(const network::Packet& packet)
+{
     auto result = packet.serialize();
     if (result.success()) {
         send(result.value().data(), result.value().size());
@@ -44,7 +47,8 @@ void TcpSession::sendPacket(const network::Packet& packet) {
     }
 }
 
-void TcpSession::disconnect(const std::string& reason) {
+void TcpSession::disconnect(const std::string& reason)
+{
     if (m_state == SessionState::Disconnected) {
         return;
     }
@@ -70,7 +74,8 @@ void TcpSession::disconnect(const std::string& reason) {
  * @param size 数据块大小
  * @note 支持非阻塞 socket 的分包/粘包场景。
  */
-void TcpSession::handleReceivedData(const u8* data, size_t size) {
+void TcpSession::handleReceivedData(const u8* data, size_t size)
+{
     // 追加到缓冲区
     m_receiveBuffer.insert(m_receiveBuffer.end(), data, data + size);
     m_stats.bytesReceived += size;
@@ -116,7 +121,8 @@ void TcpSession::handleReceivedData(const u8* data, size_t size) {
     }
 }
 
-void TcpSession::processPacket(const u8* data, size_t size) {
+void TcpSession::processPacket(const u8* data, size_t size)
+{
     if (m_onPacket) {
         m_onPacket(this, data, size);
     }
@@ -126,7 +132,8 @@ void TcpSession::processPacket(const u8* data, size_t size) {
  * @brief 从发送队列取出下一包待发送数据。
  * @return 若队列为空返回空 vector，否则返回并移除队首元素。
  */
-std::vector<u8> TcpSession::takeNextSendBuffer() {
+std::vector<u8> TcpSession::takeNextSendBuffer()
+{
     std::lock_guard<std::mutex> lock(m_sendMutex);
     if (m_sendQueue.empty()) {
         return {};
@@ -138,4 +145,3 @@ std::vector<u8> TcpSession::takeNextSendBuffer() {
 }
 
 } // namespace mc::server
-

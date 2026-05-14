@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 
 namespace mc {
 
@@ -45,39 +45,25 @@ public:
      * @param config 冰刺配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const IceSpikeFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const IceSpikeFeatureConfig& config);
 
 private:
     /**
      * @brief 检查冰刺是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 生成尖塔型冰刺
      */
     void generateSpike(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& basePos,
-        i32 height,
-        i32 baseRadius);
+        WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius);
 
     /**
      * @brief 生成冰丘型结构
      */
     void generateIceberg(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& basePos,
-        i32 height,
-        i32 baseRadius);
+        WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius);
 };
 
 /**
@@ -85,12 +71,9 @@ private:
  */
 class ConfiguredIceSpikeFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredIceSpikeFeature(
-        std::unique_ptr<IceSpikeFeatureConfig> config,
-        const char* featureName);
+    ConfiguredIceSpikeFeature(std::unique_ptr<IceSpikeFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

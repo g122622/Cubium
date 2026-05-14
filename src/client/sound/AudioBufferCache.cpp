@@ -21,7 +21,8 @@ AudioBufferWrapper::AudioBufferWrapper(AudioBufferId id, AudioFormat format, f32
     }
 }
 
-AudioBufferWrapper::~AudioBufferWrapper() {
+AudioBufferWrapper::~AudioBufferWrapper()
+{
     if (m_valid && m_backend && m_id != 0) {
         m_backend->destroyBuffer(m_id);
         m_valid = false;
@@ -41,7 +42,8 @@ AudioBufferWrapper::AudioBufferWrapper(AudioBufferWrapper&& other) noexcept
     other.m_backend = nullptr;
 }
 
-AudioBufferWrapper& AudioBufferWrapper::operator=(AudioBufferWrapper&& other) noexcept {
+AudioBufferWrapper& AudioBufferWrapper::operator=(AudioBufferWrapper&& other) noexcept
+{
     if (this != &other) {
         // 销毁当前缓冲区
         if (m_valid && m_backend && m_id != 0) {
@@ -67,10 +69,8 @@ AudioBufferWrapper& AudioBufferWrapper::operator=(AudioBufferWrapper&& other) no
 // ============================================================================
 
 Result<std::shared_ptr<IAudioBuffer>> AudioBufferCache::getOrCreate(
-    const ResourceLocation& location,
-    IAudioBackend& backend,
-    SoundLoader& loader
-) {
+    const ResourceLocation& location, IAudioBackend& backend, SoundLoader& loader)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 检查缓存中是否存在
@@ -89,8 +89,7 @@ Result<std::shared_ptr<IAudioBuffer>> AudioBufferCache::getOrCreate(
     // 加载音频数据
     auto loadResult = loader.load(location);
     if (!loadResult.success()) {
-        return Error(loadResult.error().code(),
-                     fmt::format("Failed to load audio: {}", loadResult.error().message()));
+        return Error(loadResult.error().code(), fmt::format("Failed to load audio: {}", loadResult.error().message()));
     }
 
     AudioData& audioData = loadResult.value();
@@ -98,19 +97,14 @@ Result<std::shared_ptr<IAudioBuffer>> AudioBufferCache::getOrCreate(
     // 创建音频缓冲区
     auto bufferResult = backend.createBuffer(audioData);
     if (!bufferResult.success()) {
-        return Error(bufferResult.error().code(),
-                     fmt::format("Failed to create buffer: {}", bufferResult.error().message()));
+        return Error(
+            bufferResult.error().code(), fmt::format("Failed to create buffer: {}", bufferResult.error().message()));
     }
 
     AudioBufferId bufferId = bufferResult.value();
 
     // 创建缓冲区包装器
-    auto buffer = std::make_shared<AudioBufferWrapper>(
-        bufferId,
-        audioData.format,
-        audioData.duration,
-        &backend
-    );
+    auto buffer = std::make_shared<AudioBufferWrapper>(bufferId, audioData.format, audioData.duration, &backend);
 
     // 存入缓存
     CacheEntry entry;
@@ -124,10 +118,8 @@ Result<std::shared_ptr<IAudioBuffer>> AudioBufferCache::getOrCreate(
 }
 
 size_t AudioBufferCache::preload(
-    const std::vector<ResourceLocation>& locations,
-    IAudioBackend& backend,
-    SoundLoader& loader
-) {
+    const std::vector<ResourceLocation>& locations, IAudioBackend& backend, SoundLoader& loader)
+{
     size_t successCount = 0;
 
     for (const auto& location : locations) {
@@ -149,25 +141,24 @@ size_t AudioBufferCache::preload(
 
             spdlog::trace("[AudioBufferCache] Preloaded: {}", location.toString());
         } else {
-            spdlog::debug("[AudioBufferCache] Failed to preload {}: {}",
-                          location.toString(), result.error().message());
+            spdlog::debug("[AudioBufferCache] Failed to preload {}: {}", location.toString(), result.error().message());
         }
     }
 
     if (successCount > 0) {
-        spdlog::info("[AudioBufferCache] Preloaded {}/{} audio files",
-                     successCount, locations.size());
+        spdlog::info("[AudioBufferCache] Preloaded {}/{} audio files", successCount, locations.size());
     }
 
     return successCount;
 }
 
-void AudioBufferCache::cleanupUnused() {
+void AudioBufferCache::cleanupUnused()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     size_t removedCount = 0;
 
-    for (auto it = m_cache.begin(); it != m_cache.end(); ) {
+    for (auto it = m_cache.begin(); it != m_cache.end();) {
         // 跳过预加载的缓冲区
         if (it->second.isPreloaded) {
             ++it;
@@ -189,7 +180,8 @@ void AudioBufferCache::cleanupUnused() {
     }
 }
 
-void AudioBufferCache::clear() {
+void AudioBufferCache::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     m_cache.clear();
@@ -198,12 +190,14 @@ void AudioBufferCache::clear() {
     spdlog::trace("[AudioBufferCache] Cleared all buffers");
 }
 
-size_t AudioBufferCache::getCacheSize() const {
+size_t AudioBufferCache::getCacheSize() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_cache.size();
 }
 
-size_t AudioBufferCache::getPreloadSize() const {
+size_t AudioBufferCache::getPreloadSize() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_preloadedBuffers.size();
 }

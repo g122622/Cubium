@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
-#include "server/world/ChunkGenerateTask.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"
+#include "server/world/ChunkGenerateTask.hpp"
 #include <atomic>
 #include <chrono>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::server;
@@ -16,7 +16,8 @@ using namespace mc::util;
 
 class ChunkGenerateTaskTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // ChunkStatus 是静态初始化的，无需手动初始化
     }
 
@@ -27,7 +28,8 @@ protected:
 // ChunkGenerateTask 测试
 // ============================================================================
 
-TEST_F(ChunkGenerateTaskTest, BasicConstruction) {
+TEST_F(ChunkGenerateTaskTest, BasicConstruction)
+{
     ChunkGenerateTask::GeneratorFunc generator =
         [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
             (void)cancelSignal;
@@ -42,7 +44,8 @@ TEST_F(ChunkGenerateTaskTest, BasicConstruction) {
     EXPECT_FALSE(task.description().empty());
 }
 
-TEST_F(ChunkGenerateTaskTest, ExecuteSuccess) {
+TEST_F(ChunkGenerateTaskTest, ExecuteSuccess)
+{
     ChunkGenerateTask::GeneratorFunc generator =
         [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
             (void)cancelSignal;
@@ -66,7 +69,8 @@ TEST_F(ChunkGenerateTaskTest, ExecuteSuccess) {
     EXPECT_EQ(task->takeResult(), nullptr);
 }
 
-TEST_F(ChunkGenerateTaskTest, ExecuteCancelled) {
+TEST_F(ChunkGenerateTaskTest, ExecuteCancelled)
+{
     ChunkGenerateTask::GeneratorFunc generator =
         [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
             if (cancelSignal.load(std::memory_order_acquire)) {
@@ -84,12 +88,13 @@ TEST_F(ChunkGenerateTaskTest, ExecuteCancelled) {
     EXPECT_EQ(task->takeResult(), nullptr);
 }
 
-TEST_F(ChunkGenerateTaskTest, ExecuteException) {
+TEST_F(ChunkGenerateTaskTest, ExecuteException)
+{
     ChunkGenerateTask::GeneratorFunc generator =
         [](ChunkPrimer& chunk, const ChunkStatus&, const std::atomic<bool>&) -> void {
-            (void)chunk;
-            throw std::runtime_error("Test exception");
-        };
+        (void)chunk;
+        throw std::runtime_error("Test exception");
+    };
 
     auto task = std::make_unique<ChunkGenerateTask>(0, 0, ChunkStatuses::FULL, generator);
 
@@ -101,7 +106,8 @@ TEST_F(ChunkGenerateTaskTest, ExecuteException) {
     EXPECT_EQ(task->takeResult(), nullptr);
 }
 
-TEST_F(ChunkGenerateTaskTest, OnCancel) {
+TEST_F(ChunkGenerateTaskTest, OnCancel)
+{
     ChunkGenerateTask::GeneratorFunc generator =
         [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
             (void)cancelSignal;
@@ -124,7 +130,8 @@ protected:
     void TearDown() override {}
 };
 
-TEST_F(ChunkGenerateTaskIntegrationTest, SubmitToPool) {
+TEST_F(ChunkGenerateTaskIntegrationTest, SubmitToPool)
+{
     ServerWorkerPool pool(2, "ChunkGenTest");
     pool.start();
 
@@ -141,7 +148,8 @@ TEST_F(ChunkGenerateTaskIntegrationTest, SubmitToPool) {
     auto task = std::make_unique<ChunkGenerateTask>(10, 20, ChunkStatuses::FULL, generator);
     taskPtr = task.get();
 
-    pool.submit(std::move(task),
+    pool.submit(
+        std::move(task),
         [&](bool s, ITask* t) {
             completed = true;
             success = s;
@@ -167,7 +175,8 @@ TEST_F(ChunkGenerateTaskIntegrationTest, SubmitToPool) {
     pool.shutdown();
 }
 
-TEST_F(ChunkGenerateTaskIntegrationTest, MultipleChunkGenerations) {
+TEST_F(ChunkGenerateTaskIntegrationTest, MultipleChunkGenerations)
+{
     ServerWorkerPool pool(4, "ChunkGenTest");
     pool.start();
 
@@ -182,11 +191,7 @@ TEST_F(ChunkGenerateTaskIntegrationTest, MultipleChunkGenerations) {
 
     for (int i = 0; i < numChunks; ++i) {
         auto task = std::make_unique<ChunkGenerateTask>(i, i * 2, ChunkStatuses::FULL, generator);
-        pool.submit(std::move(task),
-            [&completedCount](bool, ITask*) {
-                completedCount++;
-            },
-            TaskPriority::Normal);
+        pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; }, TaskPriority::Normal);
     }
 
     // 等待所有完成
@@ -199,29 +204,31 @@ TEST_F(ChunkGenerateTaskIntegrationTest, MultipleChunkGenerations) {
     pool.shutdown();
 }
 
-TEST_F(ChunkGenerateTaskIntegrationTest, PriorityOrdering) {
-    ServerWorkerPool pool(1, "ChunkGenTest");  // 单线程确保顺序执行
+TEST_F(ChunkGenerateTaskIntegrationTest, PriorityOrdering)
+{
+    ServerWorkerPool pool(1, "ChunkGenTest"); // 单线程确保顺序执行
     pool.start();
 
     std::vector<int> executionOrder;
     std::mutex orderMutex;
     std::atomic<bool> firstStarted{false};
 
-    ChunkGenerateTask::GeneratorFunc generator =
-        [&executionOrder, &orderMutex, &firstStarted](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-            (void)cancelSignal;
-            firstStarted = true;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            {
-                std::lock_guard<std::mutex> lock(orderMutex);
-                executionOrder.push_back(chunk.x());
-            }
-            chunk.setChunkStatus(targetStatus);
-        };
+    ChunkGenerateTask::GeneratorFunc generator = [&executionOrder, &orderMutex, &firstStarted](ChunkPrimer& chunk,
+                                                     const ChunkStatus& targetStatus,
+                                                     const std::atomic<bool>& cancelSignal) {
+        (void)cancelSignal;
+        firstStarted = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        {
+            std::lock_guard<std::mutex> lock(orderMutex);
+            executionOrder.push_back(chunk.x());
+        }
+        chunk.setChunkStatus(targetStatus);
+    };
 
     // 提交第一个任务（等待它开始）
-    pool.submit(std::make_unique<ChunkGenerateTask>(0, 0, ChunkStatuses::FULL, generator),
-        nullptr, TaskPriority::Normal);
+    pool.submit(
+        std::make_unique<ChunkGenerateTask>(0, 0, ChunkStatuses::FULL, generator), nullptr, TaskPriority::Normal);
 
     // 等待第一个任务开始
     for (int i = 0; i < 100 && !firstStarted; ++i) {
@@ -229,21 +236,20 @@ TEST_F(ChunkGenerateTaskIntegrationTest, PriorityOrdering) {
     }
 
     // 提交三个任务，优先级不同
-    pool.submit(std::make_unique<ChunkGenerateTask>(3, 0, ChunkStatuses::FULL, generator),
-        nullptr, TaskPriority::Low);
-    pool.submit(std::make_unique<ChunkGenerateTask>(1, 0, ChunkStatuses::FULL, generator),
-        nullptr, TaskPriority::High);
-    pool.submit(std::make_unique<ChunkGenerateTask>(2, 0, ChunkStatuses::FULL, generator),
-        nullptr, TaskPriority::Normal);
+    pool.submit(std::make_unique<ChunkGenerateTask>(3, 0, ChunkStatuses::FULL, generator), nullptr, TaskPriority::Low);
+    pool.submit(std::make_unique<ChunkGenerateTask>(1, 0, ChunkStatuses::FULL, generator), nullptr, TaskPriority::High);
+    pool.submit(
+        std::make_unique<ChunkGenerateTask>(2, 0, ChunkStatuses::FULL, generator), nullptr, TaskPriority::Normal);
 
     pool.waitForCompletion();
 
     // 高优先级任务应该先执行
     ASSERT_GE(executionOrder.size(), 4);
-    EXPECT_EQ(executionOrder[1], 1);  // 高优先级第二个执行（第一个是初始任务）
+    EXPECT_EQ(executionOrder[1], 1); // 高优先级第二个执行（第一个是初始任务）
 }
 
-TEST_F(ChunkGenerateTaskIntegrationTest, CancelToken) {
+TEST_F(ChunkGenerateTaskIntegrationTest, CancelToken)
+{
     ServerWorkerPool pool(1, "ChunkGenTest");
     pool.start();
 
@@ -261,7 +267,8 @@ TEST_F(ChunkGenerateTaskIntegrationTest, CancelToken) {
     auto cancelToken = std::make_shared<std::atomic<bool>>(true);
 
     auto task = std::make_unique<ChunkGenerateTask>(5, 5, ChunkStatuses::FULL, generator);
-    pool.submit(std::move(task),
+    pool.submit(
+        std::move(task),
         [&](bool s, ITask*) {
             completed = true;
             success = s;
@@ -274,7 +281,7 @@ TEST_F(ChunkGenerateTaskIntegrationTest, CancelToken) {
     }
 
     EXPECT_TRUE(completed);
-    EXPECT_FALSE(success);  // 应该因取消而失败
+    EXPECT_FALSE(success); // 应该因取消而失败
 
     pool.shutdown();
 }

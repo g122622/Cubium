@@ -10,27 +10,20 @@
 namespace mc {
 namespace command {
 
-void ListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void ListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(0);
-    });
-    support::applyMetadata(
-        listNode,
-        support::makeMetadata(
-            "List online players.",
-            "/list",
-            0));
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return listPlayers(ctx);
-    });
+    listNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
+    support::applyMetadata(listNode, support::makeMetadata("List online players.", "/list", 0));
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listPlayers(ctx); });
 
     dispatcher.registerCommand(listNode);
 }
 
-i32 ListCommand::listPlayers(CommandContext<ServerCommandSource>& context) {
+i32 ListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     size_t playerCount = 0;
 

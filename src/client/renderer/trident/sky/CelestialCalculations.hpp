@@ -2,8 +2,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include <glm/glm.hpp>
 #include <cmath>
+#include <glm/glm.hpp>
 
 namespace mc::client {
 
@@ -120,9 +120,7 @@ public:
      * - 雨天: 灰色
      */
     [[nodiscard]] static glm::vec4 calculateSkyColor(
-        f64 celestialAngle,
-        f64 rainStrength = 0.0f,
-        f64 thunderStrength = 0.0f);
+        f64 celestialAngle, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
 
     /**
      * @brief 计算主世界日出/日落颜色（含强度）
@@ -137,9 +135,7 @@ public:
      * - 受天气影响衰减
      */
     [[nodiscard]] static glm::vec4 calculateSunriseSunsetColor(
-        f64 celestialAngle,
-        f64 rainStrength = 0.0f,
-        f64 thunderStrength = 0.0f);
+        f64 celestialAngle, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
 
     /**
      * @brief 计算摄像机朝向与日出日落中心方向的对齐因子
@@ -152,14 +148,14 @@ public:
      * - 若任一向量在 XZ 平面长度过小，返回 0 以避免除零。
      */
     [[nodiscard]] static f64 calculateSunriseFacingFactor(
-        const glm::vec3& cameraForward,
-        const glm::vec3& sunriseDirection);
+        const glm::vec3& cameraForward, const glm::vec3& sunriseDirection);
 
     /**
      * @brief 获取主世界默认天空色（#78A7FF）
      * @return 线性空间 RGB
      */
-    [[nodiscard]] static constexpr glm::vec3 getOverworldBaseSkyColor() {
+    [[nodiscard]] static constexpr glm::vec3 getOverworldBaseSkyColor()
+    {
         return glm::vec3(OVERWORLD_BASE_SKY_R, OVERWORLD_BASE_SKY_G, OVERWORLD_BASE_SKY_B);
     }
 
@@ -171,9 +167,7 @@ public:
      * @return RGBA 雾颜色
      */
     [[nodiscard]] static glm::vec4 calculateFogColor(
-        f64 celestialAngle,
-        f64 rainStrength = 0.0f,
-        f64 thunderStrength = 0.0f);
+        f64 celestialAngle, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
 
     // ========== 星星计算 ==========
 
@@ -213,10 +207,10 @@ private:
 
     /// 天空颜色查找表 (日出/白天/日落/夜晚)
     static constexpr f64 SKY_COLORS[4][3] = {
-        { 0.94f, 0.44f, 0.0f },  // 日出 (橙红色)
-        { 0.53f, 0.81f, 0.92f }, // 正午 (亮蓝色)
-        { 0.94f, 0.44f, 0.0f },  // 日落 (橙红色)
-        { 0.02f, 0.02f, 0.1f }   // 夜晚 (深蓝色)
+        {0.94f, 0.44f, 0.0f},  // 日出 (橙红色)
+        {0.53f, 0.81f, 0.92f}, // 正午 (亮蓝色)
+        {0.94f, 0.44f, 0.0f},  // 日落 (橙红色)
+        {0.02f, 0.02f, 0.1f}   // 夜晚 (深蓝色)
     };
 };
 

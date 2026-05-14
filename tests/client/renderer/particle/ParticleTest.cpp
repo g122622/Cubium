@@ -1,16 +1,16 @@
-#include <gtest/gtest.h>
-#include "common/core/Types.hpp"
 #include "client/renderer/trident/particle/Particle.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleRenderType.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/data/BasicParticleData.hpp"
 #include "client/renderer/trident/particle/particles/RainParticle.hpp"
 #include "client/renderer/trident/particle/particles/SnowParticle.hpp"
-#include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
 #include "client/renderer/trident/particle/particles/weather/FishingParticle.hpp"
-#include "client/renderer/trident/particle/data/BasicParticleData.hpp"
+#include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include <glm/glm.hpp>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::client::renderer::trident::particle;
@@ -20,7 +20,8 @@ using namespace mc::client::renderer::trident::particle::particles;
 /**
  * @brief 测试粒子基类构造和属性
  */
-TEST(ParticleTest, ConstructionAndProperties) {
+TEST(ParticleTest, ConstructionAndProperties)
+{
     glm::vec3 pos(1.0f, 2.0f, 3.0f);
     glm::vec3 vel(0.1f, 0.2f, 0.3f);
 
@@ -40,7 +41,8 @@ TEST(ParticleTest, ConstructionAndProperties) {
 /**
  * @brief 测试粒子属性设置
  */
-TEST(ParticleTest, PropertySetters) {
+TEST(ParticleTest, PropertySetters)
+{
     Particle particle(glm::vec3(0.0f), glm::vec3(0.0f));
 
     particle.setPosition(glm::vec3(5.0f, 10.0f, 15.0f));
@@ -72,7 +74,8 @@ TEST(ParticleTest, PropertySetters) {
 /**
  * @brief 测试粒子生命周期
  */
-TEST(ParticleTest, Lifecycle) {
+TEST(ParticleTest, Lifecycle)
+{
     Particle particle(glm::vec3(0.0f), glm::vec3(0.0f));
     particle.setMaxAge(5.0f);
 
@@ -98,11 +101,12 @@ TEST(ParticleTest, Lifecycle) {
 /**
  * @brief 测试粒子过期标记
  */
-TEST(ParticleTest, ExpiredFlag) {
+TEST(ParticleTest, ExpiredFlag)
+{
     Particle particle(glm::vec3(0.0f), glm::vec3(0.0f));
 
     EXPECT_TRUE(particle.isAlive());
-    EXPECT_FALSE(particle.onGround());  // 初始不在地面
+    EXPECT_FALSE(particle.onGround()); // 初始不在地面
 
     particle.setExpired();
     EXPECT_FALSE(particle.isAlive());
@@ -111,7 +115,8 @@ TEST(ParticleTest, ExpiredFlag) {
 /**
  * @brief 测试粒子渲染类型
  */
-TEST(ParticleTest, RenderType) {
+TEST(ParticleTest, RenderType)
+{
     Particle particle(glm::vec3(0.0f), glm::vec3(0.0f));
 
     // 默认渲染类型
@@ -121,7 +126,8 @@ TEST(ParticleTest, RenderType) {
 /**
  * @brief 测试粒子移动
  */
-TEST(ParticleTest, Movement) {
+TEST(ParticleTest, Movement)
+{
     Particle particle(glm::vec3(0.0f), glm::vec3(0.0f));
     particle.setHasPhysics(false);
 
@@ -135,7 +141,8 @@ TEST(ParticleTest, Movement) {
 /**
  * @brief 测试粒子重力效果
  */
-TEST(ParticleTest, Gravity) {
+TEST(ParticleTest, Gravity)
+{
     Particle particle(glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(0.0f));
     particle.setGravity(1.0f);
     particle.setMaxAge(100.0f);
@@ -149,7 +156,8 @@ TEST(ParticleTest, Gravity) {
 /**
  * @brief 测试雨滴粒子构造
  */
-TEST(ParticleTest, RainParticle_Construction) {
+TEST(ParticleTest, RainParticle_Construction)
+{
     RainParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
@@ -160,7 +168,8 @@ TEST(ParticleTest, RainParticle_Construction) {
 /**
  * @brief 验证雨滴工厂方法返回正确的粒子类型
  */
-TEST(ParticleTest, RainParticle_CreateReturnsRainParticle) {
+TEST(ParticleTest, RainParticle_CreateReturnsRainParticle)
+{
     auto particle = RainParticle::create(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f), nullptr);
     ASSERT_NE(particle, nullptr);
 
@@ -171,13 +180,14 @@ TEST(ParticleTest, RainParticle_CreateReturnsRainParticle) {
 /**
  * @brief 测试雨滴无世界 tick（无碰撞检测）
  */
-TEST(ParticleTest, RainParticle_TickWithoutWorld) {
+TEST(ParticleTest, RainParticle_TickWithoutWorld)
+{
     RainParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, -1.0f, 0.0f));
     particle.tick(nullptr);
 
     // 无世界时应该仍然存活并下落
     EXPECT_TRUE(particle.isAlive());
-    EXPECT_LT(particle.velocity().y, 0.0f);  // 重力使速度更负
+    EXPECT_LT(particle.velocity().y, 0.0f); // 重力使速度更负
 }
 
 /**
@@ -188,7 +198,8 @@ TEST(ParticleTest, RainParticle_TickWithoutWorld) {
  * - 粒子重力乘数 0.04
  * - 终端速度 -3.0
  */
-TEST(ParticleTest, RainParticle_GravityAndTerminalVelocity) {
+TEST(ParticleTest, RainParticle_GravityAndTerminalVelocity)
+{
     RainParticle particle(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     // 验证重力设置
@@ -200,13 +211,14 @@ TEST(ParticleTest, RainParticle_GravityAndTerminalVelocity) {
     }
 
     // 速度应该被终端速度限制
-    EXPECT_GE(particle.velocity().y, -3.1f);  // TERMINAL_VELOCITY = -3.0
+    EXPECT_GE(particle.velocity().y, -3.1f); // TERMINAL_VELOCITY = -3.0
 }
 
 /**
  * @brief 测试雨滴碰撞盒尺寸
  */
-TEST(ParticleTest, RainParticle_BoundingBoxSize) {
+TEST(ParticleTest, RainParticle_BoundingBoxSize)
+{
     RainParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     // 验证碰撞盒尺寸
@@ -222,7 +234,8 @@ TEST(ParticleTest, RainParticle_BoundingBoxSize) {
 /**
  * @brief 测试雪花粒子构造
  */
-TEST(ParticleTest, SnowParticle_Construction) {
+TEST(ParticleTest, SnowParticle_Construction)
+{
     SnowParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
@@ -238,7 +251,8 @@ TEST(ParticleTest, SnowParticle_Construction) {
 /**
  * @brief 测试雪花工厂方法返回正确的粒子类型
  */
-TEST(ParticleTest, SnowParticle_CreateReturnsSnowParticle) {
+TEST(ParticleTest, SnowParticle_CreateReturnsSnowParticle)
+{
     auto particle = SnowParticle::create(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f), nullptr);
     ASSERT_NE(particle, nullptr);
 
@@ -249,13 +263,14 @@ TEST(ParticleTest, SnowParticle_CreateReturnsSnowParticle) {
 /**
  * @brief 测试雪花无世界 tick（无碰撞检测）
  */
-TEST(ParticleTest, SnowParticle_TickWithoutWorld) {
+TEST(ParticleTest, SnowParticle_TickWithoutWorld)
+{
     SnowParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, -0.1f, 0.0f));
     particle.tick(nullptr);
 
     // 无世界时应该仍然存活并下落
     EXPECT_TRUE(particle.isAlive());
-    EXPECT_LT(particle.velocity().y, 0.0f);  // 重力使速度更负
+    EXPECT_LT(particle.velocity().y, 0.0f); // 重力使速度更负
 }
 
 /**
@@ -263,7 +278,8 @@ TEST(ParticleTest, SnowParticle_TickWithoutWorld) {
  *
  * 雪花终端速度应该比雨滴慢
  */
-TEST(ParticleTest, SnowParticle_TerminalVelocity) {
+TEST(ParticleTest, SnowParticle_TerminalVelocity)
+{
     SnowParticle particle(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     // 多次 tick
@@ -279,7 +295,8 @@ TEST(ParticleTest, SnowParticle_TerminalVelocity) {
 /**
  * @brief 测试雪花摇摆效果
  */
-TEST(ParticleTest, SnowParticle_SwingMotion) {
+TEST(ParticleTest, SnowParticle_SwingMotion)
+{
     SnowParticle particle(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     f32 initialVelX = particle.velocity().x;
@@ -297,7 +314,8 @@ TEST(ParticleTest, SnowParticle_SwingMotion) {
 /**
  * @brief 测试雪花碰撞盒尺寸
  */
-TEST(ParticleTest, SnowParticle_BoundingBoxSize) {
+TEST(ParticleTest, SnowParticle_BoundingBoxSize)
+{
     SnowParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     // 验证碰撞盒尺寸
@@ -315,7 +333,8 @@ TEST(ParticleTest, SnowParticle_BoundingBoxSize) {
  *
  * 雪花在生命后半段淡出
  */
-TEST(ParticleTest, SnowParticle_FadeOut) {
+TEST(ParticleTest, SnowParticle_FadeOut)
+{
     SnowParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
     // 设置较短生命周期以便测试
@@ -339,7 +358,8 @@ TEST(ParticleTest, SnowParticle_FadeOut) {
 /**
  * @brief 测试水溅粒子构造
  */
-TEST(ParticleTest, SplashParticle_Construction) {
+TEST(ParticleTest, SplashParticle_Construction)
+{
     SplashParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.1f, 0.2f, 0.1f));
 
     EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
@@ -347,7 +367,8 @@ TEST(ParticleTest, SplashParticle_Construction) {
     EXPECT_TRUE(particle.isAlive());
 }
 
-TEST(ParticleTest, ColorFade) {
+TEST(ParticleTest, ColorFade)
+{
     Particle particle(glm::vec3(0.0f), glm::vec3(0.0f));
     particle.setMaxAge(10.0f);
     particle.setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -366,7 +387,8 @@ TEST(ParticleTest, ColorFade) {
 /**
  * @brief 测试粒子渲染类型工具函数
  */
-TEST(ParticleRenderTypeTest, UtilityFunctions) {
+TEST(ParticleRenderTypeTest, UtilityFunctions)
+{
     // TERRAIN_SHEET
     EXPECT_TRUE(needsDepthWrite(ParticleRenderType::TERRAIN_SHEET));
     EXPECT_FALSE(needsBlending(ParticleRenderType::TERRAIN_SHEET));
@@ -399,22 +421,24 @@ TEST(ParticleRenderTypeTest, UtilityFunctions) {
 /**
  * @brief 测试渲染顺序
  */
-TEST(ParticleRenderTypeTest, RenderOrder) {
+TEST(ParticleRenderTypeTest, RenderOrder)
+{
     // 渲染顺序应该按枚举值递增
-    EXPECT_LT(getRenderOrder(ParticleRenderType::TERRAIN_SHEET),
-              getRenderOrder(ParticleRenderType::PARTICLE_SHEET_OPAQUE));
+    EXPECT_LT(
+        getRenderOrder(ParticleRenderType::TERRAIN_SHEET), getRenderOrder(ParticleRenderType::PARTICLE_SHEET_OPAQUE));
     EXPECT_LT(getRenderOrder(ParticleRenderType::PARTICLE_SHEET_OPAQUE),
-              getRenderOrder(ParticleRenderType::PARTICLE_SHEET_LIT));
+        getRenderOrder(ParticleRenderType::PARTICLE_SHEET_LIT));
     EXPECT_LT(getRenderOrder(ParticleRenderType::PARTICLE_SHEET_LIT),
-              getRenderOrder(ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT));
-    EXPECT_LT(getRenderOrder(ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT),
-              getRenderOrder(ParticleRenderType::CUSTOM));
+        getRenderOrder(ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT));
+    EXPECT_LT(
+        getRenderOrder(ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT), getRenderOrder(ParticleRenderType::CUSTOM));
 }
 
 /**
  * @brief 测试粒子类型 ID 有效性检查
  */
-TEST(ParticleTypesTest, TypeValidation) {
+TEST(ParticleTypesTest, TypeValidation)
+{
     // 有效类型
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Flame));
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Smoke));
@@ -430,7 +454,8 @@ TEST(ParticleTypesTest, TypeValidation) {
 /**
  * @brief 测试粒子类型数据需求检查
  */
-TEST(ParticleTypesTest, DataRequirements) {
+TEST(ParticleTypesTest, DataRequirements)
+{
     // 需要方块状态的类型
     EXPECT_TRUE(requiresBlockState(ParticleTypeId::Block));
     EXPECT_TRUE(requiresBlockState(ParticleTypeId::Breaking));
@@ -457,19 +482,21 @@ TEST(ParticleTypesTest, DataRequirements) {
  * - 生命周期较短
  * - 半透明淡蓝色
  */
-TEST(ParticleTest, FishingParticle_Construction) {
+TEST(ParticleTest, FishingParticle_Construction)
+{
     FishingParticle particle(glm::vec3(0.5f, 62.0f, 0.5f), glm::vec3(0.01f, 0.0f, 0.01f));
 
     EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     EXPECT_EQ(particle.getTextureLocation(), mc::ResourceLocation("minecraft:particle/fishing"));
     EXPECT_TRUE(particle.isAlive());
-    EXPECT_DOUBLE_EQ(particle.gravity(), 0.0);  // 无重力
+    EXPECT_DOUBLE_EQ(particle.gravity(), 0.0); // 无重力
 }
 
 /**
  * @brief 测试钓鱼粒子工厂方法
  */
-TEST(ParticleTest, FishingParticle_CreateReturnsFishingParticle) {
+TEST(ParticleTest, FishingParticle_CreateReturnsFishingParticle)
+{
     auto particle = FishingParticle::create(glm::vec3(0.5f, 62.0f, 0.5f), glm::vec3(0.01f, 0.0f, 0.01f), nullptr);
     ASSERT_NE(particle, nullptr);
 
@@ -480,7 +507,8 @@ TEST(ParticleTest, FishingParticle_CreateReturnsFishingParticle) {
 /**
  * @brief 测试钓鱼粒子 tick 行为
  */
-TEST(ParticleTest, FishingParticle_TickMovement) {
+TEST(ParticleTest, FishingParticle_TickMovement)
+{
     glm::vec3 initialPos(0.5f, 62.0f, 0.5f);
     glm::vec3 initialVel(0.02f, 0.0f, 0.02f);
     FishingParticle particle(initialPos, initialVel);
@@ -503,7 +531,8 @@ TEST(ParticleTest, FishingParticle_TickMovement) {
 /**
  * @brief 测试钓鱼粒子淡出效果
  */
-TEST(ParticleTest, FishingParticle_FadeOut) {
+TEST(ParticleTest, FishingParticle_FadeOut)
+{
     FishingParticle particle(glm::vec3(0.0f, 62.0f, 0.0f), glm::vec3(0.0f));
     particle.setMaxAge(10.0f);
 
@@ -526,7 +555,8 @@ TEST(ParticleTest, FishingParticle_FadeOut) {
 /**
  * @brief 测试钓鱼粒子生命周期结束
  */
-TEST(ParticleTest, FishingParticle_LifecycleEnd) {
+TEST(ParticleTest, FishingParticle_LifecycleEnd)
+{
     FishingParticle particle(glm::vec3(0.0f, 62.0f, 0.0f), glm::vec3(0.0f));
     particle.setMaxAge(5.0f);
 
@@ -546,7 +576,8 @@ TEST(ParticleTest, FishingParticle_LifecycleEnd) {
  * 注意：工厂函数需要在客户端初始化时通过 registerBuiltinParticleFactories() 注册
  * 此测试仅验证类型元数据已注册
  */
-TEST(ParticleRegistryTest, FishingParticleRegistration) {
+TEST(ParticleRegistryTest, FishingParticleRegistration)
+{
     auto& registry = ParticleRegistry::instance();
 
     // 检查类型已注册

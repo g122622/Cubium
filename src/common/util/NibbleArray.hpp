@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../core/Types.hpp"
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 namespace mc {
 
@@ -168,17 +168,13 @@ public:
      * @brief 获取数据指针
      * @return 数据指针，如果为空返回nullptr
      */
-    [[nodiscard]] const u8* rawData() const noexcept {
-        return m_data.empty() ? nullptr : m_data.data();
-    }
+    [[nodiscard]] const u8* rawData() const noexcept { return m_data.empty() ? nullptr : m_data.data(); }
 
     /**
      * @brief 获取数据指针（可变）
      * @return 数据指针，如果为空返回nullptr
      */
-    [[nodiscard]] u8* rawData() noexcept {
-        return m_data.empty() ? nullptr : m_data.data();
-    }
+    [[nodiscard]] u8* rawData() noexcept { return m_data.empty() ? nullptr : m_data.data(); }
 
     // ========================================================================
     // 工具方法
@@ -194,7 +190,8 @@ public:
      *
      * 索引公式: y * 256 + z * 16 + x (与MC一致)
      */
-    [[nodiscard]] static constexpr i32 getIndex(i32 x, i32 y, i32 z) {
+    [[nodiscard]] static constexpr i32 getIndex(i32 x, i32 y, i32 z)
+    {
         return (y & 0xF) << 8 | (z & 0xF) << 4 | (x & 0xF);
     }
 
@@ -219,8 +216,9 @@ private:
      * @param index 线性索引
      * @return 字节数组中的索引
      */
-    [[nodiscard]] static constexpr i32 getByteIndex(i32 index) {
-        return index >> 1;  // index / 2
+    [[nodiscard]] static constexpr i32 getByteIndex(i32 index)
+    {
+        return index >> 1; // index / 2
     }
 
     /**
@@ -228,9 +226,7 @@ private:
      * @param index 线性索引
      * @return 如果是低4位返回true
      */
-    [[nodiscard]] static constexpr bool isLowerNibble(i32 index) {
-        return (index & 1) == 0;
-    }
+    [[nodiscard]] static constexpr bool isLowerNibble(i32 index) { return (index & 1) == 0; }
 
     std::vector<u8> m_data;
 };

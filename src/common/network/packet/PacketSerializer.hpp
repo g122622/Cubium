@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
-#include <vector>
-#include <string>
-#include <cstring>
-#include <type_traits>
+#include "../../core/Types.hpp"
 #include <array>
+#include <cstring>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 namespace mc::network {
 
@@ -37,8 +37,9 @@ public:
     static u32 networkToHost32(u32 value);
     static u64 networkToHost64(u64 value);
 
-    template<typename T>
-    static T hostToNetwork(T value) {
+    template <typename T>
+    static T hostToNetwork(T value)
+    {
         static_assert(std::is_arithmetic_v<T>, "T must be arithmetic type");
         if constexpr (sizeof(T) == 2) {
             return static_cast<T>(hostToNetwork16(static_cast<u16>(value)));
@@ -51,8 +52,9 @@ public:
         }
     }
 
-    template<typename T>
-    static T networkToHost(T value) {
+    template <typename T>
+    static T networkToHost(T value)
+    {
         return hostToNetwork(value); // 转换是对称的
     }
 };
@@ -173,8 +175,9 @@ public:
      * @param dest 目标数组
      * @return 成功返回空，失败返回错误
      */
-    template<size_t N>
-    [[nodiscard]] Result<void> readBytesInto(std::array<u8, N>& dest) {
+    template <size_t N>
+    [[nodiscard]] Result<void> readBytesInto(std::array<u8, N>& dest)
+    {
         return readBytesInto(dest.data(), N);
     }
 

@@ -44,9 +44,7 @@ public:
      *
      * @return 附魔能力值
      */
-    [[nodiscard]] i32 getItemEnchantability() const override {
-        return m_tier.getEnchantability();
-    }
+    [[nodiscard]] i32 getItemEnchantability() const override { return m_tier.getEnchantability(); }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料
@@ -66,8 +64,7 @@ public:
      * @param repair 修复材料物品堆
      * @return 是否可以修复
      */
-    [[nodiscard]] bool getIsRepairable(const ItemStack& toRepair,
-                                        const ItemStack& repair) const override;
+    [[nodiscard]] bool getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const override;
 
 protected:
     const tier::IItemTier& m_tier;

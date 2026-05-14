@@ -1,17 +1,19 @@
 #include "FluidRegistry.hpp"
 #include "fluids/EmptyFluid.hpp"
-#include "fluids/WaterFluid.hpp"
 #include "fluids/LavaFluid.hpp"
+#include "fluids/WaterFluid.hpp"
 #include <algorithm>
 
 namespace mc::fluid {
 
-FluidRegistry& FluidRegistry::instance() {
+FluidRegistry& FluidRegistry::instance()
+{
     static FluidRegistry instance;
     return instance;
 }
 
-void FluidRegistry::initialize() {
+void FluidRegistry::initialize()
+{
     if (m_initialized) {
         return;
     }
@@ -45,28 +47,33 @@ void FluidRegistry::initialize() {
     m_initialized = true;
 }
 
-Fluid* FluidRegistry::getFluid(u32 fluidId) const {
+Fluid* FluidRegistry::getFluid(u32 fluidId) const
+{
     auto it = m_fluidsByNumericId.find(fluidId);
     return it != m_fluidsByNumericId.end() ? it->second : nullptr;
 }
 
-Fluid* FluidRegistry::getFluid(const ResourceLocation& id) const {
+Fluid* FluidRegistry::getFluid(const ResourceLocation& id) const
+{
     auto it = m_fluidsById.find(id);
     return it != m_fluidsById.end() ? it->second : nullptr;
 }
 
-FluidState* FluidRegistry::getFluidState(u32 stateId) const {
+FluidState* FluidRegistry::getFluidState(u32 stateId) const
+{
     auto it = m_statesById.find(stateId);
     return it != m_statesById.end() ? it->second : nullptr;
 }
 
-void FluidRegistry::forEachFluid(std::function<void(Fluid&)> callback) {
+void FluidRegistry::forEachFluid(std::function<void(Fluid&)> callback)
+{
     for (auto& fluid : m_fluids) {
         callback(*fluid);
     }
 }
 
-void FluidRegistry::forEachFluidState(std::function<void(const FluidState&)> callback) {
+void FluidRegistry::forEachFluidState(std::function<void(const FluidState&)> callback)
+{
     // 遍历所有流体的所有状态
     for (const auto& fluid : m_fluids) {
         const auto& container = fluid->stateContainer();
@@ -76,7 +83,8 @@ void FluidRegistry::forEachFluidState(std::function<void(const FluidState&)> cal
     }
 }
 
-void FluidRegistry::registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId) {
+void FluidRegistry::registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId)
+{
     // 设置流体属性
     fluid->m_fluidLocation = id;
     fluid->m_fluidId = fluidId;

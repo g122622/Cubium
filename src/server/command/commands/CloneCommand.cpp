@@ -2,22 +2,22 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/WorldConstants.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include <algorithm>
+#include <deque>
 #include <sstream>
 #include <vector>
-#include <deque>
-#include <algorithm>
 
 namespace mc {
 namespace command {
@@ -29,7 +29,8 @@ namespace {
  *
  * 参考 MC 1.16.5 ServerWorld.isAreaLoaded
  */
-bool isAreaLoaded(IWorld& world, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ) {
+bool isAreaLoaded(IWorld& world, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
+{
     for (i32 x = minX; x <= maxX; x += 16) {
         for (i32 z = minZ; z <= maxZ; z += 16) {
             ChunkCoord chunkX = world::toChunkCoord(x);
@@ -45,11 +46,20 @@ bool isAreaLoaded(IWorld& world, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 max
 /**
  * @brief 检查两个边界框是否重叠
  */
-bool boxesOverlap(i32 min1X, i32 min1Y, i32 min1Z, i32 max1X, i32 max1Y, i32 max1Z,
-                  i32 min2X, i32 min2Y, i32 min2Z, i32 max2X, i32 max2Y, i32 max2Z) {
-    return min1X <= max2X && max1X >= min2X &&
-           min1Y <= max2Y && max1Y >= min2Y &&
-           min1Z <= max2Z && max1Z >= min2Z;
+bool boxesOverlap(i32 min1X,
+    i32 min1Y,
+    i32 min1Z,
+    i32 max1X,
+    i32 max1Y,
+    i32 max1Z,
+    i32 min2X,
+    i32 min2Y,
+    i32 min2Z,
+    i32 max2X,
+    i32 max2Y,
+    i32 max2Z)
+{
+    return min1X <= max2X && max1X >= min2X && min1Y <= max2Y && max1Y >= min2Y && min1Z <= max2Z && max1Z >= min2Z;
 }
 
 /**
@@ -63,7 +73,10 @@ struct BlockInfo {
     nlohmann::json tileEntityData;
 
     BlockInfo(const BlockPos& p, const BlockState* s, const nlohmann::json& data)
-        : pos(p), state(s), tileEntityData(data) {}
+        : pos(p)
+        , state(s)
+        , tileEntityData(data)
+    {}
 };
 
 /**
@@ -72,9 +85,13 @@ struct BlockInfo {
  * 参考 MC 1.16.5 CloneCommand.doClone
  */
 i32 executeClone(CommandContext<ServerCommandSource>& context,
-            const BlockPos& beginPos, const BlockPos& endPos, const BlockPos& destPos,
-            FilterMode filterMode, CloneMode cloneMode,
-            const BlockState* filterState = nullptr) {
+    const BlockPos& beginPos,
+    const BlockPos& endPos,
+    const BlockPos& destPos,
+    FilterMode filterMode,
+    CloneMode cloneMode,
+    const BlockState* filterState = nullptr)
+{
     auto& source = context.getSource();
 
     // 获取世界
@@ -102,8 +119,18 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
 
     // 检查重叠（normal 模式不允许重叠）
     if (cloneMode == CloneMode::Normal) {
-        if (boxesOverlap(srcMinX, srcMinY, srcMinZ, srcMaxX, srcMaxY, srcMaxZ,
-                         destPos.x, destPos.y, destPos.z, destMaxX, destMaxY, destMaxZ)) {
+        if (boxesOverlap(srcMinX,
+                srcMinY,
+                srcMinZ,
+                srcMaxX,
+                srcMaxY,
+                srcMaxZ,
+                destPos.x,
+                destPos.y,
+                destPos.z,
+                destMaxX,
+                destMaxY,
+                destMaxZ)) {
             source.sendError("commands.clone.overlap");
             return 0;
         }
@@ -168,7 +195,8 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
                         shouldCopy = !state->isAir();
                         break;
                     case FilterMode::Filtered:
-                        if (filterState != nullptr && state->getBlock().blockId() == filterState->getBlock().blockId()) {
+                        if (filterState != nullptr &&
+                            state->getBlock().blockId() == filterState->getBlock().blockId()) {
                             shouldCopy = true;
                         }
                         break;
@@ -189,8 +217,7 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
                     tileEntity->save(tileData);
                     tileEntityBlocks.emplace_back(destBlockPos, state, tileData);
                     sourcePositions.push_back(BlockPos(x, y, z));
-                } else if (!state->isOpaqueCube(*world, BlockPos(x, y, z)) &&
-                           !state->hasOpaqueCollisionShape()) {
+                } else if (!state->isOpaqueCube(*world, BlockPos(x, y, z)) && !state->hasOpaqueCollisionShape()) {
                     // 透明或不完整碰撞的方块
                     transparentBlocks.emplace_back(destBlockPos, state, nlohmann::json());
                     sourcePositions.push_front(BlockPos(x, y, z));
@@ -282,46 +309,33 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
 
 } // namespace
 
-void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto cloneNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clone");
-    cloneNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        cloneNode,
-        support::makeMetadata(
-            "Clones blocks from one region to another.",
+    cloneNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(cloneNode,
+        support::makeMetadata("Clones blocks from one region to another.",
             "/clone <begin> <end> <destination> [replace|masked|filtered] [normal|force|move]",
             2,
             {},
             false));
 
     // /clone <begin> <end> <destination>
-    auto beginArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "begin",
-        BlockPosArgumentType::blockPos()
-    );
+    auto beginArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("begin", BlockPosArgumentType::blockPos());
 
-    auto endArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "end",
-        BlockPosArgumentType::blockPos()
-    );
+    auto endArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("end", BlockPosArgumentType::blockPos());
 
     auto destArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "destination",
-        BlockPosArgumentType::blockPos()
-    );
+        "destination", BlockPosArgumentType::blockPos());
 
     // 默认执行：replace + normal
-    destArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneDefault(ctx);
-    });
+    destArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return doCloneDefault(ctx); });
 
     // ============ replace 模式 ============
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneDefault(ctx);
-    });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return doCloneDefault(ctx); });
 
     // /clone ... replace force
     auto replaceForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
@@ -376,30 +390,24 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     // ============ filtered 模式 ============
     auto filteredNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("filtered");
     auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
-        "filter",
-        BlockStateArgumentType::blockState()
-    );
-    filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneFilteredStatic(ctx, CloneMode::Normal);
-    });
+        "filter", BlockStateArgumentType::blockState());
+    filterArg->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Normal); });
 
     // /clone ... filtered <filter> force
     auto filteredForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
-    filteredForceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneFilteredStatic(ctx, CloneMode::Force);
-    });
+    filteredForceNode->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Force); });
 
     // /clone ... filtered <filter> move
     auto filteredMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
-    filteredMoveNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneFilteredStatic(ctx, CloneMode::Move);
-    });
+    filteredMoveNode->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Move); });
 
     // /clone ... filtered <filter> normal
     auto filteredNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
-    filteredNormalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneFilteredStatic(ctx, CloneMode::Normal);
-    });
+    filteredNormalNode->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Normal); });
 
     filterArg->addChild(filteredForceNode);
     filterArg->addChild(filteredMoveNode);
@@ -417,16 +425,19 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     dispatcher.registerCommand(cloneNode);
 }
 
-i32 CloneCommand::cloneBlocks(CommandContext<ServerCommandSource>& context) {
+i32 CloneCommand::cloneBlocks(CommandContext<ServerCommandSource>& context)
+{
     return doCloneDefault(context);
 }
 
-i32 CloneCommand::doCloneDefault(CommandContext<ServerCommandSource>& context) {
+i32 CloneCommand::doCloneDefault(CommandContext<ServerCommandSource>& context)
+{
     return doCloneStatic(context, FilterMode::Replace, CloneMode::Normal);
 }
 
-i32 CloneCommand::doCloneStatic(CommandContext<ServerCommandSource>& context,
-                          FilterMode filterMode, CloneMode cloneMode) {
+i32 CloneCommand::doCloneStatic(
+    CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode)
+{
     const Vector3i& begin = context.getArgument<Vector3i>("begin");
     const Vector3i& end = context.getArgument<Vector3i>("end");
     const Vector3i& dest = context.getArgument<Vector3i>("destination");
@@ -438,7 +449,8 @@ i32 CloneCommand::doCloneStatic(CommandContext<ServerCommandSource>& context,
     return executeClone(context, beginPos, endPos, destPos, filterMode, cloneMode);
 }
 
-i32 CloneCommand::doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode) {
+i32 CloneCommand::doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode)
+{
     const Vector3i& begin = context.getArgument<Vector3i>("begin");
     const Vector3i& end = context.getArgument<Vector3i>("end");
     const Vector3i& dest = context.getArgument<Vector3i>("destination");
@@ -448,8 +460,7 @@ i32 CloneCommand::doCloneFilteredStatic(CommandContext<ServerCommandSource>& con
     BlockPos endPos(end.x, end.y, end.z);
     BlockPos destPos(dest.x, dest.y, dest.z);
 
-    return executeClone(context, beginPos, endPos, destPos,
-                                   FilterMode::Filtered, cloneMode, filterInput.state());
+    return executeClone(context, beginPos, endPos, destPos, FilterMode::Filtered, cloneMode, filterInput.state());
 }
 
 } // namespace command

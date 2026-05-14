@@ -17,7 +17,8 @@ PlayerInventoryPacket::PlayerInventoryPacket(const PlayerInventory& inventory)
     }
 }
 
-void PlayerInventoryPacket::serialize(network::PacketSerializer& ser) const {
+void PlayerInventoryPacket::serialize(network::PacketSerializer& ser) const
+{
     // 写入选中的快捷栏槽位
     ser.writeVarInt(m_selectedSlot);
 
@@ -30,7 +31,8 @@ void PlayerInventoryPacket::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<PlayerInventoryPacket> PlayerInventoryPacket::deserialize(network::PacketDeserializer& deser) {
+Result<PlayerInventoryPacket> PlayerInventoryPacket::deserialize(network::PacketDeserializer& deser)
+{
     PlayerInventoryPacket packet;
 
     // 读入选中的快捷栏槽位

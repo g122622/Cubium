@@ -1,8 +1,8 @@
 #include "FrameManager.hpp"
 #include "../TridentContext.hpp"
 #include "../TridentSwapchain.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident {
 
@@ -12,7 +12,8 @@ namespace mc::client::renderer::trident {
 
 FrameManager::FrameManager() = default;
 
-FrameManager::~FrameManager() {
+FrameManager::~FrameManager()
+{
     destroy();
 }
 
@@ -35,7 +36,8 @@ FrameManager::FrameManager(FrameManager&& other) noexcept
     other.m_initialized = false;
 }
 
-FrameManager& FrameManager::operator=(FrameManager&& other) noexcept {
+FrameManager& FrameManager::operator=(FrameManager&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -62,7 +64,8 @@ FrameManager& FrameManager::operator=(FrameManager&& other) noexcept {
 // 初始化
 // ============================================================================
 
-Result<void> FrameManager::initialize(TridentContext* context, u32 maxFramesInFlight) {
+Result<void> FrameManager::initialize(TridentContext* context, u32 maxFramesInFlight)
+{
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "FrameManager already initialized");
     }
@@ -92,7 +95,8 @@ Result<void> FrameManager::initialize(TridentContext* context, u32 maxFramesInFl
     return {};
 }
 
-void FrameManager::destroy() {
+void FrameManager::destroy()
+{
     if (!m_initialized) return;
 
     m_context->waitIdle();
@@ -110,7 +114,8 @@ void FrameManager::destroy() {
 // 帧管理
 // ============================================================================
 
-Result<u32> FrameManager::acquireNextImage(TridentSwapchain* swapchain) {
+Result<u32> FrameManager::acquireNextImage(TridentSwapchain* swapchain)
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "FrameManager not initialized");
     }
@@ -125,16 +130,10 @@ Result<u32> FrameManager::acquireNextImage(TridentSwapchain* swapchain) {
     }
 
     // 等待当前帧完成
-    vkWaitForFences(
-        m_context->device(),
-        1,
-        &m_inFlightFences[m_currentFrame],
-        VK_TRUE,
-        UINT64_MAX);
+    vkWaitForFences(m_context->device(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
     // 获取下一帧图像
-    VkResult result = vkAcquireNextImageKHR(
-        m_context->device(),
+    VkResult result = vkAcquireNextImageKHR(m_context->device(),
         swapchain->swapchain(),
         UINT64_MAX,
         m_imageAvailableSemaphores[m_currentFrame],
@@ -157,7 +156,8 @@ Result<u32> FrameManager::acquireNextImage(TridentSwapchain* swapchain) {
     }
 }
 
-Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain) {
+Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain)
+{
     if (!m_frameStarted) {
         return Error(ErrorCode::InvalidState, "Frame not started");
     }
@@ -166,8 +166,7 @@ Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain) {
         return Error(ErrorCode::NullPointer, "Swapchain is null");
     }
 
-    if (m_imageIndex >= m_commandBuffers.size() ||
-        m_imageIndex >= m_renderFinishedSemaphores.size()) {
+    if (m_imageIndex >= m_commandBuffers.size() || m_imageIndex >= m_renderFinishedSemaphores.size()) {
         return Error(ErrorCode::InvalidState, "Frame resources not initialized for current image index");
     }
 
@@ -175,26 +174,22 @@ Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain) {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrame] };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphores[m_currentFrame]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_commandBuffers[m_imageIndex];
 
-    VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_imageIndex] };
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_imageIndex]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     // 重置栅栏
     vkResetFences(m_context->device(), 1, &m_inFlightFences[m_currentFrame]);
 
-    VkResult result = vkQueueSubmit(
-        m_context->graphicsQueue(),
-        1,
-        &submitInfo,
-        m_inFlightFences[m_currentFrame]);
+    VkResult result = vkQueueSubmit(m_context->graphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
 
     if (result != VK_SUCCESS) {
         return Error(ErrorCode::OperationFailed, "Failed to submit draw command buffer: " + std::to_string(result));
@@ -229,7 +224,8 @@ Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain) {
     return {};
 }
 
-void FrameManager::beginFrame() {
+void FrameManager::beginFrame()
+{
     if (m_frameStarted) return;
 
     if (m_imageIndex >= m_commandBuffers.size()) {
@@ -248,7 +244,8 @@ void FrameManager::beginFrame() {
     m_frameStarted = true;
 }
 
-void FrameManager::endFrame() {
+void FrameManager::endFrame()
+{
     if (!m_frameStarted) return;
 
     if (m_imageIndex >= m_commandBuffers.size()) {
@@ -260,32 +257,31 @@ void FrameManager::endFrame() {
     // 注意：不在这里设置 m_frameStarted = false，因为 submitAndPresent 会处理
 }
 
-void FrameManager::waitForFrame(u32 frameIndex) {
+void FrameManager::waitForFrame(u32 frameIndex)
+{
     if (frameIndex >= m_maxFramesInFlight) return;
 
-    vkWaitForFences(
-        m_context->device(),
-        1,
-        &m_inFlightFences[frameIndex],
-        VK_TRUE,
-        UINT64_MAX);
+    vkWaitForFences(m_context->device(), 1, &m_inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
 }
 
-VkCommandBuffer FrameManager::currentCommandBuffer() const {
+VkCommandBuffer FrameManager::currentCommandBuffer() const
+{
     if (m_imageIndex < m_commandBuffers.size()) {
         return m_commandBuffers[m_imageIndex];
     }
     return VK_NULL_HANDLE;
 }
 
-VkSemaphore FrameManager::imageAvailableSemaphore(u32 frameIndex) const {
+VkSemaphore FrameManager::imageAvailableSemaphore(u32 frameIndex) const
+{
     if (frameIndex < m_imageAvailableSemaphores.size()) {
         return m_imageAvailableSemaphores[frameIndex];
     }
     return VK_NULL_HANDLE;
 }
 
-VkSemaphore FrameManager::renderFinishedSemaphore(u32 imageIndex) const {
+VkSemaphore FrameManager::renderFinishedSemaphore(u32 imageIndex) const
+{
     if (imageIndex < m_renderFinishedSemaphores.size()) {
         return m_renderFinishedSemaphores[imageIndex];
     }
@@ -296,7 +292,8 @@ VkSemaphore FrameManager::renderFinishedSemaphore(u32 imageIndex) const {
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> FrameManager::createCommandPool() {
+Result<void> FrameManager::createCommandPool()
+{
     const auto& queueFamilies = m_context->queueFamilies();
 
     VkCommandPoolCreateInfo poolInfo{};
@@ -312,13 +309,15 @@ Result<void> FrameManager::createCommandPool() {
     return {};
 }
 
-Result<void> FrameManager::createCommandBuffers() {
+Result<void> FrameManager::createCommandBuffers()
+{
     // 需要在交换链创建后调用，这里预留接口
     // 实际命令缓冲区数量取决于交换链图像数量
     return {};
 }
 
-Result<void> FrameManager::createSyncObjects() {
+Result<void> FrameManager::createSyncObjects()
+{
     m_imageAvailableSemaphores.resize(m_maxFramesInFlight);
     m_inFlightFences.resize(m_maxFramesInFlight);
 
@@ -349,7 +348,8 @@ Result<void> FrameManager::createSyncObjects() {
     return {};
 }
 
-Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain) {
+Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain)
+{
     if (!swapchain) {
         return Error(ErrorCode::NullPointer, "Swapchain is null");
     }
@@ -365,10 +365,7 @@ Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain)
     if (m_commandBuffers.size() != imageCount) {
         if (!m_commandBuffers.empty()) {
             vkFreeCommandBuffers(
-                device,
-                m_commandPool,
-                static_cast<u32>(m_commandBuffers.size()),
-                m_commandBuffers.data());
+                device, m_commandPool, static_cast<u32>(m_commandBuffers.size()), m_commandBuffers.data());
             m_commandBuffers.clear();
         }
 
@@ -383,7 +380,8 @@ Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain)
         VkResult allocResult = vkAllocateCommandBuffers(device, &allocInfo, m_commandBuffers.data());
         if (allocResult != VK_SUCCESS) {
             m_commandBuffers.clear();
-            return Error(ErrorCode::OperationFailed, "Failed to allocate command buffers: " + std::to_string(allocResult));
+            return Error(
+                ErrorCode::OperationFailed, "Failed to allocate command buffers: " + std::to_string(allocResult));
         }
     }
 
@@ -410,7 +408,8 @@ Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain)
                     }
                 }
                 m_renderFinishedSemaphores.clear();
-                return Error(ErrorCode::OperationFailed, "Failed to create render-finished semaphore: " + std::to_string(semResult));
+                return Error(ErrorCode::OperationFailed,
+                    "Failed to create render-finished semaphore: " + std::to_string(semResult));
             }
         }
     }
@@ -431,19 +430,22 @@ Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain)
 // 私有方法 - 销毁
 // ============================================================================
 
-void FrameManager::destroyCommandPool() {
+void FrameManager::destroyCommandPool()
+{
     if (m_commandPool != VK_NULL_HANDLE && m_context) {
         vkDestroyCommandPool(m_context->device(), m_commandPool, nullptr);
         m_commandPool = VK_NULL_HANDLE;
     }
 }
 
-void FrameManager::destroyCommandBuffers() {
+void FrameManager::destroyCommandBuffers()
+{
     // 命令缓冲区随命令池销毁而销毁
     m_commandBuffers.clear();
 }
 
-void FrameManager::destroySyncObjects() {
+void FrameManager::destroySyncObjects()
+{
     if (!m_context) return;
 
     VkDevice device = m_context->device();

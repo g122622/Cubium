@@ -1,16 +1,17 @@
 #include "item/crafting/RecipeLoader.hpp"
-#include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
-#include <fstream>
+#include "item/core/ItemRegistry.hpp"
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 
 namespace mc {
 
 namespace fs = std::filesystem;
 
-Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(const std::string& directoryPath,
-                                                                   ProgressCallback callback) {
+Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(
+    const std::string& directoryPath, ProgressCallback callback)
+{
     LoadResult result;
     m_lastResult = LoadResult{};
 
@@ -58,7 +59,8 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(const std::stri
     return result;
 }
 
-Result<ResourceLocation> RecipeLoader::loadRecipeFile(const std::string& filePath) {
+Result<ResourceLocation> RecipeLoader::loadRecipeFile(const std::string& filePath)
+{
     // 推导配方ID
     ResourceLocation id = pathToRecipeId(filePath);
 
@@ -76,15 +78,15 @@ Result<ResourceLocation> RecipeLoader::loadRecipeFile(const std::string& filePat
     return loadRecipeJson(id, jsonString);
 }
 
-Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id,
-                                                        const std::string& jsonString) {
+Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id, const std::string& jsonString)
+{
     // 解析JSON
     nlohmann::json json;
     try {
         json = nlohmann::json::parse(jsonString);
-    } catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::ResourceParseError,
-                     "JSON parse error in recipe " + id.toString() + ": " + e.what());
+    }
+    catch (const nlohmann::json::parse_error& e) {
+        return Error(ErrorCode::ResourceParseError, "JSON parse error in recipe " + id.toString() + ": " + e.what());
     }
 
     // 使用RecipeSerializers解析配方
@@ -95,14 +97,14 @@ Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id
 
     // 注册到RecipeManager
     if (!crafting::RecipeManager::instance().registerRecipe(recipeResult.value())) {
-        return Error(ErrorCode::AlreadyExists,
-                     "Recipe already registered: " + id.toString());
+        return Error(ErrorCode::AlreadyExists, "Recipe already registered: " + id.toString());
     }
 
     return id;
 }
 
-Result<RecipeLoader::LoadResult> RecipeLoader::loadVanillaRecipes() {
+Result<RecipeLoader::LoadResult> RecipeLoader::loadVanillaRecipes()
+{
     LoadResult result;
     m_lastResult = LoadResult{};
 
@@ -164,7 +166,8 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadVanillaRecipes() {
     return result;
 }
 
-ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const {
+ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
+{
     // 将文件路径转换为配方ID
     // 例如: "data/minecraft/recipes/crafting_table.json" -> "minecraft:crafting_table"
 
@@ -173,7 +176,7 @@ ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
 
     // 尝试从路径中提取命名空间
     // 假设路径格式为 .../data/<namespace>/recipes/<path>.json
-    std::string namespace_ = "minecraft";  // 默认命名空间
+    std::string namespace_ = "minecraft"; // 默认命名空间
     std::string recipePath = filename;
 
     // 查找 "recipes" 目录
@@ -184,7 +187,7 @@ ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
 
     if (!current.empty()) {
         // 找到recipes目录，检查上一级是否是data
-        current = current.parent_path();  // 上一级
+        current = current.parent_path(); // 上一级
         if (!current.empty() && current.filename() != "data") {
             namespace_ = current.filename().string();
         }

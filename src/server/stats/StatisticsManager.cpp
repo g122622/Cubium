@@ -6,7 +6,8 @@ namespace mc {
 namespace server {
 namespace stats {
 
-Result<StatisticsManager> StatisticsManager::fromNbt(const nbt::tags::compound_tag& tag) {
+Result<StatisticsManager> StatisticsManager::fromNbt(const nbt::tags::compound_tag& tag)
+{
     StatisticsManager manager;
 
     // NBT 结构：
@@ -64,7 +65,8 @@ Result<StatisticsManager> StatisticsManager::fromNbt(const nbt::tags::compound_t
     return manager;
 }
 
-nbt::tags::compound_tag StatisticsManager::toNbt() const {
+nbt::tags::compound_tag StatisticsManager::toNbt() const
+{
     nbt::tags::compound_tag root;
 
     // 按类型分组
@@ -72,7 +74,7 @@ nbt::tags::compound_tag StatisticsManager::toNbt() const {
 
     for (const auto& [fullId, value] : m_stats) {
         if (value == 0) {
-            continue;  // 跳过零值
+            continue; // 跳过零值
         }
 
         // 解析完整ID获取类型和ID
@@ -122,12 +124,14 @@ nbt::tags::compound_tag StatisticsManager::toNbt() const {
     return root;
 }
 
-StatisticsManager::ValueType StatisticsManager::getValue(StatType type, const ResourceLocation& id) const {
+StatisticsManager::ValueType StatisticsManager::getValue(StatType type, const ResourceLocation& id) const
+{
     ResourceLocation fullId = buildStatLocation(type, id);
     return getValue(fullId);
 }
 
-StatisticsManager::ValueType StatisticsManager::getValue(const ResourceLocation& fullId) const {
+StatisticsManager::ValueType StatisticsManager::getValue(const ResourceLocation& fullId) const
+{
     auto it = m_stats.find(fullId);
     if (it != m_stats.end()) {
         return it->second;
@@ -135,13 +139,15 @@ StatisticsManager::ValueType StatisticsManager::getValue(const ResourceLocation&
     return 0;
 }
 
-void StatisticsManager::setValue(StatType type, const ResourceLocation& id, ValueType value) {
+void StatisticsManager::setValue(StatType type, const ResourceLocation& id, ValueType value)
+{
     ResourceLocation fullId = buildStatLocation(type, id);
     m_stats[fullId] = value;
     m_dirty = true;
 }
 
-void StatisticsManager::increment(StatType type, const ResourceLocation& id, ValueType delta) {
+void StatisticsManager::increment(StatType type, const ResourceLocation& id, ValueType delta)
+{
     // 如果增量为0，不创建统计条目
     if (delta == 0) {
         return;
@@ -162,33 +168,38 @@ void StatisticsManager::increment(StatType type, const ResourceLocation& id, Val
     m_dirty = true;
 }
 
-void StatisticsManager::reset(StatType type, const ResourceLocation& id) {
+void StatisticsManager::reset(StatType type, const ResourceLocation& id)
+{
     ResourceLocation fullId = buildStatLocation(type, id);
     m_stats.erase(fullId);
     m_dirty = true;
 }
 
-void StatisticsManager::resetAll() {
+void StatisticsManager::resetAll()
+{
     m_stats.clear();
     m_dirty = true;
 }
 
-bool StatisticsManager::hasStat(StatType type, const ResourceLocation& id) const {
+bool StatisticsManager::hasStat(StatType type, const ResourceLocation& id) const
+{
     ResourceLocation fullId = buildStatLocation(type, id);
     return hasStat(fullId);
 }
 
-bool StatisticsManager::hasStat(const ResourceLocation& fullId) const {
+bool StatisticsManager::hasStat(const ResourceLocation& fullId) const
+{
     return m_stats.find(fullId) != m_stats.end();
 }
 
-std::unordered_map<ResourceLocation, StatisticsManager::ValueType>
-StatisticsManager::getAllStats() const {
+std::unordered_map<ResourceLocation, StatisticsManager::ValueType> StatisticsManager::getAllStats() const
+{
     return m_stats;
 }
 
-std::unordered_map<ResourceLocation, StatisticsManager::ValueType>
-StatisticsManager::getStatsByType(StatType type) const {
+std::unordered_map<ResourceLocation, StatisticsManager::ValueType> StatisticsManager::getStatsByType(
+    StatType type) const
+{
     std::unordered_map<ResourceLocation, ValueType> result;
 
     std::string prefix(getStatTypePrefix(type));
@@ -203,7 +214,8 @@ StatisticsManager::getStatsByType(StatType type) const {
     return result;
 }
 
-void StatisticsManager::forEach(const std::function<bool(const ResourceLocation&, ValueType)>& callback) const {
+void StatisticsManager::forEach(const std::function<bool(const ResourceLocation&, ValueType)>& callback) const
+{
     for (const auto& [id, value] : m_stats) {
         if (!callback(id, value)) {
             break;

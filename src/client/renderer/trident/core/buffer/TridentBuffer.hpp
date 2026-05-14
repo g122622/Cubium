@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../../api/buffer/IBuffer.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -36,10 +36,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> create(
-        TridentContext* context,
-        VkDeviceSize size,
-        VkBufferUsageFlags usage,
-        VkMemoryPropertyFlags properties);
+        TridentContext* context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 
     // IBuffer 接口实现
     void destroy() override;
@@ -63,9 +60,7 @@ protected:
     void* m_mapped = nullptr;
     api::BufferUsage m_usage = api::BufferUsage::Vertex;
 
-    [[nodiscard]] Result<u32> findMemoryType(
-        u32 typeFilter,
-        VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 };
 
 /**
@@ -134,10 +129,7 @@ public:
     /**
      * @brief 创建顶点缓冲区
      */
-    [[nodiscard]] Result<void> create(
-        TridentContext* context,
-        u64 size,
-        u32 vertexStride);
+    [[nodiscard]] Result<void> create(TridentContext* context, u64 size, u32 vertexStride);
 
     // IBuffer 接口实现
     void destroy() override;
@@ -185,10 +177,7 @@ public:
     /**
      * @brief 创建索引缓冲区
      */
-    [[nodiscard]] Result<void> create(
-        TridentContext* context,
-        u64 size,
-        api::IndexType type);
+    [[nodiscard]] Result<void> create(TridentContext* context, u64 size, api::IndexType type);
 
     // IBuffer 接口实现
     void destroy() override;
@@ -243,10 +232,7 @@ public:
      * @param frameCount 帧数（用于多帧轮换）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(
-        TridentContext* context,
-        u64 size,
-        u32 frameCount = 2);
+    [[nodiscard]] Result<void> create(TridentContext* context, u64 size, u32 frameCount = 2);
 
     // IBuffer 接口实现
     void destroy() override;
@@ -256,7 +242,10 @@ public:
     [[nodiscard]] void* map() override;
     void unmap() override;
     [[nodiscard]] Result<void> upload(const void* data, u64 size, u64 offset = 0) override;
-    [[nodiscard]] void* nativeHandle() const override { return m_buffers.empty() ? VK_NULL_HANDLE : m_buffers[m_currentFrame]; }
+    [[nodiscard]] void* nativeHandle() const override
+    {
+        return m_buffers.empty() ? VK_NULL_HANDLE : m_buffers[m_currentFrame];
+    }
 
     // IUniformBuffer 接口实现
     [[nodiscard]] u32 currentFrameIndex() const override { return m_currentFrame; }

@@ -1,33 +1,32 @@
 #include "FishBucketItem.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../world/fluid/Fluid.hpp"
-#include "../../../world/fluid/FluidRegistry.hpp"
-#include "../../../world/tick/manager/TickManager.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntityType.hpp"
 #include "../../../entity/entities/passive/fish/AbstractFishEntity.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../context/BlockItemUseContext.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../Items.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockPos.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/fluid/Fluid.hpp"
+#include "../../../world/fluid/FluidRegistry.hpp"
+#include "../../../world/tick/manager/TickManager.hpp"
+#include "../../Items.hpp"
+#include "../../context/BlockItemUseContext.hpp"
+#include "../../core/ItemStack.hpp"
 
 namespace mc {
 namespace item {
 
-FishBucketItem::FishBucketItem(
-    const char* fishTypeName,
-    const ItemProperties& properties)
+FishBucketItem::FishBucketItem(const char* fishTypeName, const ItemProperties& properties)
     : Item(properties)
-    , m_fishTypeName(fishTypeName) {
-}
+    , m_fishTypeName(fishTypeName)
+{}
 
-ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
+ActionResultType FishBucketItem::onItemUse(ItemUseContext& context)
+{
     IWorld& world = context.getWorld();
     BlockPos pos = context.blockPos();
     Direction face = context.face();
@@ -73,18 +72,15 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
     return ActionResultType::Fail;
 }
 
-ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     if (world.isClientSide()) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 
     // 检查玩家是否在水中
     if (player.isInWater()) {
-        BlockPos spawnPos(
-            static_cast<i32>(player.x()),
-            static_cast<i32>(player.y()),
-            static_cast<i32>(player.z())
-        );
+        BlockPos spawnPos(static_cast<i32>(player.x()), static_cast<i32>(player.y()), static_cast<i32>(player.z()));
 
         if (spawnFish(world, spawnPos)) {
             if (!player.isCreative()) {
@@ -99,7 +95,8 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
     return ItemActionResult::pass(player.getHeldItem(hand));
 }
 
-bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const {
+bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const
+{
     // 获取实体类型
     const entity::EntityType* fishType = entity::EntityRegistry::instance().getType(m_fishTypeName);
     if (fishType == nullptr) {
@@ -130,7 +127,8 @@ bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const {
     return true;
 }
 
-void FishBucketItem::returnEmptyBucket(Player& player, ItemStack& stack) const {
+void FishBucketItem::returnEmptyBucket(Player& player, ItemStack& stack) const
+{
     // 参考 MC 1.16.5 BucketItem.emptyBucket()
     // 如果物品堆已空，直接返回空桶
     if (stack.isEmpty() && Items::BUCKET != nullptr) {

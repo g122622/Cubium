@@ -14,43 +14,43 @@ enum class ScreenType : u8 {
     Unknown = 0,
 
     // 玩家背包
-    Inventory,           ///< 玩家背包（含2x2合成）
-    CreativeInventory,   ///< 创造模式背包
+    Inventory,         ///< 玩家背包（含2x2合成）
+    CreativeInventory, ///< 创造模式背包
 
     // 容器
-    Chest,               ///< 箱子
-    DoubleChest,         ///< 大箱子
-    ShulkerBox,          ///< 潜影盒
-    Barrel,              ///< 木桶
+    Chest,       ///< 箱子
+    DoubleChest, ///< 大箱子
+    ShulkerBox,  ///< 潜影盒
+    Barrel,      ///< 木桶
 
     // 工作台
-    CraftingTable,       ///< 工作台 (3x3合成)
-    Furnace,             ///< 熔炉
-    BlastFurnace,        ///< 高炉
-    Smoker,              ///< 烟熏炉
-    Anvil,               ///< 铁砧
-    Grindstone,          ///< 磨石
-    Stonecutter,         ///< 切石机
-    SmithingTable,       ///< 锻造台
-    Loom,                ///< 织布机
-    CartographyTable,    ///< 制图台
-    BrewingStand,        ///< 酿造台
-    EnchantingScreen,    ///< 附魔台
+    CraftingTable,    ///< 工作台 (3x3合成)
+    Furnace,          ///< 熔炉
+    BlastFurnace,     ///< 高炉
+    Smoker,           ///< 烟熏炉
+    Anvil,            ///< 铁砧
+    Grindstone,       ///< 磨石
+    Stonecutter,      ///< 切石机
+    SmithingTable,    ///< 锻造台
+    Loom,             ///< 织布机
+    CartographyTable, ///< 制图台
+    BrewingStand,     ///< 酿造台
+    EnchantingScreen, ///< 附魔台
 
     // 红石
-    Dispenser,           ///< 发射器
-    Dropper,             ///< 投掷器
-    Hopper,              ///< 漏斗
-    Beacon,              ///< 信标
+    Dispenser, ///< 发射器
+    Dropper,   ///< 投掷器
+    Hopper,    ///< 漏斗
+    Beacon,    ///< 信标
 
     // 其他
-    Sign,                ///< 告示牌
-    CommandBlock,        ///< 命令方块
-    StructureBlock,      ///< 结构方块
-    JigsawBlock,         ///< 拼图方块
-    Bed,                 ///< 床（交互）
+    Sign,           ///< 告示牌
+    CommandBlock,   ///< 命令方块
+    StructureBlock, ///< 结构方块
+    JigsawBlock,    ///< 拼图方块
+    Bed,            ///< 床（交互）
 
-    Count                ///< 类型数量
+    Count ///< 类型数量
 };
 
 /**

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Block.hpp"
-#include "../Material.hpp"
-#include "../BlockPos.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
 #include "../../../util/property/Properties.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
+#include "../Block.hpp"
+#include "../BlockPos.hpp"
+#include "../Material.hpp"
 #include <memory>
 
 namespace mc {
@@ -74,23 +74,19 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
-        const BlockRaycastResult& hit
-    ) override;
+        const BlockRaycastResult& hit) override;
 
     // ========== 红石 ==========
 
     /**
      * @brief 检查是否有红石比较器输入覆盖
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
-        return true;
-    }
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override { return true; }
 
     /**
      * @brief 获取红石比较器信号
@@ -100,10 +96,7 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] i32 getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 旋转和镜像 ==========
 
@@ -113,10 +106,7 @@ public:
      * @param rotation 旋转
      * @return 旋转后的状态
      */
-    [[nodiscard]] const BlockState& rotate(
-        const BlockState& state,
-        Rotation rotation
-    ) const override;
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
 
     /**
      * @brief 镜像方块状态
@@ -124,10 +114,7 @@ public:
      * @param mirror 镜像
      * @return 镜像后的状态
      */
-    [[nodiscard]] const BlockState& mirror(
-        const BlockState& state,
-        Mirror mirror
-    ) const override;
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     // ========== 静态工具方法 ==========
 

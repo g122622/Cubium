@@ -14,14 +14,14 @@
  * - 换行和反向布局测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
-#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
 #include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
 #include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
 #include <memory>
 #include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::layout;
@@ -38,11 +38,13 @@ using mc::i32;
 class TestWidget : public Widget {
 public:
     explicit TestWidget(const std::string& id = "", i32 w = 100, i32 h = 50)
-        : Widget(id) {
+        : Widget(id)
+    {
         setSize(w, h);
     }
 
-    void paint(PaintContext& /*ctx*/) override {
+    void paint(PaintContext& /*ctx*/) override
+    {
         // Mock implementation - do nothing
     }
 };
@@ -54,16 +56,16 @@ public:
 /**
  * @brief 创建一个固定尺寸的适配器
  */
-inline std::pair<std::unique_ptr<TestWidget>, std::unique_ptr<WidgetLayoutAdaptor>>
-createTestAdaptor(const std::string& id, i32 width, i32 height, const LayoutConstraints& constraints = LayoutConstraints{}) {
+inline std::pair<std::unique_ptr<TestWidget>, std::unique_ptr<WidgetLayoutAdaptor>> createTestAdaptor(
+    const std::string& id, i32 width, i32 height, const LayoutConstraints& constraints = LayoutConstraints{})
+{
     auto widget = std::make_unique<TestWidget>(id, width, height);
     auto adaptor = std::make_unique<WidgetLayoutAdaptor>(widget.get());
     adaptor->setConstraints(constraints);
 
     // 设置自定义测量函数，返回固定尺寸
-    adaptor->setMeasureFunc([width, height](WidgetLayoutAdaptor*, const MeasureSpec&, const MeasureSpec&) {
-        return Size(width, height);
-    });
+    adaptor->setMeasureFunc(
+        [width, height](WidgetLayoutAdaptor*, const MeasureSpec&, const MeasureSpec&) { return Size(width, height); });
 
     return {std::move(widget), std::move(adaptor)};
 }
@@ -74,11 +76,10 @@ createTestAdaptor(const std::string& id, i32 width, i32 height, const LayoutCons
 
 class FlexLayoutDetailedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        layout = std::make_unique<FlexLayout>();
-    }
+    void SetUp() override { layout = std::make_unique<FlexLayout>(); }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         layout.reset();
         widgets.clear();
         adaptors.clear();
@@ -87,8 +88,8 @@ protected:
     /**
      * @brief 添加一个测试 Widget
      */
-    WidgetLayoutAdaptor* addWidget(i32 width, i32 height,
-                                   const LayoutConstraints& constraints = LayoutConstraints{}) {
+    WidgetLayoutAdaptor* addWidget(i32 width, i32 height, const LayoutConstraints& constraints = LayoutConstraints{})
+    {
         std::string id = std::string("widget_") + std::to_string(idCounter++);
         auto [widget, adaptor] = createTestAdaptor(id, width, height, constraints);
         auto* ptr = adaptor.get();
@@ -100,7 +101,8 @@ protected:
     /**
      * @brief 获取所有适配器指针
      */
-    std::vector<WidgetLayoutAdaptor*> getAdaptors() {
+    std::vector<WidgetLayoutAdaptor*> getAdaptors()
+    {
         std::vector<WidgetLayoutAdaptor*> result;
         for (const auto& adaptor : adaptors) {
             result.push_back(adaptor.get());
@@ -118,7 +120,8 @@ protected:
 // 单元素布局测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, SingleElementBasic) {
+TEST_F(FlexLayoutDetailedTest, SingleElementBasic)
+{
     addWidget(100, 50);
     auto children = getAdaptors();
 
@@ -132,7 +135,8 @@ TEST_F(FlexLayoutDetailedTest, SingleElementBasic) {
     EXPECT_EQ(results[0].bounds.y, 0);
 }
 
-TEST_F(FlexLayoutDetailedTest, SingleElementCenter) {
+TEST_F(FlexLayoutDetailedTest, SingleElementCenter)
+{
     layout->setJustifyContent(JustifyContent::Center);
     layout->setAlignItems(Align::Center);
 
@@ -151,7 +155,8 @@ TEST_F(FlexLayoutDetailedTest, SingleElementCenter) {
     EXPECT_EQ(results[0].bounds.y, 125);
 }
 
-TEST_F(FlexLayoutDetailedTest, SingleElementEnd) {
+TEST_F(FlexLayoutDetailedTest, SingleElementEnd)
+{
     layout->setJustifyContent(JustifyContent::End);
     layout->setAlignItems(Align::End);
 
@@ -162,15 +167,16 @@ TEST_F(FlexLayoutDetailedTest, SingleElementEnd) {
     auto results = layout->compute(container, children);
 
     ASSERT_EQ(results.size(), 1u);
-    EXPECT_EQ(results[0].bounds.x, 300);  // 400 - 100
-    EXPECT_EQ(results[0].bounds.y, 250);  // 300 - 50
+    EXPECT_EQ(results[0].bounds.x, 300); // 400 - 100
+    EXPECT_EQ(results[0].bounds.y, 250); // 300 - 50
 }
 
 // ============================================================================
 // 多元素水平布局测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, MultipleElementsHorizontal) {
+TEST_F(FlexLayoutDetailedTest, MultipleElementsHorizontal)
+{
     addWidget(100, 50);
     addWidget(100, 50);
     addWidget(100, 50);
@@ -190,7 +196,8 @@ TEST_F(FlexLayoutDetailedTest, MultipleElementsHorizontal) {
     EXPECT_EQ(results[2].bounds.x, 200);
 }
 
-TEST_F(FlexLayoutDetailedTest, MultipleElementsWithGap) {
+TEST_F(FlexLayoutDetailedTest, MultipleElementsWithGap)
+{
     layout->setGap(10);
 
     addWidget(100, 50);
@@ -204,15 +211,16 @@ TEST_F(FlexLayoutDetailedTest, MultipleElementsWithGap) {
     ASSERT_EQ(results.size(), 3u);
 
     EXPECT_EQ(results[0].bounds.x, 0);
-    EXPECT_EQ(results[1].bounds.x, 110);  // 100 + 10
-    EXPECT_EQ(results[2].bounds.x, 220);  // 100 + 10 + 100 + 10
+    EXPECT_EQ(results[1].bounds.x, 110); // 100 + 10
+    EXPECT_EQ(results[2].bounds.x, 220); // 100 + 10 + 100 + 10
 }
 
 // ============================================================================
 // 垂直布局测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, VerticalLayout) {
+TEST_F(FlexLayoutDetailedTest, VerticalLayout)
+{
     layout->setDirection(Direction::Column);
     layout->setAlignItems(Align::Start);
 
@@ -231,7 +239,8 @@ TEST_F(FlexLayoutDetailedTest, VerticalLayout) {
     EXPECT_EQ(results[2].bounds.y, 100);
 }
 
-TEST_F(FlexLayoutDetailedTest, VerticalLayoutWithGap) {
+TEST_F(FlexLayoutDetailedTest, VerticalLayoutWithGap)
+{
     layout->setDirection(Direction::Column);
     layout->setGap(10);
     layout->setAlignItems(Align::Start);
@@ -246,14 +255,15 @@ TEST_F(FlexLayoutDetailedTest, VerticalLayoutWithGap) {
     ASSERT_EQ(results.size(), 2u);
 
     EXPECT_EQ(results[0].bounds.y, 0);
-    EXPECT_EQ(results[1].bounds.y, 60);  // 50 + 10
+    EXPECT_EQ(results[1].bounds.y, 60); // 50 + 10
 }
 
 // ============================================================================
 // 主轴对齐测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, JustifyContentCenter) {
+TEST_F(FlexLayoutDetailedTest, JustifyContentCenter)
+{
     layout->setJustifyContent(JustifyContent::Center);
     layout->setAlignItems(Align::Start);
 
@@ -271,7 +281,8 @@ TEST_F(FlexLayoutDetailedTest, JustifyContentCenter) {
     EXPECT_EQ(results[1].bounds.x, 200);
 }
 
-TEST_F(FlexLayoutDetailedTest, JustifyContentEnd) {
+TEST_F(FlexLayoutDetailedTest, JustifyContentEnd)
+{
     layout->setJustifyContent(JustifyContent::End);
     layout->setAlignItems(Align::Start);
 
@@ -288,7 +299,8 @@ TEST_F(FlexLayoutDetailedTest, JustifyContentEnd) {
     EXPECT_EQ(results[1].bounds.x, 300);
 }
 
-TEST_F(FlexLayoutDetailedTest, JustifyContentSpaceBetween) {
+TEST_F(FlexLayoutDetailedTest, JustifyContentSpaceBetween)
+{
     layout->setJustifyContent(JustifyContent::SpaceBetween);
     layout->setAlignItems(Align::Start);
 
@@ -307,7 +319,8 @@ TEST_F(FlexLayoutDetailedTest, JustifyContentSpaceBetween) {
     EXPECT_EQ(results[2].bounds.x, 400);
 }
 
-TEST_F(FlexLayoutDetailedTest, JustifyContentSpaceAround) {
+TEST_F(FlexLayoutDetailedTest, JustifyContentSpaceAround)
+{
     layout->setJustifyContent(JustifyContent::SpaceAround);
     layout->setAlignItems(Align::Start);
 
@@ -328,7 +341,8 @@ TEST_F(FlexLayoutDetailedTest, JustifyContentSpaceAround) {
 // 交叉轴对齐测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, AlignItemsStart) {
+TEST_F(FlexLayoutDetailedTest, AlignItemsStart)
+{
     layout->setAlignItems(Align::Start);
 
     addWidget(100, 50);
@@ -346,7 +360,8 @@ TEST_F(FlexLayoutDetailedTest, AlignItemsStart) {
     EXPECT_EQ(results[1].bounds.height, 80);
 }
 
-TEST_F(FlexLayoutDetailedTest, AlignItemsCenter) {
+TEST_F(FlexLayoutDetailedTest, AlignItemsCenter)
+{
     layout->setAlignItems(Align::Center);
 
     addWidget(100, 50);
@@ -367,7 +382,8 @@ TEST_F(FlexLayoutDetailedTest, AlignItemsCenter) {
     EXPECT_EQ(results[1].bounds.y, 110);
 }
 
-TEST_F(FlexLayoutDetailedTest, AlignItemsEnd) {
+TEST_F(FlexLayoutDetailedTest, AlignItemsEnd)
+{
     layout->setAlignItems(Align::End);
 
     addWidget(100, 50);
@@ -392,7 +408,8 @@ TEST_F(FlexLayoutDetailedTest, AlignItemsEnd) {
 // Flex Grow 测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, FlexGrow) {
+TEST_F(FlexLayoutDetailedTest, FlexGrow)
+{
     LayoutConstraints c1;
     addWidget(100, 50, c1);
 
@@ -415,7 +432,8 @@ TEST_F(FlexLayoutDetailedTest, FlexGrow) {
     EXPECT_GE(results[1].bounds.width, 100);
 }
 
-TEST_F(FlexLayoutDetailedTest, FlexGrowMultiple) {
+TEST_F(FlexLayoutDetailedTest, FlexGrowMultiple)
+{
     LayoutConstraints c1;
     c1.flex.grow = 1.0f;
     addWidget(100, 50, c1);
@@ -449,7 +467,8 @@ TEST_F(FlexLayoutDetailedTest, FlexGrowMultiple) {
 // 换行测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, WrapMultipleLines) {
+TEST_F(FlexLayoutDetailedTest, WrapMultipleLines)
+{
     layout->setWrap(Wrap::Wrap);
     layout->setAlignItems(Align::Start);
 
@@ -473,7 +492,8 @@ TEST_F(FlexLayoutDetailedTest, WrapMultipleLines) {
 // 反向布局测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, RowReverse) {
+TEST_F(FlexLayoutDetailedTest, RowReverse)
+{
     layout->setDirection(Direction::RowReverse);
 
     addWidget(100, 50);
@@ -490,7 +510,8 @@ TEST_F(FlexLayoutDetailedTest, RowReverse) {
     EXPECT_GT(results[1].bounds.x, results[2].bounds.x);
 }
 
-TEST_F(FlexLayoutDetailedTest, ColumnReverse) {
+TEST_F(FlexLayoutDetailedTest, ColumnReverse)
+{
     layout->setDirection(Direction::ColumnReverse);
 
     addWidget(100, 50);
@@ -511,7 +532,8 @@ TEST_F(FlexLayoutDetailedTest, ColumnReverse) {
 // 内边距测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, ContainerPadding) {
+TEST_F(FlexLayoutDetailedTest, ContainerPadding)
+{
     LayoutConstraints containerConstraints;
     containerConstraints.padding = Padding(20, 10);
 
@@ -532,39 +554,34 @@ TEST_F(FlexLayoutDetailedTest, ContainerPadding) {
 // 测量测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, MeasureHorizontal) {
+TEST_F(FlexLayoutDetailedTest, MeasureHorizontal)
+{
     addWidget(100, 50);
     addWidget(100, 80);
     auto children = getAdaptors();
 
-    Size size = layout->measure(
-        MeasureSpec::MakeUnspecified(),
-        MeasureSpec::MakeUnspecified(),
-        children
-    );
+    Size size = layout->measure(MeasureSpec::MakeUnspecified(), MeasureSpec::MakeUnspecified(), children);
 
     EXPECT_EQ(size.width, 200);
     EXPECT_EQ(size.height, 80);
 }
 
-TEST_F(FlexLayoutDetailedTest, MeasureVertical) {
+TEST_F(FlexLayoutDetailedTest, MeasureVertical)
+{
     layout->setDirection(Direction::Column);
 
     addWidget(100, 50);
     addWidget(150, 80);
     auto children = getAdaptors();
 
-    Size size = layout->measure(
-        MeasureSpec::MakeUnspecified(),
-        MeasureSpec::MakeUnspecified(),
-        children
-    );
+    Size size = layout->measure(MeasureSpec::MakeUnspecified(), MeasureSpec::MakeUnspecified(), children);
 
     EXPECT_EQ(size.width, 150);
     EXPECT_EQ(size.height, 130);
 }
 
-TEST_F(FlexLayoutDetailedTest, MeasureWithGap) {
+TEST_F(FlexLayoutDetailedTest, MeasureWithGap)
+{
     layout->setGap(10);
 
     addWidget(100, 50);
@@ -572,26 +589,19 @@ TEST_F(FlexLayoutDetailedTest, MeasureWithGap) {
     addWidget(100, 50);
     auto children = getAdaptors();
 
-    Size size = layout->measure(
-        MeasureSpec::MakeUnspecified(),
-        MeasureSpec::MakeUnspecified(),
-        children
-    );
+    Size size = layout->measure(MeasureSpec::MakeUnspecified(), MeasureSpec::MakeUnspecified(), children);
 
     EXPECT_EQ(size.width, 320);
     EXPECT_EQ(size.height, 50);
 }
 
-TEST_F(FlexLayoutDetailedTest, MeasureWithExactlySpec) {
+TEST_F(FlexLayoutDetailedTest, MeasureWithExactlySpec)
+{
     addWidget(100, 50);
     addWidget(100, 50);
     auto children = getAdaptors();
 
-    Size size = layout->measure(
-        MeasureSpec::MakeExactly(500),
-        MeasureSpec::MakeExactly(400),
-        children
-    );
+    Size size = layout->measure(MeasureSpec::MakeExactly(500), MeasureSpec::MakeExactly(400), children);
 
     EXPECT_EQ(size.width, 500);
     EXPECT_EQ(size.height, 400);
@@ -601,7 +611,8 @@ TEST_F(FlexLayoutDetailedTest, MeasureWithExactlySpec) {
 // 边界情况测试
 // ============================================================================
 
-TEST_F(FlexLayoutDetailedTest, EmptyChildrenCompute) {
+TEST_F(FlexLayoutDetailedTest, EmptyChildrenCompute)
+{
     std::vector<WidgetLayoutAdaptor*> children;
     Rect container(0, 0, 400, 300);
 
@@ -609,34 +620,29 @@ TEST_F(FlexLayoutDetailedTest, EmptyChildrenCompute) {
     EXPECT_TRUE(results.empty());
 }
 
-TEST_F(FlexLayoutDetailedTest, EmptyChildrenMeasure) {
+TEST_F(FlexLayoutDetailedTest, EmptyChildrenMeasure)
+{
     std::vector<WidgetLayoutAdaptor*> children;
 
-    Size size = layout->measure(
-        MeasureSpec::MakeUnspecified(),
-        MeasureSpec::MakeUnspecified(),
-        children
-    );
+    Size size = layout->measure(MeasureSpec::MakeUnspecified(), MeasureSpec::MakeUnspecified(), children);
 
     EXPECT_EQ(size.width, 0);
     EXPECT_EQ(size.height, 0);
 }
 
-TEST_F(FlexLayoutDetailedTest, EmptyChildrenMeasureExactly) {
+TEST_F(FlexLayoutDetailedTest, EmptyChildrenMeasureExactly)
+{
     std::vector<WidgetLayoutAdaptor*> children;
 
-    Size size = layout->measure(
-        MeasureSpec::MakeExactly(400),
-        MeasureSpec::MakeExactly(300),
-        children
-    );
+    Size size = layout->measure(MeasureSpec::MakeExactly(400), MeasureSpec::MakeExactly(300), children);
 
     // Exactly规格应该返回规格指定的尺寸
     EXPECT_EQ(size.width, 400);
     EXPECT_EQ(size.height, 300);
 }
 
-TEST_F(FlexLayoutDetailedTest, DisabledChild) {
+TEST_F(FlexLayoutDetailedTest, DisabledChild)
+{
     LayoutConstraints c1;
     addWidget(100, 50, c1);
 
@@ -652,7 +658,8 @@ TEST_F(FlexLayoutDetailedTest, DisabledChild) {
     ASSERT_EQ(results.size(), 2u);
 }
 
-TEST_F(FlexLayoutDetailedTest, ZeroSizeContainer) {
+TEST_F(FlexLayoutDetailedTest, ZeroSizeContainer)
+{
     addWidget(100, 50);
     auto children = getAdaptors();
 
@@ -662,7 +669,8 @@ TEST_F(FlexLayoutDetailedTest, ZeroSizeContainer) {
     ASSERT_EQ(results.size(), 1u);
 }
 
-TEST_F(FlexLayoutDetailedTest, LargeGap) {
+TEST_F(FlexLayoutDetailedTest, LargeGap)
+{
     layout->setGap(1000);
 
     addWidget(100, 50);

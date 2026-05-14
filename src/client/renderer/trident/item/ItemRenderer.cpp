@@ -1,7 +1,7 @@
 #include "ItemRenderer.hpp"
-#include "../gui/GuiRenderer.hpp"
-#include "../../../resource/ResourceManager.hpp"
 #include "../../../resource/ItemTextureAtlas.hpp"
+#include "../../../resource/ResourceManager.hpp"
+#include "../gui/GuiRenderer.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -14,12 +14,9 @@ ItemRenderer::ItemRenderer()
     : m_resourceManager(nullptr)
     , m_itemTextureAtlas(nullptr)
     , m_initialized(false)
-{
-}
+{}
 
-Result<void> ItemRenderer::initialize(
-    ResourceManager* resourceManager,
-    ItemTextureAtlas* itemTextureAtlas)
+Result<void> ItemRenderer::initialize(ResourceManager* resourceManager, ItemTextureAtlas* itemTextureAtlas)
 {
     if (resourceManager == nullptr) {
         return Error(ErrorCode::NullPointer, "ResourceManager is null");
@@ -33,7 +30,8 @@ Result<void> ItemRenderer::initialize(
     return {};
 }
 
-void ItemRenderer::renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64 x, f64 y, f64 size) {
+void ItemRenderer::renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64 x, f64 y, f64 size)
+{
     if (stack.isEmpty()) {
         return;
     }
@@ -46,7 +44,8 @@ void ItemRenderer::renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64
     renderItem(gui, item, x, y, size);
 }
 
-void ItemRenderer::renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f64 y, f64 size) {
+void ItemRenderer::renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f64 y, f64 size)
+{
     if (item == nullptr || !m_initialized) {
         return;
     }
@@ -62,15 +61,16 @@ void ItemRenderer::renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f6
     renderItem(gui, *region, x, y, size);
 }
 
-void ItemRenderer::renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f64 x, f64 y, f64 size) {
+void ItemRenderer::renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f64 x, f64 y, f64 size)
+{
     // 使用drawTexturedRect绘制物品纹理
     // 使用 alpha=254 的颜色，确保走物品纹理采样分支且保持可见
-    gui.drawTexturedRect(x, y, size, size,
-                         region.u0, region.v0, region.u1, region.v1,
-                         gui::GuiRenderer::ITEM_TEXTURE_COLOR);
+    gui.drawTexturedRect(
+        x, y, size, size, region.u0, region.v0, region.u1, region.v1, gui::GuiRenderer::ITEM_TEXTURE_COLOR);
 }
 
-bool ItemRenderer::isBlockItem(const Item* item) const {
+bool ItemRenderer::isBlockItem(const Item* item) const
+{
     if (item == nullptr) {
         return false;
     }
@@ -80,7 +80,8 @@ bool ItemRenderer::isBlockItem(const Item* item) const {
     return blockItem != nullptr;
 }
 
-const TextureRegion* ItemRenderer::getItemTextureRegion(const Item* item) const {
+const TextureRegion* ItemRenderer::getItemTextureRegion(const Item* item) const
+{
     if (item == nullptr || !m_initialized) {
         return nullptr;
     }

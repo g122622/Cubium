@@ -1,7 +1,7 @@
 #pragma once
 
-#include "block/BlockPos.hpp"
 #include "../core/Types.hpp"
+#include "block/BlockPos.hpp"
 #include <functional>
 
 namespace mc {
@@ -14,13 +14,20 @@ namespace mc {
  */
 class GlobalPos {
 public:
-    GlobalPos() : m_dimensionId(0), m_pos() {}
+    GlobalPos()
+        : m_dimensionId(0)
+        , m_pos()
+    {}
 
     GlobalPos(DimensionId dimensionId, const BlockPos& pos)
-        : m_dimensionId(dimensionId), m_pos(pos) {}
+        : m_dimensionId(dimensionId)
+        , m_pos(pos)
+    {}
 
     GlobalPos(DimensionId dimensionId, BlockCoord x, BlockCoord y, BlockCoord z)
-        : m_dimensionId(dimensionId), m_pos(x, y, z) {}
+        : m_dimensionId(dimensionId)
+        , m_pos(x, y, z)
+    {}
 
     [[nodiscard]] DimensionId getDimensionId() const { return m_dimensionId; }
     [[nodiscard]] const BlockPos& getPos() const { return m_pos; }
@@ -28,20 +35,17 @@ public:
     [[nodiscard]] BlockCoord y() const { return m_pos.y; }
     [[nodiscard]] BlockCoord z() const { return m_pos.z; }
 
-    bool operator==(const GlobalPos& other) const {
+    bool operator==(const GlobalPos& other) const
+    {
         return m_dimensionId == other.m_dimensionId && m_pos == other.m_pos;
     }
 
-    bool operator!=(const GlobalPos& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const GlobalPos& other) const { return !(*this == other); }
 
     /**
      * @brief 检查是否在同一维度
      */
-    [[nodiscard]] bool sameDimension(const GlobalPos& other) const {
-        return m_dimensionId == other.m_dimensionId;
-    }
+    [[nodiscard]] bool sameDimension(const GlobalPos& other) const { return m_dimensionId == other.m_dimensionId; }
 
 private:
     DimensionId m_dimensionId;
@@ -54,10 +58,12 @@ private:
 namespace std {
 template <>
 struct hash<mc::GlobalPos> {
-    size_t operator()(const mc::GlobalPos& pos) const {
+    size_t operator()(const mc::GlobalPos& pos) const
+    {
         size_t h1 = std::hash<int>{}(static_cast<int>(pos.getDimensionId()));
-        size_t h2 = std::hash<int>{}(static_cast<int>(pos.x())) ^ (std::hash<int>{}(static_cast<int>(pos.y())) << 1) ^ (std::hash<int>{}(static_cast<int>(pos.z())) << 2);
+        size_t h2 = std::hash<int>{}(static_cast<int>(pos.x())) ^ (std::hash<int>{}(static_cast<int>(pos.y())) << 1) ^
+            (std::hash<int>{}(static_cast<int>(pos.z())) << 2);
         return h1 ^ (h2 << 1);
     }
 };
-}
+} // namespace std

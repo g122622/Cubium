@@ -1,6 +1,6 @@
 #include "BlockEntityRenderer.hpp"
-#include "client/resource/BlockModelCache.hpp"
 #include "client/renderer/trident/core/texture/TridentTexture.hpp"
+#include "client/resource/BlockModelCache.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 
@@ -9,21 +9,13 @@ namespace mc::client::renderer::trident::blockentity {
 BlockEntityRendererHelper::BlockEntityRendererHelper() = default;
 BlockEntityRendererHelper::~BlockEntityRendererHelper() = default;
 
-bool BlockEntityRendererHelper::renderBlock(
-    const BlockState& state,
-    const BlockPos& pos,
-    u32 light)
+bool BlockEntityRendererHelper::renderBlock(const BlockState& state, const BlockPos& pos, u32 light)
 {
     return renderBlockWithOffset(state, pos, 0.0f, 0.0f, 0.0f, light);
 }
 
 bool BlockEntityRendererHelper::renderBlockWithOffset(
-    const BlockState& state,
-    const BlockPos& pos,
-    f32 offsetX,
-    f32 offsetY,
-    f32 offsetZ,
-    u32 light)
+    const BlockState& state, const BlockPos& pos, f32 offsetX, f32 offsetY, f32 offsetZ, u32 light)
 {
     if (!m_modelCache) {
         return false;
@@ -51,7 +43,8 @@ bool BlockEntityRendererHelper::renderBlockWithOffset(
     return true;
 }
 
-u32 BlockEntityRendererHelper::getLightAt(IWorld& world, const BlockPos& pos) {
+u32 BlockEntityRendererHelper::getLightAt(IWorld& world, const BlockPos& pos)
+{
     // 获取天空光和方块光
     const u32 skyLight = world.getSkyLight(pos);
     const u32 blockLight = world.getBlockLight(pos);

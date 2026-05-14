@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractArrowEntity.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "AbstractArrowEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -119,12 +119,12 @@ private:
      */
     bool shouldReturnToThrower();
 
-    ItemStack m_tridentStack;       // 三叉戟物品
-    bool m_hitBlock = false;        // 是否击中方块
-    bool m_returning = false;       // 是否在返回中
-    BlockPos m_hitBlockPos;         // 击中方块的坐标
-    u8 m_loyaltyLevel = 0;          // 忠诚附魔等级
-    i32 m_returningTicks = 0;       // 返回计时器
+    ItemStack m_tridentStack; // 三叉戟物品
+    bool m_hitBlock = false;  // 是否击中方块
+    bool m_returning = false; // 是否在返回中
+    BlockPos m_hitBlockPos;   // 击中方块的坐标
+    u8 m_loyaltyLevel = 0;    // 忠诚附魔等级
+    i32 m_returningTicks = 0; // 返回计时器
 };
 
 } // namespace entity

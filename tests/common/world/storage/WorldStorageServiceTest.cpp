@@ -1,18 +1,18 @@
-#include <gtest/gtest.h>
+#include "world/storage/WorldStorageService.hpp"
+#include "core/Types.hpp"
+#include "world/chunk/ChunkData.hpp"
+#include "world/storage/db/SectionCodec.hpp"
+#include "world/storage/db/SectionKey.hpp"
 #include <filesystem>
 #include <fstream>
-#include "world/storage/WorldStorageService.hpp"
-#include "world/storage/db/SectionKey.hpp"
-#include "world/storage/db/SectionCodec.hpp"
-#include "world/chunk/ChunkData.hpp"
-#include "core/Types.hpp"
+#include <gtest/gtest.h>
 
 namespace mc::world::storage {
 namespace {
 
 // 测试用生物群系 ID
 namespace TestBiomes {
-    constexpr BiomeId PLAINS = 1;
+constexpr BiomeId PLAINS = 1;
 }
 
 // 测试用临时目录
@@ -20,13 +20,15 @@ class StorageTestBase : public ::testing::Test {
 protected:
     std::filesystem::path testDir;
 
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建临时测试目录
         testDir = std::filesystem::temp_directory_path() / "mc_storage_test" / std::to_string(std::time(nullptr));
         std::filesystem::create_directories(testDir);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理测试目录
         if (std::filesystem::exists(testDir)) {
             std::error_code ec;
@@ -35,7 +37,8 @@ protected:
     }
 
     // 创建简单的测试 Section 数据
-    SectionData createTestSectionData(ChunkCoord x, ChunkCoord z, i8 sectionY, DimensionId dim, u32 fillBlockId = 1) {
+    SectionData createTestSectionData(ChunkCoord x, ChunkCoord z, i8 sectionY, DimensionId dim, u32 fillBlockId = 1)
+    {
         SectionData data;
         data.key = SectionKey(x, z, sectionY, dim);
 
@@ -57,9 +60,7 @@ protected:
 
 class WorldStorageServiceTest : public StorageTestBase {
 protected:
-    void SetUp() override {
-        StorageTestBase::SetUp();
-    }
+    void SetUp() override { StorageTestBase::SetUp(); }
 };
 
 TEST_F(WorldStorageServiceTest, OpenClose)
@@ -89,19 +90,19 @@ TEST_F(WorldStorageServiceTest, SectionManagerAccess)
 
     // 访问主世界的 SectionManager
     EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(0);  // Overworld
+        auto& mgr = storage.sectionManager(0); // Overworld
         (void)mgr;
     });
 
     // 访问下界的 SectionManager
     EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(1);  // Nether
+        auto& mgr = storage.sectionManager(1); // Nether
         (void)mgr;
     });
 
     // 访问末地的 SectionManager
     EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(2);  // The End
+        auto& mgr = storage.sectionManager(2); // The End
         (void)mgr;
     });
 
@@ -117,7 +118,7 @@ TEST_F(WorldStorageServiceTest, SaveAndLoadSection)
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);  // Overworld
+    auto& mgr = storage.sectionManager(0); // Overworld
 
     // 创建并保存 Section
     SectionKey key(0, 0, 0, 0);
@@ -150,18 +151,18 @@ TEST_F(WorldStorageServiceTest, MultipleSections)
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);  // Overworld
+    auto& mgr = storage.sectionManager(0); // Overworld
 
     // 保存多个 Section
     for (i32 cx = -1; cx <= 1; ++cx) {
         for (i32 cz = -1; cz <= 1; ++cz) {
             for (i8 sy = 0; sy < 3; ++sy) {
                 SectionKey key(cx, cz, sy, 0);
-                SectionData data = createTestSectionData(cx, cz, sy, 0,
-                    static_cast<u32>(cx * 100 + cz * 10 + sy));
+                SectionData data = createTestSectionData(cx, cz, sy, 0, static_cast<u32>(cx * 100 + cz * 10 + sy));
 
                 auto saveResult = mgr.saveSectionSync(key, data);
-                ASSERT_TRUE(saveResult.success()) << "Failed to save section at (" << cx << ", " << cz << ", " << static_cast<int>(sy) << ")";
+                ASSERT_TRUE(saveResult.success())
+                    << "Failed to save section at (" << cx << ", " << cz << ", " << static_cast<int>(sy) << ")";
             }
         }
     }
@@ -222,7 +223,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
 
     // 在不同维度保存 Section
     {
-        auto& overworld = storage.sectionManager(0);  // Overworld
+        auto& overworld = storage.sectionManager(0); // Overworld
         SectionKey key(0, 0, 0, 0);
         SectionData data = createTestSectionData(0, 0, 0, 0, 1);
         auto saveResult = overworld.saveSectionSync(key, data);
@@ -230,7 +231,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
     }
 
     {
-        auto& nether = storage.sectionManager(1);  // Nether
+        auto& nether = storage.sectionManager(1); // Nether
         SectionKey key(0, 0, 0, 1);
         SectionData data = createTestSectionData(0, 0, 0, 1, 2);
         auto saveResult = nether.saveSectionSync(key, data);
@@ -238,7 +239,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
     }
 
     {
-        auto& theEnd = storage.sectionManager(2);  // The End
+        auto& theEnd = storage.sectionManager(2); // The End
         SectionKey key(0, 0, 0, 2);
         SectionData data = createTestSectionData(0, 0, 0, 2, 3);
         auto saveResult = theEnd.saveSectionSync(key, data);

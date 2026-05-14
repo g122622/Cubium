@@ -1,18 +1,18 @@
 #pragma once
 
 #include "../core/Types.hpp"
-#include "block/BlockPos.hpp"
-#include "IWorldWriter.hpp"
-#include "../util/math/Vector3.hpp"
-#include "../util/AxisAlignedBB.hpp"
 #include "../resource/ResourceLocation.hpp"
 #include "../sound/SoundCategory.hpp"
+#include "../util/AxisAlignedBB.hpp"
+#include "../util/math/Vector3.hpp"
 #include "../util/math/random/Random.hpp"
-#include "tick/base/TickPriority.hpp"
-#include "explosion/ExplosionMode.hpp"
+#include "IWorldWriter.hpp"
+#include "block/BlockPos.hpp"
 #include "border/WorldBorder.hpp"
-#include <vector>
+#include "explosion/ExplosionMode.hpp"
+#include "tick/base/TickPriority.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -35,29 +35,29 @@ class TickManager;
 }
 
 namespace world::explosion {
-class Explosion;  // 前向声明
+class Explosion; // 前向声明
 }
 
 namespace world::village {
-class VillageManager;  // 前向声明
+class VillageManager; // 前向声明
 }
 
 namespace world::gamerule {
-class GameRules;  // 前向声明
+class GameRules; // 前向声明
 }
 
 namespace loot {
-class LootTableManager;  // 前向声明
+class LootTableManager; // 前向声明
 }
 
 namespace server {
-class ServerWorld;  // 前向声明，用于asServerWorld()
+class ServerWorld; // 前向声明，用于asServerWorld()
 }
 
 namespace fluid {
 class Fluid;
 class FluidState;
-}
+} // namespace fluid
 
 namespace client::renderer::trident::particle {
 enum class ParticleTypeId : u16;
@@ -94,7 +94,8 @@ public:
      * @param pos 方块位置
      * @return 方块状态指针，如果超出范围返回空气
      */
-    [[nodiscard]] virtual const BlockState* getBlockState(const BlockPos& pos) const {
+    [[nodiscard]] virtual const BlockState* getBlockState(const BlockPos& pos) const
+    {
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
@@ -107,7 +108,8 @@ public:
      * @param flags 更新标志
      * @return 是否成功
      */
-    bool setBlockState(const BlockPos& pos, const BlockState* state, i32 flags) {
+    bool setBlockState(const BlockPos& pos, const BlockState* state, i32 flags)
+    {
         return setBlockState(pos.x, pos.y, pos.z, state, flags);
     }
 
@@ -119,11 +121,13 @@ public:
      * @param pos 方块位置
      * @return 方块实体指针，如果不存在返回 nullptr
      */
-    [[nodiscard]] virtual BlockEntity* getBlockEntity(const BlockPos& pos) {
+    [[nodiscard]] virtual BlockEntity* getBlockEntity(const BlockPos& pos)
+    {
         (void)pos;
         return nullptr;
     }
-    [[nodiscard]] virtual const BlockEntity* getBlockEntity(const BlockPos& pos) const {
+    [[nodiscard]] virtual const BlockEntity* getBlockEntity(const BlockPos& pos) const
+    {
         (void)pos;
         return nullptr;
     }
@@ -135,7 +139,8 @@ public:
      * @param player 发起交互的玩家
      * @return 如果成功打开返回true
      */
-    [[nodiscard]] virtual bool openContainer(ContainerType type, const BlockPos& pos, Player& player) {
+    [[nodiscard]] virtual bool openContainer(ContainerType type, const BlockPos& pos, Player& player)
+    {
         (void)type;
         (void)pos;
         (void)player;
@@ -147,7 +152,8 @@ public:
      * @param pos 方块位置
      * @param entity 方块实体指针（获取所有权）
      */
-    virtual void setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
+    virtual void setBlockEntity(const BlockPos& pos, BlockEntity* entity)
+    {
         (void)pos;
         (void)entity;
     }
@@ -156,9 +162,7 @@ public:
      * @brief 移除方块实体
      * @param pos 方块位置
      */
-    virtual void removeBlockEntity(const BlockPos& pos) {
-        (void)pos;
-    }
+    virtual void removeBlockEntity(const BlockPos& pos) { (void)pos; }
 
     // ========== 方块更新 ==========
 
@@ -175,10 +179,10 @@ public:
      * @param isMoving 是否正在移动（活塞等）
      */
     void notifyNeighborChanged(const BlockPos& neighborPos,
-                                const BlockState& neighborState,
-                                Block& sourceBlock,
-                                const BlockPos& sourcePos,
-                                bool isMoving = false);
+        const BlockState& neighborState,
+        Block& sourceBlock,
+        const BlockPos& sourcePos,
+        bool isMoving = false);
 
     /**
      * @brief 通知相邻方块更新
@@ -217,7 +221,8 @@ public:
      * @param pos 方块位置
      * @return 流体状态指针，如果无流体返回空流体状态
      */
-    [[nodiscard]] virtual const fluid::FluidState* getFluidState(const BlockPos& pos) const {
+    [[nodiscard]] virtual const fluid::FluidState* getFluidState(const BlockPos& pos) const
+    {
         return getFluidState(pos.x, pos.y, pos.z);
     }
 
@@ -229,9 +234,7 @@ public:
     /**
      * @brief 检查位置是否有流体（使用 BlockPos）
      */
-    [[nodiscard]] virtual bool hasFluid(const BlockPos& pos) const {
-        return hasFluid(pos.x, pos.y, pos.z);
-    }
+    [[nodiscard]] virtual bool hasFluid(const BlockPos& pos) const { return hasFluid(pos.x, pos.y, pos.z); }
 
     /**
      * @brief 检查位置是否为水
@@ -241,9 +244,7 @@ public:
     /**
      * @brief 检查位置是否为水（使用 BlockPos）
      */
-    [[nodiscard]] virtual bool isWaterAt(const BlockPos& pos) const {
-        return isWaterAt(pos.x, pos.y, pos.z);
-    }
+    [[nodiscard]] virtual bool isWaterAt(const BlockPos& pos) const { return isWaterAt(pos.x, pos.y, pos.z); }
 
     /**
      * @brief 检查位置是否为岩浆
@@ -253,9 +254,7 @@ public:
     /**
      * @brief 检查位置是否为岩浆（使用 BlockPos）
      */
-    [[nodiscard]] virtual bool isLavaAt(const BlockPos& pos) const {
-        return isLavaAt(pos.x, pos.y, pos.z);
-    }
+    [[nodiscard]] virtual bool isLavaAt(const BlockPos& pos) const { return isLavaAt(pos.x, pos.y, pos.z); }
 
     // ========== 区块访问 ==========
 
@@ -282,10 +281,11 @@ public:
      * @param pitch 音调倍率
      */
     virtual void playSound(const ResourceLocation& soundEventId,
-                           sound::SoundCategory category,
-                           const Vector3& position,
-                           f32 volume,
-                           f32 pitch) {
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch)
+    {
         (void)soundEventId;
         (void)category;
         (void)position;
@@ -307,7 +307,8 @@ public:
      * @param pos 事件位置
      * @param data 事件数据（含义因事件而异）
      */
-    virtual void playEvent(i32 eventId, const BlockPos& pos, i32 data) {
+    virtual void playEvent(i32 eventId, const BlockPos& pos, i32 data)
+    {
         (void)eventId;
         (void)pos;
         (void)data;
@@ -336,9 +337,7 @@ public:
      * @param pos 方块位置
      * @return 光照等级 (0-15)
      */
-    [[nodiscard]] virtual u8 getBlockLight(const BlockPos& pos) const {
-        return getBlockLight(pos.x, pos.y, pos.z);
-    }
+    [[nodiscard]] virtual u8 getBlockLight(const BlockPos& pos) const { return getBlockLight(pos.x, pos.y, pos.z); }
 
     /**
      * @brief 获取天空光照
@@ -352,9 +351,7 @@ public:
      * @param pos 方块位置
      * @return 光照等级 (0-15)
      */
-    [[nodiscard]] virtual u8 getSkyLight(const BlockPos& pos) const {
-        return getSkyLight(pos.x, pos.y, pos.z);
-    }
+    [[nodiscard]] virtual u8 getSkyLight(const BlockPos& pos) const { return getSkyLight(pos.x, pos.y, pos.z); }
 
     /**
      * @brief 获取综合光照等级
@@ -368,7 +365,8 @@ public:
      * @param skyDarkening 天空光照衰减值（0-15，用于天气/时间影响）
      * @return 综合光照等级 (0-15)
      */
-    [[nodiscard]] virtual u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const {
+    [[nodiscard]] virtual u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const
+    {
         // 默认实现：返回方块光照和（天空光照-衰减）的最大值
         u8 blockLight = getBlockLight(pos);
         u8 skyLight = getSkyLight(pos);
@@ -389,7 +387,8 @@ public:
      * @param pos 方块位置
      * @return 如果该位置可以看到天空返回 true
      */
-    [[nodiscard]] virtual bool canSeeSky(const BlockPos& pos) const {
+    [[nodiscard]] virtual bool canSeeSky(const BlockPos& pos) const
+    {
         // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
         // 只有有天空光照的维度才能看到天空
         if (!hasSkyLight()) {
@@ -409,7 +408,8 @@ public:
      * @param pos 方块位置
      * @return 亮度因子 (0.0-1.0)
      */
-    [[nodiscard]] virtual f32 getBrightness(const BlockPos& pos) const {
+    [[nodiscard]] virtual f32 getBrightness(const BlockPos& pos) const
+    {
         // 默认实现：使用 getLightSubtracted(pos, 0) 计算亮度
         u8 light = getLightSubtracted(pos, 0);
         return static_cast<f32>(light) / 15.0f;
@@ -445,7 +445,8 @@ public:
      * @param pos 方块位置
      * @return 是否在世界边界内
      */
-    [[nodiscard]] virtual bool isWithinWorldBounds(const BlockPos& pos) const {
+    [[nodiscard]] virtual bool isWithinWorldBounds(const BlockPos& pos) const
+    {
         return isWithinWorldBounds(pos.x, pos.y, pos.z);
     }
 
@@ -503,11 +504,13 @@ public:
      *
      * 默认实现返回 nullptr。
      */
-    [[nodiscard]] virtual Entity* getEntity(EntityId id) {
+    [[nodiscard]] virtual Entity* getEntity(EntityId id)
+    {
         (void)id;
         return nullptr;
     }
-    [[nodiscard]] virtual const Entity* getEntity(EntityId id) const {
+    [[nodiscard]] virtual const Entity* getEntity(EntityId id) const
+    {
         (void)id;
         return nullptr;
     }
@@ -521,8 +524,7 @@ public:
      * @return 实体列表
      */
     [[nodiscard]] virtual std::vector<Entity*> getEntitiesInAABB(
-        const AxisAlignedBB& box,
-        const Entity* except = nullptr) const = 0;
+        const AxisAlignedBB& box, const Entity* except = nullptr) const = 0;
 
     /**
      * @brief 获取范围内的所有实体
@@ -532,17 +534,13 @@ public:
      * @return 实体列表
      */
     [[nodiscard]] virtual std::vector<Entity*> getEntitiesInRange(
-        const Vector3& pos,
-        f32 range,
-        const Entity* except = nullptr) const = 0;
+        const Vector3& pos, f32 range, const Entity* except = nullptr) const = 0;
 
     /**
      * @brief 获取所有玩家实体
      * @return 玩家实体列表
      */
-    [[nodiscard]] virtual std::vector<Entity*> getPlayers() const {
-        return {};
-    }
+    [[nodiscard]] virtual std::vector<Entity*> getPlayers() const { return {}; }
 
     // ========== 维度信息 ==========
 
@@ -556,8 +554,9 @@ public:
      *
      * 下界是超热维度，水会蒸发。MC 1.16.5 标准下界ID为 -1。
      */
-    [[nodiscard]] virtual bool isUltraWarm() const {
-        return dimension() == -1;  // DimensionManager::NETHER
+    [[nodiscard]] virtual bool isUltraWarm() const
+    {
+        return dimension() == -1; // DimensionManager::NETHER
     }
 
     /**
@@ -565,9 +564,7 @@ public:
      *
      * 当前默认开启，后续接入游戏规则后可由具体世界覆盖。
      */
-    [[nodiscard]] virtual bool doFireTick() const {
-        return true;
-    }
+    [[nodiscard]] virtual bool doFireTick() const { return true; }
 
     /**
      * @brief 获取世界种子
@@ -592,18 +589,14 @@ public:
      * MC 1.16.5: world.isDaytime()
      * dayTime < 12000 为白天 (0-11999 = 白天, 12000-23999 = 夜晚)
      */
-    [[nodiscard]] virtual bool isDaytime() const {
-        return dayTime() < 12000;
-    }
+    [[nodiscard]] virtual bool isDaytime() const { return dayTime() < 12000; }
 
     /**
      * @brief 获取游戏时间 (总tick数)
      *
      * 与 currentTick() 相同，提供更明确的语义。
      */
-    [[nodiscard]] virtual u64 getGameTime() const {
-        return currentTick();
-    }
+    [[nodiscard]] virtual u64 getGameTime() const { return currentTick(); }
 
     /**
      * @brief 检查是否为客户端世界
@@ -617,8 +610,9 @@ public:
      *
      * MC 1.16.5 标准：只有主世界(ID=0)有天空光照
      */
-    [[nodiscard]] virtual bool hasSkyLight() const {
-        return dimension() == 0;  // DimensionManager::OVERWORLD
+    [[nodiscard]] virtual bool hasSkyLight() const
+    {
+        return dimension() == 0; // DimensionManager::OVERWORLD
     }
 
     // ========== 难度 ==========
@@ -659,7 +653,8 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)，用于插值
      * @return 降雨强度 (0.0 - 1.0)
      */
-    [[nodiscard]] virtual f32 rainStrength(f32 partialTick = 0.0f) const {
+    [[nodiscard]] virtual f32 rainStrength(f32 partialTick = 0.0f) const
+    {
         (void)partialTick;
         return 0.0f;
     }
@@ -670,7 +665,8 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)，用于插值
      * @return 雷暴强度 (0.0 - 1.0)
      */
-    [[nodiscard]] virtual f32 thunderStrength(f32 partialTick = 0.0f) const {
+    [[nodiscard]] virtual f32 thunderStrength(f32 partialTick = 0.0f) const
+    {
         (void)partialTick;
         return 0.0f;
     }
@@ -683,7 +679,8 @@ public:
      * @param pos 方块位置
      * @return 是否可以降雨
      */
-    [[nodiscard]] virtual bool canRainAt(const BlockPos& pos) const {
+    [[nodiscard]] virtual bool canRainAt(const BlockPos& pos) const
+    {
         (void)pos;
         return false;
     }
@@ -696,7 +693,8 @@ public:
      * @param box 碰撞箱
      * @return 如果无碰撞返回true
      */
-    [[nodiscard]] virtual bool hasNoCollisions(const AxisAlignedBB& box) const {
+    [[nodiscard]] virtual bool hasNoCollisions(const AxisAlignedBB& box) const
+    {
         (void)box;
         return true;
     }
@@ -724,9 +722,8 @@ public:
      * @param velocity 粒子速度
      */
     virtual void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity) {
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+    {
         (void)type;
         (void)pos;
         (void)velocity;
@@ -743,12 +740,12 @@ public:
      * @param offset 随机偏移范围
      * @param count 粒子数量
      */
-    virtual void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
+    virtual void addParticle(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
-        u32 count) {
+        u32 count)
+    {
         (void)type;
         (void)pos;
         (void)velocity;
@@ -765,9 +762,8 @@ public:
      * @param maxDistance 最大距离（默认 256 格）
      * @return 是否应生成粒子
      */
-    [[nodiscard]] virtual bool shouldSpawnParticleAt(
-        const Vector3& pos,
-        f32 maxDistance = 256.0f) const {
+    [[nodiscard]] virtual bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const
+    {
         (void)pos;
         (void)maxDistance;
         return true;
@@ -786,12 +782,12 @@ public:
      * @param causesFire 是否生成火焰（默认 false）
      * @param source 爆炸源实体（可选）
      */
-    virtual void createExplosion(
-        const Vector3& position,
+    virtual void createExplosion(const Vector3& position,
         f32 radius,
         world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy,
         bool causesFire = false,
-        Entity* source = nullptr) {
+        Entity* source = nullptr)
+    {
         // 默认空操作，ServerWorld 会重写以实际执行爆炸
         (void)position;
         (void)radius;
@@ -862,7 +858,8 @@ public:
      * @param entityId 实体ID
      * @param status 状态码（如 EntityStatusPacket::Status::GuardianAttack）
      */
-    virtual void broadcastEntityStatus(EntityId entityId, u8 status) {
+    virtual void broadcastEntityStatus(EntityId entityId, u8 status)
+    {
         (void)entityId;
         (void)status;
     }
@@ -878,7 +875,8 @@ public:
      *
      * 参考 MC 1.16.5: ServerWorld.updateAllPlayersSleepingFlag()
      */
-    virtual void onPlayerSleepingChanged() {
+    virtual void onPlayerSleepingChanged()
+    {
         // 默认空实现
     }
 
@@ -898,8 +896,8 @@ public:
      * @param state 放置的方块状态
      * @param item 用于放置的物品（可能为null）
      */
-    virtual void onBlockPlaced(PlayerId playerId, const BlockPos& pos,
-                               const BlockState* state, const ItemStack* item) {
+    virtual void onBlockPlaced(PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack* item)
+    {
         (void)playerId;
         (void)pos;
         (void)state;
@@ -920,7 +918,8 @@ public:
      * @param zombie 治愈前的僵尸村民实体
      * @param villager 治愈后的村民实体
      */
-    virtual void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) {
+    virtual void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager)
+    {
         (void)starterUuid;
         (void)zombie;
         (void)villager;

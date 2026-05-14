@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../agricultural/BushBlock.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../agricultural/BushBlock.hpp"
 
 namespace mc {
 namespace blocks {
@@ -39,9 +39,7 @@ protected:
      * @brief 检查下方是否可支撑
      */
     [[nodiscard]] bool canSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const override;
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 };
 
 /**

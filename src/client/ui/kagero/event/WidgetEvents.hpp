@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Event.hpp"
 #include "../Types.hpp"
+#include "Event.hpp"
 
 namespace mc::client::ui::kagero::event {
 
@@ -12,11 +12,13 @@ namespace mc::client::ui::kagero::event {
  *
  * @tparam T 值类型
  */
-template<typename T>
+template <typename T>
 class ValueChangeEvent : public Event {
 public:
     ValueChangeEvent(const T& oldValue, const T& newValue, void* source = nullptr)
-        : m_oldValue(oldValue), m_newValue(newValue) {
+        : m_oldValue(oldValue)
+        , m_newValue(newValue)
+    {
         setTarget(source);
     }
 
@@ -37,7 +39,9 @@ private:
 class TextChangeEvent : public Event {
 public:
     TextChangeEvent(const std::string& oldText, const std::string& newText, void* source = nullptr)
-        : m_oldText(oldText), m_newText(newText) {
+        : m_oldText(oldText)
+        , m_newText(newText)
+    {
         setTarget(source);
     }
 
@@ -58,7 +62,8 @@ private:
 class ButtonClickEvent : public Event {
 public:
     explicit ButtonClickEvent(void* button = nullptr, i32 buttonIndex = 0)
-        : m_buttonIndex(buttonIndex) {
+        : m_buttonIndex(buttonIndex)
+    {
         setTarget(button);
     }
 
@@ -90,7 +95,9 @@ using CheckboxChangeEvent = ValueChangeEvent<bool>;
 class SelectionEvent : public Event {
 public:
     SelectionEvent(i32 oldIndex, i32 newIndex, void* source = nullptr)
-        : m_oldIndex(oldIndex), m_newIndex(newIndex) {
+        : m_oldIndex(oldIndex)
+        , m_newIndex(newIndex)
+    {
         setTarget(source);
     }
 
@@ -116,7 +123,9 @@ private:
 class MultiSelectionEvent : public Event {
 public:
     MultiSelectionEvent(const std::vector<i32>& oldIndices, const std::vector<i32>& newIndices, void* source = nullptr)
-        : m_oldIndices(oldIndices), m_newIndices(newIndices) {
+        : m_oldIndices(oldIndices)
+        , m_newIndices(newIndices)
+    {
         setTarget(source);
     }
 
@@ -137,7 +146,10 @@ private:
 class SlotClickEvent : public Event {
 public:
     SlotClickEvent(i32 slotIndex, i32 button, bool shiftHeld, void* source = nullptr)
-        : m_slotIndex(slotIndex), m_button(button), m_shiftHeld(shiftHeld) {
+        : m_slotIndex(slotIndex)
+        , m_button(button)
+        , m_shiftHeld(shiftHeld)
+    {
         setTarget(source);
     }
 
@@ -169,9 +181,7 @@ private:
  */
 class ContainerCloseEvent : public Event {
 public:
-    explicit ContainerCloseEvent(void* container = nullptr) {
-        setTarget(container);
-    }
+    explicit ContainerCloseEvent(void* container = nullptr) { setTarget(container); }
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "ContainerClose"; }
@@ -183,7 +193,8 @@ public:
 class FormSubmitEvent : public Event {
 public:
     explicit FormSubmitEvent(const std::string& formId = "")
-        : m_formId(formId) {}
+        : m_formId(formId)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "FormSubmit"; }
@@ -200,7 +211,9 @@ private:
 class DragStartEvent : public Event {
 public:
     DragStartEvent(i32 x, i32 y, void* source = nullptr)
-        : m_x(x), m_y(y) {
+        : m_x(x)
+        , m_y(y)
+    {
         setTarget(source);
     }
 
@@ -221,7 +234,10 @@ private:
 class DragEndEvent : public Event {
 public:
     DragEndEvent(i32 x, i32 y, bool dropped, void* source = nullptr)
-        : m_x(x), m_y(y), m_dropped(dropped) {
+        : m_x(x)
+        , m_y(y)
+        , m_dropped(dropped)
+    {
         setTarget(source);
     }
 

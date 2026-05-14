@@ -3,16 +3,16 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
-#include <vulkan/vulkan.h>
-#include <string>
 #include <array>
+#include <string>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 
 class Entity;
 
 namespace client::renderer::entity::pipeline {
-class EntityPipeline;  // 前向声明
+class EntityPipeline; // 前向声明
 }
 
 namespace client::renderer::entity::util {
@@ -62,30 +62,21 @@ public:
     /**
      * @brief 渲染实体名称标签（GPU管线路径）
      */
-    static void renderNameTag(
-        VkCommandBuffer cmd,
+    static void renderNameTag(VkCommandBuffer cmd,
         Entity& entity,
         const std::string& displayName,
         f64 partialTicks,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 渲染实体名称标签（CPU路径 - 已废弃）
      */
-    static void renderNameTag(
-        Entity& entity,
-        const std::string& displayName,
-        f64 partialTicks
-    );
+    static void renderNameTag(Entity& entity, const std::string& displayName, f64 partialTicks);
 
     /**
      * @brief 检查是否应该渲染名称标签
      */
-    [[nodiscard]] static bool shouldRenderNameTag(
-        Entity& entity,
-        f64 distanceToCamera
-    );
+    [[nodiscard]] static bool shouldRenderNameTag(Entity& entity, f64 distanceToCamera);
 
     /**
      * @brief 设置最大可见距离
@@ -104,26 +95,18 @@ public:
     static void setShowBackground(bool show);
 
 private:
-    [[nodiscard]] static Vector3d calculateNameTagPosition(
-        Entity& entity,
-        f64 partialTicks
-    );
+    [[nodiscard]] static Vector3d calculateNameTagPosition(Entity& entity, f64 partialTicks);
 
     [[nodiscard]] static f64 calculateScale(f64 distanceToCamera);
 
-    static void computeBillboardMatrix(
-        const Vector3d& position,
-        std::array<f64, 16>& outMatrix
-    );
+    static void computeBillboardMatrix(const Vector3d& position, std::array<f64, 16>& outMatrix);
 
-    static void renderBackground(
-        VkCommandBuffer cmd,
+    static void renderBackground(VkCommandBuffer cmd,
         const Vector3d& position,
         f64 width,
         f64 height,
         f64 scale,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     static bool s_initialized;
     static f64 s_maxDistance;
@@ -135,15 +118,15 @@ private:
     static u8 s_bgColorA;
     static Vector3d s_cameraPosition;
     static std::array<f64, 16> s_viewMatrix;
-    static mc::math::frustum::Frustum s_frustum;  // 视锥体（用于视锥剔除）
+    static mc::math::frustum::Frustum s_frustum; // 视锥体（用于视锥剔除）
 
     static constexpr f64 DEFAULT_MAX_DISTANCE = 64.0;
     static constexpr f64 DEFAULT_SCALE = 0.025;
     static constexpr f64 BACKGROUND_PADDING = 0.25;
-    static constexpr f64 HEIGHT_OFFSET = 0.5;  // MC 1.16.5: 实体高度之上的偏移
+    static constexpr f64 HEIGHT_OFFSET = 0.5; // MC 1.16.5: 实体高度之上的偏移
     static constexpr f64 CHAR_WIDTH = 0.5;
     static constexpr f64 CHAR_HEIGHT = 1.0;
 };
 
-} // namespace mc::client::renderer::entity::util
+} // namespace client::renderer::entity::util
 } // namespace mc

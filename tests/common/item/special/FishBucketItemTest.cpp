@@ -1,21 +1,21 @@
 #include <gtest/gtest.h>
 
-#include "common/item/Items.hpp"
-#include "common/item/items/special/FishBucketItem.hpp"
-#include "common/item/core/ItemStack.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/fish/CodEntity.hpp"
-#include "common/entity/entities/passive/fish/SalmonEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
+#include "common/entity/entities/passive/fish/SalmonEntity.hpp"
 #include "common/entity/entities/passive/fish/TropicalFishEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/FishBucketItem.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 namespace mc {
 namespace {
@@ -27,14 +27,17 @@ class FishBucketTestWorld final : public test::BaseTestWorld {
 public:
     bool setBlockState(i32, i32, i32, const BlockState*) override { return true; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("FishBucketTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("FishBucketTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         // 保存鱼实体指针用于验证
         if (entity != nullptr) {
             m_spawnedFishCount++;
@@ -48,25 +51,24 @@ public:
     }
 
     void addParticle(client::renderer::trident::particle::ParticleTypeId,
-                     const Vector3&,
-                     const Vector3&,
-                     const Vector3& = Vector3(0, 0, 0),
-                     u32 = 1) override {
+        const Vector3&,
+        const Vector3&,
+        const Vector3& = Vector3(0, 0, 0),
+        u32 = 1) override
+    {
         // 测试中忽略粒子效果
     }
 
-    void playSound(const ResourceLocation&,
-                   sound::SoundCategory,
-                   const Vector3&,
-                   f32,
-                   f32) override {
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
+    {
         // 测试中忽略音效
     }
 
     [[nodiscard]] i32 spawnedFishCount() const { return m_spawnedFishCount; }
     [[nodiscard]] std::optional<bool> lastSpawnedFishFromBucket() const { return m_lastSpawnedFishFromBucket; }
 
-    void reset() {
+    void reset()
+    {
         m_spawnedFishCount = 0;
         m_lastSpawnedFishFromBucket = std::nullopt;
     }
@@ -79,15 +81,14 @@ private:
 
 class FishBucketItemTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 流体注册表必须在物品注册之前初始化
         fluid::FluidRegistry::instance().initialize();
         Items::initialize();
     }
 
-    void SetUp() override {
-        m_world = std::make_unique<FishBucketTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<FishBucketTestWorld>(); }
 
     std::unique_ptr<FishBucketTestWorld> m_world;
 };
@@ -96,29 +97,34 @@ protected:
 // 鱼桶物品注册测试
 // ============================================================================
 
-TEST_F(FishBucketItemTest, FishBucketItemsAreRegistered) {
+TEST_F(FishBucketItemTest, FishBucketItemsAreRegistered)
+{
     ASSERT_NE(Items::COD_BUCKET, nullptr) << "Cod bucket should be registered";
     ASSERT_NE(Items::SALMON_BUCKET, nullptr) << "Salmon bucket should be registered";
     ASSERT_NE(Items::PUFFERFISH_BUCKET, nullptr) << "Pufferfish bucket should be registered";
     ASSERT_NE(Items::TROPICAL_FISH_BUCKET, nullptr) << "Tropical fish bucket should be registered";
 }
 
-TEST_F(FishBucketItemTest, CodBucketItemLocation) {
+TEST_F(FishBucketItemTest, CodBucketItemLocation)
+{
     ASSERT_NE(Items::COD_BUCKET, nullptr);
     EXPECT_EQ(Items::COD_BUCKET->itemLocation(), ResourceLocation("minecraft:cod_bucket"));
 }
 
-TEST_F(FishBucketItemTest, SalmonBucketItemLocation) {
+TEST_F(FishBucketItemTest, SalmonBucketItemLocation)
+{
     ASSERT_NE(Items::SALMON_BUCKET, nullptr);
     EXPECT_EQ(Items::SALMON_BUCKET->itemLocation(), ResourceLocation("minecraft:salmon_bucket"));
 }
 
-TEST_F(FishBucketItemTest, PufferfishBucketItemLocation) {
+TEST_F(FishBucketItemTest, PufferfishBucketItemLocation)
+{
     ASSERT_NE(Items::PUFFERFISH_BUCKET, nullptr);
     EXPECT_EQ(Items::PUFFERFISH_BUCKET->itemLocation(), ResourceLocation("minecraft:pufferfish_bucket"));
 }
 
-TEST_F(FishBucketItemTest, TropicalFishBucketItemLocation) {
+TEST_F(FishBucketItemTest, TropicalFishBucketItemLocation)
+{
     ASSERT_NE(Items::TROPICAL_FISH_BUCKET, nullptr);
     EXPECT_EQ(Items::TROPICAL_FISH_BUCKET->itemLocation(), ResourceLocation("minecraft:tropical_fish_bucket"));
 }
@@ -127,7 +133,8 @@ TEST_F(FishBucketItemTest, TropicalFishBucketItemLocation) {
 // FromBucket 标签测试（在实体上）
 // ============================================================================
 
-TEST_F(FishBucketItemTest, FishFromBucketPreventsDespawn) {
+TEST_F(FishBucketItemTest, FishFromBucketPreventsDespawn)
+{
     // 创建鳕鱼并验证 FromBucket 标签影响消失行为
     CodEntity cod(LegacyEntityType::Cod, EntityId(1));
     cod.setWorld(m_world.get());
@@ -144,7 +151,8 @@ TEST_F(FishBucketItemTest, FishFromBucketPreventsDespawn) {
     EXPECT_FALSE(cod.canDespawn(128.0));
 }
 
-TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn) {
+TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn)
+{
     CodEntity cod(LegacyEntityType::Cod, EntityId(1));
 
     // 默认情况下，鱼可以消失（没有自定义名称）
@@ -153,7 +161,7 @@ TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn) {
     // 设置 FromBucket 后，canDespawn 应该返回 false
     cod.setFromBucket(true);
     EXPECT_FALSE(cod.canDespawn(128.0));
-    EXPECT_FALSE(cod.canDespawn(0.0));  // 即使玩家很近
+    EXPECT_FALSE(cod.canDespawn(0.0)); // 即使玩家很近
 
     // 设置自定义名称也阻止消失
     cod.setFromBucket(false);
@@ -161,7 +169,8 @@ TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn) {
     EXPECT_FALSE(cod.canDespawn(128.0));
 }
 
-TEST_F(FishBucketItemTest, AllFishTypesSupportFromBucket) {
+TEST_F(FishBucketItemTest, AllFishTypesSupportFromBucket)
+{
     CodEntity cod(LegacyEntityType::Cod, EntityId(1));
     SalmonEntity salmon(LegacyEntityType::Salmon, EntityId(2));
     PufferfishEntity pufferfish(LegacyEntityType::Pufferfish, EntityId(3));
@@ -185,7 +194,8 @@ TEST_F(FishBucketItemTest, AllFishTypesSupportFromBucket) {
     EXPECT_TRUE(tropicalFish.isFromBucket());
 }
 
-TEST_F(FishBucketItemTest, FromBucketAndRidingBothPreventDespawn) {
+TEST_F(FishBucketItemTest, FromBucketAndRidingBothPreventDespawn)
+{
     CodEntity cod(LegacyEntityType::Cod, EntityId(1));
     cod.setWorld(m_world.get());
 
@@ -206,18 +216,21 @@ TEST_F(FishBucketItemTest, FromBucketAndRidingBothPreventDespawn) {
 // 牛奶桶测试
 // ============================================================================
 
-TEST_F(FishBucketItemTest, MilkBucketExists) {
+TEST_F(FishBucketItemTest, MilkBucketExists)
+{
     ASSERT_NE(Items::MILK_BUCKET, nullptr) << "Milk bucket should be registered";
     EXPECT_EQ(Items::MILK_BUCKET->itemLocation(), ResourceLocation("minecraft:milk_bucket"));
 }
 
-TEST_F(FishBucketItemTest, MilkBucketHasCorrectUseDuration) {
+TEST_F(FishBucketItemTest, MilkBucketHasCorrectUseDuration)
+{
     // 牛奶桶饮用时间应为 32 ticks
     ItemStack milkStack(Items::MILK_BUCKET, 1);
     EXPECT_EQ(Items::MILK_BUCKET->getUseDuration(milkStack), 32);
 }
 
-TEST_F(FishBucketItemTest, EmptyBucketExists) {
+TEST_F(FishBucketItemTest, EmptyBucketExists)
+{
     ASSERT_NE(Items::BUCKET, nullptr) << "Empty bucket should be registered";
     EXPECT_EQ(Items::BUCKET->itemLocation(), ResourceLocation("minecraft:bucket"));
 }

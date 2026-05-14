@@ -1,7 +1,7 @@
 #include "WolfCollarLayer.hpp"
 #include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
@@ -10,32 +10,31 @@
 namespace mc::client::renderer::entity::layer::entity {
 
 namespace {
-    // 项圈颜色 RGB 值（MC 1.16.5 DyeColor）
-    const Vector3f COLLAR_COLORS[16] = {
-        Vector3f(1.0f, 1.0f, 1.0f),       // 白色 (0)
-        Vector3f(0.85f, 0.5f, 0.2f),      // 橙色 (1)
-        Vector3f(0.8f, 0.2f, 0.6f),       // 品红色 (2)
-        Vector3f(0.2f, 0.6f, 0.9f),        // 淡蓝色 (3)
-        Vector3f(0.9f, 0.9f, 0.2f),       // 黄色 (4)
-        Vector3f(0.4f, 0.8f, 0.2f),       // 黄绿色 (5)
-        Vector3f(1.0f, 0.5f, 0.7f),       // 粉红色 (6)
-        Vector3f(0.3f, 0.3f, 0.3f),       // 灰色 (7)
-        Vector3f(0.5f, 0.5f, 0.5f),       // 淡灰色 (8)
-        Vector3f(0.2f, 0.4f, 0.6f),       // 青色 (9)
-        Vector3f(0.5f, 0.2f, 0.8f),       // 紫色 (10)
-        Vector3f(0.2f, 0.3f, 0.7f),       // 蓝色 (11)
-        Vector3f(0.5f, 0.3f, 0.1f),       // 棕色 (12)
-        Vector3f(0.2f, 0.5f, 0.2f),       // 绿色 (13)
-        Vector3f(0.6f, 0.2f, 0.2f),       // 红色 (14)
-        Vector3f(0.1f, 0.1f, 0.1f),       // 黑色 (15)
-    };
-}
+// 项圈颜色 RGB 值（MC 1.16.5 DyeColor）
+const Vector3f COLLAR_COLORS[16] = {
+    Vector3f(1.0f, 1.0f, 1.0f),  // 白色 (0)
+    Vector3f(0.85f, 0.5f, 0.2f), // 橙色 (1)
+    Vector3f(0.8f, 0.2f, 0.6f),  // 品红色 (2)
+    Vector3f(0.2f, 0.6f, 0.9f),  // 淡蓝色 (3)
+    Vector3f(0.9f, 0.9f, 0.2f),  // 黄色 (4)
+    Vector3f(0.4f, 0.8f, 0.2f),  // 黄绿色 (5)
+    Vector3f(1.0f, 0.5f, 0.7f),  // 粉红色 (6)
+    Vector3f(0.3f, 0.3f, 0.3f),  // 灰色 (7)
+    Vector3f(0.5f, 0.5f, 0.5f),  // 淡灰色 (8)
+    Vector3f(0.2f, 0.4f, 0.6f),  // 青色 (9)
+    Vector3f(0.5f, 0.2f, 0.8f),  // 紫色 (10)
+    Vector3f(0.2f, 0.3f, 0.7f),  // 蓝色 (11)
+    Vector3f(0.5f, 0.3f, 0.1f),  // 棕色 (12)
+    Vector3f(0.2f, 0.5f, 0.2f),  // 绿色 (13)
+    Vector3f(0.6f, 0.2f, 0.2f),  // 红色 (14)
+    Vector3f(0.1f, 0.1f, 0.1f),  // 黑色 (15)
+};
+} // namespace
 
 // 静态成员定义
 std::unique_ptr<pipeline::EntityMesh> WolfCollarLayer::s_collarMesh = nullptr;
 
-void WolfCollarLayer::renderPipeline(
-    ::mc::WolfEntity& entity,
+void WolfCollarLayer::renderPipeline(::mc::WolfEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -56,17 +55,12 @@ void WolfCollarLayer::renderPipeline(
     // 计算项圈变换矩阵
     // 项圈位于狼的颈部
     std::array<f64, 16> collarTransform;
-    collarTransform = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    collarTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 项圈位置（颈部）
-    collarTransform[3] = 0.0;       // X
-    collarTransform[7] = 0.5;       // Y - 颈部高度
-    collarTransform[11] = 0.1;      // Z - 略微向前
+    collarTransform[3] = 0.0;  // X
+    collarTransform[7] = 0.5;  // Y - 颈部高度
+    collarTransform[11] = 0.1; // Z - 略微向前
 
     // 应用头部旋转（项圈跟随头部）
     f32 headYaw = static_cast<f32>(context.netHeadYaw);
@@ -76,16 +70,12 @@ void WolfCollarLayer::renderPipeline(
 
     // 轻微的头部旋转影响
     collarTransform[0] = cosYaw;
-    collarTransform[2] = -sinYaw * 0.3;  // 轻微影响
+    collarTransform[2] = -sinYaw * 0.3; // 轻微影响
     collarTransform[8] = sinYaw * 0.3;
     collarTransform[10] = cosYaw;
 
     // 获取实体位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用项圈颜色作为叠加颜色
     Vector4f overlayColor(color.x, color.y, color.z, 1.0f);
@@ -94,17 +84,14 @@ void WolfCollarLayer::renderPipeline(
     f32 hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
     f32 deathTime = static_cast<f32>(entity.deathTime());
 
-    pipeline.drawMesh(cmd, *mesh, collarTransform, entityPos, 1.0,
-                      overlayColor, hurtTime, deathTime);
+    pipeline.drawMesh(cmd, *mesh, collarTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
-    spdlog::trace("WolfCollarLayer: Rendered collar with color ({}, {}, {})",
-                  color.x, color.y, color.z);
+    spdlog::trace("WolfCollarLayer: Rendered collar with color ({}, {}, {})", color.x, color.y, color.z);
 
     (void)context;
 }
 
-void WolfCollarLayer::render(
-    ::mc::WolfEntity& entity,
+void WolfCollarLayer::render(::mc::WolfEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -124,13 +111,15 @@ void WolfCollarLayer::render(
     (void)scale;
 }
 
-bool WolfCollarLayer::shouldRender(const ::mc::WolfEntity& entity) const {
+bool WolfCollarLayer::shouldRender(const ::mc::WolfEntity& entity) const
+{
     // 只有驯服的狼才显示项圈
     // 参考 MC 1.16.5 WolfCollarLayer.shouldRender()
     return entity.isTamed();
 }
 
-Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity) {
+Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity)
+{
     // 获取狼的项圈颜色
     // 参考 MC 1.16.5 WolfCollarLayer.getColor()
     u8 colorIndex = entity.getCollarColor();
@@ -140,9 +129,7 @@ Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity) {
     return COLLAR_COLORS[14]; // 默认红色
 }
 
-void WolfCollarLayer::buildCollarMesh(
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+void WolfCollarLayer::buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 参考 MC 1.16.5 的狼项圈模型
     // 项圈是一个简单的环形，围绕颈部
@@ -165,12 +152,10 @@ void WolfCollarLayer::buildCollarMesh(
         f32 z = COLLAR_RADIUS * sinAngle;
 
         // 外环 - ModelVertex(x, y, z, u, v, nx, ny, nz)
-        vertices.push_back(model::ModelVertex(x, 0.0f, z,
-                          static_cast<f32>(seg) / static_cast<f32>(SEGMENTS), 0.0f,
-                          cosAngle, 0.0f, sinAngle));
-        vertices.push_back(model::ModelVertex(x, COLLAR_HEIGHT, z,
-                          static_cast<f32>(seg) / static_cast<f32>(SEGMENTS), 1.0f,
-                          cosAngle, 0.0f, sinAngle));
+        vertices.push_back(model::ModelVertex(
+            x, 0.0f, z, static_cast<f32>(seg) / static_cast<f32>(SEGMENTS), 0.0f, cosAngle, 0.0f, sinAngle));
+        vertices.push_back(model::ModelVertex(
+            x, COLLAR_HEIGHT, z, static_cast<f32>(seg) / static_cast<f32>(SEGMENTS), 1.0f, cosAngle, 0.0f, sinAngle));
     }
 
     // 生成索引
@@ -188,7 +173,8 @@ void WolfCollarLayer::buildCollarMesh(
     }
 }
 
-pipeline::EntityMesh* WolfCollarLayer::getOrCreateCollarMesh(pipeline::EntityPipeline& pipeline) {
+pipeline::EntityMesh* WolfCollarLayer::getOrCreateCollarMesh(pipeline::EntityPipeline& pipeline)
+{
     if (s_collarMesh && s_collarMesh->indexCount > 0) {
         return s_collarMesh.get();
     }

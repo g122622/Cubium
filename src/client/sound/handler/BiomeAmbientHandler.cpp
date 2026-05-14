@@ -1,11 +1,11 @@
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
-#include "client/sound/instance/SoundInstance.hpp"
 #include "client/sound/SoundPool.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include <cmath>
 #include <chrono>
+#include <cmath>
 
 namespace mc::client::sound {
 
@@ -24,14 +24,16 @@ namespace mc::client::sound {
 class BiomeLoopSound : public TickableSound {
 public:
     explicit BiomeLoopSound(const ResourceLocation& soundEvent)
-        : TickableSound(soundEvent, SoundCategory::Ambient, glm::vec3(0.0f), 0.0f, 1.0f, true, AttenuationType::None, 16.0f)
-        , m_fadeDirection(0)  // 开始时静音
+        : TickableSound(
+              soundEvent, SoundCategory::Ambient, glm::vec3(0.0f), 0.0f, 1.0f, true, AttenuationType::None, 16.0f)
+        , m_fadeDirection(0) // 开始时静音
         , m_fadeTicks(0)
     {
         // AttenuationType::None 使声音成为全局声音
     }
 
-    void tick() override {
+    void tick() override
+    {
         // 淡入淡出逻辑
         // 参考: net.minecraft.client.audio.BiomeSoundHandler.Sound.tick()
         if (m_fadeDirection < 0) {
@@ -56,22 +58,24 @@ public:
     /**
      * @brief 开始淡出
      */
-    void startFadeOut() {
+    void startFadeOut()
+    {
         m_fadeDirection = -1;
-        m_fadeTicks = std::min(m_fadeTicks, 40);  // 限制最大淡出起始点
+        m_fadeTicks = std::min(m_fadeTicks, 40); // 限制最大淡出起始点
     }
 
     /**
      * @brief 开始淡入
      */
-    void startFadeIn() {
+    void startFadeIn()
+    {
         m_fadeDirection = 1;
-        m_fadeTicks = std::max(m_fadeTicks, 0);  // 确保从非负开始
+        m_fadeTicks = std::max(m_fadeTicks, 0); // 确保从非负开始
     }
 
 private:
-    i32 m_fadeDirection;  // 1 = 淡入, -1 = 淡出
-    i32 m_fadeTicks;      // 淡入淡出计数器
+    i32 m_fadeDirection; // 1 = 淡入, -1 = 淡出
+    i32 m_fadeTicks;     // 淡入淡出计数器
 };
 
 // ============================================================================
@@ -80,14 +84,14 @@ private:
 
 BiomeAmbientHandler::BiomeAmbientHandler()
     : m_rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()))
-{
-}
+{}
 
 BiomeAmbientHandler::~BiomeAmbientHandler() = default;
 
-void BiomeAmbientHandler::tick(SoundEngine& engine) {
+void BiomeAmbientHandler::tick(SoundEngine& engine)
+{
     // 清理已完成的循环音效
-    for (auto it = m_loopSounds.begin(); it != m_loopSounds.end(); ) {
+    for (auto it = m_loopSounds.begin(); it != m_loopSounds.end();) {
         if (!engine.isPlaying(it->second)) {
             it = m_loopSounds.erase(it);
         } else {
@@ -159,12 +163,8 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
     if (m_currentAdditionsSound.has_value()) {
         const world::biome::SoundAdditionsAmbience& additions = m_currentAdditionsSound.value();
         if (m_rng.nextDouble() < additions.tickChance()) {
-            SoundInstance sound = SoundInstance::createGlobal(
-                additions.soundEvent(),
-                SoundCategory::Ambient,
-                1.0f,
-                1.0f
-            );
+            SoundInstance sound =
+                SoundInstance::createGlobal(additions.soundEvent(), SoundCategory::Ambient, 1.0f, 1.0f);
             engine.play(std::make_unique<SoundInstance>(std::move(sound)));
         }
     }
@@ -223,15 +223,13 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
             f64 soundY = m_playerY + (dy / distance) * totalDistance;
             f64 soundZ = m_playerZ + (dz / distance) * totalDistance;
 
-            SoundInstance sound = SoundInstance::createLocated(
-                mood.soundEvent(),
+            SoundInstance sound = SoundInstance::createLocated(mood.soundEvent(),
                 SoundCategory::Ambient,
                 static_cast<f32>(soundX),
                 static_cast<f32>(soundY),
                 static_cast<f32>(soundZ),
                 1.0f,
-                1.0f
-            );
+                1.0f);
             engine.play(std::make_unique<SoundInstance>(std::move(sound)));
 
             // 重置计时器
@@ -243,7 +241,8 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
     }
 }
 
-void BiomeAmbientHandler::stopAll() {
+void BiomeAmbientHandler::stopAll()
+{
     m_loopSounds.clear();
 }
 

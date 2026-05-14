@@ -1,6 +1,6 @@
 #include "FlameParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -13,7 +13,7 @@ FlameParticle::FlameParticle(const glm::vec3& pos, const glm::vec3& velocity)
 
     // MC 1.16.5: 速度缩放 0.009999999776482582 倍
     // 实际上是从 velocity 乘以 0.1 后加上随机偏移
-    setGravity(DEFAULT_GRAVITY);  // 火焰不受重力
+    setGravity(DEFAULT_GRAVITY); // 火焰不受重力
     setSize(DEFAULT_SIZE);
     m_initialSize = size();
 
@@ -23,7 +23,7 @@ FlameParticle::FlameParticle(const glm::vec3& pos, const glm::vec3& velocity)
 
     // MC 1.16.5: 速度摩擦 0.96
     setFriction(0.96f);
-    setHasPhysics(false);  // 火焰粒子不做碰撞检测
+    setHasPhysics(false); // 火焰粒子不做碰撞检测
 
     // MC 1.16.5: 生命周期 = (8.0 / (rand * 0.8 + 0.2)) + 4
     // 但这里我们使用更标准的 30 tick (约 1.5 秒)
@@ -31,15 +31,14 @@ FlameParticle::FlameParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> FlameParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<FlameParticle>(pos, velocity);
 }
 
-void FlameParticle::tick(mc::client::ClientWorld* world) {
+void FlameParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     // 保存上一帧位置（用于插值）
@@ -81,7 +80,8 @@ void FlameParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-f64 FlameParticle::getScale(f64 partialTick) const {
+f64 FlameParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     // 使用 size 属性直接控制大小，这里返回 1.0
     // 因为 size 已经在 tick() 中根据生命周期更新

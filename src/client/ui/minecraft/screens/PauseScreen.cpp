@@ -7,14 +7,15 @@ namespace mc::client::ui::minecraft {
 
 PauseScreen::PauseScreen()
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
-          kagero::state::StateStore::instance(),
-          kagero::event::EventBus::instance()),
-          "pause") {
+                         kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
+          "pause")
+{
     loadTemplateFile("src/client/ui/minecraft/templates/pause_menu.tpl");
     registerCallbacks();
 }
 
-void PauseScreen::registerCallbacks() {
+void PauseScreen::registerCallbacks()
+{
     exposeSimpleCallback("onResume", [this]() {
         if (m_onResume) {
             m_onResume();
@@ -34,7 +35,8 @@ void PauseScreen::registerCallbacks() {
     });
 }
 
-bool PauseScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+bool PauseScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     (void)scanCode;
     (void)mods;
 

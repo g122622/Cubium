@@ -2,7 +2,8 @@
 
 namespace mc {
 
-void NetherFeatureRegistry::initialize() {
+void NetherFeatureRegistry::initialize()
+{
     // 初始化各个特征模块
     GlowstoneFeatures::initialize();
     BasaltColumnFeatures::initialize();
@@ -12,7 +13,8 @@ void NetherFeatureRegistry::initialize() {
     HugeFungusFeatures::initialize();
 }
 
-std::vector<std::unique_ptr<ConfiguredFeatureBase>> NetherFeatureRegistry::getAllUndergroundFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredFeatureBase>> NetherFeatureRegistry::getAllUndergroundFeaturesAndClear()
+{
     std::vector<std::unique_ptr<ConfiguredFeatureBase>> features;
 
     // 添加萤石特征
@@ -42,7 +44,8 @@ std::vector<std::unique_ptr<ConfiguredFeatureBase>> NetherFeatureRegistry::getAl
     return features;
 }
 
-std::vector<std::unique_ptr<ConfiguredFeatureBase>> NetherFeatureRegistry::getAllVegetationFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredFeatureBase>> NetherFeatureRegistry::getAllVegetationFeaturesAndClear()
+{
     std::vector<std::unique_ptr<ConfiguredFeatureBase>> features;
 
     // 添加巨型真菌特征

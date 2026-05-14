@@ -5,30 +5,23 @@
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    // Guard spine positions from MC 1.16.5
-    constexpr f32 SPINE_ROT_X[] = {1.75f, 0.25f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.5f, 1.25f, 0.75f, 0.0f, 0.0f};
-    constexpr f32 SPINE_ROT_Y[] = {0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 1.75f, 1.25f, 0.75f, 0.0f, 0.0f, 0.0f, 0.0f};
-    constexpr f32 SPINE_ROT_Z[] = {0.0f, 0.0f, 0.25f, 1.75f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.75f, 1.25f};
-    constexpr f32 SPINE_POS_X[] = {0.0f, 0.0f, 8.0f, -8.0f, -8.0f, 8.0f, 8.0f, -8.0f, 0.0f, 0.0f, 8.0f, -8.0f};
-    constexpr f32 SPINE_POS_Y[] = {-8.0f, -8.0f, -8.0f, -8.0f, 0.0f, 0.0f, 0.0f, 0.0f, 8.0f, 8.0f, 8.0f, 8.0f};
-    constexpr f32 SPINE_POS_Z[] = {8.0f, -8.0f, 0.0f, 0.0f, -8.0f, -8.0f, 8.0f, 8.0f, 8.0f, -8.0f, 0.0f, 0.0f};
+// Guard spine positions from MC 1.16.5
+constexpr f32 SPINE_ROT_X[] = {1.75f, 0.25f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.5f, 1.25f, 0.75f, 0.0f, 0.0f};
+constexpr f32 SPINE_ROT_Y[] = {0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 1.75f, 1.25f, 0.75f, 0.0f, 0.0f, 0.0f, 0.0f};
+constexpr f32 SPINE_ROT_Z[] = {0.0f, 0.0f, 0.25f, 1.75f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.75f, 1.25f};
+constexpr f32 SPINE_POS_X[] = {0.0f, 0.0f, 8.0f, -8.0f, -8.0f, 8.0f, 8.0f, -8.0f, 0.0f, 0.0f, 8.0f, -8.0f};
+constexpr f32 SPINE_POS_Y[] = {-8.0f, -8.0f, -8.0f, -8.0f, 0.0f, 0.0f, 0.0f, 0.0f, 8.0f, 8.0f, 8.0f, 8.0f};
+constexpr f32 SPINE_POS_Z[] = {8.0f, -8.0f, 0.0f, 0.0f, -8.0f, -8.0f, 8.0f, 8.0f, 8.0f, -8.0f, 0.0f, 0.0f};
 
-    // Silverfish body sizes from MC 1.16.5
-    constexpr i32 SILVERFISH_BOX_LENGTH[][3] = {
-        {3, 2, 2}, {4, 3, 2}, {6, 4, 3}, {3, 3, 3}, {2, 2, 3}, {2, 1, 2}, {1, 1, 2}
-    };
-    constexpr i32 SILVERFISH_TEX_POS[][2] = {
-        {0, 0}, {0, 4}, {0, 9}, {0, 16}, {0, 22}, {11, 0}, {13, 4}
-    };
+// Silverfish body sizes from MC 1.16.5
+constexpr i32 SILVERFISH_BOX_LENGTH[][3] = {
+    {3, 2, 2}, {4, 3, 2}, {6, 4, 3}, {3, 3, 3}, {2, 2, 3}, {2, 1, 2}, {1, 1, 2}};
+constexpr i32 SILVERFISH_TEX_POS[][2] = {{0, 0}, {0, 4}, {0, 9}, {0, 16}, {0, 22}, {11, 0}, {13, 4}};
 
-    // Endermite body sizes from MC 1.16.5
-    constexpr i32 ENDERMITE_BODY_SIZES[][3] = {
-        {4, 3, 2}, {6, 4, 5}, {3, 3, 1}, {1, 2, 1}
-    };
-    constexpr i32 ENDERMITE_TEX_POS[][2] = {
-        {0, 0}, {0, 5}, {0, 14}, {0, 18}
-    };
-}
+// Endermite body sizes from MC 1.16.5
+constexpr i32 ENDERMITE_BODY_SIZES[][3] = {{4, 3, 2}, {6, 4, 5}, {3, 3, 1}, {1, 2, 1}};
+constexpr i32 ENDERMITE_TEX_POS[][2] = {{0, 0}, {0, 5}, {0, 14}, {0, 18}};
+} // namespace
 
 // ==================== WitherModel ====================
 
@@ -48,7 +41,8 @@ WitherModel::WitherModel(f32 scale)
     setupParts();
 }
 
-void WitherModel::setupParts() {
+void WitherModel::setupParts()
+{
     // 参考 MC 1.16.5 WitherModel
 
     // 三个上半身部件
@@ -93,18 +87,20 @@ void WitherModel::setupParts() {
     m_parts.push_back(m_heads[2]);
 }
 
-void WitherModel::render(f64 scale) {
+void WitherModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void WitherModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void WitherModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     f32 f = static_cast<f32>(std::cos(ageInTicks * 0.1));
 
     m_upperBodyParts[1]->setRotateAngleX(static_cast<f32>((0.065 + 0.05 * f) * mc::math::PI_DOUBLE));
-    m_upperBodyParts[2]->setRotationPoint(-2.0f, static_cast<f32>(6.9 + std::cos(m_upperBodyParts[1]->rotateAngleX()) * 10.0),
-                                           static_cast<f32>(-0.5 + std::sin(m_upperBodyParts[1]->rotateAngleX()) * 10.0));
+    m_upperBodyParts[2]->setRotationPoint(-2.0f,
+        static_cast<f32>(6.9 + std::cos(m_upperBodyParts[1]->rotateAngleX()) * 10.0),
+        static_cast<f32>(-0.5 + std::sin(m_upperBodyParts[1]->rotateAngleX()) * 10.0));
     m_upperBodyParts[2]->setRotateAngleX(static_cast<f32>((0.265 + 0.1 * f) * mc::math::PI_DOUBLE));
 
     m_heads[0]->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
@@ -140,7 +136,8 @@ SlimeModel::SlimeModel(i32 size)
     setupParts();
 }
 
-void SlimeModel::setupParts() {
+void SlimeModel::setupParts()
+{
     // 参考 MC 1.16.5 SlimeModel
     // size > 0 表示小史莱姆，size == 0 表示大史莱姆
 
@@ -174,13 +171,13 @@ void SlimeModel::setupParts() {
     m_parts.push_back(m_mouth);
 }
 
-void SlimeModel::render(f64 scale) {
+void SlimeModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void SlimeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 ageInTicks, f64 netHeadYaw,
-                            f64 headPitch, f64 scale) {
+void SlimeModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 史莱姆没有动画
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -199,7 +196,8 @@ GuardianModel::GuardianModel()
     setupParts();
 }
 
-void GuardianModel::setupParts() {
+void GuardianModel::setupParts()
+{
     // 参考 MC 1.16.5 GuardianModel
 
     m_body = std::make_shared<ModelRenderer>("body");
@@ -251,7 +249,8 @@ void GuardianModel::setupParts() {
     updateSpines(0.0f, 0.0f);
 }
 
-void GuardianModel::updateSpines(f64 ageInTicks, f64 spikeAnimation) {
+void GuardianModel::updateSpines(f64 ageInTicks, f64 spikeAnimation)
+{
     for (i32 i = 0; i < 12; ++i) {
         m_spines[i]->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * SPINE_ROT_X[i]));
         m_spines[i]->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE * SPINE_ROT_Y[i]));
@@ -261,13 +260,14 @@ void GuardianModel::updateSpines(f64 ageInTicks, f64 spikeAnimation) {
     }
 }
 
-void GuardianModel::render(f64 scale) {
+void GuardianModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void GuardianModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                               f64 ageInTicks, f64 netHeadYaw,
-                               f64 headPitch, f64 scale) {
+void GuardianModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 GuardianModel.setRotationAngles
     m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_body->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
@@ -318,7 +318,8 @@ ShulkerModel::ShulkerModel()
     setupParts();
 }
 
-void ShulkerModel::setupParts() {
+void ShulkerModel::setupParts()
+{
     // 参考 MC 1.16.5 ShulkerModel
 
     m_base = std::make_shared<ModelRenderer>("base");
@@ -340,16 +341,17 @@ void ShulkerModel::setupParts() {
     m_parts.push_back(m_head);
 }
 
-void ShulkerModel::render(f64 scale) {
+void ShulkerModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void ShulkerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void ShulkerModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 ShulkerModel.setRotationAngles 第 34 行
     // float f1 = (0.5F + entityIn.getClientPeekAmount(f)) * (float)Math.PI;
-    f32 peekAmount = m_peekAmount;  // 从成员变量获取
+    f32 peekAmount = m_peekAmount; // 从成员变量获取
     f32 peekAngle = static_cast<f32>((0.5 + peekAmount) * mc::math::PI_DOUBLE);
     f32 f2 = -1.0f + static_cast<f32>(std::sin(peekAngle));
     f32 f3 = 0.0f;
@@ -383,20 +385,20 @@ SilverfishModel::SilverfishModel()
     setupParts();
 }
 
-void SilverfishModel::setupParts() {
+void SilverfishModel::setupParts()
+{
     // 参考 MC 1.16.5 SilverfishModel
     f32 zPos = -3.5f;
 
     for (i32 i = 0; i < 7; ++i) {
         m_bodyParts[i] = std::make_shared<ModelRenderer>("body" + std::to_string(i));
         m_bodyParts[i]->setTextureOffset(SILVERFISH_TEX_POS[i][0], SILVERFISH_TEX_POS[i][1]);
-        m_bodyParts[i]->addBox(
-            static_cast<f32>(SILVERFISH_BOX_LENGTH[i][0]) * -0.5f, 0.0f,
+        m_bodyParts[i]->addBox(static_cast<f32>(SILVERFISH_BOX_LENGTH[i][0]) * -0.5f,
+            0.0f,
             static_cast<f32>(SILVERFISH_BOX_LENGTH[i][2]) * -0.5f,
             static_cast<f32>(SILVERFISH_BOX_LENGTH[i][0]),
             static_cast<f32>(SILVERFISH_BOX_LENGTH[i][1]),
-            static_cast<f32>(SILVERFISH_BOX_LENGTH[i][2])
-        );
+            static_cast<f32>(SILVERFISH_BOX_LENGTH[i][2]));
         m_bodyParts[i]->setRotationPoint(0.0f, static_cast<f32>(24 - SILVERFISH_BOX_LENGTH[i][1]), zPos);
         m_zPlacement[i] = zPos;
         m_parts.push_back(m_bodyParts[i]);
@@ -409,33 +411,51 @@ void SilverfishModel::setupParts() {
     // 3个翅膀
     m_wings[0] = std::make_shared<ModelRenderer>("wing0");
     m_wings[0]->setTextureOffset(20, 0);
-    m_wings[0]->addBox(-5.0f, 0.0f, static_cast<f32>(SILVERFISH_BOX_LENGTH[2][2]) * -0.5f, 10.0f, 8.0f, static_cast<f32>(SILVERFISH_BOX_LENGTH[2][2]));
+    m_wings[0]->addBox(-5.0f,
+        0.0f,
+        static_cast<f32>(SILVERFISH_BOX_LENGTH[2][2]) * -0.5f,
+        10.0f,
+        8.0f,
+        static_cast<f32>(SILVERFISH_BOX_LENGTH[2][2]));
     m_wings[0]->setRotationPoint(0.0f, 16.0f, m_zPlacement[2]);
     m_parts.push_back(m_wings[0]);
 
     m_wings[1] = std::make_shared<ModelRenderer>("wing1");
     m_wings[1]->setTextureOffset(20, 11);
-    m_wings[1]->addBox(-3.0f, 0.0f, static_cast<f32>(SILVERFISH_BOX_LENGTH[4][2]) * -0.5f, 6.0f, 4.0f, static_cast<f32>(SILVERFISH_BOX_LENGTH[4][2]));
+    m_wings[1]->addBox(-3.0f,
+        0.0f,
+        static_cast<f32>(SILVERFISH_BOX_LENGTH[4][2]) * -0.5f,
+        6.0f,
+        4.0f,
+        static_cast<f32>(SILVERFISH_BOX_LENGTH[4][2]));
     m_wings[1]->setRotationPoint(0.0f, 20.0f, m_zPlacement[4]);
     m_parts.push_back(m_wings[1]);
 
     m_wings[2] = std::make_shared<ModelRenderer>("wing2");
     m_wings[2]->setTextureOffset(20, 18);
-    m_wings[2]->addBox(-3.0f, 0.0f, static_cast<f32>(SILVERFISH_BOX_LENGTH[4][2]) * -0.5f, 6.0f, 5.0f, static_cast<f32>(SILVERFISH_BOX_LENGTH[1][2]));
+    m_wings[2]->addBox(-3.0f,
+        0.0f,
+        static_cast<f32>(SILVERFISH_BOX_LENGTH[4][2]) * -0.5f,
+        6.0f,
+        5.0f,
+        static_cast<f32>(SILVERFISH_BOX_LENGTH[1][2]));
     m_wings[2]->setRotationPoint(0.0f, 19.0f, m_zPlacement[1]);
     m_parts.push_back(m_wings[2]);
 }
 
-void SilverfishModel::render(f64 scale) {
+void SilverfishModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void SilverfishModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                 f64 ageInTicks, f64 netHeadYaw,
-                                 f64 headPitch, f64 scale) {
+void SilverfishModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     for (i32 i = 0; i < 7; ++i) {
-        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.05 * (1 + std::abs(i - 2))));
-        m_bodyParts[i]->setRotationPointX(static_cast<f32>(std::sin(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.2 * std::abs(i - 2)));
+        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) *
+            mc::math::PI_DOUBLE * 0.05 * (1 + std::abs(i - 2))));
+        m_bodyParts[i]->setRotationPointX(static_cast<f32>(
+            std::sin(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.2 * std::abs(i - 2)));
     }
 
     m_wings[0]->setRotateAngleY(static_cast<f32>(m_bodyParts[2]->rotateAngleY()));
@@ -460,20 +480,20 @@ EndermiteModel::EndermiteModel()
     setupParts();
 }
 
-void EndermiteModel::setupParts() {
+void EndermiteModel::setupParts()
+{
     // 参考 MC 1.16.5 EndermiteModel
     f32 zPos = -3.5f;
 
     for (i32 i = 0; i < 4; ++i) {
         m_bodyParts[i] = std::make_shared<ModelRenderer>("body" + std::to_string(i));
         m_bodyParts[i]->setTextureOffset(ENDERMITE_TEX_POS[i][0], ENDERMITE_TEX_POS[i][1]);
-        m_bodyParts[i]->addBox(
-            static_cast<f32>(ENDERMITE_BODY_SIZES[i][0]) * -0.5f, 0.0f,
+        m_bodyParts[i]->addBox(static_cast<f32>(ENDERMITE_BODY_SIZES[i][0]) * -0.5f,
+            0.0f,
             static_cast<f32>(ENDERMITE_BODY_SIZES[i][2]) * -0.5f,
             static_cast<f32>(ENDERMITE_BODY_SIZES[i][0]),
             static_cast<f32>(ENDERMITE_BODY_SIZES[i][1]),
-            static_cast<f32>(ENDERMITE_BODY_SIZES[i][2])
-        );
+            static_cast<f32>(ENDERMITE_BODY_SIZES[i][2]));
         m_bodyParts[i]->setRotationPoint(0.0f, static_cast<f32>(24 - ENDERMITE_BODY_SIZES[i][1]), zPos);
         m_parts.push_back(m_bodyParts[i]);
 
@@ -483,16 +503,19 @@ void EndermiteModel::setupParts() {
     }
 }
 
-void EndermiteModel::render(f64 scale) {
+void EndermiteModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void EndermiteModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                f64 ageInTicks, f64 netHeadYaw,
-                                f64 headPitch, f64 scale) {
+void EndermiteModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     for (i32 i = 0; i < 4; ++i) {
-        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.01 * (1 + std::abs(i - 2))));
-        m_bodyParts[i]->setRotationPointX(static_cast<f32>(std::sin(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.1 * std::abs(i - 2)));
+        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) *
+            mc::math::PI_DOUBLE * 0.01 * (1 + std::abs(i - 2))));
+        m_bodyParts[i]->setRotationPointX(static_cast<f32>(
+            std::sin(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.1 * std::abs(i - 2)));
     }
 
     (void)limbSwing;

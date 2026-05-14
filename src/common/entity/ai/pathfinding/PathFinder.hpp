@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Path.hpp"
-#include "PathPoint.hpp"
-#include "PathHeap.hpp"
-#include "NodeProcessor.hpp"
-#include "Region.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/MathConstants.hpp"
+#include "NodeProcessor.hpp"
+#include "Path.hpp"
+#include "PathHeap.hpp"
+#include "PathPoint.hpp"
+#include "Region.hpp"
 #include <memory>
 
 namespace mc::entity::ai::pathfinding {
@@ -26,8 +26,7 @@ public:
      */
     explicit PathFinder(std::unique_ptr<NodeProcessor> processor)
         : m_nodeProcessor(std::move(processor))
-    {
-    }
+    {}
 
     ~PathFinder() = default;
 
@@ -36,7 +35,8 @@ public:
     /**
      * @brief 设置世界区域
      */
-    void setRegion(const Region* region) {
+    void setRegion(const Region* region)
+    {
         if (m_nodeProcessor) {
             m_nodeProcessor->setRegion(region);
         }
@@ -45,7 +45,8 @@ public:
     /**
      * @brief 设置实体尺寸
      */
-    void setEntitySize(f32 width, f32 height) {
+    void setEntitySize(f32 width, f32 height)
+    {
         if (m_nodeProcessor) {
             m_nodeProcessor->setEntitySize(width, height);
         }
@@ -78,8 +79,8 @@ public:
      * @param targetZ 终点Z
      * @return 找到的路径，如果找不到返回空路径
      */
-    [[nodiscard]] Path findPath(i32 startX, i32 startY, i32 startZ,
-                                 i32 targetX, i32 targetY, i32 targetZ) {
+    [[nodiscard]] Path findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ)
+    {
         return findPath(startX, startY, startZ, targetX, targetY, targetZ, m_maxSearchDistance);
     }
 
@@ -94,9 +95,8 @@ public:
      * @param maxDistance 最大搜索距离
      * @return 找到的路径，如果找不到返回空路径
      */
-    [[nodiscard]] Path findPath(i32 startX, i32 startY, i32 startZ,
-                                 i32 targetX, i32 targetY, i32 targetZ,
-                                 i32 maxDistance);
+    [[nodiscard]] Path findPath(
+        i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 maxDistance);
 
     /**
      * @brief 寻找到目标范围的路径
@@ -109,9 +109,8 @@ public:
      * @param range 目标范围（到达范围内任意点即成功）
      * @return 找到的路径
      */
-    [[nodiscard]] Path findPathToRange(i32 startX, i32 startY, i32 startZ,
-                                        i32 targetX, i32 targetY, i32 targetZ,
-                                        i32 range);
+    [[nodiscard]] Path findPathToRange(
+        i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range);
 
     // ========== MC 1.16.5 多目标寻路 ==========
 
@@ -122,7 +121,10 @@ public:
         i32 x, y, z;
 
         TargetPoint(i32 x_, i32 y_, i32 z_)
-            : x(x_), y(y_), z(z_) {}
+            : x(x_)
+            , y(y_)
+            , z(z_)
+        {}
     };
 
     /**
@@ -135,9 +137,8 @@ public:
      * @param maxDistance 最大搜索距离
      * @return 找到的路径
      */
-    [[nodiscard]] Path findPathToClosest(i32 startX, i32 startY, i32 startZ,
-                                          const std::vector<TargetPoint>& targets,
-                                          i32 maxDistance);
+    [[nodiscard]] Path findPathToClosest(
+        i32 startX, i32 startY, i32 startZ, const std::vector<TargetPoint>& targets, i32 maxDistance);
 
     // ========== 调试 ==========
 
@@ -174,8 +175,8 @@ private:
      *
      * 注意：此函数直接计算距离，避免创建临时对象
      */
-    [[nodiscard]] static f32 heuristic(const PathPoint& point,
-                                         i32 targetX, i32 targetY, i32 targetZ) {
+    [[nodiscard]] static f32 heuristic(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
+    {
         // MC 1.16.5: 使用直线距离（欧几里得距离）
         f32 dx = static_cast<f32>(point.x() - targetX);
         f32 dy = static_cast<f32>(point.y() - targetY);
@@ -186,8 +187,8 @@ private:
     /**
      * @brief 计算到目标的平方距离（用于比较，避免sqrt）
      */
-    [[nodiscard]] static f32 heuristicSq(const PathPoint& point,
-                                          i32 targetX, i32 targetY, i32 targetZ) {
+    [[nodiscard]] static f32 heuristicSq(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
+    {
         f32 dx = static_cast<f32>(point.x() - targetX);
         f32 dy = static_cast<f32>(point.y() - targetY);
         f32 dz = static_cast<f32>(point.z() - targetZ);
@@ -198,7 +199,8 @@ private:
      * @brief 计算两点间的移动代价
      * MC 1.16.5: 考虑对角线移动和垂直移动的实际代价
      */
-    [[nodiscard]] static f32 getMovementCost(const PathPoint& from, const PathPoint& to) {
+    [[nodiscard]] static f32 getMovementCost(const PathPoint& from, const PathPoint& to)
+    {
         i32 dx = std::abs(to.x() - from.x());
         i32 dy = std::abs(to.y() - from.y());
         i32 dz = std::abs(to.z() - from.z());
@@ -220,20 +222,19 @@ private:
     /**
      * @brief 检查是否到达目标
      */
-    [[nodiscard]] static bool isTargetReached(const PathPoint& point,
-                                               i32 targetX, i32 targetY, i32 targetZ,
-                                               i32 tolerance = 0) {
-        return std::abs(point.x() - targetX) <= tolerance &&
-               std::abs(point.y() - targetY) <= tolerance &&
-               std::abs(point.z() - targetZ) <= tolerance;
+    [[nodiscard]] static bool isTargetReached(
+        const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ, i32 tolerance = 0)
+    {
+        return std::abs(point.x() - targetX) <= tolerance && std::abs(point.y() - targetY) <= tolerance &&
+            std::abs(point.z() - targetZ) <= tolerance;
     }
 
     /**
      * @brief 检查节点是否在搜索范围内
      */
-    [[nodiscard]] bool isInSearchRange(i32 x, i32 y, i32 z,
-                                        i32 startX, i32 startY, i32 startZ,
-                                        i32 targetX, i32 targetY, i32 targetZ) const {
+    [[nodiscard]] bool isInSearchRange(
+        i32 x, i32 y, i32 z, i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ) const
+    {
         // 检查节点是否在起点和终点之间的范围内
         i32 minX = std::min(startX, targetX) - m_searchRange;
         i32 maxX = std::max(startX, targetX) + m_searchRange;
@@ -242,9 +243,7 @@ private:
         i32 minZ = std::min(startZ, targetZ) - m_searchRange;
         i32 maxZ = std::max(startZ, targetZ) + m_searchRange;
 
-        return x >= minX && x <= maxX &&
-               y >= minY && y <= maxY &&
-               z >= minZ && z <= maxZ;
+        return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
     }
 };
 

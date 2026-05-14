@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 
 namespace mc {
 
@@ -9,8 +9,8 @@ namespace mc {
  * @brief 巨型真菌类型
  */
 enum class FungusType : u8 {
-    Crimson,    ///< 绯红真菌（绯红森林）
-    Warped      ///< 诡异真菌（诡异森林）
+    Crimson, ///< 绯红真菌（绯红森林）
+    Warped   ///< 诡异真菌（诡异森林）
 };
 
 /**
@@ -36,7 +36,8 @@ struct HugeFungusFeatureConfig : public IFeatureConfig {
 
     HugeFungusFeatureConfig() = default;
 
-    explicit HugeFungusFeatureConfig(FungusType type, i32 minH = 4, i32 maxH = 13, i32 radius = 2, bool isPlanted = false)
+    explicit HugeFungusFeatureConfig(
+        FungusType type, i32 minH = 4, i32 maxH = 13, i32 radius = 2, bool isPlanted = false)
         : fungusType(type)
         , minHeight(minH)
         , maxHeight(maxH)
@@ -71,58 +72,33 @@ public:
      * @param config 真菌配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const HugeFungusFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const HugeFungusFeatureConfig& config);
 
 private:
     /**
      * @brief 检查巨型真菌是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        FungusType type) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, FungusType type) const;
 
     /**
      * @brief 生成菌柄
      */
-    void generateStem(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        i32 height,
-        FungusType type);
+    void generateStem(WorldGenRegion& world, math::Random& random, const BlockPos& pos, i32 height, FungusType type);
 
     /**
      * @brief 生成菌盖
      */
-    void generateCap(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& topPos,
-        i32 radius,
-        FungusType type);
+    void generateCap(WorldGenRegion& world, math::Random& random, const BlockPos& topPos, i32 radius, FungusType type);
 
     /**
      * @brief 生成藤蔓（垂泪藤或扭曲藤）
      */
-    void generateVines(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& capPos,
-        FungusType type);
+    void generateVines(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, FungusType type);
 
     /**
      * @brief 生成菌光体（发光装饰）
      */
-    void generateShroomlights(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& capPos,
-        i32 radius);
+    void generateShroomlights(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, i32 radius);
 };
 
 /**
@@ -130,12 +106,9 @@ private:
  */
 class ConfiguredHugeFungusFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredHugeFungusFeature(
-        std::unique_ptr<HugeFungusFeatureConfig> config,
-        const char* featureName);
+    ConfiguredHugeFungusFeature(std::unique_ptr<HugeFungusFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

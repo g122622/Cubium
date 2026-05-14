@@ -3,18 +3,18 @@
 #include "../sync/ChunkSendManager.hpp"
 #include "../world/ServerChunkManager.hpp"
 #include "common/core/Result.hpp"
-#include "common/util/assert/AssertAll.hpp"
-#include "common/util/crypto/Sha256.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/chunk/NetherChunkGenerator.hpp"
-#include "common/world/gen/chunk/EndChunkGenerator.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
-#include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
-#include "common/world/biome/provider/end/EndBiomeProvider.hpp"
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/crypto/Sha256.hpp"
+#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/provider/end/EndBiomeProvider.hpp"
+#include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
+#include "common/world/gen/chunk/EndChunkGenerator.hpp"
+#include "common/world/gen/chunk/NetherChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -37,7 +37,8 @@ ServerDimensionManager::~ServerDimensionManager() = default;
 // 初始化
 // ============================================================================
 
-Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance) {
+Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance)
+{
     MC_TRACE_EVENT("server.initialization", "ServerDimensionManager::initialize");
 
     if (m_initialized) {
@@ -52,7 +53,7 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance) {
 
     // 为每个维度创建 ServerDimension 包装
     // 注意：这里需要重新创建 ServerDimension 实例
-    m_dimensions.clear();  // 清除基类创建的 Dimension 实例
+    m_dimensions.clear(); // 清除基类创建的 Dimension 实例
 
     // 创建主世界
     auto overworld = createServerDimension(OVERWORLD, seed);
@@ -70,7 +71,8 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance) {
     return {};
 }
 
-void ServerDimensionManager::shutdown() {
+void ServerDimensionManager::shutdown()
+{
     // 清理玩家映射
     m_playerDimensions.clear();
     m_dimensionPlayers.clear();
@@ -85,35 +87,43 @@ void ServerDimensionManager::shutdown() {
 // 维度访问
 // ============================================================================
 
-ServerDimension* ServerDimensionManager::getDimension(DimensionId id) {
+ServerDimension* ServerDimensionManager::getDimension(DimensionId id)
+{
     return static_cast<ServerDimension*>(DimensionManager::getDimension(id));
 }
 
-const ServerDimension* ServerDimensionManager::getDimension(DimensionId id) const {
+const ServerDimension* ServerDimensionManager::getDimension(DimensionId id) const
+{
     return static_cast<const ServerDimension*>(DimensionManager::getDimension(id));
 }
 
-ServerDimension* ServerDimensionManager::getOverworld() {
+ServerDimension* ServerDimensionManager::getOverworld()
+{
     return getDimension(OVERWORLD);
 }
 
-const ServerDimension* ServerDimensionManager::getOverworld() const {
+const ServerDimension* ServerDimensionManager::getOverworld() const
+{
     return getDimension(OVERWORLD);
 }
 
-ServerDimension* ServerDimensionManager::getNether() {
+ServerDimension* ServerDimensionManager::getNether()
+{
     return getDimension(NETHER);
 }
 
-const ServerDimension* ServerDimensionManager::getNether() const {
+const ServerDimension* ServerDimensionManager::getNether() const
+{
     return getDimension(NETHER);
 }
 
-ServerDimension* ServerDimensionManager::getTheEnd() {
+ServerDimension* ServerDimensionManager::getTheEnd()
+{
     return getDimension(THE_END);
 }
 
-const ServerDimension* ServerDimensionManager::getTheEnd() const {
+const ServerDimension* ServerDimensionManager::getTheEnd() const
+{
     return getDimension(THE_END);
 }
 
@@ -121,7 +131,8 @@ const ServerDimension* ServerDimensionManager::getTheEnd() const {
 // 玩家维度管理
 // ============================================================================
 
-void ServerDimensionManager::playerJoinDimension(PlayerId playerId, DimensionId dimId) {
+void ServerDimensionManager::playerJoinDimension(PlayerId playerId, DimensionId dimId)
+{
     auto* dim = getDimension(dimId);
     if (!dim) {
         return;
@@ -136,7 +147,8 @@ void ServerDimensionManager::playerJoinDimension(PlayerId playerId, DimensionId 
     dim->addPlayer(playerId);
 }
 
-void ServerDimensionManager::playerLeaveDimension(PlayerId playerId) {
+void ServerDimensionManager::playerLeaveDimension(PlayerId playerId)
+{
     auto it = m_playerDimensions.find(playerId);
     if (it == m_playerDimensions.end()) {
         return;
@@ -152,12 +164,14 @@ void ServerDimensionManager::playerLeaveDimension(PlayerId playerId) {
     m_playerDimensions.erase(it);
 }
 
-DimensionId ServerDimensionManager::getPlayerDimension(PlayerId playerId) const {
+DimensionId ServerDimensionManager::getPlayerDimension(PlayerId playerId) const
+{
     auto it = m_playerDimensions.find(playerId);
     return it != m_playerDimensions.end() ? it->second : static_cast<DimensionId>(-1);
 }
 
-ServerDimension* ServerDimensionManager::getPlayerDimensionWorld(PlayerId playerId) {
+ServerDimension* ServerDimensionManager::getPlayerDimensionWorld(PlayerId playerId)
+{
     DimensionId dimId = getPlayerDimension(playerId);
     if (dimId < 0) {
         return nullptr;
@@ -165,7 +179,8 @@ ServerDimension* ServerDimensionManager::getPlayerDimensionWorld(PlayerId player
     return getDimension(dimId);
 }
 
-std::vector<PlayerId> ServerDimensionManager::getPlayersInDimension(DimensionId dimId) const {
+std::vector<PlayerId> ServerDimensionManager::getPlayersInDimension(DimensionId dimId) const
+{
     std::vector<PlayerId> players;
     auto it = m_dimensionPlayers.find(dimId);
     if (it != m_dimensionPlayers.end()) {
@@ -177,7 +192,8 @@ std::vector<PlayerId> ServerDimensionManager::getPlayersInDimension(DimensionId 
     return players;
 }
 
-bool ServerDimensionManager::isPlayerInDimension(PlayerId playerId, DimensionId dimId) const {
+bool ServerDimensionManager::isPlayerInDimension(PlayerId playerId, DimensionId dimId) const
+{
     auto it = m_dimensionPlayers.find(dimId);
     if (it == m_dimensionPlayers.end()) {
         return false;
@@ -189,9 +205,9 @@ bool ServerDimensionManager::isPlayerInDimension(PlayerId playerId, DimensionId 
 // 维度切换
 // ============================================================================
 
-bool ServerDimensionManager::transferPlayerToDimension(PlayerId playerId,
-                                                        DimensionId targetDim,
-                                                        const std::optional<Vector3d>& position) {
+bool ServerDimensionManager::transferPlayerToDimension(
+    PlayerId playerId, DimensionId targetDim, const std::optional<Vector3d>& position)
+{
     // 获取目标维度
     auto* targetDimension = getDimension(targetDim);
     if (!targetDimension) {
@@ -235,17 +251,17 @@ bool ServerDimensionManager::transferPlayerToDimension(PlayerId playerId,
 // 更新
 // ============================================================================
 
-void ServerDimensionManager::tick() {
-    forEachDimension([](Dimension& dim) {
-        dim.tick();
-    });
+void ServerDimensionManager::tick()
+{
+    forEachDimension([](Dimension& dim) { dim.tick(); });
 }
 
 // ============================================================================
 // 加载/卸载
 // ============================================================================
 
-ServerDimension* ServerDimensionManager::loadDimension(DimensionId id) {
+ServerDimension* ServerDimensionManager::loadDimension(DimensionId id)
+{
     if (hasDimension(id)) {
         return getDimension(id);
     }
@@ -267,7 +283,8 @@ ServerDimension* ServerDimensionManager::loadDimension(DimensionId id) {
     return getDimension(id);
 }
 
-bool ServerDimensionManager::unloadDimension(DimensionId id) {
+bool ServerDimensionManager::unloadDimension(DimensionId id)
+{
     // 不能卸载主维度
     if (id == OVERWORLD) {
         return false;
@@ -283,7 +300,8 @@ bool ServerDimensionManager::unloadDimension(DimensionId id) {
     return unregisterDimension(id);
 }
 
-bool ServerDimensionManager::isDimensionLoaded(DimensionId id) const {
+bool ServerDimensionManager::isDimensionLoaded(DimensionId id) const
+{
     return hasDimension(id);
 }
 
@@ -291,9 +309,10 @@ bool ServerDimensionManager::isDimensionLoaded(DimensionId id) const {
 // 内部方法
 // ============================================================================
 
-std::unique_ptr<ServerDimension> ServerDimensionManager::createServerDimension(DimensionId id, u64 seed) {
+std::unique_ptr<ServerDimension> ServerDimensionManager::createServerDimension(DimensionId id, u64 seed)
+{
     // 创建维度类型
-    DimensionType type = DimensionType::overworld();  // 默认值
+    DimensionType type = DimensionType::overworld(); // 默认值
     switch (id) {
         case OVERWORLD:
             type = DimensionType::overworld();
@@ -337,16 +356,11 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::createServerDimension(D
     }
 
     return std::make_unique<ServerDimension>(
-        id,
-        std::move(type),
-        std::move(generator),
-        std::move(biomeProvider),
-        seed,
-        m_viewDistance
-    );
+        id, std::move(type), std::move(generator), std::move(biomeProvider), seed, m_viewDistance);
 }
 
-void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos) {
+void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos)
+{
     // 获取维度类型
     auto* targetDim = getDimension(newDim);
     if (!targetDim) {
@@ -363,13 +377,13 @@ void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, Dimens
     // 2 = minecraft:the_end
     i32 dimensionTypeId = 0;
     switch (newDim) {
-        case 0:  // Overworld
+        case 0: // Overworld
             dimensionTypeId = 0;
             break;
         case -1: // Nether
             dimensionTypeId = 1;
             break;
-        case 1:  // The End
+        case 1: // The End
             dimensionTypeId = 2;
             break;
         default:
@@ -404,7 +418,8 @@ void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, Dimens
     m_server->sendPacketToPlayer(playerId, result.value().data(), result.value().size());
 }
 
-void ServerDimensionManager::unloadPlayerChunks(PlayerId playerId) {
+void ServerDimensionManager::unloadPlayerChunks(PlayerId playerId)
+{
     // 获取玩家当前维度
     DimensionId dimId = getPlayerDimension(playerId);
     if (dimId < 0) {
@@ -441,7 +456,8 @@ void ServerDimensionManager::unloadPlayerChunks(PlayerId playerId) {
     }
 }
 
-void ServerDimensionManager::loadPlayerChunks(PlayerId playerId, ServerDimension* dim) {
+void ServerDimensionManager::loadPlayerChunks(PlayerId playerId, ServerDimension* dim)
+{
     if (!dim || !dim->world()) {
         return;
     }

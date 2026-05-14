@@ -1,22 +1,22 @@
 #include "CatEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../core/EntityRegistry.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/interact/TameableGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../core/MobEntity.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -33,33 +33,39 @@ CatEntity::CatEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<CatEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void CatEntity::setRandomCatType() {
+void CatEntity::setRandomCatType()
+{
     math::Random rng = getRandom();
     m_catType = static_cast<CatType>(rng.nextInt(0, 10));
 }
 
-bool CatEntity::isTameItem(const ItemStack& itemStack) const {
+bool CatEntity::isTameItem(const ItemStack& itemStack) const
+{
     // 猫用生鳕鱼或生鲑鱼驯服
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::COD || item == Items::SALMON;
 }
 
-bool CatEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool CatEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // 驯服后用生鱼繁殖
     return isTameItem(itemStack);
 }
 
-bool CatEntity::isFoodItem(const ItemStack& itemStack) const {
+bool CatEntity::isFoodItem(const ItemStack& itemStack) const
+{
     // 同繁殖物品
     return isTameItem(itemStack);
 }
 
-std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/) {
+std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
     // 创建小猫
     auto baby = std::make_unique<CatEntity>(LegacyEntityType::Unknown, 0);
 
@@ -72,8 +78,10 @@ std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/) {
     return baby;
 }
 
-void CatEntity::registerGoals() {
-    // 调用父类方法（已包含 SwimGoal, PanicGoal, BreedGoal, FollowParentGoal, RandomWalkingGoal, LookAtGoal, LookRandomlyGoal）
+void CatEntity::registerGoals()
+{
+    // 调用父类方法（已包含 SwimGoal, PanicGoal, BreedGoal, FollowParentGoal, RandomWalkingGoal, LookAtGoal,
+    // LookRandomlyGoal）
     TameableEntity::registerGoals();
 
     // 猫特有目标
@@ -95,7 +103,8 @@ void CatEntity::registerGoals() {
     // m_goalSelector.addGoal(6, new entity::ai::goal::AvoidEntityGoal(this, Player.class, 16.0f, 0.8, 1.33));
 }
 
-void CatEntity::registerAttributes() {
+void CatEntity::registerAttributes()
+{
     // 调用父类方法
     TameableEntity::registerAttributes();
 
@@ -105,7 +114,8 @@ void CatEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
-void CatEntity::onTamed(bool tamed) {
+void CatEntity::onTamed(bool tamed)
+{
     if (tamed) {
         // 驯服后增加生命值
         m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
@@ -118,7 +128,8 @@ void CatEntity::onTamed(bool tamed) {
     }
 }
 
-std::optional<ResourceLocation> CatEntity::getAmbientSound() const {
+std::optional<ResourceLocation> CatEntity::getAmbientSound() const
+{
     // 驯服后的猫使用 ENTITY_CAT_AMBIENT
     // 未驯服的流浪猫使用 ENTITY_CAT_STRAY_AMBIENT
     if (isTamed()) {
@@ -127,15 +138,18 @@ std::optional<ResourceLocation> CatEntity::getAmbientSound() const {
     return SoundEvents::ENTITY_CAT_STRAY_AMBIENT;
 }
 
-std::optional<ResourceLocation> CatEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> CatEntity::getHurtSound(DamageSource& /*source*/) const
+{
     return SoundEvents::ENTITY_CAT_HURT;
 }
 
-std::optional<ResourceLocation> CatEntity::getDeathSound() const {
+std::optional<ResourceLocation> CatEntity::getDeathSound() const
+{
     return SoundEvents::ENTITY_CAT_DEATH;
 }
 
-void CatEntity::playEatSound() {
+void CatEntity::playEatSound()
+{
     playSound(SoundEvents::ENTITY_CAT_EAT, 1.0f, 1.0f);
 }
 

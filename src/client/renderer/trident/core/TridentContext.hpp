@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../api/TridentApi.hpp"
-#include <vulkan/vulkan.h>
-#include <vector>
-#include <string>
-#include <optional>
 #include <memory>
+#include <optional>
+#include <string>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 // 前置声明 GLFW
 struct GLFWwindow;
@@ -27,7 +27,8 @@ struct TridentConfig {
     std::vector<std::string> optionalDeviceExtensions;
     std::vector<std::string> requiredLayers;
 
-    TridentConfig() {
+    TridentConfig()
+    {
         // 默认必需的设备扩展
         requiredDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -49,7 +50,8 @@ struct VulkanVersion {
     u32 minor;
     u32 patch;
 
-    std::string toString() const {
+    std::string toString() const
+    {
         return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
     }
 };
@@ -63,9 +65,7 @@ struct QueueFamilyIndices {
     std::optional<u32> transferFamily;
     std::optional<u32> computeFamily;
 
-    bool isComplete() const {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
+    bool isComplete() const { return graphicsFamily.has_value() && presentFamily.has_value(); }
 
     bool hasTransfer() const { return transferFamily.has_value(); }
     bool hasCompute() const { return computeFamily.has_value(); }
@@ -166,9 +166,7 @@ public:
      * @brief 查找支持的格式
      */
     [[nodiscard]] Result<VkFormat> findSupportedFormat(
-        const std::vector<VkFormat>& candidates,
-        VkImageTiling tiling,
-        VkFormatFeatureFlags features) const;
+        const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 
     /**
      * @brief 查找深度格式
@@ -239,7 +237,7 @@ private:
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-    VkCommandPool m_commandPool = VK_NULL_HANDLE;  // 单次命令池
+    VkCommandPool m_commandPool = VK_NULL_HANDLE; // 单次命令池
 
     // 队列
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;

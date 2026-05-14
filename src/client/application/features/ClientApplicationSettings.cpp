@@ -1,8 +1,8 @@
 #include "../ClientApplication.hpp"
 
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #include <filesystem>
 
@@ -51,8 +51,7 @@ void ClientApplication::applySettings()
     }
 
     // 应用光照模式（环境光遮蔽）
-    ChunkMesher::syncFromSettings(static_cast<client::AmbientOcclusionMode>(
-        m_settings.ambientOcclusion.get()));
+    ChunkMesher::syncFromSettings(static_cast<client::AmbientOcclusionMode>(m_settings.ambientOcclusion.get()));
 
     // 应用生物群系颜色混合半径
     ChunkMesher::setBiomeBlendRadius(m_settings.biomeBlendRadius.get());
@@ -68,13 +67,14 @@ void ClientApplication::setupSettingCallbacks()
         if (m_renderer) {
             m_renderer->setRenderDistanceChunks(value);
         }
-        auto* debugWidget = m_kageroEngine ?
-            static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId)) : nullptr;
+        auto* debugWidget = m_kageroEngine
+            ? static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId))
+            : nullptr;
         if (debugWidget) {
             debugWidget->setRenderDistance(value);
         }
         // 世界更新时会使用新值
-        });
+    });
 
     // 全屏模式变更
     m_settings.fullscreen.onChange([this](bool value) {
@@ -111,7 +111,7 @@ void ClientApplication::setupSettingCallbacks()
     m_settings.mouseSensitivity.onChange([this](f32 value) {
         spdlog::info("Mouse sensitivity changed to: {}", value);
         // 鼠标灵敏度在 handleEvents 中应用
-        });
+    });
 
     // FOV 变更
     m_settings.fov.onChange([this](f32 value) {
@@ -136,22 +136,18 @@ void ClientApplication::setupSettingCallbacks()
 
     // 生物群系颜色混合半径变更
     m_settings.biomeBlendRadius.onChange([this](i32 value) {
-        spdlog::info("Biome blend radius changed to: {} ({}x{} area)",
-                     value, value * 2 + 1, value * 2 + 1);
+        spdlog::info("Biome blend radius changed to: {} ({}x{} area)", value, value * 2 + 1, value * 2 + 1);
         ChunkMesher::setBiomeBlendRadius(value);
     });
 
-    m_settings.antiAliasing.onChange([](bool enabled) {
-        spdlog::info("Anti-aliasing changed to: {} (restart required)", enabled);
-    });
+    m_settings.antiAliasing.onChange(
+        [](bool enabled) { spdlog::info("Anti-aliasing changed to: {} (restart required)", enabled); });
 }
 
 void ClientApplication::applyGuiScale()
 {
     m_guiScaleState = ui::calculateGuiScale(
-        m_settings.guiScale.get(),
-        static_cast<i32>(m_window.width()),
-        static_cast<i32>(m_window.height()));
+        m_settings.guiScale.get(), static_cast<i32>(m_window.width()), static_cast<i32>(m_window.height()));
 
     if (m_renderer) {
         m_renderer->setGuiScaleFactor(static_cast<f64>(m_guiScaleState.scaleFactor));

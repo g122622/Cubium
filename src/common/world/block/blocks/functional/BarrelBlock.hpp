@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -56,15 +56,14 @@ public:
 
     // ========== 红石 ==========
 
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] int getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
 protected:
     /// 木桶形状

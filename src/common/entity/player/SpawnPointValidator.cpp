@@ -1,9 +1,9 @@
 #include "SpawnPointValidator.hpp"
+#include "../../util/property/Properties.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/VanillaBlocks.hpp"
 #include "../../world/dimension/DimensionType.hpp"
-#include "../../util/property/Properties.hpp"
 #include <cmath>
 
 namespace mc {
@@ -11,10 +11,8 @@ namespace mc {
 // ========== 公共方法实现 ==========
 
 SpawnPointValidationResult SpawnPointValidator::validate(
-    IWorld& world,
-    const GlobalPos& spawnPoint,
-    bool spawnForced,
-    bool consumeCharge) {
+    IWorld& world, const GlobalPos& spawnPoint, bool spawnForced, bool consumeCharge)
+{
 
     // 1. 获取方块状态
     const BlockPos& pos = spawnPoint.getPos();
@@ -88,10 +86,8 @@ SpawnPointValidationResult SpawnPointValidator::validate(
 }
 
 std::optional<Vector3> SpawnPointValidator::findSafeSpawnPosition(
-    IWorld& world,
-    const GlobalPos& spawnPoint,
-    bool spawnForced,
-    bool consumeCharge) {
+    IWorld& world, const GlobalPos& spawnPoint, bool spawnForced, bool consumeCharge)
+{
 
     const BlockPos& pos = spawnPoint.getPos();
     const BlockState* state = world.getBlockState(pos);
@@ -116,26 +112,19 @@ std::optional<Vector3> SpawnPointValidator::findSafeSpawnPosition(
     if (spawnForced) {
         // 对于强制重生点，直接在方块上方生成
         if (hasStandingSpace(world, pos.up())) {
-            return Vector3(
-                static_cast<f64>(pos.x) + 0.5,
-                static_cast<f64>(pos.y) + 0.1,
-                static_cast<f64>(pos.z) + 0.5
-            );
+            return Vector3(static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.1, static_cast<f64>(pos.z) + 0.5);
         }
         // 尝试方块内部
         if (validateForcedSpawn(world, pos)) {
-            return Vector3(
-                static_cast<f64>(pos.x) + 0.5,
-                static_cast<f64>(pos.y) + 0.1,
-                static_cast<f64>(pos.z) + 0.5
-            );
+            return Vector3(static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.1, static_cast<f64>(pos.z) + 0.5);
         }
     }
 
     return std::nullopt;
 }
 
-bool SpawnPointValidator::validateBedSpawn(IWorld& world, const BlockPos& bedPos) {
+bool SpawnPointValidator::validateBedSpawn(IWorld& world, const BlockPos& bedPos)
+{
     // 检查床是否存在
     const BlockState* state = world.getBlockState(bedPos);
     if (state == nullptr || !isBed(*state)) {
@@ -169,10 +158,8 @@ bool SpawnPointValidator::validateBedSpawn(IWorld& world, const BlockPos& bedPos
 
     // 尝试多个方向找安全位置
     // 参考 MC 1.16.5 BedBlock.getBedSpawnPosition()
-    constexpr std::array<std::pair<i32, i32>, 8> offsets = {{
-        {0, -1}, {-1, 0}, {0, 1}, {1, 0},
-        {-1, -1}, {1, -1}, {-1, 1}, {1, 1}
-    }};
+    constexpr std::array<std::pair<i32, i32>, 8> offsets = {
+        {{0, -1}, {-1, 0}, {0, 1}, {1, 0}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}};
 
     for (const auto& [dx, dz] : offsets) {
         BlockPos checkPos(headPos.x + dx, headPos.y + 1, headPos.z + dz);
@@ -193,9 +180,8 @@ bool SpawnPointValidator::validateBedSpawn(IWorld& world, const BlockPos& bedPos
     return hasStandingSpace(world, headPos.up());
 }
 
-std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(
-    IWorld& world,
-    const BlockPos& bedPos) {
+std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(IWorld& world, const BlockPos& bedPos)
+{
 
     const BlockState* state = world.getBlockState(bedPos);
     if (state == nullptr || !isBed(*state)) {
@@ -217,20 +203,15 @@ std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(
     }
 
     // 尝试的方向列表
-    constexpr std::array<std::pair<i32, i32>, 8> offsets = {{
-        {0, -1}, {-1, 0}, {0, 1}, {1, 0},
-        {-1, -1}, {1, -1}, {-1, 1}, {1, 1}
-    }};
+    constexpr std::array<std::pair<i32, i32>, 8> offsets = {
+        {{0, -1}, {-1, 0}, {0, 1}, {1, 0}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}};
 
     // 先检查床头周围
     for (const auto& [dx, dz] : offsets) {
         BlockPos checkPos(headPos.x + dx, headPos.y + 1, headPos.z + dz);
         if (hasStandingSpace(world, checkPos)) {
             return Vector3(
-                static_cast<f64>(checkPos.x) + 0.5,
-                static_cast<f64>(checkPos.y),
-                static_cast<f64>(checkPos.z) + 0.5
-            );
+                static_cast<f64>(checkPos.x) + 0.5, static_cast<f64>(checkPos.y), static_cast<f64>(checkPos.z) + 0.5);
         }
     }
 
@@ -241,27 +222,23 @@ std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(
         BlockPos checkPos(footPos.x + dx, footPos.y + 1, footPos.z + dz);
         if (hasStandingSpace(world, checkPos)) {
             return Vector3(
-                static_cast<f64>(checkPos.x) + 0.5,
-                static_cast<f64>(checkPos.y),
-                static_cast<f64>(checkPos.z) + 0.5
-            );
+                static_cast<f64>(checkPos.x) + 0.5, static_cast<f64>(checkPos.y), static_cast<f64>(checkPos.z) + 0.5);
         }
     }
 
     // 最后检查床头正上方
     BlockPos aboveHead = headPos.up();
     if (hasStandingSpace(world, aboveHead)) {
-        return Vector3(
-            static_cast<f64>(aboveHead.x) + 0.5,
+        return Vector3(static_cast<f64>(aboveHead.x) + 0.5,
             static_cast<f64>(aboveHead.y) + 0.1,
-            static_cast<f64>(aboveHead.z) + 0.5
-        );
+            static_cast<f64>(aboveHead.z) + 0.5);
     }
 
     return std::nullopt;
 }
 
-bool SpawnPointValidator::validateRespawnAnchorSpawn(IWorld& world, const BlockPos& anchorPos) {
+bool SpawnPointValidator::validateRespawnAnchorSpawn(IWorld& world, const BlockPos& anchorPos)
+{
     // 检查重生锚是否存在且有能量
     const BlockState* state = world.getBlockState(anchorPos);
     if (state == nullptr || !isRespawnAnchor(*state)) {
@@ -278,9 +255,8 @@ bool SpawnPointValidator::validateRespawnAnchorSpawn(IWorld& world, const BlockP
 }
 
 std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
-    IWorld& world,
-    const BlockPos& anchorPos,
-    bool consumeCharge) {
+    IWorld& world, const BlockPos& anchorPos, bool consumeCharge)
+{
 
     const BlockState* state = world.getBlockState(anchorPos);
     if (state == nullptr || !isRespawnAnchor(*state)) {
@@ -295,10 +271,8 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
     // 参考 MC 1.16.5 RespawnAnchorBlock.func_242678_a_()
     // 预定义的位置偏移列表
     // 基础偏移：重生锚周围8个位置
-    constexpr std::array<std::pair<i32, i32>, 8> baseOffsets = {{
-        {0, -1}, {-1, 0}, {0, 1}, {1, 0},
-        {-1, -1}, {1, -1}, {-1, 1}, {1, 1}
-    }};
+    constexpr std::array<std::pair<i32, i32>, 8> baseOffsets = {
+        {{0, -1}, {-1, 0}, {0, 1}, {1, 0}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}};
 
     // 尝试 Y=0（同一层）、Y=-1（下一层）、Y=1（上一层）
     for (i32 dy = 0; dy <= 1; ++dy) {
@@ -307,13 +281,11 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
             if (hasStandingSpace(world, checkPos)) {
                 // 如果需要消耗能量，在这里处理
                 // 注意：实际消耗需要在调用方执行
-                (void)consumeCharge;  // 避免未使用警告
+                (void)consumeCharge; // 避免未使用警告
 
-                return Vector3(
-                    static_cast<f64>(checkPos.x) + 0.5,
+                return Vector3(static_cast<f64>(checkPos.x) + 0.5,
                     static_cast<f64>(checkPos.y),
-                    static_cast<f64>(checkPos.z) + 0.5
-                );
+                    static_cast<f64>(checkPos.z) + 0.5);
             }
         }
     }
@@ -323,27 +295,23 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
         BlockPos checkPos(anchorPos.x + dx, anchorPos.y - 1, anchorPos.z + dz);
         if (hasStandingSpace(world, checkPos)) {
             return Vector3(
-                static_cast<f64>(checkPos.x) + 0.5,
-                static_cast<f64>(checkPos.y),
-                static_cast<f64>(checkPos.z) + 0.5
-            );
+                static_cast<f64>(checkPos.x) + 0.5, static_cast<f64>(checkPos.y), static_cast<f64>(checkPos.z) + 0.5);
         }
     }
 
     // 尝试正上方
     BlockPos aboveAnchor = anchorPos.up();
     if (hasStandingSpace(world, aboveAnchor)) {
-        return Vector3(
-            static_cast<f64>(aboveAnchor.x) + 0.5,
+        return Vector3(static_cast<f64>(aboveAnchor.x) + 0.5,
             static_cast<f64>(aboveAnchor.y),
-            static_cast<f64>(aboveAnchor.z) + 0.5
-        );
+            static_cast<f64>(aboveAnchor.z) + 0.5);
     }
 
     return std::nullopt;
 }
 
-bool SpawnPointValidator::validateForcedSpawn(IWorld& world, const BlockPos& pos) {
+bool SpawnPointValidator::validateForcedSpawn(IWorld& world, const BlockPos& pos)
+{
     // 参考 MC 1.16.5 Block.canSpawnInBlock()
     // 对于强制重生点，检查方块和上方方块是否允许在内部生成
 
@@ -351,27 +319,29 @@ bool SpawnPointValidator::validateForcedSpawn(IWorld& world, const BlockPos& pos
     const BlockState* stateAbove = world.getBlockState(pos.up());
 
     // 检查当前位置是否可以在内部生成
-    bool canSpawnInCurrent = (state == nullptr || state->isAir() ||
-                               (state->isLiquid() == false && !state->isSolid()));
+    bool canSpawnInCurrent = (state == nullptr || state->isAir() || (state->isLiquid() == false && !state->isSolid()));
 
     // 检查上方位置是否可以在内部生成
-    bool canSpawnInAbove = (stateAbove == nullptr || stateAbove->isAir() ||
-                             (stateAbove->isLiquid() == false && !stateAbove->isSolid()));
+    bool canSpawnInAbove =
+        (stateAbove == nullptr || stateAbove->isAir() || (stateAbove->isLiquid() == false && !stateAbove->isSolid()));
 
     return canSpawnInCurrent && canSpawnInAbove;
 }
 
-bool SpawnPointValidator::isBed(const BlockState& state) {
+bool SpawnPointValidator::isBed(const BlockState& state)
+{
     // 检查是否有床的属性来判断是否为床
     return state.hasProperty(BlockStateProperties::BED_PART());
 }
 
-bool SpawnPointValidator::isRespawnAnchor(const BlockState& state) {
+bool SpawnPointValidator::isRespawnAnchor(const BlockState& state)
+{
     // 检查是否有充能属性来判断是否为重生锚
     return state.hasProperty(BlockStateProperties::CHARGES_0_4());
 }
 
-i32 SpawnPointValidator::getRespawnAnchorCharges(const BlockState& state) {
+i32 SpawnPointValidator::getRespawnAnchorCharges(const BlockState& state)
+{
     if (!isRespawnAnchor(state)) {
         return 0;
     }
@@ -380,7 +350,8 @@ i32 SpawnPointValidator::getRespawnAnchorCharges(const BlockState& state) {
 
 // ========== 私有方法实现 ==========
 
-bool SpawnPointValidator::hasStandingSpace(const IWorld& world, const BlockPos& pos) {
+bool SpawnPointValidator::hasStandingSpace(const IWorld& world, const BlockPos& pos)
+{
     // 检查 pos 和 pos.up() 是否都是非固体方块
     // 玩家需要两格高的空间
 
@@ -388,16 +359,15 @@ bool SpawnPointValidator::hasStandingSpace(const IWorld& world, const BlockPos& 
     const BlockState* state2 = world.getBlockState(pos.up());
 
     // 两个方块都必须是空气或非固体
-    bool canStand1 = (state1 == nullptr || state1->isAir() ||
-                      !state1->blocksMovement() || state1->isLiquid());
+    bool canStand1 = (state1 == nullptr || state1->isAir() || !state1->blocksMovement() || state1->isLiquid());
 
-    bool canStand2 = (state2 == nullptr || state2->isAir() ||
-                      !state2->blocksMovement() || state2->isLiquid());
+    bool canStand2 = (state2 == nullptr || state2->isAir() || !state2->blocksMovement() || state2->isLiquid());
 
     return canStand1 && canStand2;
 }
 
-Direction SpawnPointValidator::getBedFacing(const BlockState& state) {
+Direction SpawnPointValidator::getBedFacing(const BlockState& state)
+{
     if (!isBed(state)) {
         return Direction::None;
     }
@@ -409,10 +379,8 @@ Direction SpawnPointValidator::getBedFacing(const BlockState& state) {
     return Direction::None;
 }
 
-bool SpawnPointValidator::isSafeSpawnPosition(
-    const IWorld& world,
-    const BlockPos& pos,
-    bool requireSafe) {
+bool SpawnPointValidator::isSafeSpawnPosition(const IWorld& world, const BlockPos& pos, bool requireSafe)
+{
 
     // 参考 MC 1.16.5 TransportationHelper.func_242379_a_()
 

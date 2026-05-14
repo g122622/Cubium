@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -43,12 +43,9 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -71,21 +68,15 @@ public:
 
     // ========== 移动和交互 ==========
 
-    [[nodiscard]] bool allowsMovement(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+    [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     void onFallenUpon(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        Entity& entity,
-        f32 fallDistance) override;
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -100,7 +91,8 @@ public:
     /**
      * @brief 检查是否湿润
      */
-    [[nodiscard]] static bool isMoist(const BlockState& state) {
+    [[nodiscard]] static bool isMoist(const BlockState& state)
+    {
         return state.get(BlockStateProperties::MOISTURE_0_7()) > 0;
     }
 

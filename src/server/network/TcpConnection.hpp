@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/network/connection/IServerConnection.hpp"
 #include "TcpSession.hpp"
+#include "common/network/connection/IServerConnection.hpp"
 #include <memory>
 
 namespace mc::server {

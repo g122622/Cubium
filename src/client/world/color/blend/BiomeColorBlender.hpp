@@ -1,11 +1,11 @@
 #pragma once
 
-#include "BiomeColorCache.hpp"
 #include "../ColorResolver.hpp"
+#include "BiomeColorCache.hpp"
 #include "common/world/biome/Biome.hpp"
-#include <functional>
 #include <array>
 #include <atomic>
+#include <functional>
 
 namespace mc {
 class ChunkData;
@@ -50,12 +50,7 @@ public:
      *
      * 用于缓存管理，避免频繁的类型识别
      */
-    enum class ResolverId : size_t {
-        Grass = 0,
-        Foliage = 1,
-        Water = 2,
-        Count = 3
-    };
+    enum class ResolverId : size_t { Grass = 0, Foliage = 1, Water = 2, Count = 3 };
 
     /**
      * @brief 生物群系访问接口
@@ -151,13 +146,7 @@ public:
      * @return 混合后的颜色 (RGB)
      */
     [[nodiscard]] u32 getBlendedColor(
-        const IBiomeAccessor& accessor,
-        i32 x,
-        i32 y,
-        i32 z,
-        const ColorResolver& resolver,
-        ResolverId resolverId
-    );
+        const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId);
 
     /**
      * @brief 获取混合后的颜色（带缓存）
@@ -165,13 +154,7 @@ public:
      * 首先检查缓存，未命中则计算并缓存结果。
      */
     [[nodiscard]] u32 getBlendedColorCached(
-        const IBiomeAccessor& accessor,
-        i32 x,
-        i32 y,
-        i32 z,
-        const ColorResolver& resolver,
-        ResolverId resolverId
-    );
+        const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId);
 
     // ========================================================================
     // 缓存管理
@@ -221,25 +204,13 @@ private:
      * @brief 无混合，直接获取颜色
      */
     [[nodiscard]] u32 getColorDirect(
-        const IBiomeAccessor& accessor,
-        i32 x,
-        i32 y,
-        i32 z,
-        const ColorResolver& resolver,
-        ResolverId resolverId
-    );
+        const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId);
 
     /**
      * @brief 带混合的颜色获取
      */
     [[nodiscard]] u32 getColorBlended(
-        const IBiomeAccessor& accessor,
-        i32 x,
-        i32 y,
-        i32 z,
-        const ColorResolver& resolver,
-        ResolverId resolverId
-    );
+        const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId);
 
     /**
      * @brief 获取默认颜色
@@ -251,7 +222,7 @@ private:
      */
     [[nodiscard]] const std::array<u32, 65536>* getColorMap(ResolverId resolverId) const;
 
-    i32 m_blendRadius = 2;  // 默认 5x5 混合区域
+    i32 m_blendRadius = 2; // 默认 5x5 混合区域
     bool m_cacheEnabled = true;
     BiomeColorCache m_cache;
 

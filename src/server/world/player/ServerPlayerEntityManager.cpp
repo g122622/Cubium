@@ -1,15 +1,16 @@
 #include "ServerPlayerEntityManager.hpp"
 #include "../../world/ServerWorld.hpp"
 #include "../../world/entity/EntityTracker.hpp"
-#include "common/world/entity/EntityManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
 
-Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId, const std::string& username,
-                                                       ServerWorld& world, f32 spawnX, f32 spawnY, f32 spawnZ) {
+Player* ServerPlayerEntityManager::createPlayerEntity(
+    PlayerId playerId, const std::string& username, ServerWorld& world, f32 spawnX, f32 spawnY, f32 spawnZ)
+{
     MC_ASSERT_RELEASE(playerId != 0);
 
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -62,12 +63,18 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId, const s
     m_entityToPlayer[entityId] = playerId;
 
     spdlog::info("ServerPlayerEntityManager: Created player {} (PlayerId={}, EntityId={}) at ({:.1f}, {:.1f}, {:.1f})",
-                 username, playerId, entityId, spawnX, spawnY, spawnZ);
+        username,
+        playerId,
+        entityId,
+        spawnX,
+        spawnY,
+        spawnZ);
 
     return playerPtr;
 }
 
-void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorld& world) {
+void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorld& world)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_playerToEntity.find(playerId);
@@ -91,7 +98,8 @@ void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorl
     spdlog::info("ServerPlayerEntityManager: Removed player {} (EntityId={})", playerId, entityId);
 }
 
-void ServerPlayerEntityManager::clearAll(ServerWorld& world) {
+void ServerPlayerEntityManager::clearAll(ServerWorld& world)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 移除所有玩家实体
@@ -106,7 +114,8 @@ void ServerPlayerEntityManager::clearAll(ServerWorld& world) {
     spdlog::info("ServerPlayerEntityManager: Cleared all player entities");
 }
 
-EntityId ServerPlayerEntityManager::getPlayerEntityId(PlayerId playerId) const {
+EntityId ServerPlayerEntityManager::getPlayerEntityId(PlayerId playerId) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_playerToEntity.find(playerId);
@@ -116,7 +125,8 @@ EntityId ServerPlayerEntityManager::getPlayerEntityId(PlayerId playerId) const {
     return it->second;
 }
 
-PlayerId ServerPlayerEntityManager::getPlayerIdByEntityId(EntityId entityId) const {
+PlayerId ServerPlayerEntityManager::getPlayerIdByEntityId(EntityId entityId) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entityToPlayer.find(entityId);
@@ -126,7 +136,8 @@ PlayerId ServerPlayerEntityManager::getPlayerIdByEntityId(EntityId entityId) con
     return it->second;
 }
 
-Player* ServerPlayerEntityManager::getPlayerEntity(PlayerId playerId, ServerWorld& world) const {
+Player* ServerPlayerEntityManager::getPlayerEntity(PlayerId playerId, ServerWorld& world) const
+{
     EntityId entityId = getPlayerEntityId(playerId);
     if (entityId == INVALID_ENTITY_ID) {
         return nullptr;
@@ -140,17 +151,20 @@ Player* ServerPlayerEntityManager::getPlayerEntity(PlayerId playerId, ServerWorl
     return dynamic_cast<Player*>(entity);
 }
 
-bool ServerPlayerEntityManager::hasPlayer(PlayerId playerId) const {
+bool ServerPlayerEntityManager::hasPlayer(PlayerId playerId) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_playerToEntity.find(playerId) != m_playerToEntity.end();
 }
 
-size_t ServerPlayerEntityManager::playerCount() const {
+size_t ServerPlayerEntityManager::playerCount() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_playerToEntity.size();
 }
 
-std::vector<PlayerId> ServerPlayerEntityManager::getPlayerIds() const {
+std::vector<PlayerId> ServerPlayerEntityManager::getPlayerIds() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<PlayerId> ids;

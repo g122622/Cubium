@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "LootContext.hpp"
 #include "LootConditions.hpp"
+#include "LootContext.hpp"
 #include "LootFunctions.hpp"
 #include "RandomRanges.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -22,14 +22,14 @@ class LootPool;
  * 参考: net.minecraft.loot.LootPoolEntryType
  */
 enum class LootEntryType : u8 {
-    Empty,      // 空条目
-    Item,       // 物品条目
-    Tag,        // 标签条目
-    Table,      // 掉落表引用
-    Dynamic,    // 动态条目
+    Empty,        // 空条目
+    Item,         // 物品条目
+    Tag,          // 标签条目
+    Table,        // 掉落表引用
+    Dynamic,      // 动态条目
     Alternatives, // 替代条目
-    Sequence,   // 序列条目
-    Group       // 组条目
+    Sequence,     // 序列条目
+    Group         // 组条目
 };
 
 /**
@@ -60,7 +60,8 @@ public:
     /**
      * @brief 获取有效权重（考虑幸运值）
      */
-    [[nodiscard]] virtual i32 getEffectiveWeight(f32 luck) const {
+    [[nodiscard]] virtual i32 getEffectiveWeight(f32 luck) const
+    {
         return m_weight + static_cast<i32>(luck * m_quality);
     }
 
@@ -93,9 +94,7 @@ public:
     /**
      * @brief 获取所有条件
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const {
-        return m_conditions;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
 
     /**
      * @brief 检查所有条件是否满足
@@ -120,9 +119,7 @@ public:
     /**
      * @brief 获取所有函数
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const {
-        return m_functions;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const { return m_functions; }
 
     /**
      * @brief 应用所有函数到物品堆
@@ -141,8 +138,7 @@ public:
      * @param context 掉落上下文
      * @param consumer 接收候选条目的回调
      */
-    virtual void expand(LootContext& context,
-                       std::function<void(LootEntry&)> consumer) const = 0;
+    virtual void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const = 0;
 
     /**
      * @brief 生成物品
@@ -153,13 +149,14 @@ public:
      * @param context 掉落上下文
      * @return 是否成功生成（用于条件判断）
      */
-    virtual bool generate(std::function<void(const ItemStack&)> consumer,
-                         LootContext& context) const = 0;
+    virtual bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const = 0;
 
 protected:
     LootEntry() = default;
     explicit LootEntry(i32 weight, i32 quality = 0)
-        : m_weight(weight), m_quality(quality) {}
+        : m_weight(weight)
+        , m_quality(quality)
+    {}
 
     i32 m_weight = 1;
     i32 m_quality = 0;
@@ -177,16 +174,15 @@ class EmptyLootEntry : public LootEntry {
 public:
     EmptyLootEntry() = default;
     explicit EmptyLootEntry(i32 weight, i32 quality = 0)
-        : LootEntry(weight, quality) {}
+        : LootEntry(weight, quality)
+    {}
 
     [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Empty; }
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
-    void expand(LootContext& context,
-               std::function<void(LootEntry&)> consumer) const override;
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer,
-                 LootContext& context) const override;
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
 };
 
 /**
@@ -205,8 +201,9 @@ public:
      * @param quality 质量
      */
     ItemLootEntry(const std::string& itemId,
-                  const RandomValueRange& count = RandomValueRange(1.0f, 1.0f),
-                  i32 weight = 1, i32 quality = 0);
+        const RandomValueRange& count = RandomValueRange(1.0f, 1.0f),
+        i32 weight = 1,
+        i32 quality = 0);
 
     [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Item; }
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
@@ -214,11 +211,9 @@ public:
     [[nodiscard]] const std::string& getItemId() const { return m_itemId; }
     [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
 
-    void expand(LootContext& context,
-               std::function<void(LootEntry&)> consumer) const override;
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer,
-                 LootContext& context) const override;
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
 
     /**
      * @brief 设置数量范围
@@ -245,11 +240,9 @@ public:
 
     [[nodiscard]] const std::string& getTableId() const { return m_tableId; }
 
-    void expand(LootContext& context,
-               std::function<void(LootEntry&)> consumer) const override;
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer,
-                 LootContext& context) const override;
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
 
 private:
     std::string m_tableId;
@@ -271,11 +264,9 @@ public:
 
     void addChild(std::unique_ptr<LootEntry> child);
 
-    void expand(LootContext& context,
-               std::function<void(LootEntry&)> consumer) const override;
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer,
-                 LootContext& context) const override;
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
 
 private:
     std::vector<std::unique_ptr<LootEntry>> m_children;
@@ -297,11 +288,9 @@ public:
 
     void addChild(std::unique_ptr<LootEntry> child);
 
-    void expand(LootContext& context,
-               std::function<void(LootEntry&)> consumer) const override;
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer,
-                 LootContext& context) const override;
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
 
 private:
     std::vector<std::unique_ptr<LootEntry>> m_children;
@@ -323,11 +312,9 @@ public:
 
     void addChild(std::unique_ptr<LootEntry> child);
 
-    void expand(LootContext& context,
-               std::function<void(LootEntry&)> consumer) const override;
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer,
-                 LootContext& context) const override;
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
 
 private:
     std::vector<std::unique_ptr<LootEntry>> m_children;
@@ -349,7 +336,8 @@ public:
     /**
      * @brief 设置权重
      */
-    LootEntryBuilder& weight(i32 w) {
+    LootEntryBuilder& weight(i32 w)
+    {
         m_weight = w;
         return *this;
     }
@@ -357,7 +345,8 @@ public:
     /**
      * @brief 设置质量
      */
-    LootEntryBuilder& quality(i32 q) {
+    LootEntryBuilder& quality(i32 q)
+    {
         m_quality = q;
         return *this;
     }
@@ -390,7 +379,8 @@ public:
     /**
      * @brief 添加条件
      */
-    LootEntryBuilder& condition(std::unique_ptr<LootCondition> cond) {
+    LootEntryBuilder& condition(std::unique_ptr<LootCondition> cond)
+    {
         m_conditions.push_back(std::move(cond));
         return *this;
     }
@@ -398,7 +388,8 @@ public:
     /**
      * @brief 添加函数
      */
-    LootEntryBuilder& function(std::unique_ptr<LootFunction> func) {
+    LootEntryBuilder& function(std::unique_ptr<LootFunction> func)
+    {
         m_functions.push_back(std::move(func));
         return *this;
     }

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/util/math/Vector3.hpp"
-#include "common/sound/SoundCategory.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <memory>
 
 namespace mc {
@@ -24,14 +24,14 @@ namespace world {
 namespace tick {
 class TickManager;
 }
-}
+} // namespace world
 namespace network {
 class ChunkSyncManager;
 }
 namespace command {
 class CommandRegistry;
 }
-}
+} // namespace mc
 
 namespace mc::server {
 
@@ -49,20 +49,20 @@ class WhitelistManager;
 class BannedPlayerList;
 class BannedIpList;
 class OpListManager;
-}
+} // namespace core
 
 namespace interaction {
 class BlockInteractionManager;
 class MiningManager;
 class ContainerManager;
 class InventoryManager;
-}
+} // namespace interaction
 
 namespace sync {
 class EntitySyncManager;
 class ChunkSendManager;
 class LightSyncManager;
-}
+} // namespace sync
 
 class ServerWorld;
 class ServerChunkManager;
@@ -296,11 +296,11 @@ public:
      * @param pitch 音调倍率
      */
     virtual void sendSoundToPlayer(PlayerId playerId,
-                                   const ResourceLocation& soundEventId,
-                                   sound::SoundCategory category,
-                                   const Vector3& position,
-                                   f32 volume = 1.0f,
-                                   f32 pitch = 1.0f) = 0;
+        const ResourceLocation& soundEventId,
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume = 1.0f,
+        f32 pitch = 1.0f) = 0;
 
     /**
      * @brief 请求服务器优雅停机。
@@ -327,11 +327,16 @@ public:
      * @param count 粒子数量
      * @param range 广播范围（格），默认 256 格
      */
-    virtual void broadcastParticleInRange(
-        u32 type,
-        f64 x, f64 y, f64 z,
-        f32 velocityX, f32 velocityY, f32 velocityZ,
-        f32 offsetX, f32 offsetY, f32 offsetZ,
+    virtual void broadcastParticleInRange(u32 type,
+        f64 x,
+        f64 y,
+        f64 z,
+        f32 velocityX,
+        f32 velocityY,
+        f32 velocityZ,
+        f32 offsetX,
+        f32 offsetY,
+        f32 offsetZ,
         u32 count,
         f32 range = 256.0f) = 0;
 };

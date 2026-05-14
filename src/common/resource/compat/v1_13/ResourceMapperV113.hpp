@@ -26,14 +26,16 @@ public:
     // 纹理路径转换
     // -------------------------------------------------------------------------
 
-    std::string toUnifiedTexturePath(std::string_view path) const override {
+    std::string toUnifiedTexturePath(std::string_view path) const override
+    {
         // 现代路径已经是统一的
         return std::string(path);
     }
 
     std::vector<std::string> getTexturePathVariants(std::string_view unifiedPath) const override;
 
-    std::string toModernTextureName(std::string_view name) const override {
+    std::string toModernTextureName(std::string_view name) const override
+    {
         // 已经是现代格式
         return std::string(name);
     }
@@ -44,21 +46,24 @@ public:
     // 模型路径转换
     // -------------------------------------------------------------------------
 
-    std::string toUnifiedModelPath(std::string_view path) const override {
+    std::string toUnifiedModelPath(std::string_view path) const override
+    {
         // 现代模型路径已经是统一的
         return std::string(path);
     }
 
-    std::vector<std::string> getModelPathVariants(std::string_view unifiedPath) const override {
+    std::vector<std::string> getModelPathVariants(std::string_view unifiedPath) const override
+    {
         // 只返回统一路径
-        return { std::string(unifiedPath) };
+        return {std::string(unifiedPath)};
     }
 
     // -------------------------------------------------------------------------
     // 方块状态路径转换
     // -------------------------------------------------------------------------
 
-    std::string toUnifiedBlockStatePath(std::string_view path) const override {
+    std::string toUnifiedBlockStatePath(std::string_view path) const override
+    {
         // 现代方块状态路径已经是统一的
         return std::string(path);
     }
@@ -67,9 +72,7 @@ public:
     // 包格式
     // -------------------------------------------------------------------------
 
-    PackFormat getTargetFormat() const override {
-        return PackFormat::V1_13_to_1_14;
-    }
+    PackFormat getTargetFormat() const override { return PackFormat::V1_13_to_1_14; }
 };
 
 } // namespace v1_13

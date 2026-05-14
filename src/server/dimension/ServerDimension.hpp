@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/world/dimension/Dimension.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/dimension/Dimension.hpp"
 #include <memory>
 #include <unordered_set>
 #include <vector>
@@ -12,7 +12,7 @@ namespace mc {
 namespace server {
 class ServerWorld;
 class ServerChunkManager;
-}
+} // namespace server
 
 class WorldLightManager;
 
@@ -44,11 +44,11 @@ public:
      * @param viewDistance 视野距离
      */
     ServerDimension(DimensionId id,
-                    DimensionType type,
-                    std::unique_ptr<IChunkGenerator> generator,
-                    std::unique_ptr<BiomeProvider> biomeProvider,
-                    u64 seed,
-                    i32 viewDistance);
+        DimensionType type,
+        std::unique_ptr<IChunkGenerator> generator,
+        std::unique_ptr<BiomeProvider> biomeProvider,
+        u64 seed,
+        i32 viewDistance);
 
     ~ServerDimension() override;
 
@@ -181,7 +181,7 @@ private:
     std::unique_ptr<WorldLightManager> m_lightManager;
 
     std::vector<PlayerId> m_players;
-    std::unordered_set<u64> m_portalPositions;  // 使用哈希的 BlockPos
+    std::unordered_set<u64> m_portalPositions; // 使用哈希的 BlockPos
 
     u64 m_seed;
     i32 m_viewDistance;

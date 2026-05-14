@@ -1,15 +1,17 @@
 ﻿#include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "util/math/random/Random.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
 #include "world/WorldConstants.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
@@ -25,10 +27,8 @@
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <unordered_map>
 
@@ -40,7 +40,8 @@ class DummyWorld final : public test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_statesByPos.find(pos);
         if (it != m_statesByPos.end()) {
@@ -49,7 +50,8 @@ public:
         return m_state;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         m_statesByPos[pos] = state;
         m_state = state;
@@ -57,7 +59,8 @@ public:
         return true;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
         const BlockPos pos(x, y, z);
         m_statesByPos[pos] = state;
         m_state = state;
@@ -70,49 +73,45 @@ public:
     [[nodiscard]] i32 getHeight(i32, i32) const override { return m_height; }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity*) const override
+    {
         MC_UNUSED(box);
         return m_entitiesInAabb;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
         return m_entitiesInRange;
     }
 
-    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override {
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
         const auto it = m_entities.find(pos);
         return it == m_entities.end() ? nullptr : it->second;
     }
 
-    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override {
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
         const auto it = m_entities.find(pos);
         return it == m_entities.end() ? nullptr : it->second;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override {
-        m_entities[pos] = entity;
-    }
+    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override { m_entities[pos] = entity; }
 
     /**
      * @brief 设置 getEntitiesInAABB 的返回内容，便于构造阻挡场景。
      */
-    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) {
-        m_entitiesInAabb = entities;
-    }
+    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) { m_entitiesInAabb = entities; }
 
     /**
      * @brief 设置 getEntitiesInRange 的返回内容，便于附魔台动画测试。
      */
-    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) {
-        m_entitiesInRange = entities;
-    }
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
 
     /**
      * @brief 设置世界列高，用于测试需要向上扫描的方块实体逻辑。
      */
-    void setHeight(i32 height) {
-        m_height = height;
-    }
+    void setHeight(i32 height) { m_height = height; }
 
     [[nodiscard]] i32 setBlockCalls() const { return m_setBlockCalls; }
     [[nodiscard]] i32 setBlockStateCalls() const { return m_setBlockStateCalls; }
@@ -120,10 +119,12 @@ public:
     [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
 
     // TickManager interface (stubbed)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
     }
 
@@ -142,50 +143,49 @@ private:
 
 class BlockEntityTodoTestHelper : public ::testing::Test {
 protected:
-    static const BlockState* makeChestState() {
-        static const blocks::ChestBlock s_chestBlock(
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
-        static const BlockState* s_state =
-            &s_chestBlock.defaultState().with(BlockStateProperties::CHEST_TYPE(), BlockStateProperties::ChestType::Single);
+    static const BlockState* makeChestState()
+    {
+        static const blocks::ChestBlock s_chestBlock(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+        static const BlockState* s_state = &s_chestBlock.defaultState().with(
+            BlockStateProperties::CHEST_TYPE(), BlockStateProperties::ChestType::Single);
         return s_state;
     }
 
-    static const BlockState* makeTrappedChestState() {
+    static const BlockState* makeTrappedChestState()
+    {
         static const blocks::TrappedChestBlock s_trappedChestBlock(
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
-        static const BlockState* s_state =
-            &s_trappedChestBlock.defaultState().with(BlockStateProperties::CHEST_TYPE(), BlockStateProperties::ChestType::Single);
+        static const BlockState* s_state = &s_trappedChestBlock.defaultState().with(
+            BlockStateProperties::CHEST_TYPE(), BlockStateProperties::ChestType::Single);
         return s_state;
     }
 
-    static const BlockState* makeHopperEnabledState() {
-        static const blocks::HopperBlock s_hopperBlock(
-            BlockProperties(Material::WOOD).hardness(3.0f).resistance(4.8f));
-        static const BlockState* s_state =
-            &s_hopperBlock.defaultState().with(BlockStateProperties::ENABLED(), true);
+    static const BlockState* makeHopperEnabledState()
+    {
+        static const blocks::HopperBlock s_hopperBlock(BlockProperties(Material::WOOD).hardness(3.0f).resistance(4.8f));
+        static const BlockState* s_state = &s_hopperBlock.defaultState().with(BlockStateProperties::ENABLED(), true);
         return s_state;
     }
 
-    static const BlockState* makeHopperDisabledState() {
-        static const blocks::HopperBlock s_hopperBlock(
-            BlockProperties(Material::WOOD).hardness(3.0f).resistance(4.8f));
-        static const BlockState* s_state =
-            &s_hopperBlock.defaultState().with(BlockStateProperties::ENABLED(), false);
+    static const BlockState* makeHopperDisabledState()
+    {
+        static const blocks::HopperBlock s_hopperBlock(BlockProperties(Material::WOOD).hardness(3.0f).resistance(4.8f));
+        static const BlockState* s_state = &s_hopperBlock.defaultState().with(BlockStateProperties::ENABLED(), false);
         return s_state;
     }
 
-    static const BlockState* makeBarrelOpenState() {
-        static const blocks::BarrelBlock s_barrelBlock(
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
-        static const BlockState* s_state =
-            &s_barrelBlock.defaultState().with(BlockStateProperties::OPEN(), true);
+    static const BlockState* makeBarrelOpenState()
+    {
+        static const blocks::BarrelBlock s_barrelBlock(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+        static const BlockState* s_state = &s_barrelBlock.defaultState().with(BlockStateProperties::OPEN(), true);
         return s_state;
     }
 };
 
 } // namespace
 
-TEST(BlockEntityTodoTest, FurnaceInventoryOutputSlotRejectsManualPlacement) {
+TEST(BlockEntityTodoTest, FurnaceInventoryOutputSlotRejectsManualPlacement)
+{
     Items::initialize();
     blockentity::FurnaceInventory inventory;
     const ItemStack stone(*Items::STONE, 1);
@@ -193,7 +193,8 @@ TEST(BlockEntityTodoTest, FurnaceInventoryOutputSlotRejectsManualPlacement) {
     EXPECT_FALSE(inventory.canPlaceItem(blockentity::FurnaceInventory::SLOT_OUTPUT, stone));
 }
 
-TEST(BlockEntityTodoTest, FurnaceInventoryInputAndFuelSlotsAcceptItems) {
+TEST(BlockEntityTodoTest, FurnaceInventoryInputAndFuelSlotsAcceptItems)
+{
     Items::initialize();
     blockentity::FurnaceInventory inventory;
     const ItemStack stone(*Items::STONE, 1);
@@ -203,7 +204,8 @@ TEST(BlockEntityTodoTest, FurnaceInventoryInputAndFuelSlotsAcceptItems) {
     EXPECT_TRUE(inventory.canPlaceItem(blockentity::FurnaceInventory::SLOT_FUEL, coal));
 }
 
-TEST_F(BlockEntityTodoTestHelper, BarrelEntityTickResetsSyncCounterAndPersistsOpenCount) {
+TEST_F(BlockEntityTodoTestHelper, BarrelEntityTickResetsSyncCounterAndPersistsOpenCount)
+{
     blockentity::BarrelEntity barrel(BlockPos(1, 2, 3));
     DummyWorld world;
     world.setBlockState(1, 2, 3, makeBarrelOpenState());
@@ -228,7 +230,8 @@ TEST_F(BlockEntityTodoTestHelper, BarrelEntityTickResetsSyncCounterAndPersistsOp
     EXPECT_EQ(loaded.getOpenCount(), 1);
 }
 
-TEST(BlockEntityTodoTest, EnderChestOpenCloseAndTickAnimationBehavesCorrectly) {
+TEST(BlockEntityTodoTest, EnderChestOpenCloseAndTickAnimationBehavesCorrectly)
+{
     blockentity::EnderChestEntity enderChest(BlockPos(2, 3, 4));
 
     EXPECT_FALSE(enderChest.openContainer(nullptr));
@@ -255,7 +258,8 @@ TEST(BlockEntityTodoTest, EnderChestOpenCloseAndTickAnimationBehavesCorrectly) {
     EXPECT_EQ(data["open_count"].get<i32>(), 0);
 }
 
-TEST(BlockEntityTodoTest, SignEntityRejectsControlCharactersAndTruncatesText) {
+TEST(BlockEntityTodoTest, SignEntityRejectsControlCharactersAndTruncatesText)
+{
     blockentity::SignEntity sign(BlockPos(3, 4, 5));
 
     EXPECT_FALSE(sign.setLineFromLegacy(0, std::string("bad") + static_cast<char>(1) + "text"));
@@ -265,7 +269,8 @@ TEST(BlockEntityTodoTest, SignEntityRejectsControlCharactersAndTruncatesText) {
     EXPECT_EQ(sign.getLineText(1), "0123456789abcde");
 }
 
-TEST(BlockEntityTodoTest, SignEntityLoadRejectsInvalidControlCharacters) {
+TEST(BlockEntityTodoTest, SignEntityLoadRejectsInvalidControlCharacters)
+{
     blockentity::SignEntity sign(BlockPos(3, 4, 5));
 
     nlohmann::json data;
@@ -283,7 +288,8 @@ TEST(BlockEntityTodoTest, SignEntityLoadRejectsInvalidControlCharacters) {
     EXPECT_EQ(sign.getLineText(1), "");
 }
 
-TEST(BlockEntityTodoTest, EnchantingTableAnimationOpensWhenNearbyPlayerExists) {
+TEST(BlockEntityTodoTest, EnchantingTableAnimationOpensWhenNearbyPlayerExists)
+{
     blockentity::EnchantingTableEntity table(BlockPos(8, 64, 8));
     DummyWorld world;
 
@@ -295,7 +301,8 @@ TEST(BlockEntityTodoTest, EnchantingTableAnimationOpensWhenNearbyPlayerExists) {
     EXPECT_GT(table.getBookOpenAmount(), 0.0f);
 }
 
-TEST(BlockEntityTodoTest, EnchantingTableAnimationClosesWithoutNearbyPlayers) {
+TEST(BlockEntityTodoTest, EnchantingTableAnimationClosesWithoutNearbyPlayers)
+{
     blockentity::EnchantingTableEntity table(BlockPos(8, 64, 8));
     DummyWorld world;
 
@@ -313,7 +320,8 @@ TEST(BlockEntityTodoTest, EnchantingTableAnimationClosesWithoutNearbyPlayers) {
     EXPECT_LT(table.getBookOpenAmount(), 0.1f);
 }
 
-TEST(BlockEntityTodoTest, ShulkerBoxCanOpenReturnsFalseWhenEntityBlocksTopSpace) {
+TEST(BlockEntityTodoTest, ShulkerBoxCanOpenReturnsFalseWhenEntityBlocksTopSpace)
+{
     blockentity::ShulkerBoxEntity shulker(BlockPos(8, 20, 8));
     DummyWorld world;
 
@@ -322,7 +330,8 @@ TEST(BlockEntityTodoTest, ShulkerBoxCanOpenReturnsFalseWhenEntityBlocksTopSpace)
     EXPECT_FALSE(shulker.canOpen(world));
 }
 
-TEST(BlockEntityTodoTest, ShulkerBoxCanOpenReturnsTrueWhenTopSpaceIsClear) {
+TEST(BlockEntityTodoTest, ShulkerBoxCanOpenReturnsTrueWhenTopSpaceIsClear)
+{
     blockentity::ShulkerBoxEntity shulker(BlockPos(8, 20, 8));
     DummyWorld world;
 
@@ -331,7 +340,8 @@ TEST(BlockEntityTodoTest, ShulkerBoxCanOpenReturnsTrueWhenTopSpaceIsClear) {
     EXPECT_TRUE(shulker.canOpen(world));
 }
 
-TEST_F(BlockEntityTodoTestHelper, ChestEntityOpenCloseBroadcastsWhenWorldAttached) {
+TEST_F(BlockEntityTodoTestHelper, ChestEntityOpenCloseBroadcastsWhenWorldAttached)
+{
     DummyWorld world;
     world.setBlockState(0, 0, 0, makeChestState());
 
@@ -345,7 +355,8 @@ TEST_F(BlockEntityTodoTestHelper, ChestEntityOpenCloseBroadcastsWhenWorldAttache
     EXPECT_GE(world.setBlockStateCalls(), 2);
 }
 
-TEST_F(BlockEntityTodoTestHelper, ChestEntityTickPerformsPeriodicStateSync) {
+TEST_F(BlockEntityTodoTestHelper, ChestEntityTickPerformsPeriodicStateSync)
+{
     DummyWorld world;
     world.setBlockState(0, 0, 0, makeChestState());
 
@@ -359,7 +370,8 @@ TEST_F(BlockEntityTodoTestHelper, ChestEntityTickPerformsPeriodicStateSync) {
     EXPECT_GE(world.setBlockStateCalls(), 1);
 }
 
-TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePath) {
+TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePath)
+{
     DummyWorld world;
     world.setBlockState(4, 5, 6, makeTrappedChestState());
 
@@ -378,7 +390,8 @@ TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePat
     EXPECT_GE(world.setBlockStateCalls(), 1);
 }
 
-TEST_F(BlockEntityTodoTestHelper, HopperTickSkipsTransferWhenDisabledByState) {
+TEST_F(BlockEntityTodoTestHelper, HopperTickSkipsTransferWhenDisabledByState)
+{
     blockentity::HopperEntity hopper(BlockPos(10, 20, 30));
     DummyWorld world;
     world.setBlockState(10, 20, 30, makeHopperDisabledState());
@@ -388,7 +401,8 @@ TEST_F(BlockEntityTodoTestHelper, HopperTickSkipsTransferWhenDisabledByState) {
     EXPECT_EQ(hopper.getTransferCooldown(), -1);
 }
 
-TEST_F(BlockEntityTodoTestHelper, HopperTickResetsCooldownWhenEnabledByState) {
+TEST_F(BlockEntityTodoTestHelper, HopperTickResetsCooldownWhenEnabledByState)
+{
     blockentity::HopperEntity hopper(BlockPos(10, 20, 30));
     DummyWorld world;
     world.setBlockState(10, 20, 30, makeHopperEnabledState());
@@ -398,7 +412,8 @@ TEST_F(BlockEntityTodoTestHelper, HopperTickResetsCooldownWhenEnabledByState) {
     EXPECT_GE(hopper.getTransferCooldown(), 0);
 }
 
-TEST(BlockEntityTodoTest, HopperGetInventoryAtPositionEntityFallbackWithoutInventoryReturnsNull) {
+TEST(BlockEntityTodoTest, HopperGetInventoryAtPositionEntityFallbackWithoutInventoryReturnsNull)
+{
     DummyWorld world;
     world.setEntitiesInAabbResult({static_cast<Entity*>(nullptr)});
 
@@ -407,19 +422,12 @@ TEST(BlockEntityTodoTest, HopperGetInventoryAtPositionEntityFallbackWithoutInven
     EXPECT_EQ(found, nullptr);
 }
 
-
-
-
-
-TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection) {
+TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection)
+{
     VanillaBlocks::initialize();
 
     blockentity::PistonBlockEntity piston(
-        BlockPos(0, 64, 0),
-        VanillaBlocks::getState(VanillaBlocks::STONE),
-        Direction::East,
-        true,
-        false);
+        BlockPos(0, 64, 0), VanillaBlocks::getState(VanillaBlocks::STONE), Direction::East, true, false);
 
     DummyWorld world;
     Entity pushedEntity(LegacyEntityType::Item, 101, &world);
@@ -432,7 +440,8 @@ TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection) {
     EXPECT_GT(pushedEntity.x(), beforeX);
 }
 
-TEST(BlockEntityTodoTest, BeaconPaymentRoundTripAndClonePreservePaymentItem) {
+TEST(BlockEntityTodoTest, BeaconPaymentRoundTripAndClonePreservePaymentItem)
+{
     VanillaBlocks::initialize();
     Items::initialize();
 
@@ -457,7 +466,8 @@ TEST(BlockEntityTodoTest, BeaconPaymentRoundTripAndClonePreservePaymentItem) {
     EXPECT_EQ(clonedBeacon->getPaymentItem().getItem(), Items::IRON_INGOT);
 }
 
-TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidWithoutSkyCheck) {
+TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidWithoutSkyCheck)
+{
     VanillaBlocks::initialize();
 
     DummyWorld world;
@@ -500,4 +510,3 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidWithoutSkyCheck) {
     // Beacon level should still be 3 (sky visibility is not checked in MC 1.16.5)
     EXPECT_EQ(beacon.getLevel(), 3);
 }
-

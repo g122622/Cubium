@@ -1,7 +1,7 @@
 #include "BrewingStandBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -9,23 +9,24 @@ namespace blocks {
 // ========== BrewingStandBlock 实现 ==========
 
 BrewingStandBlock::BrewingStandBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HAS_BOTTLE_0())
-        .add(BlockStateProperties::HAS_BOTTLE_1())
-        .add(BlockStateProperties::HAS_BOTTLE_2())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HAS_BOTTLE_0())
+                         .add(BlockStateProperties::HAS_BOTTLE_1())
+                         .add(BlockStateProperties::HAS_BOTTLE_2())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HAS_BOTTLE_0(), false)
-        .with(BlockStateProperties::HAS_BOTTLE_1(), false)
-        .with(BlockStateProperties::HAS_BOTTLE_2(), false));
+            .with(BlockStateProperties::HAS_BOTTLE_0(), false)
+            .with(BlockStateProperties::HAS_BOTTLE_1(), false)
+            .with(BlockStateProperties::HAS_BOTTLE_2(), false));
 
     // 创建酿造台形状
     // 主体是底座 + 中间的柱子
@@ -35,24 +36,25 @@ BrewingStandBlock::BrewingStandBlock(const BlockProperties& properties)
     m_shape = CollisionShape::combine(base, pole);
 }
 
-BlockState BrewingStandBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BrewingStandBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-const CollisionShape& BrewingStandBlock::getShape(const BlockState& state) const {
+const CollisionShape& BrewingStandBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& BrewingStandBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& BrewingStandBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-int BrewingStandBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+int BrewingStandBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 

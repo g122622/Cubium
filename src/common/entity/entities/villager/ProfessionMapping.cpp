@@ -10,7 +10,8 @@ bool ProfessionMapping::s_initialized = false;
 std::unordered_map<VillagerProfession, world::village::poi::PointOfInterestType> ProfessionMapping::s_professionToPOI;
 std::unordered_map<world::village::poi::PointOfInterestType, VillagerProfession> ProfessionMapping::s_poiToProfession;
 
-void ProfessionMapping::initializeMappings() {
+void ProfessionMapping::initializeMappings()
+{
     if (s_initialized) return;
     s_initialized = true;
 
@@ -37,8 +38,8 @@ void ProfessionMapping::initializeMappings() {
     }
 }
 
-world::village::poi::PointOfInterestType
-ProfessionMapping::getWorkstationPOI(VillagerProfession profession) {
+world::village::poi::PointOfInterestType ProfessionMapping::getWorkstationPOI(VillagerProfession profession)
+{
     initializeMappings();
 
     auto it = s_professionToPOI.find(profession);
@@ -48,8 +49,8 @@ ProfessionMapping::getWorkstationPOI(VillagerProfession profession) {
     return world::village::poi::PointOfInterestType::None;
 }
 
-VillagerProfession
-ProfessionMapping::getProfessionFromPOI(world::village::poi::PointOfInterestType poiType) {
+VillagerProfession ProfessionMapping::getProfessionFromPOI(world::village::poi::PointOfInterestType poiType)
+{
     initializeMappings();
 
     auto it = s_poiToProfession.find(poiType);
@@ -59,41 +60,60 @@ ProfessionMapping::getProfessionFromPOI(world::village::poi::PointOfInterestType
     return VillagerProfession::None;
 }
 
-bool ProfessionMapping::isValidProfession(VillagerProfession profession) {
+bool ProfessionMapping::isValidProfession(VillagerProfession profession)
+{
     return profession != VillagerProfession::None;
 }
 
-bool ProfessionMapping::hasWorkstation(VillagerProfession profession) {
+bool ProfessionMapping::hasWorkstation(VillagerProfession profession)
+{
     // None和Nitwit没有工作站
-    if (profession == VillagerProfession::None ||
-        profession == VillagerProfession::Nitwit) {
+    if (profession == VillagerProfession::None || profession == VillagerProfession::Nitwit) {
         return false;
     }
     return isValidProfession(profession);
 }
 
-const char* ProfessionMapping::getProfessionName(VillagerProfession profession) {
+const char* ProfessionMapping::getProfessionName(VillagerProfession profession)
+{
     switch (profession) {
-        case VillagerProfession::None:        return "none";
-        case VillagerProfession::Armorer:     return "armorer";
-        case VillagerProfession::Butcher:     return "butcher";
-        case VillagerProfession::Cartographer: return "cartographer";
-        case VillagerProfession::Cleric:      return "cleric";
-        case VillagerProfession::Farmer:      return "farmer";
-        case VillagerProfession::Fisherman:   return "fisherman";
-        case VillagerProfession::Fletcher:    return "fletcher";
-        case VillagerProfession::Leatherworker: return "leatherworker";
-        case VillagerProfession::Librarian:   return "librarian";
-        case VillagerProfession::Mason:       return "mason";
-        case VillagerProfession::Nitwit:      return "nitwit";
-        case VillagerProfession::Shepherd:    return "shepherd";
-        case VillagerProfession::Toolsmith:   return "toolsmith";
-        case VillagerProfession::Weaponsmith: return "weaponsmith";
-        default: return "none";
+        case VillagerProfession::None:
+            return "none";
+        case VillagerProfession::Armorer:
+            return "armorer";
+        case VillagerProfession::Butcher:
+            return "butcher";
+        case VillagerProfession::Cartographer:
+            return "cartographer";
+        case VillagerProfession::Cleric:
+            return "cleric";
+        case VillagerProfession::Farmer:
+            return "farmer";
+        case VillagerProfession::Fisherman:
+            return "fisherman";
+        case VillagerProfession::Fletcher:
+            return "fletcher";
+        case VillagerProfession::Leatherworker:
+            return "leatherworker";
+        case VillagerProfession::Librarian:
+            return "librarian";
+        case VillagerProfession::Mason:
+            return "mason";
+        case VillagerProfession::Nitwit:
+            return "nitwit";
+        case VillagerProfession::Shepherd:
+            return "shepherd";
+        case VillagerProfession::Toolsmith:
+            return "toolsmith";
+        case VillagerProfession::Weaponsmith:
+            return "weaponsmith";
+        default:
+            return "none";
     }
 }
 
-VillagerProfession ProfessionMapping::getProfessionFromName(const char* name) {
+VillagerProfession ProfessionMapping::getProfessionFromName(const char* name)
+{
     if (name == nullptr) return VillagerProfession::None;
 
     // 使用字符串比较
@@ -115,24 +135,31 @@ VillagerProfession ProfessionMapping::getProfessionFromName(const char* name) {
     return VillagerProfession::None;
 }
 
-i32 ProfessionMapping::getMaxLevel(VillagerProfession /*profession*/) {
+i32 ProfessionMapping::getMaxLevel(VillagerProfession /*profession*/)
+{
     // 所有职业最大等级都是5
     // 参考 MC 1.16.5 VillagerData
     return 5;
 }
 
-i32 ProfessionMapping::getExperienceForLevel(i32 level) {
+i32 ProfessionMapping::getExperienceForLevel(i32 level)
+{
     // 参考 MC 1.16.5 升级经验需求
     // 等级 1->2: 10 经验
     // 等级 2->3: 70 经验
     // 等级 3->4: 150 经验
     // 等级 4->5: 250 经验
     switch (level) {
-        case 1: return 10;
-        case 2: return 70;
-        case 3: return 150;
-        case 4: return 250;
-        default: return 0;
+        case 1:
+            return 10;
+        case 2:
+            return 70;
+        case 3:
+            return 150;
+        case 4:
+            return 250;
+        default:
+            return 0;
     }
 }
 

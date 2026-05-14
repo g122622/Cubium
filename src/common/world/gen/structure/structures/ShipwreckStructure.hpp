@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateManager.hpp"
+#include "../Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -15,7 +15,7 @@ namespace mc::world::gen::structure {
  * 参考 MC 1.16.5 ShipwreckConfig
  */
 struct ShipwreckConfig {
-    bool isBeached = false;  ///< 是否为搁浅沉船（在沙滩上）
+    bool isBeached = false; ///< 是否为搁浅沉船（在沙滩上）
 };
 
 /**
@@ -33,17 +33,15 @@ public:
      * @param rotation 旋转角度
      * @param isBeached 是否为搁浅沉船
      */
-    ShipwreckPiece(
-        const std::string& templateName,
-        const BlockPos& position,
-        Rotation rotation,
-        bool isBeached);
+    ShipwreckPiece(const std::string& templateName, const BlockPos& position, Rotation rotation, bool isBeached);
 
     ~ShipwreckPiece() override = default;
 
-    void generate(IWorldWriter& world, math::Random& rng,
-                  i32 chunkX, i32 chunkZ,
-                  const StructureBoundingBox& chunkBounds) override;
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
 
     /**
      * @brief 设置模板管理器
@@ -84,18 +82,10 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 设置模板管理器
@@ -126,7 +116,7 @@ private:
      */
     [[nodiscard]] std::string getRandomTemplateName(math::Random& rng, bool isBeached) const;
 
-    static constexpr StructureSeparationSettings m_settings{24, 4, 165745295};  // MC 1.16.5: 165745295
+    static constexpr StructureSeparationSettings m_settings{24, 4, 165745295}; // MC 1.16.5: 165745295
     static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
     ShipwreckConfig m_config;

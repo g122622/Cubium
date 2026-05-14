@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/model/ChestModel.hpp"
 #include <memory>
 
@@ -67,7 +67,7 @@ public:
     [[nodiscard]] static bool isChristmas();
 
 private:
-    mc::client::renderer::blockentity::model::ChestModel m_model;  ///< 箱子模型
+    mc::client::renderer::blockentity::model::ChestModel m_model; ///< 箱子模型
 
     /**
      * @brief 根据方块状态获取箱子类型
@@ -78,5 +78,5 @@ private:
         const mc::blockentity::ChestEntity& entity) const;
 };
 
-} // namespace mc::client::renderer::trident::blockentity
+} // namespace client::renderer::trident::blockentity
 } // namespace mc

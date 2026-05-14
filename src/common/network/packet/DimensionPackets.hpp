@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Packet.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "Packet.hpp"
 #include <vector>
 
 namespace mc::network {
@@ -103,13 +103,13 @@ public:
 
 private:
     i32 m_dimensionType = 0;     // 维度类型（用于渲染设置）
-    DimensionId m_dimension = 0;  // 维度ID (0=主世界, -1=下界, 1=末地)
-    u64 m_hashedSeed = 0;         // 世界种子哈希
+    DimensionId m_dimension = 0; // 维度ID (0=主世界, -1=下界, 1=末地)
+    u64 m_hashedSeed = 0;        // 世界种子哈希
     GameMode m_gameMode = GameMode::Survival;
     GameMode m_previousGameMode = GameMode::NotSet;
     bool m_isDebug = false;
     bool m_isFlat = false;
-    bool m_keepData = false;     // 维度切换时保留数据
+    bool m_keepData = false; // 维度切换时保留数据
 };
 
 /**

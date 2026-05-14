@@ -11,11 +11,11 @@
  * - StateObserverManager 观察者管理器
  */
 
-#include <gtest/gtest.h>
-#include <thread>
-#include <chrono>
-#include "client/ui/kagero/state/ReactiveState.hpp"
 #include "client/ui/kagero/state/StateObserver.hpp"
+#include "client/ui/kagero/state/ReactiveState.hpp"
+#include <chrono>
+#include <thread>
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero::state;
 using mc::i32;
@@ -24,7 +24,8 @@ using mc::i32;
 // AutoObserver 测试
 // ============================================================================
 
-TEST(AutoObserverTest, AutoLifecycle) {
+TEST(AutoObserverTest, AutoLifecycle)
+{
     Reactive<i32> value(100);
 
     int callCount = 0;
@@ -51,7 +52,8 @@ TEST(AutoObserverTest, AutoLifecycle) {
     EXPECT_EQ(value.observerCount(), 0u);
 }
 
-TEST(AutoObserverTest, Trigger) {
+TEST(AutoObserverTest, Trigger)
+{
     Reactive<i32> value(100);
 
     int callCount = 0;
@@ -67,14 +69,13 @@ TEST(AutoObserverTest, Trigger) {
     EXPECT_EQ(lastValue, 100); // 当前值
 }
 
-TEST(AutoObserverTest, MoveConstructor) {
+TEST(AutoObserverTest, MoveConstructor)
+{
     Reactive<i32> value(100);
 
     int callCount = 0;
 
-    AutoObserver<i32> observer1(value, [&](const i32&) {
-        callCount++;
-    });
+    AutoObserver<i32> observer1(value, [&](const i32&) { callCount++; });
 
     AutoObserver<i32> observer2 = std::move(observer1);
 
@@ -83,7 +84,8 @@ TEST(AutoObserverTest, MoveConstructor) {
     EXPECT_EQ(value.observerCount(), 1u);
 }
 
-TEST(AutoObserverTest, MoveAssignment) {
+TEST(AutoObserverTest, MoveAssignment)
+{
     Reactive<i32> value(100);
 
     int count1 = 0, count2 = 0;
@@ -110,13 +112,12 @@ TEST(AutoObserverTest, MoveAssignment) {
     EXPECT_EQ(value.observerCount(), 1u);
 }
 
-TEST(AutoObserverTest, DifferentTypes) {
+TEST(AutoObserverTest, DifferentTypes)
+{
     Reactive<std::string> name("Steve");
 
     std::string lastValue;
-    AutoObserver<std::string> observer(name, [&](const std::string& v) {
-        lastValue = v;
-    });
+    AutoObserver<std::string> observer(name, [&](const std::string& v) { lastValue = v; });
 
     name.set("Alex");
     EXPECT_EQ(lastValue, "Alex");
@@ -126,7 +127,8 @@ TEST(AutoObserverTest, DifferentTypes) {
 // MultiStateObserver 测试
 // ============================================================================
 
-TEST(MultiStateObserverTest, ObserveMultiple) {
+TEST(MultiStateObserverTest, ObserveMultiple)
+{
     Reactive<i32> health(100);
     Reactive<i32> mana(50);
 
@@ -135,9 +137,7 @@ TEST(MultiStateObserverTest, ObserveMultiple) {
     MultiStateObserver observer;
     observer.observe(health);
     observer.observe(mana);
-    observer.setCallback([&]() {
-        callCount++;
-    });
+    observer.setCallback([&]() { callCount++; });
 
     health.set(80);
     EXPECT_EQ(callCount, 1);
@@ -152,7 +152,8 @@ TEST(MultiStateObserverTest, ObserveMultiple) {
     EXPECT_EQ(callCount, 2);
 }
 
-TEST(MultiStateObserverTest, Clear) {
+TEST(MultiStateObserverTest, Clear)
+{
     Reactive<i32> a(0);
     Reactive<i32> b(0);
 
@@ -173,7 +174,8 @@ TEST(MultiStateObserverTest, Clear) {
     EXPECT_EQ(callCount, 1);
 }
 
-TEST(MultiStateObserverTest, SetCallbackBeforeObserve) {
+TEST(MultiStateObserverTest, SetCallbackBeforeObserve)
+{
     Reactive<i32> value(0);
 
     int callCount = 0;
@@ -186,7 +188,8 @@ TEST(MultiStateObserverTest, SetCallbackBeforeObserve) {
     EXPECT_EQ(callCount, 1);
 }
 
-TEST(MultiStateObserverTest, NoCallback) {
+TEST(MultiStateObserverTest, NoCallback)
+{
     Reactive<i32> value(0);
 
     MultiStateObserver observer;
@@ -200,16 +203,20 @@ TEST(MultiStateObserverTest, NoCallback) {
 // DebouncedObserver 测试
 // ============================================================================
 
-TEST(DebouncedObserverTest, Debounce) {
+TEST(DebouncedObserverTest, Debounce)
+{
     Reactive<std::string> searchText("");
 
     std::string lastSearch;
     int callCount = 0;
 
-    DebouncedObserver<std::string> observer(searchText, [&](const std::string& text) {
-        lastSearch = text;
-        callCount++;
-    }, 100);
+    DebouncedObserver<std::string> observer(
+        searchText,
+        [&](const std::string& text) {
+            lastSearch = text;
+            callCount++;
+        },
+        100);
 
     // 快速连续设置
     searchText.set("h");
@@ -229,16 +236,20 @@ TEST(DebouncedObserverTest, Debounce) {
     EXPECT_EQ(lastSearch, "hello");
 }
 
-TEST(DebouncedObserverTest, Flush) {
+TEST(DebouncedObserverTest, Flush)
+{
     Reactive<std::string> value("");
 
     std::string lastValue;
     int callCount = 0;
 
-    DebouncedObserver<std::string> observer(value, [&](const std::string& text) {
-        lastValue = text;
-        callCount++;
-    }, 1000); // 很长的延迟
+    DebouncedObserver<std::string> observer(
+        value,
+        [&](const std::string& text) {
+            lastValue = text;
+            callCount++;
+        },
+        1000); // 很长的延迟
 
     value.set("test");
 
@@ -252,16 +263,20 @@ TEST(DebouncedObserverTest, Flush) {
     EXPECT_EQ(lastValue, "test");
 }
 
-TEST(DebouncedObserverTest, MultipleUpdates) {
+TEST(DebouncedObserverTest, MultipleUpdates)
+{
     Reactive<i32> value(0);
 
     i32 lastValue = 0;
     int callCount = 0;
 
-    DebouncedObserver<i32> observer(value, [&](const i32& v) {
-        lastValue = v;
-        callCount++;
-    }, 50);
+    DebouncedObserver<i32> observer(
+        value,
+        [&](const i32& v) {
+            lastValue = v;
+            callCount++;
+        },
+        50);
 
     // 第一次更新
     value.set(1);
@@ -278,7 +293,8 @@ TEST(DebouncedObserverTest, MultipleUpdates) {
     EXPECT_EQ(lastValue, 2);
 }
 
-TEST(DebouncedObserverTest, Destructor) {
+TEST(DebouncedObserverTest, Destructor)
+{
     Reactive<i32> value(0);
 
     {
@@ -290,28 +306,26 @@ TEST(DebouncedObserverTest, Destructor) {
     EXPECT_EQ(value.observerCount(), 0u);
 }
 
-TEST(DebouncedObserverTest, UpdateWithoutPending) {
+TEST(DebouncedObserverTest, UpdateWithoutPending)
+{
     Reactive<i32> value(0);
 
     int callCount = 0;
 
-    DebouncedObserver<i32> observer(value, [&](const i32&) {
-        callCount++;
-    }, 50);
+    DebouncedObserver<i32> observer(value, [&](const i32&) { callCount++; }, 50);
 
     // 没有待处理的更新
     observer.update();
     EXPECT_EQ(callCount, 0);
 }
 
-TEST(DebouncedObserverTest, NoUpdateWithinDelay) {
+TEST(DebouncedObserverTest, NoUpdateWithinDelay)
+{
     Reactive<i32> value(0);
 
     int callCount = 0;
 
-    DebouncedObserver<i32> observer(value, [&](const i32&) {
-        callCount++;
-    }, 100);
+    DebouncedObserver<i32> observer(value, [&](const i32&) { callCount++; }, 100);
 
     value.set(1);
 
@@ -327,14 +341,13 @@ TEST(DebouncedObserverTest, NoUpdateWithinDelay) {
 
 class TestStateObserver : public IStateObserver {
 public:
-    void onStateChanged() override {
-        callCount++;
-    }
+    void onStateChanged() override { callCount++; }
 
     int callCount = 0;
 };
 
-TEST(StateObserverManagerTest, AddRemoveObserver) {
+TEST(StateObserverManagerTest, AddRemoveObserver)
+{
     StateObserverManager manager;
     TestStateObserver observer1;
     TestStateObserver observer2;
@@ -351,7 +364,8 @@ TEST(StateObserverManagerTest, AddRemoveObserver) {
     EXPECT_EQ(manager.count(), 0u);
 }
 
-TEST(StateObserverManagerTest, NotifyAll) {
+TEST(StateObserverManagerTest, NotifyAll)
+{
     StateObserverManager manager;
     TestStateObserver observer1;
     TestStateObserver observer2;
@@ -374,7 +388,8 @@ TEST(StateObserverManagerTest, NotifyAll) {
     EXPECT_EQ(observer3.callCount, 2);
 }
 
-TEST(StateObserverManagerTest, Clear) {
+TEST(StateObserverManagerTest, Clear)
+{
     StateObserverManager manager;
     TestStateObserver observer1;
     TestStateObserver observer2;
@@ -392,7 +407,8 @@ TEST(StateObserverManagerTest, Clear) {
     EXPECT_EQ(observer2.callCount, 0);
 }
 
-TEST(StateObserverManagerTest, DuplicateAdd) {
+TEST(StateObserverManagerTest, DuplicateAdd)
+{
     StateObserverManager manager;
     TestStateObserver observer;
 
@@ -402,7 +418,8 @@ TEST(StateObserverManagerTest, DuplicateAdd) {
     EXPECT_EQ(manager.count(), 1u); // 使用 unordered_set，重复添加无效
 }
 
-TEST(StateObserverManagerTest, RemoveNonExistent) {
+TEST(StateObserverManagerTest, RemoveNonExistent)
+{
     StateObserverManager manager;
     TestStateObserver observer;
 
@@ -415,7 +432,8 @@ TEST(StateObserverManagerTest, RemoveNonExistent) {
 // 边界情况测试
 // ============================================================================
 
-TEST(AutoObserverTest, NullCallback) {
+TEST(AutoObserverTest, NullCallback)
+{
     Reactive<i32> value(100);
 
     // 空回调不应崩溃
@@ -424,7 +442,8 @@ TEST(AutoObserverTest, NullCallback) {
     EXPECT_NO_THROW(value.set(50));
 }
 
-TEST(MultiStateObserverTest, SameStateMultipleTimes) {
+TEST(MultiStateObserverTest, SameStateMultipleTimes)
+{
     Reactive<i32> value(0);
 
     int callCount = 0;
@@ -443,14 +462,13 @@ TEST(MultiStateObserverTest, SameStateMultipleTimes) {
     EXPECT_EQ(value.observerCount(), 0u);
 }
 
-TEST(DebouncedObserverTest, RapidFlush) {
+TEST(DebouncedObserverTest, RapidFlush)
+{
     Reactive<i32> value(0);
 
     int callCount = 0;
 
-    DebouncedObserver<i32> observer(value, [&](const i32&) {
-        callCount++;
-    }, 100);
+    DebouncedObserver<i32> observer(value, [&](const i32&) { callCount++; }, 100);
 
     value.set(1);
     observer.flush();

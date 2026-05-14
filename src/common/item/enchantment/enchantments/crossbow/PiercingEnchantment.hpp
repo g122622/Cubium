@@ -22,40 +22,28 @@ class PiercingEnchantment : public Enchantment {
 public:
     PiercingEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:piercing";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:piercing"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.piercing";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Crossbow;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Crossbow; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 4;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 4; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Common;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Common; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 1 + (level - 1) * 10;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 1 + (level - 1) * 10; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return 50;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return 50; }
 
-    [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override {
+    [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override
+    {
         // 与多重射击互斥
         if (other.id() == "minecraft:multishot") {
             return false;
@@ -68,9 +56,7 @@ public:
      * @param level 附魔等级
      * @return 可穿透的目标数
      */
-    [[nodiscard]] static i32 getPiercingCount(i32 level) {
-        return level;
-    }
+    [[nodiscard]] static i32 getPiercingCount(i32 level) { return level; }
 };
 
 } // namespace enchant

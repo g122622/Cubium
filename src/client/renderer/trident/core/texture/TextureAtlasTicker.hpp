@@ -2,8 +2,8 @@
 
 #include "AnimatedSprite.hpp"
 #include "common/core/Result.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc::client::renderer::trident {
 
@@ -70,9 +70,7 @@ public:
      * 将所有需要更新的帧上传到GPU纹理。
      * 此方法应在渲染前调用。
      */
-    mc::Result<void> uploadPendingFrames(
-        TridentContext* context,
-        TridentTextureAtlas& atlas);
+    mc::Result<void> uploadPendingFrames(TridentContext* context, TridentTextureAtlas& atlas);
 
     /**
      * @brief 清除所有动画精灵
@@ -82,16 +80,12 @@ public:
     /**
      * @brief 获取动画精灵数量
      */
-    mc::Size spriteCount() const noexcept {
-        return m_sprites.size();
-    }
+    mc::Size spriteCount() const noexcept { return m_sprites.size(); }
 
     /**
      * @brief 检查是否有动画精灵
      */
-    bool empty() const noexcept {
-        return m_sprites.empty();
-    }
+    bool empty() const noexcept { return m_sprites.empty(); }
 
 private:
     std::vector<std::shared_ptr<AnimatedSprite>> m_sprites;

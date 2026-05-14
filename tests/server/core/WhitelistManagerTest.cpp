@@ -1,20 +1,22 @@
-#include <gtest/gtest.h>
 #include "server/core/WhitelistManager.hpp"
 #include <filesystem>
 #include <fstream>
+#include <gtest/gtest.h>
 
 using namespace mc::server::core;
 
 class WhitelistManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建临时测试目录
         testDir_ = std::filesystem::temp_directory_path() / "whitelist_test";
         std::filesystem::create_directories(testDir_);
         testFile_ = testDir_ / "whitelist.json";
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理临时目录
         if (std::filesystem::exists(testDir_)) {
             std::filesystem::remove_all(testDir_);
@@ -27,7 +29,8 @@ protected:
 
 // ========== 基本功能测试 ==========
 
-TEST_F(WhitelistManagerTest, DefaultState) {
+TEST_F(WhitelistManagerTest, DefaultState)
+{
     WhitelistManager manager;
 
     EXPECT_FALSE(manager.isEnabled());
@@ -35,7 +38,8 @@ TEST_F(WhitelistManagerTest, DefaultState) {
     EXPECT_EQ(manager.size(), 0);
 }
 
-TEST_F(WhitelistManagerTest, EnableDisable) {
+TEST_F(WhitelistManagerTest, EnableDisable)
+{
     WhitelistManager manager;
 
     manager.setEnabled(true);
@@ -47,7 +51,8 @@ TEST_F(WhitelistManagerTest, EnableDisable) {
 
 // ========== 条目管理测试 ==========
 
-TEST_F(WhitelistManagerTest, AddEntry) {
+TEST_F(WhitelistManagerTest, AddEntry)
+{
     WhitelistManager manager;
 
     WhitelistEntry entry("uuid-123", "Player1");
@@ -55,10 +60,11 @@ TEST_F(WhitelistManagerTest, AddEntry) {
     EXPECT_EQ(manager.size(), 1);
     EXPECT_TRUE(manager.isWhitelisted("uuid-123"));
     EXPECT_TRUE(manager.isNameWhitelisted("Player1"));
-    EXPECT_TRUE(manager.isNameWhitelisted("player1"));  // 大小写不敏感
+    EXPECT_TRUE(manager.isNameWhitelisted("player1")); // 大小写不敏感
 }
 
-TEST_F(WhitelistManagerTest, AddDuplicateEntry) {
+TEST_F(WhitelistManagerTest, AddDuplicateEntry)
+{
     WhitelistManager manager;
 
     WhitelistEntry entry1("uuid-123", "Player1");
@@ -70,7 +76,8 @@ TEST_F(WhitelistManagerTest, AddDuplicateEntry) {
     EXPECT_EQ(manager.size(), 1);
 }
 
-TEST_F(WhitelistManagerTest, RemoveEntryByUuid) {
+TEST_F(WhitelistManagerTest, RemoveEntryByUuid)
+{
     WhitelistManager manager;
 
     WhitelistEntry entry("uuid-123", "Player1");
@@ -82,7 +89,8 @@ TEST_F(WhitelistManagerTest, RemoveEntryByUuid) {
     EXPECT_FALSE(manager.isNameWhitelisted("Player1"));
 }
 
-TEST_F(WhitelistManagerTest, RemoveEntryByName) {
+TEST_F(WhitelistManagerTest, RemoveEntryByName)
+{
     WhitelistManager manager;
 
     WhitelistEntry entry("uuid-123", "Player1");
@@ -97,14 +105,16 @@ TEST_F(WhitelistManagerTest, RemoveEntryByName) {
     EXPECT_EQ(manager.size(), 0);
 }
 
-TEST_F(WhitelistManagerTest, RemoveNonExistentEntry) {
+TEST_F(WhitelistManagerTest, RemoveNonExistentEntry)
+{
     WhitelistManager manager;
 
     EXPECT_FALSE(manager.removeEntry("non-existent-uuid"));
     EXPECT_FALSE(manager.removeEntryByName("NonExistentPlayer"));
 }
 
-TEST_F(WhitelistManagerTest, GetEntry) {
+TEST_F(WhitelistManagerTest, GetEntry)
+{
     WhitelistManager manager;
 
     WhitelistEntry entry("uuid-123", "Player1");
@@ -119,7 +129,8 @@ TEST_F(WhitelistManagerTest, GetEntry) {
     EXPECT_FALSE(result2.has_value());
 }
 
-TEST_F(WhitelistManagerTest, GetEntryByName) {
+TEST_F(WhitelistManagerTest, GetEntryByName)
+{
     WhitelistManager manager;
 
     WhitelistEntry entry("uuid-123", "Player1");
@@ -135,7 +146,8 @@ TEST_F(WhitelistManagerTest, GetEntryByName) {
     EXPECT_TRUE(result2.has_value());
 }
 
-TEST_F(WhitelistManagerTest, GetAllEntries) {
+TEST_F(WhitelistManagerTest, GetAllEntries)
+{
     WhitelistManager manager;
 
     manager.addEntry(WhitelistEntry("uuid-1", "Player1"));
@@ -146,7 +158,8 @@ TEST_F(WhitelistManagerTest, GetAllEntries) {
     EXPECT_EQ(entries.size(), 3);
 }
 
-TEST_F(WhitelistManagerTest, GetAllNames) {
+TEST_F(WhitelistManagerTest, GetAllNames)
+{
     WhitelistManager manager;
 
     manager.addEntry(WhitelistEntry("uuid-1", "Player1"));
@@ -160,7 +173,8 @@ TEST_F(WhitelistManagerTest, GetAllNames) {
     EXPECT_NE(std::find(names.begin(), names.end(), "Player2"), names.end());
 }
 
-TEST_F(WhitelistManagerTest, Clear) {
+TEST_F(WhitelistManagerTest, Clear)
+{
     WhitelistManager manager;
 
     manager.addEntry(WhitelistEntry("uuid-1", "Player1"));
@@ -173,7 +187,8 @@ TEST_F(WhitelistManagerTest, Clear) {
 
 // ========== 文件操作测试 ==========
 
-TEST_F(WhitelistManagerTest, SaveAndLoad) {
+TEST_F(WhitelistManagerTest, SaveAndLoad)
+{
     // 创建并保存
     {
         WhitelistManager manager;
@@ -204,15 +219,17 @@ TEST_F(WhitelistManagerTest, SaveAndLoad) {
     }
 }
 
-TEST_F(WhitelistManagerTest, LoadNonExistentFile) {
+TEST_F(WhitelistManagerTest, LoadNonExistentFile)
+{
     WhitelistManager manager;
 
     auto result = manager.load(testDir_ / "non_existent.json");
-    EXPECT_TRUE(result.success());  // 应该成功，创建空文件
+    EXPECT_TRUE(result.success()); // 应该成功，创建空文件
     EXPECT_TRUE(manager.empty());
 }
 
-TEST_F(WhitelistManagerTest, Reload) {
+TEST_F(WhitelistManagerTest, Reload)
+{
     WhitelistManager manager;
 
     // 初始加载
@@ -235,7 +252,8 @@ TEST_F(WhitelistManagerTest, Reload) {
     EXPECT_FALSE(manager.isWhitelisted("uuid-1"));
 }
 
-TEST_F(WhitelistManagerTest, LoadInvalidJson) {
+TEST_F(WhitelistManagerTest, LoadInvalidJson)
+{
     // 创建无效 JSON 文件
     std::ofstream file(testFile_);
     file << "not a valid json";
@@ -246,7 +264,8 @@ TEST_F(WhitelistManagerTest, LoadInvalidJson) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(WhitelistManagerTest, LoadNonArrayJson) {
+TEST_F(WhitelistManagerTest, LoadNonArrayJson)
+{
     // 创建非数组 JSON 文件
     std::ofstream file(testFile_);
     file << R"({"uuid": "uuid-1", "name": "Player1"})";
@@ -259,7 +278,8 @@ TEST_F(WhitelistManagerTest, LoadNonArrayJson) {
 
 // ========== 线程安全测试 ==========
 
-TEST_F(WhitelistManagerTest, ThreadSafety) {
+TEST_F(WhitelistManagerTest, ThreadSafety)
+{
     WhitelistManager manager;
     constexpr int numThreads = 4;
     constexpr int entriesPerThread = 100;
@@ -287,7 +307,8 @@ TEST_F(WhitelistManagerTest, ThreadSafety) {
 
 // ========== 条目有效性测试 ==========
 
-TEST_F(WhitelistManagerTest, InvalidEntry) {
+TEST_F(WhitelistManagerTest, InvalidEntry)
+{
     WhitelistManager manager;
 
     // 空 UUID
@@ -303,7 +324,8 @@ TEST_F(WhitelistManagerTest, InvalidEntry) {
 
 // ========== 大小写不敏感测试 ==========
 
-TEST_F(WhitelistManagerTest, CaseInsensitiveNameCheck) {
+TEST_F(WhitelistManagerTest, CaseInsensitiveNameCheck)
+{
     WhitelistManager manager;
 
     WhitelistEntry entry("uuid-123", "PlayerName");

@@ -1,12 +1,12 @@
 #include "RaidManager.hpp"
-#include "Raid.hpp"
-#include "../Village.hpp"
-#include "../VillageManager.hpp"
-#include "../../IWorld.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/effect/EffectInstance.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../IWorld.hpp"
+#include "../Village.hpp"
+#include "../VillageManager.hpp"
+#include "Raid.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -32,18 +32,16 @@ constexpr f32 RAID_TRIGGER_DISTANCE = 64.0f;
 RaidManager::RaidManager(IWorld& world, village::VillageManager& villageManager)
     : m_world(world)
     , m_villageManager(villageManager)
-{
-}
+{}
 
-bool RaidManager::isWithinRaidRange(BlockPos pos, BlockPos center) const {
-    f32 distSq = static_cast<f32>(
-        (pos.x - center.x) * (pos.x - center.x) +
-        (pos.z - center.z) * (pos.z - center.z)
-    );
+bool RaidManager::isWithinRaidRange(BlockPos pos, BlockPos center) const
+{
+    f32 distSq = static_cast<f32>((pos.x - center.x) * (pos.x - center.x) + (pos.z - center.z) * (pos.z - center.z));
     return distSq <= RAID_TRIGGER_DISTANCE * RAID_TRIGGER_DISTANCE;
 }
 
-Raid* RaidManager::getRaidAt(BlockPos pos) {
+Raid* RaidManager::getRaidAt(BlockPos pos)
+{
     for (auto& raid : m_raids) {
         if (raid && raid->status() == RaidStatus::Ongoing) {
             if (isWithinRaidRange(pos, raid->center())) {
@@ -54,7 +52,8 @@ Raid* RaidManager::getRaidAt(BlockPos pos) {
     return nullptr;
 }
 
-const Raid* RaidManager::getRaidAt(BlockPos pos) const {
+const Raid* RaidManager::getRaidAt(BlockPos pos) const
+{
     for (const auto& raid : m_raids) {
         if (raid && raid->status() == RaidStatus::Ongoing) {
             if (isWithinRaidRange(pos, raid->center())) {
@@ -65,11 +64,13 @@ const Raid* RaidManager::getRaidAt(BlockPos pos) const {
     return nullptr;
 }
 
-bool RaidManager::hasRaidAt(BlockPos pos) const {
+bool RaidManager::hasRaidAt(BlockPos pos) const
+{
     return getRaidAt(pos) != nullptr;
 }
 
-Raid* RaidManager::getRaidForVillage(village::Village* village) {
+Raid* RaidManager::getRaidForVillage(village::Village* village)
+{
     if (village == nullptr) return nullptr;
 
     for (auto& raid : m_raids) {
@@ -80,7 +81,8 @@ Raid* RaidManager::getRaidForVillage(village::Village* village) {
     return nullptr;
 }
 
-size_t RaidManager::getActiveRaidCount() const {
+size_t RaidManager::getActiveRaidCount() const
+{
     size_t count = 0;
     for (const auto& raid : m_raids) {
         if (raid && raid->status() == RaidStatus::Ongoing) {
@@ -90,7 +92,8 @@ size_t RaidManager::getActiveRaidCount() const {
     return count;
 }
 
-Raid* RaidManager::tryStartRaid(BlockPos pos, i32 badOmenLevel) {
+Raid* RaidManager::tryStartRaid(BlockPos pos, i32 badOmenLevel)
+{
     // 检查是否可以开始袭击
     if (!canStartRaidAt(pos)) {
         return nullptr;
@@ -127,7 +130,8 @@ Raid* RaidManager::tryStartRaid(BlockPos pos, i32 badOmenLevel) {
     return raidPtr;
 }
 
-void RaidManager::onPlayerEnterVillage(Player* player, village::Village* village) {
+void RaidManager::onPlayerEnterVillage(Player* player, village::Village* village)
+{
     if (player == nullptr || village == nullptr) return;
 
     // 检查玩家是否有不祥之兆效果
@@ -147,7 +151,8 @@ void RaidManager::onPlayerEnterVillage(Player* player, village::Village* village
     }
 }
 
-void RaidManager::onPlayerEnterVillageWithCallback(const BadOmenCheckCallback& checkBadOmen, village::Village* village) {
+void RaidManager::onPlayerEnterVillageWithCallback(const BadOmenCheckCallback& checkBadOmen, village::Village* village)
+{
     if (!checkBadOmen || village == nullptr) return;
 
     // 使用回调检查不祥之兆
@@ -159,7 +164,8 @@ void RaidManager::onPlayerEnterVillageWithCallback(const BadOmenCheckCallback& c
     }
 }
 
-void RaidManager::tick() {
+void RaidManager::tick()
+{
     // 更新所有袭击
     for (auto& raid : m_raids) {
         if (raid) {
@@ -171,7 +177,8 @@ void RaidManager::tick() {
     removeCompletedRaids();
 }
 
-void RaidManager::onRaidEnd(Raid* raid) {
+void RaidManager::onRaidEnd(Raid* raid)
+{
     if (raid == nullptr) return;
 
     // 清除村庄的袭击状态
@@ -208,7 +215,8 @@ void RaidManager::onRaidEnd(Raid* raid) {
     }
 }
 
-void RaidManager::removeCompletedRaids() {
+void RaidManager::removeCompletedRaids()
+{
     // 收集已完成的袭击
     std::vector<Raid*> completedRaids;
     for (auto& raid : m_raids) {
@@ -223,25 +231,25 @@ void RaidManager::removeCompletedRaids() {
     }
 
     // 移除已完成的袭击
-    m_raids.erase(
-        std::remove_if(m_raids.begin(), m_raids.end(),
-            [](const std::unique_ptr<Raid>& raid) {
-                return raid && raid->status() != RaidStatus::Ongoing;
-            }),
-        m_raids.end()
-    );
+    m_raids.erase(std::remove_if(m_raids.begin(),
+                      m_raids.end(),
+                      [](const std::unique_ptr<Raid>& raid) { return raid && raid->status() != RaidStatus::Ongoing; }),
+        m_raids.end());
 }
 
-RaidId RaidManager::generateRaidId() {
+RaidId RaidManager::generateRaidId()
+{
     return m_nextRaidId++;
 }
 
-village::Village* RaidManager::findNearbyVillage(BlockPos pos) const {
+village::Village* RaidManager::findNearbyVillage(BlockPos pos) const
+{
     // 使用村庄管理器查找村庄
     return m_villageManager.getVillageAt(pos);
 }
 
-bool RaidManager::canStartRaidAt(BlockPos pos) const {
+bool RaidManager::canStartRaidAt(BlockPos pos) const
+{
     // 检查位置是否在世界边界内
     if (!m_world.isWithinWorldBounds(pos)) {
         return false;

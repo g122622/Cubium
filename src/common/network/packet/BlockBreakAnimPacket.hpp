@@ -79,8 +79,8 @@ public:
     /**
      * @brief 创建更新破坏进度的包
      */
-    [[nodiscard]] static BlockBreakAnimPacket createUpdate(
-        EntityId breakerId, const BlockPos& pos, u8 stage) {
+    [[nodiscard]] static BlockBreakAnimPacket createUpdate(EntityId breakerId, const BlockPos& pos, u8 stage)
+    {
         BlockBreakAnimPacket packet;
         packet.setBreakerEntityId(breakerId);
         packet.setPosition(pos);
@@ -91,8 +91,8 @@ public:
     /**
      * @brief 创建移除破坏效果的包
      */
-    [[nodiscard]] static BlockBreakAnimPacket createRemove(
-        EntityId breakerId, const BlockPos& pos) {
+    [[nodiscard]] static BlockBreakAnimPacket createRemove(EntityId breakerId, const BlockPos& pos)
+    {
         BlockBreakAnimPacket packet;
         packet.setBreakerEntityId(breakerId);
         packet.setPosition(pos);

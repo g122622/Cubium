@@ -1,13 +1,13 @@
 #include "BambooBlock.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../WorldConstants.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../VanillaBlocks.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -18,23 +18,25 @@ namespace blocks {
 // ============================================================================
 
 BambooBlock::BambooBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AGE_0_1())
-        .add(BlockStateProperties::STAGE_0_1())
-        .add(BlockStateProperties::BAMBOO_LEAVES_PROP())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AGE_0_1())
+            .add(BlockStateProperties::STAGE_0_1())
+            .add(BlockStateProperties::BAMBOO_LEAVES_PROP())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态：年龄0，阶段0，无叶子
     setDefaultState(defaultState()
-        .with(BlockStateProperties::AGE_0_1(), 0)
-        .with(BlockStateProperties::STAGE_0_1(), 0)
-        .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None));
+            .with(BlockStateProperties::AGE_0_1(), 0)
+            .with(BlockStateProperties::STAGE_0_1(), 0)
+            .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None));
 
     // 创建形状
     // 正常形状：稍小的方块（类似甘蔗）
@@ -47,11 +49,13 @@ BambooBlock::BambooBlock(const BlockProperties& properties)
     m_collisionShape = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 1.0f, 0.8125f);
 }
 
-const EnumProperty<BlockStateProperties::BambooLeaves>& BambooBlock::BAMBOO_LEAVES_PROP() {
+const EnumProperty<BlockStateProperties::BambooLeaves>& BambooBlock::BAMBOO_LEAVES_PROP()
+{
     return BlockStateProperties::BAMBOO_LEAVES_PROP();
 }
 
-BlockState BambooBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BambooBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     IBlockReader& world = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(context.getWorld()));
     BlockPos pos = context.placementPos();
 
@@ -68,10 +72,8 @@ BlockState BambooBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState();
 }
 
-bool BambooBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool BambooBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -92,13 +94,13 @@ bool BambooBlock::isValidPosition(
     return BlockTags::BAMBOO_PLANTABLE_ON().contains(*belowState);
 }
 
-BlockState BambooBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState BambooBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -116,7 +118,8 @@ BlockState BambooBlock::updatePostPlacement(
     return state;
 }
 
-void BambooBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void BambooBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 参考: net.minecraft.block.BambooBlock#randomTick
 
     // 检查上方是否有空间（最高生长到 MAX_BUILD_HEIGHT - 1）
@@ -153,11 +156,8 @@ void BambooBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-bool BambooBlock::canGrow(
-    IBlockReader& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    bool isClientSide) const {
+bool BambooBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -169,10 +169,8 @@ bool BambooBlock::canGrow(
 }
 
 bool BambooBlock::canUseBonemeal(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) const {
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -182,11 +180,8 @@ bool BambooBlock::canUseBonemeal(
     return random.nextFloat() < 0.45f;
 }
 
-void BambooBlock::grow(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) {
+void BambooBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
 
     // 获取高度
     i32 bambooHeight = getNumBambooBlocksBelow(static_cast<IBlockReader&>(world), pos) + 1;
@@ -206,7 +201,8 @@ void BambooBlock::grow(
     }
 }
 
-const CollisionShape& BambooBlock::getShape(const BlockState& state) const {
+const CollisionShape& BambooBlock::getShape(const BlockState& state) const
+{
     BlockStateProperties::BambooLeaves leaves = state.get(BlockStateProperties::BAMBOO_LEAVES_PROP());
 
     if (leaves == BlockStateProperties::BambooLeaves::Large) {
@@ -216,19 +212,22 @@ const CollisionShape& BambooBlock::getShape(const BlockState& state) const {
     return m_normalShape;
 }
 
-const CollisionShape& BambooBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& BambooBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_collisionShape;
 }
 
-bool BambooBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const {
+bool BambooBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
     return true;
 }
 
-i32 BambooBlock::getNumBambooBlocksBelow(IBlockReader& world, const BlockPos& pos) const {
+i32 BambooBlock::getNumBambooBlocksBelow(IBlockReader& world, const BlockPos& pos) const
+{
     i32 count = 0;
     BlockPos checkPos = pos;
 
@@ -247,11 +246,8 @@ i32 BambooBlock::getNumBambooBlocksBelow(IBlockReader& world, const BlockPos& po
 }
 
 void BambooBlock::growBamboo(
-    const BlockState& currentState,
-    IWorld& world,
-    const BlockPos& pos,
-    math::IRandom& random,
-    i32 bambooHeight) {
+    const BlockState& currentState, IWorld& world, const BlockPos& pos, math::IRandom& random, i32 bambooHeight)
+{
 
     // 检查高度限制
     if (bambooHeight >= 16) {
@@ -277,10 +273,11 @@ void BambooBlock::growBamboo(
     world.setBlockState(pos, &updatedState, 2);
 
     // 在上方放置新的竹子
-    BlockState newState = defaultState()
-        .with(BlockStateProperties::AGE_0_1(), random.nextInt(2))
-        .with(BlockStateProperties::STAGE_0_1(), 0)
-        .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None);
+    BlockState newState =
+        defaultState()
+            .with(BlockStateProperties::AGE_0_1(), random.nextInt(2))
+            .with(BlockStateProperties::STAGE_0_1(), 0)
+            .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None);
 
     world.setBlockState(abovePos, &newState, 3);
 }
@@ -290,11 +287,12 @@ void BambooBlock::growBamboo(
 // ============================================================================
 
 BambooSaplingBlock::BambooSaplingBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 竹子幼苗没有状态属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+        [this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -303,10 +301,8 @@ BambooSaplingBlock::BambooSaplingBlock(const BlockProperties& properties)
     m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.3125f, 0.75f);
 }
 
-bool BambooSaplingBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool BambooSaplingBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -326,13 +322,13 @@ bool BambooSaplingBlock::isValidPosition(
     return BlockTags::BAMBOO_PLANTABLE_ON().contains(*belowState);
 }
 
-BlockState BambooSaplingBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState BambooSaplingBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -350,7 +346,8 @@ BlockState BambooSaplingBlock::updatePostPlacement(
     return state;
 }
 
-void BambooSaplingBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void BambooSaplingBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 参考: net.minecraft.block.BambooSaplingBlock#randomTick
 
     // 随机生长（1/8概率）
@@ -360,10 +357,8 @@ void BambooSaplingBlock::randomTick(IWorld& world, const BlockPos& pos, BlockSta
 }
 
 bool BambooSaplingBlock::canGrow(
-    IBlockReader& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    bool isClientSide) const {
+    IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -374,10 +369,8 @@ bool BambooSaplingBlock::canGrow(
 }
 
 bool BambooSaplingBlock::canUseBonemeal(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) const {
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -386,11 +379,8 @@ bool BambooSaplingBlock::canUseBonemeal(
     return random.nextFloat() < 0.45f;
 }
 
-void BambooSaplingBlock::grow(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) {
+void BambooSaplingBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
 
     MC_UNUSED(random);
     MC_UNUSED(state);
@@ -398,12 +388,14 @@ void BambooSaplingBlock::grow(
     growBamboo(world, pos);
 }
 
-const CollisionShape& BambooSaplingBlock::getShape(const BlockState& state) const {
+const CollisionShape& BambooSaplingBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-void BambooSaplingBlock::growBamboo(IWorld& world, const BlockPos& pos) {
+void BambooSaplingBlock::growBamboo(IWorld& world, const BlockPos& pos)
+{
     // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);

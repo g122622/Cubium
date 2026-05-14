@@ -16,9 +16,8 @@ public:
     ~WitherModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -39,9 +38,8 @@ public:
     ~SlimeModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -64,9 +62,8 @@ public:
     ~GuardianModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置尖刺动画值
@@ -85,7 +82,8 @@ public:
      * @param targetEyeY 目标眼睛Y坐标
      * @param targetEyeOffset 目标眼睛X偏移
      */
-    void setTargetEyePosition(f32 targetEyeY, f32 targetEyeOffset) {
+    void setTargetEyePosition(f32 targetEyeY, f32 targetEyeOffset)
+    {
         m_targetEyeY = targetEyeY;
         m_targetEyeOffset = targetEyeOffset;
     }
@@ -128,9 +126,8 @@ public:
     ~ShulkerModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置开盖动画值
@@ -164,9 +161,8 @@ public:
     ~SilverfishModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -187,9 +183,8 @@ public:
     ~EndermiteModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();

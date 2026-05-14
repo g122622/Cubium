@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -24,16 +24,16 @@ namespace {
 class LecternTestWorld final : public test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
+
 public:
     explicit LecternTestWorld(LecternBlock& block)
-        : m_state(block.defaultState()) {
-    }
+        : m_state(block.defaultState())
+    {}
 
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override {
-        return &m_state;
-    }
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return &m_state; }
 
-    bool setBlockState(i32, i32, i32, const BlockState* state) override {
+    bool setBlockState(i32, i32, i32, const BlockState* state) override
+    {
         if (state == nullptr) {
             return false;
         }
@@ -42,23 +42,29 @@ public:
         return true;
     }
 
-    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override {
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
         const auto it = m_entities.find(pos);
         return it == m_entities.end() ? nullptr : it->second.get();
     }
 
-    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override {
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
         const auto it = m_entities.find(pos);
         return it == m_entities.end() ? nullptr : it->second.get();
     }
 
-    void setOwnedBlockEntity(std::unique_ptr<BlockEntity> entity) {
+    void setOwnedBlockEntity(std::unique_ptr<BlockEntity> entity)
+    {
         const BlockPos pos = entity->getPos();
         m_entities[pos] = std::move(entity);
     }
 
-    void scheduleBlockTick(const BlockPos&, Block&, i32 delay,
-                           world::tick::TickPriority priority = world::tick::TickPriority::Normal) override {
+    void scheduleBlockTick(const BlockPos&,
+        Block&,
+        i32 delay,
+        world::tick::TickPriority priority = world::tick::TickPriority::Normal) override
+    {
         m_lastScheduledDelay = delay;
         m_lastScheduledPriority = priority;
         ++m_scheduleCalls;
@@ -70,10 +76,12 @@ public:
     [[nodiscard]] world::tick::TickPriority lastScheduledPriority() const { return m_lastScheduledPriority; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("LecternTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("LecternTestWorld::tickManager not implemented");
     }
 
@@ -86,7 +94,8 @@ private:
     world::tick::TickPriority m_lastScheduledPriority = world::tick::TickPriority::Normal;
 };
 
-Item* ensureTestItem(const char* path) {
+Item* ensureTestItem(const char* path)
+{
     auto& registry = ItemRegistry::instance();
     const ResourceLocation id("minecraft", path);
     if (Item* existing = registry.getItem(id); existing != nullptr) {
@@ -100,12 +109,12 @@ Item* ensureTestItem(const char* path) {
 
 class LecternBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_book = ensureTestItem("book");
         m_stick = ensureTestItem("stick");
-        m_block = std::make_unique<LecternBlock>(
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+        m_block = std::make_unique<LecternBlock>(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
     }
 
     Item* m_book = nullptr;
@@ -113,7 +122,8 @@ protected:
     std::unique_ptr<LecternBlock> m_block;
 };
 
-TEST_F(LecternBlockTest, TryPlaceBook_RejectsNonBook) {
+TEST_F(LecternBlockTest, TryPlaceBook_RejectsNonBook)
+{
     BlockState state = m_block->defaultState();
     LecternTestWorld world(*m_block);
     const BlockPos pos(1, 2, 3);
@@ -122,7 +132,8 @@ TEST_F(LecternBlockTest, TryPlaceBook_RejectsNonBook) {
     EXPECT_EQ(world.setBlockCalls(), 0);
 }
 
-TEST_F(LecternBlockTest, TryPlaceBook_AcceptsBookAndSetsState) {
+TEST_F(LecternBlockTest, TryPlaceBook_AcceptsBookAndSetsState)
+{
     BlockState state = m_block->defaultState();
     LecternTestWorld world(*m_block);
     const BlockPos pos(1, 2, 3);
@@ -135,7 +146,8 @@ TEST_F(LecternBlockTest, TryPlaceBook_AcceptsBookAndSetsState) {
     EXPECT_TRUE(applied->get(BlockStateProperties::HAS_BOOK()));
 }
 
-TEST_F(LecternBlockTest, ComparatorInput_UsesLecternEntitySignal) {
+TEST_F(LecternBlockTest, ComparatorInput_UsesLecternEntitySignal)
+{
     BlockState state = m_block->defaultState().with(BlockStateProperties::HAS_BOOK(), true);
     LecternTestWorld world(*m_block);
     const BlockPos pos(4, 5, 6);
@@ -149,7 +161,8 @@ TEST_F(LecternBlockTest, ComparatorInput_UsesLecternEntitySignal) {
     EXPECT_EQ(signal, 1);
 }
 
-TEST_F(LecternBlockTest, Pulse_SetsPoweredAndSchedulesTick) {
+TEST_F(LecternBlockTest, Pulse_SetsPoweredAndSchedulesTick)
+{
     BlockState state = m_block->defaultState().with(BlockStateProperties::HAS_BOOK(), true);
     LecternTestWorld world(*m_block);
     const BlockPos pos(8, 9, 10);

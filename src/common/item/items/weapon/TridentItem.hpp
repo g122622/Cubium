@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../../core/ActionResult.hpp"
 #include "../../core/Item.hpp"
 #include "../../core/UseAction.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../../core/Types.hpp"
 #include <functional>
 
 namespace mc {
@@ -15,7 +15,7 @@ class ItemStack;
 class LivingEntity;
 
 namespace entity {
-    class AbstractArrowEntity;
+class AbstractArrowEntity;
 }
 
 namespace item {
@@ -78,11 +78,7 @@ public:
      *
      * 投掷三叉戟或触发激流冲刺。
      */
-    void onPlayerStoppedUsing(
-        ItemStack& stack,
-        IWorld& world,
-        LivingEntity& entity,
-        i32 timeLeft) override;
+    void onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft) override;
 
     /**
      * @brief 攻击实体时调用
@@ -97,11 +93,7 @@ public:
      * 消耗耐久度。
      */
     bool onBlockDestroyed(
-        ItemStack& stack,
-        IWorld& world,
-        const BlockState& state,
-        const BlockPos& pos,
-        LivingEntity& breaker) override;
+        ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& breaker) override;
 
     /**
      * @brief 获取附魔能力

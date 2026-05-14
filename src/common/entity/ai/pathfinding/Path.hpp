@@ -4,8 +4,8 @@
 #include "../../../util/math/Vector3.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "PathPoint.hpp"
-#include <vector>
 #include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -31,8 +31,7 @@ public:
      */
     explicit Path(std::vector<PathPoint>&& points)
         : m_points(std::move(points))
-    {
-    }
+    {}
 
     /**
      * @brief 完整构造函数
@@ -44,8 +43,7 @@ public:
         : m_points(std::move(points))
         , m_target(target)
         , m_reachesTarget(reachesTarget)
-    {
-    }
+    {}
 
     // ========== 路径信息 ==========
 
@@ -63,17 +61,13 @@ public:
      * @brief 获取路径终点
      * @return 终点路径点，如果路径为空返回nullptr
      */
-    [[nodiscard]] const PathPoint* getEnd() const {
-        return m_points.empty() ? nullptr : &m_points.back();
-    }
+    [[nodiscard]] const PathPoint* getEnd() const { return m_points.empty() ? nullptr : &m_points.back(); }
 
     /**
      * @brief 获取路径起点
      * @return 起点路径点，如果路径为空返回nullptr
      */
-    [[nodiscard]] const PathPoint* getStart() const {
-        return m_points.empty() ? nullptr : &m_points.front();
-    }
+    [[nodiscard]] const PathPoint* getStart() const { return m_points.empty() ? nullptr : &m_points.front(); }
 
     /**
      * @brief 获取目标位置
@@ -115,7 +109,8 @@ public:
      * @param index 索引
      * @return 路径点指针，如果索引无效返回nullptr
      */
-    [[nodiscard]] const PathPoint* getPoint(size_t index) const {
+    [[nodiscard]] const PathPoint* getPoint(size_t index) const
+    {
         if (index >= m_points.size()) {
             return nullptr;
         }
@@ -125,9 +120,7 @@ public:
     /**
      * @brief 获取所有路径点
      */
-    [[nodiscard]] const std::vector<PathPoint>& getPoints() const {
-        return m_points;
-    }
+    [[nodiscard]] const std::vector<PathPoint>& getPoints() const { return m_points; }
 
     // ========== 路径导航 ==========
 
@@ -135,7 +128,8 @@ public:
      * @brief 获取当前目标路径点
      * @return 当前目标路径点，如果已到达终点返回nullptr
      */
-    [[nodiscard]] const PathPoint* getCurrentTarget() const {
+    [[nodiscard]] const PathPoint* getCurrentTarget() const
+    {
         if (m_points.empty() || m_currentIndex >= static_cast<i32>(m_points.size())) {
             return nullptr;
         }
@@ -151,7 +145,8 @@ public:
      * @brief 前进到下一个路径点
      * @return 是否还有下一个路径点
      */
-    bool advance() {
+    bool advance()
+    {
         ++m_currentIndex;
         return m_currentIndex < static_cast<i32>(m_points.size());
     }
@@ -159,21 +154,21 @@ public:
     /**
      * @brief 检查是否已到达终点
      */
-    [[nodiscard]] bool isFinished() const {
+    [[nodiscard]] bool isFinished() const
+    {
         return m_points.empty() || m_currentIndex >= static_cast<i32>(m_points.size());
     }
 
     /**
      * @brief 重置路径进度
      */
-    void reset() {
-        m_currentIndex = 0;
-    }
+    void reset() { m_currentIndex = 0; }
 
     /**
      * @brief 设置当前索引
      */
-    void setCurrentIndex(i32 index) {
+    void setCurrentIndex(i32 index)
+    {
         m_currentIndex = std::max(0, std::min(index, static_cast<i32>(m_points.size()) - 1));
     }
 
@@ -182,7 +177,8 @@ public:
      * MC 1.16.5: setCurrentPathLength()
      * @param length 新的路径长度
      */
-    void setCurrentPathLength(i32 length) {
+    void setCurrentPathLength(i32 length)
+    {
         if (length >= 0 && length < static_cast<i32>(m_points.size())) {
             m_points.resize(static_cast<size_t>(length));
         }
@@ -194,7 +190,8 @@ public:
      * @param index 索引
      * @param point 新的路径点
      */
-    void setPoint(size_t index, const PathPoint& point) {
+    void setPoint(size_t index, const PathPoint& point)
+    {
         if (index < m_points.size()) {
             m_points[index] = point;
         }
@@ -206,7 +203,8 @@ public:
      * @param index 索引
      * @param point 新的路径点
      */
-    void setPoint(size_t index, PathPoint&& point) {
+    void setPoint(size_t index, PathPoint&& point)
+    {
         if (index < m_points.size()) {
             m_points[index] = std::move(point);
         }
@@ -217,23 +215,20 @@ public:
     /**
      * @brief 添加路径点（用于路径构建）
      */
-    void addPoint(const PathPoint& point) {
-        m_points.push_back(point);
-    }
+    void addPoint(const PathPoint& point) { m_points.push_back(point); }
 
     /**
      * @brief 添加路径点（移动语义）
      */
-    void addPoint(PathPoint&& point) {
-        m_points.push_back(std::move(point));
-    }
+    void addPoint(PathPoint&& point) { m_points.push_back(std::move(point)); }
 
     /**
      * @brief 从终点反向构建路径
      * @param end 终点路径点（通过parent链回溯）
      * @return 构建的路径
      */
-    static Path buildFromEnd(const PathPoint* end) {
+    static Path buildFromEnd(const PathPoint* end)
+    {
         // 先计算路径长度以预留空间
         size_t count = 0;
         const PathPoint* current = end;
@@ -262,7 +257,8 @@ public:
      * @brief 裁剪路径起点
      * @param count 要移除的起点数量
      */
-    void trimStart(size_t count) {
+    void trimStart(size_t count)
+    {
         if (count >= m_points.size()) {
             m_points.clear();
             m_currentIndex = 0;
@@ -281,7 +277,8 @@ public:
      * @param z 目标Z坐标
      * @param tolerance 位置容差
      */
-    [[nodiscard]] bool reachesTarget(i32 x, i32 y, i32 z, f32 tolerance = 1.0f) const {
+    [[nodiscard]] bool reachesTarget(i32 x, i32 y, i32 z, f32 tolerance = 1.0f) const
+    {
         if (m_points.empty()) {
             return false;
         }
@@ -316,7 +313,8 @@ public:
      * MC 1.16.5: isSamePath()
      * @param other 另一个路径
      */
-    [[nodiscard]] bool isSamePath(const Path& other) const {
+    [[nodiscard]] bool isSamePath(const Path& other) const
+    {
         if (m_points.size() != other.m_points.size()) {
             return false;
         }
@@ -330,10 +328,10 @@ public:
 
 private:
     std::vector<PathPoint> m_points;
-    BlockPos m_target;                     // 目标位置
-    f32 m_distToTarget = 0.0f;            // 到目标的距离
-    bool m_reachesTarget = false;          // 是否到达目标
-    i32 m_currentIndex = 0;                // 当前路径点索引
+    BlockPos m_target;            // 目标位置
+    f32 m_distToTarget = 0.0f;    // 到目标的距离
+    bool m_reachesTarget = false; // 是否到达目标
+    i32 m_currentIndex = 0;       // 当前路径点索引
 };
 
 } // namespace entity::ai::pathfinding

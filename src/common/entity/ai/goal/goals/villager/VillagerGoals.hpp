@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Goal.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
+#include "../../Goal.hpp"
 #include <optional>
 
 namespace mc {
@@ -84,8 +84,8 @@ private:
     VillagerEntity* m_villager;
     BlockPos m_bedPos;
     bool m_sleeping = false;
-    i32 m_trySleepTicks = 0;        // 尝试睡眠的tick计数
-    static constexpr i32 MAX_TRY_SLEEP_TICKS = 100;  // 最大尝试时间
+    i32 m_trySleepTicks = 0;                        // 尝试睡眠的tick计数
+    static constexpr i32 MAX_TRY_SLEEP_TICKS = 100; // 最大尝试时间
 };
 
 /**
@@ -149,9 +149,9 @@ protected:
 private:
     i32 m_workTicks = 0;
     bool m_atJobSite = false;
-    i32 m_lastRestockDay = -1;  // 上次补货的游戏日
-    static constexpr i32 WORK_TICKS_MIN = 100;   // 最小工作时间
-    static constexpr i32 WORK_TICKS_MAX = 600;   // 最大工作时间
+    i32 m_lastRestockDay = -1;                 // 上次补货的游戏日
+    static constexpr i32 WORK_TICKS_MIN = 100; // 最小工作时间
+    static constexpr i32 WORK_TICKS_MAX = 600; // 最大工作时间
 };
 
 /**
@@ -183,8 +183,8 @@ private:
     VillagerEntity* m_villager;
     std::optional<BlockPos> m_targetSite;
     i32 m_searchCooldown = 0;
-    static constexpr i32 SEARCH_COOLDOWN = 200;  // 搜索冷却
-    static constexpr f32 SEARCH_RANGE = 48.0f;   // 搜索范围
+    static constexpr i32 SEARCH_COOLDOWN = 200; // 搜索冷却
+    static constexpr f32 SEARCH_RANGE = 48.0f;  // 搜索范围
 };
 
 /**
@@ -279,7 +279,7 @@ private:
 private:
     i32 m_farmerWorkTicks = 0;
     BlockPos m_currentFarmland;
-    static constexpr i32 FARMER_WORK_INTERVAL = 20;  // 工作间隔
+    static constexpr i32 FARMER_WORK_INTERVAL = 20; // 工作间隔
 };
 
 /**
@@ -316,9 +316,9 @@ private:
     VillagerEntity* m_villager;
     EntityId m_hostileEntity;
     BlockPos m_fleeTarget;
-    static constexpr f32 FLEE_RANGE = 8.0f;      // 敌对生物触发距离
-    static constexpr f32 FLEE_DISTANCE = 16.0f;   // 逃跑距离
-    static constexpr f32 FLEE_SPEED = 0.6f;       // 逃跑速度倍率
+    static constexpr f32 FLEE_RANGE = 8.0f;     // 敌对生物触发距离
+    static constexpr f32 FLEE_DISTANCE = 16.0f; // 逃跑距离
+    static constexpr f32 FLEE_SPEED = 0.6f;     // 逃跑速度倍率
 };
 
 /**
@@ -396,7 +396,7 @@ private:
     VillagerEntity* m_villager;
     EntityId m_partnerId;
     i32 m_breedTicks = 0;
-    static constexpr i32 BREED_TICKS = 60;  // 繁殖动画时长
+    static constexpr i32 BREED_TICKS = 60; // 繁殖动画时长
     static constexpr f32 BREED_DISTANCE = 2.0f;
 };
 

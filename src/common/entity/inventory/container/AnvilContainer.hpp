@@ -42,7 +42,7 @@ public:
     static constexpr i32 ANVIL_SLOTS = 3;
 
     /// 输入槽位置
-    static constexpr i32 INPUT_SLOT_X[] = {27, 76};  // 左右两个输入槽
+    static constexpr i32 INPUT_SLOT_X[] = {27, 76}; // 左右两个输入槽
     static constexpr i32 INPUT_SLOT_Y = 47;
     /// 输出槽位置
     static constexpr i32 OUTPUT_SLOT_X = 134;
@@ -64,10 +64,7 @@ public:
      * @param position 铁砧位置（用于损坏铁砧）
      * @param world 世界指针
      */
-    AnvilContainer(ContainerId id,
-                   PlayerInventory* playerInventory,
-                   const BlockPos& position,
-                   IWorld* world);
+    AnvilContainer(ContainerId id, PlayerInventory* playerInventory, const BlockPos& position, IWorld* world);
 
     /**
      * @brief 析构函数
@@ -190,12 +187,12 @@ private:
     [[nodiscard]] bool areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const;
 
 private:
-    std::unique_ptr<IInventory> m_anvilInventory;  ///< 铁砧背包
-    BlockPos m_position;                           ///< 铁砧位置
-    IWorld* m_world;                               ///< 世界指针
-    i32 m_repairCost = 0;                          ///< 修复成本（经验等级）
-    i32 m_materialCost = 0;                        ///< 材料消耗数量
-    std::string m_itemName;                             ///< 重命名名称
+    std::unique_ptr<IInventory> m_anvilInventory; ///< 铁砧背包
+    BlockPos m_position;                          ///< 铁砧位置
+    IWorld* m_world;                              ///< 世界指针
+    i32 m_repairCost = 0;                         ///< 修复成本（经验等级）
+    i32 m_materialCost = 0;                       ///< 材料消耗数量
+    std::string m_itemName;                       ///< 重命名名称
 };
 
 } // namespace mc

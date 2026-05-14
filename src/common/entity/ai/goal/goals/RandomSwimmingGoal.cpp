@@ -1,14 +1,14 @@
 #include "RandomSwimmingGoal.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/Material.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/Material.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -30,7 +30,8 @@ RandomSwimmingGoal::RandomSwimmingGoal(CreatureEntity* creature, f64 speed, i32 
     MC_ASSERT_RELEASE(creature != nullptr);
 }
 
-bool RandomSwimmingGoal::shouldExecute() {
+bool RandomSwimmingGoal::shouldExecute()
+{
     if (m_creature == nullptr) {
         return false;
     }
@@ -57,7 +58,8 @@ bool RandomSwimmingGoal::shouldExecute() {
     return false;
 }
 
-bool RandomSwimmingGoal::shouldContinueExecuting() {
+bool RandomSwimmingGoal::shouldContinueExecuting()
+{
     if (m_creature == nullptr) {
         return false;
     }
@@ -80,7 +82,8 @@ bool RandomSwimmingGoal::shouldContinueExecuting() {
     return mob->navigator() != nullptr && mob->navigator()->hasPath();
 }
 
-void RandomSwimmingGoal::startExecuting() {
+void RandomSwimmingGoal::startExecuting()
+{
     if (m_creature == nullptr) {
         return;
     }
@@ -89,12 +92,14 @@ void RandomSwimmingGoal::startExecuting() {
     m_timeoutCounter = 600; // 最大游泳时间（30秒）
 }
 
-void RandomSwimmingGoal::resetTask() {
+void RandomSwimmingGoal::resetTask()
+{
     m_timeoutCounter = 0;
     m_forceUpdate = false;
 }
 
-void RandomSwimmingGoal::tick() {
+void RandomSwimmingGoal::tick()
+{
     if (m_creature == nullptr) {
         return;
     }
@@ -114,7 +119,8 @@ void RandomSwimmingGoal::tick() {
     }
 }
 
-bool RandomSwimmingGoal::getRandomSwimPosition(Vector3& outPos) {
+bool RandomSwimmingGoal::getRandomSwimPosition(Vector3& outPos)
+{
     if (m_creature == nullptr || m_creature->world() == nullptr) {
         return false;
     }

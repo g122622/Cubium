@@ -1,38 +1,42 @@
 #include "RedstoneRepeaterBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../IWorld.hpp"
 #include <unordered_map>
 
 namespace mc {
 namespace blocks {
 
 RedstoneRepeaterBlock::RedstoneRepeaterBlock(const BlockProperties& properties)
-    : RedstoneDiodeBlock("redstone_repeater", properties) {
+    : RedstoneDiodeBlock("redstone_repeater", properties)
+{
 
     // 创建状态容器 - 包含基类的 FACING 和 POWERED，以及中继器特有的 DELAY 和 LOCKED
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::POWERED())
-        .add(BlockStateProperties::DELAY_1_4())
-        .add(BlockStateProperties::LOCKED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::POWERED())
+                         .add(BlockStateProperties::DELAY_1_4())
+                         .add(BlockStateProperties::LOCKED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::POWERED(), false)
-        .with(BlockStateProperties::DELAY_1_4(), 1)
-        .with(BlockStateProperties::LOCKED(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::POWERED(), false)
+            .with(BlockStateProperties::DELAY_1_4(), 1)
+            .with(BlockStateProperties::LOCKED(), false));
 }
 
-BlockState RedstoneRepeaterBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState RedstoneRepeaterBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -51,28 +55,33 @@ BlockState RedstoneRepeaterBlock::updatePostPlacement(
     return RedstoneDiodeBlock::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
 }
 
-i32 RedstoneRepeaterBlock::getDelay(const BlockState& state) const {
+i32 RedstoneRepeaterBlock::getDelay(const BlockState& state) const
+{
     return getDelaySetting(state) * DELAY_MULTIPLIER;
 }
 
-i32 RedstoneRepeaterBlock::getDelaySetting(const BlockState& state) {
+i32 RedstoneRepeaterBlock::getDelaySetting(const BlockState& state)
+{
     return state.get(BlockStateProperties::DELAY_1_4());
 }
 
-BlockState RedstoneRepeaterBlock::withDelay(BlockState state, i32 delay) {
+BlockState RedstoneRepeaterBlock::withDelay(BlockState state, i32 delay)
+{
     return state.with(BlockStateProperties::DELAY_1_4(), std::clamp(delay, MIN_DELAY, MAX_DELAY));
 }
 
-bool RedstoneRepeaterBlock::isLockedState(const BlockState& state) {
+bool RedstoneRepeaterBlock::isLockedState(const BlockState& state)
+{
     return state.get(BlockStateProperties::LOCKED());
 }
 
-BlockState RedstoneRepeaterBlock::withLocked(BlockState state, bool locked) {
+BlockState RedstoneRepeaterBlock::withLocked(BlockState state, bool locked)
+{
     return state.with(BlockStateProperties::LOCKED(), locked);
 }
 
-bool RedstoneRepeaterBlock::shouldBePowered(IWorld& world, const BlockPos& pos,
-                                            const BlockState& state) const {
+bool RedstoneRepeaterBlock::shouldBePowered(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // 如果被锁定，保持当前状态
     if (isLockedState(state)) {
         return isPowered(state);
@@ -81,19 +90,19 @@ bool RedstoneRepeaterBlock::shouldBePowered(IWorld& world, const BlockPos& pos,
     return getInputSignal(world, pos, state) > 0;
 }
 
-bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos,
-                                     const BlockState& state) const {
+bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // 检查侧面是否有来自其他二极管的信号
     return getPowerOnSides(world, pos, state) > 0;
 }
 
-ActionResultType RedstoneRepeaterBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType RedstoneRepeaterBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(player);
     MC_UNUSED(hand);
@@ -107,7 +116,7 @@ ActionResultType RedstoneRepeaterBlock::onBlockActivated(
 
     // 获取当前延迟档位并循环切换
     i32 currentDelay = getDelaySetting(state);
-    i32 newDelay = (currentDelay % MAX_DELAY) + 1;  // 1 -> 2 -> 3 -> 4 -> 1
+    i32 newDelay = (currentDelay % MAX_DELAY) + 1; // 1 -> 2 -> 3 -> 4 -> 1
 
     // 设置新的延迟档位
     BlockState newState = withDelay(state, newDelay);
@@ -115,12 +124,7 @@ ActionResultType RedstoneRepeaterBlock::onBlockActivated(
 
     // 播放点击音效
     world.playSound(
-        ResourceLocation("minecraft:block.repeater.click"),
-        sound::SoundCategory::Blocks,
-        pos.center(),
-        0.3f,
-        0.5f
-    );
+        ResourceLocation("minecraft:block.repeater.click"), sound::SoundCategory::Blocks, pos.center(), 0.3f, 0.5f);
 
     return ActionResultType::Success;
 }

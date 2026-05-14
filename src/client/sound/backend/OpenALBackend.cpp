@@ -19,10 +19,10 @@ namespace mc::client::sound {
 OpenALSource::OpenALSource(AudioSourceId id, ALuint source)
     : m_id(id)
     , m_source(source)
-{
-}
+{}
 
-OpenALSource::~OpenALSource() {
+OpenALSource::~OpenALSource()
+{
     // 由音频源对象负责自身 OpenAL 资源释放（RAII）
     // 仅在上下文可用时删除，避免关闭阶段误调用
     if (m_source != 0 && alcGetCurrentContext() != nullptr) {
@@ -40,7 +40,8 @@ OpenALSource::OpenALSource(OpenALSource&& other) noexcept
     other.m_source = 0;
 }
 
-OpenALSource& OpenALSource::operator=(OpenALSource&& other) noexcept {
+OpenALSource& OpenALSource::operator=(OpenALSource&& other) noexcept
+{
     if (this != &other) {
         if (m_source != 0 && alcGetCurrentContext() != nullptr) {
             alDeleteSources(1, &m_source);
@@ -55,7 +56,8 @@ OpenALSource& OpenALSource::operator=(OpenALSource&& other) noexcept {
     return *this;
 }
 
-AudioSourceState OpenALSource::getState() const noexcept {
+AudioSourceState OpenALSource::getState() const noexcept
+{
     if (!isValid()) {
         return AudioSourceState::Initial;
     }
@@ -77,7 +79,8 @@ AudioSourceState OpenALSource::getState() const noexcept {
     }
 }
 
-void OpenALSource::setBuffer(std::shared_ptr<IAudioBuffer> buffer) {
+void OpenALSource::setBuffer(std::shared_ptr<IAudioBuffer> buffer)
+{
     if (!isValid()) {
         spdlog::warn("[OpenALSource] setBuffer called on invalid source");
         return;
@@ -99,7 +102,8 @@ void OpenALSource::setBuffer(std::shared_ptr<IAudioBuffer> buffer) {
     }
 }
 
-void OpenALSource::play() {
+void OpenALSource::play()
+{
     if (!isValid()) {
         spdlog::error("[OpenALSource] play called on invalid source");
         return;
@@ -110,7 +114,8 @@ void OpenALSource::play() {
     checkError("play");
 }
 
-void OpenALSource::pause() {
+void OpenALSource::pause()
+{
     if (!isValid()) {
         spdlog::warn("[OpenALSource] pause called on invalid source");
         return;
@@ -120,7 +125,8 @@ void OpenALSource::pause() {
     checkError("pause");
 }
 
-void OpenALSource::stop() {
+void OpenALSource::stop()
+{
     if (!isValid()) {
         spdlog::error("[OpenALSource] stop called on invalid source");
         return;
@@ -130,7 +136,8 @@ void OpenALSource::stop() {
     checkError("stop");
 }
 
-void OpenALSource::rewind() {
+void OpenALSource::rewind()
+{
     if (!isValid()) {
         spdlog::error("[OpenALSource] rewind called on invalid source");
         return;
@@ -140,7 +147,8 @@ void OpenALSource::rewind() {
     checkError("rewind");
 }
 
-void OpenALSource::setGain(f32 gain) {
+void OpenALSource::setGain(f32 gain)
+{
     if (!isValid()) {
         return;
     }
@@ -149,7 +157,8 @@ void OpenALSource::setGain(f32 gain) {
     checkError("setGain");
 }
 
-f32 OpenALSource::getGain() const noexcept {
+f32 OpenALSource::getGain() const noexcept
+{
     if (!isValid()) {
         return 0.0f;
     }
@@ -159,7 +168,8 @@ f32 OpenALSource::getGain() const noexcept {
     return gain;
 }
 
-void OpenALSource::setPitch(f32 pitch) {
+void OpenALSource::setPitch(f32 pitch)
+{
     if (!isValid()) {
         return;
     }
@@ -169,7 +179,8 @@ void OpenALSource::setPitch(f32 pitch) {
     checkError("setPitch");
 }
 
-f32 OpenALSource::getPitch() const noexcept {
+f32 OpenALSource::getPitch() const noexcept
+{
     if (!isValid()) {
         return 1.0f;
     }
@@ -179,7 +190,8 @@ f32 OpenALSource::getPitch() const noexcept {
     return pitch;
 }
 
-void OpenALSource::setPosition(const glm::vec3& position) {
+void OpenALSource::setPosition(const glm::vec3& position)
+{
     if (!isValid()) {
         return;
     }
@@ -188,7 +200,8 @@ void OpenALSource::setPosition(const glm::vec3& position) {
     checkError("setPosition");
 }
 
-glm::vec3 OpenALSource::getPosition() const noexcept {
+glm::vec3 OpenALSource::getPosition() const noexcept
+{
     if (!isValid()) {
         return glm::vec3(0.0f);
     }
@@ -198,7 +211,8 @@ glm::vec3 OpenALSource::getPosition() const noexcept {
     return glm::vec3(x, y, z);
 }
 
-void OpenALSource::setVelocity(const glm::vec3& velocity) {
+void OpenALSource::setVelocity(const glm::vec3& velocity)
+{
     if (!isValid()) {
         return;
     }
@@ -207,7 +221,8 @@ void OpenALSource::setVelocity(const glm::vec3& velocity) {
     checkError("setVelocity");
 }
 
-glm::vec3 OpenALSource::getVelocity() const noexcept {
+glm::vec3 OpenALSource::getVelocity() const noexcept
+{
     if (!isValid()) {
         return glm::vec3(0.0f);
     }
@@ -217,7 +232,8 @@ glm::vec3 OpenALSource::getVelocity() const noexcept {
     return glm::vec3(x, y, z);
 }
 
-void OpenALSource::setDirection(const glm::vec3& direction) {
+void OpenALSource::setDirection(const glm::vec3& direction)
+{
     if (!isValid()) {
         return;
     }
@@ -226,7 +242,8 @@ void OpenALSource::setDirection(const glm::vec3& direction) {
     checkError("setDirection");
 }
 
-glm::vec3 OpenALSource::getDirection() const noexcept {
+glm::vec3 OpenALSource::getDirection() const noexcept
+{
     if (!isValid()) {
         return glm::vec3(0.0f);
     }
@@ -236,7 +253,8 @@ glm::vec3 OpenALSource::getDirection() const noexcept {
     return glm::vec3(x, y, z);
 }
 
-void OpenALSource::setRelative(bool relative) {
+void OpenALSource::setRelative(bool relative)
+{
     if (!isValid()) {
         return;
     }
@@ -245,7 +263,8 @@ void OpenALSource::setRelative(bool relative) {
     checkError("setRelative");
 }
 
-bool OpenALSource::isRelative() const noexcept {
+bool OpenALSource::isRelative() const noexcept
+{
     if (!isValid()) {
         return false;
     }
@@ -255,7 +274,8 @@ bool OpenALSource::isRelative() const noexcept {
     return relative == AL_TRUE;
 }
 
-void OpenALSource::setReferenceDistance(f32 distance) {
+void OpenALSource::setReferenceDistance(f32 distance)
+{
     if (!isValid()) {
         return;
     }
@@ -264,7 +284,8 @@ void OpenALSource::setReferenceDistance(f32 distance) {
     checkError("setReferenceDistance");
 }
 
-f32 OpenALSource::getReferenceDistance() const noexcept {
+f32 OpenALSource::getReferenceDistance() const noexcept
+{
     if (!isValid()) {
         return 0.0f;
     }
@@ -274,7 +295,8 @@ f32 OpenALSource::getReferenceDistance() const noexcept {
     return distance;
 }
 
-void OpenALSource::setMaxDistance(f32 distance) {
+void OpenALSource::setMaxDistance(f32 distance)
+{
     if (!isValid()) {
         return;
     }
@@ -283,7 +305,8 @@ void OpenALSource::setMaxDistance(f32 distance) {
     checkError("setMaxDistance");
 }
 
-f32 OpenALSource::getMaxDistance() const noexcept {
+f32 OpenALSource::getMaxDistance() const noexcept
+{
     if (!isValid()) {
         return 0.0f;
     }
@@ -293,7 +316,8 @@ f32 OpenALSource::getMaxDistance() const noexcept {
     return distance;
 }
 
-void OpenALSource::setLooping(bool looping) {
+void OpenALSource::setLooping(bool looping)
+{
     if (!isValid()) {
         return;
     }
@@ -302,7 +326,8 @@ void OpenALSource::setLooping(bool looping) {
     checkError("setLooping");
 }
 
-bool OpenALSource::isLooping() const noexcept {
+bool OpenALSource::isLooping() const noexcept
+{
     if (!isValid()) {
         return false;
     }
@@ -312,7 +337,8 @@ bool OpenALSource::isLooping() const noexcept {
     return looping == AL_TRUE;
 }
 
-void OpenALSource::queueBuffers(const AudioBufferId* buffers, size_t count) {
+void OpenALSource::queueBuffers(const AudioBufferId* buffers, size_t count)
+{
     if (!isValid() || buffers == nullptr || count == 0) {
         return;
     }
@@ -332,7 +358,8 @@ void OpenALSource::queueBuffers(const AudioBufferId* buffers, size_t count) {
     }
 }
 
-u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count) {
+u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count)
+{
     if (!isValid() || buffers == nullptr || count == 0) {
         return 0;
     }
@@ -357,7 +384,8 @@ u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count) {
     return static_cast<u32>(processed);
 }
 
-u32 OpenALSource::getProcessedBuffers() const noexcept {
+u32 OpenALSource::getProcessedBuffers() const noexcept
+{
     if (!isValid()) {
         return 0;
     }
@@ -367,7 +395,8 @@ u32 OpenALSource::getProcessedBuffers() const noexcept {
     return static_cast<u32>(processed);
 }
 
-u32 OpenALSource::getQueuedBuffers() const noexcept {
+u32 OpenALSource::getQueuedBuffers() const noexcept
+{
     if (!isValid()) {
         return 0;
     }
@@ -377,11 +406,11 @@ u32 OpenALSource::getQueuedBuffers() const noexcept {
     return static_cast<u32>(queued);
 }
 
-bool OpenALSource::checkError(const char* operation) const {
+bool OpenALSource::checkError(const char* operation) const
+{
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
-        spdlog::warn("[OpenALSource] Error in {}: {} (0x{:X})",
-                     operation, alGetString(error), static_cast<u32>(error));
+        spdlog::warn("[OpenALSource] Error in {}: {} (0x{:X})", operation, alGetString(error), static_cast<u32>(error));
         return true;
     }
     return false;
@@ -397,10 +426,10 @@ OpenALBuffer::OpenALBuffer(AudioBufferId id, ALuint buffer, const AudioFormat& f
     , m_format(format)
     , m_duration(duration)
     , m_sampleCount(static_cast<size_t>(format.sampleRate * duration))
-{
-}
+{}
 
-OpenALBuffer::~OpenALBuffer() {
+OpenALBuffer::~OpenALBuffer()
+{
     if (m_buffer != 0) {
         alDeleteBuffers(1, &m_buffer);
         m_buffer = 0;
@@ -418,7 +447,8 @@ OpenALBuffer::OpenALBuffer(OpenALBuffer&& other) noexcept
     other.m_buffer = 0;
 }
 
-OpenALBuffer& OpenALBuffer::operator=(OpenALBuffer&& other) noexcept {
+OpenALBuffer& OpenALBuffer::operator=(OpenALBuffer&& other) noexcept
+{
     if (this != &other) {
         // 删除当前缓冲区
         if (m_buffer != 0) {
@@ -437,10 +467,8 @@ OpenALBuffer& OpenALBuffer::operator=(OpenALBuffer&& other) noexcept {
     return *this;
 }
 
-Result<std::unique_ptr<OpenALBuffer>> OpenALBuffer::create(
-    AudioBufferId id,
-    const AudioData& data
-) {
+Result<std::unique_ptr<OpenALBuffer>> OpenALBuffer::create(AudioBufferId id, const AudioData& data)
+{
     if (!data.isValid()) {
         return Error(ErrorCode::InvalidData, "Invalid audio data");
     }
@@ -451,8 +479,7 @@ Result<std::unique_ptr<OpenALBuffer>> OpenALBuffer::create(
 
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
-        return Error(ErrorCode::OutOfMemory,
-                     fmt::format("Failed to create OpenAL buffer: {}", alGetString(error)));
+        return Error(ErrorCode::OutOfMemory, fmt::format("Failed to create OpenAL buffer: {}", alGetString(error)));
     }
 
     // 获取 OpenAL 格式
@@ -460,26 +487,28 @@ Result<std::unique_ptr<OpenALBuffer>> OpenALBuffer::create(
     if (format == 0) {
         alDeleteBuffers(1, &buffer);
         return Error(ErrorCode::InvalidData,
-                     fmt::format("Unsupported audio format: {} channels, {} bits",
-                                 data.format.channels, data.format.bitsPerSample));
+            fmt::format(
+                "Unsupported audio format: {} channels, {} bits", data.format.channels, data.format.bitsPerSample));
     }
 
     // 上传音频数据
-    alBufferData(buffer, format, data.samples.data(),
-                 static_cast<ALsizei>(data.samples.size()),
-                 static_cast<ALsizei>(data.format.sampleRate));
+    alBufferData(buffer,
+        format,
+        data.samples.data(),
+        static_cast<ALsizei>(data.samples.size()),
+        static_cast<ALsizei>(data.format.sampleRate));
 
     error = alGetError();
     if (error != AL_NO_ERROR) {
         alDeleteBuffers(1, &buffer);
-        return Error(ErrorCode::OperationFailed,
-                     fmt::format("Failed to upload audio data: {}", alGetString(error)));
+        return Error(ErrorCode::OperationFailed, fmt::format("Failed to upload audio data: {}", alGetString(error)));
     }
 
     return std::make_unique<OpenALBuffer>(id, buffer, data.format, data.duration);
 }
 
-ALenum OpenALBuffer::getALFormat(const AudioFormat& format) {
+ALenum OpenALBuffer::getALFormat(const AudioFormat& format)
+{
     if (format.channels == 1) {
         if (format.bitsPerSample == 8) {
             return AL_FORMAT_MONO8;
@@ -502,13 +531,15 @@ ALenum OpenALBuffer::getALFormat(const AudioFormat& format) {
 
 OpenALBackend::OpenALBackend() = default;
 
-OpenALBackend::~OpenALBackend() {
+OpenALBackend::~OpenALBackend()
+{
     if (m_initialized) {
         shutdown();
     }
 }
 
-Result<void> OpenALBackend::initialize() {
+Result<void> OpenALBackend::initialize()
+{
     if (m_initialized) {
         return Error(ErrorCode::InvalidState, "Audio backend already initialized");
     }
@@ -521,8 +552,7 @@ Result<void> OpenALBackend::initialize() {
         m_device = alcOpenDevice(nullptr);
     }
     if (!m_device) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to open OpenAL device");
+        return Error(ErrorCode::InitializationFailed, "Failed to open OpenAL device");
     }
 
     // 创建上下文
@@ -535,8 +565,7 @@ Result<void> OpenALBackend::initialize() {
         alcCloseDevice(m_device);
         m_device = nullptr;
         return Error(ErrorCode::InitializationFailed,
-                     fmt::format("Failed to create OpenAL context for device: {}",
-                                 deviceName ? deviceName : "unknown"));
+            fmt::format("Failed to create OpenAL context for device: {}", deviceName ? deviceName : "unknown"));
     }
 
     // 激活上下文
@@ -547,8 +576,7 @@ Result<void> OpenALBackend::initialize() {
             alcCloseDevice(m_device);
             m_context = nullptr;
             m_device = nullptr;
-            return Error(ErrorCode::InitializationFailed,
-                         "Failed to make OpenAL context current");
+            return Error(ErrorCode::InitializationFailed, "Failed to make OpenAL context current");
         }
     }
 
@@ -568,8 +596,7 @@ Result<void> OpenALBackend::initialize() {
     alcGetIntegerv(m_device, ALC_MONO_SOURCES, 1, &maxMonoSources);
     alcGetIntegerv(m_device, ALC_STEREO_SOURCES, 1, &maxStereoSources);
 
-    spdlog::info("[OpenALBackend] Max mono sources: {}, max stereo sources: {}",
-                 maxMonoSources, maxStereoSources);
+    spdlog::info("[OpenALBackend] Max mono sources: {}, max stereo sources: {}", maxMonoSources, maxStereoSources);
 
     // 设置默认距离模型
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
@@ -587,7 +614,8 @@ Result<void> OpenALBackend::initialize() {
     return {};
 }
 
-void OpenALBackend::shutdown() {
+void OpenALBackend::shutdown()
+{
     if (!m_initialized) {
         return;
     }
@@ -617,7 +645,8 @@ void OpenALBackend::shutdown() {
     spdlog::info("[OpenALBackend] Shutdown complete");
 }
 
-void OpenALBackend::setListenerPosition(const glm::vec3& position) {
+void OpenALBackend::setListenerPosition(const glm::vec3& position)
+{
     if (!m_initialized) {
         return;
     }
@@ -627,34 +656,36 @@ void OpenALBackend::setListenerPosition(const glm::vec3& position) {
     m_listenerPosition = position;
 }
 
-glm::vec3 OpenALBackend::getListenerPosition() const noexcept {
+glm::vec3 OpenALBackend::getListenerPosition() const noexcept
+{
     return m_listenerPosition;
 }
 
-void OpenALBackend::setListenerOrientation(const glm::vec3& forward, const glm::vec3& up) {
+void OpenALBackend::setListenerOrientation(const glm::vec3& forward, const glm::vec3& up)
+{
     if (!m_initialized) {
         return;
     }
 
-    ALfloat orientation[] = {
-        forward.x, forward.y, forward.z,
-        up.x, up.y, up.z
-    };
+    ALfloat orientation[] = {forward.x, forward.y, forward.z, up.x, up.y, up.z};
     alListenerfv(AL_ORIENTATION, orientation);
     static_cast<void>(checkALError("setListenerOrientation"));
     m_listenerForward = forward;
     m_listenerUp = up;
 }
 
-glm::vec3 OpenALBackend::getListenerForward() const noexcept {
+glm::vec3 OpenALBackend::getListenerForward() const noexcept
+{
     return m_listenerForward;
 }
 
-glm::vec3 OpenALBackend::getListenerUp() const noexcept {
+glm::vec3 OpenALBackend::getListenerUp() const noexcept
+{
     return m_listenerUp;
 }
 
-void OpenALBackend::setListenerVelocity(const glm::vec3& velocity) {
+void OpenALBackend::setListenerVelocity(const glm::vec3& velocity)
+{
     if (!m_initialized) {
         return;
     }
@@ -664,11 +695,13 @@ void OpenALBackend::setListenerVelocity(const glm::vec3& velocity) {
     m_listenerVelocity = velocity;
 }
 
-glm::vec3 OpenALBackend::getListenerVelocity() const noexcept {
+glm::vec3 OpenALBackend::getListenerVelocity() const noexcept
+{
     return m_listenerVelocity;
 }
 
-void OpenALBackend::setListenerGain(f32 gain) {
+void OpenALBackend::setListenerGain(f32 gain)
+{
     if (!m_initialized) {
         return;
     }
@@ -678,11 +711,13 @@ void OpenALBackend::setListenerGain(f32 gain) {
     m_listenerGain = gain;
 }
 
-f32 OpenALBackend::getListenerGain() const noexcept {
+f32 OpenALBackend::getListenerGain() const noexcept
+{
     return m_listenerGain;
 }
 
-Result<AudioBufferId> OpenALBackend::createBuffer(const AudioData& data) {
+Result<AudioBufferId> OpenALBackend::createBuffer(const AudioData& data)
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "Audio backend not initialized");
     }
@@ -711,7 +746,8 @@ Result<AudioBufferId> OpenALBackend::createBuffer(const AudioData& data) {
     return id;
 }
 
-void OpenALBackend::destroyBuffer(AudioBufferId id) {
+void OpenALBackend::destroyBuffer(AudioBufferId id)
+{
     if (!m_initialized) {
         return;
     }
@@ -720,12 +756,14 @@ void OpenALBackend::destroyBuffer(AudioBufferId id) {
     m_buffers.erase(id);
 }
 
-bool OpenALBackend::hasBuffer(AudioBufferId id) const noexcept {
+bool OpenALBackend::hasBuffer(AudioBufferId id) const noexcept
+{
     std::lock_guard<std::mutex> lock(m_bufferMutex);
     return m_buffers.find(id) != m_buffers.end();
 }
 
-std::shared_ptr<IAudioBuffer> OpenALBackend::getBuffer(AudioBufferId id) const {
+std::shared_ptr<IAudioBuffer> OpenALBackend::getBuffer(AudioBufferId id) const
+{
     std::lock_guard<std::mutex> lock(m_bufferMutex);
     auto it = m_buffers.find(id);
     if (it == m_buffers.end()) {
@@ -735,7 +773,8 @@ std::shared_ptr<IAudioBuffer> OpenALBackend::getBuffer(AudioBufferId id) const {
     return it->second;
 }
 
-Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource() {
+Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource()
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "Audio backend not initialized");
     }
@@ -751,8 +790,7 @@ Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource() {
 
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
-        return Error(ErrorCode::OutOfMemory,
-                     fmt::format("Failed to create OpenAL source: {}", alGetString(error)));
+        return Error(ErrorCode::OutOfMemory, fmt::format("Failed to create OpenAL source: {}", alGetString(error)));
     }
 
     // 分配 ID
@@ -762,7 +800,8 @@ Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource() {
     return audioSource;
 }
 
-u32 OpenALBackend::getAvailableSources() const noexcept {
+u32 OpenALBackend::getAvailableSources() const noexcept
+{
     if (!m_initialized) {
         return 0;
     }
@@ -773,12 +812,14 @@ u32 OpenALBackend::getAvailableSources() const noexcept {
     return MAX_SOURCES; // 简化实现
 }
 
-void OpenALBackend::process() {
+void OpenALBackend::process()
+{
     // 当前实现没有需要每帧处理的逻辑
     // 流式播放的处理将在 SoundEngine 层实现
 }
 
-std::string OpenALBackend::getDeviceName() const {
+std::string OpenALBackend::getDeviceName() const
+{
     if (!m_initialized || !m_device) {
         return "Not initialized";
     }
@@ -787,7 +828,8 @@ std::string OpenALBackend::getDeviceName() const {
     return name ? name : "Unknown";
 }
 
-std::string OpenALBackend::getDebugString() const {
+std::string OpenALBackend::getDebugString() const
+{
     if (!m_initialized) {
         return "Not initialized";
     }
@@ -803,18 +845,19 @@ std::string OpenALBackend::getDebugString() const {
         result += fmt::format("Buffers: {}\n", m_buffers.size());
     }
 
-    result += fmt::format("Listener position: ({}, {}, {})\n",
-                          m_listenerPosition.x, m_listenerPosition.y, m_listenerPosition.z);
+    result += fmt::format(
+        "Listener position: ({}, {}, {})\n", m_listenerPosition.x, m_listenerPosition.y, m_listenerPosition.z);
     result += fmt::format("Listener gain: {}\n", m_listenerGain);
 
     return result;
 }
 
-std::string OpenALBackend::checkALError(const char* operation) const {
+std::string OpenALBackend::checkALError(const char* operation) const
+{
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
-        std::string msg = fmt::format("[OpenALBackend] Error in {}: {} (0x{:X})",
-                                 operation, alGetString(error), static_cast<u32>(error));
+        std::string msg = fmt::format(
+            "[OpenALBackend] Error in {}: {} (0x{:X})", operation, alGetString(error), static_cast<u32>(error));
         spdlog::warn("{}", msg);
         return msg;
     }
@@ -825,7 +868,8 @@ std::string OpenALBackend::checkALError(const char* operation) const {
 // 工厂函数
 // ============================================================================
 
-std::unique_ptr<IAudioBackend> createOpenALBackend() {
+std::unique_ptr<IAudioBackend> createOpenALBackend()
+{
     return std::make_unique<OpenALBackend>();
 }
 

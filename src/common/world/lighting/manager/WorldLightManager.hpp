@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../chunk/ChunkPos.hpp"
+#include "../LightType.hpp"
 #include "../engine/BlockLightEngine.hpp"
 #include "../engine/SkyLightEngine.hpp"
 #include "../storage/SWMRNibbleArray.hpp"
-#include "../LightType.hpp"
-#include "../../chunk/ChunkPos.hpp"
 #include <memory>
 #include <mutex>
 

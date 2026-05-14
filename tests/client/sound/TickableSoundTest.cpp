@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "client/sound/instance/SoundInstance.hpp"
 #include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundTypes.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include <glm/glm.hpp>
 
 using namespace mc::client::sound;
@@ -21,20 +21,19 @@ using namespace mc;
 class TestTickableSound : public TickableSound {
 public:
     TestTickableSound(const ResourceLocation& soundEventId, SoundCategory category)
-        : TickableSound(
-              soundEventId,
+        : TickableSound(soundEventId,
               category,
-              glm::vec3(0.0f),  // position
-              1.0f,              // volume
-              1.0f,              // pitch
-              false,             // looping
+              glm::vec3(0.0f), // position
+              1.0f,            // volume
+              1.0f,            // pitch
+              false,           // looping
               AttenuationType::Linear,
-              DEFAULT_ATTENUATION_DISTANCE
-          )
+              DEFAULT_ATTENUATION_DISTANCE)
         , m_tickCount(0)
     {}
 
-    void tick() override {
+    void tick() override
+    {
         ++m_tickCount;
         if (m_tickCount >= 10) {
             markDone();
@@ -51,14 +50,13 @@ private:
 
 class TickableSoundTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        testLocation = ResourceLocation("minecraft:test.tickable");
-    }
+    void SetUp() override { testLocation = ResourceLocation("minecraft:test.tickable"); }
 
     ResourceLocation testLocation;
 };
 
-TEST_F(TickableSoundTest, BasicConstruction) {
+TEST_F(TickableSoundTest, BasicConstruction)
+{
     TestTickableSound sound(testLocation, SoundCategory::Neutral);
 
     EXPECT_EQ(sound.getSoundEventId(), testLocation);
@@ -70,7 +68,8 @@ TEST_F(TickableSoundTest, BasicConstruction) {
     EXPECT_TRUE(sound.canBeSilent());
 }
 
-TEST_F(TickableSoundTest, TickUpdatesState) {
+TEST_F(TickableSoundTest, TickUpdatesState)
+{
     TestTickableSound sound(testLocation, SoundCategory::Neutral);
 
     EXPECT_EQ(sound.getTickCount(), 0);
@@ -83,7 +82,8 @@ TEST_F(TickableSoundTest, TickUpdatesState) {
     EXPECT_EQ(sound.getTickCount(), 2);
 }
 
-TEST_F(TickableSoundTest, MarkDoneAfterTicks) {
+TEST_F(TickableSoundTest, MarkDoneAfterTicks)
+{
     TestTickableSound sound(testLocation, SoundCategory::Neutral);
 
     // Tick 10 次后标记为完成
@@ -97,7 +97,8 @@ TEST_F(TickableSoundTest, MarkDoneAfterTicks) {
     EXPECT_EQ(sound.getTickCount(), 10);
 }
 
-TEST_F(TickableSoundTest, SetVolumeAndPitch) {
+TEST_F(TickableSoundTest, SetVolumeAndPitch)
+{
     TestTickableSound sound(testLocation, SoundCategory::Neutral);
 
     // TickableSound 的 setVolume/setPitch 是 protected，
@@ -107,7 +108,8 @@ TEST_F(TickableSoundTest, SetVolumeAndPitch) {
     EXPECT_FLOAT_EQ(sound.getPitch(), 1.0f);
 }
 
-TEST_F(TickableSoundTest, SetPosition) {
+TEST_F(TickableSoundTest, SetPosition)
+{
     TestTickableSound sound(testLocation, SoundCategory::Neutral);
 
     // 默认位置
@@ -116,13 +118,15 @@ TEST_F(TickableSoundTest, SetPosition) {
     EXPECT_FLOAT_EQ(sound.getZ(), 0.0f);
 }
 
-TEST_F(TickableSoundTest, SetLooping) {
+TEST_F(TickableSoundTest, SetLooping)
+{
     TestTickableSound sound(testLocation, SoundCategory::Neutral);
 
     EXPECT_FALSE(sound.isLooping());
 }
 
-TEST_F(TickableSoundTest, SetAndGetId) {
+TEST_F(TickableSoundTest, SetAndGetId)
+{
     TestTickableSound sound(testLocation, SoundCategory::Neutral);
 
     EXPECT_EQ(sound.getId(), 0u);
@@ -137,18 +141,18 @@ TEST_F(TickableSoundTest, SetAndGetId) {
 
 class EntitySoundHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        handler = std::make_unique<EntitySoundHandler>();
-    }
+    void SetUp() override { handler = std::make_unique<EntitySoundHandler>(); }
 
     std::unique_ptr<EntitySoundHandler> handler;
 };
 
-TEST_F(EntitySoundHandlerTest, Construction) {
+TEST_F(EntitySoundHandlerTest, Construction)
+{
     EXPECT_TRUE(handler != nullptr);
 }
 
-TEST_F(EntitySoundHandlerTest, UpdateEntityState) {
+TEST_F(EntitySoundHandlerTest, UpdateEntityState)
+{
     EntitySoundState state;
     state.position = glm::vec3(10.0f, 20.0f, 30.0f);
     state.velocity = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -167,7 +171,8 @@ TEST_F(EntitySoundHandlerTest, UpdateEntityState) {
     EXPECT_FALSE(retrieved->isRemoved);
 }
 
-TEST_F(EntitySoundHandlerTest, RemoveEntityState) {
+TEST_F(EntitySoundHandlerTest, RemoveEntityState)
+{
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
 
@@ -178,12 +183,14 @@ TEST_F(EntitySoundHandlerTest, RemoveEntityState) {
     EXPECT_EQ(handler->getEntityState(static_cast<EntityId>(1)), nullptr);
 }
 
-TEST_F(EntitySoundHandlerTest, GetNonExistentState) {
+TEST_F(EntitySoundHandlerTest, GetNonExistentState)
+{
     const EntitySoundState* state = handler->getEntityState(static_cast<EntityId>(999));
     EXPECT_EQ(state, nullptr);
 }
 
-TEST_F(EntitySoundHandlerTest, OnEntityRemove) {
+TEST_F(EntitySoundHandlerTest, OnEntityRemove)
+{
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
     state.isRemoved = false;
@@ -201,7 +208,8 @@ TEST_F(EntitySoundHandlerTest, OnEntityRemove) {
     EXPECT_TRUE(removedState->isRemoved);
 }
 
-TEST_F(EntitySoundHandlerTest, StopAll) {
+TEST_F(EntitySoundHandlerTest, StopAll)
+{
     EntitySoundState state1;
     state1.position = glm::vec3(0.0f);
     EntitySoundState state2;
@@ -220,7 +228,8 @@ TEST_F(EntitySoundHandlerTest, StopAll) {
     EXPECT_EQ(handler->getEntityState(static_cast<EntityId>(2)), nullptr);
 }
 
-TEST_F(EntitySoundHandlerTest, MultipleEntityStates) {
+TEST_F(EntitySoundHandlerTest, MultipleEntityStates)
+{
     for (int i = 1; i <= 10; ++i) {
         EntitySoundState state;
         state.position = glm::vec3(static_cast<float>(i));
@@ -234,7 +243,8 @@ TEST_F(EntitySoundHandlerTest, MultipleEntityStates) {
     }
 }
 
-TEST_F(EntitySoundHandlerTest, FallFlyingState) {
+TEST_F(EntitySoundHandlerTest, FallFlyingState)
+{
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
     state.isFallFlying = false;
@@ -254,7 +264,8 @@ TEST_F(EntitySoundHandlerTest, FallFlyingState) {
     EXPECT_TRUE(retrieved->isFallFlying);
 }
 
-TEST_F(EntitySoundHandlerTest, ChildState) {
+TEST_F(EntitySoundHandlerTest, ChildState)
+{
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
     state.isChild = true;
@@ -266,7 +277,8 @@ TEST_F(EntitySoundHandlerTest, ChildState) {
     EXPECT_TRUE(retrieved->isChild);
 }
 
-TEST_F(EntitySoundHandlerTest, AngryState) {
+TEST_F(EntitySoundHandlerTest, AngryState)
+{
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
     state.isAngry = true;
@@ -284,7 +296,8 @@ TEST_F(EntitySoundHandlerTest, AngryState) {
 
 class EntitySoundStateTest : public ::testing::Test {};
 
-TEST_F(EntitySoundStateTest, DefaultValues) {
+TEST_F(EntitySoundStateTest, DefaultValues)
+{
     EntitySoundState state;
 
     EXPECT_FLOAT_EQ(state.position.x, 0.0f);
@@ -300,7 +313,8 @@ TEST_F(EntitySoundStateTest, DefaultValues) {
     EXPECT_FLOAT_EQ(state.attackAnimScale, 0.0f);
 }
 
-TEST_F(EntitySoundStateTest, PositionAssignment) {
+TEST_F(EntitySoundStateTest, PositionAssignment)
+{
     EntitySoundState state;
     state.position = glm::vec3(100.5f, 64.0f, -200.25f);
 
@@ -309,7 +323,8 @@ TEST_F(EntitySoundStateTest, PositionAssignment) {
     EXPECT_FLOAT_EQ(state.position.z, -200.25f);
 }
 
-TEST_F(EntitySoundStateTest, VelocityAssignment) {
+TEST_F(EntitySoundStateTest, VelocityAssignment)
+{
     EntitySoundState state;
     state.velocity = glm::vec3(1.5f, 2.0f, -0.5f);
 

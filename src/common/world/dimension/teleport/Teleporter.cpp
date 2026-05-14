@@ -4,17 +4,17 @@
 #undef BYTE_SIZE
 
 #include "Teleporter.hpp"
-#include "PortalSize.hpp"
 #include "../DimensionType.hpp"
+#include "PortalSize.hpp"
 // Note: ServerWorld is forward declared in Teleporter.hpp
 // Implementation of teleport methods is in server module
+#include "../../../core/Constants.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/Properties.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../block/VanillaBlocks.hpp"
 #include "../../IWorld.hpp"
+#include "../../block/VanillaBlocks.hpp"
 #include "../../chunk/ChunkData.hpp"
 #include <algorithm>
 #include <cmath>
@@ -27,10 +27,7 @@ namespace mc {
 // Teleporter 基类
 // ============================================================================
 
-Vector3d Teleporter::transformPosition(
-    const Vector3d& pos,
-    const DimensionType& from,
-    const DimensionType& to)
+Vector3d Teleporter::transformPosition(const Vector3d& pos, const DimensionType& from, const DimensionType& to)
 {
     // 如果两个维度相同，不转换
     if (from.id() == to.id()) {
@@ -44,10 +41,7 @@ Vector3d Teleporter::transformPosition(
     return to.scaleFromOverworld(overworldPos);
 }
 
-std::vector<BlockPos> Teleporter::searchPortalBlocks(
-    IWorld& world,
-    const BlockPos& center,
-    i32 radius)
+std::vector<BlockPos> Teleporter::searchPortalBlocks(IWorld& world, const BlockPos& center, i32 radius)
 {
     std::vector<BlockPos> portalBlocks;
 
@@ -95,12 +89,7 @@ std::vector<BlockPos> Teleporter::searchPortalBlocks(
     return portalBlocks;
 }
 
-void Teleporter::placePortalBlocks(
-    IWorld& world,
-    const BlockPos& corner,
-    i32 width,
-    i32 height,
-    Direction axis)
+void Teleporter::placePortalBlocks(IWorld& world, const BlockPos& corner, i32 width, i32 height, Direction axis)
 {
     // 检查 NETHER_PORTAL 方块是否已注册
     if (VanillaBlocks::NETHER_PORTAL == nullptr) {
@@ -109,8 +98,8 @@ void Teleporter::placePortalBlocks(
 
     // 根据轴向设置传送门方块
     Axis portalAxis = (axis == Direction::East) ? Axis::X : Axis::Z;
-    const BlockState* portalState = &VanillaBlocks::NETHER_PORTAL->defaultState().with(
-        BlockStateProperties::HORIZONTAL_AXIS(), portalAxis);
+    const BlockState* portalState =
+        &VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), portalAxis);
 
     // 放置传送门方块
     for (i32 h = 0; h < height; ++h) {
@@ -136,7 +125,8 @@ void Teleporter::placePortalBlocks(
 // NetherTeleporter
 // ============================================================================
 
-bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim) {
+bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim)
+{
     // 参考 MC 1.16.5 NetherTeleporter
     // 传送逻辑：
     // 1. 获取当前位置
@@ -158,11 +148,11 @@ bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim) {
     return false;
 }
 
-std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vector3d& pos) {
+std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vector3d& pos)
+{
     // 转换为方块坐标
-    BlockPos blockPos(math::floorTo<BlockCoord>(pos.x),
-                      math::floorTo<BlockCoord>(pos.y),
-                      math::floorTo<BlockCoord>(pos.z));
+    BlockPos blockPos(
+        math::floorTo<BlockCoord>(pos.x), math::floorTo<BlockCoord>(pos.y), math::floorTo<BlockCoord>(pos.z));
 
     // MC 1.16.5: 根据目标维度确定搜索半径
     // 下界 -> 主世界: 搜索半径 16 格（因为下界坐标 × 8 = 主世界坐标，范围会扩大）
@@ -170,9 +160,9 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
     // 注意：此方法在目标世界中执行，所以：
     // - 如果目标世界是主世界，使用 16 格半径
     // - 如果目标世界是下界，使用 128 格半径
-    i32 searchRadius = NETHER_TO_OVERWORLD_SEARCH_RADIUS;  // 默认 16
-    if (world.dimension() == -1) {  // NETHER = -1
-        searchRadius = OVERWORLD_TO_NETHER_SEARCH_RADIUS;  // 128
+    i32 searchRadius = NETHER_TO_OVERWORLD_SEARCH_RADIUS; // 默认 16
+    if (world.dimension() == -1) {                        // NETHER = -1
+        searchRadius = OVERWORLD_TO_NETHER_SEARCH_RADIUS; // 128
     }
 
     // 搜索传送门方块
@@ -189,8 +179,7 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
 
     for (size_t i = 1; i < portalBlocks.size(); ++i) {
         i64 distSq = portalBlocks[i].distanceSq(blockPos);
-        if (distSq < closestDistSq ||
-            (distSq == closestDistSq && portalBlocks[i].y < closest.y)) {
+        if (distSq < closestDistSq || (distSq == closestDistSq && portalBlocks[i].y < closest.y)) {
             closestDistSq = distSq;
             closest = portalBlocks[i];
         }
@@ -198,35 +187,35 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
 
     // 返回传送门信息
     PortalInfo info;
-    info.position = Vector3d(
-        static_cast<f64>(closest.x) + 0.5,
-        static_cast<f64>(closest.y),
-        static_cast<f64>(closest.z) + 0.5
-    );
+    info.position =
+        Vector3d(static_cast<f64>(closest.x) + 0.5, static_cast<f64>(closest.y), static_cast<f64>(closest.z) + 0.5);
     info.yaw = 0.0f;
     info.pitch = 0.0f;
     info.valid = true;
     return info;
 }
 
-PortalInfo NetherTeleporter::createPortal(IWorld& world, const Vector3d& pos) {
+PortalInfo NetherTeleporter::createPortal(IWorld& world, const Vector3d& pos)
+{
     // 在目标位置创建传送门
-    BlockPos blockPos(math::floorTo<BlockCoord>(pos.x),
-                      math::floorTo<BlockCoord>(pos.y),
-                      math::floorTo<BlockCoord>(pos.z));
+    BlockPos blockPos(
+        math::floorTo<BlockCoord>(pos.x), math::floorTo<BlockCoord>(pos.y), math::floorTo<BlockCoord>(pos.z));
 
     return createNetherPortal(world, blockPos);
 }
 
-std::optional<PortalInfo> NetherTeleporter::findPortalInNether(IWorld& world, const BlockPos& pos) {
+std::optional<PortalInfo> NetherTeleporter::findPortalInNether(IWorld& world, const BlockPos& pos)
+{
     return findPortal(world, Vector3d(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z)));
 }
 
-std::optional<PortalInfo> NetherTeleporter::findPortalInOverworld(IWorld& world, const BlockPos& pos) {
+std::optional<PortalInfo> NetherTeleporter::findPortalInOverworld(IWorld& world, const BlockPos& pos)
+{
     return findPortal(world, Vector3d(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z)));
 }
 
-PortalInfo NetherTeleporter::createNetherPortal(IWorld& world, const BlockPos& pos) {
+PortalInfo NetherTeleporter::createNetherPortal(IWorld& world, const BlockPos& pos)
+{
     // 创建下界传送门
     // 1. 寻找合适的位置（足够空间）
     // 2. 放置黑曜石框架
@@ -275,12 +264,7 @@ PortalInfo NetherTeleporter::createNetherPortal(IWorld& world, const BlockPos& p
     return info;
 }
 
-void NetherTeleporter::placeObsidianFrame(
-    IWorld& world,
-    const BlockPos& corner,
-    i32 width,
-    i32 height,
-    Direction axis)
+void NetherTeleporter::placeObsidianFrame(IWorld& world, const BlockPos& corner, i32 width, i32 height, Direction axis)
 {
     // 检查黑曜石方块是否已注册
     if (VanillaBlocks::OBSIDIAN == nullptr) {
@@ -292,7 +276,7 @@ void NetherTeleporter::placeObsidianFrame(
     // 确定宽度方向
     Direction widthDir = axis;
     if (axis != Direction::East && axis != Direction::South) {
-        widthDir = Direction::East;  // 默认 X 轴
+        widthDir = Direction::East; // 默认 X 轴
     }
 
     // 底部框架
@@ -344,7 +328,8 @@ void NetherTeleporter::placeObsidianFrame(
 // EndTeleporter
 // ============================================================================
 
-bool EndTeleporter::teleport(Entity& entity, DimensionId targetDim) {
+bool EndTeleporter::teleport(Entity& entity, DimensionId targetDim)
+{
     // 参考 MC 1.16.5 EndTeleporter
     // 传送逻辑：
     // 1. 主世界 -> 末地: 传送到固定出生点 (100, 49, 0)
@@ -357,21 +342,23 @@ bool EndTeleporter::teleport(Entity& entity, DimensionId targetDim) {
     return false;
 }
 
-std::optional<PortalInfo> EndTeleporter::findPortal(IWorld& world, const Vector3d& pos) {
+std::optional<PortalInfo> EndTeleporter::findPortal(IWorld& world, const Vector3d& pos)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // 末地传送门是固定的，不需要搜索
     // 返回固定的出生位置
     // MC 1.16.5 ServerWorld.field_241108_a_ = new BlockPos(100, 50, 0)
     PortalInfo info;
-    info.position = getEndSpawnPosition();  // (100.5, 50.0, 0.5)
-    info.yaw = 90.0f;  // 面向末地岛
+    info.position = getEndSpawnPosition(); // (100.5, 50.0, 0.5)
+    info.yaw = 90.0f;                      // 面向末地岛
     info.pitch = 0.0f;
     info.valid = true;
     return info;
 }
 
-PortalInfo EndTeleporter::createPortal(IWorld& world, const Vector3d& pos) {
+PortalInfo EndTeleporter::createPortal(IWorld& world, const Vector3d& pos)
+{
     MC_UNUSED(pos);
     // 末地传送门是预设的，创建出生平台
     createEndSpawnPlatform(world);
@@ -384,7 +371,8 @@ PortalInfo EndTeleporter::createPortal(IWorld& world, const Vector3d& pos) {
     return info;
 }
 
-void EndTeleporter::createExitPortal(IWorld& world, const BlockPos& pos) {
+void EndTeleporter::createExitPortal(IWorld& world, const BlockPos& pos)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // TODO: 实现创建末地出口传送门
@@ -392,7 +380,8 @@ void EndTeleporter::createExitPortal(IWorld& world, const BlockPos& pos) {
     // 需要放置末地传送门框架和末地传送门方块
 }
 
-void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
+void EndTeleporter::createEndSpawnPlatform(IWorld& world)
+{
     // 创建末地出生平台（黑曜石平台）
     // MC 1.16.5 ServerWorld.func_241121_a_:
     // 出生点 (100, 50, 0)，平台在 y = 48（spawnY - 2）
@@ -407,9 +396,9 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
 
     // MC 1.16.5 常量
     constexpr i32 SPAWN_X = 100;
-    constexpr i32 SPAWN_Y = 50;  // 出生点 Y 坐标
+    constexpr i32 SPAWN_Y = 50; // 出生点 Y 坐标
     constexpr i32 SPAWN_Z = 0;
-    constexpr i32 PLATFORM_Y = SPAWN_Y - 2;  // y = 48
+    constexpr i32 PLATFORM_Y = SPAWN_Y - 2; // y = 48
 
     // 放置黑曜石平台 (y = 48)
     for (i32 x = -2; x <= 2; ++x) {
@@ -431,7 +420,8 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
     }
 }
 
-void EndTeleporter::placeEndPortalFrame(IWorld& world, const BlockPos& center) {
+void EndTeleporter::placeEndPortalFrame(IWorld& world, const BlockPos& center)
+{
     MC_UNUSED(world);
     MC_UNUSED(center);
     // TODO: 实现放置末地传送门框架

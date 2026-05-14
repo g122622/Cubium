@@ -12,22 +12,13 @@ namespace mc::command {
 void SetIdleTimeoutCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto timeoutNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("setidletimeout");
-    timeoutNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
+    timeoutNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
     support::applyMetadata(
-        timeoutNode,
-        support::makeMetadata(
-            "Set the player idle timeout in minutes.",
-            "/setidletimeout <minutes>",
-            3));
+        timeoutNode, support::makeMetadata("Set the player idle timeout in minutes.", "/setidletimeout <minutes>", 3));
 
     auto minutesArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "minutes",
-        IntegerArgumentType::integer(0, 1440));
-    minutesArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setTimeout(ctx);
-    });
+        "minutes", IntegerArgumentType::integer(0, 1440));
+    minutesArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTimeout(ctx); });
     timeoutNode->addChild(minutesArg);
 
     dispatcher.registerCommand(timeoutNode);

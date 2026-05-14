@@ -77,8 +77,7 @@ public:
      * @param hand 使用的手
      * @return 是否成功交互
      */
-    bool itemInteractionForEntity(ItemStack& stack, Player& player,
-                                   LivingEntity& target, Hand hand) override;
+    bool itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand) override;
 
     /**
      * @brief 是否可以食用

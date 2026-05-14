@@ -6,26 +6,30 @@ namespace mc::client::ui::kagero::paint {
 
 namespace {
 
-f32 radians(f32 degrees) {
+f32 radians(f32 degrees)
+{
     return degrees * mc::math::PI / 180.0f;
 }
 } // namespace
 
-Matrix Matrix::makeTranslate(f32 dx, f32 dy) {
+Matrix Matrix::makeTranslate(f32 dx, f32 dy)
+{
     Matrix result;
     result.m[2] = dx;
     result.m[5] = dy;
     return result;
 }
 
-Matrix Matrix::makeScale(f32 sx, f32 sy) {
+Matrix Matrix::makeScale(f32 sx, f32 sy)
+{
     Matrix result;
     result.m[0] = sx;
     result.m[4] = sy;
     return result;
 }
 
-Matrix Matrix::makeRotate(f32 degrees) {
+Matrix Matrix::makeRotate(f32 degrees)
+{
     Matrix result;
     const f32 angle = radians(degrees);
     const f32 c = std::cos(angle);
@@ -37,7 +41,8 @@ Matrix Matrix::makeRotate(f32 degrees) {
     return result;
 }
 
-Matrix Matrix::makeSkew(f32 angleX, f32 angleY) {
+Matrix Matrix::makeSkew(f32 angleX, f32 angleY)
+{
     Matrix result;
     // skewX: 沿 X 轴倾斜，tan(angle) = kx
     // skewY: 沿 Y 轴倾斜，tan(angle) = ky
@@ -49,7 +54,8 @@ Matrix Matrix::makeSkew(f32 angleX, f32 angleY) {
     return result;
 }
 
-Matrix Matrix::operator*(const Matrix& other) const {
+Matrix Matrix::operator*(const Matrix& other) const
+{
     Matrix result;
     // 3x3 矩阵乘法
     // result[i][j] = sum(this[i][k] * other[k][j])
@@ -65,36 +71,43 @@ Matrix Matrix::operator*(const Matrix& other) const {
     return result;
 }
 
-void Matrix::translate(f32 dx, f32 dy) {
+void Matrix::translate(f32 dx, f32 dy)
+{
     *this = *this * makeTranslate(dx, dy);
 }
 
-void Matrix::scale(f32 sx, f32 sy) {
+void Matrix::scale(f32 sx, f32 sy)
+{
     *this = *this * makeScale(sx, sy);
 }
 
-void Matrix::rotate(f32 degrees) {
+void Matrix::rotate(f32 degrees)
+{
     *this = *this * makeRotate(degrees);
 }
 
-void Matrix::skew(f32 angleX, f32 angleY) {
+void Matrix::skew(f32 angleX, f32 angleY)
+{
     *this = *this * makeSkew(angleX, angleY);
 }
 
-void Matrix::transformPoint(f32& x, f32& y) const {
+void Matrix::transformPoint(f32& x, f32& y) const
+{
     const f32 nx = m[0] * x + m[1] * y + m[2];
     const f32 ny = m[3] * x + m[4] * y + m[5];
     x = nx;
     y = ny;
 }
 
-f32 Matrix::determinant() const {
+f32 Matrix::determinant() const
+{
     // 对于仿射矩阵，最后一行是 [0, 0, 1]
     // det = m[0] * m[4] - m[1] * m[3]
     return m[0] * m[4] - m[1] * m[3];
 }
 
-Matrix Matrix::inverse() const {
+Matrix Matrix::inverse() const
+{
     const f32 det = determinant();
     if (std::abs(det) < 1e-6f) {
         // 不可逆，返回单位矩阵

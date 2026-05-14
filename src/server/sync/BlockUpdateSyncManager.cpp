@@ -1,8 +1,8 @@
 #include "BlockUpdateSyncManager.hpp"
 
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -11,8 +11,7 @@ namespace mc::server::sync {
 
 BlockUpdateSyncManager::BlockUpdateSyncManager(world::ChunkLoadTicketManager& ticketManager)
     : m_ticketManager(ticketManager)
-{
-}
+{}
 
 void BlockUpdateSyncManager::queueBlockUpdate(const BlockPos& pos, u32 blockStateId)
 {
@@ -36,15 +35,17 @@ void BlockUpdateSyncManager::flushPendingUpdates()
 
     m_pendingBlockUpdates.clear();
 
-    std::sort(pendingUpdates.begin(), pendingUpdates.end(), [](const PendingBlockUpdate& left, const PendingBlockUpdate& right) {
-        const u64 leftChunkKey = chunkKey(left.pos.chunkX(), left.pos.chunkZ());
-        const u64 rightChunkKey = chunkKey(right.pos.chunkX(), right.pos.chunkZ());
-        if (leftChunkKey != rightChunkKey) {
-            return leftChunkKey < rightChunkKey;
-        }
+    std::sort(pendingUpdates.begin(),
+        pendingUpdates.end(),
+        [](const PendingBlockUpdate& left, const PendingBlockUpdate& right) {
+            const u64 leftChunkKey = chunkKey(left.pos.chunkX(), left.pos.chunkZ());
+            const u64 rightChunkKey = chunkKey(right.pos.chunkX(), right.pos.chunkZ());
+            if (leftChunkKey != rightChunkKey) {
+                return leftChunkKey < rightChunkKey;
+            }
 
-        return left.pos < right.pos;
-    });
+            return left.pos < right.pos;
+        });
 
     for (size_t index = 0; index < pendingUpdates.size();) {
         const PendingBlockUpdate& firstUpdate = pendingUpdates[index];

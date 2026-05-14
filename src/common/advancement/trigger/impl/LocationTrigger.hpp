@@ -26,9 +26,7 @@ public:
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     /**
      * @brief 从JSON反序列化实例
@@ -112,9 +110,7 @@ class SleptInBedTrigger : public LocationTrigger {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:slept_in_bed";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 };
 
 /**
@@ -126,9 +122,7 @@ class HeroOfTheVillageTrigger : public LocationTrigger {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:hero_of_the_village";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 };
 
 /**
@@ -140,9 +134,7 @@ class VoluntaryExileTrigger : public LocationTrigger {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:voluntary_exile";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 };
 
 } // namespace mc::advancement

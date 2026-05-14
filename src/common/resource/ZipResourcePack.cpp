@@ -17,8 +17,7 @@ namespace mc {
 ZipResourcePack::ZipResourcePack(std::filesystem::path zipPath)
     : m_zipPath(std::move(zipPath))
     , m_name(m_zipPath.stem().string())
-{
-}
+{}
 
 ZipResourcePack::~ZipResourcePack() = default;
 
@@ -67,8 +66,7 @@ Result<void> ZipResourcePack::initialize()
         spdlog::error("Failed to open ZIP file: {}", archive_error_string(a));
         archive_read_free(a);
         return Error(ErrorCode::FileOpenFailed,
-                     "Failed to open ZIP file: " + m_zipPath.string() +
-                         " - " + std::string(archive_error_string(a)));
+            "Failed to open ZIP file: " + m_zipPath.string() + " - " + std::string(archive_error_string(a)));
     }
 
     // 读取所有条目，构建索引
@@ -101,9 +99,7 @@ Result<void> ZipResourcePack::initialize()
             if (metadataResult.success()) {
                 m_metadata = std::move(metadataResult.value());
             } else {
-                spdlog::error("Failed to parse pack.mcmeta for {}: {}",
-                              m_name,
-                              metadataResult.error().toString());
+                spdlog::error("Failed to parse pack.mcmeta for {}: {}", m_name, metadataResult.error().toString());
                 m_metadata = PackMetadata();
             }
         }
@@ -111,10 +107,8 @@ Result<void> ZipResourcePack::initialize()
         m_metadata = PackMetadata();
     }
 
-    spdlog::info("ZIP resource pack '{}' loaded: {} entries, format {}",
-                 m_name,
-                 m_entries.size(),
-                 m_metadata.packFormat());
+    spdlog::info(
+        "ZIP resource pack '{}' loaded: {} entries, format {}", m_name, m_entries.size(), m_metadata.packFormat());
     return Result<void>::ok();
 }
 
@@ -171,9 +165,7 @@ Result<std::vector<u8>> ZipResourcePack::readResource(std::string_view resourceP
                 data.resize(static_cast<size_t>(size));
                 la_ssize_t read = archive_read_data(a, data.data(), data.size());
                 if (read < 0) {
-                    spdlog::error("Failed to read ZIP entry {}: {}",
-                                  normalized,
-                                  archive_error_string(a));
+                    spdlog::error("Failed to read ZIP entry {}: {}", normalized, archive_error_string(a));
                     archive_read_free(a);
                     return Error(ErrorCode::FileReadFailed, "Failed to read ZIP entry: " + normalized);
                 }
@@ -195,7 +187,8 @@ Result<std::vector<u8>> ZipResourcePack::readResource(std::string_view resourceP
     return data;
 }
 
-Result<std::vector<std::string>> ZipResourcePack::listResources(std::string_view directory, std::string_view extension) const
+Result<std::vector<std::string>> ZipResourcePack::listResources(
+    std::string_view directory, std::string_view extension) const
 {
     std::vector<std::string> resources;
     std::string normalizedDir = normalizePath(directory);
@@ -207,8 +200,7 @@ Result<std::vector<std::string>> ZipResourcePack::listResources(std::string_view
 
     for (const auto& path : m_entries) {
         // 检查是否在指定目录下
-        if (path.size() <= normalizedDir.size() ||
-            path.substr(0, normalizedDir.size()) != normalizedDir) {
+        if (path.size() <= normalizedDir.size() || path.substr(0, normalizedDir.size()) != normalizedDir) {
             continue;
         }
 
@@ -218,8 +210,7 @@ Result<std::vector<std::string>> ZipResourcePack::listResources(std::string_view
             continue;
         }
 
-        if (path.size() >= extension.size() &&
-            path.substr(path.size() - extension.size()) == extension) {
+        if (path.size() >= extension.size() && path.substr(path.size() - extension.size()) == extension) {
             resources.push_back(path);
         }
     }
@@ -258,4 +249,3 @@ std::string ZipResourcePack::normalizePath(std::string_view path)
 }
 
 } // namespace mc
-

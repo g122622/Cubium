@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -45,15 +45,12 @@ public:
      * @brief 检查位置是否有效
      */
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     /**
      * @brief 邻居更新
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -82,7 +79,8 @@ public:
     /**
      * @brief 是否不透明（植物透明）
      */
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -96,9 +94,7 @@ protected:
      * @return 如果可以支撑返回true
      */
     [[nodiscard]] virtual bool canSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const;
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const;
 
     /// 植物形状（默认为完整方块大小）
     CollisionShape m_shape;

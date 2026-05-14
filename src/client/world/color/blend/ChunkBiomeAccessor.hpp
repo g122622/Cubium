@@ -1,8 +1,8 @@
 #pragma once
 
 #include "BiomeColorBlender.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/core/Constants.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include <array>
 
 namespace mc::client {
@@ -32,27 +32,23 @@ public:
      * @param minBuildHeight 世界最小建筑高度
      * @param maxBuildHeight 世界最大建筑高度
      */
-    ChunkBiomeAccessor(
-        const ChunkData& chunk,
+    ChunkBiomeAccessor(const ChunkData& chunk,
         const std::array<const ChunkData*, 4>& neighbors,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         i32 minBuildHeight = world::MIN_BUILD_HEIGHT,
-        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT
-    );
+        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT);
 
     /**
      * @brief 从单个区块构造简化访问器
      *
      * 不支持邻居区块访问，仅用于区块内部查询。
      */
-    ChunkBiomeAccessor(
-        const ChunkData& chunk,
+    ChunkBiomeAccessor(const ChunkData& chunk,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         i32 minBuildHeight = world::MIN_BUILD_HEIGHT,
-        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT
-    );
+        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT);
 
     // ========================================================================
     // IBiomeAccessor 接口实现
@@ -91,15 +87,10 @@ private:
      * @param outLocalZ 输出区块内Z坐标
      * @return 指向对应区块的指针，如果超出范围返回 nullptr
      */
-    [[nodiscard]] const ChunkData* resolveChunk(
-        i32 worldX,
-        i32 worldZ,
-        i32& outLocalX,
-        i32& outLocalZ
-    ) const;
+    [[nodiscard]] const ChunkData* resolveChunk(i32 worldX, i32 worldZ, i32& outLocalX, i32& outLocalZ) const;
 
     const ChunkData& m_chunk;
-    std::array<const ChunkData*, 4> m_neighbors;  // -X, +X, -Z, +Z
+    std::array<const ChunkData*, 4> m_neighbors; // -X, +X, -Z, +Z
     ChunkCoord m_chunkX;
     ChunkCoord m_chunkZ;
     i32 m_minBuildHeight;

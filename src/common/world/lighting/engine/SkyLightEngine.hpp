@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../../block/Block.hpp"
+#include "../storage/SWMRNibbleArray.hpp"
 #include "BaseLightEngine.hpp"
 #include "LightEngineUtils.hpp"
-#include "../storage/SWMRNibbleArray.hpp"
-#include "../../block/Block.hpp"
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 
@@ -46,16 +46,14 @@ public:
     /**
      * @brief 计算光照值
      */
-    [[nodiscard]] i32 calculateLightValue(StarLightLightingProvider* lightAccess,
-                                           i32 worldX, i32 worldY, i32 worldZ,
-                                           i32 expected) override;
+    [[nodiscard]] i32 calculateLightValue(
+        StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 expected) override;
 
     /**
      * @brief 传播方块变化
      */
-    void propagateBlockChanges(StarLightLightingProvider* lightAccess,
-                                const IChunk* chunk,
-                                const std::vector<BlockPos>& positions) override;
+    void propagateBlockChanges(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, const std::vector<BlockPos>& positions) override;
 
     /**
      * @brief 照亮区块
@@ -65,8 +63,8 @@ public:
     /**
      * @brief 检查区块边缘（重写以处理 null 区块段）
      */
-    void checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                          i32 fromSection, i32 toSection) override;
+    void checkChunkEdges(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, i32 fromSection, i32 toSection) override;
 
     /**
      * @brief 设置世界引用
@@ -168,8 +166,8 @@ protected:
      * @brief 尝试传播天空光照
      * @return 无法传播的最高 Y 坐标
      */
-    i32 tryPropagateSkylight(IWorld* world, i32 worldX, i32 startY, i32 worldZ,
-                              bool extrudeInitialised, bool delayLightSet);
+    i32 tryPropagateSkylight(
+        IWorld* world, i32 worldX, i32 startY, i32 worldZ, bool extrudeInitialised, bool delayLightSet);
 
     /**
      * @brief 处理延迟的增亮设置
@@ -197,12 +195,13 @@ private:
     /**
      * @brief 获取发射光照等级（天空光照始终为 0）
      */
-    [[nodiscard]] i32 getLightEmission(const BlockState* state, i32 x, i32 y, i32 z) const {
+    [[nodiscard]] i32 getLightEmission(const BlockState* state, i32 x, i32 y, i32 z) const
+    {
         (void)state;
         (void)x;
         (void)y;
         (void)z;
-        return 0;  // 天空光照没有光源
+        return 0; // 天空光照没有光源
     }
 };
 

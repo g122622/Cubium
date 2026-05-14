@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -30,17 +30,17 @@ public:
      * @brief 豹猫类型
      */
     enum class OcelotType : u8 {
-        Wild = 0,      // 野生豹猫
-        Tuxedo = 1,    // 黑白猫（驯服后）
-        Tabby = 2,     // 虎斑猫（驯服后）
-        Red = 3,       // 红猫（驯服后）
-        Siamese = 4,   // 暹罗猫（驯服后）
-        British = 5,   // 英短（驯服后）
-        Calico = 6,    // 三花猫（驯服后）
-        Persian = 7,   // 波斯猫（驯服后）
-        Ragdoll = 8,   // 布偶猫（驯服后）
-        White = 9,     // 白猫（驯服后）
-        Jellie = 10    // Jellie猫（驯服后）
+        Wild = 0,    // 野生豹猫
+        Tuxedo = 1,  // 黑白猫（驯服后）
+        Tabby = 2,   // 虎斑猫（驯服后）
+        Red = 3,     // 红猫（驯服后）
+        Siamese = 4, // 暹罗猫（驯服后）
+        British = 5, // 英短（驯服后）
+        Calico = 6,  // 三花猫（驯服后）
+        Persian = 7, // 波斯猫（驯服后）
+        Ragdoll = 8, // 布偶猫（驯服后）
+        White = 9,   // 白猫（驯服后）
+        Jellie = 10  // Jellie猫（驯服后）
     };
 
     /**
@@ -165,7 +165,7 @@ private:
     OcelotType m_ocelotType = OcelotType::Wild;
 
     // 常量
-    static constexpr f32 FLEE_SPEED = 2.5f; // 逃跑速度
+    static constexpr f32 FLEE_SPEED = 2.5f;   // 逃跑速度
     static constexpr f32 FOLLOW_SPEED = 0.8f; // 跟随速度
 };
 

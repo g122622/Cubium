@@ -4,9 +4,9 @@
 #undef BYTE_SIZE
 
 #include "ChunkData.hpp"
-#include "../blockentity/BlockEntity.hpp"
-#include "../block/BlockRegistry.hpp"
 #include "../biome/Biome.hpp"
+#include "../block/BlockRegistry.hpp"
+#include "../blockentity/BlockEntity.hpp"
 #include "../fluid/Fluid.hpp"
 #include <algorithm>
 #include <stdexcept>
@@ -20,20 +20,21 @@ namespace mc {
 // ============================================================================
 
 ChunkSection::ChunkSection()
-    : m_blockStates(VOLUME, 0)  // 默认所有方块为空气 (stateId = 0)
-    , m_skyLight(NibbleArray::filled(15))  // 默认天空光照全亮
-    , m_blockLight()                          // 默认方块光照无光（空数组，返回0）
-{
-}
+    : m_blockStates(VOLUME, 0)            // 默认所有方块为空气 (stateId = 0)
+    , m_skyLight(NibbleArray::filled(15)) // 默认天空光照全亮
+    , m_blockLight()                      // 默认方块光照无光（空数组，返回0）
+{}
 
-u32 ChunkSection::getBlockStateId(i32 x, i32 y, i32 z) const {
+u32 ChunkSection::getBlockStateId(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return 0;  // 空气
+        return 0; // 空气
     }
     return m_blockStates[blockIndex(x, y, z)];
 }
 
-void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId) {
+void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId)
+{
     if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
         return;
     }
@@ -75,7 +76,8 @@ void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId) {
     m_blockStates[actualIndex] = stateId;
 }
 
-void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
+void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
     }
@@ -122,7 +124,8 @@ void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
     m_needsRecalculate = true;
 }
 
-const BlockState* ChunkSection::getBlockState(i32 x, i32 y, i32 z) const {
+const BlockState* ChunkSection::getBlockState(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return nullptr;
     }
@@ -131,7 +134,8 @@ const BlockState* ChunkSection::getBlockState(i32 x, i32 y, i32 z) const {
     return Block::getBlockState(stateId);
 }
 
-void ChunkSection::rebuildTickCounters() {
+void ChunkSection::rebuildTickCounters()
+{
     m_blockTickRefCount = 0;
     m_fluidRefCount = 0;
 
@@ -152,40 +156,46 @@ void ChunkSection::rebuildTickCounters() {
     }
 }
 
-void ChunkSection::setBlockState(i32 x, i32 y, i32 z, const BlockState* state) {
+void ChunkSection::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
+{
     u32 stateId = state ? state->stateId() : 0;
     setBlockStateId(x, y, z, stateId);
 }
 
-u8 ChunkSection::getSkyLight(i32 x, i32 y, i32 z) const {
+u8 ChunkSection::getSkyLight(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 15;
     }
     return m_skyLight.get(x, y, z);
 }
 
-void ChunkSection::setSkyLight(i32 x, i32 y, i32 z, u8 light) {
+void ChunkSection::setSkyLight(i32 x, i32 y, i32 z, u8 light)
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
     }
     m_skyLight.set(x, y, z, std::min(light, static_cast<u8>(15)));
 }
 
-u8 ChunkSection::getBlockLight(i32 x, i32 y, i32 z) const {
+u8 ChunkSection::getBlockLight(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 0;
     }
     return m_blockLight.get(x, y, z);
 }
 
-void ChunkSection::setBlockLight(i32 x, i32 y, i32 z, u8 light) {
+void ChunkSection::setBlockLight(i32 x, i32 y, i32 z, u8 light)
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
     }
     m_blockLight.set(x, y, z, std::min(light, static_cast<u8>(15)));
 }
 
-std::vector<u8> ChunkSection::serialize() const {
+std::vector<u8> ChunkSection::serialize() const
+{
     std::vector<u8> data;
     // 格式: 块数量 + 方块状态ID + 天空光照 + 方块光照
     // 注意：NibbleArray::BYTE_SIZE = 2048 = VOLUME / 2
@@ -224,7 +234,8 @@ std::vector<u8> ChunkSection::serialize() const {
     return data;
 }
 
-Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, size_t size) {
+Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, size_t size)
+{
     // 新格式大小: 2 + VOLUME * 4 + BYTE_SIZE * 2
     constexpr size_t expectedSize = 2 + VOLUME * 4 + NibbleArray::BYTE_SIZE * 2;
     if (size < expectedSize) {
@@ -240,10 +251,8 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
 
     // 方块状态ID - 使用小端序与 ChunkSerializer::serializeSection 保持一致
     for (size_t i = 0; i < VOLUME; ++i) {
-        section->m_blockStates[i] = static_cast<u32>(data[offset]) |
-                                    (static_cast<u32>(data[offset + 1]) << 8) |
-                                    (static_cast<u32>(data[offset + 2]) << 16) |
-                                    (static_cast<u32>(data[offset + 3]) << 24);
+        section->m_blockStates[i] = static_cast<u32>(data[offset]) | (static_cast<u32>(data[offset + 1]) << 8) |
+            (static_cast<u32>(data[offset + 2]) << 16) | (static_cast<u32>(data[offset + 3]) << 24);
         offset += 4;
     }
 
@@ -260,7 +269,8 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
     return std::move(section);
 }
 
-void ChunkSection::fill(u32 stateId) {
+void ChunkSection::fill(u32 stateId)
+{
     for (size_t i = 0; i < VOLUME; ++i) {
         m_blockStates[i] = stateId;
     }
@@ -275,7 +285,8 @@ void ChunkSection::fill(u32 stateId) {
 // ChunkData 实现
 // ============================================================================
 
-ChunkData::ChunkData() {
+ChunkData::ChunkData()
+{
     m_heightMap.fill(0);
     initLightData();
 }
@@ -290,24 +301,28 @@ ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
 
 ChunkData::~ChunkData() = default;
 
-const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
-        return nullptr;  // 空气
+const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
+        return nullptr; // 空气
     }
 
     i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
-        return nullptr;  // 空气
+        return nullptr; // 空气
     }
 
     i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
     return section->getBlockState(x, localY, z);
 }
 
-void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
+void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
         return;
     }
 
@@ -331,24 +346,28 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
     }
 }
 
-u32 ChunkData::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
-        return 0;  // 空气
+u32 ChunkData::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
+        return 0; // 空气
     }
 
     i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
-        return 0;  // 空气
+        return 0; // 空气
     }
 
     i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
     return section->getBlockStateId(x, localY, z);
 }
 
-void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId) {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
+void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId)
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
         return;
     }
 
@@ -372,14 +391,16 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
     }
 }
 
-BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const {
+BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const
+{
     if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH) {
         return -1;
     }
     return m_heightMap[x * world::CHUNK_WIDTH + z];
 }
 
-BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const {
+BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const
+{
     if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH) {
         MC_ASSERT_RELEASE(false);
     }
@@ -394,7 +415,8 @@ BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord 
     return m_heightMap[x * world::CHUNK_WIDTH + z];
 }
 
-void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) {
+void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
+{
     if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH) {
         return;
     }
@@ -414,15 +436,18 @@ void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, 
     }
 }
 
-BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
+BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
         return Biomes::Plains;
     }
 
     return m_biomes.getBiomeAtBlock(x, y, z);
 }
 
-void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z) {
+void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z)
+{
     // 从上向下查找最高的非空气方块
     for (BlockCoord y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = getBlockState(x, y, z);
@@ -434,28 +459,32 @@ void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z) {
     m_heightMap[x * world::CHUNK_WIDTH + z] = world::MIN_BUILD_HEIGHT;
 }
 
-ChunkSection* ChunkData::getSection(i32 index) {
+ChunkSection* ChunkData::getSection(i32 index)
+{
     if (index < 0 || index >= world::CHUNK_SECTIONS) {
         return nullptr;
     }
     return m_sections[index].get();
 }
 
-const ChunkSection* ChunkData::getSection(i32 index) const {
+const ChunkSection* ChunkData::getSection(i32 index) const
+{
     if (index < 0 || index >= world::CHUNK_SECTIONS) {
         return nullptr;
     }
     return m_sections[index].get();
 }
 
-bool ChunkData::hasSection(i32 index) const {
+bool ChunkData::hasSection(i32 index) const
+{
     if (index < 0 || index >= world::CHUNK_SECTIONS) {
         return false;
     }
     return m_sections[index] != nullptr;
 }
 
-ChunkSection* ChunkData::createSection(i32 index) {
+ChunkSection* ChunkData::createSection(i32 index)
+{
     if (index < 0 || index >= world::CHUNK_SECTIONS) {
         return nullptr;
     }
@@ -466,14 +495,16 @@ ChunkSection* ChunkData::createSection(i32 index) {
     return m_sections[index].get();
 }
 
-void ChunkData::removeSection(i32 index) {
+void ChunkData::removeSection(i32 index)
+{
     if (index >= 0 && index < world::CHUNK_SECTIONS) {
         m_sections[index].reset();
         m_dirty = true;
     }
 }
 
-const ChunkSection* const* ChunkData::getSections() const {
+const ChunkSection* const* ChunkData::getSections() const
+{
     // 更新指针数组
     for (size_t i = 0; i < world::CHUNK_SECTIONS; ++i) {
         m_sectionPtrs[i] = m_sections[i].get();
@@ -481,7 +512,8 @@ const ChunkSection* const* ChunkData::getSections() const {
     return m_sectionPtrs.data();
 }
 
-std::vector<u8> ChunkData::serialize() const {
+std::vector<u8> ChunkData::serialize() const
+{
     std::vector<u8> data;
 
     // 头部: 位置 + 标志
@@ -541,7 +573,8 @@ std::vector<u8> ChunkData::serialize() const {
     return data;
 }
 
-Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t size) {
+Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t size)
+{
     if (size < 13) {
         return Error(ErrorCode::InvalidArgument, "Invalid chunk data size");
     }
@@ -550,16 +583,12 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
     size_t offset = 0;
 
     // 位置
-    chunk->m_x = (static_cast<ChunkCoord>(data[offset]) << 24) |
-                 (static_cast<ChunkCoord>(data[offset + 1]) << 16) |
-                 (static_cast<ChunkCoord>(data[offset + 2]) << 8) |
-                 static_cast<ChunkCoord>(data[offset + 3]);
+    chunk->m_x = (static_cast<ChunkCoord>(data[offset]) << 24) | (static_cast<ChunkCoord>(data[offset + 1]) << 16) |
+        (static_cast<ChunkCoord>(data[offset + 2]) << 8) | static_cast<ChunkCoord>(data[offset + 3]);
     offset += 4;
 
-    chunk->m_z = (static_cast<ChunkCoord>(data[offset]) << 24) |
-                 (static_cast<ChunkCoord>(data[offset + 1]) << 16) |
-                 (static_cast<ChunkCoord>(data[offset + 2]) << 8) |
-                 static_cast<ChunkCoord>(data[offset + 3]);
+    chunk->m_z = (static_cast<ChunkCoord>(data[offset]) << 24) | (static_cast<ChunkCoord>(data[offset + 1]) << 16) |
+        (static_cast<ChunkCoord>(data[offset + 2]) << 8) | static_cast<ChunkCoord>(data[offset + 3]);
     offset += 4;
 
     // 标志
@@ -597,10 +626,8 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
             if (offset + 4 > size) {
                 return Error(ErrorCode::InvalidArgument, "Invalid section size");
             }
-            u32 sectionSize = (static_cast<u32>(data[offset]) << 24) |
-                              (static_cast<u32>(data[offset + 1]) << 16) |
-                              (static_cast<u32>(data[offset + 2]) << 8) |
-                              static_cast<u32>(data[offset + 3]);
+            u32 sectionSize = (static_cast<u32>(data[offset]) << 24) | (static_cast<u32>(data[offset + 1]) << 16) |
+                (static_cast<u32>(data[offset + 2]) << 8) | static_cast<u32>(data[offset + 3]);
             offset += 4;
 
             if (offset + sectionSize > size) {
@@ -621,8 +648,8 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
         return Error(ErrorCode::InvalidArgument, "Height map data missing");
     }
     for (size_t i = 0; i < world::CHUNK_WIDTH * world::CHUNK_WIDTH; ++i) {
-        chunk->m_heightMap[i] = (static_cast<BlockCoord>(data[offset]) << 8) |
-                                static_cast<BlockCoord>(data[offset + 1]);
+        chunk->m_heightMap[i] =
+            (static_cast<BlockCoord>(data[offset]) << 8) | static_cast<BlockCoord>(data[offset + 1]);
         offset += 2;
     }
 
@@ -630,7 +657,8 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
     return std::move(chunk);
 }
 
-void ChunkData::fill(BlockCoord minY, BlockCoord maxY, u32 stateId) {
+void ChunkData::fill(BlockCoord minY, BlockCoord maxY, u32 stateId)
+{
     for (BlockCoord y = minY; y < maxY; y += world::CHUNK_SECTION_HEIGHT) {
         i32 sectionIndex = y / world::CHUNK_SECTION_HEIGHT;
         if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
@@ -647,24 +675,28 @@ void ChunkData::fill(BlockCoord minY, BlockCoord maxY, u32 stateId) {
 // 光照访问
 // ============================================================================
 
-u8 ChunkData::getSkyLight(BlockCoord x, BlockCoord y, BlockCoord z) const {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
-        return 15;  // 边界外默认全亮
+u8 ChunkData::getSkyLight(BlockCoord x, BlockCoord y, BlockCoord z) const
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
+        return 15; // 边界外默认全亮
     }
 
     i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
-        return 15;  // 未创建的段默认全亮
+        return 15; // 未创建的段默认全亮
     }
 
     i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
     return section->getSkyLight(x, localY, z);
 }
 
-void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light) {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
+void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
         return;
     }
 
@@ -673,7 +705,7 @@ void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light) 
 
     if (!section) {
         if (light == 15) {
-            return;  // 默认就是15，不需要创建段
+            return; // 默认就是15，不需要创建段
         }
         section = std::make_unique<ChunkSection>();
     }
@@ -682,24 +714,28 @@ void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light) 
     section->setSkyLight(x, localY, z, light);
 }
 
-u8 ChunkData::getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
-        return 0;  // 边界外默认无光
+u8 ChunkData::getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
+        return 0; // 边界外默认无光
     }
 
     i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
-        return 0;  // 未创建的段默认无光
+        return 0; // 未创建的段默认无光
     }
 
     i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
     return section->getBlockLight(x, localY, z);
 }
 
-void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light) {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
+void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
+{
+    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
+        z >= world::CHUNK_WIDTH) {
         return;
     }
 
@@ -708,7 +744,7 @@ void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light
 
     if (!section) {
         if (light == 0) {
-            return;  // 默认就是0，不需要创建段
+            return; // 默认就是0，不需要创建段
         }
         section = std::make_unique<ChunkSection>();
     }
@@ -724,10 +760,10 @@ void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light
 ChunkDataRef::ChunkDataRef(ChunkData* data, bool writeAccess)
     : m_data(data)
     , m_writeAccess(writeAccess)
-{
-}
+{}
 
-ChunkDataRef::~ChunkDataRef() {
+ChunkDataRef::~ChunkDataRef()
+{
     // 未来可以添加锁释放
 }
 
@@ -739,7 +775,8 @@ ChunkDataRef::ChunkDataRef(ChunkDataRef&& other) noexcept
     other.m_writeAccess = false;
 }
 
-ChunkDataRef& ChunkDataRef::operator=(ChunkDataRef&& other) noexcept {
+ChunkDataRef& ChunkDataRef::operator=(ChunkDataRef&& other) noexcept
+{
     if (this != &other) {
         m_data = other.m_data;
         m_writeAccess = other.m_writeAccess;
@@ -753,7 +790,8 @@ ChunkDataRef& ChunkDataRef::operator=(ChunkDataRef&& other) noexcept {
 // Starlight 光照数据接口实现
 // ============================================================================
 
-void ChunkData::initLightData() {
+void ChunkData::initLightData()
+{
     // 初始化空映射（大小为 LIGHT_SECTIONS，包含上下缓冲区）
     m_skyEmptinessMap.fill(false);
     m_blockEmptinessMap.fill(false);
@@ -769,7 +807,8 @@ void ChunkData::initLightData() {
     m_nibblePtrsInitialized = false;
 }
 
-void ChunkData::ensureNibblePtrs() const {
+void ChunkData::ensureNibblePtrs() const
+{
     if (m_nibblePtrsInitialized) {
         return;
     }
@@ -782,14 +821,16 @@ void ChunkData::ensureNibblePtrs() const {
     m_nibblePtrsInitialized = true;
 }
 
-const bool* ChunkData::getSkyEmptinessMap() const {
+const bool* ChunkData::getSkyEmptinessMap() const
+{
     if (!m_hasSkyEmptinessMap) {
         return nullptr;
     }
     return m_skyEmptinessMap.data();
 }
 
-void ChunkData::setSkyEmptinessMap(const bool* map) {
+void ChunkData::setSkyEmptinessMap(const bool* map)
+{
     if (map == nullptr) {
         m_hasSkyEmptinessMap = false;
         m_skyEmptinessMap.fill(false);
@@ -800,14 +841,16 @@ void ChunkData::setSkyEmptinessMap(const bool* map) {
     m_hasSkyEmptinessMap = true;
 }
 
-const bool* ChunkData::getBlockEmptinessMap() const {
+const bool* ChunkData::getBlockEmptinessMap() const
+{
     if (!m_hasBlockEmptinessMap) {
         return nullptr;
     }
     return m_blockEmptinessMap.data();
 }
 
-void ChunkData::setBlockEmptinessMap(const bool* map) {
+void ChunkData::setBlockEmptinessMap(const bool* map)
+{
     if (map == nullptr) {
         m_hasBlockEmptinessMap = false;
         m_blockEmptinessMap.fill(false);
@@ -818,12 +861,14 @@ void ChunkData::setBlockEmptinessMap(const bool* map) {
     m_hasBlockEmptinessMap = true;
 }
 
-SWMRNibbleArray* const* ChunkData::getSkyNibbles() const {
+SWMRNibbleArray* const* ChunkData::getSkyNibbles() const
+{
     ensureNibblePtrs();
     return m_skyNibblePtrs.data();
 }
 
-void ChunkData::setSkyNibbles(SWMRNibbleArray* const* nibbles) {
+void ChunkData::setSkyNibbles(SWMRNibbleArray* const* nibbles)
+{
     if (nibbles == nullptr) {
         return;
     }
@@ -837,12 +882,14 @@ void ChunkData::setSkyNibbles(SWMRNibbleArray* const* nibbles) {
     m_nibblePtrsInitialized = false;
 }
 
-SWMRNibbleArray* const* ChunkData::getBlockNibbles() const {
+SWMRNibbleArray* const* ChunkData::getBlockNibbles() const
+{
     ensureNibblePtrs();
     return m_blockNibblePtrs.data();
 }
 
-void ChunkData::setBlockNibbles(SWMRNibbleArray* const* nibbles) {
+void ChunkData::setBlockNibbles(SWMRNibbleArray* const* nibbles)
+{
     if (nibbles == nullptr) {
         return;
     }
@@ -867,12 +914,13 @@ namespace {
  * @param pos 方块位置
  * @return 64位键
  */
-i64 posToKey(const BlockPos& pos) {
+i64 posToKey(const BlockPos& pos)
+{
     // 使用 21 位存储 x 和 z，22 位存储 y（支持 -64 到 319 的范围）
     // 总共 64 位: x(21) | y(22) | z(21)
-    u32 x = static_cast<u32>(pos.x) & 0x1FFFFF;  // 21 位
-    u32 y = static_cast<u32>(pos.y) & 0x3FFFFF;  // 22 位
-    u32 z = static_cast<u32>(pos.z) & 0x1FFFFF;  // 21 位
+    u32 x = static_cast<u32>(pos.x) & 0x1FFFFF; // 21 位
+    u32 y = static_cast<u32>(pos.y) & 0x3FFFFF; // 22 位
+    u32 z = static_cast<u32>(pos.z) & 0x1FFFFF; // 21 位
     return (static_cast<i64>(x) << 43) | (static_cast<i64>(y) << 21) | static_cast<i64>(z);
 }
 
@@ -883,7 +931,8 @@ i64 posToKey(const BlockPos& pos) {
  * @param pos 方块位置
  * @return 如果位置在区块内返回 true
  */
-bool isPosInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, const BlockPos& pos) {
+bool isPosInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, const BlockPos& pos)
+{
     ChunkCoord posChunkX = pos.x >> 4;
     ChunkCoord posChunkZ = pos.z >> 4;
     return posChunkX == chunkX && posChunkZ == chunkZ;
@@ -891,7 +940,8 @@ bool isPosInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, const BlockPos& pos) {
 
 } // namespace
 
-BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos) {
+BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos)
+{
     if (!isPosInChunk(m_x, m_z, pos)) {
         return nullptr;
     }
@@ -903,7 +953,8 @@ BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos) {
     return it->second.get();
 }
 
-const BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos) const {
+const BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos) const
+{
     if (!isPosInChunk(m_x, m_z, pos)) {
         return nullptr;
     }
@@ -915,7 +966,8 @@ const BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos) const {
     return it->second.get();
 }
 
-std::unique_ptr<BlockEntity> ChunkData::setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity) {
+std::unique_ptr<BlockEntity> ChunkData::setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
+{
     // 如果实体为空，直接返回空
     if (!entity) {
         return nullptr;
@@ -945,7 +997,8 @@ std::unique_ptr<BlockEntity> ChunkData::setBlockEntity(const BlockPos& pos, std:
     return nullptr;
 }
 
-std::unique_ptr<BlockEntity> ChunkData::removeBlockEntity(const BlockPos& pos) {
+std::unique_ptr<BlockEntity> ChunkData::removeBlockEntity(const BlockPos& pos)
+{
     if (!isPosInChunk(m_x, m_z, pos)) {
         return nullptr;
     }
@@ -962,7 +1015,8 @@ std::unique_ptr<BlockEntity> ChunkData::removeBlockEntity(const BlockPos& pos) {
     return entity;
 }
 
-bool ChunkData::hasBlockEntity(const BlockPos& pos) const {
+bool ChunkData::hasBlockEntity(const BlockPos& pos) const
+{
     if (!isPosInChunk(m_x, m_z, pos)) {
         return false;
     }
@@ -970,7 +1024,8 @@ bool ChunkData::hasBlockEntity(const BlockPos& pos) const {
     return m_blockEntities.find(posToKey(pos)) != m_blockEntities.end();
 }
 
-std::vector<BlockEntity*> ChunkData::getAllBlockEntities() {
+std::vector<BlockEntity*> ChunkData::getAllBlockEntities()
+{
     std::vector<BlockEntity*> entities;
     entities.reserve(m_blockEntities.size());
     for (auto& pair : m_blockEntities) {
@@ -979,7 +1034,8 @@ std::vector<BlockEntity*> ChunkData::getAllBlockEntities() {
     return entities;
 }
 
-std::vector<const BlockEntity*> ChunkData::getAllBlockEntities() const {
+std::vector<const BlockEntity*> ChunkData::getAllBlockEntities() const
+{
     std::vector<const BlockEntity*> entities;
     entities.reserve(m_blockEntities.size());
     for (const auto& pair : m_blockEntities) {
@@ -988,7 +1044,8 @@ std::vector<const BlockEntity*> ChunkData::getAllBlockEntities() const {
     return entities;
 }
 
-size_t ChunkData::blockEntityCount() const {
+size_t ChunkData::blockEntityCount() const
+{
     return m_blockEntities.size();
 }
 

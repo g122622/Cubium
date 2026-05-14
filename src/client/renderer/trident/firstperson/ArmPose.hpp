@@ -62,10 +62,9 @@ enum class ArmPose : u8 {
  * @param pose 手臂姿态
  * @return true 如果需要两手持握
  */
-[[nodiscard]] inline bool isTwoHanded(ArmPose pose) {
-    return pose == ArmPose::BowAndArrow ||
-           pose == ArmPose::ThrowSpear ||
-           pose == ArmPose::CrossbowCharge;
+[[nodiscard]] inline bool isTwoHanded(ArmPose pose)
+{
+    return pose == ArmPose::BowAndArrow || pose == ArmPose::ThrowSpear || pose == ArmPose::CrossbowCharge;
 }
 
 /**
@@ -76,11 +75,10 @@ enum class ArmPose : u8 {
  * @param pose 手臂姿态
  * @return true 如果副手不应渲染
  */
-[[nodiscard]] inline bool blocksOffHand(ArmPose pose) {
-    return pose == ArmPose::BowAndArrow ||
-           pose == ArmPose::ThrowSpear ||
-           pose == ArmPose::CrossbowCharge ||
-           pose == ArmPose::CrossbowHold;
+[[nodiscard]] inline bool blocksOffHand(ArmPose pose)
+{
+    return pose == ArmPose::BowAndArrow || pose == ArmPose::ThrowSpear || pose == ArmPose::CrossbowCharge ||
+        pose == ArmPose::CrossbowHold;
 }
 
 } // namespace mc::client::renderer

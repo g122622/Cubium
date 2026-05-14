@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <string>
-#include <vector>
-#include <unordered_map>
+#include "common/core/Types.hpp"
 #include <filesystem>
 #include <mutex>
 #include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::server::core {
 
@@ -36,10 +36,10 @@ enum class OpLevel : u8 {
  * 参考 MC 1.16.5 的 OpEntry。
  */
 struct OpEntry {
-    std::string uuid;                  ///< 玩家 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
-    std::string name;                  ///< 玩家名称
+    std::string uuid;                    ///< 玩家 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+    std::string name;                    ///< 玩家名称
     OpLevel level = OpLevel::GameMaster; ///< 权限等级，默认为 2
-    bool bypassesPlayerLimit = false;  ///< 是否绕过玩家数量限制
+    bool bypassesPlayerLimit = false;    ///< 是否绕过玩家数量限制
 
     /**
      * @brief 默认构造函数
@@ -53,36 +53,31 @@ struct OpEntry {
      * @param opLevel 权限等级
      * @param bypassLimit 是否绕过玩家限制
      */
-    OpEntry(std::string playerUuid, std::string playerName,
-            OpLevel opLevel = OpLevel::GameMaster, bool bypassLimit = false)
-        : uuid(std::move(playerUuid)),
-          name(std::move(playerName)),
-          level(opLevel),
-          bypassesPlayerLimit(bypassLimit) {}
+    OpEntry(
+        std::string playerUuid, std::string playerName, OpLevel opLevel = OpLevel::GameMaster, bool bypassLimit = false)
+        : uuid(std::move(playerUuid))
+        , name(std::move(playerName))
+        , level(opLevel)
+        , bypassesPlayerLimit(bypassLimit)
+    {}
 
     /**
      * @brief 检查条目是否有效
      * @return true 如果 UUID 和名称都不为空
      */
-    [[nodiscard]] bool isValid() const {
-        return !uuid.empty() && !name.empty();
-    }
+    [[nodiscard]] bool isValid() const { return !uuid.empty() && !name.empty(); }
 
     /**
      * @brief 获取显示名称
      * @return 用于显示的名称
      */
-    [[nodiscard]] std::string getDisplayName() const {
-        return name.empty() ? uuid : name;
-    }
+    [[nodiscard]] std::string getDisplayName() const { return name.empty() ? uuid : name; }
 
     /**
      * @brief 获取权限等级数值
      * @return 权限等级 (0-4)
      */
-    [[nodiscard]] i32 getLevelValue() const {
-        return static_cast<i32>(level);
-    }
+    [[nodiscard]] i32 getLevelValue() const { return static_cast<i32>(level); }
 };
 
 /**
@@ -279,7 +274,7 @@ public:
 
 private:
     mutable std::mutex m_mutex;
-    std::unordered_map<std::string, OpEntry> m_entriesByUuid; ///< UUID -> 条目
+    std::unordered_map<std::string, OpEntry> m_entriesByUuid;  ///< UUID -> 条目
     std::unordered_map<std::string, std::string> m_nameToUuid; ///< 名称（小写）-> UUID
     std::filesystem::path m_filePath;
 };

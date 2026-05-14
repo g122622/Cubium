@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <gtest/gtest.h>
 
-#include "common/core/settings/SettingsTypes.hpp"
-#include "common/core/settings/SettingsBase.hpp"
-#include "common/input/KeyBinding.hpp"
 #include "client/settings/ClientSettings.hpp"
+#include "common/core/settings/SettingsBase.hpp"
+#include "common/core/settings/SettingsTypes.hpp"
+#include "common/input/KeyBinding.hpp"
 #include "server/settings/ServerSettings.hpp"
 
 using namespace mc;
@@ -18,13 +18,15 @@ using namespace mc::server;
 
 class SettingsTypesTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 每个测试使用临时目录
         testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_test";
         std::filesystem::create_directories(testDir);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理临时目录
         if (std::filesystem::exists(testDir)) {
             std::filesystem::remove_all(testDir);
@@ -35,20 +37,23 @@ protected:
 };
 
 // BooleanOption 测试
-TEST_F(SettingsTypesTest, BooleanOption_DefaultValue) {
+TEST_F(SettingsTypesTest, BooleanOption_DefaultValue)
+{
     BooleanOption option("test_bool", true);
     EXPECT_TRUE(option.get());
     EXPECT_TRUE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, BooleanOption_SetValue) {
+TEST_F(SettingsTypesTest, BooleanOption_SetValue)
+{
     BooleanOption option("test_bool", false);
     option.set(true);
     EXPECT_TRUE(option.get());
     EXPECT_FALSE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, BooleanOption_Reset) {
+TEST_F(SettingsTypesTest, BooleanOption_Reset)
+{
     BooleanOption option("test_bool", false);
     option.set(true);
     option.reset();
@@ -56,7 +61,8 @@ TEST_F(SettingsTypesTest, BooleanOption_Reset) {
     EXPECT_TRUE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, BooleanOption_Callback) {
+TEST_F(SettingsTypesTest, BooleanOption_Callback)
+{
     BooleanOption option("test_bool", false);
     bool callbackCalled = false;
     bool callbackValue = false;
@@ -71,19 +77,19 @@ TEST_F(SettingsTypesTest, BooleanOption_Callback) {
     EXPECT_TRUE(callbackValue);
 }
 
-TEST_F(SettingsTypesTest, BooleanOption_CallbackNotCalledOnSameValue) {
+TEST_F(SettingsTypesTest, BooleanOption_CallbackNotCalledOnSameValue)
+{
     BooleanOption option("test_bool", false);
     int callCount = 0;
 
-    option.onChange([&](bool /*value*/) {
-        callCount++;
-    });
+    option.onChange([&](bool /*value*/) { callCount++; });
 
-    option.set(false);  // 相同值
+    option.set(false); // 相同值
     EXPECT_EQ(callCount, 0);
 }
 
-TEST_F(SettingsTypesTest, BooleanOption_Serialize) {
+TEST_F(SettingsTypesTest, BooleanOption_Serialize)
+{
     BooleanOption option("test_bool", true);
     nlohmann::json j;
     option.serialize(j);
@@ -92,7 +98,8 @@ TEST_F(SettingsTypesTest, BooleanOption_Serialize) {
     EXPECT_TRUE(j["test_bool"].get<bool>());
 }
 
-TEST_F(SettingsTypesTest, BooleanOption_Deserialize) {
+TEST_F(SettingsTypesTest, BooleanOption_Deserialize)
+{
     BooleanOption option("test_bool", false);
     nlohmann::json j = {{"test_bool", true}};
     option.deserialize(j);
@@ -101,42 +108,45 @@ TEST_F(SettingsTypesTest, BooleanOption_Deserialize) {
 }
 
 // RangeOption 测试
-TEST_F(SettingsTypesTest, RangeOption_DefaultValue) {
+TEST_F(SettingsTypesTest, RangeOption_DefaultValue)
+{
     RangeOption option("test_range", 0, 100, 50);
     EXPECT_EQ(option.get(), 50);
     EXPECT_TRUE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, RangeOption_ClampValue) {
+TEST_F(SettingsTypesTest, RangeOption_ClampValue)
+{
     RangeOption option("test_range", 0, 100, 50);
 
     option.set(150);
-    EXPECT_EQ(option.get(), 100);  // 应该 clamp 到最大值
+    EXPECT_EQ(option.get(), 100); // 应该 clamp 到最大值
 
     option.set(-50);
-    EXPECT_EQ(option.get(), 0);  // 应该 clamp 到最小值
+    EXPECT_EQ(option.get(), 0); // 应该 clamp 到最小值
 }
 
-TEST_F(SettingsTypesTest, RangeOption_SetValue) {
+TEST_F(SettingsTypesTest, RangeOption_SetValue)
+{
     RangeOption option("test_range", 0, 100, 50);
     option.set(75);
     EXPECT_EQ(option.get(), 75);
     EXPECT_FALSE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, RangeOption_Callback) {
+TEST_F(SettingsTypesTest, RangeOption_Callback)
+{
     RangeOption option("test_range", 0, 100, 50);
     int callbackValue = 0;
 
-    option.onChange([&](i32 value) {
-        callbackValue = value;
-    });
+    option.onChange([&](i32 value) { callbackValue = value; });
 
     option.set(75);
     EXPECT_EQ(callbackValue, 75);
 }
 
-TEST_F(SettingsTypesTest, RangeOption_Serialize) {
+TEST_F(SettingsTypesTest, RangeOption_Serialize)
+{
     RangeOption option("test_range", 0, 100, 50);
     option.set(75);
     nlohmann::json j;
@@ -146,7 +156,8 @@ TEST_F(SettingsTypesTest, RangeOption_Serialize) {
     EXPECT_EQ(j["test_range"].get<i32>(), 75);
 }
 
-TEST_F(SettingsTypesTest, RangeOption_Deserialize) {
+TEST_F(SettingsTypesTest, RangeOption_Deserialize)
+{
     RangeOption option("test_range", 0, 100, 50);
     nlohmann::json j = {{"test_range", 75}};
     option.deserialize(j);
@@ -155,13 +166,15 @@ TEST_F(SettingsTypesTest, RangeOption_Deserialize) {
 }
 
 // FloatOption 测试
-TEST_F(SettingsTypesTest, FloatOption_DefaultValue) {
+TEST_F(SettingsTypesTest, FloatOption_DefaultValue)
+{
     FloatOption option("test_float", 0.0f, 1.0f, 0.5f);
     EXPECT_FLOAT_EQ(option.get(), 0.5f);
     EXPECT_TRUE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, FloatOption_ClampValue) {
+TEST_F(SettingsTypesTest, FloatOption_ClampValue)
+{
     FloatOption option("test_float", 0.0f, 1.0f, 0.5f);
 
     option.set(1.5f);
@@ -171,19 +184,19 @@ TEST_F(SettingsTypesTest, FloatOption_ClampValue) {
     EXPECT_FLOAT_EQ(option.get(), 0.0f);
 }
 
-TEST_F(SettingsTypesTest, FloatOption_Callback) {
+TEST_F(SettingsTypesTest, FloatOption_Callback)
+{
     FloatOption option("test_float", 0.0f, 1.0f, 0.5f);
     float callbackValue = 0.0f;
 
-    option.onChange([&](f32 value) {
-        callbackValue = value;
-    });
+    option.onChange([&](f32 value) { callbackValue = value; });
 
     option.set(0.75f);
     EXPECT_FLOAT_EQ(callbackValue, 0.75f);
 }
 
-TEST_F(SettingsTypesTest, FloatOption_Serialize) {
+TEST_F(SettingsTypesTest, FloatOption_Serialize)
+{
     FloatOption option("test_float", 0.0f, 1.0f, 0.5f);
     option.set(0.75f);
     nlohmann::json j;
@@ -194,32 +207,37 @@ TEST_F(SettingsTypesTest, FloatOption_Serialize) {
 }
 
 // EnumOption 测试
-TEST_F(SettingsTypesTest, EnumOption_DefaultValue) {
+TEST_F(SettingsTypesTest, EnumOption_DefaultValue)
+{
     EnumOption<u8> option("test_enum", {0, 1, 2}, 1, {"low", "medium", "high"});
     EXPECT_EQ(option.get(), 1);
     EXPECT_TRUE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, EnumOption_SetValue) {
+TEST_F(SettingsTypesTest, EnumOption_SetValue)
+{
     EnumOption<u8> option("test_enum", {0, 1, 2}, 1, {"low", "medium", "high"});
     option.set(2);
     EXPECT_EQ(option.get(), 2);
     EXPECT_EQ(option.getName(), "high");
 }
 
-TEST_F(SettingsTypesTest, EnumOption_SetByName) {
+TEST_F(SettingsTypesTest, EnumOption_SetByName)
+{
     EnumOption<u8> option("test_enum", {0, 1, 2}, 1, {"low", "medium", "high"});
     EXPECT_TRUE(option.setByName("low"));
     EXPECT_EQ(option.get(), 0);
 }
 
-TEST_F(SettingsTypesTest, EnumOption_InvalidValue) {
+TEST_F(SettingsTypesTest, EnumOption_InvalidValue)
+{
     EnumOption<u8> option("test_enum", {0, 1, 2}, 1, {"low", "medium", "high"});
-    option.set(5);  // 无效值
-    EXPECT_EQ(option.get(), 1);  // 应该保持原值
+    option.set(5);              // 无效值
+    EXPECT_EQ(option.get(), 1); // 应该保持原值
 }
 
-TEST_F(SettingsTypesTest, EnumOption_Serialize) {
+TEST_F(SettingsTypesTest, EnumOption_Serialize)
+{
     EnumOption<u8> option("test_enum", {0, 1, 2}, 1, {"low", "medium", "high"});
     option.set(2);
     nlohmann::json j;
@@ -229,7 +247,8 @@ TEST_F(SettingsTypesTest, EnumOption_Serialize) {
     EXPECT_EQ(j["test_enum"].get<std::string>(), "high");
 }
 
-TEST_F(SettingsTypesTest, EnumOption_Deserialize) {
+TEST_F(SettingsTypesTest, EnumOption_Deserialize)
+{
     EnumOption<u8> option("test_enum", {0, 1, 2}, 1, {"low", "medium", "high"});
     nlohmann::json j = {{"test_enum", "low"}};
     option.deserialize(j);
@@ -238,20 +257,23 @@ TEST_F(SettingsTypesTest, EnumOption_Deserialize) {
 }
 
 // StringOption 测试
-TEST_F(SettingsTypesTest, StringOption_DefaultValue) {
+TEST_F(SettingsTypesTest, StringOption_DefaultValue)
+{
     StringOption option("test_string", "default");
     EXPECT_EQ(option.get(), "default");
     EXPECT_TRUE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, StringOption_SetValue) {
+TEST_F(SettingsTypesTest, StringOption_SetValue)
+{
     StringOption option("test_string", "default");
     option.set("new value");
     EXPECT_EQ(option.get(), "new value");
     EXPECT_FALSE(option.isDefault());
 }
 
-TEST_F(SettingsTypesTest, StringOption_Serialize) {
+TEST_F(SettingsTypesTest, StringOption_Serialize)
+{
     StringOption option("test_string", "default");
     option.set("custom");
     nlohmann::json j;
@@ -267,7 +289,8 @@ TEST_F(SettingsTypesTest, StringOption_Serialize) {
 
 class TestSettings : public SettingsBase {
 public:
-    TestSettings() {
+    TestSettings()
+    {
         registerOption("video", &resolution);
         registerOption("video", &fullscreen);
         registerOption("audio", &volume);
@@ -280,12 +303,14 @@ public:
 
 class SettingsBaseTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_settings_test";
         std::filesystem::create_directories(testDir);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         if (std::filesystem::exists(testDir)) {
             std::filesystem::remove_all(testDir);
         }
@@ -294,7 +319,8 @@ protected:
     std::filesystem::path testDir;
 };
 
-TEST_F(SettingsBaseTest, SaveAndLoad) {
+TEST_F(SettingsBaseTest, SaveAndLoad)
+{
     TestSettings settings;
     settings.resolution.set(2560);
     settings.fullscreen.set(true);
@@ -314,7 +340,8 @@ TEST_F(SettingsBaseTest, SaveAndLoad) {
     EXPECT_FLOAT_EQ(loadedSettings.volume.get(), 0.5f);
 }
 
-TEST_F(SettingsBaseTest, LoadNonExistentFile) {
+TEST_F(SettingsBaseTest, LoadNonExistentFile)
+{
     TestSettings settings;
     auto path = testDir / "nonexistent.json";
 
@@ -328,7 +355,8 @@ TEST_F(SettingsBaseTest, LoadNonExistentFile) {
     EXPECT_FLOAT_EQ(settings.volume.get(), 0.8f);
 }
 
-TEST_F(SettingsBaseTest, ResetToDefaults) {
+TEST_F(SettingsBaseTest, ResetToDefaults)
+{
     TestSettings settings;
     settings.resolution.set(2560);
     settings.fullscreen.set(true);
@@ -341,7 +369,8 @@ TEST_F(SettingsBaseTest, ResetToDefaults) {
     EXPECT_FLOAT_EQ(settings.volume.get(), 0.8f);
 }
 
-TEST_F(SettingsBaseTest, ResetGroupToDefaults) {
+TEST_F(SettingsBaseTest, ResetGroupToDefaults)
+{
     TestSettings settings;
     settings.resolution.set(2560);
     settings.fullscreen.set(true);
@@ -356,7 +385,8 @@ TEST_F(SettingsBaseTest, ResetGroupToDefaults) {
     EXPECT_FLOAT_EQ(settings.volume.get(), 0.5f);
 }
 
-TEST_F(SettingsBaseTest, GetSettingsPath) {
+TEST_F(SettingsBaseTest, GetSettingsPath)
+{
     auto path = SettingsBase::getSettingsPath("test_app");
     EXPECT_FALSE(path.empty());
     EXPECT_TRUE(path.string().find("test_app") != std::string::npos);
@@ -368,13 +398,15 @@ TEST_F(SettingsBaseTest, GetSettingsPath) {
 
 class KeyBindingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 清除之前的绑定
         KeyBinding::resetAllToDefault();
     }
 };
 
-TEST_F(KeyBindingTest, CreateBinding) {
+TEST_F(KeyBindingTest, CreateBinding)
+{
     KeyBinding binding("test.key", Keys::W, "test.category");
 
     EXPECT_EQ(binding.id(), "test.key");
@@ -384,7 +416,8 @@ TEST_F(KeyBindingTest, CreateBinding) {
     EXPECT_TRUE(binding.isDefault());
 }
 
-TEST_F(KeyBindingTest, SetKey) {
+TEST_F(KeyBindingTest, SetKey)
+{
     KeyBinding binding("test.key", Keys::W, "test.category");
     binding.setKey(Keys::A);
 
@@ -392,7 +425,8 @@ TEST_F(KeyBindingTest, SetKey) {
     EXPECT_FALSE(binding.isDefault());
 }
 
-TEST_F(KeyBindingTest, ResetToDefault) {
+TEST_F(KeyBindingTest, ResetToDefault)
+{
     KeyBinding binding("test.key", Keys::W, "test.category");
     binding.setKey(Keys::A);
     binding.resetToDefault();
@@ -401,7 +435,8 @@ TEST_F(KeyBindingTest, ResetToDefault) {
     EXPECT_TRUE(binding.isDefault());
 }
 
-TEST_F(KeyBindingTest, FindBinding) {
+TEST_F(KeyBindingTest, FindBinding)
+{
     KeyBinding binding("test.find", Keys::W, "test.category");
 
     auto* found = KeyBinding::find("test.find");
@@ -412,7 +447,8 @@ TEST_F(KeyBindingTest, FindBinding) {
     EXPECT_EQ(notFound, nullptr);
 }
 
-TEST_F(KeyBindingTest, UpdateAll) {
+TEST_F(KeyBindingTest, UpdateAll)
+{
     KeyBinding binding("test.update", Keys::W, "test.category");
 
     std::vector<i32> pressed = {Keys::W};
@@ -426,7 +462,8 @@ TEST_F(KeyBindingTest, UpdateAll) {
     EXPECT_FALSE(binding.isJustReleased());
 }
 
-TEST_F(KeyBindingTest, SerializeAndDeserialize) {
+TEST_F(KeyBindingTest, SerializeAndDeserialize)
+{
     {
         KeyBinding binding1("test.serialize1", Keys::W, "test.category");
         KeyBinding binding2("test.serialize2", Keys::A, "test.category");
@@ -445,10 +482,7 @@ TEST_F(KeyBindingTest, SerializeAndDeserialize) {
         KeyBinding binding1("test.serialize1", Keys::W, "test.category");
         KeyBinding binding2("test.serialize2", Keys::A, "test.category");
 
-        nlohmann::json j = {
-            {"test.serialize1", Keys::E},
-            {"test.serialize2", Keys::Q}
-        };
+        nlohmann::json j = {{"test.serialize1", Keys::E}, {"test.serialize2", Keys::Q}};
 
         KeyBinding::deserializeAll(j);
 
@@ -463,12 +497,14 @@ TEST_F(KeyBindingTest, SerializeAndDeserialize) {
 
 class ClientSettingsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_client_test";
         std::filesystem::create_directories(testDir);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         if (std::filesystem::exists(testDir)) {
             std::filesystem::remove_all(testDir);
         }
@@ -477,7 +513,8 @@ protected:
     std::filesystem::path testDir;
 };
 
-TEST_F(ClientSettingsTest, DefaultValues) {
+TEST_F(ClientSettingsTest, DefaultValues)
+{
     ClientSettings settings;
 
     EXPECT_EQ(settings.renderDistance.get(), 12);
@@ -487,7 +524,8 @@ TEST_F(ClientSettingsTest, DefaultValues) {
     EXPECT_EQ(settings.serverPort.get(), 19132);
 }
 
-TEST_F(ClientSettingsTest, InitializeKeyBindings) {
+TEST_F(ClientSettingsTest, InitializeKeyBindings)
+{
     ClientSettings settings;
     settings.initializeKeyBindings();
 
@@ -505,7 +543,8 @@ TEST_F(ClientSettingsTest, InitializeKeyBindings) {
     EXPECT_EQ(inventory->key(), Keys::E);
 }
 
-TEST_F(ClientSettingsTest, SaveAndLoadSettings) {
+TEST_F(ClientSettingsTest, SaveAndLoadSettings)
+{
     {
         ClientSettings settings;
         settings.renderDistance.set(20);
@@ -549,12 +588,14 @@ TEST_F(ClientSettingsTest, SaveAndLoadSettings) {
 
 class ServerSettingsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_server_test";
         std::filesystem::create_directories(testDir);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         if (std::filesystem::exists(testDir)) {
             std::filesystem::remove_all(testDir);
         }
@@ -563,7 +604,8 @@ protected:
     std::filesystem::path testDir;
 };
 
-TEST_F(ServerSettingsTest, DefaultValues) {
+TEST_F(ServerSettingsTest, DefaultValues)
+{
     ServerSettings settings;
 
     EXPECT_EQ(settings.serverPort.get(), 19132);
@@ -573,7 +615,8 @@ TEST_F(ServerSettingsTest, DefaultValues) {
     EXPECT_EQ(settings.tickRate.get(), 20);
 }
 
-TEST_F(ServerSettingsTest, SaveAndLoadSettings) {
+TEST_F(ServerSettingsTest, SaveAndLoadSettings)
+{
     {
         ServerSettings settings;
         settings.serverPort.set(25565);
@@ -601,7 +644,8 @@ TEST_F(ServerSettingsTest, SaveAndLoadSettings) {
     }
 }
 
-TEST_F(ServerSettingsTest, EnumOptionSerialize) {
+TEST_F(ServerSettingsTest, EnumOptionSerialize)
+{
     ServerSettings settings;
     settings.difficulty.set(DifficultyValue::Hard);
 
@@ -612,7 +656,8 @@ TEST_F(ServerSettingsTest, EnumOptionSerialize) {
     EXPECT_EQ(j["difficulty"].get<std::string>(), "hard");
 }
 
-TEST_F(ServerSettingsTest, EnumOptionDeserialize) {
+TEST_F(ServerSettingsTest, EnumOptionDeserialize)
+{
     ServerSettings settings;
     nlohmann::json j = {{"difficulty", "peaceful"}};
     settings.difficulty.deserialize(j);

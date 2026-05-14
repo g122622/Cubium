@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/core/Constants.hpp"
 
 #include <array>
 #include <memory>
@@ -16,7 +16,8 @@ namespace {
 
 class NoiseSurfaceParityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
 
@@ -37,7 +38,8 @@ protected:
         m_region = std::make_unique<WorldGenRegion>(0, 0, m_chunks);
     }
 
-    static void fillChunkWithStonePlateau(ChunkPrimer& chunk) {
+    static void fillChunkWithStonePlateau(ChunkPrimer& chunk)
+    {
         const BlockState* stone = &VanillaBlocks::STONE->defaultState();
         const BlockState* air = &VanillaBlocks::AIR->defaultState();
 
@@ -53,7 +55,8 @@ protected:
         }
     }
 
-    static void fillChunkBiomes(ChunkPrimer& chunk, BiomeId biomeId) {
+    static void fillChunkBiomes(ChunkPrimer& chunk, BiomeId biomeId)
+    {
         BiomeContainer& biomes = chunk.getBiomes();
         for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
             for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
@@ -69,7 +72,8 @@ protected:
     std::unique_ptr<WorldGenRegion> m_region;
 };
 
-TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer) {
+TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer)
+{
     ASSERT_NE(m_region, nullptr);
 
     auto* centerChunk = dynamic_cast<ChunkPrimer*>(m_chunks[4]);

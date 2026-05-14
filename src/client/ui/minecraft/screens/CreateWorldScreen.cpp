@@ -1,36 +1,25 @@
 #include "CreateWorldScreen.hpp"
 #include "../../kagero/event/EventBus.hpp"
 #include "../../kagero/state/StateStore.hpp"
-#include "common/core/Types.hpp"
-#include "common/world/WorldConfig.hpp"
-#include "common/util/StringUtils.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/StringUtils.hpp"
+#include "common/world/WorldConfig.hpp"
+#include <algorithm>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
-#include <algorithm>
 
 namespace mc::client::ui::minecraft {
 
-static const char* GAME_MODE_NAMES[] = {
-    "Survival",
-    "Creative",
-    "Adventure",
-    "Spectator"
-};
+static const char* GAME_MODE_NAMES[] = {"Survival", "Creative", "Adventure", "Spectator"};
 
-static const char* WORLD_TYPE_NAMES[] = {
-    "Default",
-    "Flat",
-    "Large Biomes",
-    "Amplified",
-    "Debug"
-};
+static const char* WORLD_TYPE_NAMES[] = {"Default", "Flat", "Large Biomes", "Amplified", "Debug"};
 
 CreateWorldScreen::CreateWorldScreen()
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
-          kagero::state::StateStore::instance(),
-          kagero::event::EventBus::instance()),
-          "createWorld") {
+                         kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
+          "createWorld")
+{
     loadTemplateFile("src/client/ui/minecraft/templates/create_world.tpl");
     cacheWidgets();
     registerCallbacks();
@@ -38,21 +27,19 @@ CreateWorldScreen::CreateWorldScreen()
     updateWorldTypeText();
 }
 
-void CreateWorldScreen::onOpen() {
+void CreateWorldScreen::onOpen()
+{
     TemplateScreen::onOpen();
     if (m_nameField) {
         focusField(m_nameField);
     }
 }
 
-void CreateWorldScreen::registerCallbacks() {
-    exposeSimpleCallback("onCycleGameMode", [this]() {
-        cycleGameMode();
-    });
+void CreateWorldScreen::registerCallbacks()
+{
+    exposeSimpleCallback("onCycleGameMode", [this]() { cycleGameMode(); });
 
-    exposeSimpleCallback("onCycleWorldType", [this]() {
-        cycleWorldType();
-    });
+    exposeSimpleCallback("onCycleWorldType", [this]() { cycleWorldType(); });
 
     exposeSimpleCallback("onCreate", [this]() {
         if (validateInput() && m_onCreate) {
@@ -67,7 +54,8 @@ void CreateWorldScreen::registerCallbacks() {
     });
 }
 
-void CreateWorldScreen::cacheWidgets() {
+void CreateWorldScreen::cacheWidgets()
+{
     m_titleText = dynamic_cast<kagero::widget::TextWidget*>(findWidget("title"));
     m_nameLabel = dynamic_cast<kagero::widget::TextWidget*>(findWidget("nameLabel"));
     m_nameField = dynamic_cast<kagero::widget::TextFieldWidget*>(findWidget("nameField"));
@@ -81,7 +69,8 @@ void CreateWorldScreen::cacheWidgets() {
     m_cancelButton = dynamic_cast<kagero::widget::ButtonWidget*>(findWidget("btn_cancel"));
 }
 
-void CreateWorldScreen::focusField(kagero::widget::TextFieldWidget* field) {
+void CreateWorldScreen::focusField(kagero::widget::TextFieldWidget* field)
+{
     if (!field) {
         return;
     }
@@ -95,44 +84,51 @@ void CreateWorldScreen::focusField(kagero::widget::TextFieldWidget* field) {
     field->setFocused(true);
 }
 
-void CreateWorldScreen::cycleGameMode() {
+void CreateWorldScreen::cycleGameMode()
+{
     i32 mode = static_cast<i32>(m_gameMode);
     mode = (mode + 1) % 4;
     m_gameMode = static_cast<mc::GameMode>(mode);
     updateGameModeText();
 }
 
-void CreateWorldScreen::cycleWorldType() {
+void CreateWorldScreen::cycleWorldType()
+{
     i32 type = static_cast<i32>(m_worldType);
     type = (type + 1) % 5;
     m_worldType = static_cast<mc::WorldType>(type);
     updateWorldTypeText();
 }
 
-void CreateWorldScreen::updateGameModeText() {
+void CreateWorldScreen::updateGameModeText()
+{
     if (m_gameModeButton) {
         m_gameModeButton->setText(GAME_MODE_NAMES[static_cast<i32>(m_gameMode)]);
     }
 }
 
-void CreateWorldScreen::updateWorldTypeText() {
+void CreateWorldScreen::updateWorldTypeText()
+{
     if (m_worldTypeButton) {
         m_worldTypeButton->setText(WORLD_TYPE_NAMES[static_cast<i32>(m_worldType)]);
     }
 }
 
-bool CreateWorldScreen::validateInput() {
+bool CreateWorldScreen::validateInput()
+{
     return m_nameField != nullptr && !m_nameField->text().empty();
 }
 
-world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const {
+world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const
+{
     u64 seed = 0;
     if (m_seedField && !m_seedField->text().empty()) {
         const std::string seedText = m_seedField->text();
         if (util::isNumeric(seedText, true)) {
             try {
                 seed = std::stoull(seedText);
-            } catch (...) {
+            }
+            catch (...) {
                 seed = 0;
             }
         } else {
@@ -140,8 +136,7 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const {
         }
     }
 
-    return world::storage::CreateWorldRequest(
-        m_nameField ? m_nameField->text() : "New World",
+    return world::storage::CreateWorldRequest(m_nameField ? m_nameField->text() : "New World",
         "",
         seed,
         m_worldType,
@@ -152,7 +147,8 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const {
         12);
 }
 
-bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     (void)scanCode;
     (void)mods;
 
@@ -182,7 +178,8 @@ bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
     return Screen::onKey(key, scanCode, action, mods);
 }
 
-bool CreateWorldScreen::onChar(u32 codePoint) {
+bool CreateWorldScreen::onChar(u32 codePoint)
+{
     if (m_nameField && m_nameField->isFocused()) {
         return m_nameField->onChar(codePoint);
     }

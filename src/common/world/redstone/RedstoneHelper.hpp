@@ -59,9 +59,7 @@ public:
      * @param state 方块状态
      * @return true 如果是红石导体
      */
-    [[nodiscard]] static bool isRedstoneConductor(IWorld& world,
-                                                   const BlockPos& pos,
-                                                   const BlockState& state);
+    [[nodiscard]] static bool isRedstoneConductor(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 获取实体的红石信号强度
@@ -80,9 +78,7 @@ public:
      * @param dir 方向
      * @return true 如果是水平方向（北、东、南、西）
      */
-    [[nodiscard]] static bool isHorizontal(Direction dir) {
-        return Directions::isHorizontal(dir);
-    }
+    [[nodiscard]] static bool isHorizontal(Direction dir) { return Directions::isHorizontal(dir); }
 
     /**
      * @brief 检查方向是否是垂直方向
@@ -90,9 +86,7 @@ public:
      * @param dir 方向
      * @return true 如果是垂直方向（上、下）
      */
-    [[nodiscard]] static bool isVertical(Direction dir) {
-        return Directions::isVertical(dir);
-    }
+    [[nodiscard]] static bool isVertical(Direction dir) { return Directions::isVertical(dir); }
 
     /**
      * @brief 计算红石信号衰减后的强度
@@ -101,9 +95,7 @@ public:
      * @param distance 传输距离
      * @return i32 衰减后的强度 (最小为0)
      */
-    [[nodiscard]] static i32 attenuate(i32 strength, i32 distance) {
-        return std::max(0, strength - distance);
-    }
+    [[nodiscard]] static i32 attenuate(i32 strength, i32 distance) { return std::max(0, strength - distance); }
 
     /**
      * @brief 限制红石信号强度在有效范围内
@@ -111,9 +103,7 @@ public:
      * @param strength 信号强度
      * @return i32 限制后的强度 (0-15)
      */
-    [[nodiscard]] static i32 clamp(i32 strength) {
-        return std::clamp(strength, MIN_POWER, MAX_POWER);
-    }
+    [[nodiscard]] static i32 clamp(i32 strength) { return std::clamp(strength, MIN_POWER, MAX_POWER); }
 
     /// 红石信号最小强度
     static constexpr i32 MIN_POWER = 0;

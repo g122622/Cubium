@@ -1,8 +1,8 @@
 #include "BatEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/Block.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
@@ -19,18 +19,19 @@ BatEntity::BatEntity(LegacyEntityType type, EntityId id)
     m_flying = true;
 }
 
-std::unique_ptr<Entity> BatEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> BatEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<BatEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool BatEntity::canRest() const {
+bool BatEntity::canRest() const
+{
     // MC 1.16.5: 检查上方是否有固体方块
     // 参考 BatEntity.canRest() 第82-88行
     if (m_world == nullptr) {
         return false;
     }
-    BlockPos above(
-        static_cast<i32>(std::floor(m_position.x)),
+    BlockPos above(static_cast<i32>(std::floor(m_position.x)),
         static_cast<i32>(std::floor(m_position.y + 1.0)),
         static_cast<i32>(std::floor(m_position.z)));
     const BlockState* state = m_world->getBlockState(above);
@@ -41,7 +42,8 @@ bool BatEntity::canRest() const {
     return state->getBlock().isSolid(*state);
 }
 
-void BatEntity::tick() {
+void BatEntity::tick()
+{
     AmbientEntity::tick();
 
     // MC 1.16.5: 检查是否是白天
@@ -82,13 +84,15 @@ void BatEntity::tick() {
     }
 }
 
-void BatEntity::registerGoals() {
+void BatEntity::registerGoals()
+{
     // TODO: 蝙蝠 AI 目标
     // - BatFlyGoal: 随机飞行
     // - BatRestGoal: 休息
 }
 
-void BatEntity::registerAttributes() {
+void BatEntity::registerAttributes()
+{
     // 调用父类方法
     AmbientEntity::registerAttributes();
 

@@ -52,15 +52,14 @@ public:
     [[nodiscard]] bool hasResource(std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory,
-        std::string_view extension = "") const override;
+        std::string_view directory, std::string_view extension = "") const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
 private:
     std::string m_name;
     PackMetadata m_metadata;
     std::unordered_map<std::string, std::vector<u8>> m_resources;
-    std::unordered_set<std::string> m_directories;  // 用于 listResources
+    std::unordered_set<std::string> m_directories; // 用于 listResources
 
     /**
      * @brief 规范化路径

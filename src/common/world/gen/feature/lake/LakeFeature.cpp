@@ -1,9 +1,9 @@
 #include "LakeFeature.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../core/Constants.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -18,10 +18,10 @@ namespace mc::world::gen::feature::lake {
 
 LakeFeature::LakeFeature(const LakeFeatureConfig& config)
     : m_config(config)
-{
-}
+{}
 
-bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i32 z) {
+bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i32 z)
+{
     if (m_config.fluidState == nullptr) {
         return false;
     }
@@ -42,8 +42,8 @@ bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i3
             for (i32 dz = -RADIUS_Z; dz <= RADIUS_Z; ++dz) {
                 // 椭球方程
                 f32 dist = static_cast<f32>(dx * dx) / static_cast<f32>(RADIUS_X * RADIUS_X) +
-                           static_cast<f32>(dy * dy) / static_cast<f32>(RADIUS_Y * RADIUS_Y) +
-                           static_cast<f32>(dz * dz) / static_cast<f32>(RADIUS_Z * RADIUS_Z);
+                    static_cast<f32>(dy * dy) / static_cast<f32>(RADIUS_Y * RADIUS_Y) +
+                    static_cast<f32>(dz * dz) / static_cast<f32>(RADIUS_Z * RADIUS_Z);
 
                 if (dist <= 1.0f) {
                     // 内部填充流体
@@ -66,8 +66,8 @@ bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i3
             i32 dy = -RADIUS_Y + rng.nextInt(2);
 
             f32 dist = static_cast<f32>(dx * dx) / static_cast<f32>(RADIUS_X * RADIUS_X) +
-                       static_cast<f32>(dy * dy) / static_cast<f32>(RADIUS_Y * RADIUS_Y) +
-                       static_cast<f32>(dz * dz) / static_cast<f32>(RADIUS_Z * RADIUS_Z);
+                static_cast<f32>(dy * dy) / static_cast<f32>(RADIUS_Y * RADIUS_Y) +
+                static_cast<f32>(dz * dz) / static_cast<f32>(RADIUS_Z * RADIUS_Z);
 
             if (dist <= 1.25f) {
                 world.setBlockState(x + dx, y + dy - 1, z + dz, m_config.borderState);
@@ -78,7 +78,8 @@ bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i3
     return true;
 }
 
-bool LakeFeature::canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const {
+bool LakeFeature::canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const
+{
     // 参考 MC 1.16.5: 湖泊生成位置检查
     // 水湖限制: Y >= 8
     // 熔岩湖限制: Y >= 8，在较低高度更常见
@@ -118,19 +119,23 @@ bool LakeFeature::canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const {
     return sampleCount > 0 && solidCount * thresholdMultiplier >= sampleCount * 2;
 }
 
-LakeFeatureConfig LakeFeature::createWaterLake() {
+LakeFeatureConfig LakeFeature::createWaterLake()
+{
     return LakeFeatureConfig(VanillaBlocks::WATER, VanillaBlocks::STONE);
 }
 
-LakeFeatureConfig LakeFeature::createLavaLake() {
+LakeFeatureConfig LakeFeature::createLavaLake()
+{
     return LakeFeatureConfig(VanillaBlocks::LAVA, VanillaBlocks::STONE);
 }
 
-std::unique_ptr<LakeFeature> createWaterLakeFeature() {
+std::unique_ptr<LakeFeature> createWaterLakeFeature()
+{
     return std::make_unique<LakeFeature>(LakeFeature::createWaterLake());
 }
 
-std::unique_ptr<LakeFeature> createLavaLakeFeature() {
+std::unique_ptr<LakeFeature> createLavaLakeFeature()
+{
     return std::make_unique<LakeFeature>(LakeFeature::createLavaLake());
 }
 
@@ -141,26 +146,17 @@ namespace mc {
 std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::s_features;
 
 ConfiguredLakeFeature::ConfiguredLakeFeature(
-    world::gen::feature::lake::LakeFeatureConfig config,
-    const char* featureName,
-    i32 chance,
-    i32 minY,
-    i32 maxY)
+    world::gen::feature::lake::LakeFeatureConfig config, const char* featureName, i32 chance, i32 minY, i32 maxY)
     : m_feature(config)
     , m_name(featureName)
     , m_chance(std::max(1, chance))
     , m_minY(minY)
     , m_maxY(std::max(minY, maxY))
     , m_isLava(config.fluidBlock == VanillaBlocks::LAVA)
-{
-}
+{}
 
 bool ConfiguredLakeFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
 
@@ -213,21 +209,13 @@ std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::getAllFeatures
 std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createWaterLake()
 {
     return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createWaterLake(),
-        "water_lake",
-        4,
-        20,
-        127);
+        world::gen::feature::lake::LakeFeature::createWaterLake(), "water_lake", 4, 20, 127);
 }
 
 std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createLavaLake()
 {
     return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createLavaLake(),
-        "lava_lake",
-        8,
-        10,
-        63);
+        world::gen::feature::lake::LakeFeature::createLavaLake(), "lava_lake", 8, 10, 63);
 }
 
 } // namespace mc

@@ -1,7 +1,7 @@
 #include "SectionManager.hpp"
 #include "../../../perfetto/TraceEvents.hpp"
-#include <spdlog/spdlog.h>
 #include <mutex>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
 
@@ -9,37 +9,37 @@ namespace mc::world::storage {
 // 构造与析构
 // ============================================================================
 
-SectionManager::SectionManager(
-    RocksDBDatabase& db,
-    DimensionId dimension,
-    const Config& config
-)
+SectionManager::SectionManager(RocksDBDatabase& db, DimensionId dimension, const Config& config)
     : m_db(db)
     , m_dimension(dimension)
     , m_cfName(cf::getSectionCF(dimension))
     , m_config(config)
     , m_cache(config.cacheCapacity)
 {
-    spdlog::info("SectionManager created for dimension {} (CF: {})",
-            static_cast<i32>(m_dimension), m_cfName);
+    spdlog::info("SectionManager created for dimension {} (CF: {})", static_cast<i32>(m_dimension), m_cfName);
 }
 
 // ============================================================================
 // Section加载
 // ============================================================================
 
-Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const SectionKey& key) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionSync",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY));
+Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const SectionKey& key)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::loadSectionSync",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY));
 
     // 检查维度是否匹配
     if (key.dimension != m_dimension) {
         return Error(ErrorCode::InvalidArgument,
-                     fmt::format("Dimension mismatch: expected {}, got {}",
-                                 static_cast<i32>(m_dimension),
-                                 static_cast<i32>(key.dimension)));
+            fmt::format("Dimension mismatch: expected {}, got {}",
+                static_cast<i32>(m_dimension),
+                static_cast<i32>(key.dimension)));
     }
 
     // 先检查缓存
@@ -54,13 +54,16 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const
 }
 
 std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSectionAsync(
-    const SectionKey& key,
-    util::TaskPriority priority
-) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionAsync",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY));
+    const SectionKey& key, util::TaskPriority priority)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::loadSectionAsync",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY));
 
     auto promise = std::make_shared<std::promise<Result<std::shared_ptr<const SectionData>>>>();
     auto future = promise->get_future();
@@ -85,12 +88,9 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
     return future;
 }
 
-void SectionManager::loadSectionsSync(
-    const std::vector<SectionKey>& keys,
-    LoadCallback callback
-) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionsSync",
-                   "count", keys.size());
+void SectionManager::loadSectionsSync(const std::vector<SectionKey>& keys, LoadCallback callback)
+{
+    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionsSync", "count", keys.size());
 
     for (const auto& key : keys) {
         auto result = loadSectionSync(key);
@@ -102,23 +102,25 @@ void SectionManager::loadSectionsSync(
 // Section保存
 // ============================================================================
 
-Result<void> SectionManager::saveSectionSync(
-    const SectionKey& key,
-    const SectionData& data,
-    bool immediate
-) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::saveSectionSync",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY),
-                   "immediate", immediate);
+Result<void> SectionManager::saveSectionSync(const SectionKey& key, const SectionData& data, bool immediate)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::saveSectionSync",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY),
+        "immediate",
+        immediate);
 
     // 检查维度是否匹配
     if (key.dimension != m_dimension) {
         return Error(ErrorCode::InvalidArgument,
-                     fmt::format("Dimension mismatch: expected {}, got {}",
-                                 static_cast<i32>(m_dimension),
-                                 static_cast<i32>(key.dimension)));
+            fmt::format("Dimension mismatch: expected {}, got {}",
+                static_cast<i32>(m_dimension),
+                static_cast<i32>(key.dimension)));
     }
 
     // 保存到数据库
@@ -141,14 +143,16 @@ Result<void> SectionManager::saveSectionSync(
 }
 
 std::future<Result<void>> SectionManager::saveSectionAsync(
-    const SectionKey& key,
-    const SectionData& data,
-    util::TaskPriority priority
-) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::saveSectionAsync",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY));
+    const SectionKey& key, const SectionData& data, util::TaskPriority priority)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::saveSectionAsync",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY));
 
     auto promise = std::make_shared<std::promise<Result<void>>>();
     auto future = promise->get_future();
@@ -173,7 +177,8 @@ std::future<Result<void>> SectionManager::saveSectionAsync(
     return future;
 }
 
-Result<size_t> SectionManager::flushDirtySections() {
+Result<size_t> SectionManager::flushDirtySections()
+{
     MC_TRACE_EVENT("storage.section", "SectionManager::flushDirtySections");
 
     // 获取所有脏Section
@@ -199,8 +204,10 @@ Result<size_t> SectionManager::flushDirtySections() {
         auto serializeResult = data->serialize();
         if (!serializeResult.success()) {
             spdlog::error("Failed to serialize section at ({}, {}, {}): {}",
-                     key.chunkX, key.chunkZ, static_cast<i32>(key.sectionY),
-                     serializeResult.error().message());
+                key.chunkX,
+                key.chunkZ,
+                static_cast<i32>(key.sectionY),
+                serializeResult.error().message());
             continue;
         }
 
@@ -213,8 +220,7 @@ Result<size_t> SectionManager::flushDirtySections() {
 
         auto* cf = m_db.getCF(m_cfName);
         if (!cf) {
-            return Error(ErrorCode::InvalidState,
-                         fmt::format("Column family not found: {}", m_cfName));
+            return Error(ErrorCode::InvalidState, fmt::format("Column family not found: {}", m_cfName));
         }
 
         batch.Put(cf, keySlice, valueSlice);
@@ -249,7 +255,8 @@ Result<size_t> SectionManager::flushDirtySections() {
     return savedCount;
 }
 
-Result<size_t> SectionManager::saveAll() {
+Result<size_t> SectionManager::saveAll()
+{
     MC_TRACE_EVENT("storage.section", "SectionManager::saveAll");
 
     // 获取所有缓存中的Section，确保 saveAll 真正保存全部内容。
@@ -274,11 +281,16 @@ Result<size_t> SectionManager::saveAll() {
 // Section卸载
 // ============================================================================
 
-Result<void> SectionManager::unloadSection(const SectionKey& key) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::unloadSection",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY));
+Result<void> SectionManager::unloadSection(const SectionKey& key)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::unloadSection",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY));
 
     // 检查是否为脏
     bool isDirty = m_cache.isDirty(key);
@@ -306,7 +318,8 @@ Result<void> SectionManager::unloadSection(const SectionKey& key) {
     return {};
 }
 
-Result<void> SectionManager::unloadAll() {
+Result<void> SectionManager::unloadAll()
+{
     MC_TRACE_EVENT("storage.section", "SectionManager::unloadAll");
 
     // 保存所有脏Section
@@ -331,11 +344,16 @@ Result<void> SectionManager::unloadAll() {
 // Section删除
 // ============================================================================
 
-Result<void> SectionManager::deleteSection(const SectionKey& key) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::deleteSection",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY));
+Result<void> SectionManager::deleteSection(const SectionKey& key)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::deleteSection",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY));
 
     // 从数据库删除
     auto keyBytes = key.toKey();
@@ -356,10 +374,9 @@ Result<void> SectionManager::deleteSection(const SectionKey& key) {
     return {};
 }
 
-Result<size_t> SectionManager::deleteChunkSections(i32 chunkX, i32 chunkZ) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::deleteChunkSections",
-                   "chunkX", chunkX,
-                   "chunkZ", chunkZ);
+Result<size_t> SectionManager::deleteChunkSections(i32 chunkX, i32 chunkZ)
+{
+    MC_TRACE_EVENT("storage.section", "SectionManager::deleteChunkSections", "chunkX", chunkX, "chunkZ", chunkZ);
 
     // 注意：sectionY 使用有符号字节直接序列化时，字节序排序并不适合做范围删除。
     // 这里逐个删除，避免删除范围在 RocksDB 字典序下失效。
@@ -382,23 +399,27 @@ Result<size_t> SectionManager::deleteChunkSections(i32 chunkX, i32 chunkZ) {
 // 缓存管理
 // ============================================================================
 
-void SectionManager::setCacheCapacity(size_t capacity) {
+void SectionManager::setCacheCapacity(size_t capacity)
+{
     m_cache.setCapacity(capacity);
     m_config.cacheCapacity = capacity;
 }
 
-SectionCache::CacheStats SectionManager::getCacheStats() const {
+SectionCache::CacheStats SectionManager::getCacheStats() const
+{
     return m_cache.getStats();
 }
 
-void SectionManager::clearCache() {
+void SectionManager::clearCache()
+{
     m_cache.clear();
 
     std::lock_guard<std::mutex> lock(m_dirtyMutex);
     m_dirtySet.clear();
 }
 
-bool SectionManager::isCached(const SectionKey& key) const {
+bool SectionManager::isCached(const SectionKey& key) const
+{
     return m_cache.contains(key);
 }
 
@@ -406,7 +427,8 @@ bool SectionManager::isCached(const SectionKey& key) const {
 // 脏标记追踪
 // ============================================================================
 
-bool SectionManager::markDirty(const SectionKey& key) {
+bool SectionManager::markDirty(const SectionKey& key)
+{
     bool success = m_cache.markDirty(key);
     if (success) {
         std::lock_guard<std::mutex> lock(m_dirtyMutex);
@@ -415,12 +437,14 @@ bool SectionManager::markDirty(const SectionKey& key) {
     return success;
 }
 
-size_t SectionManager::getDirtyCount() const {
+size_t SectionManager::getDirtyCount() const
+{
     std::lock_guard<std::mutex> lock(m_dirtyMutex);
     return m_dirtySet.size();
 }
 
-std::vector<SectionKey> SectionManager::getDirtyKeys() const {
+std::vector<SectionKey> SectionManager::getDirtyKeys() const
+{
     return m_cache.getDirtyKeys();
 }
 
@@ -428,11 +452,16 @@ std::vector<SectionKey> SectionManager::getDirtyKeys() const {
 // 内部方法
 // ============================================================================
 
-Result<std::shared_ptr<const SectionData>> SectionManager::loadFromDatabase(const SectionKey& key) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadFromDatabase",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY));
+Result<std::shared_ptr<const SectionData>> SectionManager::loadFromDatabase(const SectionKey& key)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::loadFromDatabase",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY));
 
     // 从数据库读取
     auto keyBytes = key.toKey();
@@ -465,16 +494,18 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadFromDatabase(cons
     return std::static_pointer_cast<const SectionData>(data);
 }
 
-Result<void> SectionManager::saveToDatabase(
-    const SectionKey& key,
-    const SectionData& data,
-    bool sync
-) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::saveToDatabase",
-                   "chunkX", key.chunkX,
-                   "chunkZ", key.chunkZ,
-                   "sectionY", static_cast<i32>(key.sectionY),
-                   "sync", sync);
+Result<void> SectionManager::saveToDatabase(const SectionKey& key, const SectionData& data, bool sync)
+{
+    MC_TRACE_EVENT("storage.section",
+        "SectionManager::saveToDatabase",
+        "chunkX",
+        key.chunkX,
+        "chunkZ",
+        key.chunkZ,
+        "sectionY",
+        static_cast<i32>(key.sectionY),
+        "sync",
+        sync);
 
     // 计算哈希时使用本地副本，避免原地修改共享缓存对象
     if (m_config.computeHash) {

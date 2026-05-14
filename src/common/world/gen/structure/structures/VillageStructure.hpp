@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Structure.hpp"
-#include "../JigsawStructure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include <vector>
+#include "../JigsawStructure.hpp"
+#include "../Structure.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace world {
@@ -17,12 +17,12 @@ namespace structure {
  * 对应 MC 1.16.5 的不同村庄风格
  */
 enum class VillageType : u8 {
-    Plains,      ///< 平原村庄
-    Desert,      ///< 沙漠村庄
-    Savanna,     ///< 热带草原村庄
-    Taiga,       ///< 针叶林村庄
-    Snowy,       ///< 雪地村庄
-    Zombie       ///< 僵尸村庄
+    Plains,  ///< 平原村庄
+    Desert,  ///< 沙漠村庄
+    Savanna, ///< 热带草原村庄
+    Taiga,   ///< 针叶林村庄
+    Snowy,   ///< 雪地村庄
+    Zombie   ///< 僵尸村庄
 };
 
 /**
@@ -30,11 +30,11 @@ enum class VillageType : u8 {
  */
 struct VillageConfig {
     VillageType type = VillageType::Plains;
-    i32 size = 6;              ///< 村庄大小 (MC 默认 6)
-    i32 distance = 32;         ///< 村庄间距
-    i32 separation = 8;        ///< 村庄分离距离
-    i32 startPoolIndex = 0;    ///< 起始模板池索引
-    bool zombie = false;       ///< 是否为僵尸村庄
+    i32 size = 6;           ///< 村庄大小 (MC 默认 6)
+    i32 distance = 32;      ///< 村庄间距
+    i32 separation = 8;     ///< 村庄分离距离
+    i32 startPoolIndex = 0; ///< 起始模板池索引
+    bool zombie = false;    ///< 是否为僵尸村庄
 };
 
 /**
@@ -66,21 +66,13 @@ public:
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成村庄
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 获取村庄类型的起始模板池

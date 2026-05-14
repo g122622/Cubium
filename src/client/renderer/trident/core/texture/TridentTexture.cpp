@@ -1,8 +1,8 @@
 #include "TridentTexture.hpp"
 #include "../TridentContext.hpp"
 #include "../buffer/TridentBuffer.hpp"
-#include <spdlog/spdlog.h>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident {
 
@@ -12,7 +12,8 @@ namespace mc::client::renderer::trident {
 
 TridentTexture::TridentTexture() = default;
 
-TridentTexture::~TridentTexture() {
+TridentTexture::~TridentTexture()
+{
     destroy();
 }
 
@@ -40,7 +41,8 @@ TridentTexture::TridentTexture(TridentTexture&& other) noexcept
     other.m_vkFormat = VK_FORMAT_UNDEFINED;
 }
 
-TridentTexture& TridentTexture::operator=(TridentTexture&& other) noexcept {
+TridentTexture& TridentTexture::operator=(TridentTexture&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -68,7 +70,8 @@ TridentTexture& TridentTexture::operator=(TridentTexture&& other) noexcept {
     return *this;
 }
 
-Result<void> TridentTexture::create(TridentContext* context, const api::TextureDesc& desc) {
+Result<void> TridentTexture::create(TridentContext* context, const api::TextureDesc& desc)
+{
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }
@@ -101,8 +104,7 @@ Result<void> TridentTexture::create(TridentContext* context, const api::TextureD
 
     // 创建图像视图
     VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-    if (desc.format == api::TextureFormat::D16_UNORM ||
-        desc.format == api::TextureFormat::D24_UNORM_S8_UINT ||
+    if (desc.format == api::TextureFormat::D16_UNORM || desc.format == api::TextureFormat::D24_UNORM_S8_UINT ||
         desc.format == api::TextureFormat::D32_FLOAT) {
         aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
     }
@@ -114,10 +116,7 @@ Result<void> TridentTexture::create(TridentContext* context, const api::TextureD
     }
 
     // 创建采样器
-    result = createSampler(
-        toVkFilter(desc.magFilter),
-        toVkFilter(desc.minFilter),
-        toVkAddressMode(desc.addressModeU));
+    result = createSampler(toVkFilter(desc.magFilter), toVkFilter(desc.minFilter), toVkAddressMode(desc.addressModeU));
     if (result.failed()) {
         destroy();
         return result;
@@ -127,12 +126,7 @@ Result<void> TridentTexture::create(TridentContext* context, const api::TextureD
 }
 
 Result<void> TridentTexture::createFromExisting(
-    TridentContext* context,
-    VkImage image,
-    VkImageView imageView,
-    VkFormat format,
-    u32 width,
-    u32 height)
+    TridentContext* context, VkImage image, VkImageView imageView, VkFormat format, u32 width, u32 height)
 {
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
@@ -170,7 +164,8 @@ Result<void> TridentTexture::createFromExisting(
     return {};
 }
 
-void TridentTexture::destroy() {
+void TridentTexture::destroy()
+{
     if (m_context == nullptr) return;
 
     VkDevice device = m_context->device();
@@ -210,7 +205,8 @@ void TridentTexture::destroy() {
     m_ownsImage = true;
 }
 
-Result<void> TridentTexture::upload(const void* data, u64 size, u32 level) {
+Result<void> TridentTexture::upload(const void* data, u64 size, u32 level)
+{
     if (m_image == VK_NULL_HANDLE || !m_context) {
         return Error(ErrorCode::OperationFailed, "Texture not initialized");
     }
@@ -244,8 +240,7 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level) {
     }
 
     // 转换到传输布局
-    transitionLayout(
-        cmd,
+    transitionLayout(cmd,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -263,17 +258,10 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level) {
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {m_width, m_height, 1};
 
-    vkCmdCopyBufferToImage(
-        cmd,
-        stagingBuffer.buffer(),
-        m_image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region);
+    vkCmdCopyBufferToImage(cmd, stagingBuffer.buffer(), m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // 转换到着色器只读布局
-    transitionLayout(
-        cmd,
+    transitionLayout(cmd,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -285,13 +273,13 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level) {
     return {};
 }
 
-void TridentTexture::bind(u32 binding) {
+void TridentTexture::bind(u32 binding)
+{
     // 纹理绑定通常通过描述符集完成
     // 此方法留空，实际绑定在渲染管线中处理
 }
 
-void TridentTexture::transitionLayout(
-    VkCommandBuffer cmd,
+void TridentTexture::transitionLayout(VkCommandBuffer cmd,
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
     VkPipelineStageFlags srcStage,
@@ -316,7 +304,8 @@ void TridentTexture::transitionLayout(
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+        newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
@@ -330,30 +319,24 @@ void TridentTexture::transitionLayout(
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     }
 
-    vkCmdPipelineBarrier(
-        cmd,
-        srcStage, dstStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
+    vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     m_layout = newLayout;
 }
 
-Result<void> TridentTexture::generateMipmaps(VkCommandBuffer cmd) {
+Result<void> TridentTexture::generateMipmaps(VkCommandBuffer cmd)
+{
     if (m_image == VK_NULL_HANDLE || !m_context) {
         return Error(ErrorCode::OperationFailed, "Texture not initialized");
     }
 
     if (m_mipLevels <= 1) {
-        return {};  // 无需生成 mipmaps
+        return {}; // 无需生成 mipmaps
     }
 
     // 检查设备是否支持线性过滤
     VkFormatProperties formatProperties;
-    vkGetPhysicalDeviceFormatProperties(
-        m_context->physicalDevice(), m_vkFormat, &formatProperties);
+    vkGetPhysicalDeviceFormatProperties(m_context->physicalDevice(), m_vkFormat, &formatProperties);
 
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
         return Error(ErrorCode::Unsupported, "Texture format does not support linear blitting");
@@ -379,14 +362,16 @@ Result<void> TridentTexture::generateMipmaps(VkCommandBuffer cmd) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-        vkCmdPipelineBarrier(
-            cmd,
+        vkCmdPipelineBarrier(cmd,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier);
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &barrier);
 
         VkImageBlit blit{};
         blit.srcOffsets[0] = {0, 0, 0};
@@ -396,21 +381,19 @@ Result<void> TridentTexture::generateMipmaps(VkCommandBuffer cmd) {
         blit.srcSubresource.baseArrayLayer = 0;
         blit.srcSubresource.layerCount = 1;
         blit.dstOffsets[0] = {0, 0, 0};
-        blit.dstOffsets[1] = {
-            mipWidth > 1 ? mipWidth / 2 : 1,
-            mipHeight > 1 ? mipHeight / 2 : 1,
-            1
-        };
+        blit.dstOffsets[1] = {mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
         blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         blit.dstSubresource.mipLevel = i;
         blit.dstSubresource.baseArrayLayer = 0;
         blit.dstSubresource.layerCount = 1;
 
-        vkCmdBlitImage(
-            cmd,
-            m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1, &blit,
+        vkCmdBlitImage(cmd,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &blit,
             VK_FILTER_LINEAR);
 
         barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -418,14 +401,16 @@ Result<void> TridentTexture::generateMipmaps(VkCommandBuffer cmd) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-        vkCmdPipelineBarrier(
-            cmd,
+        vkCmdPipelineBarrier(cmd,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier);
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &barrier);
 
         if (mipWidth > 1) mipWidth /= 2;
         if (mipHeight > 1) mipHeight /= 2;
@@ -437,20 +422,23 @@ Result<void> TridentTexture::generateMipmaps(VkCommandBuffer cmd) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(
-        cmd,
+    vkCmdPipelineBarrier(cmd,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     m_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     return {};
 }
 
-Result<void> TridentTexture::createImage(VkImageUsageFlags usage, VkImageTiling tiling) {
+Result<void> TridentTexture::createImage(VkImageUsageFlags usage, VkImageTiling tiling)
+{
     VkDevice device = m_context->device();
 
     VkImageCreateInfo imageInfo{};
@@ -479,9 +467,7 @@ Result<void> TridentTexture::createImage(VkImageUsageFlags usage, VkImageTiling 
     vkGetImageMemoryRequirements(device, m_image, &memRequirements);
 
     // 查找内存类型
-    auto typeResult = findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto typeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (typeResult.failed()) {
         vkDestroyImage(device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -507,7 +493,8 @@ Result<void> TridentTexture::createImage(VkImageUsageFlags usage, VkImageTiling 
     return {};
 }
 
-Result<void> TridentTexture::createImageView(VkImageAspectFlags aspect) {
+Result<void> TridentTexture::createImageView(VkImageAspectFlags aspect)
+{
     VkDevice device = m_context->device();
 
     if (m_imageView != VK_NULL_HANDLE) {
@@ -534,10 +521,7 @@ Result<void> TridentTexture::createImageView(VkImageAspectFlags aspect) {
     return {};
 }
 
-Result<void> TridentTexture::createSampler(
-    VkFilter magFilter,
-    VkFilter minFilter,
-    VkSamplerAddressMode addressMode)
+Result<void> TridentTexture::createSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerAddressMode addressMode)
 {
     VkDevice device = m_context->device();
 
@@ -572,11 +556,13 @@ Result<void> TridentTexture::createSampler(
     return {};
 }
 
-Result<u32> TridentTexture::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> TridentTexture::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     return m_context->findMemoryType(typeFilter, properties);
 }
 
-VkFormat TridentTexture::toVkFormat(api::TextureFormat format) {
+VkFormat TridentTexture::toVkFormat(api::TextureFormat format)
+{
     switch (format) {
         case api::TextureFormat::R8_UNORM:
             return VK_FORMAT_R8_UNORM;
@@ -625,7 +611,8 @@ VkFormat TridentTexture::toVkFormat(api::TextureFormat format) {
     }
 }
 
-VkFilter TridentTexture::toVkFilter(api::TextureFilter filter) {
+VkFilter TridentTexture::toVkFilter(api::TextureFilter filter)
+{
     switch (filter) {
         case api::TextureFilter::Nearest:
         case api::TextureFilter::NearestMipmapNearest:
@@ -639,7 +626,8 @@ VkFilter TridentTexture::toVkFilter(api::TextureFilter filter) {
     }
 }
 
-VkSamplerAddressMode TridentTexture::toVkAddressMode(api::TextureAddressMode mode) {
+VkSamplerAddressMode TridentTexture::toVkAddressMode(api::TextureAddressMode mode)
+{
     switch (mode) {
         case api::TextureAddressMode::Repeat:
             return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -662,7 +650,8 @@ VkSamplerAddressMode TridentTexture::toVkAddressMode(api::TextureAddressMode mod
 
 TridentTextureAtlas::TridentTextureAtlas() = default;
 
-TridentTextureAtlas::~TridentTextureAtlas() {
+TridentTextureAtlas::~TridentTextureAtlas()
+{
     destroy();
 }
 
@@ -685,7 +674,8 @@ TridentTextureAtlas::TridentTextureAtlas(TridentTextureAtlas&& other) noexcept
     other.m_tileV = 0.0f;
 }
 
-TridentTextureAtlas& TridentTextureAtlas::operator=(TridentTextureAtlas&& other) noexcept {
+TridentTextureAtlas& TridentTextureAtlas::operator=(TridentTextureAtlas&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -708,11 +698,7 @@ TridentTextureAtlas& TridentTextureAtlas::operator=(TridentTextureAtlas&& other)
     return *this;
 }
 
-Result<void> TridentTextureAtlas::create(
-    TridentContext* context,
-    u32 width,
-    u32 height,
-    u32 tileSize)
+Result<void> TridentTextureAtlas::create(TridentContext* context, u32 width, u32 height, u32 tileSize)
 {
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
@@ -730,10 +716,10 @@ Result<void> TridentTextureAtlas::create(
     api::TextureDesc desc;
     desc.width = width;
     desc.height = height;
-    desc.format = api::TextureFormat::R8G8B8A8_UNORM;  // 使用 UNORM 避免 sRGB 转换
+    desc.format = api::TextureFormat::R8G8B8A8_UNORM; // 使用 UNORM 避免 sRGB 转换
     desc.mipLevels = 1;
     desc.generateMipmaps = false;
-    desc.magFilter = api::TextureFilter::Nearest;  // 像素风格使用最近邻过滤
+    desc.magFilter = api::TextureFilter::Nearest; // 像素风格使用最近邻过滤
     desc.minFilter = api::TextureFilter::Nearest;
     desc.addressModeU = api::TextureAddressMode::Repeat;
     desc.addressModeV = api::TextureAddressMode::Repeat;
@@ -741,7 +727,8 @@ Result<void> TridentTextureAtlas::create(
     return m_texture.create(context, desc);
 }
 
-Result<void> TridentTextureAtlas::upload(const api::AtlasBuildResult& result) {
+Result<void> TridentTextureAtlas::upload(const api::AtlasBuildResult& result)
+{
     if (!isValid()) {
         return Error(ErrorCode::OperationFailed, "Atlas not initialized");
     }
@@ -750,13 +737,11 @@ Result<void> TridentTextureAtlas::upload(const api::AtlasBuildResult& result) {
         return Error(ErrorCode::InvalidArgument, "No pixel data in build result");
     }
 
-    return m_texture.upload(
-        result.pixelData.data(),
-        result.pixelData.size(),
-        0);
+    return m_texture.upload(result.pixelData.data(), result.pixelData.size(), 0);
 }
 
-void TridentTextureAtlas::destroy() {
+void TridentTextureAtlas::destroy()
+{
     m_texture.destroy();
     m_context = nullptr;
     m_width = 0;
@@ -767,7 +752,8 @@ void TridentTextureAtlas::destroy() {
     m_tileV = 0.0f;
 }
 
-api::TextureRegion TridentTextureAtlas::getRegion(u32 tileX, u32 tileY) const {
+api::TextureRegion TridentTextureAtlas::getRegion(u32 tileX, u32 tileY) const
+{
     f64 u0 = static_cast<f64>(tileX * m_tileSize) / static_cast<f64>(m_width);
     f64 v0 = static_cast<f64>(tileY * m_tileSize) / static_cast<f64>(m_height);
     f64 u1 = static_cast<f64>((tileX + 1) * m_tileSize) / static_cast<f64>(m_width);
@@ -775,7 +761,8 @@ api::TextureRegion TridentTextureAtlas::getRegion(u32 tileX, u32 tileY) const {
     return api::TextureRegion(u0, v0, u1, v1);
 }
 
-api::TextureRegion TridentTextureAtlas::getRegion(u32 tileIndex) const {
+api::TextureRegion TridentTextureAtlas::getRegion(u32 tileIndex) const
+{
     u32 tileX = tileIndex % m_tilesPerRow;
     u32 tileY = tileIndex / m_tilesPerRow;
     return getRegion(tileX, tileY);

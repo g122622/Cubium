@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "client/renderer/MeshTypes.hpp"
-#include <vulkan/vulkan.h>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class ResourceManager;
@@ -25,24 +25,24 @@ class GuiTextureAtlas;
  * 参考 MC 1.16.5 ContainerScreen.java
  */
 namespace ContainerTex {
-    // 纹理尺寸
-    constexpr i32 TEXTURE_WIDTH = 256;
-    constexpr i32 TEXTURE_HEIGHT = 256;
+// 纹理尺寸
+constexpr i32 TEXTURE_WIDTH = 256;
+constexpr i32 TEXTURE_HEIGHT = 256;
 
-    // 背包屏幕背景 (0, 0) - (176, 166)
-    constexpr f64 INVENTORY_BG_U0 = 0.0f / TEXTURE_WIDTH;
-    constexpr f64 INVENTORY_BG_V0 = 0.0f / TEXTURE_HEIGHT;
-    constexpr f64 INVENTORY_BG_U1 = 176.0f / TEXTURE_WIDTH;
-    constexpr f64 INVENTORY_BG_V1 = 166.0f / TEXTURE_HEIGHT;
-    constexpr i32 INVENTORY_BG_WIDTH = 176;
-    constexpr i32 INVENTORY_BG_HEIGHT = 166;
+// 背包屏幕背景 (0, 0) - (176, 166)
+constexpr f64 INVENTORY_BG_U0 = 0.0f / TEXTURE_WIDTH;
+constexpr f64 INVENTORY_BG_V0 = 0.0f / TEXTURE_HEIGHT;
+constexpr f64 INVENTORY_BG_U1 = 176.0f / TEXTURE_WIDTH;
+constexpr f64 INVENTORY_BG_V1 = 166.0f / TEXTURE_HEIGHT;
+constexpr i32 INVENTORY_BG_WIDTH = 176;
+constexpr i32 INVENTORY_BG_HEIGHT = 166;
 
-    // 工作台背景 (0, 0) - (176, 166)
-    constexpr f64 CRAFTING_TABLE_BG_U0 = 0.0f / TEXTURE_WIDTH;
-    constexpr f64 CRAFTING_TABLE_BG_V0 = 0.0f / TEXTURE_HEIGHT;
-    constexpr f64 CRAFTING_TABLE_BG_U1 = 176.0f / TEXTURE_WIDTH;
-    constexpr f64 CRAFTING_TABLE_BG_V1 = 166.0f / TEXTURE_HEIGHT;
-}
+// 工作台背景 (0, 0) - (176, 166)
+constexpr f64 CRAFTING_TABLE_BG_U0 = 0.0f / TEXTURE_WIDTH;
+constexpr f64 CRAFTING_TABLE_BG_V0 = 0.0f / TEXTURE_HEIGHT;
+constexpr f64 CRAFTING_TABLE_BG_U1 = 176.0f / TEXTURE_WIDTH;
+constexpr f64 CRAFTING_TABLE_BG_V1 = 166.0f / TEXTURE_HEIGHT;
+} // namespace ContainerTex
 
 /**
  * @brief GUI纹理管理器
@@ -84,8 +84,7 @@ public:
      * @param resourceManager 资源管理器（可为nullptr，使用默认纹理）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,

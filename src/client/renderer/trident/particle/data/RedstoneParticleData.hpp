@@ -67,7 +67,7 @@ public:
     void setColor(const glm::vec3& color) { m_color = color; }
 
 private:
-    glm::vec3 m_color;  ///< RGB 颜色值
+    glm::vec3 m_color; ///< RGB 颜色值
 };
 
 } // namespace mc::client::renderer::trident::particle::data

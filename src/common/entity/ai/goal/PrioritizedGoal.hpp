@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Goal.hpp"
-#include <memory>
 #include <limits>
+#include <memory>
 
 namespace mc::entity::ai {
 
@@ -53,7 +53,8 @@ public:
      * @param other 要比较的目标
      * @return true 如果当前目标可以被抢占
      */
-    [[nodiscard]] bool isPreemptedBy(const PrioritizedGoal& other) const {
+    [[nodiscard]] bool isPreemptedBy(const PrioritizedGoal& other) const
+    {
         // MC 1.16.5: DUMMY（空目标）总是返回true
         if (!m_inner) {
             return true;
@@ -68,95 +69,83 @@ public:
 
     // ========== Goal 接口实现 ==========
 
-    [[nodiscard]] bool shouldExecute() override {
-        return m_inner && m_inner->shouldExecute();
-    }
+    [[nodiscard]] bool shouldExecute() override { return m_inner && m_inner->shouldExecute(); }
 
-    [[nodiscard]] bool shouldContinueExecuting() override {
-        return m_inner && m_inner->shouldContinueExecuting();
-    }
+    [[nodiscard]] bool shouldContinueExecuting() override { return m_inner && m_inner->shouldContinueExecuting(); }
 
-    [[nodiscard]] bool isPreemptible() const override {
-        return !m_inner || m_inner->isPreemptible();
-    }
+    [[nodiscard]] bool isPreemptible() const override { return !m_inner || m_inner->isPreemptible(); }
 
-    void startExecuting() override {
+    void startExecuting() override
+    {
         if (m_inner && !m_running) {
             m_running = true;
             m_inner->startExecuting();
         }
     }
 
-    void resetTask() override {
+    void resetTask() override
+    {
         if (m_inner && m_running) {
             m_running = false;
             m_inner->resetTask();
         }
     }
 
-    void tick() override {
+    void tick() override
+    {
         if (m_inner) {
             m_inner->tick();
         }
     }
 
-    void setMutexFlags(const EnumSet<GoalFlag>& flags) {
+    void setMutexFlags(const EnumSet<GoalFlag>& flags)
+    {
         if (m_inner) {
             m_inner->setMutexFlags(flags);
         }
     }
 
-    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const {
+    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const
+    {
         static EnumSet<GoalFlag> emptyFlags;
         return m_inner ? m_inner->getMutexFlags() : emptyFlags;
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return m_inner ? m_inner->getTypeName() : "DUMMY";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return m_inner ? m_inner->getTypeName() : "DUMMY"; }
 
     // ========== PrioritizedGoal 特有方法 ==========
 
     /**
      * @brief 获取优先级
      */
-    [[nodiscard]] int getPriority() const {
-        return m_priority;
-    }
+    [[nodiscard]] int getPriority() const { return m_priority; }
 
     /**
      * @brief 是否正在运行
      */
-    [[nodiscard]] bool isRunning() const {
-        return m_running;
-    }
+    [[nodiscard]] bool isRunning() const { return m_running; }
 
     /**
      * @brief 获取内部目标
      */
-    [[nodiscard]] Goal* getGoal() {
-        return m_inner.get();
-    }
+    [[nodiscard]] Goal* getGoal() { return m_inner.get(); }
 
     /**
      * @brief 获取内部目标（const版本）
      */
-    [[nodiscard]] const Goal* getGoal() const {
-        return m_inner.get();
-    }
+    [[nodiscard]] const Goal* getGoal() const { return m_inner.get(); }
 
     /**
      * @brief 检查是否为空（DUMMY对象）
      */
-    [[nodiscard]] bool isNull() const {
-        return m_inner == nullptr;
-    }
+    [[nodiscard]] bool isNull() const { return m_inner == nullptr; }
 
     /**
      * @brief 相等比较
      * MC 1.16.5: 比较内部Goal是否相同（指针比较）
      */
-    [[nodiscard]] bool operator==(const PrioritizedGoal& other) const {
+    [[nodiscard]] bool operator==(const PrioritizedGoal& other) const
+    {
         // MC 1.16.5: 两个null比较返回false
         if (!m_inner && !other.m_inner) {
             return false;
@@ -172,14 +161,12 @@ public:
     /**
      * @brief 不等比较
      */
-    [[nodiscard]] bool operator!=(const PrioritizedGoal& other) const {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator!=(const PrioritizedGoal& other) const { return !(*this == other); }
 
 private:
-    int m_priority;                  // 优先级
-    std::unique_ptr<Goal> m_inner;   // 内部目标
-    bool m_running;                  // 是否正在运行
+    int m_priority;                // 优先级
+    std::unique_ptr<Goal> m_inner; // 内部目标
+    bool m_running;                // 是否正在运行
 };
 
 } // namespace mc::entity::ai

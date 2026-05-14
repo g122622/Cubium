@@ -13,7 +13,8 @@ HorseRenderer::HorseRenderer()
     setupLayers();
 }
 
-void HorseRenderer::render(Entity& entity, f64 partialTicks) {
+void HorseRenderer::render(Entity& entity, f64 partialTicks)
+{
     auto& horse = static_cast<HorseEntity&>(entity);
 
     // 选择模型（幼体或成体）
@@ -25,19 +26,26 @@ void HorseRenderer::render(Entity& entity, f64 partialTicks) {
     model.setRidden(horse.isBeingRidden());
 
     // 计算动画参数 - 从 LivingEntity 获取
-    f64 limbSwing = static_cast<f64>(horse.prevLimbSwing()) + (static_cast<f64>(horse.limbSwing()) - static_cast<f64>(horse.prevLimbSwing())) * partialTicks;
-    f64 limbSwingAmount = static_cast<f64>(horse.prevLimbSwingAmount()) + (static_cast<f64>(horse.limbSwingAmount()) - static_cast<f64>(horse.prevLimbSwingAmount())) * partialTicks;
+    f64 limbSwing = static_cast<f64>(horse.prevLimbSwing()) +
+        (static_cast<f64>(horse.limbSwing()) - static_cast<f64>(horse.prevLimbSwing())) * partialTicks;
+    f64 limbSwingAmount = static_cast<f64>(horse.prevLimbSwingAmount()) +
+        (static_cast<f64>(horse.limbSwingAmount()) - static_cast<f64>(horse.prevLimbSwingAmount())) * partialTicks;
     f64 ageInTicks = static_cast<f64>(horse.ticksExisted());
 
     // 头部旋转
-    f64 bodyYaw = static_cast<f64>(horse.prevRenderYawOffset()) + (static_cast<f64>(horse.renderYawOffset()) - static_cast<f64>(horse.prevRenderYawOffset())) * partialTicks;
-    f64 headYaw = static_cast<f64>(horse.prevRotationYawHead()) + (static_cast<f64>(horse.rotationYawHead()) - static_cast<f64>(horse.prevRotationYawHead())) * partialTicks;
+    f64 bodyYaw = static_cast<f64>(horse.prevRenderYawOffset()) +
+        (static_cast<f64>(horse.renderYawOffset()) - static_cast<f64>(horse.prevRenderYawOffset())) * partialTicks;
+    f64 headYaw = static_cast<f64>(horse.prevRotationYawHead()) +
+        (static_cast<f64>(horse.rotationYawHead()) - static_cast<f64>(horse.prevRotationYawHead())) * partialTicks;
     f64 netHeadYaw = headYaw - bodyYaw;
     // 归一化到 -180 到 180
-    while (netHeadYaw < -180.0) netHeadYaw += 360.0;
-    while (netHeadYaw > 180.0) netHeadYaw -= 360.0;
+    while (netHeadYaw < -180.0)
+        netHeadYaw += 360.0;
+    while (netHeadYaw > 180.0)
+        netHeadYaw -= 360.0;
 
-    f64 headPitch = static_cast<f64>(horse.prevPitch()) + (static_cast<f64>(horse.pitch()) - static_cast<f64>(horse.prevPitch())) * partialTicks;
+    f64 headPitch = static_cast<f64>(horse.prevPitch()) +
+        (static_cast<f64>(horse.pitch()) - static_cast<f64>(horse.prevPitch())) * partialTicks;
     f64 scale = isChild ? 0.5 : 1.0;
 
     model.setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
@@ -49,7 +57,8 @@ void HorseRenderer::render(Entity& entity, f64 partialTicks) {
     }
 }
 
-ResourceLocation HorseRenderer::getEntityTexture(::mc::HorseEntity& entity) {
+ResourceLocation HorseRenderer::getEntityTexture(::mc::HorseEntity& entity)
+{
     // 根据马颜色和花纹选择纹理
     // MC 1.16.5 有 7 种基础颜色和 5 种花纹
     CoatColors color = entity.getColor();
@@ -57,12 +66,8 @@ ResourceLocation HorseRenderer::getEntityTexture(::mc::HorseEntity& entity) {
 
     // 纹理命名规则: horse_<color><marking>.png
     // 例如: horse_white.png, horse_whitefield.png
-    static const char* colorNames[] = {
-        "white", "creamy", "chestnut", "brown", "black", "gray", "darkbrown"
-    };
-    static const char* markingNames[] = {
-        "", "white", "whitefield", "whitedots", "blackdots"
-    };
+    static const char* colorNames[] = {"white", "creamy", "chestnut", "brown", "black", "gray", "darkbrown"};
+    static const char* markingNames[] = {"", "white", "whitefield", "whitedots", "blackdots"};
 
     std::string textureName = "textures/entity/horse/horse_";
     textureName += colorNames[static_cast<i32>(color)];
@@ -74,16 +79,13 @@ ResourceLocation HorseRenderer::getEntityTexture(::mc::HorseEntity& entity) {
     return ResourceLocation("minecraft", textureName);
 }
 
-ResourceLocation HorseRenderer::getEntityTexture(const ::mc::HorseEntity& entity) const {
+ResourceLocation HorseRenderer::getEntityTexture(const ::mc::HorseEntity& entity) const
+{
     CoatColors color = entity.getColor();
     CoatTypes marking = entity.getMarking();
 
-    static const char* colorNames[] = {
-        "white", "creamy", "chestnut", "brown", "black", "gray", "darkbrown"
-    };
-    static const char* markingNames[] = {
-        "", "white", "whitefield", "whitedots", "blackdots"
-    };
+    static const char* colorNames[] = {"white", "creamy", "chestnut", "brown", "black", "gray", "darkbrown"};
+    static const char* markingNames[] = {"", "white", "whitefield", "whitedots", "blackdots"};
 
     std::string textureName = "textures/entity/horse/horse_";
     textureName += colorNames[static_cast<i32>(color)];
@@ -95,16 +97,17 @@ ResourceLocation HorseRenderer::getEntityTexture(const ::mc::HorseEntity& entity
     return ResourceLocation("minecraft", textureName);
 }
 
-void HorseRenderer::setupLayers() {
+void HorseRenderer::setupLayers()
+{
     // 层渲染器将在层系统完善后添加
     // - SaddleLayer: 鞍
     // - HorseArmorLayer: 马铠
 }
 
-void registerHorseRenderer(EntityRendererManager& manager) {
-    manager.registerRenderer("minecraft:horse", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<HorseRenderer>();
-    });
+void registerHorseRenderer(EntityRendererManager& manager)
+{
+    manager.registerRenderer(
+        "minecraft:horse", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<HorseRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

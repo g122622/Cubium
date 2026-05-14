@@ -1,9 +1,9 @@
 #include "FoodStats.hpp"
-#include "../entities/player/Player.hpp"
+#include "../../entity/effect/EffectType.hpp"
+#include "../../network/packet/PacketSerializer.hpp"
 #include "../combat/DifficultyHelper.hpp"
 #include "../damage/DamageSource.hpp"
-#include "../../network/packet/PacketSerializer.hpp"
-#include "../../entity/effect/EffectType.hpp"
+#include "../entities/player/Player.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -56,7 +56,8 @@ constexpr f32 PEACEFUL_REGEN_AMOUNT = 1.0f;
 
 FoodStats::FoodStats() = default;
 
-void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegeneration) {
+void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegeneration)
+{
     // 保存上一刻的饥饿值（用于 UI 动画）
     m_prevFoodLevel = m_foodLevel;
 
@@ -119,7 +120,8 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
     }
 }
 
-void FoodStats::addStats(i32 food, f32 saturationModifier) {
+void FoodStats::addStats(i32 food, f32 saturationModifier)
+{
     // 饥饿值增加，上限 20
     m_foodLevel = std::min(m_foodLevel + food, MAX_FOOD_LEVEL);
 
@@ -129,12 +131,14 @@ void FoodStats::addStats(i32 food, f32 saturationModifier) {
     m_saturationLevel = std::min(m_saturationLevel + saturationGain, static_cast<f32>(m_foodLevel));
 }
 
-void FoodStats::addExhaustion(f32 exhaustion) {
+void FoodStats::addExhaustion(f32 exhaustion)
+{
     // 累加消耗值，上限 40.0
     m_exhaustionLevel = std::min(m_exhaustionLevel + exhaustion, MAX_EXHAUSTION);
 }
 
-void FoodStats::consumeExhaustion(Difficulty difficulty) {
+void FoodStats::consumeExhaustion(Difficulty difficulty)
+{
     // 当消耗值 >= 4.0 时，消耗饱和度或饥饿值
     while (m_exhaustionLevel >= EXHAUSTION_THRESHOLD) {
         m_exhaustionLevel -= EXHAUSTION_THRESHOLD;
@@ -149,7 +153,8 @@ void FoodStats::consumeExhaustion(Difficulty difficulty) {
     }
 }
 
-bool FoodStats::performFastRegeneration(Player& player) {
+bool FoodStats::performFastRegeneration(Player& player)
+{
     // 快速恢复：消耗饱和度来恢复生命
     // 每次恢复 saturation/6 点生命，消耗等量饱和度
     f32 saturationToUse = std::min(m_saturationLevel, FAST_REGEN_MAX_SATURATION);
@@ -164,7 +169,8 @@ bool FoodStats::performFastRegeneration(Player& player) {
     return false;
 }
 
-bool FoodStats::performSlowRegeneration(Player& player) {
+bool FoodStats::performSlowRegeneration(Player& player)
+{
     // 慢速恢复：消耗饥饿值来恢复生命
     // 每次恢复 1 点生命，消耗 6.0 饱和度
     if (m_foodLevel > 0) {
@@ -176,7 +182,8 @@ bool FoodStats::performSlowRegeneration(Player& player) {
     return false;
 }
 
-void FoodStats::performStarvationDamage(Player& player, Difficulty difficulty) {
+void FoodStats::performStarvationDamage(Player& player, Difficulty difficulty)
+{
     // 饥饿伤害，根据难度限制最小生命值
     f32 currentHealth = player.health();
     f32 minHealth = entity::combat::DifficultyHelper::getStarvationMinHealth(difficulty);
@@ -194,7 +201,8 @@ void FoodStats::performStarvationDamage(Player& player, Difficulty difficulty) {
     }
 }
 
-void FoodStats::handlePeacefulMode(Player& player) {
+void FoodStats::handlePeacefulMode(Player& player)
+{
     // 和平模式：每 20 ticks 恢复 1 点生命
     m_foodTimer++;
     if (m_foodTimer % PEACEFUL_REGEN_INTERVAL == 0) {
@@ -211,13 +219,15 @@ void FoodStats::handlePeacefulMode(Player& player) {
     }
 }
 
-void FoodStats::serialize(network::PacketSerializer& ser) const {
+void FoodStats::serialize(network::PacketSerializer& ser) const
+{
     ser.writeI32(m_foodLevel);
     ser.writeF32(m_saturationLevel);
     ser.writeF32(m_exhaustionLevel);
 }
 
-Result<FoodStats> FoodStats::deserialize(network::PacketDeserializer& deser) {
+Result<FoodStats> FoodStats::deserialize(network::PacketDeserializer& deser)
+{
     FoodStats stats;
 
     auto foodResult = deser.readI32();

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/skin/core/SkinTextures.hpp"
-#include "common/skin/core/GameProfile.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <mutex>
+#include "common/skin/core/GameProfile.hpp"
+#include "common/skin/core/SkinTextures.hpp"
 #include <atomic>
 #include <memory>
+#include <mutex>
 
 namespace mc::skin {
 
@@ -14,11 +14,11 @@ namespace mc::skin {
  * @brief 皮肤加载状态
  */
 enum class SkinLoadState : u8 {
-    NotLoaded,      // 未加载
-    Loading,        // 加载中
-    Loaded,         // 已加载
-    Failed,         // 加载失败
-    UsingDefault    // 使用默认皮肤
+    NotLoaded,   // 未加载
+    Loading,     // 加载中
+    Loaded,      // 已加载
+    Failed,      // 加载失败
+    UsingDefault // 使用默认皮肤
 };
 
 /**
@@ -175,10 +175,10 @@ public:
     [[nodiscard]] ResourceLocation getDefaultSkinLocation() const;
 
 private:
-    GameProfile m_profile;          // 玩家档案
-    SkinTextures m_textures;        // 皮肤纹理集合
-    std::atomic<SkinLoadState> m_loadState{SkinLoadState::NotLoaded};  // 加载状态
-    u8 m_modelParts = 0x7F;         // 默认显示所有部件（除披风外，Bit 0 = 0）
+    GameProfile m_profile;                                            // 玩家档案
+    SkinTextures m_textures;                                          // 皮肤纹理集合
+    std::atomic<SkinLoadState> m_loadState{SkinLoadState::NotLoaded}; // 加载状态
+    u8 m_modelParts = 0x7F;                                           // 默认显示所有部件（除披风外，Bit 0 = 0）
 };
 
 } // namespace mc::skin

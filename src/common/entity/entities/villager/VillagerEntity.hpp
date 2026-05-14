@@ -1,10 +1,10 @@
 #pragma once
 
-#include "AbstractVillagerEntity.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include "../../ai/brain/Brain.hpp"
 #include "../../ai/brain/memory/MemoryModuleType.hpp"
 #include "../../ai/brain/schedule/Schedule.hpp"
-#include "../../../world/block/BlockPos.hpp"
+#include "AbstractVillagerEntity.hpp"
 #include <memory>
 #include <vector>
 
@@ -29,18 +29,18 @@ public:
      */
     enum class Workstation : u8 {
         None = 0,
-        Smoker,         // 烟熏炉 - 屠夫
-        BlastFurnace,   // 高炉 - 盔甲匠
+        Smoker,           // 烟熏炉 - 屠夫
+        BlastFurnace,     // 高炉 - 盔甲匠
         CartographyTable, // 制图台 - 制图师
-        BrewingStand,   // 酿造台 - 牧师
-        Composter,      // 堆肥桶 - 农民
-        Barrel,         // 木桶 - 渔夫
-        FletchingTable, // 制箭台 - 制箭师
-        Cauldron,       // 炼药锅 - 皮革匠
-        Lectern,        // 讲台 - 图书管理员
-        Stonecutter,    // 切石机 - 石匠
-        SmithingTable,  // 锻造台 - 工具匠/武器匠
-        Loom            // 织布机 - 牧羊人
+        BrewingStand,     // 酿造台 - 牧师
+        Composter,        // 堆肥桶 - 农民
+        Barrel,           // 木桶 - 渔夫
+        FletchingTable,   // 制箭台 - 制箭师
+        Cauldron,         // 炼药锅 - 皮革匠
+        Lectern,          // 讲台 - 图书管理员
+        Stonecutter,      // 切石机 - 石匠
+        SmithingTable,    // 锻造台 - 工具匠/武器匠
+        Loom              // 织布机 - 牧羊人
     };
 
     /**
@@ -161,9 +161,7 @@ public:
     /**
      * @brief 是否为傻子村民
      */
-    [[nodiscard]] bool isNitwit() const {
-        return m_villagerData.profession() == VillagerProfession::Nitwit;
-    }
+    [[nodiscard]] bool isNitwit() const { return m_villagerData.profession() == VillagerProfession::Nitwit; }
 
     /**
      * @brief 是否可以工作
@@ -285,10 +283,10 @@ protected:
     void updateOffers() override;
 
 private:
-    i32 m_despawnDelay = 0;      // 消失倒计时
-    i32 m_llamaCount = 0;         // 贸易羊驼数量
-    bool m_hasLlamas = false;     // 是否已生成羊驼
-    i32 m_tradeCount = 0;         // 交易次数
+    i32 m_despawnDelay = 0;   // 消失倒计时
+    i32 m_llamaCount = 0;     // 贸易羊驼数量
+    bool m_hasLlamas = false; // 是否已生成羊驼
+    i32 m_tradeCount = 0;     // 交易次数
 };
 
 } // namespace entity

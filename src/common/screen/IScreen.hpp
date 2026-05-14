@@ -53,7 +53,8 @@ public:
      * @param button 鼠标按钮
      * @return 如果事件被处理返回true
      */
-    virtual bool onRelease(i32 mouseX, i32 mouseY, i32 button) {
+    virtual bool onRelease(i32 mouseX, i32 mouseY, i32 button)
+    {
         (void)mouseX;
         (void)mouseY;
         (void)button;
@@ -68,7 +69,8 @@ public:
      * @param deltaY Y方向移动量
      * @return 如果事件被处理返回true
      */
-    virtual bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) {
+    virtual bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+    {
         (void)mouseX;
         (void)mouseY;
         (void)deltaX;
@@ -83,7 +85,8 @@ public:
      * @param delta 滚轮增量
      * @return 如果事件被处理返回true
      */
-    virtual bool onScroll(i32 mouseX, i32 mouseY, f64 delta) {
+    virtual bool onScroll(i32 mouseX, i32 mouseY, f64 delta)
+    {
         (void)mouseX;
         (void)mouseY;
         (void)delta;
@@ -105,7 +108,8 @@ public:
      * @param codePoint Unicode码点
      * @return 如果事件被处理返回true
      */
-    virtual bool onChar(u32 codePoint) {
+    virtual bool onChar(u32 codePoint)
+    {
         (void)codePoint;
         return false;
     }
@@ -142,7 +146,8 @@ public:
      * @param width 新宽度
      * @param height 新高度
      */
-    virtual void onResize(i32 width, i32 height) {
+    virtual void onResize(i32 width, i32 height)
+    {
         (void)width;
         (void)height;
     }
@@ -151,9 +156,7 @@ public:
      * @brief 每帧更新
      * @param dt 增量时间
      */
-    virtual void tick(f32 dt) {
-        (void)dt;
-    }
+    virtual void tick(f32 dt) { (void)dt; }
 };
 
 } // namespace mc

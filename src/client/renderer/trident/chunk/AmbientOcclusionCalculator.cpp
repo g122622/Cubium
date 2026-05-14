@@ -1,7 +1,7 @@
 #include "AmbientOcclusionCalculator.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -30,23 +30,32 @@ namespace {
  * 与MC Direction.getIndex()一致
  */
 constexpr std::array<i32, 6 * 3> DIRECTION_VECTORS = {
-    0, -1,  0,   // DOWN (0)
-    0,  +1,  0,   // UP (1)
-    0,  0, -1,   // NORTH (2)
-    0,  0, +1,   // SOUTH (3)
-    -1,  0,  0,   // WEST (4)
-    +1,  0,  0    // EAST (5)
+    0,
+    -1,
+    0, // DOWN (0)
+    0,
+    +1,
+    0, // UP (1)
+    0,
+    0,
+    -1, // NORTH (2)
+    0,
+    0,
+    +1, // SOUTH (3)
+    -1,
+    0,
+    0, // WEST (4)
+    +1,
+    0,
+    0 // EAST (5)
 };
 
 /**
  * @brief 获取方向向量
  */
-inline constexpr std::tuple<i32, i32, i32> getDirection(int dirIdx) {
-    return {
-        DIRECTION_VECTORS[dirIdx * 3 + 0],
-        DIRECTION_VECTORS[dirIdx * 3 + 1],
-        DIRECTION_VECTORS[dirIdx * 3 + 2]
-    };
+inline constexpr std::tuple<i32, i32, i32> getDirection(int dirIdx)
+{
+    return {DIRECTION_VECTORS[dirIdx * 3 + 0], DIRECTION_VECTORS[dirIdx * 3 + 1], DIRECTION_VECTORS[dirIdx * 3 + 2]};
 }
 
 /**
@@ -70,17 +79,17 @@ inline constexpr std::tuple<i32, i32, i32> getDirection(int dirIdx) {
  */
 constexpr std::array<std::array<i32, 4>, 6> FACE_CORNER_DIRECTIONS = {{
     // DOWN: {NORTH, SOUTH, EAST, WEST} = {2, 3, 5, 4}
-    {{ 2, 3, 5, 4 }},
+    {{2, 3, 5, 4}},
     // UP: {SOUTH, NORTH, EAST, WEST} = {3, 2, 5, 4}
-    {{ 3, 2, 5, 4 }},
+    {{3, 2, 5, 4}},
     // NORTH: {DOWN, UP, WEST, EAST} = {0, 1, 4, 5}
-    {{ 0, 1, 4, 5 }},
+    {{0, 1, 4, 5}},
     // SOUTH: {DOWN, UP, EAST, WEST} = {0, 1, 5, 4}
-    {{ 0, 1, 5, 4 }},
+    {{0, 1, 5, 4}},
     // WEST: {DOWN, UP, SOUTH, NORTH} = {0, 1, 3, 2}
-    {{ 0, 1, 3, 2 }},
+    {{0, 1, 3, 2}},
     // EAST: {DOWN, UP, NORTH, SOUTH} = {0, 1, 2, 3}
-    {{ 0, 1, 2, 3 }},
+    {{0, 1, 2, 3}},
 }};
 
 /**
@@ -95,17 +104,17 @@ constexpr std::array<std::array<i32, 4>, 6> FACE_CORNER_DIRECTIONS = {{
  */
 constexpr std::array<std::array<u32, 4>, 6> VERTEX_TRANSLATIONS = {{
     // DOWN
-    {{ 0, 1, 2, 3 }},
+    {{0, 1, 2, 3}},
     // UP
-    {{ 0, 1, 2, 3 }},
+    {{0, 1, 2, 3}},
     // NORTH
-    {{ 0, 1, 2, 3 }},
+    {{0, 1, 2, 3}},
     // SOUTH
-    {{ 0, 1, 2, 3 }},
+    {{0, 1, 2, 3}},
     // WEST
-    {{ 0, 1, 2, 3 }},
+    {{0, 1, 2, 3}},
     // EAST
-    {{ 0, 1, 2, 3 }},
+    {{0, 1, 2, 3}},
 }};
 
 } // anonymous namespace
@@ -114,15 +123,14 @@ constexpr std::array<std::array<u32, 4>, 6> VERTEX_TRANSLATIONS = {{
 // AmbientOcclusionCalculator 实现
 // ============================================================================
 
-AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(
-    const ChunkData& chunk,
+AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const ChunkData& chunk,
     i32 blockX,
     i32 blockY,
     i32 blockZ,
     Face face,
     const ChunkData* neighborChunks[6],
-    const float* nonCubicWeights
-) {
+    const float* nonCubicWeights)
+{
     Result result{};
 
     const size_t faceIdx = static_cast<size_t>(face);
@@ -284,14 +292,10 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(
     // 中心光照：对齐 MC 1.16.5
     // i3 初始为自身亮度；当 bitSet[0] = true 或 面外侧不是不透明方块 时使用面外侧亮度。
     // 当前路径下 bitSet[0] 等价 useOuterFaceSamples = true，因此此处会稳定使用面外侧亮度。
-    u32 centerPackedLight = (!useOuterFaceSamples && faceOuterOpaque)
-        ? selfPackedLight
-        : faceOuterPackedLight;
+    u32 centerPackedLight = (!useOuterFaceSamples && faceOuterOpaque) ? selfPackedLight : faceOuterPackedLight;
 
     // 中心AO亮度（与中心光照位置保持一致）
-    float f8 = (!useOuterFaceSamples && faceOuterOpaque)
-        ? selfSample.aoBrightness
-        : faceOuterSample.aoBrightness;
+    float f8 = (!useOuterFaceSamples && faceOuterOpaque) ? selfSample.aoBrightness : faceOuterSample.aoBrightness;
 
     // ================================================================
     // 步骤6: 计算每个顶点的AO颜色乘数
@@ -322,10 +326,10 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(
     // f12 = (f3 + f1 + f7 + f8) * 0.25 -> 顶点3
 
     std::array<float, 4> vertexAoColorMultiplier = {{
-        (f3 + f0 + f5 + f8) * 0.25f,  // 顶点0
-        (f2 + f0 + f4 + f8) * 0.25f,  // 顶点1
-        (f2 + f1 + f6 + f8) * 0.25f,  // 顶点2
-        (f3 + f1 + f7 + f8) * 0.25f   // 顶点3
+        (f3 + f0 + f5 + f8) * 0.25f, // 顶点0
+        (f2 + f0 + f4 + f8) * 0.25f, // 顶点1
+        (f2 + f1 + f6 + f8) * 0.25f, // 顶点2
+        (f3 + f1 + f7 + f8) * 0.25f  // 顶点3
     }};
 
     for (float& value : vertexAoColorMultiplier) {
@@ -353,14 +357,14 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(
     // i3 = centerPackedLight
 
     std::array<u32, 4> vertexBrightness;
-    vertexBrightness[0] = getAoBrightness(cornerPackedLight[3], cornerPackedLight[0],
-                                          diagonalPackedLight[1], centerPackedLight);
-    vertexBrightness[1] = getAoBrightness(cornerPackedLight[2], cornerPackedLight[0],
-                                          diagonalPackedLight[0], centerPackedLight);
-    vertexBrightness[2] = getAoBrightness(cornerPackedLight[2], cornerPackedLight[1],
-                                          diagonalPackedLight[2], centerPackedLight);
-    vertexBrightness[3] = getAoBrightness(cornerPackedLight[3], cornerPackedLight[1],
-                                          diagonalPackedLight[3], centerPackedLight);
+    vertexBrightness[0] =
+        getAoBrightness(cornerPackedLight[3], cornerPackedLight[0], diagonalPackedLight[1], centerPackedLight);
+    vertexBrightness[1] =
+        getAoBrightness(cornerPackedLight[2], cornerPackedLight[0], diagonalPackedLight[0], centerPackedLight);
+    vertexBrightness[2] =
+        getAoBrightness(cornerPackedLight[2], cornerPackedLight[1], diagonalPackedLight[2], centerPackedLight);
+    vertexBrightness[3] =
+        getAoBrightness(cornerPackedLight[3], cornerPackedLight[1], diagonalPackedLight[3], centerPackedLight);
 
     // ================================================================
     // 步骤8: 应用顶点映射
@@ -376,12 +380,8 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(
 }
 
 AmbientOcclusionCalculator::CornerSample AmbientOcclusionCalculator::samplePosition(
-    const ChunkData& chunk,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ChunkData* neighborChunks[6]
-) const {
+    const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]) const
+{
     CornerSample sample{};
 
     // 边界检查
@@ -450,18 +450,14 @@ AmbientOcclusionCalculator::CornerSample AmbientOcclusionCalculator::samplePosit
 }
 
 bool AmbientOcclusionCalculator::isTransparent(
-    const ChunkData& chunk,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ChunkData* neighborChunks[6]
-) const {
+    const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]) const
+{
     // 边界检查
     constexpr i32 SIZE = ChunkSection::SIZE;
 
     // Y边界
     if (y >= world::MAX_BUILD_HEIGHT || y < world::MIN_BUILD_HEIGHT) {
-        return true;  // 边界外视为透明
+        return true; // 边界外视为透明
     }
 
     // 确定采样区块
@@ -499,7 +495,7 @@ bool AmbientOcclusionCalculator::isTransparent(
     // 获取方块状态
     const BlockState* state = sampleChunk->getBlockState(localX, y, localZ);
     if (!state || state->isAir()) {
-        return true;  // 空气是透明的
+        return true; // 空气是透明的
     }
 
     // 参考 MC: state.getOpacity(world, pos) == 0
@@ -507,7 +503,8 @@ bool AmbientOcclusionCalculator::isTransparent(
     return state->getOpacity() == 0;
 }
 
-float AmbientOcclusionCalculator::getAoBrightness(const BlockState* state) {
+float AmbientOcclusionCalculator::getAoBrightness(const BlockState* state)
+{
     if (state == nullptr || state->isAir()) {
         // 空气或null，不产生阴影
         return 1.0f;
@@ -516,14 +513,16 @@ float AmbientOcclusionCalculator::getAoBrightness(const BlockState* state) {
     return state->getAmbientOcclusionLightValue();
 }
 
-bool AmbientOcclusionCalculator::hasOpaqueCollisionShape(const BlockState* state) {
+bool AmbientOcclusionCalculator::hasOpaqueCollisionShape(const BlockState* state)
+{
     if (state == nullptr || state->isAir()) {
         return false;
     }
     return state->hasOpaqueCollisionShape();
 }
 
-u32 AmbientOcclusionCalculator::getAoBrightness(u32 br1, u32 br2, u32 br3, u32 br4) {
+u32 AmbientOcclusionCalculator::getAoBrightness(u32 br1, u32 br2, u32 br3, u32 br4)
+{
     // 参考 MC: AmbientOcclusionFace#getAoBrightness
     // 如果值为0，使用中心亮度(br4)
     if (br1 == 0) br1 = br4;
@@ -532,56 +531,47 @@ u32 AmbientOcclusionCalculator::getAoBrightness(u32 br1, u32 br2, u32 br3, u32 b
 
     // MC原版: return br1 + br2 + br3 + br4 >> 2 & 16711935;
     // 我们的打包格式: skyLight << 20 | blockLight << 4
-    u32 skyBr = (((br1 >> 20) & 0xF) + ((br2 >> 20) & 0xF) +
-                 ((br3 >> 20) & 0xF) + ((br4 >> 20) & 0xF)) >> 2;
-    u32 blockBr = (((br1 >> 4) & 0xF) + ((br2 >> 4) & 0xF) +
-                   ((br3 >> 4) & 0xF) + ((br4 >> 4) & 0xF)) >> 2;
+    u32 skyBr = (((br1 >> 20) & 0xF) + ((br2 >> 20) & 0xF) + ((br3 >> 20) & 0xF) + ((br4 >> 20) & 0xF)) >> 2;
+    u32 blockBr = (((br1 >> 4) & 0xF) + ((br2 >> 4) & 0xF) + ((br3 >> 4) & 0xF) + ((br4 >> 4) & 0xF)) >> 2;
 
     return (skyBr << 20) | (blockBr << 4);
 }
 
-u32 AmbientOcclusionCalculator::packLight(u8 skyLight, u8 blockLight) {
+u32 AmbientOcclusionCalculator::packLight(u8 skyLight, u8 blockLight)
+{
     // 使用MC原版的打包格式: skyLight << 20 | blockLight << 4
     // 这样可以正确应用掩码操作
-    return (static_cast<u32>(skyLight & 0xF) << 20) |
-           (static_cast<u32>(blockLight & 0xF) << 4);
+    return (static_cast<u32>(skyLight & 0xF) << 20) | (static_cast<u32>(blockLight & 0xF) << 4);
 }
 
-u8 AmbientOcclusionCalculator::unpackSkyLight(u32 packed) {
+u8 AmbientOcclusionCalculator::unpackSkyLight(u32 packed)
+{
     return static_cast<u8>((packed >> 20) & 0xF);
 }
 
-u8 AmbientOcclusionCalculator::unpackBlockLight(u32 packed) {
+u8 AmbientOcclusionCalculator::unpackBlockLight(u32 packed)
+{
     return static_cast<u8>((packed >> 4) & 0xF);
 }
 
 u32 AmbientOcclusionCalculator::getVertexBrightness(
-    u32 b1, u32 b2, u32 b3, u32 b4,
-    float w1, float w2, float w3, float w4
-) {
+    u32 b1, u32 b2, u32 b3, u32 b4, float w1, float w2, float w3, float w4)
+{
     // 根据权重插值亮度
-    u32 sky = static_cast<u32>(
-        ((b1 >> 20) & 0xF) * w1 +
-        ((b2 >> 20) & 0xF) * w2 +
-        ((b3 >> 20) & 0xF) * w3 +
-        ((b4 >> 20) & 0xF) * w4
-    ) & 0xF;
+    u32 sky = static_cast<u32>(((b1 >> 20) & 0xF) * w1 + ((b2 >> 20) & 0xF) * w2 + ((b3 >> 20) & 0xF) * w3 +
+                  ((b4 >> 20) & 0xF) * w4) &
+        0xF;
 
     u32 block = static_cast<u32>(
-        ((b1 >> 4) & 0xF) * w1 +
-        ((b2 >> 4) & 0xF) * w2 +
-        ((b3 >> 4) & 0xF) * w3 +
-        ((b4 >> 4) & 0xF) * w4
-    ) & 0xF;
+                    ((b1 >> 4) & 0xF) * w1 + ((b2 >> 4) & 0xF) * w2 + ((b3 >> 4) & 0xF) * w3 + ((b4 >> 4) & 0xF) * w4) &
+        0xF;
 
     return (sky << 20) | (block << 4);
 }
 
 u32 AmbientOcclusionCalculator::getPackedLight(
-    const ChunkData& chunk,
-    i32 x, i32 y, i32 z,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+{
     constexpr i32 SIZE = ChunkSection::SIZE;
 
     if (y >= world::MAX_BUILD_HEIGHT) {
@@ -619,10 +609,7 @@ u32 AmbientOcclusionCalculator::getPackedLight(
         return packLight(15, 0);
     }
 
-    return packLight(
-        sampleChunk->getSkyLight(localX, y, localZ),
-        sampleChunk->getBlockLight(localX, y, localZ)
-    );
+    return packLight(sampleChunk->getSkyLight(localX, y, localZ), sampleChunk->getBlockLight(localX, y, localZ));
 }
 
 } // namespace renderer

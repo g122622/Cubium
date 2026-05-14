@@ -14,7 +14,8 @@ CodModel::CodModel()
     setupParts();
 }
 
-void CodModel::setupParts() {
+void CodModel::setupParts()
+{
     // 参考 MC 1.16.5 CodModel 构造函数
     // body: (-1, -2, 0) 到 (1, 2, 7), 纹理 (0, 0), 旋转点 (0, 22, 0)
     m_body = std::make_shared<ModelRenderer>("body");
@@ -70,13 +71,13 @@ void CodModel::setupParts() {
     m_parts.push_back(m_finTop);
 }
 
-void CodModel::render(f64 scale) {
+void CodModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void CodModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale) {
+void CodModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 CodModel.setRotationAngles
     // float f = 1.0F; if (!entityIn.isInWater()) { f = 1.5F; }
     // this.tail.rotateAngleY = -f * 0.45F * MathHelper.sin(0.6F * ageInTicks);
@@ -100,7 +101,8 @@ SalmonModel::SalmonModel()
     setupParts();
 }
 
-void SalmonModel::setupParts() {
+void SalmonModel::setupParts()
+{
     // 参考 MC 1.16.5 SalmonModel 构造函数
     // bodyFront: 纹理 (0, 0), (-1.5, -2.5, 0) 到 (1.5, 2.5, 8), 旋转点 (0, 20, 0)
     m_bodyFront = std::make_shared<ModelRenderer>("bodyFront");
@@ -163,13 +165,14 @@ void SalmonModel::setupParts() {
     m_parts.push_back(m_finLeft);
 }
 
-void SalmonModel::render(f64 scale) {
+void SalmonModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void SalmonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void SalmonModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 SalmonModel.setRotationAngles
     // float f = 1.0F; float f1 = 1.0F;
     // if (!entityIn.isInWater()) { f = 1.3F; f1 = 1.7F; }
@@ -191,11 +194,12 @@ void SalmonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 DolphinModel::DolphinModel()
     : EntityModel()
 {
-    setTextureSize(64, 64);  // Java: textureWidth = 64, textureHeight = 64
+    setTextureSize(64, 64); // Java: textureWidth = 64, textureHeight = 64
     setupParts();
 }
 
-void DolphinModel::setupParts() {
+void DolphinModel::setupParts()
+{
     // 参考 MC 1.16.5 DolphinModel 构造函数
     // body: textureOffset(22, 0), addBox(-4, -7, 0, 8, 7, 13), rotationPoint(0, 22, -5)
     m_body = std::make_shared<ModelRenderer>("body");
@@ -265,13 +269,14 @@ void DolphinModel::setupParts() {
     m_parts.push_back(m_body);
 }
 
-void DolphinModel::render(f64 scale) {
+void DolphinModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void DolphinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void DolphinModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 DolphinModel.setRotationAngles
     // body.rotateAngleX = headPitch * mc::math::PI_DOUBLE/180
     // body.rotateAngleY = netHeadYaw * mc::math::PI_DOUBLE/180
@@ -319,7 +324,8 @@ TurtleModel::TurtleModel(f32 scale)
     setupParts(scale);
 }
 
-void TurtleModel::setupParts(f32 scale) {
+void TurtleModel::setupParts(f32 scale)
+{
     // 参考 MC 1.16.5 TurtleModel 构造函数
     // 构造函数参数: QuadrupedModel(12, scale, true, 120.0F, 0.0F, 9.0F, 6.0F, 120)
     // 但我们直接在这里设置所有部件
@@ -348,7 +354,7 @@ void TurtleModel::setupParts(f32 scale) {
     m_pregnant->addBox(-4.5f, 3.0f, -14.0f, 9.0f, 18.0f, 1.0f, scale);
     m_pregnant->setRotationPoint(0.0f, 11.0f, -10.0f);
     m_pregnant->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
-    m_pregnant->setVisible(false);  // 默认隐藏
+    m_pregnant->setVisible(false); // 默认隐藏
     m_parts.push_back(m_pregnant);
 
     // 右后腿: textureOffset(1, 23), addBox(-2, 0, 0, 4, 1, 10), rotationPoint(-3.5, 22, 11)
@@ -380,22 +386,25 @@ void TurtleModel::setupParts(f32 scale) {
     m_parts.push_back(m_legFrontLeft);
 }
 
-void TurtleModel::render(f64 scale) {
+void TurtleModel::render(f64 scale)
+{
     // 如果有蛋且不是幼体，渲染怀孕腹部前先下移
     m_pregnant->setVisible(m_hasEgg && !m_isChild);
     EntityModel::render(scale);
 }
 
-void TurtleModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void TurtleModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 TurtleModel.setRotationAngles
     // 后腿 X 轴旋转
     m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6) * 0.5 * limbSwingAmount));
-    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + mc::math::PI_DOUBLE) * 0.5 * limbSwingAmount));
+    m_legBackLeft->setRotateAngleX(
+        static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + mc::math::PI_DOUBLE) * 0.5 * limbSwingAmount));
 
     // 前腿 Z 轴旋转（与后腿相反）
-    m_legFrontRight->setRotateAngleZ(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + mc::math::PI_DOUBLE) * 0.5 * limbSwingAmount));
+    m_legFrontRight->setRotateAngleZ(
+        static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + mc::math::PI_DOUBLE) * 0.5 * limbSwingAmount));
     m_legFrontLeft->setRotateAngleZ(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6) * 0.5 * limbSwingAmount));
 
     // 前腿 X 和 Y 轴旋转归零
@@ -415,13 +424,15 @@ void TurtleModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         f32 f1 = m_isDigging ? 2.0f : 1.0f;
 
         // 前腿 Y 轴旋转
-        m_legFrontRight->setRotateAngleY(static_cast<f32>(std::cos(f * limbSwing * 5.0 + mc::math::PI_DOUBLE) * 8.0 * limbSwingAmount * f1));
+        m_legFrontRight->setRotateAngleY(
+            static_cast<f32>(std::cos(f * limbSwing * 5.0 + mc::math::PI_DOUBLE) * 8.0 * limbSwingAmount * f1));
         m_legFrontLeft->setRotateAngleY(static_cast<f32>(std::cos(f * limbSwing * 5.0) * 8.0 * limbSwingAmount * f1));
         m_legFrontRight->setRotateAngleZ(0.0f);
         m_legFrontLeft->setRotateAngleZ(0.0f);
 
         // 后腿 Y 轴旋转
-        m_legBackRight->setRotateAngleY(static_cast<f32>(std::cos(limbSwing * 5.0 + mc::math::PI_DOUBLE) * 3.0 * limbSwingAmount));
+        m_legBackRight->setRotateAngleY(
+            static_cast<f32>(std::cos(limbSwing * 5.0 + mc::math::PI_DOUBLE) * 3.0 * limbSwingAmount));
         m_legBackLeft->setRotateAngleY(static_cast<f32>(std::cos(limbSwing * 5.0) * 3.0 * limbSwingAmount));
         m_legBackRight->setRotateAngleX(0.0f);
         m_legBackLeft->setRotateAngleX(0.0f);
@@ -437,7 +448,8 @@ void TurtleModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
 // ==================== AbstractTropicalFishModel ====================
 
-void AbstractTropicalFishModel::render(f64 scale) {
+void AbstractTropicalFishModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
@@ -456,7 +468,8 @@ TropicalFishAModel::TropicalFishAModel(f32 scale)
     m_parts.push_back(m_finTop);
 }
 
-void TropicalFishAModel::setupParts(f32 scale) {
+void TropicalFishAModel::setupParts(f32 scale)
+{
     // 参考 MC 1.16.5 TropicalFishAModel
     // body: textureOffset(0, 0), addBox(-1, -1.5, -3, 2, 3, 6, scale), rotationPoint(0, 22, 0)
     m_body = std::make_shared<ModelRenderer>("body");
@@ -493,9 +506,9 @@ void TropicalFishAModel::setupParts(f32 scale) {
     m_finTop->setRotationPoint(0.0f, 20.5f, -3.0f);
 }
 
-void TropicalFishAModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                    f64 ageInTicks, f64 netHeadYaw,
-                                    f64 headPitch, f64 scale) {
+void TropicalFishAModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // float f = 1.0F; if (!entityIn.isInWater()) { f = 1.5F; }
     // this.tail.rotateAngleY = -f * 0.45F * MathHelper.sin(0.6F * ageInTicks);
     f32 f = m_isInWater ? 1.0f : 1.5f;
@@ -524,7 +537,8 @@ TropicalFishBModel::TropicalFishBModel(f32 scale)
     m_parts.push_back(m_finBottom);
 }
 
-void TropicalFishBModel::setupParts(f32 scale) {
+void TropicalFishBModel::setupParts(f32 scale)
+{
     // 参考 MC 1.16.5 TropicalFishBModel
     // body: textureOffset(0, 20), addBox(-1, -3, -3, 2, 6, 6, scale), rotationPoint(0, 19, 0)
     m_body = std::make_shared<ModelRenderer>("body");
@@ -567,9 +581,9 @@ void TropicalFishBModel::setupParts(f32 scale) {
     m_finBottom->setRotationPoint(0.0f, 22.0f, -3.0f);
 }
 
-void TropicalFishBModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                    f64 ageInTicks, f64 netHeadYaw,
-                                    f64 headPitch, f64 scale) {
+void TropicalFishBModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // float f = 1.0F; if (!entityIn.isInWater()) { f = 1.5F; }
     // this.tail.rotateAngleY = -f * 0.45F * MathHelper.sin(0.6F * ageInTicks);
     f32 f = m_isInWater ? 1.0f : 1.5f;

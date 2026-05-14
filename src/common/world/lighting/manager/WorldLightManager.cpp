@@ -1,21 +1,19 @@
 #include "WorldLightManager.hpp"
-#include "../../chunk/IChunk.hpp"
-#include "../../chunk/ChunkData.hpp"
-#include "../../WorldConstants.hpp"
-#include "../../../util/assert/AssertAll.hpp"
 #include "../../../perfetto/TraceEvents.hpp"
+#include "../../../util/assert/AssertAll.hpp"
+#include "../../WorldConstants.hpp"
+#include "../../chunk/ChunkData.hpp"
+#include "../../chunk/IChunk.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc {
 
-WorldLightManager::WorldLightManager(
-    StarLightLightingProvider* provider,
-    bool hasBlockLight,
-    bool hasSkyLight)
+WorldLightManager::WorldLightManager(StarLightLightingProvider* provider, bool hasBlockLight, bool hasSkyLight)
     : m_provider(provider)
     , m_hasBlockLight(hasBlockLight)
-    , m_hasSkyLight(hasSkyLight) {
+    , m_hasSkyLight(hasSkyLight)
+{
 
     if (hasBlockLight) {
         m_blockLight = std::make_unique<BlockStarLightEngine>(provider);
@@ -30,13 +28,14 @@ WorldLightManager::WorldLightManager(
 // 光照操作
 // ============================================================================
 
-void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
+void WorldLightManager::checkBlock(i32 x, i32 y, i32 z)
+{
     MC_TRACE_EVENT("server.lighting",
         "WorldLightManager::checkBlock",
-        "pos", fmt::format("({}, {}, {})", x, y, z),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        fmt::format("({}, {}, {})", x, y, z),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -47,7 +46,7 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
     // 这会调用 propagateBlockChanges，对于天空光照会正确传播天空光
     std::vector<BlockPos> positions;
     positions.emplace_back(x, y, z);
-    std::vector<bool> changedSections;  // 空的，因为我们不知道段是否为空
+    std::vector<bool> changedSections; // 空的，因为我们不知道段是否为空
 
     if (m_skyLight != nullptr) {
         m_skyLight->blocksChangedInChunk(m_provider, chunkX, chunkZ, positions, changedSections);
@@ -58,14 +57,16 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
     }
 }
 
-void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel) {
+void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel)
+{
     MC_TRACE_EVENT("server.lighting",
         "WorldLightManager::onBlockEmissionIncrease",
-        "pos", fmt::format("({}, {}, {})", x, y, z),
-        "lightLevel", lightLevel,
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        fmt::format("({}, {}, {})", x, y, z),
+        "lightLevel",
+        lightLevel,
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -74,7 +75,8 @@ void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLe
     }
 }
 
-bool WorldLightManager::hasLightWork() const {
+bool WorldLightManager::hasLightWork() const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     bool skyHasWork = m_skyLight != nullptr && m_skyLight->hasWork();
@@ -83,11 +85,16 @@ bool WorldLightManager::hasLightWork() const {
     return skyHasWork || blockHasWork;
 }
 
-i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
-    MC_TRACE_EVENT("server.lighting", "WorldLightManager::tick",
-                   "maxUpdates", maxUpdates,
-                   "updateSkyLight", updateSkyLight,
-                   "updateBlockLight", updateBlockLight);
+i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight)
+{
+    MC_TRACE_EVENT("server.lighting",
+        "WorldLightManager::tick",
+        "maxUpdates",
+        maxUpdates,
+        "updateSkyLight",
+        updateSkyLight,
+        "updateBlockLight",
+        updateBlockLight);
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -110,14 +117,15 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
 // 区块段管理
 // ============================================================================
 
-void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
+{
     MC_TRACE_EVENT("server.lighting",
         "WorldLightManager::updateSectionStatus",
-        "sectionPos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        "isEmpty", isEmpty,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "sectionPos",
+        fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        "isEmpty",
+        isEmpty,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -130,20 +138,20 @@ void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
     }
 }
 
-void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable) {
+void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable)
+{
     MC_TRACE_EVENT("server.lighting",
         "WorldLightManager::enableLightSources",
-        "chunkPos", fmt::format("({}, {})", pos.x, pos.z),
-        "enable", enable,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "chunkPos",
+        fmt::format("({}, {})", pos.x, pos.z),
+        "enable",
+        enable,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     // 区块列位置编码
-    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 |
-                    (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
+    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
 
     if (m_blockLight != nullptr) {
         // 方块光照启用区块列
@@ -159,27 +167,32 @@ void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable) {
 // 光照访问
 // ============================================================================
 
-BlockStarLightEngine* WorldLightManager::getBlockLightEngine() {
+BlockStarLightEngine* WorldLightManager::getBlockLightEngine()
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_blockLight.get();
 }
 
-const BlockStarLightEngine* WorldLightManager::getBlockLightEngine() const {
+const BlockStarLightEngine* WorldLightManager::getBlockLightEngine() const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_blockLight.get();
 }
 
-SkyStarLightEngine* WorldLightManager::getSkyLightEngine() {
+SkyStarLightEngine* WorldLightManager::getSkyLightEngine()
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_skyLight.get();
 }
 
-const SkyStarLightEngine* WorldLightManager::getSkyLightEngine() const {
+const SkyStarLightEngine* WorldLightManager::getSkyLightEngine() const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_skyLight.get();
 }
 
-i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening) const {
+i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     i32 skyLight = 0;
@@ -196,7 +209,8 @@ i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening)
     return std::max(blockLight, skyLight);
 }
 
-u8 WorldLightManager::getBlockLight(i32 x, i32 y, i32 z) const {
+u8 WorldLightManager::getBlockLight(i32 x, i32 y, i32 z) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_blockLight != nullptr) {
@@ -205,7 +219,8 @@ u8 WorldLightManager::getBlockLight(i32 x, i32 y, i32 z) const {
     return 0;
 }
 
-u8 WorldLightManager::getSkyLight(i32 x, i32 y, i32 z) const {
+u8 WorldLightManager::getSkyLight(i32 x, i32 y, i32 z) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_skyLight != nullptr) {
@@ -218,11 +233,8 @@ u8 WorldLightManager::getSkyLight(i32 x, i32 y, i32 z) const {
 // 数据管理
 // ============================================================================
 
-void WorldLightManager::setData(
-    LightType type,
-    const SectionPos& pos,
-    const NibbleArray& array,
-    bool retain) {
+void WorldLightManager::setData(LightType type, const SectionPos& pos, const NibbleArray& array, bool retain)
+{
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -240,7 +252,8 @@ void WorldLightManager::setData(
     }
 }
 
-SWMRNibbleArray* WorldLightManager::getData(LightType type, const SectionPos& pos) {
+SWMRNibbleArray* WorldLightManager::getData(LightType type, const SectionPos& pos)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     switch (type) {
@@ -258,7 +271,8 @@ SWMRNibbleArray* WorldLightManager::getData(LightType type, const SectionPos& po
     return nullptr;
 }
 
-void WorldLightManager::retainData(const ChunkPos& pos, bool retain) {
+void WorldLightManager::retainData(const ChunkPos& pos, bool retain)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     // 通过存储层保留数据
@@ -271,13 +285,16 @@ void WorldLightManager::retainData(const ChunkPos& pos, bool retain) {
 // 区块光照初始化
 // ============================================================================
 
-void WorldLightManager::forceLoadInChunk(const IChunk* chunk, const std::vector<bool>& emptySections) {
+void WorldLightManager::forceLoadInChunk(const IChunk* chunk, const std::vector<bool>& emptySections)
+{
     if (chunk == nullptr) {
         return;
     }
 
-    MC_TRACE_EVENT("server.lighting", "WorldLightManager::forceLoadInChunk",
-                   "chunk", fmt::format("({}, {})", chunk->x(), chunk->z()));
+    MC_TRACE_EVENT("server.lighting",
+        "WorldLightManager::forceLoadInChunk",
+        "chunk",
+        fmt::format("({}, {})", chunk->x(), chunk->z()));
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -293,14 +310,18 @@ void WorldLightManager::forceLoadInChunk(const IChunk* chunk, const std::vector<
     }
 }
 
-void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks) {
+void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks)
+{
     if (chunk == nullptr) {
         return;
     }
 
-    MC_TRACE_EVENT("server.lighting", "WorldLightManager::lightChunk",
-                   "chunk", fmt::format("({}, {})", chunk->x(), chunk->z()),
-                   "needsEdgeChecks", needsEdgeChecks);
+    MC_TRACE_EVENT("server.lighting",
+        "WorldLightManager::lightChunk",
+        "chunk",
+        fmt::format("({}, {})", chunk->x(), chunk->z()),
+        "needsEdgeChecks",
+        needsEdgeChecks);
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -318,9 +339,10 @@ void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks) {
     enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
 }
 
-void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ) {
-    MC_TRACE_EVENT("server.lighting", "WorldLightManager::checkChunkEdges",
-                   "chunk", fmt::format("({}, {})", chunkX, chunkZ));
+void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ)
+{
+    MC_TRACE_EVENT(
+        "server.lighting", "WorldLightManager::checkChunkEdges", "chunk", fmt::format("({}, {})", chunkX, chunkZ));
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -337,10 +359,11 @@ void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ) {
 // 调试信息
 // ============================================================================
 
-std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& pos) const {
+std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& pos) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    (void)pos;  // 暂时未使用
+    (void)pos; // 暂时未使用
 
     switch (type) {
         case LightType::BLOCK:

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -41,9 +41,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 形状 ==========
 
@@ -51,7 +49,8 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -71,10 +70,7 @@ public:
      * @return 如果上方有水源则返回true
      */
     [[nodiscard]] bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const override;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     /**
      * @brief 检查是否可以使用骨粉
@@ -88,10 +84,7 @@ public:
      * @return 总是返回true（骨粉总是有效）
      */
     [[nodiscard]] bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
     /**
      * @brief 使用骨粉生长
@@ -103,11 +96,7 @@ public:
      * @param pos 方块位置
      * @param state 当前方块状态
      */
-    void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 流体状态 ==========
 

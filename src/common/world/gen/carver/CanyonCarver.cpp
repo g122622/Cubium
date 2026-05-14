@@ -1,9 +1,9 @@
 #include "CanyonCarver.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../../core/Constants.hpp"
-#include <cmath>
+#include "../../../util/math/random/Random.hpp"
+#include "../../block/BlockRegistry.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
@@ -13,7 +13,7 @@ namespace mc {
 
 CanyonCarver::CanyonCarver(i32 maxHeight)
     : WorldCarver<ProbabilityConfig>(maxHeight)
-    , m_heightThresholds(1024, 1.0f)  // MC 原版大小是 1024
+    , m_heightThresholds(1024, 1.0f) // MC 原版大小是 1024
 {
     initializeHeightThresholds();
 }
@@ -22,7 +22,7 @@ void CanyonCarver::initializeHeightThresholds()
 {
     // 参考 MC CanyonWorldCarver 构造函数
     // 为每个高度预计算半径变化因子
-    math::Random rng(0);  // 使用固定种子生成确定性阈值
+    math::Random rng(0); // 使用固定种子生成确定性阈值
 
     for (size_t i = 0; i < m_heightThresholds.size(); ++i) {
         if (i == 0 || rng.nextInt(3) == 0) {
@@ -39,16 +39,12 @@ void CanyonCarver::initializeHeightThresholds()
 }
 
 bool CanyonCarver::shouldCarve(
-    math::IRandom& rng,
-    ChunkCoord /*chunkX*/,
-    ChunkCoord /*chunkZ*/,
-    const ProbabilityConfig& config) const
+    math::IRandom& rng, ChunkCoord /*chunkX*/, ChunkCoord /*chunkZ*/, const ProbabilityConfig& config) const
 {
     return rng.nextFloat() <= config.probability;
 }
 
-bool CanyonCarver::carve(
-    ChunkPrimer& chunk,
+bool CanyonCarver::carve(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -57,9 +53,8 @@ bool CanyonCarver::carve(
     const ProbabilityConfig& config)
 {
     // 参考 MC CanyonWorldCarver.carveRegion
-    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
-                     static_cast<u64>(chunkZ) * 132897987541ULL +
-                     static_cast<u64>(m_maxHeight) + 1);
+    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
+        static_cast<u64>(m_maxHeight) + 1);
 
     if (!shouldCarve(rng, chunkX, chunkZ, config)) {
         return false;
@@ -86,12 +81,22 @@ bool CanyonCarver::carve(
     const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4 + 1);
 
     // 生成蜿蜒峡谷
-    generateCanyon(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                   static_cast<i64>(rng.nextU64()),
-                   canyonX, canyonY, canyonZ,
-                   radius, yaw, pitch,
-                   0, length, 3.0f,
-                   carvingMask);
+    generateCanyon(chunk,
+        biomeProvider,
+        seaLevel,
+        chunkX,
+        chunkZ,
+        static_cast<i64>(rng.nextU64()),
+        canyonX,
+        canyonY,
+        canyonZ,
+        radius,
+        yaw,
+        pitch,
+        0,
+        length,
+        3.0f,
+        carvingMask);
 
     return true;
 }
@@ -113,17 +118,20 @@ bool CanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) co
     return (dx * dx + dz * dz) * threshold + dy * dy / 6.0f >= 1.0f;
 }
 
-void CanyonCarver::generateCanyon(
-    ChunkPrimer& chunk,
+void CanyonCarver::generateCanyon(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
     i64 seed,
-    f32 startX, f32 startY, f32 startZ,
+    f32 startX,
+    f32 startY,
+    f32 startZ,
     f32 radius,
-    f32 yaw, f32 pitch,
-    i32 startIndex, i32 endIndex,
+    f32 yaw,
+    f32 pitch,
+    i32 startIndex,
+    i32 endIndex,
     f32 horizontalScale,
     CarvingMask& carvingMask)
 {
@@ -146,7 +154,8 @@ void CanyonCarver::generateCanyon(
 
     for (i32 i = startIndex; i < endIndex; ++i) {
         // 计算当前半径（正弦曲线变化）
-        // 参考 MC: double d0 = 1.5D + (double)(MathHelper.sin((float)j * (float)Math.PI / (float)p_227204_18_) * p_227204_14_) * d0;
+        // 参考 MC: double d0 = 1.5D + (double)(MathHelper.sin((float)j * (float)Math.PI / (float)p_227204_18_) *
+        // p_227204_14_) * d0;
         const f32 progress = static_cast<f32>(i) / static_cast<f32>(endIndex);
         const f32 sinProgress = std::sin(progress * math::PI);
         f32 horizontalRadius = radius * sinProgress;
@@ -192,20 +201,23 @@ void CanyonCarver::generateCanyon(
 
         // 检查是否在雕刻范围内
         if (isInCarvingRange(chunkX, chunkZ, startX, startZ, i, endIndex, radius)) {
-            carveEllipsoid(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                           startX, startY, startZ,
-                           horizontalRadius,
-                           verticalRadius,
-                           carvingMask, static_cast<i64>(rng.nextU64()));
+            carveEllipsoid(chunk,
+                biomeProvider,
+                seaLevel,
+                chunkX,
+                chunkZ,
+                startX,
+                startY,
+                startZ,
+                horizontalRadius,
+                verticalRadius,
+                carvingMask,
+                static_cast<i64>(rng.nextU64()));
         }
     }
 }
 
-f32 CanyonCarver::updateRadius(
-    f32 baseRadius,
-    f32 progress,
-    const std::vector<f32>& thresholds,
-    i32 index) const
+f32 CanyonCarver::updateRadius(f32 baseRadius, f32 progress, const std::vector<f32>& thresholds, i32 index) const
 {
     // 峡谷入口较宽，深处较窄
     const f32 factor = 1.0f - progress * 0.3f;

@@ -21,7 +21,8 @@ public:
     [[nodiscard]] f32 accelerationY() const { return m_accelerationY; }
     [[nodiscard]] f32 accelerationZ() const { return m_accelerationZ; }
 
-    void setAcceleration(f32 x, f32 y, f32 z) {
+    void setAcceleration(f32 x, f32 y, f32 z)
+    {
         m_accelerationX = x;
         m_accelerationY = y;
         m_accelerationZ = z;

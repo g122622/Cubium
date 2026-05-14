@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "Advancement.hpp"
 #include "AdvancementList.hpp"
-#include <memory>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
+#include <memory>
 
 namespace mc::advancement {
 
@@ -92,25 +92,19 @@ public:
     /**
      * @brief 遍历所有成就
      */
-    void forEach(std::function<bool(Advancement::Ptr)> callback) const {
-        m_list.forEach(std::move(callback));
-    }
+    void forEach(std::function<bool(Advancement::Ptr)> callback) const { m_list.forEach(std::move(callback)); }
 
     // ========== 监听器 ==========
 
     /**
      * @brief 添加成就变化监听器
      */
-    void addListener(AdvancementList::IListener* listener) {
-        m_list.addListener(listener);
-    }
+    void addListener(AdvancementList::IListener* listener) { m_list.addListener(listener); }
 
     /**
      * @brief 移除成就变化监听器
      */
-    void removeListener(AdvancementList::IListener* listener) {
-        m_list.removeListener(listener);
-    }
+    void removeListener(AdvancementList::IListener* listener) { m_list.removeListener(listener); }
 
     // ========== 热重载 ==========
 

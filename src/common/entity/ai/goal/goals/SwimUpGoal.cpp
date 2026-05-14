@@ -1,12 +1,12 @@
 #include "SwimUpGoal.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/Material.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Material.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/BlockPos.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -20,7 +20,8 @@ SwimUpGoal::SwimUpGoal(CreatureEntity* creature, f64 speed, i32 targetY)
     MC_ASSERT(creature != nullptr);
 }
 
-bool SwimUpGoal::shouldExecute() {
+bool SwimUpGoal::shouldExecute()
+{
     if (m_creature == nullptr) {
         return false;
     }
@@ -44,9 +45,8 @@ bool SwimUpGoal::shouldExecute() {
             return false;
         }
 
-        BlockPos pos(static_cast<i32>(m_creature->x()),
-                     static_cast<i32>(m_creature->y()),
-                     static_cast<i32>(m_creature->z()));
+        BlockPos pos(
+            static_cast<i32>(m_creature->x()), static_cast<i32>(m_creature->y()), static_cast<i32>(m_creature->z()));
         // 向上搜索水面
         for (i32 dy = 0; dy <= 10; ++dy) {
             BlockPos checkPos(pos.x, pos.y + dy, pos.z);
@@ -64,7 +64,8 @@ bool SwimUpGoal::shouldExecute() {
     return true;
 }
 
-bool SwimUpGoal::shouldContinueExecuting() {
+bool SwimUpGoal::shouldContinueExecuting()
+{
     if (m_creature == nullptr) {
         return false;
     }
@@ -87,7 +88,8 @@ bool SwimUpGoal::shouldContinueExecuting() {
     return m_active;
 }
 
-void SwimUpGoal::startExecuting() {
+void SwimUpGoal::startExecuting()
+{
     if (m_creature == nullptr) {
         return;
     }
@@ -101,13 +103,15 @@ void SwimUpGoal::startExecuting() {
     m_creature->tryMoveTo(currentX, static_cast<f64>(m_targetY), currentZ, m_speed);
 }
 
-void SwimUpGoal::resetTask() {
+void SwimUpGoal::resetTask()
+{
     m_active = false;
     m_timeoutCounter = 0;
     m_targetY = m_originalTargetY;
 }
 
-void SwimUpGoal::tick() {
+void SwimUpGoal::tick()
+{
     if (m_creature == nullptr) {
         return;
     }
@@ -124,7 +128,8 @@ void SwimUpGoal::tick() {
     }
 }
 
-bool SwimUpGoal::hasReachedTarget() const {
+bool SwimUpGoal::hasReachedTarget() const
+{
     if (m_creature == nullptr) {
         return true;
     }

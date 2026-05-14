@@ -1,10 +1,10 @@
 #include "AbstractFurnaceBlock.hpp"
-#include "../../blockentity/processing/AbstractFurnaceEntity.hpp"
-#include "../../IWorld.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/Direction.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../IWorld.hpp"
+#include "../../blockentity/processing/AbstractFurnaceEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,22 +12,24 @@ namespace blocks {
 // ========== 构造函数 ==========
 
 AbstractFurnaceBlock::AbstractFurnaceBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::LIT())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::LIT())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::LIT(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::LIT(), false));
 }
 
 // ========== 放置和更新 ==========
 
-BlockState AbstractFurnaceBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState AbstractFurnaceBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 熔炉朝向玩家的反方向
     Direction facing = context.horizontalDirection();
     Direction opposite = Directions::opposite(facing);
@@ -39,13 +41,13 @@ BlockState AbstractFurnaceBlock::getStateForPlacement(BlockItemUseContext& conte
 
 // ========== 交互 ==========
 
-ActionResultType AbstractFurnaceBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType AbstractFurnaceBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(state);
     MC_UNUSED(hand);
@@ -60,10 +62,8 @@ ActionResultType AbstractFurnaceBlock::onBlockActivated(
 
 // ========== 红石 ==========
 
-i32 AbstractFurnaceBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+i32 AbstractFurnaceBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -73,8 +73,7 @@ i32 AbstractFurnaceBlock::getComparatorInputOverride(
     }
 
     // 检查是否是熔炉实体
-    if (blockEntity->getType() != BlockEntityType::Furnace &&
-        blockEntity->getType() != BlockEntityType::BlastFurnace &&
+    if (blockEntity->getType() != BlockEntityType::Furnace && blockEntity->getType() != BlockEntityType::BlastFurnace &&
         blockEntity->getType() != BlockEntityType::Smoker) {
         return 0;
     }
@@ -85,13 +84,15 @@ i32 AbstractFurnaceBlock::getComparatorInputOverride(
 
 // ========== 旋转和镜像 ==========
 
-const BlockState& AbstractFurnaceBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& AbstractFurnaceBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& AbstractFurnaceBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& AbstractFurnaceBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     return rotate(state, rotation);
@@ -99,7 +100,8 @@ const BlockState& AbstractFurnaceBlock::mirror(const BlockState& state, Mirror m
 
 // ========== 静态工具方法 ==========
 
-bool AbstractFurnaceBlock::isLit(const BlockState& state) {
+bool AbstractFurnaceBlock::isLit(const BlockState& state)
+{
     return state.get(BlockStateProperties::LIT());
 }
 

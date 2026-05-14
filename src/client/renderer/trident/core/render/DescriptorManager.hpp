@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
+#include "common/core/Types.hpp"
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 

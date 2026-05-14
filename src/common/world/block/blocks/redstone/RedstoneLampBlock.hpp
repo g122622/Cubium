@@ -30,12 +30,13 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

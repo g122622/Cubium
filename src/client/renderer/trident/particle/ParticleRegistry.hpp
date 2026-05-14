@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ParticleTypes.hpp"
-#include "ParticleRenderType.hpp"
 #include "Particle.hpp"
-#include "data/ParticleData.hpp"
-#include "common/core/Types.hpp"
+#include "ParticleRenderType.hpp"
+#include "ParticleTypes.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "data/ParticleData.hpp"
 #include <unordered_map>
 #include <vector>
 
@@ -22,13 +22,13 @@ namespace mc::client::renderer::trident::particle {
  * 存储粒子类型的元数据。
  */
 struct ParticleTypeInfo {
-    ParticleTypeId id;                  ///< 类型 ID
-    std::string name;                         ///< 类型名称（如 "minecraft:flame"）
-    ParticleFactory factory;             ///< 工厂函数
-    ParticleRenderType defaultRenderType;///< 默认渲染类型
-    bool ignoreDistance;                 ///< 是否忽略距离限制
-    f64 defaultLifetime;                 ///< 默认生命周期（ticks）
-    bool hasPhysics;                     ///< 是否有物理碰撞
+    ParticleTypeId id;                    ///< 类型 ID
+    std::string name;                     ///< 类型名称（如 "minecraft:flame"）
+    ParticleFactory factory;              ///< 工厂函数
+    ParticleRenderType defaultRenderType; ///< 默认渲染类型
+    bool ignoreDistance;                  ///< 是否忽略距离限制
+    f64 defaultLifetime;                  ///< 默认生命周期（ticks）
+    bool hasPhysics;                      ///< 是否有物理碰撞
 };
 
 /**
@@ -85,8 +85,7 @@ public:
      * @param hasPhysics 是否有物理碰撞
      * @param ignoreDistance 是否忽略距离限制
      */
-    void registerType(
-        ParticleTypeId id,
+    void registerType(ParticleTypeId id,
         const std::string& name,
         ParticleFactory factory,
         ParticleRenderType defaultRenderType = ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
@@ -104,8 +103,7 @@ public:
      * @param factory 工厂函数（可以为 nullptr，用于仅注册元数据）
      * @param defaultRenderType 默认渲染类型
      */
-    void registerSimpleType(
-        ParticleTypeId id,
+    void registerSimpleType(ParticleTypeId id,
         const std::string& name,
         ParticleFactory factory,
         ParticleRenderType defaultRenderType = ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
@@ -123,8 +121,7 @@ public:
      * @param world 客户端世界（可选）
      * @return 粒子实例，如果类型无效返回 nullptr
      */
-    [[nodiscard]] std::unique_ptr<Particle> createParticle(
-        ParticleTypeId id,
+    [[nodiscard]] std::unique_ptr<Particle> createParticle(ParticleTypeId id,
         const glm::vec3& pos,
         const glm::vec3& velocity,
         mc::client::ClientWorld* world = nullptr) const;
@@ -138,8 +135,7 @@ public:
      * @param world 客户端世界（可选）
      * @return 粒子实例，如果名称无效返回 nullptr
      */
-    [[nodiscard]] std::unique_ptr<Particle> createParticle(
-        const std::string& name,
+    [[nodiscard]] std::unique_ptr<Particle> createParticle(const std::string& name,
         const glm::vec3& pos,
         const glm::vec3& velocity,
         mc::client::ClientWorld* world = nullptr) const;

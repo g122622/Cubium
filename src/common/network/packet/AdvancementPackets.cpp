@@ -6,7 +6,8 @@ namespace mc {
 // AdvancementDisplayData 实现
 // ============================================================================
 
-void AdvancementDisplayData::serialize(network::PacketSerializer& ser) const {
+void AdvancementDisplayData::serialize(network::PacketSerializer& ser) const
+{
     // 图标物品
     icon.serialize(ser);
 
@@ -32,7 +33,8 @@ void AdvancementDisplayData::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<AdvancementDisplayData> AdvancementDisplayData::deserialize(network::PacketDeserializer& deser) {
+Result<AdvancementDisplayData> AdvancementDisplayData::deserialize(network::PacketDeserializer& deser)
+{
     AdvancementDisplayData data;
 
     // 图标物品
@@ -92,7 +94,8 @@ Result<AdvancementDisplayData> AdvancementDisplayData::deserialize(network::Pack
 // AdvancementRewardsData 实现
 // ============================================================================
 
-void AdvancementRewardsData::serialize(network::PacketSerializer& ser) const {
+void AdvancementRewardsData::serialize(network::PacketSerializer& ser) const
+{
     // 经验值
     ser.writeVarUInt(experience);
 
@@ -116,7 +119,8 @@ void AdvancementRewardsData::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<AdvancementRewardsData> AdvancementRewardsData::deserialize(network::PacketDeserializer& deser) {
+Result<AdvancementRewardsData> AdvancementRewardsData::deserialize(network::PacketDeserializer& deser)
+{
     AdvancementRewardsData data;
 
     // 经验值
@@ -176,7 +180,8 @@ Result<AdvancementRewardsData> AdvancementRewardsData::deserialize(network::Pack
 // AdvancementData 实现
 // ============================================================================
 
-void AdvancementData::serialize(network::PacketSerializer& ser) const {
+void AdvancementData::serialize(network::PacketSerializer& ser) const
+{
     // 成就ID
     ser.writeString(id.toString());
 
@@ -218,7 +223,8 @@ void AdvancementData::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<AdvancementData> AdvancementData::deserialize(network::PacketDeserializer& deser) {
+Result<AdvancementData> AdvancementData::deserialize(network::PacketDeserializer& deser)
+{
     AdvancementData data;
 
     // 成就ID
@@ -318,7 +324,8 @@ Result<AdvancementData> AdvancementData::deserialize(network::PacketDeserializer
 // CriterionProgressData 实现
 // ============================================================================
 
-void CriterionProgressData::serialize(network::PacketSerializer& ser) const {
+void CriterionProgressData::serialize(network::PacketSerializer& ser) const
+{
     ser.writeString(criterionName);
     bool hasObtained = obtainedTime.has_value();
     ser.writeBool(hasObtained);
@@ -327,7 +334,8 @@ void CriterionProgressData::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<CriterionProgressData> CriterionProgressData::deserialize(network::PacketDeserializer& deser) {
+Result<CriterionProgressData> CriterionProgressData::deserialize(network::PacketDeserializer& deser)
+{
     CriterionProgressData data;
 
     auto nameResult = deser.readString();
@@ -355,7 +363,8 @@ Result<CriterionProgressData> CriterionProgressData::deserialize(network::Packet
 // AdvancementProgressData 实现
 // ============================================================================
 
-void AdvancementProgressData::serialize(network::PacketSerializer& ser) const {
+void AdvancementProgressData::serialize(network::PacketSerializer& ser) const
+{
     ser.writeString(advancementId.toString());
 
     ser.writeVarUInt(static_cast<u32>(criteria.size()));
@@ -364,7 +373,8 @@ void AdvancementProgressData::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<AdvancementProgressData> AdvancementProgressData::deserialize(network::PacketDeserializer& deser) {
+Result<AdvancementProgressData> AdvancementProgressData::deserialize(network::PacketDeserializer& deser)
+{
     AdvancementProgressData data;
 
     auto idResult = deser.readString();
@@ -394,7 +404,8 @@ Result<AdvancementProgressData> AdvancementProgressData::deserialize(network::Pa
 // AdvancementInfoPacket 实现
 // ============================================================================
 
-void AdvancementInfoPacket::serialize(network::PacketSerializer& ser) const {
+void AdvancementInfoPacket::serialize(network::PacketSerializer& ser) const
+{
     // 是否首次同步
     ser.writeBool(m_firstSync);
 
@@ -417,7 +428,8 @@ void AdvancementInfoPacket::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<AdvancementInfoPacket> AdvancementInfoPacket::deserialize(network::PacketDeserializer& deser) {
+Result<AdvancementInfoPacket> AdvancementInfoPacket::deserialize(network::PacketDeserializer& deser)
+{
     AdvancementInfoPacket packet;
 
     // 是否首次同步
@@ -478,7 +490,8 @@ Result<AdvancementInfoPacket> AdvancementInfoPacket::deserialize(network::Packet
 // SelectAdvancementTabPacket 实现
 // ============================================================================
 
-void SelectAdvancementTabPacket::serialize(network::PacketSerializer& ser) const {
+void SelectAdvancementTabPacket::serialize(network::PacketSerializer& ser) const
+{
     bool hasTab = m_tab.has_value();
     ser.writeBool(hasTab);
     if (hasTab) {
@@ -486,7 +499,8 @@ void SelectAdvancementTabPacket::serialize(network::PacketSerializer& ser) const
     }
 }
 
-Result<SelectAdvancementTabPacket> SelectAdvancementTabPacket::deserialize(network::PacketDeserializer& deser) {
+Result<SelectAdvancementTabPacket> SelectAdvancementTabPacket::deserialize(network::PacketDeserializer& deser)
+{
     SelectAdvancementTabPacket packet;
 
     auto hasTabResult = deser.readBool();
@@ -508,7 +522,8 @@ Result<SelectAdvancementTabPacket> SelectAdvancementTabPacket::deserialize(netwo
 // SeenAdvancementsPacket 实现
 // ============================================================================
 
-void SeenAdvancementsPacket::serialize(network::PacketSerializer& ser) const {
+void SeenAdvancementsPacket::serialize(network::PacketSerializer& ser) const
+{
     ser.writeU8(static_cast<u8>(m_action));
 
     if (m_action == AdvancementAction::OpenedTab && m_tab.has_value()) {
@@ -516,7 +531,8 @@ void SeenAdvancementsPacket::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<SeenAdvancementsPacket> SeenAdvancementsPacket::deserialize(network::PacketDeserializer& deser) {
+Result<SeenAdvancementsPacket> SeenAdvancementsPacket::deserialize(network::PacketDeserializer& deser)
+{
     SeenAdvancementsPacket packet;
 
     auto actionResult = deser.readU8();

@@ -1,24 +1,24 @@
 #pragma once
 
-#include "Screen.hpp"
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/Types.hpp"
 #include "../../../renderer/util/GpuInfo.hpp"
-#include <vector>
-#include <functional>
+#include "../../kagero/Types.hpp"
+#include "../../kagero/paint/PaintContext.hpp"
+#include "Screen.hpp"
 #include <chrono>
+#include <functional>
+#include <vector>
 
 namespace mc {
 class Player;
 class BlockRaycastResult;
-}
+} // namespace mc
 
 namespace mc::client {
 class Camera;
 class ClientWorld;
 class ClientEntityManager;
 class NetworkClient;
-}
+} // namespace mc::client
 
 namespace mc::client::ui::minecraft {
 

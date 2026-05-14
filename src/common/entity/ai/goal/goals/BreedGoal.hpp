@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
+#include "../Goal.hpp"
 
 namespace mc {
 
@@ -52,7 +52,7 @@ protected:
     AnimalEntity* m_targetMate = nullptr;
     i32 m_spawnBabyDelay = 0;
 
-    static constexpr i32 SPAWN_BABY_DELAY = 60; // 繁殖延迟（ticks）
+    static constexpr i32 SPAWN_BABY_DELAY = 60;    // 繁殖延迟（ticks）
     static constexpr f32 MATE_SEARCH_RANGE = 8.0f; // 配偶搜索范围
 };
 

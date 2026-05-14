@@ -1,22 +1,24 @@
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "server/stats/Stat.hpp"
 #include "server/stats/StatType.hpp"
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/util/nbt/Nbt.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include <unordered_map>
-#include <string>
 #include <functional>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 
 namespace mc {
 namespace server {
 
 // Forward declarations
 class ServerPlayer;
-namespace core { class PlayerManager; }
+namespace core {
+class PlayerManager;
+}
 
 namespace stats {
 
@@ -94,9 +96,7 @@ public:
      * @param id 统计ID
      * @param delta 减量（默认为1）
      */
-    void decrement(StatType type, const ResourceLocation& id, ValueType delta = 1) {
-        increment(type, id, -delta);
-    }
+    void decrement(StatType type, const ResourceLocation& id, ValueType delta = 1) { increment(type, id, -delta); }
 
     /**
      * @brief 重置统计值
@@ -152,9 +152,7 @@ public:
      *
      * @param blockId 方块ID
      */
-    void incrementMined(const ResourceLocation& blockId) {
-        increment(StatType::Mined, blockId);
-    }
+    void incrementMined(const ResourceLocation& blockId) { increment(StatType::Mined, blockId); }
 
     /**
      * @brief 增加合成统计
@@ -162,7 +160,8 @@ public:
      * @param itemId 物品ID
      * @param count 数量
      */
-    void incrementCrafted(const ResourceLocation& itemId, ValueType count = 1) {
+    void incrementCrafted(const ResourceLocation& itemId, ValueType count = 1)
+    {
         increment(StatType::Crafted, itemId, count);
     }
 
@@ -171,18 +170,14 @@ public:
      *
      * @param itemId 物品ID
      */
-    void incrementUsed(const ResourceLocation& itemId) {
-        increment(StatType::Used, itemId);
-    }
+    void incrementUsed(const ResourceLocation& itemId) { increment(StatType::Used, itemId); }
 
     /**
      * @brief 增加损坏统计
      *
      * @param itemId 物品ID
      */
-    void incrementBroken(const ResourceLocation& itemId) {
-        increment(StatType::Broken, itemId);
-    }
+    void incrementBroken(const ResourceLocation& itemId) { increment(StatType::Broken, itemId); }
 
     /**
      * @brief 增加拾取统计
@@ -190,7 +185,8 @@ public:
      * @param itemId 物品ID
      * @param count 数量
      */
-    void incrementPickedUp(const ResourceLocation& itemId, ValueType count = 1) {
+    void incrementPickedUp(const ResourceLocation& itemId, ValueType count = 1)
+    {
         increment(StatType::PickedUp, itemId, count);
     }
 
@@ -200,7 +196,8 @@ public:
      * @param itemId 物品ID
      * @param count 数量
      */
-    void incrementDropped(const ResourceLocation& itemId, ValueType count = 1) {
+    void incrementDropped(const ResourceLocation& itemId, ValueType count = 1)
+    {
         increment(StatType::Dropped, itemId, count);
     }
 
@@ -209,18 +206,14 @@ public:
      *
      * @param entityId 实体ID
      */
-    void incrementKilled(const ResourceLocation& entityId) {
-        increment(StatType::Killed, entityId);
-    }
+    void incrementKilled(const ResourceLocation& entityId) { increment(StatType::Killed, entityId); }
 
     /**
      * @brief 增加被击杀统计
      *
      * @param entityId 实体ID
      */
-    void incrementKilledBy(const ResourceLocation& entityId) {
-        increment(StatType::KilledBy, entityId);
-    }
+    void incrementKilledBy(const ResourceLocation& entityId) { increment(StatType::KilledBy, entityId); }
 
     /**
      * @brief 增加自定义统计
@@ -228,7 +221,8 @@ public:
      * @param statId 统计ID
      * @param delta 增量
      */
-    void incrementCustom(const ResourceLocation& statId, ValueType delta = 1) {
+    void incrementCustom(const ResourceLocation& statId, ValueType delta = 1)
+    {
         increment(StatType::Custom, statId, delta);
     }
 

@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
 #include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/packet/Packet.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/connection/LocalConnection.hpp"
+#include "common/network/connection/LocalServerConnection.hpp"
+#include "common/network/packet/Packet.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "server/core/PlayerManager.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::server::core;
 using namespace mc::network;
@@ -15,20 +15,23 @@ using namespace mc::network;
  */
 class ConnectionManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_connectionPair = std::make_unique<LocalConnectionPair>();
         m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
         m_connectionManager = std::make_unique<ConnectionManager>(*m_playerManager);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_connectionManager.reset();
         m_playerManager.reset();
         m_connectionPair.reset();
     }
 
-    ConnectionPtr createConnection() {
+    ConnectionPtr createConnection()
+    {
         return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
@@ -37,7 +40,8 @@ protected:
     std::unique_ptr<ConnectionManager> m_connectionManager;
 };
 
-TEST_F(ConnectionManagerTest, SendToPlayer) {
+TEST_F(ConnectionManagerTest, SendToPlayer)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -48,7 +52,8 @@ TEST_F(ConnectionManagerTest, SendToPlayer) {
     EXPECT_FALSE(m_connectionManager->sendToPlayer(999, data.data(), data.size()));
 }
 
-TEST_F(ConnectionManagerTest, SendPacketToPlayer) {
+TEST_F(ConnectionManagerTest, SendPacketToPlayer)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -56,7 +61,8 @@ TEST_F(ConnectionManagerTest, SendPacketToPlayer) {
     EXPECT_TRUE(m_connectionManager->sendPacketToPlayer(1, PacketType::KeepAlive, payload));
 }
 
-TEST_F(ConnectionManagerTest, Broadcast) {
+TEST_F(ConnectionManagerTest, Broadcast)
+{
     auto conn1 = createConnection();
     auto conn2 = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
@@ -67,7 +73,8 @@ TEST_F(ConnectionManagerTest, Broadcast) {
     m_connectionManager->broadcast(data.data(), data.size());
 }
 
-TEST_F(ConnectionManagerTest, BroadcastExcept) {
+TEST_F(ConnectionManagerTest, BroadcastExcept)
+{
     auto conn1 = createConnection();
     auto conn2 = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
@@ -78,7 +85,8 @@ TEST_F(ConnectionManagerTest, BroadcastExcept) {
     m_connectionManager->broadcastExcept(1, data.data(), data.size());
 }
 
-TEST_F(ConnectionManagerTest, BroadcastPacket) {
+TEST_F(ConnectionManagerTest, BroadcastPacket)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -86,7 +94,8 @@ TEST_F(ConnectionManagerTest, BroadcastPacket) {
     m_connectionManager->broadcastPacket(PacketType::KeepAlive, payload);
 }
 
-TEST_F(ConnectionManagerTest, DisconnectPlayer) {
+TEST_F(ConnectionManagerTest, DisconnectPlayer)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -97,7 +106,8 @@ TEST_F(ConnectionManagerTest, DisconnectPlayer) {
     EXPECT_FALSE(m_playerManager->hasPlayer(1));
 }
 
-TEST_F(ConnectionManagerTest, DisconnectAll) {
+TEST_F(ConnectionManagerTest, DisconnectAll)
+{
     auto conn1 = createConnection();
     auto conn2 = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
@@ -110,7 +120,8 @@ TEST_F(ConnectionManagerTest, DisconnectAll) {
     EXPECT_EQ(m_playerManager->playerCount(), 0u);
 }
 
-TEST_F(ConnectionManagerTest, CleanupDisconnectedPlayers) {
+TEST_F(ConnectionManagerTest, CleanupDisconnectedPlayers)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -123,7 +134,8 @@ TEST_F(ConnectionManagerTest, CleanupDisconnectedPlayers) {
     EXPECT_EQ(m_playerManager->playerCount(), 0u);
 }
 
-TEST_F(ConnectionManagerTest, EncapsulatePacket) {
+TEST_F(ConnectionManagerTest, EncapsulatePacket)
+{
     std::vector<mc::u8> payload = {1, 2, 3, 4, 5};
     auto packet = ConnectionManager::encapsulatePacket(PacketType::KeepAlive, payload);
 

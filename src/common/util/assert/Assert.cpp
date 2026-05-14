@@ -1,19 +1,19 @@
 #include "Assert.hpp"
-#include <iostream>
-#include <iomanip>
 #include <cstdlib>
 #include <cstring>
+#include <iomanip>
+#include <iostream>
 
 #include "common/perfetto/PerfettoManager.hpp"
 
 #ifdef _WIN32
-    #include <Windows.h>
-    #include <DbgHelp.h>
-    #pragma comment(lib, "dbghelp.lib")
+#include <DbgHelp.h>
+#include <Windows.h>
+#pragma comment(lib, "dbghelp.lib")
 #elif defined(__linux__) || defined(__APPLE__)
-    #include <execinfo.h>
-    #include <unistd.h>
-    #include <cxxabi.h>
+#include <cxxabi.h>
+#include <execinfo.h>
+#include <unistd.h>
 #endif
 
 namespace mc::assert {
@@ -22,27 +22,25 @@ namespace mc::assert {
 // AssertManager
 // ============================================================================
 
-AssertManager& AssertManager::instance() {
+AssertManager& AssertManager::instance()
+{
     static AssertManager instance;
     return instance;
 }
 
-void AssertManager::setConfig(const AssertConfig& config) {
+void AssertManager::setConfig(const AssertConfig& config)
+{
     m_config = config;
 }
 
-void AssertManager::setHandler(AssertHandler handler) {
+void AssertManager::setHandler(AssertHandler handler)
+{
     m_config.handler = std::move(handler);
 }
 
 void AssertManager::handleFailure(
-    const char* expression,
-    const char* message,
-    const char* file,
-    i32 line,
-    const char* function,
-    AssertLevel level
-) {
+    const char* expression, const char* message, const char* file, i32 line, const char* function, AssertLevel level)
+{
     AssertFailure failure;
     failure.expression = expression ? expression : "";
     failure.message = message ? message : "";
@@ -76,12 +74,8 @@ void AssertManager::handleFailure(
 }
 
 bool AssertManager::handleRecoverableFailure(
-    const char* expression,
-    const char* message,
-    const char* file,
-    i32 line,
-    const char* function
-) {
+    const char* expression, const char* message, const char* file, i32 line, const char* function)
+{
     AssertFailure failure;
     failure.expression = expression ? expression : "";
     failure.message = message ? message : "";
@@ -111,7 +105,8 @@ bool AssertManager::handleRecoverableFailure(
     return m_config.continueExecution;
 }
 
-std::string AssertManager::captureStackTrace() const {
+std::string AssertManager::captureStackTrace() const
+{
     std::ostringstream oss;
     oss << "Stack trace:\n";
 
@@ -122,9 +117,7 @@ std::string AssertManager::captureStackTrace() const {
     USHORT frames = CaptureStackBackTrace(2, MAX_FRAMES, stack, nullptr);
 
     HANDLE process = GetCurrentProcess();
-    SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(
-        malloc(sizeof(SYMBOL_INFO) + 256)
-    );
+    SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(malloc(sizeof(SYMBOL_INFO) + 256));
     symbol->MaxNameLen = 255;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
@@ -200,7 +193,8 @@ std::string AssertManager::captureStackTrace() const {
 // 默认断言处理器
 // ============================================================================
 
-[[noreturn]] void defaultAssertHandler(const AssertFailure& failure) {
+[[noreturn]] void defaultAssertHandler(const AssertFailure& failure)
+{
     std::cerr << "\n";
     std::cerr << "========================================\n";
     std::cerr << "            ASSERTION FAILED            \n";
@@ -234,7 +228,8 @@ std::string AssertManager::captureStackTrace() const {
 // 日志断言处理器
 // ============================================================================
 
-[[noreturn]] void logAssertHandler(const AssertFailure& failure) {
+[[noreturn]] void logAssertHandler(const AssertFailure& failure)
+{
     // 如果 spdlog 可用，使用它；否则回退到 stderr
     // 这里简单使用 stderr，实际项目中可以集成 spdlog
     std::cerr << "[ASSERT] Assertion failed: " << failure.expression;
@@ -243,8 +238,7 @@ std::string AssertManager::captureStackTrace() const {
         std::cerr << " - " << failure.message;
     }
 
-    std::cerr << " at " << failure.file << ":" << failure.line
-              << " in " << failure.function << std::endl;
+    std::cerr << " at " << failure.file << ":" << failure.line << " in " << failure.function << std::endl;
 
     std::abort();
 }
@@ -253,7 +247,8 @@ std::string AssertManager::captureStackTrace() const {
 // 异常断言处理器
 // ============================================================================
 
-[[noreturn]] void throwAssertHandler(const AssertFailure& failure) {
+[[noreturn]] void throwAssertHandler(const AssertFailure& failure)
+{
     throw AssertException(failure);
 }
 
@@ -262,7 +257,8 @@ std::string AssertManager::captureStackTrace() const {
 // ============================================================================
 
 AssertException::AssertException(const AssertFailure& failure)
-    : m_failure(failure) {
+    : m_failure(failure)
+{
     std::ostringstream oss;
     oss << "Assertion failed: " << failure.expression;
 
@@ -270,8 +266,7 @@ AssertException::AssertException(const AssertFailure& failure)
         oss << " - " << failure.message;
     }
 
-    oss << " at " << failure.file << ":" << failure.line
-        << " in " << failure.function;
+    oss << " at " << failure.file << ":" << failure.line << " in " << failure.function;
 
     m_what = oss.str();
 }
@@ -283,12 +278,8 @@ AssertException::AssertException(const AssertFailure& failure)
 namespace detail {
 
 std::string formatFailureMessage(
-    const char* expression,
-    const char* message,
-    const char* file,
-    i32 line,
-    const char* function
-) {
+    const char* expression, const char* message, const char* file, i32 line, const char* function)
+{
     std::ostringstream oss;
     oss << "Assertion failed: " << (expression ? expression : "???");
 

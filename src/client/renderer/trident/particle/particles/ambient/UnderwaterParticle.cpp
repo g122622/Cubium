@@ -20,15 +20,14 @@ UnderwaterParticle::UnderwaterParticle(const glm::vec3& pos, const glm::vec3& ve
 }
 
 std::unique_ptr<Particle> UnderwaterParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<UnderwaterParticle>(pos, velocity);
 }
 
-void UnderwaterParticle::tick(mc::client::ClientWorld* world) {
+void UnderwaterParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

@@ -11,14 +11,15 @@ SquidModel::SquidModel()
     setupParts();
 }
 
-void SquidModel::setupParts() {
+void SquidModel::setupParts()
+{
     // 参考 MC 1.16.5 SquidModel
 
     // 身体
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(0, 0);
     m_body->addBox(-6.0f, -8.0f, -6.0f, 12.0f, 16.0f, 12.0f);
-    m_body->setRotationPoint(0.0f, 8.0f, 0.0f);  // Java: rotationPointY += 8.0F
+    m_body->setRotationPoint(0.0f, 8.0f, 0.0f); // Java: rotationPointY += 8.0F
     m_parts.push_back(m_body);
 
     // 8 条触手
@@ -35,8 +36,8 @@ void SquidModel::setupParts() {
 
         // 计算位置 - 注意 cos 用于 X，sin 用于 Z
         f64 d0 = static_cast<f64>(i) * mc::math::PI * 2.0 / 8.0;
-        f32 x = static_cast<f32>(std::cos(d0) * 5.0);  // Java: cos(d0) * 5.0
-        f32 z = static_cast<f32>(std::sin(d0) * 5.0);  // Java: sin(d0) * 5.0
+        f32 x = static_cast<f32>(std::cos(d0) * 5.0); // Java: cos(d0) * 5.0
+        f32 z = static_cast<f32>(std::sin(d0) * 5.0); // Java: sin(d0) * 5.0
 
         // 触手长度为 18，不是 8
         m_tentacles[i]->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 18.0f, 2.0f);
@@ -50,13 +51,13 @@ void SquidModel::setupParts() {
     }
 }
 
-void SquidModel::render(f64 scale) {
+void SquidModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void SquidModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 ageInTicks, f64 netHeadYaw,
-                            f64 headPitch, f64 scale) {
+void SquidModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 SquidModel.setRotationAngles
     // Java: modelrenderer.rotateAngleX = ageInTicks;
     // 触手动画直接使用 ageInTicks 作为 X 旋转角度

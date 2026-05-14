@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Biome.hpp"
+#include "../../core/Types.hpp"
 #include "../chunk/IChunk.hpp"
 #include "../gen/noise/OctavesNoiseGenerator.hpp"
-#include "../../core/Types.hpp"
-#include <memory>
-#include <random>
+#include "Biome.hpp"
 #include <functional>
+#include <memory>
 #include <optional>
+#include <random>
 
 namespace mc {
 
@@ -92,8 +92,8 @@ public:
      * @param height 高度（Z 方向）
      * @param output 输出数组（大小必须 >= width * height）
      */
-    virtual void getBiomesBatch(i32 startX, i32 startY, i32 startZ, i32 width, i32 height,
-                                 BiomeId* output) const {
+    virtual void getBiomesBatch(i32 startX, i32 startY, i32 startZ, i32 width, i32 height, BiomeId* output) const
+    {
         if (output == nullptr || width <= 0 || height <= 0) {
             return;
         }
@@ -117,8 +117,9 @@ public:
      * @param height 高度（Z 方向）
      * @param output 输出数组（大小必须 >= width * height）
      */
-    virtual void getNoiseBiomesBatch(i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ,
-                                      i32 width, i32 height, BiomeId* output) const {
+    virtual void getNoiseBiomesBatch(
+        i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ, i32 width, i32 height, BiomeId* output) const
+    {
         if (output == nullptr || width <= 0 || height <= 0) {
             return;
         }
@@ -150,8 +151,7 @@ public:
      * @param stopOnFirst 找到第一个匹配即返回（不随机选择）
      * @return 找到的位置，如果未找到返回 std::nullopt
      */
-    [[nodiscard]] std::optional<BlockPos> findBiome(
-        i32 centerX,
+    [[nodiscard]] std::optional<BlockPos> findBiome(i32 centerX,
         i32 centerY,
         i32 centerZ,
         i32 radius,

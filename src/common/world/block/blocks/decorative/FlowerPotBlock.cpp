@@ -11,26 +11,24 @@ FlowerPotBlock::FlowerPotBlock(const BlockProperties& properties, u32 content)
 {
     // 花盆形状：底部圆形 + 顶部边缘
     // 简化为单个盒子
-    m_shape = CollisionShape::box(5.0f / 16.0f, 0.0f, 5.0f / 16.0f,
-                                   11.0f / 16.0f, 6.0f / 16.0f, 11.0f / 16.0f);
-    m_collisionShape = CollisionShape::box(5.0f / 16.0f, 0.0f, 5.0f / 16.0f,
-                                            11.0f / 16.0f, 6.0f / 16.0f, 11.0f / 16.0f);
+    m_shape = CollisionShape::box(5.0f / 16.0f, 0.0f, 5.0f / 16.0f, 11.0f / 16.0f, 6.0f / 16.0f, 11.0f / 16.0f);
+    m_collisionShape =
+        CollisionShape::box(5.0f / 16.0f, 0.0f, 5.0f / 16.0f, 11.0f / 16.0f, 6.0f / 16.0f, 11.0f / 16.0f);
 }
 
-const CollisionShape& FlowerPotBlock::getShape(const BlockState& state) const {
+const CollisionShape& FlowerPotBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& FlowerPotBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& FlowerPotBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_collisionShape;
 }
 
-bool FlowerPotBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const
+bool FlowerPotBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
     // 参考 MC 1.16.5: FlowerPotBlock 继承自 Block，默认 isValidPosition 返回 true
@@ -39,8 +37,7 @@ bool FlowerPotBlock::isValidPosition(
     return true;
 }
 
-BlockState FlowerPotBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState FlowerPotBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,

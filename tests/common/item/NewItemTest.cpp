@@ -1,18 +1,18 @@
-#include <gtest/gtest.h>
+#include "core/Constants.hpp"
 #include "item/Items.hpp"
-#include "item/core/ItemStack.hpp"
 #include "item/core/ItemRegistry.hpp"
-#include "item/items/tool/ShearsItem.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/items/special/EnchantedBookItem.hpp"
 #include "item/items/special/FlintAndSteelItem.hpp"
 #include "item/items/special/MilkBucketItem.hpp"
-#include "item/items/special/EnchantedBookItem.hpp"
+#include "item/items/tool/ShearsItem.hpp"
+#include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
-#include "world/IWorld.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "core/Constants.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -22,18 +22,18 @@ using namespace mc;
 
 class ShearsItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(ShearsItemTest, ShearsRegistered) {
+TEST_F(ShearsItemTest, ShearsRegistered)
+{
     Item* shears = ItemRegistry::instance().getItem(ResourceLocation("minecraft:shears"));
     ASSERT_NE(shears, nullptr);
     EXPECT_EQ(shears->itemLocation(), ResourceLocation("minecraft:shears"));
 }
 
-TEST_F(ShearsItemTest, ShearsHasCorrectDurability) {
+TEST_F(ShearsItemTest, ShearsHasCorrectDurability)
+{
     Item* shears = ItemRegistry::instance().getItem(ResourceLocation("minecraft:shears"));
     ASSERT_NE(shears, nullptr);
 
@@ -42,7 +42,8 @@ TEST_F(ShearsItemTest, ShearsHasCorrectDurability) {
     EXPECT_TRUE(shears->isDamageable());
 }
 
-TEST_F(ShearsItemTest, ShearsIsNotStackable) {
+TEST_F(ShearsItemTest, ShearsIsNotStackable)
+{
     Item* shears = ItemRegistry::instance().getItem(ResourceLocation("minecraft:shears"));
     ASSERT_NE(shears, nullptr);
 
@@ -50,7 +51,8 @@ TEST_F(ShearsItemTest, ShearsIsNotStackable) {
     EXPECT_EQ(shears->maxStackSize(), 1);
 }
 
-TEST_F(ShearsItemTest, ShearsStackDamage) {
+TEST_F(ShearsItemTest, ShearsStackDamage)
+{
     Item* shears = ItemRegistry::instance().getItem(ResourceLocation("minecraft:shears"));
     ASSERT_NE(shears, nullptr);
 
@@ -65,7 +67,8 @@ TEST_F(ShearsItemTest, ShearsStackDamage) {
     EXPECT_EQ(stack.getDamage(), 50);
 }
 
-TEST_F(ShearsItemTest, ShearsBreaksAtMaxDamage) {
+TEST_F(ShearsItemTest, ShearsBreaksAtMaxDamage)
+{
     Item* shears = ItemRegistry::instance().getItem(ResourceLocation("minecraft:shears"));
     ASSERT_NE(shears, nullptr);
 
@@ -83,18 +86,18 @@ TEST_F(ShearsItemTest, ShearsBreaksAtMaxDamage) {
 
 class FlintAndSteelItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(FlintAndSteelItemTest, FlintAndSteelRegistered) {
+TEST_F(FlintAndSteelItemTest, FlintAndSteelRegistered)
+{
     Item* flintAndSteel = ItemRegistry::instance().getItem(ResourceLocation("minecraft:flint_and_steel"));
     ASSERT_NE(flintAndSteel, nullptr);
     EXPECT_EQ(flintAndSteel->itemLocation(), ResourceLocation("minecraft:flint_and_steel"));
 }
 
-TEST_F(FlintAndSteelItemTest, FlintAndSteelHasCorrectDurability) {
+TEST_F(FlintAndSteelItemTest, FlintAndSteelHasCorrectDurability)
+{
     Item* flintAndSteel = ItemRegistry::instance().getItem(ResourceLocation("minecraft:flint_and_steel"));
     ASSERT_NE(flintAndSteel, nullptr);
 
@@ -103,14 +106,16 @@ TEST_F(FlintAndSteelItemTest, FlintAndSteelHasCorrectDurability) {
     EXPECT_TRUE(flintAndSteel->isDamageable());
 }
 
-TEST_F(FlintAndSteelItemTest, FlintAndSteelIsNotStackable) {
+TEST_F(FlintAndSteelItemTest, FlintAndSteelIsNotStackable)
+{
     Item* flintAndSteel = ItemRegistry::instance().getItem(ResourceLocation("minecraft:flint_and_steel"));
     ASSERT_NE(flintAndSteel, nullptr);
 
     EXPECT_EQ(flintAndSteel->maxStackSize(), 1);
 }
 
-TEST_F(FlintAndSteelItemTest, FlintAndSteelUseDuration) {
+TEST_F(FlintAndSteelItemTest, FlintAndSteelUseDuration)
+{
     Item* flintAndSteel = ItemRegistry::instance().getItem(ResourceLocation("minecraft:flint_and_steel"));
     ASSERT_NE(flintAndSteel, nullptr);
 
@@ -125,18 +130,18 @@ TEST_F(FlintAndSteelItemTest, FlintAndSteelUseDuration) {
 
 class MilkBucketItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(MilkBucketItemTest, MilkBucketRegistered) {
+TEST_F(MilkBucketItemTest, MilkBucketRegistered)
+{
     Item* milkBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:milk_bucket"));
     ASSERT_NE(milkBucket, nullptr);
     EXPECT_EQ(milkBucket->itemLocation(), ResourceLocation("minecraft:milk_bucket"));
 }
 
-TEST_F(MilkBucketItemTest, MilkBucketIsNotStackable) {
+TEST_F(MilkBucketItemTest, MilkBucketIsNotStackable)
+{
     Item* milkBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:milk_bucket"));
     ASSERT_NE(milkBucket, nullptr);
 
@@ -144,7 +149,8 @@ TEST_F(MilkBucketItemTest, MilkBucketIsNotStackable) {
     EXPECT_EQ(milkBucket->maxStackSize(), 1);
 }
 
-TEST_F(MilkBucketItemTest, MilkBucketUseDuration) {
+TEST_F(MilkBucketItemTest, MilkBucketUseDuration)
+{
     Item* milkBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:milk_bucket"));
     ASSERT_NE(milkBucket, nullptr);
 
@@ -153,7 +159,8 @@ TEST_F(MilkBucketItemTest, MilkBucketUseDuration) {
     EXPECT_EQ(milkBucket->getUseDuration(stack), 32);
 }
 
-TEST_F(MilkBucketItemTest, MilkBucketUseAction) {
+TEST_F(MilkBucketItemTest, MilkBucketUseAction)
+{
     Item* milkBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:milk_bucket"));
     ASSERT_NE(milkBucket, nullptr);
 
@@ -162,7 +169,8 @@ TEST_F(MilkBucketItemTest, MilkBucketUseAction) {
     EXPECT_EQ(milkBucket->getUseAction(stack), UseAction::Drink);
 }
 
-TEST_F(MilkBucketItemTest, MilkBucketHasContainerItem) {
+TEST_F(MilkBucketItemTest, MilkBucketHasContainerItem)
+{
     Item* milkBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:milk_bucket"));
     ASSERT_NE(milkBucket, nullptr);
 
@@ -179,12 +187,11 @@ TEST_F(MilkBucketItemTest, MilkBucketHasContainerItem) {
 
 class ToolItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(ToolItemTest, AllTierToolsRegistered) {
+TEST_F(ToolItemTest, AllTierToolsRegistered)
+{
     // 验证各层级工具都已注册
     const char* toolTypes[] = {"pickaxe", "axe", "shovel", "hoe", "sword"};
     const char* tiers[] = {"wooden", "stone", "iron", "golden", "diamond", "netherite"};
@@ -198,7 +205,8 @@ TEST_F(ToolItemTest, AllTierToolsRegistered) {
     }
 }
 
-TEST_F(ToolItemTest, AllTiersHaveCorrectDurability) {
+TEST_F(ToolItemTest, AllTiersHaveCorrectDurability)
+{
     // MC 1.16.5 各层级耐久度
     struct TierDurability {
         const char* tier;
@@ -206,24 +214,18 @@ TEST_F(ToolItemTest, AllTiersHaveCorrectDurability) {
     };
 
     std::vector<TierDurability> tiers = {
-        {"wooden", 59},
-        {"stone", 131},
-        {"iron", 250},
-        {"golden", 32},
-        {"diamond", 1561},
-        {"netherite", 2031}
-    };
+        {"wooden", 59}, {"stone", 131}, {"iron", 250}, {"golden", 32}, {"diamond", 1561}, {"netherite", 2031}};
 
     for (const auto& td : tiers) {
         std::string itemId = std::string("minecraft:") + td.tier + "_pickaxe";
         Item* item = ItemRegistry::instance().getItem(ResourceLocation(itemId));
         ASSERT_NE(item, nullptr) << "Missing: " << itemId;
-        EXPECT_EQ(item->maxDamage(), td.durability)
-            << "Wrong durability for " << itemId;
+        EXPECT_EQ(item->maxDamage(), td.durability) << "Wrong durability for " << itemId;
     }
 }
 
-TEST_F(ToolItemTest, ShearsAndFlintAndSteelAreDamageable) {
+TEST_F(ToolItemTest, ShearsAndFlintAndSteelAreDamageable)
+{
     Item* shears = ItemRegistry::instance().getItem(ResourceLocation("minecraft:shears"));
     ASSERT_NE(shears, nullptr);
     EXPECT_TRUE(shears->isDamageable());
@@ -239,13 +241,15 @@ TEST_F(ToolItemTest, ShearsAndFlintAndSteelAreDamageable) {
 
 class BlockTagsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         VanillaBlocks::initialize();
     }
 };
 
-TEST_F(BlockTagsTest, WoolTagExists) {
+TEST_F(BlockTagsTest, WoolTagExists)
+{
     // 验证 WOOL 标签已创建
     EXPECT_NO_THROW({
         BlockTag& woolTag = BlockTags::WOOL();
@@ -253,7 +257,8 @@ TEST_F(BlockTagsTest, WoolTagExists) {
     });
 }
 
-TEST_F(BlockTagsTest, WoolTagContainsWoolBlocks) {
+TEST_F(BlockTagsTest, WoolTagContainsWoolBlocks)
+{
     BlockTag& woolTag = BlockTags::WOOL();
 
     // 验证常见羊毛方块在标签中
@@ -274,24 +279,25 @@ TEST_F(BlockTagsTest, WoolTagContainsWoolBlocks) {
 
 class EnchantedBookItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(EnchantedBookItemTest, EnchantedBookRegistered) {
+TEST_F(EnchantedBookItemTest, EnchantedBookRegistered)
+{
     Item* enchantedBook = ItemRegistry::instance().getItem(ResourceLocation("minecraft:enchanted_book"));
     ASSERT_NE(enchantedBook, nullptr);
     EXPECT_EQ(enchantedBook->itemLocation(), ResourceLocation("minecraft:enchanted_book"));
 }
 
-TEST_F(EnchantedBookItemTest, EnchantedBookNotStackable) {
+TEST_F(EnchantedBookItemTest, EnchantedBookNotStackable)
+{
     Item* enchantedBook = ItemRegistry::instance().getItem(ResourceLocation("minecraft:enchanted_book"));
     ASSERT_NE(enchantedBook, nullptr);
     EXPECT_EQ(enchantedBook->maxStackSize(), 1);
 }
 
-TEST_F(EnchantedBookItemTest, EnchantedBookHasEffect) {
+TEST_F(EnchantedBookItemTest, EnchantedBookHasEffect)
+{
     Item* enchantedBook = ItemRegistry::instance().getItem(ResourceLocation("minecraft:enchanted_book"));
     ASSERT_NE(enchantedBook, nullptr);
 
@@ -299,13 +305,15 @@ TEST_F(EnchantedBookItemTest, EnchantedBookHasEffect) {
     EXPECT_TRUE(enchantedBook->hasEffect(stack));
 }
 
-TEST_F(EnchantedBookItemTest, EnchantedBookEnchantability) {
+TEST_F(EnchantedBookItemTest, EnchantedBookEnchantability)
+{
     Item* enchantedBook = ItemRegistry::instance().getItem(ResourceLocation("minecraft:enchanted_book"));
     ASSERT_NE(enchantedBook, nullptr);
     EXPECT_EQ(enchantedBook->getItemEnchantability(), 1);
 }
 
-TEST_F(EnchantedBookItemTest, EmptyBookHasNoEnchantments) {
+TEST_F(EnchantedBookItemTest, EmptyBookHasNoEnchantments)
+{
     Item* enchantedBook = ItemRegistry::instance().getItem(ResourceLocation("minecraft:enchanted_book"));
     ASSERT_NE(enchantedBook, nullptr);
 
@@ -315,7 +323,8 @@ TEST_F(EnchantedBookItemTest, EmptyBookHasNoEnchantments) {
     EXPECT_TRUE(item::items::EnchantedBookItem::getEnchantments(stack).empty());
 }
 
-TEST_F(EnchantedBookItemTest, BookRegistered) {
+TEST_F(EnchantedBookItemTest, BookRegistered)
+{
     Item* book = ItemRegistry::instance().getItem(ResourceLocation("minecraft:book"));
     ASSERT_NE(book, nullptr);
     EXPECT_EQ(book->maxStackSize(), 64);
@@ -327,55 +336,64 @@ TEST_F(EnchantedBookItemTest, BookRegistered) {
 
 class NetherWoodTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         VanillaBlocks::initialize();
     }
 };
 
-TEST_F(NetherWoodTest, CrimsonStemRegistered) {
+TEST_F(NetherWoodTest, CrimsonStemRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:crimson_stem"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:crimson_stem"));
 }
 
-TEST_F(NetherWoodTest, WarpedStemRegistered) {
+TEST_F(NetherWoodTest, WarpedStemRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_stem"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:warped_stem"));
 }
 
-TEST_F(NetherWoodTest, StrippedCrimsonStemRegistered) {
+TEST_F(NetherWoodTest, StrippedCrimsonStemRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_crimson_stem"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_crimson_stem"));
 }
 
-TEST_F(NetherWoodTest, StrippedWarpedStemRegistered) {
+TEST_F(NetherWoodTest, StrippedWarpedStemRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_warped_stem"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_warped_stem"));
 }
 
-TEST_F(NetherWoodTest, CrimsonHyphaeRegistered) {
+TEST_F(NetherWoodTest, CrimsonHyphaeRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:crimson_hyphae"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:crimson_hyphae"));
 }
 
-TEST_F(NetherWoodTest, WarpedHyphaeRegistered) {
+TEST_F(NetherWoodTest, WarpedHyphaeRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_hyphae"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:warped_hyphae"));
 }
 
-TEST_F(NetherWoodTest, StrippedCrimsonHyphaeRegistered) {
+TEST_F(NetherWoodTest, StrippedCrimsonHyphaeRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_crimson_hyphae"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_crimson_hyphae"));
 }
 
-TEST_F(NetherWoodTest, StrippedWarpedHyphaeRegistered) {
+TEST_F(NetherWoodTest, StrippedWarpedHyphaeRegistered)
+{
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_warped_hyphae"));
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_warped_hyphae"));
@@ -387,25 +405,26 @@ TEST_F(NetherWoodTest, StrippedWarpedHyphaeRegistered) {
 
 class TippedArrowItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(TippedArrowItemTest, TippedArrowRegistered) {
+TEST_F(TippedArrowItemTest, TippedArrowRegistered)
+{
     Item* tippedArrow = ItemRegistry::instance().getItem(ResourceLocation("minecraft:tipped_arrow"));
     ASSERT_NE(tippedArrow, nullptr);
     EXPECT_EQ(tippedArrow->itemLocation(), ResourceLocation("minecraft:tipped_arrow"));
 }
 
-TEST_F(TippedArrowItemTest, TippedArrowIsStackable) {
+TEST_F(TippedArrowItemTest, TippedArrowIsStackable)
+{
     Item* tippedArrow = ItemRegistry::instance().getItem(ResourceLocation("minecraft:tipped_arrow"));
     ASSERT_NE(tippedArrow, nullptr);
     // 箭矢可堆叠到64个
     EXPECT_EQ(tippedArrow->maxStackSize(), 64);
 }
 
-TEST_F(TippedArrowItemTest, TippedArrowNotInfiniteInSurvival) {
+TEST_F(TippedArrowItemTest, TippedArrowNotInfiniteInSurvival)
+{
     Item* tippedArrow = ItemRegistry::instance().getItem(ResourceLocation("minecraft:tipped_arrow"));
     ASSERT_NE(tippedArrow, nullptr);
     // 药水箭不受益于无限附魔
@@ -419,18 +438,18 @@ TEST_F(TippedArrowItemTest, TippedArrowNotInfiniteInSurvival) {
 
 class SplashPotionItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(SplashPotionItemTest, SplashPotionRegistered) {
+TEST_F(SplashPotionItemTest, SplashPotionRegistered)
+{
     Item* splashPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:splash_potion"));
     ASSERT_NE(splashPotion, nullptr);
     EXPECT_EQ(splashPotion->itemLocation(), ResourceLocation("minecraft:splash_potion"));
 }
 
-TEST_F(SplashPotionItemTest, SplashPotionIsStackable) {
+TEST_F(SplashPotionItemTest, SplashPotionIsStackable)
+{
     Item* splashPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:splash_potion"));
     ASSERT_NE(splashPotion, nullptr);
     // MC 1.16.5: 喷溅药水默认堆叠数为1（相同药水类型才可堆叠）
@@ -443,18 +462,18 @@ TEST_F(SplashPotionItemTest, SplashPotionIsStackable) {
 
 class LingeringPotionItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(LingeringPotionItemTest, LingeringPotionRegistered) {
+TEST_F(LingeringPotionItemTest, LingeringPotionRegistered)
+{
     Item* lingeringPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:lingering_potion"));
     ASSERT_NE(lingeringPotion, nullptr);
     EXPECT_EQ(lingeringPotion->itemLocation(), ResourceLocation("minecraft:lingering_potion"));
 }
 
-TEST_F(LingeringPotionItemTest, LingeringPotionIsStackable) {
+TEST_F(LingeringPotionItemTest, LingeringPotionIsStackable)
+{
     Item* lingeringPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:lingering_potion"));
     ASSERT_NE(lingeringPotion, nullptr);
     // MC 1.16.5: 滞留药水默认堆叠数为1（相同药水类型才可堆叠）
@@ -467,47 +486,55 @@ TEST_F(LingeringPotionItemTest, LingeringPotionIsStackable) {
 
 class FlintAndSteelSoulFireTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
 };
 
-TEST_F(FlintAndSteelSoulFireTest, SoulFireBlockRegistered) {
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBlockRegistered)
+{
     Block* soulFire = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:soul_fire"));
     ASSERT_NE(soulFire, nullptr);
     EXPECT_EQ(soulFire->blockLocation(), ResourceLocation("minecraft:soul_fire"));
 }
 
-TEST_F(FlintAndSteelSoulFireTest, FireBlockRegistered) {
+TEST_F(FlintAndSteelSoulFireTest, FireBlockRegistered)
+{
     Block* fire = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:fire"));
     ASSERT_NE(fire, nullptr);
     EXPECT_EQ(fire->blockLocation(), ResourceLocation("minecraft:fire"));
 }
 
-TEST_F(FlintAndSteelSoulFireTest, SoulSandRegistered) {
+TEST_F(FlintAndSteelSoulFireTest, SoulSandRegistered)
+{
     Block* soulSand = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:soul_sand"));
     ASSERT_NE(soulSand, nullptr);
     EXPECT_EQ(soulSand->blockLocation(), ResourceLocation("minecraft:soul_sand"));
 }
 
-TEST_F(FlintAndSteelSoulFireTest, SoulSoilRegistered) {
+TEST_F(FlintAndSteelSoulFireTest, SoulSoilRegistered)
+{
     Block* soulSoil = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:soul_soil"));
     ASSERT_NE(soulSoil, nullptr);
     EXPECT_EQ(soulSoil->blockLocation(), ResourceLocation("minecraft:soul_soil"));
 }
 
-TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagContainsSoulSand) {
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagContainsSoulSand)
+{
     ASSERT_NE(VanillaBlocks::SOUL_SAND, nullptr);
     EXPECT_TRUE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::SOUL_SAND));
 }
 
-TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagContainsSoulSoil) {
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagContainsSoulSoil)
+{
     ASSERT_NE(VanillaBlocks::SOUL_SOIL, nullptr);
     EXPECT_TRUE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::SOUL_SOIL));
 }
 
-TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagDoesNotContainOtherBlocks) {
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagDoesNotContainOtherBlocks)
+{
     // 普通方块不应在灵魂火基座标签中
     ASSERT_NE(VanillaBlocks::STONE, nullptr);
     ASSERT_NE(VanillaBlocks::DIRT, nullptr);

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -46,9 +46,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     /**
      * @brief 检查方块是否可被替换
@@ -58,12 +56,9 @@ public:
      *
      * 参考: net.minecraft.block.SlabBlock#isReplaceable
      */
-    [[nodiscard]] bool isReplaceable(
-        const BlockState& state,
-        BlockItemUseContext& context) const override;
+    [[nodiscard]] bool isReplaceable(const BlockState& state, BlockItemUseContext& context) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -99,7 +94,8 @@ public:
      *
      * 双层台阶永远不含水。
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         // 双层台阶不能含水
         if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
             return false;
@@ -113,10 +109,8 @@ public:
      * 双层台阶不能含水，委托给基类实现。
      */
     [[nodiscard]] bool canContainFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const fluid::Fluid& fluid) const override {
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid) const override
+    {
         // 双层台阶不能含水
         if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
             return false;
@@ -130,10 +124,8 @@ public:
      * 双层台阶不能接收流体，委托给基类实现。
      */
     bool receiveFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const fluid::FluidState& fluidState) override {
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::FluidState& fluidState) override
+    {
         // 双层台阶不能含水
         if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
             return false;

@@ -4,8 +4,7 @@ namespace mc {
 
 SpellcastingIllagerEntity::SpellcastingIllagerEntity(LegacyEntityType type, EntityId id)
     : AbstractIllagerEntity(type, id)
-{
-}
+{}
 
 SpellcastingIllagerEntity::SpellType SpellcastingIllagerEntity::spellTypeFromId(i32 id)
 {

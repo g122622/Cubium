@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../item/core/ActionResult.hpp"
 #include <array>
 
 namespace mc {
@@ -45,8 +45,7 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -59,14 +58,16 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
 
     // ========== 硬度 ==========
 
-    [[nodiscard]] f32 getExplosionResistance(const BlockState& state) const override {
+    [[nodiscard]] f32 getExplosionResistance(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         // 在下界爆炸
         return 0.2f;
@@ -94,8 +95,7 @@ public:
      *
      * MC Java: 在主世界可以睡眠设置重生点，在下界和末地会爆炸。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

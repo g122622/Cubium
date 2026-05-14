@@ -1,26 +1,27 @@
 #include "ChickenEntity.hpp"
-#include "../../item/ItemEntity.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
-#include "../../../../world/IWorld.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/Block.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../item/ItemEntity.hpp"
 
 #include <memory>
 
 namespace mc {
 
-std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/)
+{
     // 使用临时ID 0，实际ID由 EntityManager 分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
     return std::make_unique<ChickenEntity>(LegacyEntityType::Unknown, 0);
@@ -37,33 +38,39 @@ ChickenEntity::ChickenEntity(LegacyEntityType type, EntityId id)
     resetEggTimer();
 }
 
-void ChickenEntity::resetEggTimer() {
+void ChickenEntity::resetEggTimer()
+{
     math::Random rng(ticksExisted());
     // MC 1.16.5: 6000-12000 ticks = 5-10 分钟
     m_eggTimer = EGG_TIME_MIN + rng.nextInt(EGG_TIME_MAX - EGG_TIME_MIN);
 }
 
-std::optional<ResourceLocation> ChickenEntity::getAmbientSound() const {
+std::optional<ResourceLocation> ChickenEntity::getAmbientSound() const
+{
     // MC 1.16.5: entity.chicken.ambient
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> ChickenEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> ChickenEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.chicken.hurt
     return makeSoundEventId("hurt");
 }
 
-std::optional<ResourceLocation> ChickenEntity::getDeathSound() const {
+std::optional<ResourceLocation> ChickenEntity::getDeathSound() const
+{
     // MC 1.16.5: entity.chicken.death
     return makeSoundEventId("death");
 }
 
-std::optional<ResourceLocation> ChickenEntity::getStepSound() const {
+std::optional<ResourceLocation> ChickenEntity::getStepSound() const
+{
     // MC 1.16.5: entity.chicken.step
     return makeSoundEventId("step");
 }
 
-void ChickenEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
+void ChickenEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
+{
     // MC 1.16.5: ChickenEntity.playStepSound()
     // 鸡播放固定的脚步声，忽略脚下方块类型
     auto sound = getStepSound();
@@ -72,21 +79,22 @@ void ChickenEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*b
     }
 }
 
-bool ChickenEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool ChickenEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // MC 1.16.5: 鸡用种子繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
-    return item == Items::WHEAT_SEEDS
-        || item == Items::PUMPKIN_SEEDS
-        || item == Items::MELON_SEEDS
-        || item == Items::BEETROOT_SEEDS;
+    return item == Items::WHEAT_SEEDS || item == Items::PUMPKIN_SEEDS || item == Items::MELON_SEEDS ||
+        item == Items::BEETROOT_SEEDS;
 }
 
-bool ChickenEntity::canMateWith(const AnimalEntity& other) const {
+bool ChickenEntity::canMateWith(const AnimalEntity& other) const
+{
     return AnimalEntity::canMateWith(other);
 }
 
-std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/) {
+std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
     // 创建小鸡
     auto baby = std::make_unique<ChickenEntity>(LegacyEntityType::Unknown, 0);
 
@@ -99,7 +107,8 @@ std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/
     return baby;
 }
 
-void ChickenEntity::registerGoals() {
+void ChickenEntity::registerGoals()
+{
     // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
     AgeableEntity::registerGoals();
 
@@ -116,18 +125,17 @@ void ChickenEntity::registerGoals() {
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 3: 种子诱惑
-    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
-        this, 1.0,
-        [](const ItemStack& stack) -> bool {
-            const Item* item = stack.getItem();
-            return item != nullptr && (
-                item == Items::WHEAT_SEEDS ||
-                item == Items::PUMPKIN_SEEDS ||
-                item == Items::MELON_SEEDS ||
-                item == Items::BEETROOT_SEEDS
-            );
-        },
-        false));  // scaredByMovement = false
+    m_goalSelector.addGoal(3,
+        std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+            this,
+            1.0,
+            [](const ItemStack& stack) -> bool {
+                const Item* item = stack.getItem();
+                return item != nullptr &&
+                    (item == Items::WHEAT_SEEDS || item == Items::PUMPKIN_SEEDS || item == Items::MELON_SEEDS ||
+                        item == Items::BEETROOT_SEEDS);
+            },
+            false)); // scaredByMovement = false
 
     // 优先级 4: 跟随父母
     m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
@@ -142,7 +150,8 @@ void ChickenEntity::registerGoals() {
     m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
-void ChickenEntity::registerAttributes() {
+void ChickenEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
@@ -151,7 +160,8 @@ void ChickenEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
-void ChickenEntity::tick() {
+void ChickenEntity::tick()
+{
     // 保存上一帧翅膀角度
     m_prevWingRotation = m_wingRotation;
 
@@ -171,15 +181,11 @@ void ChickenEntity::tick() {
 
         if (m_eggTimer <= 0 && world() != nullptr) {
             // MC 1.16.5: 下蛋
-            auto egg = std::make_unique<ItemEntity>(
-                0,
-                ItemStack(Items::EGG, 1),
-                x(),
-                y() + 0.2f,
-                z());
+            auto egg = std::make_unique<ItemEntity>(0, ItemStack(Items::EGG, 1), x(), y() + 0.2f, z());
 
             // 播放下蛋音效
-            playSound(*makeSoundEventId("egg"), 1.0f, (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f + 1.0f);
+            playSound(
+                *makeSoundEventId("egg"), 1.0f, (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f + 1.0f);
 
             world()->spawnEntity(std::move(egg));
             resetEggTimer();

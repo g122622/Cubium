@@ -1,21 +1,21 @@
 #include "FoxEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../damage/DamageSource.hpp"
 
 namespace mc {
 
@@ -29,11 +29,13 @@ FoxEntity::FoxEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> FoxEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> FoxEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool FoxEntity::trusts(u64 playerId) const {
+bool FoxEntity::trusts(u64 playerId) const
+{
     for (u64 trustedId : m_trustedPlayers) {
         if (trustedId == playerId) {
             return true;
@@ -42,7 +44,8 @@ bool FoxEntity::trusts(u64 playerId) const {
     return false;
 }
 
-void FoxEntity::addTrustedPlayer(u64 playerId) {
+void FoxEntity::addTrustedPlayer(u64 playerId)
+{
     if (trusts(playerId)) {
         return;
     }
@@ -56,41 +59,48 @@ void FoxEntity::addTrustedPlayer(u64 playerId) {
     }
 }
 
-void FoxEntity::removeTrustedPlayer(u64 playerId) {
+void FoxEntity::removeTrustedPlayer(u64 playerId)
+{
     auto it = std::find(m_trustedPlayers.begin(), m_trustedPlayers.end(), playerId);
     if (it != m_trustedPlayers.end()) {
         m_trustedPlayers.erase(it);
     }
 }
 
-std::optional<u64> FoxEntity::getFirstTrustedPlayer() const {
+std::optional<u64> FoxEntity::getFirstTrustedPlayer() const
+{
     if (m_trustedPlayers.empty()) {
         return std::nullopt;
     }
     return m_trustedPlayers[0];
 }
 
-void FoxEntity::setSleeping(bool sleeping) {
+void FoxEntity::setSleeping(bool sleeping)
+{
     m_sleeping = sleeping;
     if (sleeping) {
         m_sleepTimer = 100 + (rand() % 100); // 5-10秒
     }
 }
 
-bool FoxEntity::isHoldingItem() const {
+bool FoxEntity::isHoldingItem() const
+{
     return m_heldItem != nullptr && !m_heldItem->isEmpty();
 }
 
-void FoxEntity::setHeldItem(std::unique_ptr<ItemStack> item) {
+void FoxEntity::setHeldItem(std::unique_ptr<ItemStack> item)
+{
     m_heldItem = std::move(item);
 }
 
-void FoxEntity::dropHeldItem() {
+void FoxEntity::dropHeldItem()
+{
     // TODO: 在世界生成掉落物
     m_heldItem.reset();
 }
 
-bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // MC 1.16.5: FoxEntity.isBreedingItem()
     // 只有甜浆果可以用来繁殖狐狸
     // 注意：发光浆果是 MC 1.17 添加的，MC 1.16.5 只有甜浆果
@@ -101,7 +111,8 @@ bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const {
     return item == Items::SWEET_BERRIES;
 }
 
-std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner) {
+std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
+{
     // MC 1.16.5: FoxEntity.func_241840_a() (createChild)
     auto baby = std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
 
@@ -109,8 +120,8 @@ std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner) {
     baby->setChild(true);
 
     // MC 1.16.5: 遗传皮肤类型
-    // foxentity.setVariantType(this.rand.nextBoolean() ? this.getVariantType() : ((FoxEntity)p_241840_2_).getVariantType());
-    // 50% 概率从任一父母继承皮肤类型
+    // foxentity.setVariantType(this.rand.nextBoolean() ? this.getVariantType() :
+    // ((FoxEntity)p_241840_2_).getVariantType()); 50% 概率从任一父母继承皮肤类型
     FoxEntity* partnerFox = dynamic_cast<FoxEntity*>(&partner);
     math::Random rng = getRandom();
     if (rng.nextBoolean()) {
@@ -141,7 +152,8 @@ std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner) {
     return baby;
 }
 
-void FoxEntity::tick() {
+void FoxEntity::tick()
+{
     AnimalEntity::tick();
 
     // 睡眠计时器
@@ -153,7 +165,8 @@ void FoxEntity::tick() {
     }
 }
 
-void FoxEntity::registerGoals() {
+void FoxEntity::registerGoals()
+{
     // 调用父类方法注册基础动物 AI
     // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
@@ -173,7 +186,8 @@ void FoxEntity::registerGoals() {
     // - FoxSleepGoal: 睡觉
 }
 
-void FoxEntity::registerAttributes() {
+void FoxEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
@@ -183,7 +197,8 @@ void FoxEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
-std::optional<ResourceLocation> FoxEntity::getAmbientSound() const {
+std::optional<ResourceLocation> FoxEntity::getAmbientSound() const
+{
     // MC 1.16.5: 白狐使用 screech 音效
     if (m_foxType == FoxType::Snow) {
         return SoundEvents::ENTITY_FOX_SCREECH;
@@ -191,31 +206,38 @@ std::optional<ResourceLocation> FoxEntity::getAmbientSound() const {
     return SoundEvents::ENTITY_FOX_AMBIENT;
 }
 
-std::optional<ResourceLocation> FoxEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> FoxEntity::getHurtSound(DamageSource& /*source*/) const
+{
     return SoundEvents::ENTITY_FOX_HURT;
 }
 
-std::optional<ResourceLocation> FoxEntity::getDeathSound() const {
+std::optional<ResourceLocation> FoxEntity::getDeathSound() const
+{
     return SoundEvents::ENTITY_FOX_DEATH;
 }
 
-void FoxEntity::playSleepSound() {
+void FoxEntity::playSleepSound()
+{
     playSound(SoundEvents::ENTITY_FOX_SLEEP, 1.0f, 1.0f);
 }
 
-void FoxEntity::playSniffSound() {
+void FoxEntity::playSniffSound()
+{
     playSound(SoundEvents::ENTITY_FOX_SNIFF, 1.0f, 1.0f);
 }
 
-void FoxEntity::playBiteSound() {
+void FoxEntity::playBiteSound()
+{
     playSound(SoundEvents::ENTITY_FOX_BITE, 1.0f, 1.0f);
 }
 
-void FoxEntity::playEatSound() {
+void FoxEntity::playEatSound()
+{
     playSound(SoundEvents::ENTITY_FOX_EAT, 1.0f, 1.0f);
 }
 
-void FoxEntity::playSpitSound() {
+void FoxEntity::playSpitSound()
+{
     playSound(SoundEvents::ENTITY_FOX_SPIT, 1.0f, 1.0f);
 }
 

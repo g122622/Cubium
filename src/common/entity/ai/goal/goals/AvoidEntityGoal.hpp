@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../Goal.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/Vector3.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../core/CreatureEntity.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../Goal.hpp"
 #include <cmath>
 #include <functional>
 
@@ -45,7 +45,8 @@ public:
      * @param nearSpeed 近距离速度
      * @param predicate 实体过滤条件
      */
-    AvoidEntityGoal(CreatureEntity* creature, f32 avoidDistance, f64 farSpeed, f64 nearSpeed, EntityPredicate predicate);
+    AvoidEntityGoal(
+        CreatureEntity* creature, f32 avoidDistance, f64 farSpeed, f64 nearSpeed, EntityPredicate predicate);
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
@@ -88,8 +89,8 @@ protected:
     f64 m_escapeZ = 0.0;
 
     // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockAwayFrom 的参数
-    static constexpr i32 ESCAPE_HORIZONTAL_RANGE = 16;  // 水平搜索范围
-    static constexpr i32 ESCAPE_VERTICAL_RANGE = 7;     // 垂直搜索范围
+    static constexpr i32 ESCAPE_HORIZONTAL_RANGE = 16; // 水平搜索范围
+    static constexpr i32 ESCAPE_VERTICAL_RANGE = 7;    // 垂直搜索范围
 };
 
 } // namespace entity::ai::goal

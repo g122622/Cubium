@@ -1,16 +1,16 @@
 #include "ShipwreckStructure.hpp"
 
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../../feature/template/TemplateLoader.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "../../feature/template/Template.hpp"
+#include "../../feature/template/TemplateLoader.hpp"
+#include "../../feature/template/TemplateManager.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -20,8 +20,7 @@ namespace mc::world::gen::structure {
 // ============================================================================
 
 // 搁浅沉船变体（MC 1.16.5: STRUCTURE_VARIANT_A）
-const std::vector<std::string> ShipwreckStructure::s_beachedTemplates = {
-    "shipwreck/with_mast",
+const std::vector<std::string> ShipwreckStructure::s_beachedTemplates = {"shipwreck/with_mast",
     "shipwreck/sideways_full",
     "shipwreck/sideways_fronthalf",
     "shipwreck/sideways_backhalf",
@@ -31,12 +30,10 @@ const std::vector<std::string> ShipwreckStructure::s_beachedTemplates = {
     "shipwreck/with_mast_degraded",
     "shipwreck/rightsideup_full_degraded",
     "shipwreck/rightsideup_fronthalf_degraded",
-    "shipwreck/rightsideup_backhalf_degraded"
-};
+    "shipwreck/rightsideup_backhalf_degraded"};
 
 // 所有沉船变体（MC 1.16.5: field_204762_b）
-const std::vector<std::string> ShipwreckStructure::s_allTemplates = {
-    "shipwreck/with_mast",
+const std::vector<std::string> ShipwreckStructure::s_allTemplates = {"shipwreck/with_mast",
     "shipwreck/upsidedown_full",
     "shipwreck/upsidedown_fronthalf",
     "shipwreck/upsidedown_backhalf",
@@ -55,8 +52,7 @@ const std::vector<std::string> ShipwreckStructure::s_allTemplates = {
     "shipwreck/sideways_backhalf_degraded",
     "shipwreck/rightsideup_full_degraded",
     "shipwreck/rightsideup_fronthalf_degraded",
-    "shipwreck/rightsideup_backhalf_degraded"
-};
+    "shipwreck/rightsideup_backhalf_degraded"};
 
 // ============================================================================
 // 常量
@@ -69,22 +65,25 @@ const BlockPos ShipwreckPiece::STRUCTURE_OFFSET{4, 0, 15};
 // ShipwreckPiece
 // ============================================================================
 
-ShipwreckPiece::ShipwreckPiece(
-    const std::string& templateName,
+ShipwreckPiece::ShipwreckPiece(const std::string& templateName,
     const BlockPos& position,
     Rotation rotation,
     bool isBeached)
     : StructurePiece(StructurePieceTypes::BURIED_TREASURE, // 复用类型 ID
-                     position.x, position.y, position.z,
-                     position.x, position.y, position.z)
+          position.x,
+          position.y,
+          position.z,
+          position.x,
+          position.y,
+          position.z)
     , m_templateName(templateName)
     , m_rotation(rotation)
     , m_isBeached(isBeached)
     , m_size(1, 1, 1)
-{
-}
+{}
 
-void ShipwreckPiece::loadTemplate() {
+void ShipwreckPiece::loadTemplate()
+{
     if (!m_templateManager) {
         return;
     }
@@ -108,11 +107,7 @@ void ShipwreckPiece::loadTemplate() {
 }
 
 void ShipwreckPiece::generate(
-    IWorldWriter& world,
-    math::Random& rng,
-    i32 /*chunkX*/,
-    i32 /*chunkZ*/,
-    const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
 {
     if (!m_templateManager) {
         return;
@@ -160,9 +155,9 @@ ShipwreckStructure::ShipwreckStructure()
     initializeBiomes();
 }
 
-void ShipwreckStructure::initializeBiomes() {
-    m_validBiomes = {
-        Biomes::Ocean,
+void ShipwreckStructure::initializeBiomes()
+{
+    m_validBiomes = {Biomes::Ocean,
         Biomes::WarmOcean,
         Biomes::LukewarmOcean,
         Biomes::ColdOcean,
@@ -173,23 +168,19 @@ void ShipwreckStructure::initializeBiomes() {
         Biomes::DeepColdOcean,
         Biomes::DeepFrozenOcean,
         Biomes::Beach,
-        Biomes::SnowyBeach
-    };
+        Biomes::SnowyBeach};
 }
 
 bool ShipwreckStructure::canGenerate(
-    IWorld& /*world*/,
-    IChunkGenerator& /*generator*/,
-    math::Random& /*rng*/,
-    i32 /*chunkX*/,
-    i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
     // MC 1.16.5: 沉船不像海洋废墟那样有随机概率检查
     // 直接由间距设置控制生成频率
     return true;
 }
 
-std::string ShipwreckStructure::getRandomTemplateName(math::Random& rng, bool isBeached) const {
+std::string ShipwreckStructure::getRandomTemplateName(math::Random& rng, bool isBeached) const
+{
     if (isBeached) {
         const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_beachedTemplates.size())));
         return s_beachedTemplates[index];
@@ -200,11 +191,7 @@ std::string ShipwreckStructure::getRandomTemplateName(math::Random& rng, bool is
 }
 
 std::unique_ptr<StructureStart> ShipwreckStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -213,7 +200,7 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     const i32 baseZ = (chunkZ << 4) + rng.nextInt(16);
 
     // 确定是否为搁浅沉船（检查是否在海滩生物群系）
-    const BiomeId biome = generator.getBiome(baseX, 64, baseZ);  // 使用固定高度检查生物群系
+    const BiomeId biome = generator.getBiome(baseX, 64, baseZ); // 使用固定高度检查生物群系
     const bool isBeached = (biome == Biomes::Beach || biome == Biomes::SnowyBeach);
 
     // 获取高度
@@ -242,8 +229,7 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     const std::string templateName = getRandomTemplateName(rng, isBeached);
 
     // 创建片段
-    auto piece = std::make_unique<ShipwreckPiece>(
-        templateName, BlockPos(baseX, height, baseZ), rotation, isBeached);
+    auto piece = std::make_unique<ShipwreckPiece>(templateName, BlockPos(baseX, height, baseZ), rotation, isBeached);
     piece->setTemplateManager(templateManager);
 
     start->addPiece(std::move(piece));

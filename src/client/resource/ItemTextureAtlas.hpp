@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "../renderer/MeshTypes.hpp"
-#include <vulkan/vulkan.h>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
 #include <unordered_map>
 #include <vector>
-#include <memory>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 
@@ -50,8 +50,7 @@ public:
      * @param height 图集高度
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(
-        VkDevice device,
+    [[nodiscard]] Result<void> create(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -66,13 +65,12 @@ public:
     /**
      * @brief 从资源包加载物品纹理
      *
-    * 加载 textures/item 目录下的 PNG 文件
+     * 加载 textures/item 目录下的 PNG 文件
      *
      * @param resourcePacks 资源包列表
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadFromResourcePacks(
-        const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks);
+    [[nodiscard]] Result<void> loadFromResourcePacks(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks);
 
     /**
      * @brief 从资源包加载物品纹理（裸指针版本）
@@ -82,8 +80,7 @@ public:
      * @param resourcePacks 资源包列表（不拥有）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadFromResourcePacks(
-        const std::vector<IResourcePack*>& resourcePacks);
+    [[nodiscard]] Result<void> loadFromResourcePacks(const std::vector<IResourcePack*>& resourcePacks);
 
     /**
      * @brief 上传纹理数据到GPU
@@ -244,10 +241,10 @@ private:
      * @brief 转换图像布局
      */
     void transitionImageLayout(VkCommandBuffer cmd,
-                                VkImageLayout oldLayout,
-                                VkImageLayout newLayout,
-                                VkPipelineStageFlags srcStage,
-                                VkPipelineStageFlags dstStage);
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout,
+        VkPipelineStageFlags srcStage,
+        VkPipelineStageFlags dstStage);
 };
 
 } // namespace client

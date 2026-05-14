@@ -1,7 +1,7 @@
 #pragma once
 
-#include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "resource/ResourceLocation.hpp"
+#include "world/blockentity/core/LockableBlockEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -129,10 +129,10 @@ protected:
     bool fillWithLootFromTable(loot::LootTableManager& lootTableManager, Player* player);
 
 private:
-    bool m_hasLootTable = false;        ///< 是否设置了战利品表
-    ResourceLocation m_lootTable;       ///< 战利品表资源位置
-    i64 m_lootTableSeed = 0;            ///< 战利品表种子
-    mutable bool m_lootFilled = false;  ///< 是否已填充（mutable 用于 const 方法）
+    bool m_hasLootTable = false;       ///< 是否设置了战利品表
+    ResourceLocation m_lootTable;      ///< 战利品表资源位置
+    i64 m_lootTableSeed = 0;           ///< 战利品表种子
+    mutable bool m_lootFilled = false; ///< 是否已填充（mutable 用于 const 方法）
 };
 
 } // namespace blockentity

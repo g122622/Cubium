@@ -24,21 +24,19 @@ public:
     SoulFireFlameParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_LIT;
-    }
+    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/soul_fire_flame");
     }
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
         return 0xF0;
     }
@@ -65,17 +63,17 @@ public:
     SoulParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/soul");
     }
 

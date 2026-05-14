@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/ScoreCriteria.hpp"
 #include "../../util/text/TextStyle.hpp"
+#include "../core/ScoreCriteria.hpp"
 #include <string>
 
 namespace mc::scoreboard {
@@ -22,8 +22,8 @@ public:
      * @brief 击杀类型
      */
     enum class Type : u8 {
-        TeamKill,       // 玩家击杀指定队伍的成员
-        KilledByTeam    // 玩家被指定队伍的成员击杀
+        TeamKill,    // 玩家击杀指定队伍的成员
+        KilledByTeam // 玩家被指定队伍的成员击杀
     };
 
     /**

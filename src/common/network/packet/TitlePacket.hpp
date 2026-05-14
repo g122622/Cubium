@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Packet.hpp"
-#include "PacketSerializer.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/text/ITextComponentFwd.hpp"
+#include "Packet.hpp"
+#include "PacketSerializer.hpp"
 #include <memory>
-#include <string>
 #include <optional>
+#include <string>
 
 namespace mc::network {
 
@@ -16,12 +16,12 @@ namespace mc::network {
  * 定义标题包的动作类型，参考 MC 1.16.5 STitlePacket.Type
  */
 enum class TitleAction : u8 {
-    Title = 0,      // 设置主标题
-    Subtitle = 1,   // 设置副标题
-    Actionbar = 2,  // 设置动作栏
-    Times = 3,      // 设置时间参数
-    Clear = 4,      // 清除标题
-    Reset = 5       // 重置标题（清除并重置时间参数）
+    Title = 0,     // 设置主标题
+    Subtitle = 1,  // 设置副标题
+    Actionbar = 2, // 设置动作栏
+    Times = 3,     // 设置时间参数
+    Clear = 4,     // 清除标题
+    Reset = 5      // 重置标题（清除并重置时间参数）
 };
 
 /**
@@ -147,10 +147,10 @@ private:
     static std::string serializeText(const text::ITextComponent& text);
 
     TitleAction m_action = TitleAction::Clear;
-    std::optional<std::string> m_text;  // 文本组件JSON（仅TITLE/SUBTITLE/ACTIONBAR）
-    i32 m_fadeIn = -1;   // 淡入时间（tick），-1表示未设置
-    i32 m_stay = -1;     // 停留时间（tick），-1表示未设置
-    i32 m_fadeOut = -1;  // 淡出时间（tick），-1表示未设置
+    std::optional<std::string> m_text; // 文本组件JSON（仅TITLE/SUBTITLE/ACTIONBAR）
+    i32 m_fadeIn = -1;                 // 淡入时间（tick），-1表示未设置
+    i32 m_stay = -1;                   // 停留时间（tick），-1表示未设置
+    i32 m_fadeOut = -1;                // 淡出时间（tick），-1表示未设置
 };
 
 } // namespace mc::network

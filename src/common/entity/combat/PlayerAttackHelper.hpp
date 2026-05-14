@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AttackContext.hpp"
 #include "../../core/Types.hpp"
+#include "AttackContext.hpp"
 
 namespace mc {
 
@@ -11,7 +11,7 @@ class LivingEntity;
 class Entity;
 
 namespace item::enchant {
-class KnockbackEnchantment;  // 前向声明
+class KnockbackEnchantment; // 前向声明
 }
 
 namespace entity::combat {
@@ -64,9 +64,7 @@ public:
      * @param cooldownProgress 攻击冷却进度 (0-1)
      * @return 计算后的伤害值
      */
-    [[nodiscard]] static f32 calculateDamage(const Player& player,
-                                              f32 baseDamage,
-                                              f32 cooldownProgress);
+    [[nodiscard]] static f32 calculateDamage(const Player& player, f32 baseDamage, f32 cooldownProgress);
 
     // ========== 击退计算 ==========
 
@@ -86,10 +84,10 @@ public:
      * @return 击退强度
      */
     [[nodiscard]] static f32 calculateKnockback(const LivingEntity& attacker,
-                                                  const LivingEntity& target,
-                                                  f32 baseKnockback = 1.0f,
-                                                  bool isSprinting = false,
-                                                  i32 knockbackLevel = 0);
+        const LivingEntity& target,
+        f32 baseKnockback = 1.0f,
+        bool isSprinting = false,
+        i32 knockbackLevel = 0);
 
     /**
      * @brief 应用击退
@@ -104,9 +102,7 @@ public:
      * @param attacker 攻击者
      * @param strength 击退强度
      */
-    static void applyKnockback(LivingEntity& target,
-                               const LivingEntity& attacker,
-                               f32 strength);
+    static void applyKnockback(LivingEntity& target, const LivingEntity& attacker, f32 strength);
 
     /**
      * @brief 应用击退（从指定方向）
@@ -116,10 +112,7 @@ public:
      * @param ratioZ Z方向比例
      * @param strength 击退强度
      */
-    static void applyKnockback(LivingEntity& target,
-                               f64 ratioX,
-                               f64 ratioZ,
-                               f32 strength);
+    static void applyKnockback(LivingEntity& target, f64 ratioX, f64 ratioZ, f32 strength);
 
     // ========== 攻击冷却 ==========
 
@@ -205,8 +198,7 @@ public:
      * @param targetCreatureType 目标生物类型（用于亡灵杀手和节肢杀手）
      * @return 附加伤害值
      */
-    [[nodiscard]] static f32 getEnchantmentDamageBonus(const ItemStack& weapon,
-                                                        CreatureAttribute targetCreatureType);
+    [[nodiscard]] static f32 getEnchantmentDamageBonus(const ItemStack& weapon, CreatureAttribute targetCreatureType);
 
     // ========== 附魔回调 ==========
 
@@ -220,9 +212,7 @@ public:
      * @param target 目标实体
      * @param weapon 攻击武器
      */
-    static void applyEnchantmentEffects(LivingEntity& attacker,
-                                         Entity& target,
-                                         const ItemStack& weapon);
+    static void applyEnchantmentEffects(LivingEntity& attacker, Entity& target, const ItemStack& weapon);
 
     // ========== 创建攻击上下文 ==========
 
@@ -234,16 +224,14 @@ public:
      * @param cooldownProgress 攻击冷却进度
      * @return 配置好的攻击上下文
      */
-    [[nodiscard]] static AttackContext createContext(Player& player,
-                                                      LivingEntity& target,
-                                                      f32 cooldownProgress);
+    [[nodiscard]] static AttackContext createContext(Player& player, LivingEntity& target, f32 cooldownProgress);
 
 private:
     // 常量
-    static constexpr f32 CRITICAL_MULTIPLIER = 1.5f;       // 暴击伤害倍率
-    static constexpr f32 SPRINT_KNOCKBACK_BONUS = 0.5f;    // 疾跑击退加成
-    static constexpr i32 FIRE_ASPECT_DURATION = 80;        // 火焰附加基础持续时间（4秒）
-    static constexpr f32 MIN_COOLDOWN_THRESHOLD = 0.9f;    // 最小冷却阈值
+    static constexpr f32 CRITICAL_MULTIPLIER = 1.5f;    // 暴击伤害倍率
+    static constexpr f32 SPRINT_KNOCKBACK_BONUS = 0.5f; // 疾跑击退加成
+    static constexpr i32 FIRE_ASPECT_DURATION = 80;     // 火焰附加基础持续时间（4秒）
+    static constexpr f32 MIN_COOLDOWN_THRESHOLD = 0.9f; // 最小冷却阈值
 };
 
 } // namespace entity::combat

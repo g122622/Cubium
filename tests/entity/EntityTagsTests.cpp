@@ -15,7 +15,8 @@ using namespace mc::entity;
  *
  * 参考 MC 1.16.5 Entity.addTag() / removeTag() / getTags()
  */
-TEST(EntityTags, AddAndRemove) {
+TEST(EntityTags, AddAndRemove)
+{
     Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
 
     // 初始状态应该没有标签
@@ -51,7 +52,8 @@ TEST(EntityTags, AddAndRemove) {
  *
  * 参考 MC 1.16.5 Entity.addTag() 中的 tags.size() >= 1024 检查
  */
-TEST(EntityTags, MaxTagLimit) {
+TEST(EntityTags, MaxTagLimit)
+{
     Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
 
     // 添加 1024 个标签应该成功
@@ -73,7 +75,8 @@ TEST(EntityTags, MaxTagLimit) {
 /**
  * @brief 测试清空所有标签
  */
-TEST(EntityTags, ClearTags) {
+TEST(EntityTags, ClearTags)
+{
     Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
 
     entity.addTag("tag1");
@@ -91,7 +94,8 @@ TEST(EntityTags, ClearTags) {
  *
  * getTags() 返回 const 引用，不应允许外部修改
  */
-TEST(EntityTags, TagsImmutability) {
+TEST(EntityTags, TagsImmutability)
+{
     Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
     entity.addTag("tag1");
 
@@ -108,7 +112,8 @@ TEST(EntityTags, TagsImmutability) {
  *
  * MC 1.16.5 允许空字符串作为标签名
  */
-TEST(EntityTags, EmptyTagName) {
+TEST(EntityTags, EmptyTagName)
+{
     Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
 
     // 空字符串是有效的标签名
@@ -126,7 +131,8 @@ TEST(EntityTags, EmptyTagName) {
  *
  * 不同实体的标签应该独立
  */
-TEST(EntityTags, IndependentTags) {
+TEST(EntityTags, IndependentTags)
+{
     Entity entity1(LegacyEntityType::Pig, EntityId(1), nullptr);
     Entity entity2(LegacyEntityType::Cow, EntityId(2), nullptr);
 
@@ -149,7 +155,8 @@ TEST(EntityTags, IndependentTags) {
  *
  * MobEntity（Entity的子类）应该能够使用标签功能
  */
-TEST(EntityTags, Polymorphism) {
+TEST(EntityTags, Polymorphism)
+{
     // 直接使用 Entity 测试多态性，因为 MobEntity 构造函数参数不同
     Entity entity(LegacyEntityType::Zombie, EntityId(1), nullptr);
 
@@ -165,7 +172,8 @@ TEST(EntityTags, Polymorphism) {
  *
  * 标签在实体生命周期内应该持续存在
  */
-TEST(EntityTags, TagPersistence) {
+TEST(EntityTags, TagPersistence)
+{
     Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
 
     entity.addTag("persistent_tag");

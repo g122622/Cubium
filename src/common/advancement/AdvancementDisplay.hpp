@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "AdvancementFrame.hpp"
-#include <nlohmann/json.hpp>
-#include <optional>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
+#include <nlohmann/json.hpp>
 
 // 前向声明
 namespace mc::text {
@@ -41,13 +41,13 @@ public:
      * @param background 背景纹理（仅根成就）
      */
     AdvancementDisplay(ItemStack icon,
-                       std::unique_ptr<text::ITextComponent> title,
-                       std::unique_ptr<text::ITextComponent> description,
-                       AdvancementFrame frame,
-                       bool showToast,
-                       bool announceToChat,
-                       bool hidden,
-                       std::optional<ResourceLocation> background = std::nullopt);
+        std::unique_ptr<text::ITextComponent> title,
+        std::unique_ptr<text::ITextComponent> description,
+        AdvancementFrame frame,
+        bool showToast,
+        bool announceToChat,
+        bool hidden,
+        std::optional<ResourceLocation> background = std::nullopt);
 
     // 移动构造和赋值
     AdvancementDisplay(AdvancementDisplay&&) = default;

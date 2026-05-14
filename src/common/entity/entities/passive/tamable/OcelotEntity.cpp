@@ -2,16 +2,16 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include <random>
 #include <unordered_set>
 
@@ -27,26 +27,31 @@ OcelotEntity::OcelotEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> OcelotEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> OcelotEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<OcelotEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool OcelotEntity::trustsPlayer(u64 playerId) const {
+bool OcelotEntity::trustsPlayer(u64 playerId) const
+{
     return m_trusting && m_trustingPlayerId == playerId;
 }
 
-void OcelotEntity::setPlayerTrust(u64 playerId, bool trust) {
+void OcelotEntity::setPlayerTrust(u64 playerId, bool trust)
+{
     if (trust && !m_trusting) {
         m_trusting = true;
         m_trustingPlayerId = playerId;
     }
 }
 
-void OcelotEntity::setTrusting(bool trusting) {
+void OcelotEntity::setTrusting(bool trusting)
+{
     m_trusting = trusting;
 }
 
-bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // MC 1.16.5: 豹猫使用生鳕鱼和生鲑鱼繁殖
     // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
     const Item* item = itemStack.getItem();
@@ -56,7 +61,8 @@ bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const {
     return item == Items::COD || item == Items::SALMON;
 }
 
-std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/) {
+std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
     // MC 1.16.5: OcelotEntity.func_241840_a (createChild)
     // 创建一个新的豹猫实体，不需要继承父母特征
     auto baby = std::make_unique<OcelotEntity>(LegacyEntityType::Unknown, 0);
@@ -70,7 +76,8 @@ std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
     return baby;
 }
 
-void OcelotEntity::tick() {
+void OcelotEntity::tick()
+{
     AnimalEntity::tick();
 
     // 如果已建立信任，停止逃跑
@@ -79,7 +86,8 @@ void OcelotEntity::tick() {
     }
 }
 
-void OcelotEntity::registerGoals() {
+void OcelotEntity::registerGoals()
+{
     // 调用父类方法注册基础动物 AI
     // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
@@ -94,7 +102,8 @@ void OcelotEntity::registerGoals() {
     // - OcelotHuntGoal: 狩猎小鸡和海龟
 }
 
-void OcelotEntity::registerAttributes() {
+void OcelotEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 

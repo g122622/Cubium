@@ -1,6 +1,6 @@
 #include "ExperiencePackets.hpp"
-#include "PacketSerializer.hpp"
 #include "../../entity/entities/player/Player.hpp"
+#include "PacketSerializer.hpp"
 
 namespace mc {
 namespace network {
@@ -9,7 +9,8 @@ namespace network {
 // SetExperiencePacket
 // ============================================================================
 
-SetExperiencePacket SetExperiencePacket::fromPlayer(const Player& player) {
+SetExperiencePacket SetExperiencePacket::fromPlayer(const Player& player)
+{
     SetExperiencePacket packet;
     packet.m_level = player.experienceLevel();
     packet.m_progress = player.experienceProgress();
@@ -17,7 +18,8 @@ SetExperiencePacket SetExperiencePacket::fromPlayer(const Player& player) {
     return packet;
 }
 
-Result<std::vector<u8>> SetExperiencePacket::serialize() const {
+Result<std::vector<u8>> SetExperiencePacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     serializer.writeF32(m_progress);
@@ -29,7 +31,8 @@ Result<std::vector<u8>> SetExperiencePacket::serialize() const {
     return result;
 }
 
-Result<void> SetExperiencePacket::deserialize(const u8* data, size_t size) {
+Result<void> SetExperiencePacket::deserialize(const u8* data, size_t size)
+{
     if (size < expectedSize()) {
         return Error(ErrorCode::InvalidData, "SetExperiencePacket: insufficient data");
     }
@@ -75,7 +78,8 @@ Result<void> SetExperiencePacket::deserialize(const u8* data, size_t size) {
 // SpawnExperienceOrbPacket
 // ============================================================================
 
-Result<std::vector<u8>> SpawnExperienceOrbPacket::serialize() const {
+Result<std::vector<u8>> SpawnExperienceOrbPacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     serializer.writeVarInt(m_entityId);
@@ -89,7 +93,8 @@ Result<std::vector<u8>> SpawnExperienceOrbPacket::serialize() const {
     return result;
 }
 
-Result<void> SpawnExperienceOrbPacket::deserialize(const u8* data, size_t size) {
+Result<void> SpawnExperienceOrbPacket::deserialize(const u8* data, size_t size)
+{
     if (size < expectedSize()) {
         return Error(ErrorCode::InvalidData, "SpawnExperienceOrbPacket: insufficient data");
     }

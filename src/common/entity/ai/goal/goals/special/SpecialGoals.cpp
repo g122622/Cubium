@@ -1,15 +1,15 @@
 #include "SpecialGoals.hpp"
+#include "../../../../../network/packet/EntityPackets.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/monster/basic/CreeperEntity.hpp"
 #include "../../../../entities/passive/horse/AbstractHorseEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
-#include "../../../../entities/monster/basic/CreeperEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../EntitySenses.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../network/packet/EntityPackets.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -24,7 +24,8 @@ CreeperSwellGoal::CreeperSwellGoal(CreeperEntity* creeper)
     MC_ASSERT(creeper != nullptr);
 }
 
-bool CreeperSwellGoal::shouldExecute() {
+bool CreeperSwellGoal::shouldExecute()
+{
     if (!m_creeper) return false;
 
     // MC 1.16.5 CreeperSwellGoal.shouldExecute():
@@ -53,7 +54,8 @@ bool CreeperSwellGoal::shouldExecute() {
     return distSq < SWELL_TRIGGER_DISTANCE_SQ;
 }
 
-void CreeperSwellGoal::startExecuting() {
+void CreeperSwellGoal::startExecuting()
+{
     if (!m_creeper) return;
 
     // MC 1.16.5: 清除导航路径，停止移动
@@ -63,12 +65,14 @@ void CreeperSwellGoal::startExecuting() {
     m_attackTarget = m_creeper->attackTarget();
 }
 
-void CreeperSwellGoal::resetTask() {
+void CreeperSwellGoal::resetTask()
+{
     // MC 1.16.5: 清除攻击目标引用
     m_attackTarget = nullptr;
 }
 
-void CreeperSwellGoal::tick() {
+void CreeperSwellGoal::tick()
+{
     if (!m_creeper) return;
 
     // MC 1.16.5 CreeperSwellGoal.tick():
@@ -125,7 +129,8 @@ RunAroundLikeCrazyGoal::RunAroundLikeCrazyGoal(AbstractHorseEntity* horse, f64 s
     MC_ASSERT(horse != nullptr);
 }
 
-bool RunAroundLikeCrazyGoal::shouldExecute() {
+bool RunAroundLikeCrazyGoal::shouldExecute()
+{
     // MC 1.16.5: 只在未被驯服且被玩家骑乘时执行
     if (!m_horse) return false;
 
@@ -137,7 +142,8 @@ bool RunAroundLikeCrazyGoal::shouldExecute() {
     return findTarget();
 }
 
-bool RunAroundLikeCrazyGoal::shouldContinueExecuting() {
+bool RunAroundLikeCrazyGoal::shouldContinueExecuting()
+{
     if (!m_horse) return false;
 
     // 检查是否还在被骑乘且未被驯服
@@ -152,7 +158,8 @@ bool RunAroundLikeCrazyGoal::shouldContinueExecuting() {
     return true;
 }
 
-void RunAroundLikeCrazyGoal::startExecuting() {
+void RunAroundLikeCrazyGoal::startExecuting()
+{
     if (!m_horse) return;
 
     // 移动到目标位置
@@ -161,13 +168,15 @@ void RunAroundLikeCrazyGoal::startExecuting() {
     }
 }
 
-void RunAroundLikeCrazyGoal::resetTask() {
+void RunAroundLikeCrazyGoal::resetTask()
+{
     m_targetX = 0.0;
     m_targetY = 0.0;
     m_targetZ = 0.0;
 }
 
-void RunAroundLikeCrazyGoal::tick() {
+void RunAroundLikeCrazyGoal::tick()
+{
     if (!m_horse) return;
 
     // MC 1.16.5: 每tick有概率增加驯服进度或甩下玩家
@@ -191,7 +200,8 @@ void RunAroundLikeCrazyGoal::tick() {
         ::mc::Player* player = static_cast<::mc::Player*>(passenger);
 
         // 驯服检查
-        // MC 1.16.5: if (j > 0 && this.horseHost.getRNG().nextInt(j) < i && !net.minecraftforge.event.ForgeEventFactory.onAnimalTame(horseHost, (PlayerEntity)entity))
+        // MC 1.16.5: if (j > 0 && this.horseHost.getRNG().nextInt(j) < i &&
+        // !net.minecraftforge.event.ForgeEventFactory.onAnimalTame(horseHost, (PlayerEntity)entity))
         i32 temper = m_horse->getTemper();
         i32 maxTemper = m_horse->getMaxTemper();
 
@@ -214,20 +224,21 @@ void RunAroundLikeCrazyGoal::tick() {
 
         // 发送驯服失败状态包（烟雾粒子效果）
         if (worldPtr != nullptr) {
-            worldPtr->broadcastEntityStatus(m_horse->id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+            worldPtr->broadcastEntityStatus(
+                m_horse->id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
         }
     }
 }
 
-bool RunAroundLikeCrazyGoal::findTarget() {
+bool RunAroundLikeCrazyGoal::findTarget()
+{
     if (!m_horse) return false;
 
     // MC 1.16.5: 使用 RandomPositionGenerator 找随机位置
     Vector3 targetPos;
-    if (util::RandomPositionGenerator::findRandomTarget(
-            m_horse,
-            5,  // 水平范围
-            4,  // 垂直范围
+    if (util::RandomPositionGenerator::findRandomTarget(m_horse,
+            5, // 水平范围
+            4, // 垂直范围
             targetPos)) {
         m_targetX = targetPos.x;
         m_targetY = targetPos.y;

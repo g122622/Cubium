@@ -25,8 +25,8 @@ public:
      * @brief 营火烟雾类型
      */
     enum class CampfireType {
-        Cozy,    ///< 普通营火烟雾（约80tick，alpha=0.9）
-        Signal   ///< 信号营火烟雾（约280tick，alpha=0.95）
+        Cozy,  ///< 普通营火烟雾（约80tick，alpha=0.9）
+        Signal ///< 信号营火烟雾（约280tick，alpha=0.95）
     };
 
     CampfireParticle(const glm::vec3& pos, const glm::vec3& velocity, CampfireType type);
@@ -35,34 +35,32 @@ public:
      * @brief 工厂方法：创建普通营火烟雾
      */
     static std::unique_ptr<Particle> createCozy(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建信号营火烟雾
      */
     static std::unique_ptr<Particle> createSignal(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/campfire_smoke");
     }
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 GRAVITY = 3.0e-6;  ///< 非常小的"重力"（实际向上）
-    static constexpr f64 BASE_SIZE = 0.25;   ///< 基础尺寸
-    static constexpr f64 SCALE_MULTIPLIER = 3.0;  ///< 缩放倍数
+    static constexpr f64 GRAVITY = 3.0e-6;       ///< 非常小的"重力"（实际向上）
+    static constexpr f64 BASE_SIZE = 0.25;       ///< 基础尺寸
+    static constexpr f64 SCALE_MULTIPLIER = 3.0; ///< 缩放倍数
 
     CampfireType m_campfireType;
     f64 m_initialAlpha;

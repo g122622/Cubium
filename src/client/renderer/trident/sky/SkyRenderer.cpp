@@ -1,17 +1,17 @@
 #include "SkyRenderer.hpp"
-#include "CelestialCalculations.hpp"
-#include "../util/VulkanUtils.hpp"
 #include "../../util/ShaderPath.hpp"
+#include "../util/VulkanUtils.hpp"
+#include "CelestialCalculations.hpp"
 #include "common/core/Constants.hpp"
-#include "common/util/math/MathConstants.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include <spdlog/spdlog.h>
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
-#include <array>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::sky {
 
@@ -19,7 +19,8 @@ namespace {
 
 constexpr f64 SKY_CLIP_SCALE = 0.0075;
 
-Result<std::vector<u8>> readBinaryFile(const char* path) {
+Result<std::vector<u8>> readBinaryFile(const char* path)
+{
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         return Error(ErrorCode::FileNotFound, "Failed to open shader file: " + std::string(path));
@@ -41,7 +42,8 @@ Result<std::vector<u8>> readBinaryFile(const char* path) {
     return data;
 }
 
-Result<VkShaderModule> createShaderModule(VkDevice device, const char* path) {
+Result<VkShaderModule> createShaderModule(VkDevice device, const char* path)
+{
     auto codeResult = readBinaryFile(path);
     if (codeResult.failed()) {
         return codeResult.error();
@@ -60,8 +62,7 @@ Result<VkShaderModule> createShaderModule(VkDevice device, const char* path) {
     VkShaderModule shaderModule = VK_NULL_HANDLE;
     const VkResult result = vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to create shader module: " + std::string(path));
+        return Error(ErrorCode::InitializationFailed, "Failed to create shader module: " + std::string(path));
     }
 
     return shaderModule;
@@ -87,7 +88,8 @@ struct SkyPushConstants {
 
 SkyRenderer::SkyRenderer() = default;
 
-SkyRenderer::~SkyRenderer() {
+SkyRenderer::~SkyRenderer()
+{
     destroy();
 }
 
@@ -95,14 +97,14 @@ SkyRenderer::~SkyRenderer() {
 // 初始化
 // ============================================================================
 
-Result<void> SkyRenderer::initialize(
-    VkDevice device,
+Result<void> SkyRenderer::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
     VkExtent2D extent,
-    VkSampleCountFlagBits sampleCount) {
+    VkSampleCountFlagBits sampleCount)
+{
     if (m_initialized) {
         return Result<void>::ok();
     }
@@ -163,7 +165,8 @@ Result<void> SkyRenderer::initialize(
     return Result<void>::ok();
 }
 
-void SkyRenderer::destroy() {
+void SkyRenderer::destroy()
+{
     if (m_device == VK_NULL_HANDLE) return;
 
     VkDevice device = m_device;
@@ -259,7 +262,8 @@ void SkyRenderer::destroy() {
     spdlog::info("SkyRenderer destroyed");
 }
 
-Result<void> SkyRenderer::onResize(VkExtent2D extent) {
+Result<void> SkyRenderer::onResize(VkExtent2D extent)
+{
     m_extent = extent;
     // 不需要重建资源，因为天空渲染使用的是视图投影矩阵
     return Result<void>::ok();
@@ -269,8 +273,8 @@ Result<void> SkyRenderer::onResize(VkExtent2D extent) {
 // 更新
 // ============================================================================
 
-void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
-                         f64 rainStrength, f64 thunderStrength) {
+void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick, f64 rainStrength, f64 thunderStrength)
+{
     MC_ASSERT_RELEASE_MSG(partialTick >= 0.0f && partialTick <= 1.0f, "partialTick must be in range [0, 1]");
 
     m_dayTime = dayTime;
@@ -287,10 +291,8 @@ void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
     // 计算天空颜色
     m_skyColor = client::CelestialCalculations::calculateSkyColor(m_celestialAngle, rainStrength, thunderStrength);
     m_fogColor = client::CelestialCalculations::calculateFogColor(m_celestialAngle, rainStrength, thunderStrength);
-    m_sunriseSunsetColor = client::CelestialCalculations::calculateSunriseSunsetColor(
-        m_celestialAngle,
-        rainStrength,
-        thunderStrength);
+    m_sunriseSunsetColor =
+        client::CelestialCalculations::calculateSunriseSunsetColor(m_celestialAngle, rainStrength, thunderStrength);
 
     // 计算太阳方向和强度
     m_sunDirection = client::CelestialCalculations::calculateSunDirection(m_celestialAngle);
@@ -306,7 +308,6 @@ void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
 
     // 计算星星亮度
     m_starBrightness = client::CelestialCalculations::calculateStarBrightness(m_celestialAngle);
-
 }
 
 // ============================================================================
@@ -314,11 +315,12 @@ void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
 // ============================================================================
 
 void SkyRenderer::render(VkCommandBuffer cmd,
-                         const glm::mat4& projection,
-                         const glm::mat4& view,
-                         const glm::vec3& cameraPos,
-                         const glm::vec3& cameraForward,
-                         u32 frameIndex) {
+    const glm::mat4& projection,
+    const glm::mat4& view,
+    const glm::vec3& cameraPos,
+    const glm::vec3& cameraForward,
+    u32 frameIndex)
+{
     (void)cameraPos;
 
     if (!m_initialized || m_pipelineLayout == VK_NULL_HANDLE) {
@@ -341,8 +343,14 @@ void SkyRenderer::render(VkCommandBuffer cmd,
     // 绑定描述符集
     {
         MC_TRACE_DESCRIPTOR_BIND("SkyDescriptor");
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_pipelineLayout,
+            0,
+            1,
+            &m_descriptorSets[m_currentFrame],
+            0,
+            nullptr);
     }
 
     // MC 1.16.5 的天空渲染关键：移除视图矩阵的平移分量，只保留旋转。
@@ -360,8 +368,8 @@ void SkyRenderer::render(VkCommandBuffer cmd,
         // 由于视图矩阵没有平移，天体位置相对于相机旋转固定，不会随相机移动
         pushConstants.viewProjection = projection * viewNoTranslation * static_cast<f32>(SKY_CLIP_SCALE);
 
-        vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-                           0, sizeof(SkyPushConstants), &pushConstants);
+        vkCmdPushConstants(
+            cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(SkyPushConstants), &pushConstants);
     }
 
     // 渲染天空穹顶 (最优先，写入深度为远平面)
@@ -389,8 +397,10 @@ void SkyRenderer::render(VkCommandBuffer cmd,
     }
 }
 
-void SkyRenderer::renderSkyDome(VkCommandBuffer cmd) {
-    if (m_skyPipeline == VK_NULL_HANDLE || m_skyDomeVBO == VK_NULL_HANDLE || m_skyDomeIBO == VK_NULL_HANDLE || m_skyDomeIndexCount == 0) {
+void SkyRenderer::renderSkyDome(VkCommandBuffer cmd)
+{
+    if (m_skyPipeline == VK_NULL_HANDLE || m_skyDomeVBO == VK_NULL_HANDLE || m_skyDomeIBO == VK_NULL_HANDLE ||
+        m_skyDomeIndexCount == 0) {
         return;
     }
 
@@ -403,7 +413,8 @@ void SkyRenderer::renderSkyDome(VkCommandBuffer cmd) {
     vkCmdDrawIndexed(cmd, m_skyDomeIndexCount, 1, 0, 0, 0);
 }
 
-void SkyRenderer::renderSun(VkCommandBuffer cmd) {
+void SkyRenderer::renderSun(VkCommandBuffer cmd)
+{
     // 太阳强度太低时不渲染
     if (m_sunIntensity < 0.03f || m_sunPipeline == VK_NULL_HANDLE || m_sunMoonVBO == VK_NULL_HANDLE) {
         return;
@@ -418,7 +429,8 @@ void SkyRenderer::renderSun(VkCommandBuffer cmd) {
     vkCmdDraw(cmd, 6, 1, 0, 0);
 }
 
-void SkyRenderer::renderMoon(VkCommandBuffer cmd) {
+void SkyRenderer::renderMoon(VkCommandBuffer cmd)
+{
     // 白天不渲染月亮（晨昏允许短暂过渡）
     if (m_sunIntensity > 0.18f || m_moonPipeline == VK_NULL_HANDLE || m_sunMoonVBO == VK_NULL_HANDLE) return;
 
@@ -431,7 +443,8 @@ void SkyRenderer::renderMoon(VkCommandBuffer cmd) {
     vkCmdDraw(cmd, 6, 1, 6, 0);
 }
 
-void SkyRenderer::renderStars(VkCommandBuffer cmd) {
+void SkyRenderer::renderStars(VkCommandBuffer cmd)
+{
     if (m_starVertexCount == 0 || m_starPipeline == VK_NULL_HANDLE || m_starVBO == VK_NULL_HANDLE) return;
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_starPipeline);
@@ -447,7 +460,8 @@ void SkyRenderer::renderStars(VkCommandBuffer cmd) {
 // 资源创建
 // ============================================================================
 
-Result<void> SkyRenderer::createSkyDomeVBO() {
+Result<void> SkyRenderer::createSkyDomeVBO()
+{
     // 创建天空球网格。
     // 说明：
     // - 原先的平面天空无法区分”上半天空/下半天空”，无法实现 MC 晨昏时下半天空填充。
@@ -507,9 +521,10 @@ Result<void> SkyRenderer::createSkyDomeVBO() {
     // 创建 VBO
     VkDeviceSize vertexSize = vertices.size() * sizeof(SkyVertex);
     auto result = createBuffer(vertexSize,
-                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               m_skyDomeVBO, m_skyDomeVBOMemory);
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_skyDomeVBO,
+        m_skyDomeVBOMemory);
     if (result.failed()) {
         return result;
     }
@@ -526,9 +541,10 @@ Result<void> SkyRenderer::createSkyDomeVBO() {
     // 创建 IBO
     VkDeviceSize indexSize = indices.size() * sizeof(u16);
     result = createBuffer(indexSize,
-                          VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                          m_skyDomeIBO, m_skyDomeIBOMemory);
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_skyDomeIBO,
+        m_skyDomeIBOMemory);
     if (result.failed()) {
         return result;
     }
@@ -545,7 +561,8 @@ Result<void> SkyRenderer::createSkyDomeVBO() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createStarVBO() {
+Result<void> SkyRenderer::createStarVBO()
+{
     // 使用固定种子生成星星位置 (MC 使用 10842L)
     math::Random rng(client::CelestialCalculations::getStarSeed());
 
@@ -574,9 +591,10 @@ Result<void> SkyRenderer::createStarVBO() {
     // 创建 VBO
     VkDeviceSize vertexSize = vertices.size() * sizeof(SkyVertex);
     auto result = createBuffer(vertexSize,
-                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               m_starVBO, m_starVBOMemory);
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_starVBO,
+        m_starVBOMemory);
     if (result.failed()) {
         return result;
     }
@@ -593,33 +611,35 @@ Result<void> SkyRenderer::createStarVBO() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createSunMoonVBO() {
+Result<void> SkyRenderer::createSunMoonVBO()
+{
     // 太阳和月亮都使用单位四边形 [-1, 1]，并展开为 TriangleList（6 顶点）。
     // 使用 TriangleList 可避免 TriangleStrip 在某些姿态下出现的裂缝/缺口伪影。
     std::vector<SkyVertex> vertices = {
         // 太阳（2 三角形）
         {-1.0f, -1.0f, 0.0f},
-        { 1.0f, -1.0f, 0.0f},
-        { 1.0f,  1.0f, 0.0f},
+        {1.0f, -1.0f, 0.0f},
+        {1.0f, 1.0f, 0.0f},
         {-1.0f, -1.0f, 0.0f},
-        { 1.0f,  1.0f, 0.0f},
-        {-1.0f,  1.0f, 0.0f},
+        {1.0f, 1.0f, 0.0f},
+        {-1.0f, 1.0f, 0.0f},
 
         // 月亮（2 三角形）
         {-1.0f, -1.0f, 0.0f},
-        { 1.0f, -1.0f, 0.0f},
-        { 1.0f,  1.0f, 0.0f},
+        {1.0f, -1.0f, 0.0f},
+        {1.0f, 1.0f, 0.0f},
         {-1.0f, -1.0f, 0.0f},
-        { 1.0f,  1.0f, 0.0f},
-        {-1.0f,  1.0f, 0.0f},
+        {1.0f, 1.0f, 0.0f},
+        {-1.0f, 1.0f, 0.0f},
     };
 
     // 创建 VBO
     VkDeviceSize vertexSize = vertices.size() * sizeof(SkyVertex);
     auto result = createBuffer(vertexSize,
-                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               m_sunMoonVBO, m_sunMoonVBOMemory);
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_sunMoonVBO,
+        m_sunMoonVBOMemory);
     if (result.failed()) {
         return result;
     }
@@ -636,12 +656,14 @@ Result<void> SkyRenderer::createSunMoonVBO() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createUniformBuffers() {
+Result<void> SkyRenderer::createUniformBuffers()
+{
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         auto result = createBuffer(sizeof(SkyUBO),
-                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   m_uniformBuffers[i], m_uniformBuffersMemory[i]);
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            m_uniformBuffers[i],
+            m_uniformBuffersMemory[i]);
         if (result.failed()) {
             return result;
         }
@@ -657,7 +679,8 @@ Result<void> SkyRenderer::createUniformBuffers() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createDescriptorSetLayout() {
+Result<void> SkyRenderer::createDescriptorSetLayout()
+{
     VkDescriptorSetLayoutBinding uboBinding = {};
     uboBinding.binding = 0;
     uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -670,8 +693,7 @@ Result<void> SkyRenderer::createDescriptorSetLayout() {
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &uboBinding;
 
-    VkResult result = vkCreateDescriptorSetLayout(
-        m_device, &layoutInfo, nullptr, &m_descriptorSetLayout);
+    VkResult result = vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout);
 
     if (result != VK_SUCCESS) {
         return Error(ErrorCode::InitializationFailed, "Failed to create sky descriptor set layout");
@@ -680,7 +702,8 @@ Result<void> SkyRenderer::createDescriptorSetLayout() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createDescriptorSets() {
+Result<void> SkyRenderer::createDescriptorSets()
+{
     // 创建描述符池
     VkDescriptorPoolSize poolSize = {};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -692,8 +715,7 @@ Result<void> SkyRenderer::createDescriptorSets() {
     poolInfo.poolSizeCount = 1;
     poolInfo.pPoolSizes = &poolSize;
 
-    VkResult result = vkCreateDescriptorPool(
-        m_device, &poolInfo, nullptr, &m_descriptorPool);
+    VkResult result = vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool);
 
     if (result != VK_SUCCESS) {
         return Error(ErrorCode::InitializationFailed, "Failed to create sky descriptor pool");
@@ -736,7 +758,8 @@ Result<void> SkyRenderer::createDescriptorSets() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createPipelineLayout() {
+Result<void> SkyRenderer::createPipelineLayout()
+{
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
@@ -749,8 +772,7 @@ Result<void> SkyRenderer::createPipelineLayout() {
     layoutInfo.pushConstantRangeCount = 1;
     layoutInfo.pPushConstantRanges = &pushConstantRange;
 
-    VkResult result = vkCreatePipelineLayout(
-        m_device, &layoutInfo, nullptr, &m_pipelineLayout);
+    VkResult result = vkCreatePipelineLayout(m_device, &layoutInfo, nullptr, &m_pipelineLayout);
 
     if (result != VK_SUCCESS) {
         return Error(ErrorCode::InitializationFailed, "Failed to create sky pipeline layout");
@@ -759,7 +781,8 @@ Result<void> SkyRenderer::createPipelineLayout() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
+Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
+{
     const VkDevice device = m_device;
 
     const auto skyVertPath = resolveShaderPath("sky.vert.spv");
@@ -771,20 +794,18 @@ Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
     const auto starVertPath = resolveShaderPath("star.vert.spv");
     const auto starFragPath = resolveShaderPath("star.frag.spv");
 
-    if (skyVertPath.empty() || skyFragPath.empty() ||
-        sunVertPath.empty() || sunFragPath.empty() ||
-        moonVertPath.empty() || moonFragPath.empty() ||
-        starVertPath.empty() || starFragPath.empty()) {
+    if (skyVertPath.empty() || skyFragPath.empty() || sunVertPath.empty() || sunFragPath.empty() ||
+        moonVertPath.empty() || moonFragPath.empty() || starVertPath.empty() || starFragPath.empty()) {
         return Error(ErrorCode::FileNotFound, "Failed to resolve one or more sky shader binaries");
     }
 
     auto createPipeline = [this, device, sampleCount](const std::filesystem::path& vertPath,
-                                         const std::filesystem::path& fragPath,
-                                         VkPrimitiveTopology topology,
-                                         VkBool32 blendEnable,
-                                         VkBool32 depthTestEnable,
-                                         VkBool32 depthWriteEnable,
-                                         VkPipeline* outPipeline) -> Result<void> {
+                              const std::filesystem::path& fragPath,
+                              VkPrimitiveTopology topology,
+                              VkBool32 blendEnable,
+                              VkBool32 depthTestEnable,
+                              VkBool32 depthWriteEnable,
+                              VkPipeline* outPipeline) -> Result<void> {
         const auto vertPathString = vertPath.string();
         const auto fragPathString = fragPath.string();
 
@@ -865,10 +886,8 @@ Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
         depthStencil.stencilTestEnable = VK_FALSE;
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                                              VK_COLOR_COMPONENT_G_BIT |
-                                              VK_COLOR_COMPONENT_B_BIT |
-                                              VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = blendEnable;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -883,10 +902,7 @@ Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
         colorBlending.attachmentCount = 1;
         colorBlending.pAttachments = &colorBlendAttachment;
 
-        std::array<VkDynamicState, 2> dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-        };
+        std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
         VkPipelineDynamicStateCreateInfo dynamicState{};
         dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -909,60 +925,45 @@ Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
         pipelineInfo.renderPass = m_renderPass;
         pipelineInfo.subpass = 0;
 
-        const VkResult pipelineResult = vkCreateGraphicsPipelines(
-            device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, outPipeline);
+        const VkResult pipelineResult =
+            vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, outPipeline);
 
         vkDestroyShaderModule(device, fragModule, nullptr);
         vkDestroyShaderModule(device, vertModule, nullptr);
 
         if (pipelineResult != VK_SUCCESS) {
             return Error(ErrorCode::InitializationFailed,
-                         std::string("Failed to create sky graphics pipeline for shaders: ") +
-                         vertPathString + " / " + fragPathString);
+                std::string("Failed to create sky graphics pipeline for shaders: ") + vertPathString + " / " +
+                    fragPathString);
         }
 
         return Result<void>::ok();
     };
 
     // 天空穹顶
-    auto skyResult = createPipeline(skyVertPath,
-                                    skyFragPath,
-                                    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE, VK_FALSE,
-                                    VK_FALSE, &m_skyPipeline);
+    auto skyResult = createPipeline(
+        skyVertPath, skyFragPath, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE, VK_FALSE, VK_FALSE, &m_skyPipeline);
     if (skyResult.failed()) {
         return skyResult.error();
     }
 
     // 太阳
-    auto sunResult = createPipeline(sunVertPath,
-                                    sunFragPath, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-                                    VK_TRUE, VK_FALSE, VK_FALSE, &m_sunPipeline);
+    auto sunResult = createPipeline(
+        sunVertPath, sunFragPath, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_TRUE, VK_FALSE, VK_FALSE, &m_sunPipeline);
     if (sunResult.failed()) {
         return sunResult.error();
     }
 
     // 月亮
     auto moonResult = createPipeline(
-        moonVertPath,
-        moonFragPath,
-        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        VK_TRUE,
-        VK_FALSE,
-        VK_FALSE,
-        &m_moonPipeline);
+        moonVertPath, moonFragPath, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_TRUE, VK_FALSE, VK_FALSE, &m_moonPipeline);
     if (moonResult.failed()) {
         return moonResult.error();
     }
 
     // 星星
     auto starResult = createPipeline(
-        starVertPath,
-        starFragPath,
-        VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
-        VK_TRUE,
-        VK_FALSE,
-        VK_FALSE,
-        &m_starPipeline);
+        starVertPath, starFragPath, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, VK_TRUE, VK_FALSE, VK_FALSE, &m_starPipeline);
     if (starResult.failed()) {
         return starResult.error();
     }
@@ -974,7 +975,8 @@ Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
     return Result<void>::ok();
 }
 
-void SkyRenderer::updateUniformBuffer(u32 frameIndex) {
+void SkyRenderer::updateUniformBuffer(u32 frameIndex)
+{
     SkyUBO ubo = {};
     ubo.skyColor = m_skyColor;
     ubo.fogColor = m_fogColor;
@@ -988,10 +990,8 @@ void SkyRenderer::updateUniformBuffer(u32 frameIndex) {
     } else {
         cameraForward = glm::dvec3(0.0, 0.0, -1.0);
     }
-    ubo.cameraForward = glm::vec4(static_cast<f32>(cameraForward.x),
-                                  static_cast<f32>(cameraForward.y),
-                                  static_cast<f32>(cameraForward.z),
-                                  0.0f);
+    ubo.cameraForward = glm::vec4(
+        static_cast<f32>(cameraForward.x), static_cast<f32>(cameraForward.y), static_cast<f32>(cameraForward.z), 0.0f);
 
     // sun.vert 在太阳接近天顶/天底时会出现 right=normalize(cross(up, sunDir)) 退化。
     // 这里做极小偏移，避免精确零向量导致太阳四边形退化不可见。
@@ -1019,23 +1019,27 @@ void SkyRenderer::updateUniformBuffer(u32 frameIndex) {
 // Vulkan 辅助函数
 // ============================================================================
 
-Result<u32> SkyRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> SkyRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     return renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
 Result<void> SkyRenderer::createBuffer(VkDeviceSize size,
-                                        VkBufferUsageFlags usage,
-                                        VkMemoryPropertyFlags properties,
-                                        VkBuffer& buffer,
-                                        VkDeviceMemory& memory) {
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer& buffer,
+    VkDeviceMemory& memory)
+{
     return renderer::VulkanUtils::createBuffer(m_device, m_physicalDevice, size, usage, properties, buffer, memory);
 }
 
-VkCommandBuffer SkyRenderer::beginSingleTimeCommands() {
+VkCommandBuffer SkyRenderer::beginSingleTimeCommands()
+{
     return renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void SkyRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void SkyRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);
 }

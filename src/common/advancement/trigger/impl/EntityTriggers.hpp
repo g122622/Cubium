@@ -29,9 +29,7 @@ class TameAnimalTrigger : public AbstractCriterionTrigger<TameAnimalTriggerInsta
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:tame_animal";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -67,18 +65,12 @@ class BredAnimalsTrigger : public AbstractCriterionTrigger<BredAnimalsTriggerIns
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:bred_animals";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(
-        class ServerPlayer& player,
-        const class Entity& child,
-        const class Entity& parent,
-        const class Entity& partner
-    );
+        class ServerPlayer& player, const class Entity& child, const class Entity& parent, const class Entity& partner);
 };
 
 /**
@@ -91,11 +83,7 @@ public:
     BredAnimalsTriggerInstance() = default;
     BredAnimalsTriggerInstance(EntityPredicate child, EntityPredicate parent, EntityPredicate partner);
 
-    [[nodiscard]] bool test(
-        const class Entity& child,
-        const class Entity& parent,
-        const class Entity& partner
-    ) const;
+    [[nodiscard]] bool test(const class Entity& child, const class Entity& parent, const class Entity& partner) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
@@ -115,9 +103,7 @@ class SummonedEntityTrigger : public AbstractCriterionTrigger<SummonedEntityTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:summoned_entity";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -152,9 +138,7 @@ class CuredZombieVillagerTrigger : public AbstractCriterionTrigger<CuredZombieVi
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:cured_zombie_villager";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -190,9 +174,7 @@ class VillagerTradeTrigger : public AbstractCriterionTrigger<VillagerTradeTrigge
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:villager_trade";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -209,10 +191,7 @@ public:
     VillagerTradeTriggerInstance() = default;
     VillagerTradeTriggerInstance(EntityPredicate villager, ItemPredicate item);
 
-    [[nodiscard]] bool test(
-        const class Entity& villager,
-        const ItemStack& item
-    ) const;
+    [[nodiscard]] bool test(const class Entity& villager, const ItemStack& item) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;

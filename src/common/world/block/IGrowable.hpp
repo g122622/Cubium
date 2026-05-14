@@ -35,10 +35,7 @@ public:
      * @return 如果可以生长返回true
      */
     [[nodiscard]] virtual bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const = 0;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const = 0;
 
     /**
      * @brief 检查是否可以使用骨粉
@@ -53,10 +50,7 @@ public:
      * @return 如果骨粉有效返回true
      */
     [[nodiscard]] virtual bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const = 0;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const = 0;
 
     /**
      * @brief 使用骨粉生长
@@ -69,11 +63,7 @@ public:
      * @param pos 方块位置
      * @param state 当前方块状态
      */
-    virtual void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) = 0;
+    virtual void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) = 0;
 };
 
 } // namespace mc

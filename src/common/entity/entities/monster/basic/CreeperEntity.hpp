@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../MonsterEntity.hpp"
 #include <memory>
 #include <optional>
 
@@ -138,9 +138,7 @@ public:
     /**
      * @brief 获取爆炸威力
      */
-    [[nodiscard]] f32 getExplosionPower() const {
-        return m_powered ? POWERED_EXPLOSION_POWER : NORMAL_EXPLOSION_POWER;
-    }
+    [[nodiscard]] f32 getExplosionPower() const { return m_powered ? POWERED_EXPLOSION_POWER : NORMAL_EXPLOSION_POWER; }
 
     /**
      * @brief 获取爆炸半径
@@ -205,20 +203,20 @@ protected:
 
 private:
     // MC 1.16.5 状态变量
-    i32 m_fuseTime = DEFAULT_FUSE_TIME;      // 点燃时间配置（可修改）
-    i32 m_explosionRadius = DEFAULT_EXPLOSION_RADIUS;  // 爆炸半径（可修改）
-    i32 m_timeSinceIgnited = 0;              // 已点燃时间
-    i32 m_lastActiveTime = 0;                // 上一次点燃时间（渲染插值）
-    bool m_ignited = false;                  // 是否被点燃
-    bool m_powered = false;                  // 是否是高压苦力怕
-    i32 m_droppedSkulls = 0;                 // 已掉落的头颅数量
+    i32 m_fuseTime = DEFAULT_FUSE_TIME;               // 点燃时间配置（可修改）
+    i32 m_explosionRadius = DEFAULT_EXPLOSION_RADIUS; // 爆炸半径（可修改）
+    i32 m_timeSinceIgnited = 0;                       // 已点燃时间
+    i32 m_lastActiveTime = 0;                         // 上一次点燃时间（渲染插值）
+    bool m_ignited = false;                           // 是否被点燃
+    bool m_powered = false;                           // 是否是高压苦力怕
+    i32 m_droppedSkulls = 0;                          // 已掉落的头颅数量
 
     // MC 1.16.5 常量
-    static constexpr i32 DEFAULT_FUSE_TIME = 30;           // 默认点燃时间 (1.5秒)
-    static constexpr i32 DEFAULT_EXPLOSION_RADIUS = 3;     // 默认爆炸半径
-    static constexpr f32 NORMAL_EXPLOSION_POWER = 3.0f;    // 普通爆炸威力
-    static constexpr f32 POWERED_EXPLOSION_POWER = 6.0f;   // 高压爆炸威力
-    static constexpr f32 DETONATE_DISTANCE = 3.0f;         // 触发爆炸距离
+    static constexpr i32 DEFAULT_FUSE_TIME = 30;         // 默认点燃时间 (1.5秒)
+    static constexpr i32 DEFAULT_EXPLOSION_RADIUS = 3;   // 默认爆炸半径
+    static constexpr f32 NORMAL_EXPLOSION_POWER = 3.0f;  // 普通爆炸威力
+    static constexpr f32 POWERED_EXPLOSION_POWER = 6.0f; // 高压爆炸威力
+    static constexpr f32 DETONATE_DISTANCE = 3.0f;       // 触发爆炸距离
 
     /**
      * @brief 生成滞留药水云（如果有效果）

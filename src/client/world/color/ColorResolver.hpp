@@ -2,8 +2,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/biome/Biome.hpp"
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace mc {
@@ -31,11 +31,7 @@ public:
      * @param z Z坐标（方块坐标，用于噪声计算）
      * @return RGB颜色值 (0xRRGGBB)
      */
-    [[nodiscard]] virtual u32 getColor(
-        const Biome& biome,
-        f64 x,
-        f64 z
-    ) const = 0;
+    [[nodiscard]] virtual u32 getColor(const Biome& biome, f64 x, f64 z) const = 0;
 
     /**
      * @brief 获取指定位置的颜色（带 colormap 支持）
@@ -50,12 +46,8 @@ public:
      * @return RGB颜色值 (0xRRGGBB)
      */
     [[nodiscard]] virtual u32 getColorWithColorMap(
-        const Biome& biome,
-        f64 x,
-        f64 z,
-        const std::array<u32, 65536>* colorMap,
-        u32 defaultColor
-    ) const {
+        const Biome& biome, f64 x, f64 z, const std::array<u32, 65536>* colorMap, u32 defaultColor) const
+    {
         // 默认实现：调用 getColor，如果不返回标记值则使用返回的颜色
         const u32 color = getColor(biome, x, z);
         if (color != 0xFFFFFFFF) {

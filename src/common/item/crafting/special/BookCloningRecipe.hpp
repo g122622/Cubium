@@ -1,7 +1,7 @@
 #pragma once
 
-#include "item/crafting/SpecialRecipe.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/crafting/SpecialRecipe.hpp"
 
 namespace mc {
 namespace crafting {

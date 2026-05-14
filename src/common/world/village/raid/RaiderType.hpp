@@ -9,13 +9,7 @@ namespace mc::world::village::raid {
  *
  * 用于描述袭击事件中可能生成的敌对生物类别。
  */
-enum class RaiderType : u8 {
-    Pillager = 0,
-    Vindicator,
-    Evoker,
-    Ravager,
-    Witch
-};
+enum class RaiderType : u8 { Pillager = 0, Vindicator, Evoker, Ravager, Witch };
 
 /**
  * @brief 袭击者类型辅助工具。
@@ -67,12 +61,7 @@ public:
 /**
  * @brief 袭击状态。
  */
-enum class RaidStatus : u8 {
-    Ongoing = 0,
-    Victory,
-    Loss,
-    Stopped
-};
+enum class RaidStatus : u8 { Ongoing = 0, Victory, Loss, Stopped };
 
 /**
  * @brief 袭击唯一标识。

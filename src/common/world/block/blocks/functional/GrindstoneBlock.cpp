@@ -1,13 +1,13 @@
 #include "GrindstoneBlock.hpp"
-#include "../../../IWorld.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -15,14 +15,15 @@ namespace blocks {
 // ========== GrindstoneBlock 实现 ==========
 
 GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -50,28 +51,27 @@ GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
     CollisionShape postLeftW = CollisionShape::box(0.0f, 0.0f, 0.0f, 2.0f * P, 14.0f * P, 2.0f * P);
     CollisionShape postRightW = CollisionShape::box(0.0f, 0.0f, 14.0f * P, 2.0f * P, 14.0f * P, 16.0f * P);
     CollisionShape wheelW = CollisionShape::box(0.0f, 4.0f * P, 2.0f * P, 2.0f * P, 12.0f * P, 14.0f * P);
-    m_shapesByFacing[static_cast<size_t>(Direction::West)] = CollisionShape::combine(
-        CollisionShape::combine(postLeftW, postRightW), wheelW);
+    m_shapesByFacing[static_cast<size_t>(Direction::West)] =
+        CollisionShape::combine(CollisionShape::combine(postLeftW, postRightW), wheelW);
 
     // 东朝向
     CollisionShape postLeftE = CollisionShape::box(14.0f * P, 0.0f, 0.0f, 16.0f * P, 14.0f * P, 2.0f * P);
     CollisionShape postRightE = CollisionShape::box(14.0f * P, 0.0f, 14.0f * P, 16.0f * P, 14.0f * P, 16.0f * P);
     CollisionShape wheelE = CollisionShape::box(14.0f * P, 4.0f * P, 2.0f * P, 16.0f * P, 12.0f * P, 14.0f * P);
-    m_shapesByFacing[static_cast<size_t>(Direction::East)] = CollisionShape::combine(
-        CollisionShape::combine(postLeftE, postRightE), wheelE);
+    m_shapesByFacing[static_cast<size_t>(Direction::East)] =
+        CollisionShape::combine(CollisionShape::combine(postLeftE, postRightE), wheelE);
 
     m_collisionShape = baseShape;
 }
 
-BlockState GrindstoneBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState GrindstoneBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.horizontalDirection();
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing));
 }
 
-bool GrindstoneBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool GrindstoneBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -88,13 +88,13 @@ bool GrindstoneBlock::isValidPosition(
     return behindState->isSolid();
 }
 
-BlockState GrindstoneBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState GrindstoneBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     Direction grindstoneFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
@@ -109,7 +109,8 @@ BlockState GrindstoneBlock::updatePostPlacement(
                 if (blockItem != nullptr) {
                     ItemStack dropStack(blockItem, 1);
                     math::Random rng;
-                    ItemDropHelper::spawnItemEntity(&world, dropStack,
+                    ItemDropHelper::spawnItemEntity(&world,
+                        dropStack,
                         static_cast<f64>(currentPos.x) + 0.5,
                         static_cast<f64>(currentPos.y) + 0.5,
                         static_cast<f64>(currentPos.z) + 0.5,
@@ -123,13 +124,15 @@ BlockState GrindstoneBlock::updatePostPlacement(
     return state;
 }
 
-const BlockState& GrindstoneBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& GrindstoneBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& GrindstoneBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& GrindstoneBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }
@@ -139,14 +142,16 @@ const BlockState& GrindstoneBlock::mirror(const BlockState& state, Mirror mirror
     return rotate(state, rotation);
 }
 
-const CollisionShape& GrindstoneBlock::getShape(const BlockState& state) const {
+const CollisionShape& GrindstoneBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
     MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
 }
 
-const CollisionShape& GrindstoneBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& GrindstoneBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_collisionShape;
 }

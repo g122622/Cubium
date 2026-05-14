@@ -3,7 +3,8 @@
 
 namespace mc {
 
-void ContainerBlockEntity::openContainer(Player* player) {
+void ContainerBlockEntity::openContainer(Player* player)
+{
     // MC 1.16.5: 观察者模式玩家不计入打开数
     if (player != nullptr && player->isSpectator()) {
         return;
@@ -15,7 +16,8 @@ void ContainerBlockEntity::openContainer(Player* player) {
     ++m_openCount;
 }
 
-void ContainerBlockEntity::closeContainer(Player* player) {
+void ContainerBlockEntity::closeContainer(Player* player)
+{
     // MC 1.16.5: 观察者模式玩家不计入打开数
     if (player != nullptr && player->isSpectator()) {
         return;
@@ -25,7 +27,8 @@ void ContainerBlockEntity::closeContainer(Player* player) {
     }
 }
 
-bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanceSq) const {
+bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanceSq) const
+{
     // 参考 MC 1.16.5: net.minecraft.tileentity.LockableTileEntity.isUsableByPlayer
     // 检查：
     // 1. 方块实体仍然存在于世界中（m_world != nullptr 且未被移除）
@@ -38,8 +41,7 @@ bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanc
 
     // 计算玩家与方块中心的距离平方
     const BlockPos pos = getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f,
+    return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
                static_cast<f32>(pos.z) + 0.5f) <= maxDistanceSq;
 }

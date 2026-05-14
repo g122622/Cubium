@@ -1,8 +1,8 @@
 #include "MonsterRenderers.hpp"
-#include "../../layer/equipment/HeldItemLayer.hpp"
-#include "../../layer/entity/HeldBlockLayer.hpp"
-#include "../../layer/effect/EyesLayer.hpp"
 #include "../../layer/effect/EnergyGlintLayer.hpp"
+#include "../../layer/effect/EyesLayer.hpp"
+#include "../../layer/entity/HeldBlockLayer.hpp"
+#include "../../layer/equipment/HeldItemLayer.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
@@ -13,23 +13,27 @@ namespace layer_effect = layer::effect;
 
 // ==================== 僵尸渲染器 ====================
 
-ZombieRenderer::ZombieRenderer() {
+ZombieRenderer::ZombieRenderer()
+{
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
     setupLayers();
 }
 
-ResourceLocation ZombieRenderer::getEntityTexture(LivingEntity& entity) {
+ResourceLocation ZombieRenderer::getEntityTexture(LivingEntity& entity)
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/zombie/zombie.png");
 }
 
-ResourceLocation ZombieRenderer::getEntityTexture(const LivingEntity& entity) const {
+ResourceLocation ZombieRenderer::getEntityTexture(const LivingEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/zombie/zombie.png");
 }
 
-void ZombieRenderer::setupLayers() {
+void ZombieRenderer::setupLayers()
+{
     // 参考 MC 1.16.5 ZombieRenderer 构造函数
     // 僵尸有以下层渲染器：
     // - BipedArmorLayer（盔甲）
@@ -42,23 +46,27 @@ void ZombieRenderer::setupLayers() {
 
 // ==================== 骷髅渲染器 ====================
 
-SkeletonRenderer::SkeletonRenderer() {
+SkeletonRenderer::SkeletonRenderer()
+{
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
     setupLayers();
 }
 
-ResourceLocation SkeletonRenderer::getEntityTexture(LivingEntity& entity) {
+ResourceLocation SkeletonRenderer::getEntityTexture(LivingEntity& entity)
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/skeleton/skeleton.png");
 }
 
-ResourceLocation SkeletonRenderer::getEntityTexture(const LivingEntity& entity) const {
+ResourceLocation SkeletonRenderer::getEntityTexture(const LivingEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/skeleton/skeleton.png");
 }
 
-void SkeletonRenderer::setupLayers() {
+void SkeletonRenderer::setupLayers()
+{
     // 参考 MC 1.16.5 SkeletonRenderer 构造函数
     // 骷髅有以下层渲染器：
     // - BipedArmorLayer（盔甲）
@@ -69,23 +77,27 @@ void SkeletonRenderer::setupLayers() {
 
 // ==================== 苦力怕渲染器 ====================
 
-CreeperRenderer::CreeperRenderer() {
+CreeperRenderer::CreeperRenderer()
+{
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
     setupLayers();
 }
 
-ResourceLocation CreeperRenderer::getEntityTexture(LivingEntity& entity) {
+ResourceLocation CreeperRenderer::getEntityTexture(LivingEntity& entity)
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/creeper/creeper.png");
 }
 
-ResourceLocation CreeperRenderer::getEntityTexture(const LivingEntity& entity) const {
+ResourceLocation CreeperRenderer::getEntityTexture(const LivingEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/creeper/creeper.png");
 }
 
-void CreeperRenderer::setupLayers() {
+void CreeperRenderer::setupLayers()
+{
     // 参考 MC 1.16.5 CreeperRenderer 构造函数
     // 苦力怕有以下层渲染器：
     // - EnergySwirlLayer（充能光效，当闪电苦力怕时）
@@ -94,23 +106,27 @@ void CreeperRenderer::setupLayers() {
 
 // ==================== 蜘蛛渲染器 ====================
 
-SpiderRenderer::SpiderRenderer() {
+SpiderRenderer::SpiderRenderer()
+{
     setShadowSize(0.7f);
     setShadowAlpha(0.8f);
     setupLayers();
 }
 
-ResourceLocation SpiderRenderer::getEntityTexture(LivingEntity& entity) {
+ResourceLocation SpiderRenderer::getEntityTexture(LivingEntity& entity)
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/spider/spider.png");
 }
 
-ResourceLocation SpiderRenderer::getEntityTexture(const LivingEntity& entity) const {
+ResourceLocation SpiderRenderer::getEntityTexture(const LivingEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/spider/spider.png");
 }
 
-void SpiderRenderer::setupLayers() {
+void SpiderRenderer::setupLayers()
+{
     // 参考 MC 1.16.5 SpiderRenderer 构造函数
     // 蜘蛛有以下层渲染器：
     // - EyesLayer（发光眼睛）
@@ -120,29 +136,34 @@ void SpiderRenderer::setupLayers() {
 
 // ==================== 末影人渲染器 ====================
 
-EndermanRenderer::EndermanRenderer() {
+EndermanRenderer::EndermanRenderer()
+{
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
     setupLayers();
 }
 
-ResourceLocation EndermanRenderer::getEntityTexture(LivingEntity& entity) {
+ResourceLocation EndermanRenderer::getEntityTexture(LivingEntity& entity)
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/enderman/enderman.png");
 }
 
-ResourceLocation EndermanRenderer::getEntityTexture(const LivingEntity& entity) const {
+ResourceLocation EndermanRenderer::getEntityTexture(const LivingEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/enderman/enderman.png");
 }
 
-void EndermanRenderer::render(Entity& entity, f64 partialTicks) {
+void EndermanRenderer::render(Entity& entity, f64 partialTicks)
+{
     auto& living = static_cast<LivingEntity&>(entity);
     updateEndermanState(living);
     LivingRenderer::render(entity, partialTicks);
 }
 
-void EndermanRenderer::updateEndermanState(LivingEntity& entity) {
+void EndermanRenderer::updateEndermanState(LivingEntity& entity)
+{
     // 参考 MC 1.16.5 EndermanRenderer.render()
     // model.isCarrying = blockstate != null;
     // model.isAttacking = entityIn.isScreaming();
@@ -158,7 +179,8 @@ void EndermanRenderer::updateEndermanState(LivingEntity& entity) {
     }
 }
 
-void EndermanRenderer::setupLayers() {
+void EndermanRenderer::setupLayers()
+{
     // 参考 MC 1.16.5 EndermanRenderer 构造函数
     // 末影人有以下层渲染器：
     // - HeldBlockLayer（手持方块）
@@ -170,53 +192,52 @@ void EndermanRenderer::setupLayers() {
 
 // ==================== 烈焰人渲染器 ====================
 
-BlazeRenderer::BlazeRenderer() {
+BlazeRenderer::BlazeRenderer()
+{
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
     setupLayers();
 }
 
-ResourceLocation BlazeRenderer::getEntityTexture(LivingEntity& entity) {
+ResourceLocation BlazeRenderer::getEntityTexture(LivingEntity& entity)
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/blaze.png");
 }
 
-ResourceLocation BlazeRenderer::getEntityTexture(const LivingEntity& entity) const {
+ResourceLocation BlazeRenderer::getEntityTexture(const LivingEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/blaze.png");
 }
 
-void BlazeRenderer::setupLayers() {
+void BlazeRenderer::setupLayers()
+{
     // 参考 MC 1.16.5 BlazeRenderer 构造函数
     // 烈焰人没有特殊的层渲染器
 }
 
 // ==================== 注册函数 ====================
 
-void registerMonsterRenderers(EntityRendererManager& manager) {
-    manager.registerRenderer("minecraft:zombie", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<ZombieRenderer>();
-    });
+void registerMonsterRenderers(EntityRendererManager& manager)
+{
+    manager.registerRenderer("minecraft:zombie",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ZombieRenderer>(); });
 
-    manager.registerRenderer("minecraft:skeleton", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<SkeletonRenderer>();
-    });
+    manager.registerRenderer("minecraft:skeleton",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SkeletonRenderer>(); });
 
-    manager.registerRenderer("minecraft:creeper", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<CreeperRenderer>();
-    });
+    manager.registerRenderer("minecraft:creeper",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<CreeperRenderer>(); });
 
-    manager.registerRenderer("minecraft:spider", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<SpiderRenderer>();
-    });
+    manager.registerRenderer("minecraft:spider",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SpiderRenderer>(); });
 
-    manager.registerRenderer("minecraft:enderman", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<EndermanRenderer>();
-    });
+    manager.registerRenderer("minecraft:enderman",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EndermanRenderer>(); });
 
-    manager.registerRenderer("minecraft:blaze", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<BlazeRenderer>();
-    });
+    manager.registerRenderer(
+        "minecraft:blaze", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BlazeRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::monster

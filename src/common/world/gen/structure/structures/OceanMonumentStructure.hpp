@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "../Structure.hpp"
 #include <memory>
 
 namespace mc {
@@ -41,30 +41,37 @@ public:
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成海洋纪念碑
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     void initializeBiomes();
     void generateMonument(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
-    void generateWing(IWorldWriter& world, const BlockState* prismarine, const BlockState* darkPrismarine,
-                      const BlockState* seaLantern, i32 baseX, i32 baseY, i32 baseZ,
-                      i32 width, i32 height, i32 depth, bool isLeft) const;
-    void generateRoom(IWorldWriter& world, const BlockState* prismarine, const BlockState* seaLantern,
-                      i32 baseX, i32 baseY, i32 baseZ, i32 width, i32 height, i32 depth) const;
+    void generateWing(IWorldWriter& world,
+        const BlockState* prismarine,
+        const BlockState* darkPrismarine,
+        const BlockState* seaLantern,
+        i32 baseX,
+        i32 baseY,
+        i32 baseZ,
+        i32 width,
+        i32 height,
+        i32 depth,
+        bool isLeft) const;
+    void generateRoom(IWorldWriter& world,
+        const BlockState* prismarine,
+        const BlockState* seaLantern,
+        i32 baseX,
+        i32 baseY,
+        i32 baseZ,
+        i32 width,
+        i32 height,
+        i32 depth) const;
 
     /**
      * @brief 检查生物群系是否属于海洋或河流类别

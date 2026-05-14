@@ -14,10 +14,10 @@ namespace entity::ai::controller {
  * @brief 移动控制器动作类型
  */
 enum class MoveAction : u8 {
-    Wait,       // 等待
-    MoveTo,     // 移动到目标
-    Strafe,     // 横向移动
-    Jumping     // 跳跃中
+    Wait,   // 等待
+    MoveTo, // 移动到目标
+    Strafe, // 横向移动
+    Jumping // 跳跃中
 };
 
 /**

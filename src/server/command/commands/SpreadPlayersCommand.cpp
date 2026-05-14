@@ -5,15 +5,15 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/util/math/random/Random.hpp"
-#include <sstream>
 #include <chrono>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -21,40 +21,29 @@ namespace command {
 void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto spreadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spreadplayers");
-    spreadNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        spreadNode,
-        support::makeMetadata(
-            "Spreads players to random locations within an area.",
+    spreadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(spreadNode,
+        support::makeMetadata("Spreads players to random locations within an area.",
             "/spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>",
             2,
             {},
             true));
 
-    auto centerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "center",
-        Vec3ArgumentType::vec3());
+    auto centerArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("center", Vec3ArgumentType::vec3());
 
     auto spreadDistanceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "spreadDistance",
-        FloatArgumentType::floatArg(0.0f));
+        "spreadDistance", FloatArgumentType::floatArg(0.0f));
 
-    auto maxRangeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "maxRange",
-        FloatArgumentType::floatArg(1.0f));
+    auto maxRangeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("maxRange", FloatArgumentType::floatArg(1.0f));
 
-    auto respectTeamsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-        "respectTeams",
-        BoolArgumentType::boolArg());
+    auto respectTeamsArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("respectTeams", BoolArgumentType::boolArg());
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::players());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return spreadPlayers(ctx);
-    });
+        "targets", EntityArgumentType::players());
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return spreadPlayers(ctx); });
 
     respectTeamsArg->addChild(targetsArg);
     maxRangeArg->addChild(respectTeamsArg);
@@ -118,10 +107,9 @@ i32 SpreadPlayersCommand::spreadPlayers(CommandContext<ServerCommandSource>& con
     }
 
     std::ostringstream ss;
-    ss << "Spread " << successCount << " player(s) around ("
-       << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.z) << ")"
-       << " with spread distance " << spreadDistance
-       << " and max range " << maxRange;
+    ss << "Spread " << successCount << " player(s) around (" << static_cast<i32>(center.x) << ", "
+       << static_cast<i32>(center.z) << ")"
+       << " with spread distance " << spreadDistance << " and max range " << maxRange;
     if (respectTeams) {
         ss << " (respecting teams)";
     }

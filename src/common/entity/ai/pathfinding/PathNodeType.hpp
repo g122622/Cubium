@@ -122,7 +122,8 @@ enum class PathNodeType : u8 {
  * @param type 节点类型
  * @return 代价惩罚值（负值表示危险/不可通行）
  */
-[[nodiscard]] inline f32 getPathCostPenalty(PathNodeType type) {
+[[nodiscard]] inline f32 getPathCostPenalty(PathNodeType type)
+{
     switch (type) {
         case PathNodeType::Blocked:
             return -1.0f; // 完全阻塞
@@ -202,7 +203,8 @@ enum class PathNodeType : u8 {
  * @param type 节点类型
  * @return 危险类型，如果不是危险则返回 Blocked（作为 null）
  */
-[[nodiscard]] inline PathNodeType getDanger(PathNodeType type) {
+[[nodiscard]] inline PathNodeType getDanger(PathNodeType type)
+{
     switch (type) {
         case PathNodeType::DamageFire:
         case PathNodeType::DangerFire:
@@ -232,7 +234,8 @@ enum class PathNodeType : u8 {
  * @param type 节点类型
  * @return 是否可通行
  */
-[[nodiscard]] inline bool isWalkable(PathNodeType type) {
+[[nodiscard]] inline bool isWalkable(PathNodeType type)
+{
     switch (type) {
         case PathNodeType::Walkable:
         case PathNodeType::WalkableDoor:
@@ -256,7 +259,8 @@ enum class PathNodeType : u8 {
  * @param type 节点类型
  * @return 是否为危险节点
  */
-[[nodiscard]] inline bool isDangerous(PathNodeType type) {
+[[nodiscard]] inline bool isDangerous(PathNodeType type)
+{
     return getDanger(type) != PathNodeType::Blocked;
 }
 

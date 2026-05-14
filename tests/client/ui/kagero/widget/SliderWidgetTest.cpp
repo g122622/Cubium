@@ -3,10 +3,10 @@
  * @brief SliderWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/SliderWidget.hpp"
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -14,13 +14,15 @@ using namespace mc;
 
 // ==================== SliderWidget测试 ====================
 
-TEST(SliderWidgetTest, DefaultConstructor) {
+TEST(SliderWidgetTest, DefaultConstructor)
+{
     SliderWidget slider;
     EXPECT_TRUE(slider.id().empty());
     EXPECT_DOUBLE_EQ(0.0, slider.value());
 }
 
-TEST(SliderWidgetTest, ConstructorWithParams) {
+TEST(SliderWidgetTest, ConstructorWithParams)
+{
     SliderWidget slider("sldr_volume", 10, 20, 200, 30, 0.0, 100.0, 50.0);
 
     EXPECT_EQ("sldr_volume", slider.id());
@@ -35,7 +37,8 @@ TEST(SliderWidgetTest, ConstructorWithParams) {
 
 // ==================== 值操作测试 ====================
 
-TEST(SliderWidgetTest, SetValue) {
+TEST(SliderWidgetTest, SetValue)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     slider.setValue(75.0);
@@ -49,7 +52,8 @@ TEST(SliderWidgetTest, SetValue) {
     EXPECT_DOUBLE_EQ(0.0, slider.value());
 }
 
-TEST(SliderWidgetTest, SetRange) {
+TEST(SliderWidgetTest, SetRange)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     slider.setRange(-50.0, 50.0);
@@ -59,28 +63,32 @@ TEST(SliderWidgetTest, SetRange) {
     EXPECT_DOUBLE_EQ(50.0, slider.value());
 }
 
-TEST(SliderWidgetTest, SetMinValue) {
+TEST(SliderWidgetTest, SetMinValue)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     slider.setMinValue(25.0);
     EXPECT_DOUBLE_EQ(25.0, slider.minValue());
 }
 
-TEST(SliderWidgetTest, SetMaxValue) {
+TEST(SliderWidgetTest, SetMaxValue)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     slider.setMaxValue(75.0);
     EXPECT_DOUBLE_EQ(75.0, slider.maxValue());
 }
 
-TEST(SliderWidgetTest, SetStepSize) {
+TEST(SliderWidgetTest, SetStepSize)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     slider.setStepSize(5.0);
     EXPECT_DOUBLE_EQ(5.0, slider.stepSize());
 }
 
-TEST(SliderWidgetTest, GetRatio) {
+TEST(SliderWidgetTest, GetRatio)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     EXPECT_DOUBLE_EQ(0.5, slider.getRatio());
@@ -92,7 +100,8 @@ TEST(SliderWidgetTest, GetRatio) {
     EXPECT_DOUBLE_EQ(1.0, slider.getRatio());
 }
 
-TEST(SliderWidgetTest, SetFromRatio) {
+TEST(SliderWidgetTest, SetFromRatio)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 0.0);
 
     slider.setFromRatio(0.5);
@@ -114,7 +123,8 @@ TEST(SliderWidgetTest, SetFromRatio) {
 
 // ==================== 回调测试 ====================
 
-TEST(SliderWidgetTest, OnValueChangedCallback) {
+TEST(SliderWidgetTest, OnValueChangedCallback)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     f64 lastValue = 0.0;
@@ -139,7 +149,8 @@ TEST(SliderWidgetTest, OnValueChangedCallback) {
 
 // ==================== 步进测试 ====================
 
-TEST(SliderWidgetTest, StepSizeSnapping) {
+TEST(SliderWidgetTest, StepSizeSnapping)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 0.0);
     slider.setStepSize(5.0);
 
@@ -155,19 +166,20 @@ TEST(SliderWidgetTest, StepSizeSnapping) {
 
 // ==================== 显示文本测试 ====================
 
-TEST(SliderWidgetTest, SetDisplayText) {
+TEST(SliderWidgetTest, SetDisplayText)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
     slider.setDisplayText("Volume: {}");
     EXPECT_EQ("Volume: {}", slider.displayText());
 }
 
-TEST(SliderWidgetTest, FormatCallback) {
+TEST(SliderWidgetTest, FormatCallback)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
-    slider.setFormatCallback([](f64 value) -> std::string {
-        return "Value: " + std::to_string(static_cast<i32>(value)) + "%";
-    });
+    slider.setFormatCallback(
+        [](f64 value) -> std::string { return "Value: " + std::to_string(static_cast<i32>(value)) + "%"; });
 
     EXPECT_EQ("Value: 50%", slider.displayText());
 
@@ -177,7 +189,8 @@ TEST(SliderWidgetTest, FormatCallback) {
 
 // ==================== 拖动测试 ====================
 
-TEST(SliderWidgetTest, ClickSetsFocus) {
+TEST(SliderWidgetTest, ClickSetsFocus)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
     slider.setActive(true);
     slider.setVisible(true);
@@ -189,7 +202,8 @@ TEST(SliderWidgetTest, ClickSetsFocus) {
     EXPECT_TRUE(slider.isDragging());
 }
 
-TEST(SliderWidgetTest, DraggingState) {
+TEST(SliderWidgetTest, DraggingState)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
     slider.setActive(true);
     slider.setVisible(true);
@@ -205,13 +219,15 @@ TEST(SliderWidgetTest, DraggingState) {
 
 // ==================== IntSliderWidget测试 ====================
 
-TEST(IntSliderWidgetTest, Constructor) {
+TEST(IntSliderWidgetTest, Constructor)
+{
     IntSliderWidget slider("test", 0, 0, 100, 20, 0, 100, 50);
 
     EXPECT_EQ(50, slider.intValue());
 }
 
-TEST(IntSliderWidgetTest, SetIntValue) {
+TEST(IntSliderWidgetTest, SetIntValue)
+{
     IntSliderWidget slider("test", 0, 0, 100, 20, 0, 100, 50);
 
     slider.setIntValue(75);
@@ -221,7 +237,8 @@ TEST(IntSliderWidgetTest, SetIntValue) {
     EXPECT_EQ(26, slider.intValue()); // 四舍五入
 }
 
-TEST(IntSliderWidgetTest, FormatDisplay) {
+TEST(IntSliderWidgetTest, FormatDisplay)
+{
     IntSliderWidget slider("test", 0, 0, 100, 20, 0, 100, 50);
 
     EXPECT_EQ("50", slider.displayText());
@@ -232,7 +249,8 @@ TEST(IntSliderWidgetTest, FormatDisplay) {
 
 // ==================== 滚轮测试 ====================
 
-TEST(SliderWidgetTest, ScrollChangesValue) {
+TEST(SliderWidgetTest, ScrollChangesValue)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
     slider.setActive(true);
     slider.setVisible(true);
@@ -251,7 +269,8 @@ TEST(SliderWidgetTest, ScrollChangesValue) {
 
 // ==================== 键盘测试 ====================
 
-TEST(SliderWidgetTest, KeyLeftRight) {
+TEST(SliderWidgetTest, KeyLeftRight)
+{
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
     slider.setActive(true);
     slider.setVisible(true);

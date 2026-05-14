@@ -11,18 +11,10 @@ namespace mc::command {
 void DifficultyCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto difficultyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("difficulty");
-    difficultyNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        difficultyNode,
-        support::makeMetadata(
-            "Query or set the world difficulty.",
-            "/difficulty [peaceful|easy|normal|hard]",
-            2));
-    difficultyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return queryDifficulty(ctx);
-    });
+    difficultyNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(difficultyNode,
+        support::makeMetadata("Query or set the world difficulty.", "/difficulty [peaceful|easy|normal|hard]", 2));
+    difficultyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryDifficulty(ctx); });
 
     auto peacefulNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("peaceful");
     peacefulNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -82,7 +74,8 @@ i32 DifficultyCommand::setDifficulty(CommandContext<ServerCommandSource>& contex
 
     const Difficulty difficulty = context.getArgument<Difficulty>("difficulty");
     if (server->difficulty() == difficulty) {
-        source.sendMessage("Difficulty is already set to " + std::string(support::getDifficultyCommandName(difficulty)));
+        source.sendMessage(
+            "Difficulty is already set to " + std::string(support::getDifficultyCommandName(difficulty)));
         return 0;
     }
 

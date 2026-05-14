@@ -1,16 +1,16 @@
 #pragma once
 
 #include "ConsistencyMode.hpp"
-#include <rocksdb/db.h>
-#include <rocksdb/slice.h>
-#include <rocksdb/options.h>
-#include <rocksdb/compression_type.h>
-#include <rocksdb/table.h>
-#include <rocksdb/cache.h>
-#include <rocksdb/filter_policy.h>
-#include <rocksdb/statistics.h>
 #include <cstddef>
 #include <vector>
+#include <rocksdb/cache.h>
+#include <rocksdb/compression_type.h>
+#include <rocksdb/db.h>
+#include <rocksdb/filter_policy.h>
+#include <rocksdb/options.h>
+#include <rocksdb/slice.h>
+#include <rocksdb/statistics.h>
+#include <rocksdb/table.h>
 
 namespace mc::world::storage {
 
@@ -80,13 +80,13 @@ struct RocksDBConfig {
     /// L0-L1: 无压缩（避免写放大，优先写入性能）
     /// L2+: ZSTD压缩（高压缩比，节省磁盘空间）
     std::vector<rocksdb::CompressionType> compressionPerLevel = {
-        rocksdb::kNoCompression,       // L0 - 频繁写入，不压缩
-        rocksdb::kNoCompression,       // L1 - 频繁写入，不压缩
-        rocksdb::kZSTD,                // L2 - ZSTD压缩
-        rocksdb::kZSTD,                // L3 - ZSTD压缩
-        rocksdb::kZSTD,                // L4 - ZSTD压缩
-        rocksdb::kZSTD,                // L5 - ZSTD压缩
-        rocksdb::kZSTD                 // L6 - ZSTD压缩
+        rocksdb::kNoCompression, // L0 - 频繁写入，不压缩
+        rocksdb::kNoCompression, // L1 - 频繁写入，不压缩
+        rocksdb::kZSTD,          // L2 - ZSTD压缩
+        rocksdb::kZSTD,          // L3 - ZSTD压缩
+        rocksdb::kZSTD,          // L4 - ZSTD压缩
+        rocksdb::kZSTD,          // L5 - ZSTD压缩
+        rocksdb::kZSTD           // L6 - ZSTD压缩
     };
 
     // ========================================================================
@@ -150,7 +150,8 @@ struct RocksDBConfig {
     /**
      * @brief 创建RocksDB数据库选项
      */
-    [[nodiscard]] rocksdb::DBOptions createDBOptions() const {
+    [[nodiscard]] rocksdb::DBOptions createDBOptions() const
+    {
         rocksdb::DBOptions options;
 
         // 基本选项
@@ -174,7 +175,8 @@ struct RocksDBConfig {
     /**
      * @brief 创建列族选项
      */
-    [[nodiscard]] rocksdb::ColumnFamilyOptions createColumnFamilyOptions() const {
+    [[nodiscard]] rocksdb::ColumnFamilyOptions createColumnFamilyOptions() const
+    {
         rocksdb::ColumnFamilyOptions options;
 
         // MemTable
@@ -195,9 +197,7 @@ struct RocksDBConfig {
 
         // 表选项（Bloom过滤器）
         rocksdb::BlockBasedTableOptions tableOptions;
-        tableOptions.filter_policy.reset(
-            rocksdb::NewBloomFilterPolicy(bloomFilterBitsPerKey, useWholeKeyBloomFilter)
-        );
+        tableOptions.filter_policy.reset(rocksdb::NewBloomFilterPolicy(bloomFilterBitsPerKey, useWholeKeyBloomFilter));
         options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(tableOptions));
 
         return options;
@@ -206,7 +206,8 @@ struct RocksDBConfig {
     /**
      * @brief 创建写入选项
      */
-    [[nodiscard]] rocksdb::WriteOptions createWriteOptions() const {
+    [[nodiscard]] rocksdb::WriteOptions createWriteOptions() const
+    {
         rocksdb::WriteOptions options;
 
         // WAL配置
@@ -225,7 +226,8 @@ struct RocksDBConfig {
     /**
      * @brief 创建读取选项
      */
-    [[nodiscard]] rocksdb::ReadOptions createReadOptions() const {
+    [[nodiscard]] rocksdb::ReadOptions createReadOptions() const
+    {
         rocksdb::ReadOptions options;
         // 默认读取选项
         return options;

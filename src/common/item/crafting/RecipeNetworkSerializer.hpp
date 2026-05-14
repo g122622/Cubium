@@ -1,13 +1,13 @@
 #pragma once
 
+#include "core/Result.hpp"
 #include "item/crafting/IRecipe.hpp"
 #include "item/crafting/ShapedRecipe.hpp"
 #include "item/crafting/ShapelessRecipe.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
-#include "item/crafting/StonecuttingRecipe.hpp"
 #include "item/crafting/SmithingRecipe.hpp"
+#include "item/crafting/StonecuttingRecipe.hpp"
 #include "network/packet/PacketSerializer.hpp"
-#include "core/Result.hpp"
 #include <memory>
 
 namespace mc {

@@ -27,18 +27,18 @@ public:
      * @brief 滴落状态
      */
     enum class DripState {
-        Hanging,    ///< 悬挂积累中
-        Falling,    ///< 下落中
-        Landed      ///< 已落地
+        Hanging, ///< 悬挂积累中
+        Falling, ///< 下落中
+        Landed   ///< 已落地
     };
 
     /**
      * @brief 滴落类型
      */
     enum class DripType {
-        Water,      ///< 水
-        Lava,       ///< 熔岩
-        Honey,      ///< 蜂蜜
+        Water,       ///< 水
+        Lava,        ///< 熔岩
+        Honey,       ///< 蜂蜜
         ObsidianTear ///< 哭泣黑曜石眼泪
     };
 
@@ -48,53 +48,42 @@ public:
      * @brief 工厂方法：创建熔岩滴落粒子（悬挂状态）
      */
     static std::unique_ptr<Particle> createDrippingLava(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建熔岩下落粒子
      */
     static std::unique_ptr<Particle> createFallingLava(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建熔岩落地粒子
      */
     static std::unique_ptr<Particle> createLandingLava(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建蜂蜜滴落粒子（悬挂状态）
      */
     static std::unique_ptr<Particle> createDrippingHoney(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建蜂蜜下落粒子
      */
     static std::unique_ptr<Particle> createFallingHoney(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建蜂蜜落地粒子
      */
     static std::unique_ptr<Particle> createLandingHoney(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         // 熔岩滴是发光粒子
         return m_type == DripType::Lava ? ParticleRenderType::PARTICLE_SHEET_LIT
                                         : ParticleRenderType::PARTICLE_SHEET_OPAQUE;
@@ -133,8 +122,8 @@ protected:
 
     DripState m_dripState = DripState::Hanging;
     DripType m_type;
-    f64 m_dripProgress = 0.0f;    ///< 悬挂积累进度 (0-1)
-    glm::vec3 m_hangPosition;     ///< 悬挂位置
+    f64 m_dripProgress = 0.0f; ///< 悬挂积累进度 (0-1)
+    glm::vec3 m_hangPosition;  ///< 悬挂位置
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

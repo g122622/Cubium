@@ -46,11 +46,11 @@ public:
      * @param group 配方分组（可选）
      */
     ShapedRecipe(const ResourceLocation& id,
-                 i32 width,
-                 i32 height,
-                 std::vector<Ingredient> ingredients,
-                 ItemStack result,
-                 const std::string& group = "");
+        i32 width,
+        i32 height,
+        std::vector<Ingredient> ingredients,
+        ItemStack result,
+        const std::string& group = "");
 
     /**
      * @brief 检查配方是否匹配给定容器
@@ -76,9 +76,7 @@ public:
      * @brief 获取原料列表
      * @return 原料列表（按行优先顺序）
      */
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override {
-        return m_ingredients;
-    }
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
 
     /**
      * @brief 获取配方分组
@@ -139,10 +137,7 @@ private:
      * - 对于配方外的位置，使用 Ingredient.EMPTY 进行测试
      * - Ingredient.EMPTY.test(stack) 只对空物品堆返回 true
      */
-    bool checkMatch(const CraftingInventory& inventory,
-                    i32 offsetX,
-                    i32 offsetY,
-                    bool mirrored) const;
+    bool checkMatch(const CraftingInventory& inventory, i32 offsetX, i32 offsetY, bool mirrored) const;
 
     ResourceLocation m_id;
     i32 m_width;

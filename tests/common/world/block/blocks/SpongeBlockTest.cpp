@@ -1,24 +1,24 @@
 #include <gtest/gtest.h>
 
-#include "world/block/blocks/special/SpecialBlocks.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/fluid/Fluid.hpp"
-#include "world/fluid/FluidRegistry.hpp"
-#include "world/fluid/FluidTags.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/tick/manager/TickManager.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "item/core/ItemStack.hpp"
-#include "util/math/Vector3.hpp"
-#include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "sound/SoundCategory.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "util/math/Vector3.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
+#include "world/WorldEvents.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/special/SpecialBlocks.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidRegistry.hpp"
+#include "world/fluid/FluidTags.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -38,25 +38,27 @@ class SpongeTestWorld final : public test::BaseTestWorld {
 public:
     SpongeTestWorld() = default;
 
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
     }
 
-    void setBlockDirectly(const BlockPos& pos, const BlockState* state) {
+    void setBlockDirectly(const BlockPos& pos, const BlockState* state)
+    {
         m_blocks[packPos(pos.x, pos.y, pos.z)] = state;
     }
 
-    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state) {
+    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state)
+    {
         m_fluids[packPos(pos.x, pos.y, pos.z)] = state;
     }
 
-    void setUltraWarm(bool ultraWarm) {
-        m_ultraWarm = ultraWarm;
-    }
+    void setUltraWarm(bool ultraWarm) { m_ultraWarm = ultraWarm; }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(packPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second;
@@ -64,14 +66,16 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[packPos(x, y, z)] = state;
         // 记录方块变化
         m_blockChanges.push_back({BlockPos(x, y, z), state});
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         // First check if there's a fluid at this position
         const auto fluidIt = m_fluids.find(packPos(x, y, z));
         if (fluidIt != m_fluids.end() && fluidIt->second != nullptr) {
@@ -95,45 +99,56 @@ public:
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         MC_UNUSED(entity);
         return 0;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<SpongeTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
     // 记录的方法
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override {
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
         m_playedEvents.push_back({eventId, pos, data});
     }
 
-    void playSound(const ResourceLocation& soundId, sound::SoundCategory category,
-                   const Vector3& position, f32 volume, f32 pitch) override {
+    void playSound(const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
+    {
         m_playedSounds.push_back({soundId, category, position, volume, pitch});
     }
 
     // 访问记录的事件
     const std::vector<std::tuple<i32, BlockPos, i32>>& getPlayedEvents() const { return m_playedEvents; }
-    const std::vector<std::tuple<ResourceLocation, sound::SoundCategory, Vector3, f32, f32>>& getPlayedSounds() const {
+    const std::vector<std::tuple<ResourceLocation, sound::SoundCategory, Vector3, f32, f32>>& getPlayedSounds() const
+    {
         return m_playedSounds;
     }
     const std::vector<std::pair<BlockPos, const BlockState*>>& getBlockChanges() const { return m_blockChanges; }
 
-    void clearRecords() {
+    void clearRecords()
+    {
         m_playedEvents.clear();
         m_playedSounds.clear();
         m_blockChanges.clear();
     }
 
 private:
-    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z) {
+    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z)
+    {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
     }
 
@@ -154,18 +169,21 @@ private:
 
 class SpongeBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
     }
 };
 
-TEST_F(SpongeBlockTest, SpongeBlockExists) {
+TEST_F(SpongeBlockTest, SpongeBlockExists)
+{
     ASSERT_NE(VanillaBlocks::SPONGE, nullptr);
     ASSERT_NE(VanillaBlocks::WET_SPONGE, nullptr);
 }
 
-TEST_F(SpongeBlockTest, SpongeBlockIsSpongeBlockClass) {
+TEST_F(SpongeBlockTest, SpongeBlockIsSpongeBlockClass)
+{
     // 验证 SpongeBlock 已注册
     const Block& sponge = *VanillaBlocks::SPONGE;
     const BlockState& state = sponge.defaultState();
@@ -175,7 +193,8 @@ TEST_F(SpongeBlockTest, SpongeBlockIsSpongeBlockClass) {
     EXPECT_FLOAT_EQ(state.hardness(), 0.6f);
 }
 
-TEST_F(SpongeBlockTest, WetSpongeBlockIsWetSpongeBlockClass) {
+TEST_F(SpongeBlockTest, WetSpongeBlockIsWetSpongeBlockClass)
+{
     // 验证 WetSpongeBlock 已注册
     const Block& wetSponge = *VanillaBlocks::WET_SPONGE;
     const BlockState& state = wetSponge.defaultState();
@@ -185,19 +204,22 @@ TEST_F(SpongeBlockTest, WetSpongeBlockIsWetSpongeBlockClass) {
     EXPECT_FLOAT_EQ(state.hardness(), 0.6f);
 }
 
-TEST_F(SpongeBlockTest, SpongeBlockDynamicCast) {
+TEST_F(SpongeBlockTest, SpongeBlockDynamicCast)
+{
     // 验证 SpongeBlock 可以正确 dynamic_cast
     SpongeBlock* sponge = dynamic_cast<SpongeBlock*>(VanillaBlocks::SPONGE);
     EXPECT_NE(sponge, nullptr);
 }
 
-TEST_F(SpongeBlockTest, WetSpongeBlockDynamicCast) {
+TEST_F(SpongeBlockTest, WetSpongeBlockDynamicCast)
+{
     // 验证 WetSpongeBlock 可以正确 dynamic_cast
     WetSpongeBlock* wetSponge = dynamic_cast<WetSpongeBlock*>(VanillaBlocks::WET_SPONGE);
     EXPECT_NE(wetSponge, nullptr);
 }
 
-TEST_F(SpongeBlockTest, SpongeDoesNotAbsorbWithoutWater) {
+TEST_F(SpongeBlockTest, SpongeDoesNotAbsorbWithoutWater)
+{
     SpongeTestWorld world;
 
     // 放置海绵
@@ -220,7 +242,8 @@ TEST_F(SpongeBlockTest, SpongeDoesNotAbsorbWithoutWater) {
     EXPECT_EQ(&finalState->getBlock(), VanillaBlocks::SPONGE);
 }
 
-TEST_F(SpongeBlockTest, SpongeAbsorbsWaterSource) {
+TEST_F(SpongeBlockTest, SpongeAbsorbsWaterSource)
+{
     SpongeTestWorld world;
 
     // 放置海绵
@@ -265,7 +288,8 @@ TEST_F(SpongeBlockTest, SpongeAbsorbsWaterSource) {
     EXPECT_TRUE(foundBreakEvent);
 }
 
-TEST_F(SpongeBlockTest, SpongeOnBlockAddedTriggersAbsorb) {
+TEST_F(SpongeBlockTest, SpongeOnBlockAddedTriggersAbsorb)
+{
     SpongeTestWorld world;
 
     // 放置水源
@@ -297,12 +321,11 @@ TEST_F(SpongeBlockTest, SpongeOnBlockAddedTriggersAbsorb) {
 
 class WetSpongeBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(WetSpongeBlockTest, WetSpongeDriesInNether) {
+TEST_F(WetSpongeBlockTest, WetSpongeDriesInNether)
+{
     SpongeTestWorld world;
 
     // 设置为超热维度（下界）
@@ -340,7 +363,8 @@ TEST_F(WetSpongeBlockTest, WetSpongeDriesInNether) {
     EXPECT_FALSE(sounds.empty());
 }
 
-TEST_F(WetSpongeBlockTest, WetSpongeStaysWetInOverworld) {
+TEST_F(WetSpongeBlockTest, WetSpongeStaysWetInOverworld)
+{
     SpongeTestWorld world;
 
     // 默认是主世界（非超热）
@@ -370,17 +394,17 @@ TEST_F(WetSpongeBlockTest, WetSpongeStaysWetInOverworld) {
 
 class WorldEventsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(WorldEventsTest, WetSpongeDryEventValue) {
+TEST_F(WorldEventsTest, WetSpongeDryEventValue)
+{
     // 验证事件常量值正确
     EXPECT_EQ(world::WorldEvents::WET_SPONGE_DRY, 2009);
 }
 
-TEST_F(WorldEventsTest, BreakBlockEffectsValue) {
+TEST_F(WorldEventsTest, BreakBlockEffectsValue)
+{
     // 验证事件常量值正确
     EXPECT_EQ(world::WorldEvents::BREAK_BLOCK_EFFECTS, 2001);
 }

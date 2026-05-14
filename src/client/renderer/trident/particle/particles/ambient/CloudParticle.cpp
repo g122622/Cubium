@@ -32,15 +32,14 @@ CloudParticle::CloudParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> CloudParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<CloudParticle>(pos, velocity);
 }
 
-void CloudParticle::tick(mc::client::ClientWorld* world) {
+void CloudParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -70,7 +69,8 @@ void CloudParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.8f * (1.0f - lifeRatio * 0.8f));
 }
 
-f64 CloudParticle::getScale(f64 partialTick) const {
+f64 CloudParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -85,7 +85,7 @@ BarrierParticle::BarrierParticle(const glm::vec3& pos, const glm::vec3& velocity
     mc::math::Random rng;
 
     setGravity(0.0f);
-    setSize(0.5f);  // 固定大小
+    setSize(0.5f); // 固定大小
     setFriction(1.0f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME);
@@ -98,15 +98,14 @@ BarrierParticle::BarrierParticle(const glm::vec3& pos, const glm::vec3& velocity
 }
 
 std::unique_ptr<Particle> BarrierParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<BarrierParticle>(pos, velocity);
 }
 
-void BarrierParticle::tick(mc::client::ClientWorld* world) {
+void BarrierParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -126,7 +125,8 @@ void BarrierParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-f64 BarrierParticle::getScale(f64 partialTick) const {
+f64 BarrierParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -156,15 +156,14 @@ WaterWakeParticle::WaterWakeParticle(const glm::vec3& pos, const glm::vec3& velo
 }
 
 std::unique_ptr<Particle> WaterWakeParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<WaterWakeParticle>(pos, velocity);
 }
 
-void WaterWakeParticle::tick(mc::client::ClientWorld* world) {
+void WaterWakeParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -185,7 +184,8 @@ void WaterWakeParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.6f * (1.0f - lifeRatio));
 }
 
-f64 WaterWakeParticle::getScale(f64 partialTick) const {
+f64 WaterWakeParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -200,7 +200,7 @@ DolphinParticle::DolphinParticle(const glm::vec3& pos, const glm::vec3& velocity
 {
     mc::math::Random rng;
 
-    setGravity(-0.005f);  // 轻微向上
+    setGravity(-0.005f); // 轻微向上
     setSize(0.03f + rng.nextFloat() * 0.02f);
     m_initialSize = size();
     setFriction(0.98f);
@@ -218,15 +218,14 @@ DolphinParticle::DolphinParticle(const glm::vec3& pos, const glm::vec3& velocity
 }
 
 std::unique_ptr<Particle> DolphinParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<DolphinParticle>(pos, velocity);
 }
 
-void DolphinParticle::tick(mc::client::ClientWorld* world) {
+void DolphinParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -249,7 +248,8 @@ void DolphinParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.7f * (1.0f - lifeRatio));
 }
 
-f64 DolphinParticle::getScale(f64 partialTick) const {
+f64 DolphinParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }

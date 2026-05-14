@@ -6,19 +6,20 @@ namespace mc::client::ui::kagero::tpl::parser {
 Parser::Parser(const std::vector<Token>& tokens, const TemplateConfig& config)
     : m_tokens(tokens)
     , m_config(config)
-    , m_current(0) {
-}
+    , m_current(0)
+{}
 
 Parser::Parser(const Lexer& lexer, const TemplateConfig& config)
     : m_tokens(lexer.tokens())
     , m_config(config)
-    , m_current(0) {
-}
+    , m_current(0)
+{}
 
-std::unique_ptr<DocumentNode> Parser::parse() {
+std::unique_ptr<DocumentNode> Parser::parse()
+{
     m_errors.clear();
     m_current = 0;
-    m_seenIds.clear();  // 清空已收集的ID集合
+    m_seenIds.clear(); // 清空已收集的ID集合
 
     auto document = std::make_unique<DocumentNode>();
     document->range.start = currentLocation();
@@ -45,21 +46,21 @@ std::unique_ptr<DocumentNode> Parser::parse() {
         } else {
             // 意外的Token
             addError(TemplateErrorType::UnexpectedToken,
-                     "Expected element or comment, got " + std::string(tokenTypeName(current().type)));
+                "Expected element or comment, got " + std::string(tokenTypeName(current().type)));
             synchronize();
         }
 
         skipWhitespaceAndNewlines();
     }
 
-    document->range.end = SourceLocation(m_tokens.back().location.line,
-                                          m_tokens.back().location.column + 1,
-                                          m_tokens.back().location.offset + 1);
+    document->range.end = SourceLocation(
+        m_tokens.back().location.line, m_tokens.back().location.column + 1, m_tokens.back().location.offset + 1);
 
     return document;
 }
 
-const Token& Parser::current() const {
+const Token& Parser::current() const
+{
     if (m_current < m_tokens.size()) {
         return m_tokens[m_current];
     }
@@ -67,7 +68,8 @@ const Token& Parser::current() const {
     return eofToken;
 }
 
-const Token& Parser::peek() const {
+const Token& Parser::peek() const
+{
     if (m_current + 1 < m_tokens.size()) {
         return m_tokens[m_current + 1];
     }
@@ -75,7 +77,8 @@ const Token& Parser::peek() const {
     return eofToken;
 }
 
-Token Parser::consume() {
+Token Parser::consume()
+{
     Token token = current();
     if (!isAtEnd()) {
         ++m_current;
@@ -83,15 +86,18 @@ Token Parser::consume() {
     return token;
 }
 
-bool Parser::check(TokenType type) const {
+bool Parser::check(TokenType type) const
+{
     return current().type == type;
 }
 
-bool Parser::check(TokenType type, const std::string& value) const {
+bool Parser::check(TokenType type, const std::string& value) const
+{
     return current().is(type, value);
 }
 
-bool Parser::match(TokenType type) {
+bool Parser::match(TokenType type)
+{
     if (check(type)) {
         consume();
         return true;
@@ -99,7 +105,8 @@ bool Parser::match(TokenType type) {
     return false;
 }
 
-bool Parser::match(TokenType type, const std::string& value) {
+bool Parser::match(TokenType type, const std::string& value)
+{
     if (check(type, value)) {
         consume();
         return true;
@@ -107,30 +114,30 @@ bool Parser::match(TokenType type, const std::string& value) {
     return false;
 }
 
-bool Parser::expect(TokenType type) {
+bool Parser::expect(TokenType type)
+{
     if (check(type)) {
         consume();
         return true;
     }
     addError(TemplateErrorType::UnexpectedToken,
-             "Expected " + std::string(tokenTypeName(type)) +
-             ", got " + std::string(tokenTypeName(current().type)),
-             current());
+        "Expected " + std::string(tokenTypeName(type)) + ", got " + std::string(tokenTypeName(current().type)),
+        current());
     return false;
 }
 
-bool Parser::expect(TokenType type, const std::string& value) {
+bool Parser::expect(TokenType type, const std::string& value)
+{
     if (check(type, value)) {
         consume();
         return true;
     }
-    addError(TemplateErrorType::UnexpectedToken,
-             "Expected '" + value + "', got '" + current().value + "'",
-             current());
+    addError(TemplateErrorType::UnexpectedToken, "Expected '" + value + "', got '" + current().value + "'", current());
     return false;
 }
 
-Token Parser::expectIdentifier(const std::string& context) {
+Token Parser::expectIdentifier(const std::string& context)
+{
     if (!check(TokenType::Identifier)) {
         std::string msg = "Expected identifier";
         if (!context.empty()) {
@@ -142,7 +149,8 @@ Token Parser::expectIdentifier(const std::string& context) {
     return consume();
 }
 
-Token Parser::expectStringLiteral(const std::string& context) {
+Token Parser::expectStringLiteral(const std::string& context)
+{
     if (!check(TokenType::StringLiteral)) {
         std::string msg = "Expected string literal";
         if (!context.empty()) {
@@ -154,7 +162,8 @@ Token Parser::expectStringLiteral(const std::string& context) {
     return consume();
 }
 
-void Parser::synchronize() {
+void Parser::synchronize()
+{
     // 跳过Token直到找到一个有效的同步点
     while (!isAtEnd()) {
         switch (current().type) {
@@ -169,17 +178,20 @@ void Parser::synchronize() {
     }
 }
 
-void Parser::skipWhitespaceAndNewlines() {
+void Parser::skipWhitespaceAndNewlines()
+{
     while (check(TokenType::Whitespace) || check(TokenType::Newline)) {
         consume();
     }
 }
 
-std::unique_ptr<DocumentNode> Parser::parseDocument() {
+std::unique_ptr<DocumentNode> Parser::parseDocument()
+{
     return parse(); // 主解析方法
 }
 
-std::unique_ptr<ElementNode> Parser::parseElement() {
+std::unique_ptr<ElementNode> Parser::parseElement()
+{
     SourceLocation startLoc = currentLocation();
 
     // 开始标签
@@ -198,8 +210,7 @@ std::unique_ptr<ElementNode> Parser::parseElement() {
     // 验证标签名
     if (!isValidTagName(tagName)) {
         if (m_config.strictMode) {
-            addError(TemplateErrorType::UnknownTag,
-                     "Unknown tag: <" + tagName + ">", nameToken);
+            addError(TemplateErrorType::UnknownTag, "Unknown tag: <" + tagName + ">", nameToken);
             // 非严格模式下继续解析
         }
     }
@@ -246,7 +257,8 @@ std::unique_ptr<ElementNode> Parser::parseElement() {
     return element;
 }
 
-std::string Parser::parseStartTag(bool isOpenTag) {
+std::string Parser::parseStartTag(bool isOpenTag)
+{
     (void)isOpenTag; // 未使用
 
     if (!expect(TokenType::OpenTag)) {
@@ -261,12 +273,11 @@ std::string Parser::parseStartTag(bool isOpenTag) {
     return nameToken.value;
 }
 
-void Parser::parseAttributes(ElementNode& element) {
+void Parser::parseAttributes(ElementNode& element)
+{
     skipWhitespaceAndNewlines();
 
-    while (!isAtEnd() &&
-           !check(TokenType::CloseTag) &&
-           !check(TokenType::SelfCloseTag)) {
+    while (!isAtEnd() && !check(TokenType::CloseTag) && !check(TokenType::SelfCloseTag)) {
 
         Attribute attr = parseAttribute();
         if (!attr.name.empty()) {
@@ -286,7 +297,8 @@ void Parser::parseAttributes(ElementNode& element) {
     }
 }
 
-Attribute Parser::parseAttribute() {
+Attribute Parser::parseAttribute()
+{
     SourceLocation attrLoc = currentLocation();
 
     // 属性名（可能带 bind:, on:, for:, if: 前缀）
@@ -309,20 +321,16 @@ Attribute Parser::parseAttribute() {
     static const std::string FOR_PREFIX = "for:";
     static const std::string IF_PREFIX = "if:";
 
-    if (attrName.size() > BIND_PREFIX.size() &&
-        attrName.substr(0, BIND_PREFIX.size()) == BIND_PREFIX) {
+    if (attrName.size() > BIND_PREFIX.size() && attrName.substr(0, BIND_PREFIX.size()) == BIND_PREFIX) {
         isBinding = true;
         baseName = attrName.substr(BIND_PREFIX.size());
-    } else if (attrName.size() > ON_PREFIX.size() &&
-               attrName.substr(0, ON_PREFIX.size()) == ON_PREFIX) {
+    } else if (attrName.size() > ON_PREFIX.size() && attrName.substr(0, ON_PREFIX.size()) == ON_PREFIX) {
         isEvent = true;
         baseName = attrName.substr(ON_PREFIX.size());
-    } else if (attrName.size() > FOR_PREFIX.size() &&
-               attrName.substr(0, FOR_PREFIX.size()) == FOR_PREFIX) {
+    } else if (attrName.size() > FOR_PREFIX.size() && attrName.substr(0, FOR_PREFIX.size()) == FOR_PREFIX) {
         isLoop = true;
         baseName = attrName.substr(FOR_PREFIX.size());
-    } else if (attrName.size() > IF_PREFIX.size() &&
-               attrName.substr(0, IF_PREFIX.size()) == IF_PREFIX) {
+    } else if (attrName.size() > IF_PREFIX.size() && attrName.substr(0, IF_PREFIX.size()) == IF_PREFIX) {
         isCondition = true;
         baseName = attrName.substr(IF_PREFIX.size());
     }
@@ -361,7 +369,8 @@ Attribute Parser::parseAttribute() {
     return attr;
 }
 
-Token Parser::parseAttributeName() {
+Token Parser::parseAttributeName()
+{
     // 属性名可以是 identifier 或 identifier:identifier (bind:xxx, on:xxx)
     Token firstPart = expectIdentifier();
     if (firstPart.type == TokenType::Error) {
@@ -386,7 +395,8 @@ Token Parser::parseAttributeName() {
     return result;
 }
 
-Token Parser::parseAttributeValue() {
+Token Parser::parseAttributeValue()
+{
     skipWhitespaceAndNewlines();
 
     // 字符串字面量
@@ -407,13 +417,12 @@ Token Parser::parseAttributeValue() {
         return Token(TokenType::StringLiteral, idToken.value, idToken.location);
     }
 
-    addError(TemplateErrorType::UnexpectedToken,
-             "Expected attribute value (string, number, or identifier)",
-             current());
+    addError(TemplateErrorType::UnexpectedToken, "Expected attribute value (string, number, or identifier)", current());
     return Token(TokenType::Error);
 }
 
-void Parser::parseContent(ElementNode& parent) {
+void Parser::parseContent(ElementNode& parent)
+{
     while (!isAtEnd() && !check(TokenType::OpenCloseTag)) {
         skipWhitespaceAndNewlines();
 
@@ -442,8 +451,8 @@ void Parser::parseContent(ElementNode& parent) {
         } else {
             // 意外的Token，尝试恢复
             addError(TemplateErrorType::UnexpectedToken,
-                     "Unexpected token in element content: " + std::string(tokenTypeName(current().type)),
-                     current());
+                "Unexpected token in element content: " + std::string(tokenTypeName(current().type)),
+                current());
             consume();
         }
 
@@ -451,7 +460,8 @@ void Parser::parseContent(ElementNode& parent) {
     }
 }
 
-std::unique_ptr<TextNode> Parser::parseText() {
+std::unique_ptr<TextNode> Parser::parseText()
+{
     if (!check(TokenType::Text)) {
         return nullptr;
     }
@@ -462,13 +472,15 @@ std::unique_ptr<TextNode> Parser::parseText() {
     node->range = SourceRange(textToken.location, textToken.location);
 
     // 检查是否全是空白
-    node->isWhitespace = std::all_of(textToken.value.begin(), textToken.value.end(),
-                                     [](char c) { return Lexer::isWhitespace(c) || c == '\n' || c == '\r'; });
+    node->isWhitespace = std::all_of(textToken.value.begin(), textToken.value.end(), [](char c) {
+        return Lexer::isWhitespace(c) || c == '\n' || c == '\r';
+    });
 
     return node;
 }
 
-std::unique_ptr<CommentNode> Parser::parseComment() {
+std::unique_ptr<CommentNode> Parser::parseComment()
+{
     // 跳过注释开始标记
     if (check(TokenType::OpenComment)) {
         consume();
@@ -491,11 +503,10 @@ std::unique_ptr<CommentNode> Parser::parseComment() {
     return node;
 }
 
-bool Parser::parseEndTag(const std::string& expectedTagName) {
+bool Parser::parseEndTag(const std::string& expectedTagName)
+{
     if (!check(TokenType::OpenCloseTag)) {
-        addError(TemplateErrorType::MissingClosingTag,
-                 "Expected closing tag </" + expectedTagName + ">",
-                 current());
+        addError(TemplateErrorType::MissingClosingTag, "Expected closing tag </" + expectedTagName + ">", current());
         return false;
     }
 
@@ -508,9 +519,8 @@ bool Parser::parseEndTag(const std::string& expectedTagName) {
 
     if (nameToken.value != expectedTagName) {
         addError(TemplateErrorType::MismatchedClosingTag,
-                 "Mismatched closing tag: expected </" + expectedTagName +
-                 "> but got </" + nameToken.value + ">",
-                 nameToken);
+            "Mismatched closing tag: expected </" + expectedTagName + "> but got </" + nameToken.value + ">",
+            nameToken);
         // 尝试恢复
     }
 
@@ -521,15 +531,16 @@ bool Parser::parseEndTag(const std::string& expectedTagName) {
     return true;
 }
 
-void Parser::validateElement(ElementNode& element) {
+void Parser::validateElement(ElementNode& element)
+{
     // 验证ID唯一性（如果有）
     if (!element.id.empty()) {
         // 检查ID是否已经被使用
         if (m_seenIds.find(element.id) != m_seenIds.end()) {
             // ID重复，添加错误
             addError(TemplateErrorType::DuplicateId,
-                     "Duplicate ID: '" + element.id + "'. Each ID must be unique within the document.",
-                     element.range.start);
+                "Duplicate ID: '" + element.id + "'. Each ID must be unique within the document.",
+                element.range.start);
         } else {
             // ID唯一，添加到已收集的ID集合
             m_seenIds.insert(element.id);
@@ -542,14 +553,13 @@ void Parser::validateElement(ElementNode& element) {
     }
 }
 
-void Parser::validateAttribute(const Attribute& attr, const ElementNode& element) {
+void Parser::validateAttribute(const Attribute& attr, const ElementNode& element)
+{
     (void)element; // 暂时未使用
 
     // 验证属性名
     if (!ast::isValidAttributeName(attr.name)) {
-        addError(TemplateErrorType::InvalidAttributeName,
-                 "Invalid attribute name: " + attr.name,
-                 attr.location);
+        addError(TemplateErrorType::InvalidAttributeName, "Invalid attribute name: " + attr.name, attr.location);
         return;
     }
 
@@ -573,16 +583,14 @@ void Parser::validateAttribute(const Attribute& attr, const ElementNode& element
         if (attr.isBinding() && !attr.rawValue.empty()) {
             // 检测常见的表达式模式
             static const std::string forbiddenPatterns[] = {
-                "{{", "}}", "{%", "%}", "${", "+", "-", "*", "/", "==",
-                "!=", "<=", ">=", "&&", "||", "?:", "=>"
-            };
+                "{{", "}}", "{%", "%}", "${", "+", "-", "*", "/", "==", "!=", "<=", ">=", "&&", "||", "?:", "=>"};
 
             for (const auto& pattern : forbiddenPatterns) {
                 if (attr.rawValue.find(pattern) != std::string::npos) {
                     addError(TemplateErrorType::InlineExpressionNotAllowed,
-                             std::string("Inline expressions are not allowed in strict mode. ") +
-                             "Found pattern '" + pattern + "' in binding: " + attr.rawValue,
-                             attr.location);
+                        std::string("Inline expressions are not allowed in strict mode. ") + "Found pattern '" +
+                            pattern + "' in binding: " + attr.rawValue,
+                        attr.location);
                     break;
                 }
             }
@@ -590,30 +598,32 @@ void Parser::validateAttribute(const Attribute& attr, const ElementNode& element
     }
 }
 
-void Parser::validateBindingPath(const std::string& path, const SourceLocation& loc) {
+void Parser::validateBindingPath(const std::string& path, const SourceLocation& loc)
+{
     if (!ast::isValidBindingPath(path)) {
-        addError(TemplateErrorType::InvalidBindingPath,
-                 "Invalid binding path: '" + path + "'",
-                 loc);
+        addError(TemplateErrorType::InvalidBindingPath, "Invalid binding path: '" + path + "'", loc);
     }
 }
 
-void Parser::validateCallbackName(const std::string& name, const SourceLocation& loc) {
+void Parser::validateCallbackName(const std::string& name, const SourceLocation& loc)
+{
     if (!ast::isValidCallbackName(name)) {
         addError(TemplateErrorType::InvalidCallbackName,
-                 "Invalid callback name: '" + name + "'. Must be a valid identifier.",
-                 loc);
+            "Invalid callback name: '" + name + "'. Must be a valid identifier.",
+            loc);
     }
 }
 
-bool Parser::isInlineExpressionAllowed() const {
+bool Parser::isInlineExpressionAllowed() const
+{
     if (m_config.strictMode) {
         return false;
     }
     return m_config.allowInlineExpression;
 }
 
-std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
+std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element)
+{
     // 查找 for:xxx 属性
     // 支持两种语法：
     // 1. for:item="item in collection" - 简单循环
@@ -652,13 +662,14 @@ std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
     if (inPos == std::string::npos) {
         // 尝试小写的 " in "
         std::string lowerExpr = expr;
-        std::transform(lowerExpr.begin(), lowerExpr.end(), lowerExpr.begin(),
-                      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        std::transform(lowerExpr.begin(), lowerExpr.end(), lowerExpr.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
         inPos = lowerExpr.find(" in ");
         if (inPos == std::string::npos) {
             addError(TemplateErrorType::SemanticError,
-                     "Invalid loop syntax: expected 'item in collection' or '(item, index) in collection'",
-                     forAttrLoc);
+                "Invalid loop syntax: expected 'item in collection' or '(item, index) in collection'",
+                forAttrLoc);
             return std::nullopt;
         }
     }
@@ -735,7 +746,8 @@ std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
     return info;
 }
 
-std::optional<ConditionInfo> Parser::extractConditionInfo(const ElementNode& element) {
+std::optional<ConditionInfo> Parser::extractConditionInfo(const ElementNode& element)
+{
     // 查找 if:xxx 属性
     // 支持语法：
     // 1. if:condition="booleanPath" - 条件为真时显示
@@ -792,24 +804,28 @@ std::optional<ConditionInfo> Parser::extractConditionInfo(const ElementNode& ele
     return info;
 }
 
-void Parser::addError(TemplateErrorType type, const std::string& message,
-                      const SourceLocation& loc) {
+void Parser::addError(TemplateErrorType type, const std::string& message, const SourceLocation& loc)
+{
     m_errors.emplace_back(type, message, loc);
 }
 
-void Parser::addError(TemplateErrorType type, const std::string& message, const Token& token) {
+void Parser::addError(TemplateErrorType type, const std::string& message, const Token& token)
+{
     m_errors.emplace_back(type, message, token.location);
 }
 
-bool Parser::isAtEnd() const {
+bool Parser::isAtEnd() const
+{
     return m_current >= m_tokens.size() || current().type == TokenType::EndOfFile;
 }
 
-SourceLocation Parser::currentLocation() const {
+SourceLocation Parser::currentLocation() const
+{
     return current().location;
 }
 
-bool Parser::isValidTagName(const std::string& name) const {
+bool Parser::isValidTagName(const std::string& name) const
+{
     return ast::isValidWidgetTag(name);
 }
 

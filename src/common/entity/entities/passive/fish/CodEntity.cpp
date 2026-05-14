@@ -6,8 +6,7 @@ namespace mc {
 
 CodEntity::CodEntity(LegacyEntityType type, EntityId id)
     : AbstractGroupFishEntity(type, id)
-{
-}
+{}
 
 std::unique_ptr<Entity> CodEntity::create(IWorld* /*world*/)
 {

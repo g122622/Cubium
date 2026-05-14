@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/Slot.hpp"
@@ -9,11 +9,11 @@
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/ResourcePackList.hpp"
 #include "common/screen/IScreen.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/util/Direction.hpp"
 
 #include "client/input/InputManager.hpp"
 

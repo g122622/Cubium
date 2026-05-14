@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Event.hpp"
 #include "../Types.hpp"
+#include "Event.hpp"
 
 namespace mc::client::ui::kagero::event {
 
@@ -47,8 +47,11 @@ public:
 class WidgetResizeEvent : public Event {
 public:
     WidgetResizeEvent(i32 oldWidth, i32 oldHeight, i32 newWidth, i32 newHeight)
-        : m_oldWidth(oldWidth), m_oldHeight(oldHeight)
-        , m_newWidth(newWidth), m_newHeight(newHeight) {}
+        : m_oldWidth(oldWidth)
+        , m_oldHeight(oldHeight)
+        , m_newWidth(newWidth)
+        , m_newHeight(newHeight)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::WidgetResize; }
     [[nodiscard]] const char* getName() const override { return "WidgetResize"; }
@@ -127,7 +130,8 @@ public:
 class ScreenOpenEvent : public Event {
 public:
     explicit ScreenOpenEvent(const std::string& screenId)
-        : m_screenId(screenId) {}
+        : m_screenId(screenId)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "ScreenOpen"; }
@@ -144,7 +148,8 @@ private:
 class ScreenCloseEvent : public Event {
 public:
     explicit ScreenCloseEvent(const std::string& screenId)
-        : m_screenId(screenId) {}
+        : m_screenId(screenId)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "ScreenClose"; }
@@ -161,7 +166,9 @@ private:
 class ScreenChangeEvent : public Event {
 public:
     ScreenChangeEvent(const std::string& fromScreen, const std::string& toScreen)
-        : m_fromScreen(fromScreen), m_toScreen(toScreen) {}
+        : m_fromScreen(fromScreen)
+        , m_toScreen(toScreen)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "ScreenChange"; }

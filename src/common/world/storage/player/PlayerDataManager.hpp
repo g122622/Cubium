@@ -3,18 +3,20 @@
 #include "PlayerSaveData.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <functional>
 #include <memory>
+#include <mutex>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <string>
-#include <functional>
-#include <mutex>
 
 namespace mc {
 
 // 前向声明
 class ServerPlayer;
-namespace server { struct ServerPlayerData; }
+namespace server {
+struct ServerPlayerData;
+}
 
 namespace world::storage {
 
@@ -145,8 +147,7 @@ public:
      * @param playerData 服务器玩家数据
      * @return 保存数据
      */
-    [[nodiscard]] static PlayerSaveData fromServerPlayerData(
-        const server::ServerPlayerData& playerData);
+    [[nodiscard]] static PlayerSaveData fromServerPlayerData(const server::ServerPlayerData& playerData);
 
     /**
      * @brief 从玩家实体创建保存数据
@@ -218,9 +219,7 @@ public:
      *
      * @param callback 回调函数
      */
-    void setOnPlayerSaved(PlayerDataCallback callback) {
-        m_onPlayerSaved = std::move(callback);
-    }
+    void setOnPlayerSaved(PlayerDataCallback callback) { m_onPlayerSaved = std::move(callback); }
 
 private:
     /**

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../../core/Entity.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/blockentity/transport/IHopper.hpp"
+#include "../../core/Entity.hpp"
 #include "../../damage/DamageSource.hpp"
-#include <string>
 #include <array>
 #include <memory>
+#include <string>
 
 namespace mc {
 
@@ -37,13 +37,13 @@ public:
      * @brief 矿车类型
      */
     enum class Type : u8 {
-        Rideable = 0,       // 普通矿车
-        Chest = 1,          // 箱子矿车
-        Furnace = 2,        // 熔炉矿车
-        TNT = 3,            // TNT矿车
-        Spawner = 4,        // 刷怪笼矿车
-        Hopper = 5,         // 漏斗矿车
-        CommandBlock = 6    // 命令方块矿车
+        Rideable = 0,    // 普通矿车
+        Chest = 1,       // 箱子矿车
+        Furnace = 2,     // 熔炉矿车
+        TNT = 3,         // TNT矿车
+        Spawner = 4,     // 刷怪笼矿车
+        Hopper = 5,      // 漏斗矿车
+        CommandBlock = 6 // 命令方块矿车
     };
 
     /**
@@ -100,7 +100,6 @@ protected:
     void registerData() override;
 
 public:
-
     /**
      * @brief 矿车宽度
      * MC 1.16.5: 0.98F
@@ -373,7 +372,7 @@ private:
     bool m_onRail = false;
     BlockPos m_railPos;
     RailShape m_railShape = RailShape::NorthSouth;
-    bool m_flipped = false;  // MC 1.16.5: isInReverse
+    bool m_flipped = false; // MC 1.16.5: isInReverse
 
     // 速度
     f32 m_maxSpeed = DEFAULT_MAX_SPEED;
@@ -399,16 +398,16 @@ private:
     bool m_canBePushed = true;
 
     // MC 1.16.5 常量
-    static constexpr f32 DEFAULT_MAX_SPEED = 0.4f;           // 最大铁轨速度
-    static constexpr f32 DEFAULT_MAX_SPEED_AIR_LATERAL = 0.4f; // 空中最大横向速度
+    static constexpr f32 DEFAULT_MAX_SPEED = 0.4f;               // 最大铁轨速度
+    static constexpr f32 DEFAULT_MAX_SPEED_AIR_LATERAL = 0.4f;   // 空中最大横向速度
     static constexpr f32 DEFAULT_MAX_SPEED_AIR_VERTICAL = -1.0f; // 空中最大纵向速度（-1表示禁用）
-    static constexpr f32 DEFAULT_AIR_DRAG = 0.95f;           // 空气阻力
-    static constexpr f64 SLOPE_ADJUSTMENT = 0.0078125;       // 斜坡调整值 (1/128)
-    static constexpr f32 POWERED_RAIL_BOOST = 0.06f;         // 动力铁轨加速
-    static constexpr f32 UNPOWERED_RAIL_THRESHOLD = 0.03f;   // 无动力铁轨停止阈值
-    static constexpr f32 OCCUPIED_DRAG = 0.997f;             // 有乘客摩擦
-    static constexpr f32 EMPTY_DRAG = 0.96f;                 // 无乘客摩擦
-    static constexpr f32 DAMAGE_THRESHOLD = 40.0f;           // 摧毁阈值
+    static constexpr f32 DEFAULT_AIR_DRAG = 0.95f;               // 空气阻力
+    static constexpr f64 SLOPE_ADJUSTMENT = 0.0078125;           // 斜坡调整值 (1/128)
+    static constexpr f32 POWERED_RAIL_BOOST = 0.06f;             // 动力铁轨加速
+    static constexpr f32 UNPOWERED_RAIL_THRESHOLD = 0.03f;       // 无动力铁轨停止阈值
+    static constexpr f32 OCCUPIED_DRAG = 0.997f;                 // 有乘客摩擦
+    static constexpr f32 EMPTY_DRAG = 0.96f;                     // 无乘客摩擦
+    static constexpr f32 DAMAGE_THRESHOLD = 40.0f;               // 摧毁阈值
 };
 
 /**
@@ -418,7 +417,8 @@ private:
 class RideableMinecartEntity : public AbstractMinecartEntity {
 public:
     RideableMinecartEntity(EntityId id)
-        : AbstractMinecartEntity(Type::Rideable, id) {}
+        : AbstractMinecartEntity(Type::Rideable, id)
+    {}
 
     /**
      * @brief 激活铁轨通过时弹出乘客
@@ -433,7 +433,7 @@ public:
  */
 class ChestMinecartEntity : public AbstractMinecartEntity {
 public:
-    static constexpr i32 INVENTORY_SIZE = 27;  // 3行 x 9列
+    static constexpr i32 INVENTORY_SIZE = 27; // 3行 x 9列
 
     ChestMinecartEntity(EntityId id);
 
@@ -505,7 +505,8 @@ public:
     static constexpr i32 MAX_FUEL = 32000;
 
     FurnaceMinecartEntity(EntityId id)
-        : AbstractMinecartEntity(Type::Furnace, id) {}
+        : AbstractMinecartEntity(Type::Furnace, id)
+    {}
 
     void tick() override;
 
@@ -534,7 +535,11 @@ public:
      * @param x X方向推力
      * @param z Z方向推力
      */
-    void setPushDirection(f32 x, f32 z) { m_pushX = x; m_pushZ = z; }
+    void setPushDirection(f32 x, f32 z)
+    {
+        m_pushX = x;
+        m_pushZ = z;
+    }
 
     /**
      * @brief 熔炉矿车摩擦力计算
@@ -589,7 +594,8 @@ public:
     static constexpr i32 DEFAULT_FUSE = 80;
 
     TNTMinecartEntity(EntityId id)
-        : AbstractMinecartEntity(Type::TNT, id) {}
+        : AbstractMinecartEntity(Type::TNT, id)
+    {}
 
     void tick() override;
 
@@ -653,7 +659,7 @@ private:
      */
     void ignite();
 
-    i32 m_fuse = -1;  ///< -1 表示未点燃
+    i32 m_fuse = -1; ///< -1 表示未点燃
 };
 
 /**
@@ -667,8 +673,8 @@ private:
  */
 class HopperMinecartEntity : public AbstractMinecartEntity, public blockentity::IHopper {
 public:
-    static constexpr i32 INVENTORY_SIZE = 5;  ///< 漏斗矿车有5格库存
-    static constexpr i32 TRANSFER_COOLDOWN = 4;  ///< 传输冷却（tick）
+    static constexpr i32 INVENTORY_SIZE = 5;    ///< 漏斗矿车有5格库存
+    static constexpr i32 TRANSFER_COOLDOWN = 4; ///< 传输冷却（tick）
 
     HopperMinecartEntity(EntityId id);
     ~HopperMinecartEntity() override = default;
@@ -682,10 +688,11 @@ public:
     [[nodiscard]] double getXPos() const override { return x(); }
     [[nodiscard]] double getYPos() const override { return y(); }
     [[nodiscard]] double getZPos() const override { return z(); }
-    [[nodiscard]] BlockPos getHopperPos() const override {
+    [[nodiscard]] BlockPos getHopperPos() const override
+    {
         return BlockPos(static_cast<BlockCoord>(std::floor(x())),
-                        static_cast<BlockCoord>(std::floor(y())),
-                        static_cast<BlockCoord>(std::floor(z())));
+            static_cast<BlockCoord>(std::floor(y())),
+            static_cast<BlockCoord>(std::floor(z())));
     }
     [[nodiscard]] Direction getOutputDirection() const override { return Direction::Down; }
 
@@ -735,7 +742,7 @@ private:
 
     std::unique_ptr<blockentity::SimpleInventory> m_inventory;
     i32 m_suckCooldown = 0;
-    bool m_disabled = false;  ///< 红石禁用状态
+    bool m_disabled = false; ///< 红石禁用状态
 };
 
 /**
@@ -745,7 +752,8 @@ private:
 class CommandBlockMinecartEntity : public AbstractMinecartEntity {
 public:
     CommandBlockMinecartEntity(EntityId id)
-        : AbstractMinecartEntity(Type::CommandBlock, id) {}
+        : AbstractMinecartEntity(Type::CommandBlock, id)
+    {}
 
     void tick() override;
 
@@ -783,7 +791,7 @@ private:
     std::string m_command;
     std::string m_lastOutput;
     i32 m_successCount = 0;
-    bool mPowered = false;  ///< 当前是否被激活
+    bool mPowered = false; ///< 当前是否被激活
 };
 
 } // namespace entity

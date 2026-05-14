@@ -3,16 +3,17 @@
  * @brief GuiSprite 和 GuiNinePatch 单元测试（纯数据结构测试，不依赖Vulkan）
  */
 
-#include <gtest/gtest.h>
 #include "client/renderer/trident/gui/GuiSprite.hpp"
 #include "common/core/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::renderer::trident::gui;
 
 /**
  * @brief 测试 GuiSprite 默认构造
  */
-TEST(GuiSpriteTest, DefaultConstruction) {
+TEST(GuiSpriteTest, DefaultConstruction)
+{
     GuiSprite sprite;
     EXPECT_TRUE(sprite.id.empty());
     EXPECT_FLOAT_EQ(sprite.u0, 0.0f);
@@ -27,7 +28,8 @@ TEST(GuiSpriteTest, DefaultConstruction) {
 /**
  * @brief 测试 GuiSprite 带参数构造
  */
-TEST(GuiSpriteTest, ParameterizedConstruction) {
+TEST(GuiSpriteTest, ParameterizedConstruction)
+{
     // widgets.png 中按钮精灵 (256x256 图集)
     GuiSprite sprite("button_normal", 0, 66, 200, 20, 256, 256);
 
@@ -44,7 +46,8 @@ TEST(GuiSpriteTest, ParameterizedConstruction) {
 /**
  * @brief 测试 GuiSprite 九宫格设置
  */
-TEST(GuiSpriteTest, SetNinePatch) {
+TEST(GuiSpriteTest, SetNinePatch)
+{
     GuiSprite sprite("button", 0, 66, 200, 20, 256, 256);
 
     sprite.setNinePatch(4, 4, 196, 16);
@@ -59,7 +62,8 @@ TEST(GuiSpriteTest, SetNinePatch) {
 /**
  * @brief 测试 GuiSprite 状态变体设置
  */
-TEST(GuiSpriteTest, SetStateSprites) {
+TEST(GuiSpriteTest, SetStateSprites)
+{
     GuiSprite sprite("button", 0, 66, 200, 20, 256, 256);
 
     sprite.setStateSprites("button_hover", "button_disabled");
@@ -71,11 +75,11 @@ TEST(GuiSpriteTest, SetStateSprites) {
 /**
  * @brief 测试 GuiSprite 链式调用
  */
-TEST(GuiSpriteTest, ChainedCalls) {
+TEST(GuiSpriteTest, ChainedCalls)
+{
     GuiSprite sprite("button", 0, 66, 200, 20, 256, 256);
 
-    sprite.setNinePatch(4, 4, 196, 16)
-          .setStateSprites("button_hover", "button_disabled");
+    sprite.setNinePatch(4, 4, 196, 16).setStateSprites("button_hover", "button_disabled");
 
     EXPECT_TRUE(sprite.ninePatch.isValid());
     EXPECT_EQ(sprite.hoverSprite, "button_hover");
@@ -85,7 +89,8 @@ TEST(GuiSpriteTest, ChainedCalls) {
 /**
  * @brief 测试 GuiNinePatch 默认构造
  */
-TEST(GuiNinePatchTest, DefaultConstruction) {
+TEST(GuiNinePatchTest, DefaultConstruction)
+{
     GuiNinePatch ninePatch;
     EXPECT_EQ(ninePatch.left, 0);
     EXPECT_EQ(ninePatch.top, 0);
@@ -97,7 +102,8 @@ TEST(GuiNinePatchTest, DefaultConstruction) {
 /**
  * @brief 测试 GuiNinePatch 有效性检查
  */
-TEST(GuiNinePatchTest, IsValid) {
+TEST(GuiNinePatchTest, IsValid)
+{
     GuiNinePatch empty;
     EXPECT_FALSE(empty.isValid());
 
@@ -112,7 +118,8 @@ TEST(GuiNinePatchTest, IsValid) {
 /**
  * @brief 测试 UV 坐标计算精度
  */
-TEST(GuiSpriteTest, UVCoordinatePrecision) {
+TEST(GuiSpriteTest, UVCoordinatePrecision)
+{
     // 测试各种图集尺寸
     GuiSprite small("small", 0, 0, 16, 16, 16, 16);
     EXPECT_FLOAT_EQ(small.u0, 0.0f);
@@ -138,7 +145,8 @@ TEST(GuiSpriteTest, UVCoordinatePrecision) {
 /**
  * @brief 测试心形图标精灵定义
  */
-TEST(GuiSpriteTest, HeartIconSprites) {
+TEST(GuiSpriteTest, HeartIconSprites)
+{
     static const int ATLAS_SIZE = 256;
 
     // 心形图标 (9x9)
@@ -160,7 +168,8 @@ TEST(GuiSpriteTest, HeartIconSprites) {
 /**
  * @brief 测试快捷栏精灵定义
  */
-TEST(GuiSpriteTest, HotbarSprites) {
+TEST(GuiSpriteTest, HotbarSprites)
+{
     static const int ATLAS_SIZE = 256;
 
     // 快捷栏背景 (182x22)

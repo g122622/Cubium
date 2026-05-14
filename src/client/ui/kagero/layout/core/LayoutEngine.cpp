@@ -13,10 +13,8 @@ namespace {
  *
  * 仅在结果有效时才写回目标 Widget，避免无效布局污染现有状态。
  */
-void applyLayoutResults(
-    const std::vector<WidgetLayoutAdaptor*>& children,
-    const std::vector<LayoutResult>& results
-) {
+void applyLayoutResults(const std::vector<WidgetLayoutAdaptor*>& children, const std::vector<LayoutResult>& results)
+{
     const size_t count = std::min(children.size(), results.size());
     for (size_t i = 0; i < count; ++i) {
         if (children[i] != nullptr && results[i].isValid()) {
@@ -32,7 +30,8 @@ void applyLayoutResults(
 // ============================================================================
 
 LayoutEngine::LayoutEngine()
-    : m_flexLayout(std::make_unique<FlexLayout>()) {
+    : m_flexLayout(std::make_unique<FlexLayout>())
+{
     registerAlgorithm("flex", std::make_unique<FlexLayoutAlgorithm>());
     registerAlgorithm("flex-row", std::make_unique<FlexLayoutAlgorithm>([]() {
         FlexConfig config;
@@ -50,28 +49,30 @@ LayoutEngine::LayoutEngine()
     registerAlgorithm("stack", std::make_unique<detail::StackLayoutAlgorithm>());
 }
 
-LayoutEngine& LayoutEngine::instance() {
+LayoutEngine& LayoutEngine::instance()
+{
     static LayoutEngine instance;
     return instance;
 }
 
-void LayoutEngine::registerAlgorithm(
-    const std::string& name,
-    std::unique_ptr<ILayoutAlgorithm> algorithm
-) {
+void LayoutEngine::registerAlgorithm(const std::string& name, std::unique_ptr<ILayoutAlgorithm> algorithm)
+{
     m_algorithms[name] = std::move(algorithm);
 }
 
-ILayoutAlgorithm* LayoutEngine::getAlgorithm(const std::string& name) const {
+ILayoutAlgorithm* LayoutEngine::getAlgorithm(const std::string& name) const
+{
     const auto it = m_algorithms.find(name);
     return it != m_algorithms.end() ? it->second.get() : nullptr;
 }
 
-bool LayoutEngine::hasAlgorithm(const std::string& name) const {
+bool LayoutEngine::hasAlgorithm(const std::string& name) const
+{
     return m_algorithms.find(name) != m_algorithms.end();
 }
 
-void LayoutEngine::layout(WidgetLayoutAdaptor* root, const Rect& availableSpace) {
+void LayoutEngine::layout(WidgetLayoutAdaptor* root, const Rect& availableSpace)
+{
     if (root == nullptr || !root->isValid()) {
         return;
     }
@@ -80,11 +81,7 @@ void LayoutEngine::layout(WidgetLayoutAdaptor* root, const Rect& availableSpace)
     const auto startTime = std::chrono::high_resolution_clock::now();
 
     const Rect rootBounds(
-        availableSpace.x,
-        availableSpace.y,
-        std::max(0, availableSpace.width),
-        std::max(0, availableSpace.height)
-    );
+        availableSpace.x, availableSpace.y, std::max(0, availableSpace.width), std::max(0, availableSpace.height));
     root->applyLayout(LayoutResult(rootBounds));
 
     const MeasureSpec widthSpec = MeasureSpec::MakeExactly(rootBounds.width);
@@ -96,7 +93,8 @@ void LayoutEngine::layout(WidgetLayoutAdaptor* root, const Rect& availableSpace)
     m_stats.layoutCount = 1;
 }
 
-void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root) {
+void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root)
+{
     if (root == nullptr || !root->isValid()) {
         return;
     }
@@ -110,10 +108,9 @@ void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root) {
         return;
     }
 
-    std::sort(dirtyNodes.begin(), dirtyNodes.end(),
-        [](WidgetLayoutAdaptor* lhs, WidgetLayoutAdaptor* rhs) {
-            return lhs->depth() < rhs->depth();
-        });
+    std::sort(dirtyNodes.begin(), dirtyNodes.end(), [](WidgetLayoutAdaptor* lhs, WidgetLayoutAdaptor* rhs) {
+        return lhs->depth() < rhs->depth();
+    });
 
     m_stats.relayoutedWidgets = static_cast<i32>(dirtyNodes.size());
 
@@ -134,10 +131,8 @@ void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root) {
 }
 
 void LayoutEngine::layoutWith(
-    const std::string& algorithmName,
-    WidgetLayoutAdaptor* container,
-    const Rect& availableSpace
-) {
+    const std::string& algorithmName, WidgetLayoutAdaptor* container, const Rect& availableSpace)
+{
     if (container == nullptr || !container->isValid()) {
         return;
     }
@@ -160,11 +155,8 @@ void LayoutEngine::layoutWith(
     m_stats.layoutCount = 1;
 }
 
-void LayoutEngine::layoutFlex(
-    WidgetLayoutAdaptor* container,
-    const Rect& availableSpace,
-    const FlexConfig& config
-) {
+void LayoutEngine::layoutFlex(WidgetLayoutAdaptor* container, const Rect& availableSpace, const FlexConfig& config)
+{
     if (container == nullptr || !container->isValid()) {
         return;
     }
@@ -185,11 +177,8 @@ void LayoutEngine::layoutFlex(
 }
 
 LayoutResult LayoutEngine::layoutNode(
-    WidgetLayoutAdaptor* node,
-    const MeasureSpec& widthSpec,
-    const MeasureSpec& heightSpec,
-    i32 depth
-) {
+    WidgetLayoutAdaptor* node, const MeasureSpec& widthSpec, const MeasureSpec& heightSpec, i32 depth)
+{
     if (node == nullptr || !node->isValid()) {
         return LayoutResult();
     }
@@ -217,12 +206,7 @@ LayoutResult LayoutEngine::layoutNode(
 
             const i32 contentWidth = std::max(0, finalWidth - constraints.padding.horizontal());
             const i32 contentHeight = std::max(0, finalHeight - constraints.padding.vertical());
-            const Rect contentRect(
-                constraints.padding.left,
-                constraints.padding.top,
-                contentWidth,
-                contentHeight
-            );
+            const Rect contentRect(constraints.padding.left, constraints.padding.top, contentWidth, contentHeight);
 
             const auto childResults = m_flexLayout->compute(contentRect, children, constraints);
             for (size_t i = 0; i < children.size() && i < childResults.size(); ++i) {
@@ -230,12 +214,9 @@ LayoutResult LayoutEngine::layoutNode(
                     continue;
                 }
 
-                const MeasureSpec childWidthSpec = MeasureSpec::MakeExactly(
-                    std::max(0, childResults[i].bounds.width)
-                );
-                const MeasureSpec childHeightSpec = MeasureSpec::MakeExactly(
-                    std::max(0, childResults[i].bounds.height)
-                );
+                const MeasureSpec childWidthSpec = MeasureSpec::MakeExactly(std::max(0, childResults[i].bounds.width));
+                const MeasureSpec childHeightSpec =
+                    MeasureSpec::MakeExactly(std::max(0, childResults[i].bounds.height));
 
                 layoutNode(children[i], childWidthSpec, childHeightSpec, depth + 1);
 
@@ -251,10 +232,8 @@ LayoutResult LayoutEngine::layoutNode(
     return result;
 }
 
-void LayoutEngine::collectDirtyNodes(
-    WidgetLayoutAdaptor* node,
-    std::vector<WidgetLayoutAdaptor*>& out
-) {
+void LayoutEngine::collectDirtyNodes(WidgetLayoutAdaptor* node, std::vector<WidgetLayoutAdaptor*>& out)
+{
     if (node == nullptr) {
         return;
     }
@@ -270,7 +249,8 @@ void LayoutEngine::collectDirtyNodes(
     }
 }
 
-ILayoutAlgorithm* LayoutEngine::selectAlgorithm(LayoutType type, const std::string& name) {
+ILayoutAlgorithm* LayoutEngine::selectAlgorithm(LayoutType type, const std::string& name)
+{
     if (!name.empty()) {
         if (auto* algorithm = getAlgorithm(name); algorithm != nullptr) {
             return algorithm;

@@ -3,9 +3,8 @@
 
 namespace mc::entity::ai::pathfinding {
 
-Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ,
-                          i32 targetX, i32 targetY, i32 targetZ,
-                          i32 maxDistance) {
+Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 maxDistance)
+{
     // 清除上次搜索的缓存
     if (m_nodeProcessor) {
         m_nodeProcessor->clear();
@@ -92,9 +91,7 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ,
             f32 newWalkedDistance = current->walkedDistance() + distance;
 
             // MC 1.16.5: totalPathDistance = previous.totalPathDistance + distance + costMalus
-            f32 newCostFromStart = current->costFromStart() +
-                                   distance +
-                                   neighbor->costMalus();
+            f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
 
             // MC 1.16.5: 检查 walkedDistance 是否超出搜索范围
             // if (pathpoint1.field_222861_j < searchRange && ...)
@@ -134,9 +131,8 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ,
     return Path();
 }
 
-Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ,
-                                  i32 targetX, i32 targetY, i32 targetZ,
-                                  i32 range) {
+Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range)
+{
     // 与基本寻路相同，但到达范围内任意点即成功
     if (m_nodeProcessor) {
         m_nodeProcessor->clear();
@@ -206,9 +202,7 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ,
                 continue;
             }
 
-            f32 newCostFromStart = current->costFromStart() +
-                                   distance +
-                                   neighbor->costMalus();
+            f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
 
             if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
                 neighbor->setParent(current);
@@ -232,9 +226,9 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ,
     return Path();
 }
 
-Path PathFinder::findPathToClosest(i32 startX, i32 startY, i32 startZ,
-                                    const std::vector<TargetPoint>& targets,
-                                    i32 maxDistance) {
+Path PathFinder::findPathToClosest(
+    i32 startX, i32 startY, i32 startZ, const std::vector<TargetPoint>& targets, i32 maxDistance)
+{
     // MC 1.16.5: 多目标寻路 - 使用 FlaggedPathPoint 模式
     // 对每个目标点设置标志，搜索时只需到达任意一个目标
 
@@ -332,9 +326,7 @@ Path PathFinder::findPathToClosest(i32 startX, i32 startY, i32 startZ,
                 continue;
             }
 
-            f32 newCostFromStart = current->costFromStart() +
-                                   distance +
-                                   neighbor->costMalus();
+            f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
 
             // MC 1.16.5: 计算到最近目标的启发式
             f32 bestNeighborHeuristic = std::numeric_limits<f32>::max();

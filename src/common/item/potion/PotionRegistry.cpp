@@ -1,7 +1,7 @@
 #include "PotionRegistry.hpp"
-#include "PotionType.hpp"
 #include "../../entity/effect/EffectInstance.hpp"
 #include "../../entity/effect/EffectType.hpp"
+#include "PotionType.hpp"
 
 namespace mc {
 namespace potion {
@@ -70,12 +70,14 @@ const Potion* PotionRegistry::LONG_SLOW_FALLING = nullptr;
 
 // ========== PotionRegistry 实现 ==========
 
-PotionRegistry& PotionRegistry::instance() {
+PotionRegistry& PotionRegistry::instance()
+{
     static PotionRegistry registry;
     return registry;
 }
 
-const Potion* PotionRegistry::registerPotion(const ResourceLocation& id, Potion potion) {
+const Potion* PotionRegistry::registerPotion(const ResourceLocation& id, Potion potion)
+{
     size_t index = m_potions.size();
     m_potions.emplace_back(id, std::move(potion));
     m_idToIndex[id] = index;
@@ -86,7 +88,8 @@ const Potion* PotionRegistry::registerPotion(const ResourceLocation& id, Potion 
     return &m_potions[index].second;
 }
 
-const Potion* PotionRegistry::getPotion(const ResourceLocation& id) const {
+const Potion* PotionRegistry::getPotion(const ResourceLocation& id) const
+{
     auto it = m_idToIndex.find(id);
     if (it == m_idToIndex.end()) {
         return nullptr;
@@ -94,7 +97,8 @@ const Potion* PotionRegistry::getPotion(const ResourceLocation& id) const {
     return &m_potions[it->second].second;
 }
 
-const Potion* PotionRegistry::getPotion(PotionId id) const {
+const Potion* PotionRegistry::getPotion(PotionId id) const
+{
     auto it = m_enumToIndex.find(id);
     if (it == m_enumToIndex.end()) {
         return nullptr;

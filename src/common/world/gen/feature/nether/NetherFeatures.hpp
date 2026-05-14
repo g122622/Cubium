@@ -13,10 +13,10 @@
  * - 巨型真菌 (HugeFungusFeature)
  */
 
-#include "GlowstoneFeature.hpp"
-#include "BasaltFeature.hpp"
-#include "MagmaPatchFeature.hpp"
 #include "../fungus/HugeFungusFeature.hpp"
+#include "BasaltFeature.hpp"
+#include "GlowstoneFeature.hpp"
+#include "MagmaPatchFeature.hpp"
 #include <vector>
 
 namespace mc {
@@ -43,21 +43,21 @@ struct NetherFeatureRegistry {
  * 与 FeatureIds.hpp 中的 ID 对应。
  */
 namespace NetherFeatureIds {
-    // UndergroundDecoration 阶段
-    constexpr u32 GlowstoneNormal = 0;
-    constexpr u32 GlowstoneLarge = 1;
-    constexpr u32 BasaltColumnNormal = 2;
-    constexpr u32 BasaltColumnLarge = 3;
-    constexpr u32 BasaltDelta = 4;
-    constexpr u32 MagmaPatchNormal = 5;
-    constexpr u32 MagmaPatchDense = 6;
-    constexpr u32 UndergroundCount = 7;
+// UndergroundDecoration 阶段
+constexpr u32 GlowstoneNormal = 0;
+constexpr u32 GlowstoneLarge = 1;
+constexpr u32 BasaltColumnNormal = 2;
+constexpr u32 BasaltColumnLarge = 3;
+constexpr u32 BasaltDelta = 4;
+constexpr u32 MagmaPatchNormal = 5;
+constexpr u32 MagmaPatchDense = 6;
+constexpr u32 UndergroundCount = 7;
 
-    // VegetalDecoration 阶段（巨型真菌等）
-    constexpr u32 CrimsonFungus = 0;
-    constexpr u32 WarpedFungus = 1;
-    constexpr u32 NetherFire = 2;
-    constexpr u32 VegetationCount = 3;
-}
+// VegetalDecoration 阶段（巨型真菌等）
+constexpr u32 CrimsonFungus = 0;
+constexpr u32 WarpedFungus = 1;
+constexpr u32 NetherFire = 2;
+constexpr u32 VegetationCount = 3;
+} // namespace NetherFeatureIds
 
 } // namespace mc

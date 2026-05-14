@@ -2,10 +2,10 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
-#include <vulkan/vulkan.h>
+#include <functional>
 #include <memory>
 #include <unordered_map>
-#include <functional>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 
@@ -14,11 +14,11 @@ class Entity;
 class LivingEntity;
 
 namespace client {
-class ClientEntity;  // 前向声明
+class ClientEntity; // 前向声明
 }
 
 namespace client::renderer::entity::pipeline {
-class EntityPipeline;  // 前向声明
+class EntityPipeline; // 前向声明
 }
 
 namespace client::renderer::entity::model {
@@ -75,12 +75,10 @@ public:
      * @param context 动画上下文
      * @param pipeline 实体渲染管线
      */
-    virtual void renderLayersPipelineClient(
-        ::mc::client::ClientEntity& entity,
+    virtual void renderLayersPipelineClient(::mc::client::ClientEntity& entity,
         VkCommandBuffer cmd,
         const AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 渲染阴影（ClientEntity 版本）
@@ -90,11 +88,7 @@ public:
      * @param pipeline 实体渲染管线
      */
     virtual void renderShadowClient(
-        ::mc::client::ClientEntity& entity,
-        f64 partialTicks,
-        VkCommandBuffer cmd,
-        pipeline::EntityPipeline& pipeline
-    );
+        ::mc::client::ClientEntity& entity, f64 partialTicks, VkCommandBuffer cmd, pipeline::EntityPipeline& pipeline);
 
     // ========== 动画支持 ==========
 
@@ -117,11 +111,8 @@ public:
      * @param model 输出的模型指针（用于网格生成）
      */
     virtual void computeAnimationContext(
-        Entity& entity,
-        f64 partialTicks,
-        AnimationContext& context,
-        std::unique_ptr<model::EntityModel>& model
-    ) {
+        Entity& entity, f64 partialTicks, AnimationContext& context, std::unique_ptr<model::EntityModel>& model)
+    {
         // 默认空实现，不支持动画的渲染器不需要重写
     }
 
@@ -137,11 +128,8 @@ public:
      * @param pipeline 实体渲染管线
      */
     virtual void renderLayersPipeline(
-        Entity& entity,
-        VkCommandBuffer cmd,
-        const AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) {
+        Entity& entity, VkCommandBuffer cmd, const AnimationContext& context, pipeline::EntityPipeline& pipeline)
+    {
         // 默认空实现，不支持层的渲染器不需要重写
         (void)entity;
         (void)cmd;
@@ -179,8 +167,8 @@ public:
     void setShadowAlpha(f64 alpha) { m_shadowAlpha = alpha; }
 
 protected:
-    f64 m_shadowSize = 0.5f;     // 阴影半径
-    f64 m_shadowAlpha = 0.8f;    // 阴影透明度
+    f64 m_shadowSize = 0.5f;  // 阴影半径
+    f64 m_shadowAlpha = 0.8f; // 阴影透明度
 
     /**
      * @brief 讨论是否应该渲染阴影
@@ -200,7 +188,7 @@ protected:
  */
 class EntityRendererFactory {
 public:
-    using CreatorFunc = std::unique_ptr<EntityRenderer>(*)();
+    using CreatorFunc = std::unique_ptr<EntityRenderer> (*)();
 
     /**
      * @brief 注册渲染器
@@ -220,5 +208,5 @@ private:
     static std::unordered_map<std::string, CreatorFunc> s_creators;
 };
 
-} // namespace mc::client::renderer::entity::core
+} // namespace client::renderer::entity::core
 } // namespace mc

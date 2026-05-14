@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 
 namespace mc {
 
@@ -47,26 +47,18 @@ public:
      * @param config 海泡菜配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const SeaPickleFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SeaPickleFeatureConfig& config);
 
 private:
     /**
      * @brief 检查海泡菜是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        const BlockState& pickleState) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& pickleState) const;
 
     /**
      * @brief 检查位置是否为水
      */
     [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
-
 };
 
 /**
@@ -74,12 +66,9 @@ private:
  */
 class ConfiguredSeaPickleFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredSeaPickleFeature(
-        std::unique_ptr<SeaPickleFeatureConfig> config,
-        const char* featureName);
+    ConfiguredSeaPickleFeature(std::unique_ptr<SeaPickleFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

@@ -14,13 +14,15 @@ protected:
     LocalPlayerIdentity identity;
 };
 
-TEST_F(LocalPlayerIdentityTest, InitialState) {
+TEST_F(LocalPlayerIdentityTest, InitialState)
+{
     EXPECT_FALSE(identity.hasIdentity());
     EXPECT_EQ(identity.playerId(), 0u);
     EXPECT_EQ(identity.entityId(), mc::INVALID_ENTITY_ID);
 }
 
-TEST_F(LocalPlayerIdentityTest, SetIdentity) {
+TEST_F(LocalPlayerIdentityTest, SetIdentity)
+{
     identity.setIdentity(42, 100);
 
     EXPECT_TRUE(identity.hasIdentity());
@@ -28,7 +30,8 @@ TEST_F(LocalPlayerIdentityTest, SetIdentity) {
     EXPECT_EQ(identity.entityId(), 100u);
 }
 
-TEST_F(LocalPlayerIdentityTest, Clear) {
+TEST_F(LocalPlayerIdentityTest, Clear)
+{
     identity.setIdentity(42, 100);
     EXPECT_TRUE(identity.hasIdentity());
 
@@ -39,7 +42,8 @@ TEST_F(LocalPlayerIdentityTest, Clear) {
     EXPECT_EQ(identity.entityId(), mc::INVALID_ENTITY_ID);
 }
 
-TEST_F(LocalPlayerIdentityTest, IsLocalPlayerEntity) {
+TEST_F(LocalPlayerIdentityTest, IsLocalPlayerEntity)
+{
     identity.setIdentity(42, 100);
 
     EXPECT_TRUE(identity.isLocalPlayerEntity(100));
@@ -48,7 +52,8 @@ TEST_F(LocalPlayerIdentityTest, IsLocalPlayerEntity) {
     EXPECT_FALSE(identity.isLocalPlayerEntity(mc::INVALID_ENTITY_ID));
 }
 
-TEST_F(LocalPlayerIdentityTest, IsLocalPlayer) {
+TEST_F(LocalPlayerIdentityTest, IsLocalPlayer)
+{
     identity.setIdentity(42, 100);
 
     EXPECT_TRUE(identity.isLocalPlayer(42));
@@ -56,13 +61,15 @@ TEST_F(LocalPlayerIdentityTest, IsLocalPlayer) {
     EXPECT_FALSE(identity.isLocalPlayer(0));
 }
 
-TEST_F(LocalPlayerIdentityTest, ClearBeforeSetDoesNotCrash) {
+TEST_F(LocalPlayerIdentityTest, ClearBeforeSetDoesNotCrash)
+{
     // 清除未设置的身份应该安全
     EXPECT_NO_THROW(identity.clear());
     EXPECT_FALSE(identity.hasIdentity());
 }
 
-TEST_F(LocalPlayerIdentityTest, MultipleSetIdentity) {
+TEST_F(LocalPlayerIdentityTest, MultipleSetIdentity)
+{
     // 第一次设置
     identity.setIdentity(42, 100);
     EXPECT_EQ(identity.playerId(), 42u);
@@ -80,14 +87,16 @@ TEST_F(LocalPlayerIdentityTest, MultipleSetIdentity) {
     EXPECT_FALSE(identity.isLocalPlayerEntity(100));
 }
 
-TEST_F(LocalPlayerIdentityTest, InvalidEntityIdCheck) {
+TEST_F(LocalPlayerIdentityTest, InvalidEntityIdCheck)
+{
     identity.setIdentity(42, 100);
 
     // INVALID_ENTITY_ID 不应该匹配
     EXPECT_FALSE(identity.isLocalPlayerEntity(mc::INVALID_ENTITY_ID));
 }
 
-TEST_F(LocalPlayerIdentityTest, ZeroPlayerIdCheck) {
+TEST_F(LocalPlayerIdentityTest, ZeroPlayerIdCheck)
+{
     identity.setIdentity(42, 100);
 
     // PlayerId 0 不应该匹配

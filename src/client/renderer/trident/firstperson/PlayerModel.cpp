@@ -16,7 +16,8 @@ PlayerModel::PlayerModel(bool smallArms)
     setupParts();
 }
 
-void PlayerModel::setupParts() {
+void PlayerModel::setupParts()
+{
     // 清除父类创建的部件
     m_parts.clear();
 
@@ -72,12 +73,12 @@ void PlayerModel::setupParts() {
     // Alex (细手臂): 3x12x4
 
     const f64 armWidth = m_smallArms ? 3.0f : 4.0f;
-    const f64 armOffset = m_smallArms ? 1.0f : 0.0f;  // 细手臂需要居中偏移
+    const f64 armOffset = m_smallArms ? 1.0f : 0.0f; // 细手臂需要居中偏移
 
     // 右臂内层: 纹理位置 (40, 16)
     m_rightArm->addBox(40, 16, -armWidth + armOffset, -2.0f, -2.0f, armWidth, 12.0f, 4.0f);
     m_rightArm->setRotationPoint(-5.0f, 2.0f, 0.0f);
-    m_rightArm->setMirror(true);  // 右臂需要镜像
+    m_rightArm->setMirror(true); // 右臂需要镜像
 
     // 右臂外层（袖子）: 纹理位置 (40, 32), 膨胀 0.25
     m_rightArmWear->addBox(40, 32, -armWidth + armOffset, -2.0f, -2.0f, armWidth, 12.0f, 4.0f, 0.25f);
@@ -126,7 +127,8 @@ void PlayerModel::setupParts() {
     m_parts.push_back(m_leftLegWear);
 }
 
-void PlayerModel::render(f64 scale) {
+void PlayerModel::render(f64 scale)
+{
     // 先渲染身体和腿部
     m_body->render(scale);
     m_bodyWear->render(scale);
@@ -146,9 +148,9 @@ void PlayerModel::render(f64 scale) {
     m_headWear->render(scale);
 }
 
-void PlayerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 ageInTicks, f64 netHeadYaw,
-                            f64 headPitch, f64 /*scale*/) {
+void PlayerModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
+{
     // 头部旋转
     m_head->setRotateAngleX(math::toRadians(static_cast<f32>(headPitch)));
     m_head->setRotateAngleY(math::toRadians(static_cast<f32>(netHeadYaw)));
@@ -181,7 +183,8 @@ void PlayerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     setupArmAngles(limbSwing, limbSwingAmount);
 }
 
-void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount) {
+void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount)
+{
     // 基础手臂摆动
     const f64 swingAngle = limbSwing;
     const f64 swingAmount = limbSwingAmount;
@@ -198,28 +201,28 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount) {
 
         case ArmPose::Item:
             // 持有物品：前伸
-            m_rightArm->setRotateAngleX(-0.7854f);  // -45度
+            m_rightArm->setRotateAngleX(-0.7854f); // -45度
             m_rightArm->setRotateAngleY(0.0f);
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::Block:
             // 格挡（盾牌）
-            m_rightArm->setRotateAngleX(-0.9425f);  // -54度
-            m_rightArm->setRotateAngleY(-0.5236f);  // -30度
+            m_rightArm->setRotateAngleX(-0.9425f); // -54度
+            m_rightArm->setRotateAngleY(-0.5236f); // -30度
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::BowAndArrow:
             // 拉弓
-            m_rightArm->setRotateAngleX(-0.7854f);  // -45度
-            m_rightArm->setRotateAngleY(-0.7854f);  // -45度
+            m_rightArm->setRotateAngleX(-0.7854f); // -45度
+            m_rightArm->setRotateAngleY(-0.7854f); // -45度
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::ThrowSpear:
             // 投掷三叉戟
-            m_rightArm->setRotateAngleX(-2.3562f);  // -135度
+            m_rightArm->setRotateAngleX(-2.3562f); // -135度
             m_rightArm->setRotateAngleY(0.0f);
             m_rightArm->setRotateAngleZ(0.0f);
             break;
@@ -228,14 +231,14 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount) {
         case ArmPose::CrossbowHold:
             // 装填弩 / 持有弩
             m_rightArm->setRotateAngleX(-0.7854f);
-            m_rightArm->setRotateAngleY(-0.3491f);  // -20度
+            m_rightArm->setRotateAngleY(-0.3491f); // -20度
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::EatOrDrink:
             // 吃食物/喝药水
-            m_rightArm->setRotateAngleX(-0.8727f);  // -50度
-            m_rightArm->setRotateAngleY(0.1745f);   // 10度
+            m_rightArm->setRotateAngleX(-0.8727f); // -50度
+            m_rightArm->setRotateAngleY(0.1745f);  // 10度
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
@@ -260,14 +263,14 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount) {
 
         case ArmPose::Block:
             m_leftArm->setRotateAngleX(-0.9425f);
-            m_leftArm->setRotateAngleY(0.5236f);   // 30度
+            m_leftArm->setRotateAngleY(0.5236f); // 30度
             m_leftArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::BowAndArrow:
             // 拉弓时左臂也参与
             m_leftArm->setRotateAngleX(-0.7854f);
-            m_leftArm->setRotateAngleY(0.7854f);   // 45度
+            m_leftArm->setRotateAngleY(0.7854f); // 45度
             m_leftArm->setRotateAngleZ(0.0f);
             break;
 
@@ -294,14 +297,15 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount) {
     // 潜行时调整手臂
     if (m_sneaking) {
         // 潜行时手臂略微前伸
-        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - 0.2618f);  // -15度
+        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - 0.2618f); // -15度
         m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - 0.2618f);
     }
 }
 
-void PlayerModel::setupSneakingAngles() {
+void PlayerModel::setupSneakingAngles()
+{
     // 潜行时身体前倾
-    m_body->setRotateAngleX(0.5f);  // 约29度
+    m_body->setRotateAngleX(0.5f); // 约29度
     m_bodyWear->setRotateAngleX(0.5f);
 
     // 腿部向后
@@ -311,18 +315,20 @@ void PlayerModel::setupSneakingAngles() {
     m_leftLegWear->setRotationPoint(2.0f, 14.0f, 2.0f);
 }
 
-void PlayerModel::setupSwimmingAngles() {
+void PlayerModel::setupSwimmingAngles()
+{
     // 游泳时身体水平
-    m_body->setRotateAngleX(math::PI * 0.5f);  // 90度
+    m_body->setRotateAngleX(math::PI * 0.5f); // 90度
     m_bodyWear->setRotateAngleX(math::PI * 0.5f);
 
     // 头部抬起
-    m_head->setRotateAngleX(m_head->rotateAngleX() + 0.7854f);  // +45度
+    m_head->setRotateAngleX(m_head->rotateAngleX() + 0.7854f); // +45度
 }
 
-void PlayerModel::setupFallFlyingAngles() {
+void PlayerModel::setupFallFlyingAngles()
+{
     // 鞘翅飞行时身体水平，手臂向后
-    m_body->setRotateAngleX(math::PI * 0.25f);  // 45度
+    m_body->setRotateAngleX(math::PI * 0.25f); // 45度
     m_bodyWear->setRotateAngleX(math::PI * 0.25f);
 
     // 手臂向后伸
@@ -332,7 +338,8 @@ void PlayerModel::setupFallFlyingAngles() {
     m_leftArmWear->setRotateAngleX(math::PI);
 }
 
-void PlayerModel::setVisible(bool visible) {
+void PlayerModel::setVisible(bool visible)
+{
     m_head->setVisible(visible);
     m_headWear->setVisible(visible);
     m_body->setVisible(visible);
@@ -347,20 +354,23 @@ void PlayerModel::setVisible(bool visible) {
     m_leftLegWear->setVisible(visible);
 }
 
-void PlayerModel::renderRightArm(f64 scale) {
+void PlayerModel::renderRightArm(f64 scale)
+{
     m_rightArm->render(scale);
     m_rightArmWear->render(scale);
 }
 
-void PlayerModel::renderLeftArm(f64 scale) {
+void PlayerModel::renderLeftArm(f64 scale)
+{
     m_leftArm->render(scale);
     m_leftArmWear->render(scale);
 }
 
-void PlayerModel::setSmallArms(bool smallArms) {
+void PlayerModel::setSmallArms(bool smallArms)
+{
     if (m_smallArms != smallArms) {
         m_smallArms = smallArms;
-        setupParts();  // 重建模型
+        setupParts(); // 重建模型
     }
 }
 

@@ -4,17 +4,13 @@
 
 namespace {
 
-std::array<mc::f64, 16> identityMatrix() {
-    return {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+std::array<mc::f64, 16> identityMatrix()
+{
+    return {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 }
 
-std::array<mc::f64, 16> multiplyMatrices(const std::array<mc::f64, 16>& a,
-                                         const std::array<mc::f64, 16>& b) {
+std::array<mc::f64, 16> multiplyMatrices(const std::array<mc::f64, 16>& a, const std::array<mc::f64, 16>& b)
+{
     std::array<mc::f64, 16> result{};
     for (int row = 0; row < 4; ++row) {
         for (int col = 0; col < 4; ++col) {
@@ -27,22 +23,14 @@ std::array<mc::f64, 16> multiplyMatrices(const std::array<mc::f64, 16>& a,
     return result;
 }
 
-std::array<mc::f64, 16> translationMatrix(mc::f64 x, mc::f64 y, mc::f64 z) {
-    return {
-        1.0, 0.0, 0.0, x,
-        0.0, 1.0, 0.0, y,
-        0.0, 0.0, 1.0, z,
-        0.0, 0.0, 0.0, 1.0
-    };
+std::array<mc::f64, 16> translationMatrix(mc::f64 x, mc::f64 y, mc::f64 z)
+{
+    return {1.0, 0.0, 0.0, x, 0.0, 1.0, 0.0, y, 0.0, 0.0, 1.0, z, 0.0, 0.0, 0.0, 1.0};
 }
 
-std::array<mc::f64, 16> scaleMatrix(mc::f64 scale) {
-    return {
-        scale, 0.0,   0.0,   0.0,
-        0.0,   scale, 0.0,   0.0,
-        0.0,   0.0,   scale, 0.0,
-        0.0,   0.0,   0.0,   1.0
-    };
+std::array<mc::f64, 16> scaleMatrix(mc::f64 scale)
+{
+    return {scale, 0.0, 0.0, 0.0, 0.0, scale, 0.0, 0.0, 0.0, 0.0, scale, 0.0, 0.0, 0.0, 0.0, 1.0};
 }
 
 } // namespace
@@ -57,8 +45,7 @@ AgeableModel::AgeableModel()
     , m_childHeadScale(2.0f)
     , m_childBodyScale(2.0f)
     , m_childBodyOffsetY(24.0f)
-{
-}
+{}
 
 AgeableModel::AgeableModel(bool isChildHeadScaled, f32 childHeadOffsetY, f32 childHeadOffsetZ)
     : EntityModel()
@@ -68,11 +55,14 @@ AgeableModel::AgeableModel(bool isChildHeadScaled, f32 childHeadOffsetY, f32 chi
     , m_childHeadScale(2.0f)
     , m_childBodyScale(2.0f)
     , m_childBodyOffsetY(24.0f)
-{
-}
+{}
 
-AgeableModel::AgeableModel(bool isChildHeadScaled, f32 childHeadOffsetY, f32 childHeadOffsetZ,
-                           f32 childHeadScale, f32 childBodyScale, f32 childBodyOffsetY)
+AgeableModel::AgeableModel(bool isChildHeadScaled,
+    f32 childHeadOffsetY,
+    f32 childHeadOffsetZ,
+    f32 childHeadScale,
+    f32 childBodyScale,
+    f32 childBodyOffsetY)
     : EntityModel()
     , m_isChildHeadScaled(isChildHeadScaled)
     , m_childHeadOffsetY(childHeadOffsetY)
@@ -80,10 +70,10 @@ AgeableModel::AgeableModel(bool isChildHeadScaled, f32 childHeadOffsetY, f32 chi
     , m_childHeadScale(childHeadScale)
     , m_childBodyScale(childBodyScale)
     , m_childBodyOffsetY(childBodyOffsetY)
-{
-}
+{}
 
-void AgeableModel::render(f64 scale) {
+void AgeableModel::render(f64 scale)
+{
     // 参考 MC 1.16.5 AgeableModel.render()
     // 幼体渲染需要分别处理头部和身体
     // Java: 头部缩放 1.5F / childHeadScale，身体缩放 1.0F / childBodyScale
@@ -96,7 +86,8 @@ void AgeableModel::render(f64 scale) {
         if (!headParts.empty()) {
             // 头部缩放：只有当 isChildHeadScaled 为 true 时才缩放
             f32 headScale = m_isChildHeadScaled ? (1.5f / m_childHeadScale) : 1.0f;
-            // Java: matrixStack.translate(0.0D, (double)(this.childHeadOffsetY / 16.0F), (double)(this.childHeadOffsetZ / 16.0F));
+            // Java: matrixStack.translate(0.0D, (double)(this.childHeadOffsetY / 16.0F), (double)(this.childHeadOffsetZ
+            // / 16.0F));
             f64 headOffsetY = static_cast<f64>(m_childHeadOffsetY) / 16.0;
             f64 headOffsetZ = static_cast<f64>(m_childHeadOffsetZ) / 16.0;
 
@@ -165,9 +156,8 @@ void AgeableModel::render(f64 scale) {
     }
 }
 
-void AgeableModel::generateMesh(std::vector<ModelVertex>& vertices,
-                                std::vector<u32>& indices,
-                                f64 scale) const {
+void AgeableModel::generateMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 scale) const
+{
     if (!m_isChild) {
         for (const auto& part : getHeadParts()) {
             if (part) {
@@ -186,20 +176,17 @@ void AgeableModel::generateMesh(std::vector<ModelVertex>& vertices,
     if (m_isChildHeadScaled) {
         headMatrix = multiplyMatrices(headMatrix, scaleMatrix(1.5 / static_cast<f64>(m_childHeadScale)));
     }
-    headMatrix = multiplyMatrices(
-        headMatrix,
-        translationMatrix(0.0, static_cast<f64>(m_childHeadOffsetY) * scale, static_cast<f64>(m_childHeadOffsetZ) * scale)
-    );
+    headMatrix = multiplyMatrices(headMatrix,
+        translationMatrix(
+            0.0, static_cast<f64>(m_childHeadOffsetY) * scale, static_cast<f64>(m_childHeadOffsetZ) * scale));
     for (const auto& part : getHeadParts()) {
         if (part) {
             part->generateMesh(vertices, indices, headMatrix, scale);
         }
     }
 
-    auto bodyMatrix = multiplyMatrices(
-        scaleMatrix(1.0 / static_cast<f64>(m_childBodyScale)),
-        translationMatrix(0.0, static_cast<f64>(m_childBodyOffsetY) * scale, 0.0)
-    );
+    auto bodyMatrix = multiplyMatrices(scaleMatrix(1.0 / static_cast<f64>(m_childBodyScale)),
+        translationMatrix(0.0, static_cast<f64>(m_childBodyOffsetY) * scale, 0.0));
     for (const auto& part : getBodyParts()) {
         if (part) {
             part->generateMesh(vertices, indices, bodyMatrix, scale);
@@ -207,13 +194,14 @@ void AgeableModel::generateMesh(std::vector<ModelVertex>& vertices,
     }
 }
 
-void AgeableModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void AgeableModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     EntityModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 }
 
-void AgeableModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/) {
+void AgeableModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
+{
     // 默认实现为空，子类可以重写
     // 参考 MC 1.16.5 EntityModel.setLivingAnimations
 }

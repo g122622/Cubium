@@ -1,17 +1,17 @@
 #include "GuardianEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/special/GuardianAttackGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/special/GuardianAttackGoal.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityUtils.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../entities/player/Player.hpp"
 
 namespace mc {
 
@@ -25,17 +25,20 @@ GuardianEntity::GuardianEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<GuardianEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool GuardianEntity::isInWater() const {
+bool GuardianEntity::isInWater() const
+{
     // 调用父类的 isInWater() 方法
     // Entity::isInWater() 已经在 updateEnvironmentState() 中正确更新
     return MonsterEntity::isInWater();
 }
 
-void GuardianEntity::tick() {
+void GuardianEntity::tick()
+{
     MonsterEntity::tick();
 
     // 更新激光充能
@@ -56,7 +59,8 @@ void GuardianEntity::tick() {
     }
 }
 
-void GuardianEntity::registerGoals() {
+void GuardianEntity::registerGoals()
+{
     // 调用父类方法
     MonsterEntity::registerGoals();
 
@@ -82,15 +86,15 @@ void GuardianEntity::registerGoals() {
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 80));
 
     // 优先级 8: 看向玩家 (8格内)
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             return entity->legacyType() == LegacyEntityType::Player;
         }));
 
     // 优先级 8: 看向同类守卫者 (12格内，低频率)
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 12.0f, 0.01f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 12.0f, 0.01f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             auto type = entity->legacyType();
             return type == LegacyEntityType::Guardian || type == LegacyEntityType::ElderGuardian;
@@ -103,45 +107,45 @@ void GuardianEntity::registerGoals() {
     // 优先级 1: 搜索最近的可攻击目标
     // MC 1.16.5: NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false, new TargetPredicate(this))
     // 参数: 10 = 每10tick检查一次, true = 需要视线, false = 不需要近战距离
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-        this,
-        true,    // checkSight - 需要视线检查
-        10,      // chance - 每10tick检查一次
-        // 目标筛选谓词: 只攻击玩家和鱿鱼，且距离 > 3格
-        [this](const LivingEntity* candidate) -> bool {
-            if (!candidate || !candidate->isAlive()) {
-                return false;
-            }
-
-            // 类型筛选: 只攻击玩家或鱿鱼
-            auto type = candidate->legacyType();
-            bool isPlayer = (type == LegacyEntityType::Player);
-            bool isSquid = (type == LegacyEntityType::Squid);
-            if (!isPlayer && !isSquid) {
-                return false;
-            }
-
-            // 玩家特殊检查: 创造模式和观察者模式不能被攻击
-            if (isPlayer) {
-                const Player* player = dynamic_cast<const Player*>(candidate);
-                if (player != nullptr && (player->isCreative() || player->isSpectator())) {
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            true, // checkSight - 需要视线检查
+            10,   // chance - 每10tick检查一次
+            // 目标筛选谓词: 只攻击玩家和鱿鱼，且距离 > 3格
+            [this](const LivingEntity* candidate) -> bool {
+                if (!candidate || !candidate->isAlive()) {
                     return false;
                 }
-            }
 
-            // 距离筛选: 必须距离 > 3 格
-            // 参考 MC 1.16.5 GuardianEntity.TargetPredicate.test()
-            f64 distSq = this->distanceSqTo(*candidate);
-            if (distSq <= 9.0) {  // 3.0 * 3.0 = 9.0
-                return false;
-            }
+                // 类型筛选: 只攻击玩家或鱿鱼
+                auto type = candidate->legacyType();
+                bool isPlayer = (type == LegacyEntityType::Player);
+                bool isSquid = (type == LegacyEntityType::Squid);
+                if (!isPlayer && !isSquid) {
+                    return false;
+                }
 
-            return true;
-        }
-    ));
+                // 玩家特殊检查: 创造模式和观察者模式不能被攻击
+                if (isPlayer) {
+                    const Player* player = dynamic_cast<const Player*>(candidate);
+                    if (player != nullptr && (player->isCreative() || player->isSpectator())) {
+                        return false;
+                    }
+                }
+
+                // 距离筛选: 必须距离 > 3 格
+                // 参考 MC 1.16.5 GuardianEntity.TargetPredicate.test()
+                f64 distSq = this->distanceSqTo(*candidate);
+                if (distSq <= 9.0) { // 3.0 * 3.0 = 9.0
+                    return false;
+                }
+
+                return true;
+            }));
 }
 
-void GuardianEntity::registerAttributes() {
+void GuardianEntity::registerAttributes()
+{
     // 调用父类方法
     MonsterEntity::registerAttributes();
 
@@ -153,7 +157,8 @@ void GuardianEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
-std::optional<ResourceLocation> GuardianEntity::getAmbientSound() const {
+std::optional<ResourceLocation> GuardianEntity::getAmbientSound() const
+{
     // MC 1.16.5: 在水中和陆地使用不同音效
     if (isInWater()) {
         return SoundEvents::ENTITY_GUARDIAN_AMBIENT;
@@ -161,7 +166,8 @@ std::optional<ResourceLocation> GuardianEntity::getAmbientSound() const {
     return SoundEvents::ENTITY_GUARDIAN_AMBIENT_LAND;
 }
 
-std::optional<ResourceLocation> GuardianEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> GuardianEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: 在水中和陆地使用不同音效
     if (isInWater()) {
         return SoundEvents::ENTITY_GUARDIAN_HURT;
@@ -169,7 +175,8 @@ std::optional<ResourceLocation> GuardianEntity::getHurtSound(DamageSource& /*sou
     return SoundEvents::ENTITY_GUARDIAN_HURT_LAND;
 }
 
-std::optional<ResourceLocation> GuardianEntity::getDeathSound() const {
+std::optional<ResourceLocation> GuardianEntity::getDeathSound() const
+{
     // MC 1.16.5: 在水中和陆地使用不同音效
     if (isInWater()) {
         return SoundEvents::ENTITY_GUARDIAN_DEATH;
@@ -177,7 +184,8 @@ std::optional<ResourceLocation> GuardianEntity::getDeathSound() const {
     return SoundEvents::ENTITY_GUARDIAN_DEATH_LAND;
 }
 
-void GuardianEntity::playLaserSound() {
+void GuardianEntity::playLaserSound()
+{
     playSound(SoundEvents::ENTITY_GUARDIAN_ATTACK, 1.0f, 1.0f);
 }
 

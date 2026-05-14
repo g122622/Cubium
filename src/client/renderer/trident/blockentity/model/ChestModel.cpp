@@ -24,7 +24,8 @@ ChestModel::ChestModel()
     addPart(m_singleLatch);
 }
 
-void ChestModel::initSingleChest() {
+void ChestModel::initSingleChest()
+{
     // 单箱箱体: (1,0,1) 到 (15,10,15)，纹理偏移 (0,19)
     // 尺寸：宽14，高10，深14
     m_singleBottom = std::make_shared<entity::model::ModelRenderer>("singleBottom");
@@ -51,7 +52,8 @@ void ChestModel::initSingleChest() {
     m_singleLatch->setRotationPoint(0.0, 8.0, 0.0);
 }
 
-void ChestModel::initLeftChest() {
+void ChestModel::initLeftChest()
+{
     // 双箱左半箱体: (0,0,1) 到 (15,10,15)
     // 宽15（靠左）
     m_leftBottom = std::make_shared<entity::model::ModelRenderer>("leftBottom");
@@ -75,7 +77,8 @@ void ChestModel::initLeftChest() {
     m_leftLatch->setRotationPoint(0.0, 8.0, 0.0);
 }
 
-void ChestModel::initRightChest() {
+void ChestModel::initRightChest()
+{
     // 双箱右半箱体: (1,0,1) 到 (16,10,15)
     // 宽15（靠右）
     m_rightBottom = std::make_shared<entity::model::ModelRenderer>("rightBottom");
@@ -99,7 +102,8 @@ void ChestModel::initRightChest() {
     m_rightLatch->setRotationPoint(0.0, 8.0, 0.0);
 }
 
-void ChestModel::setLidAngle(f32 angle) {
+void ChestModel::setLidAngle(f32 angle)
+{
     // 应用 MC 风格的缓动函数
     const f32 easedAngle = applyEasing(angle);
 
@@ -113,7 +117,8 @@ void ChestModel::setLidAngle(f32 angle) {
     m_latch->setRotateAngleX(-radians);
 }
 
-f32 ChestModel::applyEasing(f32 angle) {
+f32 ChestModel::applyEasing(f32 angle)
+{
     // MC 风格的三次缓动
     // angle = 1.0f - angle;
     // angle = 1.0f - angle * angle * angle;
@@ -122,7 +127,8 @@ f32 ChestModel::applyEasing(f32 angle) {
     return eased;
 }
 
-void ChestModel::setChestType(ChestType type) {
+void ChestModel::setChestType(ChestType type)
+{
     m_chestType = type;
 
     // 隐藏所有部件

@@ -1,6 +1,6 @@
 #include "ClientEntity.hpp"
+#include "common/entity/core/Entity.hpp" // for EntityFlags
 #include "common/network/packet/EntityMetadataSerializer.hpp"
-#include "common/entity/core/Entity.hpp"  // for EntityFlags
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -9,14 +9,15 @@ namespace mc::client {
 ClientEntity::ClientEntity(EntityId id, const std::string& typeId)
     : m_id(id)
     , m_typeId(typeId)
-{
-}
+{}
 
-void ClientEntity::setInterpolationSpeed(f32 speed) {
+void ClientEntity::setInterpolationSpeed(f32 speed)
+{
     m_interpolationSpeed = std::clamp(speed, 0.01f, 1.0f);
 }
 
-void ClientEntity::setPosition(f32 x, f32 y, f32 z) {
+void ClientEntity::setPosition(f32 x, f32 y, f32 z)
+{
     // 每60次log一次位置更新
     // static u32 setPositionCounter = 0;
     // setPositionCounter++;
@@ -30,17 +31,20 @@ void ClientEntity::setPosition(f32 x, f32 y, f32 z) {
     m_targetPosition = m_position;
 }
 
-void ClientEntity::setTargetPosition(f32 x, f32 y, f32 z) {
+void ClientEntity::setTargetPosition(f32 x, f32 y, f32 z)
+{
     m_targetPosition = Vector3(x, y, z);
 }
 
-void ClientEntity::tickPosition() {
+void ClientEntity::tickPosition()
+{
     // 保存当前位置作为上一帧位置（用于渲染插值）
     m_prevPosition = m_position;
     // 不在这里做平滑插值，平滑插值在 updateInterpolation 中每帧执行
 }
 
-void ClientEntity::updateInterpolation(f32 deltaTime) {
+void ClientEntity::updateInterpolation(f32 deltaTime)
+{
     if (m_smoothInterpolation) {
         // 平滑插值位置
         // 使用 deltaTime 归一化到 20 TPS 的等效插值速度
@@ -56,11 +60,15 @@ void ClientEntity::updateInterpolation(f32 deltaTime) {
         // 平滑插值旋转，需要处理角度环绕
         // Yaw
         f32 yawDiff = m_targetYaw - m_yaw;
-        while (yawDiff > 180.0f) yawDiff -= 360.0f;
-        while (yawDiff < -180.0f) yawDiff += 360.0f;
+        while (yawDiff > 180.0f)
+            yawDiff -= 360.0f;
+        while (yawDiff < -180.0f)
+            yawDiff += 360.0f;
         m_yaw += yawDiff * alpha;
-        while (m_yaw > 180.0f) m_yaw -= 360.0f;
-        while (m_yaw < -180.0f) m_yaw += 360.0f;
+        while (m_yaw > 180.0f)
+            m_yaw -= 360.0f;
+        while (m_yaw < -180.0f)
+            m_yaw += 360.0f;
 
         // Pitch (范围 -90 到 90)
         f32 pitchDiff = m_targetPitch - m_pitch;
@@ -69,11 +77,15 @@ void ClientEntity::updateInterpolation(f32 deltaTime) {
 
         // HeadYaw
         f32 headYawDiff = m_targetHeadYaw - m_headYaw;
-        while (headYawDiff > 180.0f) headYawDiff -= 360.0f;
-        while (headYawDiff < -180.0f) headYawDiff += 360.0f;
+        while (headYawDiff > 180.0f)
+            headYawDiff -= 360.0f;
+        while (headYawDiff < -180.0f)
+            headYawDiff += 360.0f;
         m_headYaw += headYawDiff * alpha;
-        while (m_headYaw > 180.0f) m_headYaw -= 360.0f;
-        while (m_headYaw < -180.0f) m_headYaw += 360.0f;
+        while (m_headYaw > 180.0f)
+            m_headYaw -= 360.0f;
+        while (m_headYaw < -180.0f)
+            m_headYaw += 360.0f;
     } else {
         // 禁用平滑插值时，直接跳到目标位置
         m_position = m_targetPosition;
@@ -83,15 +95,15 @@ void ClientEntity::updateInterpolation(f32 deltaTime) {
     }
 }
 
-Vector3 ClientEntity::getInterpolatedPosition(f32 partialTick) const {
-    return Vector3(
-        m_prevPosition.x + (m_position.x - m_prevPosition.x) * partialTick,
+Vector3 ClientEntity::getInterpolatedPosition(f32 partialTick) const
+{
+    return Vector3(m_prevPosition.x + (m_position.x - m_prevPosition.x) * partialTick,
         m_prevPosition.y + (m_position.y - m_prevPosition.y) * partialTick,
-        m_prevPosition.z + (m_position.z - m_prevPosition.z) * partialTick
-    );
+        m_prevPosition.z + (m_position.z - m_prevPosition.z) * partialTick);
 }
 
-void ClientEntity::setRotation(f32 yaw, f32 pitch) {
+void ClientEntity::setRotation(f32 yaw, f32 pitch)
+{
     m_prevYaw = m_yaw;
     m_prevPitch = m_pitch;
     m_yaw = yaw;
@@ -100,22 +112,26 @@ void ClientEntity::setRotation(f32 yaw, f32 pitch) {
     m_targetPitch = pitch;
 }
 
-void ClientEntity::setTargetRotation(f32 yaw, f32 pitch) {
+void ClientEntity::setTargetRotation(f32 yaw, f32 pitch)
+{
     m_targetYaw = yaw;
     m_targetPitch = pitch;
 }
 
-void ClientEntity::setHeadRotation(f32 headYaw) {
+void ClientEntity::setHeadRotation(f32 headYaw)
+{
     m_prevHeadYaw = m_headYaw;
     m_headYaw = headYaw;
     m_targetHeadYaw = headYaw;
 }
 
-void ClientEntity::setTargetHeadRotation(f32 headYaw) {
+void ClientEntity::setTargetHeadRotation(f32 headYaw)
+{
     m_targetHeadYaw = headYaw;
 }
 
-void ClientEntity::tickRotation() {
+void ClientEntity::tickRotation()
+{
     // 保存当前旋转作为上一帧旋转（用于渲染插值）
     m_prevYaw = m_yaw;
     m_prevPitch = m_pitch;
@@ -123,23 +139,28 @@ void ClientEntity::tickRotation() {
     // 不在这里做平滑插值，平滑插值在 updateInterpolation 中每帧执行
 }
 
-f32 ClientEntity::getInterpolatedYaw(f32 partialTick) const {
+f32 ClientEntity::getInterpolatedYaw(f32 partialTick) const
+{
     return m_prevYaw + (m_yaw - m_prevYaw) * partialTick;
 }
 
-f32 ClientEntity::getInterpolatedPitch(f32 partialTick) const {
+f32 ClientEntity::getInterpolatedPitch(f32 partialTick) const
+{
     return m_prevPitch + (m_pitch - m_prevPitch) * partialTick;
 }
 
-f32 ClientEntity::getInterpolatedHeadYaw(f32 partialTick) const {
+f32 ClientEntity::getInterpolatedHeadYaw(f32 partialTick) const
+{
     return m_prevHeadYaw + (m_headYaw - m_prevHeadYaw) * partialTick;
 }
 
-void ClientEntity::setVelocity(f32 x, f32 y, f32 z) {
+void ClientEntity::setVelocity(f32 x, f32 y, f32 z)
+{
     m_velocity = Vector3(x, y, z);
 }
 
-void ClientEntity::setMetadata(const std::vector<u8>& metadata) {
+void ClientEntity::setMetadata(const std::vector<u8>& metadata)
+{
     m_metadata = metadata;
     if (!m_metadata.empty()) {
         (void)network::EntityMetadataSerializer::deserialize(m_metadata, m_dataManager);
@@ -147,7 +168,8 @@ void ClientEntity::setMetadata(const std::vector<u8>& metadata) {
     }
 }
 
-void ClientEntity::updateAnimation(f32 distanceMoved) {
+void ClientEntity::updateAnimation(f32 distanceMoved)
+{
     // 保存上一帧状态（用于渲染插值）
     m_prevLimbSwing = m_limbSwing;
     m_prevLimbSwingAmount = m_limbSwingAmount;
@@ -172,7 +194,8 @@ void ClientEntity::updateAnimation(f32 distanceMoved) {
     m_cameraYaw += (distanceMoved - m_cameraYaw) * 0.4f;
 }
 
-void ClientEntity::updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ) {
+void ClientEntity::updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ)
+{
     // 参考 MC 1.16.5 AbstractClientPlayerEntity.rotateElytraX/Y/Z
     // 使用平滑插值更新鞘翅角度
     constexpr f32 ELYTRA_INTERPOLATION = 0.1f;
@@ -181,7 +204,8 @@ void ClientEntity::updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ) {
     m_rotateElytraZ += (targetZ - m_rotateElytraZ) * ELYTRA_INTERPOLATION;
 }
 
-void ClientEntity::tick() {
+void ClientEntity::tick()
+{
     m_ticksExisted++;
 
     // 更新位置和旋转的上一帧状态（用于渲染插值）
@@ -208,7 +232,8 @@ void ClientEntity::tick() {
     // cameraYaw 基于移动距离，在 updateAnimation 中更新
 }
 
-bool ClientEntity::isFallFlying() const {
+bool ClientEntity::isFallFlying() const
+{
     // 从元数据管理器读取 FLAGS_PARAM (id 0)
     // 参考 MC 1.16.5 Entity.getFlag()
     if (m_dataManager.hasParam(0)) {
@@ -222,7 +247,8 @@ bool ClientEntity::isFallFlying() const {
     return false;
 }
 
-bool ClientEntity::isAngry() const {
+bool ClientEntity::isAngry() const
+{
     // 蜜蜂愤怒状态检测
     // MC 1.16.5: BeeEntity.ANGER_TIME 参数 (id 1, i32 类型)
     // 当愤怒时间 > 0 时，蜜蜂处于愤怒状态

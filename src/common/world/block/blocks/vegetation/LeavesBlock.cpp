@@ -1,50 +1,49 @@
 #include "LeavesBlock.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../util/math/random/IRandom.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../../util/property/StateContainer.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
-#include "../../../../util/property/StateContainer.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/math/random/IRandom.hpp"
 
 namespace mc {
 namespace blocks {
 
 LeavesBlock::LeavesBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::DISTANCE_1_7())
-        .add(BlockStateProperties::PERSISTENT())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::DISTANCE_1_7())
+            .add(BlockStateProperties::PERSISTENT())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态：距离7，非持久
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::DISTANCE_1_7(), 7)
-        .with(BlockStateProperties::PERSISTENT(), false));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::DISTANCE_1_7(), 7).with(BlockStateProperties::PERSISTENT(), false));
 }
 
-BlockState LeavesBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState LeavesBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 玩家放置的树叶标记为持久
     return updateDistance(
-        defaultState().with(BlockStateProperties::PERSISTENT(), true),
-        context.getWorld(),
-        context.placementPos()
-    );
+        defaultState().with(BlockStateProperties::PERSISTENT(), true), context.getWorld(), context.placementPos());
 }
 
-BlockState LeavesBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState LeavesBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingPos);
 
@@ -60,7 +59,8 @@ BlockState LeavesBlock::updatePostPlacement(
     return state;
 }
 
-void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     const BlockState* newState = world.getBlockState(pos);
     if (newState != nullptr) {
@@ -71,13 +71,15 @@ void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     }
 }
 
-bool LeavesBlock::ticksRandomly() const {
+bool LeavesBlock::ticksRandomly() const
+{
     // 注意：这个方法检查的是方块本身的属性，而不是状态
     // 具体的随机tick检查在randomTick中做状态检查
     return true;
 }
 
-void LeavesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void LeavesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
 
     // 非持久且距离为7的树叶腐烂
@@ -89,21 +91,20 @@ void LeavesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-const CollisionShape& LeavesBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& LeavesBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static const CollisionShape EMPTY_SHAPE;
     return EMPTY_SHAPE;
 }
 
-BlockState LeavesBlock::updateDistance(const BlockState& state, IWorld& world, const BlockPos& pos) {
+BlockState LeavesBlock::updateDistance(const BlockState& state, IWorld& world, const BlockPos& pos)
+{
     i32 minDistance = 7;
 
     // 检查六个方向的邻居
     static const Direction directions[] = {
-        Direction::Down, Direction::Up,
-        Direction::North, Direction::South,
-        Direction::West, Direction::East
-    };
+        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
 
     for (Direction dir : directions) {
         BlockPos neighborPos = pos.offset(dir);
@@ -111,7 +112,7 @@ BlockState LeavesBlock::updateDistance(const BlockState& state, IWorld& world, c
         if (neighborState != nullptr) {
             minDistance = std::min(minDistance, getDistance(*neighborState) + 1);
             if (minDistance == 1) {
-                break;  // 已经找到原木，不需要继续检查
+                break; // 已经找到原木，不需要继续检查
             }
         }
     }
@@ -119,7 +120,8 @@ BlockState LeavesBlock::updateDistance(const BlockState& state, IWorld& world, c
     return state.with(BlockStateProperties::DISTANCE_1_7(), minDistance);
 }
 
-i32 LeavesBlock::getDistance(const BlockState& neighborState) {
+i32 LeavesBlock::getDistance(const BlockState& neighborState)
+{
     // 检查是否是原木（LOGS标签）
     if (BlockTags::LOGS().contains(neighborState)) {
         return 0;

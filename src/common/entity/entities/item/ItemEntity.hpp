@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Entity.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "../../core/Entity.hpp"
 #include <random>
 
 namespace mc {
@@ -75,8 +75,7 @@ public:
      * @param vy Y方向速度
      * @param vz Z方向速度
      */
-    ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z,
-                f32 vx, f32 vy, f32 vz);
+    ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
 
     ~ItemEntity() override = default;
 
@@ -142,9 +141,7 @@ public:
     /**
      * @brief 检查是否已过期（应该消失）
      */
-    [[nodiscard]] bool isExpired() const {
-        return m_lifetime != INFINITE_LIFETIME && m_age >= m_lifetime;
-    }
+    [[nodiscard]] bool isExpired() const { return m_lifetime != INFINITE_LIFETIME && m_age >= m_lifetime; }
 
     /**
      * @brief 设置存活时间
@@ -227,16 +224,16 @@ private:
     void applyNormalPhysics();
 
     ItemStack m_itemStack;
-    i32 m_age = 0;                  // 存活时间（ticks）
-    i32 m_lifetime = DEFAULT_LIFETIME;  // 最大存活时间
-    i32 m_pickupDelay = DEFAULT_PICKUP_DELAY;  // 拾取延迟
-    bool m_unpickable = false;      // 是否不可拾取
+    i32 m_age = 0;                            // 存活时间（ticks）
+    i32 m_lifetime = DEFAULT_LIFETIME;        // 最大存活时间
+    i32 m_pickupDelay = DEFAULT_PICKUP_DELAY; // 拾取延迟
+    bool m_unpickable = false;                // 是否不可拾取
 
-    std::string m_ownerUuid;             // 所有者UUID（防止自己立即拾取）
-    std::string m_throwerUuid;           // 投掷者UUID
+    std::string m_ownerUuid;   // 所有者UUID（防止自己立即拾取）
+    std::string m_throwerUuid; // 投掷者UUID
 
     // 合并相关
-    static constexpr f32 MERGE_RADIUS = 1.5f;  // 合并检测半径
+    static constexpr f32 MERGE_RADIUS = 1.5f; // 合并检测半径
 };
 
 } // namespace mc

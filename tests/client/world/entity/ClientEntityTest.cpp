@@ -13,23 +13,21 @@ using namespace mc::client;
  */
 class ClientEntityTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // Initialize Items registry once for all tests
         Items::initialize();
     }
 
-    void SetUp() override {
-        entity = std::make_unique<ClientEntity>(EntityId(1), "test_entity");
-    }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "test_entity"); }
 
-    void TearDown() override {
-        entity.reset();
-    }
+    void TearDown() override { entity.reset(); }
 
     std::unique_ptr<ClientEntity> entity;
 };
 
-TEST_F(ClientEntityTest, InitialState) {
+TEST_F(ClientEntityTest, InitialState)
+{
     EXPECT_EQ(entity->id(), EntityId(1));
     EXPECT_EQ(entity->typeId(), "test_entity");
     EXPECT_EQ(entity->position(), Vector3(0.0f, 0.0f, 0.0f));
@@ -40,7 +38,8 @@ TEST_F(ClientEntityTest, InitialState) {
     EXPECT_FLOAT_EQ(entity->interpolationSpeed(), 0.3f);
 }
 
-TEST_F(ClientEntityTest, SetPosition) {
+TEST_F(ClientEntityTest, SetPosition)
+{
     entity->setPosition(100.0f, 64.0f, 200.0f);
 
     EXPECT_FLOAT_EQ(entity->x(), 100.0f);
@@ -60,7 +59,8 @@ TEST_F(ClientEntityTest, SetPosition) {
     EXPECT_FLOAT_EQ(prev.z, 0.0f);
 }
 
-TEST_F(ClientEntityTest, SetTargetPosition) {
+TEST_F(ClientEntityTest, SetTargetPosition)
+{
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 64.0f, 200.0f);
 
@@ -76,7 +76,8 @@ TEST_F(ClientEntityTest, SetTargetPosition) {
     EXPECT_FLOAT_EQ(target.z, 200.0f);
 }
 
-TEST_F(ClientEntityTest, SmoothInterpolation) {
+TEST_F(ClientEntityTest, SmoothInterpolation)
+{
     entity->setInterpolationSpeed(0.5f);
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 0.0f, 0.0f);
@@ -97,7 +98,8 @@ TEST_F(ClientEntityTest, SmoothInterpolation) {
     EXPECT_FLOAT_EQ(entity->x(), 75.0f);
 }
 
-TEST_F(ClientEntityTest, DisabledSmoothInterpolation) {
+TEST_F(ClientEntityTest, DisabledSmoothInterpolation)
+{
     entity->setSmoothInterpolation(false);
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 64.0f, 200.0f);
@@ -110,7 +112,8 @@ TEST_F(ClientEntityTest, DisabledSmoothInterpolation) {
     EXPECT_FLOAT_EQ(entity->z(), 200.0f);
 }
 
-TEST_F(ClientEntityTest, SetRotation) {
+TEST_F(ClientEntityTest, SetRotation)
+{
     entity->setRotation(90.0f, 45.0f);
 
     EXPECT_FLOAT_EQ(entity->yaw(), 90.0f);
@@ -125,7 +128,8 @@ TEST_F(ClientEntityTest, SetRotation) {
     EXPECT_FLOAT_EQ(entity->prevPitch(), 0.0f);
 }
 
-TEST_F(ClientEntityTest, SetTargetRotation) {
+TEST_F(ClientEntityTest, SetTargetRotation)
+{
     entity->setRotation(0.0f, 0.0f);
     entity->setTargetRotation(90.0f, 45.0f);
 
@@ -138,7 +142,8 @@ TEST_F(ClientEntityTest, SetTargetRotation) {
     EXPECT_FLOAT_EQ(entity->targetPitch(), 45.0f);
 }
 
-TEST_F(ClientEntityTest, SmoothRotationInterpolation) {
+TEST_F(ClientEntityTest, SmoothRotationInterpolation)
+{
     entity->setInterpolationSpeed(0.5f);
     entity->setRotation(0.0f, 0.0f);
     entity->setTargetRotation(90.0f, 45.0f);
@@ -151,7 +156,8 @@ TEST_F(ClientEntityTest, SmoothRotationInterpolation) {
     EXPECT_FLOAT_EQ(entity->pitch(), 22.5f);
 }
 
-TEST_F(ClientEntityTest, YawAngleNormalization) {
+TEST_F(ClientEntityTest, YawAngleNormalization)
+{
     // Test yaw wrapping from 170 to -170 (should go through 180/-180)
     entity->setInterpolationSpeed(0.5f);
     entity->setRotation(170.0f, 0.0f);
@@ -167,7 +173,8 @@ TEST_F(ClientEntityTest, YawAngleNormalization) {
     EXPECT_FLOAT_EQ(entity->yaw(), 180.0f);
 }
 
-TEST_F(ClientEntityTest, PitchClamping) {
+TEST_F(ClientEntityTest, PitchClamping)
+{
     entity->setInterpolationSpeed(0.5f);
     entity->setRotation(0.0f, 0.0f);
     entity->setTargetRotation(0.0f, 200.0f);
@@ -179,14 +186,16 @@ TEST_F(ClientEntityTest, PitchClamping) {
     EXPECT_FLOAT_EQ(entity->pitch(), 90.0f);
 }
 
-TEST_F(ClientEntityTest, SetHeadRotation) {
+TEST_F(ClientEntityTest, SetHeadRotation)
+{
     entity->setHeadRotation(45.0f);
 
     EXPECT_FLOAT_EQ(entity->headYaw(), 45.0f);
     EXPECT_FLOAT_EQ(entity->targetHeadYaw(), 45.0f);
 }
 
-TEST_F(ClientEntityTest, SetTargetHeadRotation) {
+TEST_F(ClientEntityTest, SetTargetHeadRotation)
+{
     entity->setHeadRotation(0.0f);
     entity->setTargetHeadRotation(90.0f);
 
@@ -194,7 +203,8 @@ TEST_F(ClientEntityTest, SetTargetHeadRotation) {
     EXPECT_FLOAT_EQ(entity->targetHeadYaw(), 90.0f);
 }
 
-TEST_F(ClientEntityTest, SmoothHeadYawInterpolation) {
+TEST_F(ClientEntityTest, SmoothHeadYawInterpolation)
+{
     entity->setInterpolationSpeed(0.5f);
     entity->setHeadRotation(0.0f);
     entity->setTargetHeadRotation(90.0f);
@@ -206,7 +216,8 @@ TEST_F(ClientEntityTest, SmoothHeadYawInterpolation) {
     EXPECT_FLOAT_EQ(entity->headYaw(), 45.0f);
 }
 
-TEST_F(ClientEntityTest, InterpolationSpeedClamping) {
+TEST_F(ClientEntityTest, InterpolationSpeedClamping)
+{
     entity->setInterpolationSpeed(0.05f);
     EXPECT_FLOAT_EQ(entity->interpolationSpeed(), 0.05f);
 
@@ -217,8 +228,9 @@ TEST_F(ClientEntityTest, InterpolationSpeedClamping) {
     EXPECT_FLOAT_EQ(entity->interpolationSpeed(), 0.01f);
 }
 
-TEST_F(ClientEntityTest, GetInterpolatedPosition) {
-    entity->setInterpolationSpeed(1.0f);  // Instant interpolation for this test
+TEST_F(ClientEntityTest, GetInterpolatedPosition)
+{
+    entity->setInterpolationSpeed(1.0f); // Instant interpolation for this test
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 0.0f, 0.0f);
 
@@ -236,8 +248,9 @@ TEST_F(ClientEntityTest, GetInterpolatedPosition) {
     EXPECT_FLOAT_EQ(pos.z, 0.0f);
 }
 
-TEST_F(ClientEntityTest, GetInterpolatedYaw) {
-    entity->setInterpolationSpeed(1.0f);  // Instant interpolation
+TEST_F(ClientEntityTest, GetInterpolatedYaw)
+{
+    entity->setInterpolationSpeed(1.0f); // Instant interpolation
     entity->setRotation(0.0f, 0.0f);
     entity->setTargetRotation(90.0f, 0.0f);
 
@@ -252,7 +265,8 @@ TEST_F(ClientEntityTest, GetInterpolatedYaw) {
     EXPECT_FLOAT_EQ(entity->getInterpolatedYaw(0.5f), 45.0f);
 }
 
-TEST_F(ClientEntityTest, Tick) {
+TEST_F(ClientEntityTest, Tick)
+{
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 0.0f, 0.0f);
     entity->setRotation(0.0f, 0.0f);
@@ -267,13 +281,14 @@ TEST_F(ClientEntityTest, Tick) {
     // Tick should update prevPosition and prevRotation
     // But NOT interpolate position (that's done in updateInterpolation)
     EXPECT_FLOAT_EQ(entity->prevX(), 0.0f);
-    EXPECT_FLOAT_EQ(entity->x(), 0.0f);  // Position unchanged after tick
+    EXPECT_FLOAT_EQ(entity->x(), 0.0f); // Position unchanged after tick
     EXPECT_FLOAT_EQ(entity->prevYaw(), 0.0f);
-    EXPECT_FLOAT_EQ(entity->yaw(), 0.0f);  // Rotation unchanged after tick
+    EXPECT_FLOAT_EQ(entity->yaw(), 0.0f); // Rotation unchanged after tick
 }
 
-TEST_F(ClientEntityTest, TickThenInterpolate) {
-    entity->setInterpolationSpeed(1.0f);  // Instant interpolation
+TEST_F(ClientEntityTest, TickThenInterpolate)
+{
+    entity->setInterpolationSpeed(1.0f); // Instant interpolation
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 0.0f, 0.0f);
 
@@ -287,10 +302,11 @@ TEST_F(ClientEntityTest, TickThenInterpolate) {
     EXPECT_FLOAT_EQ(entity->x(), 100.0f);
 }
 
-TEST_F(ClientEntityTest, TickUpdatesAnimation) {
+TEST_F(ClientEntityTest, TickUpdatesAnimation)
+{
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(10.0f, 0.0f, 0.0f);
-    entity->setInterpolationSpeed(1.0f);  // Jump to target immediately
+    entity->setInterpolationSpeed(1.0f); // Jump to target immediately
     entity->updateInterpolation(0.05f);
 
     f32 initialLimbSwingAmount = entity->limbSwingAmount();
@@ -301,7 +317,8 @@ TEST_F(ClientEntityTest, TickUpdatesAnimation) {
     EXPECT_GT(entity->limbSwing(), 0.0f);
 }
 
-TEST_F(ClientEntityTest, Metadata) {
+TEST_F(ClientEntityTest, Metadata)
+{
     std::vector<u8> metadata = {0x01, 0x02, 0x03, 0x04};
     entity->setMetadata(metadata);
 
@@ -311,7 +328,8 @@ TEST_F(ClientEntityTest, Metadata) {
     EXPECT_EQ(storedMetadata[3], 0x04);
 }
 
-TEST_F(ClientEntityTest, ItemStack) {
+TEST_F(ClientEntityTest, ItemStack)
+{
     EXPECT_FALSE(entity->hasItem());
 
     // Create an ItemStack using Items::DIAMOND
@@ -325,21 +343,24 @@ TEST_F(ClientEntityTest, ItemStack) {
     EXPECT_EQ(entity->itemStack()->getCount(), 10);
 }
 
-TEST_F(ClientEntityTest, XpValue) {
-    EXPECT_EQ(entity->xpValue(), 1);  // Default value
+TEST_F(ClientEntityTest, XpValue)
+{
+    EXPECT_EQ(entity->xpValue(), 1); // Default value
 
     entity->setXpValue(100);
     EXPECT_EQ(entity->xpValue(), 100);
 }
 
-TEST_F(ClientEntityTest, OnGround) {
+TEST_F(ClientEntityTest, OnGround)
+{
     EXPECT_FALSE(entity->onGround());
 
     entity->setOnGround(true);
     EXPECT_TRUE(entity->onGround());
 }
 
-TEST_F(ClientEntityTest, Removed) {
+TEST_F(ClientEntityTest, Removed)
+{
     EXPECT_TRUE(entity->isAlive());
     EXPECT_FALSE(entity->isRemoved());
 
@@ -349,7 +370,8 @@ TEST_F(ClientEntityTest, Removed) {
     EXPECT_FALSE(entity->isAlive());
 }
 
-TEST_F(ClientEntityTest, Dimensions) {
+TEST_F(ClientEntityTest, Dimensions)
+{
     entity->setWidth(0.9f);
     entity->setHeight(1.8f);
 
@@ -357,14 +379,16 @@ TEST_F(ClientEntityTest, Dimensions) {
     EXPECT_FLOAT_EQ(entity->height(), 1.8f);
 }
 
-TEST_F(ClientEntityTest, ChildFlag) {
+TEST_F(ClientEntityTest, ChildFlag)
+{
     EXPECT_FALSE(entity->isChild());
 
     entity->setChild(true);
     EXPECT_TRUE(entity->isChild());
 }
 
-TEST_F(ClientEntityTest, Velocity) {
+TEST_F(ClientEntityTest, Velocity)
+{
     entity->setVelocity(1.0f, 2.0f, 3.0f);
 
     auto vel = entity->velocity();
@@ -373,7 +397,8 @@ TEST_F(ClientEntityTest, Velocity) {
     EXPECT_FLOAT_EQ(vel.z, 3.0f);
 }
 
-TEST_F(ClientEntityTest, MultipleInterpolationSteps) {
+TEST_F(ClientEntityTest, MultipleInterpolationSteps)
+{
     entity->setInterpolationSpeed(0.5f);
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 0.0f, 0.0f);
@@ -391,12 +416,13 @@ TEST_F(ClientEntityTest, MultipleInterpolationSteps) {
     EXPECT_NEAR(entity->x(), 99.9f, 0.2f);
 }
 
-TEST_F(ClientEntityTest, FrameRateIndependentInterpolation) {
+TEST_F(ClientEntityTest, FrameRateIndependentInterpolation)
+{
     // Test that interpolation is roughly frame-rate independent
     // Same total time should give similar result regardless of frame count
 
     const f32 speed = 0.3f;
-    const f32 totalTime = 0.167f;  // ~10 frames at 60 FPS
+    const f32 totalTime = 0.167f; // ~10 frames at 60 FPS
 
     // Test 1: 10 frames at 60 FPS (0.0167s each)
     entity->setInterpolationSpeed(speed);
@@ -427,13 +453,14 @@ TEST_F(ClientEntityTest, FrameRateIndependentInterpolation) {
 // partialTick 边界测试
 // ============================================================================
 
-TEST_F(ClientEntityTest, PartialTickZeroReturnsPrevPosition) {
+TEST_F(ClientEntityTest, PartialTickZeroReturnsPrevPosition)
+{
     // partialTick = 0.0 应返回 prevPosition
     entity->setInterpolationSpeed(1.0f);
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 64.0f, 200.0f);
-    entity->tick();  // prevPosition = (0, 0, 0)
-    entity->updateInterpolation(0.05f);  // position = target
+    entity->tick();                     // prevPosition = (0, 0, 0)
+    entity->updateInterpolation(0.05f); // position = target
 
     auto pos = entity->getInterpolatedPosition(0.0f);
     EXPECT_FLOAT_EQ(pos.x, 0.0f);
@@ -441,13 +468,14 @@ TEST_F(ClientEntityTest, PartialTickZeroReturnsPrevPosition) {
     EXPECT_FLOAT_EQ(pos.z, 0.0f);
 }
 
-TEST_F(ClientEntityTest, PartialTickOneReturnsCurrentPosition) {
+TEST_F(ClientEntityTest, PartialTickOneReturnsCurrentPosition)
+{
     // partialTick = 1.0 应返回当前 position
     entity->setInterpolationSpeed(1.0f);
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 64.0f, 200.0f);
-    entity->tick();  // prevPosition = (0, 0, 0)
-    entity->updateInterpolation(0.05f);  // position = target
+    entity->tick();                     // prevPosition = (0, 0, 0)
+    entity->updateInterpolation(0.05f); // position = target
 
     auto pos = entity->getInterpolatedPosition(1.0f);
     EXPECT_FLOAT_EQ(pos.x, 100.0f);
@@ -455,13 +483,14 @@ TEST_F(ClientEntityTest, PartialTickOneReturnsCurrentPosition) {
     EXPECT_FLOAT_EQ(pos.z, 200.0f);
 }
 
-TEST_F(ClientEntityTest, PartialTickHalfReturnsMidpoint) {
+TEST_F(ClientEntityTest, PartialTickHalfReturnsMidpoint)
+{
     // partialTick = 0.5 应返回中点
     entity->setInterpolationSpeed(1.0f);
     entity->setPosition(0.0f, 0.0f, 0.0f);
     entity->setTargetPosition(100.0f, 64.0f, 200.0f);
-    entity->tick();  // prevPosition = (0, 0, 0)
-    entity->updateInterpolation(0.05f);  // position = target
+    entity->tick();                     // prevPosition = (0, 0, 0)
+    entity->updateInterpolation(0.05f); // position = target
 
     auto pos = entity->getInterpolatedPosition(0.5f);
     EXPECT_FLOAT_EQ(pos.x, 50.0f);
@@ -469,7 +498,8 @@ TEST_F(ClientEntityTest, PartialTickHalfReturnsMidpoint) {
     EXPECT_FLOAT_EQ(pos.z, 100.0f);
 }
 
-TEST_F(ClientEntityTest, PartialTickRotationInterpolation) {
+TEST_F(ClientEntityTest, PartialTickRotationInterpolation)
+{
     entity->setInterpolationSpeed(1.0f);
     entity->setRotation(0.0f, 0.0f);
     entity->setTargetRotation(180.0f, 90.0f);
@@ -489,7 +519,8 @@ TEST_F(ClientEntityTest, PartialTickRotationInterpolation) {
     EXPECT_FLOAT_EQ(entity->getInterpolatedPitch(0.5f), 45.0f);
 }
 
-TEST_F(ClientEntityTest, PartialTickHeadYawInterpolation) {
+TEST_F(ClientEntityTest, PartialTickHeadYawInterpolation)
+{
     entity->setInterpolationSpeed(1.0f);
     entity->setHeadRotation(0.0f);
     entity->setTargetHeadRotation(90.0f);
@@ -501,7 +532,8 @@ TEST_F(ClientEntityTest, PartialTickHeadYawInterpolation) {
     EXPECT_FLOAT_EQ(entity->getInterpolatedHeadYaw(0.5f), 45.0f);
 }
 
-TEST_F(ClientEntityTest, PartialTickSwingProgressInterpolation) {
+TEST_F(ClientEntityTest, PartialTickSwingProgressInterpolation)
+{
     // 设置 swingProgress，getInterpolatedSwingProgress 在 prev 和 current 之间插值
     // 注意：prevSwingProgress 需要通过调用 startSwing() 或在 tick 中手动更新
     entity->setSwingProgress(0.5f);
@@ -515,7 +547,8 @@ TEST_F(ClientEntityTest, PartialTickSwingProgressInterpolation) {
     EXPECT_FLOAT_EQ(entity->getInterpolatedSwingProgress(0.5f), 0.25f);
 }
 
-TEST_F(ClientEntityTest, PartialTickNegativePosition) {
+TEST_F(ClientEntityTest, PartialTickNegativePosition)
+{
     // 测试负坐标
     entity->setInterpolationSpeed(1.0f);
     entity->setPosition(-100.0f, -64.0f, -200.0f);
@@ -539,7 +572,8 @@ TEST_F(ClientEntityTest, PartialTickNegativePosition) {
     EXPECT_FLOAT_EQ(posHalf.z, 0.0f);
 }
 
-TEST_F(ClientEntityTest, PartialTickSmallValues) {
+TEST_F(ClientEntityTest, PartialTickSmallValues)
+{
     // 测试小数值精度
     entity->setInterpolationSpeed(1.0f);
     entity->setPosition(0.0f, 0.0f, 0.0f);
@@ -553,7 +587,8 @@ TEST_F(ClientEntityTest, PartialTickSmallValues) {
     EXPECT_NEAR(pos.z, 0.0005f, 1e-7f);
 }
 
-TEST_F(ClientEntityTest, PartialTickLargeValues) {
+TEST_F(ClientEntityTest, PartialTickLargeValues)
+{
     // 测试大坐标值
     entity->setInterpolationSpeed(1.0f);
     entity->setPosition(0.0f, 0.0f, 0.0f);
@@ -567,20 +602,22 @@ TEST_F(ClientEntityTest, PartialTickLargeValues) {
     EXPECT_FLOAT_EQ(pos.z, 15000000.0f);
 }
 
-TEST_F(ClientEntityTest, PartialTickAnimationValues) {
+TEST_F(ClientEntityTest, PartialTickAnimationValues)
+{
     // 测试动画相关值的插值
     // updateAnimation 更新 limbSwing 和 limbSwingAmount
-    entity->updateAnimation(1.0f);  // limbSwingAmount = 1.0
+    entity->updateAnimation(1.0f); // limbSwingAmount = 1.0
     // 此时 prevLimbSwingAmount 已被保存为旧值，limbSwingAmount 被设为 1.0
-    EXPECT_FLOAT_EQ(entity->prevLimbSwingAmount(), 0.0f);  // 初始为 0
+    EXPECT_FLOAT_EQ(entity->prevLimbSwingAmount(), 0.0f); // 初始为 0
     EXPECT_FLOAT_EQ(entity->limbSwingAmount(), 1.0f);
 
-    entity->updateAnimation(0.5f);  // limbSwingAmount = 0.5, prevLimbSwingAmount = 1.0
+    entity->updateAnimation(0.5f); // limbSwingAmount = 0.5, prevLimbSwingAmount = 1.0
     EXPECT_FLOAT_EQ(entity->prevLimbSwingAmount(), 1.0f);
     EXPECT_FLOAT_EQ(entity->limbSwingAmount(), 0.5f);
 }
 
-TEST_F(ClientEntityTest, PartialTickConsistencyMultipleCalls) {
+TEST_F(ClientEntityTest, PartialTickConsistencyMultipleCalls)
+{
     // 多次调用 getInterpolatedPosition 应返回一致的结果
     entity->setInterpolationSpeed(1.0f);
     entity->setPosition(0.0f, 0.0f, 0.0f);

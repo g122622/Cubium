@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {
@@ -91,13 +91,9 @@ public:
     /**
      * @brief 比较操作符
      */
-    bool operator==(const AttributeModifier& other) const {
-        return m_id == other.m_id;
-    }
+    bool operator==(const AttributeModifier& other) const { return m_id == other.m_id; }
 
-    bool operator!=(const AttributeModifier& other) const {
-        return m_id != other.m_id;
-    }
+    bool operator!=(const AttributeModifier& other) const { return m_id != other.m_id; }
 
 private:
     std::string m_id;

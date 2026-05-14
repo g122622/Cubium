@@ -1,35 +1,27 @@
 #include "SaveOnCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "server/command/support/CommandMetadata.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
 
 namespace mc {
 namespace command {
 
-void SaveOnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void SaveOnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto saveOnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("save-on");
-    saveOnNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(4);
-    });
+    saveOnNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(4); });
     support::applyMetadata(
-        saveOnNode,
-        support::makeMetadata(
-            "Enables server automatic saving.",
-            "/save-on",
-            4,
-            {},
-            false));
+        saveOnNode, support::makeMetadata("Enables server automatic saving.", "/save-on", 4, {}, false));
 
-    saveOnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return enableAutoSave(ctx);
-    });
+    saveOnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enableAutoSave(ctx); });
 
     dispatcher.registerCommand(saveOnNode);
 }
 
-i32 SaveOnCommand::enableAutoSave(CommandContext<ServerCommandSource>& context) {
+i32 SaveOnCommand::enableAutoSave(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     auto* server = source.server();

@@ -1,8 +1,5 @@
 #include "MovementController.hpp"
-#include "JumpController.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
@@ -11,16 +8,19 @@
 #include "../../../world/block/blocks/FenceGateBlock.hpp"
 #include "../../../world/block/blocks/building/FenceBlock.hpp"
 #include "../../../world/block/blocks/building/WallBlock.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../pathfinding/PathNodeType.hpp"
+#include "../../attribute/Attributes.hpp"
+#include "../../core/LivingEntity.hpp"
+#include "../../core/MobEntity.hpp"
 #include "../pathfinding/PathFinder.hpp"
 #include "../pathfinding/PathNavigator.hpp"
+#include "../pathfinding/PathNodeType.hpp"
+#include "JumpController.hpp"
 #include <cmath>
 
 // 使用命名空间简化代码
 using mc::blocks::DoorBlock;
-using mc::blocks::FenceGateBlock;
 using mc::blocks::FenceBlock;
+using mc::blocks::FenceGateBlock;
 using mc::blocks::WallBlock;
 using namespace mc::math;
 
@@ -30,7 +30,8 @@ MovementController::MovementController(MobEntity* mob)
     : m_mob(mob)
 {}
 
-void MovementController::setMoveTo(f64 x, f64 y, f64 z, f64 speed) {
+void MovementController::setMoveTo(f64 x, f64 y, f64 z, f64 speed)
+{
     m_posX = x;
     m_posY = y;
     m_posZ = z;
@@ -41,14 +42,16 @@ void MovementController::setMoveTo(f64 x, f64 y, f64 z, f64 speed) {
     }
 }
 
-void MovementController::strafe(f32 forward, f32 strafe) {
+void MovementController::strafe(f32 forward, f32 strafe)
+{
     m_action = MoveAction::Strafe;
     m_moveForward = forward;
     m_moveStrafe = strafe;
-    m_speed = 0.25;  // 默认横向移动速度
+    m_speed = 0.25; // 默认横向移动速度
 }
 
-void MovementController::tick() {
+void MovementController::tick()
+{
     if (!m_mob) return;
 
     if (m_action == MoveAction::Strafe) {
@@ -92,8 +95,7 @@ void MovementController::tick() {
             m_mob->setMoveStrafing(m_moveStrafe);
         }
         m_action = MoveAction::Wait;
-    }
-    else if (m_action == MoveAction::MoveTo) {
+    } else if (m_action == MoveAction::MoveTo) {
         // MC: MOVE_TO 状态在tick开头立即转为WAIT
         m_action = MoveAction::Wait;
 
@@ -121,9 +123,10 @@ void MovementController::tick() {
         m_mob->setRotation(newYaw, m_mob->pitch());
 
         // 设置移动速度
-        f32 moveSpeed = static_cast<f32>(m_speed * m_mob->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
+        f32 moveSpeed =
+            static_cast<f32>(m_speed * m_mob->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
         m_mob->setAIMoveSpeed(moveSpeed);
-        m_mob->setMoveForward(1.0f);  // 向前移动
+        m_mob->setMoveForward(1.0f); // 向前移动
 
         // 检查是否需要跳跃
         // MC 1.16.5: 跳跃有两个条件，满足其一即可
@@ -194,26 +197,26 @@ void MovementController::tick() {
             }
             m_action = MoveAction::Jumping;
         }
-    }
-    else if (m_action == MoveAction::Jumping) {
+    } else if (m_action == MoveAction::Jumping) {
         // MC: JUMPING 状态设置移动速度
-        f32 moveSpeed = static_cast<f32>(m_speed * m_mob->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
+        f32 moveSpeed =
+            static_cast<f32>(m_speed * m_mob->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
         m_mob->setAIMoveSpeed(moveSpeed);
 
         if (m_mob->onGround()) {
-            m_action = MoveAction::Wait;  // MC: 着陆后设为WAIT
+            m_action = MoveAction::Wait; // MC: 着陆后设为WAIT
         }
-    }
-    else {
+    } else {
         // Wait 状态
         m_mob->setMoveForward(0.0f);
         m_mob->setMoveStrafing(0.0f);
     }
 }
 
-bool MovementController::canWalkAt(f64 x, f64 z) const {
+bool MovementController::canWalkAt(f64 x, f64 z) const
+{
     if (!m_mob) {
-        return true;  // 无法检查时默认可行走
+        return true; // 无法检查时默认可行走
     }
 
     // MC 1.16.5 func_234024_b_:

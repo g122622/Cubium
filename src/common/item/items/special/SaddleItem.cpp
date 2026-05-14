@@ -1,23 +1,23 @@
 #include "SaddleItem.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../../entity/interfaces/IEquipable.hpp"
-#include "../../../entity/interfaces/IRideable.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../entity/interfaces/IEquipable.hpp"
+#include "../../../entity/interfaces/IRideable.hpp"
 #include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../core/ItemStack.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
 namespace item::items {
 
 SaddleItem::SaddleItem(const ItemProperties& properties)
-    : Item(properties) {
-}
+    : Item(properties)
+{}
 
-bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
-                                          LivingEntity& target, Hand hand) {
+bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
+{
     MC_UNUSED(hand);
 
     // MC 1.16.5: SaddleItem.itemInteractionForEntity()
@@ -76,12 +76,11 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
     // 目前使用通用音效
     IWorld* world = target.world();
     if (world != nullptr) {
-        world->playSound(
-            SoundEvents::ENTITY_HORSE_SADDLE,
+        world->playSound(SoundEvents::ENTITY_HORSE_SADDLE,
             sound::SoundCategory::Neutral,
             target.position(),
-            0.5f,  // 音量
-            1.0f   // 音调
+            0.5f, // 音量
+            1.0f  // 音调
         );
     }
 

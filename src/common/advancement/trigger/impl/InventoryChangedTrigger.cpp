@@ -11,21 +11,16 @@ namespace mc::advancement {
 // ========== InventoryChangedTriggerInstance ==========
 
 InventoryChangedTriggerInstance::InventoryChangedTriggerInstance(
-    IntBounds slotsOccupied,
-    IntBounds slotsFull,
-    IntBounds slotsEmpty,
-    std::vector<ItemPredicate> items
-)
+    IntBounds slotsOccupied, IntBounds slotsFull, IntBounds slotsEmpty, std::vector<ItemPredicate> items)
     : m_slotsOccupied(std::move(slotsOccupied))
     , m_slotsFull(std::move(slotsFull))
     , m_slotsEmpty(std::move(slotsEmpty))
-    , m_items(std::move(items)) {
-}
+    , m_items(std::move(items))
+{}
 
 bool InventoryChangedTriggerInstance::testWithInventory(
-    i32 totalSlots,
-    const std::function<ItemStack(i32)>& getSlot
-) const {
+    i32 totalSlots, const std::function<ItemStack(i32)>& getSlot) const
+{
     // 计算槽位数量
     i32 occupied = 0;
     i32 full = 0;
@@ -102,7 +97,8 @@ bool InventoryChangedTriggerInstance::testWithInventory(
     return true;
 }
 
-Result<void> InventoryChangedTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> InventoryChangedTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -133,7 +129,8 @@ Result<void> InventoryChangedTriggerInstance::fromJson(const nlohmann::json& jso
     return {};
 }
 
-nlohmann::json InventoryChangedTriggerInstance::conditionsToJson() const {
+nlohmann::json InventoryChangedTriggerInstance::conditionsToJson() const
+{
     nlohmann::json json;
 
     if (!m_slotsOccupied.isUnbounded() || !m_slotsFull.isUnbounded() || !m_slotsEmpty.isUnbounded()) {
@@ -163,7 +160,8 @@ nlohmann::json InventoryChangedTriggerInstance::conditionsToJson() const {
 
 // ========== InventoryChangedTrigger ==========
 
-Result<std::shared_ptr<ICriterionInstance>> InventoryChangedTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> InventoryChangedTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<InventoryChangedTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -172,7 +170,8 @@ Result<std::shared_ptr<ICriterionInstance>> InventoryChangedTrigger::fromJson(co
     return instance;
 }
 
-void InventoryChangedTrigger::trigger(ServerPlayer& player, const PlayerInventory& inventory) {
+void InventoryChangedTrigger::trigger(ServerPlayer& player, const PlayerInventory& inventory)
+{
     // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
     // 服务端代码应使用以下方式之一触发检测：
     //
@@ -192,11 +191,13 @@ void InventoryChangedTrigger::trigger(ServerPlayer& player, const PlayerInventor
     MC_UNUSED(inventory);
 }
 
-std::shared_ptr<InventoryChangedTriggerInstance> InventoryChangedTrigger::hasItems(std::vector<ItemPredicate> items) {
+std::shared_ptr<InventoryChangedTriggerInstance> InventoryChangedTrigger::hasItems(std::vector<ItemPredicate> items)
+{
     return std::make_shared<InventoryChangedTriggerInstance>(IntBounds(), IntBounds(), IntBounds(), std::move(items));
 }
 
-std::shared_ptr<InventoryChangedTriggerInstance> InventoryChangedTrigger::hasItem(const ItemPredicate& item) {
+std::shared_ptr<InventoryChangedTriggerInstance> InventoryChangedTrigger::hasItem(const ItemPredicate& item)
+{
     return hasItems({item});
 }
 

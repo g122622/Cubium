@@ -10,10 +10,11 @@ namespace crafting {
 // 并在 Items.cpp 中注册这些物品
 
 MapCloningRecipe::MapCloningRecipe(const ResourceLocation& id)
-    : SpecialRecipe(id) {
-}
+    : SpecialRecipe(id)
+{}
 
-bool MapCloningRecipe::matches(const CraftingInventory& inventory) const {
+bool MapCloningRecipe::matches(const CraftingInventory& inventory) const
+{
     bool hasFilledMap = false;
     bool hasEmptyMap = false;
 
@@ -40,7 +41,8 @@ bool MapCloningRecipe::matches(const CraftingInventory& inventory) const {
     return hasFilledMap && hasEmptyMap;
 }
 
-ItemStack MapCloningRecipe::assemble(const CraftingInventory& inventory) const {
+ItemStack MapCloningRecipe::assemble(const CraftingInventory& inventory) const
+{
     ItemStack filledMap;
     i32 emptyMapCount = 0;
 
@@ -69,7 +71,8 @@ ItemStack MapCloningRecipe::assemble(const CraftingInventory& inventory) const {
     return result;
 }
 
-std::vector<ItemStack> MapCloningRecipe::getRemainingItems(const CraftingInventory& inventory) const {
+std::vector<ItemStack> MapCloningRecipe::getRemainingItems(const CraftingInventory& inventory) const
+{
     std::vector<ItemStack> remaining(inventory.getContainerSize());
 
     // 保留原地图
@@ -84,7 +87,8 @@ std::vector<ItemStack> MapCloningRecipe::getRemainingItems(const CraftingInvento
     return remaining;
 }
 
-bool MapCloningRecipe::isFilledMap(const ItemStack& stack) {
+bool MapCloningRecipe::isFilledMap(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -98,7 +102,8 @@ bool MapCloningRecipe::isFilledMap(const ItemStack& stack) {
     return false;
 }
 
-bool MapCloningRecipe::isEmptyMap(const ItemStack& stack) {
+bool MapCloningRecipe::isEmptyMap(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }

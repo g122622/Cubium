@@ -10,22 +10,12 @@ namespace mc::command {
 void SayCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto sayNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("say");
-    sayNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        sayNode,
-        support::makeMetadata(
-            "Broadcast a server message.",
-            "/say <message>",
-            2));
+    sayNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(sayNode, support::makeMetadata("Broadcast a server message.", "/say <message>", 2));
 
     auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "message",
-        StringArgumentType::greedyString());
-    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return say(ctx);
-    });
+        "message", StringArgumentType::greedyString());
+    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return say(ctx); });
     sayNode->addChild(messageArg);
 
     dispatcher.registerCommand(sayNode);

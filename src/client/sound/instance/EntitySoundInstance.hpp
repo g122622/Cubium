@@ -50,13 +50,11 @@ public:
      * @param volume 音量（默认1.0）
      * @param pitch 音调（默认1.0）
      */
-    EntitySoundInstance(
-        const ResourceLocation& soundEventId,
+    EntitySoundInstance(const ResourceLocation& soundEventId,
         SoundCategory category,
         Entity& entity,
         f32 volume = 1.0f,
-        f32 pitch = 1.0f
-    );
+        f32 pitch = 1.0f);
 
     /**
      * @brief 析构函数
@@ -101,5 +99,5 @@ private:
     Entity& m_entity;
 };
 
-} // namespace mc::client::sound
+} // namespace client::sound
 } // namespace mc

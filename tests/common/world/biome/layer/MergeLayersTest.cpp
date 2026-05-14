@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+#include "world/biome/layer/transformers/MergeLayers.hpp"
+#include "world/biome/layer/BiomeValues.hpp"
 #include "world/biome/layer/Layer.hpp"
 #include "world/biome/layer/LayerContext.hpp"
-#include "world/biome/layer/BiomeValues.hpp"
-#include "world/biome/layer/transformers/MergeLayers.hpp"
 #include <functional>
 #include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::layer;
@@ -17,10 +17,16 @@ namespace {
 class MockArea : public IArea {
 public:
     MockArea() = default;
-    explicit MockArea(i32 constantValue) : m_constantValue(constantValue), m_useConstant(true) {}
-    explicit MockArea(std::function<i32(i32, i32)> func) : m_func(std::move(func)) {}
+    explicit MockArea(i32 constantValue)
+        : m_constantValue(constantValue)
+        , m_useConstant(true)
+    {}
+    explicit MockArea(std::function<i32(i32, i32)> func)
+        : m_func(std::move(func))
+    {}
 
-    [[nodiscard]] i32 getValue(i32 x, i32 z) const override {
+    [[nodiscard]] i32 getValue(i32 x, i32 z) const override
+    {
         if (m_useConstant) {
             return m_constantValue;
         }
@@ -43,12 +49,14 @@ class MockAreaContext : public IAreaContext {
 public:
     MockAreaContext() = default;
 
-    void setPosition(i64 x, i64 z) override {
+    void setPosition(i64 x, i64 z) override
+    {
         m_currentX = x;
         m_currentZ = z;
     }
 
-    [[nodiscard]] i32 nextInt(i32 bound) override {
+    [[nodiscard]] i32 nextInt(i32 bound) override
+    {
         if (m_useSequence && m_sequenceIndex < m_sequence.size()) {
             return m_sequence[m_sequenceIndex++] % bound;
         }
@@ -59,35 +67,36 @@ public:
         return static_cast<i32>((m_seed >> 32) % bound);
     }
 
-    [[nodiscard]] i32 pickRandom(i32 a, i32 b) override {
-        return nextInt(2) == 0 ? a : b;
-    }
+    [[nodiscard]] i32 pickRandom(i32 a, i32 b) override { return nextInt(2) == 0 ? a : b; }
 
-    [[nodiscard]] i32 pickRandom(i32 a, i32 b, i32 c, i32 d) override {
+    [[nodiscard]] i32 pickRandom(i32 a, i32 b, i32 c, i32 d) override
+    {
         i32 idx = nextInt(4);
         switch (idx) {
-            case 0: return a;
-            case 1: return b;
-            case 2: return c;
-            default: return d;
+            case 0:
+                return a;
+            case 1:
+                return b;
+            case 2:
+                return c;
+            default:
+                return d;
         }
     }
 
-    [[nodiscard]] ImprovedNoiseGenerator* getNoiseGenerator() override {
-        return nullptr;
-    }
+    [[nodiscard]] ImprovedNoiseGenerator* getNoiseGenerator() override { return nullptr; }
 
-    void setConstantRandom(i32 value) {
-        m_constantRandom = value;
-    }
+    void setConstantRandom(i32 value) { m_constantRandom = value; }
 
-    void setRandomSequence(const std::vector<i32>& sequence) {
+    void setRandomSequence(const std::vector<i32>& sequence)
+    {
         m_sequence = sequence;
         m_sequenceIndex = 0;
         m_useSequence = true;
     }
 
-    void reset() {
+    void reset()
+    {
         m_constantRandom = -1;
         m_useSequence = false;
         m_sequenceIndex = 0;
@@ -112,7 +121,8 @@ private:
 
 class AddMushroomIslandLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_layer = std::make_unique<AddMushroomIslandLayer>();
     }
@@ -120,23 +130,25 @@ protected:
     std::unique_ptr<AddMushroomIslandLayer> m_layer;
 };
 
-TEST_F(AddMushroomIslandLayerTest, AllShallowOceanWithLuckyRollCreatesMushroomFields) {
+TEST_F(AddMushroomIslandLayerTest, AllShallowOceanWithLuckyRollCreatesMushroomFields)
+{
     // 中心和四个对角都是浅海，且随机值==0，生成蘑菇岛
     m_context->setConstantRandom(0);
 
     // IBishopTransformer::apply(ctx, x, sw, se, ne, nw, center)
     i32 result = m_layer->apply(*m_context,
-        0,  // x
-        BiomeValues::Ocean,  // sw
-        BiomeValues::Ocean,  // se
-        BiomeValues::Ocean,  // ne
-        BiomeValues::Ocean,  // nw
-        BiomeValues::Ocean   // center
+        0,                  // x
+        BiomeValues::Ocean, // sw
+        BiomeValues::Ocean, // se
+        BiomeValues::Ocean, // ne
+        BiomeValues::Ocean, // nw
+        BiomeValues::Ocean  // center
     );
     EXPECT_EQ(result, BiomeValues::MushroomFields);
 }
 
-TEST_F(AddMushroomIslandLayerTest, NotAllShallowOceanStaysSame) {
+TEST_F(AddMushroomIslandLayerTest, NotAllShallowOceanStaysSame)
+{
     // 不是所有都是浅海，保持不变
     m_context->setConstantRandom(0);
 
@@ -145,13 +157,13 @@ TEST_F(AddMushroomIslandLayerTest, NotAllShallowOceanStaysSame) {
         BiomeValues::Ocean,
         BiomeValues::Ocean,
         BiomeValues::Ocean,
-        BiomeValues::DeepOcean,  // deep ocean is not shallow
-        BiomeValues::Ocean
-    );
+        BiomeValues::DeepOcean, // deep ocean is not shallow
+        BiomeValues::Ocean);
     EXPECT_EQ(result, BiomeValues::Ocean);
 }
 
-TEST_F(AddMushroomIslandLayerTest, LuckyRollNotZeroStaysSame) {
+TEST_F(AddMushroomIslandLayerTest, LuckyRollNotZeroStaysSame)
+{
     // 随机值!=0，保持不变
     m_context->setConstantRandom(1);
 
@@ -161,8 +173,7 @@ TEST_F(AddMushroomIslandLayerTest, LuckyRollNotZeroStaysSame) {
         BiomeValues::Ocean,
         BiomeValues::Ocean,
         BiomeValues::Ocean,
-        BiomeValues::Ocean
-    );
+        BiomeValues::Ocean);
     EXPECT_EQ(result, BiomeValues::Ocean);
 }
 
@@ -172,7 +183,8 @@ TEST_F(AddMushroomIslandLayerTest, LuckyRollNotZeroStaysSame) {
 
 class AddBambooForestLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_layer = std::make_unique<AddBambooForestLayer>();
     }
@@ -180,7 +192,8 @@ protected:
     std::unique_ptr<AddBambooForestLayer> m_layer;
 };
 
-TEST_F(AddBambooForestLayerTest, JungleWithLuckyRollBecomesBambooJungle) {
+TEST_F(AddBambooForestLayerTest, JungleWithLuckyRollBecomesBambooJungle)
+{
     // 丛林有 1/10 概率变成竹林
     m_context->setConstantRandom(0);
 
@@ -188,14 +201,16 @@ TEST_F(AddBambooForestLayerTest, JungleWithLuckyRollBecomesBambooJungle) {
     EXPECT_EQ(result, BiomeValues::BambooJungle);
 }
 
-TEST_F(AddBambooForestLayerTest, JungleWithoutLuckyRollStaysJungle) {
+TEST_F(AddBambooForestLayerTest, JungleWithoutLuckyRollStaysJungle)
+{
     m_context->setConstantRandom(1);
 
     i32 result = m_layer->apply(*m_context, BiomeValues::Jungle);
     EXPECT_EQ(result, BiomeValues::Jungle);
 }
 
-TEST_F(AddBambooForestLayerTest, OtherBiomesUnchanged) {
+TEST_F(AddBambooForestLayerTest, OtherBiomesUnchanged)
+{
     m_context->setConstantRandom(0);
 
     EXPECT_EQ(m_layer->apply(*m_context, BiomeValues::Forest), BiomeValues::Forest);
@@ -209,7 +224,8 @@ TEST_F(AddBambooForestLayerTest, OtherBiomesUnchanged) {
 
 class RiverLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_layer = std::make_unique<RiverLayer>();
     }
@@ -217,19 +233,18 @@ protected:
     std::unique_ptr<RiverLayer> m_layer;
 };
 
-TEST_F(RiverLayerTest, UniformValuesNoRiver) {
+TEST_F(RiverLayerTest, UniformValuesNoRiver)
+{
     // 所有邻居过滤后值相同，返回 -1（无河流）
-    i32 result = m_layer->apply(*m_context,
-        100, 100, 100, 100, 100  // north, east, south, west, center
+    i32 result = m_layer->apply(*m_context, 100, 100, 100, 100, 100 // north, east, south, west, center
     );
     EXPECT_EQ(result, -1);
 }
 
-TEST_F(RiverLayerTest, DifferentValuesCreatesRiver) {
+TEST_F(RiverLayerTest, DifferentValuesCreatesRiver)
+{
     // 邻居过滤后值不同，返回河流
-    i32 result = m_layer->apply(*m_context,
-        100, 101, 100, 101, 100
-    );
+    i32 result = m_layer->apply(*m_context, 100, 101, 100, 101, 100);
     EXPECT_EQ(result, BiomeValues::River);
 }
 
@@ -239,7 +254,8 @@ TEST_F(RiverLayerTest, DifferentValuesCreatesRiver) {
 
 class MixRiverLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_layer = std::make_unique<MixRiverLayer>();
     }
@@ -247,7 +263,8 @@ protected:
     std::unique_ptr<MixRiverLayer> m_layer;
 };
 
-TEST_F(MixRiverLayerTest, OceanStaysOcean) {
+TEST_F(MixRiverLayerTest, OceanStaysOcean)
+{
     MockArea biomeArea(BiomeValues::Ocean);
     MockArea riverArea(BiomeValues::River);
 
@@ -255,7 +272,8 @@ TEST_F(MixRiverLayerTest, OceanStaysOcean) {
     EXPECT_EQ(result, BiomeValues::Ocean);
 }
 
-TEST_F(MixRiverLayerTest, RiverInSnowyPlainsBecomesFrozenRiver) {
+TEST_F(MixRiverLayerTest, RiverInSnowyPlainsBecomesFrozenRiver)
+{
     MockArea biomeArea(BiomeValues::SnowyPlains);
     MockArea riverArea(BiomeValues::River);
 
@@ -263,7 +281,8 @@ TEST_F(MixRiverLayerTest, RiverInSnowyPlainsBecomesFrozenRiver) {
     EXPECT_EQ(result, BiomeValues::FrozenRiver);
 }
 
-TEST_F(MixRiverLayerTest, RiverInNormalBiomeBecomesRiver) {
+TEST_F(MixRiverLayerTest, RiverInNormalBiomeBecomesRiver)
+{
     MockArea biomeArea(BiomeValues::Plains);
     MockArea riverArea(BiomeValues::River);
 
@@ -271,7 +290,8 @@ TEST_F(MixRiverLayerTest, RiverInNormalBiomeBecomesRiver) {
     EXPECT_EQ(result, BiomeValues::River);
 }
 
-TEST_F(MixRiverLayerTest, RiverInMushroomFieldsBecomesShore) {
+TEST_F(MixRiverLayerTest, RiverInMushroomFieldsBecomesShore)
+{
     MockArea biomeArea(BiomeValues::MushroomFields);
     MockArea riverArea(BiomeValues::River);
 
@@ -279,9 +299,10 @@ TEST_F(MixRiverLayerTest, RiverInMushroomFieldsBecomesShore) {
     EXPECT_EQ(result, BiomeValues::MushroomFieldShore);
 }
 
-TEST_F(MixRiverLayerTest, NoRiverStaysSame) {
+TEST_F(MixRiverLayerTest, NoRiverStaysSame)
+{
     MockArea biomeArea(BiomeValues::Plains);
-    MockArea riverArea(-1);  // -1 means no river
+    MockArea riverArea(-1); // -1 means no river
 
     i32 result = m_layer->apply(*m_context, biomeArea, riverArea, 0, 0);
     EXPECT_EQ(result, BiomeValues::Plains);
@@ -293,7 +314,8 @@ TEST_F(MixRiverLayerTest, NoRiverStaysSame) {
 
 class MixOceansLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_layer = std::make_unique<MixOceansLayer>();
     }
@@ -301,7 +323,8 @@ protected:
     std::unique_ptr<MixOceansLayer> m_layer;
 };
 
-TEST_F(MixOceansLayerTest, LandBiomeUnchanged) {
+TEST_F(MixOceansLayerTest, LandBiomeUnchanged)
+{
     MockArea biomeArea(BiomeValues::Plains);
     MockArea oceanArea(BiomeValues::WarmOcean);
 
@@ -309,12 +332,13 @@ TEST_F(MixOceansLayerTest, LandBiomeUnchanged) {
     EXPECT_EQ(result, BiomeValues::Plains);
 }
 
-TEST_F(MixOceansLayerTest, WarmOceanWithLandNeighborBecomesLukewarm) {
+TEST_F(MixOceansLayerTest, WarmOceanWithLandNeighborBecomesLukewarm)
+{
     // 当温暖海洋有陆地邻居时，变成温水海洋
     MockArea biomeArea([](i32 x, i32 z) -> i32 {
         // 中心是海洋，周围有陆地
         if (x == 0 && z == 0) return BiomeValues::Ocean;
-        return BiomeValues::Plains;  // 陆地邻居
+        return BiomeValues::Plains; // 陆地邻居
     });
     MockArea oceanArea(BiomeValues::WarmOcean);
 
@@ -322,7 +346,8 @@ TEST_F(MixOceansLayerTest, WarmOceanWithLandNeighborBecomesLukewarm) {
     EXPECT_EQ(result, BiomeValues::LukewarmOcean);
 }
 
-TEST_F(MixOceansLayerTest, FrozenOceanWithLandNeighborBecomesCold) {
+TEST_F(MixOceansLayerTest, FrozenOceanWithLandNeighborBecomesCold)
+{
     // 当冻结海洋有陆地邻居时，变成冷水海洋
     MockArea biomeArea([](i32 x, i32 z) -> i32 {
         if (x == 0 && z == 0) return BiomeValues::Ocean;
@@ -334,7 +359,8 @@ TEST_F(MixOceansLayerTest, FrozenOceanWithLandNeighborBecomesCold) {
     EXPECT_EQ(result, BiomeValues::ColdOcean);
 }
 
-TEST_F(MixOceansLayerTest, DeepOceanWithLukewarmBecomesDeepLukewarm) {
+TEST_F(MixOceansLayerTest, DeepOceanWithLukewarmBecomesDeepLukewarm)
+{
     MockArea biomeArea(BiomeValues::DeepOcean);
     MockArea oceanArea(BiomeValues::LukewarmOcean);
 
@@ -342,7 +368,8 @@ TEST_F(MixOceansLayerTest, DeepOceanWithLukewarmBecomesDeepLukewarm) {
     EXPECT_EQ(result, BiomeValues::DeepLukewarmOcean);
 }
 
-TEST_F(MixOceansLayerTest, DeepOceanWithColdBecomesDeepCold) {
+TEST_F(MixOceansLayerTest, DeepOceanWithColdBecomesDeepCold)
+{
     MockArea biomeArea(BiomeValues::DeepOcean);
     MockArea oceanArea(BiomeValues::ColdOcean);
 
@@ -350,7 +377,8 @@ TEST_F(MixOceansLayerTest, DeepOceanWithColdBecomesDeepCold) {
     EXPECT_EQ(result, BiomeValues::DeepColdOcean);
 }
 
-TEST_F(MixOceansLayerTest, DeepOceanWithFrozenBecomesDeepFrozen) {
+TEST_F(MixOceansLayerTest, DeepOceanWithFrozenBecomesDeepFrozen)
+{
     MockArea biomeArea(BiomeValues::DeepOcean);
     MockArea oceanArea(BiomeValues::FrozenOcean);
 
@@ -358,7 +386,8 @@ TEST_F(MixOceansLayerTest, DeepOceanWithFrozenBecomesDeepFrozen) {
     EXPECT_EQ(result, BiomeValues::DeepFrozenOcean);
 }
 
-TEST_F(MixOceansLayerTest, DeepOceanWithRegularOceanStaysDeepOcean) {
+TEST_F(MixOceansLayerTest, DeepOceanWithRegularOceanStaysDeepOcean)
+{
     MockArea biomeArea(BiomeValues::DeepOcean);
     MockArea oceanArea(BiomeValues::Ocean);
 
@@ -372,7 +401,8 @@ TEST_F(MixOceansLayerTest, DeepOceanWithRegularOceanStaysDeepOcean) {
 
 class HillsLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_layer = std::make_unique<HillsLayer>();
     }
@@ -380,24 +410,24 @@ protected:
     std::unique_ptr<HillsLayer> m_layer;
 };
 
-TEST_F(HillsLayerTest, ShallowOceanCanBecomeDeepOcean) {
+TEST_F(HillsLayerTest, ShallowOceanCanBecomeDeepOcean)
+{
     // 浅海可能会变成深海，这是 HillsLayer 的正确行为
     MockArea biomeArea(BiomeValues::Ocean);
-    MockArea riverArea(2);  // riverValue = 2, riverNoise = 0
+    MockArea riverArea(2); // riverValue = 2, riverNoise = 0
 
-    m_context->setRandomSequence({0, 0, 0, 0, 0, 0, 0, 0});  // nextInt(3) == 0
+    m_context->setRandomSequence({0, 0, 0, 0, 0, 0, 0, 0}); // nextInt(3) == 0
 
     i32 result = m_layer->apply(*m_context, biomeArea, riverArea, 0, 0);
     // 海洋可能变成深海，或保持海洋，取决于邻居检查
     EXPECT_TRUE(result == BiomeValues::DeepOcean || result == BiomeValues::Ocean);
 }
 
-TEST_F(HillsLayerTest, JungleToJungleHills) {
+TEST_F(HillsLayerTest, JungleToJungleHills)
+{
     // 丛林可能变成丛林丘陵
-    MockArea biomeArea([](i32 x, i32 z) -> i32 {
-        return BiomeValues::Jungle;
-    });
-    MockArea riverArea(2);  // riverValue = 2, riverNoise = 0
+    MockArea biomeArea([](i32 x, i32 z) -> i32 { return BiomeValues::Jungle; });
+    MockArea riverArea(2); // riverValue = 2, riverNoise = 0
 
     m_context->setRandomSequence({0, 0, 0, 0, 0, 0, 0, 0});
 
@@ -412,7 +442,8 @@ TEST_F(HillsLayerTest, JungleToJungleHills) {
 
 class StartRiverLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_layer = std::make_unique<StartRiverLayer>();
     }
@@ -420,14 +451,16 @@ protected:
     std::unique_ptr<StartRiverLayer> m_layer;
 };
 
-TEST_F(StartRiverLayerTest, ShallowOceanStaysSame) {
+TEST_F(StartRiverLayerTest, ShallowOceanStaysSame)
+{
     // 浅海保持不变
     EXPECT_EQ(m_layer->apply(*m_context, BiomeValues::Ocean), BiomeValues::Ocean);
     EXPECT_EQ(m_layer->apply(*m_context, BiomeValues::WarmOcean), BiomeValues::WarmOcean);
     EXPECT_EQ(m_layer->apply(*m_context, BiomeValues::FrozenOcean), BiomeValues::FrozenOcean);
 }
 
-TEST_F(StartRiverLayerTest, LandGeneratesRiverNoise) {
+TEST_F(StartRiverLayerTest, LandGeneratesRiverNoise)
+{
     // 陆地生成河流噪声值 (2-300000)
     m_context->setConstantRandom(0);
 

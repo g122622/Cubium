@@ -1,23 +1,23 @@
 #pragma once
 
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/ui/Font.hpp"
+#include "client/ui/Glyph.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
-#include "client/ui/Font.hpp"
-#include "client/ui/Glyph.hpp"
-#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
-#include <vulkan/vulkan.h>
+#include <array>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <array>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 struct EntityMesh;
-}
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity::util {
 
@@ -25,11 +25,11 @@ namespace mc::client::renderer::entity::util {
  * @brief 字形网格数据（世界空间版本）
  */
 struct WorldGlyphMesh {
-    std::vector<model::ModelVertex> vertices;  // 顶点数据 (position xyz, texcoord uv, normal xyz)
+    std::vector<model::ModelVertex> vertices; // 顶点数据 (position xyz, texcoord uv, normal xyz)
     std::vector<u32> indices;
-    f32 advanceX;  // 绘制此字符后光标前进的距离
-    f32 width;     // 字符宽度
-    f32 height;    // 字符高度
+    f32 advanceX; // 绘制此字符后光标前进的距离
+    f32 width;    // 字符宽度
+    f32 height;   // 字符高度
 };
 
 /**
@@ -54,8 +54,7 @@ public:
      * @param font 字体对象（用于获取字形UV）
      * @return 成功或错误
      */
-    static bool initialize(
-        VkDevice device,
+    static bool initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -107,15 +106,13 @@ public:
      * @param showBackground 是否显示背景
      * @param pipeline 实体渲染管线
      */
-    static void renderText(
-        VkCommandBuffer cmd,
+    static void renderText(VkCommandBuffer cmd,
         const std::string& text,
         const Vector3f& position,
         f32 scale,
         const Vector4f& color,
         bool showBackground,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 渲染名称标签（带 billboard 行为）
@@ -126,13 +123,11 @@ public:
      * @param entityHeight 实体高度
      * @param pipeline 实体渲染管线
      */
-    static void renderNameTag(
-        VkCommandBuffer cmd,
+    static void renderNameTag(VkCommandBuffer cmd,
         const std::string& name,
         const Vector3f& entityPosition,
         f32 entityHeight,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 设置最大可见距离
@@ -193,10 +188,7 @@ private:
     /**
      * @brief 计算 billboard 矩阵
      */
-    static void computeBillboardMatrix(
-        const Vector3f& position,
-        std::array<f64, 16>& outMatrix
-    );
+    static void computeBillboardMatrix(const Vector3f& position, std::array<f64, 16>& outMatrix);
 
     /**
      * @brief 计算文本宽度
@@ -210,10 +202,7 @@ private:
      * @param distance 到相机的距离
      * @return true 如果应该渲染
      */
-    [[nodiscard]] static bool shouldRenderText(
-        const Vector3f& position,
-        f32 distance
-    );
+    [[nodiscard]] static bool shouldRenderText(const Vector3f& position, f32 distance);
 
     /**
      * @brief 检查文本是否在相机背后（背面剔除）
@@ -230,7 +219,7 @@ private:
 
     // 静态成员
     static bool s_initialized;
-    static Font* s_font;                              // 字体引用
+    static Font* s_font; // 字体引用
     static f32 s_maxDistance;
     static f32 s_scale;
     static bool s_showBackground;
@@ -240,8 +229,8 @@ private:
     static u8 s_bgColorA;
     static Vector3d s_cameraPosition;
     static std::array<f64, 16> s_viewMatrix;
-    static mc::math::frustum::Frustum s_frustum;       // 视锥体（用于视锥剔除）
-    static Vector3f s_cameraForward;                   // 相机前向向量（用于背面剔除）
+    static mc::math::frustum::Frustum s_frustum; // 视锥体（用于视锥剔除）
+    static Vector3f s_cameraForward;             // 相机前向向量（用于背面剔除）
 
     // Vulkan 资源
     static VkDevice s_device;
@@ -262,10 +251,10 @@ private:
     // 常量
     static constexpr f32 DEFAULT_MAX_DISTANCE = 64.0f;
     static constexpr f32 DEFAULT_SCALE = 0.025f;
-    static constexpr f32 CHAR_WIDTH = 0.5f;   // 每个字符的默认宽度
-    static constexpr f32 CHAR_HEIGHT = 1.0f;  // 每个字符的默认高度
+    static constexpr f32 CHAR_WIDTH = 0.5f;  // 每个字符的默认宽度
+    static constexpr f32 CHAR_HEIGHT = 1.0f; // 每个字符的默认高度
     static constexpr f32 BACKGROUND_PADDING = 0.25f;
-    static constexpr f32 HEIGHT_OFFSET = 0.3f;  // 名称标签在头顶上方的偏移
+    static constexpr f32 HEIGHT_OFFSET = 0.3f; // 名称标签在头顶上方的偏移
 };
 
 } // namespace mc::client::renderer::entity::util

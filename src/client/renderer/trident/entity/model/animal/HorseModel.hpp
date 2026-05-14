@@ -21,9 +21,8 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置生物动画状态（每帧调用）
@@ -124,25 +123,25 @@ private:
     std::shared_ptr<ModelRenderer> m_head;
 
     // 成年体腿部
-    std::shared_ptr<ModelRenderer> m_backRightLeg;   // field_228262_f_
-    std::shared_ptr<ModelRenderer> m_backLeftLeg;    // field_228263_g_
-    std::shared_ptr<ModelRenderer> m_frontRightLeg;  // field_228264_h_
-    std::shared_ptr<ModelRenderer> m_frontLeftLeg;   // field_228265_i_
+    std::shared_ptr<ModelRenderer> m_backRightLeg;  // field_228262_f_
+    std::shared_ptr<ModelRenderer> m_backLeftLeg;   // field_228263_g_
+    std::shared_ptr<ModelRenderer> m_frontRightLeg; // field_228264_h_
+    std::shared_ptr<ModelRenderer> m_frontLeftLeg;  // field_228265_i_
 
     // 幼体腿部（放大版）
-    std::shared_ptr<ModelRenderer> m_backRightLegBaby;   // field_228266_j_
-    std::shared_ptr<ModelRenderer> m_backLeftLegBaby;    // field_228267_k_
-    std::shared_ptr<ModelRenderer> m_frontRightLegBaby;  // field_228268_l_
-    std::shared_ptr<ModelRenderer> m_frontLeftLegBaby;   // field_228269_m_
+    std::shared_ptr<ModelRenderer> m_backRightLegBaby;  // field_228266_j_
+    std::shared_ptr<ModelRenderer> m_backLeftLegBaby;   // field_228267_k_
+    std::shared_ptr<ModelRenderer> m_frontRightLegBaby; // field_228268_l_
+    std::shared_ptr<ModelRenderer> m_frontLeftLegBaby;  // field_228269_m_
 
     // 尾巴
-    std::shared_ptr<ModelRenderer> m_tail;  // field_217133_j
+    std::shared_ptr<ModelRenderer> m_tail; // field_217133_j
 
     // 鞍部件
-    std::vector<std::shared_ptr<ModelRenderer>> m_saddleParts;  // field_217134_k
+    std::vector<std::shared_ptr<ModelRenderer>> m_saddleParts; // field_217134_k
 
     // 骑乘部件（缰绳）
-    std::vector<std::shared_ptr<ModelRenderer>> m_ridingParts;  // field_217135_l
+    std::vector<std::shared_ptr<ModelRenderer>> m_ridingParts; // field_217135_l
 
     // 状态
     bool m_saddled = false;

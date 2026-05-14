@@ -3,13 +3,13 @@
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "Item.hpp"
+#include <functional>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
-#include <memory>
-#include <functional>
-#include <optional>
-#include <type_traits>
-#include <stdexcept>
 
 namespace mc {
 
@@ -54,18 +54,17 @@ public:
      * @param args 物品构造函数参数（ItemProperties之后的参数）
      * @return 物品引用
      */
-    template<typename ItemType, typename... Args>
-    ItemType& registerItem(const ResourceLocation& id, Args&&... args) {
-        static_assert(std::is_base_of_v<Item, ItemType>,
-                      "ItemType must inherit from Item");
+    template <typename ItemType, typename... Args>
+    ItemType& registerItem(const ResourceLocation& id, Args&&... args)
+    {
+        static_assert(std::is_base_of_v<Item, ItemType>, "ItemType must inherit from Item");
 
         // 避免重复注册导致旧指针失效
         auto existingIt = m_items.find(id);
         if (existingIt != m_items.end()) {
             auto* existing = dynamic_cast<ItemType*>(existingIt->second.get());
             if (existing == nullptr) {
-                throw std::logic_error(
-                    "Item id already registered with different type: " + id.toString());
+                throw std::logic_error("Item id already registered with different type: " + id.toString());
             }
             return *existing;
         }
@@ -103,7 +102,8 @@ public:
      * @param itemId 物品ID
      * @return 物品指针，不存在返回nullptr
      */
-    [[nodiscard]] Item* getItem(ItemId itemId) const {
+    [[nodiscard]] Item* getItem(ItemId itemId) const
+    {
         if (itemId >= m_itemsById.size()) {
             return nullptr;
         }
@@ -115,7 +115,8 @@ public:
      * @param id 物品资源位置
      * @return 物品指针，不存在返回nullptr
      */
-    [[nodiscard]] Item* getItem(const ResourceLocation& id) const {
+    [[nodiscard]] Item* getItem(const ResourceLocation& id) const
+    {
         auto it = m_items.find(id);
         return it != m_items.end() ? it->second.get() : nullptr;
     }
@@ -123,7 +124,8 @@ public:
     /**
      * @brief 遍历所有物品
      */
-    void forEachItem(std::function<void(Item&)> callback) {
+    void forEachItem(std::function<void(Item&)> callback)
+    {
         for (auto& [id, item] : m_items) {
             callback(*item);
         }
@@ -132,30 +134,25 @@ public:
     /**
      * @brief 获取物品数量
      */
-    [[nodiscard]] size_t itemCount() const {
-        return m_items.size();
-    }
+    [[nodiscard]] size_t itemCount() const { return m_items.size(); }
 
     /**
      * @brief 获取空气物品（表示空物品）
      */
-    [[nodiscard]] Item* airItem() const {
-        return m_airItem;
-    }
+    [[nodiscard]] Item* airItem() const { return m_airItem; }
 
     /**
      * @brief 检查物品ID是否存在
      */
-    [[nodiscard]] bool hasItem(ItemId itemId) const {
+    [[nodiscard]] bool hasItem(ItemId itemId) const
+    {
         return itemId < m_itemsById.size() && m_itemsById[itemId] != nullptr;
     }
 
     /**
      * @brief 检查资源位置是否存在
      */
-    [[nodiscard]] bool hasItem(const ResourceLocation& id) const {
-        return m_items.find(id) != m_items.end();
-    }
+    [[nodiscard]] bool hasItem(const ResourceLocation& id) const { return m_items.find(id) != m_items.end(); }
 
 private:
     ItemRegistry();
@@ -171,14 +168,15 @@ private:
      *
      * 用于绕过 std::make_unique 无法访问 protected 构造函数的问题
      */
-    template<typename ItemType, typename... Args>
-    std::unique_ptr<ItemType> createItem(Args&&... args) {
+    template <typename ItemType, typename... Args>
+    std::unique_ptr<ItemType> createItem(Args&&... args)
+    {
         return std::unique_ptr<ItemType>(new ItemType(std::forward<Args>(args)...));
     }
 
     std::unordered_map<ResourceLocation, std::unique_ptr<Item>> m_items;
     std::vector<Item*> m_itemsById;
-    ItemId m_nextItemId = 1;  // 0保留给空气
+    ItemId m_nextItemId = 1; // 0保留给空气
     Item* m_airItem = nullptr;
 };
 

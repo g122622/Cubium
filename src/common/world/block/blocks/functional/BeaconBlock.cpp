@@ -1,7 +1,7 @@
 #include "BeaconBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -9,11 +9,12 @@ namespace blocks {
 // ========== BeaconBlock 实现 ==========
 
 BeaconBlock::BeaconBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 信标没有特殊状态属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -22,19 +23,19 @@ BeaconBlock::BeaconBlock(const BlockProperties& properties)
     m_shape = CollisionShape::fullBlock();
 }
 
-BlockState BeaconBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BeaconBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-const CollisionShape& BeaconBlock::getShape(const BlockState& state) const {
+const CollisionShape& BeaconBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-int BeaconBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+int BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
     MC_UNUSED(world);

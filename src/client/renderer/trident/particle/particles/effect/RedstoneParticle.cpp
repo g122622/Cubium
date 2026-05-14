@@ -19,7 +19,7 @@ RedstoneParticle::RedstoneParticle(const glm::vec3& pos, const glm::vec3& veloci
     f32 intensity = (color.r + color.g + color.b) / 3.0f;
     setSize(0.01f + intensity * 0.05f);
     m_initialSize = size();
-    setFriction(1.0f);  // 无摩擦
+    setFriction(1.0f); // 无摩擦
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
 
@@ -28,16 +28,15 @@ RedstoneParticle::RedstoneParticle(const glm::vec3& pos, const glm::vec3& veloci
 }
 
 std::unique_ptr<Particle> RedstoneParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     // 默认红色
     return std::make_unique<RedstoneParticle>(pos, velocity, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 }
 
-void RedstoneParticle::tick(mc::client::ClientWorld* world) {
+void RedstoneParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -59,7 +58,8 @@ void RedstoneParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-f64 RedstoneParticle::getScale(f64 partialTick) const {
+f64 RedstoneParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -92,15 +92,14 @@ EnchantParticle::EnchantParticle(const glm::vec3& pos, const glm::vec3& velocity
 }
 
 std::unique_ptr<Particle> EnchantParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<EnchantParticle>(pos, velocity);
 }
 
-void EnchantParticle::tick(mc::client::ClientWorld* world) {
+void EnchantParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -130,7 +129,8 @@ void EnchantParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(1.0f - lifeRatio * 0.5f);
 }
 
-f64 EnchantParticle::getScale(f64 partialTick) const {
+f64 EnchantParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -159,16 +159,15 @@ FallingDustParticle::FallingDustParticle(const glm::vec3& pos, const glm::vec3& 
 }
 
 std::unique_ptr<Particle> FallingDustParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     // 默认灰色
     return std::make_unique<FallingDustParticle>(pos, velocity, glm::vec4(0.5f, 0.5f, 0.5f, 1.0f));
 }
 
-void FallingDustParticle::tick(mc::client::ClientWorld* world) {
+void FallingDustParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -202,7 +201,8 @@ void FallingDustParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-f64 FallingDustParticle::getScale(f64 partialTick) const {
+f64 FallingDustParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }

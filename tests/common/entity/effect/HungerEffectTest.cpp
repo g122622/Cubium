@@ -1,19 +1,19 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/food/FoodStats.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -27,12 +27,19 @@ namespace {
 class EffectTestWorld final : public test::BaseTestWorld {
 public:
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void addParticle(client::renderer::trident::particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
+    void addParticle(client::renderer::trident::particle::ParticleTypeId,
+        const Vector3&,
+        const Vector3&,
+        const Vector3&,
+        u32) override
+    {}
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("EffectTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("EffectTestWorld::tickManager not implemented");
     }
     EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
@@ -40,13 +47,9 @@ public:
 
 class HungerEffectTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_world = std::make_unique<EffectTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<EffectTestWorld>(); }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<EffectTestWorld> m_world;
 };
@@ -55,7 +58,8 @@ protected:
 // 饥饿效果测试
 // ============================================================================
 
-TEST_F(HungerEffectTest, HungerEffectAddExhaustionToPlayer) {
+TEST_F(HungerEffectTest, HungerEffectAddExhaustionToPlayer)
+{
     // 创建玩家并设置世界
     Player player(EntityId(1), "TestPlayer");
     player.setWorld(m_world.get());
@@ -78,7 +82,8 @@ TEST_F(HungerEffectTest, HungerEffectAddExhaustionToPlayer) {
     EXPECT_FLOAT_EQ(foodStats.exhaustionLevel(), expectedExhaustion);
 }
 
-TEST_F(HungerEffectTest, HungerEffectIIIncreasesExhaustionMore) {
+TEST_F(HungerEffectTest, HungerEffectIIIncreasesExhaustionMore)
+{
     Player player(EntityId(1), "TestPlayer");
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
@@ -96,7 +101,8 @@ TEST_F(HungerEffectTest, HungerEffectIIIncreasesExhaustionMore) {
     EXPECT_FLOAT_EQ(foodStats.exhaustionLevel(), expectedExhaustion);
 }
 
-TEST_F(HungerEffectTest, HungerEffectIIIIncreasesExhaustionMore) {
+TEST_F(HungerEffectTest, HungerEffectIIIIncreasesExhaustionMore)
+{
     Player player(EntityId(1), "TestPlayer");
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
@@ -114,7 +120,8 @@ TEST_F(HungerEffectTest, HungerEffectIIIIncreasesExhaustionMore) {
     EXPECT_FLOAT_EQ(foodStats.exhaustionLevel(), expectedExhaustion);
 }
 
-TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer) {
+TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer)
+{
     // 饥饿效果对非玩家实体不应该做任何事情
     // 这个测试验证 tick 不会崩溃
     MobEntity mob(LegacyEntityType::Zombie, EntityId(2));
@@ -127,7 +134,8 @@ TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer) {
     EXPECT_NO_THROW(hunger.tick(mob));
 }
 
-TEST_F(HungerEffectTest, HungerEffectMultipleTicks) {
+TEST_F(HungerEffectTest, HungerEffectMultipleTicks)
+{
     Player player(EntityId(1), "TestPlayer");
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);

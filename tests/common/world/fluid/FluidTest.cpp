@@ -1,17 +1,17 @@
-#include <gtest/gtest.h>
 #include "common/world/fluid/Fluid.hpp"
+#include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/FluidProperties.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/fluids/EmptyFluid.hpp"
-#include "common/util/property/FluidProperties.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/util/property/Properties.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
+#include <gtest/gtest.h>
 
 #include <unordered_map>
 
@@ -22,7 +22,8 @@ namespace {
 
 class FlowingFluidTestWorld final : public IBlockReader {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(packPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second;
@@ -30,12 +31,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
 
-    [[nodiscard]] const FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         if (state != nullptr) {
             const FluidState* fluidState = state->getFluidState();
@@ -53,17 +56,23 @@ public:
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
         return {};
     }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
         return {};
     }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
         return {};
     }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
@@ -75,31 +84,38 @@ public:
     [[nodiscard]] bool isClientSide() override { return false; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("FlowingFluidTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("FlowingFluidTestWorld::tickManager not implemented");
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
+    [[nodiscard]] math::Random& getRandom() override
+    {
         throw std::runtime_error("FlowingFluidTestWorld::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override {
+    [[nodiscard]] const math::Random& getRandom() const override
+    {
         throw std::runtime_error("FlowingFluidTestWorld::getRandom not implemented");
     }
 
     // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
         throw std::runtime_error("FlowingFluidTestWorld::worldBorder not implemented");
     }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
         throw std::runtime_error("FlowingFluidTestWorld::worldBorder not implemented");
     }
 
 private:
-    static i64 packPos(i32 x, i32 y, i32 z) {
+    static i64 packPos(i32 x, i32 y, i32 z)
+    {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
     }
 
@@ -112,7 +128,8 @@ private:
 // FluidState Tests
 // ============================================================================
 
-TEST(FluidStateTest, EmptyFluidStateIsEmpty) {
+TEST(FluidStateTest, EmptyFluidStateIsEmpty)
+{
     // EmptyFluid的状态应该标记为空
     EmptyFluid emptyFluid;
     const FluidState& state = emptyFluid.defaultState();
@@ -123,26 +140,28 @@ TEST(FluidStateTest, EmptyFluidStateIsEmpty) {
     EXPECT_EQ(state.getLevel(), 0);
 }
 
-TEST(FluidStateTest, GetFluidReturnsOwner) {
+TEST(FluidStateTest, GetFluidReturnsOwner)
+{
     EmptyFluid emptyFluid;
     const FluidState& state = emptyFluid.defaultState();
 
     EXPECT_EQ(&state.getFluid(), &emptyFluid);
 }
 
-TEST(FluidStateTest, FluidId) {
+TEST(FluidStateTest, FluidId)
+{
     EmptyFluid emptyFluid;
     const FluidState& state = emptyFluid.defaultState();
 
     EXPECT_EQ(state.fluidId(), emptyFluid.fluidId());
 }
 
-TEST(FluidStateTest, WaterBlockStateMapsToShallowFluidHeight) {
+TEST(FluidStateTest, WaterBlockStateMapsToShallowFluidHeight)
+{
     FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
-    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
-        .with(BlockStateProperties::LEVEL_0_15(), 7);
+    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState().with(BlockStateProperties::LEVEL_0_15(), 7);
     const FluidState* fluidState = shallowWater.getFluidState();
 
     ASSERT_NE(fluidState, nullptr);
@@ -151,14 +170,14 @@ TEST(FluidStateTest, WaterBlockStateMapsToShallowFluidHeight) {
     EXPECT_NEAR(fluidState->getHeight(), 1.0f / 9.0f, 1e-6f);
 }
 
-TEST(FluidStateTest, ActualHeightBecomesFullWhenSameFluidAbove) {
+TEST(FluidStateTest, ActualHeightBecomesFullWhenSameFluidAbove)
+{
     FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
     FlowingFluidTestWorld world;
     const BlockPos pos(0, 64, 0);
-    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
-        .with(BlockStateProperties::LEVEL_0_15(), 7);
+    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState().with(BlockStateProperties::LEVEL_0_15(), 7);
     world.setBlockState(pos.x, pos.y, pos.z, &shallowWater);
     world.setBlockState(pos.x, pos.y + 1, pos.z, &VanillaBlocks::WATER->defaultState());
 
@@ -171,7 +190,8 @@ TEST(FluidStateTest, ActualHeightBecomesFullWhenSameFluidAbove) {
 // FluidRegistry Tests
 // ============================================================================
 
-TEST(FluidRegistryTest, InitializeRegistersEmptyFluid) {
+TEST(FluidRegistryTest, InitializeRegistersEmptyFluid)
+{
     FluidRegistry& registry = FluidRegistry::instance();
 
     // 初始化
@@ -183,14 +203,16 @@ TEST(FluidRegistryTest, InitializeRegistersEmptyFluid) {
     EXPECT_EQ(emptyFluid->fluidLocation(), ResourceLocation("minecraft:empty"));
 }
 
-TEST(FluidRegistryTest, GetFluidByInvalidIdReturnsNull) {
+TEST(FluidRegistryTest, GetFluidByInvalidIdReturnsNull)
+{
     FluidRegistry& registry = FluidRegistry::instance();
 
     Fluid* fluid = registry.getFluid(99999);
     EXPECT_EQ(fluid, nullptr);
 }
 
-TEST(FluidRegistryTest, GetFluidByInvalidResourceLocationReturnsNull) {
+TEST(FluidRegistryTest, GetFluidByInvalidResourceLocationReturnsNull)
+{
     FluidRegistry& registry = FluidRegistry::instance();
 
     Fluid* fluid = registry.getFluid(ResourceLocation("minecraft:nonexistent"));
@@ -201,7 +223,8 @@ TEST(FluidRegistryTest, GetFluidByInvalidResourceLocationReturnsNull) {
 // FluidProperties Tests
 // ============================================================================
 
-TEST(FluidPropertiesTest, LevelPropertyHasCorrectRange) {
+TEST(FluidPropertiesTest, LevelPropertyHasCorrectRange)
+{
     auto& level = FluidProperties::LEVEL_1_8();
 
     EXPECT_EQ(level.name(), "level");
@@ -209,7 +232,8 @@ TEST(FluidPropertiesTest, LevelPropertyHasCorrectRange) {
     EXPECT_EQ(level.maxValue(), 8);
 }
 
-TEST(FluidPropertiesTest, FallingPropertyExists) {
+TEST(FluidPropertiesTest, FallingPropertyExists)
+{
     auto& falling = FluidProperties::FALLING();
 
     EXPECT_EQ(falling.name(), "falling");
@@ -219,7 +243,8 @@ TEST(FluidPropertiesTest, FallingPropertyExists) {
 // Fluid Base Class Tests
 // ============================================================================
 
-TEST(FluidTest, DefaultTickDoesNothing) {
+TEST(FluidTest, DefaultTickDoesNothing)
+{
     // Fluid基类的tick方法应该可以被安全调用
     EmptyFluid emptyFluid;
     // 创建一个模拟的world和pos - 需要实际的IWorld实现来测试
@@ -227,17 +252,20 @@ TEST(FluidTest, DefaultTickDoesNothing) {
     // 这里只验证方法存在
 }
 
-TEST(FluidTest, DefaultRandomTickDoesNothing) {
+TEST(FluidTest, DefaultRandomTickDoesNothing)
+{
     EmptyFluid emptyFluid;
     // 与tick类似，需要实际的IWorld和IRandom实现
 }
 
-TEST(FluidTest, DefaultTicksRandomlyReturnsFalse) {
+TEST(FluidTest, DefaultTicksRandomlyReturnsFalse)
+{
     EmptyFluid emptyFluid;
     EXPECT_FALSE(emptyFluid.ticksRandomly());
 }
 
-TEST(FluidTest, IsEquivalentTo) {
+TEST(FluidTest, IsEquivalentTo)
+{
     EmptyFluid emptyFluid1;
     EmptyFluid emptyFluid2;
 
@@ -248,7 +276,8 @@ TEST(FluidTest, IsEquivalentTo) {
     EXPECT_FALSE(emptyFluid1.isEquivalentTo(emptyFluid2));
 }
 
-TEST(FluidFlowBehaviorTest, SourceWaterFlowsDownwardIntoAir) {
+TEST(FluidFlowBehaviorTest, SourceWaterFlowsDownwardIntoAir)
+{
     FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
@@ -269,7 +298,8 @@ TEST(FluidFlowBehaviorTest, SourceWaterFlowsDownwardIntoAir) {
     EXPECT_TRUE(belowState->is(VanillaBlocks::WATER));
 }
 
-TEST(FluidFlowBehaviorTest, SourceWaterSpreadsHorizontallyAsFlowingNotSource) {
+TEST(FluidFlowBehaviorTest, SourceWaterSpreadsHorizontallyAsFlowingNotSource)
+{
     FluidRegistry::instance().initialize();
     VanillaBlocks::initialize();
 
@@ -303,7 +333,8 @@ TEST(FluidFlowBehaviorTest, SourceWaterSpreadsHorizontallyAsFlowingNotSource) {
 // StateContainer Tests for Fluid
 // ============================================================================
 
-TEST(FluidStateTest, StateWithProperties) {
+TEST(FluidStateTest, StateWithProperties)
+{
     EmptyFluid emptyFluid;
     const FluidState& baseState = emptyFluid.defaultState();
 
@@ -315,7 +346,8 @@ TEST(FluidStateTest, StateWithProperties) {
 // ResourceLocation Hash Tests
 // ============================================================================
 
-TEST(ResourceLocationHashTest, CanBeUsedInUnorderedMap) {
+TEST(ResourceLocationHashTest, CanBeUsedInUnorderedMap)
+{
     std::unordered_map<ResourceLocation, int> map;
 
     map[ResourceLocation("minecraft:water")] = 1;

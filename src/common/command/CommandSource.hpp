@@ -1,14 +1,14 @@
 #pragma once
 
+#include "common/command/ICommandSource.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/command/ICommandSource.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
-#include <string>
-#include <memory>
 #include <functional>
+#include <memory>
 #include <optional>
+#include <string>
 
 namespace mc {
 
@@ -31,8 +31,8 @@ class ICommandSource;
  * 用于确定实体的参考点（眼睛或脚）
  */
 enum class EntityAnchorType {
-    Feet,   // 脚部
-    Eyes    // 眼睛
+    Feet, // 脚部
+    Eyes  // 眼睛
 };
 
 /**
@@ -59,16 +59,14 @@ public:
      * @param server 服务器实例（可选）
      * @param entity 关联实体（可选）
      */
-    CommandSource(
-        std::shared_ptr<ICommandSource> source,
+    CommandSource(std::shared_ptr<ICommandSource> source,
         const Vector3d& position,
         const Vector2f& rotation,
         server::ServerWorld* world,
         i32 permissionLevel,
         const std::string& name,
         class MinecraftServer* server,
-        Entity* entity = nullptr
-    );
+        Entity* entity = nullptr);
 
     // ========== 静态工厂方法 ==========
 
@@ -113,9 +111,7 @@ public:
     /**
      * @brief 检查是否有指定权限等级
      */
-    [[nodiscard]] bool hasPermission(i32 level) const noexcept {
-        return m_permissionLevel >= level;
-    }
+    [[nodiscard]] bool hasPermission(i32 level) const noexcept { return m_permissionLevel >= level; }
 
     // ========== 服务器 ==========
 
@@ -180,7 +176,7 @@ public:
 private:
     std::shared_ptr<ICommandSource> m_source;
     Vector3d m_position;
-    Vector2f m_rotation;    // (yaw, pitch)
+    Vector2f m_rotation; // (yaw, pitch)
     server::ServerWorld* m_world;
     i32 m_permissionLevel;
     std::string m_name;
@@ -194,19 +190,19 @@ private:
 
 class CommandExceptions {
 public:
-    static CommandException requiresPlayer() {
-        return CommandException(CommandErrorType::PermissionDenied,
-            "commands.requires.player");
+    static CommandException requiresPlayer()
+    {
+        return CommandException(CommandErrorType::PermissionDenied, "commands.requires.player");
     }
 
-    static CommandException requiresEntity() {
-        return CommandException(CommandErrorType::PermissionDenied,
-            "commands.requires.entity");
+    static CommandException requiresEntity()
+    {
+        return CommandException(CommandErrorType::PermissionDenied, "commands.requires.entity");
     }
 
-    static CommandException permissionDenied([[maybe_unused]] i32 required) {
-        return CommandException(CommandErrorType::PermissionDenied,
-            "commands.permission.denied");
+    static CommandException permissionDenied([[maybe_unused]] i32 required)
+    {
+        return CommandException(CommandErrorType::PermissionDenied, "commands.permission.denied");
     }
 };
 

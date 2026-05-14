@@ -1,33 +1,33 @@
 #pragma once
 
 #include "core/Types.hpp"
-#include "item/core/ItemStack.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
+#include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
-#include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 
 // 拖拽相关常量 (MC 1.16.5 对齐)
 namespace DragConstants {
-    constexpr i32 EVENT_MASK = 0x3;          // button 低2位是拖拽事件
-    constexpr i32 MODE_SHIFT = 2;            // button 高位是拖拽模式的位移
-    constexpr i32 MODE_MASK = 0x3;           // 拖拽模式掩码
+constexpr i32 EVENT_MASK = 0x3; // button 低2位是拖拽事件
+constexpr i32 MODE_SHIFT = 2;   // button 高位是拖拽模式的位移
+constexpr i32 MODE_MASK = 0x3;  // 拖拽模式掩码
 
-    constexpr i32 EVENT_START = 0;           // 开始拖拽
-    constexpr i32 EVENT_ADD_SLOT = 1;        // 添加槽位
-    constexpr i32 EVENT_END = 2;             // 结束拖拽
+constexpr i32 EVENT_START = 0;    // 开始拖拽
+constexpr i32 EVENT_ADD_SLOT = 1; // 添加槽位
+constexpr i32 EVENT_END = 2;      // 结束拖拽
 
-    constexpr i32 MODE_EVEN = 0;             // 均匀分发 (左键)
-    constexpr i32 MODE_SINGLE = 1;           // 逐个分发 (右键)
-    constexpr i32 MODE_FILL = 2;             // 全部分发 (中键，仅创造模式)
+constexpr i32 MODE_EVEN = 0;   // 均匀分发 (左键)
+constexpr i32 MODE_SINGLE = 1; // 逐个分发 (右键)
+constexpr i32 MODE_FILL = 2;   // 全部分发 (中键，仅创造模式)
 
-    constexpr i32 DRAG_MODE_NONE = -1;       // 未开始拖拽
-}
+constexpr i32 DRAG_MODE_NONE = -1; // 未开始拖拽
+} // namespace DragConstants
 
 // Forward declarations
 class Player;
@@ -65,7 +65,8 @@ public:
     /**
      * @brief 检查是否已修改
      */
-    [[nodiscard]] virtual bool isDirty() const {
+    [[nodiscard]] virtual bool isDirty() const
+    {
         i32 current = get();
         bool dirty = current != m_lastValue;
         m_lastValue = current;
@@ -86,7 +87,8 @@ public:
 
     FunctionalIntReferenceHolder(Getter getter, Setter setter)
         : m_getter(std::move(getter))
-        , m_setter(std::move(setter)) {}
+        , m_setter(std::move(setter))
+    {}
 
     [[nodiscard]] i32 get() const override { return m_getter(); }
     void set(i32 value) override { m_setter(value); }
@@ -178,9 +180,7 @@ public:
      * @brief 容器内容变化时调用
      * @param inventory 变化的背包
      */
-    virtual void slotsChanged(IInventory* inventory) {
-        (void)inventory;
-    }
+    virtual void slotsChanged(IInventory* inventory) { (void)inventory; }
 
     /**
      * @brief 检查玩家是否可以访问容器
@@ -239,17 +239,13 @@ public:
      * 当物品需要丢弃到世界中时调用此回调。
      * 上层（ServerWorld/IntegratedServer）应注入实现来生成物品实体。
      */
-    void setItemDropCallback(ItemDropCallback callback) {
-        m_itemDropCallback = std::move(callback);
-    }
+    void setItemDropCallback(ItemDropCallback callback) { m_itemDropCallback = std::move(callback); }
 
     /**
      * @brief 获取物品丢弃回调
      * @return 回调函数
      */
-    [[nodiscard]] const ItemDropCallback& getItemDropCallback() const {
-        return m_itemDropCallback;
-    }
+    [[nodiscard]] const ItemDropCallback& getItemDropCallback() const { return m_itemDropCallback; }
 
     /**
      * @brief 丢弃物品到世界
@@ -355,9 +351,8 @@ public:
      *
      * MC 1.16.5: 用于stillValid检查
      */
-    [[nodiscard]] static bool isWithinDistance(const Player& player,
-                                                const BlockPos& blockPos,
-                                                f32 maxDistanceSq = 4096.0f);
+    [[nodiscard]] static bool isWithinDistance(
+        const Player& player, const BlockPos& blockPos, f32 maxDistanceSq = 4096.0f);
 
 protected:
     /**
@@ -433,7 +428,8 @@ protected:
      * 子类可重写此方法以实现特殊合并逻辑。
      * 参考: net.minecraft.inventory.container.Container.canMergeSlot
      */
-    [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const {
+    [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const
+    {
         (void)stack;
         (void)slot;
         return true;
@@ -552,7 +548,7 @@ protected:
     ContainerId m_id;
     PlayerInventory* m_playerInventory;
     std::vector<std::unique_ptr<Slot>> m_slots;
-    ItemStack m_carried;  // 玩家鼠标持有的物品
+    ItemStack m_carried; // 玩家鼠标持有的物品
 
     // 槽位变化检测缓存（用于优化网络同步）
     std::vector<ItemStack> m_lastSlotStates;
@@ -567,18 +563,18 @@ protected:
     i32 m_nextIntListenerId = 0;
 
     // 槽位范围
-    i32 m_playerInvStart = -1;   // 玩家背包起始索引
-    i32 m_playerInvEnd = -1;     // 玩家背包结束索引
-    i32 m_hotbarStart = -1;      // 快捷栏起始索引
-    i32 m_hotbarEnd = -1;        // 快捷栏结束索引
+    i32 m_playerInvStart = -1; // 玩家背包起始索引
+    i32 m_playerInvEnd = -1;   // 玩家背包结束索引
+    i32 m_hotbarStart = -1;    // 快捷栏起始索引
+    i32 m_hotbarEnd = -1;      // 快捷栏结束索引
 
     // 拖拽状态 (MC 1.16.5 对齐)
-    i32 m_dragEvent = 0;         // 拖拽事件状态 (0=无, 1=添加槽位, 2=结束)
-    i32 m_dragMode = DragConstants::DRAG_MODE_NONE;  // 拖拽模式 (-1=无, 0=均匀分发, 1=逐个分发, 2=全部分发)
-    std::vector<i32> m_dragSlots; // 拖拽目标槽位列表
+    i32 m_dragEvent = 0;                            // 拖拽事件状态 (0=无, 1=添加槽位, 2=结束)
+    i32 m_dragMode = DragConstants::DRAG_MODE_NONE; // 拖拽模式 (-1=无, 0=均匀分发, 1=逐个分发, 2=全部分发)
+    std::vector<i32> m_dragSlots;                   // 拖拽目标槽位列表
 
 private:
-    i16 m_transactionId = 0;  // 事务ID计数器，用于防重放
+    i16 m_transactionId = 0; // 事务ID计数器，用于防重放
 
     // 不能进行合成操作的玩家UUID集合
     std::unordered_set<std::string> m_cannotCraftPlayers;

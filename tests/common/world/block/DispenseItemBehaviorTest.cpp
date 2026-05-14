@@ -8,23 +8,23 @@
  * - 药水效果发射器的药水效果应用
  */
 
-#include <gtest/gtest.h>
-#include "world/block/dispense/IDispenseItemBehavior.hpp"
-#include "world/block/dispense/DispenseItemBehaviorRegistry.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/WorldEvents.hpp"
-#include "util/Direction.hpp"
-#include "util/math/Vector3.hpp"
-#include "item/core/ItemStack.hpp"
-#include "item/Items.hpp"
-#include "item/potion/PotionUtils.hpp"
-#include "item/potion/Potions.hpp"
 #include "entity/core/Entity.hpp"
+#include "entity/effect/EffectType.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/projectile/ProjectileItemEntity.hpp"
-#include "entity/effect/EffectType.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/potion/PotionUtils.hpp"
+#include "item/potion/Potions.hpp"
+#include "util/Direction.hpp"
+#include "util/math/Vector3.hpp"
+#include "world/WorldEvents.hpp"
+#include "world/block/Block.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/dispense/DispenseItemBehaviorRegistry.hpp"
+#include "world/block/dispense/IDispenseItemBehavior.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace blocks {
@@ -35,7 +35,8 @@ namespace test {
  */
 class DispenseBehaviorTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
         // 初始化物品注册表
@@ -51,12 +52,14 @@ protected:
 // OptionalDispenseItemBehavior 测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_DefaultSuccess) {
+TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_DefaultSuccess)
+{
     OptionalDispenseItemBehavior behavior;
     EXPECT_TRUE(behavior.isSuccess());
 }
 
-TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_CanSetFailure) {
+TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_CanSetFailure)
+{
     OptionalDispenseItemBehavior behavior;
 
     // 通过反射或友元类设置失败状态
@@ -80,14 +83,16 @@ TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_CanSetFailure) {
 // DispenseItemBehaviorRegistry 测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, Registry_HasDefaultBehavior) {
+TEST_F(DispenseBehaviorTest, Registry_HasDefaultBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     IDispenseItemBehavior* defaultBehavior = registry.getDefaultBehavior();
     ASSERT_NE(defaultBehavior, nullptr);
 }
 
-TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForEmptyStack_ReturnsNull) {
+TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForEmptyStack_ReturnsNull)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     ItemStack emptyStack;
@@ -95,7 +100,8 @@ TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForEmptyStack_ReturnsNull) {
     EXPECT_EQ(behavior, nullptr);
 }
 
-TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForUnregisteredItem_ReturnsNull) {
+TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForUnregisteredItem_ReturnsNull)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     // 未注册的物品ID返回 nullptr
@@ -103,7 +109,8 @@ TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForUnregisteredItem_ReturnsNull
     EXPECT_EQ(behavior, nullptr);
 }
 
-TEST_F(DispenseBehaviorTest, Registry_HasBehavior_ReturnsCorrectValue) {
+TEST_F(DispenseBehaviorTest, Registry_HasBehavior_ReturnsCorrectValue)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     // 初始化默认行为
@@ -118,7 +125,8 @@ TEST_F(DispenseBehaviorTest, Registry_HasBehavior_ReturnsCorrectValue) {
     EXPECT_FALSE(registry.hasBehavior("minecraft:unknown_item"));
 }
 
-TEST_F(DispenseBehaviorTest, Registry_InitDefaultBehaviors_RegistersProjectiles) {
+TEST_F(DispenseBehaviorTest, Registry_InitDefaultBehaviors_RegistersProjectiles)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     // 初始化默认行为
@@ -136,7 +144,8 @@ TEST_F(DispenseBehaviorTest, Registry_InitDefaultBehaviors_RegistersProjectiles)
     EXPECT_TRUE(registry.hasBehavior("minecraft:lingering_potion"));
 }
 
-TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForSnowball_ReturnsProjectileBehavior) {
+TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForSnowball_ReturnsProjectileBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
     registry.initDefaultBehaviors();
 
@@ -151,17 +160,18 @@ TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForSnowball_ReturnsProjectileBe
 // ProjectileDispenseBehavior 测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, ProjectileBehavior_CreatesFactoryBasedBehavior) {
+TEST_F(DispenseBehaviorTest, ProjectileBehavior_CreatesFactoryBasedBehavior)
+{
     // 测试工厂函数创建
     bool factoryCalled = false;
 
-    auto factory = [&factoryCalled](IWorld& world, const Vector3& pos, const ItemStack& stack)
-        -> std::unique_ptr<mc::Entity> {
+    auto factory = [&factoryCalled](
+                       IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
         factoryCalled = true;
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(stack);
-        return nullptr;  // 返回 nullptr 模拟创建失败
+        return nullptr; // 返回 nullptr 模拟创建失败
     };
 
     ProjectileDispenseBehavior behavior(factory, 1.5f, 3.0f);
@@ -174,7 +184,8 @@ TEST_F(DispenseBehaviorTest, ProjectileBehavior_CreatesFactoryBasedBehavior) {
 // 世界事件 ID 测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, WorldEventIds_AreCorrect) {
+TEST_F(DispenseBehaviorTest, WorldEventIds_AreCorrect)
+{
     // 验证世界事件 ID 与 MC 1.16.5 一致
     EXPECT_EQ(mc::world::WorldEvents::DISPENSER_DISPENSE_SOUND, 1000);
     EXPECT_EQ(mc::world::WorldEvents::DISPENSER_FAIL_SOUND, 1001);
@@ -186,25 +197,29 @@ TEST_F(DispenseBehaviorTest, WorldEventIds_AreCorrect) {
 // 药水效果发射器测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, Registry_HasTippedArrowBehavior) {
+TEST_F(DispenseBehaviorTest, Registry_HasTippedArrowBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     EXPECT_TRUE(registry.hasBehavior("minecraft:tipped_arrow"));
 }
 
-TEST_F(DispenseBehaviorTest, Registry_HasSplashPotionBehavior) {
+TEST_F(DispenseBehaviorTest, Registry_HasSplashPotionBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     EXPECT_TRUE(registry.hasBehavior("minecraft:splash_potion"));
 }
 
-TEST_F(DispenseBehaviorTest, Registry_HasLingeringPotionBehavior) {
+TEST_F(DispenseBehaviorTest, Registry_HasLingeringPotionBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     EXPECT_TRUE(registry.hasBehavior("minecraft:lingering_potion"));
 }
 
-TEST_F(DispenseBehaviorTest, TippedArrowBehavior_IsProjectileBehavior) {
+TEST_F(DispenseBehaviorTest, TippedArrowBehavior_IsProjectileBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:tipped_arrow");
@@ -212,7 +227,8 @@ TEST_F(DispenseBehaviorTest, TippedArrowBehavior_IsProjectileBehavior) {
     EXPECT_TRUE(behavior->isSuccess());
 }
 
-TEST_F(DispenseBehaviorTest, SplashPotionBehavior_IsProjectileBehavior) {
+TEST_F(DispenseBehaviorTest, SplashPotionBehavior_IsProjectileBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:splash_potion");
@@ -220,7 +236,8 @@ TEST_F(DispenseBehaviorTest, SplashPotionBehavior_IsProjectileBehavior) {
     EXPECT_TRUE(behavior->isSuccess());
 }
 
-TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_IsProjectileBehavior) {
+TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_IsProjectileBehavior)
+{
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:lingering_potion");
@@ -228,7 +245,8 @@ TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_IsProjectileBehavior) {
     EXPECT_TRUE(behavior->isSuccess());
 }
 
-TEST_F(DispenseBehaviorTest, TippedArrowBehavior_RegisteredWithCorrectItem) {
+TEST_F(DispenseBehaviorTest, TippedArrowBehavior_RegisteredWithCorrectItem)
+{
     // 验证药水箭发射行为已正确注册
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
@@ -240,7 +258,8 @@ TEST_F(DispenseBehaviorTest, TippedArrowBehavior_RegisteredWithCorrectItem) {
     }
 }
 
-TEST_F(DispenseBehaviorTest, SplashPotionBehavior_RegisteredWithCorrectItem) {
+TEST_F(DispenseBehaviorTest, SplashPotionBehavior_RegisteredWithCorrectItem)
+{
     // 验证喷溅药水发射行为已正确注册
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
@@ -252,7 +271,8 @@ TEST_F(DispenseBehaviorTest, SplashPotionBehavior_RegisteredWithCorrectItem) {
     }
 }
 
-TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_RegisteredWithCorrectItem) {
+TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_RegisteredWithCorrectItem)
+{
     // 验证滞留药水发射行为已正确注册
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
@@ -269,7 +289,8 @@ TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_RegisteredWithCorrectItem) 
 // 测试 PotionUtils 与发射器工厂函数的集成
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, TippedArrow_PotionEffectsCanBeReadFromItemStack) {
+TEST_F(DispenseBehaviorTest, TippedArrow_PotionEffectsCanBeReadFromItemStack)
+{
     // 验证药水箭可以从 ItemStack 读取药水效果
     // 这是发射器药水箭工厂函数的核心逻辑
     if (Items::TIPPED_ARROW == nullptr) {
@@ -280,8 +301,8 @@ TEST_F(DispenseBehaviorTest, TippedArrow_PotionEffectsCanBeReadFromItemStack) {
 
     // 设置自定义药水效果
     std::vector<entity::effect::EffectInstance> customEffects;
-    customEffects.emplace_back(entity::effect::EffectType::Speed, 600, 1);  // Speed II for 30s
-    customEffects.emplace_back(entity::effect::EffectType::Regeneration, 1200, 0);  // Regeneration I for 60s
+    customEffects.emplace_back(entity::effect::EffectType::Speed, 600, 1);         // Speed II for 30s
+    customEffects.emplace_back(entity::effect::EffectType::Regeneration, 1200, 0); // Regeneration I for 60s
 
     potion::PotionUtils::setCustomEffects(tippedArrowStack, customEffects);
 
@@ -294,7 +315,8 @@ TEST_F(DispenseBehaviorTest, TippedArrow_PotionEffectsCanBeReadFromItemStack) {
     EXPECT_EQ(effects[1].amplifier(), 0);
 }
 
-TEST_F(DispenseBehaviorTest, TippedArrow_ColorCanBeCalculatedFromEffects) {
+TEST_F(DispenseBehaviorTest, TippedArrow_ColorCanBeCalculatedFromEffects)
+{
     // 验证药水箭颜色可以正确计算
     // 这是发射器药水箭工厂函数设置 arrow->setColor() 的核心逻辑
     if (Items::TIPPED_ARROW == nullptr) {
@@ -311,11 +333,12 @@ TEST_F(DispenseBehaviorTest, TippedArrow_ColorCanBeCalculatedFromEffects) {
 
     // 验证颜色计算
     u32 color = potion::PotionUtils::getColor(tippedArrowStack);
-    EXPECT_NE(color, 0x385DC6FF);  // 不是水瓶颜色
-    EXPECT_GT((color >> 24) & 0xFF, 0);  // 有有效的 alpha 通道
+    EXPECT_NE(color, 0x385DC6FF);       // 不是水瓶颜色
+    EXPECT_GT((color >> 24) & 0xFF, 0); // 有有效的 alpha 通道
 }
 
-TEST_F(DispenseBehaviorTest, SplashPotion_ItemStackCanBeCreatedWithEffects) {
+TEST_F(DispenseBehaviorTest, SplashPotion_ItemStackCanBeCreatedWithEffects)
+{
     // 验证喷溅药水 ItemStack 可以携带效果
     // 这是发射器药水工厂函数设置 potion->setItemStack(stack) 的核心逻辑
     if (Items::SPLASH_POTION == nullptr) {
@@ -329,7 +352,7 @@ TEST_F(DispenseBehaviorTest, SplashPotion_ItemStackCanBeCreatedWithEffects) {
 
     // 设置自定义效果
     std::vector<entity::effect::EffectInstance> customEffects;
-    customEffects.emplace_back(entity::effect::EffectType::Speed, 1200, 1);  // Speed II for 60s
+    customEffects.emplace_back(entity::effect::EffectType::Speed, 1200, 1); // Speed II for 60s
 
     potion::PotionUtils::setCustomEffects(splashPotionStack, customEffects);
 
@@ -349,7 +372,8 @@ TEST_F(DispenseBehaviorTest, SplashPotion_ItemStackCanBeCreatedWithEffects) {
     EXPECT_TRUE(hasSpeedEffect);
 }
 
-TEST_F(DispenseBehaviorTest, LingeringPotion_ItemStackCanBeCreatedWithEffects) {
+TEST_F(DispenseBehaviorTest, LingeringPotion_ItemStackCanBeCreatedWithEffects)
+{
     // 验证滞留药水 ItemStack 可以携带效果
     // 这是发射器药水工厂函数设置 potion->setItemStack(stack) 的核心逻辑
     if (Items::LINGERING_POTION == nullptr) {
@@ -372,7 +396,8 @@ TEST_F(DispenseBehaviorTest, LingeringPotion_ItemStackCanBeCreatedWithEffects) {
     // 主要验证药水类型设置成功，效果从药水基础效果中获取
 }
 
-TEST_F(DispenseBehaviorTest, EmptyTippedArrow_HasNoCustomEffects) {
+TEST_F(DispenseBehaviorTest, EmptyTippedArrow_HasNoCustomEffects)
+{
     // 边界情况：未设置效果的药水箭没有自定义效果
     if (Items::TIPPED_ARROW == nullptr) {
         GTEST_SKIP() << "TIPPED_ARROW item not initialized";
@@ -387,7 +412,8 @@ TEST_F(DispenseBehaviorTest, EmptyTippedArrow_HasNoCustomEffects) {
     EXPECT_TRUE(customEffects.empty());
 }
 
-TEST_F(DispenseBehaviorTest, EmptySplashPotion_HasNoCustomEffects) {
+TEST_F(DispenseBehaviorTest, EmptySplashPotion_HasNoCustomEffects)
+{
     // 边界情况：未设置效果的喷溅药水只有药水类型，没有自定义效果
     if (Items::SPLASH_POTION == nullptr) {
         GTEST_SKIP() << "SPLASH_POTION item not initialized";
@@ -402,7 +428,8 @@ TEST_F(DispenseBehaviorTest, EmptySplashPotion_HasNoCustomEffects) {
     EXPECT_TRUE(customEffects.empty());
 }
 
-TEST_F(DispenseBehaviorTest, NonPotionItem_ReturnsNullBehavior) {
+TEST_F(DispenseBehaviorTest, NonPotionItem_ReturnsNullBehavior)
+{
     // 边界情况：普通物品没有发射器行为
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 
@@ -416,7 +443,8 @@ TEST_F(DispenseBehaviorTest, NonPotionItem_ReturnsNullBehavior) {
     EXPECT_EQ(behavior, nullptr);
 }
 
-TEST_F(DispenseBehaviorTest, MultipleEffectsPreservedInItemStack) {
+TEST_F(DispenseBehaviorTest, MultipleEffectsPreservedInItemStack)
+{
     // 验证多个效果在 ItemStack 中正确保存和读取
     if (Items::TIPPED_ARROW == nullptr) {
         GTEST_SKIP() << "TIPPED_ARROW item not initialized";
@@ -444,7 +472,8 @@ TEST_F(DispenseBehaviorTest, MultipleEffectsPreservedInItemStack) {
     EXPECT_TRUE(hasJump);
 }
 
-TEST_F(DispenseBehaviorTest, Registry_InitDefaultBehaviors_Idempotent) {
+TEST_F(DispenseBehaviorTest, Registry_InitDefaultBehaviors_Idempotent)
+{
     // 验证 initDefaultBehaviors() 可以安全地多次调用
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
 

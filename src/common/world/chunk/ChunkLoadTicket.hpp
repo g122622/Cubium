@@ -2,9 +2,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include <cstdint>
 #include <functional>
 #include <memory>
-#include <cstdint>
 #include <vector>
 
 namespace mc::world {
@@ -42,7 +42,7 @@ struct Unit {
  * auto portalType = ChunkLoadTicketType<ChunkPos>::create("portal", 300); // 300 tick
  * @endcode
  */
-template<typename T>
+template <typename T>
 class ChunkLoadTicketType {
 public:
     using ValueType = T;
@@ -74,7 +74,8 @@ public:
      *
      * @note 不带生命周期的票据会一直存在直到被显式移除
      */
-    static ChunkLoadTicketType<T> create(const std::string& name, Comparator comp = defaultCompare) {
+    static ChunkLoadTicketType<T> create(const std::string& name, Comparator comp = defaultCompare)
+    {
         return ChunkLoadTicketType<T>(name, comp, 0);
     }
 
@@ -87,17 +88,14 @@ public:
      *
      * @note 生命周期票据常用于临时加载（如传送门）
      */
-    static ChunkLoadTicketType<T> create(const std::string& name, u32 lifespan, Comparator comp = defaultCompare) {
+    static ChunkLoadTicketType<T> create(const std::string& name, u32 lifespan, Comparator comp = defaultCompare)
+    {
         return ChunkLoadTicketType<T>(name, comp, lifespan);
     }
 
-    bool operator==(const ChunkLoadTicketType& other) const {
-        return m_name == other.m_name;
-    }
+    bool operator==(const ChunkLoadTicketType& other) const { return m_name == other.m_name; }
 
-    bool operator!=(const ChunkLoadTicketType& other) const {
-        return m_name != other.m_name;
-    }
+    bool operator!=(const ChunkLoadTicketType& other) const { return m_name != other.m_name; }
 
 private:
     std::string m_name;
@@ -105,11 +103,12 @@ private:
     u32 m_lifespan;
 
     ChunkLoadTicketType(const std::string& name, Comparator comp, u32 lifespan)
-        : m_name(name), m_comparator(std::move(comp)), m_lifespan(lifespan) {}
+        : m_name(name)
+        , m_comparator(std::move(comp))
+        , m_lifespan(lifespan)
+    {}
 
-    static bool defaultCompare(const T& a, const T& b) {
-        return a < b;
-    }
+    static bool defaultCompare(const T& a, const T& b) { return a < b; }
 };
 
 // ============================================================================
@@ -117,70 +116,70 @@ private:
 // ============================================================================
 
 namespace TicketTypes {
-    /**
-     * @brief 玩家加载票据
-     *
-     * 当玩家进入区块时添加，离开时移除。
-     * 这是最常用的票据类型，用于加载玩家视距范围内的区块。
-     */
-    extern const ChunkLoadTicketType<ChunkPos> PLAYER;
+/**
+ * @brief 玩家加载票据
+ *
+ * 当玩家进入区块时添加，离开时移除。
+ * 这是最常用的票据类型，用于加载玩家视距范围内的区块。
+ */
+extern const ChunkLoadTicketType<ChunkPos> PLAYER;
 
-    /**
-     * @brief 强制加载票据
-     *
-     * 通过 /forceload 命令或 API 添加。
-     * 永久加载区块，不会因玩家离开而卸载。
-     */
-    extern const ChunkLoadTicketType<ChunkPos> FORCED;
+/**
+ * @brief 强制加载票据
+ *
+ * 通过 /forceload 命令或 API 添加。
+ * 永久加载区块，不会因玩家离开而卸载。
+ */
+extern const ChunkLoadTicketType<ChunkPos> FORCED;
 
-    /**
-     * @brief 传送门加载票据
-     *
-     * 玩家使用传送门时临时加载目标区域的区块。
-     * 生命周期：300 tick（约 15 秒）
-     */
-    extern const ChunkLoadTicketType<ChunkPos> PORTAL;
+/**
+ * @brief 传送门加载票据
+ *
+ * 玩家使用传送门时临时加载目标区域的区块。
+ * 生命周期：300 tick（约 15 秒）
+ */
+extern const ChunkLoadTicketType<ChunkPos> PORTAL;
 
-    /**
-     * @brief 传送后加载票据
-     *
-     * 传送完成后的临时加载，确保区块不会立即卸载。
-     * 生命周期：5 tick
-     */
-    extern const ChunkLoadTicketType<u32> POST_TELEPORT;
+/**
+ * @brief 传送后加载票据
+ *
+ * 传送完成后的临时加载，确保区块不会立即卸载。
+ * 生命周期：5 tick
+ */
+extern const ChunkLoadTicketType<u32> POST_TELEPORT;
 
-    /**
-     * @brief 未知/临时加载票据
-     */
-    extern const ChunkLoadTicketType<ChunkPos> UNKNOWN;
+/**
+ * @brief 未知/临时加载票据
+ */
+extern const ChunkLoadTicketType<ChunkPos> UNKNOWN;
 
-    /**
-     * @brief 世界启动票据
-     *
-     * 用于加载世界出生点附近的区块。
-     */
-    extern const ChunkLoadTicketType<Unit> START;
+/**
+ * @brief 世界启动票据
+ *
+ * 用于加载世界出生点附近的区块。
+ */
+extern const ChunkLoadTicketType<Unit> START;
 
-    /**
-     * @brief 末影龙战斗票据
-     *
-     * 加载末地中央岛屿的区块。
-     */
-    extern const ChunkLoadTicketType<Unit> DRAGON;
+/**
+ * @brief 末影龙战斗票据
+ *
+ * 加载末地中央岛屿的区块。
+ */
+extern const ChunkLoadTicketType<Unit> DRAGON;
 
-    /**
-     * @brief 光照计算票据
-     *
-     * 用于光照计算的区块加载。
-     */
-    extern const ChunkLoadTicketType<ChunkPos> LIGHT;
+/**
+ * @brief 光照计算票据
+ *
+ * 用于光照计算的区块加载。
+ */
+extern const ChunkLoadTicketType<ChunkPos> LIGHT;
 
-    /**
-     * @brief 初始化所有票据类型
-     *
-     * @note 必须在使用任何票据类型之前调用一次
-     */
-    void initializeTicketTypes();
+/**
+ * @brief 初始化所有票据类型
+ *
+ * @note 必须在使用任何票据类型之前调用一次
+ */
+void initializeTicketTypes();
 } // namespace TicketTypes
 
 // ============================================================================
@@ -213,7 +212,7 @@ public:
      * @param level 票据级别
      * @param value 关联值
      */
-    template<typename T>
+    template <typename T>
     ChunkLoadTicket(const ChunkLoadTicketType<T>& type, i32 level, const T& value)
         : m_typeName(type.name())
         , m_level(level)
@@ -237,32 +236,31 @@ public:
      *
      * @note 级别越小优先级越高
      */
-    bool operator<(const ChunkLoadTicket& other) const {
+    bool operator<(const ChunkLoadTicket& other) const
+    {
         if (m_level != other.m_level) {
-            return m_level > other.m_level;  // 级别大的排后面
+            return m_level > other.m_level; // 级别大的排后面
         }
         return m_typeName > other.m_typeName;
     }
 
-    bool operator==(const ChunkLoadTicket& other) const {
-        return m_typeName == other.m_typeName &&
-               m_level == other.m_level &&
-               m_chunkValue == other.m_chunkValue &&
-               m_intValue == other.m_intValue;
+    bool operator==(const ChunkLoadTicket& other) const
+    {
+        return m_typeName == other.m_typeName && m_level == other.m_level && m_chunkValue == other.m_chunkValue &&
+            m_intValue == other.m_intValue;
     }
 
-    bool operator!=(const ChunkLoadTicket& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const ChunkLoadTicket& other) const { return !(*this == other); }
 
     /**
      * @brief 比较优先级
      * @param other 另一个票据
      * @return true 表示 this 优先级高于 other
      */
-    bool hasHigherPriorityThan(const ChunkLoadTicket& other) const {
+    bool hasHigherPriorityThan(const ChunkLoadTicket& other) const
+    {
         if (m_level != other.m_level) {
-            return m_level < other.m_level;  // 级别小优先级高
+            return m_level < other.m_level; // 级别小优先级高
         }
         return m_typeName < other.m_typeName;
     }
@@ -291,7 +289,8 @@ public:
      *
      * @note 生命周期为 0 的票据永不过期
      */
-    [[nodiscard]] bool isExpired(u64 currentTime) const {
+    [[nodiscard]] bool isExpired(u64 currentTime) const
+    {
         if (m_lifespan == 0) return false;
         return currentTime - m_timestamp > m_lifespan;
     }
@@ -302,7 +301,7 @@ public:
 
 private:
     std::string m_typeName;
-    i32 m_level = 34;  // 默认为未加载级别
+    i32 m_level = 34; // 默认为未加载级别
     u64 m_timestamp = 0;
     u32 m_lifespan = 0;
     bool m_forceTicks = false;
@@ -382,13 +381,13 @@ private:
  * - Full (31): 完全加载
  */
 enum class ChunkLoadLevel : i32 {
-    Unloaded = 34,          ///< 未加载
-    Border = 33,            ///< 边界区块（实体不 tick）
-    EntityTicking = 32,     ///< 实体可以 tick
-    Full = 31,              ///< 完全加载
+    Unloaded = 34,      ///< 未加载
+    Border = 33,        ///< 边界区块（实体不 tick）
+    EntityTicking = 32, ///< 实体可以 tick
+    Full = 31,          ///< 完全加载
 
-    PlayerTicket = 31,      ///< 玩家票据级别
-    MaxLevel = 34           ///< 最大级别
+    PlayerTicket = 31, ///< 玩家票据级别
+    MaxLevel = 34      ///< 最大级别
 };
 
 /**
@@ -401,7 +400,8 @@ enum class ChunkLoadLevel : i32 {
  *
  * @note 视距越大，票据级别越小，加载范围越大
  */
-inline i32 viewDistanceToLevel(i32 viewDistance) {
+inline i32 viewDistanceToLevel(i32 viewDistance)
+{
     return 33 - viewDistance;
 }
 
@@ -410,7 +410,8 @@ inline i32 viewDistanceToLevel(i32 viewDistance) {
  * @param level 票据级别
  * @return 加载级别枚举
  */
-inline ChunkLoadLevel levelToLoadLevel(i32 level) {
+inline ChunkLoadLevel levelToLoadLevel(i32 level)
+{
     if (level <= 31) return ChunkLoadLevel::Full;
     if (level == 32) return ChunkLoadLevel::EntityTicking;
     if (level == 33) return ChunkLoadLevel::Border;
@@ -422,7 +423,8 @@ inline ChunkLoadLevel levelToLoadLevel(i32 level) {
  * @param level 票据级别
  * @return true 表示区块应该加载
  */
-inline bool shouldChunkLoad(i32 level) {
+inline bool shouldChunkLoad(i32 level)
+{
     return level <= static_cast<i32>(ChunkLoadLevel::Border);
 }
 

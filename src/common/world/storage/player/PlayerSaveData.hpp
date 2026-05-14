@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/world/GlobalPos.hpp"
-#include "common/item/core/ItemStack.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include <vector>
+#include "common/world/GlobalPos.hpp"
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace mc {
 namespace world::storage {
@@ -189,7 +189,9 @@ struct PlayerSaveData {
      * @param name 用户名
      */
     explicit PlayerSaveData(const std::string& playerUuid, const std::string& name)
-        : uuid(playerUuid), username(name) {}
+        : uuid(playerUuid)
+        , username(name)
+    {}
 
     // ========== 序列化 ==========
 
@@ -220,5 +222,5 @@ struct PlayerSaveData {
     static Result<PlayerSaveData> deserialize(const std::vector<u8>& data);
 };
 
-} // namespace storage
+} // namespace world::storage
 } // namespace mc

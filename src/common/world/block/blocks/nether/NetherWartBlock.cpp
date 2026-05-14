@@ -1,21 +1,23 @@
 #include "NetherWartBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
 
 NetherWartBlock::NetherWartBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AGE_0_3())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AGE_0_3())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -28,22 +30,23 @@ NetherWartBlock::NetherWartBlock(const BlockProperties& properties)
     m_shapesByAge[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.625f, 0.9375f);
 }
 
-i32 NetherWartBlock::getAge(const BlockState& state) const {
+i32 NetherWartBlock::getAge(const BlockState& state) const
+{
     return state.get(BlockStateProperties::AGE_0_3());
 }
 
-BlockState NetherWartBlock::withAge(i32 age) const {
+BlockState NetherWartBlock::withAge(i32 age) const
+{
     return defaultState().with(BlockStateProperties::AGE_0_3(), std::min(age, 3));
 }
 
-BlockState NetherWartBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState NetherWartBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-bool NetherWartBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool NetherWartBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -60,7 +63,8 @@ bool NetherWartBlock::isValidPosition(
     return belowState->is(VanillaBlocks::SOUL_SAND) || belowState->is(VanillaBlocks::SOUL_SOIL);
 }
 
-void NetherWartBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void NetherWartBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     i32 age = getAge(state);
 
     if (age < getMaxAge()) {
@@ -72,12 +76,14 @@ void NetherWartBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState&
     }
 }
 
-const CollisionShape& NetherWartBlock::getShape(const BlockState& state) const {
+const CollisionShape& NetherWartBlock::getShape(const BlockState& state) const
+{
     i32 age = getAge(state);
     return m_shapesByAge[std::min(age, 3)];
 }
 
-const CollisionShape& NetherWartBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& NetherWartBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;

@@ -8,10 +8,10 @@ namespace mc::server::core {
 PositionTracker::PositionTracker(PlayerManager& playerManager, const ServerCoreConfig& config)
     : m_playerManager(playerManager)
     , m_defaultViewDistance(config.viewDistance)
-{
-}
+{}
 
-bool PositionTracker::updatePosition(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch, bool onGround) {
+bool PositionTracker::updatePosition(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch, bool onGround)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return false;
@@ -30,7 +30,8 @@ bool PositionTracker::updatePosition(PlayerId playerId, f64 x, f64 y, f64 z, f32
     return true;
 }
 
-bool PositionTracker::updatePosition(PlayerId playerId, f64 x, f64 y, f64 z) {
+bool PositionTracker::updatePosition(PlayerId playerId, f64 x, f64 y, f64 z)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return false;
@@ -46,7 +47,8 @@ bool PositionTracker::updatePosition(PlayerId playerId, f64 x, f64 y, f64 z) {
     return true;
 }
 
-bool PositionTracker::updateRotation(PlayerId playerId, f32 yaw, f32 pitch) {
+bool PositionTracker::updateRotation(PlayerId playerId, f32 yaw, f32 pitch)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return false;
@@ -57,9 +59,9 @@ bool PositionTracker::updateRotation(PlayerId playerId, f32 yaw, f32 pitch) {
     return true;
 }
 
-void PositionTracker::calculateChunkUpdates(PlayerId playerId,
-                                             std::vector<ChunkPos>& chunksToLoad,
-                                             std::vector<ChunkPos>& chunksToUnload) {
+void PositionTracker::calculateChunkUpdates(
+    PlayerId playerId, std::vector<ChunkPos>& chunksToLoad, std::vector<ChunkPos>& chunksToUnload)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player || !player->chunkTracker) {
         return;
@@ -68,7 +70,8 @@ void PositionTracker::calculateChunkUpdates(PlayerId playerId,
     player->chunkTracker->calculateChunkUpdates(chunksToLoad, chunksToUnload);
 }
 
-void PositionTracker::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord z) {
+void PositionTracker::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord z)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player || !player->chunkTracker) {
         return;
@@ -78,7 +81,8 @@ void PositionTracker::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord 
     m_playerManager.chunkSyncManager().markChunkSent(playerId, x, z);
 }
 
-void PositionTracker::markChunkUnloaded(PlayerId playerId, ChunkCoord x, ChunkCoord z) {
+void PositionTracker::markChunkUnloaded(PlayerId playerId, ChunkCoord x, ChunkCoord z)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player || !player->chunkTracker) {
         return;
@@ -88,21 +92,26 @@ void PositionTracker::markChunkUnloaded(PlayerId playerId, ChunkCoord x, ChunkCo
     m_playerManager.chunkSyncManager().markChunkUnloaded(playerId, x, z);
 }
 
-std::vector<PlayerId> PositionTracker::getChunkSubscribers(ChunkCoord x, ChunkCoord z) const {
+std::vector<PlayerId> PositionTracker::getChunkSubscribers(ChunkCoord x, ChunkCoord z) const
+{
     return m_playerManager.chunkSyncManager().getChunkSubscribers(x, z);
 }
 
-Vector3f PositionTracker::getPosition(PlayerId playerId) const {
+Vector3f PositionTracker::getPosition(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
-    return player ? Vector3f(player->x, player->y, player->z) : Vector3f(0.0f, static_cast<f32>(world::SEA_LEVEL) + 1.0f, 0.0f);
+    return player ? Vector3f(player->x, player->y, player->z)
+                  : Vector3f(0.0f, static_cast<f32>(world::SEA_LEVEL) + 1.0f, 0.0f);
 }
 
-Vector2f PositionTracker::getRotation(PlayerId playerId) const {
+Vector2f PositionTracker::getRotation(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     return player ? Vector2f(player->yaw, player->pitch) : Vector2f(0.0f, 0.0f);
 }
 
-ChunkPos PositionTracker::getChunkPosition(PlayerId playerId) const {
+ChunkPos PositionTracker::getChunkPosition(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return ChunkPos(0, 0);
@@ -110,12 +119,14 @@ ChunkPos PositionTracker::getChunkPosition(PlayerId playerId) const {
     return ChunkPos(player->chunkX(), player->chunkZ());
 }
 
-bool PositionTracker::isOnGround(PlayerId playerId) const {
+bool PositionTracker::isOnGround(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     return player ? player->onGround : true;
 }
 
-void PositionTracker::setViewDistance(PlayerId playerId, i32 viewDistance) {
+void PositionTracker::setViewDistance(PlayerId playerId, i32 viewDistance)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player || !player->chunkTracker) {
         return;
@@ -124,7 +135,8 @@ void PositionTracker::setViewDistance(PlayerId playerId, i32 viewDistance) {
     player->chunkTracker->setViewDistance(viewDistance);
 }
 
-i32 PositionTracker::getViewDistance(PlayerId playerId) const {
+i32 PositionTracker::getViewDistance(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player || !player->chunkTracker) {
         return m_defaultViewDistance;

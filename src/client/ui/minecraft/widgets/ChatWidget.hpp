@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../../kagero/widget/ContainerWidget.hpp"
-#include "../../kagero/paint/PaintContext.hpp"
 #include "../../../chat/ChatHistory.hpp"
+#include "../../kagero/paint/PaintContext.hpp"
+#include "../../kagero/widget/ContainerWidget.hpp"
 #include "client/command/ClientCommandManager.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
-#include <functional>
 #include <chrono>
+#include <functional>
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
@@ -61,7 +61,8 @@ public:
     /**
      * @brief 设置命令回调
      */
-    void setCommandCallback(CommandCallback callback) {
+    void setCommandCallback(CommandCallback callback)
+    {
         MC_ASSERT_RELEASE(!m_commandCallback);
         m_commandCallback = std::move(callback);
     }
@@ -69,7 +70,8 @@ public:
     /**
      * @brief 设置命令补全管理器
      */
-    void setCommandManager(mc::client::command::ClientCommandManager* commandManager) {
+    void setCommandManager(mc::client::command::ClientCommandManager* commandManager)
+    {
         MC_ASSERT_RELEASE(!m_commandManager);
         m_commandManager = commandManager;
         updateCommandSuggestions();
@@ -135,8 +137,8 @@ public:
     /**
      * @brief 添加富文本消息
      */
-    void addMessage(std::unique_ptr<text::ITextComponent> message,
-                    chat::ChatMessageType type = chat::ChatMessageType::Chat);
+    void addMessage(
+        std::unique_ptr<text::ITextComponent> message, chat::ChatMessageType type = chat::ChatMessageType::Chat);
 
     /**
      * @brief 添加系统消息

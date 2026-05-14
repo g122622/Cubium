@@ -42,33 +42,25 @@ public:
      * @brief 获取水体颜色
      * @return 水体颜色 (RGB格式)
      */
-    [[nodiscard]] u32 waterColor() const noexcept {
-        return m_waterColor;
-    }
+    [[nodiscard]] u32 waterColor() const noexcept { return m_waterColor; }
 
     /**
      * @brief 获取水下雾颜色
      * @return 水下雾颜色 (RGB格式)
      */
-    [[nodiscard]] u32 waterFogColor() const noexcept {
-        return m_waterFogColor;
-    }
+    [[nodiscard]] u32 waterFogColor() const noexcept { return m_waterFogColor; }
 
     /**
      * @brief 获取雾颜色
      * @return 雾颜色 (RGB格式)
      */
-    [[nodiscard]] u32 fogColor() const noexcept {
-        return m_fogColor;
-    }
+    [[nodiscard]] u32 fogColor() const noexcept { return m_fogColor; }
 
     /**
      * @brief 获取天空颜色
      * @return 天空颜色 (RGB格式)
      */
-    [[nodiscard]] u32 skyColor() const noexcept {
-        return m_skyColor;
-    }
+    [[nodiscard]] u32 skyColor() const noexcept { return m_skyColor; }
 
     /**
      * @brief 获取树叶颜色覆盖
@@ -76,9 +68,7 @@ public:
      *
      * @note 如果返回 nullopt，应使用 foliage colormap 计算颜色
      */
-    [[nodiscard]] OptionalColor foliageColor() const noexcept {
-        return m_foliageColor;
-    }
+    [[nodiscard]] OptionalColor foliageColor() const noexcept { return m_foliageColor; }
 
     /**
      * @brief 获取草颜色覆盖
@@ -87,39 +77,35 @@ public:
      * @note 如果返回 nullopt，应使用 grass colormap 计算颜色
      *       （可能还需要应用 grassColorModifier）
      */
-    [[nodiscard]] OptionalColor grassColor() const noexcept {
-        return m_grassColor;
-    }
+    [[nodiscard]] OptionalColor grassColor() const noexcept { return m_grassColor; }
 
     /**
      * @brief 获取草颜色修改器
      * @return 草颜色修改器类型
      */
-    [[nodiscard]] GrassColorModifier grassColorModifier() const noexcept {
-        return m_grassColorModifier;
-    }
+    [[nodiscard]] GrassColorModifier grassColorModifier() const noexcept { return m_grassColorModifier; }
 
     // === 默认颜色常量 ===
 
-    static constexpr u32 DEFAULT_WATER_COLOR = 0x3F76E4;      ///< 默认水体颜色 (蓝色)
-    static constexpr u32 DEFAULT_WATER_FOG_COLOR = 0x050533;  ///< 默认水下雾颜色 (深蓝)
-    static constexpr u32 DEFAULT_FOG_COLOR = 0xC0D8FF;        ///< 默认雾颜色 (浅蓝)
-    static constexpr u32 DEFAULT_SKY_COLOR = 0x78A7FF;        ///< 默认天空颜色 (蓝色)
+    static constexpr u32 DEFAULT_WATER_COLOR = 0x3F76E4;     ///< 默认水体颜色 (蓝色)
+    static constexpr u32 DEFAULT_WATER_FOG_COLOR = 0x050533; ///< 默认水下雾颜色 (深蓝)
+    static constexpr u32 DEFAULT_FOG_COLOR = 0xC0D8FF;       ///< 默认雾颜色 (浅蓝)
+    static constexpr u32 DEFAULT_SKY_COLOR = 0x78A7FF;       ///< 默认天空颜色 (蓝色)
 
     // 特殊生物群系颜色常量
-    static constexpr u32 SWAMP_WATER_COLOR = 0x617B64;        ///< 沼泽水体颜色
-    static constexpr u32 SWAMP_WATER_FOG_COLOR = 0x232817;    ///< 沼泽水下雾颜色
-    static constexpr u32 SWAMP_FOG_COLOR = 0x7E8E8E;          ///< 沼泽雾颜色
+    static constexpr u32 SWAMP_WATER_COLOR = 0x617B64;     ///< 沼泽水体颜色
+    static constexpr u32 SWAMP_WATER_FOG_COLOR = 0x232817; ///< 沼泽水下雾颜色
+    static constexpr u32 SWAMP_FOG_COLOR = 0x7E8E8E;       ///< 沼泽雾颜色
 
     static constexpr u32 FROZEN_OCEAN_WATER_COLOR = 0x3938C9; ///< 冻洋水体颜色
 
-    static constexpr u32 WARM_OCEAN_WATER_COLOR = 0x43D5EE;   ///< 暖水海洋水体颜色
+    static constexpr u32 WARM_OCEAN_WATER_COLOR = 0x43D5EE;     ///< 暖水海洋水体颜色
     static constexpr u32 WARM_OCEAN_WATER_FOG_COLOR = 0x041F33; ///< 暖水海洋水下雾颜色
 
-    static constexpr u32 LUKEWARM_OCEAN_WATER_COLOR = 0x45ADF2; ///< 温水海洋水体颜色
+    static constexpr u32 LUKEWARM_OCEAN_WATER_COLOR = 0x45ADF2;     ///< 温水海洋水体颜色
     static constexpr u32 LUKEWARM_OCEAN_WATER_FOG_COLOR = 0x0E4673; ///< 温水海洋水下雾颜色
 
-    static constexpr u32 COLD_OCEAN_WATER_COLOR = 0x3D57E6;   ///< 冷水海洋水体颜色
+    static constexpr u32 COLD_OCEAN_WATER_COLOR = 0x3D57E6;     ///< 冷水海洋水体颜色
     static constexpr u32 COLD_OCEAN_WATER_FOG_COLOR = 0x1A3AA3; ///< 冷水海洋水下雾颜色
 
     static constexpr u32 SWAMP_GRASS_COLOR = 0x6A7039;        ///< 沼泽草颜色（浅色）
@@ -127,10 +113,10 @@ public:
     static constexpr u32 SWAMP_FOLIAGE_COLOR = 0x6A7039;      ///< 沼泽树叶颜色（浅色）
     static constexpr u32 SWAMP_FOLIAGE_COLOR_DARK = 0x4C613C; ///< 沼泽树叶颜色（深色）
 
-    static constexpr u32 DARK_FOREST_GRASS_COLOR = 0x507A50;  ///< 黑森林草颜色
+    static constexpr u32 DARK_FOREST_GRASS_COLOR = 0x507A50; ///< 黑森林草颜色
 
-    static constexpr u32 BADLANDS_GRASS_COLOR = 0x90814D;     ///< 恶地草颜色
-    static constexpr u32 BADLANDS_FOLIAGE_COLOR = 0x9E814D;   ///< 恶地树叶颜色
+    static constexpr u32 BADLANDS_GRASS_COLOR = 0x90814D;   ///< 恶地草颜色
+    static constexpr u32 BADLANDS_FOLIAGE_COLOR = 0x9E814D; ///< 恶地树叶颜色
 
     /**
      * @brief Builder 模式用于构建 BiomeEffects
@@ -146,42 +132,50 @@ public:
      */
     class Builder {
     public:
-        Builder& waterColor(u32 color) {
+        Builder& waterColor(u32 color)
+        {
             m_waterColor = color;
             return *this;
         }
 
-        Builder& waterFogColor(u32 color) {
+        Builder& waterFogColor(u32 color)
+        {
             m_waterFogColor = color;
             return *this;
         }
 
-        Builder& fogColor(u32 color) {
+        Builder& fogColor(u32 color)
+        {
             m_fogColor = color;
             return *this;
         }
 
-        Builder& skyColor(u32 color) {
+        Builder& skyColor(u32 color)
+        {
             m_skyColor = color;
             return *this;
         }
 
-        Builder& foliageColor(u32 color) {
+        Builder& foliageColor(u32 color)
+        {
             m_foliageColor = color;
             return *this;
         }
 
-        Builder& grassColor(u32 color) {
+        Builder& grassColor(u32 color)
+        {
             m_grassColor = color;
             return *this;
         }
 
-        Builder& grassColorModifier(GrassColorModifier modifier) {
+        Builder& grassColorModifier(GrassColorModifier modifier)
+        {
             m_grassColorModifier = modifier;
             return *this;
         }
 
-        BiomeEffects build() const {
+        BiomeEffects build() const
+        {
             BiomeEffects effects;
             effects.m_waterColor = m_waterColor;
             effects.m_waterFogColor = m_waterFogColor;

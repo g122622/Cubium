@@ -26,16 +26,15 @@ public:
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     /**
      * @brief 触发检测
      *
      * 不可能触发器永远不会触发。
      */
-    void trigger(::mc::server::PlayerAdvancements& advancements) {
+    void trigger(::mc::server::PlayerAdvancements& advancements)
+    {
         // 不可能触发器永远不会触发
         MC_UNUSED(advancements);
     }
@@ -55,7 +54,8 @@ public:
      * @brief 从JSON解析
      * 不可能触发器没有条件，直接返回空实例
      */
-    Result<void> fromJson(const nlohmann::json& json) {
+    Result<void> fromJson(const nlohmann::json& json)
+    {
         // 不可能触发器没有任何条件
         MC_UNUSED(json);
         return {};
@@ -64,8 +64,9 @@ public:
     /**
      * @brief 序列化条件为JSON
      */
-    [[nodiscard]] nlohmann::json conditionsToJson() const {
-        return nullptr;  // 无条件
+    [[nodiscard]] nlohmann::json conditionsToJson() const
+    {
+        return nullptr; // 无条件
     }
 };
 

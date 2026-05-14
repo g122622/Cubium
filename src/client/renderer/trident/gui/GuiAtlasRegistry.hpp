@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
-#include <unordered_map>
-#include <vector>
+#include "common/core/Types.hpp"
+#include <array>
 #include <memory>
 #include <optional>
-#include <array>
+#include <unordered_map>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident::gui {
 
@@ -20,11 +20,9 @@ struct AtlasSlot {
     u32 id;                ///< 槽位ID（0-MAX_ATLAS_SLOTS-1）
     VkImageView imageView; ///< Vulkan 图像视图
     VkSampler sampler;     ///< Vulkan 采样器
-    std::string name;           ///< 图集名称（调试用）
+    std::string name;      ///< 图集名称（调试用）
 
-    [[nodiscard]] bool isValid() const {
-        return imageView != VK_NULL_HANDLE && sampler != VK_NULL_HANDLE;
-    }
+    [[nodiscard]] bool isValid() const { return imageView != VK_NULL_HANDLE && sampler != VK_NULL_HANDLE; }
 };
 
 /**
@@ -100,9 +98,7 @@ public:
      * @param descriptorPool 描述符池
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDescriptorSetLayout descriptorSetLayout,
-        VkDescriptorPool descriptorPool);
+    [[nodiscard]] Result<void> initialize(VkDescriptorSetLayout descriptorSetLayout, VkDescriptorPool descriptorPool);
 
     /**
      * @brief 注册图集
@@ -115,10 +111,7 @@ public:
      * @param sampler Vulkan 采样器
      * @return 分配的槽位ID，失败返回错误
      */
-    [[nodiscard]] Result<u32> registerAtlas(
-        const std::string& name,
-        VkImageView imageView,
-        VkSampler sampler);
+    [[nodiscard]] Result<u32> registerAtlas(const std::string& name, VkImageView imageView, VkSampler sampler);
 
     /**
      * @brief 注销图集
@@ -226,8 +219,8 @@ private:
     u32 m_atlasCount = 0;
 
     bool m_initialized = false;
-    bool m_ownsLayout = false;  ///< 是否拥有描述符集布局
-    bool m_ownsPool = false;    ///< 是否拥有描述符池
+    bool m_ownsLayout = false; ///< 是否拥有描述符集布局
+    bool m_ownsPool = false;   ///< 是否拥有描述符池
 };
 
 } // namespace mc::client::renderer::trident::gui

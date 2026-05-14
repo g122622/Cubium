@@ -1,7 +1,7 @@
 #include "ThrowableEntity.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../../world/IWorld.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../core/LivingEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
@@ -10,7 +10,8 @@ namespace entity {
 namespace {
 
 // 辅助函数：基于实体ID和tick创建随机数生成器
-math::Random createRandomFromEntity(const Entity& entity) {
+math::Random createRandomFromEntity(const Entity& entity)
+{
     u64 seed = static_cast<u64>(entity.id()) << 32 | static_cast<u64>(entity.ticksExisted());
     return math::Random(seed);
 }
@@ -19,10 +20,10 @@ math::Random createRandomFromEntity(const Entity& entity) {
 
 ThrowableEntity::ThrowableEntity(LegacyEntityType type, EntityId id)
     : ProjectileEntity(type, id)
-{
-}
+{}
 
-void ThrowableEntity::tick() {
+void ThrowableEntity::tick()
+{
     // 参考 MC 1.16.5 ThrowableEntity.tick() 第52-101行
 
     // 先执行射线追踪和碰撞检测
@@ -63,14 +64,10 @@ void ThrowableEntity::tick() {
         math::Random rng = createRandomFromEntity(*this);
         for (int i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
-            Vector3 pos(
-                m_position.x - velocity.x * offset,
+            Vector3 pos(m_position.x - velocity.x * offset,
                 m_position.y - velocity.y * offset,
-                m_position.z - velocity.z * offset
-            );
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Bubble,
-                pos, velocity);
+                m_position.z - velocity.z * offset);
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble, pos, velocity);
         }
     }
 

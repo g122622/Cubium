@@ -1,10 +1,10 @@
 #include "EndermanEntity.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc {
@@ -22,11 +22,13 @@ EndermanEntity::EndermanEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<EndermanEntity>(LegacyEntityType::Unknown, 0);
 }
 
-std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const {
+std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const
+{
     // MC 1.16.5: 愤怒时返回 ambient，被注视时返回 scream
     if (m_screaming) {
         return makeSoundEventId("scream");
@@ -34,27 +36,32 @@ std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const {
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> EndermanEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> EndermanEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.enderman.hurt
     return makeSoundEventId("hurt");
 }
 
-std::optional<ResourceLocation> EndermanEntity::getDeathSound() const {
+std::optional<ResourceLocation> EndermanEntity::getDeathSound() const
+{
     // MC 1.16.5: entity.enderman.death
     return makeSoundEventId("death");
 }
 
-std::optional<ResourceLocation> EndermanEntity::getStareSound() const {
+std::optional<ResourceLocation> EndermanEntity::getStareSound() const
+{
     // MC 1.16.5: entity.enderman.stare
     return makeSoundEventId("stare");
 }
 
-std::optional<ResourceLocation> EndermanEntity::getTeleportSound() const {
+std::optional<ResourceLocation> EndermanEntity::getTeleportSound() const
+{
     // MC 1.16.5: entity.enderman.teleport
     return makeSoundEventId("teleport");
 }
 
-void EndermanEntity::setRevengeTarget(LivingEntity* target) {
+void EndermanEntity::setRevengeTarget(LivingEntity* target)
+{
     m_attackTarget = target;
     if (target != nullptr) {
         setAngry(true);
@@ -62,7 +69,8 @@ void EndermanEntity::setRevengeTarget(LivingEntity* target) {
     }
 }
 
-void EndermanEntity::setAngry(bool angry) {
+void EndermanEntity::setAngry(bool angry)
+{
     m_angry = angry;
     if (!angry) {
         m_angerTime = 0;
@@ -71,12 +79,14 @@ void EndermanEntity::setAngry(bool angry) {
     }
 }
 
-void EndermanEntity::setHeldBlockState(const BlockState* state) {
+void EndermanEntity::setHeldBlockState(const BlockState* state)
+{
     m_heldBlockState = state;
     m_holdingBlock = (state != nullptr);
 }
 
-bool EndermanEntity::teleport() {
+bool EndermanEntity::teleport()
+{
     // MC 1.16.5 EndermanEntity.teleport()
     if (m_teleportCooldown > 0) {
         return false;
@@ -99,18 +109,15 @@ bool EndermanEntity::teleport() {
     return success;
 }
 
-bool EndermanEntity::teleportToTarget() {
+bool EndermanEntity::teleportToTarget()
+{
     // MC 1.16.5 EndermanEntity.teleportTowards()
     if (m_attackTarget == nullptr || m_teleportCooldown > 0) {
         return false;
     }
 
     // 计算远离目标的方向向量
-    Vector3 direction(
-        m_position.x - m_attackTarget->position().x,
-        0.0,
-        m_position.z - m_attackTarget->position().z
-    );
+    Vector3 direction(m_position.x - m_attackTarget->position().x, 0.0, m_position.z - m_attackTarget->position().z);
 
     // 归一化方向向量
     f32 length = direction.length();
@@ -141,7 +148,8 @@ bool EndermanEntity::teleportToTarget() {
     return success;
 }
 
-bool EndermanEntity::teleportAwayFromWater() {
+bool EndermanEntity::teleportAwayFromWater()
+{
     // MC 1.16.5: 瞬移避开水
     // 尝试多次瞬移，直到找到一个不在水中的位置
     for (i32 i = 0; i < 10; ++i) {
@@ -155,7 +163,8 @@ bool EndermanEntity::teleportAwayFromWater() {
     return false;
 }
 
-void EndermanEntity::placeHeldBlock() {
+void EndermanEntity::placeHeldBlock()
+{
     // MC 1.16.5 EndermanEntity.placeBlock()
     if (!m_holdingBlock || m_heldBlockState == nullptr) {
         return;
@@ -170,7 +179,8 @@ void EndermanEntity::placeHeldBlock() {
     m_heldBlockState = nullptr;
 }
 
-void EndermanEntity::pickUpBlock() {
+void EndermanEntity::pickUpBlock()
+{
     // MC 1.16.5 EndermanEntity.takeBlock()
     // TODO: 拾取方块
     // 1. 找到可拾取的方块
@@ -178,13 +188,15 @@ void EndermanEntity::pickUpBlock() {
     // 3. 移除方块并设置 heldBlockState
 }
 
-bool EndermanEntity::isInWaterOrRain() const {
+bool EndermanEntity::isInWaterOrRain() const
+{
     // MC 1.16.5: 检查是否在水中或雨中
     // TODO: 实现
     return isInWater();
 }
 
-void EndermanEntity::tick() {
+void EndermanEntity::tick()
+{
     // MC 1.16.5 EndermanEntity.tick()
     MonsterEntity::tick();
 
@@ -215,7 +227,8 @@ void EndermanEntity::tick() {
     // TODO: 检查玩家是否正在看末影人的眼睛
 }
 
-bool EndermanEntity::hurt(DamageSource& source, f32 amount) {
+bool EndermanEntity::hurt(DamageSource& source, f32 amount)
+{
     // MC 1.16.5 EndermanEntity.attackEntityFrom()
     if (!MonsterEntity::hurt(source, amount)) {
         return false;
@@ -228,7 +241,8 @@ bool EndermanEntity::hurt(DamageSource& source, f32 amount) {
     return true;
 }
 
-void EndermanEntity::registerGoals() {
+void EndermanEntity::registerGoals()
+{
     // 调用父类方法
     MonsterEntity::registerGoals();
 
@@ -250,8 +264,8 @@ void EndermanEntity::registerGoals() {
     m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
 
     // 优先级 7: 看向玩家（会激怒末影人）
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
-        [](const LivingEntity* /*entity*/) -> bool {
+    m_goalSelector.addGoal(
+        7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* /*entity*/) -> bool {
             // 只看向玩家
             // TODO: 检查是否是玩家
             return true;
@@ -261,7 +275,8 @@ void EndermanEntity::registerGoals() {
     m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
-void EndermanEntity::registerAttributes() {
+void EndermanEntity::registerAttributes()
+{
     // 调用父类方法
     MonsterEntity::registerAttributes();
 

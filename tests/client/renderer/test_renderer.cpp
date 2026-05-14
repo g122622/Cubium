@@ -1,15 +1,15 @@
-#include <gtest/gtest.h>
 #include <cmath>
 #include <limits>
 #include <sstream>
+#include <gtest/gtest.h>
 
 #include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "common/resource/IResourcePack.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 #include <unordered_map>
 
@@ -19,19 +19,17 @@ namespace {
 
 class InMemoryResourcePack final : public IResourcePack {
 public:
-    Result<void> initialize() override {
-        return Result<void>::ok();
-    }
+    Result<void> initialize() override { return Result<void>::ok(); }
 
-    [[nodiscard]] const PackMetadata& metadata() const override {
-        return m_metadata;
-    }
+    [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
 
-    [[nodiscard]] bool hasResource(std::string_view resourcePath) const override {
+    [[nodiscard]] bool hasResource(std::string_view resourcePath) const override
+    {
         return m_resources.find(std::string(resourcePath)) != m_resources.end();
     }
 
-    [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override {
+    [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override
+    {
         const auto it = m_resources.find(std::string(resourcePath));
         if (it == m_resources.end()) {
             return Error(ErrorCode::NotFound, "Resource not found");
@@ -40,14 +38,15 @@ public:
     }
 
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory,
-        std::string_view extension) const override {
+        std::string_view directory, std::string_view extension) const override
+    {
         std::vector<std::string> result;
         const std::string dirPrefix(directory);
         const std::string ext(extension);
         for (const auto& [path, _] : m_resources) {
             const bool inDir = dirPrefix.empty() || path.rfind(dirPrefix, 0) == 0;
-            const bool extMatch = ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
+            const bool extMatch =
+                ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
             if (inDir && extMatch) {
                 result.push_back(path);
             }
@@ -55,36 +54,91 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string name() const override {
-        return "InMemoryResourcePack";
-    }
+    [[nodiscard]] std::string name() const override { return "InMemoryResourcePack"; }
 
-    void add(std::string path, std::vector<u8> bytes) {
-        m_resources.emplace(std::move(path), std::move(bytes));
-    }
+    void add(std::string path, std::vector<u8> bytes) { m_resources.emplace(std::move(path), std::move(bytes)); }
 
 private:
     PackMetadata m_metadata{6, "test-pack"};
     std::unordered_map<std::string, std::vector<u8>> m_resources;
 };
 
-std::vector<u8> makeValid1x1Png() {
-    return {
-        137, 80, 78, 71, 13, 10, 26, 10,
-        0, 0, 0, 13, 73, 72, 68, 82,
-        0, 0, 0, 1, 0, 0, 0, 1,
-        8, 4, 0, 0, 0, 181, 28, 12, 2,
-        0, 0, 0, 11, 73, 68, 65, 84,
-        120, 218, 99, 252, 255, 31, 0, 3,
-        3, 2, 0, 239, 156, 7, 219,
-        0, 0, 0, 0, 73, 69, 78, 68,
-        174, 66, 96, 130
-    };
+std::vector<u8> makeValid1x1Png()
+{
+    return {137,
+        80,
+        78,
+        71,
+        13,
+        10,
+        26,
+        10,
+        0,
+        0,
+        0,
+        13,
+        73,
+        72,
+        68,
+        82,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        8,
+        4,
+        0,
+        0,
+        0,
+        181,
+        28,
+        12,
+        2,
+        0,
+        0,
+        0,
+        11,
+        73,
+        68,
+        65,
+        84,
+        120,
+        218,
+        99,
+        252,
+        255,
+        31,
+        0,
+        3,
+        3,
+        2,
+        0,
+        239,
+        156,
+        7,
+        219,
+        0,
+        0,
+        0,
+        0,
+        73,
+        69,
+        78,
+        68,
+        174,
+        66,
+        96,
+        130};
 }
 
 std::vector<u8> toBytes(std::string_view content);
 
-void addEmptyPlantModel(InMemoryResourcePack& pack, std::string_view blockName) {
+void addEmptyPlantModel(InMemoryResourcePack& pack, std::string_view blockName)
+{
     const std::string name(blockName);
 
     std::ostringstream blockStateJson;
@@ -107,7 +161,8 @@ void addEmptyPlantModel(InMemoryResourcePack& pack, std::string_view blockName) 
     pack.add(modelPath, toBytes(modelJson.str()));
 }
 
-std::unique_ptr<InMemoryResourcePack> createLiquidResourcePack() {
+std::unique_ptr<InMemoryResourcePack> createLiquidResourcePack()
+{
     auto pack = std::make_unique<InMemoryResourcePack>();
     pack->add("assets/minecraft/blockstates/water.json", toBytes(R"({
     "variants": {
@@ -125,7 +180,8 @@ std::unique_ptr<InMemoryResourcePack> createLiquidResourcePack() {
     return pack;
 }
 
-std::vector<u8> toBytes(std::string_view content) {
+std::vector<u8> toBytes(std::string_view content)
+{
     return std::vector<u8>(content.begin(), content.end());
 }
 
@@ -138,7 +194,8 @@ struct MeshBounds {
     f32 maxZ = std::numeric_limits<f32>::lowest();
 };
 
-MeshBounds computeBounds(const MeshData& mesh) {
+MeshBounds computeBounds(const MeshData& mesh)
+{
     MeshBounds bounds;
     for (const auto& v : mesh.vertices) {
         const f32 x = static_cast<f32>(v.x);
@@ -160,7 +217,8 @@ MeshBounds computeBounds(const MeshData& mesh) {
 // BlockGeometry 测试
 // ============================================================================
 
-TEST(BlockGeometry, FaceNormals) {
+TEST(BlockGeometry, FaceNormals)
+{
     auto bottom = BlockGeometry::getFaceNormal(Face::Bottom);
     EXPECT_DOUBLE_EQ(bottom[0], 0.0);
     EXPECT_DOUBLE_EQ(bottom[1], -1.0);
@@ -192,7 +250,8 @@ TEST(BlockGeometry, FaceNormals) {
     EXPECT_DOUBLE_EQ(east[2], 0.0);
 }
 
-TEST(BlockGeometry, FaceVertices) {
+TEST(BlockGeometry, FaceVertices)
+{
     // 顶部面应该有4个顶点，每个顶点3个分量
     auto topVerts = BlockGeometry::getFaceVertices(Face::Top);
     EXPECT_EQ(topVerts.size(), 12u); // 4顶点 * 3分量
@@ -209,7 +268,8 @@ TEST(BlockGeometry, FaceVertices) {
     }
 }
 
-TEST(BlockGeometry, FaceIndices) {
+TEST(BlockGeometry, FaceIndices)
+{
     auto indices = BlockGeometry::getFaceIndices();
     EXPECT_EQ(indices.size(), 6u); // 2三角形 * 3索引
 
@@ -229,7 +289,8 @@ TEST(BlockGeometry, FaceIndices) {
     EXPECT_EQ(indices[5], 3u);
 }
 
-TEST(BlockGeometry, FaceDirection) {
+TEST(BlockGeometry, FaceDirection)
+{
     auto bottomDir = BlockGeometry::getFaceDirection(Face::Bottom);
     EXPECT_EQ(bottomDir[0], 0);
     EXPECT_EQ(bottomDir[1], -1);
@@ -251,7 +312,8 @@ TEST(BlockGeometry, FaceDirection) {
     EXPECT_EQ(eastDir[0], 1);
 }
 
-TEST(BlockGeometry, ShouldRenderFace) {
+TEST(BlockGeometry, ShouldRenderFace)
+{
     // 如果邻居不透明，不渲染面
     EXPECT_FALSE(BlockGeometry::shouldRenderFace(Face::Top, true));
     EXPECT_TRUE(BlockGeometry::shouldRenderFace(Face::Top, false));
@@ -261,7 +323,8 @@ TEST(BlockGeometry, ShouldRenderFace) {
 // TextureAtlas 测试
 // ============================================================================
 
-TEST(TextureAtlas, Construction) {
+TEST(TextureAtlas, Construction)
+{
     TextureAtlas atlas(256, 256, 16);
 
     EXPECT_EQ(atlas.textureWidth(), 256u);
@@ -270,7 +333,8 @@ TEST(TextureAtlas, Construction) {
     EXPECT_EQ(atlas.tilesPerRow(), 16u);
 }
 
-TEST(TextureAtlas, GetRegionByCoords) {
+TEST(TextureAtlas, GetRegionByCoords)
+{
     TextureAtlas atlas(256, 256, 16);
 
     // 第一个图块 (0,0)
@@ -295,7 +359,8 @@ TEST(TextureAtlas, GetRegionByCoords) {
     EXPECT_DOUBLE_EQ(r2.v1, 2.0 / 16.0);
 }
 
-TEST(TextureAtlas, GetRegionByIndex) {
+TEST(TextureAtlas, GetRegionByIndex)
+{
     TextureAtlas atlas(256, 256, 16);
 
     // 线性索引 0
@@ -318,21 +383,24 @@ TEST(TextureAtlas, GetRegionByIndex) {
 // MeshData 测试
 // ============================================================================
 
-TEST(MeshData, Construction) {
+TEST(MeshData, Construction)
+{
     MeshData mesh;
     EXPECT_TRUE(mesh.empty());
     EXPECT_EQ(mesh.vertexCount(), 0u);
     EXPECT_EQ(mesh.indexCount(), 0u);
 }
 
-TEST(MeshData, Reserve) {
+TEST(MeshData, Reserve)
+{
     MeshData mesh;
     mesh.reserve(100, 200);
     // 预留容量，不增加大小
     EXPECT_TRUE(mesh.empty());
 }
 
-TEST(MeshData, Clear) {
+TEST(MeshData, Clear)
+{
     MeshData mesh;
     mesh.vertices.push_back(Vertex());
     mesh.indices.push_back(0);
@@ -346,14 +414,16 @@ TEST(MeshData, Clear) {
 // Vertex 测试
 // ============================================================================
 
-TEST(Vertex, Construction) {
+TEST(Vertex, Construction)
+{
     Vertex v;
     EXPECT_DOUBLE_EQ(v.x, 0.0);
     EXPECT_DOUBLE_EQ(v.y, 0.0);
     EXPECT_DOUBLE_EQ(v.z, 0.0);
 }
 
-TEST(Vertex, ParameterizedConstruction) {
+TEST(Vertex, ParameterizedConstruction)
+{
     Vertex v(1.0f, 2.0f, 3.0f, 0.0f, 1.0f, 0.0f, 0.5f, 0.5f, 0xFF0000FF, 10);
 
     EXPECT_DOUBLE_EQ(v.x, 1.0);
@@ -372,7 +442,8 @@ TEST(Vertex, ParameterizedConstruction) {
 // ChunkRenderData 测试
 // ============================================================================
 
-TEST(ChunkRenderData, Construction) {
+TEST(ChunkRenderData, Construction)
+{
     ChunkRenderData data;
     EXPECT_TRUE(data.solidMesh.empty());
     EXPECT_TRUE(data.transparentMesh.empty());
@@ -382,7 +453,8 @@ TEST(ChunkRenderData, Construction) {
     EXPECT_EQ(data.indexCount, 0u);
 }
 
-TEST(ChunkRenderData, MarkDirty) {
+TEST(ChunkRenderData, MarkDirty)
+{
     ChunkRenderData data;
     data.markClean();
     EXPECT_FALSE(data.isDirty);
@@ -397,13 +469,15 @@ TEST(ChunkRenderData, MarkDirty) {
 // ChunkMeshCache 测试
 // ============================================================================
 
-TEST(ChunkMeshCache, Construction) {
+TEST(ChunkMeshCache, Construction)
+{
     ChunkMeshCache cache(100);
     EXPECT_EQ(cache.size(), 0u);
     EXPECT_EQ(cache.dirtyCount(), 0u);
 }
 
-TEST(ChunkMeshCache, GetOrCreate) {
+TEST(ChunkMeshCache, GetOrCreate)
+{
     ChunkMeshCache cache(100);
 
     ChunkId id(10, 20);
@@ -420,7 +494,8 @@ TEST(ChunkMeshCache, GetOrCreate) {
     EXPECT_EQ(cache.size(), 1u);
 }
 
-TEST(ChunkMeshCache, Get) {
+TEST(ChunkMeshCache, Get)
+{
     ChunkMeshCache cache(100);
 
     ChunkId id(5, 10);
@@ -433,7 +508,8 @@ TEST(ChunkMeshCache, Get) {
     EXPECT_NE(cache.get(id), nullptr);
 }
 
-TEST(ChunkMeshCache, MarkDirty) {
+TEST(ChunkMeshCache, MarkDirty)
+{
     ChunkMeshCache cache(100);
 
     ChunkId id(1, 2);
@@ -446,7 +522,8 @@ TEST(ChunkMeshCache, MarkDirty) {
     EXPECT_EQ(cache.dirtyCount(), 1u);
 }
 
-TEST(ChunkMeshCache, Remove) {
+TEST(ChunkMeshCache, Remove)
+{
     ChunkMeshCache cache(100);
 
     ChunkId id(1, 2);
@@ -458,7 +535,8 @@ TEST(ChunkMeshCache, Remove) {
     EXPECT_EQ(cache.get(id), nullptr);
 }
 
-TEST(ChunkMeshCache, Clear) {
+TEST(ChunkMeshCache, Clear)
+{
     ChunkMeshCache cache(100);
 
     cache.getOrCreate(ChunkId(1, 2));
@@ -480,7 +558,8 @@ TEST(ChunkMeshCache, Clear) {
 
 class ChunkMesherTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
 
         // 确保每个测试从一致状态开始，避免静态全局配置在测试间串扰。
@@ -497,7 +576,8 @@ protected:
     std::unique_ptr<ChunkData> testChunk;
 };
 
-TEST_F(ChunkMesherTest, GenerateEmptyChunk) {
+TEST_F(ChunkMesherTest, GenerateEmptyChunk)
+{
     MeshData mesh;
     ChunkMesher::generateMesh(*testChunk, mesh, nullptr, nullptr);
 
@@ -505,7 +585,8 @@ TEST_F(ChunkMesherTest, GenerateEmptyChunk) {
     EXPECT_TRUE(mesh.empty());
 }
 
-TEST_F(ChunkMesherTest, GenerateSingleBlockWithoutModelCache) {
+TEST_F(ChunkMesherTest, GenerateSingleBlockWithoutModelCache)
+{
     // 放置一个方块
     testChunk->setBlockState(8, 64, 8, &VanillaBlocks::STONE->defaultState());
 
@@ -517,7 +598,8 @@ TEST_F(ChunkMesherTest, GenerateSingleBlockWithoutModelCache) {
     EXPECT_TRUE(mesh.empty());
 }
 
-TEST_F(ChunkMesherTest, SettingsTest) {
+TEST_F(ChunkMesherTest, SettingsTest)
+{
     // 测试设置
     bool originalGreedy = ChunkMesher::isGreedyMeshingEnabled();
     bool originalLighting = ChunkMesher::isLightingEnabled();
@@ -533,7 +615,8 @@ TEST_F(ChunkMesherTest, SettingsTest) {
     ChunkMesher::setLightingEnabled(originalLighting);
 }
 
-TEST_F(ChunkMesherTest, SampleCombinedLightUsesFaceAdjacentVoxel) {
+TEST_F(ChunkMesherTest, SampleCombinedLightUsesFaceAdjacentVoxel)
+{
     // 模拟不透明方块内部（0光）与上方空气（15光）的典型地表场景
     testChunk->setSkyLight(8, 64, 8, 0);
     testChunk->setBlockLight(8, 64, 8, 0);
@@ -547,7 +630,8 @@ TEST_F(ChunkMesherTest, SampleCombinedLightUsesFaceAdjacentVoxel) {
     EXPECT_EQ(topFaceLight, 15u);
 }
 
-TEST_F(ChunkMesherTest, SampleCombinedLightReadsNeighborChunkAtBorder) {
+TEST_F(ChunkMesherTest, SampleCombinedLightReadsNeighborChunkAtBorder)
+{
     auto eastNeighbor = std::make_unique<ChunkData>(1, 0);
 
     // 当前区块边界位置设为暗，邻居边界位置设为亮，验证跨区块采样
@@ -564,7 +648,8 @@ TEST_F(ChunkMesherTest, SampleCombinedLightReadsNeighborChunkAtBorder) {
     EXPECT_EQ(fallbackLight, 15u);
 }
 
-TEST_F(ChunkMesherTest, SampleCombinedLight_DiagonalOutOfBounds_UsesAvailableNeighborApproximation) {
+TEST_F(ChunkMesherTest, SampleCombinedLight_DiagonalOutOfBounds_UsesAvailableNeighborApproximation)
+{
     auto westNeighbor = std::make_unique<ChunkData>(-1, 0);
 
     // 目标采样点为 (-1, 64, -1)，缺少西北对角区块。
@@ -578,14 +663,16 @@ TEST_F(ChunkMesherTest, SampleCombinedLight_DiagonalOutOfBounds_UsesAvailableNei
     EXPECT_EQ(approxLight, 7u);
 }
 
-TEST_F(ChunkMesherTest, ModelCacheIsNullByDefault) {
+TEST_F(ChunkMesherTest, ModelCacheIsNullByDefault)
+{
     // 默认情况下 BlockModelCache 应该是 nullptr
     EXPECT_EQ(ChunkMesher::modelCache(), nullptr);
 }
 
 class ChunkMesherWithModelCacheTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
 
         m_originalModelCache = ChunkMesher::modelCache();
@@ -605,7 +692,8 @@ protected:
         m_chunk = std::make_unique<ChunkData>(0, 0);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         ChunkMesher::setModelCache(m_originalModelCache);
         ChunkMesher::setGreedyMeshing(m_originalGreedy);
         ChunkMesher::setLightingEnabled(m_originalLightingEnabled);
@@ -622,7 +710,8 @@ protected:
     LightingMode m_originalLightingMode = LightingMode::Smooth;
 };
 
-TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQuads) {
+TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQuads)
+{
     constexpr i32 y = 64;
     for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
         for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
@@ -649,7 +738,8 @@ TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQua
     EXPECT_EQ(greedyMesh.indexCount(), 36u);
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_SmoothLightingFallsBackToSimplePath) {
+TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_SmoothLightingFallsBackToSimplePath)
+{
     m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::STONE->defaultState());
 
     ChunkMesher::setLightingEnabled(true);
@@ -667,7 +757,8 @@ TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_SmoothLightingFallsBackToSim
     EXPECT_EQ(greedyMesh.indexCount(), simpleMesh.indexCount());
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer) {
+TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
+{
     auto pack = createLiquidResourcePack();
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
@@ -681,12 +772,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
     const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
     const LightingMode oldLightingMode = ChunkMesher::lightingMode();
-    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
-        ChunkMesher::setModelCache(oldModelCache);
-        ChunkMesher::setGreedyMeshing(oldGreedy);
-        ChunkMesher::setLightingEnabled(oldLightingEnabled);
-        ChunkMesher::setLightingMode(oldLightingMode);
-    });
+    const auto restoreGuard =
+        std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+            ChunkMesher::setModelCache(oldModelCache);
+            ChunkMesher::setGreedyMeshing(oldGreedy);
+            ChunkMesher::setLightingEnabled(oldLightingEnabled);
+            ChunkMesher::setLightingMode(oldLightingMode);
+        });
 
     ChunkMesher::setModelCache(&modelCache);
     m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::STONE->defaultState());
@@ -703,7 +795,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
     EXPECT_FALSE(transparentMesh.empty());
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_TransparentFaceAgainstOpaqueIsKept) {
+TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_TransparentFaceAgainstOpaqueIsKept)
+{
     m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::GLASS->defaultState());
     m_chunk->setBlockState(9, 64, 8, &VanillaBlocks::STONE->defaultState());
 
@@ -717,7 +810,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_TransparentFaceAgainstOpaqueIsKe
     EXPECT_EQ(transparentMesh.indexCount(), 36u);
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha) {
+TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
+{
     auto pack = createLiquidResourcePack();
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
@@ -731,12 +825,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
     const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
     const LightingMode oldLightingMode = ChunkMesher::lightingMode();
-    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
-        ChunkMesher::setModelCache(oldModelCache);
-        ChunkMesher::setGreedyMeshing(oldGreedy);
-        ChunkMesher::setLightingEnabled(oldLightingEnabled);
-        ChunkMesher::setLightingMode(oldLightingMode);
-    });
+    const auto restoreGuard =
+        std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+            ChunkMesher::setModelCache(oldModelCache);
+            ChunkMesher::setGreedyMeshing(oldGreedy);
+            ChunkMesher::setLightingEnabled(oldLightingEnabled);
+            ChunkMesher::setLightingMode(oldLightingMode);
+        });
 
     ChunkMesher::setModelCache(&modelCache);
     m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::WATER->defaultState());
@@ -762,7 +857,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
     EXPECT_TRUE(hasExpectedAlphaVertex);
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstSeagrass) {
+TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstSeagrass)
+{
     auto pack = createLiquidResourcePack();
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
@@ -776,12 +872,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstSeagrass) {
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
     const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
     const LightingMode oldLightingMode = ChunkMesher::lightingMode();
-    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
-        ChunkMesher::setModelCache(oldModelCache);
-        ChunkMesher::setGreedyMeshing(oldGreedy);
-        ChunkMesher::setLightingEnabled(oldLightingEnabled);
-        ChunkMesher::setLightingMode(oldLightingMode);
-    });
+    const auto restoreGuard =
+        std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+            ChunkMesher::setModelCache(oldModelCache);
+            ChunkMesher::setGreedyMeshing(oldGreedy);
+            ChunkMesher::setLightingEnabled(oldLightingEnabled);
+            ChunkMesher::setLightingMode(oldLightingMode);
+        });
 
     ChunkMesher::setModelCache(&modelCache);
     m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::WATER->defaultState());
@@ -798,7 +895,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstSeagrass) {
     EXPECT_EQ(transparentMesh.indexCount(), 30u);
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstKelpPlant) {
+TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstKelpPlant)
+{
     auto pack = createLiquidResourcePack();
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
@@ -812,12 +910,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstKelpPlant) 
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
     const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
     const LightingMode oldLightingMode = ChunkMesher::lightingMode();
-    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
-        ChunkMesher::setModelCache(oldModelCache);
-        ChunkMesher::setGreedyMeshing(oldGreedy);
-        ChunkMesher::setLightingEnabled(oldLightingEnabled);
-        ChunkMesher::setLightingMode(oldLightingMode);
-    });
+    const auto restoreGuard =
+        std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+            ChunkMesher::setModelCache(oldModelCache);
+            ChunkMesher::setGreedyMeshing(oldGreedy);
+            ChunkMesher::setLightingEnabled(oldLightingEnabled);
+            ChunkMesher::setLightingMode(oldLightingMode);
+        });
 
     ChunkMesher::setModelCache(&modelCache);
     m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::WATER->defaultState());
@@ -834,7 +933,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstKelpPlant) 
     EXPECT_EQ(transparentMesh.indexCount(), 30u);
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight) {
+TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight)
+{
     auto pack = createLiquidResourcePack();
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
@@ -848,16 +948,16 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight)
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
     const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
     const LightingMode oldLightingMode = ChunkMesher::lightingMode();
-    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
-        ChunkMesher::setModelCache(oldModelCache);
-        ChunkMesher::setGreedyMeshing(oldGreedy);
-        ChunkMesher::setLightingEnabled(oldLightingEnabled);
-        ChunkMesher::setLightingMode(oldLightingMode);
-    });
+    const auto restoreGuard =
+        std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+            ChunkMesher::setModelCache(oldModelCache);
+            ChunkMesher::setGreedyMeshing(oldGreedy);
+            ChunkMesher::setLightingEnabled(oldLightingEnabled);
+            ChunkMesher::setLightingMode(oldLightingMode);
+        });
 
     ChunkMesher::setModelCache(&modelCache);
-    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
-        .with(BlockStateProperties::LEVEL_0_15(), 7);
+    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState().with(BlockStateProperties::LEVEL_0_15(), 7);
     m_chunk->setBlockState(8, 64, 8, &shallowWater);
 
     MeshData solidMesh;
@@ -874,7 +974,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight)
     EXPECT_GT(bounds.maxY - bounds.minY, 0.01f);
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube) {
+TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube)
+{
     m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::REDSTONE_TORCH->defaultState());
 
     ChunkMesher::setGreedyMeshing(false);
@@ -890,7 +991,8 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube) 
     EXPECT_LT(bounds.maxZ - bounds.minZ, 1.0f);
 }
 
-TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreNotFullCube) {
+TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreNotFullCube)
+{
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
 
@@ -921,7 +1023,8 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreN
     }
 }
 
-TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquidTextures) {
+TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquidTextures)
+{
     VanillaBlocks::initialize();
 
     auto pack = std::make_shared<InMemoryResourcePack>();
@@ -951,8 +1054,7 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
     ASSERT_TRUE(modelCache.initialize(resourceManager));
 
     const auto& waterState = VanillaBlocks::WATER->defaultState();
-    EXPECT_EQ(modelCache.getBlockAppearance(&waterState),
-              modelCache.getBlockAppearance(waterState.stateId()));
+    EXPECT_EQ(modelCache.getBlockAppearance(&waterState), modelCache.getBlockAppearance(waterState.stateId()));
 
     BlockModelCache* oldModelCache = ChunkMesher::modelCache();
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();

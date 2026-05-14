@@ -19,20 +19,19 @@ namespace enchant {
  */
 class ProjectileProtectionEnchantment : public ProtectionEnchantment {
 public:
-    ProjectileProtectionEnchantment() : ProtectionEnchantment(Type::Projectile) {}
+    ProjectileProtectionEnchantment()
+        : ProtectionEnchantment(Type::Projectile)
+    {}
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:projectile_protection";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:projectile_protection"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.projectile_protection";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Uncommon;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 };
 
 } // namespace enchant

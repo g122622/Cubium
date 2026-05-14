@@ -126,8 +126,7 @@ public:
      *
      * 闪电使用 GPU 管线渲染，程序化生成顶点
      */
-    void renderLayersPipelineClient(
-        ::mc::client::ClientEntity& entity,
+    void renderLayersPipelineClient(::mc::client::ClientEntity& entity,
         VkCommandBuffer cmd,
         const core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline) override;
@@ -155,15 +154,22 @@ private:
      * @param flipX2 是否翻转X2
      * @param flipZ2 是否翻转Z2
      */
-    static void renderQuadSegment(
-        std::vector<model::ModelVertex>& vertices,
+    static void renderQuadSegment(std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices,
-        f32 x1, f32 z1, i32 segmentY,
-        f32 prevX, f32 prevZ,
-        f32 r, f32 g, f32 b,
-        f32 topWidth, f32 bottomWidth,
-        bool flipX1, bool flipZ1,
-        bool flipX2, bool flipZ2);
+        f32 x1,
+        f32 z1,
+        i32 segmentY,
+        f32 prevX,
+        f32 prevZ,
+        f32 r,
+        f32 g,
+        f32 b,
+        f32 topWidth,
+        f32 bottomWidth,
+        bool flipX1,
+        bool flipZ1,
+        bool flipX2,
+        bool flipZ2);
 
     /**
      * @brief 生成闪电网格
@@ -173,9 +179,7 @@ private:
      * @param indices 索引输出数组
      */
     static void generateLightningMesh(
-        u64 boltVertex,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices);
+        u64 boltVertex, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 };
 
 /**

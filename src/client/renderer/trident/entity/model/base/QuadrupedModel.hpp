@@ -30,17 +30,21 @@ public:
      *
      * 参考 MC 1.16.5 QuadrupedModel(int, float, boolean, float, float, float, float, int)
      */
-    QuadrupedModel(i32 legHeight, f32 scale, bool isChildHeadScaled,
-                   f32 childHeadOffsetY, f32 childHeadOffsetZ,
-                   f32 childHeadScale, f32 childBodyScale, f32 childBodyOffsetY);
+    QuadrupedModel(i32 legHeight,
+        f32 scale,
+        bool isChildHeadScaled,
+        f32 childHeadOffsetY,
+        f32 childHeadOffsetZ,
+        f32 childHeadScale,
+        f32 childBodyScale,
+        f32 childBodyOffsetY);
 
     ~QuadrupedModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 protected:
     /**

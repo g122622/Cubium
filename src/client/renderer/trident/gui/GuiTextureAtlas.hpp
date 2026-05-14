@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "GuiSprite.hpp"
-#include <vulkan/vulkan.h>
-#include <unordered_map>
-#include <string>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident::gui {
 
@@ -21,10 +21,10 @@ class GuiRenderer;
  * @deprecated 请使用 GuiSprite 代替
  */
 struct GuiTextureRegion {
-    f64 u0, v0;     ///< 左上角UV坐标
-    f64 u1, v1;     ///< 右下角UV坐标
-    i32 width;      ///< 纹理宽度（像素）
-    i32 height;     ///< 纹理高度（像素）
+    f64 u0, v0; ///< 左上角UV坐标
+    f64 u1, v1; ///< 右下角UV坐标
+    i32 width;  ///< 纹理宽度（像素）
+    i32 height; ///< 纹理高度（像素）
 };
 
 /**
@@ -72,10 +72,8 @@ public:
      * @param graphicsQueue 图形队列
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(VkDevice device,
-                                           VkPhysicalDevice physicalDevice,
-                                           VkCommandPool commandPool,
-                                           VkQueue graphicsQueue);
+    [[nodiscard]] Result<void> initialize(
+        VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue);
 
     /**
      * @brief 销毁资源
@@ -110,8 +108,7 @@ public:
      * @param width 绘制宽度
      * @param height 绘制高度
      */
-    void drawTexture(GuiRenderer& gui, const std::string& textureId,
-                     f64 x, f64 y, f64 width, f64 height);
+    void drawTexture(GuiRenderer& gui, const std::string& textureId, f64 x, f64 y, f64 width, f64 height);
 
     /**
      * @brief 绘制纹理区域
@@ -123,10 +120,16 @@ public:
      * @param width 绘制宽度
      * @param height 绘制高度
      */
-    void drawTextureRegion(GuiRenderer& gui, const std::string& textureId,
-                           f64 x, f64 y,
-                           i32 regionX, i32 regionY, i32 regionWidth, i32 regionHeight,
-                           f64 width, f64 height);
+    void drawTextureRegion(GuiRenderer& gui,
+        const std::string& textureId,
+        f64 x,
+        f64 y,
+        i32 regionX,
+        i32 regionY,
+        i32 regionWidth,
+        i32 regionHeight,
+        f64 width,
+        f64 height);
 
     /**
      * @brief 检查纹理是否已加载
@@ -175,8 +178,7 @@ public:
      * @param atlasWidth 图集总宽度（像素）
      * @param atlasHeight 图集总高度（像素）
      */
-    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height,
-                        i32 atlasWidth, i32 atlasHeight);
+    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height, i32 atlasWidth, i32 atlasHeight);
 
     /**
      * @brief 批量注册精灵
@@ -291,8 +293,8 @@ private:
     // 图集尺寸
     u32 m_width = 0;
     u32 m_height = 0;
-    i32 m_atlasWidth = 256;   ///< 用于精灵UV计算的图集宽度
-    i32 m_atlasHeight = 256;  ///< 用于精灵UV计算的图集高度
+    i32 m_atlasWidth = 256;  ///< 用于精灵UV计算的图集宽度
+    i32 m_atlasHeight = 256; ///< 用于精灵UV计算的图集高度
 
     // 纹理区域映射（向后兼容）
     std::unordered_map<std::string, GuiTextureRegion> m_regions;
@@ -314,4 +316,4 @@ private:
 namespace mc::client {
 using GuiTextureAtlas = renderer::trident::gui::GuiTextureAtlas;
 using GuiTextureRegion = renderer::trident::gui::GuiTextureRegion;
-}
+} // namespace mc::client

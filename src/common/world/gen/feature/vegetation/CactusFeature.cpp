@@ -1,8 +1,8 @@
 #include "CactusFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -11,10 +11,7 @@ namespace mc {
 // ============================================================================
 
 bool CactusFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const CactusFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CactusFeatureConfig& config)
 {
     if (!config.state) {
         return false;
@@ -139,20 +136,13 @@ bool CactusFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) co
 // ConfiguredCactusFeature 实现
 // ============================================================================
 
-ConfiguredCactusFeature::ConfiguredCactusFeature(
-    std::unique_ptr<CactusFeatureConfig> config,
-    const char* featureName)
+ConfiguredCactusFeature::ConfiguredCactusFeature(std::unique_ptr<CactusFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredCactusFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -195,7 +185,7 @@ std::unique_ptr<ConfiguredCactusFeature> CactusFeatures::createDesertCactus()
     if (VanillaBlocks::CACTUS) {
         config->state = &VanillaBlocks::CACTUS->defaultState();
     }
-    config->maxHeight = 3;  // 沙漠仙人掌较矮
+    config->maxHeight = 3; // 沙漠仙人掌较矮
 
     return std::make_unique<ConfiguredCactusFeature>(std::move(config), "desert_cactus");
 }
@@ -207,7 +197,7 @@ std::unique_ptr<ConfiguredCactusFeature> CactusFeatures::createBadlandsCactus()
     if (VanillaBlocks::CACTUS) {
         config->state = &VanillaBlocks::CACTUS->defaultState();
     }
-    config->maxHeight = 5;  // 恶地仙人掌较高
+    config->maxHeight = 5; // 恶地仙人掌较高
 
     return std::make_unique<ConfiguredCactusFeature>(std::move(config), "badlands_cactus");
 }

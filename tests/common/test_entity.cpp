@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "entity/core/Entity.hpp"
+#include "entity/damage/DamageSource.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/food/FoodStats.hpp"
-#include "entity/damage/DamageSource.hpp"
 #include "network/packet/PacketSerializer.hpp"
 
 using namespace mc;
@@ -12,7 +12,8 @@ using namespace mc;
 // Entity 测试
 // ============================================================================
 
-TEST(Entity, Construction) {
+TEST(Entity, Construction)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     EXPECT_EQ(entity.id(), 1u);
@@ -21,7 +22,8 @@ TEST(Entity, Construction) {
     EXPECT_FALSE(entity.isRemoved());
 }
 
-TEST(Entity, Position) {
+TEST(Entity, Position)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     entity.setPosition(100.5, 64.0, -200.25);
@@ -35,7 +37,8 @@ TEST(Entity, Position) {
     EXPECT_FLOAT_EQ(pos.z, -200.25f);
 }
 
-TEST(Entity, Rotation) {
+TEST(Entity, Rotation)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     entity.setRotation(90.0f, 45.0f);
@@ -43,7 +46,8 @@ TEST(Entity, Rotation) {
     EXPECT_FLOAT_EQ(entity.pitch(), 45.0f);
 }
 
-TEST(Entity, Velocity) {
+TEST(Entity, Velocity)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     entity.setVelocity(1.0, 2.0, 3.0);
@@ -53,7 +57,8 @@ TEST(Entity, Velocity) {
     EXPECT_FLOAT_EQ(vel.z, 3.0f);
 }
 
-TEST(Entity, Move) {
+TEST(Entity, Move)
+{
     Entity entity(LegacyEntityType::Player, 1);
     entity.setPosition(0.0, 0.0, 0.0);
 
@@ -63,7 +68,8 @@ TEST(Entity, Move) {
     EXPECT_FLOAT_EQ(entity.z(), -3.0f);
 }
 
-TEST(Entity, Rotate) {
+TEST(Entity, Rotate)
+{
     Entity entity(LegacyEntityType::Player, 1);
     entity.setRotation(0.0f, 0.0f);
 
@@ -79,7 +85,8 @@ TEST(Entity, Rotate) {
     EXPECT_FLOAT_EQ(entity.pitch(), -90.0f);
 }
 
-TEST(Entity, BoundingBox) {
+TEST(Entity, BoundingBox)
+{
     Entity entity(LegacyEntityType::Player, 1);
     entity.setPosition(0.0, 0.0, 0.0);
 
@@ -88,7 +95,8 @@ TEST(Entity, BoundingBox) {
     EXPECT_FLOAT_EQ(box.height(), 1.8f);
 }
 
-TEST(Entity, Flags) {
+TEST(Entity, Flags)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     entity.addFlag(EntityFlags::OnFire);
@@ -103,7 +111,8 @@ TEST(Entity, Flags) {
     EXPECT_TRUE(entity.hasFlag(EntityFlags::Sprinting));
 }
 
-TEST(Entity, Tick) {
+TEST(Entity, Tick)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     EXPECT_EQ(entity.ticksExisted(), 0u);
@@ -120,17 +129,19 @@ TEST(Entity, Tick) {
 // Player 测试
 // ============================================================================
 
-TEST(Player, Construction) {
+TEST(Player, Construction)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_EQ(player.id(), 1u);
-    EXPECT_EQ(player.playerId(), 0u);  // 默认为0，需要手动设置
+    EXPECT_EQ(player.playerId(), 0u); // 默认为0，需要手动设置
     EXPECT_EQ(player.username(), "TestPlayer");
     EXPECT_EQ(player.gameMode(), GameMode::Survival);
     EXPECT_FLOAT_EQ(player.health(), 20.0f);
 }
 
-TEST(Player, Health) {
+TEST(Player, Health)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_FLOAT_EQ(player.health(), 20.0f);
@@ -149,7 +160,8 @@ TEST(Player, Health) {
     EXPECT_TRUE(player.isDead());
 }
 
-TEST(Player, GameMode) {
+TEST(Player, GameMode)
+{
     Player player(1, "TestPlayer");
 
     player.setGameMode(GameMode::Creative);
@@ -163,7 +175,8 @@ TEST(Player, GameMode) {
     EXPECT_TRUE(player.abilities().flying);
 }
 
-TEST(Player, IsSpectator) {
+TEST(Player, IsSpectator)
+{
     Player player(1, "TestPlayer");
 
     // 默认生存模式，不是观察者
@@ -186,7 +199,8 @@ TEST(Player, IsSpectator) {
     EXPECT_FALSE(player.isSpectator());
 }
 
-TEST(Player, IsCreative) {
+TEST(Player, IsCreative)
+{
     Player player(1, "TestPlayer");
 
     // 默认生存模式
@@ -199,7 +213,8 @@ TEST(Player, IsCreative) {
     EXPECT_FALSE(player.isCreative());
 }
 
-TEST(Player, IsSurvival) {
+TEST(Player, IsSurvival)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_TRUE(player.isSurvival());
@@ -208,7 +223,8 @@ TEST(Player, IsSurvival) {
     EXPECT_FALSE(player.isSurvival());
 }
 
-TEST(Player, IsAdventure) {
+TEST(Player, IsAdventure)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_FALSE(player.isAdventure());
@@ -217,7 +233,8 @@ TEST(Player, IsAdventure) {
     EXPECT_TRUE(player.isAdventure());
 }
 
-TEST(Player, Experience) {
+TEST(Player, Experience)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_EQ(player.experienceLevel(), 0);
@@ -230,7 +247,8 @@ TEST(Player, Experience) {
     EXPECT_EQ(player.experienceLevel(), 10);
 }
 
-TEST(Player, ExperienceBarCapacity) {
+TEST(Player, ExperienceBarCapacity)
+{
     Player player(1, "TestPlayer");
 
     // Level 0-14: 7 + level * 2
@@ -252,7 +270,8 @@ TEST(Player, ExperienceBarCapacity) {
     EXPECT_EQ(player.experienceBarCapacity(), 112);
 }
 
-TEST(Player, Food) {
+TEST(Player, Food)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
@@ -266,7 +285,8 @@ TEST(Player, Food) {
     EXPECT_EQ(player.foodStats().foodLevel(), 20); // 最大20
 }
 
-TEST(FoodStats, ExhaustionConsumption) {
+TEST(FoodStats, ExhaustionConsumption)
+{
     Player player(1, "TestPlayer");
 
     // 初始状态：foodLevel=20, saturation=5.0
@@ -281,7 +301,7 @@ TEST(FoodStats, ExhaustionConsumption) {
     EXPECT_EQ(player.foodStats().foodLevel(), 20); // 饥饿值不变
 
     // 消耗剩余饱和度
-    player.foodStats().addExhaustion(16.0f); // 4次消耗
+    player.foodStats().addExhaustion(16.0f);                    // 4次消耗
     player.foodStats().tick(player, Difficulty::Normal, false); // 触发消耗
     EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 0.0f);
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
@@ -292,7 +312,8 @@ TEST(FoodStats, ExhaustionConsumption) {
     EXPECT_EQ(player.foodStats().foodLevel(), 19);
 }
 
-TEST(FoodStats, SaturationCalculation) {
+TEST(FoodStats, SaturationCalculation)
+{
     Player player(1, "TestPlayer");
 
     // 重置到低饥饿值
@@ -313,7 +334,8 @@ TEST(FoodStats, SaturationCalculation) {
     EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 15.2f);
 }
 
-TEST(FoodStats, NeedsFood) {
+TEST(FoodStats, NeedsFood)
+{
     Player player(1, "TestPlayer");
 
     // 饱食时不需要食物
@@ -327,7 +349,8 @@ TEST(FoodStats, NeedsFood) {
     EXPECT_TRUE(player.foodStats().needsFood());
 }
 
-TEST(FoodStats, FoodTimer) {
+TEST(FoodStats, FoodTimer)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_EQ(player.foodStats().foodTimer(), 0);
@@ -336,7 +359,8 @@ TEST(FoodStats, FoodTimer) {
     EXPECT_EQ(player.foodStats().foodTimer(), 50);
 }
 
-TEST(FoodStats, PrevFoodLevel) {
+TEST(FoodStats, PrevFoodLevel)
+{
     Player player(1, "TestPlayer");
 
     EXPECT_EQ(player.foodStats().prevFoodLevel(), 20);
@@ -346,7 +370,8 @@ TEST(FoodStats, PrevFoodLevel) {
     EXPECT_EQ(player.foodStats().prevFoodLevel(), 20);
 }
 
-TEST(FoodStats, ExhaustionCap) {
+TEST(FoodStats, ExhaustionCap)
+{
     Player player(1, "TestPlayer");
 
     // 消耗值上限为 40.0
@@ -354,7 +379,8 @@ TEST(FoodStats, ExhaustionCap) {
     EXPECT_FLOAT_EQ(player.foodStats().exhaustionLevel(), 40.0f);
 }
 
-TEST(FoodStats, Serialization) {
+TEST(FoodStats, Serialization)
+{
     Player original(1, "TestPlayer");
     original.foodStats().setFoodLevel(15);
     original.foodStats().setSaturationLevel(3.5f);
@@ -373,7 +399,8 @@ TEST(FoodStats, Serialization) {
     EXPECT_FLOAT_EQ(loaded.exhaustionLevel(), 2.0f);
 }
 
-TEST(FoodStats, FastRegeneration) {
+TEST(FoodStats, FastRegeneration)
+{
     // 快速恢复条件：foodLevel >= 20 且 saturation > 0，每 10 ticks 恢复 saturation/6 生命
     Player player(1, "TestPlayer");
 
@@ -394,11 +421,12 @@ TEST(FoodStats, FastRegeneration) {
     }
 
     // 验证生命恢复
-    EXPECT_GT(player.health(), 10.0f); // 生命应该恢复
+    EXPECT_GT(player.health(), 10.0f);                     // 生命应该恢复
     EXPECT_LT(player.foodStats().saturationLevel(), 6.0f); // 饱和度应该消耗
 }
 
-TEST(FoodStats, SlowRegeneration) {
+TEST(FoodStats, SlowRegeneration)
+{
     // 慢速恢复条件：foodLevel >= 18 且 saturation == 0，每 80 ticks 恢复 1 生命
     Player player(1, "TestPlayer");
 
@@ -423,7 +451,8 @@ TEST(FoodStats, SlowRegeneration) {
     EXPECT_EQ(player.foodStats().foodLevel(), 17);
 }
 
-TEST(FoodStats, StarvationDamage) {
+TEST(FoodStats, StarvationDamage)
+{
     // 饥饿伤害条件：foodLevel <= 0，每 80 ticks 造成 1 点伤害
     Player player(1, "TestPlayer");
 
@@ -445,7 +474,8 @@ TEST(FoodStats, StarvationDamage) {
     EXPECT_LT(player.health(), 20.0f); // 应该受到伤害
 }
 
-TEST(FoodStats, StarvationDamageEasyMode) {
+TEST(FoodStats, StarvationDamageEasyMode)
+{
     // 简单模式：饥饿伤害最低保留 10 点生命
     Player player(1, "TestPlayer");
 
@@ -462,7 +492,8 @@ TEST(FoodStats, StarvationDamageEasyMode) {
     EXPECT_GE(player.health(), 10.0f);
 }
 
-TEST(FoodStats, StarvationDamageNormalMode) {
+TEST(FoodStats, StarvationDamageNormalMode)
+{
     // 普通模式：饥饿伤害最低保留 1 点生命
     Player player(1, "TestPlayer");
 
@@ -479,7 +510,8 @@ TEST(FoodStats, StarvationDamageNormalMode) {
     EXPECT_GE(player.health(), 1.0f);
 }
 
-TEST(FoodStats, PeacefulMode) {
+TEST(FoodStats, PeacefulMode)
+{
     // 和平模式：自动恢复生命和饥饿值
     Player player(1, "TestPlayer");
 
@@ -499,7 +531,8 @@ TEST(FoodStats, PeacefulMode) {
     EXPECT_GT(player.foodStats().foodLevel(), 10);
 }
 
-TEST(FoodStats, PeacefulModeNoStarvation) {
+TEST(FoodStats, PeacefulModeNoStarvation)
+{
     // 和平模式：即使饥饿值为 0 也不会造成伤害
     Player player(1, "TestPlayer");
 
@@ -518,7 +551,8 @@ TEST(FoodStats, PeacefulModeNoStarvation) {
     EXPECT_GT(player.foodStats().foodLevel(), 0);
 }
 
-TEST(FoodStats, NoRegenerationWithHungerEffect) {
+TEST(FoodStats, NoRegenerationWithHungerEffect)
+{
     // 有饥饿效果时不恢复生命
     // 注意：此测试需要 Player 支持 addEffect() 方法
     // 目前仅验证基础逻辑框架
@@ -537,7 +571,8 @@ TEST(FoodStats, NoRegenerationWithHungerEffect) {
     EXPECT_GT(player.health(), 10.0f);
 }
 
-TEST(FoodStats, NaturalRegenerationDisabled) {
+TEST(FoodStats, NaturalRegenerationDisabled)
+{
     // naturalRegeneration=false 时不应恢复生命
     Player player(1, "TestPlayer");
 
@@ -554,8 +589,8 @@ TEST(FoodStats, NaturalRegenerationDisabled) {
     EXPECT_FLOAT_EQ(player.health(), 10.0f);
 }
 
-
-TEST(Player, PoseHeight) {
+TEST(Player, PoseHeight)
+{
     Player player(1, "TestPlayer");
 
     // 站立
@@ -576,7 +611,8 @@ TEST(Player, PoseHeight) {
     EXPECT_FLOAT_EQ(player.height(), 0.2f);
 }
 
-TEST(Player, SprintingSneaking) {
+TEST(Player, SprintingSneaking)
+{
     Player player(1, "TestPlayer");
 
     player.setSprinting(true);
@@ -592,7 +628,8 @@ TEST(Player, SprintingSneaking) {
     EXPECT_EQ(player.pose(), EntityPose::Crouching);
 }
 
-TEST(Player, Respawn) {
+TEST(Player, Respawn)
+{
     Player player(1, "TestPlayer");
 
     auto genericSource = DamageSources::generic();
@@ -605,7 +642,8 @@ TEST(Player, Respawn) {
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
 }
 
-TEST(Player, SerializeDeserialize) {
+TEST(Player, SerializeDeserialize)
+{
     Player original(1, "TestPlayer");
     original.setPlayerId(12345);
     original.setPosition(100.5, 64.0, -200.25);
@@ -639,7 +677,8 @@ TEST(Player, SerializeDeserialize) {
 // Portal Timing Tests
 // ============================================================================
 
-TEST(Entity, PortalCooldown) {
+TEST(Entity, PortalCooldown)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     // 初始状态：冷却为0，可以传送
@@ -648,7 +687,7 @@ TEST(Entity, PortalCooldown) {
 
     // 触发传送冷却
     entity.triggerPortalCooldown();
-    EXPECT_EQ(entity.portalCooldown(), 300);  // 默认冷却 300 tick (15秒)
+    EXPECT_EQ(entity.portalCooldown(), 300); // 默认冷却 300 tick (15秒)
     EXPECT_FALSE(entity.canTeleport());
 
     // 冷却递减
@@ -660,7 +699,8 @@ TEST(Entity, PortalCooldown) {
     EXPECT_TRUE(entity.canTeleport());
 }
 
-TEST(Entity, PortalTime) {
+TEST(Entity, PortalTime)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     // 初始状态：传送门时间为0
@@ -680,7 +720,8 @@ TEST(Entity, PortalTime) {
     EXPECT_EQ(entity.portalTime(), 0);
 }
 
-TEST(Entity, GetMaxInPortalTime) {
+TEST(Entity, GetMaxInPortalTime)
+{
     Entity entity(LegacyEntityType::Pig, 1);
     // MC 1.16.5: 非玩家实体基类返回 0
     // 检查条件 portalCounter++ >= 0 第一次进入就满足
@@ -692,7 +733,8 @@ TEST(Entity, GetMaxInPortalTime) {
     EXPECT_EQ(player.getMaxInPortalTime(), 80);
 }
 
-TEST(Entity, TickPortalNotInPortal) {
+TEST(Entity, TickPortalNotInPortal)
+{
     Entity entity(LegacyEntityType::Pig, 1);
     entity.setPortalTime(10);
 
@@ -705,7 +747,8 @@ TEST(Entity, TickPortalNotInPortal) {
     EXPECT_EQ(entity.portalTime(), 6);
 }
 
-TEST(Entity, TickPortalNotInPortalZero) {
+TEST(Entity, TickPortalNotInPortalZero)
+{
     Entity entity(LegacyEntityType::Pig, 1);
     entity.setPortalTime(2);
 
@@ -719,7 +762,8 @@ TEST(Entity, TickPortalNotInPortalZero) {
     EXPECT_EQ(entity.portalTime(), 0);
 }
 
-TEST(Entity, TickPortalInPortal) {
+TEST(Entity, TickPortalInPortal)
+{
     Entity entity(LegacyEntityType::Pig, 1);
 
     // MC 1.16.5: 非玩家实体基类 getMaxInPortalTime() 返回 0
@@ -727,8 +771,8 @@ TEST(Entity, TickPortalInPortal) {
     // 第一次进入：portalTime 从 0 变为 1，然后 1 > 0 成立
     // 实际效果：非玩家实体需要 1 tick 传送
     entity.setInPortal(true);
-    entity.triggerPortalCooldown();  // 设置冷却
-    entity.setPortalCooldown(0);     // 清除冷却以允许传送
+    entity.triggerPortalCooldown(); // 设置冷却
+    entity.setPortalCooldown(0);    // 清除冷却以允许传送
 
     bool shouldTeleport = entity.tickPortal();
     EXPECT_TRUE(shouldTeleport);
@@ -736,21 +780,23 @@ TEST(Entity, TickPortalInPortal) {
     EXPECT_EQ(entity.portalTime(), 0);
 }
 
-TEST(Entity, TickPortalInPortalWithCooldown) {
+TEST(Entity, TickPortalInPortalWithCooldown)
+{
     Entity entity(LegacyEntityType::Pig, 1);
 
     // 有冷却时不能传送
     entity.setInPortal(true);
-    entity.setPortalCooldown(100);  // 冷却中
+    entity.setPortalCooldown(100); // 冷却中
 
     // tickPortal 会重置 inPortal = false
     bool shouldTeleport = entity.tickPortal();
-    EXPECT_FALSE(shouldTeleport);  // 冷却中，不传送
-    EXPECT_FALSE(entity.isInPortal());  // inPortal 被重置
-    EXPECT_EQ(entity.portalTime(), 0);  // 时间不增加（因为冷却阻止了传送）
+    EXPECT_FALSE(shouldTeleport);      // 冷却中，不传送
+    EXPECT_FALSE(entity.isInPortal()); // inPortal 被重置
+    EXPECT_EQ(entity.portalTime(), 0); // 时间不增加（因为冷却阻止了传送）
 }
 
-TEST(Entity, TickPortalPlayer) {
+TEST(Entity, TickPortalPlayer)
+{
     Player player(1, "TestPlayer");
 
     // 玩家需要 80 tick (4秒)
@@ -763,7 +809,7 @@ TEST(Entity, TickPortalPlayer) {
 
     // 79 ticks 后不传送
     for (int i = 0; i < 79; ++i) {
-        player.setInPortal(true);  // 模拟 onEntityCollision 每帧设置
+        player.setInPortal(true); // 模拟 onEntityCollision 每帧设置
         bool shouldTeleport = player.tickPortal();
         EXPECT_FALSE(shouldTeleport);
         // tickPortal 内部已重置 inPortal = false
@@ -777,13 +823,14 @@ TEST(Entity, TickPortalPlayer) {
     EXPECT_EQ(player.portalTime(), 80);
 }
 
-TEST(Entity, TickPortalPlayerInterrupted) {
+TEST(Entity, TickPortalPlayerInterrupted)
+{
     Player player(1, "TestPlayer");
 
     // 玩家在传送门中 40 tick
     player.setPortalCooldown(0);
     for (int i = 0; i < 40; ++i) {
-        player.setInPortal(true);  // 每帧设置 inPortal
+        player.setInPortal(true); // 每帧设置 inPortal
         player.tickPortal();
         // tickPortal 内部已重置 inPortal = false
     }
@@ -795,23 +842,24 @@ TEST(Entity, TickPortalPlayerInterrupted) {
     // 注意：循环最后一次 setInPortal(true) 后 tickPortal 重置为 false
     // 所以这里 isInPortal() 应该是 false
     EXPECT_FALSE(player.isInPortal());
-    EXPECT_EQ(player.portalTime(), 36);  // 40 - 4 = 36
+    EXPECT_EQ(player.portalTime(), 36); // 40 - 4 = 36
 
     // 再过几帧不在传送门
     for (int i = 0; i < 5; ++i) {
         player.tickPortal();
     }
-    EXPECT_EQ(player.portalTime(), 16);  // 36 - 4*5 = 16
+    EXPECT_EQ(player.portalTime(), 16); // 36 - 4*5 = 16
 
     // 再次进入传送门
     for (int i = 0; i < 10; ++i) {
         player.setInPortal(true);
         player.tickPortal();
     }
-    EXPECT_EQ(player.portalTime(), 26);  // 16 + 10 = 26
+    EXPECT_EQ(player.portalTime(), 26); // 16 + 10 = 26
 }
 
-TEST(Entity, PortalPos) {
+TEST(Entity, PortalPos)
+{
     Entity entity(LegacyEntityType::Player, 1);
     BlockPos portalPos(100, 64, 200);
 
@@ -821,7 +869,8 @@ TEST(Entity, PortalPos) {
     EXPECT_EQ(entity.portalPos().z, 200);
 }
 
-TEST(Entity, TickPortalCooldownDecrement) {
+TEST(Entity, TickPortalCooldownDecrement)
+{
     Entity entity(LegacyEntityType::Player, 1);
 
     // 设置冷却
@@ -837,7 +886,8 @@ TEST(Entity, TickPortalCooldownDecrement) {
     EXPECT_EQ(entity.portalCooldown(), 298);
 }
 
-TEST(Entity, OnPortalTriggered) {
+TEST(Entity, OnPortalTriggered)
+{
     Entity entity(LegacyEntityType::Pig, 1);
 
     // 设置传送门状态
@@ -851,5 +901,5 @@ TEST(Entity, OnPortalTriggered) {
     EXPECT_FALSE(result);
     EXPECT_FALSE(entity.isInPortal());
     EXPECT_EQ(entity.portalTime(), 0);
-    EXPECT_EQ(entity.portalCooldown(), 300);  // 触发冷却
+    EXPECT_EQ(entity.portalCooldown(), 300); // 触发冷却
 }

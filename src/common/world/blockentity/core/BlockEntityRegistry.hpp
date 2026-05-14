@@ -1,11 +1,11 @@
 #pragma once
 
+#include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
-#include "world/block/BlockPos.hpp"
 #include <functional>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 
 namespace mc {
 namespace blockentity {
@@ -140,10 +140,10 @@ private:
 template <typename T>
 class BlockEntityRegistrar {
 public:
-    explicit BlockEntityRegistrar(BlockEntityType type) {
-        BlockEntityRegistry::instance().registerType(type, [](const BlockPos& pos) {
-            return std::make_unique<T>(pos);
-        });
+    explicit BlockEntityRegistrar(BlockEntityType type)
+    {
+        BlockEntityRegistry::instance().registerType(
+            type, [](const BlockPos& pos) { return std::make_unique<T>(pos); });
     }
 };
 

@@ -1,22 +1,23 @@
 #include "CowEntity.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
-#include "../../../damage/DamageSource.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../world/block/Block.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
 
-std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/)
+{
     // 使用临时ID 0，实际ID由 EntityManager 分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
     return std::make_unique<CowEntity>(LegacyEntityType::Unknown, 0);
@@ -29,27 +30,32 @@ CowEntity::CowEntity(LegacyEntityType type, EntityId id)
     registerGoals();
 }
 
-std::optional<ResourceLocation> CowEntity::getAmbientSound() const {
+std::optional<ResourceLocation> CowEntity::getAmbientSound() const
+{
     // MC 1.16.5: entity.cow.ambient
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> CowEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> CowEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.cow.hurt
     return makeSoundEventId("hurt");
 }
 
-std::optional<ResourceLocation> CowEntity::getDeathSound() const {
+std::optional<ResourceLocation> CowEntity::getDeathSound() const
+{
     // MC 1.16.5: entity.cow.death
     return makeSoundEventId("death");
 }
 
-std::optional<ResourceLocation> CowEntity::getStepSound() const {
+std::optional<ResourceLocation> CowEntity::getStepSound() const
+{
     // MC 1.16.5: entity.cow.step
     return makeSoundEventId("step");
 }
 
-void CowEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
+void CowEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
+{
     // MC 1.16.5: CowEntity.playStepSound()
     // 牛播放固定的脚步声，忽略脚下方块类型
     auto sound = getStepSound();
@@ -58,19 +64,22 @@ void CowEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*block
     }
 }
 
-bool CowEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool CowEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // 牛用小麦繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::WHEAT;
 }
 
-bool CowEntity::canMateWith(const AnimalEntity& other) const {
+bool CowEntity::canMateWith(const AnimalEntity& other) const
+{
     // 检查是否是牛
     return AnimalEntity::canMateWith(other);
 }
 
-std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/) {
+std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
     // 创建小牛
     auto baby = std::make_unique<CowEntity>(LegacyEntityType::Unknown, 0);
 
@@ -83,7 +92,8 @@ std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/) {
     return baby;
 }
 
-void CowEntity::registerGoals() {
+void CowEntity::registerGoals()
+{
     // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
     AgeableEntity::registerGoals();
 
@@ -100,13 +110,15 @@ void CowEntity::registerGoals() {
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 3: 食物诱惑（小麦）
-    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
-        this, 1.0,
-        [](const ItemStack& stack) -> bool {
-            const Item* item = stack.getItem();
-            return item != nullptr && item == Items::WHEAT;
-        },
-        false));  // scaredByMovement = false
+    m_goalSelector.addGoal(3,
+        std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+            this,
+            1.0,
+            [](const ItemStack& stack) -> bool {
+                const Item* item = stack.getItem();
+                return item != nullptr && item == Items::WHEAT;
+            },
+            false)); // scaredByMovement = false
 
     // 优先级 4: 跟随父母
     m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
@@ -121,7 +133,8 @@ void CowEntity::registerGoals() {
     m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
-void CowEntity::registerAttributes() {
+void CowEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 

@@ -7,7 +7,8 @@
 namespace mc::test {
 namespace {
 
-nlohmann::json loadJsonFromPack(const InMemoryResourcePack& pack, std::string_view path) {
+nlohmann::json loadJsonFromPack(const InMemoryResourcePack& pack, std::string_view path)
+{
     const auto readResult = pack.readResource(path);
     EXPECT_TRUE(readResult.success()) << "missing resource: " << path;
     if (readResult.failed()) {
@@ -21,13 +22,12 @@ nlohmann::json loadJsonFromPack(const InMemoryResourcePack& pack, std::string_vi
 
 } // namespace
 
-TEST(VanillaResourcesTintModelTest, GrassBlockTopFaceHasTintIndex) {
+TEST(VanillaResourcesTintModelTest, GrassBlockTopFaceHasTintIndex)
+{
     auto pack = VanillaResources::createResourcePack();
     ASSERT_NE(pack, nullptr);
 
-    const nlohmann::json model = loadJsonFromPack(
-        *pack,
-        "assets/minecraft/models/block/grass_block.json");
+    const nlohmann::json model = loadJsonFromPack(*pack, "assets/minecraft/models/block/grass_block.json");
 
     ASSERT_TRUE(model.contains("elements"));
     ASSERT_TRUE(model["elements"].is_array());
@@ -39,13 +39,12 @@ TEST(VanillaResourcesTintModelTest, GrassBlockTopFaceHasTintIndex) {
     EXPECT_EQ(faces["up"]["tintindex"].get<i32>(), 0);
 }
 
-TEST(VanillaResourcesTintModelTest, GrassBlockBottomUsesDirtTexture) {
+TEST(VanillaResourcesTintModelTest, GrassBlockBottomUsesDirtTexture)
+{
     auto pack = VanillaResources::createResourcePack();
     ASSERT_NE(pack, nullptr);
 
-    const nlohmann::json model = loadJsonFromPack(
-        *pack,
-        "assets/minecraft/models/block/grass_block.json");
+    const nlohmann::json model = loadJsonFromPack(*pack, "assets/minecraft/models/block/grass_block.json");
 
     ASSERT_TRUE(model.contains("textures"));
     ASSERT_TRUE(model["textures"].contains("bottom"));
@@ -61,13 +60,12 @@ TEST(VanillaResourcesTintModelTest, GrassBlockBottomUsesDirtTexture) {
     EXPECT_EQ(faces["down"]["texture"].get<std::string>(), "#bottom");
 }
 
-TEST(VanillaResourcesTintModelTest, GrassBlockSideOverlayHasTintIndex) {
+TEST(VanillaResourcesTintModelTest, GrassBlockSideOverlayHasTintIndex)
+{
     auto pack = VanillaResources::createResourcePack();
     ASSERT_NE(pack, nullptr);
 
-    const nlohmann::json model = loadJsonFromPack(
-        *pack,
-        "assets/minecraft/models/block/grass_block.json");
+    const nlohmann::json model = loadJsonFromPack(*pack, "assets/minecraft/models/block/grass_block.json");
 
     ASSERT_TRUE(model.contains("textures"));
     ASSERT_TRUE(model["textures"].contains("overlay"));
@@ -87,13 +85,12 @@ TEST(VanillaResourcesTintModelTest, GrassBlockSideOverlayHasTintIndex) {
     }
 }
 
-TEST(VanillaResourcesTintModelTest, LeavesModelHasTintIndexOnAllFaces) {
+TEST(VanillaResourcesTintModelTest, LeavesModelHasTintIndexOnAllFaces)
+{
     auto pack = VanillaResources::createResourcePack();
     ASSERT_NE(pack, nullptr);
 
-    const nlohmann::json model = loadJsonFromPack(
-        *pack,
-        "assets/minecraft/models/block/leaves.json");
+    const nlohmann::json model = loadJsonFromPack(*pack, "assets/minecraft/models/block/leaves.json");
 
     ASSERT_TRUE(model.contains("elements"));
     ASSERT_TRUE(model["elements"].is_array());
@@ -107,7 +104,8 @@ TEST(VanillaResourcesTintModelTest, LeavesModelHasTintIndexOnAllFaces) {
     }
 }
 
-TEST(VanillaResourcesTintModelTest, ShortGrassAndFernUseTintedCrossParent) {
+TEST(VanillaResourcesTintModelTest, ShortGrassAndFernUseTintedCrossParent)
+{
     auto pack = VanillaResources::createResourcePack();
     ASSERT_NE(pack, nullptr);
 
@@ -120,13 +118,12 @@ TEST(VanillaResourcesTintModelTest, ShortGrassAndFernUseTintedCrossParent) {
     }
 }
 
-TEST(VanillaResourcesTintModelTest, TallGrassUsesTintedCrossParent) {
+TEST(VanillaResourcesTintModelTest, TallGrassUsesTintedCrossParent)
+{
     auto pack = VanillaResources::createResourcePack();
     ASSERT_NE(pack, nullptr);
 
-    const nlohmann::json model = loadJsonFromPack(
-        *pack,
-        "assets/minecraft/models/block/tall_grass.json");
+    const nlohmann::json model = loadJsonFromPack(*pack, "assets/minecraft/models/block/tall_grass.json");
 
     ASSERT_TRUE(model.contains("parent"));
     EXPECT_EQ(model["parent"].get<std::string>(), "block/tinted_cross");

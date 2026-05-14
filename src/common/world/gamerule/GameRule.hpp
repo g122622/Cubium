@@ -37,13 +37,13 @@ namespace mc::world::gamerule {
  * 用于在 UI 中分组显示游戏规则
  */
 enum class GameRuleCategory : u8 {
-    Player,     ///< 玩家相关（keepInventory, naturalRegeneration 等）
-    Mobs,       ///< 生物相关（mobGriefing, maxEntityCramming 等）
-    Spawning,   ///< 生成相关（doMobSpawning, doInsomnia 等）
-    Drops,      ///< 掉落相关（doMobLoot, doTileDrops 等）
-    Updates,    ///< 更新相关（doFireTick, randomTickSpeed 等）
-    Chat,       ///< 聊天相关（commandBlockOutput, logAdminCommands 等）
-    Misc        ///< 杂项（reducedDebugInfo, maxCommandChainLength 等）
+    Player,   ///< 玩家相关（keepInventory, naturalRegeneration 等）
+    Mobs,     ///< 生物相关（mobGriefing, maxEntityCramming 等）
+    Spawning, ///< 生成相关（doMobSpawning, doInsomnia 等）
+    Drops,    ///< 掉落相关（doMobLoot, doTileDrops 等）
+    Updates,  ///< 更新相关（doFireTick, randomTickSpeed 等）
+    Chat,     ///< 聊天相关（commandBlockOutput, logAdminCommands 等）
+    Misc      ///< 杂项（reducedDebugInfo, maxCommandChainLength 等）
 };
 
 /**
@@ -61,8 +61,8 @@ using GameRuleChangeListener = std::function<void(server::MinecraftServer* serve
  * @brief 游戏规则类型枚举
  */
 enum class GameRuleValueType : u8 {
-    Boolean,    ///< 布尔类型
-    Integer     ///< 整数类型
+    Boolean, ///< 布尔类型
+    Integer  ///< 整数类型
 };
 
 // 前向声明
@@ -104,23 +104,17 @@ public:
      * @brief 获取本地化键
      * @return 如 "gamerule.mobGriefing"
      */
-    [[nodiscard]] std::string getTranslationKey() const {
-        return "gamerule." + m_name;
-    }
+    [[nodiscard]] std::string getTranslationKey() const { return "gamerule." + m_name; }
 
     /**
      * @brief 相等比较
      */
-    bool operator==(const GameRuleKey& other) const {
-        return m_name == other.m_name;
-    }
+    bool operator==(const GameRuleKey& other) const { return m_name == other.m_name; }
 
     /**
      * @brief 哈希值
      */
-    [[nodiscard]] size_t hashCode() const {
-        return std::hash<std::string>{}(m_name);
-    }
+    [[nodiscard]] size_t hashCode() const { return std::hash<std::string>{}(m_name); }
 
 private:
     std::string m_name;
@@ -156,9 +150,7 @@ public:
     /**
      * @brief 获取变更监听器
      */
-    [[nodiscard]] const GameRuleChangeListener<T>& getChangeListener() const {
-        return m_changeListener;
-    }
+    [[nodiscard]] const GameRuleChangeListener<T>& getChangeListener() const { return m_changeListener; }
 
     /**
      * @brief 创建规则值实例
@@ -217,7 +209,8 @@ public:
      * @brief 重置为默认值
      * @param server Minecraft 服务器实例
      */
-    void reset(server::MinecraftServer* server = nullptr) {
+    void reset(server::MinecraftServer* server = nullptr)
+    {
         if (m_type) {
             set(m_defaultValue, server);
         }
@@ -226,9 +219,7 @@ public:
     /**
      * @brief 检查是否为默认值
      */
-    [[nodiscard]] bool isDefault() const {
-        return m_value == m_defaultValue;
-    }
+    [[nodiscard]] bool isDefault() const { return m_value == m_defaultValue; }
 
     /**
      * @brief 获取字符串表示（用于序列化）
@@ -250,7 +241,8 @@ public:
     /**
      * @brief 复制规则值（创建新实例）
      */
-    [[nodiscard]] GameRuleValue<T> clone() const {
+    [[nodiscard]] GameRuleValue<T> clone() const
+    {
         GameRuleValue<T> copy;
         copy.m_type = m_type;
         copy.m_defaultValue = m_defaultValue;
@@ -260,8 +252,8 @@ public:
 
 private:
     const GameRuleType<T>* m_type = nullptr;
-    T m_defaultValue{};  ///< 默认值副本
-    T m_value{};         ///< 当前值
+    T m_defaultValue{}; ///< 默认值副本
+    T m_value{};        ///< 当前值
 };
 
 // 布尔类型特化
@@ -283,12 +275,14 @@ bool GameRuleValue<i32>::fromString(const std::string& value);
 // ============================================================================
 
 template <typename T>
-GameRuleValue<T> GameRuleType<T>::createValue() const {
+GameRuleValue<T> GameRuleType<T>::createValue() const
+{
     return GameRuleValue<T>(*this);
 }
 
 template <typename T>
-void GameRuleValue<T>::set(T value, server::MinecraftServer* server) {
+void GameRuleValue<T>::set(T value, server::MinecraftServer* server)
+{
     m_value = value;
     // 触发变更监听器
     if (m_type && m_type->getChangeListener() && server) {
@@ -314,9 +308,7 @@ namespace std {
 
 template <typename T>
 struct hash<mc::world::gamerule::GameRuleKey<T>> {
-    size_t operator()(const mc::world::gamerule::GameRuleKey<T>& key) const {
-        return key.hashCode();
-    }
+    size_t operator()(const mc::world::gamerule::GameRuleKey<T>& key) const { return key.hashCode(); }
 };
 
 } // namespace std

@@ -5,25 +5,25 @@
  * 测试 TNT 实体的核心功能：点燃、爆炸、物理等。
  */
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-#include "common/entity/entities/misc/MiscEntities.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 
 namespace mc {
 namespace entity {
@@ -38,7 +38,8 @@ public:
 
     // ========== 方块访问 ==========
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -46,7 +47,8 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         if (state == nullptr) {
             m_blocks.erase(BlockPos(x, y, z));
         } else {
@@ -55,7 +57,8 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
         // 地面碰撞检测（Y <= 0 时有地面）
         if (box.minY <= 0) {
             return true;
@@ -63,7 +66,8 @@ public:
         return false;
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
+    {
         std::vector<AxisAlignedBB> collisions;
         if (box.minY <= 0) {
             collisions.push_back(AxisAlignedBB(-1000.0, -1000.0, -1000.0, 1000.0, 0.0, 1000.0));
@@ -71,24 +75,20 @@ public:
         return collisions;
     }
 
-    [[nodiscard]] u64 currentTick() const override {
-        return m_currentTick;
-    }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] bool isClientSide() override {
-        return m_isClientSide;
-    }
+    [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
 
-    void setClientSide(bool isClient) {
-        m_isClientSide = isClient;
-    }
+    void setClientSide(bool isClient) { m_isClientSide = isClient; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override {
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {
             return m_spawnedEntities[index].get();
@@ -96,7 +96,8 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override {
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {
             return m_spawnedEntities[index].get();
@@ -104,12 +105,12 @@ public:
         return nullptr;
     }
 
-    void createExplosion(
-        const Vector3& position,
+    void createExplosion(const Vector3& position,
         f32 radius,
         world::explosion::ExplosionMode mode,
         bool causesFire,
-        Entity* source) override {
+        Entity* source) override
+    {
         m_lastExplosionPos = position;
         m_lastExplosionRadius = radius;
         m_lastExplosionMode = mode;
@@ -118,58 +119,43 @@ public:
         m_explosionCount++;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("TNTTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("TNTTestWorld::tickManager not implemented");
     }
 
     // 测试辅助方法
 
-    void advanceTick() {
-        m_currentTick++;
-    }
+    void advanceTick() { m_currentTick++; }
 
-    [[nodiscard]] size_t spawnedEntityCount() const {
-        return m_spawnedEntities.size();
-    }
+    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
 
-    [[nodiscard]] Entity* getLastSpawnedEntity() {
+    [[nodiscard]] Entity* getLastSpawnedEntity()
+    {
         if (m_spawnedEntities.empty()) {
             return nullptr;
         }
         return m_spawnedEntities.back().get();
     }
 
-    [[nodiscard]] i32 explosionCount() const {
-        return m_explosionCount;
-    }
+    [[nodiscard]] i32 explosionCount() const { return m_explosionCount; }
 
-    [[nodiscard]] const Vector3& lastExplosionPos() const {
-        return m_lastExplosionPos;
-    }
+    [[nodiscard]] const Vector3& lastExplosionPos() const { return m_lastExplosionPos; }
 
-    [[nodiscard]] f32 lastExplosionRadius() const {
-        return m_lastExplosionRadius;
-    }
+    [[nodiscard]] f32 lastExplosionRadius() const { return m_lastExplosionRadius; }
 
-    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const {
-        return m_lastExplosionMode;
-    }
+    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const { return m_lastExplosionMode; }
 
-    [[nodiscard]] bool lastExplosionCausesFire() const {
-        return m_lastExplosionCausesFire;
-    }
+    [[nodiscard]] bool lastExplosionCausesFire() const { return m_lastExplosionCausesFire; }
 
-    [[nodiscard]] Entity* lastExplosionSource() const {
-        return m_lastExplosionSource;
-    }
+    [[nodiscard]] Entity* lastExplosionSource() const { return m_lastExplosionSource; }
 
-    void clearSpawnedEntities() {
-        m_spawnedEntities.clear();
-    }
+    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -193,21 +179,20 @@ private:
 public:
     // 粒子生成接口实现
     void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity) override {
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    {
         m_particleCount++;
         m_lastParticleType = type;
         (void)pos;
         (void)velocity;
     }
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
-        u32 count) override {
+        u32 count) override
+    {
         m_particleCount += static_cast<i32>(count);
         m_lastParticleType = type;
         (void)pos;
@@ -215,19 +200,17 @@ public:
         (void)offset;
     }
 
-    [[nodiscard]] bool shouldSpawnParticleAt(const Vector3&, f32) const override {
-        return true;
-    }
+    [[nodiscard]] bool shouldSpawnParticleAt(const Vector3&, f32) const override { return true; }
 
-    [[nodiscard]] i32 particleCount() const {
-        return m_particleCount;
-    }
+    [[nodiscard]] i32 particleCount() const { return m_particleCount; }
 
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId lastParticleType() const {
+    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId lastParticleType() const
+    {
         return m_lastParticleType;
     }
 
-    void resetParticleCount() {
+    void resetParticleCount()
+    {
         m_particleCount = 0;
         m_lastParticleType = client::renderer::trident::particle::ParticleTypeId::Invalid;
     }
@@ -238,13 +221,13 @@ public:
  */
 class TNTEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         VanillaEntities::registerAll();
     }
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 
     TNTTestWorld m_world;
 };
@@ -252,7 +235,8 @@ protected:
 /**
  * @brief 测试 TNTEntity 默认构造
  */
-TEST_F(TNTEntityTest, DefaultConstruction) {
+TEST_F(TNTEntityTest, DefaultConstruction)
+{
     auto tnt = std::make_unique<TNTEntity>();
     ASSERT_NE(tnt, nullptr);
     EXPECT_EQ(tnt->getFuse(), 0);
@@ -263,7 +247,8 @@ TEST_F(TNTEntityTest, DefaultConstruction) {
 /**
  * @brief 测试点燃功能
  */
-TEST_F(TNTEntityTest, Ignite) {
+TEST_F(TNTEntityTest, Ignite)
+{
     auto tnt = std::make_unique<TNTEntity>();
     EXPECT_FALSE(tnt->isPrimed());
     EXPECT_EQ(tnt->getFuse(), 0);
@@ -278,7 +263,8 @@ TEST_F(TNTEntityTest, Ignite) {
 /**
  * @brief 测试引信时间设置
  */
-TEST_F(TNTEntityTest, SetFuse) {
+TEST_F(TNTEntityTest, SetFuse)
+{
     auto tnt = std::make_unique<TNTEntity>();
 
     tnt->setFuse(40);
@@ -293,7 +279,8 @@ TEST_F(TNTEntityTest, SetFuse) {
 /**
  * @brief 测试爆炸半径设置
  */
-TEST_F(TNTEntityTest, SetExplosionRadius) {
+TEST_F(TNTEntityTest, SetExplosionRadius)
+{
     auto tnt = std::make_unique<TNTEntity>();
 
     tnt->setExplosionRadius(6.0f);
@@ -306,7 +293,8 @@ TEST_F(TNTEntityTest, SetExplosionRadius) {
 /**
  * @brief 测试实体尺寸
  */
-TEST_F(TNTEntityTest, EntitySize) {
+TEST_F(TNTEntityTest, EntitySize)
+{
     // MC 1.16.5: TNT 实体尺寸为 0.98 x 0.98
     auto tnt = std::make_unique<TNTEntity>();
     EXPECT_FLOAT_EQ(tnt->width(), 0.98f);
@@ -316,7 +304,8 @@ TEST_F(TNTEntityTest, EntitySize) {
 /**
  * @brief 测试不可推动
  */
-TEST_F(TNTEntityTest, IsNotPushable) {
+TEST_F(TNTEntityTest, IsNotPushable)
+{
     auto tnt = std::make_unique<TNTEntity>();
     EXPECT_FALSE(tnt->isPushable());
 }
@@ -324,7 +313,8 @@ TEST_F(TNTEntityTest, IsNotPushable) {
 /**
  * @brief 测试不可碰撞
  */
-TEST_F(TNTEntityTest, CannotBeCollidedWith) {
+TEST_F(TNTEntityTest, CannotBeCollidedWith)
+{
     auto tnt = std::make_unique<TNTEntity>();
     EXPECT_FALSE(tnt->canBeCollidedWith());
 }
@@ -334,7 +324,8 @@ TEST_F(TNTEntityTest, CannotBeCollidedWith) {
  *
  * MC 1.16.5: TNT 默认引信时间为 80 tick (4 秒)
  */
-TEST_F(TNTEntityTest, DefaultFuseTime) {
+TEST_F(TNTEntityTest, DefaultFuseTime)
+{
     auto tnt = std::make_unique<TNTEntity>();
     // 默认引信时间应该是 80 tick
     tnt->ignite();
@@ -344,7 +335,8 @@ TEST_F(TNTEntityTest, DefaultFuseTime) {
 /**
  * @brief 测试工厂方法
  */
-TEST_F(TNTEntityTest, FactoryMethod) {
+TEST_F(TNTEntityTest, FactoryMethod)
+{
     auto entity = TNTEntity::create(&m_world);
     ASSERT_NE(entity, nullptr);
 
@@ -359,7 +351,8 @@ TEST_F(TNTEntityTest, FactoryMethod) {
  *
  * 当引信归零时，应该触发爆炸
  */
-TEST_F(TNTEntityTest, ExplodeTriggersWhenFuseReachesZero) {
+TEST_F(TNTEntityTest, ExplodeTriggersWhenFuseReachesZero)
+{
     auto tnt = std::make_unique<TNTEntity>();
     tnt->setWorld(&m_world);
     tnt->setPosition(10.0f, 64.0f, 20.0f);
@@ -392,7 +385,8 @@ TEST_F(TNTEntityTest, ExplodeTriggersWhenFuseReachesZero) {
  *
  * 即使多次 tick，爆炸也应该只触发一次
  */
-TEST_F(TNTEntityTest, ExplodeOnlyOnce) {
+TEST_F(TNTEntityTest, ExplodeOnlyOnce)
+{
     auto tnt = std::make_unique<TNTEntity>();
     tnt->setWorld(&m_world);
     tnt->setPosition(0.0f, 64.0f, 0.0f);
@@ -413,7 +407,8 @@ TEST_F(TNTEntityTest, ExplodeOnlyOnce) {
 /**
  * @brief 测试爆炸半径可配置
  */
-TEST_F(TNTEntityTest, CustomExplosionRadius) {
+TEST_F(TNTEntityTest, CustomExplosionRadius)
+{
     auto tnt = std::make_unique<TNTEntity>();
     tnt->setWorld(&m_world);
     tnt->setPosition(0.0f, 64.0f, 0.0f);
@@ -432,7 +427,8 @@ TEST_F(TNTEntityTest, CustomExplosionRadius) {
  * 但客户端世界的 createExplosion 实现可能不同（通常不破坏方块）。
  * 这里测试的是爆炸调用本身。
  */
-TEST_F(TNTEntityTest, ExplodeOnClientSide) {
+TEST_F(TNTEntityTest, ExplodeOnClientSide)
+{
     m_world.setClientSide(true);
 
     auto tnt = std::make_unique<TNTEntity>();
@@ -451,7 +447,8 @@ TEST_F(TNTEntityTest, ExplodeOnClientSide) {
 /**
  * @brief 测试点燃者设置
  */
-TEST_F(TNTEntityTest, SetOwner) {
+TEST_F(TNTEntityTest, SetOwner)
+{
     auto tnt = std::make_unique<TNTEntity>();
     EXPECT_EQ(tnt->getOwner(), nullptr);
 
@@ -464,7 +461,8 @@ TEST_F(TNTEntityTest, SetOwner) {
  *
  * 每个 tick 引信时间应该减 1
  */
-TEST_F(TNTEntityTest, FuseDecreasesEachTick) {
+TEST_F(TNTEntityTest, FuseDecreasesEachTick)
+{
     auto tnt = std::make_unique<TNTEntity>();
     tnt->setWorld(&m_world);
 
@@ -493,7 +491,8 @@ TEST_F(TNTEntityTest, FuseDecreasesEachTick) {
  *
  * 设置 noGravity 后不应该应用重力
  */
-TEST_F(TNTEntityTest, NoGravityMode) {
+TEST_F(TNTEntityTest, NoGravityMode)
+{
     auto tnt = std::make_unique<TNTEntity>();
     tnt->setWorld(&m_world);
     tnt->setPosition(0.0f, 64.0f, 0.0f);
@@ -513,7 +512,8 @@ TEST_F(TNTEntityTest, NoGravityMode) {
  *
  * TNTEntity 应该已经注册到实体注册表
  */
-TEST_F(TNTEntityTest, EntityRegistration) {
+TEST_F(TNTEntityTest, EntityRegistration)
+{
     auto& registry = EntityRegistry::instance();
     const EntityType* tntType = registry.getType(EntityTypes::TNT);
 
@@ -525,7 +525,8 @@ TEST_F(TNTEntityTest, EntityRegistration) {
 /**
  * @brief 测试引信边界值
  */
-TEST_F(TNTEntityTest, FuseBoundaryValues) {
+TEST_F(TNTEntityTest, FuseBoundaryValues)
+{
     auto tnt = std::make_unique<TNTEntity>();
 
     // 设置为 0
@@ -547,7 +548,8 @@ TEST_F(TNTEntityTest, FuseBoundaryValues) {
 /**
  * @brief 测试爆炸半径边界值
  */
-TEST_F(TNTEntityTest, ExplosionRadiusBoundaryValues) {
+TEST_F(TNTEntityTest, ExplosionRadiusBoundaryValues)
+{
     auto tnt = std::make_unique<TNTEntity>();
 
     // 最小半径
@@ -564,7 +566,8 @@ TEST_F(TNTEntityTest, ExplosionRadiusBoundaryValues) {
  *
  * 在客户端模式下，点燃的 TNT 应该生成烟雾粒子
  */
-TEST_F(TNTEntityTest, ClientSideSmokeParticles) {
+TEST_F(TNTEntityTest, ClientSideSmokeParticles)
+{
     using namespace client::renderer::trident::particle;
 
     m_world.setClientSide(true);
@@ -572,7 +575,7 @@ TEST_F(TNTEntityTest, ClientSideSmokeParticles) {
     auto tnt = std::make_unique<TNTEntity>();
     tnt->setWorld(&m_world);
     tnt->setPosition(10.0f, 64.0f, 20.0f);
-    tnt->ignite();  // 设置引信为 80
+    tnt->ignite(); // 设置引信为 80
 
     // tick 多次，粒子可能随机生成（1/3 概率）
     // 由于是随机生成，我们只验证粒子类型正确时才计数
@@ -598,7 +601,8 @@ TEST_F(TNTEntityTest, ClientSideSmokeParticles) {
  *
  * 在服务端模式下，不应该生成粒子
  */
-TEST_F(TNTEntityTest, ServerSideNoParticles) {
+TEST_F(TNTEntityTest, ServerSideNoParticles)
+{
     m_world.setClientSide(false);
 
     auto tnt = std::make_unique<TNTEntity>();

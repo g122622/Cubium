@@ -1,6 +1,6 @@
 #include "LayerContext.hpp"
-#include "transformers/TransformerTraits.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "transformers/TransformerTraits.hpp"
 
 namespace mc {
 
@@ -12,13 +12,15 @@ LayerContext::LayerContext(i32 maxCacheSize, u64 worldSeed, u64 modifier)
     : m_maxCacheSize(maxCacheSize)
     , m_worldSeed(worldSeed)
     , m_layerSeed(hashLayerSeed(worldSeed, modifier))
-    , m_noise(worldSeed)  // 使用种子初始化噪声生成器
+    , m_noise(worldSeed) // 使用种子初始化噪声生成器
     , m_cache(maxCacheSize)
 {
-    // MC_TRACE_EVENT("world.biome", "LayerContext_Construct", "maxCacheSize", maxCacheSize, "modifier", static_cast<i64>(modifier));
+    // MC_TRACE_EVENT("world.biome", "LayerContext_Construct", "maxCacheSize", maxCacheSize, "modifier",
+    // static_cast<i64>(modifier));
 }
 
-void LayerContext::setPosition(i64 x, i64 z) {
+void LayerContext::setPosition(i64 x, i64 z)
+{
     // 使用 FastRandom.mix 算法计算位置种子
     // 参考 MC LazyAreaLayerContext.setPosition:
     // long i = this.seed;
@@ -36,7 +38,8 @@ void LayerContext::setPosition(i64 x, i64 z) {
     m_positionSeed = seed;
 }
 
-i32 LayerContext::nextInt(i32 bound) {
+i32 LayerContext::nextInt(i32 bound)
+{
     // 参考 MC LazyAreaLayerContext.random:
     // int i = (int)Math.floorMod(this.positionSeed >> 24, (long)bound);
     // this.positionSeed = FastRandom.mix(this.positionSeed, this.seed);
@@ -54,11 +57,13 @@ i32 LayerContext::nextInt(i32 bound) {
     return result;
 }
 
-i32 LayerContext::pickRandom(i32 a, i32 b) {
+i32 LayerContext::pickRandom(i32 a, i32 b)
+{
     return nextInt(2) == 0 ? a : b;
 }
 
-i32 LayerContext::pickRandom(i32 a, i32 b, i32 c, i32 d) {
+i32 LayerContext::pickRandom(i32 a, i32 b, i32 c, i32 d)
+{
     i32 i = nextInt(4);
     if (i == 0) return a;
     if (i == 1) return b;
@@ -66,19 +71,22 @@ i32 LayerContext::pickRandom(i32 a, i32 b, i32 c, i32 d) {
     return d;
 }
 
-std::unique_ptr<IArea> LayerContext::makeArea(PixelFunc pixelFunc) {
+std::unique_ptr<IArea> LayerContext::makeArea(PixelFunc pixelFunc)
+{
     return std::make_unique<LazyArea>(m_cache, m_maxCacheSize, std::move(pixelFunc));
 }
 
-std::unique_ptr<IArea> LayerContext::makeArea(PixelFunc pixelFunc, std::unique_ptr<IArea> input) {
+std::unique_ptr<IArea> LayerContext::makeArea(PixelFunc pixelFunc, std::unique_ptr<IArea> input)
+{
     std::vector<std::unique_ptr<IArea>> ownedAreas;
     ownedAreas.push_back(std::move(input));
-    return std::make_unique<LazyArea>(m_cache, std::min(1024, m_maxCacheSize * 4), std::move(pixelFunc), std::move(ownedAreas));
+    return std::make_unique<LazyArea>(
+        m_cache, std::min(1024, m_maxCacheSize * 4), std::move(pixelFunc), std::move(ownedAreas));
 }
 
-std::unique_ptr<IArea> LayerContext::makeArea(PixelFunc pixelFunc,
-                                               std::unique_ptr<IArea> input1,
-                                               std::unique_ptr<IArea> input2) {
+std::unique_ptr<IArea> LayerContext::makeArea(
+    PixelFunc pixelFunc, std::unique_ptr<IArea> input1, std::unique_ptr<IArea> input2)
+{
     std::vector<std::unique_ptr<IArea>> ownedAreas;
     ownedAreas.push_back(std::move(input1));
     ownedAreas.push_back(std::move(input2));
@@ -86,13 +94,15 @@ std::unique_ptr<IArea> LayerContext::makeArea(PixelFunc pixelFunc,
     return std::make_unique<LazyArea>(m_cache, newSize, std::move(pixelFunc), std::move(ownedAreas));
 }
 
-std::unique_ptr<LayerContext> LayerContext::withModifier(u64 modifier) const {
+std::unique_ptr<LayerContext> LayerContext::withModifier(u64 modifier) const
+{
     return std::make_unique<LayerContext>(m_maxCacheSize, m_worldSeed, modifier);
 }
 
 // 静态成员函数
 
-u64 LayerContext::mix(u64 left, u64 right) {
+u64 LayerContext::mix(u64 left, u64 right)
+{
     // 参考 MC FastRandom.mix:
     // left = left * (left * 6364136223846793005L + 1442695040888963407L);
     // return left + right;
@@ -100,7 +110,8 @@ u64 LayerContext::mix(u64 left, u64 right) {
     return left + right;
 }
 
-u64 LayerContext::hashLayerSeed(u64 worldSeed, u64 modifier) {
+u64 LayerContext::hashLayerSeed(u64 worldSeed, u64 modifier)
+{
     // 参考 MC LazyAreaLayerContext 构造函数:
     // this.seed = hash(seedIn, seedModifierIn);
     // 其中 hash:
@@ -131,28 +142,26 @@ LazyArea::LazyArea(Long2IntLRUCache& cache, i32 maxCacheSize, PixelFunc pixelFun
     , m_ownCache(nullptr)
     , m_pixelFunc(std::move(pixelFunc))
     , m_maxCacheSize(maxCacheSize)
-{
-}
+{}
 
 LazyArea::LazyArea(i32 maxCacheSize, PixelFunc pixelFunc)
     : m_sharedCache(nullptr)
     , m_ownCache(std::make_unique<Long2IntLRUCache>(maxCacheSize))
     , m_pixelFunc(std::move(pixelFunc))
     , m_maxCacheSize(maxCacheSize)
-{
-}
+{}
 
-LazyArea::LazyArea(Long2IntLRUCache& cache, i32 maxCacheSize, PixelFunc pixelFunc,
-                   std::vector<std::unique_ptr<IArea>> ownedAreas)
+LazyArea::LazyArea(
+    Long2IntLRUCache& cache, i32 maxCacheSize, PixelFunc pixelFunc, std::vector<std::unique_ptr<IArea>> ownedAreas)
     : m_sharedCache(&cache)
     , m_ownCache(nullptr)
     , m_pixelFunc(std::move(pixelFunc))
     , m_maxCacheSize(maxCacheSize)
     , m_ownedAreas(std::move(ownedAreas))
-{
-}
+{}
 
-i32 LazyArea::getValue(i32 x, i32 z) const {
+i32 LazyArea::getValue(i32 x, i32 z) const
+{
     // MC_TRACE_EVENT("world.biome", "LazyArea_GetValue", "x", x, "z", z);
     i64 key = Long2IntLRUCache::packCoords(x, z);
     i32 value;
@@ -169,8 +178,8 @@ i32 LazyArea::getValue(i32 x, i32 z) const {
     return value;
 }
 
-void LazyArea::getValuesBatch(i32 startX, i32 startZ, i32 width, i32 height,
-                               i32* output) const {
+void LazyArea::getValuesBatch(i32 startX, i32 startZ, i32 width, i32 height, i32* output) const
+{
     MC_TRACE_EVENT("world.biome", "LazyArea_GetValuesBatch", "width", width, "height", height);
 
     if (width <= 0 || height <= 0 || output == nullptr) {
@@ -225,10 +234,10 @@ void LazyArea::getValuesBatch(i32 startX, i32 startZ, i32 width, i32 height,
 SourceFactory::SourceFactory(ITransformer0* transformer, std::shared_ptr<LayerContext> context)
     : m_transformer(transformer)
     , m_context(std::move(context))
-{
-}
+{}
 
-std::unique_ptr<IArea> SourceFactory::create() const {
+std::unique_ptr<IArea> SourceFactory::create() const
+{
     // 捕获 shared_ptr 以保持生命周期
     ITransformer0* transformer = m_transformer;
     std::shared_ptr<LayerContext> ctx = m_context;
@@ -248,16 +257,15 @@ std::unique_ptr<IArea> SourceFactory::create() const {
 // TransformFactory 实现
 // ============================================================================
 
-TransformFactory::TransformFactory(ITransformer1* transformer,
-                                   std::shared_ptr<LayerContext> context,
-                                   std::unique_ptr<IAreaFactory> input)
+TransformFactory::TransformFactory(
+    ITransformer1* transformer, std::shared_ptr<LayerContext> context, std::unique_ptr<IAreaFactory> input)
     : m_transformer(transformer)
     , m_context(std::move(context))
     , m_input(std::move(input))
-{
-}
+{}
 
-std::unique_ptr<IArea> TransformFactory::create() const {
+std::unique_ptr<IArea> TransformFactory::create() const
+{
     // 创建输入区域
     std::unique_ptr<IArea> inputArea = m_input->create();
 
@@ -282,17 +290,17 @@ std::unique_ptr<IArea> TransformFactory::create() const {
 // ============================================================================
 
 MergeFactory::MergeFactory(ITransformer2* transformer,
-                           std::shared_ptr<LayerContext> context,
-                           std::unique_ptr<IAreaFactory> input1,
-                           std::unique_ptr<IAreaFactory> input2)
+    std::shared_ptr<LayerContext> context,
+    std::unique_ptr<IAreaFactory> input1,
+    std::unique_ptr<IAreaFactory> input2)
     : m_transformer(transformer)
     , m_context(std::move(context))
     , m_input1(std::move(input1))
     , m_input2(std::move(input2))
-{
-}
+{}
 
-std::unique_ptr<IArea> MergeFactory::create() const {
+std::unique_ptr<IArea> MergeFactory::create() const
+{
     std::unique_ptr<IArea> area1 = m_input1->create();
     std::unique_ptr<IArea> area2 = m_input2->create();
 

@@ -10,10 +10,10 @@
  * 5. 面投影方法 getFaceShape()
  */
 
-#include <gtest/gtest.h>
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include <cmath>
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -23,14 +23,13 @@ using namespace mc;
 
 class CollisionShapeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 };
 
-TEST_F(CollisionShapeTest, EmptyShape) {
+TEST_F(CollisionShapeTest, EmptyShape)
+{
     CollisionShape shape = CollisionShape::empty();
     EXPECT_TRUE(shape.isEmpty());
     EXPECT_FALSE(shape.isFullBlock());
@@ -38,7 +37,8 @@ TEST_F(CollisionShapeTest, EmptyShape) {
     EXPECT_EQ(shape.boxCount(), 0);
 }
 
-TEST_F(CollisionShapeTest, FullBlockShape) {
+TEST_F(CollisionShapeTest, FullBlockShape)
+{
     CollisionShape shape = CollisionShape::fullBlock();
     EXPECT_FALSE(shape.isEmpty());
     EXPECT_TRUE(shape.isFullBlock());
@@ -55,7 +55,8 @@ TEST_F(CollisionShapeTest, FullBlockShape) {
     EXPECT_FLOAT_EQ(boxes[0].maxZ, 1.0f);
 }
 
-TEST_F(CollisionShapeTest, BoxShape) {
+TEST_F(CollisionShapeTest, BoxShape)
+{
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.5f, 1.0f, 0.5f);
     EXPECT_FALSE(shape.isEmpty());
     EXPECT_FALSE(shape.isFullBlock());
@@ -68,7 +69,8 @@ TEST_F(CollisionShapeTest, BoxShape) {
     EXPECT_FLOAT_EQ(boxes[0].maxX, 0.5f);
 }
 
-TEST_F(CollisionShapeTest, FromPixelBox) {
+TEST_F(CollisionShapeTest, FromPixelBox)
+{
     // 16 像素 = 1 方块
     CollisionShape shape = CollisionShape::fromPixelBox(0, 0, 0, 16, 8, 16);
     EXPECT_EQ(shape.boxCount(), 1);
@@ -77,12 +79,13 @@ TEST_F(CollisionShapeTest, FromPixelBox) {
     EXPECT_FLOAT_EQ(boxes[0].minX, 0.0f);
     EXPECT_FLOAT_EQ(boxes[0].maxX, 1.0f);
     EXPECT_FLOAT_EQ(boxes[0].minY, 0.0f);
-    EXPECT_FLOAT_EQ(boxes[0].maxY, 0.5f);  // 8 像素 = 0.5 方块
+    EXPECT_FLOAT_EQ(boxes[0].maxY, 0.5f); // 8 像素 = 0.5 方块
     EXPECT_FLOAT_EQ(boxes[0].minZ, 0.0f);
     EXPECT_FLOAT_EQ(boxes[0].maxZ, 1.0f);
 }
 
-TEST_F(CollisionShapeTest, AddBox) {
+TEST_F(CollisionShapeTest, AddBox)
+{
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
     EXPECT_EQ(shape.boxCount(), 1);
 
@@ -95,7 +98,8 @@ TEST_F(CollisionShapeTest, AddBox) {
 // 世界坐标转换测试
 // ============================================================================
 
-TEST_F(CollisionShapeTest, GetWorldBoxes) {
+TEST_F(CollisionShapeTest, GetWorldBoxes)
+{
     CollisionShape shape = CollisionShape::fullBlock();
     auto worldBoxes = shape.getWorldBoxes(10, 64, 20);
 
@@ -108,7 +112,8 @@ TEST_F(CollisionShapeTest, GetWorldBoxes) {
     EXPECT_FLOAT_EQ(worldBoxes[0].maxZ, 21.0f);
 }
 
-TEST_F(CollisionShapeTest, GetWorldBoxesMultiBox) {
+TEST_F(CollisionShapeTest, GetWorldBoxesMultiBox)
+{
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
     shape.addBox(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f);
 
@@ -120,7 +125,8 @@ TEST_F(CollisionShapeTest, GetWorldBoxesMultiBox) {
 // 碰撞检测测试
 // ============================================================================
 
-TEST_F(CollisionShapeTest, IntersectsFullBlock) {
+TEST_F(CollisionShapeTest, IntersectsFullBlock)
+{
     CollisionShape shape = CollisionShape::fullBlock();
 
     // 实体在方块内部
@@ -136,14 +142,16 @@ TEST_F(CollisionShapeTest, IntersectsFullBlock) {
     EXPECT_TRUE(shape.intersects(boundary, 0, 0, 0));
 }
 
-TEST_F(CollisionShapeTest, IntersectsEmpty) {
+TEST_F(CollisionShapeTest, IntersectsEmpty)
+{
     CollisionShape shape = CollisionShape::empty();
 
     AxisAlignedBB anyBox(0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f);
     EXPECT_FALSE(shape.intersects(anyBox, 0, 0, 0));
 }
 
-TEST_F(CollisionShapeTest, IntersectsHalfBlock) {
+TEST_F(CollisionShapeTest, IntersectsHalfBlock)
+{
     // 下半砖
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
 
@@ -162,11 +170,11 @@ TEST_F(CollisionShapeTest, IntersectsHalfBlock) {
 
 class CollisionShapeFaceTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 };
 
-TEST_F(CollisionShapeFaceTest, EmptyShapeReturnsEmpty) {
+TEST_F(CollisionShapeFaceTest, EmptyShapeReturnsEmpty)
+{
     CollisionShape shape = CollisionShape::empty();
 
     for (int i = 0; i < 6; ++i) {
@@ -176,7 +184,8 @@ TEST_F(CollisionShapeFaceTest, EmptyShapeReturnsEmpty) {
     }
 }
 
-TEST_F(CollisionShapeFaceTest, FullBlockReturnsFullBlock) {
+TEST_F(CollisionShapeFaceTest, FullBlockReturnsFullBlock)
+{
     CollisionShape shape = CollisionShape::fullBlock();
 
     for (int i = 0; i < 6; ++i) {
@@ -186,17 +195,19 @@ TEST_F(CollisionShapeFaceTest, FullBlockReturnsFullBlock) {
     }
 }
 
-TEST_F(CollisionShapeFaceTest, BottomSlabBottomFace) {
+TEST_F(CollisionShapeFaceTest, BottomSlabBottomFace)
+{
     // 下半砖 (Y: 0.0 - 0.5)
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
 
     // 底面（Down）: 延伸到 Y=0，应该返回投影
     CollisionShape face = shape.getFaceShape(Direction::Down);
     EXPECT_FALSE(face.isEmpty());
-    EXPECT_TRUE(face.isFullBlock());  // 投影覆盖整个 XZ 平面
+    EXPECT_TRUE(face.isFullBlock()); // 投影覆盖整个 XZ 平面
 }
 
-TEST_F(CollisionShapeFaceTest, BottomSlabTopFace) {
+TEST_F(CollisionShapeFaceTest, BottomSlabTopFace)
+{
     // 下半砖 (Y: 0.0 - 0.5)
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
 
@@ -205,12 +216,13 @@ TEST_F(CollisionShapeFaceTest, BottomSlabTopFace) {
     EXPECT_TRUE(face.isEmpty()) << "Top face of bottom slab should be empty";
 }
 
-TEST_F(CollisionShapeFaceTest, BottomSlabSideFaces) {
+TEST_F(CollisionShapeFaceTest, BottomSlabSideFaces)
+{
     // 下半砖 (Y: 0.0 - 0.5)
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
 
     // 侧面都应该延伸到边界
-    for (int i = 2; i < 6; ++i) {  // North, South, West, East
+    for (int i = 2; i < 6; ++i) { // North, South, West, East
         Direction dir = static_cast<Direction>(i);
         CollisionShape face = shape.getFaceShape(dir);
         EXPECT_FALSE(face.isEmpty()) << "Direction " << i << " should not be empty";
@@ -227,7 +239,8 @@ TEST_F(CollisionShapeFaceTest, BottomSlabSideFaces) {
     }
 }
 
-TEST_F(CollisionShapeFaceTest, TopSlabTopFace) {
+TEST_F(CollisionShapeFaceTest, TopSlabTopFace)
+{
     // 上半砖 (Y: 0.5 - 1.0)
     CollisionShape shape = CollisionShape::box(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f);
 
@@ -237,7 +250,8 @@ TEST_F(CollisionShapeFaceTest, TopSlabTopFace) {
     EXPECT_TRUE(face.isFullBlock());
 }
 
-TEST_F(CollisionShapeFaceTest, TopSlabBottomFace) {
+TEST_F(CollisionShapeFaceTest, TopSlabBottomFace)
+{
     // 上半砖 (Y: 0.5 - 1.0)
     CollisionShape shape = CollisionShape::box(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f);
 
@@ -246,7 +260,8 @@ TEST_F(CollisionShapeFaceTest, TopSlabBottomFace) {
     EXPECT_TRUE(face.isEmpty()) << "Bottom face of top slab should be empty";
 }
 
-TEST_F(CollisionShapeFaceTest, PartialXShape) {
+TEST_F(CollisionShapeFaceTest, PartialXShape)
+{
     // X 方向部分方块 (X: 0.25 - 0.75)
     CollisionShape shape = CollisionShape::box(0.25f, 0.0f, 0.0f, 0.75f, 1.0f, 1.0f);
 
@@ -263,7 +278,8 @@ TEST_F(CollisionShapeFaceTest, PartialXShape) {
     EXPECT_FALSE(upFace.isEmpty());
 }
 
-TEST_F(CollisionShapeFaceTest, PartialZShape) {
+TEST_F(CollisionShapeFaceTest, PartialZShape)
+{
     // Z 方向部分方块 (Z: 0.3 - 0.7)
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.3f, 1.0f, 1.0f, 0.7f);
 
@@ -276,7 +292,8 @@ TEST_F(CollisionShapeFaceTest, PartialZShape) {
     EXPECT_TRUE(southFace.isEmpty()) << "South face should be empty (maxZ=0.7)";
 }
 
-TEST_F(CollisionShapeFaceTest, StairsShape) {
+TEST_F(CollisionShapeFaceTest, StairsShape)
+{
     // 楼梯形状：下半部分 + 后半部分
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
     shape.addBox(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f);
@@ -297,7 +314,8 @@ TEST_F(CollisionShapeFaceTest, StairsShape) {
     EXPECT_FLOAT_EQ(boxes[0].maxY, 1.0f);
 }
 
-TEST_F(CollisionShapeFaceTest, BoxTouchesBoundary) {
+TEST_F(CollisionShapeFaceTest, BoxTouchesBoundary)
+{
     // 测试刚好接触边界的方块
     // 使用底部边界测试（minY 接近 0）
     // EPSILON = 1.0e-5f，所以 minY = 1e-6f < EPSILON 应该被接受
@@ -308,7 +326,8 @@ TEST_F(CollisionShapeFaceTest, BoxTouchesBoundary) {
     EXPECT_FALSE(bottomFace.isEmpty()) << "Face with minY=0.000001 should touch boundary (within epsilon)";
 }
 
-TEST_F(CollisionShapeFaceTest, BoxAtExactBoundary) {
+TEST_F(CollisionShapeFaceTest, BoxAtExactBoundary)
+{
     // 测试刚好等于边界值的方块
     // 这是最可靠的测试方式
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
@@ -321,7 +340,8 @@ TEST_F(CollisionShapeFaceTest, BoxAtExactBoundary) {
     }
 }
 
-TEST_F(CollisionShapeFaceTest, BoxNotTouchesBoundary) {
+TEST_F(CollisionShapeFaceTest, BoxNotTouchesBoundary)
+{
     // 不接触边界的方块
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.99f, 1.0f);
 
@@ -330,7 +350,8 @@ TEST_F(CollisionShapeFaceTest, BoxNotTouchesBoundary) {
     EXPECT_TRUE(topFace.isEmpty()) << "Face with maxY=0.99 should not touch boundary";
 }
 
-TEST_F(CollisionShapeFaceTest, MultipleBoxesProjectingToSameFace) {
+TEST_F(CollisionShapeFaceTest, MultipleBoxesProjectingToSameFace)
+{
     // 两个不相连的碰撞箱都在顶面有投影
     CollisionShape shape = CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 1.0f);
     shape.addBox(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f);
@@ -341,7 +362,8 @@ TEST_F(CollisionShapeFaceTest, MultipleBoxesProjectingToSameFace) {
     EXPECT_EQ(topFace.boxCount(), 2);
 }
 
-TEST_F(CollisionShapeFaceTest, ProjectionAxisExpansion) {
+TEST_F(CollisionShapeFaceTest, ProjectionAxisExpansion)
+{
     // 验证投影后的盒子在投影轴上覆盖 [0, 1]
     CollisionShape shape = CollisionShape::box(0.1f, 0.0f, 0.1f, 0.9f, 1.0f, 0.9f);
 
@@ -365,7 +387,8 @@ TEST_F(CollisionShapeFaceTest, ProjectionAxisExpansion) {
 // 形状合并测试
 // ============================================================================
 
-TEST_F(CollisionShapeTest, CombineOr) {
+TEST_F(CollisionShapeTest, CombineOr)
+{
     CollisionShape a = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.5f, 1.0f, 1.0f);
     CollisionShape b = CollisionShape::box(0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 
@@ -373,7 +396,8 @@ TEST_F(CollisionShapeTest, CombineOr) {
     EXPECT_EQ(combined.boxCount(), 2);
 }
 
-TEST_F(CollisionShapeTest, CombineOrWithFullBlock) {
+TEST_F(CollisionShapeTest, CombineOrWithFullBlock)
+{
     CollisionShape a = CollisionShape::fullBlock();
     CollisionShape b = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f);
 

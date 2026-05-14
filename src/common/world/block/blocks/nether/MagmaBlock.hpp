@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Block.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 
@@ -41,12 +41,7 @@ public:
      * 当上方有水时调度 tick。
      */
     void neighborChanged(
-        IWorld& world,
-        const BlockPos& pos,
-        Block& neighborBlock,
-        const BlockPos& neighborPos,
-        bool isMoving
-    ) override;
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     /**
      * @brief Tick 更新
@@ -60,12 +55,7 @@ public:
      *
      * 在水中产生气泡效果。
      */
-    void randomTick(
-        IWorld& world,
-        const BlockPos& pos,
-        BlockState& state,
-        math::IRandom& random
-    ) override;
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 是否响应随机刻

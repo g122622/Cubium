@@ -1,7 +1,7 @@
 #include "BoatEntity.hpp"
-#include "../../../world/IWorld.hpp"
 #include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../world/IWorld.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../core/DataParameter.hpp"
@@ -15,39 +15,39 @@ namespace entity {
 
 // MC 1.16.5 常量
 namespace {
-    constexpr f32 BUOYANCY = 0.06153846f;  // 1/16.25 近似
-    constexpr f32 GRAVITY = 0.04f;
-    constexpr f32 WATER_FRICTION = 0.9f;
-    constexpr f32 AIR_FRICTION = 0.9f;
-    constexpr f32 LAND_FRICTION = 0.5f;
-    constexpr f32 UNDERWATER_FRICTION = 0.45f;
-    constexpr f32 UNDERWATER_GRAVITY = -0.0007f;  // -7.0e-4D
-    constexpr f32 MAX_SPEED = 0.4f;
-    constexpr f32 WATER_SPEED_MULT = 0.04f;
-    constexpr i32 MAX_PASSENGERS = 2;
-    constexpr f32 DAMAGE_THRESHOLD = 40.0f;
-    constexpr i32 TIME_SINCE_HIT_DECAY = 10;
-    constexpr i32 OUT_OF_CONTROL_THRESHOLD = 60;  // 水下60tick踢下船
-    constexpr f32 PADDLE_SPEED = math::PI / 8.0f;  // 每tick 22.5度
+constexpr f32 BUOYANCY = 0.06153846f; // 1/16.25 近似
+constexpr f32 GRAVITY = 0.04f;
+constexpr f32 WATER_FRICTION = 0.9f;
+constexpr f32 AIR_FRICTION = 0.9f;
+constexpr f32 LAND_FRICTION = 0.5f;
+constexpr f32 UNDERWATER_FRICTION = 0.45f;
+constexpr f32 UNDERWATER_GRAVITY = -0.0007f; // -7.0e-4D
+constexpr f32 MAX_SPEED = 0.4f;
+constexpr f32 WATER_SPEED_MULT = 0.04f;
+constexpr i32 MAX_PASSENGERS = 2;
+constexpr f32 DAMAGE_THRESHOLD = 40.0f;
+constexpr i32 TIME_SINCE_HIT_DECAY = 10;
+constexpr i32 OUT_OF_CONTROL_THRESHOLD = 60;  // 水下60tick踢下船
+constexpr f32 PADDLE_SPEED = math::PI / 8.0f; // 每tick 22.5度
 
-    // 乘客位置常量 (MC 1.16.5)
-    constexpr f32 PASSENGER_Y_OFFSET_MULT = 0.75f;  // 乘客Y偏移乘数
-    constexpr f32 PASSENGER1_X_OFFSET = 0.2f;       // 第一乘客X偏移
-    constexpr f32 PASSENGER2_X_OFFSET = -0.6f;      // 第二乘客X偏移
-    constexpr f32 MAX_PASSENGER_ROTATION = 105.0f;  // 乘客相对船的最大旋转角度
+// 乘客位置常量 (MC 1.16.5)
+constexpr f32 PASSENGER_Y_OFFSET_MULT = 0.75f; // 乘客Y偏移乘数
+constexpr f32 PASSENGER1_X_OFFSET = 0.2f;      // 第一乘客X偏移
+constexpr f32 PASSENGER2_X_OFFSET = -0.6f;     // 第二乘客X偏移
+constexpr f32 MAX_PASSENGER_ROTATION = 105.0f; // 乘客相对船的最大旋转角度
 
-    // 浮力计算常量
-    constexpr f32 BUOYANCY_VELOCITY_MULT = 0.75f;  // 浮力速度乘数
-    constexpr f32 WATER_CHECK_OFFSET = 0.001f;     // 水面检测偏移
+// 浮力计算常量
+constexpr f32 BUOYANCY_VELOCITY_MULT = 0.75f; // 浮力速度乘数
+constexpr f32 WATER_CHECK_OFFSET = 0.001f;    // 水面检测偏移
 
-    // MC 1.16.5 BoatEntity 数据参数
-    DataParameter<i32> TIME_SINCE_HIT_PARAM{0};
-    DataParameter<i32> FORWARD_DIRECTION_PARAM{1};
-    DataParameter<f32> DAMAGE_TAKEN_PARAM{2};
-    DataParameter<i32> BOAT_TYPE_PARAM{3};
-    DataParameter<bool> LEFT_PADDLE_PARAM{4};
-    DataParameter<bool> RIGHT_PADDLE_PARAM{5};
-}
+// MC 1.16.5 BoatEntity 数据参数
+DataParameter<i32> TIME_SINCE_HIT_PARAM{0};
+DataParameter<i32> FORWARD_DIRECTION_PARAM{1};
+DataParameter<f32> DAMAGE_TAKEN_PARAM{2};
+DataParameter<i32> BOAT_TYPE_PARAM{3};
+DataParameter<bool> LEFT_PADDLE_PARAM{4};
+DataParameter<bool> RIGHT_PADDLE_PARAM{5};
+} // namespace
 
 BoatEntity::BoatEntity(Type type)
     : Entity(LegacyEntityType::Boat, EntityId(0))
@@ -58,7 +58,8 @@ BoatEntity::BoatEntity(Type type)
     registerData();
 }
 
-void BoatEntity::registerData() {
+void BoatEntity::registerData()
+{
     Entity::registerData();
 
     // MC 1.16.5 BoatEntity.registerData()
@@ -70,7 +71,8 @@ void BoatEntity::registerData() {
     m_dataManager.registerParam(RIGHT_PADDLE_PARAM, false);
 }
 
-void BoatEntity::tick() {
+void BoatEntity::tick()
+{
     // MC 1.16.5 BoatEntity.tick()
 
     // 更新 previousStatus 和 status
@@ -151,7 +153,8 @@ void BoatEntity::tick() {
     }
 }
 
-void BoatEntity::handleInput(bool left, bool right, bool forward, bool backward) {
+void BoatEntity::handleInput(bool left, bool right, bool forward, bool backward)
+{
     // MC 1.16.5: 设置输入状态
     m_leftInputDown = left;
     m_rightInputDown = right;
@@ -159,7 +162,8 @@ void BoatEntity::handleInput(bool left, bool right, bool forward, bool backward)
     m_backwardInputDown = backward;
 }
 
-void BoatEntity::updateMotion() {
+void BoatEntity::updateMotion()
+{
     // MC 1.16.5 BoatEntity.updateMotion()
     f64 gravity = -GRAVITY;
     f32 friction = 0.05f;
@@ -200,15 +204,16 @@ void BoatEntity::updateMotion() {
     // 应用浮力
     if (buoyancy > 0.0) {
         setVelocity(velocity().x,
-                    static_cast<f32>((static_cast<f64>(velocity().y) + buoyancy * BUOYANCY) * BUOYANCY_VELOCITY_MULT),
-                    velocity().z);
+            static_cast<f32>((static_cast<f64>(velocity().y) + buoyancy * BUOYANCY) * BUOYANCY_VELOCITY_MULT),
+            velocity().z);
     }
 
     // 重置船滑行系数
     m_boatGlide = 0.0f;
 }
 
-void BoatEntity::floatBoat() {
+void BoatEntity::floatBoat()
+{
     // MC 1.16.5: 计算浮力
     // 需要世界引用来获取流体状态
     if (m_world == nullptr) {
@@ -255,7 +260,8 @@ void BoatEntity::floatBoat() {
     }
 }
 
-void BoatEntity::controlBoat() {
+void BoatEntity::controlBoat()
+{
     // MC 1.16.5 BoatEntity.controlBoat()
     if (m_passengers.empty()) {
         return;
@@ -296,11 +302,11 @@ void BoatEntity::controlBoat() {
     setVelocity(vx, velocityY(), vz);
 
     // 更新桨状态
-    setPaddleState(m_leftInputDown || m_forwardInputDown,
-                   m_rightInputDown || m_forwardInputDown);
+    setPaddleState(m_leftInputDown || m_forwardInputDown, m_rightInputDown || m_forwardInputDown);
 }
 
-void BoatEntity::tickLerp() {
+void BoatEntity::tickLerp()
+{
     // MC 1.16.5: 插值更新
     if (m_interpolationSteps > 0) {
         f64 lerpFactor = 1.0 / static_cast<f64>(m_interpolationSteps);
@@ -311,17 +317,18 @@ void BoatEntity::tickLerp() {
         f64 dPitch = m_interpolationPitch - static_cast<f64>(m_pitch);
 
         setPosition(static_cast<f32>(static_cast<f64>(m_position.x) + dx * lerpFactor),
-                    static_cast<f32>(static_cast<f64>(m_position.y) + dy * lerpFactor),
-                    static_cast<f32>(static_cast<f64>(m_position.z) + dz * lerpFactor));
+            static_cast<f32>(static_cast<f64>(m_position.y) + dy * lerpFactor),
+            static_cast<f32>(static_cast<f64>(m_position.z) + dz * lerpFactor));
         Entity::setRotation(static_cast<f32>(static_cast<f64>(m_yaw) + dYaw * lerpFactor),
-                    static_cast<f32>(static_cast<f64>(m_pitch) + dPitch * lerpFactor));
+            static_cast<f32>(static_cast<f64>(m_pitch) + dPitch * lerpFactor));
         m_interpolationSteps--;
     } else {
         setVelocity(velocity());
     }
 }
 
-void BoatEntity::updateStatus() {
+void BoatEntity::updateStatus()
+{
     // MC 1.16.5: 更新船的状态
     if (m_world == nullptr) {
         m_status = BoatStatus::InAir;
@@ -352,7 +359,8 @@ void BoatEntity::updateStatus() {
     m_status = BoatStatus::InAir;
 }
 
-BoatStatus BoatEntity::getUnderwaterStatus() {
+BoatStatus BoatEntity::getUnderwaterStatus()
+{
     // MC 1.16.5: 检测船是否在水下
     if (m_world == nullptr) {
         return BoatStatus::InWater;
@@ -392,7 +400,8 @@ BoatStatus BoatEntity::getUnderwaterStatus() {
     return isSource ? BoatStatus::UnderWater : BoatStatus::InWater;
 }
 
-bool BoatEntity::checkInWater() {
+bool BoatEntity::checkInWater()
+{
     // MC 1.16.5: 检测船是否在水中
     if (m_world == nullptr) {
         return false;
@@ -430,7 +439,8 @@ bool BoatEntity::checkInWater() {
     return inWater;
 }
 
-f32 BoatEntity::getBoatGlide() {
+f32 BoatEntity::getBoatGlide()
+{
     // MC 1.16.5: 计算地面滑动系数
     if (m_world == nullptr) {
         return 0.0f;
@@ -441,13 +451,15 @@ f32 BoatEntity::getBoatGlide() {
     return LAND_FRICTION;
 }
 
-void BoatEntity::updatePassengerPosition(Entity& passenger) {
+void BoatEntity::updatePassengerPosition(Entity& passenger)
+{
     // MC 1.16.5: BoatEntity.updatePassenger() - 更新单个乘客位置
     // 委托给内部辅助方法
     updateAllPassengerPositions();
 }
 
-void BoatEntity::updateAllPassengerPositions() {
+void BoatEntity::updateAllPassengerPositions()
+{
     // MC 1.16.5: 更新乘客位置
     if (m_passengers.empty() || m_world == nullptr) {
         return;
@@ -467,9 +479,9 @@ void BoatEntity::updateAllPassengerPositions() {
         // 多乘客时位置偏移
         if (m_passengers.size() > 1) {
             if (i == 0) {
-                offsetX = PASSENGER1_X_OFFSET;  // 第一个乘客靠前
+                offsetX = PASSENGER1_X_OFFSET; // 第一个乘客靠前
             } else {
-                offsetX = PASSENGER2_X_OFFSET;  // 第二个乘客靠后
+                offsetX = PASSENGER2_X_OFFSET; // 第二个乘客靠后
             }
             // MC 1.16.5: 动物额外偏移 +0.2D
             // if (passenger instanceof AnimalEntity) { offsetX += 0.2D; }
@@ -484,11 +496,7 @@ void BoatEntity::updateAllPassengerPositions() {
         f32 rotatedZ = -offsetX * std::sin(yawRad);
 
         // 设置乘客位置
-        passenger->setPosition(
-            m_position.x + rotatedX,
-            m_position.y + offsetY,
-            m_position.z + rotatedZ
-        );
+        passenger->setPosition(m_position.x + rotatedX, m_position.y + offsetY, m_position.z + rotatedZ);
 
         // 同步旋转
         passenger->setRotation(m_yaw + m_deltaRotation, passenger->pitch());
@@ -498,7 +506,8 @@ void BoatEntity::updateAllPassengerPositions() {
     }
 }
 
-void BoatEntity::applyOrientationToEntity(Entity& passenger) {
+void BoatEntity::applyOrientationToEntity(Entity& passenger)
+{
     // MC 1.16.5: 将船的朝向应用到乘客
     passenger.setRotation(m_yaw, passenger.pitch());
 
@@ -508,7 +517,8 @@ void BoatEntity::applyOrientationToEntity(Entity& passenger) {
     passenger.setRotation(m_yaw + clampedDiff, passenger.pitch());
 }
 
-void BoatEntity::updateRocking() {
+void BoatEntity::updateRocking()
+{
     // MC 1.16.5: 更新气泡柱摇晃
     if (m_rockingTicks > 0) {
         m_rockingTicks--;
@@ -517,7 +527,8 @@ void BoatEntity::updateRocking() {
     }
 }
 
-f32 BoatEntity::getWaterLevelAbove() {
+f32 BoatEntity::getWaterLevelAbove()
+{
     // MC 1.16.5: 获取上方水面高度
     if (m_world == nullptr) {
         return m_position.y + 1.0f;
@@ -557,12 +568,14 @@ f32 BoatEntity::getWaterLevelAbove() {
     return m_position.y + 1.0f;
 }
 
-f64 BoatEntity::getMountedYOffset() const {
+f64 BoatEntity::getMountedYOffset() const
+{
     // MC 1.16.5: BoatEntity.getMountedYOffset() -> -0.1D
     return -0.1;
 }
 
-bool BoatEntity::hurt(DamageSource& source, f32 amount) {
+bool BoatEntity::hurt(DamageSource& source, f32 amount)
+{
     // MC 1.16.5: BoatEntity.attackEntityFrom()
 
     // 1. 检查是否对伤害类型免疫
@@ -589,7 +602,8 @@ bool BoatEntity::hurt(DamageSource& source, f32 amount) {
     m_damageTaken += amount * 10.0f;
 
     // 6. 检查是否应该摧毁船
-    // boolean flag = source.getTrueSource() instanceof PlayerEntity && ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
+    // boolean flag = source.getTrueSource() instanceof PlayerEntity &&
+    // ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
     bool isCreative = false;
     Player* attacker = dynamic_cast<Player*>(source.source());
     if (attacker != nullptr) {
@@ -616,7 +630,8 @@ bool BoatEntity::hurt(DamageSource& source, f32 amount) {
     return true;
 }
 
-void BoatEntity::updateFallState(f64 y, bool onGround) {
+void BoatEntity::updateFallState(f64 y, bool onGround)
+{
     // MC 1.16.5: BoatEntity.updateFallState()
     // 船没有摔落伤害，但需要更新 lastYd 用于水面检测
     MC_UNUSED(onGround);
@@ -632,7 +647,8 @@ void BoatEntity::updateFallState(f64 y, bool onGround) {
     m_lastYd = y;
 }
 
-void BoatEntity::dropItem() {
+void BoatEntity::dropItem()
+{
     // MC 1.16.5: entityDropItem(this.getItemBoat())
     // 根据船类型掉落对应物品
     // TODO: 当物品系统完善后实现
@@ -642,7 +658,8 @@ void BoatEntity::dropItem() {
     // }
 }
 
-void BoatEntity::dropItemWithDamage() {
+void BoatEntity::dropItemWithDamage()
+{
     // 掉落船物品（带伤害倍率）
     dropItem();
 }

@@ -1,36 +1,37 @@
 #include "TrapDoorBlock.hpp"
+#include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../WaterLoggableHelpers.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
 
 TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     : Block(properties)
-    , m_isIron(isIron) {
+    , m_isIron(isIron)
+{
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::OPEN())
-        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
-        .add(BlockStateProperties::POWERED())
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::OPEN())
+                         .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
+                         .add(BlockStateProperties::POWERED())
+                         .add(BlockStateProperties::WATERLOGGED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::OPEN(), false)
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
-        .with(BlockStateProperties::POWERED(), false)
-        .with(BlockStateProperties::WATERLOGGED(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::OPEN(), false)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+            .with(BlockStateProperties::POWERED(), false)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 
     constexpr f32 P = 1.0f / 16.0f;
 
@@ -65,7 +66,8 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::DoubleBlockHalf::Upper)] = openTopWest;
 }
 
-BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const BlockPos pos = context.placementPos();
     const Direction clickedFace = context.getClickedFace();
     IWorld& world = const_cast<IWorld&>(context.getWorld());
@@ -74,14 +76,12 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockStateProperties::DoubleBlockHalf half;
     if (!context.replacingClickedBlock() && Directions::isHorizontal(clickedFace)) {
         facing = clickedFace;
-        half = context.getHitY() > 0.5f
-            ? BlockStateProperties::DoubleBlockHalf::Upper
-            : BlockStateProperties::DoubleBlockHalf::Lower;
+        half = context.getHitY() > 0.5f ? BlockStateProperties::DoubleBlockHalf::Upper
+                                        : BlockStateProperties::DoubleBlockHalf::Lower;
     } else {
         facing = Directions::opposite(context.horizontalDirection());
-        half = clickedFace == Direction::Up
-            ? BlockStateProperties::DoubleBlockHalf::Lower
-            : BlockStateProperties::DoubleBlockHalf::Upper;
+        half = clickedFace == Direction::Up ? BlockStateProperties::DoubleBlockHalf::Lower
+                                            : BlockStateProperties::DoubleBlockHalf::Upper;
     }
 
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
@@ -95,10 +95,8 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-bool TrapDoorBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool TrapDoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     // 参考: net.minecraft.block.TrapDoorBlock
     // 活板门没有特殊的放置位置检查
@@ -109,13 +107,13 @@ bool TrapDoorBlock::isValidPosition(
     return true;
 }
 
-BlockState TrapDoorBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState TrapDoorBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     // 参考: net.minecraft.block.TrapDoorBlock#updatePostPlacement
     // 处理含水状态
@@ -127,9 +125,9 @@ BlockState TrapDoorBlock::updatePostPlacement(
     return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
 }
 
-void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
-                                     Block& neighborBlock, const BlockPos& neighborPos,
-                                     bool isMoving) {
+void TrapDoorBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -148,9 +146,8 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     }
 
     bool wasOpen = state.get(BlockStateProperties::OPEN());
-    BlockState newState = state
-        .with(BlockStateProperties::POWERED(), isPowered)
-        .with(BlockStateProperties::OPEN(), isPowered);
+    BlockState newState =
+        state.with(BlockStateProperties::POWERED(), isPowered).with(BlockStateProperties::OPEN(), isPowered);
     world.setBlockState(pos, &newState, 2);
 
     if (newState.get(BlockStateProperties::WATERLOGGED())) {
@@ -162,13 +159,13 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     }
 }
 
-ActionResultType TrapDoorBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType TrapDoorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(player);
     MC_UNUSED(hand);
@@ -182,7 +179,8 @@ ActionResultType TrapDoorBlock::onBlockActivated(
     return ActionResultType::Success;
 }
 
-const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const {
+const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     bool open = state.get(BlockStateProperties::OPEN());
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
@@ -192,7 +190,8 @@ const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const {
     return m_shapes[index];
 }
 
-const CollisionShape& TrapDoorBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& TrapDoorBlock::getCollisionShape(const BlockState& state) const
+{
     if (state.get(BlockStateProperties::OPEN())) {
         static CollisionShape emptyShape = CollisionShape::empty();
         return emptyShape;
@@ -200,13 +199,15 @@ const CollisionShape& TrapDoorBlock::getCollisionShape(const BlockState& state) 
     return getShape(state);
 }
 
-const BlockState& TrapDoorBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& TrapDoorBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& TrapDoorBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& TrapDoorBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }
@@ -217,11 +218,13 @@ const BlockState& TrapDoorBlock::mirror(const BlockState& state, Mirror mirror) 
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), mirrored);
 }
 
-bool TrapDoorBlock::isOpen(const BlockState& state) {
+bool TrapDoorBlock::isOpen(const BlockState& state)
+{
     return state.get(BlockStateProperties::OPEN());
 }
 
-void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState& state, bool open) {
+void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState& state, bool open)
+{
     if (state.get(BlockStateProperties::OPEN()) == open) {
         return;
     }
@@ -236,7 +239,8 @@ void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState&
     playSound(world, pos, open);
 }
 
-void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
+void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening)
+{
     const BlockState* state = world.getBlockState(pos);
     const auto* trapDoor = state != nullptr ? dynamic_cast<const TrapDoorBlock*>(&state->getBlock()) : nullptr;
     const bool isIron = trapDoor != nullptr && trapDoor->isIronTrapdoor();
@@ -251,14 +255,25 @@ void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening
     world.playSound(ResourceLocation(soundId), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 
-size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStateProperties::DoubleBlockHalf half) {
+size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStateProperties::DoubleBlockHalf half)
+{
     size_t facingIdx = 0;
     switch (facing) {
-        case Direction::North: facingIdx = 0; break;
-        case Direction::South: facingIdx = 1; break;
-        case Direction::East:  facingIdx = 2; break;
-        case Direction::West:  facingIdx = 3; break;
-        default: facingIdx = 0; break;
+        case Direction::North:
+            facingIdx = 0;
+            break;
+        case Direction::South:
+            facingIdx = 1;
+            break;
+        case Direction::East:
+            facingIdx = 2;
+            break;
+        case Direction::West:
+            facingIdx = 3;
+            break;
+        default:
+            facingIdx = 0;
+            break;
     }
 
     size_t halfIdx = (half == BlockStateProperties::DoubleBlockHalf::Upper) ? 1 : 0;
@@ -268,18 +283,16 @@ size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStatePrope
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* TrapDoorBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* TrapDoorBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 // ========== 攀爬实现 ==========
 
-bool TrapDoorBlock::isLadder(
-    const BlockState& state,
-    IWorld* world,
-    const BlockPos* pos,
-    const Entity* entity) const {
+bool TrapDoorBlock::isLadder(const BlockState& state, IWorld* world, const BlockPos* pos, const Entity* entity) const
+{
 
     // MC 1.16.5: 只有打开的活板门才能攀爬
     // 参考: net.minecraft.block.TrapDoorBlock.isLadder()

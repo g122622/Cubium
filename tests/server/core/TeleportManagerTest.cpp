@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
 #include "server/core/TeleportManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
-#include "common/network/connection/LocalConnection.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/connection/LocalConnection.hpp"
+#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/PlayerManager.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::server::core;
 using namespace mc::network;
@@ -15,7 +15,8 @@ using namespace mc::network;
  */
 class TeleportManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_connectionPair = std::make_unique<LocalConnectionPair>();
         m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
@@ -23,14 +24,16 @@ protected:
         m_teleportManager = std::make_unique<TeleportManager>(*m_playerManager);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_teleportManager.reset();
         m_connectionManager.reset();
         m_playerManager.reset();
         m_connectionPair.reset();
     }
 
-    ConnectionPtr createConnection() {
+    ConnectionPtr createConnection()
+    {
         return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
@@ -40,7 +43,8 @@ protected:
     std::unique_ptr<TeleportManager> m_teleportManager;
 };
 
-TEST_F(TeleportManagerTest, RequestTeleport) {
+TEST_F(TeleportManagerTest, RequestTeleport)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -61,12 +65,14 @@ TEST_F(TeleportManagerTest, RequestTeleport) {
     EXPECT_EQ(m_teleportManager->getPendingTeleportId(1), teleportId);
 }
 
-TEST_F(TeleportManagerTest, RequestTeleportNonexistentPlayer) {
+TEST_F(TeleportManagerTest, RequestTeleportNonexistentPlayer)
+{
     mc::u32 teleportId = m_teleportManager->requestTeleport(999, 100.0, 64.0, 200.0);
     EXPECT_EQ(teleportId, 0u);
 }
 
-TEST_F(TeleportManagerTest, ConfirmTeleport) {
+TEST_F(TeleportManagerTest, ConfirmTeleport)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -78,7 +84,8 @@ TEST_F(TeleportManagerTest, ConfirmTeleport) {
     EXPECT_FALSE(m_teleportManager->isWaitingForConfirm(1));
 }
 
-TEST_F(TeleportManagerTest, ConfirmTeleportWrongId) {
+TEST_F(TeleportManagerTest, ConfirmTeleportWrongId)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -90,7 +97,8 @@ TEST_F(TeleportManagerTest, ConfirmTeleportWrongId) {
     EXPECT_TRUE(m_teleportManager->isWaitingForConfirm(1));
 }
 
-TEST_F(TeleportManagerTest, ConfirmTeleportWithoutRequest) {
+TEST_F(TeleportManagerTest, ConfirmTeleportWithoutRequest)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -99,12 +107,14 @@ TEST_F(TeleportManagerTest, ConfirmTeleportWithoutRequest) {
     EXPECT_FALSE(result);
 }
 
-TEST_F(TeleportManagerTest, ConfirmTeleportNonexistentPlayer) {
+TEST_F(TeleportManagerTest, ConfirmTeleportNonexistentPlayer)
+{
     bool result = m_teleportManager->confirmTeleport(999, 1);
     EXPECT_FALSE(result);
 }
 
-TEST_F(TeleportManagerTest, MultipleTeleports) {
+TEST_F(TeleportManagerTest, MultipleTeleports)
+{
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
@@ -123,10 +133,12 @@ TEST_F(TeleportManagerTest, MultipleTeleports) {
     EXPECT_TRUE(m_teleportManager->confirmTeleport(1, id2));
 }
 
-TEST_F(TeleportManagerTest, IsWaitingForConfirmNonexistentPlayer) {
+TEST_F(TeleportManagerTest, IsWaitingForConfirmNonexistentPlayer)
+{
     EXPECT_FALSE(m_teleportManager->isWaitingForConfirm(999));
 }
 
-TEST_F(TeleportManagerTest, GetPendingTeleportIdNonexistentPlayer) {
+TEST_F(TeleportManagerTest, GetPendingTeleportIdNonexistentPlayer)
+{
     EXPECT_EQ(m_teleportManager->getPendingTeleportId(999), 0u);
 }

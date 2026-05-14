@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/core/Types.hpp"
+#include <any>
 #include <memory>
 #include <unordered_map>
-#include <any>
 
 namespace mc::command {
 
@@ -20,7 +20,7 @@ namespace mc::command {
  *
  * 参考 MC 的 CommandContext 设计
  */
-template<typename S>
+template <typename S>
 class CommandContext {
 public:
     using NodePtr = std::shared_ptr<CommandNode<S>>;
@@ -28,11 +28,7 @@ public:
     /**
      * @brief 构造命令上下文
      */
-    CommandContext(
-        S& source,
-        std::string_view input,
-        NodePtr rootNode
-    )
+    CommandContext(S& source, std::string_view input, NodePtr rootNode)
         : m_source(source)
         , m_input(input)
         , m_rootNode(std::move(rootNode))
@@ -52,7 +48,8 @@ public:
     /**
      * @brief 检查是否有指定参数
      */
-    [[nodiscard]] bool hasArgument(const std::string& name) const {
+    [[nodiscard]] bool hasArgument(const std::string& name) const
+    {
         return m_arguments.find(name) != m_arguments.end();
     }
 
@@ -64,8 +61,9 @@ public:
      * @throws std::out_of_range 如果参数不存在
      * @throws std::bad_any_cast 如果类型不匹配
      */
-    template<typename T>
-    [[nodiscard]] T getArgument(const std::string& name) const {
+    template <typename T>
+    [[nodiscard]] T getArgument(const std::string& name) const
+    {
         auto it = m_arguments.find(name);
         if (it == m_arguments.end()) {
             throw std::out_of_range("Argument not found: " + name);
@@ -80,15 +78,17 @@ public:
      * @param defaultValue 默认值
      * @return 参数值或默认值
      */
-    template<typename T>
-    [[nodiscard]] T getArgumentOr(const std::string& name, const T& defaultValue) const {
+    template <typename T>
+    [[nodiscard]] T getArgumentOr(const std::string& name, const T& defaultValue) const
+    {
         auto it = m_arguments.find(name);
         if (it == m_arguments.end()) {
             return defaultValue;
         }
         try {
             return std::any_cast<T>(it->second.value);
-        } catch (...) {
+        }
+        catch (...) {
             return defaultValue;
         }
     }
@@ -96,8 +96,9 @@ public:
     /**
      * @brief 设置参数值
      */
-    template<typename T>
-    void setArgument(const std::string& name, const T& value, i32 cursor = -1) {
+    template <typename T>
+    void setArgument(const std::string& name, const T& value, i32 cursor = -1)
+    {
         Argument arg;
         arg.value = value;
         arg.cursor = cursor;
@@ -126,7 +127,8 @@ public:
     /**
      * @brief 获取参数的起始位置
      */
-    [[nodiscard]] i32 getArgumentCursor(const std::string& name) const {
+    [[nodiscard]] i32 getArgumentCursor(const std::string& name) const
+    {
         auto it = m_arguments.find(name);
         return it != m_arguments.end() ? it->second.cursor : -1;
     }
@@ -136,7 +138,8 @@ public:
     /**
      * @brief 创建子上下文（用于重定向）
      */
-    [[nodiscard]] CommandContext<S> copyFor(NodePtr newRoot) const {
+    [[nodiscard]] CommandContext<S> copyFor(NodePtr newRoot) const
+    {
         CommandContext<S> copy(m_source, m_input, newRoot);
         copy.m_arguments = m_arguments;
         copy.m_currentNode = m_currentNode;
@@ -146,7 +149,7 @@ public:
 private:
     struct Argument {
         std::any value;
-        i32 cursor = -1;  // 参数在输入中的位置
+        i32 cursor = -1; // 参数在输入中的位置
     };
 
     S& m_source;
@@ -161,21 +164,20 @@ private:
  *
  * 存储命令解析的结果，包含可能的错误信息
  */
-template<typename S>
+template <typename S>
 class ParseResults {
 public:
     ParseResults() = default;
 
-    ParseResults(
-        std::unique_ptr<CommandContext<S>> context,
-        std::string_view remaining
-    )
+    ParseResults(std::unique_ptr<CommandContext<S>> context, std::string_view remaining)
         : m_context(std::move(context))
-        , m_remaining(remaining) {}
+        , m_remaining(remaining)
+    {}
 
     ParseResults(CommandException error, i32 cursor)
         : m_error(std::move(error))
-        , m_errorCursor(cursor) {}
+        , m_errorCursor(cursor)
+    {}
 
     // 允许移动
     ParseResults(ParseResults&&) = default;
@@ -199,7 +201,8 @@ public:
     /**
      * @brief 获取异常（如果有）
      */
-    [[nodiscard]] std::optional<CommandException> getException() const {
+    [[nodiscard]] std::optional<CommandException> getException() const
+    {
         // 检查是否有解析异常
         if (m_error) {
             return m_error;
@@ -208,10 +211,8 @@ public:
         // 检查是否还有未读取的内容（需要有效的上下文）
         if (m_context && !m_remaining.empty()) {
             // 计算未读取部分的起始位置
-            i32 cursor = static_cast<i32>(m_context->getInput().size()) -
-                        static_cast<i32>(m_remaining.size());
-            return CommandException(CommandErrorType::DispatcherUnknownArgument,
-                "Unknown argument", cursor);
+            i32 cursor = static_cast<i32>(m_context->getInput().size()) - static_cast<i32>(m_remaining.size());
+            return CommandException(CommandErrorType::DispatcherUnknownArgument, "Unknown argument", cursor);
         }
 
         return std::nullopt;

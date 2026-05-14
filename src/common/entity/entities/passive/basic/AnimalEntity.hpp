@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../core/AgeableEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../core/AgeableEntity.hpp"
 
 namespace mc {
 
@@ -116,7 +116,8 @@ public:
      * MC 1.16.5: 动物不会消失
      * @param distanceToClosestPlayer 到最近玩家的距离（未使用）
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override {
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override
+    {
         (void)distanceToClosestPlayer;
         return false;
     }
@@ -196,7 +197,7 @@ protected:
     void updateInLove();
 
 private:
-    u64 m_loveCause = 0;       // 使其进入爱心状态的玩家UUID
+    u64 m_loveCause = 0; // 使其进入爱心状态的玩家UUID
 };
 
 } // namespace mc

@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
-#include "common/advancement/trigger/impl/BlockTriggers.hpp"
 #include "common/advancement/trigger/conditions/BlockPredicate.hpp"
-#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/advancement/trigger/impl/BlockTriggers.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <nlohmann/json.hpp>
 
@@ -22,12 +22,14 @@ using namespace mc::advancement;
  */
 class PlacedBlockTriggerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置触发器
         CriterionTriggers::instance().registerBuiltinTriggers();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
         CriterionTriggers::instance().clear();
     }
@@ -35,17 +37,18 @@ protected:
 
 // ========== PlacedBlockTrigger 注册测试 ==========
 
-TEST_F(PlacedBlockTriggerTest, TriggerRegistration) {
+TEST_F(PlacedBlockTriggerTest, TriggerRegistration)
+{
     // 验证触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(PlacedBlockTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(PlacedBlockTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:placed_block");
 }
 
 // ========== PlacedBlockTriggerInstance fromJson 测试 ==========
 
-TEST_F(PlacedBlockTriggerTest, InstanceFromJsonEmpty) {
+TEST_F(PlacedBlockTriggerTest, InstanceFromJsonEmpty)
+{
     // 空条件应该匹配任何方块放置
     nlohmann::json conditions = {};
 
@@ -59,7 +62,8 @@ TEST_F(PlacedBlockTriggerTest, InstanceFromJsonEmpty) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithBlockPredicate) {
+TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithBlockPredicate)
+{
     // 带方块谓词的条件
     nlohmann::json conditions = R"({
         "block": "minecraft:diamond_block"
@@ -79,7 +83,8 @@ TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithBlockPredicate) {
     EXPECT_TRUE(serialized.contains("block"));
 }
 
-TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithLocationPredicate) {
+TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithLocationPredicate)
+{
     // 带位置谓词的条件
     nlohmann::json conditions = R"({
         "location": {
@@ -97,7 +102,8 @@ TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithLocationPredicate) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithItemPredicate) {
+TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithItemPredicate)
+{
     // 带物品谓词的条件
     nlohmann::json conditions = R"({
         "item": {
@@ -115,7 +121,8 @@ TEST_F(PlacedBlockTriggerTest, InstanceFromJsonWithItemPredicate) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlacedBlockTriggerTest, InstanceFromJsonFullConditions) {
+TEST_F(PlacedBlockTriggerTest, InstanceFromJsonFullConditions)
+{
     // 完整条件
     nlohmann::json conditions = R"({
         "block": "minecraft:stone",
@@ -145,7 +152,8 @@ TEST_F(PlacedBlockTriggerTest, InstanceFromJsonFullConditions) {
 
 // ========== PlacedBlockTriggerInstance test 测试 ==========
 
-TEST_F(PlacedBlockTriggerTest, TestEmptyConditions) {
+TEST_F(PlacedBlockTriggerTest, TestEmptyConditions)
+{
     // 空条件应该匹配任何方块放置
     PlacedBlockTriggerInstance instance;
 
@@ -153,7 +161,8 @@ TEST_F(PlacedBlockTriggerTest, TestEmptyConditions) {
     EXPECT_TRUE(instance.conditionsToJson().is_null());
 }
 
-TEST_F(PlacedBlockTriggerTest, TestWithBlockPredicate) {
+TEST_F(PlacedBlockTriggerTest, TestWithBlockPredicate)
+{
     // 带方块类型的条件
     nlohmann::json blockJson = R"({
         "block": "minecraft:diamond_block"
@@ -171,7 +180,8 @@ TEST_F(PlacedBlockTriggerTest, TestWithBlockPredicate) {
 
 // ========== conditionsToJson 序列化测试 ==========
 
-TEST_F(PlacedBlockTriggerTest, ConditionsToJsonRoundtrip) {
+TEST_F(PlacedBlockTriggerTest, ConditionsToJsonRoundtrip)
+{
     // 测试序列化和反序列化的往返
     nlohmann::json originalConditions = R"({
         "block": "minecraft:cobblestone"
@@ -196,16 +206,17 @@ TEST_F(PlacedBlockTriggerTest, ConditionsToJsonRoundtrip) {
 
 // ========== EnterBlockTrigger 测试 ==========
 
-TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerRegistration) {
+TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerRegistration)
+{
     // 验证进入方块触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(EnterBlockTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(EnterBlockTrigger::TRIGGER_ID));
     // 注意：EnterBlockTrigger 未在 registerBuiltinTriggers 中注册
     // 所以这里期望返回 nullptr
     // 如果后续注册了，这个测试需要更新
 }
 
-TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerFromJson) {
+TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerFromJson)
+{
     // 测试进入方块触发器的 JSON 解析
     nlohmann::json conditions = R"({
         "block": "minecraft:water"
@@ -221,7 +232,8 @@ TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerFromJson) {
 
 // ========== SlideDownBlockTrigger 测试 ==========
 
-TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerFromJson) {
+TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerFromJson)
+{
     // 测试滑落触发器的 JSON 解析
     nlohmann::json conditions = R"({
         "block": "minecraft:honey_block"
@@ -235,7 +247,8 @@ TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerFromJson) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerEmptyConditions) {
+TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerEmptyConditions)
+{
     // 空条件
     nlohmann::json conditions = {};
 
@@ -252,7 +265,8 @@ TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerEmptyConditions) {
 
 // ========== BeeNestDestroyedTrigger 测试 ==========
 
-TEST_F(PlacedBlockTriggerTest, BeeNestDestroyedTriggerFromJson) {
+TEST_F(PlacedBlockTriggerTest, BeeNestDestroyedTriggerFromJson)
+{
     // 测试破坏蜂巢触发器的 JSON 解析
     nlohmann::json conditions = R"({
         "block": "minecraft:bee_nest",
@@ -269,7 +283,8 @@ TEST_F(PlacedBlockTriggerTest, BeeNestDestroyedTriggerFromJson) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlacedBlockTriggerTest, BeeNestDestroyedTriggerFullConditions) {
+TEST_F(PlacedBlockTriggerTest, BeeNestDestroyedTriggerFullConditions)
+{
     // 完整条件
     nlohmann::json conditions = R"({
         "block": "minecraft:beehive",

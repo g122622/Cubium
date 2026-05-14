@@ -24,9 +24,12 @@ Activity Activity::AVOID = registerActivity("avoid");
 Activity Activity::RIDE = registerActivity("ride");
 
 Activity::Activity(const std::string& key)
-    : m_key(key), m_hash(std::hash<std::string>{}(key)) {}
+    : m_key(key)
+    , m_hash(std::hash<std::string>{}(key))
+{}
 
-Activity Activity::registerActivity(const std::string& key) {
+Activity Activity::registerActivity(const std::string& key)
+{
     return Activity(key);
 }
 

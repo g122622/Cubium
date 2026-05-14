@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <nlohmann/json.hpp>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::resource::metadata {
 
@@ -41,7 +41,8 @@ struct AnimationFrame {
      */
     AnimationFrame(i32 frameIndex, i32 frameTime = -1)
         : index(frameIndex)
-        , time(frameTime) {}
+        , time(frameTime)
+    {}
 };
 
 /**
@@ -123,24 +124,21 @@ struct AnimationMetadata {
      * @brief 检查是否为有效动画
      * @return 如果有有效的帧配置返回true
      */
-    [[nodiscard]] bool isValidAnimation() const noexcept {
-        return frametime > 0 && width > 0 && height > 0;
-    }
+    [[nodiscard]] bool isValidAnimation() const noexcept { return frametime > 0 && width > 0 && height > 0; }
 
     /**
      * @brief 获取总帧数
      * @return 如果有自定义帧序列返回序列长度，否则返回0表示需要从图像计算
      */
-    [[nodiscard]] Size getFrameCount() const noexcept {
-        return frames.size();
-    }
+    [[nodiscard]] Size getFrameCount() const noexcept { return frames.size(); }
 
     /**
      * @brief 获取指定位置的帧索引
      * @param position 动画播放位置（0, 1, 2, ...）
      * @return 帧索引
      */
-    [[nodiscard]] i32 getFrameIndex(Size position) const noexcept {
+    [[nodiscard]] i32 getFrameIndex(Size position) const noexcept
+    {
         if (frames.empty()) {
             return static_cast<i32>(position);
         }
@@ -152,7 +150,8 @@ struct AnimationMetadata {
      * @param position 动画播放位置（0, 1, 2, ...）
      * @return 帧时间（tick），如果帧未指定时间则返回默认frametime
      */
-    [[nodiscard]] i32 getFrameTime(Size position) const noexcept {
+    [[nodiscard]] i32 getFrameTime(Size position) const noexcept
+    {
         if (frames.empty()) {
             return frametime;
         }
@@ -174,10 +173,7 @@ struct AnimationMetadata {
      * @param imageHeight 图像高度（用于计算帧数）
      * @return 解析后的AnimationMetadata，如果解析失败返回空帧序列
      */
-    static AnimationMetadata fromMcmeta(
-        const std::vector<u8>& mcmetaData,
-        u32 imageWidth,
-        u32 imageHeight);
+    static AnimationMetadata fromMcmeta(const std::vector<u8>& mcmetaData, u32 imageWidth, u32 imageHeight);
 };
 
 } // namespace mc::resource::metadata

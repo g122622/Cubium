@@ -1,17 +1,17 @@
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
-#include "../../model/core/EntityModel.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../../core/IEntityRenderer.hpp"
 #include "../../../item/ItemMeshBuilder.hpp"
+#include "../../core/IEntityRenderer.hpp"
+#include "../../model/base/BipedModel.hpp"
+#include "../../model/core/EntityModel.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
 namespace mc {
@@ -40,17 +40,17 @@ namespace mc::client::renderer::entity::layer::equipment {
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
  */
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 class ArmorLayer : public layer::core::LayerRenderer<TEntity> {
 public:
     /**
      * @brief 盔甲部位
      */
     enum class ArmorSlot : u8 {
-        Head = 0,    // 头盔
-        Chest = 1,   // 胸甲
-        Legs = 2,    // 护腿
-        Feet = 3     // 靴子
+        Head = 0,  // 头盔
+        Chest = 1, // 胸甲
+        Legs = 2,  // 护腿
+        Feet = 3   // 靴子
     };
 
     /**
@@ -63,7 +63,8 @@ public:
      * @param renderer 关联的渲染器
      */
     explicit ArmorLayer(entity::core::IEntityRenderer<TEntity, TModel>& renderer)
-        : m_renderer(&renderer) {}
+        : m_renderer(&renderer)
+    {}
 
     ~ArmorLayer() override = default;
 
@@ -76,12 +77,11 @@ public:
      * 3. Feet (靴子) - layer_1
      * 4. Head (头盔) - layer_1
      */
-    void renderPipeline(
-        TEntity& entity,
+    void renderPipeline(TEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override {
+        pipeline::EntityPipeline& pipeline) override
+    {
         // MC 1.16.5 渲染顺序: Chest -> Legs -> Feet -> Head
         renderArmorPartPipeline(entity, ArmorSlot::Chest, cmd, context, pipeline);
         renderArmorPartPipeline(entity, ArmorSlot::Legs, cmd, context, pipeline);
@@ -92,16 +92,15 @@ public:
     /**
      * @brief 渲染盔甲层（CPU路径 - 已废弃）
      */
-    void render(
-        TEntity& entity,
+    void render(TEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override {
+        f32 scale) override
+    {
         // CPU 路径已废弃
         (void)entity;
         (void)limbSwing;
@@ -116,7 +115,8 @@ public:
     /**
      * @brief 检查是否应该渲染盔甲层
      */
-    [[nodiscard]] bool shouldRender(const TEntity& entity) const override {
+    [[nodiscard]] bool shouldRender(const TEntity& entity) const override
+    {
         // 检查是否穿戴了任何盔甲
         if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
             using EquipmentSlot = ::mc::EquipmentSlot;
@@ -125,8 +125,7 @@ public:
             const auto& legs = entity.getEquipment(EquipmentSlot::Legs);
             const auto& feet = entity.getEquipment(EquipmentSlot::Feet);
 
-            return (!head.isEmpty()) || (!chest.isEmpty()) ||
-                   (!legs.isEmpty()) || (!feet.isEmpty());
+            return (!head.isEmpty()) || (!chest.isEmpty()) || (!legs.isEmpty()) || (!feet.isEmpty());
         }
         return false;
     }
@@ -135,13 +134,12 @@ protected:
     /**
      * @brief 渲染特定部位的盔甲（GPU管线路径）
      */
-    virtual void renderArmorPartPipeline(
-        TEntity& entity,
+    virtual void renderArmorPartPipeline(TEntity& entity,
         ArmorSlot slot,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) {
+        pipeline::EntityPipeline& pipeline)
+    {
         // 获取盔甲物品
         const ::mc::ItemStack* armorItem = getArmorItem(entity, slot);
         if (!armorItem || armorItem->isEmpty()) {
@@ -164,11 +162,8 @@ protected:
         getBodyPartTransform(slot, context, bodyPartTransform);
 
         // 构建盔甲网格
-        auto [vertices, indices] = item::ItemMeshBuilder::buildArmorMesh(
-            *armorItem,
-            static_cast<u32>(slot),
-            bodyPartTransform
-        );
+        auto [vertices, indices] =
+            item::ItemMeshBuilder::buildArmorMesh(*armorItem, static_cast<u32>(slot), bodyPartTransform);
 
         if (vertices.empty() || indices.empty()) {
             return;
@@ -182,11 +177,7 @@ protected:
         }
 
         // 获取实体位置
-        Vector3f entityPos(
-            static_cast<f32>(entity.x()),
-            static_cast<f32>(entity.y()),
-            static_cast<f32>(entity.z())
-        );
+        Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
         // 获取盔甲颜色（染色盔甲）
         Vector4f overlayColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -203,8 +194,7 @@ protected:
             deathTime = static_cast<f32>(entity.deathTime());
         }
 
-        pipeline.drawMesh(cmd, result.value(), bodyPartTransform, entityPos, 1.0,
-                          overlayColor, hurtTime, deathTime);
+        pipeline.drawMesh(cmd, result.value(), bodyPartTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
         spdlog::trace("ArmorLayer: Rendered armor in slot {}", static_cast<int>(slot));
     }
@@ -212,8 +202,7 @@ protected:
     /**
      * @brief 渲染特定部位的盔甲（CPU路径 - 已废弃）
      */
-    virtual void renderArmorPart(
-        TEntity& entity,
+    virtual void renderArmorPart(TEntity& entity,
         ArmorSlot slot,
         f32 limbSwing,
         f32 limbSwingAmount,
@@ -221,8 +210,8 @@ protected:
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) {
+        f32 scale)
+    {
         (void)entity;
         (void)slot;
         (void)limbSwing;
@@ -237,10 +226,8 @@ protected:
     /**
      * @brief 获取盔甲物品
      */
-    [[nodiscard]] virtual const ::mc::ItemStack* getArmorItem(
-        const TEntity& entity,
-        ArmorSlot slot
-    ) const {
+    [[nodiscard]] virtual const ::mc::ItemStack* getArmorItem(const TEntity& entity, ArmorSlot slot) const
+    {
         if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
             using EquipmentSlot = ::mc::EquipmentSlot;
             switch (slot) {
@@ -260,25 +247,19 @@ protected:
     /**
      * @brief 获取身体部件变换矩阵
      */
-    virtual void getBodyPartTransform(
-        ArmorSlot slot,
+    virtual void getBodyPartTransform(ArmorSlot slot,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        std::array<f64, 16>& outMatrix
-    ) {
+        std::array<f64, 16>& outMatrix)
+    {
         // 初始化为单位矩阵
-        outMatrix = {
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        };
+        outMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
         // 根据部位应用不同的变换
         // 参考 MC 1.16.5 ArmorLayer
         switch (slot) {
             case ArmorSlot::Head:
                 // 头盔位置
-                outMatrix[7] = 0.5;  // Y 偏移
+                outMatrix[7] = 0.5; // Y 偏移
                 break;
             case ArmorSlot::Chest:
                 // 胸甲位置（身体）
@@ -286,11 +267,11 @@ protected:
                 break;
             case ArmorSlot::Legs:
                 // 护腿位置
-                outMatrix[7] = -0.5;  // Y 偏移
+                outMatrix[7] = -0.5; // Y 偏移
                 break;
             case ArmorSlot::Feet:
                 // 靴子位置
-                outMatrix[7] = -1.0;  // Y 偏移
+                outMatrix[7] = -1.0; // Y 偏移
                 break;
         }
 
@@ -303,7 +284,8 @@ protected:
      * 参考 MC 1.16.5 BipedArmorLayer.setModelSlotVisible
      * 根据盔甲槽位设置哪些模型部件应该可见
      */
-    virtual void setModelSlotVisible(TModel& model, ArmorSlot slot) {
+    virtual void setModelSlotVisible(TModel& model, ArmorSlot slot)
+    {
         // 默认隐藏所有部件
         model.setAllVisible(false);
 
@@ -318,17 +300,17 @@ protected:
                 break;
             case ArmorSlot::Chest:
                 // 胸甲：显示身体和手臂
-                model.setVisible(true);  // 显示身体
+                model.setVisible(true); // 显示身体
                 // TODO: 设置手臂可见性
                 break;
             case ArmorSlot::Legs:
                 // 护腿：显示身体和腿部
-                model.setVisible(true);  // 显示身体
+                model.setVisible(true); // 显示身体
                 // TODO: 设置腿部可见性
                 break;
             case ArmorSlot::Feet:
                 // 靴子：显示腿部
-                model.setVisible(true);  // 显示腿部
+                model.setVisible(true); // 显示腿部
                 break;
         }
     }
@@ -336,7 +318,8 @@ protected:
     /**
      * @brief 检查物品是否为可染色盔甲
      */
-    [[nodiscard]] bool isDyeableArmor(const ::mc::ItemStack& stack) const {
+    [[nodiscard]] bool isDyeableArmor(const ::mc::ItemStack& stack) const
+    {
         const ::mc::Item* item = stack.getItem();
         if (!item) {
             return false;
@@ -351,7 +334,8 @@ protected:
      * @param stack 盔甲物品堆
      * @return RGB 颜色值（归一化到 [0, 1]）
      */
-    [[nodiscard]] Vector3f getDyeColor(const ::mc::ItemStack& stack) const {
+    [[nodiscard]] Vector3f getDyeColor(const ::mc::ItemStack& stack) const
+    {
         const ::mc::Item* item = stack.getItem();
         const auto* dyeableItem = dynamic_cast<const ::mc::item::items::DyeableArmorItem*>(item);
         if (dyeableItem) {
@@ -362,13 +346,14 @@ protected:
             f32 b = static_cast<f32>(color & 0xFF) / 255.0f;
             return Vector3f(r, g, b);
         }
-        return Vector3f(1.0f, 1.0f, 1.0f);  // 默认白色
+        return Vector3f(1.0f, 1.0f, 1.0f); // 默认白色
     }
 
     /**
      * @brief 获取盔甲模型
      */
-    [[nodiscard]] virtual TModel& getArmorModel(ArmorSlot slot) {
+    [[nodiscard]] virtual TModel& getArmorModel(ArmorSlot slot)
+    {
         // 返回对应的盔甲模型
         // TODO: 实现盔甲模型缓存
         switch (slot) {
@@ -391,10 +376,8 @@ protected:
     /**
      * @brief 获取盔甲纹理
      */
-    [[nodiscard]] virtual ResourceLocation getArmorTexture(
-        const TEntity& entity,
-        ArmorSlot slot
-    ) {
+    [[nodiscard]] virtual ResourceLocation getArmorTexture(const TEntity& entity, ArmorSlot slot)
+    {
         (void)entity;
         (void)slot;
         // 返回默认盔甲纹理
@@ -404,16 +387,12 @@ protected:
     /**
      * @brief 获取关联的渲染器
      */
-    [[nodiscard]] entity::core::IEntityRenderer<TEntity, TModel>* getRenderer() {
-        return m_renderer;
-    }
+    [[nodiscard]] entity::core::IEntityRenderer<TEntity, TModel>* getRenderer() { return m_renderer; }
 
     /**
      * @brief 获取关联的模型
      */
-    [[nodiscard]] TModel* getParentModel() {
-        return m_renderer ? &m_renderer->getModel() : nullptr;
-    }
+    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
 
 private:
     entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;

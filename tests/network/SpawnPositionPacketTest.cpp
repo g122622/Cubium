@@ -1,23 +1,22 @@
-#include <gtest/gtest.h>
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/network/packet/Packet.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::network;
-using mc::BlockPos;
 using mc::BlockCoord;
+using mc::BlockPos;
 
 // ==================== SpawnPositionPacket Tests ====================
 
 class SpawnPositionPacketTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        testPos = BlockPos(100, 64, -200);
-    }
+    void SetUp() override { testPos = BlockPos(100, 64, -200); }
 
     BlockPos testPos;
 };
 
-TEST_F(SpawnPositionPacketTest, DefaultConstruction) {
+TEST_F(SpawnPositionPacketTest, DefaultConstruction)
+{
     SpawnPositionPacket packet;
     EXPECT_EQ(packet.type(), PacketType::SpawnPosition);
     EXPECT_EQ(packet.position().x, 0);
@@ -25,7 +24,8 @@ TEST_F(SpawnPositionPacketTest, DefaultConstruction) {
     EXPECT_EQ(packet.position().z, 0);
 }
 
-TEST_F(SpawnPositionPacketTest, PositionConstruction) {
+TEST_F(SpawnPositionPacketTest, PositionConstruction)
+{
     SpawnPositionPacket packet(testPos);
     EXPECT_EQ(packet.type(), PacketType::SpawnPosition);
     EXPECT_EQ(packet.position().x, 100);
@@ -33,7 +33,8 @@ TEST_F(SpawnPositionPacketTest, PositionConstruction) {
     EXPECT_EQ(packet.position().z, -200);
 }
 
-TEST_F(SpawnPositionPacketTest, SetPosition) {
+TEST_F(SpawnPositionPacketTest, SetPosition)
+{
     SpawnPositionPacket packet;
     packet.setPosition(testPos);
     EXPECT_EQ(packet.position().x, 100);
@@ -41,7 +42,8 @@ TEST_F(SpawnPositionPacketTest, SetPosition) {
     EXPECT_EQ(packet.position().z, -200);
 }
 
-TEST_F(SpawnPositionPacketTest, SerializeDeserialize) {
+TEST_F(SpawnPositionPacketTest, SerializeDeserialize)
+{
     SpawnPositionPacket packet(testPos);
 
     auto result = packet.serialize();
@@ -62,7 +64,8 @@ TEST_F(SpawnPositionPacketTest, SerializeDeserialize) {
     EXPECT_EQ(packet2.position().z, -200);
 }
 
-TEST_F(SpawnPositionPacketTest, SerializeDeserializeNegativeCoords) {
+TEST_F(SpawnPositionPacketTest, SerializeDeserializeNegativeCoords)
+{
     BlockPos negativePos(-1000, -50, -9999);
     SpawnPositionPacket packet(negativePos);
 
@@ -78,7 +81,8 @@ TEST_F(SpawnPositionPacketTest, SerializeDeserializeNegativeCoords) {
     EXPECT_EQ(packet2.position().z, -9999);
 }
 
-TEST_F(SpawnPositionPacketTest, SerializeDeserializeZeroCoords) {
+TEST_F(SpawnPositionPacketTest, SerializeDeserializeZeroCoords)
+{
     BlockPos zeroPos(0, 0, 0);
     SpawnPositionPacket packet(zeroPos);
 
@@ -94,7 +98,8 @@ TEST_F(SpawnPositionPacketTest, SerializeDeserializeZeroCoords) {
     EXPECT_EQ(packet2.position().z, 0);
 }
 
-TEST_F(SpawnPositionPacketTest, DeserializeTooSmall) {
+TEST_F(SpawnPositionPacketTest, DeserializeTooSmall)
+{
     SpawnPositionPacket packet;
     std::vector<mc::u8> smallData = {0x01, 0x02}; // Too small
 
@@ -102,7 +107,8 @@ TEST_F(SpawnPositionPacketTest, DeserializeTooSmall) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(SpawnPositionPacketTest, PacketType) {
+TEST_F(SpawnPositionPacketTest, PacketType)
+{
     SpawnPositionPacket packet;
     EXPECT_EQ(packet.type(), PacketType::SpawnPosition);
 }

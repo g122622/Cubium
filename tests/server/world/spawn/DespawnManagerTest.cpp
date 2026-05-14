@@ -1,16 +1,16 @@
-#include <gtest/gtest.h>
-#include "common/entity/core/MobEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity;
@@ -21,7 +21,8 @@ namespace {
 class TestMob : public MobEntity {
 public:
     TestMob(LegacyEntityType type, EntityId id)
-        : MobEntity(type, id) {}
+        : MobEntity(type, id)
+    {}
 
     void tick() override { MobEntity::tick(); }
     void registerGoals() override {}
@@ -31,7 +32,8 @@ public:
 class TestMonster : public MonsterEntity {
 public:
     TestMonster(LegacyEntityType type, EntityId id)
-        : MonsterEntity(type, id) {}
+        : MonsterEntity(type, id)
+    {}
 
     void registerGoals() override {}
 };
@@ -40,11 +42,10 @@ public:
 class TestAnimal : public AnimalEntity {
 public:
     TestAnimal(LegacyEntityType type, EntityId id)
-        : AnimalEntity(type, id) {}
+        : AnimalEntity(type, id)
+    {}
 
-    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override {
-        return nullptr;
-    }
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }
 };
 
 // 简化的测试世界
@@ -56,7 +57,8 @@ public:
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
 
     // TickManager 接口
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("DespawnTestWorld::tickManager not implemented");
     }
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
@@ -71,31 +73,36 @@ private:
 
 // ========== MobEntity 持久化测试 ==========
 
-TEST(MobEntityPersistenceTest, DefaultPersistenceIsFalse) {
+TEST(MobEntityPersistenceTest, DefaultPersistenceIsFalse)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     EXPECT_FALSE(mob.isNoDespawnRequired());
 }
 
-TEST(MobEntityPersistenceTest, EnablePersistenceSetsFlag) {
+TEST(MobEntityPersistenceTest, EnablePersistenceSetsFlag)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     mob.enablePersistence();
     EXPECT_TRUE(mob.isNoDespawnRequired());
 }
 
-TEST(MobEntityPersistenceTest, PreventDespawnReturnsIsRiding) {
+TEST(MobEntityPersistenceTest, PreventDespawnReturnsIsRiding)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     // 默认没有骑乘任何实体
     EXPECT_FALSE(mob.preventDespawn());
 }
 
-TEST(MobEntityPersistenceTest, CanDespawnDefaultReturnsTrue) {
+TEST(MobEntityPersistenceTest, CanDespawnDefaultReturnsTrue)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     EXPECT_TRUE(mob.canDespawn(100.0));
 }
 
 // ========== AnimalEntity 消失测试 ==========
 
-TEST(AnimalEntityDespawnTest, CanDespawnReturnsFalse) {
+TEST(AnimalEntityDespawnTest, CanDespawnReturnsFalse)
+{
     TestAnimal animal(LegacyEntityType::Pig, 1);
     // 动物不会消失
     EXPECT_FALSE(animal.canDespawn(100.0));
@@ -104,7 +111,8 @@ TEST(AnimalEntityDespawnTest, CanDespawnReturnsFalse) {
 
 // ========== MonsterEntity 消失测试 ==========
 
-TEST(MonsterEntityDespawnTest, IsDespawnPeacefulReturnsTrue) {
+TEST(MonsterEntityDespawnTest, IsDespawnPeacefulReturnsTrue)
+{
     TestMonster monster(LegacyEntityType::Zombie, 1);
     // 怪物在和平模式下会消失
     EXPECT_TRUE(monster.isDespawnPeaceful());
@@ -112,13 +120,15 @@ TEST(MonsterEntityDespawnTest, IsDespawnPeacefulReturnsTrue) {
 
 // ========== 家范围系统测试 ==========
 
-TEST(MobEntityHomeTest, DefaultNoHome) {
+TEST(MobEntityHomeTest, DefaultNoHome)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     EXPECT_FALSE(mob.hasHome());
     EXPECT_LT(mob.maximumHomeDistance(), 0.0f);
 }
 
-TEST(MobEntityHomeTest, SetHome) {
+TEST(MobEntityHomeTest, SetHome)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     mob.setHomePosAndDistance(BlockPos(100, 64, 200), 50);
 
@@ -127,7 +137,8 @@ TEST(MobEntityHomeTest, SetHome) {
     EXPECT_FLOAT_EQ(mob.maximumHomeDistance(), 50.0f);
 }
 
-TEST(MobEntityHomeTest, IsWithinHomeDistance) {
+TEST(MobEntityHomeTest, IsWithinHomeDistance)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     mob.setHomePosAndDistance(BlockPos(0, 0, 0), 10);
 
@@ -139,10 +150,11 @@ TEST(MobEntityHomeTest, IsWithinHomeDistance) {
     // 在范围外
     EXPECT_FALSE(mob.isWithinHomeDistanceFromPosition(BlockPos(11, 0, 0)));
     EXPECT_FALSE(mob.isWithinHomeDistanceFromPosition(BlockPos(0, 0, 11)));
-    EXPECT_FALSE(mob.isWithinHomeDistanceFromPosition(BlockPos(10, 0, 0)));  // 10 >= 10 不在范围内
+    EXPECT_FALSE(mob.isWithinHomeDistanceFromPosition(BlockPos(10, 0, 0))); // 10 >= 10 不在范围内
 }
 
-TEST(MobEntityHomeTest, ClearHome) {
+TEST(MobEntityHomeTest, ClearHome)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     mob.setHomePosAndDistance(BlockPos(100, 64, 200), 50);
     EXPECT_TRUE(mob.hasHome());
@@ -152,7 +164,8 @@ TEST(MobEntityHomeTest, ClearHome) {
     EXPECT_LT(mob.maximumHomeDistance(), 0.0f);
 }
 
-TEST(MobEntityHomeTest, NoHomeAllowsAllPositions) {
+TEST(MobEntityHomeTest, NoHomeAllowsAllPositions)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     // 没有设置家范围时，任何位置都允许
     EXPECT_TRUE(mob.isWithinHomeDistanceFromPosition(BlockPos(100000, 0, 0)));
@@ -161,12 +174,14 @@ TEST(MobEntityHomeTest, NoHomeAllowsAllPositions) {
 
 // ========== 空闲时间测试 ==========
 
-TEST(MobEntityIdleTimeTest, DefaultIdleTimeIsZero) {
+TEST(MobEntityIdleTimeTest, DefaultIdleTimeIsZero)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     EXPECT_EQ(mob.idleTime(), 0);
 }
 
-TEST(MobEntityIdleTimeTest, SetIdleTime) {
+TEST(MobEntityIdleTimeTest, SetIdleTime)
+{
     TestMob mob(LegacyEntityType::Zombie, 1);
     mob.setIdleTime(100);
     EXPECT_EQ(mob.idleTime(), 100);
@@ -174,25 +189,29 @@ TEST(MobEntityIdleTimeTest, SetIdleTime) {
 
 // ========== EntityClassification 消失距离测试 ==========
 
-TEST(EntityClassificationDespawnTest, MonsterDespawnDistance) {
+TEST(EntityClassificationDespawnTest, MonsterDespawnDistance)
+{
     auto info = EntityClassificationInfo::get(EntityClassification::Monster);
     EXPECT_EQ(info.despawnDistance, 128);
     EXPECT_EQ(info.randomDespawnDistance, 32);
 }
 
-TEST(EntityClassificationDespawnTest, CreatureDespawnDistance) {
+TEST(EntityClassificationDespawnTest, CreatureDespawnDistance)
+{
     auto info = EntityClassificationInfo::get(EntityClassification::Creature);
     EXPECT_EQ(info.despawnDistance, 128);
     EXPECT_EQ(info.randomDespawnDistance, 32);
 }
 
-TEST(EntityClassificationDespawnTest, WaterAmbientDespawnDistance) {
+TEST(EntityClassificationDespawnTest, WaterAmbientDespawnDistance)
+{
     auto info = EntityClassificationInfo::get(EntityClassification::WaterAmbient);
-    EXPECT_EQ(info.despawnDistance, 64);  // 水生环境生物消失距离更短
+    EXPECT_EQ(info.despawnDistance, 64); // 水生环境生物消失距离更短
     EXPECT_EQ(info.randomDespawnDistance, 32);
 }
 
-TEST(EntityClassificationDespawnTest, MiscDespawnDistance) {
+TEST(EntityClassificationDespawnTest, MiscDespawnDistance)
+{
     auto info = EntityClassificationInfo::get(EntityClassification::Misc);
     EXPECT_EQ(info.despawnDistance, 128);
     EXPECT_EQ(info.randomDespawnDistance, 32);

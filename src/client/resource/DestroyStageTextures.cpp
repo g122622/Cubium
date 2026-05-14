@@ -1,12 +1,12 @@
 #include "DestroyStageTextures.hpp"
 #include "ResourceManager.hpp"
+#include "common/core/Result.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/core/Result.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <spdlog/spdlog.h>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace client {
@@ -16,7 +16,8 @@ namespace renderer {
 // 静态成员
 // ============================================================================
 
-DestroyStageTextures& DestroyStageTextures::instance() {
+DestroyStageTextures& DestroyStageTextures::instance()
+{
     static DestroyStageTextures instance;
     return instance;
 }
@@ -25,11 +26,13 @@ DestroyStageTextures& DestroyStageTextures::instance() {
 // 初始化
 // ============================================================================
 
-bool DestroyStageTextures::initialize() {
+bool DestroyStageTextures::initialize()
+{
     return initialize(nullptr);
 }
 
-bool DestroyStageTextures::initialize(ResourceManager* resourceManager) {
+bool DestroyStageTextures::initialize(ResourceManager* resourceManager)
+{
     if (m_initialized) {
         return true;
     }
@@ -47,7 +50,8 @@ bool DestroyStageTextures::initialize(ResourceManager* resourceManager) {
                 // spdlog::info("DestroyStageTextures: Loaded texture for stage {} from resource pack", i);
             }
         } else {
-            spdlog::warn("DestroyStageTextures: No ResourceManager provided, skipping resource pack loading for stage {}", i);
+            spdlog::warn(
+                "DestroyStageTextures: No ResourceManager provided, skipping resource pack loading for stage {}", i);
         }
 
         // 如果加载失败，使用程序生成
@@ -65,7 +69,8 @@ bool DestroyStageTextures::initialize(ResourceManager* resourceManager) {
     return true;
 }
 
-void DestroyStageTextures::cleanup() {
+void DestroyStageTextures::cleanup()
+{
     for (auto& texture : m_textures) {
         texture.clear();
         texture.shrink_to_fit();
@@ -79,16 +84,16 @@ void DestroyStageTextures::cleanup() {
 // 纹理访问
 // ============================================================================
 
-const u8* DestroyStageTextures::getTextureData(size_t stage) const {
+const u8* DestroyStageTextures::getTextureData(size_t stage) const
+{
     if (stage >= STAGE_COUNT) {
         return nullptr;
     }
     return m_textures[stage].data();
 }
 
-bool DestroyStageTextures::getTextureUV(size_t stage,
-                                         f32& u0, f32& v0,
-                                         f32& u1, f32& v1) const {
+bool DestroyStageTextures::getTextureUV(size_t stage, f32& u0, f32& v0, f32& u1, f32& v1) const
+{
     if (stage >= STAGE_COUNT) {
         return false;
     }
@@ -113,7 +118,8 @@ bool DestroyStageTextures::getTextureUV(size_t stage,
 // 私有方法
 // ============================================================================
 
-void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>& data) {
+void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>& data)
+{
     // 16x16 RGBA 纹理
     constexpr size_t pixelCount = TEXTURE_SIZE * TEXTURE_SIZE;
     data.resize(pixelCount * 4, 0);
@@ -167,8 +173,7 @@ void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>&
             }
 
             // 边缘破损
-            if ((x == 0 || x == TEXTURE_SIZE - 1 || y == 0 || y == TEXTURE_SIZE - 1) &&
-                stage >= 3) {
+            if ((x == 0 || x == TEXTURE_SIZE - 1 || y == 0 || y == TEXTURE_SIZE - 1) && stage >= 3) {
                 crack += 0.3f * intensity;
             }
 
@@ -178,17 +183,17 @@ void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>&
             f32 alpha = std::min(1.0f, crack * intensity * 1.5f);
 
             // RGBA
-            data[idx + 0] = 0;     // R - 黑色裂纹
-            data[idx + 1] = 0;     // G
-            data[idx + 2] = 0;     // B
-            data[idx + 3] = static_cast<u8>(alpha * 255.0f);  // A
+            data[idx + 0] = 0;                               // R - 黑色裂纹
+            data[idx + 1] = 0;                               // G
+            data[idx + 2] = 0;                               // B
+            data[idx + 3] = static_cast<u8>(alpha * 255.0f); // A
         }
     }
 }
 
-bool DestroyStageTextures::loadTextureFromResourcePack(ResourceManager* resourceManager,
-                                                         size_t stage,
-                                                         std::vector<u8>& data) {
+bool DestroyStageTextures::loadTextureFromResourcePack(
+    ResourceManager* resourceManager, size_t stage, std::vector<u8>& data)
+{
     if (!resourceManager) {
         spdlog::warn("DestroyStageTextures: No ResourceManager provided, cannot load texture for stage {}", stage);
         return false;
@@ -216,7 +221,8 @@ bool DestroyStageTextures::loadTextureFromResourcePack(ResourceManager* resource
     }
 
     if (rawData.empty()) {
-        // spdlog::debug("DestroyStageTextures: Failed to load texture for stage {} from modern path, trying legacy path", stage);
+        // spdlog::debug("DestroyStageTextures: Failed to load texture for stage {} from modern path, trying legacy
+        // path", stage);
 
         // 尝试旧版路径
         ResourceLocation legacyLoc("minecraft", fmt::format("textures/blocks/destroy_stage_{}", stage));
@@ -302,10 +308,10 @@ bool DestroyStageTextures::loadTextureFromResourcePack(ResourceManager* resource
             // 转换为我们需要的格式：
             // RGB = (0, 0, 0) 黑色
             // Alpha = 裂纹强度
-            data[dstIdx + 0] = 0;  // R
-            data[dstIdx + 1] = 0;  // G
-            data[dstIdx + 2] = 0;  // B
-            data[dstIdx + 3] = crackIntensity;  // A = 裂纹强度
+            data[dstIdx + 0] = 0;              // R
+            data[dstIdx + 1] = 0;              // G
+            data[dstIdx + 2] = 0;              // B
+            data[dstIdx + 3] = crackIntensity; // A = 裂纹强度
         }
     }
 
@@ -317,11 +323,12 @@ bool DestroyStageTextures::loadTextureFromResourcePack(ResourceManager* resource
     //              stage, srcWidth, srcHeight, avgCrackIntensity, minCrackIntensity, maxCrackIntensity);
 
     // spdlog::info("DestroyStageTextures: Loaded and converted texture for stage {} ({}x{} -> 16x16)",
-                //  stage, srcWidth, srcHeight);
+    //  stage, srcWidth, srcHeight);
     return true;
 }
 
-void DestroyStageTextures::buildAtlas() {
+void DestroyStageTextures::buildAtlas()
+{
     // 图集尺寸：5列2行，每格16x16
     constexpr u32 atlasWidth = TEXTURE_SIZE * 5;
     constexpr u32 atlasHeight = TEXTURE_SIZE * 2;

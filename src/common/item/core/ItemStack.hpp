@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
 #include "../../network/packet/PacketSerializer.hpp"
-#include "../../core/Result.hpp"
+#include "../../util/nbt/Nbt.hpp"
 #include "../../util/text/ITextComponent.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../enchantment/EnchantmentContainer.hpp"
-#include "../../util/nbt/Nbt.hpp"
 #include <memory>
 #include <optional>
 #include <nlohmann/json.hpp>
@@ -393,9 +393,7 @@ public:
      *
      * @return 是否有自定义名称
      */
-    [[nodiscard]] bool hasCustomName() const {
-        return m_customName && !m_customName->getUnformattedText().empty();
-    }
+    [[nodiscard]] bool hasCustomName() const { return m_customName && !m_customName->getUnformattedText().empty(); }
 
     /**
      * @brief 获取自定义名称组件
@@ -404,9 +402,7 @@ public:
      *
      * @return 自定义名称组件指针
      */
-    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const {
-        return m_customName.get();
-    }
+    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const { return m_customName.get(); }
 
     /**
      * @brief 获取自定义名称的纯文本
@@ -415,23 +411,20 @@ public:
      *
      * @return 自定义名称纯文本
      */
-    [[nodiscard]] std::string getCustomName() const {
-        return m_customName ? m_customName->getUnformattedText() : "";
-    }
+    [[nodiscard]] std::string getCustomName() const { return m_customName ? m_customName->getUnformattedText() : ""; }
 
     /**
      * @brief 设置自定义名称组件
      * @param name 名称组件（所有权转移）
      */
-    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name) {
-        m_customName = std::move(name);
-    }
+    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name) { m_customName = std::move(name); }
 
     /**
      * @brief 设置自定义名称（纯文本，向后兼容）
      * @param name 新名称
      */
-    void setCustomName(const std::string& name) {
+    void setCustomName(const std::string& name)
+    {
         if (name.empty()) {
             m_customName = nullptr;
         } else {
@@ -442,16 +435,12 @@ public:
     /**
      * @brief 清除自定义名称
      */
-    void clearCustomName() {
-        m_customName = nullptr;
-    }
+    void clearCustomName() { m_customName = nullptr; }
 
     /**
      * @brief 是否有显示名称（自定义名称或物品翻译名称）
      */
-    [[nodiscard]] bool hasDisplayName() const {
-        return hasCustomName();
-    }
+    [[nodiscard]] bool hasDisplayName() const { return hasCustomName(); }
 
     /**
      * @brief 获取显示名称
@@ -469,48 +458,36 @@ public:
      * @brief 是否有 Lore
      * @return 如果有 Lore 返回 true
      */
-    [[nodiscard]] bool hasLore() const {
-        return !m_lore.empty();
-    }
+    [[nodiscard]] bool hasLore() const { return !m_lore.empty(); }
 
     /**
      * @brief 获取 Lore 列表
      * @return Lore 文本组件列表的常量引用
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<text::ITextComponent>>& getLore() const {
-        return m_lore;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<text::ITextComponent>>& getLore() const { return m_lore; }
 
     /**
      * @brief 设置 Lore
      * @param lore Lore 文本组件列表（所有权转移）
      */
-    void setLore(std::vector<std::unique_ptr<text::ITextComponent>> lore) {
-        m_lore = std::move(lore);
-    }
+    void setLore(std::vector<std::unique_ptr<text::ITextComponent>> lore) { m_lore = std::move(lore); }
 
     /**
      * @brief 添加一行 Lore
      * @param line Lore 文本组件（所有权转移）
      */
-    void addLoreLine(std::unique_ptr<text::ITextComponent> line) {
-        m_lore.push_back(std::move(line));
-    }
+    void addLoreLine(std::unique_ptr<text::ITextComponent> line) { m_lore.push_back(std::move(line)); }
 
     /**
      * @brief 添加一行 Lore（纯文本）
      * @param line Lore 纯文本
      */
-    void addLoreLine(const std::string& line) {
-        m_lore.push_back(std::make_unique<text::StringTextComponent>(line));
-    }
+    void addLoreLine(const std::string& line) { m_lore.push_back(std::make_unique<text::StringTextComponent>(line)); }
 
     /**
      * @brief 清除 Lore
      */
-    void clearLore() {
-        m_lore.clear();
-    }
+    void clearLore() { m_lore.clear(); }
 
     // ========== 堆叠兼容性检查 ==========
 
@@ -521,9 +498,7 @@ public:
      *
      * 这是canMergeWith的别名，用于与MC源码命名保持一致。
      */
-    [[nodiscard]] bool canStackWith(const ItemStack& other) const {
-        return canMergeWith(other);
-    }
+    [[nodiscard]] bool canStackWith(const ItemStack& other) const { return canMergeWith(other); }
 
     // ========== 修复成本（铁砧） ==========
 
@@ -622,20 +597,18 @@ public:
      */
     bool operator==(const ItemStack& other) const;
 
-    bool operator!=(const ItemStack& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const ItemStack& other) const { return !(*this == other); }
 
 private:
     const Item* m_item = nullptr;
     i32 m_count = 0;
-    i32 m_damage = 0;       // 已承受的伤害（耐久度）
-    i32 m_repairCost = 0;   // 修复成本（铁砧）
-    std::unique_ptr<text::ITextComponent> m_customName;  // 自定义名称（铁砧重命名）
-    std::vector<std::unique_ptr<text::ITextComponent>> m_lore;  // 物品描述（Lore）
-    item::enchant::EnchantmentContainer m_enchantments;  // 附魔容器
-    std::string m_potionId;      // 药水ID（用于药水物品）
-    nlohmann::json m_customData;  // 自定义数据（用于display等扩展标签）
+    i32 m_damage = 0;                                          // 已承受的伤害（耐久度）
+    i32 m_repairCost = 0;                                      // 修复成本（铁砧）
+    std::unique_ptr<text::ITextComponent> m_customName;        // 自定义名称（铁砧重命名）
+    std::vector<std::unique_ptr<text::ITextComponent>> m_lore; // 物品描述（Lore）
+    item::enchant::EnchantmentContainer m_enchantments;        // 附魔容器
+    std::string m_potionId;                                    // 药水ID（用于药水物品）
+    nlohmann::json m_customData;                               // 自定义数据（用于display等扩展标签）
 
     // 允许 PotionUtils 访问私有成员
     friend class potion::PotionUtils;

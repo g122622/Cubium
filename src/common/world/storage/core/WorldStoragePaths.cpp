@@ -4,21 +4,14 @@
 
 namespace mc::world::storage {
 
-WorldStoragePaths::WorldStoragePaths(
-    std::filesystem::path savesDir,
-    std::filesystem::path backupsDir
-)
+WorldStoragePaths::WorldStoragePaths(std::filesystem::path savesDir, std::filesystem::path backupsDir)
     : m_savesDir(std::move(savesDir))
     , m_backupsDir(std::move(backupsDir))
-{
-}
+{}
 
 WorldStoragePaths WorldStoragePaths::defaultPaths()
 {
-    return WorldStoragePaths(
-        std::filesystem::current_path() / "saves",
-        std::filesystem::current_path() / "backups"
-    );
+    return WorldStoragePaths(std::filesystem::current_path() / "saves", std::filesystem::current_path() / "backups");
 }
 
 // ============================================================================
@@ -102,26 +95,19 @@ std::filesystem::path WorldStoragePaths::snapshotsPath(const std::string& levelI
     return m_savesDir / levelId / "snapshots";
 }
 
-std::filesystem::path WorldStoragePaths::snapshotPath(
-    const std::string& levelId,
-    const std::string& snapshotId
-) const
+std::filesystem::path WorldStoragePaths::snapshotPath(const std::string& levelId, const std::string& snapshotId) const
 {
     return m_savesDir / levelId / "snapshots" / snapshotId;
 }
 
 std::filesystem::path WorldStoragePaths::snapshotManifestPath(
-    const std::string& levelId,
-    const std::string& snapshotId
-) const
+    const std::string& levelId, const std::string& snapshotId) const
 {
     return m_savesDir / levelId / "snapshots" / snapshotId / "manifest.json";
 }
 
 std::filesystem::path WorldStoragePaths::snapshotDeltaPath(
-    const std::string& levelId,
-    const std::string& snapshotId
-) const
+    const std::string& levelId, const std::string& snapshotId) const
 {
     return m_savesDir / levelId / "snapshots" / snapshotId / "delta";
 }

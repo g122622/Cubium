@@ -1,39 +1,39 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
-#include <nlohmann/json.hpp>
-#include <string>
-#include <memory>
-#include <vector>
+#include "common/core/Types.hpp"
 #include <functional>
-#include <unordered_map>
+#include <memory>
 #include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::command {
 
 // 前向声明
-template<typename S>
+template <typename S>
 class CommandContext;
 
-template<typename S>
+template <typename S>
 class CommandNode;
 
-template<typename S>
+template <typename S>
 class CommandDispatcher;
 
 // ========== 类型别名 ==========
 
 /// 命令执行回调
-template<typename S>
+template <typename S>
 using CommandCallback = std::function<i32(CommandContext<S>&)>;
 
 /// 权限检查谓词
-template<typename S>
+template <typename S>
 using RequirementPredicate = std::function<bool(const S&)>;
 
 // ========== 命令节点类型 ==========
@@ -42,18 +42,18 @@ using RequirementPredicate = std::function<bool(const S&)>;
  * @brief 命令节点类型
  */
 enum class NodeType {
-    Root = 0,       // 根节点
-    Literal = 1,    // 字面量节点（如 "gamemode"）
-    Argument = 2,   // 参数节点（如 <mode>）
+    Root = 0,     // 根节点
+    Literal = 1,  // 字面量节点（如 "gamemode"）
+    Argument = 2, // 参数节点（如 <mode>）
 };
 
 /**
  * @brief 命令节点重定向模式
  */
 enum class RedirectModifier {
-    None,           // 无重定向
-    Single,         // 单一重定向
-    Fork            // 分叉重定向（执行多个）
+    None,   // 无重定向
+    Single, // 单一重定向
+    Fork    // 分叉重定向（执行多个）
 };
 
 /**
@@ -67,7 +67,7 @@ enum class RedirectModifier {
  *
  * 参考 MC 的 CommandNode 设计
  */
-template<typename S>
+template <typename S>
 class CommandNode {
 public:
     /**
@@ -98,14 +98,13 @@ public:
     /**
      * @brief Get metadata for this node.
      */
-    [[nodiscard]] const Metadata& getMetadataInfo() const noexcept {
-        return m_metadataInfo;
-    }
+    [[nodiscard]] const Metadata& getMetadataInfo() const noexcept { return m_metadataInfo; }
 
     /**
      * @brief Set metadata for this node.
      */
-    void setMetadataInfo(const Metadata& metadata) {
+    void setMetadataInfo(const Metadata& metadata)
+    {
         m_metadataInfo = metadata;
         if (!metadata.usage.empty()) {
             m_usageText = metadata.usage;
@@ -121,40 +120,35 @@ public:
     /**
      * @brief 检查是否携带自定义建议提供器
      */
-    [[nodiscard]] bool hasCustomSuggestions() const noexcept {
-        return static_cast<bool>(m_customSuggestions);
-    }
+    [[nodiscard]] bool hasCustomSuggestions() const noexcept { return static_cast<bool>(m_customSuggestions); }
 
     /**
      * @brief 获取自定义建议提供器
      */
-    [[nodiscard]] const std::shared_ptr<ISuggestionProvider<S>>& getCustomSuggestions() const noexcept {
+    [[nodiscard]] const std::shared_ptr<ISuggestionProvider<S>>& getCustomSuggestions() const noexcept
+    {
         return m_customSuggestions;
     }
 
     /**
      * @brief 设置自定义建议提供器
      */
-    void setCustomSuggestions(std::shared_ptr<ISuggestionProvider<S>> provider) {
+    void setCustomSuggestions(std::shared_ptr<ISuggestionProvider<S>> provider)
+    {
         m_customSuggestions = std::move(provider);
     }
 
     // ========== 权限 ==========
 
-    [[nodiscard]] const RequirementPredicate<S>& getRequirement() const noexcept {
-        return m_requirement;
-    }
-    void setRequirement(RequirementPredicate<S> requirement) {
-        m_requirement = std::move(requirement);
-    }
+    [[nodiscard]] const RequirementPredicate<S>& getRequirement() const noexcept { return m_requirement; }
+    void setRequirement(RequirementPredicate<S> requirement) { m_requirement = std::move(requirement); }
 
-    [[nodiscard]] bool canUse(const S& source) const {
-        return m_requirement(source);
-    }
+    [[nodiscard]] bool canUse(const S& source) const { return m_requirement(source); }
 
     // ========== 子节点 ==========
 
-    void addChild(std::shared_ptr<CommandNode<S>> node) {
+    void addChild(std::shared_ptr<CommandNode<S>> node)
+    {
         m_children[node->getName()] = node;
         if (node->getType() == NodeType::Literal) {
             m_literals.insert(node->getName());
@@ -163,10 +157,13 @@ public:
         }
     }
 
-    [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<CommandNode<S>>>&
-    getChildren() const noexcept { return m_children; }
+    [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<CommandNode<S>>>& getChildren() const noexcept
+    {
+        return m_children;
+    }
 
-    [[nodiscard]] std::shared_ptr<CommandNode<S>> getChild(const std::string& name) const {
+    [[nodiscard]] std::shared_ptr<CommandNode<S>> getChild(const std::string& name) const
+    {
         auto it = m_children.find(name);
         return it != m_children.end() ? it->second : nullptr;
     }
@@ -183,32 +180,33 @@ public:
     /**
      * @brief 设置重定向目标
      */
-    void setRedirect(std::shared_ptr<CommandNode<S>> target) {
+    void setRedirect(std::shared_ptr<CommandNode<S>> target)
+    {
         setRedirect(std::move(target), RedirectModifier::Single);
     }
 
     /**
      * @brief 设置重定向目标和模式
      */
-    void setRedirect(std::shared_ptr<CommandNode<S>> target, RedirectModifier modifier) {
+    void setRedirect(std::shared_ptr<CommandNode<S>> target, RedirectModifier modifier)
+    {
         m_redirect = std::move(target);
         m_redirectModifier = modifier;
     }
 
-    [[nodiscard]] bool isFork() const noexcept {
-        return m_redirectModifier == RedirectModifier::Fork;
-    }
+    [[nodiscard]] bool isFork() const noexcept { return m_redirectModifier == RedirectModifier::Fork; }
 
     // ========== 比较 ==========
 
-    virtual bool equals(const CommandNode<S>& other) const {
+    virtual bool equals(const CommandNode<S>& other) const
+    {
         // 简化比较：只比较重定向和类型
-        return m_redirect == other.m_redirect &&
-               m_redirectModifier == other.m_redirectModifier &&
-               this->getType() == other.getType();
+        return m_redirect == other.m_redirect && m_redirectModifier == other.m_redirectModifier &&
+            this->getType() == other.getType();
     }
 
-    [[nodiscard]] virtual size_t hashCode() const {
+    [[nodiscard]] virtual size_t hashCode() const
+    {
         size_t hash = 0;
         // 简单的哈希组合
         return hash;
@@ -232,7 +230,7 @@ protected:
 /**
  * @brief 根命令节点
  */
-template<typename S>
+template <typename S>
 class RootCommandNode : public CommandNode<S> {
 public:
     RootCommandNode() = default;
@@ -247,30 +245,30 @@ public:
  *
  * 表示固定的命令字，如 "gamemode"、"tp"
  */
-template<typename S>
+template <typename S>
 class LiteralCommandNode : public CommandNode<S> {
 public:
     explicit LiteralCommandNode(const std::string& literal)
-        : m_literal(literal) {}
+        : m_literal(literal)
+    {}
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Literal; }
     [[nodiscard]] std::string getName() const noexcept override { return m_literal; }
     [[nodiscard]] const std::string& getLiteral() const noexcept { return m_literal; }
 
-    void parse(StringReader& reader, CommandContext<S>& /*context*/) const override {
+    void parse(StringReader& reader, CommandContext<S>& /*context*/) const override
+    {
         const i32 start = reader.getCursor();
         const std::string literal = reader.readUnquotedString();
         if (literal != m_literal) {
             reader.setCursor(start);
             throw CommandException(
-                CommandErrorType::DispatcherExpectedLiteral,
-                "Expected literal '" + m_literal + "'",
-                start
-            );
+                CommandErrorType::DispatcherExpectedLiteral, "Expected literal '" + m_literal + "'", start);
         }
     }
 
-    bool equals(const CommandNode<S>& other) const override {
+    bool equals(const CommandNode<S>& other) const override
+    {
         if (!CommandNode<S>::equals(other)) return false;
         if (other.getType() != NodeType::Literal) return false;
         return m_literal == static_cast<const LiteralCommandNode<S>&>(other).m_literal;
@@ -285,7 +283,7 @@ private:
  *
  * 表示可变的命令参数，如 <player>、<pos>
  */
-template<typename S, typename T>
+template <typename S, typename T>
 class ArgumentCommandNode : public CommandNode<S> {
 public:
     using Parser = std::function<T(std::string_view, i32&, CommandException&)>;
@@ -295,7 +293,8 @@ public:
      */
     ArgumentCommandNode(const std::string& name, Parser parser)
         : m_name(name)
-        , m_parser(std::move(parser)) {}
+        , m_parser(std::move(parser))
+    {}
 
     /**
      * @brief 使用 ArgumentType 构造
@@ -312,29 +311,35 @@ public:
                 T result = m_argumentType->parse(reader);
                 cursor = reader.getCursor();
                 return result;
-            } catch (const CommandException& e) {
+            }
+            catch (const CommandException& e) {
                 error = e;
                 cursor = -1;
                 return T{};
             }
         })
-        , m_argumentType(std::move(argumentType)) {}
+        , m_argumentType(std::move(argumentType))
+    {}
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Argument; }
     [[nodiscard]] std::string getName() const noexcept override { return m_name; }
-    [[nodiscard]] std::string getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override
+    {
         return m_argumentType ? m_argumentType->getTypeName() : "argument";
     }
 
-    [[nodiscard]] nlohmann::json getMetadata() const override {
+    [[nodiscard]] nlohmann::json getMetadata() const override
+    {
         return m_argumentType ? m_argumentType->serializeMetadata() : nlohmann::json::object();
     }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
         return m_argumentType ? m_argumentType->getExamples() : std::vector<std::string>{};
     }
 
-    void parse(StringReader& reader, CommandContext<S>& context) const override {
+    void parse(StringReader& reader, CommandContext<S>& context) const override
+    {
         const i32 start = reader.getCursor();
         i32 cursor = start;
         T result = parse(reader.getString(), cursor);
@@ -348,7 +353,8 @@ public:
      * @param cursor 当前位置（会被更新）
      * @return 解析结果，失败时抛出异常
      */
-    [[nodiscard]] T parse(std::string_view input, i32& cursor) const {
+    [[nodiscard]] T parse(std::string_view input, i32& cursor) const
+    {
         CommandException error(CommandErrorType::Unknown, "Parse error");
         T result = m_parser(input, cursor, error);
         if (cursor < 0) {
@@ -360,11 +366,10 @@ public:
     /**
      * @brief 获取底层参数类型
      */
-    [[nodiscard]] std::shared_ptr<ArgumentType<T>> getArgumentType() const noexcept {
-        return m_argumentType;
-    }
+    [[nodiscard]] std::shared_ptr<ArgumentType<T>> getArgumentType() const noexcept { return m_argumentType; }
 
-    bool equals(const CommandNode<S>& other) const override {
+    bool equals(const CommandNode<S>& other) const override
+    {
         if (!CommandNode<S>::equals(other)) return false;
         if (other.getType() != NodeType::Argument) return false;
         return m_name == static_cast<const ArgumentCommandNode<S, T>&>(other).m_name;

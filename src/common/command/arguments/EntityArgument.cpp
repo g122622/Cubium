@@ -10,7 +10,8 @@ namespace command {
 
 // ========== FloatRange 角度测试实现 ==========
 
-bool FloatRange::testAngle(f32 value) const noexcept {
+bool FloatRange::testAngle(f32 value) const noexcept
+{
     // 如果范围无界，所有值都通过
     if (isUnbounded()) {
         return true;
@@ -37,7 +38,8 @@ bool FloatRange::testAngle(f32 value) const noexcept {
     }
 }
 
-EntitySelector EntityArgumentType::parse(StringReader& reader) {
+EntitySelector EntityArgumentType::parse(StringReader& reader)
+{
     const i32 start = reader.getCursor();
 
     if (reader.canRead() && reader.peek() == '@') {
@@ -48,7 +50,8 @@ EntitySelector EntityArgumentType::parse(StringReader& reader) {
     return EntitySelector::byUsername(name);
 }
 
-EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start) {
+EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start)
+{
     reader.skip();
 
     if (!reader.canRead()) {
@@ -82,9 +85,7 @@ EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start
         default:
             reader.setCursor(start);
             throw CommandException(
-                CommandErrorType::EntitySelectorInvalid,
-                "Unknown selector type: @" + std::string(1, typeChar),
-                start);
+                CommandErrorType::EntitySelectorInvalid, "Unknown selector type: @" + std::string(1, typeChar), start);
     }
 
     if (reader.canRead() && reader.peek() == '[') {
@@ -95,7 +96,8 @@ EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start
     return selector;
 }
 
-void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySelector& selector) {
+void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySelector& selector)
+{
     reader.skip();
 
     while (reader.canRead() && reader.peek() != ']') {
@@ -107,8 +109,7 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
         const std::string paramName = readSelectorArgumentToken(reader);
         reader.skipWhitespace();
         if (!reader.canRead() || reader.peek() != '=') {
-            throw CommandException(
-                CommandErrorType::EntitySelectorInvalid,
+            throw CommandException(CommandErrorType::EntitySelectorInvalid,
                 "Expected '=' after selector argument name",
                 reader.getCursor());
         }
@@ -117,10 +118,9 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
         reader.skipWhitespace();
 
         const i32 cursor = reader.getCursor();
-        const std::string paramValue =
-            reader.canRead() && reader.peek() == StringReader::SYNTAX_QUOTE
-                ? reader.readString()
-                : readSelectorArgumentToken(reader);
+        const std::string paramValue = reader.canRead() && reader.peek() == StringReader::SYNTAX_QUOTE
+            ? reader.readString()
+            : readSelectorArgumentToken(reader);
 
         applySelectorArgument(selector, paramName, paramValue, cursor);
         reader.skipWhitespace();
@@ -131,15 +131,15 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
 
     if (!reader.canRead() || reader.peek() != ']') {
         throw CommandException(
-            CommandErrorType::EntitySelectorInvalid,
-            "Expected ']' to close selector arguments",
-            reader.getCursor());
+            CommandErrorType::EntitySelectorInvalid, "Expected ']' to close selector arguments", reader.getCursor());
     }
 
     reader.skip();
 }
 
-void EntityArgumentType::applySelectorArgument(EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor) {
+void EntityArgumentType::applySelectorArgument(
+    EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor)
+{
     // limit / c - 结果数量限制
     if (name == "limit" || name == "c") {
         const i32 limit = std::stoi(value);
@@ -325,25 +325,22 @@ void EntityArgumentType::applySelectorArgument(EntitySelector& selector, const s
     throw CommandException(CommandErrorType::EntitySelectorInvalid, "Unknown selector argument: " + name, cursor);
 }
 
-void EntityArgumentType::validateSelector(const EntitySelector& selector, i32 start) {
+void EntityArgumentType::validateSelector(const EntitySelector& selector, i32 start)
+{
     if (isPlayersOnly() && selector.includesNonPlayers() && !selector.isSelf()) {
-        throw CommandException(
-            CommandErrorType::EntitySelectorNotAllowed,
-            "Only players can be selected here",
-            start);
+        throw CommandException(CommandErrorType::EntitySelectorNotAllowed, "Only players can be selected here", start);
     }
 
     if (isSingle() && !selector.isSingle() && selector.limit() > 1) {
-        throw CommandException(
-            isPlayersOnly() ? CommandErrorType::PlayerTooMany : CommandErrorType::EntityTooMany,
-            isPlayersOnly()
-                ? "Only one player is allowed, but provided multiple"
-                : "Only one entity is allowed, but provided multiple",
+        throw CommandException(isPlayersOnly() ? CommandErrorType::PlayerTooMany : CommandErrorType::EntityTooMany,
+            isPlayersOnly() ? "Only one player is allowed, but provided multiple"
+                            : "Only one entity is allowed, but provided multiple",
             start);
     }
 }
 
-std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader) {
+std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader)
+{
     const i32 start = reader.getCursor();
     while (reader.canRead()) {
         const char ch = reader.peek();
@@ -355,10 +352,7 @@ std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader) 
     }
 
     if (reader.getCursor() == start) {
-        throw CommandException(
-            CommandErrorType::EntitySelectorInvalid,
-            "Expected selector argument token",
-            start);
+        throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected selector argument token", start);
     }
 
     const size_t startIndex = static_cast<size_t>(start);
@@ -366,7 +360,8 @@ std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader) 
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-bool EntityArgumentType::shouldInvertValue(StringReader& reader) {
+bool EntityArgumentType::shouldInvertValue(StringReader& reader)
+{
     if (reader.canRead() && reader.peek() == '!') {
         reader.skip();
         return true;
@@ -374,7 +369,8 @@ bool EntityArgumentType::shouldInvertValue(StringReader& reader) {
     return false;
 }
 
-FloatRange EntityArgumentType::parseFloatRange(StringReader& reader) {
+FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
+{
     FloatRange range;
 
     // 解析格式: "value" 或 "min..max" 或 "min.." 或 "..max"
@@ -459,7 +455,8 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader) {
     return range;
 }
 
-IntRange EntityArgumentType::parseIntRange(StringReader& reader) {
+IntRange EntityArgumentType::parseIntRange(StringReader& reader)
+{
     IntRange range;
 
     // 解析格式: "value" 或 "min..max" 或 "min.." 或 "..max"

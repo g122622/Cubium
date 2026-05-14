@@ -8,8 +8,8 @@
  */
 
 #include "GameRules.hpp"
-#include "common/util/nbt/Nbt.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 
 namespace mc::world::gamerule {
@@ -21,12 +21,14 @@ namespace mc::world::gamerule {
 namespace {
 
 // 布尔规则类型定义（无监听器）
-BooleanGameRuleType createBooleanType(bool defaultValue) {
+BooleanGameRuleType createBooleanType(bool defaultValue)
+{
     return BooleanGameRuleType(defaultValue);
 }
 
 // 整数规则类型定义（无监听器）
-IntegerGameRuleType createIntegerType(i32 defaultValue) {
+IntegerGameRuleType createIntegerType(i32 defaultValue)
+{
     return IntegerGameRuleType(defaultValue);
 }
 
@@ -41,12 +43,14 @@ struct RuleRegistry {
     // 规则名称列表（按注册顺序）
     std::vector<std::string> ruleNames;
 
-    RuleRegistry() {
+    RuleRegistry()
+    {
         registerBooleanRules();
         registerIntegerRules();
     }
 
-    void registerBooleanRules() {
+    void registerBooleanRules()
+    {
         // 玩家相关
         registerBoolean("keepInventory", GameRuleCategory::Player, false);
         registerBoolean("naturalRegeneration", GameRuleCategory::Player, true);
@@ -91,7 +95,8 @@ struct RuleRegistry {
         registerBoolean("reducedDebugInfo", GameRuleCategory::Misc, false);
     }
 
-    void registerIntegerRules() {
+    void registerIntegerRules()
+    {
         // 玩家相关
         registerInteger("spawnRadius", GameRuleCategory::Player, 10);
 
@@ -105,13 +110,15 @@ struct RuleRegistry {
         registerInteger("maxCommandChainLength", GameRuleCategory::Misc, 65536);
     }
 
-    void registerBoolean(const std::string& name, GameRuleCategory category, bool defaultValue) {
+    void registerBoolean(const std::string& name, GameRuleCategory category, bool defaultValue)
+    {
         booleanTypes.emplace(name, createBooleanType(defaultValue));
         categories.emplace(name, category);
         ruleNames.push_back(name);
     }
 
-    void registerInteger(const std::string& name, GameRuleCategory category, i32 defaultValue) {
+    void registerInteger(const std::string& name, GameRuleCategory category, i32 defaultValue)
+    {
         integerTypes.emplace(name, createIntegerType(defaultValue));
         categories.emplace(name, category);
         ruleNames.push_back(name);
@@ -119,7 +126,8 @@ struct RuleRegistry {
 };
 
 // 获取全局注册表（静态初始化）
-RuleRegistry& getRegistry() {
+RuleRegistry& getRegistry()
+{
     static RuleRegistry registry;
     return registry;
 }
@@ -185,16 +193,19 @@ const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH("maxCommandChainLength", GameR
 // GameRules 实现
 // ============================================================================
 
-GameRules::GameRules() {
+GameRules::GameRules()
+{
     initializeRules();
 }
 
-GameRules::GameRules(const nbt::tags::compound_tag& nbt) {
+GameRules::GameRules(const nbt::tags::compound_tag& nbt)
+{
     initializeRules();
     read(nbt);
 }
 
-GameRules::GameRules(const GameRules& other) {
+GameRules::GameRules(const GameRules& other)
+{
     initializeRules();
     // 复制值
     for (const auto& [name, value] : other.m_booleanRules) {
@@ -205,7 +216,8 @@ GameRules::GameRules(const GameRules& other) {
     }
 }
 
-GameRules& GameRules::operator=(const GameRules& other) {
+GameRules& GameRules::operator=(const GameRules& other)
+{
     if (this != &other) {
         // 复制值
         for (const auto& [name, value] : other.m_booleanRules) {
@@ -218,7 +230,8 @@ GameRules& GameRules::operator=(const GameRules& other) {
     return *this;
 }
 
-void GameRules::initializeRules() {
+void GameRules::initializeRules()
+{
     const auto& registry = getRegistry();
 
     // 初始化布尔规则
@@ -236,7 +249,8 @@ void GameRules::initializeRules() {
 // 规则值获取
 // ============================================================================
 
-bool GameRules::getBoolean(const BooleanGameRuleKey& key) const {
+bool GameRules::getBoolean(const BooleanGameRuleKey& key) const
+{
     auto it = m_booleanRules.find(key.getName());
     if (it != m_booleanRules.end()) {
         return it->second.get();
@@ -247,10 +261,11 @@ bool GameRules::getBoolean(const BooleanGameRuleKey& key) const {
     if (typeIt != registry.booleanTypes.end()) {
         return typeIt->second.getDefaultValue();
     }
-    return true;  // 默认值
+    return true; // 默认值
 }
 
-i32 GameRules::getInt(const IntegerGameRuleKey& key) const {
+i32 GameRules::getInt(const IntegerGameRuleKey& key) const
+{
     auto it = m_integerRules.find(key.getName());
     if (it != m_integerRules.end()) {
         return it->second.get();
@@ -261,28 +276,32 @@ i32 GameRules::getInt(const IntegerGameRuleKey& key) const {
     if (typeIt != registry.integerTypes.end()) {
         return typeIt->second.getDefaultValue();
     }
-    return 0;  // 默认值
+    return 0; // 默认值
 }
 
-const BooleanGameRuleValue& GameRules::getBooleanValue(const BooleanGameRuleKey& key) const {
+const BooleanGameRuleValue& GameRules::getBooleanValue(const BooleanGameRuleKey& key) const
+{
     auto it = m_booleanRules.find(key.getName());
     MC_ASSERT_RELEASE(it != m_booleanRules.end());
     return it->second;
 }
 
-BooleanGameRuleValue& GameRules::getBooleanValue(const BooleanGameRuleKey& key) {
+BooleanGameRuleValue& GameRules::getBooleanValue(const BooleanGameRuleKey& key)
+{
     auto it = m_booleanRules.find(key.getName());
     MC_ASSERT_RELEASE(it != m_booleanRules.end());
     return it->second;
 }
 
-const IntegerGameRuleValue& GameRules::getIntegerValue(const IntegerGameRuleKey& key) const {
+const IntegerGameRuleValue& GameRules::getIntegerValue(const IntegerGameRuleKey& key) const
+{
     auto it = m_integerRules.find(key.getName());
     MC_ASSERT_RELEASE(it != m_integerRules.end());
     return it->second;
 }
 
-IntegerGameRuleValue& GameRules::getIntegerValue(const IntegerGameRuleKey& key) {
+IntegerGameRuleValue& GameRules::getIntegerValue(const IntegerGameRuleKey& key)
+{
     auto it = m_integerRules.find(key.getName());
     MC_ASSERT_RELEASE(it != m_integerRules.end());
     return it->second;
@@ -292,21 +311,24 @@ IntegerGameRuleValue& GameRules::getIntegerValue(const IntegerGameRuleKey& key) 
 // 规则值设置
 // ============================================================================
 
-void GameRules::setBoolean(const BooleanGameRuleKey& key, bool value, server::MinecraftServer* server) {
+void GameRules::setBoolean(const BooleanGameRuleKey& key, bool value, server::MinecraftServer* server)
+{
     auto it = m_booleanRules.find(key.getName());
     if (it != m_booleanRules.end()) {
         it->second.set(value, server);
     }
 }
 
-void GameRules::setInt(const IntegerGameRuleKey& key, i32 value, server::MinecraftServer* server) {
+void GameRules::setInt(const IntegerGameRuleKey& key, i32 value, server::MinecraftServer* server)
+{
     auto it = m_integerRules.find(key.getName());
     if (it != m_integerRules.end()) {
         it->second.set(value, server);
     }
 }
 
-bool GameRules::setFromString(const std::string& ruleName, const std::string& value, server::MinecraftServer* server) {
+bool GameRules::setFromString(const std::string& ruleName, const std::string& value, server::MinecraftServer* server)
+{
     // 检查布尔规则
     auto boolIt = m_booleanRules.find(ruleName);
     if (boolIt != m_booleanRules.end()) {
@@ -319,14 +341,15 @@ bool GameRules::setFromString(const std::string& ruleName, const std::string& va
         return intIt->second.fromString(value);
     }
 
-    return false;  // 规则不存在
+    return false; // 规则不存在
 }
 
 // ============================================================================
 // 序列化
 // ============================================================================
 
-std::unique_ptr<nbt::tags::compound_tag> GameRules::write() const {
+std::unique_ptr<nbt::tags::compound_tag> GameRules::write() const
+{
     auto nbt = std::make_unique<nbt::tags::compound_tag>();
 
     // 写入布尔规则
@@ -342,7 +365,8 @@ std::unique_ptr<nbt::tags::compound_tag> GameRules::write() const {
     return nbt;
 }
 
-void GameRules::read(const nbt::tags::compound_tag& nbt) {
+void GameRules::read(const nbt::tags::compound_tag& nbt)
+{
     // 读取布尔规则
     for (auto& [name, value] : m_booleanRules) {
         auto it = nbt.value.find(name);
@@ -366,7 +390,8 @@ void GameRules::read(const nbt::tags::compound_tag& nbt) {
 // 规则遍历
 // ============================================================================
 
-void GameRules::visitAll(IGameRuleVisitor& visitor) {
+void GameRules::visitAll(IGameRuleVisitor& visitor)
+{
     const auto& registry = getRegistry();
 
     // 遍历布尔规则
@@ -382,17 +407,19 @@ void GameRules::visitAll(IGameRuleVisitor& visitor) {
     }
 }
 
-std::vector<std::string> GameRules::getRuleNames() {
+std::vector<std::string> GameRules::getRuleNames()
+{
     return getRegistry().ruleNames;
 }
 
-bool GameRules::hasRule(const std::string& ruleName) {
+bool GameRules::hasRule(const std::string& ruleName)
+{
     const auto& registry = getRegistry();
-    return registry.booleanTypes.count(ruleName) > 0 ||
-           registry.integerTypes.count(ruleName) > 0;
+    return registry.booleanTypes.count(ruleName) > 0 || registry.integerTypes.count(ruleName) > 0;
 }
 
-std::optional<GameRuleValueType> GameRules::getRuleType(const std::string& ruleName) {
+std::optional<GameRuleValueType> GameRules::getRuleType(const std::string& ruleName)
+{
     const auto& registry = getRegistry();
     if (registry.booleanTypes.count(ruleName) > 0) {
         return GameRuleValueType::Boolean;
@@ -407,7 +434,8 @@ std::optional<GameRuleValueType> GameRules::getRuleType(const std::string& ruleN
 // 重置
 // ============================================================================
 
-void GameRules::resetAll() {
+void GameRules::resetAll()
+{
     for (auto& [name, value] : m_booleanRules) {
         value.reset(nullptr);
     }
@@ -416,7 +444,8 @@ void GameRules::resetAll() {
     }
 }
 
-bool GameRules::reset(const std::string& ruleName, server::MinecraftServer* server) {
+bool GameRules::reset(const std::string& ruleName, server::MinecraftServer* server)
+{
     auto boolIt = m_booleanRules.find(ruleName);
     if (boolIt != m_booleanRules.end()) {
         boolIt->second.reset(server);
@@ -436,7 +465,8 @@ bool GameRules::reset(const std::string& ruleName, server::MinecraftServer* serv
 // NBT 辅助方法
 // ============================================================================
 
-bool GameRules::getBooleanFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, bool defaultValue) {
+bool GameRules::getBooleanFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, bool defaultValue)
+{
     auto it = nbt.value.find(key);
     if (it != nbt.value.end()) {
         if (it->second->id() == nbt::TagId::String) {
@@ -451,14 +481,16 @@ bool GameRules::getBooleanFromNbt(const nbt::tags::compound_tag& nbt, const std:
     return defaultValue;
 }
 
-i32 GameRules::getIntFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, i32 defaultValue) {
+i32 GameRules::getIntFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, i32 defaultValue)
+{
     auto it = nbt.value.find(key);
     if (it != nbt.value.end()) {
         if (it->second->id() == nbt::TagId::String) {
             const auto& strTag = dynamic_cast<const nbt::tags::string_tag&>(*it->second);
             try {
                 return std::stoi(strTag.value);
-            } catch (...) {
+            }
+            catch (...) {
                 return defaultValue;
             }
         }

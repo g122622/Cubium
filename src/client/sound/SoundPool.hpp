@@ -141,9 +141,7 @@ public:
      * @param soundEventId 声音事件ID
      * @return 声音ID列表
      */
-    [[nodiscard]] std::vector<SoundInstanceId> getBySoundEvent(
-        const ResourceLocation& soundEventId
-    ) const;
+    [[nodiscard]] std::vector<SoundInstanceId> getBySoundEvent(const ResourceLocation& soundEventId) const;
 
     /**
      * @brief 移除指定声音事件的所有声音
@@ -173,8 +171,8 @@ public:
     /**
      * @brief 获取所有活动声音
      */
-    [[nodiscard]] const std::unordered_map<SoundInstanceId, std::unique_ptr<ISoundInstance>>&
-    getAll() const noexcept {
+    [[nodiscard]] const std::unordered_map<SoundInstanceId, std::unique_ptr<ISoundInstance>>& getAll() const noexcept
+    {
         return m_sounds;
     }
 

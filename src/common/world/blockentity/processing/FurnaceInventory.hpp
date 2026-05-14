@@ -20,10 +20,10 @@ namespace blockentity {
 class FurnaceInventory : public IInventory {
 public:
     /// 槽位索引常量
-    static constexpr i32 SLOT_INPUT = 0;   ///< 输入槽
-    static constexpr i32 SLOT_FUEL = 1;    ///< 燃料槽
-    static constexpr i32 SLOT_OUTPUT = 2;  ///< 输出槽
-    static constexpr i32 SLOT_COUNT = 3;   ///< 槽位数量
+    static constexpr i32 SLOT_INPUT = 0;  ///< 输入槽
+    static constexpr i32 SLOT_FUEL = 1;   ///< 燃料槽
+    static constexpr i32 SLOT_OUTPUT = 2; ///< 输出槽
+    static constexpr i32 SLOT_COUNT = 3;  ///< 槽位数量
 
     /**
      * @brief 构造函数
@@ -140,9 +140,7 @@ private:
     /**
      * @brief 验证槽位索引
      */
-    [[nodiscard]] bool isValidSlot(i32 slot) const {
-        return slot >= 0 && slot < SLOT_COUNT;
-    }
+    [[nodiscard]] bool isValidSlot(i32 slot) const { return slot >= 0 && slot < SLOT_COUNT; }
 
     /**
      * @brief 触发变更回调

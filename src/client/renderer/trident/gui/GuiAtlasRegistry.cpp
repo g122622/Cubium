@@ -4,7 +4,8 @@
 namespace mc::client::renderer::trident::gui {
 
 GuiAtlasRegistry::GuiAtlasRegistry(VkDevice device)
-    : m_device(device) {
+    : m_device(device)
+{
     // 初始化所有槽位为无效状态
     for (auto& slot : m_slots) {
         slot.id = 0;
@@ -14,7 +15,8 @@ GuiAtlasRegistry::GuiAtlasRegistry(VkDevice device)
     }
 }
 
-GuiAtlasRegistry::~GuiAtlasRegistry() {
+GuiAtlasRegistry::~GuiAtlasRegistry()
+{
     // 只销毁我们创建的资源
     // VkImageView 和 VkSampler 由调用者管理
     if (m_device != VK_NULL_HANDLE) {
@@ -29,9 +31,8 @@ GuiAtlasRegistry::~GuiAtlasRegistry() {
     }
 }
 
-Result<void> GuiAtlasRegistry::initialize(
-    VkDescriptorSetLayout descriptorSetLayout,
-    VkDescriptorPool descriptorPool) {
+Result<void> GuiAtlasRegistry::initialize(VkDescriptorSetLayout descriptorSetLayout, VkDescriptorPool descriptorPool)
+{
 
     if (m_device == VK_NULL_HANDLE) {
         return Error(ErrorCode::NullPointer, "VkDevice is null");
@@ -53,10 +54,8 @@ Result<void> GuiAtlasRegistry::initialize(
     return {};
 }
 
-Result<u32> GuiAtlasRegistry::registerAtlas(
-    const std::string& name,
-    VkImageView imageView,
-    VkSampler sampler) {
+Result<u32> GuiAtlasRegistry::registerAtlas(const std::string& name, VkImageView imageView, VkSampler sampler)
+{
 
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "Registry not initialized");
@@ -104,7 +103,8 @@ Result<u32> GuiAtlasRegistry::registerAtlas(
     return slotId;
 }
 
-Result<void> GuiAtlasRegistry::unregisterAtlas(const std::string& name) {
+Result<void> GuiAtlasRegistry::unregisterAtlas(const std::string& name)
+{
     auto it = m_nameToSlot.find(name);
     if (it == m_nameToSlot.end()) {
         return Error(ErrorCode::NotFound, "Atlas not found: " + name);
@@ -121,7 +121,8 @@ Result<void> GuiAtlasRegistry::unregisterAtlas(const std::string& name) {
     return {};
 }
 
-std::optional<u32> GuiAtlasRegistry::getSlotId(const std::string& name) const {
+std::optional<u32> GuiAtlasRegistry::getSlotId(const std::string& name) const
+{
     auto it = m_nameToSlot.find(name);
     if (it != m_nameToSlot.end()) {
         return it->second;
@@ -129,7 +130,8 @@ std::optional<u32> GuiAtlasRegistry::getSlotId(const std::string& name) const {
     return std::nullopt;
 }
 
-const AtlasSlot* GuiAtlasRegistry::getAtlas(u32 slotId) const {
+const AtlasSlot* GuiAtlasRegistry::getAtlas(u32 slotId) const
+{
     if (slotId >= m_slots.size()) {
         return nullptr;
     }
@@ -140,7 +142,8 @@ const AtlasSlot* GuiAtlasRegistry::getAtlas(u32 slotId) const {
     return &slot;
 }
 
-Result<void> GuiAtlasRegistry::updateAtlas(u32 slotId, VkImageView imageView, VkSampler sampler) {
+Result<void> GuiAtlasRegistry::updateAtlas(u32 slotId, VkImageView imageView, VkSampler sampler)
+{
     if (slotId >= m_slots.size()) {
         return Error(ErrorCode::OutOfRange, "Invalid slot ID");
     }
@@ -158,7 +161,8 @@ Result<void> GuiAtlasRegistry::updateAtlas(u32 slotId, VkImageView imageView, Vk
     return {};
 }
 
-void GuiAtlasRegistry::updateFontTexture(VkImageView imageView, VkSampler sampler) {
+void GuiAtlasRegistry::updateFontTexture(VkImageView imageView, VkSampler sampler)
+{
     m_slots[FONT_SLOT].id = FONT_SLOT;
     m_slots[FONT_SLOT].imageView = imageView;
     m_slots[FONT_SLOT].sampler = sampler;
@@ -167,7 +171,8 @@ void GuiAtlasRegistry::updateFontTexture(VkImageView imageView, VkSampler sample
     writeDescriptor(FONT_SLOT, imageView, sampler);
 }
 
-void GuiAtlasRegistry::updateItemAtlas(VkImageView imageView, VkSampler sampler) {
+void GuiAtlasRegistry::updateItemAtlas(VkImageView imageView, VkSampler sampler)
+{
     m_slots[ITEM_SLOT].id = ITEM_SLOT;
     m_slots[ITEM_SLOT].imageView = imageView;
     m_slots[ITEM_SLOT].sampler = sampler;
@@ -176,13 +181,15 @@ void GuiAtlasRegistry::updateItemAtlas(VkImageView imageView, VkSampler sampler)
     writeDescriptor(ITEM_SLOT, imageView, sampler);
 }
 
-Result<void> GuiAtlasRegistry::createDescriptorSetLayout() {
+Result<void> GuiAtlasRegistry::createDescriptorSetLayout()
+{
     // 注意：这个方法现在不使用，因为我们接受外部提供的布局
     // 但保留它以便将来可能需要创建自己的布局
     return Error(ErrorCode::Unsupported, "Use external descriptor set layout");
 }
 
-Result<void> GuiAtlasRegistry::allocateDescriptorSet() {
+Result<void> GuiAtlasRegistry::allocateDescriptorSet()
+{
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
@@ -191,14 +198,14 @@ Result<void> GuiAtlasRegistry::allocateDescriptorSet() {
 
     VkResult result = vkAllocateDescriptorSets(m_device, &allocInfo, &m_descriptorSet);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed,
-            "Failed to allocate descriptor set: " + std::to_string(result));
+        return Error(ErrorCode::InitializationFailed, "Failed to allocate descriptor set: " + std::to_string(result));
     }
 
     return {};
 }
 
-void GuiAtlasRegistry::writeDescriptor(u32 binding, VkImageView imageView, VkSampler sampler) {
+void GuiAtlasRegistry::writeDescriptor(u32 binding, VkImageView imageView, VkSampler sampler)
+{
     if (m_descriptorSet == VK_NULL_HANDLE) {
         return;
     }

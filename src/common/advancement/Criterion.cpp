@@ -6,18 +6,17 @@ namespace mc::advancement {
 
 Criterion::Criterion(std::string name, std::shared_ptr<ICriterionInstance> triggerInstance)
     : m_name(std::move(name))
-    , m_triggerInstance(std::move(triggerInstance)) {
-}
+    , m_triggerInstance(std::move(triggerInstance))
+{}
 
-Result<Criterion> Criterion::fromJson(const std::string& name, const nlohmann::json& json) {
+Result<Criterion> Criterion::fromJson(const std::string& name, const nlohmann::json& json)
+{
     if (!json.is_object()) {
-        return Error(ErrorCode::ResourceParseError,
-                     "Criterion '" + name + "' must be a JSON object");
+        return Error(ErrorCode::ResourceParseError, "Criterion '" + name + "' must be a JSON object");
     }
 
     if (!json.contains("trigger")) {
-        return Error(ErrorCode::ResourceParseError,
-                     "Criterion '" + name + "' missing 'trigger' field");
+        return Error(ErrorCode::ResourceParseError, "Criterion '" + name + "' missing 'trigger' field");
     }
 
     std::string triggerId = json["trigger"].get<std::string>();
@@ -38,7 +37,8 @@ Result<Criterion> Criterion::fromJson(const std::string& name, const nlohmann::j
     return Criterion(name, std::move(instanceResult.value()));
 }
 
-nlohmann::json Criterion::toJson() const {
+nlohmann::json Criterion::toJson() const
+{
     if (!m_triggerInstance) {
         return nullptr;
     }

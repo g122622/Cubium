@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../WorldConfig.hpp"
 #include "../../../core/Types.hpp"
+#include "../../WorldConfig.hpp"
 #include <filesystem>
 #include <string>
 
@@ -46,8 +46,7 @@ struct CreateWorldRequest {
      *
      * 所有字段必须显式提供。
      */
-    CreateWorldRequest(
-        std::string displayName,
+    CreateWorldRequest(std::string displayName,
         std::string requestedLevelId,
         u64 seed,
         WorldType worldType,
@@ -55,8 +54,7 @@ struct CreateWorldRequest {
         Difficulty difficulty,
         bool hardcore,
         bool allowCommands,
-        i32 viewDistance
-    );
+        i32 viewDistance);
 
     // 禁止默认构造
     CreateWorldRequest() = delete;
@@ -84,11 +82,7 @@ struct LoadWorldRequest {
      * @brief 构造加载世界请求
      */
     LoadWorldRequest(
-        std::string levelId,
-        bool allowFutureVersion,
-        bool createBackupBeforeUpgrade,
-        bool allowStorageConversion
-    );
+        std::string levelId, bool allowFutureVersion, bool createBackupBeforeUpgrade, bool allowStorageConversion);
 
     // 禁止默认构造
     LoadWorldRequest() = delete;

@@ -1,21 +1,18 @@
 #include "EndSpikeFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
 namespace {
 
 [[nodiscard]] bool intersectsWorldGenRegion(
-    const EndSpike& spike,
-    const WorldGenRegion& world,
-    i32 centerX,
-    i32 centerZ)
+    const EndSpike& spike, const WorldGenRegion& world, i32 centerX, i32 centerZ)
 {
     const i32 minX = world.minChunkX() * 16;
     const i32 maxX = (world.maxChunkX() + 1) * 16 - 1;
@@ -39,7 +36,8 @@ namespace {
 // EndSpikeFeatureConfig 实现
 // ============================================================================
 
-std::vector<EndSpike> EndSpikeFeatureConfig::generateSpikes(u64 worldSeed) {
+std::vector<EndSpike> EndSpikeFeatureConfig::generateSpikes(u64 worldSeed)
+{
     std::vector<EndSpike> spikes;
 
     // 参考 MC 1.16.5: SpikeFeature.EndSpike
@@ -83,10 +81,7 @@ std::vector<EndSpike> EndSpikeFeatureConfig::generateSpikes(u64 worldSeed) {
 // ============================================================================
 
 bool EndSpikeFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const EndSpikeFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndSpikeFeatureConfig& config)
 {
     // 获取黑曜石柱列表
     const std::vector<EndSpike>& spikes = config.spikes;
@@ -105,12 +100,7 @@ bool EndSpikeFeature::place(
                     for (i32 z = -spike.radius; z <= spike.radius; ++z) {
                         // 圆形截面
                         if (x * x + z * z <= spike.radius * spike.radius) {
-                            world.setBlockState(
-                                pos.x + spike.centerX + x,
-                                y,
-                                pos.z + spike.centerZ + z,
-                                air
-                            );
+                            world.setBlockState(pos.x + spike.centerX + x, y, pos.z + spike.centerZ + z, air);
                         }
                     }
                 }
@@ -131,19 +121,14 @@ bool EndSpikeFeature::place(
     return true;
 }
 
-bool EndSpikeFeature::canPlaceAt(
-    WorldGenRegion& world,
-    const BlockPos& pos) const
+bool EndSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查位置是否在末地石上
     const BlockState* state = world.getBlockState(pos.x, pos.y - 1, pos.z);
     return state && &state->getBlock() == VanillaBlocks::END_STONE;
 }
 
-void EndSpikeFeature::generateSpike(
-    WorldGenRegion& world,
-    math::Random& random,
-    const EndSpike& spike)
+void EndSpikeFeature::generateSpike(WorldGenRegion& world, math::Random& random, const EndSpike& spike)
 {
     const BlockState* obsidian = VanillaBlocks::getState(VanillaBlocks::OBSIDIAN);
 
@@ -174,10 +159,7 @@ void EndSpikeFeature::generateSpike(
     }
 }
 
-void EndSpikeFeature::generateCage(
-    WorldGenRegion& world,
-    const BlockPos& topPos,
-    i32 radius)
+void EndSpikeFeature::generateCage(WorldGenRegion& world, const BlockPos& topPos, i32 radius)
 {
     // 使用基岩作为笼子材料（因为铁栏杆尚未实现）
     const BlockState* cageBlock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
@@ -221,19 +203,13 @@ void EndSpikeFeature::generateCage(
 // ============================================================================
 
 ConfiguredEndSpikeFeature::ConfiguredEndSpikeFeature(
-    std::unique_ptr<EndSpikeFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<EndSpikeFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredEndSpikeFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
 
@@ -251,7 +227,8 @@ bool ConfiguredEndSpikeFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> EndSpikeFeatures::s_features;
 
-void EndSpikeFeatures::initialize() {
+void EndSpikeFeatures::initialize()
+{
     if (!s_features.empty()) return;
 
     // 创建标准黑曜石柱配置（使用默认种子）
@@ -259,21 +236,21 @@ void EndSpikeFeatures::initialize() {
     s_features.push_back(createStandard(0));
 }
 
-const std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>>& EndSpikeFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>>& EndSpikeFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> EndSpikeFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> EndSpikeFeatures::getAllFeaturesAndClear()
+{
     auto extracted = std::move(s_features);
     s_features.clear();
     return extracted;
 }
 
-std::unique_ptr<ConfiguredEndSpikeFeature> EndSpikeFeatures::createStandard(u64 worldSeed) {
-    auto config = std::make_unique<EndSpikeFeatureConfig>(
-        EndSpikeFeatureConfig::generateSpikes(worldSeed),
-        false
-    );
+std::unique_ptr<ConfiguredEndSpikeFeature> EndSpikeFeatures::createStandard(u64 worldSeed)
+{
+    auto config = std::make_unique<EndSpikeFeatureConfig>(EndSpikeFeatureConfig::generateSpikes(worldSeed), false);
     return std::make_unique<ConfiguredEndSpikeFeature>(std::move(config), "end_spike");
 }
 

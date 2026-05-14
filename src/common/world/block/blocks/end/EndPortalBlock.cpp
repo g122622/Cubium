@@ -1,11 +1,11 @@
 #include "EndPortalBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 #include <array>
 
 namespace mc {
@@ -14,12 +14,14 @@ namespace blocks {
 // ========== EndPortalBlock ==========
 
 EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
     // 传送门没有碰撞箱
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.75f, 1.0f);
 }
 
-void EndPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void EndPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     // 参考 MC 1.16.5 EndPortalBlock.onEntityCollision
     // 末地传送门是立即传送的，不需要等待时间
     // 玩家进入末地传送门后会立即传送到末地出生点 (100, 49, 0)
@@ -30,17 +32,17 @@ void EndPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, c
 
     // 检查传送冷却
     if (!entity.canTeleport()) {
-        return;  // 还在冷却中
+        return; // 还在冷却中
     }
 
     // 设置传送冷却，防止重复传送
-    entity.setPortalCooldown(300);  // 15秒冷却
+    entity.setPortalCooldown(300); // 15秒冷却
 
     // 确定目标维度
     // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     // 主世界 -> 末地: 传送到固定出生点 (100, 49, 0)
     // 末地 -> 主世界: 返回重生点或床
-    DimensionId targetDim = (entity.dimension() == 1) ? DimensionId(0) : DimensionId(1);  // THE_END=1, OVERWORLD=0
+    DimensionId targetDim = (entity.dimension() == 1) ? DimensionId(0) : DimensionId(1); // THE_END=1, OVERWORLD=0
 
     // 设置实体的目标维度标志
     // 实际传送由 ServerDimensionManager 处理
@@ -51,12 +53,14 @@ void EndPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, c
     // 客户端只需要处理动画效果
 }
 
-const CollisionShape& EndPortalBlock::getShape(const BlockState& state) const {
+const CollisionShape& EndPortalBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& EndPortalBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& EndPortalBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
@@ -65,65 +69,75 @@ const CollisionShape& EndPortalBlock::getCollisionShape(const BlockState& state)
 // ========== EndPortalFrameBlock ==========
 
 EndPortalFrameBlock::EndPortalFrameBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::EYE())
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::EYE())
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::EYE(), false)
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+            .with(BlockStateProperties::EYE(), false)
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
     // 创建形状
     m_frameShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.8125f, 1.0f);
     m_frameWithEyeShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 }
 
-bool EndPortalFrameBlock::hasEye(const BlockState& state) const {
+bool EndPortalFrameBlock::hasEye(const BlockState& state) const
+{
     return state.get(BlockStateProperties::EYE());
 }
 
-Direction EndPortalFrameBlock::getFacing(const BlockState& state) const {
+Direction EndPortalFrameBlock::getFacing(const BlockState& state) const
+{
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
-BlockState EndPortalFrameBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState EndPortalFrameBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.horizontalDirection();
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
-const BlockState& EndPortalFrameBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& EndPortalFrameBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const BlockState& EndPortalFrameBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& EndPortalFrameBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const CollisionShape& EndPortalFrameBlock::getShape(const BlockState& state) const {
+const CollisionShape& EndPortalFrameBlock::getShape(const BlockState& state) const
+{
     return hasEye(state) ? m_frameWithEyeShape : m_frameShape;
 }
 
 // ========== EndGatewayBlock ==========
 
 EndGatewayBlock::EndGatewayBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 }
 
-void EndGatewayBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void EndGatewayBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -131,12 +145,14 @@ void EndGatewayBlock::onEntityCollision(const BlockState& state, IWorld& world, 
     // TODO: 折跃门传送逻辑
 }
 
-const CollisionShape& EndGatewayBlock::getShape(const BlockState& state) const {
+const CollisionShape& EndGatewayBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& EndGatewayBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& EndGatewayBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
@@ -145,36 +161,38 @@ const CollisionShape& EndGatewayBlock::getCollisionShape(const BlockState& state
 // ========== ChorusPlantBlock ==========
 
 ChorusPlantBlock::ChorusPlantBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器（6个方向的连接）
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::NORTH())
-        .add(BlockStateProperties::SOUTH())
-        .add(BlockStateProperties::EAST())
-        .add(BlockStateProperties::WEST())
-        .add(BlockStateProperties::DOWN())
-        .add(BlockStateProperties::UP())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::NORTH())
+            .add(BlockStateProperties::SOUTH())
+            .add(BlockStateProperties::EAST())
+            .add(BlockStateProperties::WEST())
+            .add(BlockStateProperties::DOWN())
+            .add(BlockStateProperties::UP())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态（无连接）
     setDefaultState(defaultState()
-        .with(BlockStateProperties::NORTH(), false)
-        .with(BlockStateProperties::SOUTH(), false)
-        .with(BlockStateProperties::EAST(), false)
-        .with(BlockStateProperties::WEST(), false)
-        .with(BlockStateProperties::DOWN(), false)
-        .with(BlockStateProperties::UP(), false));
+            .with(BlockStateProperties::NORTH(), false)
+            .with(BlockStateProperties::SOUTH(), false)
+            .with(BlockStateProperties::EAST(), false)
+            .with(BlockStateProperties::WEST(), false)
+            .with(BlockStateProperties::DOWN(), false)
+            .with(BlockStateProperties::UP(), false));
 
     // 参考 MC 1.16.5 SixWayBlock.makeShapes
     // apothem = 0.3125F，即 5/16 像素
     // 中心柱尺寸：从方块中心向各方向偏移 apothem
     constexpr f32 apothem = 0.3125f;
-    constexpr f32 f = 0.5f - apothem;   // 0.1875 (3 像素)
-    constexpr f32 f1 = 0.5f + apothem;  // 0.8125 (13 像素)
+    constexpr f32 f = 0.5f - apothem;  // 0.1875 (3 像素)
+    constexpr f32 f1 = 0.5f + apothem; // 0.8125 (13 像素)
 
     // 中心柱形状：(3, 3, 3) -> (13, 13, 13) 像素
     // MC 1.16.5: Block.makeCuboidShape(f*16, f*16, f*16, f1*16, f1*16, f1*16)
@@ -216,7 +234,8 @@ ChorusPlantBlock::ChorusPlantBlock(const BlockProperties& properties)
     }
 }
 
-BlockState ChorusPlantBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState ChorusPlantBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
@@ -238,10 +257,8 @@ BlockState ChorusPlantBlock::getStateForPlacement(BlockItemUseContext& context) 
         .with(BlockStateProperties::DOWN(), down);
 }
 
-bool ChorusPlantBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool ChorusPlantBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -256,13 +273,13 @@ bool ChorusPlantBlock::isValidPosition(
     return false;
 }
 
-BlockState ChorusPlantBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState ChorusPlantBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingPos);
 
@@ -287,29 +304,32 @@ BlockState ChorusPlantBlock::updatePostPlacement(
     }
 }
 
-const CollisionShape& ChorusPlantBlock::getShape(const BlockState& state) const {
+const CollisionShape& ChorusPlantBlock::getShape(const BlockState& state) const
+{
     const size_t index = getShapeIndex(state);
     MC_ASSERT_RELEASE(index < m_shapes.size());
     return m_shapes[index];
 }
 
 // static
-size_t ChorusPlantBlock::getShapeIndex(const BlockState& state) {
+size_t ChorusPlantBlock::getShapeIndex(const BlockState& state)
+{
     // 位掩码索引：Down=bit0, Up=bit1, North=bit2, South=bit3, West=bit4, East=bit5
     // 与 Direction 枚举顺序一致：Down=0, Up=1, North=2, South=3, West=4, East=5
     size_t index = 0;
 
-    if (state.get(BlockStateProperties::DOWN()))  index |= 1ULL << 0;  // bit 0
-    if (state.get(BlockStateProperties::UP()))    index |= 1ULL << 1;  // bit 1
-    if (state.get(BlockStateProperties::NORTH())) index |= 1ULL << 2;  // bit 2
-    if (state.get(BlockStateProperties::SOUTH())) index |= 1ULL << 3;  // bit 3
-    if (state.get(BlockStateProperties::WEST()))  index |= 1ULL << 4;  // bit 4
-    if (state.get(BlockStateProperties::EAST()))  index |= 1ULL << 5;  // bit 5
+    if (state.get(BlockStateProperties::DOWN())) index |= 1ULL << 0;  // bit 0
+    if (state.get(BlockStateProperties::UP())) index |= 1ULL << 1;    // bit 1
+    if (state.get(BlockStateProperties::NORTH())) index |= 1ULL << 2; // bit 2
+    if (state.get(BlockStateProperties::SOUTH())) index |= 1ULL << 3; // bit 3
+    if (state.get(BlockStateProperties::WEST())) index |= 1ULL << 4;  // bit 4
+    if (state.get(BlockStateProperties::EAST())) index |= 1ULL << 5;  // bit 5
 
     return index;
 }
 
-bool ChorusPlantBlock::canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const {
+bool ChorusPlantBlock::canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const
+{
     BlockPos adjPos = pos.offset(direction);
     const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -340,14 +360,16 @@ bool ChorusPlantBlock::canConnect(IBlockReader& world, const BlockPos& pos, Dire
 // ========== ChorusFlowerBlock ==========
 
 ChorusFlowerBlock::ChorusFlowerBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AGE_0_5())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AGE_0_5())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -359,22 +381,23 @@ ChorusFlowerBlock::ChorusFlowerBlock(const BlockProperties& properties)
     }
 }
 
-i32 ChorusFlowerBlock::getAge(const BlockState& state) const {
+i32 ChorusFlowerBlock::getAge(const BlockState& state) const
+{
     return state.get(BlockStateProperties::AGE_0_5());
 }
 
-BlockState ChorusFlowerBlock::withAge(i32 age) const {
+BlockState ChorusFlowerBlock::withAge(i32 age) const
+{
     return defaultState().with(BlockStateProperties::AGE_0_5(), std::min(age, 5));
 }
 
-BlockState ChorusFlowerBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState ChorusFlowerBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-bool ChorusFlowerBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool ChorusFlowerBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -391,7 +414,8 @@ bool ChorusFlowerBlock::isValidPosition(
     return belowState->isSolid();
 }
 
-void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     i32 age = getAge(state);
 
     if (age < getMaxAge()) {
@@ -403,7 +427,8 @@ void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockStat
     }
 }
 
-const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const {
+const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
+{
     i32 age = getAge(state);
     return m_shapesByAge[std::min(age, 5)];
 }
@@ -411,23 +436,25 @@ const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
 // ========== DragonEggBlock ==========
 
 DragonEggBlock::DragonEggBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 龙蛋形状
     m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
 }
 
-BlockState DragonEggBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState DragonEggBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-ActionResultType DragonEggBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType DragonEggBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(player);
     MC_UNUSED(hand);
@@ -439,11 +466,8 @@ ActionResultType DragonEggBlock::onBlockActivated(
 }
 
 void DragonEggBlock::neighborChanged(
-    IWorld& world,
-    const BlockPos& pos,
-    Block& neighborBlock,
-    const BlockPos& neighborPos,
-    bool isMoving) {
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
 
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
@@ -453,14 +477,16 @@ void DragonEggBlock::neighborChanged(
     // teleport(world, pos, ...);
 }
 
-void DragonEggBlock::teleport(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DragonEggBlock::teleport(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // TODO: 实现传送逻辑
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
 }
 
-const CollisionShape& DragonEggBlock::getShape(const BlockState& state) const {
+const CollisionShape& DragonEggBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }

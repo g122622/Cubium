@@ -1,17 +1,17 @@
 #pragma once
 
-#include "BlockState.hpp"
-#include "../../util/property/StateContainer.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/assert/AssertAll.hpp"
 #include "../../core/BlockRaycastResult.hpp"
 #include "../../item/core/ActionResult.hpp"
-#include "Material.hpp"
-#include "HarvestTool.hpp"
+#include "../../util/Direction.hpp"
+#include "../../util/assert/AssertAll.hpp"
+#include "../../util/property/StateContainer.hpp"
 #include "BlockSoundType.hpp"
+#include "BlockState.hpp"
+#include "HarvestTool.hpp"
+#include "Material.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc {
 
@@ -22,8 +22,8 @@ class BlockItemUseContext;
 class Player;
 class BlockEntity;
 class Entity;
-class IPlantable;  // 前向声明植物接口
-class ItemStack;   // 前向声明物品堆
+class IPlantable; // 前向声明植物接口
+class ItemStack;  // 前向声明物品堆
 
 namespace math {
 class IRandom;
@@ -32,7 +32,7 @@ class IRandom;
 namespace loot {
 class LootTableManager;
 class LootTable;
-}
+} // namespace loot
 
 namespace fluid {
 class FluidState;
@@ -185,7 +185,8 @@ public:
      *
      * @param lootTableId 掉落表ID（如 "minecraft:blocks/diamond_ore"）
      */
-    BlockProperties& lootTableId(const std::string& id) {
+    BlockProperties& lootTableId(const std::string& id)
+    {
         m_lootTableId = id;
         return *this;
     }
@@ -197,7 +198,8 @@ public:
      *
      * @param soundType 声音类型的引用（如 BlockSoundTypes::STONE）
      */
-    BlockProperties& soundType(const BlockSoundType& soundType) {
+    BlockProperties& soundType(const BlockSoundType& soundType)
+    {
         m_soundType = &soundType;
         return *this;
     }
@@ -214,7 +216,8 @@ public:
      *
      * @param value 滑度值 (0.0-1.0)
      */
-    BlockProperties& slipperiness(f32 value) {
+    BlockProperties& slipperiness(f32 value)
+    {
         m_slipperiness = value;
         return *this;
     }
@@ -230,7 +233,8 @@ public:
      *
      * @param value 速度因子值
      */
-    BlockProperties& speedFactor(f32 value) {
+    BlockProperties& speedFactor(f32 value)
+    {
         m_speedFactor = value;
         return *this;
     }
@@ -245,7 +249,8 @@ public:
      *
      * @param value 跳跃因子值
      */
-    BlockProperties& jumpFactor(f32 value) {
+    BlockProperties& jumpFactor(f32 value)
+    {
         m_jumpFactor = value;
         return *this;
     }
@@ -260,7 +265,8 @@ public:
      *
      * @return 属性构建器引用
      */
-    BlockProperties& tickRandomly() {
+    BlockProperties& tickRandomly()
+    {
         m_ticksRandomly = true;
         return *this;
     }
@@ -299,16 +305,16 @@ private:
     bool m_isFlammable;
     bool m_requiresTool;
     bool m_isReplaceable;
-    i32 m_opacity = 15;  // 默认完全不透明
+    i32 m_opacity = 15; // 默认完全不透明
     bool m_propagatesSkylightDown = false;
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
     std::string m_lootTableId;
-    const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;  // 默认使用石头声音
-    f32 m_slipperiness = 0.6f;   // MC默认滑度
-    f32 m_speedFactor = 1.0f;    // MC默认速度因子
-    f32 m_jumpFactor = 1.0f;     // MC默认跳跃因子
-    bool m_ticksRandomly = false;  // 是否响应随机刻
+    const BlockSoundType* m_soundType = &BlockSoundTypes::STONE; // 默认使用石头声音
+    f32 m_slipperiness = 0.6f;                                   // MC默认滑度
+    f32 m_speedFactor = 1.0f;                                    // MC默认速度因子
+    f32 m_jumpFactor = 1.0f;                                     // MC默认跳跃因子
+    bool m_ticksRandomly = false;                                // 是否响应随机刻
 };
 
 /**
@@ -424,9 +430,8 @@ public:
      * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getLightValue
      */
     [[nodiscard]] virtual u8 getLightLevel(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr) const {
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         return state.lightLevel();
@@ -612,9 +617,8 @@ public:
      * @param pos 位置（可选）
      * @return 光照透明度 (0-15)
      */
-    [[nodiscard]] virtual i32 getOpacity(const BlockState& state,
-                                          IWorld* world = nullptr,
-                                          const BlockPos* pos = nullptr) const;
+    [[nodiscard]] virtual i32 getOpacity(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const;
 
     /**
      * @brief 检查是否传播天空光向下
@@ -629,9 +633,8 @@ public:
      * @param pos 位置（可选）
      * @return 如果天空光可以传播返回true
      */
-    [[nodiscard]] virtual bool propagatesSkylightDown(const BlockState& state,
-                                                       IWorld* world = nullptr,
-                                                       const BlockPos* pos = nullptr) const;
+    [[nodiscard]] virtual bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const;
 
     /**
      * @brief 检查指定面是否为实体面
@@ -645,8 +648,8 @@ public:
      * @param side 要检查的面
      * @return 如果该面是实体面返回true
      */
-    [[nodiscard]] virtual bool isSolidSide(const BlockState& state, IWorld& world,
-                                           const BlockPos& pos, Direction side) const;
+    [[nodiscard]] virtual bool isSolidSide(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const;
 
     /**
      * @brief 获取流体状态
@@ -702,9 +705,8 @@ public:
      * @param neighborPos 邻居位置
      * @param isMoving 是否正在移动（活塞等）
      */
-    virtual void neighborChanged(IWorld& world, const BlockPos& pos,
-                                  Block& neighborBlock, const BlockPos& neighborPos,
-                                  bool isMoving);
+    virtual void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving);
 
     /**
      * @brief 方块被放置时的处理
@@ -745,9 +747,7 @@ public:
      *
      * 参考: net.minecraft.block.Block.getExplosionResistance
      */
-    [[nodiscard]] virtual f32 getExplosionResistance(const BlockState& state) const {
-        return state.resistance();
-    }
+    [[nodiscard]] virtual f32 getExplosionResistance(const BlockState& state) const { return state.resistance(); }
 
     /**
      * @brief 判断方块是否可以在爆炸中掉落物品
@@ -760,7 +760,8 @@ public:
      *
      * 参考: net.minecraft.block.Block.canDropFromExplosion
      */
-    [[nodiscard]] virtual bool canDropFromExplosion(const BlockState& state) const {
+    [[nodiscard]] virtual bool canDropFromExplosion(const BlockState& state) const
+    {
         MC_UNUSED(state);
         return true;
     }
@@ -777,7 +778,8 @@ public:
      *
      * 参考: net.minecraft.block.Block.onBlockExploded
      */
-    virtual void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+    virtual void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
@@ -794,7 +796,8 @@ public:
      * @param pos 方块位置
      * @param entity 碰撞的实体
      */
-    virtual void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+    virtual void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -849,11 +852,11 @@ public:
      * @param entity 实体（可选，用于上下文相关滑度）
      * @return 滑度值 (0.0-1.0)
      */
-    [[nodiscard]] virtual f32 getSlipperiness(
-        const BlockState& state,
+    [[nodiscard]] virtual f32 getSlipperiness(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        const Entity* entity = nullptr) const {
+        const Entity* entity = nullptr) const
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(entity);
@@ -877,9 +880,8 @@ public:
      * @return 速度因子值
      */
     [[nodiscard]] virtual f32 getSpeedFactor(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr) const {
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
@@ -901,9 +903,8 @@ public:
      * @return 跳跃因子值
      */
     [[nodiscard]] virtual f32 getJumpFactor(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr) const {
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
@@ -928,11 +929,11 @@ public:
      * @param entity 实体（可选，用于上下文相关判断）
      * @return 如果实体可以攀爬此方块返回 true
      */
-    [[nodiscard]] virtual bool isLadder(
-        const BlockState& state,
+    [[nodiscard]] virtual bool isLadder(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        const Entity* entity = nullptr) const {
+        const Entity* entity = nullptr) const
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(entity);
@@ -1013,8 +1014,7 @@ public:
      * @param facingPos 邻居位置
      * @return 更新后的状态
      */
-    [[nodiscard]] virtual BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] virtual BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -1029,10 +1029,7 @@ public:
      * @param pos 方块位置
      * @return 如果可以放置返回true
      */
-    [[nodiscard]] virtual bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] virtual bool isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查方块是否可被替换
@@ -1046,9 +1043,7 @@ public:
      * @param context 物品使用上下文
      * @return 如果方块可被替换返回true
      */
-    [[nodiscard]] virtual bool isReplaceable(
-        const BlockState& state,
-        BlockItemUseContext& context) const;
+    [[nodiscard]] virtual bool isReplaceable(const BlockState& state, BlockItemUseContext& context) const;
 
     /**
      * @brief 检查方块是否可以支撑植物
@@ -1066,8 +1061,7 @@ public:
      * @param plant 植物接口（可获取植物类型和状态）
      * @return 如果可以支撑植物返回true
      */
-    [[nodiscard]] virtual bool canSustainPlant(
-        const BlockState& state,
+    [[nodiscard]] virtual bool canSustainPlant(const BlockState& state,
         IBlockReader& world,
         const BlockPos& pos,
         Direction facing,
@@ -1091,8 +1085,7 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果类型
      */
-    [[nodiscard]] virtual ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] virtual ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -1128,7 +1121,8 @@ public:
      * @param state 方块状态
      * @return 如果可以提供信号返回true
      */
-    [[nodiscard]] virtual bool canProvidePower(const BlockState& state) const {
+    [[nodiscard]] virtual bool canProvidePower(const BlockState& state) const
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -1143,7 +1137,8 @@ public:
      * @param side 连接方向（从红石线的角度看）
      * @return 如果可以连接红石线返回true
      */
-    [[nodiscard]] virtual bool canConnectRedstone(const BlockState& state, Direction side) const {
+    [[nodiscard]] virtual bool canConnectRedstone(const BlockState& state, Direction side) const
+    {
         MC_UNUSED(side);
         return canProvidePower(state);
     }
@@ -1154,7 +1149,8 @@ public:
      * @param state 方块状态
      * @return 如果有比较器输入覆盖返回true
      */
-    [[nodiscard]] virtual bool hasComparatorInputOverride(const BlockState& state) const {
+    [[nodiscard]] virtual bool hasComparatorInputOverride(const BlockState& state) const
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -1168,9 +1164,7 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] virtual i32 getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos) const;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 获取弱红石信号
@@ -1182,10 +1176,8 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] virtual i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side) const {
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1203,10 +1195,8 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] virtual i32 getStrongPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side) const {
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1239,7 +1229,8 @@ public:
      * @param state 方块状态
      * @return 如果是粘性方块返回 true
      */
-    [[nodiscard]] virtual bool isStickyBlock(const BlockState& state) const {
+    [[nodiscard]] virtual bool isStickyBlock(const BlockState& state) const
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -1255,7 +1246,8 @@ public:
      * @param other 目标方块状态
      * @return 如果可以粘连返回 true
      */
-    [[nodiscard]] virtual bool canStickTo(const BlockState& state, const BlockState& other) const {
+    [[nodiscard]] virtual bool canStickTo(const BlockState& state, const BlockState& other) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(other);
         return false;
@@ -1285,11 +1277,11 @@ public:
      * @param face 点燃面（可选）
      * @return 可燃性值 (0-300)
      */
-    [[nodiscard]] virtual i32 getFlammability(
-        const BlockState& state,
+    [[nodiscard]] virtual i32 getFlammability(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const {
+        Direction face = static_cast<Direction>(255)) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1315,11 +1307,11 @@ public:
      * @param face 蔓延面（可选）
      * @return 火焰蔓延速度
      */
-    [[nodiscard]] virtual i32 getFireSpreadSpeed(
-        const BlockState& state,
+    [[nodiscard]] virtual i32 getFireSpreadSpeed(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const {
+        Direction face = static_cast<Direction>(255)) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1342,10 +1334,8 @@ public:
      * @return 如果是火源返回 true
      */
     [[nodiscard]] virtual bool isFireSource(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side) const {
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1367,12 +1357,12 @@ public:
      * @param face 点燃面
      * @param igniter 点燃者（可能为空）
      */
-    virtual void catchFire(
-        const BlockState& state,
+    virtual void catchFire(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Direction face = static_cast<Direction>(255),
-        Entity* igniter = nullptr) const {
+        Entity* igniter = nullptr) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1400,11 +1390,11 @@ public:
      * @param beaconPos 信标位置（可选）
      * @return RGB 颜色数组指针 {r, g, b}，范围 [0.0, 1.0]；返回 nullptr 表示不修改颜色
      */
-    [[nodiscard]] virtual const std::array<f32, 3>* getBeaconColorMultiplier(
-        const BlockState& state,
+    [[nodiscard]] virtual const std::array<f32, 3>* getBeaconColorMultiplier(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        const BlockPos* beaconPos = nullptr) const {
+        const BlockPos* beaconPos = nullptr) const
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1459,10 +1449,7 @@ public:
      * @return 如果该面应该被渲染返回 true
      */
     [[nodiscard]] static bool shouldSideBeRendered(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction face);
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction face);
 
     /**
      * @brief 检查指定位置顶部是否有固体面
@@ -1489,10 +1476,7 @@ public:
      * @param direction 检查方向
      * @return 如果有足够固体面返回 true
      */
-    [[nodiscard]] static bool hasEnoughSolidSide(
-        IWorld& world,
-        const BlockPos& pos,
-        Direction direction);
+    [[nodiscard]] static bool hasEnoughSolidSide(IWorld& world, const BlockPos& pos, Direction direction);
 
     /**
      * @brief 判断方块面是否填充方形区域
@@ -1524,7 +1508,8 @@ public:
      * @param pos 方块位置
      * @param player 玩家
      */
-    virtual void attack(const BlockState& state, IWorld& world, const BlockPos& pos, Player& player) {
+    virtual void attack(const BlockState& state, IWorld& world, const BlockPos& pos, Player& player)
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -1545,10 +1530,8 @@ public:
      * @param projectile 投掷物实体
      */
     virtual void onProjectileHit(
-        IWorld& world,
-        const BlockState& state,
-        const BlockRaycastResult& hitResult,
-        Entity& projectile) {
+        IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
+    {
         MC_UNUSED(world);
         MC_UNUSED(state);
         MC_UNUSED(hitResult);
@@ -1570,11 +1553,8 @@ public:
      * @param fallDistance 摔落距离
      */
     virtual void onFallenUpon(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        Entity& entity,
-        f32 fallDistance) {
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
@@ -1593,7 +1573,8 @@ public:
      * @param world 世界
      * @param pos 方块位置
      */
-    virtual void fillWithRain(IWorld& world, const BlockPos& pos) {
+    virtual void fillWithRain(IWorld& world, const BlockPos& pos)
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
     }
@@ -1613,8 +1594,7 @@ public:
      * @param blockEntity 方块实体（可能为空）
      * @param stack 使用工具（可能为空）
      */
-    virtual void harvestBlock(
-        IWorld& world,
+    virtual void harvestBlock(IWorld& world,
         Player& player,
         const BlockPos& pos,
         const BlockState& state,
@@ -1636,10 +1616,7 @@ public:
      * @return 相对硬度值（越大越容易挖掘）
      */
     [[nodiscard]] virtual f32 getPlayerRelativeBlockHardness(
-        Player& player,
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state) const;
+        Player& player, IBlockReader& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 获取渲染类型
@@ -1656,13 +1633,14 @@ public:
      * @return 渲染类型
      */
     enum class RenderType : u8 {
-        MODEL,                // 正常模型渲染
-        INVISIBLE,            // 不可见（空气、屏障等）
-        LIQUID,               // 液体渲染（水、岩浆）
-        ENTITYBLOCK_ANIMATED  // 方块实体动画（箱子、熔炉等）
+        MODEL,               // 正常模型渲染
+        INVISIBLE,           // 不可见（空气、屏障等）
+        LIQUID,              // 液体渲染（水、岩浆）
+        ENTITYBLOCK_ANIMATED // 方块实体动画（箱子、熔炉等）
     };
 
-    [[nodiscard]] virtual RenderType getRenderType(const BlockState& state) const {
+    [[nodiscard]] virtual RenderType getRenderType(const BlockState& state) const
+    {
         MC_UNUSED(state);
         return RenderType::MODEL;
     }
@@ -1680,10 +1658,8 @@ public:
      * @param pos 方块位置
      * @return 如果允许移动返回 true
      */
-    [[nodiscard]] virtual bool allowsMovement(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const {
+    [[nodiscard]] virtual bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         return !state.blocksMovement();
@@ -1692,9 +1668,7 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual std::string toString() const {
-        return m_blockLocation.toString();
-    }
+    [[nodiscard]] virtual std::string toString() const { return m_blockLocation.toString(); }
 
 protected:
     friend class BlockRegistry;
@@ -1724,13 +1698,13 @@ protected:
     f32 m_hardness = 0.0f;
     f32 m_resistance = 0.0f;
     u8 m_lightLevel = 0;
-    i32 m_opacity = 15;  // 默认完全不透明
+    i32 m_opacity = 15; // 默认完全不透明
     bool m_hasCollision = true;
     bool m_isFlammable = false;
     bool m_propagatesSkylightDown = false;
     bool m_requiresTool = false;
-    bool m_isReplaceable = false;  // 是否可被替换
-    bool m_ticksRandomly = false;  // 是否响应随机刻
+    bool m_isReplaceable = false; // 是否可被替换
+    bool m_ticksRandomly = false; // 是否响应随机刻
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
 

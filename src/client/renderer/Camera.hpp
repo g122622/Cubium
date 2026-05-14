@@ -1,11 +1,11 @@
 #pragma once
 
+#include "api/camera/ICamera.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "api/camera/ICamera.hpp"
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace mc::client {
 
@@ -183,14 +183,14 @@ private:
     bool m_sneaking = false;
 
     // 按键映射 (默认WASD + Space + Shift)
-    i32 m_moveForwardKey = 87;   // W
-    i32 m_moveBackwardKey = 83;  // S
-    i32 m_moveLeftKey = 65;      // A
-    i32 m_moveRightKey = 68;     // D
-    i32 m_moveUpKey = 32;        // Space
-    i32 m_moveDownKey = 340;     // Left Shift
-    i32 m_sprintKey = 340;       // Left Shift (与moveDown共享)
-    i32 m_sneakKey = 341;        // Left Ctrl
+    i32 m_moveForwardKey = 87;  // W
+    i32 m_moveBackwardKey = 83; // S
+    i32 m_moveLeftKey = 65;     // A
+    i32 m_moveRightKey = 68;    // D
+    i32 m_moveUpKey = 32;       // Space
+    i32 m_moveDownKey = 340;    // Left Shift
+    i32 m_sprintKey = 340;      // Left Shift (与moveDown共享)
+    i32 m_sneakKey = 341;       // Left Ctrl
 
     // 状态
     bool m_moving = false;

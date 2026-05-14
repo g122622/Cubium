@@ -2,8 +2,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/packet/Packet.hpp"
-#include <vector>
 #include <atomic>
+#include <vector>
 
 namespace mc::server::core {
 

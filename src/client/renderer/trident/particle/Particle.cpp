@@ -1,12 +1,12 @@
 #include "Particle.hpp"
 #include "ParticleTextureAtlas.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "client/world/ClientWorld.hpp"
 #include "common/core/Constants.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/physics/PhysicsEngine.hpp"
-#include "common/world/IWorld.hpp"
-#include "client/world/ClientWorld.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -21,10 +21,10 @@ Particle::Particle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_velocity(velocity)
     , m_bboxWidth(physics::PARTICLE_DEFAULT_BBOX_WIDTH)
     , m_bboxHeight(physics::PARTICLE_DEFAULT_BBOX_HEIGHT)
-{
-}
+{}
 
-void Particle::tick(mc::client::ClientWorld* world) {
+void Particle::tick(mc::client::ClientWorld* world)
+{
     // 保存上一帧位置和旋转
     m_prevPosition = m_position;
     m_prevRoll = m_roll;
@@ -65,15 +65,14 @@ void Particle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-void Particle::buildVertices(
-    const glm::vec3& cameraPos,
+void Particle::buildVertices(const glm::vec3& cameraPos,
     f64 partialTick,
     const ParticleTextureAtlas& atlas,
     std::vector<ParticleVertex>& outVertices) const
 {
     // 插值位置
-    glm::dvec3 interpPos = glm::dvec3(m_prevPosition) +
-        (glm::dvec3(m_position) - glm::dvec3(m_prevPosition)) * partialTick;
+    glm::dvec3 interpPos =
+        glm::dvec3(m_prevPosition) + (glm::dvec3(m_position) - glm::dvec3(m_prevPosition)) * partialTick;
 
     // 插值旋转
     f64 interpRoll = m_prevRoll + (m_roll - m_prevRoll) * partialTick;
@@ -82,7 +81,7 @@ void Particle::buildVertices(
     glm::dvec3 toCamera = glm::dvec3(cameraPos) - interpPos;
     f64 dist = glm::length(toCamera);
     if (dist < 0.001) {
-        return;  // 太近了，跳过
+        return; // 太近了，跳过
     }
     toCamera = glm::normalize(toCamera);
 
@@ -106,9 +105,7 @@ void Particle::buildVertices(
         up = newUp;
     }
 
-    glm::vec3 interpPosF(static_cast<f32>(interpPos.x),
-                         static_cast<f32>(interpPos.y),
-                         static_cast<f32>(interpPos.z));
+    glm::vec3 interpPosF(static_cast<f32>(interpPos.x), static_cast<f32>(interpPos.y), static_cast<f32>(interpPos.z));
     glm::vec3 rightF(static_cast<f32>(right.x), static_cast<f32>(right.y), static_cast<f32>(right.z));
     glm::vec3 upF(static_cast<f32>(up.x), static_cast<f32>(up.y), static_cast<f32>(up.z));
 
@@ -118,7 +115,7 @@ void Particle::buildVertices(
     const f32 halfSizeF = static_cast<f32>(halfSize);
 
     // 获取 UV 坐标
-    glm::vec4 uv(0.0f, 0.0f, 1.0f, 1.0f);  // 默认 UV
+    glm::vec4 uv(0.0f, 0.0f, 1.0f, 1.0f); // 默认 UV
     const SpriteInfo* sprite = atlas.getSprite(getTextureLocation());
     if (sprite != nullptr) {
         // 对于动画精灵，基于年龄选择帧
@@ -131,48 +128,42 @@ void Particle::buildVertices(
 
     // 四个顶点（quad）
     // 左下
-    outVertices.push_back({
-        interpPosF - rightF * halfSizeF - upF * halfSizeF,
-        glm::vec2(uv.x, uv.w),  // UV: 左下
+    outVertices.push_back({interpPosF - rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(uv.x, uv.w), // UV: 左下
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
     // 右下
-    outVertices.push_back({
-        interpPosF + rightF * halfSizeF - upF * halfSizeF,
-        glm::vec2(uv.z, uv.w),  // UV: 右下
+    outVertices.push_back({interpPosF + rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(uv.z, uv.w), // UV: 右下
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
     // 右上
-    outVertices.push_back({
-        interpPosF + rightF * halfSizeF + upF * halfSizeF,
-        glm::vec2(uv.z, uv.y),  // UV: 右上
+    outVertices.push_back({interpPosF + rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(uv.z, uv.y), // UV: 右上
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
     // 左上
-    outVertices.push_back({
-        interpPosF - rightF * halfSizeF + upF * halfSizeF,
-        glm::vec2(uv.x, uv.y),  // UV: 左上
+    outVertices.push_back({interpPosF - rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(uv.x, uv.y), // UV: 左上
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
 }
 
-ResourceLocation Particle::getTextureLocation() const {
+ResourceLocation Particle::getTextureLocation() const
+{
     return DEFAULT_TEXTURE;
 }
 
-u32 Particle::getLightColor(mc::client::ClientWorld* world) const {
+u32 Particle::getLightColor(mc::client::ClientWorld* world) const
+{
     // 默认实现：从世界采样光照
     // 参考 MC 1.16.5 Particle.getBrightnessForRender()
     if (world == nullptr) {
-        return physics::PARTICLE_MAX_PACKED_LIGHT;  // 最大亮度
+        return physics::PARTICLE_MAX_PACKED_LIGHT; // 最大亮度
     }
 
     // 获取粒子位置的方块坐标
@@ -189,13 +180,15 @@ u32 Particle::getLightColor(mc::client::ClientWorld* world) const {
     return (static_cast<u32>(skyLight) << 4) | static_cast<u32>(blockLight);
 }
 
-f64 Particle::getScale(f64 /*partialTick*/) const {
+f64 Particle::getScale(f64 /*partialTick*/) const
+{
     // 默认实现：返回 1.0（无缩放）
     // 子类可以重写以实现缩放动画
     return 1.0f;
 }
 
-void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta) {
+void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta)
+{
     // 参考 MC 1.16.5 Particle.move() 和 Entity.move()
     // 完整的 AABB 碰撞检测实现
 
@@ -206,8 +199,7 @@ void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta) {
     }
 
     // 零移动检查
-    if (std::abs(delta.x) < physics::PARTICLE_MIN_MOVEMENT &&
-        std::abs(delta.y) < physics::PARTICLE_MIN_MOVEMENT &&
+    if (std::abs(delta.x) < physics::PARTICLE_MIN_MOVEMENT && std::abs(delta.y) < physics::PARTICLE_MIN_MOVEMENT &&
         std::abs(delta.z) < physics::PARTICLE_MIN_MOVEMENT) {
         return;
     }
@@ -222,10 +214,9 @@ void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta) {
     PhysicsEngine physics(*world);
 
     // 粒子不需要步进（stepHeight = 0）
-    Vector3 actualDelta = physics.moveEntity(
-        bbox,
+    Vector3 actualDelta = physics.moveEntity(bbox,
         Vector3(delta.x, delta.y, delta.z),
-        0.0f  // stepHeight
+        0.0f // stepHeight
     );
 
     // 更新位置（从碰撞盒中心重算）
@@ -234,11 +225,11 @@ void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta) {
     m_position.z = (bbox.minZ + bbox.maxZ) * 0.5f;
 
     // 更新碰撞状态
-    m_collisionContext.collidedX = physics.collidedHorizontally() &&
-        (std::abs(actualDelta.x - delta.x) > physics::PARTICLE_MIN_MOVEMENT);
+    m_collisionContext.collidedX =
+        physics.collidedHorizontally() && (std::abs(actualDelta.x - delta.x) > physics::PARTICLE_MIN_MOVEMENT);
     m_collisionContext.collidedY = physics.collidedVertically();
-    m_collisionContext.collidedZ = physics.collidedHorizontally() &&
-        (std::abs(actualDelta.z - delta.z) > physics::PARTICLE_MIN_MOVEMENT);
+    m_collisionContext.collidedZ =
+        physics.collidedHorizontally() && (std::abs(actualDelta.z - delta.z) > physics::PARTICLE_MIN_MOVEMENT);
 
     // 地面判定：Y 方向被阻挡且原移动向下
     m_collisionContext.onGround = physics.collidedVertically() && delta.y < 0.0f;
@@ -255,22 +246,23 @@ void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta) {
     }
 }
 
-void Particle::setBoundingBox(f64 width, f64 height) {
+void Particle::setBoundingBox(f64 width, f64 height)
+{
     m_bboxWidth = width;
     m_bboxHeight = height;
 }
 
-void Particle::setPosition(const glm::vec3& pos) {
+void Particle::setPosition(const glm::vec3& pos)
+{
     m_position = pos;
     m_prevPosition = pos;
 }
 
-AxisAlignedBB Particle::getBoundingBox() const {
-    return AxisAlignedBB::fromPosition(
-        Vector3(m_position.x, m_position.y, m_position.z),
+AxisAlignedBB Particle::getBoundingBox() const
+{
+    return AxisAlignedBB::fromPosition(Vector3(m_position.x, m_position.y, m_position.z),
         static_cast<f32>(m_bboxWidth),
-        static_cast<f32>(m_bboxHeight)
-    );
+        static_cast<f32>(m_bboxHeight));
 }
 
 } // namespace mc::client::renderer::trident::particle

@@ -1,71 +1,68 @@
 #include "PlaySoundCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/command/arguments/ArgumentType.hpp"
+#include "common/sound/network/SoundPackets.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "common/sound/network/SoundPackets.hpp"
+#include "server/core/PlayerManager.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
 
 namespace {
-    /**
-     * @brief 从命令参数解析声源类别
-     */
-    sound::SoundCategory parseSoundCategory(const std::string& name) {
-        if (name == "master") return sound::SoundCategory::Master;
-        if (name == "music") return sound::SoundCategory::Music;
-        if (name == "record") return sound::SoundCategory::Records;
-        if (name == "weather") return sound::SoundCategory::Weather;
-        if (name == "block" || name == "blocks") return sound::SoundCategory::Blocks;
-        if (name == "hostile") return sound::SoundCategory::Hostile;
-        if (name == "neutral") return sound::SoundCategory::Neutral;
-        if (name == "player" || name == "players") return sound::SoundCategory::Players;
-        if (name == "ambient") return sound::SoundCategory::Ambient;
-        if (name == "voice") return sound::SoundCategory::Voice;
-        return sound::SoundCategory::Master;
-    }
-
-    /**
-     * @brief 发送 PlaySoundPacket 给指定玩家
-     */
-    void sendPlaySoundPacket(
-        server::core::ConnectionManager& connMgr,
-        PlayerId playerId,
-        const ResourceLocation& soundId,
-        sound::SoundCategory category,
-        const glm::vec3& position,
-        f32 volume,
-        f32 pitch)
-    {
-        sound::PlaySoundPacket packet(soundId, category, position, volume, pitch);
-
-        auto result = packet.serialize();
-        if (result.failed()) {
-            spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
-            return;
-        }
-
-        connMgr.sendPacketToPlayer(playerId, network::PacketType::PlaySound, result.value());
-    }
+/**
+ * @brief 从命令参数解析声源类别
+ */
+sound::SoundCategory parseSoundCategory(const std::string& name)
+{
+    if (name == "master") return sound::SoundCategory::Master;
+    if (name == "music") return sound::SoundCategory::Music;
+    if (name == "record") return sound::SoundCategory::Records;
+    if (name == "weather") return sound::SoundCategory::Weather;
+    if (name == "block" || name == "blocks") return sound::SoundCategory::Blocks;
+    if (name == "hostile") return sound::SoundCategory::Hostile;
+    if (name == "neutral") return sound::SoundCategory::Neutral;
+    if (name == "player" || name == "players") return sound::SoundCategory::Players;
+    if (name == "ambient") return sound::SoundCategory::Ambient;
+    if (name == "voice") return sound::SoundCategory::Voice;
+    return sound::SoundCategory::Master;
 }
 
-void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+/**
+ * @brief 发送 PlaySoundPacket 给指定玩家
+ */
+void sendPlaySoundPacket(server::core::ConnectionManager& connMgr,
+    PlayerId playerId,
+    const ResourceLocation& soundId,
+    sound::SoundCategory category,
+    const glm::vec3& position,
+    f32 volume,
+    f32 pitch)
+{
+    sound::PlaySoundPacket packet(soundId, category, position, volume, pitch);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
+        return;
+    }
+
+    connMgr.sendPacketToPlayer(playerId, network::PacketType::PlaySound, result.value());
+}
+} // namespace
+
+void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto playsoundNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("playsound");
-    playsoundNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        playsoundNode,
-        support::makeMetadata(
-            "Plays a sound effect.",
+    playsoundNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(playsoundNode,
+        support::makeMetadata("Plays a sound effect.",
             "/playsound <sound> <source> <player> [<pos>] [<volume>] [<pitch>] [<minimumVolume>]",
             2,
             {},
@@ -73,9 +70,7 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /playsound <sound>
     auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "sound",
-        ResourceLocationArgumentType::resourceLocation()
-    );
+        "sound", ResourceLocationArgumentType::resourceLocation());
 
     // 声源子节点
     auto createSourceNode = [](const char* name) {
@@ -94,47 +89,45 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     auto voiceNode = createSourceNode("voice");
 
     // 为每个声源添加目标节点
-    for (auto& sourceNode : {masterNode, musicNode, recordNode, weatherNode, blockNode,
-                              hostileNode, neutralNode, playerSoundNode, ambientNode, voiceNode}) {
+    for (auto& sourceNode : {masterNode,
+             musicNode,
+             recordNode,
+             weatherNode,
+             blockNode,
+             hostileNode,
+             neutralNode,
+             playerSoundNode,
+             ambientNode,
+             voiceNode}) {
         auto targetNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-            "player",
-            EntityArgumentType::player()
-        );
+            "player", EntityArgumentType::player());
         targetNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
             return playSoundDefault(ctx, parseSoundCategory(sourceName));
         });
 
-        auto posNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-            "pos",
-            Vec3ArgumentType::vec3()
-        );
+        auto posNode =
+            std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
         posNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
             return playSoundAtPosition(ctx, parseSoundCategory(sourceName));
         });
 
         // volume 节点
         auto volumeNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-            "volume",
-            FloatArgumentType::floatArg(0.0f, 1000.0f)
-        );
+            "volume", FloatArgumentType::floatArg(0.0f, 1000.0f));
         volumeNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
             return playSoundWithVolume(ctx, parseSoundCategory(sourceName));
         });
 
         // pitch 节点
         auto pitchNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-            "pitch",
-            FloatArgumentType::floatArg(0.0f, 2.0f)
-        );
+            "pitch", FloatArgumentType::floatArg(0.0f, 2.0f));
         pitchNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
             return playSoundWithPitch(ctx, parseSoundCategory(sourceName));
         });
 
         // minimumVolume 节点
         auto minVolumeNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-            "minimumVolume",
-            FloatArgumentType::floatArg(0.0f, 1.0f)
-        );
+            "minimumVolume", FloatArgumentType::floatArg(0.0f, 1.0f));
         minVolumeNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
             return playSoundWithMinVolume(ctx, parseSoundCategory(sourceName));
         });
@@ -152,7 +145,8 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     dispatcher.registerCommand(playsoundNode);
 }
 
-i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
+i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+{
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
@@ -184,7 +178,8 @@ i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& cont
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
+i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+{
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
@@ -210,7 +205,8 @@ i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& c
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
+i32 PlaySoundCommand::playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+{
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
@@ -237,7 +233,8 @@ i32 PlaySoundCommand::playSoundWithVolume(CommandContext<ServerCommandSource>& c
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
+i32 PlaySoundCommand::playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+{
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
@@ -265,7 +262,9 @@ i32 PlaySoundCommand::playSoundWithPitch(CommandContext<ServerCommandSource>& co
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundWithMinVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
+i32 PlaySoundCommand::playSoundWithMinVolume(
+    CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+{
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../common/core/Types.hpp"
+#include "../../common/network/packet/Packet.hpp"
 #include "../../common/scoreboard/core/Scoreboard.hpp"
 #include "../../common/scoreboard/network/ScoreboardPackets.hpp"
-#include "../../common/network/packet/Packet.hpp"
-#include "../../common/core/Types.hpp"
 #include <memory>
 #include <set>
 
@@ -55,9 +55,7 @@ public:
      *
      * @param dataManager 数据管理器（可选）
      */
-    void setDataManager(mc::scoreboard::ScoreboardDataManager* dataManager) {
-        m_dataManager = dataManager;
-    }
+    void setDataManager(mc::scoreboard::ScoreboardDataManager* dataManager) { m_dataManager = dataManager; }
 
     // ========== 玩家管理 ==========
 
@@ -130,9 +128,7 @@ public:
      * @param objectiveName 目标名称（空表示移除所有）
      * @param playerId 玩家 ID
      */
-    void sendRemoveScoreToPlayer(const std::string& playerName,
-                                  const std::string& objectiveName,
-                                  PlayerId playerId);
+    void sendRemoveScoreToPlayer(const std::string& playerName, const std::string& objectiveName, PlayerId playerId);
 
     /**
      * @brief 发送显示槽位包给玩家
@@ -141,9 +137,8 @@ public:
      * @param objective 目标（nullptr 表示清除）
      * @param playerId 玩家 ID
      */
-    void sendDisplayObjectiveToPlayer(mc::scoreboard::DisplaySlot slot,
-                                       mc::scoreboard::ScoreObjective* objective,
-                                       PlayerId playerId);
+    void sendDisplayObjectiveToPlayer(
+        mc::scoreboard::DisplaySlot slot, mc::scoreboard::ScoreObjective* objective, PlayerId playerId);
 
     /**
      * @brief 发送队伍创建包给玩家
@@ -200,42 +195,36 @@ protected:
     void onScoreChanged(mc::scoreboard::Score& score) override;
     void onScoreRemoved(mc::scoreboard::Score& score) override;
     void onPlayerRemoved(const std::string& playerName) override;
-    void onPlayerScoreRemoved(const std::string& playerName,
-                              mc::scoreboard::ScoreObjective& objective) override;
+    void onPlayerScoreRemoved(const std::string& playerName, mc::scoreboard::ScoreObjective& objective) override;
     void onTeamAdded(mc::scoreboard::ScorePlayerTeam& team) override;
     void onTeamChanged(mc::scoreboard::ScorePlayerTeam& team) override;
     void onTeamRemoved(mc::scoreboard::ScorePlayerTeam& team) override;
-    void onDisplaySlotChanged(mc::scoreboard::DisplaySlot slot,
-                              mc::scoreboard::ScoreObjective* objective) override;
+    void onDisplaySlotChanged(mc::scoreboard::DisplaySlot slot, mc::scoreboard::ScoreObjective* objective) override;
 
 private:
     /**
      * @brief 创建目标数据包
      */
     [[nodiscard]] mc::network::ScoreboardObjectivePacket createObjectivePacket(
-        mc::scoreboard::ScoreObjective& objective,
-        mc::network::ObjectiveAction action);
+        mc::scoreboard::ScoreObjective& objective, mc::network::ObjectiveAction action);
 
     /**
      * @brief 创建分数数据包
      */
     [[nodiscard]] mc::network::UpdateScorePacket createScorePacket(
-        mc::scoreboard::Score& score,
-        mc::network::ScoreAction action);
+        mc::scoreboard::Score& score, mc::network::ScoreAction action);
 
     /**
      * @brief 创建显示目标数据包
      */
     [[nodiscard]] mc::network::DisplayObjectivePacket createDisplayObjectivePacket(
-        mc::scoreboard::DisplaySlot slot,
-        mc::scoreboard::ScoreObjective* objective);
+        mc::scoreboard::DisplaySlot slot, mc::scoreboard::ScoreObjective* objective);
 
     /**
      * @brief 创建队伍数据包
      */
     [[nodiscard]] mc::network::TeamsPacket createTeamPacket(
-        mc::scoreboard::ScorePlayerTeam& team,
-        mc::network::TeamAction action);
+        mc::scoreboard::ScorePlayerTeam& team, mc::network::TeamAction action);
 
     mc::server::MinecraftServer& m_server;
 

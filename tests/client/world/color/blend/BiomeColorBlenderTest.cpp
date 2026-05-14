@@ -5,12 +5,12 @@
  * 测试 BiomeColorBlender、BiomeColorCache、ChunkBiomeAccessor 的功能。
  */
 
-#include <gtest/gtest.h>
 #include "client/world/color/blend/blend.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include <gtest/gtest.h>
 
 namespace mc::client::test {
 
@@ -26,7 +26,8 @@ public:
     /**
      * @brief 设置指定位置的生物群系
      */
-    void setBiome(i32 x, i32 y, i32 z, const Biome* biome) {
+    void setBiome(i32 x, i32 y, i32 z, const Biome* biome)
+    {
         const u64 key = makeKey(x, z);
         m_biomes[key] = biome;
     }
@@ -34,15 +35,16 @@ public:
     /**
      * @brief 设置指定区块是否加载
      */
-    void setChunkLoaded(ChunkCoord x, ChunkCoord z, bool loaded) {
-        const u64 key = static_cast<u64>(static_cast<u32>(x)) << 32 |
-                        static_cast<u64>(static_cast<u32>(z));
+    void setChunkLoaded(ChunkCoord x, ChunkCoord z, bool loaded)
+    {
+        const u64 key = static_cast<u64>(static_cast<u32>(x)) << 32 | static_cast<u64>(static_cast<u32>(z));
         m_loadedChunks[key] = loaded;
     }
 
     // === IBiomeAccessor 接口实现 ===
 
-    [[nodiscard]] const Biome* getBiome(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const Biome* getBiome(i32 x, i32 y, i32 z) const override
+    {
         const u64 key = makeKey(x, z);
         auto it = m_biomes.find(key);
         if (it != m_biomes.end()) {
@@ -51,17 +53,17 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] bool isChunkLoaded(ChunkCoord x, ChunkCoord z) const override {
-        const u64 key = static_cast<u64>(static_cast<u32>(x)) << 32 |
-                        static_cast<u64>(static_cast<u32>(z));
+    [[nodiscard]] bool isChunkLoaded(ChunkCoord x, ChunkCoord z) const override
+    {
+        const u64 key = static_cast<u64>(static_cast<u32>(x)) << 32 | static_cast<u64>(static_cast<u32>(z));
         auto it = m_loadedChunks.find(key);
         return it != m_loadedChunks.end() && it->second;
     }
 
 private:
-    [[nodiscard]] static u64 makeKey(i32 x, i32 z) {
-        return (static_cast<u64>(static_cast<u32>(x)) << 32) |
-               static_cast<u64>(static_cast<u32>(z));
+    [[nodiscard]] static u64 makeKey(i32 x, i32 z)
+    {
+        return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
     }
 
     std::unordered_map<u64, const Biome*> m_biomes;
@@ -73,11 +75,11 @@ private:
  */
 class TestColorResolver : public ColorResolver {
 public:
-    explicit TestColorResolver(u32 color) : m_color(color) {}
+    explicit TestColorResolver(u32 color)
+        : m_color(color)
+    {}
 
-    [[nodiscard]] u32 getColor(const Biome& /*biome*/, f64 /*x*/, f64 /*z*/) const override {
-        return m_color;
-    }
+    [[nodiscard]] u32 getColor(const Biome& /*biome*/, f64 /*x*/, f64 /*z*/) const override { return m_color; }
 
 private:
     u32 m_color;
@@ -87,7 +89,8 @@ private:
 // BiomeColorCache 测试
 // ============================================================================
 
-TEST(BiomeColorCacheTest, BasicCacheOperations) {
+TEST(BiomeColorCacheTest, BasicCacheOperations)
+{
     BiomeColorCache cache;
 
     i32 callCount = 0;
@@ -104,7 +107,7 @@ TEST(BiomeColorCacheTest, BasicCacheOperations) {
     // 第二次调用，命中缓存
     u32 color2 = cache.getOrCompute(0, 0, 5, 5, 0, compute);
     EXPECT_EQ(color2, 0xFF0000u);
-    EXPECT_EQ(callCount, 1);  // compute 未被调用
+    EXPECT_EQ(callCount, 1); // compute 未被调用
 
     // 不同位置，未命中
     u32 color3 = cache.getOrCompute(0, 0, 6, 6, 0, compute);
@@ -117,7 +120,8 @@ TEST(BiomeColorCacheTest, BasicCacheOperations) {
     EXPECT_EQ(callCount, 3);
 }
 
-TEST(BiomeColorCacheTest, ChunkInvalidation) {
+TEST(BiomeColorCacheTest, ChunkInvalidation)
+{
     BiomeColorCache cache;
 
     i32 callCount = 0;
@@ -146,7 +150,8 @@ TEST(BiomeColorCacheTest, ChunkInvalidation) {
     EXPECT_EQ(callCount, 0);
 }
 
-TEST(BiomeColorCacheTest, PositionInvalidation) {
+TEST(BiomeColorCacheTest, PositionInvalidation)
+{
     BiomeColorCache cache;
 
     i32 callCount = 0;
@@ -174,7 +179,8 @@ TEST(BiomeColorCacheTest, PositionInvalidation) {
     EXPECT_EQ(callCount, 0);
 }
 
-TEST(BiomeColorCacheTest, CacheStats) {
+TEST(BiomeColorCacheTest, CacheStats)
+{
     BiomeColorCache cache;
 
     auto compute = []() { return 0xFFFFFFu; };
@@ -191,14 +197,15 @@ TEST(BiomeColorCacheTest, CacheStats) {
     auto stats = cache.getStats();
     EXPECT_EQ(stats.cacheMisses, 2);
     EXPECT_EQ(stats.cacheHits, 3);
-    EXPECT_EQ(stats.totalEntries, 1);  // 只有一个区块
+    EXPECT_EQ(stats.totalEntries, 1); // 只有一个区块
 }
 
 // ============================================================================
 // BiomeColorBlender 测试
 // ============================================================================
 
-TEST(BiomeColorBlenderTest, SetBlendRadius) {
+TEST(BiomeColorBlenderTest, SetBlendRadius)
+{
     BiomeColorBlender blender;
 
     // 默认半径
@@ -213,13 +220,14 @@ TEST(BiomeColorBlenderTest, SetBlendRadius) {
 
     // 边界检查
     blender.setBlendRadius(-1);
-    EXPECT_EQ(blender.blendRadius(), 0);  // clamp 到 0
+    EXPECT_EQ(blender.blendRadius(), 0); // clamp 到 0
 
     blender.setBlendRadius(10);
-    EXPECT_EQ(blender.blendRadius(), 7);  // clamp 到最大值
+    EXPECT_EQ(blender.blendRadius(), 7); // clamp 到最大值
 }
 
-TEST(BiomeColorBlenderTest, AverageColors) {
+TEST(BiomeColorBlenderTest, AverageColors)
+{
     // 单色
     u32 singleColor[] = {0xFF0000};
     EXPECT_EQ(BiomeColorBlender::averageColors(singleColor, 1), 0xFF0000);
@@ -229,34 +237,33 @@ TEST(BiomeColorBlenderTest, AverageColors) {
     // 平均: (127, 127, 0) = 0x7F7F00
     u32 twoColors[] = {0xFF0000, 0x00FF00};
     u32 avg1 = BiomeColorBlender::averageColors(twoColors, 2);
-    EXPECT_EQ(avg1, 0x7F7F00);  // (127 << 16) | (127 << 8) | 0
+    EXPECT_EQ(avg1, 0x7F7F00); // (127 << 16) | (127 << 8) | 0
 
     // 三色平均
     // 0xFF0000 = (255, 0, 0), 0x00FF00 = (0, 255, 0), 0x0000FF = (0, 0, 255)
     // 平均: (85, 85, 85) = 0x555555
     u32 threeColors[] = {0xFF0000, 0x00FF00, 0x0000FF};
     u32 avg2 = BiomeColorBlender::averageColors(threeColors, 3);
-    EXPECT_EQ(avg2, 0x555555);  // (85 << 16) | (85 << 8) | 85
+    EXPECT_EQ(avg2, 0x555555); // (85 << 16) | (85 << 8) | 85
 
     // 四色平均
     // 0xFF0000 = (255, 0, 0), 0x00FF00 = (0, 255, 0), 0x0000FF = (0, 0, 255), 0xFFFFFF = (255, 255, 255)
     // 平均: (127, 127, 127) = 0x7F7F7F
     u32 fourColors[] = {0xFF0000, 0x00FF00, 0x0000FF, 0xFFFFFF};
     u32 avg3 = BiomeColorBlender::averageColors(fourColors, 4);
-    EXPECT_EQ(avg3, 0x7F7F7F);  // (127 << 16) | (127 << 8) | 127
+    EXPECT_EQ(avg3, 0x7F7F7F); // (127 << 16) | (127 << 8) | 127
 }
 
-TEST(BiomeColorBlenderTest, NoBlending) {
+TEST(BiomeColorBlenderTest, NoBlending)
+{
     BiomeColorBlender blender;
-    blender.setBlendRadius(0);  // 禁用混合
+    blender.setBlendRadius(0); // 禁用混合
 
     TestBiomeAccessor accessor;
     TestColorResolver resolver(0xABCDEF);
 
     // 创建测试生物群系
-    BiomeEffects effects = BiomeEffects::Builder()
-        .waterColor(0x123456)
-        .build();
+    BiomeEffects effects = BiomeEffects::Builder().waterColor(0x123456).build();
     Biome biome(BiomeId(1), "test_biome");
     biome.setEffects(effects);
 
@@ -264,17 +271,16 @@ TEST(BiomeColorBlenderTest, NoBlending) {
     accessor.setChunkLoaded(0, 0, true);
 
     // 禁用混合时，应该直接返回颜色
-    u32 color = blender.getBlendedColor(
-        accessor, 0, 64, 0, resolver, BiomeColorBlender::ResolverId::Grass
-    );
+    u32 color = blender.getBlendedColor(accessor, 0, 64, 0, resolver, BiomeColorBlender::ResolverId::Grass);
 
     EXPECT_EQ(color, 0xABCDEF);
 }
 
-TEST(BiomeColorBlenderTest, Blending) {
+TEST(BiomeColorBlenderTest, Blending)
+{
     BiomeColorBlender blender;
-    blender.setBlendRadius(1);  // 3x3 混合区域
-    blender.setCacheEnabled(false);  // 禁用缓存以测试算法
+    blender.setBlendRadius(1);      // 3x3 混合区域
+    blender.setCacheEnabled(false); // 禁用缓存以测试算法
 
     TestBiomeAccessor accessor;
 
@@ -308,15 +314,14 @@ TEST(BiomeColorBlenderTest, Blending) {
     accessor.setBiome(0, 64, 1, &biome1);
     accessor.setBiome(1, 64, 1, &biome1);
 
-    u32 color = blender.getBlendedColor(
-        accessor, 0, 64, 0, redResolver, BiomeColorBlender::ResolverId::Grass
-    );
+    u32 color = blender.getBlendedColor(accessor, 0, 64, 0, redResolver, BiomeColorBlender::ResolverId::Grass);
 
     // 所有 9 个位置都返回 0xFF0000，平均后仍然是 0xFF0000
     EXPECT_EQ(color, 0xFF0000);
 }
 
-TEST(BiomeColorBlenderTest, CacheEnabled) {
+TEST(BiomeColorBlenderTest, CacheEnabled)
+{
     BiomeColorBlender blender;
     blender.setBlendRadius(2);
     blender.setCacheEnabled(true);
@@ -324,18 +329,14 @@ TEST(BiomeColorBlenderTest, CacheEnabled) {
     TestBiomeAccessor accessor;
     TestColorResolver resolver(0x00FF00);
 
-    accessor.setBiome(0, 64, 0, nullptr);  // 返回 nullptr 会导致返回默认白色
+    accessor.setBiome(0, 64, 0, nullptr); // 返回 nullptr 会导致返回默认白色
     accessor.setChunkLoaded(0, 0, true);
 
     // 第一次调用
-    u32 color1 = blender.getBlendedColorCached(
-        accessor, 0, 64, 0, resolver, BiomeColorBlender::ResolverId::Grass
-    );
+    u32 color1 = blender.getBlendedColorCached(accessor, 0, 64, 0, resolver, BiomeColorBlender::ResolverId::Grass);
 
     // 第二次调用（应该命中缓存）
-    u32 color2 = blender.getBlendedColorCached(
-        accessor, 0, 64, 0, resolver, BiomeColorBlender::ResolverId::Grass
-    );
+    u32 color2 = blender.getBlendedColorCached(accessor, 0, 64, 0, resolver, BiomeColorBlender::ResolverId::Grass);
 
     EXPECT_EQ(color1, color2);
 
@@ -351,7 +352,8 @@ TEST(BiomeColorBlenderTest, CacheEnabled) {
 
 class ChunkBiomeAccessorTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建测试区块
         m_chunkData = std::make_unique<ChunkData>(0, 0);
 
@@ -369,7 +371,8 @@ protected:
     const Biome* m_forest = nullptr;
 };
 
-TEST_F(ChunkBiomeAccessorTest, GetBiomeLocal) {
+TEST_F(ChunkBiomeAccessorTest, GetBiomeLocal)
+{
     // 创建访问器（仅当前区块，无邻居）
     std::array<const ChunkData*, 4> neighbors = {nullptr, nullptr, nullptr, nullptr};
     ChunkBiomeAccessor accessor(*m_chunkData, neighbors, 0, 0);
@@ -381,7 +384,8 @@ TEST_F(ChunkBiomeAccessorTest, GetBiomeLocal) {
     // 在测试环境中，我们假设返回的是有效的生物群系
 }
 
-TEST_F(ChunkBiomeAccessorTest, IsChunkLoaded) {
+TEST_F(ChunkBiomeAccessorTest, IsChunkLoaded)
+{
     std::array<const ChunkData*, 4> neighbors = {nullptr, nullptr, nullptr, nullptr};
     ChunkBiomeAccessor accessor(*m_chunkData, neighbors, 0, 0);
 
@@ -395,7 +399,8 @@ TEST_F(ChunkBiomeAccessorTest, IsChunkLoaded) {
     EXPECT_FALSE(accessor.isChunkLoaded(0, -1));
 }
 
-TEST_F(ChunkBiomeAccessorTest, WorldToLocalCoord) {
+TEST_F(ChunkBiomeAccessorTest, WorldToLocalCoord)
+{
     std::array<const ChunkData*, 4> neighbors = {nullptr, nullptr, nullptr, nullptr};
     ChunkBiomeAccessor accessor(*m_chunkData, neighbors, 0, 0);
 
@@ -406,11 +411,11 @@ TEST_F(ChunkBiomeAccessorTest, WorldToLocalCoord) {
 
     // 区块 (-1, 0) 的坐标（邻居区块，未加载）
     biome = accessor.getBiome(-5, 64, 10);
-    EXPECT_EQ(biome, nullptr);  // 邻居未加载
+    EXPECT_EQ(biome, nullptr); // 邻居未加载
 
     // 区块 (1, 0) 的坐标（邻居区块，未加载）
     biome = accessor.getBiome(20, 64, 10);
-    EXPECT_EQ(biome, nullptr);  // 邻居未加载
+    EXPECT_EQ(biome, nullptr); // 邻居未加载
 }
 
 } // namespace mc::client::test

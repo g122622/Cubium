@@ -6,11 +6,11 @@ namespace mc {
 namespace blocks {
 
 HorizontalBlock::HorizontalBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
     // 创建状态容器，添加 HORIZONTAL_FACING 属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(FACING())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -19,7 +19,8 @@ HorizontalBlock::HorizontalBlock(const BlockProperties& properties)
     setDefaultState(withFacing(defaultState(), Direction::North));
 }
 
-BlockState HorizontalBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState HorizontalBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 根据玩家水平朝向设置方块方向
     Direction facing = context.horizontalDirection();
 
@@ -28,7 +29,8 @@ BlockState HorizontalBlock::getStateForPlacement(BlockItemUseContext& context) {
     return withFacing(defaultState(), facing);
 }
 
-const BlockState& HorizontalBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& HorizontalBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction currentFacing = getFacing(state);
 
     // 水平方向旋转
@@ -51,7 +53,8 @@ const BlockState& HorizontalBlock::rotate(const BlockState& state, Rotation rota
     return withFacing(state, newFacing);
 }
 
-const BlockState& HorizontalBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& HorizontalBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     Direction currentFacing = getFacing(state);
     Direction newFacing = currentFacing;
 
@@ -80,14 +83,16 @@ const BlockState& HorizontalBlock::mirror(const BlockState& state, Mirror mirror
     return withFacing(state, newFacing);
 }
 
-Direction HorizontalBlock::getFacing(const BlockState& state) const {
+Direction HorizontalBlock::getFacing(const BlockState& state) const
+{
     Direction facing = state.get(FACING());
     // 确保朝向是水平的
     MC_ASSERT_DEBUG(Directions::isHorizontal(facing));
     return facing;
 }
 
-const BlockState& HorizontalBlock::withFacing(const BlockState& state, Direction facing) const {
+const BlockState& HorizontalBlock::withFacing(const BlockState& state, Direction facing) const
+{
     // 确保朝向是水平的
     MC_ASSERT_DEBUG(Directions::isHorizontal(facing));
     return state.with(FACING(), facing);

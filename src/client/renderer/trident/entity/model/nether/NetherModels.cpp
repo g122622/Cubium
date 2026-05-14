@@ -1,6 +1,6 @@
 #include "NetherModels.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::nether {
@@ -14,13 +14,14 @@ GhastModel::GhastModel()
     setupParts();
 }
 
-void GhastModel::setupParts() {
+void GhastModel::setupParts()
+{
     // 参考 MC 1.16.5 GhastModel
     // 身体尺寸: 16x16x16，中心在原点
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(0, 0);
     m_body->addBox(-8.0f, -8.0f, -8.0f, 16.0f, 16.0f, 16.0f);
-    m_body->setRotationPoint(0.0f, 17.6f, 0.0f);  // Java: rotationPointY = 17.6F
+    m_body->setRotationPoint(0.0f, 17.6f, 0.0f); // Java: rotationPointY = 17.6F
     m_parts.push_back(m_body);
 
     // 9 条触手
@@ -44,18 +45,18 @@ void GhastModel::setupParts() {
         f32 f1 = ((static_cast<f32>(i / 3) / 2.0f * 2.0f - 1.0f) * 5.0f);
 
         m_tentacles[i]->addBox(-1.0f, 0.0f, -1.0f, 2.0f, static_cast<f32>(length), 2.0f);
-        m_tentacles[i]->setRotationPoint(f, 24.6f, f1);  // Java: rotationPointY = 24.6F
+        m_tentacles[i]->setRotationPoint(f, 24.6f, f1); // Java: rotationPointY = 24.6F
         m_parts.push_back(m_tentacles[i]);
     }
 }
 
-void GhastModel::render(f64 scale) {
+void GhastModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void GhastModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 ageInTicks, f64 netHeadYaw,
-                            f64 headPitch, f64 scale) {
+void GhastModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 身体跟随头部旋转
     m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_body->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
@@ -88,7 +89,8 @@ MagmaCubeModel::MagmaCubeModel(i32 size)
     setupParts();
 }
 
-void MagmaCubeModel::setupParts() {
+void MagmaCubeModel::setupParts()
+{
     // 参考 MC 1.16.5 MagmaCubeModel
     // 8 个薄片状的 segments，每个是 8x1x8
     // 纹理偏移根据索引变化：
@@ -128,18 +130,20 @@ void MagmaCubeModel::setupParts() {
     m_parts.push_back(m_core);
 }
 
-void MagmaCubeModel::setSquishFactor(f32 squishFactor, f32 prevSquishFactor) {
+void MagmaCubeModel::setSquishFactor(f32 squishFactor, f32 prevSquishFactor)
+{
     m_squishFactor = squishFactor;
     m_prevSquishFactor = prevSquishFactor;
 }
 
-void MagmaCubeModel::render(f64 scale) {
+void MagmaCubeModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void MagmaCubeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                f64 ageInTicks, f64 netHeadYaw,
-                                f64 headPitch, f64 scale) {
+void MagmaCubeModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 应用挤压动画
     // Java: setLivingAnimations 中
     // float f = MathHelper.lerp(partialTick, entityIn.prevSquishFactor, entityIn.squishFactor);
@@ -164,8 +168,7 @@ void MagmaCubeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
 PiglinModel::PiglinModel()
     : PiglinModel(0.0f, 64, 64)
-{
-}
+{}
 
 PiglinModel::PiglinModel(f32 scale, i32 textureWidth, i32 textureHeight)
     : BipedModel(scale, 0.0f, textureWidth, textureHeight)
@@ -290,7 +293,8 @@ PiglinModel::PiglinModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_parts.push_back(m_bipedLeftLegwear);
 }
 
-void PiglinModel::copyAnglesToWear() {
+void PiglinModel::copyAnglesToWear()
+{
     // 参考 MC 1.16.5 PiglinModel.setRotationAngles 末尾的 copyModelAngles 调用
     if (m_bipedLeftLeg && m_bipedLeftLegwear) {
         m_bipedLeftLegwear->copyModelAngles(*m_bipedLeftLeg);
@@ -312,7 +316,8 @@ void PiglinModel::copyAnglesToWear() {
     }
 }
 
-void PiglinModel::handleRightArmPose() {
+void PiglinModel::handleRightArmPose()
+{
     // 猪灵特有手臂姿态处理
     // 如果是特定动作，跳过基类处理
     if (m_action == static_cast<i32>(Action::ATTACKING_WITH_MELEE_WEAPON) && m_swingProgress == 0.0f) {
@@ -325,7 +330,8 @@ void PiglinModel::handleRightArmPose() {
     BipedModel::handleRightArmPose();
 }
 
-void PiglinModel::handleLeftArmPose() {
+void PiglinModel::handleLeftArmPose()
+{
     // 猪灵特有手臂姿态处理
     if (m_action == static_cast<i32>(Action::ATTACKING_WITH_MELEE_WEAPON) && m_swingProgress == 0.0f) {
         if (m_leftHanded) {
@@ -337,13 +343,14 @@ void PiglinModel::handleLeftArmPose() {
     BipedModel::handleLeftArmPose();
 }
 
-void PiglinModel::render(f64 scale) {
+void PiglinModel::render(f64 scale)
+{
     BipedModel::render(scale);
 }
 
-void PiglinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void PiglinModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 PiglinModel.setRotationAngles
     // 注意：Java 原版先复制身体、头部、手臂角度到外层，然后调用 super
 
@@ -363,11 +370,14 @@ void PiglinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     if (m_action == static_cast<i32>(Action::DANCING)) {
         // 跳舞动画
         f32 f3 = static_cast<f32>(ageInTicks / 60.0);
-        m_leftEar->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 6.0 + mc::math::PI_DOUBLE / 180.0 * std::sin(f3 * 30.0) * 10.0));
-        m_rightEar->setRotateAngleZ(static_cast<f32>(-mc::math::PI_DOUBLE / 6.0 - mc::math::PI_DOUBLE / 180.0 * std::cos(f3 * 30.0) * 10.0));
+        m_leftEar->setRotateAngleZ(
+            static_cast<f32>(mc::math::PI_DOUBLE / 6.0 + mc::math::PI_DOUBLE / 180.0 * std::sin(f3 * 30.0) * 10.0));
+        m_rightEar->setRotateAngleZ(
+            static_cast<f32>(-mc::math::PI_DOUBLE / 6.0 - mc::math::PI_DOUBLE / 180.0 * std::cos(f3 * 30.0) * 10.0));
         m_bipedHead->setRotationPointX(static_cast<f32>(std::sin(f3 * 10.0)));
         m_bipedHead->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) + 0.4));
-        m_bipedRightArm->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 180.0 * (70.0 + std::cos(f3 * 40.0) * 10.0)));
+        m_bipedRightArm->setRotateAngleZ(
+            static_cast<f32>(mc::math::PI_DOUBLE / 180.0 * (70.0 + std::cos(f3 * 40.0) * 10.0)));
         m_bipedLeftArm->setRotateAngleZ(-m_bipedRightArm->rotateAngleZ());
         m_bipedRightArm->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) * 0.5 + 1.5));
         m_bipedLeftArm->setRotationPointY(m_bipedRightArm->rotationPointY());
@@ -432,7 +442,8 @@ BoarModel::BoarModel()
     setupParts();
 }
 
-void BoarModel::setupParts() {
+void BoarModel::setupParts()
+{
     // 参考 MC 1.16.5 BoarModel
     // 构造函数参数: AgeableModel(true, 8.0F, 6.0F, 1.9F, 2.0F, 24.0F)
 
@@ -525,21 +536,23 @@ void BoarModel::setupParts() {
     m_parts.push_back(m_leftBackLeg);
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> BoarModel::getHeadParts() const {
-    return { m_head };
+std::vector<std::shared_ptr<ModelRenderer>> BoarModel::getHeadParts() const
+{
+    return {m_head};
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> BoarModel::getBodyParts() const {
-    return { m_body, m_rightFrontLeg, m_leftFrontLeg, m_rightBackLeg, m_leftBackLeg };
+std::vector<std::shared_ptr<ModelRenderer>> BoarModel::getBodyParts() const
+{
+    return {m_body, m_rightFrontLeg, m_leftFrontLeg, m_rightBackLeg, m_leftBackLeg};
 }
 
-void BoarModel::render(f64 scale) {
+void BoarModel::render(f64 scale)
+{
     ::mc::client::renderer::entity::model::AgeableModel::render(scale);
 }
 
-void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                           f64 ageInTicks, f64 netHeadYaw,
-                           f64 headPitch, f64 scale) {
+void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 BoarModel.setRotationAngles
     // 獠牙动画: rotateAngleZ += limbSwingAmount * sin(limbSwing)
     f32 tuskSwing = static_cast<f32>(limbSwingAmount * std::sin(limbSwing));
@@ -555,7 +568,8 @@ void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 腿部动画
     f32 legSwing = static_cast<f32>(std::cos(limbSwing) * 1.2 * limbSwingAmount);
     m_rightFrontLeg->setRotateAngleX(legSwing);
-    m_leftFrontLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing + mc::math::PI_DOUBLE) * 1.2 * limbSwingAmount));
+    m_leftFrontLeg->setRotateAngleX(
+        static_cast<f32>(std::cos(limbSwing + mc::math::PI_DOUBLE) * 1.2 * limbSwingAmount));
     m_rightBackLeg->setRotateAngleX(m_leftFrontLeg->rotateAngleX());
     m_leftBackLeg->setRotateAngleX(m_rightFrontLeg->rotateAngleX());
 
@@ -568,11 +582,12 @@ void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 StriderModel::StriderModel()
     : EntityModel()
 {
-    setTextureSize(64, 128);  // Java: textureHeight = 128
+    setTextureSize(64, 128); // Java: textureHeight = 128
     setupParts();
 }
 
-void StriderModel::setupParts() {
+void StriderModel::setupParts()
+{
     // 参考 MC 1.16.5 StriderModel
     // 身体: textureOffset(0, 0), rotationPoint(0, 1, 0), addBox(-8, -6, -8, 16, 14, 16)
     m_body = std::make_shared<ModelRenderer>("body");
@@ -599,7 +614,7 @@ void StriderModel::setupParts() {
     // Java 原版中左侧三个皮瓣都设置了 mirror=true
     // 左下皮瓣: textureOffset(16, 65), mirror=true, addBox(-12, 0, 0, 12, 0, 16)
     m_flapLeftBottom = std::make_shared<ModelRenderer>("flapLeftBottom");
-    m_flapLeftBottom->setMirror(true);  // Java: mirror=true
+    m_flapLeftBottom->setMirror(true); // Java: mirror=true
     m_flapLeftBottom->setTextureOffset(16, 65);
     m_flapLeftBottom->addBox(-12.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
     m_flapLeftBottom->setRotationPoint(-8.0f, 4.0f, -8.0f);
@@ -608,7 +623,7 @@ void StriderModel::setupParts() {
 
     // 左中皮瓣: textureOffset(16, 49), mirror=true, addBox(-12, 0, 0, 12, 0, 16)
     m_flapLeftMiddle = std::make_shared<ModelRenderer>("flapLeftMiddle");
-    m_flapLeftMiddle->setMirror(true);  // Java: mirror=true
+    m_flapLeftMiddle->setMirror(true); // Java: mirror=true
     m_flapLeftMiddle->setTextureOffset(16, 49);
     m_flapLeftMiddle->addBox(-12.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
     m_flapLeftMiddle->setRotationPoint(-8.0f, -1.0f, -8.0f);
@@ -617,7 +632,7 @@ void StriderModel::setupParts() {
 
     // 左上皮瓣: textureOffset(16, 33), mirror=true, addBox(-12, 0, 0, 12, 0, 16)
     m_flapLeftTop = std::make_shared<ModelRenderer>("flapLeftTop");
-    m_flapLeftTop->setMirror(true);  // Java: mirror=true
+    m_flapLeftTop->setMirror(true); // Java: mirror=true
     m_flapLeftTop->setTextureOffset(16, 33);
     m_flapLeftTop->addBox(-12.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
     m_flapLeftTop->setRotationPoint(-8.0f, -5.0f, -8.0f);
@@ -649,13 +664,14 @@ void StriderModel::setupParts() {
     m_body->addChild(m_flapRightBottom);
 }
 
-void StriderModel::render(f64 scale) {
+void StriderModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void StriderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void StriderModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 StriderModel.setRotationAngles
     // 限制 limbSwingAmount 最大为 0.25
     f32 swingAmount = static_cast<f32>(std::min(limbSwingAmount, 0.25));
@@ -684,14 +700,17 @@ void StriderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 腿部动画
     m_rightLeg->setRotateAngleX(static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5) * 2.0 * swingAmount));
-    m_leftLeg->setRotateAngleX(static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * 2.0 * swingAmount));
+    m_leftLeg->setRotateAngleX(
+        static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * 2.0 * swingAmount));
 
     // 腿部 Z 轴旋转
     m_rightLeg->setRotateAngleZ(0.17453292f * static_cast<f32>(std::cos(limbSwing * 1.5 * 0.5) * swingAmount));
-    m_leftLeg->setRotateAngleZ(0.17453292f * static_cast<f32>(std::cos(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * swingAmount));
+    m_leftLeg->setRotateAngleZ(
+        0.17453292f * static_cast<f32>(std::cos(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * swingAmount));
 
     // 腿部 Y 位置动画
-    m_rightLeg->setRotationPointY(8.0f + 2.0f * static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * 2.0 * swingAmount));
+    m_rightLeg->setRotationPointY(
+        8.0f + 2.0f * static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * 2.0 * swingAmount));
     m_leftLeg->setRotationPointY(8.0f + 2.0f * static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5) * 2.0 * swingAmount));
 
     // 皮瓣基础角度
@@ -712,12 +731,18 @@ void StriderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_flapRightBottom->setRotateAngleZ(1.2217305f + f1 * 1.3f);
 
     // 年龄 tick 动画叠加
-    m_flapLeftBottom->setRotateAngleZ(m_flapLeftBottom->rotateAngleZ() + 0.05f * static_cast<f32>(std::sin(ageInTicks * 1.0 * -0.4)));
-    m_flapLeftMiddle->setRotateAngleZ(m_flapLeftMiddle->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.2)));
-    m_flapLeftTop->setRotateAngleZ(m_flapLeftTop->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.4)));
-    m_flapRightTop->setRotateAngleZ(m_flapRightTop->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.4)));
-    m_flapRightMiddle->setRotateAngleZ(m_flapRightMiddle->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.2)));
-    m_flapRightBottom->setRotateAngleZ(m_flapRightBottom->rotateAngleZ() + 0.05f * static_cast<f32>(std::sin(ageInTicks * 1.0 * -0.4)));
+    m_flapLeftBottom->setRotateAngleZ(
+        m_flapLeftBottom->rotateAngleZ() + 0.05f * static_cast<f32>(std::sin(ageInTicks * 1.0 * -0.4)));
+    m_flapLeftMiddle->setRotateAngleZ(
+        m_flapLeftMiddle->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.2)));
+    m_flapLeftTop->setRotateAngleZ(
+        m_flapLeftTop->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.4)));
+    m_flapRightTop->setRotateAngleZ(
+        m_flapRightTop->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.4)));
+    m_flapRightMiddle->setRotateAngleZ(
+        m_flapRightMiddle->rotateAngleZ() + 0.1f * static_cast<f32>(std::sin(ageInTicks * 1.0 * 0.2)));
+    m_flapRightBottom->setRotateAngleZ(
+        m_flapRightBottom->rotateAngleZ() + 0.05f * static_cast<f32>(std::sin(ageInTicks * 1.0 * -0.4)));
 
     (void)scale;
 }

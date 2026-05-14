@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <nlohmann/json.hpp>
 
 namespace mc::text {
 
@@ -13,11 +13,11 @@ namespace mc::text {
  * 参考: net.minecraft.util.text.event.ClickEvent.Action
  */
 enum class ClickAction : u8 {
-    OpenUrl,         // 打开 URL
-    OpenFile,        // 打开文件
-    RunCommand,      // 执行命令
-    SuggestCommand,  // 建议命令（填入输入框）
-    CopyToClipboard  // 复制到剪贴板
+    OpenUrl,        // 打开 URL
+    OpenFile,       // 打开文件
+    RunCommand,     // 执行命令
+    SuggestCommand, // 建议命令（填入输入框）
+    CopyToClipboard // 复制到剪贴板
 };
 
 /**
@@ -36,7 +36,9 @@ public:
      * @param value 值（URL、命令、文件路径等）
      */
     ClickEvent(ClickAction action, std::string value)
-        : m_action(action), m_value(std::move(value)) {}
+        : m_action(action)
+        , m_value(std::move(value))
+    {}
 
     // ========== 访问器 ==========
 
@@ -66,12 +68,11 @@ public:
 
     // ========== 比较 ==========
 
-    bool operator==(const ClickEvent& other) const noexcept {
+    bool operator==(const ClickEvent& other) const noexcept
+    {
         return m_action == other.m_action && m_value == other.m_value;
     }
-    bool operator!=(const ClickEvent& other) const noexcept {
-        return !(*this == other);
-    }
+    bool operator!=(const ClickEvent& other) const noexcept { return !(*this == other); }
 
 private:
     ClickAction m_action = ClickAction::RunCommand;
@@ -84,9 +85,9 @@ private:
  * 参考: net.minecraft.util.text.event.HoverEvent.Action
  */
 enum class HoverAction : u8 {
-    ShowText,    // 显示文本
-    ShowItem,    // 显示物品
-    ShowEntity   // 显示实体
+    ShowText,  // 显示文本
+    ShowItem,  // 显示物品
+    ShowEntity // 显示实体
 };
 
 /**
@@ -103,7 +104,8 @@ public:
      * @brief 构造显示文本的悬停事件
      * @param text 显示的文本（JSON 格式或纯文本）
      */
-    static HoverEvent showText(std::string text) {
+    static HoverEvent showText(std::string text)
+    {
         HoverEvent event;
         event.m_action = HoverAction::ShowText;
         event.m_value = std::move(text);
@@ -114,7 +116,8 @@ public:
      * @brief 构造显示物品的悬停事件
      * @param itemData 物品数据（物品 ID、NBT 等）
      */
-    static HoverEvent showItem(std::string itemData) {
+    static HoverEvent showItem(std::string itemData)
+    {
         HoverEvent event;
         event.m_action = HoverAction::ShowItem;
         event.m_value = std::move(itemData);
@@ -125,7 +128,8 @@ public:
      * @brief 构造显示实体的悬停事件
      * @param entityData 实体数据（实体 ID、类型、名称等）
      */
-    static HoverEvent showEntity(std::string entityData) {
+    static HoverEvent showEntity(std::string entityData)
+    {
         HoverEvent event;
         event.m_action = HoverAction::ShowEntity;
         event.m_value = std::move(entityData);
@@ -160,12 +164,11 @@ public:
 
     // ========== 比较 ==========
 
-    bool operator==(const HoverEvent& other) const noexcept {
+    bool operator==(const HoverEvent& other) const noexcept
+    {
         return m_action == other.m_action && m_value == other.m_value;
     }
-    bool operator!=(const HoverEvent& other) const noexcept {
-        return !(*this == other);
-    }
+    bool operator!=(const HoverEvent& other) const noexcept { return !(*this == other); }
 
 private:
     HoverAction m_action = HoverAction::ShowText;
@@ -174,7 +177,8 @@ private:
 
 // ========== 内联实现 ==========
 
-inline nlohmann::json ClickEvent::toJson() const {
+inline nlohmann::json ClickEvent::toJson() const
+{
     nlohmann::json json = nlohmann::json::object();
 
     const char* actionName = nullptr;
@@ -202,7 +206,8 @@ inline nlohmann::json ClickEvent::toJson() const {
     return json;
 }
 
-inline ClickEvent ClickEvent::fromJson(const nlohmann::json& json) {
+inline ClickEvent ClickEvent::fromJson(const nlohmann::json& json)
+{
     if (!json.is_object() || !json.contains("action") || !json.contains("value")) {
         return ClickEvent();
     }
@@ -226,7 +231,8 @@ inline ClickEvent ClickEvent::fromJson(const nlohmann::json& json) {
     return ClickEvent(action, value);
 }
 
-inline nlohmann::json HoverEvent::toJson() const {
+inline nlohmann::json HoverEvent::toJson() const
+{
     nlohmann::json json = nlohmann::json::object();
 
     const char* actionName = nullptr;
@@ -248,7 +254,8 @@ inline nlohmann::json HoverEvent::toJson() const {
     return json;
 }
 
-inline HoverEvent HoverEvent::fromJson(const nlohmann::json& json) {
+inline HoverEvent HoverEvent::fromJson(const nlohmann::json& json)
+{
     if (!json.is_object() || !json.contains("action") || !json.contains("value")) {
         return HoverEvent();
     }

@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
 #include "world/village/trade/MerchantOffer.hpp"
-#include "item/core/ItemStack.hpp"
-#include "item/core/ItemRegistry.hpp"
 #include "item/core/Item.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "util/nbt/Nbt.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace world {
@@ -13,7 +13,8 @@ namespace trade {
 namespace {
 
 // 辅助函数：注册或获取测试物品
-const Item* getOrRegisterTestItem(const std::string& name) {
+const Item* getOrRegisterTestItem(const std::string& name)
+{
     ResourceLocation id(name);
     const Item* existing = ItemRegistry::instance().getItem(id);
     if (existing != nullptr) {
@@ -40,7 +41,8 @@ const Item* getOrRegisterTestItem(const std::string& name) {
  */
 class MerchantOfferTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册测试物品
         emerald_ = getOrRegisterTestItem("minecraft:emerald");
         bread_ = getOrRegisterTestItem("minecraft:bread");
@@ -49,7 +51,8 @@ protected:
         enchantedBook_ = getOrRegisterTestItem("minecraft:enchanted_book");
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
     }
 
@@ -68,7 +71,7 @@ TEST_F(MerchantOfferTest, DefaultConstruction)
     EXPECT_FALSE(offer.getBuyB().has_value());
     EXPECT_TRUE(offer.getSell().isEmpty());
     EXPECT_EQ(offer.getUses(), 0);
-    EXPECT_EQ(offer.getMaxUses(), 12);  // 默认值
+    EXPECT_EQ(offer.getMaxUses(), 12); // 默认值
     EXPECT_EQ(offer.getXp(), 0);
     EXPECT_FLOAT_EQ(offer.getPriceMultiplier(), 1.0f);
     EXPECT_EQ(offer.getSpecialPrice(), 0);
@@ -114,8 +117,8 @@ TEST_F(MerchantOfferTest, SerializeDeserializeBasic)
     ItemStack buyA(emerald_, 5);
     ItemStack sell(bread_, 10);
     MerchantOffer original(buyA, sell, 20, 5, 0.1f);
-    original.increaseUses();  // 使用一次
-    original.increaseUses();  // 使用两次
+    original.increaseUses(); // 使用一次
+    original.increaseUses(); // 使用两次
 
     // 序列化
     nbt::tags::compound_tag tag;
@@ -174,9 +177,9 @@ TEST_F(MerchantOfferTest, SerializeDeserializePriceAdjustments)
     ItemStack sell(bread_, 6);
 
     MerchantOffer original(buyA, sell, 16, 2, 0.05f);
-    original.setSpecialPrice(-2);  // 价格优惠
-    original.setDemand(5);          // 需求修正
-    original.restock();             // 补货一次
+    original.setSpecialPrice(-2); // 价格优惠
+    original.setDemand(5);        // 需求修正
+    original.restock();           // 补货一次
 
     // 序列化
     nbt::tags::compound_tag tag;
@@ -196,7 +199,7 @@ TEST_F(MerchantOfferTest, RoundTripComplete)
     ItemStack buyA(emerald_, 10);
     ItemStack buyB(diamond_, 2);
     ItemStack sell(enchantedBook_, 1);
-    sell.addEnchantment("minecraft:sharpness", 5);  // 附魔
+    sell.addEnchantment("minecraft:sharpness", 5); // 附魔
 
     MerchantOffer original(buyA, buyB, sell, 32, 30, 0.15f);
     original.increaseUses();
@@ -263,7 +266,7 @@ TEST_F(MerchantOfferTest, IsOutOfStock)
     ItemStack buyA(emerald_, 1);
     ItemStack sell(bread_, 1);
 
-    MerchantOffer offer(buyA, sell, 3, 1, 1.0f);  // 最大使用 3 次
+    MerchantOffer offer(buyA, sell, 3, 1, 1.0f); // 最大使用 3 次
 
     EXPECT_FALSE(offer.isOutOfStock());
 
@@ -273,7 +276,7 @@ TEST_F(MerchantOfferTest, IsOutOfStock)
     offer.increaseUses();
     EXPECT_FALSE(offer.isOutOfStock());
 
-    offer.increaseUses();  // 第 3 次
+    offer.increaseUses(); // 第 3 次
     EXPECT_TRUE(offer.isOutOfStock());
 }
 
@@ -302,7 +305,7 @@ TEST_F(MerchantOfferTest, Restock)
 
 TEST_F(MerchantOfferTest, PriceAdjustment)
 {
-    ItemStack buyA(emerald_, 5);  // 基础价格 5
+    ItemStack buyA(emerald_, 5); // 基础价格 5
     ItemStack sell(bread_, 1);
 
     MerchantOffer offer(buyA, sell, 16, 2, 0.1f);
@@ -318,8 +321,8 @@ TEST_F(MerchantOfferTest, PriceAdjustment)
     // applyDemand 设置 specialPrice = demand * priceMultiplier
     // 所以 specialPrice 变为 10 * 0.1 = 1
     offer.applyDemand(10);
-    EXPECT_EQ(offer.getSpecialPrice(), 1);  // 被覆盖为 1
-    EXPECT_EQ(offer.getAdjustedBuyPrice(), 6);  // 5 + 1 = 6
+    EXPECT_EQ(offer.getSpecialPrice(), 1);     // 被覆盖为 1
+    EXPECT_EQ(offer.getAdjustedBuyPrice(), 6); // 5 + 1 = 6
 }
 
 TEST_F(MerchantOfferTest, Progress)

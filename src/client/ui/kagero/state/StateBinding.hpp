@@ -1,7 +1,7 @@
 #pragma once
 
-#include "StateStore.hpp"
 #include "ReactiveState.hpp"
+#include "StateStore.hpp"
 #include <functional>
 #include <memory>
 
@@ -21,8 +21,9 @@ namespace binding {
  * @param key 状态键
  * @return 绑定点
  */
-template<typename T>
-StateBindingPoint bind(const std::string& key) {
+template <typename T>
+StateBindingPoint bind(const std::string& key)
+{
     return StateBindingPoint(key);
 }
 
@@ -39,8 +40,9 @@ StateBindingPoint bind(const std::string& key) {
  *       当 StateStore 变化时，Reactive 会更新。
  *       使用值比较来避免循环更新。
  */
-template<typename T>
-StateBindingPoint bindReactive(Reactive<T>& reactive, const std::string& key) {
+template <typename T>
+StateBindingPoint bindReactive(Reactive<T>& reactive, const std::string& key)
+{
     // 创建双向同步
     StateStore::instance().set(key, reactive.get());
 
@@ -79,8 +81,9 @@ StateBindingPoint bindReactive(Reactive<T>& reactive, const std::string& key) {
  * @param compute 计算函数
  * @return 计算属性
  */
-template<typename T, typename Func>
-Computed<T> computed(Func&& compute) {
+template <typename T, typename Func>
+Computed<T> computed(Func&& compute)
+{
     return Computed<T>(std::forward<Func>(compute));
 }
 
@@ -92,8 +95,9 @@ Computed<T> computed(Func&& compute) {
  * @param callback 回调函数，接收旧值和新值
  * @return 订阅ID
  */
-template<typename T>
-u64 watch(const std::string& key, std::function<void(const T&, const T&)> callback) {
+template <typename T>
+u64 watch(const std::string& key, std::function<void(const T&, const T&)> callback)
+{
     // 使用 shared_ptr 来持久化旧值
     auto oldValue = std::make_shared<T>(StateStore::instance().get<T>(key));
 
@@ -113,7 +117,8 @@ u64 watch(const std::string& key, std::function<void(const T&, const T&)> callba
  * @param callback 回调函数
  * @return 订阅ID列表
  */
-inline std::vector<u64> watchAll(const std::vector<std::string>& keys, std::function<void()> callback) {
+inline std::vector<u64> watchAll(const std::vector<std::string>& keys, std::function<void()> callback)
+{
     std::vector<u64> ids;
     ids.reserve(keys.size());
     for (const auto& key : keys) {
@@ -125,14 +130,16 @@ inline std::vector<u64> watchAll(const std::vector<std::string>& keys, std::func
 /**
  * @brief 取消监视
  */
-inline void unwatch(u64 id) {
+inline void unwatch(u64 id)
+{
     StateStore::instance().unsubscribe(id);
 }
 
 /**
  * @brief 取消多个监视
  */
-inline void unwatchAll(const std::vector<u64>& ids) {
+inline void unwatchAll(const std::vector<u64>& ids)
+{
     for (u64 id : ids) {
         StateStore::instance().unsubscribe(id);
     }
@@ -149,9 +156,7 @@ class StateScope {
 public:
     StateScope() = default;
 
-    ~StateScope() {
-        clear();
-    }
+    ~StateScope() { clear(); }
 
     // 禁止拷贝
     StateScope(const StateScope&) = delete;
@@ -159,9 +164,11 @@ public:
 
     // 允许移动
     StateScope(StateScope&& other) noexcept
-        : m_subscriptions(std::move(other.m_subscriptions)) {}
+        : m_subscriptions(std::move(other.m_subscriptions))
+    {}
 
-    StateScope& operator=(StateScope&& other) noexcept {
+    StateScope& operator=(StateScope&& other) noexcept
+    {
         if (this != &other) {
             clear();
             m_subscriptions = std::move(other.m_subscriptions);
@@ -172,7 +179,8 @@ public:
     /**
      * @brief 订阅状态变化
      */
-    u64 subscribe(const std::string& key, std::function<void()> callback) {
+    u64 subscribe(const std::string& key, std::function<void()> callback)
+    {
         u64 id = StateStore::instance().subscribe(key, std::move(callback));
         m_subscriptions.push_back(id);
         return id;
@@ -181,8 +189,9 @@ public:
     /**
      * @brief 监视状态变化
      */
-    template<typename T>
-    u64 watch(const std::string& key, std::function<void(const T&, const T&)> callback) {
+    template <typename T>
+    u64 watch(const std::string& key, std::function<void(const T&, const T&)> callback)
+    {
         u64 id = binding::watch<T>(key, std::move(callback));
         m_subscriptions.push_back(id);
         return id;
@@ -191,7 +200,8 @@ public:
     /**
      * @brief 取消所有订阅
      */
-    void clear() {
+    void clear()
+    {
         for (u64 id : m_subscriptions) {
             StateStore::instance().unsubscribe(id);
         }
@@ -225,11 +235,12 @@ public:
     /**
      * @brief 响应式状态包装器模板
      */
-    template<typename T>
+    template <typename T>
     class ReactiveHolder : public IReactiveHolder {
     public:
         explicit ReactiveHolder(T initialValue)
-            : reactive(std::move(initialValue)) {}
+            : reactive(std::move(initialValue))
+        {}
 
         Reactive<T> reactive;
     };
@@ -239,16 +250,18 @@ public:
     /**
      * @brief 获取状态值
      */
-    template<typename T>
-    [[nodiscard]] T get(const std::string& key) const {
+    template <typename T>
+    [[nodiscard]] T get(const std::string& key) const
+    {
         return StateStore::instance().get<T>(key);
     }
 
     /**
      * @brief 设置状态值
      */
-    template<typename T>
-    void set(const std::string& key, T value) {
+    template <typename T>
+    void set(const std::string& key, T value)
+    {
         StateStore::instance().set(key, std::move(value));
     }
 
@@ -262,8 +275,9 @@ public:
      *
      * @note 生命周期由 StateContext 管理
      */
-    template<typename T>
-    Reactive<T>& reactive(const std::string& key, T initialValue = T{}) {
+    template <typename T>
+    Reactive<T>& reactive(const std::string& key, T initialValue = T{})
+    {
         auto it = m_reactives.find(key);
         if (it != m_reactives.end()) {
             auto* holder = dynamic_cast<ReactiveHolder<T>*>(it->second.get());
@@ -287,7 +301,8 @@ public:
     /**
      * @brief 清除所有响应式状态
      */
-    void clear() {
+    void clear()
+    {
         m_reactives.clear();
         m_scope.clear();
     }

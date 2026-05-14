@@ -1,9 +1,9 @@
 #include "BlockTriggers.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc::advancement {
 
@@ -11,10 +11,11 @@ namespace mc::advancement {
 
 EnterBlockTriggerInstance::EnterBlockTriggerInstance(BlockPredicate block, LocationPredicate location)
     : m_block(std::move(block))
-    , m_location(std::move(location)) {
-}
+    , m_location(std::move(location))
+{}
 
-bool EnterBlockTriggerInstance::test(const BlockState& state, const IWorld& world, const BlockPos& pos) const {
+bool EnterBlockTriggerInstance::test(const BlockState& state, const IWorld& world, const BlockPos& pos) const
+{
     if (!m_block.test(state)) {
         return false;
     }
@@ -24,7 +25,8 @@ bool EnterBlockTriggerInstance::test(const BlockState& state, const IWorld& worl
     return true;
 }
 
-Result<void> EnterBlockTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> EnterBlockTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -48,7 +50,8 @@ Result<void> EnterBlockTriggerInstance::fromJson(const nlohmann::json& json) {
     return {};
 }
 
-nlohmann::json EnterBlockTriggerInstance::conditionsToJson() const {
+nlohmann::json EnterBlockTriggerInstance::conditionsToJson() const
+{
     nlohmann::json json;
 
     if (!m_block.isAny()) {
@@ -63,7 +66,8 @@ nlohmann::json EnterBlockTriggerInstance::conditionsToJson() const {
 
 // ========== EnterBlockTrigger ==========
 
-Result<std::shared_ptr<ICriterionInstance>> EnterBlockTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> EnterBlockTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<EnterBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -72,13 +76,15 @@ Result<std::shared_ptr<ICriterionInstance>> EnterBlockTrigger::fromJson(const nl
     return instance;
 }
 
-void EnterBlockTrigger::trigger(ServerPlayer& player, const BlockState& state) {
+void EnterBlockTrigger::trigger(ServerPlayer& player, const BlockState& state)
+{
     // [TODO 阶段2+3：事件系统集成] 由 EnterBlockEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
 }
 
-std::shared_ptr<EnterBlockTriggerInstance> EnterBlockTrigger::block(const ResourceLocation& blockId) {
+std::shared_ptr<EnterBlockTriggerInstance> EnterBlockTrigger::block(const ResourceLocation& blockId)
+{
     BlockPredicate pred;
     pred = BlockPredicate::fromJson(nlohmann::json{{"block", blockId.toString()}}).value();
     return std::make_shared<EnterBlockTriggerInstance>(pred, LocationPredicate{});
@@ -87,21 +93,15 @@ std::shared_ptr<EnterBlockTriggerInstance> EnterBlockTrigger::block(const Resour
 // ========== PlacedBlockTriggerInstance ==========
 
 PlacedBlockTriggerInstance::PlacedBlockTriggerInstance(
-    BlockPredicate block,
-    LocationPredicate location,
-    ItemPredicate item
-)
+    BlockPredicate block, LocationPredicate location, ItemPredicate item)
     : m_block(std::move(block))
     , m_location(std::move(location))
-    , m_item(std::move(item)) {
-}
+    , m_item(std::move(item))
+{}
 
 bool PlacedBlockTriggerInstance::test(
-    const BlockState& state,
-    const IWorld& world,
-    const BlockPos& pos,
-    const ItemStack& item
-) const {
+    const BlockState& state, const IWorld& world, const BlockPos& pos, const ItemStack& item) const
+{
     if (!m_block.test(state)) {
         return false;
     }
@@ -114,7 +114,8 @@ bool PlacedBlockTriggerInstance::test(
     return true;
 }
 
-Result<void> PlacedBlockTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> PlacedBlockTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -146,7 +147,8 @@ Result<void> PlacedBlockTriggerInstance::fromJson(const nlohmann::json& json) {
     return {};
 }
 
-nlohmann::json PlacedBlockTriggerInstance::conditionsToJson() const {
+nlohmann::json PlacedBlockTriggerInstance::conditionsToJson() const
+{
     nlohmann::json json;
 
     if (!m_block.isAny()) {
@@ -164,7 +166,8 @@ nlohmann::json PlacedBlockTriggerInstance::conditionsToJson() const {
 
 // ========== PlacedBlockTrigger ==========
 
-Result<std::shared_ptr<ICriterionInstance>> PlacedBlockTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> PlacedBlockTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<PlacedBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -174,11 +177,8 @@ Result<std::shared_ptr<ICriterionInstance>> PlacedBlockTrigger::fromJson(const n
 }
 
 void PlacedBlockTrigger::trigger(
-    ServerPlayer& player,
-    const BlockState& state,
-    const BlockPos& pos,
-    const ItemStack& item
-) {
+    ServerPlayer& player, const BlockState& state, const BlockPos& pos, const ItemStack& item)
+{
     // [TODO 阶段2+3：事件系统集成] 由 BlockPlaceEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
@@ -189,14 +189,16 @@ void PlacedBlockTrigger::trigger(
 // ========== SlideDownBlockTriggerInstance ==========
 
 SlideDownBlockTriggerInstance::SlideDownBlockTriggerInstance(BlockPredicate block)
-    : m_block(std::move(block)) {
-}
+    : m_block(std::move(block))
+{}
 
-bool SlideDownBlockTriggerInstance::test(const BlockState& state) const {
+bool SlideDownBlockTriggerInstance::test(const BlockState& state) const
+{
     return m_block.test(state);
 }
 
-Result<void> SlideDownBlockTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> SlideDownBlockTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -212,7 +214,8 @@ Result<void> SlideDownBlockTriggerInstance::fromJson(const nlohmann::json& json)
     return {};
 }
 
-nlohmann::json SlideDownBlockTriggerInstance::conditionsToJson() const {
+nlohmann::json SlideDownBlockTriggerInstance::conditionsToJson() const
+{
     if (!m_block.isAny()) {
         return {{"block", m_block.toJson()}};
     }
@@ -221,7 +224,8 @@ nlohmann::json SlideDownBlockTriggerInstance::conditionsToJson() const {
 
 // ========== SlideDownBlockTrigger ==========
 
-Result<std::shared_ptr<ICriterionInstance>> SlideDownBlockTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> SlideDownBlockTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<SlideDownBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -230,7 +234,8 @@ Result<std::shared_ptr<ICriterionInstance>> SlideDownBlockTrigger::fromJson(cons
     return instance;
 }
 
-void SlideDownBlockTrigger::trigger(ServerPlayer& player, const BlockState& state) {
+void SlideDownBlockTrigger::trigger(ServerPlayer& player, const BlockState& state)
+{
     // [TODO 阶段2+3：事件系统集成] 由 SlideDownBlockEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
@@ -238,17 +243,15 @@ void SlideDownBlockTrigger::trigger(ServerPlayer& player, const BlockState& stat
 
 // ========== BeeNestDestroyedTriggerInstance ==========
 
-BeeNestDestroyedTriggerInstance::BeeNestDestroyedTriggerInstance(BlockPredicate block, ItemPredicate item, IntBounds numBees)
+BeeNestDestroyedTriggerInstance::BeeNestDestroyedTriggerInstance(
+    BlockPredicate block, ItemPredicate item, IntBounds numBees)
     : m_block(std::move(block))
     , m_item(std::move(item))
-    , m_numBees(std::move(numBees)) {
-}
+    , m_numBees(std::move(numBees))
+{}
 
-bool BeeNestDestroyedTriggerInstance::test(
-    const BlockState& state,
-    const ItemStack& tool,
-    i32 numBeesInside
-) const {
+bool BeeNestDestroyedTriggerInstance::test(const BlockState& state, const ItemStack& tool, i32 numBeesInside) const
+{
     if (!m_block.test(state)) {
         return false;
     }
@@ -261,7 +264,8 @@ bool BeeNestDestroyedTriggerInstance::test(
     return true;
 }
 
-Result<void> BeeNestDestroyedTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> BeeNestDestroyedTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -289,7 +293,8 @@ Result<void> BeeNestDestroyedTriggerInstance::fromJson(const nlohmann::json& jso
     return {};
 }
 
-nlohmann::json BeeNestDestroyedTriggerInstance::conditionsToJson() const {
+nlohmann::json BeeNestDestroyedTriggerInstance::conditionsToJson() const
+{
     nlohmann::json json;
 
     if (!m_block.isAny()) {
@@ -307,7 +312,8 @@ nlohmann::json BeeNestDestroyedTriggerInstance::conditionsToJson() const {
 
 // ========== BeeNestDestroyedTrigger ==========
 
-Result<std::shared_ptr<ICriterionInstance>> BeeNestDestroyedTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> BeeNestDestroyedTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<BeeNestDestroyedTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -317,11 +323,8 @@ Result<std::shared_ptr<ICriterionInstance>> BeeNestDestroyedTrigger::fromJson(co
 }
 
 void BeeNestDestroyedTrigger::trigger(
-    ServerPlayer& player,
-    const BlockState& state,
-    const ItemStack& tool,
-    i32 numBeesInside
-) {
+    ServerPlayer& player, const BlockState& state, const ItemStack& tool, i32 numBeesInside)
+{
     // [TODO 阶段2+3：事件系统集成] 由 BeeNestDestroyedEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);

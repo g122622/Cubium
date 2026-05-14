@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
-#include <glm/glm.hpp>
-#include <nlohmann/json.hpp>
-#include <string>
-#include <vector>
 #include <map>
 #include <memory>
+#include <string>
+#include <vector>
+#include <glm/glm.hpp>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -32,7 +32,8 @@ struct ModelFaceUV {
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 16.0f, v1 = 16.0f;
     i32 rotation = 0; // 0, 90, 180, 270
 
-    [[nodiscard]] bool isDefault() const {
+    [[nodiscard]] bool isDefault() const
+    {
         return u0 == 0.0f && v0 == 0.0f && u1 == 16.0f && v1 == 16.0f && rotation == 0;
     }
 };
@@ -41,19 +42,19 @@ struct ModelFaceUV {
  * @brief 模型面数据
  */
 struct ModelFace {
-    std::string texture;           // "#all" 或 "blocks/stone" 或纹理变量名
-    Direction cullFace = Direction::None;  // 剔除面方向
-    i32 tintIndex = -1;       // 着色索引，-1表示不着色
-    ModelFaceUV uv;           // UV坐标
+    std::string texture;                  // "#all" 或 "blocks/stone" 或纹理变量名
+    Direction cullFace = Direction::None; // 剔除面方向
+    i32 tintIndex = -1;                   // 着色索引，-1表示不着色
+    ModelFaceUV uv;                       // UV坐标
 };
 
 /**
  * @brief 模型元素旋转
  */
 struct ModelRotation {
-    glm::vec3 origin{8.0f, 8.0f, 8.0f};  // 旋转中心
-    std::string axis = "y";                    // x, y, z
-    f32 angle = 0.0f;                     // -45, -22.5, 0, 22.5, 45
+    glm::vec3 origin{8.0f, 8.0f, 8.0f}; // 旋转中心
+    std::string axis = "y";             // x, y, z
+    f32 angle = 0.0f;                   // -45, -22.5, 0, 22.5, 45
     bool rescale = false;
 };
 
@@ -61,27 +62,25 @@ struct ModelRotation {
  * @brief 模型元素 (对应JSON中的elements数组元素)
  */
 struct ModelElement {
-    glm::vec3 from{0.0f, 0.0f, 0.0f};  // 起始坐标 (0-16)
-    glm::vec3 to{16.0f, 16.0f, 16.0f}; // 结束坐标 (0-16)
+    glm::vec3 from{0.0f, 0.0f, 0.0f};     // 起始坐标 (0-16)
+    glm::vec3 to{16.0f, 16.0f, 16.0f};    // 结束坐标 (0-16)
     std::map<Direction, ModelFace> faces; // 各面数据
-    ModelRotation rotation;              // 旋转
-    bool shade = true;                   // 是否计算阴影
+    ModelRotation rotation;               // 旋转
+    bool shade = true;                    // 是否计算阴影
 };
 
 /**
  * @brief 未烘焙的方块模型
  */
 struct UnbakedBlockModel {
-    ResourceLocation parentLocation;              // 父模型位置
-    std::vector<ModelElement> elements;           // 模型元素
-    std::map<std::string, std::string> textures;            // 纹理变量 -> 路径
-    bool ambientOcclusion = true;                 // 环境光遮蔽
-    std::string name;                                  // 模型名称(调试用)
+    ResourceLocation parentLocation;             // 父模型位置
+    std::vector<ModelElement> elements;          // 模型元素
+    std::map<std::string, std::string> textures; // 纹理变量 -> 路径
+    bool ambientOcclusion = true;                // 环境光遮蔽
+    std::string name;                            // 模型名称(调试用)
 
     // 检查是否有父模型
-    [[nodiscard]] bool hasParent() const {
-        return !parentLocation.path().empty();
-    }
+    [[nodiscard]] bool hasParent() const { return !parentLocation.path().empty(); }
 };
 
 /**
@@ -101,11 +100,11 @@ struct BakedBlockModel {
  * @brief 方块状态变体
  */
 struct BlockStateVariant {
-    ResourceLocation model;  // 模型位置
-    i32 x = 0;               // X轴旋转角度 (0, 90, 180, 270)
-    i32 y = 0;               // Y轴旋转角度 (0, 90, 180, 270)
-    bool uvLock = false;     // 是否锁定UV
-    i32 weight = 1;          // 权重
+    ResourceLocation model; // 模型位置
+    i32 x = 0;              // X轴旋转角度 (0, 90, 180, 270)
+    i32 y = 0;              // Y轴旋转角度 (0, 90, 180, 270)
+    bool uvLock = false;    // 是否锁定UV
+    i32 weight = 1;         // 权重
 
     [[nodiscard]] bool operator==(const BlockStateVariant& other) const;
 };
@@ -181,8 +180,8 @@ public:
 
 private:
     std::map<ResourceLocation, UnbakedBlockModel> m_unbakedModels;
-    IResourcePack* m_resourcePack = nullptr;  // 当前资源包（向后兼容）
-    std::vector<IResourcePack*> m_resourcePackList;  // 所有资源包列表（原始指针）
+    IResourcePack* m_resourcePack = nullptr;        // 当前资源包（向后兼容）
+    std::vector<IResourcePack*> m_resourcePackList; // 所有资源包列表（原始指针）
 
     // 从所有资源包中读取模型文件
     [[nodiscard]] Result<std::string> readModelFromResourcePacks(const std::string& filePath);

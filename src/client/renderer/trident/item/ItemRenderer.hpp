@@ -1,8 +1,8 @@
 #pragma once
 
 #include "client/renderer/MeshTypes.hpp"
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
@@ -58,9 +58,7 @@ public:
      * @param itemTextureAtlas 物品纹理图集（用于非方块物品）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        ResourceManager* resourceManager,
-        ItemTextureAtlas* itemTextureAtlas);
+    [[nodiscard]] Result<void> initialize(ResourceManager* resourceManager, ItemTextureAtlas* itemTextureAtlas);
 
     /**
      * @brief 渲染物品图标
@@ -126,11 +124,11 @@ private:
     bool m_initialized = false;
 };
 
-} // namespace mc::client::renderer::trident::item
+} // namespace client::renderer::trident::item
 
 } // namespace mc
 
 namespace mc::client {
 // 向后兼容别名
 using ItemRenderer = renderer::trident::item::ItemRenderer;
-}
+} // namespace mc::client

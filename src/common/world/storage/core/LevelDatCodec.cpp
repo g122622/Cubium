@@ -1,11 +1,11 @@
 #include "LevelDatCodec.hpp"
-#include "../list/WorldNameSanitizer.hpp"
-#include "../../WorldConfig.hpp"
 #include "../../../util/CompressionUtils.hpp"
-#include <fstream>
-#include <sstream>
+#include "../../WorldConfig.hpp"
+#include "../list/WorldNameSanitizer.hpp"
 #include <chrono>
 #include <cstring>
+#include <fstream>
+#include <sstream>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
@@ -17,21 +17,14 @@ constexpr i32 MC_ANVIL_VERSION = 19133;
 
 } // anonymous namespace
 
-LevelVersionInfo::LevelVersionInfo(
-    i32 storageVersion,
-    i32 dataVersion,
-    std::string versionName,
-    bool snapshot
-)
+LevelVersionInfo::LevelVersionInfo(i32 storageVersion, i32 dataVersion, std::string versionName, bool snapshot)
     : storageVersion(storageVersion)
     , dataVersion(dataVersion)
     , versionName(std::move(versionName))
     , snapshot(snapshot)
-{
-}
+{}
 
-LevelSummaryData::LevelSummaryData(
-    std::string displayName,
+LevelSummaryData::LevelSummaryData(std::string displayName,
     i64 lastPlayedMs,
     GameMode gameMode,
     Difficulty difficulty,
@@ -43,8 +36,7 @@ LevelSummaryData::LevelSummaryData(
     i32 storageVersion,
     i32 dataVersion,
     WorldCompatibility compatibility,
-    std::string errorMessage
-)
+    std::string errorMessage)
     : displayName(std::move(displayName))
     , lastPlayedMs(lastPlayedMs)
     , gameMode(gameMode)
@@ -58,11 +50,9 @@ LevelSummaryData::LevelSummaryData(
     , dataVersion(dataVersion)
     , compatibility(compatibility)
     , errorMessage(std::move(errorMessage))
-{
-}
+{}
 
-LevelRuntimeData::LevelRuntimeData(
-    LevelSummaryData summary,
+LevelRuntimeData::LevelRuntimeData(LevelSummaryData summary,
     i32 spawnX,
     i32 spawnY,
     i32 spawnZ,
@@ -75,8 +65,7 @@ LevelRuntimeData::LevelRuntimeData(
     i32 thunderTime,
     bool thundering,
     bool initialized,
-    bool difficultyLocked
-)
+    bool difficultyLocked)
     : summary(std::move(summary))
     , spawnX(spawnX)
     , spawnY(spawnY)
@@ -91,12 +80,9 @@ LevelRuntimeData::LevelRuntimeData(
     , thundering(thundering)
     , initialized(initialized)
     , difficultyLocked(difficultyLocked)
-{
-}
+{}
 
-Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::readGzipNbt(
-    const std::filesystem::path& filePath
-)
+Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::readGzipNbt(const std::filesystem::path& filePath)
 {
     // 读取整个文件
     std::ifstream file(filePath, std::ios::binary);
@@ -104,10 +90,7 @@ Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::readGzipNbt(
         return Error(ErrorCode::FileNotFound, "Cannot open level.dat: " + filePath.string());
     }
 
-    std::vector<u8> compressed(
-        (std::istreambuf_iterator<char>(file)),
-        std::istreambuf_iterator<char>()
-    );
+    std::vector<u8> compressed((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
 
     if (compressed.empty()) {
@@ -132,10 +115,7 @@ Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::readGzipNbt(
     return root;
 }
 
-Result<void> LevelDatCodec::writeGzipNbt(
-    const std::filesystem::path& filePath,
-    const nbt::tags::compound_tag& root
-)
+Result<void> LevelDatCodec::writeGzipNbt(const std::filesystem::path& filePath, const nbt::tags::compound_tag& root)
 {
     // 序列化 NBT
     std::ostringstream stream;
@@ -184,10 +164,10 @@ Result<LevelSummaryData> LevelDatCodec::readSummary(const std::filesystem::path&
 GameMode LevelDatCodec::parseGameMode(const nbt::tags::compound_tag& data)
 {
     static constexpr GameMode GAME_MODE_TABLE[] = {
-        GameMode::Survival,    // 0
-        GameMode::Creative,    // 1
-        GameMode::Adventure,   // 2
-        GameMode::Spectator    // 3
+        GameMode::Survival,  // 0
+        GameMode::Creative,  // 1
+        GameMode::Adventure, // 2
+        GameMode::Spectator  // 3
     };
 
     auto it = data.value.find("GameType");
@@ -203,11 +183,11 @@ GameMode LevelDatCodec::parseGameMode(const nbt::tags::compound_tag& data)
 void LevelDatCodec::writeGameMode(nbt::tags::compound_tag& data, GameMode gameMode)
 {
     static constexpr i32 GAME_TYPE_TABLE[] = {
-        0,  // Survival
-        1,  // Creative
-        2,  // Adventure
-        3,  // Spectator
-        0   // NotSet -> Survival
+        0, // Survival
+        1, // Creative
+        2, // Adventure
+        3, // Spectator
+        0  // NotSet -> Survival
     };
 
     i32 index = static_cast<i32>(gameMode);
@@ -220,10 +200,10 @@ void LevelDatCodec::writeGameMode(nbt::tags::compound_tag& data, GameMode gameMo
 Difficulty LevelDatCodec::parseDifficulty(const nbt::tags::compound_tag& data)
 {
     static constexpr Difficulty DIFFICULTY_TABLE[] = {
-        Difficulty::Peaceful,  // 0
-        Difficulty::Easy,      // 1
-        Difficulty::Normal,    // 2
-        Difficulty::Hard       // 3
+        Difficulty::Peaceful, // 0
+        Difficulty::Easy,     // 1
+        Difficulty::Normal,   // 2
+        Difficulty::Hard      // 3
     };
 
     auto it = data.value.find("Difficulty");
@@ -239,17 +219,17 @@ Difficulty LevelDatCodec::parseDifficulty(const nbt::tags::compound_tag& data)
 void LevelDatCodec::writeDifficulty(nbt::tags::compound_tag& data, Difficulty difficulty)
 {
     static constexpr i8 DIFFICULTY_TABLE[] = {
-        0,  // Peaceful
-        1,  // Easy
-        2,  // Normal
-        3   // Hard
+        0, // Peaceful
+        1, // Easy
+        2, // Normal
+        3  // Hard
     };
 
     i32 index = static_cast<i32>(difficulty);
     if (index >= 0 && index <= 3) {
         data.put("Difficulty", DIFFICULTY_TABLE[index]);
     } else {
-        data.put("Difficulty", static_cast<i8>(2));  // 默认 Normal
+        data.put("Difficulty", static_cast<i8>(2)); // 默认 Normal
     }
 }
 
@@ -293,11 +273,20 @@ void LevelDatCodec::writeWorldType(nbt::tags::compound_tag& data, WorldType worl
     // 兼容原版 generatorName
     std::string generatorName = "default";
     switch (worldType) {
-        case WorldType::Flat: generatorName = "flat"; break;
-        case WorldType::LargeBiomes: generatorName = "largeBiomes"; break;
-        case WorldType::Amplified: generatorName = "amplified"; break;
-        case WorldType::Debug: generatorName = "debug_all_block_states"; break;
-        case WorldType::Default: break;
+        case WorldType::Flat:
+            generatorName = "flat";
+            break;
+        case WorldType::LargeBiomes:
+            generatorName = "largeBiomes";
+            break;
+        case WorldType::Amplified:
+            generatorName = "amplified";
+            break;
+        case WorldType::Debug:
+            generatorName = "debug_all_block_states";
+            break;
+        case WorldType::Default:
+            break;
     }
     data.put("generatorName", generatorName);
 }
@@ -418,8 +407,7 @@ Result<LevelSummaryData> LevelDatCodec::parseSummary(const nbt::tags::compound_t
     LevelVersionInfo versionInfo(storageVersion, dataVersion, versionName, snapshot);
     WorldCompatibility compatibility = determineCompatibility(storageVersion, dataVersion);
 
-    return LevelSummaryData(
-        std::move(displayName),
+    return LevelSummaryData(std::move(displayName),
         lastPlayedMs,
         gameMode,
         difficulty,
@@ -431,14 +419,12 @@ Result<LevelSummaryData> LevelDatCodec::parseSummary(const nbt::tags::compound_t
         storageVersion,
         dataVersion,
         compatibility,
-        ""  // No error message if successfully parsed
+        "" // No error message if successfully parsed
     );
 }
 
 std::unique_ptr<nbt::tags::compound_tag> LevelDatCodec::buildInitialNbt(
-    const CreateWorldRequest& request,
-    i64 lastPlayedMs
-)
+    const CreateWorldRequest& request, i64 lastPlayedMs)
 {
     auto root = std::make_unique<nbt::tags::compound_tag>();
     nbt::tags::compound_tag data;
@@ -495,10 +481,7 @@ std::unique_ptr<nbt::tags::compound_tag> LevelDatCodec::buildInitialNbt(
     return root;
 }
 
-Result<void> LevelDatCodec::atomicWrite(
-    const std::filesystem::path& worldDir,
-    const nbt::tags::compound_tag& root
-)
+Result<void> LevelDatCodec::atomicWrite(const std::filesystem::path& worldDir, const nbt::tags::compound_tag& root)
 {
     std::filesystem::path levelDat = worldDir / "level.dat";
     std::filesystem::path levelDatOld = worldDir / "level.dat_old";
@@ -513,8 +496,7 @@ Result<void> LevelDatCodec::atomicWrite(
     // 备份现有的 level.dat
     std::error_code ec;
     if (std::filesystem::exists(levelDat, ec)) {
-        std::filesystem::copy_file(levelDat, levelDatOld,
-            std::filesystem::copy_options::overwrite_existing, ec);
+        std::filesystem::copy_file(levelDat, levelDatOld, std::filesystem::copy_options::overwrite_existing, ec);
         if (ec) {
             spdlog::warn("Failed to backup level.dat: {}", ec.message());
         }
@@ -525,8 +507,7 @@ Result<void> LevelDatCodec::atomicWrite(
     if (ec) {
         // 尝试恢复
         if (std::filesystem::exists(levelDatOld, ec)) {
-            std::filesystem::copy_file(levelDatOld, levelDat,
-                std::filesystem::copy_options::overwrite_existing, ec);
+            std::filesystem::copy_file(levelDatOld, levelDat, std::filesystem::copy_options::overwrite_existing, ec);
         }
         return Error(ErrorCode::FileWriteFailed, "Failed to replace level.dat: " + ec.message());
     }
@@ -534,10 +515,7 @@ Result<void> LevelDatCodec::atomicWrite(
     return Result<void>::ok();
 }
 
-Result<void> LevelDatCodec::writeInitial(
-    const std::filesystem::path& worldDir,
-    const CreateWorldRequest& request
-)
+Result<void> LevelDatCodec::writeInitial(const std::filesystem::path& worldDir, const CreateWorldRequest& request)
 {
     // 获取当前时间戳
     auto now = std::chrono::system_clock::now();
@@ -551,11 +529,9 @@ Result<void> LevelDatCodec::writeInitial(
     return atomicWrite(worldDir, *root);
 }
 
-Result<void> LevelDatCodec::readDataCompound(
-    const std::filesystem::path& worldDir,
+Result<void> LevelDatCodec::readDataCompound(const std::filesystem::path& worldDir,
     std::unique_ptr<nbt::tags::compound_tag>& outRoot,
-    nbt::tags::compound_tag*& outData
-)
+    nbt::tags::compound_tag*& outData)
 {
     auto rootResult = readGzipNbt(worldDir / "level.dat");
     if (rootResult.failed()) {
@@ -573,10 +549,7 @@ Result<void> LevelDatCodec::readDataCompound(
     return Result<void>::ok();
 }
 
-Result<void> LevelDatCodec::updateDisplayName(
-    const std::filesystem::path& worldDir,
-    const std::string& newDisplayName
-)
+Result<void> LevelDatCodec::updateDisplayName(const std::filesystem::path& worldDir, const std::string& newDisplayName)
 {
     std::unique_ptr<nbt::tags::compound_tag> root;
     nbt::tags::compound_tag* data = nullptr;
@@ -590,10 +563,7 @@ Result<void> LevelDatCodec::updateDisplayName(
     return atomicWrite(worldDir, *root);
 }
 
-Result<void> LevelDatCodec::updateLastPlayed(
-    const std::filesystem::path& worldDir,
-    i64 lastPlayedMs
-)
+Result<void> LevelDatCodec::updateLastPlayed(const std::filesystem::path& worldDir, i64 lastPlayedMs)
 {
     std::unique_ptr<nbt::tags::compound_tag> root;
     nbt::tags::compound_tag* data = nullptr;
@@ -618,18 +588,17 @@ Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::p
     // 第一版只读取摘要数据，运行时字段使用默认值
     // 出生点、时间、天气等字段需要在后续版本实现完整读取
 
-    return LevelRuntimeData(
-        std::move(summaryResult.value()),
-        0,  // spawnX
-        0,  // spawnY
-        0,  // spawnZ
-        0.0f, // spawnAngle
-        0,  // gameTime
-        0,  // dayTime
-        0,  // clearWeatherTime
-        0,  // rainTime
+    return LevelRuntimeData(std::move(summaryResult.value()),
+        0,     // spawnX
+        0,     // spawnY
+        0,     // spawnZ
+        0.0f,  // spawnAngle
+        0,     // gameTime
+        0,     // dayTime
+        0,     // clearWeatherTime
+        0,     // rainTime
         false, // raining
-        0,  // thunderTime
+        0,     // thunderTime
         false, // thundering
         false, // initialized
         false  // difficultyLocked

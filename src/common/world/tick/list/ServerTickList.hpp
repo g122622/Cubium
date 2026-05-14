@@ -1,18 +1,18 @@
 #pragma once
 
-#include "ITickList.hpp"
-#include "../base/ScheduledTick.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include "../../IWorld.hpp"
+#include "../base/ScheduledTick.hpp"
+#include "ITickList.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
+#include <cmath>
+#include <functional>
+#include <queue>
 #include <set>
 #include <unordered_set>
-#include <queue>
 #include <vector>
-#include <functional>
-#include <cmath>
 
 namespace mc {
 
@@ -53,7 +53,7 @@ namespace world::tick {
  *
  * @tparam T 目标类型（Block、Fluid等）
  */
-template<typename T>
+template <typename T>
 class ServerTickList : public ITickList<T> {
 public:
     /**
@@ -85,11 +85,8 @@ public:
      * @param deserializer 反序列化函数
      * @param tickFunction tick执行回调
      */
-    ServerTickList(IWorld& world,
-                   Filter filter,
-                   Serializer serializer,
-                   Deserializer deserializer,
-                   TickCallback tickFunction);
+    ServerTickList(
+        IWorld& world, Filter filter, Serializer serializer, Deserializer deserializer, TickCallback tickFunction);
 
     // ========== ITickList接口实现 ==========
 
@@ -98,8 +95,7 @@ public:
 
     [[nodiscard]] bool isTickScheduled(const BlockPos& pos, T& target) const override;
     [[nodiscard]] bool isTickPending(const BlockPos& pos, T& target) const override;
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay,
-                      TickPriority priority) override;
+    void scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority) override;
     bool cancelTick(const BlockPos& pos, T& target) override;
     [[nodiscard]] size_t pendingCount() const override;
 
@@ -148,9 +144,7 @@ public:
      * @param offsetY Y偏移
      * @param offsetZ Z偏移
      */
-    void copyTicks(i32 minX, i32 minY, i32 minZ,
-                   i32 maxX, i32 maxY, i32 maxZ,
-                   i32 offsetX, i32 offsetY, i32 offsetZ);
+    void copyTicks(i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 offsetX, i32 offsetY, i32 offsetZ);
 
     // ========== 统计 ==========
 
@@ -192,20 +186,21 @@ private:
     /**
      * @brief 生成新的tick条目ID
      */
-    [[nodiscard]] static u64 nextTickEntryId() {
+    [[nodiscard]] static u64 nextTickEntryId()
+    {
         static u64 s_nextId = 0;
         return ++s_nextId;
     }
 
 private:
     IWorld& m_world;
-    Filter m_filter;                   ///< 过滤器
-    Serializer m_serializer;           ///< 序列化
-    Deserializer m_deserializer;       ///< 反序列化
-    TickCallback m_tickFunction;       ///< tick回调
+    Filter m_filter;             ///< 过滤器
+    Serializer m_serializer;     ///< 序列化
+    Deserializer m_deserializer; ///< 反序列化
+    TickCallback m_tickFunction; ///< tick回调
 
     // 存储: set用于排序，unordered_set用于快速查找
-    std::set<ScheduledTick<T>> m_pendingTicksTree;    ///< 按时间/优先级排序
+    std::set<ScheduledTick<T>> m_pendingTicksTree;                                ///< 按时间/优先级排序
     std::unordered_set<ScheduledTick<T>, ScheduledTickHash<T>> m_pendingTicksSet; ///< 快速存在检查
 
     // 当前tick处理
@@ -221,27 +216,26 @@ private:
 
 // ========== 模板实现 ==========
 
-template<typename T>
-ServerTickList<T>::ServerTickList(IWorld& world,
-                                   Filter filter,
-                                   Serializer serializer,
-                                   Deserializer deserializer,
-                                   TickCallback tickFunction)
+template <typename T>
+ServerTickList<T>::ServerTickList(
+    IWorld& world, Filter filter, Serializer serializer, Deserializer deserializer, TickCallback tickFunction)
     : m_world(world)
     , m_filter(std::move(filter))
     , m_serializer(std::move(serializer))
     , m_deserializer(std::move(deserializer))
-    , m_tickFunction(std::move(tickFunction)) {
-}
+    , m_tickFunction(std::move(tickFunction))
+{}
 
-template<typename T>
-bool ServerTickList<T>::isTickScheduled(const BlockPos& pos, T& target) const {
+template <typename T>
+bool ServerTickList<T>::isTickScheduled(const BlockPos& pos, T& target) const
+{
     ScheduledTick<T> key(pos, &target, 0, TickPriority::Normal, 0);
     return m_pendingTicksSet.find(key) != m_pendingTicksSet.end();
 }
 
-template<typename T>
-bool ServerTickList<T>::isTickPending(const BlockPos& pos, T& target) const {
+template <typename T>
+bool ServerTickList<T>::isTickPending(const BlockPos& pos, T& target) const
+{
     // 检查当前tick待处理队列
     std::queue<ScheduledTick<T>> tempQueue = m_ticksThisTick;
     while (!tempQueue.empty()) {
@@ -254,9 +248,9 @@ bool ServerTickList<T>::isTickPending(const BlockPos& pos, T& target) const {
     return false;
 }
 
-template<typename T>
-void ServerTickList<T>::scheduleTick(const BlockPos& pos, T& target, i32 delay,
-                                      TickPriority priority) {
+template <typename T>
+void ServerTickList<T>::scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority)
+{
     // 检查过滤器
     if (m_filter && m_filter(target)) {
         return;
@@ -280,8 +274,9 @@ void ServerTickList<T>::scheduleTick(const BlockPos& pos, T& target, i32 delay,
     addEntry(entry);
 }
 
-template<typename T>
-bool ServerTickList<T>::cancelTick(const BlockPos& pos, T& target) {
+template <typename T>
+bool ServerTickList<T>::cancelTick(const BlockPos& pos, T& target)
+{
     ScheduledTick<T> key(pos, &target, 0, TickPriority::Normal, 0);
 
     auto it = m_pendingTicksSet.find(key);
@@ -293,13 +288,15 @@ bool ServerTickList<T>::cancelTick(const BlockPos& pos, T& target) {
     return false;
 }
 
-template<typename T>
-size_t ServerTickList<T>::pendingCount() const {
+template <typename T>
+size_t ServerTickList<T>::pendingCount() const
+{
     return m_pendingTicksTree.size();
 }
 
-template<typename T>
-void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
+template <typename T>
+void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks)
+{
     // 更新当前tick
     mCurrentTick = currentTick;
 
@@ -348,13 +345,16 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
             if (canTick(tick.position)) {
                 m_executedThisTick.push_back(tick);
 
-                MC_TRACE_EVENT("server.tick", "ExecutingTick",
-                    "position", tick.position.toString(),
-                    "scheduledTick", tick.scheduledTick,
-                    "priority", static_cast<i8>(tick.priority),
-                    [flow = ::perfetto::Flow::ProcessScoped(tick.position.toId())](::perfetto::EventContext ctx) {
-                        flow(ctx);
-                });
+                MC_TRACE_EVENT("server.tick",
+                    "ExecutingTick",
+                    "position",
+                    tick.position.toString(),
+                    "scheduledTick",
+                    tick.scheduledTick,
+                    "priority",
+                    static_cast<i8>(tick.priority),
+                    [flow = ::perfetto::Flow::ProcessScoped(tick.position.toId())](
+                        ::perfetto::EventContext ctx) { flow(ctx); });
 
                 m_tickFunction(m_world, tick.position, *tick.target);
                 ++m_totalProcessed;
@@ -365,9 +365,10 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
     }
 }
 
-template<typename T>
+template <typename T>
 std::vector<ScheduledTick<T>> ServerTickList<T>::getPendingTicks(
-    i32 chunkX, i32 chunkZ, bool remove, bool skipCompleted) {
+    i32 chunkX, i32 chunkZ, bool remove, bool skipCompleted)
+{
 
     std::vector<ScheduledTick<T>> result;
 
@@ -379,10 +380,9 @@ std::vector<ScheduledTick<T>> ServerTickList<T>::getPendingTicks(
     i32 maxZ = (chunkZ + 1) * 16 + 2;
 
     // 从TreeSet中收集
-    for (auto it = m_pendingTicksTree.begin(); it != m_pendingTicksTree.end(); ) {
+    for (auto it = m_pendingTicksTree.begin(); it != m_pendingTicksTree.end();) {
         const ScheduledTick<T>& tick = *it;
-        if (tick.position.x >= minX && tick.position.x < maxX &&
-            tick.position.z >= minZ && tick.position.z < maxZ) {
+        if (tick.position.x >= minX && tick.position.x < maxX && tick.position.z >= minZ && tick.position.z < maxZ) {
 
             result.push_back(tick);
             if (remove) {
@@ -401,8 +401,8 @@ std::vector<ScheduledTick<T>> ServerTickList<T>::getPendingTicks(
         std::queue<ScheduledTick<T>> tempQueue = m_ticksThisTick;
         while (!tempQueue.empty()) {
             const auto& tick = tempQueue.front();
-            if (tick.position.x >= minX && tick.position.x < maxX &&
-                tick.position.z >= minZ && tick.position.z < maxZ) {
+            if (tick.position.x >= minX && tick.position.x < maxX && tick.position.z >= minZ &&
+                tick.position.z < maxZ) {
                 result.push_back(tick);
             }
             tempQueue.pop();
@@ -412,16 +412,15 @@ std::vector<ScheduledTick<T>> ServerTickList<T>::getPendingTicks(
     return result;
 }
 
-template<typename T>
-void ServerTickList<T>::copyTicks(i32 minX, i32 minY, i32 minZ,
-                                   i32 maxX, i32 maxY, i32 maxZ,
-                                   i32 offsetX, i32 offsetY, i32 offsetZ) {
+template <typename T>
+void ServerTickList<T>::copyTicks(
+    i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 offsetX, i32 offsetY, i32 offsetZ)
+{
     std::vector<ScheduledTick<T>> ticksToCopy;
 
     // 收集边界框内的tick
     for (const auto& tick : m_pendingTicksTree) {
-        if (tick.position.x >= minX && tick.position.x <= maxX &&
-            tick.position.y >= minY && tick.position.y <= maxY &&
+        if (tick.position.x >= minX && tick.position.x <= maxX && tick.position.y >= minY && tick.position.y <= maxY &&
             tick.position.z >= minZ && tick.position.z <= maxZ) {
             ticksToCopy.push_back(tick);
         }
@@ -429,23 +428,22 @@ void ServerTickList<T>::copyTicks(i32 minX, i32 minY, i32 minZ,
 
     // 添加偏移后重新调度
     for (const auto& tick : ticksToCopy) {
-        BlockPos newPos(tick.position.x + offsetX,
-                        tick.position.y + offsetY,
-                        tick.position.z + offsetZ);
-        ScheduledTick<T> newTick(newPos, tick.target, tick.scheduledTick,
-                                  tick.priority, nextTickEntryId());
+        BlockPos newPos(tick.position.x + offsetX, tick.position.y + offsetY, tick.position.z + offsetZ);
+        ScheduledTick<T> newTick(newPos, tick.target, tick.scheduledTick, tick.priority, nextTickEntryId());
         addEntry(newTick);
     }
 }
 
-template<typename T>
-void ServerTickList<T>::addEntry(const ScheduledTick<T>& entry) {
+template <typename T>
+void ServerTickList<T>::addEntry(const ScheduledTick<T>& entry)
+{
     m_pendingTicksTree.insert(entry);
     m_pendingTicksSet.insert(entry);
 }
 
-template<typename T>
-bool ServerTickList<T>::canTick(const BlockPos& pos) const {
+template <typename T>
+bool ServerTickList<T>::canTick(const BlockPos& pos) const
+{
     // 检查区块是否加载
     // 将方块坐标转换为区块坐标
     ChunkCoord chunkX = static_cast<ChunkCoord>(std::floor(static_cast<f32>(pos.x) / 16.0f));
@@ -453,5 +451,5 @@ bool ServerTickList<T>::canTick(const BlockPos& pos) const {
     return m_world.hasChunk(chunkX, chunkZ);
 }
 
-} // namespace mc::world::tick
+} // namespace world::tick
 } // namespace mc

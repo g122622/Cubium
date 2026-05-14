@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../core/Entity.hpp"
-#include "../../damage/DamageSource.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../core/Entity.hpp"
+#include "../../damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
@@ -18,9 +18,9 @@ namespace entity {
  * @brief 射线追踪结果类型
  */
 enum class RayTraceResultType : u8 {
-    Miss,   // 未命中
-    Block,  // 命中方块
-    Entity  // 命中实体
+    Miss,  // 未命中
+    Block, // 命中方块
+    Entity // 命中实体
 };
 
 /**
@@ -32,11 +32,10 @@ struct RayTraceResult {
     BlockPos blockPos;
     mc::Entity* hitEntity = nullptr;
 
-    static RayTraceResult miss() {
-        return RayTraceResult{};
-    }
+    static RayTraceResult miss() { return RayTraceResult{}; }
 
-    static RayTraceResult block(const Vector3& pos, const BlockPos& blockPos) {
+    static RayTraceResult block(const Vector3& pos, const BlockPos& blockPos)
+    {
         RayTraceResult result;
         result.type = RayTraceResultType::Block;
         result.hitPosition = pos;
@@ -44,7 +43,8 @@ struct RayTraceResult {
         return result;
     }
 
-    static RayTraceResult entity(const Vector3& pos, mc::Entity* hitEntity) {
+    static RayTraceResult entity(const Vector3& pos, mc::Entity* hitEntity)
+    {
         RayTraceResult result;
         result.type = RayTraceResultType::Entity;
         result.hitPosition = pos;
@@ -130,8 +130,7 @@ public:
      * @param velocity 初始速度
      * @param inaccuracy 散布精度
      */
-    void shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset,
-                   f32 velocity, f32 inaccuracy);
+    void shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy);
 
     // ========== 碰撞检测 ==========
 
@@ -221,10 +220,10 @@ protected:
     RayTraceResult rayTraceBlocks(const Vector3& start, const Vector3& end);
 
     // 发射者信息
-    std::string m_shooterUuid;           // 发射者UUID
-    EntityId m_shooterEntityId = INVALID_ENTITY_ID;  // 发射者实体ID
-    bool m_leftShooter = false;     // 是否已离开发射者
-    bool m_noGravity = false;       // 是否不受重力
+    std::string m_shooterUuid;                      // 发射者UUID
+    EntityId m_shooterEntityId = INVALID_ENTITY_ID; // 发射者实体ID
+    bool m_leftShooter = false;                     // 是否已离开发射者
+    bool m_noGravity = false;                       // 是否不受重力
 };
 
 } // namespace entity

@@ -31,13 +31,13 @@ private:
     static void registerBlockStates(InMemoryResourcePack& pack);
 
     // 模型模板
-    static const char* MODEL_CUBE_ALL;      // 单面纹理方块
-    static const char* MODEL_CUBE_COLUMN;   // 柱状方块（原木等）
-    static const char* MODEL_CUBE;          // 六面不同纹理
-    static const char* MODEL_LEAVES;        // 树叶
-    static const char* MODEL_CROSS;         // 交叉纹理（花草等）
-    static const char* MODEL_TINTED_CROSS;  // 染色交叉纹理
-    static const char* MODEL_AIR;           // 空气
+    static const char* MODEL_CUBE_ALL;     // 单面纹理方块
+    static const char* MODEL_CUBE_COLUMN;  // 柱状方块（原木等）
+    static const char* MODEL_CUBE;         // 六面不同纹理
+    static const char* MODEL_LEAVES;       // 树叶
+    static const char* MODEL_CROSS;        // 交叉纹理（花草等）
+    static const char* MODEL_TINTED_CROSS; // 染色交叉纹理
+    static const char* MODEL_AIR;          // 空气
 };
 
 } // namespace mc

@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/particles/block/DiggingParticle.hpp"
 #include "client/renderer/trident/particle/ParticleRenderType.hpp"
 #include "client/renderer/trident/particle/ParticleTextureAtlas.hpp"
+#include "client/renderer/trident/particle/particles/block/DiggingParticle.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/resource/ResourceLocation.hpp"
 
-#include <glm/glm.hpp>
 #include <memory>
+#include <glm/glm.hpp>
 
 namespace mc {
 namespace {
@@ -25,19 +25,22 @@ using namespace client::renderer::trident::particle::particles;
  */
 class DiggingParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
     }
 };
 
 // ==================== 创建测试 ====================
 
-TEST_F(DiggingParticleTest, CreateWithBlock_ReturnsValidParticle) {
+TEST_F(DiggingParticleTest, CreateWithBlock_ReturnsValidParticle)
+{
     glm::vec3 pos(10.0f, 64.0f, 20.0f);
     glm::vec3 velocity(0.1f, 0.2f, 0.3f);
 
@@ -51,7 +54,8 @@ TEST_F(DiggingParticleTest, CreateWithBlock_ReturnsValidParticle) {
     EXPECT_TRUE(particle->isAlive());
 }
 
-TEST_F(DiggingParticleTest, CreateWithBlock_SetsPosition) {
+TEST_F(DiggingParticleTest, CreateWithBlock_SetsPosition)
+{
     glm::vec3 pos(10.0f, 64.0f, 20.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -64,7 +68,8 @@ TEST_F(DiggingParticleTest, CreateWithBlock_SetsPosition) {
     EXPECT_FLOAT_EQ(particle->position().z, 20.0f);
 }
 
-TEST_F(DiggingParticleTest, CreateWithBlock_SetsVelocity) {
+TEST_F(DiggingParticleTest, CreateWithBlock_SetsVelocity)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.5f, 0.3f, -0.2f);
 
@@ -76,7 +81,8 @@ TEST_F(DiggingParticleTest, CreateWithBlock_SetsVelocity) {
     // 原始速度向量用于初始方向
 }
 
-TEST_F(DiggingParticleTest, Create_Default_ReturnsStoneParticle) {
+TEST_F(DiggingParticleTest, Create_Default_ReturnsStoneParticle)
+{
     // 默认工厂方法应该返回使用石头纹理的粒子
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
@@ -92,7 +98,8 @@ TEST_F(DiggingParticleTest, Create_Default_ReturnsStoneParticle) {
 
 // ==================== 渲染属性测试 ====================
 
-TEST_F(DiggingParticleTest, GetRenderType_ReturnsTerrainSheet) {
+TEST_F(DiggingParticleTest, GetRenderType_ReturnsTerrainSheet)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -105,7 +112,8 @@ TEST_F(DiggingParticleTest, GetRenderType_ReturnsTerrainSheet) {
     EXPECT_EQ(particle->getRenderType(), ParticleRenderType::TERRAIN_SHEET);
 }
 
-TEST_F(DiggingParticleTest, GetTextureLocation_ReturnsDefaultTexture) {
+TEST_F(DiggingParticleTest, GetTextureLocation_ReturnsDefaultTexture)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -121,7 +129,8 @@ TEST_F(DiggingParticleTest, GetTextureLocation_ReturnsDefaultTexture) {
 
 // ==================== 物理属性测试 ====================
 
-TEST_F(DiggingParticleTest, HasGravity) {
+TEST_F(DiggingParticleTest, HasGravity)
+{
     glm::vec3 pos(0.0f, 100.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -133,7 +142,8 @@ TEST_F(DiggingParticleTest, HasGravity) {
     EXPECT_GT(particle->gravity(), 0.0);
 }
 
-TEST_F(DiggingParticleTest, HasPhysics) {
+TEST_F(DiggingParticleTest, HasPhysics)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -145,7 +155,8 @@ TEST_F(DiggingParticleTest, HasPhysics) {
     EXPECT_TRUE(particle->hasPhysics());
 }
 
-TEST_F(DiggingParticleTest, HasFriction) {
+TEST_F(DiggingParticleTest, HasFriction)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -159,7 +170,8 @@ TEST_F(DiggingParticleTest, HasFriction) {
 
 // ==================== 生命周期测试 ====================
 
-TEST_F(DiggingParticleTest, Tick_UpdatesAge) {
+TEST_F(DiggingParticleTest, Tick_UpdatesAge)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -174,7 +186,8 @@ TEST_F(DiggingParticleTest, Tick_UpdatesAge) {
     EXPECT_GT(particle->age(), initialAge);
 }
 
-TEST_F(DiggingParticleTest, Tick_AppliesGravity) {
+TEST_F(DiggingParticleTest, Tick_AppliesGravity)
+{
     glm::vec3 pos(0.0f, 100.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -182,7 +195,7 @@ TEST_F(DiggingParticleTest, Tick_AppliesGravity) {
     auto particle = DiggingParticle::createWithBlock(pos, velocity, stoneState);
 
     ASSERT_NE(particle, nullptr);
-    particle->setMaxAge(1000.0);  // 防止过期
+    particle->setMaxAge(1000.0); // 防止过期
 
     f32 initialVelY = particle->velocity().y;
 
@@ -192,7 +205,8 @@ TEST_F(DiggingParticleTest, Tick_AppliesGravity) {
     EXPECT_LT(particle->velocity().y, initialVelY);
 }
 
-TEST_F(DiggingParticleTest, Tick_AppliesFriction) {
+TEST_F(DiggingParticleTest, Tick_AppliesFriction)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(1.0f, 0.0f, 1.0f);
 
@@ -200,7 +214,7 @@ TEST_F(DiggingParticleTest, Tick_AppliesFriction) {
     auto particle = DiggingParticle::createWithBlock(pos, velocity, stoneState);
 
     ASSERT_NE(particle, nullptr);
-    particle->setMaxAge(1000.0);  // 防止过期
+    particle->setMaxAge(1000.0); // 防止过期
 
     // 禁用物理以测试摩擦力
     particle->setHasPhysics(false);
@@ -215,7 +229,8 @@ TEST_F(DiggingParticleTest, Tick_AppliesFriction) {
     EXPECT_LT(std::abs(particle->velocity().z), std::abs(initialVelZ));
 }
 
-TEST_F(DiggingParticleTest, Tick_UpdatesPosition) {
+TEST_F(DiggingParticleTest, Tick_UpdatesPosition)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.5f, 0.0f, 0.5f);
 
@@ -224,7 +239,7 @@ TEST_F(DiggingParticleTest, Tick_UpdatesPosition) {
 
     ASSERT_NE(particle, nullptr);
     particle->setMaxAge(1000.0);
-    particle->setHasPhysics(false);  // 禁用碰撞以便测试移动
+    particle->setHasPhysics(false); // 禁用碰撞以便测试移动
 
     particle->tick(nullptr);
 
@@ -233,7 +248,8 @@ TEST_F(DiggingParticleTest, Tick_UpdatesPosition) {
     EXPECT_NE(particle->position().z, 0.0f);
 }
 
-TEST_F(DiggingParticleTest, Tick_ExpiresAfterLifetime) {
+TEST_F(DiggingParticleTest, Tick_ExpiresAfterLifetime)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -241,7 +257,7 @@ TEST_F(DiggingParticleTest, Tick_ExpiresAfterLifetime) {
     auto particle = DiggingParticle::createWithBlock(pos, velocity, stoneState);
 
     ASSERT_NE(particle, nullptr);
-    particle->setMaxAge(5.0);  // 设置短生命周期
+    particle->setMaxAge(5.0); // 设置短生命周期
 
     // Tick 直到过期
     for (int i = 0; i < 10; ++i) {
@@ -253,7 +269,8 @@ TEST_F(DiggingParticleTest, Tick_ExpiresAfterLifetime) {
 
 // ==================== 淡出测试 ====================
 
-TEST_F(DiggingParticleTest, Tick_FadesOutInLateLifetime) {
+TEST_F(DiggingParticleTest, Tick_FadesOutInLateLifetime)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -276,7 +293,7 @@ TEST_F(DiggingParticleTest, Tick_FadesOutInLateLifetime) {
     EXPECT_FLOAT_EQ(particle->color().a, 1.0f);
 
     // tick 过了淡出阈值
-    particle->tick(nullptr);  // 80%
+    particle->tick(nullptr); // 80%
 
     // 现在 alpha 应该开始减小
     EXPECT_LT(particle->color().a, 1.0f);
@@ -284,7 +301,8 @@ TEST_F(DiggingParticleTest, Tick_FadesOutInLateLifetime) {
 
 // ==================== 碰撞盒测试 ====================
 
-TEST_F(DiggingParticleTest, BoundingBox_IsSmall) {
+TEST_F(DiggingParticleTest, BoundingBox_IsSmall)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -306,7 +324,8 @@ TEST_F(DiggingParticleTest, BoundingBox_IsSmall) {
 
 // ==================== 旋转测试 ====================
 
-TEST_F(DiggingParticleTest, Tick_Rotates) {
+TEST_F(DiggingParticleTest, Tick_Rotates)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -325,17 +344,14 @@ TEST_F(DiggingParticleTest, Tick_Rotates) {
 
 // ==================== 不同方块类型测试 ====================
 
-TEST_F(DiggingParticleTest, CreateWithBlock_DifferentBlockTypes) {
+TEST_F(DiggingParticleTest, CreateWithBlock_DifferentBlockTypes)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
     // 测试不同方块类型
     std::vector<Block*> blocks = {
-        VanillaBlocks::STONE,
-        VanillaBlocks::DIRT,
-        VanillaBlocks::GRASS_BLOCK,
-        VanillaBlocks::COBBLESTONE
-    };
+        VanillaBlocks::STONE, VanillaBlocks::DIRT, VanillaBlocks::GRASS_BLOCK, VanillaBlocks::COBBLESTONE};
 
     for (Block* block : blocks) {
         if (block == nullptr) continue;
@@ -351,7 +367,8 @@ TEST_F(DiggingParticleTest, CreateWithBlock_DifferentBlockTypes) {
 
 // ==================== buildVertices 测试 ====================
 
-TEST_F(DiggingParticleTest, BuildVertices_WithoutTextureAtlas_ProducesVertices) {
+TEST_F(DiggingParticleTest, BuildVertices_WithoutTextureAtlas_ProducesVertices)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -372,7 +389,8 @@ TEST_F(DiggingParticleTest, BuildVertices_WithoutTextureAtlas_ProducesVertices) 
     EXPECT_EQ(vertices.size(), 4u);
 }
 
-TEST_F(DiggingParticleTest, BuildVertices_VerticesHaveValidUV) {
+TEST_F(DiggingParticleTest, BuildVertices_VerticesHaveValidUV)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -398,7 +416,8 @@ TEST_F(DiggingParticleTest, BuildVertices_VerticesHaveValidUV) {
     }
 }
 
-TEST_F(DiggingParticleTest, BuildVertices_VerticesHaveColor) {
+TEST_F(DiggingParticleTest, BuildVertices_VerticesHaveColor)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 

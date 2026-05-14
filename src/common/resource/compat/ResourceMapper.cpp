@@ -7,9 +7,7 @@ namespace mc {
 namespace resource {
 namespace compat {
 
-bool BaseResourceMapper::hasResourceVariant(
-    const IResourcePack& pack,
-    std::string_view unifiedPath) const
+bool BaseResourceMapper::hasResourceVariant(const IResourcePack& pack, std::string_view unifiedPath) const
 {
     // 先尝试纹理路径
     auto texPaths = getTexturePathVariants(unifiedPath);
@@ -33,8 +31,7 @@ bool BaseResourceMapper::hasResourceVariant(
 }
 
 Result<std::vector<u8>> BaseResourceMapper::readResourceVariant(
-    const IResourcePack& pack,
-    std::string_view unifiedPath) const
+    const IResourcePack& pack, std::string_view unifiedPath) const
 {
     // 先尝试纹理路径
     auto texPaths = getTexturePathVariants(unifiedPath);
@@ -56,13 +53,11 @@ Result<std::vector<u8>> BaseResourceMapper::readResourceVariant(
         return pack.readResource(filePath);
     }
 
-    return Error(ErrorCode::ResourceNotFound,
-                 "未找到资源: " + std::string(unifiedPath));
+    return Error(ErrorCode::ResourceNotFound, "未找到资源: " + std::string(unifiedPath));
 }
 
 Result<std::vector<u8>> BaseResourceMapper::tryReadFromPaths(
-    const IResourcePack& pack,
-    const std::vector<std::string>& paths) const
+    const IResourcePack& pack, const std::vector<std::string>& paths) const
 {
     for (const auto& path : paths) {
         if (pack.hasResource(path)) {
@@ -75,7 +70,8 @@ Result<std::vector<u8>> BaseResourceMapper::tryReadFromPaths(
     return Error(ErrorCode::ResourceNotFound, "在任何变体路径中均未找到资源");
 }
 
-std::unique_ptr<ResourceMapper> ResourceMapper::create(PackFormat format) {
+std::unique_ptr<ResourceMapper> ResourceMapper::create(PackFormat format)
+{
     switch (format) {
         case PackFormat::V1_6_to_1_8:
         case PackFormat::V1_9_to_1_10:
@@ -92,8 +88,7 @@ std::unique_ptr<ResourceMapper> ResourceMapper::create(PackFormat format) {
 
         default:
             // 未知格式默认使用现代映射器
-            spdlog::warn("未知的包格式 {}，默认使用 1.13+ 映射器",
-                         static_cast<i32>(format));
+            spdlog::warn("未知的包格式 {}，默认使用 1.13+ 映射器", static_cast<i32>(format));
             return std::make_unique<v1_13::ResourceMapperV113>();
     }
 }

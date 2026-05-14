@@ -10,8 +10,8 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-#include <sstream>
 #include <algorithm>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -19,49 +19,32 @@ namespace command {
 void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto tagNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tag");
-    tagNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    tagNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(
-        tagNode,
-        support::makeMetadata(
-            "Manages entity tags.",
-            "/tag <targets> <add|remove|list> [tag]",
-            2,
-            {},
-            true));
+        tagNode, support::makeMetadata("Manages entity tags.", "/tag <targets> <add|remove|list> [tag]", 2, {}, true));
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::entities());
+        "targets", EntityArgumentType::entities());
 
     // /tag <targets> add <tag>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto tagArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "tag",
-        StringArgumentType::string());
-    tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return addTag(ctx);
-    });
+    auto tagArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
+    tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addTag(ctx); });
     addNode->addChild(tagArg);
     targetsArg->addChild(addNode);
 
     // /tag <targets> remove <tag>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeTagArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "tag",
-        StringArgumentType::string());
-    removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return removeTag(ctx);
-    });
+    auto removeTagArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
+    removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeTag(ctx); });
     removeNode->addChild(removeTagArg);
     targetsArg->addChild(removeNode);
 
     // /tag <targets> list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return listTags(ctx);
-    });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listTags(ctx); });
     targetsArg->addChild(listNode);
 
     tagNode->addChild(targetsArg);
@@ -87,7 +70,7 @@ static Entity* getEntityFromPlayerId(const ServerCommandSource& source, PlayerId
 
     // 通过 ServerPlayerEntityManager 获取玩家实体
     Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-    return player;  // Player 继承自 Entity
+    return player; // Player 继承自 Entity
 }
 
 i32 TagCommand::addTag(CommandContext<ServerCommandSource>& context)
@@ -216,7 +199,8 @@ i32 TagCommand::listTags(CommandContext<ServerCommandSource>& context)
             source.sendMessage("No tags found on " + std::to_string(playerIds.size()) + " entities");
         } else {
             std::ostringstream ss;
-            ss << "There are " << allTags.size() << " unique tag" << (allTags.size() == 1 ? "" : "s") << " on " << playerIds.size() << " entities:";
+            ss << "There are " << allTags.size() << " unique tag" << (allTags.size() == 1 ? "" : "s") << " on "
+               << playerIds.size() << " entities:";
             for (const auto& tag : allTags) {
                 ss << " " << tag;
             }

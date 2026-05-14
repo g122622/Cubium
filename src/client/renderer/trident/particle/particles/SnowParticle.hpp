@@ -46,32 +46,31 @@ public:
      * @return 雪花粒子实例
      */
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    void buildVertices(
-        const glm::vec3& cameraPos,
+    void buildVertices(const glm::vec3& cameraPos,
         f64 partialTick,
         const ParticleTextureAtlas& atlas,
         std::vector<ParticleVertex>& outVertices) const override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/snowflake");
     }
 
 private:
-    static constexpr f64 SWING_AMPLITUDE = 0.1f;    ///< 摇摆振幅
-    static constexpr f64 SWING_FREQUENCY = 0.05f;   ///< 摇摆频率
+    static constexpr f64 SWING_AMPLITUDE = 0.1f;  ///< 摇摆振幅
+    static constexpr f64 SWING_FREQUENCY = 0.05f; ///< 摇摆频率
 
-    f64 m_swingPhase;      ///< 摇摆相位（随机初始值）
-    f64 m_swingAmplitude;  ///< 摇摆振幅（个体差异）
+    f64 m_swingPhase;     ///< 摇摆相位（随机初始值）
+    f64 m_swingAmplitude; ///< 摇摆振幅（个体差异）
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

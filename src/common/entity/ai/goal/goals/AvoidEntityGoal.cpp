@@ -1,15 +1,15 @@
 #include "AvoidEntityGoal.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../core/CreatureEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/EntityUtils.hpp"
-#include "../GoalConstants.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../../util/RandomPositionGenerator.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/math/MathUtils.hpp"
+#include "../GoalConstants.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -26,7 +26,8 @@ AvoidEntityGoal::AvoidEntityGoal(CreatureEntity* creature, f32 avoidDistance, f6
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-AvoidEntityGoal::AvoidEntityGoal(CreatureEntity* creature, f32 avoidDistance, f64 farSpeed, f64 nearSpeed, EntityPredicate predicate)
+AvoidEntityGoal::AvoidEntityGoal(
+    CreatureEntity* creature, f32 avoidDistance, f64 farSpeed, f64 nearSpeed, EntityPredicate predicate)
     : m_creature(creature)
     , m_avoidDistance(avoidDistance)
     , m_farSpeed(farSpeed)
@@ -36,7 +37,8 @@ AvoidEntityGoal::AvoidEntityGoal(CreatureEntity* creature, f32 avoidDistance, f6
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-bool AvoidEntityGoal::shouldExecute() {
+bool AvoidEntityGoal::shouldExecute()
+{
     if (!m_creature) return false;
 
     // MC 1.16.5: 寻找要避开的实体
@@ -66,7 +68,8 @@ bool AvoidEntityGoal::shouldExecute() {
     return nav->moveTo(m_escapeX, m_escapeY, m_escapeZ, 0.0);
 }
 
-bool AvoidEntityGoal::shouldContinueExecuting() {
+bool AvoidEntityGoal::shouldContinueExecuting()
+{
     if (!m_creature) return false;
 
     // MC 1.16.5: 继续执行直到路径完成
@@ -78,7 +81,8 @@ bool AvoidEntityGoal::shouldContinueExecuting() {
     return true;
 }
 
-void AvoidEntityGoal::startExecuting() {
+void AvoidEntityGoal::startExecuting()
+{
     if (m_creature) {
         // MC 1.16.5: 设置路径到逃跑位置
         if (auto* nav = m_creature->navigator()) {
@@ -87,14 +91,16 @@ void AvoidEntityGoal::startExecuting() {
     }
 }
 
-void AvoidEntityGoal::resetTask() {
+void AvoidEntityGoal::resetTask()
+{
     m_avoidTarget = nullptr;
     if (m_creature) {
         m_creature->clearNavigation();
     }
 }
 
-void AvoidEntityGoal::tick() {
+void AvoidEntityGoal::tick()
+{
     if (!m_creature || !m_avoidTarget) return;
 
     // MC 1.16.5: 根据距离调整速度，阈值是 49.0D (7*7)
@@ -111,38 +117,39 @@ void AvoidEntityGoal::tick() {
     }
 }
 
-LivingEntity* AvoidEntityGoal::findEntityToAvoid() {
+LivingEntity* AvoidEntityGoal::findEntityToAvoid()
+{
     if (!m_creature || !m_creature->world()) return nullptr;
 
     // MC 1.16.5: 在避开距离内搜索，垂直扩展 3.0D
     // 使用 EntityPredicate 进行搜索
     f32 verticalExpand = 3.0f;
 
-    return EntityUtils::findClosestEntity<LivingEntity>(
-        m_creature->world(),
+    return EntityUtils::findClosestEntity<LivingEntity>(m_creature->world(),
         m_creature->position(),
-        m_avoidDistance + verticalExpand,  // 包含垂直扩展
+        m_avoidDistance + verticalExpand, // 包含垂直扩展
         m_creature,
-        m_predicate
-    );
+        m_predicate);
 }
 
-bool AvoidEntityGoal::findEscapePosition() {
+bool AvoidEntityGoal::findEscapePosition()
+{
     if (!m_creature || !m_avoidTarget) return false;
 
-    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockAwayFrom(entity, 16, 7, avoidTarget.getPositionVec())
+    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockAwayFrom(entity, 16, 7,
+    // avoidTarget.getPositionVec())
     Vector3 avoidPos(m_avoidTarget->x(), m_avoidTarget->y(), m_avoidTarget->z());
     Vector3 escapePos;
 
-    if (util::RandomPositionGenerator::findRandomTargetBlockAwayFrom(
-            m_creature,
-            ESCAPE_HORIZONTAL_RANGE,  // 16
-            ESCAPE_VERTICAL_RANGE,     // 7
+    if (util::RandomPositionGenerator::findRandomTargetBlockAwayFrom(m_creature,
+            ESCAPE_HORIZONTAL_RANGE, // 16
+            ESCAPE_VERTICAL_RANGE,   // 7
             avoidPos,
             escapePos)) {
 
         // MC 1.16.5: 检查逃跑位置是否比当前位置更远离目标
-        // if (this.avoidTarget.getDistanceSq(vector3d.x, vector3d.y, vector3d.z) < this.avoidTarget.getDistanceSq(this.entity))
+        // if (this.avoidTarget.getDistanceSq(vector3d.x, vector3d.y, vector3d.z) <
+        // this.avoidTarget.getDistanceSq(this.entity))
         //     return false;
         if (!isEscapePositionValid(escapePos)) {
             return false;
@@ -157,7 +164,8 @@ bool AvoidEntityGoal::findEscapePosition() {
     return false;
 }
 
-bool AvoidEntityGoal::isEscapePositionValid(const Vector3& escapePos) const {
+bool AvoidEntityGoal::isEscapePositionValid(const Vector3& escapePos) const
+{
     if (!m_avoidTarget || !m_creature) return false;
 
     // MC 1.16.5: 检查逃跑位置到目标的距离是否大于当前位置到目标的距离

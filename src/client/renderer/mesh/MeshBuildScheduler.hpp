@@ -4,8 +4,6 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/world/chunk/ChunkData.hpp"
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
 #include <array>
 #include <atomic>
 #include <functional>
@@ -13,6 +11,8 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 namespace mc::client {
 
@@ -65,20 +65,14 @@ public:
 
     void tick();
 
-    void drainCompleted(
-        const std::function<void(MeshWorkerResult&&)>& callback,
-        u32 maxCount
-    );
+    void drainCompleted(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount);
 
     [[nodiscard]] bool isTaskTracked(u64 taskId) const;
 
     [[nodiscard]] MeshSchedulerStats stats() const;
 
 private:
-    enum class TaskState : u8 {
-        Pending,
-        Dispatched
-    };
+    enum class TaskState : u8 { Pending, Dispatched };
 
     struct ScheduledTask {
         ChunkId chunkId;

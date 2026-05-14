@@ -1,22 +1,22 @@
 #include <gtest/gtest.h>
 
-#include "server/interaction/MiningManager.hpp"
-#include "server/interaction/InventoryManager.hpp"
+#include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/core/ConnectionManager.hpp"
+#include "server/interaction/InventoryManager.hpp"
+#include "server/interaction/MiningManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -27,7 +27,8 @@ namespace {
  */
 class MiningManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块和物品
         VanillaBlocks::initialize();
         Items::initialize();
@@ -51,7 +52,10 @@ protected:
         // 创建玩家管理器
         m_playerManager = std::make_unique<server::core::PlayerManager>();
         auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
-        m_player = m_playerManager->addPlayer(m_playerId, mc::util::uuidToString(mc::util::generateOfflineUuid("MiningTester")), "MiningTester", connection);
+        m_player = m_playerManager->addPlayer(m_playerId,
+            mc::util::uuidToString(mc::util::generateOfflineUuid("MiningTester")),
+            "MiningTester",
+            connection);
         ASSERT_NE(m_player, nullptr);
 
         // 设置玩家位置
@@ -71,12 +75,12 @@ protected:
         m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
 
         // 创建挖掘管理器
-        m_miningManager = std::make_unique<server::interaction::MiningManager>(
-            *m_playerManager, *m_connectionManager);
+        m_miningManager = std::make_unique<server::interaction::MiningManager>(*m_playerManager, *m_connectionManager);
         m_miningManager->setInventoryManager(m_inventoryManager.get());
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_miningManager.reset();
         m_inventoryManager.reset();
         m_connectionManager.reset();
@@ -92,7 +96,8 @@ protected:
     /**
      * @brief 设置玩家手持物品
      */
-    void setHeldItem(const Item& item, i32 count) {
+    void setHeldItem(const Item& item, i32 count)
+    {
         PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
         ASSERT_NE(inventory, nullptr);
         inventory->setSelectedSlot(0);
@@ -102,7 +107,8 @@ protected:
     /**
      * @brief 设置玩家手持物品（带附魔）
      */
-    void setHeldItemWithEnchantment(const Item& item, i32 count, const std::string& enchantmentId, i32 level) {
+    void setHeldItemWithEnchantment(const Item& item, i32 count, const std::string& enchantmentId, i32 level)
+    {
         PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
         ASSERT_NE(inventory, nullptr);
         inventory->setSelectedSlot(0);
@@ -114,13 +120,11 @@ protected:
     /**
      * @brief 获取玩家数据
      */
-    server::ServerPlayerData* getPlayerData() {
-        return m_playerManager->getPlayer(m_playerId);
-    }
+    server::ServerPlayerData* getPlayerData() { return m_playerManager->getPlayer(m_playerId); }
 
 protected:
     static constexpr PlayerId m_playerId = 1;
-    static constexpr PlayerId m_inventoryId = m_playerId;  // 同一个 ID
+    static constexpr PlayerId m_inventoryId = m_playerId; // 同一个 ID
 
     std::unique_ptr<server::ServerWorld> m_world;
     std::unique_ptr<network::LocalConnectionPair> m_connectionPair;
@@ -135,7 +139,8 @@ protected:
 // 基础挖掘测试
 // ============================================================================
 
-TEST_F(MiningManagerTest, StartAndAbortMining) {
+TEST_F(MiningManagerTest, StartAndAbortMining)
+{
     BlockPos pos(0, 63, 0);
 
     // 开始挖掘
@@ -155,7 +160,8 @@ TEST_F(MiningManagerTest, StartAndAbortMining) {
     EXPECT_FALSE(m_miningManager->getMiningPosition(m_playerId).has_value());
 }
 
-TEST_F(MiningManagerTest, CreativeModeInstantBreak) {
+TEST_F(MiningManagerTest, CreativeModeInstantBreak)
+{
     // 设置创造模式
     m_player->gameMode = GameMode::Creative;
 
@@ -172,11 +178,11 @@ TEST_F(MiningManagerTest, CreativeModeInstantBreak) {
     // 在创造模式下，tick 之后应该已经完成挖掘（进度 >= 1.0）
     // 注意：由于 tick 会检查进度并调用回调，所以挖掘状态可能已经变为 false
     // 让我们直接检查进度是否达到 1.0 或挖掘已完成
-    EXPECT_TRUE(m_miningManager->getMiningProgress(m_playerId) >= 1.0f ||
-                !m_miningManager->isMining(m_playerId));
+    EXPECT_TRUE(m_miningManager->getMiningProgress(m_playerId) >= 1.0f || !m_miningManager->isMining(m_playerId));
 }
 
-TEST_F(MiningManagerTest, UnbreakableBlockReturnsZeroSpeed) {
+TEST_F(MiningManagerTest, UnbreakableBlockReturnsZeroSpeed)
+{
     // 设置基岩（不可破坏）
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::BEDROCK->defaultState());
 
@@ -186,14 +192,15 @@ TEST_F(MiningManagerTest, UnbreakableBlockReturnsZeroSpeed) {
     // 基岩硬度为 -1，应该无法破坏
     // 挖掘进度应该保持为 0
     EXPECT_FLOAT_EQ(m_miningManager->getMiningProgress(m_playerId), 0.0f);
-    EXPECT_TRUE(m_miningManager->isMining(m_playerId));  // 仍然在挖掘状态，但进度为 0
+    EXPECT_TRUE(m_miningManager->isMining(m_playerId)); // 仍然在挖掘状态，但进度为 0
 }
 
 // ============================================================================
 // 挖掘速度计算测试
 // ============================================================================
 
-TEST_F(MiningManagerTest, HasteEffectIncreasesMiningSpeed) {
+TEST_F(MiningManagerTest, HasteEffectIncreasesMiningSpeed)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
     m_player->onGround = true;
@@ -213,8 +220,7 @@ TEST_F(MiningManagerTest, HasteEffectIncreasesMiningSpeed) {
     m_miningManager->abortMining(m_playerId);
 
     // 添加急迫 II 效果 (amplifier = 1)
-    m_player->addEffect(entity::effect::EffectInstance(
-        entity::effect::EffectType::Haste, 600, 1, false, true, true));
+    m_player->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Haste, 600, 1, false, true, true));
 
     // 使用急迫效果后再次挖掘
     m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
@@ -227,7 +233,8 @@ TEST_F(MiningManagerTest, HasteEffectIncreasesMiningSpeed) {
     EXPECT_NEAR(hasteProgress, baseProgress * 1.4f, 0.01f);
 }
 
-TEST_F(MiningManagerTest, MiningFatigueDecreasesMiningSpeed) {
+TEST_F(MiningManagerTest, MiningFatigueDecreasesMiningSpeed)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
     m_player->onGround = true;
@@ -247,8 +254,8 @@ TEST_F(MiningManagerTest, MiningFatigueDecreasesMiningSpeed) {
     m_miningManager->abortMining(m_playerId);
 
     // 添加挖掘疲劳 II 效果 (amplifier = 1)
-    m_player->addEffect(entity::effect::EffectInstance(
-        entity::effect::EffectType::MiningFatigue, 600, 1, false, true, true));
+    m_player->addEffect(
+        entity::effect::EffectInstance(entity::effect::EffectType::MiningFatigue, 600, 1, false, true, true));
 
     // 使用挖掘疲劳效果后再次挖掘
     m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
@@ -261,7 +268,8 @@ TEST_F(MiningManagerTest, MiningFatigueDecreasesMiningSpeed) {
     EXPECT_NEAR(fatigueProgress, baseProgress * 0.09f, 0.001f);
 }
 
-TEST_F(MiningManagerTest, OffGroundPenalty) {
+TEST_F(MiningManagerTest, OffGroundPenalty)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
 
@@ -290,7 +298,8 @@ TEST_F(MiningManagerTest, OffGroundPenalty) {
     EXPECT_NEAR(airProgress, groundProgress / 5.0f, 0.001f);
 }
 
-TEST_F(MiningManagerTest, DifferentToolMaterialsHaveDifferentSpeeds) {
+TEST_F(MiningManagerTest, DifferentToolMaterialsHaveDifferentSpeeds)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
     m_player->onGround = true;
@@ -331,7 +340,8 @@ TEST_F(MiningManagerTest, DifferentToolMaterialsHaveDifferentSpeeds) {
     EXPECT_GT(ironProgress, woodProgress);
 }
 
-TEST_F(MiningManagerTest, WrongToolIsSlowerThanCorrectTool) {
+TEST_F(MiningManagerTest, WrongToolIsSlowerThanCorrectTool)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
     m_player->onGround = true;
@@ -366,18 +376,19 @@ TEST_F(MiningManagerTest, WrongToolIsSlowerThanCorrectTool) {
 // 边界情况测试
 // ============================================================================
 
-TEST_F(MiningManagerTest, UnknownBlockReturnsInstantBreak) {
+TEST_F(MiningManagerTest, UnknownBlockReturnsInstantBreak)
+{
     // 不设置任何方块（空气）
     // 空气方块硬度为 0，应该瞬间破坏
     m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
     m_miningManager->tick(*m_world);
 
     // 空气应该瞬间破坏
-    EXPECT_TRUE(m_miningManager->getMiningProgress(m_playerId) >= 1.0f ||
-                !m_miningManager->isMining(m_playerId));
+    EXPECT_TRUE(m_miningManager->getMiningProgress(m_playerId) >= 1.0f || !m_miningManager->isMining(m_playerId));
 }
 
-TEST_F(MiningManagerTest, MultipleMiningSessionsDontConflict) {
+TEST_F(MiningManagerTest, MultipleMiningSessionsDontConflict)
+{
     // 开始挖掘第一个方块
     m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
     EXPECT_TRUE(m_miningManager->isMining(m_playerId));
@@ -393,7 +404,8 @@ TEST_F(MiningManagerTest, MultipleMiningSessionsDontConflict) {
 // 水下挖掘测试
 // ============================================================================
 
-TEST_F(MiningManagerTest, UnderwaterMiningPenalty) {
+TEST_F(MiningManagerTest, UnderwaterMiningPenalty)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
     m_player->onGround = true;
@@ -428,7 +440,8 @@ TEST_F(MiningManagerTest, UnderwaterMiningPenalty) {
     EXPECT_NEAR(underwaterProgress, groundProgress / 5.0f, 0.001f);
 }
 
-TEST_F(MiningManagerTest, AquaAffinityNegatesUnderwaterPenalty) {
+TEST_F(MiningManagerTest, AquaAffinityNegatesUnderwaterPenalty)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
     m_player->onGround = true;
@@ -469,7 +482,8 @@ TEST_F(MiningManagerTest, AquaAffinityNegatesUnderwaterPenalty) {
     EXPECT_NEAR(underwaterWithAquaAffinity, groundProgress, 0.001f);
 }
 
-TEST_F(MiningManagerTest, EyesPositionDetectionInWater) {
+TEST_F(MiningManagerTest, EyesPositionDetectionInWater)
+{
     // 玩家位置 y=64，眼睛高度 1.62
     // 眼睛位置 = 64 + 1.62 = 65.62
     // 检测点向下偏移 0.11，所以检测点 Y = 65.51
@@ -503,7 +517,8 @@ TEST_F(MiningManagerTest, EyesPositionDetectionInWater) {
     EXPECT_NEAR(inWaterProgress, baseProgress / 5.0f, 0.001f);
 }
 
-TEST_F(MiningManagerTest, OffGroundAndUnderwaterPenaltiesStack) {
+TEST_F(MiningManagerTest, OffGroundAndUnderwaterPenaltiesStack)
+{
     // 设置生存模式
     m_player->gameMode = GameMode::Survival;
 

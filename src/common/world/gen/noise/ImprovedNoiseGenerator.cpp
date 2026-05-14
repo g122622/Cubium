@@ -1,7 +1,7 @@
 #include "ImprovedNoiseGenerator.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
@@ -110,9 +110,8 @@ f32 ImprovedNoiseGenerator::noise(f32 x, f32 y, f32 z, f32 yScale, f32 yBound) c
     return noiseRaw(ix, iy, iz, dx, dy, dz, fx, fy, fz);
 }
 
-f32 ImprovedNoiseGenerator::noiseRaw(i32 x, i32 y, i32 z,
-                                      f32 deltaX, f32 deltaY, f32 deltaZ,
-                                      f32 fadeX, f32 fadeY, f32 fadeZ) const
+f32 ImprovedNoiseGenerator::noiseRaw(
+    i32 x, i32 y, i32 z, f32 deltaX, f32 deltaY, f32 deltaZ, f32 fadeX, f32 fadeY, f32 fadeZ) const
 {
     // 哈希索引
     const i32 i0 = getPermut(x);
@@ -124,13 +123,13 @@ f32 ImprovedNoiseGenerator::noiseRaw(i32 x, i32 y, i32 z,
     const i32 j3 = getPermut(i1 + y + 1);
 
     // 8 个角的梯度值
-    const f32 n000 = grad(getPermut(j0 + z),     deltaX,     deltaY,     deltaZ);
-    const f32 n100 = grad(getPermut(j1 + z),     deltaX - 1.0f, deltaY,     deltaZ);
-    const f32 n010 = grad(getPermut(j2 + z),     deltaX,     deltaY - 1.0f, deltaZ);
-    const f32 n110 = grad(getPermut(j3 + z),     deltaX - 1.0f, deltaY - 1.0f, deltaZ);
-    const f32 n001 = grad(getPermut(j0 + z + 1), deltaX,     deltaY,     deltaZ - 1.0f);
-    const f32 n101 = grad(getPermut(j1 + z + 1), deltaX - 1.0f, deltaY,     deltaZ - 1.0f);
-    const f32 n011 = grad(getPermut(j2 + z + 1), deltaX,     deltaY - 1.0f, deltaZ - 1.0f);
+    const f32 n000 = grad(getPermut(j0 + z), deltaX, deltaY, deltaZ);
+    const f32 n100 = grad(getPermut(j1 + z), deltaX - 1.0f, deltaY, deltaZ);
+    const f32 n010 = grad(getPermut(j2 + z), deltaX, deltaY - 1.0f, deltaZ);
+    const f32 n110 = grad(getPermut(j3 + z), deltaX - 1.0f, deltaY - 1.0f, deltaZ);
+    const f32 n001 = grad(getPermut(j0 + z + 1), deltaX, deltaY, deltaZ - 1.0f);
+    const f32 n101 = grad(getPermut(j1 + z + 1), deltaX - 1.0f, deltaY, deltaZ - 1.0f);
+    const f32 n011 = grad(getPermut(j2 + z + 1), deltaX, deltaY - 1.0f, deltaZ - 1.0f);
     const f32 n111 = grad(getPermut(j3 + z + 1), deltaX - 1.0f, deltaY - 1.0f, deltaZ - 1.0f);
 
     // 三线性插值

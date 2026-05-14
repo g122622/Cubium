@@ -1,12 +1,12 @@
 #include "FoodItem.hpp"
 
+#include "../../../entity/core/Entity.hpp"
+#include "../../../entity/effect/EffectInstance.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../world/IWorld.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../core/ItemStack.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../entity/effect/EffectInstance.hpp"
-#include "../../../sound/SoundEvents.hpp"
 
 namespace mc {
 namespace item::items {
@@ -18,8 +18,8 @@ using namespace entity::effect;
  */
 FoodItem::FoodItem(const food::Food* food, ItemProperties properties)
     : Item(std::move(properties))
-    , m_food(food) {
-}
+    , m_food(food)
+{}
 
 /**
  * @brief 获取使用时长
@@ -27,7 +27,8 @@ FoodItem::FoodItem(const food::Food* food, ItemProperties properties)
  * 快速食用：16 ticks (0.8秒)
  * 普通食用：32 ticks (1.6秒)
  */
-i32 FoodItem::getUseDuration(const ItemStack& /*stack*/) const {
+i32 FoodItem::getUseDuration(const ItemStack& /*stack*/) const
+{
     if (m_food != nullptr && m_food->isFastEat()) {
         return 16;
     }
@@ -40,7 +41,8 @@ i32 FoodItem::getUseDuration(const ItemStack& /*stack*/) const {
  * MC 1.16.5 中所有食物都返回 EAT 动作，
  * isMeat() 标记仅用于狼是否能食用，不影响使用动作。
  */
-UseAction FoodItem::getUseAction(const ItemStack& /*stack*/) const {
+UseAction FoodItem::getUseAction(const ItemStack& /*stack*/) const
+{
     if (m_food != nullptr) {
         return UseAction::Eat;
     }
@@ -50,7 +52,8 @@ UseAction FoodItem::getUseAction(const ItemStack& /*stack*/) const {
 /**
  * @brief 右键使用物品
  */
-ItemActionResult FoodItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
+ItemActionResult FoodItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand)
+{
     if (m_food == nullptr) {
         return ItemActionResult::pass(player.getHeldItem(hand));
     }
@@ -82,7 +85,8 @@ ItemActionResult FoodItem::onItemRightClick(IWorld& /*world*/, Player& player, H
  * 5. 减少物品数量（创造模式不减）
  * 6. 返回容器物品
  */
-ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity& entity) {
+ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity& entity)
+{
     if (m_food == nullptr) {
         return stack;
     }
@@ -102,19 +106,18 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity&
 
         // 使用实体ID和时间生成随机数（用于效果概率和音调变化）
         math::Random rng(static_cast<u64>(entity.id()) ^
-                        static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+            static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
         // 应用药水效果
         if (m_food->hasEffects()) {
             for (const auto& effect : m_food->getEffects()) {
                 if (rng.nextFloat() < effect.probability) {
-                    EffectInstance instance(
-                        effect.type,
+                    EffectInstance instance(effect.type,
                         effect.duration,
                         effect.amplifier,
-                        false,  // 非环境效果
-                        true,   // 显示粒子
-                        true    // 显示图标
+                        false, // 非环境效果
+                        true,  // 显示粒子
+                        true   // 显示图标
                     );
                     player->addEffect(instance);
                 }
@@ -148,7 +151,8 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity&
 /**
  * @brief 是否可以食用
  */
-bool FoodItem::canEat(const ItemStack& /*stack*/, const Player& player) const {
+bool FoodItem::canEat(const ItemStack& /*stack*/, const Player& player) const
+{
     if (m_food == nullptr) {
         return false;
     }

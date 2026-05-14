@@ -20,7 +20,8 @@ PlayerRenderer::PlayerRenderer(bool slimArms)
     setupLayers();
 }
 
-void PlayerRenderer::render(Entity& entity, f64 partialTicks) {
+void PlayerRenderer::render(Entity& entity, f64 partialTicks)
+{
     auto& player = static_cast<::mc::Player&>(entity);
 
     // 设置模型可见性
@@ -47,10 +48,7 @@ void PlayerRenderer::render(Entity& entity, f64 partialTicks) {
 }
 
 void PlayerRenderer::renderLayersPipeline(
-    Entity& entity,
-    VkCommandBuffer cmd,
-    const core::AnimationContext& context,
-    pipeline::EntityPipeline& pipeline)
+    Entity& entity, VkCommandBuffer cmd, const core::AnimationContext& context, pipeline::EntityPipeline& pipeline)
 {
     auto& player = static_cast<::mc::Player&>(entity);
 
@@ -61,7 +59,8 @@ void PlayerRenderer::renderLayersPipeline(
     }
 }
 
-void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks) {
+void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
+{
     // 设置模型可见性
     setModelVisibilities(player);
 
@@ -75,7 +74,8 @@ void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks) {
     (void)partialTicks;
 }
 
-void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks) {
+void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks)
+{
     // 设置模型可见性
     setModelVisibilities(player);
 
@@ -89,7 +89,8 @@ void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks) {
     (void)partialTicks;
 }
 
-void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTicks, core::AnimationContext& context) {
+void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTicks, core::AnimationContext& context)
+{
     context.partialTicks = partialTicks;
     context.limbSwing = getLimbSwing(player, partialTicks);
     context.limbSwingAmount = getLimbSwingAmount(player, partialTicks);
@@ -100,7 +101,8 @@ void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTi
     context.computeHash();
 }
 
-void PlayerRenderer::setModelVisibilities(::mc::Player& player) {
+void PlayerRenderer::setModelVisibilities(::mc::Player& player)
+{
     // 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
     // 默认显示所有部件
     m_model.setAllVisible(true);
@@ -129,7 +131,8 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player) {
     m_model.setSwimming(player.isSwimming());
 }
 
-model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bool mainHand) {
+model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bool mainHand)
+{
     // 参考 MC 1.16.5 PlayerRenderer.func_241741_a_
     // 从玩家获取手持物品和使用状态
     // 目前返回默认值，等待物品系统完善后实现
@@ -140,7 +143,8 @@ model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bo
     return model::player::ArmPose::Empty;
 }
 
-f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const {
+f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const
+{
     // MC 1.16.5 LivingRenderer.java:100
     // f5 = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks);
     // 注意：Player 继承自 Entity，没有 limbSwing 字段
@@ -157,7 +161,8 @@ f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const {
     return limbSwing - limbSwingAmount * (1.0 - partialTicks);
 }
 
-f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const {
+f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const
+{
     // MC 1.16.5 LivingRenderer.java:99
     // f8 = MathHelper.lerp(partialTicks, prevLimbSwingAmount, limbSwingAmount);
     // 限制最大值为 1.0
@@ -166,7 +171,7 @@ f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) c
     f64 speed = std::sqrt(dx * dx + dz * dz) * 4.0;
 
     // 插值计算
-    f64 prevAmount = speed * 0.7;  // 近似前一帧的值
+    f64 prevAmount = speed * 0.7; // 近似前一帧的值
     f64 amount = speed;
     f64 result = prevAmount + (amount - prevAmount) * partialTicks;
 
@@ -178,32 +183,38 @@ f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) c
     return result;
 }
 
-f64 PlayerRenderer::getHeadYaw(::mc::Player& player, f64 partialTicks) const {
+f64 PlayerRenderer::getHeadYaw(::mc::Player& player, f64 partialTicks) const
+{
     // 头部偏航角（相对于身体）
     f64 bodyYaw = player.prevYaw() + (player.yaw() - player.prevYaw()) * partialTicks;
     f64 headYaw = player.prevYaw() + (player.yaw() - player.prevYaw()) * partialTicks;
     f64 diff = headYaw - bodyYaw;
 
     // 归一化到 -180 到 180
-    while (diff < -180.0) diff += 360.0;
-    while (diff > 180.0) diff -= 360.0;
+    while (diff < -180.0)
+        diff += 360.0;
+    while (diff > 180.0)
+        diff -= 360.0;
 
     return diff;
 }
 
-f64 PlayerRenderer::getHeadPitch(::mc::Player& player, f64 partialTicks) const {
+f64 PlayerRenderer::getHeadPitch(::mc::Player& player, f64 partialTicks) const
+{
     // 头部俯仰角
     f64 prevPitch = player.prevPitch();
     f64 pitch = player.pitch();
     return prevPitch + (pitch - prevPitch) * partialTicks;
 }
 
-f64 PlayerRenderer::getAgeInTicks(::mc::Player& player) const {
+f64 PlayerRenderer::getAgeInTicks(::mc::Player& player) const
+{
     // 年龄（用于空闲动画）
     return static_cast<f64>(player.ticksExisted());
 }
 
-void PlayerRenderer::setupLayers() {
+void PlayerRenderer::setupLayers()
+{
     // 参考 MC 1.16.5 PlayerRenderer 构造函数
     // 添加层渲染器
 
@@ -222,16 +233,15 @@ void PlayerRenderer::setupLayers() {
     spdlog::debug("PlayerRenderer: Layer setup complete ({} layers registered)", m_layers.size());
 }
 
-void registerPlayerRenderers(EntityRendererManager& manager) {
+void registerPlayerRenderers(EntityRendererManager& manager)
+{
     // 注册标准手臂玩家渲染器
-    manager.registerRenderer("minecraft:player", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<PlayerRenderer>(false);
-    });
+    manager.registerRenderer("minecraft:player",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PlayerRenderer>(false); });
 
     // 注册纤细手臂玩家渲染器（通过不同的实体类型 ID 或运行时切换）
-    manager.registerRenderer("minecraft:player_slim", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<PlayerRenderer>(true);
-    });
+    manager.registerRenderer("minecraft:player_slim",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PlayerRenderer>(true); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::player

@@ -1,31 +1,26 @@
 #include "HoeItem.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/IWorld.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/ItemUseContext.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
-HoeItem::HoeItem(const tier::IItemTier& tier,
-                 i32 attackDamage,
-                 f32 attackSpeed,
-                 ItemProperties properties)
-    : ToolItem(static_cast<f32>(attackDamage),
-               attackSpeed,
-               tier,
-               initializeEffectiveBlocks(),
-               ToolType::Hoe,
-               properties) {
+HoeItem::HoeItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties)
+    : ToolItem(
+          static_cast<f32>(attackDamage), attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Hoe, properties)
+{
     // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
-ActionResultType HoeItem::onItemUse(ItemUseContext& context) {
+ActionResultType HoeItem::onItemUse(ItemUseContext& context)
+{
     // MC 1.16.5: 锄耕地逻辑
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
@@ -71,7 +66,8 @@ ActionResultType HoeItem::onItemUse(ItemUseContext& context) {
     return ActionResultType::Success;
 }
 
-const Block* HoeItem::getTilledBlock(const Block* original) {
+const Block* HoeItem::getTilledBlock(const Block* original)
+{
     if (original == nullptr) {
         return nullptr;
     }
@@ -83,7 +79,8 @@ const Block* HoeItem::getTilledBlock(const Block* original) {
     return nullptr;
 }
 
-f32 HoeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
+f32 HoeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
+{
     // 锄对树叶材质有效
     if (state.getMaterial() == Material::LEAVES) {
         return m_efficiency;
@@ -97,12 +94,14 @@ f32 HoeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) co
     return 1.0f;
 }
 
-bool HoeItem::isEffectiveMaterial(const Material& material) const {
+bool HoeItem::isEffectiveMaterial(const Material& material) const
+{
     // 锄对树叶材质有效
     return material == Material::LEAVES;
 }
 
-std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
+std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks()
+{
     std::unordered_set<const Block*> blocks;
 
     // MC 1.16.5: 干草块
@@ -138,7 +137,8 @@ std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*>& HoeItem::getTillingMap() {
+std::unordered_map<const Block*, const Block*>& HoeItem::getTillingMap()
+{
     // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
     static std::unordered_map<const Block*, const Block*> map = []() {
         std::unordered_map<const Block*, const Block*> m;

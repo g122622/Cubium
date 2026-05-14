@@ -1,12 +1,12 @@
 #pragma once
 
-#include "DecorationStage.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../chunk/ChunkPos.hpp"
+#include "DecorationStage.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc {
 
@@ -37,8 +37,7 @@ public:
      * @param pos 起始位置
      * @return 是否成功放置
      */
-    virtual bool place(
-        WorldGenRegion& region,
+    virtual bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
@@ -102,7 +101,8 @@ public:
      * @brief 获取所有特征
      * @return 所有特征（按阶段组织）
      */
-    [[nodiscard]] const std::vector<std::vector<ConfiguredFeatureBase*>>& getAllFeatures() const {
+    [[nodiscard]] const std::vector<std::vector<ConfiguredFeatureBase*>>& getAllFeatures() const
+    {
         return m_featuresByStage;
     }
 
@@ -138,8 +138,7 @@ public:
      * @param stage 装饰阶段
      * @param seed 世界种子
      */
-    static void placeFeatures(
-        WorldGenRegion& region,
+    static void placeFeatures(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         const Biome& biome,

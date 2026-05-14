@@ -2,9 +2,9 @@
 
 #include "Attribute.hpp"
 #include "AttributeInstance.hpp"
-#include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace mc {
 namespace entity {
@@ -27,7 +27,8 @@ public:
      * @param attribute 属性定义
      * @return 是否成功注册
      */
-    bool registerAttribute(const Attribute& attribute) {
+    bool registerAttribute(const Attribute& attribute)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         const std::string& name = attribute.registryName();
         if (m_instances.find(name) != m_instances.end()) {
@@ -42,7 +43,8 @@ public:
      * @param name 属性名称
      * @return 属性实例指针，不存在返回nullptr
      */
-    AttributeInstance* getInstance(const std::string& name) {
+    AttributeInstance* getInstance(const std::string& name)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_instances.find(name);
         if (it != m_instances.end()) {
@@ -56,7 +58,8 @@ public:
      * @param name 属性名称
      * @return 属性实例指针，不存在返回nullptr
      */
-    [[nodiscard]] const AttributeInstance* getInstance(const std::string& name) const {
+    [[nodiscard]] const AttributeInstance* getInstance(const std::string& name) const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_instances.find(name);
         if (it != m_instances.end()) {
@@ -71,7 +74,8 @@ public:
      * @param defaultValue 默认值（属性不存在时返回）
      * @return 属性值
      */
-    [[nodiscard]] f64 getValue(const std::string& name, f64 defaultValue = 0.0) const {
+    [[nodiscard]] f64 getValue(const std::string& name, f64 defaultValue = 0.0) const
+    {
         const AttributeInstance* instance = getInstance(name);
         return instance ? instance->getValue() : defaultValue;
     }
@@ -82,7 +86,8 @@ public:
      * @param defaultValue 默认值（属性不存在时返回）
      * @return 基础值
      */
-    [[nodiscard]] f64 getBaseValue(const std::string& name, f64 defaultValue = 0.0) const {
+    [[nodiscard]] f64 getBaseValue(const std::string& name, f64 defaultValue = 0.0) const
+    {
         const AttributeInstance* instance = getInstance(name);
         return instance ? instance->baseValue() : defaultValue;
     }
@@ -93,7 +98,8 @@ public:
      * @param value 新的基础值
      * @return 是否成功设置
      */
-    bool setBaseValue(const std::string& name, f64 value) {
+    bool setBaseValue(const std::string& name, f64 value)
+    {
         AttributeInstance* instance = getInstance(name);
         if (instance) {
             instance->setBaseValue(value);
@@ -108,7 +114,8 @@ public:
      * @param modifier 修改器
      * @return 是否成功添加
      */
-    bool addModifier(const std::string& attributeName, const AttributeModifier& modifier) {
+    bool addModifier(const std::string& attributeName, const AttributeModifier& modifier)
+    {
         AttributeInstance* instance = getInstance(attributeName);
         if (instance) {
             instance->addModifier(modifier);
@@ -123,7 +130,8 @@ public:
      * @param modifierId 修改器ID
      * @return 是否成功移除
      */
-    bool removeModifier(const std::string& attributeName, const std::string& modifierId) {
+    bool removeModifier(const std::string& attributeName, const std::string& modifierId)
+    {
         AttributeInstance* instance = getInstance(attributeName);
         if (instance) {
             return instance->removeModifier(modifierId);
@@ -135,7 +143,8 @@ public:
      * @brief 检查是否有属性
      * @param name 属性名称
      */
-    [[nodiscard]] bool hasAttribute(const std::string& name) const {
+    [[nodiscard]] bool hasAttribute(const std::string& name) const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_instances.find(name) != m_instances.end();
     }
@@ -143,14 +152,16 @@ public:
     /**
      * @brief 获取所有属性实例
      */
-    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<AttributeInstance>>& allInstances() const {
+    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<AttributeInstance>>& allInstances() const
+    {
         return m_instances;
     }
 
     /**
      * @brief 清除所有属性
      */
-    void clear() {
+    void clear()
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_instances.clear();
     }
@@ -159,7 +170,8 @@ public:
      * @brief 从另一个属性映射表复制属性值
      * @param other 源属性映射表
      */
-    void copyFrom(const AttributeMap& other) {
+    void copyFrom(const AttributeMap& other)
+    {
         // 使用 scoped_lock 避免死锁（C++20 死锁避免算法）
         std::scoped_lock lock(m_mutex, other.m_mutex);
 

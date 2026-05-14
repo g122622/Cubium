@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
-#include "client/sound/instance/SoundInstance.hpp"
-#include "client/sound/SoundPool.hpp"
 #include "client/sound/SoundLoader.hpp"
+#include "client/sound/SoundPool.hpp"
 #include "client/sound/backend/AudioBuffer.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundTypes.hpp"
 #include "common/sound/network/SoundPackets.hpp"
-#include "common/resource/ResourceLocation.hpp"
 
 #include <array>
 #include <limits>
@@ -21,20 +21,14 @@ using namespace mc;
 
 class SoundInstanceTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        testLocation = ResourceLocation("minecraft:test.sound");
-    }
+    void SetUp() override { testLocation = ResourceLocation("minecraft:test.sound"); }
 
     ResourceLocation testLocation;
 };
 
-TEST_F(SoundInstanceTest, CreateGlobalSound) {
-    auto sound = SoundInstance::createGlobal(
-        testLocation,
-        SoundCategory::Music,
-        0.8f,
-        1.2f
-    );
+TEST_F(SoundInstanceTest, CreateGlobalSound)
+{
+    auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Music, 0.8f, 1.2f);
 
     EXPECT_EQ(sound.getSoundEventId(), testLocation);
     EXPECT_EQ(sound.getCategory(), SoundCategory::Music);
@@ -45,14 +39,9 @@ TEST_F(SoundInstanceTest, CreateGlobalSound) {
     EXPECT_FALSE(sound.isLooping());
 }
 
-TEST_F(SoundInstanceTest, CreateLocatedSound) {
-    auto sound = SoundInstance::createLocated(
-        testLocation,
-        SoundCategory::Blocks,
-        10.0f, 20.0f, 30.0f,
-        0.5f,
-        0.9f
-    );
+TEST_F(SoundInstanceTest, CreateLocatedSound)
+{
+    auto sound = SoundInstance::createLocated(testLocation, SoundCategory::Blocks, 10.0f, 20.0f, 30.0f, 0.5f, 0.9f);
 
     EXPECT_EQ(sound.getSoundEventId(), testLocation);
     EXPECT_EQ(sound.getCategory(), SoundCategory::Blocks);
@@ -66,12 +55,9 @@ TEST_F(SoundInstanceTest, CreateLocatedSound) {
     EXPECT_FLOAT_EQ(sound.getAttenuationDistance(), DEFAULT_ATTENUATION_DISTANCE);
 }
 
-TEST_F(SoundInstanceTest, CreateMusicSound) {
-    auto sound = SoundInstance::createMusic(
-        testLocation,
-        1.0f,
-        1.0f
-    );
+TEST_F(SoundInstanceTest, CreateMusicSound)
+{
+    auto sound = SoundInstance::createMusic(testLocation, 1.0f, 1.0f);
 
     EXPECT_EQ(sound.getSoundEventId(), testLocation);
     EXPECT_EQ(sound.getCategory(), SoundCategory::Music);
@@ -79,11 +65,9 @@ TEST_F(SoundInstanceTest, CreateMusicSound) {
     EXPECT_EQ(sound.getAttenuationType(), AttenuationType::None);
 }
 
-TEST_F(SoundInstanceTest, CreateRecordSound) {
-    auto sound = SoundInstance::createRecord(
-        testLocation,
-        100.0f, 64.0f, -50.0f
-    );
+TEST_F(SoundInstanceTest, CreateRecordSound)
+{
+    auto sound = SoundInstance::createRecord(testLocation, 100.0f, 64.0f, -50.0f);
 
     EXPECT_EQ(sound.getSoundEventId(), testLocation);
     EXPECT_EQ(sound.getCategory(), SoundCategory::Records);
@@ -91,11 +75,12 @@ TEST_F(SoundInstanceTest, CreateRecordSound) {
     EXPECT_FLOAT_EQ(sound.getY(), 64.0f);
     EXPECT_FLOAT_EQ(sound.getZ(), -50.0f);
     EXPECT_FLOAT_EQ(sound.getVolume(), 4.0f); // 唱片机音量较大
-    EXPECT_TRUE(sound.isLooping()); // 唱片机循环播放
+    EXPECT_TRUE(sound.isLooping());           // 唱片机循环播放
     EXPECT_FLOAT_EQ(sound.getAttenuationDistance(), 64.0f);
 }
 
-TEST_F(SoundInstanceTest, SetPosition) {
+TEST_F(SoundInstanceTest, SetPosition)
+{
     auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Master);
     sound.setPosition(glm::vec3(1.0f, 2.0f, 3.0f));
 
@@ -104,7 +89,8 @@ TEST_F(SoundInstanceTest, SetPosition) {
     EXPECT_FLOAT_EQ(sound.getZ(), 3.0f);
 }
 
-TEST_F(SoundInstanceTest, SetVolumeAndPitch) {
+TEST_F(SoundInstanceTest, SetVolumeAndPitch)
+{
     auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Master);
     sound.setVolume(0.5f);
     sound.setPitch(1.5f);
@@ -113,7 +99,8 @@ TEST_F(SoundInstanceTest, SetVolumeAndPitch) {
     EXPECT_FLOAT_EQ(sound.getPitch(), 1.5f);
 }
 
-TEST_F(SoundInstanceTest, SetLooping) {
+TEST_F(SoundInstanceTest, SetLooping)
+{
     auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Master);
     EXPECT_FALSE(sound.isLooping());
 
@@ -121,14 +108,16 @@ TEST_F(SoundInstanceTest, SetLooping) {
     EXPECT_TRUE(sound.isLooping());
 }
 
-TEST_F(SoundInstanceTest, SetRepeatDelay) {
+TEST_F(SoundInstanceTest, SetRepeatDelay)
+{
     auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Master);
     sound.setRepeatDelay(100);
 
     EXPECT_EQ(sound.getRepeatDelay(), 100u);
 }
 
-TEST_F(SoundInstanceTest, SetAndGetId) {
+TEST_F(SoundInstanceTest, SetAndGetId)
+{
     auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Master);
     EXPECT_EQ(sound.getId(), 0u);
 
@@ -136,7 +125,8 @@ TEST_F(SoundInstanceTest, SetAndGetId) {
     EXPECT_EQ(sound.getId(), 42u);
 }
 
-TEST_F(SoundInstanceTest, MarkDone) {
+TEST_F(SoundInstanceTest, MarkDone)
+{
     auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Master);
     EXPECT_FALSE(sound.isDone());
 
@@ -144,12 +134,9 @@ TEST_F(SoundInstanceTest, MarkDone) {
     EXPECT_TRUE(sound.isDone());
 }
 
-TEST_F(SoundInstanceTest, GetPosition) {
-    auto sound = SoundInstance::createLocated(
-        testLocation,
-        SoundCategory::Blocks,
-        1.0f, 2.0f, 3.0f
-    );
+TEST_F(SoundInstanceTest, GetPosition)
+{
+    auto sound = SoundInstance::createLocated(testLocation, SoundCategory::Blocks, 1.0f, 2.0f, 3.0f);
 
     glm::vec3 pos = sound.getPosition();
     EXPECT_FLOAT_EQ(pos.x, 1.0f);
@@ -163,28 +150,24 @@ TEST_F(SoundInstanceTest, GetPosition) {
 
 class SoundPoolTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        pool = std::make_unique<SoundPool>();
-    }
+    void SetUp() override { pool = std::make_unique<SoundPool>(); }
 
     std::unique_ptr<SoundPool> pool;
     ResourceLocation testLocation{"minecraft:test.sound"};
 };
 
-TEST_F(SoundPoolTest, AddSound) {
-    auto sound = std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    );
+TEST_F(SoundPoolTest, AddSound)
+{
+    auto sound = std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master));
 
     SoundInstanceId id = pool->add(std::move(sound));
     EXPECT_NE(id, 0u);
     EXPECT_EQ(pool->size(), 1u);
 }
 
-TEST_F(SoundPoolTest, GetSound) {
-    auto sound = std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    );
+TEST_F(SoundPoolTest, GetSound)
+{
+    auto sound = std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master));
 
     SoundInstanceId id = pool->add(std::move(sound));
     ASSERT_NE(id, 0u);
@@ -194,15 +177,15 @@ TEST_F(SoundPoolTest, GetSound) {
     EXPECT_EQ(retrieved->getSoundEventId(), testLocation);
 }
 
-TEST_F(SoundPoolTest, GetNonExistentSound) {
+TEST_F(SoundPoolTest, GetNonExistentSound)
+{
     const ISoundInstance* retrieved = pool->get(999);
     EXPECT_EQ(retrieved, nullptr);
 }
 
-TEST_F(SoundPoolTest, RemoveSound) {
-    auto sound = std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    );
+TEST_F(SoundPoolTest, RemoveSound)
+{
+    auto sound = std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master));
 
     SoundInstanceId id = pool->add(std::move(sound));
     EXPECT_TRUE(pool->has(id));
@@ -213,18 +196,17 @@ TEST_F(SoundPoolTest, RemoveSound) {
     EXPECT_TRUE(pool->empty());
 }
 
-TEST_F(SoundPoolTest, RemoveNonExistentSound) {
+TEST_F(SoundPoolTest, RemoveNonExistentSound)
+{
     bool removed = pool->remove(999);
     EXPECT_FALSE(removed);
 }
 
-TEST_F(SoundPoolTest, ClearPool) {
+TEST_F(SoundPoolTest, ClearPool)
+{
+    pool->add(std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master)));
     pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    ));
-    pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music)
-    ));
+        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music)));
 
     EXPECT_EQ(pool->size(), 2u);
 
@@ -232,16 +214,13 @@ TEST_F(SoundPoolTest, ClearPool) {
     EXPECT_TRUE(pool->empty());
 }
 
-TEST_F(SoundPoolTest, GetByCategory) {
+TEST_F(SoundPoolTest, GetByCategory)
+{
+    pool->add(std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master)));
     pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    ));
+        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music)));
     pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music)
-    ));
-    pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(ResourceLocation("minecraft:test3"), SoundCategory::Music)
-    ));
+        SoundInstance::createGlobal(ResourceLocation("minecraft:test3"), SoundCategory::Music)));
 
     auto masterIds = pool->getByCategory(SoundCategory::Master);
     EXPECT_EQ(masterIds.size(), 1u);
@@ -253,32 +232,25 @@ TEST_F(SoundPoolTest, GetByCategory) {
     EXPECT_TRUE(blocksIds.empty());
 }
 
-TEST_F(SoundPoolTest, RemoveByCategory) {
+TEST_F(SoundPoolTest, RemoveByCategory)
+{
+    pool->add(std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master)));
     pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    ));
+        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music)));
     pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music)
-    ));
-    pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(ResourceLocation("minecraft:test3"), SoundCategory::Music)
-    ));
+        SoundInstance::createGlobal(ResourceLocation("minecraft:test3"), SoundCategory::Music)));
 
     size_t removed = pool->removeByCategory(SoundCategory::Music);
     EXPECT_EQ(removed, 2u);
     EXPECT_EQ(pool->size(), 1u);
 }
 
-TEST_F(SoundPoolTest, GetBySoundEvent) {
+TEST_F(SoundPoolTest, GetBySoundEvent)
+{
+    pool->add(std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master)));
+    pool->add(std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Music)));
     pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    ));
-    pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Music)
-    ));
-    pool->add(std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(ResourceLocation("minecraft:other"), SoundCategory::Master)
-    ));
+        SoundInstance::createGlobal(ResourceLocation("minecraft:other"), SoundCategory::Master)));
 
     auto ids = pool->getBySoundEvent(testLocation);
     EXPECT_EQ(ids.size(), 2u);
@@ -287,15 +259,13 @@ TEST_F(SoundPoolTest, GetBySoundEvent) {
     EXPECT_EQ(otherIds.size(), 1u);
 }
 
-TEST_F(SoundPoolTest, TickCleansDoneSounds) {
-    auto sound1 = std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(testLocation, SoundCategory::Master)
-    );
+TEST_F(SoundPoolTest, TickCleansDoneSounds)
+{
+    auto sound1 = std::make_unique<SoundInstance>(SoundInstance::createGlobal(testLocation, SoundCategory::Master));
     sound1->setId(1);
 
     auto sound2 = std::make_unique<SoundInstance>(
-        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music)
-    );
+        SoundInstance::createGlobal(ResourceLocation("minecraft:test2"), SoundCategory::Music));
     sound2->setId(2);
 
     pool->add(std::move(sound1));
@@ -321,7 +291,8 @@ TEST_F(SoundPoolTest, TickCleansDoneSounds) {
 
 class AudioFormatTest : public ::testing::Test {};
 
-TEST_F(AudioFormatTest, ByteRate) {
+TEST_F(AudioFormatTest, ByteRate)
+{
     AudioFormat format;
     format.sampleRate = 44100;
     format.channels = 2;
@@ -331,7 +302,8 @@ TEST_F(AudioFormatTest, ByteRate) {
     EXPECT_EQ(format.byteRate(), 176400u);
 }
 
-TEST_F(AudioFormatTest, BlockAlign) {
+TEST_F(AudioFormatTest, BlockAlign)
+{
     AudioFormat format;
     format.channels = 2;
     format.bitsPerSample = 16;
@@ -340,7 +312,8 @@ TEST_F(AudioFormatTest, BlockAlign) {
     EXPECT_EQ(format.blockAlign(), 4u);
 }
 
-TEST_F(AudioFormatTest, IsValid) {
+TEST_F(AudioFormatTest, IsValid)
+{
     AudioFormat valid;
     valid.sampleRate = 44100;
     valid.channels = 2;
@@ -372,14 +345,16 @@ TEST_F(AudioFormatTest, IsValid) {
 
 class AudioDataTest : public ::testing::Test {};
 
-TEST_F(AudioDataTest, DefaultConstructor) {
+TEST_F(AudioDataTest, DefaultConstructor)
+{
     AudioData data;
     EXPECT_FALSE(data.isValid());
     EXPECT_EQ(data.sampleCount(), 0u);
     EXPECT_FLOAT_EQ(data.duration, 0.0f);
 }
 
-TEST_F(AudioDataTest, ConstructorWithFormat) {
+TEST_F(AudioDataTest, ConstructorWithFormat)
+{
     AudioFormat format;
     format.sampleRate = 44100;
     format.channels = 2;
@@ -393,7 +368,8 @@ TEST_F(AudioDataTest, ConstructorWithFormat) {
     EXPECT_FLOAT_EQ(data.duration, 1.0f);
 }
 
-TEST_F(AudioDataTest, CalculateDuration) {
+TEST_F(AudioDataTest, CalculateDuration)
+{
     AudioFormat format;
     format.sampleRate = 22050;
     format.channels = 1;
@@ -409,25 +385,25 @@ TEST_F(AudioDataTest, CalculateDuration) {
 // SoundLoader 解码健壮性测试
 // ============================================================================
 
-TEST(SoundLoaderTest, DecodeRejectsEmptyData) {
+TEST(SoundLoaderTest, DecodeRejectsEmptyData)
+{
     auto result = SoundLoader::decode(nullptr, 0);
     EXPECT_FALSE(result.success());
 }
 
-TEST(SoundLoaderTest, DecodeRejectsInvalidBytesWithoutCrash) {
+TEST(SoundLoaderTest, DecodeRejectsInvalidBytesWithoutCrash)
+{
     const std::array<u8, 8> invalidData = {0x4E, 0x4F, 0x54, 0x4F, 0x47, 0x47, 0x00, 0x01};
 
     auto result = SoundLoader::decode(invalidData.data(), invalidData.size());
     EXPECT_FALSE(result.success());
 }
 
-TEST(SoundLoaderTest, DecodeRejectsTooLargeInput) {
+TEST(SoundLoaderTest, DecodeRejectsTooLargeInput)
+{
     const std::array<u8, 1> dummy = {0x00};
 
-    auto result = SoundLoader::decode(
-        dummy.data(),
-        static_cast<size_t>(std::numeric_limits<int>::max()) + 1ull
-    );
+    auto result = SoundLoader::decode(dummy.data(), static_cast<size_t>(std::numeric_limits<int>::max()) + 1ull);
     EXPECT_FALSE(result.success());
 }
 
@@ -435,7 +411,8 @@ TEST(SoundLoaderTest, DecodeRejectsTooLargeInput) {
 // SoundPackets 网络包测试
 // ============================================================================
 
-TEST(SoundPacketsTest, PlaySoundPacketRoundTrip) {
+TEST(SoundPacketsTest, PlaySoundPacketRoundTrip)
+{
     const ResourceLocation id("minecraft:block.stone.break");
     const glm::vec3 pos(12.375f, 64.5f, -7.25f);
 
@@ -458,7 +435,8 @@ TEST(SoundPacketsTest, PlaySoundPacketRoundTrip) {
     EXPECT_NEAR(decodedPos.z, pos.z, 0.125f);
 }
 
-TEST(SoundPacketsTest, StopSoundPacketRoundTripWithBothFilters) {
+TEST(SoundPacketsTest, StopSoundPacketRoundTripWithBothFilters)
+{
     const std::optional<ResourceLocation> id(ResourceLocation("minecraft:block.grass.break"));
     const std::optional<SoundCategory> category(SoundCategory::Blocks);
 
@@ -476,7 +454,8 @@ TEST(SoundPacketsTest, StopSoundPacketRoundTripWithBothFilters) {
     EXPECT_EQ(*decoded.getCategory(), *category);
 }
 
-TEST(SoundPacketsTest, StopSoundPacketRoundTripStopAll) {
+TEST(SoundPacketsTest, StopSoundPacketRoundTripStopAll)
+{
     sound::StopSoundPacket packet;
     auto serialized = packet.serialize();
     ASSERT_TRUE(serialized.success());

@@ -13,19 +13,21 @@ namespace mc::network {
 class CommandTreePacket : public Packet {
 public:
     CommandTreePacket()
-        : Packet(PacketType::CommandTree) {}
+        : Packet(PacketType::CommandTree)
+    {}
 
     explicit CommandTreePacket(std::string treeJson)
         : Packet(PacketType::CommandTree)
-        , m_treeJson(std::move(treeJson)) {}
+        , m_treeJson(std::move(treeJson))
+    {}
 
     /**
-        * @brief 获取命令树 JSON 包体
+     * @brief 获取命令树 JSON 包体
      */
     [[nodiscard]] const std::string& treeJson() const noexcept { return m_treeJson; }
 
     /**
-        * @brief 设置命令树 JSON 包体
+     * @brief 设置命令树 JSON 包体
      */
     void setTreeJson(std::string treeJson) { m_treeJson = std::move(treeJson); }
 

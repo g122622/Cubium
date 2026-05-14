@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractSkeletonEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AbstractSkeletonEntity.hpp"
 
 #include <memory>
 

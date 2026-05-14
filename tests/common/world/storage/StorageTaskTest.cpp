@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "world/storage/task/StorageTask.hpp"
-#include "world/storage/task/StorageTaskManager.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "world/storage/db/SectionKey.hpp"
+#include "world/storage/task/StorageTaskManager.hpp"
 #include <atomic>
+#include <gtest/gtest.h>
 
 namespace mc::world::storage {
 namespace {
@@ -61,10 +61,11 @@ TEST(StorageTaskTest, TaskManagerSubmitsToPool)
         return true;
     });
 
-    auto taskId = manager.submit(std::move(task), util::TaskPriority::Normal,
-        [&success](bool taskSuccess, util::ITask*) {
-            success.store(taskSuccess, std::memory_order_release);
-        }, std::make_shared<std::atomic<bool>>(false));
+    auto taskId = manager.submit(
+        std::move(task),
+        util::TaskPriority::Normal,
+        [&success](bool taskSuccess, util::ITask*) { success.store(taskSuccess, std::memory_order_release); },
+        std::make_shared<std::atomic<bool>>(false));
 
     ASSERT_NE(taskId, 0u);
     pool.waitForCompletion();

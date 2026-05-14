@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../Block.hpp"
-#include "../Material.hpp"
-#include "../BlockPos.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../../../util/property/Properties.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
+#include "../Block.hpp"
+#include "../BlockPos.hpp"
+#include "../Material.hpp"
 #include <memory>
 
 namespace mc {
@@ -62,9 +62,7 @@ public:
     /**
      * @brief 获取方块实体类型
      */
-    [[nodiscard]] BlockEntityType getBlockEntityType() const {
-        return BlockEntityType::EnchantingTable;
-    }
+    [[nodiscard]] BlockEntityType getBlockEntityType() const { return BlockEntityType::EnchantingTable; }
 
     // ========== 交互 ==========
 
@@ -78,14 +76,12 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
-        const BlockRaycastResult& hit
-    ) override;
+        const BlockRaycastResult& hit) override;
 
     // ========== 形状 ==========
 
@@ -120,7 +116,8 @@ public:
      * @param state 方块状态
      * @return 推动反应类型（附魔台不能被推动）
      */
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Block;
     }

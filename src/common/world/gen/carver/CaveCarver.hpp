@@ -1,7 +1,7 @@
 #pragma once
 
-#include "WorldCarver.hpp"
 #include "../../../core/Constants.hpp"
+#include "WorldCarver.hpp"
 
 namespace mc {
 
@@ -48,29 +48,25 @@ public:
      * @return 是否雕刻了任何方块
      */
     bool carve(ChunkPrimer& chunk,
-               const BiomeProvider& biomeProvider,
-               i32 seaLevel,
-               ChunkCoord chunkX,
-               ChunkCoord chunkZ,
-               CarvingMask& carvingMask,
-               const ProbabilityConfig& config) override;
+        const BiomeProvider& biomeProvider,
+        i32 seaLevel,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        CarvingMask& carvingMask,
+        const ProbabilityConfig& config) override;
 
     /**
      * @brief 检查是否应该在这个区块生成洞穴
      */
     [[nodiscard]] bool shouldCarve(
-        math::IRandom& rng,
-        ChunkCoord chunkX,
-        ChunkCoord chunkZ,
-        const ProbabilityConfig& config) const override;
+        math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ, const ProbabilityConfig& config) const override;
 
 protected:
     /**
      * @brief 检查是否应该跳过椭球内的这个位置
      * @note 洞穴雕刻器使用标准椭球检测
      */
-    [[nodiscard]] bool shouldSkipEllipsoidPosition(
-        f32 dx, f32 dy, f32 dz, i32 y) const override;
+    [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
 
     /**
      * @brief 获取最大洞穴生成尝试次数
@@ -118,17 +114,20 @@ private:
      * @param verticalScale 垂直缩放
      * @param carvingMask 雕刻掩码
      */
-    void carveTunnel(
-        ChunkPrimer& chunk,
+    void carveTunnel(ChunkPrimer& chunk,
         const BiomeProvider& biomeProvider,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         i64 seed,
-        f32 startX, f32 startY, f32 startZ,
+        f32 startX,
+        f32 startY,
+        f32 startZ,
         f32 radius,
-        f32 yaw, f32 pitch,
-        i32 startIndex, i32 endIndex,
+        f32 yaw,
+        f32 pitch,
+        i32 startIndex,
+        i32 endIndex,
         f32 verticalScale,
         CarvingMask& carvingMask);
 
@@ -148,14 +147,15 @@ private:
      * @param verticalScale 垂直缩放
      * @param carvingMask 雕刻掩码
      */
-    void carveRoom(
-        ChunkPrimer& chunk,
+    void carveRoom(ChunkPrimer& chunk,
         const BiomeProvider& biomeProvider,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         i64 seed,
-        f32 centerX, f32 centerY, f32 centerZ,
+        f32 centerX,
+        f32 centerY,
+        f32 centerZ,
         f32 radius,
         f32 verticalScale,
         CarvingMask& carvingMask);

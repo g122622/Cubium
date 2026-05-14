@@ -21,14 +21,12 @@ public:
      */
     DarkOakTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB);
 
-    std::vector<FoliagePosition> placeTrunk(
-        WorldGenRegion& world,
+    std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
         math::Random& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    ) override;
+        const BlockState* trunkBlock) override;
 
     [[nodiscard]] const char* name() const override { return "dark_oak"; }
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;
@@ -44,14 +42,12 @@ class FancyTrunkPlacer : public TrunkPlacer {
 public:
     FancyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB);
 
-    std::vector<FoliagePosition> placeTrunk(
-        WorldGenRegion& world,
+    std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
         math::Random& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    ) override;
+        const BlockState* trunkBlock) override;
 
     [[nodiscard]] const char* name() const override { return "fancy"; }
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;
@@ -67,28 +63,24 @@ private:
      * @brief 检查并放置分支
      * 参考 MC func_236887_a_
      */
-    bool checkAndPlaceBranch(
-        WorldGenRegion& world,
+    bool checkAndPlaceBranch(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& start,
         const BlockPos& end,
         bool place,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    );
+        const BlockState* trunkBlock);
 
     /**
      * @brief 放置直线
      */
-    void placeLine(
-        WorldGenRegion& world,
+    void placeLine(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& start,
         const BlockPos& end,
         bool place,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    );
+        const BlockState* trunkBlock);
 
     /**
      * @brief 获取步数
@@ -113,14 +105,12 @@ class ForkyTrunkPlacer : public TrunkPlacer {
 public:
     ForkyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB);
 
-    std::vector<FoliagePosition> placeTrunk(
-        WorldGenRegion& world,
+    std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
         math::Random& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    ) override;
+        const BlockState* trunkBlock) override;
 
     [[nodiscard]] const char* name() const override { return "forky"; }
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;
@@ -130,14 +120,12 @@ private:
      * @brief 生成分叉
      * @return 分叉末端位置
      */
-    BlockPos generateBranch(
-        WorldGenRegion& world,
+    BlockPos generateBranch(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& startPos,
         i32 length,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    );
+        const BlockState* trunkBlock);
 };
 
 /**
@@ -150,14 +138,12 @@ class GiantTrunkPlacer : public TrunkPlacer {
 public:
     GiantTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB);
 
-    std::vector<FoliagePosition> placeTrunk(
-        WorldGenRegion& world,
+    std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
         math::Random& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    ) override;
+        const BlockState* trunkBlock) override;
 
     [[nodiscard]] const char* name() const override { return "giant"; }
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;
@@ -173,14 +159,12 @@ class MegaJungleTrunkPlacer : public TrunkPlacer {
 public:
     MegaJungleTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB);
 
-    std::vector<FoliagePosition> placeTrunk(
-        WorldGenRegion& world,
+    std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
         math::Random& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    ) override;
+        const BlockState* trunkBlock) override;
 
     [[nodiscard]] const char* name() const override { return "mega_jungle"; }
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;

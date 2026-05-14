@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../storage/SWMRNibbleArray.hpp"
+#include "../../block/BlockPos.hpp"
 #include "../storage/EmptinessMap.hpp"
+#include "../storage/SWMRNibbleArray.hpp"
 #include "BaseLightEngine.hpp"
 #include "LightEngineUtils.hpp"
-#include "../../block/BlockPos.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -55,16 +55,14 @@ public:
      * 如果结果 == expected，则 expected 是正确值。
      * 如果结果 < expected，则结果为实际值。
      */
-    [[nodiscard]] i32 calculateLightValue(StarLightLightingProvider* lightAccess,
-                                           i32 worldX, i32 worldY, i32 worldZ,
-                                           i32 expected) override;
+    [[nodiscard]] i32 calculateLightValue(
+        StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 expected) override;
 
     /**
      * @brief 传播方块变化
      */
-    void propagateBlockChanges(StarLightLightingProvider* lightAccess,
-                                const IChunk* chunk,
-                                const std::vector<BlockPos>& positions) override;
+    void propagateBlockChanges(
+        StarLightLightingProvider* lightAccess, const IChunk* chunk, const std::vector<BlockPos>& positions) override;
 
     /**
      * @brief 照亮区块
@@ -168,8 +166,8 @@ private:
     /**
      * @brief 获取发射光照等级
      */
-    [[nodiscard]] i32 getLightEmission(StarLightLightingProvider* lightAccess,
-                                        const BlockState* state, i32 x, i32 y, i32 z) const;
+    [[nodiscard]] i32 getLightEmission(
+        StarLightLightingProvider* lightAccess, const BlockState* state, i32 x, i32 y, i32 z) const;
 };
 
 } // namespace mc

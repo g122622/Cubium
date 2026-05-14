@@ -1,9 +1,9 @@
 #include "BushBlock.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,19 +12,18 @@ namespace blocks {
 
 BushBlock::BushBlock(const BlockProperties& properties)
     : Block(properties)
-    , m_shape(CollisionShape::fullBlock()) {
-}
+    , m_shape(CollisionShape::fullBlock())
+{}
 
 // ========== 放置逻辑 ==========
 
-BlockState BushBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BushBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-bool BushBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool BushBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -39,13 +38,13 @@ bool BushBlock::isValidPosition(
     return canSustain(*belowState, world, belowPos);
 }
 
-BlockState BushBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState BushBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -69,19 +68,22 @@ BlockState BushBlock::updatePostPlacement(
 
 // ========== 形状 ==========
 
-const CollisionShape& BushBlock::getShape(const BlockState& state) const {
+const CollisionShape& BushBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 植物无碰撞
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-const CollisionShape& BushBlock::getOcclusionShape(const BlockState& state) const {
+const CollisionShape& BushBlock::getOcclusionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 植物不遮挡光线
     static CollisionShape emptyShape = CollisionShape::empty();
@@ -90,10 +92,8 @@ const CollisionShape& BushBlock::getOcclusionShape(const BlockState& state) cons
 
 // ========== 保护方法 ==========
 
-bool BushBlock::canSustain(
-    const BlockState& groundState,
-    IWorld& world,
-    const BlockPos& groundPos) const {
+bool BushBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(groundPos);

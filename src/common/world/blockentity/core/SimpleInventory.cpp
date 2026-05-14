@@ -6,17 +6,20 @@ namespace mc {
 namespace blockentity {
 
 SimpleInventory::SimpleInventory(i32 size)
-    : m_items(static_cast<std::size_t>(size)) {
+    : m_items(static_cast<std::size_t>(size))
+{
     MC_ASSERT(size > 0 && "Inventory size must be positive");
 }
 
 SimpleInventory::SimpleInventory(i32 size, std::function<void()> onChanged)
     : m_items(static_cast<std::size_t>(size))
-    , m_onChanged(std::move(onChanged)) {
+    , m_onChanged(std::move(onChanged))
+{
     MC_ASSERT(size > 0 && "Inventory size must be positive");
 }
 
-bool SimpleInventory::isEmpty() const {
+bool SimpleInventory::isEmpty() const
+{
     for (const auto& item : m_items) {
         if (!item.isEmpty()) {
             return false;
@@ -25,14 +28,16 @@ bool SimpleInventory::isEmpty() const {
     return true;
 }
 
-ItemStack SimpleInventory::getItem(i32 slot) const {
+ItemStack SimpleInventory::getItem(i32 slot) const
+{
     if (!isValidSlot(slot)) {
         return ItemStack();
     }
     return m_items[static_cast<std::size_t>(slot)];
 }
 
-void SimpleInventory::setItem(i32 slot, const ItemStack& stack) {
+void SimpleInventory::setItem(i32 slot, const ItemStack& stack)
+{
     MC_ASSERT(isValidSlot(slot) && "Slot index out of bounds");
     const std::size_t slotIndex = static_cast<std::size_t>(slot);
 
@@ -45,7 +50,8 @@ void SimpleInventory::setItem(i32 slot, const ItemStack& stack) {
     onChanged();
 }
 
-ItemStack SimpleInventory::removeItem(i32 slot, i32 count) {
+ItemStack SimpleInventory::removeItem(i32 slot, i32 count)
+{
     if (!isValidSlot(slot) || count <= 0) {
         return ItemStack();
     }
@@ -68,7 +74,8 @@ ItemStack SimpleInventory::removeItem(i32 slot, i32 count) {
     return result;
 }
 
-ItemStack SimpleInventory::removeItemNoUpdate(i32 slot) {
+ItemStack SimpleInventory::removeItemNoUpdate(i32 slot)
+{
     if (!isValidSlot(slot)) {
         return ItemStack();
     }
@@ -79,18 +86,21 @@ ItemStack SimpleInventory::removeItemNoUpdate(i32 slot) {
     return result;
 }
 
-void SimpleInventory::clear() {
+void SimpleInventory::clear()
+{
     for (auto& item : m_items) {
         item = ItemStack();
     }
     onChanged();
 }
 
-void SimpleInventory::setChanged() {
+void SimpleInventory::setChanged()
+{
     onChanged();
 }
 
-bool SimpleInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
+bool SimpleInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
+{
     if (!isValidSlot(slot) || stack.isEmpty()) {
         return false;
     }
@@ -110,14 +120,16 @@ bool SimpleInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
     return existing.getCount() + stack.getCount() <= maxCount;
 }
 
-void SimpleInventory::serialize(network::PacketSerializer& ser) const {
+void SimpleInventory::serialize(network::PacketSerializer& ser) const
+{
     ser.writeVarInt(static_cast<i32>(m_items.size()));
     for (const auto& item : m_items) {
         item.serialize(ser);
     }
 }
 
-ItemStack SimpleInventory::addItem(const ItemStack& stack) {
+ItemStack SimpleInventory::addItem(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return ItemStack();
     }
@@ -156,7 +168,8 @@ ItemStack SimpleInventory::addItem(const ItemStack& stack) {
     return remaining;
 }
 
-bool SimpleInventory::canAddItem(const ItemStack& stack) const {
+bool SimpleInventory::canAddItem(const ItemStack& stack) const
+{
     if (stack.isEmpty()) {
         return true;
     }
@@ -184,18 +197,21 @@ bool SimpleInventory::canAddItem(const ItemStack& stack) const {
     return remaining <= 0;
 }
 
-ItemStack SimpleInventory::extractItem(i32 slot) {
+ItemStack SimpleInventory::extractItem(i32 slot)
+{
     return removeItemNoUpdate(slot);
 }
 
-bool SimpleInventory::isSlotEmpty(i32 slot) const {
+bool SimpleInventory::isSlotEmpty(i32 slot) const
+{
     if (!isValidSlot(slot)) {
         return true;
     }
     return m_items[static_cast<std::size_t>(slot)].isEmpty();
 }
 
-i32 SimpleInventory::getNonEmptySlotCount() const {
+i32 SimpleInventory::getNonEmptySlotCount() const
+{
     i32 count = 0;
     for (const auto& item : m_items) {
         if (!item.isEmpty()) {
@@ -205,7 +221,8 @@ i32 SimpleInventory::getNonEmptySlotCount() const {
     return count;
 }
 
-void SimpleInventory::forEachItem(std::function<bool(i32 slot, const ItemStack& stack)> consumer) const {
+void SimpleInventory::forEachItem(std::function<bool(i32 slot, const ItemStack& stack)> consumer) const
+{
     for (std::size_t i = 0; i < m_items.size(); ++i) {
         if (!m_items[i].isEmpty()) {
             if (!consumer(static_cast<i32>(i), m_items[i])) {
@@ -215,13 +232,15 @@ void SimpleInventory::forEachItem(std::function<bool(i32 slot, const ItemStack& 
     }
 }
 
-void SimpleInventory::onChanged() {
+void SimpleInventory::onChanged()
+{
     if (m_onChanged) {
         m_onChanged();
     }
 }
 
-void SimpleInventory::load(const nlohmann::json& data) {
+void SimpleInventory::load(const nlohmann::json& data)
+{
     if (!data.is_array()) {
         return;
     }
@@ -243,7 +262,8 @@ void SimpleInventory::load(const nlohmann::json& data) {
     }
 }
 
-void SimpleInventory::save(nlohmann::json& data) const {
+void SimpleInventory::save(nlohmann::json& data) const
+{
     data = nlohmann::json::array();
     for (size_t i = 0; i < m_items.size(); ++i) {
         if (!m_items[i].isEmpty()) {

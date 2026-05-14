@@ -305,9 +305,9 @@ struct OreFeatureConfig : public IFeatureConfig {
  * 定义常见的矿石生成目标。
  */
 enum class OreTargetType {
-    NaturalStone,   ///< 石头、花岗岩、闪长岩、安山岩
-    Netherrack,     ///< 下界岩
-    Basalt          ///< 玄武岩
+    NaturalStone, ///< 石头、花岗岩、闪长岩、安山岩
+    Netherrack,   ///< 下界岩
+    Basalt        ///< 玄武岩
 };
 
 /**

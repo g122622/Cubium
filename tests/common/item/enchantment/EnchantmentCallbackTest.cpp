@@ -1,20 +1,20 @@
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include "item/enchantment/Enchantment.hpp"
-#include "item/enchantment/EnchantmentRegistry.hpp"
-#include "item/enchantment/EnchantmentHelper.hpp"
-#include "item/enchantment/EnchantmentContainer.hpp"
-#include "item/enchantment/enchantments/AllEnchantments.hpp"
-#include "item/enchantment/enchantments/weapon/BaneOfArthropodsEnchantment.hpp"
-#include "item/enchantment/enchantments/protection/ThornsEnchantment.hpp"
-#include "item/core/ItemStack.hpp"
-#include "item/Items.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
+#include "entity/damage/DamageSource.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/effect/EffectType.hpp"
-#include "entity/damage/DamageSource.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/enchantment/Enchantment.hpp"
+#include "item/enchantment/EnchantmentContainer.hpp"
+#include "item/enchantment/EnchantmentHelper.hpp"
+#include "item/enchantment/EnchantmentRegistry.hpp"
+#include "item/enchantment/enchantments/AllEnchantments.hpp"
+#include "item/enchantment/enchantments/protection/ThornsEnchantment.hpp"
+#include "item/enchantment/enchantments/weapon/BaneOfArthropodsEnchantment.hpp"
 #include "util/math/random/Random.hpp"
 
 using namespace mc;
@@ -26,17 +26,17 @@ using namespace mc::item::enchant;
 
 class BaneOfArthropodsEnchantmentTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
-TEST_F(BaneOfArthropodsEnchantmentTest, Properties) {
+TEST_F(BaneOfArthropodsEnchantmentTest, Properties)
+{
     BaneOfArthropodsEnchantment bane;
 
     EXPECT_EQ(bane.id(), "minecraft:bane_of_arthropods");
@@ -46,7 +46,8 @@ TEST_F(BaneOfArthropodsEnchantmentTest, Properties) {
     EXPECT_EQ(bane.rarity(), EnchantmentRarity::Uncommon);
 }
 
-TEST_F(BaneOfArthropodsEnchantmentTest, GetSlownessDuration) {
+TEST_F(BaneOfArthropodsEnchantmentTest, GetSlownessDuration)
+{
     math::Random rng(12345);
 
     // Level I: 20 + random(0, 9) = 20-29
@@ -64,12 +65,14 @@ TEST_F(BaneOfArthropodsEnchantmentTest, GetSlownessDuration) {
     }
 }
 
-TEST_F(BaneOfArthropodsEnchantmentTest, GetSlownessAmplifier) {
+TEST_F(BaneOfArthropodsEnchantmentTest, GetSlownessAmplifier)
+{
     // 缓慢 IV (amplifier = 3)
     EXPECT_EQ(BaneOfArthropodsEnchantment::getSlownessAmplifier(), 3);
 }
 
-TEST_F(BaneOfArthropodsEnchantmentTest, GetDamageBonus) {
+TEST_F(BaneOfArthropodsEnchantmentTest, GetDamageBonus)
+{
     BaneOfArthropodsEnchantment bane;
 
     // 对节肢生物：每级 +2.5 伤害
@@ -85,7 +88,8 @@ TEST_F(BaneOfArthropodsEnchantmentTest, GetDamageBonus) {
     EXPECT_FLOAT_EQ(bane.getDamageBonus(5, EntityTypeNormal), 0.0f);
 }
 
-TEST_F(BaneOfArthropodsEnchantmentTest, IsIncompatibleWithOtherDamageEnchants) {
+TEST_F(BaneOfArthropodsEnchantmentTest, IsIncompatibleWithOtherDamageEnchants)
+{
     BaneOfArthropodsEnchantment bane;
     SharpnessEnchantment sharpness;
     SmiteEnchantment smite;
@@ -105,17 +109,17 @@ TEST_F(BaneOfArthropodsEnchantmentTest, IsIncompatibleWithOtherDamageEnchants) {
 
 class ThornsEnchantmentTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
-TEST_F(ThornsEnchantmentTest, Properties) {
+TEST_F(ThornsEnchantmentTest, Properties)
+{
     ThornsEnchantment thorns;
 
     EXPECT_EQ(thorns.id(), "minecraft:thorns");
@@ -125,15 +129,17 @@ TEST_F(ThornsEnchantmentTest, Properties) {
     EXPECT_EQ(thorns.rarity(), EnchantmentRarity::VeryRare);
 }
 
-TEST_F(ThornsEnchantmentTest, GetMinCost) {
+TEST_F(ThornsEnchantmentTest, GetMinCost)
+{
     ThornsEnchantment thorns;
 
     EXPECT_EQ(thorns.getMinCost(1), 10);
-    EXPECT_EQ(thorns.getMinCost(2), 30);  // 10 + 20
-    EXPECT_EQ(thorns.getMinCost(3), 50);  // 10 + 40
+    EXPECT_EQ(thorns.getMinCost(2), 30); // 10 + 20
+    EXPECT_EQ(thorns.getMinCost(3), 50); // 10 + 40
 }
 
-TEST_F(ThornsEnchantmentTest, GetMaxCost) {
+TEST_F(ThornsEnchantmentTest, GetMaxCost)
+{
     ThornsEnchantment thorns;
 
     EXPECT_EQ(thorns.getMaxCost(1), 60);  // 10 + 50
@@ -141,7 +147,8 @@ TEST_F(ThornsEnchantmentTest, GetMaxCost) {
     EXPECT_EQ(thorns.getMaxCost(3), 100); // 50 + 50
 }
 
-TEST_F(ThornsEnchantmentTest, ShouldTrigger) {
+TEST_F(ThornsEnchantmentTest, ShouldTrigger)
+{
     math::Random rng(12345);
 
     // Level 0: 永不触发
@@ -172,7 +179,8 @@ TEST_F(ThornsEnchantmentTest, ShouldTrigger) {
     EXPECT_LT(triggerCount3, 500);
 }
 
-TEST_F(ThornsEnchantmentTest, GetThornsDamage) {
+TEST_F(ThornsEnchantmentTest, GetThornsDamage)
+{
     math::Random rng(12345);
 
     // Level <= 10: 1-4 伤害
@@ -190,7 +198,8 @@ TEST_F(ThornsEnchantmentTest, GetThornsDamage) {
     EXPECT_EQ(ThornsEnchantment::getThornsDamage(20, rng), 10);
 }
 
-TEST_F(ThornsEnchantmentTest, GetTriggerChance) {
+TEST_F(ThornsEnchantmentTest, GetTriggerChance)
+{
     EXPECT_FLOAT_EQ(ThornsEnchantment::getTriggerChance(1), 0.15f);
     EXPECT_FLOAT_EQ(ThornsEnchantment::getTriggerChance(2), 0.30f);
     EXPECT_FLOAT_EQ(ThornsEnchantment::getTriggerChance(3), 0.45f);
@@ -202,17 +211,17 @@ TEST_F(ThornsEnchantmentTest, GetTriggerChance) {
 
 class EnchantmentHelperCallbackTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
-TEST_F(EnchantmentHelperCallbackTest, ApplyArthropodEnchantmentDamageWithEmptyStack) {
+TEST_F(EnchantmentHelperCallbackTest, ApplyArthropodEnchantmentDamageWithEmptyStack)
+{
     // 空物品堆不应触发回调
     // 由于没有真实的 LivingEntity 实现用于测试，这里只测试基本逻辑
     ItemStack emptyStack;
@@ -220,14 +229,11 @@ TEST_F(EnchantmentHelperCallbackTest, ApplyArthropodEnchantmentDamageWithEmptySt
     // EnchantmentHelper::applyArthropodEnchantmentDamage 需要 LivingEntity，跳过集成测试
 }
 
-TEST_F(EnchantmentHelperCallbackTest, ApplyThornsEnchantmentsWithEmptyArmor) {
+TEST_F(EnchantmentHelperCallbackTest, ApplyThornsEnchantmentsWithEmptyArmor)
+{
     // 空护甲不应触发荆棘
     std::array<const ItemStack*, 4> emptyArmor = {
-        &ItemStack::EMPTY,
-        &ItemStack::EMPTY,
-        &ItemStack::EMPTY,
-        &ItemStack::EMPTY
-    };
+        &ItemStack::EMPTY, &ItemStack::EMPTY, &ItemStack::EMPTY, &ItemStack::EMPTY};
     // 验证空护甲槽位
     for (const auto* slot : emptyArmor) {
         EXPECT_TRUE(slot->isEmpty());
@@ -240,17 +246,17 @@ TEST_F(EnchantmentHelperCallbackTest, ApplyThornsEnchantmentsWithEmptyArmor) {
 
 class EnchantmentHelperToolTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
-TEST_F(EnchantmentHelperToolTest, ShouldIgnoreDurabilityLoss) {
+TEST_F(EnchantmentHelperToolTest, ShouldIgnoreDurabilityLoss)
+{
     math::Random rng(12345);
 
     // Level 0: 总是返回 false
@@ -292,17 +298,20 @@ TEST_F(EnchantmentHelperToolTest, ShouldIgnoreDurabilityLoss) {
     EXPECT_LT(ignoreCount, 300);
 }
 
-TEST_F(EnchantmentHelperToolTest, GetSweepingDamageRatio) {
+TEST_F(EnchantmentHelperToolTest, GetSweepingDamageRatio)
+{
     EXPECT_FLOAT_EQ(EnchantmentHelper::getSweepingDamageRatio(ItemStack::EMPTY), 0.0f);
 
     // 需要有横扫之刃附魔的物品才能测试
     // 由于 ItemStack::EMPTY 没有附魔，这里只测试返回值
 }
 
-TEST_F(EnchantmentHelperToolTest, GetFishingLuckBonus) {
+TEST_F(EnchantmentHelperToolTest, GetFishingLuckBonus)
+{
     EXPECT_EQ(EnchantmentHelper::getFishingLuckBonus(ItemStack::EMPTY), 0);
 }
 
-TEST_F(EnchantmentHelperToolTest, GetFishingSpeedBonus) {
+TEST_F(EnchantmentHelperToolTest, GetFishingSpeedBonus)
+{
     EXPECT_EQ(EnchantmentHelper::getFishingSpeedBonus(ItemStack::EMPTY), 0);
 }

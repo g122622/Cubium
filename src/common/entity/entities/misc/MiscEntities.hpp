@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Entity.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../core/Entity.hpp"
 #include <memory>
 
 namespace mc {
@@ -58,7 +58,7 @@ public:
 private:
     void handleLanding();
 
-    u32 m_blockId = 0;  // 方块ID
+    u32 m_blockId = 0; // 方块ID
     bool m_hurtEntities = false;
     bool m_placeBlock = true;
     f64 m_fallStartY = 0.0;

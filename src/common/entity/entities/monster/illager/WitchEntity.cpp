@@ -13,24 +13,28 @@ WitchEntity::WitchEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> WitchEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> WitchEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<WitchEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool WitchEntity::needsHealing() const {
+bool WitchEntity::needsHealing() const
+{
     f32 currentHealth = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MAX_HEALTH));
     f32 maxHealth = static_cast<f32>(m_attributes.getBaseValue(entity::attribute::Attributes::MAX_HEALTH));
     return currentHealth < maxHealth * HEAL_THRESHOLD;
 }
 
-void WitchEntity::tryDrinkHealingPotion() {
+void WitchEntity::tryDrinkHealingPotion()
+{
     if (!m_drinking && needsHealing()) {
         m_drinking = true;
         m_drinkTimer = DRINK_DURATION;
     }
 }
 
-void WitchEntity::tick() {
+void WitchEntity::tick()
+{
     AbstractRaiderEntity::tick();
 
     // 更新喝药水状态
@@ -54,7 +58,8 @@ void WitchEntity::tick() {
     }
 }
 
-void WitchEntity::registerGoals() {
+void WitchEntity::registerGoals()
+{
     // 调用父类方法
     AbstractRaiderEntity::registerGoals();
 
@@ -63,7 +68,8 @@ void WitchEntity::registerGoals() {
     // - WitchDrinkPotionGoal: 喝药水
 }
 
-void WitchEntity::registerAttributes() {
+void WitchEntity::registerAttributes()
+{
     // 调用父类方法
     AbstractRaiderEntity::registerAttributes();
 

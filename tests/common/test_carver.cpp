@@ -1,15 +1,15 @@
-#include <gtest/gtest.h>
-#include "world/gen/carver/WorldCarver.hpp"
-#include "world/gen/carver/CaveCarver.hpp"
-#include "world/gen/carver/CanyonCarver.hpp"
-#include "world/chunk/ChunkPrimer.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "core/Constants.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/WorldConstants.hpp"
 #include "world/biome/BiomeProvider.hpp"
 #include "world/biome/layer/LayerUtil.hpp"
-#include "world/WorldConstants.hpp"
-#include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/chunk/ChunkPrimer.hpp"
+#include "world/gen/carver/CanyonCarver.hpp"
+#include "world/gen/carver/CaveCarver.hpp"
+#include "world/gen/carver/WorldCarver.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -19,26 +19,27 @@ using namespace mc;
 
 class CarvingMaskTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        mask = std::make_unique<CarvingMask>(0, 0);
-    }
+    void SetUp() override { mask = std::make_unique<CarvingMask>(0, 0); }
 
     std::unique_ptr<CarvingMask> mask;
 };
 
-TEST_F(CarvingMaskTest, InitiallyNotCarved) {
+TEST_F(CarvingMaskTest, InitiallyNotCarved)
+{
     EXPECT_FALSE(mask->isCarved(0, 0, 0));
     EXPECT_FALSE(mask->isCarved(8, 64, 8));
     EXPECT_FALSE(mask->isCarved(15, world::MAX_BUILD_HEIGHT - 1, 15));
 }
 
-TEST_F(CarvingMaskTest, SetAndGetCarved) {
+TEST_F(CarvingMaskTest, SetAndGetCarved)
+{
     EXPECT_FALSE(mask->isCarved(5, 100, 7));
     mask->setCarved(5, 100, 7);
     EXPECT_TRUE(mask->isCarved(5, 100, 7));
 }
 
-TEST_F(CarvingMaskTest, MultiplePositions) {
+TEST_F(CarvingMaskTest, MultiplePositions)
+{
     mask->setCarved(0, 0, 0);
     mask->setCarved(8, 128, 8);
     mask->setCarved(15, world::MAX_BUILD_HEIGHT - 1, 15);
@@ -52,11 +53,12 @@ TEST_F(CarvingMaskTest, MultiplePositions) {
     EXPECT_FALSE(mask->isCarved(7, 128, 8));
 }
 
-TEST_F(CarvingMaskTest, BoundaryCheck) {
+TEST_F(CarvingMaskTest, BoundaryCheck)
+{
     // 边界值
-    EXPECT_FALSE(mask->isCarved(-1, 0, 0));  // 无效坐标
-    EXPECT_FALSE(mask->isCarved(16, 0, 0));  // 无效坐标
-    EXPECT_FALSE(mask->isCarved(0, -1, 0));  // 无效坐标
+    EXPECT_FALSE(mask->isCarved(-1, 0, 0));                      // 无效坐标
+    EXPECT_FALSE(mask->isCarved(16, 0, 0));                      // 无效坐标
+    EXPECT_FALSE(mask->isCarved(0, -1, 0));                      // 无效坐标
     EXPECT_FALSE(mask->isCarved(0, world::MAX_BUILD_HEIGHT, 0)); // 无效坐标
 
     // 设置边界值
@@ -67,13 +69,15 @@ TEST_F(CarvingMaskTest, BoundaryCheck) {
     EXPECT_TRUE(mask->isCarved(15, world::MAX_BUILD_HEIGHT - 1, 15));
 }
 
-TEST_F(CarvingMaskTest, GetIndex) {
+TEST_F(CarvingMaskTest, GetIndex)
+{
     // 测试索引计算
     EXPECT_EQ(CarvingMask::getIndex(0, 0, 0), 0);
     EXPECT_EQ(CarvingMask::getIndex(1, 0, 0), 1);
     EXPECT_EQ(CarvingMask::getIndex(0, 0, 1), 16);
     EXPECT_EQ(CarvingMask::getIndex(0, 1, 0), 256);
-    EXPECT_EQ(CarvingMask::getIndex(15, world::MAX_BUILD_HEIGHT - 1, 15), 15 | (15 << 4) | ((world::MAX_BUILD_HEIGHT - 1) << 8));
+    EXPECT_EQ(CarvingMask::getIndex(15, world::MAX_BUILD_HEIGHT - 1, 15),
+        15 | (15 << 4) | ((world::MAX_BUILD_HEIGHT - 1) << 8));
 }
 
 // ============================================================================
@@ -82,12 +86,11 @@ TEST_F(CarvingMaskTest, GetIndex) {
 
 class WorldCarverTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(WorldCarverTest, IsCarvable) {
+TEST_F(WorldCarverTest, IsCarvable)
+{
     // 可雕刻的方块
     EXPECT_TRUE(WorldCarver<ProbabilityConfig>::isCarvable(VanillaBlocks::STONE->defaultState()));
     EXPECT_TRUE(WorldCarver<ProbabilityConfig>::isCarvable(VanillaBlocks::DIRT->defaultState()));
@@ -110,7 +113,8 @@ TEST_F(WorldCarverTest, IsCarvable) {
 
 class CaveCarverTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         carver = std::make_unique<CaveCarver>(world::MAX_BUILD_HEIGHT);
         chunk = std::make_unique<ChunkPrimer>(0, 0);
@@ -124,7 +128,8 @@ protected:
     std::unique_ptr<BiomeProvider> biomeProvider;
 };
 
-TEST_F(CaveCarverTest, ShouldCarveWithProbability) {
+TEST_F(CaveCarverTest, ShouldCarveWithProbability)
+{
     math::Random rng(12345);
 
     // 高概率配置
@@ -136,7 +141,8 @@ TEST_F(CaveCarverTest, ShouldCarveWithProbability) {
     EXPECT_FALSE(carver->shouldCarve(rng, 0, 0, lowProb));
 }
 
-TEST_F(CaveCarverTest, CarveCreatesHoles) {
+TEST_F(CaveCarverTest, CarveCreatesHoles)
+{
     // 用石头填充区块
     const BlockState* stone = &VanillaBlocks::STONE->defaultState();
     for (int y = 0; y < 64; ++y) {
@@ -148,7 +154,7 @@ TEST_F(CaveCarverTest, CarveCreatesHoles) {
     }
 
     // 执行雕刻
-    ProbabilityConfig config(1.0f);  // 100% 概率
+    ProbabilityConfig config(1.0f); // 100% 概率
     math::Random rng(11111);
 
     // 使用固定种子确保雕刻
@@ -174,7 +180,8 @@ TEST_F(CaveCarverTest, CarveCreatesHoles) {
     EXPECT_TRUE(carved);
 }
 
-TEST_F(CaveCarverTest, CarveRespectsMask) {
+TEST_F(CaveCarverTest, CarveRespectsMask)
+{
     // 用石头填充区块
     const BlockState* stone = &VanillaBlocks::STONE->defaultState();
     for (int y = 0; y < 64; ++y) {
@@ -196,12 +203,14 @@ TEST_F(CaveCarverTest, CarveRespectsMask) {
     EXPECT_TRUE(mask->isCarved(8, 32, 8));
 }
 
-TEST_F(CaveCarverTest, GetRange) {
+TEST_F(CaveCarverTest, GetRange)
+{
     // 默认范围应该是 4
     EXPECT_EQ(carver->getRange(), 4);
 }
 
-TEST_F(CaveCarverTest, GetMaxHeight) {
+TEST_F(CaveCarverTest, GetMaxHeight)
+{
     EXPECT_EQ(carver->getMaxHeight(), world::MAX_BUILD_HEIGHT);
 }
 
@@ -211,7 +220,8 @@ TEST_F(CaveCarverTest, GetMaxHeight) {
 
 class CanyonCarverTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         carver = std::make_unique<CanyonCarver>(world::MAX_BUILD_HEIGHT);
         chunk = std::make_unique<ChunkPrimer>(0, 0);
@@ -225,7 +235,8 @@ protected:
     std::unique_ptr<BiomeProvider> biomeProvider;
 };
 
-TEST_F(CanyonCarverTest, ShouldCarveWithProbability) {
+TEST_F(CanyonCarverTest, ShouldCarveWithProbability)
+{
     math::Random rng(12345);
 
     // 高概率配置
@@ -237,7 +248,8 @@ TEST_F(CanyonCarverTest, ShouldCarveWithProbability) {
     EXPECT_FALSE(carver->shouldCarve(rng, 0, 0, lowProb));
 }
 
-TEST_F(CanyonCarverTest, CarveCreatesCanyon) {
+TEST_F(CanyonCarverTest, CarveCreatesCanyon)
+{
     // 用石头填充区块
     const BlockState* stone = &VanillaBlocks::STONE->defaultState();
     for (int y = 0; y < 64; ++y) {
@@ -249,7 +261,7 @@ TEST_F(CanyonCarverTest, CarveCreatesCanyon) {
     }
 
     // 执行雕刻
-    ProbabilityConfig config(1.0f);  // 100% 概率
+    ProbabilityConfig config(1.0f); // 100% 概率
     math::Random rng(22222);
 
     bool carved = false;
@@ -274,19 +286,22 @@ TEST_F(CanyonCarverTest, CarveCreatesCanyon) {
     EXPECT_TRUE(carved);
 }
 
-TEST_F(CanyonCarverTest, HeightThresholdsInitialized) {
+TEST_F(CanyonCarverTest, HeightThresholdsInitialized)
+{
     // 峡谷雕刻器应该初始化高度阈值表
     CanyonCarver testCarver;
     // 不应该崩溃
     SUCCEED();
 }
 
-TEST_F(CanyonCarverTest, GetRange) {
+TEST_F(CanyonCarverTest, GetRange)
+{
     // 默认范围应该是 4
     EXPECT_EQ(carver->getRange(), 4);
 }
 
-TEST_F(CanyonCarverTest, GetMaxHeight) {
+TEST_F(CanyonCarverTest, GetMaxHeight)
+{
     EXPECT_EQ(carver->getMaxHeight(), world::MAX_BUILD_HEIGHT);
 }
 
@@ -294,17 +309,20 @@ TEST_F(CanyonCarverTest, GetMaxHeight) {
 // ProbabilityConfig 测试
 // ============================================================================
 
-TEST(ProbabilityConfigTest, DefaultProbability) {
+TEST(ProbabilityConfigTest, DefaultProbability)
+{
     ProbabilityConfig config;
-    EXPECT_FLOAT_EQ(config.probability, 0.14285715f);  // 1/7
+    EXPECT_FLOAT_EQ(config.probability, 0.14285715f); // 1/7
 }
 
-TEST(ProbabilityConfigTest, CustomProbability) {
+TEST(ProbabilityConfigTest, CustomProbability)
+{
     ProbabilityConfig config(0.5f);
     EXPECT_FLOAT_EQ(config.probability, 0.5f);
 }
 
-TEST(ProbabilityConfigTest, EdgeCases) {
+TEST(ProbabilityConfigTest, EdgeCases)
+{
     ProbabilityConfig zero(0.0f);
     EXPECT_FLOAT_EQ(zero.probability, 0.0f);
 
@@ -316,39 +334,39 @@ TEST(ProbabilityConfigTest, EdgeCases) {
 // ConfiguredCarver 测试
 // ============================================================================
 
-TEST(ConfiguredCarverTest, CreateAndUse) {
+TEST(ConfiguredCarverTest, CreateAndUse)
+{
     VanillaBlocks::initialize();
 
     auto carver = std::make_unique<CaveCarver>(world::MAX_BUILD_HEIGHT);
     ProbabilityConfig config(0.5f);
 
-    ConfiguredCarver<CaveCarver, ProbabilityConfig> configured(
-        std::move(carver), config);
+    ConfiguredCarver<CaveCarver, ProbabilityConfig> configured(std::move(carver), config);
 
     EXPECT_FLOAT_EQ(configured.getConfig().probability, 0.5f);
 }
 
-TEST(ConfiguredCarverTest, ShouldCarve) {
+TEST(ConfiguredCarverTest, ShouldCarve)
+{
     VanillaBlocks::initialize();
 
     auto carver = std::make_unique<CaveCarver>(world::MAX_BUILD_HEIGHT);
     ProbabilityConfig config(1.0f);
 
-    ConfiguredCarver<CaveCarver, ProbabilityConfig> configured(
-        std::move(carver), config);
+    ConfiguredCarver<CaveCarver, ProbabilityConfig> configured(std::move(carver), config);
 
     math::Random rng(12345);
     EXPECT_TRUE(configured.shouldCarve(rng, 0, 0));
 }
 
-TEST(ConfiguredCarverTest, CanyonWithConfig) {
+TEST(ConfiguredCarverTest, CanyonWithConfig)
+{
     VanillaBlocks::initialize();
 
     auto carver = std::make_unique<CanyonCarver>(world::MAX_BUILD_HEIGHT);
     ProbabilityConfig config(0.1f);
 
-    ConfiguredCarver<CanyonCarver, ProbabilityConfig> configured(
-        std::move(carver), config);
+    ConfiguredCarver<CanyonCarver, ProbabilityConfig> configured(std::move(carver), config);
 
     EXPECT_FLOAT_EQ(configured.getConfig().probability, 0.1f);
 }

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "JigsawPiece.hpp"
 #include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../../resource/ResourceLocation.hpp"
-#include <vector>
+#include "../../../util/math/random/Random.hpp"
+#include "JigsawPiece.hpp"
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace world {

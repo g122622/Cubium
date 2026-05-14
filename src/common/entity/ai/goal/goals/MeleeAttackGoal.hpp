@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../../../core/Types.hpp"
 #include "../Goal.hpp"
 #include "../GoalConstants.hpp"
-#include "../../../../core/Types.hpp"
 
 namespace mc {
 
@@ -75,10 +75,10 @@ protected:
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
     i32 m_failedPathFindingPenalty = 0;
-    bool m_canPenalize = false;  // MC 1.16.5: 路径失败惩罚开关
-    u32 m_lastCheckTime = 0;     // MC 1.16.5: field_220720_k 游戏时间节流
+    bool m_canPenalize = false; // MC 1.16.5: 路径失败惩罚开关
+    u32 m_lastCheckTime = 0;    // MC 1.16.5: field_220720_k 游戏时间节流
 
-    static constexpr i32 ATTACK_COOLDOWN_TICKS = 20; // 攻击冷却（ticks）
+    static constexpr i32 ATTACK_COOLDOWN_TICKS = 20;   // 攻击冷却（ticks）
     static constexpr f32 STOP_ATTACK_DISTANCE = 32.0f; // 停止追踪距离
 };
 

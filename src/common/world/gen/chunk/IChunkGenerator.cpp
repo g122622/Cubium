@@ -1,11 +1,11 @@
 #include "IChunkGenerator.hpp"
-#include "../spawn/WorldGenSpawner.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../biome/BiomeRegistry.hpp"
-#include "../../fluid/FluidRegistry.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
-#include "../../../util/assert/AssertAll.hpp"
+#include "../../biome/BiomeRegistry.hpp"
+#include "../../block/BlockRegistry.hpp"
+#include "../../fluid/FluidRegistry.hpp"
+#include "../spawn/WorldGenSpawner.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -160,7 +160,9 @@ const fluid::FluidState* WorldGenRegion::getFluidState(i32 x, i32 y, i32 z) cons
 {
     // 生成区域暂不支持流体查询，返回空流体状态
     // TODO: 从区块获取流体状态
-    (void)x; (void)y; (void)z;
+    (void)x;
+    (void)y;
+    (void)z;
     // 返回空流体的默认状态
     static const fluid::FluidState emptyState = fluid::FluidRegistry::instance().getFluid(0)->defaultState();
     return &emptyState;
@@ -192,14 +194,18 @@ i32 WorldGenRegion::getHeight(i32 x, i32 z) const
 u8 WorldGenRegion::getBlockLight(i32 x, i32 y, i32 z) const
 {
     // 生成期间光照未计算，返回 0
-    (void)x; (void)y; (void)z;
+    (void)x;
+    (void)y;
+    (void)z;
     return 0;
 }
 
 u8 WorldGenRegion::getSkyLight(i32 x, i32 y, i32 z) const
 {
     // 生成期间光照未计算，返回 15（最大天空光照）
-    (void)x; (void)y; (void)z;
+    (void)x;
+    (void)y;
+    (void)z;
     return 15;
 }
 
@@ -219,43 +225,47 @@ std::vector<AxisAlignedBB> WorldGenRegion::getBlockCollisions(const AxisAlignedB
 
 bool WorldGenRegion::isWithinWorldBounds(i32 x, i32 y, i32 z) const
 {
-    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT &&
-           x >= -30000000 && x < 30000000 &&
-           z >= -30000000 && z < 30000000;
+    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && x >= -30000000 && x < 30000000 &&
+        z >= -30000000 && z < 30000000;
 }
 
 bool WorldGenRegion::hasEntityCollision(const AxisAlignedBB& box, const Entity* except) const
 {
     // 生成期间没有实体
-    (void)box; (void)except;
+    (void)box;
+    (void)except;
     return false;
 }
 
 std::vector<AxisAlignedBB> WorldGenRegion::getEntityCollisions(const AxisAlignedBB& box, const Entity* except) const
 {
     // 生成期间没有实体
-    (void)box; (void)except;
+    (void)box;
+    (void)except;
     return {};
 }
 
 std::vector<Entity*> WorldGenRegion::getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const
 {
     // 生成期间没有实体
-    (void)box; (void)except;
+    (void)box;
+    (void)except;
     return {};
 }
 
 std::vector<Entity*> WorldGenRegion::getEntitiesInRange(const Vector3& pos, f32 range, const Entity* except) const
 {
     // 生成期间没有实体
-    (void)pos; (void)range; (void)except;
+    (void)pos;
+    (void)range;
+    (void)except;
     return {};
 }
 
 DimensionId WorldGenRegion::dimension() const
 {
     // 默认返回主世界
-    return 0;  // DimensionId::Overworld
+    return 0; // DimensionId::Overworld
 }
 
 world::tick::TickManager& WorldGenRegion::tickManager()
@@ -277,8 +287,7 @@ BaseChunkGenerator::BaseChunkGenerator(u64 seed, DimensionSettings settings)
     : m_seed(seed)
     , m_settings(std::move(settings))
     , m_worldGenSpawner(std::make_unique<WorldGenSpawner>())
-{
-}
+{}
 
 void BaseChunkGenerator::generateStructureStarts(WorldGenRegion& /*region*/, ChunkPrimer& chunk)
 {
@@ -324,8 +333,8 @@ void BaseChunkGenerator::placeFeatures(WorldGenRegion& /*region*/, ChunkPrimer& 
     chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }
 
-i32 BaseChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                                          std::vector<SpawnedEntityData>& outEntities)
+i32 BaseChunkGenerator::spawnInitialMobs(
+    WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities)
 {
     // 默认实现：使用 WorldGenSpawner 放置被动动物
     if (!m_worldGenSpawner || !m_worldGenSpawner->isEnabled()) {
@@ -339,9 +348,7 @@ i32 BaseChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& ch
     // 使用种子创建随机数生成器
     // 参考 MC: setDecorationSeed
     math::Random rng;
-    rng.setSeed(static_cast<u64>(chunk.x()) * 341873128712ULL +
-                static_cast<u64>(chunk.z()) * 132897987541ULL +
-                m_seed);
+    rng.setSeed(static_cast<u64>(chunk.x()) * 341873128712ULL + static_cast<u64>(chunk.z()) * 132897987541ULL + m_seed);
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
 }

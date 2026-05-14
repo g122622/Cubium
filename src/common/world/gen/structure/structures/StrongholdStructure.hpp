@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include <vector>
+#include "../Structure.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace world {
@@ -28,11 +28,11 @@ public:
      * @brief 要塞配置
      */
     struct Config {
-        i32 distance = 32;          ///< 距离（环之间的距离）
-        i32 spread = 3;             ///< 扩散角度
-        i32 count = 128;            ///< 最大要塞数量
-        i32 minY = 20;              ///< 最低 Y 坐标
-        i32 maxY = 40;              ///< 最高 Y 坐标
+        i32 distance = 32; ///< 距离（环之间的距离）
+        i32 spread = 3;    ///< 扩散角度
+        i32 count = 128;   ///< 最大要塞数量
+        i32 minY = 20;     ///< 最低 Y 坐标
+        i32 maxY = 40;     ///< 最高 Y 坐标
     };
 
     StrongholdStructure();
@@ -46,21 +46,13 @@ public:
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成要塞
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 计算要塞位置

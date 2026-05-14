@@ -1,43 +1,49 @@
 #include "server/stats/StatRegistry.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include <mutex>
 
 namespace mc {
 namespace server {
 namespace stats {
 
-StatRegistry& StatRegistry::instance() {
+StatRegistry& StatRegistry::instance()
+{
     static StatRegistry registry;
     return registry;
 }
 
-void StatRegistry::clear() {
+void StatRegistry::clear()
+{
     m_stats.clear();
 }
 
-void StatRegistry::registerBuiltinStats() {
+void StatRegistry::registerBuiltinStats()
+{
     // 注册自定义统计
     // 注意：方块和物品的统计在相应的方块/物品注册时自动注册
     // 这里只注册自定义统计
     registerAllCustomStats();
 }
 
-void StatRegistry::registerAllBlocks() {
+void StatRegistry::registerAllBlocks()
+{
     // 注册所有方块的挖掘统计
     // minecraft.mined:{block_id}
     // 注意：需要在 BlockRegistry 有 forEach 方法后实现
     // 当前版本跳过，由游戏在方块注册时调用 registerMinedStat
 }
 
-void StatRegistry::registerAllItems() {
+void StatRegistry::registerAllItems()
+{
     // 注册所有物品的统计
     // 注意：需要在 ItemRegistry 有 forEach 方法后实现
     // 当前版本跳过，由游戏在物品注册时调用相应方法
 }
 
-void StatRegistry::registerAllEntities() {
+void StatRegistry::registerAllEntities()
+{
     // 注册所有实体的击杀/被击杀统计
     // minecraft.killed:{entity_id}
     // minecraft.killed_by:{entity_id}
@@ -45,13 +51,14 @@ void StatRegistry::registerAllEntities() {
     // 当前版本跳过，由游戏在实体注册时调用相应方法
 }
 
-void StatRegistry::registerAllCustomStats() {
+void StatRegistry::registerAllCustomStats()
+{
     // 注册所有自定义统计
     // 参考 MC 1.16.5: net.minecraft.stats.Stats
 
     // ========== 时间相关 ==========
     registerCustomStat(ResourceLocation("minecraft:play_one_minute"));
-    registerCustomStat(ResourceLocation("minecraft:play_time"));  // 1.17+
+    registerCustomStat(ResourceLocation("minecraft:play_time")); // 1.17+
     registerCustomStat(ResourceLocation("minecraft:total_world_time"));
 
     // ========== 距离相关（单位：厘米）==========
@@ -66,11 +73,11 @@ void StatRegistry::registerAllCustomStats() {
     registerCustomStat(ResourceLocation("minecraft:boat_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:pig_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:horse_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:aviate_one_cm"));  // 鞘翅飞行
+    registerCustomStat(ResourceLocation("minecraft:aviate_one_cm")); // 鞘翅飞行
     registerCustomStat(ResourceLocation("minecraft:llama_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:stride_one_cm"));  // 炽足兽
+    registerCustomStat(ResourceLocation("minecraft:stride_one_cm")); // 炽足兽
     registerCustomStat(ResourceLocation("minecraft:crouch_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:sneak_time"));  // 潜行时间（tick）
+    registerCustomStat(ResourceLocation("minecraft:sneak_time")); // 潜行时间（tick）
 
     // ========== 动作计数 ==========
     registerCustomStat(ResourceLocation("minecraft:jump"));
@@ -165,65 +172,78 @@ void StatRegistry::registerAllCustomStats() {
     registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
 }
 
-void StatRegistry::registerMinedStat(const ResourceLocation& blockId) {
+void StatRegistry::registerMinedStat(const ResourceLocation& blockId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::Mined, blockId);
     m_stats[fullId] = {StatType::Mined, blockId};
 }
 
-ResourceLocation StatRegistry::getMinedStatId(const ResourceLocation& blockId) const {
+ResourceLocation StatRegistry::getMinedStatId(const ResourceLocation& blockId) const
+{
     return buildStatLocation(StatType::Mined, blockId);
 }
 
-void StatRegistry::registerCraftedStat(const ResourceLocation& itemId) {
+void StatRegistry::registerCraftedStat(const ResourceLocation& itemId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::Crafted, itemId);
     m_stats[fullId] = {StatType::Crafted, itemId};
 }
 
-void StatRegistry::registerUsedStat(const ResourceLocation& itemId) {
+void StatRegistry::registerUsedStat(const ResourceLocation& itemId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::Used, itemId);
     m_stats[fullId] = {StatType::Used, itemId};
 }
 
-void StatRegistry::registerBrokenStat(const ResourceLocation& itemId) {
+void StatRegistry::registerBrokenStat(const ResourceLocation& itemId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::Broken, itemId);
     m_stats[fullId] = {StatType::Broken, itemId};
 }
 
-void StatRegistry::registerPickedUpStat(const ResourceLocation& itemId) {
+void StatRegistry::registerPickedUpStat(const ResourceLocation& itemId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::PickedUp, itemId);
     m_stats[fullId] = {StatType::PickedUp, itemId};
 }
 
-void StatRegistry::registerDroppedStat(const ResourceLocation& itemId) {
+void StatRegistry::registerDroppedStat(const ResourceLocation& itemId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::Dropped, itemId);
     m_stats[fullId] = {StatType::Dropped, itemId};
 }
 
-void StatRegistry::registerKilledStat(const ResourceLocation& entityId) {
+void StatRegistry::registerKilledStat(const ResourceLocation& entityId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::Killed, entityId);
     m_stats[fullId] = {StatType::Killed, entityId};
 }
 
-void StatRegistry::registerKilledByStat(const ResourceLocation& entityId) {
+void StatRegistry::registerKilledByStat(const ResourceLocation& entityId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::KilledBy, entityId);
     m_stats[fullId] = {StatType::KilledBy, entityId};
 }
 
-void StatRegistry::registerCustomStat(const ResourceLocation& statId) {
+void StatRegistry::registerCustomStat(const ResourceLocation& statId)
+{
     ResourceLocation fullId = buildStatLocation(StatType::Custom, statId);
     m_stats[fullId] = {StatType::Custom, statId};
 }
 
-bool StatRegistry::hasStat(StatType type, const ResourceLocation& id) const {
+bool StatRegistry::hasStat(StatType type, const ResourceLocation& id) const
+{
     ResourceLocation fullId = buildStatLocation(type, id);
     return m_stats.find(fullId) != m_stats.end();
 }
 
-bool StatRegistry::hasStat(const ResourceLocation& fullId) const {
+bool StatRegistry::hasStat(const ResourceLocation& fullId) const
+{
     return m_stats.find(fullId) != m_stats.end();
 }
 
-std::vector<ResourceLocation> StatRegistry::getAllStatIds() const {
+std::vector<ResourceLocation> StatRegistry::getAllStatIds() const
+{
     std::vector<ResourceLocation> ids;
     ids.reserve(m_stats.size());
     for (const auto& [id, _] : m_stats) {
@@ -232,7 +252,8 @@ std::vector<ResourceLocation> StatRegistry::getAllStatIds() const {
     return ids;
 }
 
-std::vector<ResourceLocation> StatRegistry::getStatIdsByType(StatType type) const {
+std::vector<ResourceLocation> StatRegistry::getStatIdsByType(StatType type) const
+{
     std::vector<ResourceLocation> ids;
     for (const auto& [id, pair] : m_stats) {
         if (pair.first == type) {

@@ -45,25 +45,25 @@ enum class TransformType : u8 {
 /**
  * @brief 判断是否为第一人称视角
  */
-[[nodiscard]] inline bool isFirstPerson(TransformType type) {
-    return type == TransformType::FirstPersonLeftHand ||
-           type == TransformType::FirstPersonRightHand;
+[[nodiscard]] inline bool isFirstPerson(TransformType type)
+{
+    return type == TransformType::FirstPersonLeftHand || type == TransformType::FirstPersonRightHand;
 }
 
 /**
  * @brief 判断是否为第三人称视角
  */
-[[nodiscard]] inline bool isThirdPerson(TransformType type) {
-    return type == TransformType::ThirdPersonLeftHand ||
-           type == TransformType::ThirdPersonRightHand;
+[[nodiscard]] inline bool isThirdPerson(TransformType type)
+{
+    return type == TransformType::ThirdPersonLeftHand || type == TransformType::ThirdPersonRightHand;
 }
 
 /**
  * @brief 判断是否为左手
  */
-[[nodiscard]] inline bool isLeftHand(TransformType type) {
-    return type == TransformType::FirstPersonLeftHand ||
-           type == TransformType::ThirdPersonLeftHand;
+[[nodiscard]] inline bool isLeftHand(TransformType type)
+{
+    return type == TransformType::FirstPersonLeftHand || type == TransformType::ThirdPersonLeftHand;
 }
 
 /**
@@ -92,9 +92,15 @@ struct ItemTransform {
     /**
      * @brief 构造变换参数
      */
-    ItemTransform(f32 rotX, f32 rotY, f32 rotZ,
-                  f32 transX, f32 transY, f32 transZ,
-                  f32 scaleX = 1.0f, f32 scaleY = 1.0f, f32 scaleZ = 1.0f)
+    ItemTransform(f32 rotX,
+        f32 rotY,
+        f32 rotZ,
+        f32 transX,
+        f32 transY,
+        f32 transZ,
+        f32 scaleX = 1.0f,
+        f32 scaleY = 1.0f,
+        f32 scaleZ = 1.0f)
         : rotation(rotX, rotY, rotZ)
         , translation(transX, transY, transZ)
         , scale(scaleX, scaleY, scaleZ)
@@ -103,16 +109,17 @@ struct ItemTransform {
     /**
      * @brief 判断是否为默认变换（无变换）
      */
-    [[nodiscard]] bool isDefault() const {
-        return rotation.x == 0.0f && rotation.y == 0.0f && rotation.z == 0.0f &&
-               translation.x == 0.0f && translation.y == 0.0f && translation.z == 0.0f &&
-               scale.x == 1.0f && scale.y == 1.0f && scale.z == 1.0f;
+    [[nodiscard]] bool isDefault() const
+    {
+        return rotation.x == 0.0f && rotation.y == 0.0f && rotation.z == 0.0f && translation.x == 0.0f &&
+            translation.y == 0.0f && translation.z == 0.0f && scale.x == 1.0f && scale.y == 1.0f && scale.z == 1.0f;
     }
 
     /**
      * @brief 应用变换到矩阵栈
      */
-    void apply(MatrixStack& stack) const {
+    void apply(MatrixStack& stack) const
+    {
         if (isDefault()) {
             return;
         }
@@ -129,9 +136,7 @@ struct ItemTransform {
     /**
      * @brief 获取默认变换（无变换）
      */
-    static ItemTransform defaultTransform() {
-        return ItemTransform();
-    }
+    static ItemTransform defaultTransform() { return ItemTransform(); }
 };
 
 /**
@@ -152,7 +157,8 @@ public:
     /**
      * @brief 获取指定类型的变换
      */
-    [[nodiscard]] const ItemTransform& getTransform(TransformType type) const {
+    [[nodiscard]] const ItemTransform& getTransform(TransformType type) const
+    {
         switch (type) {
             case TransformType::ThirdPersonLeftHand:
                 return thirdPersonLeft;
@@ -178,16 +184,12 @@ public:
     /**
      * @brief 检查指定类型是否有自定义变换
      */
-    [[nodiscard]] bool hasCustomTransform(TransformType type) const {
-        return !getTransform(type).isDefault();
-    }
+    [[nodiscard]] bool hasCustomTransform(TransformType type) const { return !getTransform(type).isDefault(); }
 
     /**
      * @brief 应用指定类型的变换到矩阵栈
      */
-    void applyTransform(MatrixStack& stack, TransformType type) const {
-        getTransform(type).apply(stack);
-    }
+    void applyTransform(MatrixStack& stack, TransformType type) const { getTransform(type).apply(stack); }
 
     // ========== 静态默认变换 ==========
 
@@ -196,58 +198,88 @@ public:
      *
      * 默认值来自 MC 1.16.5 方块/物品模型的默认变换。
      */
-    static ItemTransform getDefaultThirdPersonRight() {
+    static ItemTransform getDefaultThirdPersonRight()
+    {
         // 第三人称手持物品的标准变换
-        return ItemTransform(
-            0.0f, 0.0f, 0.0f,        // 旋转
-            0.0f, 2.5f, 0.0f,        // 平移（向上偏移）
-            0.375f, 0.375f, 0.375f   // 缩放
+        return ItemTransform(0.0f,
+            0.0f,
+            0.0f, // 旋转
+            0.0f,
+            2.5f,
+            0.0f, // 平移（向上偏移）
+            0.375f,
+            0.375f,
+            0.375f // 缩放
         );
     }
 
     /**
      * @brief 获取第一人称右手的默认变换
      */
-    static ItemTransform getDefaultFirstPersonRight() {
+    static ItemTransform getDefaultFirstPersonRight()
+    {
         // 第一人称手持物品的标准变换
-        return ItemTransform(
-            0.0f, 45.0f, 0.0f,       // 旋转（Y轴45度）
-            0.0f, 0.0f, 0.0f,        // 平移
-            0.4f, 0.4f, 0.4f         // 缩放
+        return ItemTransform(0.0f,
+            45.0f,
+            0.0f, // 旋转（Y轴45度）
+            0.0f,
+            0.0f,
+            0.0f, // 平移
+            0.4f,
+            0.4f,
+            0.4f // 缩放
         );
     }
 
     /**
      * @brief 获取GUI显示的默认变换
      */
-    static ItemTransform getDefaultGui() {
+    static ItemTransform getDefaultGui()
+    {
         // GUI 显示的标准变换
-        return ItemTransform(
-            30.0f, 225.0f, 0.0f,     // 旋转（俯视30度，Y轴旋转225度）
-            0.0f, 0.0f, 0.0f,        // 平移
-            0.625f, 0.625f, 0.625f   // 缩放
+        return ItemTransform(30.0f,
+            225.0f,
+            0.0f, // 旋转（俯视30度，Y轴旋转225度）
+            0.0f,
+            0.0f,
+            0.0f, // 平移
+            0.625f,
+            0.625f,
+            0.625f // 缩放
         );
     }
 
     /**
      * @brief 获取地面掉落物的默认变换
      */
-    static ItemTransform getDefaultGround() {
-        return ItemTransform(
-            0.0f, 0.0f, 0.0f,        // 旋转
-            0.0f, 0.0f, 0.0f,        // 平移
-            0.25f, 0.25f, 0.25f      // 缩放
+    static ItemTransform getDefaultGround()
+    {
+        return ItemTransform(0.0f,
+            0.0f,
+            0.0f, // 旋转
+            0.0f,
+            0.0f,
+            0.0f, // 平移
+            0.25f,
+            0.25f,
+            0.25f // 缩放
         );
     }
 
     /**
      * @brief 获取固定位置的默认变换
      */
-    static ItemTransform getDefaultFixed() {
-        return ItemTransform(
-            0.0f, 0.0f, 0.0f,        // 旋转
-            0.0f, 0.0f, 0.0f,        // 平移
-            0.5f, 0.5f, 0.5f         // 缩放
+    static ItemTransform getDefaultFixed()
+    {
+        return ItemTransform(0.0f,
+            0.0f,
+            0.0f, // 旋转
+            0.0f,
+            0.0f,
+            0.0f, // 平移
+            0.5f,
+            0.5f,
+            0.5f // 缩放
         );
     }
 

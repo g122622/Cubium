@@ -9,7 +9,8 @@ namespace village {
 
 // ========== GossipEntry ==========
 
-i32 GossipEntry::decay(i64 currentTime) {
+i32 GossipEntry::decay(i64 currentTime)
+{
     i64 interval = GossipTypeHelper::getDecayInterval(type);
     f32 rate = GossipTypeHelper::getDecayRate(type);
 
@@ -30,12 +31,13 @@ i32 GossipEntry::decay(i64 currentTime) {
 
 // ========== VillageGossipManager ==========
 
-void VillageGossipManager::addGossip(u64 playerId, VillageGossipType type, i32 value) {
+void VillageGossipManager::addGossip(u64 playerId, VillageGossipType type, i32 value)
+{
     auto& gossips = m_gossips[playerId];
 
     // 查找是否已有该类型的流言
-    auto it = std::find_if(gossips.begin(), gossips.end(),
-        [type](const GossipEntry& entry) { return entry.type == type; });
+    auto it =
+        std::find_if(gossips.begin(), gossips.end(), [type](const GossipEntry& entry) { return entry.type == type; });
 
     if (it != gossips.end()) {
         // 累加，不超过最大值
@@ -52,15 +54,15 @@ void VillageGossipManager::addGossip(u64 playerId, VillageGossipType type, i32 v
     }
 }
 
-void VillageGossipManager::removeGossip(u64 playerId, VillageGossipType type) {
+void VillageGossipManager::removeGossip(u64 playerId, VillageGossipType type)
+{
     auto it = m_gossips.find(playerId);
     if (it != m_gossips.end()) {
         auto& gossips = it->second;
         gossips.erase(
-            std::remove_if(gossips.begin(), gossips.end(),
-                [type](const GossipEntry& entry) { return entry.type == type; }),
-            gossips.end()
-        );
+            std::remove_if(
+                gossips.begin(), gossips.end(), [type](const GossipEntry& entry) { return entry.type == type; }),
+            gossips.end());
 
         // 如果玩家没有流言了，移除记录
         if (gossips.empty()) {
@@ -69,15 +71,18 @@ void VillageGossipManager::removeGossip(u64 playerId, VillageGossipType type) {
     }
 }
 
-void VillageGossipManager::clearGossip(u64 playerId) {
+void VillageGossipManager::clearGossip(u64 playerId)
+{
     m_gossips.erase(playerId);
 }
 
-void VillageGossipManager::clearAll() {
+void VillageGossipManager::clearAll()
+{
     m_gossips.clear();
 }
 
-i32 VillageGossipManager::getReputation(u64 playerId) const {
+i32 VillageGossipManager::getReputation(u64 playerId) const
+{
     auto it = m_gossips.find(playerId);
     if (it == m_gossips.end()) {
         return 0;
@@ -92,7 +97,8 @@ i32 VillageGossipManager::getReputation(u64 playerId) const {
     return std::clamp(reputation, MIN_REPUTATION, MAX_REPUTATION);
 }
 
-i32 VillageGossipManager::getGossipValue(u64 playerId, VillageGossipType type) const {
+i32 VillageGossipManager::getGossipValue(u64 playerId, VillageGossipType type) const
+{
     auto it = m_gossips.find(playerId);
     if (it == m_gossips.end()) {
         return 0;
@@ -106,7 +112,8 @@ i32 VillageGossipManager::getGossipValue(u64 playerId, VillageGossipType type) c
     return 0;
 }
 
-f32 VillageGossipManager::getPriceModifier(u64 playerId) const {
+f32 VillageGossipManager::getPriceModifier(u64 playerId) const
+{
     i32 reputation = getReputation(playerId);
 
     // 价格修正因子：声誉越高，价格越低
@@ -119,11 +126,13 @@ f32 VillageGossipManager::getPriceModifier(u64 playerId) const {
     return std::clamp(modifier, 0.5f, 1.5f);
 }
 
-bool VillageGossipManager::hasGossip(u64 playerId) const {
+bool VillageGossipManager::hasGossip(u64 playerId) const
+{
     return m_gossips.find(playerId) != m_gossips.end();
 }
 
-std::vector<u64> VillageGossipManager::getAllPlayers() const {
+std::vector<u64> VillageGossipManager::getAllPlayers() const
+{
     std::vector<u64> players;
     players.reserve(m_gossips.size());
     for (const auto& [playerId, _] : m_gossips) {
@@ -132,7 +141,8 @@ std::vector<u64> VillageGossipManager::getAllPlayers() const {
     return players;
 }
 
-void VillageGossipManager::tick(i64 gameTime) {
+void VillageGossipManager::tick(i64 gameTime)
+{
     // 对所有流言执行衰减
     for (auto& [playerId, gossips] : m_gossips) {
         for (auto& entry : gossips) {
@@ -141,14 +151,12 @@ void VillageGossipManager::tick(i64 gameTime) {
 
         // 移除值为0的流言
         gossips.erase(
-            std::remove_if(gossips.begin(), gossips.end(),
-                [](const GossipEntry& entry) { return entry.value <= 0; }),
-            gossips.end()
-        );
+            std::remove_if(gossips.begin(), gossips.end(), [](const GossipEntry& entry) { return entry.value <= 0; }),
+            gossips.end());
     }
 
     // 移除空记录
-    for (auto it = m_gossips.begin(); it != m_gossips.end(); ) {
+    for (auto it = m_gossips.begin(); it != m_gossips.end();) {
         if (it->second.empty()) {
             it = m_gossips.erase(it);
         } else {
@@ -157,7 +165,8 @@ void VillageGossipManager::tick(i64 gameTime) {
     }
 }
 
-void VillageGossipManager::serialize(nbt::tags::compound_tag& tag) const {
+void VillageGossipManager::serialize(nbt::tags::compound_tag& tag) const
+{
     auto gossipsList = std::make_unique<nbt::tags::compound_list_tag>();
 
     for (const auto& [playerId, entries] : m_gossips) {
@@ -180,7 +189,8 @@ void VillageGossipManager::serialize(nbt::tags::compound_tag& tag) const {
     tag.value["Gossips"] = std::move(gossipsList);
 }
 
-void VillageGossipManager::deserialize(const nbt::tags::compound_tag& tag) {
+void VillageGossipManager::deserialize(const nbt::tags::compound_tag& tag)
+{
     m_gossips.clear();
 
     auto gossipsIt = tag.value.find("Gossips");

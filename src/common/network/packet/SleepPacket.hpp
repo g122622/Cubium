@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../world/block/BlockPos.hpp"
 #include "Packet.hpp"
 #include "PacketSerializer.hpp"
-#include "../../world/block/BlockPos.hpp"
 #include <optional>
 
 namespace mc::network {
@@ -18,7 +18,9 @@ namespace mc::network {
  */
 class SleepPacket : public Packet {
 public:
-    SleepPacket() : Packet(PacketType::Sleep) {}
+    SleepPacket()
+        : Packet(PacketType::Sleep)
+    {}
 
     /**
      * @brief 构造进入睡眠的包

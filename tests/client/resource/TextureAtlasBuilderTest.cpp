@@ -6,7 +6,8 @@ namespace mc {
 
 namespace {
 
-std::vector<u8> makeSolidRgba(u32 width, u32 height, u8 r, u8 g, u8 b, u8 a) {
+std::vector<u8> makeSolidRgba(u32 width, u32 height, u8 r, u8 g, u8 b, u8 a)
+{
     std::vector<u8> pixels(static_cast<size_t>(width) * static_cast<size_t>(height) * 4, 0);
     for (size_t i = 0; i < pixels.size(); i += 4) {
         pixels[i + 0] = r;
@@ -19,7 +20,8 @@ std::vector<u8> makeSolidRgba(u32 width, u32 height, u8 r, u8 g, u8 b, u8 a) {
 
 } // namespace
 
-TEST(TextureAtlasBuilderTest, AnimatedVerticalStripUsesFrameSizeForRegion) {
+TEST(TextureAtlasBuilderTest, AnimatedVerticalStripUsesFrameSizeForRegion)
+{
     TextureAtlasBuilder builder;
     builder.setMaxSize(128, 128);
 
@@ -43,7 +45,8 @@ TEST(TextureAtlasBuilderTest, AnimatedVerticalStripUsesFrameSizeForRegion) {
     EXPECT_NEAR(regionHeight, 16.0f / static_cast<f32>(atlas.height), 1e-6f);
 }
 
-TEST(TextureAtlasBuilderTest, InvalidFrameSizeFallsBackToFullImage) {
+TEST(TextureAtlasBuilderTest, InvalidFrameSizeFallsBackToFullImage)
+{
     TextureAtlasBuilder builder;
     builder.setMaxSize(128, 128);
 

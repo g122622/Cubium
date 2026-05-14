@@ -1,17 +1,17 @@
 #include "CreeperEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/explosion/ExplosionMode.hpp"
 #include "../../../../world/gamerule/GameRules.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../sound/SoundEvents.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
@@ -29,21 +29,25 @@ CreeperEntity::CreeperEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<CreeperEntity>(LegacyEntityType::Unknown, 0);
 }
 
-std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.creeper.hurt
     return SoundEvents::ENTITY_CREEPER_HURT;
 }
 
-std::optional<ResourceLocation> CreeperEntity::getDeathSound() const {
+std::optional<ResourceLocation> CreeperEntity::getDeathSound() const
+{
     // MC 1.16.5: entity.creeper.death
     return SoundEvents::ENTITY_CREEPER_DEATH;
 }
 
-i32 CreeperEntity::getCreeperState() const {
+i32 CreeperEntity::getCreeperState() const
+{
     // MC 1.16.5: -1 = idle, 1 = fusing
     if (m_timeSinceIgnited > 0) {
         return 1;
@@ -51,24 +55,28 @@ i32 CreeperEntity::getCreeperState() const {
     return -1;
 }
 
-void CreeperEntity::setCreeperState(i32 state) {
+void CreeperEntity::setCreeperState(i32 state)
+{
     // MC 1.16.5: 设置状态
     if (state > 0) {
         ignite();
     }
 }
 
-void CreeperEntity::ignite() {
+void CreeperEntity::ignite()
+{
     // MC 1.16.5: 点燃苦力怕
     m_ignited = true;
 }
 
-bool CreeperEntity::ableToCauseSkullDrop() const {
+bool CreeperEntity::ableToCauseSkullDrop() const
+{
     // MC 1.16.5: 只有高压苦力怕且还没掉过头颅才能导致头颅掉落
     return m_powered && m_droppedSkulls < 1;
 }
 
-void CreeperEntity::explode() {
+void CreeperEntity::explode()
+{
     // MC 1.16.5 CreeperEntity.explode()
     // 只在服务端爆炸
     if (isDead()) return;
@@ -93,12 +101,11 @@ void CreeperEntity::explode() {
     }
 
     // 创建爆炸
-    worldPtr->createExplosion(
-        position(),
+    worldPtr->createExplosion(position(),
         radius,
         mode,
-        false,  // 不生成火焰
-        this    // 爆炸源实体
+        false, // 不生成火焰
+        this   // 爆炸源实体
     );
 
     // 移除实体
@@ -108,13 +115,15 @@ void CreeperEntity::explode() {
     spawnLingeringCloud();
 }
 
-void CreeperEntity::spawnLingeringCloud() {
+void CreeperEntity::spawnLingeringCloud()
+{
     // MC 1.16.5 CreeperEntity.spawnLingeringCloud()
     // TODO: 当苦力怕有药水效果时，死亡后生成滞留药水云
     // 需要实现 AreaEffectCloudEntity
 }
 
-void CreeperEntity::tick() {
+void CreeperEntity::tick()
+{
     // MC 1.16.5 CreeperEntity.tick()
     if (isAlive()) {
         m_lastActiveTime = m_timeSinceIgnited;
@@ -147,7 +156,8 @@ void CreeperEntity::tick() {
     MonsterEntity::tick();
 }
 
-void CreeperEntity::registerGoals() {
+void CreeperEntity::registerGoals()
+{
     // 调用父类方法
     MonsterEntity::registerGoals();
 
@@ -172,19 +182,18 @@ void CreeperEntity::registerGoals() {
 
     // 优先级 3: 避开猫和豹猫
     // MC 1.16.5: 苦力怕害怕猫和豹猫，会在 6 格内逃跑
-    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::AvoidEntityGoal>(
-        this,
-        6.0f,    // avoidDistance - 检测距离
-        1.0,     // farSpeed - 远距离逃跑速度
-        1.2,     // nearSpeed - 近距离逃跑速度（更快）
-        [](const LivingEntity* entity) -> bool {
-            if (!entity) return false;
-            // 检查是否为猫或豹猫
-            // MC 1.16.5: instanceof CatEntity || instanceof OcelotEntity
-            auto type = entity->legacyType();
-            return type == LegacyEntityType::Cat || type == LegacyEntityType::Ocelot;
-        }
-    ));
+    m_goalSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
+            6.0f, // avoidDistance - 检测距离
+            1.0,  // farSpeed - 远距离逃跑速度
+            1.2,  // nearSpeed - 近距离逃跑速度（更快）
+            [](const LivingEntity* entity) -> bool {
+                if (!entity) return false;
+                // 检查是否为猫或豹猫
+                // MC 1.16.5: instanceof CatEntity || instanceof OcelotEntity
+                auto type = entity->legacyType();
+                return type == LegacyEntityType::Cat || type == LegacyEntityType::Ocelot;
+            }));
 
     // 优先级 4: 近战攻击（用于接近玩家）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
@@ -193,8 +202,8 @@ void CreeperEntity::registerGoals() {
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.8));
 
     // 优先级 6: 看向玩家
-    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             // 只看向玩家
             return entity->legacyType() == LegacyEntityType::Player;
@@ -205,19 +214,19 @@ void CreeperEntity::registerGoals() {
 
     // 目标选择器：攻击最近的玩家
     // 使用 LivingEntity 类型，通过谓词筛选玩家
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-        this,
-        true,    // checkSight - 需要视线
-        0,       // chance - 每tick都检查
-        [](const LivingEntity* entity) -> bool {
-            // MC 1.16.5: 苦力怕只攻击玩家
-            if (!entity) return false;
-            return entity->legacyType() == LegacyEntityType::Player;
-        }
-    ));
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            true, // checkSight - 需要视线
+            0,    // chance - 每tick都检查
+            [](const LivingEntity* entity) -> bool {
+                // MC 1.16.5: 苦力怕只攻击玩家
+                if (!entity) return false;
+                return entity->legacyType() == LegacyEntityType::Player;
+            }));
 }
 
-void CreeperEntity::registerAttributes() {
+void CreeperEntity::registerAttributes()
+{
     // 调用父类方法
     MonsterEntity::registerAttributes();
 

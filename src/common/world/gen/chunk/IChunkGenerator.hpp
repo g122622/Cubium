@@ -1,16 +1,16 @@
 #pragma once
 
-#include "../settings/DimensionSettings.hpp"
-#include "../../border/WorldBorder.hpp"
-#include "../../chunk/ChunkStatus.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
-#include "../../biome/Biome.hpp"
-#include "../../IWorld.hpp"
 #include "../../../core/Types.hpp"
-#include <cstddef>
-#include <memory>
+#include "../../IWorld.hpp"
+#include "../../biome/Biome.hpp"
+#include "../../border/WorldBorder.hpp"
+#include "../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/ChunkStatus.hpp"
+#include "../settings/DimensionSettings.hpp"
 #include <array>
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <vector>
 
 namespace mc {
@@ -108,8 +108,8 @@ public:
      * @param outEntities 输出：生成的实体数据列表
      * @return 生成的实体数量
      */
-    virtual i32 spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                                  std::vector<SpawnedEntityData>& outEntities) = 0;
+    virtual i32 spawnInitialMobs(
+        WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) = 0;
 
     // === 生物群系 ===
 
@@ -137,9 +137,7 @@ public:
     /**
      * @brief 获取生成高度（使用世界表面类型）
      */
-    [[nodiscard]] i32 getSpawnHeight(i32 x, i32 z) const {
-        return getHeight(x, z, HeightmapType::WorldSurfaceWG);
-    }
+    [[nodiscard]] i32 getSpawnHeight(i32 x, i32 z) const { return getHeight(x, z, HeightmapType::WorldSurfaceWG); }
 
     // === 基本信息 ===
 
@@ -181,15 +179,15 @@ public:
  */
 class WorldGenRegion : public IWorld {
 public:
-    using IWorld::setBlockState;
     using IWorld::getBlockState;
+    using IWorld::setBlockState;
 
     /**
      * @brief 构造世界生成区域
      * @param mainX 主区块 X
      * @param mainZ 主区块 Z
-        * @param chunkRadius 区块半径（0 表示只有中心区块，8 表示 17x17 区域）
-        * @param chunks 区块数组（按从左上到右下的顺序排列）
+     * @param chunkRadius 区块半径（0 表示只有中心区块，8 表示 17x17 区域）
+     * @param chunks 区块数组（按从左上到右下的顺序排列）
      */
     WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks);
 
@@ -205,7 +203,7 @@ public:
      * @param mainZ 主区块 Z
      * @param chunks 按从左上到右下顺序排列的区块数组
      */
-    template<std::size_t N>
+    template <std::size_t N>
     WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, const std::array<IChunk*, N>& chunks)
         : WorldGenRegion(mainX, mainZ, inferChunkRadius(N), std::vector<IChunk*>(chunks.begin(), chunks.end()))
     {
@@ -249,7 +247,8 @@ public:
     /**
      * @brief 获取方块（BlockPos 版本）
      */
-    [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const override {
+    [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const override
+    {
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
@@ -261,7 +260,8 @@ public:
     /**
      * @brief 设置方块状态（带标志）
      */
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
         (void)flags;
         return setBlockState(x, y, z, state);
     }
@@ -321,17 +321,20 @@ public:
     /**
      * @brief 获取实体碰撞箱
      */
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB& box, const Entity* except = nullptr) const override;
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(
+        const AxisAlignedBB& box, const Entity* except = nullptr) const override;
 
     /**
      * @brief 获取碰撞箱内的实体
      */
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except = nullptr) const override;
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
+        const AxisAlignedBB& box, const Entity* except = nullptr) const override;
 
     /**
      * @brief 获取范围内的实体
      */
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
+        const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
 
     /**
      * @brief 获取维度 ID
@@ -448,7 +451,7 @@ private:
     ChunkCoord m_mainZ;
     i32 m_chunkRadius;
     i32 m_chunkDiameter;
-    std::vector<IChunk*> m_chunks;  // 按行优先顺序存储的动态方阵
+    std::vector<IChunk*> m_chunks; // 按行优先顺序存储的动态方阵
 
     // IWorld 所需的状态
     u64 m_seed = 0;
@@ -489,8 +492,8 @@ public:
     void generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    i32 spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                          std::vector<SpawnedEntityData>& outEntities) override;
+    i32 spawnInitialMobs(
+        WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
 
     [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }

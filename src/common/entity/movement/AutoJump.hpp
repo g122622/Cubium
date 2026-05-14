@@ -1,9 +1,9 @@
 #pragma once
 
-#include "AutoJumpConstants.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector2.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "AutoJumpConstants.hpp"
 #include <vector>
 
 namespace mc {
@@ -147,9 +147,7 @@ public:
      * @return 检测结果
      */
     [[nodiscard]] AutoJumpResult check(
-        const Player& player,
-        PhysicsEngine& physicsEngine,
-        const Vector2& movementInput);
+        const Player& player, PhysicsEngine& physicsEngine, const Vector2& movementInput);
 
     // ========== 静态工具方法（供测试使用） ==========
 
@@ -163,9 +161,7 @@ public:
      * @param movementInput 移动输入
      * @return 归一化的移动方向向量（XZ平面）
      */
-    [[nodiscard]] static Vector3 calculateMovementDirection(
-        const Player& player,
-        const Vector2& movementInput);
+    [[nodiscard]] static Vector3 calculateMovementDirection(const Player& player, const Vector2& movementInput);
 
     /**
      * @brief 检查玩家是否在向前移动
@@ -177,9 +173,7 @@ public:
      * @param forwardDir 玩家朝向（归一化）
      * @return 是否在向前移动
      */
-    [[nodiscard]] static bool isMovingForward(
-        const Vector3& movementDir,
-        const Vector3& forwardDir);
+    [[nodiscard]] static bool isMovingForward(const Vector3& movementDir, const Vector3& forwardDir);
 
     /**
      * @brief 计算最大跳跃高度
@@ -218,9 +212,7 @@ private:
      * @param hasMovementInput 是否有移动输入
      * @return 是否应该检测
      */
-    [[nodiscard]] bool shouldCheckForAutoJump(
-        const Player& player,
-        bool hasMovementInput) const;
+    [[nodiscard]] bool shouldCheckForAutoJump(const Player& player, bool hasMovementInput) const;
 
     /**
      * @brief 检查指定位置上方是否有头部空间
@@ -232,10 +224,7 @@ private:
      * @param testPos 测试位置（X, Y=玩家脚部Y, Z）
      * @return 是否有足够的头部空间
      */
-    [[nodiscard]] static bool hasHeadSpace(
-        const Player& player,
-        PhysicsEngine& physicsEngine,
-        const Vector3& testPos);
+    [[nodiscard]] static bool hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine, const Vector3& testPos);
 
     /**
      * @brief 沿检测线查找障碍物高度
@@ -251,8 +240,7 @@ private:
      * @param collisionBoxes 碰撞箱列表（输出）
      * @return 障碍物顶部高度，如果没有找到返回 -1.0f
      */
-    [[nodiscard]] static f32 detectObstacleHeight(
-        const Player& player,
+    [[nodiscard]] static f32 detectObstacleHeight(const Player& player,
         PhysicsEngine& physicsEngine,
         const Vector3& origin,
         const Vector3& direction,

@@ -14,12 +14,16 @@ class ITexture;
  * UV 坐标范围 [0, 1]，其中 (u0, v0) 是左上角，(u1, v1) 是右下角。
  */
 struct TextureRegion {
-    f64 u0 = 0.0f, v0 = 0.0f;  // 左上角
-    f64 u1 = 1.0f, v1 = 1.0f;  // 右下角
+    f64 u0 = 0.0f, v0 = 0.0f; // 左上角
+    f64 u1 = 1.0f, v1 = 1.0f; // 右下角
 
     TextureRegion() = default;
     TextureRegion(f64 u0_, f64 v0_, f64 u1_, f64 v1_)
-        : u0(u0_), v0(v0_), u1(u1_), v1(v1_) {}
+        : u0(u0_)
+        , v0(v0_)
+        , u1(u1_)
+        , v1(v1_)
+    {}
 
     /**
      * @brief 获取区域宽度 (UV单位)
@@ -34,17 +38,14 @@ struct TextureRegion {
     /**
      * @brief 创建默认区域 (整个纹理)
      */
-    static TextureRegion full() {
-        return TextureRegion(0.0f, 0.0f, 1.0f, 1.0f);
-    }
+    static TextureRegion full() { return TextureRegion(0.0f, 0.0f, 1.0f, 1.0f); }
 
-    bool operator==(const TextureRegion& other) const {
+    bool operator==(const TextureRegion& other) const
+    {
         return u0 == other.u0 && v0 == other.v0 && u1 == other.u1 && v1 == other.v1;
     }
 
-    bool operator!=(const TextureRegion& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const TextureRegion& other) const { return !(*this == other); }
 };
 
 /**

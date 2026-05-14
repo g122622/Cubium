@@ -7,9 +7,9 @@ namespace mc::client::ui::minecraft {
 
 LoadingScreen::LoadingScreen()
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
-          kagero::state::StateStore::instance(),
-          kagero::event::EventBus::instance()),
-          "loading") {
+                         kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
+          "loading")
+{
     exposeReactive("loading.title", m_titleValue);
     exposeReactive("loading.stage", m_stageValue);
     exposeReactive("loading.progressWidth", m_progressWidth);
@@ -21,16 +21,19 @@ LoadingScreen::LoadingScreen()
     loadTemplateFile("src/client/ui/minecraft/templates/loading.tpl");
 }
 
-void LoadingScreen::setStage(const std::string& stage) {
+void LoadingScreen::setStage(const std::string& stage)
+{
     m_stageValue.set(stage);
 }
 
-void LoadingScreen::setProgress(f32 progress) {
+void LoadingScreen::setProgress(f32 progress)
+{
     const f32 clamped = mc::math::clamp(progress, 0.0f, 1.0f);
     m_progressWidth.set(static_cast<i32>(PROGRESS_BAR_WIDTH * clamped));
 }
 
-void LoadingScreen::setTitle(const std::string& title) {
+void LoadingScreen::setTitle(const std::string& title)
+{
     m_titleValue.set(title);
 }
 

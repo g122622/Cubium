@@ -11,10 +11,10 @@ PointOfInterest::PointOfInterest(BlockPos pos, PointOfInterestType type)
     : m_position(pos)
     , m_type(type)
     , m_maxTickets(POITypeHelper::getMaxTickets(type))
-{
-}
+{}
 
-bool PointOfInterest::canAcquire(u64 ownerId) const {
+bool PointOfInterest::canAcquire(u64 ownerId) const
+{
     // 检查是否已经占用
     if (isOccupied()) {
         return false;
@@ -23,7 +23,8 @@ bool PointOfInterest::canAcquire(u64 ownerId) const {
     return !isOwnedBy(ownerId);
 }
 
-bool PointOfInterest::acquire(u64 ownerId, i64 gameTime) {
+bool PointOfInterest::acquire(u64 ownerId, i64 gameTime)
+{
     if (!canAcquire(ownerId)) {
         return false;
     }
@@ -36,11 +37,11 @@ bool PointOfInterest::acquire(u64 ownerId, i64 gameTime) {
     return true;
 }
 
-bool PointOfInterest::release(u64 ownerId) {
-    auto it = std::find_if(m_tickets.begin(), m_tickets.end(),
-        [ownerId](const POITicket& ticket) {
-            return ticket.ownerId == ownerId && !ticket.released;
-        });
+bool PointOfInterest::release(u64 ownerId)
+{
+    auto it = std::find_if(m_tickets.begin(), m_tickets.end(), [ownerId](const POITicket& ticket) {
+        return ticket.ownerId == ownerId && !ticket.released;
+    });
 
     if (it != m_tickets.end()) {
         it->released = true;
@@ -50,14 +51,15 @@ bool PointOfInterest::release(u64 ownerId) {
     return false;
 }
 
-bool PointOfInterest::isOwnedBy(u64 ownerId) const {
-    return std::any_of(m_tickets.begin(), m_tickets.end(),
-        [ownerId](const POITicket& ticket) {
-            return ticket.ownerId == ownerId && !ticket.released;
-        });
+bool PointOfInterest::isOwnedBy(u64 ownerId) const
+{
+    return std::any_of(m_tickets.begin(), m_tickets.end(), [ownerId](const POITicket& ticket) {
+        return ticket.ownerId == ownerId && !ticket.released;
+    });
 }
 
-std::vector<u64> PointOfInterest::getOwners() const {
+std::vector<u64> PointOfInterest::getOwners() const
+{
     std::vector<u64> owners;
     owners.reserve(m_tickets.size());
     for (const auto& ticket : m_tickets) {
@@ -68,7 +70,8 @@ std::vector<u64> PointOfInterest::getOwners() const {
     return owners;
 }
 
-void PointOfInterest::serialize(nbt::tags::compound_tag& tag) const {
+void PointOfInterest::serialize(nbt::tags::compound_tag& tag) const
+{
     tag.put("X", static_cast<std::int32_t>(m_position.x));
     tag.put("Y", static_cast<std::int32_t>(m_position.y));
     tag.put("Z", static_cast<std::int32_t>(m_position.z));
@@ -87,7 +90,8 @@ void PointOfInterest::serialize(nbt::tags::compound_tag& tag) const {
     tag.value["Tickets"] = std::move(ticketsList);
 }
 
-PointOfInterest PointOfInterest::deserialize(const nbt::tags::compound_tag& tag) {
+PointOfInterest PointOfInterest::deserialize(const nbt::tags::compound_tag& tag)
+{
     BlockPos pos;
     pos.x = tag.get<nbt::tags::int_tag>("X");
     pos.y = tag.get<nbt::tags::int_tag>("Y");

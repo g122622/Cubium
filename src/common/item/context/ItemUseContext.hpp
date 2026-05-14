@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "../../util/Direction.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../../world/block/Block.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../../util/math/ray/Raycast.hpp"
+#include "../../world/block/Block.hpp"
+#include "../../world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -35,13 +35,13 @@ public:
      * @param playerYaw 玩家yaw角度（默认0）
      */
     ItemUseContext(IWorld& world,
-                   Player* player,
-                   const ItemStack& stack,
-                   const Vector3& hitPos,
-                   const BlockPos& blockPos,
-                   Direction face,
-                   Hand hand = Hand::MainHand,
-                   f32 playerYaw = 0.0f);
+        Player* player,
+        const ItemStack& stack,
+        const Vector3& hitPos,
+        const BlockPos& blockPos,
+        Direction face,
+        Hand hand = Hand::MainHand,
+        f32 playerYaw = 0.0f);
 
     virtual ~ItemUseContext() = default;
 
@@ -173,9 +173,9 @@ public:
     [[nodiscard]] bool isValid() const { return m_face != Direction::None; }
 
 protected:
-    IWorld& m_world;  // 使用非 const 引用以支持修改操作
+    IWorld& m_world; // 使用非 const 引用以支持修改操作
     Player* m_player;
-    ItemStack* m_stack;  // 使用指针以支持子类的修改
+    ItemStack* m_stack; // 使用指针以支持子类的修改
     Vector3 m_hitPos;
     BlockPos m_blockPos;
     Direction m_face;

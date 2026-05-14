@@ -4,7 +4,8 @@
 namespace mc {
 namespace crafting {
 
-void RecipeNetworkSerializer::serialize(const CraftingRecipe& recipe, network::PacketSerializer& ser) {
+void RecipeNetworkSerializer::serialize(const CraftingRecipe& recipe, network::PacketSerializer& ser)
+{
     // 写入配方类型
     writeRecipeType(recipe.getType(), ser);
 
@@ -31,7 +32,8 @@ void RecipeNetworkSerializer::serialize(const CraftingRecipe& recipe, network::P
     }
 }
 
-Result<std::unique_ptr<CraftingRecipe>> RecipeNetworkSerializer::deserialize(network::PacketDeserializer& deser) {
+Result<std::unique_ptr<CraftingRecipe>> RecipeNetworkSerializer::deserialize(network::PacketDeserializer& deser)
+{
     // 读取配方类型
     auto typeResult = readRecipeType(deser);
     if (typeResult.failed()) {
@@ -73,11 +75,13 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeNetworkSerializer::deserialize(net
             // 特殊配方需要从注册表获取
             return Error(ErrorCode::InvalidData, "Special recipes must be registered, not deserialized");
         default:
-            return Error(ErrorCode::InvalidData, "Unsupported recipe type for CraftingRecipe: " + std::to_string(static_cast<i32>(type)));
+            return Error(ErrorCode::InvalidData,
+                "Unsupported recipe type for CraftingRecipe: " + std::to_string(static_cast<i32>(type)));
     }
 }
 
-void RecipeNetworkSerializer::serializeSmelting(const SmeltingRecipe& recipe, network::PacketSerializer& ser) {
+void RecipeNetworkSerializer::serializeSmelting(const SmeltingRecipe& recipe, network::PacketSerializer& ser)
+{
     // 写入配方组
     ser.writeString(recipe.getGroup());
 
@@ -94,7 +98,8 @@ void RecipeNetworkSerializer::serializeSmelting(const SmeltingRecipe& recipe, ne
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeNetworkSerializer::deserializeSmelting(
-    network::PacketDeserializer& deser, RecipeType type) {
+    network::PacketDeserializer& deser, RecipeType type)
+{
 
     // 读取配方组
     auto groupResult = deser.readString();
@@ -130,13 +135,13 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeNetworkSerializer::deserializeSmel
 
     // 创建配方
     auto recipe = std::make_unique<SmeltingRecipe>(
-        ResourceLocation("", ""), group, ingredientResult.value(),
-        resultStackResult.value(), experience, cookTime);
+        ResourceLocation("", ""), group, ingredientResult.value(), resultStackResult.value(), experience, cookTime);
 
     return recipe;
 }
 
-void RecipeNetworkSerializer::serializeShaped(const ShapedRecipe& recipe, network::PacketSerializer& ser) {
+void RecipeNetworkSerializer::serializeShaped(const ShapedRecipe& recipe, network::PacketSerializer& ser)
+{
     // 写入宽度和高度
     ser.writeVarInt(recipe.getRecipeWidth());
     ser.writeVarInt(recipe.getRecipeHeight());
@@ -153,7 +158,8 @@ void RecipeNetworkSerializer::serializeShaped(const ShapedRecipe& recipe, networ
 }
 
 Result<std::unique_ptr<ShapedRecipe>> RecipeNetworkSerializer::deserializeShaped(
-    network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group) {
+    network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group)
+{
 
     // 读取宽度和高度
     auto widthResult = deser.readVarInt();
@@ -178,8 +184,7 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeNetworkSerializer::deserializeShaped
     // 验证原料数量
     if (count != static_cast<u32>(width * height)) {
         return Error(ErrorCode::InvalidData,
-            "Ingredient count mismatch: expected " + std::to_string(width * height) +
-            ", got " + std::to_string(count));
+            "Ingredient count mismatch: expected " + std::to_string(width * height) + ", got " + std::to_string(count));
     }
 
     // 读取原料
@@ -199,13 +204,14 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeNetworkSerializer::deserializeShaped
         return resultStackResult.error();
     }
 
-    auto recipe = std::make_unique<ShapedRecipe>(
-        id, width, height, std::move(ingredients), resultStackResult.value(), group);
+    auto recipe =
+        std::make_unique<ShapedRecipe>(id, width, height, std::move(ingredients), resultStackResult.value(), group);
 
     return recipe;
 }
 
-void RecipeNetworkSerializer::serializeShapeless(const ShapelessRecipe& recipe, network::PacketSerializer& ser) {
+void RecipeNetworkSerializer::serializeShapeless(const ShapelessRecipe& recipe, network::PacketSerializer& ser)
+{
     // 写入原料列表
     const auto& ingredients = recipe.getIngredients();
     ser.writeVarUInt(static_cast<u32>(ingredients.size()));
@@ -218,7 +224,8 @@ void RecipeNetworkSerializer::serializeShapeless(const ShapelessRecipe& recipe, 
 }
 
 Result<std::unique_ptr<ShapelessRecipe>> RecipeNetworkSerializer::deserializeShapeless(
-    network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group) {
+    network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group)
+{
 
     // 读取原料数量
     auto countResult = deser.readVarUInt();
@@ -244,13 +251,13 @@ Result<std::unique_ptr<ShapelessRecipe>> RecipeNetworkSerializer::deserializeSha
         return resultStackResult.error();
     }
 
-    auto recipe = std::make_unique<ShapelessRecipe>(
-        id, std::move(ingredients), resultStackResult.value(), group);
+    auto recipe = std::make_unique<ShapelessRecipe>(id, std::move(ingredients), resultStackResult.value(), group);
 
     return recipe;
 }
 
-void RecipeNetworkSerializer::serializeStonecutting(const StonecuttingRecipe& recipe, network::PacketSerializer& ser) {
+void RecipeNetworkSerializer::serializeStonecutting(const StonecuttingRecipe& recipe, network::PacketSerializer& ser)
+{
     // 写入原料
     recipe.getIngredient().serialize(ser);
 
@@ -262,7 +269,8 @@ void RecipeNetworkSerializer::serializeStonecutting(const StonecuttingRecipe& re
 }
 
 Result<std::unique_ptr<StonecuttingRecipe>> RecipeNetworkSerializer::deserializeStonecutting(
-    network::PacketDeserializer& deser, const ResourceLocation& id) {
+    network::PacketDeserializer& deser, const ResourceLocation& id)
+{
 
     // 读取原料
     auto ingredientResult = Ingredient::deserialize(deser);
@@ -283,13 +291,14 @@ Result<std::unique_ptr<StonecuttingRecipe>> RecipeNetworkSerializer::deserialize
     }
     i32 count = countResult.value();
 
-    auto recipe = std::make_unique<StonecuttingRecipe>(
-        id, "", ingredientResult.value(), resultStackResult.value(), count);
+    auto recipe =
+        std::make_unique<StonecuttingRecipe>(id, "", ingredientResult.value(), resultStackResult.value(), count);
 
     return recipe;
 }
 
-void RecipeNetworkSerializer::serializeSmithing(const SmithingRecipe& recipe, network::PacketSerializer& ser) {
+void RecipeNetworkSerializer::serializeSmithing(const SmithingRecipe& recipe, network::PacketSerializer& ser)
+{
     // 写入基础原料
     recipe.getBase().serialize(ser);
 
@@ -301,7 +310,8 @@ void RecipeNetworkSerializer::serializeSmithing(const SmithingRecipe& recipe, ne
 }
 
 Result<std::unique_ptr<SmithingRecipe>> RecipeNetworkSerializer::deserializeSmithing(
-    network::PacketDeserializer& deser, const ResourceLocation& id) {
+    network::PacketDeserializer& deser, const ResourceLocation& id)
+{
 
     // 读取基础原料
     auto baseResult = Ingredient::deserialize(deser);
@@ -321,17 +331,19 @@ Result<std::unique_ptr<SmithingRecipe>> RecipeNetworkSerializer::deserializeSmit
         return resultStackResult.error();
     }
 
-    auto recipe = std::make_unique<SmithingRecipe>(
-        id, baseResult.value(), additionResult.value(), resultStackResult.value());
+    auto recipe =
+        std::make_unique<SmithingRecipe>(id, baseResult.value(), additionResult.value(), resultStackResult.value());
 
     return recipe;
 }
 
-void RecipeNetworkSerializer::writeRecipeType(RecipeType type, network::PacketSerializer& ser) {
+void RecipeNetworkSerializer::writeRecipeType(RecipeType type, network::PacketSerializer& ser)
+{
     ser.writeVarInt(static_cast<i32>(type));
 }
 
-Result<RecipeType> RecipeNetworkSerializer::readRecipeType(network::PacketDeserializer& deser) {
+Result<RecipeType> RecipeNetworkSerializer::readRecipeType(network::PacketDeserializer& deser)
+{
     auto typeResult = deser.readVarInt();
     if (typeResult.failed()) {
         return typeResult.error();

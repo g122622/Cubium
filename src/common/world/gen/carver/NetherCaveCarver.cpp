@@ -1,7 +1,7 @@
 #include "NetherCaveCarver.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
-#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -11,8 +11,7 @@ namespace mc {
 
 static const std::unordered_set<BlockId>& getNetherCarvableBlocks()
 {
-    static std::unordered_set<BlockId> blocks = {
-        VanillaBlocks::STONE->blockId(),
+    static std::unordered_set<BlockId> blocks = {VanillaBlocks::STONE->blockId(),
         VanillaBlocks::GRANITE->blockId(),
         VanillaBlocks::DIORITE->blockId(),
         VanillaBlocks::ANDESITE->blockId(),
@@ -28,8 +27,7 @@ static const std::unordered_set<BlockId>& getNetherCarvableBlocks()
         VanillaBlocks::NETHER_WART_BLOCK->blockId(),
         VanillaBlocks::WARPED_WART_BLOCK->blockId(),
         VanillaBlocks::BASALT->blockId(),
-        VanillaBlocks::BLACKSTONE->blockId()
-    };
+        VanillaBlocks::BLACKSTONE->blockId()};
     return blocks;
 }
 
@@ -38,9 +36,8 @@ static const std::unordered_set<BlockId>& getNetherCarvableBlocks()
 // ============================================================================
 
 NetherCaveCarver::NetherCaveCarver()
-    : CaveCarver(128)  // 下界最大高度 128
-{
-}
+    : CaveCarver(128) // 下界最大高度 128
+{}
 
 f32 NetherCaveCarver::getCaveRadius(math::IRandom& rng) const
 {
@@ -74,7 +71,8 @@ bool NetherCaveCarver::canCarveBlock(const BlockState* state, const BlockState* 
     }
 
     // 沙子和沙砾可以在特定条件下雕刻
-    // 参考 MC: (state.isIn(Blocks.SAND) || state.isIn(Blocks.GRAVEL)) && !aboveState.getFluidState().isTagged(FluidTags.WATER)
+    // 参考 MC: (state.isIn(Blocks.SAND) || state.isIn(Blocks.GRAVEL)) &&
+    // !aboveState.getFluidState().isTagged(FluidTags.WATER)
     bool isSandOrGravel = state->is(VanillaBlocks::SAND) || state->is(VanillaBlocks::GRAVEL);
     if (isSandOrGravel && aboveState) {
         // 下界中检查熔岩而不是水

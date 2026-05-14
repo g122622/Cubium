@@ -14,11 +14,13 @@ SkeletonHorseEntity::SkeletonHorseEntity(LegacyEntityType type, EntityId id)
     setJumpStrength(1.0f);
 }
 
-std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<SkeletonHorseEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const {
+bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const
+{
     // 骷髅马不需要驯服即可骑乘
     if (m_rider != nullptr && m_rider != player) {
         return false;
@@ -26,11 +28,13 @@ bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const {
     return true;
 }
 
-void SkeletonHorseEntity::setTrap(bool trap) {
+void SkeletonHorseEntity::setTrap(bool trap)
+{
     m_trap = trap;
 }
 
-void SkeletonHorseEntity::triggerTrap() {
+void SkeletonHorseEntity::triggerTrap()
+{
     // MC 1.16.5: 触发陷阱
     // 1. 将陷阱马转换为普通骷髅马
     // 2. 生成骷髅骑手
@@ -42,14 +46,16 @@ void SkeletonHorseEntity::triggerTrap() {
     m_trap = false;
 }
 
-void SkeletonHorseEntity::onStruckByLightning() {
+void SkeletonHorseEntity::onStruckByLightning()
+{
     // MC 1.16.5: 陷阱马被闪电击中时触发陷阱
     if (m_trap) {
         triggerTrap();
     }
 }
 
-void SkeletonHorseEntity::tick() {
+void SkeletonHorseEntity::tick()
+{
     AbstractHorseEntity::tick();
 
     // MC 1.16.5: 陷阱马超时逻辑
@@ -68,12 +74,14 @@ void SkeletonHorseEntity::tick() {
     }
 }
 
-void SkeletonHorseEntity::registerGoals() {
+void SkeletonHorseEntity::registerGoals()
+{
     AbstractHorseEntity::registerGoals();
     // 骷髅马没有额外 AI
 }
 
-void SkeletonHorseEntity::registerAttributes() {
+void SkeletonHorseEntity::registerAttributes()
+{
     AbstractHorseEntity::registerAttributes();
 
     // 骷髅马的属性

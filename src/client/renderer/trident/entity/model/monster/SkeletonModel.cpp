@@ -5,7 +5,7 @@
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    constexpr f64 DEG_TO_RAD = mc::math::PI_DOUBLE / 180.0;
+constexpr f64 DEG_TO_RAD = mc::math::PI_DOUBLE / 180.0;
 }
 
 SkeletonModel::SkeletonModel()
@@ -16,7 +16,8 @@ SkeletonModel::SkeletonModel()
     setupParts();
 }
 
-void SkeletonModel::setupParts() {
+void SkeletonModel::setupParts()
+{
     // 参考 MC 1.16.5 SkeletonModel
     // 骷髅的手臂和腿比玩家更细
 
@@ -50,9 +51,9 @@ void SkeletonModel::setupParts() {
     }
 }
 
-void SkeletonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                               f64 ageInTicks, f64 netHeadYaw,
-                               f64 headPitch, f64 scale) {
+void SkeletonModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
@@ -64,7 +65,8 @@ void SkeletonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     if (m_isAggressive && m_rightArmPose != ArmPose::BowAndArrow) {
         f32 swingProgress = m_swingProgress;
         f32 f = static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE));
-        f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * mc::math::PI_DOUBLE));
+        f32 f1 =
+            static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * mc::math::PI_DOUBLE));
 
         if (m_rightArm && m_leftArm) {
             m_rightArm->setRotateAngleZ(0.0f);
@@ -77,14 +79,14 @@ void SkeletonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
             m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
 
             // 手臂抖动效果 (ModelHelper.func_239101_a_)
-            m_rightArm->setRotateAngleZ(m_rightArm->rotateAngleZ() +
-                static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
-            m_leftArm->setRotateAngleZ(m_leftArm->rotateAngleZ() -
-                static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
-            m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() +
-                static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
-            m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() -
-                static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
+            m_rightArm->setRotateAngleZ(
+                m_rightArm->rotateAngleZ() + static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+            m_leftArm->setRotateAngleZ(
+                m_leftArm->rotateAngleZ() - static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+            m_rightArm->setRotateAngleX(
+                m_rightArm->rotateAngleX() + static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
+            m_leftArm->setRotateAngleX(
+                m_leftArm->rotateAngleX() - static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
         }
     }
 

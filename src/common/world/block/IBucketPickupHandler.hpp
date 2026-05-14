@@ -33,10 +33,7 @@ public:
      * @param state 当前方块状态
      * @return 被取出的流体，如果无法取出则返回 nullptr
      */
-    [[nodiscard]] virtual fluid::Fluid* pickupFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state) = 0;
+    [[nodiscard]] virtual fluid::Fluid* pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state) = 0;
 };
 
 } // namespace mc

@@ -1,18 +1,18 @@
 #include <gtest/gtest.h>
 
+#include "core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "item/items/block/BlockItemRegistry.hpp"
-#include "item/context/BlockItemUseContext.hpp"
 #include "item/Items.hpp"
+#include "item/context/BlockItemUseContext.hpp"
+#include "item/items/block/BlockItemRegistry.hpp"
+#include "physics/collision/CollisionShape.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "physics/collision/CollisionShape.hpp"
 
-#include <unordered_map>
 #include "world/border/WorldBorder.hpp"
+#include <unordered_map>
 
 using namespace mc;
 
@@ -20,24 +20,28 @@ namespace {
 
 class TestBlockReader final : public IBlockReader {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(key(x, y, z));
         return it != m_blocks.end() ? it->second : &VanillaBlocks::AIR->defaultState();
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override
+    {
         (void)x;
         (void)z;
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
     // IWorld 接口实现 - 同时作为测试辅助方法
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[key(x, y, z)] = state;
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
         return fluid::Fluid::getFluidState(0);
     }
 
@@ -47,7 +51,8 @@ public:
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
         // 遍历所有方块检查碰撞
         for (const auto& [posKey, state] : m_blocks) {
             if (!state || state->isAir()) continue;
@@ -67,16 +72,16 @@ public:
         return false;
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override {
-        return {};
-    }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
 
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB& box, const Entity*) const override {
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB& box, const Entity*) const override
+    {
         if (!m_hasEntityCollision) return false;
         return box.intersects(m_entityCollisionBox);
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB& box, const Entity*) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB& box, const Entity*) const override
+    {
         if (!m_hasEntityCollision || !box.intersects(m_entityCollisionBox)) {
             return {};
         }
@@ -85,8 +90,14 @@ public:
 
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
     [[nodiscard]] u64 seed() const override { return 0; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
@@ -96,41 +107,41 @@ public:
     [[nodiscard]] bool isClientSide() override { return false; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("TestBlockReader::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("TestBlockReader::tickManager not implemented");
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
+    [[nodiscard]] math::Random& getRandom() override
+    {
         throw std::runtime_error("TestBlockReader::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override {
+    [[nodiscard]] const math::Random& getRandom() const override
+    {
         throw std::runtime_error("TestBlockReader::getRandom not implemented");
     }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        return m_worldBorder;
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        return m_worldBorder;
-    }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
     // 测试辅助方法：设置实体碰撞箱
-    void setEntityCollisionBox(const AxisAlignedBB& box) {
+    void setEntityCollisionBox(const AxisAlignedBB& box)
+    {
         m_entityCollisionBox = box;
         m_hasEntityCollision = true;
     }
 
-    void clearEntityCollision() {
-        m_hasEntityCollision = false;
-    }
+    void clearEntityCollision() { m_hasEntityCollision = false; }
 
 private:
-    static i64 key(i32 x, i32 y, i32 z) {
+    static i64 key(i32 x, i32 y, i32 z)
+    {
         return (static_cast<i64>(x) << 40) ^ (static_cast<i64>(y) << 20) ^ static_cast<i64>(z & 0xFFFFF);
     }
 
@@ -140,18 +151,20 @@ private:
     bool m_hasEntityCollision = false;
 };
 
-}
+} // namespace
 
 class BlockItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
     }
 };
 
-TEST_F(BlockItemTest, RegistryMapsStoneBlockItem) {
+TEST_F(BlockItemTest, RegistryMapsStoneBlockItem)
+{
     ASSERT_NE(VanillaBlocks::STONE, nullptr);
 
     const BlockItem* item = BlockItemRegistry::instance().getBlockItem(VanillaBlocks::STONE->blockId());
@@ -159,7 +172,8 @@ TEST_F(BlockItemTest, RegistryMapsStoneBlockItem) {
     EXPECT_EQ(&item->block(), VanillaBlocks::STONE);
 }
 
-TEST_F(BlockItemTest, CreativeInventoryGetsRegisteredBlockItems) {
+TEST_F(BlockItemTest, CreativeInventoryGetsRegisteredBlockItems)
+{
     Player player(1, "test");
     player.setCreativeModeInventory();
 
@@ -169,7 +183,8 @@ TEST_F(BlockItemTest, CreativeInventoryGetsRegisteredBlockItems) {
     EXPECT_TRUE(BlockItemRegistry::instance().isBlockItem(selected.getItem()));
 }
 
-TEST_F(BlockItemTest, PlacementContextUsesAdjacentPosForSolidBlock) {
+TEST_F(BlockItemTest, PlacementContextUsesAdjacentPosForSolidBlock)
+{
     TestBlockReader world;
     world.setBlockState(0, 64, 0, &VanillaBlocks::STONE->defaultState());
 
@@ -177,13 +192,8 @@ TEST_F(BlockItemTest, PlacementContextUsesAdjacentPosForSolidBlock) {
     ASSERT_NE(stoneItem, nullptr);
 
     ItemStack stack(*stoneItem, 64);
-    BlockItemUseContext context(world,
-                                nullptr,
-                                stack,
-                                Vector3(0.5f, 64.99f, 0.5f),
-                                BlockPos(0, 64, 0),
-                                Direction::Up,
-                                0.0f);
+    BlockItemUseContext context(
+        world, nullptr, stack, Vector3(0.5f, 64.99f, 0.5f), BlockPos(0, 64, 0), Direction::Up, 0.0f);
 
     EXPECT_FALSE(context.replacingClickedBlock());
     EXPECT_EQ(context.placementPos(), BlockPos(0, 65, 0));
@@ -199,7 +209,8 @@ TEST_F(BlockItemTest, PlacementContextUsesAdjacentPosForSolidBlock) {
  *
  * 验证当放置位置没有实体时，canPlace 应该返回 true。
  */
-TEST_F(BlockItemTest, CanPlaceNoEntityCollision) {
+TEST_F(BlockItemTest, CanPlaceNoEntityCollision)
+{
     TestBlockReader world;
 
     // 设置地面
@@ -209,13 +220,8 @@ TEST_F(BlockItemTest, CanPlaceNoEntityCollision) {
     ASSERT_NE(stoneItem, nullptr);
 
     ItemStack stack(*stoneItem, 64);
-    BlockItemUseContext context(world,
-                                nullptr,
-                                stack,
-                                Vector3(0.5f, 63.99f, 0.5f),
-                                BlockPos(0, 63, 0),
-                                Direction::Up,
-                                0.0f);
+    BlockItemUseContext context(
+        world, nullptr, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
 
     // 没有实体碰撞，应该可以放置
     EXPECT_TRUE(context.canPlace());
@@ -229,7 +235,8 @@ TEST_F(BlockItemTest, CanPlaceNoEntityCollision) {
  *
  * 验证当放置位置有实体阻挡时，canPlace 应该返回 false。
  */
-TEST_F(BlockItemTest, CanPlaceWithEntityCollision) {
+TEST_F(BlockItemTest, CanPlaceWithEntityCollision)
+{
     TestBlockReader world;
 
     // 设置地面
@@ -243,13 +250,8 @@ TEST_F(BlockItemTest, CanPlaceWithEntityCollision) {
     ASSERT_NE(stoneItem, nullptr);
 
     ItemStack stack(*stoneItem, 64);
-    BlockItemUseContext context(world,
-                                nullptr,
-                                stack,
-                                Vector3(0.5f, 63.99f, 0.5f),
-                                BlockPos(0, 63, 0),
-                                Direction::Up,
-                                0.0f);
+    BlockItemUseContext context(
+        world, nullptr, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
 
     // 放置位置在 (0, 64, 0)，与实体碰撞箱相交
     // canPlace 应该检测到实体碰撞并返回 false
@@ -262,7 +264,8 @@ TEST_F(BlockItemTest, CanPlaceWithEntityCollision) {
  *
  * 验证当实体在相邻位置但不阻挡放置时，canPlace 应该返回 true。
  */
-TEST_F(BlockItemTest, CanPlaceEntityNearby) {
+TEST_F(BlockItemTest, CanPlaceEntityNearby)
+{
     TestBlockReader world;
 
     // 设置地面
@@ -275,13 +278,8 @@ TEST_F(BlockItemTest, CanPlaceEntityNearby) {
     ASSERT_NE(stoneItem, nullptr);
 
     ItemStack stack(*stoneItem, 64);
-    BlockItemUseContext context(world,
-                                nullptr,
-                                stack,
-                                Vector3(0.5f, 63.99f, 0.5f),
-                                BlockPos(0, 63, 0),
-                                Direction::Up,
-                                0.0f);
+    BlockItemUseContext context(
+        world, nullptr, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
 
     // 放置位置在 (0, 64, 0)，实体在 (2, 64, 0)，不冲突
     const BlockState* state = &VanillaBlocks::STONE->defaultState();
@@ -294,7 +292,8 @@ TEST_F(BlockItemTest, CanPlaceEntityNearby) {
  * 验证当方块没有碰撞箱时（如空气、水），即使有实体也可以放置。
  * 这种情况实际上不会阻止实体，因为方块没有碰撞箱。
  */
-TEST_F(BlockItemTest, CanPlaceNonSolidBlockWithEntity) {
+TEST_F(BlockItemTest, CanPlaceNonSolidBlockWithEntity)
+{
     TestBlockReader world;
 
     // 设置地面
@@ -317,13 +316,8 @@ TEST_F(BlockItemTest, CanPlaceNonSolidBlockWithEntity) {
         world2.setEntityCollisionBox(AxisAlignedBB(-0.3f, 64.0f, -0.3f, 0.3f, 65.8f, 0.3f));
 
         ItemStack stack(*waterItem, 64);
-        BlockItemUseContext context(world2,
-                                    nullptr,
-                                    stack,
-                                    Vector3(0.5f, 63.99f, 0.5f),
-                                    BlockPos(0, 63, 0),
-                                    Direction::Up,
-                                    0.0f);
+        BlockItemUseContext context(
+            world2, nullptr, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
 
         // 无碰撞方块应该可以放置，即使有实体
         // 注意：这个测试主要验证空碰撞箱的方块不会因实体碰撞而阻止放置
@@ -337,7 +331,8 @@ TEST_F(BlockItemTest, CanPlaceNonSolidBlockWithEntity) {
  *
  * 验证 canPlace 正确检查世界边界。
  */
-TEST_F(BlockItemTest, CanPlaceWorldBoundsCheck) {
+TEST_F(BlockItemTest, CanPlaceWorldBoundsCheck)
+{
     TestBlockReader world;
 
     const BlockItem* stoneItem = BlockItemRegistry::instance().getBlockItem(VanillaBlocks::STONE->blockId());
@@ -351,12 +346,12 @@ TEST_F(BlockItemTest, CanPlaceWorldBoundsCheck) {
     // 测试：点击 (0, MAX_BUILD_HEIGHT - 1, 0) 的顶面，尝试在上面放置
     // 这会尝试放置到 (0, MAX_BUILD_HEIGHT, 0)，超出边界
     BlockItemUseContext contextAtMaxHeight(world,
-                                           nullptr,
-                                           stack,
-                                           Vector3(0.5f, static_cast<f32>(mc::world::MAX_BUILD_HEIGHT - 1), 0.5f),
-                                           BlockPos(0, mc::world::MAX_BUILD_HEIGHT - 1, 0),
-                                           Direction::Up,
-                                           0.0f);
+        nullptr,
+        stack,
+        Vector3(0.5f, static_cast<f32>(mc::world::MAX_BUILD_HEIGHT - 1), 0.5f),
+        BlockPos(0, mc::world::MAX_BUILD_HEIGHT - 1, 0),
+        Direction::Up,
+        0.0f);
 
     // 点击的是石头，不是可替换方块，所以 adjacentPos 应该是 (0, MAX_BUILD_HEIGHT, 0)
     EXPECT_EQ(contextAtMaxHeight.placementPos(), BlockPos(0, mc::world::MAX_BUILD_HEIGHT, 0));

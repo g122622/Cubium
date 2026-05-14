@@ -1,16 +1,13 @@
 #include "AnimatedSprite.hpp"
-#include "TridentTexture.hpp"
 #include "../TridentContext.hpp"
+#include "TridentTexture.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 
 namespace mc::client::renderer::trident {
 
 AnimatedSprite::AnimatedSprite(
-    const mc::resource::metadata::AnimationMetadata& metadata,
-    std::vector<FrameData>&& frames,
-    u32 atlasX,
-    u32 atlasY)
+    const mc::resource::metadata::AnimationMetadata& metadata, std::vector<FrameData>&& frames, u32 atlasX, u32 atlasY)
     : m_metadata(metadata)
     , m_frames(std::move(frames))
     , m_atlasX(atlasX)
@@ -30,7 +27,8 @@ AnimatedSprite::AnimatedSprite(
     }
 }
 
-void AnimatedSprite::tick() {
+void AnimatedSprite::tick()
+{
     if (!isAnimated()) {
         return;
     }
@@ -45,9 +43,7 @@ void AnimatedSprite::tick() {
         m_tickCounter = 0;
 
         // 切换到下一帧
-        const mc::Size frameCount = m_metadata.frames.empty()
-            ? m_frames.size()
-            : m_metadata.frames.size();
+        const mc::Size frameCount = m_metadata.frames.empty() ? m_frames.size() : m_metadata.frames.size();
 
         m_frameCounter = (m_frameCounter + 1) % frameCount;
 
@@ -67,9 +63,7 @@ void AnimatedSprite::tick() {
     }
 }
 
-mc::Result<void> AnimatedSprite::uploadCurrentFrame(
-    TridentContext* context,
-    TridentTextureAtlas& atlas)
+mc::Result<void> AnimatedSprite::uploadCurrentFrame(TridentContext* context, TridentTextureAtlas& atlas)
 {
     if (m_frames.empty()) {
         return mc::Error(mc::ErrorCode::InvalidState, "AnimatedSprite has no frames");
@@ -103,7 +97,8 @@ mc::Result<void> AnimatedSprite::uploadCurrentFrame(
     return result;
 }
 
-f32 AnimatedSprite::getInterpolatedFrame(f32 partialTick) const {
+f32 AnimatedSprite::getInterpolatedFrame(f32 partialTick) const
+{
     if (!m_metadata.interpolate || !isAnimated()) {
         return static_cast<f32>(currentFrameIndex());
     }
@@ -115,7 +110,8 @@ f32 AnimatedSprite::getInterpolatedFrame(f32 partialTick) const {
     return static_cast<f32>(currentIdx) + progress * static_cast<f32>(nextIdx - currentIdx);
 }
 
-i32 AnimatedSprite::nextFrameIndex() const noexcept {
+i32 AnimatedSprite::nextFrameIndex() const noexcept
+{
     if (m_metadata.frames.empty()) {
         const i32 next = static_cast<i32>(m_frameCounter) + 1;
         return next >= static_cast<i32>(m_frames.size()) ? 0 : next;
@@ -125,7 +121,8 @@ i32 AnimatedSprite::nextFrameIndex() const noexcept {
     return m_metadata.frames[nextPos].index;
 }
 
-AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress) const {
+AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress) const
+{
     if (m_frames.empty() || m_frameWidth == 0 || m_frameHeight == 0) {
         return {};
     }
@@ -133,8 +130,8 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
     const i32 currentIdx = currentFrameIndex();
     const i32 nextIdx = nextFrameIndex();
 
-    if (currentIdx < 0 || static_cast<mc::Size>(currentIdx) >= m_frames.size() ||
-        nextIdx < 0 || static_cast<mc::Size>(nextIdx) >= m_frames.size()) {
+    if (currentIdx < 0 || static_cast<mc::Size>(currentIdx) >= m_frames.size() || nextIdx < 0 ||
+        static_cast<mc::Size>(nextIdx) >= m_frames.size()) {
         return {};
     }
 
@@ -157,25 +154,18 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
         const mc::Size offset = i * 4;
 
         // R通道
-        result.pixels[offset] = static_cast<u8>(
-            mc::math::lerp(
-                static_cast<f32>(currentFrame.pixels[offset]),
-                static_cast<f32>(nextFrame.pixels[offset]),
-                progress));
+        result.pixels[offset] = static_cast<u8>(mc::math::lerp(
+            static_cast<f32>(currentFrame.pixels[offset]), static_cast<f32>(nextFrame.pixels[offset]), progress));
 
         // G通道
-        result.pixels[offset + 1] = static_cast<u8>(
-            mc::math::lerp(
-                static_cast<f32>(currentFrame.pixels[offset + 1]),
-                static_cast<f32>(nextFrame.pixels[offset + 1]),
-                progress));
+        result.pixels[offset + 1] = static_cast<u8>(mc::math::lerp(static_cast<f32>(currentFrame.pixels[offset + 1]),
+            static_cast<f32>(nextFrame.pixels[offset + 1]),
+            progress));
 
         // B通道
-        result.pixels[offset + 2] = static_cast<u8>(
-            mc::math::lerp(
-                static_cast<f32>(currentFrame.pixels[offset + 2]),
-                static_cast<f32>(nextFrame.pixels[offset + 2]),
-                progress));
+        result.pixels[offset + 2] = static_cast<u8>(mc::math::lerp(static_cast<f32>(currentFrame.pixels[offset + 2]),
+            static_cast<f32>(nextFrame.pixels[offset + 2]),
+            progress));
 
         // A通道（不插值，保持当前帧的alpha）
         result.pixels[offset + 3] = currentFrame.pixels[offset + 3];
@@ -185,9 +175,7 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
 }
 
 mc::Result<void> AnimatedSprite::uploadFrame(
-    TridentContext* context,
-    TridentTextureAtlas& atlas,
-    const FrameData& frame)
+    TridentContext* context, TridentTextureAtlas& atlas, const FrameData& frame)
 {
     if (frame.pixels.empty()) {
         return mc::Error(mc::ErrorCode::InvalidData, "Frame has no pixel data");

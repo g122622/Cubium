@@ -14,14 +14,15 @@ ZombieModel::ZombieModel(bool slim)
     setupParts();
 }
 
-void ZombieModel::setupParts() {
+void ZombieModel::setupParts()
+{
     // 僵尸的部件尺寸与玩家相同
     // 由 BipedModel 基类设置
 }
 
-void ZombieModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void ZombieModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
@@ -55,18 +56,17 @@ void ZombieModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
 
         // 手臂抖动效果 (ModelHelper.func_239101_a_)
-        m_leftArm->setRotateAngleZ(m_leftArm->rotateAngleZ() +
-            static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
-        m_rightArm->setRotateAngleZ(m_rightArm->rotateAngleZ() -
-            static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
-        m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() +
-            static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
-        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() -
-            static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
+        m_leftArm->setRotateAngleZ(
+            m_leftArm->rotateAngleZ() + static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+        m_rightArm->setRotateAngleZ(
+            m_rightArm->rotateAngleZ() - static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+        m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() + static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
+        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
     }
 }
 
-void ZombieModel::setTextureDimensions(bool useSlimTexture) {
+void ZombieModel::setTextureDimensions(bool useSlimTexture)
+{
     // 普通僵尸使用 64x64，尸壳/溺尸使用 64x32
     if (useSlimTexture) {
         setTextureSize(64, 32);

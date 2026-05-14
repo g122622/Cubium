@@ -1,7 +1,7 @@
 #include "client/sound/SoundLoader.hpp"
 
-#include "common/resource/ResourcePackList.hpp"
 #include "common/resource/IResourcePack.hpp"
+#include "common/resource/ResourcePackList.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -39,18 +39,17 @@ namespace mc::client::sound {
 
 SoundLoader::SoundLoader(ResourcePackList& resourcePacks)
     : m_resourcePacks(resourcePacks)
-{
-}
+{}
 
-Result<AudioData> SoundLoader::load(const ResourceLocation& location) {
+Result<AudioData> SoundLoader::load(const ResourceLocation& location)
+{
     // 构建音频文件路径
     std::string audioPath = toAudioPath(location);
 
     // 从资源包加载
     auto result = m_resourcePacks.readResource(audioPath);
     if (!result.success()) {
-        return Error(ErrorCode::ResourceNotFound,
-                     fmt::format("Failed to load audio: {}", audioPath));
+        return Error(ErrorCode::ResourceNotFound, fmt::format("Failed to load audio: {}", audioPath));
     }
 
     auto& data = result.value();
@@ -59,27 +58,22 @@ Result<AudioData> SoundLoader::load(const ResourceLocation& location) {
     return decode(data.data(), data.size());
 }
 
-Result<AudioData> SoundLoader::decode(const u8* data, size_t size) {
+Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
+{
     if (data == nullptr || size == 0) {
         return Error(ErrorCode::InvalidData, "Empty audio data");
     }
 
     if (size > static_cast<size_t>(std::numeric_limits<int>::max())) {
-        return Error(ErrorCode::InvalidData,
-                     fmt::format("Audio data too large for stb_vorbis: {} bytes", size));
+        return Error(ErrorCode::InvalidData, fmt::format("Audio data too large for stb_vorbis: {} bytes", size));
     }
 
     // 使用 stb_vorbis 解码
     int error = VORBIS__no_error;
-    stb_vorbis* vorbis = mc_stb_vorbis_open_memory(
-        data,
-        static_cast<int>(size),
-        &error
-    );
+    stb_vorbis* vorbis = mc_stb_vorbis_open_memory(data, static_cast<int>(size), &error);
 
     if (!vorbis) {
-        return Error(ErrorCode::InvalidData,
-                     fmt::format("Failed to decode OGG Vorbis, error code: {}", error));
+        return Error(ErrorCode::InvalidData, fmt::format("Failed to decode OGG Vorbis, error code: {}", error));
     }
 
     // 获取音频信息
@@ -92,8 +86,7 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size) {
 
     if (channelsRaw <= 0 || channelsRaw > 2) {
         mc_stb_vorbis_close(vorbis);
-        return Error(ErrorCode::Unsupported,
-                     fmt::format("Unsupported channel count: {}", channelsRaw));
+        return Error(ErrorCode::Unsupported, fmt::format("Unsupported channel count: {}", channelsRaw));
     }
 
     u32 sampleRate = sampleRateRaw;
@@ -113,12 +106,8 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size) {
 
     // 解码所有样本
     i16* output = reinterpret_cast<i16*>(samples.data());
-    int framesDecoded = mc_stb_vorbis_get_samples_short_interleaved(
-        vorbis,
-        channels,
-        output,
-        static_cast<int>(totalFrames * channels)
-    );
+    int framesDecoded =
+        mc_stb_vorbis_get_samples_short_interleaved(vorbis, channels, output, static_cast<int>(totalFrames * channels));
 
     mc_stb_vorbis_close(vorbis);
 
@@ -141,15 +130,18 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size) {
     AudioData audioData(format, std::move(samples));
 
     spdlog::debug("[SoundLoader] Decoded audio: {} Hz, {} channels, {:.2f}s, {} bytes",
-                  sampleRate, channels, audioData.duration, actualSize);
+        sampleRate,
+        channels,
+        audioData.duration,
+        actualSize);
 
     return audioData;
 }
 
-std::string SoundLoader::toAudioPath(const ResourceLocation& location) {
+std::string SoundLoader::toAudioPath(const ResourceLocation& location)
+{
     // minecraft:sounds/dig/stone1 -> assets/minecraft/sounds/dig/stone1.ogg
-    return fmt::format("assets/{}/sounds/{}.ogg",
-                       location.namespace_(), location.path());
+    return fmt::format("assets/{}/sounds/{}.ogg", location.namespace_(), location.path());
 }
 
 } // namespace mc::client::sound

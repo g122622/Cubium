@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "core/Constants.hpp"
 #include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "core/Constants.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <map>
 #include <memory>
@@ -31,7 +31,8 @@ public:
 
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -40,7 +41,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -55,58 +57,50 @@ public:
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_blockLight, x, y, z);
-    }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z); }
 
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_skyLight, x, y, z);
-    }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z); }
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) {
-        m_skyLight[pos] = light;
-    }
+    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) {
-        m_blockLight[pos] = light;
-    }
+    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
 
     // TickManager interface
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<SnowyDirtTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
     // Random interface
-    void advanceTick() {
-        ++m_currentTick;
-    }
+    void advanceTick() { ++m_currentTick; }
 
 private:
-    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z) {
+    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z)
+    {
         const BlockPos pos(x, y, z);
         const auto it = lights.find(pos);
         if (it != lights.end()) {
             return it->second;
         }
-        return 15;  // 默认光照为 15
+        return 15; // 默认光照为 15
     }
 
     std::map<BlockPos, const BlockState*> m_blocks;
@@ -120,7 +114,8 @@ private:
 
 class SpreadableSnowyDirtBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
     }
@@ -130,19 +125,22 @@ protected:
 // SNOWY 属性测试
 // ============================================================================
 
-TEST_F(SpreadableSnowyDirtBlockTest, HasSnowyProperty) {
+TEST_F(SpreadableSnowyDirtBlockTest, HasSnowyProperty)
+{
     // 验证草方块有 SNOWY 属性
     const BlockState& defaultState = VanillaBlocks::GRASS_BLOCK->defaultState();
     EXPECT_TRUE(defaultState.hasProperty(SpreadableSnowyDirtBlock::SNOWY()));
 }
 
-TEST_F(SpreadableSnowyDirtBlockTest, DefaultStateIsNotSnowy) {
+TEST_F(SpreadableSnowyDirtBlockTest, DefaultStateIsNotSnowy)
+{
     // 验证默认状态是没有雪的
     const BlockState& defaultState = VanillaBlocks::GRASS_BLOCK->defaultState();
     EXPECT_FALSE(defaultState.get(SpreadableSnowyDirtBlock::SNOWY()));
 }
 
-TEST_F(SpreadableSnowyDirtBlockTest, CanSetSnowyProperty) {
+TEST_F(SpreadableSnowyDirtBlockTest, CanSetSnowyProperty)
+{
     // 验证可以设置 SNOWY 属性
     const BlockState& defaultState = VanillaBlocks::GRASS_BLOCK->defaultState();
     const BlockState& snowyState = defaultState.with(SpreadableSnowyDirtBlock::SNOWY(), true);
@@ -151,7 +149,8 @@ TEST_F(SpreadableSnowyDirtBlockTest, CanSetSnowyProperty) {
     EXPECT_TRUE(snowyState.get(SpreadableSnowyDirtBlock::SNOWY()));
 }
 
-TEST_F(SpreadableSnowyDirtBlockTest, MyceliumAlsoHasSnowyProperty) {
+TEST_F(SpreadableSnowyDirtBlockTest, MyceliumAlsoHasSnowyProperty)
+{
     // 验证菌丝也有 SNOWY 属性
     const BlockState& defaultState = VanillaBlocks::MYCELIUM->defaultState();
     EXPECT_TRUE(defaultState.hasProperty(SpreadableSnowyDirtBlock::SNOWY()));
@@ -162,7 +161,8 @@ TEST_F(SpreadableSnowyDirtBlockTest, MyceliumAlsoHasSnowyProperty) {
 // updatePostPlacement 测试
 // ============================================================================
 
-TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_SetsSnowyWhenSnowAbove) {
+TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_SetsSnowyWhenSnowAbove)
+{
     SnowyDirtTestWorld world;
     BlockPos grassPos(0, 64, 0);
     BlockPos snowPos(0, 65, 0);
@@ -177,20 +177,15 @@ TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_SetsSnowyWhenSnowAbove)
 
     // 模拟 updatePostPlacement
     Block& grassBlock = const_cast<Block&>(grassState.getBlock());
-    BlockState updatedState = grassBlock.updatePostPlacement(
-        grassState,
-        Direction::Up,
-        snowState,
-        world,
-        grassPos,
-        snowPos
-    );
+    BlockState updatedState =
+        grassBlock.updatePostPlacement(grassState, Direction::Up, snowState, world, grassPos, snowPos);
 
     // SNOWY 应该被设置为 true
     EXPECT_TRUE(updatedState.get(SpreadableSnowyDirtBlock::SNOWY()));
 }
 
-TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_SetsSnowyWhenSnowBlockAbove) {
+TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_SetsSnowyWhenSnowBlockAbove)
+{
     SnowyDirtTestWorld world;
     BlockPos grassPos(0, 64, 0);
     BlockPos snowBlockPos(0, 65, 0);
@@ -205,20 +200,15 @@ TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_SetsSnowyWhenSnowBlockA
 
     // 模拟 updatePostPlacement
     Block& grassBlock = const_cast<Block&>(grassState.getBlock());
-    BlockState updatedState = grassBlock.updatePostPlacement(
-        grassState,
-        Direction::Up,
-        snowBlockState,
-        world,
-        grassPos,
-        snowBlockPos
-    );
+    BlockState updatedState =
+        grassBlock.updatePostPlacement(grassState, Direction::Up, snowBlockState, world, grassPos, snowBlockPos);
 
     // SNOWY 应该被设置为 true
     EXPECT_TRUE(updatedState.get(SpreadableSnowyDirtBlock::SNOWY()));
 }
 
-TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_ClearsSnowyWhenAirAbove) {
+TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_ClearsSnowyWhenAirAbove)
+{
     SnowyDirtTestWorld world;
     BlockPos grassPos(0, 64, 0);
     BlockPos abovePos(0, 65, 0);
@@ -233,20 +223,15 @@ TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_ClearsSnowyWhenAirAbove
 
     // 模拟 updatePostPlacement
     Block& grassBlock = const_cast<Block&>(snowyGrassState.getBlock());
-    BlockState updatedState = grassBlock.updatePostPlacement(
-        snowyGrassState,
-        Direction::Up,
-        airState,
-        world,
-        grassPos,
-        abovePos
-    );
+    BlockState updatedState =
+        grassBlock.updatePostPlacement(snowyGrassState, Direction::Up, airState, world, grassPos, abovePos);
 
     // SNOWY 应该被清除
     EXPECT_FALSE(updatedState.get(SpreadableSnowyDirtBlock::SNOWY()));
 }
 
-TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_IgnoresHorizontalDirections) {
+TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_IgnoresHorizontalDirections)
+{
     SnowyDirtTestWorld world;
     BlockPos grassPos(0, 64, 0);
     BlockPos northPos(0, 64, -1);
@@ -261,14 +246,8 @@ TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_IgnoresHorizontalDirect
 
     // 模拟北方更新的 updatePostPlacement
     Block& grassBlock = const_cast<Block&>(grassState.getBlock());
-    BlockState updatedState = grassBlock.updatePostPlacement(
-        grassState,
-        Direction::North,
-        snowState,
-        world,
-        grassPos,
-        northPos
-    );
+    BlockState updatedState =
+        grassBlock.updatePostPlacement(grassState, Direction::North, snowState, world, grassPos, northPos);
 
     // SNOWY 不应该改变（只有上方方向才会更新）
     EXPECT_FALSE(updatedState.get(SpreadableSnowyDirtBlock::SNOWY()));
@@ -278,7 +257,8 @@ TEST_F(SpreadableSnowyDirtBlockTest, UpdatePostPlacement_IgnoresHorizontalDirect
 // isSnowyConditions 测试（通过 randomTick 间接测试）
 // ============================================================================
 
-TEST_F(SpreadableSnowyDirtBlockTest, SingleLayerSnowSatisfiesSnowyConditions) {
+TEST_F(SpreadableSnowyDirtBlockTest, SingleLayerSnowSatisfiesSnowyConditions)
+{
     // 验证 1 层雪满足 isSnowyConditions
     // 这通过检查 SNOW 方块有 LAYERS 属性来间接验证
     const BlockState& snowState = VanillaBlocks::SNOW->defaultState();
@@ -286,7 +266,8 @@ TEST_F(SpreadableSnowyDirtBlockTest, SingleLayerSnowSatisfiesSnowyConditions) {
     EXPECT_EQ(snowState.get(SnowBlock::LAYERS()), 1);
 }
 
-TEST_F(SpreadableSnowyDirtBlockTest, MultiLayerSnowDoesNotSatisfySnowyConditions) {
+TEST_F(SpreadableSnowyDirtBlockTest, MultiLayerSnowDoesNotSatisfySnowyConditions)
+{
     // 验证多层雪有不同的 LAYERS 值
     const BlockState& snowState = VanillaBlocks::SNOW->defaultState();
     const BlockState& thickSnow = snowState.with(SnowBlock::LAYERS(), 4);
@@ -298,7 +279,8 @@ TEST_F(SpreadableSnowyDirtBlockTest, MultiLayerSnowDoesNotSatisfySnowyConditions
 // 状态数量测试
 // ============================================================================
 
-TEST_F(SpreadableSnowyDirtBlockTest, HasTwoStates) {
+TEST_F(SpreadableSnowyDirtBlockTest, HasTwoStates)
+{
     // SNOWY 是布尔属性，所以应该有 2 个状态
     const Block& grassBlock = *VanillaBlocks::GRASS_BLOCK;
     // StateContainer 中应该只有 2 个状态
@@ -310,7 +292,8 @@ TEST_F(SpreadableSnowyDirtBlockTest, HasTwoStates) {
 // 蔓延测试（通过 randomTick 间接测试）
 // ============================================================================
 
-TEST_F(SpreadableSnowyDirtBlockTest, SpreadSetsCorrectSnowyState) {
+TEST_F(SpreadableSnowyDirtBlockTest, SpreadSetsCorrectSnowyState)
+{
     SnowyDirtTestWorld world;
 
     // 设置光照充足

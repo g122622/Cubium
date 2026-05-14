@@ -7,8 +7,7 @@ namespace mc::scoreboard {
 namespace {
 
 // 颜色名称到索引的映射
-const std::unordered_map<std::string, DisplaySlot> s_colorSlotMap = {
-    {"black", DisplaySlot::SidebarTeamBlack},
+const std::unordered_map<std::string, DisplaySlot> s_colorSlotMap = {{"black", DisplaySlot::SidebarTeamBlack},
     {"dark_blue", DisplaySlot::SidebarTeamDarkBlue},
     {"dark_green", DisplaySlot::SidebarTeamDarkGreen},
     {"dark_aqua", DisplaySlot::SidebarTeamDarkAqua},
@@ -23,20 +22,30 @@ const std::unordered_map<std::string, DisplaySlot> s_colorSlotMap = {
     {"red", DisplaySlot::SidebarTeamRed},
     {"light_purple", DisplaySlot::SidebarTeamLightPurple},
     {"yellow", DisplaySlot::SidebarTeamYellow},
-    {"white", DisplaySlot::SidebarTeamWhite}
-};
+    {"white", DisplaySlot::SidebarTeamWhite}};
 
 // 颜色索引到名称的映射
-const char* s_slotColorNames[16] = {
-    "black", "dark_blue", "dark_green", "dark_aqua",
-    "dark_red", "dark_purple", "gold", "gray",
-    "dark_gray", "blue", "green", "aqua",
-    "red", "light_purple", "yellow", "white"
-};
+const char* s_slotColorNames[16] = {"black",
+    "dark_blue",
+    "dark_green",
+    "dark_aqua",
+    "dark_red",
+    "dark_purple",
+    "gold",
+    "gray",
+    "dark_gray",
+    "blue",
+    "green",
+    "aqua",
+    "red",
+    "light_purple",
+    "yellow",
+    "white"};
 
 } // namespace
 
-std::string displaySlotToString(DisplaySlot slot) {
+std::string displaySlotToString(DisplaySlot slot)
+{
     switch (slot) {
         case DisplaySlot::List:
             return "list";
@@ -55,7 +64,8 @@ std::string displaySlotToString(DisplaySlot slot) {
     }
 }
 
-std::optional<DisplaySlot> displaySlotFromString(const std::string& str) {
+std::optional<DisplaySlot> displaySlotFromString(const std::string& str)
+{
     if (str == "list") {
         return DisplaySlot::List;
     }

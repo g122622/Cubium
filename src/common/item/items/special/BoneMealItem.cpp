@@ -1,22 +1,22 @@
 #include "BoneMealItem.hpp"
-#include "../../context/ItemUseContext.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../util/property/Properties.hpp"
 #include "../../../world/IWorld.hpp"
-#include "../../../world/block/IGrowable.hpp"
+#include "../../../world/biome/Biome.hpp"
+#include "../../../world/biome/BiomeRegistry.hpp"
+#include "../../../world/biome/Biomes.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "../../../world/block/BlockTags.hpp"
 #include "../../../world/block/BlockRegistry.hpp"
+#include "../../../world/block/BlockTags.hpp"
+#include "../../../world/block/IGrowable.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/biome/Biome.hpp"
-#include "../../../world/biome/Biomes.hpp"
-#include "../../../world/biome/BiomeRegistry.hpp"
 #include "../../../world/chunk/ChunkData.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/property/Properties.hpp"
+#include "../../context/ItemUseContext.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 #include <iterator>
@@ -25,10 +25,11 @@ namespace mc {
 namespace item::items {
 
 BoneMealItem::BoneMealItem(ItemProperties properties)
-    : Item(std::move(properties)) {
-}
+    : Item(std::move(properties))
+{}
 
-ActionResultType BoneMealItem::onItemUse(ItemUseContext& context) {
+ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
+{
     const BlockPos& pos = context.blockPos();
     IWorld& world = const_cast<IWorld&>(context.world());
     const BlockState* statePtr = world.getBlockState(pos);
@@ -65,9 +66,7 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context) {
     // 如果对 IGrowable 使用失败，尝试在水中生成海草
     // MC 1.16.5: 如果目标位置是水源方块，尝试生成海草
     const fluid::FluidState* fluidState = world.getFluidState(pos);
-    if (fluidState != nullptr &&
-        !fluidState->isEmpty() &&
-        fluidState->getFluid().isIn(fluid::FluidTags::WATER()) &&
+    if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER()) &&
         fluidState->isSource()) {
 
         const u64 seed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos));
@@ -89,7 +88,8 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context) {
     return ActionResultType::Fail;
 }
 
-bool BoneMealItem::applyBonemeal(ItemStack& stack, IWorld& world, const BlockPos& pos, Player* player) {
+bool BoneMealItem::applyBonemeal(ItemStack& stack, IWorld& world, const BlockPos& pos, Player* player)
+{
     MC_UNUSED(player);
 
     // 获取方块状态
@@ -137,7 +137,8 @@ bool BoneMealItem::applyBonemeal(ItemStack& stack, IWorld& world, const BlockPos
     return false;
 }
 
-bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRandom& random) {
+bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRandom& random)
+{
     // 参考: net.minecraft.item.BoneMealItem#growSeagrass
     // 在水下使用骨粉生成海草的逻辑
 
@@ -175,11 +176,12 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
         currentPos.set(pos.x, pos.y, pos.z);
 
         // 随机偏移位置
-        // MC: blockpos = blockpos.add(random.nextInt(3) - 1, (random.nextInt(3) - 1) * random.nextInt(3) / 2, random.nextInt(3) - 1);
+        // MC: blockpos = blockpos.add(random.nextInt(3) - 1, (random.nextInt(3) - 1) * random.nextInt(3) / 2,
+        // random.nextInt(3) - 1);
         for (i32 j = 0; j < i / 16; ++j) {
-            const i32 dx = random.nextInt(3) - 1;  // -1, 0, 或 1
-            const i32 dy = (random.nextInt(3) - 1) * random.nextInt(3) / 2;  // -1, 0, 或 1
-            const i32 dz = random.nextInt(3) - 1;  // -1, 0, 或 1
+            const i32 dx = random.nextInt(3) - 1;                           // -1, 0, 或 1
+            const i32 dy = (random.nextInt(3) - 1) * random.nextInt(3) / 2; // -1, 0, 或 1
+            const i32 dz = random.nextInt(3) - 1;                           // -1, 0, 或 1
             currentPos.move(dx, dy, dz);
         }
 
@@ -265,8 +267,7 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
 
         if (targetState != nullptr && targetState->is(VanillaBlocks::WATER)) {
             if (targetFluid != nullptr && !targetFluid->isEmpty() &&
-                targetFluid->getFluid().isIn(fluid::FluidTags::WATER()) &&
-                targetFluid->getLevel() == 8) {
+                targetFluid->getFluid().isIn(fluid::FluidTags::WATER()) && targetFluid->getLevel() == 8) {
                 // 放置方块
                 world.setBlockState(currentPos, stateToPlace, 3);
                 placedAny = true;
@@ -276,7 +277,8 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
             if (random.nextInt(10) == 0) {
                 // 检查海草是否可以生长（实现 IGrowable 接口）
                 IGrowable* growable = const_cast<IGrowable*>(dynamic_cast<const IGrowable*>(&targetState->owner()));
-                if (growable != nullptr && growable->canGrow(static_cast<IBlockReader&>(world), currentPos, *targetState, false)) {
+                if (growable != nullptr &&
+                    growable->canGrow(static_cast<IBlockReader&>(world), currentPos, *targetState, false)) {
                     growable->grow(world, random, currentPos, *targetState);
                     placedAny = true;
                 }
@@ -287,7 +289,8 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
     return placedAny;
 }
 
-void BoneMealItem::spawnBonemealParticles(IWorld& world, const BlockPos& pos) {
+void BoneMealItem::spawnBonemealParticles(IWorld& world, const BlockPos& pos)
+{
     // 在方块周围生成快乐村民粒子
     // 粒子在方块上方随机分布
 
@@ -299,15 +302,12 @@ void BoneMealItem::spawnBonemealParticles(IWorld& world, const BlockPos& pos) {
     // 参考 MC 1.16.5: BoneMealItem 生成 15 个 happy_villager 粒子
     constexpr u32 particleCount = 15;
 
-    world.addParticle(
-        client::renderer::trident::particle::ParticleTypeId::HappyVillager,
-        Vector3(static_cast<f32>(pos.x) + offsetX,
-                static_cast<f32>(pos.y) + offsetY,
-                static_cast<f32>(pos.z) + offsetZ),
-        Vector3(0.0f, 0.0f, 0.0f),  // 速度为0
-        Vector3(1.0f, 1.0f, 1.0f),   // 偏移范围
-        particleCount
-    );
+    world.addParticle(client::renderer::trident::particle::ParticleTypeId::HappyVillager,
+        Vector3(
+            static_cast<f32>(pos.x) + offsetX, static_cast<f32>(pos.y) + offsetY, static_cast<f32>(pos.z) + offsetZ),
+        Vector3(0.0f, 0.0f, 0.0f), // 速度为0
+        Vector3(1.0f, 1.0f, 1.0f), // 偏移范围
+        particleCount);
 }
 
 } // namespace item::items

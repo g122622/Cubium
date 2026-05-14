@@ -1,54 +1,62 @@
-#include <gtest/gtest.h>
-#include "common/resource/ResourceLocation.hpp"
-#include "common/resource/PackMetadata.hpp"
-#include "common/resource/FolderResourcePack.hpp"
-#include "common/resource/ZipResourcePack.hpp"
-#include "common/resource/ResourcePackList.hpp"
 #include "common/core/settings/ResourcePackListOption.hpp"
+#include "common/resource/FolderResourcePack.hpp"
+#include "common/resource/PackMetadata.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/ResourcePackList.hpp"
+#include "common/resource/ZipResourcePack.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
 // ResourceLocation测试
-TEST(ResourceLocationTest, DefaultConstructor) {
+TEST(ResourceLocationTest, DefaultConstructor)
+{
     ResourceLocation loc;
     EXPECT_EQ(loc.namespace_(), "minecraft");
     EXPECT_TRUE(loc.path().empty());
 }
 
-TEST(ResourceLocationTest, ParseWithoutNamespace) {
+TEST(ResourceLocationTest, ParseWithoutNamespace)
+{
     ResourceLocation loc("textures/blocks/stone");
     EXPECT_EQ(loc.namespace_(), "minecraft");
     EXPECT_EQ(loc.path(), "textures/blocks/stone");
 }
 
-TEST(ResourceLocationTest, ParseWithNamespace) {
+TEST(ResourceLocationTest, ParseWithNamespace)
+{
     ResourceLocation loc("minecraft:textures/blocks/stone");
     EXPECT_EQ(loc.namespace_(), "minecraft");
     EXPECT_EQ(loc.path(), "textures/blocks/stone");
 }
 
-TEST(ResourceLocationTest, ParseCustomNamespace) {
+TEST(ResourceLocationTest, ParseCustomNamespace)
+{
     ResourceLocation loc("mymod:blocks/custom_block");
     EXPECT_EQ(loc.namespace_(), "mymod");
     EXPECT_EQ(loc.path(), "blocks/custom_block");
 }
 
-TEST(ResourceLocationTest, ToString) {
+TEST(ResourceLocationTest, ToString)
+{
     ResourceLocation loc("minecraft:textures/blocks/stone");
     EXPECT_EQ(loc.toString(), "minecraft:textures/blocks/stone");
 }
 
-TEST(ResourceLocationTest, ToFilePath) {
+TEST(ResourceLocationTest, ToFilePath)
+{
     ResourceLocation loc("minecraft:textures/blocks/stone");
     EXPECT_EQ(loc.toFilePath(), "assets/minecraft/textures/blocks/stone");
 }
 
-TEST(ResourceLocationTest, ToFilePathWithExtension) {
+TEST(ResourceLocationTest, ToFilePathWithExtension)
+{
     ResourceLocation loc("minecraft:textures/blocks/stone");
     EXPECT_EQ(loc.toFilePath("png"), "assets/minecraft/textures/blocks/stone.png");
 }
 
-TEST(ResourceLocationTest, Comparison) {
+TEST(ResourceLocationTest, Comparison)
+{
     ResourceLocation loc1("minecraft:stone");
     ResourceLocation loc2("minecraft:stone");
     ResourceLocation loc3("minecraft:dirt");
@@ -59,7 +67,8 @@ TEST(ResourceLocationTest, Comparison) {
 }
 
 // PackMetadata测试
-TEST(PackMetadataTest, ParseValidJson) {
+TEST(PackMetadataTest, ParseValidJson)
+{
     const char* json = R"({"pack": {"pack_format": 3, "description": "Test Pack"}})";
     auto result = PackMetadata::parse(json);
 
@@ -68,7 +77,8 @@ TEST(PackMetadataTest, ParseValidJson) {
     EXPECT_EQ(result.value().description(), "Test Pack");
 }
 
-TEST(PackMetadataTest, ParseEmptyJson) {
+TEST(PackMetadataTest, ParseEmptyJson)
+{
     const char* json = "{}";
     auto result = PackMetadata::parse(json);
 
@@ -77,7 +87,8 @@ TEST(PackMetadataTest, ParseEmptyJson) {
     EXPECT_TRUE(result.value().description().empty());
 }
 
-TEST(PackMetadataTest, IsCompatible) {
+TEST(PackMetadataTest, IsCompatible)
+{
     PackMetadata meta;
     // 需要通过parse设置值，这里只测试isCompatible方法
     auto result = PackMetadata::parse(R"({"pack": {"pack_format": 3}})");
@@ -89,7 +100,8 @@ TEST(PackMetadataTest, IsCompatible) {
 }
 
 // FolderResourcePack测试 - 使用测试资源包
-TEST(FolderResourcePackTest, LoadPackMetadata) {
+TEST(FolderResourcePackTest, LoadPackMetadata)
+{
     // 使用实际的资源包路径
     FolderResourcePack pack("z:/方块概念材质");
 
@@ -100,7 +112,8 @@ TEST(FolderResourcePackTest, LoadPackMetadata) {
     }
 }
 
-TEST(FolderResourcePackTest, HasResource) {
+TEST(FolderResourcePackTest, HasResource)
+{
     FolderResourcePack pack("z:/方块概念材质");
 
     auto result = pack.initialize();
@@ -111,7 +124,8 @@ TEST(FolderResourcePackTest, HasResource) {
     }
 }
 
-TEST(FolderResourcePackTest, ReadResource) {
+TEST(FolderResourcePackTest, ReadResource)
+{
     FolderResourcePack pack("z:/方块概念材质");
 
     auto result = pack.initialize();
@@ -123,7 +137,8 @@ TEST(FolderResourcePackTest, ReadResource) {
     }
 }
 
-TEST(FolderResourcePackTest, ReadTextResource) {
+TEST(FolderResourcePackTest, ReadTextResource)
+{
     FolderResourcePack pack("z:/方块概念材质");
 
     auto result = pack.initialize();
@@ -135,7 +150,8 @@ TEST(FolderResourcePackTest, ReadTextResource) {
     }
 }
 
-TEST(FolderResourcePackTest, ListResources) {
+TEST(FolderResourcePackTest, ListResources)
+{
     FolderResourcePack pack("z:/方块概念材质");
 
     auto result = pack.initialize();
@@ -158,12 +174,14 @@ TEST(FolderResourcePackTest, ListResources) {
 }
 
 // ResourcePackListOption测试
-TEST(ResourcePackListOptionTest, DefaultConstructor) {
+TEST(ResourcePackListOptionTest, DefaultConstructor)
+{
     ResourcePackListOption option("resourcePacks");
     EXPECT_TRUE(option.empty());
 }
 
-TEST(ResourcePackListOptionTest, SetEntries) {
+TEST(ResourcePackListOptionTest, SetEntries)
+{
     ResourcePackListOption option("resourcePacks");
 
     std::vector<ResourcePackEntry> entries;
@@ -179,13 +197,14 @@ TEST(ResourcePackListOptionTest, SetEntries) {
     EXPECT_EQ(loaded[0].priority, 0);
 }
 
-TEST(ResourcePackListOptionTest, SortedEntries) {
+TEST(ResourcePackListOptionTest, SortedEntries)
+{
     ResourcePackListOption option("resourcePacks");
 
     std::vector<ResourcePackEntry> entries;
-    entries.emplace_back("packs/a.zip", true, 2);  // 高优先级
-    entries.emplace_back("packs/b.zip", true, 0);  // 低优先级
-    entries.emplace_back("packs/c.zip", true, 1);  // 中优先级
+    entries.emplace_back("packs/a.zip", true, 2); // 高优先级
+    entries.emplace_back("packs/b.zip", true, 0); // 低优先级
+    entries.emplace_back("packs/c.zip", true, 1); // 中优先级
 
     option.setEntries(std::move(entries));
 
@@ -197,7 +216,8 @@ TEST(ResourcePackListOptionTest, SortedEntries) {
     EXPECT_EQ(sorted[2].path, "packs/b.zip");
 }
 
-TEST(ResourcePackListOptionTest, JsonSerialization) {
+TEST(ResourcePackListOptionTest, JsonSerialization)
+{
     ResourcePackListOption option("resourcePacks");
 
     std::vector<ResourcePackEntry> entries;
@@ -220,26 +240,30 @@ TEST(ResourcePackListOptionTest, JsonSerialization) {
 }
 
 // ResourcePackList测试
-TEST(ResourcePackListTest, EmptyList) {
+TEST(ResourcePackListTest, EmptyList)
+{
     ResourcePackList list;
     EXPECT_EQ(list.packCount(), static_cast<size_t>(0));
     EXPECT_EQ(list.enabledPackCount(), static_cast<size_t>(0));
     EXPECT_TRUE(list.getEnabledPacks().empty());
 }
 
-TEST(ResourcePackListTest, HasResourceEmpty) {
+TEST(ResourcePackListTest, HasResourceEmpty)
+{
     ResourcePackList list;
     EXPECT_FALSE(list.hasResource("test.json"));
 }
 
-TEST(ResourcePackListTest, ReadResourceEmpty) {
+TEST(ResourcePackListTest, ReadResourceEmpty)
+{
     ResourcePackList list;
     auto result = list.readResource("test.json");
     EXPECT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), ErrorCode::ResourceNotFound);
 }
 
-TEST(ResourcePackListTest, SetEnabled) {
+TEST(ResourcePackListTest, SetEnabled)
+{
     ResourcePackList list;
 
     // 测试空列表
@@ -247,34 +271,39 @@ TEST(ResourcePackListTest, SetEnabled) {
     EXPECT_FALSE(list.setEnabled("test", false));
 }
 
-TEST(ResourcePackListTest, SetPriority) {
+TEST(ResourcePackListTest, SetPriority)
+{
     ResourcePackList list;
 
     // 测试空列表
     EXPECT_FALSE(list.setPriority("test", 5));
 }
 
-TEST(ResourcePackListTest, MoveUp) {
+TEST(ResourcePackListTest, MoveUp)
+{
     ResourcePackList list;
 
     // 测试空列表
     EXPECT_FALSE(list.moveUp("test"));
 }
 
-TEST(ResourcePackListTest, MoveDown) {
+TEST(ResourcePackListTest, MoveDown)
+{
     ResourcePackList list;
 
     // 测试空列表
     EXPECT_FALSE(list.moveDown("test"));
 }
 
-TEST(ResourcePackListTest, Clear) {
+TEST(ResourcePackListTest, Clear)
+{
     ResourcePackList list;
-    list.clear();  // 不应崩溃
+    list.clear(); // 不应崩溃
     EXPECT_EQ(list.packCount(), static_cast<size_t>(0));
 }
 
-TEST(ResourcePackListTest, FindPackEmpty) {
+TEST(ResourcePackListTest, FindPackEmpty)
+{
     ResourcePackList list;
     EXPECT_FALSE(list.getPackInfo("test").has_value());
 }

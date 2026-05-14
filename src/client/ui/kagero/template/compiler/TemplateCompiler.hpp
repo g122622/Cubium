@@ -1,31 +1,31 @@
 #pragma once
 
-#include "../parser/Ast.hpp"
-#include "../parser/Lexer.hpp"
-#include "../parser/Parser.hpp"
 #include "../binder/BindingContext.hpp"
 #include "../core/TemplateConfig.hpp"
 #include "../core/TemplateError.hpp"
-#include <memory>
-#include <unordered_map>
+#include "../parser/Ast.hpp"
+#include "../parser/Lexer.hpp"
+#include "../parser/Parser.hpp"
 #include <functional>
+#include <memory>
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::compiler {
 
 // 引入core命名空间类型
-using core::TemplateConfig;
-using core::TemplateErrorType;
-using core::TemplateErrorInfo;
-using core::TemplateErrorCollector;
 using core::SourceLocation;
+using core::TemplateConfig;
+using core::TemplateErrorCollector;
+using core::TemplateErrorInfo;
+using core::TemplateErrorType;
 
 // 引入parser命名空间类型
-using parser::Token;
-using parser::TokenType;
 using parser::Lexer;
 using parser::Parser;
+using parser::Token;
+using parser::TokenType;
 
 // 引入ast命名空间类型
 using ast::DocumentNode;
@@ -41,20 +41,20 @@ class CompiledTemplate;
  * 存储编译时确定的绑定信息，用于运行时快速执行绑定
  */
 struct BindingPlan {
-    std::string widgetPath;      ///< Widget路径 (如 "screen.grid.slot")
-    std::string statePath;       ///< 状态路径 (如 "player.inventory.main[0].item")
-    std::string attributeName;   ///< 属性名 (如 "text", "visible")
+    std::string widgetPath;     ///< Widget路径 (如 "screen.grid.slot")
+    std::string statePath;      ///< 状态路径 (如 "player.inventory.main[0].item")
+    std::string attributeName;  ///< 属性名 (如 "text", "visible")
     bool isLoopBinding = false; ///< 是否是循环内绑定
-    std::string loopVarName;     ///< 循环变量名
+    std::string loopVarName;    ///< 循环变量名
 
     BindingPlan() = default;
-    BindingPlan(std::string widget, std::string state, std::string attr,
-                bool loop = false, std::string loopVar = "")
+    BindingPlan(std::string widget, std::string state, std::string attr, bool loop = false, std::string loopVar = "")
         : widgetPath(std::move(widget))
         , statePath(std::move(state))
         , attributeName(std::move(attr))
         , isLoopBinding(loop)
-        , loopVarName(std::move(loopVar)) {}
+        , loopVarName(std::move(loopVar))
+    {}
 };
 
 /**
@@ -63,15 +63,16 @@ struct BindingPlan {
  * 存储编译时确定的事件处理器信息
  */
 struct EventPlan {
-    std::string widgetPath;      ///< Widget路径
-    std::string eventName;       ///< 事件名 (如 "click", "hover")
-    std::string callbackName;    ///< 回调名 (如 "onStartGame")
+    std::string widgetPath;   ///< Widget路径
+    std::string eventName;    ///< 事件名 (如 "click", "hover")
+    std::string callbackName; ///< 回调名 (如 "onStartGame")
 
     EventPlan() = default;
     EventPlan(std::string widget, std::string event, std::string callback)
         : widgetPath(std::move(widget))
         , eventName(std::move(event))
-        , callbackName(std::move(callback)) {}
+        , callbackName(std::move(callback))
+    {}
 };
 
 /**
@@ -80,16 +81,17 @@ struct EventPlan {
  * 存储循环渲染的信息
  */
 struct LoopPlan {
-    std::string parentPath;      ///< 父Widget路径
-    std::string collectionPath;  ///< 集合路径
-    std::string itemVarName;     ///< 循环变量名
+    std::string parentPath;                ///< 父Widget路径
+    std::string collectionPath;            ///< 集合路径
+    std::string itemVarName;               ///< 循环变量名
     std::vector<BindingPlan> itemBindings; ///< 子项绑定
 
     LoopPlan() = default;
     LoopPlan(std::string parent, std::string collection, std::string item)
         : parentPath(std::move(parent))
         , collectionPath(std::move(collection))
-        , itemVarName(std::move(item)) {}
+        , itemVarName(std::move(item))
+    {}
 };
 
 /**
@@ -294,8 +296,7 @@ public:
      * @return 编译结果
      */
     [[nodiscard]] std::unique_ptr<CompiledTemplate> compile(
-        const std::string& source,
-        const std::string& sourcePath = "");
+        const std::string& source, const std::string& sourcePath = "");
 
     /**
      * @brief 从文件编译
@@ -313,8 +314,7 @@ public:
      * @return 编译结果
      */
     [[nodiscard]] std::unique_ptr<CompiledTemplate> compileAst(
-        std::unique_ptr<ast::DocumentNode> document,
-        const std::string& sourcePath = "");
+        std::unique_ptr<ast::DocumentNode> document, const std::string& sourcePath = "");
 
     // ========== 配置 ==========
 
@@ -378,8 +378,7 @@ private:
     /**
      * @brief 递归生成绑定计划
      */
-    void generateBindingPlansRecursive(const ast::Node* node, const std::string& parentPath,
-                                        CompiledTemplate* result);
+    void generateBindingPlansRecursive(const ast::Node* node, const std::string& parentPath, CompiledTemplate* result);
 
     /**
      * @brief 生成事件计划
@@ -389,8 +388,7 @@ private:
     /**
      * @brief 递归生成事件计划
      */
-    void generateEventPlansRecursive(const ast::Node* node, const std::string& parentPath,
-                                      CompiledTemplate* result);
+    void generateEventPlansRecursive(const ast::Node* node, const std::string& parentPath, CompiledTemplate* result);
 
     /**
      * @brief 收集状态路径
@@ -417,8 +415,8 @@ private:
     /**
      * @brief 验证属性
      */
-    bool validateAttribute(const ast::Attribute& attr, const ast::ElementNode* element,
-                          TemplateErrorCollector& collector);
+    bool validateAttribute(
+        const ast::Attribute& attr, const ast::ElementNode* element, TemplateErrorCollector& collector);
 
     /**
      * @brief 检查是否包含内联脚本/表达式
@@ -435,16 +433,15 @@ private:
     /**
      * @brief 生成Widget路径
      */
-    static std::string generateWidgetPath(const ast::ElementNode* element,
-                                     const std::string& parentPath = "");
+    static std::string generateWidgetPath(const ast::ElementNode* element, const std::string& parentPath = "");
 
     /**
      * @brief 从AST节点提取绑定信息
      */
     static void extractBindings(const ast::ElementNode* element,
-                                const std::string& widgetPath,
-                                std::vector<BindingPlan>& plans,
-                                std::vector<LoopPlan>& loopPlans);
+        const std::string& widgetPath,
+        std::vector<BindingPlan>& plans,
+        std::vector<LoopPlan>& loopPlans);
 
 private:
     TemplateConfig m_config;

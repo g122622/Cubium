@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Entity.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../core/Entity.hpp"
 
 namespace mc {
 
@@ -66,7 +66,7 @@ public:
 private:
     BlockPos m_beamTarget;
     bool m_showBottom = false;
-    i32 m_innerRotation = 0;  ///< 内部旋转计数器（用于渲染动画）
+    i32 m_innerRotation = 0; ///< 内部旋转计数器（用于渲染动画）
     i32 m_healCooldown = 0;
     static constexpr i32 HEAL_COOLDOWN = 10;
     static constexpr f32 EXPLOSION_RADIUS = 6.0f;
@@ -131,9 +131,7 @@ public:
     /**
      * @brief 获取声音类别
      */
-    [[nodiscard]] sound::SoundCategory getSoundCategory() const override {
-        return sound::SoundCategory::Weather;
-    }
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Weather; }
 
 private:
     /**
@@ -162,17 +160,17 @@ private:
     void initializeState();
 
     // MC 1.16.5 字段
-    i32 m_lightningState = 2;      ///< 闪电状态，初始 2，递减控制音效和伤害
-    u64 m_boltVertex = 0;          ///< 随机种子，用于渲染闪电形状
-    i32 m_boltLivingTime = 1;      ///< 闪电视觉效果重复次数 (1-3)
-    bool m_effectOnly = false;     ///< 是否只有效果（不造成伤害）
-    PlayerId m_caster = 0;         ///< 触发者ID（用于引雷附魔）
-    bool m_initialized = false;    ///< 是否已初始化
+    i32 m_lightningState = 2;   ///< 闪电状态，初始 2，递减控制音效和伤害
+    u64 m_boltVertex = 0;       ///< 随机种子，用于渲染闪电形状
+    i32 m_boltLivingTime = 1;   ///< 闪电视觉效果重复次数 (1-3)
+    bool m_effectOnly = false;  ///< 是否只有效果（不造成伤害）
+    PlayerId m_caster = 0;      ///< 触发者ID（用于引雷附魔）
+    bool m_initialized = false; ///< 是否已初始化
 
     // 常量
-    static constexpr f32 DAMAGE_RADIUS_XZ = 3.0f;  ///< 伤害范围 X/Z 轴
-    static constexpr f32 DAMAGE_RADIUS_Y = 6.0f;   ///< 伤害范围 Y 轴（向上扩展）
-    static constexpr f32 DAMAGE_RADIUS_Y_OFFSET = 3.0f;  ///< 伤害范围 Y 轴偏移
+    static constexpr f32 DAMAGE_RADIUS_XZ = 3.0f;       ///< 伤害范围 X/Z 轴
+    static constexpr f32 DAMAGE_RADIUS_Y = 6.0f;        ///< 伤害范围 Y 轴（向上扩展）
+    static constexpr f32 DAMAGE_RADIUS_Y_OFFSET = 3.0f; ///< 伤害范围 Y 轴偏移
 };
 
 /**

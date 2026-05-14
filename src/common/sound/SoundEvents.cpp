@@ -35,7 +35,8 @@ const ResourceLocation AMBIENT_UNDERWATER_EXIT("minecraft:ambient.underwater.exi
 const ResourceLocation AMBIENT_UNDERWATER_LOOP("minecraft:ambient.underwater.loop");
 const ResourceLocation AMBIENT_UNDERWATER_LOOP_ADDITIONS("minecraft:ambient.underwater.loop.additions");
 const ResourceLocation AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE("minecraft:ambient.underwater.loop.additions.rare");
-const ResourceLocation AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE("minecraft:ambient.underwater.loop.additions.ultra_rare");
+const ResourceLocation AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE(
+    "minecraft:ambient.underwater.loop.additions.ultra_rare");
 
 // ============================================================================
 // 方块音效 (BLOCK_)
@@ -1070,7 +1071,8 @@ const ResourceLocation ENTITY_PIGLIN_BRUTE_ANGRY("minecraft:entity.piglin_brute.
 const ResourceLocation ENTITY_PIGLIN_BRUTE_DEATH("minecraft:entity.piglin_brute.death");
 const ResourceLocation ENTITY_PIGLIN_BRUTE_HURT("minecraft:entity.piglin_brute.hurt");
 const ResourceLocation ENTITY_PIGLIN_BRUTE_STEP("minecraft:entity.piglin_brute.step");
-const ResourceLocation ENTITY_PIGLIN_BRUTE_CONVERTED_TO_ZOMBIFIED("minecraft:entity.piglin_brute.converted_to_zombified");
+const ResourceLocation ENTITY_PIGLIN_BRUTE_CONVERTED_TO_ZOMBIFIED(
+    "minecraft:entity.piglin_brute.converted_to_zombified");
 
 // 疣猪兽
 const ResourceLocation ENTITY_HOGLIN_AMBIENT("minecraft:entity.hoglin.ambient");
@@ -1355,7 +1357,8 @@ const ResourceLocation PARTICLE_SOUL_ESCAPE("minecraft:particle.soul_escape");
 // 初始化
 // ============================================================================
 
-void initialize() {
+void initialize()
+{
     // 声音事件已通过静态初始化创建
     // 此函数可用于验证所有声音事件已正确初始化
 }

@@ -1,30 +1,31 @@
 #include "GuardianAttackGoal.hpp"
-#include "../../../../entities/monster/ocean/GuardianEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../../core/EntityUtils.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../damage/DamageSource.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../../network/packet/EntityPackets.hpp"
+#include "../../../../../util/assert/AssertAll.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../attribute/Attributes.hpp"
+#include "../../../../core/Entity.hpp"
+#include "../../../../core/EntityUtils.hpp"
+#include "../../../../core/LivingEntity.hpp"
+#include "../../../../damage/DamageSource.hpp"
+#include "../../../../entities/monster/ocean/GuardianEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
+#include "../../../controller/LookController.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
 
 namespace mc::entity::ai::goal {
 
 GuardianAttackGoal::GuardianAttackGoal(GuardianEntity* guardian)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
     , m_guardian(guardian)
-    , m_isElder(false)  // 将在 startExecuting 中检测
+    , m_isElder(false) // 将在 startExecuting 中检测
 {
     MC_ASSERT_RELEASE(guardian != nullptr);
 }
 
-bool GuardianAttackGoal::shouldExecute() {
+bool GuardianAttackGoal::shouldExecute()
+{
     if (m_guardian == nullptr) {
         return false;
     }
@@ -54,7 +55,8 @@ bool GuardianAttackGoal::shouldExecute() {
     return true;
 }
 
-bool GuardianAttackGoal::shouldContinueExecuting() {
+bool GuardianAttackGoal::shouldContinueExecuting()
+{
     if (m_guardian == nullptr || m_target == nullptr) {
         return false;
     }
@@ -67,7 +69,7 @@ bool GuardianAttackGoal::shouldContinueExecuting() {
     // 检查目标是否在范围内
     // MC 1.16.5: 远古守卫者没有距离限制
     f64 distSq = m_guardian->distanceSqTo(*m_target);
-    if (!m_isElder && distSq <= 9.0) {  // 3.0 * 3.0 = 9.0
+    if (!m_isElder && distSq <= 9.0) { // 3.0 * 3.0 = 9.0
         // 目标太近，停止攻击
         return false;
     }
@@ -76,7 +78,8 @@ bool GuardianAttackGoal::shouldContinueExecuting() {
     return m_guardian->canSee(*m_target);
 }
 
-void GuardianAttackGoal::startExecuting() {
+void GuardianAttackGoal::startExecuting()
+{
     if (m_guardian == nullptr) {
         return;
     }
@@ -94,17 +97,17 @@ void GuardianAttackGoal::startExecuting() {
 
     // 看向目标
     if (m_target != nullptr) {
-        m_guardian->lookController()->setLookPosition(
-            m_target->x(),
+        m_guardian->lookController()->setLookPosition(m_target->x(),
             m_target->y() + m_target->eyeHeight(),
             m_target->z(),
-            90.0f,  // 头部最大转动角度
-            90.0f   // 身体最大转动角度
+            90.0f, // 头部最大转动角度
+            90.0f  // 身体最大转动角度
         );
     }
 }
 
-void GuardianAttackGoal::resetTask() {
+void GuardianAttackGoal::resetTask()
+{
     m_target = nullptr;
     m_tickCounter = 0;
 
@@ -116,7 +119,8 @@ void GuardianAttackGoal::resetTask() {
     }
 }
 
-void GuardianAttackGoal::tick() {
+void GuardianAttackGoal::tick()
+{
     if (m_guardian == nullptr || m_target == nullptr) {
         return;
     }
@@ -127,12 +131,11 @@ void GuardianAttackGoal::tick() {
     }
 
     // 看向目标
-    m_guardian->lookController()->setLookPosition(
-        m_target->x(),
+    m_guardian->lookController()->setLookPosition(m_target->x(),
         m_target->y() + m_target->eyeHeight(),
         m_target->z(),
-        90.0f,  // 头部最大转动角度
-        90.0f   // 身体最大转动角度
+        90.0f, // 头部最大转动角度
+        90.0f  // 身体最大转动角度
     );
 
     // 检查是否能看到目标
@@ -154,8 +157,7 @@ void GuardianAttackGoal::tick() {
         // 触发客户端播放守卫者攻击音效
         if (!m_guardian->isSilent() && m_guardian->world() != nullptr) {
             m_guardian->world()->broadcastEntityStatus(
-                m_guardian->id(),
-                static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
+                m_guardian->id(), static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
         }
     } else if (m_tickCounter >= ATTACK_DURATION) {
         // MC 1.16.5: 攻击完成，造成伤害
@@ -174,13 +176,14 @@ void GuardianAttackGoal::tick() {
 
         // MC 1.16.5: 使用魔法伤害 + 物理伤害
         // livingentity.attackEntityFrom(DamageSource.causeIndirectMagicDamage(this.guardian, this.guardian), f);
-        // livingentity.attackEntityFrom(DamageSource.causeMobDamage(this.guardian), (float)this.guardian.getAttributeValue(Attributes.ATTACK_DAMAGE));
+        // livingentity.attackEntityFrom(DamageSource.causeMobDamage(this.guardian),
+        // (float)this.guardian.getAttributeValue(Attributes.ATTACK_DAMAGE));
         auto magicDamage = DamageSources::magic();
         m_target->hurt(magicDamage, damage);
 
         // 使用攻击伤害属性
-        f32 attackDamage = static_cast<f32>(m_guardian->getAttributeValue(
-            entity::attribute::Attributes::ATTACK_DAMAGE, 0.0));
+        f32 attackDamage =
+            static_cast<f32>(m_guardian->getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0));
         if (attackDamage > 0.0f) {
             auto physicalDamage = DamageSources::mobAttack(m_guardian);
             m_target->hurt(physicalDamage, attackDamage);
@@ -191,7 +194,8 @@ void GuardianAttackGoal::tick() {
     }
 }
 
-LivingEntity* GuardianAttackGoal::selectTarget() const {
+LivingEntity* GuardianAttackGoal::selectTarget() const
+{
     if (m_guardian == nullptr || m_guardian->world() == nullptr) {
         return nullptr;
     }
@@ -207,16 +211,14 @@ LivingEntity* GuardianAttackGoal::selectTarget() const {
     IWorld* world = m_guardian->world();
 
     // 获取跟随范围（搜索范围）
-    f64 followRange = m_guardian->getAttributeValue(
-        entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    f64 followRange = m_guardian->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
     f32 searchRange = static_cast<f32>(followRange);
 
     // 使用 EntityUtils 搜索最近的 LivingEntity
-    LivingEntity* nearestTarget = EntityUtils::findClosestEntity<LivingEntity>(
-        world,
+    LivingEntity* nearestTarget = EntityUtils::findClosestEntity<LivingEntity>(world,
         m_guardian->position(),
         searchRange,
-        m_guardian,  // 排除自己
+        m_guardian, // 排除自己
         [this](LivingEntity* candidate) {
             // 1. 检查目标是否存活
             if (!candidate || !candidate->isAlive()) {
@@ -242,7 +244,7 @@ LivingEntity* GuardianAttackGoal::selectTarget() const {
             // 4. 距离筛选: 必须距离 > 3 格
             // 参考 MC 1.16.5 GuardianEntity.TargetPredicate.test()
             f64 distSq = m_guardian->distanceSqTo(*candidate);
-            if (distSq <= 9.0) {  // 3.0 * 3.0 = 9.0
+            if (distSq <= 9.0) { // 3.0 * 3.0 = 9.0
                 return false;
             }
 
@@ -252,13 +254,13 @@ LivingEntity* GuardianAttackGoal::selectTarget() const {
             }
 
             return true;
-        }
-    );
+        });
 
     return nearestTarget;
 }
 
-bool GuardianAttackGoal::isTargetValid(LivingEntity* target) const {
+bool GuardianAttackGoal::isTargetValid(LivingEntity* target) const
+{
     if (target == nullptr) {
         return false;
     }

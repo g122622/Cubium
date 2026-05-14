@@ -1,17 +1,18 @@
 #include <gtest/gtest.h>
 
-#include "common/item/potion/PotionUtils.hpp"
-#include "common/item/potion/Potions.hpp"
-#include "common/item/Items.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/item/potion/Potions.hpp"
 
 namespace mc {
 namespace {
 
 class PotionUtilsTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         Items::initialize();
         ::mc::potion::Potions::initialize();
     }
@@ -21,13 +22,15 @@ protected:
 // 基础功能测试
 // ============================================================================
 
-TEST_F(PotionUtilsTest, GetPotion_FromEmptyStack_ReturnsEmpty) {
+TEST_F(PotionUtilsTest, GetPotion_FromEmptyStack_ReturnsEmpty)
+{
     ItemStack emptyStack;
     const potion::Potion* result = potion::PotionUtils::getPotion(emptyStack);
     EXPECT_EQ(result, potion::Potions::EMPTY);
 }
 
-TEST_F(PotionUtilsTest, GetPotion_FromNonPotionItem_ReturnsEmpty) {
+TEST_F(PotionUtilsTest, GetPotion_FromNonPotionItem_ReturnsEmpty)
+{
     if (Items::DIAMOND == nullptr) {
         GTEST_SKIP() << "DIAMOND item not initialized";
     }
@@ -36,7 +39,8 @@ TEST_F(PotionUtilsTest, GetPotion_FromNonPotionItem_ReturnsEmpty) {
     EXPECT_EQ(result, potion::Potions::EMPTY);
 }
 
-TEST_F(PotionUtilsTest, GetPotion_FromWaterBottle_ReturnsWater) {
+TEST_F(PotionUtilsTest, GetPotion_FromWaterBottle_ReturnsWater)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -45,7 +49,8 @@ TEST_F(PotionUtilsTest, GetPotion_FromWaterBottle_ReturnsWater) {
     EXPECT_EQ(result, potion::Potions::WATER);
 }
 
-TEST_F(PotionUtilsTest, SetPotion_UpdatesPotionId) {
+TEST_F(PotionUtilsTest, SetPotion_UpdatesPotionId)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -62,7 +67,8 @@ TEST_F(PotionUtilsTest, SetPotion_UpdatesPotionId) {
     EXPECT_NE(result, potion::Potions::EMPTY);
 }
 
-TEST_F(PotionUtilsTest, IsPotion_WithPotionItem_ReturnsTrue) {
+TEST_F(PotionUtilsTest, IsPotion_WithPotionItem_ReturnsTrue)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -70,7 +76,8 @@ TEST_F(PotionUtilsTest, IsPotion_WithPotionItem_ReturnsTrue) {
     EXPECT_TRUE(potion::PotionUtils::isPotion(potionStack));
 }
 
-TEST_F(PotionUtilsTest, IsPotion_WithSplashPotion_ReturnsTrue) {
+TEST_F(PotionUtilsTest, IsPotion_WithSplashPotion_ReturnsTrue)
+{
     if (Items::SPLASH_POTION == nullptr) {
         GTEST_SKIP() << "SPLASH_POTION item not initialized";
     }
@@ -78,7 +85,8 @@ TEST_F(PotionUtilsTest, IsPotion_WithSplashPotion_ReturnsTrue) {
     EXPECT_TRUE(potion::PotionUtils::isPotion(splashStack));
 }
 
-TEST_F(PotionUtilsTest, IsPotion_WithLingeringPotion_ReturnsTrue) {
+TEST_F(PotionUtilsTest, IsPotion_WithLingeringPotion_ReturnsTrue)
+{
     if (Items::LINGERING_POTION == nullptr) {
         GTEST_SKIP() << "LINGERING_POTION item not initialized";
     }
@@ -86,7 +94,8 @@ TEST_F(PotionUtilsTest, IsPotion_WithLingeringPotion_ReturnsTrue) {
     EXPECT_TRUE(potion::PotionUtils::isPotion(lingeringStack));
 }
 
-TEST_F(PotionUtilsTest, IsWaterBottle_WithEmptyBottle_ReturnsTrue) {
+TEST_F(PotionUtilsTest, IsWaterBottle_WithEmptyBottle_ReturnsTrue)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -98,13 +107,15 @@ TEST_F(PotionUtilsTest, IsWaterBottle_WithEmptyBottle_ReturnsTrue) {
 // 自定义效果测试 - 这是新实现的核心功能
 // ============================================================================
 
-TEST_F(PotionUtilsTest, GetCustomEffects_FromEmptyStack_ReturnsEmpty) {
+TEST_F(PotionUtilsTest, GetCustomEffects_FromEmptyStack_ReturnsEmpty)
+{
     ItemStack emptyStack;
     auto effects = potion::PotionUtils::getCustomEffects(emptyStack);
     EXPECT_TRUE(effects.empty());
 }
 
-TEST_F(PotionUtilsTest, GetCustomEffects_FromStackWithoutCustomEffects_ReturnsEmpty) {
+TEST_F(PotionUtilsTest, GetCustomEffects_FromStackWithoutCustomEffects_ReturnsEmpty)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -113,15 +124,16 @@ TEST_F(PotionUtilsTest, GetCustomEffects_FromStackWithoutCustomEffects_ReturnsEm
     EXPECT_TRUE(effects.empty());
 }
 
-TEST_F(PotionUtilsTest, SetCustomEffects_AndGetCustomEffects_ReturnsSameEffects) {
+TEST_F(PotionUtilsTest, SetCustomEffects_AndGetCustomEffects_ReturnsSameEffects)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
     ItemStack potionStack(Items::POTION, 1);
 
     std::vector<entity::effect::EffectInstance> customEffects;
-    customEffects.emplace_back(entity::effect::EffectType::Speed, 600, 1);  // Speed II for 30s
-    customEffects.emplace_back(entity::effect::EffectType::Regeneration, 1200, 0);  // Regeneration I for 60s
+    customEffects.emplace_back(entity::effect::EffectType::Speed, 600, 1);         // Speed II for 30s
+    customEffects.emplace_back(entity::effect::EffectType::Regeneration, 1200, 0); // Regeneration I for 60s
 
     potion::PotionUtils::setCustomEffects(potionStack, customEffects);
 
@@ -135,7 +147,8 @@ TEST_F(PotionUtilsTest, SetCustomEffects_AndGetCustomEffects_ReturnsSameEffects)
     EXPECT_EQ(retrievedEffects[1].duration(), 1200);
 }
 
-TEST_F(PotionUtilsTest, AddCustomEffect_ToEmptyStack_AddsEffect) {
+TEST_F(PotionUtilsTest, AddCustomEffect_ToEmptyStack_AddsEffect)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -151,7 +164,8 @@ TEST_F(PotionUtilsTest, AddCustomEffect_ToEmptyStack_AddsEffect) {
     EXPECT_EQ(effects[0].amplifier(), 0);
 }
 
-TEST_F(PotionUtilsTest, AddCustomEffect_MultipleDifferentEffects_AddsAll) {
+TEST_F(PotionUtilsTest, AddCustomEffect_MultipleDifferentEffects_AddsAll)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -167,14 +181,15 @@ TEST_F(PotionUtilsTest, AddCustomEffect_MultipleDifferentEffects_AddsAll) {
     ASSERT_EQ(effects.size(), 2);
 }
 
-TEST_F(PotionUtilsTest, AddCustomEffect_SameTypeStronger_Merges) {
+TEST_F(PotionUtilsTest, AddCustomEffect_SameTypeStronger_Merges)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
     ItemStack potionStack(Items::POTION, 1);
 
     entity::effect::EffectInstance speed1(entity::effect::EffectType::Speed, 600, 0);  // Speed I
-    entity::effect::EffectInstance speed2(entity::effect::EffectType::Speed, 1200, 1);  // Speed II, longer
+    entity::effect::EffectInstance speed2(entity::effect::EffectType::Speed, 1200, 1); // Speed II, longer
 
     potion::PotionUtils::addCustomEffect(potionStack, speed1);
     potion::PotionUtils::addCustomEffect(potionStack, speed2);
@@ -186,7 +201,8 @@ TEST_F(PotionUtilsTest, AddCustomEffect_SameTypeStronger_Merges) {
     EXPECT_EQ(effects[0].duration(), 1200);
 }
 
-TEST_F(PotionUtilsTest, RemoveCustomEffects_RemovesAllCustomEffects) {
+TEST_F(PotionUtilsTest, RemoveCustomEffects_RemovesAllCustomEffects)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -205,7 +221,8 @@ TEST_F(PotionUtilsTest, RemoveCustomEffects_RemovesAllCustomEffects) {
     EXPECT_TRUE(effects.empty());
 }
 
-TEST_F(PotionUtilsTest, HasCustomEffects_ReturnsCorrectValue) {
+TEST_F(PotionUtilsTest, HasCustomEffects_ReturnsCorrectValue)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -224,7 +241,8 @@ TEST_F(PotionUtilsTest, HasCustomEffects_ReturnsCorrectValue) {
 // getEffects 测试（合并基础效果和自定义效果）
 // ============================================================================
 
-TEST_F(PotionUtilsTest, GetEffects_FromWaterBottle_OnlyCustomEffects) {
+TEST_F(PotionUtilsTest, GetEffects_FromWaterBottle_OnlyCustomEffects)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -248,7 +266,8 @@ TEST_F(PotionUtilsTest, GetEffects_FromWaterBottle_OnlyCustomEffects) {
 // 自定义颜色测试 - 这是新实现的核心功能
 // ============================================================================
 
-TEST_F(PotionUtilsTest, GetCustomPotionColor_WhenNotSet_ReturnsNullopt) {
+TEST_F(PotionUtilsTest, GetCustomPotionColor_WhenNotSet_ReturnsNullopt)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -258,13 +277,14 @@ TEST_F(PotionUtilsTest, GetCustomPotionColor_WhenNotSet_ReturnsNullopt) {
     EXPECT_FALSE(color.has_value());
 }
 
-TEST_F(PotionUtilsTest, SetCustomPotionColor_AndGetCustomPotionColor_ReturnsSameColor) {
+TEST_F(PotionUtilsTest, SetCustomPotionColor_AndGetCustomPotionColor_ReturnsSameColor)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
     ItemStack potionStack(Items::POTION, 1);
 
-    constexpr u32 testColor = 0xFF00FF00;  // Green
+    constexpr u32 testColor = 0xFF00FF00; // Green
     potion::PotionUtils::setCustomPotionColor(potionStack, testColor);
 
     auto color = potion::PotionUtils::getCustomPotionColor(potionStack);
@@ -272,7 +292,8 @@ TEST_F(PotionUtilsTest, SetCustomPotionColor_AndGetCustomPotionColor_ReturnsSame
     EXPECT_EQ(color.value(), testColor);
 }
 
-TEST_F(PotionUtilsTest, SetCustomPotionColor_WithNullopt_RemovesColor) {
+TEST_F(PotionUtilsTest, SetCustomPotionColor_WithNullopt_RemovesColor)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -285,7 +306,8 @@ TEST_F(PotionUtilsTest, SetCustomPotionColor_WithNullopt_RemovesColor) {
     EXPECT_FALSE(potion::PotionUtils::getCustomPotionColor(potionStack).has_value());
 }
 
-TEST_F(PotionUtilsTest, GetColor_WithCustomColor_ReturnsCustomColor) {
+TEST_F(PotionUtilsTest, GetColor_WithCustomColor_ReturnsCustomColor)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -302,7 +324,8 @@ TEST_F(PotionUtilsTest, GetColor_WithCustomColor_ReturnsCustomColor) {
 // 工厂方法测试 - 只测试物品类型创建
 // ============================================================================
 
-TEST_F(PotionUtilsTest, CreatePotionItem_CreatesCorrectItemType) {
+TEST_F(PotionUtilsTest, CreatePotionItem_CreatesCorrectItemType)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -312,7 +335,8 @@ TEST_F(PotionUtilsTest, CreatePotionItem_CreatesCorrectItemType) {
     EXPECT_EQ(stack.getItem(), Items::POTION);
 }
 
-TEST_F(PotionUtilsTest, CreateSplashPotionItem_CreatesCorrectItemType) {
+TEST_F(PotionUtilsTest, CreateSplashPotionItem_CreatesCorrectItemType)
+{
     if (Items::SPLASH_POTION == nullptr) {
         GTEST_SKIP() << "SPLASH_POTION item not initialized";
     }
@@ -322,7 +346,8 @@ TEST_F(PotionUtilsTest, CreateSplashPotionItem_CreatesCorrectItemType) {
     EXPECT_EQ(stack.getItem(), Items::SPLASH_POTION);
 }
 
-TEST_F(PotionUtilsTest, CreateLingeringPotionItem_CreatesCorrectItemType) {
+TEST_F(PotionUtilsTest, CreateLingeringPotionItem_CreatesCorrectItemType)
+{
     if (Items::LINGERING_POTION == nullptr) {
         GTEST_SKIP() << "LINGERING_POTION item not initialized";
     }
@@ -336,9 +361,10 @@ TEST_F(PotionUtilsTest, CreateLingeringPotionItem_CreatesCorrectItemType) {
 // 颜色测试
 // ============================================================================
 
-TEST_F(PotionUtilsTest, GetEffectColor_ReturnsValidColor) {
+TEST_F(PotionUtilsTest, GetEffectColor_ReturnsValidColor)
+{
     u32 speedColor = potion::PotionUtils::getEffectColor(entity::effect::EffectType::Speed);
-    EXPECT_NE(speedColor, 0x385DC6FF);  // Not water bottle color
+    EXPECT_NE(speedColor, 0x385DC6FF); // Not water bottle color
 
     u32 regenColor = potion::PotionUtils::getEffectColor(entity::effect::EffectType::Regeneration);
     EXPECT_NE(regenColor, 0x385DC6FF);
@@ -347,13 +373,15 @@ TEST_F(PotionUtilsTest, GetEffectColor_ReturnsValidColor) {
     EXPECT_NE(speedColor, regenColor);
 }
 
-TEST_F(PotionUtilsTest, GetColor_FromEmptyEffectList_ReturnsWaterColor) {
+TEST_F(PotionUtilsTest, GetColor_FromEmptyEffectList_ReturnsWaterColor)
+{
     std::vector<entity::effect::EffectInstance> emptyEffects;
     u32 color = potion::PotionUtils::getColor(emptyEffects);
-    EXPECT_EQ(color, 0x385DC6FF);  // Water bottle color
+    EXPECT_EQ(color, 0x385DC6FF); // Water bottle color
 }
 
-TEST_F(PotionUtilsTest, GetColor_FromMultipleEffects_AveragesColors) {
+TEST_F(PotionUtilsTest, GetColor_FromMultipleEffects_AveragesColors)
+{
     std::vector<entity::effect::EffectInstance> effects;
     effects.emplace_back(entity::effect::EffectType::Speed, 600, 0);
     effects.emplace_back(entity::effect::EffectType::Regeneration, 600, 0);
@@ -375,20 +403,20 @@ TEST_F(PotionUtilsTest, GetColor_FromMultipleEffects_AveragesColors) {
 // 效果序列化完整性测试
 // ============================================================================
 
-TEST_F(PotionUtilsTest, CustomEffects_AllFieldsPreserved) {
+TEST_F(PotionUtilsTest, CustomEffects_AllFieldsPreserved)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
     ItemStack potionStack(Items::POTION, 1);
 
     // 创建带有所有字段的效果
-    entity::effect::EffectInstance originalEffect(
-        entity::effect::EffectType::Speed,  // type
-        1234,                                // duration
-        2,                                   // amplifier (Speed III)
-        true,                                // ambient
-        false,                               // visible (no particles)
-        true                                 // showIcon
+    entity::effect::EffectInstance originalEffect(entity::effect::EffectType::Speed, // type
+        1234,                                                                        // duration
+        2,                                                                           // amplifier (Speed III)
+        true,                                                                        // ambient
+        false,                                                                       // visible (no particles)
+        true                                                                         // showIcon
     );
 
     potion::PotionUtils::addCustomEffect(potionStack, originalEffect);
@@ -406,7 +434,8 @@ TEST_F(PotionUtilsTest, CustomEffects_AllFieldsPreserved) {
     EXPECT_EQ(retrieved.showIcon(), originalEffect.showIcon());
 }
 
-TEST_F(PotionUtilsTest, SetCustomEffects_EmptyList_RemovesEffects) {
+TEST_F(PotionUtilsTest, SetCustomEffects_EmptyList_RemovesEffects)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }
@@ -424,7 +453,8 @@ TEST_F(PotionUtilsTest, SetCustomEffects_EmptyList_RemovesEffects) {
     EXPECT_FALSE(potion::PotionUtils::hasCustomEffects(potionStack));
 }
 
-TEST_F(PotionUtilsTest, MultipleCustomEffects_AllPreserved) {
+TEST_F(PotionUtilsTest, MultipleCustomEffects_AllPreserved)
+{
     if (Items::POTION == nullptr) {
         GTEST_SKIP() << "POTION item not initialized";
     }

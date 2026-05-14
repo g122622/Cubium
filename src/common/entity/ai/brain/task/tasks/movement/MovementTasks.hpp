@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Task.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../world/ServerWorld.hpp"
 #include "../../memory/Brain.hpp"
+#include "../Task.hpp"
 
 namespace mc {
 namespace entity {
@@ -28,12 +28,11 @@ public:
         , m_completionRange(completionRange)
     {}
 
-    std::string getName() const override {
-        return "MoveToTargetTask";
-    }
+    std::string getName() const override { return "MoveToTargetTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否有移动目标
@@ -43,7 +42,8 @@ protected:
         return false;
     }
 
-    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否到达目标
@@ -55,7 +55,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 获取移动目标并开始导航
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::WALK_TARGET);
@@ -64,11 +65,13 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 持续移动
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 停止移动
         // owner->getNavigator()->clearPath();
     }
@@ -93,26 +96,27 @@ public:
         , m_speed(speed)
     {}
 
-    std::string getName() const override {
-        return "StrollTask";
-    }
+    std::string getName() const override { return "StrollTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
         // 随机概率触发
         // return owner->getRandom().nextFloat() < 0.02f;
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 随机选择目标位置
         // f32 x = owner->x() + (owner->getRandom().nextFloat() - 0.5f) * 20.0f;
         // f32 z = owner->z() + (owner->getRandom().nextFloat() - 0.5f) * 20.0f;
         // owner->getNavigator()->moveTo(x, owner->y(), z, m_speed);
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
     }
 
@@ -136,18 +140,18 @@ public:
         , m_probability(probability)
     {}
 
-    std::string getName() const override {
-        return "LookAtEntityTask";
-    }
+    std::string getName() const override { return "LookAtEntityTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
         // return owner->getRandom().nextFloat() < m_probability;
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 寻找附近的实体并看向它
         // auto entities = world->getEntitiesInRange(owner->position(), m_range);
         // if (!entities.empty()) {
@@ -156,7 +160,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 重置看向
     }
 
@@ -181,12 +186,11 @@ public:
         , m_searchRange(searchRange)
     {}
 
-    std::string getName() const override {
-        return "FindHiddenBlockTask";
-    }
+    std::string getName() const override { return "FindHiddenBlockTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否需要隐蔽（例如白天对于僵尸）
@@ -194,7 +198,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 寻找安全的隐蔽点
         // BlockPos hiddenPos = findHiddenBlock(world, owner);
         // if (hiddenPos.isValid()) {
@@ -203,7 +208,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::HIDING_PLACE);
     }
@@ -229,12 +235,11 @@ public:
         , m_stopDistance(stopDistance)
     {}
 
-    std::string getName() const override {
-        return "ChaseTask";
-    }
+    std::string getName() const override { return "ChaseTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -243,7 +248,8 @@ protected:
         return false;
     }
 
-    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -254,7 +260,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
         // if (target.has_value()) {
@@ -262,7 +269,8 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 更新追逐路径
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
@@ -272,7 +280,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
     }
 
@@ -297,12 +306,11 @@ public:
         , m_fleeDistance(fleeDistance)
     {}
 
-    std::string getName() const override {
-        return "FleeTask";
-    }
+    std::string getName() const override { return "FleeTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -311,7 +319,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto avoidTarget = brain->getMemory(memory::MemoryModuleTypes::AVOID_TARGET);
         // if (avoidTarget.has_value()) {
@@ -332,7 +341,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::AVOID_TARGET);
     }

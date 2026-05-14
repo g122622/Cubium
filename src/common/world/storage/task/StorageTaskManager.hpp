@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/util/thread/ServerWorkerPool.hpp"
 #include "StorageTask.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include <atomic>
 #include <memory>
 
@@ -25,9 +25,9 @@ public:
      * @brief 提交任务
      */
     u64 submit(std::unique_ptr<StorageTask> task,
-               util::TaskPriority priority,
-               util::TaskCallback callback = nullptr,
-               std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
+        util::TaskPriority priority,
+        util::TaskCallback callback = nullptr,
+        std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
 
     /**
      * @brief 取消任务

@@ -1,7 +1,7 @@
 #include "NetherBiomeProvider.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../BiomeRegistry.hpp"
 #include "../../layer/BiomeValues.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc {
@@ -15,12 +15,12 @@ namespace nether {
 // MC 1.16.5 下界生物群系 ID
 // 参考 BiomeValues.hpp
 namespace NetherBiomes {
-    constexpr BiomeId NetherWastes = 8;      // 下界荒地 (默认)
-    constexpr BiomeId SoulSandValley = 170;  // 灵魂沙谷
-    constexpr BiomeId CrimsonForest = 171;   // 绯红森林
-    constexpr BiomeId WarpedForest = 172;    // 诡异森林
-    constexpr BiomeId BasaltDeltas = 173;    // 玄武岩三角洲
-}
+constexpr BiomeId NetherWastes = 8;     // 下界荒地 (默认)
+constexpr BiomeId SoulSandValley = 170; // 灵魂沙谷
+constexpr BiomeId CrimsonForest = 171;  // 绯红森林
+constexpr BiomeId WarpedForest = 172;   // 诡异森林
+constexpr BiomeId BasaltDeltas = 173;   // 玄武岩三角洲
+} // namespace NetherBiomes
 
 // ============================================================================
 // 构造函数
@@ -42,13 +42,15 @@ NetherBiomeProvider::NetherBiomeProvider(u64 seed)
 // 生物群系获取
 // ============================================================================
 
-BiomeId NetherBiomeProvider::getBiome(i32 x, i32 y, i32 z) const {
+BiomeId NetherBiomeProvider::getBiome(i32 x, i32 y, i32 z) const
+{
     // 下界使用 3D 生物群系采样
     // 参考 MC 1.16.5 NetherBiomeProvider.getNoiseBiomeAt
     return getNoiseBiome(x >> 2, y >> 2, z >> 2);
 }
 
-BiomeId NetherBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
+BiomeId NetherBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
+{
     // 采样噪声值
     const f32 temperature = getTemperature(noiseX, noiseY, noiseZ);
     const f32 humidity = getHumidity(noiseX, noiseY, noiseZ);
@@ -57,14 +59,16 @@ BiomeId NetherBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) c
     return selectBiome(temperature, humidity, biomeNoise);
 }
 
-f32 NetherBiomeProvider::getDepth(i32 x, i32 z) const {
+f32 NetherBiomeProvider::getDepth(i32 x, i32 z) const
+{
     // 下界地形深度（平坦地形）
     MC_UNUSED(x);
     MC_UNUSED(z);
     return 0.0f;
 }
 
-f32 NetherBiomeProvider::getScale(i32 x, i32 z) const {
+f32 NetherBiomeProvider::getScale(i32 x, i32 z) const
+{
     // 下界地形比例（平坦地形）
     MC_UNUSED(x);
     MC_UNUSED(z);
@@ -75,7 +79,8 @@ f32 NetherBiomeProvider::getScale(i32 x, i32 z) const {
 // 噪声采样
 // ============================================================================
 
-f32 NetherBiomeProvider::getTemperature(i32 x, i32 y, i32 z) const {
+f32 NetherBiomeProvider::getTemperature(i32 x, i32 y, i32 z) const
+{
     // 温度噪声（Simplex 3D）
     // 参考 MC NetherBiomeProvider.temperature
     const f32 nx = static_cast<f32>(x) * TEMPERATURE_SCALE;
@@ -84,7 +89,8 @@ f32 NetherBiomeProvider::getTemperature(i32 x, i32 y, i32 z) const {
     return m_temperatureNoise->noise(nx, ny, nz);
 }
 
-f32 NetherBiomeProvider::getHumidity(i32 x, i32 y, i32 z) const {
+f32 NetherBiomeProvider::getHumidity(i32 x, i32 y, i32 z) const
+{
     // 湿度噪声（Simplex 3D）
     // 参考 MC NetherBiomeProvider.humidity
     const f32 nx = static_cast<f32>(x) * HUMIDITY_SCALE;
@@ -93,7 +99,8 @@ f32 NetherBiomeProvider::getHumidity(i32 x, i32 y, i32 z) const {
     return m_humidityNoise->noise(nx, ny, nz);
 }
 
-f32 NetherBiomeProvider::getBiomeNoise(i32 x, i32 y, i32 z) const {
+f32 NetherBiomeProvider::getBiomeNoise(i32 x, i32 y, i32 z) const
+{
     // 生物群系选择噪声（Perlin 3D）
     // 参考 MC NetherBiomeProvider.biomeNoise
     const f32 nx = static_cast<f32>(x) * BIOME_SCALE;
@@ -106,7 +113,8 @@ f32 NetherBiomeProvider::getBiomeNoise(i32 x, i32 y, i32 z) const {
 // 生物群系选择
 // ============================================================================
 
-BiomeId NetherBiomeProvider::selectBiome(f32 temperature, f32 humidity, f32 biomeNoise) const {
+BiomeId NetherBiomeProvider::selectBiome(f32 temperature, f32 humidity, f32 biomeNoise) const
+{
     // 参考 MC 1.16.5 NetherBiomeProvider.getBiomeFromNoise
     //
     // 下界生物群系选择逻辑：
@@ -149,7 +157,8 @@ BiomeId NetherBiomeProvider::selectBiome(f32 temperature, f32 humidity, f32 biom
 // 生物群系容器填充
 // ============================================================================
 
-void NetherBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) {
+void NetherBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     // 噪声坐标中：一个区块对应 4x4 个水平采样点
     const i32 startNoiseX = chunkX << 2;
     const i32 startNoiseZ = chunkZ << 2;

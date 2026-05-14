@@ -1,13 +1,13 @@
 #include "StrongholdPieces.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../../../block/VanillaBlocks.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/storage/ChestEntity.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/Direction.hpp"
+#include "../StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -22,10 +22,10 @@ namespace structure {
 
 StrongholdPiece::StrongholdPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
     : StructurePiece(type, minX, minY, minZ, maxX, maxY, maxZ)
-{
-}
+{}
 
-StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::Random& rng) {
+StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::Random& rng)
+{
     i32 value = rng.nextInt(5);
     switch (value) {
         case 0:
@@ -41,9 +41,10 @@ StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::Random& rng) {
     }
 }
 
-void StrongholdPiece::generateDoor(IWorldWriter& world, const StructureBoundingBox& bounds,
-                                    math::Random& rng, Door door, i32 x, i32 y, i32 z) {
-    (void)rng;  // 不需要随机数，保持接口一致
+void StrongholdPiece::generateDoor(
+    IWorldWriter& world, const StructureBoundingBox& bounds, math::Random& rng, Door door, i32 x, i32 y, i32 z)
+{
+    (void)rng; // 不需要随机数，保持接口一致
 
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
@@ -102,13 +103,19 @@ void StrongholdPiece::generateDoor(IWorldWriter& world, const StructureBoundingB
     }
 }
 
-bool StrongholdPiece::canStrongholdGoDeeper(const StructureBoundingBox& box) {
+bool StrongholdPiece::canStrongholdGoDeeper(const StructureBoundingBox& box)
+{
     return box.minY() > 10;
 }
 
-void StrongholdPiece::generateChest(IWorldWriter& world, const StructureBoundingBox& bounds,
-                                      math::Random& rng, i32 x, i32 y, i32 z,
-                                      const std::string& lootTable) {
+void StrongholdPiece::generateChest(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    const std::string& lootTable)
+{
     // 检查边界
     i32 worldX = getXWithOffset(x, z);
     i32 worldY = getYWithOffset(y);
@@ -139,7 +146,8 @@ void StrongholdPiece::generateChest(IWorldWriter& world, const StructureBounding
 // StrongholdStonesSelector 实现
 // ============================================================================
 
-void StrongholdStonesSelector::selectBlocks(math::Random& rng, i32 x, i32 y, i32 z, bool isWall) {
+void StrongholdStonesSelector::selectBlocks(math::Random& rng, i32 x, i32 y, i32 z, bool isWall)
+{
     (void)x;
     (void)y;
     (void)z;
@@ -165,9 +173,15 @@ void StrongholdStonesSelector::selectBlocks(math::Random& rng, i32 x, i32 y, i32
 // StrongholdStraight 实现
 // ============================================================================
 
-StrongholdStraight::StrongholdStraight(i32 componentType, math::Random& rng,
-                                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                       Direction direction)
+StrongholdStraight::StrongholdStraight(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
     , m_expandsLeft(rng.nextInt(2) == 0)
     , m_expandsRight(rng.nextInt(2) == 0)
@@ -176,9 +190,9 @@ StrongholdStraight::StrongholdStraight(i32 componentType, math::Random& rng,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdStraight::generate(IWorldWriter& world, math::Random& rng,
-                                   i32 chunkX, i32 chunkZ,
-                                   const StructureBoundingBox& chunkBounds) {
+void StrongholdStraight::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
 
     // 填充墙壁
@@ -203,17 +217,22 @@ void StrongholdStraight::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdStraight::buildComponent(StructurePiece* component,
-                                         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                         math::Random& rng) {
+void StrongholdStraight::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdStraight* StrongholdStraight::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdStraight* StrongholdStraight::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 7, direction);
 
@@ -225,29 +244,42 @@ StrongholdStraight* StrongholdStraight::createPiece(
         return nullptr;
     }
 
-    return new StrongholdStraight(StrongholdPieceTypes::STRAIGHT, rng,
-                                   box.minX(), box.minY(), box.minZ(),
-                                   box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdStraight(StrongholdPieceTypes::STRAIGHT,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // ============================================================================
 // 其他片段的简化实现
 // ============================================================================
 
-// 简化实现：Prison, LeftTurn, RightTurn, RoomCrossing, StairsStraight, Stairs, Crossing, ChestCorridor, Library, PortalRoom, Corridor
+// 简化实现：Prison, LeftTurn, RightTurn, RoomCrossing, StairsStraight, Stairs, Crossing, ChestCorridor, Library,
+// PortalRoom, Corridor
 
-StrongholdPrison::StrongholdPrison(i32 componentType, math::Random& rng,
-                                   i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                   Direction direction)
+StrongholdPrison::StrongholdPrison(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdPrison::generate(IWorldWriter& world, math::Random& rng,
-                                 i32 chunkX, i32 chunkZ,
-                                 const StructureBoundingBox& chunkBounds) {
+void StrongholdPrison::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
     const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
@@ -267,40 +299,57 @@ void StrongholdPrison::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdPrison::buildComponent(StructurePiece* component,
-                                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                       math::Random& rng) {
+void StrongholdPrison::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdPrison* StrongholdPrison::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdPrison* StrongholdPrison::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 9, 5, 11, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdPrison(StrongholdPieceTypes::PRISON, rng,
-                                 box.minX(), box.minY(), box.minZ(),
-                                 box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdPrison(StrongholdPieceTypes::PRISON,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // LeftTurn
-StrongholdLeftTurn::StrongholdLeftTurn(i32 componentType, math::Random& rng,
-                                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                       Direction direction)
+StrongholdLeftTurn::StrongholdLeftTurn(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdLeftTurn::generate(IWorldWriter& world, math::Random& rng,
-                                   i32 chunkX, i32 chunkZ,
-                                   const StructureBoundingBox& chunkBounds) {
+void StrongholdLeftTurn::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
@@ -318,40 +367,57 @@ void StrongholdLeftTurn::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdLeftTurn::buildComponent(StructurePiece* component,
-                                         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                         math::Random& rng) {
+void StrongholdLeftTurn::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdLeftTurn* StrongholdLeftTurn::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdLeftTurn* StrongholdLeftTurn::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 5, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdLeftTurn(StrongholdPieceTypes::LEFT_TURN, rng,
-                                   box.minX(), box.minY(), box.minZ(),
-                                   box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdLeftTurn(StrongholdPieceTypes::LEFT_TURN,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // RightTurn
-StrongholdRightTurn::StrongholdRightTurn(i32 componentType, math::Random& rng,
-                                         i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                         Direction direction)
+StrongholdRightTurn::StrongholdRightTurn(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdRightTurn::generate(IWorldWriter& world, math::Random& rng,
-                                    i32 chunkX, i32 chunkZ,
-                                    const StructureBoundingBox& chunkBounds) {
+void StrongholdRightTurn::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
@@ -369,31 +435,48 @@ void StrongholdRightTurn::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdRightTurn::buildComponent(StructurePiece* component,
-                                          std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                          math::Random& rng) {
+void StrongholdRightTurn::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdRightTurn* StrongholdRightTurn::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdRightTurn* StrongholdRightTurn::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 5, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdRightTurn(StrongholdPieceTypes::RIGHT_TURN, rng,
-                                    box.minX(), box.minY(), box.minZ(),
-                                    box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdRightTurn(StrongholdPieceTypes::RIGHT_TURN,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // RoomCrossing
-StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType, math::Random& rng,
-                                               i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                               Direction direction)
+StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
     , m_roomType(rng.nextInt(5))
 {
@@ -401,9 +484,9 @@ StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType, math::Random& 
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdRoomCrossing::generate(IWorldWriter& world, math::Random& rng,
-                                       i32 chunkX, i32 chunkZ,
-                                       const StructureBoundingBox& chunkBounds) {
+void StrongholdRoomCrossing::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
@@ -419,7 +502,7 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world, math::Random& rng,
 
     // 根据房间类型生成不同内容
     switch (m_roomType) {
-        case 0:  // 喷泉房间
+        case 0: // 喷泉房间
             for (i32 i = 0; i < 5; ++i) {
                 setBlockState(world, stoneBricks, 3, 1, 3 + i, chunkBounds);
                 setBlockState(world, stoneBricks, 7, 1, 3 + i, chunkBounds);
@@ -431,7 +514,7 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world, math::Random& rng,
             setBlockState(world, stoneBricks, 5, 3, 5, chunkBounds);
             break;
 
-        case 2:  // 宝箱房间
+        case 2: // 宝箱房间
             for (i32 i = 1; i <= 9; ++i) {
                 setBlockState(world, cobblestone, 1, 3, i, chunkBounds);
                 setBlockState(world, cobblestone, 9, 3, i, chunkBounds);
@@ -455,40 +538,57 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdRoomCrossing::buildComponent(StructurePiece* component,
-                                             std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                             math::Random& rng) {
+void StrongholdRoomCrossing::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdRoomCrossing* StrongholdRoomCrossing::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdRoomCrossing* StrongholdRoomCrossing::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 11, 7, 11, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdRoomCrossing(StrongholdPieceTypes::ROOM_CROSSING, rng,
-                                       box.minX(), box.minY(), box.minZ(),
-                                       box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdRoomCrossing(StrongholdPieceTypes::ROOM_CROSSING,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // StairsStraight
-StrongholdStairsStraight::StrongholdStairsStraight(i32 componentType, math::Random& rng,
-                                                   i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                                   Direction direction)
+StrongholdStairsStraight::StrongholdStairsStraight(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdStairsStraight::generate(IWorldWriter& world, math::Random& rng,
-                                         i32 chunkX, i32 chunkZ,
-                                         const StructureBoundingBox& chunkBounds) {
+void StrongholdStairsStraight::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* cobblestoneStairs = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE_STAIRS);
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
@@ -512,40 +612,57 @@ void StrongholdStairsStraight::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdStairsStraight::buildComponent(StructurePiece* component,
-                                               std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                               math::Random& rng) {
+void StrongholdStairsStraight::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdStairsStraight* StrongholdStairsStraight::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdStairsStraight* StrongholdStairsStraight::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -7, 0, 5, 11, 8, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdStairsStraight(StrongholdPieceTypes::STAIRS_STRAIGHT, rng,
-                                         box.minX(), box.minY(), box.minZ(),
-                                         box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdStairsStraight(StrongholdPieceTypes::STAIRS_STRAIGHT,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // Stairs
-StrongholdStairs::StrongholdStairs(i32 componentType, math::Random& rng,
-                                   i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                   Direction direction)
+StrongholdStairs::StrongholdStairs(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdStairs::generate(IWorldWriter& world, math::Random& rng,
-                                 i32 chunkX, i32 chunkZ,
-                                 const StructureBoundingBox& chunkBounds) {
+void StrongholdStairs::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
@@ -576,49 +693,72 @@ void StrongholdStairs::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdStairs::buildComponent(StructurePiece* component,
-                                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                       math::Random& rng) {
+void StrongholdStairs::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdStairs* StrongholdStairs::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdStairs* StrongholdStairs::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -7, 0, 5, 11, 5, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdStairs(StrongholdPieceTypes::STAIRS, rng,
-                                 box.minX(), box.minY(), box.minZ(),
-                                 box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdStairs(StrongholdPieceTypes::STAIRS,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // StartStairs
 StrongholdStartStairs::StrongholdStartStairs(math::Random& rng, i32 x, i32 z)
-    : StrongholdStairs(StrongholdPieceTypes::START_STAIRS, rng,
-                        x, 64, z, x + 4, 74, z + 4,
-                        static_cast<Direction>(rng.nextInt(4) + 2))
+    : StrongholdStairs(StrongholdPieceTypes::START_STAIRS,
+          rng,
+          x,
+          64,
+          z,
+          x + 4,
+          74,
+          z + 4,
+          static_cast<Direction>(rng.nextInt(4) + 2))
 {
     m_isSource = true;
     setEntryDoor(Door::Opening);
 }
 
-void StrongholdStartStairs::buildComponent(StructurePiece* component,
-                                            std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                            math::Random& rng) {
+void StrongholdStartStairs::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
 // Crossing
-StrongholdCrossing::StrongholdCrossing(i32 componentType, math::Random& rng,
-                                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                       Direction direction)
+StrongholdCrossing::StrongholdCrossing(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
     , m_leftLow(rng.nextBoolean())
     , m_leftHigh(rng.nextBoolean())
@@ -629,9 +769,9 @@ StrongholdCrossing::StrongholdCrossing(i32 componentType, math::Random& rng,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdCrossing::generate(IWorldWriter& world, math::Random& rng,
-                                   i32 chunkX, i32 chunkZ,
-                                   const StructureBoundingBox& chunkBounds) {
+void StrongholdCrossing::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
@@ -657,40 +797,57 @@ void StrongholdCrossing::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdCrossing::buildComponent(StructurePiece* component,
-                                         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                         math::Random& rng) {
+void StrongholdCrossing::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdCrossing* StrongholdCrossing::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdCrossing* StrongholdCrossing::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -3, 0, 10, 9, 11, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdCrossing(StrongholdPieceTypes::CROSSING, rng,
-                                   box.minX(), box.minY(), box.minZ(),
-                                   box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdCrossing(StrongholdPieceTypes::CROSSING,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // ChestCorridor
-StrongholdChestCorridor::StrongholdChestCorridor(i32 componentType, math::Random& rng,
-                                                  i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                                  Direction direction)
+StrongholdChestCorridor::StrongholdChestCorridor(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdChestCorridor::generate(IWorldWriter& world, math::Random& rng,
-                                        i32 chunkX, i32 chunkZ,
-                                        const StructureBoundingBox& chunkBounds) {
+void StrongholdChestCorridor::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
@@ -717,31 +874,48 @@ void StrongholdChestCorridor::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdChestCorridor::buildComponent(StructurePiece* component,
-                                              std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                              math::Random& rng) {
+void StrongholdChestCorridor::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
-StrongholdChestCorridor* StrongholdChestCorridor::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdChestCorridor* StrongholdChestCorridor::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 7, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdChestCorridor(StrongholdPieceTypes::CHEST_CORRIDOR, rng,
-                                         box.minX(), box.minY(), box.minZ(),
-                                         box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdChestCorridor(StrongholdPieceTypes::CHEST_CORRIDOR,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // Library
-StrongholdLibrary::StrongholdLibrary(i32 componentType, math::Random& rng,
-                                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                     Direction direction)
+StrongholdLibrary::StrongholdLibrary(i32 componentType,
+    math::Random& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
     , m_isLargeRoom((maxY - minY) > 6)
 {
@@ -749,9 +923,9 @@ StrongholdLibrary::StrongholdLibrary(i32 componentType, math::Random& rng,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdLibrary::generate(IWorldWriter& world, math::Random& rng,
-                                  i32 chunkX, i32 chunkZ,
-                                  const StructureBoundingBox& chunkBounds) {
+void StrongholdLibrary::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
     const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
@@ -794,9 +968,14 @@ void StrongholdLibrary::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-StrongholdLibrary* StrongholdLibrary::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdLibrary* StrongholdLibrary::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 14, 11, 15, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
@@ -805,23 +984,28 @@ StrongholdLibrary* StrongholdLibrary::createPiece(
             return nullptr;
         }
     }
-    return new StrongholdLibrary(StrongholdPieceTypes::LIBRARY, rng,
-                                  box.minX(), box.minY(), box.minZ(),
-                                  box.maxX(), box.maxY(), box.maxZ(), direction);
+    return new StrongholdLibrary(StrongholdPieceTypes::LIBRARY,
+        rng,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // PortalRoom
-StrongholdPortalRoom::StrongholdPortalRoom(i32 componentType,
-                                           i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                           Direction direction)
+StrongholdPortalRoom::StrongholdPortalRoom(
+    i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
 {
     setCoordBaseMode(direction);
 }
 
-void StrongholdPortalRoom::generate(IWorldWriter& world, math::Random& rng,
-                                     i32 chunkX, i32 chunkZ,
-                                     const StructureBoundingBox& chunkBounds) {
+void StrongholdPortalRoom::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     StrongholdStonesSelector selector;
     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
     const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
@@ -893,40 +1077,44 @@ void StrongholdPortalRoom::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-void StrongholdPortalRoom::buildComponent(StructurePiece* component,
-                                           std::vector<std::unique_ptr<StructurePiece>>& pieces,
-                                           math::Random& rng) {
+void StrongholdPortalRoom::buildComponent(
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+{
     (void)component;
     (void)pieces;
     (void)rng;
 }
 
 StrongholdPortalRoom* StrongholdPortalRoom::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+    std::vector<std::unique_ptr<StructurePiece>>& pieces, i32 x, i32 y, i32 z, Direction direction, i32 depth)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 11, 8, 16, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
     return new StrongholdPortalRoom(StrongholdPieceTypes::PORTAL_ROOM,
-                                     box.minX(), box.minY(), box.minZ(),
-                                     box.maxX(), box.maxY(), box.maxZ(), direction);
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 // Corridor
-StrongholdCorridor::StrongholdCorridor(i32 componentType, i32 steps,
-                                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                       Direction direction)
+StrongholdCorridor::StrongholdCorridor(
+    i32 componentType, i32 steps, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction)
     : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
     , m_steps(steps)
 {
     setCoordBaseMode(direction);
 }
 
-void StrongholdCorridor::generate(IWorldWriter& world, math::Random& rng,
-                                   i32 chunkX, i32 chunkZ,
-                                   const StructureBoundingBox& chunkBounds) {
+void StrongholdCorridor::generate(
+    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+{
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
@@ -951,24 +1139,35 @@ void StrongholdCorridor::generate(IWorldWriter& world, math::Random& rng,
     (void)chunkZ;
 }
 
-StrongholdCorridor* StrongholdCorridor::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth) {
+StrongholdCorridor* StrongholdCorridor::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
 
     StructureBoundingBox box = findPieceBox(pieces, rng, x, y, z, direction);
     if (!box.isValid() || box.minY() <= 1) {
         return nullptr;
     }
-    i32 steps = (direction == Direction::North || direction == Direction::South) ?
-                (box.maxX() - box.minX() + 1) : (box.maxZ() - box.minZ() + 1);
-    return new StrongholdCorridor(StrongholdPieceTypes::CORRIDOR, steps,
-                                   box.minX(), box.minY(), box.minZ(),
-                                   box.maxX(), box.maxY(), box.maxZ(), direction);
+    i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxX() - box.minX() + 1)
+                                                                                 : (box.maxZ() - box.minZ() + 1);
+    return new StrongholdCorridor(StrongholdPieceTypes::CORRIDOR,
+        steps,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
+        box.maxX(),
+        box.maxY(),
+        box.maxZ(),
+        direction);
 }
 
 StructureBoundingBox StrongholdCorridor::findPieceBox(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng, i32 x, i32 y, i32 z, Direction direction) {
+    std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng, i32 x, i32 y, i32 z, Direction direction)
+{
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 4, direction);
     StructurePiece* intersecting = StructurePiece::findIntersecting(pieces, box);
@@ -990,7 +1189,8 @@ StructureBoundingBox StrongholdCorridor::findPieceBox(
 // 辅助函数实现
 // ============================================================================
 
-void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weights) {
+void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weights)
+{
     weights.clear();
     weights.emplace_back(StrongholdPieceTypes::STRAIGHT, 40, 0);
     weights.emplace_back(StrongholdPieceTypes::PRISON, 5, 5);
@@ -1005,13 +1205,15 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     weights.emplace_back(StrongholdPieceTypes::PORTAL_ROOM, 20, 1);
 }
 
-StrongholdPiece* createStrongholdPiece(
-    i32 pieceType,
+StrongholdPiece* createStrongholdPiece(i32 pieceType,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
-    i32 x, i32 y, i32 z,
+    i32 x,
+    i32 y,
+    i32 z,
     Direction direction,
-    i32 depth) {
+    i32 depth)
+{
 
     switch (pieceType) {
         case StrongholdPieceTypes::STRAIGHT:

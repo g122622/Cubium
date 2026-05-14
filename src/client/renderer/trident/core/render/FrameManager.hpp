@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
+#include "common/core/Types.hpp"
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -107,10 +107,10 @@ private:
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     // 同步对象
-    std::vector<VkSemaphore> m_imageAvailableSemaphores;  // 每帧一个
-    std::vector<VkSemaphore> m_renderFinishedSemaphores;  // 每个交换链图像一个
-    std::vector<VkFence> m_inFlightFences;                // 每帧一个
-    std::vector<VkFence> m_imageFences;                   // 每个交换链图像一个
+    std::vector<VkSemaphore> m_imageAvailableSemaphores; // 每帧一个
+    std::vector<VkSemaphore> m_renderFinishedSemaphores; // 每个交换链图像一个
+    std::vector<VkFence> m_inFlightFences;               // 每帧一个
+    std::vector<VkFence> m_imageFences;                  // 每个交换链图像一个
 
     // 状态
     u32 m_maxFramesInFlight = 2;

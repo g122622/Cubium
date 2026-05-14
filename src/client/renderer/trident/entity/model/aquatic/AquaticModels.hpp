@@ -15,9 +15,8 @@ public:
     ~CodModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置是否在水中
@@ -27,11 +26,11 @@ public:
 private:
     void setupParts();
     std::shared_ptr<ModelRenderer> m_body;
-    std::shared_ptr<ModelRenderer> m_finTop;      // 背鳍
+    std::shared_ptr<ModelRenderer> m_finTop; // 背鳍
     std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_headFront;   // 头部前端
-    std::shared_ptr<ModelRenderer> m_finRight;    // 右鳍
-    std::shared_ptr<ModelRenderer> m_finLeft;     // 左鳍
+    std::shared_ptr<ModelRenderer> m_headFront; // 头部前端
+    std::shared_ptr<ModelRenderer> m_finRight;  // 右鳍
+    std::shared_ptr<ModelRenderer> m_finLeft;   // 左鳍
     std::shared_ptr<ModelRenderer> m_tail;
 
     bool m_isInWater = true;
@@ -48,9 +47,8 @@ public:
     ~SalmonModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置是否在水中
@@ -59,14 +57,14 @@ public:
 
 private:
     void setupParts();
-    std::shared_ptr<ModelRenderer> m_bodyFront;   // 身体前部
-    std::shared_ptr<ModelRenderer> m_bodyRear;    // 身体后部
+    std::shared_ptr<ModelRenderer> m_bodyFront; // 身体前部
+    std::shared_ptr<ModelRenderer> m_bodyRear;  // 身体后部
     std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_finRight;    // 右鳍
-    std::shared_ptr<ModelRenderer> m_finLeft;     // 左鳍
-    std::shared_ptr<ModelRenderer> m_tail;        // 尾巴（子部件）
-    std::shared_ptr<ModelRenderer> m_dorsalFin;   // 背鳍（子部件）
-    std::shared_ptr<ModelRenderer> m_ventralFin;  // 腹鳍（子部件）
+    std::shared_ptr<ModelRenderer> m_finRight;   // 右鳍
+    std::shared_ptr<ModelRenderer> m_finLeft;    // 左鳍
+    std::shared_ptr<ModelRenderer> m_tail;       // 尾巴（子部件）
+    std::shared_ptr<ModelRenderer> m_dorsalFin;  // 背鳍（子部件）
+    std::shared_ptr<ModelRenderer> m_ventralFin; // 腹鳍（子部件）
 
     bool m_isInWater = true;
 };
@@ -83,9 +81,8 @@ public:
     ~DolphinModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置是否在水中（已废弃，使用setMotionMagnitude）
@@ -101,17 +98,17 @@ public:
 
 private:
     void setupParts();
-    std::shared_ptr<ModelRenderer> m_body;        // 身体
-    std::shared_ptr<ModelRenderer> m_tail;        // 尾巴
-    std::shared_ptr<ModelRenderer> m_tailFin;     // 尾鳍
-    std::shared_ptr<ModelRenderer> m_dorsalFin;   // 背鳍（新增）
-    std::shared_ptr<ModelRenderer> m_finRight;    // 右鳍
-    std::shared_ptr<ModelRenderer> m_finLeft;     // 左鳍
-    std::shared_ptr<ModelRenderer> m_head;        // 头部（子部件）
-    std::shared_ptr<ModelRenderer> m_nose;        // 鼻子（子部件）
+    std::shared_ptr<ModelRenderer> m_body;      // 身体
+    std::shared_ptr<ModelRenderer> m_tail;      // 尾巴
+    std::shared_ptr<ModelRenderer> m_tailFin;   // 尾鳍
+    std::shared_ptr<ModelRenderer> m_dorsalFin; // 背鳍（新增）
+    std::shared_ptr<ModelRenderer> m_finRight;  // 右鳍
+    std::shared_ptr<ModelRenderer> m_finLeft;   // 左鳍
+    std::shared_ptr<ModelRenderer> m_head;      // 头部（子部件）
+    std::shared_ptr<ModelRenderer> m_nose;      // 鼻子（子部件）
 
     bool m_isInWater = true;
-    f64 m_motionMagnitude = 0.0;  // horizontalMag(motion)
+    f64 m_motionMagnitude = 0.0; // horizontalMag(motion)
 };
 
 /**
@@ -127,9 +124,8 @@ public:
     ~TurtleModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置是否在水中
@@ -159,13 +155,13 @@ public:
 private:
     void setupParts(f32 scale);
 
-    std::shared_ptr<ModelRenderer> m_head;         // 头部
-    std::shared_ptr<ModelRenderer> m_body;         // 身体
-    std::shared_ptr<ModelRenderer> m_pregnant;     // 怀孕时的腹部
-    std::shared_ptr<ModelRenderer> m_legBackRight; // 右后腿
-    std::shared_ptr<ModelRenderer> m_legBackLeft;  // 左后腿
-    std::shared_ptr<ModelRenderer> m_legFrontRight;// 右前腿
-    std::shared_ptr<ModelRenderer> m_legFrontLeft; // 左前腿
+    std::shared_ptr<ModelRenderer> m_head;          // 头部
+    std::shared_ptr<ModelRenderer> m_body;          // 身体
+    std::shared_ptr<ModelRenderer> m_pregnant;      // 怀孕时的腹部
+    std::shared_ptr<ModelRenderer> m_legBackRight;  // 右后腿
+    std::shared_ptr<ModelRenderer> m_legBackLeft;   // 左后腿
+    std::shared_ptr<ModelRenderer> m_legFrontRight; // 右前腿
+    std::shared_ptr<ModelRenderer> m_legFrontLeft;  // 左前腿
 
     bool m_isInWater = true;
     bool m_isOnGround = false;
@@ -191,7 +187,8 @@ public:
      * @param g 绿色乘数
      * @param b 蓝色乘数
      */
-    void setColorMultipliers(f32 r, f32 g, f32 b) {
+    void setColorMultipliers(f32 r, f32 g, f32 b)
+    {
         m_colorR = r;
         m_colorG = g;
         m_colorB = b;
@@ -217,9 +214,8 @@ public:
     explicit TropicalFishAModel(f32 scale = 0.0f);
     ~TropicalFishAModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置是否在水中
@@ -250,9 +246,8 @@ public:
     explicit TropicalFishBModel(f32 scale = 0.0f);
     ~TropicalFishBModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置是否在水中

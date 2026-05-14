@@ -3,18 +3,18 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/util/math/random/IRandom.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "core/Constants.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
 #include "world/block/BlockTags.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
-#include "world/tick/manager/TickManager.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "core/Constants.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 #include <map>
 #include <memory>
@@ -32,7 +32,8 @@ class SweetBerryBushTestWorld final : public IBlockReader {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -41,7 +42,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -56,23 +58,31 @@ public:
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_blockLight, x, y, z);
-    }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z); }
 
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_skyLight, x, y, z);
-    }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z); }
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
@@ -84,48 +94,41 @@ public:
     void setSeed(u64 seed) { m_seed = seed; }
     void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) {
-        m_skyLight[pos] = light;
-    }
+    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) {
-        m_blockLight[pos] = light;
-    }
+    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("SweetBerryBushTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("SweetBerryBushTestWorld::tickManager not implemented");
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
+    [[nodiscard]] math::Random& getRandom() override
+    {
         throw std::runtime_error("SweetBerryBushTestWorld::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override {
+    [[nodiscard]] const math::Random& getRandom() const override
+    {
         throw std::runtime_error("SweetBerryBushTestWorld::getRandom not implemented");
     }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        return m_worldBorder;
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        return m_worldBorder;
-    }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
 private:
-    [[nodiscard]] const BlockState* airState() const {
-        return BlockRegistry::instance().airState();
-    }
+    [[nodiscard]] const BlockState* airState() const { return BlockRegistry::instance().airState(); }
 
-    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z) {
+    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z)
+    {
         const BlockPos pos(x, y, z);
         const auto it = lights.find(pos);
         if (it != lights.end()) {
@@ -148,68 +151,53 @@ private:
 class SequenceRandom final : public math::IRandom {
 public:
     explicit SequenceRandom(std::vector<i32> values)
-        : m_values(std::move(values)) {
-    }
+        : m_values(std::move(values))
+    {}
 
-    void setSeed(u64 seed) override {
+    void setSeed(u64 seed) override
+    {
         m_seed = seed;
         m_index = 0;
     }
 
-    [[nodiscard]] u64 nextU64() override {
-        return static_cast<u64>(nextValue());
-    }
+    [[nodiscard]] u64 nextU64() override { return static_cast<u64>(nextValue()); }
 
-    [[nodiscard]] u32 nextU32() override {
-        return static_cast<u32>(nextValue());
-    }
+    [[nodiscard]] u32 nextU32() override { return static_cast<u32>(nextValue()); }
 
-    [[nodiscard]] i32 nextInt(i32 bound) override {
-        return nextValue() % bound;
-    }
+    [[nodiscard]] i32 nextInt(i32 bound) override { return nextValue() % bound; }
 
-    [[nodiscard]] i32 nextInt() override {
-        return nextValue();
-    }
+    [[nodiscard]] i32 nextInt() override { return nextValue(); }
 
-    [[nodiscard]] i32 nextInt(i32 min, i32 max) override {
-        return min + (nextValue() % (max - min + 1));
-    }
+    [[nodiscard]] i32 nextInt(i32 min, i32 max) override { return min + (nextValue() % (max - min + 1)); }
 
-    [[nodiscard]] bool nextBoolean() override {
-        return (nextValue() & 1) != 0;
-    }
+    [[nodiscard]] bool nextBoolean() override { return (nextValue() & 1) != 0; }
 
-    [[nodiscard]] f32 nextFloat() override {
+    [[nodiscard]] f32 nextFloat() override
+    {
         return static_cast<f32>(nextValue() & 0x00FFFFFF) / static_cast<f32>(1 << 24);
     }
 
-    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override {
-        return min + nextFloat() * (max - min);
-    }
+    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override { return min + nextFloat() * (max - min); }
 
-    [[nodiscard]] f64 nextDouble() override {
+    [[nodiscard]] f64 nextDouble() override
+    {
         return static_cast<f64>(nextValue() & 0x001FFFFFFFFFFFFF) / static_cast<f64>(1ULL << 53);
     }
 
-    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override {
-        return min + nextDouble() * (max - min);
-    }
+    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override { return min + nextDouble() * (max - min); }
 
-    [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override {
+    [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override
+    {
         return mean + stddev * static_cast<f32>(nextValue());
     }
 
-    [[nodiscard]] i64 nextLong() override {
-        return static_cast<i64>(nextValue());
-    }
+    [[nodiscard]] i64 nextLong() override { return static_cast<i64>(nextValue()); }
 
-    [[nodiscard]] i64 nextLong(i64 bound) override {
-        return static_cast<i64>(nextValue() % bound);
-    }
+    [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
 
 private:
-    [[nodiscard]] i32 nextValue() {
+    [[nodiscard]] i32 nextValue()
+    {
         if (m_index < m_values.size()) {
             return m_values[m_index++];
         }
@@ -227,7 +215,8 @@ private:
 class TestLivingEntity : public LivingEntity {
 public:
     explicit TestLivingEntity(const std::string& typeId = "minecraft:player")
-        : LivingEntity(LegacyEntityType::Player, 1) {
+        : LivingEntity(LegacyEntityType::Player, 1)
+    {
         setTypeId(typeId);
         setHealth(maxHealth());
         // 设置位置以便移动检测
@@ -241,7 +230,8 @@ public:
 class TestFoxEntity : public LivingEntity {
 public:
     TestFoxEntity()
-        : LivingEntity(LegacyEntityType::Fox, 2) {
+        : LivingEntity(LegacyEntityType::Fox, 2)
+    {
         setTypeId("minecraft:fox");
         setHealth(maxHealth());
     }
@@ -253,7 +243,8 @@ public:
 class TestBeeEntity : public LivingEntity {
 public:
     TestBeeEntity()
-        : LivingEntity(LegacyEntityType::Bee, 3) {
+        : LivingEntity(LegacyEntityType::Bee, 3)
+    {
         setTypeId("minecraft:bee");
         setHealth(maxHealth());
     }
@@ -269,17 +260,16 @@ public:
     using SweetBerryBushBlock::SweetBerryBushBlock;
 
     // 暴露 protected 方法用于测试
-    [[nodiscard]] bool testCanSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const {
+    [[nodiscard]] bool testCanSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+    {
         return canSustain(groundState, world, groundPos);
     }
 };
 
 class SweetBerryBushBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BlockTags::initialize();
 
@@ -287,9 +277,7 @@ protected:
             BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
     }
 
-    void TearDown() override {
-        m_bush.reset();
-    }
+    void TearDown() override { m_bush.reset(); }
 
     std::unique_ptr<SweetBerryBushBlockTestAccess> m_bush;
 };
@@ -298,7 +286,8 @@ protected:
 // canSustain Tests
 // ============================================================================
 
-TEST_F(SweetBerryBushBlockTest, CanSustainOnGrassBlock) {
+TEST_F(SweetBerryBushBlockTest, CanSustainOnGrassBlock)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -308,7 +297,8 @@ TEST_F(SweetBerryBushBlockTest, CanSustainOnGrassBlock) {
     EXPECT_TRUE(m_bush->testCanSustain(*groundState, world, pos.down()));
 }
 
-TEST_F(SweetBerryBushBlockTest, CanSustainOnDirt) {
+TEST_F(SweetBerryBushBlockTest, CanSustainOnDirt)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -318,7 +308,8 @@ TEST_F(SweetBerryBushBlockTest, CanSustainOnDirt) {
     EXPECT_TRUE(m_bush->testCanSustain(*groundState, world, pos.down()));
 }
 
-TEST_F(SweetBerryBushBlockTest, CanSustainOnCoarseDirt) {
+TEST_F(SweetBerryBushBlockTest, CanSustainOnCoarseDirt)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -328,7 +319,8 @@ TEST_F(SweetBerryBushBlockTest, CanSustainOnCoarseDirt) {
     EXPECT_TRUE(m_bush->testCanSustain(*groundState, world, pos.down()));
 }
 
-TEST_F(SweetBerryBushBlockTest, CanSustainOnPodzol) {
+TEST_F(SweetBerryBushBlockTest, CanSustainOnPodzol)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -338,7 +330,8 @@ TEST_F(SweetBerryBushBlockTest, CanSustainOnPodzol) {
     EXPECT_TRUE(m_bush->testCanSustain(*groundState, world, pos.down()));
 }
 
-TEST_F(SweetBerryBushBlockTest, CanSustainOnFarmland) {
+TEST_F(SweetBerryBushBlockTest, CanSustainOnFarmland)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -348,7 +341,8 @@ TEST_F(SweetBerryBushBlockTest, CanSustainOnFarmland) {
     EXPECT_TRUE(m_bush->testCanSustain(*groundState, world, pos.down()));
 }
 
-TEST_F(SweetBerryBushBlockTest, CannotSustainOnStone) {
+TEST_F(SweetBerryBushBlockTest, CannotSustainOnStone)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -358,7 +352,8 @@ TEST_F(SweetBerryBushBlockTest, CannotSustainOnStone) {
     EXPECT_FALSE(m_bush->testCanSustain(*groundState, world, pos.down()));
 }
 
-TEST_F(SweetBerryBushBlockTest, CannotSustainOnSand) {
+TEST_F(SweetBerryBushBlockTest, CannotSustainOnSand)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -368,7 +363,8 @@ TEST_F(SweetBerryBushBlockTest, CannotSustainOnSand) {
     EXPECT_FALSE(m_bush->testCanSustain(*groundState, world, pos.down()));
 }
 
-TEST_F(SweetBerryBushBlockTest, CannotSustainOnAir) {
+TEST_F(SweetBerryBushBlockTest, CannotSustainOnAir)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 1, 0);
 
@@ -382,7 +378,8 @@ TEST_F(SweetBerryBushBlockTest, CannotSustainOnAir) {
 // onEntityCollision Tests
 // ============================================================================
 
-TEST_F(SweetBerryBushBlockTest, OnEntityCollisionAppliesMotionMultiplier) {
+TEST_F(SweetBerryBushBlockTest, OnEntityCollisionAppliesMotionMultiplier)
+{
     SweetBerryBushTestWorld world;
     world.setClientSide(false);
     const BlockPos pos(0, 0, 0);
@@ -392,8 +389,8 @@ TEST_F(SweetBerryBushBlockTest, OnEntityCollisionAppliesMotionMultiplier) {
     entity.setPosition(0.5f, 0.0f, 0.5f);
 
     // 设置上一个位置（模拟移动）
-    entity.baseTick();  // 清除 motion multiplier
-    entity.setPosition(0.5f, 0.0f, 0.5f);  // 重置位置
+    entity.baseTick();                    // 清除 motion multiplier
+    entity.setPosition(0.5f, 0.0f, 0.5f); // 重置位置
 
     m_bush->onEntityCollision(state, world, pos, entity);
 
@@ -404,7 +401,8 @@ TEST_F(SweetBerryBushBlockTest, OnEntityCollisionAppliesMotionMultiplier) {
     EXPECT_FLOAT_EQ(entity.motionMultiplier().z, physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ);
 }
 
-TEST_F(SweetBerryBushBlockTest, FoxIsImmuneToDamageAndSlowdown) {
+TEST_F(SweetBerryBushBlockTest, FoxIsImmuneToDamageAndSlowdown)
+{
     SweetBerryBushTestWorld world;
     world.setClientSide(false);
     const BlockPos pos(0, 0, 0);
@@ -425,7 +423,8 @@ TEST_F(SweetBerryBushBlockTest, FoxIsImmuneToDamageAndSlowdown) {
     EXPECT_FALSE(fox.hasMotionMultiplier());
 }
 
-TEST_F(SweetBerryBushBlockTest, BeeIsImmuneToDamageAndSlowdown) {
+TEST_F(SweetBerryBushBlockTest, BeeIsImmuneToDamageAndSlowdown)
+{
     SweetBerryBushTestWorld world;
     world.setClientSide(false);
     const BlockPos pos(0, 0, 0);
@@ -445,7 +444,8 @@ TEST_F(SweetBerryBushBlockTest, BeeIsImmuneToDamageAndSlowdown) {
     EXPECT_FALSE(bee.hasMotionMultiplier());
 }
 
-TEST_F(SweetBerryBushBlockTest, NonLivingEntityNotAffected) {
+TEST_F(SweetBerryBushBlockTest, NonLivingEntityNotAffected)
+{
     // 注意：Entity 基类实例应该不受影响，因为没有 hurt 方法
     // 但实际上 onEntityCollision 会 dynamic_cast 到 LivingEntity
     // 这里测试一个 Entity 基类实例
@@ -457,15 +457,15 @@ TEST_F(SweetBerryBushBlockTest, NonLivingEntityNotAffected) {
 
     // Entity 基类不会应用任何效果（因为 dynamic_cast<LivingEntity> 失败）
     // 这个测试验证非 LivingEntity 不受影响
-    TestLivingEntity entity;  // 使用 LivingEntity 但设置类型为普通实体
+    TestLivingEntity entity; // 使用 LivingEntity 但设置类型为普通实体
     entity.setPosition(0.5f, 0.0f, 0.5f);
-    entity.setTypeId("minecraft:zombie");  // 不是狐狸或蜜蜂
+    entity.setTypeId("minecraft:zombie"); // 不是狐狸或蜜蜂
     entity.baseTick();
 
     f32 initialHealth = entity.health();
 
     // 模拟移动（设置 prevPosition 不同）
-    entity.baseTick();  // 这会清除 motion multiplier
+    entity.baseTick(); // 这会清除 motion multiplier
 
     m_bush->onEntityCollision(state, world, pos, entity);
 
@@ -473,7 +473,8 @@ TEST_F(SweetBerryBushBlockTest, NonLivingEntityNotAffected) {
     EXPECT_TRUE(entity.hasMotionMultiplier());
 }
 
-TEST_F(SweetBerryBushBlockTest, DamageOnlyWhenAgeGreaterThanZero) {
+TEST_F(SweetBerryBushBlockTest, DamageOnlyWhenAgeGreaterThanZero)
+{
     SweetBerryBushTestWorld world;
     world.setClientSide(false);
     const BlockPos pos(0, 0, 0);
@@ -495,9 +496,10 @@ TEST_F(SweetBerryBushBlockTest, DamageOnlyWhenAgeGreaterThanZero) {
     EXPECT_FLOAT_EQ(entity.health(), initialHealth);
 }
 
-TEST_F(SweetBerryBushBlockTest, DamageOnServerSide) {
+TEST_F(SweetBerryBushBlockTest, DamageOnServerSide)
+{
     SweetBerryBushTestWorld world;
-    world.setClientSide(false);  // 服务端
+    world.setClientSide(false); // 服务端
     const BlockPos pos(0, 0, 0);
 
     TestLivingEntity entity;
@@ -509,7 +511,7 @@ TEST_F(SweetBerryBushBlockTest, DamageOnServerSide) {
 
     // 模拟移动
     entity.baseTick();
-    entity.setPosition(0.1f, 0.0f, 0.1f);  // 移动位置
+    entity.setPosition(0.1f, 0.0f, 0.1f); // 移动位置
 
     m_bush->onEntityCollision(state, world, pos, entity);
 
@@ -517,9 +519,10 @@ TEST_F(SweetBerryBushBlockTest, DamageOnServerSide) {
     EXPECT_LT(entity.health(), initialHealth);
 }
 
-TEST_F(SweetBerryBushBlockTest, NoDamageOnClientSide) {
+TEST_F(SweetBerryBushBlockTest, NoDamageOnClientSide)
+{
     SweetBerryBushTestWorld world;
-    world.setClientSide(true);  // 客户端
+    world.setClientSide(true); // 客户端
     const BlockPos pos(0, 0, 0);
 
     TestLivingEntity entity;
@@ -541,7 +544,8 @@ TEST_F(SweetBerryBushBlockTest, NoDamageOnClientSide) {
     EXPECT_TRUE(entity.hasMotionMultiplier());
 }
 
-TEST_F(SweetBerryBushBlockTest, NoDamageWhenNotMoving) {
+TEST_F(SweetBerryBushBlockTest, NoDamageWhenNotMoving)
+{
     SweetBerryBushTestWorld world;
     world.setClientSide(false);
     const BlockPos pos(0, 0, 0);
@@ -554,7 +558,7 @@ TEST_F(SweetBerryBushBlockTest, NoDamageWhenNotMoving) {
 
     // 设置位置但不移动（prevPosition == currentPosition）
     entity.setPosition(0.5f, 0.0f, 0.5f);
-    entity.baseTick();  // 这会将 prevPosition 设置为当前位置
+    entity.baseTick(); // 这会将 prevPosition 设置为当前位置
 
     m_bush->onEntityCollision(state, world, pos, entity);
 
@@ -562,7 +566,8 @@ TEST_F(SweetBerryBushBlockTest, NoDamageWhenNotMoving) {
     EXPECT_FLOAT_EQ(entity.health(), initialHealth);
 }
 
-TEST_F(SweetBerryBushBlockTest, DamageWhenMovingBeyondThreshold) {
+TEST_F(SweetBerryBushBlockTest, DamageWhenMovingBeyondThreshold)
+{
     SweetBerryBushTestWorld world;
     world.setClientSide(false);
     const BlockPos pos(0, 0, 0);
@@ -575,10 +580,10 @@ TEST_F(SweetBerryBushBlockTest, DamageWhenMovingBeyondThreshold) {
 
     // 设置初始位置
     entity.setPosition(0.0f, 0.0f, 0.0f);
-    entity.baseTick();  // prevPosition = (0, 0, 0)
+    entity.baseTick(); // prevPosition = (0, 0, 0)
 
     // 移动距离 > 0.003
-    entity.setPosition(0.01f, 0.0f, 0.01f);  // 移动了 sqrt(0.01^2 + 0.01^2) ≈ 0.014 > 0.003
+    entity.setPosition(0.01f, 0.0f, 0.01f); // 移动了 sqrt(0.01^2 + 0.01^2) ≈ 0.014 > 0.003
 
     m_bush->onEntityCollision(state, world, pos, entity);
 
@@ -586,7 +591,8 @@ TEST_F(SweetBerryBushBlockTest, DamageWhenMovingBeyondThreshold) {
     EXPECT_LT(entity.health(), initialHealth);
 }
 
-TEST_F(SweetBerryBushBlockTest, NoDamageWhenMovementBelowThreshold) {
+TEST_F(SweetBerryBushBlockTest, NoDamageWhenMovementBelowThreshold)
+{
     SweetBerryBushTestWorld world;
     world.setClientSide(false);
     const BlockPos pos(0, 0, 0);
@@ -602,7 +608,7 @@ TEST_F(SweetBerryBushBlockTest, NoDamageWhenMovementBelowThreshold) {
     entity.baseTick();
 
     // 移动距离 < 0.003
-    entity.setPosition(0.001f, 0.0f, 0.001f);  // 移动距离 < 0.003
+    entity.setPosition(0.001f, 0.0f, 0.001f); // 移动距离 < 0.003
 
     m_bush->onEntityCollision(state, world, pos, entity);
 
@@ -614,7 +620,8 @@ TEST_F(SweetBerryBushBlockTest, NoDamageWhenMovementBelowThreshold) {
 // Growth Tests
 // ============================================================================
 
-TEST_F(SweetBerryBushBlockTest, RandomTickGrowsUnderSufficientLight) {
+TEST_F(SweetBerryBushBlockTest, RandomTickGrowsUnderSufficientLight)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 64, 0);
 
@@ -622,35 +629,37 @@ TEST_F(SweetBerryBushBlockTest, RandomTickGrowsUnderSufficientLight) {
     world.setSkyLightAt(pos.up(), 15);
     world.setBlockLightAt(pos.up(), 0);
 
-    SequenceRandom random({0});  // nextInt(5) == 0, 触发生长
+    SequenceRandom random({0}); // nextInt(5) == 0, 触发生长
 
     BlockState state = m_bush->defaultState();
     m_bush->randomTick(world, pos, state, random);
 
     const BlockState* updated = world.getBlockState(pos);
     ASSERT_NE(updated, nullptr);
-    EXPECT_EQ(m_bush->getAge(*updated), 1);  // 从 AGE 0 长到 AGE 1
+    EXPECT_EQ(m_bush->getAge(*updated), 1); // 从 AGE 0 长到 AGE 1
 }
 
-TEST_F(SweetBerryBushBlockTest, RandomTickNoGrowthUnderLowLight) {
+TEST_F(SweetBerryBushBlockTest, RandomTickNoGrowthUnderLowLight)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 64, 0);
 
     world.setBlockAt(pos, &m_bush->defaultState());
-    world.setSkyLightAt(pos.up(), 8);  // 光照 < 9
+    world.setSkyLightAt(pos.up(), 8); // 光照 < 9
     world.setBlockLightAt(pos.up(), 0);
 
-    SequenceRandom random({0});  // 触发生长的随机数，但光照不足
+    SequenceRandom random({0}); // 触发生长的随机数，但光照不足
 
     BlockState state = m_bush->defaultState();
     m_bush->randomTick(world, pos, state, random);
 
     const BlockState* updated = world.getBlockState(pos);
     ASSERT_NE(updated, nullptr);
-    EXPECT_EQ(m_bush->getAge(*updated), 0);  // 光照不足，不生长
+    EXPECT_EQ(m_bush->getAge(*updated), 0); // 光照不足，不生长
 }
 
-TEST_F(SweetBerryBushBlockTest, MaxAgeDoesNotGrow) {
+TEST_F(SweetBerryBushBlockTest, MaxAgeDoesNotGrow)
+{
     SweetBerryBushTestWorld world;
     const BlockPos pos(0, 64, 0);
 
@@ -666,5 +675,5 @@ TEST_F(SweetBerryBushBlockTest, MaxAgeDoesNotGrow) {
 
     const BlockState* updated = world.getBlockState(pos);
     ASSERT_NE(updated, nullptr);
-    EXPECT_EQ(m_bush->getAge(*updated), 3);  // 最大年龄不变
+    EXPECT_EQ(m_bush->getAge(*updated), 3); // 最大年龄不变
 }

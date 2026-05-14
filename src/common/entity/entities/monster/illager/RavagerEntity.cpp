@@ -11,21 +11,25 @@ RavagerEntity::RavagerEntity(LegacyEntityType type, EntityId id)
     // 劫掠兽体型大 - 通过 width()/height() 设置
 }
 
-std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<RavagerEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void RavagerEntity::startRoaring() {
+void RavagerEntity::startRoaring()
+{
     m_roaring = true;
     m_roarTime = ROAR_DURATION;
 }
 
-void RavagerEntity::startCharging() {
+void RavagerEntity::startCharging()
+{
     m_charging = true;
     m_chargeTime = CHARGE_DURATION;
 }
 
-void RavagerEntity::tick() {
+void RavagerEntity::tick()
+{
     AbstractRaiderEntity::tick();
 
     // 更新咆哮状态
@@ -56,7 +60,8 @@ void RavagerEntity::tick() {
     }
 }
 
-void RavagerEntity::registerGoals() {
+void RavagerEntity::registerGoals()
+{
     AbstractRaiderEntity::registerGoals();
 
     // TODO: 劫掠兽特有 AI 目标
@@ -65,7 +70,8 @@ void RavagerEntity::registerGoals() {
     // - RavagerRoarGoal (咆哮)
 }
 
-void RavagerEntity::registerAttributes() {
+void RavagerEntity::registerAttributes()
+{
     AbstractRaiderEntity::registerAttributes();
 
     // 劫掠兽属性

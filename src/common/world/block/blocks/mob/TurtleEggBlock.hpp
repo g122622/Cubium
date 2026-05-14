@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../BlockTags.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -44,9 +44,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 孵化逻辑 ==========
 
@@ -57,11 +55,7 @@ public:
     void onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     void onFallenUpon(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        Entity& entity,
-        f32 fallDistance) override;
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;
 
     [[nodiscard]] bool ticksRandomly() const override { return true; }
 
@@ -69,7 +63,8 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

@@ -1,17 +1,17 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../entity/core/LivingEntity.hpp" // For EquipmentSlot enum
 #include "../../resource/ResourceLocation.hpp"
-#include "../crafting/Ingredient.hpp"
-#include "../../entity/core/LivingEntity.hpp"  // For EquipmentSlot enum
 #include "../../sound/SoundEvent.hpp"
+#include "../crafting/Ingredient.hpp"
 #include <string>
 
 namespace mc {
 
 // Forward declarations
 namespace sound {
-    class SoundEvent;
+class SoundEvent;
 }
 
 namespace item::armor {
@@ -23,10 +23,10 @@ namespace item::armor {
  * 参考: net.minecraft.inventory.EquipmentSlotType
  */
 enum class ArmorSlot : u8 {
-    Head = 0,   ///< 头盔
-    Chest = 1,  ///< 胸甲
-    Legs = 2,   ///< 护腿
-    Feet = 3    ///< 靴子
+    Head = 0,  ///< 头盔
+    Chest = 1, ///< 胸甲
+    Legs = 2,  ///< 护腿
+    Feet = 3   ///< 靴子
 };
 
 /**
@@ -259,19 +259,19 @@ public:
 // ============================================================================
 
 namespace ArmorMaterials {
-    extern const LeatherArmorMaterial LEATHER;
-    extern const ChainArmorMaterial CHAIN;
-    extern const IronArmorMaterial IRON;
-    extern const GoldArmorMaterial GOLD;
-    extern const DiamondArmorMaterial DIAMOND;
-    extern const TurtleArmorMaterial TURTLE;
-    extern const NetheriteArmorMaterial NETHERITE;
+extern const LeatherArmorMaterial LEATHER;
+extern const ChainArmorMaterial CHAIN;
+extern const IronArmorMaterial IRON;
+extern const GoldArmorMaterial GOLD;
+extern const DiamondArmorMaterial DIAMOND;
+extern const TurtleArmorMaterial TURTLE;
+extern const NetheriteArmorMaterial NETHERITE;
 
-    /**
-     * @brief 初始化所有材质
-     */
-    void initialize();
-}
+/**
+ * @brief 初始化所有材质
+ */
+void initialize();
+} // namespace ArmorMaterials
 
 } // namespace item::armor
 } // namespace mc

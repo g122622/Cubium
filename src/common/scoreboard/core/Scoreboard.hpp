@@ -1,19 +1,19 @@
 #pragma once
 
+#include "../../core/Result.hpp"
+#include "../../util/text/ITextComponentFwd.hpp"
+#include "Score.hpp"
 #include "ScoreCriteriaRenderType.hpp"
 #include "ScoreObjective.hpp"
-#include "Score.hpp"
 #include "ScorePlayerTeam.hpp"
-#include "../../util/text/ITextComponentFwd.hpp"
-#include "../../core/Result.hpp"
-#include <string>
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <unordered_set>
-#include <set>
 #include <array>
 #include <functional>
+#include <memory>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace mc::scoreboard {
 
@@ -88,9 +88,8 @@ public:
      * @param displayName 显示名称（可为空，默认使用目标名称）
      * @return 创建的目标指针，如果目标名称已存在返回 nullptr
      */
-    ScoreObjective* addObjective(const std::string& name,
-                                  ScoreCriteria& criteria,
-                                  std::unique_ptr<text::ITextComponent> displayName = nullptr);
+    ScoreObjective* addObjective(
+        const std::string& name, ScoreCriteria& criteria, std::unique_ptr<text::ITextComponent> displayName = nullptr);
 
     /**
      * @brief 获取目标
@@ -176,8 +175,7 @@ public:
      * @param objective 目标
      * @return 分数对象指针，如果不存在返回 nullptr
      */
-    [[nodiscard]] const Score* getScore(const std::string& playerName,
-                                         ScoreObjective& objective) const;
+    [[nodiscard]] const Score* getScore(const std::string& playerName, ScoreObjective& objective) const;
 
     /**
      * @brief 移除分数
@@ -194,8 +192,7 @@ public:
      * @param objective 目标
      * @return true 如果有分数
      */
-    [[nodiscard]] bool entityHasObjective(const std::string& playerName,
-                                           ScoreObjective& objective) const;
+    [[nodiscard]] bool entityHasObjective(const std::string& playerName, ScoreObjective& objective) const;
 
     /**
      * @brief 获取目标的所有分数（按分数排序）
@@ -396,9 +393,7 @@ public:
      * @param playerName 玩家名称
      * @param action 操作函数
      */
-    void forAllObjectives(ScoreCriteria& criteria,
-                          const std::string& playerName,
-                          std::function<void(Score&)> action);
+    void forAllObjectives(ScoreCriteria& criteria, const std::string& playerName, std::function<void(Score&)> action);
 
 protected:
     /// 目标映射：名称 -> 目标

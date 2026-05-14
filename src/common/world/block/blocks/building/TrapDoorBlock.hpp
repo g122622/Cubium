@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -50,26 +50,21 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos,
-                         Block& neighborBlock, const BlockPos& neighborPos,
-                         bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     // ========== 交互 ==========
 
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -84,7 +79,8 @@ public:
 
     // ========== 红石 ==========
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -121,7 +117,8 @@ public:
 
     // ========== 推动反应 ==========
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Destroy;
     }
@@ -136,7 +133,8 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
@@ -154,8 +152,7 @@ public:
      * @param entity 实体（用于检查实体位置）
      * @return 如果活板门打开且实体在正确位置返回 true
      */
-    [[nodiscard]] bool isLadder(
-        const BlockState& state,
+    [[nodiscard]] bool isLadder(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
         const Entity* entity = nullptr) const override;

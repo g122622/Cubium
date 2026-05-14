@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 
@@ -42,22 +42,26 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Normal;
     }
@@ -136,8 +140,8 @@ protected:
      * @param stack 要发射的物品堆
      * @return 发射后剩余的物品堆
      */
-    static ItemStack defaultDispense(IWorld& world, const BlockPos& pos, Direction facing,
-                                      const BlockPos& targetPos, ItemStack stack);
+    static ItemStack defaultDispense(
+        IWorld& world, const BlockPos& pos, Direction facing, const BlockPos& targetPos, ItemStack stack);
 
     /**
      * @brief 生成物品实体
@@ -147,8 +151,7 @@ protected:
      * @param facing 发射方向
      * @param stack 物品堆
      */
-    static void spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing,
-                                 const ItemStack& stack);
+    static void spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& stack);
 };
 
 } // namespace blocks

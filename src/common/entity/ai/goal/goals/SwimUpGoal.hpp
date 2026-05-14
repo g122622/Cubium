@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
+#include "../Goal.hpp"
 
 namespace mc {
 
@@ -45,7 +45,7 @@ private:
     CreatureEntity* m_creature;
     f64 m_speed;
     i32 m_targetY;
-    i32 m_originalTargetY;  // 保存构造时传入的目标Y
+    i32 m_originalTargetY; // 保存构造时传入的目标Y
     i32 m_timeoutCounter = 0;
     bool m_active = false;
 };

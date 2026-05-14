@@ -1,7 +1,7 @@
 #include "NameTagRenderer.hpp"
-#include "WorldTextRenderer.hpp"
-#include "../pipeline/EntityPipeline.hpp"
 #include "../model/core/ModelRenderer.hpp"
+#include "../pipeline/EntityPipeline.hpp"
+#include "WorldTextRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include <cmath>
@@ -20,14 +20,11 @@ u8 NameTagRenderer::s_bgColorB = 0;
 u8 NameTagRenderer::s_bgColorA = 128;
 Vector3d NameTagRenderer::s_cameraPosition(0.0, 0.0, 0.0);
 std::array<f64, 16> NameTagRenderer::s_viewMatrix = {
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0
-};
+    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 mc::math::frustum::Frustum NameTagRenderer::s_frustum;
 
-bool NameTagRenderer::initialize(pipeline::EntityPipeline& pipeline) {
+bool NameTagRenderer::initialize(pipeline::EntityPipeline& pipeline)
+{
     if (s_initialized) {
         return true;
     }
@@ -41,31 +38,33 @@ bool NameTagRenderer::initialize(pipeline::EntityPipeline& pipeline) {
     return true;
 }
 
-void NameTagRenderer::cleanup() {
+void NameTagRenderer::cleanup()
+{
     s_initialized = false;
     spdlog::info("NameTagRenderer: Cleaned up");
 }
 
-bool NameTagRenderer::isInitialized() {
+bool NameTagRenderer::isInitialized()
+{
     return s_initialized;
 }
 
-void NameTagRenderer::setCameraPosition(const Vector3d& position) {
+void NameTagRenderer::setCameraPosition(const Vector3d& position)
+{
     s_cameraPosition = position;
 }
 
-void NameTagRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
+void NameTagRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix)
+{
     s_viewMatrix = viewMatrix;
 }
 
-void NameTagRenderer::setFrustum(const mc::math::frustum::Frustum& frustum) {
+void NameTagRenderer::setFrustum(const mc::math::frustum::Frustum& frustum)
+{
     s_frustum = frustum;
 }
 
-void NameTagRenderer::renderNameTag(
-    Entity& entity,
-    const std::string& displayName,
-    f64 partialTicks)
+void NameTagRenderer::renderNameTag(Entity& entity, const std::string& displayName, f64 partialTicks)
 {
     // CPU 路径 - 已废弃
     if (displayName.empty()) {
@@ -88,8 +87,7 @@ void NameTagRenderer::renderNameTag(
     (void)position;
 }
 
-void NameTagRenderer::renderNameTag(
-    VkCommandBuffer cmd,
+void NameTagRenderer::renderNameTag(VkCommandBuffer cmd,
     Entity& entity,
     const std::string& displayName,
     f64 partialTicks,
@@ -124,11 +122,9 @@ void NameTagRenderer::renderNameTag(
     }
 
     // 转换为 float 类型位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.prevX() + (entity.x() - entity.prevX()) * partialTicks),
+    Vector3f entityPos(static_cast<f32>(entity.prevX() + (entity.x() - entity.prevX()) * partialTicks),
         static_cast<f32>(entity.prevY() + (entity.y() - entity.prevY()) * partialTicks),
-        static_cast<f32>(entity.prevZ() + (entity.z() - entity.prevZ()) * partialTicks)
-    );
+        static_cast<f32>(entity.prevZ() + (entity.z() - entity.prevZ()) * partialTicks));
     f32 entityHeight = static_cast<f32>(entity.height());
 
     // 设置相机信息到 WorldTextRenderer
@@ -140,18 +136,10 @@ void NameTagRenderer::renderNameTag(
     WorldTextRenderer::setMaxDistance(static_cast<f32>(s_maxDistance));
 
     // 调用 WorldTextRenderer 进行实际渲染
-    WorldTextRenderer::renderNameTag(
-        cmd,
-        displayName,
-        entityPos,
-        entityHeight,
-        pipeline
-    );
+    WorldTextRenderer::renderNameTag(cmd, displayName, entityPos, entityHeight, pipeline);
 }
 
-bool NameTagRenderer::shouldRenderNameTag(
-    Entity& entity,
-    f64 distanceToCamera)
+bool NameTagRenderer::shouldRenderNameTag(Entity& entity, f64 distanceToCamera)
 {
     // 检查距离
     if (distanceToCamera > s_maxDistance) {
@@ -171,32 +159,35 @@ bool NameTagRenderer::shouldRenderNameTag(
     return hasCustomName;
 }
 
-void NameTagRenderer::setMaxDistance(f64 distance) {
+void NameTagRenderer::setMaxDistance(f64 distance)
+{
     s_maxDistance = distance;
 }
 
-f64 NameTagRenderer::maxDistance() {
+f64 NameTagRenderer::maxDistance()
+{
     return s_maxDistance;
 }
 
-void NameTagRenderer::setScale(f64 scale) {
+void NameTagRenderer::setScale(f64 scale)
+{
     s_scale = scale;
 }
 
-void NameTagRenderer::setBackgroundColor(u8 r, u8 g, u8 b, u8 a) {
+void NameTagRenderer::setBackgroundColor(u8 r, u8 g, u8 b, u8 a)
+{
     s_bgColorR = r;
     s_bgColorG = g;
     s_bgColorB = b;
     s_bgColorA = a;
 }
 
-void NameTagRenderer::setShowBackground(bool show) {
+void NameTagRenderer::setShowBackground(bool show)
+{
     s_showBackground = show;
 }
 
-Vector3d NameTagRenderer::calculateNameTagPosition(
-    Entity& entity,
-    f64 partialTicks)
+Vector3d NameTagRenderer::calculateNameTagPosition(Entity& entity, f64 partialTicks)
 {
     // 获取插值位置
     f64 x = entity.prevX() + (entity.x() - entity.prevX()) * partialTicks;
@@ -216,7 +207,8 @@ Vector3d NameTagRenderer::calculateNameTagPosition(
     return Vector3d(x, nameTagY, z);
 }
 
-f64 NameTagRenderer::calculateScale(f64 distanceToCamera) {
+f64 NameTagRenderer::calculateScale(f64 distanceToCamera)
+{
     // 参考 MC 1.16.5: 名称标签使用固定缩放
     // MC 1.16.5 不随距离缩放名称标签
 
@@ -228,9 +220,7 @@ f64 NameTagRenderer::calculateScale(f64 distanceToCamera) {
     return s_scale;
 }
 
-void NameTagRenderer::computeBillboardMatrix(
-    const Vector3d& position,
-    std::array<f64, 16>& outMatrix)
+void NameTagRenderer::computeBillboardMatrix(const Vector3d& position, std::array<f64, 16>& outMatrix)
 {
     // 参考 MC 1.16.5: 名称标签始终面向相机（billboard）
     // 从视图矩阵中提取旋转部分，然后反转
@@ -268,12 +258,7 @@ void NameTagRenderer::computeBillboardMatrix(
 }
 
 void NameTagRenderer::renderBackground(
-    VkCommandBuffer cmd,
-    const Vector3d& position,
-    f64 width,
-    f64 height,
-    f64 scale,
-    pipeline::EntityPipeline& pipeline)
+    VkCommandBuffer cmd, const Vector3d& position, f64 width, f64 height, f64 scale, pipeline::EntityPipeline& pipeline)
 {
     // 背景渲染已在 WorldTextRenderer::renderText 中实现
     // 此方法保留用于未来扩展（如需要特殊背景效果）

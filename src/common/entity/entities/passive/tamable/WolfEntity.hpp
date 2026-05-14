@@ -1,7 +1,7 @@
 #pragma once
 
-#include "TameableEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "TameableEntity.hpp"
 #include <memory>
 
 namespace mc {

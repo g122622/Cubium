@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Event.hpp"
 #include "../Types.hpp"
+#include "Event.hpp"
 
 namespace mc::client::ui::kagero::event {
 
@@ -11,7 +11,11 @@ namespace mc::client::ui::kagero::event {
 class MouseClickEvent : public Event {
 public:
     MouseClickEvent(i32 x, i32 y, i32 button, i32 clicks = 1)
-        : m_x(x), m_y(y), m_button(button), m_clicks(clicks) {}
+        : m_x(x)
+        , m_y(y)
+        , m_button(button)
+        , m_clicks(clicks)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseClick; }
     [[nodiscard]] const char* getName() const override { return "MouseClick"; }
@@ -49,7 +53,10 @@ private:
 class MouseReleaseEvent : public Event {
 public:
     MouseReleaseEvent(i32 x, i32 y, i32 button)
-        : m_x(x), m_y(y), m_button(button) {}
+        : m_x(x)
+        , m_y(y)
+        , m_button(button)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseRelease; }
     [[nodiscard]] const char* getName() const override { return "MouseRelease"; }
@@ -70,7 +77,12 @@ private:
 class MouseDragEvent : public Event {
 public:
     MouseDragEvent(i32 x, i32 y, i32 deltaX, i32 deltaY, i32 button)
-        : m_x(x), m_y(y), m_deltaX(deltaX), m_deltaY(deltaY), m_button(button) {}
+        : m_x(x)
+        , m_y(y)
+        , m_deltaX(deltaX)
+        , m_deltaY(deltaY)
+        , m_button(button)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseDrag; }
     [[nodiscard]] const char* getName() const override { return "MouseDrag"; }
@@ -95,7 +107,11 @@ private:
 class MouseScrollEvent : public Event {
 public:
     MouseScrollEvent(i32 x, i32 y, f64 deltaX, f64 deltaY)
-        : m_x(x), m_y(y), m_deltaX(deltaX), m_deltaY(deltaY) {}
+        : m_x(x)
+        , m_y(y)
+        , m_deltaX(deltaX)
+        , m_deltaY(deltaY)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseScroll; }
     [[nodiscard]] const char* getName() const override { return "MouseScroll"; }
@@ -128,7 +144,11 @@ private:
 class MouseMoveEvent : public Event {
 public:
     MouseMoveEvent(i32 x, i32 y, i32 deltaX, i32 deltaY)
-        : m_x(x), m_y(y), m_deltaX(deltaX), m_deltaY(deltaY) {}
+        : m_x(x)
+        , m_y(y)
+        , m_deltaX(deltaX)
+        , m_deltaY(deltaY)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseMove; }
     [[nodiscard]] const char* getName() const override { return "MouseMove"; }
@@ -151,7 +171,9 @@ private:
 class MouseEnterEvent : public Event {
 public:
     explicit MouseEnterEvent(i32 x, i32 y)
-        : m_x(x), m_y(y) {}
+        : m_x(x)
+        , m_y(y)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseEnter; }
     [[nodiscard]] const char* getName() const override { return "MouseEnter"; }
@@ -170,7 +192,9 @@ private:
 class MouseLeaveEvent : public Event {
 public:
     explicit MouseLeaveEvent(i32 x, i32 y)
-        : m_x(x), m_y(y) {}
+        : m_x(x)
+        , m_y(y)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseLeave; }
     [[nodiscard]] const char* getName() const override { return "MouseLeave"; }
@@ -189,23 +213,37 @@ private:
 class KeyEvent : public Event {
 public:
     KeyEvent(i32 key, i32 scanCode, i32 action, i32 mods)
-        : m_key(key), m_scanCode(scanCode), m_action(action), m_mods(mods) {}
+        : m_key(key)
+        , m_scanCode(scanCode)
+        , m_action(action)
+        , m_mods(mods)
+    {}
 
-    [[nodiscard]] EventType getType() const override {
+    [[nodiscard]] EventType getType() const override
+    {
         switch (m_action) {
-            case 0: return EventType::KeyRelease;
-            case 1: return EventType::KeyPress;
-            case 2: return EventType::KeyRepeat;
-            default: return EventType::KeyPress;
+            case 0:
+                return EventType::KeyRelease;
+            case 1:
+                return EventType::KeyPress;
+            case 2:
+                return EventType::KeyRepeat;
+            default:
+                return EventType::KeyPress;
         }
     }
 
-    [[nodiscard]] const char* getName() const override {
+    [[nodiscard]] const char* getName() const override
+    {
         switch (m_action) {
-            case 0: return "KeyRelease";
-            case 1: return "KeyPress";
-            case 2: return "KeyRepeat";
-            default: return "Key";
+            case 0:
+                return "KeyRelease";
+            case 1:
+                return "KeyPress";
+            case 2:
+                return "KeyRepeat";
+            default:
+                return "Key";
         }
     }
 
@@ -250,7 +288,8 @@ private:
 class CharInputEvent : public Event {
 public:
     explicit CharInputEvent(u32 codePoint)
-        : m_codePoint(codePoint) {}
+        : m_codePoint(codePoint)
+    {}
 
     [[nodiscard]] EventType getType() const override { return EventType::CharInput; }
     [[nodiscard]] const char* getName() const override { return "CharInput"; }
@@ -260,7 +299,8 @@ public:
     /**
      * @brief 获取UTF-8字符串
      */
-    [[nodiscard]] std::string toUtf8() const {
+    [[nodiscard]] std::string toUtf8() const
+    {
         std::string result;
         if (m_codePoint < 0x80) {
             result += static_cast<char>(m_codePoint);

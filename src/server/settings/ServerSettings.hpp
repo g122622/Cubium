@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/core/settings/SettingsBase.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
-#include "common/core/Types.hpp"
 
 namespace mc::server {
 
@@ -192,27 +192,27 @@ public:
 
 /// 世界类型值
 namespace LevelType {
-    constexpr u8 Default = 0;
-    constexpr u8 Flat = 1;
-    constexpr u8 LargeBiomes = 2;
-    constexpr u8 Amplified = 3;
-    constexpr u8 Debug = 4;  ///< 调试世界类型
-}
+constexpr u8 Default = 0;
+constexpr u8 Flat = 1;
+constexpr u8 LargeBiomes = 2;
+constexpr u8 Amplified = 3;
+constexpr u8 Debug = 4; ///< 调试世界类型
+} // namespace LevelType
 
 /// 游戏模式值（与 Types.hpp 中的 GameMode 枚举对应）
 namespace GameModeValue {
-    constexpr u8 Survival = 0;
-    constexpr u8 Creative = 1;
-    constexpr u8 Adventure = 2;
-    constexpr u8 Spectator = 3;
-}
+constexpr u8 Survival = 0;
+constexpr u8 Creative = 1;
+constexpr u8 Adventure = 2;
+constexpr u8 Spectator = 3;
+} // namespace GameModeValue
 
 /// 难度值（与 Types.hpp 中的 Difficulty 枚举对应）
 namespace DifficultyValue {
-    constexpr u8 Peaceful = 0;
-    constexpr u8 Easy = 1;
-    constexpr u8 Normal = 2;
-    constexpr u8 Hard = 3;
-}
+constexpr u8 Peaceful = 0;
+constexpr u8 Easy = 1;
+constexpr u8 Normal = 2;
+constexpr u8 Hard = 3;
+} // namespace DifficultyValue
 
 } // namespace mc::server

@@ -1,11 +1,11 @@
 #include "ParticleCommand.hpp"
 
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <sstream>
 #include <unordered_map>
 
@@ -15,31 +15,16 @@ namespace command {
 void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto particleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("particle");
-    particleNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        particleNode,
-        support::makeMetadata(
-            "Creates particles at a position.",
-            "/particle <name> [<pos>]",
-            2,
-            {},
-            true));
+    particleNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(particleNode,
+        support::makeMetadata("Creates particles at a position.", "/particle <name> [<pos>]", 2, {}, true));
 
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "name",
-        StringArgumentType::string());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return spawnParticle(ctx);
-    });
+    auto nameArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return spawnParticle(ctx); });
 
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return spawnParticle(ctx);
-    });
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return spawnParticle(ctx); });
 
     nameArg->addChild(posArg);
     particleNode->addChild(nameArg);
@@ -75,25 +60,29 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
     // 广播粒子效果
     // 参考 MC 1.16.5: 默认速度为 0，数量为 0，偏移为 0
     // 粒子广播范围为 256 格（与 ParticlePacket 默认范围一致）
-    server->broadcastParticleInRange(
-        static_cast<u32>(particleType.value()),
-        pos.x, pos.y, pos.z,
-        0.0f, 0.0f, 0.0f,  // velocity
-        0.0f, 0.0f, 0.0f,  // offset
-        1,                  // count
-        256.0f              // range
+    server->broadcastParticleInRange(static_cast<u32>(particleType.value()),
+        pos.x,
+        pos.y,
+        pos.z,
+        0.0f,
+        0.0f,
+        0.0f, // velocity
+        0.0f,
+        0.0f,
+        0.0f,  // offset
+        1,     // count
+        256.0f // range
     );
 
     std::ostringstream ss;
-    ss << "Displayed particle '" << name << "' at "
-       << pos.x << ", " << pos.y << ", " << pos.z;
+    ss << "Displayed particle '" << name << "' at " << pos.x << ", " << pos.y << ", " << pos.z;
     source.sendMessage(ss.str());
 
     return 1;
 }
 
-std::optional<client::renderer::trident::particle::ParticleTypeId>
-ParticleCommand::parseParticleType(const std::string& name) noexcept
+std::optional<client::renderer::trident::particle::ParticleTypeId> ParticleCommand::parseParticleType(
+    const std::string& name) noexcept
 {
     using namespace client::renderer::trident::particle;
 

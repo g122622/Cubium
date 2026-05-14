@@ -1,12 +1,12 @@
 #include "EnderDragonEntity.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../../util/math/AxisAlignedBB.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../core/Constants.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/math/AxisAlignedBB.hpp"
 #include <cmath>
 #include <limits>
 
@@ -35,12 +35,14 @@ EnderDragonPartEntity::EnderDragonPartEntity(LegacyEntityType type, EntityId id)
     // 部件尺寸较小，用于碰撞检测
 }
 
-void EnderDragonPartEntity::tick() {
+void EnderDragonPartEntity::tick()
+{
     Entity::tick();
     // 部件位置由父龙的 updateDragonParts() 更新
 }
 
-void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ, f32 width, f32 height) {
+void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ, f32 width, f32 height)
+{
     if (!m_parent) {
         return;
     }
@@ -56,11 +58,7 @@ void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ
     f32 rotatedZ = offsetX * sinYaw + offsetZ * cosYaw;
 
     // 设置位置
-    setPosition(
-        m_parent->x() + rotatedX,
-        m_parent->y() + offsetY,
-        m_parent->z() + rotatedZ
-    );
+    setPosition(m_parent->x() + rotatedX, m_parent->y() + offsetY, m_parent->z() + rotatedZ);
 
     MC_UNUSED(width);
     MC_UNUSED(height);
@@ -70,7 +68,8 @@ void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ
 // EnderDragonEntity
 // ============================================================================
 
-std::unique_ptr<Entity> EnderDragonEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> EnderDragonEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<EnderDragonEntity>(LegacyEntityType::EnderDragon, EntityId(0));
 }
 
@@ -88,7 +87,8 @@ EnderDragonEntity::EnderDragonEntity(LegacyEntityType type, EntityId id)
     initPathPoints();
 }
 
-void EnderDragonEntity::initDragonParts() {
+void EnderDragonEntity::initDragonParts()
+{
     // MC 1.16.5: 创建所有龙部件
     // 部件列表顺序：头、颈、身、尾1、尾2、尾3、左翼、右翼
 
@@ -141,17 +141,20 @@ void EnderDragonEntity::initDragonParts() {
     m_dragonParts.push_back(m_dragonPartRightWing);
 }
 
-std::optional<ResourceLocation> EnderDragonEntity::getAmbientSound() const {
+std::optional<ResourceLocation> EnderDragonEntity::getAmbientSound() const
+{
     // MC 1.16.5: entity.ender_dragon.ambient
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> EnderDragonEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> EnderDragonEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.ender_dragon.hurt
     return makeSoundEventId("hurt");
 }
 
-void EnderDragonEntity::tick() {
+void EnderDragonEntity::tick()
+{
     // MC 1.16.5 EnderDragonEntity.tick()
 
     // 更新动画时间
@@ -181,7 +184,8 @@ void EnderDragonEntity::tick() {
     }
 }
 
-void EnderDragonEntity::setPhase(Phase phase) {
+void EnderDragonEntity::setPhase(Phase phase)
+{
     // MC 1.16.5: 切换阶段
     if (phase == m_phase) {
         return;
@@ -203,7 +207,8 @@ void EnderDragonEntity::setPhase(Phase phase) {
     }
 }
 
-bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, DamageSource& source, f32 damage) {
+bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, DamageSource& source, f32 damage)
+{
     // MC 1.16.5: attackEntityPartFrom()
     // 所有部件的伤害都传递给龙本体
 
@@ -215,8 +220,7 @@ bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, Damage
     f32 actualDamage = damage;
     if (part) {
         EnderDragonPartEntity::Part partType = part->part();
-        if (partType != EnderDragonPartEntity::Part::Head &&
-            partType != EnderDragonPartEntity::Part::Body) {
+        if (partType != EnderDragonPartEntity::Part::Head && partType != EnderDragonPartEntity::Part::Body) {
             // 尾部和翅膀受到的伤害减半
             actualDamage = damage * 0.5f;
         }
@@ -233,7 +237,8 @@ bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, Damage
     return hurt;
 }
 
-void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const BlockPos& pos, DamageSource& source) {
+void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const BlockPos& pos, DamageSource& source)
+{
     // MC 1.16.5: onCrystalDestroyed()
     // 末影水晶被破坏时，龙会受到伤害
 
@@ -269,7 +274,8 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
     MC_UNUSED(pos);
 }
 
-void EnderDragonEntity::initPathPoints() {
+void EnderDragonEntity::initPathPoints()
+{
     // MC 1.16.5: initPathPoints()
     // 初始化末影龙飞行路径点
     // 围绕末地中心的8个路径点
@@ -279,16 +285,14 @@ void EnderDragonEntity::initPathPoints() {
     for (i32 i = 0; i < 8; ++i) {
         f32 angle = static_cast<f32>(i) * (PI * 2.0f / 8.0f);
         m_pathPoints.emplace_back(
-            static_cast<BlockCoord>(std::cos(angle) * 64.0),
-            64,
-            static_cast<BlockCoord>(std::sin(angle) * 64.0)
-        );
+            static_cast<BlockCoord>(std::cos(angle) * 64.0), 64, static_cast<BlockCoord>(std::sin(angle) * 64.0));
     }
 
     m_currentPathPoint = 0;
 }
 
-i32 EnderDragonEntity::getNearestPathPointIndex(f64 x, f64 y, f64 z) const {
+i32 EnderDragonEntity::getNearestPathPointIndex(f64 x, f64 y, f64 z) const
+{
     // MC 1.16.5: 获取最近的路径点索引
     if (m_pathPoints.empty()) {
         return 0;
@@ -313,14 +317,16 @@ i32 EnderDragonEntity::getNearestPathPointIndex(f64 x, f64 y, f64 z) const {
     return nearestIndex;
 }
 
-void EnderDragonEntity::registerGoals() {
+void EnderDragonEntity::registerGoals()
+{
     BossEntity::registerGoals();
 
     // MC 1.16.5: 末影龙使用特殊的阶段系统，不使用普通AI目标
     // 阶段管理在 PhaseManager 中处理
 }
 
-void EnderDragonEntity::registerAttributes() {
+void EnderDragonEntity::registerAttributes()
+{
     BossEntity::registerAttributes();
 
     // MC 1.16.5 EnderDragonEntity 属性
@@ -330,7 +336,8 @@ void EnderDragonEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 256.0);
 }
 
-void EnderDragonEntity::updateDragonParts() {
+void EnderDragonEntity::updateDragonParts()
+{
     // MC 1.16.5: 更新龙部件位置
     // 使用环形缓冲区记录位置历史，用于颈部和尾部的平滑动画
 
@@ -343,11 +350,7 @@ void EnderDragonEntity::updateDragonParts() {
     // 获取历史位置
     auto getHistoryPos = [this](i32 offset) -> Vector3 {
         i32 index = (m_ringBufferIndex - offset + RING_BUFFER_SIZE) % RING_BUFFER_SIZE;
-        return Vector3(
-            m_ringBuffer[index][0],
-            m_ringBuffer[index][1],
-            m_ringBuffer[index][2]
-        );
+        return Vector3(m_ringBuffer[index][0], m_ringBuffer[index][1], m_ringBuffer[index][2]);
     };
 
     // 更新头部位置（在龙前方）
@@ -358,12 +361,11 @@ void EnderDragonEntity::updateDragonParts() {
     // 更新颈部位置（跟随头部）
     if (m_dragonPartNeck) {
         Vector3 neckPos = getHistoryPos(5);
-        m_dragonPartNeck->updatePosition(
-            static_cast<f32>(neckPos.x - x()),
+        m_dragonPartNeck->updatePosition(static_cast<f32>(neckPos.x - x()),
             static_cast<f32>(neckPos.y - y()) + 2.0f,
             static_cast<f32>(neckPos.z - z()) - 4.0f,
-            3.0f, 3.0f
-        );
+            3.0f,
+            3.0f);
     }
 
     // 更新身体位置
@@ -374,36 +376,33 @@ void EnderDragonEntity::updateDragonParts() {
     // 更新尾部位置（跟随身体历史）
     if (m_dragonPartTail1) {
         Vector3 tail1Pos = getHistoryPos(10);
-        m_dragonPartTail1->updatePosition(
-            static_cast<f32>(tail1Pos.x - x()),
+        m_dragonPartTail1->updatePosition(static_cast<f32>(tail1Pos.x - x()),
             static_cast<f32>(tail1Pos.y - y()),
             static_cast<f32>(tail1Pos.z - z()) + 4.0f,
-            2.0f, 2.0f
-        );
+            2.0f,
+            2.0f);
     }
 
     if (m_dragonPartTail2) {
         Vector3 tail2Pos = getHistoryPos(15);
-        m_dragonPartTail2->updatePosition(
-            static_cast<f32>(tail2Pos.x - x()),
+        m_dragonPartTail2->updatePosition(static_cast<f32>(tail2Pos.x - x()),
             static_cast<f32>(tail2Pos.y - y()),
             static_cast<f32>(tail2Pos.z - z()) + 6.0f,
-            2.0f, 2.0f
-        );
+            2.0f,
+            2.0f);
     }
 
     if (m_dragonPartTail3) {
         Vector3 tail3Pos = getHistoryPos(20);
-        m_dragonPartTail3->updatePosition(
-            static_cast<f32>(tail3Pos.x - x()),
+        m_dragonPartTail3->updatePosition(static_cast<f32>(tail3Pos.x - x()),
             static_cast<f32>(tail3Pos.y - y()),
             static_cast<f32>(tail3Pos.z - z()) + 8.0f,
-            2.0f, 2.0f
-        );
+            2.0f,
+            2.0f);
     }
 
     // 更新翅膀位置
-    f32 wingFlap = std::sin(m_animTime * 0.5f) * 2.0f;  // 翅膀拍打动画
+    f32 wingFlap = std::sin(m_animTime * 0.5f) * 2.0f; // 翅膀拍打动画
 
     if (m_dragonPartLeftWing) {
         m_dragonPartLeftWing->updatePosition(-4.0f, wingFlap + 1.0f, 0.0f, 4.0f, 2.0f);
@@ -414,7 +413,8 @@ void EnderDragonEntity::updateDragonParts() {
     }
 }
 
-void EnderDragonEntity::updateDragonEnderCrystal() {
+void EnderDragonEntity::updateDragonEnderCrystal()
+{
     // MC 1.16.5: 更新末影水晶链接
     // 寻找最近的末影水晶用于回血
 
@@ -454,7 +454,8 @@ void EnderDragonEntity::updateDragonEnderCrystal() {
     }
 }
 
-void EnderDragonEntity::collideWithEntities() {
+void EnderDragonEntity::collideWithEntities()
+{
     // MC 1.16.5: collideWithEntities()
     // 检测与其他实体的碰撞
 
@@ -486,7 +487,8 @@ void EnderDragonEntity::collideWithEntities() {
     }
 }
 
-void EnderDragonEntity::attackEntitiesInList() {
+void EnderDragonEntity::attackEntitiesInList()
+{
     // MC 1.16.5: attackEntitiesInList()
     // 攻击碰撞到的实体
 
@@ -523,7 +525,8 @@ void EnderDragonEntity::attackEntitiesInList() {
     destroyBlocksInAABB(dragonBox);
 }
 
-bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area) {
+bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area)
+{
     // MC 1.16.5: destroyBlocksInAABB()
     // 破坏区域内的方块
 
@@ -564,10 +567,8 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area) {
 
                 // 跳过不可破坏的方块
                 // MC 1.16.5: 龙不能破坏基岩、黑曜石、末地传送门等
-                if (block.is(VanillaBlocks::BEDROCK) ||
-                    block.is(VanillaBlocks::OBSIDIAN) ||
-                    block.is(VanillaBlocks::CRYING_OBSIDIAN) ||
-                    block.is(VanillaBlocks::END_PORTAL) ||
+                if (block.is(VanillaBlocks::BEDROCK) || block.is(VanillaBlocks::OBSIDIAN) ||
+                    block.is(VanillaBlocks::CRYING_OBSIDIAN) || block.is(VanillaBlocks::END_PORTAL) ||
                     block.is(VanillaBlocks::END_PORTAL_FRAME)) {
                     continue;
                 }
@@ -587,7 +588,8 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area) {
                 worldPtr->setBlockState(bx, by, bz, nullptr);
 
                 // 生成粒子效果
-                // worldPtr->addParticle(ParticleTypeId::EXPLOSION, Vector3(bx + 0.5, by + 0.5, bz + 0.5), Vector3(0, 0, 0));
+                // worldPtr->addParticle(ParticleTypeId::EXPLOSION, Vector3(bx + 0.5, by + 0.5, bz + 0.5), Vector3(0, 0,
+                // 0));
 
                 destroyedAny = true;
             }
@@ -597,7 +599,8 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area) {
     return destroyedAny;
 }
 
-void EnderDragonEntity::onDeathUpdate() {
+void EnderDragonEntity::onDeathUpdate()
+{
     // MC 1.16.5: onDeathUpdate()
     m_deathTicks++;
 
@@ -640,7 +643,8 @@ void EnderDragonEntity::onDeathUpdate() {
     }
 }
 
-void EnderDragonEntity::dropExperience(i32 amount) {
+void EnderDragonEntity::dropExperience(i32 amount)
+{
     // MC 1.16.5: dropExperience()
     // 使用 ExperienceDropHandler 生成经验球
 

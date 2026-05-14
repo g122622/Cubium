@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 
+#include "entity/loot/LootFunctions.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemStack.hpp"
 #include "item/enchantment/Enchantment.hpp"
-#include "item/enchantment/EnchantmentRegistry.hpp"
-#include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/enchantment/EnchantmentContainer.hpp"
+#include "item/enchantment/EnchantmentHelper.hpp"
+#include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/enchantments/FortuneEnchantment.hpp"
 #include "item/enchantment/enchantments/SilkTouchEnchantment.hpp"
-#include "entity/loot/LootFunctions.hpp"
-#include "item/core/ItemStack.hpp"
-#include "item/Items.hpp"
 #include "util/math/random/Random.hpp"
 
 using namespace mc;
@@ -20,22 +20,23 @@ using namespace mc::item::enchant;
 
 class EnchantmentRegistryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
-TEST_F(EnchantmentRegistryTest, InitializeRegistersEnchantments) {
+TEST_F(EnchantmentRegistryTest, InitializeRegistersEnchantments)
+{
     EXPECT_TRUE(EnchantmentRegistry::isInitialized());
     EXPECT_GT(EnchantmentRegistry::all().size(), 0u);
 }
 
-TEST_F(EnchantmentRegistryTest, GetFortuneEnchantment) {
+TEST_F(EnchantmentRegistryTest, GetFortuneEnchantment)
+{
     const Enchantment* fortune = EnchantmentRegistry::get("minecraft:fortune");
     ASSERT_NE(fortune, nullptr);
     EXPECT_EQ(fortune->id(), "minecraft:fortune");
@@ -45,35 +46,40 @@ TEST_F(EnchantmentRegistryTest, GetFortuneEnchantment) {
     EXPECT_EQ(fortune->rarity(), EnchantmentRarity::Rare);
 }
 
-TEST_F(EnchantmentRegistryTest, GetSilkTouchEnchantment) {
+TEST_F(EnchantmentRegistryTest, GetSilkTouchEnchantment)
+{
     const Enchantment* silkTouch = EnchantmentRegistry::get("minecraft:silk_touch");
     ASSERT_NE(silkTouch, nullptr);
     EXPECT_EQ(silkTouch->id(), "minecraft:silk_touch");
     EXPECT_EQ(silkTouch->minLevel(), 1);
-    EXPECT_EQ(silkTouch->maxLevel(), 1);  // 精准采集只有 I 级
+    EXPECT_EQ(silkTouch->maxLevel(), 1); // 精准采集只有 I 级
     EXPECT_EQ(silkTouch->type(), EnchantmentType::Digger);
     EXPECT_EQ(silkTouch->rarity(), EnchantmentRarity::VeryRare);
 }
 
-TEST_F(EnchantmentRegistryTest, GetNonExistentEnchantment) {
+TEST_F(EnchantmentRegistryTest, GetNonExistentEnchantment)
+{
     const Enchantment* enchant = EnchantmentRegistry::get("minecraft:nonexistent");
     EXPECT_EQ(enchant, nullptr);
 }
 
-TEST_F(EnchantmentRegistryTest, HasEnchantment) {
+TEST_F(EnchantmentRegistryTest, HasEnchantment)
+{
     EXPECT_TRUE(EnchantmentRegistry::has("minecraft:fortune"));
     EXPECT_TRUE(EnchantmentRegistry::has("minecraft:silk_touch"));
     EXPECT_FALSE(EnchantmentRegistry::has("minecraft:nonexistent"));
 }
 
-TEST_F(EnchantmentRegistryTest, DoubleInitializeIsSafe) {
+TEST_F(EnchantmentRegistryTest, DoubleInitializeIsSafe)
+{
     // 第二次初始化应该安全但不会重复注册
     size_t count = EnchantmentRegistry::all().size();
     EnchantmentRegistry::initialize();
     EXPECT_EQ(EnchantmentRegistry::all().size(), count);
 }
 
-TEST_F(EnchantmentRegistryTest, InitializeDoesNotThrow) {
+TEST_F(EnchantmentRegistryTest, InitializeDoesNotThrow)
+{
     EnchantmentRegistry::clear();
 
     EXPECT_NO_THROW(EnchantmentRegistry::initialize());
@@ -85,26 +91,29 @@ TEST_F(EnchantmentRegistryTest, InitializeDoesNotThrow) {
 // FortuneEnchantment 测试
 // ============================================================================
 
-TEST(FortuneEnchantmentTest, GetMinCost) {
+TEST(FortuneEnchantmentTest, GetMinCost)
+{
     FortuneEnchantment fortune;
 
-    EXPECT_EQ(fortune.getMinCost(1), 15);  // 15 + (1-1) * 9 = 15
-    EXPECT_EQ(fortune.getMinCost(2), 24);  // 15 + (2-1) * 9 = 24
-    EXPECT_EQ(fortune.getMinCost(3), 33);  // 15 + (3-1) * 9 = 33
+    EXPECT_EQ(fortune.getMinCost(1), 15); // 15 + (1-1) * 9 = 15
+    EXPECT_EQ(fortune.getMinCost(2), 24); // 15 + (2-1) * 9 = 24
+    EXPECT_EQ(fortune.getMinCost(3), 33); // 15 + (3-1) * 9 = 33
 }
 
-TEST(FortuneEnchantmentTest, GetMaxCost) {
+TEST(FortuneEnchantmentTest, GetMaxCost)
+{
     FortuneEnchantment fortune;
 
     // MC 1.16.5: super.getMinEnchantability(level) + 50
     // 基类默认: 1 + (level - 1) * 10
     // 所以: 1 + (level - 1) * 10 + 50 = 51 + (level - 1) * 10
-    EXPECT_EQ(fortune.getMaxCost(1), 51);  // 1 + 0 * 10 + 50 = 51
-    EXPECT_EQ(fortune.getMaxCost(2), 61);  // 1 + 1 * 10 + 50 = 61
-    EXPECT_EQ(fortune.getMaxCost(3), 71);  // 1 + 2 * 10 + 50 = 71
+    EXPECT_EQ(fortune.getMaxCost(1), 51); // 1 + 0 * 10 + 50 = 51
+    EXPECT_EQ(fortune.getMaxCost(2), 61); // 1 + 1 * 10 + 50 = 61
+    EXPECT_EQ(fortune.getMaxCost(3), 71); // 1 + 2 * 10 + 50 = 71
 }
 
-TEST(FortuneEnchantmentTest, IsIncompatibleWithSilkTouch) {
+TEST(FortuneEnchantmentTest, IsIncompatibleWithSilkTouch)
+{
     FortuneEnchantment fortune;
     SilkTouchEnchantment silkTouch;
 
@@ -116,7 +125,8 @@ TEST(FortuneEnchantmentTest, IsIncompatibleWithSilkTouch) {
 // ApplyBonusFunction 测试（时运算法）
 // ============================================================================
 
-TEST(ApplyBonusFunctionTest, OreDrops) {
+TEST(ApplyBonusFunctionTest, OreDrops)
+{
     math::Random random(12345);
 
     // Fortune 0: 无加成，返回基础数量
@@ -141,7 +151,8 @@ TEST(ApplyBonusFunctionTest, OreDrops) {
     }
 }
 
-TEST(ApplyBonusFunctionTest, UniformBonus) {
+TEST(ApplyBonusFunctionTest, UniformBonus)
+{
     math::Random random(12345);
 
     // Fortune 0: 无加成，返回基础数量
@@ -163,16 +174,17 @@ TEST(ApplyBonusFunctionTest, UniformBonus) {
     EXPECT_LE(result2, 3);
 }
 
-TEST(ApplyBonusFunctionTest, BinomialBonus) {
+TEST(ApplyBonusFunctionTest, BinomialBonus)
+{
     math::Random random(12345);
 
     // Fortune 0: extra=1, 只有 1 次试验
     i32 result0 = loot::ApplyBonusFunction::calculateBinomialBonus(1, 0, 1, 1.0f, random);
-    EXPECT_EQ(result0, 2);  // probability=1.0, 1 次试验必定成功
+    EXPECT_EQ(result0, 2); // probability=1.0, 1 次试验必定成功
 
     // Fortune I: extra=1, probability=1.0, 2 次试验都成功
     i32 result1 = loot::ApplyBonusFunction::calculateBinomialBonus(1, 1, 1, 1.0f, random);
-    EXPECT_EQ(result1, 3);  // 1 + 2 = 3
+    EXPECT_EQ(result1, 3); // 1 + 2 = 3
 
     // Fortune I: extra=1, probability=0.5, 不确定结果
     math::Random testRandom(99999);
@@ -185,7 +197,8 @@ TEST(ApplyBonusFunctionTest, BinomialBonus) {
 // SilkTouchEnchantment 测试
 // ============================================================================
 
-TEST(SilkTouchEnchantmentTest, Properties) {
+TEST(SilkTouchEnchantmentTest, Properties)
+{
     SilkTouchEnchantment silkTouch;
 
     EXPECT_EQ(silkTouch.id(), "minecraft:silk_touch");
@@ -195,11 +208,12 @@ TEST(SilkTouchEnchantmentTest, Properties) {
     EXPECT_EQ(silkTouch.rarity(), EnchantmentRarity::VeryRare);
 }
 
-TEST(SilkTouchEnchantmentTest, GetMinCost) {
+TEST(SilkTouchEnchantmentTest, GetMinCost)
+{
     SilkTouchEnchantment silkTouch;
 
     EXPECT_EQ(silkTouch.getMinCost(1), 15);
-    EXPECT_EQ(silkTouch.getMaxCost(1), 61);  // MC 1.16.5: 15 + 50 - 4 = 61
+    EXPECT_EQ(silkTouch.getMaxCost(1), 61); // MC 1.16.5: 15 + 50 - 4 = 61
 }
 
 // ============================================================================
@@ -208,17 +222,17 @@ TEST(SilkTouchEnchantmentTest, GetMinCost) {
 
 class EnchantmentContainerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
-TEST_F(EnchantmentContainerTest, EmptyContainer) {
+TEST_F(EnchantmentContainerTest, EmptyContainer)
+{
     EnchantmentContainer container;
 
     EXPECT_TRUE(container.isEmpty());
@@ -227,7 +241,8 @@ TEST_F(EnchantmentContainerTest, EmptyContainer) {
     EXPECT_FALSE(container.has("minecraft:fortune"));
 }
 
-TEST_F(EnchantmentContainerTest, SetAndGetEnchantment) {
+TEST_F(EnchantmentContainerTest, SetAndGetEnchantment)
+{
     EnchantmentContainer container;
 
     container.set("minecraft:fortune", 3);
@@ -238,7 +253,8 @@ TEST_F(EnchantmentContainerTest, SetAndGetEnchantment) {
     EXPECT_TRUE(container.has("minecraft:fortune"));
 }
 
-TEST_F(EnchantmentContainerTest, UpdateEnchantment) {
+TEST_F(EnchantmentContainerTest, UpdateEnchantment)
+{
     EnchantmentContainer container;
 
     container.set("minecraft:fortune", 1);
@@ -248,7 +264,8 @@ TEST_F(EnchantmentContainerTest, UpdateEnchantment) {
     EXPECT_EQ(container.getLevel("minecraft:fortune"), 3);
 }
 
-TEST_F(EnchantmentContainerTest, RemoveEnchantment) {
+TEST_F(EnchantmentContainerTest, RemoveEnchantment)
+{
     EnchantmentContainer container;
 
     container.set("minecraft:fortune", 3);
@@ -262,7 +279,8 @@ TEST_F(EnchantmentContainerTest, RemoveEnchantment) {
     EXPECT_FALSE(container.remove("minecraft:fortune"));
 }
 
-TEST_F(EnchantmentContainerTest, ClearEnchantments) {
+TEST_F(EnchantmentContainerTest, ClearEnchantments)
+{
     EnchantmentContainer container;
 
     container.set("minecraft:fortune", 3);
@@ -276,7 +294,8 @@ TEST_F(EnchantmentContainerTest, ClearEnchantments) {
     EXPECT_EQ(container.size(), 0u);
 }
 
-TEST_F(EnchantmentContainerTest, MultipleEnchantments) {
+TEST_F(EnchantmentContainerTest, MultipleEnchantments)
+{
     EnchantmentContainer container;
 
     container.set("minecraft:fortune", 3);
@@ -289,7 +308,8 @@ TEST_F(EnchantmentContainerTest, MultipleEnchantments) {
     EXPECT_EQ(container.getLevel("minecraft:efficiency"), 5);
 }
 
-TEST_F(EnchantmentContainerTest, CompatibilityCheck) {
+TEST_F(EnchantmentContainerTest, CompatibilityCheck)
+{
     EnchantmentContainer container;
 
     // 添加时运
@@ -303,7 +323,8 @@ TEST_F(EnchantmentContainerTest, CompatibilityCheck) {
     // EXPECT_TRUE(container.canAdd("minecraft:unbreaking"));
 }
 
-TEST_F(EnchantmentContainerTest, HasEnchantmentType) {
+TEST_F(EnchantmentContainerTest, HasEnchantmentType)
+{
     EnchantmentContainer container;
 
     container.set("minecraft:fortune", 3);
@@ -316,14 +337,16 @@ TEST_F(EnchantmentContainerTest, HasEnchantmentType) {
 // Enchantment 测试
 // ============================================================================
 
-TEST(EnchantmentTest, RarityWeight) {
+TEST(EnchantmentTest, RarityWeight)
+{
     EXPECT_EQ(Enchantment::getRarityWeight(EnchantmentRarity::Common), 10);
     EXPECT_EQ(Enchantment::getRarityWeight(EnchantmentRarity::Uncommon), 5);
     EXPECT_EQ(Enchantment::getRarityWeight(EnchantmentRarity::Rare), 2);
     EXPECT_EQ(Enchantment::getRarityWeight(EnchantmentRarity::VeryRare), 1);
 }
 
-TEST(EnchantmentTest, GetNameKey) {
+TEST(EnchantmentTest, GetNameKey)
+{
     FortuneEnchantment fortune;
 
     EXPECT_EQ(fortune.getNameKey(), "enchantment.minecraft:fortune");
@@ -334,7 +357,8 @@ TEST(EnchantmentTest, GetNameKey) {
 // EnchantmentInstance 测试
 // ============================================================================
 
-TEST(EnchantmentInstanceTest, GetEnchantment) {
+TEST(EnchantmentInstanceTest, GetEnchantment)
+{
     EnchantmentRegistry::clear();
     EnchantmentRegistry::initialize();
 

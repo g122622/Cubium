@@ -1,15 +1,15 @@
 #pragma once
 
+#include "core/Result.hpp"
+#include "entity/inventory/CraftingInventory.hpp"
 #include "item/crafting/IRecipe.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
-#include "entity/inventory/CraftingInventory.hpp"
 #include "resource/ResourceLocation.hpp"
-#include "core/Result.hpp"
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
-#include <memory>
-#include <functional>
-#include <mutex>
 
 namespace mc {
 namespace crafting {
@@ -84,41 +84,35 @@ public:
      * @param type 目标配方类型
      * @return 匹配配方指针，无匹配返回nullptr
      */
-    [[nodiscard]] const SmeltingRecipe* getSmeltingRecipe(
-        const ItemStack& input,
-        RecipeType type) const;
+    [[nodiscard]] const SmeltingRecipe* getSmeltingRecipe(const ItemStack& input, RecipeType type) const;
 
     /**
      * @brief 查找匹配给定合成容器的配方
      * @param inventory 合成容器
      * @return 匹配配方，无匹配返回nullptr
      */
-    [[nodiscard]] const CraftingRecipe* findMatchingRecipe(
-        const CraftingInventory& inventory) const;
+    [[nodiscard]] const CraftingRecipe* findMatchingRecipe(const CraftingInventory& inventory) const;
 
     /**
      * @brief 查找所有匹配给定合成容器的配方
      * @param inventory 合成容器
      * @return 匹配配方列表
      */
-    [[nodiscard]] std::vector<const CraftingRecipe*> findAllMatchingRecipes(
-        const CraftingInventory& inventory) const;
+    [[nodiscard]] std::vector<const CraftingRecipe*> findAllMatchingRecipes(const CraftingInventory& inventory) const;
 
     /**
      * @brief 查找可产出指定物品的合成配方
      * @param result 结果物品
      * @return 配方列表
      */
-    [[nodiscard]] std::vector<const CraftingRecipe*> getRecipesForResult(
-        const Item& result) const;
+    [[nodiscard]] std::vector<const CraftingRecipe*> getRecipesForResult(const Item& result) const;
 
     /**
      * @brief 查找可产出指定物品堆的合成配方
      * @param result 结果物品堆
      * @return 配方列表
      */
-    [[nodiscard]] std::vector<const CraftingRecipe*> getRecipesForResult(
-        const ItemStack& result) const;
+    [[nodiscard]] std::vector<const CraftingRecipe*> getRecipesForResult(const ItemStack& result) const;
 
     /**
      * @brief 获取配方总数（合成+熔炼）
@@ -146,7 +140,8 @@ private:
     mutable std::mutex m_mutex;
 
     std::unordered_map<ResourceLocation, std::unique_ptr<CraftingRecipe>, std::hash<ResourceLocation>> m_recipesById;
-    std::unordered_map<ResourceLocation, std::unique_ptr<SmeltingRecipe>, std::hash<ResourceLocation>> m_smeltingRecipesById;
+    std::unordered_map<ResourceLocation, std::unique_ptr<SmeltingRecipe>, std::hash<ResourceLocation>>
+        m_smeltingRecipesById;
 
     std::unordered_map<RecipeType, std::vector<const CraftingRecipe*>> m_recipesByType;
     std::unordered_map<RecipeType, std::vector<const SmeltingRecipe*>> m_smeltingRecipesByType;

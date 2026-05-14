@@ -1,15 +1,15 @@
 #include "RespawnAnchorBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../dimension/DimensionType.hpp"
-#include "../../../explosion/ExplosionMode.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../dimension/DimensionType.hpp"
+#include "../../../explosion/ExplosionMode.hpp"
 
 namespace mc {
 namespace blocks {
@@ -17,14 +17,15 @@ namespace blocks {
 // ========== RespawnAnchorBlock 实现 ==========
 
 RespawnAnchorBlock::RespawnAnchorBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::CHARGES_0_4())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::CHARGES_0_4())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -34,11 +35,13 @@ RespawnAnchorBlock::RespawnAnchorBlock(const BlockProperties& properties)
     m_shape = CollisionShape::fullBlock();
 }
 
-BlockState RespawnAnchorBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState RespawnAnchorBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-void RespawnAnchorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void RespawnAnchorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 重生锚的tick处理
     // 当前没有特殊的tick逻辑
     MC_UNUSED(world);
@@ -47,7 +50,8 @@ void RespawnAnchorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     MC_UNUSED(random);
 }
 
-void RespawnAnchorBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void RespawnAnchorBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // MC 1.16.5: RespawnAnchorBlock 没有重写 randomTick 方法
     // 重生锚在非下界的爆炸只在玩家交互时触发（onBlockActivated 中处理）
     MC_UNUSED(world);
@@ -56,15 +60,14 @@ void RespawnAnchorBlock::randomTick(IWorld& world, const BlockPos& pos, BlockSta
     MC_UNUSED(random);
 }
 
-const CollisionShape& RespawnAnchorBlock::getShape(const BlockState& state) const {
+const CollisionShape& RespawnAnchorBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-int RespawnAnchorBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+int RespawnAnchorBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -73,10 +76,8 @@ int RespawnAnchorBlock::getComparatorInputOverride(
     return getCharges(state);
 }
 
-u8 RespawnAnchorBlock::getLightLevel(
-    const BlockState& state,
-    IWorld* world,
-    const BlockPos* pos) const {
+u8 RespawnAnchorBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -87,7 +88,8 @@ u8 RespawnAnchorBlock::getLightLevel(
     return static_cast<u8>(std::floor(charges * 3.75f));
 }
 
-BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockState& state) {
+BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockState& state)
+{
     int charges = getCharges(state);
     if (charges < 4) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges + 1);
@@ -98,7 +100,8 @@ BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockS
     return state;
 }
 
-void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockState& state) {
+void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockState& state)
+{
     int charges = getCharges(state);
     if (charges > 0) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges - 1);
@@ -106,13 +109,13 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
     }
 }
 
-ActionResultType RespawnAnchorBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType RespawnAnchorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(hit);
 
@@ -138,13 +141,11 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(
         BlockState newState = charge(world, pos, const_cast<BlockState&>(state));
 
         // 播放充能音效
-        world.playSound(
-            ResourceLocation("minecraft:block.respawn_anchor.charge"),
+        world.playSound(ResourceLocation("minecraft:block.respawn_anchor.charge"),
             sound::SoundCategory::Blocks,
             pos.center(),
             1.0f,
-            1.0f
-        );
+            1.0f);
 
         // 消耗萤石
         heldItem.shrink(1);
@@ -160,11 +161,10 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(
 
         // MC 1.16.5: 重生锚爆炸强度为 5.0，破坏方块但不生成火焰
         // 参考: net.minecraft.block.RespawnAnchorBlock.onBlockActivated
-        world.createExplosion(
-            pos.center(),
-            5.0f,  // 爆炸半径
+        world.createExplosion(pos.center(),
+            5.0f, // 爆炸半径
             world::explosion::ExplosionMode::Destroy,
-            false   // 不生成火焰
+            false // 不生成火焰
         );
 
         return ActionResultType::Success;
@@ -183,13 +183,11 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(
         player.setSpawnPoint(world.dimension(), pos, false);
 
         // 播放设置重生点音效
-        world.playSound(
-            ResourceLocation("minecraft:block.respawn_anchor.set_spawn"),
+        world.playSound(ResourceLocation("minecraft:block.respawn_anchor.set_spawn"),
             sound::SoundCategory::Blocks,
             pos.center(),
             1.0f,
-            1.0f
-        );
+            1.0f);
 
         return ActionResultType::Success;
     }

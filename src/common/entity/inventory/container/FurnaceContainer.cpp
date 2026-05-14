@@ -1,9 +1,9 @@
 #include "entity/inventory/container/FurnaceContainer.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
-#include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
-#include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -12,13 +12,14 @@ namespace blockentity {
 // ========== 构造函数 ==========
 
 FurnaceContainer::FurnaceContainer(ContainerId id,
-                                   PlayerInventory* playerInventory,
-                                   IInventory* furnaceInventory,
-                                   AbstractFurnaceEntity* furnaceEntity)
+    PlayerInventory* playerInventory,
+    IInventory* furnaceInventory,
+    AbstractFurnaceEntity* furnaceEntity)
     : AbstractContainerMenu(id, playerInventory)
     , m_furnaceInventory(furnaceInventory)
     , m_furnaceInventoryOwner()
-    , m_furnaceEntity(furnaceEntity) {
+    , m_furnaceEntity(furnaceEntity)
+{
 
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(furnaceInventory != nullptr);
@@ -29,13 +30,14 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
 }
 
 FurnaceContainer::FurnaceContainer(ContainerId id,
-                                   PlayerInventory* playerInventory,
-                                   std::shared_ptr<IInventory> furnaceInventoryOwner,
-                                   AbstractFurnaceEntity* furnaceEntity)
+    PlayerInventory* playerInventory,
+    std::shared_ptr<IInventory> furnaceInventoryOwner,
+    AbstractFurnaceEntity* furnaceEntity)
     : AbstractContainerMenu(id, playerInventory)
     , m_furnaceInventory(furnaceInventoryOwner.get())
     , m_furnaceInventoryOwner(std::move(furnaceInventoryOwner))
-    , m_furnaceEntity(furnaceEntity) {
+    , m_furnaceEntity(furnaceEntity)
+{
 
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(m_furnaceInventory != nullptr);
@@ -46,21 +48,24 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
 
 // ========== 经验相关 ==========
 
-f32 FurnaceContainer::getStoredExperience() const {
+f32 FurnaceContainer::getStoredExperience() const
+{
     if (m_furnaceEntity) {
         return m_furnaceEntity->getStoredExperience();
     }
     return 0.0f;
 }
 
-f32 FurnaceContainer::extractStoredExperience() {
+f32 FurnaceContainer::extractStoredExperience()
+{
     if (m_furnaceEntity) {
         return m_furnaceEntity->extractStoredExperience();
     }
     return 0.0f;
 }
 
-void FurnaceContainer::grantExperienceForOutput(i32 extractedCount) {
+void FurnaceContainer::grantExperienceForOutput(i32 extractedCount)
+{
     // 只有在有玩家且有累积经验时才发放
     if (!m_player || !m_furnaceEntity) {
         return;
@@ -84,7 +89,8 @@ void FurnaceContainer::grantExperienceForOutput(i32 extractedCount) {
 
 // ========== 快速移动 ==========
 
-bool FurnaceContainer::stillValid(const Player& player) const {
+bool FurnaceContainer::stillValid(const Player& player) const
+{
     // MC 1.16.5: 如果没有关联的方块实体，背包可访问
     if (m_furnaceEntity == nullptr) {
         return true;
@@ -94,13 +100,13 @@ bool FurnaceContainer::stillValid(const Player& player) const {
     // 参考 net.minecraft.inventory.container.AbstractFurnaceContainer.canInteractWith
     // -> furnaceInventory.isUsableByPlayer(playerIn)
     const BlockPos pos = m_furnaceEntity->getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f,
+    return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
-               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f; // 8^2 = 64
 }
 
-ItemStack FurnaceContainer::quickMoveStack(i32 slotIndex, Player& player) {
+ItemStack FurnaceContainer::quickMoveStack(i32 slotIndex, Player& player)
+{
     (void)player;
 
     Slot* slot = getSlot(slotIndex);
@@ -138,7 +144,8 @@ ItemStack FurnaceContainer::quickMoveStack(i32 slotIndex, Player& player) {
 
 // ========== 私有方法 ==========
 
-void FurnaceContainer::initSlots(PlayerInventory* playerInventory) {
+void FurnaceContainer::initSlots(PlayerInventory* playerInventory)
+{
     // ========== 熔炉槽位 ==========
 
     // 输入槽（顶部中央）
@@ -150,13 +157,13 @@ void FurnaceContainer::initSlots(PlayerInventory* playerInventory) {
     // 输出槽（底部中央）- 使用 FurnaceResultSlot 处理经验发放
     // 从 PlayerInventory 获取玩家指针
     Player* player = playerInventory->getPlayer();
-    addSlot(std::make_unique<FurnaceResultSlot>(
-        player,                // Player* 用于发放经验
-        m_furnaceInventory,    // IInventory* 熔炉背包
-        SLOT_OUTPUT,           // 槽位索引
-        116, 35,               // 显示坐标
-        m_furnaceEntity        // AbstractFurnaceEntity* 用于提取累积经验
-    ));
+    addSlot(std::make_unique<FurnaceResultSlot>(player, // Player* 用于发放经验
+        m_furnaceInventory,                             // IInventory* 熔炉背包
+        SLOT_OUTPUT,                                    // 槽位索引
+        116,
+        35,             // 显示坐标
+        m_furnaceEntity // AbstractFurnaceEntity* 用于提取累积经验
+        ));
 
     // 同步设置 m_player（向后兼容）
     m_player = player;
@@ -165,7 +172,7 @@ void FurnaceContainer::initSlots(PlayerInventory* playerInventory) {
 
     for (i32 row = 0; row < 3; ++row) {
         for (i32 col = 0; col < 9; ++col) {
-            i32 slotIndex = 9 + row * 9 + col;  // 玩家背包从索引9开始
+            i32 slotIndex = 9 + row * 9 + col; // 玩家背包从索引9开始
             i32 x = 8 + col * SLOT_SIZE;
             i32 y = PLAYER_INV_Y + row * SLOT_SIZE;
 
@@ -176,13 +183,12 @@ void FurnaceContainer::initSlots(PlayerInventory* playerInventory) {
     // ========== 玩家快捷栏（1行9列）==========
 
     for (i32 col = 0; col < 9; ++col) {
-        i32 slotIndex = col;  // 快捷栏从索引0开始
+        i32 slotIndex = col; // 快捷栏从索引0开始
         i32 x = 8 + col * SLOT_SIZE;
         i32 y = HOTBAR_Y;
 
         addSlot(std::make_unique<Slot>(playerInventory, slotIndex, x, y));
     }
-
 }
 
 } // namespace blockentity

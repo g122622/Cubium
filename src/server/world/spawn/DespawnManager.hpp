@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/entity/core/EntityClassification.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <vector>
 
 namespace mc {

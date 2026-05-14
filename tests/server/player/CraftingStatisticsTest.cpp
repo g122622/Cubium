@@ -10,20 +10,20 @@
  * - RecipeUnlockedTrigger 条件实例
  */
 
-#include <gtest/gtest.h>
-#include "server/player/ServerPlayer.hpp"
-#include "server/stats/StatisticsManager.hpp"
-#include "common/entity/inventory/Slot.hpp"
-#include "common/entity/inventory/IInventory.hpp"
-#include "common/entity/inventory/CraftingInventory.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/stats/StatisticsManager.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -33,20 +33,26 @@ namespace {
  */
 class TestInventory : public IInventory {
 public:
-    explicit TestInventory(i32 size) : m_size(size), m_slots(size) {}
+    explicit TestInventory(i32 size)
+        : m_size(size)
+        , m_slots(size)
+    {}
 
     i32 getContainerSize() const override { return m_size; }
-    bool isEmpty() const override {
+    bool isEmpty() const override
+    {
         for (const auto& slot : m_slots) {
             if (!slot.isEmpty()) return true;
         }
         return false;
     }
-    ItemStack getItem(i32 index) const override {
+    ItemStack getItem(i32 index) const override
+    {
         if (index < 0 || index >= m_size) return ItemStack::EMPTY;
         return m_slots[static_cast<std::size_t>(index)];
     }
-    ItemStack removeItem(i32 index, i32 count) override {
+    ItemStack removeItem(i32 index, i32 count) override
+    {
         if (index < 0 || index >= m_size) return ItemStack::EMPTY;
         ItemStack& slot = m_slots[static_cast<std::size_t>(index)];
         if (slot.isEmpty()) return ItemStack::EMPTY;
@@ -54,18 +60,21 @@ public:
         setChanged();
         return result;
     }
-    ItemStack removeItemNoUpdate(i32 index) override {
+    ItemStack removeItemNoUpdate(i32 index) override
+    {
         if (index < 0 || index >= m_size) return ItemStack::EMPTY;
         ItemStack result = std::move(m_slots[static_cast<std::size_t>(index)]);
         m_slots[static_cast<std::size_t>(index)] = ItemStack::EMPTY;
         return result;
     }
-    void setItem(i32 index, const ItemStack& stack) override {
+    void setItem(i32 index, const ItemStack& stack) override
+    {
         if (index < 0 || index >= m_size) return;
         m_slots[static_cast<std::size_t>(index)] = stack;
         setChanged();
     }
-    void clear() override {
+    void clear() override
+    {
         for (auto& slot : m_slots) {
             slot = ItemStack::EMPTY;
         }
@@ -77,14 +86,16 @@ public:
 
     // 实现可选方法
     i32 getMaxStackSize() const override { return 64; }
-    bool canPlaceItem(i32 index, const ItemStack& stack) const override {
+    bool canPlaceItem(i32 index, const ItemStack& stack) const override
+    {
         (void)index;
         (void)stack;
         return true;
     }
 
     // 实现序列化方法
-    void serialize(network::PacketSerializer& ser) const override {
+    void serialize(network::PacketSerializer& ser) const override
+    {
         (void)ser;
         // 测试用，不需要实际序列化
     }
@@ -100,7 +111,8 @@ private:
  */
 class CraftingStatisticsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块和物品注册表
         VanillaBlocks::initialize();
         Items::initialize();
@@ -113,7 +125,8 @@ protected:
         m_player = std::make_unique<ServerPlayer>(1, "TestPlayer");
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_player.reset();
         advancement::CriterionTriggers::instance().clear();
     }
@@ -123,25 +136,29 @@ protected:
 
 // ========== Player 基类虚方法测试 ==========
 
-TEST_F(CraftingStatisticsTest, PlayerBaseClass_DefaultAwardCraftedStat_DoesNotThrow) {
+TEST_F(CraftingStatisticsTest, PlayerBaseClass_DefaultAwardCraftedStat_DoesNotThrow)
+{
     // Player 基类的默认实现应该不抛异常（空实现）
     EXPECT_NO_THROW(m_player->awardCraftedStat(ResourceLocation("minecraft:diamond"), 5));
 }
 
-TEST_F(CraftingStatisticsTest, PlayerBaseClass_DefaultOnItemCrafted_DoesNotThrow) {
+TEST_F(CraftingStatisticsTest, PlayerBaseClass_DefaultOnItemCrafted_DoesNotThrow)
+{
     // Player 基类的默认实现应该不抛异常
     ItemStack stack(Items::DIAMOND, 10);
     EXPECT_NO_THROW(m_player->onItemCrafted(stack, 10));
 }
 
-TEST_F(CraftingStatisticsTest, PlayerBaseClass_DefaultUnlockRecipe_DoesNotThrow) {
+TEST_F(CraftingStatisticsTest, PlayerBaseClass_DefaultUnlockRecipe_DoesNotThrow)
+{
     // Player 基类的默认实现应该不抛异常
     EXPECT_NO_THROW(m_player->unlockRecipe(ResourceLocation("minecraft:diamond")));
 }
 
 // ========== ServerPlayer 统计测试 ==========
 
-TEST_F(CraftingStatisticsTest, ServerPlayer_AwardCraftedStat_UpdatesStatistics) {
+TEST_F(CraftingStatisticsTest, ServerPlayer_AwardCraftedStat_UpdatesStatistics)
+{
     // 调用 awardCraftedStat 应该更新统计管理器
     ResourceLocation itemId("minecraft:diamond");
     m_player->awardCraftedStat(itemId, 5);
@@ -151,7 +168,8 @@ TEST_F(CraftingStatisticsTest, ServerPlayer_AwardCraftedStat_UpdatesStatistics) 
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, itemId), 5);
 }
 
-TEST_F(CraftingStatisticsTest, ServerPlayer_AwardCraftedStat_MultipleTimes_Accumulates) {
+TEST_F(CraftingStatisticsTest, ServerPlayer_AwardCraftedStat_MultipleTimes_Accumulates)
+{
     ResourceLocation itemId("minecraft:diamond");
 
     m_player->awardCraftedStat(itemId, 5);
@@ -162,7 +180,8 @@ TEST_F(CraftingStatisticsTest, ServerPlayer_AwardCraftedStat_MultipleTimes_Accum
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, itemId), 10);
 }
 
-TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_UpdatesStatistics) {
+TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_UpdatesStatistics)
+{
     // 调用 onItemCrafted 应该更新统计
     ItemStack stack(Items::DIAMOND, 10);
     m_player->onItemCrafted(stack, 10);
@@ -171,7 +190,8 @@ TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_UpdatesStatistics) {
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:diamond")), 10);
 }
 
-TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_EmptyStack_NoStatisticsUpdate) {
+TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_EmptyStack_NoStatisticsUpdate)
+{
     // 空物品堆不应该更新统计
     ItemStack emptyStack;
     m_player->onItemCrafted(emptyStack, 0);
@@ -181,7 +201,8 @@ TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_EmptyStack_NoStatistic
     EXPECT_TRUE(allStats.empty());
 }
 
-TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_NullItem_NoStatisticsUpdate) {
+TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_NullItem_NoStatisticsUpdate)
+{
     // 空物品堆不应该更新统计
     ItemStack nullStack(nullptr, 1);
     m_player->onItemCrafted(nullStack, 1);
@@ -191,7 +212,8 @@ TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_NullItem_NoStatisticsU
     EXPECT_TRUE(allStats.empty());
 }
 
-TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_DifferentItems_TrackedSeparately) {
+TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_DifferentItems_TrackedSeparately)
+{
     ItemStack diamondStack(Items::DIAMOND, 5);
     ItemStack ironStack(Items::IRON_INGOT, 10);
 
@@ -205,13 +227,15 @@ TEST_F(CraftingStatisticsTest, ServerPlayer_OnItemCrafted_DifferentItems_Tracked
 
 // ========== RecipeUnlockedTrigger 测试 ==========
 
-TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_IsRegistered) {
+TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_IsRegistered)
+{
     // 验证 RecipeUnlockedTrigger 已注册
     auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeUnlockedTrigger>();
     ASSERT_NE(trigger, nullptr);
 }
 
-TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_CreateInstanceWithRecipe) {
+TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_CreateInstanceWithRecipe)
+{
     // 创建带配方ID的条件实例
     ResourceLocation recipeId("minecraft:diamond_sword");
 
@@ -223,7 +247,8 @@ TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_CreateInstanceWithRecipe) {
     EXPECT_FALSE(instance->test(ResourceLocation("minecraft:iron_sword")));
 }
 
-TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_CreateAnyInstance) {
+TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_CreateAnyInstance)
+{
     // 创建默认实例（匹配任何配方）
     // 通过 fromJson(nullptr) 创建的实例应该匹配任何配方
     nlohmann::json nullJson = nullptr;
@@ -242,7 +267,8 @@ TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_CreateAnyInstance) {
     EXPECT_TRUE(instance->test(ResourceLocation("minecraft:oak_planks")));
 }
 
-TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_Serialization) {
+TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_Serialization)
+{
     ResourceLocation recipeId("minecraft:diamond_sword");
     auto instance = std::make_shared<advancement::RecipeUnlockedTriggerInstance>(recipeId);
 
@@ -252,7 +278,8 @@ TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_Serialization) {
     EXPECT_EQ(json["recipe"].get<std::string>(), "minecraft:diamond_sword");
 }
 
-TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_FromJson) {
+TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_FromJson)
+{
     nlohmann::json json = R"({
         "recipe": "minecraft:iron_sword"
     })"_json;
@@ -271,7 +298,8 @@ TEST_F(CraftingStatisticsTest, RecipeUnlockedTrigger_FromJson) {
 
 // ========== ResultSlot 统计触发测试 ==========
 
-TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_UpdatesPlayerStatistics) {
+TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_UpdatesPlayerStatistics)
+{
     // 创建测试背包和槽位
     auto inventory = std::make_unique<TestInventory>(1);
     auto craftingGrid = std::make_unique<CraftingInventory>(2, 2);
@@ -291,7 +319,8 @@ TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_UpdatesPlayerStatistics) {
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:diamond")), 5);
 }
 
-TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_MultipleTimes_Accumulates) {
+TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_MultipleTimes_Accumulates)
+{
     auto inventory = std::make_unique<TestInventory>(1);
     auto craftingGrid = std::make_unique<CraftingInventory>(2, 2);
     ResultSlot slot(inventory.get(), 0, 0, 0, craftingGrid.get(), m_player.get());
@@ -306,7 +335,8 @@ TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_MultipleTimes_Accumulates) 
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:diamond")), 10);
 }
 
-TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_NoPlayer_NoStatisticsUpdate) {
+TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_NoPlayer_NoStatisticsUpdate)
+{
     auto inventory = std::make_unique<TestInventory>(1);
     auto craftingGrid = std::make_unique<CraftingInventory>(2, 2);
 
@@ -327,7 +357,8 @@ TEST_F(CraftingStatisticsTest, ResultSlot_OnCrafting_NoPlayer_NoStatisticsUpdate
 
 // ========== FurnaceResultSlot 统计触发测试 ==========
 
-TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_UpdatesPlayerStatistics) {
+TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_UpdatesPlayerStatistics)
+{
     // 创建测试背包
     auto inventory = std::make_unique<TestInventory>(1);
 
@@ -346,7 +377,8 @@ TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_UpdatesPlayerStatistics)
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:iron_ingot")), 3);
 }
 
-TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_MultipleTimes_Accumulates) {
+TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_MultipleTimes_Accumulates)
+{
     auto inventory = std::make_unique<TestInventory>(1);
     mc::FurnaceResultSlot slot(m_player.get(), inventory.get(), 0, 0, 0, nullptr);
 
@@ -364,7 +396,8 @@ TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_MultipleTimes_Accumulate
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:iron_ingot")), 8);
 }
 
-TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_NoPlayer_NoStatisticsUpdate) {
+TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_NoPlayer_NoStatisticsUpdate)
+{
     auto inventory = std::make_unique<TestInventory>(1);
 
     // 创建没有玩家的熔炉结果槽位
@@ -384,7 +417,8 @@ TEST_F(CraftingStatisticsTest, FurnaceResultSlot_OnTake_NoPlayer_NoStatisticsUpd
 
 // ========== 多态性测试 ==========
 
-TEST_F(CraftingStatisticsTest, PolymorphicCall_ThroughPlayerBasePointer) {
+TEST_F(CraftingStatisticsTest, PolymorphicCall_ThroughPlayerBasePointer)
+{
     // 通过基类指针调用应该使用 ServerPlayer 的实现
     Player* basePtr = m_player.get();
 
@@ -396,7 +430,8 @@ TEST_F(CraftingStatisticsTest, PolymorphicCall_ThroughPlayerBasePointer) {
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:diamond")), 7);
 }
 
-TEST_F(CraftingStatisticsTest, PolymorphicCall_AwardCraftedStat) {
+TEST_F(CraftingStatisticsTest, PolymorphicCall_AwardCraftedStat)
+{
     Player* basePtr = m_player.get();
 
     basePtr->awardCraftedStat(ResourceLocation("minecraft:gold_ingot"), 15);
@@ -407,7 +442,8 @@ TEST_F(CraftingStatisticsTest, PolymorphicCall_AwardCraftedStat) {
 
 // ========== 集成测试 ==========
 
-TEST_F(CraftingStatisticsTest, Integration_FullCraftingWorkflow) {
+TEST_F(CraftingStatisticsTest, Integration_FullCraftingWorkflow)
+{
     // 模拟完整的合成流程
     auto inventory = std::make_unique<TestInventory>(1);
     auto craftingGrid = std::make_unique<CraftingInventory>(2, 2);
@@ -425,7 +461,8 @@ TEST_F(CraftingStatisticsTest, Integration_FullCraftingWorkflow) {
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:diamond_sword")), 1);
 }
 
-TEST_F(CraftingStatisticsTest, Integration_FullSmeltingWorkflow) {
+TEST_F(CraftingStatisticsTest, Integration_FullSmeltingWorkflow)
+{
     // 模拟完整的熔炼流程
     auto inventory = std::make_unique<TestInventory>(1);
     mc::FurnaceResultSlot slot(m_player.get(), inventory.get(), 0, 0, 0, nullptr);
@@ -444,7 +481,8 @@ TEST_F(CraftingStatisticsTest, Integration_FullSmeltingWorkflow) {
 
 // ========== 边界情况测试 ==========
 
-TEST_F(CraftingStatisticsTest, AwardCraftedStat_ZeroAmount_NoEffect) {
+TEST_F(CraftingStatisticsTest, AwardCraftedStat_ZeroAmount_NoEffect)
+{
     ResourceLocation itemId("minecraft:diamond");
     m_player->awardCraftedStat(itemId, 0);
 
@@ -453,7 +491,8 @@ TEST_F(CraftingStatisticsTest, AwardCraftedStat_ZeroAmount_NoEffect) {
     EXPECT_FALSE(stats.hasStat(server::stats::StatType::Crafted, itemId));
 }
 
-TEST_F(CraftingStatisticsTest, AwardCraftedStat_LargeAmount) {
+TEST_F(CraftingStatisticsTest, AwardCraftedStat_LargeAmount)
+{
     ResourceLocation itemId("minecraft:cobblestone");
     m_player->awardCraftedStat(itemId, 1000000);
 
@@ -461,10 +500,11 @@ TEST_F(CraftingStatisticsTest, AwardCraftedStat_LargeAmount) {
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, itemId), 1000000);
 }
 
-TEST_F(CraftingStatisticsTest, OnItemCrafted_StackLargerThanCraftedCount) {
+TEST_F(CraftingStatisticsTest, OnItemCrafted_StackLargerThanCraftedCount)
+{
     // 物品堆数量可能大于合成数量
-    ItemStack stack(Items::DIAMOND, 64);  // 满堆叠
-    m_player->onItemCrafted(stack, 5);    // 但只合成了5个
+    ItemStack stack(Items::DIAMOND, 64); // 满堆叠
+    m_player->onItemCrafted(stack, 5);   // 但只合成了5个
 
     const auto& stats = m_player->getStats();
     // 统计应该使用传入的数量，而不是物品堆数量

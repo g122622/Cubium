@@ -5,12 +5,12 @@
  * 对比 Long2IntLRUCache（原有实现）和 OpenAddressingLRUCache（新实现）的性能。
  */
 
-#include <gtest/gtest.h>
 #include "util/cache/Long2IntLRUCache.hpp"
 #include "util/cache/OpenAddressingLRUCache.hpp"
 #include <chrono>
 #include <random>
 #include <vector>
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -18,7 +18,8 @@ namespace {
 /**
  * @brief 生成随机坐标对
  */
-std::vector<std::pair<i32, i32>> generateRandomCoords(i32 count, i32 range, u64 seed = 12345) {
+std::vector<std::pair<i32, i32>> generateRandomCoords(i32 count, i32 range, u64 seed = 12345)
+{
     std::mt19937_64 rng(seed);
     std::uniform_int_distribution<i32> dist(-range, range);
 
@@ -34,7 +35,8 @@ std::vector<std::pair<i32, i32>> generateRandomCoords(i32 count, i32 range, u64 
 // Long2IntLRUCache 测试
 // ============================================================================
 
-TEST(Long2IntLRUCacheTest, BasicOperations) {
+TEST(Long2IntLRUCacheTest, BasicOperations)
+{
     Long2IntLRUCache cache(100);
 
     // 测试 put 和 get
@@ -54,7 +56,8 @@ TEST(Long2IntLRUCacheTest, BasicOperations) {
     EXPECT_FALSE(cache.get(999, value));
 }
 
-TEST(Long2IntLRUCacheTest, PackCoords) {
+TEST(Long2IntLRUCacheTest, PackCoords)
+{
     // 测试坐标打包
     i64 key1 = Long2IntLRUCache::packCoords(100, 200);
     i64 key2 = Long2IntLRUCache::packCoords(100, 200);
@@ -70,7 +73,8 @@ TEST(Long2IntLRUCacheTest, PackCoords) {
     EXPECT_EQ(key4, key5);
 }
 
-TEST(Long2IntLRUCacheTest, LRUEviction) {
+TEST(Long2IntLRUCacheTest, LRUEviction)
+{
     Long2IntLRUCache cache(3);
 
     cache.put(1, 100);
@@ -90,11 +94,12 @@ TEST(Long2IntLRUCacheTest, LRUEviction) {
     EXPECT_TRUE(cache.get(4, value));
 }
 
-TEST(Long2IntLRUCacheTest, UpdateValue) {
+TEST(Long2IntLRUCacheTest, UpdateValue)
+{
     Long2IntLRUCache cache(10);
 
     cache.put(1, 100);
-    cache.put(1, 200);  // 更新
+    cache.put(1, 200); // 更新
 
     i32 value;
     EXPECT_TRUE(cache.get(1, value));
@@ -106,7 +111,8 @@ TEST(Long2IntLRUCacheTest, UpdateValue) {
 // OpenAddressingLRUCache 测试
 // ============================================================================
 
-TEST(OpenAddressingLRUCacheTest, BasicOperations) {
+TEST(OpenAddressingLRUCacheTest, BasicOperations)
+{
     OpenAddressingLRUCache cache(100);
 
     // 测试 put 和 get
@@ -126,7 +132,8 @@ TEST(OpenAddressingLRUCacheTest, BasicOperations) {
     EXPECT_FALSE(cache.get(999, value));
 }
 
-TEST(OpenAddressingLRUCacheTest, PackCoords) {
+TEST(OpenAddressingLRUCacheTest, PackCoords)
+{
     // 测试坐标打包
     i64 key1 = OpenAddressingLRUCache::packCoords(100, 200);
     i64 key2 = OpenAddressingLRUCache::packCoords(100, 200);
@@ -142,7 +149,8 @@ TEST(OpenAddressingLRUCacheTest, PackCoords) {
     EXPECT_EQ(key4, key5);
 }
 
-TEST(OpenAddressingLRUCacheTest, LRUEviction) {
+TEST(OpenAddressingLRUCacheTest, LRUEviction)
+{
     OpenAddressingLRUCache cache(3);
 
     cache.put(1, 100);
@@ -159,11 +167,12 @@ TEST(OpenAddressingLRUCacheTest, LRUEviction) {
     EXPECT_LE(cache.size(), 3);
 }
 
-TEST(OpenAddressingLRUCacheTest, UpdateValue) {
+TEST(OpenAddressingLRUCacheTest, UpdateValue)
+{
     OpenAddressingLRUCache cache(10);
 
     cache.put(1, 100);
-    cache.put(1, 200);  // 更新
+    cache.put(1, 200); // 更新
 
     i32 value;
     EXPECT_TRUE(cache.get(1, value));
@@ -171,7 +180,8 @@ TEST(OpenAddressingLRUCacheTest, UpdateValue) {
     EXPECT_EQ(cache.size(), 1);
 }
 
-TEST(OpenAddressingLRUCacheTest, LockedOperations) {
+TEST(OpenAddressingLRUCacheTest, LockedOperations)
+{
     OpenAddressingLRUCache cache(100);
 
     // 批量操作（持有锁）
@@ -188,16 +198,17 @@ TEST(OpenAddressingLRUCacheTest, LockedOperations) {
     EXPECT_EQ(value, 200);
 }
 
-TEST(OpenAddressingLRUCacheTest, Statistics) {
+TEST(OpenAddressingLRUCacheTest, Statistics)
+{
     OpenAddressingLRUCache cache(100);
 
     cache.put(1, 100);
     cache.put(2, 200);
 
     i32 value;
-    cache.get(1, value);  // 命中
-    cache.get(2, value);  // 命中
-    cache.get(3, value);  // 未命中
+    cache.get(1, value); // 命中
+    cache.get(2, value); // 命中
+    cache.get(3, value); // 未命中
 
     EXPECT_EQ(cache.hitCount(), 2);
     EXPECT_EQ(cache.missCount(), 1);
@@ -218,7 +229,8 @@ protected:
     static constexpr i32 COORD_RANGE = 10000;
 };
 
-TEST_F(CacheBenchmark, Long2IntLRUCache_WritePerformance) {
+TEST_F(CacheBenchmark, Long2IntLRUCache_WritePerformance)
+{
     Long2IntLRUCache cache(CACHE_SIZE);
     auto coords = generateRandomCoords(NUM_OPERATIONS, COORD_RANGE);
 
@@ -233,11 +245,12 @@ TEST_F(CacheBenchmark, Long2IntLRUCache_WritePerformance) {
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
     // 记录结果用于比较（不是断言）
-    std::cout << "[Long2IntLRUCache] Write " << NUM_OPERATIONS
-              << " operations: " << duration.count() << " us" << std::endl;
+    std::cout << "[Long2IntLRUCache] Write " << NUM_OPERATIONS << " operations: " << duration.count() << " us"
+              << std::endl;
 }
 
-TEST_F(CacheBenchmark, OpenAddressingLRUCache_WritePerformance) {
+TEST_F(CacheBenchmark, OpenAddressingLRUCache_WritePerformance)
+{
     OpenAddressingLRUCache cache(CACHE_SIZE);
     auto coords = generateRandomCoords(NUM_OPERATIONS, COORD_RANGE);
 
@@ -251,11 +264,12 @@ TEST_F(CacheBenchmark, OpenAddressingLRUCache_WritePerformance) {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    std::cout << "[OpenAddressingLRUCache] Write " << NUM_OPERATIONS
-              << " operations: " << duration.count() << " us" << std::endl;
+    std::cout << "[OpenAddressingLRUCache] Write " << NUM_OPERATIONS << " operations: " << duration.count() << " us"
+              << std::endl;
 }
 
-TEST_F(CacheBenchmark, Long2IntLRUCache_ReadPerformance) {
+TEST_F(CacheBenchmark, Long2IntLRUCache_ReadPerformance)
+{
     Long2IntLRUCache cache(CACHE_SIZE);
     auto coords = generateRandomCoords(NUM_OPERATIONS, COORD_RANGE);
 
@@ -284,12 +298,12 @@ TEST_F(CacheBenchmark, Long2IntLRUCache_ReadPerformance) {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    std::cout << "[Long2IntLRUCache] Read " << NUM_OPERATIONS
-              << " operations: " << duration.count() << " us"
+    std::cout << "[Long2IntLRUCache] Read " << NUM_OPERATIONS << " operations: " << duration.count() << " us"
               << ", hits: " << hitCount << std::endl;
 }
 
-TEST_F(CacheBenchmark, OpenAddressingLRUCache_ReadPerformance) {
+TEST_F(CacheBenchmark, OpenAddressingLRUCache_ReadPerformance)
+{
     OpenAddressingLRUCache cache(CACHE_SIZE);
     auto coords = generateRandomCoords(NUM_OPERATIONS, COORD_RANGE);
 
@@ -318,12 +332,12 @@ TEST_F(CacheBenchmark, OpenAddressingLRUCache_ReadPerformance) {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    std::cout << "[OpenAddressingLRUCache] Read " << NUM_OPERATIONS
-              << " operations: " << duration.count() << " us"
+    std::cout << "[OpenAddressingLRUCache] Read " << NUM_OPERATIONS << " operations: " << duration.count() << " us"
               << ", hits: " << hitCount << std::endl;
 }
 
-TEST_F(CacheBenchmark, OpenAddressingLRUCache_BatchPerformance) {
+TEST_F(CacheBenchmark, OpenAddressingLRUCache_BatchPerformance)
+{
     OpenAddressingLRUCache cache(CACHE_SIZE);
     constexpr i32 BATCH_SIZE = 64;
     auto coords = generateRandomCoords(BATCH_SIZE, COORD_RANGE);
@@ -345,16 +359,16 @@ TEST_F(CacheBenchmark, OpenAddressingLRUCache_BatchPerformance) {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    std::cout << "[OpenAddressingLRUCache] Batch read/write "
-              << (NUM_OPERATIONS / BATCH_SIZE) << " batches (size " << BATCH_SIZE
-              << "): " << duration.count() << " us" << std::endl;
+    std::cout << "[OpenAddressingLRUCache] Batch read/write " << (NUM_OPERATIONS / BATCH_SIZE) << " batches (size "
+              << BATCH_SIZE << "): " << duration.count() << " us" << std::endl;
 }
 
 // ============================================================================
 // 缓存一致性测试
 // ============================================================================
 
-TEST(CacheConsistencyTest, SameCoordinates_SameValue) {
+TEST(CacheConsistencyTest, SameCoordinates_SameValue)
+{
     // 使用足够大的容量以容纳所有条目 (21 x 21 = 441)
     Long2IntLRUCache cache1(1000);
     OpenAddressingLRUCache cache2(1000);
@@ -384,7 +398,8 @@ TEST(CacheConsistencyTest, SameCoordinates_SameValue) {
     }
 }
 
-TEST(CacheConsistencyTest, ClearAndRefill) {
+TEST(CacheConsistencyTest, ClearAndRefill)
+{
     Long2IntLRUCache cache1(2000);
     OpenAddressingLRUCache cache2(2000);
 

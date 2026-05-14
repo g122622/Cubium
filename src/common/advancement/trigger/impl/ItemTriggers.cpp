@@ -5,14 +5,16 @@ namespace mc::advancement {
 // ========== ConsumeItemTriggerInstance ==========
 
 ConsumeItemTriggerInstance::ConsumeItemTriggerInstance(ItemPredicate item)
-    : m_item(std::move(item)) {
-}
+    : m_item(std::move(item))
+{}
 
-bool ConsumeItemTriggerInstance::test(const ItemStack& item) const {
+bool ConsumeItemTriggerInstance::test(const ItemStack& item) const
+{
     return m_item.test(item);
 }
 
-Result<void> ConsumeItemTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> ConsumeItemTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -28,7 +30,8 @@ Result<void> ConsumeItemTriggerInstance::fromJson(const nlohmann::json& json) {
     return {};
 }
 
-nlohmann::json ConsumeItemTriggerInstance::conditionsToJson() const {
+nlohmann::json ConsumeItemTriggerInstance::conditionsToJson() const
+{
     if (!m_item.isAny()) {
         return {{"item", m_item.toJson()}};
     }
@@ -37,7 +40,8 @@ nlohmann::json ConsumeItemTriggerInstance::conditionsToJson() const {
 
 // ========== ConsumeItemTrigger ==========
 
-Result<std::shared_ptr<ConsumeItemTriggerInstance>> ConsumeItemTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ConsumeItemTriggerInstance>> ConsumeItemTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<ConsumeItemTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -46,13 +50,15 @@ Result<std::shared_ptr<ConsumeItemTriggerInstance>> ConsumeItemTrigger::fromJson
     return instance;
 }
 
-void ConsumeItemTrigger::trigger(ServerPlayer& player, const ItemStack& item) {
+void ConsumeItemTrigger::trigger(ServerPlayer& player, const ItemStack& item)
+{
     // [TODO 阶段2+3：事件系统集成] 由 ConsumeItemEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);
 }
 
-std::shared_ptr<ConsumeItemTriggerInstance> ConsumeItemTrigger::item(const ItemPredicate& item) {
+std::shared_ptr<ConsumeItemTriggerInstance> ConsumeItemTrigger::item(const ItemPredicate& item)
+{
     return std::make_shared<ConsumeItemTriggerInstance>(item);
 }
 
@@ -61,10 +67,11 @@ std::shared_ptr<ConsumeItemTriggerInstance> ConsumeItemTrigger::item(const ItemP
 ItemDurabilityTriggerInstance::ItemDurabilityTriggerInstance(ItemPredicate item, IntBounds durability, IntBounds delta)
     : m_item(std::move(item))
     , m_durability(std::move(durability))
-    , m_delta(std::move(delta)) {
-}
+    , m_delta(std::move(delta))
+{}
 
-bool ItemDurabilityTriggerInstance::test(const ItemStack& item, i32 oldDurability) const {
+bool ItemDurabilityTriggerInstance::test(const ItemStack& item, i32 oldDurability) const
+{
     if (!m_item.test(item)) {
         return false;
     }
@@ -82,7 +89,8 @@ bool ItemDurabilityTriggerInstance::test(const ItemStack& item, i32 oldDurabilit
     return true;
 }
 
-Result<void> ItemDurabilityTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> ItemDurabilityTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -106,7 +114,8 @@ Result<void> ItemDurabilityTriggerInstance::fromJson(const nlohmann::json& json)
     return {};
 }
 
-nlohmann::json ItemDurabilityTriggerInstance::conditionsToJson() const {
+nlohmann::json ItemDurabilityTriggerInstance::conditionsToJson() const
+{
     nlohmann::json json;
 
     if (!m_item.isAny()) {
@@ -124,7 +133,8 @@ nlohmann::json ItemDurabilityTriggerInstance::conditionsToJson() const {
 
 // ========== ItemDurabilityTrigger ==========
 
-Result<std::shared_ptr<ItemDurabilityTriggerInstance>> ItemDurabilityTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ItemDurabilityTriggerInstance>> ItemDurabilityTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<ItemDurabilityTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -133,7 +143,8 @@ Result<std::shared_ptr<ItemDurabilityTriggerInstance>> ItemDurabilityTrigger::fr
     return instance;
 }
 
-void ItemDurabilityTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 oldDurability) {
+void ItemDurabilityTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 oldDurability)
+{
     // [TODO 阶段2+3：事件系统集成] 由 ItemDurabilityEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);
@@ -144,10 +155,11 @@ void ItemDurabilityTrigger::trigger(ServerPlayer& player, const ItemStack& item,
 
 EnchantedItemTriggerInstance::EnchantedItemTriggerInstance(ItemPredicate item, IntBounds levels)
     : m_item(std::move(item))
-    , m_levels(std::move(levels)) {
-}
+    , m_levels(std::move(levels))
+{}
 
-bool EnchantedItemTriggerInstance::test(const ItemStack& item, i32 levels) const {
+bool EnchantedItemTriggerInstance::test(const ItemStack& item, i32 levels) const
+{
     if (!m_item.test(item)) {
         return false;
     }
@@ -157,7 +169,8 @@ bool EnchantedItemTriggerInstance::test(const ItemStack& item, i32 levels) const
     return true;
 }
 
-Result<void> EnchantedItemTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> EnchantedItemTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -177,7 +190,8 @@ Result<void> EnchantedItemTriggerInstance::fromJson(const nlohmann::json& json) 
     return {};
 }
 
-nlohmann::json EnchantedItemTriggerInstance::conditionsToJson() const {
+nlohmann::json EnchantedItemTriggerInstance::conditionsToJson() const
+{
     nlohmann::json json;
 
     if (!m_item.isAny()) {
@@ -192,7 +206,8 @@ nlohmann::json EnchantedItemTriggerInstance::conditionsToJson() const {
 
 // ========== EnchantedItemTrigger ==========
 
-Result<std::shared_ptr<EnchantedItemTriggerInstance>> EnchantedItemTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<EnchantedItemTriggerInstance>> EnchantedItemTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<EnchantedItemTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -201,7 +216,8 @@ Result<std::shared_ptr<EnchantedItemTriggerInstance>> EnchantedItemTrigger::from
     return instance;
 }
 
-void EnchantedItemTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 levels) {
+void EnchantedItemTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 levels)
+{
     // [TODO 阶段2+3：事件系统集成] 由 EnchantItemEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);
@@ -211,14 +227,16 @@ void EnchantedItemTrigger::trigger(ServerPlayer& player, const ItemStack& item, 
 // ========== FilledBucketTriggerInstance ==========
 
 FilledBucketTriggerInstance::FilledBucketTriggerInstance(ItemPredicate item)
-    : m_item(std::move(item)) {
-}
+    : m_item(std::move(item))
+{}
 
-bool FilledBucketTriggerInstance::test(const ItemStack& item) const {
+bool FilledBucketTriggerInstance::test(const ItemStack& item) const
+{
     return m_item.test(item);
 }
 
-Result<void> FilledBucketTriggerInstance::fromJson(const nlohmann::json& json) {
+Result<void> FilledBucketTriggerInstance::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return {};
     }
@@ -234,7 +252,8 @@ Result<void> FilledBucketTriggerInstance::fromJson(const nlohmann::json& json) {
     return {};
 }
 
-nlohmann::json FilledBucketTriggerInstance::conditionsToJson() const {
+nlohmann::json FilledBucketTriggerInstance::conditionsToJson() const
+{
     if (!m_item.isAny()) {
         return {{"item", m_item.toJson()}};
     }
@@ -243,7 +262,8 @@ nlohmann::json FilledBucketTriggerInstance::conditionsToJson() const {
 
 // ========== FilledBucketTrigger ==========
 
-Result<std::shared_ptr<FilledBucketTriggerInstance>> FilledBucketTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<FilledBucketTriggerInstance>> FilledBucketTrigger::fromJson(const nlohmann::json& json)
+{
     auto instance = std::make_shared<FilledBucketTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -252,7 +272,8 @@ Result<std::shared_ptr<FilledBucketTriggerInstance>> FilledBucketTrigger::fromJs
     return instance;
 }
 
-void FilledBucketTrigger::trigger(ServerPlayer& player, const ItemStack& item) {
+void FilledBucketTrigger::trigger(ServerPlayer& player, const ItemStack& item)
+{
     // [TODO 阶段2+3：事件系统集成] 由 FilledBucketEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);

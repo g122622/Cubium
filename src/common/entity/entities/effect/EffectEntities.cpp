@@ -1,17 +1,17 @@
 #include "EffectEntities.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../item/items/special/FlintAndSteelItem.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
-#include "../player/Player.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "../../../item/items/special/FlintAndSteelItem.hpp"
-#include <cmath>
 #include <chrono>
+#include <cmath>
 
 namespace mc {
 namespace entity {
@@ -20,18 +20,20 @@ namespace entity {
 
 EnderCrystalEntity::EnderCrystalEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
+{}
+
+f32 EnderCrystalEntity::width() const
 {
+    return 2.0f; // MC 1.16.5: 末地水晶宽度
 }
 
-f32 EnderCrystalEntity::width() const {
-    return 2.0f;  // MC 1.16.5: 末地水晶宽度
+f32 EnderCrystalEntity::height() const
+{
+    return 2.0f; // MC 1.16.5: 末地水晶高度
 }
 
-f32 EnderCrystalEntity::height() const {
-    return 2.0f;  // MC 1.16.5: 末地水晶高度
-}
-
-void EnderCrystalEntity::tick() {
+void EnderCrystalEntity::tick()
+{
     Entity::tick();
 
     // MC 1.16.5: 递增内部旋转计数器（用于渲染动画）
@@ -46,31 +48,35 @@ void EnderCrystalEntity::tick() {
     // 注意：末地水晶不生成粒子，光束效果由渲染器处理
 }
 
-bool EnderCrystalEntity::hasBeamTarget() const {
+bool EnderCrystalEntity::hasBeamTarget() const
+{
     return m_beamTarget.x != 0 || m_beamTarget.y != 0 || m_beamTarget.z != 0;
 }
 
-void EnderCrystalEntity::setBeamTarget(BlockPos pos) {
+void EnderCrystalEntity::setBeamTarget(BlockPos pos)
+{
     m_beamTarget = pos;
 }
 
-void EnderCrystalEntity::healDragon() {
+void EnderCrystalEntity::healDragon()
+{
     // TODO: 找到末影龙并治愈
 }
 
-void EnderCrystalEntity::explode() {
+void EnderCrystalEntity::explode()
+{
     // MC 1.16.5: 末地水晶爆炸
     // 参考: EnderCrystalEntity.attackEntityFrom() line 105
-    // this.world.createExplosion((Entity)null, this.getPosX(), this.getPosY(), this.getPosZ(), 6.0F, Explosion.Mode.DESTROY);
+    // this.world.createExplosion((Entity)null, this.getPosX(), this.getPosY(), this.getPosZ(), 6.0F,
+    // Explosion.Mode.DESTROY);
     IWorld* worldPtr = world();
     if (worldPtr != nullptr) {
         // 爆炸半径 6.0，模式 DESTROY（破坏方块并掉落物品）
-        worldPtr->createExplosion(
-            m_position,
-            6.0f,  // MC 1.16.5: 末地水晶爆炸半径
+        worldPtr->createExplosion(m_position,
+            6.0f, // MC 1.16.5: 末地水晶爆炸半径
             world::explosion::ExplosionMode::Destroy,
             false,  // 不生成火焰
-            nullptr  // 无爆炸源实体
+            nullptr // 无爆炸源实体
         );
     }
     remove();
@@ -85,15 +91,18 @@ LightningBoltEntity::LightningBoltEntity()
     // 闪电总是可见，即使不在视锥内
 }
 
-f32 LightningBoltEntity::width() const {
-    return 0.0f;  // MC 1.16.5: 闪电没有碰撞箱
+f32 LightningBoltEntity::width() const
+{
+    return 0.0f; // MC 1.16.5: 闪电没有碰撞箱
 }
 
-f32 LightningBoltEntity::height() const {
-    return 0.0f;  // MC 1.16.5: 闪电没有碰撞箱
+f32 LightningBoltEntity::height() const
+{
+    return 0.0f; // MC 1.16.5: 闪电没有碰撞箱
 }
 
-void LightningBoltEntity::initializeState() {
+void LightningBoltEntity::initializeState()
+{
     // MC 1.16.5 构造函数中的初始化：
     // lightningState = 2
     // boltVertex = rand.nextLong()
@@ -105,7 +114,7 @@ void LightningBoltEntity::initializeState() {
     if (m_world != nullptr) {
         math::Random rng(static_cast<u64>(m_world->currentTick()) ^ m_world->seed());
         m_boltVertex = rng.nextLong();
-        m_boltLivingTime = rng.nextInt(1, 3);  // 1-3
+        m_boltLivingTime = rng.nextInt(1, 3); // 1-3
     } else {
         // 无世界时使用确定性种子（基于时间）
         math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
@@ -116,7 +125,8 @@ void LightningBoltEntity::initializeState() {
     m_initialized = true;
 }
 
-void LightningBoltEntity::tick() {
+void LightningBoltEntity::tick()
+{
     Entity::tick();
 
     // MC 1.16.5: 首次 tick 初始化状态
@@ -142,23 +152,16 @@ void LightningBoltEntity::tick() {
         if (m_world != nullptr) {
             // 使用 boltVertex 生成一致的随机音调
             f32 thunderPitch = 0.8f + static_cast<f32>(m_boltVertex % 100) / 100.0f * 0.2f;
-            m_world->playSound(
-                SoundEvents::WEATHER_THUNDER,
+            m_world->playSound(SoundEvents::WEATHER_THUNDER,
                 sound::SoundCategory::Weather,
                 m_position,
-                10000.0f,  // MC 1.16.5: 10000 音量（可传很远）
-                thunderPitch
-            );
+                10000.0f, // MC 1.16.5: 10000 音量（可传很远）
+                thunderPitch);
 
             // MC 1.16.5: 播放雷击声音效（音量 2，音调 0.5-0.7）
             f32 impactPitch = 0.5f + static_cast<f32>((m_boltVertex >> 8) % 100) / 100.0f * 0.2f;
             m_world->playSound(
-                SoundEvents::WEATHER_THUNDER,
-                sound::SoundCategory::Weather,
-                m_position,
-                2.0f,
-                impactPitch
-            );
+                SoundEvents::WEATHER_THUNDER, sound::SoundCategory::Weather, m_position, 2.0f, impactPitch);
         }
 
         // MC 1.16.5: 服务端造成伤害（非 effectOnly，非客户端）
@@ -190,7 +193,8 @@ void LightningBoltEntity::tick() {
                 math::Random rng(static_cast<u64>(m_world->currentTick()) ^ m_boltVertex);
                 m_boltVertex = rng.nextLong();
             } else {
-                math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()) ^ m_boltVertex);
+                math::Random rng(
+                    static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()) ^ m_boltVertex);
                 m_boltVertex = rng.nextLong();
             }
 
@@ -200,7 +204,8 @@ void LightningBoltEntity::tick() {
     }
 }
 
-void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
+void LightningBoltEntity::igniteBlocks(i32 extraIgnitions)
+{
     // MC 1.16.5 igniteBlocks():
     // 检查游戏规则 doFireTick 和是否为客户端
     if (m_effectOnly || m_world == nullptr || m_world->isClientSide()) {
@@ -214,8 +219,8 @@ void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
 
     // 获取当前位置
     BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-                      static_cast<i32>(std::floor(m_position.y)),
-                      static_cast<i32>(std::floor(m_position.z)));
+        static_cast<i32>(std::floor(m_position.y)),
+        static_cast<i32>(std::floor(m_position.z)));
 
     // MC 1.16.5: 在当前位置放置火焰
     const BlockState* currentState = m_world->getBlockState(blockPos);
@@ -261,7 +266,8 @@ void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
     }
 }
 
-void LightningBoltEntity::damageEntities() {
+void LightningBoltEntity::damageEntities()
+{
     // MC 1.16.5: 获取 3x6x3 范围内的实体
     // AxisAlignedBB(pos.x - 3, pos.y - 3, pos.z - 3, pos.x + 3, pos.y + 6 + 3, pos.z + 3)
     if (m_world == nullptr || m_effectOnly) {
@@ -270,14 +276,12 @@ void LightningBoltEntity::damageEntities() {
 
     // 构建碰撞箱
     // MC 1.16.5: new AxisAlignedBB(posX - 3.0, posY - 3.0, posZ - 3.0, posX + 3.0, posY + 6.0 + 3.0, posZ + 3.0)
-    AxisAlignedBB box(
-        m_position.x - DAMAGE_RADIUS_XZ,
+    AxisAlignedBB box(m_position.x - DAMAGE_RADIUS_XZ,
         m_position.y - DAMAGE_RADIUS_Y_OFFSET,
         m_position.z - DAMAGE_RADIUS_XZ,
         m_position.x + DAMAGE_RADIUS_XZ,
         m_position.y + DAMAGE_RADIUS_Y + DAMAGE_RADIUS_Y_OFFSET,
-        m_position.z + DAMAGE_RADIUS_XZ
-    );
+        m_position.z + DAMAGE_RADIUS_XZ);
 
     // 获取范围内的实体
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
@@ -310,18 +314,20 @@ void LightningBoltEntity::damageEntities() {
 
 AreaEffectCloudEntity::AreaEffectCloudEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
+{}
+
+f32 AreaEffectCloudEntity::width() const
 {
+    return m_radius * 2.0f; // MC 1.16.5: 实际宽度是半径的两倍
 }
 
-f32 AreaEffectCloudEntity::width() const {
-    return m_radius * 2.0f;  // MC 1.16.5: 实际宽度是半径的两倍
+f32 AreaEffectCloudEntity::height() const
+{
+    return 0.5f; // MC 1.16.5: 药水云高度固定为 0.5
 }
 
-f32 AreaEffectCloudEntity::height() const {
-    return 0.5f;  // MC 1.16.5: 药水云高度固定为 0.5
-}
-
-void AreaEffectCloudEntity::tick() {
+void AreaEffectCloudEntity::tick()
+{
     Entity::tick();
 
     m_ticksLived++;
@@ -343,14 +349,16 @@ void AreaEffectCloudEntity::tick() {
     }
 }
 
-void AreaEffectCloudEntity::applyEffects() {
+void AreaEffectCloudEntity::applyEffects()
+{
     // TODO: 应用效果到范围内的实体
     if (m_durationOnUse > 0) {
         m_duration = std::max(0, m_duration - m_durationOnUse);
     }
 }
 
-void AreaEffectCloudEntity::updateRadius() {
+void AreaEffectCloudEntity::updateRadius()
+{
     m_radius += RADIUS_GROWTH;
     m_radius = std::max(0.5f, m_radius);
 }
@@ -362,18 +370,20 @@ void AreaEffectCloudEntity::updateRadius() {
 
 ArmorStandEntity::ArmorStandEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
+{}
+
+f32 ArmorStandEntity::width() const
 {
+    return m_marker ? 0.0f : 0.5f; // MC 1.16.5: 标记模式无碰撞箱，否则 0.5
 }
 
-f32 ArmorStandEntity::width() const {
-    return m_marker ? 0.0f : 0.5f;  // MC 1.16.5: 标记模式无碰撞箱，否则 0.5
+f32 ArmorStandEntity::height() const
+{
+    return m_marker ? 0.0f : 1.975f; // MC 1.16.5: 标记模式无碰撞箱，否则 1.975
 }
 
-f32 ArmorStandEntity::height() const {
-    return m_marker ? 0.0f : 1.975f;  // MC 1.16.5: 标记模式无碰撞箱，否则 1.975
-}
-
-void ArmorStandEntity::tick() {
+void ArmorStandEntity::tick()
+{
     Entity::tick();
 
     // 如果不是标记模式，应用重力
@@ -390,27 +400,33 @@ void ArmorStandEntity::tick() {
     }
 }
 
-void ArmorStandEntity::setHeadRotation(f32 x, f32 y, f32 z) {
+void ArmorStandEntity::setHeadRotation(f32 x, f32 y, f32 z)
+{
     m_head = {x, y, z};
 }
 
-void ArmorStandEntity::setBodyRotation(f32 x, f32 y, f32 z) {
+void ArmorStandEntity::setBodyRotation(f32 x, f32 y, f32 z)
+{
     m_body = {x, y, z};
 }
 
-void ArmorStandEntity::setLeftArmRotation(f32 x, f32 y, f32 z) {
+void ArmorStandEntity::setLeftArmRotation(f32 x, f32 y, f32 z)
+{
     m_leftArm = {x, y, z};
 }
 
-void ArmorStandEntity::setRightArmRotation(f32 x, f32 y, f32 z) {
+void ArmorStandEntity::setRightArmRotation(f32 x, f32 y, f32 z)
+{
     m_rightArm = {x, y, z};
 }
 
-void ArmorStandEntity::setLeftLegRotation(f32 x, f32 y, f32 z) {
+void ArmorStandEntity::setLeftLegRotation(f32 x, f32 y, f32 z)
+{
     m_leftLeg = {x, y, z};
 }
 
-void ArmorStandEntity::setRightLegRotation(f32 x, f32 y, f32 z) {
+void ArmorStandEntity::setRightLegRotation(f32 x, f32 y, f32 z)
+{
     m_rightLeg = {x, y, z};
 }
 

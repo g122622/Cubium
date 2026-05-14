@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../ParticleTypes.hpp"
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <string>
@@ -66,7 +66,7 @@ public:
  *
  * @tparam T 粒子数据类型
  */
-template<typename T>
+template <typename T>
 class ParticleDataDeserializer {
 public:
     virtual ~ParticleDataDeserializer() = default;

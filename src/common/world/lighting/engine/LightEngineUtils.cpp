@@ -1,9 +1,9 @@
 #include "LightEngineUtils.hpp"
-#include "../../IWorld.hpp"
-#include "../../chunk/IChunk.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../IWorld.hpp"
 #include "../../block/Block.hpp"
 #include "../../chunk/ChunkPos.hpp"
+#include "../../chunk/IChunk.hpp"
 #include <climits>
 
 namespace mc {
@@ -12,30 +12,29 @@ namespace mc {
 constexpr Direction LightEngineUtils::ALL_DIRECTIONS[6];
 constexpr Direction LightEngineUtils::HORIZONTAL_DIRECTIONS[4];
 
-i64 LightEngineUtils::worldToSectionPos(i64 worldPos) {
+i64 LightEngineUtils::worldToSectionPos(i64 worldPos)
+{
     // 使用unpackPos解码坐标，然后转换为SectionPos
     i32 x, y, z;
     unpackPos(worldPos, x, y, z);
     return SectionPos(x >> 4, y >> 4, z >> 4).toLong();
 }
 
-const BlockState* LightEngineUtils::getBlockAndOpacity(
-    const IChunk* chunk,
-    i64 worldPos,
-    i32* opacityOut) {
+const BlockState* LightEngineUtils::getBlockAndOpacity(const IChunk* chunk, i64 worldPos, i32* opacityOut)
+{
 
     if (worldPos == ROOT_POS) {
         if (opacityOut != nullptr) {
             *opacityOut = 0;
         }
-        return nullptr;  // 空气
+        return nullptr; // 空气
     }
 
     if (chunk == nullptr) {
         if (opacityOut != nullptr) {
-            *opacityOut = 15;  // 视为不透明
+            *opacityOut = 15; // 视为不透明
         }
-        return nullptr;  // 基岩
+        return nullptr; // 基岩
     }
 
     i32 x, y, z;
@@ -64,7 +63,8 @@ const BlockState* LightEngineUtils::getBlockAndOpacity(
     return state;
 }
 
-const CollisionShape& LightEngineUtils::getVoxelShape(const BlockState& state) {
+const CollisionShape& LightEngineUtils::getVoxelShape(const BlockState& state)
+{
     // 对于光照，我们只关心方块是否是固体
     if (state.isSolid()) {
         return state.getOcclusionShape();
@@ -72,12 +72,14 @@ const CollisionShape& LightEngineUtils::getVoxelShape(const BlockState& state) {
     return VoxelShapes::empty();
 }
 
-bool LightEngineUtils::facesHaveOcclusion(
-    IWorld* world,
-    const BlockState& stateA, const BlockPos& posA,
-    const BlockState& stateB, const BlockPos& posB,
+bool LightEngineUtils::facesHaveOcclusion(IWorld* world,
+    const BlockState& stateA,
+    const BlockPos& posA,
+    const BlockState& stateB,
+    const BlockPos& posB,
     Direction dir,
-    i32 opacityA) {
+    i32 opacityA)
+{
     // 如果任一方块是空气，则无遮挡
     if (stateA.isAir() || stateB.isAir()) {
         return false;
@@ -103,8 +105,7 @@ bool LightEngineUtils::facesHaveOcclusion(
         // 对于非完整方块，检查面遮挡
         Direction oppositeDir = Directions::opposite(dir);
 
-        if (shapeFullyOccludesFace(shapeA, dir) &&
-            shapeFullyOccludesFace(shapeB, oppositeDir)) {
+        if (shapeFullyOccludesFace(shapeA, dir) && shapeFullyOccludesFace(shapeB, oppositeDir)) {
             return true;
         }
     }
@@ -114,7 +115,8 @@ bool LightEngineUtils::facesHaveOcclusion(
     return false;
 }
 
-bool LightEngineUtils::blocksLightInDirection(const BlockState& state, Direction dir) {
+bool LightEngineUtils::blocksLightInDirection(const BlockState& state, Direction dir)
+{
     if (state.isAir()) {
         return false;
     }
@@ -133,9 +135,8 @@ bool LightEngineUtils::blocksLightInDirection(const BlockState& state, Direction
     return shapeFullyOccludesFace(shape, dir);
 }
 
-bool LightEngineUtils::shapeFullyOccludesFace(
-    const CollisionShape& shape,
-    Direction face) {
+bool LightEngineUtils::shapeFullyOccludesFace(const CollisionShape& shape, Direction face)
+{
     if (shape.isEmpty()) {
         return false;
     }
@@ -152,62 +153,50 @@ bool LightEngineUtils::shapeFullyOccludesFace(
     // 使用简化的判断：检查所有盒的并集是否覆盖整个面
     // 这不是完全准确的，但对于大多数情况足够
     switch (face) {
-        case Direction::Down:   // Y = 0 面
+        case Direction::Down: // Y = 0 面
             // 检查是否有盒子的 minY == 0 且在该面上完全覆盖
             for (const auto& box : boxes) {
-                if (box.minY <= 0.0f &&
-                    box.minX <= 0.0f && box.maxX >= 1.0f &&
-                    box.minZ <= 0.0f && box.maxZ >= 1.0f) {
+                if (box.minY <= 0.0f && box.minX <= 0.0f && box.maxX >= 1.0f && box.minZ <= 0.0f && box.maxZ >= 1.0f) {
                     return true;
                 }
             }
             break;
 
-        case Direction::Up:     // Y = 1 面
+        case Direction::Up: // Y = 1 面
             for (const auto& box : boxes) {
-                if (box.maxY >= 1.0f &&
-                    box.minX <= 0.0f && box.maxX >= 1.0f &&
-                    box.minZ <= 0.0f && box.maxZ >= 1.0f) {
+                if (box.maxY >= 1.0f && box.minX <= 0.0f && box.maxX >= 1.0f && box.minZ <= 0.0f && box.maxZ >= 1.0f) {
                     return true;
                 }
             }
             break;
 
-        case Direction::North:  // Z = 0 面
+        case Direction::North: // Z = 0 面
             for (const auto& box : boxes) {
-                if (box.minZ <= 0.0f &&
-                    box.minX <= 0.0f && box.maxX >= 1.0f &&
-                    box.minY <= 0.0f && box.maxY >= 1.0f) {
+                if (box.minZ <= 0.0f && box.minX <= 0.0f && box.maxX >= 1.0f && box.minY <= 0.0f && box.maxY >= 1.0f) {
                     return true;
                 }
             }
             break;
 
-        case Direction::South:  // Z = 1 面
+        case Direction::South: // Z = 1 面
             for (const auto& box : boxes) {
-                if (box.maxZ >= 1.0f &&
-                    box.minX <= 0.0f && box.maxX >= 1.0f &&
-                    box.minY <= 0.0f && box.maxY >= 1.0f) {
+                if (box.maxZ >= 1.0f && box.minX <= 0.0f && box.maxX >= 1.0f && box.minY <= 0.0f && box.maxY >= 1.0f) {
                     return true;
                 }
             }
             break;
 
-        case Direction::West:   // X = 0 面
+        case Direction::West: // X = 0 面
             for (const auto& box : boxes) {
-                if (box.minX <= 0.0f &&
-                    box.minY <= 0.0f && box.maxY >= 1.0f &&
-                    box.minZ <= 0.0f && box.maxZ >= 1.0f) {
+                if (box.minX <= 0.0f && box.minY <= 0.0f && box.maxY >= 1.0f && box.minZ <= 0.0f && box.maxZ >= 1.0f) {
                     return true;
                 }
             }
             break;
 
-        case Direction::East:   // X = 1 面
+        case Direction::East: // X = 1 面
             for (const auto& box : boxes) {
-                if (box.maxX >= 1.0f &&
-                    box.minY <= 0.0f && box.maxY >= 1.0f &&
-                    box.minZ <= 0.0f && box.maxZ >= 1.0f) {
+                if (box.maxX >= 1.0f && box.minY <= 0.0f && box.maxY >= 1.0f && box.minZ <= 0.0f && box.maxZ >= 1.0f) {
                     return true;
                 }
             }

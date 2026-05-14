@@ -1,14 +1,14 @@
 #include "VillagerGoals.hpp"
-#include "../../../../entities/villager/VillagerEntity.hpp"
-#include "../../../../core/EntityUtils.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../GoalConstants.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../core/EntityUtils.hpp"
+#include "../../../../core/LivingEntity.hpp"
+#include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/villager/VillagerEntity.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
+#include "../../GoalConstants.hpp"
 #include <cmath>
 
 namespace mc {
@@ -33,7 +33,8 @@ namespace {
  * 夜间时间: 12542-23459 (黄昏到黎明)
  * 参考 MC 1.16.5 时间系统
  */
-[[nodiscard]] bool isNightTime(i64 dayTime) {
+[[nodiscard]] bool isNightTime(i64 dayTime)
+{
     return dayTime >= 12542 && dayTime <= 23459;
 }
 
@@ -45,7 +46,8 @@ namespace {
  * 工作时间: 2000-9000 (MC时间)
  * 参考 MC 1.16.5 Schedule
  */
-[[nodiscard]] bool isWorkTime(i64 dayTime) {
+[[nodiscard]] bool isWorkTime(i64 dayTime)
+{
     return dayTime >= 2000 && dayTime <= 9000;
 }
 
@@ -55,7 +57,8 @@ namespace {
  * @param pos 方块位置
  * @return 距离平方（使用方块中心点）
  */
-[[nodiscard]] f32 distanceToBlockCenter(const Entity* entity, const BlockPos& pos) {
+[[nodiscard]] f32 distanceToBlockCenter(const Entity* entity, const BlockPos& pos)
+{
     if (!entity) return std::numeric_limits<f32>::max();
     return entity->distanceSqTo(pos.x + 0.5f, static_cast<f32>(pos.y), pos.z + 0.5f);
 }
@@ -67,7 +70,8 @@ namespace {
  * @param maxDistance 最大距离
  * @return 是否在范围内
  */
-[[nodiscard]] bool isWithinDistance(const Entity* entity, const BlockPos& pos, f32 maxDistance) {
+[[nodiscard]] bool isWithinDistance(const Entity* entity, const BlockPos& pos, f32 maxDistance)
+{
     f32 distSq = distanceToBlockCenter(entity, pos);
     return distSq < maxDistance * maxDistance;
 }
@@ -84,7 +88,8 @@ SleepAtNightGoal::SleepAtNightGoal(VillagerEntity* villager)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool SleepAtNightGoal::shouldExecute() {
+bool SleepAtNightGoal::shouldExecute()
+{
     if (!m_villager) return false;
 
     // 检查是否是夜间
@@ -99,7 +104,8 @@ bool SleepAtNightGoal::shouldExecute() {
     return true;
 }
 
-bool SleepAtNightGoal::shouldContinueExecuting() {
+bool SleepAtNightGoal::shouldContinueExecuting()
+{
     if (!m_villager) return false;
 
     // 继续执行直到天亮或床位不可用
@@ -109,13 +115,15 @@ bool SleepAtNightGoal::shouldContinueExecuting() {
     return m_sleeping || m_trySleepTicks < MAX_TRY_SLEEP_TICKS;
 }
 
-void SleepAtNightGoal::startExecuting() {
+void SleepAtNightGoal::startExecuting()
+{
     m_sleeping = false;
     m_trySleepTicks = 0;
     moveToBed();
 }
 
-void SleepAtNightGoal::resetTask() {
+void SleepAtNightGoal::resetTask()
+{
     m_sleeping = false;
     m_trySleepTicks = 0;
     m_bedPos = BlockPos::zero();
@@ -126,7 +134,8 @@ void SleepAtNightGoal::resetTask() {
     }
 }
 
-void SleepAtNightGoal::tick() {
+void SleepAtNightGoal::tick()
+{
     if (!m_villager) return;
 
     m_trySleepTicks++;
@@ -140,12 +149,14 @@ void SleepAtNightGoal::tick() {
     }
 }
 
-bool SleepAtNightGoal::isNightTime() const {
+bool SleepAtNightGoal::isNightTime() const
+{
     if (!m_villager || !m_villager->world()) return false;
     return villager::isNightTime(m_villager->world()->dayTime());
 }
 
-std::optional<BlockPos> SleepAtNightGoal::findNearestBed() const {
+std::optional<BlockPos> SleepAtNightGoal::findNearestBed() const
+{
     if (!m_villager || !m_villager->world()) return std::nullopt;
 
     // TODO: 集成POI系统查询床位
@@ -153,13 +164,15 @@ std::optional<BlockPos> SleepAtNightGoal::findNearestBed() const {
     return std::nullopt;
 }
 
-void SleepAtNightGoal::moveToBed() {
+void SleepAtNightGoal::moveToBed()
+{
     if (!m_villager) return;
 
     m_villager->tryMoveTo(m_bedPos.x + 0.5, m_bedPos.y, m_bedPos.z + 0.5, 0.5);
 }
 
-void SleepAtNightGoal::trySleep() {
+void SleepAtNightGoal::trySleep()
+{
     if (!m_villager) return;
 
     // TODO: 设置村民睡眠状态
@@ -177,7 +190,8 @@ WorkAtJobSiteGoal::WorkAtJobSiteGoal(VillagerEntity* villager)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool WorkAtJobSiteGoal::shouldExecute() {
+bool WorkAtJobSiteGoal::shouldExecute()
+{
     if (!m_villager) return false;
 
     // 傻子村民不工作
@@ -190,7 +204,8 @@ bool WorkAtJobSiteGoal::shouldExecute() {
     return hasJobSite();
 }
 
-bool WorkAtJobSiteGoal::shouldContinueExecuting() {
+bool WorkAtJobSiteGoal::shouldContinueExecuting()
+{
     if (!m_villager) return false;
 
     // 继续工作的条件
@@ -201,13 +216,15 @@ bool WorkAtJobSiteGoal::shouldContinueExecuting() {
     return m_workTicks < WORK_TICKS_MAX;
 }
 
-void WorkAtJobSiteGoal::startExecuting() {
+void WorkAtJobSiteGoal::startExecuting()
+{
     m_workTicks = 0;
     m_atJobSite = false;
     moveToJobSite();
 }
 
-void WorkAtJobSiteGoal::resetTask() {
+void WorkAtJobSiteGoal::resetTask()
+{
     m_workTicks = 0;
     m_atJobSite = false;
 
@@ -218,7 +235,8 @@ void WorkAtJobSiteGoal::resetTask() {
     }
 }
 
-void WorkAtJobSiteGoal::tick() {
+void WorkAtJobSiteGoal::tick()
+{
     if (!m_villager) return;
 
     m_workTicks++;
@@ -240,24 +258,28 @@ void WorkAtJobSiteGoal::tick() {
     }
 }
 
-bool WorkAtJobSiteGoal::isWorkTime() const {
+bool WorkAtJobSiteGoal::isWorkTime() const
+{
     if (!m_villager || !m_villager->world()) return false;
     return villager::isWorkTime(m_villager->world()->dayTime());
 }
 
-bool WorkAtJobSiteGoal::hasJobSite() const {
+bool WorkAtJobSiteGoal::hasJobSite() const
+{
     if (!m_villager) return false;
     return m_villager->workStation() != BlockPos::zero();
 }
 
-void WorkAtJobSiteGoal::moveToJobSite() {
+void WorkAtJobSiteGoal::moveToJobSite()
+{
     if (!m_villager) return;
 
     BlockPos workPos = m_villager->workStation();
     m_villager->tryMoveTo(workPos.x + 0.5, workPos.y, workPos.z + 0.5, 0.4);
 }
 
-void WorkAtJobSiteGoal::doWork() {
+void WorkAtJobSiteGoal::doWork()
+{
     if (!m_villager) return;
 
     // 设置工作状态
@@ -269,7 +291,8 @@ void WorkAtJobSiteGoal::doWork() {
     }
 }
 
-bool WorkAtJobSiteGoal::needsRestock() const {
+bool WorkAtJobSiteGoal::needsRestock() const
+{
     if (!m_villager) return false;
 
     // 检查交易是否需要补货
@@ -277,7 +300,8 @@ bool WorkAtJobSiteGoal::needsRestock() const {
     return false;
 }
 
-void WorkAtJobSiteGoal::restock() {
+void WorkAtJobSiteGoal::restock()
+{
     if (!m_villager) return;
 
     m_villager->restockTrades();
@@ -293,7 +317,8 @@ LookForJobSiteGoal::LookForJobSiteGoal(VillagerEntity* villager)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-bool LookForJobSiteGoal::shouldExecute() {
+bool LookForJobSiteGoal::shouldExecute()
+{
     if (!m_villager) return false;
 
     // 已有工作站点的不需要寻找
@@ -308,20 +333,23 @@ bool LookForJobSiteGoal::shouldExecute() {
     return true;
 }
 
-bool LookForJobSiteGoal::shouldContinueExecuting() {
+bool LookForJobSiteGoal::shouldContinueExecuting()
+{
     if (!m_villager) return false;
 
     // 找到工作站点或超时
     return !m_targetSite.has_value() && m_searchCooldown < SEARCH_COOLDOWN;
 }
 
-void LookForJobSiteGoal::startExecuting() {
+void LookForJobSiteGoal::startExecuting()
+{
     m_targetSite = std::nullopt;
     m_searchCooldown = 0;
     searchForJobSite();
 }
 
-void LookForJobSiteGoal::resetTask() {
+void LookForJobSiteGoal::resetTask()
+{
     m_targetSite = std::nullopt;
     m_searchCooldown = SEARCH_COOLDOWN;
 
@@ -330,7 +358,8 @@ void LookForJobSiteGoal::resetTask() {
     }
 }
 
-void LookForJobSiteGoal::tick() {
+void LookForJobSiteGoal::tick()
+{
     if (!m_villager) return;
 
     m_searchCooldown++;
@@ -349,7 +378,8 @@ void LookForJobSiteGoal::tick() {
     }
 }
 
-void LookForJobSiteGoal::searchForJobSite() {
+void LookForJobSiteGoal::searchForJobSite()
+{
     if (!m_villager || !m_villager->world()) return;
 
     // TODO: 集成POI系统搜索工作站点
@@ -368,7 +398,8 @@ GatherItemsGoal::GatherItemsGoal(VillagerEntity* villager)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-bool GatherItemsGoal::shouldExecute() {
+bool GatherItemsGoal::shouldExecute()
+{
     if (!m_villager) return false;
 
     // 查找附近的物品
@@ -376,7 +407,8 @@ bool GatherItemsGoal::shouldExecute() {
     return m_targetItem != 0;
 }
 
-bool GatherItemsGoal::shouldContinueExecuting() {
+bool GatherItemsGoal::shouldContinueExecuting()
+{
     if (!m_villager) return false;
 
     // 物品已被拾取或消失
@@ -387,18 +419,21 @@ bool GatherItemsGoal::shouldContinueExecuting() {
     return true;
 }
 
-void GatherItemsGoal::startExecuting() {
+void GatherItemsGoal::startExecuting()
+{
     // 已在shouldExecute中找到目标
 }
 
-void GatherItemsGoal::resetTask() {
+void GatherItemsGoal::resetTask()
+{
     m_targetItem = 0;
     if (m_villager) {
         m_villager->clearNavigation();
     }
 }
 
-void GatherItemsGoal::tick() {
+void GatherItemsGoal::tick()
+{
     if (!m_villager || m_targetItem == 0) return;
 
     // 移动到物品
@@ -408,7 +443,8 @@ void GatherItemsGoal::tick() {
     pickupItem();
 }
 
-void GatherItemsGoal::findNearbyItems() {
+void GatherItemsGoal::findNearbyItems()
+{
     if (!m_villager || !m_villager->world()) return;
 
     // TODO: 搜索附近的物品实体
@@ -416,13 +452,15 @@ void GatherItemsGoal::findNearbyItems() {
     m_targetItem = 0;
 }
 
-void GatherItemsGoal::moveToItem() {
+void GatherItemsGoal::moveToItem()
+{
     if (!m_villager || m_targetItem == 0) return;
 
     // TODO: 获取物品位置并移动
 }
 
-void GatherItemsGoal::pickupItem() {
+void GatherItemsGoal::pickupItem()
+{
     if (!m_villager || m_targetItem == 0) return;
 
     // TODO: 拾取物品
@@ -436,10 +474,10 @@ void GatherItemsGoal::pickupItem() {
 FarmerWorkGoal::FarmerWorkGoal(VillagerEntity* villager)
     : WorkAtJobSiteGoal(villager)
     , m_farmerWorkTicks(0)
-{
-}
+{}
 
-void FarmerWorkGoal::tick() {
+void FarmerWorkGoal::tick()
+{
     if (!m_villager) return;
 
     m_farmerWorkTicks++;
@@ -460,32 +498,37 @@ void FarmerWorkGoal::tick() {
     }
 }
 
-void FarmerWorkGoal::tryHarvest() {
+void FarmerWorkGoal::tryHarvest()
+{
     if (!m_villager || !m_villager->world()) return;
 
     // TODO: 查找成熟作物并收获
 }
 
-void FarmerWorkGoal::tryPlant() {
+void FarmerWorkGoal::tryPlant()
+{
     if (!m_villager || !m_villager->world()) return;
 
     // TODO: 在农田上种植作物
 }
 
-void FarmerWorkGoal::tryCompost() {
+void FarmerWorkGoal::tryCompost()
+{
     if (!m_villager) return;
 
     // TODO: 使用堆肥桶
 }
 
-std::optional<BlockPos> FarmerWorkGoal::findFarmland() const {
+std::optional<BlockPos> FarmerWorkGoal::findFarmland() const
+{
     if (!m_villager || !m_villager->world()) return std::nullopt;
 
     // TODO: 搜索附近的农田
     return std::nullopt;
 }
 
-bool FarmerWorkGoal::isCropMature(BlockPos pos) const {
+bool FarmerWorkGoal::isCropMature(BlockPos pos) const
+{
     if (!m_villager || !m_villager->world()) return false;
 
     // TODO: 检查作物是否成熟
@@ -493,7 +536,8 @@ bool FarmerWorkGoal::isCropMature(BlockPos pos) const {
     return false;
 }
 
-bool FarmerWorkGoal::canPlant(BlockPos pos) const {
+bool FarmerWorkGoal::canPlant(BlockPos pos) const
+{
     if (!m_villager || !m_villager->world()) return false;
 
     // TODO: 检查是否可以种植
@@ -512,7 +556,8 @@ AvoidHostileGoal::AvoidHostileGoal(VillagerEntity* villager)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-bool AvoidHostileGoal::shouldExecute() {
+bool AvoidHostileGoal::shouldExecute()
+{
     if (!m_villager) return false;
 
     // 查找附近的敌对生物
@@ -520,7 +565,8 @@ bool AvoidHostileGoal::shouldExecute() {
     return m_hostileEntity != 0;
 }
 
-bool AvoidHostileGoal::shouldContinueExecuting() {
+bool AvoidHostileGoal::shouldContinueExecuting()
+{
     if (!m_villager) return false;
 
     // 敌对生物消失或距离足够远
@@ -530,11 +576,13 @@ bool AvoidHostileGoal::shouldContinueExecuting() {
     return true;
 }
 
-void AvoidHostileGoal::startExecuting() {
+void AvoidHostileGoal::startExecuting()
+{
     fleeFromHostile();
 }
 
-void AvoidHostileGoal::resetTask() {
+void AvoidHostileGoal::resetTask()
+{
     m_hostileEntity = 0;
     m_fleeTarget = BlockPos::zero();
 
@@ -543,14 +591,16 @@ void AvoidHostileGoal::resetTask() {
     }
 }
 
-void AvoidHostileGoal::tick() {
+void AvoidHostileGoal::tick()
+{
     if (!m_villager || m_hostileEntity == 0) return;
 
     // 继续逃跑
     fleeFromHostile();
 }
 
-void AvoidHostileGoal::findNearestHostile() {
+void AvoidHostileGoal::findNearestHostile()
+{
     if (!m_villager || !m_villager->world()) return;
 
     // TODO: 搜索附近的敌对生物（僵尸、掠夺者等）
@@ -558,7 +608,8 @@ void AvoidHostileGoal::findNearestHostile() {
     m_hostileEntity = 0;
 }
 
-void AvoidHostileGoal::fleeFromHostile() {
+void AvoidHostileGoal::fleeFromHostile()
+{
     if (!m_villager || m_hostileEntity == 0) return;
 
     // 计算逃跑方向
@@ -586,7 +637,8 @@ GoToBedGoal::GoToBedGoal(VillagerEntity* villager)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-bool GoToBedGoal::shouldExecute() {
+bool GoToBedGoal::shouldExecute()
+{
     if (!m_villager) return false;
 
     // 检查是否是夜间
@@ -597,13 +649,15 @@ bool GoToBedGoal::shouldExecute() {
     return false;
 }
 
-bool GoToBedGoal::shouldContinueExecuting() {
+bool GoToBedGoal::shouldContinueExecuting()
+{
     if (!m_villager) return false;
 
     return !m_reachedBed;
 }
 
-void GoToBedGoal::startExecuting() {
+void GoToBedGoal::startExecuting()
+{
     m_reachedBed = false;
 
     if (m_villager && m_bedPos != BlockPos::zero()) {
@@ -611,7 +665,8 @@ void GoToBedGoal::startExecuting() {
     }
 }
 
-void GoToBedGoal::resetTask() {
+void GoToBedGoal::resetTask()
+{
     m_reachedBed = false;
     m_bedPos = BlockPos::zero();
 
@@ -620,7 +675,8 @@ void GoToBedGoal::resetTask() {
     }
 }
 
-void GoToBedGoal::tick() {
+void GoToBedGoal::tick()
+{
     if (!m_villager) return;
 
     if (m_bedPos == BlockPos::zero()) return;
@@ -646,7 +702,8 @@ VillagerBreedGoal::VillagerBreedGoal(VillagerEntity* villager)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool VillagerBreedGoal::shouldExecute() {
+bool VillagerBreedGoal::shouldExecute()
+{
     if (!m_villager) return false;
 
     // 检查是否愿意繁殖
@@ -660,7 +717,8 @@ bool VillagerBreedGoal::shouldExecute() {
     return m_partnerId != 0;
 }
 
-bool VillagerBreedGoal::shouldContinueExecuting() {
+bool VillagerBreedGoal::shouldContinueExecuting()
+{
     if (!m_villager) return false;
 
     // 配偶消失或不再愿意繁殖
@@ -670,11 +728,13 @@ bool VillagerBreedGoal::shouldContinueExecuting() {
     return m_breedTicks < BREED_TICKS;
 }
 
-void VillagerBreedGoal::startExecuting() {
+void VillagerBreedGoal::startExecuting()
+{
     m_breedTicks = 0;
 }
 
-void VillagerBreedGoal::resetTask() {
+void VillagerBreedGoal::resetTask()
+{
     m_partnerId = 0;
     m_breedTicks = 0;
 
@@ -685,7 +745,8 @@ void VillagerBreedGoal::resetTask() {
     }
 }
 
-void VillagerBreedGoal::tick() {
+void VillagerBreedGoal::tick()
+{
     if (!m_villager || m_partnerId == 0) return;
 
     m_breedTicks++;
@@ -700,7 +761,8 @@ void VillagerBreedGoal::tick() {
     }
 }
 
-bool VillagerBreedGoal::hasEnoughBeds() const {
+bool VillagerBreedGoal::hasEnoughBeds() const
+{
     if (!m_villager) return false;
 
     // TODO: 检查村庄中是否有足够的床位
@@ -708,26 +770,30 @@ bool VillagerBreedGoal::hasEnoughBeds() const {
     return true;
 }
 
-bool VillagerBreedGoal::isWillingToBreed() const {
+bool VillagerBreedGoal::isWillingToBreed() const
+{
     if (!m_villager) return false;
 
     return m_villager->isWillingToBreed();
 }
 
-void VillagerBreedGoal::findPartner() {
+void VillagerBreedGoal::findPartner()
+{
     if (!m_villager || !m_villager->world()) return;
 
     // TODO: 搜索附近愿意繁殖的村民
     m_partnerId = 0;
 }
 
-void VillagerBreedGoal::moveToPartner() {
+void VillagerBreedGoal::moveToPartner()
+{
     if (!m_villager || m_partnerId == 0) return;
 
     // TODO: 获取配偶位置并移动
 }
 
-void VillagerBreedGoal::spawnChild() {
+void VillagerBreedGoal::spawnChild()
+{
     if (!m_villager) return;
 
     // 生成幼年村民

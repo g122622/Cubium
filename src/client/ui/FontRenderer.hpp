@@ -4,8 +4,8 @@
 #include "Glyph.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace mc::client {
 
@@ -148,8 +148,7 @@ private:
     /**
      * @brief 添加装饰效果（删除线、下划线）
      */
-    void addDecoration(f32 x, f32 y, f32 width, u32 color,
-                       bool strikethrough, bool underline);
+    void addDecoration(f32 x, f32 y, f32 width, u32 color, bool strikethrough, bool underline);
 
     /**
      * @brief 从UTF-8字符串解码码点
@@ -173,12 +172,12 @@ private:
     f32 addTextComponent(const text::ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle);
 
     Font* m_font = nullptr;
-    std::vector<GuiVertex> m_vertices;   // 顶点缓冲
-    std::vector<u32> m_indices;          // 索引缓冲
-    f32 m_currentX = 0.0f;               // 当前X位置
-    f32 m_currentY = 0.0f;               // 当前Y位置
-    f32 m_scale = 1.0f;                  // 缩放因子
-    bool m_inBatch = false;              // 是否在批次中
+    std::vector<GuiVertex> m_vertices; // 顶点缓冲
+    std::vector<u32> m_indices;        // 索引缓冲
+    f32 m_currentX = 0.0f;             // 当前X位置
+    f32 m_currentY = 0.0f;             // 当前Y位置
+    f32 m_scale = 1.0f;                // 缩放因子
+    bool m_inBatch = false;            // 是否在批次中
 };
 
 } // namespace mc::client

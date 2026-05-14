@@ -40,16 +40,18 @@ public:
     std::unique_ptr<::perfetto::TracingSession> tracingSession;
 };
 
-PerfettoManager& PerfettoManager::instance() {
+PerfettoManager& PerfettoManager::instance()
+{
     static PerfettoManager instance;
     return instance;
 }
 
 PerfettoManager::PerfettoManager()
-    : m_impl(std::make_unique<Impl>()) {
-}
+    : m_impl(std::make_unique<Impl>())
+{}
 
-PerfettoManager::~PerfettoManager() {
+PerfettoManager::~PerfettoManager()
+{
     if (m_initialized && m_tracing) {
         stopTracing();
     }
@@ -58,7 +60,8 @@ PerfettoManager::~PerfettoManager() {
     }
 }
 
-void PerfettoManager::initialize(const TraceConfig& config) {
+void PerfettoManager::initialize(const TraceConfig& config)
+{
     if (m_initialized) {
         spdlog::warn("[Perfetto] Already initialized, skipping");
         return;
@@ -79,7 +82,8 @@ void PerfettoManager::initialize(const TraceConfig& config) {
     spdlog::info("[Perfetto] Output file: {}", m_config.outputPath);
 }
 
-void PerfettoManager::shutdown() {
+void PerfettoManager::shutdown()
+{
     if (!m_initialized) {
         return;
     }
@@ -92,7 +96,8 @@ void PerfettoManager::shutdown() {
     spdlog::info("[Perfetto] Shutdown complete");
 }
 
-void PerfettoManager::startTracing() {
+void PerfettoManager::startTracing()
+{
     if (!m_initialized) {
         spdlog::error("[Perfetto] Cannot start tracing: not initialized");
         return;
@@ -140,7 +145,8 @@ void PerfettoManager::startTracing() {
     spdlog::info("[Perfetto] Output will be written to: {}", m_config.outputPath);
 }
 
-void PerfettoManager::stopTracing() {
+void PerfettoManager::stopTracing()
+{
     if (!m_initialized || !m_tracing) {
         return;
     }
@@ -163,8 +169,7 @@ void PerfettoManager::stopTracing() {
             if (output.is_open()) {
                 output.write(trace_data.data(), trace_data.size());
                 output.close();
-                spdlog::info("[Perfetto] Trace written to: {} ({} bytes)",
-                             m_config.outputPath, trace_data.size());
+                spdlog::info("[Perfetto] Trace written to: {} ({} bytes)", m_config.outputPath, trace_data.size());
             } else {
                 spdlog::error("[Perfetto] Failed to open output file: {}", m_config.outputPath);
             }
@@ -179,7 +184,8 @@ void PerfettoManager::stopTracing() {
     spdlog::info("[Perfetto] Tracing stopped");
 }
 
-void PerfettoManager::flush() {
+void PerfettoManager::flush()
+{
     if (!m_initialized || !m_tracing) {
         return;
     }
@@ -188,32 +194,33 @@ void PerfettoManager::flush() {
     spdlog::debug("[Perfetto] Flushed");
 }
 
-bool PerfettoManager::isEnabled() const {
+bool PerfettoManager::isEnabled() const
+{
     return m_initialized && m_enabled && m_tracing;
 }
 
-void PerfettoManager::setProcessName(const std::string& name) {
+void PerfettoManager::setProcessName(const std::string& name)
+{
     if (!m_initialized) {
         return;
     }
 
     auto desc = ::perfetto::ProcessTrack::Current().Serialize();
     desc.mutable_process()->set_process_name(name);
-    ::perfetto::TrackEvent::SetTrackDescriptor(
-        ::perfetto::ProcessTrack::Current(), desc);
+    ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ProcessTrack::Current(), desc);
 
     spdlog::debug("[Perfetto] Process name set to: {}", name);
 }
 
-void PerfettoManager::setThreadName(const std::string& name) {
+void PerfettoManager::setThreadName(const std::string& name)
+{
     if (!m_initialized) {
         return;
     }
 
     auto desc = ::perfetto::ThreadTrack::Current().Serialize();
     desc.mutable_thread()->set_thread_name(name);
-    ::perfetto::TrackEvent::SetTrackDescriptor(
-        ::perfetto::ThreadTrack::Current(), desc);
+    ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), desc);
 
     spdlog::debug("[Perfetto] Thread name set to: {}", name);
 }

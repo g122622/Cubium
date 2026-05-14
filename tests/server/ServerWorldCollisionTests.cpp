@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
-#include "server/world/ServerWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
-#include "common/core/Constants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "server/world/ServerWorld.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::server;
@@ -14,7 +14,8 @@ using namespace mc::server;
 
 class ServerWorldCollisionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
 
@@ -29,7 +30,8 @@ protected:
         ASSERT_TRUE(result.success()) << "Failed to initialize world";
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         world->shutdown();
         world.reset();
     }
@@ -39,7 +41,8 @@ protected:
 
 // ========== 物理引擎测试 ==========
 
-TEST_F(ServerWorldCollisionTest, PhysicsEngineInitialized) {
+TEST_F(ServerWorldCollisionTest, PhysicsEngineInitialized)
+{
     // 验证物理引擎已初始化
     PhysicsEngine* physics = world->physicsEngine();
     ASSERT_NE(physics, nullptr);
@@ -48,14 +51,16 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineInitialized) {
     EXPECT_NE(constPhysics, nullptr);
 }
 
-TEST_F(ServerWorldCollisionTest, CollisionCacheInitialized) {
+TEST_F(ServerWorldCollisionTest, CollisionCacheInitialized)
+{
     // 验证碰撞缓存已初始化
     EXPECT_NO_THROW(world->clearCollisionCache());
 }
 
 // ========== 方块碰撞检测测试 ==========
 
-TEST_F(ServerWorldCollisionTest, HasBlockCollisionEmptyWorld) {
+TEST_F(ServerWorldCollisionTest, HasBlockCollisionEmptyWorld)
+{
     // 在空区域（无区块）检测碰撞
     AxisAlignedBB box(1000.0f, 60.0f, 1000.0f, 1001.0f, 61.0f, 1001.0f);
 
@@ -63,7 +68,8 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionEmptyWorld) {
     EXPECT_FALSE(world->hasBlockCollision(box));
 }
 
-TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithAir) {
+TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithAir)
+{
     // 生成一个区块
     ChunkData* chunk = world->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -74,7 +80,8 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithAir) {
     EXPECT_FALSE(world->hasBlockCollision(box));
 }
 
-TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithGround) {
+TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithGround)
+{
     // 生成一个区块
     ChunkData* chunk = world->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -95,13 +102,13 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithGround) {
 
     if (foundGround) {
         // 在地面位置检测碰撞
-        AxisAlignedBB box(8.0f, static_cast<f32>(groundY), 8.0f,
-                          9.0f, static_cast<f32>(groundY + 1), 9.0f);
+        AxisAlignedBB box(8.0f, static_cast<f32>(groundY), 8.0f, 9.0f, static_cast<f32>(groundY + 1), 9.0f);
         EXPECT_TRUE(world->hasBlockCollision(box));
     }
 }
 
-TEST_F(ServerWorldCollisionTest, GetBlockCollisionsEmptyArea) {
+TEST_F(ServerWorldCollisionTest, GetBlockCollisionsEmptyArea)
+{
     // 在空区域获取碰撞箱
     AxisAlignedBB box(1000.0f, 60.0f, 1000.0f, 1001.0f, 61.0f, 1001.0f);
 
@@ -111,14 +118,16 @@ TEST_F(ServerWorldCollisionTest, GetBlockCollisionsEmptyArea) {
 
 // ========== 实体碰撞检测测试 ==========
 
-TEST_F(ServerWorldCollisionTest, HasEntityCollisionNoEntities) {
+TEST_F(ServerWorldCollisionTest, HasEntityCollisionNoEntities)
+{
     AxisAlignedBB box(0.0f, 0.0f, 0.0f, 10.0f, 10.0f, 10.0f);
 
     // 无实体时应该无碰撞
     EXPECT_FALSE(world->hasEntityCollision(box));
 }
 
-TEST_F(ServerWorldCollisionTest, HasEntityCollisionWithEntity) {
+TEST_F(ServerWorldCollisionTest, HasEntityCollisionWithEntity)
+{
     // 创建实体
     auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
     entity->setPosition(5.0f, 5.0f, 5.0f);
@@ -135,7 +144,8 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionWithEntity) {
     EXPECT_FALSE(world->hasEntityCollision(farBox));
 }
 
-TEST_F(ServerWorldCollisionTest, HasEntityCollisionExceptSelf) {
+TEST_F(ServerWorldCollisionTest, HasEntityCollisionExceptSelf)
+{
     // 创建实体
     auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
     entity->setPosition(5.0f, 5.0f, 5.0f);
@@ -151,7 +161,8 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionExceptSelf) {
     EXPECT_FALSE(world->hasEntityCollision(box, spawnedEntity));
 }
 
-TEST_F(ServerWorldCollisionTest, GetEntityCollisions) {
+TEST_F(ServerWorldCollisionTest, GetEntityCollisions)
+{
     // 创建多个实体
     auto entity1 = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
     entity1->setPosition(5.0f, 5.0f, 5.0f);
@@ -170,7 +181,8 @@ TEST_F(ServerWorldCollisionTest, GetEntityCollisions) {
 
 // ========== 物理引擎集成测试 ==========
 
-TEST_F(ServerWorldCollisionTest, PhysicsEngineMoveEntity) {
+TEST_F(ServerWorldCollisionTest, PhysicsEngineMoveEntity)
+{
     PhysicsEngine* physics = world->physicsEngine();
     ASSERT_NE(physics, nullptr);
 
@@ -184,7 +196,8 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineMoveEntity) {
     EXPECT_NEAR(movement.x, 1.0f, 0.001f);
 }
 
-TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround) {
+TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround)
+{
     PhysicsEngine* physics = world->physicsEngine();
     ASSERT_NE(physics, nullptr);
 
@@ -207,21 +220,21 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround) {
 
     if (foundGround) {
         // 紧贴地面的碰撞箱应该检测到地面
-        AxisAlignedBB groundBox(8.0f, static_cast<f32>(groundY + 0.01f), 8.0f,
-                                8.6f, static_cast<f32>(groundY + 1.81f), 8.6f);
+        AxisAlignedBB groundBox(
+            8.0f, static_cast<f32>(groundY + 0.01f), 8.0f, 8.6f, static_cast<f32>(groundY + 1.81f), 8.6f);
         EXPECT_TRUE(physics->isOnGround(groundBox));
 
         // 在很高的空中（远离地形）应该不在地面上
         // 使用绝对坐标远离生成的地形（最大高度256）
-        AxisAlignedBB highBox(8.0f, 300.0f, 8.0f,
-                              8.6f, 301.8f, 8.6f);
+        AxisAlignedBB highBox(8.0f, 300.0f, 8.0f, 8.6f, 301.8f, 8.6f);
         EXPECT_FALSE(physics->isOnGround(highBox));
     }
 }
 
 // ========== 碰撞缓存测试 ==========
 
-TEST_F(ServerWorldCollisionTest, InvalidateCollisionCache) {
+TEST_F(ServerWorldCollisionTest, InvalidateCollisionCache)
+{
     // 生成区块
     ChunkData* chunk = world->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -233,7 +246,8 @@ TEST_F(ServerWorldCollisionTest, InvalidateCollisionCache) {
 
 // ========== ICollisionWorld 接口测试 ==========
 
-TEST_F(ServerWorldCollisionTest, ICollisionWorldGetBlockState) {
+TEST_F(ServerWorldCollisionTest, ICollisionWorldGetBlockState)
+{
     // 生成区块
     ChunkData* chunk = world->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -241,10 +255,11 @@ TEST_F(ServerWorldCollisionTest, ICollisionWorldGetBlockState) {
     // ICollisionWorld 接口测试
     const BlockState* state = world->getBlockState(8, 64, 8);
     // 可能是空气或某个方块
-    EXPECT_TRUE(state != nullptr || state == nullptr);  // 仅验证不会崩溃
+    EXPECT_TRUE(state != nullptr || state == nullptr); // 仅验证不会崩溃
 }
 
-TEST_F(ServerWorldCollisionTest, ICollisionWorldIsWithinWorldBounds) {
+TEST_F(ServerWorldCollisionTest, ICollisionWorldIsWithinWorldBounds)
+{
     // 测试世界边界
     EXPECT_TRUE(world->isWithinWorldBounds(0, mc::world::MIN_BUILD_HEIGHT, 0));
     EXPECT_TRUE(world->isWithinWorldBounds(100, 100, 100));
@@ -255,7 +270,8 @@ TEST_F(ServerWorldCollisionTest, ICollisionWorldIsWithinWorldBounds) {
     EXPECT_FALSE(world->isWithinWorldBounds(0, mc::world::MAX_BUILD_HEIGHT, 0));
 }
 
-TEST_F(ServerWorldCollisionTest, ICollisionWorldGetChunkAt) {
+TEST_F(ServerWorldCollisionTest, ICollisionWorldGetChunkAt)
+{
     // 生成区块
     ChunkData* chunk = world->getChunkSync(5, 5);
     ASSERT_NE(chunk, nullptr);
@@ -268,7 +284,8 @@ TEST_F(ServerWorldCollisionTest, ICollisionWorldGetChunkAt) {
 
 // ========== 实体管理测试 ==========
 
-TEST_F(ServerWorldCollisionTest, SpawnEntity) {
+TEST_F(ServerWorldCollisionTest, SpawnEntity)
+{
     auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
     entity->setPosition(10.0f, 64.0f, 10.0f);
 
@@ -277,7 +294,8 @@ TEST_F(ServerWorldCollisionTest, SpawnEntity) {
     EXPECT_EQ(world->entityCount(), 1);
 }
 
-TEST_F(ServerWorldCollisionTest, RemoveEntity) {
+TEST_F(ServerWorldCollisionTest, RemoveEntity)
+{
     auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
     EntityId id = world->spawnEntity(std::move(entity));
 
@@ -286,7 +304,8 @@ TEST_F(ServerWorldCollisionTest, RemoveEntity) {
     EXPECT_EQ(world->entityCount(), 0);
 }
 
-TEST_F(ServerWorldCollisionTest, GetEntitiesInAABB) {
+TEST_F(ServerWorldCollisionTest, GetEntitiesInAABB)
+{
     // 创建多个实体
     auto entity1 = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
     entity1->setPosition(0.0f, 0.0f, 0.0f);

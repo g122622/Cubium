@@ -1,16 +1,16 @@
 #include "TripWireBlock.hpp"
-#include "TripWireHookBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "../../../../entity/core/Entity.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../entity/core/Entity.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
+#include "../../../tick/base/TickPriority.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "TripWireHookBlock.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -19,38 +19,41 @@ namespace blocks {
 using namespace mc; // Bring BlockStateProperties into scope
 
 TripWireBlock::TripWireBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::POWERED())
-        .add(BlockStateProperties::ATTACHED())
-        .add(BlockStateProperties::DISARMED())
-        .add(BlockStateProperties::NORTH())
-        .add(BlockStateProperties::EAST())
-        .add(BlockStateProperties::SOUTH())
-        .add(BlockStateProperties::WEST())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::POWERED())
+                         .add(BlockStateProperties::ATTACHED())
+                         .add(BlockStateProperties::DISARMED())
+                         .add(BlockStateProperties::NORTH())
+                         .add(BlockStateProperties::EAST())
+                         .add(BlockStateProperties::SOUTH())
+                         .add(BlockStateProperties::WEST())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::POWERED(), false)
-        .with(BlockStateProperties::ATTACHED(), false)
-        .with(BlockStateProperties::DISARMED(), false)
-        .with(BlockStateProperties::NORTH(), false)
-        .with(BlockStateProperties::EAST(), false)
-        .with(BlockStateProperties::SOUTH(), false)
-        .with(BlockStateProperties::WEST(), false));
+            .with(BlockStateProperties::POWERED(), false)
+            .with(BlockStateProperties::ATTACHED(), false)
+            .with(BlockStateProperties::DISARMED(), false)
+            .with(BlockStateProperties::NORTH(), false)
+            .with(BlockStateProperties::EAST(), false)
+            .with(BlockStateProperties::SOUTH(), false)
+            .with(BlockStateProperties::WEST(), false));
 }
 
-bool TripWireBlock::isPowered(const BlockState& state) {
+bool TripWireBlock::isPowered(const BlockState& state)
+{
     return state.get(BlockStateProperties::POWERED());
 }
 
-bool TripWireBlock::isConnected(const BlockState& state, Direction direction) {
+bool TripWireBlock::isConnected(const BlockState& state, Direction direction)
+{
     switch (direction) {
         case Direction::North:
             return state.get(BlockStateProperties::NORTH());
@@ -65,11 +68,13 @@ bool TripWireBlock::isConnected(const BlockState& state, Direction direction) {
     }
 }
 
-bool TripWireBlock::isActivated(const BlockState& state) {
+bool TripWireBlock::isActivated(const BlockState& state)
+{
     return state.get(BlockStateProperties::POWERED());
 }
 
-bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction direction) const {
+bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction direction) const
+{
     // MC 1.16.5: TripWireBlock.shouldConnectTo
     const Block& neighborBlock = neighborState.getBlock();
 
@@ -90,15 +95,17 @@ bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction d
     return false;
 }
 
-void TripWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void TripWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
     // 放置时不触发
 }
 
-void TripWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                     const BlockPos& neighborPos, bool isMoving) {
+void TripWireBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -120,7 +127,8 @@ void TripWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
             if (blockItem != nullptr) {
                 ItemStack dropStack(blockItem, 1);
                 math::Random rng;
-                ItemDropHelper::spawnItemEntity(&world, dropStack,
+                ItemDropHelper::spawnItemEntity(&world,
+                    dropStack,
                     static_cast<f64>(pos.x) + 0.5,
                     static_cast<f64>(pos.y) + 0.5,
                     static_cast<f64>(pos.z) + 0.5,
@@ -131,13 +139,15 @@ void TripWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
     }
 }
 
-void TripWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void TripWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     // 更新绊线状态
     updateState(world, pos);
 }
 
-void TripWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void TripWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
@@ -145,10 +155,13 @@ void TripWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Blo
     notifyHooks(world, pos);
 }
 
-BlockState TripWireBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState TripWireBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(world);
     MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
@@ -176,8 +189,8 @@ BlockState TripWireBlock::updatePostPlacement(
     }
 }
 
-i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world,
-                                 const BlockPos& pos, Direction side) const {
+i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -185,8 +198,8 @@ i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world,
     return isPowered(state) ? 15 : 0;
 }
 
-i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world,
-                                   const BlockPos& pos, Direction side) const {
+i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -194,7 +207,8 @@ i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world,
     return isPowered(state) ? 15 : 0;
 }
 
-void TripWireBlock::updateState(IWorld& world, const BlockPos& pos) {
+void TripWireBlock::updateState(IWorld& world, const BlockPos& pos)
+{
     const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
@@ -214,17 +228,16 @@ void TripWireBlock::updateState(IWorld& world, const BlockPos& pos) {
     }
 }
 
-bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) const {
+bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) const
+{
     // 创建绊线的碰撞箱
     // 绊线是一个细线，检测范围为方块内的一小片区域
-    AxisAlignedBB detectionBox(
-        static_cast<f32>(pos.x) + 0.0f,
+    AxisAlignedBB detectionBox(static_cast<f32>(pos.x) + 0.0f,
         static_cast<f32>(pos.y) + 0.0f,
         static_cast<f32>(pos.z) + 0.0f,
         static_cast<f32>(pos.x) + 1.0f,
-        static_cast<f32>(pos.y) + 0.5f,  // 检测向上0.5格
-        static_cast<f32>(pos.z) + 1.0f
-    );
+        static_cast<f32>(pos.y) + 0.5f, // 检测向上0.5格
+        static_cast<f32>(pos.z) + 1.0f);
 
     // 查询碰撞箱内的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
@@ -244,7 +257,8 @@ bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) con
     return false;
 }
 
-void TripWireBlock::notifyHooks(IWorld& world, const BlockPos& pos) {
+void TripWireBlock::notifyHooks(IWorld& world, const BlockPos& pos)
+{
     // 通知四个方向的绊线钩
     for (Direction dir : {Direction::North, Direction::East, Direction::South, Direction::West}) {
         BlockPos hookPos = pos.offset(dir);

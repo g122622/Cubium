@@ -1,7 +1,7 @@
 #include "FileSkinLoader.hpp"
 #include <fstream>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 #include <spdlog/spdlog.h>
 
 // stb_image for PNG loading
@@ -10,10 +10,11 @@
 namespace mc::skin {
 
 FileSkinLoader::FileSkinLoader(IResourcePack* resourcePack)
-    : m_resourcePack(resourcePack) {
-}
+    : m_resourcePack(resourcePack)
+{}
 
-Result<void> FileSkinLoader::initialize() {
+Result<void> FileSkinLoader::initialize()
+{
     if (m_initialized) {
         return {};
     }
@@ -21,11 +22,13 @@ Result<void> FileSkinLoader::initialize() {
     return {};
 }
 
-void FileSkinLoader::shutdown() {
+void FileSkinLoader::shutdown()
+{
     m_initialized = false;
 }
 
-bool FileSkinLoader::supportsUrl(const std::string& url) const {
+bool FileSkinLoader::supportsUrl(const std::string& url) const
+{
     // 支持文件路径和资源位置
     if (url.find("://") != std::string::npos) {
         // 有协议，只支持 file://
@@ -34,7 +37,8 @@ bool FileSkinLoader::supportsUrl(const std::string& url) const {
     return true;
 }
 
-Result<SkinLoadResult> FileSkinLoader::load(const std::string& url) {
+Result<SkinLoadResult> FileSkinLoader::load(const std::string& url)
+{
     SkinLoadResult result;
 
     // 尝试解析为资源位置
@@ -51,23 +55,26 @@ Result<SkinLoadResult> FileSkinLoader::load(const std::string& url) {
     return loadFromFilesystem(url);
 }
 
-void FileSkinLoader::loadAsync(const std::string& url,
-                               std::function<void(Result<SkinLoadResult>)> callback) {
+void FileSkinLoader::loadAsync(const std::string& url, std::function<void(Result<SkinLoadResult>)> callback)
+{
     // 简单实现：同步加载后调用回调
     // 生产环境应该使用线程池
     auto result = load(url);
     callback(std::move(result));
 }
 
-void FileSkinLoader::cancel(const std::string& url) {
+void FileSkinLoader::cancel(const std::string& url)
+{
     // 文件加载是同步的，无法取消
 }
 
-void FileSkinLoader::cancelAll() {
+void FileSkinLoader::cancelAll()
+{
     // 文件加载是同步的，无法取消
 }
 
-Result<SkinLoadResult> FileSkinLoader::loadFromFilesystem(const std::string& path) {
+Result<SkinLoadResult> FileSkinLoader::loadFromFilesystem(const std::string& path)
+{
     SkinLoadResult result;
 
     // 检查文件是否存在
@@ -100,12 +107,12 @@ Result<SkinLoadResult> FileSkinLoader::loadFromFilesystem(const std::string& pat
     result.pngData = validateResult.value();
     result.hash = calculateHash(result.pngData);
 
-    spdlog::debug("FileSkinLoader: Loaded skin from {} ({} bytes, hash: {})",
-                  path, result.pngData.size(), result.hash);
+    spdlog::debug("FileSkinLoader: Loaded skin from {} ({} bytes, hash: {})", path, result.pngData.size(), result.hash);
     return result;
 }
 
-Result<SkinLoadResult> FileSkinLoader::loadFromResourcePack(const ResourceLocation& location) {
+Result<SkinLoadResult> FileSkinLoader::loadFromResourcePack(const ResourceLocation& location)
+{
     if (!m_resourcePack) {
         return Error(ErrorCode::NotInitialized, "No resource pack available");
     }
@@ -130,23 +137,25 @@ Result<SkinLoadResult> FileSkinLoader::loadFromResourcePack(const ResourceLocati
     result.hash = calculateHash(result.pngData);
 
     spdlog::debug("FileSkinLoader: Loaded skin from resource pack {} ({} bytes, hash: {})",
-                  location.toString(), result.pngData.size(), result.hash);
+        location.toString(),
+        result.pngData.size(),
+        result.hash);
     return result;
 }
 
-Result<std::vector<u8>> FileSkinLoader::validateAndConvertSkin(const std::vector<u8>& pngData) {
+Result<std::vector<u8>> FileSkinLoader::validateAndConvertSkin(const std::vector<u8>& pngData)
+{
     // 使用 stb_image 解析 PNG
     int width = 0;
     int height = 0;
     int channels = 0;
 
-    u8* pixels = stbi_load_from_memory(
-        pngData.data(),
+    u8* pixels = stbi_load_from_memory(pngData.data(),
         static_cast<int>(pngData.size()),
         &width,
         &height,
         &channels,
-        4  // 强制 RGBA
+        4 // 强制 RGBA
     );
 
     if (!pixels) {
@@ -156,14 +165,12 @@ Result<std::vector<u8>> FileSkinLoader::validateAndConvertSkin(const std::vector
     // 验证尺寸
     if (width != 64) {
         stbi_image_free(pixels);
-        return Error(ErrorCode::InvalidData,
-                    "Invalid skin width: expected 64, got " + std::to_string(width));
+        return Error(ErrorCode::InvalidData, "Invalid skin width: expected 64, got " + std::to_string(width));
     }
 
     if (height != 64 && height != 32) {
         stbi_image_free(pixels);
-        return Error(ErrorCode::InvalidData,
-                    "Invalid skin height: expected 32 or 64, got " + std::to_string(height));
+        return Error(ErrorCode::InvalidData, "Invalid skin height: expected 32 or 64, got " + std::to_string(height));
     }
 
     std::vector<u8> result;
@@ -195,11 +202,12 @@ Result<std::vector<u8>> FileSkinLoader::validateAndConvertSkin(const std::vector
     return result;
 }
 
-std::string FileSkinLoader::calculateHash(const std::vector<u8>& data) {
+std::string FileSkinLoader::calculateHash(const std::vector<u8>& data)
+{
     // 简化的哈希计算（生产环境应该使用 SHA1）
     // 这里使用简单的累加哈希作为 fallback
-    u64 hash = 0xcbf29ce484222325ULL;  // FNV offset basis
-    constexpr u64 prime = 0x100000001b3ULL;  // FNV prime
+    u64 hash = 0xcbf29ce484222325ULL;       // FNV offset basis
+    constexpr u64 prime = 0x100000001b3ULL; // FNV prime
 
     for (u8 byte : data) {
         hash ^= byte;

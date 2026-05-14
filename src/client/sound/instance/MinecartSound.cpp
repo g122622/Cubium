@@ -1,8 +1,8 @@
 #include "client/sound/instance/MinecartSound.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace mc::client::sound {
 
@@ -11,22 +11,21 @@ namespace mc::client::sound {
 // ============================================================================
 
 MinecartSoundStateful::MinecartSoundStateful(const EntitySoundState& state, EntitySoundHandler* handler)
-    : TickableSound(
-          SoundEvents::ENTITY_MINECART_RIDING,
+    : TickableSound(SoundEvents::ENTITY_MINECART_RIDING,
           SoundCategory::Neutral,
           state.position,
-          0.0f,   // 初始音量为0
-          1.0f,   // 音调
-          true,   // 循环
+          0.0f, // 初始音量为0
+          1.0f, // 音调
+          true, // 循环
           AttenuationType::Linear,
-          16.0f   // 衰减距离
-      )
+          16.0f // 衰减距离
+          )
     , m_handler(handler)
     , m_entityId(state.entityId)
-{
-}
+{}
 
-void MinecartSoundStateful::tick() {
+void MinecartSoundStateful::tick()
+{
     // 从 handler 获取最新状态
     if (m_handler) {
         const EntitySoundState* state = m_handler->getEntityState(m_entityId);
@@ -41,8 +40,7 @@ void MinecartSoundStateful::tick() {
             setPosition(state->position);
 
             // 计算水平速度平方 (MC: Entity.horizontalMag)
-            f32 horizontalSpeedSq = state->velocity.x * state->velocity.x +
-                                    state->velocity.z * state->velocity.z;
+            f32 horizontalSpeedSq = state->velocity.x * state->velocity.x + state->velocity.z * state->velocity.z;
             f32 horizontalSpeed = std::sqrt(horizontalSpeedSq);
 
             // 音量计算
@@ -76,26 +74,24 @@ void MinecartSoundStateful::tick() {
 // RidingMinecartSoundStateful
 // ============================================================================
 
-RidingMinecartSoundStateful::RidingMinecartSoundStateful(const EntitySoundState& playerState,
-                                                          const EntitySoundState& minecartState,
-                                                          EntitySoundHandler* handler)
-    : TickableSound(
-          SoundEvents::ENTITY_MINECART_INSIDE,
+RidingMinecartSoundStateful::RidingMinecartSoundStateful(
+    const EntitySoundState& playerState, const EntitySoundState& minecartState, EntitySoundHandler* handler)
+    : TickableSound(SoundEvents::ENTITY_MINECART_INSIDE,
           SoundCategory::Neutral,
           playerState.position,
-          0.0f,   // 初始音量为0
-          1.0f,   // 音调
-          true,   // 循环
-          AttenuationType::None,  // 无衰减（玩家内部声音）
-          16.0f   // 衰减距离（无意义）
-      )
+          0.0f,                  // 初始音量为0
+          1.0f,                  // 音调
+          true,                  // 循环
+          AttenuationType::None, // 无衰减（玩家内部声音）
+          16.0f                  // 衰减距离（无意义）
+          )
     , m_handler(handler)
     , m_playerId(playerState.entityId)
     , m_minecartId(minecartState.entityId)
-{
-}
+{}
 
-void RidingMinecartSoundStateful::tick() {
+void RidingMinecartSoundStateful::tick()
+{
     // 从 handler 获取最新状态
     if (m_handler) {
         const EntitySoundState* playerState = m_handler->getEntityState(m_playerId);
@@ -121,7 +117,7 @@ void RidingMinecartSoundStateful::tick() {
 
         // 计算水平速度
         f32 horizontalSpeedSq = minecartState->velocity.x * minecartState->velocity.x +
-                                minecartState->velocity.z * minecartState->velocity.z;
+            minecartState->velocity.z * minecartState->velocity.z;
         f32 horizontalSpeed = std::sqrt(horizontalSpeedSq);
 
         // 音量计算

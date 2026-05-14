@@ -26,9 +26,8 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos,
-                         Block& neighborBlock, const BlockPos& neighborPos,
-                         bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
@@ -37,8 +36,7 @@ public:
      *
      * 当邻居方块更新时也调度 tick。
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -65,7 +63,8 @@ public:
      * @param pos 位置
      * @param entity 下落方块实体
      */
-    virtual void onStartFalling(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity) {
+    virtual void onStartFalling(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity)
+    {
         (void)world;
         (void)pos;
         (void)entity;
@@ -83,9 +82,12 @@ public:
      * @param hitState 落地点的方块状态
      * @param entity 下落方块实体
      */
-    virtual void onEndFalling(IWorld& world, const BlockPos& pos,
-                              const BlockState& fallingState, const BlockState& hitState,
-                              entity::FallingBlockEntity& entity) {
+    virtual void onEndFalling(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& fallingState,
+        const BlockState& hitState,
+        entity::FallingBlockEntity& entity)
+    {
         (void)world;
         (void)pos;
         (void)fallingState;
@@ -103,7 +105,8 @@ public:
      * @param pos 位置
      * @param entity 下落方块实体
      */
-    virtual void onBroken(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity) {
+    virtual void onBroken(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity)
+    {
         (void)world;
         (void)pos;
         (void)entity;

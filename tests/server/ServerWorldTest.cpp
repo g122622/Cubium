@@ -1,20 +1,20 @@
-#include <gtest/gtest.h>
 #include "server/world/ServerWorld.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/network/connection/IServerConnection.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/world/blockentity/processing/FurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
-#include "common/world/blockentity/processing/FurnaceEntity.hpp"
-#include "common/world/blockentity/interactive/SignEntity.hpp"
-#include "common/entity/entities/item/ItemEntity.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include <thread>
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include <atomic>
+#include <thread>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::server;
@@ -26,30 +26,28 @@ using namespace mc::blockentity;
 
 class MockConnection : public network::IServerConnection {
 public:
-    MockConnection() : m_connected(true) {}
+    MockConnection()
+        : m_connected(true)
+    {}
 
-    void send(const u8* data, size_t size) override {
+    void send(const u8* data, size_t size) override
+    {
         (void)data;
         (void)size;
         m_sentData.insert(m_sentData.end(), data, data + size);
     }
 
-    void disconnect(const std::string& reason = "") override {
+    void disconnect(const std::string& reason = "") override
+    {
         (void)reason;
         m_connected = false;
     }
 
-    [[nodiscard]] bool isConnected() const override {
-        return m_connected;
-    }
+    [[nodiscard]] bool isConnected() const override { return m_connected; }
 
-    [[nodiscard]] std::string identifier() const override {
-        return "MockConnection";
-    }
+    [[nodiscard]] std::string identifier() const override { return "MockConnection"; }
 
-    [[nodiscard]] network::ConnectionType type() const override {
-        return network::ConnectionType::Local;
-    }
+    [[nodiscard]] network::ConnectionType type() const override { return network::ConnectionType::Local; }
 
     std::vector<u8> m_sentData;
     bool m_connected;
@@ -61,7 +59,8 @@ public:
 
 class ServerWorldTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
 
@@ -72,9 +71,7 @@ protected:
         world = std::make_unique<ServerWorld>(config);
     }
 
-    void TearDown() override {
-        world.reset();
-    }
+    void TearDown() override { world.reset(); }
 
     std::unique_ptr<ServerWorld> world;
 };
@@ -83,12 +80,14 @@ protected:
 // 构造和初始化测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, DefaultConstructor) {
+TEST_F(ServerWorldTest, DefaultConstructor)
+{
     ServerWorld defaultWorld;
     EXPECT_EQ(defaultWorld.chunkCount(), 0);
 }
 
-TEST_F(ServerWorldTest, ConfigConstructor) {
+TEST_F(ServerWorldTest, ConfigConstructor)
+{
     ServerWorldConfig config;
     config.viewDistance = 8;
     config.dimension = 1;
@@ -98,12 +97,14 @@ TEST_F(ServerWorldTest, ConfigConstructor) {
     EXPECT_EQ(configuredWorld.config().dimension, 1);
 }
 
-TEST_F(ServerWorldTest, Initialize) {
+TEST_F(ServerWorldTest, Initialize)
+{
     auto result = world->initialize();
     EXPECT_TRUE(result.success());
 }
 
-TEST_F(ServerWorldTest, Shutdown) {
+TEST_F(ServerWorldTest, Shutdown)
+{
     world->initialize();
     world->shutdown();
     EXPECT_EQ(world->chunkCount(), 0);
@@ -113,17 +114,20 @@ TEST_F(ServerWorldTest, Shutdown) {
 // 区块管理测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, GetChunk_NotExists) {
+TEST_F(ServerWorldTest, GetChunk_NotExists)
+{
     ChunkData* chunk = world->getChunk(0, 0);
     EXPECT_EQ(chunk, nullptr);
 }
 
-TEST_F(ServerWorldTest, HasChunk_NotExists) {
+TEST_F(ServerWorldTest, HasChunk_NotExists)
+{
     EXPECT_FALSE(world->hasChunk(0, 0));
     EXPECT_FALSE(world->hasChunk(100, 100));
 }
 
-TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk) {
+TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk)
+{
     ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
@@ -131,14 +135,16 @@ TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk) {
     EXPECT_TRUE(world->hasChunk(0, 0));
 }
 
-TEST_F(ServerWorldTest, GetChunkSync_ReturnsSameChunk) {
+TEST_F(ServerWorldTest, GetChunkSync_ReturnsSameChunk)
+{
     ChunkData* chunk1 = world->chunkManager()->getChunkSync(5, 10);
     ChunkData* chunk2 = world->chunkManager()->getChunkSync(5, 10);
 
     EXPECT_EQ(chunk1, chunk2);
 }
 
-TEST_F(ServerWorldTest, GetChunk_AfterGeneration) {
+TEST_F(ServerWorldTest, GetChunk_AfterGeneration)
+{
     world->chunkManager()->getChunkSync(3, 7);
 
     ChunkData* chunk = world->getChunk(3, 7);
@@ -147,7 +153,8 @@ TEST_F(ServerWorldTest, GetChunk_AfterGeneration) {
     EXPECT_EQ(chunk->z(), 7);
 }
 
-TEST_F(ServerWorldTest, UnloadChunk) {
+TEST_F(ServerWorldTest, UnloadChunk)
+{
     world->chunkManager()->getChunkSync(0, 0);
     EXPECT_TRUE(world->hasChunk(0, 0));
 
@@ -155,7 +162,8 @@ TEST_F(ServerWorldTest, UnloadChunk) {
     EXPECT_FALSE(world->hasChunk(0, 0));
 }
 
-TEST_F(ServerWorldTest, ChunkCount) {
+TEST_F(ServerWorldTest, ChunkCount)
+{
     EXPECT_EQ(world->chunkCount(), 0);
 
     world->chunkManager()->getChunkSync(0, 0);
@@ -169,7 +177,8 @@ TEST_F(ServerWorldTest, ChunkCount) {
     EXPECT_EQ(world->chunkCount(), 2);
 }
 
-TEST_F(ServerWorldTest, MultipleChunks) {
+TEST_F(ServerWorldTest, MultipleChunks)
+{
     for (int x = -2; x <= 2; ++x) {
         for (int z = -2; z <= 2; ++z) {
             world->chunkManager()->getChunkSync(x, z);
@@ -189,7 +198,8 @@ TEST_F(ServerWorldTest, MultipleChunks) {
 // 方块操作测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, SetBlock_CreatesChunk) {
+TEST_F(ServerWorldTest, SetBlock_CreatesChunk)
+{
     ASSERT_TRUE(world->initialize().success());
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
@@ -198,7 +208,8 @@ TEST_F(ServerWorldTest, SetBlock_CreatesChunk) {
     EXPECT_TRUE(world->hasChunk(0, 0));
 }
 
-TEST_F(ServerWorldTest, SetBlock_GetBlock) {
+TEST_F(ServerWorldTest, SetBlock_GetBlock)
+{
     ASSERT_TRUE(world->initialize().success());
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
@@ -209,13 +220,15 @@ TEST_F(ServerWorldTest, SetBlock_GetBlock) {
     EXPECT_EQ(block->blockId(), VanillaBlocks::STONE->blockId());
 }
 
-TEST_F(ServerWorldTest, GetBlock_NonExistentChunk) {
+TEST_F(ServerWorldTest, GetBlock_NonExistentChunk)
+{
     const BlockState* block = world->getBlockState(1000, 64, 1000);
     // 不存在的区块返回 nullptr (表示空气)
     EXPECT_EQ(block, nullptr);
 }
 
-TEST_F(ServerWorldTest, SetBlock_NegativeCoordinates) {
+TEST_F(ServerWorldTest, SetBlock_NegativeCoordinates)
+{
     ASSERT_TRUE(world->initialize().success());
 
     const BlockState* grassState = &VanillaBlocks::GRASS_BLOCK->defaultState();
@@ -226,7 +239,8 @@ TEST_F(ServerWorldTest, SetBlock_NegativeCoordinates) {
     EXPECT_EQ(block->blockId(), VanillaBlocks::GRASS_BLOCK->blockId());
 }
 
-TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
+TEST_F(ServerWorldTest, SetBlock_MultipleBlocks)
+{
     ASSERT_TRUE(world->initialize().success());
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
@@ -249,7 +263,8 @@ TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
     EXPECT_EQ(block2->blockId(), VanillaBlocks::GRASS_BLOCK->blockId());
 }
 
-TEST_F(ServerWorldTest, GetHeight_ReturnsAirLayerAboveTopBlock) {
+TEST_F(ServerWorldTest, GetHeight_ReturnsAirLayerAboveTopBlock)
+{
     ASSERT_TRUE(world->initialize().success());
 
     ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
@@ -269,7 +284,8 @@ TEST_F(ServerWorldTest, GetHeight_ReturnsAirLayerAboveTopBlock) {
 // 配置测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, SetConfig) {
+TEST_F(ServerWorldTest, SetConfig)
+{
     ServerWorldConfig newConfig;
     newConfig.viewDistance = 16;
     newConfig.dimension = 2;
@@ -280,7 +296,8 @@ TEST_F(ServerWorldTest, SetConfig) {
     EXPECT_EQ(world->config().dimension, 2);
 }
 
-TEST_F(ServerWorldTest, Initialize_AppliesConfiguredViewDistance) {
+TEST_F(ServerWorldTest, Initialize_AppliesConfiguredViewDistance)
+{
     ServerWorldConfig config;
     config.viewDistance = 18;
     config.dimension = 0;
@@ -293,7 +310,8 @@ TEST_F(ServerWorldTest, Initialize_AppliesConfiguredViewDistance) {
     EXPECT_EQ(configuredWorld.chunkManager()->viewDistance(), 18);
 }
 
-TEST_F(ServerWorldTest, SetChunkManager_AppliesConfiguredViewDistance) {
+TEST_F(ServerWorldTest, SetChunkManager_AppliesConfiguredViewDistance)
+{
     ServerWorldConfig config;
     config.viewDistance = 18;
     config.dimension = 0;
@@ -314,7 +332,8 @@ TEST_F(ServerWorldTest, SetChunkManager_AppliesConfiguredViewDistance) {
 // Tick 测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, Tick) {
+TEST_F(ServerWorldTest, Tick)
+{
     world->initialize();
 
     // 执行多次 tick 不应崩溃
@@ -323,7 +342,8 @@ TEST_F(ServerWorldTest, Tick) {
     }
 }
 
-TEST_F(ServerWorldTest, ChunkUnloading) {
+TEST_F(ServerWorldTest, ChunkUnloading)
+{
     world->initialize();
 
     // 创建一个区块
@@ -342,7 +362,8 @@ TEST_F(ServerWorldTest, ChunkUnloading) {
 // 线程安全测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, ConcurrentChunkAccess) {
+TEST_F(ServerWorldTest, ConcurrentChunkAccess)
+{
     world->initialize();
 
     std::vector<std::thread> threads;
@@ -367,7 +388,8 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess) {
     EXPECT_GT(world->chunkCount(), 0);
 }
 
-TEST_F(ServerWorldTest, PlaySound_InvokesCallback) {
+TEST_F(ServerWorldTest, PlaySound_InvokesCallback)
+{
     std::optional<ResourceLocation> soundEventId;
     std::optional<sound::SoundCategory> category;
     std::optional<Vector3> position;
@@ -386,7 +408,11 @@ TEST_F(ServerWorldTest, PlaySound_InvokesCallback) {
         pitch = soundPitch;
     });
 
-    world->playSound(ResourceLocation("minecraft:test.sound"), sound::SoundCategory::Players, Vector3(1.0f, 2.0f, 3.0f), 0.75f, 1.25f);
+    world->playSound(ResourceLocation("minecraft:test.sound"),
+        sound::SoundCategory::Players,
+        Vector3(1.0f, 2.0f, 3.0f),
+        0.75f,
+        1.25f);
 
     ASSERT_TRUE(soundEventId.has_value());
     ASSERT_TRUE(category.has_value());
@@ -407,12 +433,14 @@ TEST_F(ServerWorldTest, PlaySound_InvokesCallback) {
 // isDebugWorld 测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithoutChunkManager) {
+TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithoutChunkManager)
+{
     // 无区块管理器时返回 false
     EXPECT_FALSE(world->isDebugWorld());
 }
 
-TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithNoiseChunkGenerator) {
+TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithNoiseChunkGenerator)
+{
     ServerWorldConfig config;
     config.viewDistance = 10;
     config.dimension = 0;
@@ -426,7 +454,8 @@ TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithNoiseChunkGenerator) {
     EXPECT_FALSE(testWorld.isDebugWorld());
 }
 
-TEST_F(ServerWorldTest, IsDebugWorld_ReturnsTrue_WithDebugChunkGenerator) {
+TEST_F(ServerWorldTest, IsDebugWorld_ReturnsTrue_WithDebugChunkGenerator)
+{
     ServerWorldConfig config;
     config.viewDistance = 10;
     config.dimension = 0;
@@ -449,13 +478,15 @@ TEST_F(ServerWorldTest, IsDebugWorld_ReturnsTrue_WithDebugChunkGenerator) {
 // 方块实体管理测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoChunk) {
+TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoChunk)
+{
     // 没有区块时返回 nullptr
     BlockEntity* entity = world->getBlockEntity(BlockPos(0, 64, 0));
     EXPECT_EQ(entity, nullptr);
 }
 
-TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoEntity) {
+TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoEntity)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -466,7 +497,8 @@ TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoEntity) {
     EXPECT_EQ(entity, nullptr);
 }
 
-TEST_F(ServerWorldTest, GetBlockEntity_OutOfWorldBounds_ReturnsNullptr) {
+TEST_F(ServerWorldTest, GetBlockEntity_OutOfWorldBounds_ReturnsNullptr)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 超出世界高度范围返回 nullptr
@@ -474,7 +506,8 @@ TEST_F(ServerWorldTest, GetBlockEntity_OutOfWorldBounds_ReturnsNullptr) {
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, -100, 0)), nullptr);
 }
 
-TEST_F(ServerWorldTest, SetBlockEntity_StoresEntity) {
+TEST_F(ServerWorldTest, SetBlockEntity_StoresEntity)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -495,7 +528,8 @@ TEST_F(ServerWorldTest, SetBlockEntity_StoresEntity) {
     EXPECT_EQ(retrieved->getPos(), BlockPos(5, 64, 10));
 }
 
-TEST_F(ServerWorldTest, SetBlockEntity_OverwritesExisting) {
+TEST_F(ServerWorldTest, SetBlockEntity_OverwritesExisting)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -516,7 +550,8 @@ TEST_F(ServerWorldTest, SetBlockEntity_OverwritesExisting) {
     EXPECT_EQ(retrieved, rawChest2);
 }
 
-TEST_F(ServerWorldTest, SetBlockEntity_SetsWorldReference) {
+TEST_F(ServerWorldTest, SetBlockEntity_SetsWorldReference)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -532,7 +567,8 @@ TEST_F(ServerWorldTest, SetBlockEntity_SetsWorldReference) {
     EXPECT_EQ(retrieved->getWorld(), world.get());
 }
 
-TEST_F(ServerWorldTest, RemoveBlockEntity_RemovesEntity) {
+TEST_F(ServerWorldTest, RemoveBlockEntity_RemovesEntity)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -552,7 +588,8 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_RemovesEntity) {
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
 }
 
-TEST_F(ServerWorldTest, RemoveBlockEntity_NoEntity_NoCrash) {
+TEST_F(ServerWorldTest, RemoveBlockEntity_NoEntity_NoCrash)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -563,7 +600,8 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_NoEntity_NoCrash) {
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
 }
 
-TEST_F(ServerWorldTest, RemoveBlockEntity_OutOfWorldBounds_NoCrash) {
+TEST_F(ServerWorldTest, RemoveBlockEntity_OutOfWorldBounds_NoCrash)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 移除超出范围的方块实体不应崩溃
@@ -571,7 +609,8 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_OutOfWorldBounds_NoCrash) {
     world->removeBlockEntity(BlockPos(0, -100, 0));
 }
 
-TEST_F(ServerWorldTest, SetBlockEntity_MultipleEntitiesInSameChunk) {
+TEST_F(ServerWorldTest, SetBlockEntity_MultipleEntitiesInSameChunk)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -596,7 +635,8 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleEntitiesInSameChunk) {
     EXPECT_EQ(world->getBlockEntity(BlockPos(15, 70, 15)), raw3);
 }
 
-TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks) {
+TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建多个区块
@@ -606,8 +646,8 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks) {
 
     // 在不同区块创建方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
-    auto chest2 = std::make_unique<blockentity::ChestEntity>(BlockPos(16, 64, 0));  // 区块 (1, 0)
-    auto chest3 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 16));  // 区块 (0, 1)
+    auto chest2 = std::make_unique<blockentity::ChestEntity>(BlockPos(16, 64, 0)); // 区块 (1, 0)
+    auto chest3 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 16)); // 区块 (0, 1)
 
     blockentity::ChestEntity* raw1 = chest1.get();
     blockentity::ChestEntity* raw2 = chest2.get();
@@ -623,7 +663,8 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks) {
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 16)), raw3);
 }
 
-TEST_F(ServerWorldTest, SetBlockEntity_Nullptr_DoesNothing) {
+TEST_F(ServerWorldTest, SetBlockEntity_Nullptr_DoesNothing)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -636,7 +677,8 @@ TEST_F(ServerWorldTest, SetBlockEntity_Nullptr_DoesNothing) {
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
 }
 
-TEST_F(ServerWorldTest, ConstGetBlockEntity_ReturnsCorrectEntity) {
+TEST_F(ServerWorldTest, ConstGetBlockEntity_ReturnsCorrectEntity)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -653,7 +695,8 @@ TEST_F(ServerWorldTest, ConstGetBlockEntity_ReturnsCorrectEntity) {
     EXPECT_EQ(retrieved->getType(), BlockEntityType::Chest);
 }
 
-TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes) {
+TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
@@ -678,12 +721,14 @@ TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes) {
 // 组件访问器测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, CollisionCacheAccessor_ReturnsNullptrBeforeInitialize) {
+TEST_F(ServerWorldTest, CollisionCacheAccessor_ReturnsNullptrBeforeInitialize)
+{
     // 初始化前碰撞缓存应该为 nullptr
     EXPECT_EQ(world->collisionCache(), nullptr);
 }
 
-TEST_F(ServerWorldTest, CollisionCacheAccessor_ReturnsValidPointerAfterInitialize) {
+TEST_F(ServerWorldTest, CollisionCacheAccessor_ReturnsValidPointerAfterInitialize)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 初始化后碰撞缓存应该有效
@@ -691,7 +736,8 @@ TEST_F(ServerWorldTest, CollisionCacheAccessor_ReturnsValidPointerAfterInitializ
     ASSERT_NE(cache, nullptr);
 }
 
-TEST_F(ServerWorldTest, CollisionCacheAccessor_ConstVersionWorks) {
+TEST_F(ServerWorldTest, CollisionCacheAccessor_ConstVersionWorks)
+{
     ASSERT_TRUE(world->initialize().success());
 
     const ServerWorld& constWorld = *world;
@@ -699,40 +745,45 @@ TEST_F(ServerWorldTest, CollisionCacheAccessor_ConstVersionWorks) {
     ASSERT_NE(cache, nullptr);
 }
 
-TEST_F(ServerWorldTest, EntityManagerAccessor_ReturnsValidReference) {
+TEST_F(ServerWorldTest, EntityManagerAccessor_ReturnsValidReference)
+{
     // 即使未初始化，entityManager 也应该有效
     auto& em = world->entityManager();
     EXPECT_EQ(em.entityCount(), 0);
 }
 
-TEST_F(ServerWorldTest, EntityManagerAccessor_ConstVersionWorks) {
+TEST_F(ServerWorldTest, EntityManagerAccessor_ConstVersionWorks)
+{
     const ServerWorld& constWorld = *world;
     const auto& em = constWorld.entityManager();
     EXPECT_EQ(em.entityCount(), 0);
 }
 
-TEST_F(ServerWorldTest, ChunkManagerAccessor_ReturnsNullptrBeforeSetChunkManager) {
+TEST_F(ServerWorldTest, ChunkManagerAccessor_ReturnsNullptrBeforeSetChunkManager)
+{
     // 初始化前区块管理器应该为 nullptr
     EXPECT_EQ(world->chunkManager(), nullptr);
 }
 
-TEST_F(ServerWorldTest, ChunkManagerAccessor_ReturnsValidPointerAfterInitialize) {
+TEST_F(ServerWorldTest, ChunkManagerAccessor_ReturnsValidPointerAfterInitialize)
+{
     ASSERT_TRUE(world->initialize().success());
 
     auto* cm = world->chunkManager();
     ASSERT_NE(cm, nullptr);
-    EXPECT_EQ(cm->viewDistance(), 10);  // 配置中设置的值
+    EXPECT_EQ(cm->viewDistance(), 10); // 配置中设置的值
 }
 
 // ============================================================================
 // 实体移除自动追踪测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, RemoveEntity_AutoUntracksFromEntityTracker) {
+TEST_F(ServerWorldTest, RemoveEntity_AutoUntracksFromEntityTracker)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建一个简单实体
-    ItemStack stack;  // 空物品堆
+    ItemStack stack; // 空物品堆
     auto entity = std::make_unique<ItemEntity>(EntityId(1), stack, 100.0f, 64.0f, 100.0f);
     EntityId entityId = entity->id();
 
@@ -757,7 +808,8 @@ TEST_F(ServerWorldTest, RemoveEntity_AutoUntracksFromEntityTracker) {
     EXPECT_EQ(world->entityManager().getEntity(entityId), nullptr);
 }
 
-TEST_F(ServerWorldTest, RemoveEntity_NonExistentEntity_ReturnsNullptr) {
+TEST_F(ServerWorldTest, RemoveEntity_NonExistentEntity_ReturnsNullptr)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 移除不存在的实体应该返回 nullptr
@@ -765,11 +817,12 @@ TEST_F(ServerWorldTest, RemoveEntity_NonExistentEntity_ReturnsNullptr) {
     EXPECT_EQ(result, nullptr);
 }
 
-TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved) {
+TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved)
+{
     ASSERT_TRUE(world->initialize().success());
 
     // 创建多个实体
-    ItemStack stack;  // 空物品堆
+    ItemStack stack; // 空物品堆
     auto entity1 = std::make_unique<ItemEntity>(EntityId(1), stack, 0.0f, 64.0f, 0.0f);
     auto entity2 = std::make_unique<ItemEntity>(EntityId(2), stack, 10.0f, 64.0f, 10.0f);
     auto entity3 = std::make_unique<ItemEntity>(EntityId(3), stack, 20.0f, 64.0f, 20.0f);

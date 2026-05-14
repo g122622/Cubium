@@ -1,7 +1,7 @@
 #include "TridentContext.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <set>
+#include <spdlog/spdlog.h>
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
@@ -11,8 +11,7 @@
 namespace mc::client::renderer::trident {
 
 // Vulkan 调试回调
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData)
@@ -45,7 +44,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 TridentContext::TridentContext() = default;
 
-TridentContext::~TridentContext() {
+TridentContext::~TridentContext()
+{
     destroy();
 }
 
@@ -75,7 +75,8 @@ TridentContext::TridentContext(TridentContext&& other) noexcept
     other.m_initialized = false;
 }
 
-TridentContext& TridentContext::operator=(TridentContext&& other) noexcept {
+TridentContext& TridentContext::operator=(TridentContext&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_instance = other.m_instance;
@@ -109,7 +110,8 @@ TridentContext& TridentContext::operator=(TridentContext&& other) noexcept {
 // 初始化
 // ============================================================================
 
-Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig& config) {
+Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig& config)
+{
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "TridentContext already initialized");
     }
@@ -144,7 +146,8 @@ Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig&
     return {};
 }
 
-Result<void> TridentContext::createInstanceOnly(const TridentConfig& config) {
+Result<void> TridentContext::createInstanceOnly(const TridentConfig& config)
+{
     m_config = config;
 
     // 检查验证层支持
@@ -187,14 +190,10 @@ Result<void> TridentContext::createInstanceOnly(const TridentConfig& config) {
 
         // 设置调试消息处理器
         debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        debugCreateInfo.messageSeverity =
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        debugCreateInfo.messageType =
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debugCreateInfo.pfnUserCallback = debugCallback;
         createInfo.pNext = &debugCreateInfo;
     }
@@ -216,11 +215,13 @@ Result<void> TridentContext::createInstanceOnly(const TridentConfig& config) {
     return {};
 }
 
-void TridentContext::setSurface(VkSurfaceKHR surface) {
+void TridentContext::setSurface(VkSurfaceKHR surface)
+{
     m_surface = surface;
 }
 
-Result<void> TridentContext::createDevice() {
+Result<void> TridentContext::createDevice()
+{
     if (m_instance == VK_NULL_HANDLE) {
         return Error(ErrorCode::NotInitialized, "Instance not created");
     }
@@ -271,7 +272,8 @@ Result<void> TridentContext::createDevice() {
     return {};
 }
 
-void TridentContext::destroy() {
+void TridentContext::destroy()
+{
     if (!m_initialized && m_instance == VK_NULL_HANDLE) return;
 
     if (m_device != VK_NULL_HANDLE) {
@@ -284,8 +286,8 @@ void TridentContext::destroy() {
     }
 
     if (m_debugMessenger != VK_NULL_HANDLE) {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-            m_instance, "vkDestroyDebugUtilsMessengerEXT");
+        auto func =
+            (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr) {
             func(m_instance, m_debugMessenger, nullptr);
         }
@@ -315,14 +317,15 @@ void TridentContext::destroy() {
 // 访问器
 // ============================================================================
 
-SwapChainSupportDetails TridentContext::querySwapChainSupport() const {
+SwapChainSupportDetails TridentContext::querySwapChainSupport() const
+{
     return querySwapChainSupport(m_physicalDevice);
 }
 
-Result<u32> TridentContext::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) const {
+Result<u32> TridentContext::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) const
+{
     for (u32 i = 0; i < m_memoryProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) &&
-            (m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((typeFilter & (1 << i)) && (m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
         }
     }
@@ -330,53 +333,63 @@ Result<u32> TridentContext::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags
 }
 
 Result<VkFormat> TridentContext::findSupportedFormat(
-    const std::vector<VkFormat>& candidates,
-    VkImageTiling tiling,
-    VkFormatFeatureFlags features) const
+    const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
 {
     for (VkFormat format : candidates) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &props);
 
-        if (tiling == VK_IMAGE_TILING_LINEAR &&
-            (props.linearTilingFeatures & features) == features) {
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
             return format;
-        } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
-            (props.optimalTilingFeatures & features) == features) {
+        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
             return format;
         }
     }
     return Error(ErrorCode::NotFound, "Failed to find supported format");
 }
 
-Result<VkFormat> TridentContext::findDepthFormat() const {
-    return findSupportedFormat(
-        { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+Result<VkFormat> TridentContext::findDepthFormat() const
+{
+    return findSupportedFormat({VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-VkSampleCountFlagBits TridentContext::maxUsableSampleCount() const {
+VkSampleCountFlagBits TridentContext::maxUsableSampleCount() const
+{
     const VkSampleCountFlags sampleCounts =
-        m_deviceProperties.limits.framebufferColorSampleCounts &
-        m_deviceProperties.limits.framebufferDepthSampleCounts;
+        m_deviceProperties.limits.framebufferColorSampleCounts & m_deviceProperties.limits.framebufferDepthSampleCounts;
 
-    if (sampleCounts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-    if (sampleCounts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-    if (sampleCounts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-    if (sampleCounts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-    if (sampleCounts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-    if (sampleCounts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+    if (sampleCounts & VK_SAMPLE_COUNT_64_BIT) {
+        return VK_SAMPLE_COUNT_64_BIT;
+    }
+    if (sampleCounts & VK_SAMPLE_COUNT_32_BIT) {
+        return VK_SAMPLE_COUNT_32_BIT;
+    }
+    if (sampleCounts & VK_SAMPLE_COUNT_16_BIT) {
+        return VK_SAMPLE_COUNT_16_BIT;
+    }
+    if (sampleCounts & VK_SAMPLE_COUNT_8_BIT) {
+        return VK_SAMPLE_COUNT_8_BIT;
+    }
+    if (sampleCounts & VK_SAMPLE_COUNT_4_BIT) {
+        return VK_SAMPLE_COUNT_4_BIT;
+    }
+    if (sampleCounts & VK_SAMPLE_COUNT_2_BIT) {
+        return VK_SAMPLE_COUNT_2_BIT;
+    }
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-void TridentContext::waitIdle() const {
+void TridentContext::waitIdle() const
+{
     if (m_device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_device);
     }
 }
 
-VkCommandBuffer TridentContext::beginSingleTimeCommands() const {
+VkCommandBuffer TridentContext::beginSingleTimeCommands() const
+{
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -394,7 +407,8 @@ VkCommandBuffer TridentContext::beginSingleTimeCommands() const {
     return commandBuffer;
 }
 
-void TridentContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) const {
+void TridentContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
+{
     vkEndCommandBuffer(commandBuffer);
 
     // 使用 fence 替代 vkQueueWaitIdle，避免阻塞整个 GPU 队列
@@ -420,28 +434,25 @@ void TridentContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) const 
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> TridentContext::createInstance() {
+Result<void> TridentContext::createInstance()
+{
     // 由 createInstanceOnly 处理
     return createInstanceOnly(m_config);
 }
 
-Result<void> TridentContext::setupDebugMessenger() {
+Result<void> TridentContext::setupDebugMessenger()
+{
     if (!m_validationEnabled) return {};
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType =
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
 
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-        m_instance, "vkCreateDebugUtilsMessengerEXT");
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
 
     if (func == nullptr) {
         return Error(ErrorCode::NotFound, "Failed to find vkCreateDebugUtilsMessengerEXT");
@@ -455,7 +466,8 @@ Result<void> TridentContext::setupDebugMessenger() {
     return {};
 }
 
-Result<void> TridentContext::pickPhysicalDevice() {
+Result<void> TridentContext::pickPhysicalDevice()
+{
     u32 deviceCount = 0;
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
 
@@ -484,14 +496,12 @@ Result<void> TridentContext::pickPhysicalDevice() {
     return {};
 }
 
-Result<void> TridentContext::createLogicalDevice() {
+Result<void> TridentContext::createLogicalDevice()
+{
     QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<u32> uniqueQueueFamilies = {
-        indices.graphicsFamily.value(),
-        indices.presentFamily.value()
-    };
+    std::set<u32> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
     float queuePriority = 1.0f;
     for (u32 queueFamily : uniqueQueueFamilies) {
@@ -534,7 +544,8 @@ Result<void> TridentContext::createLogicalDevice() {
 // 私有方法 - 辅助
 // ============================================================================
 
-bool TridentContext::checkValidationLayerSupport() {
+bool TridentContext::checkValidationLayerSupport()
+{
     u32 layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -555,15 +566,16 @@ bool TridentContext::checkValidationLayerSupport() {
     return true;
 }
 
-bool TridentContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+bool TridentContext::checkDeviceExtensionSupport(VkPhysicalDevice device)
+{
     u32 extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-    std::set<std::string> requiredExtensions(m_config.requiredDeviceExtensions.begin(),
-                                         m_config.requiredDeviceExtensions.end());
+    std::set<std::string> requiredExtensions(
+        m_config.requiredDeviceExtensions.begin(), m_config.requiredDeviceExtensions.end());
 
     for (const auto& extension : availableExtensions) {
         requiredExtensions.erase(extension.extensionName);
@@ -572,7 +584,8 @@ bool TridentContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
-bool TridentContext::isDeviceSuitable(VkPhysicalDevice device) {
+bool TridentContext::isDeviceSuitable(VkPhysicalDevice device)
+{
     QueueFamilyIndices indices = findQueueFamilies(device);
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
@@ -586,10 +599,8 @@ bool TridentContext::isDeviceSuitable(VkPhysicalDevice device) {
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    bool suitable = indices.isComplete()
-        && extensionsSupported
-        && swapChainAdequate
-        && supportedFeatures.samplerAnisotropy;
+    bool suitable =
+        indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 
 #ifdef __APPLE__
     // macOS 使用 MoltenVK/Metal，不支持 shaderFloat64，跳过此检查
@@ -601,7 +612,8 @@ bool TridentContext::isDeviceSuitable(VkPhysicalDevice device) {
     return suitable;
 }
 
-QueueFamilyIndices TridentContext::findQueueFamilies(VkPhysicalDevice device) {
+QueueFamilyIndices TridentContext::findQueueFamilies(VkPhysicalDevice device)
+{
     QueueFamilyIndices indices;
 
     u32 queueFamilyCount = 0;
@@ -639,7 +651,8 @@ QueueFamilyIndices TridentContext::findQueueFamilies(VkPhysicalDevice device) {
     return indices;
 }
 
-SwapChainSupportDetails TridentContext::querySwapChainSupport(VkPhysicalDevice device) const {
+SwapChainSupportDetails TridentContext::querySwapChainSupport(VkPhysicalDevice device) const
+{
     SwapChainSupportDetails details;
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &details.capabilities);
@@ -661,7 +674,8 @@ SwapChainSupportDetails TridentContext::querySwapChainSupport(VkPhysicalDevice d
     return details;
 }
 
-std::vector<const char*> TridentContext::getRequiredInstanceExtensions() {
+std::vector<const char*> TridentContext::getRequiredInstanceExtensions()
+{
     u32 glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
@@ -679,7 +693,8 @@ std::vector<const char*> TridentContext::getRequiredInstanceExtensions() {
     return extensions;
 }
 
-std::vector<const char*> TridentContext::getRequiredDeviceExtensions() {
+std::vector<const char*> TridentContext::getRequiredDeviceExtensions()
+{
     std::vector<const char*> extensions;
     extensions.reserve(m_config.requiredDeviceExtensions.size() + m_config.optionalDeviceExtensions.size());
 

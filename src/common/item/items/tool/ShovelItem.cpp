@@ -1,34 +1,28 @@
 #include "ShovelItem.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
-#include "../../../world/IWorld.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/ItemUseContext.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/property/Properties.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
-ShovelItem::ShovelItem(const tier::IItemTier& tier,
-                       f32 attackDamage,
-                       f32 attackSpeed,
-                       ItemProperties properties)
-    : ToolItem(attackDamage,
-               attackSpeed,
-               tier,
-               initializeEffectiveBlocks(),
-               ToolType::Shovel,
-               properties) {
+ShovelItem::ShovelItem(const tier::IItemTier& tier, f32 attackDamage, f32 attackSpeed, ItemProperties properties)
+    : ToolItem(attackDamage, attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Shovel, properties)
+{
     // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
-ActionResultType ShovelItem::onItemUse(ItemUseContext& context) {
+ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
+{
     // MC 1.16.5: 锹功能 - 熄灭营火 + 创建土径
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
@@ -119,7 +113,8 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context) {
     return ActionResultType::Success;
 }
 
-const Block* ShovelItem::getPathBlock(const Block* original) {
+const Block* ShovelItem::getPathBlock(const Block* original)
+{
     if (original == nullptr) {
         return nullptr;
     }
@@ -131,7 +126,8 @@ const Block* ShovelItem::getPathBlock(const Block* original) {
     return nullptr;
 }
 
-bool ShovelItem::canHarvestBlock(const BlockState& state) const {
+bool ShovelItem::canHarvestBlock(const BlockState& state) const
+{
     // 1. 如果方块需要锹，检查挖掘等级
     if (state.getHarvestTool() == TOOL_TYPE_SHOVEL) {
         return m_tier.getHarvestLevel() >= state.getHarvestLevel();
@@ -149,7 +145,8 @@ bool ShovelItem::canHarvestBlock(const BlockState& state) const {
     return false;
 }
 
-f32 ShovelItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
+f32 ShovelItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
+{
     // 锹对泥土、沙子、雪材质有高效率
     if (isEffectiveMaterial(state.getMaterial())) {
         return m_efficiency;
@@ -163,13 +160,13 @@ f32 ShovelItem::getDestroySpeed(const ItemStack& stack, const BlockState& state)
     return 1.0f;
 }
 
-bool ShovelItem::isEffectiveMaterial(const Material& material) const {
-    return material == Material::EARTH ||
-           material == Material::SAND ||
-           material == Material::SNOW;
+bool ShovelItem::isEffectiveMaterial(const Material& material) const
+{
+    return material == Material::EARTH || material == Material::SAND || material == Material::SNOW;
 }
 
-std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks() {
+std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks()
+{
     std::unordered_set<const Block*> blocks;
 
     // 泥土类
@@ -218,7 +215,8 @@ std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks() {
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*>& ShovelItem::getPathMap() {
+std::unordered_map<const Block*, const Block*>& ShovelItem::getPathMap()
+{
     // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
     static std::unordered_map<const Block*, const Block*> map = []() {
         std::unordered_map<const Block*, const Block*> m;

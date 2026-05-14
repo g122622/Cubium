@@ -4,17 +4,17 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "core/Constants.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/vegetation/BambooBlock.hpp"
 #include "world/block/blocks/vegetation/CactusBlock.hpp"
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
-#include "world/block/blocks/vegetation/BambooBlock.hpp"
-#include "world/tick/manager/TickManager.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "core/Constants.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 #include <map>
 #include <memory>
@@ -32,7 +32,8 @@ class VegetationTestWorld final : public IBlockReader {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -42,7 +43,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -57,23 +59,31 @@ public:
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_blockLight, x, y, z);
-    }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z); }
 
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_skyLight, x, y, z);
-    }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z); }
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
@@ -84,48 +94,41 @@ public:
 
     void setSeed(u64 seed) { m_seed = seed; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) {
-        m_skyLight[pos] = light;
-    }
+    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) {
-        m_blockLight[pos] = light;
-    }
+    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("VegetationTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("VegetationTestWorld::tickManager not implemented");
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
+    [[nodiscard]] math::Random& getRandom() override
+    {
         throw std::runtime_error("VegetationTestWorld::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override {
+    [[nodiscard]] const math::Random& getRandom() const override
+    {
         throw std::runtime_error("VegetationTestWorld::getRandom not implemented");
     }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        return m_worldBorder;
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        return m_worldBorder;
-    }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
 private:
-    [[nodiscard]] const BlockState* airState() const {
-        return BlockRegistry::instance().airState();
-    }
+    [[nodiscard]] const BlockState* airState() const { return BlockRegistry::instance().airState(); }
 
-    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z) {
+    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z)
+    {
         const BlockPos pos(x, y, z);
         const auto it = lights.find(pos);
         if (it != lights.end()) {
@@ -147,68 +150,53 @@ private:
 class SequenceRandom final : public math::IRandom {
 public:
     explicit SequenceRandom(std::vector<i32> values)
-        : m_values(std::move(values)) {
-    }
+        : m_values(std::move(values))
+    {}
 
-    void setSeed(u64 seed) override {
+    void setSeed(u64 seed) override
+    {
         m_seed = seed;
         m_index = 0;
     }
 
-    [[nodiscard]] u64 nextU64() override {
-        return static_cast<u64>(nextValue());
-    }
+    [[nodiscard]] u64 nextU64() override { return static_cast<u64>(nextValue()); }
 
-    [[nodiscard]] u32 nextU32() override {
-        return static_cast<u32>(nextValue());
-    }
+    [[nodiscard]] u32 nextU32() override { return static_cast<u32>(nextValue()); }
 
-    [[nodiscard]] i32 nextInt(i32 bound) override {
-        return nextValue() % bound;
-    }
+    [[nodiscard]] i32 nextInt(i32 bound) override { return nextValue() % bound; }
 
-    [[nodiscard]] i32 nextInt() override {
-        return nextValue();
-    }
+    [[nodiscard]] i32 nextInt() override { return nextValue(); }
 
-    [[nodiscard]] i32 nextInt(i32 min, i32 max) override {
-        return min + (nextValue() % (max - min + 1));
-    }
+    [[nodiscard]] i32 nextInt(i32 min, i32 max) override { return min + (nextValue() % (max - min + 1)); }
 
-    [[nodiscard]] bool nextBoolean() override {
-        return (nextValue() & 1) != 0;
-    }
+    [[nodiscard]] bool nextBoolean() override { return (nextValue() & 1) != 0; }
 
-    [[nodiscard]] f32 nextFloat() override {
+    [[nodiscard]] f32 nextFloat() override
+    {
         return static_cast<f32>(nextValue() & 0x00FFFFFF) / static_cast<f32>(1 << 24);
     }
 
-    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override {
-        return min + nextFloat() * (max - min);
-    }
+    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override { return min + nextFloat() * (max - min); }
 
-    [[nodiscard]] f64 nextDouble() override {
+    [[nodiscard]] f64 nextDouble() override
+    {
         return static_cast<f64>(nextValue() & 0x001FFFFFFFFFFFFF) / static_cast<f64>(1ULL << 53);
     }
 
-    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override {
-        return min + nextDouble() * (max - min);
-    }
+    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override { return min + nextDouble() * (max - min); }
 
-    [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override {
+    [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override
+    {
         return mean + stddev * static_cast<f32>(nextValue());
     }
 
-    [[nodiscard]] i64 nextLong() override {
-        return static_cast<i64>(nextValue());
-    }
+    [[nodiscard]] i64 nextLong() override { return static_cast<i64>(nextValue()); }
 
-    [[nodiscard]] i64 nextLong(i64 bound) override {
-        return static_cast<i64>(nextValue() % bound);
-    }
+    [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
 
 private:
-    [[nodiscard]] i32 nextValue() {
+    [[nodiscard]] i32 nextValue()
+    {
         if (m_index < m_values.size()) {
             return m_values[m_index++];
         }
@@ -226,7 +214,8 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1) {
+        : LivingEntity(LegacyEntityType::Player, 1)
+    {
         setHealth(maxHealth());
     }
 };
@@ -235,14 +224,12 @@ public:
 
 class VegetationBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks) {
-    SaplingBlock sapling(
-        [](IWorld&, const BlockPos&, math::IRandom&) {},
+TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks)
+{
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::IRandom&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -258,12 +245,10 @@ TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks) {
     EXPECT_FALSE(sapling.isValidPosition(sapling.defaultState(), world, pos));
 }
 
-TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight) {
+TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight)
+{
     bool treeCalled = false;
-    SaplingBlock sapling(
-        [&](IWorld&, const BlockPos&, math::IRandom&) {
-            treeCalled = true;
-        },
+    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::IRandom&) { treeCalled = true; },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -284,12 +269,10 @@ TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight) {
     EXPECT_FALSE(treeCalled);
 }
 
-TEST_F(VegetationBlockTest, SaplingGrowUsesWorldSeedAndPosition) {
+TEST_F(VegetationBlockTest, SaplingGrowUsesWorldSeedAndPosition)
+{
     std::vector<u64> samples;
-    SaplingBlock sapling(
-        [&](IWorld&, const BlockPos&, math::IRandom& random) {
-            samples.push_back(random.nextU64());
-        },
+    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::IRandom& random) { samples.push_back(random.nextU64()); },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld worldA;
@@ -311,7 +294,8 @@ TEST_F(VegetationBlockTest, SaplingGrowUsesWorldSeedAndPosition) {
     EXPECT_EQ(samples[0], samples[1]);
 }
 
-TEST_F(VegetationBlockTest, TallGrassCanSustainOnDirtLikeBlocks) {
+TEST_F(VegetationBlockTest, TallGrassCanSustainOnDirtLikeBlocks)
+{
     TallGrassBlock grass(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -327,7 +311,8 @@ TEST_F(VegetationBlockTest, TallGrassCanSustainOnDirtLikeBlocks) {
     EXPECT_FALSE(grass.isValidPosition(grass.defaultState(), world, pos));
 }
 
-TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium) {
+TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)
+{
     MushroomBlock mushroom(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
@@ -345,7 +330,8 @@ TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium) {
     EXPECT_TRUE(mushroom.isValidPosition(mushroom.defaultState(), world, pos));
 }
 
-TEST_F(VegetationBlockTest, MushroomRandomTickSpreadsWhenDark) {
+TEST_F(VegetationBlockTest, MushroomRandomTickSpreadsWhenDark)
+{
     MushroomBlock mushroom(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
@@ -382,7 +368,8 @@ TEST_F(VegetationBlockTest, MushroomRandomTickSpreadsWhenDark) {
     EXPECT_TRUE(spreadFound);
 }
 
-TEST_F(VegetationBlockTest, CactusCanSustainOnlyOnSandLikeBlocks) {
+TEST_F(VegetationBlockTest, CactusCanSustainOnlyOnSandLikeBlocks)
+{
     CactusBlock cactus(BlockProperties(Material::PLANT).hardness(0.4f));
 
     VegetationTestWorld world;
@@ -398,7 +385,8 @@ TEST_F(VegetationBlockTest, CactusCanSustainOnlyOnSandLikeBlocks) {
     EXPECT_FALSE(cactus.isValidPosition(cactus.defaultState(), world, pos));
 }
 
-TEST_F(VegetationBlockTest, CactusOnEntityCollisionDamagesLivingEntities) {
+TEST_F(VegetationBlockTest, CactusOnEntityCollisionDamagesLivingEntities)
+{
     CactusBlock cactus(BlockProperties(Material::PLANT).hardness(0.4f));
     VegetationTestWorld world;
     const BlockPos pos(3, 50, 3);
@@ -415,7 +403,8 @@ TEST_F(VegetationBlockTest, CactusOnEntityCollisionDamagesLivingEntities) {
 // BambooBlock Tests
 // ============================================================================
 
-TEST_F(VegetationBlockTest, BambooCanSustainOnBambooPlantableBlocks) {
+TEST_F(VegetationBlockTest, BambooCanSustainOnBambooPlantableBlocks)
+{
     BambooBlock bamboo(BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid());
 
     VegetationTestWorld world;
@@ -446,7 +435,8 @@ TEST_F(VegetationBlockTest, BambooCanSustainOnBambooPlantableBlocks) {
     EXPECT_FALSE(bamboo.isValidPosition(bamboo.defaultState(), world, pos));
 }
 
-TEST_F(VegetationBlockTest, BambooGrowthLimitedTo16Blocks) {
+TEST_F(VegetationBlockTest, BambooGrowthLimitedTo16Blocks)
+{
     // 使用 VanillaBlocks 中注册的竹子
     ASSERT_NE(VanillaBlocks::BAMBOO, nullptr);
     BambooBlock* bamboo = dynamic_cast<BambooBlock*>(VanillaBlocks::BAMBOO);
@@ -469,7 +459,7 @@ TEST_F(VegetationBlockTest, BambooGrowthLimitedTo16Blocks) {
     EXPECT_TRUE(checkState->is(VanillaBlocks::BAMBOO));
 
     // 竹子高度已达16格，不应该再生长
-    SequenceRandom random({0});  // nextInt(3) == 0 触发生长
+    SequenceRandom random({0}); // nextInt(3) == 0 触发生长
     BlockState state = checkState->with(BlockStateProperties::STAGE_0_1(), 0);
     bamboo->randomTick(world, basePos, state, random);
 
@@ -478,7 +468,8 @@ TEST_F(VegetationBlockTest, BambooGrowthLimitedTo16Blocks) {
     EXPECT_TRUE(above == nullptr || above->isAir());
 }
 
-TEST_F(VegetationBlockTest, BambooRandomTickCanGrow) {
+TEST_F(VegetationBlockTest, BambooRandomTickCanGrow)
+{
     // 使用 VanillaBlocks 中注册的竹子
     ASSERT_NE(VanillaBlocks::BAMBOO, nullptr);
     BambooBlock* bamboo = dynamic_cast<BambooBlock*>(VanillaBlocks::BAMBOO);
@@ -496,7 +487,7 @@ TEST_F(VegetationBlockTest, BambooRandomTickCanGrow) {
     ASSERT_NE(checkState, nullptr);
 
     // 使用随机数触发生长 (nextInt(3) == 0, nextInt(3) for leaves)
-    SequenceRandom random({0, 1});  // 0 -> 触发生长, 1 -> 小叶子
+    SequenceRandom random({0, 1}); // 0 -> 触发生长, 1 -> 小叶子
     BlockState state = bambooState;
     bamboo->randomTick(world, pos, state, random);
 
@@ -506,7 +497,8 @@ TEST_F(VegetationBlockTest, BambooRandomTickCanGrow) {
     EXPECT_TRUE(above->is(VanillaBlocks::BAMBOO)) << "Block above is not bamboo";
 }
 
-TEST_F(VegetationBlockTest, BambooBoneMealGrowsMultipleBlocks) {
+TEST_F(VegetationBlockTest, BambooBoneMealGrowsMultipleBlocks)
+{
     BambooBlock bamboo(BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid());
 
     VegetationTestWorld world;
@@ -517,7 +509,7 @@ TEST_F(VegetationBlockTest, BambooBoneMealGrowsMultipleBlocks) {
     world.setBlockAt(pos, &bambooState);
 
     // 使用随机数让 canUseBonemeal 返回 true 并生长
-    SequenceRandom random({0, 1, 0, 0});  // float < 0.45, nextInt(2) == 1
+    SequenceRandom random({0, 1, 0, 0}); // float < 0.45, nextInt(2) == 1
     EXPECT_TRUE(bamboo.canUseBonemeal(world, random, pos, bambooState));
 
     bamboo.grow(world, random, pos, bambooState);
@@ -537,7 +529,8 @@ TEST_F(VegetationBlockTest, BambooBoneMealGrowsMultipleBlocks) {
 // BambooSaplingBlock Tests
 // ============================================================================
 
-TEST_F(VegetationBlockTest, BambooSaplingCanSustainOnBambooPlantableBlocks) {
+TEST_F(VegetationBlockTest, BambooSaplingCanSustainOnBambooPlantableBlocks)
+{
     BambooSaplingBlock sapling(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -560,7 +553,8 @@ TEST_F(VegetationBlockTest, BambooSaplingCanSustainOnBambooPlantableBlocks) {
     EXPECT_FALSE(sapling.isValidPosition(sapling.defaultState(), world, pos));
 }
 
-TEST_F(VegetationBlockTest, BambooSaplingRandomTickCanGrow) {
+TEST_F(VegetationBlockTest, BambooSaplingRandomTickCanGrow)
+{
     BambooSaplingBlock sapling(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -581,7 +575,8 @@ TEST_F(VegetationBlockTest, BambooSaplingRandomTickCanGrow) {
     EXPECT_TRUE(newState->is(VanillaBlocks::BAMBOO));
 }
 
-TEST_F(VegetationBlockTest, BambooSaplingGrowMethodReplacesWithBamboo) {
+TEST_F(VegetationBlockTest, BambooSaplingGrowMethodReplacesWithBamboo)
+{
     BambooSaplingBlock sapling(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;

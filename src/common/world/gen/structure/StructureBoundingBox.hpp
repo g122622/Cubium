@@ -14,9 +14,14 @@ namespace mc::world::gen::structure {
 class StructureBoundingBox {
 public:
     StructureBoundingBox()
-        : m_minX(0), m_minY(0), m_minZ(0)
-        , m_maxX(0), m_maxY(0), m_maxZ(0)
-        , m_valid(false) {}
+        : m_minX(0)
+        , m_minY(0)
+        , m_minZ(0)
+        , m_maxX(0)
+        , m_maxY(0)
+        , m_maxZ(0)
+        , m_valid(false)
+    {}
 
     StructureBoundingBox(i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2)
         : m_minX(std::min(x1, x2))
@@ -25,13 +30,12 @@ public:
         , m_maxX(std::max(x1, x2))
         , m_maxY(std::max(y1, y2))
         , m_maxZ(std::max(z1, z2))
-        , m_valid(true) {}
+        , m_valid(true)
+    {}
 
-    static StructureBoundingBox fromChunk(i32 chunkX, i32 chunkZ) {
-        return StructureBoundingBox(
-            chunkX << 4, 0, chunkZ << 4,
-            (chunkX << 4) + 15, 255, (chunkZ << 4) + 15
-        );
+    static StructureBoundingBox fromChunk(i32 chunkX, i32 chunkZ)
+    {
+        return StructureBoundingBox(chunkX << 4, 0, chunkZ << 4, (chunkX << 4) + 15, 255, (chunkZ << 4) + 15);
     }
 
     /**
@@ -49,10 +53,16 @@ public:
      * @param sizeZ Z 方向大小
      * @param direction 方向（Direction::North/South/East/West，或使用整数 0-3）
      */
-    static StructureBoundingBox createBox(i32 x, i32 y, i32 z,
-                                          i32 offsetX, i32 offsetY, i32 offsetZ,
-                                          i32 sizeX, i32 sizeY, i32 sizeZ,
-                                          Direction direction);
+    static StructureBoundingBox createBox(i32 x,
+        i32 y,
+        i32 z,
+        i32 offsetX,
+        i32 offsetY,
+        i32 offsetZ,
+        i32 sizeX,
+        i32 sizeY,
+        i32 sizeZ,
+        Direction direction);
 
     [[nodiscard]] i32 minX() const { return m_minX; }
     [[nodiscard]] i32 minY() const { return m_minY; }
@@ -82,10 +92,9 @@ public:
 
     [[nodiscard]] bool isValid() const { return m_valid; }
 
-    [[nodiscard]] bool contains(i32 x, i32 y, i32 z) const {
-        return x >= m_minX && x <= m_maxX &&
-               y >= m_minY && y <= m_maxY &&
-               z >= m_minZ && z <= m_maxZ;
+    [[nodiscard]] bool contains(i32 x, i32 y, i32 z) const
+    {
+        return x >= m_minX && x <= m_maxX && y >= m_minY && y <= m_maxY && z >= m_minZ && z <= m_maxZ;
     }
 
     /**
@@ -93,46 +102,41 @@ public:
      *
      * 参考 MC 1.16.5 MutableBoundingBox.isVecInside
      */
-    [[nodiscard]] bool isVecInside(i32 x, i32 y, i32 z) const {
-        return contains(x, y, z);
-    }
+    [[nodiscard]] bool isVecInside(i32 x, i32 y, i32 z) const { return contains(x, y, z); }
 
     /**
      * @brief 检查是否与另一个边界框相交
      *
      * 参考 MC 1.16.5 MutableBoundingBox.intersectsWith
      */
-    [[nodiscard]] bool intersectsWith(const StructureBoundingBox& other) const {
-        return m_maxX >= other.m_minX && m_minX <= other.m_maxX &&
-               m_maxY >= other.m_minY && m_minY <= other.m_maxY &&
-               m_maxZ >= other.m_minZ && m_minZ <= other.m_maxZ;
+    [[nodiscard]] bool intersectsWith(const StructureBoundingBox& other) const
+    {
+        return m_maxX >= other.m_minX && m_minX <= other.m_maxX && m_maxY >= other.m_minY && m_minY <= other.m_maxY &&
+            m_maxZ >= other.m_minZ && m_minZ <= other.m_maxZ;
     }
 
     /**
      * @brief 检查是否与另一个边界框相交（别名）
      */
-    [[nodiscard]] bool intersects(const StructureBoundingBox& other) const {
-        return intersectsWith(other);
-    }
+    [[nodiscard]] bool intersects(const StructureBoundingBox& other) const { return intersectsWith(other); }
 
     /**
      * @brief 检查点是否在边界框内（别名）
      */
-    [[nodiscard]] bool isInside(i32 x, i32 y, i32 z) const {
-        return contains(x, y, z);
-    }
+    [[nodiscard]] bool isInside(i32 x, i32 y, i32 z) const { return contains(x, y, z); }
 
-    [[nodiscard]] bool intersectsChunk(i32 chunkX, i32 chunkZ) const {
+    [[nodiscard]] bool intersectsChunk(i32 chunkX, i32 chunkZ) const
+    {
         i32 chunkMinX = chunkX << 4;
         i32 chunkMinZ = chunkZ << 4;
         i32 chunkMaxX = chunkMinX + 15;
         i32 chunkMaxZ = chunkMinZ + 15;
 
-        return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
-               m_maxZ >= chunkMinZ && m_minZ <= chunkMaxZ;
+        return m_maxX >= chunkMinX && m_minX <= chunkMaxX && m_maxZ >= chunkMinZ && m_minZ <= chunkMaxZ;
     }
 
-    void expandToInclude(i32 x, i32 y, i32 z) {
+    void expandToInclude(i32 x, i32 y, i32 z)
+    {
         if (!m_valid) {
             m_minX = m_maxX = x;
             m_minY = m_maxY = y;
@@ -154,7 +158,8 @@ public:
      *
      * 参考 MC 1.16.5 MutableBoundingBox.expandTo
      */
-    void expandTo(const StructureBoundingBox& other) {
+    void expandTo(const StructureBoundingBox& other)
+    {
         if (!other.m_valid) {
             return;
         }
@@ -177,7 +182,8 @@ public:
      *
      * 参考 MC 1.16.5 MutableBoundingBox.offset
      */
-    void offset(i32 dx, i32 dy, i32 dz) {
+    void offset(i32 dx, i32 dy, i32 dz)
+    {
         m_minX += dx;
         m_minY += dy;
         m_minZ += dz;
@@ -189,11 +195,9 @@ public:
     /**
      * @brief 创建偏移后的边界框副本
      */
-    [[nodiscard]] StructureBoundingBox offseted(i32 dx, i32 dy, i32 dz) const {
-        return StructureBoundingBox(
-            m_minX + dx, m_minY + dy, m_minZ + dz,
-            m_maxX + dx, m_maxY + dy, m_maxZ + dz
-        );
+    [[nodiscard]] StructureBoundingBox offseted(i32 dx, i32 dy, i32 dz) const
+    {
+        return StructureBoundingBox(m_minX + dx, m_minY + dy, m_minZ + dz, m_maxX + dx, m_maxY + dy, m_maxZ + dz);
     }
 
 private:

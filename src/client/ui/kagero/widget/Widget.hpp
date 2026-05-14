@@ -1,10 +1,10 @@
 ﻿#pragma once
 
 #include "../Types.hpp"
-#include <string>
-#include <vector>
 #include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace mc::client::ui::kagero::widget {
 
@@ -65,7 +65,9 @@ public:
      * @brief 构造函数（带ID）
      * @param id 组件ID
      */
-    explicit Widget(std::string id) : m_id(std::move(id)) {}
+    explicit Widget(std::string id)
+        : m_id(std::move(id))
+    {}
 
     /**
      * @brief 虚析构函数
@@ -93,9 +95,7 @@ public:
      * @brief 每帧更新
      * @param dt 增量时间（秒）
      */
-    virtual void tick(f32 dt) {
-        (void)dt;
-    }
+    virtual void tick(f32 dt) { (void)dt; }
 
     /**
      * @brief 绘制组件
@@ -106,16 +106,15 @@ public:
      *
      * @param ctx 绘图上下文
      */
-    virtual void paint(PaintContext& ctx) {
-        (void)ctx;
-    }
+    virtual void paint(PaintContext& ctx) { (void)ctx; }
 
     /**
      * @brief 窗口尺寸改变时调用
      * @param width 新宽度
      * @param height 新高度
      */
-    virtual void onResize(i32 width, i32 height) {
+    virtual void onResize(i32 width, i32 height)
+    {
         (void)width;
         (void)height;
     }
@@ -129,7 +128,8 @@ public:
      * @param button 鼠标按钮
      * @return 如果事件被处理返回true
      */
-    virtual bool onClick(i32 mouseX, i32 mouseY, i32 button) {
+    virtual bool onClick(i32 mouseX, i32 mouseY, i32 button)
+    {
         (void)mouseX;
         (void)mouseY;
         (void)button;
@@ -143,7 +143,8 @@ public:
      * @param button 鼠标按钮
      * @return 如果事件被处理返回true
      */
-    virtual bool onRelease(i32 mouseX, i32 mouseY, i32 button) {
+    virtual bool onRelease(i32 mouseX, i32 mouseY, i32 button)
+    {
         (void)mouseX;
         (void)mouseY;
         (void)button;
@@ -158,7 +159,8 @@ public:
      * @param deltaY Y方向移动量
      * @return 如果事件被处理返回true
      */
-    virtual bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) {
+    virtual bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+    {
         (void)mouseX;
         (void)mouseY;
         (void)deltaX;
@@ -173,7 +175,8 @@ public:
      * @param delta 滚轮增量
      * @return 如果事件被处理返回true
      */
-    virtual bool onScroll(i32 mouseX, i32 mouseY, f64 delta) {
+    virtual bool onScroll(i32 mouseX, i32 mouseY, f64 delta)
+    {
         (void)mouseX;
         (void)mouseY;
         (void)delta;
@@ -188,7 +191,8 @@ public:
      * @param mods 修饰键
      * @return 如果事件被处理返回true
      */
-    virtual bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+    virtual bool onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+    {
         (void)key;
         (void)scanCode;
         (void)action;
@@ -201,7 +205,8 @@ public:
      * @param codePoint Unicode码点
      * @return 如果事件被处理返回true
      */
-    virtual bool onChar(u32 codePoint) {
+    virtual bool onChar(u32 codePoint)
+    {
         (void)codePoint;
         return false;
     }
@@ -222,7 +227,8 @@ public:
      * @param mouseY 鼠标Y坐标
      * @return 如果事件被处理返回true
      */
-    virtual bool onMouseMove(i32 mouseX, i32 mouseY) {
+    virtual bool onMouseMove(i32 mouseX, i32 mouseY)
+    {
         (void)mouseX;
         (void)mouseY;
         return false;
@@ -245,7 +251,8 @@ public:
      * @param x X坐标
      * @param y Y坐标
      */
-    void setPosition(i32 x, i32 y) {
+    void setPosition(i32 x, i32 y)
+    {
         m_bounds.x = x;
         m_bounds.y = y;
         onPositionChanged();
@@ -256,7 +263,8 @@ public:
      * @param width 宽度
      * @param height 高度
      */
-    void setSize(i32 width, i32 height) {
+    void setSize(i32 width, i32 height)
+    {
         m_bounds.width = width;
         m_bounds.height = height;
         onSizeChanged();
@@ -266,7 +274,8 @@ public:
      * @brief 设置边界
      * @param rect 矩形边界
      */
-    void setBounds(const Rect& rect) {
+    void setBounds(const Rect& rect)
+    {
         m_bounds = rect;
         onPositionChanged();
         onSizeChanged();
@@ -276,7 +285,8 @@ public:
      * @brief 设置锚点
      * @param anchor 锚点位置
      */
-    void setAnchor(Anchor anchor) {
+    void setAnchor(Anchor anchor)
+    {
         m_anchor = anchor;
         onPositionChanged();
     }
@@ -285,17 +295,13 @@ public:
      * @brief 设置边距
      * @param margin 边距
      */
-    void setMargin(const Margin& margin) {
-        m_margin = margin;
-    }
+    void setMargin(const Margin& margin) { m_margin = margin; }
 
     /**
      * @brief 设置内边距
      * @param padding 内边距
      */
-    void setPadding(const Padding& padding) {
-        m_padding = padding;
-    }
+    void setPadding(const Padding& padding) { m_padding = padding; }
 
     // ==================== 状态查询 ====================
 
@@ -329,16 +335,15 @@ public:
      * @param x X坐标
      * @param y Y坐标
      */
-    [[nodiscard]] bool contains(i32 x, i32 y) const {
-        return m_visible && m_bounds.contains(x, y);
-    }
+    [[nodiscard]] bool contains(i32 x, i32 y) const { return m_visible && m_bounds.contains(x, y); }
 
     /**
      * @brief 检查鼠标是否在组件上
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      */
-    [[nodiscard]] bool isMouseOver(i32 mouseX, i32 mouseY) const {
+    [[nodiscard]] bool isMouseOver(i32 mouseX, i32 mouseY) const
+    {
         return m_active && m_visible && contains(mouseX, mouseY);
     }
 
@@ -347,7 +352,8 @@ public:
     /**
      * @brief 设置可见性
      */
-    void setVisible(bool visible) {
+    void setVisible(bool visible)
+    {
         if (m_visible != visible) {
             m_visible = visible;
             onVisibilityChanged(visible);
@@ -357,7 +363,8 @@ public:
     /**
      * @brief 设置激活状态
      */
-    void setActive(bool active) {
+    void setActive(bool active)
+    {
         if (m_active != active) {
             m_active = active;
             onActiveChanged(active);
@@ -367,7 +374,8 @@ public:
     /**
      * @brief 设置焦点
      */
-    void setFocused(bool focused) {
+    void setFocused(bool focused)
+    {
         if (m_focused != focused) {
             m_focused = focused;
             if (focused) {
@@ -381,7 +389,8 @@ public:
     /**
      * @brief 设置悬停状态（由容器调用）
      */
-    void setHovered(bool hovered) {
+    void setHovered(bool hovered)
+    {
         if (m_hovered != hovered) {
             m_hovered = hovered;
             if (hovered) {
@@ -514,9 +523,7 @@ public:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      */
-    void updateHover(i32 mouseX, i32 mouseY) {
-        setHovered(isMouseOver(mouseX, mouseY));
-    }
+    void updateHover(i32 mouseX, i32 mouseY) { setHovered(isMouseOver(mouseX, mouseY)); }
 
     // ==================== UI音效支持 ====================
 
@@ -545,16 +552,12 @@ public:
      * });
      * @endcode
      */
-    static void setUiSoundCallback(UiSoundCallback callback) {
-        s_uiSoundCallback = std::move(callback);
-    }
+    static void setUiSoundCallback(UiSoundCallback callback) { s_uiSoundCallback = std::move(callback); }
 
     /**
      * @brief 获取UI音效回调
      */
-    [[nodiscard]] static const UiSoundCallback& uiSoundCallback() {
-        return s_uiSoundCallback;
-    }
+    [[nodiscard]] static const UiSoundCallback& uiSoundCallback() { return s_uiSoundCallback; }
 
     /**
      * @brief 播放UI音效
@@ -564,7 +567,8 @@ public:
      *
      * @param soundEventId 音效事件ID（如 "minecraft:ui.button.click"）
      */
-    static void playUiSound(const std::string& soundEventId) {
+    static void playUiSound(const std::string& soundEventId)
+    {
         if (s_uiSoundCallback) {
             s_uiSoundCallback(soundEventId);
         }
@@ -584,37 +588,32 @@ protected:
     /**
      * @brief 可见性改变时调用
      */
-    virtual void onVisibilityChanged(bool visible) {
-        (void)visible;
-    }
+    virtual void onVisibilityChanged(bool visible) { (void)visible; }
 
     /**
      * @brief 激活状态改变时调用
      */
-    virtual void onActiveChanged(bool active) {
-        (void)active;
-    }
+    virtual void onActiveChanged(bool active) { (void)active; }
 
     // 成员变量
-    std::string m_id;                    ///< 组件ID
-    Rect m_bounds;                  ///< 边界矩形
-    Anchor m_anchor = Anchor::TopLeft;  ///< 锚点
-    Margin m_margin;                ///< 边距
-    Padding m_padding;              ///< 内边距
-    bool m_visible = true;          ///< 是否可见
-    bool m_active = true;           ///< 是否激活（可交互）
-    bool m_hovered = false;         ///< 鼠标悬停
-    bool m_focused = false;         ///< 是否获得焦点
-    i32 m_zIndex = 0;               ///< Z索引
-    f32 m_alpha = 1.0f;             ///< 透明度
+    std::string m_id;                                     ///< 组件ID
+    Rect m_bounds;                                        ///< 边界矩形
+    Anchor m_anchor = Anchor::TopLeft;                    ///< 锚点
+    Margin m_margin;                                      ///< 边距
+    Padding m_padding;                                    ///< 内边距
+    bool m_visible = true;                                ///< 是否可见
+    bool m_active = true;                                 ///< 是否激活（可交互）
+    bool m_hovered = false;                               ///< 鼠标悬停
+    bool m_focused = false;                               ///< 是否获得焦点
+    i32 m_zIndex = 0;                                     ///< Z索引
+    f32 m_alpha = 1.0f;                                   ///< 透明度
     u32 m_backgroundColor = Colors::fromARGB(0, 0, 0, 0); ///< 背景色
     u32 m_borderColor = Colors::fromARGB(0, 0, 0, 0);     ///< 边框色
-    i32 m_cornerRadius = 0;          ///< 圆角半径
-    IWidgetContainer* m_parent = nullptr;  ///< 父容器
+    i32 m_cornerRadius = 0;                               ///< 圆角半径
+    IWidgetContainer* m_parent = nullptr;                 ///< 父容器
 
     // 静态成员：UI音效回调（inline 允许在头文件中定义）
     inline static UiSoundCallback s_uiSoundCallback;
 };
 
 } // namespace mc::client::ui::kagero::widget
-

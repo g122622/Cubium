@@ -1,8 +1,8 @@
 #include "ServerDimension.hpp"
-#include "../world/ServerWorld.hpp"  // 需要完整定义以使用 unique_ptr
-#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "../world/ServerWorld.hpp" // 需要完整定义以使用 unique_ptr
 #include "common/core/Result.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
 #include <limits>
 
 namespace mc {
@@ -12,18 +12,18 @@ namespace mc {
 // ============================================================================
 
 ServerDimension::ServerDimension(DimensionId id,
-                                 DimensionType type,
-                                 std::unique_ptr<IChunkGenerator> generator,
-                                 std::unique_ptr<BiomeProvider> biomeProvider,
-                                 u64 seed,
-                                 i32 viewDistance)
+    DimensionType type,
+    std::unique_ptr<IChunkGenerator> generator,
+    std::unique_ptr<BiomeProvider> biomeProvider,
+    u64 seed,
+    i32 viewDistance)
     : Dimension(id, std::move(type), std::move(generator), std::move(biomeProvider))
     , m_seed(seed)
     , m_viewDistance(viewDistance)
-{
-}
+{}
 
-ServerDimension::~ServerDimension() {
+ServerDimension::~ServerDimension()
+{
     shutdown();
 }
 
@@ -31,7 +31,8 @@ ServerDimension::~ServerDimension() {
 // 初始化
 // ============================================================================
 
-Result<void> ServerDimension::initialize() {
+Result<void> ServerDimension::initialize()
+{
     if (m_initialized) {
         return {};
     }
@@ -44,7 +45,8 @@ Result<void> ServerDimension::initialize() {
     return {};
 }
 
-void ServerDimension::shutdown() {
+void ServerDimension::shutdown()
+{
     if (!m_initialized) {
         return;
     }
@@ -63,7 +65,8 @@ void ServerDimension::shutdown() {
 // 更新
 // ============================================================================
 
-void ServerDimension::tick() {
+void ServerDimension::tick()
+{
     Dimension::tick();
 
     // 更新区块管理器
@@ -88,20 +91,23 @@ void ServerDimension::tick() {
 // 玩家追踪
 // ============================================================================
 
-void ServerDimension::addPlayer(PlayerId playerId) {
+void ServerDimension::addPlayer(PlayerId playerId)
+{
     if (!hasPlayer(playerId)) {
         m_players.push_back(playerId);
     }
 }
 
-void ServerDimension::removePlayer(PlayerId playerId) {
+void ServerDimension::removePlayer(PlayerId playerId)
+{
     auto it = std::find(m_players.begin(), m_players.end(), playerId);
     if (it != m_players.end()) {
         m_players.erase(it);
     }
 }
 
-bool ServerDimension::hasPlayer(PlayerId playerId) const {
+bool ServerDimension::hasPlayer(PlayerId playerId) const
+{
     return std::find(m_players.begin(), m_players.end(), playerId) != m_players.end();
 }
 
@@ -109,19 +115,23 @@ bool ServerDimension::hasPlayer(PlayerId playerId) const {
 // 传送门追踪
 // ============================================================================
 
-void ServerDimension::recordPortalPosition(const BlockPos& pos) {
+void ServerDimension::recordPortalPosition(const BlockPos& pos)
+{
     m_portalPositions.insert(hashBlockPos(pos));
 }
 
-void ServerDimension::forgetPortalPosition(const BlockPos& pos) {
+void ServerDimension::forgetPortalPosition(const BlockPos& pos)
+{
     m_portalPositions.erase(hashBlockPos(pos));
 }
 
-bool ServerDimension::hasPortalAt(const BlockPos& pos) const {
+bool ServerDimension::hasPortalAt(const BlockPos& pos) const
+{
     return m_portalPositions.find(hashBlockPos(pos)) != m_portalPositions.end();
 }
 
-std::optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, i32 radius) const {
+std::optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, i32 radius) const
+{
     BlockPos nearestPos;
     i64 nearestDistSq = std::numeric_limits<i64>::max();
     bool found = false;
@@ -132,9 +142,7 @@ std::optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, 
             for (i32 dy = -radius; dy <= radius; ++dy) {
                 BlockPos checkPos(pos.x + dx, pos.y + dy, pos.z + dz);
                 if (hasPortalAt(checkPos)) {
-                    i64 distSq = static_cast<i64>(dx) * dx +
-                                 static_cast<i64>(dy) * dy +
-                                 static_cast<i64>(dz) * dz;
+                    i64 distSq = static_cast<i64>(dx) * dx + static_cast<i64>(dy) * dy + static_cast<i64>(dz) * dz;
                     if (distSq < nearestDistSq) {
                         nearestDistSq = distSq;
                         nearestPos = checkPos;
@@ -155,7 +163,8 @@ std::optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, 
 // 工具方法
 // ============================================================================
 
-u64 ServerDimension::hashBlockPos(const BlockPos& pos) {
+u64 ServerDimension::hashBlockPos(const BlockPos& pos)
+{
     // 使用简单的哈希组合
     u64 hx = static_cast<u64>(static_cast<i64>(pos.x) & 0xFFFFFFFFLL);
     u64 hy = static_cast<u64>(static_cast<i64>(pos.y) & 0xFFFFLL);

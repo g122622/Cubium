@@ -3,9 +3,9 @@
 #include "common/core/Types.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
 
-#include <nlohmann/json.hpp>
-#include <vector>
 #include <functional>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -15,9 +15,9 @@ namespace mc {
  * 表示资源包列表中的单个资源包配置。
  */
 struct ResourcePackEntry {
-    std::string path;           ///< 资源包路径（绝对路径或相对于资源包目录的相对路径）
-    bool enabled = true;   ///< 是否启用
-    i32 priority = 0;      ///< 优先级（越大越优先，会被后加载覆盖较低优先级的资源）
+    std::string path;    ///< 资源包路径（绝对路径或相对于资源包目录的相对路径）
+    bool enabled = true; ///< 是否启用
+    i32 priority = 0;    ///< 优先级（越大越优先，会被后加载覆盖较低优先级的资源）
 
     /**
      * @brief 默认构造函数
@@ -31,12 +31,16 @@ struct ResourcePackEntry {
      * @param pr 优先级
      */
     ResourcePackEntry(std::string p, bool e = true, i32 pr = 0)
-        : path(std::move(p)), enabled(e), priority(pr) {}
+        : path(std::move(p))
+        , enabled(e)
+        , priority(pr)
+    {}
 
     /**
      * @brief 从 JSON 解析
      */
-    static ResourcePackEntry fromJson(const nlohmann::json& j) {
+    static ResourcePackEntry fromJson(const nlohmann::json& j)
+    {
         ResourcePackEntry entry;
         if (j.contains("path") && j["path"].is_string()) {
             entry.path = j["path"].get<std::string>();
@@ -53,7 +57,8 @@ struct ResourcePackEntry {
     /**
      * @brief 序列化到 JSON
      */
-    nlohmann::json toJson() const {
+    nlohmann::json toJson() const
+    {
         nlohmann::json j;
         j["path"] = path;
         j["enabled"] = enabled;
@@ -64,16 +69,15 @@ struct ResourcePackEntry {
     /**
      * @brief 相等比较
      */
-    bool operator==(const ResourcePackEntry& other) const {
+    bool operator==(const ResourcePackEntry& other) const
+    {
         return path == other.path && enabled == other.enabled && priority == other.priority;
     }
 
     /**
      * @brief 不等比较
      */
-    bool operator!=(const ResourcePackEntry& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const ResourcePackEntry& other) const { return !(*this == other); }
 };
 
 /**
@@ -105,8 +109,7 @@ public:
      */
     explicit ResourcePackListOption(std::string key)
         : m_key(std::move(key))
-    {
-    }
+    {}
 
     /**
      * @brief 从默认列表构造
@@ -117,8 +120,7 @@ public:
         : m_key(std::move(key))
         , m_entries(std::move(defaultEntries))
         , m_default(m_entries)
-    {
-    }
+    {}
 
     // ========================================================================
     // IOption 接口实现
@@ -126,18 +128,21 @@ public:
 
     [[nodiscard]] std::string getKey() const override { return m_key; }
 
-    [[nodiscard]] SettingsValue getValue() const override {
+    [[nodiscard]] SettingsValue getValue() const override
+    {
         // 返回条目数量作为整数值
         return static_cast<i32>(m_entries.size());
     }
 
-    bool setValue(const SettingsValue& /*value*/) override {
+    bool setValue(const SettingsValue& /*value*/) override
+    {
         // 不支持通过 setValue 设置列表
         // 列表应该通过 add/remove/clear 等方法操作
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override {
+    void serialize(nlohmann::json& j) const override
+    {
         nlohmann::json arr = nlohmann::json::array();
         for (const auto& entry : m_entries) {
             arr.push_back(entry.toJson());
@@ -145,7 +150,8 @@ public:
         j[m_key] = arr;
     }
 
-    void deserialize(const nlohmann::json& j) override {
+    void deserialize(const nlohmann::json& j) override
+    {
         if (j.contains(m_key) && j[m_key].is_array()) {
             m_entries.clear();
             for (const auto& item : j[m_key]) {
@@ -155,14 +161,13 @@ public:
         }
     }
 
-    void reset() override {
+    void reset() override
+    {
         m_entries = m_default;
         notifyChange();
     }
 
-    [[nodiscard]] bool isDefault() const override {
-        return m_entries == m_default;
-    }
+    [[nodiscard]] bool isDefault() const override { return m_entries == m_default; }
 
     // ========================================================================
     // 列表操作方法
@@ -188,10 +193,11 @@ public:
      * @brief 添加资源包条目
      * @param entry 要添加的条目
      */
-    void add(const ResourcePackEntry& entry) {
+    void add(const ResourcePackEntry& entry)
+    {
         // 检查是否已存在相同路径的条目
-        auto it = std::find_if(m_entries.begin(), m_entries.end(),
-            [&](const ResourcePackEntry& e) { return e.path == entry.path; });
+        auto it = std::find_if(
+            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == entry.path; });
         if (it != m_entries.end()) {
             // 更新已存在的条目
             *it = entry;
@@ -206,9 +212,10 @@ public:
      * @param path 资源包路径
      * @return 是否成功移除
      */
-    bool remove(const std::string& path) {
-        auto it = std::find_if(m_entries.begin(), m_entries.end(),
-            [&](const ResourcePackEntry& e) { return e.path == path; });
+    bool remove(const std::string& path)
+    {
+        auto it = std::find_if(
+            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end()) {
             m_entries.erase(it);
             notifyChange();
@@ -222,9 +229,10 @@ public:
      * @param path 资源包路径
      * @return 条目指针，未找到返回 nullptr
      */
-    [[nodiscard]] const ResourcePackEntry* find(const std::string& path) const {
-        auto it = std::find_if(m_entries.begin(), m_entries.end(),
-            [&](const ResourcePackEntry& e) { return e.path == path; });
+    [[nodiscard]] const ResourcePackEntry* find(const std::string& path) const
+    {
+        auto it = std::find_if(
+            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
         return it != m_entries.end() ? &(*it) : nullptr;
     }
 
@@ -234,9 +242,10 @@ public:
      * @param entry 新的条目值
      * @return 是否成功更新
      */
-    bool update(const std::string& path, const ResourcePackEntry& entry) {
-        auto it = std::find_if(m_entries.begin(), m_entries.end(),
-            [&](const ResourcePackEntry& e) { return e.path == path; });
+    bool update(const std::string& path, const ResourcePackEntry& entry)
+    {
+        auto it = std::find_if(
+            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end()) {
             *it = entry;
             notifyChange();
@@ -251,9 +260,10 @@ public:
      * @param enabled 是否启用
      * @return 是否成功更新
      */
-    bool setEnabled(const std::string& path, bool enabled) {
-        auto it = std::find_if(m_entries.begin(), m_entries.end(),
-            [&](const ResourcePackEntry& e) { return e.path == path; });
+    bool setEnabled(const std::string& path, bool enabled)
+    {
+        auto it = std::find_if(
+            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end() && it->enabled != enabled) {
             it->enabled = enabled;
             notifyChange();
@@ -268,9 +278,10 @@ public:
      * @param priority 新优先级
      * @return 是否成功更新
      */
-    bool setPriority(const std::string& path, i32 priority) {
-        auto it = std::find_if(m_entries.begin(), m_entries.end(),
-            [&](const ResourcePackEntry& e) { return e.path == path; });
+    bool setPriority(const std::string& path, i32 priority)
+    {
+        auto it = std::find_if(
+            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end() && it->priority != priority) {
             it->priority = priority;
             notifyChange();
@@ -282,7 +293,8 @@ public:
     /**
      * @brief 清空所有条目
      */
-    void clear() {
+    void clear()
+    {
         if (!m_entries.empty()) {
             m_entries.clear();
             notifyChange();
@@ -293,7 +305,8 @@ public:
      * @brief 设置所有条目
      * @param entries 新的条目列表
      */
-    void setEntries(std::vector<ResourcePackEntry> entries) {
+    void setEntries(std::vector<ResourcePackEntry> entries)
+    {
         m_entries = std::move(entries);
         notifyChange();
     }
@@ -307,12 +320,12 @@ public:
      *
      * @return 排序后的条目列表
      */
-    [[nodiscard]] std::vector<ResourcePackEntry> getSortedEntries() const {
+    [[nodiscard]] std::vector<ResourcePackEntry> getSortedEntries() const
+    {
         std::vector<ResourcePackEntry> sorted = m_entries;
-        std::sort(sorted.begin(), sorted.end(),
-            [](const ResourcePackEntry& a, const ResourcePackEntry& b) {
-                return a.priority > b.priority; // 降序，高优先级在前
-            });
+        std::sort(sorted.begin(), sorted.end(), [](const ResourcePackEntry& a, const ResourcePackEntry& b) {
+            return a.priority > b.priority; // 降序，高优先级在前
+        });
         return sorted;
     }
 
@@ -320,7 +333,8 @@ public:
      * @brief 获取已启用的条目
      * @return 已启用的条目列表
      */
-    [[nodiscard]] std::vector<ResourcePackEntry> getEnabledEntries() const {
+    [[nodiscard]] std::vector<ResourcePackEntry> getEnabledEntries() const
+    {
         std::vector<ResourcePackEntry> enabled;
         for (const auto& entry : m_entries) {
             if (entry.enabled) {
@@ -334,12 +348,12 @@ public:
      * @brief 获取已启用并按优先级排序的条目
      * @return 排序后的已启用条目列表
      */
-    [[nodiscard]] std::vector<ResourcePackEntry> getSortedEnabledEntries() const {
+    [[nodiscard]] std::vector<ResourcePackEntry> getSortedEnabledEntries() const
+    {
         std::vector<ResourcePackEntry> enabled = getEnabledEntries();
-        std::sort(enabled.begin(), enabled.end(),
-            [](const ResourcePackEntry& a, const ResourcePackEntry& b) {
-                return a.priority > b.priority;
-            });
+        std::sort(enabled.begin(), enabled.end(), [](const ResourcePackEntry& a, const ResourcePackEntry& b) {
+            return a.priority > b.priority;
+        });
         return enabled;
     }
 
@@ -360,7 +374,8 @@ public:
      * @brief 设置变更回调
      * @param callback 变更时调用的函数
      */
-    void onChange(std::function<void(const std::vector<ResourcePackEntry>&)> callback) {
+    void onChange(std::function<void(const std::vector<ResourcePackEntry>&)> callback)
+    {
         m_callback = std::move(callback);
     }
 
@@ -373,7 +388,8 @@ private:
     /**
      * @brief 通知变更
      */
-    void notifyChange() {
+    void notifyChange()
+    {
         if (m_callback) {
             m_callback(m_entries);
         }

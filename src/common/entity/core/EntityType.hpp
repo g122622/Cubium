@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
+#include "../../core/Types.hpp"
 #include "EntityClassification.hpp"
 #include "EntitySize.hpp"
 #include <functional>
@@ -18,11 +18,10 @@ class IWorld;
 namespace entity {
 
 // 引入 mc 命名空间的类型
+using mc::f32;
+using mc::i32;
 using mc::u16;
 using mc::u32;
-using mc::i32;
-using mc::f32;
-
 
 /**
  * @brief 实体类型ID
@@ -39,23 +38,26 @@ using EntityTypeId = u16;
  */
 enum class EntityFlags : u32 {
     None = 0,
-    ImmuneToFire = 1 << 0,       // 免疫火焰
-    ImmuneToLava = 1 << 1,       // 免疫岩浆
-    CanSummon = 1 << 2,          // 可以被召唤
-    Serializable = 1 << 3,       // 可以序列化到NBT
-    ImmuneToDrowning = 1 << 4,   // 免疫溺水
-    ImmuneToFall = 1 << 5,       // 免疫摔落伤害
+    ImmuneToFire = 1 << 0,     // 免疫火焰
+    ImmuneToLava = 1 << 1,     // 免疫岩浆
+    CanSummon = 1 << 2,        // 可以被召唤
+    Serializable = 1 << 3,     // 可以序列化到NBT
+    ImmuneToDrowning = 1 << 4, // 免疫溺水
+    ImmuneToFall = 1 << 5,     // 免疫摔落伤害
 };
 
-inline EntityFlags operator|(EntityFlags a, EntityFlags b) {
+inline EntityFlags operator|(EntityFlags a, EntityFlags b)
+{
     return static_cast<EntityFlags>(static_cast<u32>(a) | static_cast<u32>(b));
 }
 
-inline EntityFlags operator&(EntityFlags a, EntityFlags b) {
+inline EntityFlags operator&(EntityFlags a, EntityFlags b)
+{
     return static_cast<EntityFlags>(static_cast<u32>(a) & static_cast<u32>(b));
 }
 
-inline bool hasEntityFlag(EntityFlags flags, EntityFlags flag) {
+inline bool hasEntityFlag(EntityFlags flags, EntityFlags flag)
+{
     return (static_cast<u32>(flags) & static_cast<u32>(flag)) != 0;
 }
 
@@ -103,7 +105,8 @@ public:
          * @param height 高度
          * @return Builder引用
          */
-        Builder& size(f32 width, f32 height) {
+        Builder& size(f32 width, f32 height)
+        {
             m_size = EntitySize::flexible(width, height);
             return *this;
         }
@@ -114,7 +117,8 @@ public:
          * @param height 高度
          * @return Builder引用
          */
-        Builder& fixedSize(f32 width, f32 height) {
+        Builder& fixedSize(f32 width, f32 height)
+        {
             m_size = EntitySize::fixed(width, height);
             return *this;
         }
@@ -124,7 +128,8 @@ public:
          * @param range 区块距离
          * @return Builder引用
          */
-        Builder& trackingRange(i32 range) {
+        Builder& trackingRange(i32 range)
+        {
             m_trackingRange = range;
             return *this;
         }
@@ -134,7 +139,8 @@ public:
          * @param interval tick间隔
          * @return Builder引用
          */
-        Builder& updateInterval(i32 interval) {
+        Builder& updateInterval(i32 interval)
+        {
             m_updateInterval = interval;
             return *this;
         }
@@ -143,7 +149,8 @@ public:
          * @brief 设置火焰免疫
          * @return Builder引用
          */
-        Builder& immuneToFire() {
+        Builder& immuneToFire()
+        {
             m_flags = m_flags | EntityFlags::ImmuneToFire;
             return *this;
         }
@@ -152,7 +159,8 @@ public:
          * @brief 设置岩浆免疫
          * @return Builder引用
          */
-        Builder& immuneToLava() {
+        Builder& immuneToLava()
+        {
             m_flags = m_flags | EntityFlags::ImmuneToLava;
             return *this;
         }
@@ -161,8 +169,10 @@ public:
          * @brief 禁用序列化
          * @return Builder引用
          */
-        Builder& disableSerialization() {
-            m_flags = static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::Serializable));
+        Builder& disableSerialization()
+        {
+            m_flags =
+                static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::Serializable));
             return *this;
         }
 
@@ -170,11 +180,13 @@ public:
          * @brief 设置可召唤
          * @return Builder引用
          */
-        Builder& canSummon(bool value = true) {
+        Builder& canSummon(bool value = true)
+        {
             if (value) {
                 m_flags = m_flags | EntityFlags::CanSummon;
             } else {
-                m_flags = static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::CanSummon));
+                m_flags =
+                    static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::CanSummon));
             }
             return *this;
         }
@@ -183,15 +195,9 @@ public:
          * @brief 构建实体类型
          * @return 配置好的EntityType
          */
-        EntityType build() const {
-            return EntityType(
-                m_factory,
-                m_classification,
-                m_size,
-                m_trackingRange,
-                m_updateInterval,
-                m_flags
-            );
+        EntityType build() const
+        {
+            return EntityType(m_factory, m_classification, m_size, m_trackingRange, m_updateInterval, m_flags);
         }
 
     private:
@@ -231,11 +237,11 @@ public:
      * @brief 构造实体类型
      */
     EntityType(EntityFactory factory,
-               EntityClassification classification,
-               EntitySize size,
-               i32 trackingRange,
-               i32 updateInterval,
-               EntityFlags flags)
+        EntityClassification classification,
+        EntitySize size,
+        i32 trackingRange,
+        i32 updateInterval,
+        EntityFlags flags)
         : m_factory(std::move(factory))
         , m_classification(classification)
         , m_size(size)
@@ -279,37 +285,27 @@ public:
     /**
      * @brief 检查是否有特定标志
      */
-    [[nodiscard]] bool hasFlag(EntityFlags flag) const {
-        return entity::hasEntityFlag(m_flags, flag);
-    }
+    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return entity::hasEntityFlag(m_flags, flag); }
 
     /**
      * @brief 是否免疫火焰
      */
-    [[nodiscard]] bool immuneToFire() const {
-        return hasFlag(EntityFlags::ImmuneToFire);
-    }
+    [[nodiscard]] bool immuneToFire() const { return hasFlag(EntityFlags::ImmuneToFire); }
 
     /**
      * @brief 是否免疫岩浆
      */
-    [[nodiscard]] bool immuneToLava() const {
-        return hasFlag(EntityFlags::ImmuneToLava);
-    }
+    [[nodiscard]] bool immuneToLava() const { return hasFlag(EntityFlags::ImmuneToLava); }
 
     /**
      * @brief 是否可以序列化
      */
-    [[nodiscard]] bool serializable() const {
-        return hasFlag(EntityFlags::Serializable);
-    }
+    [[nodiscard]] bool serializable() const { return hasFlag(EntityFlags::Serializable); }
 
     /**
      * @brief 是否可以被召唤
      */
-    [[nodiscard]] bool canSummon() const {
-        return hasFlag(EntityFlags::CanSummon);
-    }
+    [[nodiscard]] bool canSummon() const { return hasFlag(EntityFlags::CanSummon); }
 
     /**
      * @brief 获取ID

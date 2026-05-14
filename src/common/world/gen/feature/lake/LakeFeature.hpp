@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,7 +11,7 @@ namespace mc {
 class Block;
 class BlockState;
 class IWorldWriter;
-}
+} // namespace mc
 
 namespace mc::world::gen::feature::lake {
 
@@ -21,16 +21,17 @@ namespace mc::world::gen::feature::lake {
  * 配置湖泊或熔岩湖的参数。
  */
 struct LakeFeatureConfig {
-    Block* fluidBlock;          ///< 流体方块（用于比较）
-    Block* borderBlock;         ///< 边界方块（用于比较）
-    const BlockState* fluidState;   ///< 流体方块状态
-    const BlockState* borderState;  ///< 边界方块状态
+    Block* fluidBlock;             ///< 流体方块（用于比较）
+    Block* borderBlock;            ///< 边界方块（用于比较）
+    const BlockState* fluidState;  ///< 流体方块状态
+    const BlockState* borderState; ///< 边界方块状态
 
     LakeFeatureConfig(Block* fluid = nullptr, Block* border = nullptr)
         : fluidBlock(fluid)
         , borderBlock(border)
         , fluidState(fluid ? &fluid->defaultState() : nullptr)
-        , borderState(border ? &border->defaultState() : nullptr) {}
+        , borderState(border ? &border->defaultState() : nullptr)
+    {}
 };
 
 /**
@@ -108,19 +109,14 @@ public:
      * @param maxY 采样最大高度（含）
      */
     ConfiguredLakeFeature(
-        world::gen::feature::lake::LakeFeatureConfig config,
-        const char* featureName,
-        i32 chance,
-        i32 minY,
-        i32 maxY);
+        world::gen::feature::lake::LakeFeatureConfig config, const char* featureName, i32 chance, i32 minY, i32 maxY);
 
     /**
      * @brief 在区块中尝试放置湖泊
      *
      * @note 本方法会自行做概率门控和高度采样。
      */
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

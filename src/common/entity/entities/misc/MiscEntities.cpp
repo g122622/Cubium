@@ -1,11 +1,11 @@
 #include "MiscEntities.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
-#include "../player/Player.hpp"
 #include "../../core/LivingEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
@@ -16,10 +16,10 @@ namespace entity {
 
 FallingBlockEntity::FallingBlockEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
-{
-}
+{}
 
-void FallingBlockEntity::tick() {
+void FallingBlockEntity::tick()
+{
     Entity::tick();
 
     m_fallTime++;
@@ -50,7 +50,8 @@ void FallingBlockEntity::tick() {
     }
 }
 
-void FallingBlockEntity::handleLanding() {
+void FallingBlockEntity::handleLanding()
+{
     // 检查是否应该伤害实体
     if (m_hurtEntities) {
         f64 fallDistance = m_fallStartY - y();
@@ -72,21 +73,21 @@ void FallingBlockEntity::handleLanding() {
 
 TNTEntity::TNTEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
-{
-}
+{}
 
 TNTEntity::TNTEntity(LegacyEntityType type, EntityId id)
     : Entity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> TNTEntity::create(IWorld* world) {
+std::unique_ptr<Entity> TNTEntity::create(IWorld* world)
+{
     MC_UNUSED(world);
     // 创建时使用Unknown类型，会在spawnEntity时分配ID
     return std::make_unique<TNTEntity>();
 }
 
-void TNTEntity::tick() {
+void TNTEntity::tick()
+{
     Entity::tick();
 
     // 引信倒计时
@@ -112,11 +113,7 @@ void TNTEntity::tick() {
                 f32 vy = 0.02f + random.nextFloat() * 0.02f;
                 f32 vz = random.nextFloat() * 0.02f - 0.01f;
 
-                world()->addParticle(
-                    ParticleTypeId::Smoke,
-                    Vector3(px, py, pz),
-                    Vector3(vx, vy, vz)
-                );
+                world()->addParticle(ParticleTypeId::Smoke, Vector3(px, py, pz), Vector3(vx, vy, vz));
             }
         }
 
@@ -128,7 +125,7 @@ void TNTEntity::tick() {
     // 重力
     if (!hasNoGravity()) {
         Vector3 vel = velocity();
-        vel.y -= 0.04f;  // MC 1.16.5: 重力加速度
+        vel.y -= 0.04f; // MC 1.16.5: 重力加速度
         setVelocity(vel);
     }
 
@@ -148,17 +145,19 @@ void TNTEntity::tick() {
     if (onGround()) {
         vel = velocity();
         vel.x *= 0.7f;
-        vel.y *= -0.5f;  // 反弹
+        vel.y *= -0.5f; // 反弹
         vel.z *= 0.7f;
         setVelocity(vel);
     }
 }
 
-void TNTEntity::ignite() {
+void TNTEntity::ignite()
+{
     m_fuse = DEFAULT_FUSE;
 }
 
-void TNTEntity::explode() {
+void TNTEntity::explode()
+{
     if (m_exploded) return;
     m_exploded = true;
 
@@ -171,8 +170,8 @@ void TNTEntity::explode() {
             Vector3(static_cast<f32>(x()), static_cast<f32>(y()) + 0.0625f, static_cast<f32>(z())),
             m_explosionRadius,
             world::explosion::ExplosionMode::Break,
-            false,  // 不生成火焰
-            this    // 爆炸源实体
+            false, // 不生成火焰
+            this   // 爆炸源实体
         );
     }
 
@@ -181,7 +180,8 @@ void TNTEntity::explode() {
 
 // ==================== WardenWarningEffect ====================
 
-void WardenWarningEffect::tick() {
+void WardenWarningEffect::tick()
+{
     if (m_cooldown > 0) {
         m_cooldown--;
     } else {
@@ -192,14 +192,16 @@ void WardenWarningEffect::tick() {
     }
 }
 
-void WardenWarningEffect::increaseWarning() {
+void WardenWarningEffect::increaseWarning()
+{
     if (m_warningLevel < MAX_WARNING) {
         m_warningLevel++;
         m_cooldown = DECREASE_INTERVAL;
     }
 }
 
-void WardenWarningEffect::decreaseWarning() {
+void WardenWarningEffect::decreaseWarning()
+{
     if (m_warningLevel > 0) {
         m_warningLevel--;
     }

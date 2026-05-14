@@ -1,20 +1,20 @@
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
+#include "../../core/AnimationContext.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/util/math/Vector4.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include <vulkan/vulkan.h>
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <memory>
 #include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class LivingEntity;
@@ -23,7 +23,7 @@ class LivingEntity;
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 struct EntityMesh;
-}
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity::layer::effect {
 
@@ -36,7 +36,7 @@ namespace mc::client::renderer::entity::layer::effect {
  *
  * @tparam TEntity 实体类型
  */
-template<typename TEntity>
+template <typename TEntity>
 class EnergyGlintLayer : public core::LayerRenderer<TEntity> {
 public:
     EnergyGlintLayer() = default;
@@ -45,26 +45,22 @@ public:
     /**
      * @brief 渲染附魔光效层（GPU管线路径）
      */
-    void renderPipeline(
-        TEntity& entity,
+    void renderPipeline(TEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染附魔光效层（CPU路径 - 已废弃）
      */
-    void render(
-        TEntity& entity,
+    void render(TEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override;
+        f32 scale) override;
 
     /**
      * @brief 检查是否应该渲染附魔光效
@@ -80,11 +76,7 @@ protected:
     /**
      * @brief 构建光效网格
      */
-    void buildGlintMesh(
-        f32 glintOffset,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+    void buildGlintMesh(f32 glintOffset, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     ResourceLocation m_glintTexture{"minecraft", "textures/misc/enchanted_item_glint.png"};
 
@@ -96,9 +88,8 @@ protected:
 
 namespace mc::client::renderer::entity::layer::effect {
 
-template<typename TEntity>
-void EnergyGlintLayer<TEntity>::renderPipeline(
-    TEntity& entity,
+template <typename TEntity>
+void EnergyGlintLayer<TEntity>::renderPipeline(TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -129,12 +120,7 @@ void EnergyGlintLayer<TEntity>::renderPipeline(
     // 计算光效变换矩阵
     // 光效层覆盖整个实体
     std::array<f64, 16> glintTransform;
-    glintTransform = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    glintTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 光效略微放大以避免 z-fighting
     const f32 glintScale = 1.01f;
@@ -143,28 +129,22 @@ void EnergyGlintLayer<TEntity>::renderPipeline(
     glintTransform[10] = glintScale;
 
     // 获取实体位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用紫色发光颜色
     Vector4f overlayColor(0.5f, 0.0f, 1.0f, 0.5f);
 
     // TODO: 需要设置叠加混合模式和光效纹理滚动
     // 目前先使用普通渲染
-    pipeline.drawMesh(cmd, result.value(), glintTransform, entityPos, 1.0,
-                      overlayColor, 0.0f, 0.0f);
+    pipeline.drawMesh(cmd, result.value(), glintTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
 
     spdlog::trace("EnergyGlintLayer: Rendered glint effect on entity");
 
     (void)cmd;
 }
 
-template<typename TEntity>
-void EnergyGlintLayer<TEntity>::render(
-    TEntity& entity,
+template <typename TEntity>
+void EnergyGlintLayer<TEntity>::render(TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -184,8 +164,9 @@ void EnergyGlintLayer<TEntity>::render(
     (void)scale;
 }
 
-template<typename TEntity>
-bool EnergyGlintLayer<TEntity>::shouldRender(const TEntity& entity) const {
+template <typename TEntity>
+bool EnergyGlintLayer<TEntity>::shouldRender(const TEntity& entity) const
+{
     // 检查实体是否有附魔物品
     // 参考 MC 1.16.5: ItemStack.hasEffect() -> ItemStack.isEnchanted()
     // 检查所有装备槽位是否有附魔物品
@@ -232,18 +213,17 @@ bool EnergyGlintLayer<TEntity>::shouldRender(const TEntity& entity) const {
     return false;
 }
 
-template<typename TEntity>
-f32 EnergyGlintLayer<TEntity>::calculateGlintOffset(f32 ageInTicks) const {
+template <typename TEntity>
+f32 EnergyGlintLayer<TEntity>::calculateGlintOffset(f32 ageInTicks) const
+{
     // 光效滚动速度
     // 参考 MC 1.16.5 的光效动画
     return std::fmod(ageInTicks * 0.01f, 1.0f);
 }
 
-template<typename TEntity>
+template <typename TEntity>
 void EnergyGlintLayer<TEntity>::buildGlintMesh(
-    f32 glintOffset,
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    f32 glintOffset, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 附魔光效是一个覆盖整个实体的半透明网格
     // 使用滚动的 UV 坐标来模拟光效流动
@@ -262,40 +242,40 @@ void EnergyGlintLayer<TEntity>::buildGlintMesh(
     // 使用滚动的 UV 坐标
 
     // 前面
-    vertices.push_back(model::ModelVertex(-half, -half,  half, uOffset, vOffset, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( half, -half,  half, uOffset + 1.0f, vOffset, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( half,  half,  half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex(-half,  half,  half, uOffset, vOffset + 1.0f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(-half, -half, half, uOffset, vOffset, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(half, -half, half, uOffset + 1.0f, vOffset, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(half, half, half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(-half, half, half, uOffset, vOffset + 1.0f, 0.0f, 0.0f, 1.0f));
 
     // 后面
-    vertices.push_back(model::ModelVertex( half, -half, -half, uOffset, vOffset, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(half, -half, -half, uOffset, vOffset, 0.0f, 0.0f, -1.0f));
     vertices.push_back(model::ModelVertex(-half, -half, -half, uOffset + 1.0f, vOffset, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex(-half,  half, -half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex( half,  half, -half, uOffset, vOffset + 1.0f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(-half, half, -half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(half, half, -half, uOffset, vOffset + 1.0f, 0.0f, 0.0f, -1.0f));
 
     // 顶面
-    vertices.push_back(model::ModelVertex(-half,  half,  half, uOffset, vOffset, 0.0f, 1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( half,  half,  half, uOffset + 1.0f, vOffset, 0.0f, 1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( half,  half, -half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, 1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-half,  half, -half, uOffset, vOffset + 1.0f, 0.0f, 1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-half, half, half, uOffset, vOffset, 0.0f, 1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, half, half, uOffset + 1.0f, vOffset, 0.0f, 1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, half, -half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, 1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-half, half, -half, uOffset, vOffset + 1.0f, 0.0f, 1.0f, 0.0f));
 
     // 底面
     vertices.push_back(model::ModelVertex(-half, -half, -half, uOffset, vOffset, 0.0f, -1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( half, -half, -half, uOffset + 1.0f, vOffset, 0.0f, -1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( half, -half,  half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, -1.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-half, -half,  half, uOffset, vOffset + 1.0f, 0.0f, -1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, -half, -half, uOffset + 1.0f, vOffset, 0.0f, -1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, -half, half, uOffset + 1.0f, vOffset + 1.0f, 0.0f, -1.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-half, -half, half, uOffset, vOffset + 1.0f, 0.0f, -1.0f, 0.0f));
 
     // 右面
-    vertices.push_back(model::ModelVertex( half, -half,  half, uOffset, vOffset, 1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( half, -half, -half, uOffset + 1.0f, vOffset, 1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( half,  half, -half, uOffset + 1.0f, vOffset + 1.0f, 1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex( half,  half,  half, uOffset, vOffset + 1.0f, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, -half, half, uOffset, vOffset, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, -half, -half, uOffset + 1.0f, vOffset, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, half, -half, uOffset + 1.0f, vOffset + 1.0f, 1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(half, half, half, uOffset, vOffset + 1.0f, 1.0f, 0.0f, 0.0f));
 
     // 左面
     vertices.push_back(model::ModelVertex(-half, -half, -half, uOffset, vOffset, -1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-half, -half,  half, uOffset + 1.0f, vOffset, -1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-half,  half,  half, uOffset + 1.0f, vOffset + 1.0f, -1.0f, 0.0f, 0.0f));
-    vertices.push_back(model::ModelVertex(-half,  half, -half, uOffset, vOffset + 1.0f, -1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-half, -half, half, uOffset + 1.0f, vOffset, -1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-half, half, half, uOffset + 1.0f, vOffset + 1.0f, -1.0f, 0.0f, 0.0f));
+    vertices.push_back(model::ModelVertex(-half, half, -half, uOffset, vOffset + 1.0f, -1.0f, 0.0f, 0.0f));
 
     // 索引（每个面两个三角形）
     for (u32 face = 0; face < 6; ++face) {

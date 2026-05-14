@@ -70,7 +70,8 @@ public:
      *
      * 子类应在tick()中调用此方法
      */
-    virtual void updateAnger() {
+    virtual void updateAnger()
+    {
         if (getAngerTime() > 0) {
             setAngerTime(getAngerTime() - 1);
             if (getAngerTime() == 0) {

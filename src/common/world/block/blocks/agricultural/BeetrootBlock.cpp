@@ -1,14 +1,15 @@
 #include "BeetrootBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
 
 namespace mc {
 namespace blocks {
 
 BeetrootBlock::BeetrootBlock(const BlockProperties& properties)
-    : CropBlock(properties) {
+    : CropBlock(properties)
+{
 
     // 预计算甜菜根各生长阶段的形状
     // 只有 4 个阶段，高度：2, 4, 6, 8 像素
@@ -20,12 +21,14 @@ BeetrootBlock::BeetrootBlock(const BlockProperties& properties)
     }
 }
 
-const IntegerProperty& BeetrootBlock::getAgeProperty() const {
+const IntegerProperty& BeetrootBlock::getAgeProperty() const
+{
     // 甜菜根使用 AGE_0_3 属性
     return BlockStateProperties::AGE_0_3();
 }
 
-void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 参考: net.minecraft.block.BeetrootBlock#randomTick
     // 甜菜根有 1/3 概率跳过生长检查
 
@@ -56,7 +59,8 @@ void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     }
 }
 
-int BeetrootBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const {
+int BeetrootBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
+{
     // 甜菜根骨粉增加的生长阶段较少
     // 参考: net.minecraft.block.BeetrootBlock#getBonemealAgeIncrease
     // 返回父类的 1/3（约 0-1，因为父类返回 2-5）
@@ -66,19 +70,22 @@ int BeetrootBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) co
     return 1;
 }
 
-const CollisionShape& BeetrootBlock::getShape(const BlockState& state) const {
+const CollisionShape& BeetrootBlock::getShape(const BlockState& state) const
+{
     int age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 3);
     return m_beetrootShapesByAge[age];
 }
 
-u32 BeetrootBlock::getCropItem() const {
+u32 BeetrootBlock::getCropItem() const
+{
     // 返回甜菜根物品ID
     // 参考: net.minecraft.block.BeetrootBlock#getCropItem
     return Items::BEETROOT->itemId();
 }
 
-u32 BeetrootBlock::getSeedItem() const {
+u32 BeetrootBlock::getSeedItem() const
+{
     // 返回甜菜根种子物品ID
     return Items::BEETROOT_SEEDS->itemId();
 }

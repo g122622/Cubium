@@ -1,17 +1,15 @@
-#include <gtest/gtest.h>
 #include "client/renderer/trident/firstperson/MatrixStack.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <cmath>
+#include <gtest/gtest.h>
 
 using namespace mc::client::renderer;
 using namespace mc;
 
 class MatrixStackTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        stack = std::make_unique<MatrixStack>();
-    }
+    void SetUp() override { stack = std::make_unique<MatrixStack>(); }
 
     std::unique_ptr<MatrixStack> stack;
 };
@@ -20,7 +18,8 @@ protected:
 // 基础操作测试
 // ============================================================================
 
-TEST_F(MatrixStackTest, InitialState_IsIdentity) {
+TEST_F(MatrixStackTest, InitialState_IsIdentity)
+{
     const Matrix4f& matrix = stack->last();
 
     // 检查是否为单位矩阵
@@ -38,7 +37,8 @@ TEST_F(MatrixStackTest, InitialState_IsIdentity) {
     EXPECT_FLOAT_EQ(matrix(1, 3), 0.0f);
 }
 
-TEST_F(MatrixStackTest, PushPop_MaintainsState) {
+TEST_F(MatrixStackTest, PushPop_MaintainsState)
+{
     // Push 后应该是同一矩阵
     stack->push();
     EXPECT_EQ(stack->depth(), 2u);
@@ -56,7 +56,8 @@ TEST_F(MatrixStackTest, PushPop_MaintainsState) {
     EXPECT_FLOAT_EQ(matrix(2, 3), 0.0f);
 }
 
-TEST_F(MatrixStackTest, DepthIncreases_WithPush) {
+TEST_F(MatrixStackTest, DepthIncreases_WithPush)
+{
     EXPECT_EQ(stack->depth(), 1u);
 
     stack->push();
@@ -69,7 +70,8 @@ TEST_F(MatrixStackTest, DepthIncreases_WithPush) {
     EXPECT_EQ(stack->depth(), 2u);
 }
 
-TEST_F(MatrixStackTest, Clear_ResetsStack) {
+TEST_F(MatrixStackTest, Clear_ResetsStack)
+{
     stack->push();
     stack->push();
     stack->push();
@@ -86,7 +88,8 @@ TEST_F(MatrixStackTest, Clear_ResetsStack) {
 // 变换测试
 // ============================================================================
 
-TEST_F(MatrixStackTest, Translate_AffectsTranslation) {
+TEST_F(MatrixStackTest, Translate_AffectsTranslation)
+{
     stack->translate(10.0f, 20.0f, 30.0f);
 
     const Matrix4f& matrix = stack->last();
@@ -97,7 +100,8 @@ TEST_F(MatrixStackTest, Translate_AffectsTranslation) {
     EXPECT_FLOAT_EQ(translation.z, 30.0f);
 }
 
-TEST_F(MatrixStackTest, Translate_Accumulates) {
+TEST_F(MatrixStackTest, Translate_Accumulates)
+{
     stack->translate(1.0f, 0.0f, 0.0f);
     stack->translate(0.0f, 2.0f, 0.0f);
     stack->translate(0.0f, 0.0f, 3.0f);
@@ -110,7 +114,8 @@ TEST_F(MatrixStackTest, Translate_Accumulates) {
     EXPECT_FLOAT_EQ(translation.z, 3.0f);
 }
 
-TEST_F(MatrixStackTest, Scale_AffectsScale) {
+TEST_F(MatrixStackTest, Scale_AffectsScale)
+{
     stack->scale(2.0f, 3.0f, 4.0f);
 
     const Matrix4f& matrix = stack->last();
@@ -121,7 +126,8 @@ TEST_F(MatrixStackTest, Scale_AffectsScale) {
     EXPECT_FLOAT_EQ(matrix(2, 2), 4.0f);
 }
 
-TEST_F(MatrixStackTest, UniformScale) {
+TEST_F(MatrixStackTest, UniformScale)
+{
     stack->scale(2.0f);
 
     const Matrix4f& matrix = stack->last();
@@ -135,7 +141,8 @@ TEST_F(MatrixStackTest, UniformScale) {
 // 旋转测试
 // ============================================================================
 
-TEST_F(MatrixStackTest, RotateX_90Degrees) {
+TEST_F(MatrixStackTest, RotateX_90Degrees)
+{
     stack->rotateX(90.0f);
 
     const Matrix4f& matrix = stack->last();
@@ -149,7 +156,8 @@ TEST_F(MatrixStackTest, RotateX_90Degrees) {
     EXPECT_NEAR(matrix(2, 2), 0.0f, 0.0001f);
 }
 
-TEST_F(MatrixStackTest, RotateY_90Degrees) {
+TEST_F(MatrixStackTest, RotateY_90Degrees)
+{
     stack->rotateY(90.0f);
 
     const Matrix4f& matrix = stack->last();
@@ -163,7 +171,8 @@ TEST_F(MatrixStackTest, RotateY_90Degrees) {
     EXPECT_NEAR(matrix(2, 2), 0.0f, 0.0001f);
 }
 
-TEST_F(MatrixStackTest, RotateZ_90Degrees) {
+TEST_F(MatrixStackTest, RotateZ_90Degrees)
+{
     stack->rotateZ(90.0f);
 
     const Matrix4f& matrix = stack->last();
@@ -177,7 +186,8 @@ TEST_F(MatrixStackTest, RotateZ_90Degrees) {
     EXPECT_NEAR(matrix(1, 1), 0.0f, 0.0001f);
 }
 
-TEST_F(MatrixStackTest, Rotate_FullRotation) {
+TEST_F(MatrixStackTest, Rotate_FullRotation)
+{
     // 绕 X 轴旋转 360 度应该回到原点
     stack->rotateX(360.0f);
 
@@ -192,7 +202,8 @@ TEST_F(MatrixStackTest, Rotate_FullRotation) {
 // 组合变换测试
 // ============================================================================
 
-TEST_F(MatrixStackTest, Combined_TranslateRotate) {
+TEST_F(MatrixStackTest, Combined_TranslateRotate)
+{
     // 先平移后旋转
     stack->translate(1.0f, 0.0f, 0.0f);
     stack->rotateZ(90.0f);
@@ -207,7 +218,8 @@ TEST_F(MatrixStackTest, Combined_TranslateRotate) {
     EXPECT_NEAR(translation.z, 0.0f, 0.0001f);
 }
 
-TEST_F(MatrixStackTest, Combined_ScaleTranslate) {
+TEST_F(MatrixStackTest, Combined_ScaleTranslate)
+{
     stack->scale(2.0f, 2.0f, 2.0f);
     stack->translate(1.0f, 1.0f, 1.0f);
 
@@ -224,7 +236,8 @@ TEST_F(MatrixStackTest, Combined_ScaleTranslate) {
 // 嵌套变换测试
 // ============================================================================
 
-TEST_F(MatrixStackTest, NestedTransforms) {
+TEST_F(MatrixStackTest, NestedTransforms)
+{
     // 外层变换
     stack->translate(10.0f, 0.0f, 0.0f);
 
@@ -252,7 +265,8 @@ TEST_F(MatrixStackTest, NestedTransforms) {
 // Matrix4f 测试
 // ============================================================================
 
-TEST(Matrix4fTest, Identity_IsCorrect) {
+TEST(Matrix4fTest, Identity_IsCorrect)
+{
     Matrix4f identity = Matrix4f::identity();
 
     EXPECT_FLOAT_EQ(identity(0, 0), 1.0f);
@@ -270,7 +284,8 @@ TEST(Matrix4fTest, Identity_IsCorrect) {
     }
 }
 
-TEST(Matrix4fTest, Multiplication_Identity) {
+TEST(Matrix4fTest, Multiplication_Identity)
+{
     Matrix4f identity = Matrix4f::identity();
     Matrix4f result = identity * identity;
 
@@ -285,7 +300,8 @@ TEST(Matrix4fTest, Multiplication_Identity) {
     }
 }
 
-TEST(Matrix4fTest, SetTranslation_Works) {
+TEST(Matrix4fTest, SetTranslation_Works)
+{
     Matrix4f matrix = Matrix4f::identity();
     matrix.setTranslation(5.0f, 10.0f, 15.0f);
 

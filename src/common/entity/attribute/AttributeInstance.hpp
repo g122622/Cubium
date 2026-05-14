@@ -2,10 +2,10 @@
 
 #include "Attribute.hpp"
 #include "AttributeModifier.hpp"
-#include <vector>
-#include <unordered_map>
 #include <algorithm>
 #include <mutex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace entity {
@@ -45,7 +45,8 @@ public:
     /**
      * @brief 设置基础值
      */
-    void setBaseValue(f64 value) {
+    void setBaseValue(f64 value)
+    {
         m_baseValue = clamp(value);
         m_dirty = true;
     }
@@ -59,7 +60,8 @@ public:
      * 3. 应用所有 MultiplyBase 操作
      * 4. 应用所有 MultiplyTotal 操作
      */
-    [[nodiscard]] f64 getValue() const {
+    [[nodiscard]] f64 getValue() const
+    {
         if (m_dirty) {
             m_cachedValue = computeValue();
             m_dirty = false;
@@ -71,7 +73,8 @@ public:
      * @brief 添加修改器
      * @param modifier 修改器
      */
-    void addModifier(const AttributeModifier& modifier) {
+    void addModifier(const AttributeModifier& modifier)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_modifiers.push_back(modifier);
         m_dirty = true;
@@ -82,10 +85,11 @@ public:
      * @param id 修改器ID
      * @return 是否成功移除
      */
-    bool removeModifier(const std::string& id) {
+    bool removeModifier(const std::string& id)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = std::find_if(m_modifiers.begin(), m_modifiers.end(),
-            [&id](const AttributeModifier& m) { return m.id() == id; });
+        auto it = std::find_if(
+            m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) { return m.id() == id; });
         if (it != m_modifiers.end()) {
             m_modifiers.erase(it);
             m_dirty = true;
@@ -97,7 +101,8 @@ public:
     /**
      * @brief 移除所有修改器
      */
-    void clearModifiers() {
+    void clearModifiers()
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_modifiers.clear();
         m_dirty = true;
@@ -106,17 +111,16 @@ public:
     /**
      * @brief 获取所有修改器
      */
-    [[nodiscard]] const std::vector<AttributeModifier>& modifiers() const {
-        return m_modifiers;
-    }
+    [[nodiscard]] const std::vector<AttributeModifier>& modifiers() const { return m_modifiers; }
 
     /**
      * @brief 检查是否有修改器
      * @param id 修改器ID
      */
-    [[nodiscard]] bool hasModifier(const std::string& id) const {
-        return std::any_of(m_modifiers.begin(), m_modifiers.end(),
-            [&id](const AttributeModifier& m) { return m.id() == id; });
+    [[nodiscard]] bool hasModifier(const std::string& id) const
+    {
+        return std::any_of(
+            m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) { return m.id() == id; });
     }
 
     /**
@@ -124,9 +128,10 @@ public:
      * @param id 修改器ID
      * @return 修改器指针，不存在返回nullptr
      */
-    [[nodiscard]] const AttributeModifier* getModifier(const std::string& id) const {
-        auto it = std::find_if(m_modifiers.begin(), m_modifiers.end(),
-            [&id](const AttributeModifier& m) { return m.id() == id; });
+    [[nodiscard]] const AttributeModifier* getModifier(const std::string& id) const
+    {
+        auto it = std::find_if(
+            m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) { return m.id() == id; });
         return it != m_modifiers.end() ? &(*it) : nullptr;
     }
 
@@ -144,7 +149,8 @@ private:
     /**
      * @brief 计算最终值
      */
-    [[nodiscard]] f64 computeValue() const {
+    [[nodiscard]] f64 computeValue() const
+    {
         f64 value = m_baseValue;
 
         // 第一阶段：加法操作
@@ -174,7 +180,8 @@ private:
     /**
      * @brief 将值限制在属性范围内
      */
-    [[nodiscard]] f64 clamp(f64 value) const {
+    [[nodiscard]] f64 clamp(f64 value) const
+    {
         return std::max(m_attribute.minValue(), std::min(m_attribute.maxValue(), value));
     }
 

@@ -1,10 +1,10 @@
 #include "EndGatewayFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathConstants.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../WorldConstants.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -14,10 +14,7 @@ namespace mc {
 // ============================================================================
 
 bool EndGatewayFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const EndGatewayFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndGatewayFeatureConfig& config)
 {
     // 检查是否可以放置
     if (!canPlaceAt(world, pos)) {
@@ -30,7 +27,8 @@ bool EndGatewayFeature::place(
     return true;
 }
 
-BlockPos EndGatewayFeature::calculateTeleportTarget(const BlockPos& currentPos, u64 seed) {
+BlockPos EndGatewayFeature::calculateTeleportTarget(const BlockPos& currentPos, u64 seed)
+{
     // 参考 MC 1.16.5: EndGatewayBlock
     // 传送到1024格外的外岛
     math::Random rng(seed);
@@ -46,14 +44,12 @@ BlockPos EndGatewayFeature::calculateTeleportTarget(const BlockPos& currentPos, 
     i32 targetZ = static_cast<i32>(std::sin(angle) * distance);
 
     // Y坐标：在末地岛屿上找一个合适的高度
-    i32 targetY = 75;  // 外岛通常在这个高度
+    i32 targetY = 75; // 外岛通常在这个高度
 
     return BlockPos(targetX, targetY, targetZ);
 }
 
-bool EndGatewayFeature::canPlaceAt(
-    WorldGenRegion& world,
-    const BlockPos& pos) const
+bool EndGatewayFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查周围是否足够空间
     // 折跃门需要至少3x3的基岩平台
@@ -70,10 +66,7 @@ bool EndGatewayFeature::canPlaceAt(
     return true;
 }
 
-void EndGatewayFeature::generateGateway(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos)
+void EndGatewayFeature::generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
 {
     // 获取方块状态
     const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
@@ -130,19 +123,13 @@ void EndGatewayFeature::generateGateway(
 // ============================================================================
 
 ConfiguredEndGatewayFeature::ConfiguredEndGatewayFeature(
-    std::unique_ptr<EndGatewayFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<EndGatewayFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredEndGatewayFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(generator);
 
@@ -169,7 +156,8 @@ bool ConfiguredEndGatewayFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> EndGatewayFeatures::s_features;
 
-void EndGatewayFeatures::initialize() {
+void EndGatewayFeatures::initialize()
+{
     if (!s_features.empty()) return;
 
     // 创建标准末地折跃门
@@ -179,22 +167,26 @@ void EndGatewayFeatures::initialize() {
     s_features.push_back(createExitGateway());
 }
 
-const std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>>& EndGatewayFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>>& EndGatewayFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> EndGatewayFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> EndGatewayFeatures::getAllFeaturesAndClear()
+{
     auto extracted = std::move(s_features);
     s_features.clear();
     return extracted;
 }
 
-std::unique_ptr<ConfiguredEndGatewayFeature> EndGatewayFeatures::createGateway() {
+std::unique_ptr<ConfiguredEndGatewayFeature> EndGatewayFeatures::createGateway()
+{
     auto config = std::make_unique<EndGatewayFeatureConfig>(false);
     return std::make_unique<ConfiguredEndGatewayFeature>(std::move(config), "end_gateway");
 }
 
-std::unique_ptr<ConfiguredEndGatewayFeature> EndGatewayFeatures::createExitGateway() {
+std::unique_ptr<ConfiguredEndGatewayFeature> EndGatewayFeatures::createExitGateway()
+{
     auto config = std::make_unique<EndGatewayFeatureConfig>(true);
     return std::make_unique<ConfiguredEndGatewayFeature>(std::move(config), "end_gateway_exit");
 }

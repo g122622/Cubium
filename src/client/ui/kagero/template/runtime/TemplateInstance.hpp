@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../compiler/TemplateCompiler.hpp"
-#include "../binder/BindingContext.hpp"
-#include "UpdateScheduler.hpp"
-#include "../../widget/Widget.hpp"
 #include "../../widget/IWidgetContainer.hpp"
+#include "../../widget/Widget.hpp"
+#include "../binder/BindingContext.hpp"
+#include "../compiler/TemplateCompiler.hpp"
+#include "UpdateScheduler.hpp"
+#include <functional>
 #include <memory>
 #include <unordered_map>
-#include <functional>
 
 namespace mc::client::ui::kagero::tpl::runtime {
 
@@ -22,14 +22,16 @@ using WidgetFactory = std::function<std::unique_ptr<widget::Widget>(
 /**
  * @brief 属性设置器函数类型
  */
-using AttributeSetter = std::function<void(widget::Widget* widget,
-    const std::string& attrName, const binder::Value& value)>;
+using AttributeSetter =
+    std::function<void(widget::Widget* widget, const std::string& attrName, const binder::Value& value)>;
 
 /**
  * @brief 事件绑定器函数类型
  */
 using EventBinder = std::function<void(widget::Widget* widget,
-    const std::string& eventName, const std::string& callbackName, binder::BindingContext& ctx)>;
+    const std::string& eventName,
+    const std::string& callbackName,
+    binder::BindingContext& ctx)>;
 
 /**
  * @brief 模板实例
@@ -67,8 +69,7 @@ public:
      * @param compiled 编译后的模板（转移所有权）
      * @param ctx 绑定上下文
      */
-    TemplateInstance(std::unique_ptr<compiler::CompiledTemplate> compiled,
-                     binder::BindingContext& ctx);
+    TemplateInstance(std::unique_ptr<compiler::CompiledTemplate> compiled, binder::BindingContext& ctx);
 
     /**
      * @brief 构造函数（兼容旧 API，不推荐）
@@ -246,47 +247,43 @@ private:
     /**
      * @brief 实例化节点
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateNode(const ast::Node* node,
-        widget::Widget* parent = nullptr);
+    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateNode(
+        const ast::Node* node, widget::Widget* parent = nullptr);
 
     /**
      * @brief 实例化元素节点
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateElement(const ast::ElementNode* element,
-        widget::Widget* parent = nullptr);
+    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateElement(
+        const ast::ElementNode* element, widget::Widget* parent = nullptr);
 
     /**
      * @brief 实例化文本节点
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateText(const ast::TextNode* textNode,
-        widget::Widget* parent = nullptr);
+    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateText(
+        const ast::TextNode* textNode, widget::Widget* parent = nullptr);
 
     /**
      * @brief 创建Widget
      */
     [[nodiscard]] std::unique_ptr<widget::Widget> createWidget(
-        const std::string& tagName, const std::string& id,
-        const std::map<std::string, std::string>& attrs);
+        const std::string& tagName, const std::string& id, const std::map<std::string, std::string>& attrs);
 
     /**
      * @brief 应用静态属性
      */
-    void applyStaticAttributes(widget::Widget* widget,
-        const std::vector<ast::Attribute>& attrs);
+    void applyStaticAttributes(widget::Widget* widget, const std::vector<ast::Attribute>& attrs);
 
     /**
      * @brief 应用绑定属性
      */
-    void applyBindingAttributes(widget::Widget* widget,
-        const std::vector<ast::Attribute>& attrs,
-        const std::string& widgetPath);
+    void applyBindingAttributes(
+        widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath);
 
     /**
      * @brief 应用事件绑定
      */
-    void applyEventBindings(widget::Widget* widget,
-        const std::vector<ast::Attribute>& attrs,
-        const std::string& widgetPath);
+    void applyEventBindings(
+        widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath);
 
     /**
      * @brief 解析静态属性值
@@ -296,8 +293,8 @@ private:
     /**
      * @brief 从属性创建Widget路径
      */
-    [[nodiscard]] std::string buildWidgetPath(const ast::ElementNode* element,
-        const std::string& parentPath = "") const;
+    [[nodiscard]] std::string buildWidgetPath(
+        const ast::ElementNode* element, const std::string& parentPath = "") const;
 
     /**
      * @brief 注册Widget到路径映射
@@ -323,10 +320,10 @@ private:
      * @param indexVarName 索引变量名（可选）
      */
     void instantiateLoopChildren(const ast::ElementNode* element,
-                                  widget::Widget* parent,
-                                  const std::string& collectionPath,
-                                  const std::string& itemVarName,
-                                  const std::string& indexVarName = "");
+        widget::Widget* parent,
+        const std::string& collectionPath,
+        const std::string& itemVarName,
+        const std::string& indexVarName = "");
 
     /**
      * @brief 解析集合

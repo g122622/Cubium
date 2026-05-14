@@ -9,8 +9,7 @@ using text::toName;
 namespace {
 
 // 支持队伍击杀判据的颜色
-const std::unordered_set<TextFormatting> s_supportedColors = {
-    TextFormatting::Black,
+const std::unordered_set<TextFormatting> s_supportedColors = {TextFormatting::Black,
     TextFormatting::DarkBlue,
     TextFormatting::DarkGreen,
     TextFormatting::DarkAqua,
@@ -25,8 +24,7 @@ const std::unordered_set<TextFormatting> s_supportedColors = {
     TextFormatting::Red,
     TextFormatting::LightPurple,
     TextFormatting::Yellow,
-    TextFormatting::White
-};
+    TextFormatting::White};
 
 } // namespace
 
@@ -37,13 +35,15 @@ TeamKillCriteria::TeamKillCriteria(TextFormatting color, Type type)
     m_name = generateName(color, type);
 }
 
-std::string TeamKillCriteria::generateName(TextFormatting color, Type type) {
+std::string TeamKillCriteria::generateName(TextFormatting color, Type type)
+{
     std::string colorName = toName(color);
     std::string prefix = (type == Type::TeamKill) ? "teamkill." : "killedByTeam.";
     return prefix + colorName;
 }
 
-bool TeamKillCriteria::matches(TextFormatting killerTeam, TextFormatting victimTeam) const {
+bool TeamKillCriteria::matches(TextFormatting killerTeam, TextFormatting victimTeam) const
+{
     if (m_type == Type::TeamKill) {
         // 玩家击杀指定颜色队伍的成员
         return victimTeam == m_color;
@@ -53,7 +53,8 @@ bool TeamKillCriteria::matches(TextFormatting killerTeam, TextFormatting victimT
     }
 }
 
-bool TeamKillCriteria::isSupportedColor(TextFormatting color) {
+bool TeamKillCriteria::isSupportedColor(TextFormatting color)
+{
     return s_supportedColors.count(color) > 0;
 }
 

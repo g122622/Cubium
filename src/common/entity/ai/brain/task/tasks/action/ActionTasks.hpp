@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Task.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../world/ServerWorld.hpp"
 #include "../../memory/Brain.hpp"
+#include "../Task.hpp"
 
 namespace mc {
 namespace entity {
@@ -29,12 +29,11 @@ public:
         , m_attackCooldown(0)
     {}
 
-    std::string getName() const override {
-        return "AttackTask";
-    }
+    std::string getName() const override { return "AttackTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -45,7 +44,8 @@ protected:
         return false;
     }
 
-    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -54,11 +54,10 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
-        m_attackCooldown = 0;
-    }
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override { m_attackCooldown = 0; }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
         // if (!target.has_value() || !(*target)->isAlive()) return;
@@ -80,9 +79,7 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
-        m_attackCooldown = 0;
-    }
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override { m_attackCooldown = 0; }
 
 private:
     i32 m_attackInterval;
@@ -105,12 +102,11 @@ public:
         , m_speed(speed)
     {}
 
-    std::string getName() const override {
-        return "BreedTask";
-    }
+    std::string getName() const override { return "BreedTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否可以繁殖
@@ -123,7 +119,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto breedTarget = brain->getMemory(memory::MemoryModuleTypes::BREED_TARGET);
         // if (breedTarget.has_value()) {
@@ -131,7 +128,8 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto breedTarget = brain->getMemory(memory::MemoryModuleTypes::BREED_TARGET);
         // if (!breedTarget.has_value()) return;
@@ -147,7 +145,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::BREED_TARGET);
     }
@@ -172,19 +171,19 @@ public:
         , m_eatTimer(0)
     {}
 
-    std::string getName() const override {
-        return "EatTask";
-    }
+    std::string getName() const override { return "EatTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
         // 检查是否饥饿
         // return owner->isHungry();
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         m_eatTimer = 0;
         // 寻找食物
         // auto food = findNearbyFood(world, owner);
@@ -193,16 +192,15 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         m_eatTimer++;
         // if (m_eatTimer >= m_eatDuration) {
         //     owner->eat();
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
-        m_eatTimer = 0;
-    }
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override { m_eatTimer = 0; }
 
 private:
     i32 m_eatDuration;
@@ -224,12 +222,11 @@ public:
         , m_isPlayingDead(false)
     {}
 
-    std::string getName() const override {
-        return "PlayDeadTask";
-    }
+    std::string getName() const override { return "PlayDeadTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -238,17 +235,20 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         m_isPlayingDead = true;
         // owner->setPlayingDead(true);
         // owner->getNavigator()->clearPath();
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 保持装死状态
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         m_isPlayingDead = false;
         // owner->setPlayingDead(false);
     }
@@ -274,31 +274,30 @@ public:
         , m_cooldownTimer(0)
     {}
 
-    std::string getName() const override {
-        return "JumpTask";
-    }
+    std::string getName() const override { return "JumpTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
         // return owner->isOnGround() && m_cooldownTimer <= 0;
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->jump(m_jumpHeight);
         m_cooldownTimer = m_cooldown;
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         if (m_cooldownTimer > 0) {
             m_cooldownTimer--;
         }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
-        m_cooldownTimer = 0;
-    }
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override { m_cooldownTimer = 0; }
 
 private:
     f32 m_jumpHeight;
@@ -322,12 +321,11 @@ public:
         , m_damage(damage)
     {}
 
-    std::string getName() const override {
-        return "KickTask";
-    }
+    std::string getName() const override { return "KickTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -337,7 +335,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 执行踢攻击
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);

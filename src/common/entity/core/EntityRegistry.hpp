@@ -1,9 +1,9 @@
 #pragma once
 
-#include "EntityType.hpp"
 #include "../../core/Result.hpp"
-#include <unordered_map>
+#include "EntityType.hpp"
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -40,7 +40,8 @@ public:
     /**
      * @brief 获取单例实例
      */
-    static EntityRegistry& instance() {
+    static EntityRegistry& instance()
+    {
         static EntityRegistry registry;
         return registry;
     }
@@ -53,13 +54,13 @@ public:
      *
      * 如果资源位置已存在，返回错误。
      */
-    Result<EntityTypeId> registerType(const std::string& resourceLocation, EntityType type) {
+    Result<EntityTypeId> registerType(const std::string& resourceLocation, EntityType type)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // 检查是否已存在
         if (m_nameToId.find(resourceLocation) != m_nameToId.end()) {
-            return Error(ErrorCode::AlreadyExists,
-                        "Entity type already registered: " + resourceLocation);
+            return Error(ErrorCode::AlreadyExists, "Entity type already registered: " + resourceLocation);
         }
 
         // 分配ID
@@ -81,7 +82,8 @@ public:
      * @param id 实体类型ID
      * @return 实体类型指针，不存在返回nullptr
      */
-    [[nodiscard]] const EntityType* getType(EntityTypeId id) const {
+    [[nodiscard]] const EntityType* getType(EntityTypeId id) const
+    {
         // ID 从 1 开始，vector 索引从 0 开始
         if (id == 0 || id > static_cast<EntityTypeId>(m_types.size())) {
             return nullptr;
@@ -94,7 +96,8 @@ public:
      * @param name 资源位置（如 minecraft:pig）
      * @return 实体类型指针，不存在返回nullptr
      */
-    [[nodiscard]] const EntityType* getType(const std::string& name) const {
+    [[nodiscard]] const EntityType* getType(const std::string& name) const
+    {
         auto it = m_nameToId.find(name);
         if (it == m_nameToId.end()) {
             return nullptr;
@@ -108,7 +111,8 @@ public:
      * @return 实体类型引用
      * @throws std::out_of_range 如果ID无效
      */
-    [[nodiscard]] const EntityType& getTypeOrThrow(EntityTypeId id) const {
+    [[nodiscard]] const EntityType& getTypeOrThrow(EntityTypeId id) const
+    {
         if (id == 0 || id > static_cast<EntityTypeId>(m_types.size())) {
             throw std::out_of_range("Invalid entity type ID: " + std::to_string(id));
         }
@@ -120,28 +124,23 @@ public:
      * @param name 资源位置
      * @return 是否存在
      */
-    [[nodiscard]] bool hasType(const std::string& name) const {
-        return m_nameToId.find(name) != m_nameToId.end();
-    }
+    [[nodiscard]] bool hasType(const std::string& name) const { return m_nameToId.find(name) != m_nameToId.end(); }
 
     /**
      * @brief 获取所有已注册的实体类型
      */
-    [[nodiscard]] const std::vector<EntityType>& getAllTypes() const {
-        return m_types;
-    }
+    [[nodiscard]] const std::vector<EntityType>& getAllTypes() const { return m_types; }
 
     /**
      * @brief 获取已注册的实体类型数量
      */
-    [[nodiscard]] size_t size() const {
-        return m_types.size();
-    }
+    [[nodiscard]] size_t size() const { return m_types.size(); }
 
     /**
      * @brief 清空所有注册（仅用于测试）
      */
-    void clear() {
+    void clear()
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_types.clear();
         m_nameToId.clear();
@@ -155,7 +154,9 @@ public:
     EntityRegistry& operator=(EntityRegistry&&) = delete;
 
 private:
-    EntityRegistry() : m_nextId(1) {} // 0保留给无效ID
+    EntityRegistry()
+        : m_nextId(1)
+    {} // 0保留给无效ID
 
     std::vector<EntityType> m_types;
     std::unordered_map<std::string, EntityTypeId> m_nameToId;
@@ -174,8 +175,7 @@ private:
  *     .build());
  * @endcode
  */
-#define REGISTER_ENTITY_TYPE(name, type) \
-    ::mc::entity::EntityRegistry::instance().registerType(name, type)
+#define REGISTER_ENTITY_TYPE(name, type) ::mc::entity::EntityRegistry::instance().registerType(name, type)
 
 /**
  * @brief 内置实体类型常量
@@ -183,140 +183,140 @@ private:
  * 定义常用实体类型的资源位置
  */
 namespace EntityTypes {
-    // 普通动物
-    constexpr const char* PIG = "minecraft:pig";
-    constexpr const char* COW = "minecraft:cow";
-    constexpr const char* SHEEP = "minecraft:sheep";
-    constexpr const char* CHICKEN = "minecraft:chicken";
-    constexpr const char* RABBIT = "minecraft:rabbit";
-    constexpr const char* MOOSHROOM = "minecraft:mooshroom";
+// 普通动物
+constexpr const char* PIG = "minecraft:pig";
+constexpr const char* COW = "minecraft:cow";
+constexpr const char* SHEEP = "minecraft:sheep";
+constexpr const char* CHICKEN = "minecraft:chicken";
+constexpr const char* RABBIT = "minecraft:rabbit";
+constexpr const char* MOOSHROOM = "minecraft:mooshroom";
 
-    // 可驯服动物
-    constexpr const char* WOLF = "minecraft:wolf";
-    constexpr const char* CAT = "minecraft:cat";
-    constexpr const char* OCELOT = "minecraft:ocelot";
-    constexpr const char* PARROT = "minecraft:parrot";
+// 可驯服动物
+constexpr const char* WOLF = "minecraft:wolf";
+constexpr const char* CAT = "minecraft:cat";
+constexpr const char* OCELOT = "minecraft:ocelot";
+constexpr const char* PARROT = "minecraft:parrot";
 
-    // 特殊动物
-    constexpr const char* FOX = "minecraft:fox";
-    constexpr const char* PANDA = "minecraft:panda";
-    constexpr const char* POLAR_BEAR = "minecraft:polar_bear";
-    constexpr const char* TURTLE = "minecraft:turtle";
-    constexpr const char* BEE = "minecraft:bee";
-    constexpr const char* STRIDER = "minecraft:strider";
+// 特殊动物
+constexpr const char* FOX = "minecraft:fox";
+constexpr const char* PANDA = "minecraft:panda";
+constexpr const char* POLAR_BEAR = "minecraft:polar_bear";
+constexpr const char* TURTLE = "minecraft:turtle";
+constexpr const char* BEE = "minecraft:bee";
+constexpr const char* STRIDER = "minecraft:strider";
 
-    // 马类
-    constexpr const char* HORSE = "minecraft:horse";
-    constexpr const char* DONKEY = "minecraft:donkey";
-    constexpr const char* MULE = "minecraft:mule";
-    constexpr const char* LLAMA = "minecraft:llama";
-    constexpr const char* SKELETON_HORSE = "minecraft:skeleton_horse";
-    constexpr const char* ZOMBIE_HORSE = "minecraft:zombie_horse";
+// 马类
+constexpr const char* HORSE = "minecraft:horse";
+constexpr const char* DONKEY = "minecraft:donkey";
+constexpr const char* MULE = "minecraft:mule";
+constexpr const char* LLAMA = "minecraft:llama";
+constexpr const char* SKELETON_HORSE = "minecraft:skeleton_horse";
+constexpr const char* ZOMBIE_HORSE = "minecraft:zombie_horse";
 
-    // 水生生物
-    constexpr const char* COD = "minecraft:cod";
-    constexpr const char* SALMON = "minecraft:salmon";
-    constexpr const char* PUFFERFISH = "minecraft:pufferfish";
-    constexpr const char* TROPICAL_FISH = "minecraft:tropical_fish";
-    constexpr const char* SQUID = "minecraft:squid";
-    constexpr const char* DOLPHIN = "minecraft:dolphin";
+// 水生生物
+constexpr const char* COD = "minecraft:cod";
+constexpr const char* SALMON = "minecraft:salmon";
+constexpr const char* PUFFERFISH = "minecraft:pufferfish";
+constexpr const char* TROPICAL_FISH = "minecraft:tropical_fish";
+constexpr const char* SQUID = "minecraft:squid";
+constexpr const char* DOLPHIN = "minecraft:dolphin";
 
-    // 环境生物
-    constexpr const char* BAT = "minecraft:bat";
+// 环境生物
+constexpr const char* BAT = "minecraft:bat";
 
-    // 傀儡
-    constexpr const char* IRON_GOLEM = "minecraft:iron_golem";
-    constexpr const char* SNOW_GOLEM = "minecraft:snow_golem";
+// 傀儡
+constexpr const char* IRON_GOLEM = "minecraft:iron_golem";
+constexpr const char* SNOW_GOLEM = "minecraft:snow_golem";
 
-    // 怪物
-    constexpr const char* ZOMBIE = "minecraft:zombie";
-    constexpr const char* SKELETON = "minecraft:skeleton";
-    constexpr const char* CREEPER = "minecraft:creeper";
-    constexpr const char* SPIDER = "minecraft:spider";
-    constexpr const char* ENDERMAN = "minecraft:enderman";
-    constexpr const char* BLAZE = "minecraft:blaze";
-    constexpr const char* WITCH = "minecraft:witch";
-    constexpr const char* SLIME = "minecraft:slime";
-    constexpr const char* GIANT = "minecraft:giant";
-    // 海洋怪物
-    constexpr const char* GUARDIAN = "minecraft:guardian";
-    constexpr const char* ELDER_GUARDIAN = "minecraft:elder_guardian";
-    // 亡灵变种
-    constexpr const char* HUSK = "minecraft:husk";
-    constexpr const char* DROWNED = "minecraft:drowned";
-    constexpr const char* STRAY = "minecraft:stray";
-    constexpr const char* WITHER_SKELETON = "minecraft:wither_skeleton";
-    constexpr const char* PHANTOM = "minecraft:phantom";
-    constexpr const char* ZOMBIE_VILLAGER = "minecraft:zombie_villager";
-    constexpr const char* ZOMBIFIED_PIGLIN = "minecraft:zombified_piglin";
-    // 节肢动物变种
-    constexpr const char* CAVE_SPIDER = "minecraft:cave_spider";
-    constexpr const char* SILVERFISH = "minecraft:silverfish";
-    constexpr const char* ENDERMITE = "minecraft:endermite";
-    // 末地生物
-    constexpr const char* SHULKER = "minecraft:shulker";
-    // 地狱生物
-    constexpr const char* GHAST = "minecraft:ghast";
-    constexpr const char* MAGMA_CUBE = "minecraft:magma_cube";
-    constexpr const char* PIGLIN = "minecraft:piglin";
-    constexpr const char* PIGLIN_BRUTE = "minecraft:piglin_brute";
-    constexpr const char* HOGLIN = "minecraft:hoglin";
-    constexpr const char* ZOGLIN = "minecraft:zoglin";
-    // 灾厄村民
-    constexpr const char* VINDICATOR = "minecraft:vindicator";
-    constexpr const char* EVOKER = "minecraft:evoker";
-    constexpr const char* ILLUSIONER = "minecraft:illusioner";
-    constexpr const char* PILLAGER = "minecraft:pillager";
-    constexpr const char* RAVAGER = "minecraft:ravager";
-    constexpr const char* VEX = "minecraft:vex";
-    // Boss
-    constexpr const char* ENDER_DRAGON = "minecraft:ender_dragon";
-    constexpr const char* WITHER = "minecraft:wither";
-    // 村民
-    constexpr const char* VILLAGER = "minecraft:villager";
-    constexpr const char* WANDERING_TRADER = "minecraft:wandering_trader";
+// 怪物
+constexpr const char* ZOMBIE = "minecraft:zombie";
+constexpr const char* SKELETON = "minecraft:skeleton";
+constexpr const char* CREEPER = "minecraft:creeper";
+constexpr const char* SPIDER = "minecraft:spider";
+constexpr const char* ENDERMAN = "minecraft:enderman";
+constexpr const char* BLAZE = "minecraft:blaze";
+constexpr const char* WITCH = "minecraft:witch";
+constexpr const char* SLIME = "minecraft:slime";
+constexpr const char* GIANT = "minecraft:giant";
+// 海洋怪物
+constexpr const char* GUARDIAN = "minecraft:guardian";
+constexpr const char* ELDER_GUARDIAN = "minecraft:elder_guardian";
+// 亡灵变种
+constexpr const char* HUSK = "minecraft:husk";
+constexpr const char* DROWNED = "minecraft:drowned";
+constexpr const char* STRAY = "minecraft:stray";
+constexpr const char* WITHER_SKELETON = "minecraft:wither_skeleton";
+constexpr const char* PHANTOM = "minecraft:phantom";
+constexpr const char* ZOMBIE_VILLAGER = "minecraft:zombie_villager";
+constexpr const char* ZOMBIFIED_PIGLIN = "minecraft:zombified_piglin";
+// 节肢动物变种
+constexpr const char* CAVE_SPIDER = "minecraft:cave_spider";
+constexpr const char* SILVERFISH = "minecraft:silverfish";
+constexpr const char* ENDERMITE = "minecraft:endermite";
+// 末地生物
+constexpr const char* SHULKER = "minecraft:shulker";
+// 地狱生物
+constexpr const char* GHAST = "minecraft:ghast";
+constexpr const char* MAGMA_CUBE = "minecraft:magma_cube";
+constexpr const char* PIGLIN = "minecraft:piglin";
+constexpr const char* PIGLIN_BRUTE = "minecraft:piglin_brute";
+constexpr const char* HOGLIN = "minecraft:hoglin";
+constexpr const char* ZOGLIN = "minecraft:zoglin";
+// 灾厄村民
+constexpr const char* VINDICATOR = "minecraft:vindicator";
+constexpr const char* EVOKER = "minecraft:evoker";
+constexpr const char* ILLUSIONER = "minecraft:illusioner";
+constexpr const char* PILLAGER = "minecraft:pillager";
+constexpr const char* RAVAGER = "minecraft:ravager";
+constexpr const char* VEX = "minecraft:vex";
+// Boss
+constexpr const char* ENDER_DRAGON = "minecraft:ender_dragon";
+constexpr const char* WITHER = "minecraft:wither";
+// 村民
+constexpr const char* VILLAGER = "minecraft:villager";
+constexpr const char* WANDERING_TRADER = "minecraft:wandering_trader";
 
-    // 其他
-    constexpr const char* PLAYER = "minecraft:player";
-    constexpr const char* ITEM = "minecraft:item";
-    constexpr const char* EXPERIENCE_ORB = "minecraft:experience_orb";
-    // 投掷物
-    constexpr const char* ARROW = "minecraft:arrow";
-    constexpr const char* SPECTRAL_ARROW = "minecraft:spectral_arrow";
-    constexpr const char* TRIDENT = "minecraft:trident";
-    constexpr const char* SNOWBALL = "minecraft:snowball";
-    constexpr const char* EGG = "minecraft:egg";
-    constexpr const char* ENDER_PEARL = "minecraft:ender_pearl";
-    constexpr const char* POTION = "minecraft:potion";
-    constexpr const char* EXPERIENCE_BOTTLE = "minecraft:experience_bottle";
-    constexpr const char* FIREBALL = "minecraft:fireball";
-    constexpr const char* SMALL_FIREBALL = "minecraft:small_fireball";
-    constexpr const char* DRAGON_FIREBALL = "minecraft:dragon_fireball";
-    constexpr const char* WITHER_SKULL = "minecraft:wither_skull";
-    constexpr const char* LLAMA_SPIT = "minecraft:llama_spit";
-    constexpr const char* SHULKER_BULLET = "minecraft:shulker_bullet";
-    constexpr const char* FISHING_BOBBER = "minecraft:fishing_bobber";
-    constexpr const char* EYE_OF_ENDER = "minecraft:eye_of_ender";
-    constexpr const char* FIREWORK_ROCKET = "minecraft:firework_rocket";
-    // 交通工具
-    constexpr const char* BOAT = "minecraft:boat";
-    constexpr const char* MINECART = "minecraft:minecart";
-    constexpr const char* CHEST_MINECART = "minecraft:chest_minecart";
-    constexpr const char* FURNACE_MINECART = "minecraft:furnace_minecart";
-    constexpr const char* HOPPER_MINECART = "minecraft:hopper_minecart";
-    constexpr const char* TNT_MINECART = "minecraft:tnt_minecart";
-    // 其他实体
-    constexpr const char* FALLING_BLOCK = "minecraft:falling_block";
-    constexpr const char* TNT = "minecraft:tnt";
-    constexpr const char* END_CRYSTAL = "minecraft:end_crystal";
-    constexpr const char* LIGHTNING_BOLT = "minecraft:lightning_bolt";
-    constexpr const char* AREA_EFFECT_CLOUD = "minecraft:area_effect_cloud";
-    constexpr const char* ARMOR_STAND = "minecraft:armor_stand";
-    // 悬挂实体
-    constexpr const char* PAINTING = "minecraft:painting";
-    constexpr const char* ITEM_FRAME = "minecraft:item_frame";
-    constexpr const char* LEASH_KNOT = "minecraft:leash_knot";
-}
+// 其他
+constexpr const char* PLAYER = "minecraft:player";
+constexpr const char* ITEM = "minecraft:item";
+constexpr const char* EXPERIENCE_ORB = "minecraft:experience_orb";
+// 投掷物
+constexpr const char* ARROW = "minecraft:arrow";
+constexpr const char* SPECTRAL_ARROW = "minecraft:spectral_arrow";
+constexpr const char* TRIDENT = "minecraft:trident";
+constexpr const char* SNOWBALL = "minecraft:snowball";
+constexpr const char* EGG = "minecraft:egg";
+constexpr const char* ENDER_PEARL = "minecraft:ender_pearl";
+constexpr const char* POTION = "minecraft:potion";
+constexpr const char* EXPERIENCE_BOTTLE = "minecraft:experience_bottle";
+constexpr const char* FIREBALL = "minecraft:fireball";
+constexpr const char* SMALL_FIREBALL = "minecraft:small_fireball";
+constexpr const char* DRAGON_FIREBALL = "minecraft:dragon_fireball";
+constexpr const char* WITHER_SKULL = "minecraft:wither_skull";
+constexpr const char* LLAMA_SPIT = "minecraft:llama_spit";
+constexpr const char* SHULKER_BULLET = "minecraft:shulker_bullet";
+constexpr const char* FISHING_BOBBER = "minecraft:fishing_bobber";
+constexpr const char* EYE_OF_ENDER = "minecraft:eye_of_ender";
+constexpr const char* FIREWORK_ROCKET = "minecraft:firework_rocket";
+// 交通工具
+constexpr const char* BOAT = "minecraft:boat";
+constexpr const char* MINECART = "minecraft:minecart";
+constexpr const char* CHEST_MINECART = "minecraft:chest_minecart";
+constexpr const char* FURNACE_MINECART = "minecraft:furnace_minecart";
+constexpr const char* HOPPER_MINECART = "minecraft:hopper_minecart";
+constexpr const char* TNT_MINECART = "minecraft:tnt_minecart";
+// 其他实体
+constexpr const char* FALLING_BLOCK = "minecraft:falling_block";
+constexpr const char* TNT = "minecraft:tnt";
+constexpr const char* END_CRYSTAL = "minecraft:end_crystal";
+constexpr const char* LIGHTNING_BOLT = "minecraft:lightning_bolt";
+constexpr const char* AREA_EFFECT_CLOUD = "minecraft:area_effect_cloud";
+constexpr const char* ARMOR_STAND = "minecraft:armor_stand";
+// 悬挂实体
+constexpr const char* PAINTING = "minecraft:painting";
+constexpr const char* ITEM_FRAME = "minecraft:item_frame";
+constexpr const char* LEASH_KNOT = "minecraft:leash_knot";
+} // namespace EntityTypes
 
 } // namespace entity
 } // namespace mc

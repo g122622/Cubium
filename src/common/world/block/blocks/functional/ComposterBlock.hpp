@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../item/core/ActionResult.hpp"
 #include <array>
 
 namespace mc {
@@ -59,15 +59,14 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] int getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 交互 ==========
 
@@ -78,8 +77,7 @@ public:
      * - 如果玩家手持可堆肥物品，尝试堆肥
      * - 否则不执行任何操作
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -91,9 +89,7 @@ public:
     /**
      * @brief 获取填充等级
      */
-    [[nodiscard]] static int getLevel(const BlockState& state) {
-        return state.get(BlockStateProperties::LEVEL_0_8());
-    }
+    [[nodiscard]] static int getLevel(const BlockState& state) { return state.get(BlockStateProperties::LEVEL_0_8()); }
 
     /**
      * @brief 尝试堆肥
@@ -105,11 +101,7 @@ public:
      * @return 新的方块状态（可能改变等级）
      */
     static BlockState attemptCompost(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Block& block,
-        u32 itemId);
+        const BlockState& state, IWorld& world, const BlockPos& pos, Block& block, u32 itemId);
 
     /**
      * @brief 清空堆肥桶

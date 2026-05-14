@@ -8,7 +8,7 @@ namespace mc::client {
 // 前向声明
 class ClientEntity;
 
-}
+} // namespace mc::client
 
 namespace mc::client::sound {
 

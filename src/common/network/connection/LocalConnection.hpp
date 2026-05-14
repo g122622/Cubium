@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <queue>
 #include <vector>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
 
 namespace mc::network {
 

@@ -1,49 +1,49 @@
 #include "MinecraftServer.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "server/world/weather/WeatherManager.hpp"
-#include "server/world/entity/EntityTracker.hpp"
-#include "server/world/entity/ItemPickupManager.hpp"
-#include "server/world/spawn/NaturalSpawner.hpp"
-#include "server/world/spawn/DespawnManager.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
+#include "common/entity/ai/brain/schedule/Schedule.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/crafting/RecipeLoader.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/network/packet/CommandTreePacket.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/packet/GameStateChangePacket.hpp"
+#include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/ServerDifficultyPacket.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/network/sync/ChunkSync.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/physics/PhysicsEngine.hpp"
+#include "common/util/TimeUtils.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/ChunkLoadTicket.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "common/world/lighting/LightType.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
+#include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
-#include "common/physics/PhysicsEngine.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/lighting/LightType.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
-#include "common/world/entity/EntityManager.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
-#include "common/world/chunk/ChunkLoadTicket.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/village/VillageManager.hpp"
-#include "common/world/village/raid/RaidManager.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/util/math/Vector3.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/item/crafting/RecipeLoader.hpp"
-#include "common/item/enchantment/EnchantmentRegistry.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
-#include "common/network/packet/EntityPackets.hpp"
-#include "common/entity/ai/brain/schedule/Schedule.hpp"
-#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
-#include "common/world/village/trade/VillagerTrades.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
-#include "common/network/packet/CommandTreePacket.hpp"
-#include "common/network/packet/GameStateChangePacket.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/SpawnPositionPacket.hpp"
-#include "common/network/packet/ServerDifficultyPacket.hpp"
-#include "common/network/sync/ChunkSync.hpp"
-#include "common/util/TimeUtils.hpp"
-#include "common/perfetto/TraceEvents.hpp"
-#include "common/util/assert/AssertAll.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/entity/EntityTracker.hpp"
+#include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/spawn/DespawnManager.hpp"
+#include "server/world/spawn/NaturalSpawner.hpp"
+#include "server/world/weather/WeatherManager.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -53,13 +53,12 @@ MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
     , m_computationWorkerPool(-1, "ServerCompute")
     , m_ioWorkerPool(-1, "ServerIO")
     , m_lootTableManager()
-{
-}
+{}
 
 void MinecraftServer::setDifficulty(Difficulty difficulty)
 {
     if (m_difficulty == difficulty) {
-        return;  // 难度未变化，无需同步
+        return; // 难度未变化，无需同步
     }
     m_difficulty = difficulty;
 
@@ -87,8 +86,7 @@ std::vector<u8> MinecraftServer::serializeDifficultyPacket()
         return {};
     }
 
-    return core::ConnectionManager::encapsulatePacket(
-        network::PacketType::ServerDifficulty, serializeResult.value());
+    return core::ConnectionManager::encapsulatePacket(network::PacketType::ServerDifficulty, serializeResult.value());
 }
 
 void MinecraftServer::setDefaultGameMode(GameMode mode)
@@ -254,8 +252,7 @@ void MinecraftServer::initializeCoreManagers()
     m_teleportManager = std::make_unique<core::TeleportManager>(*m_playerManager);
     m_keepAliveManager = std::make_unique<core::KeepAliveManager>(*m_playerManager, m_config);
     m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_config);
-    m_packetHandler = std::make_unique<core::PacketHandler>(
-        *m_playerManager,
+    m_packetHandler = std::make_unique<core::PacketHandler>(*m_playerManager,
         *m_connectionManager,
         *m_teleportManager,
         *m_keepAliveManager,
@@ -278,13 +275,7 @@ void MinecraftServer::initializeCoreManagers()
             }
 
             m_positionTracker->updatePosition(
-                playerId,
-                position.x,
-                position.y,
-                position.z,
-                player->yaw,
-                player->pitch,
-                player->onGround);
+                playerId, position.x, position.y, position.z, player->yaw, player->pitch, player->onGround);
             updateEntityTrackingForPlayer(playerId, position.x, position.y, position.z);
         });
 
@@ -319,26 +310,22 @@ void MinecraftServer::initializeInteractionManagers()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeInteractionManagers");
 
-    m_blockInteractionManager = std::make_unique<interaction::BlockInteractionManager>(
-        *m_world, *m_playerManager, m_lootTableManager);
+    m_blockInteractionManager =
+        std::make_unique<interaction::BlockInteractionManager>(*m_world, *m_playerManager, m_lootTableManager);
 
-    m_miningManager = std::make_unique<interaction::MiningManager>(
-        *m_playerManager, *m_connectionManager);
+    m_miningManager = std::make_unique<interaction::MiningManager>(*m_playerManager, *m_connectionManager);
 
-    m_containerManager = std::make_unique<interaction::ContainerManager>(
-        *m_playerManager);
+    m_containerManager = std::make_unique<interaction::ContainerManager>(*m_playerManager);
 
-    m_inventoryManager = std::make_unique<interaction::InventoryManager>(
-        *m_playerManager);
+    m_inventoryManager = std::make_unique<interaction::InventoryManager>(*m_playerManager);
 
     m_inventoryManager->setOnInventoryUpdate([this](PlayerId playerId, const PlayerInventory& inventory) {
         PlayerInventoryPacket packet(inventory);
         network::PacketSerializer payload;
         packet.serialize(payload);
 
-        const auto fullPacket = core::ConnectionManager::encapsulatePacket(
-            network::PacketType::PlayerInventory,
-            payload.buffer());
+        const auto fullPacket =
+            core::ConnectionManager::encapsulatePacket(network::PacketType::PlayerInventory, payload.buffer());
         sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
     });
 
@@ -366,8 +353,7 @@ void MinecraftServer::initializeSyncManagers()
         return;
     }
 
-    m_entitySyncManager = std::make_unique<sync::EntitySyncManager>(
-        m_world->entityManager());
+    m_entitySyncManager = std::make_unique<sync::EntitySyncManager>(m_world->entityManager());
 
     // ChunkSendManager/BlockUpdateSyncManager/LightSyncManager 在 world 初始化后由子类创建
 }
@@ -381,24 +367,20 @@ void MinecraftServer::initializeChunkSyncManagers()
         return;
     }
 
-    m_blockUpdateSyncManager = std::make_unique<sync::BlockUpdateSyncManager>(
-        m_world->chunkManager()->ticketManager());
+    m_blockUpdateSyncManager = std::make_unique<sync::BlockUpdateSyncManager>(m_world->chunkManager()->ticketManager());
     m_blockUpdateSyncManager->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
         network::BlockUpdatePacket packet(x, y, z, blockStateId);
         network::PacketSerializer ser;
         packet.serialize(ser);
 
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(
-            network::PacketType::BlockUpdate, ser.buffer());
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockUpdate, ser.buffer());
         sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
     });
 
-    m_chunkSendManager = std::make_unique<sync::ChunkSendManager>(
-        *m_world->chunkManager(),
-        m_world->chunkManager()->ticketManager());
+    m_chunkSendManager =
+        std::make_unique<sync::ChunkSendManager>(*m_world->chunkManager(), m_world->chunkManager()->ticketManager());
 
-    m_lightSyncManager = std::make_unique<sync::LightSyncManager>(
-        *m_world->lightManager(), *m_world->chunkManager());
+    m_lightSyncManager = std::make_unique<sync::LightSyncManager>(*m_world->lightManager(), *m_world->chunkManager());
 }
 
 void MinecraftServer::initializeRegistries(bool registerEntities)
@@ -436,8 +418,8 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         spdlog::warn("Failed to load crafting recipes: {}", recipeLoadResult.error().toString());
     } else {
         spdlog::info("Loaded {} crafting recipes ({} failed)",
-                     recipeLoadResult.value().successCount,
-                     recipeLoadResult.value().failedCount);
+            recipeLoadResult.value().successCount,
+            recipeLoadResult.value().failedCount);
     }
 
     // 注册实体类型（可选）
@@ -518,12 +500,13 @@ void MinecraftServer::setupWorldCallbacks()
     // 设置光照变化回调：同步数据到 ChunkSection + 广播给客户端
     m_world->setOnLightChanged([this](LightType type, const SectionPos& pos) {
         // 用MC_TRACE_EVENT会导致编译器死循环，故用MC_TRACE_INSTANT
-        MC_TRACE_INSTANT("server.lighting", "ServerWorld::OnLightChangedCallback.START",
-                   "Type", (type == LightType::SKY) ? "Sky" : "Block",
-                   "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-                   [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
-                       flow(ctx);
-        });
+        MC_TRACE_INSTANT("server.lighting",
+            "ServerWorld::OnLightChangedCallback.START",
+            "Type",
+            (type == LightType::SKY) ? "Sky" : "Block",
+            "Section",
+            fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+            [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
 
         // 同步光照数据到 ChunkSection
         lightSyncManager().markLightChanged(type, pos);
@@ -555,12 +538,13 @@ void MinecraftServer::setupWorldCallbacks()
             broadcastLightUpdate(pos.x, pos.z, pos.y, skyLight, blockLight, false);
         }
 
-        MC_TRACE_INSTANT("server.lighting", "ServerWorld::OnLightChangedCallback.END",
-                   "Type", (type == LightType::SKY) ? "Sky" : "Block",
-                   "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-                   [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
-                       flow(ctx);
-        });
+        MC_TRACE_INSTANT("server.lighting",
+            "ServerWorld::OnLightChangedCallback.END",
+            "Type",
+            (type == LightType::SKY) ? "Sky" : "Block",
+            "Section",
+            fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+            [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
     });
 
     m_world->setOnOpenContainer([this](ContainerType type, const BlockPos& pos, Player& player) {
@@ -574,58 +558,50 @@ void MinecraftServer::setupWorldCallbacks()
     });
 
     // 设置方块破坏回调 - 播放破坏声音
-    m_blockInteractionManager->setOnBlockBreak(
-        [this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
-            // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_Callback", "playerId", playerId,
-            //                             "x", pos.x, "y", pos.y, "z", pos.z);
+    m_blockInteractionManager->setOnBlockBreak([this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
+        // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_Callback", "playerId", playerId,
+        //                             "x", pos.x, "y", pos.y, "z", pos.z);
 
-            // 获取方块的破坏声音
-            const auto& soundType = state.getSoundType();
-            Vector3 position(static_cast<f32>(pos.x) + 0.5f,
-                           static_cast<f32>(pos.y) + 0.5f,
-                           static_cast<f32>(pos.z) + 0.5f);
+        // 获取方块的破坏声音
+        const auto& soundType = state.getSoundType();
+        Vector3 position(
+            static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
 
-            // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_BroadcastSound",
-            //                             "sound", soundType.getBreakSound().toString().c_str(),
-            //                             "volume", soundType.getVolume(),
-            //                             "pitch", soundType.getPitch());
+        // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_BroadcastSound",
+        //                             "sound", soundType.getBreakSound().toString().c_str(),
+        //                             "volume", soundType.getVolume(),
+        //                             "pitch", soundType.getPitch());
 
-            // 广播声音给范围内的玩家（16格范围）
-            broadcastSoundInRange(
-                soundType.getBreakSound(),
-                sound::SoundCategory::Blocks,
-                position,
-                16.0f * soundType.getVolume(),  // 距离 = 16 * volume
-                soundType.getVolume(),
-                soundType.getPitch()
-            );
+        // 广播声音给范围内的玩家（16格范围）
+        broadcastSoundInRange(soundType.getBreakSound(),
+            sound::SoundCategory::Blocks,
+            position,
+            16.0f * soundType.getVolume(), // 距离 = 16 * volume
+            soundType.getVolume(),
+            soundType.getPitch());
 
-            // 发送方块更新给所有追踪该区块的玩家
-            if (m_chunkSendManager) {
-                // 广播方块更新给所有玩家（他们会收到区块更新）
-                // 注意：方块更新已经通过 m_world.setBlockState 触发
-            }
-        });
+        // 发送方块更新给所有追踪该区块的玩家
+        if (m_chunkSendManager) {
+            // 广播方块更新给所有玩家（他们会收到区块更新）
+            // 注意：方块更新已经通过 m_world.setBlockState 触发
+        }
+    });
 
     // 设置方块放置回调 - 播放放置声音
-    m_blockInteractionManager->setOnBlockPlace(
-        [this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
-            // 获取方块的放置声音
-            const auto& soundType = state.getSoundType();
-            Vector3 position(static_cast<f32>(pos.x) + 0.5f,
-                           static_cast<f32>(pos.y) + 0.5f,
-                           static_cast<f32>(pos.z) + 0.5f);
+    m_blockInteractionManager->setOnBlockPlace([this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
+        // 获取方块的放置声音
+        const auto& soundType = state.getSoundType();
+        Vector3 position(
+            static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
 
-            // 广播声音给范围内的玩家（16格范围）
-            broadcastSoundInRange(
-                soundType.getPlaceSound(),
-                sound::SoundCategory::Blocks,
-                position,
-                16.0f * soundType.getVolume(),
-                soundType.getVolume(),
-                soundType.getPitch()
-            );
-        });
+        // 广播声音给范围内的玩家（16格范围）
+        broadcastSoundInRange(soundType.getPlaceSound(),
+            sound::SoundCategory::Blocks,
+            position,
+            16.0f * soundType.getVolume(),
+            soundType.getVolume(),
+            soundType.getPitch());
+    });
 }
 
 bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
@@ -689,17 +665,12 @@ void MinecraftServer::tickKeepAlive()
 void MinecraftServer::sendTimeUpdate()
 {
     const auto& time = timeManager().gameTimeObj();
-    network::TimeUpdatePacket packet(
-        time.gameTime(),
-        time.dayTime(),
-        time.daylightCycleEnabled()
-    );
+    network::TimeUpdatePacket packet(time.gameTime(), time.dayTime(), time.daylightCycleEnabled());
 
     network::PacketSerializer ser;
     packet.serialize(ser);
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::TimeUpdate, ser.buffer());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, ser.buffer());
     broadcastPacket(fullPacket.data(), fullPacket.size());
 }
 
@@ -721,8 +692,8 @@ void MinecraftServer::sendWeatherUpdate()
         auto packet = network::GameStateChangePacket::rainStrength(rainStrength);
         auto result = packet.serialize();
         if (result.success()) {
-            auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                network::PacketType::GameStateChange, result.value());
+            auto fullPacket =
+                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
             broadcastPacket(fullPacket.data(), fullPacket.size());
         }
         m_lastSentRainStrength = rainStrength;
@@ -732,8 +703,8 @@ void MinecraftServer::sendWeatherUpdate()
         auto packet = network::GameStateChangePacket::thunderStrength(thunderStrength);
         auto result = packet.serialize();
         if (result.success()) {
-            auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                network::PacketType::GameStateChange, result.value());
+            auto fullPacket =
+                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
             broadcastPacket(fullPacket.data(), fullPacket.size());
         }
         m_lastSentThunderStrength = thunderStrength;
@@ -745,17 +716,16 @@ void MinecraftServer::sendWeatherUpdate()
             auto packet = network::GameStateChangePacket::endRain();
             auto result = packet.serialize();
             if (result.success()) {
-                auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                    network::PacketType::GameStateChange, result.value());
+                auto fullPacket =
+                    core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
                 broadcastPacket(fullPacket.data(), fullPacket.size());
             }
-        } else if (weatherType == weather::WeatherType::Rain ||
-                   weatherType == weather::WeatherType::Thunder) {
+        } else if (weatherType == weather::WeatherType::Rain || weatherType == weather::WeatherType::Thunder) {
             auto packet = network::GameStateChangePacket::beginRain();
             auto result = packet.serialize();
             if (result.success()) {
-                auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                    network::PacketType::GameStateChange, result.value());
+                auto fullPacket =
+                    core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
                 broadcastPacket(fullPacket.data(), fullPacket.size());
             }
         }
@@ -776,8 +746,8 @@ void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
         auto packet = network::GameStateChangePacket::rainStrength(rainStrength);
         auto result = packet.serialize();
         if (result.success()) {
-            auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                network::PacketType::GameStateChange, result.value());
+            auto fullPacket =
+                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
             sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
         }
     }
@@ -786,8 +756,8 @@ void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
         auto packet = network::GameStateChangePacket::thunderStrength(thunderStrength);
         auto result = packet.serialize();
         if (result.success()) {
-            auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                network::PacketType::GameStateChange, result.value());
+            auto fullPacket =
+                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
             sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
         }
     }
@@ -983,7 +953,8 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
         });
     }
 
-    m_positionTracker->updatePosition(playerId, player->x, player->y, player->z, player->yaw, player->pitch, player->onGround);
+    m_positionTracker->updatePosition(
+        playerId, player->x, player->y, player->z, player->yaw, player->pitch, player->onGround);
     updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 
     // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
@@ -1007,7 +978,8 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
                 raidManager->onPlayerEnterVillageWithCallback(
                     [player](BlockPos) -> i32 {
                         if (player->hasEffect(entity::effect::EffectType::BadOmen)) {
-                            const entity::effect::EffectInstance* effect = player->getEffect(entity::effect::EffectType::BadOmen);
+                            const entity::effect::EffectInstance* effect =
+                                player->getEffect(entity::effect::EffectType::BadOmen);
                             if (effect != nullptr) {
                                 i32 level = effect->getEffectLevel();
                                 // 移除不祥之兆效果
@@ -1017,8 +989,7 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
                         }
                         return 0;
                     },
-                    enteredVillage
-                );
+                    enteredVillage);
             }
         }
     }
@@ -1077,8 +1048,7 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
     auto result = network::ChatMessagePacket::deserialize(deser);
 
     if (result.failed()) {
-        spdlog::error("Failed to parse chat message packet from player {}: {}",
-                      playerId, result.error().message());
+        spdlog::error("Failed to parse chat message packet from player {}: {}", playerId, result.error().message());
         return;
     }
 
@@ -1087,17 +1057,19 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
 
     if (!message.empty() && message[0] == '/') {
         // 执行命令
-        mc::command::ServerCommandSource source(this, nullptr, m_world.get(),
-                                               Vector3d(player->x, player->y, player->z),
-                                               Vector2f(player->yaw, player->pitch),
-                                               4, playerId, player->username);
+        mc::command::ServerCommandSource source(this,
+            nullptr,
+            m_world.get(),
+            Vector3d(player->x, player->y, player->z),
+            Vector2f(player->yaw, player->pitch),
+            4,
+            playerId,
+            player->username);
         auto cmdResult = m_commandRegistry->execute(message, source);
         if (cmdResult.failed()) {
-            spdlog::warn("Command '{}' failed for {}: {}",
-                         message, player->username, cmdResult.error().toString());
+            spdlog::warn("Command '{}' failed for {}: {}", message, player->username, cmdResult.error().toString());
         } else {
-            spdlog::info("Command '{}' executed for {} with result {}",
-                         message, player->username, cmdResult.value());
+            spdlog::info("Command '{}' executed for {} with result {}", message, player->username, cmdResult.value());
         }
         return;
     }
@@ -1117,9 +1089,7 @@ void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f6
     }
 
     m_world->entityTracker().updatePlayerTracking(
-        *this,
-        playerId,
-        Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)));
+        *this, playerId, Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)));
 }
 
 void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* data, size_t size)
@@ -1135,12 +1105,12 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
     BlockPos pos(packet.x(), packet.y(), packet.z());
 
     MC_TRACE_EVENT("server.world",
-            "MinecraftServer::handleBlockInteractionPacket",
-            "pos", pos.toString(),
-            "playerId", playerId,
-            [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-    });
+        "MinecraftServer::handleBlockInteractionPacket",
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     // 处理挖掘状态
     miningManager().handleBlockInteraction(playerId, pos, packet.action());
@@ -1161,8 +1131,7 @@ void MinecraftServer::sendTeleportPacket(PlayerId playerId, f64 x, f64 y, f64 z,
     network::PacketSerializer ser;
     packet.serialize(ser);
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::Teleport, ser.buffer());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Teleport, ser.buffer());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
@@ -1171,7 +1140,7 @@ void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode
     if (!player) return;
 
     // 获取世界出生点
-    Vector3d spawnPoint(0.0, 64.0, 0.0);  // 默认值
+    Vector3d spawnPoint(0.0, 64.0, 0.0); // 默认值
     if (m_world) {
         spawnPoint = m_world->worldSpawnPoint();
     }
@@ -1194,27 +1163,21 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
     // 立即发送时间，避免客户端在首次周期同步前短暂显示默认时间(0)
     const auto& time = timeManager().gameTimeObj();
-    network::TimeUpdatePacket timePacket(
-        time.gameTime(),
-        time.dayTime(),
-        time.daylightCycleEnabled()
-    );
+    network::TimeUpdatePacket timePacket(time.gameTime(), time.dayTime(), time.daylightCycleEnabled());
     network::PacketSerializer timeSer;
     timePacket.serialize(timeSer);
-    auto fullTimePacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::TimeUpdate, timeSer.buffer());
+    auto fullTimePacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, timeSer.buffer());
     sendPacketToPlayer(playerId, fullTimePacket.data(), fullTimePacket.size());
 
     // 发送世界出生点（指南针指向位置）
     Vector3d worldSpawn = m_world->worldSpawnPoint();
-    network::SpawnPositionPacket spawnPosPacket(
-        BlockPos(static_cast<BlockCoord>(worldSpawn.x),
-                 static_cast<BlockCoord>(worldSpawn.y),
-                 static_cast<BlockCoord>(worldSpawn.z)));
+    network::SpawnPositionPacket spawnPosPacket(BlockPos(static_cast<BlockCoord>(worldSpawn.x),
+        static_cast<BlockCoord>(worldSpawn.y),
+        static_cast<BlockCoord>(worldSpawn.z)));
     auto spawnPosResult = spawnPosPacket.serialize();
     if (spawnPosResult.success()) {
-        auto fullSpawnPacket = core::ConnectionManager::encapsulatePacket(
-            network::PacketType::SpawnPosition, spawnPosResult.value());
+        auto fullSpawnPacket =
+            core::ConnectionManager::encapsulatePacket(network::PacketType::SpawnPosition, spawnPosResult.value());
         sendPacketToPlayer(playerId, fullSpawnPacket.data(), fullSpawnPacket.size());
     }
 
@@ -1235,8 +1198,8 @@ void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
     auto serializeResult = packet.serialize();
     MC_ASSERT_RELEASE(serializeResult.success());
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::CommandTree, serializeResult.value());
+    auto fullPacket =
+        core::ConnectionManager::encapsulatePacket(network::PacketType::CommandTree, serializeResult.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
@@ -1279,10 +1242,14 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
     const u8* payload = data + network::PACKET_HEADER_SIZE;
     size_t payloadSize = size - network::PACKET_HEADER_SIZE;
 
-    MC_TRACE_EVENT("server.network", "DispatchPacketToHandler",
-                   "sessionId", sessionId,
-                   "packetType", static_cast<int>(packetType),
-                   "payloadSize", payloadSize);
+    MC_TRACE_EVENT("server.network",
+        "DispatchPacketToHandler",
+        "sessionId",
+        sessionId,
+        "packetType",
+        static_cast<int>(packetType),
+        "payloadSize",
+        payloadSize);
 
     switch (packetType) {
         case network::PacketType::LoginRequest:
@@ -1379,11 +1346,9 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
 // 声音广播方法
 // ============================================================================
 
-void MinecraftServer::broadcastSound(const ResourceLocation& soundEventId,
-                                    sound::SoundCategory category,
-                                    const Vector3& position,
-                                    f32 volume,
-                                    f32 pitch) {
+void MinecraftServer::broadcastSound(
+    const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
+{
     // spdlog::debug("[Sound] Broadcasting sound: {} at ({}, {}, {})",
     //               soundEventId.toString(), position.x, position.y, position.z);
 
@@ -1396,17 +1361,17 @@ void MinecraftServer::broadcastSound(const ResourceLocation& soundEventId,
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::PlaySound, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::PlaySound, result.value());
     broadcastPacket(fullPacket.data(), fullPacket.size());
 }
 
 void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId,
-                                            sound::SoundCategory category,
-                                            const Vector3& position,
-                                            f32 range,
-                                            f32 volume,
-                                            f32 pitch) {
+    sound::SoundCategory category,
+    const Vector3& position,
+    f32 range,
+    f32 volume,
+    f32 pitch)
+{
     // spdlog::debug("[Sound] Broadcasting sound in range: {} at ({}, {}, {}) range={}",
     //               soundEventId.toString(), position.x, position.y, position.z, range);
 
@@ -1419,8 +1384,7 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::PlaySound, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::PlaySound, result.value());
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
@@ -1445,11 +1409,12 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
 }
 
 void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
-                                        const ResourceLocation& soundEventId,
-                                        sound::SoundCategory category,
-                                        const Vector3& position,
-                                        f32 volume,
-                                        f32 pitch) {
+    const ResourceLocation& soundEventId,
+    sound::SoundCategory category,
+    const Vector3& position,
+    f32 volume,
+    f32 pitch)
+{
     // spdlog::debug("[Sound] Sending sound {} to player {}", soundEventId.toString(), playerId);
 
     glm::vec3 pos(position.x, position.y, position.z);
@@ -1461,8 +1426,7 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::PlaySound, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::PlaySound, result.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
@@ -1470,13 +1434,13 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
 // 粒子广播
 // ============================================================================
 
-void MinecraftServer::broadcastParticleInRange(
-    client::renderer::trident::particle::ParticleTypeId type,
+void MinecraftServer::broadcastParticleInRange(client::renderer::trident::particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
     u32 count,
-    f32 range) {
+    f32 range)
+{
     network::ParticlePacket packet(type, pos, velocity, offset, count);
 
     auto result = packet.serialize();
@@ -1485,8 +1449,7 @@ void MinecraftServer::broadcastParticleInRange(
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::Particle, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
@@ -1511,13 +1474,13 @@ void MinecraftServer::broadcastParticleInRange(
     //               static_cast<u16>(type), playersNotified);
 }
 
-void MinecraftServer::sendParticleToPlayer(
-    PlayerId playerId,
+void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
     client::renderer::trident::particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
-    u32 count) {
+    u32 count)
+{
     network::ParticlePacket packet(type, pos, velocity, offset, count);
 
     auto result = packet.serialize();
@@ -1526,18 +1489,23 @@ void MinecraftServer::sendParticleToPlayer(
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::Particle, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
-void MinecraftServer::broadcastParticleInRange(
-    u32 type,
-    f64 x, f64 y, f64 z,
-    f32 velocityX, f32 velocityY, f32 velocityZ,
-    f32 offsetX, f32 offsetY, f32 offsetZ,
+void MinecraftServer::broadcastParticleInRange(u32 type,
+    f64 x,
+    f64 y,
+    f64 z,
+    f32 velocityX,
+    f32 velocityY,
+    f32 velocityZ,
+    f32 offsetX,
+    f32 offsetY,
+    f32 offsetZ,
     u32 count,
-    f32 range) {
+    f32 range)
+{
     // 转换为强类型枚举并调用现有的实现
     auto particleType = static_cast<client::renderer::trident::particle::ParticleTypeId>(type);
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
@@ -1547,7 +1515,8 @@ void MinecraftServer::broadcastParticleInRange(
     broadcastParticleInRange(particleType, pos, velocity, offset, count, range);
 }
 
-void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range) {
+void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range)
+{
     network::EntityStatusPacket packet;
     packet.setEntityId(static_cast<u32>(entityId));
     packet.setStatus(static_cast<network::EntityStatusPacket::Status>(status));
@@ -1558,8 +1527,7 @@ void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status,
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::EntityStatus, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityStatus, result.value());
 
     f32 rangeSq = range * range;
     m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
@@ -1578,7 +1546,8 @@ void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status,
 // 世界事件广播
 // ============================================================================
 
-void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data) {
+void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
+{
     sound::WorldEventPacket packet(eventId, x, y, z, data);
 
     auto result = packet.serialize();
@@ -1587,12 +1556,12 @@ void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::WorldEvent, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::WorldEvent, result.value());
     broadcastPacket(fullPacket.data(), fullPacket.size());
 }
 
-void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range) {
+void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
+{
     sound::WorldEventPacket packet(eventId, x, y, z, data);
 
     auto result = packet.serialize();
@@ -1601,8 +1570,7 @@ void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::WorldEvent, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::WorldEvent, result.value());
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
@@ -1622,48 +1590,44 @@ void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 
 // 爆炸广播
 // ============================================================================
 
-void MinecraftServer::broadcastExplosionInRange(
-    const Vector3& position,
+void MinecraftServer::broadcastExplosionInRange(const Vector3& position,
     f32 strength,
     const std::vector<BlockPos>& affectedBlocks,
     const std::unordered_map<u64, Vector3>& playerKnockback,
-    f32 range) {
+    f32 range)
+{
     // 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
     // 每个玩家收到的击退向量不同，需要为每个玩家单独构建数据包
 
     f32 rangeSq = range * range;
 
-    m_playerManager->forEachPlayer([this, &position, strength, &affectedBlocks, &playerKnockback, rangeSq](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
+    m_playerManager->forEachPlayer(
+        [this, &position, strength, &affectedBlocks, &playerKnockback, rangeSq](ServerPlayerData& player) {
+            if (!player.loggedIn || !player.hasConnection()) {
+                return;
+            }
 
-        // 检查玩家是否在范围内
-        f32 dx = player.x - position.x;
-        f32 dy = player.y - position.y;
-        f32 dz = player.z - position.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
+            // 检查玩家是否在范围内
+            f32 dx = player.x - position.x;
+            f32 dy = player.y - position.y;
+            f32 dz = player.z - position.z;
+            f32 distSq = dx * dx + dy * dy + dz * dz;
 
-        if (distSq <= rangeSq) {
-            // 为每个玩家创建单独的爆炸包（击退向量不同）
-            sendExplosionToPlayer(player.playerId, position, strength, affectedBlocks, playerKnockback);
-        }
-    });
+            if (distSq <= rangeSq) {
+                // 为每个玩家创建单独的爆炸包（击退向量不同）
+                sendExplosionToPlayer(player.playerId, position, strength, affectedBlocks, playerKnockback);
+            }
+        });
 }
 
-void MinecraftServer::sendExplosionToPlayer(
-    PlayerId playerId,
+void MinecraftServer::sendExplosionToPlayer(PlayerId playerId,
     const Vector3& position,
     f32 strength,
     const std::vector<BlockPos>& affectedBlocks,
-    const std::unordered_map<u64, Vector3>& playerKnockback) {
+    const std::unordered_map<u64, Vector3>& playerKnockback)
+{
     // 创建爆炸包，包含该玩家的击退向量
-    network::ExplosionPacket packet(
-        position,
-        strength,
-        affectedBlocks,
-        playerKnockback,
-        static_cast<u64>(playerId));
+    network::ExplosionPacket packet(position, strength, affectedBlocks, playerKnockback, static_cast<u64>(playerId));
 
     auto result = packet.serialize();
     if (result.failed()) {
@@ -1671,8 +1635,7 @@ void MinecraftServer::sendExplosionToPlayer(
         return;
     }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::Explosion, result.value());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Explosion, result.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 

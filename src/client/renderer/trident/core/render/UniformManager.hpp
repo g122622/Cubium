@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include "common/core/Types.hpp"
 #include <vector>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -40,9 +40,9 @@ struct LightingUBO {
  * 参考 MC 1.16.5 FogRenderer.java
  */
 enum class FogMode : i32 {
-    None = 0,     // 禁用雾效果
-    Linear = 1,   // 线性雾（陆地）
-    Exp2 = 2      // 指数雾（水中/岩浆）
+    None = 0,   // 禁用雾效果
+    Linear = 1, // 线性雾（陆地）
+    Exp2 = 2    // 指数雾（水中/岩浆）
 };
 
 /**
@@ -52,10 +52,10 @@ enum class FogMode : i32 {
  * 线性雾用于陆地场景，指数雾用于水下和岩浆环境。
  */
 struct FogUBO {
-    alignas(4)  f32 fogStart;       // 雾开始距离（线性雾）
-    alignas(4)  f32 fogEnd;         // 雾结束距离（线性雾）
-    alignas(4)  f32 fogDensity;     // 指数雾密度（水中/岩浆）
-    alignas(4)  i32 fogMode;        // 雾模式 (FogMode 枚举值)
+    alignas(4) f32 fogStart;        // 雾开始距离（线性雾）
+    alignas(4) f32 fogEnd;          // 雾结束距离（线性雾）
+    alignas(4) f32 fogDensity;      // 指数雾密度（水中/岩浆）
+    alignas(4) i32 fogMode;         // 雾模式 (FogMode 枚举值)
     alignas(16) glm::vec4 fogColor; // 雾颜色（RGBA）
 };
 
@@ -86,9 +86,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> initialize(
-        TridentContext* context,
-        DescriptorManager* descriptor,
-        u32 maxFramesInFlight = 2);
+        TridentContext* context, DescriptorManager* descriptor, u32 maxFramesInFlight = 2);
 
     /**
      * @brief 销毁所有资源
@@ -101,10 +99,7 @@ public:
      * @param projectionMatrix 投影矩阵
      * @param frameIndex 帧索引
      */
-    void updateCamera(
-        const glm::mat4& viewMatrix,
-        const glm::mat4& projectionMatrix,
-        u32 frameIndex);
+    void updateCamera(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, u32 frameIndex);
 
     /**
      * @brief 更新光照 Uniform

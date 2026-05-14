@@ -1,14 +1,14 @@
 #include "WorldGenSpawner.hpp"
-#include "../chunk/IChunkGenerator.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
-#include "../../WorldConstants.hpp"
-#include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntityClassification.hpp"
+#include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../entity/core/MobEntity.hpp"
-#include <spdlog/spdlog.h>
+#include "../../WorldConstants.hpp"
+#include "../../block/BlockRegistry.hpp"
+#include "../../block/VanillaBlocks.hpp"
+#include "../chunk/IChunkGenerator.hpp"
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -25,23 +25,22 @@ namespace mc {
 class WorldGenRegionAdapter : public world::spawn::ISpawnWorldReader {
 public:
     explicit WorldGenRegionAdapter(WorldGenRegion& region)
-        : m_region(region) {}
+        : m_region(region)
+    {}
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         return m_region.getBlockState(x, y, z);
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override {
-        return world::isValidY(y);
-    }
+    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override { return world::isValidY(y); }
 
-    [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override {
+    [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override
+    {
         return m_region.getTopBlockY(x, z, type);
     }
 
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override {
-        return m_region.getBiome(x, y, z);
-    }
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override { return m_region.getBiome(x, y, z); }
 
 private:
     WorldGenRegion& m_region;
@@ -60,8 +59,7 @@ static constexpr f64 SPAWN_SPREAD_RADIUS = 8.0;
 WorldGenSpawner::WorldGenSpawner() = default;
 WorldGenSpawner::~WorldGenSpawner() = default;
 
-i32 WorldGenSpawner::spawnInitialMobs(
-    WorldGenRegion& region,
+i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
     const Biome& biome,
     i32 chunkX,
     i32 chunkZ,
@@ -165,17 +163,24 @@ i32 WorldGenSpawner::spawnInitialMobs(
             }
 
             // 在组内生成多个实体
-            i32 spawned = spawnGroup(region, *entityType,
+            i32 spawned = spawnGroup(region,
+                *entityType,
                 static_cast<f32>(groupX) + 0.5f,
                 static_cast<f32>(spawnY),
                 static_cast<f32>(groupZ) + 0.5f,
-                count, random, outEntities);
+                count,
+                random,
+                outEntities);
 
             if (spawned > 0) {
                 spdlog::info("WorldGenSpawner: Spawned {} x {} at ({}, {}, {})",
-                              spawned, entityType->name(), groupX, spawnY, groupZ);
+                    spawned,
+                    entityType->name(),
+                    groupX,
+                    spawnY,
+                    groupZ);
                 totalSpawned += spawned;
-                break;  // 成功生成一组后继续下一组
+                break; // 成功生成一组后继续下一组
             }
 
             // 尝试新位置
@@ -191,8 +196,7 @@ i32 WorldGenSpawner::spawnInitialMobs(
     return totalSpawned;
 }
 
-i32 WorldGenSpawner::spawnGroup(
-    WorldGenRegion& region,
+i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
     const entity::EntityType& entityType,
     f32 x,
     [[maybe_unused]] f32 y,
@@ -214,28 +218,23 @@ i32 WorldGenSpawner::spawnGroup(
         f32 spawnZ = z + (random.nextFloat() - 0.5f) * width * 2.0f;
 
         // 确保 X 和 Z 在区块内（限制扩散范围）
-        spawnX = std::clamp(spawnX, x - static_cast<f32>(SPAWN_SPREAD_RADIUS), x + static_cast<f32>(SPAWN_SPREAD_RADIUS));
-        spawnZ = std::clamp(spawnZ, z - static_cast<f32>(SPAWN_SPREAD_RADIUS), z + static_cast<f32>(SPAWN_SPREAD_RADIUS));
+        spawnX =
+            std::clamp(spawnX, x - static_cast<f32>(SPAWN_SPREAD_RADIUS), x + static_cast<f32>(SPAWN_SPREAD_RADIUS));
+        spawnZ =
+            std::clamp(spawnZ, z - static_cast<f32>(SPAWN_SPREAD_RADIUS), z + static_cast<f32>(SPAWN_SPREAD_RADIUS));
 
         // 检查碰撞空间
-        i32 spawnY = getSpawnHeight(region, entityType,
-            static_cast<i32>(spawnX), static_cast<i32>(spawnZ));
+        i32 spawnY = getSpawnHeight(region, entityType, static_cast<i32>(spawnX), static_cast<i32>(spawnZ));
         if (spawnY < 0) {
             continue;
         }
 
-        if (!canSpawnAt(region, entityType,
-            static_cast<i32>(spawnX), spawnY, static_cast<i32>(spawnZ))) {
+        if (!canSpawnAt(region, entityType, static_cast<i32>(spawnX), spawnY, static_cast<i32>(spawnZ))) {
             continue;
         }
 
         // 记录生成的实体数据
-        outEntities.emplace_back(
-            entityType.name(),
-            spawnX,
-            static_cast<f32>(spawnY),
-            spawnZ
-        );
+        outEntities.emplace_back(entityType.name(), spawnX, static_cast<f32>(spawnY), spawnZ);
 
         ++spawned;
     }
@@ -243,15 +242,10 @@ i32 WorldGenSpawner::spawnGroup(
     return spawned;
 }
 
-i32 WorldGenSpawner::getSpawnHeight(
-    WorldGenRegion& region,
-    const entity::EntityType& entityType,
-    i32 x,
-    i32 z) const
+i32 WorldGenSpawner::getSpawnHeight(WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 z) const
 {
     // 获取实体类型的高度图类型
-    HeightmapType heightmapType =
-        world::spawn::EntitySpawnPlacementRegistry::getHeightmapType(entityType.name());
+    HeightmapType heightmapType = world::spawn::EntitySpawnPlacementRegistry::getHeightmapType(entityType.name());
 
     // 获取实体脚下位置：Chunk 的 topBlockY 是顶层方块 Y，这里需要上移一格到空气层。
     const i32 topY = region.getTopBlockY(x, z, heightmapType) + 1;
@@ -275,13 +269,13 @@ i32 WorldGenSpawner::getSpawnHeight(
         // 检查生成位置是否为空气或可通过方块
         const BlockState* spawnBlock = region.getBlockState(x, topY, z);
         if (spawnBlock && spawnBlock->isSolid()) {
-            return -1;  // 头顶被堵住
+            return -1; // 头顶被堵住
         }
 
         // 再检查上一格（对于高度 > 1 的生物）
         const BlockState* aboveBlock = region.getBlockState(x, topY + 1, z);
         if (aboveBlock && aboveBlock->isSolid()) {
-            return -1;  // 头顶被堵住
+            return -1; // 头顶被堵住
         }
     }
     // 对于水中生物，需要找到水
@@ -293,7 +287,7 @@ i32 WorldGenSpawner::getSpawnHeight(
                 return y;
             }
         }
-        return -1;  // 没找到水
+        return -1; // 没找到水
     }
     // 对于岩浆中生物，需要找到岩浆
     else if (placementType == world::spawn::PlacementType::InLava) {
@@ -304,7 +298,7 @@ i32 WorldGenSpawner::getSpawnHeight(
                 return y;
             }
         }
-        return -1;  // 没找到岩浆
+        return -1; // 没找到岩浆
     }
     // 无限制
     else if (placementType == world::spawn::PlacementType::NoRestrictions) {
@@ -318,11 +312,7 @@ i32 WorldGenSpawner::getSpawnHeight(
 }
 
 bool WorldGenSpawner::canSpawnAt(
-    WorldGenRegion& region,
-    const entity::EntityType& entityType,
-    i32 x,
-    i32 y,
-    i32 z) const
+    WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const
 {
     // WorldGenSpawner 只处理 Creature 分类（被动动物）的区块生成
     // 怪物通过 NaturalSpawner 在夜间/黑暗环境生成
@@ -356,11 +346,7 @@ bool WorldGenSpawner::canSpawnAt(
 }
 
 bool WorldGenSpawner::checkSpawnRules(
-    WorldGenRegion& region,
-    const entity::EntityType& entityType,
-    i32 x,
-    i32 y,
-    i32 z) const
+    WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const
 {
     const BlockState* ground = region.getBlockState(x, y - 1, z);
     if (!ground || ground->isAir() || ground->isLiquid()) {
@@ -370,9 +356,7 @@ bool WorldGenSpawner::checkSpawnRules(
     const std::string& typeName = entityType.name();
 
     // 参考原版常见被动生物规则：大多数生物偏好草方块
-    if (typeName == "minecraft:sheep" ||
-        typeName == "minecraft:cow" ||
-        typeName == "minecraft:horse" ||
+    if (typeName == "minecraft:sheep" || typeName == "minecraft:cow" || typeName == "minecraft:horse" ||
         typeName == "minecraft:donkey") {
         if (!ground->is(VanillaBlocks::GRASS_BLOCK)) {
             return false;

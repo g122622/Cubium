@@ -1,18 +1,18 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/util/math/frustum/Frustum.hpp"
 #include "../../MeshTypes.hpp"
 #include "ChunkMesher.hpp"
-#include <vulkan/vulkan.h>
-#include <unordered_map>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
+#include <functional>
 #include <memory>
-#include <vector>
 #include <mutex>
 #include <queue>
-#include <functional>
+#include <unordered_map>
+#include <vector>
 #include <glm/vec3.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc::client {
 
@@ -40,13 +40,13 @@ struct ChunkGpuBuffer {
 struct PendingMeshUpload {
     ChunkId chunkId;
     MeshData meshData;
-    u64 submitTime = 0;  // 提交时间戳（用于超时检测）
+    u64 submitTime = 0; // 提交时间戳（用于超时检测）
 };
 
 // 待销毁的缓冲区（用于延迟销毁）
 struct PendingBufferDestroy {
     std::unique_ptr<ChunkGpuBuffer> buffer;
-    u64 frameIndex;  // 创建时的帧号，用于计算延迟销毁
+    u64 frameIndex; // 创建时的帧号，用于计算延迟销毁
 };
 
 // Fence 管理器（用于非阻塞上传）
@@ -89,22 +89,15 @@ public:
         VkDeviceSize totalSize = 0;
     };
 
-    [[nodiscard]] static constexpr VkDeviceSize stagingCopyAlignment() {
-        return 4;
-    }
+    [[nodiscard]] static constexpr VkDeviceSize stagingCopyAlignment() { return 4; }
 
-    [[nodiscard]] static constexpr VkDeviceSize alignStagingOffset(
-        VkDeviceSize value,
-        VkDeviceSize alignment)
+    [[nodiscard]] static constexpr VkDeviceSize alignStagingOffset(VkDeviceSize value, VkDeviceSize alignment)
     {
-        return alignment == 0
-            ? value
-            : ((value + alignment - 1) / alignment) * alignment;
+        return alignment == 0 ? value : ((value + alignment - 1) / alignment) * alignment;
     }
 
     [[nodiscard]] static constexpr StagingCopyLayout buildStagingCopyLayout(
-        VkDeviceSize vertexSize,
-        VkDeviceSize indexSize)
+        VkDeviceSize vertexSize, VkDeviceSize indexSize)
     {
         StagingCopyLayout layout{};
         layout.vertexOffset = 0;
@@ -121,8 +114,7 @@ public:
     ChunkRenderer& operator=(const ChunkRenderer&) = delete;
 
     // 初始化
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -131,9 +123,7 @@ public:
     void destroy();
 
     // 区块管理
-    [[nodiscard]] Result<void> updateChunk(
-        const ChunkId& chunkId,
-        const MeshData& meshData);
+    [[nodiscard]] Result<void> updateChunk(const ChunkId& chunkId, const MeshData& meshData);
 
     /**
      * @brief 更新区块双层网格
@@ -143,20 +133,14 @@ public:
      * @param transparentMesh 半透明网格
      */
     [[nodiscard]] Result<void> updateChunk(
-        const ChunkId& chunkId,
-        const MeshData& solidMesh,
-        const MeshData& transparentMesh);
+        const ChunkId& chunkId, const MeshData& solidMesh, const MeshData& transparentMesh);
 
     void removeChunk(const ChunkId& chunkId);
 
     void clearChunks();
 
     // 纹理图集
-    [[nodiscard]] Result<void> loadTextureAtlas(
-        const u8* pixelData,
-        u32 width,
-        u32 height,
-        u32 tileSize);
+    [[nodiscard]] Result<void> loadTextureAtlas(const u8* pixelData, u32 width, u32 height, u32 tileSize);
 
     ChunkTextureAtlas& textureAtlas() { return m_textureAtlas; }
     const ChunkTextureAtlas& textureAtlas() const { return m_textureAtlas; }
@@ -167,8 +151,8 @@ public:
     // 渲染（带推送常量回调）
     // pushConstantsCallback: 设置推送常量的回调函数，参数是 chunkId
     using PushConstantsCallback = std::function<void(const ChunkId&)>;
-    void render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
-                PushConstantsCallback pushConstantsCallback);
+    void render(
+        VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, PushConstantsCallback pushConstantsCallback);
 
     /**
      * @brief 渲染半透明层（可选按距离排序）
@@ -180,10 +164,10 @@ public:
      * @param sortBackToFront 是否按远到近排序
      */
     void renderTransparent(VkCommandBuffer commandBuffer,
-                           VkPipelineLayout pipelineLayout,
-                           PushConstantsCallback pushConstantsCallback,
-                           const glm::dvec3& cameraPosition,
-                           bool sortBackToFront = true);
+        VkPipelineLayout pipelineLayout,
+        PushConstantsCallback pushConstantsCallback,
+        const glm::dvec3& cameraPosition,
+        bool sortBackToFront = true);
 
     // ========== 异步 GPU 上传 ==========
 
@@ -230,7 +214,8 @@ public:
     u32 totalIndexCount() const { return m_totalIndices; }
 
 private:
-    [[nodiscard]] static u64 makeBufferKey(const ChunkId& chunkId, ChunkRenderLayer layer) {
+    [[nodiscard]] static u64 makeBufferKey(const ChunkId& chunkId, ChunkRenderLayer layer)
+    {
         return (chunkId.toId() << 1ULL) | static_cast<u64>(layer);
     }
 
@@ -265,56 +250,41 @@ private:
 
     // Fence 管理（用于非阻塞上传）
     FenceManager m_fenceManager;
-    static constexpr u32 MAX_IN_FLIGHT_UPLOADS = 8;  // 最大同时上传数量
+    static constexpr u32 MAX_IN_FLIGHT_UPLOADS = 8; // 最大同时上传数量
 
     // 延迟销毁队列
     std::vector<PendingBufferDestroy> m_pendingDestroys;
     mutable std::mutex m_pendingDestroysMutex;
-    u64 m_destroyFrameCounter = 0;  // 每次调用 processPendingDestroys 递增
+    u64 m_destroyFrameCounter = 0; // 每次调用 processPendingDestroys 递增
 
     // 单次命令缓冲区
     [[nodiscard]] Result<VkCommandBuffer> beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
     // 创建缓冲区
-    [[nodiscard]] Result<void> createBuffer(
-        VkDeviceSize size,
+    [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
         VkDeviceMemory& memory);
 
     // 创建/更新缓冲区
-    [[nodiscard]] Result<void> createChunkBuffer(
-        ChunkGpuBuffer& buffer,
-        const MeshData& meshData);
+    [[nodiscard]] Result<void> createChunkBuffer(ChunkGpuBuffer& buffer, const MeshData& meshData);
 
     [[nodiscard]] Result<void> updateChunkLayer(
-        const ChunkId& chunkId,
-        const MeshData& meshData,
-        ChunkRenderLayer layer);
+        const ChunkId& chunkId, const MeshData& meshData, ChunkRenderLayer layer);
 
     // 上传缓冲区数据
-    [[nodiscard]] Result<void> uploadBufferData(
-        VkBuffer dstBuffer,
-        const void* data,
-        VkDeviceSize size);
+    [[nodiscard]] Result<void> uploadBufferData(VkBuffer dstBuffer, const void* data, VkDeviceSize size);
 
     // 查找内存类型
-    [[nodiscard]] Result<u32> findMemoryType(
-        u32 typeFilter,
-        VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     // 创建纹理图集
-    [[nodiscard]] Result<void> createTextureAtlas(
-        u32 width,
-        u32 height);
+    [[nodiscard]] Result<void> createTextureAtlas(u32 width, u32 height);
 
     // 上传纹理数据
-    [[nodiscard]] Result<void> uploadTextureData(
-        const u8* pixelData,
-        u32 width,
-        u32 height);
+    [[nodiscard]] Result<void> uploadTextureData(const u8* pixelData, u32 width, u32 height);
 };
 
 } // namespace mc::client

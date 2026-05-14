@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <nlohmann/json.hpp>
-#include <memory>
-#include <vector>
-#include <string>
-#include <optional>
+#include "common/core/Types.hpp"
 #include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -117,9 +117,7 @@ public:
          * @param min 最小值（可选，空表示无下界）
          * @param max 最大值（可选，空表示无上界）
          */
-        RangedMatcher(const std::string& propertyName,
-                      std::optional<std::string> min,
-                      std::optional<std::string> max);
+        RangedMatcher(const std::string& propertyName, std::optional<std::string> min, std::optional<std::string> max);
 
         [[nodiscard]] std::string toJson() const override;
         [[nodiscard]] std::unique_ptr<Matcher> clone() const override;
@@ -202,9 +200,7 @@ public:
      * @param min 最小值（可选）
      * @param max 最大值（可选）
      */
-    void addRangeMatch(const std::string& propertyName,
-                       std::optional<std::string> min,
-                       std::optional<std::string> max);
+    void addRangeMatch(const std::string& propertyName, std::optional<std::string> min, std::optional<std::string> max);
 
     /**
      * @brief 添加匹配器
@@ -254,9 +250,10 @@ public:
      * @param stateContainer 方块的状态容器
      * @param callback 不存在属性的回调函数
      */
-    template<typename StateContainer>
-    void forEachMissingProperty(const StateContainer& stateContainer,
-                                std::function<void(const std::string&)> callback) const {
+    template <typename StateContainer>
+    void forEachMissingProperty(
+        const StateContainer& stateContainer, std::function<void(const std::string&)> callback) const
+    {
         for (const auto& matcher : m_matchers) {
             const IProperty* prop = stateContainer.getProperty(matcher->propertyName());
             if (prop == nullptr) {

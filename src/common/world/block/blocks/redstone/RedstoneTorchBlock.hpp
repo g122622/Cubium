@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../redstone/RedstonePower.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../Block.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -37,8 +37,8 @@ public:
 
     // ========== Block 接口实现 ==========
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
@@ -48,17 +48,14 @@ public:
 
     // ========== 红石接口 ==========
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     /**
      * @brief 获取强信号强度
@@ -73,11 +70,7 @@ public:
      * @return i32 强信号强度
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 

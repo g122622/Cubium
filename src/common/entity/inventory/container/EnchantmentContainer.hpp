@@ -1,11 +1,11 @@
 #pragma once
 
+#include "common/util/math/random/Random.hpp"
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "world/block/BlockPos.hpp"
-#include <memory>
 #include <array>
+#include <memory>
 
 namespace mc {
 
@@ -61,10 +61,7 @@ public:
      * @param position 方块位置（用于检测书架）
      * @param world 世界指针
      */
-    EnchantmentContainer(ContainerId id,
-                         PlayerInventory* playerInventory,
-                         const BlockPos& position,
-                         IWorld* world);
+    EnchantmentContainer(ContainerId id, PlayerInventory* playerInventory, const BlockPos& position, IWorld* world);
 
     /**
      * @brief 析构函数
@@ -200,11 +197,11 @@ private:
 
 private:
     std::unique_ptr<IInventory> m_enchantmentInventory; ///< 附魔台背包
-    BlockPos m_position;                                 ///< 附魔台位置
-    IWorld* m_world;                                     ///< 世界指针
-    i32 m_enchantPower = 0;                              ///< 书架力量
-    i64 m_enchantmentSeed = 0;                           ///< 附魔种子
-    mutable math::Random m_random;                       ///< 随机数生成器
+    BlockPos m_position;                                ///< 附魔台位置
+    IWorld* m_world;                                    ///< 世界指针
+    i32 m_enchantPower = 0;                             ///< 书架力量
+    i64 m_enchantmentSeed = 0;                          ///< 附魔种子
+    mutable math::Random m_random;                      ///< 随机数生成器
 
     /// 附魔选项等级（3个）
     std::array<i32, ENCHANTMENT_OPTIONS> m_enchantmentLevels = {0, 0, 0};

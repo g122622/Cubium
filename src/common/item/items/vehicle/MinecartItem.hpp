@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Item.hpp"
 #include "../../../entity/entities/vehicle/MinecartEntity.hpp"
+#include "../../core/Item.hpp"
 
 namespace mc {
 namespace item {

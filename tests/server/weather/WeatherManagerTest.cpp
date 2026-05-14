@@ -1,16 +1,16 @@
-#include <gtest/gtest.h>
 #include "server/world/weather/WeatherManager.hpp"
-#include "common/world/weather/WeatherState.hpp"
-#include "common/world/weather/WeatherConstants.hpp"
-#include "common/world/weather/WeatherUtils.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "common/world/weather/WeatherConstants.hpp"
+#include "common/world/weather/WeatherState.hpp"
+#include "common/world/weather/WeatherUtils.hpp"
+#include <gtest/gtest.h>
 
 #include <memory>
 #include <unordered_map>
@@ -31,10 +31,7 @@ public:
     [[nodiscard]] DimensionId dimension() const override { return m_ultraWarm ? 1 : 0; }
     [[nodiscard]] bool isUltraWarm() const override { return m_ultraWarm; }
 
-    void setHeight(ChunkCoord chunkX, ChunkCoord chunkZ, i32 height)
-    {
-        m_heights[ChunkPos(chunkX, chunkZ)] = height;
-    }
+    void setHeight(ChunkCoord chunkX, ChunkCoord chunkZ, i32 height) { m_heights[ChunkPos(chunkX, chunkZ)] = height; }
 
     void setBiome(ChunkCoord chunkX, ChunkCoord chunkZ, BiomeId biomeId)
     {
@@ -48,15 +45,14 @@ public:
         }
     }
 
-    void setUltraWarm(bool value)
-    {
-        m_ultraWarm = value;
-    }
+    void setUltraWarm(bool value) { m_ultraWarm = value; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("WeatherUtilsTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("WeatherUtilsTestWorld::tickManager not implemented");
     }
 
@@ -67,10 +63,7 @@ private:
 
 class WeatherUtilsTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        BiomeRegistry::instance().initialize();
-    }
+    void SetUp() override { BiomeRegistry::instance().initialize(); }
 };
 
 } // namespace
@@ -84,7 +77,8 @@ protected:
     WeatherState state;
 };
 
-TEST_F(WeatherStateTest, DefaultStateIsClear) {
+TEST_F(WeatherStateTest, DefaultStateIsClear)
+{
     EXPECT_FALSE(state.raining);
     EXPECT_FALSE(state.thundering);
     EXPECT_EQ(state.rainStrength, 0.0f);
@@ -92,7 +86,8 @@ TEST_F(WeatherStateTest, DefaultStateIsClear) {
     EXPECT_EQ(state.weatherType(), WeatherType::Clear);
 }
 
-TEST_F(WeatherStateTest, WeatherTypeReturnsCorrectValue) {
+TEST_F(WeatherStateTest, WeatherTypeReturnsCorrectValue)
+{
     // 晴天
     state.raining = false;
     state.thundering = false;
@@ -108,7 +103,8 @@ TEST_F(WeatherStateTest, WeatherTypeReturnsCorrectValue) {
     EXPECT_EQ(state.weatherType(), WeatherType::Thunder);
 }
 
-TEST_F(WeatherStateTest, IsRainingUsesThreshold) {
+TEST_F(WeatherStateTest, IsRainingUsesThreshold)
+{
     state.rainStrength = 0.1f;
     EXPECT_FALSE(state.isRaining());
 
@@ -122,7 +118,8 @@ TEST_F(WeatherStateTest, IsRainingUsesThreshold) {
     EXPECT_TRUE(state.isRaining());
 }
 
-TEST_F(WeatherStateTest, IsThunderingUsesThreshold) {
+TEST_F(WeatherStateTest, IsThunderingUsesThreshold)
+{
     state.thunderStrength = 0.8f;
     EXPECT_FALSE(state.isThundering());
 
@@ -136,7 +133,8 @@ TEST_F(WeatherStateTest, IsThunderingUsesThreshold) {
     EXPECT_TRUE(state.isThundering());
 }
 
-TEST_F(WeatherStateTest, GetRainStrengthInterpolates) {
+TEST_F(WeatherStateTest, GetRainStrengthInterpolates)
+{
     state.prevRainStrength = 0.0f;
     state.rainStrength = 1.0f;
 
@@ -145,7 +143,8 @@ TEST_F(WeatherStateTest, GetRainStrengthInterpolates) {
     EXPECT_FLOAT_EQ(state.getRainStrength(1.0f), 1.0f);
 }
 
-TEST_F(WeatherStateTest, GetThunderStrengthInterpolates) {
+TEST_F(WeatherStateTest, GetThunderStrengthInterpolates)
+{
     state.prevThunderStrength = 0.0f;
     state.thunderStrength = 1.0f;
 
@@ -154,7 +153,8 @@ TEST_F(WeatherStateTest, GetThunderStrengthInterpolates) {
     EXPECT_FLOAT_EQ(state.getThunderStrength(1.0f), 1.0f);
 }
 
-TEST_F(WeatherStateTest, ResetWeatherClearsAll) {
+TEST_F(WeatherStateTest, ResetWeatherClearsAll)
+{
     state.raining = true;
     state.thundering = true;
     state.clearWeatherTime = 1000;
@@ -170,7 +170,8 @@ TEST_F(WeatherStateTest, ResetWeatherClearsAll) {
     EXPECT_EQ(state.thunderTime, 0);
 }
 
-TEST_F(WeatherStateTest, CanSleepDuringThunder) {
+TEST_F(WeatherStateTest, CanSleepDuringThunder)
+{
     // 雷暴时任何时间都可以睡觉
     state.rainStrength = 1.0f;
     state.thunderStrength = 1.0f;
@@ -181,7 +182,8 @@ TEST_F(WeatherStateTest, CanSleepDuringThunder) {
     EXPECT_TRUE(state.canSleep(18000));
 }
 
-TEST_F(WeatherStateTest, CanSleepDuringRainAtNight) {
+TEST_F(WeatherStateTest, CanSleepDuringRainAtNight)
+{
     // 降雨时只在夜间可以睡觉
     state.rainStrength = 1.0f;
     state.thunderStrength = 0.0f;
@@ -189,14 +191,15 @@ TEST_F(WeatherStateTest, CanSleepDuringRainAtNight) {
     // 白天 (白天时间范围 0-12541 和 23460-23999)
     // 降雨时可以睡觉的时间范围是 12010-23991
     // 测试白天时间（应该能睡，因为降雨扩大了睡眠时间范围）
-    EXPECT_TRUE(state.canSleep(6000));  // 6000 tick 是白天，但降雨时可以睡
+    EXPECT_TRUE(state.canSleep(6000)); // 6000 tick 是白天，但降雨时可以睡
 
     // 夜间可以睡觉
     EXPECT_TRUE(state.canSleep(WeatherConstants::RAIN_BED_START_TIME));
     EXPECT_TRUE(state.canSleep(18000));
 }
 
-TEST_F(WeatherStateTest, CanSleepDuringClearNightOnly) {
+TEST_F(WeatherStateTest, CanSleepDuringClearNightOnly)
+{
     // 晴天只在夜间可以睡觉
     state.rainStrength = 0.0f;
     state.thunderStrength = 0.0f;
@@ -210,7 +213,8 @@ TEST_F(WeatherStateTest, CanSleepDuringClearNightOnly) {
     EXPECT_TRUE(state.canSleep(18000));
 }
 
-TEST_F(WeatherStateTest, SkyLightLimitDependsOnWeather) {
+TEST_F(WeatherStateTest, SkyLightLimitDependsOnWeather)
+{
     // 晴天
     state.rainStrength = 0.0f;
     state.thunderStrength = 0.0f;
@@ -234,17 +238,17 @@ class WeatherManagerTest : public ::testing::Test {
 protected:
     WeatherManager manager;
 
-    void SetUp() override {
-        manager.initialize(12345);
-    }
+    void SetUp() override { manager.initialize(12345); }
 };
 
-TEST_F(WeatherManagerTest, InitialStateIsClear) {
+TEST_F(WeatherManagerTest, InitialStateIsClear)
+{
     EXPECT_FALSE(manager.isRaining());
     EXPECT_FALSE(manager.isThundering());
 }
 
-TEST_F(WeatherManagerTest, SetClearStopsRainAndThunder) {
+TEST_F(WeatherManagerTest, SetClearStopsRainAndThunder)
+{
     manager.setRain(100);
     // tick 多次让强度增加到阈值以上
     for (int i = 0; i < 30; ++i) {
@@ -262,7 +266,8 @@ TEST_F(WeatherManagerTest, SetClearStopsRainAndThunder) {
     EXPECT_GT(manager.state().clearWeatherTime, 0);
 }
 
-TEST_F(WeatherManagerTest, SetRainStartsRaining) {
+TEST_F(WeatherManagerTest, SetRainStartsRaining)
+{
     manager.setRain(6000);
 
     EXPECT_TRUE(manager.state().raining);
@@ -271,7 +276,8 @@ TEST_F(WeatherManagerTest, SetRainStartsRaining) {
     EXPECT_EQ(manager.state().clearWeatherTime, 0);
 }
 
-TEST_F(WeatherManagerTest, SetThunderStartsRainAndThunder) {
+TEST_F(WeatherManagerTest, SetThunderStartsRainAndThunder)
+{
     manager.setThunder(6000);
 
     EXPECT_TRUE(manager.state().raining);
@@ -281,26 +287,30 @@ TEST_F(WeatherManagerTest, SetThunderStartsRainAndThunder) {
     EXPECT_EQ(manager.state().clearWeatherTime, 0);
 }
 
-TEST_F(WeatherManagerTest, SetClearWithDefaultDuration) {
+TEST_F(WeatherManagerTest, SetClearWithDefaultDuration)
+{
     manager.setClear(0); // 使用默认值
 
     EXPECT_EQ(manager.state().clearWeatherTime, WeatherConstants::DEFAULT_COMMAND_DURATION);
 }
 
-TEST_F(WeatherManagerTest, SetRainWithDefaultDuration) {
+TEST_F(WeatherManagerTest, SetRainWithDefaultDuration)
+{
     manager.setRain(0);
 
     EXPECT_EQ(manager.state().rainTime, WeatherConstants::DEFAULT_COMMAND_DURATION);
 }
 
-TEST_F(WeatherManagerTest, SetThunderWithDefaultDuration) {
+TEST_F(WeatherManagerTest, SetThunderWithDefaultDuration)
+{
     manager.setThunder(0);
 
     EXPECT_EQ(manager.state().rainTime, WeatherConstants::DEFAULT_COMMAND_DURATION);
     EXPECT_EQ(manager.state().thunderTime, WeatherConstants::DEFAULT_COMMAND_DURATION);
 }
 
-TEST_F(WeatherManagerTest, ResetWeatherClearsAll) {
+TEST_F(WeatherManagerTest, ResetWeatherClearsAll)
+{
     manager.setThunder(1000);
     manager.tick();
 
@@ -312,7 +322,8 @@ TEST_F(WeatherManagerTest, ResetWeatherClearsAll) {
     EXPECT_TRUE(manager.hasWeatherChanged());
 }
 
-TEST_F(WeatherManagerTest, StrengthTransitionsGradually) {
+TEST_F(WeatherManagerTest, StrengthTransitionsGradually)
+{
     manager.setRain(10000);
 
     // 初始强度为 0
@@ -334,7 +345,8 @@ TEST_F(WeatherManagerTest, StrengthTransitionsGradually) {
     EXPECT_NEAR(manager.rainStrength(), 1.0f, 0.02f);
 }
 
-TEST_F(WeatherManagerTest, WeatherCycleDisabledDoesNotChangeWeather) {
+TEST_F(WeatherManagerTest, WeatherCycleDisabledDoesNotChangeWeather)
+{
     manager.setWeatherCycleEnabled(false);
     manager.setClear(0);
     manager.tick();
@@ -343,7 +355,8 @@ TEST_F(WeatherManagerTest, WeatherCycleDisabledDoesNotChangeWeather) {
     EXPECT_EQ(manager.state().clearWeatherTime, WeatherConstants::DEFAULT_COMMAND_DURATION);
 }
 
-TEST_F(WeatherManagerTest, HasStrengthChangedDetectsChanges) {
+TEST_F(WeatherManagerTest, HasStrengthChangedDetectsChanges)
+{
     manager.setRain(10000);
 
     // 第一tick会改变强度
@@ -357,7 +370,8 @@ TEST_F(WeatherManagerTest, HasStrengthChangedDetectsChanges) {
     EXPECT_FALSE(manager.hasStrengthChanged());
 }
 
-TEST_F(WeatherManagerTest, WeatherChangedCallbackIsCalled) {
+TEST_F(WeatherManagerTest, WeatherChangedCallbackIsCalled)
+{
     bool callbackCalled = false;
     WeatherType oldType = WeatherType::Clear;
     WeatherType newType = WeatherType::Clear;
@@ -380,7 +394,8 @@ TEST_F(WeatherManagerTest, WeatherChangedCallbackIsCalled) {
     EXPECT_EQ(newType, WeatherType::Rain);
 }
 
-TEST_F(WeatherManagerTest, SerializationRoundTrip) {
+TEST_F(WeatherManagerTest, SerializationRoundTrip)
+{
     // 设置天气状态
     manager.setRain(10000);
 
@@ -408,7 +423,8 @@ TEST_F(WeatherManagerTest, SerializationRoundTrip) {
     EXPECT_EQ(manager2.state().weatherCycleEnabled, expectedWeatherCycleEnabled);
 }
 
-TEST_F(WeatherManagerTest, TrySpawnLightningOnlyDuringThunder) {
+TEST_F(WeatherManagerTest, TrySpawnLightningOnlyDuringThunder)
+{
     // 晴天不生成闪电
     auto [spawned1, pos1] = manager.trySpawnLightning();
     EXPECT_FALSE(spawned1);
@@ -436,7 +452,8 @@ TEST_F(WeatherManagerTest, TrySpawnLightningOnlyDuringThunder) {
 // WeatherUtils 测试
 // ============================================================================
 
-TEST_F(WeatherUtilsTest, GetPrecipitationTypeReturnsCorrectValue) {
+TEST_F(WeatherUtilsTest, GetPrecipitationTypeReturnsCorrectValue)
+{
     // 参考 MC 1.16.5 Biome.doesSnowGenerate(): temperature >= 0.15F 时返回 false
     // 所以温度 < 0.15 是雪，>= 0.15 是雨
     EXPECT_EQ(WeatherUtils::getPrecipitationType(0.0f), 2);  // 雪
@@ -447,7 +464,8 @@ TEST_F(WeatherUtilsTest, GetPrecipitationTypeReturnsCorrectValue) {
     EXPECT_EQ(WeatherUtils::getPrecipitationType(2.0f), 1);  // 雨
 }
 
-TEST_F(WeatherUtilsTest, CalculateSkyDarkenFactor) {
+TEST_F(WeatherUtilsTest, CalculateSkyDarkenFactor)
+{
     // 参考 MC 1.16.5 ClientWorld.getSunBrightness():
     // 乘法组合: sunBrightness = base * (1 - rain * 5/16) * (1 - thunder * 5/16)
     // 暗化因子 = 1 - sunBrightness = 1 - (1 - rain*5/16) * (1 - thunder*5/16)
@@ -462,14 +480,15 @@ TEST_F(WeatherUtilsTest, CalculateSkyDarkenFactor) {
     // 注意: thunderStrength 会自动乘以 rainStrength，所以实际 thunder * rain = 1 * 1 = 1
     // 但这里测试的是 WeatherUtils::calculateSkyDarkenFactor，它直接接收参数
     // MC 中 getThunderStrength 返回 thunder * rain
-    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(1.0f, 1.0f), 1.0f - (11.0f/16.0f) * (11.0f/16.0f));
+    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(1.0f, 1.0f), 1.0f - (11.0f / 16.0f) * (11.0f / 16.0f));
 
     // 部分降雨 (rain=0.5, thunder=0.5)
     // 1 - (1 - 0.5*5/16) * (1 - 0.5*5/16) = 1 - (1 - 5/32) * (1 - 5/32) = 1 - (27/32)^2
-    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(0.5f, 0.5f), 1.0f - (27.0f/32.0f) * (27.0f/32.0f));
+    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(0.5f, 0.5f), 1.0f - (27.0f / 32.0f) * (27.0f / 32.0f));
 }
 
-TEST_F(WeatherUtilsTest, CalculateCelestialVisibility) {
+TEST_F(WeatherUtilsTest, CalculateCelestialVisibility)
+{
     // 晴天
     EXPECT_FLOAT_EQ(WeatherUtils::calculateCelestialVisibility(0.0f), 1.0f);
 
@@ -480,7 +499,8 @@ TEST_F(WeatherUtilsTest, CalculateCelestialVisibility) {
     EXPECT_FLOAT_EQ(WeatherUtils::calculateCelestialVisibility(0.5f), 0.5f);
 }
 
-TEST_F(WeatherUtilsTest, CalculateStarBrightness) {
+TEST_F(WeatherUtilsTest, CalculateStarBrightness)
+{
     // 白天没有星星
     EXPECT_FLOAT_EQ(WeatherUtils::calculateStarBrightness(0.0f, 0), 0.0f);
     EXPECT_FLOAT_EQ(WeatherUtils::calculateStarBrightness(0.0f, 6000), 0.0f);
@@ -494,7 +514,8 @@ TEST_F(WeatherUtilsTest, CalculateStarBrightness) {
     EXPECT_FLOAT_EQ(rainBrightness, 0.0f);
 }
 
-TEST_F(WeatherUtilsTest, GetRandomWeatherDurationInValidRange) {
+TEST_F(WeatherUtilsTest, GetRandomWeatherDurationInValidRange)
+{
     mc::math::Random rng(12345);
 
     for (int i = 0; i < 100; ++i) {
@@ -555,7 +576,8 @@ TEST_F(WeatherUtilsTest, RainAndSnowChecksRejectUltraWarmDimensions)
 // WeatherConstants 测试
 // ============================================================================
 
-TEST(WeatherConstantsTest, DurationsAreSensible) {
+TEST(WeatherConstantsTest, DurationsAreSensible)
+{
     // 晴天持续 10-140 分钟
     EXPECT_GE(WeatherConstants::MIN_CLEAR_TIME, 12000);
     EXPECT_LE(WeatherConstants::MAX_CLEAR_TIME, 168000);
@@ -572,7 +594,8 @@ TEST(WeatherConstantsTest, DurationsAreSensible) {
     EXPECT_EQ(WeatherConstants::DEFAULT_COMMAND_DURATION, 6000);
 }
 
-TEST(WeatherConstantsTest, ThresholdsAreValid) {
+TEST(WeatherConstantsTest, ThresholdsAreValid)
+{
     EXPECT_GT(WeatherConstants::RAIN_THRESHOLD, 0.0f);
     EXPECT_LT(WeatherConstants::RAIN_THRESHOLD, 1.0f);
 
@@ -580,12 +603,14 @@ TEST(WeatherConstantsTest, ThresholdsAreValid) {
     EXPECT_LT(WeatherConstants::THUNDER_THRESHOLD, 1.0f);
 }
 
-TEST(WeatherConstantsTest, StrengthChangeRateIsSmall) {
+TEST(WeatherConstantsTest, StrengthChangeRateIsSmall)
+{
     // 每tick变化 0.01，需要 100 ticks 从 0 到 1
     EXPECT_FLOAT_EQ(WeatherConstants::STRENGTH_CHANGE_RATE, 0.01f);
 }
 
-TEST(WeatherConstantsTest, LightningChanceIsRare) {
+TEST(WeatherConstantsTest, LightningChanceIsRare)
+{
     // 闪电概率为 1/100000
     EXPECT_EQ(WeatherConstants::LIGHTNING_CHANCE_DENOMINATOR, 100000);
 }

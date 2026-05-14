@@ -1,15 +1,15 @@
 #include "world/blockentity/processing/BrewingStandEntity.hpp"
-#include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
+#include "item/core/ItemStack.hpp"
 #include "item/potion/PotionBrewing.hpp"
 #include "item/potion/PotionUtils.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/sound/SoundCategory.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -17,17 +17,19 @@ namespace blockentity {
 
 BrewingStandEntity::BrewingStandEntity(const BlockPos& pos)
     : ContainerBlockEntity(BlockEntityType::BrewingStand, pos)
-    , m_inventory(TOTAL_SLOTS) {
-}
+    , m_inventory(TOTAL_SLOTS)
+{}
 
 BrewingStandEntity::~BrewingStandEntity() = default;
 
-void BrewingStandEntity::setFuelLevel(i32 fuel) {
+void BrewingStandEntity::setFuelLevel(i32 fuel)
+{
     m_fuel = std::max(0, std::min(fuel, FUEL_PER_BREW * 64));
     setChanged();
 }
 
-bool BrewingStandEntity::hasBottle(i32 slot) const {
+bool BrewingStandEntity::hasBottle(i32 slot) const
+{
     if (slot < 0 || slot >= BOTTLE_SLOTS) {
         return false;
     }
@@ -40,7 +42,8 @@ bool BrewingStandEntity::hasBottle(i32 slot) const {
     return potion::PotionBrewing::isPotionItem(stack);
 }
 
-void BrewingStandEntity::tick(IWorld& world) {
+void BrewingStandEntity::tick(IWorld& world)
+{
     bool brewing = isBrewing();
     if (brewing != m_lastBrewing) {
         updateBlockState(world);
@@ -93,7 +96,8 @@ void BrewingStandEntity::tick(IWorld& world) {
     }
 }
 
-bool BrewingStandEntity::canBrew() const {
+bool BrewingStandEntity::canBrew() const
+{
     const ItemStack& ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
     if (ingredientStack.isEmpty()) {
         return false;
@@ -121,7 +125,8 @@ bool BrewingStandEntity::canBrew() const {
     return false;
 }
 
-void BrewingStandEntity::doBrew(IWorld& world) {
+void BrewingStandEntity::doBrew(IWorld& world)
+{
     ItemStack ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
     if (ingredientStack.isEmpty()) {
         return;
@@ -149,26 +154,23 @@ void BrewingStandEntity::doBrew(IWorld& world) {
     // MC 1.16.5: 酿造完成时播放音效
     if (!world.isClientSide() && anyBrewed) {
         world.playSound(
-            SoundEvents::BLOCK_BREWING_STAND_BREW,
-            sound::SoundCategory::Blocks,
-            m_pos.center(),
-            1.0f,
-            1.0f
-        );
+            SoundEvents::BLOCK_BREWING_STAND_BREW, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
     }
 
     ingredientStack.shrink(1);
     m_inventory.setItem(INGREDIENT_SLOT, ingredientStack);
 }
 
-void BrewingStandEntity::consumeFuel() {
+void BrewingStandEntity::consumeFuel()
+{
     if (m_fuel > 0) {
         --m_fuel;
         setChanged();
     }
 }
 
-void BrewingStandEntity::updateBlockState(IWorld& world) {
+void BrewingStandEntity::updateBlockState(IWorld& world)
+{
     const BlockState* state = world.getBlockState(getPos());
     if (state == nullptr) {
         return;
@@ -180,15 +182,15 @@ void BrewingStandEntity::updateBlockState(IWorld& world) {
         return;
     }
 
-    const BlockState& updated = state
-        ->with(BlockStateProperties::HAS_BOTTLE_0(), hasBottle(0))
-        .with(BlockStateProperties::HAS_BOTTLE_1(), hasBottle(1))
-        .with(BlockStateProperties::HAS_BOTTLE_2(), hasBottle(2));
+    const BlockState& updated = state->with(BlockStateProperties::HAS_BOTTLE_0(), hasBottle(0))
+                                    .with(BlockStateProperties::HAS_BOTTLE_1(), hasBottle(1))
+                                    .with(BlockStateProperties::HAS_BOTTLE_2(), hasBottle(2));
 
     world.setBlockState(getPos(), &updated, 3);
 }
 
-bool BrewingStandEntity::load(const nlohmann::json& data) {
+bool BrewingStandEntity::load(const nlohmann::json& data)
+{
     if (!ContainerBlockEntity::load(data)) {
         return false;
     }
@@ -208,7 +210,8 @@ bool BrewingStandEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void BrewingStandEntity::save(nlohmann::json& data) const {
+void BrewingStandEntity::save(nlohmann::json& data) const
+{
     ContainerBlockEntity::save(data);
 
     data["brew_time"] = m_brewTime;
@@ -219,7 +222,8 @@ void BrewingStandEntity::save(nlohmann::json& data) const {
     data["items"] = itemsJson;
 }
 
-std::unique_ptr<BlockEntity> BrewingStandEntity::clone() const {
+std::unique_ptr<BlockEntity> BrewingStandEntity::clone() const
+{
     auto clone = std::make_unique<BrewingStandEntity>(m_pos);
     clone->m_brewTime = m_brewTime;
     clone->m_fuel = m_fuel;
@@ -235,7 +239,8 @@ std::unique_ptr<BlockEntity> BrewingStandEntity::clone() const {
 
 // ========== ISidedInventory 接口实现 ==========
 
-std::vector<i32> BrewingStandEntity::getSlotsForFace(Direction side) const {
+std::vector<i32> BrewingStandEntity::getSlotsForFace(Direction side) const
+{
     // 参考 MC 1.16.5 BrewingStandTileEntity:
     // SLOTS_FOR_UP = new int[]{3}           - 上方只能访问材料槽
     // SLOTS_FOR_DOWN = new int[]{0, 1, 2, 3} - 下方可以访问药水瓶槽和材料槽
@@ -254,7 +259,8 @@ std::vector<i32> BrewingStandEntity::getSlotsForFace(Direction side) const {
     }
 }
 
-bool BrewingStandEntity::isSlotAccessibleForDirection(i32 slot, Direction direction) const {
+bool BrewingStandEntity::isSlotAccessibleForDirection(i32 slot, Direction direction) const
+{
     const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
     for (i32 accessibleSlot : accessibleSlots) {
         if (accessibleSlot == slot) {
@@ -264,7 +270,8 @@ bool BrewingStandEntity::isSlotAccessibleForDirection(i32 slot, Direction direct
     return false;
 }
 
-bool BrewingStandEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
+bool BrewingStandEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
     MC_UNUSED(direction);
 
     // 检查方向是否允许访问该槽位
@@ -276,7 +283,8 @@ bool BrewingStandEntity::canInsertItem(i32 slot, const ItemStack& stack, Directi
     return canPlaceItem(slot, stack);
 }
 
-bool BrewingStandEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const {
+bool BrewingStandEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
     MC_UNUSED(direction);
 
     // 检查方向是否允许访问该槽位
@@ -292,7 +300,8 @@ bool BrewingStandEntity::canExtractItem(i32 slot, const ItemStack& stack, Direct
     return true;
 }
 
-bool BrewingStandEntity::canPlaceItem(i32 slot, const ItemStack& stack) const {
+bool BrewingStandEntity::canPlaceItem(i32 slot, const ItemStack& stack) const
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -303,8 +312,7 @@ bool BrewingStandEntity::canPlaceItem(i32 slot, const ItemStack& stack) const {
         case 1:
         case 2:
             // 药水瓶槽：接受药水或水瓶
-            return potion::PotionBrewing::isPotionItem(stack) ||
-                   stack.getItem() == Items::GLASS_BOTTLE;
+            return potion::PotionBrewing::isPotionItem(stack) || stack.getItem() == Items::GLASS_BOTTLE;
         case INGREDIENT_SLOT:
             // 材料槽：接受酿造材料
             return potion::PotionBrewing::isReagent(stack);

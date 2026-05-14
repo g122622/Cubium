@@ -6,7 +6,7 @@
 namespace mc::client::renderer::entity::model {
 
 BipedModel::BipedModel()
-    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f)  // 参考 Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F)
+    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f) // 参考 Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F)
 {
     setTextureSize(64, 32);
     m_modelScale = 0.0f;
@@ -34,7 +34,7 @@ BipedModel::BipedModel()
 }
 
 BipedModel::BipedModel(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight)
-    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f)  // 参考 Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F)
+    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f) // 参考 Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F)
 {
     setTextureSize(textureWidth, textureHeight);
     m_modelScale = scale;
@@ -61,7 +61,8 @@ BipedModel::BipedModel(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeig
     m_parts.push_back(m_bipedLeftLeg);
 }
 
-void BipedModel::setupParts() {
+void BipedModel::setupParts()
+{
     // 参考 MC 1.16.5 BipedModel 构造函数
     // Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F) - AgeableModel 参数
 
@@ -105,26 +106,30 @@ void BipedModel::setupParts() {
     m_bipedLeftLeg->setRotationPoint(1.9f, 12.0f + m_yOffset, 0.0f);
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> BipedModel::getHeadParts() const {
-    return { m_bipedHead };
+std::vector<std::shared_ptr<ModelRenderer>> BipedModel::getHeadParts() const
+{
+    return {m_bipedHead};
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> BipedModel::getBodyParts() const {
-    return { m_bipedBody, m_bipedRightArm, m_bipedLeftArm, m_bipedRightLeg, m_bipedLeftLeg, m_bipedHeadwear };
+std::vector<std::shared_ptr<ModelRenderer>> BipedModel::getBodyParts() const
+{
+    return {m_bipedBody, m_bipedRightArm, m_bipedLeftArm, m_bipedRightLeg, m_bipedLeftLeg, m_bipedHeadwear};
 }
 
-void BipedModel::render(f64 scale) {
+void BipedModel::render(f64 scale)
+{
     AgeableModel::render(scale);
 }
 
-void BipedModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/) {
+void BipedModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
+{
     // 子类可重写此方法设置游泳动画等状态
     // Java: this.swimAnimation = entityIn.getSwimAnimation(partialTick);
 }
 
-void BipedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 ageInTicks, f64 netHeadYaw,
-                            f64 headPitch, f64 /*scale*/) {
+void BipedModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
+{
     // 参考 MC 1.16.5 BipedModel.setRotationAngles
 
     bool isElytraFlying = m_elytraFlyingTicks > 4;
@@ -139,7 +144,8 @@ void BipedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_bipedHead->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));
     } else if (m_swimAnimation > 0.0f) {
         if (isActuallySwimming) {
-            m_bipedHead->setRotateAngleX(rotLerpRad(m_swimAnimation, m_bipedHead->rotateAngleX(), static_cast<f32>(-mc::math::PI_DOUBLE / 4.0)));
+            m_bipedHead->setRotateAngleX(
+                rotLerpRad(m_swimAnimation, m_bipedHead->rotateAngleX(), static_cast<f32>(-mc::math::PI_DOUBLE / 4.0)));
         } else {
             m_bipedHead->setRotateAngleX(rotLerpRad(m_swimAnimation, m_bipedHead->rotateAngleX(), headPitchRad));
         }
@@ -173,15 +179,19 @@ void BipedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     f32 limbSwingAmountFloat = static_cast<f32>(limbSwingAmount);
 
     // 手臂摆动 - Java: MathHelper.cos(limbSwing * 0.6662F + mc::math::PI_DOUBLE) * 2.0F * limbSwingAmount * 0.5F / f
-    m_bipedRightArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662f + mc::math::PI_DOUBLE) * 2.0 * limbSwingAmountFloat * 0.5 / f));
-    m_bipedLeftArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662f) * 2.0 * limbSwingAmountFloat * 0.5 / f));
+    m_bipedRightArm->setRotateAngleX(static_cast<f32>(
+        std::cos(limbSwingFloat * 0.6662f + mc::math::PI_DOUBLE) * 2.0 * limbSwingAmountFloat * 0.5 / f));
+    m_bipedLeftArm->setRotateAngleX(
+        static_cast<f32>(std::cos(limbSwingFloat * 0.6662f) * 2.0 * limbSwingAmountFloat * 0.5 / f));
 
     m_bipedRightArm->setRotateAngleZ(0.0f);
     m_bipedLeftArm->setRotateAngleZ(0.0f);
 
     // 腿部动画 - Java: cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount / f
-    m_bipedRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662f) * 1.4 * limbSwingAmountFloat / f));
-    m_bipedLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662f + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat / f));
+    m_bipedRightLeg->setRotateAngleX(
+        static_cast<f32>(std::cos(limbSwingFloat * 0.6662f) * 1.4 * limbSwingAmountFloat / f));
+    m_bipedLeftLeg->setRotateAngleX(
+        static_cast<f32>(std::cos(limbSwingFloat * 0.6662f + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat / f));
 
     m_bipedRightLeg->setRotateAngleY(0.0f);
     m_bipedLeftLeg->setRotateAngleY(0.0f);
@@ -190,7 +200,8 @@ void BipedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 坐姿
     if (m_isSitting) {
-        m_bipedRightArm->setRotateAngleX(m_bipedRightArm->rotateAngleX() + static_cast<f32>(-mc::math::PI_DOUBLE / 5.0));
+        m_bipedRightArm->setRotateAngleX(
+            m_bipedRightArm->rotateAngleX() + static_cast<f32>(-mc::math::PI_DOUBLE / 5.0));
         m_bipedLeftArm->setRotateAngleX(m_bipedLeftArm->rotateAngleX() + static_cast<f32>(-mc::math::PI_DOUBLE / 5.0));
         m_bipedRightLeg->setRotateAngleX(-1.4137167f);
         m_bipedRightLeg->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 10.0));
@@ -209,8 +220,10 @@ void BipedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // func_241657_a_() 返回是否需要双臂协调（弓箭、弩等）
     bool isRightHanded = (m_mainHand == HandSide::Right);
     bool needsCrossArmCoord = isRightHanded
-        ? (m_leftArmPose == ArmPose::BowAndArrow || m_leftArmPose == ArmPose::CrossbowCharge || m_leftArmPose == ArmPose::CrossbowHold)
-        : (m_rightArmPose == ArmPose::BowAndArrow || m_rightArmPose == ArmPose::CrossbowCharge || m_rightArmPose == ArmPose::CrossbowHold);
+        ? (m_leftArmPose == ArmPose::BowAndArrow || m_leftArmPose == ArmPose::CrossbowCharge ||
+              m_leftArmPose == ArmPose::CrossbowHold)
+        : (m_rightArmPose == ArmPose::BowAndArrow || m_rightArmPose == ArmPose::CrossbowCharge ||
+              m_rightArmPose == ArmPose::CrossbowHold);
 
     if (isRightHanded != needsCrossArmCoord) {
         // 先左手，后右手
@@ -259,7 +272,8 @@ void BipedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_bipedHeadwear->copyModelAngles(*m_bipedHead);
 }
 
-void BipedModel::handleSwimAnimation(f64 limbSwing) {
+void BipedModel::handleSwimAnimation(f64 limbSwing)
+{
     // 参考 MC 1.16.5 BipedModel.setRotationAngles 中的游泳动画部分
     f32 f1 = static_cast<f32>(std::fmod(limbSwing, 26.0));
     HandSide mainHand = getMainHand();
@@ -269,36 +283,56 @@ void BipedModel::handleSwimAnimation(f64 limbSwing) {
     if (f1 < 14.0f) {
         m_bipedLeftArm->setRotateAngleX(rotLerpRad(f3, m_bipedLeftArm->rotateAngleX(), 0.0f));
         m_bipedRightArm->setRotateAngleX(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleX()));
-        m_bipedLeftArm->setRotateAngleY(rotLerpRad(f3, m_bipedLeftArm->rotateAngleY(), static_cast<f32>(mc::math::PI_DOUBLE)));
-        m_bipedRightArm->setRotateAngleY(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleY() + f2 * mc::math::PI_DOUBLE));
-        m_bipedLeftArm->setRotateAngleZ(rotLerpRad(f3, m_bipedLeftArm->rotateAngleZ(), static_cast<f32>(mc::math::PI_DOUBLE + 1.8707964 * getArmAngleSq(f1) / getArmAngleSq(14.0f))));
-        m_bipedRightArm->setRotateAngleZ(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleZ() + f2 * (mc::math::PI_DOUBLE - 1.8707964 * getArmAngleSq(f1) / getArmAngleSq(14.0f))));
+        m_bipedLeftArm->setRotateAngleY(
+            rotLerpRad(f3, m_bipedLeftArm->rotateAngleY(), static_cast<f32>(mc::math::PI_DOUBLE)));
+        m_bipedRightArm->setRotateAngleY(
+            static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleY() + f2 * mc::math::PI_DOUBLE));
+        m_bipedLeftArm->setRotateAngleZ(rotLerpRad(f3,
+            m_bipedLeftArm->rotateAngleZ(),
+            static_cast<f32>(mc::math::PI_DOUBLE + 1.8707964 * getArmAngleSq(f1) / getArmAngleSq(14.0f))));
+        m_bipedRightArm->setRotateAngleZ(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleZ() +
+            f2 * (mc::math::PI_DOUBLE - 1.8707964 * getArmAngleSq(f1) / getArmAngleSq(14.0f))));
     } else if (f1 >= 14.0f && f1 < 22.0f) {
         f32 f6 = (f1 - 14.0f) / 8.0f;
-        m_bipedLeftArm->setRotateAngleX(rotLerpRad(f3, m_bipedLeftArm->rotateAngleX(), static_cast<f32>(mc::math::PI_DOUBLE / 2.0 * f6)));
-        m_bipedRightArm->setRotateAngleX(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleX() + f2 * mc::math::PI_DOUBLE / 2.0 * f6));
-        m_bipedLeftArm->setRotateAngleY(rotLerpRad(f3, m_bipedLeftArm->rotateAngleY(), static_cast<f32>(mc::math::PI_DOUBLE)));
-        m_bipedRightArm->setRotateAngleY(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleY() + f2 * mc::math::PI_DOUBLE));
+        m_bipedLeftArm->setRotateAngleX(
+            rotLerpRad(f3, m_bipedLeftArm->rotateAngleX(), static_cast<f32>(mc::math::PI_DOUBLE / 2.0 * f6)));
+        m_bipedRightArm->setRotateAngleX(
+            static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleX() + f2 * mc::math::PI_DOUBLE / 2.0 * f6));
+        m_bipedLeftArm->setRotateAngleY(
+            rotLerpRad(f3, m_bipedLeftArm->rotateAngleY(), static_cast<f32>(mc::math::PI_DOUBLE)));
+        m_bipedRightArm->setRotateAngleY(
+            static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleY() + f2 * mc::math::PI_DOUBLE));
         m_bipedLeftArm->setRotateAngleZ(rotLerpRad(f3, m_bipedLeftArm->rotateAngleZ(), 5.012389f - 1.8707964f * f6));
-        m_bipedRightArm->setRotateAngleZ(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleZ() + f2 * (1.2707963f + 1.8707964f * f6)));
+        m_bipedRightArm->setRotateAngleZ(
+            static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleZ() + f2 * (1.2707963f + 1.8707964f * f6)));
     } else if (f1 >= 22.0f && f1 < 26.0f) {
         f32 f4 = (f1 - 22.0f) / 4.0f;
-        m_bipedLeftArm->setRotateAngleX(rotLerpRad(f3, m_bipedLeftArm->rotateAngleX(), static_cast<f32>(mc::math::PI_DOUBLE / 2.0 - mc::math::PI_DOUBLE / 2.0 * f4)));
-        m_bipedRightArm->setRotateAngleX(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleX() + f2 * (mc::math::PI_DOUBLE / 2.0 - mc::math::PI_DOUBLE / 2.0 * f4)));
-        m_bipedLeftArm->setRotateAngleY(rotLerpRad(f3, m_bipedLeftArm->rotateAngleY(), static_cast<f32>(mc::math::PI_DOUBLE)));
-        m_bipedRightArm->setRotateAngleY(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleY() + f2 * mc::math::PI_DOUBLE));
-        m_bipedLeftArm->setRotateAngleZ(rotLerpRad(f3, m_bipedLeftArm->rotateAngleZ(), static_cast<f32>(mc::math::PI_DOUBLE)));
-        m_bipedRightArm->setRotateAngleZ(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleZ() + f2 * mc::math::PI_DOUBLE));
+        m_bipedLeftArm->setRotateAngleX(rotLerpRad(f3,
+            m_bipedLeftArm->rotateAngleX(),
+            static_cast<f32>(mc::math::PI_DOUBLE / 2.0 - mc::math::PI_DOUBLE / 2.0 * f4)));
+        m_bipedRightArm->setRotateAngleX(static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleX() +
+            f2 * (mc::math::PI_DOUBLE / 2.0 - mc::math::PI_DOUBLE / 2.0 * f4)));
+        m_bipedLeftArm->setRotateAngleY(
+            rotLerpRad(f3, m_bipedLeftArm->rotateAngleY(), static_cast<f32>(mc::math::PI_DOUBLE)));
+        m_bipedRightArm->setRotateAngleY(
+            static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleY() + f2 * mc::math::PI_DOUBLE));
+        m_bipedLeftArm->setRotateAngleZ(
+            rotLerpRad(f3, m_bipedLeftArm->rotateAngleZ(), static_cast<f32>(mc::math::PI_DOUBLE)));
+        m_bipedRightArm->setRotateAngleZ(
+            static_cast<f32>((1.0f - f2) * m_bipedRightArm->rotateAngleZ() + f2 * mc::math::PI_DOUBLE));
     }
 
     // 腿部游泳动画
     f32 swimLegAngle1 = 0.3f * static_cast<f32>(std::cos(limbSwing * 0.33333334 + mc::math::PI_DOUBLE));
     f32 swimLegAngle2 = 0.3f * static_cast<f32>(std::cos(limbSwing * 0.33333334));
-    m_bipedLeftLeg->setRotateAngleX(static_cast<f32>((1.0f - m_swimAnimation) * m_bipedLeftLeg->rotateAngleX() + m_swimAnimation * swimLegAngle1));
-    m_bipedRightLeg->setRotateAngleX(static_cast<f32>((1.0f - m_swimAnimation) * m_bipedRightLeg->rotateAngleX() + m_swimAnimation * swimLegAngle2));
+    m_bipedLeftLeg->setRotateAngleX(
+        static_cast<f32>((1.0f - m_swimAnimation) * m_bipedLeftLeg->rotateAngleX() + m_swimAnimation * swimLegAngle1));
+    m_bipedRightLeg->setRotateAngleX(
+        static_cast<f32>((1.0f - m_swimAnimation) * m_bipedRightLeg->rotateAngleX() + m_swimAnimation * swimLegAngle2));
 }
 
-void BipedModel::handleRightArmPose() {
+void BipedModel::handleRightArmPose()
+{
     // 参考 MC 1.16.5 BipedModel.func_241654_b_
     switch (m_rightArmPose) {
         case ArmPose::Empty:
@@ -311,19 +345,22 @@ void BipedModel::handleRightArmPose() {
             break;
         case ArmPose::Item:
             // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE / 10F
-            m_bipedRightArm->setRotateAngleX(m_bipedRightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 10.0));
+            m_bipedRightArm->setRotateAngleX(
+                m_bipedRightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 10.0));
             m_bipedRightArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::ThrowSpear:
             // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE
-            m_bipedRightArm->setRotateAngleX(m_bipedRightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
+            m_bipedRightArm->setRotateAngleX(
+                m_bipedRightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
             m_bipedRightArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::BowAndArrow:
             // Java: 头部关联
             m_bipedRightArm->setRotateAngleY(-0.1f + m_bipedHead->rotateAngleY());
             m_bipedLeftArm->setRotateAngleY(0.1f + m_bipedHead->rotateAngleY() + 0.4f);
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
+            m_bipedRightArm->setRotateAngleX(
+                static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             break;
         case ArmPose::CrossbowCharge:
@@ -341,7 +378,8 @@ void BipedModel::handleRightArmPose() {
     }
 }
 
-void BipedModel::handleLeftArmPose() {
+void BipedModel::handleLeftArmPose()
+{
     // 参考 MC 1.16.5 BipedModel.func_241655_c_
     switch (m_leftArmPose) {
         case ArmPose::Empty:
@@ -354,19 +392,22 @@ void BipedModel::handleLeftArmPose() {
             break;
         case ArmPose::Item:
             // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE / 10F
-            m_bipedLeftArm->setRotateAngleX(m_bipedLeftArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 10.0));
+            m_bipedLeftArm->setRotateAngleX(
+                m_bipedLeftArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 10.0));
             m_bipedLeftArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::ThrowSpear:
             // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE
-            m_bipedLeftArm->setRotateAngleX(m_bipedLeftArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
+            m_bipedLeftArm->setRotateAngleX(
+                m_bipedLeftArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
             m_bipedLeftArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::BowAndArrow:
             // Java: 头部关联（已在右手处理中设置）
             m_bipedRightArm->setRotateAngleY(-0.1f + m_bipedHead->rotateAngleY() - 0.4f);
             m_bipedLeftArm->setRotateAngleY(0.1f + m_bipedHead->rotateAngleY());
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
+            m_bipedRightArm->setRotateAngleX(
+                static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             break;
         case ArmPose::CrossbowCharge:
@@ -384,7 +425,8 @@ void BipedModel::handleLeftArmPose() {
     }
 }
 
-void BipedModel::handleSwingAnimation(f64 /*ageInTicks*/) {
+void BipedModel::handleSwingAnimation(f64 /*ageInTicks*/)
+{
     // 参考 MC 1.16.5 BipedModel.func_230486_a_
     if (m_swingProgress <= 0.0f) {
         return;
@@ -418,14 +460,17 @@ void BipedModel::handleSwingAnimation(f64 /*ageInTicks*/) {
     f = f * f;
     f = 1.0f - f;
     f32 f1 = static_cast<f32>(std::sin(f * mc::math::PI_DOUBLE));
-    f32 f2 = static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE) * -(m_bipedHead->rotateAngleX() - 0.7f) * 0.75f);
+    f32 f2 =
+        static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE) * -(m_bipedHead->rotateAngleX() - 0.7f) * 0.75f);
 
     swingArm->setRotateAngleX(swingArm->rotateAngleX() - (f1 * 1.2f + f2));
     swingArm->setRotateAngleY(swingArm->rotateAngleY() + m_bipedBody->rotateAngleY() * 2.0f);
-    swingArm->setRotateAngleZ(swingArm->rotateAngleZ() + static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE) * -0.4f));
+    swingArm->setRotateAngleZ(
+        swingArm->rotateAngleZ() + static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE) * -0.4f));
 }
 
-void BipedModel::setVisible(bool visible) {
+void BipedModel::setVisible(bool visible)
+{
     m_bipedHead->setVisible(visible);
     m_bipedHeadwear->setVisible(visible);
     m_bipedBody->setVisible(visible);
@@ -435,7 +480,8 @@ void BipedModel::setVisible(bool visible) {
     m_bipedLeftLeg->setVisible(visible);
 }
 
-void BipedModel::copyModelAttributesTo(BipedModel& target) const {
+void BipedModel::copyModelAttributesTo(BipedModel& target) const
+{
     // 参考 MC 1.16.5 BipedModel.setModelAttributes()
     // super.copyModelAttributesTo(modelIn) - 复制 EntityModel 的属性
     target.setSwingProgress(m_swingProgress);
@@ -459,11 +505,13 @@ void BipedModel::copyModelAttributesTo(BipedModel& target) const {
     target.m_bipedLeftLeg->copyModelAngles(*m_bipedLeftLeg);
 }
 
-std::shared_ptr<ModelRenderer> BipedModel::getArmForSide(HandSide side) {
+std::shared_ptr<ModelRenderer> BipedModel::getArmForSide(HandSide side)
+{
     return (side == HandSide::Left) ? m_bipedLeftArm : m_bipedRightArm;
 }
 
-HandSide BipedModel::getMainHand() const {
+HandSide BipedModel::getMainHand() const
+{
     // 如果正在挥动的手是主手，返回主手；否则返回副手
     if (m_swingingHand == m_mainHand) {
         return m_mainHand;
@@ -471,7 +519,8 @@ HandSide BipedModel::getMainHand() const {
     return (m_mainHand == HandSide::Left) ? HandSide::Right : HandSide::Left;
 }
 
-f32 BipedModel::rotLerpRad(f32 angle, f64 maxAngle, f64 target) {
+f32 BipedModel::rotLerpRad(f32 angle, f64 maxAngle, f64 target)
+{
     f64 f = std::fmod(target - maxAngle, mc::math::PI_DOUBLE * 2.0);
     if (f < -mc::math::PI_DOUBLE) {
         f += mc::math::PI_DOUBLE * 2.0;
@@ -482,7 +531,8 @@ f32 BipedModel::rotLerpRad(f32 angle, f64 maxAngle, f64 target) {
     return static_cast<f32>(maxAngle + static_cast<f64>(angle) * f);
 }
 
-f32 BipedModel::getArmAngleSq(f32 limbSwing) {
+f32 BipedModel::getArmAngleSq(f32 limbSwing)
+{
     return -65.0f * limbSwing + limbSwing * limbSwing;
 }
 

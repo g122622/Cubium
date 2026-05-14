@@ -1,15 +1,15 @@
 ﻿#pragma once
 
-#include "common/core/Types.hpp"
-#include "common/command/StringReader.hpp"
-#include "common/command/CommandContext.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
 #include "ArgumentType.hpp"
+#include "common/command/CommandContext.hpp"
+#include "common/command/StringReader.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
 
 #include <functional>
 #include <memory>
-#include <vector>
 #include <optional>
+#include <vector>
 
 namespace mc {
 class Entity;
@@ -21,22 +21,16 @@ namespace command {
 /**
  * @brief 实体选择器类型。
  */
-enum class EntitySelectorType {
-    SinglePlayer,
-    AllPlayers,
-    AllEntities,
-    RandomPlayer,
-    Self
-};
+enum class EntitySelectorType { SinglePlayer, AllPlayers, AllEntities, RandomPlayer, Self };
 
 /**
  * @brief 实体选择器排序方式。
  */
 enum class EntitySelectorSort {
-    Nearest,    // 按距离近到远
-    Furthest,   // 按距离远到近
-    Random,     // 随机排序
-    Arbitrary   // 原始顺序
+    Nearest,  // 按距离近到远
+    Furthest, // 按距离远到近
+    Random,   // 随机排序
+    Arbitrary // 原始顺序
 };
 
 /**
@@ -46,7 +40,10 @@ enum class EntitySelectorSort {
  */
 class FloatRange {
 public:
-    FloatRange() : m_min(std::nullopt), m_max(std::nullopt) {}
+    FloatRange()
+        : m_min(std::nullopt)
+        , m_max(std::nullopt)
+    {}
 
     void setMin(f32 min) { m_min = min; }
     void setMax(f32 max) { m_max = max; }
@@ -58,13 +55,15 @@ public:
 
     [[nodiscard]] bool isUnbounded() const { return !m_min.has_value() && !m_max.has_value(); }
 
-    [[nodiscard]] bool test(f32 value) const {
+    [[nodiscard]] bool test(f32 value) const
+    {
         if (m_min.has_value() && value < m_min.value()) return false;
         if (m_max.has_value() && value > m_max.value()) return false;
         return true;
     }
 
-    [[nodiscard]] bool testSquared(f32 valueSq) const {
+    [[nodiscard]] bool testSquared(f32 valueSq) const
+    {
         if (m_min.has_value() && valueSq < m_min.value() * m_min.value()) return false;
         if (m_max.has_value() && valueSq > m_max.value() * m_max.value()) return false;
         return true;
@@ -93,7 +92,10 @@ private:
  */
 class IntRange {
 public:
-    IntRange() : m_min(std::nullopt), m_max(std::nullopt) {}
+    IntRange()
+        : m_min(std::nullopt)
+        , m_max(std::nullopt)
+    {}
 
     void setMin(i32 min) { m_min = min; }
     void setMax(i32 max) { m_max = max; }
@@ -105,7 +107,8 @@ public:
 
     [[nodiscard]] bool isUnbounded() const { return !m_min.has_value() && !m_max.has_value(); }
 
-    [[nodiscard]] bool test(i32 value) const {
+    [[nodiscard]] bool test(i32 value) const
+    {
         if (m_min.has_value() && value < m_min.value()) return false;
         if (m_max.has_value() && value > m_max.value()) return false;
         return true;
@@ -126,7 +129,8 @@ public:
     EntitySelector() = default;
 
     explicit EntitySelector(EntitySelectorType type)
-        : m_type(type) {}
+        : m_type(type)
+    {}
 
     // ========== 基础属性 ==========
 
@@ -187,14 +191,16 @@ public:
     [[nodiscard]] const std::string& entityType() const noexcept { return m_entityType; }
     [[nodiscard]] bool hasEntityType() const noexcept { return !m_entityType.empty(); }
     [[nodiscard]] bool entityTypeNegated() const noexcept { return m_entityTypeNegated; }
-    void setEntityType(const std::string& type, bool negated = false) {
+    void setEntityType(const std::string& type, bool negated = false)
+    {
         m_entityType = type;
         m_entityTypeNegated = negated;
     }
 
     [[nodiscard]] const std::vector<std::string>& tags() const noexcept { return m_tags; }
     [[nodiscard]] const std::vector<std::string>& tagsNegated() const noexcept { return m_tagsNegated; }
-    void addTag(const std::string& tag, bool negated = false) {
+    void addTag(const std::string& tag, bool negated = false)
+    {
         if (negated) {
             m_tagsNegated.push_back(tag);
         } else {
@@ -205,7 +211,8 @@ public:
     [[nodiscard]] const std::string& gameMode() const noexcept { return m_gameMode; }
     [[nodiscard]] bool hasGameMode() const noexcept { return !m_gameMode.empty(); }
     [[nodiscard]] bool gameModeNegated() const noexcept { return m_gameModeNegated; }
-    void setGameMode(const std::string& mode, bool negated = false) {
+    void setGameMode(const std::string& mode, bool negated = false)
+    {
         m_gameMode = mode;
         m_gameModeNegated = negated;
     }
@@ -213,7 +220,8 @@ public:
     [[nodiscard]] const std::string& team() const noexcept { return m_team; }
     [[nodiscard]] bool hasTeam() const noexcept { return !m_team.empty(); }
     [[nodiscard]] bool teamNegated() const noexcept { return m_teamNegated; }
-    void setTeam(const std::string& team, bool negated = false) {
+    void setTeam(const std::string& team, bool negated = false)
+    {
         m_team = team;
         m_teamNegated = negated;
     }
@@ -244,14 +252,16 @@ public:
 
     // ========== 静态工厂方法 ==========
 
-    [[nodiscard]] static EntitySelector self() {
+    [[nodiscard]] static EntitySelector self()
+    {
         EntitySelector selector(EntitySelectorType::Self);
         selector.m_isSelf = true;
         selector.m_single = true;
         return selector;
     }
 
-    [[nodiscard]] static EntitySelector nearestPlayer() {
+    [[nodiscard]] static EntitySelector nearestPlayer()
+    {
         EntitySelector selector(EntitySelectorType::SinglePlayer);
         selector.m_single = true;
         selector.m_limit = 1;
@@ -259,20 +269,23 @@ public:
         return selector;
     }
 
-    [[nodiscard]] static EntitySelector allPlayers() {
+    [[nodiscard]] static EntitySelector allPlayers()
+    {
         EntitySelector selector(EntitySelectorType::AllPlayers);
         selector.m_single = false;
         return selector;
     }
 
-    [[nodiscard]] static EntitySelector allEntities() {
+    [[nodiscard]] static EntitySelector allEntities()
+    {
         EntitySelector selector(EntitySelectorType::AllEntities);
         selector.m_single = false;
         selector.m_includesNonPlayers = true;
         return selector;
     }
 
-    [[nodiscard]] static EntitySelector randomPlayer() {
+    [[nodiscard]] static EntitySelector randomPlayer()
+    {
         EntitySelector selector(EntitySelectorType::RandomPlayer);
         selector.m_single = true;
         selector.m_limit = 1;
@@ -280,7 +293,8 @@ public:
         return selector;
     }
 
-    [[nodiscard]] static EntitySelector byUsername(const std::string& username) {
+    [[nodiscard]] static EntitySelector byUsername(const std::string& username)
+    {
         EntitySelector selector(EntitySelectorType::SinglePlayer);
         selector.m_username = username;
         selector.m_single = true;
@@ -296,13 +310,13 @@ private:
     bool m_single = true;
     bool m_currentWorldOnly = false;
     std::string m_username;
-    std::string m_usernameNegated;  // name=!xxx
+    std::string m_usernameNegated; // name=!xxx
 
     // 新增参数
     FloatRange m_distance;
     IntRange m_level;
-    std::optional<f32> m_x, m_y, m_z;      // 坐标偏移
-    std::optional<f32> m_dx, m_dy, m_dz;    // 体积尺寸
+    std::optional<f32> m_x, m_y, m_z;    // 坐标偏移
+    std::optional<f32> m_dx, m_dy, m_dz; // 体积尺寸
     EntitySelectorSort m_sort = EntitySelectorSort::Arbitrary;
     std::string m_entityType;
     bool m_entityTypeNegated = false;
@@ -312,8 +326,8 @@ private:
     bool m_gameModeNegated = false;
     std::string m_team;
     bool m_teamNegated = false;
-    FloatRange m_xRotation;  // 俯仰角范围（pitch，-90 到 90 度）
-    FloatRange m_yRotation;  // 偏航角范围（yaw，-180 到 180 度）
+    FloatRange m_xRotation; // 俯仰角范围（pitch，-90 到 90 度）
+    FloatRange m_yRotation; // 偏航角范围（yaw，-180 到 180 度）
 };
 
 /**
@@ -323,19 +337,16 @@ private:
  */
 class EntityArgumentType : public ArgumentType<EntitySelector> {
 public:
-    enum class Mode {
-        SingleEntity,
-        MultipleEntities,
-        SinglePlayer,
-        MultiplePlayers
-    };
+    enum class Mode { SingleEntity, MultipleEntities, SinglePlayer, MultiplePlayers };
 
     explicit EntityArgumentType(Mode mode = Mode::SinglePlayer)
-        : m_mode(mode) {}
+        : m_mode(mode)
+    {}
 
     [[nodiscard]] EntitySelector parse(StringReader& reader) override;
 
-    [[nodiscard]] std::string getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override
+    {
         switch (m_mode) {
             case Mode::SingleEntity:
                 return "entity";
@@ -349,31 +360,38 @@ public:
         return "entity";
     }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
         return {"Player", "0123", "@p", "@a", "@e", "@r", "@s"};
     }
 
-    [[nodiscard]] static std::shared_ptr<EntityArgumentType> entity() {
+    [[nodiscard]] static std::shared_ptr<EntityArgumentType> entity()
+    {
         return std::make_shared<EntityArgumentType>(Mode::SingleEntity);
     }
 
-    [[nodiscard]] static std::shared_ptr<EntityArgumentType> entities() {
+    [[nodiscard]] static std::shared_ptr<EntityArgumentType> entities()
+    {
         return std::make_shared<EntityArgumentType>(Mode::MultipleEntities);
     }
 
-    [[nodiscard]] static std::shared_ptr<EntityArgumentType> player() {
+    [[nodiscard]] static std::shared_ptr<EntityArgumentType> player()
+    {
         return std::make_shared<EntityArgumentType>(Mode::SinglePlayer);
     }
 
-    [[nodiscard]] static std::shared_ptr<EntityArgumentType> players() {
+    [[nodiscard]] static std::shared_ptr<EntityArgumentType> players()
+    {
         return std::make_shared<EntityArgumentType>(Mode::MultiplePlayers);
     }
 
-    [[nodiscard]] bool isSingle() const noexcept {
+    [[nodiscard]] bool isSingle() const noexcept
+    {
         return m_mode == Mode::SingleEntity || m_mode == Mode::SinglePlayer;
     }
 
-    [[nodiscard]] bool isPlayersOnly() const noexcept {
+    [[nodiscard]] bool isPlayersOnly() const noexcept
+    {
         return m_mode == Mode::SinglePlayer || m_mode == Mode::MultiplePlayers;
     }
 

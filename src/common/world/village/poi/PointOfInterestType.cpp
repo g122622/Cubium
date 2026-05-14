@@ -1,6 +1,6 @@
 #include "PointOfInterestType.hpp"
-#include "../../../world/block/BlockRegistry.hpp"
 #include "../../../resource/ResourceLocation.hpp"
+#include "../../../world/block/BlockRegistry.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -13,7 +13,8 @@ static std::unordered_map<u32, PointOfInterestType> s_blockToPOI;
 static bool s_initialized = false;
 
 // 初始化方块ID到POI类型的映射
-static void initializeBlockToPOIMap() {
+static void initializeBlockToPOIMap()
+{
     if (s_initialized) {
         return;
     }
@@ -74,55 +75,90 @@ static void initializeBlockToPOIMap() {
     addWorkstation("minecraft:yellow_bed", PointOfInterestType::BedYellow);
 }
 
-const char* POITypeHelper::getName(PointOfInterestType type) {
+const char* POITypeHelper::getName(PointOfInterestType type)
+{
     switch (type) {
-        case PointOfInterestType::BedRed:       return "bed_red";
-        case PointOfInterestType::BedBlack:     return "bed_black";
-        case PointOfInterestType::BedBlue:      return "bed_blue";
-        case PointOfInterestType::BedBrown:     return "bed_brown";
-        case PointOfInterestType::BedCyan:      return "bed_cyan";
-        case PointOfInterestType::BedGray:      return "bed_gray";
-        case PointOfInterestType::BedGreen:     return "bed_green";
-        case PointOfInterestType::BedLightBlue: return "bed_light_blue";
-        case PointOfInterestType::BedLightGray: return "bed_light_gray";
-        case PointOfInterestType::BedLime:      return "bed_lime";
-        case PointOfInterestType::BedMagenta:   return "bed_magenta";
-        case PointOfInterestType::BedOrange:    return "bed_orange";
-        case PointOfInterestType::BedPink:      return "bed_pink";
-        case PointOfInterestType::BedPurple:    return "bed_purple";
-        case PointOfInterestType::BedWhite:     return "bed_white";
-        case PointOfInterestType::BedYellow:    return "bed_yellow";
-        case PointOfInterestType::Smoker:           return "smoker";
-        case PointOfInterestType::BlastFurnace:     return "blast_furnace";
-        case PointOfInterestType::CartographyTable: return "cartography_table";
-        case PointOfInterestType::BrewingStand:     return "brewing_stand";
-        case PointOfInterestType::Composter:        return "composter";
-        case PointOfInterestType::Barrel:           return "barrel";
-        case PointOfInterestType::FletchingTable:   return "fletching_table";
-        case PointOfInterestType::Cauldron:         return "cauldron";
-        case PointOfInterestType::Lectern:          return "lectern";
-        case PointOfInterestType::Stonecutter:      return "stonecutter";
-        case PointOfInterestType::SmithingTable:    return "smithing_table";
-        case PointOfInterestType::Loom:             return "loom";
-        case PointOfInterestType::Bell:             return "bell";
-        case PointOfInterestType::NetherPortal:     return "nether_portal";
-        case PointOfInterestType::Lodestone:        return "lodestone";
-        case PointOfInterestType::LightningRod:     return "lightning_rod";
-        default: return "none";
+        case PointOfInterestType::BedRed:
+            return "bed_red";
+        case PointOfInterestType::BedBlack:
+            return "bed_black";
+        case PointOfInterestType::BedBlue:
+            return "bed_blue";
+        case PointOfInterestType::BedBrown:
+            return "bed_brown";
+        case PointOfInterestType::BedCyan:
+            return "bed_cyan";
+        case PointOfInterestType::BedGray:
+            return "bed_gray";
+        case PointOfInterestType::BedGreen:
+            return "bed_green";
+        case PointOfInterestType::BedLightBlue:
+            return "bed_light_blue";
+        case PointOfInterestType::BedLightGray:
+            return "bed_light_gray";
+        case PointOfInterestType::BedLime:
+            return "bed_lime";
+        case PointOfInterestType::BedMagenta:
+            return "bed_magenta";
+        case PointOfInterestType::BedOrange:
+            return "bed_orange";
+        case PointOfInterestType::BedPink:
+            return "bed_pink";
+        case PointOfInterestType::BedPurple:
+            return "bed_purple";
+        case PointOfInterestType::BedWhite:
+            return "bed_white";
+        case PointOfInterestType::BedYellow:
+            return "bed_yellow";
+        case PointOfInterestType::Smoker:
+            return "smoker";
+        case PointOfInterestType::BlastFurnace:
+            return "blast_furnace";
+        case PointOfInterestType::CartographyTable:
+            return "cartography_table";
+        case PointOfInterestType::BrewingStand:
+            return "brewing_stand";
+        case PointOfInterestType::Composter:
+            return "composter";
+        case PointOfInterestType::Barrel:
+            return "barrel";
+        case PointOfInterestType::FletchingTable:
+            return "fletching_table";
+        case PointOfInterestType::Cauldron:
+            return "cauldron";
+        case PointOfInterestType::Lectern:
+            return "lectern";
+        case PointOfInterestType::Stonecutter:
+            return "stonecutter";
+        case PointOfInterestType::SmithingTable:
+            return "smithing_table";
+        case PointOfInterestType::Loom:
+            return "loom";
+        case PointOfInterestType::Bell:
+            return "bell";
+        case PointOfInterestType::NetherPortal:
+            return "nether_portal";
+        case PointOfInterestType::Lodestone:
+            return "lodestone";
+        case PointOfInterestType::LightningRod:
+            return "lightning_rod";
+        default:
+            return "none";
     }
 }
 
-bool POITypeHelper::isBed(PointOfInterestType type) {
-    return type >= PointOfInterestType::BedRed &&
-           type <= PointOfInterestType::BedYellow;
+bool POITypeHelper::isBed(PointOfInterestType type)
+{
+    return type >= PointOfInterestType::BedRed && type <= PointOfInterestType::BedYellow;
 }
 
-bool POITypeHelper::isWorkstation(PointOfInterestType type) {
-    return type >= PointOfInterestType::Smoker &&
-           type <= PointOfInterestType::Loom;
+bool POITypeHelper::isWorkstation(PointOfInterestType type)
+{
+    return type >= PointOfInterestType::Smoker && type <= PointOfInterestType::Loom;
 }
 
-PointOfInterestType POITypeHelper::getProfessionForWorkstation(PointOfInterestType type) {
+PointOfInterestType POITypeHelper::getProfessionForWorkstation(PointOfInterestType type)
+{
     if (!isWorkstation(type)) {
         return PointOfInterestType::None;
     }
@@ -132,7 +168,8 @@ PointOfInterestType POITypeHelper::getProfessionForWorkstation(PointOfInterestTy
     return type;
 }
 
-PointOfInterestType POITypeHelper::fromBlockId(u32 blockId) {
+PointOfInterestType POITypeHelper::fromBlockId(u32 blockId)
+{
     // 确保映射表已初始化
     initializeBlockToPOIMap();
 
@@ -143,7 +180,8 @@ PointOfInterestType POITypeHelper::fromBlockId(u32 blockId) {
     return PointOfInterestType::None;
 }
 
-i32 POITypeHelper::getMaxTickets(PointOfInterestType type) {
+i32 POITypeHelper::getMaxTickets(PointOfInterestType type)
+{
     // 大多数POI只能被一个村民占用
     // 钟可以被多个村民共享（用于聚集）
     if (type == PointOfInterestType::Bell) {
@@ -152,7 +190,8 @@ i32 POITypeHelper::getMaxTickets(PointOfInterestType type) {
     return 1;
 }
 
-f32 POITypeHelper::getSearchRange(PointOfInterestType type) {
+f32 POITypeHelper::getSearchRange(PointOfInterestType type)
+{
     // 村民搜索POI的范围
     // 床位和工作站：48格
     // 钟：64格（聚集点）

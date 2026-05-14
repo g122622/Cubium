@@ -1,13 +1,13 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../../../resource/ResourceLocation.hpp"
+#include "../../../sound/SoundCategory.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../core/CreatureEntity.hpp"
 #include "../../core/Entity.hpp"
 #include "../../core/EntitySpawnPlacementRegistry.hpp"
 #include "../../interfaces/IMob.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include <optional>
 
 namespace mc {
@@ -46,9 +46,7 @@ public:
 
     ~MonsterEntity() override = default;
 
-    [[nodiscard]] sound::SoundCategory getSoundCategory() const override {
-        return sound::SoundCategory::Hostile;
-    }
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Hostile; }
 
     // 禁止拷贝
     MonsterEntity(const MonsterEntity&) = delete;
@@ -97,32 +95,21 @@ public:
      * @param random 随机数生成器
      * @return 如果光照条件允许生成返回true
      */
-    [[nodiscard]] static bool isValidLightLevel(
-        IWorld& world,
-        const BlockPos& pos,
-        math::Random& random);
+    [[nodiscard]] static bool isValidLightLevel(IWorld& world, const BlockPos& pos, math::Random& random);
 
     /**
      * @brief 检查怪物是否可以在指定位置生成（带光照检查）
      * 参考 MC 1.16.5 MonsterEntity.canMonsterSpawnInLight()
      */
     [[nodiscard]] static bool canMonsterSpawnInLight(
-        LegacyEntityType type,
-        IWorld& world,
-        SpawnReason reason,
-        const BlockPos& pos,
-        math::Random& random);
+        LegacyEntityType type, IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
 
     /**
      * @brief 检查怪物是否可以在指定位置生成（无光照检查）
      * 参考 MC 1.16.5 MonsterEntity.canMonsterSpawn()
      */
     [[nodiscard]] static bool canMonsterSpawn(
-        LegacyEntityType type,
-        IWorld& world,
-        SpawnReason reason,
-        const BlockPos& pos,
-        math::Random& random);
+        LegacyEntityType type, IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
 
     // ========== 行为 ==========
 

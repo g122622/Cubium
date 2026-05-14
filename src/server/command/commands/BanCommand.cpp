@@ -2,19 +2,19 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/TimeUtils.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/core/BannedPlayerList.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "common/util/TimeUtils.hpp"
-#include "common/entity/entities/player/Player.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
 
-#include <sstream>
-#include <iomanip>
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -25,7 +25,8 @@ namespace {
  * @brief 获取当前时间的格式化字符串
  * @return 格式化的时间字符串 (yyyy-MM-dd HH:mm:ss Z)
  */
-std::string getCurrentTimeString() {
+std::string getCurrentTimeString()
+{
     auto now = std::chrono::system_clock::now();
     auto now_time = std::chrono::system_clock::to_time_t(now);
 
@@ -46,7 +47,8 @@ std::string getCurrentTimeString() {
  * @param name 用户名
  * @return UUID 字符串
  */
-std::string generateUuidFromName(const std::string& name) {
+std::string generateUuidFromName(const std::string& name)
+{
     std::hash<std::string> hasher;
     size_t hash = hasher(name);
 
@@ -68,44 +70,30 @@ std::string generateUuidFromName(const std::string& name) {
 
 } // anonymous namespace
 
-void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto banNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("ban");
-    banNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
+    banNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
     support::applyMetadata(
-        banNode,
-        support::makeMetadata(
-            "Bans a player from the server.",
-            "/ban <player> [reason]",
-            3,
-            {},
-            false));
+        banNode, support::makeMetadata("Bans a player from the server.", "/ban <player> [reason]", 3, {}, false));
 
     // /ban <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return banPlayer(ctx);
-    });
+        "player", EntityArgumentType::player());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banPlayer(ctx); });
 
     // /ban <player> <reason>
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "reason",
-        StringArgumentType::greedyString()
-    );
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return banPlayer(ctx);
-    });
+        "reason", StringArgumentType::greedyString());
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banPlayer(ctx); });
 
     playerArg->addChild(reasonArg);
     banNode->addChild(playerArg);
     dispatcher.registerCommand(banNode);
 }
 
-i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context) {
+i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 
@@ -164,14 +152,12 @@ i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context) {
     }
 
     // 创建封禁条目
-    server::core::BannedPlayerEntry entry(
-        playerUuid,
+    server::core::BannedPlayerEntry entry(playerUuid,
         playerName,
         getCurrentTimeString(),
         bannedBy,
-        "forever",  // 永久封禁
-        reason
-    );
+        "forever", // 永久封禁
+        reason);
 
     // 添加到封禁列表
     if (!banList.addEntry(entry)) {

@@ -14,8 +14,7 @@ namespace mc::util {
 ServerWorkerPool::ServerWorkerPool(i32 threadCount, std::string name)
     : m_poolName(std::move(name))
     , m_threadCount(threadCount > 0 ? threadCount : getOptimalThreadCount())
-{
-}
+{}
 
 ServerWorkerPool::~ServerWorkerPool()
 {
@@ -36,7 +35,7 @@ i32 ServerWorkerPool::getOptimalThreadCount()
 void ServerWorkerPool::start()
 {
     if (m_running.exchange(true, std::memory_order_acq_rel)) {
-        return;  // 已经在运行
+        return; // 已经在运行
     }
 
     m_stop.store(false, std::memory_order_release);
@@ -47,14 +46,13 @@ void ServerWorkerPool::start()
         m_workers.emplace_back(&ServerWorkerPool::workerThread, this, i);
     }
 
-    spdlog::info("[ServerWorkerPool] Started {} worker threads (name: {})",
-                 m_threadCount, m_poolName);
+    spdlog::info("[ServerWorkerPool] Started {} worker threads (name: {})", m_threadCount, m_poolName);
 }
 
 void ServerWorkerPool::shutdown()
 {
     if (!m_running.exchange(false, std::memory_order_acq_rel)) {
-        return;  // 已经停止
+        return; // 已经停止
     }
 
     m_stop.store(true, std::memory_order_release);
@@ -77,7 +75,7 @@ void ServerWorkerPool::shutdown()
             auto task = m_taskQueue.top();
             m_taskQueue.pop();
             if (task && task->callback) {
-                task->callback(false, task->task.get());  // 通知失败
+                task->callback(false, task->task.get()); // 通知失败
             }
         }
     }
@@ -90,9 +88,9 @@ void ServerWorkerPool::shutdown()
 // ============================================================================
 
 u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
-                              TaskCallback callback,
-                              TaskPriority priority,
-                              std::shared_ptr<std::atomic<bool>> cancelToken)
+    TaskCallback callback,
+    TaskPriority priority,
+    std::shared_ptr<std::atomic<bool>> cancelToken)
 {
     if (!task) {
         if (callback) {
@@ -109,8 +107,7 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     }
 
     const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order_relaxed);
-    const u64 timestamp = static_cast<u64>(
-        std::chrono::steady_clock::now().time_since_epoch().count());
+    const u64 timestamp = static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count());
 
     auto internalTask = std::make_unique<InternalTask>();
     internalTask->id = taskId;
@@ -186,7 +183,7 @@ void ServerWorkerPool::pruneCancelledTasks()
         if (task && !isTaskCancelled(*task)) {
             retained.push_back(std::move(task));
         } else if (task && task->callback) {
-            task->callback(false, task->task.get());  // 通知取消
+            task->callback(false, task->task.get()); // 通知取消
         }
     }
 
@@ -198,9 +195,7 @@ void ServerWorkerPool::pruneCancelledTasks()
 void ServerWorkerPool::waitForCompletion()
 {
     std::unique_lock<std::mutex> lock(m_completionMutex);
-    m_completionCondition.wait(lock, [this] {
-        return pendingTaskCount() == 0 && runningTaskCount() == 0;
-    });
+    m_completionCondition.wait(lock, [this] { return pendingTaskCount() == 0 && runningTaskCount() == 0; });
 }
 
 // ============================================================================
@@ -235,9 +230,7 @@ void ServerWorkerPool::workerThread(i32 workerId)
             std::unique_lock<std::mutex> lock(m_queueMutex);
 
             // 等待任务或停止信号
-            m_condition.wait(lock, [this] {
-                return !m_taskQueue.empty() || m_stop.load(std::memory_order_acquire);
-            });
+            m_condition.wait(lock, [this] { return !m_taskQueue.empty() || m_stop.load(std::memory_order_acquire); });
 
             if (m_taskQueue.empty() && m_stop.load(std::memory_order_acquire)) {
                 return;
@@ -282,27 +275,29 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     ITask* taskPtr = task->task.get();
 
     // 追踪事件
-    MC_TRACE_EVENT("worker_pool", "ExecuteTask",
-        "type", static_cast<u8>(task->task->type()),
-        "description", task->task->description(),
-        "priority", static_cast<i8>(task->priority));
+    MC_TRACE_EVENT("worker_pool",
+        "ExecuteTask",
+        "type",
+        static_cast<u8>(task->task->type()),
+        "description",
+        task->task->description(),
+        "priority",
+        static_cast<i8>(task->priority));
 
     bool success = false;
 
     try {
         static const std::atomic<bool> neverCancel{false};
-        const std::atomic<bool>& cancelSignal = task->cancelToken
-            ? *task->cancelToken
-            : neverCancel;
+        const std::atomic<bool>& cancelSignal = task->cancelToken ? *task->cancelToken : neverCancel;
 
         success = task->task->execute(cancelSignal);
-    } catch (const std::exception& e) {
-        spdlog::error("[ServerWorkerPool] Task {} threw exception: {}",
-                      task->task->description(), e.what());
+    }
+    catch (const std::exception& e) {
+        spdlog::error("[ServerWorkerPool] Task {} threw exception: {}", task->task->description(), e.what());
         success = false;
-    } catch (...) {
-        spdlog::error("[ServerWorkerPool] Task {} threw unknown exception",
-                      task->task->description());
+    }
+    catch (...) {
+        spdlog::error("[ServerWorkerPool] Task {} threw unknown exception", task->task->description());
         success = false;
     }
 
@@ -318,9 +313,11 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     if (task->callback) {
         try {
             task->callback(success, taskPtr);
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             spdlog::error("[ServerWorkerPool] Callback threw exception: {}", e.what());
-        } catch (...) {
+        }
+        catch (...) {
             spdlog::error("[ServerWorkerPool] Callback threw unknown exception");
         }
     }

@@ -1,7 +1,7 @@
 #include "SkinCache.hpp"
 #include <fstream>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {
@@ -11,16 +11,18 @@ SkinCache::SkinCache(const std::string& cacheDir)
     , m_cacheDir(cacheDir)
     , m_skinsDir(cacheDir + "/skins")
     , m_capesDir(cacheDir + "/capes")
-    , m_metadataPath(cacheDir + "/metadata.json") {
-}
+    , m_metadataPath(cacheDir + "/metadata.json")
+{}
 
-SkinCache::~SkinCache() {
+SkinCache::~SkinCache()
+{
     if (m_initialized) {
         saveMetadata();
     }
 }
 
-Result<void> SkinCache::initialize() {
+Result<void> SkinCache::initialize()
+{
     if (m_initialized) {
         return {};
     }
@@ -39,11 +41,14 @@ Result<void> SkinCache::initialize() {
 
     m_initialized = true;
     spdlog::info("SkinCache initialized: {} skins, {} capes, {} bytes",
-                 m_skinEntries.size(), m_capeEntries.size(), m_totalCacheSize);
+        m_skinEntries.size(),
+        m_capeEntries.size(),
+        m_totalCacheSize);
     return {};
 }
 
-void SkinCache::shutdown() {
+void SkinCache::shutdown()
+{
     if (!m_initialized) {
         return;
     }
@@ -53,28 +58,27 @@ void SkinCache::shutdown() {
     spdlog::info("SkinCache shutdown");
 }
 
-Result<void> SkinCache::ensureDirectoriesExist() {
+Result<void> SkinCache::ensureDirectoriesExist()
+{
     std::error_code ec;
 
     if (!std::filesystem::create_directories(m_cacheDir, ec) && ec) {
-        return Error(ErrorCode::FileOpenFailed,
-                    "Failed to create cache directory: " + m_cacheDirStr);
+        return Error(ErrorCode::FileOpenFailed, "Failed to create cache directory: " + m_cacheDirStr);
     }
 
     if (!std::filesystem::create_directories(m_skinsDir, ec) && ec) {
-        return Error(ErrorCode::FileOpenFailed,
-                    "Failed to create skins directory");
+        return Error(ErrorCode::FileOpenFailed, "Failed to create skins directory");
     }
 
     if (!std::filesystem::create_directories(m_capesDir, ec) && ec) {
-        return Error(ErrorCode::FileOpenFailed,
-                    "Failed to create capes directory");
+        return Error(ErrorCode::FileOpenFailed, "Failed to create capes directory");
     }
 
     return {};
 }
 
-void SkinCache::scanExistingFiles() {
+void SkinCache::scanExistingFiles()
+{
     std::lock_guard<std::mutex> lock(m_entriesMutex);
     m_totalCacheSize = 0;
 
@@ -121,16 +125,19 @@ void SkinCache::scanExistingFiles() {
     }
 }
 
-void SkinCache::loadMetadata() {
+void SkinCache::loadMetadata()
+{
     // 简化实现：目前不持久化元数据
     // 可以扩展为使用 JSON 文件存储访问时间等信息
 }
 
-void SkinCache::saveMetadata() {
+void SkinCache::saveMetadata()
+{
     // 简化实现：目前不持久化元数据
 }
 
-std::filesystem::path SkinCache::getCacheFilePath(const std::string& type, const std::string& hash) const {
+std::filesystem::path SkinCache::getCacheFilePath(const std::string& type, const std::string& hash) const
+{
     // 使用哈希前2个字符作为子目录名
     if (hash.length() >= 2) {
         return m_cacheDir / type / hash.substr(0, 2) / hash;
@@ -138,11 +145,13 @@ std::filesystem::path SkinCache::getCacheFilePath(const std::string& type, const
     return m_cacheDir / type / hash;
 }
 
-bool SkinCache::hasSkin(const std::string& hash) const {
+bool SkinCache::hasSkin(const std::string& hash) const
+{
     return hasTexture("skins", hash);
 }
 
-std::optional<std::filesystem::path> SkinCache::getSkinPath(const std::string& hash) const {
+std::optional<std::filesystem::path> SkinCache::getSkinPath(const std::string& hash) const
+{
     std::filesystem::path path = getCacheFilePath("skins", hash);
     if (std::filesystem::exists(path)) {
         return path;
@@ -150,15 +159,18 @@ std::optional<std::filesystem::path> SkinCache::getSkinPath(const std::string& h
     return std::nullopt;
 }
 
-Result<std::filesystem::path> SkinCache::saveSkin(const std::string& hash, const std::vector<u8>& data) {
+Result<std::filesystem::path> SkinCache::saveSkin(const std::string& hash, const std::vector<u8>& data)
+{
     return saveTexture("skins", hash, data);
 }
 
-Result<std::vector<u8>> SkinCache::readSkin(const std::string& hash) const {
+Result<std::vector<u8>> SkinCache::readSkin(const std::string& hash) const
+{
     return readTexture("skins", hash);
 }
 
-bool SkinCache::removeSkin(const std::string& hash) {
+bool SkinCache::removeSkin(const std::string& hash)
+{
     auto path = getSkinPath(hash);
     if (path.has_value()) {
         std::error_code ec;
@@ -175,45 +187,47 @@ bool SkinCache::removeSkin(const std::string& hash) {
     return false;
 }
 
-bool SkinCache::hasCape(const std::string& hash) const {
+bool SkinCache::hasCape(const std::string& hash) const
+{
     return hasTexture("capes", hash);
 }
 
-Result<std::filesystem::path> SkinCache::saveCape(const std::string& hash, const std::vector<u8>& data) {
+Result<std::filesystem::path> SkinCache::saveCape(const std::string& hash, const std::vector<u8>& data)
+{
     return saveTexture("capes", hash, data);
 }
 
-Result<std::vector<u8>> SkinCache::readCape(const std::string& hash) const {
+Result<std::vector<u8>> SkinCache::readCape(const std::string& hash) const
+{
     return readTexture("capes", hash);
 }
 
-bool SkinCache::hasTexture(const std::string& type, const std::string& hash) const {
+bool SkinCache::hasTexture(const std::string& type, const std::string& hash) const
+{
     std::filesystem::path path = getCacheFilePath(type, hash);
     return std::filesystem::exists(path);
 }
 
-Result<std::filesystem::path> SkinCache::saveTexture(const std::string& type, const std::string& hash,
-                                                      const std::vector<u8>& data) {
+Result<std::filesystem::path> SkinCache::saveTexture(
+    const std::string& type, const std::string& hash, const std::vector<u8>& data)
+{
     std::filesystem::path path = getCacheFilePath(type, hash);
     std::filesystem::path parentDir = path.parent_path();
 
     std::error_code ec;
     std::filesystem::create_directories(parentDir, ec);
     if (ec) {
-        return Error(ErrorCode::FileOpenFailed,
-                    "Failed to create directory: " + parentDir.string());
+        return Error(ErrorCode::FileOpenFailed, "Failed to create directory: " + parentDir.string());
     }
 
     std::ofstream file(path, std::ios::binary);
     if (!file.is_open()) {
-        return Error(ErrorCode::FileWriteFailed,
-                    "Failed to open file for writing: " + path.string());
+        return Error(ErrorCode::FileWriteFailed, "Failed to open file for writing: " + path.string());
     }
 
     file.write(reinterpret_cast<const char*>(data.data()), data.size());
     if (!file) {
-        return Error(ErrorCode::FileWriteFailed,
-                    "Failed to write data to file: " + path.string());
+        return Error(ErrorCode::FileWriteFailed, "Failed to write data to file: " + path.string());
     }
 
     {
@@ -247,18 +261,17 @@ Result<std::filesystem::path> SkinCache::saveTexture(const std::string& type, co
     return path;
 }
 
-Result<std::vector<u8>> SkinCache::readTexture(const std::string& type, const std::string& hash) const {
+Result<std::vector<u8>> SkinCache::readTexture(const std::string& type, const std::string& hash) const
+{
     std::filesystem::path path = getCacheFilePath(type, hash);
 
     if (!std::filesystem::exists(path)) {
-        return Error(ErrorCode::FileNotFound,
-                    "Texture not found in cache: " + hash);
+        return Error(ErrorCode::FileNotFound, "Texture not found in cache: " + hash);
     }
 
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
-        return Error(ErrorCode::FileOpenFailed,
-                    "Failed to open file for reading: " + path.string());
+        return Error(ErrorCode::FileOpenFailed, "Failed to open file for reading: " + path.string());
     }
 
     auto size = file.tellg();
@@ -268,8 +281,7 @@ Result<std::vector<u8>> SkinCache::readTexture(const std::string& type, const st
     file.read(reinterpret_cast<char*>(data.data()), size);
 
     if (!file) {
-        return Error(ErrorCode::FileReadFailed,
-                    "Failed to read data from file: " + path.string());
+        return Error(ErrorCode::FileReadFailed, "Failed to read data from file: " + path.string());
     }
 
     // 更新访问时间
@@ -278,7 +290,8 @@ Result<std::vector<u8>> SkinCache::readTexture(const std::string& type, const st
     return data;
 }
 
-void SkinCache::updateAccessTime(const std::string& hash) {
+void SkinCache::updateAccessTime(const std::string& hash)
+{
     std::lock_guard<std::mutex> lock(m_entriesMutex);
 
     auto skinIt = m_skinEntries.find(hash);
@@ -293,7 +306,8 @@ void SkinCache::updateAccessTime(const std::string& hash) {
     }
 }
 
-ResourceLocation SkinCache::generateSkinLocation(const std::string& hash) const {
+ResourceLocation SkinCache::generateSkinLocation(const std::string& hash) const
+{
     // 格式: minecraft:skins/ab/abcdef...
     if (hash.length() >= 2) {
         return ResourceLocation("minecraft:skins/" + hash.substr(0, 2) + "/" + hash);
@@ -301,7 +315,8 @@ ResourceLocation SkinCache::generateSkinLocation(const std::string& hash) const 
     return ResourceLocation("minecraft:skins/" + hash);
 }
 
-ResourceLocation SkinCache::generateCapeLocation(const std::string& hash) const {
+ResourceLocation SkinCache::generateCapeLocation(const std::string& hash) const
+{
     // 格式: minecraft:capes/ab/abcdef...
     if (hash.length() >= 2) {
         return ResourceLocation("minecraft:capes/" + hash.substr(0, 2) + "/" + hash);
@@ -309,14 +324,15 @@ ResourceLocation SkinCache::generateCapeLocation(const std::string& hash) const 
     return ResourceLocation("minecraft:capes/" + hash);
 }
 
-void SkinCache::cleanExpired(std::chrono::seconds maxAge) {
+void SkinCache::cleanExpired(std::chrono::seconds maxAge)
+{
     auto now = std::filesystem::file_time_type::clock::now();
     auto cutoff = now - maxAge;
 
     std::lock_guard<std::mutex> lock(m_entriesMutex);
 
     // 清理过期皮肤
-    for (auto it = m_skinEntries.begin(); it != m_skinEntries.end(); ) {
+    for (auto it = m_skinEntries.begin(); it != m_skinEntries.end();) {
         if (it->second.lastAccess < cutoff) {
             std::filesystem::path path = getCacheFilePath("skins", it->first);
             std::error_code ec;
@@ -331,7 +347,7 @@ void SkinCache::cleanExpired(std::chrono::seconds maxAge) {
     }
 
     // 清理过期披风
-    for (auto it = m_capeEntries.begin(); it != m_capeEntries.end(); ) {
+    for (auto it = m_capeEntries.begin(); it != m_capeEntries.end();) {
         if (it->second.lastAccess < cutoff) {
             std::filesystem::path path = getCacheFilePath("capes", it->first);
             std::error_code ec;
@@ -346,7 +362,8 @@ void SkinCache::cleanExpired(std::chrono::seconds maxAge) {
     }
 }
 
-void SkinCache::clearAll() {
+void SkinCache::clearAll()
+{
     std::lock_guard<std::mutex> lock(m_entriesMutex);
 
     std::error_code ec;
@@ -370,11 +387,13 @@ void SkinCache::clearAll() {
     spdlog::info("SkinCache: Cleared all cache");
 }
 
-size_t SkinCache::cacheSize() const {
+size_t SkinCache::cacheSize() const
+{
     return m_totalCacheSize;
 }
 
-size_t SkinCache::cacheCount() const {
+size_t SkinCache::cacheCount() const
+{
     std::lock_guard<std::mutex> lock(m_entriesMutex);
     return m_skinEntries.size() + m_capeEntries.size();
 }

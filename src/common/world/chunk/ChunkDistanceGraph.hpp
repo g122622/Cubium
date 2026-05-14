@@ -2,10 +2,10 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include <functional>
+#include <queue>
 #include <unordered_map>
 #include <unordered_set>
-#include <queue>
-#include <functional>
 
 namespace mc::world {
 
@@ -138,12 +138,14 @@ protected:
     virtual void onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
 
     /// 区块位置转换为键（供子类使用）
-    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) {
+    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
+    {
         return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
     }
 
     /// 键转换为区块位置（供子类使用）
-    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z) {
+    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z)
+    {
         x = static_cast<ChunkCoord>(key >> 32);
         z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
     }
@@ -152,9 +154,7 @@ private:
     void enqueueUpdate(ChunkCoord x, ChunkCoord z);
 
     /// 计算传播后的级别
-    [[nodiscard]] static i32 computePropagatedLevel(i32 sourceLevel) {
-        return sourceLevel + 1;
-    }
+    [[nodiscard]] static i32 computePropagatedLevel(i32 sourceLevel) { return sourceLevel + 1; }
 
     /// 传播级别到相邻区块
     void propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing);
@@ -273,7 +273,7 @@ private:
     ChunkCoord m_playerZ = 0;
     i32 m_viewDistance;
     i32 m_ticketLevel;
-    bool m_positionSet = false;  // 是否已设置过位置
+    bool m_positionSet = false; // 是否已设置过位置
 
     /// 在视距内的区块集合
     std::unordered_set<u64> m_chunksInRange;

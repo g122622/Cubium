@@ -1,11 +1,11 @@
 #include "SheepWoolLayer.hpp"
 #include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include "../../model/core/ModelRenderer.hpp"
 #include "../../model/base/BipedModel.hpp"
-#include "common/entity/entities/passive/basic/SheepEntity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
+#include "../../model/core/ModelRenderer.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -13,34 +13,33 @@
 namespace mc::client::renderer::entity::layer::entity {
 
 namespace {
-    // 羊毛颜色 RGB 值（MC 1.16.5 DyeColor）
-    const Vector3f WOOL_COLORS[16] = {
-        Vector3f(1.0f, 1.0f, 1.0f),       // 白色 (0)
-        Vector3f(0.85f, 0.85f, 0.85f),    // 橙色 (1)
-        Vector3f(0.8f, 0.6f, 1.0f),       // 品红色 (2)
-        Vector3f(0.6f, 0.8f, 1.0f),        // 淡蓝色 (3)
-        Vector3f(1.0f, 1.0f, 0.5f),       // 黄色 (4)
-        Vector3f(0.5f, 1.0f, 0.5f),       // 黄绿色 (5)
-        Vector3f(1.0f, 0.6f, 0.6f),       // 粉红色 (6)
-        Vector3f(0.5f, 0.5f, 0.5f),       // 灰色 (7)
-        Vector3f(0.3f, 0.3f, 0.3f),       // 淡灰色 (8)
-        Vector3f(0.4f, 0.3f, 0.2f),       // 青色 (9)
-        Vector3f(0.3f, 0.3f, 0.6f),       // 紫色 (10)
-        Vector3f(0.2f, 0.3f, 0.5f),       // 蓝色 (11)
-        Vector3f(0.4f, 0.3f, 0.2f),       // 棕色 (12)
-        Vector3f(0.2f, 0.4f, 0.2f),       // 绿色 (13)
-        Vector3f(0.6f, 0.2f, 0.2f),       // 红色 (14)
-        Vector3f(0.1f, 0.1f, 0.1f),       // 黑色 (15)
-    };
-}
+// 羊毛颜色 RGB 值（MC 1.16.5 DyeColor）
+const Vector3f WOOL_COLORS[16] = {
+    Vector3f(1.0f, 1.0f, 1.0f),    // 白色 (0)
+    Vector3f(0.85f, 0.85f, 0.85f), // 橙色 (1)
+    Vector3f(0.8f, 0.6f, 1.0f),    // 品红色 (2)
+    Vector3f(0.6f, 0.8f, 1.0f),    // 淡蓝色 (3)
+    Vector3f(1.0f, 1.0f, 0.5f),    // 黄色 (4)
+    Vector3f(0.5f, 1.0f, 0.5f),    // 黄绿色 (5)
+    Vector3f(1.0f, 0.6f, 0.6f),    // 粉红色 (6)
+    Vector3f(0.5f, 0.5f, 0.5f),    // 灰色 (7)
+    Vector3f(0.3f, 0.3f, 0.3f),    // 淡灰色 (8)
+    Vector3f(0.4f, 0.3f, 0.2f),    // 青色 (9)
+    Vector3f(0.3f, 0.3f, 0.6f),    // 紫色 (10)
+    Vector3f(0.2f, 0.3f, 0.5f),    // 蓝色 (11)
+    Vector3f(0.4f, 0.3f, 0.2f),    // 棕色 (12)
+    Vector3f(0.2f, 0.4f, 0.2f),    // 绿色 (13)
+    Vector3f(0.6f, 0.2f, 0.2f),    // 红色 (14)
+    Vector3f(0.1f, 0.1f, 0.1f),    // 黑色 (15)
+};
+} // namespace
 
 // 静态成员定义
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 std::unique_ptr<pipeline::EntityMesh> SheepWoolLayer<TEntity, TModel>::s_woolMesh = nullptr;
 
-template<typename TEntity, typename TModel>
-void SheepWoolLayer<TEntity, TModel>::renderPipeline(
-    TEntity& entity,
+template <typename TEntity, typename TModel>
+void SheepWoolLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -74,12 +73,7 @@ void SheepWoolLayer<TEntity, TModel>::renderPipeline(
     // 计算羊毛变换矩阵
     // 羊毛层覆盖羊的身体，略微放大以避免 z-fighting
     std::array<f64, 16> woolTransform;
-    woolTransform = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    woolTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 羊毛略微膨胀
     const f32 woolScale = 1.05f;
@@ -88,9 +82,9 @@ void SheepWoolLayer<TEntity, TModel>::renderPipeline(
     woolTransform[10] = woolScale;
 
     // 羊毛位置在身体中心
-    woolTransform[3] = 0.0;       // X
-    woolTransform[7] = 0.7;       // Y - 身体高度
-    woolTransform[11] = 0.0;      // Z
+    woolTransform[3] = 0.0;  // X
+    woolTransform[7] = 0.7;  // Y - 身体高度
+    woolTransform[11] = 0.0; // Z
 
     // 应用步态动画（羊毛跟随身体摆动）
     f64 limbSwing = context.limbSwing;
@@ -101,11 +95,7 @@ void SheepWoolLayer<TEntity, TModel>::renderPipeline(
     }
 
     // 获取实体位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用羊毛颜色作为叠加颜色
     Vector4f overlayColor(color.x, color.y, color.z, 1.0f);
@@ -118,18 +108,15 @@ void SheepWoolLayer<TEntity, TModel>::renderPipeline(
         deathTime = static_cast<f32>(entity.deathTime());
     }
 
-    pipeline.drawMesh(cmd, *mesh, woolTransform, entityPos, 1.0,
-                      overlayColor, hurtTime, deathTime);
+    pipeline.drawMesh(cmd, *mesh, woolTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
-    spdlog::trace("SheepWoolLayer: Rendered wool with color ({}, {}, {})",
-                  color.x, color.y, color.z);
+    spdlog::trace("SheepWoolLayer: Rendered wool with color ({}, {}, {})", color.x, color.y, color.z);
 
     (void)context;
 }
 
-template<typename TEntity, typename TModel>
-void SheepWoolLayer<TEntity, TModel>::render(
-    TEntity& entity,
+template <typename TEntity, typename TModel>
+void SheepWoolLayer<TEntity, TModel>::render(TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -149,8 +136,9 @@ void SheepWoolLayer<TEntity, TModel>::render(
     (void)scale;
 }
 
-template<typename TEntity, typename TModel>
-bool SheepWoolLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
+template <typename TEntity, typename TModel>
+bool SheepWoolLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
+{
     // MC 1.16.5 SheepWoolLayer.shouldRender():
     // return !sheep.isSheared() && !sheep.isInvisible();
 
@@ -171,8 +159,9 @@ bool SheepWoolLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const 
     return true;
 }
 
-template<typename TEntity, typename TModel>
-Vector3f SheepWoolLayer<TEntity, TModel>::getWoolColor(const TEntity& entity, u32 ticksExisted) {
+template <typename TEntity, typename TModel>
+Vector3f SheepWoolLayer<TEntity, TModel>::getWoolColor(const TEntity& entity, u32 ticksExisted)
+{
     // 检查是否为 jeb_ 彩虹羊
     if (isRainbowSheep(entity)) {
         return computeRainbowColor(ticksExisted);
@@ -186,19 +175,21 @@ Vector3f SheepWoolLayer<TEntity, TModel>::getWoolColor(const TEntity& entity, u3
             return WOOL_COLORS[colorIndex];
         }
     }
-    return Vector3f(1.0f, 1.0f, 1.0f);  // 默认白色
+    return Vector3f(1.0f, 1.0f, 1.0f); // 默认白色
 }
 
-template<typename TEntity, typename TModel>
-Vector3f SheepWoolLayer<TEntity, TModel>::computeRainbowColor(u32 ticksExisted) {
+template <typename TEntity, typename TModel>
+Vector3f SheepWoolLayer<TEntity, TModel>::computeRainbowColor(u32 ticksExisted)
+{
     // MC 1.16.5 SheepWoolLayer: jeb_ 彩虹羊颜色循环
     // 颜色每 2 tick 变化一次，循环 16 种颜色
     u32 colorIndex = (ticksExisted / 2) % 16;
     return WOOL_COLORS[colorIndex];
 }
 
-template<typename TEntity, typename TModel>
-bool SheepWoolLayer<TEntity, TModel>::isRainbowSheep(const TEntity& entity) {
+template <typename TEntity, typename TModel>
+bool SheepWoolLayer<TEntity, TModel>::isRainbowSheep(const TEntity& entity)
+{
     // MC 1.16.5 SheepWoolLayer: 检查是否为 jeb_ 彩虹羊
     // 检查实体是否有自定义名称 "jeb_"
     if constexpr (std::is_base_of_v<::mc::Entity, TEntity>) {
@@ -210,10 +201,9 @@ bool SheepWoolLayer<TEntity, TModel>::isRainbowSheep(const TEntity& entity) {
     return false;
 }
 
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 void SheepWoolLayer<TEntity, TModel>::buildWoolMesh(
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 参考 MC 1.16.5 的羊模型
     // 羊毛覆盖羊的身体，是一个类似椭球的形状
@@ -278,8 +268,9 @@ void SheepWoolLayer<TEntity, TModel>::buildWoolMesh(
     }
 }
 
-template<typename TEntity, typename TModel>
-pipeline::EntityMesh* SheepWoolLayer<TEntity, TModel>::getOrCreateWoolMesh(pipeline::EntityPipeline& pipeline) {
+template <typename TEntity, typename TModel>
+pipeline::EntityMesh* SheepWoolLayer<TEntity, TModel>::getOrCreateWoolMesh(pipeline::EntityPipeline& pipeline)
+{
     if (s_woolMesh && s_woolMesh->indexCount > 0) {
         return s_woolMesh.get();
     }
@@ -304,7 +295,7 @@ pipeline::EntityMesh* SheepWoolLayer<TEntity, TModel>::getOrCreateWoolMesh(pipel
 }
 
 // 显式实例化
-template class SheepWoolLayer< ::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
-template class SheepWoolLayer< ::mc::SheepEntity, ::mc::client::renderer::entity::model::BipedModel>;
+template class SheepWoolLayer<::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
+template class SheepWoolLayer<::mc::SheepEntity, ::mc::client::renderer::entity::model::BipedModel>;
 
 } // namespace mc::client::renderer::entity::layer::entity

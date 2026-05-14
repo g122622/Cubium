@@ -34,8 +34,9 @@ void ClientApplication::setupInputBindings()
     m_input.bindKeyAction(GLFW_KEY_ESCAPE, "exit");
 
     m_input.bindActionCallback("exit", [this]() {
-        auto* chatWidget = m_kageroEngine ?
-            static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId)) : nullptr;
+        auto* chatWidget = m_kageroEngine
+            ? static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId))
+            : nullptr;
 
         // 如果聊天框打开，关闭聊天框
         if (chatWidget && chatWidget->isOpen()) {
@@ -79,8 +80,8 @@ void ClientApplication::setupInputBindings()
 
             default:
                 // 其他状态：停止应用
-                spdlog::info("Exit key pressed in state: {}",
-                             ClientAppStateMachine::stateToString(m_stateMachine.state()));
+                spdlog::info(
+                    "Exit key pressed in state: {}", ClientAppStateMachine::stateToString(m_stateMachine.state()));
                 stop();
                 break;
         }
@@ -125,9 +126,7 @@ void ClientApplication::cancelBreakingBlock()
         return;
     }
 
-    sendBlockInteraction(network::BlockInteractionAction::AbortDestroyBlock,
-                         m_breakingBlockPos,
-                         m_breakingBlockFace);
+    sendBlockInteraction(network::BlockInteractionAction::AbortDestroyBlock, m_breakingBlockPos, m_breakingBlockFace);
 
     using namespace mc::client::renderer::trident::block;
     BreakProgressManager::instance().stopBreaking();
@@ -136,10 +135,16 @@ void ClientApplication::cancelBreakingBlock()
     m_breakingBlockProgress = 0.0f;
     m_breakingBlockFace = Direction::None;
 
-    MC_TRACE_INSTANT("client.input.mining", "abortBreakingBlock", "state", static_cast<i32>(MiningInputState::Active), "reason", "abort local breaking state");
+    MC_TRACE_INSTANT("client.input.mining",
+        "abortBreakingBlock",
+        "state",
+        static_cast<i32>(MiningInputState::Active),
+        "reason",
+        "abort local breaking state");
 }
 
-void ClientApplication::beginBreakingBlock(const BlockPos& currentTargetPos, Direction currentTargetFace, bool attackJustPressed)
+void ClientApplication::beginBreakingBlock(
+    const BlockPos& currentTargetPos, Direction currentTargetFace, bool attackJustPressed)
 {
     m_breakingBlockPos = currentTargetPos;
     m_breakingBlockFace = currentTargetFace;
@@ -155,14 +160,12 @@ void ClientApplication::beginBreakingBlock(const BlockPos& currentTargetPos, Dir
         fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
         "face",
         static_cast<i32>(m_breakingBlockFace),
-        "justPressed", attackJustPressed,
-        [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "justPressed",
+        attackJustPressed,
+        [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
-    sendBlockInteraction(network::BlockInteractionAction::StartDestroyBlock,
-                         m_breakingBlockPos,
-                         m_breakingBlockFace);
+    sendBlockInteraction(network::BlockInteractionAction::StartDestroyBlock, m_breakingBlockPos, m_breakingBlockFace);
 }
 
 void ClientApplication::completeBreakingBlock(bool instantBreak)
@@ -180,8 +183,7 @@ void ClientApplication::completeBreakingBlock(bool instantBreak)
             "pos",
             fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
             "face",
-            static_cast<i32>(m_breakingBlockFace)
-        );
+            static_cast<i32>(m_breakingBlockFace));
     } else {
         MC_TRACE_INSTANT("client.input.mining",
             "breakComplete",
@@ -189,15 +191,13 @@ void ClientApplication::completeBreakingBlock(bool instantBreak)
             fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
             "face",
             static_cast<i32>(m_breakingBlockFace),
-            "progress", m_breakingBlockProgress,
-            [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-        });
+            "progress",
+            m_breakingBlockProgress,
+            [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](
+                ::perfetto::EventContext ctx) { flow(ctx); });
     }
 
-    sendBlockInteraction(network::BlockInteractionAction::StopDestroyBlock,
-                         m_breakingBlockPos,
-                         m_breakingBlockFace);
+    sendBlockInteraction(network::BlockInteractionAction::StopDestroyBlock, m_breakingBlockPos, m_breakingBlockFace);
 
     m_breakingBlockActive = false;
     m_breakingBlockProgress = 0.0f;
@@ -240,19 +240,16 @@ void ClientApplication::handleBlockMiningInput(f32 deltaTime)
 
     const BlockPos currentTargetPos = m_raycastResult.blockPos();
     const Direction currentTargetFace = m_raycastResult.face();
-    const bool targetChanged = !m_breakingBlockActive ||
-        currentTargetPos != m_breakingBlockPos ||
-        currentTargetFace != m_breakingBlockFace;
+    const bool targetChanged =
+        !m_breakingBlockActive || currentTargetPos != m_breakingBlockPos || currentTargetFace != m_breakingBlockFace;
 
     if (targetChanged) {
         cancelBreakingBlock();
         beginBreakingBlock(currentTargetPos, currentTargetFace, attackJustPressed);
     }
 
-    const BlockState* targetState = m_world.getBlockState(
-        m_breakingBlockPos.x,
-        m_breakingBlockPos.y,
-        m_breakingBlockPos.z);
+    const BlockState* targetState =
+        m_world.getBlockState(m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z);
     if (targetState == nullptr || targetState->isAir() || targetState->hardness() < 0.0f) {
         setMiningState(MiningInputState::InvalidTargetState, "target state is null/air/unbreakable");
         cancelBreakingBlock();
@@ -342,30 +339,34 @@ void ClientApplication::sendBlockPlacement(const BlockPos& pos, Direction face, 
     }
 
     spdlog::info("[Place] Send placement pos=({}, {}, {}) face={} hit=({:.2f}, {:.2f}, {:.2f})",
-                 pos.x, pos.y, pos.z,
-                 static_cast<i32>(face),
-                 hitPos.x, hitPos.y, hitPos.z);
+        pos.x,
+        pos.y,
+        pos.z,
+        static_cast<i32>(face),
+        hitPos.x,
+        hitPos.y,
+        hitPos.z);
 
-    m_networkClient->sendBlockPlacement(pos.x, pos.y, pos.z, face,
-                                        hitPos.x, hitPos.y, hitPos.z);
+    m_networkClient->sendBlockPlacement(pos.x, pos.y, pos.z, face, hitPos.x, hitPos.y, hitPos.z);
 }
 
-void ClientApplication::sendBlockInteraction(network::BlockInteractionAction action,
-                                             const BlockPos& pos,
-                                             Direction face)
+void ClientApplication::sendBlockInteraction(
+    network::BlockInteractionAction action, const BlockPos& pos, Direction face)
 {
     if (!m_networkClient || !m_networkClient->isLoggedIn()) {
         spdlog::debug("[Mining] Skip sending block interaction because client is not logged in");
         return;
     }
 
-    MC_TRACE_INSTANT("client.input.mining", "sendBlockInteraction",
-        "action", static_cast<i32>(action),
-        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        "face", static_cast<i32>(face),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-        });
+    MC_TRACE_INSTANT("client.input.mining",
+        "sendBlockInteraction",
+        "action",
+        static_cast<i32>(action),
+        "pos",
+        fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        "face",
+        static_cast<i32>(face),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     m_networkClient->sendBlockInteraction(action, pos.x, pos.y, pos.z, face);
 }
@@ -378,14 +379,11 @@ void ClientApplication::sendPlayerPosition()
 
     const auto& pos = m_player->position();
 
-    bool positionChanged =
-        std::abs(pos.x - m_lastSentX) > 0.001f ||
-        std::abs(pos.y - m_lastSentY) > 0.001f ||
+    bool positionChanged = std::abs(pos.x - m_lastSentX) > 0.001f || std::abs(pos.y - m_lastSentY) > 0.001f ||
         std::abs(pos.z - m_lastSentZ) > 0.001f;
 
     bool rotationChanged =
-        std::abs(m_player->yaw() - m_lastSentYaw) > 0.01f ||
-        std::abs(m_player->pitch() - m_lastSentPitch) > 0.01f;
+        std::abs(m_player->yaw() - m_lastSentYaw) > 0.01f || std::abs(m_player->pitch() - m_lastSentPitch) > 0.01f;
 
     network::PlayerPosition playerPos;
     playerPos.x = pos.x;

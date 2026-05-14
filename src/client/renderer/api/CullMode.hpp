@@ -11,10 +11,10 @@ namespace mc::client::renderer::api {
  * 与 Vulkan VkCullModeFlags 和 OpenGL glCullFace 对应。
  */
 enum class CullMode : u8 {
-    None,   // 不剔除任何面
-    Front,  // 剔除正面
-    Back,   // 剔除背面
-    FrontAndBack  // 剔除所有面 (通常不使用)
+    None,        // 不剔除任何面
+    Front,       // 剔除正面
+    Back,        // 剔除背面
+    FrontAndBack // 剔除所有面 (通常不使用)
 };
 
 /**
@@ -24,8 +24,8 @@ enum class CullMode : u8 {
  * 与 Vulkan VkFrontFace 和 OpenGL glFrontFace 对应。
  */
 enum class FrontFace : u8 {
-    CounterClockwise,  // 逆时针为正面 (OpenGL 默认)
-    Clockwise          // 顺时针为正面 (Vulkan/我们使用)
+    CounterClockwise, // 逆时针为正面 (OpenGL 默认)
+    Clockwise         // 顺时针为正面 (Vulkan/我们使用)
 };
 
 /**
@@ -35,9 +35,9 @@ enum class FrontFace : u8 {
  * 与 Vulkan VkPolygonMode 和 OpenGL glPolygonMode 对应。
  */
 enum class PolygonMode : u8 {
-    Fill,   // 填充
-    Line,   // 线框
-    Point   // 点
+    Fill, // 填充
+    Line, // 线框
+    Point // 点
 };
 
 /**
@@ -56,16 +56,15 @@ struct RasterizerState {
      *
      * 剔除背面，顺时针为正面
      */
-    static RasterizerState defaults() {
-        return RasterizerState{};
-    }
+    static RasterizerState defaults() { return RasterizerState{}; }
 
     /**
      * @brief 创建双面渲染状态
      *
      * 不剔除任何面
      */
-    static RasterizerState doubleSided() {
+    static RasterizerState doubleSided()
+    {
         RasterizerState state;
         state.cullMode = CullMode::None;
         return state;
@@ -74,22 +73,20 @@ struct RasterizerState {
     /**
      * @brief 创建线框渲染状态
      */
-    static RasterizerState wireframe() {
+    static RasterizerState wireframe()
+    {
         RasterizerState state;
         state.polygonMode = PolygonMode::Line;
         state.cullMode = CullMode::None;
         return state;
     }
 
-    bool operator==(const RasterizerState& other) const {
-        return cullMode == other.cullMode &&
-               frontFace == other.frontFace &&
-               polygonMode == other.polygonMode;
+    bool operator==(const RasterizerState& other) const
+    {
+        return cullMode == other.cullMode && frontFace == other.frontFace && polygonMode == other.polygonMode;
     }
 
-    bool operator!=(const RasterizerState& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const RasterizerState& other) const { return !(*this == other); }
 };
 
 } // namespace mc::client::renderer::api

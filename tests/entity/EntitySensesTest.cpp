@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/EntitySenses.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/core/MobEntity.hpp"
 
 namespace mc {
@@ -12,9 +12,7 @@ public:
     using LookController::LookController;
 
 protected:
-    [[nodiscard]] bool shouldResetPitch() const override {
-        return false;
-    }
+    [[nodiscard]] bool shouldResetPitch() const override { return false; }
 };
 
 TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)

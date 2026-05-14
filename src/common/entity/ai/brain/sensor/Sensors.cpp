@@ -1,10 +1,10 @@
 #include "Sensors.hpp"
+#include "../../../../entity/core/EntityUtils.hpp"
 #include "../../../../world/GlobalPos.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/village/VillageManager.hpp"
 #include "../../../../world/village/poi/PointOfInterestStorage.hpp"
 #include "../../../../world/village/poi/PointOfInterestType.hpp"
-#include "../../../../entity/core/EntityUtils.hpp"
 #include "../../../entities/villager/VillagerEntity.hpp"
 
 namespace mc {
@@ -18,7 +18,8 @@ namespace sensor {
 // ============================================================================
 
 template <typename E>
-void NearestPlayersSensor<E>::update(IWorld* world, E* entity) {
+void NearestPlayersSensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -63,15 +64,13 @@ void NearestPlayersSensor<E>::update(IWorld* world, E* entity) {
     }
 
     // 按距离排序（近到远）
-    std::sort(nearbyPlayers.begin(), nearbyPlayers.end(),
-        [entity](Player* a, Player* b) {
-            return entity->distanceSqTo(*a) < entity->distanceSqTo(*b);
-        });
+    std::sort(nearbyPlayers.begin(), nearbyPlayers.end(), [entity](Player* a, Player* b) {
+        return entity->distanceSqTo(*a) < entity->distanceSqTo(*b);
+    });
 
-    std::sort(visiblePlayers.begin(), visiblePlayers.end(),
-        [entity](Player* a, Player* b) {
-            return entity->distanceSqTo(*a) < entity->distanceSqTo(*b);
-        });
+    std::sort(visiblePlayers.begin(), visiblePlayers.end(), [entity](Player* a, Player* b) {
+        return entity->distanceSqTo(*a) < entity->distanceSqTo(*b);
+    });
 
     // 存储到记忆模块
     entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_PLAYERS, nearbyPlayers);
@@ -98,7 +97,8 @@ void NearestPlayersSensor<E>::update(IWorld* world, E* entity) {
 // ============================================================================
 
 template <typename E>
-void NearestVisibleLivingEntitySensor<E>::update(IWorld* world, E* entity) {
+void NearestVisibleLivingEntitySensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -133,7 +133,8 @@ void NearestVisibleLivingEntitySensor<E>::update(IWorld* world, E* entity) {
 // ============================================================================
 
 template <typename E>
-void HurtBySensor<E>::update(IWorld* world, E* entity) {
+void HurtBySensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -142,22 +143,14 @@ void HurtBySensor<E>::update(IWorld* world, E* entity) {
     DamageSource* lastDamageSource = entity->lastDamageSource();
     if (lastDamageSource) {
         // 存储伤害来源（100 tick = 5秒）
-        entity->brain().setMemoryWithTTL(
-            memory::MemoryModuleTypes::HURT_BY,
-            lastDamageSource,
-            100
-        );
+        entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::HURT_BY, lastDamageSource, 100);
 
         // 获取攻击者
         Entity* attacker = lastDamageSource->getTrueSource();
         if (attacker && attacker->isAlive()) {
             LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(attacker);
             if (livingAttacker) {
-                entity->brain().setMemoryWithTTL(
-                    memory::MemoryModuleTypes::HURT_BY_ENTITY,
-                    livingAttacker,
-                    100
-                );
+                entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::HURT_BY_ENTITY, livingAttacker, 100);
             }
         } else {
             entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
@@ -167,8 +160,7 @@ void HurtBySensor<E>::update(IWorld* world, E* entity) {
     }
 
     // 检查攻击者是否还有效（存活且在同一世界）
-    auto attackerMemory = entity->brain().template getMemory<LivingEntity*>(
-        memory::MemoryModuleTypes::HURT_BY_ENTITY);
+    auto attackerMemory = entity->brain().template getMemory<LivingEntity*>(memory::MemoryModuleTypes::HURT_BY_ENTITY);
     if (attackerMemory.has_value()) {
         LivingEntity* attacker = attackerMemory.value();
         if (!attacker || !attacker->isAlive() || attacker->world() != world) {
@@ -182,7 +174,8 @@ void HurtBySensor<E>::update(IWorld* world, E* entity) {
 // ============================================================================
 
 template <typename E>
-void MobSensor<E>::update(IWorld* world, E* entity) {
+void MobSensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -221,10 +214,7 @@ void MobSensor<E>::update(IWorld* world, E* entity) {
     entity->brain().setMemory(memory::MemoryModuleTypes::MOBS, nearbyMobs);
 
     if (nearestHostile) {
-        entity->brain().setMemory(
-            memory::MemoryModuleTypes::NEAREST_HOSTILE,
-            nearestHostile
-        );
+        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_HOSTILE, nearestHostile);
     } else {
         entity->brain().removeMemory(memory::MemoryModuleTypes::NEAREST_HOSTILE);
     }
@@ -235,7 +225,8 @@ void MobSensor<E>::update(IWorld* world, E* entity) {
 // ============================================================================
 
 template <typename E>
-void WorkStationSensor<E>::update(IWorld* world, E* entity) {
+void WorkStationSensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -253,12 +244,10 @@ void WorkStationSensor<E>::update(IWorld* world, E* entity) {
     constexpr f32 SEARCH_RANGE = 48.0f;
 
     // 查找最近的工作站
-    auto jobSite = poiStorage.findNearestUnacquired(
-        entityPos,
-        world::village::poi::PointOfInterestType::Smoker,  // 默认类型，实际应根据村民职业
+    auto jobSite = poiStorage.findNearestUnacquired(entityPos,
+        world::village::poi::PointOfInterestType::Smoker, // 默认类型，实际应根据村民职业
         SEARCH_RANGE,
-        static_cast<u64>(entity->id())
-    );
+        static_cast<u64>(entity->id()));
 
     if (jobSite.has_value()) {
         GlobalPos globalPos(world->dimension(), jobSite.value());
@@ -266,11 +255,8 @@ void WorkStationSensor<E>::update(IWorld* world, E* entity) {
     }
 
     // 查找潜在工作站点
-    auto potentialSite = poiStorage.findNearest(
-        entityPos,
-        world::village::poi::PointOfInterestType::Smoker,
-        SEARCH_RANGE
-    );
+    auto potentialSite =
+        poiStorage.findNearest(entityPos, world::village::poi::PointOfInterestType::Smoker, SEARCH_RANGE);
 
     if (potentialSite.has_value()) {
         GlobalPos globalPos(world->dimension(), potentialSite.value());
@@ -283,7 +269,8 @@ void WorkStationSensor<E>::update(IWorld* world, E* entity) {
 // ============================================================================
 
 template <typename E>
-void VillagePoiSensor<E>::update(IWorld* world, E* entity) {
+void VillagePoiSensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -302,12 +289,22 @@ void VillagePoiSensor<E>::update(IWorld* world, E* entity) {
     // 查找最近的床（家）
     // 检查所有床颜色类型
     using POIType = world::village::poi::PointOfInterestType;
-    std::vector<POIType> bedTypes = {
-        POIType::BedRed, POIType::BedBlack, POIType::BedBlue, POIType::BedBrown,
-        POIType::BedCyan, POIType::BedGray, POIType::BedGreen, POIType::BedLightBlue,
-        POIType::BedLightGray, POIType::BedLime, POIType::BedMagenta, POIType::BedOrange,
-        POIType::BedPink, POIType::BedPurple, POIType::BedWhite, POIType::BedYellow
-    };
+    std::vector<POIType> bedTypes = {POIType::BedRed,
+        POIType::BedBlack,
+        POIType::BedBlue,
+        POIType::BedBrown,
+        POIType::BedCyan,
+        POIType::BedGray,
+        POIType::BedGreen,
+        POIType::BedLightBlue,
+        POIType::BedLightGray,
+        POIType::BedLime,
+        POIType::BedMagenta,
+        POIType::BedOrange,
+        POIType::BedPink,
+        POIType::BedPurple,
+        POIType::BedWhite,
+        POIType::BedYellow};
 
     BlockPos nearestBedPos;
     f32 nearestBedDist = SEARCH_RANGE;
@@ -333,11 +330,7 @@ void VillagePoiSensor<E>::update(IWorld* world, E* entity) {
     }
 
     // 查找钟（集会点）
-    auto meetingPoint = poiStorage.findNearestFree(
-        entityPos,
-        POIType::Bell,
-        SEARCH_RANGE
-    );
+    auto meetingPoint = poiStorage.findNearestFree(entityPos, POIType::Bell, SEARCH_RANGE);
 
     if (meetingPoint.has_value()) {
         GlobalPos globalPos(world->dimension(), meetingPoint.value());
@@ -350,7 +343,8 @@ void VillagePoiSensor<E>::update(IWorld* world, E* entity) {
 // ============================================================================
 
 template <typename E>
-void BabySensor<E>::update(IWorld* world, E* entity) {
+void BabySensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -382,16 +376,10 @@ void BabySensor<E>::update(IWorld* world, E* entity) {
         }
     }
 
-    entity->brain().setMemory(
-        memory::MemoryModuleTypes::VISIBLE_VILLAGER_BABIES,
-        babies
-    );
+    entity->brain().setMemory(memory::MemoryModuleTypes::VISIBLE_VILLAGER_BABIES, babies);
 
     if (nearestAdult) {
-        entity->brain().setMemory(
-            memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT,
-            nearestAdult
-        );
+        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT, nearestAdult);
     } else {
         entity->brain().removeMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
     }
@@ -402,7 +390,8 @@ void BabySensor<E>::update(IWorld* world, E* entity) {
 // ============================================================================
 
 template <typename E>
-void AvoidEntitySensor<E>::update(IWorld* world, E* entity) {
+void AvoidEntitySensor<E>::update(IWorld* world, E* entity)
+{
     if (!entity || !entity->isAlive()) {
         return;
     }
@@ -431,10 +420,9 @@ void AvoidEntitySensor<E>::update(IWorld* world, E* entity) {
     }
 
     if (avoidTarget) {
-        entity->brain().setMemoryWithTTL(
-            memory::MemoryModuleTypes::AVOID_TARGET,
+        entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::AVOID_TARGET,
             avoidTarget,
-            100  // 5秒
+            100 // 5秒
         );
     } else {
         entity->brain().removeMemory(memory::MemoryModuleTypes::AVOID_TARGET);
@@ -442,7 +430,8 @@ void AvoidEntitySensor<E>::update(IWorld* world, E* entity) {
 }
 
 template <typename E>
-bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other) {
+bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other)
+{
     // 默认实现：检查其他实体是否是敌对生物
     // 羊躲避狼、村民躲避僵尸等
     // 这里简化处理，实际应该根据实体类型判断

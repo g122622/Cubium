@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../../entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "Merchant.hpp"
 #include "MerchantOffer.hpp"
-#include "../../../entity/entities/villager/AbstractVillagerEntity.hpp"
-#include <memory>
-#include <vector>
 #include <functional>
+#include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace world {
@@ -48,11 +48,7 @@ public:
      * @return 交易列表
      */
     [[nodiscard]] static std::unique_ptr<MerchantOffers> generateOffers(
-        entity::VillagerProfession profession,
-        entity::VillagerType type,
-        i32 level,
-        i32 demand = 0,
-        u64 seed = 0);
+        entity::VillagerProfession profession, entity::VillagerType type, i32 level, i32 demand = 0, u64 seed = 0);
 
     /**
      * @brief 检查职业是否有交易
@@ -101,10 +97,13 @@ private:
      * @param xp 交易经验
      * @param priceMultiplier 价格乘数
      */
-    static TradeFactory simpleTrade(
-        const char* buyItem, i32 buyCount,
-        const char* sellItem, i32 sellCount,
-        i32 maxUses = 12, i32 xp = 2, f32 priceMultiplier = 0.05f);
+    static TradeFactory simpleTrade(const char* buyItem,
+        i32 buyCount,
+        const char* sellItem,
+        i32 sellCount,
+        i32 maxUses = 12,
+        i32 xp = 2,
+        f32 priceMultiplier = 0.05f);
 
     /**
      * @brief 创建双物品交易
@@ -118,11 +117,15 @@ private:
      * @param xp 交易经验
      * @param priceMultiplier 价格乘数
      */
-    static TradeFactory twoItemTrade(
-        const char* buyItemA, i32 buyCountA,
-        const char* buyItemB, i32 buyCountB,
-        const char* sellItem, i32 sellCount,
-        i32 maxUses = 12, i32 xp = 2, f32 priceMultiplier = 0.05f);
+    static TradeFactory twoItemTrade(const char* buyItemA,
+        i32 buyCountA,
+        const char* buyItemB,
+        i32 buyCountB,
+        const char* sellItem,
+        i32 sellCount,
+        i32 maxUses = 12,
+        i32 xp = 2,
+        f32 priceMultiplier = 0.05f);
 
     /**
      * @brief 创建带需求调整的交易
@@ -134,11 +137,13 @@ private:
      * @param xp 交易经验
      * @param priceMultiplier 价格乘数
      */
-    static TradeFactory demandTrade(
-        i32 baseBuyCount,
+    static TradeFactory demandTrade(i32 baseBuyCount,
         const char* buyItem,
-        const char* sellItem, i32 sellCount,
-        i32 maxUses = 12, i32 xp = 2, f32 priceMultiplier = 0.05f);
+        const char* sellItem,
+        i32 sellCount,
+        i32 maxUses = 12,
+        i32 xp = 2,
+        f32 priceMultiplier = 0.05f);
 
     /**
      * @brief 注册交易配方

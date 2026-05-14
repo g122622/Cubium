@@ -1,10 +1,10 @@
 #include "WorldCarver.hpp"
+#include "../../../core/Constants.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../core/Constants.hpp"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
@@ -15,11 +15,11 @@ namespace mc {
 CarvingMask::CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ)
     : m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
-    , m_mask(16 * 16 * world::MAX_BUILD_HEIGHT, false)  // 16x16 x height
-{
-}
+    , m_mask(16 * 16 * world::MAX_BUILD_HEIGHT, false) // 16x16 x height
+{}
 
-bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const {
+bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const
+{
     if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
@@ -27,7 +27,8 @@ bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const {
     return m_mask[static_cast<size_t>(index)];
 }
 
-void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z) {
+void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z)
+{
     if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return;
     }
@@ -39,7 +40,7 @@ void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z) {
 // WorldCarver 实现
 // ============================================================================
 
-template<typename Config>
+template <typename Config>
 const BlockState* WorldCarver<Config>::getCaveAirState() const
 {
     // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
@@ -47,70 +48,56 @@ const BlockState* WorldCarver<Config>::getCaveAirState() const
     return VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
 }
 
-template<typename Config>
-bool WorldCarver<Config>::isCarvable(const BlockState& state) {
+template <typename Config>
+bool WorldCarver<Config>::isCarvable(const BlockState& state)
+{
     // 参考 MC WorldCarver.carvableBlocks（MC 1.16.5）
     // 原版列表：STONE, GRANITE, DIORITE, ANDESITE, DIRT, COARSE_DIRT, PODZOL,
     // GRASS_BLOCK, TERRACOTTA (及所有染色陶瓦), SANDSTONE, RED_SANDSTONE,
     // MYCELIUM, SNOW, PACKED_ICE
 
     // 石头变种
-    if (state.is(VanillaBlocks::STONE) ||
-        state.is(VanillaBlocks::GRANITE) ||
-        state.is(VanillaBlocks::DIORITE) ||
+    if (state.is(VanillaBlocks::STONE) || state.is(VanillaBlocks::GRANITE) || state.is(VanillaBlocks::DIORITE) ||
         state.is(VanillaBlocks::ANDESITE)) {
         return true;
     }
 
     // 泥土类
-    if (state.is(VanillaBlocks::DIRT) ||
-        state.is(VanillaBlocks::COARSE_DIRT) ||
-        state.is(VanillaBlocks::PODZOL) ||
+    if (state.is(VanillaBlocks::DIRT) || state.is(VanillaBlocks::COARSE_DIRT) || state.is(VanillaBlocks::PODZOL) ||
         state.is(VanillaBlocks::GRASS_BLOCK)) {
         return true;
     }
 
     // 陶瓦（包括染色陶瓦）
-    if (state.is(VanillaBlocks::TERRACOTTA) ||
-        state.is(VanillaBlocks::WHITE_TERRACOTTA) ||
-        state.is(VanillaBlocks::ORANGE_TERRACOTTA) ||
-        state.is(VanillaBlocks::MAGENTA_TERRACOTTA) ||
-        state.is(VanillaBlocks::LIGHT_BLUE_TERRACOTTA) ||
-        state.is(VanillaBlocks::YELLOW_TERRACOTTA) ||
-        state.is(VanillaBlocks::LIME_TERRACOTTA) ||
-        state.is(VanillaBlocks::PINK_TERRACOTTA) ||
-        state.is(VanillaBlocks::GRAY_TERRACOTTA) ||
-        state.is(VanillaBlocks::LIGHT_GRAY_TERRACOTTA) ||
-        state.is(VanillaBlocks::CYAN_TERRACOTTA) ||
-        state.is(VanillaBlocks::PURPLE_TERRACOTTA) ||
-        state.is(VanillaBlocks::BLUE_TERRACOTTA) ||
-        state.is(VanillaBlocks::BROWN_TERRACOTTA) ||
-        state.is(VanillaBlocks::GREEN_TERRACOTTA) ||
-        state.is(VanillaBlocks::RED_TERRACOTTA) ||
+    if (state.is(VanillaBlocks::TERRACOTTA) || state.is(VanillaBlocks::WHITE_TERRACOTTA) ||
+        state.is(VanillaBlocks::ORANGE_TERRACOTTA) || state.is(VanillaBlocks::MAGENTA_TERRACOTTA) ||
+        state.is(VanillaBlocks::LIGHT_BLUE_TERRACOTTA) || state.is(VanillaBlocks::YELLOW_TERRACOTTA) ||
+        state.is(VanillaBlocks::LIME_TERRACOTTA) || state.is(VanillaBlocks::PINK_TERRACOTTA) ||
+        state.is(VanillaBlocks::GRAY_TERRACOTTA) || state.is(VanillaBlocks::LIGHT_GRAY_TERRACOTTA) ||
+        state.is(VanillaBlocks::CYAN_TERRACOTTA) || state.is(VanillaBlocks::PURPLE_TERRACOTTA) ||
+        state.is(VanillaBlocks::BLUE_TERRACOTTA) || state.is(VanillaBlocks::BROWN_TERRACOTTA) ||
+        state.is(VanillaBlocks::GREEN_TERRACOTTA) || state.is(VanillaBlocks::RED_TERRACOTTA) ||
         state.is(VanillaBlocks::BLACK_TERRACOTTA)) {
         return true;
     }
 
     // 沙子和砂岩
-    if (state.is(VanillaBlocks::SAND) ||
-        state.is(VanillaBlocks::RED_SAND) ||
-        state.is(VanillaBlocks::SANDSTONE) ||
+    if (state.is(VanillaBlocks::SAND) || state.is(VanillaBlocks::RED_SAND) || state.is(VanillaBlocks::SANDSTONE) ||
         state.is(VanillaBlocks::RED_SANDSTONE)) {
         return true;
     }
 
     // 其他可雕刻方块
-    if (state.is(VanillaBlocks::MYCELIUM) ||
-        state.is(VanillaBlocks::SNOW) ||
-        state.is(VanillaBlocks::PACKED_ICE)) {
+    if (state.is(VanillaBlocks::MYCELIUM) || state.is(VanillaBlocks::SNOW) || state.is(VanillaBlocks::PACKED_ICE)) {
         return true;
     }
 
     return false;
 }
 
-template<typename Config>
-bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockState* aboveState) const {
+template <typename Config>
+bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockState* aboveState) const
+{
     if (!state) {
         return false;
     }
@@ -121,7 +108,8 @@ bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockStat
     }
 
     // 沙子和沙砾可以在特定条件下雕刻
-    // 参考 MC: (state.isIn(Blocks.SAND) || state.isIn(Blocks.GRAVEL)) && !aboveState.getFluidState().isTagged(FluidTags.WATER)
+    // 参考 MC: (state.isIn(Blocks.SAND) || state.isIn(Blocks.GRAVEL)) &&
+    // !aboveState.getFluidState().isTagged(FluidTags.WATER)
     bool isSandOrGravel = state->is(VanillaBlocks::SAND) || state->is(VanillaBlocks::GRAVEL);
     if (isSandOrGravel && aboveState) {
         return !aboveState->isLiquid();
@@ -130,15 +118,17 @@ bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockStat
     return false;
 }
 
-template<typename Config>
-bool WorldCarver<Config>::carveEllipsoid(
-    ChunkPrimer& chunk,
+template <typename Config>
+bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     const BiomeProvider& /*biomeProvider*/,
     i32 /*seaLevel*/,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
-    f32 centerX, f32 centerY, f32 centerZ,
-    f32 horizontalRadius, f32 verticalRadius,
+    f32 centerX,
+    f32 centerY,
+    f32 centerZ,
+    f32 horizontalRadius,
+    f32 verticalRadius,
     CarvingMask& carvingMask,
     i64 seed)
 {
@@ -157,8 +147,7 @@ bool WorldCarver<Config>::carveEllipsoid(
     const i32 chunkEndZ = chunkStartZ + 15;
 
     // 检查椭球是否在区块范围外
-    if (endX < chunkStartX - 16 || startX > chunkEndX + 16 ||
-        endZ < chunkStartZ - 16 || startZ > chunkEndZ + 16) {
+    if (endX < chunkStartX - 16 || startX > chunkEndX + 16 || endZ < chunkStartZ - 16 || startZ > chunkEndZ + 16) {
         return false;
     }
 
@@ -169,9 +158,15 @@ bool WorldCarver<Config>::carveEllipsoid(
     const i32 localMaxZ = std::min(15, endZ - chunkStartZ);
 
     // 检查是否有水（避免水下雕刻）
-    if (checkAreaForFluid(chunk, chunkX, chunkZ, localMinX, localMaxX + 1,
-                          std::max(1, startY), std::min(m_maxHeight - 8, endY),
-                          localMinZ, localMaxZ + 1)) {
+    if (checkAreaForFluid(chunk,
+            chunkX,
+            chunkZ,
+            localMinX,
+            localMaxX + 1,
+            std::max(1, startY),
+            std::min(m_maxHeight - 8, endY),
+            localMinZ,
+            localMaxZ + 1)) {
         return false;
     }
 
@@ -218,7 +213,8 @@ bool WorldCarver<Config>::carveEllipsoid(
                 }
 
                 // 获取上方方块
-                const BlockState* aboveState = (y < world::MAX_BUILD_HEIGHT - 1) ? chunk.getBlockState(lx, y + 1, lz) : nullptr;
+                const BlockState* aboveState =
+                    (y < world::MAX_BUILD_HEIGHT - 1) ? chunk.getBlockState(lx, y + 1, lz) : nullptr;
 
                 // 检查是否可以雕刻
                 if (!canCarveBlock(state, aboveState)) {
@@ -261,12 +257,9 @@ bool WorldCarver<Config>::carveEllipsoid(
     return carved;
 }
 
-template<typename Config>
+template <typename Config>
 bool WorldCarver<Config>::isInCarvingRange(
-    ChunkCoord chunkX, ChunkCoord chunkZ,
-    f32 x, f32 z,
-    i32 step, i32 maxSteps,
-    f32 radius)
+    ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius)
 {
     // 参考 MC WorldCarver.func_222702_a_
     const f32 chunkCenterX = static_cast<f32>(chunkX * 16 + 8);
@@ -281,13 +274,16 @@ bool WorldCarver<Config>::isInCarvingRange(
     return dx * dx + dz * dz - remainingSteps * remainingSteps <= maxDist * maxDist;
 }
 
-template<typename Config>
-bool WorldCarver<Config>::checkAreaForFluid(
-    ChunkPrimer& chunk,
-    ChunkCoord /*chunkX*/, ChunkCoord /*chunkZ*/,
-    i32 minX, i32 maxX,
-    i32 minY, i32 maxY,
-    i32 minZ, i32 maxZ) const
+template <typename Config>
+bool WorldCarver<Config>::checkAreaForFluid(ChunkPrimer& chunk,
+    ChunkCoord /*chunkX*/,
+    ChunkCoord /*chunkZ*/,
+    i32 minX,
+    i32 maxX,
+    i32 minY,
+    i32 maxY,
+    i32 minZ,
+    i32 maxZ) const
 {
     // 参考 MC WorldCarver.func_222700_a_
     // 检查区域内是否有液体（水/熔岩）

@@ -1,26 +1,26 @@
 #pragma once
 
-#include "DataParameter.hpp"
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
+#include "../../core/Types.hpp"
+#include "DataParameter.hpp"
+#include <any>
+#include <mutex>
 #include <unordered_map>
 #include <variant>
 #include <vector>
-#include <mutex>
-#include <any>
 
 namespace mc::entity {
 
 // 引入 mc 命名空间的类型
-using mc::u16;
-using mc::i8;
+using mc::f32;
 using mc::i32;
 using mc::i64;
-using mc::f32;
+using mc::i8;
+using mc::u16;
 
-using mc::Vector3i;
 using mc::Vector2f;
 using mc::Vector3f;
+using mc::Vector3i;
 
 /**
  * @brief 数据参数值包装
@@ -30,43 +30,33 @@ using mc::Vector3f;
 class DataValue {
 public:
     // 支持的数据类型
-    using ValueType = std::variant<
-        i8,
-        i32,
-        i64,
-        f32,
-        std::string,
-        bool,
-        Vector3i,
-        Vector2f,
-        Vector3f
-    >;
+    using ValueType = std::variant<i8, i32, i64, f32, std::string, bool, Vector3i, Vector2f, Vector3f>;
 
     DataValue() = default;
 
-    template<typename T>
-    explicit DataValue(T value) : m_value(value) {}
+    template <typename T>
+    explicit DataValue(T value)
+        : m_value(value)
+    {}
 
-    template<typename T>
-    [[nodiscard]] T get() const {
+    template <typename T>
+    [[nodiscard]] T get() const
+    {
         return std::get<T>(m_value);
     }
 
-    template<typename T>
-    void set(T value) {
+    template <typename T>
+    void set(T value)
+    {
         m_value = value;
     }
 
     [[nodiscard]] const ValueType& value() const { return m_value; }
     [[nodiscard]] size_t index() const { return m_value.index(); }
 
-    bool operator==(const DataValue& other) const {
-        return m_value == other.m_value;
-    }
+    bool operator==(const DataValue& other) const { return m_value == other.m_value; }
 
-    bool operator!=(const DataValue& other) const {
-        return m_value != other.m_value;
-    }
+    bool operator!=(const DataValue& other) const { return m_value != other.m_value; }
 
 private:
     ValueType m_value;
@@ -118,8 +108,9 @@ public:
      *
      * 线程安全，ID自动递增
      */
-    template<typename T>
-    static DataParameter<T> createKey() {
+    template <typename T>
+    static DataParameter<T> createKey()
+    {
         std::lock_guard<std::mutex> lock(s_mutex);
         return DataParameter<T>(s_nextId++);
     }
@@ -133,8 +124,9 @@ public:
      *
      * 必须在使用前注册所有参数
      */
-    template<typename T>
-    void registerParam(DataParameter<T> param, T defaultValue) {
+    template <typename T>
+    void registerParam(DataParameter<T> param, T defaultValue)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_entries[param.id()] = DataEntry{DataValue(defaultValue), false};
     }
@@ -146,8 +138,9 @@ public:
      *
      * 如果值发生变化，标记为脏数据
      */
-    template<typename T>
-    void set(DataParameter<T> param, T value) {
+    template <typename T>
+    void set(DataParameter<T> param, T value)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_entries.find(param.id());
         if (it == m_entries.end()) {
@@ -169,7 +162,8 @@ public:
      * @param value 新值
      * @return 如果值发生变化则返回 true
      */
-    bool setRaw(u16 id, const DataValue& value) {
+    bool setRaw(u16 id, const DataValue& value)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_entries.find(id);
         if (it == m_entries.end()) {
@@ -192,8 +186,9 @@ public:
      * @param param 参数键
      * @return 参数值
      */
-    template<typename T>
-    [[nodiscard]] T get(DataParameter<T> param) const {
+    template <typename T>
+    [[nodiscard]] T get(DataParameter<T> param) const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_entries.find(param.id());
         if (it == m_entries.end()) {
@@ -207,7 +202,8 @@ public:
      * @param id 参数ID
      * @return 数据值指针，如果不存在返回 nullptr
      */
-    [[nodiscard]] const DataValue* getRaw(u16 id) const {
+    [[nodiscard]] const DataValue* getRaw(u16 id) const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_entries.find(id);
         if (it == m_entries.end()) {
@@ -220,7 +216,8 @@ public:
      * @brief 检查参数是否存在
      * @param id 参数ID
      */
-    [[nodiscard]] bool hasParam(u16 id) const {
+    [[nodiscard]] bool hasParam(u16 id) const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_entries.find(id) != m_entries.end();
     }
@@ -229,7 +226,8 @@ public:
      * @brief 获取所有脏数据条目
      * @return 脏数据ID列表
      */
-    [[nodiscard]] std::vector<u16> getDirtyParams() const {
+    [[nodiscard]] std::vector<u16> getDirtyParams() const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         std::vector<u16> dirty;
         for (const auto& [id, entry] : m_entries) {
@@ -244,7 +242,8 @@ public:
      * @brief 清除脏标记
      * @param id 参数ID，如果为空则清除所有
      */
-    void clearDirty(u16 id = 0xFFFF) {
+    void clearDirty(u16 id = 0xFFFF)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         if (id == 0xFFFF) {
             for (auto& [entryId, entry] : m_entries) {
@@ -261,7 +260,8 @@ public:
     /**
      * @brief 检查是否有脏数据
      */
-    [[nodiscard]] bool hasDirtyData() const {
+    [[nodiscard]] bool hasDirtyData() const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (const auto& [id, entry] : m_entries) {
             if (entry.dirty) {
@@ -274,15 +274,14 @@ public:
     /**
      * @brief 获取所有数据条目（用于序列化）
      */
-    [[nodiscard]] const std::unordered_map<u16, DataEntry>& getAllEntries() const {
-        return m_entries;
-    }
+    [[nodiscard]] const std::unordered_map<u16, DataEntry>& getAllEntries() const { return m_entries; }
 
     /**
      * @brief 从其他管理器复制数据
      * @param other 源管理器
      */
-    void copyFrom(const EntityDataManager& other) {
+    void copyFrom(const EntityDataManager& other)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         std::lock_guard<std::mutex> otherLock(other.m_mutex);
         m_entries = other.m_entries;

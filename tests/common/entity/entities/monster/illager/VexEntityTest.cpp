@@ -1,18 +1,18 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/monster/illager/VexEntity.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/illager/VexEntity.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 
@@ -36,10 +36,12 @@ public:
 
     void advanceTick() { m_currentTick++; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("VexTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("VexTestWorld::tickManager not implemented");
     }
 
@@ -53,7 +55,8 @@ private:
 // VexEntity 基础测试
 // ============================================================================
 
-TEST(VexEntityTest, Construction) {
+TEST(VexEntityTest, Construction)
+{
     // 使用 Unknown 类型，因为 Vex 没有在 LegacyEntityType 中定义
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
@@ -71,7 +74,8 @@ TEST(VexEntityTest, Construction) {
     EXPECT_EQ(vex.getOwner(), nullptr);
 }
 
-TEST(VexEntityTest, LifeTimeSettings) {
+TEST(VexEntityTest, LifeTimeSettings)
+{
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
     // 测试生命时间设置
@@ -86,7 +90,8 @@ TEST(VexEntityTest, LifeTimeSettings) {
     EXPECT_TRUE(vex.hasLimitedLife());
 }
 
-TEST(VexEntityTest, OwnerSettings) {
+TEST(VexEntityTest, OwnerSettings)
+{
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
     // 恼鬼可以设置主人（唤魔者）
@@ -99,7 +104,8 @@ TEST(VexEntityTest, OwnerSettings) {
     EXPECT_EQ(vex.getOwner(), nullptr);
 }
 
-TEST(VexEntityTest, ChargingState) {
+TEST(VexEntityTest, ChargingState)
+{
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
     // 默认不充电
@@ -113,7 +119,8 @@ TEST(VexEntityTest, ChargingState) {
     EXPECT_FALSE(vex.isCharging());
 }
 
-TEST(VexEntityTest, Attributes) {
+TEST(VexEntityTest, Attributes)
+{
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
     // 注册属性后检查
@@ -124,7 +131,8 @@ TEST(VexEntityTest, Attributes) {
     EXPECT_FLOAT_EQ(static_cast<f32>(vex.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE)), 4.0f);
 }
 
-TEST(VexEntityTest, NoClipDuringTick) {
+TEST(VexEntityTest, NoClipDuringTick)
+{
     // 这个测试验证 noClip 标志的正确设置
     // 注意：tick() 需要完整的世界初始化，这里只测试标志的设置和获取
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
@@ -141,7 +149,8 @@ TEST(VexEntityTest, NoClipDuringTick) {
     EXPECT_FALSE(vex.noClip());
 }
 
-TEST(VexEntityTest, NoGravitySetting) {
+TEST(VexEntityTest, NoGravitySetting)
+{
     // 这个测试验证 noGravity 标志的正确设置
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
@@ -154,7 +163,8 @@ TEST(VexEntityTest, NoGravitySetting) {
     EXPECT_FALSE(vex.hasNoGravity());
 }
 
-TEST(VexEntityTest, LifeTimeDecreases) {
+TEST(VexEntityTest, LifeTimeDecreases)
+{
     // 注意：m_limitedLife 和 m_lifeTime 是私有成员
     // 这里只测试公共接口
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
@@ -174,21 +184,24 @@ TEST(VexEntityTest, LifeTimeDecreases) {
     EXPECT_FALSE(vex.hasLimitedLife());
 }
 
-TEST(VexEntityTest, CanFly) {
+TEST(VexEntityTest, CanFly)
+{
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
     // 恼鬼可以飞行
     EXPECT_TRUE(vex.canFly());
 }
 
-TEST(VexEntityTest, ShouldNotBurnInDaylight) {
+TEST(VexEntityTest, ShouldNotBurnInDaylight)
+{
     VexEntity vex(LegacyEntityType::Unknown, EntityId(1));
 
     // 恼鬼不会在日光下燃烧
     EXPECT_FALSE(vex.shouldBurnInDaylight());
 }
 
-TEST(VexEntityTest, CreateFactory) {
+TEST(VexEntityTest, CreateFactory)
+{
     auto entity = VexEntity::create(nullptr);
     ASSERT_NE(entity, nullptr);
 

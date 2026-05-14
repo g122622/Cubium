@@ -4,8 +4,8 @@
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/model/animal/CatModel.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <memory>
 #include <array>
+#include <memory>
 
 namespace mc {
 class CatEntity;

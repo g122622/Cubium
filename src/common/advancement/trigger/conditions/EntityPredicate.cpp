@@ -6,7 +6,8 @@ namespace mc::advancement {
 
 // ========== MobEffectsPredicate ==========
 
-bool MobEffectsPredicate::test(const Entity& entity) const {
+bool MobEffectsPredicate::test(const Entity& entity) const
+{
     if (m_isAny) {
         return true;
     }
@@ -14,18 +15,21 @@ bool MobEffectsPredicate::test(const Entity& entity) const {
     return true;
 }
 
-Result<MobEffectsPredicate> MobEffectsPredicate::fromJson(const nlohmann::json& json) {
+Result<MobEffectsPredicate> MobEffectsPredicate::fromJson(const nlohmann::json& json)
+{
     MC_UNUSED(json);
     return MobEffectsPredicate{};
 }
 
-nlohmann::json MobEffectsPredicate::toJson() const {
+nlohmann::json MobEffectsPredicate::toJson() const
+{
     return nullptr;
 }
 
 // ========== EntityPredicate ==========
 
-bool EntityPredicate::test(const Entity& entity) const {
+bool EntityPredicate::test(const Entity& entity) const
+{
     if (m_isAny) {
         return true;
     }
@@ -40,12 +44,14 @@ bool EntityPredicate::test(const Entity& entity) const {
     return true;
 }
 
-bool EntityPredicate::test(const Entity& entity, const DamageSource& source) const {
+bool EntityPredicate::test(const Entity& entity, const DamageSource& source) const
+{
     MC_UNUSED(source);
     return test(entity);
 }
 
-Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json) {
+Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return EntityPredicate{};
     }
@@ -64,7 +70,8 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json) {
     return predicate;
 }
 
-nlohmann::json EntityPredicate::toJson() const {
+nlohmann::json EntityPredicate::toJson() const
+{
     if (m_isAny) {
         return nullptr;
     }
@@ -78,7 +85,8 @@ nlohmann::json EntityPredicate::toJson() const {
 
 // ========== DamageSourcePredicate ==========
 
-bool DamageSourcePredicate::test(const DamageSource& source) const {
+bool DamageSourcePredicate::test(const DamageSource& source) const
+{
     if (m_isAny) {
         return true;
     }
@@ -87,12 +95,14 @@ bool DamageSourcePredicate::test(const DamageSource& source) const {
     return true;
 }
 
-Result<DamageSourcePredicate> DamageSourcePredicate::fromJson(const nlohmann::json& json) {
+Result<DamageSourcePredicate> DamageSourcePredicate::fromJson(const nlohmann::json& json)
+{
     MC_UNUSED(json);
     return DamageSourcePredicate{};
 }
 
-nlohmann::json DamageSourcePredicate::toJson() const {
+nlohmann::json DamageSourcePredicate::toJson() const
+{
     return nullptr;
 }
 

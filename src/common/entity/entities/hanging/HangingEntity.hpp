@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Entity.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../core/Entity.hpp"
 #include <string>
 
 namespace mc {
@@ -24,12 +24,7 @@ public:
     /**
      * @brief 悬挂方向
      */
-    enum class Direction : u8 {
-        SOUTH = 0,
-        WEST = 1,
-        NORTH = 2,
-        EAST = 3
-    };
+    enum class Direction : u8 { SOUTH = 0, WEST = 1, NORTH = 2, EAST = 3 };
 
     HangingEntity();
     HangingEntity(BlockPos pos, Direction direction);

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "../BlockEntity.hpp"
-#include "../../block/Block.hpp"
 #include "../../../util/Direction.hpp"
+#include "../../block/Block.hpp"
+#include "../BlockEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -40,11 +40,7 @@ public:
      * @param shouldRenderHead 是否渲染活塞头
      */
     PistonBlockEntity(
-        const BlockPos& pos,
-        const BlockState* pistonState,
-        Direction facing,
-        bool extending,
-        bool shouldRenderHead);
+        const BlockPos& pos, const BlockState* pistonState, Direction facing, bool extending, bool shouldRenderHead);
 
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
@@ -97,7 +93,6 @@ public:
     [[nodiscard]] float getExtendedProgress(float progress) const;
 
 private:
-
     /**
      * @brief 推动本 tick 与活塞运动体积相交的实体。
      * @param world 世界引用

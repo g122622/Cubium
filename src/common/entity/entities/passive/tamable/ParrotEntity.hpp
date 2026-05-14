@@ -19,13 +19,7 @@ public:
     /**
      * @brief 鹦鹉变种
      */
-    enum class ParrotVariant : u8 {
-        RedBlue = 0,
-        Blue = 1,
-        Green = 2,
-        YellowBlue = 3,
-        Gray = 4
-    };
+    enum class ParrotVariant : u8 { RedBlue = 0, Blue = 1, Green = 2, YellowBlue = 3, Gray = 4 };
 
     /**
      * @brief 构造鹦鹉实体

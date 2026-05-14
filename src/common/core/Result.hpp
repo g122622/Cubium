@@ -2,12 +2,12 @@
 
 #include "Types.hpp"
 
-#include <string>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <stdexcept>
-#include <functional>
+#include <string>
 #include <type_traits>
-#include <memory>
 
 #include <spdlog/spdlog.h>
 
@@ -141,15 +141,9 @@ public:
     [[nodiscard]] const std::string& message() const noexcept { return m_message; }
     [[nodiscard]] const std::string& source() const noexcept { return m_source; }
 
-    [[nodiscard]] bool success() const noexcept
-    {
-        return m_code == ErrorCode::Success;
-    }
+    [[nodiscard]] bool success() const noexcept { return m_code == ErrorCode::Success; }
 
-    [[nodiscard]] bool failed() const noexcept
-    {
-        return m_code != ErrorCode::Success;
-    }
+    [[nodiscard]] bool failed() const noexcept { return m_code != ErrorCode::Success; }
 
     [[nodiscard]] std::string toString() const
     {
@@ -162,30 +156,15 @@ public:
     // 静态工厂方法
     static Error ok() { return Error(ErrorCode::Success); }
 
-    static Error unknown(std::string_view message = "")
-    {
-        return Error(ErrorCode::Unknown, message);
-    }
+    static Error unknown(std::string_view message = "") { return Error(ErrorCode::Unknown, message); }
 
-    static Error invalidArgument(std::string_view message = "")
-    {
-        return Error(ErrorCode::InvalidArgument, message);
-    }
+    static Error invalidArgument(std::string_view message = "") { return Error(ErrorCode::InvalidArgument, message); }
 
-    static Error notFound(std::string_view message = "")
-    {
-        return Error(ErrorCode::NotFound, message);
-    }
+    static Error notFound(std::string_view message = "") { return Error(ErrorCode::NotFound, message); }
 
-    static Error fileNotFound(std::string_view path = "")
-    {
-        return Error(ErrorCode::FileNotFound, path);
-    }
+    static Error fileNotFound(std::string_view path = "") { return Error(ErrorCode::FileNotFound, path); }
 
-    static Error connectionFailed(std::string_view message = "")
-    {
-        return Error(ErrorCode::ConnectionFailed, message);
-    }
+    static Error connectionFailed(std::string_view message = "") { return Error(ErrorCode::ConnectionFailed, message); }
 
 private:
     [[nodiscard]] std::string formatError() const
@@ -226,27 +205,24 @@ private:
  * }
  * @endcode
  */
-template<typename T>
+template <typename T>
 class Result {
 public:
     // 构造函数
     Result() = delete;
 
-    template<typename U,
-             typename = std::enable_if_t<std::is_constructible_v<T, U&&> &&
-                                         !std::is_same_v<std::decay_t<U>, Result> &&
-                                         !std::is_same_v<std::decay_t<U>, Error>>>
+    template <typename U,
+        typename = std::enable_if_t<std::is_constructible_v<T, U&&> && !std::is_same_v<std::decay_t<U>, Result> &&
+            !std::is_same_v<std::decay_t<U>, Error>>>
     Result(U&& value) // NOLINT: 允许隐式转换
         : m_value(std::in_place, std::forward<U>(value))
         , m_success(true)
-    {
-    }
+    {}
 
     Result(Error error) // NOLINT: 允许隐式转换
         : m_error(std::move(error))
         , m_success(false)
-    {
-    }
+    {}
 
     // 拷贝和移动
     Result(const Result&) = delete;
@@ -255,20 +231,11 @@ public:
     Result& operator=(Result&&) noexcept = default;
 
     // 查询状态
-    [[nodiscard]] bool success() const noexcept
-    {
-        return m_success;
-    }
+    [[nodiscard]] bool success() const noexcept { return m_success; }
 
-    [[nodiscard]] bool failed() const noexcept
-    {
-        return !success();
-    }
+    [[nodiscard]] bool failed() const noexcept { return !success(); }
 
-    [[nodiscard]] explicit operator bool() const noexcept
-    {
-        return success();
-    }
+    [[nodiscard]] explicit operator bool() const noexcept { return success(); }
 
     // 获取值
     [[nodiscard]] T& value() &
@@ -296,24 +263,15 @@ public:
     }
 
     // 获取值或默认值
-    [[nodiscard]] T valueOr(T defaultValue) const&
-    {
-        return success() ? value() : std::move(defaultValue);
-    }
+    [[nodiscard]] T valueOr(T defaultValue) const& { return success() ? value() : std::move(defaultValue); }
 
-    [[nodiscard]] T valueOr(T defaultValue) &&
-    {
-        return success() ? std::move(value()) : std::move(defaultValue);
-    }
+    [[nodiscard]] T valueOr(T defaultValue) && { return success() ? std::move(value()) : std::move(defaultValue); }
 
     // 获取错误
-    [[nodiscard]] const Error& error() const noexcept
-    {
-        return m_success ? m_successError : m_error;
-    }
+    [[nodiscard]] const Error& error() const noexcept { return m_success ? m_successError : m_error; }
 
     // 转换操作
-    template<typename U>
+    template <typename U>
     [[nodiscard]] Result<U> map(std::function<U(const T&)> f) const&
     {
         if (success()) {
@@ -322,7 +280,7 @@ public:
         return error();
     }
 
-    template<typename U>
+    template <typename U>
     [[nodiscard]] Result<U> map(std::function<U(T)> f) &&
     {
         if (success()) {
@@ -342,19 +300,17 @@ private:
 // Result<void> 特化
 // ============================================================================
 
-template<>
+template <>
 class Result<void> {
 public:
     Result()
         : m_success(true)
-    {
-    }
+    {}
 
     Result(Error error) // NOLINT: 允许隐式转换
         : m_error(std::move(error))
         , m_success(false)
-    {
-    }
+    {}
 
     // 拷贝和移动
     Result(const Result&) = default;
@@ -382,7 +338,7 @@ private:
 // Result<std::unique_ptr<T>> 特化
 // ============================================================================
 
-template<typename T, typename Deleter>
+template <typename T, typename Deleter>
 class Result<std::unique_ptr<T, Deleter>> {
 public:
     Result() = delete;
@@ -391,14 +347,12 @@ public:
         : m_value(value.release())
         , m_deleter(std::move(value.get_deleter()))
         , m_success(true)
-    {
-    }
+    {}
 
     Result(Error error) // NOLINT: 允许隐式转换
         : m_error(std::move(error))
         , m_success(false)
-    {
-    }
+    {}
 
     Result(const Result&) = delete;
     Result(Result&&) noexcept = default;
@@ -433,10 +387,7 @@ public:
         return takeValue();
     }
 
-    [[nodiscard]] const Error& error() const noexcept
-    {
-        return m_success ? m_successError : m_error;
-    }
+    [[nodiscard]] const Error& error() const noexcept { return m_success ? m_successError : m_error; }
 
 private:
     [[nodiscard]] std::unique_ptr<T, Deleter> takeValue()
@@ -471,20 +422,20 @@ private:
  * }
  * @endcode
  */
-#define MC_TRY(expr)               \
-    do {                           \
-        auto _result = (expr);     \
-        if (_result.failed()) {    \
+#define MC_TRY(expr)                \
+    do {                            \
+        auto _result = (expr);      \
+        if (_result.failed()) {     \
             return _result.error(); \
-        }                          \
+        }                           \
     } while (0)
 
-#define MC_TRY_ASSIGN(var, expr) \
-    do {                         \
-        auto _result = (expr);   \
-        if (_result.failed()) {  \
-            return _result.error(); \
-        }                        \
+#define MC_TRY_ASSIGN(var, expr)          \
+    do {                                  \
+        auto _result = (expr);            \
+        if (_result.failed()) {           \
+            return _result.error();       \
+        }                                 \
         var = std::move(_result.value()); \
     } while (0)
 

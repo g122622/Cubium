@@ -7,7 +7,8 @@ namespace layer {
 // AddIslandLayer 实现
 // ============================================================================
 
-i32 AddIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 ne, i32 nw, i32 center) {
+i32 AddIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 ne, i32 nw, i32 center)
+{
     // 参考 MC AddIslandLayer.apply:
     // 参数顺序在 MC 中是: x(south), southEast, east(northEast), northEast(northEast被重用), center
     // 实际传入的是: x坐标, south, southEast, east, northEast, center
@@ -21,7 +22,8 @@ i32 AddIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 ne, i32 
     // x (sw) = 西南 (MC 命名为 south)
 
     // 参考 MC AddIslandLayer:
-    // if (!LayerUtil.isShallowOcean(center) || isShallowOcean(nw) && isShallowOcean(ne) && isShallowOcean(sw) && isShallowOcean(se)) {
+    // if (!LayerUtil.isShallowOcean(center) || isShallowOcean(nw) && isShallowOcean(ne) && isShallowOcean(sw) &&
+    // isShallowOcean(se)) {
     //     // 陆地或周围都是海洋，保持不变或向海洋扩展
     //     ...
     // } else {
@@ -31,15 +33,13 @@ i32 AddIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 ne, i32 
 
     // 如果中心不是浅海，或者四角都是浅海
     if (!BiomeValues::isShallowOcean(center) ||
-        (BiomeValues::isShallowOcean(nw) && BiomeValues::isShallowOcean(ne) &&
-         BiomeValues::isShallowOcean(sw) && BiomeValues::isShallowOcean(se))) {
+        (BiomeValues::isShallowOcean(nw) && BiomeValues::isShallowOcean(ne) && BiomeValues::isShallowOcean(sw) &&
+            BiomeValues::isShallowOcean(se))) {
 
         // 如果中心不是浅海且周围有浅海，有概率向海洋扩展
         if (!BiomeValues::isShallowOcean(center)) {
-            bool hasShallowOceanNeighbor = BiomeValues::isShallowOcean(nw) ||
-                                            BiomeValues::isShallowOcean(ne) ||
-                                            BiomeValues::isShallowOcean(sw) ||
-                                            BiomeValues::isShallowOcean(se);
+            bool hasShallowOceanNeighbor = BiomeValues::isShallowOcean(nw) || BiomeValues::isShallowOcean(ne) ||
+                BiomeValues::isShallowOcean(sw) || BiomeValues::isShallowOcean(se);
 
             if (hasShallowOceanNeighbor && ctx.nextInt(5) == 0) {
                 // 选择一个陆地方向
@@ -91,7 +91,8 @@ i32 AddIslandLayer::apply(IAreaContext& ctx, i32 x, i32 sw, i32 se, i32 ne, i32 
 // AddSnowLayer 实现
 // ============================================================================
 
-i32 AddSnowLayer::apply(IAreaContext& ctx, i32 value) {
+i32 AddSnowLayer::apply(IAreaContext& ctx, i32 value)
+{
     // 参考 MC AddSnowLayer.apply:
     // if (LayerUtil.isShallowOcean(value)) {
     //     return value;
@@ -112,11 +113,11 @@ i32 AddSnowLayer::apply(IAreaContext& ctx, i32 value) {
     // 陆地：分配温度区域
     i32 rnd = ctx.nextInt(6);
     if (rnd == 0) {
-        return BiomeValues::Climate::Icy;    // 冰冻区域 (4)
+        return BiomeValues::Climate::Icy; // 冰冻区域 (4)
     } else if (rnd == 1) {
-        return BiomeValues::Climate::Cool;   // 凉爽区域 (3)
+        return BiomeValues::Climate::Cool; // 凉爽区域 (3)
     } else {
-        return BiomeValues::Climate::Warm;   // 温暖区域 (1)
+        return BiomeValues::Climate::Warm; // 温暖区域 (1)
         // 注意：MC 默认返回 1（温暖），实际上中等温度 (2) 由后续层处理
     }
 }
@@ -125,18 +126,16 @@ i32 AddSnowLayer::apply(IAreaContext& ctx, i32 value) {
 // RemoveTooMuchOceanLayer 实现
 // ============================================================================
 
-i32 RemoveTooMuchOceanLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) {
+i32 RemoveTooMuchOceanLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center)
+{
     // 参考 MC RemoveTooMuchOceanLayer.apply:
     // return LayerUtil.isShallowOcean(center) && LayerUtil.isShallowOcean(north) &&
     //        LayerUtil.isShallowOcean(west) && LayerUtil.isShallowOcean(east) &&
     //        LayerUtil.isShallowOcean(south) && context.random(2) == 0 ? 1 : center;
 
     // 如果中心和四个方向都是浅海，有 50% 概率变成陆地
-    if (BiomeValues::isShallowOcean(center) &&
-        BiomeValues::isShallowOcean(north) &&
-        BiomeValues::isShallowOcean(east) &&
-        BiomeValues::isShallowOcean(south) &&
-        BiomeValues::isShallowOcean(west)) {
+    if (BiomeValues::isShallowOcean(center) && BiomeValues::isShallowOcean(north) &&
+        BiomeValues::isShallowOcean(east) && BiomeValues::isShallowOcean(south) && BiomeValues::isShallowOcean(west)) {
         return ctx.nextInt(2) == 0 ? 1 : center;
     }
 
@@ -147,7 +146,8 @@ i32 RemoveTooMuchOceanLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 s
 // DeepOceanLayer 实现
 // ============================================================================
 
-i32 DeepOceanLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) {
+i32 DeepOceanLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center)
+{
     // 参考 MC DeepOceanLayer.apply:
     // if (LayerUtil.isShallowOcean(center)) {
     //     int i = 0;
@@ -177,17 +177,17 @@ i32 DeepOceanLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32
         if (count > 3) {
             switch (center) {
                 case BiomeValues::WarmOcean:
-                    return BiomeValues::DeepWarmOcean;     // 44 -> 47
+                    return BiomeValues::DeepWarmOcean; // 44 -> 47
                 case BiomeValues::LukewarmOcean:
                     return BiomeValues::DeepLukewarmOcean; // 45 -> 48
                 case BiomeValues::Ocean:
-                    return BiomeValues::DeepOcean;         // 0 -> 24
+                    return BiomeValues::DeepOcean; // 0 -> 24
                 case BiomeValues::ColdOcean:
-                    return BiomeValues::DeepColdOcean;     // 46 -> 49
+                    return BiomeValues::DeepColdOcean; // 46 -> 49
                 case BiomeValues::FrozenOcean:
-                    return BiomeValues::DeepFrozenOcean;   // 10 -> 50
+                    return BiomeValues::DeepFrozenOcean; // 10 -> 50
                 default:
-                    return BiomeValues::DeepOcean;         // 默认深海
+                    return BiomeValues::DeepOcean; // 默认深海
             }
         }
     }

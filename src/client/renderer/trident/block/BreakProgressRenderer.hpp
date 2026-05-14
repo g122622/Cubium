@@ -3,9 +3,9 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include <vulkan/vulkan.h>
-#include <vector>
 #include <memory>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class ResourceManager;
@@ -42,8 +42,8 @@ public:
      * @brief 顶点格式
      */
     struct Vertex {
-        f32 x, y, z;       // 位置
-        f32 u, v;          // UV坐标
+        f32 x, y, z; // 位置
+        f32 u, v;    // UV坐标
     };
 
     /**
@@ -58,7 +58,7 @@ public:
         VkDescriptorSetLayout cameraLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout fogLayout = VK_NULL_HANDLE;
         u32 maxFramesInFlight = 2;
-        ResourceManager* resourceManager = nullptr;  ///< 资源管理器（用于加载破坏纹理）
+        ResourceManager* resourceManager = nullptr; ///< 资源管理器（用于加载破坏纹理）
     };
 
     /**
@@ -110,9 +110,7 @@ public:
      * @param cameraDescriptorSet 相机描述符集
      * @param fogDescriptorSet 雾效果描述符集
      */
-    void render(VkCommandBuffer commandBuffer,
-                VkDescriptorSet cameraDescriptorSet,
-                VkDescriptorSet fogDescriptorSet);
+    void render(VkCommandBuffer commandBuffer, VkDescriptorSet cameraDescriptorSet, VkDescriptorSet fogDescriptorSet);
 
     /**
      * @brief 检查是否有破坏进度需要渲染
@@ -129,10 +127,10 @@ private:
      * @brief 破坏进度条目（用于渲染）
      */
     struct ProgressEntry {
-        BlockPos position;  // 方块位置
-        u8 stage;           // 破坏阶段 (0-9)
-        u32 vertexOffset;   // 该方块在顶点缓冲区中的起始偏移
-        u32 indexOffset;    // 该方块在索引缓冲区中的起始偏移（以索引为单位）
+        BlockPos position; // 方块位置
+        u8 stage;          // 破坏阶段 (0-9)
+        u32 vertexOffset;  // 该方块在顶点缓冲区中的起始偏移
+        u32 indexOffset;   // 该方块在索引缓冲区中的起始偏移（以索引为单位）
     };
 
     /**
@@ -165,9 +163,7 @@ private:
      * @param vertices 输出顶点数组
      * @param indices 输出索引数组
      */
-    void generateCubeMesh(size_t cubeIndex,
-                          std::vector<Vertex>& vertices,
-                          std::vector<u32>& indices);
+    void generateCubeMesh(size_t cubeIndex, std::vector<Vertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 确保缓冲区容量足够

@@ -1,6 +1,6 @@
 #include "LingeringPotionItem.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include <memory>
 
@@ -11,13 +11,10 @@ namespace item {
 
 LingeringPotionItem::LingeringPotionItem(const ItemProperties& properties)
     : ThrowablePotionItem(properties)
-{
-}
+{}
 
 entity::ProjectileItemEntity* LingeringPotionItem::createProjectile(
-    IWorld& world,
-    Player& player,
-    const ItemStack& stack) const
+    IWorld& world, Player& player, const ItemStack& stack) const
 {
     // 创建药水实体（滞留型）
     auto entity = std::make_unique<entity::PotionEntity>(LegacyEntityType::Potion, 0);

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include <string>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <string>
 
 namespace mc {
 namespace entity {
@@ -63,20 +63,17 @@ public:
     /**
      * @brief 克隆属性
      */
-    [[nodiscard]] virtual std::unique_ptr<Attribute> clone() const {
+    [[nodiscard]] virtual std::unique_ptr<Attribute> clone() const
+    {
         return std::make_unique<Attribute>(m_registryName, m_defaultValue, m_minValue, m_maxValue);
     }
 
     /**
      * @brief 比较操作符
      */
-    bool operator==(const Attribute& other) const {
-        return m_registryName == other.m_registryName;
-    }
+    bool operator==(const Attribute& other) const { return m_registryName == other.m_registryName; }
 
-    bool operator!=(const Attribute& other) const {
-        return m_registryName != other.m_registryName;
-    }
+    bool operator!=(const Attribute& other) const { return m_registryName != other.m_registryName; }
 
 private:
     std::string m_registryName;

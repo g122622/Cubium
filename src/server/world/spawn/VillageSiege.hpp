@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/world/block/BlockPos.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <optional>
 
 namespace mc {
@@ -12,13 +12,13 @@ class IWorld;
 class Player;
 
 namespace server {
-class ServerWorld;  // 前向声明
+class ServerWorld; // 前向声明
 }
 
 namespace world::village {
 class VillageManager;
 class Village;
-}
+} // namespace world::village
 
 namespace server::spawn {
 
@@ -99,9 +99,7 @@ public:
     /**
      * @brief 检查是否正在进行围攻
      */
-    [[nodiscard]] bool isSiegeActive() const {
-        return m_state == State::Tonight && m_siegeCount > 0;
-    }
+    [[nodiscard]] bool isSiegeActive() const { return m_state == State::Tonight && m_siegeCount > 0; }
 
     /**
      * @brief 获取剩余僵尸数量
@@ -191,9 +189,7 @@ private:
      * @param searchCenter 搜索中心
      * @return 有效生成位置，如果找不到返回空
      */
-    [[nodiscard]] std::optional<BlockPos> findRandomSpawnPos(
-        IWorld& world,
-        const BlockPos& searchCenter);
+    [[nodiscard]] std::optional<BlockPos> findRandomSpawnPos(IWorld& world, const BlockPos& searchCenter);
 
     /**
      * @brief 检查位置是否可以生成怪物

@@ -1,8 +1,8 @@
 #include "DoublePlantBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {
@@ -13,19 +13,20 @@ using DoubleBlockHalf = BlockStateProperties::DoubleBlockHalf;
 // ========== 构造函数 ==========
 
 DoublePlantBlock::DoublePlantBlock(const BlockProperties& properties)
-    : BushBlock(properties) {
+    : BushBlock(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower));
+    setDefaultState(defaultState().with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower));
 
     // 形状：下半部分是完整方块高度，上半部分也是完整高度
     // 但植物通常没有碰撞
@@ -36,21 +37,25 @@ DoublePlantBlock::DoublePlantBlock(const BlockProperties& properties)
 
 // ========== 状态属性 ==========
 
-const EnumProperty<BlockStateProperties::DoubleBlockHalf>& DoublePlantBlock::halfProperty() {
+const EnumProperty<BlockStateProperties::DoubleBlockHalf>& DoublePlantBlock::halfProperty()
+{
     return BlockStateProperties::DOUBLE_BLOCK_HALF();
 }
 
-DoubleBlockHalf DoublePlantBlock::getHalf(const BlockState& state) const {
+DoubleBlockHalf DoublePlantBlock::getHalf(const BlockState& state) const
+{
     return state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 }
 
-BlockState DoublePlantBlock::withHalf(DoubleBlockHalf half) const {
+BlockState DoublePlantBlock::withHalf(DoubleBlockHalf half) const
+{
     return defaultState().with(BlockStateProperties::DOUBLE_BLOCK_HALF(), half);
 }
 
 // ========== 放置逻辑 ==========
 
-BlockState DoublePlantBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState DoublePlantBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     BlockPos pos = context.placementPos();
     const IWorld& world = context.getWorld();
 
@@ -66,10 +71,8 @@ BlockState DoublePlantBlock::getStateForPlacement(BlockItemUseContext& context) 
     return defaultState();
 }
 
-bool DoublePlantBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool DoublePlantBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     DoubleBlockHalf half = getHalf(state);
 
@@ -88,13 +91,13 @@ bool DoublePlantBlock::isValidPosition(
     }
 }
 
-BlockState DoublePlantBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState DoublePlantBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     DoubleBlockHalf half = getHalf(state);
 
@@ -123,14 +126,16 @@ BlockState DoublePlantBlock::updatePostPlacement(
 
 // ========== 形状 ==========
 
-const CollisionShape& DoublePlantBlock::getShape(const BlockState& state) const {
+const CollisionShape& DoublePlantBlock::getShape(const BlockState& state) const
+{
     DoubleBlockHalf half = getHalf(state);
     return (half == DoubleBlockHalf::Upper) ? m_upperShape : m_lowerShape;
 }
 
 // ========== 静态方法 ==========
 
-bool DoublePlantBlock::placeAt(IWorld& world, const BlockPos& pos, const BlockState& state, i32 flags) {
+bool DoublePlantBlock::placeAt(IWorld& world, const BlockPos& pos, const BlockState& state, i32 flags)
+{
     // 放置下半部分
     if (!world.setBlockState(pos, &state, flags)) {
         return false;

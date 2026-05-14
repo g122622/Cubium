@@ -1,19 +1,19 @@
 #include "RangedAttackGoals.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../core/CreatureEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../interfaces/IRangedAttackMob.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../core/Types.hpp"
 #include "../../../../../item/core/Item.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../item/core/UseAction.hpp"
 #include "../../../../../item/items/weapon/BowItem.hpp"
-#include "../../../../../core/Types.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../attribute/Attributes.hpp"
+#include "../../../../core/CreatureEntity.hpp"
+#include "../../../../core/LivingEntity.hpp"
+#include "../../../../core/MobEntity.hpp"
+#include "../../../../interfaces/IRangedAttackMob.hpp"
+#include "../../../controller/LookController.hpp"
+#include "../../../controller/MovementController.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -21,7 +21,8 @@ namespace mc::entity::ai::goal {
 
 // ==================== RangedAttackGoal ====================
 
-RangedAttackGoal::RangedAttackGoal(MobEntity* mob, f64 speed, i32 attackIntervalMin, i32 attackIntervalMax, f32 attackRadius)
+RangedAttackGoal::RangedAttackGoal(
+    MobEntity* mob, f64 speed, i32 attackIntervalMin, i32 attackIntervalMax, f32 attackRadius)
     : m_mob(mob)
     , m_speed(speed)
     , m_attackIntervalMin(attackIntervalMin)
@@ -32,7 +33,8 @@ RangedAttackGoal::RangedAttackGoal(MobEntity* mob, f64 speed, i32 attackInterval
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool RangedAttackGoal::shouldExecute() {
+bool RangedAttackGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     LivingEntity* target = m_mob->attackTarget();
@@ -44,25 +46,29 @@ bool RangedAttackGoal::shouldExecute() {
     return true;
 }
 
-bool RangedAttackGoal::shouldContinueExecuting() {
+bool RangedAttackGoal::shouldContinueExecuting()
+{
     // MC 1.16.5: shouldExecute() || !noPath()
     return shouldExecute() || (m_mob && !m_mob->navigator()->noPath());
 }
 
-void RangedAttackGoal::startExecuting() {
+void RangedAttackGoal::startExecuting()
+{
     // MC 1.16.5: 初始值在构造函数中不需要设置
 }
 
-void RangedAttackGoal::resetTask() {
+void RangedAttackGoal::resetTask()
+{
     m_target = nullptr;
     m_seenTime = 0;
-    m_attackTime = -1;  // MC 1.16.5: 重置为 -1
+    m_attackTime = -1; // MC 1.16.5: 重置为 -1
     if (m_mob) {
         m_mob->clearNavigation();
     }
 }
 
-void RangedAttackGoal::tick() {
+void RangedAttackGoal::tick()
+{
     if (!m_mob || !m_target) return;
 
     // MC 1.16.5: 计算到目标的距离平方
@@ -109,15 +115,20 @@ void RangedAttackGoal::tick() {
 
         // MC 1.16.5: 计算下一次攻击时间
         // floor(charge * (max - min) + min)
-        m_attackTime = static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) + static_cast<f32>(m_attackIntervalMin)));
+        m_attackTime =
+            static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) +
+                static_cast<f32>(m_attackIntervalMin)));
     } else if (m_attackTime < 0) {
         // MC 1.16.5: 初始化攻击时间
         f32 charge = dist / m_attackRadius;
-        m_attackTime = static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) + static_cast<f32>(m_attackIntervalMin)));
+        m_attackTime =
+            static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) +
+                static_cast<f32>(m_attackIntervalMin)));
     }
 }
 
-void RangedAttackGoal::performAttack(LivingEntity* target, f32 charge) {
+void RangedAttackGoal::performAttack(LivingEntity* target, f32 charge)
+{
     // 检查实体是否实现远程攻击接口
     IRangedAttackMob* rangedAttacker = dynamic_cast<IRangedAttackMob*>(m_mob);
     if (rangedAttacker) {
@@ -132,10 +143,10 @@ RangedBowAttackGoal::RangedBowAttackGoal(MobEntity* mob, f64 speed, i32 attackIn
     , m_strafingClockwise(false)
     , m_strafingBackwards(false)
     , m_strafingTime(-1)
-{
-}
+{}
 
-bool RangedBowAttackGoal::shouldExecute() {
+bool RangedBowAttackGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     const ItemStack& mainHand = m_mob->getMainHandItem();
@@ -147,7 +158,8 @@ bool RangedBowAttackGoal::shouldExecute() {
     return RangedAttackGoal::shouldExecute();
 }
 
-void RangedBowAttackGoal::startExecuting() {
+void RangedBowAttackGoal::startExecuting()
+{
     RangedAttackGoal::startExecuting();
     m_strafingClockwise = false;
     m_strafingBackwards = false;
@@ -158,7 +170,8 @@ void RangedBowAttackGoal::startExecuting() {
     }
 }
 
-void RangedBowAttackGoal::resetTask() {
+void RangedBowAttackGoal::resetTask()
+{
     RangedAttackGoal::resetTask();
     m_strafingClockwise = false;
     m_strafingBackwards = false;
@@ -170,7 +183,8 @@ void RangedBowAttackGoal::resetTask() {
     }
 }
 
-void RangedBowAttackGoal::tick() {
+void RangedBowAttackGoal::tick()
+{
     if (!m_mob || !m_target) return;
 
     // 计算到目标的距离平方
@@ -266,14 +280,14 @@ void RangedBowAttackGoal::tick() {
         // 找到持有弓的手
         const ItemStack& mainHand = m_mob->getMainHandItem();
         const Item* item = mainHand.getItem();
-        Hand bowHand = (item != nullptr && item->getUseAction(mainHand) == UseAction::Bow)
-                           ? Hand::MainHand
-                           : Hand::OffHand;
+        Hand bowHand =
+            (item != nullptr && item->getUseAction(mainHand) == UseAction::Bow) ? Hand::MainHand : Hand::OffHand;
         m_mob->setActiveHand(bowHand);
     }
 }
 
-void RangedBowAttackGoal::performAttack(LivingEntity* target, f32 charge) {
+void RangedBowAttackGoal::performAttack(LivingEntity* target, f32 charge)
+{
     // 调用基类实现攻击
     RangedAttackGoal::performAttack(target, charge);
 

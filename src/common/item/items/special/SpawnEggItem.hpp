@@ -23,11 +23,7 @@ public:
      * @param secondaryColor 副颜色 (RGBA格式的颜色值)
      * @param properties 物品属性
      */
-    SpawnEggItem(
-        entity::EntityType entityType,
-        u32 primaryColor,
-        u32 secondaryColor,
-        const ItemProperties& properties);
+    SpawnEggItem(entity::EntityType entityType, u32 primaryColor, u32 secondaryColor, const ItemProperties& properties);
 
     ~SpawnEggItem() override = default;
 

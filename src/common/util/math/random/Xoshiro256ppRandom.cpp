@@ -2,11 +2,13 @@
 
 namespace mc::math {
 
-Xoshiro256ppRandom::Xoshiro256ppRandom(u64 seed) {
+Xoshiro256ppRandom::Xoshiro256ppRandom(u64 seed)
+{
     setSeed(seed);
 }
 
-void Xoshiro256ppRandom::setSeed(u64 seed) {
+void Xoshiro256ppRandom::setSeed(u64 seed)
+{
     // 使用 SplitMix64 扩展种子
     u64 state = seed;
     m_state[0] = splitMix64(state);
@@ -22,7 +24,8 @@ void Xoshiro256ppRandom::setSeed(u64 seed) {
     m_hasGaussian = false;
 }
 
-u64 Xoshiro256ppRandom::nextU64() {
+u64 Xoshiro256ppRandom::nextU64()
+{
     // xoshiro256++ 核心算法
     const u64 result = rotl(m_state[0] + m_state[3], 23) + m_state[0];
 
@@ -39,7 +42,8 @@ u64 Xoshiro256ppRandom::nextU64() {
     return result;
 }
 
-void Xoshiro256ppRandom::skip(u64 /* count */) {
+void Xoshiro256ppRandom::skip(u64 /* count */)
+{
     // xoshiro256++ 的快速跳转
     // 使用预计算的跳转多项式
     // 参考 http://xoroshiro.di.unimi.it/xoshiro256plusplus.c
@@ -47,11 +51,7 @@ void Xoshiro256ppRandom::skip(u64 /* count */) {
     // 这是 xoroshiro/xoshiro 系列算法的标准实现方式
 
     static const u64 JUMP[] = {
-        0x180ec6d33cfd0abaULL,
-        0xd5a61266f0c9392cULL,
-        0xa9582618e03fc9aaULL,
-        0x39abdc4529b1661cULL
-    };
+        0x180ec6d33cfd0abaULL, 0xd5a61266f0c9392cULL, 0xa9582618e03fc9aaULL, 0x39abdc4529b1661cULL};
 
     u64 s0 = 0;
     u64 s1 = 0;
@@ -66,7 +66,7 @@ void Xoshiro256ppRandom::skip(u64 /* count */) {
                 s2 ^= m_state[2];
                 s3 ^= m_state[3];
             }
-            (void)nextU64();  // 故意丢弃返回值，用于状态更新
+            (void)nextU64(); // 故意丢弃返回值，用于状态更新
         }
     }
 
@@ -76,7 +76,8 @@ void Xoshiro256ppRandom::skip(u64 /* count */) {
     m_state[3] = s3;
 }
 
-u64 Xoshiro256ppRandom::splitMix64(u64& state) {
+u64 Xoshiro256ppRandom::splitMix64(u64& state)
+{
     state += 0x9e3779b97f4a7c15ULL;
     u64 z = state;
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;

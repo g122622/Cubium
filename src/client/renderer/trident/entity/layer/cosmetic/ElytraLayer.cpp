@@ -1,7 +1,7 @@
 #include "ElytraLayer.hpp"
 #include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -12,22 +12,21 @@
 namespace mc::client::renderer::entity::layer::cosmetic {
 
 namespace {
-    constexpr f32 ELYTRA_WIDTH = 10.0f / 16.0f;   // 单边鞘翅宽度
-    constexpr f32 ELYTRA_HEIGHT = 20.0f / 16.0f;  // 鞘翅高度
-    constexpr i32 SPREAD_ANGLE_BUCKETS = 18;      // 展开角度分桶数
+constexpr f32 ELYTRA_WIDTH = 10.0f / 16.0f;  // 单边鞘翅宽度
+constexpr f32 ELYTRA_HEIGHT = 20.0f / 16.0f; // 鞘翅高度
+constexpr i32 SPREAD_ANGLE_BUCKETS = 18;     // 展开角度分桶数
 
-    // MC 1.16.5 ElytraModel 默认角度
-    constexpr f32 DEFAULT_X_ANGLE = 0.2617994f;   // ~15度
-    constexpr f32 DEFAULT_Z_ANGLE = -0.2617994f;  // ~-15度
-    constexpr f32 GLIDING_X_ANGLE = 0.34906584f;  // ~20度
-    constexpr f32 GLIDING_Z_ANGLE = -1.5707963f;  // ~-90度
-    constexpr f32 CROUCHING_X_ANGLE = 0.6981317f; // ~40度
-    constexpr f32 CROUCHING_Z_ANGLE = -0.7853982f; // ~-45度
-}
+// MC 1.16.5 ElytraModel 默认角度
+constexpr f32 DEFAULT_X_ANGLE = 0.2617994f;    // ~15度
+constexpr f32 DEFAULT_Z_ANGLE = -0.2617994f;   // ~-15度
+constexpr f32 GLIDING_X_ANGLE = 0.34906584f;   // ~20度
+constexpr f32 GLIDING_Z_ANGLE = -1.5707963f;   // ~-90度
+constexpr f32 CROUCHING_X_ANGLE = 0.6981317f;  // ~40度
+constexpr f32 CROUCHING_Z_ANGLE = -0.7853982f; // ~-45度
+} // namespace
 
-template<typename TEntity>
-void ElytraLayer<TEntity>::renderPipeline(
-    TEntity& entity,
+template <typename TEntity>
+void ElytraLayer<TEntity>::renderPipeline(TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -48,25 +47,16 @@ void ElytraLayer<TEntity>::renderPipeline(
 
     // 计算鞘翅变换矩阵
     std::array<f64, 16> elytraTransform;
-    elytraTransform = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    elytraTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 鞘翅附着在背部
     // MC 1.16.5: matrixStack.translate(0.0D, 0.0D, 0.125D);
-    elytraTransform[3] = 0.0;                             // X
-    elytraTransform[7] = 1.0 - ELYTRA_HEIGHT * 0.3;       // Y - 上部附着点
-    elytraTransform[11] = 0.125;                          // Z - MC 1.16.5: 0.125D
+    elytraTransform[3] = 0.0;                       // X
+    elytraTransform[7] = 1.0 - ELYTRA_HEIGHT * 0.3; // Y - 上部附着点
+    elytraTransform[11] = 0.125;                    // Z - MC 1.16.5: 0.125D
 
     // 获取实体的世界位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用实体的受伤时间
     f32 hurtTime = 0.0f;
@@ -76,15 +66,14 @@ void ElytraLayer<TEntity>::renderPipeline(
         deathTime = static_cast<f32>(entity.deathTime());
     }
 
-    pipeline.drawMesh(cmd, *mesh, elytraTransform, entityPos, 1.0,
-                      Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+    pipeline.drawMesh(
+        cmd, *mesh, elytraTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
     spdlog::trace("ElytraLayer: Rendered elytra with spread angle {:.1f}", spreadAngle);
 }
 
-template<typename TEntity>
-void ElytraLayer<TEntity>::render(
-    TEntity& entity,
+template <typename TEntity>
+void ElytraLayer<TEntity>::render(TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -104,8 +93,9 @@ void ElytraLayer<TEntity>::render(
     (void)scale;
 }
 
-template<typename TEntity>
-bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const {
+template <typename TEntity>
+bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const
+{
     // 参考 MC 1.16.5 ElytraLayer.shouldRender()
     // 检查：
     // 1. 胸甲槽装备了鞘翅物品（Items.ELYTRA）
@@ -130,8 +120,10 @@ bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const {
     }
 }
 
-template<typename TEntity>
-f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const {
+template <typename TEntity>
+f32 ElytraLayer<TEntity>::calculateElytraAngle(
+    TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const
+{
     // 参考 MC 1.16.5 ElytraModel.setRotationAngles()
     // 鞘翅角度取决于：
     // 1. isElytraFlying() - 是否在滑翔
@@ -139,7 +131,7 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
     // 3. 速度向量 - 滑翔时的俯仰角
 
     // 默认角度
-    f32 angleZ = DEFAULT_Z_ANGLE;   // ~-15度
+    f32 angleZ = DEFAULT_Z_ANGLE; // ~-15度
 
     bool isGliding = false;
     bool isCrouching = false;
@@ -173,11 +165,9 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
             f32 f4 = 1.0f;
             if (motionY < 0.0) {
                 // 计算速度向量长度
-                f64 speed = std::sqrt(
-                    static_cast<f64>(velocity.x) * static_cast<f64>(velocity.x) +
+                f64 speed = std::sqrt(static_cast<f64>(velocity.x) * static_cast<f64>(velocity.x) +
                     static_cast<f64>(velocity.y) * static_cast<f64>(velocity.y) +
-                    static_cast<f64>(velocity.z) * static_cast<f64>(velocity.z)
-                );
+                    static_cast<f64>(velocity.z) * static_cast<f64>(velocity.z));
                 if (speed > 0.0) {
                     f64 normalizedY = motionY / speed;
                     f4 = static_cast<f32>(1.0 - std::pow(-normalizedY, 1.5));
@@ -205,12 +195,9 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
     return std::abs(angleZ) * 180.0f / static_cast<f32>(mc::math::PI_DOUBLE);
 }
 
-template<typename TEntity>
+template <typename TEntity>
 void ElytraLayer<TEntity>::buildElytraMesh(
-    f32 spreadAngle,
-    bool isLeftWing,
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    f32 spreadAngle, bool isLeftWing, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     vertices.clear();
     indices.clear();
@@ -259,10 +246,8 @@ void ElytraLayer<TEntity>::buildElytraMesh(
     indices.push_back(3);
 }
 
-template<typename TEntity>
-pipeline::EntityMesh* ElytraLayer<TEntity>::getOrCreateElytraMesh(
-    f32 spreadAngle,
-    pipeline::EntityPipeline& pipeline)
+template <typename TEntity>
+pipeline::EntityMesh* ElytraLayer<TEntity>::getOrCreateElytraMesh(f32 spreadAngle, pipeline::EntityPipeline& pipeline)
 {
     // 将展开角度离散化到桶中
     i32 bucket = static_cast<i32>(spreadAngle / 5.0f * SPREAD_ANGLE_BUCKETS);
@@ -303,13 +288,15 @@ pipeline::EntityMesh* ElytraLayer<TEntity>::getOrCreateElytraMesh(
     return &m_elytraMeshCache[bucket];
 }
 
-template<typename TEntity>
-void ElytraLayer<TEntity>::setElytraTexture(const TextureRegion* region) {
+template <typename TEntity>
+void ElytraLayer<TEntity>::setElytraTexture(const TextureRegion* region)
+{
     m_customElytraRegion = region;
 }
 
-template<typename TEntity>
-void ElytraLayer<TEntity>::setCapeTexture(const TextureRegion* region) {
+template <typename TEntity>
+void ElytraLayer<TEntity>::setCapeTexture(const TextureRegion* region)
+{
     m_capeRegion = region;
 }
 

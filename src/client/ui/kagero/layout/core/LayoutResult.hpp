@@ -1,7 +1,7 @@
 #pragma once
 
-#include "MeasureSpec.hpp"
 #include "../../Types.hpp"
+#include "MeasureSpec.hpp"
 #ifdef KAGERO_LAYOUT_DEBUG
 #include <string>
 #endif
@@ -20,14 +20,14 @@ namespace mc::client::ui::kagero::layout {
  * 3. Widget 根据 bounds 更新渲染状态
  */
 struct LayoutResult {
-    Rect bounds;              ///< 最终位置+尺寸（相对于父容器）
-    bool needsRepaint = true; ///< 是否需要重渲染
+    Rect bounds;                ///< 最终位置+尺寸（相对于父容器）
+    bool needsRepaint = true;   ///< 是否需要重渲染
     bool needsRelayout = false; ///< 是否需要重新布局（子元素变化时）
 
 #ifdef KAGERO_LAYOUT_DEBUG
-    std::string algorithmUsed;     ///< 使用的布局算法（调试）
-    f64 computeTimeMs = 0.0;  ///< 计算耗时（调试）
-    i32 depth = 0;            ///< 布局深度（调试）
+    std::string algorithmUsed; ///< 使用的布局算法（调试）
+    f64 computeTimeMs = 0.0;   ///< 计算耗时（调试）
+    i32 depth = 0;             ///< 布局深度（调试）
 #endif
 
     LayoutResult() = default;
@@ -40,20 +40,20 @@ struct LayoutResult {
      * @param h 高度
      */
     LayoutResult(i32 x, i32 y, i32 w, i32 h)
-        : bounds(x, y, w, h) {}
+        : bounds(x, y, w, h)
+    {}
 
     /**
      * @brief 从Rect构造
      */
     explicit LayoutResult(const Rect& rect)
-        : bounds(rect) {}
+        : bounds(rect)
+    {}
 
     /**
      * @brief 检查布局结果是否有效
      */
-    [[nodiscard]] bool isValid() const {
-        return bounds.width >= 0 && bounds.height >= 0;
-    }
+    [[nodiscard]] bool isValid() const { return bounds.width >= 0 && bounds.height >= 0; }
 
     /**
      * @brief 获取中心X坐标
@@ -78,14 +78,13 @@ struct LayoutResult {
     /**
      * @brief 检查点是否在布局区域内
      */
-    [[nodiscard]] bool contains(i32 x, i32 y) const {
-        return bounds.contains(x, y);
-    }
+    [[nodiscard]] bool contains(i32 x, i32 y) const { return bounds.contains(x, y); }
 
     /**
      * @brief 合并两个布局结果（取并集）
      */
-    [[nodiscard]] LayoutResult merged(const LayoutResult& other) const {
+    [[nodiscard]] LayoutResult merged(const LayoutResult& other) const
+    {
         if (!isValid()) return other;
         if (!other.isValid()) return *this;
 
@@ -117,7 +116,8 @@ public:
      */
     LayoutContext(i32 availableWidth, i32 availableHeight)
         : m_availableWidth(availableWidth)
-        , m_availableHeight(availableHeight) {}
+        , m_availableHeight(availableHeight)
+    {}
 
     /**
      * @brief 获取可用宽度
@@ -178,7 +178,8 @@ public:
      * @param height 子元素可用高度
      * @return 子布局上下文
      */
-    [[nodiscard]] LayoutContext createChildContext(i32 width, i32 height) const {
+    [[nodiscard]] LayoutContext createChildContext(i32 width, i32 height) const
+    {
         LayoutContext child(width, height);
         child.setDepth(m_depth + 1);
         return child;
@@ -187,9 +188,7 @@ public:
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const {
-        return m_availableWidth >= 0 && m_availableHeight >= 0;
-    }
+    [[nodiscard]] bool isValid() const { return m_availableWidth >= 0 && m_availableHeight >= 0; }
 
 private:
     i32 m_availableWidth = 0;
@@ -205,17 +204,18 @@ private:
  * 用于性能分析和调试。
  */
 struct LayoutStats {
-    i32 totalWidgets = 0;       ///< 总Widget数量
-    i32 relayoutedWidgets = 0;  ///< 重新布局的Widget数量
-    f64 totalTimeMs = 0.0;      ///< 总布局时间（毫秒）
-    i32 maxDepth = 0;           ///< 最大布局深度
-    i32 measureCount = 0;       ///< 测量次数
-    i32 layoutCount = 0;        ///< 布局次数
+    i32 totalWidgets = 0;      ///< 总Widget数量
+    i32 relayoutedWidgets = 0; ///< 重新布局的Widget数量
+    f64 totalTimeMs = 0.0;     ///< 总布局时间（毫秒）
+    i32 maxDepth = 0;          ///< 最大布局深度
+    i32 measureCount = 0;      ///< 测量次数
+    i32 layoutCount = 0;       ///< 布局次数
 
     /**
      * @brief 重置统计信息
      */
-    void reset() {
+    void reset()
+    {
         totalWidgets = 0;
         relayoutedWidgets = 0;
         totalTimeMs = 0.0;

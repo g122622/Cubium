@@ -1,8 +1,8 @@
 #pragma once
 
-#include "server/command/ServerCommandSource.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
+#include "server/command/ServerCommandSource.hpp"
 
 namespace mc {
 namespace client::renderer::trident::particle {
@@ -23,8 +23,8 @@ public:
 
 private:
     static i32 spawnParticle(CommandContext<ServerCommandSource>& context);
-    static std::optional<client::renderer::trident::particle::ParticleTypeId>
-    parseParticleType(const std::string& name) noexcept;
+    static std::optional<client::renderer::trident::particle::ParticleTypeId> parseParticleType(
+        const std::string& name) noexcept;
 };
 
 } // namespace command

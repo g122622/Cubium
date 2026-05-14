@@ -26,15 +26,14 @@ ExplosionParticle::ExplosionParticle(const glm::vec3& pos, const glm::vec3& velo
 }
 
 std::unique_ptr<Particle> ExplosionParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<ExplosionParticle>(pos, velocity);
 }
 
-void ExplosionParticle::tick(mc::client::ClientWorld* world) {
+void ExplosionParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -58,7 +57,8 @@ void ExplosionParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(1.0f - lifeRatio * lifeRatio);
 }
 
-f64 ExplosionParticle::getScale(f64 partialTick) const {
+f64 ExplosionParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -93,15 +93,14 @@ LargeExplosionParticle::LargeExplosionParticle(const glm::vec3& pos, const glm::
 }
 
 std::unique_ptr<Particle> LargeExplosionParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<LargeExplosionParticle>(pos, velocity);
 }
 
-void LargeExplosionParticle::tick(mc::client::ClientWorld* world) {
+void LargeExplosionParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -116,14 +115,16 @@ void LargeExplosionParticle::tick(mc::client::ClientWorld* world) {
     // MC 1.16.5: 无运动，仅更新纹理帧
 }
 
-ResourceLocation LargeExplosionParticle::getTextureLocation() const {
+ResourceLocation LargeExplosionParticle::getTextureLocation() const
+{
     // MC 1.16.5: 根据年龄选择纹理帧
     i32 frame = static_cast<i32>((m_age / m_maxAge) * 4.0);
     frame = std::min(frame, 3);
     return ResourceLocation("minecraft:particle/explosion_" + std::to_string(frame));
 }
 
-f64 LargeExplosionParticle::getScale(f64 partialTick) const {
+f64 LargeExplosionParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     // MC 1.16.5: scale = 2.0 * (1.0 - xSpeed * 0.5)
     return m_initialSize;

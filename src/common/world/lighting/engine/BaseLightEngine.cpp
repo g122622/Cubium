@@ -1,13 +1,13 @@
 #include "BaseLightEngine.hpp"
-#include "../IChunkLightProvider.hpp"
-#include "../../chunk/IChunk.hpp"
-#include "../../chunk/ChunkData.hpp"
-#include "../../block/Block.hpp"
-#include "../../IWorld.hpp"
-#include "../../../util/Direction.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../physics/shape/Shapes.hpp"
 #include "../../../physics/shape/VoxelShape.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../IWorld.hpp"
+#include "../../block/Block.hpp"
+#include "../../chunk/ChunkData.hpp"
+#include "../../chunk/IChunk.hpp"
+#include "../IChunkLightProvider.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
 #include <algorithm>
@@ -23,7 +23,8 @@ namespace mc {
 
 namespace {
 
-std::unique_ptr<bool[]> copyEmptinessMap(const std::vector<bool>& emptinessMap, size_t targetSize) {
+std::unique_ptr<bool[]> copyEmptinessMap(const std::vector<bool>& emptinessMap, size_t targetSize)
+{
     auto rawMap = std::make_unique<bool[]>(targetSize);
     std::fill_n(rawMap.get(), targetSize, false);
 
@@ -40,7 +41,8 @@ std::unique_ptr<bool[]> copyEmptinessMap(const std::vector<bool>& emptinessMap, 
  * 用于面遮挡检测。对于完整方块和空形状有优化路径。
  * 参考 Moonrise 中使用 Shapes.faceShapeOccludes 的逻辑
  */
-VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
+VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
+{
     if (shape.isEmpty()) {
         return Shapes::empty();
     }
@@ -67,15 +69,17 @@ VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
 std::array<std::vector<LightAxisDirection>, 64> StarLightEngine::s_oldCheckDirections;
 bool StarLightEngine::s_directionsInitialized = false;
 
-void StarLightEngine::initializeDirections() {
+void StarLightEngine::initializeDirections()
+{
     if (s_directionsInitialized) return;
 
     for (i32 i = 0; i < 64; ++i) {
         std::vector<LightAxisDirection> directions;
         for (i32 bitset = i, count = 0; count < 6 && bitset != 0; ++count) {
-            i32 trailing = bitset & -bitset;  // 获取最低位1
+            i32 trailing = bitset & -bitset; // 获取最低位1
             i32 index = 0;
-            while ((1 << index) != trailing) ++index;
+            while ((1 << index) != trailing)
+                ++index;
             directions.push_back(static_cast<LightAxisDirection>(index));
             bitset ^= trailing;
         }
@@ -90,7 +94,8 @@ void StarLightEngine::initializeDirections() {
 
 StarLightEngine::StarLightEngine(bool isSkyLight)
     : m_isSkyLight(isSkyLight)
-    , m_emittedLightMask(isSkyLight ? 0 : 0xF) {
+    , m_emittedLightMask(isSkyLight ? 0 : 0xF)
+{
 
     initializeDirections();
     m_chunkCache.fill(nullptr);
@@ -101,15 +106,17 @@ StarLightEngine::StarLightEngine(bool isSkyLight)
 // 缓存管理
 // ============================================================================
 
-void StarLightEngine::setWorld(void* world) {
+void StarLightEngine::setWorld(void* world)
+{
     m_world = world;
     // 子类会设置更多参数
 }
 
-void StarLightEngine::setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ) {
+void StarLightEngine::setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ)
+{
     // 31 = center + encodeOffset，使中心坐标映射到 [0, 62] 范围
     m_encodeOffsetX = 31 - centerX;
-    m_encodeOffsetY = -(m_minLightSection - 1) << 4;  // 使最小光照段Y=0
+    m_encodeOffsetY = -(m_minLightSection - 1) << 4; // 使最小光照段Y=0
     m_encodeOffsetZ = 31 - centerZ;
 
     // coordinateIndex = x | (z << 6) | (y << (6 + 6))
@@ -117,7 +124,7 @@ void StarLightEngine::setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ) {
 
     // 2 = (centerX >> 4) + chunkOffset，使中心区块在缓存中心
     m_chunkOffsetX = 2 - (centerX >> 4);
-    m_chunkOffsetY = -(m_minLightSection - 1);  // 最低段Y=0
+    m_chunkOffsetY = -(m_minLightSection - 1); // 最低段Y=0
     m_chunkOffsetZ = 2 - (centerZ >> 4);
 
     // chunk index = x + (5 * z)
@@ -127,9 +134,9 @@ void StarLightEngine::setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ) {
     m_chunkSectionIndexOffset = m_chunkIndexOffset + ((5 * 5) * m_chunkOffsetY);
 }
 
-void StarLightEngine::setupCaches(StarLightLightingProvider* lightAccess,
-                                   i32 centerX, i32 centerY, i32 centerZ,
-                                   bool relaxed, bool loadTwoRadius) {
+void StarLightEngine::setupCaches(
+    StarLightLightingProvider* lightAccess, i32 centerX, i32 centerY, i32 centerZ, bool relaxed, bool loadTwoRadius)
+{
     i32 centerChunkX = centerX >> 4;
     i32 centerChunkY = centerY >> 4;
     i32 centerChunkZ = centerZ >> 4;
@@ -169,7 +176,8 @@ void StarLightEngine::setupCaches(StarLightLightingProvider* lightAccess,
     }
 }
 
-void StarLightEngine::destroyCaches() {
+void StarLightEngine::destroyCaches()
+{
     m_chunkCache.fill(nullptr);
     m_emptinessMapCache.fill(nullptr);
 
@@ -192,7 +200,8 @@ void StarLightEngine::destroyCaches() {
     }
 }
 
-void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess) {
+void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess)
+{
     MC_TRACE_EVENT("server.lighting", "StarLightEngine::updateVisible", "isSkyLight", m_isSkyLight);
 
     for (i32 index = 0, max = m_sectionCacheSize; index < max; ++index) {
@@ -214,18 +223,21 @@ void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess) {
         // 与 Moonrise 一致：只调用一次 updateVisible()，避免多次调用导致状态变化
         bool updated = nibble->updateVisible();
         if (updated || shouldNotify) {
-            MC_TRACE_EVENT("server.lighting", "InvokeMarkLightChangedCallback",
-                "chunkX", chunkX,
-                "chunkY", chunkY,
-                "chunkZ", chunkZ,
-                "updated", updated,
-                "shouldNotify", shouldNotify
-            );
+            MC_TRACE_EVENT("server.lighting",
+                "InvokeMarkLightChangedCallback",
+                "chunkX",
+                chunkX,
+                "chunkY",
+                chunkY,
+                "chunkZ",
+                chunkZ,
+                "updated",
+                updated,
+                "shouldNotify",
+                shouldNotify);
 
             lightAccess->markLightChanged(
-                m_isSkyLight ? LightType::SKY : LightType::BLOCK,
-                SectionPos(chunkX, chunkY, chunkZ)
-            );
+                m_isSkyLight ? LightType::SKY : LightType::BLOCK, SectionPos(chunkX, chunkY, chunkZ));
         }
     }
 }
@@ -235,9 +247,11 @@ void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess) {
 // ============================================================================
 
 void StarLightEngine::blocksChangedInChunk(StarLightLightingProvider* lightAccess,
-                                             i32 chunkX, i32 chunkZ,
-                                             const std::vector<BlockPos>& positions,
-                                             const std::vector<bool>& changedSections) {
+    i32 chunkX,
+    i32 chunkZ,
+    const std::vector<BlockPos>& positions,
+    const std::vector<bool>& changedSections)
+{
     setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, true);
 
     const IChunk* chunk = getChunkInCache(chunkX, chunkZ);
@@ -269,9 +283,10 @@ void StarLightEngine::blocksChangedInChunk(StarLightLightingProvider* lightAcces
 }
 
 std::vector<bool> StarLightEngine::handleEmptySectionChanges(StarLightLightingProvider* lightAccess,
-                                                              const IChunk* chunk,
-                                                              const std::vector<bool>& emptinessChanges,
-                                                              bool isUnlit) {
+    const IChunk* chunk,
+    const std::vector<bool>& emptinessChanges,
+    bool isUnlit)
+{
     ChunkPos chunkPos = chunk->pos();
     i32 chunkX = chunkPos.x;
     i32 chunkZ = chunkPos.z;
@@ -337,7 +352,8 @@ std::vector<bool> StarLightEngine::handleEmptySectionChanges(StarLightLightingPr
                                 }
                             } else {
                                 // 没有空映射，需要检查区块段
-                                const ChunkSection* section = getChunkSection(dx + dx2 + chunk->x(), y, dz + dz2 + chunk->z());
+                                const ChunkSection* section =
+                                    getChunkSection(dx + dx2 + chunk->x(), y, dz + dz2 + chunk->z());
                                 if (section != nullptr && !section->isEmpty()) {
                                     allEmpty = false;
                                 }
@@ -361,9 +377,9 @@ std::vector<bool> StarLightEngine::handleEmptySectionChanges(StarLightLightingPr
     return needsInit ? chunkEmptinessMap : std::vector<bool>{};
 }
 
-void StarLightEngine::forceHandleEmptySectionChanges(StarLightLightingProvider* lightAccess,
-                                                       const IChunk* chunk,
-                                                       const std::vector<bool>& emptySections) {
+void StarLightEngine::forceHandleEmptySectionChanges(
+    StarLightLightingProvider* lightAccess, const IChunk* chunk, const std::vector<bool>& emptySections)
+{
     // 参考 Moonrise StarLightEngine.forceHandleEmptySectionChanges
     // 用于已正确光照的区块，强制加载光照数据到缓存并处理空段变化
     ChunkPos chunkPos = chunk->pos();
@@ -389,7 +405,8 @@ void StarLightEngine::forceHandleEmptySectionChanges(StarLightLightingProvider* 
     destroyCaches();
 }
 
-void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ) {
+void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ)
+{
     setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, false);
 
     const IChunk* chunk = getChunkInCache(chunkX, chunkZ);
@@ -401,8 +418,9 @@ void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, i3
     destroyCaches();
 }
 
-void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                                       i32 fromSection, i32 toSection) {
+void StarLightEngine::checkChunkEdges(
+    StarLightLightingProvider* lightAccess, const IChunk* chunk, i32 fromSection, i32 toSection)
+{
     ChunkPos chunkPos = chunk->pos();
     i32 chunkX = chunkPos.x;
     i32 chunkZ = chunkPos.z;
@@ -414,8 +432,9 @@ void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, co
     performLightDecrease(lightAccess);
 }
 
-void StarLightEngine::checkChunkEdge(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                                      i32 chunkX, i32 chunkY, i32 chunkZ) {
+void StarLightEngine::checkChunkEdge(
+    StarLightLightingProvider* lightAccess, const IChunk* chunk, i32 chunkX, i32 chunkY, i32 chunkZ)
+{
     SWMRNibbleArray* currNibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (currNibble == nullptr) {
         return;
@@ -497,22 +516,25 @@ void StarLightEngine::checkChunkEdge(StarLightLightingProvider* lightAccess, con
             // index = x | (z << 4) | (y << 8)
             if (i < centerDelayedChecks) {
                 i32 value = m_chunkCheckDelayedUpdatesCenter[static_cast<size_t>(i)];
-                checkBlock(lightAccess, currentChunkOffX | (value & 15),
-                          chunkOffY | (value >> 8),
-                          currentChunkOffZ | ((value >> 4) & 0xF));
+                checkBlock(lightAccess,
+                    currentChunkOffX | (value & 15),
+                    chunkOffY | (value >> 8),
+                    currentChunkOffZ | ((value >> 4) & 0xF));
             }
             if (i < neighbourDelayedChecks) {
                 i32 value = m_chunkCheckDelayedUpdatesNeighbour[static_cast<size_t>(i)];
-                checkBlock(lightAccess, neighbourChunkOffX | (value & 15),
-                          chunkOffY | (value >> 8),
-                          neighbourChunkOffZ | ((value >> 4) & 0xF));
+                checkBlock(lightAccess,
+                    neighbourChunkOffX | (value & 15),
+                    chunkOffY | (value >> 8),
+                    neighbourChunkOffZ | ((value >> 4) & 0xF));
             }
         }
     }
 }
 
-void StarLightEngine::propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                                                i32 fromSection, i32 toSection) {
+void StarLightEngine::propagateNeighbourLevels(
+    StarLightLightingProvider* lightAccess, const IChunk* chunk, i32 fromSection, i32 toSection)
+{
     ChunkPos chunkPos = chunk->pos();
     i32 chunkX = chunkPos.x;
     i32 chunkZ = chunkPos.z;
@@ -559,25 +581,22 @@ void StarLightEngine::propagateNeighbourLevels(StarLightLightingProvider* lightA
                 startX = chunkX << 4;
             }
 
-            i32 propagateDirection = getDirectionBitset(getOppositeDirection(dir));  // 只想在这个方向检查向这个区块的传播
+            i32 propagateDirection =
+                getDirectionBitset(getOppositeDirection(dir)); // 只想在这个方向检查向这个区块的传播
             i32 sectionOffset = m_chunkSectionIndexOffset;
 
             for (i32 currY = currSectionY << 4, maxY = currY | 15; currY <= maxY; ++currY) {
                 for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
-                    i32 level = neighbourNibble->getUpdating(
-                        (currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << 8)
-                    );
+                    i32 level = neighbourNibble->getUpdating((currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << 8));
 
                     if (level <= 1) {
                         // 无需传播
                         continue;
                     }
 
-                    appendToIncreaseQueue(
-                        ((currX + (currZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(level & 0xF) << 28)
-                            | (static_cast<u64>(propagateDirection) << 32)
-                            | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS  // 不知道当前方块是否透明，必须检查
+                    appendToIncreaseQueue(((currX + (currZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(level & 0xF) << 28) | (static_cast<u64>(propagateDirection) << 32) |
+                        FLAG_HAS_SIDED_TRANSPARENT_BLOCKS // 不知道当前方块是否透明，必须检查
                     );
                 }
             }
@@ -585,11 +604,13 @@ void StarLightEngine::propagateNeighbourLevels(StarLightLightingProvider* lightA
     }
 }
 
-void StarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks) {
+void StarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks)
+{
     // 子类实现
 }
 
-void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks) {
+void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks)
+{
     if (chunk == nullptr) {
         return;
     }
@@ -597,7 +618,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
     i32 chunkX = chunk->x();
     i32 chunkZ = chunk->z();
     i32 centerX = chunkX * 16 + 7;
-    i32 centerY = 128;  // 中间高度
+    i32 centerY = 128; // 中间高度
     i32 centerZ = chunkZ * 16 + 7;
 
     // 重置队列状态（确保多次调用不会累积队列条目）
@@ -639,13 +660,13 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
             const ChunkSection* section =
                 (sections == nullptr) ? nullptr : sections[static_cast<size_t>(sectionY - m_minSection)];
-            emptySections[static_cast<size_t>(sectionY - m_minSection)] =
-                (section == nullptr || section->hasOnlyAir());
+            emptySections[static_cast<size_t>(sectionY - m_minSection)] = (section == nullptr || section->hasOnlyAir());
         }
 
         std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);
         if (!emptinessUpdate.empty()) {
-            auto rawMap = copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+            auto rawMap =
+                copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
             setEmptinessMap(chunk, rawMap.get());
             setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
         }
@@ -658,7 +679,8 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
 
         // 更新可见数据
         updateVisible(lightAccess);
-    } catch (...) {
+    }
+    catch (...) {
         destroyCaches();
         throw;
     }
@@ -670,7 +692,8 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
 // 缓存访问方法
 // ============================================================================
 
-const IChunk* StarLightEngine::getChunkInCache(i32 chunkX, i32 chunkZ) const {
+const IChunk* StarLightEngine::getChunkInCache(i32 chunkX, i32 chunkZ) const
+{
     i32 dx = chunkX + m_chunkOffsetX;
     i32 dz = chunkZ + m_chunkOffsetZ;
     if (dx < 0 || dx >= 5 || dz < 0 || dz >= 5) {
@@ -679,7 +702,8 @@ const IChunk* StarLightEngine::getChunkInCache(i32 chunkX, i32 chunkZ) const {
     return m_chunkCache[static_cast<size_t>(dx + dz * 5)];
 }
 
-void StarLightEngine::setChunkInCache(i32 chunkX, i32 chunkZ, const IChunk* chunk) {
+void StarLightEngine::setChunkInCache(i32 chunkX, i32 chunkZ, const IChunk* chunk)
+{
     i32 dx = chunkX + m_chunkOffsetX;
     i32 dz = chunkZ + m_chunkOffsetZ;
     if (dx >= 0 && dx < 5 && dz >= 0 && dz < 5) {
@@ -687,7 +711,8 @@ void StarLightEngine::setChunkInCache(i32 chunkX, i32 chunkZ, const IChunk* chun
     }
 }
 
-const ChunkSection* StarLightEngine::getChunkSection(i32 chunkX, i32 chunkY, i32 chunkZ) const {
+const ChunkSection* StarLightEngine::getChunkSection(i32 chunkX, i32 chunkY, i32 chunkZ) const
+{
     if (m_sectionCache == nullptr) {
         return nullptr;
     }
@@ -698,7 +723,8 @@ const ChunkSection* StarLightEngine::getChunkSection(i32 chunkX, i32 chunkY, i32
     return static_cast<const ChunkSection*>(m_sectionCache[index]);
 }
 
-void StarLightEngine::setChunkSectionInCache(i32 chunkX, i32 chunkY, i32 chunkZ, const ChunkSection* section) {
+void StarLightEngine::setChunkSectionInCache(i32 chunkX, i32 chunkY, i32 chunkZ, const ChunkSection* section)
+{
     if (m_sectionCache == nullptr) {
         return;
     }
@@ -708,14 +734,19 @@ void StarLightEngine::setChunkSectionInCache(i32 chunkX, i32 chunkY, i32 chunkZ,
     }
 }
 
-void StarLightEngine::setBlocksForChunkInCache(i32 chunkX, i32 chunkZ, const ChunkSection* const* sections) {
+void StarLightEngine::setBlocksForChunkInCache(i32 chunkX, i32 chunkZ, const ChunkSection* const* sections)
+{
     for (i32 cy = m_minLightSection; cy <= m_maxLightSection; ++cy) {
-        setChunkSectionInCache(chunkX, cy, chunkZ,
-            sections == nullptr ? nullptr : (cy >= m_minSection && cy <= m_maxSection ? sections[cy - m_minSection] : nullptr));
+        setChunkSectionInCache(chunkX,
+            cy,
+            chunkZ,
+            sections == nullptr ? nullptr
+                                : (cy >= m_minSection && cy <= m_maxSection ? sections[cy - m_minSection] : nullptr));
     }
 }
 
-SWMRNibbleArray* StarLightEngine::getNibbleFromCache(i32 chunkX, i32 chunkY, i32 chunkZ) const {
+SWMRNibbleArray* StarLightEngine::getNibbleFromCache(i32 chunkX, i32 chunkY, i32 chunkZ) const
+{
     if (m_nibbleCache == nullptr) {
         return nullptr;
     }
@@ -726,7 +757,8 @@ SWMRNibbleArray* StarLightEngine::getNibbleFromCache(i32 chunkX, i32 chunkY, i32
     return m_nibbleCache[index];
 }
 
-void StarLightEngine::setNibbleInCache(i32 chunkX, i32 chunkY, i32 chunkZ, SWMRNibbleArray* nibble) {
+void StarLightEngine::setNibbleInCache(i32 chunkX, i32 chunkY, i32 chunkZ, SWMRNibbleArray* nibble)
+{
     if (m_nibbleCache == nullptr) {
         return;
     }
@@ -736,13 +768,15 @@ void StarLightEngine::setNibbleInCache(i32 chunkX, i32 chunkY, i32 chunkZ, SWMRN
     }
 }
 
-void StarLightEngine::setNibblesForChunkInCache(i32 chunkX, i32 chunkZ, SWMRNibbleArray* const* nibbles) {
+void StarLightEngine::setNibblesForChunkInCache(i32 chunkX, i32 chunkZ, SWMRNibbleArray* const* nibbles)
+{
     for (i32 cy = m_minLightSection; cy <= m_maxLightSection; ++cy) {
         setNibbleInCache(chunkX, cy, chunkZ, nibbles == nullptr ? nullptr : nibbles[cy - m_minLightSection]);
     }
 }
 
-const bool* StarLightEngine::getEmptinessMap(i32 chunkX, i32 chunkZ) const {
+const bool* StarLightEngine::getEmptinessMap(i32 chunkX, i32 chunkZ) const
+{
     i32 dx = chunkX + m_chunkOffsetX;
     i32 dz = chunkZ + m_chunkOffsetZ;
     if (dx < 0 || dx >= 5 || dz < 0 || dz >= 5) {
@@ -751,7 +785,8 @@ const bool* StarLightEngine::getEmptinessMap(i32 chunkX, i32 chunkZ) const {
     return m_emptinessMapCache[static_cast<size_t>(dx + dz * 5)];
 }
 
-void StarLightEngine::setEmptinessMapCache(i32 chunkX, i32 chunkZ, const bool* map) {
+void StarLightEngine::setEmptinessMapCache(i32 chunkX, i32 chunkZ, const bool* map)
+{
     i32 dx = chunkX + m_chunkOffsetX;
     i32 dz = chunkZ + m_chunkOffsetZ;
     if (dx >= 0 && dx < 5 && dz >= 0 && dz < 5) {
@@ -759,10 +794,11 @@ void StarLightEngine::setEmptinessMapCache(i32 chunkX, i32 chunkZ, const bool* m
     }
 }
 
-const BlockState* StarLightEngine::getBlockState(i32 worldX, i32 worldY, i32 worldZ) const {
+const BlockState* StarLightEngine::getBlockState(i32 worldX, i32 worldY, i32 worldZ) const
+{
     const ChunkSection* section = getChunkSection(worldX >> 4, worldY >> 4, worldZ >> 4);
     if (section == nullptr) {
-        return nullptr;  // 空气
+        return nullptr; // 空气
     }
 
     // 通过区块获取方块状态
@@ -774,7 +810,8 @@ const BlockState* StarLightEngine::getBlockState(i32 worldX, i32 worldY, i32 wor
     return chunk->getBlockState(worldX & 15, worldY, worldZ & 15);
 }
 
-const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localIndex) const {
+const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localIndex) const
+{
     if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_sectionCache == nullptr) {
         return nullptr;
     }
@@ -792,15 +829,17 @@ const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localInde
     return section->getBlockState(x, y, z);
 }
 
-i32 StarLightEngine::getLightLevel(i32 worldX, i32 worldY, i32 worldZ) const {
+i32 StarLightEngine::getLightLevel(i32 worldX, i32 worldY, i32 worldZ) const
+{
     SWMRNibbleArray* nibble = getNibbleFromCache(worldX >> 4, worldY >> 4, worldZ >> 4);
     if (nibble == nullptr) {
-        return m_isSkyLight ? 15 : 0;  // 天空光照默认15，方块光照默认0
+        return m_isSkyLight ? 15 : 0; // 天空光照默认15，方块光照默认0
     }
     return nibble->getUpdating(worldX & 15, worldY & 15, worldZ & 15);
 }
 
-i32 StarLightEngine::getLightLevel(i32 sectionIndex, i32 localIndex) const {
+i32 StarLightEngine::getLightLevel(i32 sectionIndex, i32 localIndex) const
+{
     if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_nibbleCache == nullptr) {
         return m_isSkyLight ? 15 : 0;
     }
@@ -811,7 +850,8 @@ i32 StarLightEngine::getLightLevel(i32 sectionIndex, i32 localIndex) const {
     return nibble->getUpdating(localIndex);
 }
 
-void StarLightEngine::setLightLevel(i32 worldX, i32 worldY, i32 worldZ, i32 level) {
+void StarLightEngine::setLightLevel(i32 worldX, i32 worldY, i32 worldZ, i32 level)
+{
     i32 sectionIndex = (worldX >> 4) + 5 * (worldZ >> 4) + (5 * 5) * (worldY >> 4) + m_chunkSectionIndexOffset;
     SWMRNibbleArray* nibble = m_nibbleCache[sectionIndex];
 
@@ -840,7 +880,8 @@ void StarLightEngine::setLightLevel(i32 worldX, i32 worldY, i32 worldZ, i32 leve
     }
 }
 
-void StarLightEngine::setLightLevel(i32 sectionIndex, i32 localIndex, i32 worldX, i32 worldY, i32 worldZ, i32 level) {
+void StarLightEngine::setLightLevel(i32 sectionIndex, i32 localIndex, i32 worldX, i32 worldY, i32 worldZ, i32 level)
+{
     if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_nibbleCache == nullptr) {
         return;
     }
@@ -869,7 +910,8 @@ void StarLightEngine::setLightLevel(i32 sectionIndex, i32 localIndex, i32 worldX
     }
 }
 
-void StarLightEngine::postLightUpdate(i32 worldX, i32 worldY, i32 worldZ) {
+void StarLightEngine::postLightUpdate(i32 worldX, i32 worldY, i32 worldZ)
+{
     if (m_notifyUpdateCache == nullptr || !m_isClientSide) {
         return;
     }
@@ -897,7 +939,8 @@ void StarLightEngine::postLightUpdate(i32 worldX, i32 worldY, i32 worldZ) {
 // 队列操作
 // ============================================================================
 
-void StarLightEngine::appendToIncreaseQueue(u64 queueValue) {
+void StarLightEngine::appendToIncreaseQueue(u64 queueValue)
+{
     if (m_increaseQueueInitialLength >= static_cast<i32>(m_increaseQueue.size())) {
         resizeIncreaseQueue();
     }
@@ -905,7 +948,8 @@ void StarLightEngine::appendToIncreaseQueue(u64 queueValue) {
     m_needsUpdate = true;
 }
 
-void StarLightEngine::appendToDecreaseQueue(u64 queueValue) {
+void StarLightEngine::appendToDecreaseQueue(u64 queueValue)
+{
     if (m_decreaseQueueInitialLength >= static_cast<i32>(m_decreaseQueue.size())) {
         resizeDecreaseQueue();
     }
@@ -913,17 +957,20 @@ void StarLightEngine::appendToDecreaseQueue(u64 queueValue) {
     m_needsUpdate = true;
 }
 
-void StarLightEngine::resizeIncreaseQueue() {
+void StarLightEngine::resizeIncreaseQueue()
+{
     size_t newSize = std::max(static_cast<size_t>(4), m_increaseQueue.size() + (m_increaseQueue.size() >> 1));
     m_increaseQueue.resize(newSize);
 }
 
-void StarLightEngine::resizeDecreaseQueue() {
+void StarLightEngine::resizeDecreaseQueue()
+{
     size_t newSize = std::max(static_cast<size_t>(4), m_decreaseQueue.size() + (m_decreaseQueue.size() >> 1));
     m_decreaseQueue.resize(newSize);
 }
 
-i32 StarLightEngine::performUpdates(StarLightLightingProvider* lightAccess, i32 maxUpdates) {
+i32 StarLightEngine::performUpdates(StarLightLightingProvider* lightAccess, i32 maxUpdates)
+{
     // 先处理减亮队列
     if (m_decreaseQueueInitialLength > 0) {
         performLightDecrease(lightAccess);
@@ -942,7 +989,8 @@ i32 StarLightEngine::performUpdates(StarLightLightingProvider* lightAccess, i32 
 // 光照传播（基础实现，子类可扩展）
 // ============================================================================
 
-void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAccess) {
+void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAccess)
+{
     // 参考 Moonrise StarLightEngine.performLightIncrease
     i32 decodeOffsetX = -m_encodeOffsetX;
     i32 decodeOffsetY = -m_encodeOffsetY;
@@ -978,7 +1026,8 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
         // 根据 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 标志选择处理路径
         if ((queueValue & FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) == 0) {
             // we don't need to worry about our state here.
-            const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
+            const std::vector<LightAxisDirection>& directions =
+                s_oldCheckDirections[static_cast<size_t>(directionBits)];
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
                 getDirectionOffset(propagate, dx, dy, dz);
@@ -992,7 +1041,8 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
 
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 currentLevel;
-                if (currentNibble == nullptr || (currentLevel = currentNibble->getUpdating(localIndex)) >= (propagatedLevel - 1)) {
+                if (currentNibble == nullptr ||
+                    (currentLevel = currentNibble->getUpdating(localIndex)) >= (propagatedLevel - 1)) {
                     continue; // already at the level we want or unloaded
                 }
 
@@ -1004,7 +1054,8 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 u64 flags = 0;
                 if (blockState->useShapeForLightOcclusion()) {
                     // 获取遮挡面
-                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                    CollisionShape cullingFace =
+                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
                     if (cullingFace.isFullBlock()) {
                         // 完全面遮挡，无法传播
                         continue;
@@ -1029,16 +1080,16 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                         resizeIncreaseQueue();
                     }
                     m_increaseQueue[static_cast<size_t>(queueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(targetLevel & 0xF) << 28)
-                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
-                            | flags;
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(targetLevel & 0xF) << 28) |
+                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         } else {
             // we actually need to worry about our state here
             const BlockState* fromBlock = getBlockState(posX, posY, posZ);
-            const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
+            const std::vector<LightAxisDirection>& directions =
+                s_oldCheckDirections[static_cast<size_t>(directionBits)];
 
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
@@ -1049,7 +1100,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 i32 offZ = posZ + dz;
 
                 // 检查源方块的遮挡面
-                CollisionShape fromShape;  // 空 shape
+                CollisionShape fromShape; // 空 shape
                 if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
                     fromShape = fromBlock->getFaceOcclusionShape(getNMSDirection(propagate));
                 }
@@ -1064,7 +1115,8 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
 
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 currentLevel;
-                if (currentNibble == nullptr || (currentLevel = currentNibble->getUpdating(localIndex)) >= (propagatedLevel - 1)) {
+                if (currentNibble == nullptr ||
+                    (currentLevel = currentNibble->getUpdating(localIndex)) >= (propagatedLevel - 1)) {
                     continue; // already at the level we want
                 }
 
@@ -1075,7 +1127,8 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
 
                 u64 flags = 0;
                 if (blockState->useShapeForLightOcclusion()) {
-                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                    CollisionShape cullingFace =
+                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
 
                     // 使用 VoxelShape 进行精确遮挡检测
                     VoxelShape fromVoxel = collisionShapeToVoxelShape(fromShape);
@@ -1101,17 +1154,17 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                         resizeIncreaseQueue();
                     }
                     m_increaseQueue[static_cast<size_t>(queueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(targetLevel & 0xF) << 28)
-                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
-                            | flags;
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(targetLevel & 0xF) << 28) |
+                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         }
     }
 }
 
-void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAccess) {
+void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAccess)
+{
     // 参考 Moonrise StarLightEngine.performLightDecrease
     i32 decodeOffsetX = -m_encodeOffsetX;
     i32 decodeOffsetY = -m_encodeOffsetY;
@@ -1137,7 +1190,8 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
         // 根据 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 标志选择处理路径
         if ((queueValue & FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) == 0) {
             // we don't need to worry about our state here.
-            const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
+            const std::vector<LightAxisDirection>& directions =
+                s_oldCheckDirections[static_cast<size_t>(directionBits)];
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
                 getDirectionOffset(propagate, dx, dy, dz);
@@ -1164,7 +1218,8 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
 
                 u64 flags = 0;
                 if (blockState->useShapeForLightOcclusion()) {
-                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                    CollisionShape cullingFace =
+                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
                     if (cullingFace.isFullBlock()) {
                         // 完全面遮挡
                         continue;
@@ -1183,10 +1238,9 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                         resizeIncreaseQueue();
                     }
                     m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(lightLevel & 0xF) << 28)
-                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
-                            | (FLAG_RECHECK_LEVEL | flags);
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(lightLevel & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+                        (FLAG_RECHECK_LEVEL | flags);
                     continue;
                 }
 
@@ -1201,10 +1255,9 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                         resizeIncreaseQueue();
                     }
                     m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(emittedLight & 0xF) << 28)
-                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
-                            | (flags | FLAG_WRITE_LEVEL);
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(emittedLight & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+                        (flags | FLAG_WRITE_LEVEL);
                 }
 
                 currentNibble->set(localIndex, 0);
@@ -1215,16 +1268,16 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                         resizeDecreaseQueue();
                     }
                     m_decreaseQueue[static_cast<size_t>(queueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(targetLevel & 0xF) << 28)
-                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
-                            | flags;
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(targetLevel & 0xF) << 28) |
+                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         } else {
             // we actually need to worry about our state here
             const BlockState* fromBlock = getBlockState(posX, posY, posZ);
-            const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
+            const std::vector<LightAxisDirection>& directions =
+                s_oldCheckDirections[static_cast<size_t>(directionBits)];
 
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
@@ -1235,7 +1288,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 i32 offZ = posZ + dz;
 
                 // 检查源方块的遮挡面
-                CollisionShape fromShape;  // 空 shape
+                CollisionShape fromShape; // 空 shape
                 if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
                     fromShape = fromBlock->getFaceOcclusionShape(getNMSDirection(propagate));
                 }
@@ -1263,7 +1316,8 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
 
                 u64 flags = 0;
                 if (blockState->useShapeForLightOcclusion()) {
-                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                    CollisionShape cullingFace =
+                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
 
                     // 使用 VoxelShape 进行精确遮挡检测
                     VoxelShape fromVoxel = collisionShapeToVoxelShape(fromShape);
@@ -1284,10 +1338,9 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                         resizeIncreaseQueue();
                     }
                     m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(lightLevel & 0xF) << 28)
-                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
-                            | (FLAG_RECHECK_LEVEL | flags);
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(lightLevel & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+                        (FLAG_RECHECK_LEVEL | flags);
                     continue;
                 }
 
@@ -1302,10 +1355,9 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                         resizeIncreaseQueue();
                     }
                     m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(emittedLight & 0xF) << 28)
-                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
-                            | (flags | FLAG_WRITE_LEVEL);
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(emittedLight & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+                        (flags | FLAG_WRITE_LEVEL);
                 }
 
                 currentNibble->set(localIndex, 0);
@@ -1316,10 +1368,9 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                         resizeDecreaseQueue();
                     }
                     m_decreaseQueue[static_cast<size_t>(queueLength++)] =
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                            | (static_cast<u64>(targetLevel & 0xF) << 28)
-                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
-                            | flags;
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+                        (static_cast<u64>(targetLevel & 0xF) << 28) |
+                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         }
@@ -1334,14 +1385,16 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
 // 公共接口实现
 // ============================================================================
 
-i32 StarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+i32 StarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight)
+{
     // 参数由子类决定是否使用，基类忽略
     (void)updateSkyLight;
     (void)updateBlockLight;
-    return maxUpdates;  // 子类重写
+    return maxUpdates; // 子类重写
 }
 
-void StarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+void StarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty)
+{
     // 子类实现
     (void)pos;
     (void)isEmpty;
@@ -1351,9 +1404,9 @@ void StarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
 // 条件透明检查
 // ============================================================================
 
-bool StarLightEngine::isFaceOccluded(const BlockState* fromState,
-                                      const BlockState* toState,
-                                      LightAxisDirection direction) {
+bool StarLightEngine::isFaceOccluded(
+    const BlockState* fromState, const BlockState* toState, LightAxisDirection direction)
+{
     // 空气不遮挡任何面
     if (fromState == nullptr || toState == nullptr) {
         return false;
@@ -1386,7 +1439,8 @@ bool StarLightEngine::isFaceOccluded(const BlockState* fromState,
     return Shapes::blockOccludes(fromShape, toShape, fromDir);
 }
 
-bool StarLightEngine::useShapeForLightOcclusion(const BlockState* state) {
+bool StarLightEngine::useShapeForLightOcclusion(const BlockState* state)
+{
     if (state == nullptr) {
         return false;
     }
@@ -1397,12 +1451,13 @@ bool StarLightEngine::useShapeForLightOcclusion(const BlockState* state) {
 // 静态工具方法
 // ============================================================================
 
-std::vector<SWMRNibbleArray*> StarLightEngine::getFilledEmptyLight(i32 totalLightSections) {
+std::vector<SWMRNibbleArray*> StarLightEngine::getFilledEmptyLight(i32 totalLightSections)
+{
     std::vector<SWMRNibbleArray*> ret;
     ret.reserve(static_cast<size_t>(totalLightSections));
 
     for (i32 i = 0; i < totalLightSections; ++i) {
-        ret.push_back(new SWMRNibbleArray(nullptr, true));  // Null 状态
+        ret.push_back(new SWMRNibbleArray(nullptr, true)); // Null 状态
     }
 
     return ret;

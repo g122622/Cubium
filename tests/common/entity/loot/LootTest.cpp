@@ -1,26 +1,26 @@
-#include <gtest/gtest.h>
-#include "entity/loot/LootContext.hpp"
-#include "entity/loot/LootTable.hpp"
-#include "entity/loot/LootPool.hpp"
-#include "entity/loot/LootEntry.hpp"
-#include "entity/loot/LootConditions.hpp"
-#include "entity/loot/LootFunctions.hpp"
-#include "entity/loot/RandomRanges.hpp"
-#include "item/core/ItemRegistry.hpp"
-#include "item/Items.hpp"
-#include "resource/ResourceLocation.hpp"
-#include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
-#include "world/block/Block.hpp"
-#include "world/fluid/Fluid.hpp"
-#include "world/tick/manager/TickManager.hpp"
-#include "world/blockentity/storage/ChestEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/loot/LootConditions.hpp"
+#include "entity/loot/LootContext.hpp"
+#include "entity/loot/LootEntry.hpp"
+#include "entity/loot/LootFunctions.hpp"
+#include "entity/loot/LootPool.hpp"
+#include "entity/loot/LootTable.hpp"
+#include "entity/loot/RandomRanges.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include "resource/ResourceLocation.hpp"
 #include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
+#include "world/blockentity/storage/ChestEntity.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/chunk/ChunkData.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/tick/manager/TickManager.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::loot;
@@ -28,28 +28,31 @@ using namespace mc::loot;
 // Test implementation of IWorld for loot testing
 class LootTestWorld : public test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("LootTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("LootTestWorld::tickManager not implemented");
     }
-
 };
 
 class LootTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 
     LootTestWorld m_world;
 };
 
 // RandomValueRange Tests
-TEST_F(LootTest, RandomValueRange_FixedValue) {
+TEST_F(LootTest, RandomValueRange_FixedValue)
+{
     RandomValueRange range(5.0f);
     math::Random rng(12345);
     EXPECT_EQ(5, range.generateInt(rng));
@@ -57,7 +60,8 @@ TEST_F(LootTest, RandomValueRange_FixedValue) {
     EXPECT_TRUE(range.isFixed());
 }
 
-TEST_F(LootTest, RandomValueRange_Range) {
+TEST_F(LootTest, RandomValueRange_Range)
+{
     RandomValueRange range(1.0f, 10.0f);
     math::Random rng(12345);
     for (int i = 0; i < 10; ++i) {
@@ -68,7 +72,8 @@ TEST_F(LootTest, RandomValueRange_Range) {
 }
 
 // BinomialRange Tests
-TEST_F(LootTest, BinomialRange_Basic) {
+TEST_F(LootTest, BinomialRange_Basic)
+{
     BinomialRange range(10, 0.5f);
     math::Random rng(12345);
     for (int i = 0; i < 10; ++i) {
@@ -78,7 +83,8 @@ TEST_F(LootTest, BinomialRange_Basic) {
     }
 }
 
-TEST_F(LootTest, BinomialRange_ZeroProbability) {
+TEST_F(LootTest, BinomialRange_ZeroProbability)
+{
     BinomialRange range(10, 0.0f);
     math::Random rng(12345);
     for (int i = 0; i < 5; ++i) {
@@ -86,7 +92,8 @@ TEST_F(LootTest, BinomialRange_ZeroProbability) {
     }
 }
 
-TEST_F(LootTest, BinomialRange_FullProbability) {
+TEST_F(LootTest, BinomialRange_FullProbability)
+{
     BinomialRange range(10, 1.0f);
     math::Random rng(12345);
     for (int i = 0; i < 5; ++i) {
@@ -95,7 +102,8 @@ TEST_F(LootTest, BinomialRange_FullProbability) {
 }
 
 // ConstantRange Tests
-TEST_F(LootTest, ConstantRange_Basic) {
+TEST_F(LootTest, ConstantRange_Basic)
+{
     ConstantRange range(42);
     math::Random rng(12345);
     // 始终返回固定值
@@ -104,7 +112,8 @@ TEST_F(LootTest, ConstantRange_Basic) {
     }
 }
 
-TEST_F(LootTest, ConstantRange_ZeroValue) {
+TEST_F(LootTest, ConstantRange_ZeroValue)
+{
     ConstantRange range(0);
     math::Random rng(12345);
     for (int i = 0; i < 5; ++i) {
@@ -112,7 +121,8 @@ TEST_F(LootTest, ConstantRange_ZeroValue) {
     }
 }
 
-TEST_F(LootTest, ConstantRange_NegativeValue) {
+TEST_F(LootTest, ConstantRange_NegativeValue)
+{
     ConstantRange range(-5);
     math::Random rng(12345);
     for (int i = 0; i < 5; ++i) {
@@ -120,60 +130,58 @@ TEST_F(LootTest, ConstantRange_NegativeValue) {
     }
 }
 
-TEST_F(LootTest, ConstantRange_LargeValue) {
+TEST_F(LootTest, ConstantRange_LargeValue)
+{
     ConstantRange range(1000000);
     math::Random rng(12345);
     EXPECT_EQ(1000000, range.generateInt(rng));
     EXPECT_EQ(1000000, range.getValue());
 }
 
-TEST_F(LootTest, ConstantRange_GetValue) {
+TEST_F(LootTest, ConstantRange_GetValue)
+{
     ConstantRange range(123);
     EXPECT_EQ(123, range.getValue());
 }
 
 // LootContext Tests
-TEST_F(LootTest, LootContext_Builder) {
+TEST_F(LootTest, LootContext_Builder)
+{
     math::Random rng(12345);
     IWorld& worldRef = m_world;
-    auto context = LootContextBuilder(worldRef)
-        .withRandom(rng)
-        .withLuck(1.5f)
-        .build();
+    auto context = LootContextBuilder(worldRef).withRandom(rng).withLuck(1.5f).build();
 
     ASSERT_NE(context, nullptr);
     EXPECT_FLOAT_EQ(1.5f, context->getLuck());
 }
 
-TEST_F(LootTest, LootContext_LootingModifier) {
+TEST_F(LootTest, LootContext_LootingModifier)
+{
     math::Random rng(12345);
     IWorld& worldRef = m_world;
-    auto context = LootContextBuilder(worldRef)
-        .withRandom(rng)
-        .withLootingModifier(3)
-        .build();
+    auto context = LootContextBuilder(worldRef).withRandom(rng).withLootingModifier(3).build();
 
     ASSERT_NE(context, nullptr);
     EXPECT_EQ(3, context->getLootingModifier());
 }
 
 // LootEntry Tests
-TEST_F(LootTest, EmptyLootEntry_GenerateNothing) {
+TEST_F(LootTest, EmptyLootEntry_GenerateNothing)
+{
     EmptyLootEntry entry;
     math::Random rng(12345);
     IWorld& worldRef = m_world;
     auto context = LootContextBuilder(worldRef).withRandom(rng).build();
 
     std::vector<ItemStack> items;
-    bool success = entry.generate([&items](const ItemStack& stack) {
-        items.push_back(stack);
-    }, *context);
+    bool success = entry.generate([&items](const ItemStack& stack) { items.push_back(stack); }, *context);
 
     EXPECT_TRUE(success);
     EXPECT_TRUE(items.empty());
 }
 
-TEST_F(LootTest, ItemLootEntry_Weight) {
+TEST_F(LootTest, ItemLootEntry_Weight)
+{
     ItemLootEntry entry("minecraft:porkchop", RandomValueRange(1.0f), 10, 2);
     EXPECT_EQ(10, entry.getWeight());
     EXPECT_EQ(2, entry.getQuality());
@@ -183,7 +191,8 @@ TEST_F(LootTest, ItemLootEntry_Weight) {
 }
 
 // LootTable Tests
-TEST_F(LootTest, LootTable_Empty) {
+TEST_F(LootTest, LootTable_Empty)
+{
     LootTable table;
     math::Random rng(12345);
     IWorld& worldRef = m_world;
@@ -194,7 +203,8 @@ TEST_F(LootTest, LootTable_Empty) {
 }
 
 // LootTableManager Tests
-TEST_F(LootTest, LootTableManager_RegisterAndGet) {
+TEST_F(LootTest, LootTableManager_RegisterAndGet)
+{
     LootTableManager manager;
     auto table = std::make_unique<LootTable>();
     table->addPool(std::make_unique<LootPool>(RandomValueRange(1.0f)));
@@ -208,7 +218,8 @@ TEST_F(LootTest, LootTableManager_RegisterAndGet) {
     EXPECT_EQ(static_cast<size_t>(1), retrieved->poolCount());
 }
 
-TEST_F(LootTest, LootTableManager_DefaultTables) {
+TEST_F(LootTest, LootTableManager_DefaultTables)
+{
     LootTableManager manager;
     manager.initializeDefaultTables();
 
@@ -222,13 +233,15 @@ TEST_F(LootTest, LootTableManager_DefaultTables) {
 // New LootFunction Tests
 // ============================================================================
 
-TEST_F(LootTest, CopyNameFunction_Creation) {
+TEST_F(LootTest, CopyNameFunction_Creation)
+{
     CopyNameFunction func(CopyNameFunction::Source::KillerPlayer);
     EXPECT_EQ("copy_name", func.getType());
     EXPECT_EQ(CopyNameFunction::Source::KillerPlayer, func.getSource());
 }
 
-TEST_F(LootTest, CopyNameFunction_Clone) {
+TEST_F(LootTest, CopyNameFunction_Clone)
+{
     CopyNameFunction func(CopyNameFunction::Source::This);
     func.addCondition(std::make_unique<RandomChanceCondition>(0.5f));
 
@@ -241,7 +254,8 @@ TEST_F(LootTest, CopyNameFunction_Clone) {
     EXPECT_EQ(CopyNameFunction::Source::This, clonedFunc->getSource());
 }
 
-TEST_F(LootTest, CopyNameFunction_AllSources) {
+TEST_F(LootTest, CopyNameFunction_AllSources)
+{
     // 测试所有来源类型
     CopyNameFunction funcThis(CopyNameFunction::Source::This);
     CopyNameFunction funcKiller(CopyNameFunction::Source::Killer);
@@ -254,14 +268,16 @@ TEST_F(LootTest, CopyNameFunction_AllSources) {
     EXPECT_EQ(CopyNameFunction::Source::BlockEntity, funcBlock.getSource());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_Creation) {
+TEST_F(LootTest, CopyBlockStateFunction_Creation)
+{
     CopyBlockStateFunction func("minecraft:chest");
     EXPECT_EQ("copy_block_state", func.getType());
     EXPECT_EQ("minecraft:chest", func.getBlockId());
     EXPECT_TRUE(func.getProperties().empty());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_Properties) {
+TEST_F(LootTest, CopyBlockStateFunction_Properties)
+{
     std::vector<std::string> props = {"facing", "waterlogged"};
     CopyBlockStateFunction func("minecraft:chest", props);
     EXPECT_EQ(2, func.getProperties().size());
@@ -269,7 +285,8 @@ TEST_F(LootTest, CopyBlockStateFunction_Properties) {
     EXPECT_EQ("waterlogged", func.getProperties()[1]);
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_Clone) {
+TEST_F(LootTest, CopyBlockStateFunction_Clone)
+{
     std::vector<std::string> props = {"facing"};
     CopyBlockStateFunction func("minecraft:furnace", props);
 
@@ -282,14 +299,16 @@ TEST_F(LootTest, CopyBlockStateFunction_Clone) {
     EXPECT_EQ(1, clonedFunc->getProperties().size());
 }
 
-TEST_F(LootTest, CopyNbtFunction_Creation) {
+TEST_F(LootTest, CopyNbtFunction_Creation)
+{
     CopyNbtFunction func(CopyNbtFunction::Source::This);
     EXPECT_EQ("copy_nbt", func.getType());
     EXPECT_EQ(CopyNbtFunction::Source::This, func.getSource());
     EXPECT_TRUE(func.getOperations().empty());
 }
 
-TEST_F(LootTest, CopyNbtFunction_AddOperation) {
+TEST_F(LootTest, CopyNbtFunction_AddOperation)
+{
     CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
     func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
 
@@ -299,7 +318,8 @@ TEST_F(LootTest, CopyNbtFunction_AddOperation) {
     EXPECT_EQ(CopyNbtFunction::Operation::Replace, func.getOperations()[0].operation);
 }
 
-TEST_F(LootTest, CopyNbtFunction_Clone) {
+TEST_F(LootTest, CopyNbtFunction_Clone)
+{
     CopyNbtFunction func(CopyNbtFunction::Source::Killer);
     func.addOperation("path1", "path2", CopyNbtFunction::Operation::Append);
 
@@ -312,13 +332,15 @@ TEST_F(LootTest, CopyNbtFunction_Clone) {
     EXPECT_EQ(1, clonedFunc->getOperations().size());
 }
 
-TEST_F(LootTest, FillPlayerHeadFunction_Creation) {
+TEST_F(LootTest, FillPlayerHeadFunction_Creation)
+{
     FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
     EXPECT_EQ("fill_player_head", func.getType());
     EXPECT_EQ(CopyNameFunction::Source::KillerPlayer, func.getSource());
 }
 
-TEST_F(LootTest, FillPlayerHeadFunction_Clone) {
+TEST_F(LootTest, FillPlayerHeadFunction_Clone)
+{
     FillPlayerHeadFunction func(CopyNameFunction::Source::This);
 
     auto cloned = func.clone();
@@ -329,21 +351,22 @@ TEST_F(LootTest, FillPlayerHeadFunction_Clone) {
     EXPECT_EQ(CopyNameFunction::Source::This, clonedFunc->getSource());
 }
 
-TEST_F(LootTest, SetAttributesFunction_Creation) {
+TEST_F(LootTest, SetAttributesFunction_Creation)
+{
     SetAttributesFunction func;
     EXPECT_EQ("set_attributes", func.getType());
     EXPECT_TRUE(func.getModifiers().empty());
 }
 
-TEST_F(LootTest, SetAttributesFunction_AddModifier) {
+TEST_F(LootTest, SetAttributesFunction_AddModifier)
+{
     SetAttributesFunction func;
-    SetAttributesFunction::Modifier mod(
-        "generic.attack_damage",                        // name
-        "minecraft:generic.attack_damage",              // attributeId
-        math::RandomValueRange(5.0f),                   // amount (fixed)
-        0,                                              // operation (Addition)
-        std::vector<std::string>{"mainhand"},          // slots
-        ""                                              // uuid (auto-generated)
+    SetAttributesFunction::Modifier mod("generic.attack_damage", // name
+        "minecraft:generic.attack_damage",                       // attributeId
+        math::RandomValueRange(5.0f),                            // amount (fixed)
+        0,                                                       // operation (Addition)
+        std::vector<std::string>{"mainhand"},                    // slots
+        ""                                                       // uuid (auto-generated)
     );
 
     func.addModifier(mod);
@@ -354,16 +377,16 @@ TEST_F(LootTest, SetAttributesFunction_AddModifier) {
     EXPECT_FLOAT_EQ(5.0f, func.getModifiers()[0].amount.getMin());
 }
 
-TEST_F(LootTest, SetAttributesFunction_Apply) {
+TEST_F(LootTest, SetAttributesFunction_Apply)
+{
     // 测试 SetAttributesFunction::apply() 方法
     SetAttributesFunction func;
-    SetAttributesFunction::Modifier mod(
-        "generic.attack_damage",                        // name
-        "minecraft:generic.attack_damage",              // attributeId
-        math::RandomValueRange(5.0f, 10.0f),           // amount (range)
-        0,                                              // operation (Addition)
-        std::vector<std::string>{"mainhand", "offhand"}, // slots (multiple)
-        "d4d5c2a0-6b1c-4e3d-8f2a-1b2c3d4e5f6g"         // uuid
+    SetAttributesFunction::Modifier mod("generic.attack_damage", // name
+        "minecraft:generic.attack_damage",                       // attributeId
+        math::RandomValueRange(5.0f, 10.0f),                     // amount (range)
+        0,                                                       // operation (Addition)
+        std::vector<std::string>{"mainhand", "offhand"},         // slots (multiple)
+        "d4d5c2a0-6b1c-4e3d-8f2a-1b2c3d4e5f6g"                   // uuid
     );
     func.addModifier(mod);
 
@@ -409,30 +432,26 @@ TEST_F(LootTest, SetAttributesFunction_Apply) {
     EXPECT_LE(amount, 10.0);
     // 槽位应该是 mainhand 或 offhand 中的一个
     int slot = entry["Slot"].get<int>();
-    EXPECT_TRUE(slot == static_cast<int>(EquipmentSlot::MainHand) ||
-                slot == static_cast<int>(EquipmentSlot::OffHand));
+    EXPECT_TRUE(slot == static_cast<int>(EquipmentSlot::MainHand) || slot == static_cast<int>(EquipmentSlot::OffHand));
 }
 
-TEST_F(LootTest, SetAttributesFunction_MultipleModifiers) {
+TEST_F(LootTest, SetAttributesFunction_MultipleModifiers)
+{
     SetAttributesFunction func;
 
     // 添加攻击伤害修饰符
-    func.addModifier(SetAttributesFunction::Modifier(
-        "generic.attack_damage",
+    func.addModifier(SetAttributesFunction::Modifier("generic.attack_damage",
         "minecraft:generic.attack_damage",
         math::RandomValueRange(4.0f),
         0,
-        std::vector<std::string>{"mainhand"}
-    ));
+        std::vector<std::string>{"mainhand"}));
 
     // 添加攻击速度修饰符
-    func.addModifier(SetAttributesFunction::Modifier(
-        "generic.attack_speed",
+    func.addModifier(SetAttributesFunction::Modifier("generic.attack_speed",
         "minecraft:generic.attack_speed",
         math::RandomValueRange(-2.4f),
         0,
-        std::vector<std::string>{"mainhand"}
-    ));
+        std::vector<std::string>{"mainhand"}));
 
     EXPECT_EQ(2, func.getModifiers().size());
 
@@ -456,15 +475,14 @@ TEST_F(LootTest, SetAttributesFunction_MultipleModifiers) {
     EXPECT_EQ(2, attrModifiers.size());
 }
 
-TEST_F(LootTest, SetAttributesFunction_EmptyStack) {
+TEST_F(LootTest, SetAttributesFunction_EmptyStack)
+{
     SetAttributesFunction func;
-    func.addModifier(SetAttributesFunction::Modifier(
-        "generic.attack_damage",
+    func.addModifier(SetAttributesFunction::Modifier("generic.attack_damage",
         "minecraft:generic.attack_damage",
         math::RandomValueRange(5.0f),
         0,
-        std::vector<std::string>{"mainhand"}
-    ));
+        std::vector<std::string>{"mainhand"}));
 
     ItemStack emptyStack;
     math::Random rng(12345);
@@ -474,7 +492,8 @@ TEST_F(LootTest, SetAttributesFunction_EmptyStack) {
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, SetAttributesFunction_NoModifiers) {
+TEST_F(LootTest, SetAttributesFunction_NoModifiers)
+{
     SetAttributesFunction func;
 
     const Item* sword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
@@ -491,36 +510,31 @@ TEST_F(LootTest, SetAttributesFunction_NoModifiers) {
     EXPECT_EQ(attrModifiers, nullptr);
 }
 
-TEST_F(LootTest, SetAttributesFunction_AllOperations) {
+TEST_F(LootTest, SetAttributesFunction_AllOperations)
+{
     // 测试所有操作类型
     SetAttributesFunction func;
 
     // Addition (0)
-    func.addModifier(SetAttributesFunction::Modifier(
-        "addition_test",
+    func.addModifier(SetAttributesFunction::Modifier("addition_test",
         "minecraft:generic.attack_damage",
         math::RandomValueRange(10.0f),
-        0,  // Addition
-        std::vector<std::string>{"mainhand"}
-    ));
+        0, // Addition
+        std::vector<std::string>{"mainhand"}));
 
     // MultiplyBase (1)
-    func.addModifier(SetAttributesFunction::Modifier(
-        "multiply_base_test",
+    func.addModifier(SetAttributesFunction::Modifier("multiply_base_test",
         "minecraft:generic.attack_damage",
         math::RandomValueRange(0.5f),
-        1,  // MultiplyBase
-        std::vector<std::string>{"mainhand"}
-    ));
+        1, // MultiplyBase
+        std::vector<std::string>{"mainhand"}));
 
     // MultiplyTotal (2)
-    func.addModifier(SetAttributesFunction::Modifier(
-        "multiply_total_test",
+    func.addModifier(SetAttributesFunction::Modifier("multiply_total_test",
         "minecraft:generic.attack_damage",
         math::RandomValueRange(0.2f),
-        2,  // MultiplyTotal
-        std::vector<std::string>{"mainhand"}
-    ));
+        2, // MultiplyTotal
+        std::vector<std::string>{"mainhand"}));
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     if (diamond == nullptr) {
@@ -544,13 +558,15 @@ TEST_F(LootTest, SetAttributesFunction_AllOperations) {
     EXPECT_EQ(2, attrModifiers[2]["Operation"].get<int>());
 }
 
-TEST_F(LootTest, SetContentsFunction_Creation) {
+TEST_F(LootTest, SetContentsFunction_Creation)
+{
     SetContentsFunction func;
     EXPECT_EQ("set_contents", func.getType());
     EXPECT_TRUE(func.getEntries().empty());
 }
 
-TEST_F(LootTest, SetContentsFunction_AddEntry) {
+TEST_F(LootTest, SetContentsFunction_AddEntry)
+{
     SetContentsFunction func;
 
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f, 3.0f), 10, 0);
@@ -559,7 +575,8 @@ TEST_F(LootTest, SetContentsFunction_AddEntry) {
     EXPECT_EQ(1, func.getEntries().size());
 }
 
-TEST_F(LootTest, SetContentsFunction_Clone) {
+TEST_F(LootTest, SetContentsFunction_Clone)
+{
     SetContentsFunction func;
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:iron_ingot", RandomValueRange(2.0f, 5.0f), 2, 0));
@@ -572,7 +589,8 @@ TEST_F(LootTest, SetContentsFunction_Clone) {
     EXPECT_EQ(2, clonedFunc->getEntries().size());
 }
 
-TEST_F(LootTest, SetContentsFunction_EmptyStack) {
+TEST_F(LootTest, SetContentsFunction_EmptyStack)
+{
     SetContentsFunction func;
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
 
@@ -585,8 +603,9 @@ TEST_F(LootTest, SetContentsFunction_EmptyStack) {
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, SetContentsFunction_EmptyEntries) {
-    SetContentsFunction func;  // No entries
+TEST_F(LootTest, SetContentsFunction_EmptyEntries)
+{
+    SetContentsFunction func; // No entries
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -602,7 +621,8 @@ TEST_F(LootTest, SetContentsFunction_EmptyEntries) {
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(LootTest, SetContentsFunction_SingleItem) {
+TEST_F(LootTest, SetContentsFunction_SingleItem)
+{
     SetContentsFunction func;
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(5.0f), 1, 0));
 
@@ -632,7 +652,8 @@ TEST_F(LootTest, SetContentsFunction_SingleItem) {
     EXPECT_EQ(5, items[0]["Count"].get<int>());
 }
 
-TEST_F(LootTest, SetContentsFunction_MultipleItems) {
+TEST_F(LootTest, SetContentsFunction_MultipleItems)
+{
     SetContentsFunction func;
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:iron_ingot", RandomValueRange(2.0f), 1, 0));
@@ -665,7 +686,8 @@ TEST_F(LootTest, SetContentsFunction_MultipleItems) {
     }
 }
 
-TEST_F(LootTest, SetContentsFunction_MergesWithExistingTag) {
+TEST_F(LootTest, SetContentsFunction_MergesWithExistingTag)
+{
     SetContentsFunction func;
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
 
@@ -698,7 +720,8 @@ TEST_F(LootTest, SetContentsFunction_MergesWithExistingTag) {
     EXPECT_EQ("secret", (*blockEntityTag)["Lock"].get<std::string>());
 }
 
-TEST_F(LootTest, SetContentsFunction_StackSplitting) {
+TEST_F(LootTest, SetContentsFunction_StackSplitting)
+{
     SetContentsFunction func;
     // 生成 128 个钻石，超过最大堆叠数 64
     func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(128.0f), 1, 0));
@@ -722,11 +745,12 @@ TEST_F(LootTest, SetContentsFunction_StackSplitting) {
     EXPECT_EQ(64, items[1]["Count"].get<int>());
 }
 
-TEST_F(LootTest, SetContentsFunction_WithCondition) {
+TEST_F(LootTest, SetContentsFunction_WithCondition)
+{
     SetContentsFunction func;
 
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
-    entry->addCondition(std::make_unique<RandomChanceCondition>(0.0f));  // 永远不满足
+    entry->addCondition(std::make_unique<RandomChanceCondition>(0.0f)); // 永远不满足
     func.addEntry(std::move(entry));
 
     const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -747,14 +771,16 @@ TEST_F(LootTest, SetContentsFunction_WithCondition) {
     }
 }
 
-TEST_F(LootTest, SetLootTableFunction_Creation) {
+TEST_F(LootTest, SetLootTableFunction_Creation)
+{
     SetLootTableFunction func("minecraft:chests/simple_dungeon", 12345);
     EXPECT_EQ("set_loot_table", func.getType());
     EXPECT_EQ("minecraft:chests/simple_dungeon", func.getLootTableId());
     EXPECT_EQ(12345, func.getSeed());
 }
 
-TEST_F(LootTest, SetLootTableFunction_Clone) {
+TEST_F(LootTest, SetLootTableFunction_Clone)
+{
     SetLootTableFunction func("minecraft:chests/spawn_bonus_chest");
 
     auto cloned = func.clone();
@@ -765,13 +791,15 @@ TEST_F(LootTest, SetLootTableFunction_Clone) {
     EXPECT_EQ("minecraft:chests/spawn_bonus_chest", clonedFunc->getLootTableId());
 }
 
-TEST_F(LootTest, ExplorationMapFunction_Creation) {
+TEST_F(LootTest, ExplorationMapFunction_Creation)
+{
     ExplorationMapFunction func(ExplorationMapFunction::Destination::Mansion);
     EXPECT_EQ("exploration_map", func.getType());
     EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func.getDestination());
 }
 
-TEST_F(LootTest, ExplorationMapFunction_AllDestinations) {
+TEST_F(LootTest, ExplorationMapFunction_AllDestinations)
+{
     ExplorationMapFunction func1(ExplorationMapFunction::Destination::BuriedTreasure);
     ExplorationMapFunction func2(ExplorationMapFunction::Destination::Mansion);
     ExplorationMapFunction func3(ExplorationMapFunction::Destination::Monument);
@@ -781,13 +809,15 @@ TEST_F(LootTest, ExplorationMapFunction_AllDestinations) {
     EXPECT_EQ(ExplorationMapFunction::Destination::Monument, func3.getDestination());
 }
 
-TEST_F(LootTest, SetStewEffectFunction_Creation) {
+TEST_F(LootTest, SetStewEffectFunction_Creation)
+{
     SetStewEffectFunction func;
     EXPECT_EQ("set_stew_effect", func.getType());
     EXPECT_TRUE(func.getEffects().empty());
 }
 
-TEST_F(LootTest, SetStewEffectFunction_AddEffect) {
+TEST_F(LootTest, SetStewEffectFunction_AddEffect)
+{
     SetStewEffectFunction func;
     func.addEffect("minecraft:regeneration", RandomValueRange(5.0f, 10.0f));
 
@@ -801,7 +831,8 @@ TEST_F(LootTest, SetStewEffectFunction_AddEffect) {
 // LootFunctionBuilder Tests for New Functions
 // ============================================================================
 
-TEST_F(LootTest, LootFunctionBuilder_NewFunctions) {
+TEST_F(LootTest, LootFunctionBuilder_NewFunctions)
+{
     // 测试所有新增的工厂方法
     auto copyName = LootFunctionBuilder::copyName(CopyNameFunction::Source::KillerPlayer);
     ASSERT_NE(copyName, nullptr);
@@ -844,7 +875,8 @@ TEST_F(LootTest, LootFunctionBuilder_NewFunctions) {
 // FurnaceSmeltFunction Tests
 // ============================================================================
 
-TEST_F(LootTest, FurnaceSmeltFunction_EmptyStack) {
+TEST_F(LootTest, FurnaceSmeltFunction_EmptyStack)
+{
     // 空物品栈应返回空栈
     FurnaceSmeltFunction func;
     math::Random rng(12345);
@@ -855,12 +887,14 @@ TEST_F(LootTest, FurnaceSmeltFunction_EmptyStack) {
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, FurnaceSmeltFunction_Type) {
+TEST_F(LootTest, FurnaceSmeltFunction_Type)
+{
     FurnaceSmeltFunction func;
     EXPECT_EQ("furnace_smelt", func.getType());
 }
 
-TEST_F(LootTest, FurnaceSmeltFunction_Clone) {
+TEST_F(LootTest, FurnaceSmeltFunction_Clone)
+{
     FurnaceSmeltFunction func;
     func.addCondition(std::make_unique<RandomChanceCondition>(0.5f));
 
@@ -870,7 +904,8 @@ TEST_F(LootTest, FurnaceSmeltFunction_Clone) {
     EXPECT_EQ(1, cloned->getConditions().size());
 }
 
-TEST_F(LootTest, FurnaceSmeltFunction_NoRecipe) {
+TEST_F(LootTest, FurnaceSmeltFunction_NoRecipe)
+{
     // 没有对应熔炼配方的物品应返回原物品
     FurnaceSmeltFunction func;
     math::Random rng(12345);
@@ -888,7 +923,8 @@ TEST_F(LootTest, FurnaceSmeltFunction_NoRecipe) {
     EXPECT_EQ(5, result.getCount());
 }
 
-TEST_F(LootTest, FurnaceSmeltFunction_Builder) {
+TEST_F(LootTest, FurnaceSmeltFunction_Builder)
+{
     auto func = LootFunctionBuilder::furnaceSmelt();
     ASSERT_NE(func, nullptr);
     EXPECT_EQ("furnace_smelt", func->getType());
@@ -898,7 +934,8 @@ TEST_F(LootTest, FurnaceSmeltFunction_Builder) {
 // CopyNameFunction::apply() 测试
 // ============================================================================
 
-TEST_F(LootTest, CopyNameFunction_EmptyStack) {
+TEST_F(LootTest, CopyNameFunction_EmptyStack)
+{
     // 空 ItemStack 应该直接返回
     CopyNameFunction func(CopyNameFunction::Source::This);
     math::Random rng(12345);
@@ -909,7 +946,8 @@ TEST_F(LootTest, CopyNameFunction_EmptyStack) {
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, CopyNameFunction_NoEntityInContext) {
+TEST_F(LootTest, CopyNameFunction_NoEntityInContext)
+{
     // 没有 THIS_ENTITY 参数时不应崩溃
     CopyNameFunction func(CopyNameFunction::Source::This);
     math::Random rng(12345);
@@ -924,7 +962,8 @@ TEST_F(LootTest, CopyNameFunction_NoEntityInContext) {
     EXPECT_FALSE(result.hasCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_EntityWithoutCustomName) {
+TEST_F(LootTest, CopyNameFunction_EntityWithoutCustomName)
+{
     // 实体没有自定义名称时，不应复制名称
     CopyNameFunction func(CopyNameFunction::Source::This);
     math::Random rng(12345);
@@ -943,7 +982,8 @@ TEST_F(LootTest, CopyNameFunction_EntityWithoutCustomName) {
     EXPECT_FALSE(result.hasCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_EntityWithCustomName) {
+TEST_F(LootTest, CopyNameFunction_EntityWithCustomName)
+{
     // 从有自定义名称的实体复制名称
     CopyNameFunction func(CopyNameFunction::Source::This);
     math::Random rng(12345);
@@ -964,7 +1004,8 @@ TEST_F(LootTest, CopyNameFunction_EntityWithCustomName) {
     EXPECT_EQ("Custom Pig Name", result.getCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_KillerEntity) {
+TEST_F(LootTest, CopyNameFunction_KillerEntity)
+{
     // 从 KILLER_ENTITY 复制名称
     CopyNameFunction func(CopyNameFunction::Source::Killer);
     math::Random rng(12345);
@@ -984,7 +1025,8 @@ TEST_F(LootTest, CopyNameFunction_KillerEntity) {
     EXPECT_EQ("Killer Zombie", result.getCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_KillerPlayer) {
+TEST_F(LootTest, CopyNameFunction_KillerPlayer)
+{
     // 从 KILLER_PLAYER 复制名称（玩家总是有名称）
     CopyNameFunction func(CopyNameFunction::Source::KillerPlayer);
     math::Random rng(12345);
@@ -1003,7 +1045,8 @@ TEST_F(LootTest, CopyNameFunction_KillerPlayer) {
     EXPECT_TRUE(result.hasCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_KillerPlayerWithCustomName) {
+TEST_F(LootTest, CopyNameFunction_KillerPlayerWithCustomName)
+{
     // 从有自定义名称的玩家复制
     CopyNameFunction func(CopyNameFunction::Source::KillerPlayer);
     math::Random rng(12345);
@@ -1023,7 +1066,8 @@ TEST_F(LootTest, CopyNameFunction_KillerPlayerWithCustomName) {
     EXPECT_EQ("CustomPlayerName", result.getCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_BlockEntityWithoutCustomName) {
+TEST_F(LootTest, CopyNameFunction_BlockEntityWithoutCustomName)
+{
     // 方块实体没有自定义名称时不应复制
     CopyNameFunction func(CopyNameFunction::Source::BlockEntity);
     math::Random rng(12345);
@@ -1031,7 +1075,7 @@ TEST_F(LootTest, CopyNameFunction_BlockEntityWithoutCustomName) {
 
     // 创建箱子（没有自定义名称）
     blockentity::ChestEntity chest(BlockPos(0, 64, 0));
-    BlockEntity* blockEntity = &chest;  // 显式转换为基类指针
+    BlockEntity* blockEntity = &chest; // 显式转换为基类指针
     context.set(LootParams::BLOCK_ENTITY, blockEntity);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -1043,7 +1087,8 @@ TEST_F(LootTest, CopyNameFunction_BlockEntityWithoutCustomName) {
     EXPECT_FALSE(result.hasCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_BlockEntityWithCustomName) {
+TEST_F(LootTest, CopyNameFunction_BlockEntityWithCustomName)
+{
     // 从有自定义名称的方块实体复制
     CopyNameFunction func(CopyNameFunction::Source::BlockEntity);
     math::Random rng(12345);
@@ -1052,7 +1097,7 @@ TEST_F(LootTest, CopyNameFunction_BlockEntityWithCustomName) {
     // 创建有自定义名称的箱子
     blockentity::ChestEntity chest(BlockPos(0, 64, 0));
     chest.setCustomName("My Special Chest");
-    BlockEntity* blockEntity = &chest;  // 显式转换为基类指针
+    BlockEntity* blockEntity = &chest; // 显式转换为基类指针
     context.set(LootParams::BLOCK_ENTITY, blockEntity);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -1064,7 +1109,8 @@ TEST_F(LootTest, CopyNameFunction_BlockEntityWithCustomName) {
     EXPECT_EQ("My Special Chest", result.getCustomName());
 }
 
-TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent) {
+TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent)
+{
     // 不同来源应该独立工作
     math::Random rng(12345);
 
@@ -1088,7 +1134,7 @@ TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent) {
     {
         LootContext context(m_world, rng);
         context.set(LootParams::THIS_ENTITY, &thisEntity);
-        context.set(LootParams::KILLER_ENTITY, &killerEntity);  // 设置另一个来源，确保不影响
+        context.set(LootParams::KILLER_ENTITY, &killerEntity); // 设置另一个来源，确保不影响
 
         CopyNameFunction func(CopyNameFunction::Source::This);
         ItemStack stack(*diamond, 1);
@@ -1101,7 +1147,7 @@ TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent) {
     {
         LootContext context(m_world, rng);
         context.set(LootParams::KILLER_ENTITY, &killerEntity);
-        context.set(LootParams::THIS_ENTITY, &thisEntity);  // 设置另一个来源，确保不影响
+        context.set(LootParams::THIS_ENTITY, &thisEntity); // 设置另一个来源，确保不影响
 
         CopyNameFunction func(CopyNameFunction::Source::Killer);
         ItemStack stack(*diamond, 1);
@@ -1125,7 +1171,7 @@ TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent) {
     // 测试 BLOCK_ENTITY 来源
     {
         LootContext context(m_world, rng);
-        BlockEntity* blockEntity = &chest;  // 显式转换为基类指针
+        BlockEntity* blockEntity = &chest; // 显式转换为基类指针
         context.set(LootParams::BLOCK_ENTITY, blockEntity);
 
         CopyNameFunction func(CopyNameFunction::Source::BlockEntity);
@@ -1136,7 +1182,8 @@ TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent) {
     }
 }
 
-TEST_F(LootTest, CopyNameFunction_OverwritesExistingName) {
+TEST_F(LootTest, CopyNameFunction_OverwritesExistingName)
+{
     // 应该覆盖物品已有的自定义名称
     CopyNameFunction func(CopyNameFunction::Source::This);
     math::Random rng(12345);
@@ -1164,7 +1211,8 @@ TEST_F(LootTest, CopyNameFunction_OverwritesExistingName) {
 // LootEntry Function List Tests
 // ============================================================================
 
-TEST_F(LootTest, LootEntry_AddFunction) {
+TEST_F(LootTest, LootEntry_AddFunction)
+{
     // 测试 LootEntry 添加函数
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
@@ -1176,7 +1224,8 @@ TEST_F(LootTest, LootEntry_AddFunction) {
     EXPECT_EQ(2, entry.getFunctions().size());
 }
 
-TEST_F(LootTest, LootEntry_ApplyFunctionsCorrectly) {
+TEST_F(LootTest, LootEntry_ApplyFunctionsCorrectly)
+{
     // 测试 LootEntry::applyFunctions 正确应用函数
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
@@ -1197,7 +1246,8 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsCorrectly) {
     EXPECT_EQ(5, result.getCount());
 }
 
-TEST_F(LootTest, LootEntry_ApplyFunctionsInOrder) {
+TEST_F(LootTest, LootEntry_ApplyFunctionsInOrder)
+{
     // 测试多个函数按顺序应用
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
@@ -1220,7 +1270,8 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsInOrder) {
     EXPECT_EQ(2, result.getCount());
 }
 
-TEST_F(LootTest, LootEntry_ApplyFunctionsWithCondition) {
+TEST_F(LootTest, LootEntry_ApplyFunctionsWithCondition)
+{
     // 测试带条件的函数
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
@@ -1242,7 +1293,8 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsWithCondition) {
     EXPECT_EQ(1, result.getCount());
 }
 
-TEST_F(LootTest, LootEntry_CloneCopiesFunctions) {
+TEST_F(LootTest, LootEntry_CloneCopiesFunctions)
+{
     // 测试 clone 正确复制函数
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
     entry.addFunction(std::make_unique<SetCountFunction>(RandomValueRange(5.0f, 5.0f)));
@@ -1264,7 +1316,8 @@ TEST_F(LootTest, LootEntry_CloneCopiesFunctions) {
 // ItemLootEntry::generate with Functions Tests
 // ============================================================================
 
-TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions) {
+TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions)
+{
     // 测试 ItemLootEntry::generate 在条件检查后应用函数
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
     entry->addFunction(std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f)));
@@ -1273,9 +1326,8 @@ TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions) {
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
-        generatedItems.push_back(stack);
-    }, *context);
+    bool success =
+        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
 
     EXPECT_TRUE(success);
     ASSERT_EQ(1, generatedItems.size());
@@ -1283,7 +1335,8 @@ TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions) {
     EXPECT_EQ(10, generatedItems[0].getCount());
 }
 
-TEST_F(LootTest, ItemLootEntry_GenerateWithConditionAndFunction) {
+TEST_F(LootTest, ItemLootEntry_GenerateWithConditionAndFunction)
+{
     // 测试带条件的条目和函数
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
@@ -1297,16 +1350,16 @@ TEST_F(LootTest, ItemLootEntry_GenerateWithConditionAndFunction) {
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
-        generatedItems.push_back(stack);
-    }, *context);
+    bool success =
+        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
 
     EXPECT_TRUE(success);
     ASSERT_EQ(1, generatedItems.size());
     EXPECT_EQ(7, generatedItems[0].getCount());
 }
 
-TEST_F(LootTest, ItemLootEntry_GenerateConditionFails) {
+TEST_F(LootTest, ItemLootEntry_GenerateConditionFails)
+{
     // 测试条件不满足时不生成物品
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
@@ -1320,15 +1373,15 @@ TEST_F(LootTest, ItemLootEntry_GenerateConditionFails) {
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
-        generatedItems.push_back(stack);
-    }, *context);
+    bool success =
+        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
 
     EXPECT_FALSE(success);
     EXPECT_TRUE(generatedItems.empty());
 }
 
-TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty) {
+TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty)
+{
     // 测试函数返回空堆时不生成物品
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
@@ -1339,9 +1392,8 @@ TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty) {
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
-        generatedItems.push_back(stack);
-    }, *context);
+    bool success =
+        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
 
     // 条件满足，但函数返回空堆
     EXPECT_TRUE(success);
@@ -1352,15 +1404,16 @@ TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty) {
 // LootEntryBuilder::function Tests
 // ============================================================================
 
-TEST_F(LootTest, LootEntryBuilder_FunctionChainCall) {
+TEST_F(LootTest, LootEntryBuilder_FunctionChainCall)
+{
     // 测试 LootEntryBuilder::function 链式调用
     auto entry = LootEntryBuilder::item("minecraft:diamond")
-        .weight(5)
-        .quality(2)
-        .count(1, 3)
-        .function(std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f)))
-        .function(std::make_unique<FurnaceSmeltFunction>())
-        .build();
+                     .weight(5)
+                     .quality(2)
+                     .count(1, 3)
+                     .function(std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f)))
+                     .function(std::make_unique<FurnaceSmeltFunction>())
+                     .build();
 
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(LootEntryType::Item, entry->getType());
@@ -1369,13 +1422,14 @@ TEST_F(LootTest, LootEntryBuilder_FunctionChainCall) {
     EXPECT_EQ(2, entry->getFunctions().size());
 }
 
-TEST_F(LootTest, LootEntryBuilder_BuildCopiesFunctions) {
+TEST_F(LootTest, LootEntryBuilder_BuildCopiesFunctions)
+{
     // 测试 build 正确复制函数
     // 直接链式调用，避免复制 builder
     auto entry = LootEntryBuilder::item("minecraft:diamond")
-        .function(std::make_unique<SetCountFunction>(RandomValueRange(5.0f, 5.0f)))
-        .function(std::make_unique<FurnaceSmeltFunction>())
-        .build();
+                     .function(std::make_unique<SetCountFunction>(RandomValueRange(5.0f, 5.0f)))
+                     .function(std::make_unique<FurnaceSmeltFunction>())
+                     .build();
 
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(2, entry->getFunctions().size());
@@ -1385,12 +1439,13 @@ TEST_F(LootTest, LootEntryBuilder_BuildCopiesFunctions) {
     EXPECT_EQ("furnace_smelt", entry->getFunctions()[1]->getType());
 }
 
-TEST_F(LootTest, LootEntryBuilder_WithConditionAndFunction) {
+TEST_F(LootTest, LootEntryBuilder_WithConditionAndFunction)
+{
     // 测试同时添加条件和函数
     auto entry = LootEntryBuilder::item("minecraft:diamond")
-        .condition(std::make_unique<RandomChanceCondition>(0.5f))
-        .function(std::make_unique<SetCountFunction>(RandomValueRange(3.0f, 3.0f)))
-        .build();
+                     .condition(std::make_unique<RandomChanceCondition>(0.5f))
+                     .function(std::make_unique<SetCountFunction>(RandomValueRange(3.0f, 3.0f)))
+                     .build();
 
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(1, entry->getConditions().size());
@@ -1401,7 +1456,8 @@ TEST_F(LootTest, LootEntryBuilder_WithConditionAndFunction) {
 // ApplyBonusFunction Tests
 // ============================================================================
 
-TEST_F(LootTest, ApplyBonusFunction_OreDropsNoFortune) {
+TEST_F(LootTest, ApplyBonusFunction_OreDropsNoFortune)
+{
     // 测试没有时运时的 OreDrops 公式
     math::Random rng(12345);
 
@@ -1412,7 +1468,8 @@ TEST_F(LootTest, ApplyBonusFunction_OreDropsNoFortune) {
     }
 }
 
-TEST_F(LootTest, ApplyBonusFunction_OreDropsWithFortune) {
+TEST_F(LootTest, ApplyBonusFunction_OreDropsWithFortune)
+{
     // 测试有时运时的 OreDrops 公式
     math::Random rng(12345);
 
@@ -1445,19 +1502,21 @@ TEST_F(LootTest, ApplyBonusFunction_OreDropsWithFortune) {
     EXPECT_TRUE(sawFour);
 }
 
-TEST_F(LootTest, ApplyBonusFunction_OreDropsMultiplicative) {
+TEST_F(LootTest, ApplyBonusFunction_OreDropsMultiplicative)
+{
     // 验证 OreDrops 是乘法式，不是加法式
     math::Random rng(12345);
 
     // 基础数量 2，Fortune III，最大应该是 2 * 4 = 8
     for (int i = 0; i < 100; ++i) {
         i32 result = ApplyBonusFunction::calculateOreDrops(2, 3, rng);
-        EXPECT_GE(result, 2);  // 最小 2 * 1 = 2
-        EXPECT_LE(result, 8);  // 最大 2 * 4 = 8
+        EXPECT_GE(result, 2); // 最小 2 * 1 = 2
+        EXPECT_LE(result, 8); // 最大 2 * 4 = 8
     }
 }
 
-TEST_F(LootTest, ApplyBonusFunction_UniformBonus) {
+TEST_F(LootTest, ApplyBonusFunction_UniformBonus)
+{
     // 测试均匀分布加成
     math::Random rng(12345);
 
@@ -1465,12 +1524,13 @@ TEST_F(LootTest, ApplyBonusFunction_UniformBonus) {
     // bonusMultiplier=1, fortune=3 -> 加成范围 [0, 3]
     for (int i = 0; i < 100; ++i) {
         i32 result = ApplyBonusFunction::calculateUniformBonus(5, 3, 1, rng);
-        EXPECT_GE(result, 5);   // 5 + 0
-        EXPECT_LE(result, 8);   // 5 + 3
+        EXPECT_GE(result, 5); // 5 + 0
+        EXPECT_LE(result, 8); // 5 + 3
     }
 }
 
-TEST_F(LootTest, ApplyBonusFunction_BinomialBonus) {
+TEST_F(LootTest, ApplyBonusFunction_BinomialBonus)
+{
     // 测试二项分布加成
     math::Random rng(12345);
 
@@ -1478,20 +1538,21 @@ TEST_F(LootTest, ApplyBonusFunction_BinomialBonus) {
     // fortune=3, extra=1, probability=0.5 -> 4 次试验，每次 50% 概率
     for (int i = 0; i < 100; ++i) {
         i32 result = ApplyBonusFunction::calculateBinomialBonus(1, 3, 1, 0.5f, rng);
-        EXPECT_GE(result, 1);   // 1 + 0
-        EXPECT_LE(result, 5);   // 1 + 4
+        EXPECT_GE(result, 1); // 1 + 0
+        EXPECT_LE(result, 5); // 1 + 4
     }
 }
 
-TEST_F(LootTest, ApplyBonusFunction_IntegrationWithLootContext) {
+TEST_F(LootTest, ApplyBonusFunction_IntegrationWithLootContext)
+{
     // 测试 ApplyBonusFunction 与 LootContext 的时运参数集成
     auto func = std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops);
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .withLootingModifier(3)  // Fortune III
-        .build();
+                       .withRandom(rng)
+                       .withLootingModifier(3) // Fortune III
+                       .build();
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -1510,7 +1571,8 @@ TEST_F(LootTest, ApplyBonusFunction_IntegrationWithLootContext) {
 // LootTable Integration Tests with Fortune
 // ============================================================================
 
-TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch) {
+TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch)
+{
     // 测试钻石矿精准采集掉落
     LootTableManager manager;
     manager.initializeDefaultTables();
@@ -1521,9 +1583,7 @@ TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch) {
     math::Random rng(12345);
 
     // 设置精准采集
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
     context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
 
     auto items = table->generate(*context);
@@ -1533,7 +1593,8 @@ TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch) {
     EXPECT_EQ("minecraft:diamond_ore", items[0].getItem()->toString());
 }
 
-TEST_F(LootTest, LootTable_DiamondOreWithFortune) {
+TEST_F(LootTest, LootTable_DiamondOreWithFortune)
+{
     // 测试钻石矿时运加成
     // 注意：ApplyBonusFunction 需要 TOOL 参数才能应用时运加成
     // 这个测试验证在没有工具的情况下，掉落数量固定为 1
@@ -1546,10 +1607,7 @@ TEST_F(LootTest, LootTable_DiamondOreWithFortune) {
     math::Random rng(12345);
 
     // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .withLootingModifier(3)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).withLootingModifier(3).build();
 
     // 多次生成验证在没有工具时掉落数量固定为 1
     for (int i = 0; i < 10; ++i) {
@@ -1561,7 +1619,8 @@ TEST_F(LootTest, LootTable_DiamondOreWithFortune) {
     }
 }
 
-TEST_F(LootTest, LootTable_CoalOreWithSilkTouch) {
+TEST_F(LootTest, LootTable_CoalOreWithSilkTouch)
+{
     // 测试煤矿精准采集掉落
     LootTableManager manager;
     manager.initializeDefaultTables();
@@ -1571,9 +1630,7 @@ TEST_F(LootTest, LootTable_CoalOreWithSilkTouch) {
 
     math::Random rng(12345);
 
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
     context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
 
     auto items = table->generate(*context);
@@ -1582,7 +1639,8 @@ TEST_F(LootTest, LootTable_CoalOreWithSilkTouch) {
     EXPECT_EQ("minecraft:coal_ore", items[0].getItem()->toString());
 }
 
-TEST_F(LootTest, LootTable_CoalOreWithFortune) {
+TEST_F(LootTest, LootTable_CoalOreWithFortune)
+{
     // 测试煤矿时运加成
     // 注意：ApplyBonusFunction 需要 TOOL 参数才能应用时运加成
     // 这个测试验证在没有工具的情况下，掉落数量固定为 1
@@ -1595,10 +1653,7 @@ TEST_F(LootTest, LootTable_CoalOreWithFortune) {
     math::Random rng(12345);
 
     // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .withLootingModifier(3)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).withLootingModifier(3).build();
 
     // 多次生成验证在没有工具时掉落数量固定为 1
     for (int i = 0; i < 10; ++i) {
@@ -1610,7 +1665,8 @@ TEST_F(LootTest, LootTable_CoalOreWithFortune) {
     }
 }
 
-TEST_F(LootTest, LootTable_StoneWithSilkTouch) {
+TEST_F(LootTest, LootTable_StoneWithSilkTouch)
+{
     // 测试石头精准采集掉落石头
     LootTableManager manager;
     manager.initializeDefaultTables();
@@ -1620,9 +1676,7 @@ TEST_F(LootTest, LootTable_StoneWithSilkTouch) {
 
     math::Random rng(12345);
 
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
     context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
 
     auto items = table->generate(*context);
@@ -1631,7 +1685,8 @@ TEST_F(LootTest, LootTable_StoneWithSilkTouch) {
     EXPECT_EQ("minecraft:stone", items[0].getItem()->toString());
 }
 
-TEST_F(LootTest, LootTable_StoneWithoutSilkTouch) {
+TEST_F(LootTest, LootTable_StoneWithoutSilkTouch)
+{
     // 测试石头普通挖掘掉落圆石
     LootTableManager manager;
     manager.initializeDefaultTables();
@@ -1641,9 +1696,7 @@ TEST_F(LootTest, LootTable_StoneWithoutSilkTouch) {
 
     math::Random rng(12345);
 
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     auto items = table->generate(*context);
 
@@ -1655,21 +1708,21 @@ TEST_F(LootTest, LootTable_StoneWithoutSilkTouch) {
 // CopyBlockStateFunction Apply Tests
 // ============================================================================
 
-TEST_F(LootTest, CopyBlockStateFunction_EmptyStack) {
+TEST_F(LootTest, CopyBlockStateFunction_EmptyStack)
+{
     // 空物品堆不应该崩溃
     CopyBlockStateFunction func("minecraft:chest");
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack emptyStack;
     ItemStack result = func.apply(emptyStack, *context);
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_NoBlockStateInContext) {
+TEST_F(LootTest, CopyBlockStateFunction_NoBlockStateInContext)
+{
     // 没有 BlockState 参数时应该返回原物品
     CopyBlockStateFunction func("minecraft:chest");
 
@@ -1678,9 +1731,7 @@ TEST_F(LootTest, CopyBlockStateFunction_NoBlockStateInContext) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
     // 不设置 BLOCK_STATE 参数
 
     ItemStack result = func.apply(stack, *context);
@@ -1690,7 +1741,8 @@ TEST_F(LootTest, CopyBlockStateFunction_NoBlockStateInContext) {
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_BlockIdMismatch) {
+TEST_F(LootTest, CopyBlockStateFunction_BlockIdMismatch)
+{
     // 方块 ID 不匹配时不应复制
     CopyBlockStateFunction func("minecraft:chest");
 
@@ -1699,9 +1751,7 @@ TEST_F(LootTest, CopyBlockStateFunction_BlockIdMismatch) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     // 创建一个假的 BlockState（这里用空指针模拟不匹配情况）
     // 由于实际需要真正的 BlockState，这个测试验证函数不会崩溃
@@ -1709,16 +1759,18 @@ TEST_F(LootTest, CopyBlockStateFunction_BlockIdMismatch) {
     EXPECT_EQ(stack.getItem(), result.getItem());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_EmptyPropertiesList) {
+TEST_F(LootTest, CopyBlockStateFunction_EmptyPropertiesList)
+{
     // 空属性列表（应该复制所有属性）
     // 这个测试验证函数能正常处理空属性列表
-    CopyBlockStateFunction func("minecraft:furnace", {});  // 空属性列表
+    CopyBlockStateFunction func("minecraft:furnace", {}); // 空属性列表
 
     EXPECT_TRUE(func.getProperties().empty());
     EXPECT_EQ("minecraft:furnace", func.getBlockId());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_SpecifiedProperties) {
+TEST_F(LootTest, CopyBlockStateFunction_SpecifiedProperties)
+{
     // 指定属性列表
     std::vector<std::string> props = {"facing", "lit"};
     CopyBlockStateFunction func("minecraft:furnace", props);
@@ -1732,21 +1784,21 @@ TEST_F(LootTest, CopyBlockStateFunction_SpecifiedProperties) {
 // SetLootTableFunction Apply Tests
 // ============================================================================
 
-TEST_F(LootTest, SetLootTableFunction_EmptyStack) {
+TEST_F(LootTest, SetLootTableFunction_EmptyStack)
+{
     // 空物品堆不应该崩溃
     SetLootTableFunction func("minecraft:chests/simple_dungeon", 12345);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack emptyStack;
     ItemStack result = func.apply(emptyStack, *context);
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, SetLootTableFunction_EmptyLootTableId) {
+TEST_F(LootTest, SetLootTableFunction_EmptyLootTableId)
+{
     // 空掉落表 ID 应该返回原物品
     SetLootTableFunction func("", 12345);
 
@@ -1755,15 +1807,14 @@ TEST_F(LootTest, SetLootTableFunction_EmptyLootTableId) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
-    EXPECT_FALSE(result.hasTag());  // 不应该有标签
+    EXPECT_FALSE(result.hasTag()); // 不应该有标签
 }
 
-TEST_F(LootTest, SetLootTableFunction_BasicApply) {
+TEST_F(LootTest, SetLootTableFunction_BasicApply)
+{
     // 基本功能测试：设置掉落表 ID
     SetLootTableFunction func("minecraft:chests/simple_dungeon", 12345);
 
@@ -1772,9 +1823,7 @@ TEST_F(LootTest, SetLootTableFunction_BasicApply) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
 
@@ -1798,7 +1847,8 @@ TEST_F(LootTest, SetLootTableFunction_BasicApply) {
     EXPECT_EQ(12345, seedIt->get<i64>());
 }
 
-TEST_F(LootTest, SetLootTableFunction_ZeroSeedNotStored) {
+TEST_F(LootTest, SetLootTableFunction_ZeroSeedNotStored)
+{
     // 种子为 0 时不应该存储
     SetLootTableFunction func("minecraft:chests/spawn_bonus_chest", 0);
 
@@ -1807,9 +1857,7 @@ TEST_F(LootTest, SetLootTableFunction_ZeroSeedNotStored) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
 
@@ -1828,7 +1876,8 @@ TEST_F(LootTest, SetLootTableFunction_ZeroSeedNotStored) {
     EXPECT_EQ(seedIt, blockEntityTag->end());
 }
 
-TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag) {
+TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag)
+{
     // 测试覆盖现有的 BlockEntityTag
     SetLootTableFunction func1("minecraft:chests/first", 100);
     SetLootTableFunction func2("minecraft:chests/second", 200);
@@ -1838,9 +1887,7 @@ TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     // 第一次设置
     ItemStack result1 = func1.apply(stack, *context);
@@ -1860,7 +1907,8 @@ TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag) {
 // SetNbtFunction Tests
 // ============================================================================
 
-TEST_F(LootTest, SetNbtFunction_EmptyString) {
+TEST_F(LootTest, SetNbtFunction_EmptyString)
+{
     // 空字符串不应该修改物品
     SetNbtFunction func("");
 
@@ -1869,29 +1917,27 @@ TEST_F(LootTest, SetNbtFunction_EmptyString) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
-    EXPECT_FALSE(result.hasTag());  // 不应该有标签
+    EXPECT_FALSE(result.hasTag()); // 不应该有标签
 }
 
-TEST_F(LootTest, SetNbtFunction_EmptyStack) {
+TEST_F(LootTest, SetNbtFunction_EmptyStack)
+{
     // 空物品堆不应该被修改
     SetNbtFunction func("{display:{Name:\"Test\"}}");
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack emptyStack;
     ItemStack result = func.apply(emptyStack, *context);
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, SetNbtFunction_Builder) {
+TEST_F(LootTest, SetNbtFunction_Builder)
+{
     auto func = LootFunctionBuilder::setNbt("{display:{Name:\"Custom Item\"}}");
     ASSERT_NE(func, nullptr);
     EXPECT_EQ("set_nbt", func->getType());
@@ -1901,7 +1947,8 @@ TEST_F(LootTest, SetNbtFunction_Builder) {
     EXPECT_EQ("{display:{Name:\"Custom Item\"}}", setNbtFunc->getNbtString());
 }
 
-TEST_F(LootTest, SetNbtFunction_SimpleTag) {
+TEST_F(LootTest, SetNbtFunction_SimpleTag)
+{
     // 测试简单的 NBT 标签
     SetNbtFunction func("{Damage:10}");
 
@@ -1910,9 +1957,7 @@ TEST_F(LootTest, SetNbtFunction_SimpleTag) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
 
@@ -1932,7 +1977,8 @@ TEST_F(LootTest, SetNbtFunction_SimpleTag) {
     EXPECT_EQ(10, damageIt->get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_NestedTag) {
+TEST_F(LootTest, SetNbtFunction_NestedTag)
+{
     // 测试嵌套的 NBT 标签
     SetNbtFunction func("{display:{Name:\"Custom Sword\",color:16711680}}");
 
@@ -1941,9 +1987,7 @@ TEST_F(LootTest, SetNbtFunction_NestedTag) {
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
 
@@ -1962,7 +2006,8 @@ TEST_F(LootTest, SetNbtFunction_NestedTag) {
     EXPECT_EQ(16711680, (*displayIt)["color"].get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_MergeTag) {
+TEST_F(LootTest, SetNbtFunction_MergeTag)
+{
     // 测试合并到现有标签
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -1975,9 +2020,7 @@ TEST_F(LootTest, SetNbtFunction_MergeTag) {
     SetNbtFunction func("{new_value:200}");
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
 
@@ -1997,7 +2040,8 @@ TEST_F(LootTest, SetNbtFunction_MergeTag) {
     EXPECT_EQ(200, newIt->get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_MergeNestedObject) {
+TEST_F(LootTest, SetNbtFunction_MergeNestedObject)
+{
     // 测试合并嵌套对象（递归合并）
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2012,9 +2056,7 @@ TEST_F(LootTest, SetNbtFunction_MergeNestedObject) {
     SetNbtFunction func("{display:{color:16711680,new_value:100}}");
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
 
@@ -2046,36 +2088,35 @@ TEST_F(LootTest, SetNbtFunction_MergeNestedObject) {
     EXPECT_EQ(100, newIt->get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_InvalidNbt) {
+TEST_F(LootTest, SetNbtFunction_InvalidNbt)
+{
     // 测试无效的 NBT 字符串
-    SetNbtFunction func("{invalid nbt string");  // 缺少闭合大括号
+    SetNbtFunction func("{invalid nbt string"); // 缺少闭合大括号
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     // 无效的 NBT 应该被忽略，物品保持不变
     ItemStack result = func.apply(stack, *context);
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(LootTest, SetNbtFunction_WithTypeSuffixes) {
+TEST_F(LootTest, SetNbtFunction_WithTypeSuffixes)
+{
     // 测试带类型后缀的 NBT 值
-    SetNbtFunction func("{byte_val:10b,short_val:100s,int_val:1000,long_val:10000l,float_val:3.14f,double_val:3.14159d}");
+    SetNbtFunction func(
+        "{byte_val:10b,short_val:100s,int_val:1000,long_val:10000l,float_val:3.14f,double_val:3.14159d}");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
     ItemStack stack(*diamond, 1);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-        .withRandom(rng)
-        .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack result = func.apply(stack, *context);
 
@@ -2092,7 +2133,8 @@ TEST_F(LootTest, SetNbtFunction_WithTypeSuffixes) {
     EXPECT_DOUBLE_EQ(3.14159, (*tag)["double_val"].get<f64>());
 }
 
-TEST_F(LootTest, SetNbtFunction_Clone) {
+TEST_F(LootTest, SetNbtFunction_Clone)
+{
     SetNbtFunction func("{display:{Name:\"Test\"}}");
 
     auto cloned = func.clone();

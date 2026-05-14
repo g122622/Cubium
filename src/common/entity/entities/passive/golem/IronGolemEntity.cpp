@@ -13,11 +13,13 @@ IronGolemEntity::IronGolemEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> IronGolemEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> IronGolemEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<IronGolemEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void IronGolemEntity::tick() {
+void IronGolemEntity::tick()
+{
     GolemEntity::tick();
 
     // 更新攻击动画
@@ -35,7 +37,8 @@ void IronGolemEntity::tick() {
     }
 }
 
-void IronGolemEntity::registerGoals() {
+void IronGolemEntity::registerGoals()
+{
     // 调用父类方法
     GolemEntity::registerGoals();
 
@@ -46,7 +49,8 @@ void IronGolemEntity::registerGoals() {
     // - IronGolemOfferFlowerGoal: 给村民送花
 }
 
-void IronGolemEntity::registerAttributes() {
+void IronGolemEntity::registerAttributes()
+{
     // 调用父类方法
     GolemEntity::registerAttributes();
 

@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -26,7 +26,8 @@ namespace {
  */
 class EndermiteTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -34,12 +35,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
@@ -48,16 +51,19 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("EndermiteTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("EndermiteTestWorld::tickManager not implemented");
     }
 
@@ -73,22 +79,22 @@ private:
 
 class EndermiteEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     EndermiteTestWorld m_world;
 };
 
 // ==================== 基础属性测试 ====================
 
-TEST_F(EndermiteEntityTest, Create_ReturnsValidEntity) {
+TEST_F(EndermiteEntityTest, Create_ReturnsValidEntity)
+{
     auto entity = EndermiteEntity::create(&m_world);
     ASSERT_NE(entity, nullptr);
     EXPECT_EQ(entity->legacyType(), LegacyEntityType::Endermite);
 }
 
-TEST_F(EndermiteEntityTest, Constructor_SetsCorrectDefaults) {
+TEST_F(EndermiteEntityTest, Constructor_SetsCorrectDefaults)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
     endermite.setWorld(&m_world);
 
@@ -102,20 +108,25 @@ TEST_F(EndermiteEntityTest, Constructor_SetsCorrectDefaults) {
     EXPECT_FALSE(endermite.isRemoved());
 }
 
-TEST_F(EndermiteEntityTest, Attributes_HaveCorrectValues) {
+TEST_F(EndermiteEntityTest, Attributes_HaveCorrectValues)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
     endermite.setWorld(&m_world);
     // registerAttributes 在 MonsterEntity 构造函数中被调用
 
     // MC 1.16.5: MAX_HEALTH = 8.0, MOVEMENT_SPEED = 0.25, ATTACK_DAMAGE = 2.0
-    EXPECT_FLOAT_EQ(static_cast<f32>(endermite.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0)), 8.0f);
-    EXPECT_FLOAT_EQ(static_cast<f32>(endermite.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0)), 0.25f);
-    EXPECT_FLOAT_EQ(static_cast<f32>(endermite.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 2.0f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(endermite.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0)), 8.0f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(endermite.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0)), 0.25f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(endermite.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 2.0f);
 }
 
 // ==================== 消失逻辑测试 ====================
 
-TEST_F(EndermiteEntityTest, LifetimeIncrements_OnTick_WhenNotPersistent) {
+TEST_F(EndermiteEntityTest, LifetimeIncrements_OnTick_WhenNotPersistent)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
     endermite.setWorld(&m_world);
 
@@ -132,7 +143,8 @@ TEST_F(EndermiteEntityTest, LifetimeIncrements_OnTick_WhenNotPersistent) {
     EXPECT_FALSE(endermite.isRemoved());
 }
 
-TEST_F(EndermiteEntityTest, DoesNotDespawn_WhenPersistent) {
+TEST_F(EndermiteEntityTest, DoesNotDespawn_WhenPersistent)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
     endermite.setWorld(&m_world);
 
@@ -150,7 +162,8 @@ TEST_F(EndermiteEntityTest, DoesNotDespawn_WhenPersistent) {
     EXPECT_FALSE(endermite.isRemoved());
 }
 
-TEST_F(EndermiteEntityTest, Despawns_After2400Ticks_WhenNotPersistent) {
+TEST_F(EndermiteEntityTest, Despawns_After2400Ticks_WhenNotPersistent)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
     endermite.setWorld(&m_world);
 
@@ -173,23 +186,26 @@ TEST_F(EndermiteEntityTest, Despawns_After2400Ticks_WhenNotPersistent) {
     EXPECT_TRUE(endermite.isRemoved());
 }
 
-TEST_F(EndermiteEntityTest, DespawnTime_Is2400Ticks) {
+TEST_F(EndermiteEntityTest, DespawnTime_Is2400Ticks)
+{
     // 验证消失时间是 2400 ticks = 120 秒 = 2 分钟
     // 这是 MC 1.16.5 的标准值
     constexpr i32 DESPAWN_TIME = 2400;
     EXPECT_EQ(DESPAWN_TIME, 2400);
-    EXPECT_EQ(DESPAWN_TIME / 20, 120);  // 120 秒
-    EXPECT_EQ(DESPAWN_TIME / 20 / 60, 2);  // 2 分钟
+    EXPECT_EQ(DESPAWN_TIME / 20, 120);    // 120 秒
+    EXPECT_EQ(DESPAWN_TIME / 20 / 60, 2); // 2 分钟
 }
 
 // ==================== 玩家生成标记测试 ====================
 
-TEST_F(EndermiteEntityTest, SpawnedByPlayer_DefaultFalse) {
+TEST_F(EndermiteEntityTest, SpawnedByPlayer_DefaultFalse)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
     EXPECT_FALSE(endermite.isSpawnedByPlayer());
 }
 
-TEST_F(EndermiteEntityTest, SpawnedByPlayer_CanBeSet) {
+TEST_F(EndermiteEntityTest, SpawnedByPlayer_CanBeSet)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
 
     endermite.setSpawnedByPlayer(true);
@@ -201,7 +217,8 @@ TEST_F(EndermiteEntityTest, SpawnedByPlayer_CanBeSet) {
 
 // ==================== AI 目标注册测试 ====================
 
-TEST_F(EndermiteEntityTest, Goals_RegisteredCorrectly) {
+TEST_F(EndermiteEntityTest, Goals_RegisteredCorrectly)
+{
     EndermiteEntity endermite(LegacyEntityType::Endermite, EntityId(1));
     endermite.setWorld(&m_world);
 
@@ -214,20 +231,20 @@ TEST_F(EndermiteEntityTest, Goals_RegisteredCorrectly) {
 
 class SilverfishEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     EndermiteTestWorld m_world;
 };
 
-TEST_F(SilverfishEntityTest, Create_ReturnsValidEntity) {
+TEST_F(SilverfishEntityTest, Create_ReturnsValidEntity)
+{
     auto entity = SilverfishEntity::create(&m_world);
     ASSERT_NE(entity, nullptr);
     EXPECT_EQ(entity->legacyType(), LegacyEntityType::Silverfish);
 }
 
-TEST_F(SilverfishEntityTest, Constructor_SetsCorrectDefaults) {
+TEST_F(SilverfishEntityTest, Constructor_SetsCorrectDefaults)
+{
     SilverfishEntity silverfish(LegacyEntityType::Silverfish, EntityId(1));
     silverfish.setWorld(&m_world);
 
@@ -241,18 +258,23 @@ TEST_F(SilverfishEntityTest, Constructor_SetsCorrectDefaults) {
     EXPECT_FALSE(silverfish.isRemoved());
 }
 
-TEST_F(SilverfishEntityTest, Attributes_HaveCorrectValues) {
+TEST_F(SilverfishEntityTest, Attributes_HaveCorrectValues)
+{
     SilverfishEntity silverfish(LegacyEntityType::Silverfish, EntityId(1));
     silverfish.setWorld(&m_world);
     // registerAttributes 在 MonsterEntity 构造函数中被调用
 
     // MC 1.16.5: MAX_HEALTH = 8.0, MOVEMENT_SPEED = 0.25, ATTACK_DAMAGE = 1.0
-    EXPECT_FLOAT_EQ(static_cast<f32>(silverfish.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0)), 8.0f);
-    EXPECT_FLOAT_EQ(static_cast<f32>(silverfish.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0)), 0.25f);
-    EXPECT_FLOAT_EQ(static_cast<f32>(silverfish.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 1.0f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(silverfish.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0)), 8.0f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(silverfish.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0)), 0.25f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(silverfish.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 1.0f);
 }
 
-TEST_F(SilverfishEntityTest, SummonCooldown_InitializedToZero) {
+TEST_F(SilverfishEntityTest, SummonCooldown_InitializedToZero)
+{
     SilverfishEntity silverfish(LegacyEntityType::Silverfish, EntityId(1));
     silverfish.setWorld(&m_world);
 
@@ -265,7 +287,8 @@ TEST_F(SilverfishEntityTest, SummonCooldown_InitializedToZero) {
     EXPECT_FALSE(silverfish.isRemoved());
 }
 
-TEST_F(SilverfishEntityTest, NotifySummonCooldown_SetsCooldown) {
+TEST_F(SilverfishEntityTest, NotifySummonCooldown_SetsCooldown)
+{
     SilverfishEntity silverfish(LegacyEntityType::Silverfish, EntityId(1));
     silverfish.setWorld(&m_world);
 
@@ -276,7 +299,8 @@ TEST_F(SilverfishEntityTest, NotifySummonCooldown_SetsCooldown) {
     EXPECT_FALSE(silverfish.isRemoved());
 }
 
-TEST_F(SilverfishEntityTest, Goals_RegisteredCorrectly) {
+TEST_F(SilverfishEntityTest, Goals_RegisteredCorrectly)
+{
     SilverfishEntity silverfish(LegacyEntityType::Silverfish, EntityId(1));
     silverfish.setWorld(&m_world);
 
@@ -284,7 +308,8 @@ TEST_F(SilverfishEntityTest, Goals_RegisteredCorrectly) {
     EXPECT_NO_THROW(silverfish.tick());
 }
 
-TEST_F(SilverfishEntityTest, Tick_SyncsRenderYawOffset) {
+TEST_F(SilverfishEntityTest, Tick_SyncsRenderYawOffset)
+{
     SilverfishEntity silverfish(LegacyEntityType::Silverfish, EntityId(1));
     silverfish.setWorld(&m_world);
 

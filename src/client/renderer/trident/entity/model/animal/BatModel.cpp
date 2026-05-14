@@ -12,7 +12,8 @@ BatModel::BatModel()
     setupParts();
 }
 
-void BatModel::setupParts() {
+void BatModel::setupParts()
+{
     // 参考 MC 1.16.5 BatModel
 
     // 头部
@@ -80,13 +81,13 @@ void BatModel::setupParts() {
     m_leftWing->addChild(m_outerLeftWing);
 }
 
-void BatModel::render(f64 scale) {
+void BatModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void BatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale) {
+void BatModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 BatModel.setRotationAngles
     // 有两种状态：悬挂 (isBatHanging) 和飞行
 
@@ -101,9 +102,9 @@ void BatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_leftWing->setRotationPoint(3.0f, 0.0f, 3.0f);
 
         m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE));
-        m_rightWing->setRotateAngleX(-0.15707964f);  // -mc::math::PI_DOUBLE / 20
-        m_rightWing->setRotateAngleY(-1.2566371f);   // -mc::math::PI_DOUBLE * 0.4
-        m_outerRightWing->setRotateAngleY(-1.7278761f);  // -mc::math::PI_DOUBLE * 0.55
+        m_rightWing->setRotateAngleX(-0.15707964f);     // -mc::math::PI_DOUBLE / 20
+        m_rightWing->setRotateAngleY(-1.2566371f);      // -mc::math::PI_DOUBLE * 0.4
+        m_outerRightWing->setRotateAngleY(-1.7278761f); // -mc::math::PI_DOUBLE * 0.55
 
         m_leftWing->setRotateAngleX(-0.15707964f);
         m_leftWing->setRotateAngleY(1.2566371f);
@@ -118,7 +119,8 @@ void BatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_rightWing->setRotationPoint(0.0f, 0.0f, 0.0f);
         m_leftWing->setRotationPoint(0.0f, 0.0f, 0.0f);
 
-        // Java: batBody.rotateAngleX = ((float)Math.mc::math::PI_DOUBLE / 4F) + MathHelper.cos(ageInTicks * 0.1F) * 0.15F
+        // Java: batBody.rotateAngleX = ((float)Math.mc::math::PI_DOUBLE / 4F) + MathHelper.cos(ageInTicks * 0.1F) *
+        // 0.15F
         m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 4.0 + std::cos(ageInTicks * 0.1) * 0.15));
         m_body->setRotateAngleY(0.0f);
 
@@ -137,7 +139,8 @@ void BatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     (void)scale;
 }
 
-void BatModel::setHanging(bool hanging) {
+void BatModel::setHanging(bool hanging)
+{
     m_isHanging = hanging;
 }
 

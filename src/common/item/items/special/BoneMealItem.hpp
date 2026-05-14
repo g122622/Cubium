@@ -12,7 +12,7 @@ class IWorld;
 class BlockPos;
 class BlockState;
 class ItemStack;
-}
+} // namespace mc
 
 namespace mc {
 namespace item::items {

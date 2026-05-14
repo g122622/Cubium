@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../resource/ResourceLocation.hpp"
 #include "AbstractHorseEntity.hpp"
 #include "CoatColors.hpp"
 #include "CoatTypes.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 

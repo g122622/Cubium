@@ -1,8 +1,8 @@
 #include "PlayerAbilitiesPacket.hpp"
-#include "PacketSerializer.hpp"
-#include "../../entity/entities/player/Player.hpp"
 #include "../../entity/entities/player/GameModeUtils.hpp"
+#include "../../entity/entities/player/Player.hpp"
 #include "../../physics/PhysicsConstants.hpp"
+#include "PacketSerializer.hpp"
 
 namespace mc::network {
 
@@ -11,8 +11,7 @@ PlayerAbilitiesPacket::PlayerAbilitiesPacket()
     , m_flags(0)
     , m_flySpeed(physics::FLY_SPEED)
     , m_walkSpeed(physics::WALK_SPEED)
-{
-}
+{}
 
 PlayerAbilitiesPacket::PlayerAbilitiesPacket(const PlayerAbilities& abilities)
     : Packet(PacketType::PlayerAbilities)
@@ -26,11 +25,13 @@ PlayerAbilitiesPacket::PlayerAbilitiesPacket(const PlayerAbilities& abilities)
     setCreativeMode(abilities.creativeMode);
 }
 
-PlayerAbilitiesPacket PlayerAbilitiesPacket::fromPlayer(const Player& player) {
+PlayerAbilitiesPacket PlayerAbilitiesPacket::fromPlayer(const Player& player)
+{
     return PlayerAbilitiesPacket(player.abilities());
 }
 
-PlayerAbilitiesPacket PlayerAbilitiesPacket::fromGameMode(GameMode mode) {
+PlayerAbilitiesPacket PlayerAbilitiesPacket::fromGameMode(GameMode mode)
+{
     // 使用 GameModeUtils 计算能力
     PlayerAbilities abilities = entity::GameModeUtils::getAbilitiesForGameMode(mode);
     return PlayerAbilitiesPacket(abilities);
@@ -40,7 +41,8 @@ PlayerAbilitiesPacket PlayerAbilitiesPacket::fromGameMode(GameMode mode) {
 // 序列化
 // ============================================================================
 
-Result<std::vector<u8>> PlayerAbilitiesPacket::serialize() const {
+Result<std::vector<u8>> PlayerAbilitiesPacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     serializer.writeU8(m_flags);
@@ -52,7 +54,8 @@ Result<std::vector<u8>> PlayerAbilitiesPacket::serialize() const {
     return result;
 }
 
-Result<void> PlayerAbilitiesPacket::deserialize(const u8* data, size_t size) {
+Result<void> PlayerAbilitiesPacket::deserialize(const u8* data, size_t size)
+{
     if (size < expectedSize()) {
         return Error(ErrorCode::InvalidData, "PlayerAbilitiesPacket: insufficient data");
     }
@@ -80,7 +83,8 @@ Result<void> PlayerAbilitiesPacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
-size_t PlayerAbilitiesPacket::expectedSize() const {
+size_t PlayerAbilitiesPacket::expectedSize() const
+{
     // 1 byte flags + 4 bytes flySpeed + 4 bytes walkSpeed
     return 9;
 }

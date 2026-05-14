@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -51,8 +51,7 @@ public:
     /**
      * @brief 邻居更新
      */
-    BlockState updatePostPlacement(
-        const BlockState& state,
+    BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -71,7 +70,8 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -89,23 +89,20 @@ public:
      * @return 光照等级 (0 或配置值)
      */
     [[nodiscard]] u8 getLightLevel(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr) const override;
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     // ========== 工具方法 ==========
 
     /**
      * @brief 是否点燃
      */
-    [[nodiscard]] static bool isLit(const BlockState& state) {
-        return state.get(BlockStateProperties::LIT());
-    }
+    [[nodiscard]] static bool isLit(const BlockState& state) { return state.get(BlockStateProperties::LIT()); }
 
     /**
      * @brief 是否为信号火
      */
-    [[nodiscard]] static bool isSignalFire(const BlockState& state) {
+    [[nodiscard]] static bool isSignalFire(const BlockState& state)
+    {
         return state.get(BlockStateProperties::SIGNAL_FIRE());
     }
 
@@ -129,7 +126,8 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 

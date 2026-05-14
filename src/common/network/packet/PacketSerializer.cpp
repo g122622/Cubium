@@ -3,11 +3,11 @@
 #include <algorithm>
 
 #ifdef _WIN32
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #pragma comment(lib, "ws2_32.lib")
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
 #else
-    #include <arpa/inet.h>
+#include <arpa/inet.h>
 #endif
 
 namespace mc::network {
@@ -16,36 +16,38 @@ namespace mc::network {
 // NetworkEndian 实现
 // ============================================================================
 
-u16 NetworkEndian::hostToNetwork16(u16 value) {
+u16 NetworkEndian::hostToNetwork16(u16 value)
+{
     return static_cast<u16>(htons(value));
 }
 
-u32 NetworkEndian::hostToNetwork32(u32 value) {
+u32 NetworkEndian::hostToNetwork32(u32 value)
+{
     return static_cast<u32>(htonl(value));
 }
 
-u64 NetworkEndian::hostToNetwork64(u64 value) {
+u64 NetworkEndian::hostToNetwork64(u64 value)
+{
     // 假设小端序系统 (x86/x64)
     // 将小端序转换为大端序 (网络字节序)
-    return ((value & 0xFF00000000000000ULL) >> 56) |
-           ((value & 0x00FF000000000000ULL) >> 40) |
-           ((value & 0x0000FF0000000000ULL) >> 24) |
-           ((value & 0x000000FF00000000ULL) >> 8) |
-           ((value & 0x00000000FF000000ULL) << 8) |
-           ((value & 0x0000000000FF0000ULL) << 24) |
-           ((value & 0x000000000000FF00ULL) << 40) |
-           ((value & 0x00000000000000FFULL) << 56);
+    return ((value & 0xFF00000000000000ULL) >> 56) | ((value & 0x00FF000000000000ULL) >> 40) |
+        ((value & 0x0000FF0000000000ULL) >> 24) | ((value & 0x000000FF00000000ULL) >> 8) |
+        ((value & 0x00000000FF000000ULL) << 8) | ((value & 0x0000000000FF0000ULL) << 24) |
+        ((value & 0x000000000000FF00ULL) << 40) | ((value & 0x00000000000000FFULL) << 56);
 }
 
-u16 NetworkEndian::networkToHost16(u16 value) {
+u16 NetworkEndian::networkToHost16(u16 value)
+{
     return static_cast<u16>(ntohs(value));
 }
 
-u32 NetworkEndian::networkToHost32(u32 value) {
+u32 NetworkEndian::networkToHost32(u32 value)
+{
     return static_cast<u32>(ntohl(value));
 }
 
-u64 NetworkEndian::networkToHost64(u64 value) {
+u64 NetworkEndian::networkToHost64(u64 value)
+{
     // 与hostToNetwork64相同 (转换是对称的)
     return hostToNetwork64(value);
 }
@@ -66,61 +68,73 @@ PacketSerializer::PacketSerializer(size_t initialCapacity)
     m_buffer.reserve(initialCapacity);
 }
 
-void PacketSerializer::writeU8(u8 value) {
+void PacketSerializer::writeU8(u8 value)
+{
     m_buffer.push_back(value);
 }
 
-void PacketSerializer::writeU16(u16 value) {
+void PacketSerializer::writeU16(u16 value)
+{
     u16 netValue = NetworkEndian::hostToNetwork16(value);
     const u8* bytes = reinterpret_cast<const u8*>(&netValue);
     m_buffer.insert(m_buffer.end(), bytes, bytes + 2);
 }
 
-void PacketSerializer::writeU32(u32 value) {
+void PacketSerializer::writeU32(u32 value)
+{
     u32 netValue = NetworkEndian::hostToNetwork32(value);
     const u8* bytes = reinterpret_cast<const u8*>(&netValue);
     m_buffer.insert(m_buffer.end(), bytes, bytes + 4);
 }
 
-void PacketSerializer::writeU64(u64 value) {
+void PacketSerializer::writeU64(u64 value)
+{
     u64 netValue = NetworkEndian::hostToNetwork64(value);
     const u8* bytes = reinterpret_cast<const u8*>(&netValue);
     m_buffer.insert(m_buffer.end(), bytes, bytes + 8);
 }
 
-void PacketSerializer::writeI8(i8 value) {
+void PacketSerializer::writeI8(i8 value)
+{
     writeU8(static_cast<u8>(value));
 }
 
-void PacketSerializer::writeI16(i16 value) {
+void PacketSerializer::writeI16(i16 value)
+{
     writeU16(static_cast<u16>(value));
 }
 
-void PacketSerializer::writeI32(i32 value) {
+void PacketSerializer::writeI32(i32 value)
+{
     writeU32(static_cast<u32>(value));
 }
 
-void PacketSerializer::writeI64(i64 value) {
+void PacketSerializer::writeI64(i64 value)
+{
     writeU64(static_cast<u64>(value));
 }
 
-void PacketSerializer::writeF32(f32 value) {
+void PacketSerializer::writeF32(f32 value)
+{
     u32 intValue;
     std::memcpy(&intValue, &value, sizeof(f32));
     writeU32(intValue);
 }
 
-void PacketSerializer::writeF64(f64 value) {
+void PacketSerializer::writeF64(f64 value)
+{
     u64 intValue;
     std::memcpy(&intValue, &value, sizeof(f64));
     writeU64(intValue);
 }
 
-void PacketSerializer::writeBool(bool value) {
+void PacketSerializer::writeBool(bool value)
+{
     writeU8(value ? 1 : 0);
 }
 
-void PacketSerializer::writeString(const std::string& value) {
+void PacketSerializer::writeString(const std::string& value)
+{
     // 字符串格式: 长度(VarInt) + 数据
     // 使用 VarInt 编码，支持大字符串（如命令树JSON）
     if (value.size() > MAX_STRING_LENGTH) {
@@ -133,7 +147,8 @@ void PacketSerializer::writeString(const std::string& value) {
     }
 }
 
-void PacketSerializer::writeStringView(std::string_view value) {
+void PacketSerializer::writeStringView(std::string_view value)
+{
     // 直接写入，避免创建临时String对象
     // 使用 VarInt 编码，支持大字符串
     if (value.size() > MAX_STRING_LENGTH) {
@@ -145,11 +160,13 @@ void PacketSerializer::writeStringView(std::string_view value) {
     }
 }
 
-void PacketSerializer::writeBytes(const u8* data, size_t size) {
+void PacketSerializer::writeBytes(const u8* data, size_t size)
+{
     m_buffer.insert(m_buffer.end(), data, data + size);
 }
 
-void PacketSerializer::writeBytes(const std::vector<u8>& data) {
+void PacketSerializer::writeBytes(const std::vector<u8>& data)
+{
     m_buffer.insert(m_buffer.end(), data.begin(), data.end());
 }
 
@@ -157,7 +174,8 @@ void PacketSerializer::writeBytes(const std::vector<u8>& data) {
 // VarInt/VarLong 写入实现
 // ============================================================================
 
-void PacketSerializer::writeVarInt(i32 value) {
+void PacketSerializer::writeVarInt(i32 value)
+{
     // VarInt 使用 ZigZag 编码将有符号转为无符号
     // 但Minecraft协议中VarInt直接使用有符号数
     // 使用无符号形式写入，每个字节的低7位存储数据
@@ -172,7 +190,8 @@ void PacketSerializer::writeVarInt(i32 value) {
     }
 }
 
-void PacketSerializer::writeVarLong(i64 value) {
+void PacketSerializer::writeVarLong(i64 value)
+{
     u64 uvalue = static_cast<u64>(value);
     while (true) {
         if ((uvalue & ~0x7FULL) == 0) {
@@ -184,22 +203,26 @@ void PacketSerializer::writeVarLong(i64 value) {
     }
 }
 
-void PacketSerializer::writeVarUInt(u32 value) {
+void PacketSerializer::writeVarUInt(u32 value)
+{
     writeVarInt(static_cast<i32>(value));
 }
 
-void PacketSerializer::writeVarULong(u64 value) {
+void PacketSerializer::writeVarULong(u64 value)
+{
     writeVarLong(static_cast<i64>(value));
 }
 
-Result<u8> PacketSerializer::readU8() {
+Result<u8> PacketSerializer::readU8()
+{
     if (m_readPos + 1 > m_buffer.size()) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u8");
     }
     return m_buffer[m_readPos++];
 }
 
-Result<u16> PacketSerializer::readU16() {
+Result<u16> PacketSerializer::readU16()
+{
     if (m_readPos + 2 > m_buffer.size()) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u16");
     }
@@ -209,7 +232,8 @@ Result<u16> PacketSerializer::readU16() {
     return NetworkEndian::networkToHost16(netValue);
 }
 
-Result<u32> PacketSerializer::readU32() {
+Result<u32> PacketSerializer::readU32()
+{
     if (m_readPos + 4 > m_buffer.size()) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u32");
     }
@@ -219,7 +243,8 @@ Result<u32> PacketSerializer::readU32() {
     return NetworkEndian::networkToHost32(netValue);
 }
 
-Result<u64> PacketSerializer::readU64() {
+Result<u64> PacketSerializer::readU64()
+{
     if (m_readPos + 8 > m_buffer.size()) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u64");
     }
@@ -229,7 +254,8 @@ Result<u64> PacketSerializer::readU64() {
     return NetworkEndian::networkToHost64(netValue);
 }
 
-Result<i8> PacketSerializer::readI8() {
+Result<i8> PacketSerializer::readI8()
+{
     auto result = readU8();
     if (result.failed()) {
         return result.error();
@@ -237,7 +263,8 @@ Result<i8> PacketSerializer::readI8() {
     return static_cast<i8>(result.value());
 }
 
-Result<i16> PacketSerializer::readI16() {
+Result<i16> PacketSerializer::readI16()
+{
     auto result = readU16();
     if (result.failed()) {
         return result.error();
@@ -245,7 +272,8 @@ Result<i16> PacketSerializer::readI16() {
     return static_cast<i16>(result.value());
 }
 
-Result<i32> PacketSerializer::readI32() {
+Result<i32> PacketSerializer::readI32()
+{
     auto result = readU32();
     if (result.failed()) {
         return result.error();
@@ -253,7 +281,8 @@ Result<i32> PacketSerializer::readI32() {
     return static_cast<i32>(result.value());
 }
 
-Result<i64> PacketSerializer::readI64() {
+Result<i64> PacketSerializer::readI64()
+{
     auto result = readU64();
     if (result.failed()) {
         return result.error();
@@ -261,7 +290,8 @@ Result<i64> PacketSerializer::readI64() {
     return static_cast<i64>(result.value());
 }
 
-Result<f32> PacketSerializer::readF32() {
+Result<f32> PacketSerializer::readF32()
+{
     auto result = readU32();
     if (result.failed()) {
         return result.error();
@@ -272,7 +302,8 @@ Result<f32> PacketSerializer::readF32() {
     return value;
 }
 
-Result<f64> PacketSerializer::readF64() {
+Result<f64> PacketSerializer::readF64()
+{
     auto result = readU64();
     if (result.failed()) {
         return result.error();
@@ -283,7 +314,8 @@ Result<f64> PacketSerializer::readF64() {
     return value;
 }
 
-Result<bool> PacketSerializer::readBool() {
+Result<bool> PacketSerializer::readBool()
+{
     auto result = readU8();
     if (result.failed()) {
         return result.error();
@@ -291,7 +323,8 @@ Result<bool> PacketSerializer::readBool() {
     return result.value() != 0;
 }
 
-Result<std::string> PacketSerializer::readString() {
+Result<std::string> PacketSerializer::readString()
+{
     auto lengthResult = readVarInt();
     if (lengthResult.failed()) {
         return lengthResult.error();
@@ -313,7 +346,8 @@ Result<std::string> PacketSerializer::readString() {
     return str;
 }
 
-Result<std::vector<u8>> PacketSerializer::readBytes(size_t size) {
+Result<std::vector<u8>> PacketSerializer::readBytes(size_t size)
+{
     if (m_readPos + size > m_buffer.size()) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read bytes");
     }
@@ -326,7 +360,8 @@ Result<std::vector<u8>> PacketSerializer::readBytes(size_t size) {
 // VarInt/VarLong 读取实现
 // ============================================================================
 
-Result<i32> PacketSerializer::readVarInt() {
+Result<i32> PacketSerializer::readVarInt()
+{
     i32 result = 0;
     int shift = 0;
 
@@ -351,7 +386,8 @@ Result<i32> PacketSerializer::readVarInt() {
     return result;
 }
 
-Result<i64> PacketSerializer::readVarLong() {
+Result<i64> PacketSerializer::readVarLong()
+{
     i64 result = 0;
     int shift = 0;
 
@@ -376,7 +412,8 @@ Result<i64> PacketSerializer::readVarLong() {
     return result;
 }
 
-Result<u32> PacketSerializer::readVarUInt() {
+Result<u32> PacketSerializer::readVarUInt()
+{
     auto result = readVarInt();
     if (result.failed()) {
         return result.error();
@@ -384,7 +421,8 @@ Result<u32> PacketSerializer::readVarUInt() {
     return static_cast<u32>(result.value());
 }
 
-Result<u64> PacketSerializer::readVarULong() {
+Result<u64> PacketSerializer::readVarULong()
+{
     auto result = readVarLong();
     if (result.failed()) {
         return result.error();
@@ -392,20 +430,24 @@ Result<u64> PacketSerializer::readVarULong() {
     return static_cast<u64>(result.value());
 }
 
-void PacketSerializer::clear() {
+void PacketSerializer::clear()
+{
     m_buffer.clear();
     m_readPos = 0;
 }
 
-void PacketSerializer::resetRead() {
+void PacketSerializer::resetRead()
+{
     m_readPos = 0;
 }
 
-void PacketSerializer::resize(size_t size) {
+void PacketSerializer::resize(size_t size)
+{
     m_buffer.resize(size);
 }
 
-void PacketSerializer::reserve(size_t capacity) {
+void PacketSerializer::reserve(size_t capacity)
+{
     m_buffer.reserve(capacity);
 }
 
@@ -417,24 +459,24 @@ PacketDeserializer::PacketDeserializer(const u8* data, size_t size)
     : m_data(data)
     , m_size(size)
     , m_readPos(0)
-{
-}
+{}
 
 PacketDeserializer::PacketDeserializer(const std::vector<u8>& data)
     : m_data(data.data())
     , m_size(data.size())
     , m_readPos(0)
-{
-}
+{}
 
-Result<u8> PacketDeserializer::readU8() {
+Result<u8> PacketDeserializer::readU8()
+{
     if (m_readPos + 1 > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u8");
     }
     return m_data[m_readPos++];
 }
 
-Result<u16> PacketDeserializer::readU16() {
+Result<u16> PacketDeserializer::readU16()
+{
     if (m_readPos + 2 > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u16");
     }
@@ -444,7 +486,8 @@ Result<u16> PacketDeserializer::readU16() {
     return NetworkEndian::networkToHost16(netValue);
 }
 
-Result<u32> PacketDeserializer::readU32() {
+Result<u32> PacketDeserializer::readU32()
+{
     if (m_readPos + 4 > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u32");
     }
@@ -454,7 +497,8 @@ Result<u32> PacketDeserializer::readU32() {
     return NetworkEndian::networkToHost32(netValue);
 }
 
-Result<u64> PacketDeserializer::readU64() {
+Result<u64> PacketDeserializer::readU64()
+{
     if (m_readPos + 8 > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read u64");
     }
@@ -464,7 +508,8 @@ Result<u64> PacketDeserializer::readU64() {
     return NetworkEndian::networkToHost64(netValue);
 }
 
-Result<i8> PacketDeserializer::readI8() {
+Result<i8> PacketDeserializer::readI8()
+{
     auto result = readU8();
     if (result.failed()) {
         return result.error();
@@ -472,7 +517,8 @@ Result<i8> PacketDeserializer::readI8() {
     return static_cast<i8>(result.value());
 }
 
-Result<i16> PacketDeserializer::readI16() {
+Result<i16> PacketDeserializer::readI16()
+{
     auto result = readU16();
     if (result.failed()) {
         return result.error();
@@ -480,7 +526,8 @@ Result<i16> PacketDeserializer::readI16() {
     return static_cast<i16>(result.value());
 }
 
-Result<i32> PacketDeserializer::readI32() {
+Result<i32> PacketDeserializer::readI32()
+{
     auto result = readU32();
     if (result.failed()) {
         return result.error();
@@ -488,7 +535,8 @@ Result<i32> PacketDeserializer::readI32() {
     return static_cast<i32>(result.value());
 }
 
-Result<i64> PacketDeserializer::readI64() {
+Result<i64> PacketDeserializer::readI64()
+{
     auto result = readU64();
     if (result.failed()) {
         return result.error();
@@ -496,7 +544,8 @@ Result<i64> PacketDeserializer::readI64() {
     return static_cast<i64>(result.value());
 }
 
-Result<f32> PacketDeserializer::readF32() {
+Result<f32> PacketDeserializer::readF32()
+{
     auto result = readU32();
     if (result.failed()) {
         return result.error();
@@ -507,7 +556,8 @@ Result<f32> PacketDeserializer::readF32() {
     return value;
 }
 
-Result<f64> PacketDeserializer::readF64() {
+Result<f64> PacketDeserializer::readF64()
+{
     auto result = readU64();
     if (result.failed()) {
         return result.error();
@@ -518,7 +568,8 @@ Result<f64> PacketDeserializer::readF64() {
     return value;
 }
 
-Result<bool> PacketDeserializer::readBool() {
+Result<bool> PacketDeserializer::readBool()
+{
     auto result = readU8();
     if (result.failed()) {
         return result.error();
@@ -526,7 +577,8 @@ Result<bool> PacketDeserializer::readBool() {
     return result.value() != 0;
 }
 
-Result<std::string> PacketDeserializer::readString() {
+Result<std::string> PacketDeserializer::readString()
+{
     auto lengthResult = readVarInt();
     if (lengthResult.failed()) {
         return lengthResult.error();
@@ -548,7 +600,8 @@ Result<std::string> PacketDeserializer::readString() {
     return str;
 }
 
-Result<std::vector<u8>> PacketDeserializer::readBytes(size_t size) {
+Result<std::vector<u8>> PacketDeserializer::readBytes(size_t size)
+{
     if (m_readPos + size > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read bytes");
     }
@@ -557,7 +610,8 @@ Result<std::vector<u8>> PacketDeserializer::readBytes(size_t size) {
     return data;
 }
 
-Result<void> PacketDeserializer::readBytesInto(u8* dest, size_t size) {
+Result<void> PacketDeserializer::readBytesInto(u8* dest, size_t size)
+{
     if (m_readPos + size > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read bytes");
     }
@@ -570,7 +624,8 @@ Result<void> PacketDeserializer::readBytesInto(u8* dest, size_t size) {
 // PacketDeserializer VarInt/VarLong 读取实现
 // ============================================================================
 
-Result<i32> PacketDeserializer::readVarInt() {
+Result<i32> PacketDeserializer::readVarInt()
+{
     i32 result = 0;
     int shift = 0;
 
@@ -595,7 +650,8 @@ Result<i32> PacketDeserializer::readVarInt() {
     return result;
 }
 
-Result<i64> PacketDeserializer::readVarLong() {
+Result<i64> PacketDeserializer::readVarLong()
+{
     i64 result = 0;
     int shift = 0;
 
@@ -620,7 +676,8 @@ Result<i64> PacketDeserializer::readVarLong() {
     return result;
 }
 
-Result<u32> PacketDeserializer::readVarUInt() {
+Result<u32> PacketDeserializer::readVarUInt()
+{
     auto result = readVarInt();
     if (result.failed()) {
         return result.error();
@@ -628,7 +685,8 @@ Result<u32> PacketDeserializer::readVarUInt() {
     return static_cast<u32>(result.value());
 }
 
-Result<u64> PacketDeserializer::readVarULong() {
+Result<u64> PacketDeserializer::readVarULong()
+{
     auto result = readVarLong();
     if (result.failed()) {
         return result.error();

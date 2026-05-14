@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include "common/entity/player/CooldownTracker.hpp"
 #include "common/item/core/Item.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity::player;
@@ -19,16 +19,16 @@ using namespace mc::entity::player;
 class TestCooldownItem final : public Item {
 public:
     explicit TestCooldownItem()
-        : Item(ItemProperties().maxStackSize(64)) {}
+        : Item(ItemProperties().maxStackSize(64))
+    {}
 };
 
 class CooldownTrackerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        tracker = std::make_unique<CooldownTracker>();
-    }
+    void SetUp() override { tracker = std::make_unique<CooldownTracker>(); }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         tracker.reset();
         testItems.clear();
     }
@@ -37,7 +37,8 @@ protected:
     std::vector<std::unique_ptr<TestCooldownItem>> testItems;
 
     // 创建一个简单的测试物品
-    const Item* createTestItem() {
+    const Item* createTestItem()
+    {
         auto item = std::make_unique<TestCooldownItem>();
         const Item* ptr = item.get();
         testItems.push_back(std::move(item));
@@ -49,7 +50,8 @@ protected:
 // 基本功能测试
 // ============================================================================
 
-TEST_F(CooldownTrackerTest, SetCooldown_SetsCorrectly) {
+TEST_F(CooldownTrackerTest, SetCooldown_SetsCorrectly)
+{
     auto item = createTestItem();
 
     EXPECT_FALSE(tracker->hasCooldown(item));
@@ -59,26 +61,30 @@ TEST_F(CooldownTrackerTest, SetCooldown_SetsCorrectly) {
     EXPECT_EQ(tracker->getCooldownTicks(item), 20);
 }
 
-TEST_F(CooldownTrackerTest, SetCooldown_ZeroTicks_DoesNotSet) {
+TEST_F(CooldownTrackerTest, SetCooldown_ZeroTicks_DoesNotSet)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 0);
     EXPECT_FALSE(tracker->hasCooldown(item));
 }
 
-TEST_F(CooldownTrackerTest, SetCooldown_NegativeTicks_DoesNotSet) {
+TEST_F(CooldownTrackerTest, SetCooldown_NegativeTicks_DoesNotSet)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, -5);
     EXPECT_FALSE(tracker->hasCooldown(item));
 }
 
-TEST_F(CooldownTrackerTest, SetCooldown_NullItem_DoesNotSet) {
+TEST_F(CooldownTrackerTest, SetCooldown_NullItem_DoesNotSet)
+{
     tracker->setCooldown(nullptr, 20);
     EXPECT_FALSE(tracker->hasCooldown(nullptr));
 }
 
-TEST_F(CooldownTrackerTest, RemoveCooldown_RemovesCorrectly) {
+TEST_F(CooldownTrackerTest, RemoveCooldown_RemovesCorrectly)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 20);
@@ -93,7 +99,8 @@ TEST_F(CooldownTrackerTest, RemoveCooldown_RemovesCorrectly) {
 // Tick 更新测试
 // ============================================================================
 
-TEST_F(CooldownTrackerTest, Tick_DecrementsCooldown) {
+TEST_F(CooldownTrackerTest, Tick_DecrementsCooldown)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 20);
@@ -106,7 +113,8 @@ TEST_F(CooldownTrackerTest, Tick_DecrementsCooldown) {
     EXPECT_EQ(tracker->getCooldownTicks(item), 18);
 }
 
-TEST_F(CooldownTrackerTest, Tick_CooldownExpires) {
+TEST_F(CooldownTrackerTest, Tick_CooldownExpires)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 3);
@@ -123,7 +131,8 @@ TEST_F(CooldownTrackerTest, Tick_CooldownExpires) {
     EXPECT_EQ(tracker->getCooldownTicks(item), 0);
 }
 
-TEST_F(CooldownTrackerTest, Tick_MultipleItems_Independent) {
+TEST_F(CooldownTrackerTest, Tick_MultipleItems_Independent)
+{
     auto item1 = createTestItem();
     auto item2 = createTestItem();
 
@@ -151,7 +160,8 @@ TEST_F(CooldownTrackerTest, Tick_MultipleItems_Independent) {
     EXPECT_FALSE(tracker->hasCooldown(item2));
 }
 
-TEST_F(CooldownTrackerTest, Tick_EmptyTracker_NoCrash) {
+TEST_F(CooldownTrackerTest, Tick_EmptyTracker_NoCrash)
+{
     // 空 tracker 不应该崩溃
     for (int i = 0; i < 100; ++i) {
         tracker->tick();
@@ -163,13 +173,15 @@ TEST_F(CooldownTrackerTest, Tick_EmptyTracker_NoCrash) {
 // 冷却进度测试
 // ============================================================================
 
-TEST_F(CooldownTrackerTest, GetCooldownProgress_NoCooldown_ReturnsZero) {
+TEST_F(CooldownTrackerTest, GetCooldownProgress_NoCooldown_ReturnsZero)
+{
     auto item = createTestItem();
     EXPECT_FLOAT_EQ(tracker->getCooldownProgress(item), 0.0f);
     EXPECT_FLOAT_EQ(tracker->getCooldownProgress(item, 0.5f), 0.0f);
 }
 
-TEST_F(CooldownTrackerTest, GetCooldownProgress_JustSet_ReturnsNearOne) {
+TEST_F(CooldownTrackerTest, GetCooldownProgress_JustSet_ReturnsNearOne)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 20);
@@ -180,7 +192,8 @@ TEST_F(CooldownTrackerTest, GetCooldownProgress_JustSet_ReturnsNearOne) {
     EXPECT_LE(progress, 1.0f);
 }
 
-TEST_F(CooldownTrackerTest, GetCooldownProgress_Halfway_ReturnsHalf) {
+TEST_F(CooldownTrackerTest, GetCooldownProgress_Halfway_ReturnsHalf)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 20);
@@ -196,7 +209,8 @@ TEST_F(CooldownTrackerTest, GetCooldownProgress_Halfway_ReturnsHalf) {
     EXPECT_LT(progress, 0.55f);
 }
 
-TEST_F(CooldownTrackerTest, GetCooldownProgress_AfterExpire_ReturnsZero) {
+TEST_F(CooldownTrackerTest, GetCooldownProgress_AfterExpire_ReturnsZero)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 5);
@@ -209,7 +223,8 @@ TEST_F(CooldownTrackerTest, GetCooldownProgress_AfterExpire_ReturnsZero) {
     EXPECT_FLOAT_EQ(tracker->getCooldownProgress(item), 0.0f);
 }
 
-TEST_F(CooldownTrackerTest, GetCooldownProgress_PartialTicks) {
+TEST_F(CooldownTrackerTest, GetCooldownProgress_PartialTicks)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 20);
@@ -228,7 +243,8 @@ TEST_F(CooldownTrackerTest, GetCooldownProgress_PartialTicks) {
 // 覆盖设置测试
 // ============================================================================
 
-TEST_F(CooldownTrackerTest, SetCooldown_Overwrite_UpdatesCooldown) {
+TEST_F(CooldownTrackerTest, SetCooldown_Overwrite_UpdatesCooldown)
+{
     auto item = createTestItem();
 
     tracker->setCooldown(item, 20);
@@ -247,7 +263,8 @@ TEST_F(CooldownTrackerTest, SetCooldown_Overwrite_UpdatesCooldown) {
 // 辅助方法测试
 // ============================================================================
 
-TEST_F(CooldownTrackerTest, IsEmpty_ReturnsCorrectStatus) {
+TEST_F(CooldownTrackerTest, IsEmpty_ReturnsCorrectStatus)
+{
     auto item = createTestItem();
 
     EXPECT_TRUE(tracker->isEmpty());
@@ -263,7 +280,8 @@ TEST_F(CooldownTrackerTest, IsEmpty_ReturnsCorrectStatus) {
     EXPECT_TRUE(tracker->isEmpty());
 }
 
-TEST_F(CooldownTrackerTest, CooldownCount_ReturnsCorrectCount) {
+TEST_F(CooldownTrackerTest, CooldownCount_ReturnsCorrectCount)
+{
     auto item1 = createTestItem();
     auto item2 = createTestItem();
     auto item3 = createTestItem();
@@ -288,7 +306,8 @@ TEST_F(CooldownTrackerTest, CooldownCount_ReturnsCorrectCount) {
     EXPECT_EQ(tracker->cooldownCount(), 2u);
 }
 
-TEST_F(CooldownTrackerTest, CurrentTick_Increments) {
+TEST_F(CooldownTrackerTest, CurrentTick_Increments)
+{
     EXPECT_EQ(tracker->currentTick(), 0);
 
     tracker->tick();
@@ -307,7 +326,8 @@ TEST_F(CooldownTrackerTest, CurrentTick_Increments) {
 // 典型使用场景测试
 // ============================================================================
 
-TEST_F(CooldownTrackerTest, Scenario_ChorusFruitCooldown) {
+TEST_F(CooldownTrackerTest, Scenario_ChorusFruitCooldown)
+{
     // 模拟紫颂果冷却：20 ticks
     auto chorusFruit = createTestItem();
 
@@ -328,7 +348,8 @@ TEST_F(CooldownTrackerTest, Scenario_ChorusFruitCooldown) {
     EXPECT_FLOAT_EQ(tracker->getCooldownProgress(chorusFruit), 0.0f);
 }
 
-TEST_F(CooldownTrackerTest, Scenario_ShieldCooldown) {
+TEST_F(CooldownTrackerTest, Scenario_ShieldCooldown)
+{
     // 模拟盾牌冷却：100 ticks (5秒)
     auto shield = createTestItem();
 

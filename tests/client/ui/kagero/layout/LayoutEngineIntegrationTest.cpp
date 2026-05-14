@@ -22,7 +22,8 @@ namespace {
  *
  * 该辅助函数只用于测试，直接设置 Widget 的初始尺寸，方便布局计算。
  */
-std::unique_ptr<widget::Widget> makeWidget(const char* id, i32 width, i32 height) {
+std::unique_ptr<widget::Widget> makeWidget(const char* id, i32 width, i32 height)
+{
     auto widget = std::make_unique<widget::Widget>(id);
     widget->setSize(width, height);
     return widget;
@@ -33,22 +34,22 @@ std::unique_ptr<widget::Widget> makeWidget(const char* id, i32 width, i32 height
  *
  * 容器实例由调用方持有，避免依赖容器类型的移动语义。
  */
-void addTwoWidgets(
-    widget::ContainerWidget& container,
+void addTwoWidgets(widget::ContainerWidget& container,
     const char* firstId,
     i32 firstWidth,
     i32 firstHeight,
     const char* secondId,
     i32 secondWidth,
-    i32 secondHeight
-) {
+    i32 secondHeight)
+{
     container.addWidget(makeWidget(firstId, firstWidth, firstHeight));
     container.addWidget(makeWidget(secondId, secondWidth, secondHeight));
 }
 
 } // namespace
 
-TEST(LayoutAdaptorIntegrationTest, GetChildren_EnumeratesContainerWidgets) {
+TEST(LayoutAdaptorIntegrationTest, GetChildren_EnumeratesContainerWidgets)
+{
     widget::ContainerWidget container("root");
     addTwoWidgets(container, "child_a", 24, 12, "child_b", 18, 30);
     WidgetLayoutAdaptor adaptor(&container);
@@ -66,7 +67,8 @@ TEST(LayoutAdaptorIntegrationTest, GetChildren_EnumeratesContainerWidgets) {
     EXPECT_EQ(children[1]->depth(), 1);
 }
 
-TEST(LayoutEngineIntegrationTest, LayoutFlex_AppliesHorizontalSpacing) {
+TEST(LayoutEngineIntegrationTest, LayoutFlex_AppliesHorizontalSpacing)
+{
     widget::ContainerWidget container("root");
     addTwoWidgets(container, "left", 30, 20, "right", 40, 10);
     WidgetLayoutAdaptor adaptor(&container);
@@ -95,7 +97,8 @@ TEST(LayoutEngineIntegrationTest, LayoutFlex_AppliesHorizontalSpacing) {
     EXPECT_EQ(children[1]->bounds().height, 10);
 }
 
-TEST(LayoutEngineIntegrationTest, LayoutWithGrid_UsesGridAlgorithm) {
+TEST(LayoutEngineIntegrationTest, LayoutWithGrid_UsesGridAlgorithm)
+{
     widget::ContainerWidget container("root");
     addTwoWidgets(container, "top", 20, 10, "bottom", 15, 12);
     WidgetLayoutAdaptor adaptor(&container);
@@ -114,7 +117,8 @@ TEST(LayoutEngineIntegrationTest, LayoutWithGrid_UsesGridAlgorithm) {
     EXPECT_EQ(children[1]->bounds().height, 30);
 }
 
-TEST(LayoutEngineIntegrationTest, LayoutWithStack_UsesColumnLayout) {
+TEST(LayoutEngineIntegrationTest, LayoutWithStack_UsesColumnLayout)
+{
     widget::ContainerWidget container("root");
     addTwoWidgets(container, "first", 20, 10, "second", 15, 12);
     WidgetLayoutAdaptor adaptor(&container);

@@ -1,10 +1,10 @@
 #include "SnowParticle.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "client/world/ClientWorld.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
-#include "client/world/ClientWorld.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -13,7 +13,7 @@ namespace {
 
 constexpr f32 SNOW_BBOX_WIDTH = 0.02f;
 constexpr f32 SNOW_BBOX_HEIGHT = 0.02f;
-constexpr f32 TERMINAL_VELOCITY = -0.5f;  // 雪花终端速度（比雨慢）
+constexpr f32 TERMINAL_VELOCITY = -0.5f; // 雪花终端速度（比雨慢）
 
 /**
  * @brief 检查雪花包围盒是否与地面方块相交
@@ -65,16 +65,16 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
     mc::math::Random rng;
 
     // 随机初始相位和振幅
-    m_swingPhase = rng.nextFloat() * 6.28318f;  // 0 - 2π
+    m_swingPhase = rng.nextFloat() * 6.28318f; // 0 - 2π
     m_swingAmplitude = SWING_AMPLITUDE * (0.5f + rng.nextFloat());
 
     // 雪花参数
     setGravity(physics::SNOW_GRAVITY);
-    setSize(0.05f + rng.nextFloat() * 0.05f);  // 0.05 - 0.1
+    setSize(0.05f + rng.nextFloat() * 0.05f); // 0.05 - 0.1
     setBoundingBox(SNOW_BBOX_WIDTH, SNOW_BBOX_HEIGHT);
-    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.9f));  // 白色几乎不透明
+    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.9f)); // 白色几乎不透明
     setFriction(0.95f);
-    setHasPhysics(false);  // 雪花使用自定义碰撞检测
+    setHasPhysics(false); // 雪花使用自定义碰撞检测
 
     // 雪花生命周期较长
     // 参考 MC: 雪花生命周期约 200 ticks
@@ -83,15 +83,14 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> SnowParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SnowParticle>(pos, velocity);
 }
 
-void SnowParticle::tick(mc::client::ClientWorld* world) {
+void SnowParticle::tick(mc::client::ClientWorld* world)
+{
     // 保存上一帧位置
     m_prevPosition = m_position;
 
@@ -124,14 +123,7 @@ void SnowParticle::tick(mc::client::ClientWorld* world) {
 
         // 稍微向下探测，避免刚好贴着方块表面时漏检
         constexpr f32 GROUND_PROBE_EPSILON = 0.01f;
-        AxisAlignedBB probeBox(
-            bbox.minX,
-            bbox.minY - GROUND_PROBE_EPSILON,
-            bbox.minZ,
-            bbox.maxX,
-            bbox.minY,
-            bbox.maxZ
-        );
+        AxisAlignedBB probeBox(bbox.minX, bbox.minY - GROUND_PROBE_EPSILON, bbox.minZ, bbox.maxX, bbox.minY, bbox.maxZ);
 
         if (hasGroundCollision(world, probeBox)) {
             m_collisionContext.onGround = true;
@@ -158,8 +150,7 @@ void SnowParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-void SnowParticle::buildVertices(
-    const glm::vec3& cameraPos,
+void SnowParticle::buildVertices(const glm::vec3& cameraPos,
     f64 partialTick,
     const ParticleTextureAtlas& atlas,
     std::vector<ParticleVertex>& outVertices) const

@@ -1,21 +1,21 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/Material.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/NoteBlock.hpp"
-#include "common/util/property/Properties.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/sound/SoundCategory.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "common/world/border/WorldBorder.hpp"
 
-#include <map>
 #include <cmath>
+#include <map>
 
 using namespace mc;
 using namespace mc::blocks;
@@ -31,16 +31,19 @@ class NoteBlockTestWorld final : public test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         return it == m_blocks.end() ? nullptr : &it->second;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         return setBlockState(x, y, z, state, 0);
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
         MC_UNUSED(flags);
         const BlockPos pos(x, y, z);
         if (state == nullptr) {
@@ -52,10 +55,11 @@ public:
     }
 
     void playSound(const ResourceLocation& soundEventId,
-                   sound::SoundCategory category,
-                   const Vector3& position,
-                   f32 volume,
-                   f32 pitch) override {
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
+    {
         MC_UNUSED(category);
         MC_UNUSED(position);
         MC_UNUSED(volume);
@@ -63,9 +67,9 @@ public:
         m_lastPitch = pitch;
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
-                     const Vector3& pos,
-                     const Vector3& velocity) override {
+    void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    {
         MC_UNUSED(type);
         MC_UNUSED(pos);
         MC_UNUSED(velocity);
@@ -73,34 +77,27 @@ public:
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("NoteBlockTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("NoteBlockTestWorld::tickManager not implemented");
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState& state) {
-        m_blocks.insert_or_assign(pos, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState& state) { m_blocks.insert_or_assign(pos, state); }
 
-    void clearBlockAt(const BlockPos& pos) {
-        m_blocks.erase(pos);
-    }
+    void clearBlockAt(const BlockPos& pos) { m_blocks.erase(pos); }
 
-    [[nodiscard]] const std::vector<ResourceLocation>& playedSoundIds() const {
-        return m_playedSoundIds;
-    }
+    [[nodiscard]] const std::vector<ResourceLocation>& playedSoundIds() const { return m_playedSoundIds; }
 
-    [[nodiscard]] f32 lastPitch() const {
-        return m_lastPitch;
-    }
+    [[nodiscard]] f32 lastPitch() const { return m_lastPitch; }
 
-    [[nodiscard]] i32 particleCount() const {
-        return m_particleCount;
-    }
+    [[nodiscard]] i32 particleCount() const { return m_particleCount; }
 
-    void clear() {
+    void clear()
+    {
         m_blocks.clear();
         m_playedSoundIds.clear();
         m_lastPitch = 1.0f;
@@ -122,7 +119,8 @@ private:
 
 class NoteBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块
         VanillaBlocks::initialize();
         BlockTags::initialize();
@@ -130,9 +128,7 @@ protected:
         m_world = std::make_unique<NoteBlockTestWorld>();
     }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<NoteBlockTestWorld> m_world;
 };
@@ -144,7 +140,8 @@ protected:
 /**
  * @brief 测试材质映射的乐器类型
  */
-TEST_F(NoteBlockTest, InstrumentType_MaterialMapping) {
+TEST_F(NoteBlockTest, InstrumentType_MaterialMapping)
+{
     // 测试需要验证:
     // - ROCK 材质 -> BASEDRUM
     // - SAND 材质 -> SNARE
@@ -164,7 +161,8 @@ TEST_F(NoteBlockTest, InstrumentType_MaterialMapping) {
 /**
  * @brief 测试羊毛触发吉他乐器
  */
-TEST_F(NoteBlockTest, InstrumentType_WoolTriggersGuitar) {
+TEST_F(NoteBlockTest, InstrumentType_WoolTriggersGuitar)
+{
     // 验证羊毛标签存在
     EXPECT_TRUE(BlockTags::WOOL().contains(*VanillaBlocks::WHITE_WOOL));
 }
@@ -174,7 +172,8 @@ TEST_F(NoteBlockTest, InstrumentType_WoolTriggersGuitar) {
  *
  * 验证音高公式: f = 2^((note - 12) / 12)
  */
-TEST_F(NoteBlockTest, PitchCalculation) {
+TEST_F(NoteBlockTest, PitchCalculation)
+{
     // 音高计算测试
     // note = 12 时，音高应为 1.0 (标准音高)
     f32 pitch12 = static_cast<f32>(std::pow(2.0, static_cast<f64>(12 - 12) / 12.0));
@@ -190,13 +189,14 @@ TEST_F(NoteBlockTest, PitchCalculation) {
 
     // 每增加 1，音高上升一个半音 (约 5.946% 增加)
     f32 pitch13 = static_cast<f32>(std::pow(2.0, static_cast<f64>(13 - 12) / 12.0));
-    EXPECT_NEAR(pitch13 / pitch12, 1.059463f, 0.0001f);  // 2^(1/12)
+    EXPECT_NEAR(pitch13 / pitch12, 1.059463f, 0.0001f); // 2^(1/12)
 }
 
 /**
  * @brief 测试音符范围
  */
-TEST_F(NoteBlockTest, NoteRange) {
+TEST_F(NoteBlockTest, NoteRange)
+{
     // 使用 VanillaBlocks::NOTE_BLOCK 来测试
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
 
@@ -223,7 +223,8 @@ TEST_F(NoteBlockTest, NoteRange) {
 /**
  * @brief 测试音符限制
  */
-TEST_F(NoteBlockTest, NoteClamping) {
+TEST_F(NoteBlockTest, NoteClamping)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
     const BlockState& defaultState = VanillaBlocks::NOTE_BLOCK->defaultState();
 
@@ -241,7 +242,8 @@ TEST_F(NoteBlockTest, NoteClamping) {
  *
  * 验证所有 16 种乐器的声音事件已定义。
  */
-TEST_F(NoteBlockTest, SoundEventsDefined) {
+TEST_F(NoteBlockTest, SoundEventsDefined)
+{
     // 验证所有音符盒声音事件存在
     EXPECT_FALSE(SoundEvents::BLOCK_NOTE_BLOCK_HARP.toString().empty());
     EXPECT_FALSE(SoundEvents::BLOCK_NOTE_BLOCK_BASEDRUM.toString().empty());
@@ -264,7 +266,8 @@ TEST_F(NoteBlockTest, SoundEventsDefined) {
 /**
  * @brief 测试音符盒状态属性
  */
-TEST_F(NoteBlockTest, BlockStateProperties) {
+TEST_F(NoteBlockTest, BlockStateProperties)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
 
     // 验证默认状态
@@ -286,7 +289,8 @@ TEST_F(NoteBlockTest, BlockStateProperties) {
  *
  * 测试特定方块是否触发正确的乐器类型。
  */
-TEST_F(NoteBlockTest, InstrumentType_SpecialBlocks) {
+TEST_F(NoteBlockTest, InstrumentType_SpecialBlocks)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
 
     // 测试所有需要检查的方块都已定义
@@ -305,7 +309,8 @@ TEST_F(NoteBlockTest, InstrumentType_SpecialBlocks) {
 /**
  * @brief 测试音符盒方块的材质
  */
-TEST_F(NoteBlockTest, NoteBlockMaterial) {
+TEST_F(NoteBlockTest, NoteBlockMaterial)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
 
     // 音符盒应该是木质材质（被斧有效挖掘）
@@ -323,7 +328,8 @@ TEST_F(NoteBlockTest, NoteBlockMaterial) {
  * 参考 MC 1.16.5: NoteBlockInstrument.byState() 检测 PUMPKIN 触发 DIDGERIDOO
  * 注意: CARVED_PUMPKIN 和 JACK_O_LANTERN 在 MC 1.16.5 中不会触发此乐器
  */
-TEST_F(NoteBlockTest, InstrumentType_PumpkinTriggersDidgeridoo) {
+TEST_F(NoteBlockTest, InstrumentType_PumpkinTriggersDidgeridoo)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
     ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr);
 
@@ -357,7 +363,8 @@ TEST_F(NoteBlockTest, InstrumentType_PumpkinTriggersDidgeridoo) {
  *
  * 验证 CARVED_PUMPKIN 在 MC 1.16.5 中不触发特殊乐器
  */
-TEST_F(NoteBlockTest, InstrumentType_CarvedPumpkinDoesNotTriggerDidgeridoo) {
+TEST_F(NoteBlockTest, InstrumentType_CarvedPumpkinDoesNotTriggerDidgeridoo)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
     ASSERT_NE(VanillaBlocks::CARVED_PUMPKIN, nullptr);
 
@@ -389,7 +396,8 @@ TEST_F(NoteBlockTest, InstrumentType_CarvedPumpkinDoesNotTriggerDidgeridoo) {
  *
  * 验证 JACK_O_LANTERN 在 MC 1.16.5 中不触发特殊乐器
  */
-TEST_F(NoteBlockTest, InstrumentType_JackOLanternDoesNotTriggerDidgeridoo) {
+TEST_F(NoteBlockTest, InstrumentType_JackOLanternDoesNotTriggerDidgeridoo)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
     ASSERT_NE(VanillaBlocks::JACK_O_LANTERN, nullptr);
 
@@ -419,7 +427,8 @@ TEST_F(NoteBlockTest, InstrumentType_JackOLanternDoesNotTriggerDidgeridoo) {
 /**
  * @brief 测试陶土触发长笛乐器
  */
-TEST_F(NoteBlockTest, InstrumentType_ClayTriggersFlute) {
+TEST_F(NoteBlockTest, InstrumentType_ClayTriggersFlute)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
     ASSERT_NE(VanillaBlocks::CLAY, nullptr);
 
@@ -445,7 +454,8 @@ TEST_F(NoteBlockTest, InstrumentType_ClayTriggersFlute) {
 /**
  * @brief 测试金块触发钟乐器
  */
-TEST_F(NoteBlockTest, InstrumentType_GoldBlockTriggersBell) {
+TEST_F(NoteBlockTest, InstrumentType_GoldBlockTriggersBell)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
     ASSERT_NE(VanillaBlocks::GOLD_BLOCK, nullptr);
 
@@ -471,7 +481,8 @@ TEST_F(NoteBlockTest, InstrumentType_GoldBlockTriggersBell) {
 /**
  * @brief 测试灵魂沙触发牛铃乐器
  */
-TEST_F(NoteBlockTest, InstrumentType_SoulSandTriggersCowBell) {
+TEST_F(NoteBlockTest, InstrumentType_SoulSandTriggersCowBell)
+{
     ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
     ASSERT_NE(VanillaBlocks::SOUL_SAND, nullptr);
 

@@ -22,21 +22,25 @@ OpenAddressingLRUCache::OpenAddressingLRUCache(i32 maxSize)
     m_table.resize(m_capacity);
 }
 
-bool OpenAddressingLRUCache::get(i64 key, i32& value) {
+bool OpenAddressingLRUCache::get(i64 key, i32& value)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return getLocked(key, value);
 }
 
-void OpenAddressingLRUCache::put(i64 key, i32 value) {
+void OpenAddressingLRUCache::put(i64 key, i32 value)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     putLocked(key, value);
 }
 
-i32 OpenAddressingLRUCache::size() const {
+i32 OpenAddressingLRUCache::size() const
+{
     return static_cast<i32>(m_size.load());
 }
 
-void OpenAddressingLRUCache::clear() {
+void OpenAddressingLRUCache::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_table.clear();
     m_table.resize(m_capacity);
@@ -46,7 +50,8 @@ void OpenAddressingLRUCache::clear() {
     m_missCount.store(0);
 }
 
-bool OpenAddressingLRUCache::getLocked(i64 key, i32& value) {
+bool OpenAddressingLRUCache::getLocked(i64 key, i32& value)
+{
     // 使用开放寻址线性探测查找
     Entry* entry = findEntry(key);
     if (entry != nullptr && entry->occupied) {
@@ -62,7 +67,8 @@ bool OpenAddressingLRUCache::getLocked(i64 key, i32& value) {
     return false;
 }
 
-void OpenAddressingLRUCache::putLocked(i64 key, i32 value) {
+void OpenAddressingLRUCache::putLocked(i64 key, i32 value)
+{
     // 先查找是否已存在
     Entry* existing = findEntry(key);
     if (existing != nullptr && existing->occupied) {
@@ -86,14 +92,16 @@ void OpenAddressingLRUCache::putLocked(i64 key, i32 value) {
     m_size.fetch_add(1);
 }
 
-size_t OpenAddressingLRUCache::hashIndex(i64 key) const {
+size_t OpenAddressingLRUCache::hashIndex(i64 key) const
+{
     // FIB 哈希：比取模分布更均匀
     // 对于 2 的幂次容量，使用位运算代替取模
     // 结果需要与 (m_capacity - 1) 进行与运算以保持在范围内
     return static_cast<size_t>((static_cast<u64>(key) * FIB_MULTIPLIER) >> m_shift) & (m_capacity - 1);
 }
 
-void OpenAddressingLRUCache::evictBatch() {
+void OpenAddressingLRUCache::evictBatch()
+{
     // 计算需要淘汰的条目数
     u32 evictCount = m_capacity / EVICT_DIVISOR;
     if (evictCount == 0) {
@@ -121,8 +129,10 @@ void OpenAddressingLRUCache::evictBatch() {
     }
 
     // 使用 nth_element 找到第 evictCount 小的时间戳
-    std::nth_element(timestamps.begin(), timestamps.begin() + evictCount, timestamps.end(),
-        [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::nth_element(
+        timestamps.begin(), timestamps.begin() + evictCount, timestamps.end(), [](const auto& a, const auto& b) {
+            return a.first < b.first;
+        });
 
     // 淘汰时间戳最小的 evictCount 个条目
     u32 threshold = timestamps[evictCount].first;
@@ -134,7 +144,8 @@ void OpenAddressingLRUCache::evictBatch() {
     }
 }
 
-OpenAddressingLRUCache::Entry* OpenAddressingLRUCache::findEntry(i64 key) {
+OpenAddressingLRUCache::Entry* OpenAddressingLRUCache::findEntry(i64 key)
+{
     size_t index = hashIndex(key);
     size_t startIndex = index;
 
@@ -157,7 +168,8 @@ OpenAddressingLRUCache::Entry* OpenAddressingLRUCache::findEntry(i64 key) {
     return nullptr;
 }
 
-OpenAddressingLRUCache::Entry* OpenAddressingLRUCache::findEmptySlot(i64 key) {
+OpenAddressingLRUCache::Entry* OpenAddressingLRUCache::findEmptySlot(i64 key)
+{
     size_t index = hashIndex(key);
 
     // 线性探测找到空槽位或可覆盖的槽位

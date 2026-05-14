@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,29 +38,22 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     // ========== 日光探测器特有方法 ==========
 

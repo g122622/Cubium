@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
-#include "common/skin/network/SkinPackets.hpp"
-#include "common/skin/core/GameProfile.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
+#include "common/skin/core/GameProfile.hpp"
+#include "common/skin/network/SkinPackets.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include <array>
+#include <gtest/gtest.h>
 
 using namespace mc::skin;
 
@@ -14,7 +14,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(SkinPacketsTest, PlayerListEntryConstruction) {
+TEST_F(SkinPacketsTest, PlayerListEntryConstruction)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
     GameProfile profile(uuid, "TestPlayer");
 
@@ -29,7 +30,8 @@ TEST_F(SkinPacketsTest, PlayerListEntryConstruction) {
     EXPECT_FALSE(entry.displayName.has_value());
 }
 
-TEST_F(SkinPacketsTest, PlayerListEntryCreateRemove) {
+TEST_F(SkinPacketsTest, PlayerListEntryCreateRemove)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
     PlayerListEntry entry = PlayerListEntry::createRemove(uuid);
@@ -40,7 +42,8 @@ TEST_F(SkinPacketsTest, PlayerListEntryCreateRemove) {
     // Remove 操作只需要 UUID
 }
 
-TEST_F(SkinPacketsTest, PlayerListEntryCreateUpdateLatency) {
+TEST_F(SkinPacketsTest, PlayerListEntryCreateUpdateLatency)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
     PlayerListEntry entry = PlayerListEntry::createUpdateLatency(uuid, 200);
@@ -51,7 +54,8 @@ TEST_F(SkinPacketsTest, PlayerListEntryCreateUpdateLatency) {
     EXPECT_EQ(200, entry.ping);
 }
 
-TEST_F(SkinPacketsTest, PlayerListEntryCreateUpdateGameMode) {
+TEST_F(SkinPacketsTest, PlayerListEntryCreateUpdateGameMode)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
     PlayerListEntry entry = PlayerListEntry::createUpdateGameMode(uuid, mc::GameMode::Creative);
@@ -62,13 +66,15 @@ TEST_F(SkinPacketsTest, PlayerListEntryCreateUpdateGameMode) {
     EXPECT_EQ(mc::GameMode::Creative, entry.gameMode);
 }
 
-TEST_F(SkinPacketsTest, PlayerListItemPacketConstruction) {
+TEST_F(SkinPacketsTest, PlayerListItemPacketConstruction)
+{
     PlayerListItemPacket packet(PlayerListAction::AddPlayer);
     EXPECT_EQ(PlayerListAction::AddPlayer, packet.action());
     EXPECT_TRUE(packet.entries().empty());
 }
 
-TEST_F(SkinPacketsTest, PlayerListItemPacketAddEntry) {
+TEST_F(SkinPacketsTest, PlayerListItemPacketAddEntry)
+{
     PlayerListItemPacket packet(PlayerListAction::AddPlayer);
 
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
@@ -81,12 +87,13 @@ TEST_F(SkinPacketsTest, PlayerListItemPacketAddEntry) {
     EXPECT_EQ("TestPlayer", packet.entries()[0].name);
 }
 
-TEST_F(SkinPacketsTest, PlayerListItemPacketSerializeAddPlayer) {
+TEST_F(SkinPacketsTest, PlayerListItemPacketSerializeAddPlayer)
+{
     PlayerListItemPacket packet(PlayerListAction::AddPlayer);
 
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
     GameProfile profile(uuid, "TestPlayer");
-    profile.addProperty({"textures", "dGVzdA=="});  // base64 of "test"
+    profile.addProperty({"textures", "dGVzdA=="}); // base64 of "test"
 
     PlayerListEntry entry = PlayerListEntry::createAdd(profile, mc::GameMode::Survival, 50);
     packet.addEntry(entry);
@@ -96,7 +103,8 @@ TEST_F(SkinPacketsTest, PlayerListItemPacketSerializeAddPlayer) {
     EXPECT_FALSE(serializeResult.value().empty());
 }
 
-TEST_F(SkinPacketsTest, PlayerListItemPacketSerializeRemovePlayer) {
+TEST_F(SkinPacketsTest, PlayerListItemPacketSerializeRemovePlayer)
+{
     PlayerListItemPacket packet(PlayerListAction::RemovePlayer);
 
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
@@ -109,7 +117,8 @@ TEST_F(SkinPacketsTest, PlayerListItemPacketSerializeRemovePlayer) {
     EXPECT_FALSE(serializeResult.value().empty());
 }
 
-TEST_F(SkinPacketsTest, PlayerListItemPacketMultipleEntries) {
+TEST_F(SkinPacketsTest, PlayerListItemPacketMultipleEntries)
+{
     PlayerListItemPacket packet(PlayerListAction::AddPlayer);
 
     std::array<mc::u8, 16> uuid1 = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
@@ -132,7 +141,8 @@ TEST_F(SkinPacketsTest, PlayerListItemPacketMultipleEntries) {
     EXPECT_EQ(20, packet.entries()[1].ping);
 }
 
-TEST_F(SkinPacketsTest, PlayerListActionValues) {
+TEST_F(SkinPacketsTest, PlayerListActionValues)
+{
     EXPECT_EQ(0, static_cast<int>(PlayerListAction::AddPlayer));
     EXPECT_EQ(1, static_cast<int>(PlayerListAction::UpdateGameMode));
     EXPECT_EQ(2, static_cast<int>(PlayerListAction::UpdateLatency));
@@ -144,7 +154,8 @@ TEST_F(SkinPacketsTest, PlayerListActionValues) {
 // DisplayName ITextComponent 序列化测试
 // ============================================================================
 
-TEST_F(SkinPacketsTest, SetDisplayNameFromStringTextComponent) {
+TEST_F(SkinPacketsTest, SetDisplayNameFromStringTextComponent)
+{
     PlayerListEntry entry;
 
     mc::text::StringTextComponent text("TestPlayer");
@@ -156,7 +167,8 @@ TEST_F(SkinPacketsTest, SetDisplayNameFromStringTextComponent) {
     EXPECT_EQ(json["text"], "TestPlayer");
 }
 
-TEST_F(SkinPacketsTest, SetDisplayNameWithStyle) {
+TEST_F(SkinPacketsTest, SetDisplayNameWithStyle)
+{
     PlayerListEntry entry;
 
     mc::text::StringTextComponent text("ColoredPlayer");
@@ -174,7 +186,8 @@ TEST_F(SkinPacketsTest, SetDisplayNameWithStyle) {
     EXPECT_TRUE(json["bold"].get<bool>());
 }
 
-TEST_F(SkinPacketsTest, SetDisplayNameWithSiblings) {
+TEST_F(SkinPacketsTest, SetDisplayNameWithSiblings)
+{
     PlayerListEntry entry;
 
     auto text = std::make_unique<mc::text::StringTextComponent>("Hello ");
@@ -199,7 +212,8 @@ TEST_F(SkinPacketsTest, SetDisplayNameWithSiblings) {
     EXPECT_EQ(json["extra"][0]["color"], "green");
 }
 
-TEST_F(SkinPacketsTest, GetDisplayNameAsText) {
+TEST_F(SkinPacketsTest, GetDisplayNameAsText)
+{
     PlayerListEntry entry;
 
     mc::text::StringTextComponent text("TestPlayer");
@@ -215,7 +229,8 @@ TEST_F(SkinPacketsTest, GetDisplayNameAsText) {
     EXPECT_EQ(parsed->getStyle().getColor(), mc::text::TextFormatting::Gold);
 }
 
-TEST_F(SkinPacketsTest, GetDisplayNameAsTextEmpty) {
+TEST_F(SkinPacketsTest, GetDisplayNameAsTextEmpty)
+{
     PlayerListEntry entry;
 
     // displayName 为空时返回 nullptr
@@ -223,7 +238,8 @@ TEST_F(SkinPacketsTest, GetDisplayNameAsTextEmpty) {
     EXPECT_EQ(parsed, nullptr);
 }
 
-TEST_F(SkinPacketsTest, GetDisplayNameAsTextInvalidJson) {
+TEST_F(SkinPacketsTest, GetDisplayNameAsTextInvalidJson)
+{
     PlayerListEntry entry;
     entry.displayName = "invalid json {";
 
@@ -232,7 +248,8 @@ TEST_F(SkinPacketsTest, GetDisplayNameAsTextInvalidJson) {
     EXPECT_EQ(parsed, nullptr);
 }
 
-TEST_F(SkinPacketsTest, SerializeTextStaticMethod) {
+TEST_F(SkinPacketsTest, SerializeTextStaticMethod)
+{
     mc::text::StringTextComponent text("Hello World");
 
     std::string json = PlayerListEntry::serializeText(text);
@@ -241,7 +258,8 @@ TEST_F(SkinPacketsTest, SerializeTextStaticMethod) {
     EXPECT_EQ(parsed["text"], "Hello World");
 }
 
-TEST_F(SkinPacketsTest, CreateUpdateDisplayName) {
+TEST_F(SkinPacketsTest, CreateUpdateDisplayName)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
     // 有显示名
@@ -257,7 +275,8 @@ TEST_F(SkinPacketsTest, CreateUpdateDisplayName) {
     EXPECT_FALSE(entry2.displayName.has_value());
 }
 
-TEST_F(SkinPacketsTest, SerializeDeserializeWithDisplayName) {
+TEST_F(SkinPacketsTest, SerializeDeserializeWithDisplayName)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
     GameProfile profile(uuid, "TestPlayer");
 
@@ -305,7 +324,8 @@ TEST_F(SkinPacketsTest, SerializeDeserializeWithDisplayName) {
     EXPECT_TRUE(parsedText->getStyle().isBold());
 }
 
-TEST_F(SkinPacketsTest, SerializeDeserializeWithoutDisplayName) {
+TEST_F(SkinPacketsTest, SerializeDeserializeWithoutDisplayName)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
     GameProfile profile(uuid, "TestPlayer");
 
@@ -327,7 +347,8 @@ TEST_F(SkinPacketsTest, SerializeDeserializeWithoutDisplayName) {
     EXPECT_FALSE(parsed.displayName.has_value());
 }
 
-TEST_F(SkinPacketsTest, SerializeDeserializeUpdateDisplayName) {
+TEST_F(SkinPacketsTest, SerializeDeserializeUpdateDisplayName)
+{
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
     // 设置新显示名
@@ -363,7 +384,8 @@ TEST_F(SkinPacketsTest, SerializeDeserializeUpdateDisplayName) {
     EXPECT_EQ(parsedText->getStyle().getColor(), mc::text::TextFormatting::Blue);
 }
 
-TEST_F(SkinPacketsTest, RoundTripWithComplexDisplayName) {
+TEST_F(SkinPacketsTest, RoundTripWithComplexDisplayName)
+{
     // 测试复杂的嵌套文本组件
     std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
     GameProfile profile(uuid, "Player");

@@ -3,12 +3,13 @@
 namespace mc {
 namespace item::items {
 
-DyeableArmorItem::DyeableArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot,
-                                    ItemProperties properties)
-    : ArmorItem(material, slot, std::move(properties)) {
-}
+DyeableArmorItem::DyeableArmorItem(
+    const armor::ArmorMaterial& material, armor::ArmorSlot slot, ItemProperties properties)
+    : ArmorItem(material, slot, std::move(properties))
+{}
 
-u32 DyeableArmorItem::getColor(const ItemStack& stack) const {
+u32 DyeableArmorItem::getColor(const ItemStack& stack) const
+{
     const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
     if (displayTag != nullptr) {
         const auto colorIter = displayTag->find(TAG_COLOR);
@@ -20,11 +21,13 @@ u32 DyeableArmorItem::getColor(const ItemStack& stack) const {
     return DEFAULT_COLOR;
 }
 
-void DyeableArmorItem::setColor(ItemStack& stack, u32 color) {
+void DyeableArmorItem::setColor(ItemStack& stack, u32 color)
+{
     stack.getOrCreateChildTag(TAG_DISPLAY)[TAG_COLOR] = static_cast<u32>(color & 0x00FFFFFFu);
 }
 
-void DyeableArmorItem::clearColor(ItemStack& stack) {
+void DyeableArmorItem::clearColor(ItemStack& stack)
+{
     auto* tag = stack.getTag();
     if (tag == nullptr || !tag->is_object()) {
         return;
@@ -41,7 +44,8 @@ void DyeableArmorItem::clearColor(ItemStack& stack) {
     }
 }
 
-bool DyeableArmorItem::hasColor(const ItemStack& stack) {
+bool DyeableArmorItem::hasColor(const ItemStack& stack)
+{
     const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
     return displayTag != nullptr && displayTag->contains(TAG_COLOR) && (*displayTag)[TAG_COLOR].is_number();
 }

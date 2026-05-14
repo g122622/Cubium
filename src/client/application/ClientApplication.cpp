@@ -1,62 +1,62 @@
 #include "ClientApplication.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/fluid/Fluid.hpp"
-#include "common/world/biome/BiomeEffects.hpp"
-#include "common/resource/VanillaResources.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/resource/FolderResourcePack.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
-#include "common/entity/inventory/Slot.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
-#include "common/util/math/MathConstants.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/util/PlatformInfo.hpp"
+#include "client/application/features/ClientApplicationHelpers.hpp"
+#include "client/command/ClientCommandManager.hpp"
+#include "client/renderer/trident/block/BreakProgressManager.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
+#include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"
 #include "client/renderer/trident/gui/GuiTextureLoader.hpp"
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
-#include "client/renderer/trident/block/BreakProgressManager.hpp"
-#include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
-#include "client/application/features/ClientApplicationHelpers.hpp"
-#include "client/ui/Font.hpp"
-#include "client/ui/GuiScale.hpp"
-#include "client/ui/screen/ScreenManager.hpp"
-#include "client/ui/screen/CraftingScreen.hpp"
-#include "client/ui/screen/ChestScreen.hpp"
-#include "client/ui/screen/FurnaceScreen.hpp"
-#include "client/ui/screen/CreativeScreen.hpp"
-#include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
-#include "client/ui/minecraft/widgets/HudWidget.hpp"
-#include "client/ui/minecraft/widgets/ChatWidget.hpp"
-#include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "client/ui/minecraft/targetinfo/TargetInfoWidget.hpp"
-#include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
-#include "client/command/ClientCommandManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/Font.hpp"
+#include "client/ui/GuiScale.hpp"
+#include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
+#include "client/ui/minecraft/targetinfo/TargetInfoWidget.hpp"
+#include "client/ui/minecraft/widgets/ChatWidget.hpp"
+#include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
+#include "client/ui/minecraft/widgets/HudWidget.hpp"
+#include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
+#include "client/ui/screen/ChestScreen.hpp"
+#include "client/ui/screen/CraftingScreen.hpp"
+#include "client/ui/screen/CreativeScreen.hpp"
+#include "client/ui/screen/FurnaceScreen.hpp"
+#include "client/ui/screen/ScreenManager.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/perfetto/PerfettoManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/resource/FolderResourcePack.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/VanillaResources.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/PlatformInfo.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "minecraft-reborn/version.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-#include <spdlog/spdlog.h>
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <thread>
+#include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <spdlog/spdlog.h>
+#include <vulkan/vulkan.h>
 
 namespace mc::client {
 
@@ -96,12 +96,12 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     setupStateMachineCallbacks();
 
     // 加载设置
-    std::string settingsPath = params.settingsPath.value_or(
-        ClientSettings::getSettingsPath("minecraft-reborn").string());
+    std::string settingsPath =
+        params.settingsPath.value_or(ClientSettings::getSettingsPath("minecraft-reborn").string());
     auto settingsResult = loadSettings(settingsPath);
     if (settingsResult.failed()) {
-        spdlog::warn("Failed to load settings from {}: {}. Using defaults.",
-                     settingsPath, settingsResult.error().toString());
+        spdlog::warn(
+            "Failed to load settings from {}: {}. Using defaults.", settingsPath, settingsResult.error().toString());
     }
 
     // 应用命令行覆盖
@@ -200,7 +200,8 @@ Result<void> ClientApplication::run()
 
     try {
         mainLoop();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         spdlog::critical("Client crashed: {}", e.what());
         m_running = false;
         return Error(ErrorCode::Unknown, e.what());
@@ -274,14 +275,14 @@ void ClientApplication::mainLoop()
         // 清理本帧的瞬时输入状态
         m_input.endFrame();
 
-    // 处理异步网格构建结果
+        // 处理异步网格构建结果
 
 #if MC_ENABLE_TRACING
         // 追踪 FPS
         const f32 safeDeltaTime = std::max(deltaTime, 0.0001f);
         const i32 fps = static_cast<i32>(1.0f / safeDeltaTime);
         if (fps < 1000) { // 过滤掉异常值
-        MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
+            MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
         }
 
         // 追踪内存信息
@@ -316,9 +317,12 @@ glm::mat4 ClientApplication::buildViewBobbingTransform(f32 partialTick) const
     const f32 cosPhase = std::cos(phase * math::PI);
 
     glm::mat4 transform(1.0f);
-    transform = glm::translate(transform, glm::vec3(sinPhase * cameraYaw * 0.5f, -std::abs(cosPhase * cameraYaw), 0.0f));
+    transform =
+        glm::translate(transform, glm::vec3(sinPhase * cameraYaw * 0.5f, -std::abs(cosPhase * cameraYaw), 0.0f));
     transform = glm::rotate(transform, sinPhase * cameraYaw * 3.0f * math::DEG_TO_RAD, glm::vec3(0.0f, 0.0f, 1.0f));
-    transform = glm::rotate(transform, std::abs(std::cos(phase * math::PI - 0.2f) * cameraYaw) * 5.0f * math::DEG_TO_RAD, glm::vec3(1.0f, 0.0f, 0.0f));
+    transform = glm::rotate(transform,
+        std::abs(std::cos(phase * math::PI - 0.2f) * cameraYaw) * 5.0f * math::DEG_TO_RAD,
+        glm::vec3(1.0f, 0.0f, 0.0f));
     return transform;
 }
 
@@ -382,10 +386,7 @@ void ClientApplication::update(f32 deltaTime)
 
         // 同步相机位置到玩家眼睛位置
         m_camera.setPosition(
-            renderPosition.x,
-            renderPosition.y + static_cast<f32>(m_player->eyeHeight()),
-            renderPosition.z
-        );
+            renderPosition.x, renderPosition.y + static_cast<f32>(m_player->eyeHeight()), renderPosition.z);
         m_camera.setYaw(m_player->yaw());
         m_camera.setPitch(m_player->pitch());
         m_camera.setViewTransform(buildViewBobbingTransform(partialTick));
@@ -533,9 +534,7 @@ void ClientApplication::shutdown()
     }
 
     // 保存设置
-    const auto savePath = m_settingsPath.empty()
-        ? ClientSettings::getSettingsPath("minecraft-reborn")
-        : m_settingsPath;
+    const auto savePath = m_settingsPath.empty() ? ClientSettings::getSettingsPath("minecraft-reborn") : m_settingsPath;
     auto saveResult = m_settings.saveSettings(savePath);
     if (saveResult.failed()) {
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
@@ -588,4 +587,3 @@ void ClientApplication::shutdown()
 }
 
 } // namespace mc::client
-

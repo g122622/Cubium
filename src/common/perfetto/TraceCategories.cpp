@@ -25,7 +25,8 @@ PERFETTO_TRACK_EVENT_STATIC_STORAGE();
 namespace mc {
 namespace perfetto {
 
-void initTraceCategories() {
+void initTraceCategories()
+{
     // 分类已在 PERFETTO_DEFINE_CATEGORIES 中静态定义
     // 此函数预留给未来可能的动态分类注册需求
 }

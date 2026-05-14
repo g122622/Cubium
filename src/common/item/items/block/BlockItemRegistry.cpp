@@ -1,7 +1,7 @@
 #include "BlockItemRegistry.hpp"
-#include "../../core/ItemRegistry.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../resource/ResourceLocation.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../core/ItemRegistry.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -103,11 +103,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
                 return;
             }
         } else {
-            registeredItem = &ItemRegistry::instance().registerItem<BlockItem>(
-                itemLoc,
-                *block,
-                ItemProperties().maxStackSize(64)
-            );
+            registeredItem =
+                &ItemRegistry::instance().registerItem<BlockItem>(itemLoc, *block, ItemProperties().maxStackSize(64));
         }
 
         // 获取注册后的信息
@@ -119,8 +116,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         m_itemToBlock[itemId] = block;
         m_itemIdToBlockItem[itemId] = registeredItem;
 
-        spdlog::debug("Registered block item: {} -> blockId={}, itemId={}",
-                      name, blockId, itemId);
+        spdlog::debug("Registered block item: {} -> blockId={}, itemId={}", name, blockId, itemId);
     };
 
     // 基础方块

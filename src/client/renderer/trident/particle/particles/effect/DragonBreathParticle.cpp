@@ -33,15 +33,14 @@ DragonBreathParticle::DragonBreathParticle(const glm::vec3& pos, const glm::vec3
 }
 
 std::unique_ptr<Particle> DragonBreathParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<DragonBreathParticle>(pos, velocity);
 }
 
-void DragonBreathParticle::tick(mc::client::ClientWorld* world) {
+void DragonBreathParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -70,7 +69,8 @@ void DragonBreathParticle::tick(mc::client::ClientWorld* world) {
     setSize(m_initialSize * (1.0f - lifeRatio * 0.3f));
 }
 
-f64 DragonBreathParticle::getScale(f64 partialTick) const {
+f64 DragonBreathParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -86,7 +86,7 @@ EndRodParticle::EndRodParticle(const glm::vec3& pos, const glm::vec3& velocity)
 {
     mc::math::Random rng;
 
-    setGravity(-5e-4f);  // 轻微向上浮动
+    setGravity(-5e-4f); // 轻微向上浮动
     setSize(0.02f + rng.nextFloat() * 0.01f);
     m_initialSize = size();
     setFriction(0.98f);
@@ -98,19 +98,18 @@ EndRodParticle::EndRodParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setColor(glm::vec4(m_brightness, m_brightness, 1.0f, 1.0f));
 
     // 向上运动
-    m_velocity.y -= 0.02f;  // 负重力让粒子向上
+    m_velocity.y -= 0.02f; // 负重力让粒子向上
 }
 
 std::unique_ptr<Particle> EndRodParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<EndRodParticle>(pos, velocity);
 }
 
-void EndRodParticle::tick(mc::client::ClientWorld* world) {
+void EndRodParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -136,7 +135,8 @@ void EndRodParticle::tick(mc::client::ClientWorld* world) {
     m_color.g = static_cast<f32>(m_brightness * fade);
 }
 
-f64 EndRodParticle::getScale(f64 partialTick) const {
+f64 EndRodParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -171,15 +171,14 @@ SweepAttackParticle::SweepAttackParticle(const glm::vec3& pos, const glm::vec3& 
 }
 
 std::unique_ptr<Particle> SweepAttackParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SweepAttackParticle>(pos, velocity);
 }
 
-void SweepAttackParticle::tick(mc::client::ClientWorld* world) {
+void SweepAttackParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -194,14 +193,16 @@ void SweepAttackParticle::tick(mc::client::ClientWorld* world) {
     // MC 1.16.5: 无运动，仅更新纹理帧
 }
 
-ResourceLocation SweepAttackParticle::getTextureLocation() const {
+ResourceLocation SweepAttackParticle::getTextureLocation() const
+{
     // MC 1.16.5: 根据年龄选择纹理帧（4帧）
     i32 frame = static_cast<i32>(m_age);
     frame = std::min(frame, 3);
     return ResourceLocation("minecraft:particle/sweep_" + std::to_string(frame));
 }
 
-f64 SweepAttackParticle::getScale(f64 partialTick) const {
+f64 SweepAttackParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     // MC 1.16.5: scale = 1.0 - xSpeed * 0.5
     return m_scaleMultiplier;

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -40,22 +40,26 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Block;
     }
@@ -117,8 +121,7 @@ public:
      * @param direction 活塞朝向
      * @return true 如果可以推动
      */
-    [[nodiscard]] static bool canPush(
-        const BlockState& blockState,
+    [[nodiscard]] static bool canPush(const BlockState& blockState,
         IWorld& world,
         const BlockPos& pos,
         Direction facing,

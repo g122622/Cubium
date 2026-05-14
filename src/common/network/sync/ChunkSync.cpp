@@ -1,10 +1,10 @@
 #include "ChunkSync.hpp"
-#include "../../world/block/Block.hpp"
 #include "../../world/WorldConstants.hpp"
-#include <spdlog/spdlog.h>
-#include <cmath>
+#include "../../world/block/Block.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc::network {
 
@@ -12,7 +12,8 @@ namespace mc::network {
 // ChunkSerializer 实现
 // ============================================================================
 
-Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk) {
+Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
+{
     PacketSerializer ser;
 
     // 写入区块坐标
@@ -52,7 +53,8 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk) 
     return ser.buffer();
 }
 
-std::vector<u8> ChunkSerializer::serializeSection(const ChunkSection& section) {
+std::vector<u8> ChunkSerializer::serializeSection(const ChunkSection& section)
+{
     std::vector<u8> data;
     // 预分配空间: 2字节blockCount + 4096*4字节方块数据 + 2048字节天空光照 + 2048字节方块光照
     constexpr size_t SECTION_DATA_SIZE = 2 + ChunkSection::VOLUME * 4 + NibbleArray::BYTE_SIZE * 2;
@@ -97,9 +99,8 @@ std::vector<u8> ChunkSerializer::serializeSection(const ChunkSection& section) {
 }
 
 Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
-    ChunkCoord x, ChunkCoord z,
-    const std::vector<u8>& data
-) {
+    ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
+{
     PacketDeserializer deser(data.data(), data.size());
 
     auto chunk = std::make_unique<ChunkData>(x, z);
@@ -183,13 +184,11 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
         }
 
         // 读取方块数据 (u32状态ID格式)
-        size_t offset = 2;  // 跳过 blockCount
+        size_t offset = 2; // 跳过 blockCount
         int sectionBlocks = 0;
         for (i32 j = 0; j < ChunkSection::VOLUME && offset + 3 < sectionData.size(); ++j) {
-            u32 stateId = static_cast<u32>(sectionData[offset]) |
-                         (static_cast<u32>(sectionData[offset + 1]) << 8) |
-                         (static_cast<u32>(sectionData[offset + 2]) << 16) |
-                         (static_cast<u32>(sectionData[offset + 3]) << 24);
+            u32 stateId = static_cast<u32>(sectionData[offset]) | (static_cast<u32>(sectionData[offset + 1]) << 8) |
+                (static_cast<u32>(sectionData[offset + 2]) << 16) | (static_cast<u32>(sectionData[offset + 3]) << 24);
             section->setBlockStateIdFast(j, stateId);
 
             // 检查是否为非空气方块
@@ -207,7 +206,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
         // 读取光照数据
         // 天空光照: 2048字节 (每方块4位)
         // 方块光照: 2048字节 (每方块4位)
-        constexpr size_t LIGHT_DATA_SIZE = NibbleArray::BYTE_SIZE * 2;  // 4096字节
+        constexpr size_t LIGHT_DATA_SIZE = NibbleArray::BYTE_SIZE * 2; // 4096字节
 
         if (offset + LIGHT_DATA_SIZE <= sectionData.size()) {
             // 读取天空光照
@@ -229,9 +228,8 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     return chunk;
 }
 
-Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(
-    const u8* data, size_t size
-) {
+Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(const u8* data, size_t size)
+{
     // 最小大小: 2字节blockCount + 4096*4字节方块数据 + 2048字节天空光照 + 2048字节方块光照
     constexpr size_t MIN_SIZE = 2 + ChunkSection::VOLUME * 4 + NibbleArray::BYTE_SIZE * 2;
     if (size < MIN_SIZE) {
@@ -246,10 +244,8 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(
     // 读取方块数据 (u32状态ID格式)
     size_t offset = 2;
     for (i32 j = 0; j < ChunkSection::VOLUME; ++j) {
-        u32 stateId = static_cast<u32>(data[offset]) |
-                     (static_cast<u32>(data[offset + 1]) << 8) |
-                     (static_cast<u32>(data[offset + 2]) << 16) |
-                     (static_cast<u32>(data[offset + 3]) << 24);
+        u32 stateId = static_cast<u32>(data[offset]) | (static_cast<u32>(data[offset + 1]) << 8) |
+            (static_cast<u32>(data[offset + 2]) << 16) | (static_cast<u32>(data[offset + 3]) << 24);
         section->setBlockStateIdFast(j, stateId);
         offset += 4;
     }
@@ -271,7 +267,8 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(
     return section;
 }
 
-size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk) {
+size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
+{
     size_t size = 4 + 4 + 2 + 256 + 1 + chunk.getBiomes().serialize().size(); // 坐标 + 位掩码 + 高度图 + 生物群系
 
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
@@ -283,13 +280,15 @@ size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk) {
     return size;
 }
 
-size_t ChunkSerializer::calculateSectionSize(const ChunkSection& section) {
+size_t ChunkSerializer::calculateSectionSize(const ChunkSection& section)
+{
     // 新格式: 方块数据 (4096 * 4) + 天空光照 (2048) + 方块光照 (2048)
     (void)section;
     return 2 + ChunkSection::VOLUME * 4 + 2048 + 2048;
 }
 
-u16 ChunkSerializer::calculateSectionMask(const ChunkData& chunk) {
+u16 ChunkSerializer::calculateSectionMask(const ChunkData& chunk)
+{
     u16 mask = 0;
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if (chunk.hasSection(i) && !chunk.getSection(i)->isEmpty()) {
@@ -303,11 +302,10 @@ u16 ChunkSerializer::calculateSectionMask(const ChunkData& chunk) {
 // ChunkView 实现
 // ============================================================================
 
-void ChunkView::calculateChunkDiff(
-    const std::unordered_set<ChunkId>& currentChunks,
+void ChunkView::calculateChunkDiff(const std::unordered_set<ChunkId>& currentChunks,
     std::vector<ChunkPos>& chunksToLoad,
-    std::vector<ChunkPos>& chunksToUnload
-) const {
+    std::vector<ChunkPos>& chunksToUnload) const
+{
     chunksToLoad.clear();
     chunksToUnload.clear();
 
@@ -343,38 +341,42 @@ void ChunkView::calculateChunkDiff(
 
 PlayerChunkTracker::PlayerChunkTracker(PlayerId playerId)
     : m_playerId(playerId)
-{
-}
+{}
 
-void PlayerChunkTracker::addLoadedChunk(ChunkCoord x, ChunkCoord z) {
+void PlayerChunkTracker::addLoadedChunk(ChunkCoord x, ChunkCoord z)
+{
     m_loadedChunks.insert(ChunkId(x, z, 0));
 }
 
-void PlayerChunkTracker::removeLoadedChunk(ChunkCoord x, ChunkCoord z) {
+void PlayerChunkTracker::removeLoadedChunk(ChunkCoord x, ChunkCoord z)
+{
     m_loadedChunks.erase(ChunkId(x, z, 0));
 }
 
-bool PlayerChunkTracker::hasChunk(ChunkCoord x, ChunkCoord z) const {
+bool PlayerChunkTracker::hasChunk(ChunkCoord x, ChunkCoord z) const
+{
     return m_loadedChunks.find(ChunkId(x, z, 0)) != m_loadedChunks.end();
 }
 
-void PlayerChunkTracker::updateCenter(ChunkCoord x, ChunkCoord z) {
+void PlayerChunkTracker::updateCenter(ChunkCoord x, ChunkCoord z)
+{
     m_view.centerX = x;
     m_view.centerZ = z;
 }
 
 void PlayerChunkTracker::calculateChunkUpdates(
-    std::vector<ChunkPos>& chunksToLoad,
-    std::vector<ChunkPos>& chunksToUnload
-) {
+    std::vector<ChunkPos>& chunksToLoad, std::vector<ChunkPos>& chunksToUnload)
+{
     m_view.calculateChunkDiff(m_loadedChunks, chunksToLoad, chunksToUnload);
 }
 
-void PlayerChunkTracker::setViewDistance(i32 distance) {
+void PlayerChunkTracker::setViewDistance(i32 distance)
+{
     m_view.viewDistance = std::clamp(distance, 2, 32);
 }
 
-void PlayerChunkTracker::clear() {
+void PlayerChunkTracker::clear()
+{
     m_loadedChunks.clear();
 }
 
@@ -382,7 +384,8 @@ void PlayerChunkTracker::clear() {
 // ChunkSyncManager 实现
 // ============================================================================
 
-std::shared_ptr<PlayerChunkTracker> ChunkSyncManager::getTracker(PlayerId playerId) {
+std::shared_ptr<PlayerChunkTracker> ChunkSyncManager::getTracker(PlayerId playerId)
+{
     auto it = m_trackers.find(playerId);
     if (it != m_trackers.end()) {
         return it->second;
@@ -394,7 +397,8 @@ std::shared_ptr<PlayerChunkTracker> ChunkSyncManager::getTracker(PlayerId player
     return tracker;
 }
 
-void ChunkSyncManager::removeTracker(PlayerId playerId) {
+void ChunkSyncManager::removeTracker(PlayerId playerId)
+{
     auto it = m_trackers.find(playerId);
     if (it == m_trackers.end()) return;
 
@@ -413,7 +417,8 @@ void ChunkSyncManager::removeTracker(PlayerId playerId) {
     m_trackers.erase(it);
 }
 
-void ChunkSyncManager::updatePlayerPosition(PlayerId playerId, f64 x, f64 z) {
+void ChunkSyncManager::updatePlayerPosition(PlayerId playerId, f64 x, f64 z)
+{
     auto tracker = getTracker(playerId);
     if (!tracker) return;
 
@@ -429,10 +434,8 @@ void ChunkSyncManager::updatePlayerPosition(PlayerId playerId, f64 x, f64 z) {
 }
 
 void ChunkSyncManager::calculateUpdates(
-    PlayerId playerId,
-    std::vector<ChunkPos>& chunksToLoad,
-    std::vector<ChunkPos>& chunksToUnload
-) {
+    PlayerId playerId, std::vector<ChunkPos>& chunksToLoad, std::vector<ChunkPos>& chunksToUnload)
+{
     chunksToLoad.clear();
     chunksToUnload.clear();
 
@@ -442,7 +445,8 @@ void ChunkSyncManager::calculateUpdates(
     tracker->calculateChunkUpdates(chunksToLoad, chunksToUnload);
 }
 
-void ChunkSyncManager::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord z) {
+void ChunkSyncManager::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord z)
+{
     auto tracker = getTracker(playerId);
     if (!tracker) return;
 
@@ -451,7 +455,8 @@ void ChunkSyncManager::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord
     m_chunkSubscribers[chunkId].insert(playerId);
 }
 
-void ChunkSyncManager::markChunkUnloaded(PlayerId playerId, ChunkCoord x, ChunkCoord z) {
+void ChunkSyncManager::markChunkUnloaded(PlayerId playerId, ChunkCoord x, ChunkCoord z)
+{
     auto tracker = getTracker(playerId);
     if (!tracker) return;
 

@@ -21,42 +21,36 @@ class ChannelingEnchantment : public Enchantment {
 public:
     ChannelingEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:channeling";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:channeling"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.channeling";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Trident;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Trident; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 1; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::VeryRare;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::VeryRare; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
         (void)level;
         return 25;
     }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
         (void)level;
         return 50;
     }
 
-    [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override {
+    [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override
+    {
         // 与激流互斥
         if (other.id() == "minecraft:riptide") {
             return false;

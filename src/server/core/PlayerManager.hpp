@@ -4,12 +4,12 @@
 #include "ServerPlayerData.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/sync/ChunkSync.hpp"
-#include <memory>
-#include <unordered_map>
-#include <mutex>
-#include <functional>
-#include <vector>
 #include <atomic>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::server::core {
 
@@ -52,10 +52,8 @@ public:
      * @return 玩家数据指针，如果ID已存在则返回 nullptr
      * @note 线程安全
      */
-    ServerPlayerData* addPlayer(PlayerId playerId,
-                                 const std::string& uuid,
-                                 const std::string& username,
-                                 network::ConnectionPtr connection);
+    ServerPlayerData* addPlayer(
+        PlayerId playerId, const std::string& uuid, const std::string& username, network::ConnectionPtr connection);
 
     /**
      * @brief 移除玩家
@@ -134,8 +132,9 @@ public:
      * @param func 对每个玩家调用的函数
      * @note 线程安全
      */
-    template<typename Func>
-    void forEachPlayer(Func&& func) {
+    template <typename Func>
+    void forEachPlayer(Func&& func)
+    {
         std::vector<PlayerId> playerIds;
         {
             std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -154,8 +153,9 @@ public:
         }
     }
 
-    template<typename Func>
-    void forEachPlayer(Func&& func) const {
+    template <typename Func>
+    void forEachPlayer(Func&& func) const
+    {
         std::vector<PlayerId> playerIds;
         {
             std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -201,7 +201,8 @@ public:
      * @brief 设置配置
      * @param config 配置引用
      */
-    void setConfig(const ServerCoreConfig& config) {
+    void setConfig(const ServerCoreConfig& config)
+    {
         m_maxPlayers = config.maxPlayers;
         m_chunkSyncManager.setDefaultViewDistance(config.viewDistance);
     }
@@ -294,7 +295,7 @@ public:
 private:
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<PlayerId, ServerPlayerData> m_players;
-    std::unordered_map<u32, PlayerId> m_sessionToPlayer;  ///< 会话ID -> 玩家ID
+    std::unordered_map<u32, PlayerId> m_sessionToPlayer; ///< 会话ID -> 玩家ID
 
     std::atomic<PlayerId> m_nextPlayerId{1};
     std::atomic<u32> m_nextSessionId{1};

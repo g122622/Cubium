@@ -1,9 +1,9 @@
 #include "entity/inventory/container/ChestContainer.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "world/blockentity/storage/ChestEntity.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/blockentity/storage/ChestEntity.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -11,30 +11,28 @@ namespace blockentity {
 // ========== 常量 ==========
 
 namespace {
-    /// 箱子槽位起始Y位置
-    constexpr i32 CHEST_SLOT_Y = 18;
-    /// 玩家背包起始Y位置（箱子后）
-    constexpr i32 PLAYER_INV_Y_OFFSET = 103;
-    /// 玩家背包起始Y位置（双箱后）
-    constexpr i32 PLAYER_INV_Y_OFFSET_DOUBLE = 139;
-    /// 快捷栏Y位置
-    constexpr i32 HOTBAR_Y = 161;
-    /// 快捷栏Y位置（双箱）
-    constexpr i32 HOTBAR_Y_DOUBLE = 197;
-    /// 槽位宽度
-    constexpr i32 SLOT_SIZE = 18;
-}
+/// 箱子槽位起始Y位置
+constexpr i32 CHEST_SLOT_Y = 18;
+/// 玩家背包起始Y位置（箱子后）
+constexpr i32 PLAYER_INV_Y_OFFSET = 103;
+/// 玩家背包起始Y位置（双箱后）
+constexpr i32 PLAYER_INV_Y_OFFSET_DOUBLE = 139;
+/// 快捷栏Y位置
+constexpr i32 HOTBAR_Y = 161;
+/// 快捷栏Y位置（双箱）
+constexpr i32 HOTBAR_Y_DOUBLE = 197;
+/// 槽位宽度
+constexpr i32 SLOT_SIZE = 18;
+} // namespace
 
 // ========== 构造函数 ==========
 
-ChestContainer::ChestContainer(ContainerId id,
-                               PlayerInventory* playerInventory,
-                               IInventory* chestInventory,
-                               i32 rows)
+ChestContainer::ChestContainer(ContainerId id, PlayerInventory* playerInventory, IInventory* chestInventory, i32 rows)
     : AbstractContainerMenu(id, playerInventory)
     , m_chestInventory(chestInventory)
     , m_chestInventoryOwner()
-    , m_rows(rows) {
+    , m_rows(rows)
+{
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(chestInventory != nullptr);
     MC_ASSERT(rows == SINGLE_CHEST_ROWS || rows == DOUBLE_CHEST_ROWS);
@@ -44,15 +42,14 @@ ChestContainer::ChestContainer(ContainerId id,
     initSlots(playerInventory);
 }
 
-ChestContainer::ChestContainer(ContainerId id,
-                               PlayerInventory* playerInventory,
-                               IInventory* chestInventory,
-                               ChestEntity* chestEntity)
+ChestContainer::ChestContainer(
+    ContainerId id, PlayerInventory* playerInventory, IInventory* chestInventory, ChestEntity* chestEntity)
     : AbstractContainerMenu(id, playerInventory)
     , m_chestInventory(chestInventory)
     , m_chestInventoryOwner()
     , m_rows(SINGLE_CHEST_ROWS)
-    , m_chestEntityA(chestEntity) {
+    , m_chestEntityA(chestEntity)
+{
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(chestInventory != nullptr);
     MC_ASSERT(chestInventory->getContainerSize() == SINGLE_CHEST_ROWS * SLOTS_PER_ROW);
@@ -62,16 +59,17 @@ ChestContainer::ChestContainer(ContainerId id,
 }
 
 ChestContainer::ChestContainer(ContainerId id,
-                               PlayerInventory* playerInventory,
-                               IInventory* chestInventory,
-                               ChestEntity* chestEntityA,
-                               ChestEntity* chestEntityB)
+    PlayerInventory* playerInventory,
+    IInventory* chestInventory,
+    ChestEntity* chestEntityA,
+    ChestEntity* chestEntityB)
     : AbstractContainerMenu(id, playerInventory)
     , m_chestInventory(chestInventory)
     , m_chestInventoryOwner()
     , m_rows(DOUBLE_CHEST_ROWS)
     , m_chestEntityA(chestEntityA)
-    , m_chestEntityB(chestEntityB) {
+    , m_chestEntityB(chestEntityB)
+{
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(chestInventory != nullptr);
     MC_ASSERT(chestInventory->getContainerSize() == DOUBLE_CHEST_ROWS * SLOTS_PER_ROW);
@@ -80,14 +78,13 @@ ChestContainer::ChestContainer(ContainerId id,
     initSlots(playerInventory);
 }
 
-ChestContainer::ChestContainer(ContainerId id,
-                               PlayerInventory* playerInventory,
-                               std::shared_ptr<IInventory> chestInventoryOwner,
-                               i32 rows)
+ChestContainer::ChestContainer(
+    ContainerId id, PlayerInventory* playerInventory, std::shared_ptr<IInventory> chestInventoryOwner, i32 rows)
     : AbstractContainerMenu(id, playerInventory)
     , m_chestInventory(chestInventoryOwner.get())
     , m_chestInventoryOwner(std::move(chestInventoryOwner))
-    , m_rows(rows) {
+    , m_rows(rows)
+{
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(m_chestInventory != nullptr);
     MC_ASSERT(rows == SINGLE_CHEST_ROWS || rows == DOUBLE_CHEST_ROWS);
@@ -100,39 +97,36 @@ ChestContainer::ChestContainer(ContainerId id,
 // ========== 静态工厂方法 ==========
 
 std::unique_ptr<ChestContainer> ChestContainer::createSingle(
-    ContainerId id,
-    PlayerInventory* playerInventory,
-    IInventory* chestInventory) {
+    ContainerId id, PlayerInventory* playerInventory, IInventory* chestInventory)
+{
     return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, SINGLE_CHEST_ROWS);
 }
 
 std::unique_ptr<ChestContainer> ChestContainer::createSingle(
-    ContainerId id,
-    PlayerInventory* playerInventory,
-    IInventory* chestInventory,
-    ChestEntity* chestEntity) {
+    ContainerId id, PlayerInventory* playerInventory, IInventory* chestInventory, ChestEntity* chestEntity)
+{
     return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, chestEntity);
 }
 
 std::unique_ptr<ChestContainer> ChestContainer::createDouble(
-    ContainerId id,
-    PlayerInventory* playerInventory,
-    IInventory* chestInventory) {
+    ContainerId id, PlayerInventory* playerInventory, IInventory* chestInventory)
+{
     return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, DOUBLE_CHEST_ROWS);
 }
 
-std::unique_ptr<ChestContainer> ChestContainer::createDouble(
-    ContainerId id,
+std::unique_ptr<ChestContainer> ChestContainer::createDouble(ContainerId id,
     PlayerInventory* playerInventory,
     IInventory* chestInventory,
     ChestEntity* chestEntityA,
-    ChestEntity* chestEntityB) {
+    ChestEntity* chestEntityB)
+{
     return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, chestEntityA, chestEntityB);
 }
 
 // ========== 快速移动 ==========
 
-ItemStack ChestContainer::quickMoveStack(i32 slotIndex, Player& player) {
+ItemStack ChestContainer::quickMoveStack(i32 slotIndex, Player& player)
+{
     (void)player;
 
     Slot* slot = getSlot(slotIndex);
@@ -158,7 +152,8 @@ ItemStack ChestContainer::quickMoveStack(i32 slotIndex, Player& player) {
 
 // ========== 私有方法 ==========
 
-void ChestContainer::initSlots(PlayerInventory* playerInventory) {
+void ChestContainer::initSlots(PlayerInventory* playerInventory)
+{
     for (i32 row = 0; row < m_rows; ++row) {
         for (i32 col = 0; col < SLOTS_PER_ROW; ++col) {
             i32 slotIndex = row * SLOTS_PER_ROW + col;
@@ -173,7 +168,8 @@ void ChestContainer::initSlots(PlayerInventory* playerInventory) {
     addPlayerHotbarSlots(8, (m_rows == DOUBLE_CHEST_ROWS) ? HOTBAR_Y_DOUBLE : HOTBAR_Y);
 }
 
-bool ChestContainer::stillValid(const Player& player) const {
+bool ChestContainer::stillValid(const Player& player) const
+{
     // MC 1.16.5: 检查玩家是否在箱子附近（8格范围内）
     // 参考 net.minecraft.inventory.container.ChestContainer.canInteractWith
     // -> lowerChestInventory.isUsableByPlayer(playerIn)
@@ -190,9 +186,7 @@ bool ChestContainer::stillValid(const Player& player) const {
         }
         const BlockPos posA = m_chestEntityA->getPos();
         f32 distSqA = player.distanceSqTo(
-            static_cast<f32>(posA.x) + 0.5f,
-            static_cast<f32>(posA.y) + 0.5f,
-            static_cast<f32>(posA.z) + 0.5f);
+            static_cast<f32>(posA.x) + 0.5f, static_cast<f32>(posA.y) + 0.5f, static_cast<f32>(posA.z) + 0.5f);
         if (distSqA <= 64.0f) {
             return true;
         }
@@ -205,9 +199,7 @@ bool ChestContainer::stillValid(const Player& player) const {
         }
         const BlockPos posB = m_chestEntityB->getPos();
         f32 distSqB = player.distanceSqTo(
-            static_cast<f32>(posB.x) + 0.5f,
-            static_cast<f32>(posB.y) + 0.5f,
-            static_cast<f32>(posB.z) + 0.5f);
+            static_cast<f32>(posB.x) + 0.5f, static_cast<f32>(posB.y) + 0.5f, static_cast<f32>(posB.z) + 0.5f);
         if (distSqB <= 64.0f) {
             return true;
         }

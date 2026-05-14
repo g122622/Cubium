@@ -9,7 +9,8 @@ namespace layer {
 
 namespace {
 
-bool allNeighborsAre(i32 north, i32 east, i32 south, i32 west, i32 biome) {
+bool allNeighborsAre(i32 north, i32 east, i32 south, i32 west, i32 biome)
+{
     return north == biome && east == biome && south == biome && west == biome;
 }
 
@@ -19,7 +20,8 @@ bool allNeighborsAre(i32 north, i32 east, i32 south, i32 west, i32 biome) {
 // CoolWarmEdgeLayer 实现
 // ============================================================================
 
-i32 CoolWarmEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) {
+i32 CoolWarmEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center)
+{
     (void)ctx; // 未使用
 
     // 参考 MC EdgeLayer.CoolWarm.apply:
@@ -46,7 +48,8 @@ i32 CoolWarmEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, 
 // HeatIceEdgeLayer 实现
 // ============================================================================
 
-i32 HeatIceEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) {
+i32 HeatIceEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center)
+{
     (void)ctx; // 未使用
 
     // 参考 MC EdgeLayer.HeatIce.apply:
@@ -73,7 +76,8 @@ i32 HeatIceEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i
 // SpecialEdgeLayer 实现
 // ============================================================================
 
-i32 SpecialEdgeLayer::apply(IAreaContext& ctx, i32 value) {
+i32 SpecialEdgeLayer::apply(IAreaContext& ctx, i32 value)
+{
     // 参考 MC EdgeLayer.Special.apply:
     // if (!LayerUtil.isShallowOcean(value) && context.random(13) == 0) {
     //     value |= 1 + context.random(15) << 8 & 3840;
@@ -99,7 +103,8 @@ i32 SpecialEdgeLayer::apply(IAreaContext& ctx, i32 value) {
 // BiomeEdgeLayer 实现
 // ============================================================================
 
-i32 BiomeEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) {
+i32 BiomeEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center)
+{
     (void)ctx; // 未使用
 
     // 参考 MC EdgeBiomeLayer.apply:
@@ -135,8 +140,8 @@ i32 BiomeEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32
 
     // 处理沙漠与雪地相邻
     if (center == BiomeValues::Desert) {
-        if (BiomeValues::isSnowy(north) || BiomeValues::isSnowy(east) ||
-            BiomeValues::isSnowy(south) || BiomeValues::isSnowy(west)) {
+        if (BiomeValues::isSnowy(north) || BiomeValues::isSnowy(east) || BiomeValues::isSnowy(south) ||
+            BiomeValues::isSnowy(west)) {
             return BiomeValues::SnowyTaiga;
         }
     }
@@ -144,15 +149,14 @@ i32 BiomeEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32
     // 处理沼泽边缘
     if (center == BiomeValues::Swamp) {
         // 沼泽与沙漠/山脉/雪地相邻变成平原
-        if (north == BiomeValues::Desert || east == BiomeValues::Desert ||
-            south == BiomeValues::Desert || west == BiomeValues::Desert ||
-            BiomeValues::isSnowy(north) || BiomeValues::isSnowy(east) ||
+        if (north == BiomeValues::Desert || east == BiomeValues::Desert || south == BiomeValues::Desert ||
+            west == BiomeValues::Desert || BiomeValues::isSnowy(north) || BiomeValues::isSnowy(east) ||
             BiomeValues::isSnowy(south) || BiomeValues::isSnowy(west)) {
             return BiomeValues::Plains;
         }
         // 沼泽与丛林相邻变成丛林边缘
-        if (BiomeValues::isJungle(north) || BiomeValues::isJungle(east) ||
-            BiomeValues::isJungle(south) || BiomeValues::isJungle(west)) {
+        if (BiomeValues::isJungle(north) || BiomeValues::isJungle(east) || BiomeValues::isJungle(south) ||
+            BiomeValues::isJungle(west)) {
             return BiomeValues::JungleEdge;
         }
     }

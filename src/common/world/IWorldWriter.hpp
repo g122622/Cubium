@@ -37,7 +37,8 @@ public:
      * @param flags 更新标志（默认为 3：通知邻居 + 更新客户端）
      * @return 是否成功
      */
-    virtual bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) {
+    virtual bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags)
+    {
         (void)flags;
         return setBlockState(x, y, z, state);
     }
@@ -48,7 +49,8 @@ public:
      * @param state 方块状态
      * @return 是否成功
      */
-    bool setBlockState(const BlockPos& pos, const BlockState* state) {
+    bool setBlockState(const BlockPos& pos, const BlockState* state)
+    {
         return setBlockState(pos.x, pos.y, pos.z, state);
     }
 };

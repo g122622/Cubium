@@ -2,8 +2,8 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../item/core/ItemStack.hpp"
-#include <optional>
 #include <memory>
+#include <optional>
 
 namespace mc {
 
@@ -14,7 +14,7 @@ namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
+} // namespace nbt
 
 namespace world {
 namespace village {
@@ -45,8 +45,7 @@ public:
      * @param xp 交易给予的经验
      * @param priceMultiplier 价格乘数
      */
-    MerchantOffer(ItemStack buyA, ItemStack sell,
-                  i32 maxUses, i32 xp, f32 priceMultiplier);
+    MerchantOffer(ItemStack buyA, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier);
 
     /**
      * @brief 构造函数（双物品交易）
@@ -57,8 +56,7 @@ public:
      * @param xp 交易给予的经验
      * @param priceMultiplier 价格乘数
      */
-    MerchantOffer(ItemStack buyA, ItemStack buyB, ItemStack sell,
-                  i32 maxUses, i32 xp, f32 priceMultiplier);
+    MerchantOffer(ItemStack buyA, ItemStack buyB, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier);
 
     // ========== 交易检查 ==========
 
@@ -68,8 +66,7 @@ public:
      * @param offeredB 玩家提供的第二物品
      * @return 是否可以交易
      */
-    [[nodiscard]] bool canAccept(const ItemStack& offeredA,
-                                  const ItemStack& offeredB) const;
+    [[nodiscard]] bool canAccept(const ItemStack& offeredA, const ItemStack& offeredB) const;
 
     /**
      * @brief 检查交易是否可行（单物品）

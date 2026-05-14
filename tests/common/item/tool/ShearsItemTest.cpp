@@ -1,20 +1,21 @@
 #include <gtest/gtest.h>
 
-#include "common/item/Items.hpp"
-#include "common/item/items/tool/ShearsItem.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/items/tool/ShearsItem.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {
 
 class ShearsEntityInteractionTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         VanillaBlocks::initialize();
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
@@ -25,26 +26,30 @@ protected:
 // 剪刀物品基本属性测试
 // ============================================================================
 
-TEST_F(ShearsEntityInteractionTest, ShearsIsRegistered) {
+TEST_F(ShearsEntityInteractionTest, ShearsIsRegistered)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr) << "Shears should be registered";
     EXPECT_EQ(shears->itemLocation(), ResourceLocation("minecraft:shears"));
 }
 
-TEST_F(ShearsEntityInteractionTest, ShearsHasCorrectDurability) {
+TEST_F(ShearsEntityInteractionTest, ShearsHasCorrectDurability)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
     // MC 1.16.5: 剪刀耐久度为 238
     EXPECT_EQ(shears->maxDamage(), 238);
 }
 
-TEST_F(ShearsEntityInteractionTest, ShearsIsDamageable) {
+TEST_F(ShearsEntityInteractionTest, ShearsIsDamageable)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
     EXPECT_TRUE(shears->isDamageable());
 }
 
-TEST_F(ShearsEntityInteractionTest, ShearsIsNotStackable) {
+TEST_F(ShearsEntityInteractionTest, ShearsIsNotStackable)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
     // 有耐久度的物品堆叠数为 1
@@ -55,7 +60,8 @@ TEST_F(ShearsEntityInteractionTest, ShearsIsNotStackable) {
 // 剪刀挖掘速度测试
 // ============================================================================
 
-TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnCobweb) {
+TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnCobweb)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
 
@@ -72,7 +78,8 @@ TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnCobweb) {
     EXPECT_FLOAT_EQ(speed, 15.0f);
 }
 
-TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnLeaves) {
+TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnLeaves)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
 
@@ -89,7 +96,8 @@ TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnLeaves) {
     EXPECT_FLOAT_EQ(speed, 15.0f);
 }
 
-TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnWool) {
+TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnWool)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
 
@@ -106,7 +114,8 @@ TEST_F(ShearsEntityInteractionTest, ShearsEffectiveOnWool) {
     EXPECT_FLOAT_EQ(speed, 5.0f);
 }
 
-TEST_F(ShearsEntityInteractionTest, ShearsNotEffectiveOnStone) {
+TEST_F(ShearsEntityInteractionTest, ShearsNotEffectiveOnStone)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
 
@@ -125,7 +134,8 @@ TEST_F(ShearsEntityInteractionTest, ShearsNotEffectiveOnStone) {
 // 剪刀采集测试
 // ============================================================================
 
-TEST_F(ShearsEntityInteractionTest, ShearsCanHarvestCobweb) {
+TEST_F(ShearsEntityInteractionTest, ShearsCanHarvestCobweb)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
 
@@ -138,7 +148,8 @@ TEST_F(ShearsEntityInteractionTest, ShearsCanHarvestCobweb) {
     EXPECT_TRUE(shears->canHarvestBlock(state));
 }
 
-TEST_F(ShearsEntityInteractionTest, ShearsCannotHarvestStone) {
+TEST_F(ShearsEntityInteractionTest, ShearsCannotHarvestStone)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
 
@@ -154,7 +165,8 @@ TEST_F(ShearsEntityInteractionTest, ShearsCannotHarvestStone) {
 // 羊毛颜色映射测试
 // ============================================================================
 
-TEST_F(ShearsEntityInteractionTest, SheepWoolColorMapping) {
+TEST_F(ShearsEntityInteractionTest, SheepWoolColorMapping)
+{
     // 测试羊毛颜色到方块的映射
     // DyeColor 枚举有 16 种颜色（White 到 Black + Count）
     EXPECT_EQ(SheepEntity::getWoolBlockByColor(DyeColor::White), VanillaBlocks::WHITE_WOOL);
@@ -175,7 +187,8 @@ TEST_F(ShearsEntityInteractionTest, SheepWoolColorMapping) {
     EXPECT_EQ(SheepEntity::getWoolBlockByColor(DyeColor::Black), VanillaBlocks::BLACK_WOOL);
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepWoolColorMappingReturnsWhiteForInvalid) {
+TEST_F(ShearsEntityInteractionTest, SheepWoolColorMappingReturnsWhiteForInvalid)
+{
     // 无效颜色（Count 枚举值）应返回白色羊毛
     const Block* wool = SheepEntity::getWoolBlockByColor(DyeColor::Count);
     EXPECT_EQ(wool, VanillaBlocks::WHITE_WOOL);
@@ -185,7 +198,8 @@ TEST_F(ShearsEntityInteractionTest, SheepWoolColorMappingReturnsWhiteForInvalid)
 // IShearable 接口测试
 // ============================================================================
 
-TEST_F(ShearsEntityInteractionTest, SheepImplementsIShearable) {
+TEST_F(ShearsEntityInteractionTest, SheepImplementsIShearable)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
 
     // 验证羊实现了 IShearable 接口
@@ -193,7 +207,8 @@ TEST_F(ShearsEntityInteractionTest, SheepImplementsIShearable) {
     EXPECT_NE(shearable, nullptr) << "SheepEntity should implement IShearable";
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepIsShearableWhenAdultAndNotSheared) {
+TEST_F(ShearsEntityInteractionTest, SheepIsShearableWhenAdultAndNotSheared)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
 
     // 成年且未剪毛的羊可以被剪
@@ -203,7 +218,8 @@ TEST_F(ShearsEntityInteractionTest, SheepIsShearableWhenAdultAndNotSheared) {
     EXPECT_TRUE(sheep.isShearable()) << "Adult sheep with wool should be shearable";
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenSheared) {
+TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenSheared)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
 
     sheep.setChild(false);
@@ -212,7 +228,8 @@ TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenSheared) {
     EXPECT_FALSE(sheep.isShearable()) << "Sheared sheep should not be shearable";
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenChild) {
+TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenChild)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
 
     sheep.setChild(true);
@@ -221,7 +238,8 @@ TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenChild) {
     EXPECT_FALSE(sheep.isShearable()) << "Baby sheep should not be shearable";
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepShearReturnsWoolItems) {
+TEST_F(ShearsEntityInteractionTest, SheepShearReturnsWoolItems)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
     sheep.setChild(false);
     sheep.setSheared(false);
@@ -245,7 +263,8 @@ TEST_F(ShearsEntityInteractionTest, SheepShearReturnsWoolItems) {
     EXPECT_TRUE(sheep.isSheared()) << "Sheep should be sheared after shearing";
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepShearSetsShearedFlag) {
+TEST_F(ShearsEntityInteractionTest, SheepShearSetsShearedFlag)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
     sheep.setChild(false);
     sheep.setSheared(false);
@@ -257,7 +276,8 @@ TEST_F(ShearsEntityInteractionTest, SheepShearSetsShearedFlag) {
     EXPECT_TRUE(sheep.isSheared()) << "Shear should set sheared flag";
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepCannotBeShearedTwice) {
+TEST_F(ShearsEntityInteractionTest, SheepCannotBeShearedTwice)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
     sheep.setChild(false);
     sheep.setSheared(false);
@@ -272,7 +292,8 @@ TEST_F(ShearsEntityInteractionTest, SheepCannotBeShearedTwice) {
     EXPECT_EQ(drops2.size(), 0u) << "Second shear should return empty drops";
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepColoredWoolDrops) {
+TEST_F(ShearsEntityInteractionTest, SheepColoredWoolDrops)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
     sheep.setChild(false);
     sheep.setSheared(false);
@@ -295,14 +316,16 @@ TEST_F(ShearsEntityInteractionTest, SheepColoredWoolDrops) {
     }
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepFleeceColorDefaultIsWhite) {
+TEST_F(ShearsEntityInteractionTest, SheepFleeceColorDefaultIsWhite)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
 
     // 默认羊毛颜色应该是白色
     EXPECT_EQ(sheep.getFleeceColor(), DyeColor::White);
 }
 
-TEST_F(ShearsEntityInteractionTest, SheepFleeceColorCanBeSet) {
+TEST_F(ShearsEntityInteractionTest, SheepFleeceColorCanBeSet)
+{
     SheepEntity sheep(LegacyEntityType::Sheep, EntityId(1));
 
     sheep.setFleeceColor(DyeColor::Pink);
@@ -316,7 +339,8 @@ TEST_F(ShearsEntityInteractionTest, SheepFleeceColorCanBeSet) {
 // ItemStack 耐久度测试
 // ============================================================================
 
-TEST_F(ShearsEntityInteractionTest, ShearsStackDamage) {
+TEST_F(ShearsEntityInteractionTest, ShearsStackDamage)
+{
     auto* shears = Items::SHEARS;
     ASSERT_NE(shears, nullptr);
 

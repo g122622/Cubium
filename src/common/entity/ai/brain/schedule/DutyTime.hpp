@@ -18,18 +18,11 @@ public:
     DutyTime(i32 dayTime, f32 value)
         : m_dayTime(dayTime)
         , m_value(value)
-    {
-    }
+    {}
 
-    [[nodiscard]] i32 getDayTime() const
-    {
-        return m_dayTime;
-    }
+    [[nodiscard]] i32 getDayTime() const { return m_dayTime; }
 
-    [[nodiscard]] f32 getValue() const
-    {
-        return m_value;
-    }
+    [[nodiscard]] f32 getValue() const { return m_value; }
 
 private:
     i32 m_dayTime;

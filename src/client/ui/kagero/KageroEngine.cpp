@@ -9,7 +9,8 @@ KageroEngine::KageroEngine() = default;
 
 KageroEngine::~KageroEngine() = default;
 
-Result<void> KageroEngine::initialize(paint::ICanvas& canvas, const KageroConfig& config) {
+Result<void> KageroEngine::initialize(paint::ICanvas& canvas, const KageroConfig& config)
+{
     m_canvas = &canvas;
     m_screenWidth = config.screenWidth;
     m_screenHeight = config.screenHeight;
@@ -21,7 +22,8 @@ Result<void> KageroEngine::initialize(paint::ICanvas& canvas, const KageroConfig
     return Result<void>::ok();
 }
 
-void KageroEngine::render() {
+void KageroEngine::render()
+{
     if (m_layers.empty() || m_context == nullptr) {
         return;
     }
@@ -34,7 +36,8 @@ void KageroEngine::render() {
     }
 }
 
-void KageroEngine::update(f32 dt) {
+void KageroEngine::update(f32 dt)
+{
     if (m_layers.empty()) {
         return;
     }
@@ -47,7 +50,8 @@ void KageroEngine::update(f32 dt) {
     }
 }
 
-void KageroEngine::resize(i32 width, i32 height) {
+void KageroEngine::resize(i32 width, i32 height)
+{
     m_screenWidth = width;
     m_screenHeight = height;
 
@@ -59,7 +63,8 @@ void KageroEngine::resize(i32 width, i32 height) {
     }
 }
 
-size_t KageroEngine::addLayer(std::unique_ptr<widget::Widget> widget, i32 zIndex) {
+size_t KageroEngine::addLayer(std::unique_ptr<widget::Widget> widget, i32 zIndex)
+{
     if (widget == nullptr) {
         spdlog::warn("KageroEngine::addLayer: widget is null");
         return 0;
@@ -80,13 +85,13 @@ size_t KageroEngine::addLayer(std::unique_ptr<widget::Widget> widget, i32 zIndex
     // 保持排序
     sortLayers();
 
-    spdlog::debug("KageroEngine::addLayer: added layer {} with zIndex {}",
-                  m_layers.back().id, zIndex);
+    spdlog::debug("KageroEngine::addLayer: added layer {} with zIndex {}", m_layers.back().id, zIndex);
 
     return m_layers.back().id;
 }
 
-bool KageroEngine::removeLayer(size_t layerId) {
+bool KageroEngine::removeLayer(size_t layerId)
+{
     size_t index = findLayerIndex(layerId);
     if (index == SIZE_MAX) {
         return false;
@@ -97,7 +102,8 @@ bool KageroEngine::removeLayer(size_t layerId) {
     return true;
 }
 
-void KageroEngine::setLayerVisible(size_t layerId, bool visible) {
+void KageroEngine::setLayerVisible(size_t layerId, bool visible)
+{
     size_t index = findLayerIndex(layerId);
     if (index != SIZE_MAX) {
         m_layers[index].visible = visible;
@@ -107,7 +113,8 @@ void KageroEngine::setLayerVisible(size_t layerId, bool visible) {
     }
 }
 
-widget::Widget* KageroEngine::getLayer(size_t layerId) {
+widget::Widget* KageroEngine::getLayer(size_t layerId)
+{
     size_t index = findLayerIndex(layerId);
     if (index != SIZE_MAX) {
         return m_layers[index].widget.get();
@@ -115,7 +122,8 @@ widget::Widget* KageroEngine::getLayer(size_t layerId) {
     return nullptr;
 }
 
-const widget::Widget* KageroEngine::getLayer(size_t layerId) const {
+const widget::Widget* KageroEngine::getLayer(size_t layerId) const
+{
     size_t index = findLayerIndex(layerId);
     if (index != SIZE_MAX) {
         return m_layers[index].widget.get();
@@ -123,7 +131,8 @@ const widget::Widget* KageroEngine::getLayer(size_t layerId) const {
     return nullptr;
 }
 
-bool KageroEngine::handleClick(i32 x, i32 y, i32 button) {
+bool KageroEngine::handleClick(i32 x, i32 y, i32 button)
+{
     // 从顶层开始处理（Z索引高的先处理）
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
         if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
@@ -145,7 +154,8 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button) {
     return false;
 }
 
-bool KageroEngine::handleRelease(i32 x, i32 y, i32 button) {
+bool KageroEngine::handleRelease(i32 x, i32 y, i32 button)
+{
     // 如果有正在拖动的Widget，发送释放事件
     if (m_draggingWidget != nullptr) {
         widget::Widget* w = m_draggingWidget;
@@ -173,7 +183,8 @@ bool KageroEngine::handleRelease(i32 x, i32 y, i32 button) {
     return false;
 }
 
-bool KageroEngine::handleMouseMove(i32 x, i32 y) {
+bool KageroEngine::handleMouseMove(i32 x, i32 y)
+{
     // 计算鼠标增量
     i32 deltaX = 0;
     i32 deltaY = 0;
@@ -200,7 +211,8 @@ bool KageroEngine::handleMouseMove(i32 x, i32 y) {
     return false;
 }
 
-bool KageroEngine::handleScroll(i32 x, i32 y, f64 delta) {
+bool KageroEngine::handleScroll(i32 x, i32 y, f64 delta)
+{
     // 从顶层开始处理
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
         if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
@@ -220,7 +232,8 @@ bool KageroEngine::handleScroll(i32 x, i32 y, f64 delta) {
     return false;
 }
 
-bool KageroEngine::handleKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+bool KageroEngine::handleKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     // 从顶层开始处理
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
         if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
@@ -240,7 +253,8 @@ bool KageroEngine::handleKey(i32 key, i32 scanCode, i32 action, i32 mods) {
     return false;
 }
 
-bool KageroEngine::handleChar(u32 codePoint) {
+bool KageroEngine::handleChar(u32 codePoint)
+{
     // 从顶层开始处理
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
         if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
@@ -260,14 +274,14 @@ bool KageroEngine::handleChar(u32 codePoint) {
     return false;
 }
 
-void KageroEngine::sortLayers() {
-    std::stable_sort(m_layers.begin(), m_layers.end(),
-        [](const LayerInfo& a, const LayerInfo& b) {
-            return a.zIndex < b.zIndex;
-        });
+void KageroEngine::sortLayers()
+{
+    std::stable_sort(
+        m_layers.begin(), m_layers.end(), [](const LayerInfo& a, const LayerInfo& b) { return a.zIndex < b.zIndex; });
 }
 
-size_t KageroEngine::findLayerIndex(size_t layerId) const {
+size_t KageroEngine::findLayerIndex(size_t layerId) const
+{
     for (size_t i = 0; i < m_layers.size(); ++i) {
         if (m_layers[i].id == layerId) {
             return i;

@@ -5,20 +5,19 @@
 namespace mc::client::sound {
 
 UnderwaterLoopSound::UnderwaterLoopSound()
-    : TickableSound(
-          SoundEvents::AMBIENT_UNDERWATER_LOOP,
+    : TickableSound(SoundEvents::AMBIENT_UNDERWATER_LOOP,
           SoundCategory::Ambient,
-          glm::vec3{0.0f, 0.0f, 0.0f},  // 位置不重要，全局声音
-          0.0f,   // 初始音量为0
-          1.0f,   // 音调
-          true,   // 循环
-          AttenuationType::None,  // 无衰减（全局声音）
-          16.0f   // 衰减距离（无意义，全局声音）
+          glm::vec3{0.0f, 0.0f, 0.0f}, // 位置不重要，全局声音
+          0.0f,                        // 初始音量为0
+          1.0f,                        // 音调
+          true,                        // 循环
+          AttenuationType::None,       // 无衰减（全局声音）
+          16.0f                        // 衰减距离（无意义，全局声音）
       )
-{
-}
+{}
 
-void UnderwaterLoopSound::tick() {
+void UnderwaterLoopSound::tick()
+{
     // 参考: UnderwaterAmbientSounds.UnderWaterSound.tick()
     // 在水中时增加计数，不在水中时更快减少
 

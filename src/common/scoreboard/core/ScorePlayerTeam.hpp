@@ -69,14 +69,16 @@ public:
     [[nodiscard]] TeamVisibility getNameTagVisibility() const noexcept override { return m_nameTagVisibility; }
     void setNameTagVisibility(TeamVisibility visibility) override;
 
-    [[nodiscard]] TeamVisibility getDeathMessageVisibility() const noexcept override { return m_deathMessageVisibility; }
+    [[nodiscard]] TeamVisibility getDeathMessageVisibility() const noexcept override
+    {
+        return m_deathMessageVisibility;
+    }
     void setDeathMessageVisibility(TeamVisibility visibility) override;
 
     [[nodiscard]] TeamCollisionRule getCollisionRule() const noexcept override { return m_collisionRule; }
     void setCollisionRule(TeamCollisionRule rule) override;
 
-    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(
-        const text::ITextComponent& name) const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent& name) const override;
 
     // ========== 额外方法 ==========
 

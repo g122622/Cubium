@@ -1,30 +1,25 @@
 #include "MessageCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "server/core/PlayerManager.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     // 主命令 /msg
     auto msgNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("msg");
-    support::applyMetadata(
-        msgNode,
-        support::makeMetadata(
-            "Sends a private message to another player.",
-            "/msg <player> <message>",
-            0,
-            {},
-            true));
+    support::applyMetadata(msgNode,
+        support::makeMetadata("Sends a private message to another player.", "/msg <player> <message>", 0, {}, true));
 
     // 别名 /tell
     auto tellNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tell");
@@ -36,17 +31,11 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /msg <player> <message>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
+        "player", EntityArgumentType::player());
 
     auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "message",
-        StringArgumentType::greedyString()
-    );
-    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return sendMessage(ctx);
-    });
+        "message", StringArgumentType::greedyString());
+    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return sendMessage(ctx); });
 
     playerNode->addChild(messageNode);
     msgNode->addChild(playerNode);
@@ -56,7 +45,8 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     dispatcher.registerCommand(wNode);
 }
 
-i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context) {
+i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -99,9 +89,7 @@ i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context) {
         chatPacket.serialize(payload);
 
         if (server->connectionManager().sendPacketToPlayer(
-                playerId,
-                network::PacketType::ChatBroadcast,
-                payload.buffer())) {
+                playerId, network::PacketType::ChatBroadcast, payload.buffer())) {
             successCount++;
         }
     }

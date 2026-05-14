@@ -7,7 +7,7 @@ namespace mc::client {
 // 前向声明
 class ClientEntity;
 
-}
+} // namespace mc::client
 
 namespace mc::client::sound {
 
@@ -51,8 +51,7 @@ public:
 
 private:
     const ClientEntity& m_player;
-    i32 m_time = 0;  // 时间计数器
+    i32 m_time = 0; // 时间计数器
 };
 
 } // namespace mc::client::sound
-

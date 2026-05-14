@@ -5,9 +5,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <fcntl.h>
 #include <sys/file.h>
 #include <unistd.h>
-#include <fcntl.h>
 #endif
 
 namespace mc::world::storage {
@@ -39,15 +39,13 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
 
 #ifdef _WIN32
     // Windows: 使用 LockFileEx 实现跨进程锁
-    HANDLE hFile = CreateFileW(
-        lockPath.wstring().c_str(),
+    HANDLE hFile = CreateFileW(lockPath.wstring().c_str(),
         GENERIC_READ | GENERIC_WRITE,
-        0,  // 不共享
+        0, // 不共享
         nullptr,
         OPEN_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
-        nullptr
-    );
+        nullptr);
 
     if (hFile == INVALID_HANDLE_VALUE) {
         DWORD err = GetLastError();
@@ -55,8 +53,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
             spdlog::warn("WorldSessionLock: {} is already locked by another process", worldDir.string());
             return Error(ErrorCode::WorldLocked, "World is locked by another process");
         }
-        spdlog::error("WorldSessionLock: Failed to create lock file at {} (error: {})",
-                      lockPath.string(), err);
+        spdlog::error("WorldSessionLock: Failed to create lock file at {} (error: {})", lockPath.string(), err);
         return Error(ErrorCode::PermissionDenied, "Failed to create session lock");
     }
 
@@ -66,8 +63,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
     overlapped.OffsetHigh = 0;
     overlapped.hEvent = nullptr;
 
-    if (!LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-                    0, MAXDWORD, MAXDWORD, &overlapped)) {
+    if (!LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD, &overlapped)) {
         DWORD err = GetLastError();
         CloseHandle(hFile);
         if (err == ERROR_LOCK_VIOLATION) {
@@ -90,8 +86,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
     // Unix: 使用 flock 实现跨进程锁
     int fd = open(lockPath.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
-        spdlog::error("WorldSessionLock: Failed to create lock file at {} (errno: {})",
-                      lockPath.string(), errno);
+        spdlog::error("WorldSessionLock: Failed to create lock file at {} (errno: {})", lockPath.string(), errno);
         return Error(ErrorCode::PermissionDenied, "Failed to create session lock");
     }
 
@@ -130,18 +125,16 @@ bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
 
 #ifdef _WIN32
     // Windows: 尝试打开文件并获取锁
-    HANDLE hFile = CreateFileW(
-        lockPath.wstring().c_str(),
+    HANDLE hFile = CreateFileW(lockPath.wstring().c_str(),
         GENERIC_READ | GENERIC_WRITE,
         0,
         nullptr,
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
-        nullptr
-    );
+        nullptr);
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        return true;  // 无法打开，可能被锁定
+        return true; // 无法打开，可能被锁定
     }
 
     OVERLAPPED overlapped = {};
@@ -149,21 +142,21 @@ bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
     overlapped.OffsetHigh = 0;
     overlapped.hEvent = nullptr;
 
-    BOOL locked = LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-                              0, MAXDWORD, MAXDWORD, &overlapped);
+    BOOL locked =
+        LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD, &overlapped);
     CloseHandle(hFile);
 
-    return !locked;  // 如果无法获取锁，则已锁定
+    return !locked; // 如果无法获取锁，则已锁定
 #else
     // Unix: 尝试获取锁
     int fd = open(lockPath.c_str(), O_RDWR);
     if (fd < 0) {
-        return true;  // 无法打开，可能被锁定
+        return true; // 无法打开，可能被锁定
     }
 
     bool locked = (flock(fd, LOCK_EX | LOCK_NB) < 0);
     if (!locked) {
-        flock(fd, LOCK_UN);  // 释放刚获取的锁
+        flock(fd, LOCK_UN); // 释放刚获取的锁
     }
     close(fd);
 

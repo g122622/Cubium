@@ -147,9 +147,9 @@ private:
      */
     void updateBlockState(IWorld& world);
 
-    SimpleInventory m_inventory;   ///< 1格物品存储
-    i32 m_page = 0;                ///< 当前页码
-    i32 m_openCount = 0;           ///< 打开计数
+    SimpleInventory m_inventory; ///< 1格物品存储
+    i32 m_page = 0;              ///< 当前页码
+    i32 m_openCount = 0;         ///< 打开计数
 };
 
 } // namespace blockentity

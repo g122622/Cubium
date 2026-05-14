@@ -60,19 +60,21 @@ private:
      * @brief 解析状态
      */
     struct ParseState {
-        Style currentStyle;                // 当前样式
-        std::string currentText;                 // 当前累积文本
-        std::unique_ptr<StringTextComponent> root;  // 根组件
-        StringTextComponent* currentComponent;       // 当前组件（非拥有指针）
+        Style currentStyle;                        // 当前样式
+        std::string currentText;                   // 当前累积文本
+        std::unique_ptr<StringTextComponent> root; // 根组件
+        StringTextComponent* currentComponent;     // 当前组件（非拥有指针）
 
         ParseState()
             : root(std::make_unique<StringTextComponent>())
-            , currentComponent(root.get()) {}
+            , currentComponent(root.get())
+        {}
 
         /**
          * @brief 刷新当前文本到组件
          */
-        void flushText() {
+        void flushText()
+        {
             if (!currentText.empty()) {
                 // 创建新组件存储当前文本和样式
                 auto newComponent = std::make_unique<StringTextComponent>(std::move(currentText));

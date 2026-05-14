@@ -1,11 +1,11 @@
 #pragma once
 
-#include "WorldListEntry.hpp"
-#include "../request/WorldRequests.hpp"
+#include "../../../core/Result.hpp"
 #include "../core/LevelDatCodec.hpp"
 #include "../core/WorldSessionLock.hpp"
 #include "../core/WorldStoragePaths.hpp"
-#include "../../../core/Result.hpp"
+#include "../request/WorldRequests.hpp"
+#include "WorldListEntry.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -119,10 +119,7 @@ private:
      *
      * 失败时返回损坏状态而非错误。
      */
-    WorldListEntry tryReadWorldSummary(
-        const std::string& levelId,
-        const std::filesystem::path& worldDir
-    );
+    WorldListEntry tryReadWorldSummary(const std::string& levelId, const std::filesystem::path& worldDir);
 
     /**
      * @brief 检测目录是否被锁定

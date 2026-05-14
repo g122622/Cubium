@@ -5,7 +5,8 @@
 
 namespace mc::client::sound {
 
-SoundInstanceId SoundPool::add(std::unique_ptr<ISoundInstance> sound) {
+SoundInstanceId SoundPool::add(std::unique_ptr<ISoundInstance> sound)
+{
     if (!sound) {
         return 0;
     }
@@ -24,17 +25,20 @@ SoundInstanceId SoundPool::add(std::unique_ptr<ISoundInstance> sound) {
     return id;
 }
 
-ISoundInstance* SoundPool::get(SoundInstanceId id) {
+ISoundInstance* SoundPool::get(SoundInstanceId id)
+{
     auto it = m_sounds.find(id);
     return it != m_sounds.end() ? it->second.get() : nullptr;
 }
 
-const ISoundInstance* SoundPool::get(SoundInstanceId id) const {
+const ISoundInstance* SoundPool::get(SoundInstanceId id) const
+{
     auto it = m_sounds.find(id);
     return it != m_sounds.end() ? it->second.get() : nullptr;
 }
 
-bool SoundPool::remove(SoundInstanceId id) {
+bool SoundPool::remove(SoundInstanceId id)
+{
     auto it = m_sounds.find(id);
     if (it == m_sounds.end()) {
         return false;
@@ -67,17 +71,20 @@ bool SoundPool::remove(SoundInstanceId id) {
     return true;
 }
 
-void SoundPool::clear() {
+void SoundPool::clear()
+{
     m_sounds.clear();
     m_soundEventMap.clear();
     m_categoryMap.clear();
 }
 
-bool SoundPool::has(SoundInstanceId id) const {
+bool SoundPool::has(SoundInstanceId id) const
+{
     return m_sounds.find(id) != m_sounds.end();
 }
 
-std::vector<SoundInstanceId> SoundPool::getByCategory(SoundCategory category) const {
+std::vector<SoundInstanceId> SoundPool::getByCategory(SoundCategory category) const
+{
     std::vector<SoundInstanceId> result;
 
     auto range = m_categoryMap.equal_range(category);
@@ -88,7 +95,8 @@ std::vector<SoundInstanceId> SoundPool::getByCategory(SoundCategory category) co
     return result;
 }
 
-size_t SoundPool::removeByCategory(SoundCategory category) {
+size_t SoundPool::removeByCategory(SoundCategory category)
+{
     auto ids = getByCategory(category);
     for (SoundInstanceId id : ids) {
         remove(id);
@@ -96,9 +104,8 @@ size_t SoundPool::removeByCategory(SoundCategory category) {
     return ids.size();
 }
 
-std::vector<SoundInstanceId> SoundPool::getBySoundEvent(
-    const ResourceLocation& soundEventId
-) const {
+std::vector<SoundInstanceId> SoundPool::getBySoundEvent(const ResourceLocation& soundEventId) const
+{
     std::vector<SoundInstanceId> result;
 
     auto range = m_soundEventMap.equal_range(soundEventId);
@@ -109,7 +116,8 @@ std::vector<SoundInstanceId> SoundPool::getBySoundEvent(
     return result;
 }
 
-size_t SoundPool::removeBySoundEvent(const ResourceLocation& soundEventId) {
+size_t SoundPool::removeBySoundEvent(const ResourceLocation& soundEventId)
+{
     auto ids = getBySoundEvent(soundEventId);
     for (SoundInstanceId id : ids) {
         remove(id);
@@ -117,7 +125,8 @@ size_t SoundPool::removeBySoundEvent(const ResourceLocation& soundEventId) {
     return ids.size();
 }
 
-size_t SoundPool::tick() {
+size_t SoundPool::tick()
+{
     size_t removed = 0;
 
     // 收集已完成的声音

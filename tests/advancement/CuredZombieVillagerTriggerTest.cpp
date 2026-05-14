@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
-#include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <nlohmann/json.hpp>
 
@@ -20,12 +20,14 @@ using namespace mc::advancement;
  */
 class CuredZombieVillagerTriggerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置触发器
         CriterionTriggers::instance().registerBuiltinTriggers();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
         CriterionTriggers::instance().clear();
     }
@@ -33,17 +35,18 @@ protected:
 
 // ========== CuredZombieVillagerTrigger 注册测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, TriggerRegistration) {
+TEST_F(CuredZombieVillagerTriggerTest, TriggerRegistration)
+{
     // 验证触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(CuredZombieVillagerTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(CuredZombieVillagerTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:cured_zombie_villager");
 }
 
 // ========== CuredZombieVillagerTriggerInstance fromJson 测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonEmpty) {
+TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonEmpty)
+{
     // 空条件应该匹配任何僵尸村民治愈
     nlohmann::json conditions = {};
 
@@ -57,7 +60,8 @@ TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonEmpty) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonWithZombiePredicate) {
+TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonWithZombiePredicate)
+{
     // 带僵尸谓词的条件
     nlohmann::json conditions = R"({
         "zombie": {
@@ -79,7 +83,8 @@ TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonWithZombiePredicate) {
     EXPECT_TRUE(serialized.contains("zombie"));
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonWithVillagerPredicate) {
+TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonWithVillagerPredicate)
+{
     // 带村民谓词的条件
     nlohmann::json conditions = R"({
         "villager": {
@@ -101,7 +106,8 @@ TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonWithVillagerPredicate) {
     EXPECT_TRUE(serialized.contains("villager"));
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonFullConditions) {
+TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonFullConditions)
+{
     // 完整条件
     nlohmann::json conditions = R"({
         "zombie": {
@@ -129,7 +135,8 @@ TEST_F(CuredZombieVillagerTriggerTest, InstanceFromJsonFullConditions) {
 
 // ========== CuredZombieVillagerTriggerInstance test 测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, TestEmptyConditions) {
+TEST_F(CuredZombieVillagerTriggerTest, TestEmptyConditions)
+{
     // 空条件应该匹配任何僵尸村民治愈
     CuredZombieVillagerTriggerInstance instance;
 
@@ -137,7 +144,8 @@ TEST_F(CuredZombieVillagerTriggerTest, TestEmptyConditions) {
     EXPECT_TRUE(instance.conditionsToJson().is_null());
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, TestWithZombiePredicate) {
+TEST_F(CuredZombieVillagerTriggerTest, TestWithZombiePredicate)
+{
     // 带僵尸类型的条件
     nlohmann::json zombieJson = R"({
         "type": "minecraft:zombie_villager"
@@ -153,7 +161,8 @@ TEST_F(CuredZombieVillagerTriggerTest, TestWithZombiePredicate) {
     EXPECT_TRUE(conditionsJson.contains("zombie"));
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, TestWithVillagerPredicate) {
+TEST_F(CuredZombieVillagerTriggerTest, TestWithVillagerPredicate)
+{
     // 带村民类型的条件
     nlohmann::json villagerJson = R"({
         "type": "minecraft:villager"
@@ -169,7 +178,8 @@ TEST_F(CuredZombieVillagerTriggerTest, TestWithVillagerPredicate) {
     EXPECT_TRUE(conditionsJson.contains("villager"));
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, TestWithBothPredicates) {
+TEST_F(CuredZombieVillagerTriggerTest, TestWithBothPredicates)
+{
     // 带僵尸和村民类型的条件
     nlohmann::json zombieJson = R"({"type": "minecraft:zombie_villager"})"_json;
     nlohmann::json villagerJson = R"({"type": "minecraft:villager"})"_json;
@@ -179,10 +189,7 @@ TEST_F(CuredZombieVillagerTriggerTest, TestWithBothPredicates) {
     ASSERT_TRUE(zombieResult.success());
     ASSERT_TRUE(villagerResult.success());
 
-    CuredZombieVillagerTriggerInstance instance(
-        std::move(zombieResult).value(),
-        std::move(villagerResult).value()
-    );
+    CuredZombieVillagerTriggerInstance instance(std::move(zombieResult).value(), std::move(villagerResult).value());
 
     // 验证序列化
     nlohmann::json conditionsJson = instance.conditionsToJson();
@@ -192,7 +199,8 @@ TEST_F(CuredZombieVillagerTriggerTest, TestWithBothPredicates) {
 
 // ========== conditionsToJson 序列化测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, ConditionsToJsonRoundtrip) {
+TEST_F(CuredZombieVillagerTriggerTest, ConditionsToJsonRoundtrip)
+{
     // 测试序列化和反序列化的往返
     nlohmann::json originalConditions = R"({
         "zombie": {
@@ -221,7 +229,8 @@ TEST_F(CuredZombieVillagerTriggerTest, ConditionsToJsonRoundtrip) {
     EXPECT_TRUE(serialized.contains("villager"));
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, ConditionsToJsonNullForAny) {
+TEST_F(CuredZombieVillagerTriggerTest, ConditionsToJsonNullForAny)
+{
     // 空条件序列化为 null
     CuredZombieVillagerTriggerInstance instance;
     EXPECT_TRUE(instance.conditionsToJson().is_null());
@@ -229,12 +238,14 @@ TEST_F(CuredZombieVillagerTriggerTest, ConditionsToJsonNullForAny) {
 
 // ========== 构造函数测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, DefaultConstructor) {
+TEST_F(CuredZombieVillagerTriggerTest, DefaultConstructor)
+{
     CuredZombieVillagerTriggerInstance instance;
     EXPECT_TRUE(instance.conditionsToJson().is_null());
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, ParameterizedConstructor) {
+TEST_F(CuredZombieVillagerTriggerTest, ParameterizedConstructor)
+{
     nlohmann::json zombieJson = R"({"type": "minecraft:zombie_villager"})"_json;
     nlohmann::json villagerJson = R"({"type": "minecraft:villager"})"_json;
 
@@ -243,10 +254,7 @@ TEST_F(CuredZombieVillagerTriggerTest, ParameterizedConstructor) {
     ASSERT_TRUE(zombieResult.success());
     ASSERT_TRUE(villagerResult.success());
 
-    CuredZombieVillagerTriggerInstance instance(
-        std::move(zombieResult).value(),
-        std::move(villagerResult).value()
-    );
+    CuredZombieVillagerTriggerInstance instance(std::move(zombieResult).value(), std::move(villagerResult).value());
 
     // 验证两个谓词都被设置
     nlohmann::json conditionsJson = instance.conditionsToJson();
@@ -256,12 +264,14 @@ TEST_F(CuredZombieVillagerTriggerTest, ParameterizedConstructor) {
 
 // ========== 触发器 ID 测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, TriggerIdCorrect) {
+TEST_F(CuredZombieVillagerTriggerTest, TriggerIdCorrect)
+{
     EXPECT_STREQ(CuredZombieVillagerTrigger::TRIGGER_ID, "minecraft:cured_zombie_villager");
     EXPECT_STREQ(CuredZombieVillagerTriggerInstance::TRIGGER_ID, "minecraft:cured_zombie_villager");
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, GetIdReturnsCorrectResourceLocation) {
+TEST_F(CuredZombieVillagerTriggerTest, GetIdReturnsCorrectResourceLocation)
+{
     CuredZombieVillagerTrigger trigger;
     ResourceLocation id = trigger.getId();
     EXPECT_EQ(id.toString(), "minecraft:cured_zombie_villager");
@@ -269,17 +279,18 @@ TEST_F(CuredZombieVillagerTriggerTest, GetIdReturnsCorrectResourceLocation) {
 
 // ========== 其他实体触发器注册测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, TameAnimalTriggerRegistration) {
+TEST_F(CuredZombieVillagerTriggerTest, TameAnimalTriggerRegistration)
+{
     // 验证驯服动物触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(TameAnimalTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(TameAnimalTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:tame_animal");
 }
 
 // ========== VillagerTradeTrigger 测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, VillagerTradeTriggerFromJson) {
+TEST_F(CuredZombieVillagerTriggerTest, VillagerTradeTriggerFromJson)
+{
     // 测试村民交易触发器的 JSON 解析
     nlohmann::json conditions = R"({
         "villager": {
@@ -298,7 +309,8 @@ TEST_F(CuredZombieVillagerTriggerTest, VillagerTradeTriggerFromJson) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, VillagerTradeTriggerEmptyConditions) {
+TEST_F(CuredZombieVillagerTriggerTest, VillagerTradeTriggerEmptyConditions)
+{
     // 空条件
     nlohmann::json conditions = {};
 
@@ -315,7 +327,8 @@ TEST_F(CuredZombieVillagerTriggerTest, VillagerTradeTriggerEmptyConditions) {
 
 // ========== BredAnimalsTrigger 测试 ==========
 
-TEST_F(CuredZombieVillagerTriggerTest, BredAnimalsTriggerFromJson) {
+TEST_F(CuredZombieVillagerTriggerTest, BredAnimalsTriggerFromJson)
+{
     // 测试繁殖动物触发器的 JSON 解析
     nlohmann::json conditions = R"({
         "child": {
@@ -331,7 +344,8 @@ TEST_F(CuredZombieVillagerTriggerTest, BredAnimalsTriggerFromJson) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(CuredZombieVillagerTriggerTest, BredAnimalsTriggerFullConditions) {
+TEST_F(CuredZombieVillagerTriggerTest, BredAnimalsTriggerFullConditions)
+{
     // 完整条件
     nlohmann::json conditions = R"({
         "parent": {

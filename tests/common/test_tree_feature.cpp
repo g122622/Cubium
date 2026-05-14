@@ -1,16 +1,16 @@
-#include <gtest/gtest.h>
-#include "world/gen/feature/FeatureSpread.hpp"
-#include "world/gen/feature/tree/trunk/TrunkPlacer.hpp"
-#include "world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
-#include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
-#include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
-#include "world/gen/feature/tree/TreeFeature.hpp"
-#include "world/gen/chunk/IChunkGenerator.hpp"
-#include "world/chunk/ChunkPrimer.hpp"
+#include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
-#include "util/math/MathUtils.hpp"
+#include "world/chunk/ChunkPrimer.hpp"
+#include "world/gen/chunk/IChunkGenerator.hpp"
+#include "world/gen/feature/FeatureSpread.hpp"
+#include "world/gen/feature/tree/TreeFeature.hpp"
+#include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
+#include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
+#include "world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
+#include "world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <array>
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -20,14 +20,13 @@ using namespace mc;
 
 class FeatureSpreadTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        random = std::make_unique<math::Random>(12345);
-    }
+    void SetUp() override { random = std::make_unique<math::Random>(12345); }
 
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(FeatureSpreadTest, FixedValue) {
+TEST_F(FeatureSpreadTest, FixedValue)
+{
     FeatureSpread spread = FeatureSpread::fixed(5);
 
     EXPECT_EQ(spread.base(), 5);
@@ -39,7 +38,8 @@ TEST_F(FeatureSpreadTest, FixedValue) {
     }
 }
 
-TEST_F(FeatureSpreadTest, SpreadValue) {
+TEST_F(FeatureSpreadTest, SpreadValue)
+{
     FeatureSpread spread = FeatureSpread::spread(10, 5);
 
     EXPECT_EQ(spread.base(), 10);
@@ -53,7 +53,8 @@ TEST_F(FeatureSpreadTest, SpreadValue) {
     }
 }
 
-TEST_F(FeatureSpreadTest, ZeroSpread) {
+TEST_F(FeatureSpreadTest, ZeroSpread)
+{
     FeatureSpread spread(5, 0);
 
     EXPECT_EQ(spread.get(*random), 5);
@@ -65,14 +66,13 @@ TEST_F(FeatureSpreadTest, ZeroSpread) {
 
 class TrunkPlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        random = std::make_unique<math::Random>(12345);
-    }
+    void SetUp() override { random = std::make_unique<math::Random>(12345); }
 
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(TrunkPlacerTest, StraightTrunkHeight) {
+TEST_F(TrunkPlacerTest, StraightTrunkHeight)
+{
     StraightTrunkPlacer placer(4, 2, 1);
 
     // 高度范围: 4 + [0,2] + [0,1] = 4-7
@@ -83,7 +83,8 @@ TEST_F(TrunkPlacerTest, StraightTrunkHeight) {
     }
 }
 
-TEST_F(TrunkPlacerTest, StraightTrunkZeroRandom) {
+TEST_F(TrunkPlacerTest, StraightTrunkZeroRandom)
+{
     StraightTrunkPlacer placer(5, 0, 0);
 
     // 没有随机性的高度
@@ -92,7 +93,8 @@ TEST_F(TrunkPlacerTest, StraightTrunkZeroRandom) {
     }
 }
 
-TEST_F(TrunkPlacerTest, Name) {
+TEST_F(TrunkPlacerTest, Name)
+{
     StraightTrunkPlacer placer(4, 2, 1);
     EXPECT_STREQ(placer.name(), "StraightTrunkPlacer");
 }
@@ -103,30 +105,22 @@ TEST_F(TrunkPlacerTest, Name) {
 
 class FoliagePlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        random = std::make_unique<math::Random>(12345);
-    }
+    void SetUp() override { random = std::make_unique<math::Random>(12345); }
 
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(FoliagePlacerTest, BlobFoliageHeight) {
-    BlobFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        3
-    );
+TEST_F(FoliagePlacerTest, BlobFoliageHeight)
+{
+    BlobFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 3);
 
     // BlobFoliagePlacer 应该返回固定高度
     EXPECT_EQ(placer.getFoliageHeight(*random, 6), 3);
 }
 
-TEST_F(FoliagePlacerTest, BlobFoliageName) {
-    BlobFoliagePlacer placer(
-        FeatureSpread::fixed(2),
-        FeatureSpread::fixed(0),
-        3
-    );
+TEST_F(FoliagePlacerTest, BlobFoliageName)
+{
+    BlobFoliagePlacer placer(FeatureSpread::fixed(2), FeatureSpread::fixed(0), 3);
 
     EXPECT_STREQ(placer.name(), "BlobFoliagePlacer");
 }
@@ -135,7 +129,8 @@ TEST_F(FoliagePlacerTest, BlobFoliageName) {
 // TreeFeatureConfig 测试
 // ============================================================================
 
-TEST(TreeFeatureConfigTest, OakConfig) {
+TEST(TreeFeatureConfigTest, OakConfig)
+{
     VanillaBlocks::initialize();
     // 使用 createOakTree 并获取配置
     auto feature = TreeFeatures::createOakTree();
@@ -151,7 +146,8 @@ TEST(TreeFeatureConfigTest, OakConfig) {
     EXPECT_EQ(config.minHeight, 4);
 }
 
-TEST(TreeFeatureConfigTest, BirchConfig) {
+TEST(TreeFeatureConfigTest, BirchConfig)
+{
     VanillaBlocks::initialize();
     auto feature = TreeFeatures::createBirchTree();
     ASSERT_NE(feature, nullptr);
@@ -166,7 +162,8 @@ TEST(TreeFeatureConfigTest, BirchConfig) {
     EXPECT_GE(config.minHeight, 5);
 }
 
-TEST(TreeFeatureConfigTest, SpruceConfig) {
+TEST(TreeFeatureConfigTest, SpruceConfig)
+{
     VanillaBlocks::initialize();
     auto feature = TreeFeatures::createSpruceTree();
     ASSERT_NE(feature, nullptr);
@@ -180,7 +177,8 @@ TEST(TreeFeatureConfigTest, SpruceConfig) {
     EXPECT_NE(config.foliagePlacer, nullptr);
 }
 
-TEST(TreeFeatureConfigTest, JungleConfig) {
+TEST(TreeFeatureConfigTest, JungleConfig)
+{
     VanillaBlocks::initialize();
     auto feature = TreeFeatures::createJungleTree();
     ASSERT_NE(feature, nullptr);
@@ -200,14 +198,13 @@ TEST(TreeFeatureConfigTest, JungleConfig) {
 
 class TreeFeatureTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // 注意：完整的放置测试需要模拟 WorldGenRegion，这里只测试静态方法
 
-TEST_F(TreeFeatureTest, FeatureSpreadIntegration) {
+TEST_F(TreeFeatureTest, FeatureSpreadIntegration)
+{
     // 测试 FeatureSpread 与 Random 的集成
     math::Random rng(42);
 
@@ -230,7 +227,8 @@ TEST_F(TreeFeatureTest, FeatureSpreadIntegration) {
     EXPECT_GE(distribution.size(), 4);
 }
 
-TEST_F(TreeFeatureTest, TrunkPlacerHeightDistribution) {
+TEST_F(TreeFeatureTest, TrunkPlacerHeightDistribution)
+{
     // 测试树干高度分布
     math::Random rng(123);
 
@@ -249,21 +247,16 @@ TEST_F(TreeFeatureTest, TrunkPlacerHeightDistribution) {
     }
 }
 
-TEST_F(TreeFeatureTest, ConfigCreation) {
+TEST_F(TreeFeatureTest, ConfigCreation)
+{
     // 测试手动创建配置
     auto trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 2, 0);
-    auto foliagePlacer = std::make_unique<BlobFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        3
-    );
+    auto foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 3);
 
-    TreeFeatureConfig config(
-        &VanillaBlocks::OAK_LOG->defaultState(),
+    TreeFeatureConfig config(&VanillaBlocks::OAK_LOG->defaultState(),
         &VanillaBlocks::OAK_LEAVES->defaultState(),
         std::move(trunkPlacer),
-        std::move(foliagePlacer)
-    );
+        std::move(foliagePlacer));
 
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
@@ -279,7 +272,8 @@ TEST_F(TreeFeatureTest, ConfigCreation) {
 
 class TreeFeaturePlacementWorldTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
 
         for (i32 relZ = -1; relZ <= 1; ++relZ) {
@@ -303,21 +297,19 @@ protected:
         m_region = std::make_unique<WorldGenRegion>(0, 0, m_chunks);
     }
 
-    [[nodiscard]] TreeFeatureConfig makeFixedOakConfig() const {
+    [[nodiscard]] TreeFeatureConfig makeFixedOakConfig() const
+    {
         TreeFeatureConfig config;
         config.trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
         config.foliageBlock = &VanillaBlocks::OAK_LEAVES->defaultState();
         config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(5, 0, 0);
-        config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
-            FeatureSpread::fixed(2),
-            FeatureSpread::fixed(0),
-            3
-        );
+        config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::fixed(2), FeatureSpread::fixed(0), 3);
         config.minHeight = 5;
         return config;
     }
 
-    void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state) {
+    void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
         ASSERT_TRUE(m_region->setBlockState(x, y, z, state));
     }
 
@@ -326,7 +318,8 @@ protected:
     std::unique_ptr<WorldGenRegion> m_region;
 };
 
-TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear) {
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear)
+{
     TreeFeature feature;
     TreeFeatureConfig config = makeFixedOakConfig();
     math::Random rng(12345);
@@ -334,7 +327,8 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear) {
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
 }
 
-TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnFarmland) {
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnFarmland)
+{
     TreeFeature feature;
     TreeFeatureConfig config = makeFixedOakConfig();
     math::Random rng(12345);
@@ -344,7 +338,8 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnFarmland) {
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
 }
 
-TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeFailsWhenCanopySideBlocked) {
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeFailsWhenCanopySideBlocked)
+{
     TreeFeature feature;
     TreeFeatureConfig config = makeFixedOakConfig();
     math::Random rng(12345);
@@ -355,7 +350,8 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeFailsWhenCanopySideBlocked) {
     EXPECT_FALSE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
 }
 
-TEST_F(TreeFeaturePlacementWorldTest, ForcePlacementIgnoresVolumeCheck) {
+TEST_F(TreeFeaturePlacementWorldTest, ForcePlacementIgnoresVolumeCheck)
+{
     TreeFeature feature;
     TreeFeatureConfig config = makeFixedOakConfig();
     config.forcePlacement = true;

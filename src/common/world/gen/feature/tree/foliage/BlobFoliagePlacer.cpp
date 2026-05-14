@@ -6,11 +6,9 @@ namespace mc {
 BlobFoliagePlacer::BlobFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height)
     : FoliagePlacer(radius, offset)
     , m_height(height)
-{
-}
+{}
 
-void BlobFoliagePlacer::placeFoliageInternal(
-    WorldGenRegion& world,
+void BlobFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     math::Random& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
@@ -18,8 +16,8 @@ void BlobFoliagePlacer::placeFoliageInternal(
     i32 radius,
     i32 offset,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock
-) {
+    const BlockState* foliageBlock)
+{
     // 从上到下生成树叶层
     // 参考 MC BlobFoliagePlacer.func_230372_a_
     i32 startOffset = offset;
@@ -29,19 +27,19 @@ void BlobFoliagePlacer::placeFoliageInternal(
         // 半径随高度递减
         i32 layerRadius = std::max(radius + foliagePos.radiusBonus - 1 - y / 2, 0);
 
-        placeFoliageLayer(
-            world, random, foliagePos.pos, layerRadius,
-            foliageBlocks, foliagePos.pos.y + y, foliagePos.trunkTop, foliageBlock
-        );
+        placeFoliageLayer(world,
+            random,
+            foliagePos.pos,
+            layerRadius,
+            foliageBlocks,
+            foliagePos.pos.y + y,
+            foliagePos.trunkTop,
+            foliageBlock);
     }
 }
 
-bool BlobFoliagePlacer::shouldSkip(
-    math::Random& random,
-    i32 dx, i32 dy, i32 dz,
-    i32 radius,
-    bool trunkTop
-) const {
+bool BlobFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
+{
     // 参考 MC BlobFoliagePlacer.func_230373_a_
     // 跳过角落的方块，使树叶看起来更自然
 
@@ -64,7 +62,8 @@ bool BlobFoliagePlacer::shouldSkip(
     return false;
 }
 
-std::unique_ptr<FoliagePlacer> BlobFoliagePlacer::clone() const {
+std::unique_ptr<FoliagePlacer> BlobFoliagePlacer::clone() const
+{
     return std::make_unique<BlobFoliagePlacer>(m_radius, m_offset, m_height);
 }
 

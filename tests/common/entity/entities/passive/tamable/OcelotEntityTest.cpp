@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -26,7 +26,8 @@ namespace {
  */
 class OcelotTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -34,26 +35,31 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("OcelotTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("OcelotTestWorld::tickManager not implemented");
     }
 
@@ -66,7 +72,8 @@ private:
 
 class OcelotEntityTestFixture : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
@@ -78,7 +85,8 @@ protected:
 // 繁殖物品测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue) {
+TEST_F(OcelotEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue)
+{
     // MC 1.16.5: 豹猫使用生鳕鱼繁殖
     // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
@@ -87,7 +95,8 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue) {
     EXPECT_TRUE(ocelot.isBreedingItem(codStack));
 }
 
-TEST_F(OcelotEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue) {
+TEST_F(OcelotEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue)
+{
     // MC 1.16.5: 豹猫使用生鲑鱼繁殖
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
@@ -95,7 +104,8 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue) {
     EXPECT_TRUE(ocelot.isBreedingItem(salmonStack));
 }
 
-TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedCod_ReturnsFalse) {
+TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedCod_ReturnsFalse)
+{
     // 熟鱼不能用于繁殖
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
@@ -103,7 +113,8 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedCod_ReturnsFalse) {
     EXPECT_FALSE(ocelot.isBreedingItem(cookedCodStack));
 }
 
-TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedSalmon_ReturnsFalse) {
+TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedSalmon_ReturnsFalse)
+{
     // 熟鲑鱼不能用于繁殖
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
@@ -115,7 +126,8 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedSalmon_ReturnsFalse) {
 // 非鱼类物品测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, IsBreedingItem_NonFish_ReturnsFalse) {
+TEST_F(OcelotEntityTestFixture, IsBreedingItem_NonFish_ReturnsFalse)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     // 小麦不能用于豹猫繁殖
@@ -143,14 +155,16 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_NonFish_ReturnsFalse) {
 // 空物品测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse) {
+TEST_F(OcelotEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(ocelot.isBreedingItem(emptyStack));
 }
 
-TEST_F(OcelotEntityTestFixture, IsBreedingItem_NullItem_ReturnsFalse) {
+TEST_F(OcelotEntityTestFixture, IsBreedingItem_NullItem_ReturnsFalse)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     ItemStack nullStack(nullptr, 1);
@@ -161,7 +175,8 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_NullItem_ReturnsFalse) {
 // 生成幼体测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesChildOcelot) {
+TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesChildOcelot)
+{
     OcelotEntity parent1(LegacyEntityType::Unknown, 0);
     OcelotEntity parent2(LegacyEntityType::Unknown, 0);
 
@@ -176,7 +191,8 @@ TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesChildOcelot) {
     EXPECT_TRUE(baby->isChild());
 }
 
-TEST_F(OcelotEntityTestFixture, SpawnBaby_PositionSetCorrectly) {
+TEST_F(OcelotEntityTestFixture, SpawnBaby_PositionSetCorrectly)
+{
     OcelotEntity parent(LegacyEntityType::Unknown, 0);
     parent.setPosition(100.0, 64.0, -50.0);
 
@@ -189,7 +205,8 @@ TEST_F(OcelotEntityTestFixture, SpawnBaby_PositionSetCorrectly) {
     EXPECT_FLOAT_EQ(baby->z(), -50.0f);
 }
 
-TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesNewEntity) {
+TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesNewEntity)
+{
     OcelotEntity parent1(LegacyEntityType::Unknown, 0);
     OcelotEntity parent2(LegacyEntityType::Unknown, 0);
 
@@ -206,14 +223,16 @@ TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesNewEntity) {
 // 信任系统测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, TrustSystem_NotTrustingInitially) {
+TEST_F(OcelotEntityTestFixture, TrustSystem_NotTrustingInitially)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     EXPECT_FALSE(ocelot.isTrusting());
     EXPECT_EQ(ocelot.getTrustingPlayerId(), 0u);
 }
 
-TEST_F(OcelotEntityTestFixture, TrustSystem_CanSetTrusting) {
+TEST_F(OcelotEntityTestFixture, TrustSystem_CanSetTrusting)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     ocelot.setTrusting(true);
@@ -223,7 +242,8 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_CanSetTrusting) {
     EXPECT_FALSE(ocelot.isTrusting());
 }
 
-TEST_F(OcelotEntityTestFixture, TrustSystem_CanTrustPlayer) {
+TEST_F(OcelotEntityTestFixture, TrustSystem_CanTrustPlayer)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     ocelot.setPlayerTrust(12345, true);
@@ -231,14 +251,16 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_CanTrustPlayer) {
     EXPECT_EQ(ocelot.getTrustingPlayerId(), 12345u);
 }
 
-TEST_F(OcelotEntityTestFixture, TrustSystem_DoesNotTrustOtherPlayers) {
+TEST_F(OcelotEntityTestFixture, TrustSystem_DoesNotTrustOtherPlayers)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     ocelot.setPlayerTrust(12345, true);
     EXPECT_FALSE(ocelot.trustsPlayer(67890));
 }
 
-TEST_F(OcelotEntityTestFixture, TrustSystem_CannotChangeTrustOnceSet) {
+TEST_F(OcelotEntityTestFixture, TrustSystem_CannotChangeTrustOnceSet)
+{
     // 一旦建立信任，不能更改为其他玩家
     // 参考 MC 1.16.5: setPlayerTrust 只在 !m_trusting 时设置
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
@@ -248,14 +270,15 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_CannotChangeTrustOnceSet) {
 
     // 尝试更改为其他玩家应该无效
     ocelot.setPlayerTrust(67890, true);
-    EXPECT_EQ(ocelot.getTrustingPlayerId(), 12345u);  // 仍然是第一个玩家
+    EXPECT_EQ(ocelot.getTrustingPlayerId(), 12345u); // 仍然是第一个玩家
 }
 
 // ============================================================================
 // 逃跑状态测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, Fleeing_CanSetFleeingState) {
+TEST_F(OcelotEntityTestFixture, Fleeing_CanSetFleeingState)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     EXPECT_FALSE(ocelot.isFleeing());
@@ -271,13 +294,15 @@ TEST_F(OcelotEntityTestFixture, Fleeing_CanSetFleeingState) {
 // 豹猫类型测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, OcelotType_DefaultIsWild) {
+TEST_F(OcelotEntityTestFixture, OcelotType_DefaultIsWild)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     EXPECT_EQ(ocelot.getOcelotType(), OcelotEntity::OcelotType::Wild);
 }
 
-TEST_F(OcelotEntityTestFixture, OcelotType_CanSetType) {
+TEST_F(OcelotEntityTestFixture, OcelotType_CanSetType)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     ocelot.setOcelotType(OcelotEntity::OcelotType::Tabby);
@@ -291,7 +316,8 @@ TEST_F(OcelotEntityTestFixture, OcelotType_CanSetType) {
 // 属性测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, Attributes_HasCorrectBaseValues) {
+TEST_F(OcelotEntityTestFixture, Attributes_HasCorrectBaseValues)
+{
     OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
 
     // MC 1.16.5: 豹猫生命值为 10
@@ -305,14 +331,16 @@ TEST_F(OcelotEntityTestFixture, Attributes_HasCorrectBaseValues) {
 // 眼睛高度测试
 // ============================================================================
 
-TEST_F(OcelotEntityTestFixture, EyeHeight_AdultIsHigher) {
+TEST_F(OcelotEntityTestFixture, EyeHeight_AdultIsHigher)
+{
     OcelotEntity adult(LegacyEntityType::Unknown, 0);
     adult.setChild(false);
 
     EXPECT_FLOAT_EQ(adult.eyeHeight(), 0.6f);
 }
 
-TEST_F(OcelotEntityTestFixture, EyeHeight_ChildIsLower) {
+TEST_F(OcelotEntityTestFixture, EyeHeight_ChildIsLower)
+{
     OcelotEntity child(LegacyEntityType::Unknown, 0);
     child.setChild(true);
 

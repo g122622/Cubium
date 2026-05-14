@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -77,7 +77,8 @@ public:
     /**
      * @brief 北极熊不可繁殖
      */
-    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override {
+    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override
+    {
         (void)itemStack;
         return false;
     }
@@ -85,7 +86,8 @@ public:
     /**
      * @brief 北极熊不可繁殖
      */
-    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override {
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override
+    {
         (void)partner;
         return nullptr;
     }
@@ -115,9 +117,9 @@ private:
     i32 m_warningTimer = 0;
 
     // 常量
-    static constexpr i32 STAND_DURATION_MIN = 100;  // 最小站立时间
-    static constexpr i32 STAND_DURATION_MAX = 400;  // 最大站立时间
-    static constexpr i32 WARNING_DURATION = 40;     // 警告持续时间
+    static constexpr i32 STAND_DURATION_MIN = 100; // 最小站立时间
+    static constexpr i32 STAND_DURATION_MAX = 400; // 最大站立时间
+    static constexpr i32 WARNING_DURATION = 40;    // 警告持续时间
 };
 
 } // namespace mc

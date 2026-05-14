@@ -1,43 +1,43 @@
 #pragma once
 
 #include "IServer.hpp"
-#include "server/core/ServerCoreConfig.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "server/core/TeleportManager.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/PositionTracker.hpp"
-#include "server/core/PacketHandler.hpp"
-#include "server/core/GameModeManager.hpp"
-#include "server/core/WhitelistManager.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/interaction/BlockInteractionManager.hpp"
-#include "server/interaction/MiningManager.hpp"
-#include "server/interaction/ContainerManager.hpp"
-#include "server/interaction/InventoryManager.hpp"
-#include "server/sync/EntitySyncManager.hpp"
-#include "server/sync/BlockUpdateSyncManager.hpp"
-#include "server/sync/ChunkSendManager.hpp"
-#include "server/sync/LightSyncManager.hpp"
-#include "server/dimension/ServerDimensionManager.hpp"
-#include "server/advancement/AdvancementEventHandler.hpp"
 #include "common/entity/loot/LootTable.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/GameStateChangePacket.hpp"
-#include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/packet/ExplosionPacket.hpp"
+#include "common/network/packet/GameStateChangePacket.hpp"
+#include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/packet/ParticlePacket.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include <memory>
+#include "server/advancement/AdvancementEventHandler.hpp"
+#include "server/core/BannedIpList.hpp"
+#include "server/core/BannedPlayerList.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/GameModeManager.hpp"
+#include "server/core/KeepAliveManager.hpp"
+#include "server/core/OpListManager.hpp"
+#include "server/core/PacketHandler.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/PositionTracker.hpp"
+#include "server/core/ServerCoreConfig.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/core/TimeManager.hpp"
+#include "server/core/WhitelistManager.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
+#include "server/interaction/BlockInteractionManager.hpp"
+#include "server/interaction/ContainerManager.hpp"
+#include "server/interaction/InventoryManager.hpp"
+#include "server/interaction/MiningManager.hpp"
+#include "server/sync/BlockUpdateSyncManager.hpp"
+#include "server/sync/ChunkSendManager.hpp"
+#include "server/sync/EntitySyncManager.hpp"
+#include "server/sync/LightSyncManager.hpp"
 #include <atomic>
 #include <cmath>
+#include <memory>
 #include <unordered_map>
 
 namespace mc {
@@ -51,15 +51,15 @@ namespace server {
 class EntityTracker;
 class ItemPickupManager;
 class WeatherManager;
-}
+} // namespace server
 namespace world::spawn {
 class NaturalSpawner;
 class DespawnManager;
-}
+} // namespace world::spawn
 namespace command {
 class CommandRegistry;
 }
-}
+} // namespace mc
 
 namespace mc::server {
 
@@ -82,6 +82,7 @@ class ServerChunkManager;
 class MinecraftServer : public IServer {
     // ServerDimensionManager 需要访问 sendPacketToPlayer
     friend class mc::ServerDimensionManager;
+
 public:
     /**
      * @brief 构造函数
@@ -192,8 +193,14 @@ public:
 
     // ========== 交互管理器 ==========
 
-    [[nodiscard]] interaction::BlockInteractionManager& blockInteractionManager() override { return *m_blockInteractionManager; }
-    [[nodiscard]] const interaction::BlockInteractionManager& blockInteractionManager() const override { return *m_blockInteractionManager; }
+    [[nodiscard]] interaction::BlockInteractionManager& blockInteractionManager() override
+    {
+        return *m_blockInteractionManager;
+    }
+    [[nodiscard]] const interaction::BlockInteractionManager& blockInteractionManager() const override
+    {
+        return *m_blockInteractionManager;
+    }
 
     [[nodiscard]] interaction::MiningManager& miningManager() override { return *m_miningManager; }
     [[nodiscard]] const interaction::MiningManager& miningManager() const override { return *m_miningManager; }
@@ -213,7 +220,10 @@ public:
     [[nodiscard]] const sync::EntitySyncManager& entitySyncManager() const override { return *m_entitySyncManager; }
 
     [[nodiscard]] sync::BlockUpdateSyncManager& blockUpdateSyncManager() { return *m_blockUpdateSyncManager; }
-    [[nodiscard]] const sync::BlockUpdateSyncManager& blockUpdateSyncManager() const { return *m_blockUpdateSyncManager; }
+    [[nodiscard]] const sync::BlockUpdateSyncManager& blockUpdateSyncManager() const
+    {
+        return *m_blockUpdateSyncManager;
+    }
 
     [[nodiscard]] sync::ChunkSendManager& chunkSendManager() override { return *m_chunkSendManager; }
     [[nodiscard]] const sync::ChunkSendManager& chunkSendManager() const override { return *m_chunkSendManager; }
@@ -263,10 +273,10 @@ public:
     /**
      * @brief 遍历所有玩家
      */
-    template<typename Func>
+    template <typename Func>
     void forEachPlayer(Func&& func);
 
-    template<typename Func>
+    template <typename Func>
     void forEachPlayer(Func&& func) const;
 
     /**
@@ -336,7 +346,6 @@ protected:
      * @brief 关闭所有管理器
      */
     void shutdownManagers();
-
 
     /**
      * @brief 处理世界层的开容器请求
@@ -488,10 +497,12 @@ protected:
      * @param blockLight 方块光照数据
      * @param trustEdges 是否信任边缘光照
      */
-    virtual void broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sectionY,
-                                       const std::vector<u8>& skyLight,
-                                       const std::vector<u8>& blockLight,
-                                       bool trustEdges) = 0;
+    virtual void broadcastLightUpdate(ChunkCoord x,
+        ChunkCoord z,
+        i32 sectionY,
+        const std::vector<u8>& skyLight,
+        const std::vector<u8>& blockLight,
+        bool trustEdges) = 0;
 
     /**
      * @brief 发送传送包给指定玩家
@@ -531,10 +542,10 @@ protected:
      * @param pitch 音调倍率
      */
     void broadcastSound(const ResourceLocation& soundEventId,
-                       sound::SoundCategory category,
-                       const Vector3& position,
-                       f32 volume = 1.0f,
-                       f32 pitch = 1.0f);
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume = 1.0f,
+        f32 pitch = 1.0f);
 
     /**
      * @brief 广播声音给指定范围内的玩家
@@ -547,11 +558,11 @@ protected:
      * @param pitch 音调倍率
      */
     void broadcastSoundInRange(const ResourceLocation& soundEventId,
-                               sound::SoundCategory category,
-                               const Vector3& position,
-                               f32 range,
-                               f32 volume = 1.0f,
-                               f32 pitch = 1.0f);
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 range,
+        f32 volume = 1.0f,
+        f32 pitch = 1.0f);
 
     /**
      * @brief 发送声音给指定玩家
@@ -564,11 +575,11 @@ protected:
      * @param pitch 音调倍率
      */
     void sendSoundToPlayer(PlayerId playerId,
-                          const ResourceLocation& soundEventId,
-                          sound::SoundCategory category,
-                          const Vector3& position,
-                          f32 volume = 1.0f,
-                          f32 pitch = 1.0f) override;
+        const ResourceLocation& soundEventId,
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume = 1.0f,
+        f32 pitch = 1.0f) override;
 
     // ========== 粒子广播方法 ==========
 
@@ -582,8 +593,7 @@ protected:
      * @param count 粒子数量
      * @param range 广播范围（格），默认 256 格
      */
-    void broadcastParticleInRange(
-        client::renderer::trident::particle::ParticleTypeId type,
+    void broadcastParticleInRange(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -637,8 +647,7 @@ protected:
      * @param offset 随机偏移范围
      * @param count 粒子数量
      */
-    void sendParticleToPlayer(
-        PlayerId playerId,
+    void sendParticleToPlayer(PlayerId playerId,
         client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
@@ -661,11 +670,16 @@ protected:
      * @param count 粒子数量
      * @param range 广播范围（格），默认 256 格
      */
-    void broadcastParticleInRange(
-        u32 type,
-        f64 x, f64 y, f64 z,
-        f32 velocityX, f32 velocityY, f32 velocityZ,
-        f32 offsetX, f32 offsetY, f32 offsetZ,
+    void broadcastParticleInRange(u32 type,
+        f64 x,
+        f64 y,
+        f64 z,
+        f32 velocityX,
+        f32 velocityY,
+        f32 velocityZ,
+        f32 offsetX,
+        f32 offsetY,
+        f32 offsetZ,
         u32 count,
         f32 range = 256.0f) override;
 
@@ -682,8 +696,7 @@ protected:
      * @param playerKnockback 玩家击退映射（玩家ID -> 击退向量）
      * @param range 广播范围（格），默认 64.0f（与 MC 1.16.5 一致）
      */
-    void broadcastExplosionInRange(
-        const Vector3& position,
+    void broadcastExplosionInRange(const Vector3& position,
         f32 strength,
         const std::vector<BlockPos>& affectedBlocks,
         const std::unordered_map<u64, Vector3>& playerKnockback,
@@ -698,8 +711,7 @@ protected:
      * @param affectedBlocks 受影响的方块列表
      * @param playerKnockback 玩家击退映射
      */
-    void sendExplosionToPlayer(
-        PlayerId playerId,
+    void sendExplosionToPlayer(PlayerId playerId,
         const Vector3& position,
         f32 strength,
         const std::vector<BlockPos>& affectedBlocks,
@@ -772,7 +784,7 @@ protected:
     u64 m_lastKeepAliveTick = 0;
 
     // 心跳间隔（ticks）
-    static constexpr u64 KEEPALIVE_INTERVAL = 300;  // 15秒 @ 20 TPS
+    static constexpr u64 KEEPALIVE_INTERVAL = 300; // 15秒 @ 20 TPS
     static constexpr u64 CLEANUP_INTERVAL = 100;
 
     // 上次发送的天气强度（用于检测变化）
@@ -784,13 +796,15 @@ protected:
 // 模板实现
 // ============================================================================
 
-template<typename Func>
-void MinecraftServer::forEachPlayer(Func&& func) {
+template <typename Func>
+void MinecraftServer::forEachPlayer(Func&& func)
+{
     m_playerManager->forEachPlayer(std::forward<Func>(func));
 }
 
-template<typename Func>
-void MinecraftServer::forEachPlayer(Func&& func) const {
+template <typename Func>
+void MinecraftServer::forEachPlayer(Func&& func) const
+{
     m_playerManager->forEachPlayer(std::forward<Func>(func));
 }
 

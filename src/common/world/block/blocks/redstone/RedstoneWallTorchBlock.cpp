@@ -1,51 +1,56 @@
 #include "RedstoneWallTorchBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
+#include "../../../tick/base/TickPriority.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include <unordered_map>
 
 namespace mc {
 namespace blocks {
 
 RedstoneWallTorchBlock::RedstoneWallTorchBlock(const BlockProperties& properties)
-    : RedstoneTorchBlock(properties) {
+    : RedstoneTorchBlock(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::LIT())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::LIT())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::LIT(), true));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::LIT(), true));
 }
 
-Direction RedstoneWallTorchBlock::getFacing(const BlockState& state) {
+Direction RedstoneWallTorchBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
-BlockState RedstoneWallTorchBlock::withFacing(BlockState state, Direction facing) {
+BlockState RedstoneWallTorchBlock::withFacing(BlockState state, Direction facing)
+{
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
-bool RedstoneWallTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+bool RedstoneWallTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // MC Java: Direction direction = state.get(FACING).getOpposite();
     // return worldIn.isSidePowered(pos.offset(direction), direction);
     Direction facing = getFacing(state);
-    Direction attachDir = Directions::opposite(facing);  // 附着面方向
+    Direction attachDir = Directions::opposite(facing); // 附着面方向
     BlockPos attachPos = pos.offset(attachDir);
     return world::redstone::RedstonePower::isSidePowered(world, attachPos, attachDir);
 }
 
-bool RedstoneWallTorchBlock::canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const {
+bool RedstoneWallTorchBlock::canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const
+{
     // 检查附着面是否可以支撑火把
     BlockPos attachPos = pos.offset(Directions::opposite(facing));
     const BlockState* attachState = world.getBlockState(attachPos);
@@ -57,7 +62,8 @@ bool RedstoneWallTorchBlock::canPlaceAt(IWorld& world, const BlockPos& pos, Dire
     return attachState->getBlock().isSolidSide(*attachState, world, attachPos, facing);
 }
 
-void RedstoneWallTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void RedstoneWallTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // MC Java: 放置时通知邻居
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
@@ -75,8 +81,9 @@ void RedstoneWallTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, co
     }
 }
 
-void RedstoneWallTorchBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                             const BlockPos& neighborPos, bool isMoving) {
+void RedstoneWallTorchBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -98,10 +105,13 @@ void RedstoneWallTorchBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     updateState(world, pos, *state);
 }
 
-BlockState RedstoneWallTorchBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState RedstoneWallTorchBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -120,7 +130,8 @@ BlockState RedstoneWallTorchBlock::updatePostPlacement(
     return state;
 }
 
-BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 尝试击中的面
     Direction hitFace = context.face();
     if (Directions::isHorizontal(hitFace)) {
@@ -129,7 +140,9 @@ BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& con
         BlockPos attachPos = pos.offset(hitFace);
         const IWorld& world = context.getWorld();
         const BlockState* attachState = world.getBlockState(attachPos);
-        if (attachState && attachState->getBlock().isSolidSide(*attachState, const_cast<IWorld&>(world), attachPos, Directions::opposite(hitFace))) {
+        if (attachState &&
+            attachState->getBlock().isSolidSide(
+                *attachState, const_cast<IWorld&>(world), attachPos, Directions::opposite(hitFace))) {
             return defaultState()
                 .with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(hitFace))
                 .with(BlockStateProperties::LIT(), true);
@@ -142,7 +155,9 @@ BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& con
         BlockPos attachPos = pos.offset(dir);
         const IWorld& world = context.getWorld();
         const BlockState* attachState = world.getBlockState(attachPos);
-        if (attachState && attachState->getBlock().isSolidSide(*attachState, const_cast<IWorld&>(world), attachPos, Directions::opposite(dir))) {
+        if (attachState &&
+            attachState->getBlock().isSolidSide(
+                *attachState, const_cast<IWorld&>(world), attachPos, Directions::opposite(dir))) {
             return defaultState()
                 .with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(dir))
                 .with(BlockStateProperties::LIT(), true);
@@ -153,11 +168,8 @@ BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& con
 }
 
 i32 RedstoneWallTorchBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
@@ -182,7 +194,8 @@ i32 RedstoneWallTorchBlock::getWeakPower(
     return world::redstone::RedstonePower::MAX_POWER;
 }
 
-const CollisionShape& RedstoneWallTorchBlock::getShape(const BlockState& state) const {
+const CollisionShape& RedstoneWallTorchBlock::getShape(const BlockState& state) const
+{
     static const CollisionShape northShape = CollisionShape::fromPixelBox(5.5f, 3.0f, 11.0f, 10.5f, 13.0f, 16.0f);
     static const CollisionShape southShape = CollisionShape::fromPixelBox(5.5f, 3.0f, 0.0f, 10.5f, 13.0f, 5.0f);
     static const CollisionShape westShape = CollisionShape::fromPixelBox(11.0f, 3.0f, 5.5f, 16.0f, 13.0f, 10.5f);
@@ -202,7 +215,8 @@ const CollisionShape& RedstoneWallTorchBlock::getShape(const BlockState& state) 
     }
 }
 
-void RedstoneWallTorchBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void RedstoneWallTorchBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 检查是否应该改变状态
     bool shouldBeLit = !shouldBeOff(world, pos, state);
     bool isCurrentlyLit = isLit(state);

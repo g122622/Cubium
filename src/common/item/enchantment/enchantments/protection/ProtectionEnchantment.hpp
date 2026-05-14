@@ -25,28 +25,22 @@ public:
      * @brief 保护类型枚举
      */
     enum class Type : u8 {
-        All,            ///< 全保护（减少所有伤害）
-        Fire,           ///< 火焰保护
-        Fall,           ///< 摔落保护（羽毛落地）
-        Explosion,      ///< 爆炸保护
-        Projectile      ///< 弹射物保护
+        All,       ///< 全保护（减少所有伤害）
+        Fire,      ///< 火焰保护
+        Fall,      ///< 摔落保护（羽毛落地）
+        Explosion, ///< 爆炸保护
+        Projectile ///< 弹射物保护
     };
 
     explicit ProtectionEnchantment(Type protectionType);
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Armor;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Armor; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 4;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 4; }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override;
 
@@ -66,28 +60,32 @@ public:
     /**
      * @brief 检查是否减少火焰伤害
      */
-    [[nodiscard]] bool reducesFireDamage() const {
+    [[nodiscard]] bool reducesFireDamage() const
+    {
         return m_protectionType == Type::Fire || m_protectionType == Type::All;
     }
 
     /**
      * @brief 检查是否减少摔落伤害
      */
-    [[nodiscard]] bool reducesFallDamage() const {
+    [[nodiscard]] bool reducesFallDamage() const
+    {
         return m_protectionType == Type::Fall || m_protectionType == Type::All;
     }
 
     /**
      * @brief 检查是否减少爆炸伤害
      */
-    [[nodiscard]] bool reducesExplosionDamage() const {
+    [[nodiscard]] bool reducesExplosionDamage() const
+    {
         return m_protectionType == Type::Explosion || m_protectionType == Type::All;
     }
 
     /**
      * @brief 检查是否减少弹射物伤害
      */
-    [[nodiscard]] bool reducesProjectileDamage() const {
+    [[nodiscard]] bool reducesProjectileDamage() const
+    {
         return m_protectionType == Type::Projectile || m_protectionType == Type::All;
     }
 

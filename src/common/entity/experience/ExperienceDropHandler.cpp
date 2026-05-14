@@ -1,8 +1,8 @@
 #include "ExperienceDropHandler.hpp"
-#include "../entities/orb/ExperienceOrbEntity.hpp"
 #include "../../world/IWorld.hpp"
-#include "../entities/player/Player.hpp"
 #include "../core/Entity.hpp"
+#include "../entities/orb/ExperienceOrbEntity.hpp"
+#include "../entities/player/Player.hpp"
 #include <cmath>
 
 namespace mc {
@@ -12,11 +12,7 @@ namespace entity {
 // 经验球生成
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnExperienceOrbs(
-    IWorld* world,
-    f64 x, f64 y, f64 z,
-    i32 totalXp,
-    math::Random* rng)
+i32 ExperienceDropHandler::spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 z, i32 totalXp, math::Random* rng)
 {
     if (world == nullptr || totalXp <= 0) {
         return 0;
@@ -48,26 +44,21 @@ i32 ExperienceDropHandler::spawnExperienceOrbs(
     return spawnedCount;
 }
 
-i32 ExperienceDropHandler::spawnExperienceOrbs(Entity* entity, i32 totalXp, math::Random* rng) {
+i32 ExperienceDropHandler::spawnExperienceOrbs(Entity* entity, i32 totalXp, math::Random* rng)
+{
     if (entity == nullptr || totalXp <= 0) {
         return 0;
     }
 
-    return spawnExperienceOrbs(
-        entity->world(),
-        entity->x(),
-        entity->y(),
-        entity->z(),
-        totalXp,
-        rng
-    );
+    return spawnExperienceOrbs(entity->world(), entity->x(), entity->y(), entity->z(), totalXp, rng);
 }
 
 // ============================================================================
 // 玩家死亡经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnPlayerDeathXp(Player* player) {
+i32 ExperienceDropHandler::spawnPlayerDeathXp(Player* player)
+{
     if (player == nullptr || player->world() == nullptr) {
         return 0;
     }
@@ -79,24 +70,14 @@ i32 ExperienceDropHandler::spawnPlayerDeathXp(Player* player) {
     }
 
     // 在玩家位置生成经验球
-    return spawnExperienceOrbs(
-        player->world(),
-        player->x(),
-        player->y(),
-        player->z(),
-        droppedXp
-    );
+    return spawnExperienceOrbs(player->world(), player->x(), player->y(), player->z(), droppedXp);
 }
 
 // ============================================================================
 // 矿石经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnOreExperience(
-    IWorld* world,
-    f64 x, f64 y, f64 z,
-    i32 oreType,
-    math::Random& rng)
+i32 ExperienceDropHandler::spawnOreExperience(IWorld* world, f64 x, f64 y, f64 z, i32 oreType, math::Random& rng)
 {
     if (world == nullptr) {
         return 0;
@@ -115,10 +96,7 @@ i32 ExperienceDropHandler::spawnOreExperience(
 // 钓鱼经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnFishingExperience(
-    IWorld* world,
-    f64 x, f64 y, f64 z,
-    math::Random& rng)
+i32 ExperienceDropHandler::spawnFishingExperience(IWorld* world, f64 x, f64 y, f64 z, math::Random& rng)
 {
     if (world == nullptr) {
         return 0;
@@ -133,10 +111,7 @@ i32 ExperienceDropHandler::spawnFishingExperience(
 // 被动动物经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnPassiveMobExperience(
-    IWorld* world,
-    f64 x, f64 y, f64 z,
-    math::Random& rng)
+i32 ExperienceDropHandler::spawnPassiveMobExperience(IWorld* world, f64 x, f64 y, f64 z, math::Random& rng)
 {
     if (world == nullptr) {
         return 0;
@@ -151,11 +126,7 @@ i32 ExperienceDropHandler::spawnPassiveMobExperience(
 // 怪物经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnHostileMobExperience(
-    IWorld* world,
-    f64 x, f64 y, f64 z,
-    i32 baseXp,
-    math::Random* rng)
+i32 ExperienceDropHandler::spawnHostileMobExperience(IWorld* world, f64 x, f64 y, f64 z, i32 baseXp, math::Random* rng)
 {
     if (world == nullptr || baseXp <= 0) {
         return 0;
@@ -169,10 +140,7 @@ i32 ExperienceDropHandler::spawnHostileMobExperience(
 // ============================================================================
 
 ExperienceOrbEntity* ExperienceDropHandler::createExperienceOrb(
-    IWorld* world,
-    f64 x, f64 y, f64 z,
-    i32 xpValue,
-    f32 vx, f32 vy, f32 vz)
+    IWorld* world, f64 x, f64 y, f64 z, i32 xpValue, f32 vx, f32 vy, f32 vz)
 {
     if (world == nullptr) {
         return nullptr;

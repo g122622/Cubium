@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "common/scoreboard/core/Scoreboard.hpp"
-#include "common/scoreboard/core/ScorePlayerTeam.hpp"
-#include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScorePlayerTeam.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 
@@ -23,25 +23,26 @@ using namespace mc::text;
  */
 class TeamTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置判据
         ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理判据注册表
         ScoreCriteriaRegistry::instance().clear();
     }
 
     // 创建测试用记分板
-    Scoreboard createTestScoreboard() {
-        return Scoreboard();
-    }
+    Scoreboard createTestScoreboard() { return Scoreboard(); }
 };
 
 // ========== 队伍创建测试 ==========
 
-TEST_F(TeamTest, CreateTeam) {
+TEST_F(TeamTest, CreateTeam)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -49,14 +50,16 @@ TEST_F(TeamTest, CreateTeam) {
     EXPECT_TRUE(scoreboard.hasTeam("red"));
 }
 
-TEST_F(TeamTest, CreateDuplicateTeam) {
+TEST_F(TeamTest, CreateDuplicateTeam)
+{
     Scoreboard scoreboard;
     scoreboard.createTeam("red");
     auto* duplicate = scoreboard.createTeam("red");
     EXPECT_EQ(duplicate, nullptr);
 }
 
-TEST_F(TeamTest, CreateTeamWithInvalidName) {
+TEST_F(TeamTest, CreateTeamWithInvalidName)
+{
     Scoreboard scoreboard;
 
     // 空名称
@@ -72,7 +75,8 @@ TEST_F(TeamTest, CreateTeamWithInvalidName) {
 
 // ========== 显示名称测试 ==========
 
-TEST_F(TeamTest, DisplayName) {
+TEST_F(TeamTest, DisplayName)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -91,7 +95,8 @@ TEST_F(TeamTest, DisplayName) {
 
 // ========== 成员管理测试 ==========
 
-TEST_F(TeamTest, AddMember) {
+TEST_F(TeamTest, AddMember)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -111,7 +116,8 @@ TEST_F(TeamTest, AddMember) {
     EXPECT_EQ(team->getMembers().size(), 3);
 }
 
-TEST_F(TeamTest, RemoveMember) {
+TEST_F(TeamTest, RemoveMember)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -131,7 +137,8 @@ TEST_F(TeamTest, RemoveMember) {
     EXPECT_FALSE(team->removeMember("NonExistent"));
 }
 
-TEST_F(TeamTest, ClearMembers) {
+TEST_F(TeamTest, ClearMembers)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -148,7 +155,8 @@ TEST_F(TeamTest, ClearMembers) {
     EXPECT_FALSE(team->hasMember("Bob"));
 }
 
-TEST_F(TeamTest, GetMembers) {
+TEST_F(TeamTest, GetMembers)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -166,7 +174,8 @@ TEST_F(TeamTest, GetMembers) {
 
 // ========== 队伍颜色测试 ==========
 
-TEST_F(TeamTest, TeamColor) {
+TEST_F(TeamTest, TeamColor)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -184,7 +193,8 @@ TEST_F(TeamTest, TeamColor) {
 
 // ========== 前缀和后缀测试 ==========
 
-TEST_F(TeamTest, PrefixAndSuffix) {
+TEST_F(TeamTest, PrefixAndSuffix)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -218,7 +228,8 @@ TEST_F(TeamTest, PrefixAndSuffix) {
 
 // ========== 友军设置测试 ==========
 
-TEST_F(TeamTest, AllowFriendlyFire) {
+TEST_F(TeamTest, AllowFriendlyFire)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -234,7 +245,8 @@ TEST_F(TeamTest, AllowFriendlyFire) {
     EXPECT_TRUE(team->getAllowFriendlyFire());
 }
 
-TEST_F(TeamTest, SeeFriendlyInvisibles) {
+TEST_F(TeamTest, SeeFriendlyInvisibles)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -250,7 +262,8 @@ TEST_F(TeamTest, SeeFriendlyInvisibles) {
     EXPECT_TRUE(team->canSeeFriendlyInvisibles());
 }
 
-TEST_F(TeamTest, FriendlyFlags) {
+TEST_F(TeamTest, FriendlyFlags)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -261,11 +274,11 @@ TEST_F(TeamTest, FriendlyFlags) {
 
     // 设置不允许友军伤害
     team->setAllowFriendlyFire(false);
-    EXPECT_EQ(team->getFriendlyFlags(), 0x02);  // 只有 seeFriendlyInvisibles
+    EXPECT_EQ(team->getFriendlyFlags(), 0x02); // 只有 seeFriendlyInvisibles
 
     // 设置不能看到隐身友军
     team->setSeeFriendlyInvisibles(false);
-    EXPECT_EQ(team->getFriendlyFlags(), 0x00);  // 两者都关闭
+    EXPECT_EQ(team->getFriendlyFlags(), 0x00); // 两者都关闭
 
     // 通过 flags 设置
     team->setFriendlyFlags(0x01);
@@ -275,7 +288,8 @@ TEST_F(TeamTest, FriendlyFlags) {
 
 // ========== 可见性设置测试 ==========
 
-TEST_F(TeamTest, NameTagVisibility) {
+TEST_F(TeamTest, NameTagVisibility)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -294,7 +308,8 @@ TEST_F(TeamTest, NameTagVisibility) {
     EXPECT_EQ(team->getNameTagVisibility(), TeamVisibility::HideForOwnTeam);
 }
 
-TEST_F(TeamTest, DeathMessageVisibility) {
+TEST_F(TeamTest, DeathMessageVisibility)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -312,7 +327,8 @@ TEST_F(TeamTest, DeathMessageVisibility) {
 
 // ========== 碰撞规则测试 ==========
 
-TEST_F(TeamTest, CollisionRule) {
+TEST_F(TeamTest, CollisionRule)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -333,7 +349,8 @@ TEST_F(TeamTest, CollisionRule) {
 
 // ========== 格式化名称测试 ==========
 
-TEST_F(TeamTest, FormatName) {
+TEST_F(TeamTest, FormatName)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -354,7 +371,8 @@ TEST_F(TeamTest, FormatName) {
     EXPECT_EQ(formatted->getUnformattedText(), "Steve");
 }
 
-TEST_F(TeamTest, FormatNameWithPrefixAndSuffix) {
+TEST_F(TeamTest, FormatNameWithPrefixAndSuffix)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("admin");
     ASSERT_NE(team, nullptr);
@@ -391,7 +409,7 @@ TEST_F(TeamTest, FormatNameWithPrefixAndSuffix) {
 
     // 验证有两个子组件（前缀、名称、后缀）
     const auto& siblings = formatted->getSiblings();
-    EXPECT_EQ(siblings.size(), 3);  // prefix + name + suffix
+    EXPECT_EQ(siblings.size(), 3); // prefix + name + suffix
 
     // 验证前缀的样式（绿色粗体）
     const auto& prefixComponent = siblings[0];
@@ -405,7 +423,8 @@ TEST_F(TeamTest, FormatNameWithPrefixAndSuffix) {
     EXPECT_EQ(suffixComponent->getStyle().getColor(), TextFormatting::Yellow);
 }
 
-TEST_F(TeamTest, FormatNameWithOnlyPrefix) {
+TEST_F(TeamTest, FormatNameWithOnlyPrefix)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("vip");
     ASSERT_NE(team, nullptr);
@@ -429,7 +448,8 @@ TEST_F(TeamTest, FormatNameWithOnlyPrefix) {
     EXPECT_EQ(formatted->getStyle().getColor(), TextFormatting::Aqua);
 }
 
-TEST_F(TeamTest, FormatNameWithOnlySuffix) {
+TEST_F(TeamTest, FormatNameWithOnlySuffix)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("mod");
     ASSERT_NE(team, nullptr);
@@ -453,7 +473,8 @@ TEST_F(TeamTest, FormatNameWithOnlySuffix) {
     EXPECT_EQ(formatted->getStyle().getColor(), TextFormatting::LightPurple);
 }
 
-TEST_F(TeamTest, FormatNameWithResetColor) {
+TEST_F(TeamTest, FormatNameWithResetColor)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("default");
     ASSERT_NE(team, nullptr);
@@ -479,7 +500,8 @@ TEST_F(TeamTest, FormatNameWithResetColor) {
 
 // ========== 队伍移除测试 ==========
 
-TEST_F(TeamTest, RemoveTeam) {
+TEST_F(TeamTest, RemoveTeam)
+{
     Scoreboard scoreboard;
     auto* team = scoreboard.createTeam("red");
     ASSERT_NE(team, nullptr);
@@ -498,7 +520,8 @@ TEST_F(TeamTest, RemoveTeam) {
 
 // ========== 多队伍测试 ==========
 
-TEST_F(TeamTest, MultipleTeams) {
+TEST_F(TeamTest, MultipleTeams)
+{
     Scoreboard scoreboard;
     auto* red = scoreboard.createTeam("red");
     auto* blue = scoreboard.createTeam("blue");
@@ -530,7 +553,8 @@ TEST_F(TeamTest, MultipleTeams) {
 
 // ========== 队伍切换测试 ==========
 
-TEST_F(TeamTest, SwitchTeam) {
+TEST_F(TeamTest, SwitchTeam)
+{
     Scoreboard scoreboard;
     auto* red = scoreboard.createTeam("red");
     auto* blue = scoreboard.createTeam("blue");
@@ -552,7 +576,8 @@ TEST_F(TeamTest, SwitchTeam) {
 
 // ========== 集成测试 ==========
 
-TEST_F(TeamTest, FullTeamWorkflow) {
+TEST_F(TeamTest, FullTeamWorkflow)
+{
     Scoreboard scoreboard;
 
     // 1. 创建队伍

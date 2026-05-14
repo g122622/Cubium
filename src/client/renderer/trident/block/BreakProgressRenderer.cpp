@@ -1,14 +1,14 @@
 #include "BreakProgressRenderer.hpp"
 #include "BreakProgressManager.hpp"
-#include "client/resource/DestroyStageTextures.hpp"
-#include "client/renderer/util/ShaderPath.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
-#include <spdlog/spdlog.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "client/renderer/util/ShaderPath.hpp"
+#include "client/resource/DestroyStageTextures.hpp"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace client {
@@ -21,21 +21,22 @@ namespace block {
 // ============================================================================
 
 namespace {
-    /// 破坏覆盖层立方体顶点数（6面 * 4顶点）
-    constexpr size_t VERTICES_PER_CUBE = 24;
+/// 破坏覆盖层立方体顶点数（6面 * 4顶点）
+constexpr size_t VERTICES_PER_CUBE = 24;
 
-    /// 破坏覆盖层立方体索引数（6面 * 2三角形 * 3索引）
-    constexpr size_t INDICES_PER_CUBE = 36;
+/// 破坏覆盖层立方体索引数（6面 * 2三角形 * 3索引）
+constexpr size_t INDICES_PER_CUBE = 36;
 
-    /// 默认缓冲区容量
-    constexpr size_t DEFAULT_MAX_CUBES = 64;
-}
+/// 默认缓冲区容量
+constexpr size_t DEFAULT_MAX_CUBES = 64;
+} // namespace
 
 // ============================================================================
 // 构造/析构
 // ============================================================================
 
-BreakProgressRenderer::~BreakProgressRenderer() {
+BreakProgressRenderer::~BreakProgressRenderer()
+{
     cleanup();
 }
 
@@ -43,7 +44,8 @@ BreakProgressRenderer::~BreakProgressRenderer() {
 // 初始化
 // ============================================================================
 
-bool BreakProgressRenderer::initialize(const Config& config, VkSampleCountFlagBits sampleCount) {
+bool BreakProgressRenderer::initialize(const Config& config, VkSampleCountFlagBits sampleCount)
+{
     if (m_initialized) {
         return true;
     }
@@ -86,7 +88,8 @@ bool BreakProgressRenderer::initialize(const Config& config, VkSampleCountFlagBi
     return true;
 }
 
-void BreakProgressRenderer::cleanup() {
+void BreakProgressRenderer::cleanup()
+{
     if (!m_initialized) {
         return;
     }
@@ -176,7 +179,8 @@ void BreakProgressRenderer::cleanup() {
 // 更新
 // ============================================================================
 
-void BreakProgressRenderer::updateMesh(const Vector3& cameraPos) {
+void BreakProgressRenderer::updateMesh(const Vector3& cameraPos)
+{
     // 获取可见的破坏进度（使用预分配缓冲区避免内存分配）
     auto& manager = BreakProgressManager::instance();
     m_progressEntries.clear();
@@ -191,8 +195,8 @@ void BreakProgressRenderer::updateMesh(const Vector3& cameraPos) {
         m_progressEntries.push_back({
             pos,
             stage,
-            static_cast<u32>(i * VERTICES_PER_CUBE),  // vertexOffset
-            static_cast<u32>(i * INDICES_PER_CUBE)     // indexOffset
+            static_cast<u32>(i * VERTICES_PER_CUBE), // vertexOffset
+            static_cast<u32>(i * INDICES_PER_CUBE)   // indexOffset
         });
     }
 
@@ -235,9 +239,9 @@ void BreakProgressRenderer::updateMesh(const Vector3& cameraPos) {
 // 渲染
 // ============================================================================
 
-void BreakProgressRenderer::render(VkCommandBuffer commandBuffer,
-                                     VkDescriptorSet cameraDescriptorSet,
-                                     VkDescriptorSet fogDescriptorSet) {
+void BreakProgressRenderer::render(
+    VkCommandBuffer commandBuffer, VkDescriptorSet cameraDescriptorSet, VkDescriptorSet fogDescriptorSet)
+{
     if (!m_initialized || m_progressEntries.empty()) {
         return;
     }
@@ -247,22 +251,22 @@ void BreakProgressRenderer::render(VkCommandBuffer commandBuffer,
 
     // 绑定描述符集
     // Set 0: Camera UBO
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(
+        commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
 
     // Set 1: 纹理图集
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayout, 1, 1, &m_descriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(
+        commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 1, 1, &m_descriptorSet, 0, nullptr);
 
     // Set 2: Fog UBO
     if (fogDescriptorSet != VK_NULL_HANDLE) {
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_pipelineLayout, 2, 1, &fogDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(
+            commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 2, 1, &fogDescriptorSet, 0, nullptr);
     }
 
     // 绑定顶点缓冲区
-    VkBuffer vertexBuffers[] = { m_vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
+    VkBuffer vertexBuffers[] = {m_vertexBuffer};
+    VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
     // 绑定索引缓冲区
@@ -282,13 +286,20 @@ void BreakProgressRenderer::render(VkCommandBuffer commandBuffer,
         pc.blockPosZ = static_cast<f32>(entry.position.z);
         pc.damageStage = static_cast<f32>(entry.stage);
 
-        vkCmdPushConstants(commandBuffer, m_pipelineLayout,
-                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                          0, sizeof(PushConstants), &pc);
+        vkCmdPushConstants(commandBuffer,
+            m_pipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            sizeof(PushConstants),
+            &pc);
 
         // 绘制单个方块的破坏覆盖层
-        vkCmdDrawIndexed(commandBuffer, static_cast<u32>(INDICES_PER_CUBE), 1,
-                        entry.indexOffset, static_cast<i32>(entry.vertexOffset), 0);
+        vkCmdDrawIndexed(commandBuffer,
+            static_cast<u32>(INDICES_PER_CUBE),
+            1,
+            entry.indexOffset,
+            static_cast<i32>(entry.vertexOffset),
+            0);
     }
 }
 
@@ -296,7 +307,8 @@ void BreakProgressRenderer::render(VkCommandBuffer commandBuffer,
 // 私有方法 - 资源创建
 // ============================================================================
 
-bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
+bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount)
+{
     // 加载着色器
     auto vertPath = resolveShaderPath("break_overlay.vert.spv");
     auto fragPath = resolveShaderPath("break_overlay.frag.spv");
@@ -368,7 +380,7 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     fragStage.module = fragModule;
     fragStage.pName = "main";
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = { vertStage, fragStage };
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertStage, fragStage};
 
     // 顶点输入描述
     VkVertexInputBindingDescription bindingDesc{};
@@ -390,7 +402,7 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     texCoordAttr.format = VK_FORMAT_R32G32_SFLOAT;
     texCoordAttr.offset = offsetof(Vertex, u);
 
-    VkVertexInputAttributeDescription attributeDescriptions[] = { positionAttr, texCoordAttr };
+    VkVertexInputAttributeDescription attributeDescriptions[] = {positionAttr, texCoordAttr};
 
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -426,8 +438,8 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     // OpenGL factor -> Vulkan slopeFactor, OpenGL units -> Vulkan constantFactor
     // 注意：Vulkan 中 constantFactor 单位是 r（最小深度变化），需要乘以适当值
     rasterizer.depthBiasEnable = VK_TRUE;
-    rasterizer.depthBiasConstantFactor = -0.01f;  // 恒定偏移，单位是深度缓冲精度
-    rasterizer.depthBiasSlopeFactor = -1.0f;      // 斜率相关偏移
+    rasterizer.depthBiasConstantFactor = -0.01f; // 恒定偏移，单位是深度缓冲精度
+    rasterizer.depthBiasSlopeFactor = -1.0f;     // 斜率相关偏移
     rasterizer.depthBiasClamp = 0.0f;
 
     // 多重采样
@@ -447,8 +459,8 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
 
     // 混合 - 使用 MC 的叠加混合模式：DST_COLOR * SRC_COLOR
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_TRUE;
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_DST_COLOR;
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
@@ -467,7 +479,7 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f32) * 4;  // vec3 blockPos + float damageStage
+    pushConstantRange.size = sizeof(f32) * 4; // vec3 blockPos + float damageStage
 
     // 创建纹理描述符布局
     VkDescriptorSetLayoutBinding textureBinding{};
@@ -481,7 +493,8 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     textureLayoutInfo.bindingCount = 1;
     textureLayoutInfo.pBindings = &textureBinding;
 
-    if (vkCreateDescriptorSetLayout(m_config.device, &textureLayoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(m_config.device, &textureLayoutInfo, nullptr, &m_descriptorSetLayout) !=
+        VK_SUCCESS) {
         vkDestroyShaderModule(m_config.device, vertModule, nullptr);
         vkDestroyShaderModule(m_config.device, fragModule, nullptr);
         spdlog::error("BreakProgressRenderer: Failed to create descriptor set layout");
@@ -489,11 +502,7 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     }
 
     // 管线布局描述符集
-    VkDescriptorSetLayout layouts[3] = {
-        m_config.cameraLayout,
-        m_descriptorSetLayout,
-        m_config.fogLayout
-    };
+    VkDescriptorSetLayout layouts[3] = {m_config.cameraLayout, m_descriptorSetLayout, m_config.fogLayout};
 
     // 管线布局
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -512,7 +521,7 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     }
 
     // 动态状态
-    VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = 2;
@@ -535,7 +544,8 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     pipelineInfo.renderPass = m_config.renderPass;
     pipelineInfo.subpass = 0;
 
-    VkResult result = vkCreateGraphicsPipelines(m_config.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline);
+    VkResult result =
+        vkCreateGraphicsPipelines(m_config.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline);
 
     // 清理着色器模块
     vkDestroyShaderModule(m_config.device, vertModule, nullptr);
@@ -550,41 +560,36 @@ bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     return true;
 }
 
-bool BreakProgressRenderer::createBuffers() {
+bool BreakProgressRenderer::createBuffers()
+{
     m_maxVertices = DEFAULT_MAX_CUBES * VERTICES_PER_CUBE;
     m_maxIndices = DEFAULT_MAX_CUBES * INDICES_PER_CUBE;
 
     // 使用 VulkanUtils 创建顶点缓冲区
-    auto vertexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
-        m_config.device,
+    auto vertexResult = ::mc::client::renderer::VulkanUtils::createBuffer(m_config.device,
         m_config.physicalDevice,
         m_maxVertices * sizeof(Vertex),
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_vertexBuffer,
-        m_vertexBufferMemory
-    );
+        m_vertexBufferMemory);
 
     if (!vertexResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to create vertex buffer: {}",
-                      vertexResult.error().message());
+        spdlog::error("BreakProgressRenderer: Failed to create vertex buffer: {}", vertexResult.error().message());
         return false;
     }
 
     // 使用 VulkanUtils 创建索引缓冲区
-    auto indexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
-        m_config.device,
+    auto indexResult = ::mc::client::renderer::VulkanUtils::createBuffer(m_config.device,
         m_config.physicalDevice,
         m_maxIndices * sizeof(u32),
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_indexBuffer,
-        m_indexBufferMemory
-    );
+        m_indexBufferMemory);
 
     if (!indexResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to create index buffer: {}",
-                      indexResult.error().message());
+        spdlog::error("BreakProgressRenderer: Failed to create index buffer: {}", indexResult.error().message());
         // 清理已创建的顶点缓冲区
         vkDestroyBuffer(m_config.device, m_vertexBuffer, nullptr);
         vkFreeMemory(m_config.device, m_vertexBufferMemory, nullptr);
@@ -593,12 +598,12 @@ bool BreakProgressRenderer::createBuffers() {
         return false;
     }
 
-    spdlog::info("BreakProgressRenderer: Buffers created (vertices: {}, indices: {})",
-                 m_maxVertices, m_maxIndices);
+    spdlog::info("BreakProgressRenderer: Buffers created (vertices: {}, indices: {})", m_maxVertices, m_maxIndices);
     return true;
 }
 
-bool BreakProgressRenderer::createDescriptorSets() {
+bool BreakProgressRenderer::createDescriptorSets()
+{
     // 创建描述符池
     VkDescriptorPoolSize poolSize{};
     poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -631,7 +636,8 @@ bool BreakProgressRenderer::createDescriptorSets() {
     return true;
 }
 
-bool BreakProgressRenderer::uploadTextureAtlas() {
+bool BreakProgressRenderer::uploadTextureAtlas()
+{
     auto& textures = DestroyStageTextures::instance();
 
     // 初始化纹理资源（使用 ResourceManager 加载资源包纹理）
@@ -649,19 +655,16 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     // 创建暂存缓冲区
     VkDeviceSize imageSize = width * height * 4;
 
-    auto stagingResult = ::mc::client::renderer::VulkanUtils::createBuffer(
-        m_config.device,
+    auto stagingResult = ::mc::client::renderer::VulkanUtils::createBuffer(m_config.device,
         m_config.physicalDevice,
         imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_stagingBuffer,
-        m_stagingBufferMemory
-    );
+        m_stagingBufferMemory);
 
     if (!stagingResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to create staging buffer: {}",
-                      stagingResult.error().message());
+        spdlog::error("BreakProgressRenderer: Failed to create staging buffer: {}", stagingResult.error().message());
         return false;
     }
 
@@ -678,8 +681,7 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     vkUnmapMemory(m_config.device, m_stagingBufferMemory);
 
     // 创建图像
-    auto imageResult = ::mc::client::renderer::VulkanUtils::createImage(
-        m_config.device,
+    auto imageResult = ::mc::client::renderer::VulkanUtils::createImage(m_config.device,
         m_config.physicalDevice,
         width,
         height,
@@ -688,12 +690,10 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_textureImage,
-        m_textureImageMemory
-    );
+        m_textureImageMemory);
 
     if (!imageResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to create texture image: {}",
-                      imageResult.error().message());
+        spdlog::error("BreakProgressRenderer: Failed to create texture image: {}", imageResult.error().message());
         return false;
     }
 
@@ -728,8 +728,8 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(
+        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -742,16 +742,23 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {width, height, 1};
 
-    vkCmdCopyBufferToImage(cmd, m_stagingBuffer, m_textureImage,
-                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(cmd, m_stagingBuffer, m_textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     vkEndCommandBuffer(cmd);
 
@@ -829,9 +836,8 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
 // 私有方法 - 网格生成
 // ============================================================================
 
-void BreakProgressRenderer::generateCubeMesh(size_t cubeIndex,
-                                               std::vector<Vertex>& vertices,
-                                               std::vector<u32>& indices) {
+void BreakProgressRenderer::generateCubeMesh(size_t cubeIndex, std::vector<Vertex>& vertices, std::vector<u32>& indices)
+{
     // 生成立方体顶点（局部坐标 0-1 范围）
     // 方块位置通过 push constants 传入着色器
     // 立方体稍微放大以避免 z-fighting
@@ -889,7 +895,8 @@ void BreakProgressRenderer::generateCubeMesh(size_t cubeIndex,
     }
 }
 
-void BreakProgressRenderer::updateVertexBuffer(const std::vector<Vertex>& vertices) {
+void BreakProgressRenderer::updateVertexBuffer(const std::vector<Vertex>& vertices)
+{
     if (vertices.empty() || m_vertexBuffer == VK_NULL_HANDLE) {
         return;
     }
@@ -905,7 +912,8 @@ void BreakProgressRenderer::updateVertexBuffer(const std::vector<Vertex>& vertic
     vkUnmapMemory(m_config.device, m_vertexBufferMemory);
 }
 
-void BreakProgressRenderer::updateIndexBuffer(const std::vector<u32>& indices) {
+void BreakProgressRenderer::updateIndexBuffer(const std::vector<u32>& indices)
+{
     if (indices.empty() || m_indexBuffer == VK_NULL_HANDLE) {
         return;
     }
@@ -921,7 +929,8 @@ void BreakProgressRenderer::updateIndexBuffer(const std::vector<u32>& indices) {
     vkUnmapMemory(m_config.device, m_indexBufferMemory);
 }
 
-bool BreakProgressRenderer::ensureBufferCapacity(size_t requiredVertices, size_t requiredIndices) {
+bool BreakProgressRenderer::ensureBufferCapacity(size_t requiredVertices, size_t requiredIndices)
+{
     // 如果容量足够，直接返回
     if (requiredVertices <= m_maxVertices && requiredIndices <= m_maxIndices) {
         return true;
@@ -936,12 +945,16 @@ bool BreakProgressRenderer::ensureBufferCapacity(size_t requiredVertices, size_t
     newIndexCount = std::max(newIndexCount, DEFAULT_MAX_CUBES * INDICES_PER_CUBE);
 
     spdlog::debug("BreakProgressRenderer: Resizing buffers from ({}, {}) to ({}, {})",
-                  m_maxVertices, m_maxIndices, newVertexCount, newIndexCount);
+        m_maxVertices,
+        m_maxIndices,
+        newVertexCount,
+        newIndexCount);
 
     return recreateBuffers(newVertexCount, newIndexCount);
 }
 
-bool BreakProgressRenderer::recreateBuffers(size_t vertexCount, size_t indexCount) {
+bool BreakProgressRenderer::recreateBuffers(size_t vertexCount, size_t indexCount)
+{
     VkDevice device = m_config.device;
 
     // 等待设备空闲
@@ -966,44 +979,37 @@ bool BreakProgressRenderer::recreateBuffers(size_t vertexCount, size_t indexCoun
     }
 
     // 使用 VulkanUtils 创建顶点缓冲区
-    auto vertexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
-        device,
+    auto vertexResult = ::mc::client::renderer::VulkanUtils::createBuffer(device,
         m_config.physicalDevice,
         vertexCount * sizeof(Vertex),
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_vertexBuffer,
-        m_vertexBufferMemory
-    );
+        m_vertexBufferMemory);
 
     if (!vertexResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to recreate vertex buffer: {}",
-                      vertexResult.error().message());
+        spdlog::error("BreakProgressRenderer: Failed to recreate vertex buffer: {}", vertexResult.error().message());
         return false;
     }
 
     // 使用 VulkanUtils 创建索引缓冲区
-    auto indexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
-        device,
+    auto indexResult = ::mc::client::renderer::VulkanUtils::createBuffer(device,
         m_config.physicalDevice,
         indexCount * sizeof(u32),
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_indexBuffer,
-        m_indexBufferMemory
-    );
+        m_indexBufferMemory);
 
     if (!indexResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to recreate index buffer: {}",
-                      indexResult.error().message());
+        spdlog::error("BreakProgressRenderer: Failed to recreate index buffer: {}", indexResult.error().message());
         return false;
     }
 
     m_maxVertices = vertexCount;
     m_maxIndices = indexCount;
 
-    spdlog::debug("BreakProgressRenderer: Buffers resized (vertices: {}, indices: {})",
-                  m_maxVertices, m_maxIndices);
+    spdlog::debug("BreakProgressRenderer: Buffers resized (vertices: {}, indices: {})", m_maxVertices, m_maxIndices);
     return true;
 }
 

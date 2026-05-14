@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Widget.hpp"
-#include "../paint/PaintContext.hpp"
 #include "../../Glyph.hpp"
+#include "../paint/PaintContext.hpp"
+#include "Widget.hpp"
 #include <functional>
 #include <string>
 
@@ -47,7 +47,8 @@ public:
      */
     CheckboxWidget(std::string id, i32 x, i32 y, std::string text)
         : Widget(std::move(id))
-        , m_text(std::move(text)) {
+        , m_text(std::move(text))
+    {
         setBounds(Rect(x, y, 20, 20)); // 默认尺寸
     }
 
@@ -62,13 +63,15 @@ public:
      */
     CheckboxWidget(std::string id, i32 x, i32 y, i32 width, i32 height, std::string text)
         : Widget(std::move(id))
-        , m_text(std::move(text)) {
+        , m_text(std::move(text))
+    {
         setBounds(Rect(x, y, width, height));
     }
 
     // ==================== 生命周期 ====================
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         if (!isVisible()) return;
         const Rect box{bounds().x, bounds().y, boxSize(), boxSize()};
         ctx.drawFilledRect(box, Colors::fromARGB(255, 32, 32, 32));
@@ -81,7 +84,8 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -99,7 +103,8 @@ public:
     /**
      * @brief 设置选中状态
      */
-    void setChecked(bool checked) {
+    void setChecked(bool checked)
+    {
         if (m_checked != checked) {
             m_checked = checked;
             if (m_onChanged) {
@@ -116,18 +121,14 @@ public:
     /**
      * @brief 切换选中状态
      */
-    void toggle() {
-        setChecked(!m_checked);
-    }
+    void toggle() { setChecked(!m_checked); }
 
     // ==================== 显示属性 ====================
 
     /**
      * @brief 设置文本
      */
-    void setText(const std::string& text) {
-        m_text = text;
-    }
+    void setText(const std::string& text) { m_text = text; }
 
     /**
      * @brief 获取文本
@@ -137,16 +138,12 @@ public:
     /**
      * @brief 设置状态变化回调
      */
-    void setOnChanged(OnChangedCallback callback) {
-        m_onChanged = std::move(callback);
-    }
+    void setOnChanged(OnChangedCallback callback) { m_onChanged = std::move(callback); }
 
     /**
      * @brief 设置文本颜色
      */
-    void setTextColor(u32 color) {
-        m_textColor = color;
-    }
+    void setTextColor(u32 color) { m_textColor = color; }
 
     /**
      * @brief 获取文本颜色
@@ -156,9 +153,7 @@ public:
     /**
      * @brief 设置勾选颜色
      */
-    void setCheckColor(u32 color) {
-        m_checkColor = color;
-    }
+    void setCheckColor(u32 color) { m_checkColor = color; }
 
     /**
      * @brief 获取勾选颜色
@@ -168,16 +163,14 @@ public:
     /**
      * @brief 获取复选框框体大小
      */
-    [[nodiscard]] i32 boxSize() const {
-        return std::min(width(), height());
-    }
+    [[nodiscard]] i32 boxSize() const { return std::min(width(), height()); }
 
 protected:
-    bool m_checked = false;             ///< 选中状态
-    std::string m_text;                      ///< 显示文本
-    u32 m_textColor = Colors::WHITE;    ///< 文本颜色
+    bool m_checked = false;              ///< 选中状态
+    std::string m_text;                  ///< 显示文本
+    u32 m_textColor = Colors::WHITE;     ///< 文本颜色
     u32 m_checkColor = Colors::MC_WHITE; ///< 勾选颜色
-    OnChangedCallback m_onChanged;      ///< 状态变化回调
+    OnChangedCallback m_onChanged;       ///< 状态变化回调
 };
 
 } // namespace mc::client::ui::kagero::widget

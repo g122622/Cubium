@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../FlowingFluid.hpp"
 #include "../../../util/math/Vector3.hpp"
+#include "../FlowingFluid.hpp"
 
 namespace mc {
 namespace fluid {
@@ -23,20 +23,19 @@ public:
 
     using FlowingFluid::getTickDelay;
 
-    [[nodiscard]] i32 getTickDelay() const override {
-        return 5;
-    }
+    [[nodiscard]] i32 getTickDelay() const override { return 5; }
 
-    [[nodiscard]] bool canDisplace(const FluidState& state, IWorld& world,
-                                   const BlockPos& pos, const Fluid& fluid,
-                                   Direction dir) const override;
+    [[nodiscard]] bool canDisplace(
+        const FluidState& state, IWorld& world, const BlockPos& pos, const Fluid& fluid, Direction dir) const override;
 
-    [[nodiscard]] i32 getLevelDecrease(IWorld& world) const override {
+    [[nodiscard]] i32 getLevelDecrease(IWorld& world) const override
+    {
         (void)world;
         return 1;
     }
 
-    [[nodiscard]] i32 getSpreadDistance(IWorld& world) const override {
+    [[nodiscard]] i32 getSpreadDistance(IWorld& world) const override
+    {
         (void)world;
         return 4;
     }
@@ -58,8 +57,7 @@ public:
     [[nodiscard]] bool isEquivalentTo(const Fluid& other) const override;
 
 protected:
-    void beforeReplacingBlock(IWorld& world, const BlockPos& pos,
-                              const BlockState* state) override;
+    void beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state) override;
 };
 
 /**
@@ -71,12 +69,14 @@ class WaterSourceFluid : public WaterFluid {
 public:
     WaterSourceFluid();
 
-    [[nodiscard]] bool isSource(const FluidState& state) const override {
+    [[nodiscard]] bool isSource(const FluidState& state) const override
+    {
         (void)state;
         return true;
     }
 
-    [[nodiscard]] i32 getLevel(const FluidState& state) const override {
+    [[nodiscard]] i32 getLevel(const FluidState& state) const override
+    {
         (void)state;
         return 8;
     }
@@ -97,7 +97,8 @@ class WaterFlowingFluid : public WaterFluid {
 public:
     WaterFlowingFluid();
 
-    [[nodiscard]] bool isSource(const FluidState& state) const override {
+    [[nodiscard]] bool isSource(const FluidState& state) const override
+    {
         (void)state;
         return false;
     }

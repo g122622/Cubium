@@ -6,7 +6,8 @@ namespace mc::network {
 
 // ==================== SpawnEntityPacket ====================
 
-Result<std::vector<u8>> SpawnEntityPacket::serialize() const {
+Result<std::vector<u8>> SpawnEntityPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeBytes(m_uuid.data(), 16);
@@ -29,7 +30,8 @@ Result<std::vector<u8>> SpawnEntityPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> SpawnEntityPacket::deserialize(const u8* data, size_t size) {
+Result<void> SpawnEntityPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto result = deserializer.readU32();
     if (!result.success()) {
@@ -100,7 +102,8 @@ Result<void> SpawnEntityPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== SpawnMobPacket ====================
 
-Result<std::vector<u8>> SpawnMobPacket::serialize() const {
+Result<std::vector<u8>> SpawnMobPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeBytes(m_uuid.data(), 16);
@@ -119,7 +122,8 @@ Result<std::vector<u8>> SpawnMobPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> SpawnMobPacket::deserialize(const u8* data, size_t size) {
+Result<void> SpawnMobPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto result = deserializer.readU32();
     if (!result.success()) {
@@ -191,7 +195,8 @@ Result<void> SpawnMobPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityMetadataPacket ====================
 
-Result<std::vector<u8>> EntityMetadataPacket::serialize() const {
+Result<std::vector<u8>> EntityMetadataPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeU32(static_cast<u32>(m_metadata.size()));
@@ -199,7 +204,8 @@ Result<std::vector<u8>> EntityMetadataPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> EntityMetadataPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityMetadataPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto idResult = deserializer.readU32();
     if (!idResult.success()) return Error(idResult.error());
@@ -219,7 +225,8 @@ Result<void> EntityMetadataPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityVelocityPacket ====================
 
-Result<std::vector<u8>> EntityVelocityPacket::serialize() const {
+Result<std::vector<u8>> EntityVelocityPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeI16(m_velocityX);
@@ -228,7 +235,8 @@ Result<std::vector<u8>> EntityVelocityPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> EntityVelocityPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityVelocityPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto idResult = deserializer.readU32();
     if (!idResult.success()) return Error(idResult.error());
@@ -251,7 +259,8 @@ Result<void> EntityVelocityPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityTeleportPacket ====================
 
-Result<std::vector<u8>> EntityTeleportPacket::serialize() const {
+Result<std::vector<u8>> EntityTeleportPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeF32(m_x);
@@ -263,7 +272,8 @@ Result<std::vector<u8>> EntityTeleportPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> EntityTeleportPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityTeleportPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto idResult = deserializer.readU32();
     if (!idResult.success()) return Error(idResult.error());
@@ -298,7 +308,8 @@ Result<void> EntityTeleportPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityDestroyPacket ====================
 
-Result<std::vector<u8>> EntityDestroyPacket::serialize() const {
+Result<std::vector<u8>> EntityDestroyPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(static_cast<u32>(m_entityIds.size()));
     for (u32 id : m_entityIds) {
@@ -307,7 +318,8 @@ Result<std::vector<u8>> EntityDestroyPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> EntityDestroyPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityDestroyPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto countResult = deserializer.readU32();
     if (!countResult.success()) return Error(countResult.error());
@@ -325,14 +337,16 @@ Result<void> EntityDestroyPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityAnimationPacket ====================
 
-Result<std::vector<u8>> EntityAnimationPacket::serialize() const {
+Result<std::vector<u8>> EntityAnimationPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeU8(static_cast<u8>(m_animation));
     return serializer.buffer();
 }
 
-Result<void> EntityAnimationPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityAnimationPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto idResult = deserializer.readU32();
     if (!idResult.success()) return Error(idResult.error());
@@ -347,7 +361,8 @@ Result<void> EntityAnimationPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityMovePacket ====================
 
-Result<std::vector<u8>> EntityMovePacket::serialize() const {
+Result<std::vector<u8>> EntityMovePacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeI16(m_deltaX);
@@ -359,7 +374,8 @@ Result<std::vector<u8>> EntityMovePacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> EntityMovePacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityMovePacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto idResult = deserializer.readU32();
     if (!idResult.success()) return Error(idResult.error());
@@ -394,14 +410,16 @@ Result<void> EntityMovePacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityHeadLookPacket ====================
 
-Result<std::vector<u8>> EntityHeadLookPacket::serialize() const {
+Result<std::vector<u8>> EntityHeadLookPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeF32(m_headYaw);
     return serializer.buffer();
 }
 
-Result<void> EntityHeadLookPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityHeadLookPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto idResult = deserializer.readU32();
     if (!idResult.success()) return Error(idResult.error());
@@ -416,14 +434,16 @@ Result<void> EntityHeadLookPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityStatusPacket ====================
 
-Result<std::vector<u8>> EntityStatusPacket::serialize() const {
+Result<std::vector<u8>> EntityStatusPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeU8(static_cast<u8>(m_status));
     return serializer.buffer();
 }
 
-Result<void> EntityStatusPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityStatusPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
     auto idResult = deserializer.readU32();
     if (!idResult.success()) return Error(idResult.error());
@@ -438,7 +458,8 @@ Result<void> EntityStatusPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== CollectItemPacket ====================
 
-Result<std::vector<u8>> CollectItemPacket::serialize() const {
+Result<std::vector<u8>> CollectItemPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(m_collectedEntityId);
     serializer.writeU32(m_collectorEntityId);
@@ -446,7 +467,8 @@ Result<std::vector<u8>> CollectItemPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> CollectItemPacket::deserialize(const u8* data, size_t size) {
+Result<void> CollectItemPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
 
     auto collectedResult = deserializer.readU32();
@@ -466,7 +488,8 @@ Result<void> CollectItemPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== PlayerInputPacket ====================
 
-Result<std::vector<u8>> PlayerInputPacket::serialize() const {
+Result<std::vector<u8>> PlayerInputPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeF32(m_strafeSpeed);
     serializer.writeF32(m_forwardSpeed);
@@ -480,7 +503,8 @@ Result<std::vector<u8>> PlayerInputPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> PlayerInputPacket::deserialize(const u8* data, size_t size) {
+Result<void> PlayerInputPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
 
     auto strafeResult = deserializer.readF32();
@@ -503,7 +527,8 @@ Result<void> PlayerInputPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== MoveVehiclePacket ====================
 
-Result<std::vector<u8>> MoveVehiclePacket::serialize() const {
+Result<std::vector<u8>> MoveVehiclePacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeF64(m_x);
     serializer.writeF64(m_y);
@@ -513,7 +538,8 @@ Result<std::vector<u8>> MoveVehiclePacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> MoveVehiclePacket::deserialize(const u8* data, size_t size) {
+Result<void> MoveVehiclePacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
 
     auto xResult = deserializer.readF64();
@@ -541,7 +567,8 @@ Result<void> MoveVehiclePacket::deserialize(const u8* data, size_t size) {
 
 // ==================== VehicleMovePacket ====================
 
-Result<std::vector<u8>> VehicleMovePacket::serialize() const {
+Result<std::vector<u8>> VehicleMovePacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeF64(m_x);
     serializer.writeF64(m_y);
@@ -551,7 +578,8 @@ Result<std::vector<u8>> VehicleMovePacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> VehicleMovePacket::deserialize(const u8* data, size_t size) {
+Result<void> VehicleMovePacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
 
     auto xResult = deserializer.readF64();
@@ -579,7 +607,8 @@ Result<void> VehicleMovePacket::deserialize(const u8* data, size_t size) {
 
 // ==================== EntityActionPacket ====================
 
-Result<std::vector<u8>> EntityActionPacket::serialize() const {
+Result<std::vector<u8>> EntityActionPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeVarInt(static_cast<i32>(m_entityId));
     serializer.writeVarInt(static_cast<i32>(m_action));
@@ -587,7 +616,8 @@ Result<std::vector<u8>> EntityActionPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> EntityActionPacket::deserialize(const u8* data, size_t size) {
+Result<void> EntityActionPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
 
     auto idResult = deserializer.readVarInt();
@@ -612,7 +642,8 @@ Result<void> EntityActionPacket::deserialize(const u8* data, size_t size) {
 
 // ==================== UseEntityPacket ====================
 
-Result<std::vector<u8>> UseEntityPacket::serialize() const {
+Result<std::vector<u8>> UseEntityPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeVarInt(static_cast<i32>(m_entityId));
     serializer.writeVarInt(static_cast<i32>(m_action));
@@ -635,7 +666,8 @@ Result<std::vector<u8>> UseEntityPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> UseEntityPacket::deserialize(const u8* data, size_t size) {
+Result<void> UseEntityPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
 
     // 读取实体ID

@@ -1,18 +1,18 @@
 #include <gtest/gtest.h>
 
-#include "common/world/explosion/Explosion.hpp"
-#include "common/world/explosion/ExplosionMode.hpp"
-#include "common/world/explosion/ExplosionContext.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/loot/LootContext.hpp"
+#include "common/entity/loot/LootTable.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/entity/loot/LootContext.hpp"
-#include "common/entity/loot/LootTable.hpp"
-#include "common/core/Constants.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/world/explosion/Explosion.hpp"
+#include "common/world/explosion/ExplosionContext.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
 
-#include <memory>
 #include <cmath>
+#include <memory>
 
 using namespace mc;
 using namespace mc::world::explosion;
@@ -23,7 +23,8 @@ namespace {
 // BlockDensity 算法测试
 // ============================================================================
 
-TEST(ExplosionBlockDensityTest, DensityFormulaCorrect) {
+TEST(ExplosionBlockDensityTest, DensityFormulaCorrect)
+{
     // 测试密度公式：density = visible / total
     // 这个测试验证数学公式的正确性
     i32 visible = 8;
@@ -46,11 +47,12 @@ TEST(ExplosionBlockDensityTest, DensityFormulaCorrect) {
 // 实体爆炸免疫测试
 // ============================================================================
 
-TEST(ExplosionImmunityTest, DefaultIsImmuneToExplosions) {
+TEST(ExplosionImmunityTest, DefaultIsImmuneToExplosions)
+{
     // 测试默认实体不免疫爆炸
     // Entity 基类的 isImmuneToExplosions() 默认返回 false
     // 这个测试验证基类行为
-    bool defaultImmune = false;  // Entity::isImmuneToExplosions() 默认行为
+    bool defaultImmune = false; // Entity::isImmuneToExplosions() 默认行为
     EXPECT_FALSE(defaultImmune);
 }
 
@@ -58,7 +60,8 @@ TEST(ExplosionImmunityTest, DefaultIsImmuneToExplosions) {
 // 爆炸保护附魔伤害减少测试
 // ============================================================================
 
-TEST(ExplosionProtectionTest, DamageReductionFormula) {
+TEST(ExplosionProtectionTest, DamageReductionFormula)
+{
     // 测试 EPF 伤害减少公式
     // damage = damage * (1 - min(EPF, 20) / 25)
     // 最大减伤 80%
@@ -82,7 +85,8 @@ TEST(ExplosionProtectionTest, DamageReductionFormula) {
     EXPECT_FLOAT_EQ(damage25, 4.0f);
 }
 
-TEST(ExplosionProtectionTest, KnockbackReductionFormula) {
+TEST(ExplosionProtectionTest, KnockbackReductionFormula)
+{
     // 测试 EPF 击退减少公式
     // knockback = knockback * (1 - EPF * 0.15)
 
@@ -105,18 +109,20 @@ TEST(ExplosionProtectionTest, KnockbackReductionFormula) {
 // 爫焰生成逻辑测试
 // ============================================================================
 
-TEST(ExplosionFireTest, FireSpawnChance) {
+TEST(ExplosionFireTest, FireSpawnChance)
+{
     // 测试火焰生成概率（定义值为 0.333）
     using namespace mc::game::explosion;
     EXPECT_NEAR(FIRE_SPAWN_CHANCE, 1.0f / 3.0f, 0.001f);
 }
 
-TEST(ExplosionFireTest, FireRequiresCausesFire) {
+TEST(ExplosionFireTest, FireRequiresCausesFire)
+{
     // 验证 causesFire 参数必须为 true 才可能生成火焰
-    bool causesFire = true;  // 必须为 true
+    bool causesFire = true; // 必须为 true
     EXPECT_TRUE(causesFire);
 
-    causesFire = false;  // 为 false 时不生成火焰
+    causesFire = false; // 为 false 时不生成火焰
     EXPECT_FALSE(causesFire);
 }
 
@@ -124,13 +130,15 @@ TEST(ExplosionFireTest, FireRequiresCausesFire) {
 // 方块掉落测试
 // ============================================================================
 
-TEST(ExplosionDropTest, BreakModeNoDrops) {
+TEST(ExplosionDropTest, BreakModeNoDrops)
+{
     // Break 模式不应掉落物品
     // 这由 ExplosionMode::Break 枚举值决定
     EXPECT_EQ(static_cast<int>(ExplosionMode::Break), 1);
 }
 
-TEST(ExplosionDropTest, DestroyModeCanDrop) {
+TEST(ExplosionDropTest, DestroyModeCanDrop)
+{
     // Destroy 模式可以掉落物品
     // 取决于 Block::canDropFromExplosion()
     EXPECT_EQ(static_cast<int>(ExplosionMode::Destroy), 2);
@@ -142,7 +150,8 @@ TEST(ExplosionDropTest, DestroyModeCanDrop) {
 // 物品存活概率 = 1 - 1/explosionRadius
 // ============================================================================
 
-TEST(ExplosionDecayTest, SurvivalChanceFormula) {
+TEST(ExplosionDecayTest, SurvivalChanceFormula)
+{
     // 测试爆炸衰减公式
     // 爆炸半径越大，物品存活概率越高
 
@@ -167,27 +176,29 @@ TEST(ExplosionDecayTest, SurvivalChanceFormula) {
     EXPECT_FLOAT_EQ(survivalChance1, 0.0f);
 }
 
-TEST(ExplosionDecayTest, SurvivalChanceClamped) {
+TEST(ExplosionDecayTest, SurvivalChanceClamped)
+{
     // 存活概率应该在 [0, 1] 范围内
-    f32 radius = 0.5f;  // 异常小半径
-    f32 survivalChance = 1.0f - 1.0f / radius;  // 负值
+    f32 radius = 0.5f;                         // 异常小半径
+    f32 survivalChance = 1.0f - 1.0f / radius; // 负值
     survivalChance = std::max(0.0f, std::min(1.0f, survivalChance));
     EXPECT_FLOAT_EQ(survivalChance, 0.0f);
 
-    radius = 10.0f;  // 大半径
+    radius = 10.0f; // 大半径
     survivalChance = 1.0f - 1.0f / radius;
     survivalChance = std::max(0.0f, std::min(1.0f, survivalChance));
     EXPECT_NEAR(survivalChance, 0.9f, 0.0001f);
 }
 
-TEST(ExplosionDecayTest, ItemCountSurvival) {
+TEST(ExplosionDecayTest, ItemCountSurvival)
+{
     // 测试物品数量存活计算
     // 参考 MC 1.16.5: 每个物品独立判定存活
 
-    math::Random rng(12345);  // 固定种子
+    math::Random rng(12345); // 固定种子
 
     f32 radius = 4.0f;
-    f32 survivalChance = 1.0f - 1.0f / radius;  // 0.75
+    f32 survivalChance = 1.0f - 1.0f / radius; // 0.75
 
     i32 totalItems = 100;
     i32 survivingItems = 0;
@@ -208,7 +219,8 @@ TEST(ExplosionDecayTest, ItemCountSurvival) {
 // 参考 MC 1.16.5: Explosion.doExplosionB 中的合并逻辑
 // ============================================================================
 
-TEST(ExplosionItemMergeTest, MergeDistance) {
+TEST(ExplosionItemMergeTest, MergeDistance)
+{
     // 合并距离：2 格范围（距离平方 <= 4）
     f32 maxMergeDistanceSq = 4.0f;
 
@@ -234,7 +246,8 @@ TEST(ExplosionItemMergeTest, MergeDistance) {
     EXPECT_LE(pos1.distanceSq(pos6), maxMergeDistanceSq);
 }
 
-TEST(ExplosionItemMergeTest, MergeConditions) {
+TEST(ExplosionItemMergeTest, MergeConditions)
+{
     // 测试合并条件
     // 1. 相同物品类型
     // 2. 相同位置附近（距离平方 <= 4）
@@ -252,7 +265,7 @@ TEST(ExplosionItemMergeTest, MergeConditions) {
 
     // 超过空间时部分合并
     currentCount = 62;
-    space = maxStackSize - currentCount;  // 2
+    space = maxStackSize - currentCount; // 2
     toAdd = 5;
     i32 actualMerge = std::min(space, toAdd);
     EXPECT_EQ(actualMerge, 2);
@@ -262,21 +275,24 @@ TEST(ExplosionItemMergeTest, MergeConditions) {
 // LootTableManager 集成测试
 // ============================================================================
 
-TEST(ExplosionLootTableTest, NullLootTableManager) {
+TEST(ExplosionLootTableTest, NullLootTableManager)
+{
     // 当 LootTableManager 为空时，不应生成掉落物
     // 这是降级行为
     const loot::LootTableManager* nullManager = nullptr;
     EXPECT_EQ(nullManager, nullptr);
 }
 
-TEST(ExplosionLootTableTest, EmptyLootTableId) {
+TEST(ExplosionLootTableTest, EmptyLootTableId)
+{
     // 当方块没有掉落表 ID 时，不应生成掉落物
     // Block::getLootTableId() 返回空字符串
     std::string emptyLootTableId;
     EXPECT_TRUE(emptyLootTableId.empty());
 }
 
-TEST(ExplosionLootTableTest, LootContextParameters) {
+TEST(ExplosionLootTableTest, LootContextParameters)
+{
     // 爆炸掉落上下文应包含以下参数：
     // - BLOCK_STATE: 被破坏的方块状态
     // - BLOCK_POS: 方块位置
@@ -296,20 +312,23 @@ TEST(ExplosionLootTableTest, LootContextParameters) {
 // 爆炸模式掉落行为测试
 // ============================================================================
 
-TEST(ExplosionModeBehaviorTest, NoneModeBehavior) {
+TEST(ExplosionModeBehaviorTest, NoneModeBehavior)
+{
     // None 模式：仅造成伤害和击退，不破坏方块
     // 不调用 destroyBlocks()
     EXPECT_EQ(static_cast<int>(ExplosionMode::None), 0);
 }
 
-TEST(ExplosionModeBehaviorTest, BreakModeBehavior) {
+TEST(ExplosionModeBehaviorTest, BreakModeBehavior)
+{
     // Break 模式：破坏方块但不掉落物品
     // destroyBlocks() 中 m_mode == Break 时跳过掉落逻辑
     // setBlockState(pos, air, 3) 被调用
     EXPECT_EQ(static_cast<int>(ExplosionMode::Break), 1);
 }
 
-TEST(ExplosionModeBehaviorTest, DestroyModeBehavior) {
+TEST(ExplosionModeBehaviorTest, DestroyModeBehavior)
+{
     // Destroy 模式：破坏方块并掉落物品
     // 1. 检查 Block::canDropFromExplosion()
     // 2. 调用 generateBlockDrops() 获取掉落物
@@ -319,14 +338,15 @@ TEST(ExplosionModeBehaviorTest, DestroyModeBehavior) {
     EXPECT_EQ(static_cast<int>(ExplosionMode::Destroy), 2);
 }
 
-TEST(ExplosionModeBehaviorTest, BlockDropPermission) {
+TEST(ExplosionModeBehaviorTest, BlockDropPermission)
+{
     // 方块可以通过 canDropFromExplosion 控制是否掉落
     // 例如：玻璃、冰块等 canDropFromExplosion 返回 false
     // 这些方块在 Destroy 模式下也不掉落
-    bool glassCanDrop = false;  // 玻璃默认不掉落
+    bool glassCanDrop = false; // 玻璃默认不掉落
     EXPECT_FALSE(glassCanDrop);
 
-    bool stoneCanDrop = true;  // 石头默认掉落
+    bool stoneCanDrop = true; // 石头默认掉落
     EXPECT_TRUE(stoneCanDrop);
 }
 
@@ -334,7 +354,8 @@ TEST(ExplosionModeBehaviorTest, BlockDropPermission) {
 // 爆炸常量测试
 // ============================================================================
 
-TEST(ExplosionConstantsTest, VerifyAllConstants) {
+TEST(ExplosionConstantsTest, VerifyAllConstants)
+{
     using namespace mc::game::explosion;
 
     // 射线参数
@@ -368,79 +389,86 @@ TEST(ExplosionConstantsTest, VerifyAllConstants) {
 // 这些测试在集成测试环境中运行，不在单元测试中运行
 // ============================================================================
 
-TEST(ExplosionContextTest, DefaultResistance) {
+TEST(ExplosionContextTest, DefaultResistance)
+{
     // 测试默认爆炸抗性计算
     ExplosionContext context;
 
     // 对于 nullptr BlockState，返回 nullopt（无抗性）
     // 这是默认行为
-    EXPECT_TRUE(true);  // 占位测试，实际测试需要 Mock
+    EXPECT_TRUE(true); // 占位测试，实际测试需要 Mock
 }
 
-TEST(ExplosionContextTest, CanDestroyBlock) {
+TEST(ExplosionContextTest, CanDestroyBlock)
+{
     // 测试默认可破坏判断
     ExplosionContext context;
 
     // 默认情况下，非空气方块可被破坏
-    EXPECT_TRUE(true);  // 占位测试，实际测试需要 Mock
+    EXPECT_TRUE(true); // 占位测试，实际测试需要 Mock
 }
 
-TEST(ExplosionContextTest, BlastResistantBlock) {
+TEST(ExplosionContextTest, BlastResistantBlock)
+{
     // 测试高抗性方块判断
     ExplosionContext context;
 
     // 高抗性方块（如基岩）应有高爆炸抗性
-    EXPECT_TRUE(true);  // 占位测试，实际测试需要 Mock
+    EXPECT_TRUE(true); // 占位测试，实际测试需要 Mock
 }
 
 // ============================================================================
 // 伤害公式测试
 // ============================================================================
 
-TEST(ExplosionDamageTest, DamageFormula) {
+TEST(ExplosionDamageTest, DamageFormula)
+{
     // 测试 MC 1.16.5 爆炸伤害公式
     // damage = floor((impact^2 + impact) / 2 * 7 * radius + 1)
 
-    f32 radius = 4.0f;  // TNT 半径
-    f32 distanceRatio = 0.5f;  // 在半径一半的位置
-    f32 density = 1.0f;  // 无遮挡
-    f32 impact = (1.0f - distanceRatio) * density;  // 0.5
+    f32 radius = 4.0f;                             // TNT 半径
+    f32 distanceRatio = 0.5f;                      // 在半径一半的位置
+    f32 density = 1.0f;                            // 无遮挡
+    f32 impact = (1.0f - distanceRatio) * density; // 0.5
 
     f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
     // impact = 0.5, damage = floor((0.25 + 0.5) / 2 * 7 * 4 + 1) = floor(0.375 * 28 + 1) = floor(11.5) = 11
     EXPECT_FLOAT_EQ(damage, 11.0f);
 }
 
-TEST(ExplosionDamageTest, DamageAtCenter) {
+TEST(ExplosionDamageTest, DamageAtCenter)
+{
     // 爆炸中心伤害最大
     f32 radius = 4.0f;
-    f32 distanceRatio = 0.0f;  // 中心
-    f32 density = 1.0f;  // 无遮挡
-    f32 impact = (1.0f - distanceRatio) * density;  // 1.0
+    f32 distanceRatio = 0.0f;                      // 中心
+    f32 density = 1.0f;                            // 无遮挡
+    f32 impact = (1.0f - distanceRatio) * density; // 1.0
 
     f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
     // impact = 1.0, damage = floor((1 + 1) / 2 * 7 * 4 + 1) = floor(1 * 28 + 1) = 29
     EXPECT_FLOAT_EQ(damage, 29.0f);
 }
 
-TEST(ExplosionDamageTest, DamageAtEdge) {
+TEST(ExplosionDamageTest, DamageAtEdge)
+{
     // 爆炸边缘伤害最小
     f32 radius = 4.0f;
-    f32 distanceRatio = 1.0f;  // 边缘
-    f32 density = 1.0f;  // 无遮挡
-    f32 impact = (1.0f - distanceRatio) * density;  // 0.0
+    f32 distanceRatio = 1.0f;                      // 边缘
+    f32 density = 1.0f;                            // 无遮挡
+    f32 impact = (1.0f - distanceRatio) * density; // 0.0
 
     f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
     // impact = 0.0, damage = floor(0 + 1) = 1
     EXPECT_FLOAT_EQ(damage, 1.0f);
 }
 
-TEST(ExplosionDamageTest, DamageWithObstruction) {
+TEST(ExplosionDamageTest, DamageWithObstruction)
+{
     // 被方块遮挡时伤害减少
     f32 radius = 4.0f;
     f32 distanceRatio = 0.5f;
-    f32 density = 0.5f;  // 50% 遮挡
-    f32 impact = (1.0f - distanceRatio) * density;  // 0.25
+    f32 density = 0.5f;                            // 50% 遮挡
+    f32 impact = (1.0f - distanceRatio) * density; // 0.25
 
     f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
     // impact = 0.25, damage = floor((0.0625 + 0.25) / 2 * 28 + 1) = floor(0.15625 * 28 + 1) = floor(5.375) = 5
@@ -451,18 +479,20 @@ TEST(ExplosionDamageTest, DamageWithObstruction) {
 // 射线步进测试
 // ============================================================================
 
-TEST(ExplosionRayTest, RayStepSize) {
+TEST(ExplosionRayTest, RayStepSize)
+{
     // 射线每步进 0.3 格
     using namespace mc::game::explosion;
     EXPECT_FLOAT_EQ(RAY_STEP_SIZE, 0.3f);
 
     // 验证步进公式
-    f32 strength = 4.0f;  // TNT 半径
+    f32 strength = 4.0f; // TNT 半径
     i32 expectedSteps = static_cast<i32>(strength / RAY_STEP_SIZE);
-    EXPECT_EQ(expectedSteps, 13);  // 约 13 步
+    EXPECT_EQ(expectedSteps, 13); // 约 13 步
 }
 
-TEST(ExplosionRayTest, RayGridSize) {
+TEST(ExplosionRayTest, RayGridSize)
+{
     // 16x16x16 立方体表面射线
     using namespace mc::game::explosion;
     EXPECT_EQ(RAY_GRID_SIZE, 16);
@@ -489,12 +519,13 @@ TEST(ExplosionRayTest, RayGridSize) {
 // EntityExplosionContext 测试
 // ============================================================================
 
-TEST(EntityExplosionContextTest, DefaultBehavior) {
+TEST(EntityExplosionContextTest, DefaultBehavior)
+{
     // 测试 EntityExplosionContext 默认行为
     EntityExplosionContext context(nullptr);
 
     // 默认行为与基类相同
-    EXPECT_TRUE(true);  // 占位测试，实际测试需要 Mock
+    EXPECT_TRUE(true); // 占位测试，实际测试需要 Mock
 }
 
 } // namespace

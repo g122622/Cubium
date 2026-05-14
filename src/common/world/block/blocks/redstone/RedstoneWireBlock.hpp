@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/core/ActionResult.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../Block.hpp"
 #include <vector>
 
 namespace mc {
@@ -18,15 +18,15 @@ namespace blocks {
  * 描述红石线在某个方向的连接状态。
  */
 enum class RedstoneSide : u8 {
-    None = 0,   ///< 无连接
-    Side = 1,   ///< 水平连接
-    Up = 2      ///< 向上连接（连接到高一格的方块侧面）
+    None = 0, ///< 无连接
+    Side = 1, ///< 水平连接
+    Up = 2    ///< 向上连接（连接到高一格的方块侧面）
 };
 
 } // namespace blocks
 
 // 特化 EnumProperty::Traits for RedstoneSide
-template<>
+template <>
 struct EnumProperty<blocks::RedstoneSide>::Traits {
     static std::string toString(const blocks::RedstoneSide& value);
     static std::optional<blocks::RedstoneSide> fromName(std::string_view name);
@@ -62,13 +62,15 @@ public:
 
     // ========== Block 接口实现 ==========
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
@@ -76,17 +78,14 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     /**
      * @brief 获取强信号强度
@@ -101,11 +100,7 @@ public:
      * @return i32 强信号强度
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     // ========== 红石线特有方法 ==========
 
@@ -117,16 +112,12 @@ public:
     /**
      * @brief 计算连接状态
      */
-    [[nodiscard]] BlockState calculateConnections(IWorld& world,
-                                                   const BlockPos& pos,
-                                                   const BlockState& state) const;
+    [[nodiscard]] BlockState calculateConnections(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 检查指定方向的连接类型
      */
-    [[nodiscard]] RedstoneSide getConnection(IWorld& world,
-                                              const BlockPos& pos,
-                                              Direction direction) const;
+    [[nodiscard]] RedstoneSide getConnection(IWorld& world, const BlockPos& pos, Direction direction) const;
 
     /**
      * @brief 判断方块是否可以连接红石
@@ -179,8 +170,7 @@ public:
      * MC Java: 右键点击红石线可以在十字和点状连接之间切换。
      * 这个功能用于控制红石信号的传播方向。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -233,9 +223,8 @@ private:
      * MC Java: updateDiagonalNeighbors
      * 当连接状态改变时，通知对角方向的方块更新。
      */
-    void notifyDiagonalNeighbors(IWorld& world, const BlockPos& pos,
-                                  const BlockState& oldState,
-                                  const BlockState& newState);
+    void notifyDiagonalNeighbors(
+        IWorld& world, const BlockPos& pos, const BlockState& oldState, const BlockState& newState);
 
     /// 临时变量：防止递归调用时检测自己的信号输出
     mutable bool m_canProvidePower = true;

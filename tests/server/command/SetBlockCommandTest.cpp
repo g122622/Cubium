@@ -9,12 +9,22 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/Items.hpp"
+#include "common/network/connection/IServerConnection.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/UuidUtils.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/core/BannedIpList.hpp"
+#include "server/core/BannedPlayerList.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/GameModeManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
@@ -23,17 +33,7 @@
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/core/WhitelistManager.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/OpListManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/item/Items.hpp"
-#include "common/network/connection/IServerConnection.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/sound/SoundCategory.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/util/UuidUtils.hpp"
 
 #include <stdexcept>
 #include <vector>
@@ -102,14 +102,13 @@ public:
         , m_teleportManager(m_playerManager)
         , m_keepAliveManager(m_playerManager, m_config)
         , m_positionTracker(m_playerManager, m_config)
-        , m_packetHandler(
-            m_playerManager,
-            m_connectionManager,
-            m_teleportManager,
-            m_keepAliveManager,
-            m_positionTracker,
-            m_timeManager,
-            m_config)
+        , m_packetHandler(m_playerManager,
+              m_connectionManager,
+              m_teleportManager,
+              m_keepAliveManager,
+              m_positionTracker,
+              m_timeManager,
+              m_config)
         , m_gameModeManager(m_playerManager, m_connectionManager)
         , m_commandRegistry()
     {
@@ -126,7 +125,10 @@ public:
     [[nodiscard]] server::core::PlayerManager& playerManager() override { return m_playerManager; }
     [[nodiscard]] const server::core::PlayerManager& playerManager() const override { return m_playerManager; }
     [[nodiscard]] server::core::ConnectionManager& connectionManager() override { return m_connectionManager; }
-    [[nodiscard]] const server::core::ConnectionManager& connectionManager() const override { return m_connectionManager; }
+    [[nodiscard]] const server::core::ConnectionManager& connectionManager() const override
+    {
+        return m_connectionManager;
+    }
     [[nodiscard]] server::core::TimeManager& timeManager() override { return m_timeManager; }
     [[nodiscard]] const server::core::TimeManager& timeManager() const override { return m_timeManager; }
     [[nodiscard]] server::core::TeleportManager& teleportManager() override { return m_teleportManager; }
@@ -151,7 +153,10 @@ public:
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::ServerWorld& world() override { throw std::logic_error("world not available in unit test"); }
-    [[nodiscard]] const server::ServerWorld& world() const override { throw std::logic_error("world not available in unit test"); }
+    [[nodiscard]] const server::ServerWorld& world() const override
+    {
+        throw std::logic_error("world not available in unit test");
+    }
     [[nodiscard]] server::ServerChunkManager& chunkManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::ServerChunkManager& chunkManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] WorldLightManager* lightManager() override { return nullptr; }
@@ -165,25 +170,67 @@ public:
     [[nodiscard]] server::WeatherManager& weatherManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::WeatherManager& weatherManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::ItemPickupManager& itemPickupManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::interaction::BlockInteractionManager& blockInteractionManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::BlockInteractionManager& blockInteractionManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] server::interaction::BlockInteractionManager& blockInteractionManager() override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] const server::interaction::BlockInteractionManager& blockInteractionManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::interaction::MiningManager& miningManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::MiningManager& miningManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::interaction::ContainerManager& containerManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::ContainerManager& containerManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::interaction::MiningManager& miningManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] server::interaction::ContainerManager& containerManager() override
+    {
+        throw std::logic_error("unused");
+    }
+    [[nodiscard]] const server::interaction::ContainerManager& containerManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::interaction::InventoryManager& inventoryManager() override { return m_inventoryManager; }
-    [[nodiscard]] const server::interaction::InventoryManager& inventoryManager() const override { return m_inventoryManager; }
-    [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override { return m_inventoryManager.getInventory(playerId); }
-    [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override { return m_inventoryManager.getInventory(playerId); }
+    [[nodiscard]] const server::interaction::InventoryManager& inventoryManager() const override
+    {
+        return m_inventoryManager;
+    }
+    [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override
+    {
+        return m_inventoryManager.getInventory(playerId);
+    }
+    [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override
+    {
+        return m_inventoryManager.getInventory(playerId);
+    }
     [[nodiscard]] server::sync::EntitySyncManager& entitySyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::EntitySyncManager& entitySyncManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::sync::EntitySyncManager& entitySyncManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::sync::ChunkSendManager& chunkSendManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::ChunkSendManager& chunkSendManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::sync::ChunkSendManager& chunkSendManager() const override
+    {
+        throw std::logic_error("unused");
+    }
     [[nodiscard]] server::sync::LightSyncManager& lightSyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::LightSyncManager& lightSyncManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::sync::LightSyncManager& lightSyncManager() const override
+    {
+        throw std::logic_error("unused");
+    }
 
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
@@ -199,16 +246,15 @@ public:
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override { m_idleTimeoutMinutes = timeoutMinutes; }
     void broadcastServerMessage(std::string_view message) override { m_lastBroadcastMessage = std::string(message); }
-    void requestStop() override { m_stopRequested = true; m_running = false; }
+    void requestStop() override
+    {
+        m_stopRequested = true;
+        m_running = false;
+    }
 
     void broadcastParticleInRange(u32, f64, f64, f64, f32, f32, f32, f32, f32, f32, u32, f32) override {}
 
-    void sendSoundToPlayer(PlayerId,
-                          const ResourceLocation&,
-                          sound::SoundCategory,
-                          const Vector3&,
-                          f32,
-                          f32) override
+    void sendSoundToPlayer(PlayerId, const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
     {
         // 空实现，用于测试
     }
@@ -321,16 +367,14 @@ TEST_F(SetBlockCommandTest, SetBlockCommandRequiresWorld)
 TEST_F(SetBlockCommandTest, SetBlockCommandRequiresPermissionLevel2)
 {
     // 创建一个权限等级 0 的命令源
-    ServerCommandSource lowPermSource(
-        &m_server,
+    ServerCommandSource lowPermSource(&m_server,
         nullptr,
         nullptr,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
-        0,  // 权限等级 0
+        0, // 权限等级 0
         0,
-        "test"
-    );
+        "test");
 
     // 应该因为没有权限而被拒绝
     // 注意：权限不足时命令执行会抛出异常或返回失败
@@ -340,7 +384,8 @@ TEST_F(SetBlockCommandTest, SetBlockCommandRequiresPermissionLevel2)
         const auto result = m_server.commandRegistry().execute("setblock 10 64 20 minecraft:stone", lowPermSource);
         // 如果执行成功但返回 0，也算权限检查生效
         permissionDenied = (result.value() == 0);
-    } catch (...) {
+    }
+    catch (...) {
         // 如果抛出异常，也说明权限检查生效
         permissionDenied = true;
     }
@@ -355,7 +400,7 @@ TEST_F(SetBlockCommandTest, SetBlockCommandParsesPosition)
     const auto result = m_server.commandRegistry().execute("setblock 100 -64 200 minecraft:stone", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0); // 失败因为没有世界
 }
 
 TEST_F(SetBlockCommandTest, SetBlockCommandParsesBlockWithNamespace)
@@ -363,7 +408,7 @@ TEST_F(SetBlockCommandTest, SetBlockCommandParsesBlockWithNamespace)
     const auto result = m_server.commandRegistry().execute("setblock 0 0 0 minecraft:dirt", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0); // 失败因为没有世界
 }
 
 TEST_F(SetBlockCommandTest, SetBlockCommandParsesBlockWithoutNamespace)
@@ -371,7 +416,7 @@ TEST_F(SetBlockCommandTest, SetBlockCommandParsesBlockWithoutNamespace)
     const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0); // 失败因为没有世界
 }
 
 TEST_F(SetBlockCommandTest, SetBlockCommandParsesDestroyMode)
@@ -379,7 +424,7 @@ TEST_F(SetBlockCommandTest, SetBlockCommandParsesDestroyMode)
     const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone destroy", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0); // 失败因为没有世界
 }
 
 TEST_F(SetBlockCommandTest, SetBlockCommandParsesKeepMode)
@@ -387,7 +432,7 @@ TEST_F(SetBlockCommandTest, SetBlockCommandParsesKeepMode)
     const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone keep", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0); // 失败因为没有世界
 }
 
 TEST_F(SetBlockCommandTest, SetBlockCommandParsesReplaceMode)
@@ -395,7 +440,7 @@ TEST_F(SetBlockCommandTest, SetBlockCommandParsesReplaceMode)
     const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone replace", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0); // 失败因为没有世界
 }
 
 TEST_F(SetBlockCommandTest, SetBlockCommandWithInvalidBlockReturnsZero)
@@ -403,7 +448,7 @@ TEST_F(SetBlockCommandTest, SetBlockCommandWithInvalidBlockReturnsZero)
     const auto result = m_server.commandRegistry().execute("setblock 0 0 0 minecraft:nonexistent_block", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 无效方块返回 0
+    EXPECT_EQ(result.value(), 0); // 无效方块返回 0
 }
 
 } // namespace

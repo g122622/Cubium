@@ -1,10 +1,10 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include <mutex>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-#include <mutex>
 
 namespace mc {
 namespace resource {
@@ -119,9 +119,7 @@ public:
     /**
      * @brief 获取纹理名称映射数量
      */
-    [[nodiscard]] size_t getMappingCount() const noexcept {
-        return m_modernToLegacy.size();
-    }
+    [[nodiscard]] size_t getMappingCount() const noexcept { return m_modernToLegacy.size(); }
 
 private:
     TextureMapper();

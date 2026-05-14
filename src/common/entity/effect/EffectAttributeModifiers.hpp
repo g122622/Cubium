@@ -1,13 +1,13 @@
 #pragma once
 
+#include "../../core/Types.hpp"
 #include "../attribute/Attribute.hpp"
 #include "../attribute/AttributeModifier.hpp"
 #include "../attribute/Attributes.hpp"
 #include "EffectType.hpp"
-#include "../../core/Types.hpp"
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 namespace mc {
 namespace entity {
@@ -64,7 +64,8 @@ struct EffectModifierInfo {
      * @param amplifier 效果等级（0-based）
      * @return 实际修改量
      */
-    [[nodiscard]] f64 calculateAmount(i32 amplifier) const {
+    [[nodiscard]] f64 calculateAmount(i32 amplifier) const
+    {
         // MC 1.16.5: 修改量 = baseAmount * (amplifier + 1)
         return baseAmount * static_cast<f64>(amplifier + 1);
     }
@@ -89,10 +90,7 @@ struct EffectModifierInfo {
  * @param amplifier 效果等级
  * @return 属性修改器
  */
-[[nodiscard]] attribute::AttributeModifier createModifier(
-    const EffectModifierInfo& info,
-    i32 amplifier
-);
+[[nodiscard]] attribute::AttributeModifier createModifier(const EffectModifierInfo& info, i32 amplifier);
 
 } // namespace EffectAttributeModifiers
 

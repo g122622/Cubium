@@ -1,7 +1,7 @@
 #include "DebugChunkGenerator.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include "../../biome/Biomes.hpp"
 #include "../../chunk/IChunk.hpp"
-#include "../../../util/assert/AssertAll.hpp"
 #include <cmath>
 
 namespace mc {
@@ -19,7 +19,7 @@ bool DebugChunkGenerator::s_initialized = false;
 // ============================================================================
 
 DebugChunkGenerator::DebugChunkGenerator()
-    : BaseChunkGenerator(0, DimensionSettings{})  // 种子和设置对调试模式无意义
+    : BaseChunkGenerator(0, DimensionSettings{}) // 种子和设置对调试模式无意义
 {
     // 确保已初始化
     if (!s_initialized) {
@@ -31,7 +31,8 @@ DebugChunkGenerator::DebugChunkGenerator()
 // 初始化
 // ============================================================================
 
-void DebugChunkGenerator::initializeValidStates() {
+void DebugChunkGenerator::initializeValidStates()
+{
     if (s_initialized) {
         return;
     }
@@ -75,19 +76,23 @@ void DebugChunkGenerator::initializeValidStates() {
 // 静态查询方法
 // ============================================================================
 
-const std::vector<const BlockState*>& DebugChunkGenerator::getAllValidStates() {
+const std::vector<const BlockState*>& DebugChunkGenerator::getAllValidStates()
+{
     return s_allValidStates;
 }
 
-i32 DebugChunkGenerator::getGridWidth() {
+i32 DebugChunkGenerator::getGridWidth()
+{
     return s_gridWidth;
 }
 
-i32 DebugChunkGenerator::getGridHeight() {
+i32 DebugChunkGenerator::getGridHeight()
+{
     return s_gridHeight;
 }
 
-const BlockState* DebugChunkGenerator::getBlockStateFor(i32 x, i32 z) {
+const BlockState* DebugChunkGenerator::getBlockStateFor(i32 x, i32 z)
+{
     // 参考 MC 1.16.5: DebugChunkGenerator#getBlockStateFor
     // 方块只在奇数坐标放置
     if (x > 0 && z > 0 && (x % 2) != 0 && (z % 2) != 0) {
@@ -106,7 +111,8 @@ const BlockState* DebugChunkGenerator::getBlockStateFor(i32 x, i32 z) {
     return s_airState;
 }
 
-bool DebugChunkGenerator::isInitialized() {
+bool DebugChunkGenerator::isInitialized()
+{
     return s_initialized;
 }
 
@@ -114,19 +120,22 @@ bool DebugChunkGenerator::isInitialized() {
 // 区块生成接口
 // ============================================================================
 
-void DebugChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk) {
+void DebugChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     // 调试模式不生成结构
     MC_UNUSED(region);
     MC_UNUSED(chunk);
 }
 
-void DebugChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk) {
+void DebugChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     // 调试模式不生成结构引用
     MC_UNUSED(region);
     MC_UNUSED(chunk);
 }
 
-void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) {
+void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     // 调试模式使用平原生物群系
     MC_UNUSED(region);
     auto& biomes = chunk.getBiomes();
@@ -140,7 +149,8 @@ void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     }
 }
 
-void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) {
+void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     // 确保已初始化
     if (!s_initialized) {
         initializeValidStates();
@@ -168,27 +178,31 @@ void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
     }
 }
 
-void DebugChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) {
+void DebugChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     // 调试模式不需要地表生成
     MC_UNUSED(region);
     MC_UNUSED(chunk);
 }
 
-void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) {
+void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid)
+{
     // 调试模式不应用雕刻器
     MC_UNUSED(region);
     MC_UNUSED(chunk);
     MC_UNUSED(isLiquid);
 }
 
-void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) {
+void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     // 调试模式不放置特性
     MC_UNUSED(region);
     MC_UNUSED(chunk);
 }
 
-i32 DebugChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                                           std::vector<SpawnedEntityData>& outEntities) {
+i32 DebugChunkGenerator::spawnInitialMobs(
+    WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities)
+{
     // 调试模式不生成生物
     MC_UNUSED(region);
     MC_UNUSED(chunk);
@@ -200,7 +214,8 @@ i32 DebugChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& c
 // 生物群系和高度查询
 // ============================================================================
 
-BiomeId DebugChunkGenerator::getBiome(i32 x, i32 y, i32 z) const {
+BiomeId DebugChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
+{
     MC_UNUSED(x);
     MC_UNUSED(y);
     MC_UNUSED(z);
@@ -208,14 +223,16 @@ BiomeId DebugChunkGenerator::getBiome(i32 x, i32 y, i32 z) const {
     return Biomes::Plains;
 }
 
-BiomeId DebugChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
+BiomeId DebugChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
+{
     MC_UNUSED(noiseX);
     MC_UNUSED(noiseY);
     MC_UNUSED(noiseZ);
     return Biomes::Plains;
 }
 
-i32 DebugChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
+i32 DebugChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
+{
     MC_UNUSED(type);
     // 调试模式高度固定为 70（方块网格层）
     // 但如果该位置没有方块，返回 60（屏障层）

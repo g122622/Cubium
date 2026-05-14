@@ -31,23 +31,25 @@ public:
 
     // ========== Block 接口实现 ==========
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
-    [[nodiscard]] i32 getWeakPower(const BlockState& state, IWorld& world,
-                                   const BlockPos& pos, Direction side) const override;
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
-    [[nodiscard]] i32 getStrongPower(const BlockState& state, IWorld& world,
-                                     const BlockPos& pos, Direction side) const override;
+    [[nodiscard]] i32 getStrongPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Normal;
     }
@@ -92,8 +94,7 @@ public:
      * @param hitY 命中点Y坐标
      * @param hitZ 命中点Z坐标
      */
-    void onHitByArrow(IWorld& world, const BlockPos& pos, const BlockState& state,
-                      f32 hitX, f32 hitY, f32 hitZ);
+    void onHitByArrow(IWorld& world, const BlockPos& pos, const BlockState& state, f32 hitX, f32 hitY, f32 hitZ);
 };
 
 } // namespace blocks

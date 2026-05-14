@@ -1,22 +1,22 @@
 #pragma once
 
-#include "PointOfInterest.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/chunk/ChunkPos.hpp"
-#include "../../../core/Types.hpp"
+#include "PointOfInterest.hpp"
+#include <functional>
+#include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <optional>
-#include <functional>
-#include <mutex>
 
 namespace mc {
 namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
+} // namespace nbt
 
 namespace world {
 namespace village {
@@ -144,9 +144,7 @@ public:
      * @param criteria 搜索条件
      * @return 搜索结果
      */
-    [[nodiscard]] POISearchResult findNearest(
-        BlockPos center,
-        const POISearchCriteria& criteria = {}) const;
+    [[nodiscard]] POISearchResult findNearest(BlockPos center, const POISearchCriteria& criteria = {}) const;
 
     /**
      * @brief 查找最近的可占用POI
@@ -156,9 +154,7 @@ public:
      * @return POI位置（如果找到）
      */
     [[nodiscard]] std::optional<BlockPos> findNearestFree(
-        BlockPos center,
-        PointOfInterestType type,
-        f32 maxDistance) const;
+        BlockPos center, PointOfInterestType type, f32 maxDistance) const;
 
     /**
      * @brief 查找指定类型最近的POI（无论是否占用）
@@ -167,10 +163,7 @@ public:
      * @param maxDistance 最大距离
      * @return POI位置（如果找到）
      */
-    [[nodiscard]] std::optional<BlockPos> findNearest(
-        BlockPos center,
-        PointOfInterestType type,
-        f32 maxDistance) const;
+    [[nodiscard]] std::optional<BlockPos> findNearest(BlockPos center, PointOfInterestType type, f32 maxDistance) const;
 
     /**
      * @brief 查找指定类型最近的未被指定实体占用的POI
@@ -181,10 +174,7 @@ public:
      * @return POI位置（如果找到）
      */
     [[nodiscard]] std::optional<BlockPos> findNearestUnacquired(
-        BlockPos center,
-        PointOfInterestType type,
-        f32 maxDistance,
-        u64 excludeOwnerId) const;
+        BlockPos center, PointOfInterestType type, f32 maxDistance, u64 excludeOwnerId) const;
 
     /**
      * @brief 查找区块内的所有POI
@@ -193,8 +183,7 @@ public:
      * @return POI列表
      */
     [[nodiscard]] std::vector<const PointOfInterest*> findAllInChunk(
-        ChunkCoord chunkX, ChunkCoord chunkZ,
-        std::optional<PointOfInterestType> typeFilter = std::nullopt) const;
+        ChunkCoord chunkX, ChunkCoord chunkZ, std::optional<PointOfInterestType> typeFilter = std::nullopt) const;
 
     /**
      * @brief 查找范围内的所有POI
@@ -204,17 +193,14 @@ public:
      * @return POI列表
      */
     [[nodiscard]] std::vector<const PointOfInterest*> findAllInRange(
-        BlockPos center,
-        f32 radius,
-        std::optional<PointOfInterestType> typeFilter = std::nullopt) const;
+        BlockPos center, f32 radius, std::optional<PointOfInterestType> typeFilter = std::nullopt) const;
 
     /**
      * @brief 查找指定类型的所有POI
      * @param type POI类型
      * @return POI列表
      */
-    [[nodiscard]] std::vector<const PointOfInterest*> findAllByType(
-        PointOfInterestType type) const;
+    [[nodiscard]] std::vector<const PointOfInterest*> findAllByType(PointOfInterestType type) const;
 
     // ========== 区块回调 ==========
 
@@ -278,9 +264,7 @@ private:
     /**
      * @brief 检查POI是否匹配搜索条件
      */
-    [[nodiscard]] bool matchesCriteria(
-        const PointOfInterest& poi,
-        const POISearchCriteria& criteria) const;
+    [[nodiscard]] bool matchesCriteria(const PointOfInterest& poi, const POISearchCriteria& criteria) const;
 
     /**
      * @brief 获取或创建区块POI列表

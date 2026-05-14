@@ -1,9 +1,10 @@
-#include <gtest/gtest.h>
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include <gtest/gtest.h>
 
 namespace mc::client::test {
 
-TEST(ChunkRendererStagingLayoutTest, IndexSegmentDoesNotOverlapVertexSegment) {
+TEST(ChunkRendererStagingLayoutTest, IndexSegmentDoesNotOverlapVertexSegment)
+{
     const VkDeviceSize vertexSize = 37;
     const VkDeviceSize indexSize = 1024;
 
@@ -15,7 +16,8 @@ TEST(ChunkRendererStagingLayoutTest, IndexSegmentDoesNotOverlapVertexSegment) {
     EXPECT_EQ(layout.totalSize, layout.indexOffset + indexSize);
 }
 
-TEST(ChunkRendererStagingLayoutTest, HandlesTypicalChunkBufferSizes) {
+TEST(ChunkRendererStagingLayoutTest, HandlesTypicalChunkBufferSizes)
+{
     const VkDeviceSize vertexSize = 65536;
     const VkDeviceSize indexSize = 98304;
 
@@ -26,7 +28,8 @@ TEST(ChunkRendererStagingLayoutTest, HandlesTypicalChunkBufferSizes) {
     EXPECT_EQ(layout.totalSize, vertexSize + indexSize);
 }
 
-TEST(ChunkRendererStagingLayoutTest, HandlesZeroSizedSegments) {
+TEST(ChunkRendererStagingLayoutTest, HandlesZeroSizedSegments)
+{
     const auto layout = ChunkRenderer::buildStagingCopyLayout(0, 0);
 
     EXPECT_EQ(layout.vertexOffset, 0);

@@ -1,7 +1,7 @@
 #include "Window.hpp"
 
-#include <spdlog/spdlog.h>
 #include <GLFW/glfw3.h>
+#include <spdlog/spdlog.h>
 
 namespace mc::client {
 
@@ -84,13 +84,11 @@ Result<void> Window::create(const WindowConfig& config)
     glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
 
     // 创建窗口
-    m_window = glfwCreateWindow(
-        config.width,
+    m_window = glfwCreateWindow(config.width,
         config.height,
         config.title.c_str(),
         config.fullscreen ? glfwGetPrimaryMonitor() : nullptr,
-        nullptr
-    );
+        nullptr);
 
     if (!m_window) {
         if (s_glfwInitCount > 0) {
@@ -130,8 +128,8 @@ Result<void> Window::create(const WindowConfig& config)
     }
     m_initialized = true;
 
-    spdlog::info("Window created: {}x{} (framebuffer: {}x{})",
-                 m_width, m_height, m_framebufferWidth, m_framebufferHeight);
+    spdlog::info(
+        "Window created: {}x{} (framebuffer: {}x{})", m_width, m_height, m_framebufferWidth, m_framebufferHeight);
 
     return Result<void>::ok();
 }
@@ -207,21 +205,10 @@ void Window::setFullscreen(bool fullscreen)
             return;
         }
 
-        glfwSetWindowMonitor(
-            m_window,
-            monitor,
-            0, 0,
-            mode->width, mode->height,
-            mode->refreshRate
-        );
+        glfwSetWindowMonitor(m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     } else {
         glfwSetWindowMonitor(
-            m_window,
-            nullptr,
-            m_windowedX, m_windowedY,
-            m_windowedWidth, m_windowedHeight,
-            GLFW_DONT_CARE
-        );
+            m_window, nullptr, m_windowedX, m_windowedY, m_windowedWidth, m_windowedHeight, GLFW_DONT_CARE);
     }
 
     m_fullscreen = fullscreen;
@@ -230,11 +217,7 @@ void Window::setFullscreen(bool fullscreen)
 void Window::setCursorVisible(bool visible)
 {
     if (m_window) {
-        glfwSetInputMode(
-            m_window,
-            GLFW_CURSOR,
-            visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED
-        );
+        glfwSetInputMode(m_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
         m_cursorVisible = visible;
     }
 }

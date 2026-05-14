@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "../../../core/Constants.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../block/Block.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include <bitset>
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
-#include <bitset>
 
 namespace mc {
 
@@ -34,7 +34,9 @@ struct ProbabilityConfig : public ICarverConfig {
     /// 生成概率 (0.0 - 1.0)
     f32 probability;
 
-    explicit ProbabilityConfig(f32 prob = 0.14285715f) : probability(prob) {}
+    explicit ProbabilityConfig(f32 prob = 0.14285715f)
+        : probability(prob)
+    {}
 };
 
 /**
@@ -76,14 +78,15 @@ public:
      * @param z 区块内Z坐标 (0-15)
      * @return 位索引
      */
-    [[nodiscard]] static constexpr i32 getIndex(BlockCoord x, i32 y, BlockCoord z) {
+    [[nodiscard]] static constexpr i32 getIndex(BlockCoord x, i32 y, BlockCoord z)
+    {
         return static_cast<i32>(x) | (static_cast<i32>(z) << 4) | (y << 8);
     }
 
 private:
     ChunkCoord m_chunkX;
     ChunkCoord m_chunkZ;
-    std::vector<bool> m_mask;  // 使用 vector<bool> 作为 BitSet
+    std::vector<bool> m_mask; // 使用 vector<bool> 作为 BitSet
 };
 
 /**
@@ -93,7 +96,7 @@ private:
  *
  * @tparam Config 配置类型
  */
-template<typename Config>
+template <typename Config>
 class WorldCarver {
 public:
     /**
@@ -101,7 +104,8 @@ public:
      * @param maxHeight 最大雕刻高度
      */
     explicit WorldCarver(i32 maxHeight = world::MAX_BUILD_HEIGHT)
-        : m_maxHeight(maxHeight) {}
+        : m_maxHeight(maxHeight)
+    {}
 
     virtual ~WorldCarver() = default;
 
@@ -118,12 +122,12 @@ public:
      * @return 是否雕刻了任何方块
      */
     virtual bool carve(ChunkPrimer& chunk,
-                       const BiomeProvider& biomeProvider,
-                       i32 seaLevel,
-                       ChunkCoord chunkX,
-                       ChunkCoord chunkZ,
-                       CarvingMask& carvingMask,
-                       const Config& config) = 0;
+        const BiomeProvider& biomeProvider,
+        i32 seaLevel,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        CarvingMask& carvingMask,
+        const Config& config) = 0;
 
     /**
      * @brief 检查是否应该在这个区块执行雕刻
@@ -135,10 +139,7 @@ public:
      * @return 是否应该雕刻
      */
     [[nodiscard]] virtual bool shouldCarve(
-        math::IRandom& rng,
-        ChunkCoord chunkX,
-        ChunkCoord chunkZ,
-        const Config& config) const = 0;
+        math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ, const Config& config) const = 0;
 
     /**
      * @brief 获取雕刻器的影响范围（以区块为单位）
@@ -204,14 +205,16 @@ protected:
      * @param seed 随机种子
      * @return 是否雕刻了任何方块
      */
-    bool carveEllipsoid(
-        ChunkPrimer& chunk,
+    bool carveEllipsoid(ChunkPrimer& chunk,
         const BiomeProvider& biomeProvider,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
-        f32 centerX, f32 centerY, f32 centerZ,
-        f32 horizontalRadius, f32 verticalRadius,
+        f32 centerX,
+        f32 centerY,
+        f32 centerZ,
+        f32 horizontalRadius,
+        f32 verticalRadius,
         CarvingMask& carvingMask,
         i64 seed);
 
@@ -228,10 +231,7 @@ protected:
      * @return 是否在范围内
      */
     [[nodiscard]] static bool isInCarvingRange(
-        ChunkCoord chunkX, ChunkCoord chunkZ,
-        f32 x, f32 z,
-        i32 step, i32 maxSteps,
-        f32 radius);
+        ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius);
 
     /**
      * @brief 检查椭球位置是否有效（检查水面）
@@ -247,12 +247,15 @@ protected:
      * @param maxZ 最大Z
      * @return 是否有效（无水）
      */
-    [[nodiscard]] bool checkAreaForFluid(
-        ChunkPrimer& chunk,
-        ChunkCoord chunkX, ChunkCoord chunkZ,
-        i32 minX, i32 maxX,
-        i32 minY, i32 maxY,
-        i32 minZ, i32 maxZ) const;
+    [[nodiscard]] bool checkAreaForFluid(ChunkPrimer& chunk,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        i32 minX,
+        i32 maxX,
+        i32 minY,
+        i32 maxY,
+        i32 minZ,
+        i32 maxZ) const;
 
     /**
      * @brief 检查是否应该跳过椭球内的这个位置
@@ -262,8 +265,7 @@ protected:
      * @param y Y坐标
      * @return 是否应该跳过
      */
-    [[nodiscard]] virtual bool shouldSkipEllipsoidPosition(
-        f32 dx, f32 dy, f32 dz, i32 y) const = 0;
+    [[nodiscard]] virtual bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const = 0;
 };
 
 /**
@@ -272,32 +274,32 @@ protected:
  * 组合雕刻器和配置，方便注册和使用。
  * 参考 MC ConfiguredCarver
  */
-template<typename Carver, typename Config>
+template <typename Carver, typename Config>
 class ConfiguredCarver {
 public:
     ConfiguredCarver(std::unique_ptr<Carver> carver, Config config)
         : m_carver(std::move(carver))
-        , m_config(std::move(config)) {}
+        , m_config(std::move(config))
+    {}
 
     /**
      * @brief 在区块中执行雕刻
      */
     bool carve(ChunkPrimer& chunk,
-               const BiomeProvider& biomeProvider,
-               i32 seaLevel,
-               ChunkCoord chunkX,
-               ChunkCoord chunkZ,
-               CarvingMask& carvingMask) {
+        const BiomeProvider& biomeProvider,
+        i32 seaLevel,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        CarvingMask& carvingMask)
+    {
         return m_carver->carve(chunk, biomeProvider, seaLevel, chunkX, chunkZ, carvingMask, m_config);
     }
 
     /**
      * @brief 检查是否应该雕刻
      */
-    [[nodiscard]] bool shouldCarve(
-        math::IRandom& rng,
-        ChunkCoord chunkX,
-        ChunkCoord chunkZ) const {
+    [[nodiscard]] bool shouldCarve(math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ) const
+    {
         return m_carver->shouldCarve(rng, chunkX, chunkZ, m_config);
     }
 

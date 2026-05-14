@@ -1,12 +1,12 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
-#include "server/settings/ServerSettings.hpp"
 #include "server/network/TcpServer.hpp"
+#include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-#include <thread>
 #include <atomic>
 #include <filesystem>
+#include <thread>
 #include <unordered_map>
 
 namespace mc::server {
@@ -51,11 +51,13 @@ protected:
     void pollNetwork() override;
     void broadcastPacket(const u8* data, size_t size) override;
 
-    [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override {
+    [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override
+    {
         return m_playerManager->getPlayerIdBySession(sessionId);
     }
 
-    void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override {
+    void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override
+    {
         auto* player = m_playerManager->getPlayer(playerId);
         if (player && player->hasConnection()) {
             player->send(data, size);
@@ -72,13 +74,14 @@ protected:
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
 
 protected:
-    void broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sectionY,
-                              const std::vector<u8>& skyLight,
-                              const std::vector<u8>& blockLight,
-                              bool trustEdges) override;
+    void broadcastLightUpdate(ChunkCoord x,
+        ChunkCoord z,
+        i32 sectionY,
+        const std::vector<u8>& skyLight,
+        const std::vector<u8>& blockLight,
+        bool trustEdges) override;
 
 public:
-
     // ========== StandaloneServer 特有接口 ==========
 
     /**
@@ -105,7 +108,10 @@ public:
     // ========== 玩家实体管理 ==========
 
     [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
-    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override { return m_playerEntityManager; }
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        return m_playerEntityManager;
+    }
 
 private:
     void mainLoop();
@@ -123,8 +129,12 @@ private:
     void setupRaidManagerCallbacks();
 
     // 数据包发送
-    void sendLoginResponse(TcpSession* session, bool success, PlayerId playerId, EntityId entityId,
-                          const std::string& username, const std::string& message);
+    void sendLoginResponse(TcpSession* session,
+        bool success,
+        PlayerId playerId,
+        EntityId entityId,
+        const std::string& username,
+        const std::string& message);
 
     ServerSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）

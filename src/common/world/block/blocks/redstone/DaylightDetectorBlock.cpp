@@ -1,50 +1,55 @@
 #include "DaylightDetectorBlock.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../lighting/InternalLightUtils.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../tick/manager/TickManager.hpp"
-#include "../../../lighting/InternalLightUtils.hpp"
-#include <unordered_map>
 #include <cmath>
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {
 
 DaylightDetectorBlock::DaylightDetectorBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::POWER_0_15())
-        .add(BlockStateProperties::INVERTED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::POWER_0_15())
+                         .add(BlockStateProperties::INVERTED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::POWER_0_15(), 0)
-        .with(BlockStateProperties::INVERTED(), false));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::POWER_0_15(), 0).with(BlockStateProperties::INVERTED(), false));
 }
 
-i32 DaylightDetectorBlock::getPower(const BlockState& state) {
+i32 DaylightDetectorBlock::getPower(const BlockState& state)
+{
     return state.get(BlockStateProperties::POWER_0_15());
 }
 
-BlockState DaylightDetectorBlock::withPower(BlockState state, i32 power) {
+BlockState DaylightDetectorBlock::withPower(BlockState state, i32 power)
+{
     return state.with(BlockStateProperties::POWER_0_15(), std::clamp(power, 0, 15));
 }
 
-bool DaylightDetectorBlock::isInverted(const BlockState& state) {
+bool DaylightDetectorBlock::isInverted(const BlockState& state)
+{
     return state.get(BlockStateProperties::INVERTED());
 }
 
-BlockState DaylightDetectorBlock::withInverted(BlockState state, bool inverted) {
+BlockState DaylightDetectorBlock::withInverted(BlockState state, bool inverted)
+{
     return state.with(BlockStateProperties::INVERTED(), inverted);
 }
 
-void DaylightDetectorBlock::toggleMode(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DaylightDetectorBlock::toggleMode(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     bool newInverted = !isInverted(state);
     BlockState newState = withInverted(state, newInverted);
 
@@ -58,13 +63,15 @@ void DaylightDetectorBlock::toggleMode(IWorld& world, const BlockPos& pos, const
     notifyNeighbors(world, pos);
 }
 
-void DaylightDetectorBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DaylightDetectorBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 立即更新信号强度
     updatePower(world, pos, state);
 }
 
-void DaylightDetectorBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                            const BlockPos& neighborPos, bool isMoving) {
+void DaylightDetectorBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -73,7 +80,8 @@ void DaylightDetectorBlock::neighborChanged(IWorld& world, const BlockPos& pos, 
     world.tickManager().scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
 }
 
-void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     // 更新信号强度
     updatePower(world, pos, state);
@@ -83,11 +91,8 @@ void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
 }
 
 i32 DaylightDetectorBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -97,16 +102,14 @@ i32 DaylightDetectorBlock::getWeakPower(
 }
 
 i32 DaylightDetectorBlock::getStrongPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     // 日光探测器只输出弱信号
     return getWeakPower(state, world, pos, side);
 }
 
-i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted) {
+i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted)
+{
     // 检查维度是否有天空光照（主世界有，下界和末地没有）
     if (!world.hasSkyLight()) {
         return inverted ? 15 : 0;
@@ -118,11 +121,7 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
 
     // 使用 InternalLightUtils 计算天空减暗因子
     i64 dayTime = world.dayTime();
-    i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(
-        dayTime,
-        world.isRaining(),
-        world.isThundering()
-    );
+    i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(dayTime, world.isRaining(), world.isThundering());
 
     i32 i = static_cast<i32>(skyLight) - skyDarkening;
 
@@ -154,7 +153,8 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
     return std::clamp(i, 0, 15);
 }
 
-void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     bool inverted = isInverted(state);
     i32 oldPower = getPower(state);
     i32 newPower = calculateSignalStrength(world, pos, inverted);
@@ -168,7 +168,8 @@ void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, cons
     }
 }
 
-void DaylightDetectorBlock::notifyNeighbors(IWorld& world, const BlockPos& pos) {
+void DaylightDetectorBlock::notifyNeighbors(IWorld& world, const BlockPos& pos)
+{
     // 获取当前方块用于通知
     const BlockState* currentState = world.getBlockState(pos);
     if (!currentState) {

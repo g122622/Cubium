@@ -1,14 +1,14 @@
 #include "PolarBearEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../core/EntityRegistry.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../../util/math/random/Random.hpp"
+#include "../../../core/EntityRegistry.hpp"
 
 namespace mc {
 
@@ -22,11 +22,13 @@ PolarBearEntity::PolarBearEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> PolarBearEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> PolarBearEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<PolarBearEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void PolarBearEntity::setStanding(bool standing) {
+void PolarBearEntity::setStanding(bool standing)
+{
     m_standing = standing;
     if (standing) {
         // 设置站立持续时间
@@ -35,14 +37,16 @@ void PolarBearEntity::setStanding(bool standing) {
     }
 }
 
-void PolarBearEntity::setWarning(bool warning) {
+void PolarBearEntity::setWarning(bool warning)
+{
     m_warning = warning;
     if (warning) {
         m_warningTimer = WARNING_DURATION;
     }
 }
 
-void PolarBearEntity::tick() {
+void PolarBearEntity::tick()
+{
     AnimalEntity::tick();
 
     // 更新站立计时器
@@ -62,7 +66,8 @@ void PolarBearEntity::tick() {
     }
 }
 
-void PolarBearEntity::registerGoals() {
+void PolarBearEntity::registerGoals()
+{
     // 北极熊不调用 AnimalEntity::registerGoals() 因为它没有繁殖行为
 
     // 优先级 0: 游泳（北极熊擅长游泳）
@@ -85,7 +90,8 @@ void PolarBearEntity::registerGoals() {
     // - PolarBearStandGoal: 随机站立
 }
 
-void PolarBearEntity::registerAttributes() {
+void PolarBearEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 

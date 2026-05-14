@@ -24,38 +24,25 @@ class KnockbackEnchantment : public Enchantment {
 public:
     KnockbackEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:knockback";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:knockback"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.knockback";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Weapon;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 2;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 2; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Uncommon;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 5 + (level - 1) * 20;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + (level - 1) * 20; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 50;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 
     /**
      * @brief 获取击退强度加成
@@ -66,7 +53,8 @@ public:
      * @param level 附魔等级
      * @return 击退强度加成
      */
-    [[nodiscard]] static f32 getKnockbackBonus(i32 level) {
+    [[nodiscard]] static f32 getKnockbackBonus(i32 level)
+    {
         // MC 1.16.5: 每级增加 0.5 击退强度
         return static_cast<f32>(level) * 0.5f;
     }

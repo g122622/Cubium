@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -12,14 +12,19 @@ namespace mc {
  * 存储单根黑曜石柱的生成状态
  */
 struct EndSpike {
-    i32 centerX;        ///< 中心X坐标
-    i32 centerZ;        ///< 中心Z坐标
-    i32 radius;         ///< 半径（2-5）
-    i32 height;         ///< 高度（76-103）
-    bool guarded;       ///< 是否有铁栏杆笼子
+    i32 centerX;  ///< 中心X坐标
+    i32 centerZ;  ///< 中心Z坐标
+    i32 radius;   ///< 半径（2-5）
+    i32 height;   ///< 高度（76-103）
+    bool guarded; ///< 是否有铁栏杆笼子
 
     EndSpike(i32 x, i32 z, i32 r, i32 h, bool g)
-        : centerX(x), centerZ(z), radius(r), height(h), guarded(g) {}
+        : centerX(x)
+        , centerZ(z)
+        , radius(r)
+        , height(h)
+        , guarded(g)
+    {}
 };
 
 /**
@@ -71,35 +76,23 @@ public:
      * @param config 黑曜石柱配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const EndSpikeFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndSpikeFeatureConfig& config);
 
 private:
     /**
      * @brief 检查柱子是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 生成单根黑曜石柱
      */
-    void generateSpike(
-        WorldGenRegion& world,
-        math::Random& random,
-        const EndSpike& spike);
+    void generateSpike(WorldGenRegion& world, math::Random& random, const EndSpike& spike);
 
     /**
      * @brief 生成铁栏杆笼子
      */
-    void generateCage(
-        WorldGenRegion& world,
-        const BlockPos& topPos,
-        i32 radius);
+    void generateCage(WorldGenRegion& world, const BlockPos& topPos, i32 radius);
 };
 
 /**
@@ -107,12 +100,9 @@ private:
  */
 class ConfiguredEndSpikeFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredEndSpikeFeature(
-        std::unique_ptr<EndSpikeFeatureConfig> config,
-        const char* featureName);
+    ConfiguredEndSpikeFeature(std::unique_ptr<EndSpikeFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

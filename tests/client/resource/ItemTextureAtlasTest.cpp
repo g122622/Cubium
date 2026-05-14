@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "client/resource/ItemTextureAtlas.hpp"
-#include "common/item/items/block/BlockItem.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
@@ -19,11 +19,13 @@ public:
 
     const PackMetadata& metadata() const override { return m_metadata; }
 
-    bool hasResource(std::string_view resourcePath) const override {
+    bool hasResource(std::string_view resourcePath) const override
+    {
         return m_resources.find(std::string(resourcePath)) != m_resources.end();
     }
 
-    Result<std::vector<u8>> readResource(std::string_view resourcePath) const override {
+    Result<std::vector<u8>> readResource(std::string_view resourcePath) const override
+    {
         auto it = m_resources.find(std::string(resourcePath));
         if (it == m_resources.end()) {
             return Error(ErrorCode::NotFound, "Resource not found");
@@ -31,14 +33,17 @@ public:
         return it->second;
     }
 
-    Result<std::vector<std::string>> listResources(std::string_view directory, std::string_view extension) const override {
+    Result<std::vector<std::string>> listResources(
+        std::string_view directory, std::string_view extension) const override
+    {
         std::vector<std::string> results;
         const std::string prefix(directory);
         const std::string ext(extension);
 
         for (const auto& [path, _] : m_resources) {
             const bool prefixMatched = path.find(prefix) != std::string::npos;
-            const bool extensionMatched = ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
+            const bool extensionMatched =
+                ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
             if (prefixMatched && extensionMatched) {
                 results.push_back(path);
             }
@@ -47,35 +52,90 @@ public:
         return results;
     }
 
-    std::string name() const override {
-        return "MemoryResourcePack";
-    }
+    std::string name() const override { return "MemoryResourcePack"; }
 
-    void addResource(const std::string& path, const std::vector<u8>& data) {
-        m_resources[path] = data;
-    }
+    void addResource(const std::string& path, const std::vector<u8>& data) { m_resources[path] = data; }
 
 private:
     PackMetadata m_metadata{6, "test"};
     std::unordered_map<std::string, std::vector<u8>> m_resources;
 };
 
-const std::vector<u8>& oneByOnePng() {
-    static const std::vector<u8> bytes = {
-        137, 80, 78, 71, 13, 10, 26, 10,
-        0, 0, 0, 13, 73, 72, 68, 82,
-        0, 0, 0, 1, 0, 0, 0, 1,
-        8, 4, 0, 0, 0, 181, 28, 12, 2,
-        0, 0, 0, 11, 73, 68, 65, 84,
-        120, 218, 99, 252, 255, 31, 0, 3,
-        3, 2, 0, 239, 156, 7, 219,
-        0, 0, 0, 0, 73, 69, 78, 68,
-        174, 66, 96, 130
-    };
+const std::vector<u8>& oneByOnePng()
+{
+    static const std::vector<u8> bytes = {137,
+        80,
+        78,
+        71,
+        13,
+        10,
+        26,
+        10,
+        0,
+        0,
+        0,
+        13,
+        73,
+        72,
+        68,
+        82,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        8,
+        4,
+        0,
+        0,
+        0,
+        181,
+        28,
+        12,
+        2,
+        0,
+        0,
+        0,
+        11,
+        73,
+        68,
+        65,
+        84,
+        120,
+        218,
+        99,
+        252,
+        255,
+        31,
+        0,
+        3,
+        3,
+        2,
+        0,
+        239,
+        156,
+        7,
+        219,
+        0,
+        0,
+        0,
+        0,
+        73,
+        69,
+        78,
+        68,
+        174,
+        66,
+        96,
+        130};
     return bytes;
 }
 
-Item* getOrRegisterSimpleItem(const ResourceLocation& id) {
+Item* getOrRegisterSimpleItem(const ResourceLocation& id)
+{
     Item* existing = ItemRegistry::instance().getItem(id);
     if (existing != nullptr) {
         return existing;
@@ -84,7 +144,8 @@ Item* getOrRegisterSimpleItem(const ResourceLocation& id) {
     return &ItemRegistry::instance().registerItem(id, ItemProperties());
 }
 
-Item* getOrRegisterBlockItem(const ResourceLocation& id, const Block& block) {
+Item* getOrRegisterBlockItem(const ResourceLocation& id, const Block& block)
+{
     Item* existing = ItemRegistry::instance().getItem(id);
     if (existing != nullptr) {
         return existing;
@@ -95,7 +156,8 @@ Item* getOrRegisterBlockItem(const ResourceLocation& id, const Block& block) {
 
 } // namespace
 
-TEST(ItemTextureAtlasTest, LoadItemTextureWithoutPngSuffixInLocation) {
+TEST(ItemTextureAtlasTest, LoadItemTextureWithoutPngSuffixInLocation)
+{
     auto* item = getOrRegisterSimpleItem(ResourceLocation("minecraft:copilot_test_item"));
     ASSERT_NE(item, nullptr);
 
@@ -112,13 +174,13 @@ TEST(ItemTextureAtlasTest, LoadItemTextureWithoutPngSuffixInLocation) {
     EXPECT_NE(atlas.getItemTexture(ResourceLocation("minecraft", "item/copilot_test_item")), nullptr);
 }
 
-TEST(ItemTextureAtlasTest, BlockItemCanLoadFromItemTexturePath) {
+TEST(ItemTextureAtlasTest, BlockItemCanLoadFromItemTexturePath)
+{
     VanillaBlocks::initialize();
     ASSERT_NE(VanillaBlocks::STONE, nullptr);
 
-    auto* blockItem = getOrRegisterBlockItem(
-        ResourceLocation("minecraft:copilot_test_block_item"),
-        *VanillaBlocks::STONE);
+    auto* blockItem =
+        getOrRegisterBlockItem(ResourceLocation("minecraft:copilot_test_block_item"), *VanillaBlocks::STONE);
     ASSERT_NE(blockItem, nullptr);
 
     MemoryResourcePack pack;
@@ -133,13 +195,13 @@ TEST(ItemTextureAtlasTest, BlockItemCanLoadFromItemTexturePath) {
     EXPECT_NE(atlas.getItemTexture(ResourceLocation("minecraft", "item/copilot_test_block_item")), nullptr);
 }
 
-TEST(ItemTextureAtlasTest, BlockItemFallsBackToBlockTexturePath) {
+TEST(ItemTextureAtlasTest, BlockItemFallsBackToBlockTexturePath)
+{
     VanillaBlocks::initialize();
     ASSERT_NE(VanillaBlocks::STONE, nullptr);
 
-    auto* blockItem = getOrRegisterBlockItem(
-        ResourceLocation("minecraft:copilot_test_block_fallback"),
-        *VanillaBlocks::STONE);
+    auto* blockItem =
+        getOrRegisterBlockItem(ResourceLocation("minecraft:copilot_test_block_fallback"), *VanillaBlocks::STONE);
     ASSERT_NE(blockItem, nullptr);
 
     MemoryResourcePack pack;

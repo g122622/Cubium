@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
-#include "common/scoreboard/core/Scoreboard.hpp"
-#include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
-#include "common/scoreboard/storage/ScoreboardSaveData.hpp"
 #include "common/scoreboard/criteria/DummyCriteria.hpp"
-#include "common/util/text/StringTextComponent.hpp"
-#include "common/util/text/TranslationTextComponent.hpp"
-#include "common/util/text/TextStyle.hpp"
+#include "common/scoreboard/storage/ScoreboardSaveData.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace mc;
@@ -29,12 +29,14 @@ using namespace mc::scoreboard;
  */
 class ScoreboardPersistenceTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置判据
         ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理判据注册表
         ScoreCriteriaRegistry::instance().clear();
     }
@@ -42,7 +44,8 @@ protected:
 
 // ========== 目标数据序列化测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, ObjectiveData_Serialize) {
+TEST_F(ScoreboardPersistenceTest, ObjectiveData_Serialize)
+{
     ScoreboardSaveData::ObjectiveData data;
     data.name = "kills";
     data.criteriaName = "dummy";
@@ -69,7 +72,8 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Serialize) {
     EXPECT_EQ(renderTag->value, "integer");
 }
 
-TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize) {
+TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize)
+{
     nbt::tags::compound_tag tag;
     tag.put("Name", std::string("deaths"));
     tag.put("CriteriaName", std::string("deathCount"));
@@ -86,7 +90,8 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize) {
     EXPECT_EQ(data.renderType, "hearts");
 }
 
-TEST_F(ScoreboardPersistenceTest, ObjectiveData_MissingFields) {
+TEST_F(ScoreboardPersistenceTest, ObjectiveData_MissingFields)
+{
     // 缺少 Name 字段
     nbt::tags::compound_tag tag1;
     tag1.put("CriteriaName", std::string("dummy"));
@@ -100,7 +105,8 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_MissingFields) {
     EXPECT_FALSE(result2.success());
 }
 
-TEST_F(ScoreboardPersistenceTest, ObjectiveData_Defaults) {
+TEST_F(ScoreboardPersistenceTest, ObjectiveData_Defaults)
+{
     nbt::tags::compound_tag tag;
     tag.put("Name", std::string("test"));
     tag.put("CriteriaName", std::string("dummy"));
@@ -110,13 +116,14 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Defaults) {
     ASSERT_TRUE(result.success());
 
     auto data = std::move(result).value();
-    EXPECT_EQ(data.displayName, "test");  // 默认使用 name
-    EXPECT_EQ(data.renderType, "integer");  // 默认 integer
+    EXPECT_EQ(data.displayName, "test");   // 默认使用 name
+    EXPECT_EQ(data.renderType, "integer"); // 默认 integer
 }
 
 // ========== 分数数据序列化测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, ScoreData_Serialize) {
+TEST_F(ScoreboardPersistenceTest, ScoreData_Serialize)
+{
     ScoreboardSaveData::ScoreData data;
     data.playerName = "Steve";
     data.objectiveName = "kills";
@@ -142,7 +149,8 @@ TEST_F(ScoreboardPersistenceTest, ScoreData_Serialize) {
     EXPECT_EQ(lockedTag->value, 1);
 }
 
-TEST_F(ScoreboardPersistenceTest, ScoreData_Deserialize) {
+TEST_F(ScoreboardPersistenceTest, ScoreData_Deserialize)
+{
     nbt::tags::compound_tag tag;
     tag.put("Name", std::string("Alex"));
     tag.put("Objective", std::string("deaths"));
@@ -163,7 +171,8 @@ TEST_F(ScoreboardPersistenceTest, ScoreData_Deserialize) {
 
 // ========== 队伍数据序列化测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, TeamData_Serialize) {
+TEST_F(ScoreboardPersistenceTest, TeamData_Serialize)
+{
     ScoreboardSaveData::TeamData data;
     data.name = "red";
     data.displayName = "Red Team";
@@ -196,7 +205,8 @@ TEST_F(ScoreboardPersistenceTest, TeamData_Serialize) {
     EXPECT_EQ(membersTag->value[2], "Bob");
 }
 
-TEST_F(ScoreboardPersistenceTest, TeamData_Deserialize) {
+TEST_F(ScoreboardPersistenceTest, TeamData_Deserialize)
+{
     nbt::tags::compound_tag tag;
     tag.put("TeamName", std::string("blue"));
     tag.put("DisplayName", std::string("Blue Team"));
@@ -235,9 +245,10 @@ TEST_F(ScoreboardPersistenceTest, TeamData_Deserialize) {
 
 // ========== 显示槽数据序列化测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, DisplaySlotData_Serialize) {
+TEST_F(ScoreboardPersistenceTest, DisplaySlotData_Serialize)
+{
     ScoreboardSaveData::DisplaySlotData data;
-    data.slot = 1;  // Sidebar
+    data.slot = 1; // Sidebar
     data.objectiveName = "kills";
 
     nbt::tags::compound_tag tag = data.toNbt();
@@ -251,9 +262,10 @@ TEST_F(ScoreboardPersistenceTest, DisplaySlotData_Serialize) {
     EXPECT_EQ(objectiveTag->value, "kills");
 }
 
-TEST_F(ScoreboardPersistenceTest, DisplaySlotData_Deserialize) {
+TEST_F(ScoreboardPersistenceTest, DisplaySlotData_Deserialize)
+{
     nbt::tags::compound_tag tag;
-    tag.put("Slot", static_cast<i32>(0));  // List
+    tag.put("Slot", static_cast<i32>(0)); // List
     tag.put("Objective", std::string("deaths"));
 
     auto result = ScoreboardSaveData::DisplaySlotData::fromNbt(tag);
@@ -266,7 +278,8 @@ TEST_F(ScoreboardPersistenceTest, DisplaySlotData_Deserialize) {
 
 // ========== 完整记分板序列化测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, Scoreboard_RoundTrip) {
+TEST_F(ScoreboardPersistenceTest, Scoreboard_RoundTrip)
+{
     // 创建原始记分板
     Scoreboard original;
     auto* dummy = ScoreCriteriaRegistry::instance().getCriteria("dummy");
@@ -354,7 +367,8 @@ TEST_F(ScoreboardPersistenceTest, Scoreboard_RoundTrip) {
 
 // ========== 二进制序列化测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, BinarySerialization) {
+TEST_F(ScoreboardPersistenceTest, BinarySerialization)
+{
     // 创建保存数据
     ScoreboardSaveData::ObjectiveData obj;
     obj.name = "test";
@@ -393,7 +407,8 @@ TEST_F(ScoreboardPersistenceTest, BinarySerialization) {
 
 // ========== 边界情况测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, EmptyScoreboard) {
+TEST_F(ScoreboardPersistenceTest, EmptyScoreboard)
+{
     Scoreboard empty;
     ScoreboardSaveData saveData = ScoreboardSaveData::fromScoreboard(empty);
 
@@ -410,11 +425,12 @@ TEST_F(ScoreboardPersistenceTest, EmptyScoreboard) {
     EXPECT_EQ(restored.getTeams().size(), 0);
 }
 
-TEST_F(ScoreboardPersistenceTest, MissingCriteria) {
+TEST_F(ScoreboardPersistenceTest, MissingCriteria)
+{
     // 创建包含未知判据的数据
     ScoreboardSaveData::ObjectiveData obj;
     obj.name = "test";
-    obj.criteriaName = "nonexistent_criteria";  // 不存在的判据
+    obj.criteriaName = "nonexistent_criteria"; // 不存在的判据
     obj.displayName = "Test";
     obj.renderType = "integer";
 
@@ -438,7 +454,8 @@ TEST_F(ScoreboardPersistenceTest, MissingCriteria) {
 
 // ========== 完整工作流测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, FullWorkflow) {
+TEST_F(ScoreboardPersistenceTest, FullWorkflow)
+{
     // 1. 创建记分板并添加数据
     Scoreboard scoreboard;
     auto* dummy = ScoreCriteriaRegistry::instance().getCriteria("dummy");
@@ -514,16 +531,17 @@ TEST_F(ScoreboardPersistenceTest, FullWorkflow) {
     // 验证队伍成员
     auto* restoredRed = restored.getTeam("red");
     ASSERT_NE(restoredRed, nullptr);
-    EXPECT_EQ(restoredRed->getMembers().size(), 5);  // Player0, 2, 4, 6, 8
+    EXPECT_EQ(restoredRed->getMembers().size(), 5); // Player0, 2, 4, 6, 8
 
     auto* restoredBlue = restored.getTeam("blue");
     ASSERT_NE(restoredBlue, nullptr);
-    EXPECT_EQ(restoredBlue->getMembers().size(), 5);  // Player1, 3, 5, 7, 9
+    EXPECT_EQ(restoredBlue->getMembers().size(), 5); // Player1, 3, 5, 7, 9
 }
 
 // ========== ITextComponent JSON 序列化测试 ==========
 
-TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonSerialization) {
+TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonSerialization)
+{
     // 创建带有富文本显示名称的目标
     Scoreboard scoreboard;
     auto* dummy = ScoreCriteriaRegistry::instance().getCriteria("dummy");
@@ -551,7 +569,8 @@ TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonSerialization) {
     EXPECT_TRUE(json["bold"].get<bool>());
 }
 
-TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonDeserialization) {
+TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonDeserialization)
+{
     // 创建带有 JSON 显示名称的 NBT 数据
     nlohmann::json displayNameJson;
     displayNameJson["text"] = "Deaths";
@@ -570,7 +589,8 @@ TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonDeserialization) {
     EXPECT_EQ(result.value().displayName, displayNameJson.dump());
 }
 
-TEST_F(ScoreboardPersistenceTest, Team_DisplayName_JsonSerialization) {
+TEST_F(ScoreboardPersistenceTest, Team_DisplayName_JsonSerialization)
+{
     // 创建带有富文本显示名称的队伍
     Scoreboard scoreboard;
 
@@ -595,7 +615,8 @@ TEST_F(ScoreboardPersistenceTest, Team_DisplayName_JsonSerialization) {
     EXPECT_EQ(json["color"], "dark_red");
 }
 
-TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonSerialization) {
+TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonSerialization)
+{
     // 创建带有前缀和后缀的队伍
     Scoreboard scoreboard;
 
@@ -630,7 +651,8 @@ TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonSerialization) {
     EXPECT_EQ(suffixJson["color"], "yellow");
 }
 
-TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonDeserialization) {
+TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonDeserialization)
+{
     // 创建带有 JSON 前缀后缀的 NBT 数据
     nlohmann::json prefixJson;
     prefixJson["text"] = "[BLUE]";
@@ -667,7 +689,8 @@ TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonDeserialization) {
     EXPECT_EQ(teamData.suffix, suffixJson.dump());
 }
 
-TEST_F(ScoreboardPersistenceTest, ITextComponent_RoundTrip) {
+TEST_F(ScoreboardPersistenceTest, ITextComponent_RoundTrip)
+{
     // 测试完整的 ITextComponent 序列化/反序列化往返
     Scoreboard original;
     auto* dummy = ScoreCriteriaRegistry::instance().getCriteria("dummy");
@@ -747,13 +770,14 @@ TEST_F(ScoreboardPersistenceTest, ITextComponent_RoundTrip) {
     EXPECT_EQ(restoredSuffix->getStyle().getColor(), text::TextFormatting::Gold);
 }
 
-TEST_F(ScoreboardPersistenceTest, InvalidJson_FallbackToPlainText) {
+TEST_F(ScoreboardPersistenceTest, InvalidJson_FallbackToPlainText)
+{
     // 测试无效 JSON 回退到纯文本
     // 当 displayName 不是有效 JSON 时，应该将其作为纯文本使用
     ScoreboardSaveData::ObjectiveData obj;
     obj.name = "test";
     obj.criteriaName = "dummy";
-    obj.displayName = "Plain Text Display";  // 非 JSON，纯文本
+    obj.displayName = "Plain Text Display"; // 非 JSON，纯文本
     obj.renderType = "integer";
 
     ScoreboardSaveData saveData;

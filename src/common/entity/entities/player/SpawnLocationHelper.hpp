@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../core/Constants.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/biome/BiomeRegistry.hpp"
 #include "../../../world/block/Block.hpp"
@@ -7,7 +8,6 @@
 #include "../../../world/chunk/ChunkData.hpp"
 #include "../../../world/chunk/ChunkPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
-#include "../../../core/Constants.hpp"
 
 #include <optional>
 
@@ -32,10 +32,7 @@ public:
      * @return 可用出生点；找不到时返回空
      */
     [[nodiscard]] static std::optional<BlockPos> findSpawnLocation(
-        const IWorld& world,
-        i32 x,
-        i32 z,
-        bool requireValidSpawnBlock)
+        const IWorld& world, i32 x, i32 z, bool requireValidSpawnBlock)
     {
         const ChunkCoord chunkX = x >> 4;
         const ChunkCoord chunkZ = z >> 4;
@@ -92,9 +89,7 @@ public:
      * @return 第一个可用出生点；找不到时返回空
      */
     [[nodiscard]] static std::optional<BlockPos> findSpawnLocationInChunk(
-        const IWorld& world,
-        const ChunkPos& chunkPos,
-        bool requireValidSpawnBlock)
+        const IWorld& world, const ChunkPos& chunkPos, bool requireValidSpawnBlock)
     {
         for (i32 x = chunkPos.worldX(); x < chunkPos.worldX() + 16; ++x) {
             for (i32 z = chunkPos.worldZ(); z < chunkPos.worldZ() + 16; ++z) {
@@ -131,11 +126,7 @@ private:
      * 这里不直接依赖区块缓存的高度图，避免未初始化高度图时出现 `y` / `y+1`
      * 语义不一致的问题。
      */
-    [[nodiscard]] static i32 getTopBlockY(
-        const ChunkData& chunk,
-        i32 localX,
-        i32 localZ,
-        HeightmapType type)
+    [[nodiscard]] static i32 getTopBlockY(const ChunkData& chunk, i32 localX, i32 localZ, HeightmapType type)
     {
         for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
             const BlockState* state = chunk.getBlockState(localX, y, localZ);
@@ -171,9 +162,8 @@ private:
                 return block.isSolid(*state) || state->isLiquid();
 
             case HeightmapType::MotionBlockingNoLeaves:
-                return (block.isSolid(*state) || state->isLiquid()) &&
-                       (&block.material() != &Material::LEAVES) &&
-                       (&block.material() != &Material::PLANT);
+                return (block.isSolid(*state) || state->isLiquid()) && (&block.material() != &Material::LEAVES) &&
+                    (&block.material() != &Material::PLANT);
 
             case HeightmapType::LightBlocking:
                 return block.isSolid(*state) && state->getOpacity() > 0;

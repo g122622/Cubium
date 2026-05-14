@@ -1,13 +1,14 @@
 #include "BindingContext.hpp"
-#include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <sstream>
 
 namespace mc::client::ui::kagero::tpl::binder {
 
 // ========== Value实现 ==========
 
-Value Value::fromAny(const std::any& any) {
+Value Value::fromAny(const std::any& any)
+{
     if (!any.has_value()) {
         return Value();
     }
@@ -43,60 +44,85 @@ Value Value::fromAny(const std::any& any) {
     return Value();
 }
 
-bool Value::asBool() const {
+bool Value::asBool() const
+{
     switch (m_type) {
-        case ValueType::Bool: return m_boolValue;
-        case ValueType::Integer: return m_intValue != 0;
-        case ValueType::Float: return m_floatValue != 0.0f;
-        case ValueType::String: return !m_stringValue.empty() && m_stringValue != "false";
-        default: return false;
+        case ValueType::Bool:
+            return m_boolValue;
+        case ValueType::Integer:
+            return m_intValue != 0;
+        case ValueType::Float:
+            return m_floatValue != 0.0f;
+        case ValueType::String:
+            return !m_stringValue.empty() && m_stringValue != "false";
+        default:
+            return false;
     }
 }
 
-i32 Value::asInteger() const {
+i32 Value::asInteger() const
+{
     switch (m_type) {
-        case ValueType::Bool: return m_boolValue ? 1 : 0;
-        case ValueType::Integer: return m_intValue;
-        case ValueType::Float: return static_cast<i32>(m_floatValue);
+        case ValueType::Bool:
+            return m_boolValue ? 1 : 0;
+        case ValueType::Integer:
+            return m_intValue;
+        case ValueType::Float:
+            return static_cast<i32>(m_floatValue);
         case ValueType::String: {
             try {
                 return std::stoi(m_stringValue);
-            } catch (...) {
+            }
+            catch (...) {
                 return 0;
             }
         }
-        default: return 0;
+        default:
+            return 0;
     }
 }
 
-f32 Value::asFloat() const {
+f32 Value::asFloat() const
+{
     switch (m_type) {
-        case ValueType::Bool: return m_boolValue ? 1.0f : 0.0f;
-        case ValueType::Integer: return static_cast<f32>(m_intValue);
-        case ValueType::Float: return m_floatValue;
+        case ValueType::Bool:
+            return m_boolValue ? 1.0f : 0.0f;
+        case ValueType::Integer:
+            return static_cast<f32>(m_intValue);
+        case ValueType::Float:
+            return m_floatValue;
         case ValueType::String: {
             try {
                 return std::stof(m_stringValue);
-            } catch (...) {
+            }
+            catch (...) {
                 return 0.0f;
             }
         }
-        default: return 0.0f;
+        default:
+            return 0.0f;
     }
 }
 
-const std::string& Value::asString() const {
+const std::string& Value::asString() const
+{
     static const std::string empty;
     return m_type == ValueType::String ? m_stringValue : empty;
 }
 
-std::string Value::toString() const {
+std::string Value::toString() const
+{
     switch (m_type) {
-        case ValueType::Null: return "null";
-        case ValueType::Bool: return m_boolValue ? "true" : "false";
-        case ValueType::Integer: return std::to_string(m_intValue);
-        case ValueType::Float: return std::to_string(m_floatValue);
-        case ValueType::String: return m_stringValue;
+        case ValueType::Null:
+            return "null";
+        case ValueType::Bool:
+            return m_boolValue ? "true" : "false";
+        case ValueType::Integer:
+            return std::to_string(m_intValue);
+        case ValueType::Float:
+            return std::to_string(m_floatValue);
+        case ValueType::String:
+            return m_stringValue;
         case ValueType::Array: {
             std::ostringstream oss;
             oss << "[";
@@ -119,34 +145,41 @@ std::string Value::toString() const {
             oss << "}";
             return oss.str();
         }
-        default: return "";
+        default:
+            return "";
     }
 }
 
-i32 Value::toInteger() const {
+i32 Value::toInteger() const
+{
     return asInteger();
 }
 
-f32 Value::toFloat() const {
+f32 Value::toFloat() const
+{
     return asFloat();
 }
 
-bool Value::toBool() const {
+bool Value::toBool() const
+{
     return asBool();
 }
 
-size_t Value::arraySize() const {
+size_t Value::arraySize() const
+{
     return m_type == ValueType::Array ? m_arrayValue.size() : 0;
 }
 
-Value Value::arrayGet(size_t index) const {
+Value Value::arrayGet(size_t index) const
+{
     if (m_type != ValueType::Array || index >= m_arrayValue.size()) {
         return Value();
     }
     return m_arrayValue[index];
 }
 
-Value Value::getProperty(const std::string& name) const {
+Value Value::getProperty(const std::string& name) const
+{
     // 对象类型支持属性访问
     if (m_type == ValueType::Object) {
         auto it = m_objectValue.find(name);
@@ -167,7 +200,8 @@ Value Value::getProperty(const std::string& name) const {
             if (index < m_arrayValue.size()) {
                 return m_arrayValue[index];
             }
-        } catch (...) {
+        }
+        catch (...) {
             // 不是数字，忽略
         }
         return Value();
@@ -187,7 +221,8 @@ Value Value::getProperty(const std::string& name) const {
     return Value();
 }
 
-void Value::setProperty(const std::string& name, const Value& value) {
+void Value::setProperty(const std::string& name, const Value& value)
+{
     // 确保是对象类型
     if (m_type != ValueType::Object) {
         m_type = ValueType::Object;
@@ -196,14 +231,16 @@ void Value::setProperty(const std::string& name, const Value& value) {
     m_objectValue[name] = value;
 }
 
-bool Value::hasProperty(const std::string& name) const {
+bool Value::hasProperty(const std::string& name) const
+{
     if (m_type == ValueType::Object) {
         return m_objectValue.find(name) != m_objectValue.end();
     }
     return false;
 }
 
-Value Value::getElement(size_t index) const {
+Value Value::getElement(size_t index) const
+{
     // 对于数组类型，支持索引访问
     if (m_type == ValueType::Array && index < m_arrayValue.size()) {
         return m_arrayValue[index];
@@ -211,7 +248,8 @@ Value Value::getElement(size_t index) const {
     return Value();
 }
 
-bool Value::operator==(const Value& other) const {
+bool Value::operator==(const Value& other) const
+{
     if (m_type != other.m_type) {
         // 尝试类型转换比较
         if (isNumber() && other.isNumber()) {
@@ -221,14 +259,22 @@ bool Value::operator==(const Value& other) const {
     }
 
     switch (m_type) {
-        case ValueType::Null: return true;
-        case ValueType::Bool: return m_boolValue == other.m_boolValue;
-        case ValueType::Integer: return m_intValue == other.m_intValue;
-        case ValueType::Float: return m_floatValue == other.m_floatValue;
-        case ValueType::String: return m_stringValue == other.m_stringValue;
-        case ValueType::Array: return m_arrayValue == other.m_arrayValue;
-        case ValueType::Object: return m_objectValue == other.m_objectValue;
-        default: return false;
+        case ValueType::Null:
+            return true;
+        case ValueType::Bool:
+            return m_boolValue == other.m_boolValue;
+        case ValueType::Integer:
+            return m_intValue == other.m_intValue;
+        case ValueType::Float:
+            return m_floatValue == other.m_floatValue;
+        case ValueType::String:
+            return m_stringValue == other.m_stringValue;
+        case ValueType::Array:
+            return m_arrayValue == other.m_arrayValue;
+        case ValueType::Object:
+            return m_objectValue == other.m_objectValue;
+        default:
+            return false;
     }
 }
 
@@ -236,25 +282,26 @@ bool Value::operator==(const Value& other) const {
 
 BindingContext::BindingContext(state::StateStore& store, event::EventBus& eventBus)
     : m_store(store)
-    , m_eventBus(eventBus) {
-}
+    , m_eventBus(eventBus)
+{}
 
-void BindingContext::exposeCallback(const std::string& name, Callback callback) {
+void BindingContext::exposeCallback(const std::string& name, Callback callback)
+{
     m_callbacks[name] = std::move(callback);
 }
 
-void BindingContext::exposeSimpleCallback(const std::string& name, std::function<void()> callback) {
-    m_callbacks[name] = [callback](widget::Widget*, const event::Event&) {
-        callback();
-    };
+void BindingContext::exposeSimpleCallback(const std::string& name, std::function<void()> callback)
+{
+    m_callbacks[name] = [callback](widget::Widget*, const event::Event&) { callback(); };
 }
 
-bool BindingContext::hasCallback(const std::string& name) const {
+bool BindingContext::hasCallback(const std::string& name) const
+{
     return m_callbacks.find(name) != m_callbacks.end();
 }
 
-bool BindingContext::invokeCallback(const std::string& name, widget::Widget* source,
-                                     const event::Event& event) {
+bool BindingContext::invokeCallback(const std::string& name, widget::Widget* source, const event::Event& event)
+{
     auto it = m_callbacks.find(name);
     if (it == m_callbacks.end()) {
         return false;
@@ -264,9 +311,8 @@ bool BindingContext::invokeCallback(const std::string& name, widget::Widget* sou
     return true;
 }
 
-Value BindingContext::resolveBinding(const std::string& path,
-                                      const std::string& loopVar,
-                                      const Value& loopValue) const {
+Value BindingContext::resolveBinding(const std::string& path, const std::string& loopVar, const Value& loopValue) const
+{
     if (path.empty()) {
         return Value();
     }
@@ -322,7 +368,8 @@ Value BindingContext::resolveBinding(const std::string& path,
     return resolvePath(path);
 }
 
-bool BindingContext::setBinding(const std::string& path, const Value& value) {
+bool BindingContext::setBinding(const std::string& path, const Value& value)
+{
     auto it = m_exposedVars.find(path);
     if (it == m_exposedVars.end() || !it->second.isWritable) {
         return false;
@@ -336,7 +383,8 @@ bool BindingContext::setBinding(const std::string& path, const Value& value) {
     return false;
 }
 
-bool BindingContext::hasPath(const std::string& path) const {
+bool BindingContext::hasPath(const std::string& path) const
+{
     // 检查循环变量
     if (path.size() > 1 && path[0] == '$') {
         size_t dotPos = path.find('.');
@@ -353,12 +401,14 @@ bool BindingContext::hasPath(const std::string& path) const {
     return m_store.has(path);
 }
 
-bool BindingContext::isWritable(const std::string& path) const {
+bool BindingContext::isWritable(const std::string& path) const
+{
     auto it = m_exposedVars.find(path);
     return it != m_exposedVars.end() && it->second.isWritable;
 }
 
-void BindingContext::notifyChange(const std::string& path, const Value& newValue) {
+void BindingContext::notifyChange(const std::string& path, const Value& newValue)
+{
     // 通知订阅者
     auto it = m_subscribers.find(path);
     if (it != m_subscribers.end()) {
@@ -374,38 +424,45 @@ void BindingContext::notifyChange(const std::string& path, const Value& newValue
     }
 }
 
-u64 BindingContext::subscribe(const std::string& path, StateChangeCallback callback) {
+u64 BindingContext::subscribe(const std::string& path, StateChangeCallback callback)
+{
     u64 id = m_nextSubscriberId++;
     m_subscribers[path].emplace_back(id, std::move(callback));
     return id;
 }
 
-void BindingContext::unsubscribe(u64 id) {
+void BindingContext::unsubscribe(u64 id)
+{
     for (auto& [path, subscribers] : m_subscribers) {
-        auto it = std::remove_if(subscribers.begin(), subscribers.end(),
-                                 [id](const auto& pair) { return pair.first == id; });
+        auto it =
+            std::remove_if(subscribers.begin(), subscribers.end(), [id](const auto& pair) { return pair.first == id; });
         subscribers.erase(it, subscribers.end());
     }
 }
 
-void BindingContext::setLoopVariable(const std::string& varName, const Value& value) {
+void BindingContext::setLoopVariable(const std::string& varName, const Value& value)
+{
     m_loopVariables[varName] = value;
 }
 
-void BindingContext::clearLoopVariable(const std::string& varName) {
+void BindingContext::clearLoopVariable(const std::string& varName)
+{
     m_loopVariables.erase(varName);
 }
 
-Value BindingContext::getLoopVariable(const std::string& varName) const {
+Value BindingContext::getLoopVariable(const std::string& varName) const
+{
     auto it = m_loopVariables.find(varName);
     return it != m_loopVariables.end() ? it->second : Value();
 }
 
-bool BindingContext::hasLoopVariable(const std::string& varName) const {
+bool BindingContext::hasLoopVariable(const std::string& varName) const
+{
     return m_loopVariables.find(varName) != m_loopVariables.end();
 }
 
-std::vector<Value> BindingContext::resolveCollection(const std::string& path) const {
+std::vector<Value> BindingContext::resolveCollection(const std::string& path) const
+{
     std::vector<Value> result;
 
     // 首先尝试从循环变量获取
@@ -465,22 +522,22 @@ std::vector<Value> BindingContext::resolveCollection(const std::string& path) co
     return result;
 }
 
-void BindingContext::setCollectionValue(const std::string& name, const std::vector<Value>& values) {
-    m_exposedVars[name] = ExposedVar{
-        nullptr, 0, "", false,
-        [values]() -> Value { return Value(values); },
-        nullptr, nullptr
-    };
+void BindingContext::setCollectionValue(const std::string& name, const std::vector<Value>& values)
+{
+    m_exposedVars[name] =
+        ExposedVar{nullptr, 0, "", false, [values]() -> Value { return Value(values); }, nullptr, nullptr};
 }
 
-void BindingContext::clear() {
+void BindingContext::clear()
+{
     m_exposedVars.clear();
     m_callbacks.clear();
     m_subscribers.clear();
     m_loopVariables.clear();
 }
 
-Value BindingContext::resolvePath(const std::string& path) const {
+Value BindingContext::resolvePath(const std::string& path) const
+{
     // 分割路径并逐层解析
     std::vector<std::string> parts = splitPath(path);
 
@@ -519,7 +576,8 @@ Value BindingContext::resolvePath(const std::string& path) const {
             try {
                 size_t index = static_cast<size_t>(std::stoul(indexStr));
                 current = current.getElement(index);
-            } catch (...) {
+            }
+            catch (...) {
                 return Value();
             }
         } else {
@@ -534,7 +592,8 @@ Value BindingContext::resolvePath(const std::string& path) const {
     return current;
 }
 
-std::vector<std::string> BindingContext::splitPath(const std::string& path) const {
+std::vector<std::string> BindingContext::splitPath(const std::string& path) const
+{
     std::vector<std::string> parts;
     std::string current;
     bool inBracket = false;

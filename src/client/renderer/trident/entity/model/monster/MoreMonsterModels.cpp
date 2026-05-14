@@ -20,7 +20,8 @@ IllagerModel::IllagerModel(f32 scale, f32 yOffset, i32 textureWidth, i32 texture
     setupParts(scale, yOffset, textureWidth, textureHeight);
 }
 
-void IllagerModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight) {
+void IllagerModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight)
+{
     // 参考 MC 1.16.5 IllagerModel
     (void)textureWidth;
     (void)textureHeight;
@@ -83,13 +84,14 @@ void IllagerModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 text
     m_parts.push_back(m_leftArm);
 }
 
-void IllagerModel::render(f64 scale) {
+void IllagerModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void IllagerModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 IllagerModel.setRotationAngles
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
@@ -117,7 +119,8 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_leftLeg->setRotateAngleZ(-0.07853982f);
     } else {
         // 行走动画
-        m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 2.0 * limbSwingAmount * 0.5));
+        m_rightArm->setRotateAngleX(
+            static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 2.0 * limbSwingAmount * 0.5));
         m_rightArm->setRotateAngleY(0.0f);
         m_rightArm->setRotateAngleZ(0.0f);
         m_leftArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 2.0 * limbSwingAmount * 0.5));
@@ -126,7 +129,8 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_rightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount * 0.5));
         m_rightLeg->setRotateAngleY(0.0f);
         m_rightLeg->setRotateAngleZ(0.0f);
-        m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 1.4 * limbSwingAmount * 0.5));
+        m_leftLeg->setRotateAngleX(
+            static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 1.4 * limbSwingAmount * 0.5));
         m_leftLeg->setRotateAngleY(0.0f);
         m_leftLeg->setRotateAngleZ(0.0f);
     }
@@ -148,10 +152,10 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                 m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
                 m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
                 // 手臂抖动
-                m_leftArm->setRotateAngleZ(m_leftArm->rotateAngleZ() +
-                    static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
-                m_rightArm->setRotateAngleZ(m_rightArm->rotateAngleZ() -
-                    static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+                m_leftArm->setRotateAngleZ(
+                    m_leftArm->rotateAngleZ() + static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+                m_rightArm->setRotateAngleZ(
+                    m_rightArm->rotateAngleZ() - static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
             }
             break;
 
@@ -253,9 +257,8 @@ VexModel::VexModel()
     m_parts.push_back(m_leftWing);
 }
 
-void VexModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale) {
+void VexModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
     // 参考 MC 1.16.5 VexModel.setRotationAngles 第 40-48 行
@@ -295,7 +298,8 @@ IronGolemModel::IronGolemModel()
     setupParts();
 }
 
-void IronGolemModel::setupParts() {
+void IronGolemModel::setupParts()
+{
     // 参考 MC 1.16.5 IronGolemModel
 
     m_head = std::make_shared<ModelRenderer>("head");
@@ -340,13 +344,14 @@ void IronGolemModel::setupParts() {
     m_parts.push_back(m_rightLeg);
 }
 
-void IronGolemModel::render(f64 scale) {
+void IronGolemModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void IronGolemModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                f64 ageInTicks, f64 netHeadYaw,
-                                f64 headPitch, f64 scale) {
+void IronGolemModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
 
@@ -382,7 +387,8 @@ SnowGolemModel::SnowGolemModel()
     setupParts();
 }
 
-void SnowGolemModel::setupParts() {
+void SnowGolemModel::setupParts()
+{
     // 参考 MC 1.16.5 SnowManModel
 
     m_head = std::make_shared<ModelRenderer>("head");
@@ -416,13 +422,14 @@ void SnowGolemModel::setupParts() {
     m_parts.push_back(m_bottomBody);
 }
 
-void SnowGolemModel::render(f64 scale) {
+void SnowGolemModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void SnowGolemModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                f64 ageInTicks, f64 netHeadYaw,
-                                f64 headPitch, f64 scale) {
+void SnowGolemModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
 
@@ -455,7 +462,8 @@ BeeModel::BeeModel()
     setupParts();
 }
 
-void BeeModel::setupParts() {
+void BeeModel::setupParts()
+{
     // 参考 MC 1.16.5 BeeModel
 
     m_body = std::make_shared<ModelRenderer>("body");
@@ -518,13 +526,13 @@ void BeeModel::setupParts() {
     m_parts.push_back(m_backLegs);
 }
 
-void BeeModel::render(f64 scale) {
+void BeeModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void BeeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale) {
+void BeeModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 翅膀扇动
     f32 wingAngle = static_cast<f32>(std::cos(ageInTicks * 2.1) * math::PI * 0.15);
     m_rightWing->setRotateAngleZ(wingAngle);
@@ -549,7 +557,8 @@ FoxModel::FoxModel()
     setupParts();
 }
 
-void FoxModel::setupParts() {
+void FoxModel::setupParts()
+{
     // 参考 MC 1.16.5 FoxModel
 
     m_head = std::make_shared<ModelRenderer>("head");
@@ -610,13 +619,13 @@ void FoxModel::setupParts() {
     m_parts.push_back(m_tail);
 }
 
-void FoxModel::render(f64 scale) {
+void FoxModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void FoxModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale) {
+void FoxModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_body->setRotateAngleX(static_cast<f32>(math::PI / 2.0));
     m_tail->setRotateAngleX(-0.05235988f);
 
@@ -647,7 +656,8 @@ PandaModel::PandaModel(i32 textureOffset, f32 scale)
     setupParts(textureOffset, scale);
 }
 
-void PandaModel::setupParts(i32 textureOffset, f32 scale) {
+void PandaModel::setupParts(i32 textureOffset, f32 scale)
+{
     // 参考 MC 1.16.5 PandaModel (extends QuadrupedModel)
     (void)scale;
     (void)textureOffset;
@@ -695,13 +705,13 @@ void PandaModel::setupParts(i32 textureOffset, f32 scale) {
     m_parts.push_back(m_legFrontLeft);
 }
 
-void PandaModel::render(f64 scale) {
+void PandaModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void PandaModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 ageInTicks, f64 netHeadYaw,
-                            f64 headPitch, f64 scale) {
+void PandaModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
 
@@ -723,7 +733,8 @@ ParrotModel::ParrotModel()
     setupParts();
 }
 
-void ParrotModel::setupParts() {
+void ParrotModel::setupParts()
+{
     // 参考 MC 1.16.5 ParrotModel
 
     m_body = std::make_shared<ModelRenderer>("body");
@@ -793,13 +804,14 @@ void ParrotModel::setupParts() {
     m_parts.push_back(m_legRight);
 }
 
-void ParrotModel::render(f64 scale) {
+void ParrotModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void ParrotModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void ParrotModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
 
@@ -826,7 +838,8 @@ PhantomModel::PhantomModel()
     setupParts();
 }
 
-void PhantomModel::setupParts() {
+void PhantomModel::setupParts()
+{
     // 参考 MC 1.16.5 PhantomModel
 
     m_body = std::make_shared<ModelRenderer>("body");
@@ -887,13 +900,14 @@ void PhantomModel::setupParts() {
     m_body->setRotateAngleX(-0.1f);
 }
 
-void PhantomModel::render(f64 scale) {
+void PhantomModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void PhantomModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void PhantomModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     f32 f = static_cast<f32>(ageInTicks * 0.13);
     f32 wingAngle = static_cast<f32>(std::cos(f) * 16.0 * math::PI / 180.0);
 
@@ -920,7 +934,8 @@ RavagerModel::RavagerModel()
     setupParts();
 }
 
-void RavagerModel::setupParts() {
+void RavagerModel::setupParts()
+{
     // 参考 MC 1.16.5 RavagerModel
 
     m_neck = std::make_shared<ModelRenderer>("neck");
@@ -995,13 +1010,14 @@ void RavagerModel::setupParts() {
     m_parts.push_back(m_legFrontLeft);
 }
 
-void RavagerModel::render(f64 scale) {
+void RavagerModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void RavagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void RavagerModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
 

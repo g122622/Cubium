@@ -1,27 +1,29 @@
-#include <gtest/gtest.h>
+#include "common/core/Types.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/manager/SkinCache.hpp"
 #include "common/skin/network/PlayerSkinInfo.hpp"
 #include "common/skin/network/SkinPackets.hpp"
-#include "common/skin/core/SkinTextures.hpp"
-#include "common/entity/entities/player/PlayerModelPart.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
-#include "common/core/Types.hpp"
+#include <ctime>
 #include <filesystem>
 #include <fstream>
-#include <ctime>
+#include <gtest/gtest.h>
 
 using namespace mc::skin;
 
 class SkinCacheTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 使用临时目录
         testDir_ = "./test_skin_cache_" + std::to_string(std::time(nullptr));
         cache_ = std::make_unique<SkinCache>(testDir_);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         cache_.reset();
 
         // 清理临时目录
@@ -33,17 +35,19 @@ protected:
     std::unique_ptr<SkinCache> cache_;
 };
 
-TEST_F(SkinCacheTest, Initialize) {
+TEST_F(SkinCacheTest, Initialize)
+{
     auto result = cache_->initialize();
     EXPECT_TRUE(result.success());
 }
 
-TEST_F(SkinCacheTest, SaveAndReadSkin) {
+TEST_F(SkinCacheTest, SaveAndReadSkin)
+{
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
     std::string hash = "abc123def456";
-    std::vector<mc::u8> testData(64 * 64 * 4, 0xAB);  // 64x64 RGBA
+    std::vector<mc::u8> testData(64 * 64 * 4, 0xAB); // 64x64 RGBA
 
     // 保存
     auto saveResult = cache_->saveSkin(hash, testData);
@@ -63,7 +67,8 @@ TEST_F(SkinCacheTest, SaveAndReadSkin) {
     EXPECT_FALSE(cache_->hasSkin(hash));
 }
 
-TEST_F(SkinCacheTest, GenerateSkinLocation) {
+TEST_F(SkinCacheTest, GenerateSkinLocation)
+{
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
@@ -73,7 +78,8 @@ TEST_F(SkinCacheTest, GenerateSkinLocation) {
     EXPECT_EQ("minecraft:skins/ab/abc123def456", location.toString());
 }
 
-TEST_F(SkinCacheTest, CacheCount) {
+TEST_F(SkinCacheTest, CacheCount)
+{
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
@@ -91,7 +97,8 @@ TEST_F(SkinCacheTest, CacheCount) {
     EXPECT_EQ(1u, cache_->cacheCount());
 }
 
-TEST_F(SkinCacheTest, ClearAll) {
+TEST_F(SkinCacheTest, ClearAll)
+{
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
@@ -111,7 +118,8 @@ TEST_F(SkinCacheTest, ClearAll) {
 
 class PlayerSkinInfoTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         uuid_ = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
         profile_ = std::make_unique<GameProfile>(uuid_, "TestPlayer");
         info_ = std::make_unique<PlayerSkinInfo>(*profile_);
@@ -122,7 +130,8 @@ protected:
     std::unique_ptr<PlayerSkinInfo> info_;
 };
 
-TEST_F(PlayerSkinInfoTest, BasicProperties) {
+TEST_F(PlayerSkinInfoTest, BasicProperties)
+{
     EXPECT_EQ("TestPlayer", info_->name());
 
     const auto& infoUuid = info_->uuid();
@@ -131,7 +140,8 @@ TEST_F(PlayerSkinInfoTest, BasicProperties) {
     }
 }
 
-TEST_F(PlayerSkinInfoTest, LoadState) {
+TEST_F(PlayerSkinInfoTest, LoadState)
+{
     EXPECT_EQ(SkinLoadState::NotLoaded, info_->loadState());
 
     info_->setLoadState(SkinLoadState::Loading);
@@ -149,7 +159,8 @@ TEST_F(PlayerSkinInfoTest, LoadState) {
     EXPECT_TRUE(info_->isUsingDefault());
 }
 
-TEST_F(PlayerSkinInfoTest, SkinTextures) {
+TEST_F(PlayerSkinInfoTest, SkinTextures)
+{
     mc::ResourceLocation skinLoc("minecraft:skins/test");
     info_->setSkinLocation(skinLoc);
 
@@ -163,7 +174,8 @@ TEST_F(PlayerSkinInfoTest, SkinTextures) {
     EXPECT_EQ(capeLoc, cape.value());
 }
 
-TEST_F(PlayerSkinInfoTest, SkinType) {
+TEST_F(PlayerSkinInfoTest, SkinType)
+{
     // 默认根据 UUID 确定
     SkinType type = info_->getSkinType();
     EXPECT_TRUE(type == SkinType::Default || type == SkinType::Slim);
@@ -176,9 +188,10 @@ TEST_F(PlayerSkinInfoTest, SkinType) {
     EXPECT_EQ(SkinType::Slim, info_->getSkinType());
 }
 
-TEST_F(PlayerSkinInfoTest, ModelParts) {
+TEST_F(PlayerSkinInfoTest, ModelParts)
+{
     mc::u8 parts = info_->modelParts();
-    EXPECT_EQ(0x7F, parts);  // 默认显示所有部件（除披风外）
+    EXPECT_EQ(0x7F, parts); // 默认显示所有部件（除披风外）
 
     // 设置特定部件
     info_->setModelPartEnabled(mc::PlayerModelPart::Cape, true);
@@ -192,8 +205,9 @@ TEST_F(PlayerSkinInfoTest, ModelParts) {
     EXPECT_EQ(0x00, info_->modelParts());
 }
 
-TEST_F(PlayerSkinInfoTest, DefaultSkinLocation) {
+TEST_F(PlayerSkinInfoTest, DefaultSkinLocation)
+{
     mc::ResourceLocation defaultSkin = info_->getDefaultSkinLocation();
     EXPECT_TRUE(defaultSkin.toString().find("steve") != std::string::npos ||
-                defaultSkin.toString().find("alex") != std::string::npos);
+        defaultSkin.toString().find("alex") != std::string::npos);
 }

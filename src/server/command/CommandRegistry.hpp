@@ -1,13 +1,13 @@
 #pragma once
 
+#include "ServerCommandSource.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandTreeSnapshot.hpp"
-#include "ServerCommandSource.hpp"
-#include <memory>
-#include <future>
 #include <functional>
-#include <vector>
+#include <future>
+#include <memory>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 namespace command {

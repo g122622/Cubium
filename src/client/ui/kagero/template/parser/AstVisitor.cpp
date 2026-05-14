@@ -4,7 +4,8 @@
 
 namespace mc::client::ui::kagero::tpl::ast::traversal {
 
-void preorder(Node& root, const std::function<bool(Node&)>& callback) {
+void preorder(Node& root, const std::function<bool(Node&)>& callback)
+{
     if (!callback(root)) return;
 
     for (auto& child : root.children) {
@@ -12,7 +13,8 @@ void preorder(Node& root, const std::function<bool(Node&)>& callback) {
     }
 }
 
-void postorder(Node& root, const std::function<bool(Node&)>& callback) {
+void postorder(Node& root, const std::function<bool(Node&)>& callback)
+{
     for (auto& child : root.children) {
         postorder(*child, callback);
     }
@@ -20,7 +22,8 @@ void postorder(Node& root, const std::function<bool(Node&)>& callback) {
     callback(root);
 }
 
-void levelOrder(Node& root, const std::function<bool(Node&)>& callback) {
+void levelOrder(Node& root, const std::function<bool(Node&)>& callback)
+{
     std::queue<Node*> queue;
     queue.push(&root);
 
@@ -36,7 +39,8 @@ void levelOrder(Node& root, const std::function<bool(Node&)>& callback) {
     }
 }
 
-void preorderConst(const Node& root, const std::function<bool(const Node&)>& callback) {
+void preorderConst(const Node& root, const std::function<bool(const Node&)>& callback)
+{
     if (!callback(root)) return;
 
     for (const auto& child : root.children) {
@@ -44,7 +48,8 @@ void preorderConst(const Node& root, const std::function<bool(const Node&)>& cal
     }
 }
 
-void postorderConst(const Node& root, const std::function<bool(const Node&)>& callback) {
+void postorderConst(const Node& root, const std::function<bool(const Node&)>& callback)
+{
     for (const auto& child : root.children) {
         postorderConst(*child, callback);
     }
@@ -52,7 +57,8 @@ void postorderConst(const Node& root, const std::function<bool(const Node&)>& ca
     callback(root);
 }
 
-Node* findFirst(Node& root, const std::function<bool(const Node&)>& predicate) {
+Node* findFirst(Node& root, const std::function<bool(const Node&)>& predicate)
+{
     if (predicate(root)) {
         return &root;
     }
@@ -65,7 +71,8 @@ Node* findFirst(Node& root, const std::function<bool(const Node&)>& predicate) {
     return nullptr;
 }
 
-const Node* findFirst(const Node& root, const std::function<bool(const Node&)>& predicate) {
+const Node* findFirst(const Node& root, const std::function<bool(const Node&)>& predicate)
+{
     if (predicate(root)) {
         return &root;
     }
@@ -78,7 +85,8 @@ const Node* findFirst(const Node& root, const std::function<bool(const Node&)>& 
     return nullptr;
 }
 
-std::vector<Node*> findAll(Node& root, const std::function<bool(const Node&)>& predicate) {
+std::vector<Node*> findAll(Node& root, const std::function<bool(const Node&)>& predicate)
+{
     std::vector<Node*> results;
 
     if (predicate(root)) {
@@ -93,7 +101,8 @@ std::vector<Node*> findAll(Node& root, const std::function<bool(const Node&)>& p
     return results;
 }
 
-std::vector<const Node*> findAll(const Node& root, const std::function<bool(const Node&)>& predicate) {
+std::vector<const Node*> findAll(const Node& root, const std::function<bool(const Node&)>& predicate)
+{
     std::vector<const Node*> results;
 
     if (predicate(root)) {
@@ -108,7 +117,8 @@ std::vector<const Node*> findAll(const Node& root, const std::function<bool(cons
     return results;
 }
 
-ElementNode* findById(Node& root, const std::string& id) {
+ElementNode* findById(Node& root, const std::string& id)
+{
     Node* found = findFirst(root, [&id](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->id == id;
@@ -119,7 +129,8 @@ ElementNode* findById(Node& root, const std::string& id) {
     return dynamic_cast<ElementNode*>(found);
 }
 
-const ElementNode* findById(const Node& root, const std::string& id) {
+const ElementNode* findById(const Node& root, const std::string& id)
+{
     const Node* found = findFirst(root, [&id](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->id == id;
@@ -130,7 +141,8 @@ const ElementNode* findById(const Node& root, const std::string& id) {
     return dynamic_cast<const ElementNode*>(found);
 }
 
-std::vector<ElementNode*> findByTagName(Node& root, const std::string& tagName) {
+std::vector<ElementNode*> findByTagName(Node& root, const std::string& tagName)
+{
     auto nodes = findAll(root, [&tagName](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->tagName == tagName;
@@ -147,7 +159,8 @@ std::vector<ElementNode*> findByTagName(Node& root, const std::string& tagName) 
     return results;
 }
 
-std::vector<const ElementNode*> findByTagName(const Node& root, const std::string& tagName) {
+std::vector<const ElementNode*> findByTagName(const Node& root, const std::string& tagName)
+{
     auto nodes = findAll(root, [&tagName](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->tagName == tagName;
@@ -164,7 +177,8 @@ std::vector<const ElementNode*> findByTagName(const Node& root, const std::strin
     return results;
 }
 
-size_t getDepth(const Node& node) {
+size_t getDepth(const Node& node)
+{
     if (node.children.empty()) {
         return 0;
     }
@@ -177,7 +191,8 @@ size_t getDepth(const Node& node) {
     return maxChildDepth + 1;
 }
 
-size_t countNodes(const Node& root) {
+size_t countNodes(const Node& root)
+{
     size_t count = 1;
     for (const auto& child : root.children) {
         count += countNodes(*child);
@@ -185,7 +200,8 @@ size_t countNodes(const Node& root) {
     return count;
 }
 
-size_t countNodes(const Node& root, NodeType type) {
+size_t countNodes(const Node& root, NodeType type)
+{
     size_t count = (root.type == type) ? 1 : 0;
     for (const auto& child : root.children) {
         count += countNodes(*child, type);

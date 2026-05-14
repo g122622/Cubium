@@ -1,16 +1,22 @@
 #include "CoralBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace {
 
-[[nodiscard]] bool hasNearbyWater(mc::IWorld& world, const mc::BlockPos& pos) {
-    for (mc::Direction dir : {mc::Direction::North, mc::Direction::South, mc::Direction::East, mc::Direction::West, mc::Direction::Up, mc::Direction::Down}) {
+[[nodiscard]] bool hasNearbyWater(mc::IWorld& world, const mc::BlockPos& pos)
+{
+    for (mc::Direction dir : {mc::Direction::North,
+             mc::Direction::South,
+             mc::Direction::East,
+             mc::Direction::West,
+             mc::Direction::Up,
+             mc::Direction::Down}) {
         const mc::fluid::FluidState* fluidState = world.getFluidState(pos.offset(dir));
         if (mc::waterloggable::isWaterFluidState(fluidState)) {
             return true;
@@ -20,7 +26,8 @@ namespace {
     return false;
 }
 
-[[nodiscard]] const mc::BlockState* getDeadBlockState(mc::u32 deadBlockId) {
+[[nodiscard]] const mc::BlockState* getDeadBlockState(mc::u32 deadBlockId)
+{
     mc::Block* deadBlock = mc::BlockRegistry::instance().getBlock(deadBlockId);
     return deadBlock != nullptr ? &deadBlock->defaultState() : nullptr;
 }
@@ -35,21 +42,24 @@ namespace blocks {
 CoralBlock::CoralBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties)
     : Block(properties)
     , m_color(color)
-    , m_deadBlock(deadBlock) {
+    , m_deadBlock(deadBlock)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), false));
 }
 
-BlockState CoralBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CoralBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
@@ -58,13 +68,13 @@ BlockState CoralBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState().with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-BlockState CoralBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState CoralBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
@@ -83,15 +93,18 @@ BlockState CoralBlock::updatePostPlacement(
     return state;
 }
 
-bool CoralBlock::isInWater(const BlockState& state) const {
+bool CoralBlock::isInWater(const BlockState& state) const
+{
     return state.get(BlockStateProperties::WATERLOGGED());
 }
 
-bool CoralBlock::isWaterNearby(IWorld& world, const BlockPos& pos) const {
+bool CoralBlock::isWaterNearby(IWorld& world, const BlockPos& pos) const
+{
     return hasNearbyWater(world, pos);
 }
 
-const CollisionShape& CoralBlock::getShape(const BlockState& state) const {
+const CollisionShape& CoralBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape fullShape = CollisionShape::fullBlock();
     return fullShape;
@@ -99,7 +112,8 @@ const CollisionShape& CoralBlock::getShape(const BlockState& state) const {
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* CoralBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* CoralBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
@@ -109,24 +123,27 @@ const fluid::FluidState* CoralBlock::getFluidState(const BlockState& state) cons
 CoralFanBlock::CoralFanBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties)
     : Block(properties)
     , m_color(color)
-    , m_deadBlock(deadBlock) {
+    , m_deadBlock(deadBlock)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::WATERLOGGED())
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::WATERLOGGED())
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::WATERLOGGED(), false)
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+            .with(BlockStateProperties::WATERLOGGED(), false)
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 }
 
-BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.horizontalDirection();
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
@@ -138,22 +155,20 @@ BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-bool CoralFanBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool CoralFanBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     return canAttachTo(world, pos, facing);
 }
 
-BlockState CoralFanBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState CoralFanBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     Direction attachDir = state.get(BlockStateProperties::HORIZONTAL_FACING());
     if (facing == attachDir) {
@@ -178,27 +193,31 @@ BlockState CoralFanBlock::updatePostPlacement(
     return state;
 }
 
-const BlockState& CoralFanBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& CoralFanBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const BlockState& CoralFanBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& CoralFanBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const CollisionShape& CoralFanBlock::getShape(const BlockState& state) const {
+const CollisionShape& CoralFanBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 珊瑚扇是薄层
     static CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
     return shape;
 }
 
-bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
+bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const
+{
     BlockPos adjPos = pos.offset(direction);
     const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -211,7 +230,8 @@ bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direct
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* CoralFanBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* CoralFanBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
@@ -221,24 +241,27 @@ const fluid::FluidState* CoralFanBlock::getFluidState(const BlockState& state) c
 CoralWallFanBlock::CoralWallFanBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties)
     : Block(properties)
     , m_color(color)
-    , m_deadBlock(deadBlock) {
+    , m_deadBlock(deadBlock)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::WATERLOGGED())
-        .add(BlockStateProperties::FACING())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::WATERLOGGED())
+            .add(BlockStateProperties::FACING())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::WATERLOGGED(), false)
-        .with(BlockStateProperties::FACING(), Direction::North));
+            .with(BlockStateProperties::WATERLOGGED(), false)
+            .with(BlockStateProperties::FACING(), Direction::North));
 }
 
-BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.getClickedFace();
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
@@ -250,10 +273,8 @@ BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-bool CoralWallFanBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool CoralWallFanBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     Direction facing = state.get(BlockStateProperties::FACING());
     if (facing == Direction::Up || facing == Direction::Down) {
@@ -262,13 +283,13 @@ bool CoralWallFanBlock::isValidPosition(
     return canAttachTo(world, pos, Directions::opposite(facing));
 }
 
-BlockState CoralWallFanBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState CoralWallFanBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -296,20 +317,23 @@ BlockState CoralWallFanBlock::updatePostPlacement(
     return state;
 }
 
-const BlockState& CoralWallFanBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& CoralWallFanBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::FACING(), newFacing);
 }
 
-const BlockState& CoralWallFanBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& CoralWallFanBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     Direction facing = state.get(BlockStateProperties::FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::FACING(), newFacing);
 }
 
-const CollisionShape& CoralWallFanBlock::getShape(const BlockState& state) const {
+const CollisionShape& CoralWallFanBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::FACING());
 
     // 根据朝向返回不同形状
@@ -337,7 +361,8 @@ const CollisionShape& CoralWallFanBlock::getShape(const BlockState& state) const
     }
 }
 
-bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
+bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const
+{
     BlockPos adjPos = pos.offset(direction);
     const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -350,7 +375,8 @@ bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Di
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* CoralWallFanBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* CoralWallFanBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
@@ -359,11 +385,13 @@ const fluid::FluidState* CoralWallFanBlock::getFluidState(const BlockState& stat
 
 CoralBlockBlock::CoralBlockBlock(CoralColor color, const BlockProperties& properties)
     : Block(properties)
-    , m_color(color) {
+    , m_color(color)
+{
     // 珊瑚块没有状态属性
 }
 
-const CollisionShape& CoralBlockBlock::getShape(const BlockState& state) const {
+const CollisionShape& CoralBlockBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape fullShape = CollisionShape::fullBlock();
     return fullShape;

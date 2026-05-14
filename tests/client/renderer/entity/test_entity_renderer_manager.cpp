@@ -9,10 +9,10 @@
  * - 渲染器注册和获取
  */
 
-#include <gtest/gtest.h>
-#include <vector>
 #include <string>
 #include <unordered_map>
+#include <vector>
+#include <gtest/gtest.h>
 
 // 前向声明和手动实现测试（不依赖 Vulkan）
 
@@ -28,7 +28,8 @@ namespace renderer {
  * 将实体类型ID转换为标准格式（带命名空间前缀）
  * 例如："pig" -> "minecraft:pig", "minecraft:cow" -> "minecraft:cow"
  */
-std::string normalizeEntityTypeId(const std::string& typeId) {
+std::string normalizeEntityTypeId(const std::string& typeId)
+{
     // 如果已有命名空间前缀，直接返回
     if (typeId.find(':') != std::string::npos) {
         return typeId;
@@ -51,7 +52,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(NormalizeEntityTypeIdTest, NormalizeSimpleEntityId) {
+TEST_F(NormalizeEntityTypeIdTest, NormalizeSimpleEntityId)
+{
     // 测试简单的实体类型ID（无命名空间）
     EXPECT_EQ(normalizeEntityTypeId("pig"), "minecraft:pig");
     EXPECT_EQ(normalizeEntityTypeId("cow"), "minecraft:cow");
@@ -59,14 +61,16 @@ TEST_F(NormalizeEntityTypeIdTest, NormalizeSimpleEntityId) {
     EXPECT_EQ(normalizeEntityTypeId("chicken"), "minecraft:chicken");
 }
 
-TEST_F(NormalizeEntityTypeIdTest, KeepAlreadyNormalizedId) {
+TEST_F(NormalizeEntityTypeIdTest, KeepAlreadyNormalizedId)
+{
     // 测试已经带有命名空间的ID（应该保持不变）
     EXPECT_EQ(normalizeEntityTypeId("minecraft:pig"), "minecraft:pig");
     EXPECT_EQ(normalizeEntityTypeId("minecraft:cow"), "minecraft:cow");
     EXPECT_EQ(normalizeEntityTypeId("modid:custom_mob"), "modid:custom_mob");
 }
 
-TEST_F(NormalizeEntityTypeIdTest, HandleEdgeCases) {
+TEST_F(NormalizeEntityTypeIdTest, HandleEdgeCases)
+{
     // 空字符串
     EXPECT_EQ(normalizeEntityTypeId(""), "minecraft:");
 
@@ -80,7 +84,8 @@ TEST_F(NormalizeEntityTypeIdTest, HandleEdgeCases) {
     EXPECT_EQ(normalizeEntityTypeId("test:"), "test:");
 }
 
-TEST_F(NormalizeEntityTypeIdTest, HandleComplexNames) {
+TEST_F(NormalizeEntityTypeIdTest, HandleComplexNames)
+{
     // 带下划线的名称
     EXPECT_EQ(normalizeEntityTypeId("cave_spider"), "minecraft:cave_spider");
     EXPECT_EQ(normalizeEntityTypeId("iron_golem"), "minecraft:iron_golem");
@@ -94,7 +99,8 @@ TEST_F(NormalizeEntityTypeIdTest, HandleComplexNames) {
 // ============================================================================
 
 // 从 EntityTextureLoader.cpp 提取的逻辑
-std::string parseEntityName(const std::string& entityTypeId) {
+std::string parseEntityName(const std::string& entityTypeId)
+{
     size_t colonPos = entityTypeId.find(':');
     if (colonPos != std::string::npos && colonPos + 1 < entityTypeId.size()) {
         return entityTypeId.substr(colonPos + 1);
@@ -102,7 +108,8 @@ std::string parseEntityName(const std::string& entityTypeId) {
     return entityTypeId;
 }
 
-std::vector<std::string> getTexturePaths(const std::string& entityTypeId) {
+std::vector<std::string> getTexturePaths(const std::string& entityTypeId)
+{
     std::string name = parseEntityName(entityTypeId);
 
     static const std::unordered_map<std::string, std::vector<std::string>> specialPaths = {
@@ -172,25 +179,29 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(EntityTexturePathGenerationTest, ParseEntityNameSimple) {
+TEST_F(EntityTexturePathGenerationTest, ParseEntityNameSimple)
+{
     EXPECT_EQ(parseEntityName("minecraft:pig"), "pig");
     EXPECT_EQ(parseEntityName("minecraft:cow"), "cow");
     EXPECT_EQ(parseEntityName("minecraft:sheep"), "sheep");
     EXPECT_EQ(parseEntityName("minecraft:chicken"), "chicken");
 }
 
-TEST_F(EntityTexturePathGenerationTest, ParseEntityNameNoNamespace) {
+TEST_F(EntityTexturePathGenerationTest, ParseEntityNameNoNamespace)
+{
     // 如果没有命名空间，返回原字符串
     EXPECT_EQ(parseEntityName("pig"), "pig");
     EXPECT_EQ(parseEntityName("cow"), "cow");
 }
 
-TEST_F(EntityTexturePathGenerationTest, ParseEntityNameCustomNamespace) {
+TEST_F(EntityTexturePathGenerationTest, ParseEntityNameCustomNamespace)
+{
     EXPECT_EQ(parseEntityName("modid:custom_mob"), "custom_mob");
     EXPECT_EQ(parseEntityName("mymod:dragon"), "dragon");
 }
 
-TEST_F(EntityTexturePathGenerationTest, ParseEntityNameEdgeCases) {
+TEST_F(EntityTexturePathGenerationTest, ParseEntityNameEdgeCases)
+{
     // 空字符串
     EXPECT_EQ(parseEntityName(""), "");
 
@@ -201,7 +212,8 @@ TEST_F(EntityTexturePathGenerationTest, ParseEntityNameEdgeCases) {
     EXPECT_EQ(parseEntityName("test:"), "test:");
 }
 
-TEST_F(EntityTexturePathGenerationTest, GetTexturePathsPig) {
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsPig)
+{
     auto paths = getTexturePaths("minecraft:pig");
 
     ASSERT_EQ(paths.size(), 2u);
@@ -213,7 +225,8 @@ TEST_F(EntityTexturePathGenerationTest, GetTexturePathsPig) {
     EXPECT_EQ(paths[1], "minecraft:textures/entity/pig.png");
 }
 
-TEST_F(EntityTexturePathGenerationTest, GetTexturePathsCow) {
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsCow)
+{
     auto paths = getTexturePaths("minecraft:cow");
 
     ASSERT_EQ(paths.size(), 2u);
@@ -221,7 +234,8 @@ TEST_F(EntityTexturePathGenerationTest, GetTexturePathsCow) {
     EXPECT_EQ(paths[1], "minecraft:textures/entity/cow.png");
 }
 
-TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSheep) {
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSheep)
+{
     auto paths = getTexturePaths("minecraft:sheep");
 
     ASSERT_EQ(paths.size(), 2u);
@@ -229,14 +243,16 @@ TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSheep) {
     EXPECT_EQ(paths[1], "minecraft:textures/entity/sheep.png");
 }
 
-TEST_F(EntityTexturePathGenerationTest, GetTexturePathsChicken) {
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsChicken)
+{
     auto paths = getTexturePaths("minecraft:chicken");
 
     ASSERT_EQ(paths.size(), 1u);
     EXPECT_EQ(paths[0], "minecraft:textures/entity/chicken.png");
 }
 
-TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSpecialVanillaEntities) {
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSpecialVanillaEntities)
+{
     const std::vector<std::pair<std::string, std::string>> specialCases = {
         {"minecraft:rabbit", "minecraft:textures/entity/rabbit/brown.png"},
         {"minecraft:mooshroom", "minecraft:textures/entity/cow/red_mooshroom.png"},
@@ -277,8 +293,7 @@ TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSpecialVanillaEntities) {
         {"minecraft:pillager", "minecraft:textures/entity/illager/pillager.png"},
         {"minecraft:ravager", "minecraft:textures/entity/illager/ravager.png"},
         {"minecraft:vex", "minecraft:textures/entity/illager/vex.png"},
-        {"minecraft:ender_dragon", "minecraft:textures/entity/enderdragon/dragon.png"}
-    };
+        {"minecraft:ender_dragon", "minecraft:textures/entity/enderdragon/dragon.png"}};
 
     for (const auto& [entityTypeId, expectedPath] : specialCases) {
         auto paths = getTexturePaths(entityTypeId);
@@ -287,7 +302,8 @@ TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSpecialVanillaEntities) {
     }
 }
 
-TEST_F(EntityTexturePathGenerationTest, GetTexturePathsWithoutNamespace) {
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsWithoutNamespace)
+{
     // 测试不带命名空间的实体类型ID
     auto paths = getTexturePaths("pig");
 
@@ -296,7 +312,8 @@ TEST_F(EntityTexturePathGenerationTest, GetTexturePathsWithoutNamespace) {
     EXPECT_EQ(paths[1], "minecraft:textures/entity/pig.png");
 }
 
-TEST_F(EntityTexturePathGenerationTest, GetTexturePathsCustomMod) {
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsCustomMod)
+{
     // 测试自定义模组的实体
     auto paths = getTexturePaths("mymod:dragon");
 
@@ -314,16 +331,12 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(DefaultEntityTypesTest, DefaultTypesContainExpected) {
+TEST_F(DefaultEntityTypesTest, DefaultTypesContainExpected)
+{
     // 测试默认实体类型列表应包含的类型
     // 这个列表来自 EntityTextureLoader::getDefaultEntityTypes()
 
-    std::vector<std::string> expectedTypes = {
-        "minecraft:pig",
-        "minecraft:cow",
-        "minecraft:sheep",
-        "minecraft:chicken"
-    };
+    std::vector<std::string> expectedTypes = {"minecraft:pig", "minecraft:cow", "minecraft:sheep", "minecraft:chicken"};
 
     // 验证列表大小
     EXPECT_EQ(expectedTypes.size(), 4u);
@@ -335,14 +348,10 @@ TEST_F(DefaultEntityTypesTest, DefaultTypesContainExpected) {
     }
 }
 
-TEST_F(DefaultEntityTypesTest, AllDefaultTypesHaveTexturePaths) {
+TEST_F(DefaultEntityTypesTest, AllDefaultTypesHaveTexturePaths)
+{
     // 验证所有默认实体类型都有对应的纹理路径
-    std::vector<std::string> defaultTypes = {
-        "minecraft:pig",
-        "minecraft:cow",
-        "minecraft:sheep",
-        "minecraft:chicken"
-    };
+    std::vector<std::string> defaultTypes = {"minecraft:pig", "minecraft:cow", "minecraft:sheep", "minecraft:chicken"};
 
     for (const auto& type : defaultTypes) {
         auto paths = getTexturePaths(type);
@@ -359,16 +368,17 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TexturePathFormatTest, Mc113PathFormat) {
+TEST_F(TexturePathFormatTest, Mc113PathFormat)
+{
     auto paths = getTexturePaths("minecraft:pig");
     ASSERT_FALSE(paths.empty());
 
     // MC 1.13+ 格式应该包含子目录
-    EXPECT_TRUE(paths[0].find("/pig/") != std::string::npos)
-        << "MC 1.13+ path should contain subdirectory";
+    EXPECT_TRUE(paths[0].find("/pig/") != std::string::npos) << "MC 1.13+ path should contain subdirectory";
 }
 
-TEST_F(TexturePathFormatTest, Mc112PathFormat) {
+TEST_F(TexturePathFormatTest, Mc112PathFormat)
+{
     auto paths = getTexturePaths("minecraft:pig");
     ASSERT_GE(paths.size(), 2u);
 
@@ -377,7 +387,8 @@ TEST_F(TexturePathFormatTest, Mc112PathFormat) {
         << "MC 1.12 path should be directly in entity directory";
 }
 
-TEST_F(TexturePathFormatTest, AllPathsHaveCorrectPrefix) {
+TEST_F(TexturePathFormatTest, AllPathsHaveCorrectPrefix)
+{
     auto paths = getTexturePaths("minecraft:cow");
 
     for (const auto& path : paths) {
@@ -386,12 +397,12 @@ TEST_F(TexturePathFormatTest, AllPathsHaveCorrectPrefix) {
     }
 }
 
-TEST_F(TexturePathFormatTest, AllPathsHavePngExtension) {
+TEST_F(TexturePathFormatTest, AllPathsHavePngExtension)
+{
     auto paths = getTexturePaths("minecraft:sheep");
 
     for (const auto& path : paths) {
-        EXPECT_TRUE(path.find(".png") != std::string::npos)
-            << "All texture paths should have .png extension";
+        EXPECT_TRUE(path.find(".png") != std::string::npos) << "All texture paths should have .png extension";
     }
 }
 

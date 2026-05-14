@@ -3,8 +3,8 @@
 #include "Enchantment.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <vector>
 #include <array>
+#include <vector>
 
 namespace mc {
 
@@ -301,9 +301,7 @@ public:
      * @param damageType 伤害类型
      * @return EPF 总和（已限制在 0-20 范围内）
      */
-    [[nodiscard]] static i32 getTotalArmorProtection(
-        const std::array<const ItemStack*, 4>& armorSlots,
-        u32 damageType);
+    [[nodiscard]] static i32 getTotalArmorProtection(const std::array<const ItemStack*, 4>& armorSlots, u32 damageType);
 
     /**
      * @brief 计算单个物品的附魔保护因子
@@ -354,9 +352,7 @@ public:
      * @param armorSlots 护甲槽位数组（头盔、胸甲、护腿、靴子）
      */
     static void applyThornsEnchantments(
-        LivingEntity& user,
-        Entity& attacker,
-        const std::array<const ItemStack*, 4>& armorSlots);
+        LivingEntity& user, Entity& attacker, const std::array<const ItemStack*, 4>& armorSlots);
 
     // ========== 附魔生成（附魔台用） ==========
 
@@ -368,10 +364,13 @@ public:
     struct EnchantmentData {
         const Enchantment* enchantment;
         i32 level;
-        i32 weight;  // 权重（用于随机选择）
+        i32 weight; // 权重（用于随机选择）
 
         EnchantmentData(const Enchantment* ench, i32 lvl)
-            : enchantment(ench), level(lvl), weight(ench ? ench->rarityWeight() : 0) {}
+            : enchantment(ench)
+            , level(lvl)
+            , weight(ench ? ench->rarityWeight() : 0)
+        {}
     };
 
     /**
@@ -457,7 +456,7 @@ public:
     static ItemStack addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure = false);
 
 private:
-    EnchantmentHelper() = delete;  // 禁止实例化
+    EnchantmentHelper() = delete; // 禁止实例化
 };
 
 } // namespace enchant

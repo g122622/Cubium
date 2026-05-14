@@ -1,14 +1,13 @@
-#include <gtest/gtest.h>
-#include "common/world/gen/jigsaw/JigsawPiece.hpp"
 #include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::world::gen::jigsaw;
 
 class JigsawMatcherTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 };
 
 // ============================================================================
@@ -17,43 +16,34 @@ protected:
 
 class JigsawOrientationTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 };
 
-TEST_F(JigsawOrientationTest, FromFacingAndRotation) {
+TEST_F(JigsawOrientationTest, FromFacingAndRotation)
+{
     // DOWN facing (rotation可以是水平方向)
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::East),
-              JigsawOrientation::DownEast);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::North),
-              JigsawOrientation::DownNorth);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::South),
-              JigsawOrientation::DownSouth);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::West),
-              JigsawOrientation::DownWest);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::East), JigsawOrientation::DownEast);
+    EXPECT_EQ(
+        JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::North), JigsawOrientation::DownNorth);
+    EXPECT_EQ(
+        JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::South), JigsawOrientation::DownSouth);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Down, Direction::West), JigsawOrientation::DownWest);
 
     // UP facing (rotation可以是水平方向)
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::East),
-              JigsawOrientation::UpEast);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::North),
-              JigsawOrientation::UpNorth);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::South),
-              JigsawOrientation::UpSouth);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::West),
-              JigsawOrientation::UpWest);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::East), JigsawOrientation::UpEast);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::North), JigsawOrientation::UpNorth);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::South), JigsawOrientation::UpSouth);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::Up, Direction::West), JigsawOrientation::UpWest);
 
     // 水平 facing (rotation只能是UP)
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::North, Direction::Up),
-              JigsawOrientation::NorthUp);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::South, Direction::Up),
-              JigsawOrientation::SouthUp);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::West, Direction::Up),
-              JigsawOrientation::WestUp);
-    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::East, Direction::Up),
-              JigsawOrientation::EastUp);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::North, Direction::Up), JigsawOrientation::NorthUp);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::South, Direction::Up), JigsawOrientation::SouthUp);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::West, Direction::Up), JigsawOrientation::WestUp);
+    EXPECT_EQ(JigsawOrientations::fromFacingAndRotation(Direction::East, Direction::Up), JigsawOrientation::EastUp);
 }
 
-TEST_F(JigsawOrientationTest, GetFacing) {
+TEST_F(JigsawOrientationTest, GetFacing)
+{
     // DOWN facing
     EXPECT_EQ(JigsawOrientations::getFacing(JigsawOrientation::DownEast), Direction::Down);
     EXPECT_EQ(JigsawOrientations::getFacing(JigsawOrientation::DownNorth), Direction::Down);
@@ -73,7 +63,8 @@ TEST_F(JigsawOrientationTest, GetFacing) {
     EXPECT_EQ(JigsawOrientations::getFacing(JigsawOrientation::EastUp), Direction::East);
 }
 
-TEST_F(JigsawOrientationTest, GetRotation) {
+TEST_F(JigsawOrientationTest, GetRotation)
+{
     // DOWN facing
     EXPECT_EQ(JigsawOrientations::getRotation(JigsawOrientation::DownEast), Direction::East);
     EXPECT_EQ(JigsawOrientations::getRotation(JigsawOrientation::DownNorth), Direction::North);
@@ -93,7 +84,8 @@ TEST_F(JigsawOrientationTest, GetRotation) {
     EXPECT_EQ(JigsawOrientations::getRotation(JigsawOrientation::EastUp), Direction::Up);
 }
 
-TEST_F(JigsawOrientationTest, CanConnectOrientation) {
+TEST_F(JigsawOrientationTest, CanConnectOrientation)
+{
     // Rollable: 只需facing相反
 
     // UP和DOWN相对（rollable）
@@ -137,69 +129,57 @@ TEST_F(JigsawOrientationTest, CanConnectOrientation) {
         JigsawOrientation::EastUp, JigsawOrientation::WestUp, JigsawJointType::Aligned));
 }
 
-TEST_F(JigsawOrientationTest, Rotate) {
+TEST_F(JigsawOrientationTest, Rotate)
+{
     using namespace mc;
 
     // 测试旋转
-    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::NorthUp, Rotation::None),
-              JigsawOrientation::NorthUp);
-    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::NorthUp, Rotation::Clockwise90),
-              JigsawOrientation::EastUp);
-    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::NorthUp, Rotation::Clockwise180),
-              JigsawOrientation::SouthUp);
+    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::NorthUp, Rotation::None), JigsawOrientation::NorthUp);
+    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::NorthUp, Rotation::Clockwise90), JigsawOrientation::EastUp);
+    EXPECT_EQ(
+        JigsawOrientations::rotate(JigsawOrientation::NorthUp, Rotation::Clockwise180), JigsawOrientation::SouthUp);
     EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::NorthUp, Rotation::CounterClockwise90),
-              JigsawOrientation::WestUp);
+        JigsawOrientation::WestUp);
 
     // 测试UP facing的旋转（rotation是水平方向）
-    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpNorth, Rotation::Clockwise90),
-              JigsawOrientation::UpEast);
-    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpEast, Rotation::Clockwise90),
-              JigsawOrientation::UpSouth);
-    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpSouth, Rotation::Clockwise90),
-              JigsawOrientation::UpWest);
-    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpWest, Rotation::Clockwise90),
-              JigsawOrientation::UpNorth);
+    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpNorth, Rotation::Clockwise90), JigsawOrientation::UpEast);
+    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpEast, Rotation::Clockwise90), JigsawOrientation::UpSouth);
+    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpSouth, Rotation::Clockwise90), JigsawOrientation::UpWest);
+    EXPECT_EQ(JigsawOrientations::rotate(JigsawOrientation::UpWest, Rotation::Clockwise90), JigsawOrientation::UpNorth);
 }
 
-TEST_F(JigsawOrientationTest, Mirror) {
+TEST_F(JigsawOrientationTest, Mirror)
+{
     using namespace mc;
 
     // LeftRight镜像（Z轴镜像：North<->South）
-    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::NorthUp, Mirror::LeftRight),
-              JigsawOrientation::SouthUp);
-    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::SouthUp, Mirror::LeftRight),
-              JigsawOrientation::NorthUp);
+    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::NorthUp, Mirror::LeftRight), JigsawOrientation::SouthUp);
+    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::SouthUp, Mirror::LeftRight), JigsawOrientation::NorthUp);
     EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::EastUp, Mirror::LeftRight),
-              JigsawOrientation::EastUp);  // East不受影响
+        JigsawOrientation::EastUp); // East不受影响
 
     // FrontBack镜像（X轴镜像：East<->West）
-    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::EastUp, Mirror::FrontBack),
-              JigsawOrientation::WestUp);
-    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::WestUp, Mirror::FrontBack),
-              JigsawOrientation::EastUp);
+    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::EastUp, Mirror::FrontBack), JigsawOrientation::WestUp);
+    EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::WestUp, Mirror::FrontBack), JigsawOrientation::EastUp);
     EXPECT_EQ(JigsawOrientations::mirror(JigsawOrientation::NorthUp, Mirror::FrontBack),
-              JigsawOrientation::NorthUp);  // North不受影响
+        JigsawOrientation::NorthUp); // North不受影响
 }
 
-TEST_F(JigsawOrientationTest, Opposite) {
+TEST_F(JigsawOrientationTest, Opposite)
+{
     // UP和DOWN互为相反
-    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::UpEast),
-              JigsawOrientation::DownEast);
-    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::DownNorth),
-              JigsawOrientation::UpNorth);
+    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::UpEast), JigsawOrientation::DownEast);
+    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::DownNorth), JigsawOrientation::UpNorth);
 
     // 水平facing的相反
-    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::NorthUp),
-              JigsawOrientation::SouthUp);
-    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::SouthUp),
-              JigsawOrientation::NorthUp);
-    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::EastUp),
-              JigsawOrientation::WestUp);
-    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::WestUp),
-              JigsawOrientation::EastUp);
+    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::NorthUp), JigsawOrientation::SouthUp);
+    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::SouthUp), JigsawOrientation::NorthUp);
+    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::EastUp), JigsawOrientation::WestUp);
+    EXPECT_EQ(JigsawOrientations::opposite(JigsawOrientation::WestUp), JigsawOrientation::EastUp);
 }
 
-TEST_F(JigsawOrientationTest, FromName) {
+TEST_F(JigsawOrientationTest, FromName)
+{
     auto downEast = JigsawOrientations::fromName("down_east");
     EXPECT_TRUE(downEast.has_value());
     EXPECT_EQ(downEast.value(), JigsawOrientation::DownEast);
@@ -216,7 +196,8 @@ TEST_F(JigsawOrientationTest, FromName) {
     EXPECT_FALSE(invalid.has_value());
 }
 
-TEST_F(JigsawOrientationTest, ToString) {
+TEST_F(JigsawOrientationTest, ToString)
+{
     EXPECT_EQ(JigsawOrientations::toString(JigsawOrientation::DownEast), "down_east");
     EXPECT_EQ(JigsawOrientations::toString(JigsawOrientation::UpNorth), "up_north");
     EXPECT_EQ(JigsawOrientations::toString(JigsawOrientation::NorthUp), "north_up");
@@ -229,7 +210,8 @@ TEST_F(JigsawOrientationTest, ToString) {
 // JigsawMatcher 测试
 // ============================================================================
 
-TEST_F(JigsawMatcherTest, CanMatchByName) {
+TEST_F(JigsawMatcherTest, CanMatchByName)
+{
     // 相同名称匹配
     EXPECT_TRUE(JigsawMatcher::canMatchByName("village:street", "village:street"));
     EXPECT_TRUE(JigsawMatcher::canMatchByName("minecraft:top", "minecraft:top"));
@@ -249,25 +231,21 @@ TEST_F(JigsawMatcherTest, CanMatchByName) {
     EXPECT_FALSE(JigsawMatcher::canMatchByName("minecraft:empty", "minecraft:empty"));
 }
 
-TEST_F(JigsawMatcherTest, GetDefaultJointType) {
+TEST_F(JigsawMatcherTest, GetDefaultJointType)
+{
     // 水平facing默认为Aligned
-    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::NorthUp),
-              JigsawJointType::Aligned);
-    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::SouthUp),
-              JigsawJointType::Aligned);
-    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::EastUp),
-              JigsawJointType::Aligned);
-    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::WestUp),
-              JigsawJointType::Aligned);
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::NorthUp), JigsawJointType::Aligned);
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::SouthUp), JigsawJointType::Aligned);
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::EastUp), JigsawJointType::Aligned);
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::WestUp), JigsawJointType::Aligned);
 
     // 垂直facing默认为Rollable
-    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::UpEast),
-              JigsawJointType::Rollable);
-    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::DownNorth),
-              JigsawJointType::Rollable);
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::UpEast), JigsawJointType::Rollable);
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::DownNorth), JigsawJointType::Rollable);
 }
 
-TEST_F(JigsawMatcherTest, JointTypeFromString) {
+TEST_F(JigsawMatcherTest, JointTypeFromString)
+{
     EXPECT_EQ(JigsawMatcher::jointTypeFromString("rollable"), JigsawJointType::Rollable);
     EXPECT_EQ(JigsawMatcher::jointTypeFromString("aligned"), JigsawJointType::Aligned);
 
@@ -275,46 +253,54 @@ TEST_F(JigsawMatcherTest, JointTypeFromString) {
     EXPECT_FALSE(invalid.has_value());
 }
 
-TEST_F(JigsawMatcherTest, JointTypeToString) {
+TEST_F(JigsawMatcherTest, JointTypeToString)
+{
     EXPECT_EQ(JigsawMatcher::jointTypeToString(JigsawJointType::Rollable), "rollable");
     EXPECT_EQ(JigsawMatcher::jointTypeToString(JigsawJointType::Aligned), "aligned");
 }
 
-TEST_F(JigsawMatcherTest, CanMatchFull) {
+TEST_F(JigsawMatcherTest, CanMatchFull)
+{
     // 测试完整的匹配逻辑
 
     // Rollable连接：facing相反即可
-    EXPECT_TRUE(JigsawMatcher::canMatch(
-        "village:street", "village:street",
-        JigsawOrientation::UpEast, JigsawOrientation::DownNorth,
+    EXPECT_TRUE(JigsawMatcher::canMatch("village:street",
+        "village:street",
+        JigsawOrientation::UpEast,
+        JigsawOrientation::DownNorth,
         JigsawJointType::Rollable));
 
     // Aligned连接：facing相反且rotation相同
-    EXPECT_TRUE(JigsawMatcher::canMatch(
-        "village:street", "village:street",
-        JigsawOrientation::UpEast, JigsawOrientation::DownEast,
+    EXPECT_TRUE(JigsawMatcher::canMatch("village:street",
+        "village:street",
+        JigsawOrientation::UpEast,
+        JigsawOrientation::DownEast,
         JigsawJointType::Aligned));
 
     // Aligned连接：facing相反但rotation不同（应该失败）
-    EXPECT_FALSE(JigsawMatcher::canMatch(
-        "village:street", "village:street",
-        JigsawOrientation::UpEast, JigsawOrientation::DownNorth,
+    EXPECT_FALSE(JigsawMatcher::canMatch("village:street",
+        "village:street",
+        JigsawOrientation::UpEast,
+        JigsawOrientation::DownNorth,
         JigsawJointType::Aligned));
 
     // 名称不匹配
-    EXPECT_FALSE(JigsawMatcher::canMatch(
-        "village:street", "village:house",
-        JigsawOrientation::UpEast, JigsawOrientation::DownEast,
+    EXPECT_FALSE(JigsawMatcher::canMatch("village:street",
+        "village:house",
+        JigsawOrientation::UpEast,
+        JigsawOrientation::DownEast,
         JigsawJointType::Aligned));
 
     // facing不相反
-    EXPECT_FALSE(JigsawMatcher::canMatch(
-        "village:street", "village:street",
-        JigsawOrientation::UpEast, JigsawOrientation::NorthUp,
+    EXPECT_FALSE(JigsawMatcher::canMatch("village:street",
+        "village:street",
+        JigsawOrientation::UpEast,
+        JigsawOrientation::NorthUp,
         JigsawJointType::Rollable));
 }
 
-TEST_F(JigsawMatcherTest, RotateName) {
+TEST_F(JigsawMatcherTest, RotateName)
+{
     // top/bottom不受旋转影响
     EXPECT_EQ(JigsawMatcher::rotateName("minecraft:top", 0), "minecraft:top");
     EXPECT_EQ(JigsawMatcher::rotateName("minecraft:top", 90), "minecraft:top");
@@ -342,7 +328,8 @@ TEST_F(JigsawMatcherTest, RotateName) {
 // JigsawJoint 测试
 // ============================================================================
 
-TEST_F(JigsawMatcherTest, JigsawJointDefaults) {
+TEST_F(JigsawMatcherTest, JigsawJointDefaults)
+{
     JigsawJoint joint;
 
     EXPECT_EQ(joint.sourcePos, BlockPos());

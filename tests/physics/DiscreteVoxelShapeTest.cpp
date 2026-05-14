@@ -10,10 +10,10 @@
  * 5. 盒子合并算法 (forAllBoxes)
  */
 
-#include <gtest/gtest.h>
 #include "common/physics/shape/DiscreteVoxelShape.hpp"
-#include <vector>
 #include <algorithm>
+#include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -23,14 +23,13 @@ using namespace mc;
 
 class DiscreteVoxelShapeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 };
 
-TEST_F(DiscreteVoxelShapeTest, DefaultConstructor) {
+TEST_F(DiscreteVoxelShapeTest, DefaultConstructor)
+{
     DiscreteVoxelShape shape;
     EXPECT_EQ(shape.getXSize(), 0);
     EXPECT_EQ(shape.getYSize(), 0);
@@ -38,7 +37,8 @@ TEST_F(DiscreteVoxelShapeTest, DefaultConstructor) {
     EXPECT_TRUE(shape.isEmpty());
 }
 
-TEST_F(DiscreteVoxelShapeTest, SizeConstructor) {
+TEST_F(DiscreteVoxelShapeTest, SizeConstructor)
+{
     DiscreteVoxelShape shape(4, 3, 2);
     EXPECT_EQ(shape.getXSize(), 4);
     EXPECT_EQ(shape.getYSize(), 3);
@@ -46,7 +46,8 @@ TEST_F(DiscreteVoxelShapeTest, SizeConstructor) {
     EXPECT_TRUE(shape.isEmpty());
 }
 
-TEST_F(DiscreteVoxelShapeTest, FillAndIsFull) {
+TEST_F(DiscreteVoxelShapeTest, FillAndIsFull)
+{
     DiscreteVoxelShape shape(2, 2, 2);
 
     // 初始状态为空
@@ -64,7 +65,8 @@ TEST_F(DiscreteVoxelShapeTest, FillAndIsFull) {
     EXPECT_TRUE(shape.isFull(1, 1, 1));
 }
 
-TEST_F(DiscreteVoxelShapeTest, Clear) {
+TEST_F(DiscreteVoxelShapeTest, Clear)
+{
     DiscreteVoxelShape shape(2, 2, 2);
 
     shape.fill(0, 0, 0);
@@ -74,7 +76,8 @@ TEST_F(DiscreteVoxelShapeTest, Clear) {
     EXPECT_FALSE(shape.isFull(0, 0, 0));
 }
 
-TEST_F(DiscreteVoxelShapeTest, IsFullWide) {
+TEST_F(DiscreteVoxelShapeTest, IsFullWide)
+{
     DiscreteVoxelShape shape(2, 2, 2);
 
     // 边界外的坐标返回 false
@@ -90,7 +93,8 @@ TEST_F(DiscreteVoxelShapeTest, IsFullWide) {
     EXPECT_TRUE(shape.isFullWide(0, 0, 0));
 }
 
-TEST_F(DiscreteVoxelShapeTest, FillAll) {
+TEST_F(DiscreteVoxelShapeTest, FillAll)
+{
     DiscreteVoxelShape shape(2, 2, 2);
     shape.fillAll();
 
@@ -105,7 +109,8 @@ TEST_F(DiscreteVoxelShapeTest, FillAll) {
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(DiscreteVoxelShapeTest, FillRange) {
+TEST_F(DiscreteVoxelShapeTest, FillRange)
+{
     DiscreteVoxelShape shape(4, 4, 4);
     shape.fillRange(1, 1, 1, 3, 3, 3);
 
@@ -118,7 +123,8 @@ TEST_F(DiscreteVoxelShapeTest, FillRange) {
     EXPECT_FALSE(shape.isFull(3, 3, 3));
 }
 
-TEST_F(DiscreteVoxelShapeTest, WithFilledBounds) {
+TEST_F(DiscreteVoxelShapeTest, WithFilledBounds)
+{
     auto shape = DiscreteVoxelShape::withFilledBounds(4, 4, 4, 1, 1, 1, 3, 3, 3);
 
     EXPECT_EQ(shape.getXSize(), 4);
@@ -138,7 +144,8 @@ TEST_F(DiscreteVoxelShapeTest, WithFilledBounds) {
 // 边界查询测试
 // ============================================================================
 
-TEST_F(DiscreteVoxelShapeTest, FirstFullAndLastFull) {
+TEST_F(DiscreteVoxelShapeTest, FirstFullAndLastFull)
+{
     DiscreteVoxelShape shape(4, 4, 4);
     shape.fill(1, 2, 3);
     shape.fill(2, 3, 1);
@@ -151,7 +158,8 @@ TEST_F(DiscreteVoxelShapeTest, FirstFullAndLastFull) {
     EXPECT_EQ(shape.lastFull(Axis::Z), 4);
 }
 
-TEST_F(DiscreteVoxelShapeTest, FirstLastFullWithSlice) {
+TEST_F(DiscreteVoxelShapeTest, FirstLastFullWithSlice)
+{
     DiscreteVoxelShape shape(4, 4, 4);
 
     // 在 y=1 的平面上填充一些体素
@@ -171,7 +179,8 @@ TEST_F(DiscreteVoxelShapeTest, FirstLastFullWithSlice) {
 // Z轴线操作测试
 // ============================================================================
 
-TEST_F(DiscreteVoxelShapeTest, IsZAxisLineFull) {
+TEST_F(DiscreteVoxelShapeTest, IsZAxisLineFull)
+{
     DiscreteVoxelShape shape(4, 4, 4);
 
     // 填充一条 Z 轴线 (x=1, y=1, z=0..2)
@@ -195,7 +204,8 @@ TEST_F(DiscreteVoxelShapeTest, IsZAxisLineFull) {
     EXPECT_FALSE(shape.isZAxisLineFull(0, 3, 2, 2));
 }
 
-TEST_F(DiscreteVoxelShapeTest, SetZAxisLine) {
+TEST_F(DiscreteVoxelShapeTest, SetZAxisLine)
+{
     DiscreteVoxelShape shape(4, 4, 4);
 
     // 设置一条 Z 轴线
@@ -213,7 +223,8 @@ TEST_F(DiscreteVoxelShapeTest, SetZAxisLine) {
     EXPECT_FALSE(shape.isFull(2, 2, 2));
 }
 
-TEST_F(DiscreteVoxelShapeTest, IsXZRectangleFull) {
+TEST_F(DiscreteVoxelShapeTest, IsXZRectangleFull)
+{
     DiscreteVoxelShape shape(4, 4, 4);
 
     // 填充一个 XZ 矩形 (x=1..2, z=1..2, y=1)
@@ -241,25 +252,25 @@ TEST_F(DiscreteVoxelShapeTest, IsXZRectangleFull) {
 // 盒子合并测试
 // ============================================================================
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesEmpty) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesEmpty)
+{
     DiscreteVoxelShape shape(4, 4, 4);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     EXPECT_TRUE(boxes.empty());
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesSingleVoxel) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesSingleVoxel)
+{
     DiscreteVoxelShape shape(4, 4, 4);
     shape.fill(1, 1, 1);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     ASSERT_EQ(boxes.size(), 1u);
     EXPECT_EQ(std::get<0>(boxes[0]), 1);
@@ -270,15 +281,15 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesSingleVoxel) {
     EXPECT_EQ(std::get<5>(boxes[0]), 2);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesSimpleMerge) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesSimpleMerge)
+{
     // 创建一个 2x2x2 的立方体，应该合并成一个盒子
     DiscreteVoxelShape shape(4, 4, 4);
     shape.fillRange(1, 1, 1, 3, 3, 3);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // 合并后应该只有一个盒子
     ASSERT_EQ(boxes.size(), 1u);
@@ -290,21 +301,23 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesSimpleMerge) {
     EXPECT_EQ(std::get<5>(boxes[0]), 3);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesNoMerge) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesNoMerge)
+{
     // 不合并模式
     DiscreteVoxelShape shape(4, 4, 4);
     shape.fillRange(1, 1, 1, 3, 3, 3);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, false);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); },
+        false);
 
     // 不合并应该有 8 个盒子 (2x2x2)
     EXPECT_EQ(boxes.size(), 8u);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesTwoSeparateRegions) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesTwoSeparateRegions)
+{
     // 创建两个分离的区域
     DiscreteVoxelShape shape(8, 4, 4);
 
@@ -315,9 +328,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesTwoSeparateRegions) {
     shape.fillRange(4, 0, 0, 6, 2, 2);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // 应该有两个盒子
     ASSERT_EQ(boxes.size(), 2u);
@@ -334,7 +346,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesTwoSeparateRegions) {
     EXPECT_EQ(std::get<3>(boxes[1]), 6);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesZAxisMerge) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesZAxisMerge)
+{
     // 创建一条沿 Z 轴的线
     DiscreteVoxelShape shape(4, 4, 8);
     shape.fill(1, 1, 1);
@@ -343,9 +356,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesZAxisMerge) {
     shape.fill(1, 1, 4);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // 应该合并成一个盒子
     ASSERT_EQ(boxes.size(), 1u);
@@ -357,7 +369,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesZAxisMerge) {
     EXPECT_EQ(std::get<5>(boxes[0]), 5);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesXAxisMerge) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesXAxisMerge)
+{
     // 创建一条沿 X 轴的线
     DiscreteVoxelShape shape(8, 4, 4);
     shape.fill(1, 1, 1);
@@ -366,9 +379,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesXAxisMerge) {
     shape.fill(4, 1, 1);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // 应该合并成一个盒子
     ASSERT_EQ(boxes.size(), 1u);
@@ -380,7 +392,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesXAxisMerge) {
     EXPECT_EQ(std::get<5>(boxes[0]), 2);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesYAxisMerge) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesYAxisMerge)
+{
     // 创建一条沿 Y 轴的线
     DiscreteVoxelShape shape(4, 8, 4);
     shape.fill(1, 1, 1);
@@ -389,9 +402,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesYAxisMerge) {
     shape.fill(1, 4, 1);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // 应该合并成一个盒子
     ASSERT_EQ(boxes.size(), 1u);
@@ -403,7 +415,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesYAxisMerge) {
     EXPECT_EQ(std::get<5>(boxes[0]), 2);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesLShapedMerge) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesLShapedMerge)
+{
     // 创建 L 形状
     DiscreteVoxelShape shape(4, 4, 4);
 
@@ -418,9 +431,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesLShapedMerge) {
     shape.fill(2, 2, 1);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // L 形应该被合并成两个盒子
     // 注：具体的合并结果取决于算法的扫描顺序
@@ -430,16 +442,16 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesLShapedMerge) {
     // 验证所有盒子体积之和等于填充的体素总数
     i32 totalVolume = 0;
     for (const auto& box : boxes) {
-        i32 vol = (std::get<3>(box) - std::get<0>(box)) *
-                  (std::get<4>(box) - std::get<1>(box)) *
-                  (std::get<5>(box) - std::get<2>(box));
+        i32 vol = (std::get<3>(box) - std::get<0>(box)) * (std::get<4>(box) - std::get<1>(box)) *
+            (std::get<5>(box) - std::get<2>(box));
         totalVolume += vol;
     }
     // 填充了 5 个体素 (水平3个 + 垂直2个额外，因为 (2,0,1) 重复)
     EXPECT_EQ(totalVolume, 5);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesComplexShape) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesComplexShape)
+{
     // 创建一个复杂的 3D 形状
     DiscreteVoxelShape shape(8, 8, 8);
 
@@ -453,9 +465,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesComplexShape) {
     shape.fillRange(2, 3, 2, 6, 4, 6);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // 应该有两个盒子（底层和顶层各一个）
     ASSERT_EQ(boxes.size(), 2u);
@@ -463,23 +474,22 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesComplexShape) {
     // 计算总体积
     i32 totalVolume = 0;
     for (const auto& box : boxes) {
-        i32 vol = (std::get<3>(box) - std::get<0>(box)) *
-                  (std::get<4>(box) - std::get<1>(box)) *
-                  (std::get<5>(box) - std::get<2>(box));
+        i32 vol = (std::get<3>(box) - std::get<0>(box)) * (std::get<4>(box) - std::get<1>(box)) *
+            (std::get<5>(box) - std::get<2>(box));
         totalVolume += vol;
     }
-    EXPECT_EQ(totalVolume, 16 + 16);  // 4x4x1 + 4x4x1
+    EXPECT_EQ(totalVolume, 16 + 16); // 4x4x1 + 4x4x1
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllBoxesFullBlock) {
+TEST_F(DiscreteVoxelShapeTest, ForAllBoxesFullBlock)
+{
     // 完整的方块
     DiscreteVoxelShape shape(1, 1, 1);
     shape.fill(0, 0, 0);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> boxes;
-    shape.forAllBoxes([&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        boxes.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllBoxes(
+        [&boxes](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { boxes.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     ASSERT_EQ(boxes.size(), 1u);
     EXPECT_EQ(std::get<0>(boxes[0]), 0);
@@ -494,14 +504,14 @@ TEST_F(DiscreteVoxelShapeTest, ForAllBoxesFullBlock) {
 // 面遍历测试
 // ============================================================================
 
-TEST_F(DiscreteVoxelShapeTest, ForAllFacesSingleVoxel) {
+TEST_F(DiscreteVoxelShapeTest, ForAllFacesSingleVoxel)
+{
     DiscreteVoxelShape shape(2, 2, 2);
     shape.fill(1, 1, 1);
 
     std::vector<std::pair<Direction, std::tuple<i32, i32, i32>>> faces;
-    shape.forAllFaces([&faces](Direction dir, i32 x, i32 y, i32 z) {
-        faces.emplace_back(dir, std::make_tuple(x, y, z));
-    });
+    shape.forAllFaces(
+        [&faces](Direction dir, i32 x, i32 y, i32 z) { faces.emplace_back(dir, std::make_tuple(x, y, z)); });
 
     // 单个体素有 6 个面
     EXPECT_EQ(faces.size(), 6u);
@@ -510,13 +520,26 @@ TEST_F(DiscreteVoxelShapeTest, ForAllFacesSingleVoxel) {
     i32 countDown = 0, countUp = 0, countNorth = 0, countSouth = 0, countWest = 0, countEast = 0;
     for (const auto& [dir, pos] : faces) {
         switch (dir) {
-            case Direction::Down: countDown++; break;
-            case Direction::Up: countUp++; break;
-            case Direction::North: countNorth++; break;
-            case Direction::South: countSouth++; break;
-            case Direction::West: countWest++; break;
-            case Direction::East: countEast++; break;
-            default: break;
+            case Direction::Down:
+                countDown++;
+                break;
+            case Direction::Up:
+                countUp++;
+                break;
+            case Direction::North:
+                countNorth++;
+                break;
+            case Direction::South:
+                countSouth++;
+                break;
+            case Direction::West:
+                countWest++;
+                break;
+            case Direction::East:
+                countEast++;
+                break;
+            default:
+                break;
         }
     }
     EXPECT_EQ(countDown, 1);
@@ -527,15 +550,15 @@ TEST_F(DiscreteVoxelShapeTest, ForAllFacesSingleVoxel) {
     EXPECT_EQ(countEast, 1);
 }
 
-TEST_F(DiscreteVoxelShapeTest, ForAllFacesAdjacentVoxels) {
+TEST_F(DiscreteVoxelShapeTest, ForAllFacesAdjacentVoxels)
+{
     // 两个相邻的体素，共享的面不应该出现在外表面
     DiscreteVoxelShape shape(2, 1, 1);
     shape.fillAll();
 
     std::vector<std::pair<Direction, std::tuple<i32, i32, i32>>> faces;
-    shape.forAllFaces([&faces](Direction dir, i32 x, i32 y, i32 z) {
-        faces.emplace_back(dir, std::make_tuple(x, y, z));
-    });
+    shape.forAllFaces(
+        [&faces](Direction dir, i32 x, i32 y, i32 z) { faces.emplace_back(dir, std::make_tuple(x, y, z)); });
 
     // 两个体素相邻，共享一个面，外表面 = 6*2 - 2 = 10
     EXPECT_EQ(faces.size(), 10u);
@@ -545,14 +568,14 @@ TEST_F(DiscreteVoxelShapeTest, ForAllFacesAdjacentVoxels) {
 // 边遍历测试
 // ============================================================================
 
-TEST_F(DiscreteVoxelShapeTest, ForAllEdgesSingleVoxel) {
+TEST_F(DiscreteVoxelShapeTest, ForAllEdgesSingleVoxel)
+{
     DiscreteVoxelShape shape(2, 2, 2);
     shape.fill(1, 1, 1);
 
     std::vector<std::tuple<i32, i32, i32, i32, i32, i32>> edges;
-    shape.forAllEdges([&edges](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        edges.emplace_back(x1, y1, z1, x2, y2, z2);
-    }, true);
+    shape.forAllEdges(
+        [&edges](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) { edges.emplace_back(x1, y1, z1, x2, y2, z2); }, true);
 
     // 单个体素有 12 条边
     EXPECT_EQ(edges.size(), 12u);
@@ -562,7 +585,8 @@ TEST_F(DiscreteVoxelShapeTest, ForAllEdgesSingleVoxel) {
 // 拷贝和移动测试
 // ============================================================================
 
-TEST_F(DiscreteVoxelShapeTest, CopyConstructor) {
+TEST_F(DiscreteVoxelShapeTest, CopyConstructor)
+{
     DiscreteVoxelShape original(4, 4, 4);
     original.fill(1, 2, 3);
 
@@ -574,7 +598,8 @@ TEST_F(DiscreteVoxelShapeTest, CopyConstructor) {
     EXPECT_TRUE(copy.isFull(1, 2, 3));
 }
 
-TEST_F(DiscreteVoxelShapeTest, MoveConstructor) {
+TEST_F(DiscreteVoxelShapeTest, MoveConstructor)
+{
     DiscreteVoxelShape original(4, 4, 4);
     original.fill(1, 2, 3);
 
@@ -587,7 +612,8 @@ TEST_F(DiscreteVoxelShapeTest, MoveConstructor) {
     EXPECT_EQ(original.getXSize(), 0);
 }
 
-TEST_F(DiscreteVoxelShapeTest, CopyAssignment) {
+TEST_F(DiscreteVoxelShapeTest, CopyAssignment)
+{
     DiscreteVoxelShape original(4, 4, 4);
     original.fill(1, 2, 3);
 
@@ -598,7 +624,8 @@ TEST_F(DiscreteVoxelShapeTest, CopyAssignment) {
     EXPECT_TRUE(copy.isFull(1, 2, 3));
 }
 
-TEST_F(DiscreteVoxelShapeTest, MoveAssignment) {
+TEST_F(DiscreteVoxelShapeTest, MoveAssignment)
+{
     DiscreteVoxelShape original(4, 4, 4);
     original.fill(1, 2, 3);
 
@@ -613,9 +640,10 @@ TEST_F(DiscreteVoxelShapeTest, MoveAssignment) {
 // AxisCycle 测试
 // ============================================================================
 
-TEST_F(DiscreteVoxelShapeTest, IsFullWithAxisCycle) {
+TEST_F(DiscreteVoxelShapeTest, IsFullWithAxisCycle)
+{
     DiscreteVoxelShape shape(2, 2, 2);
-    shape.fill(1, 0, 0);  // 填充 (1, 0, 0)
+    shape.fill(1, 0, 0); // 填充 (1, 0, 0)
 
     // NONE 循环：(x, y, z) -> (x, y, z)
     EXPECT_TRUE(shape.isFull(AxisCycle::NONE, 1, 0, 0));

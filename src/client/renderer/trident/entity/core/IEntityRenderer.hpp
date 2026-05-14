@@ -17,7 +17,7 @@ namespace client::renderer::entity::core {
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
  */
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 class IEntityRenderer {
 public:
     virtual ~IEntityRenderer() = default;
@@ -49,5 +49,5 @@ public:
     [[nodiscard]] virtual ResourceLocation getEntityTexture(const TEntity& entity) const = 0;
 };
 
-} // namespace mc::client::renderer::entity::core
+} // namespace client::renderer::entity::core
 } // namespace mc

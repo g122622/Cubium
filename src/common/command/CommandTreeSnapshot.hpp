@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <initializer_list>
 #include <queue>
 #include <unordered_map>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::command {
 
@@ -77,7 +77,8 @@ public:
 
 namespace detail {
 
-[[nodiscard]] inline const char* toString(NodeType type) {
+[[nodiscard]] inline const char* toString(NodeType type)
+{
     switch (type) {
         case NodeType::Root:
             return "root";
@@ -89,7 +90,8 @@ namespace detail {
     return "root";
 }
 
-[[nodiscard]] inline NodeType parseNodeType(std::string_view text) {
+[[nodiscard]] inline NodeType parseNodeType(std::string_view text)
+{
     if (text == "root") {
         return NodeType::Root;
     }
@@ -99,7 +101,8 @@ namespace detail {
     return NodeType::Argument;
 }
 
-[[nodiscard]] inline const char* toString(RedirectModifier modifier) {
+[[nodiscard]] inline const char* toString(RedirectModifier modifier)
+{
     switch (modifier) {
         case RedirectModifier::None:
             return "none";
@@ -111,7 +114,8 @@ namespace detail {
     return "none";
 }
 
-[[nodiscard]] inline RedirectModifier parseRedirectModifier(std::string_view text) {
+[[nodiscard]] inline RedirectModifier parseRedirectModifier(std::string_view text)
+{
     if (text == "single") {
         return RedirectModifier::Single;
     }
@@ -121,7 +125,8 @@ namespace detail {
     return RedirectModifier::None;
 }
 
-[[nodiscard]] inline const char* toString(CommandTreeSuggestionKind kind) {
+[[nodiscard]] inline const char* toString(CommandTreeSuggestionKind kind)
+{
     switch (kind) {
         case CommandTreeSuggestionKind::None:
             return "none";
@@ -139,7 +144,8 @@ namespace detail {
     return "none";
 }
 
-[[nodiscard]] inline CommandTreeSuggestionKind parseSuggestionKind(std::string_view text) {
+[[nodiscard]] inline CommandTreeSuggestionKind parseSuggestionKind(std::string_view text)
+{
     if (text == "fixed") {
         return CommandTreeSuggestionKind::Fixed;
     }
@@ -158,7 +164,8 @@ namespace detail {
     return CommandTreeSuggestionKind::None;
 }
 
-[[nodiscard]] inline bool pathMatches(const std::vector<std::string>& path, std::initializer_list<const char*> segments) {
+[[nodiscard]] inline bool pathMatches(const std::vector<std::string>& path, std::initializer_list<const char*> segments)
+{
     if (path.size() != segments.size()) {
         return false;
     }
@@ -173,12 +180,10 @@ namespace detail {
     return true;
 }
 
-template<typename NodeT>
+template <typename NodeT>
 [[nodiscard]] inline CommandTreeSuggestionKind inferSuggestionKind(
-    const std::vector<std::string>& path,
-    const NodeT& node,
-    std::vector<std::string>& candidates
-) {
+    const std::vector<std::string>& path, const NodeT& node, std::vector<std::string>& candidates)
+{
     candidates.clear();
 
     if (pathMatches(path, {"help", "command"})) {
@@ -216,8 +221,9 @@ template<typename NodeT>
 /**
  * @brief 从命令分发器生成命令树快照
  */
-template<typename S>
-[[nodiscard]] CommandTreeSnapshot buildCommandTreeSnapshot(const CommandDispatcher<S>& dispatcher) {
+template <typename S>
+[[nodiscard]] CommandTreeSnapshot buildCommandTreeSnapshot(const CommandDispatcher<S>& dispatcher)
+{
     CommandTreeSnapshot snapshot;
     auto root = dispatcher.getRoot();
     if (!root) {
@@ -312,10 +318,8 @@ template<typename S>
         }
 
         std::vector<std::string> suggestionCandidates;
-        snapshotNode.suggestionKind = detail::inferSuggestionKind(
-            dispatcher.getPath(node),
-            *node,
-            suggestionCandidates);
+        snapshotNode.suggestionKind =
+            detail::inferSuggestionKind(dispatcher.getPath(node), *node, suggestionCandidates);
         snapshotNode.suggestionCandidates = std::move(suggestionCandidates);
     }
 

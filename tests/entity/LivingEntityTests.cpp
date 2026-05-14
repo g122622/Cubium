@@ -1,22 +1,22 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/AttackContext.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/combat/AttackContext.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity::attribute;
@@ -38,7 +38,8 @@ public:
     [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
     [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         if (m_supportEnabled && x == 0 && y == 0 && z == 0) {
             return &VanillaBlocks::STONE->defaultState();
         }
@@ -46,17 +47,18 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
         if (!m_supportEnabled) {
             return false;
         }
 
-        return box.maxX > 0.0f && box.minX < 1.0f &&
-               box.maxY > 0.0f && box.minY < 1.0f &&
-               box.maxZ > 0.0f && box.minZ < 1.0f;
+        return box.maxX > 0.0f && box.minX < 1.0f && box.maxY > 0.0f && box.minY < 1.0f && box.maxZ > 0.0f &&
+            box.minZ < 1.0f;
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
+    {
         if (!hasBlockCollision(box)) {
             return {};
         }
@@ -65,18 +67,21 @@ public:
     }
 
     void playSound(const ResourceLocation& soundEventId,
-                   sound::SoundCategory category,
-                   const Vector3& position,
-                   f32 volume,
-                   f32 pitch) override {
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
+    {
         m_lastSound = SoundRecord{soundEventId, category, position, volume, pitch};
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
 
@@ -87,7 +92,9 @@ private:
 
 class TestMobEntity : public MobEntity {
 public:
-    TestMobEntity() : MobEntity(LegacyEntityType::Cow, 2) {
+    TestMobEntity()
+        : MobEntity(LegacyEntityType::Cow, 2)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -101,7 +108,9 @@ public:
 
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity() : LivingEntity(LegacyEntityType::Player, 1) {
+    TestLivingEntity()
+        : LivingEntity(LegacyEntityType::Player, 1)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -111,7 +120,8 @@ public:
 // 生命值测试
 // ============================================================================
 
-TEST(LivingEntityTest, Construction) {
+TEST(LivingEntityTest, Construction)
+{
     TestLivingEntity entity;
 
     EXPECT_FLOAT_EQ(entity.health(), 20.0f);
@@ -119,35 +129,38 @@ TEST(LivingEntityTest, Construction) {
     EXPECT_FALSE(entity.isDead());
 }
 
-TEST(LivingEntityTest, SetHealth) {
+TEST(LivingEntityTest, SetHealth)
+{
     TestLivingEntity entity;
 
     entity.setHealth(15.0f);
     EXPECT_FLOAT_EQ(entity.health(), 15.0f);
 
-    entity.setHealth(100.0f);  // 超过最大值
+    entity.setHealth(100.0f); // 超过最大值
     EXPECT_FLOAT_EQ(entity.health(), entity.maxHealth());
 
-    entity.setHealth(-10.0f);  // 低于0
+    entity.setHealth(-10.0f); // 低于0
     EXPECT_FLOAT_EQ(entity.health(), 0.0f);
 }
 
-TEST(LivingEntityTest, Heal) {
+TEST(LivingEntityTest, Heal)
+{
     TestLivingEntity entity;
 
     entity.setHealth(10.0f);
     entity.heal(5.0f);
     EXPECT_FLOAT_EQ(entity.health(), 15.0f);
 
-    entity.heal(100.0f);  // 超过最大值
+    entity.heal(100.0f); // 超过最大值
     EXPECT_FLOAT_EQ(entity.health(), entity.maxHealth());
 
     entity.setHealth(0.0f);
-    entity.heal(10.0f);  // 死亡实体不应该回血
+    entity.heal(10.0f); // 死亡实体不应该回血
     EXPECT_FLOAT_EQ(entity.health(), 0.0f);
 }
 
-TEST(LivingEntityTest, Hurt) {
+TEST(LivingEntityTest, Hurt)
+{
     TestLivingEntity entity;
 
     entity.setHealth(20.0f);
@@ -157,7 +170,8 @@ TEST(LivingEntityTest, Hurt) {
     EXPECT_FLOAT_EQ(entity.health(), 15.0f);
 }
 
-TEST(LivingEntityTest, HurtPlaysSound) {
+TEST(LivingEntityTest, HurtPlaysSound)
+{
     GroundSupportWorld world;
     TestLivingEntity entity;
     entity.setWorld(&world);
@@ -174,20 +188,22 @@ TEST(LivingEntityTest, HurtPlaysSound) {
     EXPECT_LE(world.lastSound().pitch, 1.2f);
 }
 
-TEST(LivingEntityTest, HurtInvulnerability) {
+TEST(LivingEntityTest, HurtInvulnerability)
+{
     TestLivingEntity entity;
 
     entity.setHealth(20.0f);
     EnvironmentalDamage damage(DamageType::Generic);
 
     entity.hurt(damage, 5.0f);
-    EXPECT_EQ(entity.hurtTime(), 10);  // 默认10 tick无敌
+    EXPECT_EQ(entity.hurtTime(), 10); // 默认10 tick无敌
 
     // 无敌帧期间不能再受伤
     EXPECT_FALSE(entity.hurt(damage, 5.0f));
 }
 
-TEST(LivingEntityTest, Death) {
+TEST(LivingEntityTest, Death)
+{
     TestLivingEntity entity;
 
     entity.setHealth(5.0f);
@@ -202,7 +218,8 @@ TEST(LivingEntityTest, Death) {
     EXPECT_EQ(entity.deathTime(), 1);
 }
 
-TEST(LivingEntityTest, DeathPlaysSound) {
+TEST(LivingEntityTest, DeathPlaysSound)
+{
     GroundSupportWorld world;
     TestLivingEntity entity;
     entity.setWorld(&world);
@@ -216,7 +233,8 @@ TEST(LivingEntityTest, DeathPlaysSound) {
     EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Neutral);
 }
 
-TEST(MobEntityTest, PlayAmbientSound_ForwardsToWorld) {
+TEST(MobEntityTest, PlayAmbientSound_ForwardsToWorld)
+{
     GroundSupportWorld world;
     TestMobEntity entity;
     entity.setWorld(&world);
@@ -228,7 +246,8 @@ TEST(MobEntityTest, PlayAmbientSound_ForwardsToWorld) {
     EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Neutral);
 }
 
-TEST(LivingEntityTest, IsDead) {
+TEST(LivingEntityTest, IsDead)
+{
     TestLivingEntity entity;
 
     EXPECT_FALSE(entity.isDead());
@@ -244,7 +263,8 @@ TEST(LivingEntityTest, IsDead) {
 // 属性测试
 // ============================================================================
 
-TEST(LivingEntityTest, DefaultAttributes) {
+TEST(LivingEntityTest, DefaultAttributes)
+{
     TestLivingEntity entity;
 
     EXPECT_TRUE(entity.attributes().hasAttribute(Attributes::MAX_HEALTH));
@@ -254,7 +274,8 @@ TEST(LivingEntityTest, DefaultAttributes) {
     EXPECT_TRUE(entity.attributes().hasAttribute(Attributes::ARMOR_TOUGHNESS));
 }
 
-TEST(LivingEntityTest, GetAttributeValue) {
+TEST(LivingEntityTest, GetAttributeValue)
+{
     TestLivingEntity entity;
 
     EXPECT_DOUBLE_EQ(entity.getAttributeValue(Attributes::MAX_HEALTH), 20.0);
@@ -263,7 +284,8 @@ TEST(LivingEntityTest, GetAttributeValue) {
     EXPECT_DOUBLE_EQ(entity.getAttributeValue("non-existent", 99.0), 99.0);
 }
 
-TEST(LivingEntityTest, SetAttributeBaseValue) {
+TEST(LivingEntityTest, SetAttributeBaseValue)
+{
     TestLivingEntity entity;
 
     entity.setAttributeBaseValue(Attributes::MAX_HEALTH, 30.0);
@@ -271,11 +293,12 @@ TEST(LivingEntityTest, SetAttributeBaseValue) {
     EXPECT_FLOAT_EQ(entity.maxHealth(), 30.0f);
 }
 
-TEST(LivingEntityTest, AttributeModifier) {
+TEST(LivingEntityTest, AttributeModifier)
+{
     TestLivingEntity entity;
 
-    entity.attributes().addModifier(Attributes::MAX_HEALTH,
-        AttributeModifier("health-boost", "Health Boost", 10.0, Operation::Addition));
+    entity.attributes().addModifier(
+        Attributes::MAX_HEALTH, AttributeModifier("health-boost", "Health Boost", 10.0, Operation::Addition));
 
     EXPECT_DOUBLE_EQ(entity.getAttributeValue(Attributes::MAX_HEALTH), 30.0);
     EXPECT_FLOAT_EQ(entity.maxHealth(), 30.0f);
@@ -285,7 +308,8 @@ TEST(LivingEntityTest, AttributeModifier) {
 // 装备测试
 // ============================================================================
 
-TEST(LivingEntityTest, EquipmentSlots) {
+TEST(LivingEntityTest, EquipmentSlots)
+{
     TestLivingEntity entity;
 
     // 测试主手
@@ -308,7 +332,8 @@ TEST(LivingEntityTest, EquipmentSlots) {
 // 受伤无敌帧测试
 // ============================================================================
 
-TEST(LivingEntityTest, HurtTime) {
+TEST(LivingEntityTest, HurtTime)
+{
     TestLivingEntity entity;
 
     EXPECT_EQ(entity.hurtTime(), 0);
@@ -316,11 +341,12 @@ TEST(LivingEntityTest, HurtTime) {
     EnvironmentalDamage damage(DamageType::Generic);
     entity.hurt(damage, 5.0f);
 
-    EXPECT_EQ(entity.hurtTime(), 10);  // 默认10 tick
+    EXPECT_EQ(entity.hurtTime(), 10); // 默认10 tick
     EXPECT_EQ(entity.maxHurtTime(), 10);
 }
 
-TEST(LivingEntityTest, HurtTimeDecreases) {
+TEST(LivingEntityTest, HurtTimeDecreases)
+{
     TestLivingEntity entity;
 
     EnvironmentalDamage damage(DamageType::Generic);
@@ -334,7 +360,8 @@ TEST(LivingEntityTest, HurtTimeDecreases) {
     EXPECT_EQ(entity.hurtTime(), 8);
 }
 
-TEST(LivingEntityTest, MobFallsWhenSupportIsRemoved) {
+TEST(LivingEntityTest, MobFallsWhenSupportIsRemoved)
+{
     VanillaBlocks::initialize();
 
     GroundSupportWorld world;
@@ -357,7 +384,8 @@ TEST(LivingEntityTest, MobFallsWhenSupportIsRemoved) {
 // 伤害来源测试
 // ============================================================================
 
-TEST(DamageSourceTest, EnvironmentalDamage) {
+TEST(DamageSourceTest, EnvironmentalDamage)
+{
     EnvironmentalDamage fire(DamageType::OnFire);
 
     EXPECT_EQ(fire.type(), DamageType::OnFire);
@@ -368,7 +396,8 @@ TEST(DamageSourceTest, EnvironmentalDamage) {
     EXPECT_EQ(fire.source(), nullptr);
 }
 
-TEST(DamageSourceTest, EntityDamage) {
+TEST(DamageSourceTest, EntityDamage)
+{
     EntityDamageSource attack(DamageType::PlayerAttack, nullptr);
 
     EXPECT_EQ(attack.type(), DamageType::PlayerAttack);
@@ -378,9 +407,10 @@ TEST(DamageSourceTest, EntityDamage) {
     EXPECT_FALSE(attack.isProjectile());
 }
 
-TEST(DamageSourceTest, IndirectEntityDamage) {
+TEST(DamageSourceTest, IndirectEntityDamage)
+{
     IndirectEntityDamageSource arrow(DamageType::Arrow, nullptr, nullptr);
-    arrow.setProjectile();  // 需要手动设置投射物属性
+    arrow.setProjectile(); // 需要手动设置投射物属性
 
     EXPECT_EQ(arrow.type(), DamageType::Arrow);
     EXPECT_TRUE(arrow.isProjectile());
@@ -388,7 +418,8 @@ TEST(DamageSourceTest, IndirectEntityDamage) {
     EXPECT_FALSE(arrow.isFire());
 }
 
-TEST(DamageSourceTest, DamageTypes) {
+TEST(DamageSourceTest, DamageTypes)
+{
     EnvironmentalDamage fall(DamageType::Fall);
     EXPECT_TRUE(fall.isFall());
 
@@ -399,7 +430,8 @@ TEST(DamageSourceTest, DamageTypes) {
     EXPECT_TRUE(starve.isStarve());
 }
 
-TEST(DamageSourceTest, BypassesArmor) {
+TEST(DamageSourceTest, BypassesArmor)
+{
     EnvironmentalDamage fall(DamageType::Fall);
     EXPECT_TRUE(fall.bypassesArmor());
 
@@ -413,7 +445,8 @@ TEST(DamageSourceTest, BypassesArmor) {
     EXPECT_TRUE(outOfWorld.canDamageCreative());
 }
 
-TEST(DamageSourceTest, DeathMessageKeys) {
+TEST(DamageSourceTest, DeathMessageKeys)
+{
     EnvironmentalDamage fire(DamageType::OnFire);
     EXPECT_EQ(fire.deathMessageKey(), "death.attack.onFire");
 
@@ -424,7 +457,8 @@ TEST(DamageSourceTest, DeathMessageKeys) {
     EXPECT_EQ(mob.deathMessageKey(), "death.attack.mob");
 }
 
-TEST(DamageSourceTest, DamageSourcesFactory) {
+TEST(DamageSourceTest, DamageSourcesFactory)
+{
     auto fire = DamageSources::inFire();
     EXPECT_EQ(fire.type(), DamageType::InFire);
     EXPECT_TRUE(fire.isFire());
@@ -442,27 +476,16 @@ TEST(DamageSourceTest, DamageSourcesFactory) {
     EXPECT_TRUE(playerAttack.isPlayerSource());
 }
 
-TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness) {
+TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness)
+{
     TestLivingEntity attacker;
     TestLivingEntity target;
 
-    attacker.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::Strength,
-        200,
-        0,
-        false,
-        true,
-        true
-    ));
+    attacker.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Strength, 200, 0, false, true, true));
 
-    attacker.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::Weakness,
-        200,
-        0,
-        false,
-        true,
-        true
-    ));
+    attacker.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Weakness, 200, 0, false, true, true));
 
     mc::entity::combat::AttackContext context(&attacker, &target);
     context.setBaseDamage(5.0f);
@@ -471,7 +494,8 @@ TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness) {
     EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 4.0f);
 }
 
-TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula) {
+TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula)
+{
     TestLivingEntity attacker;
     TestLivingEntity target;
 
@@ -489,7 +513,8 @@ TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula) {
 // 挥动动画测试
 // ============================================================================
 
-TEST(LivingEntityTest, SwingAnimation_DefaultState) {
+TEST(LivingEntityTest, SwingAnimation_DefaultState)
+{
     TestLivingEntity entity;
 
     // 默认没有挥动
@@ -498,7 +523,8 @@ TEST(LivingEntityTest, SwingAnimation_DefaultState) {
     EXPECT_EQ(entity.swingingHand(), Hand::MainHand);
 }
 
-TEST(LivingEntityTest, SwingAnimation_TriggerSwing) {
+TEST(LivingEntityTest, SwingAnimation_TriggerSwing)
+{
     TestLivingEntity entity;
 
     // 触发主手挥动
@@ -506,10 +532,11 @@ TEST(LivingEntityTest, SwingAnimation_TriggerSwing) {
 
     EXPECT_TRUE(entity.isSwingInProgress());
     EXPECT_EQ(entity.swingingHand(), Hand::MainHand);
-    EXPECT_EQ(entity.swingProgressInt(), -1);  // 初始为 -1
+    EXPECT_EQ(entity.swingProgressInt(), -1); // 初始为 -1
 }
 
-TEST(LivingEntityTest, SwingAnimation_TriggerOffHandSwing) {
+TEST(LivingEntityTest, SwingAnimation_TriggerOffHandSwing)
+{
     TestLivingEntity entity;
 
     // 触发副手挥动
@@ -519,7 +546,8 @@ TEST(LivingEntityTest, SwingAnimation_TriggerOffHandSwing) {
     EXPECT_EQ(entity.swingingHand(), Hand::OffHand);
 }
 
-TEST(LivingEntityTest, SwingAnimation_TickProgress) {
+TEST(LivingEntityTest, SwingAnimation_TickProgress)
+{
     TestLivingEntity entity;
 
     entity.swing(Hand::MainHand);
@@ -536,7 +564,8 @@ TEST(LivingEntityTest, SwingAnimation_TickProgress) {
     EXPECT_EQ(entity.swingProgressInt(), 2);
 }
 
-TEST(LivingEntityTest, SwingAnimation_StopsAfterAnimationEnd) {
+TEST(LivingEntityTest, SwingAnimation_StopsAfterAnimationEnd)
+{
     TestLivingEntity entity;
 
     entity.swing(Hand::MainHand);
@@ -548,112 +577,115 @@ TEST(LivingEntityTest, SwingAnimation_StopsAfterAnimationEnd) {
     }
 
     EXPECT_FALSE(entity.isSwingInProgress());
-    EXPECT_EQ(entity.swingProgressInt(), 0);  // 重置为 0
+    EXPECT_EQ(entity.swingProgressInt(), 0); // 重置为 0
 }
 
-TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_Base) {
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_Base)
+{
     TestLivingEntity entity;
 
     // 基础动画时长为 6 tick
     EXPECT_EQ(entity.getArmSwingAnimationEnd(), 6);
 }
 
-TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteEffect) {
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteEffect)
+{
     TestLivingEntity entity;
 
     // 添加急迫 I 效果
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::Haste,
-        200,  // duration
-        0,    // amplifier (Haste I)
-        false,  // ambient
-        true,   // visible
-        true    // showIcon
-    ));
+    entity.addEffect(mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Haste,
+        200,   // duration
+        0,     // amplifier (Haste I)
+        false, // ambient
+        true,  // visible
+        true   // showIcon
+        ));
 
     // Haste I: 6 - (1 + 1) = 4 tick
     EXPECT_EQ(entity.getArmSwingAnimationEnd(), 4);
 }
 
-TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteII) {
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteII)
+{
     TestLivingEntity entity;
 
     // 添加急迫 II 效果
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::Haste,
+    entity.addEffect(mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Haste,
         200,
-        1,  // amplifier (Haste II)
-        false, true, true
-    ));
+        1, // amplifier (Haste II)
+        false,
+        true,
+        true));
 
     // Haste II: 6 - (1 + 2) = 3 tick
     EXPECT_EQ(entity.getArmSwingAnimationEnd(), 3);
 }
 
-TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MiningFatigue) {
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MiningFatigue)
+{
     TestLivingEntity entity;
 
     // 添加挖掘疲劳 I 效果
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::MiningFatigue,
+    entity.addEffect(mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::MiningFatigue,
         200,
-        0,  // amplifier (Mining Fatigue I)
-        false, true, true
-    ));
+        0, // amplifier (Mining Fatigue I)
+        false,
+        true,
+        true));
 
     // Mining Fatigue I: 6 + (1 + 1) * 2 = 10 tick
     EXPECT_EQ(entity.getArmSwingAnimationEnd(), 10);
 }
 
-TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MiningFatigueIII) {
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MiningFatigueIII)
+{
     TestLivingEntity entity;
 
     // 添加挖掘疲劳 III 效果
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::MiningFatigue,
+    entity.addEffect(mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::MiningFatigue,
         200,
-        2,  // amplifier (Mining Fatigue III)
-        false, true, true
-    ));
+        2, // amplifier (Mining Fatigue III)
+        false,
+        true,
+        true));
 
     // Mining Fatigue III: 6 + (1 + 3) * 2 = 14 tick
     EXPECT_EQ(entity.getArmSwingAnimationEnd(), 14);
 }
 
-TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteAndFatigue) {
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteAndFatigue)
+{
     TestLivingEntity entity;
 
     // 同时有急迫 I 和挖掘疲劳 I
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::Haste,
-        200, 0, false, true, true
-    ));
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::MiningFatigue,
-        200, 0, false, true, true
-    ));
+    entity.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Haste, 200, 0, false, true, true));
+    entity.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::MiningFatigue, 200, 0, false, true, true));
 
     // Haste I: 6 - 2 = 4
     // Mining Fatigue I: 4 + 4 = 8
     EXPECT_EQ(entity.getArmSwingAnimationEnd(), 8);
 }
 
-TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MinimumOne) {
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MinimumOne)
+{
     TestLivingEntity entity;
 
     // 急迫 IV 会产生负数，但最小值为 1
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::Haste,
+    entity.addEffect(mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Haste,
         200,
-        10,  // Haste XI (非常高的等级)
-        false, true, true
-    ));
+        10, // Haste XI (非常高的等级)
+        false,
+        true,
+        true));
 
     // 即使计算结果为负，最小值也是 1
     EXPECT_GE(entity.getArmSwingAnimationEnd(), 1);
 }
 
-TEST(LivingEntityTest, SwingAnimation_SwingResetsOnNewSwing) {
+TEST(LivingEntityTest, SwingAnimation_SwingResetsOnNewSwing)
+{
     TestLivingEntity entity;
 
     // 开始挥动
@@ -665,21 +697,22 @@ TEST(LivingEntityTest, SwingAnimation_SwingResetsOnNewSwing) {
     // MC 1.16.5: 只有在动画进行到一半或更多时才能重新触发
     // 在进度 1/6 时（未到一半），不应该重置
     entity.swing(Hand::OffHand);
-    EXPECT_EQ(entity.swingProgressInt(), 1);  // 保持不变
-    EXPECT_EQ(entity.swingingHand(), Hand::MainHand);  // 手不变
+    EXPECT_EQ(entity.swingProgressInt(), 1);          // 保持不变
+    EXPECT_EQ(entity.swingingHand(), Hand::MainHand); // 手不变
 
     // 进行到超过一半（6/2 = 3）
-    entity.tick();  // 2
-    entity.tick();  // 3 - 到达一半
-    entity.tick();  // 4 - 超过一半
+    entity.tick(); // 2
+    entity.tick(); // 3 - 到达一半
+    entity.tick(); // 4 - 超过一半
 
     // 现在可以重新触发
     entity.swing(Hand::OffHand);
-    EXPECT_EQ(entity.swingProgressInt(), -1);  // 重置
-    EXPECT_EQ(entity.swingingHand(), Hand::OffHand);  // 手切换
+    EXPECT_EQ(entity.swingProgressInt(), -1);        // 重置
+    EXPECT_EQ(entity.swingingHand(), Hand::OffHand); // 手切换
 }
 
-TEST(LivingEntityTest, SwingAnimation_SwingProgress) {
+TEST(LivingEntityTest, SwingAnimation_SwingProgress)
+{
     TestLivingEntity entity;
 
     entity.swing(Hand::MainHand);
@@ -705,7 +738,8 @@ public:
     void setInWater(bool inWater) { m_inWater = inWater; }
     void setInLava(bool inLava) { m_inLava = inLava; }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         // 返回空流体状态
         return fluid::Fluid::getFluidState(0);
     }
@@ -714,12 +748,14 @@ public:
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         static world::tick::TickManager* dummy = nullptr;
         if (!dummy) throw std::runtime_error("MockRandomWorld::tickManager not implemented");
         return *dummy;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("MockRandomWorld::tickManager not implemented");
     }
 
@@ -729,7 +765,8 @@ private:
 };
 
 // 测试 canBreatheUnderwater - 默认生物不能水下呼吸
-TEST(LivingEntityTest, CanBreatheUnderwater_Default) {
+TEST(LivingEntityTest, CanBreatheUnderwater_Default)
+{
     TestLivingEntity entity;
     EXPECT_FALSE(entity.canBreatheUnderwater());
 }
@@ -737,33 +774,36 @@ TEST(LivingEntityTest, CanBreatheUnderwater_Default) {
 // 测试亡灵生物可以水下呼吸
 class TestUndeadEntity : public LivingEntity {
 public:
-    TestUndeadEntity() : LivingEntity(LegacyEntityType::Zombie, 1) {
+    TestUndeadEntity()
+        : LivingEntity(LegacyEntityType::Zombie, 1)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override {
-        return CreatureAttribute::Undead;
-    }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
 };
 
-TEST(LivingEntityTest, CanBreatheUnderwater_Undead) {
+TEST(LivingEntityTest, CanBreatheUnderwater_Undead)
+{
     TestUndeadEntity entity;
     EXPECT_TRUE(entity.canBreatheUnderwater());
 }
 
 // 测试 determineNextAir - 空气恢复
-TEST(LivingEntityTest, DetermineNextAir_Normal) {
+TEST(LivingEntityTest, DetermineNextAir_Normal)
+{
     TestLivingEntity entity;
 
     // 空气恢复：每tick恢复4点
     EXPECT_EQ(entity.determineNextAir(0), 4);
     EXPECT_EQ(entity.determineNextAir(100), 104);
-    EXPECT_EQ(entity.determineNextAir(296), 300);  // 接近最大值
-    EXPECT_EQ(entity.determineNextAir(297), 300);  // 不超过最大值
-    EXPECT_EQ(entity.determineNextAir(300), 300);  // 已经是最大值
+    EXPECT_EQ(entity.determineNextAir(296), 300); // 接近最大值
+    EXPECT_EQ(entity.determineNextAir(297), 300); // 不超过最大值
+    EXPECT_EQ(entity.determineNextAir(300), 300); // 已经是最大值
 }
 
-TEST(LivingEntityTest, DetermineNextAir_MaxAir) {
+TEST(LivingEntityTest, DetermineNextAir_MaxAir)
+{
     TestLivingEntity entity;
 
     // 最大空气值为300（15秒）
@@ -771,16 +811,17 @@ TEST(LivingEntityTest, DetermineNextAir_MaxAir) {
 
     // 负数空气值也会正常恢复（每tick +4）
     // 这是MC 1.16.5的行为：空气值可以是负数（用于溺水计时）
-    EXPECT_EQ(entity.determineNextAir(-10), -6);  // -10 + 4 = -6
-    EXPECT_EQ(entity.determineNextAir(-4), 0);    // -4 + 4 = 0
+    EXPECT_EQ(entity.determineNextAir(-10), -6); // -10 + 4 = -6
+    EXPECT_EQ(entity.determineNextAir(-4), 0);   // -4 + 4 = 0
 
     // 接近最大值时不能超过最大值
     EXPECT_EQ(entity.determineNextAir(299), 300);
-    EXPECT_EQ(entity.determineNextAir(300), 300);  // 已经是最大值
+    EXPECT_EQ(entity.determineNextAir(300), 300); // 已经是最大值
 }
 
 // 测试 decreaseAirSupply - 没有水下呼吸附魔时空气正常减少
-TEST(LivingEntityTest, DecreaseAirSupply_NoRespiration) {
+TEST(LivingEntityTest, DecreaseAirSupply_NoRespiration)
+{
     MockRandomWorld world;
     TestLivingEntity entity;
     entity.setWorld(&world);
@@ -793,14 +834,15 @@ TEST(LivingEntityTest, DecreaseAirSupply_NoRespiration) {
 }
 
 // 测试 updateAirSupply - 在陆地上恢复空气
-TEST(LivingEntityTest, UpdateAirSupply_RecoveryOnLand) {
+TEST(LivingEntityTest, UpdateAirSupply_RecoveryOnLand)
+{
     MockRandomWorld world;
     world.setInWater(false);
     world.setInLava(false);
 
     TestLivingEntity entity;
     entity.setWorld(&world);
-    entity.setAir(100);  // 设置较低的空气值
+    entity.setAir(100); // 设置较低的空气值
 
     entity.updateAirSupply();
 
@@ -809,7 +851,8 @@ TEST(LivingEntityTest, UpdateAirSupply_RecoveryOnLand) {
 }
 
 // 测试 updateAirSupply - 水下呼吸效果
-TEST(LivingEntityTest, UpdateAirSupply_WaterBreathingEffect) {
+TEST(LivingEntityTest, UpdateAirSupply_WaterBreathingEffect)
+{
     MockRandomWorld world;
     world.setInWater(true);
     world.setInLava(false);
@@ -819,10 +862,8 @@ TEST(LivingEntityTest, UpdateAirSupply_WaterBreathingEffect) {
     entity.setAir(300);
 
     // 添加水下呼吸效果
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::WaterBreathing,
-        200, 0, false, true, true
-    ));
+    entity.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::WaterBreathing, 200, 0, false, true, true));
 
     entity.updateAirSupply();
 
@@ -831,7 +872,8 @@ TEST(LivingEntityTest, UpdateAirSupply_WaterBreathingEffect) {
 }
 
 // 测试 updateAirSupply - 潮涌能量效果
-TEST(LivingEntityTest, UpdateAirSupply_ConduitPowerEffect) {
+TEST(LivingEntityTest, UpdateAirSupply_ConduitPowerEffect)
+{
     MockRandomWorld world;
     world.setInWater(true);
     world.setInLava(false);
@@ -841,10 +883,8 @@ TEST(LivingEntityTest, UpdateAirSupply_ConduitPowerEffect) {
     entity.setAir(300);
 
     // 添加潮涌能量效果
-    entity.addEffect(mc::entity::effect::EffectInstance(
-        mc::entity::effect::EffectType::ConduitPower,
-        200, 0, false, true, true
-    ));
+    entity.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::ConduitPower, 200, 0, false, true, true));
 
     entity.updateAirSupply();
 
@@ -853,7 +893,8 @@ TEST(LivingEntityTest, UpdateAirSupply_ConduitPowerEffect) {
 }
 
 // 测试 updateAirSupply - 亡灵生物在水下不消耗空气
-TEST(LivingEntityTest, UpdateAirSupply_UndeadNoAirConsumption) {
+TEST(LivingEntityTest, UpdateAirSupply_UndeadNoAirConsumption)
+{
     MockRandomWorld world;
     world.setInWater(true);
     world.setInLava(false);
@@ -869,7 +910,8 @@ TEST(LivingEntityTest, UpdateAirSupply_UndeadNoAirConsumption) {
 }
 
 // 测试 updateAirSupply - 不存活时不处理空气
-TEST(LivingEntityTest, UpdateAirSupply_NotAlive) {
+TEST(LivingEntityTest, UpdateAirSupply_NotAlive)
+{
     MockRandomWorld world;
     world.setInWater(true);
     world.setInLava(false);
@@ -877,7 +919,7 @@ TEST(LivingEntityTest, UpdateAirSupply_NotAlive) {
     TestLivingEntity entity;
     entity.setWorld(&world);
     entity.setAir(300);
-    entity.setHealth(0.0f);  // 死亡状态
+    entity.setHealth(0.0f); // 死亡状态
 
     entity.updateAirSupply();
 
@@ -890,7 +932,8 @@ TEST(LivingEntityTest, UpdateAirSupply_NotAlive) {
 // ============================================================================
 
 // 测试 LivingEntity::onKillCommand - 使用虚空伤害杀死实体
-TEST(LivingEntityTest, OnKillCommand_KillsEntity) {
+TEST(LivingEntityTest, OnKillCommand_KillsEntity)
+{
     TestLivingEntity entity;
 
     // 初始状态：满血
@@ -906,7 +949,8 @@ TEST(LivingEntityTest, OnKillCommand_KillsEntity) {
 }
 
 // 测试 LivingEntity::onKillCommand - 对已死亡实体的效果
-TEST(LivingEntityTest, OnKillCommand_AlreadyDead) {
+TEST(LivingEntityTest, OnKillCommand_AlreadyDead)
+{
     TestLivingEntity entity;
 
     // 先杀死实体
@@ -921,7 +965,8 @@ TEST(LivingEntityTest, OnKillCommand_AlreadyDead) {
 }
 
 // 测试 LivingEntity::onKillCommand - 触发死亡流程
-TEST(LivingEntityTest, OnKillCommand_TriggersDeathProcess) {
+TEST(LivingEntityTest, OnKillCommand_TriggersDeathProcess)
+{
     GroundSupportWorld world;
     TestLivingEntity entity;
     entity.setWorld(&world);
@@ -938,7 +983,8 @@ TEST(LivingEntityTest, OnKillCommand_TriggersDeathProcess) {
 }
 
 // 测试 MobEntity::onKillCommand - 继承自 LivingEntity
-TEST(MobEntityTest, OnKillCommand_KillsMob) {
+TEST(MobEntityTest, OnKillCommand_KillsMob)
+{
     TestMobEntity entity;
 
     // 初始状态：满血

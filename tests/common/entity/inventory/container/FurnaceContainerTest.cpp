@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
 #include "entity/inventory/container/FurnaceContainer.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemRegistry.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "world/blockentity/processing/FurnaceEntity.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "item/Items.hpp"
-#include "item/core/ItemRegistry.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::blockentity;
@@ -16,7 +16,8 @@ using namespace mc::blockentity;
 
 class FurnaceContainerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         playerInventory_ = std::make_unique<PlayerInventory>();
         // 创建熔炉背包容器（3格：输入、燃料、输出）
@@ -31,7 +32,8 @@ protected:
 
 class FurnaceFuelSlotTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         inventory_ = std::make_unique<SimpleInventory>(3);
     }
@@ -39,13 +41,15 @@ protected:
     std::unique_ptr<SimpleInventory> inventory_;
 };
 
-TEST_F(FurnaceFuelSlotTest, CreateSlot_Success) {
+TEST_F(FurnaceFuelSlotTest, CreateSlot_Success)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
     EXPECT_EQ(slot.getIndex(), 0);
     EXPECT_TRUE(slot.isEmpty());
 }
 
-TEST_F(FurnaceFuelSlotTest, MayPlace_AcceptsFuel) {
+TEST_F(FurnaceFuelSlotTest, MayPlace_AcceptsFuel)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     // 煤炭是燃料，FurnaceFuelSlot::isFuel() 现在已正确实现
@@ -56,7 +60,8 @@ TEST_F(FurnaceFuelSlotTest, MayPlace_AcceptsFuel) {
     }
 }
 
-TEST_F(FurnaceFuelSlotTest, MayPlace_RejectsNonFuel) {
+TEST_F(FurnaceFuelSlotTest, MayPlace_RejectsNonFuel)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     // 钻石不是燃料
@@ -67,7 +72,8 @@ TEST_F(FurnaceFuelSlotTest, MayPlace_RejectsNonFuel) {
     }
 }
 
-TEST_F(FurnaceFuelSlotTest, GetMaxStackSize_FuelItems) {
+TEST_F(FurnaceFuelSlotTest, GetMaxStackSize_FuelItems)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
@@ -78,7 +84,8 @@ TEST_F(FurnaceFuelSlotTest, GetMaxStackSize_FuelItems) {
     }
 }
 
-TEST_F(FurnaceFuelSlotTest, IsFuel_ChecksItem) {
+TEST_F(FurnaceFuelSlotTest, IsFuel_ChecksItem)
+{
     // FurnaceFuelSlot::isFuel() 现在已正确实现
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     if (coal != nullptr) {
@@ -97,7 +104,8 @@ TEST_F(FurnaceFuelSlotTest, IsFuel_ChecksItem) {
 
 class FurnaceResultSlotTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         inventory_ = std::make_unique<SimpleInventory>(3);
     }
@@ -105,13 +113,15 @@ protected:
     std::unique_ptr<SimpleInventory> inventory_;
 };
 
-TEST_F(FurnaceResultSlotTest, CreateSlot_Success) {
+TEST_F(FurnaceResultSlotTest, CreateSlot_Success)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
     EXPECT_EQ(slot.getIndex(), 2);
     EXPECT_TRUE(slot.isEmpty());
 }
 
-TEST_F(FurnaceResultSlotTest, MayPlace_AlwaysFalse) {
+TEST_F(FurnaceResultSlotTest, MayPlace_AlwaysFalse)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -122,7 +132,8 @@ TEST_F(FurnaceResultSlotTest, MayPlace_AlwaysFalse) {
     }
 }
 
-TEST_F(FurnaceResultSlotTest, Remove_UpdatesExperience) {
+TEST_F(FurnaceResultSlotTest, Remove_UpdatesExperience)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -141,7 +152,8 @@ TEST_F(FurnaceResultSlotTest, Remove_UpdatesExperience) {
     EXPECT_EQ(inventory_->getItem(2).getCount(), 5);
 }
 
-TEST_F(FurnaceResultSlotTest, Remove_FromEmptySlot) {
+TEST_F(FurnaceResultSlotTest, Remove_FromEmptySlot)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     // 从空槽移除
@@ -149,7 +161,8 @@ TEST_F(FurnaceResultSlotTest, Remove_FromEmptySlot) {
     EXPECT_TRUE(removed.isEmpty());
 }
 
-TEST_F(FurnaceResultSlotTest, Remove_MoreThanAvailable) {
+TEST_F(FurnaceResultSlotTest, Remove_MoreThanAvailable)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -167,7 +180,8 @@ TEST_F(FurnaceResultSlotTest, Remove_MoreThanAvailable) {
     EXPECT_TRUE(inventory_->getItem(2).isEmpty());
 }
 
-TEST_F(FurnaceResultSlotTest, GetMaxStackSize_AlwaysOne) {
+TEST_F(FurnaceResultSlotTest, GetMaxStackSize_AlwaysOne)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -180,7 +194,8 @@ TEST_F(FurnaceResultSlotTest, GetMaxStackSize_AlwaysOne) {
     EXPECT_EQ(slot.getMaxStackSize(stack), 64);
 }
 
-TEST_F(FurnaceResultSlotTest, MayPlace_EmptyStack) {
+TEST_F(FurnaceResultSlotTest, MayPlace_EmptyStack)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     // 空物品堆
@@ -188,7 +203,8 @@ TEST_F(FurnaceResultSlotTest, MayPlace_EmptyStack) {
     EXPECT_FALSE(slot.mayPlace(emptyStack));
 }
 
-TEST_F(FurnaceResultSlotTest, MayPickup_AlwaysTrue) {
+TEST_F(FurnaceResultSlotTest, MayPickup_AlwaysTrue)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     // 结果槽总是可以取出（即使为空）
@@ -198,7 +214,8 @@ TEST_F(FurnaceResultSlotTest, MayPickup_AlwaysTrue) {
     SUCCEED() << "FurnaceResultSlot mayPickup method exists";
 }
 
-TEST_F(FurnaceResultSlotTest, Remove_AllItems) {
+TEST_F(FurnaceResultSlotTest, Remove_AllItems)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -216,7 +233,8 @@ TEST_F(FurnaceResultSlotTest, Remove_AllItems) {
     EXPECT_TRUE(inventory_->getItem(2).isEmpty());
 }
 
-TEST_F(FurnaceResultSlotTest, Remove_ZeroItems) {
+TEST_F(FurnaceResultSlotTest, Remove_ZeroItems)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -234,7 +252,8 @@ TEST_F(FurnaceResultSlotTest, Remove_ZeroItems) {
     EXPECT_EQ(inventory_->getItem(2).getCount(), 10);
 }
 
-TEST_F(FurnaceResultSlotTest, Remove_NegativeAmount) {
+TEST_F(FurnaceResultSlotTest, Remove_NegativeAmount)
+{
     FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
 
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -256,7 +275,8 @@ TEST_F(FurnaceResultSlotTest, Remove_NegativeAmount) {
 
 class FurnaceFuelSlotEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         inventory_ = std::make_unique<SimpleInventory>(3);
     }
@@ -264,7 +284,8 @@ protected:
     std::unique_ptr<SimpleInventory> inventory_;
 };
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_EmptyStack) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_EmptyStack)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     // 空物品堆
@@ -272,7 +293,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_EmptyStack) {
     EXPECT_FALSE(slot.mayPlace(emptyStack));
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_EmptyStack) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_EmptyStack)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     // 空物品堆的堆叠上限
@@ -280,7 +302,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_EmptyStack) {
     EXPECT_EQ(slot.getMaxStackSize(emptyStack), 64);
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, SetAndGetItem) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, SetAndGetItem)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
@@ -296,7 +319,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, SetAndGetItem) {
     EXPECT_EQ(slot.getItem().getCount(), 32);
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_NotBucket) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_NotBucket)
+{
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     if (coal == nullptr) {
         GTEST_SKIP() << "Coal not registered";
@@ -307,19 +331,22 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_NotBucket) {
     EXPECT_FALSE(FurnaceFuelSlot::isBucket(coalStack));
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, IsFuel_EmptyStack) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsFuel_EmptyStack)
+{
     ItemStack emptyStack;
     // 空物品不是燃料
     EXPECT_FALSE(FurnaceFuelSlot::isFuel(emptyStack));
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_EmptyStack) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_EmptyStack)
+{
     ItemStack emptyStack;
     // 空物品不是桶
     EXPECT_FALSE(FurnaceFuelSlot::isBucket(emptyStack));
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_VariousItems) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_VariousItems)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
@@ -336,7 +363,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_VariousItems) {
     }
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, RemoveFromSlot) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, RemoveFromSlot)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
@@ -353,7 +381,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, RemoveFromSlot) {
     EXPECT_EQ(inventory_->getItem(0).getCount(), 22);
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_DetectsAllBucketTypes) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_DetectsAllBucketTypes)
+{
     // 空桶
     Item* bucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:bucket"));
     if (bucket != nullptr) {
@@ -376,7 +405,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_DetectsAllBucketTypes) {
     }
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_RejectsNonBucketItems) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_RejectsNonBucketItems)
+{
     // 煤炭不是桶
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     if (coal != nullptr) {
@@ -392,7 +422,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_RejectsNonBucketItems) {
     }
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, MaxStackSize_BucketIsOne) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, MaxStackSize_BucketIsOne)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     // 岩浆桶堆叠上限应为1
@@ -410,7 +441,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, MaxStackSize_BucketIsOne) {
     }
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_AcceptsBucket) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_AcceptsBucket)
+{
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
     // 空桶可以放入燃料槽（用于接收岩浆桶燃烧后的空桶）
@@ -421,7 +453,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_AcceptsBucket) {
     }
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, IsFuel_DetectsVariousFuelTypes) {
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsFuel_DetectsVariousFuelTypes)
+{
     // 煤炭是燃料
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     if (coal != nullptr) {
@@ -458,7 +491,8 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, IsFuel_DetectsVariousFuelTypes) {
     }
 }
 
-TEST_F(FurnaceContainerTest, Create_HasCorrectSlotCount) {
+TEST_F(FurnaceContainerTest, Create_HasCorrectSlotCount)
+{
     // 注意: 在Release模式下MC_ASSERT不起作用
     // 容器实际槽位数量 = 熔炉槽位 + 玩家背包槽位 = 3 + 36 = 39
     // 测试验证熔炉背包已正确设置
@@ -467,29 +501,34 @@ TEST_F(FurnaceContainerTest, Create_HasCorrectSlotCount) {
     EXPECT_EQ(container.getSlotCount(), 39);
 }
 
-TEST_F(FurnaceContainerTest, GetFurnaceInventory_ReturnsCorrectInventory) {
+TEST_F(FurnaceContainerTest, GetFurnaceInventory_ReturnsCorrectInventory)
+{
     FurnaceContainer container(ContainerId(1), playerInventory_.get(), furnaceInventory_.get());
 
     EXPECT_EQ(container.getFurnaceInventory(), furnaceInventory_.get());
 }
 
-TEST_F(FurnaceContainerTest, ContainerType_IsCorrect) {
+TEST_F(FurnaceContainerTest, ContainerType_IsCorrect)
+{
     FurnaceContainer container(ContainerId(1), playerInventory_.get(), furnaceInventory_.get());
 
     EXPECT_EQ(container.getId(), ContainerId(1));
 }
 
-TEST_F(FurnaceContainerTest, SlotIndices_AreCorrect) {
+TEST_F(FurnaceContainerTest, SlotIndices_AreCorrect)
+{
     EXPECT_EQ(FurnaceContainer::SLOT_INPUT, 0);
     EXPECT_EQ(FurnaceContainer::SLOT_FUEL, 1);
     EXPECT_EQ(FurnaceContainer::SLOT_OUTPUT, 2);
 }
 
-TEST_F(FurnaceContainerTest, FurnaceSlots_IsThree) {
+TEST_F(FurnaceContainerTest, FurnaceSlots_IsThree)
+{
     EXPECT_EQ(FurnaceContainer::FURNACE_SLOTS, 3);
 }
 
-TEST_F(FurnaceContainerTest, Constants_AreCorrect) {
+TEST_F(FurnaceContainerTest, Constants_AreCorrect)
+{
     // 验证GUI布局常量存在
     EXPECT_GT(FurnaceContainer::FURNACE_SLOT_Y, 0);
     EXPECT_GT(FurnaceContainer::PLAYER_INV_Y, FurnaceContainer::FURNACE_SLOT_Y);
@@ -511,13 +550,14 @@ TEST_F(FurnaceContainerTest, Constants_AreCorrect) {
  */
 class FurnaceResultSlotExperienceTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化物品系统
         Items::initialize();
 
         // 创建玩家
         player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
-        player_->setExperience(0, 0.0f, 0);  // 初始经验为 0（等级、进度、总经验）
+        player_->setExperience(0, 0.0f, 0); // 初始经验为 0（等级、进度、总经验）
 
         // 创建熔炉背包
         furnaceInventory_ = std::make_unique<SimpleInventory>(3);
@@ -526,7 +566,8 @@ protected:
         furnaceEntity_ = std::make_unique<FurnaceEntity>(BlockPos(10, 20, 30));
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         furnaceEntity_.reset();
         furnaceInventory_.reset();
         player_.reset();
@@ -537,7 +578,8 @@ protected:
     std::unique_ptr<FurnaceEntity> furnaceEntity_;
 };
 
-TEST_F(FurnaceResultSlotExperienceTest, OnTake_WithFurnaceEntity_GrantsExperience) {
+TEST_F(FurnaceResultSlotExperienceTest, OnTake_WithFurnaceEntity_GrantsExperience)
+{
     // 创建 FurnaceResultSlot 并传入熔炉实体
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 
@@ -566,7 +608,8 @@ TEST_F(FurnaceResultSlotExperienceTest, OnTake_WithFurnaceEntity_GrantsExperienc
     EXPECT_EQ(furnaceEntity_->getStoredExperience(), 0.0f) << "Furnace stored experience should be cleared";
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoFurnaceEntity_NoExperienceGranted) {
+TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoFurnaceEntity_NoExperienceGranted)
+{
     // 创建 FurnaceResultSlot 不传入熔炉实体
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, nullptr);
 
@@ -586,10 +629,12 @@ TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoFurnaceEntity_NoExperienceGrant
     EXPECT_EQ(taken.getCount(), 8);
 
     // 验证玩家没有获得经验（因为没有熔炉实体）
-    EXPECT_EQ(player_->totalExperience(), initialXp) << "Player should not have gained experience without furnace entity";
+    EXPECT_EQ(player_->totalExperience(), initialXp)
+        << "Player should not have gained experience without furnace entity";
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoPlayer_NoExperienceGranted) {
+TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoPlayer_NoExperienceGranted)
+{
     // 创建 FurnaceResultSlot 不传入玩家（player = nullptr）
     FurnaceResultSlot slot(nullptr, furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 
@@ -607,13 +652,15 @@ TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoPlayer_NoExperienceGranted) {
     EXPECT_EQ(removed.getCount(), 8);
 
     // 验证熔炉累积经验没有变化（因为 remove() 不触发经验发放）
-    EXPECT_EQ(furnaceEntity_->getStoredExperience(), 10.5f) << "Furnace stored experience should not change after remove()";
+    EXPECT_EQ(furnaceEntity_->getStoredExperience(), 10.5f)
+        << "Furnace stored experience should not change after remove()";
 
     // 注意：onTake 需要 Player 引用，这里无法测试 null player 调用 onTake
     // 但我们已经验证了 m_player = nullptr 时，onCrafting 中不会发放经验
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoStoredExperience_NoExperienceGranted) {
+TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoStoredExperience_NoExperienceGranted)
+{
     // 创建 FurnaceResultSlot 并传入熔炉实体
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 
@@ -636,10 +683,12 @@ TEST_F(FurnaceResultSlotExperienceTest, OnTake_NoStoredExperience_NoExperienceGr
     EXPECT_EQ(taken.getCount(), 8);
 
     // 验证玩家没有获得经验（因为没有累积经验）
-    EXPECT_EQ(player_->totalExperience(), initialXp) << "Player should not have gained experience with zero stored experience";
+    EXPECT_EQ(player_->totalExperience(), initialXp)
+        << "Player should not have gained experience with zero stored experience";
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, Remove_TracksRemoveCount) {
+TEST_F(FurnaceResultSlotExperienceTest, Remove_TracksRemoveCount)
+{
     // 创建 FurnaceResultSlot
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 
@@ -661,7 +710,7 @@ TEST_F(FurnaceResultSlotExperienceTest, Remove_TracksRemoveCount) {
 
     // 调用 onTake 触发经验发放
     ItemStack taken = slot.onTake(*player_, slot.getItem());
-    EXPECT_EQ(taken.getCount(), 11);  // 16 - 5 = 11
+    EXPECT_EQ(taken.getCount(), 11); // 16 - 5 = 11
 
     // 验证玩家获得了经验（从 16 个物品）
     EXPECT_GT(player_->totalExperience(), initialXp) << "Player should have gained experience from remove + onTake";
@@ -670,7 +719,8 @@ TEST_F(FurnaceResultSlotExperienceTest, Remove_TracksRemoveCount) {
     EXPECT_EQ(furnaceEntity_->getStoredExperience(), 0.0f);
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, SetFurnaceEntity_UpdatesEntityReference) {
+TEST_F(FurnaceResultSlotExperienceTest, SetFurnaceEntity_UpdatesEntityReference)
+{
     // 创建不带熔炉实体的槽位
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, nullptr);
 
@@ -702,7 +752,8 @@ TEST_F(FurnaceResultSlotExperienceTest, SetFurnaceEntity_UpdatesEntityReference)
     EXPECT_GT(player_->totalExperience(), initialXp);
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, OnCrafting_CalledFromOnTake) {
+TEST_F(FurnaceResultSlotExperienceTest, OnCrafting_CalledFromOnTake)
+{
     // 此测试验证 onTake 内部正确调用了 onCrafting
     // 创建 FurnaceResultSlot
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
@@ -723,13 +774,15 @@ TEST_F(FurnaceResultSlotExperienceTest, OnCrafting_CalledFromOnTake) {
     slot.onTake(*player_, slot.getItem());
 
     // 验证玩家获得了经验（onTake 应该自动设置 m_removeCount）
-    EXPECT_GT(player_->totalExperience(), initialXp) << "onTake should grant experience even without prior remove() call";
+    EXPECT_GT(player_->totalExperience(), initialXp)
+        << "onTake should grant experience even without prior remove() call";
 
     // 验证熔炉累积经验已清空
     EXPECT_EQ(furnaceEntity_->getStoredExperience(), 0.0f);
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, MultipleRemoves_ThenOnTake) {
+TEST_F(FurnaceResultSlotExperienceTest, MultipleRemoves_ThenOnTake)
+{
     // 测试多次 remove 后一次性 onTake 的场景
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 
@@ -751,7 +804,7 @@ TEST_F(FurnaceResultSlotExperienceTest, MultipleRemoves_ThenOnTake) {
     slot.remove(4);
 
     // 验证物品数量正确
-    EXPECT_EQ(furnaceInventory_->getItem(2).getCount(), 20);  // 32 - 5 - 3 - 4 = 20
+    EXPECT_EQ(furnaceInventory_->getItem(2).getCount(), 20); // 32 - 5 - 3 - 4 = 20
 
     // 调用 onTake
     slot.onTake(*player_, furnaceInventory_->getItem(2));
@@ -763,7 +816,8 @@ TEST_F(FurnaceResultSlotExperienceTest, MultipleRemoves_ThenOnTake) {
     EXPECT_EQ(furnaceEntity_->getStoredExperience(), 0.0f);
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, ExperienceRoundedDown) {
+TEST_F(FurnaceResultSlotExperienceTest, ExperienceRoundedDown)
+{
     // 测试经验值向下取整
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 
@@ -786,7 +840,8 @@ TEST_F(FurnaceResultSlotExperienceTest, ExperienceRoundedDown) {
     EXPECT_EQ(player_->totalExperience() - initialXp, 10) << "Experience should be floored (floor(10.7) = 10)";
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, ZeroStoredExperience_NoEffect) {
+TEST_F(FurnaceResultSlotExperienceTest, ZeroStoredExperience_NoEffect)
+{
     // 测试累积经验为 0 的情况
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 
@@ -809,7 +864,8 @@ TEST_F(FurnaceResultSlotExperienceTest, ZeroStoredExperience_NoEffect) {
     EXPECT_EQ(player_->totalExperience(), initialXp) << "Player should not gain experience when stored XP is 0";
 }
 
-TEST_F(FurnaceResultSlotExperienceTest, OnTakeWithEmptySlot_NoEffect) {
+TEST_F(FurnaceResultSlotExperienceTest, OnTakeWithEmptySlot_NoEffect)
+{
     // 测试从空槽位取出的情况
     FurnaceResultSlot slot(player_.get(), furnaceInventory_.get(), 2, 116, 35, furnaceEntity_.get());
 

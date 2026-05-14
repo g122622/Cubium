@@ -1,8 +1,8 @@
 #include "MagmaPatchFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -12,10 +12,7 @@ namespace mc {
 // ============================================================================
 
 bool MagmaPatchFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const MagmaPatchFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const MagmaPatchFeatureConfig& config)
 {
     // 检查起始位置是否有效
     if (!isValidLocation(world, pos)) {
@@ -103,19 +100,13 @@ bool MagmaPatchFeature::isValidLocation(WorldGenRegion& world, const BlockPos& p
 // ============================================================================
 
 ConfiguredMagmaPatchFeature::ConfiguredMagmaPatchFeature(
-    std::unique_ptr<MagmaPatchFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<MagmaPatchFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredMagmaPatchFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -128,41 +119,44 @@ bool ConfiguredMagmaPatchFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>> MagmaPatchFeatures::s_features;
 
-void MagmaPatchFeatures::initialize() {
+void MagmaPatchFeatures::initialize()
+{
     if (!s_features.empty()) return;
 
     s_features.push_back(createNormal());
     s_features.push_back(createDense());
 }
 
-const std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>>& MagmaPatchFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>>& MagmaPatchFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>> MagmaPatchFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>> MagmaPatchFeatures::getAllFeaturesAndClear()
+{
     auto result = std::move(s_features);
     s_features.clear();
     return result;
 }
 
-std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createNormal() {
-    auto config = std::make_unique<MagmaPatchFeatureConfig>(
-        4,    // radius
-        0.3f, // magmaChance
-        0.1f, // fireChance
-        1,    // minDepth
-        3     // maxDepth
+std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createNormal()
+{
+    auto config = std::make_unique<MagmaPatchFeatureConfig>(4, // radius
+        0.3f,                                                  // magmaChance
+        0.1f,                                                  // fireChance
+        1,                                                     // minDepth
+        3                                                      // maxDepth
     );
     return std::make_unique<ConfiguredMagmaPatchFeature>(std::move(config), "magma_patch");
 }
 
-std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createDense() {
-    auto config = std::make_unique<MagmaPatchFeatureConfig>(
-        6,    // radius
-        0.5f, // magmaChance
-        0.2f, // fireChance
-        2,    // minDepth
-        4     // maxDepth
+std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createDense()
+{
+    auto config = std::make_unique<MagmaPatchFeatureConfig>(6, // radius
+        0.5f,                                                  // magmaChance
+        0.2f,                                                  // fireChance
+        2,                                                     // minDepth
+        4                                                      // maxDepth
     );
     return std::make_unique<ConfiguredMagmaPatchFeature>(std::move(config), "magma_patch_dense");
 }
@@ -172,10 +166,7 @@ std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createDense() {
 // ============================================================================
 
 bool NetherFireFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const NetherFireFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const NetherFireFeatureConfig& config)
 {
     const BlockState* fire = VanillaBlocks::getState(VanillaBlocks::FIRE);
     if (!fire) {
@@ -216,19 +207,13 @@ bool NetherFireFeature::place(
 // ============================================================================
 
 ConfiguredNetherFireFeature::ConfiguredNetherFireFeature(
-    std::unique_ptr<NetherFireFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<NetherFireFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredNetherFireFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -241,26 +226,29 @@ bool ConfiguredNetherFireFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::s_features;
 
-void NetherFireFeatures::initialize() {
+void NetherFireFeatures::initialize()
+{
     if (!s_features.empty()) return;
     s_features.push_back(createNormal());
 }
 
-const std::vector<std::unique_ptr<ConfiguredNetherFireFeature>>& NetherFireFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredNetherFireFeature>>& NetherFireFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::getAllFeaturesAndClear()
+{
     auto result = std::move(s_features);
     s_features.clear();
     return result;
 }
 
-std::unique_ptr<ConfiguredNetherFireFeature> NetherFireFeatures::createNormal() {
-    auto config = std::make_unique<NetherFireFeatureConfig>(
-        4,  // spread
-        1,  // minHeight
-        3   // maxHeight
+std::unique_ptr<ConfiguredNetherFireFeature> NetherFireFeatures::createNormal()
+{
+    auto config = std::make_unique<NetherFireFeatureConfig>(4, // spread
+        1,                                                     // minHeight
+        3                                                      // maxHeight
     );
     return std::make_unique<ConfiguredNetherFireFeature>(std::move(config), "nether_fire");
 }

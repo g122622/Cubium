@@ -5,11 +5,11 @@
  * 测试 BiomeColors、ColorResolver、BiomeEffects 的颜色解析功能。
  */
 
-#include <gtest/gtest.h>
 #include "client/world/color/BiomeColors.hpp"
 #include "client/world/color/ColorResolver.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace client {
@@ -20,7 +20,8 @@ using namespace world::biome;
 /**
  * @brief 测试 BiomeEffects 默认颜色
  */
-TEST(BiomeEffectsTest, DefaultColors) {
+TEST(BiomeEffectsTest, DefaultColors)
+{
     BiomeEffects effects;
 
     EXPECT_EQ(effects.waterColor(), BiomeEffects::DEFAULT_WATER_COLOR);
@@ -35,16 +36,17 @@ TEST(BiomeEffectsTest, DefaultColors) {
 /**
  * @brief 测试 BiomeEffects Builder
  */
-TEST(BiomeEffectsTest, BuilderPattern) {
+TEST(BiomeEffectsTest, BuilderPattern)
+{
     auto effects = BiomeEffects::Builder()
-        .waterColor(0x123456)
-        .waterFogColor(0x789ABC)
-        .fogColor(0xDEF012)
-        .skyColor(0x345678)
-        .grassColor(0x9ABCDEF)
-        .foliageColor(0x111111)
-        .grassColorModifier(GrassColorModifier::Swamp)
-        .build();
+                       .waterColor(0x123456)
+                       .waterFogColor(0x789ABC)
+                       .fogColor(0xDEF012)
+                       .skyColor(0x345678)
+                       .grassColor(0x9ABCDEF)
+                       .foliageColor(0x111111)
+                       .grassColorModifier(GrassColorModifier::Swamp)
+                       .build();
 
     EXPECT_EQ(effects.waterColor(), 0x123456);
     EXPECT_EQ(effects.waterFogColor(), 0x789ABC);
@@ -60,7 +62,8 @@ TEST(BiomeEffectsTest, BuilderPattern) {
 /**
  * @brief 测试 BiomeEffects 特殊生物群系常量
  */
-TEST(BiomeEffectsTest, SpecialBiomeColors) {
+TEST(BiomeEffectsTest, SpecialBiomeColors)
+{
     // 沼泽颜色
     EXPECT_EQ(BiomeEffects::SWAMP_WATER_COLOR, 0x617B64);
     EXPECT_EQ(BiomeEffects::SWAMP_WATER_FOG_COLOR, 0x232817);
@@ -96,7 +99,8 @@ TEST(BiomeEffectsTest, SpecialBiomeColors) {
 /**
  * @brief 测试 BiomeColors 常量（仅云杉和桦树叶）
  */
-TEST(BiomeColorsTest, ColorConstants) {
+TEST(BiomeColorsTest, ColorConstants)
+{
     // 云杉和桦树树叶颜色（这些是固定值，不属于 BiomeEffects）
     EXPECT_EQ(BiomeColors::SPRUCE_LEAVES_COLOR, 0x619961);
     EXPECT_EQ(BiomeColors::BIRCH_LEAVES_COLOR, 0x80A755);
@@ -113,7 +117,8 @@ TEST(BiomeColorsTest, ColorConstants) {
 /**
  * @brief 测试沼泽颜色计算
  */
-TEST(BiomeColorsTest, SwampColorCalculation) {
+TEST(BiomeColorsTest, SwampColorCalculation)
+{
     // 测试沼泽颜色计算的确定性
     // 同一坐标应返回相同颜色
     u32 color1 = BiomeColors::calculateSwampColor(100.0, 200.0, 0x6A7039, 0x4C613C);
@@ -136,7 +141,8 @@ TEST(BiomeColorsTest, SwampColorCalculation) {
 /**
  * @brief 测试颜色解析器单例
  */
-TEST(BiomeColorsTest, ResolverSingletons) {
+TEST(BiomeColorsTest, ResolverSingletons)
+{
     // 测试解析器单例是否正常工作
     const auto& grassResolver = BiomeColors::grassColorResolver();
     const auto& foliageResolver = BiomeColors::foliageColorResolver();
@@ -157,7 +163,8 @@ TEST(BiomeColorsTest, ResolverSingletons) {
 class TestBiomeForColor : public Biome {
 public:
     TestBiomeForColor(const BiomeEffects& effects)
-        : Biome(BiomeId(1), "test_biome") {
+        : Biome(BiomeId(1), "test_biome")
+    {
         setEffects(effects);
     }
 };
@@ -165,7 +172,8 @@ public:
 /**
  * @brief 测试 WaterColorResolver
  */
-TEST(WaterColorResolverTest, BasicResolution) {
+TEST(WaterColorResolverTest, BasicResolution)
+{
     WaterColorResolver resolver;
 
     // 测试默认水颜色
@@ -174,23 +182,17 @@ TEST(WaterColorResolverTest, BasicResolution) {
     EXPECT_EQ(resolver.getColor(defaultBiome, 0.0, 0.0), BiomeEffects::DEFAULT_WATER_COLOR);
 
     // 测试自定义水颜色
-    BiomeEffects customEffects = BiomeEffects::Builder()
-        .waterColor(0x123456)
-        .build();
+    BiomeEffects customEffects = BiomeEffects::Builder().waterColor(0x123456).build();
     TestBiomeForColor customBiome(customEffects);
     EXPECT_EQ(resolver.getColor(customBiome, 0.0, 0.0), 0x123456);
 
     // 测试沼泽水颜色
-    BiomeEffects swampEffects = BiomeEffects::Builder()
-        .waterColor(BiomeEffects::SWAMP_WATER_COLOR)
-        .build();
+    BiomeEffects swampEffects = BiomeEffects::Builder().waterColor(BiomeEffects::SWAMP_WATER_COLOR).build();
     TestBiomeForColor swampBiome(swampEffects);
     EXPECT_EQ(resolver.getColor(swampBiome, 0.0, 0.0), BiomeEffects::SWAMP_WATER_COLOR);
 
     // 测试暖水海洋颜色
-    BiomeEffects warmOceanEffects = BiomeEffects::Builder()
-        .waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR)
-        .build();
+    BiomeEffects warmOceanEffects = BiomeEffects::Builder().waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR).build();
     TestBiomeForColor warmOceanBiome(warmOceanEffects);
     EXPECT_EQ(resolver.getColor(warmOceanBiome, 0.0, 0.0), BiomeEffects::WARM_OCEAN_WATER_COLOR);
 }
@@ -198,7 +200,8 @@ TEST(WaterColorResolverTest, BasicResolution) {
 /**
  * @brief 测试 GrassColorResolver
  */
-TEST(GrassColorResolverTest, BasicResolution) {
+TEST(GrassColorResolverTest, BasicResolution)
+{
     GrassColorResolver resolver;
 
     // 测试无覆盖颜色时返回 colormap 标记
@@ -207,9 +210,7 @@ TEST(GrassColorResolverTest, BasicResolution) {
     EXPECT_EQ(resolver.getColor(defaultBiome, 0.0, 0.0), 0xFFFFFFFF);
 
     // 测试覆盖颜色
-    BiomeEffects overrideEffects = BiomeEffects::Builder()
-        .grassColor(0x9ABCDEF)
-        .build();
+    BiomeEffects overrideEffects = BiomeEffects::Builder().grassColor(0x9ABCDEF).build();
     TestBiomeForColor overrideBiome(overrideEffects);
     EXPECT_EQ(resolver.getColor(overrideBiome, 0.0, 0.0), 0x9ABCDEF);
 }
@@ -217,29 +218,26 @@ TEST(GrassColorResolverTest, BasicResolution) {
 /**
  * @brief 测试 GrassColorResolver - 沼泽颜色修改器
  */
-TEST(GrassColorResolverTest, SwampModifier) {
+TEST(GrassColorResolverTest, SwampModifier)
+{
     GrassColorResolver resolver;
 
-    BiomeEffects swampEffects = BiomeEffects::Builder()
-        .grassColorModifier(GrassColorModifier::Swamp)
-        .build();
+    BiomeEffects swampEffects = BiomeEffects::Builder().grassColorModifier(GrassColorModifier::Swamp).build();
     TestBiomeForColor swampBiome(swampEffects);
 
     // 沼泽颜色应该返回双色混合之一
     u32 color = resolver.getColor(swampBiome, 100.0, 200.0);
-    EXPECT_TRUE(color == BiomeEffects::SWAMP_GRASS_COLOR ||
-                color == BiomeEffects::SWAMP_GRASS_COLOR_DARK);
+    EXPECT_TRUE(color == BiomeEffects::SWAMP_GRASS_COLOR || color == BiomeEffects::SWAMP_GRASS_COLOR_DARK);
 }
 
 /**
  * @brief 测试 GrassColorResolver - 黑森林颜色修改器
  */
-TEST(GrassColorResolverTest, DarkForestModifier) {
+TEST(GrassColorResolverTest, DarkForestModifier)
+{
     GrassColorResolver resolver;
 
-    BiomeEffects darkForestEffects = BiomeEffects::Builder()
-        .grassColorModifier(GrassColorModifier::DarkForest)
-        .build();
+    BiomeEffects darkForestEffects = BiomeEffects::Builder().grassColorModifier(GrassColorModifier::DarkForest).build();
     TestBiomeForColor darkForestBiome(darkForestEffects);
 
     // 黑森林应返回固定颜色
@@ -249,12 +247,11 @@ TEST(GrassColorResolverTest, DarkForestModifier) {
 /**
  * @brief 测试 GrassColorResolver - 恶地颜色修改器
  */
-TEST(GrassColorResolverTest, BadlandsModifier) {
+TEST(GrassColorResolverTest, BadlandsModifier)
+{
     GrassColorResolver resolver;
 
-    BiomeEffects badlandsEffects = BiomeEffects::Builder()
-        .grassColorModifier(GrassColorModifier::Badlands)
-        .build();
+    BiomeEffects badlandsEffects = BiomeEffects::Builder().grassColorModifier(GrassColorModifier::Badlands).build();
     TestBiomeForColor badlandsBiome(badlandsEffects);
 
     // 恶地应返回固定颜色
@@ -264,7 +261,8 @@ TEST(GrassColorResolverTest, BadlandsModifier) {
 /**
  * @brief 测试 FoliageColorResolver
  */
-TEST(FoliageColorResolverTest, BasicResolution) {
+TEST(FoliageColorResolverTest, BasicResolution)
+{
     FoliageColorResolver resolver;
 
     // 测试无覆盖颜色时返回 colormap 标记
@@ -273,9 +271,7 @@ TEST(FoliageColorResolverTest, BasicResolution) {
     EXPECT_EQ(resolver.getColor(defaultBiome, 0.0, 0.0), 0xFFFFFFFF);
 
     // 测试覆盖颜色
-    BiomeEffects overrideEffects = BiomeEffects::Builder()
-        .foliageColor(0x123456)
-        .build();
+    BiomeEffects overrideEffects = BiomeEffects::Builder().foliageColor(0x123456).build();
     TestBiomeForColor overrideBiome(overrideEffects);
     EXPECT_EQ(resolver.getColor(overrideBiome, 0.0, 0.0), 0x123456);
 }
@@ -283,29 +279,26 @@ TEST(FoliageColorResolverTest, BasicResolution) {
 /**
  * @brief 测试 FoliageColorResolver - 沼泽颜色
  */
-TEST(FoliageColorResolverTest, SwampFoliage) {
+TEST(FoliageColorResolverTest, SwampFoliage)
+{
     FoliageColorResolver resolver;
 
-    BiomeEffects swampEffects = BiomeEffects::Builder()
-        .grassColorModifier(GrassColorModifier::Swamp)
-        .build();
+    BiomeEffects swampEffects = BiomeEffects::Builder().grassColorModifier(GrassColorModifier::Swamp).build();
     TestBiomeForColor swampBiome(swampEffects);
 
     // 沼泽树叶颜色应该返回双色混合之一
     u32 color = resolver.getColor(swampBiome, 100.0, 200.0);
-    EXPECT_TRUE(color == BiomeEffects::SWAMP_FOLIAGE_COLOR ||
-                color == BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK);
+    EXPECT_TRUE(color == BiomeEffects::SWAMP_FOLIAGE_COLOR || color == BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK);
 }
 
 /**
  * @brief 测试 FoliageColorResolver - 恶地颜色
  */
-TEST(FoliageColorResolverTest, BadlandsFoliage) {
+TEST(FoliageColorResolverTest, BadlandsFoliage)
+{
     FoliageColorResolver resolver;
 
-    BiomeEffects badlandsEffects = BiomeEffects::Builder()
-        .grassColorModifier(GrassColorModifier::Badlands)
-        .build();
+    BiomeEffects badlandsEffects = BiomeEffects::Builder().grassColorModifier(GrassColorModifier::Badlands).build();
     TestBiomeForColor badlandsBiome(badlandsEffects);
 
     // 恶地树叶应返回固定颜色
@@ -315,14 +308,13 @@ TEST(FoliageColorResolverTest, BadlandsFoliage) {
 /**
  * @brief 测试颜色优先级：覆盖颜色 > 颜色修改器
  */
-TEST(ColorResolverTest, OverridePriority) {
+TEST(ColorResolverTest, OverridePriority)
+{
     GrassColorResolver resolver;
 
     // 当同时有覆盖颜色和修改器时，覆盖颜色优先
-    BiomeEffects overrideWithModifier = BiomeEffects::Builder()
-        .grassColor(0xABCDEF)
-        .grassColorModifier(GrassColorModifier::Swamp)
-        .build();
+    BiomeEffects overrideWithModifier =
+        BiomeEffects::Builder().grassColor(0xABCDEF).grassColorModifier(GrassColorModifier::Swamp).build();
     TestBiomeForColor biome(overrideWithModifier);
 
     // 应该返回覆盖颜色，而不是沼泽双色混合
@@ -332,17 +324,15 @@ TEST(ColorResolverTest, OverridePriority) {
 /**
  * @brief 测试 ColorResolver 接口多态
  */
-TEST(ColorResolverTest, Polymorphism) {
+TEST(ColorResolverTest, Polymorphism)
+{
     // 测试通过基类指针调用
     std::unique_ptr<ColorResolver> grassResolver = std::make_unique<GrassColorResolver>();
     std::unique_ptr<ColorResolver> foliageResolver = std::make_unique<FoliageColorResolver>();
     std::unique_ptr<ColorResolver> waterResolver = std::make_unique<WaterColorResolver>();
 
-    BiomeEffects effects = BiomeEffects::Builder()
-        .waterColor(0x123456)
-        .grassColor(0xABCDEF)
-        .foliageColor(0x111222)
-        .build();
+    BiomeEffects effects =
+        BiomeEffects::Builder().waterColor(0x123456).grassColor(0xABCDEF).foliageColor(0x111222).build();
     TestBiomeForColor biome(effects);
 
     EXPECT_EQ(grassResolver->getColor(biome, 0.0, 0.0), 0xABCDEF);

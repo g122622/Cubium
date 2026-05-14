@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Result.hpp"
-#include "common/network/packet/Packet.hpp"
-#include "common/network/connection/IServerConnection.hpp"
 #include "ServerCoreConfig.hpp"
+#include "common/core/Result.hpp"
+#include "common/network/connection/IServerConnection.hpp"
+#include "common/network/packet/Packet.hpp"
 #include <functional>
 
 namespace mc::network {
@@ -13,7 +13,7 @@ class PlayerMovePacket;
 class TeleportConfirmPacket;
 class KeepAlivePacket;
 class ChatMessagePacket;
-}
+} // namespace mc::network
 
 namespace mc::server::core {
 
@@ -29,10 +29,10 @@ class TimeManager;
  * @brief 数据包处理结果
  */
 enum class PacketHandleResult {
-    Success,        ///< 处理成功
-    Ignore,         ///< 忽略（未登录等）
-    Disconnect,     ///< 需要断开连接
-    Error           ///< 处理错误
+    Success,    ///< 处理成功
+    Ignore,     ///< 忽略（未登录等）
+    Disconnect, ///< 需要断开连接
+    Error       ///< 处理错误
 };
 
 /**
@@ -87,12 +87,12 @@ public:
      * @param config 配置引用
      */
     PacketHandler(PlayerManager& playerManager,
-                  ConnectionManager& connectionManager,
-                  TeleportManager& teleportManager,
-                  KeepAliveManager& keepAliveManager,
-                  PositionTracker& positionTracker,
-                  TimeManager& timeManager,
-                  const ServerCoreConfig& config);
+        ConnectionManager& connectionManager,
+        TeleportManager& teleportManager,
+        KeepAliveManager& keepAliveManager,
+        PositionTracker& positionTracker,
+        TimeManager& timeManager,
+        const ServerCoreConfig& config);
 
     // ========== 数据包处理 ==========
 
@@ -113,8 +113,7 @@ public:
      * @param size 负载大小
      * @return 登录结果
      */
-    LoginResult handleLoginRequest(u32 sessionId, network::ConnectionPtr connection,
-                                    const u8* data, size_t size);
+    LoginResult handleLoginRequest(u32 sessionId, network::ConnectionPtr connection, const u8* data, size_t size);
 
     /**
      * @brief 处理玩家移动
@@ -164,8 +163,8 @@ public:
     /**
      * @brief 处理心跳响应
      * @param sessionId 会话ID
-        * @param data 完整数据包（包含头部）
-        * @param size 数据包大小
+     * @param data 完整数据包（包含头部）
+     * @param size 数据包大小
      * @param currentTimeMs 当前时间戳（毫秒）
      * @return 处理结果
      */

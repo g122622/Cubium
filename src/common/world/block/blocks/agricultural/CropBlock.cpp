@@ -1,12 +1,12 @@
 #include "CropBlock.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
-#include <functional>
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 #include <algorithm>
+#include <functional>
 
 namespace mc {
 namespace blocks {
@@ -14,7 +14,8 @@ namespace blocks {
 // ========== 构造函数 ==========
 
 CropBlock::CropBlock(const BlockProperties& properties)
-    : BushBlock(properties) {
+    : BushBlock(properties)
+{
 
     // 预计算各生长阶段的形状
     // 年龄0-7对应高度2/16到16/16
@@ -28,32 +29,35 @@ CropBlock::CropBlock(const BlockProperties& properties)
 
 // ========== 状态属性 ==========
 
-const IntegerProperty& CropBlock::getAgeProperty() const {
+const IntegerProperty& CropBlock::getAgeProperty() const
+{
     return BlockStateProperties::AGE_0_7();
 }
 
-int CropBlock::getAge(const BlockState& state) const {
+int CropBlock::getAge(const BlockState& state) const
+{
     return state.get(getAgeProperty());
 }
 
-const BlockState& CropBlock::withAge(int age) const {
+const BlockState& CropBlock::withAge(int age) const
+{
     return defaultState().with(getAgeProperty(), std::min(age, getMaxAge()));
 }
 
-bool CropBlock::isMaxAge(const BlockState& state) const {
+bool CropBlock::isMaxAge(const BlockState& state) const
+{
     return getAge(state) >= getMaxAge();
 }
 
 // ========== 放置逻辑 ==========
 
-BlockState CropBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CropBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState().with(getAgeProperty(), 0);
 }
 
-bool CropBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool CropBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -76,7 +80,8 @@ bool CropBlock::isValidPosition(
 
 // ========== 生长逻辑 ==========
 
-void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 参考 MC 1.16.5: CropsBlock.randomTick
     // 如果已经成熟，不需要生长
     if (isMaxAge(state)) {
@@ -98,11 +103,8 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
 // ========== IGrowable 接口实现 ==========
 
-bool CropBlock::canGrow(
-    IBlockReader& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    bool isClientSide) const {
+bool CropBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -112,11 +114,8 @@ bool CropBlock::canGrow(
     return !isMaxAge(state);
 }
 
-bool CropBlock::canUseBonemeal(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) const {
+bool CropBlock::canUseBonemeal(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(random);
@@ -126,11 +125,8 @@ bool CropBlock::canUseBonemeal(
     return true;
 }
 
-void CropBlock::grow(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) {
+void CropBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
 
     MC_UNUSED(random);
 
@@ -144,12 +140,14 @@ void CropBlock::grow(
     world.setBlockState(pos, &withAge(newAge), 2);
 }
 
-void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     math::Random random(world.seed());
     grow(world, random, pos, state);
 }
 
-int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const {
+int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
+{
     // 参考: net.minecraft.block.CropsBlock#getBonemealAgeIncrease
     // 使用世界种子和方块位置派生确定性随机数
     // 这确保同一位置多次使用骨粉结果一致
@@ -161,7 +159,8 @@ int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const 
 
 // ========== 形状 ==========
 
-const CollisionShape& CropBlock::getShape(const BlockState& state) const {
+const CollisionShape& CropBlock::getShape(const BlockState& state) const
+{
     int age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 7);
     return m_shapesByAge[age];
@@ -169,10 +168,8 @@ const CollisionShape& CropBlock::getShape(const BlockState& state) const {
 
 // ========== 保护方法 ==========
 
-bool CropBlock::canSustain(
-    const BlockState& groundState,
-    IWorld& world,
-    const BlockPos& groundPos) const {
+bool CropBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
@@ -181,10 +178,8 @@ bool CropBlock::canSustain(
     return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
 }
 
-float CropBlock::getGrowthChance(
-    const Block& block,
-    IBlockReader& world,
-    const BlockPos& pos) {
+float CropBlock::getGrowthChance(const Block& block, IBlockReader& world, const BlockPos& pos)
+{
 
     // 参考: net.minecraft.block.CropsBlock#getGrowthChance
     float growthChance = 1.0f;
@@ -226,11 +221,8 @@ float CropBlock::getGrowthChance(
     const bool east = isSameCrop(pos.x + 1, pos.z);
     const bool axisCrowded = (north || south) && (west || east);
 
-    const bool diagonalCrowded =
-        isSameCrop(pos.x - 1, pos.z - 1) ||
-        isSameCrop(pos.x + 1, pos.z - 1) ||
-        isSameCrop(pos.x - 1, pos.z + 1) ||
-        isSameCrop(pos.x + 1, pos.z + 1);
+    const bool diagonalCrowded = isSameCrop(pos.x - 1, pos.z - 1) || isSameCrop(pos.x + 1, pos.z - 1) ||
+        isSameCrop(pos.x - 1, pos.z + 1) || isSameCrop(pos.x + 1, pos.z + 1);
 
     if (axisCrowded || diagonalCrowded) {
         growthChance *= 0.5f;

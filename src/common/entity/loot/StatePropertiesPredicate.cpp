@@ -1,10 +1,10 @@
 #include "StatePropertiesPredicate.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/Property.hpp"
-#include <nlohmann/json.hpp>
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <sstream>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -20,10 +20,10 @@ StatePropertiesPredicate StatePropertiesPredicate::EMPTY;
 
 StatePropertiesPredicate::Matcher::Matcher(std::string propertyName)
     : m_propertyName(std::move(propertyName))
-{
-}
+{}
 
-bool StatePropertiesPredicate::Matcher::match(const BlockState& state) const {
+bool StatePropertiesPredicate::Matcher::match(const BlockState& state) const
+{
     // 获取方块的 StateContainer
     const Block& block = state.getBlock();
     const auto& container = block.stateContainer();
@@ -54,18 +54,20 @@ bool StatePropertiesPredicate::Matcher::match(const BlockState& state) const {
 StatePropertiesPredicate::ExactMatcher::ExactMatcher(const std::string& propertyName, std::string value)
     : Matcher(propertyName)
     , m_value(std::move(value))
-{
-}
+{}
 
-std::string StatePropertiesPredicate::ExactMatcher::toJson() const {
+std::string StatePropertiesPredicate::ExactMatcher::toJson() const
+{
     return "\"" + m_value + "\"";
 }
 
-std::unique_ptr<StatePropertiesPredicate::Matcher> StatePropertiesPredicate::ExactMatcher::clone() const {
+std::unique_ptr<StatePropertiesPredicate::Matcher> StatePropertiesPredicate::ExactMatcher::clone() const
+{
     return std::make_unique<ExactMatcher>(m_propertyName, m_value);
 }
 
-bool StatePropertiesPredicate::ExactMatcher::matchExact(const BlockState& state, const IProperty* property) const {
+bool StatePropertiesPredicate::ExactMatcher::matchExact(const BlockState& state, const IProperty* property) const
+{
     MC_UNUSED(state);
 
     // 尝试解析字符串值
@@ -90,16 +92,15 @@ bool StatePropertiesPredicate::ExactMatcher::matchExact(const BlockState& state,
 // RangedMatcher
 // ============================================================================
 
-StatePropertiesPredicate::RangedMatcher::RangedMatcher(const std::string& propertyName,
-                                                         std::optional<std::string> min,
-                                                         std::optional<std::string> max)
+StatePropertiesPredicate::RangedMatcher::RangedMatcher(
+    const std::string& propertyName, std::optional<std::string> min, std::optional<std::string> max)
     : Matcher(propertyName)
     , m_min(std::move(min))
     , m_max(std::move(max))
-{
-}
+{}
 
-std::string StatePropertiesPredicate::RangedMatcher::toJson() const {
+std::string StatePropertiesPredicate::RangedMatcher::toJson() const
+{
     std::ostringstream ss;
     ss << "{";
     if (m_min.has_value()) {
@@ -115,11 +116,13 @@ std::string StatePropertiesPredicate::RangedMatcher::toJson() const {
     return ss.str();
 }
 
-std::unique_ptr<StatePropertiesPredicate::Matcher> StatePropertiesPredicate::RangedMatcher::clone() const {
+std::unique_ptr<StatePropertiesPredicate::Matcher> StatePropertiesPredicate::RangedMatcher::clone() const
+{
     return std::make_unique<RangedMatcher>(m_propertyName, m_min, m_max);
 }
 
-bool StatePropertiesPredicate::RangedMatcher::matchExact(const BlockState& state, const IProperty* property) const {
+bool StatePropertiesPredicate::RangedMatcher::matchExact(const BlockState& state, const IProperty* property) const
+{
     // 获取当前属性值索引
     const auto& values = state.values();
     auto it = values.find(property);
@@ -166,17 +169,18 @@ bool StatePropertiesPredicate::RangedMatcher::matchExact(const BlockState& state
 
 StatePropertiesPredicate::StatePropertiesPredicate(std::vector<std::unique_ptr<Matcher>> matchers)
     : m_matchers(std::move(matchers))
-{
-}
+{}
 
-StatePropertiesPredicate::StatePropertiesPredicate(const StatePropertiesPredicate& other) {
+StatePropertiesPredicate::StatePropertiesPredicate(const StatePropertiesPredicate& other)
+{
     m_matchers.reserve(other.m_matchers.size());
     for (const auto& matcher : other.m_matchers) {
         m_matchers.push_back(matcher->clone());
     }
 }
 
-StatePropertiesPredicate& StatePropertiesPredicate::operator=(const StatePropertiesPredicate& other) {
+StatePropertiesPredicate& StatePropertiesPredicate::operator=(const StatePropertiesPredicate& other)
+{
     if (this != &other) {
         m_matchers.clear();
         m_matchers.reserve(other.m_matchers.size());
@@ -187,7 +191,8 @@ StatePropertiesPredicate& StatePropertiesPredicate::operator=(const StatePropert
     return *this;
 }
 
-bool StatePropertiesPredicate::matches(const BlockState& state) const {
+bool StatePropertiesPredicate::matches(const BlockState& state) const
+{
     for (const auto& matcher : m_matchers) {
         if (!matcher->match(state)) {
             return false;
@@ -196,13 +201,14 @@ bool StatePropertiesPredicate::matches(const BlockState& state) const {
     return true;
 }
 
-void StatePropertiesPredicate::addExactMatch(const std::string& propertyName, const std::string& value) {
+void StatePropertiesPredicate::addExactMatch(const std::string& propertyName, const std::string& value)
+{
     m_matchers.push_back(std::make_unique<ExactMatcher>(propertyName, value));
 }
 
-void StatePropertiesPredicate::addRangeMatch(const std::string& propertyName,
-                                              std::optional<std::string> min,
-                                              std::optional<std::string> max) {
+void StatePropertiesPredicate::addRangeMatch(
+    const std::string& propertyName, std::optional<std::string> min, std::optional<std::string> max)
+{
     // 如果 min == max，优化为精确匹配
     if (min.has_value() && max.has_value() && *min == *max) {
         addExactMatch(propertyName, *min);
@@ -211,11 +217,13 @@ void StatePropertiesPredicate::addRangeMatch(const std::string& propertyName,
     }
 }
 
-void StatePropertiesPredicate::addMatcher(std::unique_ptr<Matcher> matcher) {
+void StatePropertiesPredicate::addMatcher(std::unique_ptr<Matcher> matcher)
+{
     m_matchers.push_back(std::move(matcher));
 }
 
-std::string StatePropertiesPredicate::toJson() const {
+std::string StatePropertiesPredicate::toJson() const
+{
     if (m_matchers.empty()) {
         return "{}";
     }
@@ -234,7 +242,8 @@ std::string StatePropertiesPredicate::toJson() const {
     return ss.str();
 }
 
-nlohmann::json StatePropertiesPredicate::toJsonValue() const {
+nlohmann::json StatePropertiesPredicate::toJsonValue() const
+{
     if (m_matchers.empty()) {
         return nlohmann::json::object();
     }
@@ -261,7 +270,8 @@ nlohmann::json StatePropertiesPredicate::toJsonValue() const {
     return json;
 }
 
-Result<StatePropertiesPredicate> StatePropertiesPredicate::fromJson(const nlohmann::json& json) {
+Result<StatePropertiesPredicate> StatePropertiesPredicate::fromJson(const nlohmann::json& json)
+{
     // 参考 MC 1.16.5: StatePropertiesPredicate.deserializeProperties
     if (json.is_null() || !json.is_object()) {
         return StatePropertiesPredicate{};

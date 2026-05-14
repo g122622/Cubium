@@ -21,11 +21,7 @@ public:
      * @param frameCount 帧数
      * @param frameTime 每帧持续时间（秒）
      */
-    AnimatedSprite(
-        const glm::vec2& uvMin,
-        const glm::vec2& uvMax,
-        u32 frameCount,
-        f64 frameTime);
+    AnimatedSprite(const glm::vec2& uvMin, const glm::vec2& uvMax, u32 frameCount, f64 frameTime);
 
     ~AnimatedSprite() override = default;
 

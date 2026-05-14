@@ -78,7 +78,8 @@ public:
      * @param z Z坐标
      * @return 顶部高度偏移（通常为0或0.5）
      */
-    [[nodiscard]] virtual f32 getBlockTopY(i32 /*x*/, i32 y, i32 /*z*/) const {
+    [[nodiscard]] virtual f32 getBlockTopY(i32 /*x*/, i32 y, i32 /*z*/) const
+    {
         // 默认实现
         return static_cast<f32>(y) + 1.0f;
     }

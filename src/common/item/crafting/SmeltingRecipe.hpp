@@ -1,7 +1,7 @@
 #pragma once
 
-#include "IRecipe.hpp"
 #include "../core/ItemStack.hpp"
+#include "IRecipe.hpp"
 #include <memory>
 
 namespace mc {
@@ -31,14 +31,12 @@ public:
      * @param experience 经验值
      * @param cookTime 熔炼时间（tick）
      */
-    SmeltingRecipe(
-        const ResourceLocation& id,
+    SmeltingRecipe(const ResourceLocation& id,
         const std::string& group,
         const Ingredient& ingredient,
         const ItemStack& result,
         f32 experience,
-        i32 cookTime
-    );
+        i32 cookTime);
 
     ~SmeltingRecipe() override = default;
 
@@ -55,7 +53,8 @@ public:
     /**
      * @brief 熔炼类配方可以适应任何尺寸（始终返回 true）
      */
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override {
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override
+    {
         (void)width;
         (void)height;
         return true;
@@ -66,7 +65,8 @@ public:
      * @param inventory 熔炉容器
      * @return 每个槽位的剩余物品堆列表
      */
-    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const blockentity::FurnaceInventory& inventory) const override;
+    [[nodiscard]] std::vector<ItemStack> getRemainingItems(
+        const blockentity::FurnaceInventory& inventory) const override;
 
     // ========== 熔炼特有方法 ==========
 
@@ -95,7 +95,7 @@ protected:
     ItemStack m_result;
     f32 m_experience;
     i32 m_cookTime;
-    mutable std::vector<Ingredient> m_ingredients;  ///< 缓存的原料列表
+    mutable std::vector<Ingredient> m_ingredients; ///< 缓存的原料列表
 };
 
 /**

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "server/stats/Stat.hpp"
 #include "server/stats/StatType.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/core/Result.hpp"
-#include <unordered_map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {

@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Block.hpp"
+#include <algorithm>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
-#include <memory>
-#include <functional>
-#include <optional>
-#include <algorithm>
-#include <type_traits>
-#include <stdexcept>
 
 #include "common/perfetto/TraceEvents.hpp"
 
@@ -56,20 +56,19 @@ public:
      * @param args 方块构造函数参数
      * @return 方块引用
      */
-    template<typename BlockType, typename... Args>
-    BlockType& registerBlock(const ResourceLocation& id, Args&&... args) {
+    template <typename BlockType, typename... Args>
+    BlockType& registerBlock(const ResourceLocation& id, Args&&... args)
+    {
         MC_TRACE_EVENT("client.initialization", "registerBlock", "id", id.toString());
 
-        static_assert(std::is_base_of_v<Block, BlockType>,
-                      "BlockType must inherit from Block");
+        static_assert(std::is_base_of_v<Block, BlockType>, "BlockType must inherit from Block");
 
         // 避免重复注册同一资源位置导致旧状态指针悬挂
         auto existingIt = m_blocks.find(id);
         if (existingIt != m_blocks.end()) {
             auto* existing = dynamic_cast<BlockType*>(existingIt->second.get());
             if (existing == nullptr) {
-                throw std::logic_error(
-                    "Block id already registered with different type: " + id.toString());
+                throw std::logic_error("Block id already registered with different type: " + id.toString());
             }
             return *existing;
         }
@@ -113,7 +112,8 @@ public:
     /**
      * @brief 根据ID获取方块
      */
-    [[nodiscard]] Block* getBlock(u32 blockId) const {
+    [[nodiscard]] Block* getBlock(u32 blockId) const
+    {
         if (blockId >= m_blocksById.size()) {
             return nullptr;
         }
@@ -123,7 +123,8 @@ public:
     /**
      * @brief 根据资源位置获取方块
      */
-    [[nodiscard]] Block* getBlock(const ResourceLocation& id) const {
+    [[nodiscard]] Block* getBlock(const ResourceLocation& id) const
+    {
         auto it = m_blocks.find(id);
         return it != m_blocks.end() ? it->second.get() : nullptr;
     }
@@ -131,7 +132,8 @@ public:
     /**
      * @brief 根据状态ID获取方块状态
      */
-    [[nodiscard]] BlockState* getBlockState(u32 stateId) const {
+    [[nodiscard]] BlockState* getBlockState(u32 stateId) const
+    {
         auto it = m_statesById.find(stateId);
         return it != m_statesById.end() ? it->second : nullptr;
     }
@@ -139,7 +141,8 @@ public:
     /**
      * @brief 遍历所有方块
      */
-    void forEachBlock(std::function<void(Block&)> callback) {
+    void forEachBlock(std::function<void(Block&)> callback)
+    {
         for (auto& [id, block] : m_blocks) {
             callback(*block);
         }
@@ -148,7 +151,8 @@ public:
     /**
      * @brief 遍历所有方块状态
      */
-    void forEachBlockState(std::function<void(const BlockState&)> callback) {
+    void forEachBlockState(std::function<void(const BlockState&)> callback)
+    {
         for (const auto& [id, block] : m_blocks) {
             (void)id;
             if (!block) {
@@ -165,23 +169,20 @@ public:
     /**
      * @brief 获取方块数量
      */
-    [[nodiscard]] size_t blockCount() const {
-        return m_blocks.size();
-    }
+    [[nodiscard]] size_t blockCount() const { return m_blocks.size(); }
 
     /**
      * @brief 获取状态数量
      */
-    [[nodiscard]] size_t stateCount() const {
-        return m_statesById.size();
-    }
+    [[nodiscard]] size_t stateCount() const { return m_statesById.size(); }
 
     /**
      * @brief 根据资源位置获取方块状态（便捷方法）
      * @param id 方块资源位置
      * @return 默认方块状态，如果不存在返回空气状态
      */
-    [[nodiscard]] const BlockState* get(const ResourceLocation& id) const {
+    [[nodiscard]] const BlockState* get(const ResourceLocation& id) const
+    {
         Block* block = getBlock(id);
         return block ? &block->defaultState() : airState();
     }
@@ -189,7 +190,8 @@ public:
     /**
      * @brief 获取空气方块状态
      */
-    [[nodiscard]] const BlockState* airState() const {
+    [[nodiscard]] const BlockState* airState() const
+    {
         auto* air = getBlock(ResourceLocation("minecraft:air"));
         return air ? &air->defaultState() : nullptr;
     }
@@ -202,7 +204,8 @@ private:
      *
      * 对于 minecraft:air 方块，返回 0 作为保留 ID。
      */
-    u32 allocateBlockId(const ResourceLocation& id) {
+    u32 allocateBlockId(const ResourceLocation& id)
+    {
         // AIR 方块始终获得 ID 0
         if (id == ResourceLocation("minecraft:air")) {
             return 0;
@@ -214,15 +217,13 @@ private:
     /**
      * @brief 分配状态ID
      */
-    u32 allocateStateId() {
-        return m_nextStateId++;
-    }
+    u32 allocateStateId() { return m_nextStateId++; }
 
     std::unordered_map<ResourceLocation, std::unique_ptr<Block>> m_blocks;
-    std::unordered_map<ResourceLocation, u32> m_numericIds;  // 字符串ID -> 数字ID
+    std::unordered_map<ResourceLocation, u32> m_numericIds; // 字符串ID -> 数字ID
     std::vector<Block*> m_blocksById;
     std::unordered_map<u32, BlockState*> m_statesById;
-    u32 m_nextBlockId = 1;  // 0保留给空气
+    u32 m_nextBlockId = 1; // 0保留给空气
     u32 m_nextStateId = 0;
 };
 

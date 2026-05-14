@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include "world/redstone/RedstoneContext.hpp"
 #include "world/block/BlockPos.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::world::redstone;
@@ -14,19 +14,19 @@ class RedstoneContextTest : public ::testing::Test {
 protected:
     RedstoneContext context;
 
-    void SetUp() override {
-        context.clear();
-    }
+    void SetUp() override { context.clear(); }
 };
 
 // ========== 基本功能测试 ==========
 
-TEST_F(RedstoneContextTest, InitiallyNotUpdating) {
+TEST_F(RedstoneContextTest, InitiallyNotUpdating)
+{
     BlockPos pos(0, 0, 0);
     EXPECT_FALSE(context.isUpdating(pos));
 }
 
-TEST_F(RedstoneContextTest, BeginEndUpdate) {
+TEST_F(RedstoneContextTest, BeginEndUpdate)
+{
     BlockPos pos(10, 20, 30);
 
     EXPECT_FALSE(context.isUpdating(pos));
@@ -38,7 +38,8 @@ TEST_F(RedstoneContextTest, BeginEndUpdate) {
     EXPECT_FALSE(context.isUpdating(pos));
 }
 
-TEST_F(RedstoneContextTest, MultiplePositions) {
+TEST_F(RedstoneContextTest, MultiplePositions)
+{
     BlockPos pos1(0, 0, 0);
     BlockPos pos2(1, 0, 0);
     BlockPos pos3(0, 1, 0);
@@ -58,7 +59,8 @@ TEST_F(RedstoneContextTest, MultiplePositions) {
     EXPECT_FALSE(context.isUpdating(pos2));
 }
 
-TEST_F(RedstoneContextTest, SamePositionMultipleBegin) {
+TEST_F(RedstoneContextTest, SamePositionMultipleBegin)
+{
     BlockPos pos(0, 0, 0);
 
     // 多次 beginUpdate 应该是幂等的
@@ -76,11 +78,13 @@ TEST_F(RedstoneContextTest, SamePositionMultipleBegin) {
 
 // ========== 深度限制测试 ==========
 
-TEST_F(RedstoneContextTest, DepthInitiallyZero) {
+TEST_F(RedstoneContextTest, DepthInitiallyZero)
+{
     EXPECT_EQ(context.depth(), 0);
 }
 
-TEST_F(RedstoneContextTest, PushPopDepth) {
+TEST_F(RedstoneContextTest, PushPopDepth)
+{
     context.pushDepth();
     EXPECT_EQ(context.depth(), 1);
 
@@ -94,7 +98,8 @@ TEST_F(RedstoneContextTest, PushPopDepth) {
     EXPECT_EQ(context.depth(), 0);
 }
 
-TEST_F(RedstoneContextTest, CanPushDepth) {
+TEST_F(RedstoneContextTest, CanPushDepth)
+{
     // 初始可以增加深度
     EXPECT_TRUE(context.canPushDepth());
 
@@ -110,7 +115,8 @@ TEST_F(RedstoneContextTest, CanPushDepth) {
     EXPECT_TRUE(context.canPushDepth());
 }
 
-TEST_F(RedstoneContextTest, PopDepthNoUnderflow) {
+TEST_F(RedstoneContextTest, PopDepthNoUnderflow)
+{
     // 在深度为0时pop不应该变成负数
     context.popDepth();
     EXPECT_EQ(context.depth(), 0);
@@ -121,7 +127,8 @@ TEST_F(RedstoneContextTest, PopDepthNoUnderflow) {
 
 // ========== 清空测试 ==========
 
-TEST_F(RedstoneContextTest, Clear) {
+TEST_F(RedstoneContextTest, Clear)
+{
     BlockPos pos1(0, 0, 0);
     BlockPos pos2(1, 0, 0);
 
@@ -140,7 +147,8 @@ TEST_F(RedstoneContextTest, Clear) {
 
 // ========== 更新计数测试 ==========
 
-TEST_F(RedstoneContextTest, UpdatingCount) {
+TEST_F(RedstoneContextTest, UpdatingCount)
+{
     EXPECT_EQ(context.updatingCount(), 0);
 
     context.beginUpdate(BlockPos(0, 0, 0));
@@ -158,7 +166,8 @@ TEST_F(RedstoneContextTest, UpdatingCount) {
 
 // ========== 边界条件测试 ==========
 
-TEST_F(RedstoneContextTest, LargeCoordinates) {
+TEST_F(RedstoneContextTest, LargeCoordinates)
+{
     BlockPos pos(1000000, -100, 2000000);
 
     context.beginUpdate(pos);
@@ -167,7 +176,8 @@ TEST_F(RedstoneContextTest, LargeCoordinates) {
     EXPECT_FALSE(context.isUpdating(pos));
 }
 
-TEST_F(RedstoneContextTest, NegativeCoordinates) {
+TEST_F(RedstoneContextTest, NegativeCoordinates)
+{
     BlockPos pos(-100, -50, -200);
 
     context.beginUpdate(pos);
@@ -178,7 +188,8 @@ TEST_F(RedstoneContextTest, NegativeCoordinates) {
 
 // ========== 并发安全测试（基础） ==========
 
-TEST_F(RedstoneContextTest, ThreadSafetyBasic) {
+TEST_F(RedstoneContextTest, ThreadSafetyBasic)
+{
     // 简单测试 mutex 保护不会死锁
     BlockPos pos(0, 0, 0);
 

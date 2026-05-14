@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Block.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 
@@ -38,12 +38,7 @@ public:
      * - 光照不足时退化成泥土
      * - 光照充足时向周围泥土蔓延
      */
-    void randomTick(
-        IWorld& world,
-        const BlockPos& pos,
-        BlockState& state,
-        math::IRandom& random
-    ) override;
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 是否响应随机刻
@@ -73,22 +68,18 @@ public:
      * @param facingPos 邻居位置
      * @return 更新后的状态
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
         const BlockPos& currentPos,
-        const BlockPos& facingPos
-    ) override;
+        const BlockPos& facingPos) override;
 
     /**
      * @brief 获取 SNOWY 属性
      * @return SNOWY 布尔属性引用
      */
-    [[nodiscard]] static const BooleanProperty& SNOWY() {
-        return BlockStateProperties::SNOWY();
-    }
+    [[nodiscard]] static const BooleanProperty& SNOWY() { return BlockStateProperties::SNOWY(); }
 
 protected:
     /**
@@ -101,11 +92,7 @@ protected:
      * @param state 当前方块状态
      * @return true 如果满足蔓延条件
      */
-    [[nodiscard]] static bool isSnowyConditions(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state
-    );
+    [[nodiscard]] static bool isSnowyConditions(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 检查是否为雪覆盖且非水下条件
@@ -115,11 +102,7 @@ protected:
      * @param state 当前方块状态
      * @return true 如果满足蔓延条件且不在水下
      */
-    [[nodiscard]] static bool isSnowyAndNotUnderwater(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state
-    );
+    [[nodiscard]] static bool isSnowyAndNotUnderwater(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 /**

@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
-#include "entity/ai/pathfinding/WalkNodeProcessor.hpp"
 #include "entity/ai/pathfinding/Region.hpp"
+#include "entity/ai/pathfinding/WalkNodeProcessor.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/Material.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include <memory>
 #include <unordered_map>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity::ai::pathfinding;
@@ -39,7 +39,8 @@ public:
 
     // ========== 辅助方法 ==========
 
-    static u64 makeKey(i32 x, i32 y, i32 z) {
+    static u64 makeKey(i32 x, i32 y, i32 z)
+    {
         u64 key = 0;
         key |= (static_cast<u64>(static_cast<u32>(x)) & 0xFFFFFFFFULL) << 32;
         key |= (static_cast<u64>(static_cast<u16>(y & 0xFFFF)) << 16);
@@ -47,48 +48,40 @@ public:
         return key;
     }
 
-    void setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
-        m_blockStates[makeKey(x, y, z)] = stateId;
-    }
+    void setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) { m_blockStates[makeKey(x, y, z)] = stateId; }
 
-    void setWater(i32 x, i32 y, i32 z, bool water = true) {
-        m_isWater[makeKey(x, y, z)] = water;
-    }
+    void setWater(i32 x, i32 y, i32 z, bool water = true) { m_isWater[makeKey(x, y, z)] = water; }
 
-    void setLava(i32 x, i32 y, i32 z, bool lava = true) {
-        m_isLava[makeKey(x, y, z)] = lava;
-    }
+    void setLava(i32 x, i32 y, i32 z, bool lava = true) { m_isLava[makeKey(x, y, z)] = lava; }
 
-    void setWalkable(i32 x, i32 y, i32 z, bool walkable = true) {
-        m_isWalkable[makeKey(x, y, z)] = walkable;
-    }
+    void setWalkable(i32 x, i32 y, i32 z, bool walkable = true) { m_isWalkable[makeKey(x, y, z)] = walkable; }
 
     // ========== Region 接口实现 ==========
 
-    [[nodiscard]] u32 getBlockStateId(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] u32 getBlockStateId(i32 x, i32 y, i32 z) const override
+    {
         auto it = m_blockStates.find(makeKey(x, y, z));
-        return it != m_blockStates.end() ? it->second : 0;  // 0 = 空气
+        return it != m_blockStates.end() ? it->second : 0; // 0 = 空气
     }
 
-    [[nodiscard]] bool isLoaded(i32 /*x*/, i32 /*z*/) const override {
-        return m_globalLoaded;
-    }
+    [[nodiscard]] bool isLoaded(i32 /*x*/, i32 /*z*/) const override { return m_globalLoaded; }
 
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override {
-        return m_globalHeight;
-    }
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override { return m_globalHeight; }
 
-    [[nodiscard]] bool isWalkable(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] bool isWalkable(i32 x, i32 y, i32 z) const override
+    {
         auto it = m_isWalkable.find(makeKey(x, y, z));
         return it != m_isWalkable.end() ? it->second : false;
     }
 
-    [[nodiscard]] bool isWater(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] bool isWater(i32 x, i32 y, i32 z) const override
+    {
         auto it = m_isWater.find(makeKey(x, y, z));
         return it != m_isWater.end() ? it->second : false;
     }
 
-    [[nodiscard]] bool isLava(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] bool isLava(i32 x, i32 y, i32 z) const override
+    {
         auto it = m_isLava.find(makeKey(x, y, z));
         return it != m_isLava.end() ? it->second : false;
     }
@@ -100,7 +93,8 @@ public:
 // PathNodeType 危险类型测试
 // ============================================================================
 
-TEST(PathNodeTypeDangerTest, GetDangerReturnsCorrectType) {
+TEST(PathNodeTypeDangerTest, GetDangerReturnsCorrectType)
+{
     // 火焰危险
     EXPECT_EQ(getDanger(PathNodeType::DamageFire), PathNodeType::DangerFire);
     EXPECT_EQ(getDanger(PathNodeType::DangerFire), PathNodeType::DangerFire);
@@ -125,7 +119,8 @@ TEST(PathNodeTypeDangerTest, GetDangerReturnsCorrectType) {
     EXPECT_EQ(getDanger(PathNodeType::Open), PathNodeType::Blocked);
 }
 
-TEST(PathNodeTypeDangerTest, IsDangerousFunction) {
+TEST(PathNodeTypeDangerTest, IsDangerousFunction)
+{
     // 危险类型
     EXPECT_TRUE(isDangerous(PathNodeType::DamageFire));
     EXPECT_TRUE(isDangerous(PathNodeType::DangerFire));
@@ -143,7 +138,8 @@ TEST(PathNodeTypeDangerTest, IsDangerousFunction) {
     EXPECT_FALSE(isDangerous(PathNodeType::Blocked));
 }
 
-TEST(PathNodeTypeDangerTest, DangerBerryCostPenalty) {
+TEST(PathNodeTypeDangerTest, DangerBerryCostPenalty)
+{
     // 甜浆果丛危险区域代价为 8.0
     EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::DangerBerry), 8.0f);
 }
@@ -154,7 +150,8 @@ TEST(PathNodeTypeDangerTest, DangerBerryCostPenalty) {
 
 class WalkNodeProcessorDangerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_processor = std::make_unique<WalkNodeProcessor>();
         m_processor->setRegion(&m_region);
     }
@@ -163,7 +160,8 @@ protected:
     std::unique_ptr<WalkNodeProcessor> m_processor;
 };
 
-TEST_F(WalkNodeProcessorDangerTest, LavaIsDangerous) {
+TEST_F(WalkNodeProcessorDangerTest, LavaIsDangerous)
+{
     // 设置岩浆
     m_region.setLava(0, 0, 0, true);
 
@@ -171,26 +169,30 @@ TEST_F(WalkNodeProcessorDangerTest, LavaIsDangerous) {
     EXPECT_FALSE(m_processor->isDangerous(1, 0, 0));
 }
 
-TEST_F(WalkNodeProcessorDangerTest, WaterIsNotDangerous) {
+TEST_F(WalkNodeProcessorDangerTest, WaterIsNotDangerous)
+{
     // 水不是危险方块
     m_region.setWater(0, 0, 0, true);
 
     EXPECT_FALSE(m_processor->isDangerous(0, 0, 0));
 }
 
-TEST_F(WalkNodeProcessorDangerTest, AirIsNotDangerous) {
+TEST_F(WalkNodeProcessorDangerTest, AirIsNotDangerous)
+{
     // 空气不是危险方块
     EXPECT_FALSE(m_processor->isDangerous(0, 0, 0));
 }
 
-TEST_F(WalkNodeProcessorDangerTest, WalkableBlockIsNotDangerous) {
+TEST_F(WalkNodeProcessorDangerTest, WalkableBlockIsNotDangerous)
+{
     // 可行走的方块不是危险方块
     m_region.setWalkable(0, 0, 0, true);
 
     EXPECT_FALSE(m_processor->isDangerous(0, 0, 0));
 }
 
-TEST_F(WalkNodeProcessorDangerTest, NullRegionReturnsFalse) {
+TEST_F(WalkNodeProcessorDangerTest, NullRegionReturnsFalse)
+{
     // 空 Region 返回 false
     m_processor->setRegion(nullptr);
 
@@ -203,7 +205,8 @@ TEST_F(WalkNodeProcessorDangerTest, NullRegionReturnsFalse) {
 
 class WalkNodeProcessorNodeTypeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_processor = std::make_unique<WalkNodeProcessor>();
         m_processor->setRegion(&m_region);
     }
@@ -212,13 +215,15 @@ protected:
     std::unique_ptr<WalkNodeProcessor> m_processor;
 };
 
-TEST_F(WalkNodeProcessorNodeTypeTest, UnloadedReturnsBlocked) {
+TEST_F(WalkNodeProcessorNodeTypeTest, UnloadedReturnsBlocked)
+{
     m_region.m_globalLoaded = false;
 
     EXPECT_EQ(m_processor->getNodeType(0, 0, 0), PathNodeType::Blocked);
 }
 
-TEST_F(WalkNodeProcessorNodeTypeTest, WaterReturnsWaterOrBlocked) {
+TEST_F(WalkNodeProcessorNodeTypeTest, WaterReturnsWaterOrBlocked)
+{
     // 默认不能游泳
     m_processor->setCanSwim(false);
     m_region.setWater(0, 0, 0, true);
@@ -230,13 +235,15 @@ TEST_F(WalkNodeProcessorNodeTypeTest, WaterReturnsWaterOrBlocked) {
     EXPECT_EQ(m_processor->getNodeType(0, 0, 0), PathNodeType::Water);
 }
 
-TEST_F(WalkNodeProcessorNodeTypeTest, LavaReturnsLava) {
+TEST_F(WalkNodeProcessorNodeTypeTest, LavaReturnsLava)
+{
     m_region.setLava(0, 0, 0, true);
 
     EXPECT_EQ(m_processor->getNodeType(0, 0, 0), PathNodeType::Lava);
 }
 
-TEST_F(WalkNodeProcessorNodeTypeTest, OpenGroundReturnsWalkable) {
+TEST_F(WalkNodeProcessorNodeTypeTest, OpenGroundReturnsWalkable)
+{
     // 设置地面
     m_region.setWalkable(0, 63, 0, true);
     // 上方是空气（默认）
@@ -244,7 +251,8 @@ TEST_F(WalkNodeProcessorNodeTypeTest, OpenGroundReturnsWalkable) {
     EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Walkable);
 }
 
-TEST_F(WalkNodeProcessorNodeTypeTest, OpenAirReturnsOpen) {
+TEST_F(WalkNodeProcessorNodeTypeTest, OpenAirReturnsOpen)
+{
     // 空气且没有支撑
     EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Open);
 }
@@ -253,7 +261,8 @@ TEST_F(WalkNodeProcessorNodeTypeTest, OpenAirReturnsOpen) {
 // Region::getBlockState 测试
 // ============================================================================
 
-TEST(RegionGetBlockStateTest, ReturnsNullptrForAir) {
+TEST(RegionGetBlockStateTest, ReturnsNullptrForAir)
+{
     MockRegion region;
 
     // 空气返回 nullptr
@@ -261,7 +270,8 @@ TEST(RegionGetBlockStateTest, ReturnsNullptrForAir) {
     EXPECT_EQ(state, nullptr);
 }
 
-TEST(RegionGetBlockStateTest, ReturnsNullptrForMissingBlock) {
+TEST(RegionGetBlockStateTest, ReturnsNullptrForMissingBlock)
+{
     MockRegion region;
 
     // 未设置的方块返回 nullptr（stateId = 0 = 空气）
@@ -273,7 +283,8 @@ TEST(RegionGetBlockStateTest, ReturnsNullptrForMissingBlock) {
 // 危险检测距离测试
 // ============================================================================
 
-TEST_F(WalkNodeProcessorDangerTest, DetectsAdjacentDanger) {
+TEST_F(WalkNodeProcessorDangerTest, DetectsAdjacentDanger)
+{
     // 设置岩浆在相邻位置
     m_region.setLava(1, 0, 0, true);
 
@@ -282,7 +293,8 @@ TEST_F(WalkNodeProcessorDangerTest, DetectsAdjacentDanger) {
     EXPECT_TRUE(m_processor->isDangerous(1, 0, 0));
 }
 
-TEST_F(WalkNodeProcessorDangerTest, MultipleDangerTypes) {
+TEST_F(WalkNodeProcessorDangerTest, MultipleDangerTypes)
+{
     // 不同位置设置不同危险
     m_region.setLava(0, 0, 0, true);
     m_region.setLava(2, 0, 0, true);
@@ -296,10 +308,10 @@ TEST_F(WalkNodeProcessorDangerTest, MultipleDangerTypes) {
 // 危险方块代价惩罚测试
 // ============================================================================
 
-TEST(PathNodeTypeCostTest, DamageTypesHaveHigherCost) {
+TEST(PathNodeTypeCostTest, DamageTypesHaveHigherCost)
+{
     // DAMAGE_FIRE 比 DANGER_FIRE 代价更高
-    EXPECT_GT(getPathCostPenalty(PathNodeType::DamageFire),
-              getPathCostPenalty(PathNodeType::DangerFire));
+    EXPECT_GT(getPathCostPenalty(PathNodeType::DamageFire), getPathCostPenalty(PathNodeType::DangerFire));
 
     // DAMAGE_CACTUS 不可通行，DANGER_CACTUS 高代价但可通行
     EXPECT_LT(getPathCostPenalty(PathNodeType::DamageCactus), 0.0f);
@@ -310,7 +322,8 @@ TEST(PathNodeTypeCostTest, DamageTypesHaveHigherCost) {
     EXPECT_GT(getPathCostPenalty(PathNodeType::DangerOther), 0.0f);
 }
 
-TEST(PathNodeTypeCostTest, AllDangerTypesPenalized) {
+TEST(PathNodeTypeCostTest, AllDangerTypesPenalized)
+{
     // 所有危险类型都有正代价（高代价但可通行）
     EXPECT_GT(getPathCostPenalty(PathNodeType::DangerFire), 0.0f);
     EXPECT_GT(getPathCostPenalty(PathNodeType::DangerCactus), 0.0f);

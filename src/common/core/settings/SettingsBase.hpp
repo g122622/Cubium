@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
 
-#include <nlohmann/json.hpp>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
-#include <functional>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 

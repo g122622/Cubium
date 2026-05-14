@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
-#include "server/stats/StatType.hpp"
-#include "server/stats/Stat.hpp"
-#include "server/stats/StatRegistry.hpp"
-#include "server/stats/StatisticsManager.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "server/stats/Stat.hpp"
+#include "server/stats/StatRegistry.hpp"
+#include "server/stats/StatType.hpp"
+#include "server/stats/StatisticsManager.hpp"
 
 using namespace mc;
 using namespace mc::server::stats;
@@ -24,7 +24,8 @@ using namespace mc::server::stats;
  */
 class StatisticsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块和物品注册表
         VanillaBlocks::initialize();
         Items::initialize();
@@ -34,7 +35,8 @@ protected:
         StatRegistry::instance().registerBuiltinStats();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理统计注册表
         StatRegistry::instance().clear();
     }
@@ -42,7 +44,8 @@ protected:
 
 // ========== StatType 测试 ==========
 
-TEST_F(StatisticsTest, StatType_GetPrefix) {
+TEST_F(StatisticsTest, StatType_GetPrefix)
+{
     EXPECT_EQ(getStatTypePrefix(StatType::Mined), "mined");
     EXPECT_EQ(getStatTypePrefix(StatType::Crafted), "crafted");
     EXPECT_EQ(getStatTypePrefix(StatType::Used), "used");
@@ -54,7 +57,8 @@ TEST_F(StatisticsTest, StatType_GetPrefix) {
     EXPECT_EQ(getStatTypePrefix(StatType::Custom), "custom");
 }
 
-TEST_F(StatisticsTest, StatType_ParseStatType) {
+TEST_F(StatisticsTest, StatType_ParseStatType)
+{
     EXPECT_EQ(parseStatType("mined"), StatType::Mined);
     EXPECT_EQ(parseStatType("crafted"), StatType::Crafted);
     EXPECT_EQ(parseStatType("used"), StatType::Used);
@@ -67,7 +71,8 @@ TEST_F(StatisticsTest, StatType_ParseStatType) {
     EXPECT_EQ(parseStatType("unknown"), std::nullopt);
 }
 
-TEST_F(StatisticsTest, StatType_BuildStatLocation) {
+TEST_F(StatisticsTest, StatType_BuildStatLocation)
+{
     ResourceLocation blockId("minecraft:stone");
     ResourceLocation location = buildStatLocation(StatType::Mined, blockId);
     EXPECT_EQ(location.toString(), "minecraft.mined:minecraft:stone");
@@ -87,14 +92,16 @@ TEST_F(StatisticsTest, StatType_BuildStatLocation) {
 
 // ========== Stat 测试 ==========
 
-TEST_F(StatisticsTest, Stat_Construction) {
+TEST_F(StatisticsTest, Stat_Construction)
+{
     Stat stat(StatType::Mined, ResourceLocation("minecraft:stone"));
     EXPECT_EQ(stat.getType(), StatType::Mined);
     EXPECT_EQ(stat.getId().toString(), "minecraft:stone");
     EXPECT_EQ(stat.getValue(), 0);
 }
 
-TEST_F(StatisticsTest, Stat_Increment) {
+TEST_F(StatisticsTest, Stat_Increment)
+{
     Stat stat(StatType::Mined, ResourceLocation("minecraft:stone"));
 
     stat.increment();
@@ -107,7 +114,8 @@ TEST_F(StatisticsTest, Stat_Increment) {
     EXPECT_EQ(stat.getValue(), 106);
 }
 
-TEST_F(StatisticsTest, Stat_SetValue) {
+TEST_F(StatisticsTest, Stat_SetValue)
+{
     Stat stat(StatType::Mined, ResourceLocation("minecraft:stone"));
 
     stat.setValue(1000);
@@ -121,7 +129,8 @@ TEST_F(StatisticsTest, Stat_SetValue) {
     EXPECT_EQ(stat.getValue(), INT64_MAX);
 }
 
-TEST_F(StatisticsTest, Stat_Reset) {
+TEST_F(StatisticsTest, Stat_Reset)
+{
     Stat stat(StatType::Mined, ResourceLocation("minecraft:stone"));
     stat.increment(100);
     EXPECT_EQ(stat.getValue(), 100);
@@ -130,44 +139,48 @@ TEST_F(StatisticsTest, Stat_Reset) {
     EXPECT_EQ(stat.getValue(), 0);
 }
 
-TEST_F(StatisticsTest, Stat_GetFullLocation) {
+TEST_F(StatisticsTest, Stat_GetFullLocation)
+{
     Stat stat(StatType::Mined, ResourceLocation("minecraft:stone"));
     ResourceLocation location = stat.getFullLocation();
     EXPECT_EQ(location.toString(), "minecraft.mined:minecraft:stone");
 }
 
-TEST_F(StatisticsTest, Stat_Equality) {
+TEST_F(StatisticsTest, Stat_Equality)
+{
     Stat stat1(StatType::Mined, ResourceLocation("minecraft:stone"));
     Stat stat2(StatType::Mined, ResourceLocation("minecraft:stone"));
     Stat stat3(StatType::Mined, ResourceLocation("minecraft:dirt"));
     Stat stat4(StatType::Crafted, ResourceLocation("minecraft:stone"));
 
     stat1.increment(100);
-    stat2.increment(50);  // 不同的值
+    stat2.increment(50); // 不同的值
 
     // 相同类型和ID应该相等（忽略值）
     EXPECT_EQ(stat1, stat2);
-    EXPECT_NE(stat1, stat3);  // 不同的ID
-    EXPECT_NE(stat1, stat4);  // 不同的类型
+    EXPECT_NE(stat1, stat3); // 不同的ID
+    EXPECT_NE(stat1, stat4); // 不同的类型
 }
 
-TEST_F(StatisticsTest, Stat_OverflowProtection) {
+TEST_F(StatisticsTest, Stat_OverflowProtection)
+{
     Stat stat(StatType::Custom, ResourceLocation("minecraft:test"));
 
     // 测试正溢出
     stat.setValue(INT64_MAX);
     stat.increment(1);
-    EXPECT_EQ(stat.getValue(), INT64_MAX);  // 应该被限制在最大值
+    EXPECT_EQ(stat.getValue(), INT64_MAX); // 应该被限制在最大值
 
     // 测试负溢出
     stat.setValue(INT64_MIN);
     stat.increment(-1);
-    EXPECT_EQ(stat.getValue(), INT64_MIN);  // 应该被限制在最小值
+    EXPECT_EQ(stat.getValue(), INT64_MIN); // 应该被限制在最小值
 }
 
 // ========== StatRegistry 测试 ==========
 
-TEST_F(StatisticsTest, Registry_HasBuiltinStats) {
+TEST_F(StatisticsTest, Registry_HasBuiltinStats)
+{
     // 手动注册一些统计用于测试
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:stone"));
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:dirt"));
@@ -185,7 +198,8 @@ TEST_F(StatisticsTest, Registry_HasBuiltinStats) {
     EXPECT_TRUE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:deaths")));
 }
 
-TEST_F(StatisticsTest, Registry_GetAllStatIds) {
+TEST_F(StatisticsTest, Registry_GetAllStatIds)
+{
     // 注册一些统计用于测试
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:stone"));
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:dirt"));
@@ -204,7 +218,8 @@ TEST_F(StatisticsTest, Registry_GetAllStatIds) {
     EXPECT_TRUE(hasStoneMined);
 }
 
-TEST_F(StatisticsTest, Registry_GetStatIdsByType) {
+TEST_F(StatisticsTest, Registry_GetStatIdsByType)
+{
     // 注册一些统计用于测试
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:stone"));
     StatRegistry::instance().registerCustomStat(ResourceLocation("minecraft:jump"));
@@ -228,7 +243,8 @@ TEST_F(StatisticsTest, Registry_GetStatIdsByType) {
     }
 }
 
-TEST_F(StatisticsTest, Registry_GetMinedStatId) {
+TEST_F(StatisticsTest, Registry_GetMinedStatId)
+{
     ResourceLocation blockId("minecraft:stone");
     ResourceLocation statId = StatRegistry::instance().getMinedStatId(blockId);
     EXPECT_EQ(statId.toString(), "minecraft.mined:minecraft:stone");
@@ -236,7 +252,8 @@ TEST_F(StatisticsTest, Registry_GetMinedStatId) {
 
 // ========== StatisticsManager 测试 ==========
 
-TEST_F(StatisticsTest, Manager_GetSet) {
+TEST_F(StatisticsTest, Manager_GetSet)
+{
     StatisticsManager manager;
 
     // 初始值应该是 0
@@ -251,7 +268,8 @@ TEST_F(StatisticsTest, Manager_GetSet) {
     EXPECT_EQ(manager.getValue(StatType::Mined, ResourceLocation("minecraft:stone")), 200);
 }
 
-TEST_F(StatisticsTest, Manager_Increment) {
+TEST_F(StatisticsTest, Manager_Increment)
+{
     StatisticsManager manager;
 
     manager.increment(StatType::Mined, ResourceLocation("minecraft:stone"));
@@ -265,7 +283,8 @@ TEST_F(StatisticsTest, Manager_Increment) {
     EXPECT_EQ(manager.getValue(StatType::Mined, ResourceLocation("minecraft:stone")), 3);
 }
 
-TEST_F(StatisticsTest, Manager_Decrement) {
+TEST_F(StatisticsTest, Manager_Decrement)
+{
     StatisticsManager manager;
 
     manager.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 100);
@@ -273,7 +292,8 @@ TEST_F(StatisticsTest, Manager_Decrement) {
     EXPECT_EQ(manager.getValue(StatType::Mined, ResourceLocation("minecraft:stone")), 90);
 }
 
-TEST_F(StatisticsTest, Manager_Reset) {
+TEST_F(StatisticsTest, Manager_Reset)
+{
     StatisticsManager manager;
 
     manager.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 100);
@@ -289,7 +309,8 @@ TEST_F(StatisticsTest, Manager_Reset) {
     EXPECT_EQ(manager.getValue(StatType::Mined, ResourceLocation("minecraft:dirt")), 0);
 }
 
-TEST_F(StatisticsTest, Manager_HasStat) {
+TEST_F(StatisticsTest, Manager_HasStat)
+{
     StatisticsManager manager;
 
     EXPECT_FALSE(manager.hasStat(StatType::Mined, ResourceLocation("minecraft:stone")));
@@ -298,7 +319,8 @@ TEST_F(StatisticsTest, Manager_HasStat) {
     EXPECT_TRUE(manager.hasStat(StatType::Mined, ResourceLocation("minecraft:stone")));
 }
 
-TEST_F(StatisticsTest, Manager_GetAllStats) {
+TEST_F(StatisticsTest, Manager_GetAllStats)
+{
     StatisticsManager manager;
 
     manager.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 100);
@@ -327,7 +349,8 @@ TEST_F(StatisticsTest, Manager_GetAllStats) {
     EXPECT_TRUE(hasJump);
 }
 
-TEST_F(StatisticsTest, Manager_GetStatsByType) {
+TEST_F(StatisticsTest, Manager_GetStatsByType)
+{
     StatisticsManager manager;
 
     manager.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 100);
@@ -341,10 +364,11 @@ TEST_F(StatisticsTest, Manager_GetStatsByType) {
     EXPECT_EQ(customStats.size(), 1);
 
     auto craftedStats = manager.getStatsByType(StatType::Crafted);
-    EXPECT_EQ(craftedStats.size(), 0);  // 没有 crafted 统计
+    EXPECT_EQ(craftedStats.size(), 0); // 没有 crafted 统计
 }
 
-TEST_F(StatisticsTest, Manager_ConvenienceMethods) {
+TEST_F(StatisticsTest, Manager_ConvenienceMethods)
+{
     StatisticsManager manager;
 
     manager.incrementMined(ResourceLocation("minecraft:stone"));
@@ -375,7 +399,8 @@ TEST_F(StatisticsTest, Manager_ConvenienceMethods) {
     EXPECT_EQ(manager.getValue(StatType::Custom, ResourceLocation("minecraft:jump")), 50);
 }
 
-TEST_F(StatisticsTest, Manager_DirtyFlag) {
+TEST_F(StatisticsTest, Manager_DirtyFlag)
+{
     StatisticsManager manager;
 
     EXPECT_FALSE(manager.isDirty());
@@ -394,7 +419,8 @@ TEST_F(StatisticsTest, Manager_DirtyFlag) {
     EXPECT_TRUE(manager.isDirty());
 }
 
-TEST_F(StatisticsTest, Manager_ForEach) {
+TEST_F(StatisticsTest, Manager_ForEach)
+{
     StatisticsManager manager;
 
     manager.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 100);
@@ -409,7 +435,8 @@ TEST_F(StatisticsTest, Manager_ForEach) {
     EXPECT_EQ(total, 150);
 }
 
-TEST_F(StatisticsTest, Manager_ForEach_EarlyExit) {
+TEST_F(StatisticsTest, Manager_ForEach_EarlyExit)
+{
     StatisticsManager manager;
 
     manager.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 100);
@@ -419,7 +446,7 @@ TEST_F(StatisticsTest, Manager_ForEach_EarlyExit) {
     i32 count = 0;
     manager.forEach([&count](const ResourceLocation& id, i64 value) {
         count++;
-        return count < 2;  // 只遍历前两个
+        return count < 2; // 只遍历前两个
     });
 
     EXPECT_EQ(count, 2);
@@ -427,7 +454,8 @@ TEST_F(StatisticsTest, Manager_ForEach_EarlyExit) {
 
 // ========== NBT 序列化测试 ==========
 
-TEST_F(StatisticsTest, Manager_SerializeDeserialize) {
+TEST_F(StatisticsTest, Manager_SerializeDeserialize)
+{
     // 注册统计以便序列化可以解析
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:stone"));
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:dirt"));
@@ -459,7 +487,8 @@ TEST_F(StatisticsTest, Manager_SerializeDeserialize) {
     EXPECT_EQ(restored.getValue(StatType::Killed, ResourceLocation("minecraft:zombie")), 100);
 }
 
-TEST_F(StatisticsTest, Manager_SerializeEmpty) {
+TEST_F(StatisticsTest, Manager_SerializeEmpty)
+{
     StatisticsManager empty;
     nbt::tags::compound_tag nbt = empty.toNbt();
 
@@ -470,14 +499,15 @@ TEST_F(StatisticsTest, Manager_SerializeEmpty) {
     EXPECT_EQ(restored.getAllStats().size(), 0);
 }
 
-TEST_F(StatisticsTest, Manager_SerializeSkipZeroValues) {
+TEST_F(StatisticsTest, Manager_SerializeSkipZeroValues)
+{
     // 注册统计
     StatRegistry::instance().registerMinedStat(ResourceLocation("minecraft:stone"));
 
     StatisticsManager manager;
     manager.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 100);
-    manager.setValue(StatType::Mined, ResourceLocation("minecraft:dirt"), 0);  // 零值
-    manager.setValue(StatType::Crafted, ResourceLocation("minecraft:diamond_sword"), 0);  // 零值
+    manager.setValue(StatType::Mined, ResourceLocation("minecraft:dirt"), 0);            // 零值
+    manager.setValue(StatType::Crafted, ResourceLocation("minecraft:diamond_sword"), 0); // 零值
 
     nbt::tags::compound_tag nbt = manager.toNbt();
 
@@ -485,12 +515,13 @@ TEST_F(StatisticsTest, Manager_SerializeSkipZeroValues) {
     ASSERT_TRUE(result.success());
 
     StatisticsManager& restored = result.value();
-    EXPECT_EQ(restored.getAllStats().size(), 1);  // 只有非零值
+    EXPECT_EQ(restored.getAllStats().size(), 1); // 只有非零值
     EXPECT_EQ(restored.getValue(StatType::Mined, ResourceLocation("minecraft:stone")), 100);
     EXPECT_EQ(restored.getValue(StatType::Mined, ResourceLocation("minecraft:dirt")), 0);
 }
 
-TEST_F(StatisticsTest, Manager_LargeValues) {
+TEST_F(StatisticsTest, Manager_LargeValues)
+{
     StatisticsManager manager;
     manager.setValue(StatType::Custom, ResourceLocation("minecraft:play_one_minute"), INT64_MAX);
 

@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 
+#include "core/Constants.hpp"
+#include "entity/combat/DifficultyHelper.hpp"
+#include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/FireInfoRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
-#include "world/block/FireInfoRegistry.hpp"
-#include "world/IWorld.hpp"
-#include "world/tick/manager/TickManager.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "entity/combat/DifficultyHelper.hpp"
-#include "core/Constants.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
@@ -32,7 +32,8 @@ public:
         , m_difficulty(Difficulty::Normal)
     {}
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -41,7 +42,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -59,13 +61,25 @@ public:
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] u64 seed() const override { return 12345; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
@@ -76,30 +90,29 @@ public:
 
     [[nodiscard]] bool doFireTick() const override { return m_doFireTick; }
     [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool canRainAt(const BlockPos& pos) const override {
+    [[nodiscard]] bool canRainAt(const BlockPos& pos) const override
+    {
         MC_UNUSED(pos);
         return m_canRainAtResult;
     }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
-    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const {
-        return getBlockState(pos.x, pos.y, pos.z);
-    }
+    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const { return getBlockState(pos.x, pos.y, pos.z); }
 
     void setDoFireTick(bool value) { m_doFireTick = value; }
     void setRaining(bool value) { m_isRaining = value; }
     void setCanRainAtResult(bool value) { m_canRainAtResult = value; }
     void setDifficulty(Difficulty value) { m_difficulty = value; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<FireSpreadTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
@@ -111,7 +124,8 @@ public:
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
 private:
-    void ensureTickManager() const {
+    void ensureTickManager() const
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(const_cast<FireSpreadTestWorld&>(*this));
         }
@@ -130,7 +144,8 @@ private:
 /**
  * @brief 获取 FireBlock 指针（从 VanillaBlocks::FIRE 转换）
  */
-FireBlock* getFireBlock() {
+FireBlock* getFireBlock()
+{
     if (VanillaBlocks::FIRE == nullptr) {
         return nullptr;
     }
@@ -140,7 +155,8 @@ FireBlock* getFireBlock() {
 /**
  * @brief 获取 SoulFireBlock 指针
  */
-SoulFireBlock* getSoulFireBlock() {
+SoulFireBlock* getSoulFireBlock()
+{
     if (VanillaBlocks::SOUL_FIRE == nullptr) {
         return nullptr;
     }
@@ -149,25 +165,26 @@ SoulFireBlock* getSoulFireBlock() {
 
 class FireBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         FireInfoRegistry::instance().clear();
         FireInfoRegistry::instance().initializeVanillaFireInfos();
     }
 
-    void TearDown() override {
-        FireInfoRegistry::instance().clear();
-    }
+    void TearDown() override { FireInfoRegistry::instance().clear(); }
 };
 
 // ========== FireInfoRegistry 测试 ==========
 
-TEST_F(FireBlockTest, FireInfoRegistry_Initialized) {
+TEST_F(FireBlockTest, FireInfoRegistry_Initialized)
+{
     // 验证 FireInfoRegistry 已初始化
     EXPECT_NO_THROW(FireInfoRegistry::instance().getFireInfo(0));
 }
 
-TEST_F(FireBlockTest, FireInfoRegistry_RegisterAndGetInfo) {
+TEST_F(FireBlockTest, FireInfoRegistry_RegisterAndGetInfo)
+{
     FireInfoRegistry& registry = FireInfoRegistry::instance();
     registry.clear();
 
@@ -184,7 +201,8 @@ TEST_F(FireBlockTest, FireInfoRegistry_RegisterAndGetInfo) {
     EXPECT_EQ(defaultInfo.flammability, 0);
 }
 
-TEST_F(FireBlockTest, FireInfoRegistry_GetFlammability) {
+TEST_F(FireBlockTest, FireInfoRegistry_GetFlammability)
+{
     FireInfoRegistry& registry = FireInfoRegistry::instance();
     registry.clear();
 
@@ -193,7 +211,8 @@ TEST_F(FireBlockTest, FireInfoRegistry_GetFlammability) {
     EXPECT_EQ(registry.getFlammability(999), 0);
 }
 
-TEST_F(FireBlockTest, FireInfoRegistry_GetEncouragement) {
+TEST_F(FireBlockTest, FireInfoRegistry_GetEncouragement)
+{
     FireInfoRegistry& registry = FireInfoRegistry::instance();
     registry.clear();
 
@@ -204,7 +223,8 @@ TEST_F(FireBlockTest, FireInfoRegistry_GetEncouragement) {
 
 // ========== FireBlock::getAge / withAge 测试 ==========
 
-TEST_F(FireBlockTest, GetAge_DefaultState_ReturnsZero) {
+TEST_F(FireBlockTest, GetAge_DefaultState_ReturnsZero)
+{
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
@@ -212,7 +232,8 @@ TEST_F(FireBlockTest, GetAge_DefaultState_ReturnsZero) {
     EXPECT_EQ(fireBlock->getAge(fireState), 0);
 }
 
-TEST_F(FireBlockTest, WithAge_CreatesStateWithCorrectAge) {
+TEST_F(FireBlockTest, WithAge_CreatesStateWithCorrectAge)
+{
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
@@ -223,7 +244,8 @@ TEST_F(FireBlockTest, WithAge_CreatesStateWithCorrectAge) {
     EXPECT_EQ(fireBlock->getAge(age15State), 15);
 }
 
-TEST_F(FireBlockTest, WithAge_ClampsAgeToMax15) {
+TEST_F(FireBlockTest, WithAge_ClampsAgeToMax15)
+{
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
@@ -233,7 +255,8 @@ TEST_F(FireBlockTest, WithAge_ClampsAgeToMax15) {
 
 // ========== FireBlock::tick 测试 ==========
 
-TEST_F(FireBlockTest, Tick_InvalidPosition_RemovesFire) {
+TEST_F(FireBlockTest, Tick_InvalidPosition_RemovesFire)
+{
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
@@ -257,7 +280,8 @@ TEST_F(FireBlockTest, Tick_InvalidPosition_RemovesFire) {
     EXPECT_EQ(world.getBlockAt(firePos), nullptr);
 }
 
-TEST_F(FireBlockTest, Tick_DoFireTickFalse_DoesNotSpread) {
+TEST_F(FireBlockTest, Tick_DoFireTickFalse_DoesNotSpread)
+{
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
@@ -270,7 +294,7 @@ TEST_F(FireBlockTest, Tick_DoFireTickFalse_DoesNotSpread) {
     math::Random random(12345);
 
     BlockPos firePos(5, 64, 5);
-    BlockPos supportPos(5, 63, 5);  // 下方支撑
+    BlockPos supportPos(5, 63, 5); // 下方支撑
 
     // 放置支撑和火焰
     world.setBlockAt(supportPos, &VanillaBlocks::STONE->defaultState());
@@ -286,7 +310,8 @@ TEST_F(FireBlockTest, Tick_DoFireTickFalse_DoesNotSpread) {
     EXPECT_NE(world.getBlockAt(firePos), nullptr);
 }
 
-TEST_F(FireBlockTest, Tick_Raining_ExtinguishesFire) {
+TEST_F(FireBlockTest, Tick_Raining_ExtinguishesFire)
+{
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
@@ -326,25 +351,30 @@ TEST_F(FireBlockTest, Tick_Raining_ExtinguishesFire) {
 
 // ========== DifficultyHelper::getFireSpreadBonus 测试 ==========
 
-TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Peaceful) {
+TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Peaceful)
+{
     EXPECT_EQ(entity::combat::DifficultyHelper::getFireSpreadBonus(Difficulty::Peaceful), 0);
 }
 
-TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Easy) {
+TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Easy)
+{
     EXPECT_EQ(entity::combat::DifficultyHelper::getFireSpreadBonus(Difficulty::Easy), 7);
 }
 
-TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Normal) {
+TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Normal)
+{
     EXPECT_EQ(entity::combat::DifficultyHelper::getFireSpreadBonus(Difficulty::Normal), 14);
 }
 
-TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Hard) {
+TEST_F(FireBlockTest, DifficultyHelper_FireSpreadBonus_Hard)
+{
     EXPECT_EQ(entity::combat::DifficultyHelper::getFireSpreadBonus(Difficulty::Hard), 21);
 }
 
 // ========== SoulFireBlock 特性测试 ==========
 
-TEST_F(FireBlockTest, SoulFire_IsValidPositionOnSoulSand) {
+TEST_F(FireBlockTest, SoulFire_IsValidPositionOnSoulSand)
+{
     SoulFireBlock* soulFire = getSoulFireBlock();
     if (soulFire == nullptr || VanillaBlocks::SOUL_SAND == nullptr) {
         GTEST_SKIP() << "SOUL_FIRE or SOUL_SAND not registered";
@@ -362,7 +392,8 @@ TEST_F(FireBlockTest, SoulFire_IsValidPositionOnSoulSand) {
     EXPECT_TRUE(soulFire->isValidPosition(fireState, blockReader, firePos));
 }
 
-TEST_F(FireBlockTest, SoulFire_IsNotValidPositionOnStone) {
+TEST_F(FireBlockTest, SoulFire_IsNotValidPositionOnStone)
+{
     SoulFireBlock* soulFire = getSoulFireBlock();
     if (soulFire == nullptr || VanillaBlocks::STONE == nullptr) {
         GTEST_SKIP() << "SOUL_FIRE or STONE not registered";
@@ -380,7 +411,8 @@ TEST_F(FireBlockTest, SoulFire_IsNotValidPositionOnStone) {
     EXPECT_FALSE(soulFire->isValidPosition(fireState, blockReader, firePos));
 }
 
-TEST_F(FireBlockTest, SoulFire_HigherDamage) {
+TEST_F(FireBlockTest, SoulFire_HigherDamage)
+{
     // SoulFireBlock 构造时传入 fireDamage = 2
     // FireBlock::onEntityCollision 使用 m_fireDamage
     // 这里验证 SoulFireBlock 存在
@@ -390,13 +422,14 @@ TEST_F(FireBlockTest, SoulFire_HigherDamage) {
 
 // ========== 火焰蔓延公式测试 ==========
 
-TEST_F(FireBlockTest, SpreadFormula_Calculation) {
+TEST_F(FireBlockTest, SpreadFormula_Calculation)
+{
     // 验证火焰蔓延公式的计算
     // 公式: (encouragement + 40 + difficultyBonus) / (age + 30)
 
     // 测试不同难度下的蔓延概率
-    i32 encouragement = 30;  // 树叶的 encouragement
-    i32 age = 0;             // 新生火焰
+    i32 encouragement = 30; // 树叶的 encouragement
+    i32 age = 0;            // 新生火焰
 
     // Peaceful: (30 + 40 + 0) / (0 + 30) = 70 / 30 = 2.33
     i32 peacefulChance = (encouragement + 40 + 0) / (age + 30);
@@ -415,10 +448,11 @@ TEST_F(FireBlockTest, SpreadFormula_Calculation) {
     EXPECT_EQ(hardChance, 3);
 }
 
-TEST_F(FireBlockTest, SpreadFormula_OlderFireSpreadsLess) {
+TEST_F(FireBlockTest, SpreadFormula_OlderFireSpreadsLess)
+{
     // 年龄越大的火焰蔓延概率越低
     i32 encouragement = 30;
-    i32 difficultyBonus = 14;  // Normal
+    i32 difficultyBonus = 14; // Normal
 
     // 年龄 0: (30 + 40 + 14) / 30 = 2.8
     i32 age0Chance = (encouragement + 40 + difficultyBonus) / (0 + 30);
@@ -439,11 +473,12 @@ TEST_F(FireBlockTest, SpreadFormula_OlderFireSpreadsLess) {
 
 // ========== 直接相邻燃烧概率测试 ==========
 
-TEST_F(FireBlockTest, DirectSpreadChance_Calculation) {
+TEST_F(FireBlockTest, DirectSpreadChance_Calculation)
+{
     // 直接相邻燃烧概率: (flammability / chance) * (5 / (age + 10))
     // chance: 垂直方向 250, 水平方向 300
 
-    i32 flammability = 60;  // 树叶
+    i32 flammability = 60; // 树叶
     i32 verticalChance = 250;
     i32 horizontalChance = 300;
     i32 age = 0;
@@ -464,7 +499,8 @@ TEST_F(FireBlockTest, DirectSpreadChance_Calculation) {
 
 // ========== 无限火源测试 ==========
 
-TEST_F(FireBlockTest, InfiniteFireSource_Netherrack) {
+TEST_F(FireBlockTest, InfiniteFireSource_Netherrack)
+{
     if (VanillaBlocks::NETHERRACK == nullptr) {
         GTEST_SKIP() << "NETHERRACK not registered";
     }
@@ -488,7 +524,8 @@ TEST_F(FireBlockTest, InfiniteFireSource_Netherrack) {
 
 // ========== BlockState 火焰方法测试 ==========
 
-TEST_F(FireBlockTest, BlockState_GetFlammability) {
+TEST_F(FireBlockTest, BlockState_GetFlammability)
+{
     if (VanillaBlocks::OAK_PLANKS == nullptr) {
         GTEST_SKIP() << "OAK_PLANKS not registered";
     }
@@ -506,7 +543,8 @@ TEST_F(FireBlockTest, BlockState_GetFlammability) {
     EXPECT_NO_THROW(flammability);
 }
 
-TEST_F(FireBlockTest, BlockState_GetFireSpreadSpeed) {
+TEST_F(FireBlockTest, BlockState_GetFireSpreadSpeed)
+{
     if (VanillaBlocks::OAK_PLANKS == nullptr) {
         GTEST_SKIP() << "OAK_PLANKS not registered";
     }
@@ -524,7 +562,8 @@ TEST_F(FireBlockTest, BlockState_GetFireSpreadSpeed) {
     EXPECT_NO_THROW(spreadSpeed);
 }
 
-TEST_F(FireBlockTest, BlockState_IsFireSource_Stone) {
+TEST_F(FireBlockTest, BlockState_IsFireSource_Stone)
+{
     if (VanillaBlocks::STONE == nullptr) {
         GTEST_SKIP() << "STONE not registered";
     }

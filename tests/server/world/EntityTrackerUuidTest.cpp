@@ -1,14 +1,14 @@
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include "server/world/entity/EntityTracker.hpp"
+#include "common/command/ICommandSource.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/interfaces/IMob.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "common/command/ICommandSource.hpp"
+#include "server/world/entity/EntityTracker.hpp"
 
 using namespace mc;
 using namespace mc::server;
@@ -69,29 +69,27 @@ public:
 
 class EntityTrackerUuidTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        tracker = std::make_unique<EntityTracker>();
-    }
+    void SetUp() override { tracker = std::make_unique<EntityTracker>(); }
 
-    void TearDown() override {
-        tracker.reset();
-    }
+    void TearDown() override { tracker.reset(); }
 
     std::unique_ptr<EntityTracker> tracker;
 };
 
 // 测试 Entity 构造时生成有效的 UUID
-TEST_F(EntityTrackerUuidTest, EntityGeneratesValidUuid) {
+TEST_F(EntityTrackerUuidTest, EntityGeneratesValidUuid)
+{
     TestEntity entity(1);
 
     // UUID 不应为空
     const std::string& uuid = entity.uuid();
     EXPECT_FALSE(uuid.empty());
-    EXPECT_EQ(uuid.length(), 32u);  // 32 字符十六进制字符串
+    EXPECT_EQ(uuid.length(), 32u); // 32 字符十六进制字符串
 }
 
 // 测试 UUID 字符串与字节数组转换
-TEST_F(EntityTrackerUuidTest, UuidConversionWorks) {
+TEST_F(EntityTrackerUuidTest, UuidConversionWorks)
+{
     TestEntity entity(1);
     const std::string& uuidStr = entity.uuid();
 
@@ -114,7 +112,8 @@ TEST_F(EntityTrackerUuidTest, UuidConversionWorks) {
 }
 
 // 测试不同 Entity 有不同的 UUID
-TEST_F(EntityTrackerUuidTest, DifferentEntitiesHaveDifferentUuids) {
+TEST_F(EntityTrackerUuidTest, DifferentEntitiesHaveDifferentUuids)
+{
     TestEntity entity1(1);
     TestEntity entity2(2);
 
@@ -122,7 +121,8 @@ TEST_F(EntityTrackerUuidTest, DifferentEntitiesHaveDifferentUuids) {
 }
 
 // 测试 MonsterEntity 继承 IMob 接口
-TEST_F(EntityTrackerUuidTest, MonsterEntityImplementsIMob) {
+TEST_F(EntityTrackerUuidTest, MonsterEntityImplementsIMob)
+{
     TestMonsterEntity monster(1);
 
     // 应该能够 dynamic_cast 到 IMob
@@ -131,7 +131,8 @@ TEST_F(EntityTrackerUuidTest, MonsterEntityImplementsIMob) {
 }
 
 // 测试普通生物不继承 IMob 接口
-TEST_F(EntityTrackerUuidTest, PassiveMobDoesNotImplementIMob) {
+TEST_F(EntityTrackerUuidTest, PassiveMobDoesNotImplementIMob)
+{
     TestMobEntity passiveMob(1);
 
     // 不应该能够 dynamic_cast 到 IMob
@@ -140,7 +141,8 @@ TEST_F(EntityTrackerUuidTest, PassiveMobDoesNotImplementIMob) {
 }
 
 // 测试 LivingEntity 不继承 IMob 接口
-TEST_F(EntityTrackerUuidTest, LivingEntityDoesNotImplementIMob) {
+TEST_F(EntityTrackerUuidTest, LivingEntityDoesNotImplementIMob)
+{
     TestLivingEntity living(1);
 
     entity::IMob* imob = dynamic_cast<entity::IMob*>(&living);
@@ -148,7 +150,8 @@ TEST_F(EntityTrackerUuidTest, LivingEntityDoesNotImplementIMob) {
 }
 
 // 测试 Entity 不继承 IMob 接口
-TEST_F(EntityTrackerUuidTest, EntityDoesNotImplementIMob) {
+TEST_F(EntityTrackerUuidTest, EntityDoesNotImplementIMob)
+{
     TestEntity entity(1);
 
     entity::IMob* imob = dynamic_cast<entity::IMob*>(&entity);
@@ -156,7 +159,8 @@ TEST_F(EntityTrackerUuidTest, EntityDoesNotImplementIMob) {
 }
 
 // 测试 UUID 格式正确性
-TEST_F(EntityTrackerUuidTest, UuidFormatIsValid) {
+TEST_F(EntityTrackerUuidTest, UuidFormatIsValid)
+{
     TestEntity entity(1);
     const std::string& uuid = entity.uuid();
 
@@ -165,15 +169,14 @@ TEST_F(EntityTrackerUuidTest, UuidFormatIsValid) {
 
     // 所有字符应该是十六进制数字
     for (char c : uuid) {
-        bool isHexDigit = (c >= '0' && c <= '9') ||
-                          (c >= 'a' && c <= 'f') ||
-                          (c >= 'A' && c <= 'F');
+        bool isHexDigit = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
         EXPECT_TRUE(isHexDigit) << "UUID should only contain hex digits, found: " << c;
     }
 }
 
 // 测试 uuidFromString 处理无效输入
-TEST_F(EntityTrackerUuidTest, UuidFromStringHandlesInvalidInput) {
+TEST_F(EntityTrackerUuidTest, UuidFromStringHandlesInvalidInput)
+{
     // 空字符串应该返回全零 UUID
     Uuid emptyUuid = util::uuidFromString("");
     for (u8 byte : emptyUuid) {
@@ -188,10 +191,11 @@ TEST_F(EntityTrackerUuidTest, UuidFromStringHandlesInvalidInput) {
 }
 
 // 测试 uuidToString 和 uuidFromString 的往返转换
-TEST_F(EntityTrackerUuidTest, UuidRoundTrip) {
+TEST_F(EntityTrackerUuidTest, UuidRoundTrip)
+{
     // 创建一个已知的 UUID
-    Uuid originalUuid = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-                          0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
+    Uuid originalUuid = {
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
 
     // 转换为字符串
     std::string uuidStr = util::uuidToString(originalUuid);

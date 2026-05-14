@@ -1,12 +1,13 @@
 #include "PotatoBlock.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
 
 PotatoBlock::PotatoBlock(const BlockProperties& properties)
-    : CropBlock(properties) {
+    : CropBlock(properties)
+{
 
     // 预计算马铃薯各生长阶段的形状
     // 高度与胡萝卜相同：2, 3, 4, 5, 6, 7, 8, 9 像素
@@ -18,18 +19,21 @@ PotatoBlock::PotatoBlock(const BlockProperties& properties)
     }
 }
 
-u32 PotatoBlock::getCropItem() const {
+u32 PotatoBlock::getCropItem() const
+{
     // 马铃薯的作物和种子是同一个物品
     // 参考: net.minecraft.block.PotatoBlock#getCropItem
     return Items::POTATO->itemId();
 }
 
-u32 PotatoBlock::getSeedItem() const {
+u32 PotatoBlock::getSeedItem() const
+{
     // 马铃薯的作物和种子是同一个物品
     return Items::POTATO->itemId();
 }
 
-const CollisionShape& PotatoBlock::getShape(const BlockState& state) const {
+const CollisionShape& PotatoBlock::getShape(const BlockState& state) const
+{
     int age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 7);
     return m_potatoShapesByAge[age];

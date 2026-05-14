@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
+#include "../../core/Types.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -12,7 +12,7 @@ class Player;
 namespace network {
 class PacketSerializer;
 class PacketDeserializer;
-}
+} // namespace network
 
 /**
  * @brief 饥饿/饱食度系统
@@ -164,12 +164,12 @@ private:
     void handlePeacefulMode(Player& player);
 
 private:
-    i32 m_foodLevel = 20;           ///< 饥饿值 (0-20)
-    f32 m_saturationLevel = 5.0f;   ///< 饱和度 (0-foodLevel)
-    f32 m_exhaustionLevel = 0.0f;   ///< 累积消耗值 (0-40)
-    i32 m_foodTimer = 0;            ///< 食物计时器（用于生命恢复）
-    i32 m_starveTimer = 0;          ///< 饥饿伤害计时器
-    i32 m_prevFoodLevel = 20;       ///< 上一刻的饥饿值（用于 UI 同步）
+    i32 m_foodLevel = 20;         ///< 饥饿值 (0-20)
+    f32 m_saturationLevel = 5.0f; ///< 饱和度 (0-foodLevel)
+    f32 m_exhaustionLevel = 0.0f; ///< 累积消耗值 (0-40)
+    i32 m_foodTimer = 0;          ///< 食物计时器（用于生命恢复）
+    i32 m_starveTimer = 0;        ///< 饥饿伤害计时器
+    i32 m_prevFoodLevel = 20;     ///< 上一刻的饥饿值（用于 UI 同步）
 };
 
 } // namespace mc

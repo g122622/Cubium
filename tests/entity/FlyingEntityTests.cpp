@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/core/FlyingEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/FlyingEntity.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/physics/PhysicsConstants.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity::attribute;
@@ -21,7 +21,9 @@ namespace {
  */
 class TestFlyingEntity : public FlyingEntity {
 public:
-    TestFlyingEntity() : FlyingEntity(LegacyEntityType::Phantom, 1) {
+    TestFlyingEntity()
+        : FlyingEntity(LegacyEntityType::Phantom, 1)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -34,12 +36,14 @@ class StubWorld final : public test::BaseTestWorld {
 public:
     void setInWater(bool inWater) { m_inWater = inWater; }
     void setInLava(bool inLava) { m_inLava = inLava; }
-    void setOnGround(bool onGround, const BlockState* groundBlock = nullptr) {
+    void setOnGround(bool onGround, const BlockState* groundBlock = nullptr)
+    {
         m_onGround = onGround;
         m_groundBlock = groundBlock;
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         // 对于地面检测：实体在 y=1.0 时会检查 floor(y - 1.0) = 0
         // 或者实体在 y=0.0 时会检查 floor(y - 1.0) = -1
         if (m_onGround && m_groundBlock && y >= -1 && y <= 0) {
@@ -50,34 +54,40 @@ public:
 
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         if (m_inWater) {
-            return fluid::Fluid::getFluidState(1);  // Water
+            return fluid::Fluid::getFluidState(1); // Water
         }
         if (m_inLava) {
-            return fluid::Fluid::getFluidState(2);  // Lava
+            return fluid::Fluid::getFluidState(2); // Lava
         }
-        return fluid::Fluid::getFluidState(0);  // Empty
+        return fluid::Fluid::getFluidState(0); // Empty
     }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
         if (!m_onGround) return false;
         return box.maxY <= 0.1f && box.minY >= -1.0f;
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
+    {
         if (!hasBlockCollision(box)) return {};
         return {AxisAlignedBB(-10.0f, -1.0f, -10.0f, 10.0f, 0.0f, 10.0f)};
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("StubWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("StubWorld::tickManager not implemented");
     }
+
 private:
     bool m_inWater = false;
     bool m_inLava = false;
@@ -91,7 +101,8 @@ private:
 // FlyingEntity 构造测试
 // ============================================================================
 
-TEST(FlyingEntityTravelTest, Construction) {
+TEST(FlyingEntityTravelTest, Construction)
+{
     TestFlyingEntity entity;
 
     // 飞行实体默认应该不受重力影响
@@ -104,10 +115,11 @@ TEST(FlyingEntityTravelTest, Construction) {
 // Entity::moveRelative 测试
 // ============================================================================
 
-TEST(FlyingEntityTravelTest, MoveRelative_BasicMovement) {
+TEST(FlyingEntityTravelTest, MoveRelative_BasicMovement)
+{
     TestFlyingEntity entity;
     entity.setPosition(0.0f, 100.0f, 0.0f);
-    entity.setRotation(0.0f, 0.0f);  // 面向 +Z 方向
+    entity.setRotation(0.0f, 0.0f); // 面向 +Z 方向
     entity.setVelocity(0.0f, 0.0f, 0.0f);
 
     // 向前移动（forward = 1.0）
@@ -119,10 +131,11 @@ TEST(FlyingEntityTravelTest, MoveRelative_BasicMovement) {
     EXPECT_NEAR(entity.velocityZ(), 0.1f, 0.0001f);
 }
 
-TEST(FlyingEntityTravelTest, MoveRelative_YawRotation) {
+TEST(FlyingEntityTravelTest, MoveRelative_YawRotation)
+{
     TestFlyingEntity entity;
     entity.setPosition(0.0f, 100.0f, 0.0f);
-    entity.setRotation(90.0f, 0.0f);  // 面向 -X 方向 (yaw = 90)
+    entity.setRotation(90.0f, 0.0f); // 面向 -X 方向 (yaw = 90)
     entity.setVelocity(0.0f, 0.0f, 0.0f);
 
     // 向前移动（forward = 1.0）
@@ -134,7 +147,8 @@ TEST(FlyingEntityTravelTest, MoveRelative_YawRotation) {
     EXPECT_NEAR(entity.velocityZ(), 0.0f, 0.0001f);
 }
 
-TEST(FlyingEntityTravelTest, MoveRelative_VerticalMovement) {
+TEST(FlyingEntityTravelTest, MoveRelative_VerticalMovement)
+{
     TestFlyingEntity entity;
     entity.setPosition(0.0f, 100.0f, 0.0f);
     entity.setRotation(0.0f, 0.0f);
@@ -149,10 +163,11 @@ TEST(FlyingEntityTravelTest, MoveRelative_VerticalMovement) {
     EXPECT_NEAR(entity.velocityZ(), 0.0f, 0.0001f);
 }
 
-TEST(FlyingEntityTravelTest, MoveRelative_StrafeMovement) {
+TEST(FlyingEntityTravelTest, MoveRelative_StrafeMovement)
+{
     TestFlyingEntity entity;
     entity.setPosition(0.0f, 100.0f, 0.0f);
-    entity.setRotation(0.0f, 0.0f);  // 面向 +Z
+    entity.setRotation(0.0f, 0.0f); // 面向 +Z
     entity.setVelocity(0.0f, 0.0f, 0.0f);
 
     // 向左移动（strafe = -1.0）
@@ -164,7 +179,8 @@ TEST(FlyingEntityTravelTest, MoveRelative_StrafeMovement) {
     EXPECT_NEAR(entity.velocityZ(), 0.0f, 0.0001f);
 }
 
-TEST(FlyingEntityTravelTest, MoveRelative_ZeroInput) {
+TEST(FlyingEntityTravelTest, MoveRelative_ZeroInput)
+{
     TestFlyingEntity entity;
     entity.setPosition(0.0f, 100.0f, 0.0f);
     entity.setRotation(0.0f, 0.0f);
@@ -182,7 +198,8 @@ TEST(FlyingEntityTravelTest, MoveRelative_ZeroInput) {
 // Entity::scaleVelocity 测试
 // ============================================================================
 
-TEST(FlyingEntityTravelTest, ScaleVelocity) {
+TEST(FlyingEntityTravelTest, ScaleVelocity)
+{
     TestFlyingEntity entity;
     entity.setVelocity(1.0f, 2.0f, 3.0f);
 
@@ -194,7 +211,8 @@ TEST(FlyingEntityTravelTest, ScaleVelocity) {
     EXPECT_FLOAT_EQ(entity.velocityZ(), 1.5f);
 }
 
-TEST(FlyingEntityTravelTest, ScaleVelocity_WaterDrag) {
+TEST(FlyingEntityTravelTest, ScaleVelocity_WaterDrag)
+{
     TestFlyingEntity entity;
     entity.setVelocity(1.0f, 1.0f, 1.0f);
 
@@ -206,7 +224,8 @@ TEST(FlyingEntityTravelTest, ScaleVelocity_WaterDrag) {
     EXPECT_FLOAT_EQ(entity.velocityZ(), physics::DRAG_WATER);
 }
 
-TEST(FlyingEntityTravelTest, ScaleVelocity_LavaDrag) {
+TEST(FlyingEntityTravelTest, ScaleVelocity_LavaDrag)
+{
     TestFlyingEntity entity;
     entity.setVelocity(1.0f, 1.0f, 1.0f);
 
@@ -222,7 +241,8 @@ TEST(FlyingEntityTravelTest, ScaleVelocity_LavaDrag) {
 // FlyingEntity::travel 在不同环境下的测试
 // ============================================================================
 
-TEST(FlyingEntityTravelTest, Travel_InWater) {
+TEST(FlyingEntityTravelTest, Travel_InWater)
+{
     StubWorld world;
     world.setInWater(true);
 
@@ -244,7 +264,8 @@ TEST(FlyingEntityTravelTest, Travel_InWater) {
     EXPECT_LT(std::abs(entity.velocityZ()), 0.02f);
 }
 
-TEST(FlyingEntityTravelTest, Travel_InLava) {
+TEST(FlyingEntityTravelTest, Travel_InLava)
+{
     StubWorld world;
     world.setInLava(true);
 
@@ -265,7 +286,8 @@ TEST(FlyingEntityTravelTest, Travel_InLava) {
     EXPECT_LT(std::abs(entity.velocityZ()), 0.02f);
 }
 
-TEST(FlyingEntityTravelTest, Travel_InAir) {
+TEST(FlyingEntityTravelTest, Travel_InAir)
+{
     StubWorld world;
     // 不设置水和岩浆，实体在空中
 
@@ -287,14 +309,15 @@ TEST(FlyingEntityTravelTest, Travel_InAir) {
     EXPECT_NEAR(entity.velocityZ(), 0.02f * 0.91f, 0.0001f);
 }
 
-TEST(FlyingEntityTravelTest, Travel_OnGround) {
+TEST(FlyingEntityTravelTest, Travel_OnGround)
+{
     StubWorld world;
     // 注意：地面测试需要完整的 BlockState 支持，这里只测试空中飞行的对比
     // 不使用地面，避免复杂的 BlockState 初始化
 
     TestFlyingEntity entity;
     entity.setWorld(&world);
-    entity.setPosition(0.0f, 100.0f, 0.0f);  // 在空中
+    entity.setPosition(0.0f, 100.0f, 0.0f); // 在空中
     entity.setRotation(0.0f, 0.0f);
     entity.setVelocity(0.0f, 0.0f, 0.0f);
     entity.setOnGround(false);
@@ -303,7 +326,7 @@ TEST(FlyingEntityTravelTest, Travel_OnGround) {
     entity.travel(0.0f, 0.0f, 1.0f);
 
     // MC 1.16.5: 空中移动因子 = 0.02F, 阻力 = 0.91F
-    f32 expectedVelocity = 0.02f * 0.91f;  // moveRelative * friction
+    f32 expectedVelocity = 0.02f * 0.91f; // moveRelative * friction
 
     // 初始速度应该有正向 Z 分量
     EXPECT_GT(entity.velocityZ(), 0.0f);
@@ -316,51 +339,54 @@ TEST(FlyingEntityTravelTest, Travel_OnGround) {
 // FlyingEntity::travel 综合测试
 // ============================================================================
 
-TEST(FlyingEntityTravelTest, Travel_ThreeDimensionalMovement) {
+TEST(FlyingEntityTravelTest, Travel_ThreeDimensionalMovement)
+{
     StubWorld world;
 
     TestFlyingEntity entity;
     entity.setWorld(&world);
     entity.setPosition(0.0f, 100.0f, 0.0f);
-    entity.setRotation(45.0f, 0.0f);  // 朝向东北方向
+    entity.setRotation(45.0f, 0.0f); // 朝向东北方向
     entity.setVelocity(0.0f, 0.0f, 0.0f);
     entity.setOnGround(false);
 
     // 同时向多个方向移动
-    entity.travel(1.0f, 1.0f, 1.0f);  // 左、上、前
+    entity.travel(1.0f, 1.0f, 1.0f); // 左、上、前
 
     // 所有速度分量应该非零
     EXPECT_NE(entity.velocityX(), 0.0f);
-    EXPECT_GT(entity.velocityY(), 0.0f);  // 向上
+    EXPECT_GT(entity.velocityY(), 0.0f); // 向上
     EXPECT_NE(entity.velocityZ(), 0.0f);
 }
 
-TEST(FlyingEntityTravelTest, Travel_VelocityAccumulation) {
+TEST(FlyingEntityTravelTest, Travel_VelocityAccumulation)
+{
     StubWorld world;
 
     TestFlyingEntity entity;
     entity.setWorld(&world);
     entity.setPosition(0.0f, 100.0f, 0.0f);
     entity.setRotation(0.0f, 0.0f);
-    entity.setVelocity(0.5f, 0.0f, 0.0f);  // 已有水平速度
+    entity.setVelocity(0.5f, 0.0f, 0.0f); // 已有水平速度
     entity.setOnGround(false);
 
     // 向前移动
     entity.travel(0.0f, 0.0f, 1.0f);
 
     // 速度应该累加，而不是替换
-    EXPECT_GT(entity.velocityX(), 0.0f);  // 原有速度
-    EXPECT_GT(entity.velocityZ(), 0.0f);  // 新增速度
+    EXPECT_GT(entity.velocityX(), 0.0f); // 原有速度
+    EXPECT_GT(entity.velocityZ(), 0.0f); // 新增速度
 }
 
-TEST(FlyingEntityTravelTest, Travel_DragReducesVelocity) {
+TEST(FlyingEntityTravelTest, Travel_DragReducesVelocity)
+{
     StubWorld world;
 
     TestFlyingEntity entity;
     entity.setWorld(&world);
     entity.setPosition(0.0f, 100.0f, 0.0f);
     entity.setRotation(0.0f, 0.0f);
-    entity.setVelocity(1.0f, 0.5f, 1.0f);  // 初始速度
+    entity.setVelocity(1.0f, 0.5f, 1.0f); // 初始速度
     entity.setOnGround(false);
 
     // 不移动，只应用阻力
@@ -381,7 +407,8 @@ TEST(FlyingEntityTravelTest, Travel_DragReducesVelocity) {
 // FlyingEntity 物理常量验证
 // ============================================================================
 
-TEST(FlyingEntityTravelTest, PhysicsConstants_Verify) {
+TEST(FlyingEntityTravelTest, PhysicsConstants_Verify)
+{
     // 验证项目中定义的物理常量与 MC 1.16.5 一致
 
     // 水中阻力

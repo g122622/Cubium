@@ -1,9 +1,9 @@
 ﻿#include "world/blockentity/storage/EnderChestEntity.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "world/IWorld.hpp"
-#include "common/sound/SoundEvents.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -23,12 +23,13 @@ constexpr f32 MAX_ACCESS_DISTANCE_SQ = 64.0f * 64.0f;
 // ========== EnderChestEntity 实现 ==========
 
 EnderChestEntity::EnderChestEntity(const BlockPos& pos)
-    : BlockEntity(BlockEntityType::EnderChest, pos) {
-}
+    : BlockEntity(BlockEntityType::EnderChest, pos)
+{}
 
 EnderChestEntity::~EnderChestEntity() = default;
 
-bool EnderChestEntity::openContainer(Player* player) {
+bool EnderChestEntity::openContainer(Player* player)
+{
     if (player == nullptr) {
         return false;
     }
@@ -47,12 +48,7 @@ bool EnderChestEntity::openContainer(Player* player) {
         IWorld* world = player->world();
         if (world != nullptr && !world->isClientSide()) {
             world->playSound(
-                SoundEvents::BLOCK_ENDER_CHEST_OPEN,
-                sound::SoundCategory::Blocks,
-                m_pos.center(),
-                0.5f,
-                1.0f
-            );
+                SoundEvents::BLOCK_ENDER_CHEST_OPEN, sound::SoundCategory::Blocks, m_pos.center(), 0.5f, 1.0f);
         }
     }
 
@@ -60,7 +56,8 @@ bool EnderChestEntity::openContainer(Player* player) {
     return true;
 }
 
-void EnderChestEntity::closeContainer(Player* player) {
+void EnderChestEntity::closeContainer(Player* player)
+{
     MC_UNUSED(player);
 
     if (m_openCount > 0) {
@@ -69,7 +66,8 @@ void EnderChestEntity::closeContainer(Player* player) {
     }
 }
 
-bool EnderChestEntity::canPlayerAccess(Player* player) const {
+bool EnderChestEntity::canPlayerAccess(Player* player) const
+{
     if (player == nullptr) {
         return false;
     }
@@ -78,7 +76,8 @@ bool EnderChestEntity::canPlayerAccess(Player* player) const {
     return player->position().distanceSquared(m_pos.center()) <= MAX_ACCESS_DISTANCE_SQ;
 }
 
-void EnderChestEntity::updateLidAnimation(f32 partialTick) {
+void EnderChestEntity::updateLidAnimation(f32 partialTick)
+{
     MC_UNUSED(partialTick);
 
     // 更新盖子动画
@@ -97,11 +96,13 @@ void EnderChestEntity::updateLidAnimation(f32 partialTick) {
     }
 }
 
-f32 EnderChestEntity::getLidAngle(f32 partialTick) const {
+f32 EnderChestEntity::getLidAngle(f32 partialTick) const
+{
     return m_prevLidAngle + (m_lidAngle - m_prevLidAngle) * partialTick;
 }
 
-void EnderChestEntity::tick(IWorld& world) {
+void EnderChestEntity::tick(IWorld& world)
+{
     m_ticksSinceSync++;
 
     // 计数到阈值后重置，具体网络同步由上层容器/网络系统处理。
@@ -118,17 +119,12 @@ void EnderChestEntity::tick(IWorld& world) {
     // MC 1.16.5: 关门时播放音效
     // 当盖子从 >0.5 变为 <=0.5 时播放关闭音效
     if (!world.isClientSide() && prevOpenCount > 0 && m_openCount == 0 && m_prevLidAngle > 0.5f && m_lidAngle <= 0.5f) {
-        world.playSound(
-            SoundEvents::BLOCK_ENDER_CHEST_CLOSE,
-            sound::SoundCategory::Blocks,
-            m_pos.center(),
-            0.5f,
-            1.0f
-        );
+        world.playSound(SoundEvents::BLOCK_ENDER_CHEST_CLOSE, sound::SoundCategory::Blocks, m_pos.center(), 0.5f, 1.0f);
     }
 }
 
-bool EnderChestEntity::load(const nlohmann::json& data) {
+bool EnderChestEntity::load(const nlohmann::json& data)
+{
     if (!BlockEntity::load(data)) {
         return false;
     }
@@ -141,13 +137,15 @@ bool EnderChestEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void EnderChestEntity::save(nlohmann::json& data) const {
+void EnderChestEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     data["open_count"] = m_openCount;
 }
 
-std::unique_ptr<BlockEntity> EnderChestEntity::clone() const {
+std::unique_ptr<BlockEntity> EnderChestEntity::clone() const
+{
     auto clone = std::make_unique<EnderChestEntity>(m_pos);
     clone->m_openCount = m_openCount;
     clone->m_lidAngle = m_lidAngle;

@@ -1,21 +1,21 @@
 #include <array>
 
-#include <gtest/gtest.h>
 #include "common/world/biome/Biome.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeProvider.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/layer/Layer.hpp"
 #include "common/world/biome/layer/LayerContext.hpp"
 #include "common/world/biome/layer/LayerUtil.hpp"
-#include "common/world/biome/layer/transformers/TransformerTraits.hpp"
-#include "common/world/biome/layer/transformers/ClimateLayers.hpp"
 #include "common/world/biome/layer/transformers/BiomeLayers.hpp"
+#include "common/world/biome/layer/transformers/ClimateLayers.hpp"
 #include "common/world/biome/layer/transformers/SourceLayers.hpp"
+#include "common/world/biome/layer/transformers/TransformerTraits.hpp"
 #include "common/world/biome/layer/transformers/ZoomLayers.hpp"
-#include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
 #include "common/world/biome/provider/end/EndBiomeProvider.hpp"
+#include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/feature/FeatureIds.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -25,13 +25,15 @@ using namespace mc;
 
 class BiomeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
 };
 
-TEST_F(BiomeTest, Construction) {
+TEST_F(BiomeTest, Construction)
+{
     Biome biome(Biomes::Plains, "plains");
 
     EXPECT_EQ(biome.id(), Biomes::Plains);
@@ -39,7 +41,8 @@ TEST_F(BiomeTest, Construction) {
     EXPECT_EQ(biome.category(), Biome::Category::None);
 }
 
-TEST_F(BiomeTest, SettersAndGetters) {
+TEST_F(BiomeTest, SettersAndGetters)
+{
     Biome biome(Biomes::Desert, "desert");
 
     // 设置地形参数
@@ -70,7 +73,8 @@ TEST_F(BiomeTest, SettersAndGetters) {
     EXPECT_TRUE(biome.bedrockBlock()->is(VanillaBlocks::BEDROCK));
 }
 
-TEST_F(BiomeTest, ClimateDefaults) {
+TEST_F(BiomeTest, ClimateDefaults)
+{
     BiomeClimate climate;
     EXPECT_EQ(climate.precipitation, BiomeClimate::Precipitation::Rain);
     EXPECT_FLOAT_EQ(climate.temperature, 0.5f);
@@ -83,31 +87,36 @@ TEST_F(BiomeTest, ClimateDefaults) {
 
 class BiomeRegistryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
 };
 
-TEST_F(BiomeRegistryTest, SingletonAccess) {
+TEST_F(BiomeRegistryTest, SingletonAccess)
+{
     BiomeRegistry& reg1 = BiomeRegistry::instance();
     BiomeRegistry& reg2 = BiomeRegistry::instance();
     EXPECT_EQ(&reg1, &reg2);
 }
 
-TEST_F(BiomeRegistryTest, GetBiomeById) {
+TEST_F(BiomeRegistryTest, GetBiomeById)
+{
     const Biome& plains = BiomeRegistry::instance().get(Biomes::Plains);
     EXPECT_EQ(plains.id(), Biomes::Plains);
     EXPECT_EQ(plains.name(), "plains");
 }
 
-TEST_F(BiomeRegistryTest, GetInvalidBiome) {
+TEST_F(BiomeRegistryTest, GetInvalidBiome)
+{
     const Biome& biome = BiomeRegistry::instance().get(static_cast<BiomeId>(9999));
     // 应该返回默认生物群系
     EXPECT_TRUE(biome.id() == Biomes::Plains || biome.id() == 0);
 }
 
-TEST_F(BiomeRegistryTest, HasBiome) {
+TEST_F(BiomeRegistryTest, HasBiome)
+{
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Plains));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Desert));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Ocean));
@@ -121,7 +130,8 @@ TEST_F(BiomeRegistryTest, HasBiome) {
     EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(9999)));
 }
 
-TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames) {
+TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames)
+{
     struct ExpectedBiome {
         BiomeId id;
         const char* name;
@@ -167,14 +177,16 @@ TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames) {
     }
 }
 
-TEST_F(BiomeRegistryTest, GetUnregisteredBiomeReturnsDefault) {
+TEST_F(BiomeRegistryTest, GetUnregisteredBiomeReturnsDefault)
+{
     const Biome& biome = BiomeRegistry::instance().get(static_cast<BiomeId>(55));
 
     EXPECT_EQ(biome.id(), Biomes::Plains);
     EXPECT_EQ(biome.name(), "plains");
 }
 
-TEST_F(BiomeRegistryTest, AllBiomesCountMatchesBiomeIdRange) {
+TEST_F(BiomeRegistryTest, AllBiomesCountMatchesBiomeIdRange)
+{
     const auto& biomes = BiomeRegistry::instance().allBiomes();
     EXPECT_EQ(biomes.size(), Biomes::Count);
 }
@@ -183,7 +195,8 @@ TEST_F(BiomeRegistryTest, AllBiomesCountMatchesBiomeIdRange) {
 // BiomeFactory 测试
 // ============================================================================
 
-TEST_F(BiomeRegistryTest, CreatePlains) {
+TEST_F(BiomeRegistryTest, CreatePlains)
+{
     Biome plains = BiomeFactory::createPlains();
     EXPECT_EQ(plains.id(), Biomes::Plains);
     EXPECT_EQ(plains.name(), "plains");
@@ -195,7 +208,8 @@ TEST_F(BiomeRegistryTest, CreatePlains) {
     EXPECT_TRUE(plains.subSurfaceBlock()->is(VanillaBlocks::DIRT));
 }
 
-TEST_F(BiomeRegistryTest, CreateDesert) {
+TEST_F(BiomeRegistryTest, CreateDesert)
+{
     Biome desert = BiomeFactory::createDesert();
     EXPECT_EQ(desert.id(), Biomes::Desert);
     EXPECT_EQ(desert.name(), "desert");
@@ -207,7 +221,8 @@ TEST_F(BiomeRegistryTest, CreateDesert) {
     EXPECT_TRUE(desert.subSurfaceBlock()->is(VanillaBlocks::SAND));
 }
 
-TEST_F(BiomeRegistryTest, CreateMountains) {
+TEST_F(BiomeRegistryTest, CreateMountains)
+{
     Biome mountains = BiomeFactory::createMountains();
     EXPECT_EQ(mountains.id(), Biomes::Mountains);
     EXPECT_EQ(mountains.name(), "mountains");
@@ -218,14 +233,16 @@ TEST_F(BiomeRegistryTest, CreateMountains) {
     EXPECT_TRUE(mountains.subSurfaceBlock()->is(VanillaBlocks::STONE));
 }
 
-TEST_F(BiomeRegistryTest, CreateOcean) {
+TEST_F(BiomeRegistryTest, CreateOcean)
+{
     Biome ocean = BiomeFactory::createOcean();
     EXPECT_EQ(ocean.id(), Biomes::Ocean);
     EXPECT_EQ(ocean.name(), "ocean");
     EXPECT_FLOAT_EQ(ocean.depth(), -1.0f); // 海洋深度为负
 }
 
-TEST_F(BiomeRegistryTest, CreateCrimsonForestUsesCrimsonNyliumSurface) {
+TEST_F(BiomeRegistryTest, CreateCrimsonForestUsesCrimsonNyliumSurface)
+{
     Biome biome = BiomeFactory::createCrimsonForest();
     EXPECT_EQ(biome.id(), Biomes::CrimsonForest);
     ASSERT_NE(biome.surfaceBlock(), nullptr);
@@ -234,7 +251,8 @@ TEST_F(BiomeRegistryTest, CreateCrimsonForestUsesCrimsonNyliumSurface) {
     EXPECT_TRUE(biome.subSurfaceBlock()->is(VanillaBlocks::NETHERRACK));
 }
 
-TEST_F(BiomeRegistryTest, CreateWarpedForestUsesWarpedNyliumSurface) {
+TEST_F(BiomeRegistryTest, CreateWarpedForestUsesWarpedNyliumSurface)
+{
     Biome biome = BiomeFactory::createWarpedForest();
     EXPECT_EQ(biome.id(), Biomes::WarpedForest);
     ASSERT_NE(biome.surfaceBlock(), nullptr);
@@ -247,7 +265,8 @@ TEST_F(BiomeRegistryTest, CreateWarpedForestUsesWarpedNyliumSurface) {
 // 新增生物群系测试（阶段1）
 // ============================================================================
 
-TEST_F(BiomeRegistryTest, CreateWarmOcean) {
+TEST_F(BiomeRegistryTest, CreateWarmOcean)
+{
     Biome biome = BiomeFactory::createWarmOcean();
     EXPECT_EQ(biome.id(), Biomes::WarmOcean);
     EXPECT_EQ(biome.name(), "warm_ocean");
@@ -256,7 +275,8 @@ TEST_F(BiomeRegistryTest, CreateWarmOcean) {
     EXPECT_FLOAT_EQ(biome.temperature(), 0.8f);
 }
 
-TEST_F(BiomeRegistryTest, CreateLukewarmOcean) {
+TEST_F(BiomeRegistryTest, CreateLukewarmOcean)
+{
     Biome biome = BiomeFactory::createLukewarmOcean();
     EXPECT_EQ(biome.id(), Biomes::LukewarmOcean);
     EXPECT_EQ(biome.name(), "lukewarm_ocean");
@@ -264,7 +284,8 @@ TEST_F(BiomeRegistryTest, CreateLukewarmOcean) {
     EXPECT_FLOAT_EQ(biome.temperature(), 0.6f);
 }
 
-TEST_F(BiomeRegistryTest, CreateColdOcean) {
+TEST_F(BiomeRegistryTest, CreateColdOcean)
+{
     Biome biome = BiomeFactory::createColdOcean();
     EXPECT_EQ(biome.id(), Biomes::ColdOcean);
     EXPECT_EQ(biome.name(), "cold_ocean");
@@ -272,7 +293,8 @@ TEST_F(BiomeRegistryTest, CreateColdOcean) {
     EXPECT_FLOAT_EQ(biome.temperature(), 0.3f);
 }
 
-TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings) {
+TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings)
+{
     Biome biome = BiomeFactory::createColdOcean();
     const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
 
@@ -290,11 +312,8 @@ TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings) {
         if (id == SeagrassFeatureIds::Cold) {
             hasSeagrass = true;
         }
-        if (id == CoralFeatureIds::Tube ||
-            id == CoralFeatureIds::Brain ||
-            id == CoralFeatureIds::Bubble ||
-            id == CoralFeatureIds::Fire ||
-            id == CoralFeatureIds::Horn) {
+        if (id == CoralFeatureIds::Tube || id == CoralFeatureIds::Brain || id == CoralFeatureIds::Bubble ||
+            id == CoralFeatureIds::Fire || id == CoralFeatureIds::Horn) {
             hasLiveCoral = true;
         }
     }
@@ -306,7 +325,8 @@ TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings) {
     EXPECT_TRUE(hasSeagrass);
 }
 
-TEST_F(BiomeRegistryTest, CreateDeepLukewarmOceanUsesLukewarmGenerationSettings) {
+TEST_F(BiomeRegistryTest, CreateDeepLukewarmOceanUsesLukewarmGenerationSettings)
+{
     Biome biome = BiomeFactory::createDeepLukewarmOcean();
     const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
 
@@ -322,7 +342,8 @@ TEST_F(BiomeRegistryTest, CreateDeepLukewarmOceanUsesLukewarmGenerationSettings)
     EXPECT_FALSE(hasBlueIce);
 }
 
-TEST_F(BiomeRegistryTest, CreateDeepColdOceanUsesColdGenerationSettings) {
+TEST_F(BiomeRegistryTest, CreateDeepColdOceanUsesColdGenerationSettings)
+{
     Biome biome = BiomeFactory::createDeepColdOcean();
     const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
 
@@ -338,7 +359,8 @@ TEST_F(BiomeRegistryTest, CreateDeepColdOceanUsesColdGenerationSettings) {
     EXPECT_FALSE(hasBlueIce);
 }
 
-TEST_F(BiomeRegistryTest, CreateDeepFrozenOceanUsesFrozenGenerationSettings) {
+TEST_F(BiomeRegistryTest, CreateDeepFrozenOceanUsesFrozenGenerationSettings)
+{
     Biome biome = BiomeFactory::createDeepFrozenOcean();
     const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
 
@@ -353,28 +375,32 @@ TEST_F(BiomeRegistryTest, CreateDeepFrozenOceanUsesFrozenGenerationSettings) {
     EXPECT_TRUE(hasBlueIce);
 }
 
-TEST_F(BiomeRegistryTest, CreateDeepWarmOcean) {
+TEST_F(BiomeRegistryTest, CreateDeepWarmOcean)
+{
     Biome biome = BiomeFactory::createDeepWarmOcean();
     EXPECT_EQ(biome.id(), Biomes::DeepWarmOcean);
     EXPECT_EQ(biome.name(), "deep_warm_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.8f);
 }
 
-TEST_F(BiomeRegistryTest, CreateDeepLukewarmOcean) {
+TEST_F(BiomeRegistryTest, CreateDeepLukewarmOcean)
+{
     Biome biome = BiomeFactory::createDeepLukewarmOcean();
     EXPECT_EQ(biome.id(), Biomes::DeepLukewarmOcean);
     EXPECT_EQ(biome.name(), "deep_lukewarm_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.8f);
 }
 
-TEST_F(BiomeRegistryTest, CreateDeepColdOcean) {
+TEST_F(BiomeRegistryTest, CreateDeepColdOcean)
+{
     Biome biome = BiomeFactory::createDeepColdOcean();
     EXPECT_EQ(biome.id(), Biomes::DeepColdOcean);
     EXPECT_EQ(biome.name(), "deep_cold_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.8f);
 }
 
-TEST_F(BiomeRegistryTest, CreateJungleHills) {
+TEST_F(BiomeRegistryTest, CreateJungleHills)
+{
     Biome biome = BiomeFactory::createJungleHills();
     EXPECT_EQ(biome.id(), Biomes::JungleHills);
     EXPECT_EQ(biome.name(), "jungle_hills");
@@ -382,7 +408,8 @@ TEST_F(BiomeRegistryTest, CreateJungleHills) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
 }
 
-TEST_F(BiomeRegistryTest, CreateJungleEdge) {
+TEST_F(BiomeRegistryTest, CreateJungleEdge)
+{
     Biome biome = BiomeFactory::createJungleEdge();
     EXPECT_EQ(biome.id(), Biomes::JungleEdge);
     EXPECT_EQ(biome.name(), "jungle_edge");
@@ -390,7 +417,8 @@ TEST_F(BiomeRegistryTest, CreateJungleEdge) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.2f);
 }
 
-TEST_F(BiomeRegistryTest, CreateBambooJungle) {
+TEST_F(BiomeRegistryTest, CreateBambooJungle)
+{
     Biome biome = BiomeFactory::createBambooJungle();
     EXPECT_EQ(biome.id(), Biomes::BambooJungle);
     EXPECT_EQ(biome.name(), "bamboo_jungle");
@@ -398,7 +426,8 @@ TEST_F(BiomeRegistryTest, CreateBambooJungle) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.2f);
 }
 
-TEST_F(BiomeRegistryTest, CreateBambooJungleHills) {
+TEST_F(BiomeRegistryTest, CreateBambooJungleHills)
+{
     Biome biome = BiomeFactory::createBambooJungleHills();
     EXPECT_EQ(biome.id(), Biomes::BambooJungleHills);
     EXPECT_EQ(biome.name(), "bamboo_jungle_hills");
@@ -406,7 +435,8 @@ TEST_F(BiomeRegistryTest, CreateBambooJungleHills) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
 }
 
-TEST_F(BiomeRegistryTest, CreateBirchForestHills) {
+TEST_F(BiomeRegistryTest, CreateBirchForestHills)
+{
     Biome biome = BiomeFactory::createBirchForestHills();
     EXPECT_EQ(biome.id(), Biomes::BirchForestHills);
     EXPECT_EQ(biome.name(), "birch_forest_hills");
@@ -414,7 +444,8 @@ TEST_F(BiomeRegistryTest, CreateBirchForestHills) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
 }
 
-TEST_F(BiomeRegistryTest, CreateFlowerForest) {
+TEST_F(BiomeRegistryTest, CreateFlowerForest)
+{
     Biome biome = BiomeFactory::createFlowerForest();
     EXPECT_EQ(biome.id(), Biomes::FlowerForest);
     EXPECT_EQ(biome.name(), "flower_forest");
@@ -422,7 +453,8 @@ TEST_F(BiomeRegistryTest, CreateFlowerForest) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.2f);
 }
 
-TEST_F(BiomeRegistryTest, CreateTallBirchForest) {
+TEST_F(BiomeRegistryTest, CreateTallBirchForest)
+{
     Biome biome = BiomeFactory::createTallBirchForest();
     EXPECT_EQ(biome.id(), Biomes::TallBirchForest);
     EXPECT_EQ(biome.name(), "tall_birch_forest");
@@ -430,7 +462,8 @@ TEST_F(BiomeRegistryTest, CreateTallBirchForest) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.2f);
 }
 
-TEST_F(BiomeRegistryTest, CreateDarkForestHills) {
+TEST_F(BiomeRegistryTest, CreateDarkForestHills)
+{
     Biome biome = BiomeFactory::createDarkForestHills();
     EXPECT_EQ(biome.id(), Biomes::DarkForestHills);
     EXPECT_EQ(biome.name(), "dark_forest_hills");
@@ -438,7 +471,8 @@ TEST_F(BiomeRegistryTest, CreateDarkForestHills) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
 }
 
-TEST_F(BiomeRegistryTest, CreateMushroomFields) {
+TEST_F(BiomeRegistryTest, CreateMushroomFields)
+{
     Biome biome = BiomeFactory::createMushroomFields();
     EXPECT_EQ(biome.id(), Biomes::MushroomFields);
     EXPECT_EQ(biome.name(), "mushroom_fields");
@@ -450,7 +484,8 @@ TEST_F(BiomeRegistryTest, CreateMushroomFields) {
     EXPECT_EQ(biome.category(), Biome::Category::Mushroom);
 }
 
-TEST_F(BiomeRegistryTest, CreateMushroomFieldShore) {
+TEST_F(BiomeRegistryTest, CreateMushroomFieldShore)
+{
     Biome biome = BiomeFactory::createMushroomFieldShore();
     EXPECT_EQ(biome.id(), Biomes::MushroomFieldShore);
     EXPECT_EQ(biome.name(), "mushroom_field_shore");
@@ -460,7 +495,8 @@ TEST_F(BiomeRegistryTest, CreateMushroomFieldShore) {
     EXPECT_EQ(biome.category(), Biome::Category::Mushroom);
 }
 
-TEST_F(BiomeRegistryTest, CreateDesertHills) {
+TEST_F(BiomeRegistryTest, CreateDesertHills)
+{
     Biome biome = BiomeFactory::createDesertHills();
     EXPECT_EQ(biome.id(), Biomes::DesertHills);
     EXPECT_EQ(biome.name(), "desert_hills");
@@ -468,7 +504,8 @@ TEST_F(BiomeRegistryTest, CreateDesertHills) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.25f);
 }
 
-TEST_F(BiomeRegistryTest, CreateTaigaHills) {
+TEST_F(BiomeRegistryTest, CreateTaigaHills)
+{
     Biome biome = BiomeFactory::createTaigaHills();
     EXPECT_EQ(biome.id(), Biomes::TaigaHills);
     EXPECT_EQ(biome.name(), "taiga_hills");
@@ -476,7 +513,8 @@ TEST_F(BiomeRegistryTest, CreateTaigaHills) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.25f);
 }
 
-TEST_F(BiomeRegistryTest, CreateGiantSpruceTaiga) {
+TEST_F(BiomeRegistryTest, CreateGiantSpruceTaiga)
+{
     Biome biome = BiomeFactory::createGiantSpruceTaiga();
     EXPECT_EQ(biome.id(), Biomes::GiantSpruceTaiga);
     EXPECT_EQ(biome.name(), "giant_spruce_taiga");
@@ -484,7 +522,8 @@ TEST_F(BiomeRegistryTest, CreateGiantSpruceTaiga) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.2f);
 }
 
-TEST_F(BiomeRegistryTest, CreateGiantSpruceTaigaHills) {
+TEST_F(BiomeRegistryTest, CreateGiantSpruceTaigaHills)
+{
     Biome biome = BiomeFactory::createGiantSpruceTaigaHills();
     EXPECT_EQ(biome.id(), Biomes::GiantSpruceTaigaHills);
     EXPECT_EQ(biome.name(), "giant_spruce_taiga_hills");
@@ -496,7 +535,8 @@ TEST_F(BiomeRegistryTest, CreateGiantSpruceTaigaHills) {
 // 新增生物群系测试（阶段2 - 稀有变体）
 // ============================================================================
 
-TEST_F(BiomeRegistryTest, CreateSunflowerPlains) {
+TEST_F(BiomeRegistryTest, CreateSunflowerPlains)
+{
     Biome biome = BiomeFactory::createSunflowerPlains();
     EXPECT_EQ(biome.id(), Biomes::SunflowerPlains);
     EXPECT_EQ(biome.name(), "sunflower_plains");
@@ -504,7 +544,8 @@ TEST_F(BiomeRegistryTest, CreateSunflowerPlains) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.05f);
 }
 
-TEST_F(BiomeRegistryTest, CreateDesertLakes) {
+TEST_F(BiomeRegistryTest, CreateDesertLakes)
+{
     Biome biome = BiomeFactory::createDesertLakes();
     EXPECT_EQ(biome.id(), Biomes::DesertLakes);
     EXPECT_EQ(biome.name(), "desert_lakes");
@@ -512,7 +553,8 @@ TEST_F(BiomeRegistryTest, CreateDesertLakes) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.25f);
 }
 
-TEST_F(BiomeRegistryTest, CreateGravellyMountains) {
+TEST_F(BiomeRegistryTest, CreateGravellyMountains)
+{
     Biome biome = BiomeFactory::createGravellyMountains();
     EXPECT_EQ(biome.id(), Biomes::GravellyMountains);
     EXPECT_EQ(biome.name(), "gravelly_mountains");
@@ -520,7 +562,8 @@ TEST_F(BiomeRegistryTest, CreateGravellyMountains) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.5f);
 }
 
-TEST_F(BiomeRegistryTest, CreateSwampHills) {
+TEST_F(BiomeRegistryTest, CreateSwampHills)
+{
     Biome biome = BiomeFactory::createSwampHills();
     EXPECT_EQ(biome.id(), Biomes::SwampHills);
     EXPECT_EQ(biome.name(), "swamp_hills");
@@ -528,7 +571,8 @@ TEST_F(BiomeRegistryTest, CreateSwampHills) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
 }
 
-TEST_F(BiomeRegistryTest, CreateModifiedJungle) {
+TEST_F(BiomeRegistryTest, CreateModifiedJungle)
+{
     Biome biome = BiomeFactory::createModifiedJungle();
     EXPECT_EQ(biome.id(), Biomes::ModifiedJungle);
     EXPECT_EQ(biome.name(), "modified_jungle");
@@ -536,7 +580,8 @@ TEST_F(BiomeRegistryTest, CreateModifiedJungle) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.2f);
 }
 
-TEST_F(BiomeRegistryTest, CreateShatteredSavannaPlateau) {
+TEST_F(BiomeRegistryTest, CreateShatteredSavannaPlateau)
+{
     Biome biome = BiomeFactory::createShatteredSavannaPlateau();
     EXPECT_EQ(biome.id(), Biomes::ShatteredSavannaPlateau);
     EXPECT_EQ(biome.name(), "shattered_savanna_plateau");
@@ -550,13 +595,15 @@ TEST_F(BiomeRegistryTest, CreateShatteredSavannaPlateau) {
 
 class LayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
 };
 
-TEST_F(LayerTest, LayerContext_PositionSeed) {
+TEST_F(LayerTest, LayerContext_PositionSeed)
+{
     LayerContext ctx(1024, 12345, 1);
 
     ctx.setPosition(0, 0);
@@ -569,7 +616,8 @@ TEST_F(LayerTest, LayerContext_PositionSeed) {
     EXPECT_EQ(val1, val2);
 }
 
-TEST_F(LayerTest, LayerContext_DifferentPositions) {
+TEST_F(LayerTest, LayerContext_DifferentPositions)
+{
     LayerContext ctx(1024, 12345, 1);
 
     ctx.setPosition(0, 0);
@@ -582,7 +630,8 @@ TEST_F(LayerTest, LayerContext_DifferentPositions) {
     // 注意：这不是绝对的，但对于大多数种子来说是正确的
 }
 
-TEST_F(LayerTest, IslandLayer_SpawnPointIsLand) {
+TEST_F(LayerTest, IslandLayer_SpawnPointIsLand)
+{
     auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
     layer::IslandLayer islandLayer;
 
@@ -594,7 +643,8 @@ TEST_F(LayerTest, IslandLayer_SpawnPointIsLand) {
     EXPECT_EQ(val, 1); // 1 = 陆地
 }
 
-TEST_F(LayerTest, ZoomLayer_Scaling) {
+TEST_F(LayerTest, ZoomLayer_Scaling)
+{
     auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
     layer::ZoomLayer zoom(layer::ZoomLayer::Mode::Normal);
 
@@ -609,7 +659,8 @@ TEST_F(LayerTest, ZoomLayer_Scaling) {
     EXPECT_TRUE(val == 0 || val == 1);
 }
 
-TEST_F(LayerTest, SimpleLayerChain) {
+TEST_F(LayerTest, SimpleLayerChain)
+{
     // 测试简单的层链
     auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
 
@@ -630,7 +681,8 @@ TEST_F(LayerTest, SimpleLayerChain) {
     EXPECT_TRUE(val == 0 || val == 1);
 }
 
-TEST_F(LayerTest, AddIslandLayer) {
+TEST_F(LayerTest, AddIslandLayer)
+{
     // 测试 AddIslandLayer
     auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
 
@@ -648,7 +700,8 @@ TEST_F(LayerTest, AddIslandLayer) {
     EXPECT_TRUE(val == 0 || val == 1);
 }
 
-TEST_F(LayerTest, AddSnowLayer) {
+TEST_F(LayerTest, AddSnowLayer)
+{
     // 测试 AddSnowLayer
     auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
 
@@ -674,7 +727,8 @@ TEST_F(LayerTest, AddSnowLayer) {
     EXPECT_LE(val, 4);
 }
 
-TEST_F(LayerTest, MultipleContexts) {
+TEST_F(LayerTest, MultipleContexts)
+{
     // 测试使用不同上下文的层链 - 模拟 buildOverworldLayers 的行为
     u64 seed = 12345;
 
@@ -714,7 +768,8 @@ TEST_F(LayerTest, MultipleContexts) {
     EXPECT_LE(val, 4);
 }
 
-TEST_F(LayerTest, BiomeLayerTest) {
+TEST_F(LayerTest, BiomeLayerTest)
+{
     // 测试完整的层链直到 BiomeLayer
     u64 seed = 12345;
 
@@ -759,7 +814,8 @@ TEST_F(LayerTest, BiomeLayerTest) {
     EXPECT_GE(val, 0);
 }
 
-TEST_F(LayerTest, FullLayerChain) {
+TEST_F(LayerTest, FullLayerChain)
+{
     // 测试完整的层链
     u64 seed = 12345;
 
@@ -815,7 +871,8 @@ TEST_F(LayerTest, FullLayerChain) {
     EXPECT_GE(val, 0);
 }
 
-TEST_F(LayerTest, LayerUtilBuildOverworldLayers) {
+TEST_F(LayerTest, LayerUtilBuildOverworldLayers)
+{
     // 直接测试 buildOverworldLayers
     auto factory = LayerUtil::buildOverworldLayers(12345, false, false, 4, 4);
     ASSERT_NE(factory, nullptr);
@@ -827,7 +884,8 @@ TEST_F(LayerTest, LayerUtilBuildOverworldLayers) {
     EXPECT_GE(val, 0);
 }
 
-TEST_F(LayerTest, CreateOverworldLayers) {
+TEST_F(LayerTest, CreateOverworldLayers)
+{
     // 直接测试 createOverworldLayers
     auto stack = LayerUtil::createOverworldLayers(12345, false);
     ASSERT_NE(stack, nullptr);
@@ -842,12 +900,11 @@ TEST_F(LayerTest, CreateOverworldLayers) {
 
 class LayerStackTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        BiomeRegistry::instance().initialize();
-    }
+    void SetUp() override { BiomeRegistry::instance().initialize(); }
 };
 
-TEST_F(LayerStackTest, CreateOverworldLayers) {
+TEST_F(LayerStackTest, CreateOverworldLayers)
+{
     auto stack = LayerUtil::createOverworldLayers(12345, false);
     ASSERT_NE(stack, nullptr);
 
@@ -855,7 +912,8 @@ TEST_F(LayerStackTest, CreateOverworldLayers) {
     EXPECT_LT(biome, Biomes::Count);
 }
 
-TEST_F(LayerStackTest, CreateOverworldLayers_LargeBiomes) {
+TEST_F(LayerStackTest, CreateOverworldLayers_LargeBiomes)
+{
     auto stack = LayerUtil::createOverworldLayers(12345, true);
     ASSERT_NE(stack, nullptr);
 
@@ -863,7 +921,8 @@ TEST_F(LayerStackTest, CreateOverworldLayers_LargeBiomes) {
     EXPECT_LT(biome, Biomes::Count);
 }
 
-TEST_F(LayerStackTest, SampleMultiplePositions) {
+TEST_F(LayerStackTest, SampleMultiplePositions)
+{
     auto stack = LayerUtil::createOverworldLayers(12345, false);
     ASSERT_NE(stack, nullptr);
 
@@ -877,7 +936,8 @@ TEST_F(LayerStackTest, SampleMultiplePositions) {
     EXPECT_LT(biome3, Biomes::Count);
 }
 
-TEST_F(LayerStackTest, SampleArea) {
+TEST_F(LayerStackTest, SampleArea)
+{
     auto stack = LayerUtil::createOverworldLayers(12345, false);
     ASSERT_NE(stack, nullptr);
 
@@ -889,7 +949,8 @@ TEST_F(LayerStackTest, SampleArea) {
     }
 }
 
-TEST_F(LayerStackTest, Consistency) {
+TEST_F(LayerStackTest, Consistency)
+{
     auto stack = LayerUtil::createOverworldLayers(12345, false);
     ASSERT_NE(stack, nullptr);
 
@@ -905,7 +966,8 @@ TEST_F(LayerStackTest, Consistency) {
 
 class LayerBiomeProviderTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
         provider = std::make_unique<LayerBiomeProvider>(12345);
@@ -914,30 +976,35 @@ protected:
     std::unique_ptr<LayerBiomeProvider> provider;
 };
 
-TEST_F(LayerBiomeProviderTest, GetBiome) {
+TEST_F(LayerBiomeProviderTest, GetBiome)
+{
     BiomeId biome = provider->getBiome(0, 64, 0);
     EXPECT_LT(biome, Biomes::Count);
 }
 
-TEST_F(LayerBiomeProviderTest, GetNoiseBiome) {
+TEST_F(LayerBiomeProviderTest, GetNoiseBiome)
+{
     BiomeId biome = provider->getNoiseBiome(0, 0, 0);
     EXPECT_LT(biome, Biomes::Count);
 }
 
-TEST_F(LayerBiomeProviderTest, GetDepthAndScale) {
+TEST_F(LayerBiomeProviderTest, GetDepthAndScale)
+{
     f32 depth = provider->getDepth(0, 0);
     f32 scale = provider->getScale(0, 0);
 
-    EXPECT_GE(depth, -2.0f);  // 深海可能为负
+    EXPECT_GE(depth, -2.0f); // 深海可能为负
     EXPECT_GE(scale, 0.0f);
 }
 
-TEST_F(LayerBiomeProviderTest, GetBiomeDefinition) {
+TEST_F(LayerBiomeProviderTest, GetBiomeDefinition)
+{
     const Biome& biome = provider->getBiomeDefinition(Biomes::Plains);
     EXPECT_EQ(biome.id(), Biomes::Plains);
 }
 
-TEST_F(LayerBiomeProviderTest, BiomeDistribution) {
+TEST_F(LayerBiomeProviderTest, BiomeDistribution)
+{
     // 统计生物群系分布
     std::map<BiomeId, int> distribution;
 
@@ -958,13 +1025,15 @@ TEST_F(LayerBiomeProviderTest, BiomeDistribution) {
 
 class NetherBiomeProviderTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
 };
 
-TEST_F(NetherBiomeProviderTest, FillBiomeContainerUsesVerticalNoiseSamples) {
+TEST_F(NetherBiomeProviderTest, FillBiomeContainerUsesVerticalNoiseSamples)
+{
     biome::nether::NetherBiomeProvider provider(12345);
     BiomeContainer container;
 
@@ -995,13 +1064,15 @@ TEST_F(NetherBiomeProviderTest, FillBiomeContainerUsesVerticalNoiseSamples) {
 
 class EndBiomeProviderTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
 };
 
-TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid) {
+TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid)
+{
     biome::end::EndBiomeProvider provider(98765);
     BiomeContainer container;
 
@@ -1033,7 +1104,8 @@ TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid) {
 
 class BiomeProviderFindBiomeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
@@ -1050,18 +1122,18 @@ public:
         : BiomeProvider(seed)
     {}
 
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override {
-        return getBiomeAtPosition(x, z);
-    }
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override { return getBiomeAtPosition(x, z); }
 
-    [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override {
+    [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override
+    {
         return getBiomeAtPosition(noiseX * 4, noiseZ * 4);
     }
 
     [[nodiscard]] f32 getDepth(i32 x, i32 z) const override { return 0.0f; }
     [[nodiscard]] f32 getScale(i32 x, i32 z) const override { return 0.0f; }
 
-    void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override {
+    void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override
+    {
         for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
             for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
                 for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
@@ -1082,7 +1154,8 @@ private:
      * - X < -100 且 Z < -100: Taiga (针叶林)
      * - 其他: Plains (平原)
      */
-    [[nodiscard]] static BiomeId getBiomeAtPosition(i32 x, i32 z) {
+    [[nodiscard]] static BiomeId getBiomeAtPosition(i32 x, i32 z)
+    {
         if (x > 100 && z > 100) {
             return Biomes::Desert;
         }
@@ -1093,14 +1166,13 @@ private:
     }
 };
 
-TEST_F(BiomeProviderFindBiomeTest, FindBiomeNearCenter) {
+TEST_F(BiomeProviderFindBiomeTest, FindBiomeNearCenter)
+{
     MockBiomeProvider provider(12345);
     math::Random random(12345);
 
     // 在原点附近搜索平原
-    auto predicate = [](BiomeId biome) {
-        return biome == Biomes::Plains;
-    };
+    auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
 
     auto result = provider.findBiome(0, 64, 0, 50, 8, predicate, random, true);
     EXPECT_TRUE(result.has_value());
@@ -1109,13 +1181,12 @@ TEST_F(BiomeProviderFindBiomeTest, FindBiomeNearCenter) {
     EXPECT_NEAR(result->z, 0, 50);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, FindDesertBiome) {
+TEST_F(BiomeProviderFindBiomeTest, FindDesertBiome)
+{
     MockBiomeProvider provider(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) {
-        return biome == Biomes::Desert;
-    };
+    auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
 
     // 从原点开始搜索，沙漠在 X > 100, Z > 100 区域
     auto result = provider.findBiome(0, 64, 0, 500, 16, predicate, random, true);
@@ -1125,13 +1196,12 @@ TEST_F(BiomeProviderFindBiomeTest, FindDesertBiome) {
     EXPECT_GT(result->z, 100);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, FindTaigaBiome) {
+TEST_F(BiomeProviderFindBiomeTest, FindTaigaBiome)
+{
     MockBiomeProvider provider(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) {
-        return biome == Biomes::Taiga;
-    };
+    auto predicate = [](BiomeId biome) { return biome == Biomes::Taiga; };
 
     // 从原点开始搜索，针叶林在 X < -100, Z < -100 区域
     auto result = provider.findBiome(0, 64, 0, 500, 16, predicate, random, true);
@@ -1141,25 +1211,25 @@ TEST_F(BiomeProviderFindBiomeTest, FindTaigaBiome) {
     EXPECT_LT(result->z, -100);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, FindBiomeNotFound) {
+TEST_F(BiomeProviderFindBiomeTest, FindBiomeNotFound)
+{
     MockBiomeProvider provider(12345);
     math::Random random(12345);
 
     // 搜索一个不存在的生物群系
     auto predicate = [](BiomeId biome) {
-        return biome == Biomes::NetherWastes;  // MockBiomeProvider 不会返回下界生物群系
+        return biome == Biomes::NetherWastes; // MockBiomeProvider 不会返回下界生物群系
     };
 
     auto result = provider.findBiome(0, 64, 0, 100, 8, predicate, random, true);
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(BiomeProviderFindBiomeTest, StopOnFirstVsRandomSelection) {
+TEST_F(BiomeProviderFindBiomeTest, StopOnFirstVsRandomSelection)
+{
     MockBiomeProvider provider(12345);
 
-    auto predicate = [](BiomeId biome) {
-        return biome == Biomes::Plains;
-    };
+    auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
 
     // stopOnFirst = true: 总是返回第一个找到的
     math::Random random1(12345);
@@ -1175,13 +1245,12 @@ TEST_F(BiomeProviderFindBiomeTest, StopOnFirstVsRandomSelection) {
     EXPECT_EQ(result1->z, result2->z);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, SearchFromDifferentCenters) {
+TEST_F(BiomeProviderFindBiomeTest, SearchFromDifferentCenters)
+{
     MockBiomeProvider provider(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) {
-        return biome == Biomes::Desert;
-    };
+    auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
 
     // 从沙漠中心开始搜索，应该立即找到
     auto result = provider.findBiome(200, 64, 200, 50, 8, predicate, random, true);
@@ -1191,13 +1260,12 @@ TEST_F(BiomeProviderFindBiomeTest, SearchFromDifferentCenters) {
     EXPECT_NEAR(result->z, 200, 50);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, SearchRadiusLimit) {
+TEST_F(BiomeProviderFindBiomeTest, SearchRadiusLimit)
+{
     MockBiomeProvider provider(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) {
-        return biome == Biomes::Desert;
-    };
+    auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
 
     // 使用非常小的搜索半径，从远点开始搜索
     // 针叶林在 X < -100, Z < -100，从 (1000, 1000) 开始用半径 50 搜索
@@ -1212,33 +1280,32 @@ TEST_F(BiomeProviderFindBiomeTest, SearchRadiusLimit) {
 
 class LayerBiomeProviderFindBiomeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
 };
 
-TEST_F(LayerBiomeProviderFindBiomeTest, FindPlainsBiome) {
+TEST_F(LayerBiomeProviderFindBiomeTest, FindPlainsBiome)
+{
     LayerBiomeProvider provider(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) {
-        return biome == Biomes::Plains;
-    };
+    auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
 
     // 平原是常见生物群系，应该容易找到
     auto result = provider.findBiome(0, 64, 0, 1000, 64, predicate, random, true);
     EXPECT_TRUE(result.has_value());
 }
 
-TEST_F(LayerBiomeProviderFindBiomeTest, FindAnyBiome) {
+TEST_F(LayerBiomeProviderFindBiomeTest, FindAnyBiome)
+{
     LayerBiomeProvider provider(54321);
     math::Random random(54321);
 
     // 搜索任意有效生物群系（非空，小于 Count）
-    auto predicate = [](BiomeId biome) {
-        return biome < Biomes::Count;
-    };
+    auto predicate = [](BiomeId biome) { return biome < Biomes::Count; };
 
     auto result = provider.findBiome(0, 64, 0, 1000, 64, predicate, random, true);
     EXPECT_TRUE(result.has_value());

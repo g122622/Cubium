@@ -40,9 +40,7 @@ public:
      * @brief 设置看向位置
      * @param pos 位置向量
      */
-    void setLookPosition(const Vector3& pos) {
-        setLookPosition(pos.x, pos.y, pos.z);
-    }
+    void setLookPosition(const Vector3& pos) { setLookPosition(pos.x, pos.y, pos.z); }
 
     /**
      * @brief 设置看向位置（带旋转速度限制）

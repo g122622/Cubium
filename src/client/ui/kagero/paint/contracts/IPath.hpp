@@ -5,13 +5,7 @@
 
 namespace mc::client::ui::kagero::paint {
 
-enum class PathCommand : u8 {
-    MoveTo,
-    LineTo,
-    QuadTo,
-    CubicTo,
-    Close
-};
+enum class PathCommand : u8 { MoveTo, LineTo, QuadTo, CubicTo, Close };
 
 struct PathPoint {
     f32 x = 0.0f;

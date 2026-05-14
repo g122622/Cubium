@@ -53,7 +53,8 @@ constexpr f32 SLIPPERINESS_BLUE_ICE = 0.989f;
 
 /// 地面移动因子计算
 /// MC 公式: speed * (0.21600002F / (slipperiness^3))
-constexpr f32 getGroundMoveFactor(f32 speed, f32 slipperiness = SLIPPERINESS_DEFAULT) {
+constexpr f32 getGroundMoveFactor(f32 speed, f32 slipperiness = SLIPPERINESS_DEFAULT)
+{
     return speed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
 }
 
@@ -269,7 +270,7 @@ constexpr f32 ELYTRA_LIFT_COEFFICIENT = 0.75f;
 constexpr f32 ITEM_WATER_BUOYANCY_THRESHOLD = 0.06f;
 
 /// 物品水中浮力
-constexpr f32 ITEM_WATER_BUOYANCY_FORCE = 0.0005f;  // 5.0E-4
+constexpr f32 ITEM_WATER_BUOYANCY_FORCE = 0.0005f; // 5.0E-4
 
 /// 物品岩浆阻力
 constexpr f32 ITEM_LAVA_DRAG = 0.95f;

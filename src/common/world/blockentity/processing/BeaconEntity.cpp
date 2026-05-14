@@ -1,7 +1,6 @@
 ﻿#include "world/blockentity/processing/BeaconEntity.hpp"
-#include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -9,9 +8,10 @@
 #include "item/core/Item.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/sound/SoundCategory.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -35,14 +35,16 @@ constexpr const char* PAYMENT_ITEM_KEY = "payment_item";
 /**
  * @brief 将效果类型编码为稳定整数 ID（0 表示空效果）。
  */
-[[nodiscard]] i32 encodeEffect(BeaconEntity::EffectType effect) {
+[[nodiscard]] i32 encodeEffect(BeaconEntity::EffectType effect)
+{
     return static_cast<i32>(effect) + 1;
 }
 
 /**
  * @brief 将整数 ID 解码为效果类型。
  */
-[[nodiscard]] bool decodeEffect(i32 rawValue, BeaconEntity::EffectType& outEffect) {
+[[nodiscard]] bool decodeEffect(i32 rawValue, BeaconEntity::EffectType& outEffect)
+{
     if (rawValue <= 0) {
         return false;
     }
@@ -62,33 +64,24 @@ constexpr const char* PAYMENT_ITEM_KEY = "payment_item";
  * MC 1.16.5 参考: BlockTags.BEACON_BASE_BLOCKS
  * 包含: 铁块、金块、钻石块、绿宝石块、下界合金块
  */
-[[nodiscard]] bool isValidBeaconBaseBlock(const BlockState* state) {
+[[nodiscard]] bool isValidBeaconBaseBlock(const BlockState* state)
+{
     if (state == nullptr || state->isAir()) {
         return false;
     }
 
     const Block* block = &state->getBlock();
-    return block == VanillaBlocks::IRON_BLOCK ||
-           block == VanillaBlocks::GOLD_BLOCK ||
-           block == VanillaBlocks::DIAMOND_BLOCK ||
-           block == VanillaBlocks::EMERALD_BLOCK ||
-           block == VanillaBlocks::NETHERITE_BLOCK;
+    return block == VanillaBlocks::IRON_BLOCK || block == VanillaBlocks::GOLD_BLOCK ||
+        block == VanillaBlocks::DIAMOND_BLOCK || block == VanillaBlocks::EMERALD_BLOCK ||
+        block == VanillaBlocks::NETHERITE_BLOCK;
 }
 
 /**
  * @brief 将效果以环境效果形式施加给玩家。
  */
-void applyBeaconEffectToPlayer(Player& player,
-                               BeaconEntity::EffectType effectType,
-                               i32 durationTicks,
-                               i32 amplifier) {
-    const entity::effect::EffectInstance effect(
-        effectType,
-        durationTicks,
-        amplifier,
-        true,
-        true,
-        true);
+void applyBeaconEffectToPlayer(Player& player, BeaconEntity::EffectType effectType, i32 durationTicks, i32 amplifier)
+{
+    const entity::effect::EffectInstance effect(effectType, durationTicks, amplifier, true, true, true);
     player.addEffect(effect);
 }
 
@@ -101,22 +94,14 @@ namespace {
 // 信标效果存储 - 用于初始化VALID_EFFECTS
 // 使用静态变量确保地址稳定
 static const BeaconEntity::EffectType s_level1Effects[] = {
-    BeaconEntity::EffectType::Speed,
-    BeaconEntity::EffectType::Haste
-};
+    BeaconEntity::EffectType::Speed, BeaconEntity::EffectType::Haste};
 
 static const BeaconEntity::EffectType s_level2Effects[] = {
-    BeaconEntity::EffectType::Resistance,
-    BeaconEntity::EffectType::JumpBoost
-};
+    BeaconEntity::EffectType::Resistance, BeaconEntity::EffectType::JumpBoost};
 
-static const BeaconEntity::EffectType s_level3Effects[] = {
-    BeaconEntity::EffectType::Strength
-};
+static const BeaconEntity::EffectType s_level3Effects[] = {BeaconEntity::EffectType::Strength};
 
-static const BeaconEntity::EffectType s_level4Effects[] = {
-    BeaconEntity::EffectType::Regeneration
-};
+static const BeaconEntity::EffectType s_level4Effects[] = {BeaconEntity::EffectType::Regeneration};
 
 } // namespace
 
@@ -133,18 +118,18 @@ const std::array<std::vector<const BeaconEntity::EffectType*>, 4> BeaconEntity::
     // Level 3: 力量
     std::vector<const EffectType*>{&s_level3Effects[0]},
     // Level 4: 生命恢复（仅辅助效果）
-    std::vector<const EffectType*>{&s_level4Effects[0]}
-};
+    std::vector<const EffectType*>{&s_level4Effects[0]}};
 
 // ========== BeaconEntity 实现 ==========
 
 BeaconEntity::BeaconEntity(const BlockPos& pos)
-    : BlockEntity(BlockEntityType::Beacon, pos) {
-}
+    : BlockEntity(BlockEntityType::Beacon, pos)
+{}
 
 BeaconEntity::~BeaconEntity() = default;
 
-void BeaconEntity::setLevel(i32 level) {
+void BeaconEntity::setLevel(i32 level)
+{
     level = std::max(0, std::min(level, MAX_LEVELS));
     if (m_level != level) {
         m_level = level;
@@ -152,7 +137,8 @@ void BeaconEntity::setLevel(i32 level) {
     }
 }
 
-void BeaconEntity::setPrimaryEffect(const EffectType* effect) {
+void BeaconEntity::setPrimaryEffect(const EffectType* effect)
+{
     std::optional<EffectType> nextEffect;
     if (effect != nullptr) {
         nextEffect = *effect;
@@ -163,7 +149,8 @@ void BeaconEntity::setPrimaryEffect(const EffectType* effect) {
     }
 }
 
-void BeaconEntity::setSecondaryEffect(const EffectType* effect) {
+void BeaconEntity::setSecondaryEffect(const EffectType* effect)
+{
     std::optional<EffectType> nextEffect;
     if (effect != nullptr) {
         nextEffect = *effect;
@@ -174,7 +161,8 @@ void BeaconEntity::setSecondaryEffect(const EffectType* effect) {
     }
 }
 
-void BeaconEntity::setPaymentItem(const ItemStack& stack) {
+void BeaconEntity::setPaymentItem(const ItemStack& stack)
+{
     if (!stack.isEmpty()) {
         MC_ASSERT_RELEASE(isValidPayment(stack.getItem()->itemId()));
     }
@@ -182,7 +170,8 @@ void BeaconEntity::setPaymentItem(const ItemStack& stack) {
     setChanged();
 }
 
-bool BeaconEntity::canUseEffect(const EffectType* effect) const {
+bool BeaconEntity::canUseEffect(const EffectType* effect) const
+{
     if (effect == nullptr) {
         return true;
     }
@@ -191,11 +180,13 @@ bool BeaconEntity::canUseEffect(const EffectType* effect) const {
     return effectValue > 0 && effectValue < static_cast<i32>(entity::effect::EffectType::Count);
 }
 
-i32 BeaconEntity::getEffectRange() const {
+i32 BeaconEntity::getEffectRange() const
+{
     return m_level * 10 + 10;
 }
 
-void BeaconEntity::tick(IWorld& world) {
+void BeaconEntity::tick(IWorld& world)
+{
     m_tickCount++;
 
     const i32 oldLevel = m_level;
@@ -209,22 +200,10 @@ void BeaconEntity::tick(IWorld& world) {
         const Vector3 center = m_pos.center();
         if (m_level > 0 && oldLevel == 0) {
             // 激活
-            world.playSound(
-                SoundEvents::BLOCK_BEACON_ACTIVATE,
-                sound::SoundCategory::Blocks,
-                center,
-                1.0f,
-                1.0f
-            );
+            world.playSound(SoundEvents::BLOCK_BEACON_ACTIVATE, sound::SoundCategory::Blocks, center, 1.0f, 1.0f);
         } else if (m_level == 0 && oldLevel > 0) {
             // 取消激活
-            world.playSound(
-                SoundEvents::BLOCK_BEACON_DEACTIVATE,
-                sound::SoundCategory::Blocks,
-                center,
-                1.0f,
-                1.0f
-            );
+            world.playSound(SoundEvents::BLOCK_BEACON_DEACTIVATE, sound::SoundCategory::Blocks, center, 1.0f, 1.0f);
         }
     }
 
@@ -234,17 +213,12 @@ void BeaconEntity::tick(IWorld& world) {
 
     // 激活状态下播放环境音效 (MC 1.16.5: 每80 ticks播放一次)
     if (isActive() && !world.isClientSide() && m_tickCount % BEACON_UPDATE_INTERVAL == 0) {
-        world.playSound(
-            SoundEvents::BLOCK_BEACON_AMBIENT,
-            sound::SoundCategory::Blocks,
-            m_pos.center(),
-            1.0f,
-            1.0f
-        );
+        world.playSound(SoundEvents::BLOCK_BEACON_AMBIENT, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
     }
 }
 
-void BeaconEntity::updateLevels(IWorld& world) {
+void BeaconEntity::updateLevels(IWorld& world)
+{
     // MC 1.16.5: 金字塔检测不需要检查天空可见性
     // 参考: BeaconTileEntity.checkBeaconLevel()
     i32 newLevel = 0;
@@ -272,7 +246,8 @@ void BeaconEntity::updateLevels(IWorld& world) {
     setLevel(newLevel);
 }
 
-bool BeaconEntity::canSeeSky(IWorld& world) const {
+bool BeaconEntity::canSeeSky(IWorld& world) const
+{
     const i32 maxY = world.getHeight(m_pos.x, m_pos.z);
     for (i32 y = m_pos.y + 1; y <= maxY; ++y) {
         const BlockState* state = world.getBlockState(m_pos.x, y, m_pos.z);
@@ -283,7 +258,8 @@ bool BeaconEntity::canSeeSky(IWorld& world) const {
     return true;
 }
 
-void BeaconEntity::applyEffects(IWorld& world) {
+void BeaconEntity::applyEffects(IWorld& world)
+{
     if (m_level <= 0 || !m_primaryEffect.has_value()) {
         return;
     }
@@ -312,7 +288,8 @@ void BeaconEntity::applyEffects(IWorld& world) {
     }
 }
 
-bool BeaconEntity::isValidPayment(u32 itemId) {
+bool BeaconEntity::isValidPayment(u32 itemId)
+{
     if (itemId > static_cast<u32>(std::numeric_limits<ItemId>::max())) {
         return false;
     }
@@ -322,14 +299,12 @@ bool BeaconEntity::isValidPayment(u32 itemId) {
         return false;
     }
 
-    return item == Items::IRON_INGOT ||
-           item == Items::GOLD_INGOT ||
-           item == Items::DIAMOND ||
-           item == Items::EMERALD ||
-           item == Items::NETHERITE_INGOT;
+    return item == Items::IRON_INGOT || item == Items::GOLD_INGOT || item == Items::DIAMOND || item == Items::EMERALD ||
+        item == Items::NETHERITE_INGOT;
 }
 
-bool BeaconEntity::load(const nlohmann::json& data) {
+bool BeaconEntity::load(const nlohmann::json& data)
+{
     if (!BlockEntity::load(data)) {
         return false;
     }
@@ -367,7 +342,8 @@ bool BeaconEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void BeaconEntity::save(nlohmann::json& data) const {
+void BeaconEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     data["level"] = m_level;
@@ -391,7 +367,8 @@ void BeaconEntity::save(nlohmann::json& data) const {
     }
 }
 
-std::unique_ptr<BlockEntity> BeaconEntity::clone() const {
+std::unique_ptr<BlockEntity> BeaconEntity::clone() const
+{
     auto cloned = std::make_unique<BeaconEntity>(m_pos);
     cloned->m_level = m_level;
     cloned->m_tickCount = m_tickCount;
@@ -403,19 +380,14 @@ std::unique_ptr<BlockEntity> BeaconEntity::clone() const {
     return cloned;
 }
 
-std::array<f32, 3> BeaconEntity::blendColors(
-    const std::array<f32, 3>& current,
-    const std::array<f32, 3>& newColor)
+std::array<f32, 3> BeaconEntity::blendColors(const std::array<f32, 3>& current, const std::array<f32, 3>& newColor)
 {
     // MC 1.16.5: 颜色平均混合
-    return {
-        (current[0] + newColor[0]) / 2.0f,
-        (current[1] + newColor[1]) / 2.0f,
-        (current[2] + newColor[2]) / 2.0f
-    };
+    return {(current[0] + newColor[0]) / 2.0f, (current[1] + newColor[1]) / 2.0f, (current[2] + newColor[2]) / 2.0f};
 }
 
-void BeaconEntity::updateBeamSegments(IWorld& world) {
+void BeaconEntity::updateBeamSegments(IWorld& world)
+{
     m_beamSegments.clear();
 
     if (m_level <= 0) {
@@ -478,8 +450,8 @@ void BeaconEntity::updateBeamSegments(IWorld& world) {
                 // 检查颜色是否相同（使用容差比较）
                 const f32 epsilon = 0.001f;
                 bool sameColor = (std::abs(currentSegment->colors[0] - blockColor[0]) < epsilon &&
-                                  std::abs(currentSegment->colors[1] - blockColor[1]) < epsilon &&
-                                  std::abs(currentSegment->colors[2] - blockColor[2]) < epsilon);
+                    std::abs(currentSegment->colors[1] - blockColor[1]) < epsilon &&
+                    std::abs(currentSegment->colors[2] - blockColor[2]) < epsilon);
 
                 if (sameColor) {
                     currentSegment->incrementHeight();

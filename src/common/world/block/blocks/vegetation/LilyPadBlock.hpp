@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../agricultural/BushBlock.hpp"
-#include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../Material.hpp"
+#include "../agricultural/BushBlock.hpp"
 
 namespace mc {
 
@@ -31,9 +31,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 形状 ==========
 
@@ -47,7 +45,8 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -57,9 +56,7 @@ protected:
      * @brief 检查下方是否可支撑（水）
      */
     [[nodiscard]] bool canSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const override;
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 };
 
 } // namespace blocks

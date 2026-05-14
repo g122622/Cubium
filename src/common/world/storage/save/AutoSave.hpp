@@ -2,9 +2,9 @@
 
 #include "../WorldStorageService.hpp"
 #include "DirtyTracker.hpp"
+#include <atomic>
 #include <chrono>
 #include <functional>
-#include <atomic>
 #include <mutex>
 
 namespace mc::world::storage {
@@ -143,9 +143,7 @@ public:
     /**
      * @brief 设置保存完成回调
      */
-    void setSaveCallback(SaveCallback callback) {
-        m_saveCallback = std::move(callback);
-    }
+    void setSaveCallback(SaveCallback callback) { m_saveCallback = std::move(callback); }
 
     // ========== 统计 ==========
 

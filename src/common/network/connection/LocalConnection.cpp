@@ -3,7 +3,8 @@
 
 namespace mc::network {
 
-void LocalEndpoint::send(const u8* data, size_t size) {
+void LocalEndpoint::send(const u8* data, size_t size)
+{
     if (!m_remote || !m_connected) {
         return;
     }
@@ -17,7 +18,8 @@ void LocalEndpoint::send(const u8* data, size_t size) {
     m_remote->m_cv.notify_one();
 }
 
-bool LocalEndpoint::receive(std::vector<u8>& outData) {
+bool LocalEndpoint::receive(std::vector<u8>& outData)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_queue.empty()) {
         return false;
@@ -28,14 +30,15 @@ bool LocalEndpoint::receive(std::vector<u8>& outData) {
     return true;
 }
 
-bool LocalEndpoint::receiveWait(std::vector<u8>& outData, u32 timeoutMs) {
+bool LocalEndpoint::receiveWait(std::vector<u8>& outData, u32 timeoutMs)
+{
     std::unique_lock<std::mutex> lock(m_mutex);
 
     if (timeoutMs == 0) {
         m_cv.wait(lock, [this] { return !m_queue.empty() || !m_connected; });
     } else {
-        if (!m_cv.wait_for(lock, std::chrono::milliseconds(timeoutMs),
-            [this] { return !m_queue.empty() || !m_connected; })) {
+        if (!m_cv.wait_for(
+                lock, std::chrono::milliseconds(timeoutMs), [this] { return !m_queue.empty() || !m_connected; })) {
             return false;
         }
     }
@@ -49,22 +52,26 @@ bool LocalEndpoint::receiveWait(std::vector<u8>& outData, u32 timeoutMs) {
     return true;
 }
 
-bool LocalEndpoint::hasData() const {
+bool LocalEndpoint::hasData() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return !m_queue.empty();
 }
 
-size_t LocalEndpoint::pendingCount() const {
+size_t LocalEndpoint::pendingCount() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_queue.size();
 }
 
-void LocalEndpoint::connectTo(LocalEndpoint* remote) {
+void LocalEndpoint::connectTo(LocalEndpoint* remote)
+{
     m_remote = remote;
     m_connected = true;
 }
 
-void LocalEndpoint::disconnect() {
+void LocalEndpoint::disconnect()
+{
     m_connected = false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -75,16 +82,19 @@ void LocalEndpoint::disconnect() {
     m_cv.notify_all();
 }
 
-bool LocalEndpoint::isConnected() const {
+bool LocalEndpoint::isConnected() const
+{
     return m_connected;
 }
 
-void LocalConnectionPair::connect() {
+void LocalConnectionPair::connect()
+{
     m_clientEndpoint.connectTo(&m_serverEndpoint);
     m_serverEndpoint.connectTo(&m_clientEndpoint);
 }
 
-void LocalConnectionPair::disconnect() {
+void LocalConnectionPair::disconnect()
+{
     m_clientEndpoint.disconnect();
     m_serverEndpoint.disconnect();
 }

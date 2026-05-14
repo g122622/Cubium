@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../core/AgeableEntity.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/village/trade/Merchant.hpp"
+#include "../../core/AgeableEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -23,21 +23,21 @@ namespace entity {
  * 参考 MC 1.16.5 VillagerProfession
  */
 enum class VillagerProfession : u8 {
-    None = 0,       // 无职业（傻子）
-    Armorer,        // 盔甲匠
-    Butcher,        // 屠夫
-    Cartographer,   // 制图师
-    Cleric,         // 牧师
-    Farmer,         // 农民
-    Fisherman,      // 渔夫
-    Fletcher,       // 制箭师
-    Leatherworker,  // 皮革匠
-    Librarian,      // 图书管理员
-    Mason,          // 石匠
-    Nitwit,         // 傻子
-    Shepherd,       // 牧羊人
-    Toolsmith,      // 工具匠
-    Weaponsmith     // 武器匠
+    None = 0,      // 无职业（傻子）
+    Armorer,       // 盔甲匠
+    Butcher,       // 屠夫
+    Cartographer,  // 制图师
+    Cleric,        // 牧师
+    Farmer,        // 农民
+    Fisherman,     // 渔夫
+    Fletcher,      // 制箭师
+    Leatherworker, // 皮革匠
+    Librarian,     // 图书管理员
+    Mason,         // 石匠
+    Nitwit,        // 傻子
+    Shepherd,      // 牧羊人
+    Toolsmith,     // 工具匠
+    Weaponsmith    // 武器匠
 };
 
 /**
@@ -46,13 +46,13 @@ enum class VillagerProfession : u8 {
  * 参考 MC 1.16.5 VillagerType
  */
 enum class VillagerType : u8 {
-    Desert = 0,     // 沙漠
-    Jungle,         // 丛林
-    Plains,         // 平原
-    Savanna,        // 热带草原
-    Snow,           // 雪
-    Swamp,          // 沼泽
-    Taiga           // 针叶林
+    Desert = 0, // 沙漠
+    Jungle,     // 丛林
+    Plains,     // 平原
+    Savanna,    // 热带草原
+    Snow,       // 雪
+    Swamp,      // 沼泽
+    Taiga       // 针叶林
 };
 
 /**

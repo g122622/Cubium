@@ -1,11 +1,11 @@
 #include "ItemMeshBuilder.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/core/Item.hpp"
-#include "common/item/items/block/BlockItem.hpp"
 #include "client/renderer/api/texture/TextureRegion.hpp"
 #include "client/resource/ItemModelCache.hpp"
-#include "client/resource/ItemTextureAtlas.hpp"
 #include "client/resource/ItemModelLoader.hpp"
+#include "client/resource/ItemTextureAtlas.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,14 +14,15 @@
 namespace mc::client::renderer::entity::item {
 
 // 引入 ModelElement 和 Direction 类型
+using ::mc::Direction;
 using ::mc::ModelElement;
 using ::mc::ModelFace;
-using ::mc::Direction;
 
 namespace {
 
 // 将 ItemTransformType 转换为 ItemDisplayContext
-resource::ItemDisplayContext toDisplayContext(ItemTransformType type) {
+resource::ItemDisplayContext toDisplayContext(ItemTransformType type)
+{
     using namespace resource;
     switch (type) {
         case ItemTransformType::ThirdPersonRightHand:
@@ -48,8 +49,7 @@ resource::ItemDisplayContext toDisplayContext(ItemTransformType type) {
 } // namespace
 
 std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::buildHeldItemMesh(
-    const ::mc::ItemStack& itemStack,
-    ItemTransformType transformType)
+    const ::mc::ItemStack& itemStack, ItemTransformType transformType)
 {
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
@@ -78,9 +78,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
 }
 
 std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::buildArmorMesh(
-    const ::mc::ItemStack& itemStack,
-    u32 slot,
-    const std::array<f64, 16>& bodyPartTransform)
+    const ::mc::ItemStack& itemStack, u32 slot, const std::array<f64, 16>& bodyPartTransform)
 {
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
@@ -129,8 +127,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
 }
 
 std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::buildGroundItemMesh(
-    const ::mc::ItemStack& itemStack,
-    f64 rotation)
+    const ::mc::ItemStack& itemStack, f64 rotation)
 {
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
@@ -165,8 +162,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
 }
 
 std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::buildIconMesh(
-    const ::mc::client::renderer::api::TextureRegion& region,
-    f64 size)
+    const ::mc::client::renderer::api::TextureRegion& region, f64 size)
 {
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
@@ -177,18 +173,10 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
 }
 
 std::array<f64, 16> ItemMeshBuilder::getItemTransform(
-    ItemTransformType transformType,
-    f32 limbSwing,
-    f32 swingProgress,
-    bool isRightHand)
+    ItemTransformType transformType, f32 limbSwing, f32 swingProgress, bool isRightHand)
 {
     // 初始化为单位矩阵
-    std::array<f64, 16> transform = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    std::array<f64, 16> transform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 参考 MC 1.16.5 ItemCameraTransforms
     switch (transformType) {
@@ -302,8 +290,7 @@ std::array<f64, 16> ItemMeshBuilder::getItemTransform(
     return transform;
 }
 
-void ItemMeshBuilder::buildItemQuad(
-    const ::mc::client::renderer::api::TextureRegion& region,
+void ItemMeshBuilder::buildItemQuad(const ::mc::client::renderer::api::TextureRegion& region,
     f64 size,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
@@ -328,8 +315,7 @@ void ItemMeshBuilder::buildItemQuad(
     indices.push_back(3);
 }
 
-void ItemMeshBuilder::build3DItemMesh(
-    const ::mc::Item& item,
+void ItemMeshBuilder::build3DItemMesh(const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
@@ -365,8 +351,7 @@ void ItemMeshBuilder::build3DItemMesh(
     }
 }
 
-void ItemMeshBuilder::buildGeneratedMesh(
-    const resource::BakedItemModel& model,
+void ItemMeshBuilder::buildGeneratedMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
@@ -388,7 +373,7 @@ void ItemMeshBuilder::buildGeneratedMesh(
 
     // 为每一层生成 billboard 四边形
     for (size_t layer = 0; layer < layers.size(); ++layer) {
-        f32 zOffset = static_cast<f32>(layer * 0.001);  // 防止 z-fighting
+        f32 zOffset = static_cast<f32>(layer * 0.001); // 防止 z-fighting
 
         // 占位符 UV（实际应从 ItemTextureAtlas 获取）
         f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
@@ -434,8 +419,7 @@ void ItemMeshBuilder::buildGeneratedMesh(
     (void)item;
 }
 
-void ItemMeshBuilder::buildBlockItemMesh(
-    const resource::BakedItemModel& model,
+void ItemMeshBuilder::buildBlockItemMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
@@ -473,56 +457,32 @@ void ItemMeshBuilder::buildBlockItemMesh(
                 case Direction::North: // Z-
                     normal = glm::vec3(0.0f, 0.0f, -1.0f);
                     corners = {
-                        glm::vec3(x1, y1, z1),
-                        glm::vec3(x2, y1, z1),
-                        glm::vec3(x2, y2, z1),
-                        glm::vec3(x1, y2, z1)
-                    };
+                        glm::vec3(x1, y1, z1), glm::vec3(x2, y1, z1), glm::vec3(x2, y2, z1), glm::vec3(x1, y2, z1)};
                     break;
                 case Direction::South: // Z+
                     normal = glm::vec3(0.0f, 0.0f, 1.0f);
                     corners = {
-                        glm::vec3(x2, y1, z2),
-                        glm::vec3(x1, y1, z2),
-                        glm::vec3(x1, y2, z2),
-                        glm::vec3(x2, y2, z2)
-                    };
+                        glm::vec3(x2, y1, z2), glm::vec3(x1, y1, z2), glm::vec3(x1, y2, z2), glm::vec3(x2, y2, z2)};
                     break;
                 case Direction::West: // X-
                     normal = glm::vec3(-1.0f, 0.0f, 0.0f);
                     corners = {
-                        glm::vec3(x1, y1, z2),
-                        glm::vec3(x1, y1, z1),
-                        glm::vec3(x1, y2, z1),
-                        glm::vec3(x1, y2, z2)
-                    };
+                        glm::vec3(x1, y1, z2), glm::vec3(x1, y1, z1), glm::vec3(x1, y2, z1), glm::vec3(x1, y2, z2)};
                     break;
                 case Direction::East: // X+
                     normal = glm::vec3(1.0f, 0.0f, 0.0f);
                     corners = {
-                        glm::vec3(x2, y1, z1),
-                        glm::vec3(x2, y1, z2),
-                        glm::vec3(x2, y2, z2),
-                        glm::vec3(x2, y2, z1)
-                    };
+                        glm::vec3(x2, y1, z1), glm::vec3(x2, y1, z2), glm::vec3(x2, y2, z2), glm::vec3(x2, y2, z1)};
                     break;
                 case Direction::Down: // Y-
                     normal = glm::vec3(0.0f, -1.0f, 0.0f);
                     corners = {
-                        glm::vec3(x1, y1, z2),
-                        glm::vec3(x2, y1, z2),
-                        glm::vec3(x2, y1, z1),
-                        glm::vec3(x1, y1, z1)
-                    };
+                        glm::vec3(x1, y1, z2), glm::vec3(x2, y1, z2), glm::vec3(x2, y1, z1), glm::vec3(x1, y1, z1)};
                     break;
                 case Direction::Up: // Y+
                     normal = glm::vec3(0.0f, 1.0f, 0.0f);
                     corners = {
-                        glm::vec3(x1, y2, z1),
-                        glm::vec3(x2, y2, z1),
-                        glm::vec3(x2, y2, z2),
-                        glm::vec3(x1, y2, z2)
-                    };
+                        glm::vec3(x1, y2, z1), glm::vec3(x2, y2, z1), glm::vec3(x2, y2, z2), glm::vec3(x1, y2, z2)};
                     break;
                 default:
                     continue;
@@ -530,18 +490,14 @@ void ItemMeshBuilder::buildBlockItemMesh(
 
             // 添加顶点
             u32 faceBase = static_cast<u32>(vertices.size());
-            vertices.push_back(model::ModelVertex(
-                corners[0].x, corners[0].y, corners[0].z, u0, v1,
-                normal.x, normal.y, normal.z));
-            vertices.push_back(model::ModelVertex(
-                corners[1].x, corners[1].y, corners[1].z, u1, v1,
-                normal.x, normal.y, normal.z));
-            vertices.push_back(model::ModelVertex(
-                corners[2].x, corners[2].y, corners[2].z, u1, v0,
-                normal.x, normal.y, normal.z));
-            vertices.push_back(model::ModelVertex(
-                corners[3].x, corners[3].y, corners[3].z, u0, v0,
-                normal.x, normal.y, normal.z));
+            vertices.push_back(
+                model::ModelVertex(corners[0].x, corners[0].y, corners[0].z, u0, v1, normal.x, normal.y, normal.z));
+            vertices.push_back(
+                model::ModelVertex(corners[1].x, corners[1].y, corners[1].z, u1, v1, normal.x, normal.y, normal.z));
+            vertices.push_back(
+                model::ModelVertex(corners[2].x, corners[2].y, corners[2].z, u1, v0, normal.x, normal.y, normal.z));
+            vertices.push_back(
+                model::ModelVertex(corners[3].x, corners[3].y, corners[3].z, u0, v0, normal.x, normal.y, normal.z));
 
             // 添加索引
             indices.push_back(faceBase + 0);
@@ -562,8 +518,7 @@ void ItemMeshBuilder::buildBlockItemMesh(
     }
 }
 
-void ItemMeshBuilder::buildCustomMesh(
-    const resource::BakedItemModel& model,
+void ItemMeshBuilder::buildCustomMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
@@ -574,9 +529,7 @@ void ItemMeshBuilder::buildCustomMesh(
 }
 
 void ItemMeshBuilder::buildFallbackMesh(
-    const ::mc::Item& item,
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    const ::mc::Item& item, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 简单的立方体作为回退
     f64 size = ITEM_SCALE * 16.0;
@@ -597,19 +550,25 @@ void ItemMeshBuilder::buildFallbackMesh(
     vertices.push_back(model::ModelVertex(halfSize, halfSize, -halfSize, u0, v0, 0.0, 0.0, -1.0));
 
     // 前面三角形
-    indices.push_back(0); indices.push_back(1); indices.push_back(2);
-    indices.push_back(0); indices.push_back(2); indices.push_back(3);
+    indices.push_back(0);
+    indices.push_back(1);
+    indices.push_back(2);
+    indices.push_back(0);
+    indices.push_back(2);
+    indices.push_back(3);
 
     // 后面三角形
-    indices.push_back(4); indices.push_back(5); indices.push_back(6);
-    indices.push_back(4); indices.push_back(6); indices.push_back(7);
+    indices.push_back(4);
+    indices.push_back(5);
+    indices.push_back(6);
+    indices.push_back(4);
+    indices.push_back(6);
+    indices.push_back(7);
 
     (void)item;
 }
 
-void ItemMeshBuilder::applyMatrixToVertices(
-    std::vector<model::ModelVertex>& vertices,
-    const glm::mat4& matrix)
+void ItemMeshBuilder::applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix)
 {
     for (auto& vertex : vertices) {
         glm::vec4 pos(vertex.position.x, vertex.position.y, vertex.position.z, 1.0f);
@@ -630,8 +589,7 @@ void ItemMeshBuilder::applyMatrixToVertices(
     }
 }
 
-void ItemMeshBuilder::applyHeldItemTransform(
-    std::vector<model::ModelVertex>& vertices,
+void ItemMeshBuilder::applyHeldItemTransform(std::vector<model::ModelVertex>& vertices,
     ItemTransformType transformType,
     f32 limbSwing,
     f32 swingProgress,
@@ -641,9 +599,7 @@ void ItemMeshBuilder::applyHeldItemTransform(
     transformVertices(vertices, transform);
 }
 
-void ItemMeshBuilder::transformVertices(
-    std::vector<model::ModelVertex>& vertices,
-    const std::array<f64, 16>& matrix)
+void ItemMeshBuilder::transformVertices(std::vector<model::ModelVertex>& vertices, const std::array<f64, 16>& matrix)
 {
     for (auto& vertex : vertices) {
         f64 x = static_cast<f64>(vertex.position.x);
@@ -651,12 +607,9 @@ void ItemMeshBuilder::transformVertices(
         f64 z = static_cast<f64>(vertex.position.z);
         f64 w = 1.0;
 
-        vertex.position.x = static_cast<f32>(
-            matrix[0] * x + matrix[1] * y + matrix[2] * z + matrix[3] * w);
-        vertex.position.y = static_cast<f32>(
-            matrix[4] * x + matrix[5] * y + matrix[6] * z + matrix[7] * w);
-        vertex.position.z = static_cast<f32>(
-            matrix[8] * x + matrix[9] * y + matrix[10] * z + matrix[11] * w);
+        vertex.position.x = static_cast<f32>(matrix[0] * x + matrix[1] * y + matrix[2] * z + matrix[3] * w);
+        vertex.position.y = static_cast<f32>(matrix[4] * x + matrix[5] * y + matrix[6] * z + matrix[7] * w);
+        vertex.position.z = static_cast<f32>(matrix[8] * x + matrix[9] * y + matrix[10] * z + matrix[11] * w);
     }
 }
 

@@ -1,17 +1,17 @@
 ﻿#include "PistonBlockEntity.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/Block.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/MoverType.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/Direction.hpp"
+#include "../../IWorld.hpp"
+#include "../../block/Block.hpp"
+#include "../../block/BlockRegistry.hpp"
+#include "../../block/VanillaBlocks.hpp"
 
-#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cmath>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace blockentity {
@@ -26,16 +26,17 @@ constexpr f32 PISTON_PUSH_EPSILON = 0.01f;
 /**
  * @brief 计算活塞在本次 tick 的推进距离。
  */
-[[nodiscard]] f32 computeMoveDistance(f32 previousProgress, f32 nextProgress) {
+[[nodiscard]] f32 computeMoveDistance(f32 previousProgress, f32 nextProgress)
+{
     return std::max(0.0f, nextProgress - previousProgress);
 }
 
 /**
  * @brief 计算方向向量。
  */
-[[nodiscard]] Vector3 toDirectionVector(Direction direction) {
-    return Vector3(
-        static_cast<f32>(Directions::xOffset(direction)),
+[[nodiscard]] Vector3 toDirectionVector(Direction direction)
+{
+    return Vector3(static_cast<f32>(Directions::xOffset(direction)),
         static_cast<f32>(Directions::yOffset(direction)),
         static_cast<f32>(Directions::zOffset(direction)));
 }
@@ -43,9 +44,8 @@ constexpr f32 PISTON_PUSH_EPSILON = 0.01f;
 /**
  * @brief 获取本次可能碰撞到实体的扫描包围盒。
  */
-[[nodiscard]] AxisAlignedBB buildSweepBox(const AxisAlignedBB& pistonBox,
-                                          Direction direction,
-                                          f32 moveDistance) {
+[[nodiscard]] AxisAlignedBB buildSweepBox(const AxisAlignedBB& pistonBox, Direction direction, f32 moveDistance)
+{
     if (moveDistance <= 0.0f) {
         return pistonBox;
     }
@@ -81,7 +81,8 @@ constexpr f32 PISTON_PUSH_EPSILON = 0.01f;
  *
  * 参考: MC 1.16.5 PistonTileEntity.getMovement()
  */
-[[nodiscard]] f32 getMovement(const AxisAlignedBB& pistonBox, Direction direction, const AxisAlignedBB& entityBox) {
+[[nodiscard]] f32 getMovement(const AxisAlignedBB& pistonBox, Direction direction, const AxisAlignedBB& entityBox)
+{
     switch (direction) {
         case Direction::Down:
             return pistonBox.minY - entityBox.maxY;
@@ -110,15 +111,11 @@ PistonBlockEntity::PistonBlockEntity(const BlockPos& pos)
     , m_shouldRenderHead(false)
     , m_progress(0.0f)
     , m_lastProgress(0.0f)
-    , m_lastTicked(0) {
-}
+    , m_lastTicked(0)
+{}
 
 PistonBlockEntity::PistonBlockEntity(
-    const BlockPos& pos,
-    const BlockState* pistonState,
-    Direction facing,
-    bool extending,
-    bool shouldRenderHead)
+    const BlockPos& pos, const BlockState* pistonState, Direction facing, bool extending, bool shouldRenderHead)
     : BlockEntity(BlockEntityType::Piston, pos)
     , m_pistonState(pistonState)
     , m_facing(facing)
@@ -126,10 +123,11 @@ PistonBlockEntity::PistonBlockEntity(
     , m_shouldRenderHead(shouldRenderHead)
     , m_progress(0.0f)
     , m_lastProgress(0.0f)
-    , m_lastTicked(0) {
-}
+    , m_lastTicked(0)
+{}
 
-bool PistonBlockEntity::load(const nlohmann::json& data) {
+bool PistonBlockEntity::load(const nlohmann::json& data)
+{
     if (!BlockEntity::load(data)) {
         return false;
     }
@@ -150,7 +148,8 @@ bool PistonBlockEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void PistonBlockEntity::save(nlohmann::json& data) const {
+void PistonBlockEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     if (m_pistonState != nullptr) {
@@ -163,7 +162,8 @@ void PistonBlockEntity::save(nlohmann::json& data) const {
     data["progress"] = m_progress;
 }
 
-std::unique_ptr<BlockEntity> PistonBlockEntity::clone() const {
+std::unique_ptr<BlockEntity> PistonBlockEntity::clone() const
+{
     auto cloned = std::make_unique<PistonBlockEntity>(m_pos);
     cloned->m_facing = m_facing;
     cloned->m_extending = m_extending;
@@ -175,30 +175,36 @@ std::unique_ptr<BlockEntity> PistonBlockEntity::clone() const {
     return cloned;
 }
 
-float PistonBlockEntity::getProgress(float partialTick) const {
+float PistonBlockEntity::getProgress(float partialTick) const
+{
     if (partialTick > 1.0f) {
         partialTick = 1.0f;
     }
     return m_lastProgress + (m_progress - m_lastProgress) * partialTick;
 }
 
-Direction PistonBlockEntity::getMotionDirection() const {
+Direction PistonBlockEntity::getMotionDirection() const
+{
     return m_extending ? m_facing : Directions::opposite(m_facing);
 }
 
-float PistonBlockEntity::getOffsetX(float partialTick) const {
+float PistonBlockEntity::getOffsetX(float partialTick) const
+{
     return static_cast<float>(Directions::xOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
-float PistonBlockEntity::getOffsetY(float partialTick) const {
+float PistonBlockEntity::getOffsetY(float partialTick) const
+{
     return static_cast<float>(Directions::yOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
-float PistonBlockEntity::getOffsetZ(float partialTick) const {
+float PistonBlockEntity::getOffsetZ(float partialTick) const
+{
     return static_cast<float>(Directions::zOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
-void PistonBlockEntity::clearPistonBlockEntity(IWorld& world) {
+void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
+{
     if (m_progress < COMPLETE_THRESHOLD) {
         m_progress = COMPLETE_THRESHOLD;
         m_lastProgress = m_progress;
@@ -226,7 +232,8 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world) {
     }
 }
 
-void PistonBlockEntity::tick(IWorld& world) {
+void PistonBlockEntity::tick(IWorld& world)
+{
     // MC 1.16.5: 记录游戏时间用于漏斗链优化
     // 参考: PistonTileEntity.tick() 第 290 行
     m_lastTicked = static_cast<i64>(world.getGameTime());
@@ -253,11 +260,13 @@ void PistonBlockEntity::tick(IWorld& world) {
     }
 }
 
-float PistonBlockEntity::getExtendedProgress(float progress) const {
+float PistonBlockEntity::getExtendedProgress(float progress) const
+{
     return m_extending ? progress - 1.0f : 1.0f - progress;
 }
 
-void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta) {
+void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
+{
     // MC 1.16.5 对齐 - 参考 PistonTileEntity.moveCollidedEntities()
     if (m_pistonState == nullptr) {
         return;
@@ -347,14 +356,14 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
     }
 }
 
-void PistonBlockEntity::fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance) {
+void PistonBlockEntity::fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance)
+{
     // MC 1.16.5: fixEntityWithinPistonBase
     // 当活塞收回时，检查实体是否卡在活塞基座内
     // 如果是，将实体推出到基座之外
 
     // 活塞基座碰撞箱（方块本身）
-    const AxisAlignedBB pistonBaseBox(
-        static_cast<f32>(m_pos.x),
+    const AxisAlignedBB pistonBaseBox(static_cast<f32>(m_pos.x),
         static_cast<f32>(m_pos.y),
         static_cast<f32>(m_pos.z),
         static_cast<f32>(m_pos.x + 1),
@@ -388,16 +397,17 @@ void PistonBlockEntity::fixEntityWithinPistonBase(Entity& entity, Direction dire
     }
 }
 
-AxisAlignedBB PistonBlockEntity::moveByPositionAndProgress(const AxisAlignedBB& aabb) const {
+AxisAlignedBB PistonBlockEntity::moveByPositionAndProgress(const AxisAlignedBB& aabb) const
+{
     const float extendedProgress = getExtendedProgress(m_progress);
     return aabb.offsetted(
         static_cast<f32>(m_pos.x) + extendedProgress * static_cast<float>(Directions::xOffset(m_facing)),
         static_cast<f32>(m_pos.y) + extendedProgress * static_cast<float>(Directions::yOffset(m_facing)),
-        static_cast<f32>(m_pos.z) + extendedProgress * static_cast<float>(Directions::zOffset(m_facing))
-    );
+        static_cast<f32>(m_pos.z) + extendedProgress * static_cast<float>(Directions::zOffset(m_facing)));
 }
 
-bool PistonBlockEntity::isHoneyBlock() const {
+bool PistonBlockEntity::isHoneyBlock() const
+{
     // MC 1.16.5: 检查活塞移动的方块是否是蜂蜜块
     // 参考: PistonTileEntity.func_227025_y_()
     if (m_pistonState == nullptr) {
@@ -406,7 +416,8 @@ bool PistonBlockEntity::isHoneyBlock() const {
     return m_pistonState->is(VanillaBlocks::HONEY_BLOCK);
 }
 
-void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDelta) {
+void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDelta)
+{
     // MC 1.16.5: 参考 PistonTileEntity.func_227024_g_()
     // 当活塞推动蜂蜜块时，站在蜂蜜块上方的实体应该被拖拽
 
@@ -444,9 +455,8 @@ void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDe
 
         // 构建蜂蜜块上方实体的扫描区域
         // MC 1.16.5: 从碰撞箱顶部向上 1.5 格
-        AxisAlignedBB honeyBox = moveByPositionAndProgress(AxisAlignedBB(
-            0.0f, maxY, 0.0f,
-            1.0f, maxY + 1.5000001f, 1.0f));
+        AxisAlignedBB honeyBox =
+            moveByPositionAndProgress(AxisAlignedBB(0.0f, maxY, 0.0f, 1.0f, maxY + 1.5000001f, 1.0f));
 
         // 获取该区域内的实体
         const std::vector<Entity*> entitiesAbove = world.getEntitiesInAABB(honeyBox, nullptr);
@@ -470,8 +480,8 @@ void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDe
 
             // 检查实体 X/Z 坐标是否在蜂蜜块范围内
             const Vector3 entityPos = entity->position();
-            if (entityPos.x < honeyBox.minX || entityPos.x > honeyBox.maxX ||
-                entityPos.z < honeyBox.minZ || entityPos.z > honeyBox.maxZ) {
+            if (entityPos.x < honeyBox.minX || entityPos.x > honeyBox.maxX || entityPos.z < honeyBox.minZ ||
+                entityPos.z > honeyBox.maxZ) {
                 continue;
             }
 

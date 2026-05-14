@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
-#include "../../../interfaces/IRideable.hpp"
-#include "../../../core/BoostHelper.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../core/BoostHelper.hpp"
+#include "../../../interfaces/IRideable.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <cmath>
 #include <memory>
 
@@ -91,8 +91,16 @@ public:
 
     [[nodiscard]] bool hasSaddle() const override { return m_saddled; }
     void setSaddle(bool saddle) override;
-    void onPlayerStartRiding(mc::Player* player) override { MC_UNUSED(player); m_isBeingRidden = true; }
-    void onPlayerStopRiding(mc::Player* player) override { MC_UNUSED(player); m_isBeingRidden = false; }
+    void onPlayerStartRiding(mc::Player* player) override
+    {
+        MC_UNUSED(player);
+        m_isBeingRidden = true;
+    }
+    void onPlayerStopRiding(mc::Player* player) override
+    {
+        MC_UNUSED(player);
+        m_isBeingRidden = false;
+    }
     [[nodiscard]] f32 getSteeringSpeed() const override;
     bool boost() override;
 
@@ -186,7 +194,8 @@ public:
      *
      * 这个方法产生一个基于步态动画的上下波动效果，模拟炽足兽行走时的起伏。
      */
-    [[nodiscard]] f64 getMountedYOffset() const override {
+    [[nodiscard]] f64 getMountedYOffset() const override
+    {
         // MC 1.16.5: 计算步态动画参数
         // f = min(0.25, limbSwingAmount) - 限制最大波动幅度
         // f1 = limbSwing - 步态周期计数器
@@ -197,7 +206,7 @@ public:
         // 加上动态波动 = 0.12 * cos(limbSwing * 1.5) * 2.0 * limbSwingAmountClamped
         // 这产生一个基于步态的上下波动效果
         return static_cast<f64>(height()) - 0.19 +
-               static_cast<f64>(0.12f * std::cos(limbSwingValue * 1.5f) * 2.0f * limbSwingAmountClamped);
+            static_cast<f64>(0.12f * std::cos(limbSwingValue * 1.5f) * 2.0f * limbSwingAmountClamped);
     }
 
     // ========== 生命周期 ==========

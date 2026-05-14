@@ -26,11 +26,14 @@ namespace blocks {
  * 参考 MC 1.16.5: net.minecraft.block.FireBlock
  */
 struct FireInfo {
-    i32 encouragement = 0;  ///< 火焰蔓延速度
-    i32 flammability = 0;   ///< 可燃性 (0-300)
+    i32 encouragement = 0; ///< 火焰蔓延速度
+    i32 flammability = 0;  ///< 可燃性 (0-300)
 
     constexpr FireInfo() = default;
-    constexpr FireInfo(i32 enc, i32 flam) : encouragement(enc), flammability(flam) {}
+    constexpr FireInfo(i32 enc, i32 flam)
+        : encouragement(enc)
+        , flammability(flam)
+    {}
 };
 
 /**

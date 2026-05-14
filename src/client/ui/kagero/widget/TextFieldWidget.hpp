@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Widget.hpp"
-#include "../paint/PaintContext.hpp"
 #include "../../Font.hpp"
 #include "../../Glyph.hpp"
+#include "../paint/PaintContext.hpp"
+#include "Widget.hpp"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -26,16 +26,19 @@ public:
      * @brief 构造函数
      */
     TextFieldWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
-        : Widget(std::move(id)) {
+        : Widget(std::move(id))
+    {
         setBounds(Rect(x, y, width, height));
     }
 
-    void tick(f32 dt) override {
+    void tick(f32 dt) override
+    {
         (void)dt;
         ++m_cursorBlinkCounter;
     }
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         if (!isVisible()) return;
 
         if (m_drawBackground) {
@@ -65,7 +68,8 @@ public:
     /**
      * @brief 鼠标点击处理
      */
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseY;
 
         if (!isActive() || !isVisible()) return false;
@@ -76,7 +80,8 @@ public:
         return true;
     }
 
-    bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override {
+    bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
+    {
         (void)scanCode;
         if (!canWrite()) return false;
         if (action != 1 && action != 2) return false;
@@ -84,9 +89,7 @@ public:
         const bool previousShiftHeld = m_shiftHeld;
         m_shiftHeld = (mods & 0x0001) != 0;
 
-        const auto restoreShift = [&]() {
-            m_shiftHeld = previousShiftHeld;
-        };
+        const auto restoreShift = [&]() { m_shiftHeld = previousShiftHeld; };
 
         switch (key) {
             case 259:
@@ -123,7 +126,8 @@ public:
         }
     }
 
-    bool onChar(u32 codePoint) override {
+    bool onChar(u32 codePoint) override
+    {
         if (!canWrite()) return false;
         if (!isAllowedCharacter(codePoint)) return false;
 
@@ -134,7 +138,8 @@ public:
     /**
      * @brief 设置文本
      */
-    void setText(const std::string& text) {
+    void setText(const std::string& text)
+    {
         if (m_validator && !m_validator(text)) return;
 
         std::string newText = text;
@@ -158,7 +163,8 @@ public:
     /**
      * @brief 在光标处写入文本，或替换当前选区
      */
-    void writeText(const std::string& text) {
+    void writeText(const std::string& text)
+    {
         if (text.empty() && !hasSelection()) return;
         if (!m_active) return;
 
@@ -184,7 +190,8 @@ public:
     /**
      * @brief 获取选中的文本
      */
-    [[nodiscard]] std::string getSelectedText() const {
+    [[nodiscard]] std::string getSelectedText() const
+    {
         const i32 start = std::min(m_cursorPosition, m_selectionEnd);
         const i32 end = std::max(m_cursorPosition, m_selectionEnd);
         return m_text.substr(start, end - start);
@@ -193,7 +200,8 @@ public:
     /**
      * @brief 删除选中的文本
      */
-    void deleteSelectedText() {
+    void deleteSelectedText()
+    {
         if (!hasSelection()) return;
 
         const i32 start = std::min(m_cursorPosition, m_selectionEnd);
@@ -211,7 +219,8 @@ public:
     /**
      * @brief 设置光标位置
      */
-    void setCursorPosition(i32 position) {
+    void setCursorPosition(i32 position)
+    {
         m_cursorPosition = clampPosition(position);
         if (!m_shiftHeld) {
             m_selectionEnd = m_cursorPosition;
@@ -222,23 +231,17 @@ public:
     /**
      * @brief 将光标移到开头
      */
-    void setCursorPositionStart() {
-        setCursorPosition(0);
-    }
+    void setCursorPositionStart() { setCursorPosition(0); }
 
     /**
      * @brief 将光标移到结尾
      */
-    void setCursorPositionEnd() {
-        setCursorPosition(static_cast<i32>(m_text.size()));
-    }
+    void setCursorPositionEnd() { setCursorPosition(static_cast<i32>(m_text.size())); }
 
     /**
      * @brief 按偏移量移动光标
      */
-    void moveCursorBy(i32 delta) {
-        setCursorPosition(m_cursorPosition + delta);
-    }
+    void moveCursorBy(i32 delta) { setCursorPosition(m_cursorPosition + delta); }
 
     /**
      * @brief 获取光标位置
@@ -248,7 +251,8 @@ public:
     /**
      * @brief 设置选区结束位置
      */
-    void setSelectionPosition(i32 position) {
+    void setSelectionPosition(i32 position)
+    {
         m_selectionEnd = clampPosition(position);
         updateScrollOffset();
     }
@@ -256,7 +260,8 @@ public:
     /**
      * @brief 全选文本
      */
-    void selectAll() {
+    void selectAll()
+    {
         setCursorPositionEnd();
         m_selectionEnd = 0;
     }
@@ -264,21 +269,18 @@ public:
     /**
      * @brief 清除选区
      */
-    void clearSelection() {
-        m_selectionEnd = m_cursorPosition;
-    }
+    void clearSelection() { m_selectionEnd = m_cursorPosition; }
 
     /**
      * @brief 是否存在选区
      */
-    [[nodiscard]] bool hasSelection() const {
-        return m_cursorPosition != m_selectionEnd;
-    }
+    [[nodiscard]] bool hasSelection() const { return m_cursorPosition != m_selectionEnd; }
 
     /**
      * @brief 设置最大长度
      */
-    void setMaxLength(i32 maxLength) {
+    void setMaxLength(i32 maxLength)
+    {
         m_maxLength = std::max(0, maxLength);
         if (static_cast<i32>(m_text.size()) > m_maxLength) {
             m_text = m_text.substr(0, m_maxLength);
@@ -297,9 +299,7 @@ public:
     /**
      * @brief 设置占位符文本
      */
-    void setPlaceholder(const std::string& placeholder) {
-        m_placeholder = placeholder;
-    }
+    void setPlaceholder(const std::string& placeholder) { m_placeholder = placeholder; }
 
     /**
      * @brief 获取占位符文本
@@ -309,23 +309,17 @@ public:
     /**
      * @brief 设置文本变化回调
      */
-    void setTextChangedCallback(TextChangedCallback callback) {
-        m_onTextChanged = std::move(callback);
-    }
+    void setTextChangedCallback(TextChangedCallback callback) { m_onTextChanged = std::move(callback); }
 
     /**
      * @brief 设置文本验证器
      */
-    void setValidator(TextValidator validator) {
-        m_validator = std::move(validator);
-    }
+    void setValidator(TextValidator validator) { m_validator = std::move(validator); }
 
     /**
      * @brief 设置是否启用
      */
-    void setEnabled(bool enabled) {
-        m_enabled = enabled;
-    }
+    void setEnabled(bool enabled) { m_enabled = enabled; }
 
     /**
      * @brief 是否启用
@@ -335,9 +329,7 @@ public:
     /**
      * @brief 设置是否允许失去焦点时保留选区
      */
-    void setCanLoseFocus(bool canLoseFocus) {
-        m_canLoseFocus = canLoseFocus;
-    }
+    void setCanLoseFocus(bool canLoseFocus) { m_canLoseFocus = canLoseFocus; }
 
     /**
      * @brief 是否允许失去焦点时保留选区
@@ -347,9 +339,7 @@ public:
     /**
      * @brief 设置是否绘制背景
      */
-    void setDrawBackground(bool draw) {
-        m_drawBackground = draw;
-    }
+    void setDrawBackground(bool draw) { m_drawBackground = draw; }
 
     /**
      * @brief 是否绘制背景
@@ -359,9 +349,7 @@ public:
     /**
      * @brief 设置文本颜色
      */
-    void setTextColor(u32 color) {
-        m_textColor = color;
-    }
+    void setTextColor(u32 color) { m_textColor = color; }
 
     /**
      * @brief 获取文本颜色
@@ -371,9 +359,7 @@ public:
     /**
      * @brief 设置禁用状态下的文本颜色
      */
-    void setDisabledTextColor(u32 color) {
-        m_disabledTextColor = color;
-    }
+    void setDisabledTextColor(u32 color) { m_disabledTextColor = color; }
 
     /**
      * @brief 获取禁用状态下的文本颜色
@@ -385,7 +371,8 @@ public:
      *
      * @note 该指针由外部管理生命周期，TextFieldWidget 不接管所有权。
      */
-    void setFont(void* font) {
+    void setFont(void* font)
+    {
         m_font = font;
         updateScrollOffset();
     }
@@ -398,15 +385,14 @@ public:
     /**
      * @brief 是否允许写入文本
      */
-    [[nodiscard]] bool canWrite() const {
-        return isVisible() && isFocused() && m_enabled;
-    }
+    [[nodiscard]] bool canWrite() const { return isVisible() && isFocused() && m_enabled; }
 
 protected:
     /**
      * @brief 失去焦点时清除选区
      */
-    void onFocusLost() override {
+    void onFocusLost() override
+    {
         if (m_canLoseFocus) {
             m_selectionEnd = m_cursorPosition;
         }
@@ -415,7 +401,8 @@ protected:
     /**
      * @brief 文本变化后回调
      */
-    virtual void onTextChanged() {
+    virtual void onTextChanged()
+    {
         if (m_onTextChanged) {
             m_onTextChanged(m_text);
         }
@@ -424,7 +411,8 @@ protected:
     /**
      * @brief 从光标处删除字符
      */
-    void deleteFromCursor(i32 delta) {
+    void deleteFromCursor(i32 delta)
+    {
         if (hasSelection()) {
             deleteSelectedText();
             return;
@@ -456,14 +444,13 @@ protected:
     /**
      * @brief 获取外部字体对象
      */
-    [[nodiscard]] ::mc::client::Font* resolvedFont() const {
-        return static_cast<::mc::client::Font*>(m_font);
-    }
+    [[nodiscard]] ::mc::client::Font* resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
 
     /**
      * @brief 计算单个码点的宽度
      */
-    [[nodiscard]] f32 measureGlyphAdvance(char32_t codePoint) const {
+    [[nodiscard]] f32 measureGlyphAdvance(char32_t codePoint) const
+    {
         if (auto* font = resolvedFont()) {
             if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
                 return glyph->advance;
@@ -476,7 +463,8 @@ protected:
     /**
      * @brief 计算文本宽度
      */
-    [[nodiscard]] f32 measureTextWidth(const std::string& text) const {
+    [[nodiscard]] f32 measureTextWidth(const std::string& text) const
+    {
         f32 width = 0.0f;
         for (char32_t codePoint : text) {
             width += measureGlyphAdvance(codePoint);
@@ -487,7 +475,8 @@ protected:
     /**
      * @brief 计算指定位置之前的文本宽度
      */
-    [[nodiscard]] f32 measurePrefixWidth(i32 position) const {
+    [[nodiscard]] f32 measurePrefixWidth(i32 position) const
+    {
         const i32 clamped = clampPosition(position);
         f32 width = 0.0f;
         for (i32 index = 0; index < clamped; ++index) {
@@ -499,7 +488,8 @@ protected:
     /**
      * @brief 根据像素偏移量计算光标位置
      */
-    [[nodiscard]] i32 positionFromTextOffset(f32 offset) const {
+    [[nodiscard]] i32 positionFromTextOffset(f32 offset) const
+    {
         if (offset <= 0.0f) {
             return 0;
         }
@@ -520,7 +510,8 @@ protected:
     /**
      * @brief 根据鼠标位置计算光标位置
      */
-    [[nodiscard]] i32 positionFromMouseX(i32 mouseX) const {
+    [[nodiscard]] i32 positionFromMouseX(i32 mouseX) const
+    {
         const i32 innerWidth = innerTextWidth();
         const i32 localX = std::clamp(mouseX - textStartX(), 0, innerWidth);
         return positionFromTextOffset(static_cast<f32>(m_scrollOffset + localX));
@@ -529,14 +520,13 @@ protected:
     /**
      * @brief 获取文本起始 X 坐标
      */
-    [[nodiscard]] i32 textStartX() const {
-        return bounds().x + 1 + padding().left;
-    }
+    [[nodiscard]] i32 textStartX() const { return bounds().x + 1 + padding().left; }
 
     /**
      * @brief 获取文本基线 Y 坐标
      */
-    [[nodiscard]] i32 getTextBaselineY(PaintContext& ctx) const {
+    [[nodiscard]] i32 getTextBaselineY(PaintContext& ctx) const
+    {
         const i32 fontHeight = static_cast<i32>(ctx.getFontHeight());
         return bounds().y + (bounds().height - fontHeight) / 2;
     }
@@ -544,7 +534,8 @@ protected:
     /**
      * @brief 获取内容区域剪裁范围
      */
-    [[nodiscard]] Rect getTextClipBounds() const {
+    [[nodiscard]] Rect getTextClipBounds() const
+    {
         const i32 left = bounds().x + 1 + padding().left;
         const i32 top = bounds().y + 1 + padding().top;
         const i32 width = std::max(0, bounds().width - 2 - padding().horizontal());
@@ -555,14 +546,13 @@ protected:
     /**
      * @brief 获取可显示的文本宽度
      */
-    [[nodiscard]] i32 innerTextWidth() const {
-        return std::max(0, bounds().width - 2 - padding().horizontal());
-    }
+    [[nodiscard]] i32 innerTextWidth() const { return std::max(0, bounds().width - 2 - padding().horizontal()); }
 
     /**
      * @brief 更新滚动偏移，确保光标始终可见
      */
-    void updateScrollOffset() {
+    void updateScrollOffset()
+    {
         const i32 visibleWidth = innerTextWidth();
         if (visibleWidth <= 0) {
             m_scrollOffset = 0;
@@ -584,14 +574,16 @@ protected:
     /**
      * @brief 限制光标位置在有效范围内
      */
-    [[nodiscard]] i32 clampPosition(i32 pos) const {
+    [[nodiscard]] i32 clampPosition(i32 pos) const
+    {
         return std::max(0, std::min(pos, static_cast<i32>(m_text.size())));
     }
 
     /**
      * @brief 检查字符是否允许输入
      */
-    static bool isAllowedCharacter(u32 codePoint) {
+    static bool isAllowedCharacter(u32 codePoint)
+    {
         if (codePoint < 32) return false;
         if (codePoint == 127) return false;
         return true;
@@ -600,7 +592,8 @@ protected:
     /**
      * @brief 过滤允许输入的字符
      */
-    static std::string filterAllowedCharacters(const std::string& text) {
+    static std::string filterAllowedCharacters(const std::string& text)
+    {
         std::string result;
         result.reserve(text.size());
         for (char32_t codePoint : text) {
@@ -614,7 +607,8 @@ protected:
     /**
      * @brief 将码点转为字符串
      */
-    static std::string codePointToString(u32 codePoint) {
+    static std::string codePointToString(u32 codePoint)
+    {
         std::string result;
         result.push_back(static_cast<char32_t>(codePoint));
         return result;

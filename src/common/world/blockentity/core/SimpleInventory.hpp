@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../../entity/inventory/IInventory.hpp"
-#include <vector>
 #include <functional>
+#include <vector>
 
 namespace mc {
 namespace blockentity {
@@ -134,9 +134,7 @@ private:
      * @param slot 槽位索引
      * @return 如果有效返回true
      */
-    [[nodiscard]] bool isValidSlot(i32 slot) const {
-        return slot >= 0 && slot < static_cast<i32>(m_items.size());
-    }
+    [[nodiscard]] bool isValidSlot(i32 slot) const { return slot >= 0 && slot < static_cast<i32>(m_items.size()); }
 
     /**
      * @brief 触发变更回调

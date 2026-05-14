@@ -7,18 +7,18 @@
 namespace mc::client {
 
 // 常量
-static constexpr f32 MAX_PENDING_INPUTS = 100;  // 最大待确认输入数量
-static constexpr f32 ROTATION_INTERPOLATION_RATE = 0.3f;  // 旋转插值速率
+static constexpr f32 MAX_PENDING_INPUTS = 100;           // 最大待确认输入数量
+static constexpr f32 ROTATION_INTERPOLATION_RATE = 0.3f; // 旋转插值速率
 
 ClientPlayerPredictor::ClientPlayerPredictor()
     : m_predictedPosition(0.0f, 0.0f, 0.0f)
     , m_serverPosition(0.0f, 0.0f, 0.0f)
     , m_correctionStart(0.0f, 0.0f, 0.0f)
     , m_correctionTarget(0.0f, 0.0f, 0.0f)
-{
-}
+{}
 
-void ClientPlayerPredictor::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+void ClientPlayerPredictor::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking)
+{
     // 保存输入状态
     m_inputForward = forward;
     m_inputStrafe = strafe;
@@ -63,10 +63,11 @@ void ClientPlayerPredictor::handleMovementInput(f32 forward, f32 strafe, bool ju
     }
 
     // 立即更新预测位置
-    updatePrediction(0.05f);  // 假设 50ms 延迟
+    updatePrediction(0.05f); // 假设 50ms 延迟
 }
 
-void ClientPlayerPredictor::handleRotationInput(f32 deltaYaw, f32 deltaPitch) {
+void ClientPlayerPredictor::handleRotationInput(f32 deltaYaw, f32 deltaPitch)
+{
     m_predictedYaw += deltaYaw;
     m_predictedPitch += deltaPitch;
 
@@ -74,11 +75,14 @@ void ClientPlayerPredictor::handleRotationInput(f32 deltaYaw, f32 deltaPitch) {
     m_predictedPitch = std::clamp(m_predictedPitch, -90.0f, 90.0f);
 
     // 归一化偏航角到 [-180, 180]
-    while (m_predictedYaw > 180.0f) m_predictedYaw -= 360.0f;
-    while (m_predictedYaw < -180.0f) m_predictedYaw += 360.0f;
+    while (m_predictedYaw > 180.0f)
+        m_predictedYaw -= 360.0f;
+    while (m_predictedYaw < -180.0f)
+        m_predictedYaw += 360.0f;
 }
 
-void ClientPlayerPredictor::receiveServerPosition(const Vector3& position, f32 yaw, f32 pitch) {
+void ClientPlayerPredictor::receiveServerPosition(const Vector3& position, f32 yaw, f32 pitch)
+{
     m_serverPosition = position;
     m_serverYaw = yaw;
     m_serverPitch = pitch;
@@ -106,11 +110,13 @@ void ClientPlayerPredictor::receiveServerPosition(const Vector3& position, f32 y
     m_predictedPitch = pitch;
 }
 
-void ClientPlayerPredictor::acknowledgeInput(u32 lastAckSequence) {
+void ClientPlayerPredictor::acknowledgeInput(u32 lastAckSequence)
+{
     prunePendingInputs(lastAckSequence);
 }
 
-void ClientPlayerPredictor::tick(f32 deltaTime) {
+void ClientPlayerPredictor::tick(f32 deltaTime)
+{
     // 如果正在校正，进行插值
     if (m_isCorrecting) {
         m_correctionProgress += m_correctionRate;
@@ -131,27 +137,33 @@ void ClientPlayerPredictor::tick(f32 deltaTime) {
     updatePrediction(deltaTime);
 }
 
-Vector3 ClientPlayerPredictor::predictedPosition() const {
+Vector3 ClientPlayerPredictor::predictedPosition() const
+{
     return m_predictedPosition;
 }
 
-std::pair<f32, f32> ClientPlayerPredictor::predictedRotation() const {
+std::pair<f32, f32> ClientPlayerPredictor::predictedRotation() const
+{
     return {m_predictedYaw, m_predictedPitch};
 }
 
-Vector3 ClientPlayerPredictor::serverPosition() const {
+Vector3 ClientPlayerPredictor::serverPosition() const
+{
     return m_serverPosition;
 }
 
-std::pair<f32, f32> ClientPlayerPredictor::serverRotation() const {
+std::pair<f32, f32> ClientPlayerPredictor::serverRotation() const
+{
     return {m_serverYaw, m_serverPitch};
 }
 
-bool ClientPlayerPredictor::hasServerPosition() const {
+bool ClientPlayerPredictor::hasServerPosition() const
+{
     return m_hasServerPosition;
 }
 
-void ClientPlayerPredictor::reset(const Vector3& position, f32 yaw, f32 pitch) {
+void ClientPlayerPredictor::reset(const Vector3& position, f32 yaw, f32 pitch)
+{
     m_predictedPosition = position;
     m_predictedYaw = yaw;
     m_predictedPitch = pitch;
@@ -166,24 +178,29 @@ void ClientPlayerPredictor::reset(const Vector3& position, f32 yaw, f32 pitch) {
     clearPendingInputs();
 }
 
-void ClientPlayerPredictor::clearPendingInputs() {
+void ClientPlayerPredictor::clearPendingInputs()
+{
     m_pendingInputs.clear();
     m_inputSequence = 0;
 }
 
-u32 ClientPlayerPredictor::currentSequence() const {
+u32 ClientPlayerPredictor::currentSequence() const
+{
     return m_inputSequence;
 }
 
-void ClientPlayerPredictor::setMovementSpeed(f32 speed) {
+void ClientPlayerPredictor::setMovementSpeed(f32 speed)
+{
     m_movementSpeed = speed;
 }
 
-void ClientPlayerPredictor::setCorrectionThreshold(f32 threshold) {
+void ClientPlayerPredictor::setCorrectionThreshold(f32 threshold)
+{
     m_correctionThreshold = threshold;
 }
 
-void ClientPlayerPredictor::applyCorrection() {
+void ClientPlayerPredictor::applyCorrection()
+{
     if (!m_hasServerPosition) {
         return;
     }
@@ -195,7 +212,8 @@ void ClientPlayerPredictor::applyCorrection() {
     m_isCorrecting = false;
 }
 
-void ClientPlayerPredictor::updatePrediction(f32 deltaTime) {
+void ClientPlayerPredictor::updatePrediction(f32 deltaTime)
+{
     // 如果有移动输入，更新预测位置
     f32 length = std::sqrt(m_inputForward * m_inputForward + m_inputStrafe * m_inputStrafe);
     if (length > 0.0f) {
@@ -221,7 +239,7 @@ void ClientPlayerPredictor::updatePrediction(f32 deltaTime) {
 
     // 如果正在校正，进行平滑插值
     if (m_isCorrecting) {
-        m_correctionProgress += deltaTime * 5.0f;  // 0.2秒完成校正
+        m_correctionProgress += deltaTime * 5.0f; // 0.2秒完成校正
 
         if (m_correctionProgress >= 1.0f) {
             m_isCorrecting = false;
@@ -230,13 +248,14 @@ void ClientPlayerPredictor::updatePrediction(f32 deltaTime) {
         } else {
             // 使用 smoothstep 插值
             f32 t = m_correctionProgress;
-            t = t * t * (3.0f - 2.0f * t);  // smoothstep
+            t = t * t * (3.0f - 2.0f * t); // smoothstep
             m_predictedPosition = m_correctionStart + (m_correctionTarget - m_correctionStart) * t;
         }
     }
 }
 
-void ClientPlayerPredictor::prunePendingInputs(u32 lastAckSequence) {
+void ClientPlayerPredictor::prunePendingInputs(u32 lastAckSequence)
+{
     // 移除已确认的输入
     while (!m_pendingInputs.empty() && m_pendingInputs.front().sequence <= lastAckSequence) {
         m_pendingInputs.pop_front();

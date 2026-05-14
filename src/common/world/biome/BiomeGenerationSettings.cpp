@@ -1,9 +1,9 @@
 #include "BiomeGenerationSettings.hpp"
+#include "../../util/math/random/Random.hpp"
+#include "../chunk/ChunkPrimer.hpp"
+#include "../gen/chunk/IChunkGenerator.hpp"
 #include "../gen/feature/ConfiguredFeature.hpp"
 #include "../gen/feature/FeatureIds.hpp"
-#include "../gen/chunk/IChunkGenerator.hpp"
-#include "../chunk/ChunkPrimer.hpp"
-#include "../../util/math/random/Random.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -11,7 +11,8 @@ namespace mc {
 
 namespace {
 
-void addDefaultOverworldOres(BiomeGenerationSettings& settings) {
+void addDefaultOverworldOres(BiomeGenerationSettings& settings)
+{
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
@@ -27,14 +28,16 @@ void addDefaultOverworldOres(BiomeGenerationSettings& settings) {
 // BiomeGenerationSettings 实现
 // ============================================================================
 
-BiomeGenerationSettings::BiomeGenerationSettings() {
+BiomeGenerationSettings::BiomeGenerationSettings()
+{
     // 预分配阶段数量
     m_featuresByStage.resize(static_cast<size_t>(DecorationStage::Count));
 }
 
 BiomeGenerationSettings::~BiomeGenerationSettings() = default;
 
-void BiomeGenerationSettings::addFeature(DecorationStage stage, u32 featureId) {
+void BiomeGenerationSettings::addFeature(DecorationStage stage, u32 featureId)
+{
     const size_t stageIndex = static_cast<size_t>(stage);
     if (stageIndex >= m_featuresByStage.size()) {
         return;
@@ -42,7 +45,8 @@ void BiomeGenerationSettings::addFeature(DecorationStage stage, u32 featureId) {
     m_featuresByStage[stageIndex].push_back(featureId);
 }
 
-const std::vector<u32>& BiomeGenerationSettings::getFeatures(DecorationStage stage) const {
+const std::vector<u32>& BiomeGenerationSettings::getFeatures(DecorationStage stage) const
+{
     const size_t stageIndex = static_cast<size_t>(stage);
     if (stageIndex >= m_featuresByStage.size()) {
         static const std::vector<u32> empty;
@@ -51,7 +55,8 @@ const std::vector<u32>& BiomeGenerationSettings::getFeatures(DecorationStage sta
     return m_featuresByStage[stageIndex];
 }
 
-bool BiomeGenerationSettings::hasFeatures() const {
+bool BiomeGenerationSettings::hasFeatures() const
+{
     for (const auto& features : m_featuresByStage) {
         if (!features.empty()) {
             return true;
@@ -60,13 +65,15 @@ bool BiomeGenerationSettings::hasFeatures() const {
     return false;
 }
 
-void BiomeGenerationSettings::clear() {
+void BiomeGenerationSettings::clear()
+{
     for (auto& features : m_featuresByStage) {
         features.clear();
     }
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createDefault() {
+BiomeGenerationSettings BiomeGenerationSettings::createDefault()
+{
     // 默认设置：包含主世界矿石与基础湖泊
     BiomeGenerationSettings settings;
 
@@ -87,7 +94,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDefault() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createPlains() {
+BiomeGenerationSettings BiomeGenerationSettings::createPlains()
+{
     // 平原：基础矿石 + 稀疏的树木 + 花卉 + 草丛
     BiomeGenerationSettings settings = createDefault();
 
@@ -103,7 +111,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createPlains() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createForest() {
+BiomeGenerationSettings BiomeGenerationSettings::createForest()
+{
     // 森林：基础矿石 + 密集的树木 + 森林花卉 + 森林草丛
     BiomeGenerationSettings settings = createDefault();
 
@@ -121,7 +130,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createForest() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createTaiga() {
+BiomeGenerationSettings BiomeGenerationSettings::createTaiga()
+{
     // 针叶林：基础矿石 + 云杉树 + 针叶林草丛
     BiomeGenerationSettings settings = createDefault();
 
@@ -135,7 +145,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createTaiga() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createJungle() {
+BiomeGenerationSettings BiomeGenerationSettings::createJungle()
+{
     // 丛林：基础矿石 + 丛林树 + 丛林草丛
     BiomeGenerationSettings settings = createDefault();
 
@@ -149,7 +160,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createJungle() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createSavanna() {
+BiomeGenerationSettings BiomeGenerationSettings::createSavanna()
+{
     // 稀树草原：基础矿石 + 稀疏橡树 + 稀树草原草丛
     BiomeGenerationSettings settings = createDefault();
 
@@ -162,7 +174,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createSavanna() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createDesert() {
+BiomeGenerationSettings BiomeGenerationSettings::createDesert()
+{
     // 沙漠：矿石 + 仙人掌 + 枯萎灌木
     BiomeGenerationSettings settings = createDefault();
 
@@ -175,7 +188,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDesert() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createSwamp() {
+BiomeGenerationSettings BiomeGenerationSettings::createSwamp()
+{
     // 沼泽：矿石 + 橡树 + 沼泽花卉 + 沼泽草丛 + 甘蔗 + 巨型蘑菇
     BiomeGenerationSettings settings = createDefault();
 
@@ -198,7 +212,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createSwamp() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createRiver() {
+BiomeGenerationSettings BiomeGenerationSettings::createRiver()
+{
     // 河流：矿石 + 河岸甘蔗 + 浅水海草（不额外生成湖泊）
     BiomeGenerationSettings settings;
 
@@ -217,7 +232,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createRiver() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createFrozenRiver() {
+BiomeGenerationSettings BiomeGenerationSettings::createFrozenRiver()
+{
     // 冻河：保留基础矿石，不放置温暖水域植被
     BiomeGenerationSettings settings;
 
@@ -232,7 +248,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createFrozenRiver() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createSwampHills() {
+BiomeGenerationSettings BiomeGenerationSettings::createSwampHills()
+{
     // 沼泽山丘：保留湿地装饰，但降低甘蔗密度
     BiomeGenerationSettings settings = createDefault();
 
@@ -246,7 +263,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createSwampHills() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createIceSpikes() {
+BiomeGenerationSettings BiomeGenerationSettings::createIceSpikes()
+{
     // 冰刺平原：矿石 + 冰刺结构
     BiomeGenerationSettings settings = createDefault();
 
@@ -257,7 +275,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createIceSpikes() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createBadlands() {
+BiomeGenerationSettings BiomeGenerationSettings::createBadlands()
+{
     // 恶地：矿石 + 恶地仙人掌 + 枯萎灌木
     BiomeGenerationSettings settings = createDefault();
 
@@ -270,7 +289,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createBadlands() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createFlowerForest() {
+BiomeGenerationSettings BiomeGenerationSettings::createFlowerForest()
+{
     // 繁花森林：矿石 + 密集树木 + 繁花森林花卉 + 森林草丛
     BiomeGenerationSettings settings = createDefault();
 
@@ -288,7 +308,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createFlowerForest() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createMountains() {
+BiomeGenerationSettings BiomeGenerationSettings::createMountains()
+{
     // 山地：矿石 + 绿宝石 + 云杉树 + 针叶林草丛
     BiomeGenerationSettings settings = createDefault();
 
@@ -304,7 +325,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createMountains() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createOcean()
+{
     // 常温海洋：海草 + 海带（参考原版普通海洋组合）
     BiomeGenerationSettings settings;
 
@@ -316,7 +338,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createDeepOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createDeepOcean()
+{
     // 深海：深海草 + 海带（参考原版深海组合）
     BiomeGenerationSettings settings;
 
@@ -328,7 +351,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createWarmOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createWarmOcean()
+{
     // 暖水海洋：珊瑚植被 + 暖水海草 + 海泡菜
     BiomeGenerationSettings settings;
 
@@ -351,7 +375,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarmOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createLukewarmOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createLukewarmOcean()
+{
     // 温水海洋：海带 + 常规海草
     BiomeGenerationSettings settings;
 
@@ -365,7 +390,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createLukewarmOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createColdOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createColdOcean()
+{
     // 冷水海洋：海带 + 冷水海草
     BiomeGenerationSettings settings;
 
@@ -378,7 +404,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createColdOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createFrozenOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createFrozenOcean()
+{
     // 冻洋：冷水植被 + 蓝冰（参考原版 frozen ocean 特征）
     BiomeGenerationSettings settings;
 
@@ -393,7 +420,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createFrozenOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean()
+{
     // 深暖水海洋：深海草 + 常规海草（原版无海带）
     BiomeGenerationSettings settings;
 
@@ -411,7 +439,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean()
+{
     // 深温水海洋：深海草 + 海带
     // 注意：MC 1.16.5 中深海温水海洋没有珊瑚，珊瑚只在暖水海洋生成
     BiomeGenerationSettings settings;
@@ -427,7 +456,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createDeepColdOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createDeepColdOcean()
+{
     // 深冷水海洋：深海草 + 海带
     BiomeGenerationSettings settings;
 
@@ -440,7 +470,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepColdOcean() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createDeepFrozenOcean() {
+BiomeGenerationSettings BiomeGenerationSettings::createDeepFrozenOcean()
+{
     // 深冻洋：冷水植被 + 蓝冰
     BiomeGenerationSettings settings;
 
@@ -458,7 +489,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepFrozenOcean() {
 // 下界生物群系生成设置
 // ============================================================================
 
-BiomeGenerationSettings BiomeGenerationSettings::createNether() {
+BiomeGenerationSettings BiomeGenerationSettings::createNether()
+{
     // 下界荒地：下界石英矿石 + 下界金矿石 + 萤石 + 岩浆池
     BiomeGenerationSettings settings;
 
@@ -478,7 +510,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createNether() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createSoulSandValley() {
+BiomeGenerationSettings BiomeGenerationSettings::createSoulSandValley()
+{
     // 灵魂沙谷：下界矿石 + 玄武岩柱 + 火焰
     BiomeGenerationSettings settings;
 
@@ -497,7 +530,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createSoulSandValley() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest() {
+BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest()
+{
     // 绯红森林：下界矿石 + 绯红巨型真菌 + 岩浆池
     BiomeGenerationSettings settings;
 
@@ -506,7 +540,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest() {
 
     // 绯红巨型真菌
     settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::CrimsonFungus);
-    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::CrimsonFungus);  // 增加密度
+    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::CrimsonFungus); // 增加密度
 
     // 岩浆池（较少）
     settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchNormal);
@@ -514,7 +548,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createWarpedForest() {
+BiomeGenerationSettings BiomeGenerationSettings::createWarpedForest()
+{
     // 诡异森林：下界矿石 + 诡异巨型真菌
     BiomeGenerationSettings settings;
 
@@ -523,12 +558,13 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarpedForest() {
 
     // 诡异巨型真菌
     settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::WarpedFungus);
-    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::WarpedFungus);  // 增加密度
+    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::WarpedFungus); // 增加密度
 
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas() {
+BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas()
+{
     // 玄武岩三角洲：下界矿石 + 玄武岩柱 + 玄武岩地面 + 岩浆池
     BiomeGenerationSettings settings;
 
@@ -554,7 +590,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas() {
 // 末地生物群系生成设置
 // ============================================================================
 
-BiomeGenerationSettings BiomeGenerationSettings::createTheEnd() {
+BiomeGenerationSettings BiomeGenerationSettings::createTheEnd()
+{
     // 末地主岛：黑曜石柱 + 末影龙战斗
     BiomeGenerationSettings settings;
 
@@ -566,7 +603,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createTheEnd() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createSmallEndIslands() {
+BiomeGenerationSettings BiomeGenerationSettings::createSmallEndIslands()
+{
     // 小型末地岛屿：末地岛特征
     BiomeGenerationSettings settings;
 
@@ -575,14 +613,16 @@ BiomeGenerationSettings BiomeGenerationSettings::createSmallEndIslands() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createEndMidlands() {
+BiomeGenerationSettings BiomeGenerationSettings::createEndMidlands()
+{
     // 末地中部：过渡区域，无特殊特征
     BiomeGenerationSettings settings;
 
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createEndHighlands() {
+BiomeGenerationSettings BiomeGenerationSettings::createEndHighlands()
+{
     // 末地高地：末地城 + 紫颂树
     BiomeGenerationSettings settings;
 
@@ -595,7 +635,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createEndHighlands() {
     return settings;
 }
 
-BiomeGenerationSettings BiomeGenerationSettings::createEndBarrens() {
+BiomeGenerationSettings BiomeGenerationSettings::createEndBarrens()
+{
     // 末地荒地：空旷区域，无特征
     BiomeGenerationSettings settings;
 
@@ -606,8 +647,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createEndBarrens() {
 // BiomeFeaturePlacer 实现
 // ============================================================================
 
-void BiomeFeaturePlacer::placeAllFeatures(
-    WorldGenRegion& region,
+void BiomeFeaturePlacer::placeAllFeatures(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
     const BiomeGenerationSettings& settings,
@@ -619,8 +659,7 @@ void BiomeFeaturePlacer::placeAllFeatures(
     }
 }
 
-void BiomeFeaturePlacer::placeFeaturesForStage(
-    WorldGenRegion& region,
+void BiomeFeaturePlacer::placeFeaturesForStage(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
     const BiomeGenerationSettings& settings,

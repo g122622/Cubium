@@ -1,8 +1,8 @@
 #pragma once
 
-#include "GolemEntity.hpp"
-#include "../../../interfaces/IShearable.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../interfaces/IShearable.hpp"
+#include "GolemEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -140,11 +140,11 @@ private:
     i32 m_snowPlaceCooldown = 0;
 
     // 常量
-    static constexpr i32 ATTACK_COOLDOWN = 10;       // 雪球攻击冷却
-    static constexpr i32 SNOW_PLACE_INTERVAL = 20;   // 雪层放置间隔
-    static constexpr f32 SNOWBALL_DAMAGE = 0.0f;     // 雪球伤害（对烈焰人3）
-    static constexpr i32 MELT_DAMAGE_INTERVAL = 20;  // 融化伤害间隔
-    static constexpr f32 MELT_DAMAGE = 1.0f;         // 融化伤害量
+    static constexpr i32 ATTACK_COOLDOWN = 10;      // 雪球攻击冷却
+    static constexpr i32 SNOW_PLACE_INTERVAL = 20;  // 雪层放置间隔
+    static constexpr f32 SNOWBALL_DAMAGE = 0.0f;    // 雪球伤害（对烈焰人3）
+    static constexpr i32 MELT_DAMAGE_INTERVAL = 20; // 融化伤害间隔
+    static constexpr f32 MELT_DAMAGE = 1.0f;        // 融化伤害量
 };
 
 } // namespace mc

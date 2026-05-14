@@ -5,7 +5,7 @@
 namespace mc::client::renderer::entity::model {
 
 QuadrupedModel::QuadrupedModel()
-    : AgeableModel()  // 使用 AgeableModel 默认构造函数
+    : AgeableModel() // 使用 AgeableModel 默认构造函数
     , m_legHeight(6)
     , m_scale(0.0f)
 {
@@ -28,11 +28,16 @@ QuadrupedModel::QuadrupedModel()
     m_parts.push_back(m_legBackLeft);
 }
 
-QuadrupedModel::QuadrupedModel(i32 legHeight, f32 scale, bool isChildHeadScaled,
-                               f32 childHeadOffsetY, f32 childHeadOffsetZ,
-                               f32 childHeadScale, f32 childBodyScale, f32 childBodyOffsetY)
-    : AgeableModel(isChildHeadScaled, childHeadOffsetY, childHeadOffsetZ,
-                   childHeadScale, childBodyScale, childBodyOffsetY)
+QuadrupedModel::QuadrupedModel(i32 legHeight,
+    f32 scale,
+    bool isChildHeadScaled,
+    f32 childHeadOffsetY,
+    f32 childHeadOffsetZ,
+    f32 childHeadScale,
+    f32 childBodyScale,
+    f32 childBodyOffsetY)
+    : AgeableModel(
+          isChildHeadScaled, childHeadOffsetY, childHeadOffsetZ, childHeadScale, childBodyScale, childBodyOffsetY)
     , m_legHeight(legHeight)
     , m_scale(scale)
 {
@@ -55,7 +60,8 @@ QuadrupedModel::QuadrupedModel(i32 legHeight, f32 scale, bool isChildHeadScaled,
     m_parts.push_back(m_legBackLeft);
 }
 
-void QuadrupedModel::setupParts() {
+void QuadrupedModel::setupParts()
+{
     // 参考 MC 1.16.5 QuadrupedModel 构造函数
     // Java 参数:
     // p_i225948_1_ = legHeight (腿高)
@@ -101,21 +107,24 @@ void QuadrupedModel::setupParts() {
     m_legFrontLeft->setRotationPoint(3.0f, static_cast<f32>(24 - m_legHeight), -5.0f);
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> QuadrupedModel::getHeadParts() const {
-    return { m_head };
+std::vector<std::shared_ptr<ModelRenderer>> QuadrupedModel::getHeadParts() const
+{
+    return {m_head};
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> QuadrupedModel::getBodyParts() const {
-    return { m_body, m_legBackRight, m_legBackLeft, m_legFrontRight, m_legFrontLeft };
+std::vector<std::shared_ptr<ModelRenderer>> QuadrupedModel::getBodyParts() const
+{
+    return {m_body, m_legBackRight, m_legBackLeft, m_legFrontRight, m_legFrontLeft};
 }
 
-void QuadrupedModel::render(f64 scale) {
+void QuadrupedModel::render(f64 scale)
+{
     AgeableModel::render(scale);
 }
 
-void QuadrupedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                f64 /*ageInTicks*/, f64 netHeadYaw,
-                                f64 headPitch, f64 /*scale*/) {
+void QuadrupedModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 /*ageInTicks*/, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
+{
     // 参考 MC 1.16.5 QuadrupedModel.setRotationAngles
 
     // 头部旋转 - Java: headPitch * ((float)Math.PI / 180F)

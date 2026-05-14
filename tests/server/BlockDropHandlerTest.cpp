@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "server/world/drop/BlockDropHandler.hpp"
-#include "common/world/entity/EntityManager.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "server/world/drop/BlockDropHandler.hpp"
 
 #include <mutex>
 #include <vector>
@@ -14,7 +14,8 @@ namespace mc {
 
 namespace {
 
-void ensureRegistriesInitialized() {
+void ensureRegistriesInitialized()
+{
     static std::once_flag s_once;
     std::call_once(s_once, [] {
         VanillaBlocks::initialize();
@@ -28,7 +29,8 @@ void ensureRegistriesInitialized() {
 // spawnDrops 测试
 // ============================================================================
 
-TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities) {
+TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities)
+{
     ensureRegistriesInitialized();
 
     ASSERT_NE(Items::APPLE, nullptr);
@@ -37,12 +39,7 @@ TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities) {
     const BlockPos pos(12, 80, -4);
     const std::vector<ItemStack> drops{ItemStack(*Items::APPLE, 2)};
 
-    const auto spawned = BlockDropHandler::spawnDrops(
-        entityManager,
-        nullptr,
-        pos,
-        drops,
-        "");
+    const auto spawned = BlockDropHandler::spawnDrops(entityManager, nullptr, pos, drops, "");
 
     ASSERT_EQ(spawned.size(), 1u);
     EXPECT_TRUE(entityManager.hasEntity(spawned[0]));
@@ -53,25 +50,22 @@ TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities) {
     EXPECT_EQ(entity->legacyType(), LegacyEntityType::Item);
 }
 
-TEST(BlockDropHandlerTest, SpawnDropsEmptyListReturnsEmpty) {
+TEST(BlockDropHandlerTest, SpawnDropsEmptyListReturnsEmpty)
+{
     ensureRegistriesInitialized();
 
     EntityManager entityManager;
     const BlockPos pos(0, 0, 0);
     const std::vector<ItemStack> drops;
 
-    const auto spawned = BlockDropHandler::spawnDrops(
-        entityManager,
-        nullptr,
-        pos,
-        drops,
-        "");
+    const auto spawned = BlockDropHandler::spawnDrops(entityManager, nullptr, pos, drops, "");
 
     EXPECT_TRUE(spawned.empty());
     EXPECT_EQ(entityManager.entityCount(), 0u);
 }
 
-TEST(BlockDropHandlerTest, SpawnDropsMultipleItems) {
+TEST(BlockDropHandlerTest, SpawnDropsMultipleItems)
+{
     ensureRegistriesInitialized();
 
     ASSERT_NE(Items::STONE, nullptr);
@@ -79,17 +73,9 @@ TEST(BlockDropHandlerTest, SpawnDropsMultipleItems) {
 
     EntityManager entityManager;
     const BlockPos pos(100, 64, -200);
-    const std::vector<ItemStack> drops{
-        ItemStack(*Items::STONE, 32),
-        ItemStack(*Items::COBBLESTONE, 16)
-    };
+    const std::vector<ItemStack> drops{ItemStack(*Items::STONE, 32), ItemStack(*Items::COBBLESTONE, 16)};
 
-    const auto spawned = BlockDropHandler::spawnDrops(
-        entityManager,
-        nullptr,
-        pos,
-        drops,
-        "");
+    const auto spawned = BlockDropHandler::spawnDrops(entityManager, nullptr, pos, drops, "");
 
     ASSERT_EQ(spawned.size(), 2u);
     EXPECT_EQ(entityManager.entityCount(), 2u);
@@ -102,7 +88,8 @@ TEST(BlockDropHandlerTest, SpawnDropsMultipleItems) {
     }
 }
 
-TEST(BlockDropHandlerTest, SpawnDropsSetsPickupDelay) {
+TEST(BlockDropHandlerTest, SpawnDropsSetsPickupDelay)
+{
     ensureRegistriesInitialized();
 
     ASSERT_NE(Items::COBBLESTONE, nullptr);
@@ -111,12 +98,7 @@ TEST(BlockDropHandlerTest, SpawnDropsSetsPickupDelay) {
     const BlockPos pos(0, 0, 0);
     const std::vector<ItemStack> drops{ItemStack(*Items::COBBLESTONE, 1)};
 
-    const auto spawned = BlockDropHandler::spawnDrops(
-        entityManager,
-        nullptr,
-        pos,
-        drops,
-        "");
+    const auto spawned = BlockDropHandler::spawnDrops(entityManager, nullptr, pos, drops, "");
 
     ASSERT_EQ(spawned.size(), 1u);
 
@@ -136,7 +118,8 @@ TEST(BlockDropHandlerTest, SpawnDropsSetsPickupDelay) {
 // getOreType 测试 - 用于 destroy 模式的经验掉落
 // ============================================================================
 
-TEST(BlockDropHandlerTest, GetOreTypeReturnsNoneForNonOre) {
+TEST(BlockDropHandlerTest, GetOreTypeReturnsNoneForNonOre)
+{
     ensureRegistriesInitialized();
 
     // 石头不是矿石
@@ -150,7 +133,8 @@ TEST(BlockDropHandlerTest, GetOreTypeReturnsNoneForNonOre) {
     EXPECT_EQ(BlockDropHandler::getOreType(*airState), OreType::None);
 }
 
-TEST(BlockDropHandlerTest, GetOreTypeIdentifiesCoalOre) {
+TEST(BlockDropHandlerTest, GetOreTypeIdentifiesCoalOre)
+{
     ensureRegistriesInitialized();
 
     const BlockState* state = &VanillaBlocks::COAL_ORE->defaultState();
@@ -158,7 +142,8 @@ TEST(BlockDropHandlerTest, GetOreTypeIdentifiesCoalOre) {
     EXPECT_EQ(BlockDropHandler::getOreType(*state), OreType::Coal);
 }
 
-TEST(BlockDropHandlerTest, GetOreTypeIdentifiesDiamondOre) {
+TEST(BlockDropHandlerTest, GetOreTypeIdentifiesDiamondOre)
+{
     ensureRegistriesInitialized();
 
     const BlockState* state = &VanillaBlocks::DIAMOND_ORE->defaultState();
@@ -166,7 +151,8 @@ TEST(BlockDropHandlerTest, GetOreTypeIdentifiesDiamondOre) {
     EXPECT_EQ(BlockDropHandler::getOreType(*state), OreType::Diamond);
 }
 
-TEST(BlockDropHandlerTest, GetOreTypeIdentifiesEmeraldOre) {
+TEST(BlockDropHandlerTest, GetOreTypeIdentifiesEmeraldOre)
+{
     ensureRegistriesInitialized();
 
     const BlockState* state = &VanillaBlocks::EMERALD_ORE->defaultState();
@@ -174,7 +160,8 @@ TEST(BlockDropHandlerTest, GetOreTypeIdentifiesEmeraldOre) {
     EXPECT_EQ(BlockDropHandler::getOreType(*state), OreType::Emerald);
 }
 
-TEST(BlockDropHandlerTest, GetOreTypeIdentifiesLapisOre) {
+TEST(BlockDropHandlerTest, GetOreTypeIdentifiesLapisOre)
+{
     ensureRegistriesInitialized();
 
     const BlockState* state = &VanillaBlocks::LAPIS_ORE->defaultState();
@@ -182,7 +169,8 @@ TEST(BlockDropHandlerTest, GetOreTypeIdentifiesLapisOre) {
     EXPECT_EQ(BlockDropHandler::getOreType(*state), OreType::Lapis);
 }
 
-TEST(BlockDropHandlerTest, GetOreTypeIdentifiesRedstoneOre) {
+TEST(BlockDropHandlerTest, GetOreTypeIdentifiesRedstoneOre)
+{
     ensureRegistriesInitialized();
 
     const BlockState* state = &VanillaBlocks::REDSTONE_ORE->defaultState();
@@ -190,7 +178,8 @@ TEST(BlockDropHandlerTest, GetOreTypeIdentifiesRedstoneOre) {
     EXPECT_EQ(BlockDropHandler::getOreType(*state), OreType::Redstone);
 }
 
-TEST(BlockDropHandlerTest, GetOreTypeIdentifiesNetherQuartzOre) {
+TEST(BlockDropHandlerTest, GetOreTypeIdentifiesNetherQuartzOre)
+{
     ensureRegistriesInitialized();
 
     const BlockState* state = &VanillaBlocks::NETHER_QUARTZ_ORE->defaultState();
@@ -198,7 +187,8 @@ TEST(BlockDropHandlerTest, GetOreTypeIdentifiesNetherQuartzOre) {
     EXPECT_EQ(BlockDropHandler::getOreType(*state), OreType::NetherQuartz);
 }
 
-TEST(BlockDropHandlerTest, GetOreTypeIdentifiesNetherGoldOre) {
+TEST(BlockDropHandlerTest, GetOreTypeIdentifiesNetherGoldOre)
+{
     ensureRegistriesInitialized();
 
     const BlockState* state = &VanillaBlocks::NETHER_GOLD_ORE->defaultState();
@@ -210,7 +200,8 @@ TEST(BlockDropHandlerTest, GetOreTypeIdentifiesNetherGoldOre) {
 // canHarvestBlock 测试 - 用于 destroy 模式的采集检查
 // ============================================================================
 
-TEST(BlockDropHandlerTest, CanHarvestBlockAirAlwaysTrue) {
+TEST(BlockDropHandlerTest, CanHarvestBlockAirAlwaysTrue)
+{
     ensureRegistriesInitialized();
 
     const BlockState* airState = &VanillaBlocks::AIR->defaultState();
@@ -220,7 +211,8 @@ TEST(BlockDropHandlerTest, CanHarvestBlockAirAlwaysTrue) {
     EXPECT_TRUE(BlockDropHandler::canHarvestBlock(*airState, nullptr, nullptr));
 }
 
-TEST(BlockDropHandlerTest, CanHarvestBlockRequiresCorrectTool) {
+TEST(BlockDropHandlerTest, CanHarvestBlockRequiresCorrectTool)
+{
     ensureRegistriesInitialized();
 
     // 钻石矿需要铁镐或更高级工具
@@ -237,7 +229,8 @@ TEST(BlockDropHandlerTest, CanHarvestBlockRequiresCorrectTool) {
 // handleBlockBreakExperience 测试 - 用于 destroy 模式的经验掉落
 // ============================================================================
 
-TEST(BlockDropHandlerTest, HandleBlockBreakExperienceNonOreReturnsZero) {
+TEST(BlockDropHandlerTest, HandleBlockBreakExperienceNonOreReturnsZero)
+{
     ensureRegistriesInitialized();
 
     EntityManager entityManager;
@@ -248,19 +241,14 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceNonOreReturnsZero) {
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     ASSERT_NE(stoneState, nullptr);
 
-    i32 xp = BlockDropHandler::handleBlockBreakExperience(
-        entityManager,
-        nullptr,
-        pos,
-        *stoneState,
-        nullptr,
-        rng);
+    i32 xp = BlockDropHandler::handleBlockBreakExperience(entityManager, nullptr, pos, *stoneState, nullptr, rng);
 
     EXPECT_EQ(xp, 0);
     EXPECT_EQ(entityManager.entityCount(), 0u);
 }
 
-TEST(BlockDropHandlerTest, HandleBlockBreakExperienceCoalOreGeneratesXP) {
+TEST(BlockDropHandlerTest, HandleBlockBreakExperienceCoalOreGeneratesXP)
+{
     ensureRegistriesInitialized();
 
     EntityManager entityManager;
@@ -273,20 +261,15 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceCoalOreGeneratesXP) {
     // 煤矿掉落 0-2 经验
     // 注意：这里可能不生成经验球，因为煤矿需要正确工具采集
     // 我们只验证函数可以被正确调用
-    i32 xp = BlockDropHandler::handleBlockBreakExperience(
-        entityManager,
-        nullptr,
-        pos,
-        *coalOreState,
-        nullptr,
-        rng);
+    i32 xp = BlockDropHandler::handleBlockBreakExperience(entityManager, nullptr, pos, *coalOreState, nullptr, rng);
 
     // 煤矿需要工具，所以没有工具时可能不生成经验
     // 验证返回值是合理的范围
     EXPECT_GE(xp, 0);
 }
 
-TEST(BlockDropHandlerTest, HandleBlockBreakExperienceDiamondOreGeneratesXP) {
+TEST(BlockDropHandlerTest, HandleBlockBreakExperienceDiamondOreGeneratesXP)
+{
     ensureRegistriesInitialized();
 
     EntityManager entityManager;
@@ -297,19 +280,14 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceDiamondOreGeneratesXP) {
     ASSERT_NE(diamondOreState, nullptr);
 
     // 钻石矿掉落 3-7 经验
-    i32 xp = BlockDropHandler::handleBlockBreakExperience(
-        entityManager,
-        nullptr,
-        pos,
-        *diamondOreState,
-        nullptr,
-        rng);
+    i32 xp = BlockDropHandler::handleBlockBreakExperience(entityManager, nullptr, pos, *diamondOreState, nullptr, rng);
 
     // 钻石矿需要工具，没有工具时可能不生成经验
     EXPECT_GE(xp, 0);
 }
 
-TEST(BlockDropHandlerTest, HandleBlockBreakExperienceGeneratesExperienceOrbs) {
+TEST(BlockDropHandlerTest, HandleBlockBreakExperienceGeneratesExperienceOrbs)
+{
     ensureRegistriesInitialized();
 
     EntityManager entityManager;
@@ -324,13 +302,8 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceGeneratesExperienceOrbs) {
     i32 totalXp = 0;
     for (int i = 0; i < 10; ++i) {
         math::Random testRng(i * 1000);
-        i32 xp = BlockDropHandler::handleBlockBreakExperience(
-            entityManager,
-            nullptr,
-            pos,
-            *coalOreState,
-            nullptr,
-            testRng);
+        i32 xp =
+            BlockDropHandler::handleBlockBreakExperience(entityManager, nullptr, pos, *coalOreState, nullptr, testRng);
         totalXp += xp;
     }
 
@@ -342,7 +315,8 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceGeneratesExperienceOrbs) {
 // getDefaultDrops 测试
 // ============================================================================
 
-TEST(BlockDropHandlerTest, GetDefaultDropsReturnsEmptyForNormalBlocks) {
+TEST(BlockDropHandlerTest, GetDefaultDropsReturnsEmptyForNormalBlocks)
+{
     ensureRegistriesInitialized();
 
     // 大多数方块没有默认掉落

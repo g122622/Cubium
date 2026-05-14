@@ -2,11 +2,11 @@
 
 #include "../Types.hpp"
 #include <any>
+#include <atomic>
 #include <functional>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
-#include <mutex>
-#include <atomic>
 
 namespace mc::client::ui::kagero::state {
 
@@ -50,7 +50,8 @@ public:
     /**
      * @brief 获取单例实例
      */
-    static StateStore& instance() {
+    static StateStore& instance()
+    {
         static StateStore instance;
         return instance;
     }
@@ -69,14 +70,16 @@ public:
      * @param defaultValue 默认值（如果键不存在）
      * @return 状态值
      */
-    template<typename T>
-    [[nodiscard]] T get(const std::string& key, const T& defaultValue = T{}) const {
+    template <typename T>
+    [[nodiscard]] T get(const std::string& key, const T& defaultValue = T{}) const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_state.find(key);
         if (it != m_state.end()) {
             try {
                 return std::any_cast<T>(it->second);
-            } catch (const std::bad_any_cast&) {
+            }
+            catch (const std::bad_any_cast&) {
                 return defaultValue;
             }
         }
@@ -86,7 +89,8 @@ public:
     /**
      * @brief 检查键是否存在
      */
-    [[nodiscard]] bool has(const std::string& key) const {
+    [[nodiscard]] bool has(const std::string& key) const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_state.find(key) != m_state.end();
     }
@@ -98,8 +102,9 @@ public:
      * @param key 状态键
      * @param value 新值
      */
-    template<typename T>
-    void set(const std::string& key, T value) {
+    template <typename T>
+    void set(const std::string& key, T value)
+    {
         std::vector<Subscriber> subscribersToNotify;
         std::vector<std::string> pendingKeysCopy;
 
@@ -141,7 +146,8 @@ public:
     /**
      * @brief 删除状态值
      */
-    void remove(const std::string& key) {
+    void remove(const std::string& key)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_state.erase(key);
     }
@@ -149,7 +155,8 @@ public:
     /**
      * @brief 清空所有状态
      */
-    void clear() {
+    void clear()
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_state.clear();
     }
@@ -157,7 +164,8 @@ public:
     /**
      * @brief 获取所有键
      */
-    [[nodiscard]] std::vector<std::string> keys() const {
+    [[nodiscard]] std::vector<std::string> keys() const
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         std::vector<std::string> result;
         result.reserve(m_state.size());
@@ -176,7 +184,8 @@ public:
      * @param subscriber 订阅者函数
      * @return 订阅者ID，用于取消订阅
      */
-    SubscriberId subscribe(const std::string& key, Subscriber subscriber) {
+    SubscriberId subscribe(const std::string& key, Subscriber subscriber)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         SubscriberId id = m_nextSubscriberId++;
         m_subscribers[key].emplace_back(id, std::move(subscriber));
@@ -190,7 +199,8 @@ public:
      * @param id 订阅者ID
      * @return 是否成功取消
      */
-    bool unsubscribe(SubscriberId id) {
+    bool unsubscribe(SubscriberId id)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         auto keyIt = m_subscriberToKey.find(id);
@@ -200,8 +210,8 @@ public:
 
         const std::string& key = keyIt->second;
         auto& subscribers = m_subscribers[key];
-        auto it = std::find_if(subscribers.begin(), subscribers.end(),
-            [id](const auto& pair) { return pair.first == id; });
+        auto it =
+            std::find_if(subscribers.begin(), subscribers.end(), [id](const auto& pair) { return pair.first == id; });
 
         if (it != subscribers.end()) {
             subscribers.erase(it);
@@ -215,7 +225,8 @@ public:
     /**
      * @brief 取消某键的所有订阅
      */
-    void unsubscribeAll(const std::string& key) {
+    void unsubscribeAll(const std::string& key)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         auto it = m_subscribers.find(key);
@@ -234,16 +245,15 @@ public:
      *
      * @param action 动作函数
      */
-    void dispatch(Action action) {
-        action(*this);
-    }
+    void dispatch(Action action) { action(*this); }
 
     /**
      * @brief 添加中间件
      *
      * 中间件在每次状态变化时被调用（仅非批量模式）
      */
-    void addMiddleware(Middleware middleware) {
+    void addMiddleware(Middleware middleware)
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_middlewares.push_back(std::move(middleware));
     }
@@ -251,7 +261,8 @@ public:
     /**
      * @brief 清除所有中间件
      */
-    void clearMiddlewares() {
+    void clearMiddlewares()
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_middlewares.clear();
     }
@@ -268,8 +279,9 @@ public:
      *
      * @param func 批量更新函数
      */
-    template<typename Func>
-    void batchUpdate(Func&& func) {
+    template <typename Func>
+    void batchUpdate(Func&& func)
+    {
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_batchDepth++;
@@ -277,7 +289,8 @@ public:
 
         try {
             func(*this);
-        } catch (...) {
+        }
+        catch (...) {
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
                 m_batchDepth--;
@@ -333,7 +346,7 @@ private:
  *
  * @tparam T 选择结果类型
  */
-template<typename T>
+template <typename T>
 class Selector {
 public:
     using SelectFunc = std::function<T(const StateStore&)>;
@@ -343,7 +356,8 @@ public:
      * @param select 选择函数
      */
     explicit Selector(SelectFunc select)
-        : m_select(std::move(select)) {}
+        : m_select(std::move(select))
+    {}
 
     /**
      * @brief 构造函数（带订阅键）
@@ -352,21 +366,18 @@ public:
      */
     Selector(SelectFunc select, std::string key)
         : m_select(std::move(select))
-        , m_key(std::move(key)) {}
+        , m_key(std::move(key))
+    {}
 
     /**
      * @brief 执行选择
      */
-    [[nodiscard]] T select() const {
-        return m_select(StateStore::instance());
-    }
+    [[nodiscard]] T select() const { return m_select(StateStore::instance()); }
 
     /**
      * @brief 设置订阅键
      */
-    void setKey(const std::string& key) {
-        m_key = key;
-    }
+    void setKey(const std::string& key) { m_key = key; }
 
     /**
      * @brief 订阅选择结果变化
@@ -376,7 +387,8 @@ public:
      *
      * @note 必须先设置订阅键才能使用此方法
      */
-    u64 subscribe(std::function<void(const T&)> subscriber) {
+    u64 subscribe(std::function<void(const T&)> subscriber)
+    {
         if (m_key.empty()) {
             return 0; // 无效订阅
         }
@@ -405,45 +417,45 @@ public:
      * @param storeKey 状态存储键
      */
     explicit StateBindingPoint(std::string storeKey)
-        : m_storeKey(std::move(storeKey)) {}
+        : m_storeKey(std::move(storeKey))
+    {}
 
     /**
      * @brief 获取值
      */
-    template<typename T>
-    [[nodiscard]] T get() const {
+    template <typename T>
+    [[nodiscard]] T get() const
+    {
         return StateStore::instance().get<T>(m_storeKey);
     }
 
     /**
      * @brief 获取值（带默认值）
      */
-    template<typename T>
-    [[nodiscard]] T get(const T& defaultValue) const {
+    template <typename T>
+    [[nodiscard]] T get(const T& defaultValue) const
+    {
         return StateStore::instance().get<T>(m_storeKey, defaultValue);
     }
 
     /**
      * @brief 设置值
      */
-    template<typename T>
-    void set(const T& value) {
+    template <typename T>
+    void set(const T& value)
+    {
         StateStore::instance().set(m_storeKey, value);
     }
 
     /**
      * @brief 绑定更新回调
      */
-    u64 bind(UpdateCallback callback) {
-        return StateStore::instance().subscribe(m_storeKey, std::move(callback));
-    }
+    u64 bind(UpdateCallback callback) { return StateStore::instance().subscribe(m_storeKey, std::move(callback)); }
 
     /**
      * @brief 解除绑定
      */
-    void unbind(u64 id) {
-        StateStore::instance().unsubscribe(id);
-    }
+    void unbind(u64 id) { StateStore::instance().unsubscribe(id); }
 
     /**
      * @brief 获取存储键

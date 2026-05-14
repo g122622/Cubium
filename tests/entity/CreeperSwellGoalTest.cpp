@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 
 using namespace mc;
 using namespace mc::entity::ai;
@@ -17,7 +17,8 @@ using namespace mc::entity::ai;
 
 class CreeperSwellGoalBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 设置代码
     }
 };
@@ -26,7 +27,8 @@ protected:
 // GoalFlag 基本测试
 // ============================================================================
 
-TEST_F(CreeperSwellGoalBasicTest, GoalFlag_MoveFlagValue) {
+TEST_F(CreeperSwellGoalBasicTest, GoalFlag_MoveFlagValue)
+{
     // 验证 Move 标志是第一个标志
     EXPECT_EQ(static_cast<int>(GoalFlag::Move), 0);
     EXPECT_EQ(static_cast<int>(GoalFlag::Look), 1);
@@ -35,7 +37,8 @@ TEST_F(CreeperSwellGoalBasicTest, GoalFlag_MoveFlagValue) {
     EXPECT_EQ(static_cast<int>(GoalFlag::Count), 4);
 }
 
-TEST_F(CreeperSwellGoalBasicTest, EnumSet_CanStoreGoalFlags) {
+TEST_F(CreeperSwellGoalBasicTest, EnumSet_CanStoreGoalFlags)
+{
     // 验证 EnumSet 可以正确存储 GoalFlag
     EnumSet<GoalFlag> flags;
     flags.set(GoalFlag::Move);
@@ -49,7 +52,8 @@ TEST_F(CreeperSwellGoalBasicTest, EnumSet_CanStoreGoalFlags) {
     EXPECT_EQ(flags.count(), 2);
 }
 
-TEST_F(CreeperSwellGoalBasicTest, EnumSet_InitializerList) {
+TEST_F(CreeperSwellGoalBasicTest, EnumSet_InitializerList)
+{
     // 使用初始化列表创建 EnumSet
     EnumSet<GoalFlag> flags{GoalFlag::Move, GoalFlag::Look};
 
@@ -63,7 +67,8 @@ TEST_F(CreeperSwellGoalBasicTest, EnumSet_InitializerList) {
 // CreeperSwellGoal 常量测试
 // ============================================================================
 
-TEST_F(CreeperSwellGoalBasicTest, SwellDistances_AreCorrect) {
+TEST_F(CreeperSwellGoalBasicTest, SwellDistances_AreCorrect)
+{
     // MC 1.16.5 常量验证
     // 触发距离：3 格 (3 * 3 = 9)
     // 取消距离：7 格 (7 * 7 = 49)
@@ -76,12 +81,13 @@ TEST_F(CreeperSwellGoalBasicTest, SwellDistances_AreCorrect) {
     EXPECT_FLOAT_EQ(SWELL_CANCEL_DISTANCE_SQ, 49.0f);
 }
 
-TEST_F(CreeperSwellGoalBasicTest, CreeperEntityConstants_AreCorrect) {
+TEST_F(CreeperSwellGoalBasicTest, CreeperEntityConstants_AreCorrect)
+{
     // CreeperEntity 默认常量
-    constexpr i32 DEFAULT_FUSE_TIME = 30;           // 默认点燃时间 (1.5秒)
-    constexpr i32 DEFAULT_EXPLOSION_RADIUS = 3;     // 默认爆炸半径
-    constexpr f32 NORMAL_EXPLOSION_POWER = 3.0f;    // 普通爆炸威力
-    constexpr f32 POWERED_EXPLOSION_POWER = 6.0f;   // 高压爆炸威力
+    constexpr i32 DEFAULT_FUSE_TIME = 30;         // 默认点燃时间 (1.5秒)
+    constexpr i32 DEFAULT_EXPLOSION_RADIUS = 3;   // 默认爆炸半径
+    constexpr f32 NORMAL_EXPLOSION_POWER = 3.0f;  // 普通爆炸威力
+    constexpr f32 POWERED_EXPLOSION_POWER = 6.0f; // 高压爆炸威力
 
     EXPECT_EQ(DEFAULT_FUSE_TIME, 30);
     EXPECT_EQ(DEFAULT_EXPLOSION_RADIUS, 3);
@@ -95,7 +101,8 @@ TEST_F(CreeperSwellGoalBasicTest, CreeperEntityConstants_AreCorrect) {
 // allGoalFlags 函数测试
 // ============================================================================
 
-TEST_F(CreeperSwellGoalBasicTest, AllGoalFlags_ReturnsAllFlags) {
+TEST_F(CreeperSwellGoalBasicTest, AllGoalFlags_ReturnsAllFlags)
+{
     auto all = allGoalFlags();
 
     EXPECT_TRUE(all.test(GoalFlag::Move));
@@ -109,7 +116,8 @@ TEST_F(CreeperSwellGoalBasicTest, AllGoalFlags_ReturnsAllFlags) {
 // EnumSet 操作测试
 // ============================================================================
 
-TEST_F(CreeperSwellGoalBasicTest, EnumSet_Operators) {
+TEST_F(CreeperSwellGoalBasicTest, EnumSet_Operators)
+{
     EnumSet<GoalFlag> a{GoalFlag::Move, GoalFlag::Look};
     EnumSet<GoalFlag> b{GoalFlag::Look, GoalFlag::Jump};
 
@@ -132,7 +140,8 @@ TEST_F(CreeperSwellGoalBasicTest, EnumSet_Operators) {
     EXPECT_FALSE(diff.test(GoalFlag::Look));
 }
 
-TEST_F(CreeperSwellGoalBasicTest, EnumSet_Intersects) {
+TEST_F(CreeperSwellGoalBasicTest, EnumSet_Intersects)
+{
     EnumSet<GoalFlag> a{GoalFlag::Move, GoalFlag::Look};
     EnumSet<GoalFlag> b{GoalFlag::Look, GoalFlag::Jump};
     EnumSet<GoalFlag> c{GoalFlag::Target};
@@ -141,12 +150,11 @@ TEST_F(CreeperSwellGoalBasicTest, EnumSet_Intersects) {
     EXPECT_FALSE(a.intersects(c));
 }
 
-TEST_F(CreeperSwellGoalBasicTest, EnumSet_ForEach) {
+TEST_F(CreeperSwellGoalBasicTest, EnumSet_ForEach)
+{
     EnumSet<GoalFlag> flags{GoalFlag::Move, GoalFlag::Target};
     std::vector<GoalFlag> values;
-    flags.forEach([&values](GoalFlag flag) {
-        values.push_back(flag);
-    });
+    flags.forEach([&values](GoalFlag flag) { values.push_back(flag); });
 
     ASSERT_EQ(values.size(), 2);
     EXPECT_EQ(values[0], GoalFlag::Move);

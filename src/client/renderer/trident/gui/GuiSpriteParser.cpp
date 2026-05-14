@@ -6,10 +6,8 @@ namespace mc::client::renderer::trident::gui {
 
 using json = nlohmann::json;
 
-Result<GuiSpriteDefinition> GuiSpriteParser::parse(
-    const std::string& jsonContent,
-    i32 atlasWidth,
-    i32 atlasHeight) {
+Result<GuiSpriteDefinition> GuiSpriteParser::parse(const std::string& jsonContent, i32 atlasWidth, i32 atlasHeight)
+{
 
     GuiSpriteDefinition result;
 
@@ -66,21 +64,18 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parse(
         }
 
         return result;
-
-    } catch (const json::parse_error& e) {
-        return Error(ErrorCode::ResourceParseError,
-            std::string("JSON parse error: ") + e.what());
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::ResourceParseError,
-            std::string("Error parsing sprite definition: ") + e.what());
+    }
+    catch (const json::parse_error& e) {
+        return Error(ErrorCode::ResourceParseError, std::string("JSON parse error: ") + e.what());
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::ResourceParseError, std::string("Error parsing sprite definition: ") + e.what());
     }
 }
 
 Result<GuiSpriteDefinition> GuiSpriteParser::parseFromResourcePack(
-    IResourcePack& resourcePack,
-    const std::string& spriteDefPath,
-    i32 atlasWidth,
-    i32 atlasHeight) {
+    IResourcePack& resourcePack, const std::string& spriteDefPath, i32 atlasWidth, i32 atlasHeight)
+{
 
     // 构建资源路径
     std::string resourcePath = spriteDefPath;
@@ -94,36 +89,30 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parseFromResourcePack(
 
     // 检查资源是否存在
     if (!resourcePack.hasResource(resourcePath)) {
-        return Error(ErrorCode::NotFound,
-            std::string("Sprite definition not found: ") + spriteDefPath);
+        return Error(ErrorCode::NotFound, std::string("Sprite definition not found: ") + spriteDefPath);
     }
 
     // 读取资源
     auto readResult = resourcePack.readTextResource(resourcePath);
     if (readResult.failed()) {
-        return Error(ErrorCode::FileReadFailed,
-            std::string("Failed to read sprite definition: ") + spriteDefPath);
+        return Error(ErrorCode::FileReadFailed, std::string("Failed to read sprite definition: ") + spriteDefPath);
     }
 
     return parse(readResult.value(), atlasWidth, atlasHeight);
 }
 
 Result<GuiSprite> GuiSpriteParser::parseSprite(
-    const std::string& id,
-    const void* jsonObj,
-    i32 atlasWidth,
-    i32 atlasHeight) {
+    const std::string& id, const void* jsonObj, i32 atlasWidth, i32 atlasHeight)
+{
 
     const json& obj = *static_cast<const json*>(jsonObj);
 
     if (!obj.is_object()) {
-        return Error(ErrorCode::ResourceParseError,
-            std::string("Sprite '") + id + "' is not an object");
+        return Error(ErrorCode::ResourceParseError, std::string("Sprite '") + id + "' is not an object");
     }
 
     // 必需字段
-    if (!obj.contains("x") || !obj.contains("y") ||
-        !obj.contains("width") || !obj.contains("height")) {
+    if (!obj.contains("x") || !obj.contains("y") || !obj.contains("width") || !obj.contains("height")) {
         return Error(ErrorCode::ResourceParseError,
             std::string("Sprite '") + id + "' missing required fields (x, y, width, height)");
     }
@@ -147,12 +136,12 @@ Result<GuiSprite> GuiSpriteParser::parseSprite(
     return sprite;
 }
 
-Result<GuiNinePatch> GuiSpriteParser::parseNinePatch(const void* jsonObj) {
+Result<GuiNinePatch> GuiSpriteParser::parseNinePatch(const void* jsonObj)
+{
     const json& obj = *static_cast<const json*>(jsonObj);
 
     if (!obj.is_object()) {
-        return Error(ErrorCode::ResourceParseError,
-            "Nine-patch is not an object");
+        return Error(ErrorCode::ResourceParseError, "Nine-patch is not an object");
     }
 
     GuiNinePatch ninePatch;

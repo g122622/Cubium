@@ -15,9 +15,8 @@ public:
     SkeletonModel();
     ~SkeletonModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 手臂姿态
@@ -55,7 +54,7 @@ protected:
 
     ArmPose m_rightArmPose = ArmPose::Empty;
     ArmPose m_leftArmPose = ArmPose::Empty;
-    bool m_isAggressive = false;  // 是否处于攻击状态（影响手臂动画）
+    bool m_isAggressive = false; // 是否处于攻击状态（影响手臂动画）
 };
 
 } // namespace mc::client::renderer::entity::model::monster

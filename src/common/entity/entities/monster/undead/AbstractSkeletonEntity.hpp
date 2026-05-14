@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "../../../interfaces/IRangedAttackMob.hpp"
+#include "../MonsterEntity.hpp"
 
 namespace mc {
 

@@ -6,53 +6,58 @@ namespace mc::network {
 
 TitlePacket::TitlePacket()
     : Packet(PacketType::Title)
-{
-}
+{}
 
 TitlePacket::TitlePacket(TitleAction action)
     : Packet(PacketType::Title)
     , m_action(action)
-{
-}
+{}
 
 // static
-TitlePacket TitlePacket::createTitle(const std::string& text) {
+TitlePacket TitlePacket::createTitle(const std::string& text)
+{
     TitlePacket packet(TitleAction::Title);
     packet.m_text = text;
     return packet;
 }
 
 // static
-TitlePacket TitlePacket::createTitle(const text::ITextComponent& text) {
+TitlePacket TitlePacket::createTitle(const text::ITextComponent& text)
+{
     return createTitle(serializeText(text));
 }
 
 // static
-TitlePacket TitlePacket::createSubtitle(const std::string& text) {
+TitlePacket TitlePacket::createSubtitle(const std::string& text)
+{
     TitlePacket packet(TitleAction::Subtitle);
     packet.m_text = text;
     return packet;
 }
 
 // static
-TitlePacket TitlePacket::createSubtitle(const text::ITextComponent& text) {
+TitlePacket TitlePacket::createSubtitle(const text::ITextComponent& text)
+{
     return createSubtitle(serializeText(text));
 }
 
 // static
-TitlePacket TitlePacket::createActionbar(const std::string& text) {
+TitlePacket TitlePacket::createActionbar(const std::string& text)
+{
     TitlePacket packet(TitleAction::Actionbar);
     packet.m_text = text;
     return packet;
 }
 
 // static
-TitlePacket TitlePacket::createActionbar(const text::ITextComponent& text) {
+TitlePacket TitlePacket::createActionbar(const text::ITextComponent& text)
+{
     return createActionbar(serializeText(text));
 }
 
 // static
-TitlePacket TitlePacket::createTimes(i32 fadeIn, i32 stay, i32 fadeOut) {
+TitlePacket TitlePacket::createTimes(i32 fadeIn, i32 stay, i32 fadeOut)
+{
     TitlePacket packet(TitleAction::Times);
     packet.m_fadeIn = fadeIn;
     packet.m_stay = stay;
@@ -61,29 +66,34 @@ TitlePacket TitlePacket::createTimes(i32 fadeIn, i32 stay, i32 fadeOut) {
 }
 
 // static
-TitlePacket TitlePacket::createClear() {
+TitlePacket TitlePacket::createClear()
+{
     return TitlePacket(TitleAction::Clear);
 }
 
 // static
-TitlePacket TitlePacket::createReset() {
+TitlePacket TitlePacket::createReset()
+{
     return TitlePacket(TitleAction::Reset);
 }
 
-void TitlePacket::setTimes(i32 fadeIn, i32 stay, i32 fadeOut) {
+void TitlePacket::setTimes(i32 fadeIn, i32 stay, i32 fadeOut)
+{
     m_fadeIn = fadeIn;
     m_stay = stay;
     m_fadeOut = fadeOut;
 }
 
 // static
-std::string TitlePacket::serializeText(const text::ITextComponent& text) {
+std::string TitlePacket::serializeText(const text::ITextComponent& text)
+{
     return text.toJson().dump();
 }
 
-size_t TitlePacket::expectedSize() const {
+size_t TitlePacket::expectedSize() const
+{
     // 基础：VarInt(action)
-    size_t size = 5;  // VarInt最多5字节
+    size_t size = 5; // VarInt最多5字节
 
     // 根据动作类型添加额外数据
     switch (m_action) {
@@ -92,7 +102,7 @@ size_t TitlePacket::expectedSize() const {
         case TitleAction::Actionbar:
             // 文本：VarInt(长度) + UTF-8数据
             if (m_text.has_value()) {
-                size += 5 + m_text->size();  // VarInt长度 + 文本
+                size += 5 + m_text->size(); // VarInt长度 + 文本
             }
             break;
 
@@ -110,7 +120,8 @@ size_t TitlePacket::expectedSize() const {
     return size;
 }
 
-Result<std::vector<u8>> TitlePacket::serialize() const {
+Result<std::vector<u8>> TitlePacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     // 写入动作类型
@@ -148,7 +159,8 @@ Result<std::vector<u8>> TitlePacket::serialize() const {
     return result;
 }
 
-Result<void> TitlePacket::deserialize(const u8* data, size_t size) {
+Result<void> TitlePacket::deserialize(const u8* data, size_t size)
+{
     if (size == 0) {
         return Error(ErrorCode::InvalidData, "TitlePacket: empty data");
     }

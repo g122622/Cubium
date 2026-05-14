@@ -1,8 +1,8 @@
 #include "InputManager.hpp"
 
+#include <unordered_map>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
-#include <unordered_map>
 
 namespace mc::client {
 
@@ -128,11 +128,7 @@ void InputManager::setMouseLocked(bool locked)
 {
     m_mouseLocked = locked;
     if (m_window) {
-        glfwSetInputMode(
-            m_window,
-            GLFW_CURSOR,
-            locked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL
-        );
+        glfwSetInputMode(m_window, GLFW_CURSOR, locked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         // 切换模式后重置鼠标状态，避免跳跃
         glfwGetCursorPos(m_window, &m_mouseX, &m_mouseY);
         m_lastMouseX = m_mouseX;

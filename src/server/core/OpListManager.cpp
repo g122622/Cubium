@@ -1,9 +1,9 @@
 #include "OpListManager.hpp"
 
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <spdlog/spdlog.h>
 #include <algorithm>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::core {
 
@@ -11,7 +11,8 @@ OpListManager::OpListManager() = default;
 
 // ========== 条目管理 ==========
 
-bool OpListManager::setEntry(const OpEntry& entry) {
+bool OpListManager::setEntry(const OpEntry& entry)
+{
     if (!entry.isValid()) {
         return false;
     }
@@ -29,7 +30,8 @@ bool OpListManager::setEntry(const OpEntry& entry) {
     return true;
 }
 
-bool OpListManager::removeEntry(const std::string& uuid) {
+bool OpListManager::removeEntry(const std::string& uuid)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entriesByUuid.find(uuid);
@@ -48,7 +50,8 @@ bool OpListManager::removeEntry(const std::string& uuid) {
     return true;
 }
 
-bool OpListManager::removeEntryByName(const std::string& name) {
+bool OpListManager::removeEntryByName(const std::string& name)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 查找名称映射
@@ -69,12 +72,14 @@ bool OpListManager::removeEntryByName(const std::string& name) {
     return true;
 }
 
-bool OpListManager::isOp(const std::string& uuid) const {
+bool OpListManager::isOp(const std::string& uuid) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.contains(uuid);
 }
 
-bool OpListManager::isNameOp(const std::string& name) const {
+bool OpListManager::isNameOp(const std::string& name) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::string lowerName = name;
@@ -83,7 +88,8 @@ bool OpListManager::isNameOp(const std::string& name) const {
     return m_nameToUuid.contains(lowerName);
 }
 
-OpLevel OpListManager::getLevel(const std::string& uuid) const {
+OpLevel OpListManager::getLevel(const std::string& uuid) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entriesByUuid.find(uuid);
@@ -94,7 +100,8 @@ OpLevel OpListManager::getLevel(const std::string& uuid) const {
     return it->second.level;
 }
 
-OpLevel OpListManager::getLevelByName(const std::string& name) const {
+OpLevel OpListManager::getLevelByName(const std::string& name) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::string lowerName = name;
@@ -113,7 +120,8 @@ OpLevel OpListManager::getLevelByName(const std::string& name) const {
     return entryIt->second.level;
 }
 
-bool OpListManager::bypassesPlayerLimit(const std::string& uuid) const {
+bool OpListManager::bypassesPlayerLimit(const std::string& uuid) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entriesByUuid.find(uuid);
@@ -124,7 +132,8 @@ bool OpListManager::bypassesPlayerLimit(const std::string& uuid) const {
     return it->second.bypassesPlayerLimit;
 }
 
-std::optional<OpEntry> OpListManager::getEntry(const std::string& uuid) const {
+std::optional<OpEntry> OpListManager::getEntry(const std::string& uuid) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entriesByUuid.find(uuid);
@@ -135,7 +144,8 @@ std::optional<OpEntry> OpListManager::getEntry(const std::string& uuid) const {
     return it->second;
 }
 
-std::optional<OpEntry> OpListManager::getEntryByName(const std::string& name) const {
+std::optional<OpEntry> OpListManager::getEntryByName(const std::string& name) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::string lowerName = name;
@@ -154,7 +164,8 @@ std::optional<OpEntry> OpListManager::getEntryByName(const std::string& name) co
     return entryIt->second;
 }
 
-std::vector<OpEntry> OpListManager::getAllEntries() const {
+std::vector<OpEntry> OpListManager::getAllEntries() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<OpEntry> entries;
@@ -167,7 +178,8 @@ std::vector<OpEntry> OpListManager::getAllEntries() const {
     return entries;
 }
 
-std::vector<std::string> OpListManager::getAllNames() const {
+std::vector<std::string> OpListManager::getAllNames() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<std::string> names;
@@ -180,17 +192,20 @@ std::vector<std::string> OpListManager::getAllNames() const {
     return names;
 }
 
-size_t OpListManager::size() const {
+size_t OpListManager::size() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.size();
 }
 
-bool OpListManager::empty() const {
+bool OpListManager::empty() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.empty();
 }
 
-void OpListManager::clear() {
+void OpListManager::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entriesByUuid.clear();
     m_nameToUuid.clear();
@@ -198,7 +213,8 @@ void OpListManager::clear() {
 
 // ========== 文件操作 ==========
 
-Result<void> OpListManager::load(const std::filesystem::path& path) {
+Result<void> OpListManager::load(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     m_filePath = path;
@@ -214,9 +230,9 @@ Result<void> OpListManager::load(const std::filesystem::path& path) {
         try {
             std::ofstream file(path);
             file << "[]";
-        } catch (const std::exception& e) {
-            return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to create ops file: {}", e.what()));
+        }
+        catch (const std::exception& e) {
+            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create ops file: {}", e.what()));
         }
         return {};
     }
@@ -225,16 +241,14 @@ Result<void> OpListManager::load(const std::filesystem::path& path) {
     try {
         std::ifstream file(path);
         if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed,
-                        fmt::format("Failed to open ops file: {}", path.string()));
+            return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open ops file: {}", path.string()));
         }
 
         nlohmann::json json;
         file >> json;
 
         if (!json.is_array()) {
-            return Error(ErrorCode::FileCorrupted,
-                        "Ops file must be a JSON array");
+            return Error(ErrorCode::FileCorrupted, "Ops file must be a JSON array");
         }
 
         for (const auto& item : json) {
@@ -282,8 +296,7 @@ Result<void> OpListManager::load(const std::filesystem::path& path) {
 
             // 验证条目
             if (!entry.isValid()) {
-                spdlog::warn("Skipping invalid op entry: uuid={}, name={}",
-                            entry.uuid, entry.name);
+                spdlog::warn("Skipping invalid op entry: uuid={}, name={}", entry.uuid, entry.name);
                 continue;
             }
 
@@ -304,17 +317,17 @@ Result<void> OpListManager::load(const std::filesystem::path& path) {
 
         spdlog::info("Loaded {} op entries from {}", m_entriesByUuid.size(), path.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileCorrupted,
-                    fmt::format("Failed to parse ops JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed,
-                    fmt::format("Failed to read ops file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse ops JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read ops file: {}", e.what()));
     }
 }
 
-Result<void> OpListManager::save(const std::filesystem::path& path) {
+Result<void> OpListManager::save(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::filesystem::path savePath = path.empty() ? m_filePath : path;
@@ -346,25 +359,25 @@ Result<void> OpListManager::save(const std::filesystem::path& path) {
         // 写入文件
         std::ofstream file(savePath);
         if (!file.is_open()) {
-            return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to open ops file for writing: {}", savePath.string()));
+            return Error(
+                ErrorCode::FileWriteFailed, fmt::format("Failed to open ops file for writing: {}", savePath.string()));
         }
 
         file << json.dump(2);
 
         spdlog::info("Saved {} op entries to {}", json.size(), savePath.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to serialize ops JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to save ops file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to serialize ops JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save ops file: {}", e.what()));
     }
 }
 
-Result<void> OpListManager::reload() {
+Result<void> OpListManager::reload()
+{
     if (m_filePath.empty()) {
         return Error(ErrorCode::InvalidArgument, "No file path to reload ops from");
     }

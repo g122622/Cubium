@@ -1,21 +1,21 @@
 #pragma once
 
 #include "IProperty.hpp"
-#include <optional>
 #include <algorithm>
+#include <optional>
 #include <sstream>
 #include <type_traits>
 
 namespace mc {
 
 namespace detail {
-    // 辅助类型特征：检测是否为 std::vector<bool>
-    template<typename T>
-    struct is_vector_bool : std::false_type {};
+// 辅助类型特征：检测是否为 std::vector<bool>
+template <typename T>
+struct is_vector_bool : std::false_type {};
 
-    template<typename Alloc>
-    struct is_vector_bool<std::vector<bool, Alloc>> : std::true_type {};
-}
+template <typename Alloc>
+struct is_vector_bool<std::vector<bool, Alloc>> : std::true_type {};
+} // namespace detail
 
 /**
  * @brief 类型安全的属性模板基类
@@ -36,45 +36,36 @@ namespace detail {
  * - 属性应该被复用，通常通过静态成员或预定义属性访问
  * - 属性比较时使用指针比较，确保使用同一个实例
  */
-template<typename T>
+template <typename T>
 class Property : public IProperty {
 public:
     using ValueType = T;
 
     // 对于 std::vector<bool> 特化，返回值类型；其他类型返回引用
-    using ValueReturnType = std::conditional_t<
-        detail::is_vector_bool<std::vector<T>>::value,
-        T,
-        const T&
-    >;
+    using ValueReturnType = std::conditional_t<detail::is_vector_bool<std::vector<T>>::value, T, const T&>;
 
     /**
      * @brief 获取属性名称
      */
-    [[nodiscard]] const std::string& name() const override {
-        return m_name;
-    }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
 
     /**
      * @brief 获取允许的值的数量
      */
-    [[nodiscard]] size_t valueCount() const override {
-        return m_values.size();
-    }
+    [[nodiscard]] size_t valueCount() const override { return m_values.size(); }
 
     /**
      * @brief 获取所有允许的值
      */
-    [[nodiscard]] const std::vector<T>& allowedValues() const {
-        return m_values;
-    }
+    [[nodiscard]] const std::vector<T>& allowedValues() const { return m_values; }
 
     /**
      * @brief 查找值的索引
      * @param value 要查找的值
      * @return 索引，如果不存在返回nullopt
      */
-    [[nodiscard]] std::optional<size_t> indexOf(const T& value) const {
+    [[nodiscard]] std::optional<size_t> indexOf(const T& value) const
+    {
         auto it = m_valueToIndex.find(value);
         if (it != m_valueToIndex.end()) {
             return it->second;
@@ -88,7 +79,8 @@ public:
      * @return 值，如果索引越界抛出异常
      * @note 对于 bool 类型返回值而非引用，因为 std::vector<bool> 特化
      */
-    [[nodiscard]] ValueReturnType valueAt(size_t index) const {
+    [[nodiscard]] ValueReturnType valueAt(size_t index) const
+    {
         if (index >= m_values.size()) {
             throw std::out_of_range("Property value index out of range: " + std::to_string(index));
         }
@@ -105,9 +97,7 @@ public:
     /**
      * @brief 将值索引转换为字符串表示
      */
-    [[nodiscard]] std::string valueToString(size_t index) const override {
-        return valueToString(valueAt(index));
-    }
+    [[nodiscard]] std::string valueToString(size_t index) const override { return valueToString(valueAt(index)); }
 
     /**
      * @brief 解析字符串为值
@@ -119,7 +109,8 @@ public:
     /**
      * @brief 解析字符串为值索引（实现IProperty接口）
      */
-    [[nodiscard]] std::optional<size_t> parseValue(std::string_view str) const override {
+    [[nodiscard]] std::optional<size_t> parseValue(std::string_view str) const override
+    {
         auto value = parse(str);
         if (value) {
             return indexOf(*value);
@@ -135,7 +126,8 @@ public:
      * 2. 类型相同
      * 3. 允许的值集合相同
      */
-    [[nodiscard]] bool equals(const IProperty& other) const override {
+    [[nodiscard]] bool equals(const IProperty& other) const override
+    {
         if (this == &other) return true;
         if (typeName() != other.typeName()) return false;
         if (name() != other.name()) return false;
@@ -155,7 +147,8 @@ protected:
      */
     Property(std::string name, std::vector<T> values)
         : m_name(std::move(name))
-        , m_values(std::move(values)) {
+        , m_values(std::move(values))
+    {
         // 构建值到索引的映射
         for (size_t i = 0; i < m_values.size(); ++i) {
             m_valueToIndex[m_values[i]] = i;

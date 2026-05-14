@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/RichTextWidget.hpp"
 #include "client/ui/kagero/Types.hpp"
-#include "common/util/text/TextParser.hpp"
-#include "common/util/text/StringTextComponent.hpp"
-#include "common/util/text/TextStyle.hpp"
-#include "common/util/text/TextEvents.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextParser.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include <gtest/gtest.h>
 
 /**
  * @brief RichTextWidget 单元测试
@@ -19,26 +19,27 @@
  */
 class RichTextWidgetTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         widget = std::make_unique<mc::client::ui::kagero::widget::RichTextWidget>("test", 0, 0, 200, 100);
     }
 
-    void TearDown() override {
-        widget.reset();
-    }
+    void TearDown() override { widget.reset(); }
 
     std::unique_ptr<mc::client::ui::kagero::widget::RichTextWidget> widget;
 };
 
 // ==================== 构造函数测试 ====================
 
-TEST_F(RichTextWidgetTest, DefaultConstructor) {
+TEST_F(RichTextWidgetTest, DefaultConstructor)
+{
     mc::client::ui::kagero::widget::RichTextWidget w;
     EXPECT_EQ(w.getText(), nullptr);
     EXPECT_EQ(widget->getUnformattedText(), "");
 }
 
-TEST_F(RichTextWidgetTest, ConstructorWithBounds) {
+TEST_F(RichTextWidgetTest, ConstructorWithBounds)
+{
     mc::client::ui::kagero::widget::RichTextWidget w("id", 10, 20, 100, 50);
     EXPECT_EQ(w.bounds().x, 10);
     EXPECT_EQ(w.bounds().y, 20);
@@ -46,7 +47,8 @@ TEST_F(RichTextWidgetTest, ConstructorWithBounds) {
     EXPECT_EQ(w.bounds().height, 50);
 }
 
-TEST_F(RichTextWidgetTest, ConstructorWithText) {
+TEST_F(RichTextWidgetTest, ConstructorWithText)
+{
     auto text = std::make_unique<mc::text::StringTextComponent>("Hello");
     mc::client::ui::kagero::widget::RichTextWidget w("id", 0, 0, 100, 50, std::move(text));
 
@@ -56,7 +58,8 @@ TEST_F(RichTextWidgetTest, ConstructorWithText) {
 
 // ==================== 文本设置测试 ====================
 
-TEST_F(RichTextWidgetTest, SetTextFromComponent) {
+TEST_F(RichTextWidgetTest, SetTextFromComponent)
+{
     auto text = std::make_unique<mc::text::StringTextComponent>("Test Text");
     widget->setText(std::move(text));
 
@@ -64,21 +67,24 @@ TEST_F(RichTextWidgetTest, SetTextFromComponent) {
     EXPECT_EQ(widget->getUnformattedText(), "Test Text");
 }
 
-TEST_F(RichTextWidgetTest, SetTextFromString) {
+TEST_F(RichTextWidgetTest, SetTextFromString)
+{
     widget->setText("Plain std::string");
 
     EXPECT_NE(widget->getText(), nullptr);
     EXPECT_EQ(widget->getUnformattedText(), "Plain std::string");
 }
 
-TEST_F(RichTextWidgetTest, SetTextFromLegacyFormat) {
+TEST_F(RichTextWidgetTest, SetTextFromLegacyFormat)
+{
     widget->setText("§cRed Text");
 
     EXPECT_NE(widget->getText(), nullptr);
     EXPECT_EQ(widget->getUnformattedText(), "Red Text");
 }
 
-TEST_F(RichTextWidgetTest, SetNullText) {
+TEST_F(RichTextWidgetTest, SetNullText)
+{
     widget->setText(std::unique_ptr<mc::text::ITextComponent>());
 
     EXPECT_EQ(widget->getText(), nullptr);
@@ -87,41 +93,48 @@ TEST_F(RichTextWidgetTest, SetNullText) {
 
 // ==================== 样式设置测试 ====================
 
-TEST_F(RichTextWidgetTest, SetBaseColor) {
-    widget->setBaseColor(0xFF0000FF);  // 蓝色
+TEST_F(RichTextWidgetTest, SetBaseColor)
+{
+    widget->setBaseColor(0xFF0000FF); // 蓝色
     EXPECT_TRUE(widget->isVisible());
 }
 
-TEST_F(RichTextWidgetTest, SetShadow) {
+TEST_F(RichTextWidgetTest, SetShadow)
+{
     widget->setShadow(true);
     widget->setShadow(false);
     EXPECT_TRUE(widget->isVisible());
 }
 
-TEST_F(RichTextWidgetTest, SetWordWrap) {
+TEST_F(RichTextWidgetTest, SetWordWrap)
+{
     widget->setWordWrap(true);
     widget->setWordWrap(false);
     EXPECT_TRUE(widget->isVisible());
 }
 
-TEST_F(RichTextWidgetTest, SetAlignment) {
+TEST_F(RichTextWidgetTest, SetAlignment)
+{
     widget->setAlignment(mc::client::ui::kagero::widget::TextAlignment::Left);
     widget->setAlignment(mc::client::ui::kagero::widget::TextAlignment::Center);
     widget->setAlignment(mc::client::ui::kagero::widget::TextAlignment::Right);
     EXPECT_TRUE(widget->isVisible());
 }
 
-TEST_F(RichTextWidgetTest, SetLineSpacing) {
+TEST_F(RichTextWidgetTest, SetLineSpacing)
+{
     widget->setLineSpacing(1.5f);
     EXPECT_TRUE(widget->isVisible());
 }
 
-TEST_F(RichTextWidgetTest, SetMaxLines) {
+TEST_F(RichTextWidgetTest, SetMaxLines)
+{
     widget->setMaxLines(10);
     EXPECT_TRUE(widget->isVisible());
 }
 
-TEST_F(RichTextWidgetTest, SetEventsEnabled) {
+TEST_F(RichTextWidgetTest, SetEventsEnabled)
+{
     widget->setEventsEnabled(true);
     widget->setEventsEnabled(false);
     EXPECT_TRUE(widget->isVisible());
@@ -129,34 +142,41 @@ TEST_F(RichTextWidgetTest, SetEventsEnabled) {
 
 // ==================== 布局计算测试 ====================
 
-TEST_F(RichTextWidgetTest, GetTextWidthEmpty) {
+TEST_F(RichTextWidgetTest, GetTextWidthEmpty)
+{
     EXPECT_EQ(widget->getTextWidth(), 0.0f);
 }
 
-TEST_F(RichTextWidgetTest, GetTextWidthSimple) {
+TEST_F(RichTextWidgetTest, GetTextWidthSimple)
+{
     widget->setText("Hello World");
     EXPECT_GT(widget->getTextWidth(), 0.0f);
 }
 
-TEST_F(RichTextWidgetTest, GetTextHeightEmpty) {
+TEST_F(RichTextWidgetTest, GetTextHeightEmpty)
+{
     EXPECT_EQ(widget->getTextHeight(), 0.0f);
 }
 
-TEST_F(RichTextWidgetTest, GetTextHeightSimple) {
+TEST_F(RichTextWidgetTest, GetTextHeightSimple)
+{
     widget->setText("Hello");
     EXPECT_GT(widget->getTextHeight(), 0.0f);
 }
 
-TEST_F(RichTextWidgetTest, GetLineCountEmpty) {
+TEST_F(RichTextWidgetTest, GetLineCountEmpty)
+{
     EXPECT_EQ(widget->getLineCount(), 0);
 }
 
-TEST_F(RichTextWidgetTest, GetLineCountSingleLine) {
+TEST_F(RichTextWidgetTest, GetLineCountSingleLine)
+{
     widget->setText("Single Line");
     EXPECT_EQ(widget->getLineCount(), 1);
 }
 
-TEST_F(RichTextWidgetTest, GetLineCountMultipleLines) {
+TEST_F(RichTextWidgetTest, GetLineCountMultipleLines)
+{
     // Note: Word wrap requires either a real font or multiple text components.
     // Without a font, a single text component is treated as one run that won't wrap.
     // Here we test that setting word wrap doesn't cause errors.
@@ -168,7 +188,8 @@ TEST_F(RichTextWidgetTest, GetLineCountMultipleLines) {
     EXPECT_GE(widget->getLineCount(), 1);
 }
 
-TEST_F(RichTextWidgetTest, MaxLinesConstraint) {
+TEST_F(RichTextWidgetTest, MaxLinesConstraint)
+{
     // Note: Without a real font, word wrap behavior is limited.
     // Max lines is enforced during layout when text would wrap.
     widget->setWordWrap(true);
@@ -182,17 +203,17 @@ TEST_F(RichTextWidgetTest, MaxLinesConstraint) {
 
 // ==================== 事件回调测试 ====================
 
-TEST_F(RichTextWidgetTest, ClickCallback) {
+TEST_F(RichTextWidgetTest, ClickCallback)
+{
     bool callbackCalled = false;
 
-    widget->setOnClick([&callbackCalled](const mc::text::ClickEvent& /*event*/) {
-        callbackCalled = true;
-    });
+    widget->setOnClick([&callbackCalled](const mc::text::ClickEvent& /*event*/) { callbackCalled = true; });
 
     widget->setEventsEnabled(true);
 }
 
-TEST_F(RichTextWidgetTest, HoverCallback) {
+TEST_F(RichTextWidgetTest, HoverCallback)
+{
     bool callbackCalled = false;
 
     widget->setOnHover([&callbackCalled](const mc::text::HoverEvent& /*event*/, mc::i32 /*x*/, mc::i32 /*y*/) {
@@ -204,49 +225,57 @@ TEST_F(RichTextWidgetTest, HoverCallback) {
 
 // ==================== 边界情况测试 ====================
 
-TEST_F(RichTextWidgetTest, EmptyString) {
+TEST_F(RichTextWidgetTest, EmptyString)
+{
     widget->setText("");
     EXPECT_EQ(widget->getUnformattedText(), "");
     EXPECT_EQ(widget->getLineCount(), 0);
 }
 
-TEST_F(RichTextWidgetTest, NullText) {
+TEST_F(RichTextWidgetTest, NullText)
+{
     widget->setText(std::unique_ptr<mc::text::ITextComponent>());
     EXPECT_EQ(widget->getText(), nullptr);
     EXPECT_EQ(widget->getUnformattedText(), "");
 }
 
-TEST_F(RichTextWidgetTest, VeryLongText) {
+TEST_F(RichTextWidgetTest, VeryLongText)
+{
     std::string longText(1000, 'A');
     widget->setText(longText);
     EXPECT_EQ(widget->getUnformattedText().length(), 1000u);
 }
 
-TEST_F(RichTextWidgetTest, SpecialCharacters) {
+TEST_F(RichTextWidgetTest, SpecialCharacters)
+{
     widget->setText("Hello§cWorld§l!");
     EXPECT_EQ(widget->getUnformattedText(), "HelloWorld!");
 }
 
-TEST_F(RichTextWidgetTest, UnicodeText) {
+TEST_F(RichTextWidgetTest, UnicodeText)
+{
     widget->setText("你好世界");
     EXPECT_EQ(widget->getUnformattedText(), "你好世界");
 }
 
-TEST_F(RichTextWidgetTest, MixedFormatCodes) {
+TEST_F(RichTextWidgetTest, MixedFormatCodes)
+{
     widget->setText("§cRed§lBold§rReset");
     EXPECT_EQ(widget->getUnformattedText(), "RedBoldReset");
 }
 
 // ==================== 组件生命周期测试 ====================
 
-TEST_F(RichTextWidgetTest, MoveConstructor) {
+TEST_F(RichTextWidgetTest, MoveConstructor)
+{
     widget->setText("Test");
 
     mc::client::ui::kagero::widget::RichTextWidget moved = std::move(*widget);
     EXPECT_EQ(moved.getUnformattedText(), "Test");
 }
 
-TEST_F(RichTextWidgetTest, Init) {
+TEST_F(RichTextWidgetTest, Init)
+{
     widget->setText("Test");
     widget->init();
     EXPECT_EQ(widget->getLineCount(), 1);
@@ -254,7 +283,8 @@ TEST_F(RichTextWidgetTest, Init) {
 
 // ==================== 复杂文本测试 ====================
 
-TEST_F(RichTextWidgetTest, NestedComponents) {
+TEST_F(RichTextWidgetTest, NestedComponents)
+{
     auto root = std::make_unique<mc::text::StringTextComponent>("Hello ");
 
     auto colored = std::make_unique<mc::text::StringTextComponent>("World");
@@ -268,7 +298,8 @@ TEST_F(RichTextWidgetTest, NestedComponents) {
     EXPECT_EQ(widget->getUnformattedText(), "Hello World");
 }
 
-TEST_F(RichTextWidgetTest, ClickEventComponent) {
+TEST_F(RichTextWidgetTest, ClickEventComponent)
+{
     auto text = std::make_unique<mc::text::StringTextComponent>("Click Me");
     mc::text::Style style;
     style.setClickEvent(mc::text::ClickEvent(mc::text::ClickAction::OpenUrl, "https://example.com"));
@@ -278,7 +309,8 @@ TEST_F(RichTextWidgetTest, ClickEventComponent) {
     EXPECT_EQ(widget->getUnformattedText(), "Click Me");
 }
 
-TEST_F(RichTextWidgetTest, HoverEventComponent) {
+TEST_F(RichTextWidgetTest, HoverEventComponent)
+{
     auto text = std::make_unique<mc::text::StringTextComponent>("Hover Me");
     mc::text::Style style;
     style.setHoverEvent(mc::text::HoverEvent::showText("Tooltip"));
@@ -290,19 +322,22 @@ TEST_F(RichTextWidgetTest, HoverEventComponent) {
 
 // ==================== 文本对齐测试 ====================
 
-TEST_F(RichTextWidgetTest, AlignmentLeft) {
+TEST_F(RichTextWidgetTest, AlignmentLeft)
+{
     widget->setAlignment(mc::client::ui::kagero::widget::TextAlignment::Left);
     widget->setText("Test");
     EXPECT_EQ(widget->getLineCount(), 1);
 }
 
-TEST_F(RichTextWidgetTest, AlignmentCenter) {
+TEST_F(RichTextWidgetTest, AlignmentCenter)
+{
     widget->setAlignment(mc::client::ui::kagero::widget::TextAlignment::Center);
     widget->setText("Test");
     EXPECT_EQ(widget->getLineCount(), 1);
 }
 
-TEST_F(RichTextWidgetTest, AlignmentRight) {
+TEST_F(RichTextWidgetTest, AlignmentRight)
+{
     widget->setAlignment(mc::client::ui::kagero::widget::TextAlignment::Right);
     widget->setText("Test");
     EXPECT_EQ(widget->getLineCount(), 1);
@@ -310,7 +345,8 @@ TEST_F(RichTextWidgetTest, AlignmentRight) {
 
 // ==================== 禁用事件测试 ====================
 
-TEST_F(RichTextWidgetTest, EventsDisabled) {
+TEST_F(RichTextWidgetTest, EventsDisabled)
+{
     widget->setEventsEnabled(false);
     widget->setText("Test");
 
@@ -320,7 +356,8 @@ TEST_F(RichTextWidgetTest, EventsDisabled) {
 
 // ==================== Widget 可见性测试 ====================
 
-TEST_F(RichTextWidgetTest, InvisibleWidget) {
+TEST_F(RichTextWidgetTest, InvisibleWidget)
+{
     widget->setText("Test");
     widget->setVisible(false);
 
@@ -328,7 +365,8 @@ TEST_F(RichTextWidgetTest, InvisibleWidget) {
     EXPECT_FALSE(clicked);
 }
 
-TEST_F(RichTextWidgetTest, InactiveWidget) {
+TEST_F(RichTextWidgetTest, InactiveWidget)
+{
     widget->setText("Test");
     widget->setActive(false);
 

@@ -1,12 +1,12 @@
 #include "ParticleTextureAtlas.hpp"
-#include "../util/VulkanUtils.hpp"
 #include "../../../resource/TextureAtlasBuilder.hpp"
+#include "../util/VulkanUtils.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include <spdlog/spdlog.h>
-#include <stb_image.h>
 #include <algorithm>
 #include <cstring>
+#include <spdlog/spdlog.h>
+#include <stb_image.h>
 
 namespace mc::client::renderer::trident::particle {
 
@@ -17,8 +17,7 @@ namespace {
  *
  * 从 .mcmeta 文件解析动画帧信息
  */
-[[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
-    const std::vector<u8>& mcmetaData,
+[[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(const std::vector<u8>& mcmetaData,
     u32 imageWidth,
     u32 imageHeight,
     u32& outFrameWidth,
@@ -84,13 +83,11 @@ namespace {
     }
 
     // 检查帧尺寸是否能整除纹理尺寸
-    if (static_cast<u32>(frameWidth) > imageWidth ||
-        static_cast<u32>(frameHeight) > imageHeight) {
+    if (static_cast<u32>(frameWidth) > imageWidth || static_cast<u32>(frameHeight) > imageHeight) {
         return false;
     }
 
-    if ((imageWidth % static_cast<u32>(frameWidth)) != 0 ||
-        (imageHeight % static_cast<u32>(frameHeight)) != 0) {
+    if ((imageWidth % static_cast<u32>(frameWidth)) != 0 || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
         return false;
     }
 
@@ -104,10 +101,7 @@ namespace {
  * @brief 加载纹理像素数据
  */
 Result<std::vector<u8>> loadTexturePixels(
-    IResourcePack& pack,
-    const ResourceLocation& location,
-    u32& outWidth,
-    u32& outHeight)
+    IResourcePack& pack, const ResourceLocation& location, u32& outWidth, u32& outHeight)
 {
     const std::string pngPath = location.toFilePath("png");
     const auto readResult = pack.readResource(pngPath);
@@ -118,20 +112,18 @@ Result<std::vector<u8>> loadTexturePixels(
     int width = 0;
     int height = 0;
     int channels = 0;
-    stbi_uc* pixels = stbi_load_from_memory(
-        readResult.value().data(),
+    stbi_uc* pixels = stbi_load_from_memory(readResult.value().data(),
         static_cast<int>(readResult.value().size()),
         &width,
         &height,
         &channels,
-        4);  // 强制 RGBA
+        4); // 强制 RGBA
 
     if (pixels == nullptr || width <= 0 || height <= 0) {
         if (pixels != nullptr) {
             stbi_image_free(pixels);
         }
-        return Error(ErrorCode::TextureLoadFailed,
-                     "Failed to decode particle texture: " + location.toString());
+        return Error(ErrorCode::TextureLoadFailed, "Failed to decode particle texture: " + location.toString());
     }
 
     outWidth = static_cast<u32>(width);
@@ -146,7 +138,8 @@ Result<std::vector<u8>> loadTexturePixels(
 
 ParticleTextureAtlas::ParticleTextureAtlas() = default;
 
-ParticleTextureAtlas::~ParticleTextureAtlas() {
+ParticleTextureAtlas::~ParticleTextureAtlas()
+{
     destroy();
 }
 
@@ -182,7 +175,8 @@ ParticleTextureAtlas::ParticleTextureAtlas(ParticleTextureAtlas&& other) noexcep
     other.m_uploaded = false;
 }
 
-ParticleTextureAtlas& ParticleTextureAtlas::operator=(ParticleTextureAtlas&& other) noexcept {
+ParticleTextureAtlas& ParticleTextureAtlas::operator=(ParticleTextureAtlas&& other) noexcept
+{
     if (this != &other) {
         destroy();
 
@@ -219,8 +213,7 @@ ParticleTextureAtlas& ParticleTextureAtlas::operator=(ParticleTextureAtlas&& oth
     return *this;
 }
 
-Result<void> ParticleTextureAtlas::create(
-    VkDevice device,
+Result<void> ParticleTextureAtlas::create(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
@@ -254,7 +247,8 @@ Result<void> ParticleTextureAtlas::create(
     return {};
 }
 
-void ParticleTextureAtlas::destroy() {
+void ParticleTextureAtlas::destroy()
+{
     if (m_device == VK_NULL_HANDLE) {
         return;
     }
@@ -289,8 +283,8 @@ void ParticleTextureAtlas::destroy() {
     m_device = VK_NULL_HANDLE;
 }
 
-Result<void> ParticleTextureAtlas::loadFromResourcePacks(
-    const std::vector<IResourcePack*>& resourcePacks) {
+Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IResourcePack*>& resourcePacks)
+{
 
     if (resourcePacks.empty()) {
         spdlog::warn("[ParticleTextureAtlas] No resource packs provided");
@@ -300,7 +294,7 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
     // 使用 TextureAtlasBuilder 打包纹理
     TextureAtlasBuilder builder;
     builder.setMaxSize(m_width, m_height);
-    builder.setPadding(1);  // 1 像素边距防止纹理溢出
+    builder.setPadding(1); // 1 像素边距防止纹理溢出
 
     // 收集所有粒子纹理
     std::vector<std::pair<ResourceLocation, std::tuple<std::vector<u8>, u32, u32, u32, u32, f64>>> textureData;
@@ -315,33 +309,59 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
         const std::string particleDir = "textures/particle";
 
         // 常见的粒子纹理名称
-        static const std::vector<std::string> particleTextures = {
-            // 环境类
-            "bubble", "bubble_pop", "underwater",
+        static const std::vector<std::string> particleTextures = {// 环境类
+            "bubble",
+            "bubble_pop",
+            "underwater",
             // 火焰和烟雾
-            "flame", "soul_fire_flame", "smoke", "large_smoke", "lava",
+            "flame",
+            "soul_fire_flame",
+            "smoke",
+            "large_smoke",
+            "lava",
             // 传送门
-            "portal", "reverse_portal",
+            "portal",
+            "reverse_portal",
             // 效果
-            "explosion", "poof", "crit", "enchanted_hit",
-            "spell", "instant_spell", "entity_effect",
+            "explosion",
+            "poof",
+            "crit",
+            "enchanted_hit",
+            "spell",
+            "instant_spell",
+            "entity_effect",
             // 红石
             "redstone_dust",
             // 附魔台
-            "enchant_glyph", "end_rod",
+            "enchant_glyph",
+            "end_rod",
             // 液体滴落
-            "drip_hang", "drip_fall", "drip_land",
+            "drip_hang",
+            "drip_fall",
+            "drip_land",
             // 天气
-            "rain", "snowflake", "splash",
+            "rain",
+            "snowflake",
+            "splash",
             // 生物
-            "heart", "angry_villager", "happy_villager",
+            "heart",
+            "angry_villager",
+            "happy_villager",
             // 特殊
-            "totem_of_undying", "flash", "nautilus",
+            "totem_of_undying",
+            "flash",
+            "nautilus",
             // 下界
-            "ash", "white_ash", "crimson_spore", "warped_spore",
+            "ash",
+            "white_ash",
+            "crimson_spore",
+            "warped_spore",
             // 其他
-            "dragon_breath", "soul", "sculk_soul", "glow", "glow_squid_ink"
-        };
+            "dragon_breath",
+            "soul",
+            "sculk_soul",
+            "glow",
+            "glow_squid_ink"};
 
         for (const std::string& textureName : particleTextures) {
             ResourceLocation location("minecraft", "particle/" + textureName);
@@ -365,43 +385,36 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
             u32 width = 0, height = 0;
             auto pixelResult = loadTexturePixels(*pack, location, width, height);
             if (pixelResult.failed()) {
-                continue;  // 纹理不存在，跳过
+                continue; // 纹理不存在，跳过
             }
 
             // 检查动画元数据
             u32 frameWidth = width;
-            u32 frameHeight = width;  // 默认为正方形帧
-            f64 frameTime = 0.1f;     // 默认帧时间
+            u32 frameHeight = width; // 默认为正方形帧
+            f64 frameTime = 0.1f;    // 默认帧时间
 
             const std::string mcmetaPath = path + ".mcmeta";
             if (pack->hasResource(mcmetaPath)) {
                 auto mcmetaResult = pack->readResource(mcmetaPath);
                 if (mcmetaResult.success()) {
                     static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
-                        mcmetaResult.value(),
-                        width,
-                        height,
-                        frameWidth,
-                        frameHeight,
-                        frameTime));
+                        mcmetaResult.value(), width, height, frameWidth, frameHeight, frameTime));
                 }
             }
 
             // 添加到构建器（使用第一帧尺寸）
-            builder.addTextureFrame(
-                location,
-                pixelResult.value(),
+            builder.addTextureFrame(location, pixelResult.value(), width, height, frameWidth, frameHeight);
+
+            // 存储动画信息
+            textureData.emplace_back(
+                location, std::make_tuple(pixelResult.value(), width, height, frameWidth, frameHeight, frameTime));
+
+            spdlog::debug("[ParticleTextureAtlas] Loaded particle texture: {} ({}x{}, frame: {}x{})",
+                location.toString(),
                 width,
                 height,
                 frameWidth,
                 frameHeight);
-
-            // 存储动画信息
-            textureData.emplace_back(location, std::make_tuple(
-                pixelResult.value(), width, height, frameWidth, frameHeight, frameTime));
-
-            spdlog::debug("[ParticleTextureAtlas] Loaded particle texture: {} ({}x{}, frame: {}x{})",
-                          location.toString(), width, height, frameWidth, frameHeight);
         }
     }
 
@@ -417,7 +430,10 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
     // 更新图集尺寸
     if (atlasResult.width > m_width || atlasResult.height > m_height) {
         spdlog::warn("[ParticleTextureAtlas] Atlas size {}x{} exceeds configured {}x{}, resizing",
-                     atlasResult.width, atlasResult.height, m_width, m_height);
+            atlasResult.width,
+            atlasResult.height,
+            m_width,
+            m_height);
         m_width = atlasResult.width;
         m_height = atlasResult.height;
     }
@@ -443,12 +459,15 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
     }
 
     spdlog::info("[ParticleTextureAtlas] Loaded {} particle textures, atlas size {}x{}",
-                 m_sprites.size(), atlasResult.width, atlasResult.height);
+        m_sprites.size(),
+        atlasResult.width,
+        atlasResult.height);
 
     return {};
 }
 
-Result<void> ParticleTextureAtlas::upload() {
+Result<void> ParticleTextureAtlas::upload()
+{
     if (m_uploaded) {
         return {};
     }
@@ -502,8 +521,7 @@ Result<void> ParticleTextureAtlas::upload() {
     vkGetBufferMemoryRequirements(m_device, stagingBuffer, &memRequirements);
 
     auto memTypeResult = findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -535,8 +553,7 @@ Result<void> ParticleTextureAtlas::upload() {
     // 复制到图像
     VkCommandBuffer cmd = beginSingleTimeCommands();
 
-    transitionImageLayout(
-        cmd,
+    transitionImageLayout(cmd,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -553,16 +570,9 @@ Result<void> ParticleTextureAtlas::upload() {
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {m_width, m_height, 1};
 
-    vkCmdCopyBufferToImage(
-        cmd,
-        stagingBuffer,
-        m_image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region);
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    transitionImageLayout(
-        cmd,
+    transitionImageLayout(cmd,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -586,7 +596,8 @@ Result<void> ParticleTextureAtlas::upload() {
     return {};
 }
 
-const SpriteInfo* ParticleTextureAtlas::getSprite(const ResourceLocation& location) const {
+const SpriteInfo* ParticleTextureAtlas::getSprite(const ResourceLocation& location) const
+{
     auto it = m_sprites.find(location);
     if (it != m_sprites.end()) {
         return &it->second;
@@ -594,10 +605,7 @@ const SpriteInfo* ParticleTextureAtlas::getSprite(const ResourceLocation& locati
     return nullptr;
 }
 
-glm::vec4 ParticleTextureAtlas::getAnimatedFrameUV(
-    const ResourceLocation& location,
-    f64 age,
-    f64 maxAge) const
+glm::vec4 ParticleTextureAtlas::getAnimatedFrameUV(const ResourceLocation& location, f64 age, f64 maxAge) const
 {
     const SpriteInfo* sprite = getSprite(location);
     if (sprite == nullptr) {
@@ -620,16 +628,10 @@ glm::vec4 ParticleTextureAtlas::getAnimatedFrameUV(
 
     const f64 frameVOffset = sprite->uvMin.y + static_cast<f64>(clampedFrame) * frameVHeight;
 
-    return glm::vec4(
-        sprite->uvMin.x,
-        frameVOffset,
-        sprite->uvMax.x,
-        frameVOffset + frameVHeight);
+    return glm::vec4(sprite->uvMin.x, frameVOffset, sprite->uvMax.x, frameVOffset + frameVHeight);
 }
 
-glm::vec4 ParticleTextureAtlas::getRandomFrameUV(
-    const ResourceLocation& location,
-    u32 seed) const
+glm::vec4 ParticleTextureAtlas::getRandomFrameUV(const ResourceLocation& location, u32 seed) const
 {
     const SpriteInfo* sprite = getSprite(location);
     if (sprite == nullptr) {
@@ -647,14 +649,11 @@ glm::vec4 ParticleTextureAtlas::getRandomFrameUV(
     const f64 frameVHeight = frameHeight / totalHeight;
     const f64 frameVOffset = sprite->uvMin.y + static_cast<f64>(frameIndex) * frameVHeight;
 
-    return glm::vec4(
-        sprite->uvMin.x,
-        frameVOffset,
-        sprite->uvMax.x,
-        frameVOffset + frameVHeight);
+    return glm::vec4(sprite->uvMin.x, frameVOffset, sprite->uvMax.x, frameVOffset + frameVHeight);
 }
 
-Result<void> ParticleTextureAtlas::createImage() {
+Result<void> ParticleTextureAtlas::createImage()
+{
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -677,9 +676,7 @@ Result<void> ParticleTextureAtlas::createImage() {
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(m_device, m_image, &memRequirements);
 
-    auto memTypeResult = findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     if (memTypeResult.failed()) {
         vkDestroyImage(m_device, m_image, nullptr);
@@ -702,7 +699,8 @@ Result<void> ParticleTextureAtlas::createImage() {
     return {};
 }
 
-Result<void> ParticleTextureAtlas::createSampler() {
+Result<void> ParticleTextureAtlas::createSampler()
+{
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -728,7 +726,8 @@ Result<void> ParticleTextureAtlas::createSampler() {
     return {};
 }
 
-Result<void> ParticleTextureAtlas::createImageView() {
+Result<void> ParticleTextureAtlas::createImageView()
+{
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = m_image;
@@ -747,16 +746,13 @@ Result<void> ParticleTextureAtlas::createImageView() {
     return {};
 }
 
-Result<u32> ParticleTextureAtlas::findMemoryType(
-    u32 typeFilter,
-    VkMemoryPropertyFlags properties)
+Result<u32> ParticleTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
 
     for (u32 i = 0; i < memProperties.memoryTypeCount; ++i) {
-        if ((typeFilter & (1 << i)) &&
-            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
         }
     }
@@ -764,7 +760,8 @@ Result<u32> ParticleTextureAtlas::findMemoryType(
     return Error(ErrorCode::OutOfMemory, "Failed to find suitable memory type");
 }
 
-VkCommandBuffer ParticleTextureAtlas::beginSingleTimeCommands() {
+VkCommandBuffer ParticleTextureAtlas::beginSingleTimeCommands()
+{
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -782,7 +779,8 @@ VkCommandBuffer ParticleTextureAtlas::beginSingleTimeCommands() {
     return commandBuffer;
 }
 
-void ParticleTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void ParticleTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -796,8 +794,7 @@ void ParticleTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer) 
     vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 }
 
-void ParticleTextureAtlas::transitionImageLayout(
-    VkCommandBuffer cmd,
+void ParticleTextureAtlas::transitionImageLayout(VkCommandBuffer cmd,
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
     VkPipelineStageFlags srcStage,
@@ -816,12 +813,11 @@ void ParticleTextureAtlas::transitionImageLayout(
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-        newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-               newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     } else {
@@ -829,17 +825,7 @@ void ParticleTextureAtlas::transitionImageLayout(
         barrier.dstAccessMask = 0;
     }
 
-    vkCmdPipelineBarrier(
-        cmd,
-        srcStage,
-        dstStage,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &barrier);
+    vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 } // namespace mc::client::renderer::trident::particle

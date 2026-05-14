@@ -3,7 +3,8 @@
 
 namespace mc::client::renderer::entity::core {
 
-void AnimationContext::computeHash() {
+void AnimationContext::computeHash()
+{
     // 使用简单但有效的哈希组合方法
     // 参考 boost::hash_combine 的实现
     auto hashCombine = [](u32 seed, f64 value) {
@@ -32,19 +33,15 @@ void AnimationContext::computeHash() {
     stateHash = hash;
 }
 
-bool AnimationContext::hasSignificantChange(
-    const AnimationContext& other,
-    f64 threshold
-) const {
+bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 threshold) const
+{
     // 快速检查：哈希相等则无变化
     if (stateHash == other.stateHash) {
         return false;
     }
 
     // 检查每个动画参数是否超过阈值
-    auto checkDiff = [threshold](f64 a, f64 b) {
-        return std::abs(a - b) > threshold;
-    };
+    auto checkDiff = [threshold](f64 a, f64 b) { return std::abs(a - b) > threshold; };
 
     // 主要动画参数
     if (checkDiff(limbSwing, other.limbSwing)) return true;

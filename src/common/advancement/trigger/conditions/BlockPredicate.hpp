@@ -1,17 +1,17 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/entity/loot/StatePropertiesPredicate.hpp"
 #include "../../MinMaxBounds.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/loot/StatePropertiesPredicate.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
+#include <nlohmann/json.hpp>
 
 // 前向声明
 namespace mc {
-    class BlockState;
+class BlockState;
 }
 
 namespace mc::advancement {
@@ -37,10 +37,7 @@ public:
      * @param state 状态属性谓词
      */
     BlockPredicate(
-        std::optional<ResourceLocation> block,
-        std::optional<ResourceLocation> tag,
-        StatePropertiesPredicate state
-    );
+        std::optional<ResourceLocation> block, std::optional<ResourceLocation> tag, StatePropertiesPredicate state);
 
     /**
      * @brief 检查方块是否匹配
@@ -71,10 +68,10 @@ public:
     [[nodiscard]] const StatePropertiesPredicate& getState() const noexcept { return m_state; }
 
 private:
-    std::optional<ResourceLocation> m_block;           ///< 方块ID
-    std::optional<ResourceLocation> m_tag;             ///< 方块标签
-    StatePropertiesPredicate m_state;                  ///< 状态属性谓词
-    bool m_isAny = true;                               ///< 是否匹配任意方块
+    std::optional<ResourceLocation> m_block; ///< 方块ID
+    std::optional<ResourceLocation> m_tag;   ///< 方块标签
+    StatePropertiesPredicate m_state;        ///< 状态属性谓词
+    bool m_isAny = true;                     ///< 是否匹配任意方块
 };
 
 /**
@@ -111,8 +108,8 @@ public:
     [[nodiscard]] nlohmann::json toJson() const;
 
 private:
-    std::optional<ResourceLocation> m_fluid;  ///< 流体ID
-    StatePropertiesPredicate m_state;         ///< 状态属性谓词
+    std::optional<ResourceLocation> m_fluid; ///< 流体ID
+    StatePropertiesPredicate m_state;        ///< 状态属性谓词
     bool m_isAny = true;
 };
 

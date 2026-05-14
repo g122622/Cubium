@@ -1,23 +1,24 @@
-#include <gtest/gtest.h>
 #include "network/packet/ParticlePacket.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <cmath>
+#include <gtest/gtest.h>
 
 using namespace mc::network;
 using namespace mc::client::renderer::trident::particle;
-using mc::Vector3;
 using mc::f32;
 using mc::f64;
-using mc::u32;
 using mc::u16;
+using mc::u32;
 using mc::u8;
+using mc::Vector3;
 
 // ==================== ParticlePacket 基础测试 ====================
 
 class ParticlePacketTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         testType = ParticleTypeId::Flame;
         testPos = Vector3(100.5f, 64.0f, -200.25f);
         testVelocity = Vector3(0.1f, 0.2f, 0.3f);
@@ -32,7 +33,8 @@ protected:
     u32 testCount;
 };
 
-TEST_F(ParticlePacketTest, DefaultConstruction) {
+TEST_F(ParticlePacketTest, DefaultConstruction)
+{
     ParticlePacket packet;
     EXPECT_EQ(packet.particleType(), ParticleTypeId::Invalid);
     EXPECT_EQ(packet.x(), 0.0);
@@ -42,7 +44,8 @@ TEST_F(ParticlePacketTest, DefaultConstruction) {
     EXPECT_TRUE(packet.optionalData().empty());
 }
 
-TEST_F(ParticlePacketTest, ParameterizedConstruction) {
+TEST_F(ParticlePacketTest, ParameterizedConstruction)
+{
     ParticlePacket packet(testType, testPos, testVelocity, testOffset, testCount);
 
     EXPECT_EQ(packet.particleType(), testType);
@@ -58,7 +61,8 @@ TEST_F(ParticlePacketTest, ParameterizedConstruction) {
     EXPECT_EQ(packet.count(), testCount);
 }
 
-TEST_F(ParticlePacketTest, SettersAndGetters) {
+TEST_F(ParticlePacketTest, SettersAndGetters)
+{
     ParticlePacket packet;
 
     packet.setParticleType(ParticleTypeId::Smoke);
@@ -94,7 +98,8 @@ TEST_F(ParticlePacketTest, SettersAndGetters) {
     EXPECT_EQ(packet.optionalData()[0], 0x01);
 }
 
-TEST_F(ParticlePacketTest, VectorGetters) {
+TEST_F(ParticlePacketTest, VectorGetters)
+{
     ParticlePacket packet(testType, testPos, testVelocity, testOffset, testCount);
 
     Vector3 pos = packet.position();
@@ -117,7 +122,8 @@ TEST_F(ParticlePacketTest, VectorGetters) {
 
 class ParticlePacketSerializeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         testType = ParticleTypeId::Crit;
         testPos = Vector3(123.45f, 67.89f, -234.56f);
         testVelocity = Vector3(0.5f, -0.3f, 0.1f);
@@ -132,7 +138,8 @@ protected:
     u32 testCount;
 };
 
-TEST_F(ParticlePacketSerializeTest, SerializeDeserializeBasic) {
+TEST_F(ParticlePacketSerializeTest, SerializeDeserializeBasic)
+{
     ParticlePacket original(testType, testPos, testVelocity, testOffset, testCount);
 
     auto result = original.serialize();
@@ -158,7 +165,8 @@ TEST_F(ParticlePacketSerializeTest, SerializeDeserializeBasic) {
     EXPECT_EQ(deserialized.count(), testCount);
 }
 
-TEST_F(ParticlePacketSerializeTest, SerializeDeserializeWithOptionalData) {
+TEST_F(ParticlePacketSerializeTest, SerializeDeserializeWithOptionalData)
+{
     ParticlePacket original(testType, testPos, testVelocity, testOffset, testCount);
 
     std::vector<u8> optionalData = {0x01, 0x02, 0x03, 0x04, 0x05};
@@ -175,7 +183,8 @@ TEST_F(ParticlePacketSerializeTest, SerializeDeserializeWithOptionalData) {
     EXPECT_EQ(deserialized.optionalData(), optionalData);
 }
 
-TEST_F(ParticlePacketSerializeTest, SerializeDeserializeEmptyOptionalData) {
+TEST_F(ParticlePacketSerializeTest, SerializeDeserializeEmptyOptionalData)
+{
     ParticlePacket original(testType, testPos, testVelocity, testOffset, testCount);
 
     auto result = original.serialize();
@@ -188,12 +197,10 @@ TEST_F(ParticlePacketSerializeTest, SerializeDeserializeEmptyOptionalData) {
     EXPECT_TRUE(deserialized.optionalData().empty());
 }
 
-TEST_F(ParticlePacketSerializeTest, SerializeDeserializeSingleParticle) {
-    auto original = ParticlePacket::createSingle(
-        ParticleTypeId::Heart,
-        Vector3(10.0f, 20.0f, 30.0f),
-        Vector3(0.0f, 0.0f, 0.0f)
-    );
+TEST_F(ParticlePacketSerializeTest, SerializeDeserializeSingleParticle)
+{
+    auto original =
+        ParticlePacket::createSingle(ParticleTypeId::Heart, Vector3(10.0f, 20.0f, 30.0f), Vector3(0.0f, 0.0f, 0.0f));
 
     auto result = original.serialize();
     ASSERT_TRUE(result.success()) << result.error().message();
@@ -209,7 +216,8 @@ TEST_F(ParticlePacketSerializeTest, SerializeDeserializeSingleParticle) {
     EXPECT_FLOAT_EQ(deserialized.offsetZ(), 0.0f);
 }
 
-TEST_F(ParticlePacketSerializeTest, SerializeDeserializeLargeCount) {
+TEST_F(ParticlePacketSerializeTest, SerializeDeserializeLargeCount)
+{
     ParticlePacket original(testType, testPos, testVelocity, testOffset, 1000);
 
     auto result = original.serialize();
@@ -222,7 +230,8 @@ TEST_F(ParticlePacketSerializeTest, SerializeDeserializeLargeCount) {
     EXPECT_EQ(deserialized.count(), 1000u);
 }
 
-TEST_F(ParticlePacketSerializeTest, SerializeDeserializeZeroOffset) {
+TEST_F(ParticlePacketSerializeTest, SerializeDeserializeZeroOffset)
+{
     ParticlePacket original(testType, testPos, testVelocity, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     auto result = original.serialize();
@@ -239,7 +248,8 @@ TEST_F(ParticlePacketSerializeTest, SerializeDeserializeZeroOffset) {
 
 // ==================== ParticlePacket 错误处理测试 ====================
 
-TEST(ParticlePacketErrorTest, DeserializeTooSmallData) {
+TEST(ParticlePacketErrorTest, DeserializeTooSmallData)
+{
     ParticlePacket packet;
     u8 smallData[] = {0x01};
 
@@ -247,7 +257,8 @@ TEST(ParticlePacketErrorTest, DeserializeTooSmallData) {
     EXPECT_FALSE(result.success());
 }
 
-TEST(ParticlePacketErrorTest, DeserializeInvalidParticleType) {
+TEST(ParticlePacketErrorTest, DeserializeInvalidParticleType)
+{
     ParticlePacket original(ParticleTypeId::Flame, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), 1);
     auto result = original.serialize();
     ASSERT_TRUE(result.success());
@@ -262,7 +273,8 @@ TEST(ParticlePacketErrorTest, DeserializeInvalidParticleType) {
     EXPECT_FALSE(deserResult.success());
 }
 
-TEST(ParticlePacketErrorTest, DeserializeTruncatedOptionalData) {
+TEST(ParticlePacketErrorTest, DeserializeTruncatedOptionalData)
+{
     ParticlePacket original(ParticleTypeId::Flame, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), 1);
     std::vector<u8> optData = {0x01, 0x02, 0x03, 0x04, 0x05};
     original.setOptionalData(optData);
@@ -280,14 +292,13 @@ TEST(ParticlePacketErrorTest, DeserializeTruncatedOptionalData) {
 
 // ==================== ParticlePacket 工厂方法测试 ====================
 
-TEST(ParticlePacketFactoryTest, CreateMethod) {
-    auto packet = ParticlePacket::create(
-        ParticleTypeId::LargeExplosion,
+TEST(ParticlePacketFactoryTest, CreateMethod)
+{
+    auto packet = ParticlePacket::create(ParticleTypeId::LargeExplosion,
         Vector3(100.0f, 50.0f, 75.0f),
         Vector3(0.0f, 0.0f, 0.0f),
         Vector3(2.0f, 2.0f, 2.0f),
-        50
-    );
+        50);
 
     EXPECT_EQ(packet.particleType(), ParticleTypeId::LargeExplosion);
     EXPECT_DOUBLE_EQ(packet.x(), 100.0);
@@ -299,12 +310,10 @@ TEST(ParticlePacketFactoryTest, CreateMethod) {
     EXPECT_EQ(packet.count(), 50u);
 }
 
-TEST(ParticlePacketFactoryTest, CreateSingleMethod) {
-    auto packet = ParticlePacket::createSingle(
-        ParticleTypeId::Bubble,
-        Vector3(10.0f, 20.0f, 30.0f),
-        Vector3(0.0f, 0.1f, 0.0f)
-    );
+TEST(ParticlePacketFactoryTest, CreateSingleMethod)
+{
+    auto packet =
+        ParticlePacket::createSingle(ParticleTypeId::Bubble, Vector3(10.0f, 20.0f, 30.0f), Vector3(0.0f, 0.1f, 0.0f));
 
     EXPECT_EQ(packet.particleType(), ParticleTypeId::Bubble);
     EXPECT_DOUBLE_EQ(packet.x(), 10.0);
@@ -319,7 +328,8 @@ TEST(ParticlePacketFactoryTest, CreateSingleMethod) {
 
 // ==================== 所有粒子类型测试 ====================
 
-TEST(ParticlePacketAllTypesTest, AllParticleTypesSerialize) {
+TEST(ParticlePacketAllTypesTest, AllParticleTypesSerialize)
+{
     for (u16 i = 0; i < static_cast<u16>(ParticleTypeId::Count); ++i) {
         ParticleTypeId type = static_cast<ParticleTypeId>(i);
 
@@ -337,15 +347,14 @@ TEST(ParticlePacketAllTypesTest, AllParticleTypesSerialize) {
 
 // ==================== 粒子同步集成测试 ====================
 
-TEST(ParticleSyncIntegrationTest, ServerToClientTransmission) {
+TEST(ParticleSyncIntegrationTest, ServerToClientTransmission)
+{
     // 模拟服务器创建粒子包
-    ParticlePacket serverPacket(
-        ParticleTypeId::Flame,
+    ParticlePacket serverPacket(ParticleTypeId::Flame,
         Vector3(100.0f, 64.0f, 200.0f),
         Vector3(0.0f, 0.02f, 0.0f),
         Vector3(0.5f, 0.5f, 0.5f),
-        10
-    );
+        10);
 
     // 模拟服务器序列化
     auto serializeResult = serverPacket.serialize();
@@ -373,14 +382,13 @@ TEST(ParticleSyncIntegrationTest, ServerToClientTransmission) {
     EXPECT_EQ(clientPacket.count(), serverPacket.count());
 }
 
-TEST(ParticleSyncIntegrationTest, MultiplePacketsInSequence) {
-    std::vector<ParticleTypeId> types = {
-        ParticleTypeId::Flame,
+TEST(ParticleSyncIntegrationTest, MultiplePacketsInSequence)
+{
+    std::vector<ParticleTypeId> types = {ParticleTypeId::Flame,
         ParticleTypeId::Smoke,
         ParticleTypeId::LargeExplosion,
         ParticleTypeId::Bubble,
-        ParticleTypeId::Heart
-    };
+        ParticleTypeId::Heart};
 
     for (auto type : types) {
         ParticlePacket packet(type, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(1, 1, 1), 5);
@@ -394,14 +402,10 @@ TEST(ParticleSyncIntegrationTest, MultiplePacketsInSequence) {
     }
 }
 
-TEST(ParticleSyncIntegrationTest, ParticleWithBlockData) {
+TEST(ParticleSyncIntegrationTest, ParticleWithBlockData)
+{
     ParticlePacket blockParticle(
-        ParticleTypeId::Block,
-        Vector3(10, 20, 30),
-        Vector3(0, 0, 0),
-        Vector3(0.1f, 0.1f, 0.1f),
-        20
-    );
+        ParticleTypeId::Block, Vector3(10, 20, 30), Vector3(0, 0, 0), Vector3(0.1f, 0.1f, 0.1f), 20);
 
     // 设置方块状态数据
     std::vector<u8> blockData = {0x01, 0x02};
@@ -419,14 +423,9 @@ TEST(ParticleSyncIntegrationTest, ParticleWithBlockData) {
     EXPECT_EQ(received.optionalData(), blockData);
 }
 
-TEST(ParticleSyncIntegrationTest, ParticleWithRedstoneData) {
-    ParticlePacket redstoneParticle(
-        ParticleTypeId::Redstone,
-        Vector3(0, 0, 0),
-        Vector3(0, 0, 0),
-        Vector3(0, 0, 0),
-        1
-    );
+TEST(ParticleSyncIntegrationTest, ParticleWithRedstoneData)
+{
+    ParticlePacket redstoneParticle(ParticleTypeId::Redstone, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), 1);
 
     // 设置红石颜色数据
     std::vector<u8> colorData;
@@ -455,7 +454,8 @@ TEST(ParticleSyncIntegrationTest, ParticleWithRedstoneData) {
 
 // ==================== 性能测试 ====================
 
-TEST(ParticlePacketPerfTest, SerializeDeserializePerformance) {
+TEST(ParticlePacketPerfTest, SerializeDeserializePerformance)
+{
     ParticlePacket packet(ParticleTypeId::Flame, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(1, 1, 1), 10);
 
     for (int i = 0; i < 1000; ++i) {
@@ -471,7 +471,8 @@ TEST(ParticlePacketPerfTest, SerializeDeserializePerformance) {
     }
 }
 
-TEST(ParticlePacketPerfTest, LargeDataHandling) {
+TEST(ParticlePacketPerfTest, LargeDataHandling)
+{
     ParticlePacket packet(ParticleTypeId::Flame, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(1, 1, 1), 100);
 
     std::vector<u8> largeData(1000, 0xAB);

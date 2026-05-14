@@ -8,18 +8,18 @@
  * - Player::asServerPlayer() 类型转换
  */
 
-#include <gtest/gtest.h>
 #include <memory>
+#include <gtest/gtest.h>
 
-#include "world/blockentity/interactive/SignEntity.hpp"
-#include "world/blockentity/core/BlockEntityRegistry.hpp"
-#include "world/block/BlockPos.hpp"
-#include "util/text/StringTextComponent.hpp"
-#include "util/text/TextStyle.hpp"
-#include "util/text/TextEvents.hpp"
+#include "common/core/Types.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "common/core/Types.hpp"
+#include "util/text/StringTextComponent.hpp"
+#include "util/text/TextEvents.hpp"
+#include "util/text/TextStyle.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/blockentity/core/BlockEntityRegistry.hpp"
+#include "world/blockentity/interactive/SignEntity.hpp"
 
 using namespace mc;
 using namespace mc::blockentity;
@@ -31,7 +31,8 @@ namespace {
  * @brief 创建带点击事件的文本组件
  */
 std::unique_ptr<StringTextComponent> createTextWithClickEvent(
-    const std::string& text, ClickAction action, const std::string& value) {
+    const std::string& text, ClickAction action, const std::string& value)
+{
     auto component = std::make_unique<StringTextComponent>(text);
     Style style;
     style.setClickEvent(ClickEvent(action, value));
@@ -47,22 +48,22 @@ std::unique_ptr<StringTextComponent> createTextWithClickEvent(
 
 class SignEntityTextTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置方块实体类型
         BlockEntityRegistry::instance().registerBuiltinTypes();
         signEntity_ = std::make_unique<SignEntity>(BlockPos(10, 64, 20));
     }
 
-    void TearDown() override {
-        signEntity_.reset();
-    }
+    void TearDown() override { signEntity_.reset(); }
 
     std::unique_ptr<SignEntity> signEntity_;
 };
 
 // ========== 点击事件设置测试 ==========
 
-TEST_F(SignEntityTextTest, SetLine_WithClickEvent_StoresCorrectly) {
+TEST_F(SignEntityTextTest, SetLine_WithClickEvent_StoresCorrectly)
+{
     // 设置带 RunCommand 点击事件的文本
     auto line = createTextWithClickEvent("Click me", ClickAction::RunCommand, "/help");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
@@ -81,7 +82,8 @@ TEST_F(SignEntityTextTest, SetLine_WithClickEvent_StoresCorrectly) {
     EXPECT_EQ(clickEvent->getValue(), "/help");
 }
 
-TEST_F(SignEntityTextTest, SetLine_OpenUrlClickEvent) {
+TEST_F(SignEntityTextTest, SetLine_OpenUrlClickEvent)
+{
     auto line = createTextWithClickEvent("Open URL", ClickAction::OpenUrl, "https://example.com");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
 
@@ -93,7 +95,8 @@ TEST_F(SignEntityTextTest, SetLine_OpenUrlClickEvent) {
     EXPECT_EQ(clickEvent->getValue(), "https://example.com");
 }
 
-TEST_F(SignEntityTextTest, SetLine_SuggestCommandClickEvent) {
+TEST_F(SignEntityTextTest, SetLine_SuggestCommandClickEvent)
+{
     auto line = createTextWithClickEvent("Suggest", ClickAction::SuggestCommand, "/gamemode");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
 
@@ -104,7 +107,8 @@ TEST_F(SignEntityTextTest, SetLine_SuggestCommandClickEvent) {
     EXPECT_EQ(clickEvent->getAction(), ClickAction::SuggestCommand);
 }
 
-TEST_F(SignEntityTextTest, SetLine_CopyToClipboardClickEvent) {
+TEST_F(SignEntityTextTest, SetLine_CopyToClipboardClickEvent)
+{
     auto line = createTextWithClickEvent("Copy", ClickAction::CopyToClipboard, "copied text");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
 
@@ -115,7 +119,8 @@ TEST_F(SignEntityTextTest, SetLine_CopyToClipboardClickEvent) {
     EXPECT_EQ(clickEvent->getAction(), ClickAction::CopyToClipboard);
 }
 
-TEST_F(SignEntityTextTest, SetLine_OpenFileClickEvent) {
+TEST_F(SignEntityTextTest, SetLine_OpenFileClickEvent)
+{
     auto line = createTextWithClickEvent("File", ClickAction::OpenFile, "/path/to/file");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
 
@@ -126,13 +131,15 @@ TEST_F(SignEntityTextTest, SetLine_OpenFileClickEvent) {
     EXPECT_EQ(clickEvent->getAction(), ClickAction::OpenFile);
 }
 
-TEST_F(SignEntityTextTest, SetLine_EmptyClickEvent_Invalid) {
+TEST_F(SignEntityTextTest, SetLine_EmptyClickEvent_Invalid)
+{
     // 空值的点击事件是无效的
     ClickEvent emptyEvent;
     EXPECT_FALSE(emptyEvent.isValid());
 }
 
-TEST_F(SignEntityTextTest, MultipleLines_WithDifferentClickEvents) {
+TEST_F(SignEntityTextTest, MultipleLines_WithDifferentClickEvents)
+{
     signEntity_->setLine(0, createTextWithClickEvent("Run", ClickAction::RunCommand, "/run"));
     signEntity_->setLine(1, createTextWithClickEvent("URL", ClickAction::OpenUrl, "https://test.com"));
     signEntity_->setLine(2, createTextWithClickEvent("Copy", ClickAction::CopyToClipboard, "text"));
@@ -147,7 +154,8 @@ TEST_F(SignEntityTextTest, MultipleLines_WithDifferentClickEvents) {
     }
 }
 
-TEST_F(SignEntityTextTest, NestedComponents_ClickEvent) {
+TEST_F(SignEntityTextTest, NestedComponents_ClickEvent)
+{
     // 创建带子组件的文本，子组件有点击事件
     auto mainText = std::make_unique<StringTextComponent>("Main ");
     auto childText = std::make_unique<StringTextComponent>("Child");
@@ -178,18 +186,21 @@ TEST_F(SignEntityTextTest, NestedComponents_ClickEvent) {
 
 class PlayerAsServerPlayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // Items::initialize() 不需要，因为只测试 Player 类型转换
     }
 };
 
-TEST_F(PlayerAsServerPlayerTest, Player_ReturnsNullptr) {
+TEST_F(PlayerAsServerPlayerTest, Player_ReturnsNullptr)
+{
     // 普通 Player 应返回 nullptr
     Player player(EntityId(1), "TestPlayer");
     EXPECT_EQ(player.asServerPlayer(), nullptr);
 }
 
-TEST_F(PlayerAsServerPlayerTest, ServerPlayer_ReturnsThis) {
+TEST_F(PlayerAsServerPlayerTest, ServerPlayer_ReturnsThis)
+{
     // ServerPlayer 应返回 this
     ServerPlayer serverPlayer(EntityId(1), "TestServerPlayer");
     EXPECT_EQ(serverPlayer.asServerPlayer(), &serverPlayer);
@@ -198,7 +209,8 @@ TEST_F(PlayerAsServerPlayerTest, ServerPlayer_ReturnsThis) {
     EXPECT_EQ(constServerPlayer.asServerPlayer(), &constServerPlayer);
 }
 
-TEST_F(PlayerAsServerPlayerTest, ServerPlayerThroughBasePointer_Works) {
+TEST_F(PlayerAsServerPlayerTest, ServerPlayerThroughBasePointer_Works)
+{
     // 通过基类指针调用
     ServerPlayer serverPlayer(EntityId(1), "TestServerPlayer");
     Player* basePtr = &serverPlayer;
@@ -212,7 +224,8 @@ TEST_F(PlayerAsServerPlayerTest, ServerPlayerThroughBasePointer_Works) {
 
 class SignEntitySerializationTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         BlockEntityRegistry::instance().registerBuiltinTypes();
         signEntity_ = std::make_unique<SignEntity>(BlockPos(100, 64, -200));
     }
@@ -220,11 +233,12 @@ protected:
     std::unique_ptr<SignEntity> signEntity_;
 };
 
-TEST_F(SignEntitySerializationTest, SaveLoad_WithClickEvent) {
+TEST_F(SignEntitySerializationTest, SaveLoad_WithClickEvent)
+{
     // 设置带点击事件的文本
     signEntity_->setLine(0, std::make_unique<StringTextComponent>("Click to run"));
     signEntity_->setLine(1, createTextWithClickEvent("Command", ClickAction::RunCommand, "/say hello"));
-    signEntity_->setTextColor(14);  // Red
+    signEntity_->setTextColor(14); // Red
     signEntity_->setGlowing(true);
 
     // 保存
@@ -254,7 +268,8 @@ TEST_F(SignEntitySerializationTest, SaveLoad_WithClickEvent) {
     EXPECT_TRUE(loaded->isGlowing());
 }
 
-TEST_F(SignEntitySerializationTest, Clone_WithClickEvent) {
+TEST_F(SignEntitySerializationTest, Clone_WithClickEvent)
+{
     signEntity_->setLine(0, createTextWithClickEvent("Test", ClickAction::OpenUrl, "https://example.com"));
     signEntity_->setGlowing(true);
 

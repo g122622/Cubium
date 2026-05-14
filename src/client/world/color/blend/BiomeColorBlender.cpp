@@ -10,7 +10,8 @@ namespace mc::client {
 // BiomeColorBlender 实现
 // ============================================================================
 
-void BiomeColorBlender::setBlendRadius(i32 radius) {
+void BiomeColorBlender::setBlendRadius(i32 radius)
+{
     m_blendRadius = std::clamp(radius, 0, MAX_BLEND_RADIUS);
 
     // 预分配工作缓冲区
@@ -18,26 +19,24 @@ void BiomeColorBlender::setBlendRadius(i32 radius) {
     m_colorBuffer.reserve(maxSize * maxSize);
 }
 
-void BiomeColorBlender::invalidateChunk(ChunkCoord chunkX, ChunkCoord chunkZ) {
+void BiomeColorBlender::invalidateChunk(ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     m_cache.invalidateChunk(chunkX, chunkZ);
 }
 
-void BiomeColorBlender::clearCache() {
+void BiomeColorBlender::clearCache()
+{
     m_cache.clear();
 }
 
-BiomeColorCache::Stats BiomeColorBlender::getCacheStats() const {
+BiomeColorCache::Stats BiomeColorBlender::getCacheStats() const
+{
     return m_cache.getStats();
 }
 
 u32 BiomeColorBlender::getBlendedColor(
-    const IBiomeAccessor& accessor,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ColorResolver& resolver,
-    ResolverId resolverId
-) {
+    const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId)
+{
     if (m_cacheEnabled) {
         return getBlendedColorCached(accessor, x, y, z, resolver, resolverId);
     }
@@ -50,38 +49,24 @@ u32 BiomeColorBlender::getBlendedColor(
 }
 
 u32 BiomeColorBlender::getBlendedColorCached(
-    const IBiomeAccessor& accessor,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ColorResolver& resolver,
-    ResolverId resolverId
-) {
+    const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId)
+{
     const ChunkCoord chunkX = x >> 4;
     const ChunkCoord chunkZ = z >> 4;
     const i32 localX = x & 15;
     const i32 localZ = z & 15;
 
-    return m_cache.getOrCompute(
-        chunkX, chunkZ, localX, localZ,
-        static_cast<size_t>(resolverId),
-        [&]() {
-            if (m_blendRadius == 0) {
-                return getColorDirect(accessor, x, y, z, resolver, resolverId);
-            }
-            return getColorBlended(accessor, x, y, z, resolver, resolverId);
+    return m_cache.getOrCompute(chunkX, chunkZ, localX, localZ, static_cast<size_t>(resolverId), [&]() {
+        if (m_blendRadius == 0) {
+            return getColorDirect(accessor, x, y, z, resolver, resolverId);
         }
-    );
+        return getColorBlended(accessor, x, y, z, resolver, resolverId);
+    });
 }
 
 u32 BiomeColorBlender::getColorDirect(
-    const IBiomeAccessor& accessor,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ColorResolver& resolver,
-    ResolverId resolverId
-) {
+    const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId)
+{
     const Biome* biome = accessor.getBiome(x, y, z);
     if (!biome) {
         // 默认颜色（白色，不进行着色）
@@ -110,13 +95,8 @@ u32 BiomeColorBlender::getColorDirect(
 }
 
 u32 BiomeColorBlender::getColorBlended(
-    const IBiomeAccessor& accessor,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ColorResolver& resolver,
-    ResolverId resolverId
-) {
+    const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId)
+{
     const i32 radius = m_blendRadius;
     const i32 startX = x - radius;
     const i32 startZ = z - radius;
@@ -137,12 +117,7 @@ u32 BiomeColorBlender::getColorBlended(
             if (biome) {
                 // 使用带 colormap 支持的颜色获取
                 const u32 color = resolver.getColorWithColorMap(
-                    *biome,
-                    static_cast<f64>(sampleX),
-                    static_cast<f64>(sampleZ),
-                    colorMap,
-                    defaultColor
-                );
+                    *biome, static_cast<f64>(sampleX), static_cast<f64>(sampleZ), colorMap, defaultColor);
                 m_colorBuffer.push_back(color);
             }
         }
@@ -156,7 +131,8 @@ u32 BiomeColorBlender::getColorBlended(
     return averageColors(m_colorBuffer.data(), m_colorBuffer.size());
 }
 
-u32 BiomeColorBlender::averageColors(const u32* colors, size_t count) {
+u32 BiomeColorBlender::averageColors(const u32* colors, size_t count)
+{
     if (count == 0) {
         return 0xFFFFFFFF;
     }
@@ -184,33 +160,36 @@ u32 BiomeColorBlender::averageColors(const u32* colors, size_t count) {
     return (r << 16) | (g << 8) | b;
 }
 
-u32 BiomeColorBlender::getDefaultColor(ResolverId resolverId) {
+u32 BiomeColorBlender::getDefaultColor(ResolverId resolverId)
+{
     switch (resolverId) {
         case ResolverId::Grass:
-            return 0x91BD59;  // 默认平原草色
+            return 0x91BD59; // 默认平原草色
         case ResolverId::Foliage:
-            return 0x48B518;  // FoliageColors.getDefault()
+            return 0x48B518; // FoliageColors.getDefault()
         case ResolverId::Water:
-            return 0x3F76E4;  // 默认水颜色
+            return 0x3F76E4; // 默认水颜色
         default:
             return 0xFFFFFF;
     }
 }
 
-const std::array<u32, 65536>* BiomeColorBlender::getColorMap(ResolverId resolverId) const {
+const std::array<u32, 65536>* BiomeColorBlender::getColorMap(ResolverId resolverId) const
+{
     switch (resolverId) {
         case ResolverId::Grass:
             return m_grassColorMap;
         case ResolverId::Foliage:
             return m_foliageColorMap;
         case ResolverId::Water:
-            return nullptr;  // 水不需要 colormap
+            return nullptr; // 水不需要 colormap
         default:
             return nullptr;
     }
 }
 
-BiomeColorBlender::ResolverId BiomeColorBlender::getResolverId(const ColorResolver& resolver) {
+BiomeColorBlender::ResolverId BiomeColorBlender::getResolverId(const ColorResolver& resolver)
+{
     // 通过类型识别解析器
     // 注意：这里使用动态类型识别，实际使用时应该直接传递 ResolverId
     if (dynamic_cast<const GrassColorResolver*>(&resolver)) {

@@ -1,10 +1,10 @@
 ﻿#include "world/blockentity/storage/BarrelEntity.hpp"
-#include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -13,12 +13,13 @@ namespace blockentity {
 
 BarrelEntity::BarrelEntity(const BlockPos& pos)
     : LootableContainerBlockEntity(BlockEntityType::Barrel, pos)
-    , m_inventory(BARREL_SIZE) {
-}
+    , m_inventory(BARREL_SIZE)
+{}
 
 BarrelEntity::~BarrelEntity() = default;
 
-void BarrelEntity::openContainer(Player* player) {
+void BarrelEntity::openContainer(Player* player)
+{
     // 触发战利品表填充
     fillWithLoot(player);
 
@@ -32,7 +33,8 @@ void BarrelEntity::openContainer(Player* player) {
     setChanged();
 }
 
-void BarrelEntity::closeContainer(Player* player) {
+void BarrelEntity::closeContainer(Player* player)
+{
     // 基类已处理观察者检查
     LootableContainerBlockEntity::closeContainer(player);
 
@@ -43,7 +45,8 @@ void BarrelEntity::closeContainer(Player* player) {
     setChanged();
 }
 
-i32 BarrelEntity::getComparatorSignal(IWorld& world) const {
+i32 BarrelEntity::getComparatorSignal(IWorld& world) const
+{
     MC_UNUSED(world);
 
     i32 filledSlots = 0;
@@ -65,7 +68,8 @@ i32 BarrelEntity::getComparatorSignal(IWorld& world) const {
     return static_cast<i32>(fillRatio * 14.0f) + (totalCount > 0 ? 1 : 0);
 }
 
-void BarrelEntity::tick(IWorld& world) {
+void BarrelEntity::tick(IWorld& world)
+{
     if (m_world == nullptr) {
         m_world = &world;
     }
@@ -85,7 +89,8 @@ void BarrelEntity::tick(IWorld& world) {
     MC_UNUSED(world);
 }
 
-void BarrelEntity::updateBlockState(IWorld& world, bool open) {
+void BarrelEntity::updateBlockState(IWorld& world, bool open)
+{
     const BlockState* state = world.getBlockState(m_pos);
     if (state == nullptr) {
         return;
@@ -99,7 +104,8 @@ void BarrelEntity::updateBlockState(IWorld& world, bool open) {
     world.setBlockState(m_pos, &updated, 3);
 }
 
-bool BarrelEntity::load(const nlohmann::json& data) {
+bool BarrelEntity::load(const nlohmann::json& data)
+{
     if (!LootableContainerBlockEntity::load(data)) {
         return false;
     }
@@ -115,7 +121,8 @@ bool BarrelEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void BarrelEntity::save(nlohmann::json& data) const {
+void BarrelEntity::save(nlohmann::json& data) const
+{
     LootableContainerBlockEntity::save(data);
 
     nlohmann::json itemsJson;
@@ -124,7 +131,8 @@ void BarrelEntity::save(nlohmann::json& data) const {
     data["open_count"] = m_openCount;
 }
 
-std::unique_ptr<BlockEntity> BarrelEntity::clone() const {
+std::unique_ptr<BlockEntity> BarrelEntity::clone() const
+{
     auto cloned = std::make_unique<BarrelEntity>(m_pos);
     cloned->m_openCount = m_openCount;
     for (i32 slot = 0; slot < BARREL_SIZE; ++slot) {
@@ -138,4 +146,3 @@ std::unique_ptr<BlockEntity> BarrelEntity::clone() const {
 
 } // namespace blockentity
 } // namespace mc
-

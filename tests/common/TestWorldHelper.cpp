@@ -4,18 +4,20 @@ namespace mc {
 namespace test {
 
 DummyTickManager::DummyTickManager()
-    : TickManager(dummyWorld()) {
-}
+    : TickManager(dummyWorld())
+{}
 
 IWorld& DummyTickManager::dummyWorld()
 {
     class DummyWorld final : public BaseTestWorld {
     public:
-        [[nodiscard]] world::tick::TickManager& tickManager() override {
+        [[nodiscard]] world::tick::TickManager& tickManager() override
+        {
             throw std::runtime_error("DummyWorld::tickManager not implemented");
         }
 
-        [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        [[nodiscard]] const world::tick::TickManager& tickManager() const override
+        {
             throw std::runtime_error("DummyWorld::tickManager not implemented");
         }
     };

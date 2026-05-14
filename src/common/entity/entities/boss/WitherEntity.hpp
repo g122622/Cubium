@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../../resource/ResourceLocation.hpp"
+#include "../../core/DataParameter.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../../interfaces/IRangedAttackMob.hpp"
-#include "../../core/DataParameter.hpp"
-#include "../../../resource/ResourceLocation.hpp"
 #include <memory>
-#include <vector>
 #include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -170,29 +170,29 @@ protected:
 private:
     // ========== 数据参数 ==========
     // 头部追踪目标实体ID（MC 1.16.5: FIRST_HEAD_TARGET, SECOND_HEAD_TARGET, THIRD_HEAD_TARGET）
-    static entity::DataParameter<i32> HEAD_TARGET_1;  // 主头目标
-    static entity::DataParameter<i32> HEAD_TARGET_2;  // 左头目标
-    static entity::DataParameter<i32> HEAD_TARGET_3;  // 右头目标
+    static entity::DataParameter<i32> HEAD_TARGET_1; // 主头目标
+    static entity::DataParameter<i32> HEAD_TARGET_2; // 左头目标
+    static entity::DataParameter<i32> HEAD_TARGET_3; // 右头目标
 
     // 无敌时间（MC 1.16.5: invulTime）
     i32 m_invulTime = 0;
 
     // 头部旋转角度（用于渲染）
-    f32 m_headXRot[2] = {0.0f, 0.0f};      // 侧头俯仰角
-    f32 m_headYRot[2] = {0.0f, 0.0f};      // 侧头偏航角
-    f32 m_prevHeadXRot[2] = {0.0f, 0.0f};  // 上一帧俯仰角
-    f32 m_prevHeadYRot[2] = {0.0f, 0.0f};  // 上一帧偏航角
+    f32 m_headXRot[2] = {0.0f, 0.0f};     // 侧头俯仰角
+    f32 m_headYRot[2] = {0.0f, 0.0f};     // 侧头偏航角
+    f32 m_prevHeadXRot[2] = {0.0f, 0.0f}; // 上一帧俯仰角
+    f32 m_prevHeadYRot[2] = {0.0f, 0.0f}; // 上一帧偏航角
 
     // 头部攻击相关
-    i32 m_nextHeadUpdate[2] = {0, 0};      // 下次攻击更新tick
-    i32 m_idleHeadUpdates[2] = {0, 0};     // 空闲头部更新计数
-    i32 m_blockBreakCounter = 0;           // 方块破坏计数器
+    i32 m_nextHeadUpdate[2] = {0, 0};  // 下次攻击更新tick
+    i32 m_idleHeadUpdates[2] = {0, 0}; // 空闲头部更新计数
+    i32 m_blockBreakCounter = 0;       // 方块破坏计数器
 
     // MC 1.16.5 常量
-    static constexpr i32 INVULNERABILITY_TIME = 220;  // 生成无敌时间 (11秒)
-    static constexpr i32 BLOCK_BREAK_COOLDOWN = 20;   // 方块破坏冷却
-    static constexpr f32 HEAD_TRACK_RANGE = 20.0f;    // 头部追踪范围
-    static constexpr i32 ATTACK_COOLDOWN = 40;        // 攻击冷却 (2秒)
+    static constexpr i32 INVULNERABILITY_TIME = 220; // 生成无敌时间 (11秒)
+    static constexpr i32 BLOCK_BREAK_COOLDOWN = 20;  // 方块破坏冷却
+    static constexpr f32 HEAD_TRACK_RANGE = 20.0f;   // 头部追踪范围
+    static constexpr i32 ATTACK_COOLDOWN = 40;       // 攻击冷却 (2秒)
 
     /**
      * @brief 更新AI任务

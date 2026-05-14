@@ -19,7 +19,7 @@ void DamagingProjectileEntity::tick()
 
     // MC 1.16.5: 火球类实体每 tick 燃烧 1 秒（20 ticks）
     if (isFiery()) {
-        setFire(20);  // 1 秒 = 20 ticks
+        setFire(20); // 1 秒 = 20 ticks
     }
 
     const RayTraceResult result = performRayTrace();
@@ -42,8 +42,7 @@ void DamagingProjectileEntity::tick()
         // TODO: 接入火球/龙息/凋灵头的水下粒子反馈
     }
 
-    m_velocity = Vector3(
-        (velocity.x + m_accelerationX) * motionFactor,
+    m_velocity = Vector3((velocity.x + m_accelerationX) * motionFactor,
         (velocity.y + m_accelerationY) * motionFactor,
         (velocity.z + m_accelerationZ) * motionFactor);
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "FoodItem.hpp"
 #include "../../../entity/effect/EffectType.hpp"
+#include "FoodItem.hpp"
 
 namespace mc {
 namespace item::items {

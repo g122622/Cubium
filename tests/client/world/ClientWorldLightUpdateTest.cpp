@@ -56,10 +56,7 @@ std::vector<u8> createLightData(u8 value)
 
 class ClientWorldLightUpdateTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMesh)

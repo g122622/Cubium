@@ -4,11 +4,10 @@
 namespace mc::network {
 
 ExplosionPacket::ExplosionPacket()
-    : Packet(PacketType::Explosion) {
-}
+    : Packet(PacketType::Explosion)
+{}
 
-ExplosionPacket::ExplosionPacket(
-    const Vector3& position,
+ExplosionPacket::ExplosionPacket(const Vector3& position,
     f32 strength,
     const std::vector<BlockPos>& affectedBlocks,
     const std::unordered_map<u64, Vector3>& playerKnockback,
@@ -18,14 +17,14 @@ ExplosionPacket::ExplosionPacket(
     , m_y(position.y)
     , m_z(position.z)
     , m_strength(strength)
-    , m_affectedBlocks(affectedBlocks) {
+    , m_affectedBlocks(affectedBlocks)
+{
     // 从玩家击退映射中获取当前玩家的击退向量
     setKnockbackForPlayer(playerKnockback, targetPlayerId);
 }
 
-void ExplosionPacket::setKnockbackForPlayer(
-    const std::unordered_map<u64, Vector3>& playerKnockback,
-    u64 playerId) {
+void ExplosionPacket::setKnockbackForPlayer(const std::unordered_map<u64, Vector3>& playerKnockback, u64 playerId)
+{
     auto it = playerKnockback.find(playerId);
     if (it != playerKnockback.end()) {
         m_motionX = it->second.x;
@@ -38,14 +37,16 @@ void ExplosionPacket::setKnockbackForPlayer(
     }
 }
 
-size_t ExplosionPacket::expectedSize() const {
+size_t ExplosionPacket::expectedSize() const
+{
     // 基础大小：包头(12) + 3*f32(位置) + f32(威力) + VarInt(方块数) + 3*f32(击退)
     // 方块数据：每个方块 3 字节（相对坐标）
     // 保守估计：12 + 12 + 4 + 5 + (方块数 * 3) + 12 = 45 + 方块数 * 3
     return sizeof(PacketHeader) + 40 + m_affectedBlocks.size() * 3;
 }
 
-Result<std::vector<u8>> ExplosionPacket::serialize() const {
+Result<std::vector<u8>> ExplosionPacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     // 写入位置 (f32)
@@ -73,9 +74,7 @@ Result<std::vector<u8>> ExplosionPacket::serialize() const {
 
         // 检查范围（有符号字节范围 -128 到 127）
         // MC 1.16.5 中如果超出范围，方块会被忽略
-        if (deltaX < -128 || deltaX > 127 ||
-            deltaY < -128 || deltaY > 127 ||
-            deltaZ < -128 || deltaZ > 127) {
+        if (deltaX < -128 || deltaX > 127 || deltaY < -128 || deltaY > 127 || deltaZ < -128 || deltaZ > 127) {
             continue;
         }
 
@@ -94,7 +93,8 @@ Result<std::vector<u8>> ExplosionPacket::serialize() const {
     return result;
 }
 
-Result<void> ExplosionPacket::deserialize(const u8* data, size_t size) {
+Result<void> ExplosionPacket::deserialize(const u8* data, size_t size)
+{
     if (size < sizeof(PacketHeader)) {
         return Error(ErrorCode::InvalidData, "ExplosionPacket: insufficient data for header");
     }
@@ -135,7 +135,7 @@ Result<void> ExplosionPacket::deserialize(const u8* data, size_t size) {
     i32 blockCount = countResult.value();
 
     // 验证方块数量（防止恶意数据）
-    constexpr i32 MAX_BLOCKS = 65536;  // 合理上限
+    constexpr i32 MAX_BLOCKS = 65536; // 合理上限
     if (blockCount < 0 || blockCount > MAX_BLOCKS) {
         return Error(ErrorCode::InvalidData, "ExplosionPacket: invalid block count");
     }

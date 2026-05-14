@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../item/core/ItemStack.hpp"
 #include "IInventory.hpp"
 #include "Slot.hpp"
-#include "../../item/core/ItemStack.hpp"
 #include <array>
 #include <functional>
 
@@ -48,7 +48,7 @@ public:
     static constexpr i32 OFFHAND_SIZE = 1;
 
     /// 总槽位数
-    static constexpr i32 TOTAL_SIZE = HOTBAR_SIZE + MAIN_SIZE + ARMOR_SIZE + OFFHAND_SIZE;  // 41
+    static constexpr i32 TOTAL_SIZE = HOTBAR_SIZE + MAIN_SIZE + ARMOR_SIZE + OFFHAND_SIZE; // 41
 
     // ========== 构造函数 ==========
 
@@ -111,22 +111,22 @@ public:
      * @brief 获取当前选中物品的引用（可修改）
      * @return 物品堆引用
      */
-    [[nodiscard]] ItemStack& getSelectedStackRef() {
-        return m_items[static_cast<std::size_t>(m_selectedSlot)];
-    }
+    [[nodiscard]] ItemStack& getSelectedStackRef() { return m_items[static_cast<std::size_t>(m_selectedSlot)]; }
 
     /**
      * @brief 获取当前选中物品的const引用
      * @return 物品堆引用
      */
-    [[nodiscard]] const ItemStack& getSelectedStackRef() const {
+    [[nodiscard]] const ItemStack& getSelectedStackRef() const
+    {
         return m_items[static_cast<std::size_t>(m_selectedSlot)];
     }
 
     /**
      * @brief 检查索引是否在快捷栏范围内
      */
-    [[nodiscard]] static bool isHotbar(i32 slot) {
+    [[nodiscard]] static bool isHotbar(i32 slot)
+    {
         return slot >= InventorySlots::HOTBAR_START && slot <= InventorySlots::HOTBAR_END;
     }
 
@@ -370,8 +370,8 @@ public:
      * @param dropCallback 丢弃回调，参数为(物品堆, 保留所有权)
      * @return 是否成功放回（true=全部放回，false=有丢弃）
      */
-    bool placeItemBackInInventory(ItemStack& stack,
-        const std::function<void(const ItemStack&, bool)>& dropCallback = nullptr);
+    bool placeItemBackInInventory(
+        ItemStack& stack, const std::function<void(const ItemStack&, bool)>& dropCallback = nullptr);
 
     // ========== 护甲操作 ==========
 
@@ -434,16 +434,12 @@ public:
      * @brief 设置变更回调
      * @param callback 回调函数
      */
-    void setChangeCallback(ChangeCallback callback) {
-        m_changeCallback = std::move(callback);
-    }
+    void setChangeCallback(ChangeCallback callback) { m_changeCallback = std::move(callback); }
 
     /**
      * @brief 清除变更回调
      */
-    void clearChangeCallback() {
-        m_changeCallback = nullptr;
-    }
+    void clearChangeCallback() { m_changeCallback = nullptr; }
 
     /**
      * @brief 获取变更计数
@@ -470,11 +466,11 @@ private:
     [[nodiscard]] bool stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const;
 
     std::array<ItemStack, TOTAL_SIZE> m_items;
-    ItemStack m_carriedItem;  ///< 鼠标持有的物品（容器交互时使用）
+    ItemStack m_carriedItem; ///< 鼠标持有的物品（容器交互时使用）
     Player* m_player;
-    i32 m_selectedSlot = 0;  // 当前选中的快捷栏槽位 (0-8)
-    i32 m_timesChanged = 0;  // 变更计数器（用于同步）
-    ChangeCallback m_changeCallback;  ///< 物品栏变更回调
+    i32 m_selectedSlot = 0;          // 当前选中的快捷栏槽位 (0-8)
+    i32 m_timesChanged = 0;          // 变更计数器（用于同步）
+    ChangeCallback m_changeCallback; ///< 物品栏变更回调
 };
 
 } // namespace mc

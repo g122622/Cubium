@@ -1,17 +1,17 @@
 #pragma once
 
-#include "VillageGossipType.hpp"
 #include "../../core/Types.hpp"
+#include "VillageGossipType.hpp"
+#include <optional>
 #include <unordered_map>
 #include <vector>
-#include <optional>
 
 namespace mc {
 namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
+} // namespace nbt
 
 namespace world {
 namespace village {

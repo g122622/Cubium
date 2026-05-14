@@ -1,23 +1,23 @@
 #include "AnimatedMeshCache.hpp"
 #include "../model/core/ModelRenderer.hpp"
-#include <spdlog/spdlog.h>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::core {
 
 AnimatedMeshCache::AnimatedMeshCache() = default;
 
-AnimatedMeshCache::~AnimatedMeshCache() {
+AnimatedMeshCache::~AnimatedMeshCache()
+{
     clear();
 }
 
-pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
-    EntityId entityId,
+pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
     model::EntityModel& model,
     const std::string& typeId,
     const AnimationContext& state,
-    pipeline::EntityPipeline& pipeline
-) {
+    pipeline::EntityPipeline& pipeline)
+{
     // 查找现有缓存
     auto it = m_cache.find(entityId);
 
@@ -45,17 +45,11 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
 
     // 检查是否需要更新网格
     bool needsUpdate = false;
-    const bool postureChanged =
-        state.isSitting != entry.lastState.isSitting ||
-        state.isChild != entry.lastState.isChild ||
-        state.isSneaking != entry.lastState.isSneaking ||
-        state.isSwimming != entry.lastState.isSwimming ||
-        state.isRiding != entry.lastState.isRiding;
-    const bool hasActiveAnimation =
-        state.limbSwingAmount > 0.01 ||
-        std::abs(state.netHeadYaw) > 1.0 ||
-        std::abs(state.headPitch) > 1.0 ||
-        state.swingProgress > 0.001f;
+    const bool postureChanged = state.isSitting != entry.lastState.isSitting ||
+        state.isChild != entry.lastState.isChild || state.isSneaking != entry.lastState.isSneaking ||
+        state.isSwimming != entry.lastState.isSwimming || state.isRiding != entry.lastState.isRiding;
+    const bool hasActiveAnimation = state.limbSwingAmount > 0.01 || std::abs(state.netHeadYaw) > 1.0 ||
+        std::abs(state.headPitch) > 1.0 || state.swingProgress > 0.001f;
     const u32 updateInterval = hasActiveAnimation ? ACTIVE_UPDATE_INTERVAL : IDLE_UPDATE_INTERVAL;
 
     if (!entry.created) {
@@ -65,7 +59,7 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
         // 姿态状态变化需要立即更新，避免模型状态滞后
         needsUpdate = true;
     } else if (entry.framesSinceUpdate >= updateInterval &&
-               state.hasSignificantChange(entry.lastState, STATE_CHANGE_THRESHOLD)) {
+        state.hasSignificantChange(entry.lastState, STATE_CHANGE_THRESHOLD)) {
         // 动画有明显变化且达到更新间隔
         needsUpdate = true;
     } else if (hasActiveAnimation && entry.framesSinceUpdate >= FORCE_UPDATE_INTERVAL) {
@@ -102,16 +96,16 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
                 entry.mesh = std::move(result.value());
                 entry.created = true;
             } else {
-                spdlog::error("AnimatedMeshCache: Failed to create mesh for entity {}: {}",
-                             entityId, result.error().message());
+                spdlog::error(
+                    "AnimatedMeshCache: Failed to create mesh for entity {}: {}", entityId, result.error().message());
                 return nullptr;
             }
         } else {
             // 更新现有网格
             auto result = pipeline.updateMesh(entry.mesh, vertices, indices);
             if (!result.success()) {
-                spdlog::warn("AnimatedMeshCache: Failed to update mesh for entity {}: {}",
-                            entityId, result.error().message());
+                spdlog::warn(
+                    "AnimatedMeshCache: Failed to update mesh for entity {}: {}", entityId, result.error().message());
                 // 更新失败时重新创建
                 auto createResult = pipeline.createMesh(vertices, indices);
                 if (createResult.success()) {
@@ -128,7 +122,8 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
     return entry.created ? &entry.mesh : nullptr;
 }
 
-void AnimatedMeshCache::removeEntity(EntityId entityId) {
+void AnimatedMeshCache::removeEntity(EntityId entityId)
+{
     auto it = m_cache.find(entityId);
     if (it != m_cache.end()) {
         // 销毁网格资源（如果需要）
@@ -137,7 +132,8 @@ void AnimatedMeshCache::removeEntity(EntityId entityId) {
     }
 }
 
-void AnimatedMeshCache::clear() {
+void AnimatedMeshCache::clear()
+{
     m_cache.clear();
 }
 

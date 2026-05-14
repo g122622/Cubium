@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../../../core/Types.hpp"
 #include "Activity.hpp"
 #include "DutyTime.hpp"
-#include "../../../../core/Types.hpp"
 #include <cstddef>
 #include <memory>
 #include <unordered_map>
@@ -93,8 +93,7 @@ private:
         ActivityEntry(i32 dayTime, const Activity& activity)
             : m_dayTime(dayTime)
             , m_activity(activity)
-        {
-        }
+        {}
 
         i32 m_dayTime;
         Activity m_activity;

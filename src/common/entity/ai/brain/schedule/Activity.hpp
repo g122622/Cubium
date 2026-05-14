@@ -40,17 +40,11 @@ public:
     [[nodiscard]] const std::string& getKey() const { return m_key; }
     [[nodiscard]] size_t getHash() const { return m_hash; }
 
-    bool operator==(const Activity& other) const {
-        return m_key == other.m_key;
-    }
+    bool operator==(const Activity& other) const { return m_key == other.m_key; }
 
-    bool operator!=(const Activity& other) const {
-        return m_key != other.m_key;
-    }
+    bool operator!=(const Activity& other) const { return m_key != other.m_key; }
 
-    bool operator<(const Activity& other) const {
-        return m_key < other.m_key;
-    }
+    bool operator<(const Activity& other) const { return m_key < other.m_key; }
 
 private:
     std::string m_key;
@@ -69,8 +63,6 @@ private:
 namespace std {
 template <>
 struct hash<mc::entity::ai::brain::schedule::Activity> {
-    size_t operator()(const mc::entity::ai::brain::schedule::Activity& activity) const {
-        return activity.getHash();
-    }
+    size_t operator()(const mc::entity::ai::brain::schedule::Activity& activity) const { return activity.getHash(); }
 };
-}
+} // namespace std

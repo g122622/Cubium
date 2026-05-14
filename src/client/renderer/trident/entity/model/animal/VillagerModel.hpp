@@ -21,9 +21,8 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置摇头状态（交易不满意时）
@@ -37,15 +36,15 @@ public:
 
 protected:
     // 头部部件
-    std::shared_ptr<ModelRenderer> m_head;       // 头部
-    std::shared_ptr<ModelRenderer> m_hat;        // 帽子
-    std::shared_ptr<ModelRenderer> m_hatBrim;    // 帽檐
-    std::shared_ptr<ModelRenderer> m_nose;       // 大鼻子
+    std::shared_ptr<ModelRenderer> m_head;    // 头部
+    std::shared_ptr<ModelRenderer> m_hat;     // 帽子
+    std::shared_ptr<ModelRenderer> m_hatBrim; // 帽檐
+    std::shared_ptr<ModelRenderer> m_nose;    // 大鼻子
 
     // 身体部件
-    std::shared_ptr<ModelRenderer> m_body;       // 身体
-    std::shared_ptr<ModelRenderer> m_clothing;   // 衣服
-    std::shared_ptr<ModelRenderer> m_arms;       // 手臂（交叉）
+    std::shared_ptr<ModelRenderer> m_body;     // 身体
+    std::shared_ptr<ModelRenderer> m_clothing; // 衣服
+    std::shared_ptr<ModelRenderer> m_arms;     // 手臂（交叉）
 
     // 腿部部件
     std::shared_ptr<ModelRenderer> m_rightLeg;

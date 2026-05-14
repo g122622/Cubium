@@ -1,17 +1,17 @@
 #include "CreatureEntity.hpp"
-#include "../ai/controller/MovementController.hpp"
-#include "../ai/pathfinding/PathNavigator.hpp"
 #include "../../core/Constants.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "../ai/controller/MovementController.hpp"
+#include "../ai/pathfinding/PathNavigator.hpp"
 
 namespace mc {
 
 CreatureEntity::CreatureEntity(LegacyEntityType type, EntityId id)
     : MobEntity(type, id)
-{
-}
+{}
 
-bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed) {
+bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed)
+{
     // 首先尝试使用导航器（如果可用且有路径）
     if (m_navigator) {
         if (m_navigator->moveTo(x, y, z, speed)) {
@@ -29,18 +29,21 @@ bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed) {
     return false;
 }
 
-f32 CreatureEntity::getPathWeight(f32 /*x*/, f32 /*y*/, f32 /*z*/) const {
+f32 CreatureEntity::getPathWeight(f32 /*x*/, f32 /*y*/, f32 /*z*/) const
+{
     // 默认实现：返回0表示中性权重
     // 子类应该重写此方法来提供更准确的权重
     // 参考 MC 1.16.5 CreatureEntity.getBlockPathWeight()
     return 0.0f;
 }
 
-f32 CreatureEntity::getPathWeight(const BlockPos& pos) const {
+f32 CreatureEntity::getPathWeight(const BlockPos& pos) const
+{
     return getPathWeight(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 }
 
-bool CreatureEntity::canSpawnAt(f32 /*x*/, f32 y, f32 /*z*/) const {
+bool CreatureEntity::canSpawnAt(f32 /*x*/, f32 y, f32 /*z*/) const
+{
     // 默认实现：检查是否在有效位置
     // 子类应该重写此方法
     return y >= static_cast<f32>(world::MIN_BUILD_HEIGHT);

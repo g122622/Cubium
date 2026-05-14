@@ -55,9 +55,7 @@ public:
      * @param pos 植物位置
      * @return 植物类型
      */
-    [[nodiscard]] virtual PlantType getPlantType(
-        IBlockReader& world,
-        const BlockPos& pos) const = 0;
+    [[nodiscard]] virtual PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const = 0;
 
     /**
      * @brief 获取植物方块状态
@@ -69,9 +67,7 @@ public:
      * @param pos 植物位置
      * @return 植物方块状态
      */
-    [[nodiscard]] virtual const BlockState& getPlant(
-        IBlockReader& world,
-        const BlockPos& pos) const = 0;
+    [[nodiscard]] virtual const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const = 0;
 };
 
 } // namespace mc

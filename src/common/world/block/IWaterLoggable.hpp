@@ -45,10 +45,7 @@ public:
      * 子类可以重写此方法以提供更复杂的逻辑（如双层台阶不能含水）
      */
     [[nodiscard]] bool canContainFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const fluid::Fluid& fluid) const override;
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid) const override;
 
     /**
      * @brief 接收流体
@@ -57,28 +54,19 @@ public:
      * 子类可以重写此方法以提供特殊逻辑（如营火熄灭）
      */
     bool receiveFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const fluid::FluidState& fluidState) override;
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::FluidState& fluidState) override;
 
     /**
      * @brief 从方块中取出流体
      *
      * 默认实现：设置 WATERLOGGED=false 并返回水
      */
-    [[nodiscard]] fluid::Fluid* pickupFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    [[nodiscard]] fluid::Fluid* pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     /**
      * @brief 检查是否包含流体
      */
-    [[nodiscard]] bool containsFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+    [[nodiscard]] bool containsFluid(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 };
 
 } // namespace mc

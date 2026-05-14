@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-#include <cstddef>
 #include <algorithm>
+#include <cstddef>
+#include <gtest/gtest.h>
 
 #include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
@@ -20,7 +20,8 @@ struct Bounds {
     f32 maxZ = 0.0f;
 };
 
-Bounds computeBounds(const std::vector<ModelVertex>& vertices) {
+Bounds computeBounds(const std::vector<ModelVertex>& vertices)
+{
     Bounds b;
     if (vertices.empty()) {
         return b;
@@ -43,7 +44,8 @@ Bounds computeBounds(const std::vector<ModelVertex>& vertices) {
 }
 
 template <typename TModel>
-Bounds buildDefaultPoseBounds(TModel& model) {
+Bounds buildDefaultPoseBounds(TModel& model)
+{
     std::vector<ModelVertex> vertices;
     std::vector<u32> indices;
 
@@ -59,7 +61,8 @@ Bounds buildDefaultPoseBounds(TModel& model) {
 
 } // anonymous namespace
 
-TEST(AnimalModelPose, CowCopyAnglesToSynchronizesMatchingParts) {
+TEST(AnimalModelPose, CowCopyAnglesToSynchronizesMatchingParts)
+{
     CowModel sourceModel;
     CowModel targetModel;
 
@@ -95,7 +98,8 @@ TEST(AnimalModelPose, CowCopyAnglesToSynchronizesMatchingParts) {
     }
 }
 
-TEST(AnimalModelMesh, PigReasonableBoundsAndHorizontalBody) {
+TEST(AnimalModelMesh, PigReasonableBoundsAndHorizontalBody)
+{
     PigModel model;
     const Bounds b = buildDefaultPoseBounds(model);
 
@@ -116,7 +120,8 @@ TEST(AnimalModelMesh, PigReasonableBoundsAndHorizontalBody) {
     EXPECT_LT(height, depth * 1.2f);
 }
 
-TEST(AnimalModelMesh, CowReasonableBoundsAndHorizontalBody) {
+TEST(AnimalModelMesh, CowReasonableBoundsAndHorizontalBody)
+{
     CowModel model;
     const Bounds b = buildDefaultPoseBounds(model);
 
@@ -136,7 +141,8 @@ TEST(AnimalModelMesh, CowReasonableBoundsAndHorizontalBody) {
     EXPECT_LT(height, depth * 1.3f);
 }
 
-TEST(AnimalModelMesh, SheepReasonableBoundsAndHorizontalBody) {
+TEST(AnimalModelMesh, SheepReasonableBoundsAndHorizontalBody)
+{
     SheepModel model;
     const Bounds b = buildDefaultPoseBounds(model);
 
@@ -156,7 +162,8 @@ TEST(AnimalModelMesh, SheepReasonableBoundsAndHorizontalBody) {
     EXPECT_LT(height, depth * 1.4f);
 }
 
-TEST(AnimalModelMesh, ChickenReasonableBounds) {
+TEST(AnimalModelMesh, ChickenReasonableBounds)
+{
     ChickenModel model;
     const Bounds b = buildDefaultPoseBounds(model);
 
@@ -173,7 +180,8 @@ TEST(AnimalModelMesh, ChickenReasonableBounds) {
     EXPECT_LE(depth, 0.75f);
 }
 
-TEST(AnimalModelMesh, ChickenIncludesHeadBillAndChinInGeneratedMesh) {
+TEST(AnimalModelMesh, ChickenIncludesHeadBillAndChinInGeneratedMesh)
+{
     ChickenModel model;
     std::vector<ModelVertex> vertices;
     std::vector<u32> indices;
@@ -182,18 +190,17 @@ TEST(AnimalModelMesh, ChickenIncludesHeadBillAndChinInGeneratedMesh) {
     model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, kModelScale);
     model.generateMesh(vertices, indices, kModelScale);
 
-    const bool hasHeadHeight = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
-        return vertex.position.y < 0.7f;
-    });
-    const bool hasBillOrChinForwardDepth = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
-        return vertex.position.z < -0.45f;
-    });
+    const bool hasHeadHeight = std::any_of(
+        vertices.begin(), vertices.end(), [](const ModelVertex& vertex) { return vertex.position.y < 0.7f; });
+    const bool hasBillOrChinForwardDepth = std::any_of(
+        vertices.begin(), vertices.end(), [](const ModelVertex& vertex) { return vertex.position.z < -0.45f; });
 
     EXPECT_TRUE(hasHeadHeight);
     EXPECT_TRUE(hasBillOrChinForwardDepth);
 }
 
-TEST(AnimalModelMesh, RuntimeMeshUsesMinecraftModelUnits) {
+TEST(AnimalModelMesh, RuntimeMeshUsesMinecraftModelUnits)
+{
     PigModel model;
     std::vector<ModelVertex> vertices;
     std::vector<u32> indices;
@@ -211,7 +218,8 @@ TEST(AnimalModelMesh, RuntimeMeshUsesMinecraftModelUnits) {
     EXPECT_LT(depth, 26.0f);
 }
 
-TEST(ModelRendererMesh, MirrorReversesXNormalLikeTexturedQuad) {
+TEST(ModelRendererMesh, MirrorReversesXNormalLikeTexturedQuad)
+{
     mc::client::renderer::entity::model::ModelRenderer mirrored("mirrored");
     mirrored.setMirror(true);
     mirrored.setTextureOffset(0, 0).addBox(0.0f, 0.0f, 0.0f, 2.0f, 2.0f, 2.0f);
@@ -225,4 +233,3 @@ TEST(ModelRendererMesh, MirrorReversesXNormalLikeTexturedQuad) {
 }
 
 } // namespace mc::client::renderer
-

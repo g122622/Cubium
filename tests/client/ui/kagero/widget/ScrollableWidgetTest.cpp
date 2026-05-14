@@ -3,11 +3,11 @@
  * @brief ScrollableWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/ScrollableWidget.hpp"
-#include "client/ui/kagero/widget/TextWidget.hpp"
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/widget/TextWidget.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -15,14 +15,16 @@ using namespace mc;
 
 // ==================== 构造函数测试 ====================
 
-TEST(ScrollableWidgetTest, DefaultConstructor) {
+TEST(ScrollableWidgetTest, DefaultConstructor)
+{
     ScrollableWidget scrollable;
     EXPECT_TRUE(scrollable.id().empty());
     EXPECT_EQ(0, scrollable.scrollX());
     EXPECT_EQ(0, scrollable.scrollY());
 }
 
-TEST(ScrollableWidgetTest, ConstructorWithBounds) {
+TEST(ScrollableWidgetTest, ConstructorWithBounds)
+{
     ScrollableWidget scrollable("scroll_list", 10, 20, 300, 400);
 
     EXPECT_EQ("scroll_list", scrollable.id());
@@ -34,21 +36,24 @@ TEST(ScrollableWidgetTest, ConstructorWithBounds) {
 
 // ==================== 内容尺寸测试 ====================
 
-TEST(ScrollableWidgetTest, SetContentWidth) {
+TEST(ScrollableWidgetTest, SetContentWidth)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     scrollable.setContentWidth(500);
     EXPECT_EQ(500, scrollable.contentWidth());
 }
 
-TEST(ScrollableWidgetTest, SetContentHeight) {
+TEST(ScrollableWidgetTest, SetContentHeight)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     scrollable.setContentHeight(1000);
     EXPECT_EQ(1000, scrollable.contentHeight());
 }
 
-TEST(ScrollableWidgetTest, SetContentSize) {
+TEST(ScrollableWidgetTest, SetContentSize)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     scrollable.setContentSize(500, 1000);
@@ -58,7 +63,8 @@ TEST(ScrollableWidgetTest, SetContentSize) {
 
 // ==================== 滚动位置测试 ====================
 
-TEST(ScrollableWidgetTest, SetScrollX) {
+TEST(ScrollableWidgetTest, SetScrollX)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentSize(500, 1000);
 
@@ -75,7 +81,8 @@ TEST(ScrollableWidgetTest, SetScrollX) {
     EXPECT_EQ(0, scrollable.scrollX());
 }
 
-TEST(ScrollableWidgetTest, SetScrollY) {
+TEST(ScrollableWidgetTest, SetScrollY)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
 
@@ -90,7 +97,8 @@ TEST(ScrollableWidgetTest, SetScrollY) {
     EXPECT_EQ(0, scrollable.scrollY());
 }
 
-TEST(ScrollableWidgetTest, ScrollBy) {
+TEST(ScrollableWidgetTest, ScrollBy)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
 
@@ -104,7 +112,8 @@ TEST(ScrollableWidgetTest, ScrollBy) {
     EXPECT_EQ(50, scrollable.scrollY());
 }
 
-TEST(ScrollableWidgetTest, ScrollByX) {
+TEST(ScrollableWidgetTest, ScrollByX)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentSize(500, 1000);
 
@@ -115,7 +124,8 @@ TEST(ScrollableWidgetTest, ScrollByX) {
     EXPECT_EQ(20, scrollable.scrollX());
 }
 
-TEST(ScrollableWidgetTest, ScrollToTop) {
+TEST(ScrollableWidgetTest, ScrollToTop)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
     scrollable.setScrollY(500);
@@ -124,7 +134,8 @@ TEST(ScrollableWidgetTest, ScrollToTop) {
     EXPECT_EQ(0, scrollable.scrollY());
 }
 
-TEST(ScrollableWidgetTest, ScrollToBottom) {
+TEST(ScrollableWidgetTest, ScrollToBottom)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
 
@@ -132,7 +143,8 @@ TEST(ScrollableWidgetTest, ScrollToBottom) {
     EXPECT_EQ(600, scrollable.scrollY()); // 1000 - 400 = 600
 }
 
-TEST(ScrollableWidgetTest, ScrollTo) {
+TEST(ScrollableWidgetTest, ScrollTo)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
 
@@ -142,7 +154,8 @@ TEST(ScrollableWidgetTest, ScrollTo) {
 
 // ==================== scrollIntoView测试 ====================
 
-TEST(ScrollableWidgetTest, ScrollIntoViewAbove) {
+TEST(ScrollableWidgetTest, ScrollIntoViewAbove)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
     scrollable.setScrollY(200);
@@ -152,7 +165,8 @@ TEST(ScrollableWidgetTest, ScrollIntoViewAbove) {
     EXPECT_EQ(50, scrollable.scrollY());
 }
 
-TEST(ScrollableWidgetTest, ScrollIntoViewBelow) {
+TEST(ScrollableWidgetTest, ScrollIntoViewBelow)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
     scrollable.setScrollY(200);
@@ -162,7 +176,8 @@ TEST(ScrollableWidgetTest, ScrollIntoViewBelow) {
     EXPECT_EQ(350, scrollable.scrollY()); // 700 + 50 - 400 = 350
 }
 
-TEST(ScrollableWidgetTest, ScrollIntoViewVisible) {
+TEST(ScrollableWidgetTest, ScrollIntoViewVisible)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
     scrollable.setScrollY(200);
@@ -172,7 +187,8 @@ TEST(ScrollableWidgetTest, ScrollIntoViewVisible) {
     EXPECT_EQ(200, scrollable.scrollY());
 }
 
-TEST(ScrollableWidgetTest, ScrollIntoViewWidget) {
+TEST(ScrollableWidgetTest, ScrollIntoViewWidget)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
     scrollable.setScrollY(500);
@@ -190,7 +206,8 @@ TEST(ScrollableWidgetTest, ScrollIntoViewWidget) {
 
 // ==================== 滚动条测试 ====================
 
-TEST(ScrollableWidgetTest, ShowScrollbar) {
+TEST(ScrollableWidgetTest, ShowScrollbar)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     EXPECT_TRUE(scrollable.showScrollbar());
@@ -199,7 +216,8 @@ TEST(ScrollableWidgetTest, ShowScrollbar) {
     EXPECT_FALSE(scrollable.showScrollbar());
 }
 
-TEST(ScrollableWidgetTest, ScrollbarWidth) {
+TEST(ScrollableWidgetTest, ScrollbarWidth)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     EXPECT_EQ(6, scrollable.scrollbarWidth());
@@ -208,7 +226,8 @@ TEST(ScrollableWidgetTest, ScrollbarWidth) {
     EXPECT_EQ(10, scrollable.scrollbarWidth());
 }
 
-TEST(ScrollableWidgetTest, ScrollSpeed) {
+TEST(ScrollableWidgetTest, ScrollSpeed)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     EXPECT_DOUBLE_EQ(20.0, scrollable.scrollSpeed());
@@ -219,7 +238,8 @@ TEST(ScrollableWidgetTest, ScrollSpeed) {
 
 // ==================== 可见区域测试 ====================
 
-TEST(ScrollableWidgetTest, VisibleWidth) {
+TEST(ScrollableWidgetTest, VisibleWidth)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setShowScrollbar(true);
     scrollable.setScrollbarWidth(10);
@@ -231,7 +251,8 @@ TEST(ScrollableWidgetTest, VisibleWidth) {
     EXPECT_EQ(300, scrollable.visibleWidth());
 }
 
-TEST(ScrollableWidgetTest, VisibleHeight) {
+TEST(ScrollableWidgetTest, VisibleHeight)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     EXPECT_EQ(400, scrollable.visibleHeight());
@@ -241,7 +262,8 @@ TEST(ScrollableWidgetTest, VisibleHeight) {
     EXPECT_EQ(360, scrollable.visibleHeight());
 }
 
-TEST(ScrollableWidgetTest, ScrollRatio) {
+TEST(ScrollableWidgetTest, ScrollRatio)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
 
@@ -256,7 +278,8 @@ TEST(ScrollableWidgetTest, ScrollRatio) {
 
 // ==================== 滚动事件测试 ====================
 
-TEST(ScrollableWidgetTest, OnScroll) {
+TEST(ScrollableWidgetTest, OnScroll)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
     scrollable.setActive(true);
@@ -271,7 +294,8 @@ TEST(ScrollableWidgetTest, OnScroll) {
     EXPECT_EQ(0, scrollable.scrollY());
 }
 
-TEST(ScrollableWidgetTest, OnScrollInactive) {
+TEST(ScrollableWidgetTest, OnScrollInactive)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
     scrollable.setContentHeight(1000);
     scrollable.setActive(false);
@@ -283,7 +307,8 @@ TEST(ScrollableWidgetTest, OnScrollInactive) {
 
 // ==================== 子组件测试 ====================
 
-TEST(ScrollableWidgetTest, AddChild) {
+TEST(ScrollableWidgetTest, AddChild)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     auto child = std::make_unique<TextWidget>("child1", 0, 0, 100, 20);
@@ -292,7 +317,8 @@ TEST(ScrollableWidgetTest, AddChild) {
     EXPECT_EQ(1u, scrollable.childCount());
 }
 
-TEST(ScrollableWidgetTest, FindChild) {
+TEST(ScrollableWidgetTest, FindChild)
+{
     ScrollableWidget scrollable("test", 0, 0, 300, 400);
 
     scrollable.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 20));

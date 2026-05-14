@@ -1,11 +1,11 @@
 #pragma once
 
-#include "AnimalEntity.hpp"
-#include "common/entity/interfaces/IShearable.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
-#include <vector>
+#include "AnimalEntity.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
 #include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -211,12 +211,12 @@ protected:
     [[nodiscard]] f32 eyeHeight() const override { return 0.95f * height(); }
 
 private:
-    DyeColor m_fleeceColor = DyeColor::White;  // 羊毛颜色
-    bool m_sheared = false;                     // 是否被剪过
-    i32 m_eatAnimationTimer = 0;                // 吃草动画计时器
-    i32 m_shearCooldown = 0;                    // 剪毛冷却（ticks）
+    DyeColor m_fleeceColor = DyeColor::White; // 羊毛颜色
+    bool m_sheared = false;                   // 是否被剪过
+    i32 m_eatAnimationTimer = 0;              // 吃草动画计时器
+    i32 m_shearCooldown = 0;                  // 剪毛冷却（ticks）
 
-    static constexpr i32 EAT_GRASS_TIMER_MAX = 40;  // 吃草动画持续时间
+    static constexpr i32 EAT_GRASS_TIMER_MAX = 40; // 吃草动画持续时间
 };
 
 } // namespace mc

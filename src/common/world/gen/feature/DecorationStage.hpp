@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace mc {
 
@@ -25,18 +25,18 @@ namespace mc {
  * 10. TOP_LAYER_MODIFICATION - 顶层修改（雪、冰）
  */
 enum class DecorationStage : u8 {
-    RawGeneration = 0,      ///< 原始生成
-    Lakes,                  ///< 湖泊
-    LocalModifications,     ///< 局部修改
-    UndergroundStructures,  ///< 地下结构
-    SurfaceStructures,      ///< 地表结构
-    Strongholds,            ///< 要塞
-    UndergroundOres,        ///< 地下矿石
-    UndergroundDecoration,  ///< 地下装饰
-    VegetalDecoration,      ///< 植被装饰
-    TopLayerModification,   ///< 顶层修改
+    RawGeneration = 0,     ///< 原始生成
+    Lakes,                 ///< 湖泊
+    LocalModifications,    ///< 局部修改
+    UndergroundStructures, ///< 地下结构
+    SurfaceStructures,     ///< 地表结构
+    Strongholds,           ///< 要塞
+    UndergroundOres,       ///< 地下矿石
+    UndergroundDecoration, ///< 地下装饰
+    VegetalDecoration,     ///< 植被装饰
+    TopLayerModification,  ///< 顶层修改
 
-    Count                   ///< 阶段总数
+    Count ///< 阶段总数
 };
 
 /**
@@ -49,9 +49,9 @@ struct DecorationStages {
      * @brief 获取所有装饰阶段（按顺序）
      * @return 装饰阶段列表
      */
-    static const std::vector<DecorationStage>& getAll() {
-        static const std::vector<DecorationStage> stages = {
-            DecorationStage::RawGeneration,
+    static const std::vector<DecorationStage>& getAll()
+    {
+        static const std::vector<DecorationStage> stages = {DecorationStage::RawGeneration,
             DecorationStage::Lakes,
             DecorationStage::LocalModifications,
             DecorationStage::UndergroundStructures,
@@ -60,8 +60,7 @@ struct DecorationStages {
             DecorationStage::UndergroundOres,
             DecorationStage::UndergroundDecoration,
             DecorationStage::VegetalDecoration,
-            DecorationStage::TopLayerModification
-        };
+            DecorationStage::TopLayerModification};
         return stages;
     }
 
@@ -70,19 +69,31 @@ struct DecorationStages {
      * @param stage 装饰阶段
      * @return 阶段名称字符串
      */
-    static const char* getName(DecorationStage stage) {
+    static const char* getName(DecorationStage stage)
+    {
         switch (stage) {
-            case DecorationStage::RawGeneration:      return "raw_generation";
-            case DecorationStage::Lakes:              return "lakes";
-            case DecorationStage::LocalModifications: return "local_modifications";
-            case DecorationStage::UndergroundStructures: return "underground_structures";
-            case DecorationStage::SurfaceStructures:  return "surface_structures";
-            case DecorationStage::Strongholds:        return "strongholds";
-            case DecorationStage::UndergroundOres:    return "underground_ores";
-            case DecorationStage::UndergroundDecoration: return "underground_decoration";
-            case DecorationStage::VegetalDecoration:  return "vegetal_decoration";
-            case DecorationStage::TopLayerModification: return "top_layer_modification";
-            default: return "unknown";
+            case DecorationStage::RawGeneration:
+                return "raw_generation";
+            case DecorationStage::Lakes:
+                return "lakes";
+            case DecorationStage::LocalModifications:
+                return "local_modifications";
+            case DecorationStage::UndergroundStructures:
+                return "underground_structures";
+            case DecorationStage::SurfaceStructures:
+                return "surface_structures";
+            case DecorationStage::Strongholds:
+                return "strongholds";
+            case DecorationStage::UndergroundOres:
+                return "underground_ores";
+            case DecorationStage::UndergroundDecoration:
+                return "underground_decoration";
+            case DecorationStage::VegetalDecoration:
+                return "vegetal_decoration";
+            case DecorationStage::TopLayerModification:
+                return "top_layer_modification";
+            default:
+                return "unknown";
         }
     }
 
@@ -91,16 +102,15 @@ struct DecorationStages {
      * @param stage 装饰阶段
      * @return 索引值（0-9）
      */
-    static constexpr u8 getIndex(DecorationStage stage) {
-        return static_cast<u8>(stage);
-    }
+    static constexpr u8 getIndex(DecorationStage stage) { return static_cast<u8>(stage); }
 
     /**
      * @brief 根据索引获取阶段
      * @param index 索引值
      * @return 装饰阶段，如果无效返回 RawGeneration
      */
-    static DecorationStage fromIndex(u8 index) {
+    static DecorationStage fromIndex(u8 index)
+    {
         if (index < static_cast<u8>(DecorationStage::Count)) {
             return static_cast<DecorationStage>(index);
         }
@@ -112,7 +122,8 @@ struct DecorationStages {
      * @param name 阶段名称
      * @return 装饰阶段，如果无效返回 RawGeneration
      */
-    static DecorationStage fromName(const std::string& name) {
+    static DecorationStage fromName(const std::string& name)
+    {
         if (name == "raw_generation") return DecorationStage::RawGeneration;
         if (name == "lakes") return DecorationStage::Lakes;
         if (name == "local_modifications") return DecorationStage::LocalModifications;

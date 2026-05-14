@@ -1,29 +1,25 @@
 #include "ItemTextureAtlas.hpp"
-#include "TextureAtlasBuilder.hpp"
 #include "../renderer/trident/util/VulkanUtils.hpp"
-#include "common/resource/IResourcePack.hpp"
-#include "common/resource/compat/TextureMapper.hpp"
+#include "TextureAtlasBuilder.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
-#include <spdlog/spdlog.h>
+#include "common/resource/IResourcePack.hpp"
+#include "common/resource/compat/TextureMapper.hpp"
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 // stb_image - only header, implementation in TextureAtlasBuilder.cpp
-#include <stb_image.h>
 #include <algorithm>
 #include <cstring>
+#include <stb_image.h>
 
 namespace mc::client {
 
 namespace {
 
 [[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
-    const std::vector<u8>& mcmetaData,
-    u32 imageWidth,
-    u32 imageHeight,
-    u32& outFrameWidth,
-    u32& outFrameHeight)
+    const std::vector<u8>& mcmetaData, u32 imageWidth, u32 imageHeight, u32& outFrameWidth, u32& outFrameHeight)
 {
     if (mcmetaData.empty() || imageWidth == 0 || imageHeight == 0) {
         return false;
@@ -53,26 +49,24 @@ namespace {
             return false;
         }
 
-        if (frameWidth > static_cast<i32>(imageWidth)
-            || frameHeight > static_cast<i32>(imageHeight)) {
+        if (frameWidth > static_cast<i32>(imageWidth) || frameHeight > static_cast<i32>(imageHeight)) {
             return false;
         }
 
-        if ((imageWidth % static_cast<u32>(frameWidth)) != 0
-            || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
+        if ((imageWidth % static_cast<u32>(frameWidth)) != 0 || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
             return false;
         }
 
         outFrameWidth = static_cast<u32>(frameWidth);
         outFrameHeight = static_cast<u32>(frameHeight);
         return true;
-    } catch (const nlohmann::json::exception&) {
+    }
+    catch (const nlohmann::json::exception&) {
         return false;
     }
 }
 
-Result<void> loadTexturePixels(
-    IResourcePack& pack,
+Result<void> loadTexturePixels(IResourcePack& pack,
     const ResourceLocation& location,
     std::vector<u8>& outPixels,
     u32& outWidth,
@@ -90,19 +84,13 @@ Result<void> loadTexturePixels(
     int height = 0;
     int channels = 0;
     stbi_uc* pixels = stbi_load_from_memory(
-        readResult.value().data(),
-        static_cast<int>(readResult.value().size()),
-        &width,
-        &height,
-        &channels,
-        4);
+        readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
 
     if (pixels == nullptr || width <= 0 || height <= 0) {
         if (pixels != nullptr) {
             stbi_image_free(pixels);
         }
-        return Error(ErrorCode::TextureLoadFailed,
-                     "Failed to decode item texture: " + location.toString());
+        return Error(ErrorCode::TextureLoadFailed, "Failed to decode item texture: " + location.toString());
     }
 
     outWidth = static_cast<u32>(width);
@@ -115,11 +103,7 @@ Result<void> loadTexturePixels(
         const auto mcmetaResult = pack.readResource(mcmetaPath);
         if (mcmetaResult.success()) {
             static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
-                mcmetaResult.value(),
-                outWidth,
-                outHeight,
-                outFrameWidth,
-                outFrameHeight));
+                mcmetaResult.value(), outWidth, outHeight, outFrameWidth, outFrameHeight));
         }
     }
 
@@ -129,11 +113,7 @@ Result<void> loadTexturePixels(
 }
 
 std::vector<u8> resizeNearestRGBA(
-    const std::vector<u8>& srcPixels,
-    u32 srcWidth,
-    u32 srcHeight,
-    u32 dstWidth,
-    u32 dstHeight)
+    const std::vector<u8>& srcPixels, u32 srcWidth, u32 srcHeight, u32 dstWidth, u32 dstHeight)
 {
     std::vector<u8> dstPixels(static_cast<size_t>(dstWidth) * static_cast<size_t>(dstHeight) * 4, 0);
 
@@ -159,7 +139,8 @@ std::vector<u8> resizeNearestRGBA(
 
 ItemTextureAtlas::ItemTextureAtlas() = default;
 
-ItemTextureAtlas::~ItemTextureAtlas() {
+ItemTextureAtlas::~ItemTextureAtlas()
+{
     destroy();
 }
 
@@ -196,7 +177,8 @@ ItemTextureAtlas::ItemTextureAtlas(ItemTextureAtlas&& other) noexcept
     other.m_uploaded = false;
 }
 
-ItemTextureAtlas& ItemTextureAtlas::operator=(ItemTextureAtlas&& other) noexcept {
+ItemTextureAtlas& ItemTextureAtlas::operator=(ItemTextureAtlas&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_device = other.m_device;
@@ -233,8 +215,7 @@ ItemTextureAtlas& ItemTextureAtlas::operator=(ItemTextureAtlas&& other) noexcept
     return *this;
 }
 
-Result<void> ItemTextureAtlas::create(
-    VkDevice device,
+Result<void> ItemTextureAtlas::create(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
@@ -292,7 +273,8 @@ Result<void> ItemTextureAtlas::create(
     return {};
 }
 
-void ItemTextureAtlas::destroy() {
+void ItemTextureAtlas::destroy()
+{
     if (m_sampler != VK_NULL_HANDLE && m_device != VK_NULL_HANDLE) {
         vkDestroySampler(m_device, m_sampler, nullptr);
         m_sampler = VK_NULL_HANDLE;
@@ -327,8 +309,7 @@ void ItemTextureAtlas::destroy() {
     m_regionsByLocation.clear();
 }
 
-Result<void> ItemTextureAtlas::loadFromResourcePacks(
-    const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks)
+Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks)
 {
     std::vector<IResourcePack*> packs;
     packs.reserve(resourcePacks.size());
@@ -341,8 +322,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(
     return loadFromResourcePacks(packs);
 }
 
-Result<void> ItemTextureAtlas::loadFromResourcePacks(
-    const std::vector<IResourcePack*>& resourcePacks)
+Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<IResourcePack*>& resourcePacks)
 {
     if (resourcePacks.empty()) {
         spdlog::warn("ItemTextureAtlas: No resource packs provided");
@@ -388,14 +368,8 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(
                 u32 height = 0;
                 u32 frameWidth = 0;
                 u32 frameHeight = 0;
-                const auto loadResult = loadTexturePixels(
-                    *pack,
-                    sourceLoc,
-                    pixels,
-                    width,
-                    height,
-                    frameWidth,
-                    frameHeight);
+                const auto loadResult =
+                    loadTexturePixels(*pack, sourceLoc, pixels, width, height, frameWidth, frameHeight);
                 if (loadResult.success()) {
                     constexpr u32 MAX_ICON_SIZE = 64;
                     if (width > MAX_ICON_SIZE || height > MAX_ICON_SIZE) {
@@ -408,13 +382,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(
                         frameHeight = std::min(frameHeight, dstHeight);
                     }
 
-                    builder.addTextureFrame(
-                        atlasKey,
-                        pixels,
-                        width,
-                        height,
-                        frameWidth,
-                        frameHeight);
+                    builder.addTextureFrame(atlasKey, pixels, width, height, frameWidth, frameHeight);
                     return true;
                 }
             }
@@ -495,20 +463,22 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(
     });
 
     spdlog::info("ItemTextureAtlas: Loaded {} textures mapped to {} items ({}x{})",
-                 atlas.regions.size(), m_regionsByItemId.size(), m_width, m_height);
+        atlas.regions.size(),
+        m_regionsByItemId.size(),
+        m_width,
+        m_height);
 
     return {};
 }
 
-Result<void> ItemTextureAtlas::upload() {
+Result<void> ItemTextureAtlas::upload()
+{
     if (m_pixels.empty()) {
         return {};
     }
 
     const bool needRecreateImage =
-        (m_image == VK_NULL_HANDLE) ||
-        (m_imageWidth != m_width) ||
-        (m_imageHeight != m_height);
+        (m_image == VK_NULL_HANDLE) || (m_imageWidth != m_width) || (m_imageHeight != m_height);
 
     if (needRecreateImage) {
         if (m_imageView != VK_NULL_HANDLE) {
@@ -561,9 +531,8 @@ Result<void> ItemTextureAtlas::upload() {
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits,
-                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto memTypeResult = findMemoryType(
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (!memTypeResult.success()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
         return memTypeResult.error();
@@ -587,22 +556,17 @@ Result<void> ItemTextureAtlas::upload() {
     std::memcpy(mappedData, m_pixels.data(), m_pixels.size());
     vkUnmapMemory(m_device, stagingMemory);
 
-    const VkImageLayout uploadOldLayout = (needRecreateImage || !m_uploaded)
-        ? VK_IMAGE_LAYOUT_UNDEFINED
-        : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    const VkPipelineStageFlags uploadSrcStage = (needRecreateImage || !m_uploaded)
-        ? VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
-        : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    const VkImageLayout uploadOldLayout =
+        (needRecreateImage || !m_uploaded) ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    const VkPipelineStageFlags uploadSrcStage =
+        (needRecreateImage || !m_uploaded) ? VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
     // Use single-time command to upload texture
     VkCommandBuffer cmd = beginSingleTimeCommands();
 
     // Transition image layout to transfer destination
-    transitionImageLayout(cmd,
-                          uploadOldLayout,
-                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          uploadSrcStage,
-                          VK_PIPELINE_STAGE_TRANSFER_BIT);
+    transitionImageLayout(
+        cmd, uploadOldLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, uploadSrcStage, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     // Copy buffer to image
     VkBufferImageCopy region = {};
@@ -616,18 +580,14 @@ Result<void> ItemTextureAtlas::upload() {
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {m_width, m_height, 1};
 
-    vkCmdCopyBufferToImage(cmd,
-                           stagingBuffer,
-                           m_image,
-                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           1, &region);
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // Transition to shader read-only layout
     transitionImageLayout(cmd,
-                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_PIPELINE_STAGE_TRANSFER_BIT,
-                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     endSingleTimeCommands(cmd);
 
@@ -644,12 +604,14 @@ Result<void> ItemTextureAtlas::upload() {
     return {};
 }
 
-const TextureRegion* ItemTextureAtlas::getItemTexture(u32 itemId) const {
+const TextureRegion* ItemTextureAtlas::getItemTexture(u32 itemId) const
+{
     auto it = m_regionsByItemId.find(itemId);
     return it != m_regionsByItemId.end() ? &it->second : nullptr;
 }
 
-const TextureRegion* ItemTextureAtlas::getItemTexture(const ResourceLocation& location) const {
+const TextureRegion* ItemTextureAtlas::getItemTexture(const ResourceLocation& location) const
+{
     auto it = m_regionsByLocation.find(location);
     return it != m_regionsByLocation.end() ? &it->second : nullptr;
 }
@@ -670,19 +632,23 @@ std::vector<TextureRegion> ItemTextureAtlas::getItemTextureLayers(
     return layers;
 }
 
-bool ItemTextureAtlas::hasItemTexture(u32 itemId) const {
+bool ItemTextureAtlas::hasItemTexture(u32 itemId) const
+{
     return m_regionsByItemId.find(itemId) != m_regionsByItemId.end();
 }
 
-void ItemTextureAtlas::addTextureRegion(u32 itemId, const TextureRegion& region) {
+void ItemTextureAtlas::addTextureRegion(u32 itemId, const TextureRegion& region)
+{
     m_regionsByItemId[itemId] = region;
 }
 
-void ItemTextureAtlas::addTextureRegion(const ResourceLocation& location, const TextureRegion& region) {
+void ItemTextureAtlas::addTextureRegion(const ResourceLocation& location, const TextureRegion& region)
+{
     m_regionsByLocation[location] = region;
 }
 
-Result<void> ItemTextureAtlas::createImage() {
+Result<void> ItemTextureAtlas::createImage()
+{
     // Create image
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -710,8 +676,7 @@ Result<void> ItemTextureAtlas::createImage() {
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits,
-                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!memTypeResult.success()) {
         vkDestroyImage(m_device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -732,7 +697,8 @@ Result<void> ItemTextureAtlas::createImage() {
     return {};
 }
 
-Result<void> ItemTextureAtlas::createSampler() {
+Result<void> ItemTextureAtlas::createSampler()
+{
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_NEAREST;
@@ -758,7 +724,8 @@ Result<void> ItemTextureAtlas::createSampler() {
     return {};
 }
 
-Result<void> ItemTextureAtlas::createImageView() {
+Result<void> ItemTextureAtlas::createImageView()
+{
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = m_image;
@@ -777,24 +744,28 @@ Result<void> ItemTextureAtlas::createImageView() {
     return {};
 }
 
-Result<u32> ItemTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> ItemTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     return renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-VkCommandBuffer ItemTextureAtlas::beginSingleTimeCommands() {
+VkCommandBuffer ItemTextureAtlas::beginSingleTimeCommands()
+{
     return renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void ItemTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void ItemTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);
 }
 
 void ItemTextureAtlas::transitionImageLayout(VkCommandBuffer cmd,
-                                              VkImageLayout oldLayout,
-                                              VkImageLayout newLayout,
-                                              VkPipelineStageFlags srcStage,
-                                              VkPipelineStageFlags dstStage) {
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkPipelineStageFlags srcStage,
+    VkPipelineStageFlags dstStage)
+{
     renderer::VulkanUtils::transitionImageLayout(cmd, m_image, oldLayout, newLayout, srcStage, dstStage);
 }
 

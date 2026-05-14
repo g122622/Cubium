@@ -1,25 +1,25 @@
 #pragma once
 
-#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
-#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/AnimatedMeshCache.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
-#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
-#include <glm/glm.hpp>
-#include <unordered_map>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <unordered_map>
 #include <vector>
+#include <glm/glm.hpp>
 
 namespace mc {
 class Entity;
 class Item;
 class ItemStack;
 struct TextureRegion;
-}
+} // namespace mc
 
 namespace mc::client {
 class ClientEntity;
@@ -83,10 +83,7 @@ public:
      * @return 网格指针，如果实体类型无渲染器返回nullptr
      */
     [[nodiscard]] pipeline::EntityMesh* getOrCreateAnimatedMesh(
-        ClientEntity& entity,
-        model::EntityModel& model,
-        const core::AnimationContext& context
-    );
+        ClientEntity& entity, model::EntityModel& model, const core::AnimationContext& context);
 
     /**
      * @brief 更新实体网格
@@ -142,8 +139,8 @@ public:
      * @param frustum 视锥体（用于剔除）
      * @return true 如果实体被渲染，false 如果被剔除
      */
-    bool renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks,
-                            const mc::math::frustum::Frustum& frustum);
+    bool renderWithPipeline(
+        VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks, const mc::math::frustum::Frustum& frustum);
 
     // ========== 管线 ==========
 
@@ -183,10 +180,7 @@ public:
      * @param frustum 视锥体
      */
     void setCameraInfo(
-        const glm::dvec3& position,
-        const glm::mat4& viewMatrix,
-        const mc::math::frustum::Frustum& frustum
-    );
+        const glm::dvec3& position, const glm::mat4& viewMatrix, const mc::math::frustum::Frustum& frustum);
 
     /**
      * @brief 获取实体渲染管线
@@ -235,7 +229,7 @@ private:
     // 管线
     pipeline::EntityPipeline* m_pipeline = nullptr;
     const pipeline::EntityTextureAtlas* m_textureAtlas = nullptr;
-    pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr;  // 用于 ItemEntity 渲染
+    pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr; // 用于 ItemEntity 渲染
 
     // 相机描述符集（set = 0）
     VkDescriptorSet m_cameraDescriptorSet = VK_NULL_HANDLE;
@@ -261,9 +255,8 @@ private:
      * @param indices 输出索引
      * @return 是否成功生成
      */
-    bool generateModelMesh(const std::string& typeId,
-                           std::vector<model::ModelVertex>& vertices,
-                           std::vector<u32>& indices);
+    bool generateModelMesh(
+        const std::string& typeId, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 生成 ItemEntity 的网格
@@ -273,8 +266,7 @@ private:
      * @param vertices 输出顶点
      * @param indices 输出索引
      */
-    void generateItemEntityMesh(std::vector<model::ModelVertex>& vertices,
-                                std::vector<u32>& indices);
+    void generateItemEntityMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 生成 ExperienceOrb 的网格
@@ -284,8 +276,7 @@ private:
      * @param vertices 输出顶点
      * @param indices 输出索引
      */
-    void generateExperienceOrbMesh(std::vector<model::ModelVertex>& vertices,
-                                   std::vector<u32>& indices);
+    void generateExperienceOrbMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 将 ItemEntity 的 UV 映射到物品纹理图集
@@ -300,8 +291,7 @@ private:
     /**
      * @brief 将模型局部UV映射到图集区域
      */
-    void remapUvToAtlasRegion(const std::string& normalizedTypeId,
-                              std::vector<model::ModelVertex>& vertices) const;
+    void remapUvToAtlasRegion(const std::string& normalizedTypeId, std::vector<model::ModelVertex>& vertices) const;
 
     /**
      * @brief 计算 ItemEntity 浮动偏移
@@ -346,9 +336,7 @@ private:
      * @return 模型指针，如果实体类型无模型返回 nullptr
      */
     [[nodiscard]] std::unique_ptr<model::EntityModel> createModelForEntity(
-        ClientEntity& entity,
-        core::AnimationContext& context
-    );
+        ClientEntity& entity, core::AnimationContext& context);
 };
 
 } // namespace mc::client::renderer::entity

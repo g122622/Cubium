@@ -1,9 +1,9 @@
 #include "RuleTest.hpp"
-#include "../../../block/BlockRegistry.hpp"
-#include "../../../block/Block.hpp"
-#include "../../../block/BlockTags.hpp"
-#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../block/Block.hpp"
+#include "../../../block/BlockRegistry.hpp"
+#include "../../../block/BlockTags.hpp"
 
 namespace mc {
 namespace world {
@@ -17,10 +17,10 @@ namespace template_ {
 
 BlockMatchRuleTest::BlockMatchRuleTest(u32 blockId)
     : m_blockId(blockId)
-{
-}
+{}
 
-bool BlockMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const {
+bool BlockMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const
+{
     if (!state) {
         return false;
     }
@@ -34,10 +34,10 @@ bool BlockMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) co
 
 BlockStateMatchRuleTest::BlockStateMatchRuleTest(u32 stateId)
     : m_stateId(stateId)
-{
-}
+{}
 
-bool BlockStateMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const {
+bool BlockStateMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const
+{
     if (!state) {
         return false;
     }
@@ -52,10 +52,10 @@ bool BlockStateMatchRuleTest::test(const BlockState* state, math::Random& /*rng*
 RandomBlockMatchRuleTest::RandomBlockMatchRuleTest(u32 blockId, f32 probability)
     : m_blockId(blockId)
     , m_probability(probability)
-{
-}
+{}
 
-bool RandomBlockMatchRuleTest::test(const BlockState* state, math::Random& rng) const {
+bool RandomBlockMatchRuleTest::test(const BlockState* state, math::Random& rng) const
+{
     if (!state) {
         return false;
     }
@@ -74,10 +74,10 @@ bool RandomBlockMatchRuleTest::test(const BlockState* state, math::Random& rng) 
 RandomBlockStateMatchRuleTest::RandomBlockStateMatchRuleTest(u32 stateId, f32 probability)
     : m_stateId(stateId)
     , m_probability(probability)
-{
-}
+{}
 
-bool RandomBlockStateMatchRuleTest::test(const BlockState* state, math::Random& rng) const {
+bool RandomBlockStateMatchRuleTest::test(const BlockState* state, math::Random& rng) const
+{
     if (!state) {
         return false;
     }
@@ -95,10 +95,10 @@ bool RandomBlockStateMatchRuleTest::test(const BlockState* state, math::Random& 
 
 TagMatchRuleTest::TagMatchRuleTest(const ResourceLocation& tagId)
     : m_tagId(tagId)
-{
-}
+{}
 
-bool TagMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const {
+bool TagMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const
+{
     if (!state) {
         return false;
     }
@@ -115,11 +115,7 @@ bool TagMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) cons
 // LinearPosRuleTest
 // ============================================================================
 
-LinearPosRuleTest::LinearPosRuleTest(
-    i32 minDistance,
-    i32 maxDistance,
-    f32 minProbability,
-    f32 maxProbability)
+LinearPosRuleTest::LinearPosRuleTest(i32 minDistance, i32 maxDistance, f32 minProbability, f32 maxProbability)
     : m_minDistance(minDistance)
     , m_maxDistance(maxDistance)
     , m_minProbability(minProbability)
@@ -132,10 +128,7 @@ LinearPosRuleTest::LinearPosRuleTest(
 }
 
 bool LinearPosRuleTest::test(
-    const BlockPos& /*originalPos*/,
-    const BlockPos& worldPos,
-    const BlockPos& seedPos,
-    math::Random& rng) const
+    const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const
 {
     // MC 1.16.5: LinearPosTest.func_230385_a_
     // 使用曼哈顿距离（Manhattan distance）
@@ -143,10 +136,11 @@ bool LinearPosRuleTest::test(
     f32 randomValue = rng.nextFloat();
 
     // 使用 mappedLerp 进行线性插值
-    f32 probability = math::mappedLerp(m_minProbability, m_maxProbability,
-                                        static_cast<f32>(m_minDistance),
-                                        static_cast<f32>(m_maxDistance),
-                                        static_cast<f32>(distance));
+    f32 probability = math::mappedLerp(m_minProbability,
+        m_maxProbability,
+        static_cast<f32>(m_minDistance),
+        static_cast<f32>(m_maxDistance),
+        static_cast<f32>(distance));
 
     return randomValue <= probability;
 }
@@ -156,11 +150,7 @@ bool LinearPosRuleTest::test(
 // ============================================================================
 
 AxisAlignedLinearPosTest::AxisAlignedLinearPosTest(
-    f32 minProbability,
-    f32 maxProbability,
-    i32 minDistance,
-    i32 maxDistance,
-    Axis axis)
+    f32 minProbability, f32 maxProbability, i32 minDistance, i32 maxDistance, Axis axis)
     : m_minProbability(minProbability)
     , m_maxProbability(maxProbability)
     , m_minDistance(minDistance)
@@ -174,10 +164,7 @@ AxisAlignedLinearPosTest::AxisAlignedLinearPosTest(
 }
 
 bool AxisAlignedLinearPosTest::test(
-    const BlockPos& /*originalPos*/,
-    const BlockPos& worldPos,
-    const BlockPos& seedPos,
-    math::Random& rng) const
+    const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const
 {
     // MC 1.16.5: AxisAlignedLinearPosTest.func_230385_a_
     // 计算指定轴方向上的距离
@@ -200,10 +187,11 @@ bool AxisAlignedLinearPosTest::test(
     f32 randomValue = rng.nextFloat();
 
     // 使用 mappedLerp 进行线性插值
-    f32 probability = math::mappedLerp(m_minProbability, m_maxProbability,
-                                        static_cast<f32>(m_minDistance),
-                                        static_cast<f32>(m_maxDistance),
-                                        static_cast<f32>(distance));
+    f32 probability = math::mappedLerp(m_minProbability,
+        m_maxProbability,
+        static_cast<f32>(m_minDistance),
+        static_cast<f32>(m_maxDistance),
+        static_cast<f32>(distance));
 
     return randomValue <= probability;
 }
@@ -212,8 +200,7 @@ bool AxisAlignedLinearPosTest::test(
 // RuleEntry
 // ============================================================================
 
-RuleEntry::RuleEntry(
-    std::unique_ptr<RuleTest> inputPredicate,
+RuleEntry::RuleEntry(std::unique_ptr<RuleTest> inputPredicate,
     std::unique_ptr<RuleTest> locationPredicate,
     std::unique_ptr<PosRuleTest> posPredicate,
     u32 outputStateId,
@@ -223,24 +210,18 @@ RuleEntry::RuleEntry(
     , m_posPredicate(std::move(posPredicate))
     , m_outputStateId(outputStateId)
     , m_outputNbt(std::move(outputNbt))
-{
-}
+{}
 
 RuleEntry::RuleEntry(
-    std::unique_ptr<RuleTest> inputPredicate,
-    std::unique_ptr<RuleTest> locationPredicate,
-    u32 outputStateId)
-    : RuleEntry(
-        std::move(inputPredicate),
-        std::move(locationPredicate),
-        std::make_unique<AlwaysTruePosRuleTest>(),
-        outputStateId,
-        std::nullopt)
-{
-}
+    std::unique_ptr<RuleTest> inputPredicate, std::unique_ptr<RuleTest> locationPredicate, u32 outputStateId)
+    : RuleEntry(std::move(inputPredicate),
+          std::move(locationPredicate),
+          std::make_unique<AlwaysTruePosRuleTest>(),
+          outputStateId,
+          std::nullopt)
+{}
 
-bool RuleEntry::matches(
-    const BlockState* inputState,
+bool RuleEntry::matches(const BlockState* inputState,
     const BlockState* locationState,
     const BlockPos& originalPos,
     const BlockPos& worldPos,

@@ -24,37 +24,33 @@ namespace mc::world::tick {
  *
  * @tparam T 目标类型
  */
-template<typename T>
+template <typename T>
 class EmptyTickList : public ITickList<T> {
 public:
     /**
      * @brief 获取单例实例
      */
-    static EmptyTickList<T>& get() {
+    static EmptyTickList<T>& get()
+    {
         static EmptyTickList<T> instance;
         return instance;
     }
 
-    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, T& target) const override {
-        return false;
-    }
+    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, T& target) const override { return false; }
 
-    [[nodiscard]] bool isTickPending(const BlockPos& pos, T& target) const override {
-        return false;
-    }
+    [[nodiscard]] bool isTickPending(const BlockPos& pos, T& target) const override { return false; }
 
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay) override {
+    void scheduleTick(const BlockPos& pos, T& target, i32 delay) override
+    {
         // 空操作
     }
 
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay,
-                      TickPriority priority) override {
+    void scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority) override
+    {
         // 空操作
     }
 
-    [[nodiscard]] size_t pendingCount() const override {
-        return 0;
-    }
+    [[nodiscard]] size_t pendingCount() const override { return 0; }
 
 private:
     EmptyTickList() = default;

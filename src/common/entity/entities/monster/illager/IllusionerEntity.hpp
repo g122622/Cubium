@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SpellcastingIllagerEntity.hpp"
 #include "../../../interfaces/IRangedAttackMob.hpp"
+#include "SpellcastingIllagerEntity.hpp"
 
 #include <memory>
 

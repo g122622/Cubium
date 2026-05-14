@@ -9,35 +9,43 @@ TimeManager::TimeManager(i64 initialGameTime, i64 initialDayTime)
     m_gameTime.setDayTime(initialDayTime);
 }
 
-void TimeManager::tick() {
+void TimeManager::tick()
+{
     m_gameTime.tick();
 }
 
-i64 TimeManager::gameTime() const {
+i64 TimeManager::gameTime() const
+{
     return m_gameTime.gameTime();
 }
 
-void TimeManager::setGameTime(i64 time) {
+void TimeManager::setGameTime(i64 time)
+{
     m_gameTime.setGameTime(time);
 }
 
-i64 TimeManager::dayTime() const {
+i64 TimeManager::dayTime() const
+{
     return m_gameTime.dayTime();
 }
 
-void TimeManager::setDayTime(i64 time) {
+void TimeManager::setDayTime(i64 time)
+{
     m_gameTime.setDayTime(time);
 }
 
-void TimeManager::addDayTime(i64 ticks) {
+void TimeManager::addDayTime(i64 ticks)
+{
     m_gameTime.addDayTime(ticks);
 }
 
-i64 TimeManager::dayCount() const {
+i64 TimeManager::dayCount() const
+{
     return m_gameTime.dayCount();
 }
 
-void TimeManager::setDaylightCycleEnabled(bool enabled) {
+void TimeManager::setDaylightCycleEnabled(bool enabled)
+{
     m_gameTime.setDaylightCycleEnabled(enabled);
 }
 

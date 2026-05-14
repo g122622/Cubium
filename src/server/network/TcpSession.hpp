@@ -1,13 +1,13 @@
 ﻿#pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/packet/Packet.hpp"
-#include <memory>
-#include <functional>
 #include <deque>
-#include <vector>
+#include <functional>
+#include <memory>
 #include <mutex>
+#include <vector>
 
 namespace mc::server {
 
@@ -69,7 +69,8 @@ public:
     void disconnect(const std::string& reason = "");
 
     // 内部使用 (由TcpServer调用)
-    void setAddress(const std::string& address, u16 port) {
+    void setAddress(const std::string& address, u16 port)
+    {
         m_address = address;
         m_port = port;
     }
@@ -112,5 +113,3 @@ private:
 };
 
 } // namespace mc::server
-
-

@@ -1,25 +1,25 @@
-#include <gtest/gtest.h>
-#include "world/block/blocks/mob/BeehiveBlock.hpp"
-#include "world/block/blocks/mob/TurtleEggBlock.hpp"
-#include "world/block/blocks/mob/InfestedBlock.hpp"
-#include "world/block/blocks/mob/SpawnerBlock.hpp"
-#include "world/block/blocks/mob/DragonBreathBlock.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/tick/manager/TickManager.hpp"
-#include "world/fluid/Fluid.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
-#include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "util/property/Properties.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/mob/BeehiveBlock.hpp"
+#include "world/block/blocks/mob/DragonBreathBlock.hpp"
+#include "world/block/blocks/mob/InfestedBlock.hpp"
+#include "world/block/blocks/mob/SpawnerBlock.hpp"
+#include "world/block/blocks/mob/TurtleEggBlock.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/tick/manager/TickManager.hpp"
+#include <gtest/gtest.h>
 
 #include <memory>
 #include <unordered_map>
@@ -32,13 +32,10 @@ using namespace mc::blocks;
 
 class BeehiveBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建蜂巢方块
-        beehive_ = std::make_unique<BeehiveBlock>(
-            BlockProperties(Material::WOOD)
-                .hardness(0.6f)
-                .resistance(0.6f)
-        );
+        beehive_ = std::make_unique<BeehiveBlock>(BlockProperties(Material::WOOD).hardness(0.6f).resistance(0.6f));
     }
 
     std::unique_ptr<BeehiveBlock> beehive_;
@@ -46,46 +43,50 @@ protected:
 
 // ========== 基础属性测试 ==========
 
-TEST_F(BeehiveBlockTest, Create_HasCorrectProperties) {
+TEST_F(BeehiveBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(beehive_, nullptr);
 }
 
-TEST_F(BeehiveBlockTest, HasBlockEntity_ReturnsTrue) {
+TEST_F(BeehiveBlockTest, HasBlockEntity_ReturnsTrue)
+{
     EXPECT_TRUE(beehive_->hasBlockEntity());
 }
 
-TEST_F(BeehiveBlockTest, GetMaxHoneyLevel_Returns5) {
+TEST_F(BeehiveBlockTest, GetMaxHoneyLevel_Returns5)
+{
     EXPECT_EQ(beehive_->getMaxHoneyLevel(), 5);
 }
 
 // ========== 蜂蜜等级测试 ==========
 
-TEST_F(BeehiveBlockTest, GetHoneyLevel_ReturnsZeroByDefault) {
+TEST_F(BeehiveBlockTest, GetHoneyLevel_ReturnsZeroByDefault)
+{
     const auto& state = beehive_->defaultState();
     EXPECT_EQ(beehive_->getHoneyLevel(state), 0);
 }
 
-TEST_F(BeehiveBlockTest, WithHoneyLevel_ReturnsCorrectState) {
+TEST_F(BeehiveBlockTest, WithHoneyLevel_ReturnsCorrectState)
+{
     // 测试各个等级
     for (i32 level = 0; level <= 5; ++level) {
         BlockState state = beehive_->withHoneyLevel(level);
-        EXPECT_EQ(beehive_->getHoneyLevel(state), level)
-            << "Honey level should be " << level;
+        EXPECT_EQ(beehive_->getHoneyLevel(state), level) << "Honey level should be " << level;
     }
 }
 
-TEST_F(BeehiveBlockTest, WithHoneyLevel_ClampsToValidRange) {
+TEST_F(BeehiveBlockTest, WithHoneyLevel_ClampsToValidRange)
+{
     // 测试超出范围的值
     BlockState stateNegative = beehive_->withHoneyLevel(-1);
-    EXPECT_EQ(beehive_->getHoneyLevel(stateNegative), 0)
-        << "Negative level should be clamped to 0";
+    EXPECT_EQ(beehive_->getHoneyLevel(stateNegative), 0) << "Negative level should be clamped to 0";
 
     BlockState stateOverflow = beehive_->withHoneyLevel(10);
-    EXPECT_EQ(beehive_->getHoneyLevel(stateOverflow), 5)
-        << "Overflow level should be clamped to 5";
+    EXPECT_EQ(beehive_->getHoneyLevel(stateOverflow), 5) << "Overflow level should be clamped to 5";
 }
 
-TEST_F(BeehiveBlockTest, WithHoneyLevel_PreservesOtherProperties) {
+TEST_F(BeehiveBlockTest, WithHoneyLevel_PreservesOtherProperties)
+{
     // 获取默认状态的朝向
     const auto& defaultState = beehive_->defaultState();
     Direction defaultFacing = defaultState.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -94,19 +95,20 @@ TEST_F(BeehiveBlockTest, WithHoneyLevel_PreservesOtherProperties) {
     BlockState state = beehive_->withHoneyLevel(3);
     Direction facingAfter = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
-    EXPECT_EQ(facingAfter, defaultFacing)
-        << "Honey level change should not affect facing";
+    EXPECT_EQ(facingAfter, defaultFacing) << "Honey level change should not affect facing";
 }
 
 // ========== 朝向属性测试 ==========
 
-TEST_F(BeehiveBlockTest, DefaultState_HasCorrectFacing) {
+TEST_F(BeehiveBlockTest, DefaultState_HasCorrectFacing)
+{
     const auto& state = beehive_->defaultState();
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     EXPECT_EQ(facing, Direction::North) << "Default facing should be North";
 }
 
-TEST_F(BeehiveBlockTest, Rotate_UpdatesFacingCorrectly) {
+TEST_F(BeehiveBlockTest, Rotate_UpdatesFacingCorrectly)
+{
     const auto& defaultState = beehive_->defaultState();
 
     // 测试所有旋转
@@ -123,7 +125,8 @@ TEST_F(BeehiveBlockTest, Rotate_UpdatesFacingCorrectly) {
     EXPECT_EQ(rotated270.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::West);
 }
 
-TEST_F(BeehiveBlockTest, Rotate_PreservesHoneyLevel) {
+TEST_F(BeehiveBlockTest, Rotate_PreservesHoneyLevel)
+{
     // 创建蜂蜜等级为 3 的状态
     BlockState state = beehive_->withHoneyLevel(3);
     i32 honeyLevelBefore = beehive_->getHoneyLevel(state);
@@ -132,11 +135,11 @@ TEST_F(BeehiveBlockTest, Rotate_PreservesHoneyLevel) {
     const auto& rotated = beehive_->rotate(state, Rotation::Clockwise90);
     i32 honeyLevelAfter = beehive_->getHoneyLevel(rotated);
 
-    EXPECT_EQ(honeyLevelAfter, honeyLevelBefore)
-        << "Rotation should not affect honey level";
+    EXPECT_EQ(honeyLevelAfter, honeyLevelBefore) << "Rotation should not affect honey level";
 }
 
-TEST_F(BeehiveBlockTest, Mirror_UpdatesFacingCorrectly) {
+TEST_F(BeehiveBlockTest, Mirror_UpdatesFacingCorrectly)
+{
     const auto& defaultState = beehive_->defaultState();
 
     // LeftRight 镜像：沿 Z 轴镜像，东西互换，南北不变
@@ -161,53 +164,52 @@ TEST_F(BeehiveBlockTest, Mirror_UpdatesFacingCorrectly) {
 
 // ========== 状态容器测试 ==========
 
-TEST_F(BeehiveBlockTest, StateContainer_HasHoneyLevelProperty) {
+TEST_F(BeehiveBlockTest, StateContainer_HasHoneyLevelProperty)
+{
     // 验证状态容器包含蜂蜜等级属性
     const auto& state = beehive_->defaultState();
     // 如果能获取属性值且不抛异常，说明属性存在
-    EXPECT_NO_THROW({
-        [[maybe_unused]] i32 level = state.get(BlockStateProperties::HONEY_LEVEL_0_5());
-    });
+    EXPECT_NO_THROW({ [[maybe_unused]] i32 level = state.get(BlockStateProperties::HONEY_LEVEL_0_5()); });
 }
 
-TEST_F(BeehiveBlockTest, StateContainer_HasFacingProperty) {
+TEST_F(BeehiveBlockTest, StateContainer_HasFacingProperty)
+{
     // 验证状态容器包含朝向属性
     const auto& state = beehive_->defaultState();
-    EXPECT_NO_THROW({
-        [[maybe_unused]] Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    });
+    EXPECT_NO_THROW({ [[maybe_unused]] Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING()); });
 }
 
 // ========== TurtleEggBlock 测试（同文件中的另一个方块）==========
 
 class TurtleEggBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        turtleEgg_ = std::make_unique<TurtleEggBlock>(
-            BlockProperties(Material::SAND)
-                .hardness(0.5f)
-                .resistance(0.5f)
-        );
+    void SetUp() override
+    {
+        turtleEgg_ = std::make_unique<TurtleEggBlock>(BlockProperties(Material::SAND).hardness(0.5f).resistance(0.5f));
     }
 
     std::unique_ptr<TurtleEggBlock> turtleEgg_;
 };
 
-TEST_F(TurtleEggBlockTest, Create_HasCorrectProperties) {
+TEST_F(TurtleEggBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(turtleEgg_, nullptr);
 }
 
-TEST_F(TurtleEggBlockTest, GetEggs_ReturnsOneByDefault) {
+TEST_F(TurtleEggBlockTest, GetEggs_ReturnsOneByDefault)
+{
     const auto& state = turtleEgg_->defaultState();
     EXPECT_EQ(turtleEgg_->getEggs(state), 1);
 }
 
-TEST_F(TurtleEggBlockTest, GetHatch_ReturnsZeroByDefault) {
+TEST_F(TurtleEggBlockTest, GetHatch_ReturnsZeroByDefault)
+{
     const auto& state = turtleEgg_->defaultState();
     EXPECT_EQ(turtleEgg_->getHatch(state), 0);
 }
 
-TEST_F(TurtleEggBlockTest, WithEggs_ClampsToValidRange) {
+TEST_F(TurtleEggBlockTest, WithEggs_ClampsToValidRange)
+{
     BlockState state = turtleEgg_->withEggs(0);
     EXPECT_EQ(turtleEgg_->getEggs(state), 1) << "Minimum eggs should be 1";
 
@@ -215,7 +217,8 @@ TEST_F(TurtleEggBlockTest, WithEggs_ClampsToValidRange) {
     EXPECT_EQ(turtleEgg_->getEggs(state), 4) << "Maximum eggs should be 4";
 }
 
-TEST_F(TurtleEggBlockTest, WithHatch_ClampsToValidRange) {
+TEST_F(TurtleEggBlockTest, WithHatch_ClampsToValidRange)
+{
     BlockState state = turtleEgg_->withHatch(-1);
     EXPECT_EQ(turtleEgg_->getHatch(state), 0) << "Minimum hatch should be 0";
 
@@ -223,7 +226,8 @@ TEST_F(TurtleEggBlockTest, WithHatch_ClampsToValidRange) {
     EXPECT_EQ(turtleEgg_->getHatch(state), 2) << "Maximum hatch should be 2";
 }
 
-TEST_F(TurtleEggBlockTest, GetShape_ReturnsValidShape) {
+TEST_F(TurtleEggBlockTest, GetShape_ReturnsValidShape)
+{
     for (i32 eggs = 1; eggs <= 4; ++eggs) {
         BlockState state = turtleEgg_->withEggs(eggs);
         const auto& shape = turtleEgg_->getShape(state);
@@ -231,11 +235,13 @@ TEST_F(TurtleEggBlockTest, GetShape_ReturnsValidShape) {
     }
 }
 
-TEST_F(TurtleEggBlockTest, TicksRandomly_ReturnsTrue) {
+TEST_F(TurtleEggBlockTest, TicksRandomly_ReturnsTrue)
+{
     EXPECT_TRUE(turtleEgg_->ticksRandomly());
 }
 
-TEST_F(TurtleEggBlockTest, IsOpaque_ReturnsFalse) {
+TEST_F(TurtleEggBlockTest, IsOpaque_ReturnsFalse)
+{
     const auto& state = turtleEgg_->defaultState();
     EXPECT_FALSE(turtleEgg_->isOpaque(state));
 }
@@ -244,24 +250,23 @@ TEST_F(TurtleEggBlockTest, IsOpaque_ReturnsFalse) {
 
 class InfestedBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建被感染方块（使用石头作为宿主）
-        infested_ = std::make_unique<InfestedBlock>(
-            1,  // 石头方块 ID（假设）
-            BlockProperties(Material::ROCK)
-                .hardness(0.75f)
-                .resistance(0.75f)
-        );
+        infested_ = std::make_unique<InfestedBlock>(1, // 石头方块 ID（假设）
+            BlockProperties(Material::ROCK).hardness(0.75f).resistance(0.75f));
     }
 
     std::unique_ptr<InfestedBlock> infested_;
 };
 
-TEST_F(InfestedBlockTest, Create_HasCorrectProperties) {
+TEST_F(InfestedBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(infested_, nullptr);
 }
 
-TEST_F(InfestedBlockTest, GetHostBlock_ReturnsCorrectId) {
+TEST_F(InfestedBlockTest, GetHostBlock_ReturnsCorrectId)
+{
     EXPECT_EQ(infested_->getHostBlock(), 1u);
 }
 
@@ -269,26 +274,26 @@ TEST_F(InfestedBlockTest, GetHostBlock_ReturnsCorrectId) {
 
 class SpawnerBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        spawner_ = std::make_unique<SpawnerBlock>(
-            BlockProperties(Material::ROCK)
-                .hardness(5.0f)
-                .resistance(5.0f)
-        );
+    void SetUp() override
+    {
+        spawner_ = std::make_unique<SpawnerBlock>(BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f));
     }
 
     std::unique_ptr<SpawnerBlock> spawner_;
 };
 
-TEST_F(SpawnerBlockTest, Create_HasCorrectProperties) {
+TEST_F(SpawnerBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(spawner_, nullptr);
 }
 
-TEST_F(SpawnerBlockTest, HasBlockEntity_ReturnsTrue) {
+TEST_F(SpawnerBlockTest, HasBlockEntity_ReturnsTrue)
+{
     EXPECT_TRUE(spawner_->hasBlockEntity());
 }
 
-TEST_F(SpawnerBlockTest, IsOpaque_ReturnsFalse) {
+TEST_F(SpawnerBlockTest, IsOpaque_ReturnsFalse)
+{
     const auto& state = spawner_->defaultState();
     EXPECT_FALSE(spawner_->isOpaque(state));
 }
@@ -297,34 +302,36 @@ TEST_F(SpawnerBlockTest, IsOpaque_ReturnsFalse) {
 
 class DragonBreathBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        dragonBreath_ = std::make_unique<DragonBreathBlock>(
-            BlockProperties(Material::FIRE)
-                .hardness(0.0f)
-                .resistance(0.0f)
-        );
+    void SetUp() override
+    {
+        dragonBreath_ =
+            std::make_unique<DragonBreathBlock>(BlockProperties(Material::FIRE).hardness(0.0f).resistance(0.0f));
     }
 
     std::unique_ptr<DragonBreathBlock> dragonBreath_;
 };
 
-TEST_F(DragonBreathBlockTest, Create_HasCorrectProperties) {
+TEST_F(DragonBreathBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(dragonBreath_, nullptr);
 }
 
-TEST_F(DragonBreathBlockTest, GetShape_ReturnsEmptyShape) {
+TEST_F(DragonBreathBlockTest, GetShape_ReturnsEmptyShape)
+{
     const auto& state = dragonBreath_->defaultState();
     const auto& shape = dragonBreath_->getShape(state);
     EXPECT_TRUE(shape.isEmpty()) << "Dragon breath should have empty shape";
 }
 
-TEST_F(DragonBreathBlockTest, GetCollisionShape_ReturnsEmptyShape) {
+TEST_F(DragonBreathBlockTest, GetCollisionShape_ReturnsEmptyShape)
+{
     const auto& state = dragonBreath_->defaultState();
     const auto& shape = dragonBreath_->getCollisionShape(state);
     EXPECT_TRUE(shape.isEmpty()) << "Dragon breath should have no collision";
 }
 
-TEST_F(DragonBreathBlockTest, IsOpaque_ReturnsFalse) {
+TEST_F(DragonBreathBlockTest, IsOpaque_ReturnsFalse)
+{
     const auto& state = dragonBreath_->defaultState();
     EXPECT_FALSE(dragonBreath_->isOpaque(state));
 }
@@ -342,7 +349,8 @@ namespace {
  */
 class MobBlocksTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -350,12 +358,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
@@ -368,20 +378,24 @@ public:
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
     [[nodiscard]] bool isThundering() const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
-    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
+    {
         // 测试中忽略声音播放
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("MobBlocksTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("MobBlocksTestWorld::tickManager not implemented");
     }
 
@@ -390,11 +404,13 @@ public:
     void incrementTick() { m_currentTick++; }
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
         m_blocks[pos] = std::make_unique<BlockState>(*state);
     }
 
-    void setSandAt(i32 x, i32 y, i32 z) {
+    void setSandAt(i32 x, i32 y, i32 z)
+    {
         // 设置沙子方块（海龟蛋需要放在沙子上）
         const BlockState* sandState = VanillaBlocks::SAND ? &VanillaBlocks::SAND->defaultState() : nullptr;
         if (sandState) {
@@ -404,7 +420,8 @@ public:
 
     [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
 
-    [[nodiscard]] Entity* getSpawnedEntity(size_t index) const {
+    [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
+    {
         if (index < m_spawnedEntities.size()) {
             return m_spawnedEntities[index].get();
         }
@@ -426,7 +443,8 @@ private:
 class MockLivingEntity : public LivingEntity {
 public:
     MockLivingEntity(LegacyEntityType type, EntityId id)
-        : LivingEntity(type, id, nullptr) {}
+        : LivingEntity(type, id, nullptr)
+    {}
 
     void tick() override {}
     [[nodiscard]] f32 width() const override { return 0.6f; }
@@ -440,7 +458,8 @@ public:
 class MockPlayer : public Player {
 public:
     MockPlayer(EntityId id)
-        : Player(id, "TestPlayer") {}
+        : Player(id, "TestPlayer")
+    {}
 
     void tick() override {}
     [[nodiscard]] std::string getTypeId() const override { return "minecraft:player"; }
@@ -452,20 +471,18 @@ public:
 
 class TurtleEggBlockTrampleTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
-        turtleEgg_ = std::make_unique<TurtleEggBlock>(
-            BlockProperties(Material::SAND)
-                .hardness(0.5f)
-                .resistance(0.5f)
-        );
+        turtleEgg_ = std::make_unique<TurtleEggBlock>(BlockProperties(Material::SAND).hardness(0.5f).resistance(0.5f));
     }
 
     std::unique_ptr<TurtleEggBlock> turtleEgg_;
     MobBlocksTestWorld world_;
 };
 
-TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_PlayerCanTrample) {
+TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_PlayerCanTrample)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(5, 0, 5);
     BlockPos eggPos(5, 1, 5);
@@ -488,7 +505,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_PlayerCanTrample) {
     EXPECT_TRUE(true); // 如果执行到这里说明没有崩溃
 }
 
-TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_TurtleCannotTrample) {
+TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_TurtleCannotTrample)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(5, 0, 5);
     BlockPos eggPos(5, 1, 5);
@@ -509,7 +527,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_TurtleCannotTrample) {
     EXPECT_EQ(turtleEgg_->getEggs(*stateAfter), 2);
 }
 
-TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_ZombieDoesNotTrample) {
+TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_ZombieDoesNotTrample)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(5, 0, 5);
     BlockPos eggPos(5, 1, 5);
@@ -530,7 +549,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_ZombieDoesNotTrample) {
     EXPECT_EQ(turtleEgg_->getEggs(*stateAfter), 3);
 }
 
-TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_HuskDoesNotTrample) {
+TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_HuskDoesNotTrample)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(5, 0, 5);
     BlockPos eggPos(5, 1, 5);
@@ -550,7 +570,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_HuskDoesNotTrample) {
     EXPECT_EQ(turtleEgg_->getEggs(*stateAfter), 2);
 }
 
-TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_DrownedDoesNotTrample) {
+TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_DrownedDoesNotTrample)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(5, 0, 5);
     BlockPos eggPos(5, 1, 5);
@@ -570,7 +591,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_DrownedDoesNotTrample) {
     EXPECT_EQ(turtleEgg_->getEggs(*stateAfter), 4);
 }
 
-TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_BatCannotTrample) {
+TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_BatCannotTrample)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(5, 0, 5);
     BlockPos eggPos(5, 1, 5);
@@ -590,7 +612,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_BatCannotTrample) {
     EXPECT_EQ(turtleEgg_->getEggs(*stateAfter), 2);
 }
 
-TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_NonLivingEntityCannotTrample) {
+TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_NonLivingEntityCannotTrample)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(5, 0, 5);
     BlockPos eggPos(5, 1, 5);
@@ -614,26 +637,23 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_NonLivingEntityCannotTrample) {
 
 class TurtleEggBlockHatchTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
-        turtleEgg_ = std::make_unique<TurtleEggBlock>(
-            BlockProperties(Material::SAND)
-                .hardness(0.5f)
-                .resistance(0.5f)
-        );
+        turtleEgg_ = std::make_unique<TurtleEggBlock>(BlockProperties(Material::SAND).hardness(0.5f).resistance(0.5f));
     }
 
     std::unique_ptr<TurtleEggBlock> turtleEgg_;
     MobBlocksTestWorld world_;
 };
 
-TEST_F(TurtleEggBlockHatchTest, RandomTick_HatchingProgresses) {
+TEST_F(TurtleEggBlockHatchTest, RandomTick_HatchingProgresses)
+{
     // 设置海龟蛋在沙子上
     world_.setSandAt(10, 0, 10);
     BlockPos eggPos(10, 1, 10);
-    BlockState eggState = turtleEgg_->defaultState()
-        .with(BlockStateProperties::EGGS_1_4(), 1)
-        .with(BlockStateProperties::HATCH_0_2(), 0);
+    BlockState eggState =
+        turtleEgg_->defaultState().with(BlockStateProperties::EGGS_1_4(), 1).with(BlockStateProperties::HATCH_0_2(), 0);
     world_.setBlockAt(eggPos, &eggState);
 
     // 调用 randomTick，设置随机种子使 canGrow 返回 true
@@ -644,12 +664,13 @@ TEST_F(TurtleEggBlockHatchTest, RandomTick_HatchingProgresses) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(TurtleEggBlockHatchTest, RandomTick_NoHatchWithoutSand) {
+TEST_F(TurtleEggBlockHatchTest, RandomTick_NoHatchWithoutSand)
+{
     // 设置海龟蛋，但下方不是沙子（是空气）
     BlockPos eggPos(10, 5, 10);
     BlockState eggState = turtleEgg_->defaultState()
-        .with(BlockStateProperties::EGGS_1_4(), 1)
-        .with(BlockStateProperties::HATCH_0_2(), 2); // 即将孵化
+                              .with(BlockStateProperties::EGGS_1_4(), 1)
+                              .with(BlockStateProperties::HATCH_0_2(), 2); // 即将孵化
     world_.setBlockAt(eggPos, &eggState);
 
     // 调用 randomTick
@@ -659,7 +680,8 @@ TEST_F(TurtleEggBlockHatchTest, RandomTick_NoHatchWithoutSand) {
     EXPECT_EQ(world_.spawnedEntityCount(), 0u);
 }
 
-TEST_F(TurtleEggBlockHatchTest, RandomTick_ClientSideDoesNotSpawn) {
+TEST_F(TurtleEggBlockHatchTest, RandomTick_ClientSideDoesNotSpawn)
+{
     // 设置客户端
     world_.setClientSide(true);
 
@@ -667,8 +689,8 @@ TEST_F(TurtleEggBlockHatchTest, RandomTick_ClientSideDoesNotSpawn) {
     world_.setSandAt(10, 0, 10);
     BlockPos eggPos(10, 1, 10);
     BlockState eggState = turtleEgg_->defaultState()
-        .with(BlockStateProperties::EGGS_1_4(), 1)
-        .with(BlockStateProperties::HATCH_0_2(), 2); // 即将孵化
+                              .with(BlockStateProperties::EGGS_1_4(), 1)
+                              .with(BlockStateProperties::HATCH_0_2(), 2); // 即将孵化
     world_.setBlockAt(eggPos, &eggState);
 
     // 调用 randomTick
@@ -682,21 +704,19 @@ TEST_F(TurtleEggBlockHatchTest, RandomTick_ClientSideDoesNotSpawn) {
 
 class InfestedBlockSpawnTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
-        infested_ = std::make_unique<InfestedBlock>(
-            1,  // 石头方块ID
-            BlockProperties(Material::ROCK)
-                .hardness(0.75f)
-                .resistance(0.75f)
-        );
+        infested_ = std::make_unique<InfestedBlock>(1, // 石头方块ID
+            BlockProperties(Material::ROCK).hardness(0.75f).resistance(0.75f));
     }
 
     std::unique_ptr<InfestedBlock> infested_;
     MobBlocksTestWorld world_;
 };
 
-TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SpawnsSilverfish_OnServer) {
+TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SpawnsSilverfish_OnServer)
+{
     // 设置被感染方块
     BlockPos pos(5, 10, 5);
     const BlockState& state = infested_->defaultState();
@@ -716,7 +736,8 @@ TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SpawnsSilverfish_OnServer) {
     EXPECT_EQ(spawned->legacyType(), LegacyEntityType::Silverfish);
 }
 
-TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_DoesNotSpawn_OnClient) {
+TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_DoesNotSpawn_OnClient)
+{
     // 设置客户端
     world_.setClientSide(true);
 
@@ -733,7 +754,8 @@ TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_DoesNotSpawn_OnClient) {
     EXPECT_EQ(world_.spawnedEntityCount(), 0u);
 }
 
-TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SilverfishPositionCorrect) {
+TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SilverfishPositionCorrect)
+{
     // 设置被感染方块
     BlockPos pos(100, 50, -200);
     const BlockState& state = infested_->defaultState();

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "VoxelShape.hpp"
-#include "BooleanOp.hpp"
 #include "../../util/Direction.hpp"
+#include "BooleanOp.hpp"
+#include "VoxelShape.hpp"
 #include <memory>
 #include <vector>
 
@@ -54,14 +54,12 @@ public:
      * @param maxX, maxY, maxZ 最大坐标（方块本地坐标）
      * @throws 如果 min > max
      */
-    [[nodiscard]] static VoxelShape box(f64 minX, f64 minY, f64 minZ,
-                                         f64 maxX, f64 maxY, f64 maxZ);
+    [[nodiscard]] static VoxelShape box(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ);
 
     /**
      * @brief 创建盒子形状（不检查参数）
      */
-    [[nodiscard]] static VoxelShape create(f64 minX, f64 minY, f64 minZ,
-                                            f64 maxX, f64 maxY, f64 maxZ);
+    [[nodiscard]] static VoxelShape create(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ);
 
     /**
      * @brief 从AABB创建形状
@@ -122,9 +120,8 @@ public:
      * 3. 获取两个形状在边界面的投影形状
      * 4. 使用 ONLY_FIRST 操作检查投影是否完全覆盖
      */
-    [[nodiscard]] static bool blockOccludes(const VoxelShape& sourceShape,
-                                             const VoxelShape& targetShape,
-                                             Direction direction);
+    [[nodiscard]] static bool blockOccludes(
+        const VoxelShape& sourceShape, const VoxelShape& targetShape, Direction direction);
 
     /**
      * @brief 检查合并后的面形状是否遮挡
@@ -136,9 +133,8 @@ public:
      * @param direction 从源到目标的方向
      * @return true 如果面被完全遮挡
      */
-    [[nodiscard]] static bool mergedFaceOccludes(const VoxelShape& sourceShape,
-                                                   const VoxelShape& targetShape,
-                                                   Direction direction);
+    [[nodiscard]] static bool mergedFaceOccludes(
+        const VoxelShape& sourceShape, const VoxelShape& targetShape, Direction direction);
 
     /**
      * @brief 检查两个面形状是否互相遮挡
@@ -149,8 +145,7 @@ public:
      * @param faceShape2 第二个面形状
      * @return true 如果合并后的形状完全遮挡单位正方形
      */
-    [[nodiscard]] static bool faceShapeOccludes(const VoxelShape& faceShape1,
-                                                 const VoxelShape& faceShape2);
+    [[nodiscard]] static bool faceShapeOccludes(const VoxelShape& faceShape1, const VoxelShape& faceShape2);
 
     // ========================================================================
     // 切片操作
@@ -181,10 +176,8 @@ public:
      * @param movement 期望移动量
      * @return 实际可移动量
      */
-    [[nodiscard]] static f64 collide(Axis axis,
-                                      const AxisAlignedBB& entityBox,
-                                      const std::vector<VoxelShape>& shapes,
-                                      f64 movement);
+    [[nodiscard]] static f64 collide(
+        Axis axis, const AxisAlignedBB& entityBox, const std::vector<VoxelShape>& shapes, f64 movement);
 
     // ========================================================================
     // 辅助函数
@@ -203,8 +196,7 @@ public:
     // 索引合并器（用于布尔运算）
     class IndexMerger;
     [[nodiscard]] static std::unique_ptr<IndexMerger> createIndexMerger(
-        i32 size, const std::vector<f64>& a, const std::vector<f64>& b,
-        bool aIncluded, bool bIncluded);
+        i32 size, const std::vector<f64>& a, const std::vector<f64>& b, bool aIncluded, bool bIncluded);
 
 private:
     // 缓存的形状
@@ -237,8 +229,7 @@ public:
      * @param consumer 消费者函数 (indexA, indexB, mergedIndex)
      * @return 是否完成遍历
      */
-    [[nodiscard]] virtual bool forMergedIndexes(
-        const std::function<bool(i32, i32, i32)>& consumer) const = 0;
+    [[nodiscard]] virtual bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const = 0;
 
     /**
      * @brief 获取合并后的大小

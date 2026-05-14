@@ -112,7 +112,8 @@ public:
      * @brief 获取当前匹配的配方ID
      * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
      */
-    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override {
+    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override
+    {
         return m_currentRecipe != nullptr ? m_currentRecipe->getId() : ResourceLocation();
     }
 
@@ -127,7 +128,8 @@ public:
     /**
      * @brief 检查是否是合成网格槽位
      */
-    [[nodiscard]] bool isGridSlot(i32 slotIndex) const {
+    [[nodiscard]] bool isGridSlot(i32 slotIndex) const
+    {
         return slotIndex >= GRID_SLOT_START && slotIndex < GRID_SLOT_START + GRID_SLOT_COUNT;
     }
 
@@ -163,7 +165,7 @@ private:
     CraftResultInventory m_result;
     CraftingTableEntity* m_blockEntity;
     ScreenType m_screenType;
-    const crafting::CraftingRecipe* m_currentRecipe = nullptr;  ///< 当前匹配的配方
+    const crafting::CraftingRecipe* m_currentRecipe = nullptr; ///< 当前匹配的配方
 };
 
 /**
@@ -241,7 +243,8 @@ public:
      * @brief 获取当前匹配的配方ID
      * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
      */
-    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override {
+    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override
+    {
         return m_currentRecipe != nullptr ? m_currentRecipe->getId() : ResourceLocation();
     }
 
@@ -256,24 +259,24 @@ public:
      * - 36-44: 快捷栏 (1x9)
      * - 45: 副手
      */
-    static constexpr i32 RESULT_SLOT = 0;           ///< 合成结果槽位
-    static constexpr i32 GRID_SLOT_START = 1;       ///< 合成网格起始槽位
-    static constexpr i32 GRID_SLOT_COUNT = 4;       ///< 合成网格槽位数量
-    static constexpr i32 GRID_SLOT_END = 4;         ///< 合成网格结束槽位
-    static constexpr i32 ARMOR_SLOT_START = 5;      ///< 护甲槽起始槽位
-    static constexpr i32 ARMOR_SLOT_COUNT = 4;      ///< 护甲槽数量
-    static constexpr i32 ARMOR_HEAD = 5;            ///< 头盔槽位
-    static constexpr i32 ARMOR_CHEST = 6;           ///< 胸甲槽位
-    static constexpr i32 ARMOR_LEGS = 7;            ///< 护腿槽位
-    static constexpr i32 ARMOR_FEET = 8;            ///< 靴子槽位
-    static constexpr i32 PLAYER_INV_START = 9;      ///< 玩家主背包起始槽位
-    static constexpr i32 PLAYER_INV_COUNT = 27;     ///< 玩家主背包槽位数量
-    static constexpr i32 PLAYER_INV_END = 35;       ///< 玩家主背包结束槽位
-    static constexpr i32 HOTBAR_START = 36;         ///< 快捷栏起始槽位
-    static constexpr i32 HOTBAR_COUNT = 9;          ///< 快捷栏槽位数量
-    static constexpr i32 HOTBAR_END = 44;           ///< 快捷栏结束槽位
-    static constexpr i32 OFFHAND_SLOT = 45;         ///< 副手槽位
-    static constexpr i32 TOTAL_SLOT_COUNT = 46;     ///< 总槽位数量
+    static constexpr i32 RESULT_SLOT = 0;       ///< 合成结果槽位
+    static constexpr i32 GRID_SLOT_START = 1;   ///< 合成网格起始槽位
+    static constexpr i32 GRID_SLOT_COUNT = 4;   ///< 合成网格槽位数量
+    static constexpr i32 GRID_SLOT_END = 4;     ///< 合成网格结束槽位
+    static constexpr i32 ARMOR_SLOT_START = 5;  ///< 护甲槽起始槽位
+    static constexpr i32 ARMOR_SLOT_COUNT = 4;  ///< 护甲槽数量
+    static constexpr i32 ARMOR_HEAD = 5;        ///< 头盔槽位
+    static constexpr i32 ARMOR_CHEST = 6;       ///< 胸甲槽位
+    static constexpr i32 ARMOR_LEGS = 7;        ///< 护腿槽位
+    static constexpr i32 ARMOR_FEET = 8;        ///< 靴子槽位
+    static constexpr i32 PLAYER_INV_START = 9;  ///< 玩家主背包起始槽位
+    static constexpr i32 PLAYER_INV_COUNT = 27; ///< 玩家主背包槽位数量
+    static constexpr i32 PLAYER_INV_END = 35;   ///< 玩家主背包结束槽位
+    static constexpr i32 HOTBAR_START = 36;     ///< 快捷栏起始槽位
+    static constexpr i32 HOTBAR_COUNT = 9;      ///< 快捷栏槽位数量
+    static constexpr i32 HOTBAR_END = 44;       ///< 快捷栏结束槽位
+    static constexpr i32 OFFHAND_SLOT = 45;     ///< 副手槽位
+    static constexpr i32 TOTAL_SLOT_COUNT = 46; ///< 总槽位数量
 
 private:
     /**
@@ -290,7 +293,7 @@ private:
 
     CraftingInventory m_craftingGrid;
     CraftResultInventory m_result;
-    const crafting::CraftingRecipe* m_currentRecipe = nullptr;  ///< 当前匹配的配方
+    const crafting::CraftingRecipe* m_currentRecipe = nullptr; ///< 当前匹配的配方
 };
 
 } // namespace mc

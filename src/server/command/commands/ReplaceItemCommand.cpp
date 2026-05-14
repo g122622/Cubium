@@ -16,13 +16,9 @@ namespace command {
 void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto replaceitemNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replaceitem");
-    replaceitemNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        replaceitemNode,
-        support::makeMetadata(
-            "Replaces items in an inventory.",
+    replaceitemNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(replaceitemNode,
+        support::makeMetadata("Replaces items in an inventory.",
             "/replaceitem <entity|block> <target> <slot> <item> [count]",
             2,
             {},
@@ -31,24 +27,16 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /replaceitem entity <targets> <slot> <item> [count]
     auto entityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::entities());
-    auto slotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "slot",
-        StringArgumentType::string());
-    auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "item",
-        StringArgumentType::string());
-    auto countArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "count",
-        IntegerArgumentType::integer(1, 64));
-    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return replaceEntityItem(ctx);
-    });
+        "targets", EntityArgumentType::entities());
+    auto slotArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("slot", StringArgumentType::string());
+    auto itemArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("item", StringArgumentType::string());
+    auto countArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));
+    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceEntityItem(ctx); });
     itemArg->addChild(countArg);
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return replaceEntityItem(ctx);
-    });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceEntityItem(ctx); });
     slotArg->addChild(itemArg);
     targetsArg->addChild(slotArg);
     entityNode->addChild(targetsArg);
@@ -56,25 +44,16 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /replaceitem block <pos> <slot> <item> [count]
     auto blockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
-    auto blockSlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "slot",
-        StringArgumentType::string());
-    auto blockItemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "item",
-        StringArgumentType::string());
-    auto blockCountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "count",
-        IntegerArgumentType::integer(1, 64));
-    blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return replaceBlockItem(ctx);
-    });
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    auto blockSlotArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("slot", StringArgumentType::string());
+    auto blockItemArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("item", StringArgumentType::string());
+    auto blockCountArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));
+    blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceBlockItem(ctx); });
     blockItemArg->addChild(blockCountArg);
-    blockItemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return replaceBlockItem(ctx);
-    });
+    blockItemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceBlockItem(ctx); });
     blockSlotArg->addChild(blockItemArg);
     posArg->addChild(blockSlotArg);
     blockNode->addChild(posArg);
@@ -111,7 +90,8 @@ i32 ReplaceItemCommand::replaceEntityItem(CommandContext<ServerCommandSource>& c
     }
 
     std::ostringstream ss;
-    ss << "Replaced slot '" << slot << "' with " << count << "x '" << item << "' for " << successCount << " entit" << (successCount == 1 ? "y" : "ies");
+    ss << "Replaced slot '" << slot << "' with " << count << "x '" << item << "' for " << successCount << " entit"
+       << (successCount == 1 ? "y" : "ies");
     source.sendMessage(ss.str());
 
     return successCount;
@@ -130,7 +110,8 @@ i32 ReplaceItemCommand::replaceBlockItem(CommandContext<ServerCommandSource>& co
     }
 
     std::ostringstream ss;
-    ss << "Replaced slot '" << slot << "' with " << count << "x '" << item << "' at (" << static_cast<i32>(pos.x) << ", " << static_cast<i32>(pos.y) << ", " << static_cast<i32>(pos.z) << ")";
+    ss << "Replaced slot '" << slot << "' with " << count << "x '" << item << "' at (" << static_cast<i32>(pos.x)
+       << ", " << static_cast<i32>(pos.y) << ", " << static_cast<i32>(pos.z) << ")";
     source.sendMessage(ss.str());
 
     // TODO: 实现方块容器物品替换系统

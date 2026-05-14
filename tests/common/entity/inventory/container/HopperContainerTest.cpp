@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "entity/inventory/container/HopperContainer.hpp"
-#include "entity/inventory/PlayerInventory.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -11,7 +11,8 @@ using namespace mc;
 
 class HopperContainerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         player_ = std::make_unique<Player>(1, "HopperTestPlayer");
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
         // 创建漏斗背包容器（5格）
@@ -23,27 +24,32 @@ protected:
     std::unique_ptr<blockentity::SimpleInventory> hopperInventory_;
 };
 
-TEST_F(HopperContainerTest, Create_HasCorrectSlotCount) {
+TEST_F(HopperContainerTest, Create_HasCorrectSlotCount)
+{
     // 容器实际槽位数量 = 漏斗槽位 + 玩家背包槽位 = 5 + 36 = 41
     HopperContainer container(ContainerId(1), playerInventory_.get(), hopperInventory_.get());
     EXPECT_EQ(container.getSlotCount(), 41);
 }
 
-TEST_F(HopperContainerTest, GetHopperInventory_ReturnsCorrectInventory) {
+TEST_F(HopperContainerTest, GetHopperInventory_ReturnsCorrectInventory)
+{
     HopperContainer container(ContainerId(1), playerInventory_.get(), hopperInventory_.get());
     EXPECT_EQ(container.getHopperInventory(), hopperInventory_.get());
 }
 
-TEST_F(HopperContainerTest, ContainerId_IsCorrect) {
+TEST_F(HopperContainerTest, ContainerId_IsCorrect)
+{
     HopperContainer container(ContainerId(1), playerInventory_.get(), hopperInventory_.get());
     EXPECT_EQ(container.getId(), ContainerId(1));
 }
 
-TEST_F(HopperContainerTest, HopperSize_IsFive) {
+TEST_F(HopperContainerTest, HopperSize_IsFive)
+{
     EXPECT_EQ(HopperContainer::HOPPER_SIZE, 5);
 }
 
-TEST_F(HopperContainerTest, Constants_AreCorrect_MC1165) {
+TEST_F(HopperContainerTest, Constants_AreCorrect_MC1165)
+{
     // 验证GUI布局常量 - MC 1.16.5坐标
     EXPECT_EQ(HopperContainer::HOPPER_SLOT_START_X, 44);
     EXPECT_EQ(HopperContainer::HOPPER_SLOT_Y, 20);
@@ -52,19 +58,20 @@ TEST_F(HopperContainerTest, Constants_AreCorrect_MC1165) {
     EXPECT_EQ(HopperContainer::SLOT_SIZE, 18);
 }
 
-TEST_F(HopperContainerTest, StillValid_WithoutEntity_ReturnsTrue) {
+TEST_F(HopperContainerTest, StillValid_WithoutEntity_ReturnsTrue)
+{
     // 当没有关联 HopperEntity 时，使用 IInventory::isUsableByPlayer()
     // SimpleInventory 的默认实现返回 true
     HopperContainer container(ContainerId(1), playerInventory_.get(), hopperInventory_.get());
     EXPECT_TRUE(container.stillValid(*player_));
 }
 
-TEST_F(HopperContainerTest, StillValid_WithEntity_WhenPlayerIsNearHopper_ReturnsTrue) {
+TEST_F(HopperContainerTest, StillValid_WithEntity_WhenPlayerIsNearHopper_ReturnsTrue)
+{
     // 创建漏斗实体
     auto hopperEntity = std::make_unique<blockentity::HopperEntity>(BlockPos(0, 64, 0));
 
-    HopperContainer container(ContainerId(1), playerInventory_.get(),
-                               hopperEntity->getInventory(), hopperEntity.get());
+    HopperContainer container(ContainerId(1), playerInventory_.get(), hopperEntity->getInventory(), hopperEntity.get());
 
     // 玩家在漏斗附近（距离小于8格）
     // 漏斗中心在 (0.5, 64.5, 0.5)，玩家在 (0.5, 64.0, 0.5)
@@ -79,12 +86,12 @@ TEST_F(HopperContainerTest, StillValid_WithEntity_WhenPlayerIsNearHopper_Returns
     EXPECT_TRUE(container.stillValid(*player_));
 }
 
-TEST_F(HopperContainerTest, StillValid_WithEntity_WhenPlayerIsTooFar_ReturnsFalse) {
+TEST_F(HopperContainerTest, StillValid_WithEntity_WhenPlayerIsTooFar_ReturnsFalse)
+{
     // 创建漏斗实体
     auto hopperEntity = std::make_unique<blockentity::HopperEntity>(BlockPos(0, 64, 0));
 
-    HopperContainer container(ContainerId(1), playerInventory_.get(),
-                               hopperEntity->getInventory(), hopperEntity.get());
+    HopperContainer container(ContainerId(1), playerInventory_.get(), hopperEntity->getInventory(), hopperEntity.get());
 
     // 玩家距离漏斗超过8格
     // 漏斗中心在 (0.5, 64.5, 0.5)，玩家在 (12.5, 64.0, 0.5)

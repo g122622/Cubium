@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
-#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 
@@ -23,16 +23,16 @@ namespace {
 class PathWeightTestWorld final : public test::BaseTestWorld {
 public:
     void setBrightness(f32 brightness) { m_brightness = brightness; }
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) {
-        m_blockStates[BlockPos(x, y, z)] = state;
-    }
-    void setGrassBlockAt(i32 x, i32 y, i32 z) {
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
+    void setGrassBlockAt(i32 x, i32 y, i32 z)
+    {
         m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::GRASS_BLOCK->defaultState();
     }
 
     // ========== IWorld 接口实现 ==========
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         auto it = m_blockStates.find(BlockPos(x, y, z));
         if (it != m_blockStates.end()) {
             return it->second;
@@ -42,16 +42,19 @@ public:
 
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return static_cast<u8>(m_brightness * 15.0f); }
 
-    [[nodiscard]] f32 getBrightness(const BlockPos& pos) const override {
+    [[nodiscard]] f32 getBrightness(const BlockPos& pos) const override
+    {
         (void)pos;
         return m_brightness;
     }
 
     // TickManager interface
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("PathWeightTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("PathWeightTestWorld::tickManager not implemented");
     }
 
@@ -66,7 +69,8 @@ private:
 class TestAnimalEntity final : public AnimalEntity {
 public:
     TestAnimalEntity()
-        : AnimalEntity(LegacyEntityType::Pig, 1) {
+        : AnimalEntity(LegacyEntityType::Pig, 1)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -89,7 +93,8 @@ protected:
 class TestMonsterEntity final : public MonsterEntity {
 public:
     TestMonsterEntity()
-        : MonsterEntity(LegacyEntityType::Zombie, 2) {
+        : MonsterEntity(LegacyEntityType::Zombie, 2)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -99,9 +104,7 @@ public:
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override { return std::nullopt; }
 
 protected:
-    void registerGoals() override {
-        MonsterEntity::registerGoals();
-    }
+    void registerGoals() override { MonsterEntity::registerGoals(); }
 };
 
 /**
@@ -110,7 +113,8 @@ protected:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(LegacyEntityType::Cow, 3) {
+        : CreatureEntity(LegacyEntityType::Cow, 3)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -122,14 +126,13 @@ public:
 
 class CreatureEntityPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     PathWeightTestWorld world;
 };
 
-TEST_F(CreatureEntityPathWeightTest, DefaultPathWeightIsZero) {
+TEST_F(CreatureEntityPathWeightTest, DefaultPathWeightIsZero)
+{
     TestCreatureEntity creature;
     creature.setWorld(&world);
     creature.setPosition(0.0f, 64.0f, 0.0f);
@@ -139,7 +142,8 @@ TEST_F(CreatureEntityPathWeightTest, DefaultPathWeightIsZero) {
     EXPECT_FLOAT_EQ(creature.getPathWeight(10.0f, 64.0f, 10.0f), 0.0f);
 }
 
-TEST_F(CreatureEntityPathWeightTest, BlockPosOverloadWorks) {
+TEST_F(CreatureEntityPathWeightTest, BlockPosOverloadWorks)
+{
     TestCreatureEntity creature;
     creature.setWorld(&world);
 
@@ -153,14 +157,13 @@ TEST_F(CreatureEntityPathWeightTest, BlockPosOverloadWorks) {
 
 class AnimalEntityPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     PathWeightTestWorld world;
 };
 
-TEST_F(AnimalEntityPathWeightTest, ReturnsHighWeightOnGrassBlock) {
+TEST_F(AnimalEntityPathWeightTest, ReturnsHighWeightOnGrassBlock)
+{
     TestAnimalEntity animal;
     animal.setWorld(&world);
     animal.setPosition(0.0f, 65.0f, 0.0f);
@@ -174,7 +177,8 @@ TEST_F(AnimalEntityPathWeightTest, ReturnsHighWeightOnGrassBlock) {
     EXPECT_FLOAT_EQ(static_cast<const CreatureEntity&>(animal).getPathWeight(BlockPos(0, 65, 0)), 10.0f);
 }
 
-TEST_F(AnimalEntityPathWeightTest, ReturnsBrightnessWeightOnNonGrassBlock) {
+TEST_F(AnimalEntityPathWeightTest, ReturnsBrightnessWeightOnNonGrassBlock)
+{
     TestAnimalEntity animal;
     animal.setWorld(&world);
     animal.setPosition(0.0f, 65.0f, 0.0f);
@@ -195,7 +199,8 @@ TEST_F(AnimalEntityPathWeightTest, ReturnsBrightnessWeightOnNonGrassBlock) {
     EXPECT_FLOAT_EQ(animal.getPathWeight(0.0f, 65.0f, 0.0f), -0.5f);
 }
 
-TEST_F(AnimalEntityPathWeightTest, ReturnsZeroWhenNoWorld) {
+TEST_F(AnimalEntityPathWeightTest, ReturnsZeroWhenNoWorld)
+{
     TestAnimalEntity animal;
     // 不设置 world
 
@@ -203,21 +208,23 @@ TEST_F(AnimalEntityPathWeightTest, ReturnsZeroWhenNoWorld) {
     EXPECT_FLOAT_EQ(animal.getPathWeight(0.0f, 65.0f, 0.0f), 0.0f);
 }
 
-TEST_F(AnimalEntityPathWeightTest, GrassBlockTakesPriorityOverBrightness) {
+TEST_F(AnimalEntityPathWeightTest, GrassBlockTakesPriorityOverBrightness)
+{
     TestAnimalEntity animal;
     animal.setWorld(&world);
     animal.setPosition(0.0f, 65.0f, 0.0f);
 
     // 设置草方块和高亮度
     world.setGrassBlockAt(0, 64, 0);
-    world.setBrightness(0.0f);  // 低亮度
+    world.setBrightness(0.0f); // 低亮度
 
     // 草方块权重应该优先于亮度权重
     // 草方块返回 10.0F，不是 0.0 - 0.5 = -0.5
     EXPECT_FLOAT_EQ(animal.getPathWeight(0.0f, 65.0f, 0.0f), 10.0f);
 }
 
-TEST_F(AnimalEntityPathWeightTest, WorksAtDifferentPositions) {
+TEST_F(AnimalEntityPathWeightTest, WorksAtDifferentPositions)
+{
     TestAnimalEntity animal;
     animal.setWorld(&world);
     animal.setPosition(100.0f, 64.0f, 200.0f);
@@ -228,7 +235,7 @@ TEST_F(AnimalEntityPathWeightTest, WorksAtDifferentPositions) {
 
     // 位置没有草方块
     world.setBrightness(0.3f);
-    EXPECT_FLOAT_EQ(animal.getPathWeight(50.0f, 64.0f, 50.0f), -0.2f);  // 0.3 - 0.5
+    EXPECT_FLOAT_EQ(animal.getPathWeight(50.0f, 64.0f, 50.0f), -0.2f); // 0.3 - 0.5
 }
 
 // ============================================================================
@@ -237,14 +244,13 @@ TEST_F(AnimalEntityPathWeightTest, WorksAtDifferentPositions) {
 
 class MonsterEntityPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     PathWeightTestWorld world;
 };
 
-TEST_F(MonsterEntityPathWeightTest, PrefersDarkness) {
+TEST_F(MonsterEntityPathWeightTest, PrefersDarkness)
+{
     TestMonsterEntity monster;
     monster.setWorld(&world);
     monster.setPosition(0.0f, 64.0f, 0.0f);
@@ -257,7 +263,8 @@ TEST_F(MonsterEntityPathWeightTest, PrefersDarkness) {
     EXPECT_FLOAT_EQ(static_cast<const CreatureEntity&>(monster).getPathWeight(BlockPos(0, 64, 0)), 0.5f);
 }
 
-TEST_F(MonsterEntityPathWeightTest, DislikesBrightLight) {
+TEST_F(MonsterEntityPathWeightTest, DislikesBrightLight)
+{
     TestMonsterEntity monster;
     monster.setWorld(&world);
     monster.setPosition(0.0f, 64.0f, 0.0f);
@@ -268,7 +275,8 @@ TEST_F(MonsterEntityPathWeightTest, DislikesBrightLight) {
     EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), -0.5f);
 }
 
-TEST_F(MonsterEntityPathWeightTest, NeutralAtMidBrightness) {
+TEST_F(MonsterEntityPathWeightTest, NeutralAtMidBrightness)
+{
     TestMonsterEntity monster;
     monster.setWorld(&world);
     monster.setPosition(0.0f, 64.0f, 0.0f);
@@ -279,7 +287,8 @@ TEST_F(MonsterEntityPathWeightTest, NeutralAtMidBrightness) {
     EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
-TEST_F(MonsterEntityPathWeightTest, ReturnsZeroWhenNoWorld) {
+TEST_F(MonsterEntityPathWeightTest, ReturnsZeroWhenNoWorld)
+{
     TestMonsterEntity monster;
     // 不设置 world
 
@@ -287,13 +296,14 @@ TEST_F(MonsterEntityPathWeightTest, ReturnsZeroWhenNoWorld) {
     EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
-TEST_F(MonsterEntityPathWeightTest, WeightRangeIsNegativeOneHalfToPositiveOneHalf) {
+TEST_F(MonsterEntityPathWeightTest, WeightRangeIsNegativeOneHalfToPositiveOneHalf)
+{
     TestMonsterEntity monster;
     monster.setWorld(&world);
 
     // 亮度范围 0.0 ~ 1.0，权重范围应该是 0.5 ~ -0.5
     world.setBrightness(0.0f);
-    EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), 0.5f);  // 最大权重
+    EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), 0.5f); // 最大权重
 
     world.setBrightness(0.25f);
     EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), 0.25f);
@@ -302,7 +312,7 @@ TEST_F(MonsterEntityPathWeightTest, WeightRangeIsNegativeOneHalfToPositiveOneHal
     EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), -0.25f);
 
     world.setBrightness(1.0f);
-    EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), -0.5f);  // 最小权重
+    EXPECT_FLOAT_EQ(monster.getPathWeight(0.0f, 64.0f, 0.0f), -0.5f); // 最小权重
 }
 
 // ============================================================================
@@ -311,14 +321,13 @@ TEST_F(MonsterEntityPathWeightTest, WeightRangeIsNegativeOneHalfToPositiveOneHal
 
 class PathWeightComparisonTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     PathWeightTestWorld world;
 };
 
-TEST_F(PathWeightComparisonTest, AnimalPrefersGrassOverDarkness) {
+TEST_F(PathWeightComparisonTest, AnimalPrefersGrassOverDarkness)
+{
     TestAnimalEntity animal;
     animal.setWorld(&world);
     animal.setPosition(0.0f, 65.0f, 0.0f);
@@ -330,17 +339,17 @@ TEST_F(PathWeightComparisonTest, AnimalPrefersGrassOverDarkness) {
     // 非草方块黑暗位置
     world.setBrightness(0.0f);
     BlockPos darkPos(10, 65, 10);
-    f32 darkWeight = animal.getPathWeight(static_cast<f32>(darkPos.x),
-                                          static_cast<f32>(darkPos.y),
-                                          static_cast<f32>(darkPos.z));
+    f32 darkWeight =
+        animal.getPathWeight(static_cast<f32>(darkPos.x), static_cast<f32>(darkPos.y), static_cast<f32>(darkPos.z));
 
     // 动物应该偏好草方块位置
     EXPECT_GT(grassWeight, darkWeight);
     EXPECT_FLOAT_EQ(grassWeight, 10.0f);
-    EXPECT_FLOAT_EQ(darkWeight, -0.5f);  // 0.0 - 0.5
+    EXPECT_FLOAT_EQ(darkWeight, -0.5f); // 0.0 - 0.5
 }
 
-TEST_F(PathWeightComparisonTest, MonsterPrefersDarknessOverLight) {
+TEST_F(PathWeightComparisonTest, MonsterPrefersDarknessOverLight)
+{
     TestMonsterEntity monster;
     monster.setWorld(&world);
     monster.setPosition(0.0f, 64.0f, 0.0f);
@@ -352,9 +361,8 @@ TEST_F(PathWeightComparisonTest, MonsterPrefersDarknessOverLight) {
     // 明亮位置
     world.setBrightness(1.0f);
     BlockPos brightPos(10, 64, 10);
-    f32 brightWeight = monster.getPathWeight(static_cast<f32>(brightPos.x),
-                                              static_cast<f32>(brightPos.y),
-                                              static_cast<f32>(brightPos.z));
+    f32 brightWeight = monster.getPathWeight(
+        static_cast<f32>(brightPos.x), static_cast<f32>(brightPos.y), static_cast<f32>(brightPos.z));
 
     // 怪物应该偏好黑暗位置
     EXPECT_GT(darkWeight, brightWeight);
@@ -362,7 +370,8 @@ TEST_F(PathWeightComparisonTest, MonsterPrefersDarknessOverLight) {
     EXPECT_FLOAT_EQ(brightWeight, -0.5f);
 }
 
-TEST_F(PathWeightComparisonTest, AnimalAndMonsterHaveOppositePreferences) {
+TEST_F(PathWeightComparisonTest, AnimalAndMonsterHaveOppositePreferences)
+{
     TestAnimalEntity animal;
     animal.setWorld(&world);
 

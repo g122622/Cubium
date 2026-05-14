@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../Types.hpp"
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <set>
 #include <functional>
+#include <memory>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::runtime {
 
@@ -30,22 +30,25 @@ public:
      * @brief 更新优先级
      */
     enum class Priority : u8 {
-        High = 0,       ///< 高优先级（立即更新）
-        Normal = 1,     ///< 普通优先级（下一帧更新）
-        Low = 2         ///< 低优先级（批量更新）
+        High = 0,   ///< 高优先级（立即更新）
+        Normal = 1, ///< 普通优先级（下一帧更新）
+        Low = 2     ///< 低优先级（批量更新）
     };
 
     /**
      * @brief 更新任务
      */
     struct UpdateTask {
-        std::string path;                ///< 状态路径
-        Priority priority;          ///< 优先级
-        u64 timestamp;              ///< 创建时间戳
-        bool cancelled = false;     ///< 是否取消
+        std::string path;       ///< 状态路径
+        Priority priority;      ///< 优先级
+        u64 timestamp;          ///< 创建时间戳
+        bool cancelled = false; ///< 是否取消
 
         UpdateTask(std::string p, Priority pri, u64 ts)
-            : path(std::move(p)), priority(pri), timestamp(ts) {}
+            : path(std::move(p))
+            , priority(pri)
+            , timestamp(ts)
+        {}
     };
 
     /**
@@ -184,8 +187,8 @@ private:
     u64 m_nextTimestamp = 0;
 
     // 配置
-    u32 m_batchDelayMs = 16;    ///< 批量更新延迟（默认16ms）
-    u32 m_maxBatchSize = 100;   ///< 最大批量大小
+    u32 m_batchDelayMs = 16;      ///< 批量更新延迟（默认16ms）
+    u32 m_maxBatchSize = 100;     ///< 最大批量大小
     bool m_deferredUpdate = true; ///< 是否启用延迟更新
 };
 

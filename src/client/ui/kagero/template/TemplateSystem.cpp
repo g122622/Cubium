@@ -1,13 +1,14 @@
 #include "TemplateSystem.hpp"
-#include "runtime/TemplateInstance.hpp"
-#include "bindings/BuiltinWidgets.hpp"
 #include "bindings/BuiltinEvents.hpp"
+#include "bindings/BuiltinWidgets.hpp"
+#include "runtime/TemplateInstance.hpp"
 
 namespace mc::client::ui::kagero::tpl {
 
 static bool s_initialized = false;
 
-void initializeTemplateSystem() {
+void initializeTemplateSystem()
+{
     if (s_initialized) return;
 
     // 初始化内置组件工厂
@@ -19,11 +20,13 @@ void initializeTemplateSystem() {
     s_initialized = true;
 }
 
-void shutdownTemplateSystem() {
+void shutdownTemplateSystem()
+{
     s_initialized = false;
 }
 
-bool isTemplateSystemInitialized() {
+bool isTemplateSystemInitialized()
+{
     return s_initialized;
 }
 

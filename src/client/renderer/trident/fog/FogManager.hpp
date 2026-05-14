@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "../core/render/UniformManager.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <vector>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident::fog {
 
@@ -48,8 +48,7 @@ public:
      * @param maxFramesInFlight 最大同时在飞帧数
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkDescriptorPool descriptorPool,
         VkDescriptorSetLayout layout,
@@ -72,11 +71,11 @@ public:
      * @param cameraPos 相机位置（用于高度雾）
      */
     void update(i32 renderDistanceChunks,
-                f64 rainStrength,
-                f64 thunderStrength,
-                f64 landFogDensity,
-                const glm::vec4& skyFogColor,
-                const glm::vec3& cameraPos);
+        f64 rainStrength,
+        f64 thunderStrength,
+        f64 landFogDensity,
+        const glm::vec4& skyFogColor,
+        const glm::vec3& cameraPos);
 
     /**
      * @brief 设置雾模式

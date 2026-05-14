@@ -1,8 +1,8 @@
 #include "ItemModelLoader.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include <glm/gtc/matrix_transform.hpp>
 #include <sstream>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace mc::client::resource {
 
@@ -10,7 +10,8 @@ namespace mc::client::resource {
 // 辅助函数
 // ============================================================================
 
-ItemDisplayContext parseDisplayContext(std::string_view str) {
+ItemDisplayContext parseDisplayContext(std::string_view str)
+{
     if (str == "thirdperson_righthand") return ItemDisplayContext::ThirdPersonRightHand;
     if (str == "thirdperson_lefthand") return ItemDisplayContext::ThirdPersonLeftHand;
     if (str == "firstperson_righthand") return ItemDisplayContext::FirstPersonRightHand;
@@ -19,20 +20,30 @@ ItemDisplayContext parseDisplayContext(std::string_view str) {
     if (str == "gui") return ItemDisplayContext::Gui;
     if (str == "ground") return ItemDisplayContext::Ground;
     if (str == "fixed") return ItemDisplayContext::Fixed;
-    return ItemDisplayContext::Gui;  // 默认
+    return ItemDisplayContext::Gui; // 默认
 }
 
-std::string displayContextToString(ItemDisplayContext ctx) {
+std::string displayContextToString(ItemDisplayContext ctx)
+{
     switch (ctx) {
-        case ItemDisplayContext::ThirdPersonRightHand: return "thirdperson_righthand";
-        case ItemDisplayContext::ThirdPersonLeftHand: return "thirdperson_lefthand";
-        case ItemDisplayContext::FirstPersonRightHand: return "firstperson_righthand";
-        case ItemDisplayContext::FirstPersonLeftHand: return "firstperson_lefthand";
-        case ItemDisplayContext::Head: return "head";
-        case ItemDisplayContext::Gui: return "gui";
-        case ItemDisplayContext::Ground: return "ground";
-        case ItemDisplayContext::Fixed: return "fixed";
-        default: return "gui";
+        case ItemDisplayContext::ThirdPersonRightHand:
+            return "thirdperson_righthand";
+        case ItemDisplayContext::ThirdPersonLeftHand:
+            return "thirdperson_lefthand";
+        case ItemDisplayContext::FirstPersonRightHand:
+            return "firstperson_righthand";
+        case ItemDisplayContext::FirstPersonLeftHand:
+            return "firstperson_lefthand";
+        case ItemDisplayContext::Head:
+            return "head";
+        case ItemDisplayContext::Gui:
+            return "gui";
+        case ItemDisplayContext::Ground:
+            return "ground";
+        case ItemDisplayContext::Fixed:
+            return "fixed";
+        default:
+            return "gui";
     }
 }
 
@@ -40,42 +51,36 @@ std::string displayContextToString(ItemDisplayContext ctx) {
 // ItemTransform
 // ============================================================================
 
-ItemTransform ItemTransform::identity() {
+ItemTransform ItemTransform::identity()
+{
     return ItemTransform{};
 }
 
-ItemTransform ItemTransform::fromJson(const nlohmann::json& json) {
+ItemTransform ItemTransform::fromJson(const nlohmann::json& json)
+{
     ItemTransform t;
 
     if (json.contains("rotation") && json["rotation"].is_array() && json["rotation"].size() >= 3) {
-        t.rotation = glm::vec3(
-            json["rotation"][0].get<f32>(),
-            json["rotation"][1].get<f32>(),
-            json["rotation"][2].get<f32>()
-        );
+        t.rotation =
+            glm::vec3(json["rotation"][0].get<f32>(), json["rotation"][1].get<f32>(), json["rotation"][2].get<f32>());
     }
 
     if (json.contains("translation") && json["translation"].is_array() && json["translation"].size() >= 3) {
         // MC 使用像素单位，转换为方块单位（除以 16）
-        t.translation = glm::vec3(
-            json["translation"][0].get<f32>() / 16.0f,
+        t.translation = glm::vec3(json["translation"][0].get<f32>() / 16.0f,
             json["translation"][1].get<f32>() / 16.0f,
-            json["translation"][2].get<f32>() / 16.0f
-        );
+            json["translation"][2].get<f32>() / 16.0f);
     }
 
     if (json.contains("scale") && json["scale"].is_array() && json["scale"].size() >= 3) {
-        t.scale = glm::vec3(
-            json["scale"][0].get<f32>(),
-            json["scale"][1].get<f32>(),
-            json["scale"][2].get<f32>()
-        );
+        t.scale = glm::vec3(json["scale"][0].get<f32>(), json["scale"][1].get<f32>(), json["scale"][2].get<f32>());
     }
 
     return t;
 }
 
-glm::mat4 ItemTransform::toMatrix() const {
+glm::mat4 ItemTransform::toMatrix() const
+{
     glm::mat4 mat = glm::mat4(1.0f);
 
     // 顺序：平移 -> 旋转 -> 缩放（应用顺序相反）
@@ -95,7 +100,8 @@ glm::mat4 ItemTransform::toMatrix() const {
 // ItemModelOverride
 // ============================================================================
 
-ItemModelOverride ItemModelOverride::fromJson(const nlohmann::json& json) {
+ItemModelOverride ItemModelOverride::fromJson(const nlohmann::json& json)
+{
     ItemModelOverride override;
 
     if (json.contains("predicate") && json["predicate"].is_object()) {
@@ -117,7 +123,8 @@ ItemModelOverride ItemModelOverride::fromJson(const nlohmann::json& json) {
 // BakedItemModel
 // ============================================================================
 
-const ItemTransform& BakedItemModel::getTransform(ItemDisplayContext ctx) const {
+const ItemTransform& BakedItemModel::getTransform(ItemDisplayContext ctx) const
+{
     static const ItemTransform identity = ItemTransform::identity();
 
     auto it = display.find(ctx);
@@ -127,7 +134,8 @@ const ItemTransform& BakedItemModel::getTransform(ItemDisplayContext ctx) const 
     return identity;
 }
 
-ResourceLocation BakedItemModel::resolveTexture(std::string_view textureRef) const {
+ResourceLocation BakedItemModel::resolveTexture(std::string_view textureRef) const
+{
     std::string ref(textureRef);
     if (ref.empty() || ref[0] != '#') {
         // 直接路径
@@ -157,77 +165,43 @@ ItemModelLoader::ItemModelLoader(const std::vector<IResourcePack*>& resourcePack
     loadDefaultTransforms();
 }
 
-void ItemModelLoader::loadDefaultTransforms() {
+void ItemModelLoader::loadDefaultTransforms()
+{
     // item/generated 默认变换
-    m_generatedDefaults[ItemDisplayContext::ThirdPersonRightHand] = ItemTransform{
-        glm::vec3(0.0f, -90.0f, 55.0f),
-        glm::vec3(0.0f, 1.5f, -1.5f),
-        glm::vec3(0.55f, 0.55f, 0.55f)
-    };
-    m_generatedDefaults[ItemDisplayContext::ThirdPersonLeftHand] = ItemTransform{
-        glm::vec3(0.0f, 90.0f, -55.0f),
-        glm::vec3(0.0f, 1.5f, -1.5f),
-        glm::vec3(0.55f, 0.55f, 0.55f)
-    };
-    m_generatedDefaults[ItemDisplayContext::FirstPersonRightHand] = ItemTransform{
-        glm::vec3(0.0f, -90.0f, 25.0f),
-        glm::vec3(1.13f, 3.2f, 1.13f),
-        glm::vec3(0.68f, 0.68f, 0.68f)
-    };
-    m_generatedDefaults[ItemDisplayContext::FirstPersonLeftHand] = ItemTransform{
-        glm::vec3(0.0f, 90.0f, -25.0f),
-        glm::vec3(1.13f, 3.2f, 1.13f),
-        glm::vec3(0.68f, 0.68f, 0.68f)
-    };
+    m_generatedDefaults[ItemDisplayContext::ThirdPersonRightHand] =
+        ItemTransform{glm::vec3(0.0f, -90.0f, 55.0f), glm::vec3(0.0f, 1.5f, -1.5f), glm::vec3(0.55f, 0.55f, 0.55f)};
+    m_generatedDefaults[ItemDisplayContext::ThirdPersonLeftHand] =
+        ItemTransform{glm::vec3(0.0f, 90.0f, -55.0f), glm::vec3(0.0f, 1.5f, -1.5f), glm::vec3(0.55f, 0.55f, 0.55f)};
+    m_generatedDefaults[ItemDisplayContext::FirstPersonRightHand] =
+        ItemTransform{glm::vec3(0.0f, -90.0f, 25.0f), glm::vec3(1.13f, 3.2f, 1.13f), glm::vec3(0.68f, 0.68f, 0.68f)};
+    m_generatedDefaults[ItemDisplayContext::FirstPersonLeftHand] =
+        ItemTransform{glm::vec3(0.0f, 90.0f, -25.0f), glm::vec3(1.13f, 3.2f, 1.13f), glm::vec3(0.68f, 0.68f, 0.68f)};
     m_generatedDefaults[ItemDisplayContext::Head] = ItemTransform{
-        glm::vec3(0.0f, 180.0f, 0.0f),
-        glm::vec3(0.0f, 13.0f / 16.0f, 7.0f / 16.0f),
-        glm::vec3(1.0f, 1.0f, 1.0f)
-    };
-    m_generatedDefaults[ItemDisplayContext::Gui] = ItemTransform{
-        glm::vec3(30.0f, 225.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.625f, 0.625f, 0.625f)
-    };
-    m_generatedDefaults[ItemDisplayContext::Ground] = ItemTransform{
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 3.0f / 16.0f, 0.0f),
-        glm::vec3(0.25f, 0.25f, 0.25f)
-    };
-    m_generatedDefaults[ItemDisplayContext::Fixed] = ItemTransform{
-        glm::vec3(0.0f, 180.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.5f, 0.5f, 0.5f)
-    };
+        glm::vec3(0.0f, 180.0f, 0.0f), glm::vec3(0.0f, 13.0f / 16.0f, 7.0f / 16.0f), glm::vec3(1.0f, 1.0f, 1.0f)};
+    m_generatedDefaults[ItemDisplayContext::Gui] =
+        ItemTransform{glm::vec3(30.0f, 225.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.625f, 0.625f, 0.625f)};
+    m_generatedDefaults[ItemDisplayContext::Ground] =
+        ItemTransform{glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 3.0f / 16.0f, 0.0f), glm::vec3(0.25f, 0.25f, 0.25f)};
+    m_generatedDefaults[ItemDisplayContext::Fixed] =
+        ItemTransform{glm::vec3(0.0f, 180.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f)};
 
     // item/handheld 默认变换（工具/武器）
     m_handheldDefaults[ItemDisplayContext::ThirdPersonRightHand] = ItemTransform{
-        glm::vec3(0.0f, -90.0f, 55.0f),
-        glm::vec3(0.0f, 4.0f / 16.0f, 0.5f / 16.0f),
-        glm::vec3(0.85f, 0.85f, 0.85f)
-    };
+        glm::vec3(0.0f, -90.0f, 55.0f), glm::vec3(0.0f, 4.0f / 16.0f, 0.5f / 16.0f), glm::vec3(0.85f, 0.85f, 0.85f)};
     m_handheldDefaults[ItemDisplayContext::ThirdPersonLeftHand] = ItemTransform{
-        glm::vec3(0.0f, 90.0f, -55.0f),
-        glm::vec3(0.0f, 4.0f / 16.0f, 0.5f / 16.0f),
-        glm::vec3(0.85f, 0.85f, 0.85f)
-    };
-    m_handheldDefaults[ItemDisplayContext::FirstPersonRightHand] = ItemTransform{
-        glm::vec3(0.0f, -90.0f, 25.0f),
-        glm::vec3(1.13f, 3.2f, 1.13f),
-        glm::vec3(0.68f, 0.68f, 0.68f)
-    };
-    m_handheldDefaults[ItemDisplayContext::FirstPersonLeftHand] = ItemTransform{
-        glm::vec3(0.0f, 90.0f, -25.0f),
-        glm::vec3(1.13f, 3.2f, 1.13f),
-        glm::vec3(0.68f, 0.68f, 0.68f)
-    };
+        glm::vec3(0.0f, 90.0f, -55.0f), glm::vec3(0.0f, 4.0f / 16.0f, 0.5f / 16.0f), glm::vec3(0.85f, 0.85f, 0.85f)};
+    m_handheldDefaults[ItemDisplayContext::FirstPersonRightHand] =
+        ItemTransform{glm::vec3(0.0f, -90.0f, 25.0f), glm::vec3(1.13f, 3.2f, 1.13f), glm::vec3(0.68f, 0.68f, 0.68f)};
+    m_handheldDefaults[ItemDisplayContext::FirstPersonLeftHand] =
+        ItemTransform{glm::vec3(0.0f, 90.0f, -25.0f), glm::vec3(1.13f, 3.2f, 1.13f), glm::vec3(0.68f, 0.68f, 0.68f)};
     m_handheldDefaults[ItemDisplayContext::Head] = m_generatedDefaults[ItemDisplayContext::Head];
     m_handheldDefaults[ItemDisplayContext::Gui] = m_generatedDefaults[ItemDisplayContext::Gui];
     m_handheldDefaults[ItemDisplayContext::Ground] = m_generatedDefaults[ItemDisplayContext::Ground];
     m_handheldDefaults[ItemDisplayContext::Fixed] = m_generatedDefaults[ItemDisplayContext::Fixed];
 }
 
-Result<void> ItemModelLoader::loadAllModels() {
+Result<void> ItemModelLoader::loadAllModels()
+{
     // 加载所有物品模型
     // 首先需要从资源包中列出所有 models/item/*.json 文件
 
@@ -241,7 +215,8 @@ Result<void> ItemModelLoader::loadAllModels() {
     return Result<void>::ok();
 }
 
-Result<std::string> ItemModelLoader::readModelFromResourcePacks(const std::string& filePath) {
+Result<std::string> ItemModelLoader::readModelFromResourcePacks(const std::string& filePath)
+{
     // 按优先级从高到低遍历资源包
     for (auto* pack : m_resourcePacks) {
         if (pack == nullptr) continue;
@@ -252,11 +227,11 @@ Result<std::string> ItemModelLoader::readModelFromResourcePacks(const std::strin
         }
     }
 
-    return Error(ErrorCode::ResourceNotFound,
-                 "Item model not found: " + filePath);
+    return Error(ErrorCode::ResourceNotFound, "Item model not found: " + filePath);
 }
 
-Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& location) {
+Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& location)
+{
     // 检查缓存
     auto it = m_unbakedModels.find(location);
     if (it != m_unbakedModels.end()) {
@@ -284,7 +259,8 @@ Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& loca
     return model;
 }
 
-Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& location, std::string_view jsonContent) {
+Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& location, std::string_view jsonContent)
+{
     UnbakedItemModel model;
     model.location = location;
     model.name = location.path();
@@ -328,16 +304,17 @@ Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& loc
 
         // 确定模型类型
         model.type = determineModelType(model.parentLocation, !model.elements.empty());
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::ResourceParseError,
-                     "JSON parse error in item model " + location.toString() + ": " + e.what());
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(
+            ErrorCode::ResourceParseError, "JSON parse error in item model " + location.toString() + ": " + e.what());
     }
 
     return model;
 }
 
-void ItemModelLoader::parseTextures(UnbakedItemModel& model, const nlohmann::json& textures) {
+void ItemModelLoader::parseTextures(UnbakedItemModel& model, const nlohmann::json& textures)
+{
     for (auto& [key, value] : textures.items()) {
         if (value.is_string()) {
             model.textures[key] = value.get<std::string>();
@@ -345,7 +322,8 @@ void ItemModelLoader::parseTextures(UnbakedItemModel& model, const nlohmann::jso
     }
 }
 
-void ItemModelLoader::parseDisplay(UnbakedItemModel& model, const nlohmann::json& display) {
+void ItemModelLoader::parseDisplay(UnbakedItemModel& model, const nlohmann::json& display)
+{
     for (auto& [key, value] : display.items()) {
         if (!value.is_object()) continue;
 
@@ -356,14 +334,16 @@ void ItemModelLoader::parseDisplay(UnbakedItemModel& model, const nlohmann::json
     }
 }
 
-void ItemModelLoader::parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides) {
+void ItemModelLoader::parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides)
+{
     for (const auto& override : overrides) {
         if (!override.is_object()) continue;
         model.overrides.push_back(ItemModelOverride::fromJson(override));
     }
 }
 
-Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohmann::json& elements) {
+Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohmann::json& elements)
+{
     // 复用 BlockModelLoader 的解析逻辑
     // 这里简化实现，后续可以提取公共方法
 
@@ -375,19 +355,13 @@ Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohm
         // from
         if (elemJson.contains("from") && elemJson["from"].is_array() && elemJson["from"].size() >= 3) {
             elem.from = glm::vec3(
-                elemJson["from"][0].get<f32>(),
-                elemJson["from"][1].get<f32>(),
-                elemJson["from"][2].get<f32>()
-            );
+                elemJson["from"][0].get<f32>(), elemJson["from"][1].get<f32>(), elemJson["from"][2].get<f32>());
         }
 
         // to
         if (elemJson.contains("to") && elemJson["to"].is_array() && elemJson["to"].size() >= 3) {
-            elem.to = glm::vec3(
-                elemJson["to"][0].get<f32>(),
-                elemJson["to"][1].get<f32>(),
-                elemJson["to"][2].get<f32>()
-            );
+            elem.to =
+                glm::vec3(elemJson["to"][0].get<f32>(), elemJson["to"][1].get<f32>(), elemJson["to"][2].get<f32>());
         }
 
         // shade
@@ -400,10 +374,7 @@ Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohm
             auto& rotJson = elemJson["rotation"];
             if (rotJson.contains("origin") && rotJson["origin"].is_array() && rotJson["origin"].size() >= 3) {
                 elem.rotation.origin = glm::vec3(
-                    rotJson["origin"][0].get<f32>(),
-                    rotJson["origin"][1].get<f32>(),
-                    rotJson["origin"][2].get<f32>()
-                );
+                    rotJson["origin"][0].get<f32>(), rotJson["origin"][1].get<f32>(), rotJson["origin"][2].get<f32>());
             }
             if (rotJson.contains("axis") && rotJson["axis"].is_string()) {
                 elem.rotation.axis = rotJson["axis"].get<std::string>();
@@ -460,7 +431,8 @@ Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohm
     return Result<void>::ok();
 }
 
-ItemModelType ItemModelLoader::determineModelType(const ResourceLocation& parent, bool hasElements) const {
+ItemModelType ItemModelLoader::determineModelType(const ResourceLocation& parent, bool hasElements) const
+{
     std::string parentPath = parent.path();
 
     // 检查父模型类型
@@ -487,7 +459,8 @@ ItemModelType ItemModelLoader::determineModelType(const ResourceLocation& parent
     return ItemModelType::Generated;
 }
 
-void ItemModelLoader::mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent) {
+void ItemModelLoader::mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent)
+{
     // 合并纹理（子模型覆盖父模型）
     for (const auto& [key, value] : parent.textures) {
         if (child.textures.find(key) == child.textures.end()) {
@@ -513,7 +486,8 @@ void ItemModelLoader::mergeParent(UnbakedItemModel& child, const UnbakedItemMode
     }
 }
 
-Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& location) {
+Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& location)
+{
     // 检查缓存
     auto it = m_bakedModels.find(location);
     if (it != m_bakedModels.end()) {
@@ -597,7 +571,7 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
     resolveTextureReferences(baked);
 
     // 提取纹理层（layer0, layer1, ...）
-    for (u32 i = 0; ; ++i) {
+    for (u32 i = 0;; ++i) {
         std::string layerKey = "layer" + std::to_string(i);
         auto texIt = baked.textures.find(layerKey);
         if (texIt != baked.textures.end()) {
@@ -617,7 +591,8 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
     return baked;
 }
 
-void ItemModelLoader::resolveTextureReferences(BakedItemModel& baked) {
+void ItemModelLoader::resolveTextureReferences(BakedItemModel& baked)
+{
     // 递归解析 #variable 形式的纹理引用
     bool changed = true;
     i32 maxIterations = 10;
@@ -637,7 +612,8 @@ void ItemModelLoader::resolveTextureReferences(BakedItemModel& baked) {
     }
 }
 
-const BakedItemModel* ItemModelLoader::getModel(const ResourceLocation& location) const {
+const BakedItemModel* ItemModelLoader::getModel(const ResourceLocation& location) const
+{
     auto it = m_bakedModels.find(location);
     if (it != m_bakedModels.end()) {
         return &it->second;
@@ -645,12 +621,14 @@ const BakedItemModel* ItemModelLoader::getModel(const ResourceLocation& location
     return nullptr;
 }
 
-bool ItemModelLoader::hasModel(const ResourceLocation& location) const {
+bool ItemModelLoader::hasModel(const ResourceLocation& location) const
+{
     return m_bakedModels.find(location) != m_bakedModels.end() ||
-           m_unbakedModels.find(location) != m_unbakedModels.end();
+        m_unbakedModels.find(location) != m_unbakedModels.end();
 }
 
-void ItemModelLoader::clearCache() {
+void ItemModelLoader::clearCache()
+{
     m_unbakedModels.clear();
     m_bakedModels.clear();
 }

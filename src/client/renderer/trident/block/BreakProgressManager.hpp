@@ -1,12 +1,12 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "common/util/math/Vector3.hpp"
-#include <unordered_map>
-#include <vector>
+#include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 #include <functional>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace client {
@@ -21,7 +21,7 @@ namespace block {
 struct BlockBreakProgress {
     EntityId breakerId;
     BlockPos position;
-    u8 damageStage = 0;           // 0-9, 0=刚开始, 9=即将破坏
+    u8 damageStage = 0; // 0-9, 0=刚开始, 9=即将破坏
     u64 creationTick = 0;
     u64 lastUpdateTick = 0;
 };
@@ -42,8 +42,8 @@ using HitSoundCallback = std::function<void(const BlockPos& pos, u8 damageStage)
 class BreakProgressManager {
 public:
     static constexpr size_t MAX_DAMAGE_STAGE = 9;
-    static constexpr u64 PROGRESS_TIMEOUT_TICKS = 400;  // 20秒
-    static constexpr f64 MAX_RENDER_DISTANCE_SQ = 1024.0f;  // 32格
+    static constexpr u64 PROGRESS_TIMEOUT_TICKS = 400;     // 20秒
+    static constexpr f64 MAX_RENDER_DISTANCE_SQ = 1024.0f; // 32格
     static constexpr size_t INITIAL_BUFFER_CAPACITY = 16;  // 预分配缓冲区初始容量
 
     static BreakProgressManager& instance();
@@ -76,8 +76,7 @@ public:
     /// 高性能版本：使用预分配缓冲区避免内存分配
     /// @param cameraPos 摄像机位置
     /// @param outProgress 输出缓冲区（会被清空后填充）
-    void getVisibleProgress(const Vector3& cameraPos,
-                            std::vector<std::pair<BlockPos, u8>>& outProgress) const;
+    void getVisibleProgress(const Vector3& cameraPos, std::vector<std::pair<BlockPos, u8>>& outProgress) const;
 
     /**
      * @brief 设置击打音效回调
@@ -86,9 +85,7 @@ public:
      *
      * @param callback 回调函数
      */
-    void setHitSoundCallback(HitSoundCallback callback) {
-        m_hitSoundCallback = std::move(callback);
-    }
+    void setHitSoundCallback(HitSoundCallback callback) { m_hitSoundCallback = std::move(callback); }
 
 private:
     BreakProgressManager() = default;

@@ -7,12 +7,13 @@
 namespace mc::server {
 
 PlayerAdvancements::PlayerAdvancements(PlayerId playerId)
-    : m_playerId(playerId) {
-}
+    : m_playerId(playerId)
+{}
 
 PlayerAdvancements::~PlayerAdvancements() = default;
 
-bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancement, const std::string& criterion) {
+bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancement, const std::string& criterion)
+{
     if (!advancement) {
         return false;
     }
@@ -20,10 +21,7 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
     auto it = m_progress.find(advancement);
     if (it == m_progress.end()) {
         // 创建新的进度
-        auto [inserted, success] = m_progress.emplace(
-            advancement,
-            mc::advancement::AdvancementProgress(advancement)
-        );
+        auto [inserted, success] = m_progress.emplace(advancement, mc::advancement::AdvancementProgress(advancement));
         if (!success) {
             return false;
         }
@@ -37,8 +35,7 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
         // 如果成就完成，检查子成就的可见性
         if (it->second.isDone()) {
             // 成就完成时的奖励等处理
-            spdlog::info("Player {} completed advancement: {}",
-                m_playerId, advancement->getId().toString());
+            spdlog::info("Player {} completed advancement: {}", m_playerId, advancement->getId().toString());
         }
 
         // 更新可见性
@@ -48,7 +45,8 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
     return changed;
 }
 
-bool PlayerAdvancements::revokeCriterion(mc::advancement::AdvancementPtr advancement, const std::string& criterion) {
+bool PlayerAdvancements::revokeCriterion(mc::advancement::AdvancementPtr advancement, const std::string& criterion)
+{
     if (!advancement) {
         return false;
     }
@@ -67,7 +65,8 @@ bool PlayerAdvancements::revokeCriterion(mc::advancement::AdvancementPtr advance
     return changed;
 }
 
-bool PlayerAdvancements::grantAllCriteria(mc::advancement::AdvancementPtr advancement) {
+bool PlayerAdvancements::grantAllCriteria(mc::advancement::AdvancementPtr advancement)
+{
     if (!advancement) {
         return false;
     }
@@ -81,7 +80,8 @@ bool PlayerAdvancements::grantAllCriteria(mc::advancement::AdvancementPtr advanc
     return anyChanged;
 }
 
-bool PlayerAdvancements::revokeAllCriteria(mc::advancement::AdvancementPtr advancement) {
+bool PlayerAdvancements::revokeAllCriteria(mc::advancement::AdvancementPtr advancement)
+{
     if (!advancement) {
         return false;
     }
@@ -95,43 +95,53 @@ bool PlayerAdvancements::revokeAllCriteria(mc::advancement::AdvancementPtr advan
     return anyChanged;
 }
 
-mc::advancement::AdvancementProgress* PlayerAdvancements::getProgress(mc::advancement::AdvancementPtr advancement) {
+mc::advancement::AdvancementProgress* PlayerAdvancements::getProgress(mc::advancement::AdvancementPtr advancement)
+{
     auto it = m_progress.find(advancement);
     return it != m_progress.end() ? &it->second : nullptr;
 }
 
-const mc::advancement::AdvancementProgress* PlayerAdvancements::getProgress(mc::advancement::AdvancementPtr advancement) const {
+const mc::advancement::AdvancementProgress* PlayerAdvancements::getProgress(
+    mc::advancement::AdvancementPtr advancement) const
+{
     auto it = m_progress.find(advancement);
     return it != m_progress.end() ? &it->second : nullptr;
 }
 
-bool PlayerAdvancements::isDone(mc::advancement::AdvancementPtr advancement) const {
+bool PlayerAdvancements::isDone(mc::advancement::AdvancementPtr advancement) const
+{
     const auto* progress = getProgress(advancement);
     return progress != nullptr && progress->isDone();
 }
 
-bool PlayerAdvancements::hasProgress(mc::advancement::AdvancementPtr advancement) const {
+bool PlayerAdvancements::hasProgress(mc::advancement::AdvancementPtr advancement) const
+{
     const auto* progress = getProgress(advancement);
     return progress != nullptr && progress->hasProgress();
 }
 
-bool PlayerAdvancements::isVisible(mc::advancement::AdvancementPtr advancement) const {
+bool PlayerAdvancements::isVisible(mc::advancement::AdvancementPtr advancement) const
+{
     return m_visible.count(advancement) > 0;
 }
 
-const std::set<mc::advancement::AdvancementPtr>& PlayerAdvancements::getVisibleAdvancements() const {
+const std::set<mc::advancement::AdvancementPtr>& PlayerAdvancements::getVisibleAdvancements() const
+{
     return m_visible;
 }
 
-const std::set<mc::advancement::AdvancementPtr>& PlayerAdvancements::getProgressChangedAdvancements() const {
+const std::set<mc::advancement::AdvancementPtr>& PlayerAdvancements::getProgressChangedAdvancements() const
+{
     return m_progressChanged;
 }
 
-void PlayerAdvancements::clearProgressChanged() {
+void PlayerAdvancements::clearProgressChanged()
+{
     m_progressChanged.clear();
 }
 
-void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementManager& manager) {
+void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementManager& manager)
+{
     // 清空进度
     m_progress.clear();
     m_visible.clear();
@@ -143,7 +153,8 @@ void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementMana
     MC_UNUSED(manager);
 }
 
-bool PlayerAdvancements::loadFromJson(const nlohmann::json& json, mc::advancement::AdvancementManager& manager) {
+bool PlayerAdvancements::loadFromJson(const nlohmann::json& json, mc::advancement::AdvancementManager& manager)
+{
     if (!json.is_object()) {
         return false;
     }
@@ -177,7 +188,8 @@ bool PlayerAdvancements::loadFromJson(const nlohmann::json& json, mc::advancemen
     return true;
 }
 
-nlohmann::json PlayerAdvancements::toJson() const {
+nlohmann::json PlayerAdvancements::toJson() const
+{
     nlohmann::json json;
 
     // 保存进度
@@ -192,7 +204,8 @@ nlohmann::json PlayerAdvancements::toJson() const {
     return json;
 }
 
-void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advancement) {
+void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advancement)
+{
     if (!advancement) {
         return;
     }
@@ -202,8 +215,8 @@ void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advan
         const auto triggerId = criterion.getTrigger();
         auto* triggerBase = mc::advancement::CriterionTriggers::instance().getTrigger(triggerId);
         if (triggerBase == nullptr) {
-            spdlog::warn("Unknown trigger: {} for advancement: {}",
-                triggerId.toString(), advancement->getId().toString());
+            spdlog::warn(
+                "Unknown trigger: {} for advancement: {}", triggerId.toString(), advancement->getId().toString());
             continue;
         }
 
@@ -212,7 +225,8 @@ void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advan
     }
 }
 
-void PlayerAdvancements::unregisterListeners(mc::advancement::AdvancementPtr advancement) {
+void PlayerAdvancements::unregisterListeners(mc::advancement::AdvancementPtr advancement)
+{
     if (!advancement) {
         return;
     }
@@ -229,7 +243,8 @@ void PlayerAdvancements::unregisterListeners(mc::advancement::AdvancementPtr adv
     }
 }
 
-void PlayerAdvancements::ensureVisibility(mc::advancement::AdvancementPtr advancement) {
+void PlayerAdvancements::ensureVisibility(mc::advancement::AdvancementPtr advancement)
+{
     if (!advancement) {
         return;
     }
@@ -247,7 +262,8 @@ void PlayerAdvancements::ensureVisibility(mc::advancement::AdvancementPtr advanc
     }
 }
 
-void PlayerAdvancements::updateVisibility() {
+void PlayerAdvancements::updateVisibility()
+{
     m_visible.clear();
 
     // 遍历所有成就，检查可见性
@@ -257,7 +273,8 @@ void PlayerAdvancements::updateVisibility() {
     m_visibilityChanged.clear();
 }
 
-bool PlayerAdvancements::shouldShow(mc::advancement::AdvancementPtr advancement) const {
+bool PlayerAdvancements::shouldShow(mc::advancement::AdvancementPtr advancement) const
+{
     if (!advancement) {
         return false;
     }

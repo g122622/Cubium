@@ -1,21 +1,21 @@
 #include "MelonPumpkinBlocks.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../WorldEvents.hpp"
 #include "../../../../entity/core/EntityRegistry.hpp"
 #include "../../../../entity/core/VanillaEntities.hpp"
+#include "../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entity/entities/passive/golem/SnowGolemEntity.hpp"
-#include "../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../WorldEvents.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../VanillaBlocks.hpp"
 #include <algorithm>
@@ -30,7 +30,8 @@ namespace blocks {
 MelonBlock::MelonBlock(const Block* stem, const Block* attachedStem, const BlockProperties& properties)
     : StemGrownBlock(properties)
     , m_stem(stem)
-    , m_attachedStem(attachedStem) {
+    , m_attachedStem(attachedStem)
+{
     // 西瓜没有状态属性
 }
 
@@ -38,11 +39,13 @@ MelonBlock::MelonBlock(const Block* stem, const Block* attachedStem, const Block
 // PumpkinBlock
 // ============================================================================
 
-PumpkinBlock::PumpkinBlock(const Block* stem, const Block* attachedStem, const Block* carvedPumpkin, const BlockProperties& properties)
+PumpkinBlock::PumpkinBlock(
+    const Block* stem, const Block* attachedStem, const Block* carvedPumpkin, const BlockProperties& properties)
     : StemGrownBlock(properties)
     , m_stem(stem)
     , m_attachedStem(attachedStem)
-    , m_carvedPumpkin(carvedPumpkin) {
+    , m_carvedPumpkin(carvedPumpkin)
+{
     // 南瓜没有状态属性
 }
 
@@ -50,13 +53,13 @@ PumpkinBlock::PumpkinBlock(const Block* stem, const Block* attachedStem, const B
 // 南瓜雕刻功能
 // ============================================================================
 
-ActionResultType PumpkinBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(state);
 
@@ -82,8 +85,10 @@ ActionResultType PumpkinBlock::onBlockActivated(
         // 垂直方向点击，使用玩家的水平朝向的相反方向
         // 从玩家 yaw 计算水平朝向
         f32 yaw = player.yaw();
-        while (yaw < 0.0f) yaw += 360.0f;
-        while (yaw >= 360.0f) yaw -= 360.0f;
+        while (yaw < 0.0f)
+            yaw += 360.0f;
+        while (yaw >= 360.0f)
+            yaw -= 360.0f;
 
         Direction playerFacing;
         if (yaw < 45.0f || yaw >= 315.0f) {
@@ -99,13 +104,7 @@ ActionResultType PumpkinBlock::onBlockActivated(
     }
 
     // 播放雕刻音效
-    world.playSound(
-        SoundEvents::BLOCK_PUMPKIN_CARVE,
-        sound::SoundCategory::Blocks,
-        pos.center(),
-        1.0f,
-        1.0f
-    );
+    world.playSound(SoundEvents::BLOCK_PUMPKIN_CARVE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 
     // 将南瓜替换为雕刻南瓜
     const BlockState* carvedState = &m_carvedPumpkin->defaultState();
@@ -121,7 +120,9 @@ ActionResultType PumpkinBlock::onBlockActivated(
     world.setBlockState(pos, carvedState, 11);
 
     // 生成南瓜种子（4个）
-    // MC 1.16.5: ItemEntity itementity = new ItemEntity(worldIn, (double)pos.getX() + 0.5D + (double)direction1.getXOffset() * 0.65D, (double)pos.getY() + 0.1D, (double)pos.getZ() + 0.5D + (double)direction1.getZOffset() * 0.65D, new ItemStack(Items.PUMPKIN_SEEDS, 4));
+    // MC 1.16.5: ItemEntity itementity = new ItemEntity(worldIn, (double)pos.getX() + 0.5D +
+    // (double)direction1.getXOffset() * 0.65D, (double)pos.getY() + 0.1D, (double)pos.getZ() + 0.5D +
+    // (double)direction1.getZOffset() * 0.65D, new ItemStack(Items.PUMPKIN_SEEDS, 4));
     math::Random rng(static_cast<u64>(pos.x ^ pos.y ^ pos.z));
 
     // 计算种子生成位置（朝向方向的偏移）
@@ -134,13 +135,13 @@ ActionResultType PumpkinBlock::onBlockActivated(
 
     // 使用 ItemDropHelper 生成物品实体
     // MC 1.16.5: 种子有轻微的随机速度
-    // itementity.setMotion(0.05D * (double)direction1.getXOffset() + worldIn.rand.nextDouble() * 0.02D, 0.05D, 0.05D * (double)direction1.getZOffset() + worldIn.rand.nextDouble() * 0.02D);
+    // itementity.setMotion(0.05D * (double)direction1.getXOffset() + worldIn.rand.nextDouble() * 0.02D, 0.05D, 0.05D *
+    // (double)direction1.getZOffset() + worldIn.rand.nextDouble() * 0.02D);
     f32 vx = 0.05f * static_cast<f32>(Directions::xOffset(facing)) + static_cast<f32>(rng.nextDouble() * 0.02);
     f32 vy = 0.05f;
     f32 vz = 0.05f * static_cast<f32>(Directions::zOffset(facing)) + static_cast<f32>(rng.nextDouble() * 0.02);
 
-    ItemDropHelper::spawnItemEntity(
-        &world,
+    ItemDropHelper::spawnItemEntity(&world,
         seedStack,
         seedX,
         seedY,
@@ -149,7 +150,7 @@ ActionResultType PumpkinBlock::onBlockActivated(
         vy,
         vz,
         ItemEntity::DEFAULT_PICKUP_DELAY,
-        ""  // 无所有者限制
+        "" // 无所有者限制
     );
 
     // 消耗剪刀耐久度
@@ -164,11 +165,11 @@ ActionResultType PumpkinBlock::onBlockActivated(
 // ============================================================================
 
 CarvedPumpkinBlock::CarvedPumpkinBlock(const BlockProperties& properties)
-    : HorizontalBlock(properties) {
+    : HorizontalBlock(properties)
+{
     // 创建状态容器，添加 HORIZONTAL_FACING 属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(FACING())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -177,12 +178,14 @@ CarvedPumpkinBlock::CarvedPumpkinBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(FACING(), Direction::North));
 }
 
-BlockState CarvedPumpkinBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CarvedPumpkinBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 放置时朝向玩家的反方向
     return defaultState().with(FACING(), Directions::opposite(context.horizontalDirection()));
 }
 
-void CarvedPumpkinBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void CarvedPumpkinBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(state);
     // 尝试生成傀儡（雪傀儡或铁傀儡）
     trySpawnGolem(world, pos);
@@ -192,7 +195,8 @@ void CarvedPumpkinBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
 // 傀儡生成逻辑
 // ============================================================================
 
-bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
+bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
+{
     // MC 1.16.5: 先检测雪傀儡，再检测铁傀儡
 
     // ===== 1. 检测雪傀儡模式 =====
@@ -217,8 +221,7 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
             world.setBlockState(below1, airState, 2);
         }
         if (snowBlock1 != nullptr) {
-            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below1,
-                           static_cast<i32>(snowBlock1->stateId()));
+            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below1, static_cast<i32>(snowBlock1->stateId()));
         }
 
         // 移除第二个雪块
@@ -227,8 +230,7 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
             world.setBlockState(below2, airState, 2);
         }
         if (snowBlock2 != nullptr) {
-            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below2,
-                           static_cast<i32>(snowBlock2->stateId()));
+            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below2, static_cast<i32>(snowBlock2->stateId()));
         }
 
         // 生成雪傀儡
@@ -241,10 +243,7 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
                 // MC 1.16.5: setLocationAndAngles(pos + 0.5, pos.y + 0.05, pos + 0.5, 0, 0)
                 // 位置设置在南瓜位置（模式顶部）
                 entity->setPosition(
-                    static_cast<f32>(pos.x) + 0.5f,
-                    static_cast<f32>(pos.y) + 0.05f,
-                    static_cast<f32>(pos.z) + 0.5f
-                );
+                    static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.05f, static_cast<f32>(pos.z) + 0.5f);
                 entity->setRotation(0.0f, 0.0f);
 
                 world.spawnEntity(std::move(entity));
@@ -287,8 +286,8 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
                 world.setBlockState(blockPos, airState, 2);
             }
             if (blockState != nullptr) {
-                world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos,
-                               static_cast<i32>(blockState->stateId()));
+                world.playEvent(
+                    world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos, static_cast<i32>(blockState->stateId()));
             }
         }
 
@@ -301,10 +300,7 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
                 // MC 1.16.5: setLocationAndAngles(bodyPos + 0.5, bodyPos.y + 2 + 0.05, bodyPos + 0.5, 0, 0)
                 // 位置设置在南瓜位置（模式顶部中央）
                 entity->setPosition(
-                    static_cast<f32>(pos.x) + 0.5f,
-                    static_cast<f32>(pos.y) + 0.05f,
-                    static_cast<f32>(pos.z) + 0.5f
-                );
+                    static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.05f, static_cast<f32>(pos.z) + 0.5f);
                 entity->setRotation(0.0f, 0.0f);
 
                 // 设置为玩家创建
@@ -323,7 +319,8 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
     return false;
 }
 
-bool CarvedPumpkinBlock::checkSnowGolemPattern(IWorld& world, const BlockPos& pos) const {
+bool CarvedPumpkinBlock::checkSnowGolemPattern(IWorld& world, const BlockPos& pos) const
+{
     // MC 1.16.5: 雪傀儡模式
     // 从上到下：南瓜、雪块、雪块
     // 模式匹配：translateOffset(0, 0, 0) = 南瓜，(0, 1, 0) = 雪块，(0, 2, 0) = 雪块
@@ -343,10 +340,8 @@ bool CarvedPumpkinBlock::checkSnowGolemPattern(IWorld& world, const BlockPos& po
     return true;
 }
 
-bool CarvedPumpkinBlock::checkIronGolemPattern(
-    IWorld& world,
-    const BlockPos& pos,
-    BlockPos& outBodyPos) const {
+bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos) const
+{
 
     // MC 1.16.5: 铁傀儡模式 - T形结构
     // 顶层：空气、南瓜、空气  (~^~)
@@ -371,7 +366,7 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(
 
     // 检查手臂（中层的两侧是否为铁块）
     // 需要检查四个方向，确定手臂的方向
-    const BlockPos armCenter = pos.down();  // 手臂中央（南瓜正下方）
+    const BlockPos armCenter = pos.down(); // 手臂中央（南瓜正下方）
 
     // 检查四个方向：南北或东西
     // 方向组合：North-South 或 East-West
@@ -380,7 +375,7 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(
     const BlockState* armEast = world.getBlockState(armCenter.east());
     const BlockState* armWest = world.getBlockState(armCenter.west());
     bool eastWestValid = (armEast != nullptr && armEast->is(VanillaBlocks::IRON_BLOCK)) &&
-                         (armWest != nullptr && armWest->is(VanillaBlocks::IRON_BLOCK));
+        (armWest != nullptr && armWest->is(VanillaBlocks::IRON_BLOCK));
 
     // 检查东西方向时，两侧应该是空气
     if (eastWestValid) {
@@ -400,7 +395,7 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(
     }
 
     if (eastWestValid) {
-        outBodyPos = pos.down(2);  // 身体位置
+        outBodyPos = pos.down(2); // 身体位置
         return true;
     }
 
@@ -408,7 +403,7 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(
     const BlockState* armNorth = world.getBlockState(armCenter.north());
     const BlockState* armSouth = world.getBlockState(armCenter.south());
     bool northSouthValid = (armNorth != nullptr && armNorth->is(VanillaBlocks::IRON_BLOCK)) &&
-                           (armSouth != nullptr && armSouth->is(VanillaBlocks::IRON_BLOCK));
+        (armSouth != nullptr && armSouth->is(VanillaBlocks::IRON_BLOCK));
 
     if (northSouthValid) {
         // 检查顶层的空气
@@ -427,14 +422,15 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(
     }
 
     if (northSouthValid) {
-        outBodyPos = pos.down(2);  // 身体位置
+        outBodyPos = pos.down(2); // 身体位置
         return true;
     }
 
     return false;
 }
 
-bool CarvedPumpkinBlock::isPumpkin(const BlockState* state) {
+bool CarvedPumpkinBlock::isPumpkin(const BlockState* state)
+{
     // MC 1.16.5: IS_PUMPKIN 谓词
     // 检查是否为雕刻南瓜或南瓜灯
     if (state == nullptr) {
@@ -442,16 +438,17 @@ bool CarvedPumpkinBlock::isPumpkin(const BlockState* state) {
     }
     const Block& block = state->getBlock();
     return &block == VanillaBlocks::JACK_O_LANTERN ||
-           // 注意：CarvedPumpkinBlock 在当前项目中可能未单独注册
-           // 如果 CARVED_PUMPKIN 方块单独存在，需要添加检查
-           // 目前暂时只检查 JACK_O_LANTERN
-           false;  // 占位，后续可添加 CARVED_PUMPKIN 检查
+        // 注意：CarvedPumpkinBlock 在当前项目中可能未单独注册
+        // 如果 CARVED_PUMPKIN 方块单独存在，需要添加检查
+        // 目前暂时只检查 JACK_O_LANTERN
+        false; // 占位，后续可添加 CARVED_PUMPKIN 检查
 }
 
-bool CarvedPumpkinBlock::isAir(const BlockState* state) {
+bool CarvedPumpkinBlock::isAir(const BlockState* state)
+{
     // MC 1.16.5: 检查是否为空气
     if (state == nullptr) {
-        return true;  // 超出世界边界视为空气
+        return true; // 超出世界边界视为空气
     }
     return state->isAir();
 }
@@ -461,11 +458,11 @@ bool CarvedPumpkinBlock::isAir(const BlockState* state) {
 // ============================================================================
 
 JackOLanternBlock::JackOLanternBlock(const BlockProperties& properties)
-    : HorizontalBlock(properties) {
+    : HorizontalBlock(properties)
+{
     // 创建状态容器，添加 HORIZONTAL_FACING 属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(FACING())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -474,19 +471,22 @@ JackOLanternBlock::JackOLanternBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(FACING(), Direction::North));
 }
 
-BlockState JackOLanternBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState JackOLanternBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 放置时朝向玩家的反方向
     return defaultState().with(FACING(), Directions::opposite(context.horizontalDirection()));
 }
 
-void JackOLanternBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void JackOLanternBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(state);
     // MC 1.16.5: 南瓜灯也能触发傀儡生成
     // JackOLanternBlock 继承的 IS_PUMPKIN 谓词包含 JACK_O_LANTERN
     trySpawnGolem(world, pos);
 }
 
-bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
+bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
+{
     // 复用 CarvedPumpkinBlock 的检测逻辑
     // 由于检测逻辑相同，这里直接使用类似的实现
 
@@ -494,8 +494,8 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
     const BlockState* below1 = world.getBlockState(pos.down());
     const BlockState* below2 = world.getBlockState(pos.down(2));
 
-    if (below1 != nullptr && below1->is(VanillaBlocks::SNOW_BLOCK) &&
-        below2 != nullptr && below2->is(VanillaBlocks::SNOW_BLOCK)) {
+    if (below1 != nullptr && below1->is(VanillaBlocks::SNOW_BLOCK) && below2 != nullptr &&
+        below2->is(VanillaBlocks::SNOW_BLOCK)) {
         // 匹配雪傀儡模式
         const BlockState* airState = BlockRegistry::instance().airState();
 
@@ -510,16 +510,14 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
             world.setBlockState(pos.down(), airState, 2);
         }
         if (below1 != nullptr) {
-            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos.down(),
-                           static_cast<i32>(below1->stateId()));
+            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos.down(), static_cast<i32>(below1->stateId()));
         }
 
         if (airState != nullptr) {
             world.setBlockState(pos.down(2), airState, 2);
         }
         if (below2 != nullptr) {
-            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos.down(2),
-                           static_cast<i32>(below2->stateId()));
+            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos.down(2), static_cast<i32>(below2->stateId()));
         }
 
         // 生成雪傀儡
@@ -529,10 +527,7 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
             std::unique_ptr<Entity> entity = snowGolemType->create(&world);
             if (entity != nullptr) {
                 entity->setPosition(
-                    static_cast<f32>(pos.x) + 0.5f,
-                    static_cast<f32>(pos.y) + 0.05f,
-                    static_cast<f32>(pos.z) + 0.5f
-                );
+                    static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.05f, static_cast<f32>(pos.z) + 0.5f);
                 entity->setRotation(0.0f, 0.0f);
                 world.spawnEntity(std::move(entity));
             }
@@ -544,16 +539,16 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
     const BlockState* armCenter = world.getBlockState(pos.down());
     const BlockState* body = world.getBlockState(pos.down(2));
 
-    if (armCenter != nullptr && armCenter->is(VanillaBlocks::IRON_BLOCK) &&
-        body != nullptr && body->is(VanillaBlocks::IRON_BLOCK)) {
+    if (armCenter != nullptr && armCenter->is(VanillaBlocks::IRON_BLOCK) && body != nullptr &&
+        body->is(VanillaBlocks::IRON_BLOCK)) {
 
         const BlockPos armPos = pos.down();
 
         // 检查东西方向
         const BlockState* armEast = world.getBlockState(armPos.east());
         const BlockState* armWest = world.getBlockState(armPos.west());
-        bool eastWestValid = armEast != nullptr && armEast->is(VanillaBlocks::IRON_BLOCK) &&
-                             armWest != nullptr && armWest->is(VanillaBlocks::IRON_BLOCK);
+        bool eastWestValid = armEast != nullptr && armEast->is(VanillaBlocks::IRON_BLOCK) && armWest != nullptr &&
+            armWest->is(VanillaBlocks::IRON_BLOCK);
 
         if (eastWestValid) {
             const BlockState* topEast = world.getBlockState(pos.east());
@@ -561,19 +556,17 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
             const BlockState* bottomEast = world.getBlockState(armPos.east().down());
             const BlockState* bottomWest = world.getBlockState(armPos.west().down());
 
-            if ((topEast == nullptr || topEast->isAir()) &&
-                (topWest == nullptr || topWest->isAir()) &&
-                (bottomEast == nullptr || bottomEast->isAir()) &&
-                (bottomWest == nullptr || bottomWest->isAir())) {
+            if ((topEast == nullptr || topEast->isAir()) && (topWest == nullptr || topWest->isAir()) &&
+                (bottomEast == nullptr || bottomEast->isAir()) && (bottomWest == nullptr || bottomWest->isAir())) {
 
                 // 匹配铁傀儡模式，移除方块并生成实体
                 const BlockState* airState = BlockRegistry::instance().airState();
                 std::vector<BlockPos> blocksToRemove = {
-                    pos.down(2),      // 身体
-                    pos.down(),       // 手臂中央
+                    pos.down(2),       // 身体
+                    pos.down(),        // 手臂中央
                     pos.down().east(), // 手臂东
                     pos.down().west(), // 手臂西
-                    pos               // 南瓜灯
+                    pos                // 南瓜灯
                 };
 
                 for (const BlockPos& blockPos : blocksToRemove) {
@@ -582,8 +575,8 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
                         world.setBlockState(blockPos, airState, 2);
                     }
                     if (blockState != nullptr) {
-                        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos,
-                                       static_cast<i32>(blockState->stateId()));
+                        world.playEvent(
+                            world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos, static_cast<i32>(blockState->stateId()));
                     }
                 }
 
@@ -593,11 +586,9 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
                 if (ironGolemType != nullptr) {
                     std::unique_ptr<Entity> entity = ironGolemType->create(&world);
                     if (entity != nullptr) {
-                        entity->setPosition(
-                            static_cast<f32>(pos.x) + 0.5f,
+                        entity->setPosition(static_cast<f32>(pos.x) + 0.5f,
                             static_cast<f32>(pos.y) + 0.05f,
-                            static_cast<f32>(pos.z) + 0.5f
-                        );
+                            static_cast<f32>(pos.z) + 0.5f);
                         entity->setRotation(0.0f, 0.0f);
 
                         IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get());
@@ -615,8 +606,8 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
         // 检查南北方向
         const BlockState* armNorth = world.getBlockState(armPos.north());
         const BlockState* armSouth = world.getBlockState(armPos.south());
-        bool northSouthValid = armNorth != nullptr && armNorth->is(VanillaBlocks::IRON_BLOCK) &&
-                               armSouth != nullptr && armSouth->is(VanillaBlocks::IRON_BLOCK);
+        bool northSouthValid = armNorth != nullptr && armNorth->is(VanillaBlocks::IRON_BLOCK) && armSouth != nullptr &&
+            armSouth->is(VanillaBlocks::IRON_BLOCK);
 
         if (northSouthValid) {
             const BlockState* topNorth = world.getBlockState(pos.north());
@@ -624,19 +615,17 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
             const BlockState* bottomNorth = world.getBlockState(armPos.north().down());
             const BlockState* bottomSouth = world.getBlockState(armPos.south().down());
 
-            if ((topNorth == nullptr || topNorth->isAir()) &&
-                (topSouth == nullptr || topSouth->isAir()) &&
-                (bottomNorth == nullptr || bottomNorth->isAir()) &&
-                (bottomSouth == nullptr || bottomSouth->isAir())) {
+            if ((topNorth == nullptr || topNorth->isAir()) && (topSouth == nullptr || topSouth->isAir()) &&
+                (bottomNorth == nullptr || bottomNorth->isAir()) && (bottomSouth == nullptr || bottomSouth->isAir())) {
 
                 // 匹配铁傀儡模式，移除方块并生成实体
                 const BlockState* airState = BlockRegistry::instance().airState();
                 std::vector<BlockPos> blocksToRemove = {
-                    pos.down(2),       // 身体
-                    pos.down(),        // 手臂中央
+                    pos.down(2),        // 身体
+                    pos.down(),         // 手臂中央
                     pos.down().north(), // 手臂北
                     pos.down().south(), // 手臂南
-                    pos                // 南瓜灯
+                    pos                 // 南瓜灯
                 };
 
                 for (const BlockPos& blockPos : blocksToRemove) {
@@ -645,8 +634,8 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
                         world.setBlockState(blockPos, airState, 2);
                     }
                     if (blockState != nullptr) {
-                        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos,
-                                       static_cast<i32>(blockState->stateId()));
+                        world.playEvent(
+                            world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos, static_cast<i32>(blockState->stateId()));
                     }
                 }
 
@@ -656,11 +645,9 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
                 if (ironGolemType != nullptr) {
                     std::unique_ptr<Entity> entity = ironGolemType->create(&world);
                     if (entity != nullptr) {
-                        entity->setPosition(
-                            static_cast<f32>(pos.x) + 0.5f,
+                        entity->setPosition(static_cast<f32>(pos.x) + 0.5f,
                             static_cast<f32>(pos.y) + 0.05f,
-                            static_cast<f32>(pos.z) + 0.5f
-                        );
+                            static_cast<f32>(pos.z) + 0.5f);
                         entity->setRotation(0.0f, 0.0f);
 
                         IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get());
@@ -684,10 +671,11 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
 // ============================================================================
 
 MelonStemBlock::MelonStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
-    : StemBlock(crop, properties) {
-}
+    : StemBlock(crop, properties)
+{}
 
-u32 MelonStemBlock::getSeedItem() const {
+u32 MelonStemBlock::getSeedItem() const
+{
     // 返回西瓜种子物品ID
     if (Items::MELON_SEEDS != nullptr) {
         return Items::MELON_SEEDS->itemId();
@@ -700,10 +688,11 @@ u32 MelonStemBlock::getSeedItem() const {
 // ============================================================================
 
 PumpkinStemBlock::PumpkinStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
-    : StemBlock(crop, properties) {
-}
+    : StemBlock(crop, properties)
+{}
 
-u32 PumpkinStemBlock::getSeedItem() const {
+u32 PumpkinStemBlock::getSeedItem() const
+{
     // 返回南瓜种子物品ID
     if (Items::PUMPKIN_SEEDS != nullptr) {
         return Items::PUMPKIN_SEEDS->itemId();
@@ -716,10 +705,11 @@ u32 PumpkinStemBlock::getSeedItem() const {
 // ============================================================================
 
 MelonAttachedStemBlock::MelonAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
-    : AttachedStemBlock(crop, properties) {
-}
+    : AttachedStemBlock(crop, properties)
+{}
 
-u32 MelonAttachedStemBlock::getSeedItem() const {
+u32 MelonAttachedStemBlock::getSeedItem() const
+{
     // 返回西瓜种子物品ID
     if (Items::MELON_SEEDS != nullptr) {
         return Items::MELON_SEEDS->itemId();
@@ -732,10 +722,11 @@ u32 MelonAttachedStemBlock::getSeedItem() const {
 // ============================================================================
 
 PumpkinAttachedStemBlock::PumpkinAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
-    : AttachedStemBlock(crop, properties) {
-}
+    : AttachedStemBlock(crop, properties)
+{}
 
-u32 PumpkinAttachedStemBlock::getSeedItem() const {
+u32 PumpkinAttachedStemBlock::getSeedItem() const
+{
     // 返回南瓜种子物品ID
     if (Items::PUMPKIN_SEEDS != nullptr) {
         return Items::PUMPKIN_SEEDS->itemId();

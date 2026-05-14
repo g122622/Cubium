@@ -1,6 +1,6 @@
 #include "MatrixStack.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer {
@@ -13,7 +13,8 @@ namespace {
  * 对齐 MC 1.16.5 MatrixStack 语义：
  * current = current * transform。
  */
-void applyPostMultiply(Matrix4f& current, const Matrix4f& transform) {
+void applyPostMultiply(Matrix4f& current, const Matrix4f& transform)
+{
     current = current * transform;
 }
 
@@ -33,17 +34,20 @@ void applyPostMultiply(Matrix4f& current, const Matrix4f& transform) {
 // 对于变换点 v：v' = M * T * v
 // ============================================================================
 
-MatrixStack::MatrixStack() {
+MatrixStack::MatrixStack()
+{
     // 初始化栈底为单位矩阵
     m_stack.push(Matrix4f::identity());
 }
 
-void MatrixStack::push() {
+void MatrixStack::push()
+{
     // 压入当前矩阵的副本
     m_stack.push(m_stack.top());
 }
 
-void MatrixStack::pop() {
+void MatrixStack::pop()
+{
     MC_ASSERT(m_stack.size() > 1 && "MatrixStack underflow - cannot pop last matrix");
 
     if (m_stack.size() > 1) {
@@ -51,7 +55,8 @@ void MatrixStack::pop() {
     }
 }
 
-void MatrixStack::translate(f32 x, f32 y, f32 z) {
+void MatrixStack::translate(f32 x, f32 y, f32 z)
+{
     Matrix4f translation = Matrix4f::identity();
     translation.data[3] = x;
     translation.data[7] = y;
@@ -60,7 +65,8 @@ void MatrixStack::translate(f32 x, f32 y, f32 z) {
     applyPostMultiply(m_stack.top(), translation);
 }
 
-void MatrixStack::rotateX(f32 degrees) {
+void MatrixStack::rotateX(f32 degrees)
+{
     f32 radians = math::toRadians(degrees);
     f32 c = std::cos(radians);
     f32 s = std::sin(radians);
@@ -74,7 +80,8 @@ void MatrixStack::rotateX(f32 degrees) {
     applyPostMultiply(m_stack.top(), rotation);
 }
 
-void MatrixStack::rotateY(f32 degrees) {
+void MatrixStack::rotateY(f32 degrees)
+{
     f32 radians = math::toRadians(degrees);
     f32 c = std::cos(radians);
     f32 s = std::sin(radians);
@@ -88,7 +95,8 @@ void MatrixStack::rotateY(f32 degrees) {
     applyPostMultiply(m_stack.top(), rotation);
 }
 
-void MatrixStack::rotateZ(f32 degrees) {
+void MatrixStack::rotateZ(f32 degrees)
+{
     f32 radians = math::toRadians(degrees);
     f32 c = std::cos(radians);
     f32 s = std::sin(radians);
@@ -102,7 +110,8 @@ void MatrixStack::rotateZ(f32 degrees) {
     applyPostMultiply(m_stack.top(), rotation);
 }
 
-void MatrixStack::rotate(f32 axisX, f32 axisY, f32 axisZ, f32 degrees) {
+void MatrixStack::rotate(f32 axisX, f32 axisY, f32 axisZ, f32 degrees)
+{
     f32 radians = math::toRadians(degrees);
     f32 c = std::cos(radians);
     f32 s = std::sin(radians);
@@ -134,7 +143,8 @@ void MatrixStack::rotate(f32 axisX, f32 axisY, f32 axisZ, f32 degrees) {
     applyPostMultiply(m_stack.top(), rot);
 }
 
-void MatrixStack::scale(f32 x, f32 y, f32 z) {
+void MatrixStack::scale(f32 x, f32 y, f32 z)
+{
     Matrix4f scaleMatrix = Matrix4f::identity();
     scaleMatrix.data[0] = x;
     scaleMatrix.data[5] = y;
@@ -143,7 +153,8 @@ void MatrixStack::scale(f32 x, f32 y, f32 z) {
     applyPostMultiply(m_stack.top(), scaleMatrix);
 }
 
-void MatrixStack::clear() {
+void MatrixStack::clear()
+{
     // 清空栈
     while (!m_stack.empty()) {
         m_stack.pop();

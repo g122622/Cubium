@@ -3,15 +3,16 @@
  * @brief GuiSpriteParser 单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/renderer/trident/gui/GuiSpriteParser.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::renderer::trident::gui;
 
 /**
  * @brief 测试解析基本精灵定义
  */
-TEST(GuiSpriteParserTest, ParseBasicSprites) {
+TEST(GuiSpriteParserTest, ParseBasicSprites)
+{
     const char* json = R"({
         "texture": "minecraft:textures/gui/widgets.png",
         "sprites": {
@@ -42,7 +43,8 @@ TEST(GuiSpriteParserTest, ParseBasicSprites) {
 /**
  * @brief 测试解析九宫格定义
  */
-TEST(GuiSpriteParserTest, ParseNinePatch) {
+TEST(GuiSpriteParserTest, ParseNinePatch)
+{
     const char* json = R"({
         "texture": "minecraft:textures/gui/widgets.png",
         "sprites": {
@@ -76,7 +78,8 @@ TEST(GuiSpriteParserTest, ParseNinePatch) {
 /**
  * @brief 测试解析状态变体
  */
-TEST(GuiSpriteParserTest, ParseStateVariants) {
+TEST(GuiSpriteParserTest, ParseStateVariants)
+{
     const char* json = R"({
         "texture": "minecraft:textures/gui/widgets.png",
         "sprites": {
@@ -107,7 +110,8 @@ TEST(GuiSpriteParserTest, ParseStateVariants) {
 /**
  * @brief 测试解析缺失纹理路径
  */
-TEST(GuiSpriteParserTest, ParseMissingTexture) {
+TEST(GuiSpriteParserTest, ParseMissingTexture)
+{
     const char* json = R"({
         "sprites": {
             "test": { "x": 0, "y": 0, "width": 16, "height": 16 }
@@ -124,7 +128,8 @@ TEST(GuiSpriteParserTest, ParseMissingTexture) {
 /**
  * @brief 测试解析无效JSON
  */
-TEST(GuiSpriteParserTest, ParseInvalidJson) {
+TEST(GuiSpriteParserTest, ParseInvalidJson)
+{
     const char* json = "{ invalid json }";
 
     auto result = GuiSpriteParser::parse(json, 256, 256);
@@ -134,7 +139,8 @@ TEST(GuiSpriteParserTest, ParseInvalidJson) {
 /**
  * @brief 测试解析缺失必需字段
  */
-TEST(GuiSpriteParserTest, ParseMissingRequiredFields) {
+TEST(GuiSpriteParserTest, ParseMissingRequiredFields)
+{
     const char* json = R"({
         "sprites": {
             "incomplete": { "x": 0, "y": 0 }
@@ -151,7 +157,8 @@ TEST(GuiSpriteParserTest, ParseMissingRequiredFields) {
 /**
  * @brief 测试解析空精灵列表
  */
-TEST(GuiSpriteParserTest, ParseEmptySprites) {
+TEST(GuiSpriteParserTest, ParseEmptySprites)
+{
     const char* json = R"({
         "texture": "minecraft:textures/gui/test.png",
         "sprites": {}
@@ -166,7 +173,8 @@ TEST(GuiSpriteParserTest, ParseEmptySprites) {
 /**
  * @brief 测试不同图集尺寸
  */
-TEST(GuiSpriteParserTest, ParseDifferentAtlasSize) {
+TEST(GuiSpriteParserTest, ParseDifferentAtlasSize)
+{
     const char* json = R"({
         "sprites": {
             "test": { "x": 100, "y": 50, "width": 32, "height": 32 }
@@ -187,7 +195,8 @@ TEST(GuiSpriteParserTest, ParseDifferentAtlasSize) {
 /**
  * @brief 测试解析快捷栏精灵（真实MC数据）
  */
-TEST(GuiSpriteParserTest, ParseHotbarSprites) {
+TEST(GuiSpriteParserTest, ParseHotbarSprites)
+{
     const char* json = R"({
         "texture": "minecraft:textures/gui/widgets.png",
         "sprites": {
@@ -215,7 +224,8 @@ TEST(GuiSpriteParserTest, ParseHotbarSprites) {
 /**
  * @brief 测试解析心形图标（真实MC数据）
  */
-TEST(GuiSpriteParserTest, ParseHeartSprites) {
+TEST(GuiSpriteParserTest, ParseHeartSprites)
+{
     const char* json = R"({
         "texture": "minecraft:textures/gui/icons.png",
         "sprites": {

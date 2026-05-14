@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
-#include "common/world/entity/EntityManager.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include <memory>
 #include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity;
@@ -19,12 +19,9 @@ using namespace mc::entity;
  */
 class EntityManagerSpawnTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaEntities::registerAll();
-    }
+    void SetUp() override { VanillaEntities::registerAll(); }
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 
     EntityManager m_manager;
 };
@@ -36,18 +33,16 @@ public:
     explicit ReentrantQueryEntity(EntityManager* manager)
         : Entity(LegacyEntityType::Cow, 0, nullptr)
         , m_manager(manager)
-    {
-    }
+    {}
 
-    void tick() override {
+    void tick() override
+    {
         Entity::tick();
         auto entities = m_manager->getEntitiesInRange(position(), 16.0f, this);
         m_lastQueryCount = entities.size();
     }
 
-    [[nodiscard]] size_t lastQueryCount() const {
-        return m_lastQueryCount;
-    }
+    [[nodiscard]] size_t lastQueryCount() const { return m_lastQueryCount; }
 
 private:
     EntityManager* m_manager = nullptr;
@@ -60,7 +55,8 @@ private:
 // 基础实体添加测试
 // ============================================================================
 
-TEST_F(EntityManagerSpawnTest, AddEntity) {
+TEST_F(EntityManagerSpawnTest, AddEntity)
+{
     // 创建一个猪实体
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
@@ -73,7 +69,8 @@ TEST_F(EntityManagerSpawnTest, AddEntity) {
     EXPECT_TRUE(m_manager.hasEntity(id));
 }
 
-TEST_F(EntityManagerSpawnTest, AddMultipleEntities) {
+TEST_F(EntityManagerSpawnTest, AddMultipleEntities)
+{
     std::vector<EntityId> ids;
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
@@ -91,7 +88,8 @@ TEST_F(EntityManagerSpawnTest, AddMultipleEntities) {
     }
 }
 
-TEST_F(EntityManagerSpawnTest, AddDifferentEntityTypes) {
+TEST_F(EntityManagerSpawnTest, AddDifferentEntityTypes)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
     const EntityType* sheepType = EntityRegistry::instance().getType(EntityTypes::SHEEP);
@@ -124,7 +122,8 @@ TEST_F(EntityManagerSpawnTest, AddDifferentEntityTypes) {
 // 实体获取测试
 // ============================================================================
 
-TEST_F(EntityManagerSpawnTest, GetEntity) {
+TEST_F(EntityManagerSpawnTest, GetEntity)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
 
@@ -140,12 +139,14 @@ TEST_F(EntityManagerSpawnTest, GetEntity) {
     EXPECT_FLOAT_EQ(entity->z(), 20.0f);
 }
 
-TEST_F(EntityManagerSpawnTest, GetEntityNotFound) {
+TEST_F(EntityManagerSpawnTest, GetEntityNotFound)
+{
     Entity* entity = m_manager.getEntity(99999);
     EXPECT_EQ(entity, nullptr);
 }
 
-TEST_F(EntityManagerSpawnTest, GetEntityByType) {
+TEST_F(EntityManagerSpawnTest, GetEntityByType)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
     ASSERT_NE(pigType, nullptr);
@@ -163,7 +164,8 @@ TEST_F(EntityManagerSpawnTest, GetEntityByType) {
 // 实体移除测试
 // ============================================================================
 
-TEST_F(EntityManagerSpawnTest, RemoveEntity) {
+TEST_F(EntityManagerSpawnTest, RemoveEntity)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
 
@@ -178,13 +180,15 @@ TEST_F(EntityManagerSpawnTest, RemoveEntity) {
     EXPECT_EQ(m_manager.entityCount(), 0u);
 }
 
-TEST_F(EntityManagerSpawnTest, RemoveNonExistentEntity) {
+TEST_F(EntityManagerSpawnTest, RemoveNonExistentEntity)
+{
     // 移除不存在的实体不应崩溃
     m_manager.removeEntity(99999);
     EXPECT_EQ(m_manager.entityCount(), 0u);
 }
 
-TEST_F(EntityManagerSpawnTest, RemoveAndAddAgain) {
+TEST_F(EntityManagerSpawnTest, RemoveAndAddAgain)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
     ASSERT_NE(pigType, nullptr);
@@ -209,7 +213,8 @@ TEST_F(EntityManagerSpawnTest, RemoveAndAddAgain) {
 // 实体属性测试
 // ============================================================================
 
-TEST_F(EntityManagerSpawnTest, EntityPositionAfterSpawn) {
+TEST_F(EntityManagerSpawnTest, EntityPositionAfterSpawn)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
 
@@ -232,7 +237,8 @@ TEST_F(EntityManagerSpawnTest, EntityPositionAfterSpawn) {
 // SpawnedEntityData 集成测试
 // ============================================================================
 
-TEST_F(EntityManagerSpawnTest, SpawnFromSpawnedEntityData) {
+TEST_F(EntityManagerSpawnTest, SpawnFromSpawnedEntityData)
+{
     // 模拟从区块生成获取的 SpawnedEntityData
     SpawnedEntityData data;
     data.entityTypeId = EntityTypes::COW;
@@ -259,7 +265,8 @@ TEST_F(EntityManagerSpawnTest, SpawnFromSpawnedEntityData) {
     EXPECT_FLOAT_EQ(spawned->z(), 100.0f);
 }
 
-TEST_F(EntityManagerSpawnTest, BatchSpawnFromSpawnedEntityData) {
+TEST_F(EntityManagerSpawnTest, BatchSpawnFromSpawnedEntityData)
+{
     std::vector<SpawnedEntityData> spawnedEntities;
 
     // 创建多个实体数据
@@ -291,7 +298,8 @@ TEST_F(EntityManagerSpawnTest, BatchSpawnFromSpawnedEntityData) {
 // MobEntity 特定测试
 // ============================================================================
 
-TEST_F(EntityManagerSpawnTest, MobEntityIsLivingEntity) {
+TEST_F(EntityManagerSpawnTest, MobEntityIsLivingEntity)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
 
@@ -308,7 +316,8 @@ TEST_F(EntityManagerSpawnTest, MobEntityIsLivingEntity) {
     ASSERT_NE(mob, nullptr);
 }
 
-TEST_F(EntityManagerSpawnTest, AnimalEntityIsMobEntity) {
+TEST_F(EntityManagerSpawnTest, AnimalEntityIsMobEntity)
+{
     const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
     ASSERT_NE(cowType, nullptr);
 
@@ -331,7 +340,8 @@ TEST_F(EntityManagerSpawnTest, AnimalEntityIsMobEntity) {
 // 清空测试
 // ============================================================================
 
-TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities) {
+TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
 
@@ -354,7 +364,8 @@ TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities) {
     EXPECT_EQ(m_manager.entityCount(), 0u);
 }
 
-TEST_F(EntityManagerSpawnTest, TickAllowsReentrantRangeQuery) {
+TEST_F(EntityManagerSpawnTest, TickAllowsReentrantRangeQuery)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
 
@@ -374,7 +385,8 @@ TEST_F(EntityManagerSpawnTest, TickAllowsReentrantRangeQuery) {
     EXPECT_EQ(updatedEntity->lastQueryCount(), 1u);
 }
 
-TEST_F(EntityManagerSpawnTest, ForEachAllowsReentrantQueries) {
+TEST_F(EntityManagerSpawnTest, ForEachAllowsReentrantQueries)
+{
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
     ASSERT_NE(pigType, nullptr);
 
@@ -392,5 +404,3 @@ TEST_F(EntityManagerSpawnTest, ForEachAllowsReentrantQueries) {
 
     EXPECT_TRUE(callbackInvoked);
 }
-
-

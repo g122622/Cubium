@@ -8,11 +8,13 @@ namespace mc {
 
 CraftingInventory::CraftingInventory(i32 width, i32 height)
     : m_width(width)
-    , m_height(height) {
+    , m_height(height)
+{
     m_items.resize(static_cast<size_t>(width * height));
 }
 
-bool CraftingInventory::isEmpty() const {
+bool CraftingInventory::isEmpty() const
+{
     for (const ItemStack& stack : m_items) {
         if (!stack.isEmpty()) {
             return false;
@@ -21,14 +23,16 @@ bool CraftingInventory::isEmpty() const {
     return true;
 }
 
-ItemStack CraftingInventory::getItem(i32 slot) const {
+ItemStack CraftingInventory::getItem(i32 slot) const
+{
     if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
         return ItemStack();
     }
     return m_items[static_cast<size_t>(slot)];
 }
 
-void CraftingInventory::setItem(i32 slot, const ItemStack& stack) {
+void CraftingInventory::setItem(i32 slot, const ItemStack& stack)
+{
     if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
         return;
     }
@@ -36,7 +40,8 @@ void CraftingInventory::setItem(i32 slot, const ItemStack& stack) {
     setChanged();
 }
 
-ItemStack CraftingInventory::removeItem(i32 slot, i32 count) {
+ItemStack CraftingInventory::removeItem(i32 slot, i32 count)
+{
     if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
         return ItemStack();
     }
@@ -53,7 +58,8 @@ ItemStack CraftingInventory::removeItem(i32 slot, i32 count) {
     return result;
 }
 
-ItemStack CraftingInventory::removeItemNoUpdate(i32 slot) {
+ItemStack CraftingInventory::removeItemNoUpdate(i32 slot)
+{
     if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
         return ItemStack();
     }
@@ -63,28 +69,32 @@ ItemStack CraftingInventory::removeItemNoUpdate(i32 slot) {
     return result;
 }
 
-void CraftingInventory::clear() {
+void CraftingInventory::clear()
+{
     for (ItemStack& stack : m_items) {
         stack = ItemStack();
     }
     setChanged();
 }
 
-void CraftingInventory::setChanged() {
+void CraftingInventory::setChanged()
+{
     IInventory::setChanged();
     if (m_onContentChanged) {
         m_onContentChanged();
     }
 }
 
-void CraftingInventory::serialize(network::PacketSerializer& ser) const {
+void CraftingInventory::serialize(network::PacketSerializer& ser) const
+{
     ser.writeVarInt(static_cast<i32>(m_items.size()));
     for (const ItemStack& stack : m_items) {
         stack.serialize(ser);
     }
 }
 
-ItemStack CraftingInventory::getItemAt(i32 x, i32 y) const {
+ItemStack CraftingInventory::getItemAt(i32 x, i32 y) const
+{
     i32 slot = posToSlot(x, y);
     if (slot < 0) {
         return ItemStack();
@@ -92,7 +102,8 @@ ItemStack CraftingInventory::getItemAt(i32 x, i32 y) const {
     return m_items[static_cast<size_t>(slot)];
 }
 
-void CraftingInventory::setItemAt(i32 x, i32 y, const ItemStack& stack) {
+void CraftingInventory::setItemAt(i32 x, i32 y, const ItemStack& stack)
+{
     i32 slot = posToSlot(x, y);
     if (slot < 0) {
         return;
@@ -101,7 +112,8 @@ void CraftingInventory::setItemAt(i32 x, i32 y, const ItemStack& stack) {
     setChanged();
 }
 
-ItemStack CraftingInventory::removeItemAt(i32 x, i32 y, i32 count) {
+ItemStack CraftingInventory::removeItemAt(i32 x, i32 y, i32 count)
+{
     i32 slot = posToSlot(x, y);
     if (slot < 0) {
         return ItemStack();
@@ -109,14 +121,16 @@ ItemStack CraftingInventory::removeItemAt(i32 x, i32 y, i32 count) {
     return removeItem(slot, count);
 }
 
-i32 CraftingInventory::posToSlot(i32 x, i32 y) const {
+i32 CraftingInventory::posToSlot(i32 x, i32 y) const
+{
     if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
         return -1;
     }
     return y * m_width + x;
 }
 
-bool CraftingInventory::slotToPos(i32 slot, i32& outX, i32& outY) const {
+bool CraftingInventory::slotToPos(i32 slot, i32& outX, i32& outY) const
+{
     if (slot < 0 || slot >= m_width * m_height) {
         return false;
     }
@@ -125,7 +139,8 @@ bool CraftingInventory::slotToPos(i32 slot, i32& outX, i32& outY) const {
     return true;
 }
 
-void CraftingInventory::setItems(const std::vector<ItemStack>& items) {
+void CraftingInventory::setItems(const std::vector<ItemStack>& items)
+{
     if (static_cast<i32>(items.size()) != m_width * m_height) {
         return; // 大小不匹配，忽略
     }
@@ -133,12 +148,13 @@ void CraftingInventory::setItems(const std::vector<ItemStack>& items) {
     setChanged();
 }
 
-bool CraftingInventory::isAllEmpty() const {
+bool CraftingInventory::isAllEmpty() const
+{
     return isEmpty();
 }
 
-bool CraftingInventory::getContentBounds(i32& outMinX, i32& outMinY,
-                                          i32& outMaxX, i32& outMaxY) const {
+bool CraftingInventory::getContentBounds(i32& outMinX, i32& outMinY, i32& outMaxX, i32& outMaxY) const
+{
     bool found = false;
     outMinX = m_width;
     outMinY = m_height;
@@ -160,7 +176,8 @@ bool CraftingInventory::getContentBounds(i32& outMinX, i32& outMinY,
     return found;
 }
 
-void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const {
+void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const
+{
     // 遍历所有物品，只计数"普通"物品（未损坏、未附魔、无自定义名称）
     // 参考: net.minecraft.item.crafting.RecipeItemHelper.accountPlainStack
     for (const ItemStack& stack : m_items) {
@@ -184,14 +201,16 @@ void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCo
 
 // ========== CraftResultInventory ==========
 
-ItemStack CraftResultInventory::getItem(i32 slot) const {
+ItemStack CraftResultInventory::getItem(i32 slot) const
+{
     // MC 1.16.5: CraftResultInventory 只有一个槽位，忽略 slot 参数
     // 参考: net.minecraft.inventory.CraftResultInventory.getStackInSlot
     (void)slot;
     return m_result;
 }
 
-void CraftResultInventory::setItem(i32 slot, const ItemStack& stack) {
+void CraftResultInventory::setItem(i32 slot, const ItemStack& stack)
+{
     // MC 1.16.5: CraftResultInventory 只有一个槽位，忽略 slot 参数
     // 参考: net.minecraft.inventory.CraftResultInventory.setInventorySlotContents
     (void)slot;
@@ -199,7 +218,8 @@ void CraftResultInventory::setItem(i32 slot, const ItemStack& stack) {
     setChanged();
 }
 
-ItemStack CraftResultInventory::removeItem(i32 slot, i32 count) {
+ItemStack CraftResultInventory::removeItem(i32 slot, i32 count)
+{
     // MC 1.16.5: CraftResultInventory 的 removeItem 应该移除整个槽位的物品
     // 忽略 count 参数，直接返回整个结果物品
     // 参考: net.minecraft.inventory.CraftResultInventory.decrStackSize
@@ -215,7 +235,8 @@ ItemStack CraftResultInventory::removeItem(i32 slot, i32 count) {
     (void)count; // 忽略count参数
 }
 
-ItemStack CraftResultInventory::removeItemNoUpdate(i32 slot) {
+ItemStack CraftResultInventory::removeItemNoUpdate(i32 slot)
+{
     if (slot != 0) {
         return ItemStack();
     }
@@ -224,16 +245,19 @@ ItemStack CraftResultInventory::removeItemNoUpdate(i32 slot) {
     return result;
 }
 
-void CraftResultInventory::clear() {
+void CraftResultInventory::clear()
+{
     m_result = ItemStack();
     setChanged();
 }
 
-void CraftResultInventory::setChanged() {
+void CraftResultInventory::setChanged()
+{
     IInventory::setChanged();
 }
 
-void CraftResultInventory::serialize(network::PacketSerializer& ser) const {
+void CraftResultInventory::serialize(network::PacketSerializer& ser) const
+{
     m_result.serialize(ser);
 }
 

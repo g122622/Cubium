@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../../util/Direction.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../BlockPos.hpp"
 #include <vector>
 
@@ -32,8 +32,7 @@ public:
      * @param pistonFacing 活塞朝向
      * @param extending 是否伸出（true=伸出，false=收回）
      */
-    PistonStructureHelper(IWorld& world, const BlockPos& pistonPos,
-                          Direction pistonFacing, bool extending);
+    PistonStructureHelper(IWorld& world, const BlockPos& pistonPos, Direction pistonFacing, bool extending);
 
     /**
      * @brief 检查是否可以移动

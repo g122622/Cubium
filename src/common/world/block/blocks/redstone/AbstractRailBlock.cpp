@@ -1,8 +1,8 @@
 #include "AbstractRailBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,22 +12,21 @@ namespace blocks {
 // ============================================================================
 
 RailShapeProperty::RailShapeProperty(const std::string& name)
-    : EnumProperty<RailShape>(name, {
-        RailShape::NorthSouth,
-        RailShape::EastWest,
-        RailShape::AscendingEast,
-        RailShape::AscendingWest,
-        RailShape::AscendingNorth,
-        RailShape::AscendingSouth,
-        RailShape::SouthEast,
-        RailShape::SouthWest,
-        RailShape::NorthWest,
-        RailShape::NorthEast
-    })
-{
-}
+    : EnumProperty<RailShape>(name,
+          {RailShape::NorthSouth,
+              RailShape::EastWest,
+              RailShape::AscendingEast,
+              RailShape::AscendingWest,
+              RailShape::AscendingNorth,
+              RailShape::AscendingSouth,
+              RailShape::SouthEast,
+              RailShape::SouthWest,
+              RailShape::NorthWest,
+              RailShape::NorthEast})
+{}
 
-std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const std::string& name) {
+std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const std::string& name)
+{
     return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name));
 }
 
@@ -45,10 +44,14 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isP
     m_shapes[static_cast<size_t>(RailShape::EastWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
 
     // 斜轨形状：一端抬升
-    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingNorth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingSouth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] =
+        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] =
+        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingNorth)] =
+        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingSouth)] =
+        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
 
     // 弯轨形状
     m_shapes[static_cast<size_t>(RailShape::SouthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
@@ -57,7 +60,8 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isP
     m_shapes[static_cast<size_t>(RailShape::NorthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
 }
 
-BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 根据相邻铁轨计算初始形状
     BlockPos pos = context.placementPos();
     const IWorld& world = context.getWorld();
@@ -74,8 +78,7 @@ BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
     return withRailShape(defaultState(), shape);
 }
 
-BlockState AbstractRailBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
@@ -98,10 +101,7 @@ BlockState AbstractRailBlock::updatePostPlacement(
     return withRailShape(state, newShape);
 }
 
-bool AbstractRailBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const
+bool AbstractRailBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
 
@@ -117,7 +117,8 @@ bool AbstractRailBlock::isValidPosition(
     return belowState->isSolid();
 }
 
-const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const {
+const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
+{
     RailShape shape = getRailShape(state);
     size_t index = static_cast<size_t>(shape);
     if (index < m_shapes.size()) {
@@ -126,7 +127,8 @@ const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
     return m_shapes[0];
 }
 
-RailShape AbstractRailBlock::calculateRailShape(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+RailShape AbstractRailBlock::calculateRailShape(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // 检查四个方向的铁轨连接
     bool north = isRailAt(static_cast<IBlockReader&>(world), pos.offset(Direction::North));
     bool south = isRailAt(static_cast<IBlockReader&>(world), pos.offset(Direction::South));
@@ -202,7 +204,8 @@ RailShape AbstractRailBlock::calculateRailShape(IWorld& world, const BlockPos& p
     return getRailShape(state);
 }
 
-bool AbstractRailBlock::isRailAt(IBlockReader& world, const BlockPos& pos) const {
+bool AbstractRailBlock::isRailAt(IBlockReader& world, const BlockPos& pos) const
+{
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
@@ -219,7 +222,8 @@ bool AbstractRailBlock::isRailAt(IBlockReader& world, const BlockPos& pos) const
     return rail->hasRailShapeProperty(*state);
 }
 
-bool AbstractRailBlock::canAscendTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
+bool AbstractRailBlock::canAscendTo(IBlockReader& world, const BlockPos& pos, Direction direction) const
+{
     // 检查目标位置是否有铁轨
     BlockPos targetPos = pos.offset(direction);
     const BlockState* targetState = world.getBlockState(targetPos);
@@ -252,9 +256,9 @@ bool AbstractRailBlock::canAscendTo(IBlockReader& world, const BlockPos& pos, Di
 
 namespace mc {
 
-std::string EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape& value) {
-    static const char* names[] = {
-        "north_south",
+std::string EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape& value)
+{
+    static const char* names[] = {"north_south",
         "east_west",
         "ascending_east",
         "ascending_west",
@@ -263,12 +267,12 @@ std::string EnumProperty<blocks::RailShape>::Traits::toString(const blocks::Rail
         "south_east",
         "south_west",
         "north_west",
-        "north_east"
-    };
+        "north_east"};
     return names[static_cast<size_t>(value)];
 }
 
-std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(std::string_view name) {
+std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(std::string_view name)
+{
     static const std::unordered_map<std::string, blocks::RailShape> map = {
         {"north_south", blocks::RailShape::NorthSouth},
         {"east_west", blocks::RailShape::EastWest},
@@ -279,8 +283,7 @@ std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromNa
         {"south_east", blocks::RailShape::SouthEast},
         {"south_west", blocks::RailShape::SouthWest},
         {"north_west", blocks::RailShape::NorthWest},
-        {"north_east", blocks::RailShape::NorthEast}
-    };
+        {"north_east", blocks::RailShape::NorthEast}};
     auto it = map.find(std::string(name));
     return it != map.end() ? std::optional<blocks::RailShape>(it->second) : std::nullopt;
 }

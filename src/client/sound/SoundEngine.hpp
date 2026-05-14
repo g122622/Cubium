@@ -1,22 +1,22 @@
 #pragma once
 
-#include "client/sound/SoundPool.hpp"
-#include "client/sound/SoundLoader.hpp"
 #include "client/sound/AudioBufferCache.hpp"
-#include "client/sound/backend/IAudioBackend.hpp"
+#include "client/sound/SoundLoader.hpp"
+#include "client/sound/SoundPool.hpp"
 #include "client/sound/backend/AudioBuffer.hpp"
-#include "client/sound/resource/SoundRegistry.hpp"
+#include "client/sound/backend/IAudioBackend.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
-#include "common/sound/SoundCategory.hpp"
+#include "client/sound/resource/SoundRegistry.hpp"
 #include "common/core/Result.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
 
 #include <glm/glm.hpp>
 
-#include <memory>
-#include <vector>
-#include <unordered_map>
 #include <functional>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 
@@ -31,9 +31,9 @@ class ClientSettings;
 namespace sound {
 
 // 从 mc::sound 引入类型
-using ::mc::sound::SoundInstanceId;
 using ::mc::sound::AttenuationType;
 using ::mc::sound::DEFAULT_ATTENUATION_DISTANCE;
+using ::mc::sound::SoundInstanceId;
 
 // 前向声明
 class SoundHandler;
@@ -207,9 +207,7 @@ public:
      * @param forward 前方向向量（单位向量）
      * @param up 上方向向量（单位向量）
      */
-    void updateListener(const glm::vec3& position,
-                        const glm::vec3& forward,
-                        const glm::vec3& up);
+    void updateListener(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up);
 
     /**
      * @brief 设置听者速度
@@ -345,11 +343,7 @@ private:
      * @return 是否成功解析
      */
     [[nodiscard]] bool resolveSoundDefinition(
-        SoundDefinition& soundDef,
-        u32 depth,
-        f32& outVolume,
-        f32& outPitch
-    ) const;
+        SoundDefinition& soundDef, u32 depth, f32& outVolume, f32& outPitch) const;
 
     /**
      * @brief 检查声音是否在可听范围内
@@ -422,9 +416,9 @@ private:
     u32 m_bufferCleanupCounter = 0;
 
     /// 缓冲区清理间隔（帧数）
-    static constexpr u32 BUFFER_CLEANUP_INTERVAL = 600;  // 约30秒（假设60fps）
+    static constexpr u32 BUFFER_CLEANUP_INTERVAL = 600; // 约30秒（假设60fps）
 };
 
-} // namespace mc::client::sound
-} // namespace mc::client
+} // namespace sound
+} // namespace client
 } // namespace mc

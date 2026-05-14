@@ -3,8 +3,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <array>
-#include <vector>
 #include <stack>
+#include <vector>
 
 namespace mc::client::renderer {
 
@@ -31,33 +31,30 @@ struct Matrix4f {
     /**
      * @brief 创建单位矩阵
      */
-    static Matrix4f identity() {
-        return Matrix4f{{
-            1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 1.0f
-        }};
+    static Matrix4f identity()
+    {
+        return Matrix4f{
+            {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}};
     }
 
     /**
      * @brief 访问元素（行主序）
      */
-    f32& operator()(i32 row, i32 col) {
-        return data[static_cast<size_t>(row) * 4 + static_cast<size_t>(col)];
-    }
+    f32& operator()(i32 row, i32 col) { return data[static_cast<size_t>(row) * 4 + static_cast<size_t>(col)]; }
 
     /**
      * @brief 访问元素（行主序，const 版本）
      */
-    [[nodiscard]] f32 operator()(i32 row, i32 col) const {
+    [[nodiscard]] f32 operator()(i32 row, i32 col) const
+    {
         return data[static_cast<size_t>(row) * 4 + static_cast<size_t>(col)];
     }
 
     /**
      * @brief 矩阵乘法
      */
-    [[nodiscard]] Matrix4f operator*(const Matrix4f& other) const {
+    [[nodiscard]] Matrix4f operator*(const Matrix4f& other) const
+    {
         Matrix4f result;
         for (i32 row = 0; row < 4; ++row) {
             for (i32 col = 0; col < 4; ++col) {
@@ -74,14 +71,13 @@ struct Matrix4f {
     /**
      * @brief 获取平移分量
      */
-    [[nodiscard]] Vector3f translation() const {
-        return Vector3f(data[3], data[7], data[11]);
-    }
+    [[nodiscard]] Vector3f translation() const { return Vector3f(data[3], data[7], data[11]); }
 
     /**
      * @brief 设置平移分量
      */
-    void setTranslation(f32 x, f32 y, f32 z) {
+    void setTranslation(f32 x, f32 y, f32 z)
+    {
         data[3] = x;
         data[7] = y;
         data[11] = z;
@@ -134,9 +130,7 @@ public:
     /**
      * @brief 平移变换（Vector3 版本）
      */
-    void translate(const Vector3f& v) {
-        translate(v.x, v.y, v.z);
-    }
+    void translate(const Vector3f& v) { translate(v.x, v.y, v.z); }
 
     /**
      * @brief 绕 X 轴旋转
@@ -171,30 +165,22 @@ public:
     /**
      * @brief 均匀缩放
      */
-    void scale(f32 s) {
-        scale(s, s, s);
-    }
+    void scale(f32 s) { scale(s, s, s); }
 
     /**
      * @brief 获取当前矩阵
      */
-    [[nodiscard]] const Matrix4f& last() const {
-        return m_stack.top();
-    }
+    [[nodiscard]] const Matrix4f& last() const { return m_stack.top(); }
 
     /**
      * @brief 获取当前矩阵（可修改）
      */
-    Matrix4f& last() {
-        return m_stack.top();
-    }
+    Matrix4f& last() { return m_stack.top(); }
 
     /**
      * @brief 获取栈深度
      */
-    [[nodiscard]] size_t depth() const {
-        return m_stack.size();
-    }
+    [[nodiscard]] size_t depth() const { return m_stack.size(); }
 
     /**
      * @brief 清空栈，重置为单位矩阵

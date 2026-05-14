@@ -1,10 +1,10 @@
 #pragma once
 
+#include "entity/entities/passive/basic/SheepEntity.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/interactive/BannerPattern.hpp"
-#include "entity/entities/passive/basic/SheepEntity.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -18,11 +18,14 @@ namespace blockentity {
  * 存储单个图案的信息：图案类型和颜色
  */
 struct BannerPattern {
-    BannerPatternType pattern = BannerPatternType::Base;  ///< 图案类型
-    DyeColor color = DyeColor::White;                      ///< 图案颜色
+    BannerPatternType pattern = BannerPatternType::Base; ///< 图案类型
+    DyeColor color = DyeColor::White;                    ///< 图案颜色
 
     BannerPattern() = default;
-    BannerPattern(BannerPatternType p, DyeColor c) : pattern(p), color(c) {}
+    BannerPattern(BannerPatternType p, DyeColor c)
+        : pattern(p)
+        , color(c)
+    {}
 };
 
 /**
@@ -133,7 +136,7 @@ public:
 
 private:
     std::vector<BannerPattern> m_patterns;  ///< 图案列表
-    DyeColor m_baseColor = DyeColor::White;  ///< 底色（默认白色）
+    DyeColor m_baseColor = DyeColor::White; ///< 底色（默认白色）
 };
 
 } // namespace blockentity

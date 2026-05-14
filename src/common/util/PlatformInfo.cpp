@@ -3,20 +3,20 @@
 
 // 平台特定头文件
 #ifdef _WIN32
-    #define WIN32_LEAN_AND_MEAN
-    #define NOMINMAX
-    #include <Windows.h>
-    #include <Psapi.h>
-    #include <intrin.h>
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Psapi.h>
+#include <Windows.h>
+#include <intrin.h>
 #elif defined(__linux__)
-    #include <fstream>
-    #include <sstream>
-    #include <unistd.h>
-    #include <sys/sysinfo.h>
+#include <fstream>
+#include <sstream>
+#include <sys/sysinfo.h>
+#include <unistd.h>
 #elif defined(__APPLE__)
-    #include <sys/sysctl.h>
-    #include <mach/mach.h>
-    #include <mach/task_info.h>
+#include <mach/mach.h>
+#include <mach/task_info.h>
+#include <sys/sysctl.h>
 #endif
 
 // Vulkan 头文件
@@ -29,23 +29,28 @@ namespace mc::util {
 // ============================================================================
 #ifdef _WIN32
 
-MemoryInfo PlatformInfo::getMemoryInfo() {
+MemoryInfo PlatformInfo::getMemoryInfo()
+{
     return getMemoryInfoWindows();
 }
 
-CpuInfo PlatformInfo::getCpuInfo() {
+CpuInfo PlatformInfo::getCpuInfo()
+{
     return getCpuInfoWindows();
 }
 
-u64 PlatformInfo::getProcessMemoryMB() {
+u64 PlatformInfo::getProcessMemoryMB()
+{
     return getProcessMemoryMBWindows();
 }
 
-std::string PlatformInfo::getPlatformName() {
+std::string PlatformInfo::getPlatformName()
+{
     return getPlatformNameWindows();
 }
 
-MemoryInfo PlatformInfo::getMemoryInfoWindows() {
+MemoryInfo PlatformInfo::getMemoryInfoWindows()
+{
     MemoryInfo info = {};
 
     MEMORYSTATUSEX status;
@@ -64,7 +69,8 @@ MemoryInfo PlatformInfo::getMemoryInfoWindows() {
     return info;
 }
 
-CpuInfo PlatformInfo::getCpuInfoWindows() {
+CpuInfo PlatformInfo::getCpuInfoWindows()
+{
     CpuInfo info = {};
     info.is64Bit = true; // 假设64位
 
@@ -108,11 +114,9 @@ CpuInfo PlatformInfo::getCpuInfoWindows() {
     DWORD freq = 0;
     DWORD size = sizeof(freq);
     HKEY hKey;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
-        "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
-        0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExA(hKey, "~MHz", nullptr, nullptr,
-            reinterpret_cast<LPBYTE>(&freq), &size) == ERROR_SUCCESS) {
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey) ==
+        ERROR_SUCCESS) {
+        if (RegQueryValueExA(hKey, "~MHz", nullptr, nullptr, reinterpret_cast<LPBYTE>(&freq), &size) == ERROR_SUCCESS) {
             info.clockSpeedMHz = freq;
         }
         RegCloseKey(hKey);
@@ -121,26 +125,26 @@ CpuInfo PlatformInfo::getCpuInfoWindows() {
     return info;
 }
 
-u64 PlatformInfo::getProcessMemoryMBWindows() {
+u64 PlatformInfo::getProcessMemoryMBWindows()
+{
     PROCESS_MEMORY_COUNTERS_EX pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(),
-        reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+    if (GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
         return pmc.WorkingSetSize / (1024 * 1024);
     }
     return 0;
 }
 
-std::string PlatformInfo::getPlatformNameWindows() {
+std::string PlatformInfo::getPlatformNameWindows()
+{
     OSVERSIONINFOEXA osvi;
     ZeroMemory(&osvi, sizeof(osvi));
     osvi.dwOSVersionInfoSize = sizeof(osvi);
 
     // 使用 RtlGetVersion 获取真实版本 (绕过兼容性垫片)
-    typedef LONG (WINAPI* RtlGetVersionFunc)(PRTL_OSVERSIONINFOW);
+    typedef LONG(WINAPI * RtlGetVersionFunc)(PRTL_OSVERSIONINFOW);
     HMODULE hNtDll = GetModuleHandleA("ntdll.dll");
     if (hNtDll) {
-        auto pRtlGetVersion = reinterpret_cast<RtlGetVersionFunc>(
-            GetProcAddress(hNtDll, "RtlGetVersion"));
+        auto pRtlGetVersion = reinterpret_cast<RtlGetVersionFunc>(GetProcAddress(hNtDll, "RtlGetVersion"));
         if (pRtlGetVersion) {
             pRtlGetVersion(reinterpret_cast<PRTL_OSVERSIONINFOW>(&osvi));
         }
@@ -167,23 +171,28 @@ std::string PlatformInfo::getPlatformNameWindows() {
 // ============================================================================
 #elif defined(__linux__)
 
-MemoryInfo PlatformInfo::getMemoryInfo() {
+MemoryInfo PlatformInfo::getMemoryInfo()
+{
     return getMemoryInfoLinux();
 }
 
-CpuInfo PlatformInfo::getCpuInfo() {
+CpuInfo PlatformInfo::getCpuInfo()
+{
     return getCpuInfoLinux();
 }
 
-u64 PlatformInfo::getProcessMemoryMB() {
+u64 PlatformInfo::getProcessMemoryMB()
+{
     return getProcessMemoryMBLinux();
 }
 
-std::string PlatformInfo::getPlatformName() {
+std::string PlatformInfo::getPlatformName()
+{
     return getPlatformNameLinux();
 }
 
-MemoryInfo PlatformInfo::getMemoryInfoLinux() {
+MemoryInfo PlatformInfo::getMemoryInfoLinux()
+{
     MemoryInfo info = {};
 
     struct sysinfo sysInfo;
@@ -191,15 +200,15 @@ MemoryInfo PlatformInfo::getMemoryInfoLinux() {
         info.totalPhysicalMB = sysInfo.totalram * sysInfo.mem_unit / (1024 * 1024);
         info.availablePhysicalMB = sysInfo.freeram * sysInfo.mem_unit / (1024 * 1024);
         info.usedPhysicalMB = info.totalPhysicalMB - info.availablePhysicalMB;
-        info.usagePercent = static_cast<u32>(
-            (info.usedPhysicalMB * 100) / info.totalPhysicalMB);
+        info.usagePercent = static_cast<u32>((info.usedPhysicalMB * 100) / info.totalPhysicalMB);
         info.processUsedMB = getProcessMemoryMBLinux();
     }
 
     return info;
 }
 
-CpuInfo PlatformInfo::getCpuInfoLinux() {
+CpuInfo PlatformInfo::getCpuInfoLinux()
+{
     CpuInfo info = {};
     info.is64Bit = sizeof(void*) == 8;
 
@@ -250,7 +259,8 @@ CpuInfo PlatformInfo::getCpuInfoLinux() {
     return info;
 }
 
-u64 PlatformInfo::getProcessMemoryMBLinux() {
+u64 PlatformInfo::getProcessMemoryMBLinux()
+{
     std::ifstream status("/proc/self/status");
     if (status.is_open()) {
         std::string line;
@@ -274,7 +284,8 @@ u64 PlatformInfo::getProcessMemoryMBLinux() {
     return 0;
 }
 
-std::string PlatformInfo::getPlatformNameLinux() {
+std::string PlatformInfo::getPlatformNameLinux()
+{
     std::ifstream osRelease("/etc/os-release");
     if (osRelease.is_open()) {
         std::string line;
@@ -300,23 +311,28 @@ std::string PlatformInfo::getPlatformNameLinux() {
 // ============================================================================
 #elif defined(__APPLE__)
 
-MemoryInfo PlatformInfo::getMemoryInfo() {
+MemoryInfo PlatformInfo::getMemoryInfo()
+{
     return getMemoryInfoMacOS();
 }
 
-CpuInfo PlatformInfo::getCpuInfo() {
+CpuInfo PlatformInfo::getCpuInfo()
+{
     return getCpuInfoMacOS();
 }
 
-u64 PlatformInfo::getProcessMemoryMB() {
+u64 PlatformInfo::getProcessMemoryMB()
+{
     return getProcessMemoryMBMacOS();
 }
 
-std::string PlatformInfo::getPlatformName() {
+std::string PlatformInfo::getPlatformName()
+{
     return getPlatformNameMacOS();
 }
 
-MemoryInfo PlatformInfo::getMemoryInfoMacOS() {
+MemoryInfo PlatformInfo::getMemoryInfoMacOS()
+{
     MemoryInfo info = {};
 
     // 获取物理内存
@@ -329,13 +345,12 @@ MemoryInfo PlatformInfo::getMemoryInfoMacOS() {
     // 获取可用内存 (使用 vm_statistics)
     vm_statistics64_data_t vmStats;
     mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
-    if (host_statistics64(mach_host_self(), HOST_VM_INFO64,
-        reinterpret_cast<host_info64_t>(&vmStats), &count) == KERN_SUCCESS) {
+    if (host_statistics64(mach_host_self(), HOST_VM_INFO64, reinterpret_cast<host_info64_t>(&vmStats), &count) ==
+        KERN_SUCCESS) {
         info.availablePhysicalMB = (vmStats.free_count + vmStats.inactive_count) * vm_page_size / (1024 * 1024);
         info.usedPhysicalMB = info.totalPhysicalMB - info.availablePhysicalMB;
         if (info.totalPhysicalMB > 0) {
-            info.usagePercent = static_cast<u32>(
-                (info.usedPhysicalMB * 100) / info.totalPhysicalMB);
+            info.usagePercent = static_cast<u32>((info.usedPhysicalMB * 100) / info.totalPhysicalMB);
         }
     }
 
@@ -344,7 +359,8 @@ MemoryInfo PlatformInfo::getMemoryInfoMacOS() {
     return info;
 }
 
-CpuInfo PlatformInfo::getCpuInfoMacOS() {
+CpuInfo PlatformInfo::getCpuInfoMacOS()
+{
     CpuInfo info = {};
     info.is64Bit = true;
 
@@ -400,18 +416,19 @@ CpuInfo PlatformInfo::getCpuInfoMacOS() {
     return info;
 }
 
-u64 PlatformInfo::getProcessMemoryMBMacOS() {
+u64 PlatformInfo::getProcessMemoryMBMacOS()
+{
     task_basic_info_64 info;
     mach_msg_type_number_t count = TASK_BASIC_INFO_64_COUNT;
 
-    if (task_info(mach_task_self(), TASK_BASIC_INFO_64,
-        reinterpret_cast<task_info_t>(&info), &count) == KERN_SUCCESS) {
+    if (task_info(mach_task_self(), TASK_BASIC_INFO_64, reinterpret_cast<task_info_t>(&info), &count) == KERN_SUCCESS) {
         return info.resident_size / (1024 * 1024);
     }
     return 0;
 }
 
-std::string PlatformInfo::getPlatformNameMacOS() {
+std::string PlatformInfo::getPlatformNameMacOS()
+{
     char version[256] = {};
     size_t size = sizeof(version);
 
@@ -430,17 +447,15 @@ std::string PlatformInfo::getPlatformNameMacOS() {
 // ============================================================================
 
 GpuInfo PlatformInfo::getGpuInfoFromVulkan(
-    const VkPhysicalDeviceProperties_T* properties,
-    const VkPhysicalDeviceMemoryProperties_T* memoryProperties
-) {
+    const VkPhysicalDeviceProperties_T* properties, const VkPhysicalDeviceMemoryProperties_T* memoryProperties)
+{
     GpuInfo info = {};
 
     if (properties == nullptr) {
         return info;
     }
 
-    const VkPhysicalDeviceProperties* props =
-        reinterpret_cast<const VkPhysicalDeviceProperties*>(properties);
+    const VkPhysicalDeviceProperties* props = reinterpret_cast<const VkPhysicalDeviceProperties*>(properties);
     const VkPhysicalDeviceMemoryProperties* memProps =
         reinterpret_cast<const VkPhysicalDeviceMemoryProperties*>(memoryProperties);
 
@@ -457,20 +472,20 @@ GpuInfo PlatformInfo::getGpuInfoFromVulkan(
             info.vendor = "NVIDIA";
             break;
         case 0x1002:
-        case 0x1022:  // AMD
+        case 0x1022: // AMD
             info.vendor = "AMD";
             break;
         case 0x8086:
-        case 0x8087:  // Intel
+        case 0x8087: // Intel
             info.vendor = "Intel";
             break;
-        case 0x13B5:  // ARM
+        case 0x13B5: // ARM
             info.vendor = "ARM";
             break;
-        case 0x1010:  // Apple
+        case 0x1010: // Apple
             info.vendor = "Apple";
             break;
-        case 0x5143:  // Qualcomm
+        case 0x5143: // Qualcomm
             info.vendor = "Qualcomm";
             break;
         default:
@@ -480,8 +495,8 @@ GpuInfo PlatformInfo::getGpuInfoFromVulkan(
 
     // 驱动版本
     info.driverVersion = std::to_string(VK_API_VERSION_MAJOR(props->driverVersion)) + "." +
-                         std::to_string(VK_API_VERSION_MINOR(props->driverVersion)) + "." +
-                         std::to_string(VK_API_VERSION_PATCH(props->driverVersion));
+        std::to_string(VK_API_VERSION_MINOR(props->driverVersion)) + "." +
+        std::to_string(VK_API_VERSION_PATCH(props->driverVersion));
 
     // 计算显存
     if (memProps) {
@@ -504,7 +519,8 @@ GpuInfo PlatformInfo::getGpuInfoFromVulkan(
     return info;
 }
 
-bool PlatformInfo::is64BitSystem() {
+bool PlatformInfo::is64BitSystem()
+{
     return sizeof(void*) == 8;
 }
 

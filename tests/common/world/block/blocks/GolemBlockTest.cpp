@@ -10,25 +10,25 @@
  * - 无效模式处理
  */
 
-#include <gtest/gtest.h>
-#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/tick/manager/TickManager.hpp"
-#include "world/fluid/Fluid.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
+#include "entity/core/VanillaEntities.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "entity/entities/passive/golem/SnowGolemEntity.hpp"
-#include "entity/core/VanillaEntities.hpp"
-#include "util/property/Properties.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/WorldEvents.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/tick/manager/TickManager.hpp"
+#include <gtest/gtest.h>
 
 #include <memory>
 #include <unordered_map>
@@ -50,14 +50,16 @@ namespace {
  */
 class GolemTestWorld final : public test::BaseTestWorld {
 public:
-    GolemTestWorld() {
+    GolemTestWorld()
+    {
         // 初始化 VanillaBlocks
         VanillaBlocks::initialize();
         // 初始化 VanillaEntities
         entity::VanillaEntities::registerAll();
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -69,7 +71,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         if (state == nullptr) {
             m_blocks.erase(BlockPos(x, y, z));
         } else {
@@ -78,13 +81,15 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
@@ -94,7 +99,8 @@ public:
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
     [[nodiscard]] bool isThundering() const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         Entity* rawPtr = entity.get();
         EntityId id = static_cast<EntityId>(m_spawnedEntities.size() + 1);
         m_spawnedEntities.push_back(std::move(entity));
@@ -102,11 +108,13 @@ public:
         return id;
     }
 
-    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
+    {
         m_soundPlayed = true;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override {
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
         m_lastEventId = eventId;
         m_lastEventPos = pos;
         m_lastEventData = data;
@@ -114,10 +122,12 @@ public:
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("GolemTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("GolemTestWorld::tickManager not implemented");
     }
 
@@ -126,7 +136,8 @@ public:
     void incrementTick() { m_currentTick++; }
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
         if (state == nullptr) {
             m_blocks.erase(pos);
         } else {
@@ -134,36 +145,36 @@ public:
         }
     }
 
-    void setBlockAt(i32 x, i32 y, i32 z, const BlockState* state) {
-        setBlockAt(BlockPos(x, y, z), state);
-    }
+    void setBlockAt(i32 x, i32 y, i32 z, const BlockState* state) { setBlockAt(BlockPos(x, y, z), state); }
 
-    void setIronBlockAt(i32 x, i32 y, i32 z) {
+    void setIronBlockAt(i32 x, i32 y, i32 z)
+    {
         if (VanillaBlocks::IRON_BLOCK) {
             m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(VanillaBlocks::IRON_BLOCK->defaultState());
         }
     }
 
-    void setSnowBlockAt(i32 x, i32 y, i32 z) {
+    void setSnowBlockAt(i32 x, i32 y, i32 z)
+    {
         if (VanillaBlocks::SNOW_BLOCK) {
             m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(VanillaBlocks::SNOW_BLOCK->defaultState());
         }
     }
 
-    void clearBlocks() {
-        m_blocks.clear();
-    }
+    void clearBlocks() { m_blocks.clear(); }
 
     [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
 
-    [[nodiscard]] Entity* getSpawnedEntity(size_t index) const {
+    [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
+    {
         if (index < m_spawnedEntityPtrs.size()) {
             return m_spawnedEntityPtrs[index];
         }
         return nullptr;
     }
 
-    void clearSpawnedEntities() {
+    void clearSpawnedEntities()
+    {
         m_spawnedEntities.clear();
         m_spawnedEntityPtrs.clear();
     }
@@ -171,7 +182,11 @@ public:
     [[nodiscard]] bool wasSoundPlayed() const { return m_soundPlayed; }
     [[nodiscard]] i32 getLastEventId() const { return m_lastEventId; }
     [[nodiscard]] i32 getEventCount() const { return m_eventCount; }
-    void resetEventCount() { m_eventCount = 0; m_soundPlayed = false; }
+    void resetEventCount()
+    {
+        m_eventCount = 0;
+        m_soundPlayed = false;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -194,30 +209,30 @@ private:
 
 class CarvedPumpkinBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
+    void SetUp() override
+    {
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
     }
 
     std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
 };
 
-TEST_F(CarvedPumpkinBlockTest, Create_HasCorrectProperties) {
+TEST_F(CarvedPumpkinBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(carvedPumpkin_, nullptr);
 }
 
-TEST_F(CarvedPumpkinBlockTest, DefaultState_HasCorrectFacing) {
+TEST_F(CarvedPumpkinBlockTest, DefaultState_HasCorrectFacing)
+{
     const auto& state = carvedPumpkin_->defaultState();
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     EXPECT_EQ(facing, Direction::North);
 }
 
-TEST_F(CarvedPumpkinBlockTest, StateContainer_HasFacingProperty) {
+TEST_F(CarvedPumpkinBlockTest, StateContainer_HasFacingProperty)
+{
     const auto& state = carvedPumpkin_->defaultState();
-    EXPECT_NO_THROW({
-        [[maybe_unused]] Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    });
+    EXPECT_NO_THROW({ [[maybe_unused]] Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING()); });
 }
 
 // ============================================================================
@@ -226,26 +241,29 @@ TEST_F(CarvedPumpkinBlockTest, StateContainer_HasFacingProperty) {
 
 class JackOLanternBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        jackOLantern_ = std::make_unique<JackOLanternBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15)
-        );
+    void SetUp() override
+    {
+        jackOLantern_ =
+            std::make_unique<JackOLanternBlock>(BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
     }
 
     std::unique_ptr<JackOLanternBlock> jackOLantern_;
 };
 
-TEST_F(JackOLanternBlockTest, Create_HasCorrectProperties) {
+TEST_F(JackOLanternBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(jackOLantern_, nullptr);
 }
 
-TEST_F(JackOLanternBlockTest, DefaultState_HasCorrectFacing) {
+TEST_F(JackOLanternBlockTest, DefaultState_HasCorrectFacing)
+{
     const auto& state = jackOLantern_->defaultState();
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     EXPECT_EQ(facing, Direction::North);
 }
 
-TEST_F(JackOLanternBlockTest, DefaultState_HasLightLevel) {
+TEST_F(JackOLanternBlockTest, DefaultState_HasLightLevel)
+{
     const auto& state = jackOLantern_->defaultState();
     EXPECT_EQ(state.lightLevel(), 15);
 }
@@ -256,14 +274,12 @@ TEST_F(JackOLanternBlockTest, DefaultState_HasLightLevel) {
 
 class SnowGolemSpawnTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         world_ = std::make_unique<GolemTestWorld>();
-        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
-        jackOLantern_ = std::make_unique<JackOLanternBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15)
-        );
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
+        jackOLantern_ =
+            std::make_unique<JackOLanternBlock>(BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
     }
 
     std::unique_ptr<GolemTestWorld> world_;
@@ -271,12 +287,13 @@ protected:
     std::unique_ptr<JackOLanternBlock> jackOLantern_;
 };
 
-TEST_F(SnowGolemSpawnTest, CarvedPumpkin_SnowGolemPattern_SpawnsEntity) {
+TEST_F(SnowGolemSpawnTest, CarvedPumpkin_SnowGolemPattern_SpawnsEntity)
+{
     // 设置雪傀儡模式：南瓜 + 雪块 + 雪块
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
-    world_->setSnowBlockAt(0, 9, 0);  // 第一块雪块
-    world_->setSnowBlockAt(0, 8, 0);  // 第二块雪块
+    world_->setSnowBlockAt(0, 9, 0); // 第一块雪块
+    world_->setSnowBlockAt(0, 8, 0); // 第二块雪块
 
     // 触发 onBlockAdded
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
@@ -291,12 +308,13 @@ TEST_F(SnowGolemSpawnTest, CarvedPumpkin_SnowGolemPattern_SpawnsEntity) {
     EXPECT_NE(snowGolem, nullptr);
 }
 
-TEST_F(SnowGolemSpawnTest, JackOLantern_SnowGolemPattern_SpawnsEntity) {
+TEST_F(SnowGolemSpawnTest, JackOLantern_SnowGolemPattern_SpawnsEntity)
+{
     // 设置雪傀儡模式：南瓜灯 + 雪块 + 雪块
     BlockPos pumpkinPos(5, 20, 5);
     world_->setBlockAt(pumpkinPos, &jackOLantern_->defaultState());
-    world_->setSnowBlockAt(5, 19, 5);  // 第一块雪块
-    world_->setSnowBlockAt(5, 18, 5);  // 第二块雪块
+    world_->setSnowBlockAt(5, 19, 5); // 第一块雪块
+    world_->setSnowBlockAt(5, 18, 5); // 第二块雪块
 
     // 触发 onBlockAdded
     jackOLantern_->onBlockAdded(*world_, pumpkinPos, jackOLantern_->defaultState());
@@ -311,7 +329,8 @@ TEST_F(SnowGolemSpawnTest, JackOLantern_SnowGolemPattern_SpawnsEntity) {
     EXPECT_NE(snowGolem, nullptr);
 }
 
-TEST_F(SnowGolemSpawnTest, SnowGolem_RemovesBlocks) {
+TEST_F(SnowGolemSpawnTest, SnowGolem_RemovesBlocks)
+{
     // 设置雪傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -335,7 +354,8 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_RemovesBlocks) {
     EXPECT_TRUE(snow2State->isAir());
 }
 
-TEST_F(SnowGolemSpawnTest, SnowGolem_PlaysBreakEvent) {
+TEST_F(SnowGolemSpawnTest, SnowGolem_PlaysBreakEvent)
+{
     // 设置雪傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -350,11 +370,12 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_PlaysBreakEvent) {
     EXPECT_EQ(world_->getLastEventId(), mc::world::WorldEvents::BREAK_BLOCK_EFFECTS);
 }
 
-TEST_F(SnowGolemSpawnTest, SnowGolem_IncompletePattern_NoSpawn) {
+TEST_F(SnowGolemSpawnTest, SnowGolem_IncompletePattern_NoSpawn)
+{
     // 只有一个雪块，不完整模式
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
-    world_->setSnowBlockAt(0, 9, 0);  // 只有一个雪块
+    world_->setSnowBlockAt(0, 9, 0); // 只有一个雪块
 
     // 触发 onBlockAdded
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
@@ -363,11 +384,12 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_IncompletePattern_NoSpawn) {
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
 
-TEST_F(SnowGolemSpawnTest, SnowGolem_WrongBlock_NoSpawn) {
+TEST_F(SnowGolemSpawnTest, SnowGolem_WrongBlock_NoSpawn)
+{
     // 使用错误的方块（铁块代替雪块）
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
-    world_->setIronBlockAt(0, 9, 0);  // 铁块不是雪块
+    world_->setIronBlockAt(0, 9, 0); // 铁块不是雪块
     world_->setIronBlockAt(0, 8, 0);
 
     // 触发 onBlockAdded
@@ -383,14 +405,12 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_WrongBlock_NoSpawn) {
 
 class IronGolemSpawnTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         world_ = std::make_unique<GolemTestWorld>();
-        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
-        jackOLantern_ = std::make_unique<JackOLanternBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15)
-        );
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
+        jackOLantern_ =
+            std::make_unique<JackOLanternBlock>(BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
     }
 
     /**
@@ -403,16 +423,17 @@ protected:
      *
      * 空气位置：(-1,10,0), (1,10,0), (-1,8,0), (1,8,0)
      */
-    void setupIronGolemEastWest(const BlockPos& pumpkinPos) {
+    void setupIronGolemEastWest(const BlockPos& pumpkinPos)
+    {
         i32 px = pumpkinPos.x, py = pumpkinPos.y, pz = pumpkinPos.z;
 
         // 南瓜位置
         world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
 
         // 手臂（中层东西方向）
-        world_->setIronBlockAt(px - 1, py - 1, pz);  // 西
-        world_->setIronBlockAt(px, py - 1, pz);       // 中央
-        world_->setIronBlockAt(px + 1, py - 1, pz);   // 东
+        world_->setIronBlockAt(px - 1, py - 1, pz); // 西
+        world_->setIronBlockAt(px, py - 1, pz);     // 中央
+        world_->setIronBlockAt(px + 1, py - 1, pz); // 东
 
         // 身体（底层）
         world_->setIronBlockAt(px, py - 2, pz);
@@ -428,16 +449,17 @@ protected:
      * 铁块(0,9,-1) 铁块(0,9,0) 铁块(0,9,1)
      *              铁块(0,8,0)
      */
-    void setupIronGolemNorthSouth(const BlockPos& pumpkinPos) {
+    void setupIronGolemNorthSouth(const BlockPos& pumpkinPos)
+    {
         i32 px = pumpkinPos.x, py = pumpkinPos.y, pz = pumpkinPos.z;
 
         // 南瓜位置
         world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
 
         // 手臂（中层南北方向）
-        world_->setIronBlockAt(px, py - 1, pz - 1);  // 北
-        world_->setIronBlockAt(px, py - 1, pz);       // 中央
-        world_->setIronBlockAt(px, py - 1, pz + 1);   // 南
+        world_->setIronBlockAt(px, py - 1, pz - 1); // 北
+        world_->setIronBlockAt(px, py - 1, pz);     // 中央
+        world_->setIronBlockAt(px, py - 1, pz + 1); // 南
 
         // 身体（底层）
         world_->setIronBlockAt(px, py - 2, pz);
@@ -448,7 +470,8 @@ protected:
     std::unique_ptr<JackOLanternBlock> jackOLantern_;
 };
 
-TEST_F(IronGolemSpawnTest, CarvedPumpkin_IronGolemEastWest_SpawnsEntity) {
+TEST_F(IronGolemSpawnTest, CarvedPumpkin_IronGolemEastWest_SpawnsEntity)
+{
     BlockPos pumpkinPos(0, 10, 0);
     setupIronGolemEastWest(pumpkinPos);
 
@@ -468,7 +491,8 @@ TEST_F(IronGolemSpawnTest, CarvedPumpkin_IronGolemEastWest_SpawnsEntity) {
     EXPECT_TRUE(ironGolem->isPlayerCreated());
 }
 
-TEST_F(IronGolemSpawnTest, JackOLantern_IronGolemEastWest_SpawnsEntity) {
+TEST_F(IronGolemSpawnTest, JackOLantern_IronGolemEastWest_SpawnsEntity)
+{
     BlockPos pumpkinPos(10, 20, 10);
 
     // 使用南瓜灯
@@ -492,7 +516,8 @@ TEST_F(IronGolemSpawnTest, JackOLantern_IronGolemEastWest_SpawnsEntity) {
     EXPECT_NE(ironGolem, nullptr);
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_NorthSouth_SpawnsEntity) {
+TEST_F(IronGolemSpawnTest, IronGolem_NorthSouth_SpawnsEntity)
+{
     BlockPos pumpkinPos(0, 10, 0);
     setupIronGolemNorthSouth(pumpkinPos);
 
@@ -509,7 +534,8 @@ TEST_F(IronGolemSpawnTest, IronGolem_NorthSouth_SpawnsEntity) {
     EXPECT_NE(ironGolem, nullptr);
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_RemovesAllBlocks) {
+TEST_F(IronGolemSpawnTest, IronGolem_RemovesAllBlocks)
+{
     BlockPos pumpkinPos(0, 10, 0);
     setupIronGolemEastWest(pumpkinPos);
 
@@ -527,7 +553,8 @@ TEST_F(IronGolemSpawnTest, IronGolem_RemovesAllBlocks) {
     EXPECT_TRUE(world_->getBlockState(0, 8, 0)->isAir());
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_PlaysBreakEvents) {
+TEST_F(IronGolemSpawnTest, IronGolem_PlaysBreakEvents)
+{
     BlockPos pumpkinPos(0, 10, 0);
     setupIronGolemEastWest(pumpkinPos);
 
@@ -539,13 +566,14 @@ TEST_F(IronGolemSpawnTest, IronGolem_PlaysBreakEvents) {
     EXPECT_EQ(world_->getLastEventId(), mc::world::WorldEvents::BREAK_BLOCK_EFFECTS);
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_MissingArmBlock_NoSpawn) {
+TEST_F(IronGolemSpawnTest, IronGolem_MissingArmBlock_NoSpawn)
+{
     // 缺少一侧手臂铁块
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
-    world_->setIronBlockAt(0, 9, 0);       // 中央
-    world_->setIronBlockAt(1, 9, 0);       // 东（缺少西）
-    world_->setIronBlockAt(0, 8, 0);       // 身体
+    world_->setIronBlockAt(0, 9, 0); // 中央
+    world_->setIronBlockAt(1, 9, 0); // 东（缺少西）
+    world_->setIronBlockAt(0, 8, 0); // 身体
 
     // 触发 onBlockAdded
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
@@ -554,7 +582,8 @@ TEST_F(IronGolemSpawnTest, IronGolem_MissingArmBlock_NoSpawn) {
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_MissingBodyBlock_NoSpawn) {
+TEST_F(IronGolemSpawnTest, IronGolem_MissingBodyBlock_NoSpawn)
+{
     // 缺少身体铁块
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -570,14 +599,15 @@ TEST_F(IronGolemSpawnTest, IronGolem_MissingBodyBlock_NoSpawn) {
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_ArmPositionBlocked_NoSpawn) {
+TEST_F(IronGolemSpawnTest, IronGolem_ArmPositionBlocked_NoSpawn)
+{
     // 手臂位置被方块挡住
     BlockPos pumpkinPos(0, 10, 0);
     setupIronGolemEastWest(pumpkinPos);
 
     // 在手臂旁边放方块（应该有空气的位置）
-    world_->setIronBlockAt(-1, 10, 0);  // 阻挡顶层西侧
-    world_->setIronBlockAt(1, 10, 0);   // 阻挡顶层东侧
+    world_->setIronBlockAt(-1, 10, 0); // 阻挡顶层西侧
+    world_->setIronBlockAt(1, 10, 0);  // 阻挡顶层东侧
 
     // 触发 onBlockAdded
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
@@ -586,14 +616,15 @@ TEST_F(IronGolemSpawnTest, IronGolem_ArmPositionBlocked_NoSpawn) {
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_BottomPositionBlocked_NoSpawn) {
+TEST_F(IronGolemSpawnTest, IronGolem_BottomPositionBlocked_NoSpawn)
+{
     // 底部身体旁边被方块挡住
     BlockPos pumpkinPos(0, 10, 0);
     setupIronGolemEastWest(pumpkinPos);
 
     // 在身体旁边放方块
-    world_->setIronBlockAt(-1, 8, 0);  // 阻挡底层西侧
-    world_->setIronBlockAt(1, 8, 0);   // 阻挡底层东侧
+    world_->setIronBlockAt(-1, 8, 0); // 阻挡底层西侧
+    world_->setIronBlockAt(1, 8, 0);  // 阻挡底层东侧
 
     // 触发 onBlockAdded
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
@@ -602,7 +633,8 @@ TEST_F(IronGolemSpawnTest, IronGolem_BottomPositionBlocked_NoSpawn) {
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
 
-TEST_F(IronGolemSpawnTest, IronGolem_WrongBlock_NoSpawn) {
+TEST_F(IronGolemSpawnTest, IronGolem_WrongBlock_NoSpawn)
+{
     // 使用泥土块代替铁块（泥土不会触发任何傀儡模式）
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -627,18 +659,18 @@ TEST_F(IronGolemSpawnTest, IronGolem_WrongBlock_NoSpawn) {
 
 class GolemPatternPriorityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         world_ = std::make_unique<GolemTestWorld>();
-        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
     }
 
     std::unique_ptr<GolemTestWorld> world_;
     std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
 };
 
-TEST_F(GolemPatternPriorityTest, SnowGolemHasPriorityOverIronGolem) {
+TEST_F(GolemPatternPriorityTest, SnowGolemHasPriorityOverIronGolem)
+{
     // MC 1.16.5: 雪傀儡检测优先于铁傀儡
     // 设置一个同时满足两种模式的情况（虽然实际不可能）
     // 这里测试雪傀儡模式优先被检测
@@ -665,19 +697,19 @@ TEST_F(GolemPatternPriorityTest, SnowGolemHasPriorityOverIronGolem) {
 
 class GolemClientSideTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         world_ = std::make_unique<GolemTestWorld>();
-        world_->setClientSide(true);  // 设置为客户端
-        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
+        world_->setClientSide(true); // 设置为客户端
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
     }
 
     std::unique_ptr<GolemTestWorld> world_;
     std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
 };
 
-TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnSnowGolem) {
+TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnSnowGolem)
+{
     // 设置雪傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -695,7 +727,8 @@ TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnSnowGolem) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnIronGolem) {
+TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnIronGolem)
+{
     // 设置铁傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -717,18 +750,18 @@ TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnIronGolem) {
 
 class GolemBoundaryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         world_ = std::make_unique<GolemTestWorld>();
-        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
     }
 
     std::unique_ptr<GolemTestWorld> world_;
     std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
 };
 
-TEST_F(GolemBoundaryTest, EmptyWorld_NoSpawn) {
+TEST_F(GolemBoundaryTest, EmptyWorld_NoSpawn)
+{
     // 空世界，没有构成方块
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -740,7 +773,8 @@ TEST_F(GolemBoundaryTest, EmptyWorld_NoSpawn) {
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
 
-TEST_F(GolemBoundaryTest, HighYCoordinate_SnowGolemSpawns) {
+TEST_F(GolemBoundaryTest, HighYCoordinate_SnowGolemSpawns)
+{
     // 高Y坐标测试
     BlockPos pumpkinPos(1000, 256, 1000);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -754,7 +788,8 @@ TEST_F(GolemBoundaryTest, HighYCoordinate_SnowGolemSpawns) {
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 }
 
-TEST_F(GolemBoundaryTest, NegativeCoordinate_IronGolemSpawns) {
+TEST_F(GolemBoundaryTest, NegativeCoordinate_IronGolemSpawns)
+{
     // 负坐标测试
     BlockPos pumpkinPos(-100, 50, -200);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
@@ -770,7 +805,8 @@ TEST_F(GolemBoundaryTest, NegativeCoordinate_IronGolemSpawns) {
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 }
 
-TEST_F(GolemBoundaryTest, MultipleAttempts_AfterPatternDestroyed) {
+TEST_F(GolemBoundaryTest, MultipleAttempts_AfterPatternDestroyed)
+{
     // 第一次生成
     BlockPos pumpkinPos1(0, 10, 0);
     world_->setBlockAt(pumpkinPos1, &carvedPumpkin_->defaultState());

@@ -1,11 +1,11 @@
 #pragma once
 
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class Entity;
@@ -16,9 +16,9 @@ class ClientEntity;
 }
 
 namespace client::renderer::entity::pipeline {
-class EntityPipeline;  // 前向声明
+class EntityPipeline; // 前向声明
 class EntityTextureAtlas;
-}
+} // namespace client::renderer::entity::pipeline
 
 namespace client::renderer::entity::effect::fire {
 
@@ -41,8 +41,7 @@ public:
      * @param resourcePacks 资源包列表（用于加载火焰纹理）
      * @return 成功或错误
      */
-    static bool initialize(
-        VkDevice device,
+    static bool initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -87,11 +86,7 @@ public:
      * @param pipeline 实体渲染管线
      */
     static void renderFire(
-        VkCommandBuffer cmd,
-        ::mc::client::ClientEntity& entity,
-        f64 partialTicks,
-        pipeline::EntityPipeline& pipeline
-    );
+        VkCommandBuffer cmd, ::mc::client::ClientEntity& entity, f64 partialTicks, pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 获取火焰纹理视图
@@ -124,13 +119,11 @@ private:
      * @param pipeline 渲染管线
      * @param cameraYaw 相机偏航角（用于 billboard 朝向）
      */
-    static void renderFireLayers(
-        VkCommandBuffer cmd,
+    static void renderFireLayers(VkCommandBuffer cmd,
         ::mc::client::ClientEntity& entity,
         f64 partialTicks,
         pipeline::EntityPipeline& pipeline,
-        f32 cameraYaw
-    );
+        f32 cameraYaw);
 
     /**
      * @brief 加载火焰纹理
@@ -163,14 +156,18 @@ private:
      * @param indices 索引输出缓冲区
      * @param transformIndex 变换索引（用于 billboard）
      */
-    static void generateFireQuad(
-        f64 x, f64 y, f64 z,
-        f64 width, f64 height,
-        f32 u0, f32 v0, f32 u1, f32 v1,
+    static void generateFireQuad(f64 x,
+        f64 y,
+        f64 z,
+        f64 width,
+        f64 height,
+        f32 u0,
+        f32 v0,
+        f32 u1,
+        f32 v1,
         std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices,
-        u32 transformIndex = 0
-    );
+        u32 transformIndex = 0);
 
     /**
      * @brief 计算火焰偏移（用于动画）
@@ -180,10 +177,7 @@ private:
     /**
      * @brief 计算 billboard 变换矩阵
      */
-    static void computeBillboardMatrices(
-        const Vector3f& position,
-        std::array<std::array<f64, 16>, 2>& outMatrices
-    );
+    static void computeBillboardMatrices(const Vector3f& position, std::array<std::array<f64, 16>, 2>& outMatrices);
 
     static bool s_initialized;
     static VkDevice s_device;
@@ -207,5 +201,5 @@ private:
     static constexpr i32 FULL_LIGHT = 15728640;
 };
 
-} // namespace mc::client::renderer::entity::effect::fire
+} // namespace client::renderer::entity::effect::fire
 } // namespace mc

@@ -7,7 +7,8 @@ namespace mc::client::renderer::entity::effect::glow {
 
 bool GlowEffect::s_initialized = false;
 
-void GlowEffect::initialize() {
+void GlowEffect::initialize()
+{
     if (s_initialized) {
         return;
     }
@@ -26,7 +27,8 @@ void GlowEffect::initialize() {
     s_initialized = true;
 }
 
-void GlowEffect::cleanup() {
+void GlowEffect::cleanup()
+{
     if (!s_initialized) {
         return;
     }
@@ -37,7 +39,8 @@ void GlowEffect::cleanup() {
     s_initialized = false;
 }
 
-bool GlowEffect::hasGlowEffect(Entity& entity) {
+bool GlowEffect::hasGlowEffect(Entity& entity)
+{
     // 参考 MC 1.16.5 发光效果判定
     // 检查实体是否有以下状态：
     // 1. 发光药水效果 (EffectType::Glowing) - LivingEntity 专用
@@ -62,7 +65,8 @@ bool GlowEffect::hasGlowEffect(Entity& entity) {
     return false;
 }
 
-math::Vector4f GlowEffect::getGlowColor(Entity& entity) {
+math::Vector4f GlowEffect::getGlowColor(Entity& entity)
+{
     // 参考 MC 1.16.5 发光颜色
     // 默认颜色为白色 (1, 1, 1, 1)
     // 特殊情况：
@@ -78,7 +82,8 @@ math::Vector4f GlowEffect::getGlowColor(Entity& entity) {
     return math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-void GlowEffect::renderGlow(Entity& entity, f64 partialTicks, const math::Vector4f& color) {
+void GlowEffect::renderGlow(Entity& entity, f64 partialTicks, const math::Vector4f& color)
+{
     // 参考 MC 1.16.5 发光轮廓渲染
     // 步骤：
     // 1. 渲染实体到发光缓冲区（使用轮廓着色器）
@@ -97,7 +102,8 @@ void GlowEffect::renderGlow(Entity& entity, f64 partialTicks, const math::Vector
     (void)color;
 }
 
-void GlowEffect::renderAllGlowing(f64 partialTicks) {
+void GlowEffect::renderAllGlowing(f64 partialTicks)
+{
     // 参考 MC 1.16.5 发光效果渲染流程
     // 1. 从世界获取所有发光实体
     // 2. 渲染到发光缓冲区
@@ -111,11 +117,8 @@ void GlowEffect::renderAllGlowing(f64 partialTicks) {
     (void)partialTicks;
 }
 
-void GlowEffect::generateGlowMesh(
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices,
-    f64 scale
-) {
+void GlowEffect::generateGlowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale)
+{
     // 发光轮廓网格生成
     // 轮廓网格比原模型稍大（通过顶点法线外推实现膨胀效果）
     // 参考 MC 1.16.5: 使用顶点着色器沿法线方向外推

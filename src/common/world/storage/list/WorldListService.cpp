@@ -1,19 +1,18 @@
 #include "WorldListService.hpp"
 #include "WorldNameSanitizer.hpp"
 #include <algorithm>
-#include <archive.h>
-#include <archive_entry.h>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <archive.h>
+#include <archive_entry.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
 
 WorldListService::WorldListService(WorldStoragePaths paths)
     : m_paths(std::move(paths))
-{
-}
+{}
 
 Result<std::vector<WorldListEntry>> WorldListService::listWorlds()
 {
@@ -71,8 +70,7 @@ Result<std::string> WorldListService::createWorld(const CreateWorldRequest& requ
         }
     } else {
         // 自动生成可用目录名
-        auto idResult = WorldNameSanitizer::findAvailableLevelId(
-            m_paths.savesDir(), request.displayName);
+        auto idResult = WorldNameSanitizer::findAvailableLevelId(m_paths.savesDir(), request.displayName);
         if (!idResult.success()) {
             return idResult.error();
         }
@@ -83,8 +81,7 @@ Result<std::string> WorldListService::createWorld(const CreateWorldRequest& requ
     std::filesystem::path worldDir = m_paths.worldDir(levelId);
     std::error_code ec;
     if (!std::filesystem::create_directory(worldDir, ec)) {
-        return Error(ErrorCode::FileWriteFailed,
-            "Failed to create world directory: " + worldDir.string());
+        return Error(ErrorCode::FileWriteFailed, "Failed to create world directory: " + worldDir.string());
     }
 
     // 获取会话锁
@@ -122,23 +119,19 @@ Result<void> WorldListService::deleteWorld(const std::string& levelId)
 
     // 检查锁定状态
     if (WorldSessionLock::isLocked(worldDir)) {
-        return Error(ErrorCode::PermissionDenied,
-            "Cannot delete locked world: " + levelId);
+        return Error(ErrorCode::PermissionDenied, "Cannot delete locked world: " + levelId);
     }
 
     // 递归删除目录
     if (!std::filesystem::remove_all(worldDir, ec)) {
-        return Error(ErrorCode::FileWriteFailed,
-            "Failed to delete world directory: " + ec.message());
+        return Error(ErrorCode::FileWriteFailed, "Failed to delete world directory: " + ec.message());
     }
 
     spdlog::info("Deleted world: {}", levelId);
     return {};
 }
 
-Result<void> WorldListService::renameWorld(
-    const std::string& levelId,
-    const std::string& newDisplayName)
+Result<void> WorldListService::renameWorld(const std::string& levelId, const std::string& newDisplayName)
 {
     std::filesystem::path worldDir = m_paths.worldDir(levelId);
 
@@ -206,8 +199,7 @@ Result<BackupWorldResult> WorldListService::backupWorld(const BackupWorldRequest
 
     // 生成备份文件名
     auto now = std::chrono::system_clock::now();
-    auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()).count();
+    auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
     std::string backupName = request.levelId + "_" + std::to_string(nowMs) + ".zip";
     std::filesystem::path backupPath = m_paths.backupsDir() / backupName;
@@ -266,8 +258,7 @@ Result<BackupWorldResult> WorldListService::backupWorld(const BackupWorldRequest
             break;
         }
 
-        std::vector<char> content((std::istreambuf_iterator<char>(file)),
-            std::istreambuf_iterator<char>());
+        std::vector<char> content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
         // 创建 archive entry
         struct archive_entry* entry_out = archive_entry_new();
@@ -309,8 +300,7 @@ Result<BackupWorldResult> WorldListService::backupWorld(const BackupWorldRequest
         backupSize = 0;
     }
 
-    spdlog::info("Created backup of world {} at {} ({} bytes)",
-        request.levelId, backupPath.string(), backupSize);
+    spdlog::info("Created backup of world {} at {} ({} bytes)", request.levelId, backupPath.string(), backupSize);
 
     return BackupWorldResult(backupPath, backupSize);
 }
@@ -346,16 +336,13 @@ Result<std::vector<std::string>> WorldListService::enumerateWorldDirectories()
     }
 
     if (ec) {
-        return Error(ErrorCode::FileReadFailed,
-            "Failed to enumerate saves directory: " + ec.message());
+        return Error(ErrorCode::FileReadFailed, "Failed to enumerate saves directory: " + ec.message());
     }
 
     return dirs;
 }
 
-WorldListEntry WorldListService::tryReadWorldSummary(
-    const std::string& levelId,
-    const std::filesystem::path& worldDir)
+WorldListEntry WorldListService::tryReadWorldSummary(const std::string& levelId, const std::filesystem::path& worldDir)
 {
     WorldListEntry entry;
     entry.levelId = levelId;

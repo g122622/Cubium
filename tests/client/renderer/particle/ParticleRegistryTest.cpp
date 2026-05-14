@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
-#include "client/renderer/trident/particle/Particle.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "client/renderer/trident/particle/ParticleRenderType.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <glm/glm.hpp>
+#include <gtest/gtest.h>
 
 // 前置声明 ClientWorld
 namespace mc::client {
@@ -18,7 +18,8 @@ using namespace mc;
 /**
  * @brief 测试粒子注册表单例
  */
-TEST(ParticleRegistryTest, SingletonInstance) {
+TEST(ParticleRegistryTest, SingletonInstance)
+{
     ParticleRegistry& instance1 = ParticleRegistry::instance();
     ParticleRegistry& instance2 = ParticleRegistry::instance();
 
@@ -28,7 +29,8 @@ TEST(ParticleRegistryTest, SingletonInstance) {
 /**
  * @brief 测试内置粒子类型注册
  */
-TEST(ParticleRegistryTest, BuiltinTypesRegistered) {
+TEST(ParticleRegistryTest, BuiltinTypesRegistered)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     // 检查一些内置类型是否已注册
@@ -49,7 +51,8 @@ TEST(ParticleRegistryTest, BuiltinTypesRegistered) {
 /**
  * @brief 测试获取类型名称
  */
-TEST(ParticleRegistryTest, GetTypeName) {
+TEST(ParticleRegistryTest, GetTypeName)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     EXPECT_EQ(registry.getTypeName(ParticleTypeId::Flame), "minecraft:flame");
@@ -66,7 +69,8 @@ TEST(ParticleRegistryTest, GetTypeName) {
 /**
  * @brief 测试通过名称获取类型 ID
  */
-TEST(ParticleRegistryTest, GetTypeIdByName) {
+TEST(ParticleRegistryTest, GetTypeIdByName)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     auto flameId = registry.getTypeId("minecraft:flame");
@@ -89,7 +93,8 @@ TEST(ParticleRegistryTest, GetTypeIdByName) {
 /**
  * @brief 测试通过资源位置获取类型 ID
  */
-TEST(ParticleRegistryTest, GetTypeIdByResourceLocation) {
+TEST(ParticleRegistryTest, GetTypeIdByResourceLocation)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     // 注册表使用 "minecraft:flame" 格式
@@ -101,7 +106,8 @@ TEST(ParticleRegistryTest, GetTypeIdByResourceLocation) {
 /**
  * @brief 测试获取类型信息
  */
-TEST(ParticleRegistryTest, GetTypeInfo) {
+TEST(ParticleRegistryTest, GetTypeInfo)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     const ParticleTypeInfo* flameInfo = registry.getTypeInfo(ParticleTypeId::Flame);
@@ -120,7 +126,8 @@ TEST(ParticleRegistryTest, GetTypeInfo) {
 /**
  * @brief 测试获取所有类型 ID
  */
-TEST(ParticleRegistryTest, GetAllTypeIds) {
+TEST(ParticleRegistryTest, GetAllTypeIds)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     std::vector<ParticleTypeId> ids = registry.getAllTypeIds();
@@ -147,7 +154,8 @@ TEST(ParticleRegistryTest, GetAllTypeIds) {
 /**
  * @brief 测试类型数量
  */
-TEST(ParticleRegistryTest, TypeCount) {
+TEST(ParticleRegistryTest, TypeCount)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     // 应该有多个类型注册
@@ -157,14 +165,13 @@ TEST(ParticleRegistryTest, TypeCount) {
 /**
  * @brief 测试自定义粒子类型注册
  */
-TEST(ParticleRegistryTest, RegisterCustomType) {
+TEST(ParticleRegistryTest, RegisterCustomType)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     // 注册一个自定义粒子类型
-    ParticleFactory customFactory = [](
-        const glm::vec3& pos,
-        const glm::vec3& vel,
-        mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
+    ParticleFactory customFactory =
+        [](const glm::vec3& pos, const glm::vec3& vel, mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
         MC_UNUSED(world);
         return std::make_unique<Particle>(pos, vel);
     };
@@ -172,14 +179,13 @@ TEST(ParticleRegistryTest, RegisterCustomType) {
     // 使用未使用的ID范围
     ParticleTypeId customId = static_cast<ParticleTypeId>(100);
 
-    registry.registerType(
-        customId,
+    registry.registerType(customId,
         "test:custom_particle",
         customFactory,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
-        30.0f,  // lifetime
-        true,   // hasPhysics
-        false   // ignoreDistance
+        30.0f, // lifetime
+        true,  // hasPhysics
+        false  // ignoreDistance
     );
 
     EXPECT_TRUE(registry.isRegistered(customId));
@@ -201,14 +207,13 @@ TEST(ParticleRegistryTest, RegisterCustomType) {
 /**
  * @brief 测试创建粒子实例
  */
-TEST(ParticleRegistryTest, CreateParticle) {
+TEST(ParticleRegistryTest, CreateParticle)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     // 注册一个可创建的类型
-    ParticleFactory testFactory = [](
-        const glm::vec3& pos,
-        const glm::vec3& vel,
-        mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
+    ParticleFactory testFactory =
+        [](const glm::vec3& pos, const glm::vec3& vel, mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
         MC_UNUSED(world);
         auto particle = std::make_unique<Particle>(pos, vel);
         particle->setMaxAge(50.0f);
@@ -237,13 +242,12 @@ TEST(ParticleRegistryTest, CreateParticle) {
 /**
  * @brief 测试通过名称创建粒子实例
  */
-TEST(ParticleRegistryTest, CreateParticleByName) {
+TEST(ParticleRegistryTest, CreateParticleByName)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
-    ParticleFactory testFactory = [](
-        const glm::vec3& pos,
-        const glm::vec3& vel,
-        mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
+    ParticleFactory testFactory =
+        [](const glm::vec3& pos, const glm::vec3& vel, mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
         MC_UNUSED(world);
         return std::make_unique<Particle>(pos, vel);
     };
@@ -265,19 +269,19 @@ TEST(ParticleRegistryTest, CreateParticleByName) {
 /**
  * @brief 测试无效类型创建
  */
-TEST(ParticleRegistryTest, CreateInvalidParticle) {
+TEST(ParticleRegistryTest, CreateInvalidParticle)
+{
     ParticleRegistry& registry = ParticleRegistry::instance();
 
     glm::vec3 pos(0.0f);
     glm::vec3 vel(0.0f);
 
     // 无效 ID
-    std::unique_ptr<Particle> invalidIdParticle = registry.createParticle(
-        ParticleTypeId::Invalid, pos, vel, nullptr);
+    std::unique_ptr<Particle> invalidIdParticle = registry.createParticle(ParticleTypeId::Invalid, pos, vel, nullptr);
     EXPECT_EQ(invalidIdParticle, nullptr);
 
     // 未注册的 ID
-    std::unique_ptr<Particle> unregisteredParticle = registry.createParticle(
-        static_cast<ParticleTypeId>(200), pos, vel, nullptr);
+    std::unique_ptr<Particle> unregisteredParticle =
+        registry.createParticle(static_cast<ParticleTypeId>(200), pos, vel, nullptr);
     EXPECT_EQ(unregisteredParticle, nullptr);
 }

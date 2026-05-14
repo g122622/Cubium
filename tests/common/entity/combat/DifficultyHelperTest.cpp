@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 
 using namespace mc::entity::combat;
 using namespace mc;
@@ -12,12 +12,14 @@ using namespace mc;
 
 // ========== 玩家伤害调整测试 ==========
 
-TEST(DifficultyHelperTest, AdjustPlayerDamage_Peaceful) {
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Peaceful)
+{
     // 和平模式玩家不受怪物伤害
     EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Peaceful, 10.0f), 0.0f);
 }
 
-TEST(DifficultyHelperTest, AdjustPlayerDamage_Easy) {
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Easy)
+{
     // MC 1.16.5: min(damage/2 + 1, damage)
     // damage=10 -> min(5+1, 10) = 6
     EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, 10.0f), 6.0f);
@@ -27,34 +29,41 @@ TEST(DifficultyHelperTest, AdjustPlayerDamage_Easy) {
     EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, 1.0f), 1.0f);
 }
 
-TEST(DifficultyHelperTest, AdjustPlayerDamage_Normal) {
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Normal)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Normal, 10.0f), 10.0f);
 }
 
-TEST(DifficultyHelperTest, AdjustPlayerDamage_Hard) {
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Hard)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Hard, 10.0f), 15.0f);
 }
 
 // ========== 怪物伤害调整测试 ==========
 
-TEST(DifficultyHelperTest, GetMobDamageAdjustment_Peaceful) {
+TEST(DifficultyHelperTest, GetMobDamageAdjustment_Peaceful)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(Difficulty::Peaceful), 0.0f);
 }
 
-TEST(DifficultyHelperTest, GetMobDamageAdjustment_Easy) {
+TEST(DifficultyHelperTest, GetMobDamageAdjustment_Easy)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(Difficulty::Easy), -2.0f);
 }
 
-TEST(DifficultyHelperTest, GetMobDamageAdjustment_Normal) {
+TEST(DifficultyHelperTest, GetMobDamageAdjustment_Normal)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(Difficulty::Normal), 0.0f);
 }
 
-TEST(DifficultyHelperTest, GetMobDamageAdjustment_Hard) {
+TEST(DifficultyHelperTest, GetMobDamageAdjustment_Hard)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(Difficulty::Hard), 2.0f);
 }
 
-TEST(DifficultyHelperTest, GetMobDamageAdjustment_ByIntId) {
-    EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(0), 0.0f);   // Peaceful
+TEST(DifficultyHelperTest, GetMobDamageAdjustment_ByIntId)
+{
+    EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(0), 0.0f);  // Peaceful
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(1), -2.0f); // Easy
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(2), 0.0f);  // Normal
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(3), 2.0f);  // Hard
@@ -62,45 +71,54 @@ TEST(DifficultyHelperTest, GetMobDamageAdjustment_ByIntId) {
 
 // ========== 饥饿最小生命值测试 ==========
 
-TEST(DifficultyHelperTest, GetStarvationMinHealth_Peaceful) {
+TEST(DifficultyHelperTest, GetStarvationMinHealth_Peaceful)
+{
     // 和平模式返回最大生命值，不受饥饿伤害
     EXPECT_FLOAT_EQ(DifficultyHelper::getStarvationMinHealth(Difficulty::Peaceful), 20.0f);
 }
 
-TEST(DifficultyHelperTest, GetStarvationMinHealth_Easy) {
+TEST(DifficultyHelperTest, GetStarvationMinHealth_Easy)
+{
     // 简单模式：5颗心
     EXPECT_FLOAT_EQ(DifficultyHelper::getStarvationMinHealth(Difficulty::Easy), 10.0f);
 }
 
-TEST(DifficultyHelperTest, GetStarvationMinHealth_Normal) {
+TEST(DifficultyHelperTest, GetStarvationMinHealth_Normal)
+{
     // 普通模式：半颗心
     EXPECT_FLOAT_EQ(DifficultyHelper::getStarvationMinHealth(Difficulty::Normal), 1.0f);
 }
 
-TEST(DifficultyHelperTest, GetStarvationMinHealth_Hard) {
+TEST(DifficultyHelperTest, GetStarvationMinHealth_Hard)
+{
     // 困难模式：可以饿死
     EXPECT_FLOAT_EQ(DifficultyHelper::getStarvationMinHealth(Difficulty::Hard), 0.0f);
 }
 
 // ========== 火焰机制测试 ==========
 
-TEST(DifficultyHelperTest, GetFireDurationMultiplier_Peaceful) {
+TEST(DifficultyHelperTest, GetFireDurationMultiplier_Peaceful)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getFireDurationMultiplier(Difficulty::Peaceful), 0.25f);
 }
 
-TEST(DifficultyHelperTest, GetFireDurationMultiplier_Easy) {
+TEST(DifficultyHelperTest, GetFireDurationMultiplier_Easy)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getFireDurationMultiplier(Difficulty::Easy), 0.5f);
 }
 
-TEST(DifficultyHelperTest, GetFireDurationMultiplier_Normal) {
+TEST(DifficultyHelperTest, GetFireDurationMultiplier_Normal)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getFireDurationMultiplier(Difficulty::Normal), 1.0f);
 }
 
-TEST(DifficultyHelperTest, GetFireDurationMultiplier_Hard) {
+TEST(DifficultyHelperTest, GetFireDurationMultiplier_Hard)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getFireDurationMultiplier(Difficulty::Hard), 1.5f);
 }
 
-TEST(DifficultyHelperTest, GetFireSpreadBonus) {
+TEST(DifficultyHelperTest, GetFireSpreadBonus)
+{
     EXPECT_EQ(DifficultyHelper::getFireSpreadBonus(Difficulty::Peaceful), 0);
     EXPECT_EQ(DifficultyHelper::getFireSpreadBonus(Difficulty::Easy), 7);
     EXPECT_EQ(DifficultyHelper::getFireSpreadBonus(Difficulty::Normal), 14);
@@ -109,7 +127,8 @@ TEST(DifficultyHelperTest, GetFireSpreadBonus) {
 
 // ========== 特殊机制测试 ==========
 
-TEST(DifficultyHelperTest, CanZombieReinforce) {
+TEST(DifficultyHelperTest, CanZombieReinforce)
+{
     // 只有困难模式僵尸才能召唤增援
     EXPECT_FALSE(DifficultyHelper::canZombieReinforce(Difficulty::Peaceful));
     EXPECT_FALSE(DifficultyHelper::canZombieReinforce(Difficulty::Easy));
@@ -117,7 +136,8 @@ TEST(DifficultyHelperTest, CanZombieReinforce) {
     EXPECT_TRUE(DifficultyHelper::canZombieReinforce(Difficulty::Hard));
 }
 
-TEST(DifficultyHelperTest, GetVillagerInfectionChance) {
+TEST(DifficultyHelperTest, GetVillagerInfectionChance)
+{
     // 和平和简单：0%
     EXPECT_FLOAT_EQ(DifficultyHelper::getVillagerInfectionChance(Difficulty::Peaceful), 0.0f);
     EXPECT_FLOAT_EQ(DifficultyHelper::getVillagerInfectionChance(Difficulty::Easy), 0.0f);
@@ -127,7 +147,8 @@ TEST(DifficultyHelperTest, GetVillagerInfectionChance) {
     EXPECT_FLOAT_EQ(DifficultyHelper::getVillagerInfectionChance(Difficulty::Hard), 1.0f);
 }
 
-TEST(DifficultyHelperTest, GetRaidWaves) {
+TEST(DifficultyHelperTest, GetRaidWaves)
+{
     // 和平模式不发生袭击
     EXPECT_EQ(DifficultyHelper::getRaidWaves(Difficulty::Peaceful), 0);
     // 简单：3波
@@ -138,7 +159,8 @@ TEST(DifficultyHelperTest, GetRaidWaves) {
     EXPECT_EQ(DifficultyHelper::getRaidWaves(Difficulty::Hard), 7);
 }
 
-TEST(DifficultyHelperTest, AllowsMobSpawning) {
+TEST(DifficultyHelperTest, AllowsMobSpawning)
+{
     // 只有和平模式不允许怪物生成
     EXPECT_FALSE(DifficultyHelper::allowsMobSpawning(Difficulty::Peaceful));
     EXPECT_TRUE(DifficultyHelper::allowsMobSpawning(Difficulty::Easy));
@@ -146,7 +168,8 @@ TEST(DifficultyHelperTest, AllowsMobSpawning) {
     EXPECT_TRUE(DifficultyHelper::allowsMobSpawning(Difficulty::Hard));
 }
 
-TEST(DifficultyHelperTest, GetRegionalDifficultyBase) {
+TEST(DifficultyHelperTest, GetRegionalDifficultyBase)
+{
     EXPECT_FLOAT_EQ(DifficultyHelper::getRegionalDifficultyBase(Difficulty::Peaceful), 0.0f);
     EXPECT_FLOAT_EQ(DifficultyHelper::getRegionalDifficultyBase(Difficulty::Easy), 0.75f);
     EXPECT_FLOAT_EQ(DifficultyHelper::getRegionalDifficultyBase(Difficulty::Normal), 1.0f);
@@ -155,7 +178,8 @@ TEST(DifficultyHelperTest, GetRegionalDifficultyBase) {
 
 // ========== 边界测试 ==========
 
-TEST(DifficultyHelperTest, InvalidDifficultyId) {
+TEST(DifficultyHelperTest, InvalidDifficultyId)
+{
     // 无效的难度ID应返回普通难度的默认值
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(-1), 0.0f);
     EXPECT_FLOAT_EQ(DifficultyHelper::getMobDamageAdjustment(4), 0.0f);

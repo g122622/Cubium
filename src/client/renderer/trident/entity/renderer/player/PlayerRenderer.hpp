@@ -1,11 +1,11 @@
 #pragma once
 
+#include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
-#include "client/renderer/trident/entity/core/AnimationContext.hpp"
-#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
-#include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include <memory>
 #include <vector>
 
@@ -14,7 +14,7 @@ class Player;
 }
 
 namespace mc::client::renderer::entity::pipeline {
-class EntityPipeline;  // 前向声明
+class EntityPipeline; // 前向声明
 }
 
 namespace mc::client::renderer::entity::renderer::player {
@@ -54,12 +54,10 @@ public:
     /**
      * @brief 渲染层（GPU管线路径）
      */
-    void renderLayersPipeline(
-        Entity& entity,
+    void renderLayersPipeline(Entity& entity,
         VkCommandBuffer cmd,
         const core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染右手臂（第一人称）
@@ -120,8 +118,9 @@ public:
     /**
      * @brief 添加层渲染器（使用 LayerRenderer<Player> 模板）
      */
-    template<typename TLayer, typename... TArgs>
-    void addLayer(TArgs&&... args) {
+    template <typename TLayer, typename... TArgs>
+    void addLayer(TArgs&&... args)
+    {
         m_layers.push_back(std::make_unique<TLayer>(std::forward<TArgs>(args)...));
     }
 
@@ -177,7 +176,7 @@ private:
     void setupLayers();
 
     model::player::PlayerModel m_model;
-    bool m_slimArms;  // 是否使用纤细手臂
+    bool m_slimArms; // 是否使用纤细手臂
 
     // 层渲染器 - 使用 LayerRenderer<Player> 模板类型
     std::vector<std::unique_ptr<layer::core::LayerRenderer<::mc::Player>>> m_layers;

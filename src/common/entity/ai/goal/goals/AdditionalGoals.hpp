@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
+#include "../Goal.hpp"
 #include <functional>
 
 namespace mc {
@@ -15,7 +15,9 @@ namespace entity::ai::goal {
 
 class EatGrassGoal : public Goal {
 public:
-    explicit EatGrassGoal(CreatureEntity* creature) : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look}) {}
+    explicit EatGrassGoal(CreatureEntity* creature)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -25,7 +27,9 @@ public:
 
 class FlyGoal : public Goal {
 public:
-    FlyGoal(CreatureEntity* creature, f64 speed) : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
+    FlyGoal(CreatureEntity* creature, f64 speed)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     void startExecuting() override {}
     void tick() override {}
@@ -33,7 +37,9 @@ public:
 
 class SleepGoal : public Goal {
 public:
-    explicit SleepGoal(CreatureEntity* creature) : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look, GoalFlag::Jump}) {}
+    explicit SleepGoal(CreatureEntity* creature)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look, GoalFlag::Jump})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -42,7 +48,9 @@ public:
 
 class WorkAtPoiGoal : public Goal {
 public:
-    explicit WorkAtPoiGoal(CreatureEntity* creature) : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
+    explicit WorkAtPoiGoal(CreatureEntity* creature)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -52,7 +60,9 @@ public:
 
 class FindShelterGoal : public Goal {
 public:
-    FindShelterGoal(CreatureEntity* creature, f64 speed) : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
+    FindShelterGoal(CreatureEntity* creature, f64 speed)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -62,7 +72,9 @@ public:
 
 class FleeSunGoal : public Goal {
 public:
-    FleeSunGoal(CreatureEntity* creature, f64 speed) : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
+    FleeSunGoal(CreatureEntity* creature, f64 speed)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -72,7 +84,8 @@ public:
 class ReturnToHomeGoal : public Goal {
 public:
     ReturnToHomeGoal(CreatureEntity* creature, f64 speed, f32 homeRadius = 16.0f)
-        : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -81,7 +94,9 @@ public:
 
 class TradeWithPlayerGoal : public Goal {
 public:
-    explicit TradeWithPlayerGoal(CreatureEntity* creature) : Goal(EnumSet<GoalFlag>{GoalFlag::Look, GoalFlag::Move}) {}
+    explicit TradeWithPlayerGoal(CreatureEntity* creature)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Look, GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -91,7 +106,9 @@ public:
 
 class ShowWaresGoal : public Goal {
 public:
-    explicit ShowWaresGoal(CreatureEntity* creature) : Goal(EnumSet<GoalFlag>{GoalFlag::Look}) {}
+    explicit ShowWaresGoal(CreatureEntity* creature)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Look})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -101,7 +118,9 @@ public:
 
 class HurtByTargetGoal : public Goal {
 public:
-    explicit HurtByTargetGoal(MobEntity* mob) : Goal(EnumSet<GoalFlag>{GoalFlag::Target}) {}
+    explicit HurtByTargetGoal(MobEntity* mob)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Target})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -110,8 +129,10 @@ public:
 
 class NearestAttackableTargetGoal : public Goal {
 public:
-    NearestAttackableTargetGoal(MobEntity* mob, const std::string& targetClass, bool checkSight = true, bool nearbyOnly = false)
-        : Goal(EnumSet<GoalFlag>{GoalFlag::Target}) {}
+    NearestAttackableTargetGoal(
+        MobEntity* mob, const std::string& targetClass, bool checkSight = true, bool nearbyOnly = false)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Target})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}

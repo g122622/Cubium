@@ -1,16 +1,14 @@
-#include <gtest/gtest.h>
 #include "common/world/border/WorldBorder.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::world::border;
 
 class WorldBorderTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        border = std::make_unique<WorldBorder>();
-    }
+    void SetUp() override { border = std::make_unique<WorldBorder>(); }
 
     std::unique_ptr<WorldBorder> border;
 };
@@ -19,7 +17,8 @@ protected:
 // 基本属性测试
 // ============================================================================
 
-TEST_F(WorldBorderTest, DefaultValues) {
+TEST_F(WorldBorderTest, DefaultValues)
+{
     // 默认边界大小为 6000 万格
     EXPECT_DOUBLE_EQ(border->getSize(), 6.0E7);
     EXPECT_DOUBLE_EQ(border->getCenterX(), 0.0);
@@ -31,7 +30,8 @@ TEST_F(WorldBorderTest, DefaultValues) {
     EXPECT_EQ(border->getStatus(), BorderStatus::Stationary);
 }
 
-TEST_F(WorldBorderTest, SetSize) {
+TEST_F(WorldBorderTest, SetSize)
+{
     border->setSize(1000.0);
     EXPECT_DOUBLE_EQ(border->getSize(), 1000.0);
     EXPECT_EQ(border->getStatus(), BorderStatus::Stationary);
@@ -41,28 +41,33 @@ TEST_F(WorldBorderTest, SetSize) {
     EXPECT_DOUBLE_EQ(border->getSize(), WorldBorder::MAX_SIZE);
 }
 
-TEST_F(WorldBorderTest, SetCenter) {
+TEST_F(WorldBorderTest, SetCenter)
+{
     border->setCenter(100.0, 200.0);
     EXPECT_DOUBLE_EQ(border->getCenterX(), 100.0);
     EXPECT_DOUBLE_EQ(border->getCenterZ(), 200.0);
 }
 
-TEST_F(WorldBorderTest, SetDamagePerBlock) {
+TEST_F(WorldBorderTest, SetDamagePerBlock)
+{
     border->setDamagePerBlock(0.5);
     EXPECT_DOUBLE_EQ(border->getDamagePerBlock(), 0.5);
 }
 
-TEST_F(WorldBorderTest, SetDamageBuffer) {
+TEST_F(WorldBorderTest, SetDamageBuffer)
+{
     border->setDamageBuffer(10.0);
     EXPECT_DOUBLE_EQ(border->getDamageBuffer(), 10.0);
 }
 
-TEST_F(WorldBorderTest, SetWarningTime) {
+TEST_F(WorldBorderTest, SetWarningTime)
+{
     border->setWarningTime(30);
     EXPECT_EQ(border->getWarningTime(), 30);
 }
 
-TEST_F(WorldBorderTest, SetWarningDistance) {
+TEST_F(WorldBorderTest, SetWarningDistance)
+{
     border->setWarningDistance(10);
     EXPECT_EQ(border->getWarningDistance(), 10);
 }
@@ -71,7 +76,8 @@ TEST_F(WorldBorderTest, SetWarningDistance) {
 // 边界检测测试
 // ============================================================================
 
-TEST_F(WorldBorderTest, ContainsPoint) {
+TEST_F(WorldBorderTest, ContainsPoint)
+{
     border->setSize(100.0);
     border->setCenter(0.0, 0.0);
 
@@ -83,11 +89,12 @@ TEST_F(WorldBorderTest, ContainsPoint) {
     EXPECT_TRUE(border->contains(-40.0, -40.0));
 
     // 边界外的点
-    EXPECT_FALSE(border->contains(60.0, 0.0));  // 超过 minX = -50, maxX = 50
-    EXPECT_FALSE(border->contains(0.0, 60.0));  // 超过 minZ = -50, maxZ = 50
+    EXPECT_FALSE(border->contains(60.0, 0.0)); // 超过 minX = -50, maxX = 50
+    EXPECT_FALSE(border->contains(0.0, 60.0)); // 超过 minZ = -50, maxZ = 50
 }
 
-TEST_F(WorldBorderTest, ContainsBlockPos) {
+TEST_F(WorldBorderTest, ContainsBlockPos)
+{
     border->setSize(100.0);
     border->setCenter(0.0, 0.0);
 
@@ -100,7 +107,8 @@ TEST_F(WorldBorderTest, ContainsBlockPos) {
     EXPECT_FALSE(border->contains(pos2));
 }
 
-TEST_F(WorldBorderTest, IntersectsAABB) {
+TEST_F(WorldBorderTest, IntersectsAABB)
+{
     border->setSize(100.0);
     border->setCenter(0.0, 0.0);
 
@@ -117,7 +125,8 @@ TEST_F(WorldBorderTest, IntersectsAABB) {
     EXPECT_FALSE(border->intersects(box3));
 }
 
-TEST_F(WorldBorderTest, IntersectsChunk) {
+TEST_F(WorldBorderTest, IntersectsChunk)
+{
     border->setSize(100.0);
     border->setCenter(0.0, 0.0);
 
@@ -128,7 +137,8 @@ TEST_F(WorldBorderTest, IntersectsChunk) {
     EXPECT_FALSE(border->intersectsChunk(100, 100));
 }
 
-TEST_F(WorldBorderTest, GetClosestDistance) {
+TEST_F(WorldBorderTest, GetClosestDistance)
+{
     border->setSize(100.0);
     border->setCenter(0.0, 0.0);
 
@@ -146,9 +156,10 @@ TEST_F(WorldBorderTest, GetClosestDistance) {
 // 渐变测试
 // ============================================================================
 
-TEST_F(WorldBorderTest, LerpSizeStartsTransition) {
+TEST_F(WorldBorderTest, LerpSizeStartsTransition)
+{
     border->setSize(1000.0);
-    border->setSizeLerp(1000.0, 500.0, 1000);  // 1秒过渡
+    border->setSizeLerp(1000.0, 500.0, 1000); // 1秒过渡
 
     // 状态应该是 Shrinking
     EXPECT_EQ(border->getStatus(), BorderStatus::Shrinking);
@@ -160,7 +171,8 @@ TEST_F(WorldBorderTest, LerpSizeStartsTransition) {
     EXPECT_GT(border->getResizeSpeed(), 0.0);
 }
 
-TEST_F(WorldBorderTest, LerpSizeGrowing) {
+TEST_F(WorldBorderTest, LerpSizeGrowing)
+{
     border->setSize(500.0);
     border->setSizeLerp(500.0, 1000.0, 1000);
 
@@ -168,7 +180,8 @@ TEST_F(WorldBorderTest, LerpSizeGrowing) {
     EXPECT_EQ(border->getStatus(), BorderStatus::Growing);
 }
 
-TEST_F(WorldBorderTest, LerpSizeImmediateWhenZeroTime) {
+TEST_F(WorldBorderTest, LerpSizeImmediateWhenZeroTime)
+{
     border->setSize(1000.0);
     border->setSizeLerp(1000.0, 500.0, 0);
 
@@ -177,7 +190,8 @@ TEST_F(WorldBorderTest, LerpSizeImmediateWhenZeroTime) {
     EXPECT_EQ(border->getStatus(), BorderStatus::Stationary);
 }
 
-TEST_F(WorldBorderTest, LerpSizeImmediateWhenSameSize) {
+TEST_F(WorldBorderTest, LerpSizeImmediateWhenSameSize)
+{
     border->setSize(1000.0);
     border->setSizeLerp(1000.0, 1000.0, 1000);
 
@@ -190,7 +204,8 @@ TEST_F(WorldBorderTest, LerpSizeImmediateWhenSameSize) {
 // 序列化测试
 // ============================================================================
 
-TEST_F(WorldBorderTest, SerializeDeserialize) {
+TEST_F(WorldBorderTest, SerializeDeserialize)
+{
     border->setSize(2000.0);
     border->setCenter(100.0, 200.0);
     border->setDamagePerBlock(0.3);
@@ -216,7 +231,8 @@ TEST_F(WorldBorderTest, SerializeDeserialize) {
 // 边界范围测试
 // ============================================================================
 
-TEST_F(WorldBorderTest, GetMinXMaxX) {
+TEST_F(WorldBorderTest, GetMinXMaxX)
+{
     border->setSize(100.0);
     border->setCenter(0.0, 0.0);
 
@@ -226,7 +242,8 @@ TEST_F(WorldBorderTest, GetMinXMaxX) {
     EXPECT_DOUBLE_EQ(border->getMaxZ(), 50.0);
 }
 
-TEST_F(WorldBorderTest, GetMinXMaxXWithOffset) {
+TEST_F(WorldBorderTest, GetMinXMaxXWithOffset)
+{
     border->setSize(100.0);
     border->setCenter(100.0, 200.0);
 
@@ -242,39 +259,47 @@ TEST_F(WorldBorderTest, GetMinXMaxXWithOffset) {
 
 class MockListener : public IBorderListener {
 public:
-    void onSizeChanged(double newSize) override {
+    void onSizeChanged(double newSize) override
+    {
         sizeChanged = true;
         lastSize = newSize;
     }
-    void onTransitionStarted(double oldSize, double newSize, u64 timeMs) override {
+    void onTransitionStarted(double oldSize, double newSize, u64 timeMs) override
+    {
         transitionStarted = true;
         lastOldSize = oldSize;
         lastNewSize = newSize;
         lastTimeMs = timeMs;
     }
-    void onCenterChanged(double x, double z) override {
+    void onCenterChanged(double x, double z) override
+    {
         centerChanged = true;
         lastCenterX = x;
         lastCenterZ = z;
     }
-    void onWarningTimeChanged(i32 warningTime) override {
+    void onWarningTimeChanged(i32 warningTime) override
+    {
         warningTimeChanged = true;
         lastWarningTime = warningTime;
     }
-    void onWarningDistanceChanged(i32 warningDistance) override {
+    void onWarningDistanceChanged(i32 warningDistance) override
+    {
         warningDistanceChanged = true;
         lastWarningDistance = warningDistance;
     }
-    void onDamageBufferChanged(double damageBuffer) override {
+    void onDamageBufferChanged(double damageBuffer) override
+    {
         damageBufferChanged = true;
         lastDamageBuffer = damageBuffer;
     }
-    void onDamagePerBlockChanged(double damagePerBlock) override {
+    void onDamagePerBlockChanged(double damagePerBlock) override
+    {
         damagePerBlockChanged = true;
         lastDamagePerBlock = damagePerBlock;
     }
 
-    void reset() {
+    void reset()
+    {
         sizeChanged = false;
         transitionStarted = false;
         centerChanged = false;
@@ -304,7 +329,8 @@ public:
     double lastDamagePerBlock = 0.0;
 };
 
-TEST_F(WorldBorderTest, ListenerOnSizeChanged) {
+TEST_F(WorldBorderTest, ListenerOnSizeChanged)
+{
     auto listener = std::make_shared<MockListener>();
     border->addListener(listener);
 
@@ -314,7 +340,8 @@ TEST_F(WorldBorderTest, ListenerOnSizeChanged) {
     EXPECT_DOUBLE_EQ(listener->lastSize, 1000.0);
 }
 
-TEST_F(WorldBorderTest, ListenerOnTransitionStarted) {
+TEST_F(WorldBorderTest, ListenerOnTransitionStarted)
+{
     auto listener = std::make_shared<MockListener>();
     border->addListener(listener);
 
@@ -326,7 +353,8 @@ TEST_F(WorldBorderTest, ListenerOnTransitionStarted) {
     EXPECT_EQ(listener->lastTimeMs, 10000u);
 }
 
-TEST_F(WorldBorderTest, ListenerOnCenterChanged) {
+TEST_F(WorldBorderTest, ListenerOnCenterChanged)
+{
     auto listener = std::make_shared<MockListener>();
     border->addListener(listener);
 
@@ -337,7 +365,8 @@ TEST_F(WorldBorderTest, ListenerOnCenterChanged) {
     EXPECT_DOUBLE_EQ(listener->lastCenterZ, 200.0);
 }
 
-TEST_F(WorldBorderTest, ListenerOnWarningTimeChanged) {
+TEST_F(WorldBorderTest, ListenerOnWarningTimeChanged)
+{
     auto listener = std::make_shared<MockListener>();
     border->addListener(listener);
 
@@ -347,7 +376,8 @@ TEST_F(WorldBorderTest, ListenerOnWarningTimeChanged) {
     EXPECT_EQ(listener->lastWarningTime, 30);
 }
 
-TEST_F(WorldBorderTest, ListenerOnWarningDistanceChanged) {
+TEST_F(WorldBorderTest, ListenerOnWarningDistanceChanged)
+{
     auto listener = std::make_shared<MockListener>();
     border->addListener(listener);
 
@@ -357,7 +387,8 @@ TEST_F(WorldBorderTest, ListenerOnWarningDistanceChanged) {
     EXPECT_EQ(listener->lastWarningDistance, 15);
 }
 
-TEST_F(WorldBorderTest, ListenerOnDamageBufferChanged) {
+TEST_F(WorldBorderTest, ListenerOnDamageBufferChanged)
+{
     auto listener = std::make_shared<MockListener>();
     border->addListener(listener);
 
@@ -367,7 +398,8 @@ TEST_F(WorldBorderTest, ListenerOnDamageBufferChanged) {
     EXPECT_DOUBLE_EQ(listener->lastDamageBuffer, 10.0);
 }
 
-TEST_F(WorldBorderTest, ListenerOnDamagePerBlockChanged) {
+TEST_F(WorldBorderTest, ListenerOnDamagePerBlockChanged)
+{
     auto listener = std::make_shared<MockListener>();
     border->addListener(listener);
 

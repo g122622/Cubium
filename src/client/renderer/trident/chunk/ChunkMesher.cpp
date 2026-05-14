@@ -1,20 +1,20 @@
 #include "ChunkMesher.hpp"
-#include "AmbientOcclusionCalculator.hpp"
 #include "../../../resource/BlockModelCache.hpp"
 #include "../../../resource/ResourceManager.hpp"
 #include "../../../world/color/BiomeColors.hpp"
 #include "../../../world/color/blend/ChunkBiomeAccessor.hpp"
+#include "AmbientOcclusionCalculator.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/util/assert/AssertAll.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -45,13 +45,12 @@ thread_local MeshPass t_meshPass = MeshPass::All;
 class MeshPassScope {
 public:
     explicit MeshPassScope(MeshPass pass)
-        : m_prevPass(t_meshPass) {
+        : m_prevPass(t_meshPass)
+    {
         t_meshPass = pass;
     }
 
-    ~MeshPassScope() {
-        t_meshPass = m_prevPass;
-    }
+    ~MeshPassScope() { t_meshPass = m_prevPass; }
 
 private:
     MeshPass m_prevPass;
@@ -62,11 +61,9 @@ private:
  *
  * @note 低字节为 R，高字节为 A。这样在小端内存布局下可与 Vulkan 直接对应。
  */
-[[nodiscard]] constexpr u32 packVertexColor(u8 r, u8 g, u8 b, u8 a) {
-    return static_cast<u32>(r)
-        | (static_cast<u32>(g) << 8)
-        | (static_cast<u32>(b) << 16)
-        | (static_cast<u32>(a) << 24);
+[[nodiscard]] constexpr u32 packVertexColor(u8 r, u8 g, u8 b, u8 a)
+{
+    return static_cast<u32>(r) | (static_cast<u32>(g) << 8) | (static_cast<u32>(b) << 16) | (static_cast<u32>(a) << 24);
 }
 
 /**
@@ -75,7 +72,8 @@ private:
  * 参考: IBlockDisplayReader#func_230487_a_ 的默认面向亮度
  * DOWN=0.5, UP=1.0, NORTH/SOUTH=0.8, WEST/EAST=0.6
  */
-[[nodiscard]] constexpr float getFaceShade(Face face) {
+[[nodiscard]] constexpr float getFaceShade(Face face)
+{
     switch (face) {
         case Face::Bottom:
             return 0.5f;
@@ -92,16 +90,14 @@ private:
     }
 }
 
-[[nodiscard]] constexpr u32 packRgb(u32 rgb) {
+[[nodiscard]] constexpr u32 packRgb(u32 rgb)
+{
     return packVertexColor(
-        static_cast<u8>((rgb >> 16) & 0xFF),
-        static_cast<u8>((rgb >> 8) & 0xFF),
-        static_cast<u8>(rgb & 0xFF),
-        255
-    );
+        static_cast<u8>((rgb >> 16) & 0xFF), static_cast<u8>((rgb >> 8) & 0xFF), static_cast<u8>(rgb & 0xFF), 255);
 }
 
-[[nodiscard]] size_t estimateReservedFaceCount(const ChunkData& chunk, MeshPass pass) {
+[[nodiscard]] size_t estimateReservedFaceCount(const ChunkData& chunk, MeshPass pass)
+{
     size_t nonAirBlockCount = 0;
     for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk.getSection(sectionY);
@@ -113,37 +109,30 @@ private:
     switch (pass) {
         case MeshPass::TransparentOnly:
             // 透明层通常比实心层稀疏得多，给更小的初始容量可以显著降低 split mesh 峰值。
-            return std::clamp(
-                nonAirBlockCount / 8,
-                static_cast<size_t>(256),
-                static_cast<size_t>(4096)
-            );
+            return std::clamp(nonAirBlockCount / 8, static_cast<size_t>(256), static_cast<size_t>(4096));
         case MeshPass::SolidOnly:
         case MeshPass::All:
         default:
             return std::clamp(
-                nonAirBlockCount * static_cast<size_t>(2),
-                static_cast<size_t>(1024),
-                static_cast<size_t>(16384)
-            );
+                nonAirBlockCount * static_cast<size_t>(2), static_cast<size_t>(1024), static_cast<size_t>(16384));
     }
 }
 
-[[nodiscard]] u32 applyShadeToPackedColor(u32 packedColor, float factor) {
+[[nodiscard]] u32 applyShadeToPackedColor(u32 packedColor, float factor)
+{
     const float clamped = std::clamp(factor, 0.0f, 1.0f);
     const float r = static_cast<float>(packedColor & 0xFFu) / 255.0f;
     const float g = static_cast<float>((packedColor >> 8) & 0xFFu) / 255.0f;
     const float b = static_cast<float>((packedColor >> 16) & 0xFFu) / 255.0f;
 
-    return packVertexColor(
-        static_cast<u8>(std::round(std::clamp(r * clamped, 0.0f, 1.0f) * 255.0f)),
+    return packVertexColor(static_cast<u8>(std::round(std::clamp(r * clamped, 0.0f, 1.0f) * 255.0f)),
         static_cast<u8>(std::round(std::clamp(g * clamped, 0.0f, 1.0f) * 255.0f)),
         static_cast<u8>(std::round(std::clamp(b * clamped, 0.0f, 1.0f) * 255.0f)),
-        255
-    );
+        255);
 }
 
-[[nodiscard]] u32 applyBlockAlpha(u32 packedColor, const BlockState* block) {
+[[nodiscard]] u32 applyBlockAlpha(u32 packedColor, const BlockState* block)
+{
     if (block != nullptr && block->isLiquid()) {
         // 对齐原版观感：水体处于半透明层时仍保留一定透视能力。
         // 纹理 alpha 在不同资源包下差异较大，这里提供稳定 alpha 兜底。
@@ -159,9 +148,8 @@ struct FaceLayerRenderData {
 };
 
 [[nodiscard]] std::vector<FaceLayerRenderData> collectFaceLayers(
-    const BlockAppearance* appearance,
-    const std::string& faceName
-) {
+    const BlockAppearance* appearance, const std::string& faceName)
+{
     if (!appearance) {
         return {};
     }
@@ -218,10 +206,8 @@ struct FaceLayerRenderData {
     return {FaceLayerRenderData{texIt->second, tintIndex}};
 }
 
-[[nodiscard]] std::vector<FaceLayerRenderData> collectLiquidFaceLayers(
-    const BlockState* block,
-    Face face
-) {
+[[nodiscard]] std::vector<FaceLayerRenderData> collectLiquidFaceLayers(const BlockState* block, Face face)
+{
     if (block == nullptr || !block->isLiquid()) {
         return {};
     }
@@ -237,21 +223,11 @@ struct FaceLayerRenderData {
     const bool isWater = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "water";
     const bool isLava = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "lava";
 
-    const std::string stillName = isWater ? "water_still"
-                           : isLava  ? "lava_still"
-                                     : blockLocation.path() + "_still";
-    const std::string flowName = isWater ? "water_flow"
-                          : isLava  ? "lava_flow"
-                                    : blockLocation.path() + "_flow";
+    const std::string stillName = isWater ? "water_still" : isLava ? "lava_still" : blockLocation.path() + "_still";
+    const std::string flowName = isWater ? "water_flow" : isLava ? "lava_flow" : blockLocation.path() + "_flow";
 
-    const ResourceLocation stillTexture(
-        blockLocation.namespace_(),
-        "textures/block/" + stillName
-    );
-    const ResourceLocation flowTexture(
-        blockLocation.namespace_(),
-        "textures/block/" + flowName
-    );
+    const ResourceLocation stillTexture(blockLocation.namespace_(), "textures/block/" + stillName);
+    const ResourceLocation flowTexture(blockLocation.namespace_(), "textures/block/" + flowName);
 
     const bool useStillTexture = (face == Face::Top || face == Face::Bottom);
     const TextureRegion* region = nullptr;
@@ -276,12 +252,8 @@ struct FaceLayerRenderData {
 }
 
 [[nodiscard]] const BlockState* getMeshBlockStateAt(
-    const ChunkData& chunk,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+{
     constexpr i32 SIZE = world::CHUNK_WIDTH;
 
     if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
@@ -320,12 +292,8 @@ struct FaceLayerRenderData {
 }
 
 [[nodiscard]] const fluid::FluidState* getMeshFluidStateAt(
-    const ChunkData& chunk,
-    i32 x,
-    i32 y,
-    i32 z,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+{
     const BlockState* blockState = getMeshBlockStateAt(chunk, x, y, z, neighborChunks);
     if (blockState == nullptr) {
         return nullptr;
@@ -335,13 +303,8 @@ struct FaceLayerRenderData {
 }
 
 [[nodiscard]] f32 getLiquidActualHeightAt(
-    const ChunkData& chunk,
-    i32 x,
-    i32 y,
-    i32 z,
-    const fluid::Fluid& fluid,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData& chunk, i32 x, i32 y, i32 z, const fluid::Fluid& fluid, const ChunkData* neighborChunks[6])
+{
     const fluid::FluidState* fluidState = getMeshFluidStateAt(chunk, x, y, z, neighborChunks);
     if (fluidState == nullptr || !fluidState->getFluid().isEquivalentTo(fluid)) {
         return 0.0f;
@@ -356,13 +319,8 @@ struct FaceLayerRenderData {
 }
 
 [[nodiscard]] f32 getLiquidCornerHeight(
-    const ChunkData& chunk,
-    i32 x,
-    i32 y,
-    i32 z,
-    const fluid::Fluid& fluid,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData& chunk, i32 x, i32 y, i32 z, const fluid::Fluid& fluid, const ChunkData* neighborChunks[6])
+{
     i32 contributionCount = 0;
     f32 heightSum = 0.0f;
 
@@ -393,8 +351,7 @@ struct FaceLayerRenderData {
 }
 
 template <typename TintResolver>
-void emitLiquidFace(
-    MeshData& mesh,
+void emitLiquidFace(MeshData& mesh,
     Face face,
     f64 x,
     f64 y,
@@ -408,8 +365,8 @@ void emitLiquidFace(
     const BlockState* block,
     const std::vector<FaceLayerRenderData>& faceLayers,
     const ChunkData* neighborChunks[6],
-    TintResolver&& resolveTintColor
-) {
+    TintResolver&& resolveTintColor)
+{
     if (block == nullptr || faceLayers.empty()) {
         return;
     }
@@ -432,12 +389,7 @@ void emitLiquidFace(
         biomeNeighbors[2] = neighborChunks[2];
         biomeNeighbors[3] = neighborChunks[3];
     }
-    client::ChunkBiomeAccessor biomeAccessor(
-        chunk,
-        biomeNeighbors,
-        chunk.x(),
-        chunk.z()
-    );
+    client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
 
     const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
     const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
@@ -487,33 +439,27 @@ void emitLiquidFace(
 
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColor(
-            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
-        );
-        const u32 shadedColor = applyBlockAlpha(
-            applyShadeToPackedColor(tintColor, getFaceShade(face)),
-            block
-        );
+        const u32 tintColor = resolveTintColor(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 shadedColor = applyBlockAlpha(applyShadeToPackedColor(tintColor, getFaceShade(face)), block);
 
         const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
-        f64 uvs[4][2] = {
-            { layer.texture.u0, layer.texture.v1 },
-            { layer.texture.u1, layer.texture.v1 },
-            { layer.texture.u1, layer.texture.v0 },
-            { layer.texture.u0, layer.texture.v0 }
-        };
+        f64 uvs[4][2] = {{layer.texture.u0, layer.texture.v1},
+            {layer.texture.u1, layer.texture.v1},
+            {layer.texture.u1, layer.texture.v0},
+            {layer.texture.u0, layer.texture.v0}};
 
         std::array<Vertex, 4> faceVerts;
         for (size_t i = 0; i < 4; ++i) {
-            faceVerts[i] = Vertex(
-                x + faceVertices[i * 3 + 0] + faceNormal[0] * layerOffset,
+            faceVerts[i] = Vertex(x + faceVertices[i * 3 + 0] + faceNormal[0] * layerOffset,
                 y + faceVertices[i * 3 + 1] + faceNormal[1] * layerOffset,
                 z + faceVertices[i * 3 + 2] + faceNormal[2] * layerOffset,
-                faceNormal[0], faceNormal[1], faceNormal[2],
-                uvs[i][0], uvs[i][1],
+                faceNormal[0],
+                faceNormal[1],
+                faceNormal[2],
+                uvs[i][0],
+                uvs[i][1],
                 shadedColor,
-                packedLight
-            );
+                packedLight);
         }
 
         u32 baseIndex = static_cast<u32>(mesh.vertices.size());
@@ -534,7 +480,8 @@ void emitLiquidFace(
 // ChunkMesher 实现
 // ============================================================================
 
-void ChunkMesher::setModelCache(BlockModelCache* cache) {
+void ChunkMesher::setModelCache(BlockModelCache* cache)
+{
     s_modelCache = cache;
     refreshBiomeColorMaps();
     if (cache) {
@@ -545,11 +492,8 @@ void ChunkMesher::setModelCache(BlockModelCache* cache) {
 }
 
 void ChunkMesher::generateMesh(
-    const ChunkData& chunk,
-    MeshData& outMesh,
-    const ChunkData* neighbors[6],
-    const std::atomic<bool>* cancelSignal
-) {
+    const ChunkData& chunk, MeshData& outMesh, const ChunkData* neighbors[6], const std::atomic<bool>* cancelSignal)
+{
     MC_TRACE_CHUNK_MESH_EVENT("GenerateMesh", "phase", "mesh");
 
     outMesh.clear();
@@ -559,8 +503,8 @@ void ChunkMesher::generateMesh(
     }
 
     const size_t estimatedFaces = estimateReservedFaceCount(chunk, t_meshPass);
-    outMesh.reserve(estimatedFaces * BlockGeometry::VERTICES_PER_FACE,
-                    estimatedFaces * BlockGeometry::INDICES_PER_FACE);
+    outMesh.reserve(
+        estimatedFaces * BlockGeometry::VERTICES_PER_FACE, estimatedFaces * BlockGeometry::INDICES_PER_FACE);
 
     // 遍历所有区块段
     for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
@@ -575,13 +519,12 @@ void ChunkMesher::generateMesh(
     }
 }
 
-void ChunkMesher::generateSplitMesh(
-    const ChunkData& chunk,
+void ChunkMesher::generateSplitMesh(const ChunkData& chunk,
     MeshData& outSolidMesh,
     MeshData& outTransparentMesh,
     const ChunkData* neighbors[6],
-    const std::atomic<bool>* cancelSignal
-) {
+    const std::atomic<bool>* cancelSignal)
+{
     if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
         outSolidMesh.clear();
         outTransparentMesh.clear();
@@ -607,13 +550,12 @@ void ChunkMesher::generateSplitMesh(
     }
 }
 
-void ChunkMesher::generateSectionMesh(
-    const ChunkData& chunk,
+void ChunkMesher::generateSectionMesh(const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
     const ChunkData* neighborChunks[6],
-    const std::atomic<bool>* cancelSignal
-) {
+    const std::atomic<bool>* cancelSignal)
+{
     MC_TRACE_CHUNK_MESH_EVENT("GenerateSectionMesh", "phase", "section");
 
     if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
@@ -627,7 +569,8 @@ void ChunkMesher::generateSectionMesh(
     }
 }
 
-bool ChunkMesher::shouldRenderBlock(const BlockState* state) {
+bool ChunkMesher::shouldRenderBlock(const BlockState* state)
+{
     if (!state || state->isAir()) {
         return false;
     }
@@ -645,7 +588,8 @@ bool ChunkMesher::shouldRenderBlock(const BlockState* state) {
     }
 }
 
-bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor) {
+bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor)
+{
     if (!block) {
         return false;
     }
@@ -668,17 +612,17 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     // - 邻居是不透明方块 → 剔除（被遮挡）
     if (block->isLiquid()) {
         if (neighbor->isLiquid()) {
-            return false;  // 液体之间不渲染面
+            return false; // 液体之间不渲染面
         }
 
         if (neighbor->getCollisionShape().isEmpty()) {
-            return false;  // 水下植物等无实体体积的块不应切出独立水面
+            return false; // 水下植物等无实体体积的块不应切出独立水面
         }
 
         if (neighbor->isTransparent()) {
-            return true;   // 液体贴透明方块时渲染面
+            return true; // 液体贴透明方块时渲染面
         }
-        return false;  // 液体贴不透明方块时剔除
+        return false; // 液体贴不透明方块时剔除
     }
 
     // 非液体方块与液体相邻，需要渲染交界面
@@ -693,12 +637,12 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     if (BlockTags::LEAVES().contains(*block)) {
         const bool neighborIsLeaves = BlockTags::LEAVES().contains(*neighbor);
         if (neighborIsLeaves) {
-            return false;  // 树叶与树叶相邻，剔除
+            return false; // 树叶与树叶相邻，剔除
         }
         if (!neighbor->isTransparent()) {
-            return false;  // 树叶与不透明方块相邻，剔除
+            return false; // 树叶与不透明方块相邻，剔除
         }
-        return true;  // 树叶与透明方块（非树叶）相邻，渲染
+        return true; // 树叶与透明方块（非树叶）相邻，渲染
     }
 
     // 透明方块规则：同类型透明方块之间剔除内部面
@@ -719,22 +663,13 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     return false;
 }
 
-u8 ChunkMesher::sampleCombinedLight(
-    const ChunkData& chunk,
-    i32 x, i32 y, i32 z,
-    const ChunkData* neighborChunks[6]
-) {
-    return std::max(
-        sampleSkyLight(chunk, x, y, z, neighborChunks),
-        sampleBlockLight(chunk, x, y, z, neighborChunks)
-    );
+u8 ChunkMesher::sampleCombinedLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+{
+    return std::max(sampleSkyLight(chunk, x, y, z, neighborChunks), sampleBlockLight(chunk, x, y, z, neighborChunks));
 }
 
-u8 ChunkMesher::sampleSkyLight(
-    const ChunkData& chunk,
-    i32 x, i32 y, i32 z,
-    const ChunkData* neighborChunks[6]
-) {
+u8 ChunkMesher::sampleSkyLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+{
     constexpr i32 SIZE = ChunkSection::SIZE;
 
     // 垂直越界：上方视为天空，下方视为无光
@@ -779,11 +714,8 @@ u8 ChunkMesher::sampleSkyLight(
     return sampleChunk->getSkyLight(localX, y, localZ);
 }
 
-u8 ChunkMesher::sampleBlockLight(
-    const ChunkData& chunk,
-    i32 x, i32 y, i32 z,
-    const ChunkData* neighborChunks[6]
-) {
+u8 ChunkMesher::sampleBlockLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+{
     constexpr i32 SIZE = ChunkSection::SIZE;
 
     // 垂直越界：上下都视为无方块光照
@@ -823,13 +755,8 @@ u8 ChunkMesher::sampleBlockLight(
 }
 
 u32 ChunkMesher::resolveTintColor(
-    const ChunkData& chunk,
-    i32 blockX,
-    i32 blockY,
-    i32 blockZ,
-    const BlockState* block,
-    i32 tintIndex
-) {
+    const ChunkData& chunk, i32 blockX, i32 blockY, i32 blockZ, const BlockState* block, i32 tintIndex)
+{
     if (!block) {
         return packVertexColor(255, 255, 255, 255);
     }
@@ -864,12 +791,9 @@ u32 ChunkMesher::resolveTintColor(
     const i32 humidityIndex = clampToColorIndex(humidity);
     const i32 colorIndex = (humidityIndex << 8) | tempIndex;
 
-    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES)
-        || block->is(VanillaBlocks::JUNGLE_LEAVES)
-        || block->is(VanillaBlocks::ACACIA_LEAVES)
-        || block->is(VanillaBlocks::DARK_OAK_LEAVES)
-        || block->is(VanillaBlocks::SPRUCE_LEAVES)
-        || block->is(VanillaBlocks::BIRCH_LEAVES);
+    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES) || block->is(VanillaBlocks::JUNGLE_LEAVES) ||
+        block->is(VanillaBlocks::ACACIA_LEAVES) || block->is(VanillaBlocks::DARK_OAK_LEAVES) ||
+        block->is(VanillaBlocks::SPRUCE_LEAVES) || block->is(VanillaBlocks::BIRCH_LEAVES);
 
     if (isLeaves) {
         // 检查是否有树叶颜色覆盖（如沼泽）
@@ -881,11 +805,10 @@ u32 ChunkMesher::resolveTintColor(
         // 检查沼泽特殊处理
         if (biome.effects().grassColorModifier() == world::biome::GrassColorModifier::Swamp) {
             // 沼泽树叶使用双色混合
-            return client::BiomeColors::calculateSwampColor(
-                static_cast<f64>(blockX), static_cast<f64>(blockZ),
+            return client::BiomeColors::calculateSwampColor(static_cast<f64>(blockX),
+                static_cast<f64>(blockZ),
                 world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR,
-                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK
-            );
+                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK);
         }
 
         if (block->is(VanillaBlocks::SPRUCE_LEAVES)) {
@@ -912,11 +835,10 @@ u32 ChunkMesher::resolveTintColor(
     switch (biome.effects().grassColorModifier()) {
         case world::biome::GrassColorModifier::Swamp: {
             // 沼泽草使用双色混合
-            return client::BiomeColors::calculateSwampColor(
-                static_cast<f64>(blockX), static_cast<f64>(blockZ),
+            return client::BiomeColors::calculateSwampColor(static_cast<f64>(blockX),
+                static_cast<f64>(blockZ),
                 world::biome::BiomeEffects::SWAMP_GRASS_COLOR,
-                world::biome::BiomeEffects::SWAMP_GRASS_COLOR_DARK
-            );
+                world::biome::BiomeEffects::SWAMP_GRASS_COLOR_DARK);
         }
         case world::biome::GrassColorModifier::DarkForest: {
             // 黑森林草变暗
@@ -940,14 +862,13 @@ u32 ChunkMesher::resolveTintColor(
     return packRgb(0xff757f); // GrassColors.getDefault()
 }
 
-u32 ChunkMesher::resolveTintColorBlended(
-    const client::ChunkBiomeAccessor& accessor,
+u32 ChunkMesher::resolveTintColorBlended(const client::ChunkBiomeAccessor& accessor,
     i32 worldX,
     i32 worldY,
     i32 worldZ,
     const BlockState* block,
-    i32 tintIndex
-) {
+    i32 tintIndex)
+{
     if (!block) {
         return packVertexColor(255, 255, 255, 255);
     }
@@ -956,12 +877,12 @@ u32 ChunkMesher::resolveTintColorBlended(
     if (block->isLiquid()) {
         if (block->is(VanillaBlocks::WATER)) {
             // 使用颜色混合器获取混合后的水体颜色
-            const u32 waterColor = s_biomeColorBlender.getBlendedColorCached(
-                accessor,
-                worldX, worldY, worldZ,
+            const u32 waterColor = s_biomeColorBlender.getBlendedColorCached(accessor,
+                worldX,
+                worldY,
+                worldZ,
                 client::BiomeColors::waterColorResolver(),
-                client::BiomeColorBlender::ResolverId::Water
-            );
+                client::BiomeColorBlender::ResolverId::Water);
             return packRgb(waterColor);
         }
         // 岩浆不使用着色
@@ -973,12 +894,9 @@ u32 ChunkMesher::resolveTintColorBlended(
         return packVertexColor(255, 255, 255, 255);
     }
 
-    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES)
-        || block->is(VanillaBlocks::JUNGLE_LEAVES)
-        || block->is(VanillaBlocks::ACACIA_LEAVES)
-        || block->is(VanillaBlocks::DARK_OAK_LEAVES)
-        || block->is(VanillaBlocks::SPRUCE_LEAVES)
-        || block->is(VanillaBlocks::BIRCH_LEAVES);
+    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES) || block->is(VanillaBlocks::JUNGLE_LEAVES) ||
+        block->is(VanillaBlocks::ACACIA_LEAVES) || block->is(VanillaBlocks::DARK_OAK_LEAVES) ||
+        block->is(VanillaBlocks::SPRUCE_LEAVES) || block->is(VanillaBlocks::BIRCH_LEAVES);
 
     if (isLeaves) {
         // 云杉和桦树叶使用固定颜色，不进行混合
@@ -990,28 +908,29 @@ u32 ChunkMesher::resolveTintColorBlended(
         }
 
         // 其他树叶使用颜色混合器（混合器会处理 colormap）
-        const u32 foliageColor = s_biomeColorBlender.getBlendedColorCached(
-            accessor,
-            worldX, worldY, worldZ,
+        const u32 foliageColor = s_biomeColorBlender.getBlendedColorCached(accessor,
+            worldX,
+            worldY,
+            worldZ,
             client::BiomeColors::foliageColorResolver(),
-            client::BiomeColorBlender::ResolverId::Foliage
-        );
+            client::BiomeColorBlender::ResolverId::Foliage);
 
         return packRgb(foliageColor);
     }
 
     // 草色系：使用颜色混合器（混合器会处理 colormap）
-    const u32 grassColor = s_biomeColorBlender.getBlendedColorCached(
-        accessor,
-        worldX, worldY, worldZ,
+    const u32 grassColor = s_biomeColorBlender.getBlendedColorCached(accessor,
+        worldX,
+        worldY,
+        worldZ,
         client::BiomeColors::grassColorResolver(),
-        client::BiomeColorBlender::ResolverId::Grass
-    );
+        client::BiomeColorBlender::ResolverId::Grass);
 
     return packRgb(grassColor);
 }
 
-bool ChunkMesher::tryLoadColorMap(std::string_view path, std::array<u32, 65536>& outColorMap) {
+bool ChunkMesher::tryLoadColorMap(std::string_view path, std::array<u32, 65536>& outColorMap)
+{
     if (!s_modelCache || !s_modelCache->resourceManager()) {
         return false;
     }
@@ -1038,7 +957,8 @@ bool ChunkMesher::tryLoadColorMap(std::string_view path, std::array<u32, 65536>&
     return true;
 }
 
-void ChunkMesher::refreshBiomeColorMaps() {
+void ChunkMesher::refreshBiomeColorMaps()
+{
     s_grassColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/grass", s_grassColorMap);
     s_foliageColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/foliage", s_foliageColorMap);
 
@@ -1046,34 +966,38 @@ void ChunkMesher::refreshBiomeColorMaps() {
     s_biomeColorBlender.setGrassColorMap(s_grassColorMapLoaded ? &s_grassColorMap : nullptr);
     s_biomeColorBlender.setFoliageColorMap(s_foliageColorMapLoaded ? &s_foliageColorMap : nullptr);
 
-    spdlog::info("ChunkMesher: Biome color maps loaded (grass={}, foliage={})",
-                 s_grassColorMapLoaded, s_foliageColorMapLoaded);
+    spdlog::info(
+        "ChunkMesher: Biome color maps loaded (grass={}, foliage={})", s_grassColorMapLoaded, s_foliageColorMapLoaded);
 }
 
-void ChunkMesher::setBiomeBlendRadius(i32 radius) {
+void ChunkMesher::setBiomeBlendRadius(i32 radius)
+{
     s_biomeColorBlender.setBlendRadius(radius);
     // 清除缓存，因为混合半径变化会使所有缓存失效
     s_biomeColorBlender.clearCache();
-    spdlog::info("ChunkMesher: Biome blend radius set to {} ({}x{} area)",
-                 radius, radius * 2 + 1, radius * 2 + 1);
+    spdlog::info("ChunkMesher: Biome blend radius set to {} ({}x{} area)", radius, radius * 2 + 1, radius * 2 + 1);
 }
 
-i32 ChunkMesher::biomeBlendRadius() {
+i32 ChunkMesher::biomeBlendRadius()
+{
     return s_biomeColorBlender.blendRadius();
 }
 
-void ChunkMesher::invalidateBiomeColorCache(ChunkCoord chunkX, ChunkCoord chunkZ) {
+void ChunkMesher::invalidateBiomeColorCache(ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     s_biomeColorBlender.invalidateChunk(chunkX, chunkZ);
 }
 
-void ChunkMesher::clearBiomeColorCache() {
+void ChunkMesher::clearBiomeColorCache()
+{
     s_biomeColorBlender.clearCache();
 }
 
-void ChunkMesher::addFaceFromAppearance(
-    MeshData& mesh,
+void ChunkMesher::addFaceFromAppearance(MeshData& mesh,
     Face face,
-    f64 x, f64 y, f64 z,
+    f64 x,
+    f64 y,
+    f64 z,
     const ChunkData& chunk,
     i32 blockX,
     i32 blockY,
@@ -1082,8 +1006,8 @@ void ChunkMesher::addFaceFromAppearance(
     u8 blockLight,
     const BlockState* block,
     const BlockAppearance* appearance,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData* neighborChunks[6])
+{
     if (!appearance) {
         return;
     }
@@ -1091,33 +1015,58 @@ void ChunkMesher::addFaceFromAppearance(
     // 查找面的纹理
     std::string faceName;
     switch (face) {
-        case Face::Bottom: faceName = "down"; break;
-        case Face::Top: faceName = "up"; break;
-        case Face::North: faceName = "north"; break;
-        case Face::South: faceName = "south"; break;
-        case Face::West: faceName = "west"; break;
-        case Face::East: faceName = "east"; break;
-        default: return;
+        case Face::Bottom:
+            faceName = "down";
+            break;
+        case Face::Top:
+            faceName = "up";
+            break;
+        case Face::North:
+            faceName = "north";
+            break;
+        case Face::South:
+            faceName = "south";
+            break;
+        case Face::West:
+            faceName = "west";
+            break;
+        case Face::East:
+            faceName = "east";
+            break;
+        default:
+            return;
     }
 
-    auto faceLayers = block != nullptr && block->isLiquid()
-        ? collectLiquidFaceLayers(block, face)
-        : collectFaceLayers(appearance, faceName);
+    auto faceLayers = block != nullptr && block->isLiquid() ? collectLiquidFaceLayers(block, face)
+                                                            : collectFaceLayers(appearance, faceName);
     if (faceLayers.empty()) {
         return;
     }
 
     if (block != nullptr && block->isLiquid()) {
         auto resolveTintColor = [](const client::ChunkBiomeAccessor& biomeAccessor,
-                                   i32 worldX, i32 worldY, i32 worldZ,
-                                   const BlockState* blockState, i32 tintIndex) {
-            return ChunkMesher::resolveTintColorBlended(
-                biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex
-            );
+                                    i32 worldX,
+                                    i32 worldY,
+                                    i32 worldZ,
+                                    const BlockState* blockState,
+                                    i32 tintIndex) {
+            return ChunkMesher::resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
         };
-        emitLiquidFace(mesh, face, x, y, z, chunk, blockX, blockY, blockZ,
-                       skyLight, blockLight, block, faceLayers, neighborChunks,
-                       resolveTintColor);
+        emitLiquidFace(mesh,
+            face,
+            x,
+            y,
+            z,
+            chunk,
+            blockX,
+            blockY,
+            blockZ,
+            skyLight,
+            blockLight,
+            block,
+            faceLayers,
+            neighborChunks,
+            resolveTintColor);
         return;
     }
 
@@ -1135,12 +1084,7 @@ void ChunkMesher::addFaceFromAppearance(
         biomeNeighbors[2] = neighborChunks[2]; // -Z
         biomeNeighbors[3] = neighborChunks[3]; // +Z
     }
-    client::ChunkBiomeAccessor biomeAccessor(
-        chunk,
-        biomeNeighbors,
-        chunk.x(),
-        chunk.z()
-    );
+    client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
 
     // 计算世界坐标用于生物群系颜色混合
     const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
@@ -1148,21 +1092,16 @@ void ChunkMesher::addFaceFromAppearance(
 
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColorBlended(
-            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
-        );
-        const u32 shadedColor = applyBlockAlpha(
-            applyShadeToPackedColor(tintColor, getFaceShade(face)),
-            block
-        );
+        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 shadedColor = applyBlockAlpha(applyShadeToPackedColor(tintColor, getFaceShade(face)), block);
 
         // UV坐标根据顶点位置设置
         // 顶点顺序: 左下、右下、右上、左上
         f64 uvs[4][2] = {
-            { layer.texture.u0, layer.texture.v1 }, // 左下
-            { layer.texture.u1, layer.texture.v1 }, // 右下
-            { layer.texture.u1, layer.texture.v0 }, // 右上
-            { layer.texture.u0, layer.texture.v0 }  // 左上
+            {layer.texture.u0, layer.texture.v1}, // 左下
+            {layer.texture.u1, layer.texture.v1}, // 右下
+            {layer.texture.u1, layer.texture.v0}, // 右上
+            {layer.texture.u0, layer.texture.v0}  // 左上
         };
 
         // 叠加层沿法线轻微外移，避免与底层完全重合导致闪烁
@@ -1170,15 +1109,16 @@ void ChunkMesher::addFaceFromAppearance(
 
         std::array<Vertex, 4> faceVerts;
         for (size_t i = 0; i < 4; ++i) {
-            faceVerts[i] = Vertex(
-                x + vertices[i * 3 + 0] + normal[0] * layerOffset,
+            faceVerts[i] = Vertex(x + vertices[i * 3 + 0] + normal[0] * layerOffset,
                 y + vertices[i * 3 + 1] + normal[1] * layerOffset,
                 z + vertices[i * 3 + 2] + normal[2] * layerOffset,
-                normal[0], normal[1], normal[2],
-                uvs[i][0], uvs[i][1],
+                normal[0],
+                normal[1],
+                normal[2],
+                uvs[i][0],
+                uvs[i][1],
                 shadedColor,
-                packedLight
-            );
+                packedLight);
         }
 
         // 添加顶点和索引
@@ -1194,16 +1134,19 @@ void ChunkMesher::addFaceFromAppearance(
     }
 }
 
-void ChunkMesher::addFaceFromAppearanceSmooth(
-    MeshData& mesh,
+void ChunkMesher::addFaceFromAppearanceSmooth(MeshData& mesh,
     Face face,
-    f64 x, f64 y, f64 z,
+    f64 x,
+    f64 y,
+    f64 z,
     const ChunkData& chunk,
-    i32 blockX, i32 blockY, i32 blockZ,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
     const BlockState* block,
     const BlockAppearance* appearance,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData* neighborChunks[6])
+{
     if (!appearance) {
         return;
     }
@@ -1211,18 +1154,30 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     // 查找面的纹理
     std::string faceName;
     switch (face) {
-        case Face::Bottom: faceName = "down"; break;
-        case Face::Top: faceName = "up"; break;
-        case Face::North: faceName = "north"; break;
-        case Face::South: faceName = "south"; break;
-        case Face::West: faceName = "west"; break;
-        case Face::East: faceName = "east"; break;
-        default: return;
+        case Face::Bottom:
+            faceName = "down";
+            break;
+        case Face::Top:
+            faceName = "up";
+            break;
+        case Face::North:
+            faceName = "north";
+            break;
+        case Face::South:
+            faceName = "south";
+            break;
+        case Face::West:
+            faceName = "west";
+            break;
+        case Face::East:
+            faceName = "east";
+            break;
+        default:
+            return;
     }
 
-    auto faceLayers = block != nullptr && block->isLiquid()
-        ? collectLiquidFaceLayers(block, face)
-        : collectFaceLayers(appearance, faceName);
+    auto faceLayers = block != nullptr && block->isLiquid() ? collectLiquidFaceLayers(block, face)
+                                                            : collectFaceLayers(appearance, faceName);
     if (faceLayers.empty()) {
         return;
     }
@@ -1238,15 +1193,28 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         const u8 skyLight = sampleSkyLight(chunk, blockX, blockY, blockZ, neighborChunks);
         const u8 blockLight = sampleBlockLight(chunk, blockX, blockY, blockZ, neighborChunks);
         auto resolveTintColor = [](const client::ChunkBiomeAccessor& biomeAccessor,
-                                   i32 worldX, i32 worldY, i32 worldZ,
-                                   const BlockState* blockState, i32 tintIndex) {
-            return ChunkMesher::resolveTintColorBlended(
-                biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex
-            );
+                                    i32 worldX,
+                                    i32 worldY,
+                                    i32 worldZ,
+                                    const BlockState* blockState,
+                                    i32 tintIndex) {
+            return ChunkMesher::resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
         };
-        emitLiquidFace(mesh, face, x, y, z, chunk, blockX, blockY, blockZ,
-                       skyLight, blockLight, block, faceLayers, neighborChunks,
-                       resolveTintColor);
+        emitLiquidFace(mesh,
+            face,
+            x,
+            y,
+            z,
+            chunk,
+            blockX,
+            blockY,
+            blockZ,
+            skyLight,
+            blockLight,
+            block,
+            faceLayers,
+            neighborChunks,
+            resolveTintColor);
         return;
     }
 
@@ -1258,12 +1226,7 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         biomeNeighbors[2] = neighborChunks[2]; // -Z
         biomeNeighbors[3] = neighborChunks[3]; // +Z
     }
-    client::ChunkBiomeAccessor biomeAccessor(
-        chunk,
-        biomeNeighbors,
-        chunk.x(),
-        chunk.z()
-    );
+    client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
 
     // 计算世界坐标用于生物群系颜色混合
     const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
@@ -1272,17 +1235,15 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     const float faceShade = getFaceShade(face);
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColorBlended(
-            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
-        );
+        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
 
         // UV坐标根据顶点位置设置
         // 顶点顺序: 左下、右下、右上、左上
         f64 uvs[4][2] = {
-            { layer.texture.u0, layer.texture.v1 }, // 左下
-            { layer.texture.u1, layer.texture.v1 }, // 右下
-            { layer.texture.u1, layer.texture.v0 }, // 右上
-            { layer.texture.u0, layer.texture.v0 }  // 左上
+            {layer.texture.u0, layer.texture.v1}, // 左下
+            {layer.texture.u1, layer.texture.v1}, // 右下
+            {layer.texture.u1, layer.texture.v0}, // 右上
+            {layer.texture.u0, layer.texture.v0}  // 左上
         };
 
         // 叠加层沿法线轻微外移，避免与底层完全重合导致闪烁
@@ -1292,29 +1253,25 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         std::array<Vertex, 4> faceVerts;
         for (size_t i = 0; i < 4; ++i) {
             // 打包双通道光照：高4位=天空光，低4位=方块光
-            const u8 packedLight = static_cast<u8>(
-                ((aoResult.vertexSkyLight[i] & 0x0F) << 4) |
-                (aoResult.vertexBlockLight[i] & 0x0F)
-            );
+            const u8 packedLight =
+                static_cast<u8>(((aoResult.vertexSkyLight[i] & 0x0F) << 4) | (aoResult.vertexBlockLight[i] & 0x0F));
 
             // AO 乘数与面向明暗共同作用于顶点颜色。
             // 注意：颜色打包必须遵循 RGBA 字节顺序，避免出现偏色（例如偏红）问题。
             const float ao = aoResult.vertexColorMultiplier[i];
             const float finalShade = std::clamp(ao * faceShade, 0.0f, 1.0f);
-            const u32 color = applyBlockAlpha(
-                applyShadeToPackedColor(tintColor, finalShade),
-                block
-            );
+            const u32 color = applyBlockAlpha(applyShadeToPackedColor(tintColor, finalShade), block);
 
-            faceVerts[i] = Vertex(
-                x + vertices[i * 3 + 0] + normal[0] * layerOffset,
+            faceVerts[i] = Vertex(x + vertices[i * 3 + 0] + normal[0] * layerOffset,
                 y + vertices[i * 3 + 1] + normal[1] * layerOffset,
                 z + vertices[i * 3 + 2] + normal[2] * layerOffset,
-                normal[0], normal[1], normal[2],
-                uvs[i][0], uvs[i][1],
+                normal[0],
+                normal[1],
+                normal[2],
+                uvs[i][0],
+                uvs[i][1],
                 color,
-                packedLight
-            );
+                packedLight);
         }
 
         // 添加顶点和索引
@@ -1330,7 +1287,8 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     }
 }
 
-bool ChunkMesher::isCrossLikeAppearance(const BlockAppearance* appearance) {
+bool ChunkMesher::isCrossLikeAppearance(const BlockAppearance* appearance)
+{
     if (appearance == nullptr || appearance->elements.size() != 2) {
         return false;
     }
@@ -1343,7 +1301,8 @@ bool ChunkMesher::isCrossLikeAppearance(const BlockAppearance* appearance) {
             if (dir == Direction::Up || dir == Direction::Down) {
                 return false;
             }
-            if (dir == Direction::North || dir == Direction::South || dir == Direction::West || dir == Direction::East) {
+            if (dir == Direction::North || dir == Direction::South || dir == Direction::West ||
+                dir == Direction::East) {
                 hasHorizontalFace = true;
             }
         }
@@ -1352,8 +1311,7 @@ bool ChunkMesher::isCrossLikeAppearance(const BlockAppearance* appearance) {
     return hasHorizontalFace;
 }
 
-void ChunkMesher::addCrossedPlantGeometry(
-    MeshData& mesh,
+void ChunkMesher::addCrossedPlantGeometry(MeshData& mesh,
     f64 x,
     f64 y,
     f64 z,
@@ -1365,8 +1323,8 @@ void ChunkMesher::addCrossedPlantGeometry(
     u8 blockLight,
     const BlockState* block,
     const BlockAppearance* appearance,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData* neighborChunks[6])
+{
     if (appearance == nullptr || block == nullptr) {
         return;
     }
@@ -1410,26 +1368,25 @@ void ChunkMesher::addCrossedPlantGeometry(
                                    const FaceLayerRenderData& layer,
                                    u32 color,
                                    f64 layerOffset) {
-        const f64 uvs[4][2] = {
-            { layer.texture.u0, layer.texture.v1 },
-            { layer.texture.u1, layer.texture.v1 },
-            { layer.texture.u1, layer.texture.v0 },
-            { layer.texture.u0, layer.texture.v0 }
-        };
+        const f64 uvs[4][2] = {{layer.texture.u0, layer.texture.v1},
+            {layer.texture.u1, layer.texture.v1},
+            {layer.texture.u1, layer.texture.v0},
+            {layer.texture.u0, layer.texture.v0}};
 
         auto pushFace = [&](bool reverse, const std::array<f64, 3>& normal) {
             std::array<Vertex, 4> verts;
             for (size_t i = 0; i < 4; ++i) {
                 const size_t src = reverse ? (3 - i) : i;
-                verts[i] = Vertex(
-                    positions[src][0] + normal[0] * layerOffset,
+                verts[i] = Vertex(positions[src][0] + normal[0] * layerOffset,
                     positions[src][1] + normal[1] * layerOffset,
                     positions[src][2] + normal[2] * layerOffset,
-                    normal[0], normal[1], normal[2],
-                    uvs[i][0], uvs[i][1],
+                    normal[0],
+                    normal[1],
+                    normal[2],
+                    uvs[i][0],
+                    uvs[i][1],
                     color,
-                    packedLight
-                );
+                    packedLight);
             }
 
             const u32 baseIndex = static_cast<u32>(mesh.vertices.size());
@@ -1447,24 +1404,18 @@ void ChunkMesher::addCrossedPlantGeometry(
         pushFace(true, {-frontNormal[0], -frontNormal[1], -frontNormal[2]});
     };
 
-    const std::array<std::array<f64, 3>, 4> diagA = {{
-        {x + 0.0f, y + 0.0f, z + 0.0f},
+    const std::array<std::array<f64, 3>, 4> diagA = {{{x + 0.0f, y + 0.0f, z + 0.0f},
         {x + 1.0f, y + 0.0f, z + 1.0f},
         {x + 1.0f, y + 1.0f, z + 1.0f},
-        {x + 0.0f, y + 1.0f, z + 0.0f}
-    }};
-    const std::array<std::array<f64, 3>, 4> diagB = {{
-        {x + 1.0f, y + 0.0f, z + 0.0f},
+        {x + 0.0f, y + 1.0f, z + 0.0f}}};
+    const std::array<std::array<f64, 3>, 4> diagB = {{{x + 1.0f, y + 0.0f, z + 0.0f},
         {x + 0.0f, y + 0.0f, z + 1.0f},
         {x + 0.0f, y + 1.0f, z + 1.0f},
-        {x + 1.0f, y + 1.0f, z + 0.0f}
-    }};
+        {x + 1.0f, y + 1.0f, z + 0.0f}}};
 
     for (size_t i = 0; i < layerA.size(); ++i) {
         const auto& layer = layerA[i];
-        const u32 tintColor = resolveTintColorBlended(
-            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
-        );
+        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
         const u32 color = applyBlockAlpha(tintColor, block);
         const f64 layerOffset = static_cast<f64>(i) * 0.001f;
         emitDoubleSidedQuad(diagA, {INV_SQRT2, 0.0f, -INV_SQRT2}, layer, color, layerOffset);
@@ -1472,17 +1423,14 @@ void ChunkMesher::addCrossedPlantGeometry(
 
     for (size_t i = 0; i < layerB.size(); ++i) {
         const auto& layer = layerB[i];
-        const u32 tintColor = resolveTintColorBlended(
-            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
-        );
+        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
         const u32 color = applyBlockAlpha(tintColor, block);
         const f64 layerOffset = static_cast<f64>(i) * 0.001f;
         emitDoubleSidedQuad(diagB, {-INV_SQRT2, 0.0f, -INV_SQRT2}, layer, color, layerOffset);
     }
 }
 
-void ChunkMesher::addShapeGeometryFromAppearance(
-    MeshData& mesh,
+void ChunkMesher::addShapeGeometryFromAppearance(MeshData& mesh,
     f64 x,
     f64 y,
     f64 z,
@@ -1494,8 +1442,8 @@ void ChunkMesher::addShapeGeometryFromAppearance(
     const BlockAppearance* appearance,
     const CollisionShape& shape,
     const std::array<const BlockState*, 6>& neighborStates,
-    const ChunkData* neighborChunks[6]
-) {
+    const ChunkData* neighborChunks[6])
+{
     if (block == nullptr || appearance == nullptr || shape.isEmpty() || shape.boxCount() != 1) {
         return;
     }
@@ -1521,19 +1469,13 @@ void ChunkMesher::addShapeGeometryFromAppearance(
         }
 
         const bool neighborOpaque =
-            neighbor != nullptr &&
-            !neighbor->isAir() &&
-            !neighbor->isTransparent() &&
-            !neighbor->isLiquid();
+            neighbor != nullptr && !neighbor->isAir() && !neighbor->isTransparent() && !neighbor->isLiquid();
 
         if (neighborOpaque) {
             constexpr f32 EPSILON = 1.0e-4f;
-            const bool flushWithNeighbor =
-                (face == Face::Bottom && box.minY <= EPSILON) ||
-                (face == Face::Top && box.maxY >= 1.0f - EPSILON) ||
-                (face == Face::North && box.minZ <= EPSILON) ||
-                (face == Face::South && box.maxZ >= 1.0f - EPSILON) ||
-                (face == Face::West && box.minX <= EPSILON) ||
+            const bool flushWithNeighbor = (face == Face::Bottom && box.minY <= EPSILON) ||
+                (face == Face::Top && box.maxY >= 1.0f - EPSILON) || (face == Face::North && box.minZ <= EPSILON) ||
+                (face == Face::South && box.maxZ >= 1.0f - EPSILON) || (face == Face::West && box.minX <= EPSILON) ||
                 (face == Face::East && box.maxX >= 1.0f - EPSILON);
             if (flushWithNeighbor) {
                 continue;
@@ -1542,13 +1484,26 @@ void ChunkMesher::addShapeGeometryFromAppearance(
 
         std::string faceName;
         switch (face) {
-            case Face::Bottom: faceName = "down"; break;
-            case Face::Top: faceName = "up"; break;
-            case Face::North: faceName = "north"; break;
-            case Face::South: faceName = "south"; break;
-            case Face::West: faceName = "west"; break;
-            case Face::East: faceName = "east"; break;
-            default: continue;
+            case Face::Bottom:
+                faceName = "down";
+                break;
+            case Face::Top:
+                faceName = "up";
+                break;
+            case Face::North:
+                faceName = "north";
+                break;
+            case Face::South:
+                faceName = "south";
+                break;
+            case Face::West:
+                faceName = "west";
+                break;
+            case Face::East:
+                faceName = "east";
+                break;
+            default:
+                continue;
         }
 
         auto faceLayers = collectFaceLayers(appearance, faceName);
@@ -1609,39 +1564,29 @@ void ChunkMesher::addShapeGeometryFromAppearance(
 
         for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
             const auto& layer = faceLayers[layerIndex];
-            const u32 tintColor = resolveTintColorBlended(
-                biomeAccessor,
-                worldX,
-                blockY,
-                worldZ,
-                block,
-                layer.tintIndex
-            );
-            const u32 shadedColor = applyBlockAlpha(
-                applyShadeToPackedColor(tintColor, getFaceShade(face)),
-                block
-            );
+            const u32 tintColor =
+                resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+            const u32 shadedColor = applyBlockAlpha(applyShadeToPackedColor(tintColor, getFaceShade(face)), block);
 
-            const f64 uvs[4][2] = {
-                { layer.texture.u0, layer.texture.v1 },
-                { layer.texture.u1, layer.texture.v1 },
-                { layer.texture.u1, layer.texture.v0 },
-                { layer.texture.u0, layer.texture.v0 }
-            };
+            const f64 uvs[4][2] = {{layer.texture.u0, layer.texture.v1},
+                {layer.texture.u1, layer.texture.v1},
+                {layer.texture.u1, layer.texture.v0},
+                {layer.texture.u0, layer.texture.v0}};
 
             const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
 
             std::array<Vertex, 4> faceVerts;
             for (size_t i = 0; i < 4; ++i) {
-                faceVerts[i] = Vertex(
-                    positions[i][0] + normal[0] * layerOffset,
+                faceVerts[i] = Vertex(positions[i][0] + normal[0] * layerOffset,
                     positions[i][1] + normal[1] * layerOffset,
                     positions[i][2] + normal[2] * layerOffset,
-                    normal[0], normal[1], normal[2],
-                    uvs[i][0], uvs[i][1],
+                    normal[0],
+                    normal[1],
+                    normal[2],
+                    uvs[i][0],
+                    uvs[i][1],
                     shadedColor,
-                    packedLight
-                );
+                    packedLight);
             }
 
             const u32 baseIndex = static_cast<u32>(mesh.vertices.size());
@@ -1657,13 +1602,12 @@ void ChunkMesher::addShapeGeometryFromAppearance(
     }
 }
 
-void ChunkMesher::simpleMeshSection(
-    const ChunkData& chunk,
+void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
     const ChunkData* neighborChunks[6],
-    const std::atomic<bool>* cancelSignal
-) {
+    const std::atomic<bool>* cancelSignal)
+{
     MC_TRACE_CHUNK_MESH_EVENT("SimplyGenerateSectionMesh", "phase", "simple");
     // 必须有 BlockModelCache
     if (!s_modelCache) {
@@ -1703,8 +1647,7 @@ void ChunkMesher::simpleMeshSection(
             return nullptr;
         }
 
-        if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
-            worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
+        if (worldX >= 0 && worldX < world::CHUNK_WIDTH && worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
             return chunk.getBlockState(worldX, worldY, worldZ);
         }
 
@@ -1714,13 +1657,13 @@ void ChunkMesher::simpleMeshSection(
 
         i32 neighborIdx = -1;
         if (worldX < 0) {
-            neighborIdx = 0;        // -X
+            neighborIdx = 0; // -X
         } else if (worldX >= SIZE) {
-            neighborIdx = 1;        // +X
+            neighborIdx = 1; // +X
         } else if (worldZ < 0) {
-            neighborIdx = 2;        // -Z
+            neighborIdx = 2; // -Z
         } else if (worldZ >= SIZE) {
-            neighborIdx = 3;        // +Z
+            neighborIdx = 3; // +Z
         }
 
         if (neighborIdx < 0 || !neighborChunks[neighborIdx]) {
@@ -1774,8 +1717,7 @@ void ChunkMesher::simpleMeshSection(
                         blockLight = sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
                     }
 
-                    addCrossedPlantGeometry(
-                        outMesh,
+                    addCrossedPlantGeometry(outMesh,
                         static_cast<f64>(x),
                         static_cast<f64>(baseY + y),
                         static_cast<f64>(z),
@@ -1787,17 +1729,13 @@ void ChunkMesher::simpleMeshSection(
                         blockLight,
                         block,
                         appearance,
-                        neighborChunks
-                    );
+                        neighborChunks);
                     continue;
                 }
 
                 const CollisionShape& blockShape = block->getShape();
-                const bool useShapeFallback =
-                    !block->isLiquid() &&
-                    !blockShape.isEmpty() &&
-                    !blockShape.isFullBlock() &&
-                    blockShape.boxCount() == 1;
+                const bool useShapeFallback = !block->isLiquid() && !blockShape.isEmpty() &&
+                    !blockShape.isFullBlock() && blockShape.boxCount() == 1;
 
                 if (useShapeFallback) {
                     std::array<const BlockState*, 6> neighborStates = {};
@@ -1806,8 +1744,7 @@ void ChunkMesher::simpleMeshSection(
                         neighborStates[faceIdx] = getNeighborBlock(x, y, z, face);
                     }
 
-                    addShapeGeometryFromAppearance(
-                        outMesh,
+                    addShapeGeometryFromAppearance(outMesh,
                         static_cast<f64>(x),
                         static_cast<f64>(baseY + y),
                         static_cast<f64>(z),
@@ -1819,8 +1756,7 @@ void ChunkMesher::simpleMeshSection(
                         appearance,
                         blockShape,
                         neighborStates,
-                        neighborChunks
-                    );
+                        neighborChunks);
                     continue;
                 }
 
@@ -1838,15 +1774,12 @@ void ChunkMesher::simpleMeshSection(
 
                         if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
                             // 平滑光照模式：使用AO计算
-                            addFaceFromAppearanceSmooth(outMesh, face,
-                                    fx, fy, fz,
-                                    chunk, x, baseY + y, z,
-                                    block,
-                                    appearance, neighborChunks);
+                            addFaceFromAppearanceSmooth(
+                                outMesh, face, fx, fy, fz, chunk, x, baseY + y, z, block, appearance, neighborChunks);
                         } else {
                             // 平面光照模式
-                            u8 skyLight = 15;   // 默认天空光
-                            u8 blockLight = 0;  // 默认方块光
+                            u8 skyLight = 15;  // 默认天空光
+                            u8 blockLight = 0; // 默认方块光
                             if (s_lightingEnabled) {
                                 const i32 sampleX = x + dir[0];
                                 const i32 sampleY = baseY + y + dir[1];
@@ -1855,7 +1788,8 @@ void ChunkMesher::simpleMeshSection(
                                 // 对于透明方块的边界面，如果邻居是不透明方块，
                                 // 使用方块自身位置的光照，避免采样到不透明方块内部的黑色
                                 // 这解决了草方块底部渲染为黑色的问题
-                                if (block->isTransparent() && neighbor && !neighbor->isAir() && !neighbor->isTransparent()) {
+                                if (block->isTransparent() && neighbor && !neighbor->isAir() &&
+                                    !neighbor->isTransparent()) {
                                     // 采样方块自身位置的光照
                                     skyLight = sampleSkyLight(chunk, x, baseY + y, z, neighborChunks);
                                     blockLight = sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
@@ -1866,17 +1800,20 @@ void ChunkMesher::simpleMeshSection(
                                 }
                             }
 
-                            addFaceFromAppearance(outMesh, face,
-                                    fx, fy, fz,
-                                    chunk,
-                                    x,
-                                    baseY + y,
-                                    z,
-                                    skyLight,
-                                    blockLight,
-                                    block,
-                                    appearance,
-                                    neighborChunks);
+                            addFaceFromAppearance(outMesh,
+                                face,
+                                fx,
+                                fy,
+                                fz,
+                                chunk,
+                                x,
+                                baseY + y,
+                                z,
+                                skyLight,
+                                blockLight,
+                                block,
+                                appearance,
+                                neighborChunks);
                         }
                     }
                 }
@@ -1885,13 +1822,12 @@ void ChunkMesher::simpleMeshSection(
     }
 }
 
-void ChunkMesher::greedyMeshSection(
-    const ChunkData& chunk,
+void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
     const ChunkData* neighborChunks[6],
-    const std::atomic<bool>* cancelSignal
-) {
+    const std::atomic<bool>* cancelSignal)
+{
     MC_TRACE_CHUNK_MESH_EVENT("GreedyGenerateSectionMesh", "phase", "greedy");
 
     // 必须有 BlockModelCache
@@ -1960,12 +1896,7 @@ void ChunkMesher::greedyMeshSection(
         biomeNeighbors[2] = neighborChunks[2]; // -Z
         biomeNeighbors[3] = neighborChunks[3]; // +Z
     }
-    client::ChunkBiomeAccessor biomeAccessor(
-        chunk,
-        biomeNeighbors,
-        chunk.x(),
-        chunk.z()
-    );
+    client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
 
     struct FaceCellData {
         bool visible = false;
@@ -1979,10 +1910,8 @@ void ChunkMesher::greedyMeshSection(
 
     const auto sameTextureRegion = [](const TextureRegion& a, const TextureRegion& b) {
         constexpr float EPSILON = 1e-6f;
-        return std::abs(a.u0 - b.u0) <= EPSILON
-            && std::abs(a.v0 - b.v0) <= EPSILON
-            && std::abs(a.u1 - b.u1) <= EPSILON
-            && std::abs(a.v1 - b.v1) <= EPSILON;
+        return std::abs(a.u0 - b.u0) <= EPSILON && std::abs(a.v0 - b.v0) <= EPSILON &&
+            std::abs(a.u1 - b.u1) <= EPSILON && std::abs(a.v1 - b.v1) <= EPSILON;
     };
 
     const auto sameCell = [&](const FaceCellData& a, const FaceCellData& b) {
@@ -1990,18 +1919,15 @@ void ChunkMesher::greedyMeshSection(
             return false;
         }
 
-        if (a.block != b.block
-            || a.appearance != b.appearance
-            || a.skyLight != b.skyLight
-            || a.blockLight != b.blockLight
-            || a.layers.size() != b.layers.size()
-            || a.shadedLayerColors.size() != b.shadedLayerColors.size()) {
+        if (a.block != b.block || a.appearance != b.appearance || a.skyLight != b.skyLight ||
+            a.blockLight != b.blockLight || a.layers.size() != b.layers.size() ||
+            a.shadedLayerColors.size() != b.shadedLayerColors.size()) {
             return false;
         }
 
         for (size_t i = 0; i < a.layers.size(); ++i) {
-            if (a.layers[i].tintIndex != b.layers[i].tintIndex
-                || !sameTextureRegion(a.layers[i].texture, b.layers[i].texture)) {
+            if (a.layers[i].tintIndex != b.layers[i].tintIndex ||
+                !sameTextureRegion(a.layers[i].texture, b.layers[i].texture)) {
                 return false;
             }
         }
@@ -2033,8 +1959,7 @@ void ChunkMesher::greedyMeshSection(
             return nullptr;
         }
 
-        if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
-            worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
+        if (worldX >= 0 && worldX < world::CHUNK_WIDTH && worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
             return chunk.getBlockState(worldX, worldY, worldZ);
         }
 
@@ -2044,13 +1969,13 @@ void ChunkMesher::greedyMeshSection(
 
         i32 neighborIdx = -1;
         if (worldX < 0) {
-            neighborIdx = 0;        // -X
+            neighborIdx = 0; // -X
         } else if (worldX >= SIZE) {
-            neighborIdx = 1;        // +X
+            neighborIdx = 1; // +X
         } else if (worldZ < 0) {
-            neighborIdx = 2;        // -Z
+            neighborIdx = 2; // -Z
         } else if (worldZ >= SIZE) {
-            neighborIdx = 3;        // +Z
+            neighborIdx = 3; // +Z
         }
 
         if (neighborIdx < 0 || !neighborChunks[neighborIdx]) {
@@ -2093,13 +2018,26 @@ void ChunkMesher::greedyMeshSection(
 
         std::string faceName;
         switch (face) {
-            case Face::Bottom: faceName = "down"; break;
-            case Face::Top: faceName = "up"; break;
-            case Face::North: faceName = "north"; break;
-            case Face::South: faceName = "south"; break;
-            case Face::West: faceName = "west"; break;
-            case Face::East: faceName = "east"; break;
-            default: return cell;
+            case Face::Bottom:
+                faceName = "down";
+                break;
+            case Face::Top:
+                faceName = "up";
+                break;
+            case Face::North:
+                faceName = "north";
+                break;
+            case Face::South:
+                faceName = "south";
+                break;
+            case Face::West:
+                faceName = "west";
+                break;
+            case Face::East:
+                faceName = "east";
+                break;
+            default:
+                return cell;
         }
 
         auto faceLayers = collectFaceLayers(appearance, faceName);
@@ -2138,15 +2076,9 @@ void ChunkMesher::greedyMeshSection(
         shadedLayerColors.reserve(faceLayers.size());
         const float faceShade = getFaceShade(face);
         for (const auto& layer : faceLayers) {
-            const u32 tintColor = resolveTintColorBlended(
-                biomeAccessor, worldX, worldY, worldZ, block, layer.tintIndex
-            );
-            shadedLayerColors.push_back(
-                applyBlockAlpha(
-                    applyShadeToPackedColor(tintColor, faceShade),
-                    block
-                )
-            );
+            const u32 tintColor =
+                resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, block, layer.tintIndex);
+            shadedLayerColors.push_back(applyBlockAlpha(applyShadeToPackedColor(tintColor, faceShade), block));
         }
 
         cell.visible = true;
@@ -2235,26 +2167,25 @@ void ChunkMesher::greedyMeshSection(
 
             // UV 仍按单方块面的标准布局，保持与现有渲染路径一致。
             // 若后续需要平铺纹理，可扩展顶点格式传递 UV 缩放参数。
-            const f64 uvs[4][2] = {
-                { layer.texture.u0, layer.texture.v1 },
-                { layer.texture.u1, layer.texture.v1 },
-                { layer.texture.u1, layer.texture.v0 },
-                { layer.texture.u0, layer.texture.v0 }
-            };
+            const f64 uvs[4][2] = {{layer.texture.u0, layer.texture.v1},
+                {layer.texture.u1, layer.texture.v1},
+                {layer.texture.u1, layer.texture.v0},
+                {layer.texture.u0, layer.texture.v0}};
 
             const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
 
             std::array<Vertex, 4> faceVerts;
             for (size_t i = 0; i < 4; ++i) {
-                faceVerts[i] = Vertex(
-                    positions[i][0] + normal[0] * layerOffset,
+                faceVerts[i] = Vertex(positions[i][0] + normal[0] * layerOffset,
                     positions[i][1] + normal[1] * layerOffset,
                     positions[i][2] + normal[2] * layerOffset,
-                    normal[0], normal[1], normal[2],
-                    uvs[i][0], uvs[i][1],
+                    normal[0],
+                    normal[1],
+                    normal[2],
+                    uvs[i][0],
+                    uvs[i][1],
                     color,
-                    packedLight
-                );
+                    packedLight);
             }
 
             const u32 baseIndex = static_cast<u32>(outMesh.vertices.size());
@@ -2387,10 +2318,10 @@ void ChunkMesher::greedyMeshSection(
 
 ChunkMeshCache::ChunkMeshCache(size_t maxCachedChunks)
     : m_maxCachedChunks(maxCachedChunks)
-{
-}
+{}
 
-ChunkRenderData* ChunkMeshCache::getOrCreate(const ChunkId& id) {
+ChunkRenderData* ChunkMeshCache::getOrCreate(const ChunkId& id)
+{
     auto it = m_cache.find(id);
     if (it != m_cache.end()) {
         return &it->second;
@@ -2399,7 +2330,7 @@ ChunkRenderData* ChunkMeshCache::getOrCreate(const ChunkId& id) {
     // 检查是否需要清理旧缓存
     if (m_cache.size() >= m_maxCachedChunks) {
         // 简单的LRU策略：移除标记为脏的旧数据
-        for (auto it2 = m_cache.begin(); it2 != m_cache.end(); ) {
+        for (auto it2 = m_cache.begin(); it2 != m_cache.end();) {
             if (!it2->second.isDirty && !it2->second.needsUpdate) {
                 it2 = m_cache.erase(it2);
                 if (m_cache.size() < m_maxCachedChunks) break;
@@ -2414,7 +2345,8 @@ ChunkRenderData* ChunkMeshCache::getOrCreate(const ChunkId& id) {
     return &data;
 }
 
-ChunkRenderData* ChunkMeshCache::get(const ChunkId& id) {
+ChunkRenderData* ChunkMeshCache::get(const ChunkId& id)
+{
     auto it = m_cache.find(id);
     if (it != m_cache.end()) {
         return &it->second;
@@ -2422,7 +2354,8 @@ ChunkRenderData* ChunkMeshCache::get(const ChunkId& id) {
     return nullptr;
 }
 
-const ChunkRenderData* ChunkMeshCache::get(const ChunkId& id) const {
+const ChunkRenderData* ChunkMeshCache::get(const ChunkId& id) const
+{
     auto it = m_cache.find(id);
     if (it != m_cache.end()) {
         return &it->second;
@@ -2430,7 +2363,8 @@ const ChunkRenderData* ChunkMeshCache::get(const ChunkId& id) const {
     return nullptr;
 }
 
-void ChunkMeshCache::markDirty(const ChunkId& id) {
+void ChunkMeshCache::markDirty(const ChunkId& id)
+{
     auto it = m_cache.find(id);
     if (it != m_cache.end()) {
         if (!it->second.isDirty) {
@@ -2440,7 +2374,8 @@ void ChunkMeshCache::markDirty(const ChunkId& id) {
     }
 }
 
-void ChunkMeshCache::remove(const ChunkId& id) {
+void ChunkMeshCache::remove(const ChunkId& id)
+{
     auto it = m_cache.find(id);
     if (it != m_cache.end()) {
         if (it->second.isDirty) {
@@ -2450,7 +2385,8 @@ void ChunkMeshCache::remove(const ChunkId& id) {
     }
 }
 
-void ChunkMeshCache::clear() {
+void ChunkMeshCache::clear()
+{
     m_cache.clear();
     m_dirtyCount = 0;
 }

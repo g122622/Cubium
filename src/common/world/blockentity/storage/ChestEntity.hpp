@@ -1,10 +1,10 @@
 #pragma once
 
+#include "resource/ResourceLocation.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/storage/DoubleSidedInventory.hpp"
-#include "resource/ResourceLocation.hpp"
-#include "util/math/random/Random.hpp"
 #include <memory>
 
 namespace mc {
@@ -148,7 +148,8 @@ public:
      * @param partialTick 部分tick时间
      * @return 插值后的角度
      */
-    [[nodiscard]] f32 getInterpolatedLidAngle(f32 partialTick) const {
+    [[nodiscard]] f32 getInterpolatedLidAngle(f32 partialTick) const
+    {
         return m_prevLidAngle + (m_lidAngle - m_prevLidAngle) * partialTick;
     }
 
@@ -181,10 +182,10 @@ protected:
     void playSound(IWorld& world, bool open);
 
 private:
-    SimpleInventory m_inventory;      ///< 27格物品存储
-    f32 m_lidAngle = 0.0f;            ///< 当前盖子角度 (0-1)
-    f32 m_prevLidAngle = 0.0f;        ///< 上一帧盖子角度
-    i32 m_ticksSinceSync = 0;         ///< 同步计数器
+    SimpleInventory m_inventory; ///< 27格物品存储
+    f32 m_lidAngle = 0.0f;       ///< 当前盖子角度 (0-1)
+    f32 m_prevLidAngle = 0.0f;   ///< 上一帧盖子角度
+    i32 m_ticksSinceSync = 0;    ///< 同步计数器
 };
 
 } // namespace blockentity

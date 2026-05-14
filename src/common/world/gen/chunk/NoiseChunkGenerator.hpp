@@ -1,22 +1,22 @@
 #pragma once
 
-#include "IChunkGenerator.hpp"
-#include "../noise/OctavesNoiseGenerator.hpp"
-#include "../settings/NoiseSettings.hpp"
-#include "../carver/WorldCarver.hpp"
-#include "../carver/CaveCarver.hpp"
-#include "../carver/CanyonCarver.hpp"
-#include "../carver/UnderwaterCarver.hpp"
-#include "../feature/DecorationStage.hpp"
-#include "../feature/ConfiguredFeature.hpp"
-#include "../structure/StructureManager.hpp"
-#include "../surface/SurfaceBuilders.hpp"
-#include "../jigsaw/JigsawJunction.hpp"
-#include "../../biome/BiomeProvider.hpp"
-#include "../../biome/BiomeGenerationSettings.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../biome/BiomeGenerationSettings.hpp"
+#include "../../biome/BiomeProvider.hpp"
+#include "../../chunk/ChunkPrimer.hpp"
+#include "../carver/CanyonCarver.hpp"
+#include "../carver/CaveCarver.hpp"
+#include "../carver/UnderwaterCarver.hpp"
+#include "../carver/WorldCarver.hpp"
+#include "../feature/ConfiguredFeature.hpp"
+#include "../feature/DecorationStage.hpp"
+#include "../jigsaw/JigsawJunction.hpp"
+#include "../noise/OctavesNoiseGenerator.hpp"
+#include "../settings/NoiseSettings.hpp"
+#include "../structure/StructureManager.hpp"
+#include "../surface/SurfaceBuilders.hpp"
+#include "IChunkGenerator.hpp"
 #include <array>
 #include <memory>
 #include <vector>
@@ -70,8 +70,8 @@ public:
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    i32 spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                          std::vector<SpawnedEntityData>& outEntities) override;
+    i32 spawnInitialMobs(
+        WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
 
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
@@ -120,10 +120,10 @@ private:
     };
 
     // === 噪声生成器 ===
-    std::unique_ptr<OctavesNoiseGenerator> m_mainDensityNoise;      // 主密度噪声 (16倍频)
-    std::unique_ptr<OctavesNoiseGenerator> m_secondaryDensityNoise; // 次密度噪声 (16倍频)
-    std::unique_ptr<OctavesNoiseGenerator> m_weightNoise;           // 权重噪声 (8倍频)
-    std::unique_ptr<INoiseGenerator> m_surfaceDepthNoise;           // 地表深度噪声（Perlin 或 Octaves）
+    std::unique_ptr<OctavesNoiseGenerator> m_mainDensityNoise;         // 主密度噪声 (16倍频)
+    std::unique_ptr<OctavesNoiseGenerator> m_secondaryDensityNoise;    // 次密度噪声 (16倍频)
+    std::unique_ptr<OctavesNoiseGenerator> m_weightNoise;              // 权重噪声 (8倍频)
+    std::unique_ptr<INoiseGenerator> m_surfaceDepthNoise;              // 地表深度噪声（Perlin 或 Octaves）
     std::unique_ptr<OctavesNoiseGenerator> m_randomDensityOffsetNoise; // 随机密度偏移噪声
 
     // === 生物群系 ===
@@ -168,9 +168,8 @@ private:
      *
      * 参考 MC func_222552_a，计算 3D 噪声采样值。
      */
-    [[nodiscard]] f32 calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ,
-                                             f32 xzScale, f32 yScale,
-                                             f32 xzFactor, f32 yFactor) const;
+    [[nodiscard]] f32 calculateNoiseDensity(
+        i32 noiseX, i32 noiseY, i32 noiseZ, f32 xzScale, f32 yScale, f32 xzFactor, f32 yFactor) const;
 
     /**
      * @brief 计算随机密度偏移
@@ -197,8 +196,7 @@ private:
      * @param outPieces 输出：结构片段列表
      * @param outJunctions 输出：JigsawJunction 列表
      */
-    void collectStructureData(
-        ChunkPrimer& chunk,
+    void collectStructureData(ChunkPrimer& chunk,
         std::vector<const world::gen::structure::StructurePiece*>& outPieces,
         std::vector<world::gen::jigsaw::JigsawJunction>& outJunctions) const;
 
@@ -211,7 +209,6 @@ private:
     static void initGaussianLUT();
 
 private:
-
     void initNoiseGenerators();
     void initBiomeWeights();
 
@@ -247,13 +244,7 @@ private:
     void applyBedrock(ChunkPrimer& chunk, math::Random& random) const;
 
     void buildSurfaceForColumn(
-        ChunkPrimer& chunk,
-        math::Random& random,
-        i32 x,
-        i32 z,
-        i32 startHeight,
-        f32 surfaceNoise,
-        BiomeId biome);
+        ChunkPrimer& chunk, math::Random& random, i32 x, i32 z, i32 startHeight, f32 surfaceNoise, BiomeId biome);
 
 private:
     // === 24x24x24 高斯查找表（参考 MC field_222561_h）===

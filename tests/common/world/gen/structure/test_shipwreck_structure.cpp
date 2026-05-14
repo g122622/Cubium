@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "common/world/gen/structure/structures/ShipwreckStructure.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
-#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/structure/structures/ShipwreckStructure.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;
@@ -17,22 +17,22 @@ using namespace mc::world::gen::feature::template_;
 
 class ShipwreckStructureTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // ============================================================================
 // ShipwreckConfig 测试
 // ============================================================================
 
-TEST_F(ShipwreckStructureTest, Config_DefaultValues) {
+TEST_F(ShipwreckStructureTest, Config_DefaultValues)
+{
     ShipwreckConfig config;
 
     EXPECT_FALSE(config.isBeached);
 }
 
-TEST_F(ShipwreckStructureTest, Config_BeachedFlag) {
+TEST_F(ShipwreckStructureTest, Config_BeachedFlag)
+{
     ShipwreckConfig config;
     config.isBeached = true;
 
@@ -43,36 +43,32 @@ TEST_F(ShipwreckStructureTest, Config_BeachedFlag) {
 // ShipwreckPiece 测试
 // ============================================================================
 
-TEST_F(ShipwreckStructureTest, Piece_Construction) {
-    ShipwreckPiece piece(
-        "shipwreck/with_mast",
-        BlockPos(100, 64, 200),
-        Rotation::None,
-        false);
+TEST_F(ShipwreckStructureTest, Piece_Construction)
+{
+    ShipwreckPiece piece("shipwreck/with_mast", BlockPos(100, 64, 200), Rotation::None, false);
 
     EXPECT_EQ(piece.templateName(), "shipwreck/with_mast");
     EXPECT_FALSE(piece.isBeached());
 }
 
-TEST_F(ShipwreckStructureTest, Piece_Beached) {
-    ShipwreckPiece piece(
-        "shipwreck/rightsideup_full",
-        BlockPos(0, 0, 0),
-        Rotation::Clockwise90,
-        true);
+TEST_F(ShipwreckStructureTest, Piece_Beached)
+{
+    ShipwreckPiece piece("shipwreck/rightsideup_full", BlockPos(0, 0, 0), Rotation::Clockwise90, true);
 
     EXPECT_TRUE(piece.isBeached());
     EXPECT_EQ(piece.templateName(), "shipwreck/rightsideup_full");
 }
 
-TEST_F(ShipwreckStructureTest, Piece_StructureOffset) {
+TEST_F(ShipwreckStructureTest, Piece_StructureOffset)
+{
     // MC 1.16.5: BlockPos(4, 0, 15)
     EXPECT_EQ(ShipwreckPiece::STRUCTURE_OFFSET.x, 4);
     EXPECT_EQ(ShipwreckPiece::STRUCTURE_OFFSET.y, 0);
     EXPECT_EQ(ShipwreckPiece::STRUCTURE_OFFSET.z, 15);
 }
 
-TEST_F(ShipwreckStructureTest, Piece_RotationVariants) {
+TEST_F(ShipwreckStructureTest, Piece_RotationVariants)
+{
     // 测试所有旋转变体
     ShipwreckPiece piece0("test", BlockPos(0, 0, 0), Rotation::None, false);
     ShipwreckPiece piece90("test", BlockPos(0, 0, 0), Rotation::Clockwise90, false);
@@ -90,7 +86,8 @@ TEST_F(ShipwreckStructureTest, Piece_RotationVariants) {
 // ShipwreckStructure 测试
 // ============================================================================
 
-TEST_F(ShipwreckStructureTest, Structure_BasicProperties) {
+TEST_F(ShipwreckStructureTest, Structure_BasicProperties)
+{
     ShipwreckStructure structure;
 
     EXPECT_EQ(structure.name(), "shipwreck");
@@ -103,7 +100,8 @@ TEST_F(ShipwreckStructureTest, Structure_BasicProperties) {
     EXPECT_GT(settings.salt, 0);
 }
 
-TEST_F(ShipwreckStructureTest, Structure_ValidBiomes) {
+TEST_F(ShipwreckStructureTest, Structure_ValidBiomes)
+{
     ShipwreckStructure structure;
     const auto& biomes = structure.validBiomes();
 
@@ -126,7 +124,8 @@ TEST_F(ShipwreckStructureTest, Structure_ValidBiomes) {
     EXPECT_TRUE(hasDeepOcean) << "Missing DeepOcean biome";
 }
 
-TEST_F(ShipwreckStructureTest, Structure_TemplateNames) {
+TEST_F(ShipwreckStructureTest, Structure_TemplateNames)
+{
     // 验证模板名称已定义
     // 搁浅沉船模板（11 种）
     EXPECT_EQ(ShipwreckStructure::s_beachedTemplates.size(), 11u);
@@ -135,7 +134,8 @@ TEST_F(ShipwreckStructureTest, Structure_TemplateNames) {
     EXPECT_EQ(ShipwreckStructure::s_allTemplates.size(), 20u);
 }
 
-TEST_F(ShipwreckStructureTest, Structure_BeachedTemplateList) {
+TEST_F(ShipwreckStructureTest, Structure_BeachedTemplateList)
+{
     // MC 1.16.5: 搁浅沉船变体
     const auto& templates = ShipwreckStructure::s_beachedTemplates;
 
@@ -166,7 +166,8 @@ TEST_F(ShipwreckStructureTest, Structure_BeachedTemplateList) {
     EXPECT_TRUE(hasDegraded) << "Missing degraded template";
 }
 
-TEST_F(ShipwreckStructureTest, Structure_AllTemplateList) {
+TEST_F(ShipwreckStructureTest, Structure_AllTemplateList)
+{
     // MC 1.16.5: 所有沉船变体（包括水下和搁浅）
     const auto& templates = ShipwreckStructure::s_allTemplates;
 
@@ -189,20 +190,20 @@ TEST_F(ShipwreckStructureTest, Structure_AllTemplateList) {
     EXPECT_TRUE(hasWithMast) << "Missing with_mast template";
 }
 
-TEST_F(ShipwreckStructureTest, Structure_TemplateNameFormats) {
+TEST_F(ShipwreckStructureTest, Structure_TemplateNameFormats)
+{
     // 验证模板名称格式符合 MC 1.16.5
     for (const auto& name : ShipwreckStructure::s_beachedTemplates) {
-        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos)
-            << "Invalid beached template name: " << name;
+        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos) << "Invalid beached template name: " << name;
     }
 
     for (const auto& name : ShipwreckStructure::s_allTemplates) {
-        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos)
-            << "Invalid template name: " << name;
+        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos) << "Invalid template name: " << name;
     }
 }
 
-TEST_F(ShipwreckStructureTest, Structure_BeachedTemplatesSubsetOfAll) {
+TEST_F(ShipwreckStructureTest, Structure_BeachedTemplatesSubsetOfAll)
+{
     // 验证搁浅模板是所有模板的子集
     const auto& beached = ShipwreckStructure::s_beachedTemplates;
     const auto& all = ShipwreckStructure::s_allTemplates;
@@ -223,7 +224,8 @@ TEST_F(ShipwreckStructureTest, Structure_BeachedTemplatesSubsetOfAll) {
 // 分离设置测试
 // ============================================================================
 
-TEST_F(ShipwreckStructureTest, SeparationSettings_MC1165Values) {
+TEST_F(ShipwreckStructureTest, SeparationSettings_MC1165Values)
+{
     ShipwreckStructure structure;
     auto settings = structure.separationSettings();
 
@@ -237,19 +239,16 @@ TEST_F(ShipwreckStructureTest, SeparationSettings_MC1165Values) {
 // 旋转测试
 // ============================================================================
 
-TEST_F(ShipwreckStructureTest, Rotation_AllVariants) {
+TEST_F(ShipwreckStructureTest, Rotation_AllVariants)
+{
     // 验证所有旋转值可以正常使用
     math::Random rng(12345);
 
     for (int i = 0; i < 100; ++i) {
-        i32 rotationValue = rng.nextInt(4) * 90;  // 0, 90, 180, 270
+        i32 rotationValue = rng.nextInt(4) * 90; // 0, 90, 180, 270
         Rotation rotation = static_cast<Rotation>(rotationValue);
 
-        ShipwreckPiece piece(
-            "test_template",
-            BlockPos(0, 0, 0),
-            rotation,
-            false);
+        ShipwreckPiece piece("test_template", BlockPos(0, 0, 0), rotation, false);
 
         // 验证构造成功
         EXPECT_EQ(piece.templateName(), "test_template");
@@ -260,13 +259,15 @@ TEST_F(ShipwreckStructureTest, Rotation_AllVariants) {
 // 模板变体类型测试
 // ============================================================================
 
-TEST_F(ShipwreckStructureTest, TemplateVariants_Full) {
+TEST_F(ShipwreckStructureTest, TemplateVariants_Full)
+{
     const auto& all = ShipwreckStructure::s_allTemplates;
 
     // 验证完整变体
     bool hasFull = false;
     for (const auto& name : all) {
-        if (name.find("_full") != std::string::npos && name.find("fronthalf") == std::string::npos && name.find("backhalf") == std::string::npos) {
+        if (name.find("_full") != std::string::npos && name.find("fronthalf") == std::string::npos &&
+            name.find("backhalf") == std::string::npos) {
             hasFull = true;
             break;
         }
@@ -274,7 +275,8 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Full) {
     EXPECT_TRUE(hasFull) << "Missing full template variant";
 }
 
-TEST_F(ShipwreckStructureTest, TemplateVariants_Half) {
+TEST_F(ShipwreckStructureTest, TemplateVariants_Half)
+{
     const auto& all = ShipwreckStructure::s_allTemplates;
 
     // 验证半截变体
@@ -290,7 +292,8 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Half) {
     EXPECT_TRUE(hasBackHalf) << "Missing backhalf template variant";
 }
 
-TEST_F(ShipwreckStructureTest, TemplateVariants_Degraded) {
+TEST_F(ShipwreckStructureTest, TemplateVariants_Degraded)
+{
     const auto& all = ShipwreckStructure::s_allTemplates;
 
     // 验证破损变体
@@ -309,7 +312,8 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Degraded) {
 // 配置测试
 // ============================================================================
 
-TEST_F(ShipwreckStructureTest, Config_SetAndGet) {
+TEST_F(ShipwreckStructureTest, Config_SetAndGet)
+{
     ShipwreckStructure structure;
 
     ShipwreckConfig config;

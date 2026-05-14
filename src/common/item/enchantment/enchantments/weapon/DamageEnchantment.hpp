@@ -20,26 +20,20 @@ public:
      * @brief 伤害类型枚举
      */
     enum class Type : u8 {
-        All,        ///< 锋利 - 对所有生物有效
-        Undead,     ///< 亡灵杀手 - 对亡灵生物有效
-        Arthropods  ///< 节肢杀手 - 对节肢生物有效
+        All,       ///< 锋利 - 对所有生物有效
+        Undead,    ///< 亡灵杀手 - 对亡灵生物有效
+        Arthropods ///< 节肢杀手 - 对节肢生物有效
     };
 
     explicit DamageEnchantment(Type damageType);
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Weapon;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 5;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 5; }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override;
 

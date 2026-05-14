@@ -3,10 +3,10 @@
  * @brief ButtonWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/ButtonWidget.hpp"
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -15,13 +15,15 @@ using namespace mc;
 
 // ==================== 构造函数测试 ====================
 
-TEST(ButtonWidgetTest, DefaultConstructor) {
+TEST(ButtonWidgetTest, DefaultConstructor)
+{
     ButtonWidget button;
     EXPECT_TRUE(button.id().empty());
     EXPECT_TRUE(button.text().empty());
 }
 
-TEST(ButtonWidgetTest, ConstructorWithParams) {
+TEST(ButtonWidgetTest, ConstructorWithParams)
+{
     ButtonWidget button("btn_test", 10, 20, 100, 40, "Click Me");
 
     EXPECT_EQ("btn_test", button.id());
@@ -32,10 +34,10 @@ TEST(ButtonWidgetTest, ConstructorWithParams) {
     EXPECT_EQ(40, button.height());
 }
 
-TEST(ButtonWidgetTest, ConstructorWithCallback) {
+TEST(ButtonWidgetTest, ConstructorWithCallback)
+{
     bool clicked = false;
-    ButtonWidget button("btn_test", 10, 20, 100, 40, "Click Me",
-        [&clicked](ButtonWidget&) { clicked = true; });
+    ButtonWidget button("btn_test", 10, 20, 100, 40, "Click Me", [&clicked](ButtonWidget&) { clicked = true; });
 
     EXPECT_EQ("btn_test", button.id());
     EXPECT_EQ("Click Me", button.text());
@@ -47,7 +49,8 @@ TEST(ButtonWidgetTest, ConstructorWithCallback) {
 
 // ==================== 文本测试 ====================
 
-TEST(ButtonWidgetTest, SetText) {
+TEST(ButtonWidgetTest, SetText)
+{
     ButtonWidget button("btn_test", 0, 0, 100, 40, "Initial");
     EXPECT_EQ("Initial", button.text());
 
@@ -57,7 +60,8 @@ TEST(ButtonWidgetTest, SetText) {
 
 // ==================== 样式测试 ====================
 
-TEST(ButtonWidgetTest, SetStyle) {
+TEST(ButtonWidgetTest, SetStyle)
+{
     ButtonWidget button("btn_test", 0, 0, 100, 40, "Test");
 
     ButtonWidget::Style style;
@@ -76,7 +80,8 @@ TEST(ButtonWidgetTest, SetStyle) {
 
 // ==================== 状态测试 ====================
 
-TEST(ButtonWidgetTest, GetRenderState) {
+TEST(ButtonWidgetTest, GetRenderState)
+{
     ButtonWidget button("btn_test", 0, 0, 100, 40, "Test");
 
     // 正常状态
@@ -92,7 +97,8 @@ TEST(ButtonWidgetTest, GetRenderState) {
     EXPECT_EQ(2, button.getRenderState());
 }
 
-TEST(ButtonWidgetTest, GetBackgroundColor) {
+TEST(ButtonWidgetTest, GetBackgroundColor)
+{
     ButtonWidget button("btn_test", 0, 0, 100, 40, "Test");
 
     ButtonWidget::Style style;
@@ -113,7 +119,8 @@ TEST(ButtonWidgetTest, GetBackgroundColor) {
     EXPECT_EQ(style.disabledColor, button.getBackgroundColor());
 }
 
-TEST(ButtonWidgetTest, GetTextColor) {
+TEST(ButtonWidgetTest, GetTextColor)
+{
     ButtonWidget button("btn_test", 0, 0, 100, 40, "Test");
 
     ButtonWidget::Style style;
@@ -131,10 +138,10 @@ TEST(ButtonWidgetTest, GetTextColor) {
 
 // ==================== 点击测试 ====================
 
-TEST(ButtonWidgetTest, ClickTriggersCallback) {
+TEST(ButtonWidgetTest, ClickTriggersCallback)
+{
     int clickCount = 0;
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test",
-        [&clickCount](ButtonWidget&) { ++clickCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) { ++clickCount; });
 
     button.setActive(true);
     button.setVisible(true);
@@ -150,10 +157,10 @@ TEST(ButtonWidgetTest, ClickTriggersCallback) {
     EXPECT_EQ(1, clickCount);
 }
 
-TEST(ButtonWidgetTest, ClickDisabledNoTrigger) {
+TEST(ButtonWidgetTest, ClickDisabledNoTrigger)
+{
     int clickCount = 0;
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test",
-        [&clickCount](ButtonWidget&) { ++clickCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) { ++clickCount; });
 
     button.setActive(false);
 
@@ -162,10 +169,10 @@ TEST(ButtonWidgetTest, ClickDisabledNoTrigger) {
     EXPECT_EQ(0, clickCount);
 }
 
-TEST(ButtonWidgetTest, ClickInvisibleNoTrigger) {
+TEST(ButtonWidgetTest, ClickInvisibleNoTrigger)
+{
     int clickCount = 0;
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test",
-        [&clickCount](ButtonWidget&) { ++clickCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) { ++clickCount; });
 
     button.setVisible(false);
 
@@ -178,14 +185,16 @@ TEST(ButtonWidgetTest, ClickInvisibleNoTrigger) {
 
 class UiSoundTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 保存原始回调
         m_originalCallback = Widget::uiSoundCallback();
         // 清除回调
         Widget::setUiSoundCallback(nullptr);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 恢复原始回调
         Widget::setUiSoundCallback(m_originalCallback);
     }
@@ -193,7 +202,8 @@ protected:
     UiSoundCallback m_originalCallback;
 };
 
-TEST_F(UiSoundTest, WidgetSetAndGetSoundCallback) {
+TEST_F(UiSoundTest, WidgetSetAndGetSoundCallback)
+{
     // 测试设置和获取回调
     bool callbackCalled = false;
     std::string receivedSoundId;
@@ -207,7 +217,8 @@ TEST_F(UiSoundTest, WidgetSetAndGetSoundCallback) {
     EXPECT_TRUE(Widget::uiSoundCallback());
 }
 
-TEST_F(UiSoundTest, WidgetPlayUiSoundCallsCallback) {
+TEST_F(UiSoundTest, WidgetPlayUiSoundCallsCallback)
+{
     std::string lastSoundId;
     int callCount = 0;
 
@@ -228,7 +239,8 @@ TEST_F(UiSoundTest, WidgetPlayUiSoundCallsCallback) {
     EXPECT_EQ("minecraft:entity.player.swim", lastSoundId);
 }
 
-TEST_F(UiSoundTest, WidgetPlayUiSoundNoCallbackDoesNotCrash) {
+TEST_F(UiSoundTest, WidgetPlayUiSoundNoCallbackDoesNotCrash)
+{
     // 清除回调
     Widget::setUiSoundCallback(nullptr);
 
@@ -236,7 +248,8 @@ TEST_F(UiSoundTest, WidgetPlayUiSoundNoCallbackDoesNotCrash) {
     EXPECT_NO_THROW(Widget::playUiSound("minecraft:ui.button.click"));
 }
 
-TEST_F(UiSoundTest, ButtonClickPlaysSound) {
+TEST_F(UiSoundTest, ButtonClickPlaysSound)
+{
     std::string lastSoundId;
     int soundCallCount = 0;
     int clickCallCount = 0;
@@ -246,8 +259,7 @@ TEST_F(UiSoundTest, ButtonClickPlaysSound) {
         ++soundCallCount;
     });
 
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test",
-        [&clickCallCount](ButtonWidget&) { ++clickCallCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCallCount](ButtonWidget&) { ++clickCallCount; });
 
     button.setActive(true);
     button.setVisible(true);
@@ -261,12 +273,11 @@ TEST_F(UiSoundTest, ButtonClickPlaysSound) {
     EXPECT_EQ("minecraft:ui.button.click", lastSoundId);
 }
 
-TEST_F(UiSoundTest, ButtonClickNoSoundWhenDisabled) {
+TEST_F(UiSoundTest, ButtonClickNoSoundWhenDisabled)
+{
     int soundCallCount = 0;
 
-    Widget::setUiSoundCallback([&](const std::string&) {
-        ++soundCallCount;
-    });
+    Widget::setUiSoundCallback([&](const std::string&) { ++soundCallCount; });
 
     ButtonWidget button("btn_test", 0, 0, 100, 40, "Test");
     button.setActive(false);
@@ -278,21 +289,19 @@ TEST_F(UiSoundTest, ButtonClickNoSoundWhenDisabled) {
     EXPECT_EQ(0, soundCallCount);
 }
 
-TEST_F(UiSoundTest, CustomButtonSound) {
+TEST_F(UiSoundTest, CustomButtonSound)
+{
     std::string lastSoundId;
 
-    Widget::setUiSoundCallback([&](const std::string& soundId) {
-        lastSoundId = soundId;
-    });
+    Widget::setUiSoundCallback([&](const std::string& soundId) { lastSoundId = soundId; });
 
     // 创建自定义按钮类，使用不同的音效
     class CustomSoundButton : public ButtonWidget {
     public:
         using ButtonWidget::ButtonWidget;
+
     protected:
-        void playClickSound() override {
-            playUiSound("minecraft:block.wood.hit");
-        }
+        void playClickSound() override { playUiSound("minecraft:block.wood.hit"); }
     };
 
     CustomSoundButton button("custom_btn", 0, 0, 100, 40, "Custom");
@@ -307,7 +316,8 @@ TEST_F(UiSoundTest, CustomButtonSound) {
 
 // ==================== ImageButtonWidget测试 ====================
 
-TEST(ImageButtonWidgetTest, Constructor) {
+TEST(ImageButtonWidgetTest, Constructor)
+{
     ImageButtonWidget button("img_btn", 10, 20, 40, 40, 0, 0, 40, "textures/gui/buttons.png");
 
     EXPECT_EQ("img_btn", button.id());
@@ -317,7 +327,8 @@ TEST(ImageButtonWidgetTest, Constructor) {
     EXPECT_EQ(40, button.height());
 }
 
-TEST(ImageButtonWidgetTest, SetTextureCoords) {
+TEST(ImageButtonWidgetTest, SetTextureCoords)
+{
     ImageButtonWidget button("img_btn", 0, 0, 40, 40, 0, 0, 40, "texture.png");
     button.setTextureCoords(10, 20, 50);
 

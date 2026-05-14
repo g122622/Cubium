@@ -11,8 +11,8 @@ class ServerPlayer;
 class IWorld;
 
 namespace crafting {
-    template<typename C>
-    class IRecipe;
+template <typename C>
+class IRecipe;
 }
 
 /**
@@ -60,7 +60,8 @@ public:
      * MC 1.16.5: 如果开启了有限合成且配方未解锁，返回false。
      * 否则设置当前配方并返回true。
      */
-    [[nodiscard]] virtual bool canUseRecipe(IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe);
+    [[nodiscard]] virtual bool canUseRecipe(
+        IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe);
 };
 
 } // namespace mc

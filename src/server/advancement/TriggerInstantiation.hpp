@@ -13,8 +13,8 @@
  * 参考 CriterionTrigger.hpp 末尾的注释。
  */
 
-#include "server/advancement/PlayerAdvancements.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
 #include "server/player/ServerPlayer.hpp"
 
 namespace mc::advancement {
@@ -23,8 +23,9 @@ namespace mc::advancement {
 // CriterionListener::grantCriterion() 实现
 // ============================================================================
 
-template<typename T>
-void CriterionListener<T>::grantCriterion(::mc::server::PlayerAdvancements& advancements) const {
+template <typename T>
+void CriterionListener<T>::grantCriterion(::mc::server::PlayerAdvancements& advancements) const
+{
     advancements.grantCriterion(m_advancement, m_criterion);
 }
 
@@ -32,9 +33,10 @@ void CriterionListener<T>::grantCriterion(::mc::server::PlayerAdvancements& adva
 // AbstractCriterionTrigger::trigger() 实现
 // ============================================================================
 
-template<typename T>
-template<typename PredicateT>
-void AbstractCriterionTrigger<T>::trigger(::mc::server::PlayerAdvancements& advancements, PredicateT&& predicate) {
+template <typename T>
+template <typename PredicateT>
+void AbstractCriterionTrigger<T>::trigger(::mc::server::PlayerAdvancements& advancements, PredicateT&& predicate)
+{
     auto it = m_listeners.find(&advancements);
     if (it == m_listeners.end()) {
         return;

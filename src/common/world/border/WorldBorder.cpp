@@ -1,10 +1,10 @@
 #include "WorldBorder.hpp"
+#include "../../util/math/MathUtils.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../../world/chunk/ChunkPos.hpp"
-#include "../../util/math/MathUtils.hpp"
 #include <algorithm>
-#include <cmath>
 #include <chrono>
+#include <cmath>
 
 namespace mc {
 namespace world {
@@ -55,8 +55,7 @@ private:
  */
 class MovingBorderState : public IBorderState {
 public:
-    MovingBorderState(double oldSize, double newSize, u64 timeMs,
-                      double centerX, double centerZ);
+    MovingBorderState(double oldSize, double newSize, u64 timeMs, double centerX, double centerZ);
 
     [[nodiscard]] double getMinX() const override;
     [[nodiscard]] double getMaxX() const override;
@@ -73,11 +72,11 @@ public:
 private:
     void updateBounds() const;
 
-    double m_oldSize;         // 起始大小
-    double m_newSize;         // 目标大小
-    u64 m_startTime;          // 开始时间（毫秒）
-    u64 m_endTime;            // 结束时间（毫秒）
-    u64 m_transitionTime;     // 过渡总时长（毫秒）
+    double m_oldSize;     // 起始大小
+    double m_newSize;     // 目标大小
+    u64 m_startTime;      // 开始时间（毫秒）
+    u64 m_endTime;        // 结束时间（毫秒）
+    u64 m_transitionTime; // 过渡总时长（毫秒）
     double m_centerX;
     double m_centerZ;
     mutable double m_cachedMinX, m_cachedMaxX, m_cachedMinZ, m_cachedMaxZ;
@@ -94,10 +93,10 @@ namespace {
 /**
  * @brief 获取当前时间戳（毫秒）
  */
-u64 getCurrentTimeMs() {
+u64 getCurrentTimeMs()
+{
     auto now = std::chrono::steady_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch());
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
     return static_cast<u64>(ms.count());
 }
 
@@ -110,18 +109,21 @@ u64 getCurrentTimeMs() {
 StationaryBorderState::StationaryBorderState(double size, double centerX, double centerZ)
     : m_size(size)
     , m_centerX(centerX)
-    , m_centerZ(centerZ) {
+    , m_centerZ(centerZ)
+{
     updateBounds();
 }
 
-void StationaryBorderState::updateBounds() {
+void StationaryBorderState::updateBounds()
+{
     m_minX = m_centerX - m_size / 2.0;
     m_maxX = m_centerX + m_size / 2.0;
     m_minZ = m_centerZ - m_size / 2.0;
     m_maxZ = m_centerZ + m_size / 2.0;
 }
 
-void StationaryBorderState::onCenterChanged(double centerX, double centerZ) {
+void StationaryBorderState::onCenterChanged(double centerX, double centerZ)
+{
     m_centerX = centerX;
     m_centerZ = centerZ;
     updateBounds();
@@ -131,12 +133,12 @@ void StationaryBorderState::onCenterChanged(double centerX, double centerZ) {
 // MovingBorderState 实现
 // ============================================================================
 
-MovingBorderState::MovingBorderState(double oldSize, double newSize, u64 timeMs,
-                                     double centerX, double centerZ)
+MovingBorderState::MovingBorderState(double oldSize, double newSize, u64 timeMs, double centerX, double centerZ)
     : m_oldSize(oldSize)
     , m_newSize(newSize)
     , m_centerX(centerX)
-    , m_centerZ(centerZ) {
+    , m_centerZ(centerZ)
+{
     u64 now = getCurrentTimeMs();
     m_startTime = now;
     m_endTime = now + timeMs;
@@ -144,49 +146,56 @@ MovingBorderState::MovingBorderState(double oldSize, double newSize, u64 timeMs,
     updateBounds();
 }
 
-double MovingBorderState::getMinX() const {
+double MovingBorderState::getMinX() const
+{
     if (m_dirty) {
         updateBounds();
     }
     return m_cachedMinX;
 }
 
-double MovingBorderState::getMaxX() const {
+double MovingBorderState::getMaxX() const
+{
     if (m_dirty) {
         updateBounds();
     }
     return m_cachedMaxX;
 }
 
-double MovingBorderState::getMinZ() const {
+double MovingBorderState::getMinZ() const
+{
     if (m_dirty) {
         updateBounds();
     }
     return m_cachedMinZ;
 }
 
-double MovingBorderState::getMaxZ() const {
+double MovingBorderState::getMaxZ() const
+{
     if (m_dirty) {
         updateBounds();
     }
     return m_cachedMaxZ;
 }
 
-double MovingBorderState::getSize() const {
+double MovingBorderState::getSize() const
+{
     if (m_dirty) {
         updateBounds();
     }
     return m_cachedSize;
 }
 
-double MovingBorderState::getResizeSpeed() const {
+double MovingBorderState::getResizeSpeed() const
+{
     if (m_transitionTime == 0) {
         return 0.0;
     }
     return std::abs(m_newSize - m_oldSize) / static_cast<double>(m_transitionTime);
 }
 
-u64 MovingBorderState::getTimeUntilTarget() const {
+u64 MovingBorderState::getTimeUntilTarget() const
+{
     u64 now = getCurrentTimeMs();
     if (now >= m_endTime) {
         return 0;
@@ -194,11 +203,13 @@ u64 MovingBorderState::getTimeUntilTarget() const {
     return m_endTime - now;
 }
 
-BorderStatus MovingBorderState::getStatus() const {
+BorderStatus MovingBorderState::getStatus() const
+{
     return (m_newSize > m_oldSize) ? BorderStatus::Growing : BorderStatus::Shrinking;
 }
 
-std::unique_ptr<IBorderState> MovingBorderState::tick() {
+std::unique_ptr<IBorderState> MovingBorderState::tick()
+{
     if (getTimeUntilTarget() == 0) {
         // 过渡完成，返回静止状态
         return std::make_unique<StationaryBorderState>(m_newSize, m_centerX, m_centerZ);
@@ -208,13 +219,15 @@ std::unique_ptr<IBorderState> MovingBorderState::tick() {
     return nullptr;
 }
 
-void MovingBorderState::onCenterChanged(double centerX, double centerZ) {
+void MovingBorderState::onCenterChanged(double centerX, double centerZ)
+{
     m_centerX = centerX;
     m_centerZ = centerZ;
     m_dirty = true;
 }
 
-void MovingBorderState::updateBounds() const {
+void MovingBorderState::updateBounds() const
+{
     // 计算当前大小（线性插值）
     u64 now = getCurrentTimeMs();
     double progress = 0.0;
@@ -238,8 +251,8 @@ void MovingBorderState::updateBounds() const {
 // ============================================================================
 
 WorldBorder::WorldBorder()
-    : m_state(std::make_unique<StationaryBorderState>(6.0E7, 0.0, 0.0)) {
-}
+    : m_state(std::make_unique<StationaryBorderState>(6.0E7, 0.0, 0.0))
+{}
 
 WorldBorder::~WorldBorder() = default;
 
@@ -251,39 +264,48 @@ WorldBorder& WorldBorder::operator=(WorldBorder&&) noexcept = default;
 // 边界状态查询
 // ============================================================================
 
-double WorldBorder::getSize() const {
+double WorldBorder::getSize() const
+{
     return m_state->getSize();
 }
 
-double WorldBorder::getTargetSize() const {
+double WorldBorder::getTargetSize() const
+{
     return m_state->getTargetSize();
 }
 
-double WorldBorder::getMinX() const {
+double WorldBorder::getMinX() const
+{
     return m_state->getMinX();
 }
 
-double WorldBorder::getMaxX() const {
+double WorldBorder::getMaxX() const
+{
     return m_state->getMaxX();
 }
 
-double WorldBorder::getMinZ() const {
+double WorldBorder::getMinZ() const
+{
     return m_state->getMinZ();
 }
 
-double WorldBorder::getMaxZ() const {
+double WorldBorder::getMaxZ() const
+{
     return m_state->getMaxZ();
 }
 
-BorderStatus WorldBorder::getStatus() const {
+BorderStatus WorldBorder::getStatus() const
+{
     return m_state->getStatus();
 }
 
-double WorldBorder::getResizeSpeed() const {
+double WorldBorder::getResizeSpeed() const
+{
     return m_state->getResizeSpeed();
 }
 
-u64 WorldBorder::getTimeUntilTarget() const {
+u64 WorldBorder::getTimeUntilTarget() const
+{
     return m_state->getTimeUntilTarget();
 }
 
@@ -291,7 +313,8 @@ u64 WorldBorder::getTimeUntilTarget() const {
 // 伤害参数
 // ============================================================================
 
-void WorldBorder::setDamagePerBlock(double damagePerBlock) {
+void WorldBorder::setDamagePerBlock(double damagePerBlock)
+{
     m_damagePerBlock = damagePerBlock;
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -300,7 +323,8 @@ void WorldBorder::setDamagePerBlock(double damagePerBlock) {
     }
 }
 
-void WorldBorder::setDamageBuffer(double damageBuffer) {
+void WorldBorder::setDamageBuffer(double damageBuffer)
+{
     m_damageBuffer = damageBuffer;
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -313,7 +337,8 @@ void WorldBorder::setDamageBuffer(double damageBuffer) {
 // 警告参数
 // ============================================================================
 
-void WorldBorder::setWarningTime(i32 warningTime) {
+void WorldBorder::setWarningTime(i32 warningTime)
+{
     m_warningTime = warningTime;
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -322,7 +347,8 @@ void WorldBorder::setWarningTime(i32 warningTime) {
     }
 }
 
-void WorldBorder::setWarningDistance(i32 warningDistance) {
+void WorldBorder::setWarningDistance(i32 warningDistance)
+{
     m_warningDistance = warningDistance;
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -335,13 +361,15 @@ void WorldBorder::setWarningDistance(i32 warningDistance) {
 // 边界设置
 // ============================================================================
 
-void WorldBorder::setSize(double size) {
+void WorldBorder::setSize(double size)
+{
     size = std::clamp(size, 1.0, MAX_SIZE);
     m_state = std::make_unique<StationaryBorderState>(size, m_centerX, m_centerZ);
     notifySizeChanged(size);
 }
 
-void WorldBorder::setSizeLerp(double oldSize, double newSize, u64 timeMs) {
+void WorldBorder::setSizeLerp(double oldSize, double newSize, u64 timeMs)
+{
     oldSize = std::clamp(oldSize, 1.0, MAX_SIZE);
     newSize = std::clamp(newSize, 1.0, MAX_SIZE);
 
@@ -350,12 +378,12 @@ void WorldBorder::setSizeLerp(double oldSize, double newSize, u64 timeMs) {
         return;
     }
 
-    m_state = std::make_unique<MovingBorderState>(oldSize, newSize, timeMs,
-                                                   m_centerX, m_centerZ);
+    m_state = std::make_unique<MovingBorderState>(oldSize, newSize, timeMs, m_centerX, m_centerZ);
     notifyTransitionStarted(oldSize, newSize, timeMs);
 }
 
-void WorldBorder::setCenter(double x, double z) {
+void WorldBorder::setCenter(double x, double z)
+{
     m_centerX = x;
     m_centerZ = z;
     m_state->onCenterChanged(x, z);
@@ -366,51 +394,53 @@ void WorldBorder::setCenter(double x, double z) {
 // 边界检测
 // ============================================================================
 
-bool WorldBorder::contains(double x, double z) const {
+bool WorldBorder::contains(double x, double z) const
+{
     return x > getMinX() && x < getMaxX() && z > getMinZ() && z < getMaxZ();
 }
 
-bool WorldBorder::contains(const BlockPos& pos) const {
+bool WorldBorder::contains(const BlockPos& pos) const
+{
     // 方块位置检测：方块必须在边界内（方块边界需要完全在内）
-    return (static_cast<double>(pos.x) + 1.0) > getMinX() &&
-           static_cast<double>(pos.x) < getMaxX() &&
-           (static_cast<double>(pos.z) + 1.0) > getMinZ() &&
-           static_cast<double>(pos.z) < getMaxZ();
+    return (static_cast<double>(pos.x) + 1.0) > getMinX() && static_cast<double>(pos.x) < getMaxX() &&
+        (static_cast<double>(pos.z) + 1.0) > getMinZ() && static_cast<double>(pos.z) < getMaxZ();
 }
 
-bool WorldBorder::intersects(const AxisAlignedBB& box) const {
-    return box.maxX > getMinX() && box.minX < getMaxX() &&
-           box.maxZ > getMinZ() && box.minZ < getMaxZ();
+bool WorldBorder::intersects(const AxisAlignedBB& box) const
+{
+    return box.maxX > getMinX() && box.minX < getMaxX() && box.maxZ > getMinZ() && box.minZ < getMaxZ();
 }
 
-bool WorldBorder::intersectsChunk(i32 chunkX, i32 chunkZ) const {
+bool WorldBorder::intersectsChunk(i32 chunkX, i32 chunkZ) const
+{
     constexpr double CHUNK_SIZE = 16.0;
     double chunkMinX = static_cast<double>(chunkX) * CHUNK_SIZE;
     double chunkMinZ = static_cast<double>(chunkZ) * CHUNK_SIZE;
     double chunkMaxX = chunkMinX + CHUNK_SIZE;
     double chunkMaxZ = chunkMinZ + CHUNK_SIZE;
 
-    return chunkMaxX > getMinX() && chunkMinX < getMaxX() &&
-           chunkMaxZ > getMinZ() && chunkMinZ < getMaxZ();
+    return chunkMaxX > getMinX() && chunkMinX < getMaxX() && chunkMaxZ > getMinZ() && chunkMinZ < getMaxZ();
 }
 
-double WorldBorder::getClosestDistance(double x, double z) const {
-    double distToMinX = x - getMinX();    // 到西边界的距离
-    double distToMaxX = getMaxX() - x;    // 到东边界的距离
-    double distToMinZ = z - getMinZ();    // 到北边界的距离
-    double distToMaxZ = getMaxZ() - z;    // 到南边界的距离
+double WorldBorder::getClosestDistance(double x, double z) const
+{
+    double distToMinX = x - getMinX(); // 到西边界的距离
+    double distToMaxX = getMaxX() - x; // 到东边界的距离
+    double distToMinZ = z - getMinZ(); // 到北边界的距离
+    double distToMaxZ = getMaxZ() - z; // 到南边界的距离
 
     // 返回最小距离（如果点在边界内则为正，否则为负）
     return std::min({distToMinX, distToMaxX, distToMinZ, distToMaxZ});
 }
 
-double WorldBorder::getClosestDistance(const AxisAlignedBB& box) const {
+double WorldBorder::getClosestDistance(const AxisAlignedBB& box) const
+{
     // 计算 AABB 中心到边界的距离
     double centerX = (box.minX + box.maxX) / 2.0;
     double centerZ = (box.minZ + box.maxZ) / 2.0;
 
     // 使用 AABB 的最近边计算距离
-    double distToMinX = box.minX - getMinX();  // 负值表示超出边界
+    double distToMinX = box.minX - getMinX(); // 负值表示超出边界
     double distToMaxX = getMaxX() - box.maxX;
     double distToMinZ = box.minZ - getMinZ();
     double distToMaxZ = getMaxZ() - box.maxZ;
@@ -423,30 +453,31 @@ double WorldBorder::getClosestDistance(const AxisAlignedBB& box) const {
 // 更新与监听
 // ============================================================================
 
-void WorldBorder::tick() {
+void WorldBorder::tick()
+{
     if (auto newState = m_state->tick()) {
         m_state = std::move(newState);
     }
 }
 
-void WorldBorder::addListener(std::shared_ptr<IBorderListener> listener) {
+void WorldBorder::addListener(std::shared_ptr<IBorderListener> listener)
+{
     m_listeners.push_back(listener);
     // 清理过期的监听器
-    m_listeners.erase(
-        std::remove_if(m_listeners.begin(), m_listeners.end(),
-                       [](const std::weak_ptr<IBorderListener>& weak) {
-                           return weak.expired();
-                       }),
+    m_listeners.erase(std::remove_if(m_listeners.begin(),
+                          m_listeners.end(),
+                          [](const std::weak_ptr<IBorderListener>& weak) { return weak.expired(); }),
         m_listeners.end());
 }
 
-void WorldBorder::removeListener(std::shared_ptr<IBorderListener> listener) {
-    m_listeners.erase(
-        std::remove_if(m_listeners.begin(), m_listeners.end(),
-                       [&listener](const std::weak_ptr<IBorderListener>& weak) {
-                           auto locked = weak.lock();
-                           return !locked || locked == listener;
-                       }),
+void WorldBorder::removeListener(std::shared_ptr<IBorderListener> listener)
+{
+    m_listeners.erase(std::remove_if(m_listeners.begin(),
+                          m_listeners.end(),
+                          [&listener](const std::weak_ptr<IBorderListener>& weak) {
+                              auto locked = weak.lock();
+                              return !locked || locked == listener;
+                          }),
         m_listeners.end());
 }
 
@@ -454,7 +485,8 @@ void WorldBorder::removeListener(std::shared_ptr<IBorderListener> listener) {
 // 序列化
 // ============================================================================
 
-WorldBorder::SerializedData WorldBorder::serialize() const {
+WorldBorder::SerializedData WorldBorder::serialize() const
+{
     SerializedData data;
     data.centerX = m_centerX;
     data.centerZ = m_centerZ;
@@ -468,7 +500,8 @@ WorldBorder::SerializedData WorldBorder::serialize() const {
     return data;
 }
 
-void WorldBorder::deserialize(const SerializedData& data) {
+void WorldBorder::deserialize(const SerializedData& data)
+{
     m_centerX = data.centerX;
     m_centerZ = data.centerZ;
     m_damagePerBlock = data.damagePerBlock;
@@ -488,7 +521,8 @@ void WorldBorder::deserialize(const SerializedData& data) {
 // 私有方法
 // ============================================================================
 
-void WorldBorder::notifySizeChanged(double newSize) {
+void WorldBorder::notifySizeChanged(double newSize)
+{
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
             listener->onSizeChanged(newSize);
@@ -496,7 +530,8 @@ void WorldBorder::notifySizeChanged(double newSize) {
     }
 }
 
-void WorldBorder::notifyTransitionStarted(double oldSize, double newSize, u64 timeMs) {
+void WorldBorder::notifyTransitionStarted(double oldSize, double newSize, u64 timeMs)
+{
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
             listener->onTransitionStarted(oldSize, newSize, timeMs);
@@ -504,7 +539,8 @@ void WorldBorder::notifyTransitionStarted(double oldSize, double newSize, u64 ti
     }
 }
 
-void WorldBorder::notifyCenterChanged(double x, double z) {
+void WorldBorder::notifyCenterChanged(double x, double z)
+{
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
             listener->onCenterChanged(x, z);

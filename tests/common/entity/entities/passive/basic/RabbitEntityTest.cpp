@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -23,7 +23,8 @@ namespace {
  */
 class RabbitTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -31,17 +32,20 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
@@ -49,10 +53,12 @@ public:
     [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("RabbitTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("RabbitTestWorld::tickManager not implemented");
     }
 
@@ -63,7 +69,8 @@ private:
 
 class RabbitEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
@@ -74,15 +81,17 @@ protected:
 
 // ========== 兔子类型测试 ==========
 
-TEST_F(RabbitEntityTest, RabbitType_DefaultIsBrown) {
+TEST_F(RabbitEntityTest, RabbitType_DefaultIsBrown)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
     // 默认类型由 setRandomRabbitType 设置，测试概率分布
     // 由于随机性，我们只测试类型在有效范围内
     EXPECT_GE(static_cast<u8>(rabbit.getRabbitType()), 0);
-    EXPECT_LE(static_cast<u8>(rabbit.getRabbitType()), 99);  // 包括 Killer (99)
+    EXPECT_LE(static_cast<u8>(rabbit.getRabbitType()), 99); // 包括 Killer (99)
 }
 
-TEST_F(RabbitEntityTest, RabbitType_CanSetAndGetType) {
+TEST_F(RabbitEntityTest, RabbitType_CanSetAndGetType)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
 
     rabbit.setRabbitType(RabbitEntity::RabbitType::White);
@@ -96,7 +105,8 @@ TEST_F(RabbitEntityTest, RabbitType_CanSetAndGetType) {
     EXPECT_TRUE(rabbit.isKillerRabbit());
 }
 
-TEST_F(RabbitEntityTest, RabbitType_KillerRabbitDetection) {
+TEST_F(RabbitEntityTest, RabbitType_KillerRabbitDetection)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
 
     rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
@@ -108,21 +118,24 @@ TEST_F(RabbitEntityTest, RabbitType_KillerRabbitDetection) {
 
 // ========== 繁殖物品测试 ==========
 
-TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsCarrot) {
+TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsCarrot)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
 
     ItemStack carrotStack(Items::CARROT, 1);
     EXPECT_TRUE(rabbit.isBreedingItem(carrotStack));
 }
 
-TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsGoldenCarrot) {
+TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsGoldenCarrot)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
 
     ItemStack goldenCarrotStack(Items::GOLDEN_CARROT, 1);
     EXPECT_TRUE(rabbit.isBreedingItem(goldenCarrotStack));
 }
 
-TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsDandelion) {
+TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsDandelion)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
 
     // 获取蒲公英方块物品
@@ -133,7 +146,8 @@ TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsDandelion) {
     EXPECT_TRUE(rabbit.isBreedingItem(dandelionStack));
 }
 
-TEST_F(RabbitEntityTest, IsBreedingItem_RejectsOtherItems) {
+TEST_F(RabbitEntityTest, IsBreedingItem_RejectsOtherItems)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
 
     // 测试不接受其他物品
@@ -149,7 +163,8 @@ TEST_F(RabbitEntityTest, IsBreedingItem_RejectsOtherItems) {
 
 // ========== spawnBaby 测试 ==========
 
-TEST_F(RabbitEntityTest, SpawnBaby_CreatesChildRabbit) {
+TEST_F(RabbitEntityTest, SpawnBaby_CreatesChildRabbit)
+{
     RabbitEntity parent1(LegacyEntityType::Unknown, 1);
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
@@ -168,7 +183,8 @@ TEST_F(RabbitEntityTest, SpawnBaby_CreatesChildRabbit) {
     EXPECT_NE(babyRabbit, nullptr);
 }
 
-TEST_F(RabbitEntityTest, SpawnBaby_InheritsParentType) {
+TEST_F(RabbitEntityTest, SpawnBaby_InheritsParentType)
+{
     RabbitEntity parent1(LegacyEntityType::Unknown, 1);
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
@@ -187,28 +203,26 @@ TEST_F(RabbitEntityTest, SpawnBaby_InheritsParentType) {
 
         // 类型应该是父母之一或随机生成的（在正常范围内）
         RabbitEntity::RabbitType type = babyRabbit->getRabbitType();
-        bool validType = (type == RabbitEntity::RabbitType::Brown ||
-                          type == RabbitEntity::RabbitType::White ||
-                          type == RabbitEntity::RabbitType::Black ||
-                          type == RabbitEntity::RabbitType::WhiteSpotted ||
-                          type == RabbitEntity::RabbitType::Gold ||
-                          type == RabbitEntity::RabbitType::SaltAndPepper ||
-                          type == RabbitEntity::RabbitType::Killer ||
-                          type == RabbitEntity::RabbitType::Toast);
+        bool validType = (type == RabbitEntity::RabbitType::Brown || type == RabbitEntity::RabbitType::White ||
+            type == RabbitEntity::RabbitType::Black || type == RabbitEntity::RabbitType::WhiteSpotted ||
+            type == RabbitEntity::RabbitType::Gold || type == RabbitEntity::RabbitType::SaltAndPepper ||
+            type == RabbitEntity::RabbitType::Killer || type == RabbitEntity::RabbitType::Toast);
         EXPECT_TRUE(validType) << "Invalid rabbit type: " << static_cast<int>(type);
     }
 }
 
 // ========== 声音类别测试 ==========
 
-TEST_F(RabbitEntityTest, SoundCategory_NeutralForNormalRabbit) {
+TEST_F(RabbitEntityTest, SoundCategory_NeutralForNormalRabbit)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
     rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
 
     EXPECT_EQ(rabbit.getSoundCategory(), sound::SoundCategory::Neutral);
 }
 
-TEST_F(RabbitEntityTest, SoundCategory_HostileForKillerRabbit) {
+TEST_F(RabbitEntityTest, SoundCategory_HostileForKillerRabbit)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
     rabbit.setRabbitType(RabbitEntity::RabbitType::Killer);
 
@@ -217,7 +231,8 @@ TEST_F(RabbitEntityTest, SoundCategory_HostileForKillerRabbit) {
 
 // ========== 属性测试 ==========
 
-TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues) {
+TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
 
     // MC 1.16.5: 兔子生命值为 3
@@ -229,9 +244,10 @@ TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues) {
 
 // ========== 尺寸测试 ==========
 
-TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize) {
+TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize)
+{
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
-    rabbit.setChild(false);  // 设置为成体
+    rabbit.setChild(false); // 设置为成体
 
     // MC 1.16.5: 兔子宽度 0.4，高度 0.5
     // 通过碰撞箱来验证尺寸
@@ -243,7 +259,8 @@ TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize) {
     EXPECT_NEAR(boxHeight, 0.5f, 0.01f);
 }
 
-TEST_F(RabbitEntityTest, EyeHeight_DifferentForChildAndAdult) {
+TEST_F(RabbitEntityTest, EyeHeight_DifferentForChildAndAdult)
+{
     RabbitEntity adultRabbit(LegacyEntityType::Unknown, 1);
     adultRabbit.setChild(false);
 

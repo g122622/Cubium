@@ -2,54 +2,42 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "server/command/support/CommandMetadata.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/BannedPlayerList.hpp"
+#include "server/command/support/CommandMetadata.hpp"
 #include "server/core/BannedIpList.hpp"
+#include "server/core/BannedPlayerList.hpp"
 
-#include <sstream>
 #include <algorithm>
+#include <sstream>
 
 namespace mc {
 namespace command {
 
-void BanListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void BanListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto banlistNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("banlist");
-    banlistNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
+    banlistNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
     support::applyMetadata(
-        banlistNode,
-        support::makeMetadata(
-            "Shows the server ban list.",
-            "/banlist [players|ips]",
-            3,
-            {},
-            false));
+        banlistNode, support::makeMetadata("Shows the server ban list.", "/banlist [players|ips]", 3, {}, false));
 
     // /banlist (无参数，显示所有)
-    banlistNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return listAll(ctx);
-    });
+    banlistNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listAll(ctx); });
 
     // /banlist players
     auto playersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("players");
-    playersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return listPlayers(ctx);
-    });
+    playersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listPlayers(ctx); });
 
     // /banlist ips
     auto ipsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("ips");
-    ipsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return listIps(ctx);
-    });
+    ipsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listIps(ctx); });
 
     banlistNode->addChild(playersNode);
     banlistNode->addChild(ipsNode);
     dispatcher.registerCommand(banlistNode);
 }
 
-i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context) {
+i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -100,7 +88,8 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context) {
     return static_cast<i32>(total);
 }
 
-i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context) {
+i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -117,7 +106,8 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context) {
     }
 
     // 按名称排序
-    std::sort(entries.begin(), entries.end(),
+    std::sort(entries.begin(),
+        entries.end(),
         [](const server::core::BannedPlayerEntry& a, const server::core::BannedPlayerEntry& b) {
             return a.name < b.name;
         });
@@ -134,7 +124,8 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context) {
     return static_cast<i32>(entries.size());
 }
 
-i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context) {
+i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -151,10 +142,9 @@ i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context) {
     }
 
     // 按 IP 排序
-    std::sort(entries.begin(), entries.end(),
-        [](const server::core::BannedIpEntry& a, const server::core::BannedIpEntry& b) {
-            return a.ip < b.ip;
-        });
+    std::sort(entries.begin(),
+        entries.end(),
+        [](const server::core::BannedIpEntry& a, const server::core::BannedIpEntry& b) { return a.ip < b.ip; });
 
     std::ostringstream ss;
     ss << "There are " << entries.size() << " banned IP(s): ";

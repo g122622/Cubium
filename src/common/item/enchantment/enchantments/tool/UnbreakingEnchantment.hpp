@@ -29,38 +29,25 @@ class UnbreakingEnchantment : public Enchantment {
 public:
     UnbreakingEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:unbreaking";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:unbreaking"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.unbreaking";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Breakable;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Breakable; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 3;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 3; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Uncommon;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 5 + (level - 1) * 8;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + (level - 1) * 8; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 50;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 
     /**
      * @brief 计算耐久保护的物品是否应该消耗耐久
@@ -83,7 +70,8 @@ public:
      * @param level 附魔等级
      * @return 不消耗耐久的概率 (0.0-1.0)
      */
-    [[nodiscard]] static f32 getDurabilityProtectionChance(i32 level) {
+    [[nodiscard]] static f32 getDurabilityProtectionChance(i32 level)
+    {
         // MC 1.16.5: 公式为 level / (level + 1)
         // I: 1/2 = 50%, II: 2/3 = 67%, III: 3/4 = 75%
         return static_cast<f32>(level) / static_cast<f32>(level + 1);
@@ -94,7 +82,8 @@ public:
      * @param level 附魔等级
      * @return 不消耗耐久的概率 (0.0-1.0)
      */
-    [[nodiscard]] static f32 getArmorDurabilityProtectionChance(i32 level) {
+    [[nodiscard]] static f32 getArmorDurabilityProtectionChance(i32 level)
+    {
         // MC 1.16.5: 盔甲有 60% 概率忽略耐久保护
         // 所以实际保护概率 = 0.4 * (level / (level + 1))
         // I: 0.4 * 50% = 20%, II: 0.4 * 67% = 27%, III: 0.4 * 75% = 30%

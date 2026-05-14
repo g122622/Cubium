@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../BiomeProvider.hpp"
 #include "../../../gen/noise/OctavesNoiseGenerator.hpp"
+#include "../../BiomeProvider.hpp"
 #include <memory>
 
 namespace mc {
@@ -69,9 +69,9 @@ private:
     std::unique_ptr<PerlinNoiseGenerator> m_biomeNoise;
 
     // 噪声参数
-    static constexpr f32 TEMPERATURE_SCALE = 0.015625f;  // 1/64
+    static constexpr f32 TEMPERATURE_SCALE = 0.015625f; // 1/64
     static constexpr f32 HUMIDITY_SCALE = 0.015625f;
-    static constexpr f32 BIOME_SCALE = 0.0078125f;  // 1/128
+    static constexpr f32 BIOME_SCALE = 0.0078125f; // 1/128
 
     /**
      * @brief 根据噪声值选择生物群系

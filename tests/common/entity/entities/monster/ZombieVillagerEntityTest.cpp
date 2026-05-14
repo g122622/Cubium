@@ -1,21 +1,21 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
-#include "common/entity/entities/villager/VillagerEntity.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
-#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -30,7 +30,8 @@ namespace {
  */
 class ZombieVillagerTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -38,12 +39,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
@@ -51,7 +54,8 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
@@ -59,10 +63,12 @@ public:
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ZombieVillagerTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ZombieVillagerTestWorld::tickManager not implemented");
     }
 
@@ -70,9 +76,7 @@ public:
     [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
 
     // 获取最后生成的实体
-    Entity* lastSpawnedEntity() {
-        return m_spawnedEntities.empty() ? nullptr : m_spawnedEntities.back().get();
-    }
+    Entity* lastSpawnedEntity() { return m_spawnedEntities.empty() ? nullptr : m_spawnedEntities.back().get(); }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -85,7 +89,8 @@ private:
  */
 class ZombieVillagerEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建测试世界
         m_world = std::make_unique<ZombieVillagerTestWorld>();
 
@@ -103,7 +108,8 @@ protected:
 // 基本属性测试
 // ============================================================================
 
-TEST_F(ZombieVillagerEntityTest, EyeHeight) {
+TEST_F(ZombieVillagerEntityTest, EyeHeight)
+{
     // 成年僵尸村民
     EXPECT_FLOAT_EQ(m_zombieVillager->eyeHeight(), 1.79f);
 
@@ -112,7 +118,8 @@ TEST_F(ZombieVillagerEntityTest, EyeHeight) {
     EXPECT_FLOAT_EQ(m_zombieVillager->eyeHeight(), 0.93f);
 }
 
-TEST_F(ZombieVillagerEntityTest, InitialConversionState) {
+TEST_F(ZombieVillagerEntityTest, InitialConversionState)
+{
     // 初始状态应该是不在治愈
     EXPECT_FALSE(m_zombieVillager->isConverting());
     EXPECT_EQ(m_zombieVillager->getConversionTime(), 0);
@@ -122,7 +129,8 @@ TEST_F(ZombieVillagerEntityTest, InitialConversionState) {
 // 村民数据测试
 // ============================================================================
 
-TEST_F(ZombieVillagerEntityTest, VillagerData) {
+TEST_F(ZombieVillagerEntityTest, VillagerData)
+{
     // 设置村民数据
     entity::VillagerData data(entity::VillagerType::Desert, entity::VillagerProfession::Farmer, 3);
     data.setExperience(50);
@@ -136,7 +144,8 @@ TEST_F(ZombieVillagerEntityTest, VillagerData) {
     EXPECT_EQ(m_zombieVillager->getTradingExperience(), 50);
 }
 
-TEST_F(ZombieVillagerEntityTest, ProfessionSetters) {
+TEST_F(ZombieVillagerEntityTest, ProfessionSetters)
+{
     m_zombieVillager->setProfession(entity::VillagerProfession::Librarian);
     EXPECT_EQ(m_zombieVillager->getProfession(), entity::VillagerProfession::Librarian);
 
@@ -154,7 +163,8 @@ TEST_F(ZombieVillagerEntityTest, ProfessionSetters) {
 // 治愈系统测试
 // ============================================================================
 
-TEST_F(ZombieVillagerEntityTest, StartConverting) {
+TEST_F(ZombieVillagerEntityTest, StartConverting)
+{
     // 开始治愈
     m_zombieVillager->startConverting("test-player-uuid", 3600);
 
@@ -163,7 +173,8 @@ TEST_F(ZombieVillagerEntityTest, StartConverting) {
     EXPECT_EQ(m_zombieVillager->getConversionStarterUuid(), "test-player-uuid");
 }
 
-TEST_F(ZombieVillagerEntityTest, StopConverting) {
+TEST_F(ZombieVillagerEntityTest, StopConverting)
+{
     // 开始治愈
     m_zombieVillager->startConverting("test-player-uuid", 3600);
     EXPECT_TRUE(m_zombieVillager->isConverting());
@@ -176,7 +187,8 @@ TEST_F(ZombieVillagerEntityTest, StopConverting) {
     EXPECT_TRUE(m_zombieVillager->getConversionStarterUuid().empty());
 }
 
-TEST_F(ZombieVillagerEntityTest, SetConversionTime) {
+TEST_F(ZombieVillagerEntityTest, SetConversionTime)
+{
     m_zombieVillager->setConversionTime(1000);
 
     EXPECT_TRUE(m_zombieVillager->isConverting());
@@ -189,12 +201,14 @@ TEST_F(ZombieVillagerEntityTest, SetConversionTime) {
     EXPECT_EQ(m_zombieVillager->getConversionTime(), 0);
 }
 
-TEST_F(ZombieVillagerEntityTest, ConversionProgress) {
+TEST_F(ZombieVillagerEntityTest, ConversionProgress)
+{
     // 基础进度应该为 1
     EXPECT_EQ(m_zombieVillager->getConversionProgress(), 1);
 }
 
-TEST_F(ZombieVillagerEntityTest, CanDespawnWhenConverting) {
+TEST_F(ZombieVillagerEntityTest, CanDespawnWhenConverting)
+{
     // 正在治愈的僵尸村民不能消失
     m_zombieVillager->startConverting("test-uuid", 3600);
     EXPECT_FALSE(m_zombieVillager->canDespawn(100.0));
@@ -204,7 +218,8 @@ TEST_F(ZombieVillagerEntityTest, CanDespawnWhenConverting) {
     EXPECT_TRUE(m_zombieVillager->canDespawn(100.0));
 }
 
-TEST_F(ZombieVillagerEntityTest, CanDespawnWithExperience) {
+TEST_F(ZombieVillagerEntityTest, CanDespawnWithExperience)
+{
     // 有交易经验的僵尸村民不能消失
     m_zombieVillager->setTradingExperience(50);
     EXPECT_FALSE(m_zombieVillager->canDespawn(100.0));
@@ -226,7 +241,8 @@ TEST_F(ZombieVillagerEntityTest, CanDespawnWithExperience) {
 // 声音测试
 // ============================================================================
 
-TEST_F(ZombieVillagerEntityTest, SoundEvents) {
+TEST_F(ZombieVillagerEntityTest, SoundEvents)
+{
     // 验证声音事件返回正确
     auto ambient = m_zombieVillager->getAmbientSound();
     EXPECT_TRUE(ambient.has_value());

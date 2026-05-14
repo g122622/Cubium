@@ -16,19 +16,23 @@ struct Color {
     Color() = default;
 
     constexpr Color(f32 red, f32 green, f32 blue, f32 alpha = 1.0f)
-        : r(red), g(green), b(blue), a(alpha) {}
+        : r(red)
+        , g(green)
+        , b(blue)
+        , a(alpha)
+    {}
 
-    [[nodiscard]] static constexpr Color fromARGB(u32 argb) {
+    [[nodiscard]] static constexpr Color fromARGB(u32 argb)
+    {
         constexpr f32 kScale = 1.0f / 255.0f;
-        return Color(
-            static_cast<f32>((argb >> 16) & 0xFF) * kScale,
+        return Color(static_cast<f32>((argb >> 16) & 0xFF) * kScale,
             static_cast<f32>((argb >> 8) & 0xFF) * kScale,
             static_cast<f32>(argb & 0xFF) * kScale,
-            static_cast<f32>((argb >> 24) & 0xFF) * kScale
-        );
+            static_cast<f32>((argb >> 24) & 0xFF) * kScale);
     }
 
-    [[nodiscard]] constexpr u32 toARGB() const {
+    [[nodiscard]] constexpr u32 toARGB() const
+    {
         const u32 aa = static_cast<u32>(a * 255.0f) & 0xFF;
         const u32 rr = static_cast<u32>(r * 255.0f) & 0xFF;
         const u32 gg = static_cast<u32>(g * 255.0f) & 0xFF;

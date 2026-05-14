@@ -1,12 +1,12 @@
 #pragma once
 
 #include "../Types.hpp"
+#include <any>
 #include <functional>
 #include <memory>
-#include <any>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 namespace mc::client::ui::kagero::state {
 
@@ -26,7 +26,7 @@ namespace mc::client::ui::kagero::state {
  *
  * @tparam T 状态值类型
  */
-template<typename T>
+template <typename T>
 class Reactive {
 public:
     using Observer = std::function<void(const T&, const T&)>;
@@ -35,13 +35,16 @@ public:
     /**
      * @brief 默认构造函数
      */
-    Reactive() : m_value() {}
+    Reactive()
+        : m_value()
+    {}
 
     /**
      * @brief 带初始值的构造函数
      */
     explicit Reactive(T initialValue)
-        : m_value(std::move(initialValue)) {}
+        : m_value(std::move(initialValue))
+    {}
 
     /**
      * @brief 获取当前值
@@ -58,7 +61,8 @@ public:
      *
      * 如果新值与当前值不同，将通知所有观察者
      */
-    void set(const T& newValue) {
+    void set(const T& newValue)
+    {
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = newValue;
@@ -69,7 +73,8 @@ public:
     /**
      * @brief 设置新值（移动版本）
      */
-    void set(T&& newValue) {
+    void set(T&& newValue)
+    {
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = std::move(newValue);
@@ -85,12 +90,14 @@ public:
     /**
      * @brief 赋值操作符
      */
-    Reactive& operator=(const T& newValue) {
+    Reactive& operator=(const T& newValue)
+    {
         set(newValue);
         return *this;
     }
 
-    Reactive& operator=(T&& newValue) {
+    Reactive& operator=(T&& newValue)
+    {
         set(std::move(newValue));
         return *this;
     }
@@ -101,7 +108,8 @@ public:
      * @param observer 观察者函数
      * @return 观察者ID，用于移除观察者
      */
-    ObserverId observe(Observer observer) {
+    ObserverId observe(Observer observer)
+    {
         ObserverId id = m_nextObserverId++;
         m_observers.emplace_back(id, std::move(observer));
         return id;
@@ -113,9 +121,10 @@ public:
      * @param id 观察者ID
      * @return 是否成功移除
      */
-    bool removeObserver(ObserverId id) {
-        auto it = std::find_if(m_observers.begin(), m_observers.end(),
-            [id](const auto& pair) { return pair.first == id; });
+    bool removeObserver(ObserverId id)
+    {
+        auto it =
+            std::find_if(m_observers.begin(), m_observers.end(), [id](const auto& pair) { return pair.first == id; });
         if (it != m_observers.end()) {
             m_observers.erase(it);
             return true;
@@ -126,9 +135,7 @@ public:
     /**
      * @brief 清除所有观察者
      */
-    void clearObservers() {
-        m_observers.clear();
-    }
+    void clearObservers() { m_observers.clear(); }
 
     /**
      * @brief 获取观察者数量
@@ -138,17 +145,16 @@ public:
     /**
      * @brief 修改值并通知观察者（即使值相同）
      */
-    void forceNotify() {
-        notify(m_value, m_value);
-    }
+    void forceNotify() { notify(m_value, m_value); }
 
     /**
      * @brief 使用函数修改值
      *
      * @param modifier 修改函数，接收当前值的引用
      */
-    template<typename Func>
-    void modify(Func&& modifier) {
+    template <typename Func>
+    void modify(Func&& modifier)
+    {
         T oldValue = m_value;
         modifier(m_value);
         if (oldValue != m_value) {
@@ -160,7 +166,8 @@ private:
     /**
      * @brief 通知所有观察者
      */
-    void notify(const T& oldValue, const T& newValue) {
+    void notify(const T& oldValue, const T& newValue)
+    {
         // 复制观察者列表以避免迭代时修改
         auto observers = m_observers;
         for (const auto& pair : observers) {
@@ -180,7 +187,7 @@ private:
  *
  * @tparam T 计算结果类型
  */
-template<typename T>
+template <typename T>
 class Computed {
 public:
     using ComputeFunc = std::function<T()>;
@@ -192,12 +199,14 @@ public:
     explicit Computed(ComputeFunc compute)
         : m_compute(std::move(compute))
         , m_cachedValue(m_compute())
-        , m_dirty(false) {}  // 初始已计算，不需要重新计算
+        , m_dirty(false)
+    {} // 初始已计算，不需要重新计算
 
     /**
      * @brief 获取计算值
      */
-    [[nodiscard]] const T& get() {
+    [[nodiscard]] const T& get()
+    {
         if (m_dirty) {
             m_cachedValue = m_compute();
             m_dirty = false;
@@ -208,16 +217,12 @@ public:
     /**
      * @brief 标记为需要重新计算
      */
-    void markDirty() {
-        m_dirty = true;
-    }
+    void markDirty() { m_dirty = true; }
 
     /**
      * @brief 隐式转换
      */
-    operator const T&() {
-        return get();
-    }
+    operator const T&() { return get(); }
 
 private:
     ComputeFunc m_compute;
@@ -230,7 +235,7 @@ private:
  *
  * 用于将响应式状态绑定到组件属性
  */
-template<typename T>
+template <typename T>
 class Binding {
 public:
     using Getter = std::function<T()>;
@@ -239,45 +244,40 @@ public:
     /**
      * @brief 创建单向绑定（只读）
      */
-    static Binding<T> readOnly(Getter getter) {
-        return Binding<T>(std::move(getter), nullptr);
-    }
+    static Binding<T> readOnly(Getter getter) { return Binding<T>(std::move(getter), nullptr); }
 
     /**
      * @brief 创建双向绑定
      */
-    static Binding<T> twoWay(Getter getter, Setter setter) {
-        return Binding<T>(std::move(getter), std::move(setter));
-    }
+    static Binding<T> twoWay(Getter getter, Setter setter) { return Binding<T>(std::move(getter), std::move(setter)); }
 
     /**
      * @brief 从Reactive创建双向绑定
      */
-    static Binding<T> fromReactive(Reactive<T>& reactive) {
+    static Binding<T> fromReactive(Reactive<T>& reactive)
+    {
         return twoWay(
-            [&reactive]() -> T { return reactive.get(); },
-            [&reactive](const T& value) { reactive.set(value); }
-        );
+            [&reactive]() -> T { return reactive.get(); }, [&reactive](const T& value) { reactive.set(value); });
     }
 
     /**
      * @brief 创建常量绑定
      */
-    static Binding<T> constant(const T& value) {
+    static Binding<T> constant(const T& value)
+    {
         return readOnly([value]() -> T { return value; });
     }
 
     /**
      * @brief 获取值
      */
-    [[nodiscard]] T get() const {
-        return m_getter();
-    }
+    [[nodiscard]] T get() const { return m_getter(); }
 
     /**
      * @brief 设置值
      */
-    void set(const T& value) const {
+    void set(const T& value) const
+    {
         if (m_setter) {
             m_setter(value);
         }
@@ -286,21 +286,18 @@ public:
     /**
      * @brief 检查是否可写
      */
-    [[nodiscard]] bool isWritable() const {
-        return m_setter != nullptr;
-    }
+    [[nodiscard]] bool isWritable() const { return m_setter != nullptr; }
 
     /**
      * @brief 隐式转换
      */
-    operator T() const {
-        return get();
-    }
+    operator T() const { return get(); }
 
 private:
     Binding(Getter getter, Setter setter)
         : m_getter(std::move(getter))
-        , m_setter(std::move(setter)) {}
+        , m_setter(std::move(setter))
+    {}
 
     Getter m_getter;
     Setter m_setter;

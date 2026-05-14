@@ -14,27 +14,30 @@ namespace loot {
 
 LootEntry::~LootEntry() = default;
 
-void LootEntry::addCondition(std::unique_ptr<LootCondition> condition) {
+void LootEntry::addCondition(std::unique_ptr<LootCondition> condition)
+{
     m_conditions.push_back(std::move(condition));
 }
 
-bool LootEntry::testConditions(LootContext& context) const {
-    return std::all_of(m_conditions.begin(), m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) {
-            return cond && cond->test(context);
-        });
+bool LootEntry::testConditions(LootContext& context) const
+{
+    return std::all_of(m_conditions.begin(),
+        m_conditions.end(),
+        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
 }
 
-void LootEntry::addFunction(std::unique_ptr<LootFunction> function) {
+void LootEntry::addFunction(std::unique_ptr<LootFunction> function)
+{
     m_functions.push_back(std::move(function));
 }
 
-ItemStack LootEntry::applyFunctions(ItemStack stack, LootContext& context) const {
+ItemStack LootEntry::applyFunctions(ItemStack stack, LootContext& context) const
+{
     for (const auto& func : m_functions) {
         if (func && func->testConditions(context)) {
             stack = func->apply(std::move(stack), context);
             if (stack.isEmpty()) {
-                break;  // 函数可以返回空堆来取消掉落
+                break; // 函数可以返回空堆来取消掉落
             }
         }
     }
@@ -45,7 +48,8 @@ ItemStack LootEntry::applyFunctions(ItemStack stack, LootContext& context) const
 // EmptyLootEntry
 // ============================================================================
 
-std::unique_ptr<LootEntry> EmptyLootEntry::clone() const {
+std::unique_ptr<LootEntry> EmptyLootEntry::clone() const
+{
     auto entry = std::make_unique<EmptyLootEntry>(m_weight, m_quality);
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
@@ -56,14 +60,14 @@ std::unique_ptr<LootEntry> EmptyLootEntry::clone() const {
     return entry;
 }
 
-void EmptyLootEntry::expand(LootContext& /*context*/,
-                           std::function<void(LootEntry&)> consumer) const {
+void EmptyLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
     // 空条目仍然可以被选择，但不生成任何物品
     consumer(*const_cast<EmptyLootEntry*>(this));
 }
 
-bool EmptyLootEntry::generate(std::function<void(const ItemStack&)> /*consumer*/,
-                              LootContext& /*context*/) const {
+bool EmptyLootEntry::generate(std::function<void(const ItemStack&)> /*consumer*/, LootContext& /*context*/) const
+{
     // 空条目不生成物品，但返回true表示"成功"（可用于条件判断）
     return true;
 }
@@ -72,16 +76,14 @@ bool EmptyLootEntry::generate(std::function<void(const ItemStack&)> /*consumer*/
 // ItemLootEntry
 // ============================================================================
 
-ItemLootEntry::ItemLootEntry(const std::string& itemId,
-                             const RandomValueRange& count,
-                             i32 weight, i32 quality)
+ItemLootEntry::ItemLootEntry(const std::string& itemId, const RandomValueRange& count, i32 weight, i32 quality)
     : LootEntry(weight, quality)
     , m_itemId(itemId)
     , m_count(count)
-{
-}
+{}
 
-std::unique_ptr<LootEntry> ItemLootEntry::clone() const {
+std::unique_ptr<LootEntry> ItemLootEntry::clone() const
+{
     auto entry = std::make_unique<ItemLootEntry>(m_itemId, m_count, m_weight, m_quality);
     // 复制条件
     for (const auto& cond : m_conditions) {
@@ -94,13 +96,13 @@ std::unique_ptr<LootEntry> ItemLootEntry::clone() const {
     return entry;
 }
 
-void ItemLootEntry::expand(LootContext& /*context*/,
-                          std::function<void(LootEntry&)> consumer) const {
+void ItemLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
     consumer(*const_cast<ItemLootEntry*>(this));
 }
 
-bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer,
-                             LootContext& context) const {
+bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     // 检查条件
     if (!testConditions(context)) {
         return false;
@@ -115,7 +117,7 @@ bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer,
     // 计算数量
     i32 count = m_count.generateInt(context.getRandom());
     if (count <= 0) {
-        return true;  // 数量为0不算失败
+        return true; // 数量为0不算失败
     }
 
     // 创建物品堆
@@ -139,10 +141,10 @@ bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer,
 TableLootEntry::TableLootEntry(const std::string& tableId, i32 weight, i32 quality)
     : LootEntry(weight, quality)
     , m_tableId(tableId)
-{
-}
+{}
 
-std::unique_ptr<LootEntry> TableLootEntry::clone() const {
+std::unique_ptr<LootEntry> TableLootEntry::clone() const
+{
     auto entry = std::make_unique<TableLootEntry>(m_tableId, m_weight, m_quality);
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
@@ -153,13 +155,13 @@ std::unique_ptr<LootEntry> TableLootEntry::clone() const {
     return entry;
 }
 
-void TableLootEntry::expand(LootContext& /*context*/,
-                           std::function<void(LootEntry&)> consumer) const {
+void TableLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
     consumer(*const_cast<TableLootEntry*>(this));
 }
 
-bool TableLootEntry::generate(std::function<void(const ItemStack&)> consumer,
-                              LootContext& context) const {
+bool TableLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     // 检查条件
     if (!testConditions(context)) {
         return false;
@@ -186,10 +188,10 @@ bool TableLootEntry::generate(std::function<void(const ItemStack&)> consumer,
 
 AlternativesLootEntry::AlternativesLootEntry(std::vector<std::unique_ptr<LootEntry>> children)
     : m_children(std::move(children))
-{
-}
+{}
 
-std::unique_ptr<LootEntry> AlternativesLootEntry::clone() const {
+std::unique_ptr<LootEntry> AlternativesLootEntry::clone() const
+{
     std::vector<std::unique_ptr<LootEntry>> clonedChildren;
     for (const auto& child : m_children) {
         clonedChildren.push_back(child->clone());
@@ -204,17 +206,18 @@ std::unique_ptr<LootEntry> AlternativesLootEntry::clone() const {
     return entry;
 }
 
-void AlternativesLootEntry::addChild(std::unique_ptr<LootEntry> child) {
+void AlternativesLootEntry::addChild(std::unique_ptr<LootEntry> child)
+{
     m_children.push_back(std::move(child));
 }
 
-void AlternativesLootEntry::expand(LootContext& /*context*/,
-                                   std::function<void(LootEntry&)> consumer) const {
+void AlternativesLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
     consumer(*const_cast<AlternativesLootEntry*>(this));
 }
 
-bool AlternativesLootEntry::generate(std::function<void(const ItemStack&)> consumer,
-                                     LootContext& context) const {
+bool AlternativesLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     // 检查条件
     if (!testConditions(context)) {
         return false;
@@ -235,10 +238,10 @@ bool AlternativesLootEntry::generate(std::function<void(const ItemStack&)> consu
 
 SequenceLootEntry::SequenceLootEntry(std::vector<std::unique_ptr<LootEntry>> children)
     : m_children(std::move(children))
-{
-}
+{}
 
-std::unique_ptr<LootEntry> SequenceLootEntry::clone() const {
+std::unique_ptr<LootEntry> SequenceLootEntry::clone() const
+{
     std::vector<std::unique_ptr<LootEntry>> clonedChildren;
     for (const auto& child : m_children) {
         clonedChildren.push_back(child->clone());
@@ -253,17 +256,18 @@ std::unique_ptr<LootEntry> SequenceLootEntry::clone() const {
     return entry;
 }
 
-void SequenceLootEntry::addChild(std::unique_ptr<LootEntry> child) {
+void SequenceLootEntry::addChild(std::unique_ptr<LootEntry> child)
+{
     m_children.push_back(std::move(child));
 }
 
-void SequenceLootEntry::expand(LootContext& /*context*/,
-                               std::function<void(LootEntry&)> consumer) const {
+void SequenceLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
     consumer(*const_cast<SequenceLootEntry*>(this));
 }
 
-bool SequenceLootEntry::generate(std::function<void(const ItemStack&)> consumer,
-                                 LootContext& context) const {
+bool SequenceLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     // 检查条件
     if (!testConditions(context)) {
         return false;
@@ -284,10 +288,10 @@ bool SequenceLootEntry::generate(std::function<void(const ItemStack&)> consumer,
 
 GroupLootEntry::GroupLootEntry(std::vector<std::unique_ptr<LootEntry>> children)
     : m_children(std::move(children))
-{
-}
+{}
 
-std::unique_ptr<LootEntry> GroupLootEntry::clone() const {
+std::unique_ptr<LootEntry> GroupLootEntry::clone() const
+{
     std::vector<std::unique_ptr<LootEntry>> clonedChildren;
     for (const auto& child : m_children) {
         clonedChildren.push_back(child->clone());
@@ -302,17 +306,18 @@ std::unique_ptr<LootEntry> GroupLootEntry::clone() const {
     return entry;
 }
 
-void GroupLootEntry::addChild(std::unique_ptr<LootEntry> child) {
+void GroupLootEntry::addChild(std::unique_ptr<LootEntry> child)
+{
     m_children.push_back(std::move(child));
 }
 
-void GroupLootEntry::expand(LootContext& /*context*/,
-                            std::function<void(LootEntry&)> consumer) const {
+void GroupLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
     consumer(*const_cast<GroupLootEntry*>(this));
 }
 
-bool GroupLootEntry::generate(std::function<void(const ItemStack&)> consumer,
-                              LootContext& context) const {
+bool GroupLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     // 检查条件
     if (!testConditions(context)) {
         return false;
@@ -332,37 +337,43 @@ bool GroupLootEntry::generate(std::function<void(const ItemStack&)> consumer,
 // LootEntryBuilder
 // ============================================================================
 
-LootEntryBuilder LootEntryBuilder::item(const std::string& itemId) {
+LootEntryBuilder LootEntryBuilder::item(const std::string& itemId)
+{
     LootEntryBuilder builder;
     builder.m_itemId = itemId;
     builder.m_type = LootEntryType::Item;
     return builder;
 }
 
-LootEntryBuilder LootEntryBuilder::empty() {
+LootEntryBuilder LootEntryBuilder::empty()
+{
     LootEntryBuilder builder;
     builder.m_type = LootEntryType::Empty;
     return builder;
 }
 
-LootEntryBuilder LootEntryBuilder::table(const std::string& tableId) {
+LootEntryBuilder LootEntryBuilder::table(const std::string& tableId)
+{
     LootEntryBuilder builder;
     builder.m_tableId = tableId;
     builder.m_type = LootEntryType::Table;
     return builder;
 }
 
-LootEntryBuilder& LootEntryBuilder::count(f32 min, f32 max) {
+LootEntryBuilder& LootEntryBuilder::count(f32 min, f32 max)
+{
     m_count = RandomValueRange(min, max);
     return *this;
 }
 
-LootEntryBuilder& LootEntryBuilder::count(i32 value) {
+LootEntryBuilder& LootEntryBuilder::count(i32 value)
+{
     m_count = RandomValueRange(static_cast<f32>(value), static_cast<f32>(value));
     return *this;
 }
 
-std::unique_ptr<LootEntry> LootEntryBuilder::build() const {
+std::unique_ptr<LootEntry> LootEntryBuilder::build() const
+{
     std::unique_ptr<LootEntry> entry;
 
     switch (m_type) {

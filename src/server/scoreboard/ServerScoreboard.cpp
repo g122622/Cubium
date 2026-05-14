@@ -1,13 +1,13 @@
 #include "ServerScoreboard.hpp"
-#include "../application/MinecraftServer.hpp"
-#include "../player/ServerPlayer.hpp"
-#include "../core/PlayerManager.hpp"
-#include "../core/ServerPlayerData.hpp"
-#include "../core/ConnectionManager.hpp"
 #include "../../common/network/packet/PacketSerializer.hpp"
 #include "../../common/scoreboard/storage/ScoreboardDataManager.hpp"
 #include "../../common/util/text/ITextComponent.hpp"
 #include "../../common/util/text/StringTextComponent.hpp"
+#include "../application/MinecraftServer.hpp"
+#include "../core/ConnectionManager.hpp"
+#include "../core/PlayerManager.hpp"
+#include "../core/ServerPlayerData.hpp"
+#include "../player/ServerPlayer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -15,17 +15,18 @@ namespace server {
 
 ServerScoreboard::ServerScoreboard(MinecraftServer& server)
     : m_server(server)
-{
-}
+{}
 
-ServerScoreboard::~ServerScoreboard() {
+ServerScoreboard::~ServerScoreboard()
+{
     // 析构时自动保存脏数据
     if (m_dirty && m_dataManager) {
         m_dataManager->saveScoreboard(*this);
     }
 }
 
-void ServerScoreboard::onPlayerJoin(mc::ServerPlayer& player) {
+void ServerScoreboard::onPlayerJoin(mc::ServerPlayer& player)
+{
     // 发送所有已同步的目标
     for (auto* objective : m_addedObjectives) {
         sendObjectiveToPlayer(*objective, player.playerId());
@@ -52,13 +53,15 @@ void ServerScoreboard::onPlayerJoin(mc::ServerPlayer& player) {
     }
 }
 
-void ServerScoreboard::onPlayerLeave(PlayerId playerId, const std::string& playerName) {
+void ServerScoreboard::onPlayerLeave(PlayerId playerId, const std::string& playerName)
+{
     // 移除玩家的所有分数
     removeScore(playerName);
     markDirty();
 }
 
-void ServerScoreboard::sendToAllPlayers(network::PacketType type, const std::vector<u8>& payload) {
+void ServerScoreboard::sendToAllPlayers(network::PacketType type, const std::vector<u8>& payload)
+{
     auto& playerManager = m_server.playerManager();
     auto& connectionManager = m_server.connectionManager();
 
@@ -69,11 +72,13 @@ void ServerScoreboard::sendToAllPlayers(network::PacketType type, const std::vec
     });
 }
 
-void ServerScoreboard::sendToPlayer(PlayerId playerId, network::PacketType type, const std::vector<u8>& payload) {
+void ServerScoreboard::sendToPlayer(PlayerId playerId, network::PacketType type, const std::vector<u8>& payload)
+{
     m_server.connectionManager().sendPacketToPlayer(playerId, type, payload);
 }
 
-void ServerScoreboard::sendObjectiveToPlayer(scoreboard::ScoreObjective& objective, PlayerId playerId) {
+void ServerScoreboard::sendObjectiveToPlayer(scoreboard::ScoreObjective& objective, PlayerId playerId)
+{
     auto packet = createObjectivePacket(objective, network::ObjectiveAction::Add);
 
     network::PacketSerializer ser;
@@ -81,7 +86,8 @@ void ServerScoreboard::sendObjectiveToPlayer(scoreboard::ScoreObjective& objecti
     sendToPlayer(playerId, network::PacketType::ScoreboardObjective, ser.buffer());
 }
 
-void ServerScoreboard::sendRemoveObjectiveToPlayer(scoreboard::ScoreObjective& objective, PlayerId playerId) {
+void ServerScoreboard::sendRemoveObjectiveToPlayer(scoreboard::ScoreObjective& objective, PlayerId playerId)
+{
     auto packet = createObjectivePacket(objective, network::ObjectiveAction::Remove);
 
     network::PacketSerializer ser;
@@ -89,7 +95,8 @@ void ServerScoreboard::sendRemoveObjectiveToPlayer(scoreboard::ScoreObjective& o
     sendToPlayer(playerId, network::PacketType::ScoreboardObjective, ser.buffer());
 }
 
-void ServerScoreboard::sendScoreToPlayer(scoreboard::Score& score, PlayerId playerId) {
+void ServerScoreboard::sendScoreToPlayer(scoreboard::Score& score, PlayerId playerId)
+{
     auto packet = createScorePacket(score, network::ScoreAction::Change);
 
     network::PacketSerializer ser;
@@ -97,9 +104,9 @@ void ServerScoreboard::sendScoreToPlayer(scoreboard::Score& score, PlayerId play
     sendToPlayer(playerId, network::PacketType::UpdateScore, ser.buffer());
 }
 
-void ServerScoreboard::sendRemoveScoreToPlayer(const std::string& playerName,
-                                               const std::string& objectiveName,
-                                               PlayerId playerId) {
+void ServerScoreboard::sendRemoveScoreToPlayer(
+    const std::string& playerName, const std::string& objectiveName, PlayerId playerId)
+{
     network::UpdateScorePacket packet;
     packet.setPlayerName(playerName);
     packet.setObjectiveName(objectiveName);
@@ -110,9 +117,9 @@ void ServerScoreboard::sendRemoveScoreToPlayer(const std::string& playerName,
     sendToPlayer(playerId, network::PacketType::UpdateScore, ser.buffer());
 }
 
-void ServerScoreboard::sendDisplayObjectiveToPlayer(scoreboard::DisplaySlot slot,
-                                                    scoreboard::ScoreObjective* objective,
-                                                    PlayerId playerId) {
+void ServerScoreboard::sendDisplayObjectiveToPlayer(
+    scoreboard::DisplaySlot slot, scoreboard::ScoreObjective* objective, PlayerId playerId)
+{
     network::DisplayObjectivePacket packet;
     packet.setPosition(static_cast<i32>(slot));
     packet.setObjectiveName(objective ? objective->getName() : "");
@@ -122,7 +129,8 @@ void ServerScoreboard::sendDisplayObjectiveToPlayer(scoreboard::DisplaySlot slot
     sendToPlayer(playerId, network::PacketType::DisplayObjective, ser.buffer());
 }
 
-void ServerScoreboard::sendTeamToPlayer(scoreboard::ScorePlayerTeam& team, PlayerId playerId) {
+void ServerScoreboard::sendTeamToPlayer(scoreboard::ScorePlayerTeam& team, PlayerId playerId)
+{
     auto packet = createTeamPacket(team, network::TeamAction::Create);
 
     network::PacketSerializer ser;
@@ -130,7 +138,8 @@ void ServerScoreboard::sendTeamToPlayer(scoreboard::ScorePlayerTeam& team, Playe
     sendToPlayer(playerId, network::PacketType::Teams, ser.buffer());
 }
 
-void ServerScoreboard::sendRemoveTeamToPlayer(scoreboard::ScorePlayerTeam& team, PlayerId playerId) {
+void ServerScoreboard::sendRemoveTeamToPlayer(scoreboard::ScorePlayerTeam& team, PlayerId playerId)
+{
     auto packet = createTeamPacket(team, network::TeamAction::Remove);
 
     network::PacketSerializer ser;
@@ -138,7 +147,8 @@ void ServerScoreboard::sendRemoveTeamToPlayer(scoreboard::ScorePlayerTeam& team,
     sendToPlayer(playerId, network::PacketType::Teams, ser.buffer());
 }
 
-void ServerScoreboard::save() {
+void ServerScoreboard::save()
+{
     if (m_dirty && m_dataManager) {
         auto result = m_dataManager->saveScoreboard(*this);
         if (result.success()) {
@@ -150,7 +160,8 @@ void ServerScoreboard::save() {
     }
 }
 
-void ServerScoreboard::load() {
+void ServerScoreboard::load()
+{
     if (m_dataManager) {
         auto result = m_dataManager->loadScoreboard(*this);
         if (result.success()) {
@@ -165,7 +176,8 @@ void ServerScoreboard::load() {
     }
 }
 
-void ServerScoreboard::onObjectiveAdded(scoreboard::ScoreObjective& objective) {
+void ServerScoreboard::onObjectiveAdded(scoreboard::ScoreObjective& objective)
+{
     m_addedObjectives.insert(&objective);
 
     // 广播给所有玩家
@@ -178,7 +190,8 @@ void ServerScoreboard::onObjectiveAdded(scoreboard::ScoreObjective& objective) {
     markDirty();
 }
 
-void ServerScoreboard::onObjectiveRemoved(scoreboard::ScoreObjective& objective) {
+void ServerScoreboard::onObjectiveRemoved(scoreboard::ScoreObjective& objective)
+{
     m_addedObjectives.erase(&objective);
 
     // 广播给所有玩家
@@ -191,7 +204,8 @@ void ServerScoreboard::onObjectiveRemoved(scoreboard::ScoreObjective& objective)
     markDirty();
 }
 
-void ServerScoreboard::onObjectiveChanged(scoreboard::ScoreObjective& objective) {
+void ServerScoreboard::onObjectiveChanged(scoreboard::ScoreObjective& objective)
+{
     // 广播给所有玩家
     auto packet = createObjectivePacket(objective, network::ObjectiveAction::Update);
 
@@ -202,7 +216,8 @@ void ServerScoreboard::onObjectiveChanged(scoreboard::ScoreObjective& objective)
     markDirty();
 }
 
-void ServerScoreboard::onScoreChanged(scoreboard::Score& score) {
+void ServerScoreboard::onScoreChanged(scoreboard::Score& score)
+{
     // 广播给所有玩家
     auto packet = createScorePacket(score, network::ScoreAction::Change);
 
@@ -213,7 +228,8 @@ void ServerScoreboard::onScoreChanged(scoreboard::Score& score) {
     markDirty();
 }
 
-void ServerScoreboard::onScoreRemoved(scoreboard::Score& score) {
+void ServerScoreboard::onScoreRemoved(scoreboard::Score& score)
+{
     // 广播给所有玩家
     auto packet = createScorePacket(score, network::ScoreAction::Remove);
 
@@ -224,7 +240,8 @@ void ServerScoreboard::onScoreRemoved(scoreboard::Score& score) {
     markDirty();
 }
 
-void ServerScoreboard::onPlayerRemoved(const std::string& playerName) {
+void ServerScoreboard::onPlayerRemoved(const std::string& playerName)
+{
     // 广播移除玩家的所有分数
     auto objectives = getPlayerObjectives(playerName);
     for (const auto& objName : objectives) {
@@ -241,8 +258,8 @@ void ServerScoreboard::onPlayerRemoved(const std::string& playerName) {
     markDirty();
 }
 
-void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName,
-                                            scoreboard::ScoreObjective& objective) {
+void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName, scoreboard::ScoreObjective& objective)
+{
     // 广播移除特定分数
     network::UpdateScorePacket packet;
     packet.setPlayerName(playerName);
@@ -256,7 +273,8 @@ void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName,
     markDirty();
 }
 
-void ServerScoreboard::onTeamAdded(scoreboard::ScorePlayerTeam& team) {
+void ServerScoreboard::onTeamAdded(scoreboard::ScorePlayerTeam& team)
+{
     // 广播给所有玩家
     auto packet = createTeamPacket(team, network::TeamAction::Create);
 
@@ -267,7 +285,8 @@ void ServerScoreboard::onTeamAdded(scoreboard::ScorePlayerTeam& team) {
     markDirty();
 }
 
-void ServerScoreboard::onTeamChanged(scoreboard::ScorePlayerTeam& team) {
+void ServerScoreboard::onTeamChanged(scoreboard::ScorePlayerTeam& team)
+{
     // 广播给所有玩家
     auto packet = createTeamPacket(team, network::TeamAction::Update);
 
@@ -278,7 +297,8 @@ void ServerScoreboard::onTeamChanged(scoreboard::ScorePlayerTeam& team) {
     markDirty();
 }
 
-void ServerScoreboard::onTeamRemoved(scoreboard::ScorePlayerTeam& team) {
+void ServerScoreboard::onTeamRemoved(scoreboard::ScorePlayerTeam& team)
+{
     // 广播给所有玩家
     auto packet = createTeamPacket(team, network::TeamAction::Remove);
 
@@ -289,8 +309,8 @@ void ServerScoreboard::onTeamRemoved(scoreboard::ScorePlayerTeam& team) {
     markDirty();
 }
 
-void ServerScoreboard::onDisplaySlotChanged(scoreboard::DisplaySlot slot,
-                                            scoreboard::ScoreObjective* objective) {
+void ServerScoreboard::onDisplaySlotChanged(scoreboard::DisplaySlot slot, scoreboard::ScoreObjective* objective)
+{
     // 广播给所有玩家
     network::DisplayObjectivePacket packet;
     packet.setPosition(static_cast<i32>(slot));
@@ -304,8 +324,8 @@ void ServerScoreboard::onDisplaySlotChanged(scoreboard::DisplaySlot slot,
 }
 
 network::ScoreboardObjectivePacket ServerScoreboard::createObjectivePacket(
-    scoreboard::ScoreObjective& objective,
-    network::ObjectiveAction action) {
+    scoreboard::ScoreObjective& objective, network::ObjectiveAction action)
+{
     network::ScoreboardObjectivePacket packet;
 
     packet.setObjectiveName(objective.getName());
@@ -326,9 +346,8 @@ network::ScoreboardObjectivePacket ServerScoreboard::createObjectivePacket(
     return packet;
 }
 
-network::UpdateScorePacket ServerScoreboard::createScorePacket(
-    scoreboard::Score& score,
-    network::ScoreAction action) {
+network::UpdateScorePacket ServerScoreboard::createScorePacket(scoreboard::Score& score, network::ScoreAction action)
+{
     network::UpdateScorePacket packet;
 
     packet.setPlayerName(score.getPlayerName());
@@ -343,8 +362,8 @@ network::UpdateScorePacket ServerScoreboard::createScorePacket(
 }
 
 network::DisplayObjectivePacket ServerScoreboard::createDisplayObjectivePacket(
-    scoreboard::DisplaySlot slot,
-    scoreboard::ScoreObjective* objective) {
+    scoreboard::DisplaySlot slot, scoreboard::ScoreObjective* objective)
+{
     network::DisplayObjectivePacket packet;
 
     packet.setPosition(static_cast<i32>(slot));
@@ -353,9 +372,8 @@ network::DisplayObjectivePacket ServerScoreboard::createDisplayObjectivePacket(
     return packet;
 }
 
-network::TeamsPacket ServerScoreboard::createTeamPacket(
-    scoreboard::ScorePlayerTeam& team,
-    network::TeamAction action) {
+network::TeamsPacket ServerScoreboard::createTeamPacket(scoreboard::ScorePlayerTeam& team, network::TeamAction action)
+{
     network::TeamsPacket packet;
 
     packet.setTeamName(team.getName());
@@ -386,8 +404,7 @@ network::TeamsPacket ServerScoreboard::createTeamPacket(
         packet.setFriendlyFlags(team.getFriendlyFlags());
     }
 
-    if (action == network::TeamAction::Create ||
-        action == network::TeamAction::AddMember ||
+    if (action == network::TeamAction::Create || action == network::TeamAction::AddMember ||
         action == network::TeamAction::RemoveMember) {
         packet.setPlayers(std::vector<std::string>(team.getMembers().begin(), team.getMembers().end()));
     }

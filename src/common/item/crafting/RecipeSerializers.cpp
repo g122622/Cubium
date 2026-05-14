@@ -7,8 +7,8 @@ namespace mc {
 namespace crafting {
 
 Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
-    const ResourceLocation& id,
-    const nlohmann::json& json) {
+    const ResourceLocation& id, const nlohmann::json& json)
+{
 
     // 解析类型
     if (!json.contains("type") || !json["type"].is_string()) {
@@ -40,8 +40,7 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
         auto result = parseSmeltingRecipe(id, json, DEFAULT_SMELTING_TIME);
         if (result.success()) {
             // 转换为 CraftingRecipe 不适用，熔炼配方独立存储
-            return Error(ErrorCode::ResourceParseError,
-                "Smelting recipes should be loaded via fromSmeltingJson");
+            return Error(ErrorCode::ResourceParseError, "Smelting recipes should be loaded via fromSmeltingJson");
         }
         return result.error();
     }
@@ -49,8 +48,7 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
     else if (type == "minecraft:blasting") {
         auto result = parseBlastingRecipe(id, json);
         if (result.success()) {
-            return Error(ErrorCode::ResourceParseError,
-                "Blasting recipes should be loaded via fromSmeltingJson");
+            return Error(ErrorCode::ResourceParseError, "Blasting recipes should be loaded via fromSmeltingJson");
         }
         return result.error();
     }
@@ -58,8 +56,7 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
     else if (type == "minecraft:smoking") {
         auto result = parseSmokingRecipe(id, json);
         if (result.success()) {
-            return Error(ErrorCode::ResourceParseError,
-                "Smoking recipes should be loaded via fromSmeltingJson");
+            return Error(ErrorCode::ResourceParseError, "Smoking recipes should be loaded via fromSmeltingJson");
         }
         return result.error();
     }
@@ -67,20 +64,18 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
     else if (type == "minecraft:campfire_cooking") {
         auto result = parseCampfireCookingRecipe(id, json);
         if (result.success()) {
-            return Error(ErrorCode::ResourceParseError,
-                "Campfire cooking recipes should be loaded via fromSmeltingJson");
+            return Error(
+                ErrorCode::ResourceParseError, "Campfire cooking recipes should be loaded via fromSmeltingJson");
         }
         return result.error();
-    }
-    else {
-        return Error(ErrorCode::ResourceParseError,
-                     "Unsupported recipe type: " + type);
+    } else {
+        return Error(ErrorCode::ResourceParseError, "Unsupported recipe type: " + type);
     }
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::fromSmeltingJson(
-    const ResourceLocation& id,
-    const nlohmann::json& json) {
+    const ResourceLocation& id, const nlohmann::json& json)
+{
 
     if (!json.contains("type") || !json["type"].is_string()) {
         return Error(ErrorCode::ResourceParseError, "Recipe missing 'type' field");
@@ -90,25 +85,20 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::fromSmeltingJson(
 
     if (type == "minecraft:smelting") {
         return parseSmeltingRecipe(id, json, DEFAULT_SMELTING_TIME);
-    }
-    else if (type == "minecraft:blasting") {
+    } else if (type == "minecraft:blasting") {
         return parseBlastingRecipe(id, json);
-    }
-    else if (type == "minecraft:smoking") {
+    } else if (type == "minecraft:smoking") {
         return parseSmokingRecipe(id, json);
-    }
-    else if (type == "minecraft:campfire_cooking") {
+    } else if (type == "minecraft:campfire_cooking") {
         return parseCampfireCookingRecipe(id, json);
-    }
-    else {
-        return Error(ErrorCode::ResourceParseError,
-                     "Not a smelting recipe type: " + type);
+    } else {
+        return Error(ErrorCode::ResourceParseError, "Not a smelting recipe type: " + type);
     }
 }
 
 Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
-    const ResourceLocation& id,
-    const nlohmann::json& json) {
+    const ResourceLocation& id, const nlohmann::json& json)
+{
 
     // 解析pattern
     if (!json.contains("pattern") || !json["pattern"].is_array()) {
@@ -170,18 +160,12 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
     }
 
     return std::make_unique<ShapedRecipe>(
-        id,
-        width,
-        height,
-        std::move(ingredientsResult.value()),
-        resultStack.value(),
-        group
-    );
+        id, width, height, std::move(ingredientsResult.value()), resultStack.value(), group);
 }
 
 Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe(
-    const ResourceLocation& id,
-    const nlohmann::json& json) {
+    const ResourceLocation& id, const nlohmann::json& json)
+{
 
     // 解析ingredients
     if (!json.contains("ingredients") || !json["ingredients"].is_array()) {
@@ -208,8 +192,7 @@ Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe
     // MC 原版校验：原料数量上限
     if (ingredients.size() > static_cast<size_t>(MAX_RECIPE_WIDTH * MAX_RECIPE_HEIGHT)) {
         std::ostringstream oss;
-        oss << "Too many ingredients for shapeless recipe, max is "
-            << (MAX_RECIPE_WIDTH * MAX_RECIPE_HEIGHT);
+        oss << "Too many ingredients for shapeless recipe, max is " << (MAX_RECIPE_WIDTH * MAX_RECIPE_HEIGHT);
         return Error(ErrorCode::ResourceParseError, oss.str());
     }
 
@@ -229,18 +212,12 @@ Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe
         group = json["group"].get<std::string>();
     }
 
-    return std::make_unique<ShapelessRecipe>(
-        id,
-        std::move(ingredients),
-        resultStack.value(),
-        group
-    );
+    return std::make_unique<ShapelessRecipe>(id, std::move(ingredients), resultStack.value(), group);
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmeltingRecipe(
-    const ResourceLocation& id,
-    const nlohmann::json& json,
-    i32 defaultCookTime) {
+    const ResourceLocation& id, const nlohmann::json& json, i32 defaultCookTime)
+{
 
     // 解析group（可选）
     std::string group;
@@ -280,14 +257,12 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmeltingRecipe(
         cookTime = json["cookingtime"].get<i32>();
     }
 
-    return std::make_unique<SmeltingRecipe>(
-        id, group, ingResult.value(), resultStack.value(), experience, cookTime
-    );
+    return std::make_unique<SmeltingRecipe>(id, group, ingResult.value(), resultStack.value(), experience, cookTime);
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseBlastingRecipe(
-    const ResourceLocation& id,
-    const nlohmann::json& json) {
+    const ResourceLocation& id, const nlohmann::json& json)
+{
 
     // MC 1.16.5: 高炉配方默认熔炼时间为 100 tick
     constexpr i32 BLASTING_COOK_TIME = 100;
@@ -296,22 +271,20 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseBlastingRecipe(
     if (result.success()) {
         // 获取 SmeltingRecipe 并转换为 BlastingRecipe
         auto smelting = result.value();
-        std::unique_ptr<SmeltingRecipe> blasting = std::make_unique<BlastingRecipe>(
-            smelting->getId(),
+        std::unique_ptr<SmeltingRecipe> blasting = std::make_unique<BlastingRecipe>(smelting->getId(),
             smelting->getGroup(),
             smelting->getIngredient(),
             smelting->getResultItem(),
             smelting->getExperience(),
-            smelting->getCookTime()
-        );
+            smelting->getCookTime());
         return blasting;
     }
     return result;
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmokingRecipe(
-    const ResourceLocation& id,
-    const nlohmann::json& json) {
+    const ResourceLocation& id, const nlohmann::json& json)
+{
 
     // MC 1.16.5: 烟熏炉配方默认熔炼时间为 100 tick
     constexpr i32 SMOKING_COOK_TIME = 100;
@@ -320,22 +293,20 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmokingRecipe(
     if (result.success()) {
         // 获取 SmeltingRecipe 并转换为 SmokingRecipe
         auto smelting = result.value();
-        std::unique_ptr<SmeltingRecipe> smoking = std::make_unique<SmokingRecipe>(
-            smelting->getId(),
+        std::unique_ptr<SmeltingRecipe> smoking = std::make_unique<SmokingRecipe>(smelting->getId(),
             smelting->getGroup(),
             smelting->getIngredient(),
             smelting->getResultItem(),
             smelting->getExperience(),
-            smelting->getCookTime()
-        );
+            smelting->getCookTime());
         return smoking;
     }
     return result;
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseCampfireCookingRecipe(
-    const ResourceLocation& id,
-    const nlohmann::json& json) {
+    const ResourceLocation& id, const nlohmann::json& json)
+{
 
     // MC 1.16.5: 营火烹饪配方默认熔炼时间为 600 tick（30秒）
     constexpr i32 CAMPFIRE_COOK_TIME = 600;
@@ -344,20 +315,19 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseCampfireCookingR
     if (result.success()) {
         // 获取 SmeltingRecipe 并转换为 CampfireCookingRecipe
         auto smelting = result.value();
-        std::unique_ptr<SmeltingRecipe> campfire = std::make_unique<CampfireCookingRecipe>(
-            smelting->getId(),
+        std::unique_ptr<SmeltingRecipe> campfire = std::make_unique<CampfireCookingRecipe>(smelting->getId(),
             smelting->getGroup(),
             smelting->getIngredient(),
             smelting->getResultItem(),
             smelting->getExperience(),
-            smelting->getCookTime()
-        );
+            smelting->getCookTime());
         return campfire;
     }
     return result;
 }
 
-Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json) {
+Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json)
+{
     // 数组形式：多选项
     if (json.is_array()) {
         std::vector<Ingredient> ingredients;
@@ -405,7 +375,8 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
     return Error(ErrorCode::ResourceParseError, "Ingredient must have 'item' or 'tag' field");
 }
 
-Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json) {
+Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
+{
     // 字符串形式：仅物品ID
     if (json.is_string()) {
         std::string itemId = json.get<std::string>();
@@ -448,7 +419,8 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json) {
     return ItemStack(*item, count);
 }
 
-std::vector<std::string> RecipeSerializers::shrinkPattern(const std::vector<std::string>& pattern) {
+std::vector<std::string> RecipeSerializers::shrinkPattern(const std::vector<std::string>& pattern)
+{
     if (pattern.empty()) {
         return {};
     }
@@ -497,7 +469,8 @@ std::vector<std::string> RecipeSerializers::shrinkPattern(const std::vector<std:
     return result;
 }
 
-std::string RecipeSerializers::validatePattern(const std::vector<std::string>& pattern) {
+std::string RecipeSerializers::validatePattern(const std::vector<std::string>& pattern)
+{
     if (pattern.size() > static_cast<size_t>(MAX_RECIPE_HEIGHT)) {
         std::ostringstream oss;
         oss << "Pattern has too many rows, max is " << MAX_RECIPE_HEIGHT;
@@ -526,19 +499,19 @@ std::string RecipeSerializers::validatePattern(const std::vector<std::string>& p
         }
     }
 
-    return "";  // 验证通过
+    return ""; // 验证通过
 }
 
 Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
-    const std::vector<std::string>& pattern,
-    const nlohmann::json& key) {
+    const std::vector<std::string>& pattern, const nlohmann::json& key)
+{
 
     std::vector<Ingredient> ingredients;
 
     // 构建键到原料的映射
     std::unordered_map<char, Ingredient> keyMap;
     for (auto it = key.begin(); it != key.end(); ++it) {
-        char c = it.key()[0];  // 键是单个字符
+        char c = it.key()[0]; // 键是单个字符
         auto ingResult = parseIngredient(it.value());
         if (!ingResult.success()) {
             return ingResult.error();
@@ -552,12 +525,10 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
             if (c == ' ') {
                 // 空格表示空槽位（MC 原版使用 Ingredient.EMPTY）
                 ingredients.push_back(Ingredient::EMPTY);
-            }
-            else {
+            } else {
                 auto it = keyMap.find(c);
                 if (it == keyMap.end()) {
-                    return Error(ErrorCode::ResourceParseError,
-                                 "Pattern uses undefined key: " + std::string(1, c));
+                    return Error(ErrorCode::ResourceParseError, "Pattern uses undefined key: " + std::string(1, c));
                 }
                 ingredients.push_back(it->second);
             }

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "TextEvents.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Types.hpp"
 #include <optional>
 #include <string>
+#include <nlohmann/json.hpp>
 
 namespace mc::text {
 
@@ -34,15 +34,15 @@ enum class TextFormatting : u8 {
     White = 15,       // §f - 白色
 
     // 样式代码
-    Obfuscated = 16,     // §k - 混淆（随机字符）
-    Bold = 17,           // §l - 粗体
-    Strikethrough = 18,  // §m - 删除线
-    Underline = 19,      // §n - 下划线
-    Italic = 20,         // §o - 斜体
-    Reset = 21,          // §r - 重置
+    Obfuscated = 16,    // §k - 混淆（随机字符）
+    Bold = 17,          // §l - 粗体
+    Strikethrough = 18, // §m - 删除线
+    Underline = 19,     // §n - 下划线
+    Italic = 20,        // §o - 斜体
+    Reset = 21,         // §r - 重置
 
     // 特殊值
-    None = 255          // 无格式
+    None = 255 // 无格式
 };
 
 /**
@@ -113,17 +113,13 @@ public:
      * @brief 获取颜色
      * @return 颜色格式化类型，未设置返回 nullopt
      */
-    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept {
-        return m_color;
-    }
+    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept { return m_color; }
 
     /**
      * @brief 设置颜色
      * @param color 颜色格式化类型
      */
-    void setColor(std::optional<TextFormatting> color) noexcept {
-        m_color = color;
-    }
+    void setColor(std::optional<TextFormatting> color) noexcept { m_color = color; }
 
     /**
      * @brief 获取颜色 ARGB 值
@@ -154,7 +150,8 @@ public:
      * @brief 获取点击事件
      * @return 点击事件指针，未设置返回 nullptr
      */
-    [[nodiscard]] const ClickEvent* getClickEvent() const noexcept {
+    [[nodiscard]] const ClickEvent* getClickEvent() const noexcept
+    {
         return m_clickEvent.has_value() ? &(*m_clickEvent) : nullptr;
     }
 
@@ -162,15 +159,14 @@ public:
      * @brief 设置点击事件
      * @param event 点击事件
      */
-    void setClickEvent(const std::optional<ClickEvent>& event) noexcept {
-        m_clickEvent = event;
-    }
+    void setClickEvent(const std::optional<ClickEvent>& event) noexcept { m_clickEvent = event; }
 
     /**
      * @brief 获取悬停事件
      * @return 悬停事件指针，未设置返回 nullptr
      */
-    [[nodiscard]] const HoverEvent* getHoverEvent() const noexcept {
+    [[nodiscard]] const HoverEvent* getHoverEvent() const noexcept
+    {
         return m_hoverEvent.has_value() ? &(*m_hoverEvent) : nullptr;
     }
 
@@ -178,9 +174,7 @@ public:
      * @brief 设置悬停事件
      * @param event 悬停事件
      */
-    void setHoverEvent(const std::optional<HoverEvent>& event) noexcept {
-        m_hoverEvent = event;
-    }
+    void setHoverEvent(const std::optional<HoverEvent>& event) noexcept { m_hoverEvent = event; }
 
     // ========== 父样式继承 ==========
 
@@ -201,9 +195,7 @@ public:
      * @brief 检查样式是否有事件
      * @return 如果有点击或悬停事件返回 true
      */
-    [[nodiscard]] bool hasEvents() const noexcept {
-        return m_clickEvent.has_value() || m_hoverEvent.has_value();
-    }
+    [[nodiscard]] bool hasEvents() const noexcept { return m_clickEvent.has_value() || m_hoverEvent.has_value(); }
 
     // ========== 序列化 ==========
 

@@ -56,9 +56,9 @@ public:
      * @param furnaceEntity 熔炉实体（可选，用于经验发放）
      */
     FurnaceContainer(ContainerId id,
-                     PlayerInventory* playerInventory,
-                     IInventory* furnaceInventory,
-                     AbstractFurnaceEntity* furnaceEntity = nullptr);
+        PlayerInventory* playerInventory,
+        IInventory* furnaceInventory,
+        AbstractFurnaceEntity* furnaceEntity = nullptr);
 
     /**
      * @brief 构造拥有熔炉背包的容器
@@ -68,9 +68,9 @@ public:
      * @param furnaceEntity 熔炉实体（可选，用于经验发放）
      */
     FurnaceContainer(ContainerId id,
-                     PlayerInventory* playerInventory,
-                     std::shared_ptr<IInventory> furnaceInventoryOwner,
-                     AbstractFurnaceEntity* furnaceEntity = nullptr);
+        PlayerInventory* playerInventory,
+        std::shared_ptr<IInventory> furnaceInventoryOwner,
+        AbstractFurnaceEntity* furnaceEntity = nullptr);
 
     /**
      * @brief 析构函数
@@ -127,10 +127,10 @@ private:
      */
     void grantExperienceForOutput(i32 extractedCount);
 
-    IInventory* m_furnaceInventory;       ///< 熔炉背包
+    IInventory* m_furnaceInventory;                      ///< 熔炉背包
     std::shared_ptr<IInventory> m_furnaceInventoryOwner; ///< 熔炉背包所有权（可选）
-    AbstractFurnaceEntity* m_furnaceEntity; ///< 熔炉实体（用于经验发放）
-    Player* m_player = nullptr;            ///< 玩家（用于经验发放）
+    AbstractFurnaceEntity* m_furnaceEntity;              ///< 熔炉实体（用于经验发放）
+    Player* m_player = nullptr;                          ///< 玩家（用于经验发放）
 };
 
 } // namespace blockentity

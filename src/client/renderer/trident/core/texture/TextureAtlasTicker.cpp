@@ -5,34 +5,35 @@
 
 namespace mc::client::renderer::trident {
 
-void TextureAtlasTicker::registerAnimatedSprite(std::shared_ptr<AnimatedSprite> sprite) {
+void TextureAtlasTicker::registerAnimatedSprite(std::shared_ptr<AnimatedSprite> sprite)
+{
     if (!sprite || !sprite->isAnimated()) {
         return;
     }
 
     // 检查是否已注册
-    const auto it = std::find_if(m_sprites.begin(), m_sprites.end(),
-        [&sprite](const std::shared_ptr<AnimatedSprite>& existing) {
-            return existing.get() == sprite.get();
-        });
+    const auto it = std::find_if(m_sprites.begin(),
+        m_sprites.end(),
+        [&sprite](const std::shared_ptr<AnimatedSprite>& existing) { return existing.get() == sprite.get(); });
 
     if (it == m_sprites.end()) {
         m_sprites.push_back(std::move(sprite));
     }
 }
 
-void TextureAtlasTicker::unregisterAnimatedSprite(const AnimatedSprite* sprite) {
-    const auto it = std::find_if(m_sprites.begin(), m_sprites.end(),
-        [sprite](const std::shared_ptr<AnimatedSprite>& existing) {
-            return existing.get() == sprite;
-        });
+void TextureAtlasTicker::unregisterAnimatedSprite(const AnimatedSprite* sprite)
+{
+    const auto it = std::find_if(m_sprites.begin(),
+        m_sprites.end(),
+        [sprite](const std::shared_ptr<AnimatedSprite>& existing) { return existing.get() == sprite; });
 
     if (it != m_sprites.end()) {
         m_sprites.erase(it);
     }
 }
 
-void TextureAtlasTicker::tick() {
+void TextureAtlasTicker::tick()
+{
     for (auto& sprite : m_sprites) {
         if (sprite) {
             sprite->tick();
@@ -40,9 +41,7 @@ void TextureAtlasTicker::tick() {
     }
 }
 
-mc::Result<void> TextureAtlasTicker::uploadPendingFrames(
-    TridentContext* context,
-    TridentTextureAtlas& atlas)
+mc::Result<void> TextureAtlasTicker::uploadPendingFrames(TridentContext* context, TridentTextureAtlas& atlas)
 {
     for (auto& sprite : m_sprites) {
         if (sprite) {
@@ -57,7 +56,8 @@ mc::Result<void> TextureAtlasTicker::uploadPendingFrames(
     return {};
 }
 
-void TextureAtlasTicker::clear() {
+void TextureAtlasTicker::clear()
+{
     m_sprites.clear();
 }
 

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../../core/ActionResult.hpp"
 #include "../../core/Item.hpp"
 #include "../../core/UseAction.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../../core/Types.hpp"
 #include <functional>
 
 namespace mc {

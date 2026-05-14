@@ -7,7 +7,8 @@ namespace mc {
 // 初始化
 // ============================================================================
 
-void DimensionManager::initialize(u64 seed) {
+void DimensionManager::initialize(u64 seed)
+{
     if (m_initialized) {
         return;
     }
@@ -17,7 +18,8 @@ void DimensionManager::initialize(u64 seed) {
     m_initialized = true;
 }
 
-void DimensionManager::shutdown() {
+void DimensionManager::shutdown()
+{
     m_dimensions.clear();
     m_nameToId.clear();
     m_initialized = false;
@@ -27,7 +29,8 @@ void DimensionManager::shutdown() {
 // 维度注册
 // ============================================================================
 
-bool DimensionManager::registerDimension(std::unique_ptr<Dimension> dimension) {
+bool DimensionManager::registerDimension(std::unique_ptr<Dimension> dimension)
+{
     if (!dimension) {
         return false;
     }
@@ -48,7 +51,8 @@ bool DimensionManager::registerDimension(std::unique_ptr<Dimension> dimension) {
     return true;
 }
 
-bool DimensionManager::unregisterDimension(DimensionId id) {
+bool DimensionManager::unregisterDimension(DimensionId id)
+{
     auto it = m_dimensions.find(id);
     if (it == m_dimensions.end()) {
         return false;
@@ -68,41 +72,50 @@ bool DimensionManager::unregisterDimension(DimensionId id) {
 // 维度访问
 // ============================================================================
 
-Dimension* DimensionManager::getDimension(DimensionId id) {
+Dimension* DimensionManager::getDimension(DimensionId id)
+{
     auto it = m_dimensions.find(id);
     return it != m_dimensions.end() ? it->second.get() : nullptr;
 }
 
-const Dimension* DimensionManager::getDimension(DimensionId id) const {
+const Dimension* DimensionManager::getDimension(DimensionId id) const
+{
     auto it = m_dimensions.find(id);
     return it != m_dimensions.end() ? it->second.get() : nullptr;
 }
 
-bool DimensionManager::hasDimension(DimensionId id) const {
+bool DimensionManager::hasDimension(DimensionId id) const
+{
     return m_dimensions.find(id) != m_dimensions.end();
 }
 
-Dimension* DimensionManager::getOverworld() {
+Dimension* DimensionManager::getOverworld()
+{
     return getDimension(OVERWORLD);
 }
 
-const Dimension* DimensionManager::getOverworld() const {
+const Dimension* DimensionManager::getOverworld() const
+{
     return getDimension(OVERWORLD);
 }
 
-Dimension* DimensionManager::getNether() {
+Dimension* DimensionManager::getNether()
+{
     return getDimension(NETHER);
 }
 
-const Dimension* DimensionManager::getNether() const {
+const Dimension* DimensionManager::getNether() const
+{
     return getDimension(NETHER);
 }
 
-Dimension* DimensionManager::getTheEnd() {
+Dimension* DimensionManager::getTheEnd()
+{
     return getDimension(THE_END);
 }
 
-const Dimension* DimensionManager::getTheEnd() const {
+const Dimension* DimensionManager::getTheEnd() const
+{
     return getDimension(THE_END);
 }
 
@@ -110,12 +123,14 @@ const Dimension* DimensionManager::getTheEnd() const {
 // 维度类型
 // ============================================================================
 
-const DimensionType* DimensionManager::getDimensionType(DimensionId id) const {
+const DimensionType* DimensionManager::getDimensionType(DimensionId id) const
+{
     const Dimension* dim = getDimension(id);
     return dim ? &dim->type() : nullptr;
 }
 
-DimensionId DimensionManager::getDimensionIdByName(const std::string& name) const {
+DimensionId DimensionManager::getDimensionIdByName(const std::string& name) const
+{
     auto it = m_nameToId.find(name);
     return it != m_nameToId.end() ? it->second : static_cast<DimensionId>(-1);
 }
@@ -124,13 +139,15 @@ DimensionId DimensionManager::getDimensionIdByName(const std::string& name) cons
 // 遍历
 // ============================================================================
 
-void DimensionManager::forEachDimension(std::function<void(Dimension&)> func) {
+void DimensionManager::forEachDimension(std::function<void(Dimension&)> func)
+{
     for (auto& pair : m_dimensions) {
         func(*pair.second);
     }
 }
 
-void DimensionManager::forEachDimension(std::function<void(const Dimension&)> func) const {
+void DimensionManager::forEachDimension(std::function<void(const Dimension&)> func) const
+{
     for (const auto& pair : m_dimensions) {
         func(*pair.second);
     }
@@ -140,7 +157,8 @@ void DimensionManager::forEachDimension(std::function<void(const Dimension&)> fu
 // 信息
 // ============================================================================
 
-std::vector<DimensionId> DimensionManager::getDimensionIds() const {
+std::vector<DimensionId> DimensionManager::getDimensionIds() const
+{
     std::vector<DimensionId> ids;
     ids.reserve(m_dimensions.size());
     for (const auto& pair : m_dimensions) {
@@ -153,7 +171,8 @@ std::vector<DimensionId> DimensionManager::getDimensionIds() const {
 // 原版维度注册
 // ============================================================================
 
-void DimensionManager::registerVanillaDimensions(u64 seed) {
+void DimensionManager::registerVanillaDimensions(u64 seed)
+{
     // 注册主世界
     auto overworld = Dimension::createOverworld(seed);
     MC_ASSERT(registerDimension(std::move(overworld)));

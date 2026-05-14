@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <vulkan/vulkan.h>
 #include <string>
+#include <vulkan/vulkan.h>
 
 namespace mc::client {
 
@@ -12,13 +12,13 @@ namespace mc::client {
  * 用于存储从Vulkan获取的GPU信息
  */
 struct DebugGpuInfo {
-    std::string vendor;              // GPU厂商 (NVIDIA, AMD, Intel等)
-    std::string name;                // GPU型号
-    std::string driverVersion;       // 驱动版本
-    u64 dedicatedVideoMB = 0;   // 专用显存 (MB)
-    u64 sharedSystemMB = 0;     // 共享系统内存 (MB)
-    u32 apiMajorVersion = 0;    // Vulkan API主版本
-    u32 apiMinorVersion = 0;    // Vulkan API次版本
+    std::string vendor;        // GPU厂商 (NVIDIA, AMD, Intel等)
+    std::string name;          // GPU型号
+    std::string driverVersion; // 驱动版本
+    u64 dedicatedVideoMB = 0;  // 专用显存 (MB)
+    u64 sharedSystemMB = 0;    // 共享系统内存 (MB)
+    u32 apiMajorVersion = 0;   // Vulkan API主版本
+    u32 apiMinorVersion = 0;   // Vulkan API次版本
 };
 
 /**
@@ -29,8 +29,7 @@ struct DebugGpuInfo {
  * @return 提取的 GPU 信息
  */
 inline DebugGpuInfo getGpuInfo(
-    const VkPhysicalDeviceProperties& deviceProperties,
-    const VkPhysicalDeviceMemoryProperties& memoryProperties)
+    const VkPhysicalDeviceProperties& deviceProperties, const VkPhysicalDeviceMemoryProperties& memoryProperties)
 {
     DebugGpuInfo gpuInfo;
 
@@ -42,8 +41,7 @@ inline DebugGpuInfo getGpuInfo(
     gpuInfo.apiMinorVersion = VK_API_VERSION_MINOR(deviceProperties.apiVersion);
 
     // 驱动版本
-    gpuInfo.driverVersion =
-        std::to_string(VK_API_VERSION_MAJOR(deviceProperties.driverVersion)) + "." +
+    gpuInfo.driverVersion = std::to_string(VK_API_VERSION_MAJOR(deviceProperties.driverVersion)) + "." +
         std::to_string(VK_API_VERSION_MINOR(deviceProperties.driverVersion)) + "." +
         std::to_string(VK_API_VERSION_PATCH(deviceProperties.driverVersion));
 
@@ -63,15 +61,29 @@ inline DebugGpuInfo getGpuInfo(
 
     // 厂商识别
     switch (deviceProperties.vendorID) {
-        case 0x10DE: gpuInfo.vendor = "NVIDIA"; break;
+        case 0x10DE:
+            gpuInfo.vendor = "NVIDIA";
+            break;
         case 0x1002:
-        case 0x1022: gpuInfo.vendor = "AMD"; break;
+        case 0x1022:
+            gpuInfo.vendor = "AMD";
+            break;
         case 0x8086:
-        case 0x8087: gpuInfo.vendor = "Intel"; break;
-        case 0x13B5: gpuInfo.vendor = "ARM"; break;
-        case 0x1010: gpuInfo.vendor = "Apple"; break;
-        case 0x5143: gpuInfo.vendor = "Qualcomm"; break;
-        default: gpuInfo.vendor = "Unknown"; break;
+        case 0x8087:
+            gpuInfo.vendor = "Intel";
+            break;
+        case 0x13B5:
+            gpuInfo.vendor = "ARM";
+            break;
+        case 0x1010:
+            gpuInfo.vendor = "Apple";
+            break;
+        case 0x5143:
+            gpuInfo.vendor = "Qualcomm";
+            break;
+        default:
+            gpuInfo.vendor = "Unknown";
+            break;
     }
 
     return gpuInfo;

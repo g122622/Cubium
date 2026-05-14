@@ -1,20 +1,20 @@
 #include <gtest/gtest.h>
 
-#include "common/item/Items.hpp"
-#include "common/item/items/special/BucketItem.hpp"
-#include "common/item/core/ItemStack.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/basic/CowEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/BucketItem.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 namespace mc {
 namespace {
@@ -24,32 +24,33 @@ namespace {
  */
 class MilkingTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("MilkingTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("MilkingTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(entity.get());
         // 不实际存储实体，返回临时ID
         return ++m_lastEntityId;
     }
 
     void addParticle(client::renderer::trident::particle::ParticleTypeId,
-                     const Vector3&,
-                     const Vector3&,
-                     const Vector3& = Vector3(0, 0, 0),
-                     u32 = 1) override {
+        const Vector3&,
+        const Vector3&,
+        const Vector3& = Vector3(0, 0, 0),
+        u32 = 1) override
+    {
         // 测试中忽略粒子效果
     }
 
-    void playSound(const ResourceLocation& soundId,
-                   sound::SoundCategory,
-                   const Vector3&,
-                   f32,
-                   f32) override {
+    void playSound(const ResourceLocation& soundId, sound::SoundCategory, const Vector3&, f32, f32) override
+    {
         m_lastPlayedSound = soundId;
     }
 
@@ -64,15 +65,14 @@ private:
 
 class BucketItemMilkingTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 流体注册表必须在物品注册之前初始化
         fluid::FluidRegistry::instance().initialize();
         Items::initialize();
     }
 
-    void SetUp() override {
-        m_world = std::make_unique<MilkingTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<MilkingTestWorld>(); }
 
     std::unique_ptr<MilkingTestWorld> m_world;
 };
@@ -81,7 +81,8 @@ protected:
 // 桶物品存在性测试
 // ============================================================================
 
-TEST_F(BucketItemMilkingTest, BucketItemsAreRegistered) {
+TEST_F(BucketItemMilkingTest, BucketItemsAreRegistered)
+{
     // 验证所有桶物品都已注册
     ASSERT_NE(Items::BUCKET, nullptr) << "Empty bucket should be registered";
     ASSERT_NE(Items::WATER_BUCKET, nullptr) << "Water bucket should be registered";
@@ -89,21 +90,24 @@ TEST_F(BucketItemMilkingTest, BucketItemsAreRegistered) {
     ASSERT_NE(Items::MILK_BUCKET, nullptr) << "Milk bucket should be registered";
 }
 
-TEST_F(BucketItemMilkingTest, EmptyBucketIsCorrectType) {
+TEST_F(BucketItemMilkingTest, EmptyBucketIsCorrectType)
+{
     auto* bucket = static_cast<BucketItem*>(Items::BUCKET);
     ASSERT_NE(bucket, nullptr);
     EXPECT_TRUE(bucket->isEmpty()) << "Empty bucket should report isEmpty() = true";
     EXPECT_EQ(bucket->getContainedFluid(), nullptr) << "Empty bucket should have null fluid";
 }
 
-TEST_F(BucketItemMilkingTest, WaterBucketHasFluid) {
+TEST_F(BucketItemMilkingTest, WaterBucketHasFluid)
+{
     auto* waterBucket = static_cast<BucketItem*>(Items::WATER_BUCKET);
     ASSERT_NE(waterBucket, nullptr);
     EXPECT_FALSE(waterBucket->isEmpty()) << "Water bucket should report isEmpty() = false";
     EXPECT_NE(waterBucket->getContainedFluid(), nullptr) << "Water bucket should have fluid";
 }
 
-TEST_F(BucketItemMilkingTest, LavaBucketHasFluid) {
+TEST_F(BucketItemMilkingTest, LavaBucketHasFluid)
+{
     auto* lavaBucket = static_cast<BucketItem*>(Items::LAVA_BUCKET);
     ASSERT_NE(lavaBucket, nullptr);
     EXPECT_FALSE(lavaBucket->isEmpty()) << "Lava bucket should report isEmpty() = false";
@@ -114,7 +118,8 @@ TEST_F(BucketItemMilkingTest, LavaBucketHasFluid) {
 // 挤奶逻辑测试
 // ============================================================================
 
-TEST_F(BucketItemMilkingTest, EmptyBucketCanBeUsedToMilkCow) {
+TEST_F(BucketItemMilkingTest, EmptyBucketCanBeUsedToMilkCow)
+{
     // 空桶有 itemInteractionForEntity 方法，可以对牛使用
     auto* bucket = static_cast<BucketItem*>(Items::BUCKET);
     ASSERT_NE(bucket, nullptr);
@@ -125,7 +130,8 @@ TEST_F(BucketItemMilkingTest, EmptyBucketCanBeUsedToMilkCow) {
     EXPECT_TRUE(bucket->isEmpty());
 }
 
-TEST_F(BucketItemMilkingTest, WaterBucketCannotMilkCow) {
+TEST_F(BucketItemMilkingTest, WaterBucketCannotMilkCow)
+{
     // 水桶不能用于挤奶
     auto* waterBucket = static_cast<BucketItem*>(Items::WATER_BUCKET);
     ASSERT_NE(waterBucket, nullptr);
@@ -134,7 +140,8 @@ TEST_F(BucketItemMilkingTest, WaterBucketCannotMilkCow) {
     EXPECT_FALSE(waterBucket->isEmpty());
 }
 
-TEST_F(BucketItemMilkingTest, MilkBucketItemExists) {
+TEST_F(BucketItemMilkingTest, MilkBucketItemExists)
+{
     // 牛奶桶物品应存在
     auto* milkBucket = Items::MILK_BUCKET;
     ASSERT_NE(milkBucket, nullptr);
@@ -145,7 +152,8 @@ TEST_F(BucketItemMilkingTest, MilkBucketItemExists) {
 // 静态方法测试
 // ============================================================================
 
-TEST_F(BucketItemMilkingTest, GetEmptyBucketReturnsValidItem) {
+TEST_F(BucketItemMilkingTest, GetEmptyBucketReturnsValidItem)
+{
     auto* emptyBucket = BucketItem::getEmptyBucket();
     ASSERT_NE(emptyBucket, nullptr);
     EXPECT_EQ(emptyBucket, Items::BUCKET) << "getEmptyBucket should return the BUCKET item";

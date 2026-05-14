@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../gen/feature/DecorationStage.hpp"
-#include <vector>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -266,8 +266,7 @@ public:
      * @param settings 生物群系生成设置
      * @param seed 世界种子
      */
-    static void placeAllFeatures(
-        WorldGenRegion& region,
+    static void placeAllFeatures(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         const BiomeGenerationSettings& settings,
@@ -282,8 +281,7 @@ public:
      * @param stage 装饰阶段
      * @param seed 世界种子
      */
-    static void placeFeaturesForStage(
-        WorldGenRegion& region,
+    static void placeFeaturesForStage(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         const BiomeGenerationSettings& settings,

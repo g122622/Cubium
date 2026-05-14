@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
 
 namespace mc {
 namespace blocks {

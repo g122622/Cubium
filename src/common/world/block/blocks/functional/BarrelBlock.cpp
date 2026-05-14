@@ -1,9 +1,9 @@
 #include "BarrelBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/storage/BarrelEntity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../blockentity/storage/BarrelEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -11,39 +11,43 @@ namespace blocks {
 // ========== BarrelBlock 实现 ==========
 
 BarrelBlock::BarrelBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::FACING())
-        .add(BlockStateProperties::OPEN())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::FACING())
+                         .add(BlockStateProperties::OPEN())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING(), Direction::North)
-        .with(BlockStateProperties::OPEN(), false));
+            .with(BlockStateProperties::FACING(), Direction::North)
+            .with(BlockStateProperties::OPEN(), false));
 
     // 木桶形状是完整方块
     m_shape = CollisionShape::fullBlock();
 }
 
-BlockState BarrelBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BarrelBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 木桶朝向玩家看向的方向的反方向
     Direction facing = context.getClickedFace();
     return defaultState().with(BlockStateProperties::FACING(), facing);
 }
 
-const BlockState& BarrelBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& BarrelBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::FACING(), rotated);
 }
 
-const BlockState& BarrelBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& BarrelBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }
@@ -53,19 +57,19 @@ const BlockState& BarrelBlock::mirror(const BlockState& state, Mirror mirror) co
     return rotate(state, rotation);
 }
 
-const CollisionShape& BarrelBlock::getShape(const BlockState& state) const {
+const CollisionShape& BarrelBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-std::unique_ptr<BlockEntity> BarrelBlock::createBlockEntity(const BlockPos& pos) {
+std::unique_ptr<BlockEntity> BarrelBlock::createBlockEntity(const BlockPos& pos)
+{
     return std::make_unique<blockentity::BarrelEntity>(pos);
 }
 
-int BarrelBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+int BarrelBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../ResourceMapper.hpp"
 #include "../../../core/Types.hpp"
-#include <vector>
-#include <string>
+#include "../ResourceMapper.hpp"
 #include <map>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace resource {
@@ -16,12 +16,12 @@ namespace unified {
  * @brief 资源类型枚举
  */
 enum class ResourceType : u8 {
-    Texture,        ///< 图像纹理 (PNG)
-    Model,          ///< JSON 模型文件
-    BlockState,     ///< JSON 方块状态定义
-    Sound,          ///< OGG 音频文件
-    Language,       ///< 语言文件 (JSON)
-    Data,           ///< 数据文件（战利品表等）
+    Texture,    ///< 图像纹理 (PNG)
+    Model,      ///< JSON 模型文件
+    BlockState, ///< JSON 方块状态定义
+    Sound,      ///< OGG 音频文件
+    Language,   ///< 语言文件 (JSON)
+    Data,       ///< 数据文件（战利品表等）
     Unknown
 };
 
@@ -33,14 +33,17 @@ enum class ResourceType : u8 {
  * 无论源包版本如何。
  */
 struct UnifiedResource {
-    ResourceLocation location;      ///< 规范位置（现代格式）
-    std::string originalPath;            ///< 资源包中的原始路径
-    PackFormat sourceFormat;        ///< 源包格式版本
+    ResourceLocation location; ///< 规范位置（现代格式）
+    std::string originalPath;  ///< 资源包中的原始路径
+    PackFormat sourceFormat;   ///< 源包格式版本
     ResourceType type = ResourceType::Unknown;
 
     UnifiedResource() = default;
     UnifiedResource(const ResourceLocation& loc, PackFormat format, ResourceType t)
-        : location(loc), sourceFormat(format), type(t) {}
+        : location(loc)
+        , sourceFormat(format)
+        , type(t)
+    {}
 
     virtual ~UnifiedResource() = default;
 };
@@ -49,15 +52,14 @@ struct UnifiedResource {
  * @brief RGBA 像素数据表示
  */
 struct PixelData {
-    std::vector<u8> data;           ///< RGBA 像素数据（每像素 4 字节）
+    std::vector<u8> data; ///< RGBA 像素数据（每像素 4 字节）
     u32 width = 0;
     u32 height = 0;
 
-    bool valid() const noexcept {
-        return width > 0 && height > 0 && data.size() == width * height * 4;
-    }
+    bool valid() const noexcept { return width > 0 && height > 0 && data.size() == width * height * 4; }
 
-    void clear() {
+    void clear()
+    {
         data.clear();
         width = 0;
         height = 0;
@@ -72,18 +74,14 @@ struct PixelData {
  * - 名称: <block>_<variant> (现代命名)
  */
 struct UnifiedTexture : public UnifiedResource {
-    PixelData pixels;               ///< RGBA 像素数据
+    PixelData pixels; ///< RGBA 像素数据
 
-    UnifiedTexture() {
-        type = ResourceType::Texture;
-    }
+    UnifiedTexture() { type = ResourceType::Texture; }
 
     /**
      * @brief 检查纹理是否有有效的像素数据
      */
-    bool hasValidPixels() const noexcept {
-        return pixels.valid();
-    }
+    bool hasValidPixels() const noexcept { return pixels.valid(); }
 
     /**
      * @brief 获取指定坐标的像素
@@ -91,7 +89,8 @@ struct UnifiedTexture : public UnifiedResource {
      * @param y Y 坐标 (0 到 height-1)
      * @return RGBA 值作为 u32 (0xAABBGGRR)
      */
-    u32 getPixel(u32 x, u32 y) const {
+    u32 getPixel(u32 x, u32 y) const
+    {
         if (x >= pixels.width || y >= pixels.height) {
             return 0;
         }
@@ -99,10 +98,8 @@ struct UnifiedTexture : public UnifiedResource {
         if (idx + 3 >= pixels.data.size()) {
             return 0;
         }
-        return static_cast<u32>(pixels.data[idx]) |
-               (static_cast<u32>(pixels.data[idx + 1]) << 8) |
-               (static_cast<u32>(pixels.data[idx + 2]) << 16) |
-               (static_cast<u32>(pixels.data[idx + 3]) << 24);
+        return static_cast<u32>(pixels.data[idx]) | (static_cast<u32>(pixels.data[idx + 1]) << 8) |
+            (static_cast<u32>(pixels.data[idx + 2]) << 16) | (static_cast<u32>(pixels.data[idx + 3]) << 24);
     }
 };
 

@@ -7,8 +7,8 @@
 #include "../../event/WidgetEvents.hpp"
 #include "../../widget/Widget.hpp"
 #include <functional>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace mc::client::ui::kagero::tpl::bindings {
 
@@ -95,45 +95,45 @@ private:
  * @brief 事件名称常量
  */
 namespace event_names {
-    // 鼠标事件
-    constexpr const char* CLICK = "click";
-    constexpr const char* DOUBLE_CLICK = "doubleClick";
-    constexpr const char* RIGHT_CLICK = "rightClick";
-    constexpr const char* MOUSE_DOWN = "mouseDown";
-    constexpr const char* MOUSE_UP = "mouseUp";
-    constexpr const char* MOUSE_ENTER = "mouseEnter";
-    constexpr const char* MOUSE_LEAVE = "mouseLeave";
-    constexpr const char* MOUSE_MOVE = "mouseMove";
-    constexpr const char* DRAG = "drag";
-    constexpr const char* DRAG_START = "dragStart";
-    constexpr const char* DRAG_END = "dragEnd";
-    constexpr const char* SCROLL = "scroll";
+// 鼠标事件
+constexpr const char* CLICK = "click";
+constexpr const char* DOUBLE_CLICK = "doubleClick";
+constexpr const char* RIGHT_CLICK = "rightClick";
+constexpr const char* MOUSE_DOWN = "mouseDown";
+constexpr const char* MOUSE_UP = "mouseUp";
+constexpr const char* MOUSE_ENTER = "mouseEnter";
+constexpr const char* MOUSE_LEAVE = "mouseLeave";
+constexpr const char* MOUSE_MOVE = "mouseMove";
+constexpr const char* DRAG = "drag";
+constexpr const char* DRAG_START = "dragStart";
+constexpr const char* DRAG_END = "dragEnd";
+constexpr const char* SCROLL = "scroll";
 
-    // 键盘事件
-    constexpr const char* KEY_DOWN = "keyDown";
-    constexpr const char* KEY_UP = "keyUp";
-    constexpr const char* KEY_PRESS = "keyPress";
-    constexpr const char* CHAR_INPUT = "charInput";
+// 键盘事件
+constexpr const char* KEY_DOWN = "keyDown";
+constexpr const char* KEY_UP = "keyUp";
+constexpr const char* KEY_PRESS = "keyPress";
+constexpr const char* CHAR_INPUT = "charInput";
 
-    // 焦点事件
-    constexpr const char* FOCUS = "focus";
-    constexpr const char* BLUR = "blur";
+// 焦点事件
+constexpr const char* FOCUS = "focus";
+constexpr const char* BLUR = "blur";
 
-    // 值变化事件
-    constexpr const char* CHANGE = "change";
-    constexpr const char* INPUT = "input";
+// 值变化事件
+constexpr const char* CHANGE = "change";
+constexpr const char* INPUT = "input";
 
-    // 生命周期事件
-    constexpr const char* INIT = "init";
-    constexpr const char* SHOW = "show";
-    constexpr const char* HIDE = "hide";
-    constexpr const char* RESIZE = "resize";
+// 生命周期事件
+constexpr const char* INIT = "init";
+constexpr const char* SHOW = "show";
+constexpr const char* HIDE = "hide";
+constexpr const char* RESIZE = "resize";
 
-    // 特殊事件
-    constexpr const char* SLOT_CLICK = "slotClick";
-    constexpr const char* SLOT_HOVER = "slotHover";
-    constexpr const char* SELECTION_CHANGE = "selectionChange";
-}
+// 特殊事件
+constexpr const char* SLOT_CLICK = "slotClick";
+constexpr const char* SLOT_HOVER = "slotHover";
+constexpr const char* SELECTION_CHANGE = "selectionChange";
+} // namespace event_names
 
 /**
  * @brief 事件辅助工具
@@ -178,7 +178,7 @@ namespace event_utils {
 /**
  * @brief 创建值变化事件
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] event::ValueChangeEvent<T> createValueChangeEvent(const T& oldValue, const T& newValue);
 
 /**
@@ -203,7 +203,8 @@ template<typename T>
  *
  * 调用 BuiltinEvents::instance().initialize()
  */
-inline void registerBuiltinEvents() {
+inline void registerBuiltinEvents()
+{
     BuiltinEvents::instance().initialize();
 }
 

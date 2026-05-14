@@ -48,9 +48,7 @@ protected:
     /**
      * @brief 获取熔炼配方类型
      */
-    [[nodiscard]] crafting::RecipeType getRecipeType() const override {
-        return crafting::RecipeType::Smelting;
-    }
+    [[nodiscard]] crafting::RecipeType getRecipeType() const override { return crafting::RecipeType::Smelting; }
 
     /**
      * @brief 获取火苗噼啪声

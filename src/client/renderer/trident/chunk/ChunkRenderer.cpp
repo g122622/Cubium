@@ -1,10 +1,10 @@
 #include "ChunkRenderer.hpp"
 #include "../util/VulkanUtils.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include <spdlog/spdlog.h>
-#include <cstring>
 #include <algorithm>
+#include <cstring>
 #include <glm/geometric.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::client {
 
@@ -12,7 +12,8 @@ namespace mc::client {
 // ChunkGpuBuffer 实现
 // ============================================================================
 
-void ChunkGpuBuffer::destroy(VkDevice device) {
+void ChunkGpuBuffer::destroy(VkDevice device)
+{
     if (indexBuffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(device, indexBuffer, nullptr);
         indexBuffer = VK_NULL_HANDLE;
@@ -38,7 +39,8 @@ void ChunkGpuBuffer::destroy(VkDevice device) {
 // ChunkTextureAtlas 实现
 // ============================================================================
 
-void ChunkTextureAtlas::destroy(VkDevice device) {
+void ChunkTextureAtlas::destroy(VkDevice device)
+{
     if (sampler != VK_NULL_HANDLE) {
         vkDestroySampler(device, sampler, nullptr);
         sampler = VK_NULL_HANDLE;
@@ -58,7 +60,8 @@ void ChunkTextureAtlas::destroy(VkDevice device) {
     isValid = false;
 }
 
-TextureRegion ChunkTextureAtlas::getRegion(u32 tileX, u32 tileY) const {
+TextureRegion ChunkTextureAtlas::getRegion(u32 tileX, u32 tileY) const
+{
     TextureRegion region;
     region.u0 = static_cast<f64>(tileX * tileSize) / static_cast<f64>(width);
     region.v0 = static_cast<f64>(tileY * tileSize) / static_cast<f64>(height);
@@ -67,7 +70,8 @@ TextureRegion ChunkTextureAtlas::getRegion(u32 tileX, u32 tileY) const {
     return region;
 }
 
-TextureRegion ChunkTextureAtlas::getRegion(u32 tileIndex) const {
+TextureRegion ChunkTextureAtlas::getRegion(u32 tileIndex) const
+{
     u32 tileX = tileIndex % tilesPerRow;
     u32 tileY = tileIndex / tilesPerRow;
     return getRegion(tileX, tileY);
@@ -79,16 +83,13 @@ TextureRegion ChunkTextureAtlas::getRegion(u32 tileIndex) const {
 
 ChunkRenderer::ChunkRenderer() = default;
 
-ChunkRenderer::~ChunkRenderer() {
+ChunkRenderer::~ChunkRenderer()
+{
     destroy();
 }
 
 Result<void> ChunkRenderer::initialize(
-    VkDevice device,
-    VkPhysicalDevice physicalDevice,
-    VkCommandPool commandPool,
-    VkQueue graphicsQueue,
-    u32 maxChunks)
+    VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, u32 maxChunks)
 {
     m_device = device;
     m_physicalDevice = physicalDevice;
@@ -97,12 +98,13 @@ Result<void> ChunkRenderer::initialize(
     // 1024 在高视距或双层网格场景下容易触顶，导致近处区块上传失败。
     m_maxChunks = std::max(maxChunks, 8192u);
 
-    spdlog::info("ChunkRenderer initialized (requested max chunks: {}, effective max chunks: {})",
-                 maxChunks, m_maxChunks);
+    spdlog::info(
+        "ChunkRenderer initialized (requested max chunks: {}, effective max chunks: {})", maxChunks, m_maxChunks);
     return {};
 }
 
-void ChunkRenderer::destroy() {
+void ChunkRenderer::destroy()
+{
     // 清空待上传队列
     {
         std::lock_guard<std::mutex> lock(m_pendingMutex);
@@ -154,8 +156,7 @@ void ChunkRenderer::destroy() {
     m_graphicsQueue = VK_NULL_HANDLE;
 }
 
-Result<void> ChunkRenderer::createBuffer(
-    VkDeviceSize size,
+Result<void> ChunkRenderer::createBuffer(VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer& buffer,
@@ -164,21 +165,18 @@ Result<void> ChunkRenderer::createBuffer(
     return renderer::VulkanUtils::createBuffer(m_device, m_physicalDevice, size, usage, properties, buffer, memory);
 }
 
-Result<u32> ChunkRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> ChunkRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     return renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-Result<void> ChunkRenderer::updateChunk(
-    const ChunkId& chunkId,
-    const MeshData& meshData)
+Result<void> ChunkRenderer::updateChunk(const ChunkId& chunkId, const MeshData& meshData)
 {
     return updateChunkLayer(chunkId, meshData, ChunkRenderLayer::Solid);
 }
 
 Result<void> ChunkRenderer::updateChunk(
-    const ChunkId& chunkId,
-    const MeshData& solidMesh,
-    const MeshData& transparentMesh)
+    const ChunkId& chunkId, const MeshData& solidMesh, const MeshData& transparentMesh)
 {
     auto solidResult = updateChunkLayer(chunkId, solidMesh, ChunkRenderLayer::Solid);
     if (solidResult.failed()) {
@@ -188,17 +186,14 @@ Result<void> ChunkRenderer::updateChunk(
     return updateChunkLayer(chunkId, transparentMesh, ChunkRenderLayer::Transparent);
 }
 
-Result<void> ChunkRenderer::updateChunkLayer(
-    const ChunkId& chunkId,
-    const MeshData& meshData,
-    ChunkRenderLayer layer)
+Result<void> ChunkRenderer::updateChunkLayer(const ChunkId& chunkId, const MeshData& meshData, ChunkRenderLayer layer)
 {
     MC_TRACE_EVENT("rendering.frame",
         "UpdateChunkLayer",
-        "layer", static_cast<int>(layer),
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunkId.x, chunkId.z).toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "layer",
+        static_cast<int>(layer),
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunkId.x, chunkId.z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     const u64 id = makeBufferKey(chunkId, layer);
 
@@ -231,7 +226,7 @@ Result<void> ChunkRenderer::updateChunkLayer(
 
         auto buffer = std::make_unique<ChunkGpuBuffer>();
         buffer->chunkId = chunkId;
-    buffer->layer = layer;
+        buffer->layer = layer;
 
         auto result = createChunkBuffer(*buffer, meshData);
         if (!result.success()) {
@@ -250,11 +245,9 @@ Result<void> ChunkRenderer::updateChunkLayer(
     return {};
 }
 
-void ChunkRenderer::removeChunk(const ChunkId& chunkId) {
-    const std::array<ChunkRenderLayer, 2> layers = {
-        ChunkRenderLayer::Solid,
-        ChunkRenderLayer::Transparent
-    };
+void ChunkRenderer::removeChunk(const ChunkId& chunkId)
+{
+    const std::array<ChunkRenderLayer, 2> layers = {ChunkRenderLayer::Solid, ChunkRenderLayer::Transparent};
 
     for (const auto layer : layers) {
         const u64 id = makeBufferKey(chunkId, layer);
@@ -278,7 +271,8 @@ void ChunkRenderer::removeChunk(const ChunkId& chunkId) {
     }
 }
 
-void ChunkRenderer::clearChunks() {
+void ChunkRenderer::clearChunks()
+{
     // 将所有缓冲区移入延迟销毁队列
     {
         std::lock_guard<std::mutex> lock(m_pendingDestroysMutex);
@@ -297,17 +291,13 @@ void ChunkRenderer::clearChunks() {
     m_totalIndices = 0;
 }
 
-Result<void> ChunkRenderer::createChunkBuffer(
-    ChunkGpuBuffer& buffer,
-    const MeshData& meshData)
+Result<void> ChunkRenderer::createChunkBuffer(ChunkGpuBuffer& buffer, const MeshData& meshData)
 {
     for (u32 index : meshData.indices) {
         if (index >= meshData.vertices.size()) {
-            return Error(
-                ErrorCode::InvalidData,
-                "Chunk mesh index out of range for chunk (" + std::to_string(buffer.chunkId.x) +
-                ", " + std::to_string(buffer.chunkId.z) + ")"
-            );
+            return Error(ErrorCode::InvalidData,
+                "Chunk mesh index out of range for chunk (" + std::to_string(buffer.chunkId.x) + ", " +
+                    std::to_string(buffer.chunkId.z) + ")");
         }
     }
 
@@ -345,16 +335,15 @@ Result<void> ChunkRenderer::createChunkBuffer(
             buffer.vertexMemory = VK_NULL_HANDLE;
         }
 
-        auto result = createBuffer(
-            vertexSize,
+        auto result = createBuffer(vertexSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             buffer.vertexBuffer,
             buffer.vertexMemory);
 
         if (result.failed()) {
-            return Error(ErrorCode::InitializationFailed,
-                "Failed to create vertex buffer: " + result.error().message());
+            return Error(
+                ErrorCode::InitializationFailed, "Failed to create vertex buffer: " + result.error().message());
         }
     }
 
@@ -381,16 +370,14 @@ Result<void> ChunkRenderer::createChunkBuffer(
             buffer.indexMemory = VK_NULL_HANDLE;
         }
 
-        auto result = createBuffer(
-            indexSize,
+        auto result = createBuffer(indexSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             buffer.indexBuffer,
             buffer.indexMemory);
 
         if (result.failed()) {
-            return Error(ErrorCode::InitializationFailed,
-                "Failed to create index buffer: " + result.error().message());
+            return Error(ErrorCode::InitializationFailed, "Failed to create index buffer: " + result.error().message());
         }
     }
 
@@ -414,8 +401,7 @@ Result<void> ChunkRenderer::createChunkBuffer(
         }
 
         m_stagingBufferSize = std::max(stagingLayout.totalSize, static_cast<VkDeviceSize>(16 * 1024 * 1024));
-        auto result = createBuffer(
-            m_stagingBufferSize,
+        auto result = createBuffer(m_stagingBufferSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_stagingBuffer,
@@ -436,14 +422,8 @@ Result<void> ChunkRenderer::createChunkBuffer(
     }
 
     u8* stagingBytes = static_cast<u8*>(mapped);
-    std::memcpy(
-        stagingBytes + stagingLayout.vertexOffset,
-        meshData.vertices.data(),
-        static_cast<size_t>(vertexSize));
-    std::memcpy(
-        stagingBytes + stagingLayout.indexOffset,
-        meshData.indices.data(),
-        static_cast<size_t>(indexSize));
+    std::memcpy(stagingBytes + stagingLayout.vertexOffset, meshData.vertices.data(), static_cast<size_t>(vertexSize));
+    std::memcpy(stagingBytes + stagingLayout.indexOffset, meshData.indices.data(), static_cast<size_t>(indexSize));
     vkUnmapMemory(m_device, m_stagingMemory);
 
     // 复制顶点数据
@@ -484,11 +464,7 @@ Result<void> ChunkRenderer::createChunkBuffer(
     return {};
 }
 
-Result<void> ChunkRenderer::loadTextureAtlas(
-    const u8* pixelData,
-    u32 width,
-    u32 height,
-    u32 tileSize)
+Result<void> ChunkRenderer::loadTextureAtlas(const u8* pixelData, u32 width, u32 height, u32 tileSize)
 {
     if (pixelData == nullptr) {
         return Error(ErrorCode::NullPointer, "Texture atlas pixel data is null");
@@ -517,14 +493,16 @@ Result<void> ChunkRenderer::loadTextureAtlas(
     return uploadTextureData(pixelData, width, height);
 }
 
-Result<void> ChunkRenderer::createTextureAtlas(u32 width, u32 height) {
+Result<void> ChunkRenderer::createTextureAtlas(u32 width, u32 height)
+{
     // 销毁旧纹理
     m_textureAtlas.destroy(m_device);
 
     // 创建图像
-    auto imageResult = renderer::VulkanUtils::createImage(
-        m_device, m_physicalDevice,
-        width, height,
+    auto imageResult = renderer::VulkanUtils::createImage(m_device,
+        m_physicalDevice,
+        width,
+        height,
         VK_FORMAT_R8G8B8A8_SRGB,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -538,10 +516,7 @@ Result<void> ChunkRenderer::createTextureAtlas(u32 width, u32 height) {
 
     // 创建图像视图
     auto viewResult = renderer::VulkanUtils::createImageView(
-        m_device, m_textureAtlas.image,
-        VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        m_textureAtlas.imageView);
+        m_device, m_textureAtlas.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_textureAtlas.imageView);
 
     if (viewResult.failed()) {
         m_textureAtlas.destroy(m_device);
@@ -549,10 +524,11 @@ Result<void> ChunkRenderer::createTextureAtlas(u32 width, u32 height) {
     }
 
     // 创建采样器
-    auto samplerResult = renderer::VulkanUtils::createSampler(
-        m_device,
-        VK_FILTER_NEAREST, VK_FILTER_NEAREST,
-        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+    auto samplerResult = renderer::VulkanUtils::createSampler(m_device,
+        VK_FILTER_NEAREST,
+        VK_FILTER_NEAREST,
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         m_textureAtlas.sampler);
 
     if (samplerResult.failed()) {
@@ -567,7 +543,8 @@ Result<void> ChunkRenderer::createTextureAtlas(u32 width, u32 height) {
     return {};
 }
 
-Result<void> ChunkRenderer::uploadTextureData(const u8* pixelData, u32 width, u32 height) {
+Result<void> ChunkRenderer::uploadTextureData(const u8* pixelData, u32 width, u32 height)
+{
     if (pixelData == nullptr) {
         return Error(ErrorCode::NullPointer, "Texture atlas pixel data is null");
     }
@@ -583,8 +560,7 @@ Result<void> ChunkRenderer::uploadTextureData(const u8* pixelData, u32 width, u3
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
 
-    auto result = createBuffer(
-        imageSize,
+    auto result = createBuffer(imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         stagingBuffer,
@@ -615,19 +591,23 @@ Result<void> ChunkRenderer::uploadTextureData(const u8* pixelData, u32 width, u3
     VkCommandBuffer cmd = cmdResult.value();
 
     // 转换到传输目标布局
-    renderer::VulkanUtils::transitionImageLayout(
-        cmd, m_textureAtlas.image,
-        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    renderer::VulkanUtils::transitionImageLayout(cmd,
+        m_textureAtlas.image,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     // 复制缓冲区到图像
     renderer::VulkanUtils::copyBufferToImage(cmd, stagingBuffer, m_textureAtlas.image, width, height);
 
     // 转换到着色器只读布局
-    renderer::VulkanUtils::transitionImageLayout(
-        cmd, m_textureAtlas.image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    renderer::VulkanUtils::transitionImageLayout(cmd,
+        m_textureAtlas.image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     endSingleTimeCommands(cmd);
 
@@ -638,7 +618,8 @@ Result<void> ChunkRenderer::uploadTextureData(const u8* pixelData, u32 width, u3
     return {};
 }
 
-void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/) {
+void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/)
+{
     // 绑定纹理（如果有效）
     // 注意: 实际的描述符绑定需要在外部处理
 
@@ -652,24 +633,24 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
             continue;
         }
 
-        VkBuffer vertexBuffers[] = { buffer->vertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
+        VkBuffer vertexBuffers[] = {buffer->vertexBuffer};
+        VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdDrawIndexed(
-            commandBuffer,
+        vkCmdDrawIndexed(commandBuffer,
             buffer->indexCount,
-            1,  // instance count
-            0,  // first index
-            0,  // vertex offset
-            0   // first instance
+            1, // instance count
+            0, // first index
+            0, // vertex offset
+            0  // first instance
         );
     }
 }
 
-void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/,
-                           PushConstantsCallback pushConstantsCallback) {
+void ChunkRenderer::render(
+    VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/, PushConstantsCallback pushConstantsCallback)
+{
     // 渲染所有区块
     for (const auto& pair : m_chunkBuffers) {
         const auto& buffer = pair.second;
@@ -685,27 +666,27 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
             pushConstantsCallback(buffer->chunkId);
         }
 
-        VkBuffer vertexBuffers[] = { buffer->vertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
+        VkBuffer vertexBuffers[] = {buffer->vertexBuffer};
+        VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdDrawIndexed(
-            commandBuffer,
+        vkCmdDrawIndexed(commandBuffer,
             buffer->indexCount,
-            1,  // instance count
-            0,  // first index
-            0,  // vertex offset
-            0   // first instance
+            1, // instance count
+            0, // first index
+            0, // vertex offset
+            0  // first instance
         );
     }
 }
 
 void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
-                                      VkPipelineLayout /*pipelineLayout*/,
-                                      PushConstantsCallback pushConstantsCallback,
-                                      const glm::dvec3& cameraPosition,
-                                      bool sortBackToFront) {
+    VkPipelineLayout /*pipelineLayout*/,
+    PushConstantsCallback pushConstantsCallback,
+    const glm::dvec3& cameraPosition,
+    bool sortBackToFront)
+{
     std::vector<const ChunkGpuBuffer*> transparentBuffers;
     transparentBuffers.reserve(m_chunkBuffers.size());
 
@@ -721,18 +702,17 @@ void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
     }
 
     if (sortBackToFront) {
-        std::sort(transparentBuffers.begin(), transparentBuffers.end(),
+        std::sort(transparentBuffers.begin(),
+            transparentBuffers.end(),
             [&cameraPosition](const ChunkGpuBuffer* lhs, const ChunkGpuBuffer* rhs) {
                 const glm::dvec3 lhsCenter(
                     static_cast<f64>(lhs->chunkId.x * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2),
                     64.0,
-                    static_cast<f64>(lhs->chunkId.z * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2)
-                );
+                    static_cast<f64>(lhs->chunkId.z * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2));
                 const glm::dvec3 rhsCenter(
                     static_cast<f64>(rhs->chunkId.x * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2),
                     64.0,
-                    static_cast<f64>(rhs->chunkId.z * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2)
-                );
+                    static_cast<f64>(rhs->chunkId.z * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2));
 
                 const f64 lhsDist2 = glm::dot(lhsCenter - cameraPosition, lhsCenter - cameraPosition);
                 const f64 rhsDist2 = glm::dot(rhsCenter - cameraPosition, rhsCenter - cameraPosition);
@@ -745,23 +725,17 @@ void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
             pushConstantsCallback(buffer->chunkId);
         }
 
-        VkBuffer vertexBuffers[] = { buffer->vertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
+        VkBuffer vertexBuffers[] = {buffer->vertexBuffer};
+        VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdDrawIndexed(
-            commandBuffer,
-            buffer->indexCount,
-            1,
-            0,
-            0,
-            0
-        );
+        vkCmdDrawIndexed(commandBuffer, buffer->indexCount, 1, 0, 0, 0);
     }
 }
 
-Result<VkCommandBuffer> ChunkRenderer::beginSingleTimeCommands() {
+Result<VkCommandBuffer> ChunkRenderer::beginSingleTimeCommands()
+{
     VkCommandBuffer cmd = renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
     if (cmd == VK_NULL_HANDLE) {
         return Error(ErrorCode::OperationFailed, "Failed to allocate command buffer");
@@ -769,7 +743,8 @@ Result<VkCommandBuffer> ChunkRenderer::beginSingleTimeCommands() {
     return cmd;
 }
 
-void ChunkRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void ChunkRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);
 }
@@ -778,7 +753,8 @@ void ChunkRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
 // 异步 GPU 上传
 // ============================================================================
 
-void ChunkRenderer::submitMeshUpload(const ChunkId& chunkId, MeshData&& meshData) {
+void ChunkRenderer::submitMeshUpload(const ChunkId& chunkId, MeshData&& meshData)
+{
     PendingMeshUpload upload;
     upload.chunkId = chunkId;
     upload.meshData = std::move(meshData);
@@ -788,7 +764,8 @@ void ChunkRenderer::submitMeshUpload(const ChunkId& chunkId, MeshData&& meshData
     m_pendingUploads.push(std::move(upload));
 }
 
-u32 ChunkRenderer::processPendingUploads(u32 maxPerFrame) {
+u32 ChunkRenderer::processPendingUploads(u32 maxPerFrame)
+{
     // 首先检查已完成的 fence，回收资源
     m_fenceManager.cleanup(m_device, m_commandPool);
 
@@ -812,19 +789,23 @@ u32 ChunkRenderer::processPendingUploads(u32 maxPerFrame) {
             ++processed;
         } else {
             spdlog::warn("Failed to upload mesh for chunk ({}, {}): {}",
-                         upload.chunkId.x, upload.chunkId.z, result.error().message());
+                upload.chunkId.x,
+                upload.chunkId.z,
+                result.error().message());
         }
     }
 
     return processed;
 }
 
-size_t ChunkRenderer::pendingUploadCount() const {
+size_t ChunkRenderer::pendingUploadCount() const
+{
     std::lock_guard<std::mutex> lock(m_pendingMutex);
     return m_pendingUploads.size();
 }
 
-void ChunkRenderer::processPendingDestroys(u32 framesToKeep) {
+void ChunkRenderer::processPendingDestroys(u32 framesToKeep)
+{
     std::lock_guard<std::mutex> lock(m_pendingDestroysMutex);
 
     // 递增帧计数器
@@ -833,9 +814,8 @@ void ChunkRenderer::processPendingDestroys(u32 framesToKeep) {
     // 销毁超过保留帧数的缓冲区
     auto it = m_pendingDestroys.begin();
     while (it != m_pendingDestroys.end()) {
-        u64 frameDiff = currentCounter >= it->frameIndex
-            ? currentCounter - it->frameIndex
-            : (UINT64_MAX - it->frameIndex) + currentCounter + 1;
+        u64 frameDiff = currentCounter >= it->frameIndex ? currentCounter - it->frameIndex
+                                                         : (UINT64_MAX - it->frameIndex) + currentCounter + 1;
 
         if (frameDiff >= framesToKeep) {
             if (it->buffer) {
@@ -852,7 +832,8 @@ void ChunkRenderer::processPendingDestroys(u32 framesToKeep) {
 // Fence 管理器
 // ============================================================================
 
-void FenceManager::cleanup(VkDevice device, VkCommandPool commandPool) {
+void FenceManager::cleanup(VkDevice device, VkCommandPool commandPool)
+{
     for (size_t i = 0; i < inUse.size(); ++i) {
         if (inUse[i] && fences[i] != VK_NULL_HANDLE) {
             VkResult result = vkGetFenceStatus(device, fences[i]);
@@ -871,7 +852,8 @@ void FenceManager::cleanup(VkDevice device, VkCommandPool commandPool) {
     }
 }
 
-void FenceManager::destroy(VkDevice device, VkCommandPool commandPool) {
+void FenceManager::destroy(VkDevice device, VkCommandPool commandPool)
+{
     for (size_t i = 0; i < fences.size(); ++i) {
         if (fences[i] != VK_NULL_HANDLE) {
             vkWaitForFences(device, 1, &fences[i], VK_TRUE, UINT64_MAX);

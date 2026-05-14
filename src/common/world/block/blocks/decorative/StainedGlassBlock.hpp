@@ -29,7 +29,8 @@ public:
      *
      * 玻璃不是固体方块。
      */
-    [[nodiscard]] bool isSolid(const BlockState& state) const override {
+    [[nodiscard]] bool isSolid(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -42,9 +43,7 @@ public:
      *
      * @return 染料颜色
      */
-    [[nodiscard]] DyeColor getBeaconColor() const override {
-        return m_color;
-    }
+    [[nodiscard]] DyeColor getBeaconColor() const override { return m_color; }
 
     /**
      * @brief 获取信标光束颜色倍数
@@ -58,8 +57,7 @@ public:
      * @param beaconPos 信标位置（可选）
      * @return RGB 颜色数组指针
      */
-    [[nodiscard]] const std::array<f32, 3>* getBeaconColorMultiplier(
-        const BlockState& state,
+    [[nodiscard]] const std::array<f32, 3>* getBeaconColorMultiplier(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
         const BlockPos* beaconPos = nullptr) const override;

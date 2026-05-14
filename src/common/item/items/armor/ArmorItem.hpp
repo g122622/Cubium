@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../core/Item.hpp"
+#include "../../../entity/core/LivingEntity.hpp"
 #include "../../armor/ArmorMaterial.hpp"
 #include "../../attribute/ItemAttributeModifiers.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
+#include "../../core/Item.hpp"
 
 namespace mc {
 
@@ -39,8 +39,7 @@ public:
      * @param slot 盔甲槽位
      * @param properties 物品属性
      */
-    ArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot,
-              ItemProperties properties);
+    ArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot, ItemProperties properties);
 
     // ========== 物品重写方法 ==========
 
@@ -48,9 +47,7 @@ public:
      * @brief 获取附魔能力
      * @return 盔甲材质的附魔能力
      */
-    [[nodiscard]] i32 getItemEnchantability() const override {
-        return m_material.getEnchantability();
-    }
+    [[nodiscard]] i32 getItemEnchantability() const override { return m_material.getEnchantability(); }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料
@@ -70,16 +67,14 @@ public:
      * @param repair 修复材料物品堆
      * @return 是否可以修复
      */
-    [[nodiscard]] bool getIsRepairable(const ItemStack& toRepair,
-                                        const ItemStack& repair) const override;
+    [[nodiscard]] bool getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const override;
 
     /**
      * @brief 获取挖掘速度
      *
      * 盔甲不是工具，返回默认速度1.0。
      */
-    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
-                                       const BlockState& state) const override;
+    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
 
     /**
      * @brief 右键使用物品
@@ -118,9 +113,7 @@ public:
     /**
      * @brief 获取击退抗性
      */
-    [[nodiscard]] f32 getKnockbackResistance() const {
-        return m_material.getKnockbackResistance();
-    }
+    [[nodiscard]] f32 getKnockbackResistance() const { return m_material.getKnockbackResistance(); }
 
     /**
      * @brief 获取属性修饰符
@@ -132,9 +125,7 @@ public:
      *
      * @return 属性修饰符管理器
      */
-    [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const {
-        return m_attributeModifiers;
-    }
+    [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const { return m_attributeModifiers; }
 
     /**
      * @brief 检查是否为头盔
@@ -182,7 +173,7 @@ public:
 protected:
     const armor::ArmorMaterial& m_material;
     armor::ArmorSlot m_slot;
-    ItemAttributeModifiers m_attributeModifiers;  ///< 属性修饰符
+    ItemAttributeModifiers m_attributeModifiers; ///< 属性修饰符
 
 private:
     /**

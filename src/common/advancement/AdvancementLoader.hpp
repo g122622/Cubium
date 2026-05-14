@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "Advancement.hpp"
 #include "AdvancementManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <filesystem>
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
-#include <filesystem>
 
 namespace mc::advancement {
 
@@ -51,8 +51,8 @@ public:
      * @brief 加载结果
      */
     struct LoadResult {
-        size_t successCount = 0;    ///< 成功加载的成就数
-        size_t failedCount = 0;     ///< 加载失败的成就数
+        size_t successCount = 0;         ///< 成功加载的成就数
+        size_t failedCount = 0;          ///< 加载失败的成就数
         std::vector<std::string> errors; ///< 错误信息列表
     };
 
@@ -75,8 +75,7 @@ public:
      * - "data/minecraft/advancements/story/mine_stone.json" -> "minecraft:story/mine_stone"
      * - "data/mod_id/advancements/custom/item.json" -> "mod_id:custom/item"
      */
-    Result<LoadResult> loadFromDirectory(const std::string& directoryPath,
-                                          ProgressCallback callback = nullptr);
+    Result<LoadResult> loadFromDirectory(const std::string& directoryPath, ProgressCallback callback = nullptr);
 
     /**
      * @brief 从文件系统路径加载成就文件

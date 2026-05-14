@@ -1,28 +1,28 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/command/CommandNode.hpp"
 #include "common/command/CommandContext.hpp"
-#include "common/command/StringReader.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
+#include "common/command/StringReader.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
-#include <memory>
-#include <future>
+#include "common/core/Types.hpp"
 #include <cctype>
 #include <functional>
+#include <future>
+#include <memory>
 #include <set>
-#include <vector>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace mc::command {
 
 // ========== 前向声明 ==========
 
-template<typename S>
+template <typename S>
 class LiteralArgumentBuilder;
 
-template<typename S, typename T>
+template <typename S, typename T>
 class RequiredArgumentBuilder;
 
 // ========== 分发器 ==========
@@ -51,14 +51,15 @@ class RequiredArgumentBuilder;
  * auto result = dispatcher.execute("gamemode", source);
  * @endcode
  */
-template<typename S>
+template <typename S>
 class CommandDispatcher {
 public:
     using NodePtr = std::shared_ptr<CommandNode<S>>;
     using RootNodePtr = std::shared_ptr<RootCommandNode<S>>;
 
     CommandDispatcher()
-        : m_root(std::make_shared<RootCommandNode<S>>()) {}
+        : m_root(std::make_shared<RootCommandNode<S>>())
+    {}
 
     // ========== 命令注册 ==========
 
@@ -67,7 +68,8 @@ public:
      * @param node 命令节点
      * @return 注册的命令节点
      */
-    NodePtr registerCommand(std::shared_ptr<LiteralCommandNode<S>> node) {
+    NodePtr registerCommand(std::shared_ptr<LiteralCommandNode<S>> node)
+    {
         m_root->addChild(node);
         return node;
     }
@@ -80,7 +82,8 @@ public:
      * @param source 命令源
      * @return 解析结果
      */
-    [[nodiscard]] ParseResults<S> parse(std::string_view input, S& source) const {
+    [[nodiscard]] ParseResults<S> parse(std::string_view input, S& source) const
+    {
         StringReader reader(input);
 
         // 跳过命令前缀
@@ -88,8 +91,7 @@ public:
             reader.skip();
         }
 
-        auto context = std::make_unique<CommandContext<S>>(
-            source, input, m_root);
+        auto context = std::make_unique<CommandContext<S>>(source, input, m_root);
 
         return parseNodes(reader, m_root, std::move(context));
     }
@@ -98,10 +100,7 @@ public:
      * @brief 解析命令节点
      */
     [[nodiscard]] ParseResults<S> parseNodes(
-        StringReader& reader,
-        NodePtr node,
-        std::unique_ptr<CommandContext<S>> context
-    ) const;
+        StringReader& reader, NodePtr node, std::unique_ptr<CommandContext<S>> context) const;
 
     // ========== 命令执行 ==========
 
@@ -111,7 +110,8 @@ public:
      * @param source 命令源
      * @return 执行结果
      */
-    Result<CommandResult> execute(std::string_view input, S& source) {
+    Result<CommandResult> execute(std::string_view input, S& source)
+    {
         ParseResults<S> parseResult = parse(input, source);
         return execute(parseResult);
     }
@@ -148,19 +148,13 @@ public:
     /**
      * @brief 查找歧义命令
      */
-    void findAmbiguities(
-        std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback
-    ) const;
+    void findAmbiguities(std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback) const;
 
 private:
     /**
      * @brief 执行命令节点
      */
-    i32 executeCommand(
-        const CommandContext<S>& context,
-        NodePtr node,
-        StringReader& reader
-    );
+    i32 executeCommand(const CommandContext<S>& context, NodePtr node, StringReader& reader);
 
     RootNodePtr m_root;
 };
@@ -170,13 +164,13 @@ private:
 /**
  * @brief 创建字面量构建器
  */
-template<typename S>
+template <typename S>
 LiteralArgumentBuilder<S> literal(const std::string& name);
 
 /**
  * @brief 创建参数构建器
  */
-template<typename S, typename T>
+template <typename S, typename T>
 RequiredArgumentBuilder<S, T> argument(const std::string& name, std::shared_ptr<ArgumentCommandNode<S, T>> type);
 
 // ========== 字面量构建器 ==========
@@ -184,51 +178,58 @@ RequiredArgumentBuilder<S, T> argument(const std::string& name, std::shared_ptr<
 /**
  * @brief 字面量构建器
  */
-template<typename S>
+template <typename S>
 class LiteralArgumentBuilder {
 public:
     using NodePtr = std::shared_ptr<CommandNode<S>>;
 
     explicit LiteralArgumentBuilder(const std::string& literal)
-        : m_literal(literal) {}
+        : m_literal(literal)
+    {}
 
     // ========== 命令执行 ==========
 
-    LiteralArgumentBuilder& executes(CommandCallback<S> command) {
+    LiteralArgumentBuilder& executes(CommandCallback<S> command)
+    {
         m_command = std::move(command);
         return *this;
     }
 
     // ========== 权限 ==========
 
-    LiteralArgumentBuilder& withRequirement(RequirementPredicate<S> requirement) {
+    LiteralArgumentBuilder& withRequirement(RequirementPredicate<S> requirement)
+    {
         m_requirement = std::move(requirement);
         return *this;
     }
 
     // ========== 子节点 ==========
 
-    LiteralArgumentBuilder& then(NodePtr node) {
+    LiteralArgumentBuilder& then(NodePtr node)
+    {
         m_children.push_back(node);
         return *this;
     }
 
-    template<typename Builder>
-    LiteralArgumentBuilder& then(Builder&& builder) {
+    template <typename Builder>
+    LiteralArgumentBuilder& then(Builder&& builder)
+    {
         m_children.push_back(builder.build());
         return *this;
     }
 
     // ========== 重定向 ==========
 
-    LiteralArgumentBuilder& redirectsTo(NodePtr target) {
+    LiteralArgumentBuilder& redirectsTo(NodePtr target)
+    {
         m_redirect = target;
         return *this;
     }
 
     // ========== 构建 ==========
 
-    [[nodiscard]] NodePtr build() const {
+    [[nodiscard]] NodePtr build() const
+    {
         auto node = std::make_shared<LiteralCommandNode<S>>(m_literal);
 
         if (m_command) {
@@ -260,45 +261,51 @@ private:
 /**
  * @brief 参数构建器
  */
-template<typename S, typename T>
+template <typename S, typename T>
 class RequiredArgumentBuilder {
 public:
     using NodePtr = std::shared_ptr<CommandNode<S>>;
 
     RequiredArgumentBuilder(const std::string& name, std::shared_ptr<ArgumentCommandNode<S, T>> type)
         : m_name(name)
-        , m_type(type) {}
+        , m_type(type)
+    {}
 
     // ========== 命令执行 ==========
 
-    RequiredArgumentBuilder& executes(CommandCallback<S> command) {
+    RequiredArgumentBuilder& executes(CommandCallback<S> command)
+    {
         m_command = std::move(command);
         return *this;
     }
 
     // ========== 权限 ==========
 
-    RequiredArgumentBuilder& withRequirement(RequirementPredicate<S> requirement) {
+    RequiredArgumentBuilder& withRequirement(RequirementPredicate<S> requirement)
+    {
         m_requirement = std::move(requirement);
         return *this;
     }
 
     // ========== 子节点 ==========
 
-    RequiredArgumentBuilder& then(NodePtr node) {
+    RequiredArgumentBuilder& then(NodePtr node)
+    {
         m_children.push_back(node);
         return *this;
     }
 
-    template<typename Builder>
-    RequiredArgumentBuilder& then(Builder&& builder) {
+    template <typename Builder>
+    RequiredArgumentBuilder& then(Builder&& builder)
+    {
         m_children.push_back(builder.build());
         return *this;
     }
 
     // ========== 构建 ==========
 
-    [[nodiscard]] NodePtr build() const {
+    [[nodiscard]] NodePtr build() const
+    {
         if (m_command) {
             m_type->setCommand(m_command);
         }
@@ -317,7 +324,8 @@ public:
      * @param provider 建议提供器实例，通常由 `CandidateSuggestionProvider` 或自定义实现提供
      * @return 当前构建器
      */
-    RequiredArgumentBuilder& suggests(std::shared_ptr<ISuggestionProvider<S>> provider) {
+    RequiredArgumentBuilder& suggests(std::shared_ptr<ISuggestionProvider<S>> provider)
+    {
         m_customSuggestions = std::move(provider);
         return *this;
     }
@@ -333,28 +341,30 @@ private:
 
 // ========== 模板实现 ==========
 
-template<typename S>
-LiteralArgumentBuilder<S> literal(const std::string& name) {
+template <typename S>
+LiteralArgumentBuilder<S> literal(const std::string& name)
+{
     return LiteralArgumentBuilder<S>(name);
 }
 
-template<typename S, typename T>
-RequiredArgumentBuilder<S, T> argument(const std::string& name, std::shared_ptr<ArgumentCommandNode<S, T>> type) {
+template <typename S, typename T>
+RequiredArgumentBuilder<S, T> argument(const std::string& name, std::shared_ptr<ArgumentCommandNode<S, T>> type)
+{
     return RequiredArgumentBuilder<S, T>(name, type);
 }
 
 // ========== CommandDispatcher 模板实现 ==========
 
-template<typename S>
+template <typename S>
 ParseResults<S> CommandDispatcher<S>::parseNodes(
-    StringReader& reader,
-    NodePtr node,
-    std::unique_ptr<CommandContext<S>> context
-) const {
+    StringReader& reader, NodePtr node, std::unique_ptr<CommandContext<S>> context) const
+{
     std::unordered_set<const CommandNode<S>*> redirectStack;
 
     std::function<ParseResults<S>(StringReader&, NodePtr, std::unique_ptr<CommandContext<S>>)> parseRecursive;
-    parseRecursive = [&](StringReader& currentReader, NodePtr currentNode, std::unique_ptr<CommandContext<S>> currentContext) -> ParseResults<S> {
+    parseRecursive = [&](StringReader& currentReader,
+                         NodePtr currentNode,
+                         std::unique_ptr<CommandContext<S>> currentContext) -> ParseResults<S> {
         currentReader.skipWhitespace();
         currentContext->setCurrentNode(currentNode);
 
@@ -374,8 +384,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 if (candidate.getRemaining().empty() && (!candidateNode || !candidateNode->hasCommand())) {
                     return;
                 }
-                if (!hasBestSuccess ||
-                    candidate.getRemaining().size() < bestSuccess.getRemaining().size()) {
+                if (!hasBestSuccess || candidate.getRemaining().size() < bestSuccess.getRemaining().size()) {
                     bestSuccess = std::move(candidate);
                     hasBestSuccess = true;
                 }
@@ -395,9 +404,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
             }
 
             StringReader childReader = currentReader;
-            auto childContext = std::make_unique<CommandContext<S>>(
-                currentContext->copyFor(currentContext->getRootNode())
-            );
+            auto childContext =
+                std::make_unique<CommandContext<S>>(currentContext->copyFor(currentContext->getRootNode()));
 
             try {
                 child->parse(childReader, *childContext);
@@ -414,7 +422,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 } else {
                     considerResult(parseRecursive(childReader, child, std::move(childContext)));
                 }
-            } catch (const CommandException& e) {
+            }
+            catch (const CommandException& e) {
                 considerResult(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()));
             }
         };
@@ -440,22 +449,20 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
         }
 
         return ParseResults<S>(
-            CommandException(
-                currentNode->getType() == NodeType::Root
-                    ? CommandErrorType::DispatcherUnknownCommand
-                    : CommandErrorType::DispatcherUnknownArgument,
+            CommandException(currentNode->getType() == NodeType::Root ? CommandErrorType::DispatcherUnknownCommand
+                                                                      : CommandErrorType::DispatcherUnknownArgument,
                 currentNode->getType() == NodeType::Root ? "Unknown command" : "Unknown argument",
-                currentReader.getCursor()
-            ).withInput(currentContext->getInput()),
-            currentReader.getCursor()
-        );
+                currentReader.getCursor())
+                .withInput(currentContext->getInput()),
+            currentReader.getCursor());
     };
 
     return parseRecursive(reader, node, std::move(context));
 }
 
-template<typename S>
-Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse) {
+template <typename S>
+Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
+{
     if (const auto exception = parse.getException(); exception.has_value()) {
         return Error(ErrorCode::InvalidArgument, exception->message());
     }
@@ -473,15 +480,18 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse) {
     try {
         i32 result = node->getCommand()(*context);
         return CommandResult::success(result);
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         return Error(ErrorCode::Unknown, e.message());
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         return Error(ErrorCode::Unknown, e.what());
     }
 }
 
-template<typename S>
-std::future<Suggestions> CommandDispatcher<S>::getSuggestions(std::string_view input, S& source) const {
+template <typename S>
+std::future<Suggestions> CommandDispatcher<S>::getSuggestions(std::string_view input, S& source) const
+{
     StringReader reader(input);
     if (reader.canRead() && reader.peek() == '/') {
         reader.skip();
@@ -606,7 +616,8 @@ std::future<Suggestions> CommandDispatcher<S>::getSuggestions(std::string_view i
                     matchedNode = child->hasRedirect() ? child->getRedirect() : child;
                     matched = true;
                     break;
-                } catch (const CommandException&) {
+                }
+                catch (const CommandException&) {
                 }
             }
         }
@@ -625,8 +636,9 @@ std::future<Suggestions> CommandDispatcher<S>::getSuggestions(std::string_view i
     }
 }
 
-template<typename S>
-std::vector<std::string> CommandDispatcher<S>::getPath(NodePtr node) const {
+template <typename S>
+std::vector<std::string> CommandDispatcher<S>::getPath(NodePtr node) const
+{
     if (!node) {
         return {};
     }
@@ -684,10 +696,10 @@ std::vector<std::string> CommandDispatcher<S>::getPath(NodePtr node) const {
     return {};
 }
 
-template<typename S>
+template <typename S>
 void CommandDispatcher<S>::findAmbiguities(
-    std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback
-) const {
+    std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback) const
+{
     if (!callback) {
         return;
     }

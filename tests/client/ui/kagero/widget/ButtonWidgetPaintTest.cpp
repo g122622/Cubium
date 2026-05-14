@@ -3,10 +3,10 @@
  * @brief ButtonWidget 绘制行为测试
  */
 
-#include <gtest/gtest.h>
-#include "client/ui/kagero/widget/ButtonWidget.hpp"
-#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ButtonWidget.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::client::ui::kagero;
@@ -24,13 +24,15 @@ public:
     /**
      * @brief 重置记录状态
      */
-    void reset() {
+    void reset()
+    {
         filledRectCalled = false;
         textCalled = false;
         lastText.clear();
     }
 
-    void drawRect(const Rect& rect, const paint::IPaint& paint) override {
+    void drawRect(const Rect& rect, const paint::IPaint& paint) override
+    {
         filledRectCalled = true;
         lastFilledRect = rect;
         lastFilledColor = paint.color().toARGB();
@@ -46,7 +48,8 @@ public:
     void drawImageRect(const paint::IImage&, const Rect&, const Rect&) override {}
     void drawImageNine(const paint::IImage&, const Rect&, const Rect&, const paint::IPaint*) override {}
 
-    void drawText(const std::string& text, f32 x, f32 y, const paint::IPaint& paint) override {
+    void drawText(const std::string& text, f32 x, f32 y, const paint::IPaint& paint) override
+    {
         textCalled = true;
         lastText = text;
         lastTextX = x;
@@ -74,7 +77,10 @@ public:
     i32 saveLayerAlpha(const Rect*, u8) override { return 0; }
     [[nodiscard]] i32 width() const override { return 0; }
     [[nodiscard]] i32 height() const override { return 0; }
-    [[nodiscard]] f32 getTextWidth(const std::string& text) const override { return static_cast<f32>(text.size()) * 6.0f; }
+    [[nodiscard]] f32 getTextWidth(const std::string& text) const override
+    {
+        return static_cast<f32>(text.size()) * 6.0f;
+    }
     [[nodiscard]] u32 getFontHeight() const override { return 12; }
 
     bool filledRectCalled = false;
@@ -89,7 +95,8 @@ public:
 
 } // namespace
 
-TEST(ButtonWidgetPaintTest, PaintDrawsBackgroundBorderAndCenteredText) {
+TEST(ButtonWidgetPaintTest, PaintDrawsBackgroundBorderAndCenteredText)
+{
     RecordingCanvas canvas;
     PaintContext ctx(canvas);
     ButtonWidget button("btn_play", 10, 20, 100, 40, "Play");
@@ -106,4 +113,3 @@ TEST(ButtonWidgetPaintTest, PaintDrawsBackgroundBorderAndCenteredText) {
     EXPECT_EQ(60.0f, canvas.lastTextX);
     EXPECT_EQ(40.0f, canvas.lastTextY);
 }
-

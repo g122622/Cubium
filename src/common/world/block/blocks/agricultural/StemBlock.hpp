@@ -1,7 +1,7 @@
 #pragma once
 
-#include "BushBlock.hpp"
 #include "../../IGrowable.hpp"
+#include "BushBlock.hpp"
 #include <array>
 #include <unordered_map>
 
@@ -70,9 +70,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 生长逻辑 ==========
 
@@ -83,22 +81,12 @@ public:
     // ========== IGrowable 接口 ==========
 
     [[nodiscard]] bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const override;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     [[nodiscard]] bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
-    void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     /**
      * @brief 生长（使用骨粉）- 保留向后兼容
@@ -126,9 +114,7 @@ protected:
      * @brief 检查下方是否可支撑
      */
     [[nodiscard]] bool canSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const override;
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
     /**
      * @brief 尝试生成果实
@@ -157,7 +143,8 @@ public:
      * @param properties 方块属性
      */
     explicit StemGrownBlock(const BlockProperties& properties)
-        : Block(properties) {}
+        : Block(properties)
+    {}
 
     /**
      * @brief 析构函数
@@ -218,8 +205,7 @@ public:
      * @param facingPos 邻居位置
      * @return 更新后的状态
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,

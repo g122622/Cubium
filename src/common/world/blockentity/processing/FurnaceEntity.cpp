@@ -6,14 +6,16 @@ namespace mc {
 namespace blockentity {
 
 FurnaceEntity::FurnaceEntity(const BlockPos& pos)
-    : AbstractFurnaceEntity(BlockEntityType::Furnace, pos) {
-}
+    : AbstractFurnaceEntity(BlockEntityType::Furnace, pos)
+{}
 
-const ResourceLocation& FurnaceEntity::getFireCrackleSound() const {
+const ResourceLocation& FurnaceEntity::getFireCrackleSound() const
+{
     return SoundEvents::BLOCK_FURNACE_FIRE_CRACKLE;
 }
 
-std::unique_ptr<BlockEntity> FurnaceEntity::clone() const {
+std::unique_ptr<BlockEntity> FurnaceEntity::clone() const
+{
     auto cloned = std::make_unique<FurnaceEntity>(m_pos);
 
     nlohmann::json state;

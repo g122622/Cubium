@@ -3,11 +3,11 @@
  * @brief TextFieldWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -23,14 +23,16 @@ public:
 
 // ==================== 构造函数测试 ====================
 
-TEST(TextFieldWidgetTest, DefaultConstructor) {
+TEST(TextFieldWidgetTest, DefaultConstructor)
+{
     TextFieldWidget textField;
     EXPECT_TRUE(textField.id().empty());
     EXPECT_TRUE(textField.text().empty());
     EXPECT_EQ(32, textField.maxLength());
 }
 
-TEST(TextFieldWidgetTest, ConstructorWithBounds) {
+TEST(TextFieldWidgetTest, ConstructorWithBounds)
+{
     TextFieldWidget textField("txt_name", 10, 20, 200, 24);
 
     EXPECT_EQ("txt_name", textField.id());
@@ -45,7 +47,8 @@ TEST(TextFieldWidgetTest, ConstructorWithBounds) {
 
 // ==================== 文本操作测试 ====================
 
-TEST(TextFieldWidgetTest, SetText) {
+TEST(TextFieldWidgetTest, SetText)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     textField.setText("Hello");
@@ -55,7 +58,8 @@ TEST(TextFieldWidgetTest, SetText) {
     EXPECT_EQ("World", textField.text());
 }
 
-TEST(TextFieldWidgetTest, SetMaxLength) {
+TEST(TextFieldWidgetTest, SetMaxLength)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setMaxLength(10);
 
@@ -66,7 +70,8 @@ TEST(TextFieldWidgetTest, SetMaxLength) {
     EXPECT_EQ(10, textField.text().length());
 }
 
-TEST(TextFieldWidgetTest, SetPlaceholder) {
+TEST(TextFieldWidgetTest, SetPlaceholder)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     textField.setPlaceholder("Enter name...");
@@ -75,7 +80,8 @@ TEST(TextFieldWidgetTest, SetPlaceholder) {
 
 // ==================== 光标操作测试 ====================
 
-TEST(TextFieldWidgetTest, SetCursorPosition) {
+TEST(TextFieldWidgetTest, SetCursorPosition)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello");
 
@@ -98,7 +104,8 @@ TEST(TextFieldWidgetTest, SetCursorPosition) {
     EXPECT_EQ(0, textField.cursorPosition());
 }
 
-TEST(TextFieldWidgetTest, MoveCursorBy) {
+TEST(TextFieldWidgetTest, MoveCursorBy)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello");
     textField.setCursorPositionStart();
@@ -112,7 +119,8 @@ TEST(TextFieldWidgetTest, MoveCursorBy) {
 
 // ==================== 选择操作测试 ====================
 
-TEST(TextFieldWidgetTest, SelectAll) {
+TEST(TextFieldWidgetTest, SelectAll)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello World");
 
@@ -122,7 +130,8 @@ TEST(TextFieldWidgetTest, SelectAll) {
     EXPECT_EQ("Hello World", textField.getSelectedText());
 }
 
-TEST(TextFieldWidgetTest, ClearSelection) {
+TEST(TextFieldWidgetTest, ClearSelection)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello World");
     textField.selectAll();
@@ -133,7 +142,8 @@ TEST(TextFieldWidgetTest, ClearSelection) {
     EXPECT_FALSE(textField.hasSelection());
 }
 
-TEST(TextFieldWidgetTest, GetSelectedText) {
+TEST(TextFieldWidgetTest, GetSelectedText)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello World");
 
@@ -147,7 +157,8 @@ TEST(TextFieldWidgetTest, GetSelectedText) {
 
 // ==================== 写入和删除测试 ====================
 
-TEST(TextFieldWidgetTest, WriteText) {
+TEST(TextFieldWidgetTest, WriteText)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     textField.writeText("Hello");
@@ -157,7 +168,8 @@ TEST(TextFieldWidgetTest, WriteText) {
     EXPECT_EQ("Hello World", textField.text());
 }
 
-TEST(TextFieldWidgetTest, WriteTextWithSelection) {
+TEST(TextFieldWidgetTest, WriteTextWithSelection)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello World");
     textField.selectAll();
@@ -166,7 +178,8 @@ TEST(TextFieldWidgetTest, WriteTextWithSelection) {
     EXPECT_EQ("Hi", textField.text());
 }
 
-TEST(TextFieldWidgetTest, DeleteFromCursorBackspace) {
+TEST(TextFieldWidgetTest, DeleteFromCursorBackspace)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello");
     textField.setEnabled(true);
@@ -178,7 +191,8 @@ TEST(TextFieldWidgetTest, DeleteFromCursorBackspace) {
     EXPECT_EQ("Hell", textField.text());
 }
 
-TEST(TextFieldWidgetTest, DeleteFromCursorDelete) {
+TEST(TextFieldWidgetTest, DeleteFromCursorDelete)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello");
     textField.setEnabled(true);
@@ -190,7 +204,8 @@ TEST(TextFieldWidgetTest, DeleteFromCursorDelete) {
     EXPECT_EQ("ello", textField.text());
 }
 
-TEST(TextFieldWidgetTest, DeleteSelectedText) {
+TEST(TextFieldWidgetTest, DeleteSelectedText)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello World");
     textField.selectAll();
@@ -201,7 +216,8 @@ TEST(TextFieldWidgetTest, DeleteSelectedText) {
 
 // ==================== 字符输入测试 ====================
 
-TEST(TextFieldWidgetTest, OnCharInput) {
+TEST(TextFieldWidgetTest, OnCharInput)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setEnabled(true);
     textField.setFocused(true);
@@ -211,7 +227,8 @@ TEST(TextFieldWidgetTest, OnCharInput) {
     EXPECT_EQ("Hi", textField.text());
 }
 
-TEST(TextFieldWidgetTest, OnCharInputDisabled) {
+TEST(TextFieldWidgetTest, OnCharInputDisabled)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setEnabled(false);
     textField.setFocused(true);
@@ -220,14 +237,15 @@ TEST(TextFieldWidgetTest, OnCharInputDisabled) {
     EXPECT_TRUE(textField.text().empty());
 }
 
-TEST(TextFieldWidgetTest, OnCharInputControlChars) {
+TEST(TextFieldWidgetTest, OnCharInputControlChars)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setEnabled(true);
     textField.setFocused(true);
 
     // 控制字符不应被输入
-    textField.onChar(0); // NULL
-    textField.onChar(8); // Backspace
+    textField.onChar(0);   // NULL
+    textField.onChar(8);   // Backspace
     textField.onChar(127); // DEL
 
     EXPECT_TRUE(textField.text().empty());
@@ -235,7 +253,8 @@ TEST(TextFieldWidgetTest, OnCharInputControlChars) {
 
 // ==================== 验证器测试 ====================
 
-TEST(TextFieldWidgetTest, ValidatorAcceptsValidInput) {
+TEST(TextFieldWidgetTest, ValidatorAcceptsValidInput)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setValidator([](const std::string& text) {
         // 只允许数字
@@ -249,7 +268,8 @@ TEST(TextFieldWidgetTest, ValidatorAcceptsValidInput) {
     EXPECT_EQ("12345", textField.text());
 }
 
-TEST(TextFieldWidgetTest, ValidatorRejectsInvalidInput) {
+TEST(TextFieldWidgetTest, ValidatorRejectsInvalidInput)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setValidator([](const std::string& text) {
         // 只允许数字
@@ -262,13 +282,14 @@ TEST(TextFieldWidgetTest, ValidatorRejectsInvalidInput) {
     textField.setText("123"); // 有效
     EXPECT_EQ("123", textField.text());
 
-    textField.setText("abc"); // 无效，应该被拒绝
+    textField.setText("abc");           // 无效，应该被拒绝
     EXPECT_EQ("123", textField.text()); // 保持原值
 }
 
 // ==================== 回调测试 ====================
 
-TEST(TextFieldWidgetTest, TextChangedCallback) {
+TEST(TextFieldWidgetTest, TextChangedCallback)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     std::string lastText;
@@ -289,7 +310,8 @@ TEST(TextFieldWidgetTest, TextChangedCallback) {
 
 // ==================== 状态测试 ====================
 
-TEST(TextFieldWidgetTest, SetEnabled) {
+TEST(TextFieldWidgetTest, SetEnabled)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     EXPECT_TRUE(textField.isEnabled());
@@ -301,7 +323,8 @@ TEST(TextFieldWidgetTest, SetEnabled) {
     EXPECT_TRUE(textField.isEnabled());
 }
 
-TEST(TextFieldWidgetTest, SetCanLoseFocus) {
+TEST(TextFieldWidgetTest, SetCanLoseFocus)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     EXPECT_TRUE(textField.canLoseFocus());
@@ -313,7 +336,8 @@ TEST(TextFieldWidgetTest, SetCanLoseFocus) {
     EXPECT_TRUE(textField.canLoseFocus());
 }
 
-TEST(TextFieldWidgetTest, SetDrawBackground) {
+TEST(TextFieldWidgetTest, SetDrawBackground)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     EXPECT_TRUE(textField.drawBackground());
@@ -322,7 +346,8 @@ TEST(TextFieldWidgetTest, SetDrawBackground) {
     EXPECT_FALSE(textField.drawBackground());
 }
 
-TEST(TextFieldWidgetTest, SetTextColor) {
+TEST(TextFieldWidgetTest, SetTextColor)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     textField.setTextColor(RED);
@@ -331,7 +356,8 @@ TEST(TextFieldWidgetTest, SetTextColor) {
 
 // ==================== 颜色测试 ====================
 
-TEST(TextFieldWidgetTest, SetDisabledTextColor) {
+TEST(TextFieldWidgetTest, SetDisabledTextColor)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     textField.setDisabledTextColor(GRAY);
@@ -340,7 +366,8 @@ TEST(TextFieldWidgetTest, SetDisabledTextColor) {
 
 // ==================== 键盘导航测试 ====================
 
-TEST(TextFieldWidgetTest, KeyHomeEnd) {
+TEST(TextFieldWidgetTest, KeyHomeEnd)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello World");
     textField.setEnabled(true);
@@ -354,11 +381,12 @@ TEST(TextFieldWidgetTest, KeyHomeEnd) {
     EXPECT_EQ(0, textField.cursorPosition());
 
     // End键
-    textField.onKey(269, 0, 1, 0); // GLFW_KEY_END
+    textField.onKey(269, 0, 1, 0);             // GLFW_KEY_END
     EXPECT_EQ(11, textField.cursorPosition()); // "Hello World".length()
 }
 
-TEST(TextFieldWidgetTest, KeyLeftRight) {
+TEST(TextFieldWidgetTest, KeyLeftRight)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("Hello");
     textField.setEnabled(true);
@@ -382,7 +410,8 @@ TEST(TextFieldWidgetTest, KeyLeftRight) {
 
 // ==================== canWrite测试 ====================
 
-TEST(TextFieldWidgetTest, CanWrite) {
+TEST(TextFieldWidgetTest, CanWrite)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
     // 不可见不可写
@@ -404,7 +433,8 @@ TEST(TextFieldWidgetTest, CanWrite) {
     EXPECT_TRUE(textField.canWrite());
 }
 
-TEST(TextFieldWidgetTest, OnClick_SetsCursorPositionByMouseX) {
+TEST(TextFieldWidgetTest, OnClick_SetsCursorPositionByMouseX)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("ABCD");
 
@@ -413,7 +443,8 @@ TEST(TextFieldWidgetTest, OnClick_SetsCursorPositionByMouseX) {
     EXPECT_EQ(1, textField.cursorPosition());
 }
 
-TEST(TextFieldWidgetTest, WriteText_ReplacesSelectionAndRespectsMaxLength) {
+TEST(TextFieldWidgetTest, WriteText_ReplacesSelectionAndRespectsMaxLength)
+{
     TextFieldWidget textField("test", 0, 0, 100, 20);
     textField.setText("ABCD");
     textField.setCursorPosition(2);

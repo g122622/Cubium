@@ -2,15 +2,15 @@
 
 #include "../../core/LivingRenderer.hpp"
 #include "../../model/animal/AnimalModels.hpp"
-#include "../../model/animal/RabbitModel.hpp"
 #include "../../model/animal/BatModel.hpp"
+#include "../../model/animal/RabbitModel.hpp"
 #include "../../model/animal/SquidModel.hpp"
 #include <memory>
 
 namespace mc {
 class LivingEntity;
 class SheepEntity;
-}
+} // namespace mc
 
 namespace mc::client::renderer::entity::renderer::animal {
 
@@ -24,17 +24,17 @@ using mc::SheepEntity;
  */
 class PigRenderer : public core::LivingRenderer<LivingEntity, model::animal::PigModel> {
 public:
-    PigRenderer() {
-        m_shadowSize = 0.7f;
-    }
+    PigRenderer() { m_shadowSize = 0.7f; }
     ~PigRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/pig/pig.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/pig/pig.png");
     }
@@ -47,17 +47,17 @@ public:
  */
 class CowRenderer : public core::LivingRenderer<LivingEntity, model::animal::CowModel> {
 public:
-    CowRenderer() {
-        m_shadowSize = 0.7f;
-    }
+    CowRenderer() { m_shadowSize = 0.7f; }
     ~CowRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/cow/cow.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/cow/cow.png");
     }
@@ -71,17 +71,17 @@ public:
  */
 class SheepRenderer : public core::LivingRenderer<LivingEntity, model::animal::SheepModel> {
 public:
-    SheepRenderer() {
-        m_shadowSize = 0.7f;
-    }
+    SheepRenderer() { m_shadowSize = 0.7f; }
     ~SheepRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/sheep/sheep.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/sheep/sheep.png");
     }
@@ -95,17 +95,17 @@ public:
  */
 class MooshroomRenderer : public core::LivingRenderer<LivingEntity, model::animal::CowModel> {
 public:
-    MooshroomRenderer() {
-        m_shadowSize = 0.7f;
-    }
+    MooshroomRenderer() { m_shadowSize = 0.7f; }
     ~MooshroomRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/cow/mooshroom.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/cow/mooshroom.png");
     }
@@ -118,17 +118,17 @@ public:
  */
 class ChickenRenderer : public core::LivingRenderer<LivingEntity, model::animal::ChickenModel> {
 public:
-    ChickenRenderer() {
-        m_shadowSize = 0.3f;
-    }
+    ChickenRenderer() { m_shadowSize = 0.3f; }
     ~ChickenRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/chicken.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/chicken.png");
     }
@@ -141,17 +141,17 @@ public:
  */
 class RabbitRenderer : public core::LivingRenderer<LivingEntity, model::animal::RabbitModel> {
 public:
-    RabbitRenderer() {
-        m_shadowSize = 0.3f;
-    }
+    RabbitRenderer() { m_shadowSize = 0.3f; }
     ~RabbitRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/rabbit/brown.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/rabbit/brown.png");
     }
@@ -164,17 +164,17 @@ public:
  */
 class BatRenderer : public core::LivingRenderer<LivingEntity, model::animal::BatModel> {
 public:
-    BatRenderer() {
-        m_shadowSize = 0.3f;
-    }
+    BatRenderer() { m_shadowSize = 0.3f; }
     ~BatRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bat.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bat.png");
     }
@@ -187,17 +187,17 @@ public:
  */
 class SquidRenderer : public core::LivingRenderer<LivingEntity, model::animal::SquidModel> {
 public:
-    SquidRenderer() {
-        m_shadowSize = 0.7f;
-    }
+    SquidRenderer() { m_shadowSize = 0.7f; }
     ~SquidRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/squid.png");
     }
 
-    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/squid.png");
     }

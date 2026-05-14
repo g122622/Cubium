@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -39,12 +39,9 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -57,31 +54,29 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
 
     // ========== 红石 ==========
 
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] int getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 工具方法 ==========
 
     /**
      * @brief 获取已吃的片数
      */
-    [[nodiscard]] static int getBites(const BlockState& state) {
-        return state.get(BlockStateProperties::BITES_0_6());
-    }
+    [[nodiscard]] static int getBites(const BlockState& state) { return state.get(BlockStateProperties::BITES_0_6()); }
 
     /**
      * @brief 尝试吃蛋糕

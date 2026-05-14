@@ -5,56 +5,55 @@
 
 #include "ServerWorld.hpp"
 #include "ServerChunkManager.hpp"
-#include "weather/WeatherManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "server/event/ServerEventBus.hpp"
-#include "server/event/events/ServerEvents.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/fluid/Fluid.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
-#include "common/world/chunk/IChunk.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/util/core/CoordConverter.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "common/world/weather/WeatherUtils.hpp"
-#include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/IChunk.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
 #include "common/world/storage/save/SaveManager.hpp"
-#include "common/world/gamerule/GameRules.hpp"
-#include "common/util/NibbleArray.hpp"
-#include "common/util/Direction.hpp"
-#include "common/perfetto/TraceEvents.hpp"
-#include "common/util/core/CoordConverter.hpp"
-#include "common/core/Constants.hpp"
+#include "common/world/weather/WeatherUtils.hpp"
+#include "server/core/TimeManager.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/event/events/ServerEvents.hpp"
+#include "weather/WeatherManager.hpp"
 #include <algorithm>
 #include <array>
-#include <spdlog/spdlog.h>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 #pragma pop_macro("BYTE_SIZE")
 
 namespace mc::server {
 
-using mc::WorldLightManager;
-using mc::IChunk;
-using mc::StarLightLightingProvider;
-using mc::LightType;
-using mc::SectionPos;
 using mc::ChunkPos;
 using mc::ChunkSection;
+using mc::IChunk;
+using mc::LightType;
 using mc::NibbleArray;
+using mc::SectionPos;
+using mc::StarLightLightingProvider;
+using mc::WorldLightManager;
 using mc::util::core::CoordConverter;
 
 // ============================================================================
@@ -63,10 +62,7 @@ using mc::util::core::CoordConverter;
 
 ServerWorld::ServerWorld()
 {
-    auto generator = std::make_unique<NoiseChunkGenerator>(
-        m_config.seed,
-        DimensionSettings::overworld()
-    );
+    auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
     m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
     m_chunkManager->setViewDistance(m_config.viewDistance);
 }
@@ -74,10 +70,7 @@ ServerWorld::ServerWorld()
 ServerWorld::ServerWorld(const ServerWorldConfig& config)
     : m_config(config)
 {
-    auto generator = std::make_unique<NoiseChunkGenerator>(
-        m_config.seed,
-        DimensionSettings::overworld()
-    );
+    auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
     m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
     m_chunkManager->setViewDistance(m_config.viewDistance);
 }
@@ -117,10 +110,7 @@ Result<void> ServerWorld::initialize()
     m_saveManager->startAutoSave();
 
     if (!m_chunkManager) {
-        auto generator = std::make_unique<NoiseChunkGenerator>(
-            m_config.seed,
-            DimensionSettings::overworld()
-        );
+        auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
         m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
         m_chunkManager->setViewDistance(m_config.viewDistance);
     }
@@ -248,11 +238,8 @@ bool ServerWorld::isDebugWorld() const
     return generator && generator->isDebugGenerator();
 }
 
-void ServerWorld::playSound(const ResourceLocation& soundEventId,
-                            sound::SoundCategory category,
-                            const Vector3& position,
-                            f32 volume,
-                            f32 pitch)
+void ServerWorld::playSound(
+    const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
 {
     if (m_onPlaySound) {
         m_onPlaySound(soundEventId, category, position, volume, pitch);
@@ -297,7 +284,8 @@ void ServerWorld::initializeWorldSpawn()
     ChunkData* chunk = m_chunkManager->requestFullChunkSync(spawnChunk.x, spawnChunk.z);
 
     if (chunk == nullptr) {
-        spdlog::error("ServerWorld: Failed to load spawn chunk, using default spawn point (0, {}, 0)", world::SEA_LEVEL + 1);
+        spdlog::error(
+            "ServerWorld: Failed to load spawn chunk, using default spawn point (0, {}, 0)", world::SEA_LEVEL + 1);
         m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
         return;
     }
@@ -307,17 +295,15 @@ void ServerWorld::initializeWorldSpawn()
 
     if (spawnPos.has_value()) {
         // 找到有效位置，设置到世界出生点
-        m_worldSpawnPoint = Vector3d(
-            spawnPos->x + 0.5,
-            spawnPos->y + 1.0,  // 站在方块上面
-            spawnPos->z + 0.5
-        );
-        spdlog::info("ServerWorld: World spawn initialized at ({}, {}, {})",
-                     spawnPos->x, spawnPos->y + 1, spawnPos->z);
+        m_worldSpawnPoint = Vector3d(spawnPos->x + 0.5,
+            spawnPos->y + 1.0, // 站在方块上面
+            spawnPos->z + 0.5);
+        spdlog::info("ServerWorld: World spawn initialized at ({}, {}, {})", spawnPos->x, spawnPos->y + 1, spawnPos->z);
     } else {
         // 使用默认位置
         m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
-        spdlog::error("ServerWorld: No valid spawn found in spawn chunk, using default (0, {}, 0)", world::SEA_LEVEL + 1);
+        spdlog::error(
+            "ServerWorld: No valid spawn found in spawn chunk, using default (0, {}, 0)", world::SEA_LEVEL + 1);
     }
 }
 
@@ -375,15 +361,16 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 // ============================================================================
 bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
-    MC_TRACE_EVENT(
-        "server.world", "ServerWorld::setBlockState",
-        "x", x,
-        "y", y,
-        "z", z,
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-        }
-    );
+    MC_TRACE_EVENT("server.world",
+        "ServerWorld::setBlockState",
+        "x",
+        x,
+        "y",
+        y,
+        "z",
+        z,
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     const BlockPos changedPos(x, y, z);
 
@@ -401,11 +388,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     ChunkData* chunk = nullptr;
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::ChunkLookup",
-            "chunkX", chunkX,
-            "chunkZ", chunkZ
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::ChunkLookup", "chunkX", chunkX, "chunkZ", chunkZ);
 
         chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
         if (!chunk) {
@@ -440,12 +423,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const BlockState* newState = nullptr;
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::CanonicalizeState",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::CanonicalizeState", "x", x, "y", y, "z", z);
 
         oldState = canonicalizeState(chunk->getBlockState(localX, y, localZ));
         newState = canonicalizeState(state);
@@ -455,12 +433,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::StateComparison",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::StateComparison", "x", x, "y", y, "z", z);
 
         if (oldState == newState) {
             return false;
@@ -476,14 +449,18 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     i32 newLightLevel = newState ? newState->lightLevel() : 0;
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::WriteChunk",
-            "x", x,
-            "y", y,
-            "z", z,
-            "oldBlockId", oldState ? oldState->blockId() : 0,
-            "newBlockId", newState ? newState->blockId() : 0
-        );
+        MC_TRACE_EVENT("server.world",
+            "ServerWorld::setBlockState::WriteChunk",
+            "x",
+            x,
+            "y",
+            y,
+            "z",
+            z,
+            "oldBlockId",
+            oldState ? oldState->blockId() : 0,
+            "newBlockId",
+            newState ? newState->blockId() : 0);
 
         const BlockState* storedState = newIsAir ? nullptr : newState;
         chunk->setBlockState(localX, y, localZ, storedState);
@@ -492,12 +469,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::OldBlockCallbacks",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::OldBlockCallbacks", "x", x, "y", y, "z", z);
 
         // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
         if (m_villageManager && !oldIsAir) {
@@ -516,12 +488,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::NewBlockCallbacks",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::NewBlockCallbacks", "x", x, "y", y, "z", z);
 
         if (m_onBlockChanged) {
             m_onBlockChanged(changedPos, currentState ? currentState->stateId() : 0u);
@@ -561,44 +528,36 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         Direction direction;
     };
 
-    constexpr std::array<NeighborDelta, 6> NEIGHBOR_DELTAS = {{
-        {-1, 0, 0, Direction::West},
+    constexpr std::array<NeighborDelta, 6> NEIGHBOR_DELTAS = {{{-1, 0, 0, Direction::West},
         {1, 0, 0, Direction::East},
         {0, -1, 0, Direction::Down},
         {0, 1, 0, Direction::Up},
         {0, 0, -1, Direction::North},
-        {0, 0, 1, Direction::South}
-    }};
+        {0, 0, 1, Direction::South}}};
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::NeighborUpdates",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::NeighborUpdates", "x", x, "y", y, "z", z);
 
         for (const auto& neighbor : NEIGHBOR_DELTAS) {
             const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
-            const BlockState* neighborState = canonicalizeState(getBlockState(
-                neighborPos.x,
-                neighborPos.y,
-                neighborPos.z));
+            const BlockState* neighborState =
+                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
 
             const BlockState* updatedState = nullptr;
 
             {
-                MC_TRACE_EVENT(
-                    "server.world", "ServerWorld::setBlockState::NeighborUpdatePostPlacement",
-                    "x", neighborPos.x,
-                    "y", neighborPos.y,
-                    "z", neighborPos.z
-                );
+                MC_TRACE_EVENT("server.world",
+                    "ServerWorld::setBlockState::NeighborUpdatePostPlacement",
+                    "x",
+                    neighborPos.x,
+                    "y",
+                    neighborPos.y,
+                    "z",
+                    neighborPos.z);
 
                 if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
                     Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-                    BlockState updatedStateValue = neighborBlock.updatePostPlacement(
-                        *neighborState,
+                    BlockState updatedStateValue = neighborBlock.updatePostPlacement(*neighborState,
                         Directions::opposite(neighbor.direction),
                         *newState,
                         *this,
@@ -618,12 +577,14 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             }
 
             {
-                MC_TRACE_EVENT(
-                    "server.world", "ServerWorld::setBlockState::NeighborChanged",
-                    "x", neighborPos.x,
-                    "y", neighborPos.y,
-                    "z", neighborPos.z
-                );
+                MC_TRACE_EVENT("server.world",
+                    "ServerWorld::setBlockState::NeighborChanged",
+                    "x",
+                    neighborPos.x,
+                    "y",
+                    neighborPos.y,
+                    "z",
+                    neighborPos.z);
 
                 if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
                     Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
@@ -634,14 +595,18 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::LightUpdates",
-            "x", x,
-            "y", y,
-            "z", z,
-            "oldLightLevel", oldLightLevel,
-            "newLightLevel", newLightLevel
-        );
+        MC_TRACE_EVENT("server.world",
+            "ServerWorld::setBlockState::LightUpdates",
+            "x",
+            x,
+            "y",
+            y,
+            "z",
+            z,
+            "oldLightLevel",
+            oldLightLevel,
+            "newLightLevel",
+            newLightLevel);
 
         if (m_lightManager) {
             m_lightManager->checkBlock(changedPos.x, changedPos.y, changedPos.z);
@@ -669,30 +634,17 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     };
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlockState::FluidScheduling",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::FluidScheduling", "x", x, "y", y, "z", z);
 
         scheduleFluidAt(changedPos, newState);
 
-        constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {{
-            {{-1, 0, 0}},
-            {{1, 0, 0}},
-            {{0, -1, 0}},
-            {{0, 1, 0}},
-            {{0, 0, -1}},
-            {{0, 0, 1}}
-        }};
+        constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {
+            {{{-1, 0, 0}}, {{1, 0, 0}}, {{0, -1, 0}}, {{0, 1, 0}}, {{0, 0, -1}}, {{0, 0, 1}}}};
 
         for (const auto& offset : NEIGHBOR_OFFSETS) {
             const BlockPos neighborPos(x + offset[0], y + offset[1], z + offset[2]);
-            const BlockState* neighborState = canonicalizeState(getBlockState(
-                neighborPos.x,
-                neighborPos.y,
-                neighborPos.z));
+            const BlockState* neighborState =
+                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
             scheduleFluidAt(neighborPos, neighborState);
         }
     }
@@ -704,7 +656,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 // 方块实体管理
 // ============================================================================
 
-BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) {
+BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos)
+{
     // 超出世界高度范围返回 nullptr
     if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
         return nullptr;
@@ -722,7 +675,8 @@ BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) {
     return chunk->getBlockEntity(pos);
 }
 
-const BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) const {
+const BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) const
+{
     // 超出世界高度范围返回 nullptr
     if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
         return nullptr;
@@ -740,7 +694,8 @@ const BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) const {
     return chunk->getBlockEntity(pos);
 }
 
-void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
+void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
+{
     if (entity == nullptr) {
         return;
     }
@@ -778,7 +733,8 @@ void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
     chunk->setDirty(true);
 }
 
-void ServerWorld::removeBlockEntity(const BlockPos& pos) {
+void ServerWorld::removeBlockEntity(const BlockPos& pos)
+{
     // 超出世界高度范围不处理
     if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
         return;
@@ -833,13 +789,13 @@ void ServerWorld::tick()
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
         m_chunkManager->tick();
     }
-    
+
     // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
     if (m_lightManager && m_lightManager->hasLightWork()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
         m_lightManager->tick(32768, true, true);
     }
-    
+
     // 获取当前 tick
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
     i64 gameTime = m_timeManager ? m_timeManager->dayTime() : 0;
@@ -897,7 +853,7 @@ void ServerWorld::tick()
     // 调试世界不执行村庄围攻
     if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::VillageSiege");
-        m_villageSiege.tick(*this, true);  // spawnHostiles = true
+        m_villageSiege.tick(*this, true); // spawnHostiles = true
     }
 
     // 更新世界边界（渐变动画）
@@ -911,13 +867,13 @@ void ServerWorld::tick()
 // 随机刻系统
 // ============================================================================
 
-void ServerWorld::tickEnvironment(i32 randomTickSpeed) {
+void ServerWorld::tickEnvironment(i32 randomTickSpeed)
+{
     if (randomTickSpeed <= 0 || !m_chunkManager) {
         return;
     }
 
-    MC_TRACE_EVENT("server.tick", "ServerWorld::tickEnvironment",
-                   "randomTickSpeed", randomTickSpeed);
+    MC_TRACE_EVENT("server.tick", "ServerWorld::tickEnvironment", "randomTickSpeed", randomTickSpeed);
 
     // 遍历所有已加载区块
     // 参考: MC 1.16.5 ServerWorld.tickEnvironment()
@@ -941,11 +897,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed) {
                 BlockPos pos = getBlockRandomPos(chunkX, sectionY, chunkZ);
 
                 // 获取方块状态
-                const BlockState* blockState = chunk.getBlockState(
-                    pos.x - chunkX,
-                    pos.y,
-                    pos.z - chunkZ
-                );
+                const BlockState* blockState = chunk.getBlockState(pos.x - chunkX, pos.y, pos.z - chunkZ);
 
                 if (blockState) {
                     // 执行方块随机刻
@@ -964,11 +916,12 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed) {
             }
         }
 
-        return true;  // 继续遍历
+        return true; // 继续遍历
     });
 }
 
-BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ) {
+BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
+{
     // MC 1.16.5 风格的随机位置生成
     // 使用 LCG (Linear Congruential Generator) 确保分布均匀
     // 参考: net.minecraft.world.World.getBlockRandomPos
@@ -980,11 +933,7 @@ BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ) {
     // y = sectionY + ((i >> 16) & 15) -> 范围 [0, 15]
     // z = chunkZ + ((i >> 8) & 15)   -> 范围 [0, 15]
 
-    return BlockPos(
-        chunkX + (i & 15),
-        sectionY + ((i >> 16) & 15),
-        chunkZ + ((i >> 8) & 15)
-    );
+    return BlockPos(chunkX + (i & 15), sectionY + ((i >> 16) & 15), chunkZ + ((i >> 8) & 15));
 }
 
 size_t ServerWorld::chunkCount() const
@@ -1126,8 +1075,7 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
                         i32 wx = cx * 16 + x;
                         i32 wz = cz * 16 + z;
 
-                        if (wx + 1 < box.minX || wx > box.maxX ||
-                            wz + 1 < box.minZ || wz > box.maxZ) {
+                        if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
                             continue;
                         }
 
@@ -1172,8 +1120,7 @@ std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& 
                         i32 wx = cx * 16 + x;
                         i32 wz = cz * 16 + z;
 
-                        if (wx + 1 < box.minX || wx > box.maxX ||
-                            wz + 1 < box.minZ || wz > box.maxZ) {
+                        if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
                             continue;
                         }
 
@@ -1204,8 +1151,7 @@ bool ServerWorld::hasEntityCollision(const AxisAlignedBB& box, const Entity* exc
     return !entities.empty();
 }
 
-std::vector<AxisAlignedBB> ServerWorld::getEntityCollisions(
-    const AxisAlignedBB& box, const Entity* except) const
+std::vector<AxisAlignedBB> ServerWorld::getEntityCollisions(const AxisAlignedBB& box, const Entity* except) const
 {
     std::vector<AxisAlignedBB> collisions;
     auto entities = m_entityManager.getEntitiesInAABB(box, except);
@@ -1357,9 +1303,12 @@ const IWorld* ServerWorld::getWorld() const
 
 void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
 {
-    MC_TRACE_EVENT("server.lighting", "ServerWorld::markLightChanged",
-               "Type", (type == LightType::SKY) ? "Sky" : "Block",
-               "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
+    MC_TRACE_EVENT("server.lighting",
+        "ServerWorld::markLightChanged",
+        "Type",
+        (type == LightType::SKY) ? "Sky" : "Block",
+        "Section",
+        fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 
     if (m_chunkManager) {
         ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(pos.x, pos.z);
@@ -1441,9 +1390,7 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
         return;
     }
 
-    NibbleArray& targetArray = (type == LightType::SKY)
-        ? section->skyLightNibble()
-        : section->blockLightNibble();
+    NibbleArray& targetArray = (type == LightType::SKY) ? section->skyLightNibble() : section->blockLightNibble();
     targetArray.data() = std::move(data);
 }
 
@@ -1452,9 +1399,7 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
 // ============================================================================
 
 void ServerWorld::addParticle(
-    client::renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity)
+    client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     // 服务端不生成粒子，而是广播给附近玩家
     if (m_onBroadcastParticle) {
@@ -1462,8 +1407,7 @@ void ServerWorld::addParticle(
     }
 }
 
-void ServerWorld::addParticle(
-    client::renderer::trident::particle::ParticleTypeId type,
+void ServerWorld::addParticle(client::renderer::trident::particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
@@ -1475,9 +1419,7 @@ void ServerWorld::addParticle(
     }
 }
 
-bool ServerWorld::shouldSpawnParticleAt(
-    const Vector3& pos,
-    f32 maxDistance) const
+bool ServerWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送
     return true;
@@ -1495,22 +1437,17 @@ void ServerWorld::broadcastEntityStatus(EntityId entityId, u8 status)
 // ============================================================================
 
 void ServerWorld::createExplosion(
-    const Vector3& position,
-    f32 radius,
-    world::explosion::ExplosionMode mode,
-    bool causesFire,
-    Entity* source)
+    const Vector3& position, f32 radius, world::explosion::ExplosionMode mode, bool causesFire, Entity* source)
 {
     // 创建爆炸对象
-    auto explosion = std::make_unique<world::explosion::Explosion>(
-        *this,
+    auto explosion = std::make_unique<world::explosion::Explosion>(*this,
         position,
         radius,
         mode,
         causesFire,
         source,
-        nullptr,  // 使用默认伤害来源
-        m_lootTableManager  // 传递掉落表管理器用于生成方块掉落
+        nullptr,           // 使用默认伤害来源
+        m_lootTableManager // 传递掉落表管理器用于生成方块掉落
     );
 
     // 执行爆炸
@@ -1519,12 +1456,7 @@ void ServerWorld::createExplosion(
     // 广播爆炸包给客户端
     // 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
     if (m_onBroadcastExplosion) {
-        m_onBroadcastExplosion(
-            position,
-            radius,
-            explosion->affectedBlocks(),
-            explosion->playerKnockback()
-        );
+        m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
     }
 }
 
@@ -1532,7 +1464,8 @@ void ServerWorld::createExplosion(
 // 睡眠管理
 // ============================================================================
 
-void ServerWorld::skipToMorning() {
+void ServerWorld::skipToMorning()
+{
     if (m_timeManager == nullptr) {
         return;
     }
@@ -1547,17 +1480,20 @@ void ServerWorld::skipToMorning() {
     spdlog::debug("ServerWorld: skipped to morning (dayTime {} -> {})", currentTime, newTime);
 }
 
-bool ServerWorld::canSkipNight() const {
+bool ServerWorld::canSkipNight() const
+{
     // 检查日光周期是否启用
     return m_timeManager && m_timeManager->daylightCycleEnabled();
 }
 
-bool ServerWorld::canClearWeather() const {
+bool ServerWorld::canClearWeather() const
+{
     // 检查天气周期是否启用
     return m_weatherManager && m_weatherManager->weatherCycleEnabled();
 }
 
-void ServerWorld::updateAllPlayersSleepingFlag() {
+void ServerWorld::updateAllPlayersSleepingFlag()
+{
     // 检查是否有玩家在睡眠
     bool anySleeping = false;
     bool allSleeping = true;
@@ -1594,7 +1530,8 @@ void ServerWorld::updateAllPlayersSleepingFlag() {
     m_allPlayersSleeping = anySleeping && allSleeping;
 }
 
-void ServerWorld::checkSleepStatus() {
+void ServerWorld::checkSleepStatus()
+{
     if (!m_allPlayersSleeping) {
         return;
     }
@@ -1620,7 +1557,8 @@ void ServerWorld::checkSleepStatus() {
     }
 }
 
-void ServerWorld::wakeUpAllPlayers() {
+void ServerWorld::wakeUpAllPlayers()
+{
     // 获取所有玩家实体并唤醒
     auto players = m_entityManager.getEntitiesByType(LegacyEntityType::Player);
     for (Entity* entity : players) {
@@ -1635,29 +1573,19 @@ void ServerWorld::wakeUpAllPlayers() {
     m_allPlayersSleeping = false;
 }
 
-void ServerWorld::onBlockPlaced(PlayerId playerId, const BlockPos& pos,
-                                 const BlockState* state, const ItemStack* item) {
+void ServerWorld::onBlockPlaced(PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack* item)
+{
     // 发布 BlockPlaceEvent 用于进度触发
     // 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
-    event::BlockPlaceEvent event{
-        currentTick(),
-        playerId,
-        pos,
-        state,
-        item
-    };
+    event::BlockPlaceEvent event{currentTick(), playerId, pos, state, item};
     event::ServerEventBus::instance().publish(event);
 }
 
-void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) {
+void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager)
+{
     // 发布 CuredZombieVillagerEvent 用于进度触发
     // 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
-    event::CuredZombieVillagerEvent event{
-        currentTick(),
-        starterUuid,
-        zombie,
-        villager
-    };
+    event::CuredZombieVillagerEvent event{currentTick(), starterUuid, zombie, villager};
     event::ServerEventBus::instance().publish(event);
 }
 

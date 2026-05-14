@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "server/world/ServerWorld.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 using namespace mc;
 using namespace mc::server;
@@ -19,22 +19,26 @@ protected:
     ServerPlayerEntityManager manager;
 };
 
-TEST_F(ServerPlayerEntityManagerTest, InitialState) {
+TEST_F(ServerPlayerEntityManagerTest, InitialState)
+{
     EXPECT_EQ(manager.playerCount(), 0);
     EXPECT_TRUE(manager.getPlayerIds().empty());
 }
 
-TEST_F(ServerPlayerEntityManagerTest, GetPlayerEntityIdNotFound) {
+TEST_F(ServerPlayerEntityManagerTest, GetPlayerEntityIdNotFound)
+{
     // 未添加玩家时，查询应该返回 INVALID_ENTITY_ID
     EXPECT_EQ(manager.getPlayerEntityId(999), INVALID_ENTITY_ID);
 }
 
-TEST_F(ServerPlayerEntityManagerTest, GetPlayerIdByEntityIdNotFound) {
+TEST_F(ServerPlayerEntityManagerTest, GetPlayerIdByEntityIdNotFound)
+{
     // 未添加玩家时，查询应该返回 0
     EXPECT_EQ(manager.getPlayerIdByEntityId(999), 0);
 }
 
-TEST_F(ServerPlayerEntityManagerTest, HasPlayerEmpty) {
+TEST_F(ServerPlayerEntityManagerTest, HasPlayerEmpty)
+{
     EXPECT_FALSE(manager.hasPlayer(1));
     EXPECT_FALSE(manager.hasPlayer(100));
 }

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <memory>
-#include <vector>
-#include <functional>
-#include <optional>
 #include <array>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -25,7 +25,8 @@ using Uuid = std::array<u8, 16>;
  * @brief Uuid 哈希函数，用于 std::unordered_set/std::unordered_map。
  */
 struct UuidHash {
-    std::size_t operator()(const Uuid& uuid) const noexcept {
+    std::size_t operator()(const Uuid& uuid) const noexcept
+    {
         std::size_t result = 0;
         for (const auto& byte : uuid) {
             result ^= std::hash<u8>{}(byte) + 0x9e3779b9 + (result << 6) + (result >> 2);
@@ -56,8 +57,7 @@ public:
      * @param message 消息内容
      * @param senderUuid 发送者UUID（可选）
      */
-    virtual void sendMessage(const std::string& message,
-                            const std::optional<Uuid>& senderUuid = std::nullopt) = 0;
+    virtual void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) = 0;
 
     /**
      * @brief 是否应该接收反馈消息
@@ -88,7 +88,8 @@ public:
     bool shouldReceiveErrors() const override { return false; }
     bool allowLogging() const override { return false; }
 
-    static SilentCommandSource& instance() {
+    static SilentCommandSource& instance()
+    {
         static SilentCommandSource s_instance;
         return s_instance;
     }

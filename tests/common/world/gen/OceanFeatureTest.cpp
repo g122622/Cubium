@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/Constants.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkPrimer.hpp"
 #include "world/gen/chunk/IChunkGenerator.hpp"
@@ -9,7 +10,6 @@
 #include "world/gen/feature/ocean/OceanDecorationFeature.hpp"
 #include "world/gen/feature/ocean/SeaPickleFeature.hpp"
 #include "world/gen/feature/ocean/SeagrassFeature.hpp"
-#include "core/Constants.hpp"
 
 #include <array>
 #include <memory>
@@ -19,7 +19,8 @@ using namespace mc;
 
 class OceanFeatureWorldTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
 
         for (i32 relZ = -1; relZ <= 1; ++relZ) {
@@ -45,11 +46,13 @@ protected:
         m_region = std::make_unique<WorldGenRegion>(0, 0, m_chunks);
     }
 
-    void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state) {
+    void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
         ASSERT_TRUE(m_region->setBlockState(x, y, z, state));
     }
 
-    [[nodiscard]] const BlockState* getWorldBlock(i32 x, i32 y, i32 z) const {
+    [[nodiscard]] const BlockState* getWorldBlock(i32 x, i32 y, i32 z) const
+    {
         return m_region->getBlockState(x, y, z);
     }
 
@@ -58,7 +61,8 @@ protected:
     std::unique_ptr<WorldGenRegion> m_region;
 };
 
-TEST_F(OceanFeatureWorldTest, KelpFeaturePlacesKelpInWater) {
+TEST_F(OceanFeatureWorldTest, KelpFeaturePlacesKelpInWater)
+{
     auto configured = KelpFeatures::createColdKelp();
     ASSERT_NE(configured, nullptr);
 
@@ -92,7 +96,8 @@ TEST_F(OceanFeatureWorldTest, KelpFeaturePlacesKelpInWater) {
     EXPECT_TRUE(foundKelp);
 }
 
-TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant) {
+TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant)
+{
     auto configured = SeagrassFeatures::createMixedSeagrass();
     ASSERT_NE(configured, nullptr);
 
@@ -114,8 +119,7 @@ TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant) {
                 if (planted == nullptr) {
                     continue;
                 }
-                const bool isSeagrass =
-                    (VanillaBlocks::SEAGRASS != nullptr && planted->is(VanillaBlocks::SEAGRASS));
+                const bool isSeagrass = (VanillaBlocks::SEAGRASS != nullptr && planted->is(VanillaBlocks::SEAGRASS));
                 const bool isTallSeagrass =
                     (VanillaBlocks::TALL_SEAGRASS != nullptr && planted->is(VanillaBlocks::TALL_SEAGRASS));
                 if (isSeagrass || isTallSeagrass) {
@@ -128,7 +132,8 @@ TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant) {
     EXPECT_TRUE(foundSeagrass);
 }
 
-TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesConfiguredCoralBlock) {
+TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesConfiguredCoralBlock)
+{
     CoralFeature feature;
     CoralFeatureConfig config(blocks::CoralColor::Tube, true);
     math::Random random(99887);
@@ -151,7 +156,8 @@ TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesConfiguredCoralBlock) {
     EXPECT_TRUE(foundCoralBlock);
 }
 
-TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesDeadCoralBlock) {
+TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesDeadCoralBlock)
+{
     CoralFeature feature;
     CoralFeatureConfig config(blocks::CoralColor::Tube, true, true);
     math::Random random(77889);
@@ -174,7 +180,8 @@ TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesDeadCoralBlock) {
     EXPECT_TRUE(foundDeadCoralBlock);
 }
 
-TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnSolidOceanFloor) {
+TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnSolidOceanFloor)
+{
     auto configured = SeaPickleFeatures::createNormalSeaPickle();
     ASSERT_NE(configured, nullptr);
 
@@ -187,7 +194,8 @@ TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnSolidOceanFloor) {
     EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
 }
 
-TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral) {
+TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral)
+{
     ASSERT_NE(VanillaBlocks::TUBE_CORAL_BLOCK, nullptr);
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -216,7 +224,8 @@ TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral) {
     EXPECT_TRUE(foundSeaPickle);
 }
 
-TEST_F(OceanFeatureWorldTest, OceanDecorationFeaturePlacesOceanProps) {
+TEST_F(OceanFeatureWorldTest, OceanDecorationFeaturePlacesOceanProps)
+{
     auto configured = OceanDecorationFeatures::createOceanProps();
     ASSERT_NE(configured, nullptr);
 
@@ -271,7 +280,8 @@ TEST_F(OceanFeatureWorldTest, OceanDecorationFeaturePlacesOceanProps) {
     EXPECT_TRUE(foundPrismarinePart);
 }
 
-TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater) {
+TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater)
+{
     ASSERT_NE(VanillaBlocks::PACKED_ICE, nullptr);
 
     // 与特征内部一致地预采样起点，保证存在一个打包冰邻居。
@@ -327,7 +337,8 @@ TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater) {
     EXPECT_TRUE(foundBlueIce);
 }
 
-TEST_F(OceanFeatureWorldTest, BlueIceFeatureFailsWithoutPackedIceNeighbor) {
+TEST_F(OceanFeatureWorldTest, BlueIceFeatureFailsWithoutPackedIceNeighbor)
+{
     auto configured = BlueIceFeatures::createBlueIce();
     ASSERT_NE(configured, nullptr);
 

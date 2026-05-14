@@ -1,20 +1,20 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 
@@ -35,7 +35,8 @@ public:
     [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
     [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         if (m_supportEnabled && x == 0 && y == 0 && z == 0) {
             return &VanillaBlocks::STONE->defaultState();
         }
@@ -43,17 +44,18 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
         if (!m_supportEnabled) {
             return false;
         }
 
-        return box.maxX > 0.0f && box.minX < 1.0f &&
-               box.maxY > 0.0f && box.minY < 1.0f &&
-               box.maxZ > 0.0f && box.minZ < 1.0f;
+        return box.maxX > 0.0f && box.minX < 1.0f && box.maxY > 0.0f && box.minY < 1.0f && box.maxZ > 0.0f &&
+            box.minZ < 1.0f;
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
+    {
         if (!hasBlockCollision(box)) {
             return {};
         }
@@ -62,18 +64,21 @@ public:
     }
 
     void playSound(const ResourceLocation& soundEventId,
-                   sound::SoundCategory category,
-                   const Vector3& position,
-                   f32 volume,
-                   f32 pitch) override {
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
+    {
         m_lastSound = SoundRecord{soundEventId, category, position, volume, pitch};
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("SoundCaptureWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("SoundCaptureWorld::tickManager not implemented");
     }
 
@@ -84,7 +89,9 @@ private:
 
 class TestLivingEntity final : public LivingEntity {
 public:
-    TestLivingEntity() : LivingEntity(LegacyEntityType::Player, 1) {
+    TestLivingEntity()
+        : LivingEntity(LegacyEntityType::Player, 1)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -92,7 +99,9 @@ public:
 
 class TestRabbitEntity final : public RabbitEntity {
 public:
-    TestRabbitEntity() : RabbitEntity(LegacyEntityType::Rabbit, 2) {
+    TestRabbitEntity()
+        : RabbitEntity(LegacyEntityType::Rabbit, 2)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -100,7 +109,9 @@ public:
 
 class TestWolfEntity final : public WolfEntity {
 public:
-    TestWolfEntity() : WolfEntity(LegacyEntityType::Wolf, 3) {
+    TestWolfEntity()
+        : WolfEntity(LegacyEntityType::Wolf, 3)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -112,7 +123,8 @@ public:
 
 } // namespace
 
-TEST(AnimalSoundTest, RabbitAmbientHurtDeathUseRabbitEvents) {
+TEST(AnimalSoundTest, RabbitAmbientHurtDeathUseRabbitEvents)
+{
     SoundCaptureWorld world;
     TestRabbitEntity rabbit;
     rabbit.setWorld(&world);
@@ -143,7 +155,8 @@ TEST(AnimalSoundTest, RabbitAmbientHurtDeathUseRabbitEvents) {
     EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Neutral);
 }
 
-TEST(AnimalSoundTest, RabbitJumpAndAttackUseDedicatedEvents) {
+TEST(AnimalSoundTest, RabbitJumpAndAttackUseDedicatedEvents)
+{
     SoundCaptureWorld world;
     TestRabbitEntity rabbit;
     rabbit.setWorld(&world);
@@ -163,7 +176,8 @@ TEST(AnimalSoundTest, RabbitJumpAndAttackUseDedicatedEvents) {
     EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Hostile);
 }
 
-TEST(AnimalSoundTest, RabbitNormalRabbitDoesNotPlayAttackSound) {
+TEST(AnimalSoundTest, RabbitNormalRabbitDoesNotPlayAttackSound)
+{
     SoundCaptureWorld world;
     TestRabbitEntity rabbit;
     rabbit.setWorld(&world);
@@ -175,7 +189,8 @@ TEST(AnimalSoundTest, RabbitNormalRabbitDoesNotPlayAttackSound) {
     EXPECT_FALSE(world.hasSoundRecord());
 }
 
-TEST(AnimalSoundTest, WolfAmbientSound_UsesVanillaVariants) {
+TEST(AnimalSoundTest, WolfAmbientSound_UsesVanillaVariants)
+{
     TestWolfEntity wolf;
     wolf.setTypeId("minecraft:wolf");
 
@@ -206,7 +221,8 @@ TEST(AnimalSoundTest, WolfAmbientSound_UsesVanillaVariants) {
     EXPECT_TRUE(foundLowHealthAmbient);
 }
 
-TEST(AnimalSoundTest, WolfHurtAndDeathUseWolfEvents) {
+TEST(AnimalSoundTest, WolfHurtAndDeathUseWolfEvents)
+{
     SoundCaptureWorld world;
     EnvironmentalDamage damage(DamageType::Generic);
 
@@ -228,7 +244,8 @@ TEST(AnimalSoundTest, WolfHurtAndDeathUseWolfEvents) {
     EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.wolf.death");
 }
 
-TEST(AnimalSoundTest, WolfStepAndShakeUseDedicatedEvents) {
+TEST(AnimalSoundTest, WolfStepAndShakeUseDedicatedEvents)
+{
     SoundCaptureWorld world;
     TestWolfEntity wolf;
     wolf.setWorld(&world);

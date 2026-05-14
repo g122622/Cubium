@@ -53,7 +53,8 @@ inline constexpr i64 DAY_LENGTH = 24000;
 
 } // namespace
 
-void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
     auto setValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
@@ -82,13 +83,9 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         return setTime(ctx);
     });
 
-    auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "value",
-        IntegerArgumentType::integer(0)
-    );
-    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setTime(ctx);
-    });
+    auto setArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
+    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTime(ctx); });
 
     setValueNode->addChild(dayNode);
     setValueNode->addChild(noonNode);
@@ -97,35 +94,21 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     setValueNode->addChild(setArg);
 
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "value",
-        IntegerArgumentType::integer(0)
-    );
-    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return addTime(ctx);
-    });
+    auto addArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
+    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addTime(ctx); });
     addValueNode->addChild(addArg);
 
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
-    auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "type",
-        StringArgumentType::word()
-    );
-    queryArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return queryTime(ctx);
-    });
+    auto queryArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("type", StringArgumentType::word());
+    queryArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryTime(ctx); });
     queryNode->addChild(queryArg);
 
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
-    timeNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    timeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(
-        timeNode,
-        support::makeMetadata(
-            "Change or query the world time.",
-            "/time <set|add|query> ...",
-            2));
+        timeNode, support::makeMetadata("Change or query the world time.", "/time <set|add|query> ...", 2));
     timeNode->addChild(setValueNode);
     timeNode->addChild(addValueNode);
     timeNode->addChild(queryNode);
@@ -139,7 +122,8 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
  * @param context 命令上下文。
  * @return 设置后的昼夜时间。
  */
-i32 TimeCommand::setTime(CommandContext<ServerCommandSource>& context) {
+i32 TimeCommand::setTime(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -157,7 +141,8 @@ i32 TimeCommand::setTime(CommandContext<ServerCommandSource>& context) {
  * @param context 命令上下文。
  * @return 增加后的昼夜时间。
  */
-i32 TimeCommand::addTime(CommandContext<ServerCommandSource>& context) {
+i32 TimeCommand::addTime(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -181,7 +166,8 @@ i32 TimeCommand::addTime(CommandContext<ServerCommandSource>& context) {
  * @param context 命令上下文。
  * @return 查询值。
  */
-i32 TimeCommand::queryTime(CommandContext<ServerCommandSource>& context) {
+i32 TimeCommand::queryTime(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {

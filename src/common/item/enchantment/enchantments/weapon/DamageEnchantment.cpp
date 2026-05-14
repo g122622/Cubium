@@ -5,10 +5,11 @@ namespace item {
 namespace enchant {
 
 DamageEnchantment::DamageEnchantment(Type damageType)
-    : m_damageType(damageType) {
-}
+    : m_damageType(damageType)
+{}
 
-i32 DamageEnchantment::getMinCost(i32 level) const {
+i32 DamageEnchantment::getMinCost(i32 level) const
+{
     // 参考 MC 1.16.5 伤害附魔成本
     // 锋利: 1 + (level - 1) * 11
     // 亡灵杀手/节肢杀手: 5 + (level - 1) * 8
@@ -19,14 +20,16 @@ i32 DamageEnchantment::getMinCost(i32 level) const {
     }
 }
 
-i32 DamageEnchantment::getMaxCost(i32 level) const {
+i32 DamageEnchantment::getMaxCost(i32 level) const
+{
     return getMinCost(level) + 20;
 }
 
-f32 DamageEnchantment::getDamageBonus(i32 level, u32 entityType) const {
+f32 DamageEnchantment::getDamageBonus(i32 level, u32 entityType) const
+{
     // 实体类型常量（与 EntityTypes 对应）
-    constexpr u32 EntityTypeUndead = 1;      // 亡灵：僵尸、骷髅、凋灵等
-    constexpr u32 EntityTypeArthropod = 2;   // 节肢：蜘蛛、蠹虫、末影螨等
+    constexpr u32 EntityTypeUndead = 1;    // 亡灵：僵尸、骷髅、凋灵等
+    constexpr u32 EntityTypeArthropod = 2; // 节肢：蜘蛛、蠹虫、末影螨等
 
     switch (m_damageType) {
         case Type::All:
@@ -53,7 +56,8 @@ f32 DamageEnchantment::getDamageBonus(i32 level, u32 entityType) const {
     }
 }
 
-bool DamageEnchantment::isCompatibleWith(const Enchantment& other) const {
+bool DamageEnchantment::isCompatibleWith(const Enchantment& other) const
+{
     // 伤害类附魔之间互斥
     if (dynamic_cast<const DamageEnchantment*>(&other) != nullptr) {
         return false;

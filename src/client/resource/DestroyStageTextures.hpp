@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <vector>
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -89,9 +89,7 @@ public:
      * @param v1 输出：下V坐标
      * @return 成功返回 true
      */
-    [[nodiscard]] bool getTextureUV(size_t stage,
-                                     f32& u0, f32& v0,
-                                     f32& u1, f32& v1) const;
+    [[nodiscard]] bool getTextureUV(size_t stage, f32& u0, f32& v0, f32& u1, f32& v1) const;
 
     /**
      * @brief 获取所有纹理合并后的图集数据
@@ -140,9 +138,8 @@ private:
      * @param data 输出纹理数据
      * @return 成功返回 true
      */
-    [[nodiscard]] bool loadTextureFromResourcePack(ResourceManager* resourceManager,
-                                                    size_t stage,
-                                                    std::vector<u8>& data);
+    [[nodiscard]] bool loadTextureFromResourcePack(
+        ResourceManager* resourceManager, size_t stage, std::vector<u8>& data);
 
     /**
      * @brief 构建纹理图集

@@ -1,36 +1,36 @@
 #include "EntityRendererManager.hpp"
-#include "AnimatedMeshCache.hpp"
+#include "../effect/fire/FireEffect.hpp"
+#include "../model/animal/CatModel.hpp"
+#include "../model/animal/HorseModel.hpp"
+#include "../model/animal/OcelotModel.hpp"
+#include "../model/animal/VillagerModel.hpp"
+#include "../model/animal/WolfModel.hpp"
+#include "../model/monster/BlazeModel.hpp"
+#include "../model/monster/CreeperModel.hpp"
+#include "../model/monster/EndermanModel.hpp"
+#include "../model/monster/SkeletonModel.hpp"
+#include "../model/monster/SpiderModel.hpp"
+#include "../model/monster/ZombieModel.hpp"
+#include "../pipeline/EntityTextureAtlas.hpp"
 #include "../renderer/animal/AnimalRenderers.hpp"
-#include "../renderer/animal/WolfRenderer.hpp"
-#include "../renderer/animal/OcelotRenderer.hpp"
 #include "../renderer/animal/CatRenderer.hpp"
 #include "../renderer/animal/HorseRenderer.hpp"
+#include "../renderer/animal/OcelotRenderer.hpp"
 #include "../renderer/animal/VillagerRenderer.hpp"
+#include "../renderer/animal/WolfRenderer.hpp"
+#include "../renderer/aquatic/AquaticRenderers.hpp"
 #include "../renderer/monster/MonsterRenderers.hpp"
 #include "../renderer/monster/MonsterVariantRenderers.hpp"
 #include "../renderer/monster/SpecialMonsterRenderers.hpp"
-#include "../renderer/aquatic/AquaticRenderers.hpp"
 #include "../renderer/nether/NetherRenderers.hpp"
+#include "../renderer/projectile/ExperienceOrbRenderer.hpp"
+#include "../renderer/projectile/ItemEntityRenderer.hpp"
+#include "../renderer/projectile/ProjectileRenderers.hpp"
 #include "../renderer/special/SpecialEntityRenderers.hpp"
 #include "../renderer/vehicle/VehicleRenderers.hpp"
-#include "../renderer/projectile/ProjectileRenderers.hpp"
-#include "../model/animal/WolfModel.hpp"
-#include "../model/animal/OcelotModel.hpp"
-#include "../model/animal/CatModel.hpp"
-#include "../model/animal/HorseModel.hpp"
-#include "../model/animal/VillagerModel.hpp"
-#include "../model/monster/ZombieModel.hpp"
-#include "../model/monster/SkeletonModel.hpp"
-#include "../model/monster/CreeperModel.hpp"
-#include "../model/monster/SpiderModel.hpp"
-#include "../model/monster/EndermanModel.hpp"
-#include "../model/monster/BlazeModel.hpp"
-#include "../renderer/projectile/ItemEntityRenderer.hpp"
-#include "../renderer/projectile/ExperienceOrbRenderer.hpp"
-#include "../pipeline/EntityTextureAtlas.hpp"
-#include "../util/ShadowRenderer.hpp"
 #include "../util/NameTagRenderer.hpp"
-#include "../effect/fire/FireEffect.hpp"
+#include "../util/ShadowRenderer.hpp"
+#include "AnimatedMeshCache.hpp"
 #include "client/resource/EntityTextureLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/world/entity/ClientEntity.hpp"
@@ -38,21 +38,21 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <spdlog/spdlog.h>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity {
 
 // 导入核心命名空间中的类
 using core::EntityRenderer;
+using model::ModelVertex;
 using pipeline::EntityMesh;
 using pipeline::EntityTextureAtlas;
-using model::ModelVertex;
 
 // 导入 EntityTypes 常量命名空间
 namespace EntityTypes = ::mc::entity::EntityTypes;
@@ -74,7 +74,8 @@ inline constexpr f64 SHADOW_MAX_DISTANCE = 256.0;
  * 将实体类型ID转换为标准格式（带命名空间前缀）
  * 例如："pig" -> "minecraft:pig", "minecraft:cow" -> "minecraft:cow"
  */
-std::string normalizeEntityTypeId(const std::string& typeId) {
+std::string normalizeEntityTypeId(const std::string& typeId)
+{
     // 如果已有命名空间前缀，直接返回
     if (typeId.find(':') != std::string::npos) {
         return typeId;
@@ -87,15 +88,16 @@ std::string normalizeEntityTypeId(const std::string& typeId) {
 
 EntityRendererManager::EntityRendererManager()
     : m_animatedMeshCache(std::make_unique<core::AnimatedMeshCache>())
-{
-}
+{}
 
-EntityRendererManager::~EntityRendererManager() {
+EntityRendererManager::~EntityRendererManager()
+{
     // 销毁所有实体网格的Vulkan资源
     clearMeshes();
 }
 
-void EntityRendererManager::clearMeshes() {
+void EntityRendererManager::clearMeshes()
+{
     if (m_pipeline) {
         for (auto& [id, mesh] : m_meshes) {
             m_pipeline->destroyMesh(mesh);
@@ -104,16 +106,15 @@ void EntityRendererManager::clearMeshes() {
     m_meshes.clear();
 }
 
-void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtlas) {
+void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtlas)
+{
     m_textureAtlas = textureAtlas;
     // 图集变化后，旧网格的UV映射可能失效，强制重建
     clearMeshes();
 }
 
 void EntityRendererManager::setCameraInfo(
-    const glm::dvec3& position,
-    const glm::mat4& viewMatrix,
-    const mc::math::frustum::Frustum& frustum)
+    const glm::dvec3& position, const glm::mat4& viewMatrix, const mc::math::frustum::Frustum& frustum)
 {
     m_cameraPosition = position;
     m_viewMatrix = viewMatrix;
@@ -134,11 +135,13 @@ void EntityRendererManager::setCameraInfo(
     util::NameTagRenderer::setFrustum(frustum);
 }
 
-void EntityRendererManager::registerRenderer(const std::string& typeId, RendererCreator creator) {
+void EntityRendererManager::registerRenderer(const std::string& typeId, RendererCreator creator)
+{
     m_creators[typeId] = std::move(creator);
 }
 
-EntityRenderer* EntityRendererManager::getRenderer(const std::string& typeId) {
+EntityRenderer* EntityRendererManager::getRenderer(const std::string& typeId)
+{
     std::string normalizedId = normalizeEntityTypeId(typeId);
     auto it = m_renderers.find(normalizedId);
     if (it != m_renderers.end()) {
@@ -147,7 +150,8 @@ EntityRenderer* EntityRendererManager::getRenderer(const std::string& typeId) {
     return nullptr;
 }
 
-void EntityRendererManager::render(Entity& entity, f64 partialTicks) {
+void EntityRendererManager::render(Entity& entity, f64 partialTicks)
+{
     // 获取实体类型ID并查找渲染器（已在 getOrCreateRenderer 中规范化）
     EntityRenderer* renderer = getOrCreateRenderer(entity.getTypeId());
     if (renderer) {
@@ -161,7 +165,8 @@ void EntityRendererManager::render(Entity& entity, f64 partialTicks) {
     }
 }
 
-void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks) {
+void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks)
+{
     if (!m_pipeline) {
         return;
     }
@@ -213,16 +218,14 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
     // 绑定相机描述符集（set = 0）
     if (m_cameraDescriptorSet != VK_NULL_HANDLE) {
-        vkCmdBindDescriptorSets(
-            cmd,
+        vkCmdBindDescriptorSets(cmd,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             m_pipeline->pipelineLayout(),
-            0,  // set = 0
+            0, // set = 0
             1,
             &m_cameraDescriptorSet,
             0,
-            nullptr
-        );
+            nullptr);
     }
 
     // 绑定纹理描述符（set = 1）
@@ -230,11 +233,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
     // 计算模型矩阵
     std::array<f64, 16> modelMatrix = {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
+        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     const f32 partialTickF32 = static_cast<f32>(partialTicks);
 
     if (isItemEntity) {
@@ -257,13 +256,11 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         // 获取插值位置并应用浮动偏移
         Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
         Vector3f pos(
-            static_cast<f32>(posInterp.x),
-            static_cast<f32>(posInterp.y + bobOffset),
-            static_cast<f32>(posInterp.z));
+            static_cast<f32>(posInterp.x), static_cast<f32>(posInterp.y + bobOffset), static_cast<f32>(posInterp.z));
 
         // 绘制网格（使用更大的缩放）
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f,
-                             Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+        m_pipeline->drawMesh(
+            cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
     } else if (isExperienceOrb) {
         // ExperienceOrb 特殊渲染：应用浮动动画和动态大小
         f64 bobOffset = calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
@@ -282,13 +279,10 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         // 获取插值位置并应用浮动偏移
         Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
         Vector3f pos(
-            static_cast<f32>(posInterp.x),
-            static_cast<f32>(posInterp.y + bobOffset),
-            static_cast<f32>(posInterp.z));
+            static_cast<f32>(posInterp.x), static_cast<f32>(posInterp.y + bobOffset), static_cast<f32>(posInterp.z));
 
         // 绘制网格
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale,
-                             Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
     } else {
         // 普通实体渲染
         // MC 1.16.5 变换顺序 (LivingRenderer.java:93-95):
@@ -321,18 +315,15 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // 获取插值位置
         Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
-        Vector3f pos(
-            static_cast<f32>(posInterp.x),
-            static_cast<f32>(posInterp.y),
-            static_cast<f32>(posInterp.z));
+        Vector3f pos(static_cast<f32>(posInterp.x), static_cast<f32>(posInterp.y), static_cast<f32>(posInterp.z));
 
         // 获取受伤和死亡时间（用于着色器效果）
-        f32 hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;  // 归一化到 0-1
+        f32 hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f; // 归一化到 0-1
         f32 deathTime = static_cast<f32>(entity.deathTime());
 
         // 绘制网格
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE,
-                             Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+        m_pipeline->drawMesh(
+            cmd, *mesh, modelMatrix, pos, MODEL_SCALE, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
         // 渲染层（盔甲、手持物品等）
         if (renderer && renderer->supportsLayers()) {
@@ -346,7 +337,8 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // 渲染阴影
         // 参考 MC 1.16.5 EntityRendererManager.java:258-264
-        // if (this.options.entityShadows && this.renderShadow && entityrenderer.shadowSize > 0.0F && !entityIn.isInvisible())
+        // if (this.options.entityShadows && this.renderShadow && entityrenderer.shadowSize > 0.0F &&
+        // !entityIn.isInvisible())
         if (m_renderShadows && !isItemEntity && !isExperienceOrb) {
             // 使用渲染器的 shadowSize 而非 width * 0.5
             f64 shadowRadius = renderer ? renderer->shadowSize() : static_cast<f64>(entity.width()) * 0.5;
@@ -369,18 +361,18 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 }
 
-bool EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks,
-                                                const mc::math::frustum::Frustum& frustum) {
+bool EntityRendererManager::renderWithPipeline(
+    VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks, const mc::math::frustum::Frustum& frustum)
+{
     // 使用 FrustumUtils 创建实体包围盒
     // 使用插值位置以获得平滑的剔除效果
     const f32 partialTickF32 = static_cast<f32>(partialTicks);
     Vector3 pos = entity.getInterpolatedPosition(partialTickF32);
-    AxisAlignedBB aabb = mc::math::frustum::FrustumUtils::createEntityAABB(
-        pos, entity.width(), entity.height());
+    AxisAlignedBB aabb = mc::math::frustum::FrustumUtils::createEntityAABB(pos, entity.width(), entity.height());
 
     // 使用世界坐标 AABB 进行视锥剔除
     if (!frustum.isAABBVisibleWorld(aabb)) {
-        return false;  // 实体不在视锥内，跳过渲染
+        return false; // 实体不在视锥内，跳过渲染
     }
 
     // 实体在视锥内，正常渲染
@@ -388,24 +380,28 @@ bool EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     return true;
 }
 
-f64 EntityRendererManager::calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const {
+f64 EntityRendererManager::calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const
+{
     return renderer::projectile::ItemEntityRenderer::calculateBobOffset(
         entity.ticksExisted(), partialTick, entity.hoverStart());
 }
 
-f64 EntityRendererManager::calculateItemRotation(const ClientEntity& entity, f64 partialTick) const {
+f64 EntityRendererManager::calculateItemRotation(const ClientEntity& entity, f64 partialTick) const
+{
     return renderer::projectile::ItemEntityRenderer::calculateRotation(
         entity.ticksExisted(), partialTick, entity.hoverStart());
 }
 
-f64 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const {
+f64 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const
+{
     // 参考 MC 1.16.5 ExperienceOrbRenderer
     // 经验球浮动动画：sin(ticks * 0.05) * 0.1 + 0.2
     f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
-    return std::sin(ticks * 0.05f) * 0.1f + 0.3f;  // 0.3 是基础高度偏移（略高于物品）
+    return std::sin(ticks * 0.05f) * 0.1f + 0.3f; // 0.3 是基础高度偏移（略高于物品）
 }
 
-EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity) {
+EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
+{
     EntityId id = entity.id();
     auto it = m_meshes.find(id);
 
@@ -450,7 +446,8 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity) {
     return &m_meshes[id];
 }
 
-void EntityRendererManager::updateMesh(ClientEntity& entity) {
+void EntityRendererManager::updateMesh(ClientEntity& entity)
+{
     EntityId id = entity.id();
     auto it = m_meshes.find(id);
 
@@ -469,7 +466,8 @@ void EntityRendererManager::updateMesh(ClientEntity& entity) {
     (void)m_pipeline->updateMesh(it->second, vertices, indices);
 }
 
-void EntityRendererManager::removeMesh(EntityId entityId) {
+void EntityRendererManager::removeMesh(EntityId entityId)
+{
     auto it = m_meshes.find(entityId);
     if (it != m_meshes.end()) {
         if (m_pipeline) {
@@ -479,7 +477,8 @@ void EntityRendererManager::removeMesh(EntityId entityId) {
     }
 }
 
-void EntityRendererManager::initializeDefaults() {
+void EntityRendererManager::initializeDefaults()
+{
     // 使用 EntityTypes 常量注册渲染器，避免重复注册
     // 所有注册都使用规范化的命名空间格式
     namespace ET = entity::EntityTypes;
@@ -490,120 +489,83 @@ void EntityRendererManager::initializeDefaults() {
     using namespace renderer::projectile;
 
     // ==================== 基础动物渲染器 ====================
-    registerRenderer(ET::PIG, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<PigRenderer>();
-    });
-    registerRenderer(ET::COW, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<CowRenderer>();
-    });
-    registerRenderer(ET::SHEEP, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<SheepRenderer>();
-    });
-    registerRenderer(ET::CHICKEN, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<ChickenRenderer>();
-    });
-    registerRenderer(ET::RABBIT, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<RabbitRenderer>();
-    });
-    registerRenderer(ET::MOOSHROOM, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<MooshroomRenderer>();
-    });
+    registerRenderer(ET::PIG, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<PigRenderer>(); });
+    registerRenderer(ET::COW, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<CowRenderer>(); });
+    registerRenderer(ET::SHEEP, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<SheepRenderer>(); });
+    registerRenderer(
+        ET::CHICKEN, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<ChickenRenderer>(); });
+    registerRenderer(
+        ET::RABBIT, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<RabbitRenderer>(); });
+    registerRenderer(
+        ET::MOOSHROOM, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<MooshroomRenderer>(); });
 
     // ==================== 可驯服动物渲染器 ====================
-    registerRenderer(ET::WOLF, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<WolfRenderer>();
-    });
-    registerRenderer(ET::OCELOT, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<OcelotRenderer>();
-    });
-    registerRenderer(ET::CAT, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<CatRenderer>();
-    });
-    registerRenderer(ET::PARROT, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<ParrotRenderer>();
-    });
+    registerRenderer(ET::WOLF, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<WolfRenderer>(); });
+    registerRenderer(
+        ET::OCELOT, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<OcelotRenderer>(); });
+    registerRenderer(ET::CAT, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<CatRenderer>(); });
+    registerRenderer(
+        ET::PARROT, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<ParrotRenderer>(); });
 
     // ==================== 马类型渲染器 ====================
-    registerRenderer(ET::HORSE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<HorseRenderer>();
-    });
+    registerRenderer(ET::HORSE, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<HorseRenderer>(); });
     registerRenderer(ET::DONKEY, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+        return std::make_unique<HorseRenderer>(); // 复用 HorseRenderer
     });
     registerRenderer(ET::MULE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+        return std::make_unique<HorseRenderer>(); // 复用 HorseRenderer
     });
     registerRenderer(ET::LLAMA, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<HorseRenderer>();  // TODO: LlamaRenderer
+        return std::make_unique<HorseRenderer>(); // TODO: LlamaRenderer
     });
     registerRenderer(ET::SKELETON_HORSE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+        return std::make_unique<HorseRenderer>(); // 复用 HorseRenderer
     });
     registerRenderer(ET::ZOMBIE_HORSE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+        return std::make_unique<HorseRenderer>(); // 复用 HorseRenderer
     });
 
     // ==================== 特殊动物渲染器 ====================
-    registerRenderer(ET::FOX, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<FoxRenderer>();
-    });
-    registerRenderer(ET::PANDA, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<PandaRenderer>();
-    });
+    registerRenderer(ET::FOX, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<FoxRenderer>(); });
+    registerRenderer(ET::PANDA, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<PandaRenderer>(); });
     registerRenderer(ET::POLAR_BEAR, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<PolarBearRenderer>();  // TODO: 实现 PolarBearRenderer
+        return std::make_unique<PolarBearRenderer>(); // TODO: 实现 PolarBearRenderer
     });
-    registerRenderer(ET::TURTLE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<TurtleRenderer>();
-    });
-    registerRenderer(ET::BEE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<BeeRenderer>();
-    });
-    registerRenderer(ET::STRIDER, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<StriderRenderer>();
-    });
+    registerRenderer(
+        ET::TURTLE, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<TurtleRenderer>(); });
+    registerRenderer(ET::BEE, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<BeeRenderer>(); });
+    registerRenderer(
+        ET::STRIDER, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<StriderRenderer>(); });
 
     // ==================== 水生生物渲染器 ====================
     registerAquaticRenderers(*this);
 
     // ==================== 环境生物/傀儡渲染器 ====================
-    registerRenderer(ET::BAT, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<BatRenderer>();
-    });
-    registerRenderer(ET::IRON_GOLEM, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<IronGolemRenderer>();
-    });
-    registerRenderer(ET::SNOW_GOLEM, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<SnowGolemRenderer>();
-    });
+    registerRenderer(ET::BAT, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<BatRenderer>(); });
+    registerRenderer(
+        ET::IRON_GOLEM, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<IronGolemRenderer>(); });
+    registerRenderer(
+        ET::SNOW_GOLEM, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<SnowGolemRenderer>(); });
 
     // ==================== 村民渲染器 ====================
-    registerRenderer(ET::VILLAGER, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<VillagerRenderer>();
-    });
+    registerRenderer(
+        ET::VILLAGER, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<VillagerRenderer>(); });
     registerRenderer(ET::WANDERING_TRADER, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<VillagerRenderer>();  // 复用 VillagerRenderer
+        return std::make_unique<VillagerRenderer>(); // 复用 VillagerRenderer
     });
 
     // ==================== 基础怪物渲染器 ====================
-    registerRenderer(ET::ZOMBIE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<ZombieRenderer>();
-    });
-    registerRenderer(ET::SKELETON, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<SkeletonRenderer>();
-    });
-    registerRenderer(ET::CREEPER, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<CreeperRenderer>();
-    });
-    registerRenderer(ET::SPIDER, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<SpiderRenderer>();
-    });
-    registerRenderer(ET::ENDERMAN, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<EndermanRenderer>();
-    });
-    registerRenderer(ET::BLAZE, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<BlazeRenderer>();
-    });
+    registerRenderer(
+        ET::ZOMBIE, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<ZombieRenderer>(); });
+    registerRenderer(
+        ET::SKELETON, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<SkeletonRenderer>(); });
+    registerRenderer(
+        ET::CREEPER, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<CreeperRenderer>(); });
+    registerRenderer(
+        ET::SPIDER, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<SpiderRenderer>(); });
+    registerRenderer(
+        ET::ENDERMAN, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<EndermanRenderer>(); });
+    registerRenderer(ET::BLAZE, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<BlazeRenderer>(); });
 
     // ==================== 怪物变体渲染器 ====================
     registerMonsterVariantRenderers(*this);
@@ -636,14 +598,14 @@ void EntityRendererManager::initializeDefaults() {
     });
 
     // ==================== ExperienceOrb 渲染器 ====================
-    registerRenderer(ET::EXPERIENCE_ORB, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<ExperienceOrbRenderer>();
-    });
+    registerRenderer(ET::EXPERIENCE_ORB,
+        []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<ExperienceOrbRenderer>(); });
 
     spdlog::debug("EntityRendererManager: Registered all entity renderers");
 }
 
-EntityRenderer* EntityRendererManager::getOrCreateRenderer(const std::string& typeId) {
+EntityRenderer* EntityRendererManager::getOrCreateRenderer(const std::string& typeId)
+{
     // 规范化实体类型ID
     std::string normalizedId = normalizeEntityTypeId(typeId);
 
@@ -666,9 +628,9 @@ EntityRenderer* EntityRendererManager::getOrCreateRenderer(const std::string& ty
     return ptr;
 }
 
-bool EntityRendererManager::generateModelMesh(const std::string& typeId,
-                                               std::vector<ModelVertex>& vertices,
-                                               std::vector<u32>& indices) {
+bool EntityRendererManager::generateModelMesh(
+    const std::string& typeId, std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
+{
     // 规范化实体类型ID，统一使用命名空间格式进行比较
     std::string normalizedId = normalizeEntityTypeId(typeId);
 
@@ -803,47 +765,55 @@ bool EntityRendererManager::generateModelMesh(const std::string& typeId,
     return false;
 }
 
-void EntityRendererManager::generateItemEntityMesh(std::vector<ModelVertex>& vertices,
-                                                    std::vector<u32>& indices) {
+void EntityRendererManager::generateItemEntityMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
+{
     // 生成一个简单的四边形网格用于 ItemEntity
     // 物品图标是一个面向摄像机的 billboard（双面渲染）
     // 尺寸参考 MC 1.16.5：物品在地面上的渲染大小约为 0.25 块
 
-    constexpr f64 HALF_SIZE = 0.125f;  // 物品尺寸的一半 (0.25 / 2)
-    constexpr f64 Y_OFFSET = 0.25f;    // 地面偏移
+    constexpr f64 HALF_SIZE = 0.125f; // 物品尺寸的一半 (0.25 / 2)
+    constexpr f64 Y_OFFSET = 0.25f;   // 地面偏移
 
     // 创建一个垂直的四边形（面向 +Z 方向）
     // 实际渲染时会根据摄像机朝向旋转
     vertices = {
         // 背面（法线 -Z）
-        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f),  // 左下
-        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f),  // 左上
+        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f),         // 左下
+        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f), // 左上
         ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f),  // 右上
-        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f),  // 右下
+        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f),          // 右下
         // 正面（法线 +Z）
-        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),  // 左下
+        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),          // 左下
         ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),  // 左上
-        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f),  // 右上
-        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),  // 右下
+        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f), // 右上
+        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),         // 右下
     };
 
-    indices = {
-        // 背面
-        0, 1, 2, 0, 2, 3,
+    indices = {// 背面
+        0,
+        1,
+        2,
+        0,
+        2,
+        3,
         // 正面
-        4, 5, 6, 4, 6, 7
-    };
+        4,
+        5,
+        6,
+        4,
+        6,
+        7};
 }
 
-void EntityRendererManager::generateExperienceOrbMesh(std::vector<ModelVertex>& vertices,
-                                                       std::vector<u32>& indices) {
+void EntityRendererManager::generateExperienceOrbMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
+{
     // 生成一个简单的四边形网格用于经验球
     // 经验球使用 billboard 方式渲染，始终面向摄像机
     // 参考 MC 1.16.5 ExperienceOrbRenderer
 
     // 经验球基础大小：0.25 块，会根据经验值等级动态缩放
-    constexpr f64 HALF_SIZE = 0.125f;  // 基础尺寸的一半
-    constexpr f64 Y_OFFSET = 0.25f;    // 地面偏移
+    constexpr f64 HALF_SIZE = 0.125f; // 基础尺寸的一半
+    constexpr f64 Y_OFFSET = 0.25f;   // 地面偏移
 
     // 创建双面四边形（billboard）
     // 颜色会在渲染时根据经验值和时间动态计算
@@ -860,15 +830,24 @@ void EntityRendererManager::generateExperienceOrbMesh(std::vector<ModelVertex>& 
         ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),
     };
 
-    indices = {
-        // 背面
-        0, 1, 2, 0, 2, 3,
+    indices = {// 背面
+        0,
+        1,
+        2,
+        0,
+        2,
+        3,
         // 正面
-        4, 5, 6, 4, 6, 7
-    };
+        4,
+        5,
+        6,
+        4,
+        6,
+        7};
 }
 
-void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<ModelVertex>& vertices) {
+void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<ModelVertex>& vertices)
+{
     if (!m_itemTextureAtlas || vertices.empty()) {
         return;
     }
@@ -916,11 +895,13 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
     }
 }
 
-void EntityRendererManager::remapUvToAtlasRegion(const std::string& normalizedTypeId,
-                                                 std::vector<ModelVertex>& vertices) const {
+void EntityRendererManager::remapUvToAtlasRegion(
+    const std::string& normalizedTypeId, std::vector<ModelVertex>& vertices) const
+{
     if (!m_textureAtlas || !m_textureAtlas->isBuilt() || vertices.empty()) {
         // spdlog::info("remapUvToAtlasRegion: early return for '{}' - atlas null: {}, built: {}, vertices empty: {}",
-        //              normalizedTypeId, m_textureAtlas == nullptr, m_textureAtlas && m_textureAtlas->isBuilt(), vertices.empty());
+        //              normalizedTypeId, m_textureAtlas == nullptr, m_textureAtlas && m_textureAtlas->isBuilt(),
+        //              vertices.empty());
         return;
     }
 
@@ -952,23 +933,23 @@ void EntityRendererManager::remapUvToAtlasRegion(const std::string& normalizedTy
     }
 }
 
-void EntityRendererManager::clearAnimatedMeshes() {
+void EntityRendererManager::clearAnimatedMeshes()
+{
     if (m_animatedMeshCache) {
         m_animatedMeshCache->clear();
     }
 }
 
-bool EntityRendererManager::usesAnimatedMesh(const std::string& normalizedTypeId) const {
+bool EntityRendererManager::usesAnimatedMesh(const std::string& normalizedTypeId) const
+{
     // ItemEntity 和 ExperienceOrb 使用静态网格
     // 所有生物实体使用动画网格
-    return normalizedTypeId != entity::EntityTypes::ITEM &&
-           normalizedTypeId != entity::EntityTypes::EXPERIENCE_ORB;
+    return normalizedTypeId != entity::EntityTypes::ITEM && normalizedTypeId != entity::EntityTypes::EXPERIENCE_ORB;
 }
 
 std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
-    ClientEntity& entity,
-    core::AnimationContext& context
-) {
+    ClientEntity& entity, core::AnimationContext& context)
+{
     std::string normalizedId = normalizeEntityTypeId(entity.typeId());
     namespace ET = entity::EntityTypes;
     using namespace model::animal;
@@ -987,7 +968,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
 
     // limbSwingAmount 使用插值 (LivingRenderer.java:99)
     context.limbSwingAmount = static_cast<f64>(entity.prevLimbSwingAmount()) +
-                             static_cast<f64>(entity.limbSwingAmount() - entity.prevLimbSwingAmount()) * context.partialTicks;
+        static_cast<f64>(entity.limbSwingAmount() - entity.prevLimbSwingAmount()) * context.partialTicks;
 
     // 限制最大值 (LivingRenderer.java:105-107)
     if (context.limbSwingAmount > 1.0) {
@@ -998,16 +979,18 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
 
     // 计算头部偏航角（相对于身体）
     f64 bodyYaw = static_cast<f64>(entity.prevRenderYawOffset()) +
-                  static_cast<f64>(entity.renderYawOffset() - entity.prevRenderYawOffset()) * context.partialTicks;
+        static_cast<f64>(entity.renderYawOffset() - entity.prevRenderYawOffset()) * context.partialTicks;
     f64 headYaw = static_cast<f64>(entity.prevRotationYawHead()) +
-                  static_cast<f64>(entity.rotationYawHead() - entity.prevRotationYawHead()) * context.partialTicks;
+        static_cast<f64>(entity.rotationYawHead() - entity.prevRotationYawHead()) * context.partialTicks;
     context.netHeadYaw = headYaw - bodyYaw;
     // 归一化到 -180 到 180
-    while (context.netHeadYaw < -180.0) context.netHeadYaw += 360.0;
-    while (context.netHeadYaw > 180.0) context.netHeadYaw -= 360.0;
+    while (context.netHeadYaw < -180.0)
+        context.netHeadYaw += 360.0;
+    while (context.netHeadYaw > 180.0)
+        context.netHeadYaw -= 360.0;
 
     context.headPitch = static_cast<f64>(entity.prevPitch()) +
-                      static_cast<f64>(entity.pitch() - entity.prevPitch()) * context.partialTicks;
+        static_cast<f64>(entity.pitch() - entity.prevPitch()) * context.partialTicks;
     context.scale = 1.0 / 16.0;
     context.isChild = entity.isChild();
     context.isSitting = entity.isSitting();
@@ -1022,78 +1005,153 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
     // 根据实体类型创建模型
     if (normalizedId == ET::PIG) {
         auto model = std::make_unique<PigModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::COW) {
         auto model = std::make_unique<CowModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::SHEEP) {
         auto model = std::make_unique<SheepModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::CHICKEN) {
         auto model = std::make_unique<ChickenModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::WOLF) {
         auto model = std::make_unique<WolfModel>();
         model->setAnimState(false, false, false, 0.0f, 0.0f, 0.0f);
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::OCELOT) {
         auto model = std::make_unique<OcelotModel>(0.0f);
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::CAT) {
         auto model = std::make_unique<CatModel>(0.0f);
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::HORSE) {
         auto model = std::make_unique<HorseModel>(0.0f);
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::VILLAGER) {
         auto model = std::make_unique<VillagerModel>(0.0f);
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::ZOMBIE) {
         auto model = std::make_unique<ZombieModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::SKELETON) {
         auto model = std::make_unique<SkeletonModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::CREEPER) {
         auto model = std::make_unique<CreeperModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::SPIDER) {
         auto model = std::make_unique<SpiderModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::ENDERMAN) {
         auto model = std::make_unique<EndermanModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
     if (normalizedId == ET::BLAZE) {
         auto model = std::make_unique<BlazeModel>();
-        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        model->setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
         return model;
     }
 
@@ -1102,10 +1160,8 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
 }
 
 pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
-    ClientEntity& entity,
-    model::EntityModel& model,
-    const core::AnimationContext& context
-) {
+    ClientEntity& entity, model::EntityModel& model, const core::AnimationContext& context)
+{
     if (!m_pipeline || !m_animatedMeshCache) {
         return nullptr;
     }
@@ -1113,17 +1169,11 @@ pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
     std::string normalizedId = normalizeEntityTypeId(entity.typeId());
 
     // 设置 UV 重映射回调
-    m_animatedMeshCache->setUvRemapFunc([this, normalizedId](const std::string& typeId, std::vector<ModelVertex>& vertices) {
-        remapUvToAtlasRegion(typeId, vertices);
-    });
+    m_animatedMeshCache->setUvRemapFunc(
+        [this, normalizedId](
+            const std::string& typeId, std::vector<ModelVertex>& vertices) { remapUvToAtlasRegion(typeId, vertices); });
 
-    return m_animatedMeshCache->getOrUpdateMesh(
-        entity.id(),
-        model,
-        normalizedId,
-        context,
-        *m_pipeline
-    );
+    return m_animatedMeshCache->getOrUpdateMesh(entity.id(), model, normalizedId, context, *m_pipeline);
 }
 
 } // namespace mc::client::renderer::entity

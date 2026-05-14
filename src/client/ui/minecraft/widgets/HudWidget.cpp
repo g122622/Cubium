@@ -4,8 +4,8 @@
 #include "client/renderer/trident/item/ItemRenderer.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc::client::ui::minecraft::widgets {
 
@@ -14,36 +14,36 @@ namespace mc::client::ui::minecraft::widgets {
 // ============================================================================
 
 namespace {
-    // 快捷栏尺寸
-    constexpr f32 HOTBAR_WIDTH = 182.0f;
-    constexpr f32 HOTBAR_HEIGHT = 22.0f;
-    constexpr f32 SLOT_SIZE = 18.0f;
-    constexpr f32 SLOT_SPACING = 20.0f;
-    constexpr f32 HOTBAR_OFFSET_Y = 3.0f;
+// 快捷栏尺寸
+constexpr f32 HOTBAR_WIDTH = 182.0f;
+constexpr f32 HOTBAR_HEIGHT = 22.0f;
+constexpr f32 SLOT_SIZE = 18.0f;
+constexpr f32 SLOT_SPACING = 20.0f;
+constexpr f32 HOTBAR_OFFSET_Y = 3.0f;
 
-    // 心形图标尺寸
-    constexpr f32 HEART_SIZE = 9.0f;
-    constexpr f32 HEART_SPACING = 10.0f;
-    constexpr f32 HEALTH_OFFSET_Y = 12.0f;
+// 心形图标尺寸
+constexpr f32 HEART_SIZE = 9.0f;
+constexpr f32 HEART_SPACING = 10.0f;
+constexpr f32 HEALTH_OFFSET_Y = 12.0f;
 
-    // 饥饿图标尺寸
-    constexpr f32 HUNGER_SIZE = 9.0f;
-    constexpr f32 HUNGER_SPACING = 10.0f;
+// 饥饿图标尺寸
+constexpr f32 HUNGER_SIZE = 9.0f;
+constexpr f32 HUNGER_SPACING = 10.0f;
 
-    // 盔甲图标尺寸
-    constexpr f32 ARMOR_SIZE = 9.0f;
-    constexpr f32 ARMOR_SPACING = 10.0f;
+// 盔甲图标尺寸
+constexpr f32 ARMOR_SIZE = 9.0f;
+constexpr f32 ARMOR_SPACING = 10.0f;
 
-    // 经验条尺寸
-    constexpr f32 XP_BAR_WIDTH = 182.0f;
-    constexpr f32 XP_BAR_HEIGHT = 5.0f;
-    constexpr f32 XP_TEXT_OFFSET_Y = -7.0f;
+// 经验条尺寸
+constexpr f32 XP_BAR_WIDTH = 182.0f;
+constexpr f32 XP_BAR_HEIGHT = 5.0f;
+constexpr f32 XP_TEXT_OFFSET_Y = -7.0f;
 
-    // 物品提示
-    constexpr f32 TOOLTIP_PADDING = 4.0f;
-    constexpr f32 TOOLTIP_OFFSET_Y = 12.0f;
+// 物品提示
+constexpr f32 TOOLTIP_PADDING = 4.0f;
+constexpr f32 TOOLTIP_OFFSET_Y = 12.0f;
 
-}
+} // namespace
 
 // ============================================================================
 // 构造函数
@@ -60,7 +60,8 @@ HudWidget::HudWidget()
 // 渲染
 // ============================================================================
 
-void HudWidget::paint(kagero::widget::PaintContext& ctx) {
+void HudWidget::paint(kagero::widget::PaintContext& ctx)
+{
     if (!isVisible() || m_player == nullptr) {
         return;
     }
@@ -80,8 +81,8 @@ void HudWidget::paint(kagero::widget::PaintContext& ctx) {
     renderHunger(ctx);
 }
 
-void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx,
-                              renderer::trident::gui::GuiRenderer& gui) {
+void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx, renderer::trident::gui::GuiRenderer& gui)
+{
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
 
@@ -121,9 +122,11 @@ void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx,
                     ctx.drawImage(image, static_cast<i32>(slotX - 1), static_cast<i32>(slotY - 1));
                 }
             } else {
-                ctx.drawFilledRect(kagero::Rect{static_cast<i32>(slotX - 1), static_cast<i32>(slotY - 1),
-                                                 static_cast<i32>(SLOT_SIZE + 2), static_cast<i32>(SLOT_SIZE + 2)},
-                                   HudColors::HOTBAR_SLOT_HIGHLIGHT);
+                ctx.drawFilledRect(kagero::Rect{static_cast<i32>(slotX - 1),
+                                       static_cast<i32>(slotY - 1),
+                                       static_cast<i32>(SLOT_SIZE + 2),
+                                       static_cast<i32>(SLOT_SIZE + 2)},
+                    HudColors::HOTBAR_SLOT_HIGHLIGHT);
             }
         }
 
@@ -140,15 +143,16 @@ void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx,
                 std::string countText = std::to_string(stack.getCount());
                 f32 textWidth = ctx.getTextWidth(std::string(countText.begin(), countText.end()));
                 ctx.drawText(std::string(countText.begin(), countText.end()),
-                            static_cast<i32>(slotX + SLOT_SIZE - textWidth - 1.0f),
-                            static_cast<i32>(slotY + SLOT_SIZE - 8.0f),
-                            HudColors::TOOLTIP_TEXT);
+                    static_cast<i32>(slotX + SLOT_SIZE - textWidth - 1.0f),
+                    static_cast<i32>(slotY + SLOT_SIZE - 8.0f),
+                    HudColors::TOOLTIP_TEXT);
             }
         }
     }
 }
 
-void HudWidget::renderHealth(kagero::widget::PaintContext& ctx) {
+void HudWidget::renderHealth(kagero::widget::PaintContext& ctx)
+{
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
 
@@ -189,7 +193,8 @@ void HudWidget::renderHealth(kagero::widget::PaintContext& ctx) {
     }
 }
 
-void HudWidget::renderHunger(kagero::widget::PaintContext& ctx) {
+void HudWidget::renderHunger(kagero::widget::PaintContext& ctx)
+{
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
 
@@ -210,7 +215,8 @@ void HudWidget::renderHunger(kagero::widget::PaintContext& ctx) {
     }
 }
 
-void HudWidget::renderExperience(kagero::widget::PaintContext& ctx) {
+void HudWidget::renderExperience(kagero::widget::PaintContext& ctx)
+{
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
 
@@ -231,9 +237,9 @@ void HudWidget::renderExperience(kagero::widget::PaintContext& ctx) {
         std::string levelStr(levelText.begin(), levelText.end());
         f32 textWidth = ctx.getTextWidth(levelStr);
         ctx.drawText(levelStr,
-                     static_cast<i32>((screenWidth - textWidth) / 2.0f),
-                     static_cast<i32>(xpY + XP_TEXT_OFFSET_Y),
-                     HudColors::XP_TEXT);
+            static_cast<i32>((screenWidth - textWidth) / 2.0f),
+            static_cast<i32>(xpY + XP_TEXT_OFFSET_Y),
+            HudColors::XP_TEXT);
     }
 }
 
@@ -241,7 +247,8 @@ void HudWidget::renderExperience(kagero::widget::PaintContext& ctx) {
 // 私有方法
 // ============================================================================
 
-void HudWidget::drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool absorbing) {
+void HudWidget::drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool absorbing)
+{
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
         std::string spriteId;
@@ -277,17 +284,20 @@ void HudWidget::drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool 
     // 后备：纯色绘制
     u32 color = absorbing ? HudColors::HEALTH_YELLOW : HudColors::HEALTH_RED;
     if (full || half) {
-        ctx.drawFilledRect(kagero::Rect{static_cast<i32>(x), static_cast<i32>(y),
-                                         static_cast<i32>(HEART_SIZE), static_cast<i32>(HEART_SIZE)},
-                           color);
+        ctx.drawFilledRect(
+            kagero::Rect{
+                static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(HEART_SIZE), static_cast<i32>(HEART_SIZE)},
+            color);
     } else {
-        ctx.drawFilledRect(kagero::Rect{static_cast<i32>(x), static_cast<i32>(y),
-                                         static_cast<i32>(HEART_SIZE), static_cast<i32>(HEART_SIZE)},
-                           HudColors::HEALTH_EMPTY);
+        ctx.drawFilledRect(
+            kagero::Rect{
+                static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(HEART_SIZE), static_cast<i32>(HEART_SIZE)},
+            HudColors::HEALTH_EMPTY);
     }
 }
 
-void HudWidget::drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half) {
+void HudWidget::drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half)
+{
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
         std::string spriteId;
@@ -310,12 +320,14 @@ void HudWidget::drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool
 
     // 后备：纯色绘制
     u32 color = (full || half) ? HudColors::HUNGER_FULL : HudColors::HUNGER_EMPTY;
-    ctx.drawFilledRect(kagero::Rect{static_cast<i32>(x), static_cast<i32>(y),
-                                     static_cast<i32>(HUNGER_SIZE), static_cast<i32>(HUNGER_SIZE)},
-                       color);
+    ctx.drawFilledRect(
+        kagero::Rect{
+            static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(HUNGER_SIZE), static_cast<i32>(HUNGER_SIZE)},
+        color);
 }
 
-void HudWidget::drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full) {
+void HudWidget::drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full)
+{
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
         std::string spriteId = full ? "armor_full" : "armor_empty";
@@ -331,22 +343,26 @@ void HudWidget::drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool 
 
     // 后备：纯色绘制
     u32 color = full ? HudColors::HEALTH_RED : HudColors::HEALTH_EMPTY;
-    ctx.drawFilledRect(kagero::Rect{static_cast<i32>(x), static_cast<i32>(y),
-                                     static_cast<i32>(ARMOR_SIZE), static_cast<i32>(ARMOR_SIZE)},
-                       color);
+    ctx.drawFilledRect(
+        kagero::Rect{
+            static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(ARMOR_SIZE), static_cast<i32>(ARMOR_SIZE)},
+        color);
 }
 
-void HudWidget::drawExperienceBar(kagero::widget::PaintContext& ctx, f32 x, f32 y, f32 progress, f32 width, f32 height) {
+void HudWidget::drawExperienceBar(kagero::widget::PaintContext& ctx, f32 x, f32 y, f32 progress, f32 width, f32 height)
+{
     // 尝试使用纹理绘制经验条背景（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr && m_iconsAtlas->hasSprite("xp_bar_empty")) {
-        auto emptyImage = m_iconsAtlas->createTextureImage("xp_bar_empty", static_cast<i32>(width), static_cast<i32>(height));
+        auto emptyImage =
+            m_iconsAtlas->createTextureImage("xp_bar_empty", static_cast<i32>(width), static_cast<i32>(height));
         if (emptyImage.isValid()) {
             ctx.drawImage(emptyImage, static_cast<i32>(x), static_cast<i32>(y));
         }
 
         // 绘制进度部分
         if (progress > 0.0f && m_iconsAtlas->hasSprite("xp_bar_full")) {
-            auto fullImage = m_iconsAtlas->createTextureImage("xp_bar_full", static_cast<i32>(width * progress), static_cast<i32>(height));
+            auto fullImage = m_iconsAtlas->createTextureImage(
+                "xp_bar_full", static_cast<i32>(width * progress), static_cast<i32>(height));
             if (fullImage.isValid()) {
                 // 使用裁剪绘制进度条
                 ctx.drawImage(fullImage, static_cast<i32>(x), static_cast<i32>(y));
@@ -356,14 +372,15 @@ void HudWidget::drawExperienceBar(kagero::widget::PaintContext& ctx, f32 x, f32 
     }
 
     // 后备：纯色绘制
-    ctx.drawFilledRect(kagero::Rect{static_cast<i32>(x), static_cast<i32>(y),
-                                     static_cast<i32>(width), static_cast<i32>(height)},
-                       HudColors::XP_BACKGROUND);
+    ctx.drawFilledRect(
+        kagero::Rect{static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(width), static_cast<i32>(height)},
+        HudColors::XP_BACKGROUND);
 
     if (progress > 0.0f) {
-        ctx.drawFilledRect(kagero::Rect{static_cast<i32>(x), static_cast<i32>(y),
-                                         static_cast<i32>(width * progress), static_cast<i32>(height)},
-                           HudColors::XP_FOREGROUND);
+        ctx.drawFilledRect(
+            kagero::Rect{
+                static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(width * progress), static_cast<i32>(height)},
+            HudColors::XP_FOREGROUND);
     }
 }
 

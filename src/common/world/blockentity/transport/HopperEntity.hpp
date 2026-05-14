@@ -1,10 +1,10 @@
 #pragma once
 
+#include "entity/inventory/IInventory.hpp"
+#include "util/Direction.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
-#include "entity/inventory/IInventory.hpp"
-#include "util/Direction.hpp"
 #include <vector>
 
 namespace mc {
@@ -198,10 +198,7 @@ public:
      * @return 剩余未插入的物品
      */
     static ItemStack putStackInInventoryAllSlots(
-        IInventory* source,
-        IInventory* destination,
-        const ItemStack& stack,
-        Direction direction);
+        IInventory* source, IInventory* destination, const ItemStack& stack, Direction direction);
 
 private:
     /**
@@ -247,11 +244,7 @@ private:
      * @param direction 拉取方向
      * @return 如果成功拉取返回true
      */
-    static bool pullItemFromSlot(
-        IHopper& hopper,
-        IInventory* inventory,
-        i32 slotIndex,
-        Direction direction);
+    static bool pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32 slotIndex, Direction direction);
 
     /**
      * @brief 插入物品到容器槽位
@@ -263,11 +256,7 @@ private:
      * @return 剩余未插入的物品
      */
     static ItemStack insertStack(
-        IInventory* source,
-        IInventory* destination,
-        const ItemStack& stack,
-        i32 slotIndex,
-        Direction direction);
+        IInventory* source, IInventory* destination, const ItemStack& stack, i32 slotIndex, Direction direction);
 
     /**
      * @brief 检查是否可以将物品插入槽位
@@ -278,10 +267,7 @@ private:
      * @return 如果可以插入返回true
      */
     [[nodiscard]] static bool canInsertItemInSlot(
-        const IInventory* inventory,
-        const ItemStack& stack,
-        i32 slotIndex,
-        Direction direction);
+        const IInventory* inventory, const ItemStack& stack, i32 slotIndex, Direction direction);
 
     /**
      * @brief 检查是否可以从槽位提取物品
@@ -292,10 +278,7 @@ private:
      * @return 如果可以提取返回true
      */
     [[nodiscard]] static bool canExtractItemFromSlot(
-        const IInventory* inventory,
-        const ItemStack& stack,
-        i32 slotIndex,
-        Direction direction);
+        const IInventory* inventory, const ItemStack& stack, i32 slotIndex, Direction direction);
 
     /**
      * @brief 检查两个物品是否可以合并
@@ -307,10 +290,10 @@ private:
 
     // ========== 成员变量 ==========
 
-    SimpleInventory m_inventory;    ///< 5格背包
-    i32 m_transferCooldown = -1;    ///< 传输冷却（-1表示刚放置）
-    u64 m_tickedGameTime = 0;       ///< 上次tick的游戏时间
-    IWorld* m_world = nullptr;      ///< 世界指针（非拥有）
+    SimpleInventory m_inventory; ///< 5格背包
+    i32 m_transferCooldown = -1; ///< 传输冷却（-1表示刚放置）
+    u64 m_tickedGameTime = 0;    ///< 上次tick的游戏时间
+    IWorld* m_world = nullptr;   ///< 世界指针（非拥有）
 };
 
 } // namespace blockentity

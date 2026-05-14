@@ -1,14 +1,14 @@
 #include "PlayerDataManager.hpp"
-#include "common/world/storage/db/RocksDBDatabase.hpp"
-#include "common/world/storage/db/ColumnFamilies.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/player/ServerPlayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/experience/ExperienceManager.hpp"
 #include "common/entity/food/FoodStats.hpp"
-#include <spdlog/spdlog.h>
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/world/storage/db/ColumnFamilies.hpp"
+#include "common/world/storage/db/RocksDBDatabase.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include <mutex>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
 
@@ -28,8 +28,7 @@ PlayerDataManager::~PlayerDataManager()
     if (!m_dirtyUuids.empty()) {
         auto result = saveAllDirty();
         if (result.failed()) {
-            spdlog::error("Failed to save dirty player data on shutdown: {}",
-                         result.error().message());
+            spdlog::error("Failed to save dirty player data on shutdown: {}", result.error().message());
         }
     }
     spdlog::debug("PlayerDataManager shutdown");
@@ -203,11 +202,10 @@ const PlayerSaveData* PlayerDataManager::getCachedPlayer(const std::string& uuid
 // 从服务器数据转换
 // ============================================================================
 
-PlayerSaveData PlayerDataManager::fromServerPlayerData(
-    const server::ServerPlayerData& playerData)
+PlayerSaveData PlayerDataManager::fromServerPlayerData(const server::ServerPlayerData& playerData)
 {
     PlayerSaveData data;
-    data.uuid = playerData.uuid;  // 使用真正的 UUID
+    data.uuid = playerData.uuid; // 使用真正的 UUID
     data.username = playerData.username;
 
     // 位置
@@ -221,7 +219,7 @@ PlayerSaveData PlayerDataManager::fromServerPlayerData(
     data.gameMode = playerData.gameMode;
 
     // 生命值
-    data.health = 20.0f;  // 从 ServerPlayerData 获取需要扩展该结构
+    data.health = 20.0f; // 从 ServerPlayerData 获取需要扩展该结构
     data.foodLevel = 20;
     data.saturationLevel = 5.0f;
 

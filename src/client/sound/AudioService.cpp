@@ -1,18 +1,18 @@
 #include "client/sound/AudioService.hpp"
 
 #include "client/settings/ClientSettings.hpp"
+#include "client/sound/MusicPlayer.hpp"
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/SoundHandler.hpp"
-#include "client/sound/MusicPlayer.hpp"
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
-#include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/handler/BubbleColumnAmbientHandler.hpp"
 #include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/handler/WeatherSoundHandler.hpp"
 
-#include "common/resource/ResourcePackList.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/resource/ResourcePackList.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -24,13 +24,12 @@ namespace mc::client::sound {
 namespace {
 constexpr std::chrono::milliseconds AUDIO_TICK_INTERVAL{50};
 using AudioClock = std::chrono::steady_clock;
-}
+} // namespace
 
 AudioService::AudioService(ResourcePackList& resourcePacks, ClientSettings& settings)
     : m_resourcePacks(resourcePacks)
     , m_settings(settings)
-{
-}
+{}
 
 AudioService::~AudioService()
 {
@@ -190,9 +189,7 @@ void AudioService::setPaused(bool paused)
     enqueue(std::move(command));
 }
 
-void AudioService::updateListener(const glm::vec3& position,
-                                  const glm::vec3& forward,
-                                  const glm::vec3& up)
+void AudioService::updateListener(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up)
 {
     if (!m_loaded.load()) {
         return;
@@ -279,8 +276,8 @@ void AudioService::setBubbleColumnState(bool inBubbleColumn, bool isDrag)
     enqueue(std::move(command));
 }
 
-void AudioService::updateMusicState(i32 dimension, bool inCreative, bool inBossFight,
-                                     const std::optional<world::biome::BiomeMusic>& biomeMusic)
+void AudioService::updateMusicState(
+    i32 dimension, bool inCreative, bool inBossFight, const std::optional<world::biome::BiomeMusic>& biomeMusic)
 {
     if (!m_loaded.load()) {
         return;
@@ -460,11 +457,8 @@ void AudioService::updateGuardianTarget(u32 entityId, u32 targetEntityId)
     enqueue(std::move(command));
 }
 
-void AudioService::playMovingSound(const ResourceLocation& soundEventId,
-                                   SoundCategory category,
-                                   u32 entityId,
-                                   f32 volume,
-                                   f32 pitch)
+void AudioService::playMovingSound(
+    const ResourceLocation& soundEventId, SoundCategory category, u32 entityId, f32 volume, f32 pitch)
 {
     if (!m_loaded.load() || !m_entitySoundHandler) {
         return;
@@ -570,9 +564,8 @@ void AudioService::runWorker()
             {
                 std::unique_lock lock(m_mutex);
                 if (m_commands.empty() && !m_stopRequested.load()) {
-                    m_conditionVariable.wait_until(lock, nextTickTime, [this]() {
-                        return m_stopRequested.load() || !m_commands.empty();
-                    });
+                    m_conditionVariable.wait_until(
+                        lock, nextTickTime, [this]() { return m_stopRequested.load() || !m_commands.empty(); });
                 }
 
                 localCommands.swap(m_commands);
@@ -602,8 +595,13 @@ void AudioService::runWorker()
                         std::lock_guard<std::mutex> lock(m_biomeMusicMutex);
                         biomeMusic = m_savedBiomeMusic;
                     }
-                    m_musicPlayer->tick(m_paused.load(), m_savedInMenu.load(), m_savedDimension, m_savedUnderwater,
-                                        m_savedCreative, m_savedBossFight, biomeMusic);
+                    m_musicPlayer->tick(m_paused.load(),
+                        m_savedInMenu.load(),
+                        m_savedDimension,
+                        m_savedUnderwater,
+                        m_savedCreative,
+                        m_savedBossFight,
+                        biomeMusic);
                 }
 
                 nextTickTime = now + AUDIO_TICK_INTERVAL;
@@ -621,7 +619,8 @@ void AudioService::runWorker()
         m_underwaterAmbientHandler = nullptr;
         m_loaded.store(false);
         m_running.store(false);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         spdlog::error("[AudioService] Worker thread failed: {}", e.what());
         m_initResult = Error(ErrorCode::OperationFailed, e.what(), "AudioService::runWorker");
         {
@@ -706,9 +705,7 @@ void AudioService::processCommand(Command& command)
         case CommandType::SetBubbleColumnState:
             if (m_bubbleColumnAmbientHandler) {
                 m_bubbleColumnAmbientHandler->setBubbleColumnState(
-                    command.bubbleColumn.inBubbleColumn,
-                    command.bubbleColumn.isDrag
-                );
+                    command.bubbleColumn.inBubbleColumn, command.bubbleColumn.isDrag);
             }
             break;
 
@@ -741,17 +738,14 @@ void AudioService::processCommand(Command& command)
         case CommandType::UpdateWeatherState:
             if (m_weatherSoundHandler) {
                 m_weatherSoundHandler->updateWeatherState(
-                    command.rainStrength,
-                    command.thunderStrength,
-                    command.weatherPlayerY,
-                    command.canSeeSky
-                );
+                    command.rainStrength, command.thunderStrength, command.weatherPlayerY, command.canSeeSky);
             }
             break;
 
         case CommandType::EntitySpawn:
             if (m_entitySoundHandler && m_soundEngine) {
-                m_entitySoundHandler->onEntitySpawn(*m_soundEngine, static_cast<EntityId>(command.entityId), command.entityTypeId);
+                m_entitySoundHandler->onEntitySpawn(
+                    *m_soundEngine, static_cast<EntityId>(command.entityId), command.entityTypeId);
             }
             break;
 
@@ -763,7 +757,8 @@ void AudioService::processCommand(Command& command)
 
         case CommandType::ElytraFlyingChanged:
             if (m_entitySoundHandler && m_soundEngine) {
-                m_entitySoundHandler->onPlayerElytraFlyingChanged(*m_soundEngine, static_cast<EntityId>(command.entityId), command.isFlying);
+                m_entitySoundHandler->onPlayerElytraFlyingChanged(
+                    *m_soundEngine, static_cast<EntityId>(command.entityId), command.isFlying);
             }
             break;
 
@@ -786,9 +781,7 @@ void AudioService::processCommand(Command& command)
             // 守卫者目标更新：更新 attackAnimScale
             if (m_entitySoundHandler) {
                 m_entitySoundHandler->onGuardianTargetChanged(
-                    static_cast<EntityId>(command.entityId),
-                    static_cast<EntityId>(command.targetEntityId)
-                );
+                    static_cast<EntityId>(command.entityId), static_cast<EntityId>(command.targetEntityId));
             }
             break;
 
@@ -800,14 +793,12 @@ void AudioService::processCommand(Command& command)
         case CommandType::MovingSound:
             // 播放移动声音
             if (m_entitySoundHandler && m_soundEngine) {
-                m_entitySoundHandler->playMovingSound(
-                    *m_soundEngine,
+                m_entitySoundHandler->playMovingSound(*m_soundEngine,
                     command.soundEventId,
                     command.category,
                     static_cast<EntityId>(command.entityId),
                     command.volume,
-                    command.pitch
-                );
+                    command.pitch);
             }
             break;
     }

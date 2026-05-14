@@ -1,14 +1,14 @@
-#include <gtest/gtest.h>
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include <array>
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -20,7 +20,8 @@ namespace {
  */
 class WorldGenDeterminismTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
@@ -29,7 +30,8 @@ protected:
 /**
  * @brief 测试生物群系层生成的确定性
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderDeterminism) {
+TEST_F(WorldGenDeterminismTest, LayerBiomeProviderDeterminism)
+{
     const u64 seed = 12345;
 
     // 创建两个生物群系提供者
@@ -51,7 +53,8 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderDeterminism) {
 /**
  * @brief 测试噪声坐标批量采样与逐点采样一致
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSampling) {
+TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSampling)
+{
     const u64 seed = 24680;
     LayerBiomeProvider provider(seed, false);
 
@@ -67,8 +70,7 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSamplin
     for (i32 z = 0; z < height; ++z) {
         for (i32 x = 0; x < width; ++x) {
             const BiomeId scalar = provider.getNoiseBiome(startNoiseX + x, 0, startNoiseZ + z);
-            EXPECT_EQ(batch[idx], scalar)
-                << "Noise batch mismatch at local(" << x << ", " << z << ")";
+            EXPECT_EQ(batch[idx], scalar) << "Noise batch mismatch at local(" << x << ", " << z << ")";
             ++idx;
         }
     }
@@ -77,7 +79,8 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSamplin
 /**
  * @brief 测试区块生物群系容器使用噪声网格坐标填充
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid) {
+TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid)
+{
     const u64 seed = 13579;
     LayerBiomeProvider provider(seed, false);
 
@@ -94,8 +97,7 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid) {
             for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
                 const BiomeId expected = provider.getNoiseBiome(startNoiseX + bx, 0, startNoiseZ + bz);
                 const BiomeId actual = container.getBiome(bx, by, bz);
-                EXPECT_EQ(actual, expected)
-                    << "Biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
+                EXPECT_EQ(actual, expected) << "Biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
             }
         }
     }
@@ -162,7 +164,8 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid) {
 /**
  * @brief 测试特征生成种子的确定性
  */
-TEST_F(WorldGenDeterminismTest, FeatureGenerationSeedDeterminism) {
+TEST_F(WorldGenDeterminismTest, FeatureGenerationSeedDeterminism)
+{
     const u64 seed = 77777;
     const i32 chunkX = 5;
     const i32 chunkZ = -3;
@@ -203,7 +206,8 @@ TEST_F(WorldGenDeterminismTest, FeatureGenerationSeedDeterminism) {
 /**
  * @brief 测试地表生成种子的确定性
  */
-TEST_F(WorldGenDeterminismTest, SurfaceGenerationSeedDeterminism) {
+TEST_F(WorldGenDeterminismTest, SurfaceGenerationSeedDeterminism)
+{
     const u64 seed = 11111;
     const ChunkCoord chunkX = 7;
     const ChunkCoord chunkZ = 11;
@@ -211,9 +215,8 @@ TEST_F(WorldGenDeterminismTest, SurfaceGenerationSeedDeterminism) {
     // 两次计算地表种子
     auto computeSurfaceValues = [chunkX, chunkZ](u64 worldSeed) {
         // 参考 NoiseChunkGenerator::buildSurface
-        math::Random surfaceRng(static_cast<u64>(chunkX) * 341873128712ULL +
-                                static_cast<u64>(chunkZ) * 132897987541ULL +
-                                worldSeed);
+        math::Random surfaceRng(
+            static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL + worldSeed);
 
         std::vector<u64> values;
         for (int i = 0; i < 20; ++i) {
@@ -234,7 +237,8 @@ TEST_F(WorldGenDeterminismTest, SurfaceGenerationSeedDeterminism) {
 /**
  * @brief 测试噪声生成器的确定性
  */
-TEST_F(WorldGenDeterminismTest, NoiseGeneratorDeterminism) {
+TEST_F(WorldGenDeterminismTest, NoiseGeneratorDeterminism)
+{
     const u64 seed = 12345;
 
     // 创建两个 OctavesNoiseGenerator
@@ -265,7 +269,8 @@ TEST_F(WorldGenDeterminismTest, NoiseGeneratorDeterminism) {
  * 2. 每层频率/振幅缩放顺序正确
  * 3. useNoiseOffsets 开关行为稳定
  */
-TEST_F(WorldGenDeterminismTest, PerlinNoiseManualBlendParity) {
+TEST_F(WorldGenDeterminismTest, PerlinNoiseManualBlendParity)
+{
     constexpr u64 seed = 0x20260404ULL;
     constexpr i32 minOctave = -3;
     constexpr i32 maxOctave = 0;
@@ -288,10 +293,9 @@ TEST_F(WorldGenDeterminismTest, PerlinNoiseManualBlendParity) {
                 const f64 offsetX = useNoiseOffsets ? static_cast<f64>(level->xOffset()) : 0.0;
                 const f64 offsetY = useNoiseOffsets ? static_cast<f64>(level->yOffset()) : 0.0;
 
-                result += level->getValue(
-                    static_cast<f64>(x) * xFactor + offsetX,
-                    static_cast<f64>(y) * xFactor + offsetY
-                ) * yFactor;
+                result +=
+                    level->getValue(static_cast<f64>(x) * xFactor + offsetX, static_cast<f64>(y) * xFactor + offsetY) *
+                    yFactor;
             }
 
             xFactor /= 2.0;
@@ -326,7 +330,8 @@ TEST_F(WorldGenDeterminismTest, PerlinNoiseManualBlendParity) {
 /**
  * @brief 测试结构生成种子的确定性
  */
-TEST_F(WorldGenDeterminismTest, StructureSeedDeterminism) {
+TEST_F(WorldGenDeterminismTest, StructureSeedDeterminism)
+{
     const u64 seed = 42;
     const ChunkCoord chunkX = 100;
     const ChunkCoord chunkZ = -200;
@@ -334,9 +339,8 @@ TEST_F(WorldGenDeterminismTest, StructureSeedDeterminism) {
     // 两次计算结构生成种子
     auto computeStructureValues = [chunkX, chunkZ](u64 worldSeed) {
         // 参考 NoiseChunkGenerator::generateStructureStarts
-        math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
-                         static_cast<u64>(chunkZ) * 132897987541ULL +
-                         worldSeed);
+        math::Random rng(
+            static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL + worldSeed);
 
         std::vector<u64> values;
         for (int i = 0; i < 20; ++i) {
@@ -357,13 +361,14 @@ TEST_F(WorldGenDeterminismTest, StructureSeedDeterminism) {
 /**
  * @brief 测试 nextLong() 无参数方法
  */
-TEST_F(WorldGenDeterminismTest, NextLongNoArgs) {
+TEST_F(WorldGenDeterminismTest, NextLongNoArgs)
+{
     const u64 seed = 54321;
     math::Random rng(seed);
 
     // nextLong() 应该返回完整的 64 位随机数
     i64 val = rng.nextLong();
-    (void)val;  // 只检查不会崩溃
+    (void)val; // 只检查不会崩溃
 
     // 测试多次调用产生不同值
     std::set<i64> values;
@@ -376,7 +381,8 @@ TEST_F(WorldGenDeterminismTest, NextLongNoArgs) {
 /**
  * @brief 测试生物群系层多次采样确定性
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderMultipleSamples) {
+TEST_F(WorldGenDeterminismTest, LayerBiomeProviderMultipleSamples)
+{
     const u64 seed = 98765;
 
     // 使用相同种子创建两个提供者
@@ -398,7 +404,8 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderMultipleSamples) {
 /**
  * @brief 测试主世界在采样窗口内具备足够地形起伏
  */
-TEST_F(WorldGenDeterminismTest, OverworldTerrainHasTallReliefInSampleWindow) {
+TEST_F(WorldGenDeterminismTest, OverworldTerrainHasTallReliefInSampleWindow)
+{
     const std::array<u64, 3> seeds{12345ULL, 987654321ULL, 20260404ULL};
 
     i32 maxHeight = std::numeric_limits<i32>::min();

@@ -17,19 +17,25 @@ namespace mc::client::renderer::api {
  * 与着色器中的顶点输入布局对应。
  */
 struct Vertex {
-    f64 x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
-    f64 nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
-    f64 u = 0.0f, v = 0.0f;                  // 纹理坐标
-    u32 color = 0xFFFFFFFF;                  // 顶点颜色 (RGBA)
-    u8 light = 255;                          // 光照 (R8_UNORM 编码，0-255)
+    f64 x = 0.0f, y = 0.0f, z = 0.0f;    // 位置
+    f64 nx = 0.0f, ny = 0.0f, nz = 0.0f; // 法线
+    f64 u = 0.0f, v = 0.0f;              // 纹理坐标
+    u32 color = 0xFFFFFFFF;              // 顶点颜色 (RGBA)
+    u8 light = 255;                      // 光照 (R8_UNORM 编码，0-255)
 
     Vertex() = default;
     Vertex(f64 px, f64 py, f64 pz, f64 nu, f64 nv, f64 nw, f64 tu, f64 tv, u32 col = 0xFFFFFFFF, u8 l = 255)
-        : x(px), y(py), z(pz)
-        , nx(nu), ny(nv), nz(nw)
-        , u(tu), v(tv)
+        : x(px)
+        , y(py)
+        , z(pz)
+        , nx(nu)
+        , ny(nv)
+        , nz(nw)
+        , u(tu)
+        , v(tv)
         , color(col)
-        , light(l) {}
+        , light(l)
+    {}
 
     /**
      * @brief 获取顶点格式的字节大小
@@ -47,12 +53,12 @@ struct Vertex {
  * 定义方块六个面的方向，用于几何生成和面剔除。
  */
 enum class Face : u8 {
-    Bottom = 0,  // Y- (下)
-    Top = 1,     // Y+ (上)
-    North = 2,   // Z- (北)
-    South = 3,   // Z+ (南)
-    West = 4,    // X- (西)
-    East = 5,    // X+ (东)
+    Bottom = 0, // Y- (下)
+    Top = 1,    // Y+ (上)
+    North = 2,  // Z- (北)
+    South = 3,  // Z+ (南)
+    West = 4,   // X- (西)
+    East = 5,   // X+ (东)
     Count = 6
 };
 
@@ -113,28 +119,28 @@ constexpr u32 INDICES_PER_FACE = 6;
  * @brief 缓冲区用途类型
  */
 enum class BufferUsage : u8 {
-    Vertex,      // 顶点缓冲区
-    Index,       // 索引缓冲区
-    Uniform,     // Uniform 缓冲区
-    Staging,     // 暂存缓冲区
-    Storage      // 存储/SSBO 缓冲区
+    Vertex,  // 顶点缓冲区
+    Index,   // 索引缓冲区
+    Uniform, // Uniform 缓冲区
+    Staging, // 暂存缓冲区
+    Storage  // 存储/SSBO 缓冲区
 };
 
 /**
  * @brief 内存类型
  */
 enum class MemoryType : u8 {
-    DeviceLocal,    // 仅 GPU 可访问，性能最优
-    HostVisible,    // CPU 可访问
-    HostCoherent    // CPU 可访问，无需手动刷新
+    DeviceLocal, // 仅 GPU 可访问，性能最优
+    HostVisible, // CPU 可访问
+    HostCoherent // CPU 可访问，无需手动刷新
 };
 
 /**
  * @brief 索引类型
  */
 enum class IndexType : u8 {
-    U16,  // 16位索引
-    U32   // 32位索引
+    U16, // 16位索引
+    U32  // 32位索引
 };
 
 } // namespace mc::client::renderer::api

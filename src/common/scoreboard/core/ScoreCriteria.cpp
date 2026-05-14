@@ -1,25 +1,27 @@
 #include "ScoreCriteria.hpp"
-#include "Scoreboard.hpp"
-#include "Score.hpp"
-#include "../criteria/DummyCriteria.hpp"
-#include "../criteria/TriggerCriteria.hpp"
+#include "../../util/text/TextStyle.hpp"
 #include "../criteria/DeathCountCriteria.hpp"
+#include "../criteria/DummyCriteria.hpp"
 #include "../criteria/KillCountCriteria.hpp"
 #include "../criteria/ReadOnlyCriteria.hpp"
 #include "../criteria/TeamKillCriteria.hpp"
-#include "../../util/text/TextStyle.hpp"
+#include "../criteria/TriggerCriteria.hpp"
+#include "Score.hpp"
+#include "Scoreboard.hpp"
 #include <cassert>
 
 namespace mc::scoreboard {
 
 // ========== ScoreCriteriaRegistry ==========
 
-ScoreCriteriaRegistry& ScoreCriteriaRegistry::instance() {
+ScoreCriteriaRegistry& ScoreCriteriaRegistry::instance()
+{
     static ScoreCriteriaRegistry s_instance;
     return s_instance;
 }
 
-Result<void> ScoreCriteriaRegistry::registerCriteria(std::unique_ptr<ScoreCriteria> criteria) {
+Result<void> ScoreCriteriaRegistry::registerCriteria(std::unique_ptr<ScoreCriteria> criteria)
+{
     if (!criteria) {
         return Error(ErrorCode::InvalidArgument, "Criteria cannot be null");
     }
@@ -37,21 +39,25 @@ Result<void> ScoreCriteriaRegistry::registerCriteria(std::unique_ptr<ScoreCriter
     return {};
 }
 
-ScoreCriteria* ScoreCriteriaRegistry::getCriteria(const std::string& name) {
+ScoreCriteria* ScoreCriteriaRegistry::getCriteria(const std::string& name)
+{
     auto it = m_criteria.find(name);
     return it != m_criteria.end() ? it->second.get() : nullptr;
 }
 
-const ScoreCriteria* ScoreCriteriaRegistry::getCriteria(const std::string& name) const {
+const ScoreCriteria* ScoreCriteriaRegistry::getCriteria(const std::string& name) const
+{
     auto it = m_criteria.find(name);
     return it != m_criteria.end() ? it->second.get() : nullptr;
 }
 
-bool ScoreCriteriaRegistry::hasCriteria(const std::string& name) const {
+bool ScoreCriteriaRegistry::hasCriteria(const std::string& name) const
+{
     return m_criteria.find(name) != m_criteria.end();
 }
 
-std::vector<std::string> ScoreCriteriaRegistry::getAllCriteriaNames() const {
+std::vector<std::string> ScoreCriteriaRegistry::getAllCriteriaNames() const
+{
     std::vector<std::string> names;
     names.reserve(m_criteria.size());
     for (const auto& [name, criteria] : m_criteria) {
@@ -60,7 +66,8 @@ std::vector<std::string> ScoreCriteriaRegistry::getAllCriteriaNames() const {
     return names;
 }
 
-void ScoreCriteriaRegistry::registerBuiltinCriteria() {
+void ScoreCriteriaRegistry::registerBuiltinCriteria()
+{
     // 基础判据
     registerCriteria(std::make_unique<DummyCriteria>());
     registerCriteria(std::make_unique<TriggerCriteria>());
@@ -77,8 +84,7 @@ void ScoreCriteriaRegistry::registerBuiltinCriteria() {
     registerCriteria(std::make_unique<LevelCriteria>());
 
     // 队伍击杀判据（16种颜色）
-    const TextFormatting colors[] = {
-        TextFormatting::Black,
+    const TextFormatting colors[] = {TextFormatting::Black,
         TextFormatting::DarkBlue,
         TextFormatting::DarkGreen,
         TextFormatting::DarkAqua,
@@ -93,8 +99,7 @@ void ScoreCriteriaRegistry::registerBuiltinCriteria() {
         TextFormatting::Red,
         TextFormatting::LightPurple,
         TextFormatting::Yellow,
-        TextFormatting::White
-    };
+        TextFormatting::White};
 
     for (TextFormatting color : colors) {
         if (TeamKillCriteria::isSupportedColor(color)) {
@@ -104,7 +109,8 @@ void ScoreCriteriaRegistry::registerBuiltinCriteria() {
     }
 }
 
-void ScoreCriteriaRegistry::clear() {
+void ScoreCriteriaRegistry::clear()
+{
     m_criteria.clear();
 }
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../Geometry.hpp"
+#include "IImage.hpp"
 #include "IPaint.hpp"
 #include "IPath.hpp"
-#include "IImage.hpp"
 #include "ITextBlob.hpp"
 
 namespace mc::client::ui::kagero::paint {
@@ -33,7 +33,8 @@ public:
 
     virtual void drawImage(const IImage& image, f32 x, f32 y) = 0;
     virtual void drawImageRect(const IImage& image, const Rect& src, const Rect& dst) = 0;
-    virtual void drawImageNine(const IImage& image, const Rect& center, const Rect& dst, const IPaint* paint = nullptr) = 0;
+    virtual void drawImageNine(
+        const IImage& image, const Rect& center, const Rect& dst, const IPaint* paint = nullptr) = 0;
 
     virtual void drawText(const std::string& text, f32 x, f32 y, const IPaint& paint) = 0;
     virtual void drawTextBlob(const ITextBlob& blob, f32 x, f32 y, const IPaint& paint) = 0;

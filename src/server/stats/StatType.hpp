@@ -2,8 +2,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <string>
 #include <cstdint>
+#include <string>
 
 namespace mc {
 namespace server {
@@ -24,15 +24,15 @@ namespace stats {
  * - custom: 自定义统计（如游戏时间、距离等）
  */
 enum class StatType : u8 {
-    Mined,      ///< minecraft.mined:{block_id} - 挖掘方块
-    Crafted,    ///< minecraft.crafted:{item_id} - 合成物品
-    Used,       ///< minecraft.used:{item_id} - 使用物品
-    Broken,     ///< minecraft.broken:{item_id} - 物品损坏
-    PickedUp,   ///< minecraft.picked_up:{item_id} - 拾取物品
-    Dropped,    ///< minecraft.dropped:{item_id} - 丢弃物品
-    Killed,     ///< minecraft.killed:{entity_id} - 击杀实体
-    KilledBy,   ///< minecraft.killed_by:{entity_id} - 被实体击杀
-    Custom      ///< minecraft.custom:{stat_id} - 自定义统计
+    Mined,    ///< minecraft.mined:{block_id} - 挖掘方块
+    Crafted,  ///< minecraft.crafted:{item_id} - 合成物品
+    Used,     ///< minecraft.used:{item_id} - 使用物品
+    Broken,   ///< minecraft.broken:{item_id} - 物品损坏
+    PickedUp, ///< minecraft.picked_up:{item_id} - 拾取物品
+    Dropped,  ///< minecraft.dropped:{item_id} - 丢弃物品
+    Killed,   ///< minecraft.killed:{entity_id} - 击杀实体
+    KilledBy, ///< minecraft.killed_by:{entity_id} - 被实体击杀
+    Custom    ///< minecraft.custom:{stat_id} - 自定义统计
 };
 
 /**
@@ -41,18 +41,29 @@ enum class StatType : u8 {
  * @param type 统计类型
  * @return 名称前缀（如 "mined", "crafted" 等）
  */
-[[nodiscard]] inline std::string_view getStatTypePrefix(StatType type) noexcept {
+[[nodiscard]] inline std::string_view getStatTypePrefix(StatType type) noexcept
+{
     switch (type) {
-        case StatType::Mined:     return "mined";
-        case StatType::Crafted:   return "crafted";
-        case StatType::Used:      return "used";
-        case StatType::Broken:    return "broken";
-        case StatType::PickedUp:  return "picked_up";
-        case StatType::Dropped:   return "dropped";
-        case StatType::Killed:    return "killed";
-        case StatType::KilledBy:  return "killed_by";
-        case StatType::Custom:    return "custom";
-        default:                  return "unknown";
+        case StatType::Mined:
+            return "mined";
+        case StatType::Crafted:
+            return "crafted";
+        case StatType::Used:
+            return "used";
+        case StatType::Broken:
+            return "broken";
+        case StatType::PickedUp:
+            return "picked_up";
+        case StatType::Dropped:
+            return "dropped";
+        case StatType::Killed:
+            return "killed";
+        case StatType::KilledBy:
+            return "killed_by";
+        case StatType::Custom:
+            return "custom";
+        default:
+            return "unknown";
     }
 }
 

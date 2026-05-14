@@ -1,11 +1,11 @@
 #include "UniformManager.hpp"
-#include "DescriptorManager.hpp"
 #include "../TridentContext.hpp"
+#include "DescriptorManager.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident {
 
@@ -15,7 +15,8 @@ namespace mc::client::renderer::trident {
 
 UniformManager::UniformManager() = default;
 
-UniformManager::~UniformManager() {
+UniformManager::~UniformManager()
+{
     destroy();
 }
 
@@ -40,7 +41,8 @@ UniformManager::UniformManager(UniformManager&& other) noexcept
     other.m_initialized = false;
 }
 
-UniformManager& UniformManager::operator=(UniformManager&& other) noexcept {
+UniformManager& UniformManager::operator=(UniformManager&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -69,10 +71,7 @@ UniformManager& UniformManager::operator=(UniformManager&& other) noexcept {
 // 初始化
 // ============================================================================
 
-Result<void> UniformManager::initialize(
-    TridentContext* context,
-    DescriptorManager* descriptor,
-    u32 maxFramesInFlight)
+Result<void> UniformManager::initialize(TridentContext* context, DescriptorManager* descriptor, u32 maxFramesInFlight)
 {
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "UniformManager already initialized");
@@ -104,7 +103,8 @@ Result<void> UniformManager::initialize(
     return {};
 }
 
-void UniformManager::destroy() {
+void UniformManager::destroy()
+{
     if (!m_initialized) return;
 
     destroyUniformBuffers();
@@ -119,10 +119,7 @@ void UniformManager::destroy() {
 // 更新方法
 // ============================================================================
 
-void UniformManager::updateCamera(
-    const glm::mat4& viewMatrix,
-    const glm::mat4& projectionMatrix,
-    u32 frameIndex)
+void UniformManager::updateCamera(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, u32 frameIndex)
 {
     if (!m_initialized || frameIndex >= m_maxFramesInFlight) return;
 
@@ -137,7 +134,8 @@ void UniformManager::updateCamera(
     }
 }
 
-void UniformManager::updateLighting(i64 dayTime, i64 gameTime, f64 partialTick) {
+void UniformManager::updateLighting(i64 dayTime, i64 gameTime, f64 partialTick)
+{
     if (!m_initialized || !m_lightingBufferMapped) return;
 
     // 计算太阳方向（与 MC 时间语义对齐）
@@ -159,14 +157,16 @@ void UniformManager::updateLighting(i64 dayTime, i64 gameTime, f64 partialTick) 
     std::memcpy(m_lightingBufferMapped, &ubo, sizeof(LightingUBO));
 }
 
-VkBuffer UniformManager::cameraBuffer(u32 frameIndex) const {
+VkBuffer UniformManager::cameraBuffer(u32 frameIndex) const
+{
     if (frameIndex < m_cameraBuffers.size()) {
         return m_cameraBuffers[frameIndex];
     }
     return VK_NULL_HANDLE;
 }
 
-VkDescriptorSet UniformManager::cameraDescriptorSet(u32 frameIndex) const {
+VkDescriptorSet UniformManager::cameraDescriptorSet(u32 frameIndex) const
+{
     if (frameIndex < m_cameraDescriptorSets.size()) {
         return m_cameraDescriptorSets[frameIndex];
     }
@@ -177,7 +177,8 @@ VkDescriptorSet UniformManager::cameraDescriptorSet(u32 frameIndex) const {
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> UniformManager::createUniformBuffers() {
+Result<void> UniformManager::createUniformBuffers()
+{
     VkDevice device = m_context->device();
 
     m_cameraBuffers.resize(m_maxFramesInFlight);
@@ -188,9 +189,9 @@ Result<void> UniformManager::createUniformBuffers() {
     VkDeviceSize lightingBufferSize = sizeof(LightingUBO);
 
     // 获取内存类型
-    auto memoryTypeResult = m_context->findMemoryType(
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto memoryTypeResult =
+        m_context->findMemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     if (memoryTypeResult.failed()) {
         // 回退到简单的查找
@@ -215,8 +216,7 @@ Result<void> UniformManager::createUniformBuffers() {
         vkGetBufferMemoryRequirements(device, m_cameraBuffers[i], &memRequirements);
 
         auto typeResult = m_context->findMemoryType(
-            memRequirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         if (typeResult.failed()) {
             destroyUniformBuffers();
@@ -231,7 +231,8 @@ Result<void> UniformManager::createUniformBuffers() {
         result = vkAllocateMemory(device, &allocInfo, nullptr, &m_cameraBufferMemory[i]);
         if (result != VK_SUCCESS) {
             destroyUniformBuffers();
-            return Error(ErrorCode::OutOfMemory, "Failed to allocate camera uniform buffer memory: " + std::to_string(result));
+            return Error(
+                ErrorCode::OutOfMemory, "Failed to allocate camera uniform buffer memory: " + std::to_string(result));
         }
 
         vkBindBufferMemory(device, m_cameraBuffers[i], m_cameraBufferMemory[i], 0);
@@ -261,8 +262,7 @@ Result<void> UniformManager::createUniformBuffers() {
     vkGetBufferMemoryRequirements(device, m_lightingBuffer, &memRequirements);
 
     auto typeResult = m_context->findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     if (typeResult.failed()) {
         destroyUniformBuffers();
@@ -277,7 +277,8 @@ Result<void> UniformManager::createUniformBuffers() {
     result = vkAllocateMemory(device, &allocInfo, nullptr, &m_lightingBufferMemory);
     if (result != VK_SUCCESS) {
         destroyUniformBuffers();
-        return Error(ErrorCode::OutOfMemory, "Failed to allocate lighting uniform buffer memory: " + std::to_string(result));
+        return Error(
+            ErrorCode::OutOfMemory, "Failed to allocate lighting uniform buffer memory: " + std::to_string(result));
     }
 
     vkBindBufferMemory(device, m_lightingBuffer, m_lightingBufferMemory, 0);
@@ -291,7 +292,8 @@ Result<void> UniformManager::createUniformBuffers() {
     return {};
 }
 
-Result<void> UniformManager::createCameraDescriptorSets() {
+Result<void> UniformManager::createCameraDescriptorSets()
+{
     m_cameraDescriptorSets.resize(m_maxFramesInFlight);
 
     for (u32 i = 0; i < m_maxFramesInFlight; i++) {
@@ -329,13 +331,15 @@ Result<void> UniformManager::createCameraDescriptorSets() {
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pBufferInfo = &lightingInfo;
 
-        vkUpdateDescriptorSets(m_context->device(), static_cast<u32>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            m_context->device(), static_cast<u32>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
     return {};
 }
 
-void UniformManager::destroyUniformBuffers() {
+void UniformManager::destroyUniformBuffers()
+{
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
 
     for (u32 i = 0; i < m_cameraBuffers.size(); i++) {

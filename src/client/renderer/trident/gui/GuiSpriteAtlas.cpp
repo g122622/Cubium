@@ -1,9 +1,9 @@
 #include "GuiSpriteAtlas.hpp"
-#include "GuiTextureAtlas.hpp"
 #include "GuiSpriteManager.hpp"
-#include <stb_image.h>
+#include "GuiTextureAtlas.hpp"
 #include <unordered_map>
 #include <spdlog/spdlog.h>
+#include <stb_image.h>
 
 namespace mc::client::renderer::trident::gui {
 
@@ -45,19 +45,24 @@ public:
 // 构造函数 / 析构函数
 // ============================================================================
 
-GuiSpriteAtlas::GuiSpriteAtlas() : m_impl(std::make_unique<Impl>()) {
-}
+GuiSpriteAtlas::GuiSpriteAtlas()
+    : m_impl(std::make_unique<Impl>())
+{}
 
-GuiSpriteAtlas::~GuiSpriteAtlas() {
+GuiSpriteAtlas::~GuiSpriteAtlas()
+{
     destroy();
 }
 
 GuiSpriteAtlas::GuiSpriteAtlas(GuiSpriteAtlas&& other) noexcept
-    : m_impl(std::move(other.m_impl)), m_initialized(other.m_initialized) {
+    : m_impl(std::move(other.m_impl))
+    , m_initialized(other.m_initialized)
+{
     other.m_initialized = false;
 }
 
-GuiSpriteAtlas& GuiSpriteAtlas::operator=(GuiSpriteAtlas&& other) noexcept {
+GuiSpriteAtlas& GuiSpriteAtlas::operator=(GuiSpriteAtlas&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_impl = std::move(other.m_impl);
@@ -71,10 +76,9 @@ GuiSpriteAtlas& GuiSpriteAtlas::operator=(GuiSpriteAtlas&& other) noexcept {
 // 初始化与销毁
 // ============================================================================
 
-Result<void> GuiSpriteAtlas::initialize(VkDevice device,
-                                          VkPhysicalDevice physicalDevice,
-                                          VkCommandPool commandPool,
-                                          VkQueue graphicsQueue) {
+Result<void> GuiSpriteAtlas::initialize(
+    VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
+{
     if (m_initialized) {
         return {};
     }
@@ -124,7 +128,8 @@ Result<void> GuiSpriteAtlas::initialize(VkDevice device,
     return {};
 }
 
-void GuiSpriteAtlas::destroy() {
+void GuiSpriteAtlas::destroy()
+{
     if (!m_initialized) {
         return;
     }
@@ -164,9 +169,8 @@ void GuiSpriteAtlas::destroy() {
 // 纹理加载
 // ============================================================================
 
-Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels,
-                                                    i32 width,
-                                                    i32 height) {
+Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels, i32 width, i32 height)
+{
     if (!m_initialized) {
         return Error(ErrorCode::InitializationFailed, "GuiSpriteAtlas not initialized");
     }
@@ -183,8 +187,8 @@ Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels
     const size_t expectedSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
     if (pixels.size() != expectedSize) {
         return Error(ErrorCode::InvalidArgument,
-            std::string("Pixel data size mismatch: expected ") + std::to_string(expectedSize) +
-            " bytes, got " + std::to_string(pixels.size()) + " bytes");
+            std::string("Pixel data size mismatch: expected ") + std::to_string(expectedSize) + " bytes, got " +
+                std::to_string(pixels.size()) + " bytes");
     }
 
     // 销毁旧纹理（如果存在）
@@ -300,7 +304,7 @@ Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels
     for (u32 i = 0; i < memProperties.memoryTypeCount; ++i) {
         if ((memRequirements.memoryTypeBits & (1 << i)) &&
             (memProperties.memoryTypes[i].propertyFlags &
-             (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) {
+                (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) {
             memoryTypeIndex = i;
             break;
         }
@@ -358,8 +362,8 @@ Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(
+        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     // 复制缓冲区到图像
     VkBufferImageCopy region{};
@@ -373,8 +377,7 @@ Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {m_impl->width, m_impl->height, 1};
 
-    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_impl->image,
-                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_impl->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // 转换图像布局到着色器只读
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -382,8 +385,16 @@ Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     vkEndCommandBuffer(cmd);
 
@@ -404,11 +415,13 @@ Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels
     return {};
 }
 
-bool GuiSpriteAtlas::hasTexture() const {
+bool GuiSpriteAtlas::hasTexture() const
+{
     return m_impl->image != VK_NULL_HANDLE && m_impl->imageView != VK_NULL_HANDLE;
 }
 
-Result<void> GuiSpriteAtlas::loadDefaultTextures() {
+Result<void> GuiSpriteAtlas::loadDefaultTextures()
+{
     if (!m_initialized) {
         return Error(ErrorCode::InitializationFailed, "GuiSpriteAtlas not initialized");
     }
@@ -446,9 +459,8 @@ Result<void> GuiSpriteAtlas::loadDefaultTextures() {
     return loadTextureFromMemory(m_impl->textureData, DEFAULT_SIZE, DEFAULT_SIZE);
 }
 
-Result<void> GuiSpriteAtlas::loadTextureAtlas(const std::string& filePath,
-                                               i32 atlasWidth,
-                                               i32 atlasHeight) {
+Result<void> GuiSpriteAtlas::loadTextureAtlas(const std::string& filePath, i32 atlasWidth, i32 atlasHeight)
+{
     if (!m_initialized) {
         return Error(ErrorCode::InitializationFailed, "GuiSpriteAtlas not initialized");
     }
@@ -485,48 +497,57 @@ Result<void> GuiSpriteAtlas::loadTextureAtlas(const std::string& filePath,
 // 精灵管理
 // ============================================================================
 
-void GuiSpriteAtlas::registerSprite(const GuiSprite& sprite) {
+void GuiSpriteAtlas::registerSprite(const GuiSprite& sprite)
+{
     m_impl->spriteManager.registerSprite(sprite);
 }
 
-void GuiSpriteAtlas::registerSprite(const std::string& id, i32 x, i32 y,
-                                     i32 width, i32 height,
-                                     i32 atlasWidth, i32 atlasHeight) {
+void GuiSpriteAtlas::registerSprite(
+    const std::string& id, i32 x, i32 y, i32 width, i32 height, i32 atlasWidth, i32 atlasHeight)
+{
     // 使用默认图集尺寸（如果未指定）
     i32 aw = (atlasWidth > 0) ? atlasWidth : m_impl->width;
     i32 ah = (atlasHeight > 0) ? atlasHeight : m_impl->height;
     m_impl->spriteManager.registerSprite(id, x, y, width, height, aw, ah);
 }
 
-void GuiSpriteAtlas::registerSprites(const std::vector<GuiSprite>& sprites) {
+void GuiSpriteAtlas::registerSprites(const std::vector<GuiSprite>& sprites)
+{
     m_impl->spriteManager.registerSprites(sprites);
 }
 
-const GuiSprite* GuiSpriteAtlas::getSprite(const std::string& id) const {
+const GuiSprite* GuiSpriteAtlas::getSprite(const std::string& id) const
+{
     return m_impl->spriteManager.getSprite(id);
 }
 
-bool GuiSpriteAtlas::hasSprite(const std::string& id) const {
+bool GuiSpriteAtlas::hasSprite(const std::string& id) const
+{
     return m_impl->spriteManager.hasSprite(id);
 }
 
-void GuiSpriteAtlas::clearSprites() {
+void GuiSpriteAtlas::clearSprites()
+{
     m_impl->spriteManager.clearSprites();
 }
 
-size_t GuiSpriteAtlas::spriteCount() const {
+size_t GuiSpriteAtlas::spriteCount() const
+{
     return m_impl->spriteManager.spriteCount();
 }
 
-void GuiSpriteAtlas::setAtlasSize(i32 width, i32 height) {
+void GuiSpriteAtlas::setAtlasSize(i32 width, i32 height)
+{
     m_impl->spriteManager.setAtlasSize(width, height);
 }
 
-i32 GuiSpriteAtlas::atlasWidth() const {
+i32 GuiSpriteAtlas::atlasWidth() const
+{
     return m_impl->spriteManager.atlasWidth();
 }
 
-i32 GuiSpriteAtlas::atlasHeight() const {
+i32 GuiSpriteAtlas::atlasHeight() const
+{
     return m_impl->spriteManager.atlasHeight();
 }
 
@@ -534,11 +555,13 @@ i32 GuiSpriteAtlas::atlasHeight() const {
 // Vulkan资源访问
 // ============================================================================
 
-VkImageView GuiSpriteAtlas::imageView() const {
+VkImageView GuiSpriteAtlas::imageView() const
+{
     return m_impl->imageView;
 }
 
-VkSampler GuiSpriteAtlas::sampler() const {
+VkSampler GuiSpriteAtlas::sampler() const
+{
     return m_impl->sampler;
 }
 
@@ -546,16 +569,15 @@ VkSampler GuiSpriteAtlas::sampler() const {
 // TextureImage创建
 // ============================================================================
 
-ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::string& spriteId) const {
+ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::string& spriteId) const
+{
     const GuiSprite* sprite = getSprite(spriteId);
     if (!sprite) {
         // 返回无效的TextureImage
-        return ui::kagero::paint::TextureImage(
-            VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0, m_atlasSlot, spriteId);
+        return ui::kagero::paint::TextureImage(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0, m_atlasSlot, spriteId);
     }
 
-    return ui::kagero::paint::TextureImage(
-        m_impl->imageView,
+    return ui::kagero::paint::TextureImage(m_impl->imageView,
         m_impl->sampler,
         sprite->width,
         sprite->height,
@@ -567,18 +589,16 @@ ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::st
         spriteId);
 }
 
-ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::string& spriteId,
-                                                                     i32 customWidth,
-                                                                     i32 customHeight) const {
+ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(
+    const std::string& spriteId, i32 customWidth, i32 customHeight) const
+{
     const GuiSprite* sprite = getSprite(spriteId);
     if (!sprite) {
         // 返回无效的TextureImage
-        return ui::kagero::paint::TextureImage(
-            VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0, m_atlasSlot, spriteId);
+        return ui::kagero::paint::TextureImage(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0, m_atlasSlot, spriteId);
     }
 
-    return ui::kagero::paint::TextureImage(
-        m_impl->imageView,
+    return ui::kagero::paint::TextureImage(m_impl->imageView,
         m_impl->sampler,
         customWidth,
         customHeight,

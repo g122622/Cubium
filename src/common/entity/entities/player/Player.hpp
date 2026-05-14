@@ -1,21 +1,21 @@
 #pragma once
 
+#include "../../../item/core/ActionResult.hpp"
+#include "../../../network/packet/ProtocolPackets.hpp"
+#include "../../../physics/PhysicsConstants.hpp"
+#include "../../../resource/ResourceLocation.hpp"
+#include "../../../world/GlobalPos.hpp"
 #include "../../core/LivingEntity.hpp"
-#include "../../movement/AutoJump.hpp"
-#include "../../inventory/PlayerInventory.hpp"
-#include "../../experience/ExperienceManager.hpp"
 #include "../../effect/EffectInstance.hpp"
+#include "../../experience/ExperienceManager.hpp"
 #include "../../food/FoodStats.hpp"
+#include "../../inventory/PlayerInventory.hpp"
+#include "../../movement/AutoJump.hpp"
 #include "../../player/CooldownTracker.hpp"
 #include "../../player/SleepResult.hpp"
-#include "../../../network/packet/ProtocolPackets.hpp"
-#include "../../../world/GlobalPos.hpp"
-#include "../../../item/core/ActionResult.hpp"
-#include "../../../resource/ResourceLocation.hpp"
 #include "ChatVisibility.hpp"
 #include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
-#include "../../../physics/PhysicsConstants.hpp"
 #include "spdlog/spdlog.h"
 
 #include <array>
@@ -36,17 +36,18 @@ class DamageSource;
 // ============================================================================
 
 struct PlayerAbilities {
-    bool invulnerable = false;      // 无敌
-    bool flying = false;            // 正在飞行
-    bool canFly = false;            // 允许飞行
-    bool creativeMode = false;      // 创造模式
-    bool allowEdit = true;          // 允许编辑方块
+    bool invulnerable = false; // 无敌
+    bool flying = false;       // 正在飞行
+    bool canFly = false;       // 允许飞行
+    bool creativeMode = false; // 创造模式
+    bool allowEdit = true;     // 允许编辑方块
     // MC 1.16.5 PlayerAbilities.java:13-14 默认值
     // 注意：这些值会在 GameModeUtils.cpp 中根据游戏模式设置正确的值
-    f32 flySpeed = 0.05f;           // 飞行速度 (MC 默认值)
-    f32 walkSpeed = 0.1f;           // 行走速度 (MC 默认值)
+    f32 flySpeed = 0.05f; // 飞行速度 (MC 默认值)
+    f32 walkSpeed = 0.1f; // 行走速度 (MC 默认值)
 
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         u8 flags = 0;
         if (invulnerable) flags |= 0x01;
         if (flying) flags |= 0x02;
@@ -57,7 +58,8 @@ struct PlayerAbilities {
         ser.writeF32(walkSpeed);
     }
 
-    [[nodiscard]] static Result<PlayerAbilities> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<PlayerAbilities> deserialize(network::PacketDeserializer& deser)
+    {
         PlayerAbilities abilities;
 
         auto flagsResult = deser.readU8();
@@ -76,9 +78,14 @@ struct PlayerAbilities {
         auto walkSpeedResult = deser.readF32();
         if (walkSpeedResult.failed()) return walkSpeedResult.error();
         abilities.walkSpeed = walkSpeedResult.value();
-        spdlog::info("[PlayerAbilities::deserialize] invulnerable={}, flying={}, canFly={}, creativeMode={}, flySpeed={}, walkSpeed={}",
-                     abilities.invulnerable, abilities.flying, abilities.canFly, abilities.creativeMode,
-                     abilities.flySpeed, abilities.walkSpeed);
+        spdlog::info("[PlayerAbilities::deserialize] invulnerable={}, flying={}, canFly={}, creativeMode={}, "
+                     "flySpeed={}, walkSpeed={}",
+            abilities.invulnerable,
+            abilities.flying,
+            abilities.canFly,
+            abilities.creativeMode,
+            abilities.flySpeed,
+            abilities.walkSpeed);
 
         return abilities;
     }
@@ -165,30 +172,22 @@ public:
     /**
      * @brief 检查是否是创造模式
      */
-    [[nodiscard]] bool isCreative() const {
-        return entity::GameModeUtils::isCreative(m_gameMode);
-    }
+    [[nodiscard]] bool isCreative() const { return entity::GameModeUtils::isCreative(m_gameMode); }
 
     /**
      * @brief 检查是否是观察者模式
      */
-    [[nodiscard]] bool isSpectator() const {
-        return entity::GameModeUtils::isSpectator(m_gameMode);
-    }
+    [[nodiscard]] bool isSpectator() const { return entity::GameModeUtils::isSpectator(m_gameMode); }
 
     /**
      * @brief 检查是否是生存模式
      */
-    [[nodiscard]] bool isSurvival() const {
-        return m_gameMode == GameMode::Survival;
-    }
+    [[nodiscard]] bool isSurvival() const { return m_gameMode == GameMode::Survival; }
 
     /**
      * @brief 检查是否是冒险模式
      */
-    [[nodiscard]] bool isAdventure() const {
-        return m_gameMode == GameMode::Adventure;
-    }
+    [[nodiscard]] bool isAdventure() const { return m_gameMode == GameMode::Adventure; }
 
     // 维度
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }
@@ -207,9 +206,7 @@ public:
      *
      * @return 创造模式返回 1，其他返回 80
      */
-    [[nodiscard]] i32 getMaxInPortalTime() const override {
-        return m_abilities.invulnerable ? 1 : 80;
-    }
+    [[nodiscard]] i32 getMaxInPortalTime() const override { return m_abilities.invulnerable ? 1 : 80; }
 
     /**
      * @brief 获取传送冷却时间
@@ -284,7 +281,10 @@ public:
     /**
      * @brief 获取经验管理器
      */
-    [[nodiscard]] const entity::experience::ExperienceManager& experienceManager() const { return *m_experienceManager; }
+    [[nodiscard]] const entity::experience::ExperienceManager& experienceManager() const
+    {
+        return *m_experienceManager;
+    }
     entity::experience::ExperienceManager& experienceManager() { return *m_experienceManager; }
 
     // 经验相关便捷方法（委托给 ExperienceManager）
@@ -375,7 +375,8 @@ public:
      * @param itemId 物品资源位置
      * @param count 合成数量
      */
-    virtual void awardCraftedStat(const ResourceLocation& itemId, i32 count) {
+    virtual void awardCraftedStat(const ResourceLocation& itemId, i32 count)
+    {
         (void)itemId;
         (void)count;
         // 基类默认空实现
@@ -390,7 +391,8 @@ public:
      * @param stack 合成的物品堆
      * @param amount 合成数量
      */
-    virtual void onItemCrafted(ItemStack& stack, i32 amount) {
+    virtual void onItemCrafted(ItemStack& stack, i32 amount)
+    {
         (void)stack;
         (void)amount;
         // 基类默认空实现
@@ -404,7 +406,8 @@ public:
      *
      * @param recipeId 配方资源位置
      */
-    virtual void unlockRecipe(const ResourceLocation& recipeId) {
+    virtual void unlockRecipe(const ResourceLocation& recipeId)
+    {
         (void)recipeId;
         // 基类默认空实现
     }
@@ -840,7 +843,6 @@ protected:
     [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const override;
 
 public:
-
     // ========== 水花溅射效果 ==========
 
     /**
@@ -1138,7 +1140,8 @@ public:
      * @param partialTicks 部分帧时间
      * @return 冷却进度（0-1）
      */
-    [[nodiscard]] f32 getItemCooldown(const Item* item, f32 partialTicks = 0.0f) const {
+    [[nodiscard]] f32 getItemCooldown(const Item* item, f32 partialTicks = 0.0f) const
+    {
         return m_cooldownTracker.getCooldownProgress(item, partialTicks);
     }
 
@@ -1147,18 +1150,14 @@ public:
      * @param item 物品指针
      * @return 如果物品在冷却中返回 true
      */
-    [[nodiscard]] bool hasItemCooldown(const Item* item) const {
-        return m_cooldownTracker.hasCooldown(item);
-    }
+    [[nodiscard]] bool hasItemCooldown(const Item* item) const { return m_cooldownTracker.hasCooldown(item); }
 
     /**
      * @brief 设置物品冷却
      * @param item 物品指针
      * @param ticks 冷却时间（tick）
      */
-    void setItemCooldown(const Item* item, i32 ticks) {
-        m_cooldownTracker.setCooldown(item, ticks);
-    }
+    void setItemCooldown(const Item* item, i32 ticks) { m_cooldownTracker.setCooldown(item, ticks); }
 
     // ========== 挖掘系统 ==========
 
@@ -1338,7 +1337,7 @@ private:
 
     FoodStats m_foodStats;
     PlayerAbilities m_abilities;
-    PlayerInventory m_inventory{this};  // 玩家背包
+    PlayerInventory m_inventory{this}; // 玩家背包
     AbstractContainerMenu* m_openContainerMenu = nullptr;
 
     // 经验管理器（唯一数据源）
@@ -1367,7 +1366,7 @@ private:
 
     // 重生点（床或重生锚设置的位置）
     std::optional<GlobalPos> m_spawnPoint;
-    bool m_spawnForced = false;      // 是否强制重生点
+    bool m_spawnForced = false; // 是否强制重生点
 
     // 进入下界时的位置（用于进度触发器 nether_travel）
     // 参考 MC 1.16.5 ServerPlayerEntity.enteredNetherPosition
@@ -1385,29 +1384,29 @@ private:
 
     // 视野晃动
     Vector3 m_moveDistanceSamplePosition{0.0f, 0.0f, 0.0f}; // 上次步距采样位置
-    f32 m_moveDistanceWalked = 0.0f;    // distanceWalkedModified 等价累计
-    f32 m_prevMoveDistanceWalked = 0.0f; // 上一 tick distanceWalkedModified
-    f32 m_moveDistanceSwam = 0.0f;      // 游泳距离累计
-    f32 m_prevMoveDistanceSwam = 0.0f;  // 上一帧游泳距离
-    f32 m_cameraYaw = 0.0f;             // 原版 cameraYaw
-    f32 m_prevCameraYaw = 0.0f;         // 原版 prevCameraYaw
+    f32 m_moveDistanceWalked = 0.0f;                        // distanceWalkedModified 等价累计
+    f32 m_prevMoveDistanceWalked = 0.0f;                    // 上一 tick distanceWalkedModified
+    f32 m_moveDistanceSwam = 0.0f;                          // 游泳距离累计
+    f32 m_prevMoveDistanceSwam = 0.0f;                      // 上一帧游泳距离
+    f32 m_cameraYaw = 0.0f;                                 // 原版 cameraYaw
+    f32 m_prevCameraYaw = 0.0f;                             // 原版 prevCameraYaw
 
     // 脚步声触发
-    f32 m_distanceWalkedOnStep = 0.0f;  // 用于触发脚步声的行走距离
-    f32 m_nextStepDistance = 1.0f;      // 下一次脚步声触发的距离阈值
+    f32 m_distanceWalkedOnStep = 0.0f; // 用于触发脚步声的行走距离
+    f32 m_nextStepDistance = 1.0f;     // 下一次脚步声触发的距离阈值
 
     // 脚步声/游泳声状态（供客户端读取）
-    bool m_shouldPlayStepSound = false;    // 是否应该播放脚步声
-    bool m_shouldPlaySwimSound = false;    // 是否应该播放游泳声
-    f32 m_swimSoundVolume = 0.0f;          // 游泳声音量
-    BlockPos m_stepSoundPos;               // 脚步声位置
+    bool m_shouldPlayStepSound = false; // 是否应该播放脚步声
+    bool m_shouldPlaySwimSound = false; // 是否应该播放游泳声
+    f32 m_swimSoundVolume = 0.0f;       // 游泳声音量
+    BlockPos m_stepSoundPos;            // 脚步声位置
 
     // 攻击冷却系统
-    i32 m_ticksSinceLastAttack = 0;        // 上次攻击后的 tick 数
-    f32 m_offHandAttackChance = 0.0f;      // 副手攻击概率（双持武器用）
+    i32 m_ticksSinceLastAttack = 0;   // 上次攻击后的 tick 数
+    f32 m_offHandAttackChance = 0.0f; // 副手攻击概率（双持武器用）
 
     // 钓鱼系统
-    EntityId m_fishingBobber = 0;          // 当前投掷的钓鱼浮标实体ID，0表示未投掷
+    EntityId m_fishingBobber = 0; // 当前投掷的钓鱼浮标实体ID，0表示未投掷
 };
 
 } // namespace mc

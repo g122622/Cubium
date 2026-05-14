@@ -184,7 +184,8 @@ constexpr auto& NEAREST_VISIBLE_HUNTABLE_HOGLIN = MemoryModuleTypes::NEAREST_VIS
 constexpr auto& NEAREST_VISIBLE_BABY_HOGLIN = MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN;
 
 /// 最近未穿金装备的可攻击玩家
-constexpr auto& NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD;
+constexpr auto& NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD =
+    MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD;
 
 /// 附近的成年猪灵列表
 constexpr auto& NEAREST_ADULT_PIGLINS = MemoryModuleTypes::NEAREST_ADULT_PIGLINS;
@@ -221,7 +222,8 @@ constexpr auto& DOORS_TO_CLOSE = MemoryModuleTypes::DOORS_TO_CLOSE;
  *
  * 必须在使用前调用。实际上调用 MemoryModuleTypes::initialize()。
  */
-inline void initialize() {
+inline void initialize()
+{
     MemoryModuleTypes::initialize();
 }
 

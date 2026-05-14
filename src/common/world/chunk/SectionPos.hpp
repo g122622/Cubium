@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Constants.hpp"
+#include "../../core/Types.hpp"
 #include "../../util/Direction.hpp"
 #include "../block/BlockPos.hpp"
 #include "ChunkPos.hpp"
@@ -28,43 +28,42 @@ public:
         : x(0)
         , y(0)
         , z(0)
-    {
-    }
+    {}
 
     SectionPos(ChunkCoord x, i32 y, ChunkCoord z) noexcept
         : x(x)
         , y(y)
         , z(z)
-    {
-    }
+    {}
 
     explicit SectionPos(const BlockPos& pos) noexcept
         : x(pos.chunkX())
         , y(pos.sectionIndex())
         , z(pos.chunkZ())
-    {
-    }
+    {}
 
     /**
      * @brief 从方块位置创建区块段位置
      */
-    [[nodiscard]] static SectionPos fromBlockPos(const BlockPos& pos) {
+    [[nodiscard]] static SectionPos fromBlockPos(const BlockPos& pos)
+    {
         return SectionPos(pos.chunkX(), pos.sectionIndex(), pos.chunkZ());
     }
 
     /**
      * @brief 从区块位置创建区块段位置
      */
-    [[nodiscard]] static SectionPos fromChunkPos(ChunkCoord chunkX, i32 sectionY, ChunkCoord chunkZ) {
+    [[nodiscard]] static SectionPos fromChunkPos(ChunkCoord chunkX, i32 sectionY, ChunkCoord chunkZ)
+    {
         return SectionPos(chunkX, sectionY, chunkZ);
     }
 
     /**
      * @brief 从长整型编码创建
      */
-    [[nodiscard]] static SectionPos fromLong(i64 packed) {
-        return SectionPos(
-            static_cast<ChunkCoord>(packed >> 42),
+    [[nodiscard]] static SectionPos fromLong(i64 packed)
+    {
+        return SectionPos(static_cast<ChunkCoord>(packed >> 42),
             static_cast<i32>((packed << 44) >> 44),
             static_cast<ChunkCoord>((packed << 22) >> 42));
     }
@@ -72,7 +71,8 @@ public:
     /**
      * @brief 转换为长整型编码
      */
-    [[nodiscard]] i64 toLong() const {
+    [[nodiscard]] i64 toLong() const
+    {
         i64 lx = static_cast<i64>(x) & 0x3FFFFFLL;
         i64 lz = static_cast<i64>(z) & 0x3FFFFFLL;
         i64 ly = static_cast<i64>(y) & 0xFFFFFLL;
@@ -84,10 +84,7 @@ public:
         return x == other.x && y == other.y && z == other.z;
     }
 
-    [[nodiscard]] bool operator!=(const SectionPos& other) const noexcept
-    {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator!=(const SectionPos& other) const noexcept { return !(*this == other); }
 
     [[nodiscard]] bool operator<(const SectionPos& other) const noexcept
     {
@@ -114,64 +111,60 @@ public:
     /**
      * @brief 获取区块段内的局部坐标
      */
-    [[nodiscard]] static i32 mask(i32 coord) {
-        return coord & 0xF;
-    }
+    [[nodiscard]] static i32 mask(i32 coord) { return coord & 0xF; }
 
     /**
      * @brief 向指定方向偏移
      */
-    [[nodiscard]] SectionPos offset(i32 dx, i32 dy, i32 dz) const {
-        return SectionPos(x + dx, y + dy, z + dz);
-    }
+    [[nodiscard]] SectionPos offset(i32 dx, i32 dy, i32 dz) const { return SectionPos(x + dx, y + dy, z + dz); }
 
     /**
      * @brief 向指定方向偏移
      */
-    [[nodiscard]] SectionPos offset(Direction dir) const {
+    [[nodiscard]] SectionPos offset(Direction dir) const
+    {
         switch (dir) {
-            case Direction::Down:    return SectionPos(x, y - 1, z);
-            case Direction::Up:      return SectionPos(x, y + 1, z);
-            case Direction::North:   return SectionPos(x, y, z - 1);
-            case Direction::South:   return SectionPos(x, y, z + 1);
-            case Direction::West:    return SectionPos(x - 1, y, z);
-            case Direction::East:    return SectionPos(x + 1, y, z);
-            default:                 return *this;
+            case Direction::Down:
+                return SectionPos(x, y - 1, z);
+            case Direction::Up:
+                return SectionPos(x, y + 1, z);
+            case Direction::North:
+                return SectionPos(x, y, z - 1);
+            case Direction::South:
+                return SectionPos(x, y, z + 1);
+            case Direction::West:
+                return SectionPos(x - 1, y, z);
+            case Direction::East:
+                return SectionPos(x + 1, y, z);
+            default:
+                return *this;
         }
     }
 
     /**
      * @brief 转换为区块列位置（不含Y坐标）
      */
-    [[nodiscard]] i64 toColumnLong() const {
+    [[nodiscard]] i64 toColumnLong() const
+    {
         i64 lx = static_cast<i64>(x) & 0x3FFFFFLL;
         i64 lz = static_cast<i64>(z) & 0x3FFFFFLL;
         return (lx << 42) | (lz << 20);
     }
 
     // 世界Y坐标范围
-    [[nodiscard]] i32 minY() const noexcept
-    {
-        return y * world::CHUNK_SECTION_HEIGHT;
-    }
+    [[nodiscard]] i32 minY() const noexcept { return y * world::CHUNK_SECTION_HEIGHT; }
 
-    [[nodiscard]] i32 maxY() const noexcept
-    {
-        return (y + 1) * world::CHUNK_SECTION_HEIGHT - 1;
-    }
+    [[nodiscard]] i32 maxY() const noexcept { return (y + 1) * world::CHUNK_SECTION_HEIGHT - 1; }
 
     // 区块位置
-    [[nodiscard]] ChunkPos chunkPos() const noexcept
-    {
-        return {x, z};
-    }
+    [[nodiscard]] ChunkPos chunkPos() const noexcept { return {x, z}; }
 };
 
 } // namespace mc
 
 // 哈希函数支持
 namespace std {
-template<>
+template <>
 struct hash<mc::SectionPos> {
     size_t operator()(const mc::SectionPos& pos) const noexcept
     {

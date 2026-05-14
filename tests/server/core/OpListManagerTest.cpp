@@ -1,23 +1,25 @@
-#include <gtest/gtest.h>
 #include "server/core/OpListManager.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <thread>
 #include <vector>
-#include <algorithm>
+#include <gtest/gtest.h>
 
 using namespace mc::server::core;
 
 class OpListManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建临时测试目录
         testDir_ = std::filesystem::temp_directory_path() / "op_list_test";
         std::filesystem::create_directories(testDir_);
         testFile_ = testDir_ / "ops.json";
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理临时目录
         if (std::filesystem::exists(testDir_)) {
             std::filesystem::remove_all(testDir_);
@@ -30,14 +32,16 @@ protected:
 
 // ========== 基本功能测试 ==========
 
-TEST_F(OpListManagerTest, DefaultState) {
+TEST_F(OpListManagerTest, DefaultState)
+{
     OpListManager opList;
 
     EXPECT_TRUE(opList.empty());
     EXPECT_EQ(opList.size(), 0);
 }
 
-TEST_F(OpListManagerTest, SetEntry) {
+TEST_F(OpListManagerTest, SetEntry)
+{
     OpListManager opList;
 
     OpEntry entry("uuid-123", "Player1", OpLevel::GameMaster, false);
@@ -47,7 +51,8 @@ TEST_F(OpListManagerTest, SetEntry) {
     EXPECT_EQ(opList.getLevel("uuid-123"), OpLevel::GameMaster);
 }
 
-TEST_F(OpListManagerTest, SetEntryUpdatesExisting) {
+TEST_F(OpListManagerTest, SetEntryUpdatesExisting)
+{
     OpListManager opList;
 
     OpEntry entry1("uuid-123", "Player1", OpLevel::Moderator, false);
@@ -58,11 +63,12 @@ TEST_F(OpListManagerTest, SetEntryUpdatesExisting) {
     // 更新已有条目（提升权限）
     OpEntry entry2("uuid-123", "Player1", OpLevel::Admin, true);
     EXPECT_TRUE(opList.setEntry(entry2));
-    EXPECT_EQ(opList.size(), 1);  // 大小不变
+    EXPECT_EQ(opList.size(), 1); // 大小不变
     EXPECT_EQ(opList.getLevel("uuid-123"), OpLevel::Admin);
 }
 
-TEST_F(OpListManagerTest, RemoveEntry) {
+TEST_F(OpListManagerTest, RemoveEntry)
+{
     OpListManager opList;
 
     OpEntry entry("uuid-123", "Player1", OpLevel::GameMaster, false);
@@ -74,13 +80,15 @@ TEST_F(OpListManagerTest, RemoveEntry) {
     EXPECT_EQ(opList.getLevel("uuid-123"), OpLevel::Normal);
 }
 
-TEST_F(OpListManagerTest, RemoveNonExistentEntry) {
+TEST_F(OpListManagerTest, RemoveNonExistentEntry)
+{
     OpListManager opList;
 
     EXPECT_FALSE(opList.removeEntry("non-existent-uuid"));
 }
 
-TEST_F(OpListManagerTest, GetEntry) {
+TEST_F(OpListManagerTest, GetEntry)
+{
     OpListManager opList;
 
     OpEntry entry("uuid-123", "Player1", OpLevel::Admin, true);
@@ -97,7 +105,8 @@ TEST_F(OpListManagerTest, GetEntry) {
     EXPECT_FALSE(result2.has_value());
 }
 
-TEST_F(OpListManagerTest, GetAllEntries) {
+TEST_F(OpListManagerTest, GetAllEntries)
+{
     OpListManager opList;
 
     opList.setEntry(OpEntry("uuid-1", "Player1", OpLevel::Moderator, false));
@@ -108,7 +117,8 @@ TEST_F(OpListManagerTest, GetAllEntries) {
     EXPECT_EQ(entries.size(), 3);
 }
 
-TEST_F(OpListManagerTest, Clear) {
+TEST_F(OpListManagerTest, Clear)
+{
     OpListManager opList;
 
     opList.setEntry(OpEntry("uuid-1", "Player1", OpLevel::Moderator, false));
@@ -121,7 +131,8 @@ TEST_F(OpListManagerTest, Clear) {
 
 // ========== OpLevel 测试 ==========
 
-TEST_F(OpListManagerTest, OpLevelValues) {
+TEST_F(OpListManagerTest, OpLevelValues)
+{
     EXPECT_EQ(static_cast<int>(OpLevel::Normal), 0);
     EXPECT_EQ(static_cast<int>(OpLevel::Moderator), 1);
     EXPECT_EQ(static_cast<int>(OpLevel::GameMaster), 2);
@@ -129,7 +140,8 @@ TEST_F(OpListManagerTest, OpLevelValues) {
     EXPECT_EQ(static_cast<int>(OpLevel::Owner), 4);
 }
 
-TEST_F(OpListManagerTest, DifferentOpLevels) {
+TEST_F(OpListManagerTest, DifferentOpLevels)
+{
     OpListManager opList;
 
     opList.setEntry(OpEntry("uuid-1", "Mod", OpLevel::Moderator, false));
@@ -144,7 +156,8 @@ TEST_F(OpListManagerTest, DifferentOpLevels) {
     EXPECT_EQ(opList.getLevel("non-existent"), OpLevel::Normal);
 }
 
-TEST_F(OpListManagerTest, BypassesPlayerLimit) {
+TEST_F(OpListManagerTest, BypassesPlayerLimit)
+{
     OpListManager opList;
 
     OpEntry entry1("uuid-1", "Player1", OpLevel::GameMaster, false);
@@ -162,7 +175,8 @@ TEST_F(OpListManagerTest, BypassesPlayerLimit) {
 
 // ========== 文件操作测试 ==========
 
-TEST_F(OpListManagerTest, SaveAndLoad) {
+TEST_F(OpListManagerTest, SaveAndLoad)
+{
     // 创建并保存
     {
         OpListManager opList;
@@ -198,15 +212,17 @@ TEST_F(OpListManagerTest, SaveAndLoad) {
     }
 }
 
-TEST_F(OpListManagerTest, LoadNonExistentFile) {
+TEST_F(OpListManagerTest, LoadNonExistentFile)
+{
     OpListManager opList;
 
     auto result = opList.load(testDir_ / "non_existent.json");
-    EXPECT_TRUE(result.success());  // 应该成功，创建空列表
+    EXPECT_TRUE(result.success()); // 应该成功，创建空列表
     EXPECT_TRUE(opList.empty());
 }
 
-TEST_F(OpListManagerTest, Reload) {
+TEST_F(OpListManagerTest, Reload)
+{
     OpListManager opList;
 
     // 初始保存
@@ -229,7 +245,8 @@ TEST_F(OpListManagerTest, Reload) {
     EXPECT_FALSE(opList.isOp("uuid-1"));
 }
 
-TEST_F(OpListManagerTest, LoadInvalidJson) {
+TEST_F(OpListManagerTest, LoadInvalidJson)
+{
     // 创建无效 JSON 文件
     std::ofstream file(testFile_);
     file << "not a valid json";
@@ -240,7 +257,8 @@ TEST_F(OpListManagerTest, LoadInvalidJson) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(OpListManagerTest, LoadNonArrayJson) {
+TEST_F(OpListManagerTest, LoadNonArrayJson)
+{
     // 创建非数组 JSON 文件
     std::ofstream file(testFile_);
     file << R"({"uuid": "uuid-1", "name": "Player1"})";
@@ -251,7 +269,8 @@ TEST_F(OpListManagerTest, LoadNonArrayJson) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(OpListManagerTest, LoadWithMissingFields) {
+TEST_F(OpListManagerTest, LoadWithMissingFields)
+{
     // 创建缺少字段的 JSON 文件
     std::ofstream file(testFile_);
     file << R"([
@@ -262,14 +281,14 @@ TEST_F(OpListManagerTest, LoadWithMissingFields) {
 
     OpListManager opList;
     auto result = opList.load(testFile_);
-    EXPECT_TRUE(result.success());  // 缺少可选字段应该被接受
+    EXPECT_TRUE(result.success()); // 缺少可选字段应该被接受
     EXPECT_EQ(opList.size(), 2);
 
     // 验证默认值
     auto entry1 = opList.getEntry("uuid-1");
     EXPECT_TRUE(entry1.has_value());
-    EXPECT_EQ(entry1->level, OpLevel::GameMaster);  // 默认等级 2
-    EXPECT_FALSE(entry1->bypassesPlayerLimit);  // 默认 false
+    EXPECT_EQ(entry1->level, OpLevel::GameMaster); // 默认等级 2
+    EXPECT_FALSE(entry1->bypassesPlayerLimit);     // 默认 false
 
     auto entry2 = opList.getEntry("uuid-2");
     EXPECT_TRUE(entry2.has_value());
@@ -277,7 +296,8 @@ TEST_F(OpListManagerTest, LoadWithMissingFields) {
     EXPECT_FALSE(entry2->bypassesPlayerLimit);
 }
 
-TEST_F(OpListManagerTest, FilePathTracking) {
+TEST_F(OpListManagerTest, FilePathTracking)
+{
     OpListManager opList;
 
     opList.load(testFile_);
@@ -295,7 +315,8 @@ TEST_F(OpListManagerTest, FilePathTracking) {
 
 // ========== 线程安全测试 ==========
 
-TEST_F(OpListManagerTest, ThreadSafety) {
+TEST_F(OpListManagerTest, ThreadSafety)
+{
     OpListManager opList;
     constexpr int numThreads = 4;
     constexpr int entriesPerThread = 100;
@@ -322,7 +343,8 @@ TEST_F(OpListManagerTest, ThreadSafety) {
 
 // ========== 复杂场景测试 ==========
 
-TEST_F(OpListManagerTest, AddRemoveMultiple) {
+TEST_F(OpListManagerTest, AddRemoveMultiple)
+{
     OpListManager opList;
 
     // 添加多个
@@ -346,7 +368,8 @@ TEST_F(OpListManagerTest, AddRemoveMultiple) {
     EXPECT_EQ(opList.getLevel("uuid-2"), OpLevel::Owner);
 }
 
-TEST_F(OpListManagerTest, JsonFormatCompatibility) {
+TEST_F(OpListManagerTest, JsonFormatCompatibility)
+{
     // 测试与 Minecraft 1.16.5 ops.json 格式的兼容性
     std::ofstream file(testFile_);
     file << R"([
@@ -383,7 +406,8 @@ TEST_F(OpListManagerTest, JsonFormatCompatibility) {
     EXPECT_FALSE(entry2->bypassesPlayerLimit);
 }
 
-TEST_F(OpListManagerTest, SaveProducesValidFormat) {
+TEST_F(OpListManagerTest, SaveProducesValidFormat)
+{
     OpListManager opList;
     opList.setEntry(OpEntry("550e8400-e29b-41d4-a716-446655440000", "TestPlayer", OpLevel::Owner, true));
     opList.setEntry(OpEntry("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "AnotherPlayer", OpLevel::GameMaster, false));
@@ -393,8 +417,7 @@ TEST_F(OpListManagerTest, SaveProducesValidFormat) {
 
     // 读取文件内容验证格式
     std::ifstream file(testFile_);
-    std::string content((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
 
     // 验证 JSON 格式

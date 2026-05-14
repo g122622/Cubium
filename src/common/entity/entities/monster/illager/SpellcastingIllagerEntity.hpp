@@ -14,14 +14,7 @@ namespace mc {
  */
 class SpellcastingIllagerEntity : public AbstractIllagerEntity {
 public:
-    enum class SpellType : u8 {
-        None = 0,
-        SummonVex = 1,
-        Fangs = 2,
-        Wololo = 3,
-        Disappear = 4,
-        Blindness = 5
-    };
+    enum class SpellType : u8 { None = 0, SummonVex = 1, Fangs = 2, Wololo = 3, Disappear = 4, Blindness = 5 };
 
     SpellcastingIllagerEntity(LegacyEntityType type, EntityId id);
     ~SpellcastingIllagerEntity() override = default;
@@ -33,7 +26,8 @@ public:
     void setSpellType(SpellType spellType) { m_activeSpell = spellType; }
     void setSpellTicks(i32 ticks) { m_spellTicks = ticks; }
 
-    void clearSpellcasting() {
+    void clearSpellcasting()
+    {
         m_spellTicks = 0;
         m_activeSpell = SpellType::None;
     }

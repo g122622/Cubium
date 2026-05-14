@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -39,27 +39,26 @@ public:
 
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                        const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     /**
      * @brief 获取强信号强度
@@ -73,11 +72,7 @@ public:
      * @return i32 强信号强度
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
@@ -105,8 +100,7 @@ public:
      * @param state 当前方块状态
      * @return true 如果应该输出信号
      */
-    [[nodiscard]] virtual bool shouldBePowered(IWorld& world, const BlockPos& pos,
-                                               const BlockState& state) const = 0;
+    [[nodiscard]] virtual bool shouldBePowered(IWorld& world, const BlockPos& pos, const BlockState& state) const = 0;
 
     /**
      * @brief 计算输出信号强度
@@ -116,8 +110,7 @@ public:
      * @param state 当前方块状态
      * @return i32 输出信号强度 0-15
      */
-    [[nodiscard]] virtual i32 calculateOutputSignal(IWorld& world, const BlockPos& pos,
-                                                    const BlockState& state) const;
+    [[nodiscard]] virtual i32 calculateOutputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 检查是否被锁定
@@ -130,8 +123,7 @@ public:
      * @param state 当前方块状态
      * @return true 如果被锁定
      */
-    [[nodiscard]] virtual bool isLocked(IWorld& world, const BlockPos& pos,
-                                        const BlockState& state) const;
+    [[nodiscard]] virtual bool isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 获取输入信号强度
@@ -143,8 +135,7 @@ public:
      * @param state 当前方块状态
      * @return i32 输入信号强度 0-15
      */
-    [[nodiscard]] i32 getInputSignal(IWorld& world, const BlockPos& pos,
-                                     const BlockState& state) const;
+    [[nodiscard]] i32 getInputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 获取侧面信号强度
@@ -156,8 +147,7 @@ public:
      * @param state 当前方块状态
      * @return i32 侧面信号最大强度
      */
-    [[nodiscard]] i32 getPowerOnSides(IWorld& world, const BlockPos& pos,
-                                      const BlockState& state) const;
+    [[nodiscard]] i32 getPowerOnSides(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 获取朝向
@@ -209,8 +199,7 @@ protected:
      * @param state 当前方块状态
      * @return true 如果朝向另一个二极管
      */
-    [[nodiscard]] bool isFacingTowardsRepeater(IWorld& world, const BlockPos& pos,
-                                               const BlockState& state) const;
+    [[nodiscard]] bool isFacingTowardsRepeater(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 检查方块是否是二极管（中继器或比较器）

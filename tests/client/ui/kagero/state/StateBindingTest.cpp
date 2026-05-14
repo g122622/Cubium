@@ -13,12 +13,12 @@
  * - StateContext 组件状态管理测试
  */
 
-#include <gtest/gtest.h>
-#include <thread>
-#include <chrono>
-#include "client/ui/kagero/state/StateStore.hpp"
-#include "client/ui/kagero/state/ReactiveState.hpp"
 #include "client/ui/kagero/state/StateBinding.hpp"
+#include "client/ui/kagero/state/ReactiveState.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
+#include <chrono>
+#include <thread>
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero::state;
 using namespace mc::client::ui::kagero::state::binding;
@@ -32,12 +32,14 @@ using mc::u64;
 
 class StateBindingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         StateStore::instance().clear();
         StateStore::instance().clearMiddlewares();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         StateStore::instance().clear();
         StateStore::instance().clearMiddlewares();
     }
@@ -47,14 +49,16 @@ protected:
 // bind 函数测试
 // ============================================================================
 
-TEST_F(StateBindingTest, BindBasic) {
+TEST_F(StateBindingTest, BindBasic)
+{
     StateBindingPoint point = bind<i32>("test.key");
 
     point.set(42);
     EXPECT_EQ(point.get<i32>(), 42);
 }
 
-TEST_F(StateBindingTest, BindWithDefault) {
+TEST_F(StateBindingTest, BindWithDefault)
+{
     StateBindingPoint point = bind<i32>("nonexistent.key");
 
     // 不存在的键返回默认值
@@ -62,14 +66,13 @@ TEST_F(StateBindingTest, BindWithDefault) {
     EXPECT_EQ(point.get<i32>(100), 100);
 }
 
-TEST_F(StateBindingTest, BindCallback) {
+TEST_F(StateBindingTest, BindCallback)
+{
     StateBindingPoint point = bind<i32>("test.key");
     point.set(0);
 
     int callCount = 0;
-    u64 id = point.bind([&]() {
-        callCount++;
-    });
+    u64 id = point.bind([&]() { callCount++; });
 
     point.set(42);
     EXPECT_EQ(callCount, 1);
@@ -79,7 +82,8 @@ TEST_F(StateBindingTest, BindCallback) {
     EXPECT_EQ(callCount, 1);
 }
 
-TEST_F(StateBindingTest, BindMultipleCallbacks) {
+TEST_F(StateBindingTest, BindMultipleCallbacks)
+{
     StateBindingPoint point = bind<i32>("test.key");
     point.set(0);
 
@@ -106,7 +110,8 @@ TEST_F(StateBindingTest, BindMultipleCallbacks) {
 // bindReactive 双向同步测试
 // ============================================================================
 
-TEST_F(StateBindingTest, BindReactiveSyncToStore) {
+TEST_F(StateBindingTest, BindReactiveSyncToStore)
+{
     Reactive<i32> value(42);
 
     StateBindingPoint point = bindReactive(value, "test.sync.to_store");
@@ -116,7 +121,8 @@ TEST_F(StateBindingTest, BindReactiveSyncToStore) {
     EXPECT_EQ(StateStore::instance().get<i32>("test.sync.to_store"), 100);
 }
 
-TEST_F(StateBindingTest, BindReactiveSyncFromStore) {
+TEST_F(StateBindingTest, BindReactiveSyncFromStore)
+{
     Reactive<i32> value(42);
 
     StateBindingPoint point = bindReactive(value, "test.sync.from_store");
@@ -129,7 +135,8 @@ TEST_F(StateBindingTest, BindReactiveSyncFromStore) {
     EXPECT_EQ(value.get(), 200);
 }
 
-TEST_F(StateBindingTest, BindReactiveInitialValue) {
+TEST_F(StateBindingTest, BindReactiveInitialValue)
+{
     Reactive<i32> value(42);
 
     bindReactive(value, "test.sync.initial");
@@ -138,13 +145,12 @@ TEST_F(StateBindingTest, BindReactiveInitialValue) {
     EXPECT_EQ(StateStore::instance().get<i32>("test.sync.initial"), 42);
 }
 
-TEST_F(StateBindingTest, BindReactivePreventLoop) {
+TEST_F(StateBindingTest, BindReactivePreventLoop)
+{
     Reactive<i32> value(42);
 
     int reactiveCallCount = 0;
-    value.observe([&](const i32&, const i32&) {
-        reactiveCallCount++;
-    });
+    value.observe([&](const i32&, const i32&) { reactiveCallCount++; });
 
     bindReactive(value, "test.sync.prevent_loop");
 
@@ -162,7 +168,8 @@ TEST_F(StateBindingTest, BindReactivePreventLoop) {
 // watch 函数测试
 // ============================================================================
 
-TEST_F(StateBindingTest, WatchBasic) {
+TEST_F(StateBindingTest, WatchBasic)
+{
     StateStore::instance().set<i32>("test.watch", 0);
 
     i32 oldVal = 0, newVal = 0;
@@ -190,7 +197,8 @@ TEST_F(StateBindingTest, WatchBasic) {
     EXPECT_EQ(callCount, 2);
 }
 
-TEST_F(StateBindingTest, WatchMultipleKeys) {
+TEST_F(StateBindingTest, WatchMultipleKeys)
+{
     auto ids = watchAll({"key1", "key2", "key3"}, []() {});
 
     EXPECT_EQ(ids.size(), 3u);
@@ -205,14 +213,13 @@ TEST_F(StateBindingTest, WatchMultipleKeys) {
 // StateScope 测试
 // ============================================================================
 
-TEST_F(StateBindingTest, StateScopeAutoUnsubscribe) {
+TEST_F(StateBindingTest, StateScopeAutoUnsubscribe)
+{
     int callCount = 0;
 
     {
         StateScope scope;
-        scope.subscribe("test.scope", [&]() {
-            callCount++;
-        });
+        scope.subscribe("test.scope", [&]() { callCount++; });
 
         StateStore::instance().set<i32>("test.scope", 1);
         EXPECT_EQ(callCount, 1);
@@ -223,14 +230,13 @@ TEST_F(StateBindingTest, StateScopeAutoUnsubscribe) {
     EXPECT_EQ(callCount, 1);
 }
 
-TEST_F(StateBindingTest, StateScopeWatch) {
+TEST_F(StateBindingTest, StateScopeWatch)
+{
     int callCount = 0;
 
     {
         StateScope scope;
-        scope.watch<i32>("test.scope", [&](const i32&, const i32&) {
-            callCount++;
-        });
+        scope.watch<i32>("test.scope", [&](const i32&, const i32&) { callCount++; });
 
         StateStore::instance().set<i32>("test.scope", 1);
         EXPECT_EQ(callCount, 1);
@@ -240,7 +246,8 @@ TEST_F(StateBindingTest, StateScopeWatch) {
     EXPECT_EQ(callCount, 1);
 }
 
-TEST_F(StateBindingTest, StateScopeClear) {
+TEST_F(StateBindingTest, StateScopeClear)
+{
     int callCount = 0;
 
     StateScope scope;
@@ -255,7 +262,8 @@ TEST_F(StateBindingTest, StateScopeClear) {
     EXPECT_EQ(callCount, 1);
 }
 
-TEST_F(StateBindingTest, StateScopeMove) {
+TEST_F(StateBindingTest, StateScopeMove)
+{
     int callCount = 0;
 
     StateScope scope1;
@@ -273,7 +281,8 @@ TEST_F(StateBindingTest, StateScopeMove) {
     EXPECT_EQ(scope2.size(), 1u);
 }
 
-TEST_F(StateBindingTest, StateScopeSize) {
+TEST_F(StateBindingTest, StateScopeSize)
+{
     StateScope scope;
 
     EXPECT_EQ(scope.size(), 0u);
@@ -292,7 +301,8 @@ TEST_F(StateBindingTest, StateScopeSize) {
 // StateContext 测试
 // ============================================================================
 
-TEST_F(StateBindingTest, StateContextGetSet) {
+TEST_F(StateBindingTest, StateContextGetSet)
+{
     StateContext ctx;
 
     ctx.set<i32>("health", 100);
@@ -302,7 +312,8 @@ TEST_F(StateBindingTest, StateContextGetSet) {
     EXPECT_EQ(ctx.get<std::string>("name"), "Steve");
 }
 
-TEST_F(StateBindingTest, StateContextReactive) {
+TEST_F(StateBindingTest, StateContextReactive)
+{
     StateContext ctx;
 
     Reactive<i32>& mana = ctx.reactive<i32>("mana", 50);
@@ -316,13 +327,12 @@ TEST_F(StateBindingTest, StateContextReactive) {
     EXPECT_EQ(mana2.get(), 100);
 }
 
-TEST_F(StateBindingTest, StateContextScope) {
+TEST_F(StateBindingTest, StateContextScope)
+{
     StateContext ctx;
 
     int callCount = 0;
-    ctx.scope().subscribe("test.ctx", [&]() {
-        callCount++;
-    });
+    ctx.scope().subscribe("test.ctx", [&]() { callCount++; });
 
     ctx.set<i32>("test.ctx", 42);
     EXPECT_EQ(callCount, 1);
@@ -332,14 +342,13 @@ TEST_F(StateBindingTest, StateContextScope) {
 // computed 辅助函数测试
 // ============================================================================
 
-TEST_F(StateBindingTest, ComputedHelper) {
+TEST_F(StateBindingTest, ComputedHelper)
+{
     StateStore::instance().set<i32>("a", 10);
     StateStore::instance().set<i32>("b", 20);
 
-    auto sum = computed<i32>([]() {
-        return StateStore::instance().get<i32>("a") +
-               StateStore::instance().get<i32>("b");
-    });
+    auto sum =
+        computed<i32>([]() { return StateStore::instance().get<i32>("a") + StateStore::instance().get<i32>("b"); });
 
     EXPECT_EQ(sum.get(), 30);
 
@@ -352,14 +361,16 @@ TEST_F(StateBindingTest, ComputedHelper) {
 // 边界情况测试
 // ============================================================================
 
-TEST_F(StateBindingTest, BindWithEmptyKey) {
+TEST_F(StateBindingTest, BindWithEmptyKey)
+{
     StateBindingPoint point = bind<i32>("");
 
     point.set(42);
     EXPECT_EQ(point.get<i32>(), 42);
 }
 
-TEST_F(StateBindingTest, MultipleBindReactive) {
+TEST_F(StateBindingTest, MultipleBindReactive)
+{
     Reactive<i32> value(42);
 
     bindReactive(value, "test.sync1");

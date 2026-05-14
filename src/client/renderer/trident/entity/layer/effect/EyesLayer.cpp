@@ -1,19 +1,18 @@
 #include "EyesLayer.hpp"
 #include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include "../../model/core/ModelRenderer.hpp"
 #include "../../model/base/BipedModel.hpp"
-#include "../../model/monster/SpiderModel.hpp"
+#include "../../model/core/ModelRenderer.hpp"
 #include "../../model/monster/EndermanModel.hpp"
+#include "../../model/monster/SpiderModel.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::effect {
 
-template<typename TEntity, typename TModel>
-void EyesLayer<TEntity, TModel>::renderPipeline(
-    TEntity& entity,
+template <typename TEntity, typename TModel>
+void EyesLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -60,11 +59,7 @@ void EyesLayer<TEntity, TModel>::renderPipeline(
     }
 
     // 获取实体位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用发光颜色作为叠加颜色
     Vector4f overlayColor(color.x, color.y, color.z, 1.0f);
@@ -73,8 +68,7 @@ void EyesLayer<TEntity, TModel>::renderPipeline(
     // 参考 MC 1.16.5 EyesLayer: GlintResourceManager.RenderTypes.entityGlintDirect()
     pipeline.bind(cmd, pipeline::BlendMode::Additive);
 
-    pipeline.drawMesh(cmd, result.value(), headTransform, entityPos, 1.0,
-                      overlayColor, 0.0f, 0.0f);
+    pipeline.drawMesh(cmd, result.value(), headTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
 
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
@@ -85,9 +79,8 @@ void EyesLayer<TEntity, TModel>::renderPipeline(
     (void)cmd;
 }
 
-template<typename TEntity, typename TModel>
-void EyesLayer<TEntity, TModel>::render(
-    TEntity& entity,
+template <typename TEntity, typename TModel>
+void EyesLayer<TEntity, TModel>::render(TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -107,8 +100,9 @@ void EyesLayer<TEntity, TModel>::render(
     (void)scale;
 }
 
-template<typename TEntity, typename TModel>
-bool EyesLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
+template <typename TEntity, typename TModel>
+bool EyesLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
+{
     // 默认情况下眼睛层总是可见
     // 子类可以根据实体状态重写此方法
     // 例如：末影人在愤怒时眼睛发光
@@ -116,11 +110,9 @@ bool EyesLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
     return true;
 }
 
-template<typename TEntity, typename TModel>
+template <typename TEntity, typename TModel>
 void EyesLayer<TEntity, TModel>::buildEyesMesh(
-    const std::array<f64, 16>& headTransform,
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    const std::array<f64, 16>& headTransform, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 眼睛是一个简单的四边形，位于头部前方
     // 参考 MC 1.16.5 的眼睛模型
@@ -137,9 +129,9 @@ void EyesLayer<TEntity, TModel>::buildEyesMesh(
     indices.clear();
 
     // 提取头部位置（变换矩阵的平移部分）
-    f64 headX = headTransform[3];   // X 平移
-    f64 headY = headTransform[7];   // Y 平移
-    f64 headZ = headTransform[11];  // Z 平移
+    f64 headX = headTransform[3];  // X 平移
+    f64 headY = headTransform[7];  // Y 平移
+    f64 headZ = headTransform[11]; // Z 平移
 
     // 提取旋转信息（简化：使用矩阵中的旋转分量）
     // 对于简单的眼睛层，我们使用固定的偏移位置
@@ -182,8 +174,8 @@ void EyesLayer<TEntity, TModel>::buildEyesMesh(
 }
 
 // 显式实例化常用类型
-template class EyesLayer< ::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
-template class EyesLayer< ::mc::LivingEntity, ::mc::client::renderer::entity::model::monster::SpiderModel>;
-template class EyesLayer< ::mc::LivingEntity, ::mc::client::renderer::entity::model::monster::EndermanModel>;
+template class EyesLayer<::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
+template class EyesLayer<::mc::LivingEntity, ::mc::client::renderer::entity::model::monster::SpiderModel>;
+template class EyesLayer<::mc::LivingEntity, ::mc::client::renderer::entity::model::monster::EndermanModel>;
 
 } // namespace mc::client::renderer::entity::layer::effect

@@ -22,8 +22,7 @@ public:
      * @param slot 盔甲槽位
      * @param properties 物品属性
      */
-    DyeableArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot,
-                     ItemProperties properties);
+    DyeableArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot, ItemProperties properties);
 
     // ========== 染色相关方法 ==========
 

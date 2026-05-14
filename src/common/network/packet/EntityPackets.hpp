@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Packet.hpp"
 #include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "../../item/core/ItemStack.hpp"
-#include <vector>
+#include "../../util/math/Vector3.hpp"
+#include "Packet.hpp"
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace mc::network {
 
@@ -19,7 +19,9 @@ namespace mc::network {
  */
 class SpawnEntityPacket : public Packet {
 public:
-    SpawnEntityPacket() : Packet(PacketType::SpawnEntity) {}
+    SpawnEntityPacket()
+        : Packet(PacketType::SpawnEntity)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -40,23 +42,31 @@ public:
     f32 x() const { return m_x; }
     f32 y() const { return m_y; }
     f32 z() const { return m_z; }
-    void setPosition(f32 x, f32 y, f32 z) {
-        m_x = x; m_y = y; m_z = z;
+    void setPosition(f32 x, f32 y, f32 z)
+    {
+        m_x = x;
+        m_y = y;
+        m_z = z;
     }
 
     // 旋转（角度）
     f32 yaw() const { return m_yaw; }
     f32 pitch() const { return m_pitch; }
-    void setRotation(f32 yaw, f32 pitch) {
-        m_yaw = yaw; m_pitch = pitch;
+    void setRotation(f32 yaw, f32 pitch)
+    {
+        m_yaw = yaw;
+        m_pitch = pitch;
     }
 
     // 速度
     i16 velocityX() const { return m_velocityX; }
     i16 velocityY() const { return m_velocityY; }
     i16 velocityZ() const { return m_velocityZ; }
-    void setVelocity(i16 vx, i16 vy, i16 vz) {
-        m_velocityX = vx; m_velocityY = vy; m_velocityZ = vz;
+    void setVelocity(i16 vx, i16 vy, i16 vz)
+    {
+        m_velocityX = vx;
+        m_velocityY = vy;
+        m_velocityZ = vz;
     }
 
     // ========== ItemStack 支持（用于 ItemEntity） ==========
@@ -71,15 +81,14 @@ public:
      * @brief 获取 ItemStack
      * @return ItemStack 指针，如果没有则返回 nullptr
      */
-    [[nodiscard]] const ItemStack* itemStack() const {
-        return m_hasItemStack ? &m_itemStack : nullptr;
-    }
+    [[nodiscard]] const ItemStack* itemStack() const { return m_hasItemStack ? &m_itemStack : nullptr; }
 
     /**
      * @brief 设置 ItemStack
      * @param stack 要设置的物品堆
      */
-    void setItemStack(const ItemStack& stack) {
+    void setItemStack(const ItemStack& stack)
+    {
         m_itemStack = stack;
         m_hasItemStack = true;
     }
@@ -96,8 +105,8 @@ private:
     i16 m_velocityX = 0;
     i16 m_velocityY = 0;
     i16 m_velocityZ = 0;
-    bool m_hasItemStack = false;     // 是否包含 ItemStack 数据
-    ItemStack m_itemStack;           // ItemEntity 的物品数据
+    bool m_hasItemStack = false; // 是否包含 ItemStack 数据
+    ItemStack m_itemStack;       // ItemEntity 的物品数据
 };
 
 /**
@@ -109,7 +118,9 @@ private:
  */
 class SpawnMobPacket : public Packet {
 public:
-    SpawnMobPacket() : Packet(PacketType::SpawnMob) {}
+    SpawnMobPacket()
+        : Packet(PacketType::SpawnMob)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -130,24 +141,33 @@ public:
     f32 x() const { return m_x; }
     f32 y() const { return m_y; }
     f32 z() const { return m_z; }
-    void setPosition(f32 x, f32 y, f32 z) {
-        m_x = x; m_y = y; m_z = z;
+    void setPosition(f32 x, f32 y, f32 z)
+    {
+        m_x = x;
+        m_y = y;
+        m_z = z;
     }
 
     // 旋转（角度）
     f32 yaw() const { return m_yaw; }
     f32 pitch() const { return m_pitch; }
     f32 headYaw() const { return m_headYaw; }
-    void setRotation(f32 yaw, f32 pitch, f32 headYaw) {
-        m_yaw = yaw; m_pitch = pitch; m_headYaw = headYaw;
+    void setRotation(f32 yaw, f32 pitch, f32 headYaw)
+    {
+        m_yaw = yaw;
+        m_pitch = pitch;
+        m_headYaw = headYaw;
     }
 
     // 速度
     i16 velocityX() const { return m_velocityX; }
     i16 velocityY() const { return m_velocityY; }
     i16 velocityZ() const { return m_velocityZ; }
-    void setVelocity(i16 vx, i16 vy, i16 vz) {
-        m_velocityX = vx; m_velocityY = vy; m_velocityZ = vz;
+    void setVelocity(i16 vx, i16 vy, i16 vz)
+    {
+        m_velocityX = vx;
+        m_velocityY = vy;
+        m_velocityZ = vz;
     }
 
     // 数据参数
@@ -167,7 +187,7 @@ private:
     i16 m_velocityX = 0;
     i16 m_velocityY = 0;
     i16 m_velocityZ = 0;
-    std::vector<u8> m_metadata;   // 实体数据参数
+    std::vector<u8> m_metadata; // 实体数据参数
 };
 
 /**
@@ -179,7 +199,9 @@ private:
  */
 class EntityMetadataPacket : public Packet {
 public:
-    EntityMetadataPacket() : Packet(PacketType::EntityMetadata) {}
+    EntityMetadataPacket()
+        : Packet(PacketType::EntityMetadata)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -204,7 +226,9 @@ private:
  */
 class EntityVelocityPacket : public Packet {
 public:
-    EntityVelocityPacket() : Packet(PacketType::EntityVelocity) {}
+    EntityVelocityPacket()
+        : Packet(PacketType::EntityVelocity)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -216,8 +240,11 @@ public:
     i16 velocityX() const { return m_velocityX; }
     i16 velocityY() const { return m_velocityY; }
     i16 velocityZ() const { return m_velocityZ; }
-    void setVelocity(i16 vx, i16 vy, i16 vz) {
-        m_velocityX = vx; m_velocityY = vy; m_velocityZ = vz;
+    void setVelocity(i16 vx, i16 vy, i16 vz)
+    {
+        m_velocityX = vx;
+        m_velocityY = vy;
+        m_velocityZ = vz;
     }
 
 private:
@@ -236,7 +263,9 @@ private:
  */
 class EntityTeleportPacket : public Packet {
 public:
-    EntityTeleportPacket() : Packet(PacketType::EntityTeleport) {}
+    EntityTeleportPacket()
+        : Packet(PacketType::EntityTeleport)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -247,14 +276,19 @@ public:
     f32 x() const { return m_x; }
     f32 y() const { return m_y; }
     f32 z() const { return m_z; }
-    void setPosition(f32 x, f32 y, f32 z) {
-        m_x = x; m_y = y; m_z = z;
+    void setPosition(f32 x, f32 y, f32 z)
+    {
+        m_x = x;
+        m_y = y;
+        m_z = z;
     }
 
     f32 yaw() const { return m_yaw; }
     f32 pitch() const { return m_pitch; }
-    void setRotation(f32 yaw, f32 pitch) {
-        m_yaw = yaw; m_pitch = pitch;
+    void setRotation(f32 yaw, f32 pitch)
+    {
+        m_yaw = yaw;
+        m_pitch = pitch;
     }
 
     bool onGround() const { return m_onGround; }
@@ -279,7 +313,9 @@ private:
  */
 class EntityDestroyPacket : public Packet {
 public:
-    EntityDestroyPacket() : Packet(PacketType::EntityDestroy) {}
+    EntityDestroyPacket()
+        : Packet(PacketType::EntityDestroy)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -311,7 +347,9 @@ public:
         MagicCriticalEffect = 5
     };
 
-    EntityAnimationPacket() : Packet(PacketType::EntityAnimation) {}
+    EntityAnimationPacket()
+        : Packet(PacketType::EntityAnimation)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -336,7 +374,9 @@ private:
  */
 class EntityMovePacket : public Packet {
 public:
-    EntityMovePacket() : Packet(PacketType::EntityMove) {}
+    EntityMovePacket()
+        : Packet(PacketType::EntityMove)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -348,14 +388,19 @@ public:
     i16 deltaX() const { return m_deltaX; }
     i16 deltaY() const { return m_deltaY; }
     i16 deltaZ() const { return m_deltaZ; }
-    void setDelta(i16 dx, i16 dy, i16 dz) {
-        m_deltaX = dx; m_deltaY = dy; m_deltaZ = dz;
+    void setDelta(i16 dx, i16 dy, i16 dz)
+    {
+        m_deltaX = dx;
+        m_deltaY = dy;
+        m_deltaZ = dz;
     }
 
     f32 yaw() const { return m_yaw; }
     f32 pitch() const { return m_pitch; }
-    void setRotation(f32 yaw, f32 pitch) {
-        m_yaw = yaw; m_pitch = pitch;
+    void setRotation(f32 yaw, f32 pitch)
+    {
+        m_yaw = yaw;
+        m_pitch = pitch;
     }
 
     bool onGround() const { return m_onGround; }
@@ -380,7 +425,9 @@ private:
  */
 class EntityHeadLookPacket : public Packet {
 public:
-    EntityHeadLookPacket() : Packet(PacketType::EntityHeadLook) {}
+    EntityHeadLookPacket()
+        : Packet(PacketType::EntityHeadLook)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -415,7 +462,7 @@ public:
         ShakeOffWater = 8,
 
         // 动物状态
-        LoveHeart = 18,         // 繁殖爱心效果
+        LoveHeart = 18, // 繁殖爱心效果
 
         // 玩家状态
         PermissionLevelChange = 26,
@@ -428,15 +475,17 @@ public:
         TotemActivate = 35,
 
         // 动物特定状态
-        SheepEatGrass = 45,     // 羊吃草
-        ChickenLayEgg = 47,     // 鸡下蛋
+        SheepEatGrass = 45, // 羊吃草
+        ChickenLayEgg = 47, // 鸡下蛋
 
         // 守卫者/潜影贝攻击动画
         GuardianAttack = 21,
         ShulkerOpen = 46
     };
 
-    EntityStatusPacket() : Packet(PacketType::EntityStatus) {}
+    EntityStatusPacket()
+        : Packet(PacketType::EntityStatus)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -465,7 +514,9 @@ private:
  */
 class CollectItemPacket : public Packet {
 public:
-    CollectItemPacket() : Packet(PacketType::CollectItem) {}
+    CollectItemPacket()
+        : Packet(PacketType::CollectItem)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -490,9 +541,9 @@ public:
     void setPickupItemCount(i32 count) { m_pickupItemCount = count; }
 
 private:
-    u32 m_collectedEntityId = 0;  // 被拾取的物品实体ID
-    u32 m_collectorEntityId = 0;  // 拾取者（玩家）实体ID
-    i32 m_pickupItemCount = 1;     // 拾取物品数量
+    u32 m_collectedEntityId = 0; // 被拾取的物品实体ID
+    u32 m_collectorEntityId = 0; // 拾取者（玩家）实体ID
+    i32 m_pickupItemCount = 1;   // 拾取物品数量
 };
 
 // ============================================================================
@@ -509,7 +560,9 @@ private:
  */
 class PlayerInputPacket : public Packet {
 public:
-    PlayerInputPacket() : Packet(PacketType::PlayerInput) {}
+    PlayerInputPacket()
+        : Packet(PacketType::PlayerInput)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -541,10 +594,10 @@ public:
     void setSneaking(bool sneaking) { m_sneaking = sneaking; }
 
 private:
-    f32 m_strafeSpeed = 0.0f;   // 左右移动 (正值=左, 负值=右)
-    f32 m_forwardSpeed = 0.0f;  // 前后移动 (正值=前, 负值=后)
-    bool m_jumping = false;      // 跳跃状态
-    bool m_sneaking = false;     // 潜行状态
+    f32 m_strafeSpeed = 0.0f;  // 左右移动 (正值=左, 负值=右)
+    f32 m_forwardSpeed = 0.0f; // 前后移动 (正值=前, 负值=后)
+    bool m_jumping = false;    // 跳跃状态
+    bool m_sneaking = false;   // 潜行状态
 };
 
 // ============================================================================
@@ -561,7 +614,9 @@ private:
  */
 class MoveVehiclePacket : public Packet {
 public:
-    MoveVehiclePacket() : Packet(PacketType::MoveVehicle) {}
+    MoveVehiclePacket()
+        : Packet(PacketType::MoveVehicle)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -570,12 +625,21 @@ public:
     f64 x() const { return m_x; }
     f64 y() const { return m_y; }
     f64 z() const { return m_z; }
-    void setPosition(f64 x, f64 y, f64 z) { m_x = x; m_y = y; m_z = z; }
+    void setPosition(f64 x, f64 y, f64 z)
+    {
+        m_x = x;
+        m_y = y;
+        m_z = z;
+    }
 
     // 旋转（角度）
     f32 yaw() const { return m_yaw; }
     f32 pitch() const { return m_pitch; }
-    void setRotation(f32 yaw, f32 pitch) { m_yaw = yaw; m_pitch = pitch; }
+    void setRotation(f32 yaw, f32 pitch)
+    {
+        m_yaw = yaw;
+        m_pitch = pitch;
+    }
 
 private:
     f64 m_x = 0.0;
@@ -599,7 +663,9 @@ private:
  */
 class VehicleMovePacket : public Packet {
 public:
-    VehicleMovePacket() : Packet(PacketType::VehicleMove) {}
+    VehicleMovePacket()
+        : Packet(PacketType::VehicleMove)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -608,12 +674,21 @@ public:
     f64 x() const { return m_x; }
     f64 y() const { return m_y; }
     f64 z() const { return m_z; }
-    void setPosition(f64 x, f64 y, f64 z) { m_x = x; m_y = y; m_z = z; }
+    void setPosition(f64 x, f64 y, f64 z)
+    {
+        m_x = x;
+        m_y = y;
+        m_z = z;
+    }
 
     // 旋转（角度）
     f32 yaw() const { return m_yaw; }
     f32 pitch() const { return m_pitch; }
-    void setRotation(f32 yaw, f32 pitch) { m_yaw = yaw; m_pitch = pitch; }
+    void setRotation(f32 yaw, f32 pitch)
+    {
+        m_yaw = yaw;
+        m_pitch = pitch;
+    }
 
 private:
     f64 m_x = 0.0;
@@ -633,15 +708,15 @@ private:
  * 参考 MC 1.16.5 CEntityActionPacket.Action
  */
 enum class EntityActionType : i32 {
-    PressShiftKey = 0,      // 按下潜行键
-    ReleaseShiftKey = 1,    // 释放潜行键
-    StopSleeping = 2,       // 停止睡觉
-    StartSprinting = 3,     // 开始疾跑
-    StopSprinting = 4,      // 停止疾跑
-    StartRidingJump = 5,    // 开始骑乘跳跃（马跳跃蓄力）
-    StopRidingJump = 6,     // 停止骑乘跳跃（马跳跃释放）
-    OpenInventory = 7,      // 打开背包
-    StartFallFlying = 8     // 开始滑翔（鞘翅）
+    PressShiftKey = 0,   // 按下潜行键
+    ReleaseShiftKey = 1, // 释放潜行键
+    StopSleeping = 2,    // 停止睡觉
+    StartSprinting = 3,  // 开始疾跑
+    StopSprinting = 4,   // 停止疾跑
+    StartRidingJump = 5, // 开始骑乘跳跃（马跳跃蓄力）
+    StopRidingJump = 6,  // 停止骑乘跳跃（马跳跃释放）
+    OpenInventory = 7,   // 打开背包
+    StartFallFlying = 8  // 开始滑翔（鞘翅）
 };
 
 /**
@@ -654,7 +729,9 @@ enum class EntityActionType : i32 {
  */
 class EntityActionPacket : public Packet {
 public:
-    EntityActionPacket() : Packet(PacketType::EntityAction) {}
+    EntityActionPacket()
+        : Packet(PacketType::EntityAction)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -695,9 +772,9 @@ private:
  * 参考 MC 1.16.5 CUseEntityPacket.Action
  */
 enum class UseEntityAction : u8 {
-    Interact = 0,       // 右键交互（不指定位置）
-    Attack = 1,         // 左键攻击
-    InteractAt = 2      // 右键交互（指定具体位置）
+    Interact = 0,  // 右键交互（不指定位置）
+    Attack = 1,    // 左键攻击
+    InteractAt = 2 // 右键交互（指定具体位置）
 };
 
 /**
@@ -710,7 +787,9 @@ enum class UseEntityAction : u8 {
  */
 class UseEntityPacket : public Packet {
 public:
-    UseEntityPacket() : Packet(PacketType::UseEntity) {}
+    UseEntityPacket()
+        : Packet(PacketType::UseEntity)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -728,7 +807,12 @@ public:
     void setEntityId(u32 id) { m_entityId = id; }
     void setAction(UseEntityAction action) { m_action = action; }
     void setHand(Hand hand) { m_hand = hand; }
-    void setHitPosition(f32 x, f32 y, f32 z) { m_hitX = x; m_hitY = y; m_hitZ = z; }
+    void setHitPosition(f32 x, f32 y, f32 z)
+    {
+        m_hitX = x;
+        m_hitY = y;
+        m_hitZ = z;
+    }
     void setSneaking(bool sneaking) { m_isSneaking = sneaking; }
 
 private:

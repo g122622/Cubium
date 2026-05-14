@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractRaiderEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AbstractRaiderEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -124,9 +124,9 @@ private:
     i32 m_attackCooldown = 0;
 
     // 常量
-    static constexpr i32 ATTACK_COOLDOWN = 60;       // 3秒攻击冷却
-    static constexpr i32 DRINK_DURATION = 32;        // 喝药水时间
-    static constexpr f32 HEAL_THRESHOLD = 0.5f;      // 生命值低于50%时治疗
+    static constexpr i32 ATTACK_COOLDOWN = 60;  // 3秒攻击冷却
+    static constexpr i32 DRINK_DURATION = 32;   // 喝药水时间
+    static constexpr f32 HEAL_THRESHOLD = 0.5f; // 生命值低于50%时治疗
 };
 
 } // namespace mc

@@ -1,6 +1,6 @@
 #include "TeleportManager.hpp"
-#include "PlayerManager.hpp"
 #include "ConnectionManager.hpp"
+#include "PlayerManager.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include <spdlog/spdlog.h>
 
@@ -8,10 +8,10 @@ namespace mc::server::core {
 
 TeleportManager::TeleportManager(PlayerManager& playerManager)
     : m_playerManager(playerManager)
-{
-}
+{}
 
-u32 TeleportManager::requestTeleport(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
+u32 TeleportManager::requestTeleport(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         spdlog::warn("TeleportManager: Player {} not found", playerId);
@@ -38,13 +38,14 @@ u32 TeleportManager::requestTeleport(PlayerId playerId, f64 x, f64 y, f64 z, f32
     auto packet = ConnectionManager::encapsulatePacket(network::PacketType::Teleport, ser.buffer());
     player->send(packet.data(), packet.size());
 
-    spdlog::debug("TeleportManager: Player {} teleporting to ({}, {}, {}), teleportId={}",
-                  playerId, x, y, z, teleportId);
+    spdlog::debug(
+        "TeleportManager: Player {} teleporting to ({}, {}, {}), teleportId={}", playerId, x, y, z, teleportId);
 
     return teleportId;
 }
 
-bool TeleportManager::confirmTeleport(PlayerId playerId, u32 teleportId) {
+bool TeleportManager::confirmTeleport(PlayerId playerId, u32 teleportId)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         spdlog::warn("TeleportManager: Player {} not found for teleport confirm", playerId);
@@ -58,7 +59,9 @@ bool TeleportManager::confirmTeleport(PlayerId playerId, u32 teleportId) {
 
     if (player->pendingTeleportId != teleportId) {
         spdlog::warn("TeleportManager: Player {} teleport ID mismatch: expected {}, got {}",
-                     playerId, player->pendingTeleportId, teleportId);
+            playerId,
+            player->pendingTeleportId,
+            teleportId);
         return false;
     }
 
@@ -67,12 +70,14 @@ bool TeleportManager::confirmTeleport(PlayerId playerId, u32 teleportId) {
     return true;
 }
 
-bool TeleportManager::isWaitingForConfirm(PlayerId playerId) const {
+bool TeleportManager::isWaitingForConfirm(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     return player && player->waitingTeleportConfirm;
 }
 
-u32 TeleportManager::getPendingTeleportId(PlayerId playerId) const {
+u32 TeleportManager::getPendingTeleportId(PlayerId playerId) const
+{
     auto* player = m_playerManager.getPlayer(playerId);
     return player ? player->pendingTeleportId : 0;
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../../core/MobEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../core/MobEntity.hpp"
 #include <memory>
 
 namespace mc {

@@ -22,20 +22,19 @@ namespace enchant {
  */
 class BaneOfArthropodsEnchantment : public DamageEnchantment {
 public:
-    BaneOfArthropodsEnchantment() : DamageEnchantment(Type::Arthropods) {}
+    BaneOfArthropodsEnchantment()
+        : DamageEnchantment(Type::Arthropods)
+    {}
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:bane_of_arthropods";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:bane_of_arthropods"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.bane_of_arthropods";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Uncommon;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 
     /**
      * @brief 获取缓慢效果的持续时间（tick）
@@ -48,7 +47,8 @@ public:
      * @param random 随机数生成器
      * @return 持续时间（tick）
      */
-    [[nodiscard]] static i32 getSlownessDuration(i32 level, math::Random& random) {
+    [[nodiscard]] static i32 getSlownessDuration(i32 level, math::Random& random)
+    {
         // 20 + random.nextInt(10 * level)
         // Level I: 20-29 tick, Level V: 20-69 tick
         return 20 + random.nextInt(10 * level);
@@ -58,8 +58,9 @@ public:
      * @brief 获取缓慢效果等级（固定为 IV）
      * @return 缓慢效果等级 (3 = Slowness IV)
      */
-    [[nodiscard]] static constexpr i32 getSlownessAmplifier() {
-        return 3;  // Slowness IV
+    [[nodiscard]] static constexpr i32 getSlownessAmplifier()
+    {
+        return 3; // Slowness IV
     }
 
     /**

@@ -13,17 +13,14 @@
 namespace mc {
 namespace command {
 
-void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    auto clearDurationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "duration",
-        IntegerArgumentType::integer(0)
-    );
-    clearDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setClear(ctx);
-    });
+    auto clearDurationArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", IntegerArgumentType::integer(0));
+    clearDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setClear(ctx); });
     clearNode->addChild(clearDurationArg);
     clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("duration", 0);
@@ -31,13 +28,9 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     });
 
     auto rainNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("rain");
-    auto rainDurationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "duration",
-        IntegerArgumentType::integer(0)
-    );
-    rainDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setRain(ctx);
-    });
+    auto rainDurationArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", IntegerArgumentType::integer(0));
+    rainDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setRain(ctx); });
     rainNode->addChild(rainDurationArg);
     rainNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("duration", 0);
@@ -45,13 +38,9 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     });
 
     auto thunderNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("thunder");
-    auto thunderDurationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "duration",
-        IntegerArgumentType::integer(0)
-    );
-    thunderDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setThunder(ctx);
-    });
+    auto thunderDurationArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", IntegerArgumentType::integer(0));
+    thunderDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setThunder(ctx); });
     thunderNode->addChild(thunderDurationArg);
     thunderNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("duration", 0);
@@ -59,20 +48,12 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     });
 
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
-    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return query(ctx);
-    });
+    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return query(ctx); });
 
     auto weatherNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("weather");
-    weatherNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        weatherNode,
-        support::makeMetadata(
-            "Change or query the weather.",
-            "/weather <clear|rain|thunder|query> [duration]",
-            2));
+    weatherNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(weatherNode,
+        support::makeMetadata("Change or query the weather.", "/weather <clear|rain|thunder|query> [duration]", 2));
     weatherNode->addChild(clearNode);
     weatherNode->addChild(rainNode);
     weatherNode->addChild(thunderNode);
@@ -81,7 +62,8 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     dispatcher.registerCommand(weatherNode);
 }
 
-i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context) {
+i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (!server) {
@@ -100,7 +82,8 @@ i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context) {
     return 1;
 }
 
-i32 WeatherCommand::setRain(CommandContext<ServerCommandSource>& context) {
+i32 WeatherCommand::setRain(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (!server) {
@@ -119,7 +102,8 @@ i32 WeatherCommand::setRain(CommandContext<ServerCommandSource>& context) {
     return 1;
 }
 
-i32 WeatherCommand::setThunder(CommandContext<ServerCommandSource>& context) {
+i32 WeatherCommand::setThunder(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (!server) {
@@ -138,7 +122,8 @@ i32 WeatherCommand::setThunder(CommandContext<ServerCommandSource>& context) {
     return 1;
 }
 
-i32 WeatherCommand::query(CommandContext<ServerCommandSource>& context) {
+i32 WeatherCommand::query(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (!server) {

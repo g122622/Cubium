@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
 #include <vector>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc::client {
 class ClientWorld;
@@ -34,7 +34,7 @@ constexpr f64 CLOUD_HEIGHT = 192.0;
 
 /// 雨柱高度
 constexpr f64 RAIN_PILLAR_HEIGHT = 20.0;
-}  // namespace WeatherRenderConstants
+} // namespace WeatherRenderConstants
 
 /**
  * @brief 天气渲染器
@@ -75,8 +75,7 @@ public:
      * @param extent 交换链图像尺寸
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -131,10 +130,10 @@ public:
      * @param frameIndex 当前帧索引
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                u32 frameIndex);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        u32 frameIndex);
 
     /**
      * @brief 渲染天气效果（带世界信息）
@@ -150,11 +149,11 @@ public:
      * @param world 客户端世界（用于查询生物群系和高度）
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                u32 frameIndex,
-                mc::client::ClientWorld& world);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        u32 frameIndex,
+        mc::client::ClientWorld& world);
 
     /**
      * @brief 渲染天气效果（带视锥剔除）
@@ -169,11 +168,11 @@ public:
      * @param frustum 视锥体（用于剔除）
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                u32 frameIndex,
-                const mc::math::frustum::Frustum& frustum);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        u32 frameIndex,
+        const mc::math::frustum::Frustum& frustum);
 
     /**
      * @brief 渲染天气效果（带世界信息和视锥剔除）
@@ -187,12 +186,12 @@ public:
      * @param frustum 视锥体
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                u32 frameIndex,
-                mc::client::ClientWorld& world,
-                const mc::math::frustum::Frustum& frustum);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        u32 frameIndex,
+        mc::client::ClientWorld& world,
+        const mc::math::frustum::Frustum& frustum);
 
     // ========================================================================
     // 状态查询
@@ -222,11 +221,11 @@ private:
      * @brief 内部渲染方法（带世界指针）
      */
     void render(VkCommandBuffer cmd,
-                const glm::mat4& projection,
-                const glm::mat4& view,
-                const glm::vec3& cameraPos,
-                u32 frameIndex,
-                mc::client::ClientWorld* world);
+        const glm::mat4& projection,
+        const glm::mat4& view,
+        const glm::vec3& cameraPos,
+        u32 frameIndex,
+        mc::client::ClientWorld* world);
 
     // ========================================================================
     // 顶点数据结构
@@ -239,10 +238,10 @@ private:
      * 参考 MC 1.16.5 DefaultVertexFormats.PARTICLE_POSITION_TEX_COLOR_LMAP
      */
     struct WeatherVertex {
-        float x, y, z;          ///< 位置（相对于相机）
-        float u, v;             ///< 纹理坐标
-        float r, g, b, a;       ///< RGBA 颜色
-        u16 lightU, lightV;     ///< 光照贴图坐标
+        float x, y, z;      ///< 位置（相对于相机）
+        float u, v;         ///< 纹理坐标
+        float r, g, b, a;   ///< RGBA 颜色
+        u16 lightU, lightV; ///< 光照贴图坐标
     };
 
     // ========================================================================
@@ -274,10 +273,11 @@ private:
      * @brief 从数据创建纹理
      */
     [[nodiscard]] Result<void> createTextureFromData(const std::vector<u8>& data,
-                                                     u32 width, u32 height,
-                                                     VkImage& image,
-                                                     VkDeviceMemory& memory,
-                                                     VkImageView& imageView);
+        u32 width,
+        u32 height,
+        VkImage& image,
+        VkDeviceMemory& memory,
+        VkImageView& imageView);
 
     /**
      * @brief 生成程序化雨纹理
@@ -305,8 +305,8 @@ private:
 
     // 管线
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline m_rainPipeline = VK_NULL_HANDLE;  // 雨滴管线
-    VkPipeline m_snowPipeline = VK_NULL_HANDLE;  // 雪花管线
+    VkPipeline m_rainPipeline = VK_NULL_HANDLE; // 雨滴管线
+    VkPipeline m_snowPipeline = VK_NULL_HANDLE; // 雪花管线
 
     // 纹理
     VkImage m_rainTexture = VK_NULL_HANDLE;
@@ -350,7 +350,7 @@ private:
     u32 m_snowVertexCount = 0;
 
     // 渲染范围（参考 MC 的 l 变量）
-    i32 m_renderRadius = 5;  // Fast 模式: 5, Fancy 模式: 10
+    i32 m_renderRadius = 5; // Fast 模式: 5, Fancy 模式: 10
 
     // 随机偏移数组（参考 MC 的 rainSizeX/rainSizeZ）
     static constexpr i32 RAIN_SIZE = 32;

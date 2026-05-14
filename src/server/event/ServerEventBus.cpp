@@ -2,7 +2,8 @@
 
 namespace mc::server::event {
 
-ServerEventBus& ServerEventBus::instance() {
+ServerEventBus& ServerEventBus::instance()
+{
     static ServerEventBus instance;
     return instance;
 }

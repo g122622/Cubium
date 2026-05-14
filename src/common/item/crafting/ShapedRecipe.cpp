@@ -5,20 +5,21 @@ namespace mc {
 namespace crafting {
 
 ShapedRecipe::ShapedRecipe(const ResourceLocation& id,
-                           i32 width,
-                           i32 height,
-                           std::vector<Ingredient> ingredients,
-                           ItemStack result,
-                           const std::string& group)
+    i32 width,
+    i32 height,
+    std::vector<Ingredient> ingredients,
+    ItemStack result,
+    const std::string& group)
     : m_id(id)
     , m_width(width)
     , m_height(height)
     , m_ingredients(std::move(ingredients))
     , m_result(std::move(result))
-    , m_group(group) {
-}
+    , m_group(group)
+{}
 
-bool ShapedRecipe::matches(const CraftingInventory& inventory) const {
+bool ShapedRecipe::matches(const CraftingInventory& inventory) const
+{
     // MC 原版算法：遍历所有可能的偏移位置
     // 注意：原版先检查镜像，再检查正向
     for (i32 offsetY = 0; offsetY <= inventory.getHeight() - m_height; ++offsetY) {
@@ -35,23 +36,24 @@ bool ShapedRecipe::matches(const CraftingInventory& inventory) const {
     return false;
 }
 
-ItemStack ShapedRecipe::assemble(const CraftingInventory& inventory) const {
+ItemStack ShapedRecipe::assemble(const CraftingInventory& inventory) const
+{
     (void)inventory;
     return m_result.copy();
 }
 
-bool ShapedRecipe::canFitIn(i32 width, i32 height) const {
+bool ShapedRecipe::canFitIn(i32 width, i32 height) const
+{
     return width >= m_width && height >= m_height;
 }
 
-std::vector<ItemStack> ShapedRecipe::getRemainingItems(const CraftingInventory& inventory) const {
+std::vector<ItemStack> ShapedRecipe::getRemainingItems(const CraftingInventory& inventory) const
+{
     return RecipeUtils::getDefaultRemainingItems(inventory);
 }
 
-bool ShapedRecipe::checkMatch(const CraftingInventory& inventory,
-                               i32 offsetX,
-                               i32 offsetY,
-                               bool mirrored) const {
+bool ShapedRecipe::checkMatch(const CraftingInventory& inventory, i32 offsetX, i32 offsetY, bool mirrored) const
+{
     // MC 原版算法：遍历整个网格，而不是只遍历配方区域
     // 对于网格外的位置，使用 Ingredient.EMPTY 进行测试
     for (i32 y = 0; y < inventory.getHeight(); ++y) {

@@ -15,9 +15,8 @@ public:
     EndermanModel();
     ~EndermanModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置携带状态
@@ -42,8 +41,8 @@ public:
 private:
     void setupParts() override;
 
-    bool m_carrying = false;   // 携带方块状态
-    bool m_attacking = false;  // 尖叫/攻击状态
+    bool m_carrying = false;  // 携带方块状态
+    bool m_attacking = false; // 尖叫/攻击状态
 };
 
 } // namespace mc::client::renderer::entity::model::monster

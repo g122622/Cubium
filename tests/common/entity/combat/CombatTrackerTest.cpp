@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/damage/CombatTracker.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/CombatTracker.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 using namespace mc;
 
@@ -13,7 +13,8 @@ using namespace mc;
 // ============================================================================
 
 // 测试攀爬位置追踪
-TEST(CombatTrackerClimbPosTest, EntityHasLastClimbPos) {
+TEST(CombatTrackerClimbPosTest, EntityHasLastClimbPos)
+{
     // 验证Entity类有攀爬位置追踪方法
     Entity entity(LegacyEntityType::Player, 1, nullptr);
 
@@ -31,7 +32,8 @@ TEST(CombatTrackerClimbPosTest, EntityHasLastClimbPos) {
     EXPECT_FALSE(entity.getLastClimbPos().has_value());
 }
 
-TEST(CombatTrackerClimbPosTest, SetOnGroundClearsClimbPos) {
+TEST(CombatTrackerClimbPosTest, SetOnGroundClearsClimbPos)
+{
     // 验证落地时清空攀爬位置
     Entity entity(LegacyEntityType::Player, 1, nullptr);
 
@@ -45,7 +47,8 @@ TEST(CombatTrackerClimbPosTest, SetOnGroundClearsClimbPos) {
     EXPECT_FALSE(entity.getLastClimbPos().has_value());
 }
 
-TEST(CombatTrackerClimbPosTest, SetOnGroundNotClearWhenAlreadyOnGround) {
+TEST(CombatTrackerClimbPosTest, SetOnGroundNotClearWhenAlreadyOnGround)
+{
     // 验证已经在地面时不会清空攀爬位置
     Entity entity(LegacyEntityType::Player, 1, nullptr);
 
@@ -70,19 +73,13 @@ TEST(CombatTrackerClimbPosTest, SetOnGroundNotClearWhenAlreadyOnGround) {
 // 由于calculateFallSuffix是私有方法，我们通过测试CombatEntry的fallSuffix来间接测试
 // 但我们可以测试fallSuffix的存储和获取
 
-TEST(CombatTrackerFallSuffixTest, FallSuffixValues) {
+TEST(CombatTrackerFallSuffixTest, FallSuffixValues)
+{
     // 验证各种摔落后缀值
     // 这些是MC 1.16.5中定义的标准后缀值
 
     const char* expectedSuffixes[] = {
-        "ladder",
-        "vines",
-        "weeping_vines",
-        "twisting_vines",
-        "scaffolding",
-        "other_climbable",
-        "water"
-    };
+        "ladder", "vines", "weeping_vines", "twisting_vines", "scaffolding", "other_climbable", "water"};
 
     // 验证后缀字符串的正确性
     EXPECT_STREQ(expectedSuffixes[0], "ladder");
@@ -94,7 +91,8 @@ TEST(CombatTrackerFallSuffixTest, FallSuffixValues) {
     EXPECT_STREQ(expectedSuffixes[6], "water");
 }
 
-TEST(CombatTrackerFallSuffixTest, WaterSuffixWhenInWater) {
+TEST(CombatTrackerFallSuffixTest, WaterSuffixWhenInWater)
+{
     // 测试在水中时的摔落后缀
     // 这个测试验证实体在水中摔落时的后缀
 
@@ -108,7 +106,8 @@ TEST(CombatTrackerFallSuffixTest, WaterSuffixWhenInWater) {
     EXPECT_FALSE(entity.getLastClimbPos().has_value());
 }
 
-TEST(CombatTrackerFallSuffixTest, EmptySuffixWhenNoClimbOrWater) {
+TEST(CombatTrackerFallSuffixTest, EmptySuffixWhenNoClimbOrWater)
+{
     // 验证没有攀爬位置且不在水中时，后缀为空
     Entity entity(LegacyEntityType::Player, 1, nullptr);
 
@@ -120,7 +119,8 @@ TEST(CombatTrackerFallSuffixTest, EmptySuffixWhenNoClimbOrWater) {
 // BlockPos 测试（辅助测试）
 // ============================================================================
 
-TEST(BlockPosTest, OptionalBlockPos) {
+TEST(BlockPosTest, OptionalBlockPos)
+{
     // 测试 std::optional<BlockPos> 的使用
     std::optional<BlockPos> pos1;
     EXPECT_FALSE(pos1.has_value());
@@ -139,7 +139,8 @@ TEST(BlockPosTest, OptionalBlockPos) {
 // ResourceLocation 测试（辅助测试）
 // ============================================================================
 
-TEST(ResourceLocationTest, ClimbableBlockIds) {
+TEST(ResourceLocationTest, ClimbableBlockIds)
+{
     // 验证攀爬方块的资源位置
     ResourceLocation ladder("minecraft", "ladder");
     ResourceLocation vine("minecraft", "vine");

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -35,12 +35,9 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -68,11 +65,11 @@ public:
      *
      * @return 始终返回 true
      */
-    [[nodiscard]] bool isLadder(
-        const BlockState& state,
+    [[nodiscard]] bool isLadder(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        const Entity* entity = nullptr) const override {
+        const Entity* entity = nullptr) const override
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(entity);
@@ -82,7 +79,8 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -126,9 +124,7 @@ private:
      * 从源状态随机复制水平连接到目标状态。
      */
     [[nodiscard]] BlockState copyRandomHorizontalConnections(
-        const BlockState& source,
-        const BlockState& target,
-        math::IRandom& random) const;
+        const BlockState& source, const BlockState& target, math::IRandom& random) const;
 
     /**
      * @brief 获取方向对应的属性

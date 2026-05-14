@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
+#include "../../core/Types.hpp"
 #include "ChunkPos.hpp"
 #include <array>
 #include <vector>
@@ -18,11 +18,11 @@ class SWMRNibbleArray;
 // ============================================================================
 
 enum class ChunkLoadStatus : u8 {
-    Empty,          // 空区块，刚创建
-    Generating,     // 正在生成
-    Generated,      // 已生成，完整
-    Loaded,         // 已加载到内存
-    Unloaded        // 已卸载
+    Empty,      // 空区块，刚创建
+    Generating, // 正在生成
+    Generated,  // 已生成，完整
+    Loaded,     // 已加载到内存
+    Unloaded    // 已卸载
 };
 
 // ============================================================================
@@ -81,7 +81,8 @@ public:
 
     // === 高度图 ===
     [[nodiscard]] virtual BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const = 0;
-    virtual void updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) = 0;
+    virtual void updateHeightmap(
+        HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) = 0;
 
     // === 状态 ===
     [[nodiscard]] virtual ChunkLoadStatus getStatus() const = 0;

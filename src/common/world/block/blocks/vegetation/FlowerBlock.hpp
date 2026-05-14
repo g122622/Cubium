@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../../../util/property/Properties.hpp"
 #include "../agricultural/BushBlock.hpp"
 #include "DoublePlantBlock.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include <array>
 
 namespace mc {
@@ -25,10 +25,7 @@ public:
      * @param suspiciousStewEffect 可疑炖汤效果（可选）
      * @param effectDuration 效果持续时间（秒）
      */
-    FlowerBlock(
-        const BlockProperties& properties,
-        u32 suspiciousStewEffect = 0,
-        i32 effectDuration = 0);
+    FlowerBlock(const BlockProperties& properties, u32 suspiciousStewEffect = 0, i32 effectDuration = 0);
 
     /**
      * @brief 析构函数
@@ -59,9 +56,7 @@ protected:
      * @brief 检查下方是否可支撑
      */
     [[nodiscard]] bool canSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const override;
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
     /// 可疑炖汤效果ID
     u32 m_suspiciousStewEffect;

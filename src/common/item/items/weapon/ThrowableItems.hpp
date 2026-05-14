@@ -20,9 +20,7 @@ public:
 
 protected:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
-        IWorld& world,
-        Player& player,
-        const ItemStack& stack) const override;
+        IWorld& world, Player& player, const ItemStack& stack) const override;
 };
 
 /**
@@ -40,9 +38,7 @@ public:
 
 protected:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
-        IWorld& world,
-        Player& player,
-        const ItemStack& stack) const override;
+        IWorld& world, Player& player, const ItemStack& stack) const override;
 };
 
 /**
@@ -60,9 +56,7 @@ public:
 
 protected:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
-        IWorld& world,
-        Player& player,
-        const ItemStack& stack) const override;
+        IWorld& world, Player& player, const ItemStack& stack) const override;
 };
 
 /**
@@ -80,9 +74,7 @@ public:
 
 protected:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
-        IWorld& world,
-        Player& player,
-        const ItemStack& stack) const override;
+        IWorld& world, Player& player, const ItemStack& stack) const override;
 };
 
 } // namespace item

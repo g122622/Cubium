@@ -3,12 +3,12 @@
 #include "common/core/Types.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
-#include <string>
-#include <vector>
+#include <chrono>
 #include <deque>
 #include <functional>
-#include <chrono>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace mc::client::chat {
 
@@ -16,10 +16,10 @@ namespace mc::client::chat {
  * @brief 聊天消息类型
  */
 enum class ChatMessageType : u8 {
-    Chat,       ///< 玩家聊天
-    System,     ///< 系统消息
-    Actionbar,  ///< 动作栏消息
-    GameInfo    ///< 游戏信息
+    Chat,      ///< 玩家聊天
+    System,    ///< 系统消息
+    Actionbar, ///< 动作栏消息
+    GameInfo   ///< 游戏信息
 };
 
 /**
@@ -28,8 +28,8 @@ enum class ChatMessageType : u8 {
  * 支持富文本内容，包含时间戳和消息类型。
  */
 struct ChatMessage {
-    std::unique_ptr<text::ITextComponent> content;  ///< 消息内容（富文本）
-    ChatMessageType type = ChatMessageType::Chat;   ///< 消息类型
+    std::unique_ptr<text::ITextComponent> content;   ///< 消息内容（富文本）
+    ChatMessageType type = ChatMessageType::Chat;    ///< 消息类型
     std::chrono::steady_clock::time_point timestamp; ///< 时间戳
     bool permanent = false;                          ///< 是否永久显示（不淡出）
 
@@ -45,7 +45,8 @@ struct ChatMessage {
         : content(std::make_unique<text::StringTextComponent>(text))
         , type(msgType)
         , timestamp(std::chrono::steady_clock::now())
-        , permanent(perm) {}
+        , permanent(perm)
+    {}
 
     /**
      * @brief 从文本组件构造消息
@@ -54,28 +55,25 @@ struct ChatMessage {
      * @param perm 是否永久显示
      */
     explicit ChatMessage(std::unique_ptr<text::ITextComponent> textComponent,
-                         ChatMessageType msgType = ChatMessageType::Chat,
-                         bool perm = false)
+        ChatMessageType msgType = ChatMessageType::Chat,
+        bool perm = false)
         : content(std::move(textComponent))
         , type(msgType)
         , timestamp(std::chrono::steady_clock::now())
-        , permanent(perm) {}
+        , permanent(perm)
+    {}
 
     /**
      * @brief 获取纯文本内容
      * @return 纯文本字符串
      */
-    [[nodiscard]] std::string getPlainText() const {
-        return content ? content->getUnformattedText() : "";
-    }
+    [[nodiscard]] std::string getPlainText() const { return content ? content->getUnformattedText() : ""; }
 
     /**
      * @brief 获取格式化文本（§ 代码格式）
      * @return 格式化文本字符串
      */
-    [[nodiscard]] std::string getFormattedText() const {
-        return content ? content->getFormattedText() : "";
-    }
+    [[nodiscard]] std::string getFormattedText() const { return content ? content->getFormattedText() : ""; }
 };
 
 /**
@@ -103,9 +101,7 @@ public:
      * @param type 消息类型
      * @param permanent 是否永久显示
      */
-    void addMessage(const std::string& message,
-                    ChatMessageType type = ChatMessageType::Chat,
-                    bool permanent = false);
+    void addMessage(const std::string& message, ChatMessageType type = ChatMessageType::Chat, bool permanent = false);
 
     /**
      * @brief 添加聊天消息（富文本）
@@ -114,8 +110,8 @@ public:
      * @param permanent 是否永久显示
      */
     void addMessage(std::unique_ptr<text::ITextComponent> message,
-                    ChatMessageType type = ChatMessageType::Chat,
-                    bool permanent = false);
+        ChatMessageType type = ChatMessageType::Chat,
+        bool permanent = false);
 
     /**
      * @brief 添加系统消息
@@ -171,7 +167,7 @@ private:
     std::deque<ChatMessage> m_messages;
     std::vector<std::string> m_inputHistory;
     size_t m_historyIndex = 0;
-    std::string m_savedInput;  ///< 导航时保存的当前输入
+    std::string m_savedInput; ///< 导航时保存的当前输入
 };
 
 } // namespace mc::client::chat

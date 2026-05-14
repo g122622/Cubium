@@ -9,31 +9,24 @@ ActivatorRailBlock::ActivatorRailBlock(const BlockProperties& properties)
     : AbstractRailBlock(properties, true)
 {
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(SHAPE())
-        .add(POWERED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(SHAPE()).add(POWERED()).create(
+        [this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(SHAPE(), RailShape::NorthSouth)
-        .with(POWERED(), false));
+    setDefaultState(defaultState().with(SHAPE(), RailShape::NorthSouth).with(POWERED(), false));
 }
 
-void ActivatorRailBlock::fillStateContainer(StateContainer<Block, BlockState>& container) {
+void ActivatorRailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
+{
     // 状态容器在构造函数中创建，此方法留空
     MC_UNUSED(container);
 }
 
 void ActivatorRailBlock::neighborChanged(
-    IWorld& world,
-    const BlockPos& pos,
-    Block& neighborBlock,
-    const BlockPos& neighborPos,
-    bool isMoving)
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
@@ -53,15 +46,18 @@ void ActivatorRailBlock::neighborChanged(
     }
 }
 
-RailShape ActivatorRailBlock::getRailShape(const BlockState& state) const {
+RailShape ActivatorRailBlock::getRailShape(const BlockState& state) const
+{
     return state.get(SHAPE());
 }
 
-BlockState ActivatorRailBlock::withRailShape(const BlockState& state, RailShape shape) const {
+BlockState ActivatorRailBlock::withRailShape(const BlockState& state, RailShape shape) const
+{
     return state.with(SHAPE(), shape);
 }
 
-bool ActivatorRailBlock::isPowered(const BlockState& state) {
+bool ActivatorRailBlock::isPowered(const BlockState& state)
+{
     return state.get(POWERED());
 }
 

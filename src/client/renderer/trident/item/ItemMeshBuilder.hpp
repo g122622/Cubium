@@ -1,18 +1,18 @@
 #pragma once
 
 #include "../entity/model/core/ModelRenderer.hpp"
+#include "client/resource/BlockModelLoader.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "client/resource/BlockModelLoader.hpp"
-#include <glm/glm.hpp>
-#include <vector>
-#include <utility>
 #include <array>
+#include <utility>
+#include <vector>
+#include <glm/glm.hpp>
 
 namespace mc {
 class ItemStack;
 class Item;
-}
+} // namespace mc
 
 namespace mc::client::renderer::api {
 struct TextureRegion;
@@ -31,15 +31,15 @@ namespace mc::client::renderer::entity::item {
  * 参考 MC 1.16.5 ItemCameraTransforms
  */
 enum class ItemTransformType : u8 {
-    None,               // 无变换
-    FirstPersonLeftHand, // 第一人称左手
+    None,                 // 无变换
+    FirstPersonLeftHand,  // 第一人称左手
     FirstPersonRightHand, // 第一人称右手
     ThirdPersonLeftHand,  // 第三人称左手
     ThirdPersonRightHand, // 第三人称右手
-    Head,               // 头部（戴在头上）
-    Gui,                // GUI 界面
-    Ground,             // 地面（掉落物）
-    Fixed               // 固定（框架等）
+    Head,                 // 头部（戴在头上）
+    Gui,                  // GUI 界面
+    Ground,               // 地面（掉落物）
+    Fixed                 // 固定（框架等）
 };
 
 /**
@@ -64,9 +64,7 @@ public:
      * @return 顶点和索引对
      */
     static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildHeldItemMesh(
-        const ::mc::ItemStack& itemStack,
-        ItemTransformType transformType
-    );
+        const ::mc::ItemStack& itemStack, ItemTransformType transformType);
 
     /**
      * @brief 构建盔甲网格
@@ -77,10 +75,7 @@ public:
      * @return 顶点和索引对
      */
     static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildArmorMesh(
-        const ::mc::ItemStack& itemStack,
-        u32 slot,
-        const std::array<f64, 16>& bodyPartTransform
-    );
+        const ::mc::ItemStack& itemStack, u32 slot, const std::array<f64, 16>& bodyPartTransform);
 
     /**
      * @brief 构建头部物品网格
@@ -90,9 +85,7 @@ public:
      * @param itemStack 物品堆
      * @return 顶点和索引对
      */
-    static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildHeadMesh(
-        const ::mc::ItemStack& itemStack
-    );
+    static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildHeadMesh(const ::mc::ItemStack& itemStack);
 
     /**
      * @brief 构建地面物品网格
@@ -104,9 +97,7 @@ public:
      * @return 顶点和索引对
      */
     static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildGroundItemMesh(
-        const ::mc::ItemStack& itemStack,
-        f64 rotation
-    );
+        const ::mc::ItemStack& itemStack, f64 rotation);
 
     /**
      * @brief 构建物品图标的简单四边形网格
@@ -118,9 +109,7 @@ public:
      * @return 顶点和索引对
      */
     static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildIconMesh(
-        const ::mc::client::renderer::api::TextureRegion& region,
-        f64 size
-    );
+        const ::mc::client::renderer::api::TextureRegion& region, f64 size);
 
     /**
      * @brief 获取物品变换矩阵
@@ -134,101 +123,76 @@ public:
      * @return 变换矩阵
      */
     static std::array<f64, 16> getItemTransform(
-        ItemTransformType transformType,
-        f32 limbSwing,
-        f32 swingProgress,
-        bool isRightHand
-    );
+        ItemTransformType transformType, f32 limbSwing, f32 swingProgress, bool isRightHand);
 
 private:
     /**
      * @brief 构建简单的物品图标四边形
      */
-    static void buildItemQuad(
-        const ::mc::client::renderer::api::TextureRegion& region,
+    static void buildItemQuad(const ::mc::client::renderer::api::TextureRegion& region,
         f64 size,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+        std::vector<u32>& indices);
 
     /**
      * @brief 构建 3D 物品模型网格
      */
-    static void build3DItemMesh(
-        const ::mc::Item& item,
+    static void build3DItemMesh(const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+        std::vector<u32>& indices);
 
     /**
      * @brief 构建平面图标网格（Generated/Handheld 类型）
      */
-    static void buildGeneratedMesh(
-        const ::mc::client::resource::BakedItemModel& model,
+    static void buildGeneratedMesh(const ::mc::client::resource::BakedItemModel& model,
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+        std::vector<u32>& indices);
 
     /**
      * @brief 构建方块物品网格
      */
-    static void buildBlockItemMesh(
-        const ::mc::client::resource::BakedItemModel& model,
+    static void buildBlockItemMesh(const ::mc::client::resource::BakedItemModel& model,
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+        std::vector<u32>& indices);
 
     /**
      * @brief 构建自定义 3D 模型网格
      */
-    static void buildCustomMesh(
-        const ::mc::client::resource::BakedItemModel& model,
+    static void buildCustomMesh(const ::mc::client::resource::BakedItemModel& model,
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+        std::vector<u32>& indices);
 
     /**
      * @brief 构建回退网格（简单立方体）
      */
     static void buildFallbackMesh(
-        const ::mc::Item& item,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+        const ::mc::Item& item, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 应用矩阵到顶点
      */
-    static void applyMatrixToVertices(
-        std::vector<model::ModelVertex>& vertices,
-        const glm::mat4& matrix
-    );
+    static void applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix);
 
     /**
      * @brief 应用手持物品变换
      */
-    static void applyHeldItemTransform(
-        std::vector<model::ModelVertex>& vertices,
+    static void applyHeldItemTransform(std::vector<model::ModelVertex>& vertices,
         ItemTransformType transformType,
         f32 limbSwing,
         f32 swingProgress,
-        bool isRightHand
-    );
+        bool isRightHand);
 
     /**
      * @brief 变换顶点
      */
-    static void transformVertices(
-        std::vector<model::ModelVertex>& vertices,
-        const std::array<f64, 16>& matrix
-    );
+    static void transformVertices(std::vector<model::ModelVertex>& vertices, const std::array<f64, 16>& matrix);
 
     // 物品渲染常量（参考 MC 1.16.5）
     static constexpr f64 ITEM_SCALE = 1.0 / 16.0;     // 物品缩放因子

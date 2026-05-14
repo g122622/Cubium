@@ -1,7 +1,7 @@
 #include "PlayerInventory.hpp"
-#include "../entities/player/Player.hpp"
-#include "../damage/DamageSource.hpp"
 #include "../../item/core/Item.hpp"
+#include "../damage/DamageSource.hpp"
+#include "../entities/player/Player.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -21,7 +21,8 @@ PlayerInventory::PlayerInventory(Player* player)
     }
 }
 
-bool PlayerInventory::isEmpty() const {
+bool PlayerInventory::isEmpty() const
+{
     for (const auto& item : m_items) {
         if (!item.isEmpty()) {
             return false;
@@ -30,14 +31,16 @@ bool PlayerInventory::isEmpty() const {
     return true;
 }
 
-ItemStack PlayerInventory::getItem(i32 slot) const {
+ItemStack PlayerInventory::getItem(i32 slot) const
+{
     if (slot < 0 || slot >= TOTAL_SIZE) {
         return ItemStack::EMPTY;
     }
     return m_items[static_cast<size_t>(slot)];
 }
 
-void PlayerInventory::setItem(i32 slot, const ItemStack& stack) {
+void PlayerInventory::setItem(i32 slot, const ItemStack& stack)
+{
     if (slot < 0 || slot >= TOTAL_SIZE) {
         return;
     }
@@ -51,7 +54,8 @@ void PlayerInventory::setItem(i32 slot, const ItemStack& stack) {
     }
 }
 
-ItemStack PlayerInventory::removeItem(i32 slot, i32 count) {
+ItemStack PlayerInventory::removeItem(i32 slot, i32 count)
+{
     if (slot < 0 || slot >= TOTAL_SIZE) {
         return ItemStack::EMPTY;
     }
@@ -75,7 +79,8 @@ ItemStack PlayerInventory::removeItem(i32 slot, i32 count) {
     return result;
 }
 
-ItemStack PlayerInventory::removeItemNoUpdate(i32 slot) {
+ItemStack PlayerInventory::removeItemNoUpdate(i32 slot)
+{
     if (slot < 0 || slot >= TOTAL_SIZE) {
         return ItemStack::EMPTY;
     }
@@ -85,18 +90,21 @@ ItemStack PlayerInventory::removeItemNoUpdate(i32 slot) {
     return result;
 }
 
-void PlayerInventory::clear() {
+void PlayerInventory::clear()
+{
     for (auto& item : m_items) {
         item = ItemStack::EMPTY;
     }
     m_timesChanged++;
 }
 
-void PlayerInventory::setChanged() {
+void PlayerInventory::setChanged()
+{
     m_timesChanged++;
 }
 
-void PlayerInventory::serialize(network::PacketSerializer& ser) const {
+void PlayerInventory::serialize(network::PacketSerializer& ser) const
+{
     // 写入选中的槽位
     ser.writeI32(m_selectedSlot);
 
@@ -112,13 +120,14 @@ void PlayerInventory::serialize(network::PacketSerializer& ser) const {
     // 写入非空物品
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
         if (!m_items[static_cast<size_t>(i)].isEmpty()) {
-            ser.writeI32(i);  // 槽位索引
+            ser.writeI32(i); // 槽位索引
             m_items[static_cast<size_t>(i)].serialize(ser);
         }
     }
 }
 
-Result<PlayerInventory> PlayerInventory::deserialize(network::PacketDeserializer& deser) {
+Result<PlayerInventory> PlayerInventory::deserialize(network::PacketDeserializer& deser)
+{
     PlayerInventory inventory(nullptr);
 
     // 读取选中的槽位
@@ -161,18 +170,21 @@ Result<PlayerInventory> PlayerInventory::deserialize(network::PacketDeserializer
 // 快捷栏操作
 // ============================================================================
 
-void PlayerInventory::setSelectedSlot(i32 slot) {
+void PlayerInventory::setSelectedSlot(i32 slot)
+{
     m_selectedSlot = std::clamp(slot, 0, static_cast<i32>(HOTBAR_SIZE - 1));
 }
 
-ItemStack PlayerInventory::getSelectedStack() const {
+ItemStack PlayerInventory::getSelectedStack() const
+{
     if (m_selectedSlot < 0 || m_selectedSlot >= HOTBAR_SIZE) {
         return ItemStack::EMPTY;
     }
     return m_items[static_cast<size_t>(m_selectedSlot)];
 }
 
-i32 PlayerInventory::getBestHotbarSlot() const {
+i32 PlayerInventory::getBestHotbarSlot() const
+{
     // MC 1.16.5: 从当前选中槽位开始循环查找
     // 首先寻找空槽位
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
@@ -198,7 +210,8 @@ i32 PlayerInventory::getBestHotbarSlot() const {
 // 物品添加
 // ============================================================================
 
-i32 PlayerInventory::add(ItemStack& stack) {
+i32 PlayerInventory::add(ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return 0;
     }
@@ -223,7 +236,8 @@ i32 PlayerInventory::add(ItemStack& stack) {
 
     // 2. 尝试合并到副手槽
     if (canMergeStacks(m_items[static_cast<size_t>(InventorySlots::OFFHAND)], stack)) {
-        i32 maxStack = std::min(m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getMaxStackSize(), getMaxStackSize());
+        i32 maxStack =
+            std::min(m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getMaxStackSize(), getMaxStackSize());
         i32 space = maxStack - m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getCount();
         i32 toAdd = std::min(space, stack.getCount());
         m_items[static_cast<size_t>(InventorySlots::OFFHAND)].grow(toAdd);
@@ -305,7 +319,8 @@ i32 PlayerInventory::add(ItemStack& stack) {
     return originalCount - stack.getCount();
 }
 
-i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end) {
+i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
+{
     if (stack.isEmpty() || start > end) {
         return 0;
     }
@@ -338,7 +353,8 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end) {
     return originalCount - stack.getCount();
 }
 
-ItemStack PlayerInventory::addItemCopy(const ItemStack& stack) const {
+ItemStack PlayerInventory::addItemCopy(const ItemStack& stack) const
+{
     PlayerInventory tempCopy(nullptr);
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
         tempCopy.m_items[static_cast<size_t>(i)] = m_items[static_cast<size_t>(i)];
@@ -346,14 +362,15 @@ ItemStack PlayerInventory::addItemCopy(const ItemStack& stack) const {
 
     ItemStack copy = stack.copy();
     tempCopy.add(copy);
-    return copy;  // 返回剩余的物品
+    return copy; // 返回剩余的物品
 }
 
 // ============================================================================
 // 物品查找
 // ============================================================================
 
-i32 PlayerInventory::getFirstEmptySlot() const {
+i32 PlayerInventory::getFirstEmptySlot() const
+{
     // 先检查快捷栏
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
         if (m_items[static_cast<size_t>(i)].isEmpty()) {
@@ -371,7 +388,8 @@ i32 PlayerInventory::getFirstEmptySlot() const {
     return -1;
 }
 
-i32 PlayerInventory::findSlot(const Item& item) const {
+i32 PlayerInventory::findSlot(const Item& item) const
+{
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
         if (m_items[static_cast<size_t>(i)].getItem() == &item) {
             return i;
@@ -380,7 +398,8 @@ i32 PlayerInventory::findSlot(const Item& item) const {
     return -1;
 }
 
-i32 PlayerInventory::findSlotMatching(const ItemStack& stack) const {
+i32 PlayerInventory::findSlotMatching(const ItemStack& stack) const
+{
     if (stack.isEmpty()) {
         return -1;
     }
@@ -393,13 +412,15 @@ i32 PlayerInventory::findSlotMatching(const ItemStack& stack) const {
     return -1;
 }
 
-i32 PlayerInventory::findSlotMatchingInRange(const ItemStack& stack, i32 start, i32 end) const {
+i32 PlayerInventory::findSlotMatchingInRange(const ItemStack& stack, i32 start, i32 end) const
+{
     if (stack.isEmpty()) {
         return -1;
     }
 
     for (i32 i = start; i <= end; ++i) {
-        if (i >= 0 && i < TOTAL_SIZE && !m_items[static_cast<size_t>(i)].isEmpty() && stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
+        if (i >= 0 && i < TOTAL_SIZE && !m_items[static_cast<size_t>(i)].isEmpty() &&
+            stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
             return i;
         }
     }
@@ -410,7 +431,8 @@ i32 PlayerInventory::findSlotMatchingInRange(const ItemStack& stack, i32 start, 
 // 槽位操作
 // ============================================================================
 
-void PlayerInventory::swapSlots(i32 slot1, i32 slot2) {
+void PlayerInventory::swapSlots(i32 slot1, i32 slot2)
+{
     if (slot1 < 0 || slot1 >= TOTAL_SIZE || slot2 < 0 || slot2 >= TOTAL_SIZE) {
         return;
     }
@@ -421,7 +443,8 @@ void PlayerInventory::swapSlots(i32 slot1, i32 slot2) {
     m_timesChanged++;
 }
 
-ItemStack PlayerInventory::placeItem(i32 slot, ItemStack stack) {
+ItemStack PlayerInventory::placeItem(i32 slot, ItemStack stack)
+{
     if (slot < 0 || slot >= TOTAL_SIZE || stack.isEmpty()) {
         return stack;
     }
@@ -463,7 +486,8 @@ ItemStack PlayerInventory::placeItem(i32 slot, ItemStack stack) {
 // 统计
 // ============================================================================
 
-i32 PlayerInventory::countItem(const Item& item) const {
+i32 PlayerInventory::countItem(const Item& item) const
+{
     i32 total = 0;
     for (const auto& stack : m_items) {
         if (stack.getItem() == &item) {
@@ -473,7 +497,8 @@ i32 PlayerInventory::countItem(const Item& item) const {
     return total;
 }
 
-bool PlayerInventory::hasItem(const Item& item) const {
+bool PlayerInventory::hasItem(const Item& item) const
+{
     for (const auto& stack : m_items) {
         if (stack.getItem() == &item) {
             return true;
@@ -486,7 +511,8 @@ bool PlayerInventory::hasItem(const Item& item) const {
 // 私有方法
 // ============================================================================
 
-bool PlayerInventory::canMergeStacks(const ItemStack& stack1, const ItemStack& stack2) const {
+bool PlayerInventory::canMergeStacks(const ItemStack& stack1, const ItemStack& stack2) const
+{
     if (stack1.isEmpty() || stack2.isEmpty()) {
         return false;
     }
@@ -506,7 +532,8 @@ bool PlayerInventory::canMergeStacks(const ItemStack& stack1, const ItemStack& s
     return stack1.getCount() < maxStack;
 }
 
-bool PlayerInventory::stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const {
+bool PlayerInventory::stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const
+{
     if (stack1.isEmpty() && stack2.isEmpty()) {
         return true;
     }
@@ -555,7 +582,8 @@ bool PlayerInventory::stacksEqualExact(const ItemStack& stack1, const ItemStack&
 // IInventory 接口扩展
 // ============================================================================
 
-bool PlayerInventory::isUsableByPlayer(const Player& player) const {
+bool PlayerInventory::isUsableByPlayer(const Player& player) const
+{
     // MC 1.16.5: 玩家必须存活且在64格范围内
     if (m_player == nullptr) {
         return false;
@@ -578,7 +606,8 @@ bool PlayerInventory::isUsableByPlayer(const Player& player) const {
 // Tick 更新
 // ============================================================================
 
-void PlayerInventory::tick() {
+void PlayerInventory::tick()
+{
     if (m_player == nullptr) {
         return;
     }
@@ -607,7 +636,8 @@ void PlayerInventory::tick() {
 // 物品掉落
 // ============================================================================
 
-void PlayerInventory::dropAllItems() {
+void PlayerInventory::dropAllItems()
+{
     // MC 1.16.5: 遍历所有槽位并掉落物品
     if (m_player == nullptr) {
         return;
@@ -620,7 +650,8 @@ void PlayerInventory::dropAllItems() {
     }
 }
 
-void PlayerInventory::deleteStack(const ItemStack& stack) {
+void PlayerInventory::deleteStack(const ItemStack& stack)
+{
     // MC 1.16.5: 按引用删除物品堆
     for (auto& item : m_items) {
         if (&item == &stack) {
@@ -630,8 +661,9 @@ void PlayerInventory::deleteStack(const ItemStack& stack) {
     }
 }
 
-bool PlayerInventory::placeItemBackInInventory(ItemStack& stack,
-    const std::function<void(const ItemStack&, bool)>& dropCallback) {
+bool PlayerInventory::placeItemBackInInventory(
+    ItemStack& stack, const std::function<void(const ItemStack&, bool)>& dropCallback)
+{
     if (stack.isEmpty()) {
         return true;
     }
@@ -677,7 +709,8 @@ bool PlayerInventory::placeItemBackInInventory(ItemStack& stack,
 // 护甲操作
 // ============================================================================
 
-void PlayerInventory::damageArmor(DamageSource& source, f32 damage) {
+void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
+{
     // MC 1.16.5: PlayerInventory.damageArmor(DamageSource, float)
     if (damage <= 0.0f) {
         return;
@@ -720,7 +753,8 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage) {
 // 复制和比较
 // ============================================================================
 
-void PlayerInventory::copyInventory(const PlayerInventory& other) {
+void PlayerInventory::copyInventory(const PlayerInventory& other)
+{
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
         m_items[static_cast<size_t>(i)] = other.m_items[static_cast<size_t>(i)];
     }
@@ -728,7 +762,8 @@ void PlayerInventory::copyInventory(const PlayerInventory& other) {
     m_timesChanged++;
 }
 
-f32 PlayerInventory::getDestroySpeed(const BlockState& blockState) const {
+f32 PlayerInventory::getDestroySpeed(const BlockState& blockState) const
+{
     // MC 1.16.5: 获取当前手持物品的挖掘速度
     const ItemStack& selected = getSelectedStack();
     if (selected.isEmpty()) {

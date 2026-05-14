@@ -1,28 +1,29 @@
 #include "SheepEntity.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../item/core/ItemRegistry.hpp"
-#include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
-#include "../../../ai/goal/goals/EatGrassGoal.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../../world/IWorld.hpp"
+#include "../../../../item/core/ItemRegistry.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/EatGrassGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include <memory>
-#include <vector>
 #include <optional>
+#include <vector>
 
 namespace mc {
 
-std::unique_ptr<Entity> SheepEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> SheepEntity::create(IWorld* /*world*/)
+{
     // 使用临时ID 0，实际ID由 EntityManager 分配
     return std::make_unique<SheepEntity>(LegacyEntityType::Unknown, 0);
 }
@@ -36,27 +37,32 @@ SheepEntity::SheepEntity(LegacyEntityType type, EntityId id)
     registerGoals();
 }
 
-std::optional<ResourceLocation> SheepEntity::getAmbientSound() const {
+std::optional<ResourceLocation> SheepEntity::getAmbientSound() const
+{
     // MC 1.16.5: entity.sheep.ambient
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> SheepEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> SheepEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.sheep.hurt
     return makeSoundEventId("hurt");
 }
 
-std::optional<ResourceLocation> SheepEntity::getDeathSound() const {
+std::optional<ResourceLocation> SheepEntity::getDeathSound() const
+{
     // MC 1.16.5: entity.sheep.death
     return makeSoundEventId("death");
 }
 
-bool SheepEntity::isShearable() const {
+bool SheepEntity::isShearable() const
+{
     // MC 1.16.5: 只有活着、有羊毛、非幼羊的羊才能被剪
     return isAlive() && !m_sheared && !isChild();
 }
 
-std::vector<ItemStack> SheepEntity::shear(Player* /*player*/) {
+std::vector<ItemStack> SheepEntity::shear(Player* /*player*/)
+{
     std::vector<ItemStack> drops;
 
     if (!isShearable()) {
@@ -87,18 +93,21 @@ std::vector<ItemStack> SheepEntity::shear(Player* /*player*/) {
     return drops;
 }
 
-bool SheepEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool SheepEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // MC 1.16.5: 羊用小麦繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::WHEAT;
 }
 
-bool SheepEntity::canMateWith(const AnimalEntity& other) const {
+bool SheepEntity::canMateWith(const AnimalEntity& other) const
+{
     return AnimalEntity::canMateWith(other);
 }
 
-std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner) {
+std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
+{
     // MC 1.16.5: 创建小羊
     auto baby = std::make_unique<SheepEntity>(LegacyEntityType::Unknown, 0);
 
@@ -122,7 +131,8 @@ std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner) {
     return baby;
 }
 
-void SheepEntity::eatGrassBonus() {
+void SheepEntity::eatGrassBonus()
+{
     // MC 1.16.5: 吃草奖励
     // 如果被剪过，重新长出羊毛
     if (m_sheared) {
@@ -131,55 +141,75 @@ void SheepEntity::eatGrassBonus() {
 
     // 如果是幼羊，加速成长
     if (isChild()) {
-        addGrowingAge(60);  // 加速成长 60 ticks (3秒)
+        addGrowingAge(60); // 加速成长 60 ticks (3秒)
     }
 }
 
-DyeColor SheepEntity::getRandomSheepColor(math::Random& random) {
+DyeColor SheepEntity::getRandomSheepColor(math::Random& random)
+{
     // MC 1.16.5 SheepEntity.getRandomSheepColor()
     i32 i = random.nextInt(100);
 
     if (i < 5) {
-        return DyeColor::Black;       // 5% 黑色
+        return DyeColor::Black; // 5% 黑色
     } else if (i < 10) {
-        return DyeColor::Gray;        // 5% 灰色
+        return DyeColor::Gray; // 5% 灰色
     } else if (i < 15) {
-        return DyeColor::LightGray;   // 5% 浅灰色
+        return DyeColor::LightGray; // 5% 浅灰色
     } else if (i < 18) {
-        return DyeColor::Brown;       // 3% 棕色
+        return DyeColor::Brown; // 3% 棕色
     } else {
         // 82% 白色，其中 0.2% 粉色
         if (random.nextInt(500) == 0) {
-            return DyeColor::Pink;    // ~0.2% 粉色
+            return DyeColor::Pink; // ~0.2% 粉色
         }
-        return DyeColor::White;       // ~81.8% 白色
+        return DyeColor::White; // ~81.8% 白色
     }
 }
 
-const Block* SheepEntity::getWoolBlockByColor(DyeColor color) {
+const Block* SheepEntity::getWoolBlockByColor(DyeColor color)
+{
     // MC 1.16.5: 根据颜色返回对应的羊毛方块
     switch (color) {
-        case DyeColor::White:      return VanillaBlocks::WHITE_WOOL;
-        case DyeColor::Orange:     return VanillaBlocks::ORANGE_WOOL;
-        case DyeColor::Magenta:    return VanillaBlocks::MAGENTA_WOOL;
-        case DyeColor::LightBlue:  return VanillaBlocks::LIGHT_BLUE_WOOL;
-        case DyeColor::Yellow:     return VanillaBlocks::YELLOW_WOOL;
-        case DyeColor::Lime:       return VanillaBlocks::LIME_WOOL;
-        case DyeColor::Pink:       return VanillaBlocks::PINK_WOOL;
-        case DyeColor::Gray:       return VanillaBlocks::GRAY_WOOL;
-        case DyeColor::LightGray:  return VanillaBlocks::LIGHT_GRAY_WOOL;
-        case DyeColor::Cyan:       return VanillaBlocks::CYAN_WOOL;
-        case DyeColor::Purple:     return VanillaBlocks::PURPLE_WOOL;
-        case DyeColor::Blue:       return VanillaBlocks::BLUE_WOOL;
-        case DyeColor::Brown:      return VanillaBlocks::BROWN_WOOL;
-        case DyeColor::Green:      return VanillaBlocks::GREEN_WOOL;
-        case DyeColor::Red:        return VanillaBlocks::RED_WOOL;
-        case DyeColor::Black:      return VanillaBlocks::BLACK_WOOL;
-        default:                   return VanillaBlocks::WHITE_WOOL;
+        case DyeColor::White:
+            return VanillaBlocks::WHITE_WOOL;
+        case DyeColor::Orange:
+            return VanillaBlocks::ORANGE_WOOL;
+        case DyeColor::Magenta:
+            return VanillaBlocks::MAGENTA_WOOL;
+        case DyeColor::LightBlue:
+            return VanillaBlocks::LIGHT_BLUE_WOOL;
+        case DyeColor::Yellow:
+            return VanillaBlocks::YELLOW_WOOL;
+        case DyeColor::Lime:
+            return VanillaBlocks::LIME_WOOL;
+        case DyeColor::Pink:
+            return VanillaBlocks::PINK_WOOL;
+        case DyeColor::Gray:
+            return VanillaBlocks::GRAY_WOOL;
+        case DyeColor::LightGray:
+            return VanillaBlocks::LIGHT_GRAY_WOOL;
+        case DyeColor::Cyan:
+            return VanillaBlocks::CYAN_WOOL;
+        case DyeColor::Purple:
+            return VanillaBlocks::PURPLE_WOOL;
+        case DyeColor::Blue:
+            return VanillaBlocks::BLUE_WOOL;
+        case DyeColor::Brown:
+            return VanillaBlocks::BROWN_WOOL;
+        case DyeColor::Green:
+            return VanillaBlocks::GREEN_WOOL;
+        case DyeColor::Red:
+            return VanillaBlocks::RED_WOOL;
+        case DyeColor::Black:
+            return VanillaBlocks::BLACK_WOOL;
+        default:
+            return VanillaBlocks::WHITE_WOOL;
     }
 }
 
-void SheepEntity::registerGoals() {
+void SheepEntity::registerGoals()
+{
     // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
     AgeableEntity::registerGoals();
 
@@ -196,23 +226,23 @@ void SheepEntity::registerGoals() {
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 3: 小麦诱惑
-    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
-        this, 1.1,
-        [](const ItemStack& stack) -> bool {
-            const Item* item = stack.getItem();
-            return item != nullptr && item == Items::WHEAT;
-        },
-        false));  // scaredByMovement = false
+    m_goalSelector.addGoal(3,
+        std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+            this,
+            1.1,
+            [](const ItemStack& stack) -> bool {
+                const Item* item = stack.getItem();
+                return item != nullptr && item == Items::WHEAT;
+            },
+            false)); // scaredByMovement = false
 
     // 优先级 4: 跟随父母
     m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
     // 优先级 5: 吃草 - MC 1.16.5: 在 RandomWalkingGoal 之前
-    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::EatGrassGoal>(
-        this,
-        [this]() { this->eatGrassBonus(); },
-        [this]() { return this->isChild(); }
-    ));
+    m_goalSelector.addGoal(5,
+        std::make_unique<entity::ai::goal::EatGrassGoal>(
+            this, [this]() { this->eatGrassBonus(); }, [this]() { return this->isChild(); }));
 
     // 优先级 6: 随机漫步
     m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
@@ -224,7 +254,8 @@ void SheepEntity::registerGoals() {
     m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
-void SheepEntity::registerAttributes() {
+void SheepEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
@@ -233,7 +264,8 @@ void SheepEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
 }
 
-void SheepEntity::tick() {
+void SheepEntity::tick()
+{
     // MC 1.16.5: 吃草动画计时器递减
     // 只在客户端递减
     if (m_eatAnimationTimer > 0) {
@@ -300,7 +332,8 @@ const std::vector<std::tuple<DyeColor, DyeColor, DyeColor>> COLOR_MIXING_TABLE =
  * @param c2 颜色2
  * @return 混合后的颜色，如果没有配方返回无效值
  */
-std::optional<DyeColor> findMixingResult(DyeColor c1, DyeColor c2) {
+std::optional<DyeColor> findMixingResult(DyeColor c1, DyeColor c2)
+{
     for (const auto& [a, b, result] : COLOR_MIXING_TABLE) {
         if ((a == c1 && b == c2) || (a == c2 && b == c1)) {
             return result;
@@ -311,7 +344,8 @@ std::optional<DyeColor> findMixingResult(DyeColor c1, DyeColor c2) {
 
 } // anonymous namespace
 
-DyeColor SheepEntity::getDyeColorMixFromParents(DyeColor parent1Color, DyeColor parent2Color, math::Random& random) {
+DyeColor SheepEntity::getDyeColorMixFromParents(DyeColor parent1Color, DyeColor parent2Color, math::Random& random)
+{
     // MC 1.16.5: 尝试通过混合表查找
     // 如果两个颜色相同，直接返回该颜色
     if (parent1Color == parent2Color) {

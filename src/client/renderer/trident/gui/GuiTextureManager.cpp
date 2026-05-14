@@ -1,12 +1,12 @@
 #include "GuiTextureManager.hpp"
+#include "../util/VulkanUtils.hpp"
 #include "GuiRenderer.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "../util/VulkanUtils.hpp"
-#include <spdlog/spdlog.h>
 #include <cstring>
 #include <vector>
+#include <spdlog/spdlog.h>
 #include <stb_image.h>
 
 namespace mc::client::renderer::trident::gui {
@@ -16,17 +16,17 @@ namespace mc::client::renderer::trident::gui {
 // ============================================================================
 
 namespace GuiColors {
-    // 容器背景颜色
-    constexpr u32 CONTAINER_BG = 0xFFC6C6C6;      // 浅灰背景
-    constexpr u32 CONTAINER_BORDER = 0xFF555555;  // 深灰边框
+// 容器背景颜色
+constexpr u32 CONTAINER_BG = 0xFFC6C6C6;     // 浅灰背景
+constexpr u32 CONTAINER_BORDER = 0xFF555555; // 深灰边框
 
-    // 槽位颜色
-    constexpr u32 SLOT_BG = 0xFF8B8B8B;           // 槽位背景
-    constexpr u32 SLOT_BORDER = 0xFF373737;       // 槽位边框
+// 槽位颜色
+constexpr u32 SLOT_BG = 0xFF8B8B8B;     // 槽位背景
+constexpr u32 SLOT_BORDER = 0xFF373737; // 槽位边框
 
-    // 默认颜色
-    constexpr u32 DEFAULT_BG = 0xFF404040;        // 默认背景
-}
+// 默认颜色
+constexpr u32 DEFAULT_BG = 0xFF404040; // 默认背景
+} // namespace GuiColors
 
 // ============================================================================
 // 构造函数 / 析构函数
@@ -34,7 +34,8 @@ namespace GuiColors {
 
 GuiTextureManager::GuiTextureManager() = default;
 
-GuiTextureManager::~GuiTextureManager() {
+GuiTextureManager::~GuiTextureManager()
+{
     destroy();
 }
 
@@ -42,12 +43,12 @@ GuiTextureManager::~GuiTextureManager() {
 // 初始化
 // ============================================================================
 
-Result<void> GuiTextureManager::initialize(
-    VkDevice device,
+Result<void> GuiTextureManager::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
-    ResourceManager* resourceManager) {
+    ResourceManager* resourceManager)
+{
 
     if (m_initialized) {
         return {};
@@ -73,7 +74,8 @@ Result<void> GuiTextureManager::initialize(
     return {};
 }
 
-void GuiTextureManager::destroy() {
+void GuiTextureManager::destroy()
+{
     if (!m_initialized) {
         return;
     }
@@ -112,7 +114,8 @@ void GuiTextureManager::destroy() {
 // 纹理加载
 // ============================================================================
 
-Result<void> GuiTextureManager::loadInventoryTexture() {
+Result<void> GuiTextureManager::loadInventoryTexture()
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "GuiTextureManager not initialized");
     }
@@ -165,7 +168,8 @@ Result<void> GuiTextureManager::loadInventoryTexture() {
     return createDefaultTextures();
 }
 
-Result<void> GuiTextureManager::loadCraftingTableTexture() {
+Result<void> GuiTextureManager::loadCraftingTableTexture()
+{
     // 暂时使用与背包相同的纹理
     // TODO: 后续加载 crafting_table.png
     m_craftingTableLoaded = m_inventoryLoaded;
@@ -176,7 +180,8 @@ Result<void> GuiTextureManager::loadCraftingTableTexture() {
 // 注册到渲染器
 // ============================================================================
 
-Result<u32> GuiTextureManager::registerToRenderer(GuiRenderer& renderer) {
+Result<u32> GuiTextureManager::registerToRenderer(GuiRenderer& renderer)
+{
     if (!m_initialized || m_imageView == VK_NULL_HANDLE || m_sampler == VK_NULL_HANDLE) {
         return Error(ErrorCode::NotInitialized, "Texture not loaded");
     }
@@ -195,35 +200,38 @@ Result<u32> GuiTextureManager::registerToRenderer(GuiRenderer& renderer) {
 // 绘制方法
 // ============================================================================
 
-void GuiTextureManager::drawInventoryBackground(GuiRenderer& gui, f64 x, f64 y) {
+void GuiTextureManager::drawInventoryBackground(GuiRenderer& gui, f64 x, f64 y)
+{
     if (m_atlasSlot == 255) {
         // 未注册到渲染器，使用默认颜色绘制
-        gui.fillRect(x, y,
-                     static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
-                     static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
-                     GuiColors::CONTAINER_BG);
-        gui.drawRect(x, y,
-                     static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
-                     static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
-                     GuiColors::CONTAINER_BORDER);
+        gui.fillRect(x,
+            y,
+            static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
+            static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
+            GuiColors::CONTAINER_BG);
+        gui.drawRect(x,
+            y,
+            static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
+            static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
+            GuiColors::CONTAINER_BORDER);
         return;
     }
 
     // 使用纹理绘制
-    gui.drawTexturedRect(
-        x, y,
+    gui.drawTexturedRect(x,
+        y,
         static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
         static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
         ContainerTex::INVENTORY_BG_U0,
         ContainerTex::INVENTORY_BG_V0,
         ContainerTex::INVENTORY_BG_U1,
         ContainerTex::INVENTORY_BG_V1,
-        0xFFFFFFFF,  // 白色色调
-        m_atlasSlot
-    );
+        0xFFFFFFFF, // 白色色调
+        m_atlasSlot);
 }
 
-void GuiTextureManager::drawCraftingTableBackground(GuiRenderer& gui, f64 x, f64 y) {
+void GuiTextureManager::drawCraftingTableBackground(GuiRenderer& gui, f64 x, f64 y)
+{
     // 暂时使用背包纹理（纹理坐标相同）
     drawInventoryBackground(gui, x, y);
 }
@@ -232,7 +240,8 @@ void GuiTextureManager::drawCraftingTableBackground(GuiRenderer& gui, f64 x, f64
 // 默认纹理创建
 // ============================================================================
 
-Result<void> GuiTextureManager::createDefaultTextures() {
+Result<void> GuiTextureManager::createDefaultTextures()
+{
     // 创建一个简单的默认容器背景纹理
     constexpr i32 DEFAULT_WIDTH = 256;
     constexpr i32 DEFAULT_HEIGHT = 256;
@@ -249,14 +258,14 @@ Result<void> GuiTextureManager::createDefaultTextures() {
 
             // 背包屏幕区域 (0, 0) - (176, 166)
             if (x < ContainerTex::INVENTORY_BG_WIDTH && y < ContainerTex::INVENTORY_BG_HEIGHT) {
-                bool isBorder = (x == 0 || x == ContainerTex::INVENTORY_BG_WIDTH - 1 ||
-                                y == 0 || y == ContainerTex::INVENTORY_BG_HEIGHT - 1);
+                bool isBorder = (x == 0 || x == ContainerTex::INVENTORY_BG_WIDTH - 1 || y == 0 ||
+                    y == ContainerTex::INVENTORY_BG_HEIGHT - 1);
 
                 u32 color = isBorder ? GuiColors::CONTAINER_BORDER : GuiColors::CONTAINER_BG;
-                data[idx + 0] = (color >> 0) & 0xFF;   // R
-                data[idx + 1] = (color >> 8) & 0xFF;   // G
-                data[idx + 2] = (color >> 16) & 0xFF;  // B
-                data[idx + 3] = 0xFF;                   // A
+                data[idx + 0] = (color >> 0) & 0xFF;  // R
+                data[idx + 1] = (color >> 8) & 0xFF;  // G
+                data[idx + 2] = (color >> 16) & 0xFF; // B
+                data[idx + 3] = 0xFF;                 // A
             } else {
                 // 其他区域透明
                 data[idx + 3] = 0x00;
@@ -294,7 +303,8 @@ Result<void> GuiTextureManager::createDefaultTextures() {
 // Vulkan 辅助方法
 // ============================================================================
 
-Result<void> GuiTextureManager::createImage(u32 width, u32 height) {
+Result<void> GuiTextureManager::createImage(u32 width, u32 height)
+{
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -321,8 +331,7 @@ Result<void> GuiTextureManager::createImage(u32 width, u32 height) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits,
-                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (memTypeResult.failed()) {
         vkDestroyImage(m_device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -340,7 +349,8 @@ Result<void> GuiTextureManager::createImage(u32 width, u32 height) {
     return {};
 }
 
-Result<void> GuiTextureManager::createImageView() {
+Result<void> GuiTextureManager::createImageView()
+{
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = m_image;
@@ -359,10 +369,11 @@ Result<void> GuiTextureManager::createImageView() {
     return {};
 }
 
-Result<void> GuiTextureManager::createSampler() {
+Result<void> GuiTextureManager::createSampler()
+{
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;  // GUI使用最近邻过滤
+    samplerInfo.magFilter = VK_FILTER_NEAREST; // GUI使用最近邻过滤
     samplerInfo.minFilter = VK_FILTER_NEAREST;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -385,7 +396,8 @@ Result<void> GuiTextureManager::createSampler() {
     return {};
 }
 
-Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data) {
+Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data)
+{
     const VkDeviceSize imageSize = data.size();
 
     // 创建暂存缓冲区
@@ -408,9 +420,8 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits,
-                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto memTypeResult = findMemoryType(
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
         return memTypeResult.error();
@@ -453,8 +464,8 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(
+        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     // 复制缓冲区到图像
     VkBufferImageCopy region{};
@@ -476,8 +487,16 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     endSingleTimeCommands(cmd);
 
@@ -488,15 +507,18 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data) {
     return {};
 }
 
-Result<u32> GuiTextureManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> GuiTextureManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     return VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-VkCommandBuffer GuiTextureManager::beginSingleTimeCommands() {
+VkCommandBuffer GuiTextureManager::beginSingleTimeCommands()
+{
     return VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void GuiTextureManager::endSingleTimeCommands(VkCommandBuffer cmd) {
+void GuiTextureManager::endSingleTimeCommands(VkCommandBuffer cmd)
+{
     VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);
 }
 

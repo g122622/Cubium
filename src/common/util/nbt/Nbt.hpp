@@ -30,30 +30,22 @@
 
 #include "core/Types.hpp"
 
-#include <ostream>
-#include <istream>
-#include <memory>
+#include <cctype>
 #include <cstddef>
+#include <istream>
+#include <map>
+#include <memory>
+#include <ostream>
 #include <type_traits>
 #include <vector>
-#include <map>
-#include <cctype>
 
 // 平台字节序检测
-#if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
-    defined(__BIG_ENDIAN__) || \
-    defined(__ARMEB__) || \
-    defined(__THUMBEB__) || \
-    defined(__AARCH64EB__) || \
-    defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
-#	define MC_NBT_BIG_ENDIAN
-#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
-    defined(__LITTLE_ENDIAN__) || \
-    defined(__ARMEL__) || \
-    defined(__THUMBEL__) || \
-    defined(__AARCH64EL__) || \
-    defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__) || \
-	defined(__MINGW32__)
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || defined(__BIG_ENDIAN__) || defined(__ARMEB__) || \
+    defined(__THUMBEB__) || defined(__AARCH64EB__) || defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
+#define MC_NBT_BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || \
+    defined(__THUMBEL__) || defined(__AARCH64EL__) || defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__) || \
+    defined(__MINGW32__)
 // 小端序平台 - 默认
 #else
 // 未知架构，假设小端序
@@ -68,19 +60,19 @@ namespace nbt {
  * 对应Minecraft NBT格式的12种标签类型
  */
 enum class TagId : u8 {
-    End,        ///< 结束标记 (0x00)
-    Byte,       ///< 字节标签 (0x01) - 8位有符号整数
-    Short,      ///< 短整型标签 (0x02) - 16位有符号整数
-    Int,        ///< 整型标签 (0x03) - 32位有符号整数
-    Long,       ///< 长整型标签 (0x04) - 64位有符号整数
-    Float,      ///< 单精度浮点标签 (0x05)
-    Double,     ///< 双精度浮点标签 (0x06)
-    ByteArray,  ///< 字节数组标签 (0x07)
-    String,     ///< 字符串标签 (0x08) - UTF-8编码
-    List,       ///< 列表标签 (0x09) - 同类型元素列表
-    Compound,   ///< 复合标签 (0x0A) - 键值对映射
-    IntArray,   ///< 整型数组标签 (0x0B)
-    LongArray   ///< 长整型数组标签 (0x0C)
+    End,       ///< 结束标记 (0x00)
+    Byte,      ///< 字节标签 (0x01) - 8位有符号整数
+    Short,     ///< 短整型标签 (0x02) - 16位有符号整数
+    Int,       ///< 整型标签 (0x03) - 32位有符号整数
+    Long,      ///< 长整型标签 (0x04) - 64位有符号整数
+    Float,     ///< 单精度浮点标签 (0x05)
+    Double,    ///< 双精度浮点标签 (0x06)
+    ByteArray, ///< 字节数组标签 (0x07)
+    String,    ///< 字符串标签 (0x08) - UTF-8编码
+    List,      ///< 列表标签 (0x09) - 同类型元素列表
+    Compound,  ///< 复合标签 (0x0A) - 键值对映射
+    IntArray,  ///< 整型数组标签 (0x0B)
+    LongArray  ///< 长整型数组标签 (0x0C)
 };
 
 // 保留原有命名以兼容
@@ -103,10 +95,10 @@ namespace nbt {
  * @return 读取的字符
  * @throws std::runtime_error 如果到达EOF
  */
-inline int cheof(std::istream& input) {
+inline int cheof(std::istream& input)
+{
     int value = input.get();
-    if (value == EOF)
-        throw std::runtime_error("Unexpected EOF while reading NBT data");
+    if (value == EOF) throw std::runtime_error("Unexpected EOF while reading NBT data");
     return value;
 }
 
@@ -119,12 +111,13 @@ std::ostream& operator<<(std::ostream& output, TagId tid);
  * @brief 反转字节序
  */
 template <typename number_t>
-number_t reverse(number_t number) {
+number_t reverse(number_t number)
+{
     constexpr std::size_t n = sizeof(number_t);
     union {
         number_t number;
         std::uint8_t data[n];
-    } tmp { number };
+    } tmp{number};
     for (std::size_t i = 0; i < n / 2; ++i) {
         std::uint8_t z = tmp.data[i];
         tmp.data[i] = tmp.data[n - 1 - i];
@@ -137,7 +130,8 @@ number_t reverse(number_t number) {
  * @brief 转换为网络字节序（大端）
  */
 template <typename number_t>
-number_t net_order(number_t number) {
+number_t net_order(number_t number)
+{
 #ifndef MC_NBT_BIG_ENDIAN
     return reverse(number);
 #else
@@ -149,7 +143,8 @@ number_t net_order(number_t number) {
  * @brief 转换为磁盘字节序（小端）
  */
 template <typename number_t>
-number_t disk_order(number_t number) {
+number_t disk_order(number_t number)
+{
 #ifdef MC_NBT_BIG_ENDIAN
     return reverse(number);
 #else
@@ -167,18 +162,18 @@ struct Context {
      * @brief 字节序
      */
     enum class Order {
-        BigEndian,      ///< 大端序（Java Edition）
-        LittleEndian    ///< 小端序（Bedrock Edition）
+        BigEndian,   ///< 大端序（Java Edition）
+        LittleEndian ///< 小端序（Bedrock Edition）
     } order;
 
     /**
      * @brief 数据格式
      */
     enum class Format {
-        Bin,        ///< 标准二进制格式
-        Zigzag,     ///< Zigzag编码（VarInt + Zigzag，Bedrock网络）
-        Mojangson,  ///< 文本格式（Mojangson字符串表示）
-        Zint        ///< Zint编码（有符号整数zigzag编码）
+        Bin,       ///< 标准二进制格式
+        Zigzag,    ///< Zigzag编码（VarInt + Zigzag，Bedrock网络）
+        Mojangson, ///< 文本格式（Mojangson字符串表示）
+        Zint       ///< Zint编码（有符号整数zigzag编码）
     } format;
 
     /**
@@ -205,7 +200,8 @@ using context = Context;
  * file >> mc::nbt::contexts::java;  // 设置为Java Edition格式
  * @endcode
  */
-inline std::istream& operator>>(std::istream& input, const Context& ctxt) {
+inline std::istream& operator>>(std::istream& input, const Context& ctxt)
+{
     ctxt.set(input);
     return input;
 }
@@ -217,7 +213,8 @@ inline std::istream& operator>>(std::istream& input, const Context& ctxt) {
  * out << mc::nbt::contexts::java;  // 设置为Java Edition格式
  * @endcode
  */
-inline std::ostream& operator<<(std::ostream& output, const Context& ctxt) {
+inline std::ostream& operator<<(std::ostream& output, const Context& ctxt)
+{
     ctxt.set(output);
     return output;
 }
@@ -231,45 +228,30 @@ namespace Contexts {
  * @brief Java Edition格式（大端序二进制）
  * 用于Java版的level.dat、player.dat等文件
  */
-inline const Context java {
-    Context::Order::BigEndian,
-    Context::Format::Bin
-};
+inline const Context java{Context::Order::BigEndian, Context::Format::Bin};
 
 /**
  * @brief Bedrock Edition网络格式（小端序 + Zigzag编码）
  * 用于Bedrock Edition的网络协议
  */
-inline const Context bedrock_net {
-    Context::Order::LittleEndian,
-    Context::Format::Zigzag
-};
+inline const Context bedrock_net{Context::Order::LittleEndian, Context::Format::Zigzag};
 
 /**
  * @brief Bedrock Edition磁盘格式（小端序二进制）
  * 用于Bedrock版的level.dat等文件
  */
-inline const Context bedrock_disk {
-    Context::Order::LittleEndian,
-    Context::Format::Bin
-};
+inline const Context bedrock_disk{Context::Order::LittleEndian, Context::Format::Bin};
 
 /**
  * @brief KBT格式（大端序 + Zint编码）
  */
-inline const Context kbt {
-    Context::Order::BigEndian,
-    Context::Format::Zint
-};
+inline const Context kbt{Context::Order::BigEndian, Context::Format::Zint};
 
 /**
  * @brief Mojangson文本格式
  * 用于命令行和调试输出的字符串表示
  */
-inline const Context mojangson {
-    Context::Order::BigEndian,
-    Context::Format::Mojangson
-};
+inline const Context mojangson{Context::Order::BigEndian, Context::Format::Mojangson};
 
 } // namespace Contexts
 
@@ -280,13 +262,14 @@ namespace contexts = Contexts;
  * @brief 根据上下文字节序调整数值
  */
 template <typename number_t>
-number_t correct_order(number_t number, const Context::Order order) {
+number_t correct_order(number_t number, const Context::Order order)
+{
     switch (order) {
-    case Context::Order::LittleEndian:
-        return disk_order(number);
-    case Context::Order::BigEndian:
-    default:
-        return net_order(number);
+        case Context::Order::LittleEndian:
+            return disk_order(number);
+        case Context::Order::BigEndian:
+        default:
+            return net_order(number);
     }
 }
 
@@ -314,7 +297,8 @@ void dump_varlong(std::ostream& output, std::int64_t value);
  * @brief 从输入流加载原始数值（按上下文字节序）
  */
 template <typename number_t>
-number_t load_flat(std::istream& input, const Context::Order order) {
+number_t load_flat(std::istream& input, const Context::Order order)
+{
     constexpr std::size_t n = sizeof(number_t);
     union {
         number_t number;
@@ -328,7 +312,8 @@ number_t load_flat(std::istream& input, const Context::Order order) {
  * @brief 从输入流加载文本格式数值（特化版本）
  */
 template <typename number_t>
-number_t load_text(std::istream& input) {
+number_t load_text(std::istream& input)
+{
     return static_cast<number_t>(load_text<std::make_signed_t<number_t>>(input));
 }
 
@@ -354,7 +339,8 @@ double load_text<double>(std::istream& input);
  * @brief 根据上下文格式从输入流加载数值
  */
 template <typename number_t>
-number_t load(std::istream& input, const Context& ctxt) {
+number_t load(std::istream& input, const Context& ctxt)
+{
     if (ctxt.format == Context::Format::Mojangson)
         return load_text<number_t>(input);
     else
@@ -365,7 +351,8 @@ template <>
 std::int32_t load<std::int32_t>(std::istream& input, const Context& ctxt);
 
 template <>
-inline std::uint32_t load<std::uint32_t>(std::istream& input, const Context& ctxt) {
+inline std::uint32_t load<std::uint32_t>(std::istream& input, const Context& ctxt)
+{
     return static_cast<std::uint32_t>(load<std::int32_t>(input, ctxt));
 }
 
@@ -373,7 +360,8 @@ template <>
 std::int64_t load<std::int64_t>(std::istream& input, const Context& ctxt);
 
 template <>
-inline std::uint64_t load<std::uint64_t>(std::istream& input, const Context& ctxt) {
+inline std::uint64_t load<std::uint64_t>(std::istream& input, const Context& ctxt)
+{
     return static_cast<std::uint64_t>(load<std::int64_t>(input, ctxt));
 }
 
@@ -396,7 +384,8 @@ void dump_size(std::ostream& output, const Context& ctxt, std::size_t size);
  * @brief 扫描文本格式的序列
  */
 template <typename F>
-void scan_sequence_text(std::istream& input, F element_action) {
+void scan_sequence_text(std::istream& input, F element_action)
+{
     for (;;) {
         skip_space(input);
         int nextChar = cheof(input);
@@ -409,9 +398,12 @@ void scan_sequence_text(std::istream& input, F element_action) {
         skip_space(input);
         int next = cheof(input);
         switch (next) {
-            case ',': continue;
-            case ']': return;
-            default: throw std::runtime_error(std::string("unexpected character: ") + static_cast<char>(next));
+            case ',':
+                continue;
+            case ']':
+                return;
+            default:
+                throw std::runtime_error(std::string("unexpected character: ") + static_cast<char>(next));
         }
     }
 }
@@ -426,7 +418,8 @@ std::vector<number_t> load_array_text(std::istream& input);
  * @brief 加载二进制格式数组
  */
 template <typename number_t>
-std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt) {
+std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt)
+{
     auto size = load_size(input, ctxt);
     std::vector<number_t> result;
     result.reserve(size);
@@ -439,7 +432,8 @@ std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt) {
  * @brief 根据上下文格式加载数组
  */
 template <typename number_t>
-std::vector<number_t> load_array(std::istream& input, const Context& ctxt) {
+std::vector<number_t> load_array(std::istream& input, const Context& ctxt)
+{
     if (ctxt.format == Context::Format::Mojangson)
         return load_array_text<number_t>(input);
     else
@@ -450,12 +444,13 @@ std::vector<number_t> load_array(std::istream& input, const Context& ctxt) {
  * @brief 写入原始数值（按上下文字节序）
  */
 template <typename number_t>
-void dump_flat(std::ostream& output, number_t number, const Context::Order order) {
+void dump_flat(std::ostream& output, number_t number, const Context::Order order)
+{
     constexpr std::size_t n = sizeof(number_t);
     union {
         number_t number;
         char data[n];
-    } tmp { correct_order(number, order) };
+    } tmp{correct_order(number, order)};
     output.write(tmp.data, n);
 }
 
@@ -463,7 +458,8 @@ void dump_flat(std::ostream& output, number_t number, const Context::Order order
  * @brief 写入文本格式数值（特化版本）
  */
 template <typename number_t>
-void dump_text(std::ostream& output, number_t number) {
+void dump_text(std::ostream& output, number_t number)
+{
     dump_text(output, std::make_signed_t<number_t>(number));
 }
 
@@ -489,7 +485,8 @@ void dump_text<double>(std::ostream& output, double number);
  * @brief 根据上下文格式写入数值
  */
 template <typename number_t>
-void dump(std::ostream& output, number_t number, const Context& ctxt) {
+void dump(std::ostream& output, number_t number, const Context& ctxt)
+{
     if (ctxt.format == Context::Format::Mojangson)
         dump_text(output, number);
     else
@@ -500,7 +497,8 @@ template <>
 void dump<std::int32_t>(std::ostream& output, std::int32_t number, const Context& ctxt);
 
 template <>
-inline void dump<std::uint32_t>(std::ostream& output, std::uint32_t number, const Context& ctxt) {
+inline void dump<std::uint32_t>(std::ostream& output, std::uint32_t number, const Context& ctxt)
+{
     dump(output, static_cast<std::int32_t>(number), ctxt);
 }
 
@@ -508,7 +506,8 @@ template <>
 void dump<std::int64_t>(std::ostream& output, std::int64_t number, const Context& ctxt);
 
 template <>
-inline void dump<std::uint64_t>(std::ostream& output, std::uint64_t number, const Context& ctxt) {
+inline void dump<std::uint64_t>(std::ostream& output, std::uint64_t number, const Context& ctxt)
+{
     dump(output, static_cast<std::int64_t>(number), ctxt);
 }
 
@@ -522,7 +521,8 @@ void dump_array_text(std::ostream& output, const std::vector<number_t>& array);
  * @brief 写入二进制格式数组
  */
 template <typename number_t>
-void dump_array_bin(std::ostream& output, const std::vector<number_t>& array, const Context& ctxt) {
+void dump_array_bin(std::ostream& output, const std::vector<number_t>& array, const Context& ctxt)
+{
     dump_size(output, ctxt, array.size());
     for (const auto& element : array)
         dump(output, element, ctxt);
@@ -532,7 +532,8 @@ void dump_array_bin(std::ostream& output, const std::vector<number_t>& array, co
  * @brief 根据上下文格式写入数组
  */
 template <typename number_t>
-void dump_array(std::ostream& output, const std::vector<number_t>& array, const Context& ctxt) {
+void dump_array(std::ostream& output, const std::vector<number_t>& array, const Context& ctxt)
+{
     if (ctxt.format == Context::Format::Mojangson)
         dump_array_text(output, array);
     else
@@ -543,7 +544,8 @@ void dump_array(std::ostream& output, const std::vector<number_t>& array, const 
  * @brief 写入列表
  */
 template <typename element_type, typename F>
-void dump_list(std::ostream& output, TagId aid, const std::vector<element_type>& list, F action) {
+void dump_list(std::ostream& output, TagId aid, const std::vector<element_type>& list, F action)
+{
     const Context& ctxt = Context::get(output);
     if (ctxt.format == Context::Format::Mojangson) {
         output << '[';
@@ -557,20 +559,19 @@ void dump_list(std::ostream& output, TagId aid, const std::vector<element_type>&
     if (iter != end) {
         action(*iter, ctxt);
         for (++iter; iter != end; ++iter) {
-            if (ctxt.format == Context::Format::Mojangson)
-                output << ',';
+            if (ctxt.format == Context::Format::Mojangson) output << ',';
             action(*iter, ctxt);
         }
     }
-    if (ctxt.format == Context::Format::Mojangson)
-        output << ']';
+    if (ctxt.format == Context::Format::Mojangson) output << ']';
 }
 
 /**
  * @brief 加载列表
  */
 template <typename tag_type, typename F>
-std::unique_ptr<tag_type> load_list(std::istream& input, F action) {
+std::unique_ptr<tag_type> load_list(std::istream& input, F action)
+{
     const Context& ctxt = Context::get(input);
     auto ptr = std::make_unique<tag_type>();
     typename tag_type::value_type& result = ptr->value;
@@ -580,9 +581,7 @@ std::unique_ptr<tag_type> load_list(std::istream& input, F action) {
         for (std::size_t i = 0; i < size; i++)
             result.emplace_back(action(ctxt));
     } else {
-        scan_sequence_text(input, [&] {
-            result.emplace_back(action(ctxt));
-        });
+        scan_sequence_text(input, [&] { result.emplace_back(action(ctxt)); });
     }
     result.shrink_to_fit();
     return ptr;
@@ -617,28 +616,30 @@ struct find_of;
 std::unique_ptr<tag> read(TagId tid, std::istream& input);
 
 template <typename tag_type>
-std::unique_ptr<tag_type> cast(std::unique_ptr<tag>&& ptr) {
+std::unique_ptr<tag_type> cast(std::unique_ptr<tag>&& ptr)
+{
     static_assert(std::is_base_of<tag, tag_type>::value);
     std::unique_ptr<tag_type> result(dynamic_cast<tag_type*>(ptr.release()));
     return result;
 }
 
 template <typename tag_type>
-std::unique_ptr<const tag_type> cast(std::unique_ptr<const tag>& ptr) {
+std::unique_ptr<const tag_type> cast(std::unique_ptr<const tag>& ptr)
+{
     static_assert(std::is_base_of<tag, tag_type>::value);
     std::unique_ptr<const tag_type> result(dynamic_cast<const tag_type*>(ptr.release()));
     return result;
 }
 
-#	define TAG_FIND(T) \
-		template <> \
-		struct find_by<T::tid> final { \
-			typedef T type; \
-		}; \
-		template <> \
-		struct find_of<T::value_type> final { \
-			typedef T type; \
-		};
+#define TAG_FIND(T)                       \
+    template <>                           \
+    struct find_by<T::tid> final {        \
+        typedef T type;                   \
+    };                                    \
+    template <>                           \
+    struct find_of<T::value_type> final { \
+        typedef T type;                   \
+    };
 
 template <TagId tid>
 using tag_by = typename find_by<tid>::type;
@@ -652,9 +653,7 @@ using tag_of = typename find_of<value_type>::type;
 struct end_tag final : public tag {
     typedef std::nullptr_t value_type;
     static constexpr TagId tid = TagId::End;
-    virtual TagId id() const noexcept override {
-        return tid;
-    }
+    virtual TagId id() const noexcept override { return tid; }
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
 };
@@ -670,25 +669,22 @@ struct numeric_tag : public tag {
     typedef number_t value_type;
     value_type value;
     static constexpr TagId tid = TID;
-    virtual TagId id() const noexcept override {
-        return tid;
-    }
+    virtual TagId id() const noexcept override { return tid; }
     numeric_tag() = default;
-    constexpr numeric_tag(value_type number) : value(number) {}
-    static std::unique_ptr<numeric_tag> read(std::istream& input) {
+    constexpr numeric_tag(value_type number)
+        : value(number)
+    {}
+    static std::unique_ptr<numeric_tag> read(std::istream& input)
+    {
         return std::make_unique<numeric_tag>(load<value_type>(input, Context::get(input)));
     }
-    virtual void write(std::ostream& output) const override {
-        dump(output, value, Context::get(output));
-    }
-    virtual std::unique_ptr<tag> copy() const override {
-        return std::make_unique<numeric_tag>(value);
-    }
+    virtual void write(std::ostream& output) const override { dump(output, value, Context::get(output)); }
+    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<numeric_tag>(value); }
 };
 
-#	define NUMERIC_TAG(name, tid, number_t) \
-		using name = numeric_tag<tid, number_t>; \
-		TAG_FIND(name)
+#define NUMERIC_TAG(name, tid, number_t)     \
+    using name = numeric_tag<tid, number_t>; \
+    TAG_FIND(name)
 
 NUMERIC_TAG(byte_tag, TagId::Byte, std::int8_t)
 NUMERIC_TAG(short_tag, TagId::Short, std::int16_t)
@@ -697,7 +693,7 @@ NUMERIC_TAG(long_tag, TagId::Long, std::int64_t)
 NUMERIC_TAG(float_tag, TagId::Float, float)
 NUMERIC_TAG(double_tag, TagId::Double, double)
 
-#	undef NUMERIC_TAG
+#undef NUMERIC_TAG
 
 /**
  * @brief 数组标签模板
@@ -709,34 +705,36 @@ struct array_tag final : public tag {
     static constexpr char prefix = prefix_c;
     value_type value;
     static constexpr TagId tid = TID;
-    virtual TagId id() const noexcept override {
-        return tid;
-    }
+    virtual TagId id() const noexcept override { return tid; }
     array_tag() = default;
-    array_tag(const value_type& array) : value(array) {}
-    array_tag(value_type&& array) : value(std::move(array)) {}
-    static std::unique_ptr<array_tag> read(std::istream& input) {
+    array_tag(const value_type& array)
+        : value(array)
+    {}
+    array_tag(value_type&& array)
+        : value(std::move(array))
+    {}
+    static std::unique_ptr<array_tag> read(std::istream& input)
+    {
         const Context& ctxt = Context::get(input);
         return std::make_unique<array_tag>(load_array<element_type>(input, ctxt));
     }
-    virtual void write(std::ostream& output) const override {
+    virtual void write(std::ostream& output) const override
+    {
         const Context& ctxt = Context::get(output);
         dump_array(output, value, ctxt);
     }
-    virtual std::unique_ptr<tag> copy() const override {
-        return std::make_unique<array_tag>(value);
-    }
+    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<array_tag>(value); }
 };
 
-#	define ARRAY_TAG(name, tid, number_t, prefix) \
-		using name = array_tag<tid, number_t, prefix>; \
-		TAG_FIND(name)
+#define ARRAY_TAG(name, tid, number_t, prefix)     \
+    using name = array_tag<tid, number_t, prefix>; \
+    TAG_FIND(name)
 
 ARRAY_TAG(bytearray_tag, TagId::ByteArray, std::int8_t, 'B')
 ARRAY_TAG(intarray_tag, TagId::IntArray, std::int32_t, 'I')
 ARRAY_TAG(longarray_tag, TagId::LongArray, std::int64_t, 'L')
 
-#	undef ARRAY_TAG
+#undef ARRAY_TAG
 
 /**
  * @brief 字符串标签
@@ -745,9 +743,7 @@ struct string_tag final : public tag {
     typedef std::string value_type;
     value_type value;
     static constexpr TagId tid = TagId::String;
-    virtual TagId id() const noexcept override {
-        return TagId::String;
-    }
+    virtual TagId id() const noexcept override { return TagId::String; }
     string_tag() = default;
     string_tag(const value_type& string);
     string_tag(value_type&& string);
@@ -765,9 +761,7 @@ struct tag_list_tag;
  */
 struct list_tag : public tag {
     static constexpr TagId tid = TagId::List;
-    virtual TagId id() const noexcept override {
-        return TagId::List;
-    }
+    virtual TagId id() const noexcept override { return TagId::List; }
     virtual TagId element_id() const noexcept = 0;
     virtual size_t size() const noexcept = 0;
     virtual bool heavy() const noexcept = 0;
@@ -789,15 +783,12 @@ struct tag_list_tag final : public list_tag {
     typedef std::unique_ptr<tag> element_type;
     typedef std::vector<element_type> value_type;
     value_type value;
-    virtual TagId element_id() const noexcept override {
+    virtual TagId element_id() const noexcept override
+    {
         return value.empty() ? eid : (eid != TagId::End ? eid : value[0]->id());
     }
-    virtual size_t size() const noexcept override {
-        return value.size();
-    }
-    virtual bool heavy() const noexcept override {
-        return true;
-    }
+    virtual size_t size() const noexcept override { return value.size(); }
+    virtual bool heavy() const noexcept override { return true; }
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     tag_list_tag();
     explicit tag_list_tag(TagId tid);
@@ -821,15 +812,15 @@ using list_by = typename find_list_by<tid>::type;
 template <typename value_type>
 using list_of = typename find_list_of<value_type>::type;
 
-#	define FIND_LIST_TAG(name) \
-		template <> \
-		struct find_list_by<name::eid> { \
-			typedef name type; \
-		}; \
-		template <> \
-		struct find_list_of<name::element_type> { \
-			typedef name type; \
-		};
+#define FIND_LIST_TAG(name)                   \
+    template <>                               \
+    struct find_list_by<name::eid> {          \
+        typedef name type;                    \
+    };                                        \
+    template <>                               \
+    struct find_list_of<name::element_type> { \
+        typedef name type;                    \
+    };
 
 /**
  * @brief 空列表标签
@@ -840,15 +831,9 @@ struct end_list_tag final : public list_tag {
     typedef typename end_tag::value_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override {
-        return eid;
-    }
-    virtual size_t size() const noexcept override {
-        return 0u;
-    }
-    virtual bool heavy() const noexcept override {
-        return false;
-    }
+    virtual TagId element_id() const noexcept override { return eid; }
+    virtual size_t size() const noexcept override { return 0u; }
+    virtual bool heavy() const noexcept override { return false; }
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     end_list_tag() = default;
     static std::unique_ptr<end_list_tag> read_content(std::istream& input);
@@ -871,36 +856,32 @@ struct number_list_tag final : public list_tag {
     typedef typename T::value_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override {
-        return eid;
-    }
+    virtual TagId element_id() const noexcept override { return eid; }
     value_type value;
-    virtual size_t size() const noexcept override {
-        return value.size();
-    }
-    virtual bool heavy() const noexcept override {
-        return false;
-    }
-    virtual std::unique_ptr<tag> operator[](size_t i) const override {
-        return std::make_unique<tag_type>(value.at(i));
-    }
+    virtual size_t size() const noexcept override { return value.size(); }
+    virtual bool heavy() const noexcept override { return false; }
+    virtual std::unique_ptr<tag> operator[](size_t i) const override { return std::make_unique<tag_type>(value.at(i)); }
     number_list_tag() = default;
-    number_list_tag(const value_type& list) : value(list) {}
-    number_list_tag(value_type&& list) : value(std::move(list)) {}
-    static std::unique_ptr<number_list_tag> read_content(std::istream& input) {
-        return load_list<number_list_tag>(input, [&input](const Context&) -> element_type {
-            return load<element_type>(input, Context::get(input));
-        });
+    number_list_tag(const value_type& list)
+        : value(list)
+    {}
+    number_list_tag(value_type&& list)
+        : value(std::move(list))
+    {}
+    static std::unique_ptr<number_list_tag> read_content(std::istream& input)
+    {
+        return load_list<number_list_tag>(
+            input, [&input](const Context&) -> element_type { return load<element_type>(input, Context::get(input)); });
     }
-    virtual void write(std::ostream& output) const override {
+    virtual void write(std::ostream& output) const override
+    {
         dump_list(output, eid, value, [&output](const element_type& number, const Context& ctxt) {
             dump(output, number, ctxt);
         });
     }
-    virtual std::unique_ptr<tag> copy() const override {
-        return std::make_unique<number_list_tag>(*this);
-    }
-    virtual tag_list_tag as_tags() override {
+    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<number_list_tag>(*this); }
+    virtual tag_list_tag as_tags() override
+    {
         tag_list_tag result(eid);
         result.value.reserve(value.size());
         for (auto each : value)
@@ -911,9 +892,9 @@ struct number_list_tag final : public list_tag {
     }
 };
 
-#	define NUMBER_LIST_TAG(name, tag_type) \
-		using name = number_list_tag<tag_type>; \
-		FIND_LIST_TAG(name)
+#define NUMBER_LIST_TAG(name, tag_type)     \
+    using name = number_list_tag<tag_type>; \
+    FIND_LIST_TAG(name)
 
 NUMBER_LIST_TAG(byte_list_tag, byte_tag)
 NUMBER_LIST_TAG(short_list_tag, short_tag)
@@ -922,7 +903,7 @@ NUMBER_LIST_TAG(long_list_tag, long_tag)
 NUMBER_LIST_TAG(float_list_tag, float_tag)
 NUMBER_LIST_TAG(double_list_tag, double_tag)
 
-#	undef NUMBER_LIST_TAG
+#undef NUMBER_LIST_TAG
 
 /**
  * @brief 数组列表标签模板
@@ -934,36 +915,33 @@ struct array_list_tag final : public list_tag {
     typedef typename T::value_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override {
-        return eid;
-    }
+    virtual TagId element_id() const noexcept override { return eid; }
     value_type value;
-    virtual size_t size() const noexcept override {
-        return value.size();
-    }
-    virtual bool heavy() const noexcept override {
-        return false;
-    }
-    virtual std::unique_ptr<tag> operator[](size_t i) const override {
-        return std::make_unique<tag_type>(value.at(i));
-    }
+    virtual size_t size() const noexcept override { return value.size(); }
+    virtual bool heavy() const noexcept override { return false; }
+    virtual std::unique_ptr<tag> operator[](size_t i) const override { return std::make_unique<tag_type>(value.at(i)); }
     array_list_tag() = default;
-    array_list_tag(const value_type& list) : value(list) {}
-    array_list_tag(value_type&& list) : value(std::move(list)) {}
-    static std::unique_ptr<array_list_tag> read_content(std::istream& input) {
+    array_list_tag(const value_type& list)
+        : value(list)
+    {}
+    array_list_tag(value_type&& list)
+        : value(std::move(list))
+    {}
+    static std::unique_ptr<array_list_tag> read_content(std::istream& input)
+    {
         return load_list<array_list_tag>(input, [&input](const Context& ctxt) -> element_type {
             return load_array<typename element_type::value_type>(input, ctxt);
         });
     }
-    virtual void write(std::ostream& output) const override {
+    virtual void write(std::ostream& output) const override
+    {
         dump_list(output, eid, value, [&output](const element_type& element, const Context& ctxt) {
             dump_array(output, element, ctxt);
         });
     }
-    virtual std::unique_ptr<tag> copy() const override {
-        return std::make_unique<array_list_tag>(*this);
-    }
-    virtual tag_list_tag as_tags() override {
+    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<array_list_tag>(*this); }
+    virtual tag_list_tag as_tags() override
+    {
         tag_list_tag result(eid);
         result.value.reserve(value.size());
         for (auto& each : value)
@@ -974,15 +952,15 @@ struct array_list_tag final : public list_tag {
     }
 };
 
-#	define ARRAY_LIST_TAG(name, tag_type) \
-		using name = array_list_tag<tag_type>; \
-		FIND_LIST_TAG(name)
+#define ARRAY_LIST_TAG(name, tag_type)     \
+    using name = array_list_tag<tag_type>; \
+    FIND_LIST_TAG(name)
 
 ARRAY_LIST_TAG(bytearray_list_tag, bytearray_tag)
 ARRAY_LIST_TAG(intarray_list_tag, intarray_tag)
 ARRAY_LIST_TAG(longarray_list_tag, longarray_tag)
 
-#	undef ARRAY_LIST_TAG
+#undef ARRAY_LIST_TAG
 
 /**
  * @brief 字符串列表标签
@@ -992,16 +970,10 @@ struct string_list_tag final : public list_tag {
     typedef std::string element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override {
-        return eid;
-    }
+    virtual TagId element_id() const noexcept override { return eid; }
     value_type value;
-    virtual size_t size() const noexcept override {
-        return value.size();
-    }
-    virtual bool heavy() const noexcept override {
-        return false;
-    }
+    virtual size_t size() const noexcept override { return value.size(); }
+    virtual bool heavy() const noexcept override { return false; }
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     string_list_tag() = default;
     string_list_tag(const value_type& list);
@@ -1022,16 +994,10 @@ struct list_list_tag final : public list_tag {
     typedef std::unique_ptr<tag_type> element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override {
-        return eid;
-    }
+    virtual TagId element_id() const noexcept override { return eid; }
     value_type value;
-    virtual size_t size() const noexcept override {
-        return value.size();
-    }
-    virtual bool heavy() const noexcept override {
-        return false;
-    }
+    virtual size_t size() const noexcept override { return value.size(); }
+    virtual bool heavy() const noexcept override { return false; }
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     list_list_tag() = default;
     list_list_tag(const list_list_tag& other);
@@ -1063,9 +1029,7 @@ struct compound_tag final : public tag {
     bool is_root = false;
     value_type value;
     static constexpr TagId tid = TagId::Compound;
-    virtual TagId id() const noexcept override {
-        return TagId::Compound;
-    }
+    virtual TagId id() const noexcept override { return TagId::Compound; }
     compound_tag() = default;
     compound_tag(const compound_tag& other);
     explicit compound_tag(bool root);
@@ -1081,27 +1045,33 @@ struct compound_tag final : public tag {
      * @brief 插入值（自动推断标签类型）
      */
     template <typename T>
-    auto put(std::string&& name, T&& item) {
+    auto put(std::string&& name, T&& item)
+    {
         using DecayedT = std::decay_t<T>;
-        return value.insert_or_assign(std::move(name), std::make_unique<tag_of<DecayedT>>(static_cast<const typename tag_of<DecayedT>::value_type&>(item)));
+        return value.insert_or_assign(std::move(name),
+            std::make_unique<tag_of<DecayedT>>(static_cast<const typename tag_of<DecayedT>::value_type&>(item)));
     }
 
     template <typename T>
-    auto put(const std::string& name, T&& item) {
+    auto put(const std::string& name, T&& item)
+    {
         using DecayedT = std::decay_t<T>;
-        return value.insert_or_assign(name, std::make_unique<tag_of<DecayedT>>(static_cast<const typename tag_of<DecayedT>::value_type&>(item)));
+        return value.insert_or_assign(
+            name, std::make_unique<tag_of<DecayedT>>(static_cast<const typename tag_of<DecayedT>::value_type&>(item)));
     }
 
     /**
      * @brief 获取值（标签类型版本）
      */
     template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
-    typename TagT::value_type& get(const std::string& name) {
+    typename TagT::value_type& get(const std::string& name)
+    {
         return dynamic_cast<TagT&>(*value.at(name)).value;
     }
 
     template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
-    const typename TagT::value_type& get(const std::string& name) const {
+    const typename TagT::value_type& get(const std::string& name) const
+    {
         return dynamic_cast<const TagT&>(*value.at(name)).value;
     }
 
@@ -1109,7 +1079,8 @@ struct compound_tag final : public tag {
      * @brief 获取或创建标签
      */
     template <typename T>
-    typename tag_of<std::decay_t<T>>::value_type& tag(const std::string& name) {
+    typename tag_of<std::decay_t<T>>::value_type& tag(const std::string& name)
+    {
         using TagType = tag_of<std::decay_t<T>>;
         auto iter = value.find(name);
         if (iter == value.end()) {
@@ -1135,16 +1106,10 @@ struct compound_list_tag final : public list_tag {
     typedef tag_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override {
-        return eid;
-    }
+    virtual TagId element_id() const noexcept override { return eid; }
     value_type value;
-    virtual size_t size() const noexcept override {
-        return value.size();
-    }
-    virtual bool heavy() const noexcept override {
-        return false;
-    }
+    virtual size_t size() const noexcept override { return value.size(); }
+    virtual bool heavy() const noexcept override { return false; }
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     compound_list_tag() = default;
     compound_list_tag(const value_type& list);
@@ -1157,14 +1122,15 @@ struct compound_list_tag final : public list_tag {
 
 FIND_LIST_TAG(compound_list_tag)
 
-#	undef FIND_LIST_TAG
-#	undef TAG_FIND
+#undef FIND_LIST_TAG
+#undef TAG_FIND
 
 /**
  * @brief 包装值为标签
  */
 template <typename T>
-tag_of<std::decay_t<T>> wrap(T&& value) {
+tag_of<std::decay_t<T>> wrap(T&& value)
+{
     return tag_of<std::decay_t<T>>(value);
 }
 
@@ -1172,7 +1138,8 @@ tag_of<std::decay_t<T>> wrap(T&& value) {
  * @brief 根据标签ID读取标签
  */
 template <TagId tid>
-std::unique_ptr<tag> read(std::istream& input) {
+std::unique_ptr<tag> read(std::istream& input)
+{
     return tag_by<tid>::read(input);
 }
 
@@ -1205,32 +1172,28 @@ std::ostream& operator<<(std::ostream& output, const tags::tag& tag);
 
 // 数组文本格式读写模板（定义在末尾）
 template <typename number_t>
-std::vector<number_t> load_array_text_impl(std::istream& input) {
+std::vector<number_t> load_array_text_impl(std::istream& input)
+{
     std::vector<number_t> result;
     skip_space(input);
     char a = static_cast<char>(cheof(input));
-    if (a != '[')
-        throw std::runtime_error("failed to open array tag");
+    if (a != '[') throw std::runtime_error("failed to open array tag");
     a = static_cast<char>(cheof(input));
-    if (a != tags::tag_of<std::vector<number_t>>::prefix)
-        throw std::runtime_error("wrong array tag type");
+    if (a != tags::tag_of<std::vector<number_t>>::prefix) throw std::runtime_error("wrong array tag type");
     a = static_cast<char>(cheof(input));
-    if (a != ';')
-        throw std::runtime_error("unexpected symbol in array tag");
-    scan_sequence_text(input, [&] {
-        result.push_back(load_text<number_t>(input));
-    });
+    if (a != ';') throw std::runtime_error("unexpected symbol in array tag");
+    scan_sequence_text(input, [&] { result.push_back(load_text<number_t>(input)); });
     result.shrink_to_fit();
     return result;
 }
 
 template <typename number_t>
-void dump_array_text_impl(std::ostream& output, const std::vector<number_t>& array) {
+void dump_array_text_impl(std::ostream& output, const std::vector<number_t>& array)
+{
     output << '[' << tags::tag_of<std::vector<number_t>>::prefix << ';';
     auto iter = array.cbegin();
     auto end = array.cend();
-    if (iter == end)
-        return;
+    if (iter == end) return;
     dump_text(output, *iter);
     for (++iter; iter != end; ++iter) {
         output << ',';

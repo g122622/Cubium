@@ -13,12 +13,12 @@
  * - IceSpikeFeature: 冰刺生成
  */
 
-#include "FlowerFeature.hpp"
-#include "GrassFeature.hpp"
 #include "BigMushroomFeature.hpp"
 #include "CactusFeature.hpp"
-#include "SugarCaneFeature.hpp"
+#include "FlowerFeature.hpp"
+#include "GrassFeature.hpp"
 #include "IceSpikeFeature.hpp"
+#include "SugarCaneFeature.hpp"
 #include <memory>
 #include <vector>
 
@@ -37,7 +37,8 @@ struct VegetationFeatureManager {
      * 必须在方块系统初始化后调用。
      * 特征创建后存储在静态变量中，等待 FeatureRegistry 注册。
      */
-    static void initialize() {
+    static void initialize()
+    {
         FlowerFeatures::initialize();
         GrassFeatures::initialize();
         BigMushroomFeatures::initialize();
@@ -49,42 +50,48 @@ struct VegetationFeatureManager {
     /**
      * @brief 获取所有花卉特征并清空静态存储
      */
-    static std::vector<std::unique_ptr<ConfiguredFlowerFeature>> getFlowerFeaturesAndClear() {
+    static std::vector<std::unique_ptr<ConfiguredFlowerFeature>> getFlowerFeaturesAndClear()
+    {
         return FlowerFeatures::getAllFeaturesAndClear();
     }
 
     /**
      * @brief 获取所有草丛特征并清空静态存储
      */
-    static std::vector<std::unique_ptr<ConfiguredGrassFeature>> getGrassFeaturesAndClear() {
+    static std::vector<std::unique_ptr<ConfiguredGrassFeature>> getGrassFeaturesAndClear()
+    {
         return GrassFeatures::getAllFeaturesAndClear();
     }
 
     /**
      * @brief 获取所有巨型蘑菇特征并清空静态存储
      */
-    static std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>> getBigMushroomFeaturesAndClear() {
+    static std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>> getBigMushroomFeaturesAndClear()
+    {
         return BigMushroomFeatures::getAllFeaturesAndClear();
     }
 
     /**
      * @brief 获取所有仙人掌特征并清空静态存储
      */
-    static std::vector<std::unique_ptr<ConfiguredCactusFeature>> getCactusFeaturesAndClear() {
+    static std::vector<std::unique_ptr<ConfiguredCactusFeature>> getCactusFeaturesAndClear()
+    {
         return CactusFeatures::getAllFeaturesAndClear();
     }
 
     /**
      * @brief 获取所有甘蔗特征并清空静态存储
      */
-    static std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> getSugarCaneFeaturesAndClear() {
+    static std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> getSugarCaneFeaturesAndClear()
+    {
         return SugarCaneFeatures::getAllFeaturesAndClear();
     }
 
     /**
      * @brief 获取所有冰刺特征并清空静态存储
      */
-    static std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>> getIceSpikeFeaturesAndClear() {
+    static std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>> getIceSpikeFeaturesAndClear()
+    {
         return IceSpikeFeatures::getAllFeaturesAndClear();
     }
 };

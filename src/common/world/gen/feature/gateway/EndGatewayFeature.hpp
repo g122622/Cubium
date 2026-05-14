@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -48,11 +48,7 @@ public:
      * @param config 折跃门配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const EndGatewayFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndGatewayFeatureConfig& config);
 
     /**
      * @brief 计算折跃门的传送目标
@@ -66,17 +62,12 @@ private:
     /**
      * @brief 检查折跃门是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 生成折跃门结构
      */
-    void generateGateway(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos);
+    void generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos);
 };
 
 /**
@@ -84,12 +75,9 @@ private:
  */
 class ConfiguredEndGatewayFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredEndGatewayFeature(
-        std::unique_ptr<EndGatewayFeatureConfig> config,
-        const char* featureName);
+    ConfiguredEndGatewayFeature(std::unique_ptr<EndGatewayFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

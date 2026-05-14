@@ -42,9 +42,9 @@ public:
      * @param group 配方分组（可选）
      */
     ShapelessRecipe(const ResourceLocation& id,
-                    std::vector<Ingredient> ingredients,
-                    ItemStack result,
-                    const std::string& group = "");
+        std::vector<Ingredient> ingredients,
+        ItemStack result,
+        const std::string& group = "");
 
     /**
      * @brief 检查配方是否匹配给定容器
@@ -70,9 +70,7 @@ public:
      * @brief 获取原料列表
      * @return 原料列表
      */
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override {
-        return m_ingredients;
-    }
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
 
     /**
      * @brief 获取配方分组
@@ -125,15 +123,13 @@ private:
      *
      * 回溯算法确保在贪心算法可能失败的情况下也能找到正确的匹配。
      */
-    bool matchWithBacktracking(const CraftingInventory& inventory,
-                                std::vector<bool>& used,
-                                i32 ingredientIndex) const;
+    bool matchWithBacktracking(const CraftingInventory& inventory, std::vector<bool>& used, i32 ingredientIndex) const;
 
     ResourceLocation m_id;
     std::vector<Ingredient> m_ingredients;
     ItemStack m_result;
     std::string m_group;
-    bool m_isSimple = true;  ///< 是否为简单配方（所有原料都不包含可损坏物品）
+    bool m_isSimple = true; ///< 是否为简单配方（所有原料都不包含可损坏物品）
 };
 
 } // namespace crafting

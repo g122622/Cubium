@@ -9,8 +9,8 @@
 #include <gtest/gtest.h>
 
 #include "common/perfetto/PerfettoConfig.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #if MC_ENABLE_TRACING
 
@@ -22,12 +22,14 @@ namespace test {
 
 class PerfettoManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_config.outputPath = "test_trace.perfetto-trace";
         m_config.bufferSizeKb = 1024;
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         if (PerfettoManager::instance().isInitialized()) {
             if (PerfettoManager::instance().isEnabled()) {
                 PerfettoManager::instance().stopTracing();
@@ -43,13 +45,15 @@ protected:
 // 基础功能测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, SingletonPattern) {
+TEST_F(PerfettoManagerTest, SingletonPattern)
+{
     auto& instance1 = PerfettoManager::instance();
     auto& instance2 = PerfettoManager::instance();
     EXPECT_EQ(&instance1, &instance2);
 }
 
-TEST_F(PerfettoManagerTest, InitializeAndShutdown) {
+TEST_F(PerfettoManagerTest, InitializeAndShutdown)
+{
     EXPECT_FALSE(PerfettoManager::instance().isInitialized());
 
     PerfettoManager::instance().initialize(m_config);
@@ -59,7 +63,8 @@ TEST_F(PerfettoManagerTest, InitializeAndShutdown) {
     EXPECT_FALSE(PerfettoManager::instance().isInitialized());
 }
 
-TEST_F(PerfettoManagerTest, DoubleInitialize) {
+TEST_F(PerfettoManagerTest, DoubleInitialize)
+{
     PerfettoManager::instance().initialize(m_config);
     EXPECT_TRUE(PerfettoManager::instance().isInitialized());
 
@@ -68,7 +73,8 @@ TEST_F(PerfettoManagerTest, DoubleInitialize) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, DoubleShutdown) {
+TEST_F(PerfettoManagerTest, DoubleShutdown)
+{
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().shutdown();
 
@@ -79,7 +85,8 @@ TEST_F(PerfettoManagerTest, DoubleShutdown) {
 // 追踪会话测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, StartStopTracing) {
+TEST_F(PerfettoManagerTest, StartStopTracing)
+{
     PerfettoManager::instance().initialize(m_config);
 
     EXPECT_FALSE(PerfettoManager::instance().isEnabled());
@@ -93,12 +100,14 @@ TEST_F(PerfettoManagerTest, StartStopTracing) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, StartTracingWithoutInitialize) {
+TEST_F(PerfettoManagerTest, StartTracingWithoutInitialize)
+{
     EXPECT_NO_THROW(PerfettoManager::instance().startTracing());
     EXPECT_FALSE(PerfettoManager::instance().isEnabled());
 }
 
-TEST_F(PerfettoManagerTest, DoubleStartTracing) {
+TEST_F(PerfettoManagerTest, DoubleStartTracing)
+{
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().startTracing();
 
@@ -108,7 +117,8 @@ TEST_F(PerfettoManagerTest, DoubleStartTracing) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, StopTracingWithoutStart) {
+TEST_F(PerfettoManagerTest, StopTracingWithoutStart)
+{
     PerfettoManager::instance().initialize(m_config);
 
     EXPECT_NO_THROW(PerfettoManager::instance().stopTracing());
@@ -120,7 +130,8 @@ TEST_F(PerfettoManagerTest, StopTracingWithoutStart) {
 // Flush 测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, Flush) {
+TEST_F(PerfettoManagerTest, Flush)
+{
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().startTracing();
 
@@ -133,7 +144,8 @@ TEST_F(PerfettoManagerTest, Flush) {
     PerfettoManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, FlushWithoutTracing) {
+TEST_F(PerfettoManagerTest, FlushWithoutTracing)
+{
     PerfettoManager::instance().initialize(m_config);
 
     EXPECT_NO_THROW(PerfettoManager::instance().flush());
@@ -147,14 +159,16 @@ TEST_F(PerfettoManagerTest, FlushWithoutTracing) {
 
 class TraceEventsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_config.outputPath = "test_events.perfetto-trace";
         m_config.bufferSizeKb = 1024;
         PerfettoManager::instance().initialize(m_config);
         PerfettoManager::instance().startTracing();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         if (PerfettoManager::instance().isInitialized()) {
             if (PerfettoManager::instance().isEnabled()) {
                 PerfettoManager::instance().stopTracing();
@@ -166,39 +180,46 @@ protected:
     TraceConfig m_config;
 };
 
-TEST_F(TraceEventsTest, TraceEventCompiles) {
+TEST_F(TraceEventsTest, TraceEventCompiles)
+{
     EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "TestEvent"));
 }
 
-TEST_F(TraceEventsTest, TraceEventWithArguments) {
+TEST_F(TraceEventsTest, TraceEventWithArguments)
+{
     EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "EventWithArgs", "x", 10, "y", 20));
     EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "EventWithString", "name", "test_name"));
     EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "EventWithFloat", "value", 3.14));
 }
 
-TEST_F(TraceEventsTest, TraceCounterCompiles) {
+TEST_F(TraceEventsTest, TraceCounterCompiles)
+{
     EXPECT_NO_THROW(MC_TRACE_COUNTER("rendering.frame", "TestCounter", 42));
     EXPECT_NO_THROW(MC_TRACE_COUNTER("rendering.frame", "ZeroCounter", 0));
     EXPECT_NO_THROW(MC_TRACE_COUNTER("rendering.frame", "NegativeCounter", -100));
 }
 
-TEST_F(TraceEventsTest, TraceEventBeginEnd) {
+TEST_F(TraceEventsTest, TraceEventBeginEnd)
+{
     EXPECT_NO_THROW(MC_TRACE_EVENT_BEGIN("rendering.frame", "ManualEvent"));
     EXPECT_NO_THROW(MC_TRACE_EVENT_END("rendering.frame"));
 }
 
-TEST_F(TraceEventsTest, TraceInstant) {
+TEST_F(TraceEventsTest, TraceInstant)
+{
     EXPECT_NO_THROW(MC_TRACE_INSTANT("rendering.frame", "InstantEvent"));
 }
 
-TEST_F(TraceEventsTest, ScopedEvent) {
+TEST_F(TraceEventsTest, ScopedEvent)
+{
     {
         MC_TRACE_EVENT("rendering.frame", "ScopedEvent");
     }
     EXPECT_TRUE(true);
 }
 
-TEST_F(TraceEventsTest, NestedScopedEvents) {
+TEST_F(TraceEventsTest, NestedScopedEvents)
+{
     {
         MC_TRACE_EVENT("rendering.frame", "OuterEvent");
         {
@@ -211,37 +232,43 @@ TEST_F(TraceEventsTest, NestedScopedEvents) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(TraceEventsTest, RenderingMacros) {
+TEST_F(TraceEventsTest, RenderingMacros)
+{
     EXPECT_NO_THROW(MC_TRACE_RENDERING_EVENT("RenderFrame"));
     EXPECT_NO_THROW(MC_TRACE_RENDERING_COUNTER("FPS", 60));
     EXPECT_NO_THROW(MC_TRACE_VULKAN_EVENT("DrawCall"));
     EXPECT_NO_THROW(MC_TRACE_CHUNK_MESH_EVENT("BuildMesh"));
 }
 
-TEST_F(TraceEventsTest, GameTickMacros) {
+TEST_F(TraceEventsTest, GameTickMacros)
+{
     EXPECT_NO_THROW(MC_TRACE_TICK_EVENT("ServerTick"));
     EXPECT_NO_THROW(MC_TRACE_TICK_COUNTER("TPS", 20));
     EXPECT_NO_THROW(MC_TRACE_ENTITY_EVENT("EntityUpdate"));
     EXPECT_NO_THROW(MC_TRACE_AI_EVENT("GoalExecute"));
 }
 
-TEST_F(TraceEventsTest, WorldMacros) {
+TEST_F(TraceEventsTest, WorldMacros)
+{
     EXPECT_NO_THROW(MC_TRACE_CHUNK_GEN_EVENT("GenerateBiomes"));
     EXPECT_NO_THROW(MC_TRACE_CHUNK_LOAD_EVENT("LoadChunk"));
 }
 
-TEST_F(TraceEventsTest, NetworkMacros) {
+TEST_F(TraceEventsTest, NetworkMacros)
+{
     EXPECT_NO_THROW(MC_TRACE_NETWORK_EVENT("PacketReceived"));
 }
 
-TEST_F(TraceEventsTest, MultipleEvents) {
+TEST_F(TraceEventsTest, MultipleEvents)
+{
     for (int i = 0; i < 10; ++i) {
         MC_TRACE_EVENT("rendering.frame", "LoopEvent", "iteration", i);
     }
     EXPECT_TRUE(true);
 }
 
-TEST_F(TraceEventsTest, SimulateFrameRendering) {
+TEST_F(TraceEventsTest, SimulateFrameRendering)
+{
     MC_TRACE_EVENT("rendering.frame", "Frame");
 
     {
@@ -264,7 +291,8 @@ TEST_F(TraceEventsTest, SimulateFrameRendering) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(TraceEventsTest, SimulateChunkGeneration) {
+TEST_F(TraceEventsTest, SimulateChunkGeneration)
+{
     MC_TRACE_EVENT("world.chunk_gen", "GenerateChunk", "x", 0, "z", 0);
 
     MC_TRACE_EVENT("world.chunk_gen", "GenerateBiomes");
@@ -277,7 +305,8 @@ TEST_F(TraceEventsTest, SimulateChunkGeneration) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(TraceEventsTest, SimulateServerTick) {
+TEST_F(TraceEventsTest, SimulateServerTick)
+{
     MC_TRACE_EVENT("game.tick", "ServerTick");
 
     {
@@ -304,7 +333,8 @@ namespace mc {
 namespace perfetto {
 namespace test {
 
-TEST(PerfettoDisabledTest, TracingDisabled) {
+TEST(PerfettoDisabledTest, TracingDisabled)
+{
     // 当 MC_ENABLE_TRACING=0 时，追踪宏展开为空操作
     // 这些宏在 TraceEvents.hpp 中定义为 ((void)0)
     MC_TRACE_EVENT("test", "DisabledEvent");
@@ -312,7 +342,8 @@ TEST(PerfettoDisabledTest, TracingDisabled) {
     EXPECT_TRUE(true) << "Perfetto tracing is disabled at compile time";
 }
 
-TEST(PerfettoDisabledTest, ManagerStubWorks) {
+TEST(PerfettoDisabledTest, ManagerStubWorks)
+{
     // 测试禁用时的 PerfettoManager 存根实现
     TraceConfig config;
     config.outputPath = "test_trace.perfetto-trace";

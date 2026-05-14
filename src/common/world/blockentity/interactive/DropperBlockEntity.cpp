@@ -4,10 +4,11 @@ namespace mc {
 namespace blockentity {
 
 DropperBlockEntity::DropperBlockEntity(const BlockPos& pos)
-    : DispenserBlockEntity(BlockEntityType::Dropper, pos) {
-}
+    : DispenserBlockEntity(BlockEntityType::Dropper, pos)
+{}
 
-std::unique_ptr<BlockEntity> DropperBlockEntity::clone() const {
+std::unique_ptr<BlockEntity> DropperBlockEntity::clone() const
+{
     auto cloned = std::make_unique<DropperBlockEntity>(m_pos);
     // 复制库存内容
     for (i32 slot = 0; slot < INVENTORY_SIZE; ++slot) {

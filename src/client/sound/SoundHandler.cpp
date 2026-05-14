@@ -1,6 +1,6 @@
 #include "client/sound/SoundHandler.hpp"
-#include "common/util/assert/AssertAll.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -11,10 +11,10 @@ namespace mc::client::sound {
 
 SoundHandler::SoundHandler(ResourcePackList& resourcePacks)
     : m_resourcePacks(resourcePacks)
-{
-}
+{}
 
-Result<void> SoundHandler::reload() {
+Result<void> SoundHandler::reload()
+{
     // 清空现有数据
     clear();
     m_errorCount = 0;
@@ -114,31 +114,32 @@ Result<void> SoundHandler::reload() {
     notifyProgress(progress);
 
     spdlog::info("SoundHandler: Loaded {} sound events ({} errors, {} warnings)",
-                 m_registry.getSoundEventCount(), m_errorCount, m_warningCount);
+        m_registry.getSoundEventCount(),
+        m_errorCount,
+        m_warningCount);
 
-    return {};  // Result<void> 默认构造表示成功
+    return {}; // Result<void> 默认构造表示成功
 }
 
-void SoundHandler::clear() {
+void SoundHandler::clear()
+{
     m_registry.clear();
     m_errorCount = 0;
     m_warningCount = 0;
 }
 
-const SoundEventDefinition* SoundHandler::getSoundEvent(
-    const ResourceLocation& id
-) const {
+const SoundEventDefinition* SoundHandler::getSoundEvent(const ResourceLocation& id) const
+{
     return m_registry.getSoundEvent(id);
 }
 
-bool SoundHandler::hasSoundEvent(const ResourceLocation& id) const {
+bool SoundHandler::hasSoundEvent(const ResourceLocation& id) const
+{
     return m_registry.hasSoundEvent(id);
 }
 
-const SoundDefinition* SoundHandler::getRandomSound(
-    const ResourceLocation& id,
-    mc::math::Random& rng
-) const {
+const SoundDefinition* SoundHandler::getRandomSound(const ResourceLocation& id, mc::math::Random& rng) const
+{
     const auto* eventDef = m_registry.getSoundEvent(id);
     if (!eventDef) {
         return nullptr;
@@ -146,22 +147,23 @@ const SoundDefinition* SoundHandler::getRandomSound(
     return eventDef->selectSound(rng);
 }
 
-std::vector<ResourceLocation> SoundHandler::getAllSoundEventIds() const {
+std::vector<ResourceLocation> SoundHandler::getAllSoundEventIds() const
+{
     return m_registry.getAllSoundEventIds();
 }
 
-size_t SoundHandler::getSoundEventCount() const {
+size_t SoundHandler::getSoundEventCount() const
+{
     return m_registry.getSoundEventCount();
 }
 
-std::vector<ResourceLocation> SoundHandler::getPreloadSounds() const {
+std::vector<ResourceLocation> SoundHandler::getPreloadSounds() const
+{
     return m_registry.getPreloadSounds();
 }
 
-Result<size_t> SoundHandler::loadSoundsJson(
-    const IResourcePack& pack,
-    std::string_view namespace_
-) {
+Result<size_t> SoundHandler::loadSoundsJson(const IResourcePack& pack, std::string_view namespace_)
+{
     // 构建 sounds.json 路径
     std::string jsonPath = "assets/" + std::string(namespace_) + "/sounds.json";
 
@@ -175,8 +177,7 @@ Result<size_t> SoundHandler::loadSoundsJson(
     auto contentResult = pack.readTextResource(jsonPath);
     if (!contentResult.success()) {
         m_warningCount++;
-        spdlog::warn("SoundHandler: Failed to read {}: {}",
-                     jsonPath, contentResult.error().message());
+        spdlog::warn("SoundHandler: Failed to read {}: {}", jsonPath, contentResult.error().message());
         return 0;
     }
 
@@ -184,24 +185,21 @@ Result<size_t> SoundHandler::loadSoundsJson(
     return parseSoundsJson(contentResult.value(), namespace_);
 }
 
-Result<size_t> SoundHandler::parseSoundsJson(
-    std::string_view content,
-    std::string_view namespace_
-) {
+Result<size_t> SoundHandler::parseSoundsJson(std::string_view content, std::string_view namespace_)
+{
     // 解析 JSON
     nlohmann::json json;
     try {
         json = nlohmann::json::parse(content);
-    } catch (const nlohmann::json::parse_error& e) {
+    }
+    catch (const nlohmann::json::parse_error& e) {
         m_errorCount++;
-        return Error(ErrorCode::ResourceParseError,
-                     "Failed to parse sounds.json: " + std::string(e.what()));
+        return Error(ErrorCode::ResourceParseError, "Failed to parse sounds.json: " + std::string(e.what()));
     }
 
     if (!json.is_object()) {
         m_errorCount++;
-        return Error(ErrorCode::ResourceParseError,
-                     "sounds.json must be an object");
+        return Error(ErrorCode::ResourceParseError, "sounds.json must be an object");
     }
 
     size_t count = 0;
@@ -222,11 +220,7 @@ Result<size_t> SoundHandler::parseSoundsJson(
         }
 
         // 解析声音事件定义
-        auto result = SoundEventDefinition::parse(
-            location.toString(),
-            eventJson,
-            namespace_
-        );
+        auto result = SoundEventDefinition::parse(location.toString(), eventJson, namespace_);
 
         if (result.success()) {
             auto& def = result.value();
@@ -235,15 +229,15 @@ Result<size_t> SoundHandler::parseSoundsJson(
             count++;
         } else {
             m_warningCount++;
-            spdlog::warn("SoundHandler: Failed to parse sound event '{}': {}",
-                         eventId, result.error().message());
+            spdlog::warn("SoundHandler: Failed to parse sound event '{}': {}", eventId, result.error().message());
         }
     }
 
     return count;
 }
 
-void SoundHandler::notifyProgress(const SoundLoadProgress& progress) {
+void SoundHandler::notifyProgress(const SoundLoadProgress& progress)
+{
     if (m_progressCallback) {
         m_progressCallback(progress);
     }

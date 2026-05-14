@@ -1,12 +1,12 @@
 #include "LecternBlock.hpp"
 
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../../blockentity/interactive/LecternEntity.hpp"
-#include "../../../../item/core/Item.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/Item.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../blockentity/interactive/LecternEntity.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -18,36 +18,35 @@ namespace {
  * @param itemId 物品ID。
  * @return true 表示支持放入。
  */
-[[nodiscard]] bool isLecternBookItem(ItemId itemId) {
+[[nodiscard]] bool isLecternBookItem(ItemId itemId)
+{
     const Item* item = Item::getItem(itemId);
     if (item == nullptr) {
         return false;
     }
 
     const std::string& path = item->itemLocation().path();
-    return path == "book" ||
-           path == "written_book" ||
-           path == "writable_book" ||
-           path == "enchanted_book";
+    return path == "book" || path == "written_book" || path == "writable_book" || path == "enchanted_book";
 }
 
 } // namespace
 
 LecternBlock::LecternBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::POWERED())
-        .add(BlockStateProperties::HAS_BOOK())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::POWERED())
+                         .add(BlockStateProperties::HAS_BOOK())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::POWERED(), false)
-        .with(BlockStateProperties::HAS_BOOK(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::POWERED(), false)
+            .with(BlockStateProperties::HAS_BOOK(), false));
 
     constexpr f32 p = 1.0f / 16.0f;
 
@@ -70,18 +69,21 @@ LecternBlock::LecternBlock(const BlockProperties& properties)
     m_shapesByFacing[static_cast<size_t>(Direction::East)] = CollisionShape::combine(m_collisionShape, slopeE);
 }
 
-BlockState LecternBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState LecternBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const Direction facing = context.horizontalDirection();
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing));
 }
 
-const BlockState& LecternBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& LecternBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     const Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& LecternBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& LecternBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }
@@ -91,7 +93,8 @@ const BlockState& LecternBlock::mirror(const BlockState& state, Mirror mirror) c
     return rotate(state, rotation);
 }
 
-void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     if (!state.get(BlockStateProperties::POWERED())) {
         return;
@@ -101,23 +104,22 @@ void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     world.setBlockState(pos, &state, 3);
 }
 
-const CollisionShape& LecternBlock::getShape(const BlockState& state) const {
+const CollisionShape& LecternBlock::getShape(const BlockState& state) const
+{
     const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     const size_t index = static_cast<size_t>(facing);
     MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
 }
 
-const CollisionShape& LecternBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& LecternBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_collisionShape;
 }
 
-i32 LecternBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side) const {
+i32 LecternBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -125,11 +127,8 @@ i32 LecternBlock::getWeakPower(
     return state.get(BlockStateProperties::POWERED()) ? 15 : 0;
 }
 
-i32 LecternBlock::getStrongPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side) const {
+i32 LecternBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
@@ -139,10 +138,8 @@ i32 LecternBlock::getStrongPower(
     return 0;
 }
 
-int LecternBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+int LecternBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
     if (!state.get(BlockStateProperties::HAS_BOOK())) {
         return 0;
     }
@@ -155,7 +152,8 @@ int LecternBlock::getComparatorInputOverride(
     return 1;
 }
 
-bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, u32 itemId) {
+bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, u32 itemId)
+{
     if (state.get(BlockStateProperties::HAS_BOOK())) {
         return false;
     }
@@ -168,10 +166,9 @@ bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& 
     return true;
 }
 
-void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& state, bool hasBook) {
-    state = state
-        .with(BlockStateProperties::HAS_BOOK(), hasBook)
-        .with(BlockStateProperties::POWERED(), false);
+void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& state, bool hasBook)
+{
+    state = state.with(BlockStateProperties::HAS_BOOK(), hasBook).with(BlockStateProperties::POWERED(), false);
     world.setBlockState(pos, &state, 3);
 
     if (BlockEntity* blockEntity = world.getBlockEntity(pos);
@@ -180,10 +177,12 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& st
     }
 }
 
-void LecternBlock::pulse(IWorld& world, const BlockPos& pos, BlockState& state) {
+void LecternBlock::pulse(IWorld& world, const BlockPos& pos, BlockState& state)
+{
     state = state.with(BlockStateProperties::POWERED(), true);
     world.setBlockState(pos, &state, 3);
-    world.tickManager().scheduleBlockTick(pos, const_cast<Block&>(state.getBlock()), 2, world::tick::TickPriority::High);
+    world.tickManager().scheduleBlockTick(
+        pos, const_cast<Block&>(state.getBlock()), 2, world::tick::TickPriority::High);
 }
 
 } // namespace blocks

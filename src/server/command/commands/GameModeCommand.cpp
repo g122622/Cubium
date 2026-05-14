@@ -12,40 +12,26 @@
 namespace mc {
 namespace command {
 
-void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
-    auto modeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>(
-        "mode",
-        GameModeArgumentType::gameMode()
-    );
+    auto modeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>("mode", GameModeArgumentType::gameMode());
 
-    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setGameModeSelf(ctx);
-    });
+    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setGameModeSelf(ctx); });
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target",
-        EntityArgumentType::players()
-    );
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setGameModeOthers(ctx);
-    });
+        "target", EntityArgumentType::players());
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setGameModeOthers(ctx); });
 
     modeArg->addChild(targetArg);
 
     auto literalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("gamemode");
-    literalNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        literalNode,
+    literalNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(literalNode,
         support::makeMetadata(
-            "Change a player's game mode.",
-            "/gamemode <survival|creative|adventure|spectator> [target]",
-            2,
-            {},
-            true));
+            "Change a player's game mode.", "/gamemode <survival|creative|adventure|spectator> [target]", 2, {}, true));
     literalNode->addChild(modeArg);
 
     dispatcher.registerCommand(literalNode);
@@ -57,7 +43,8 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
  * @param context 命令上下文。
  * @return 成功时返回 `1`，失败时返回 `0`。
  */
-i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& context) {
+i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
@@ -86,7 +73,8 @@ i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& contex
  * @param context 命令上下文。
  * @return 成功修改的玩家数量。
  */
-i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& context) {
+i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
@@ -123,7 +111,8 @@ i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& cont
  * @param mode 游戏模式。
  * @return 用于命令反馈的可读名称。
  */
-const char* GameModeCommand::getGameModeName(GameMode mode) {
+const char* GameModeCommand::getGameModeName(GameMode mode)
+{
     switch (mode) {
         case GameMode::Survival:
             return "survival";

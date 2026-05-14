@@ -54,9 +54,7 @@ public:
      * @param side 输出方向（信号从这个方向传出）
      * @return i32 强信号强度 0-15
      */
-    [[nodiscard]] static i32 getStrongPower(IWorld& world,
-                                             const BlockPos& pos,
-                                             Direction side);
+    [[nodiscard]] static i32 getStrongPower(IWorld& world, const BlockPos& pos, Direction side);
 
     /**
      * @brief 获取方块所有方向的最大强信号
@@ -82,9 +80,7 @@ public:
      * @param side 输出方向
      * @return i32 弱信号强度 0-15
      */
-    [[nodiscard]] static i32 getWeakPower(IWorld& world,
-                                           const BlockPos& pos,
-                                           Direction side);
+    [[nodiscard]] static i32 getWeakPower(IWorld& world, const BlockPos& pos, Direction side);
 
     /**
      * @brief 获取方块所有方向的最大弱信号
@@ -131,9 +127,7 @@ public:
      * @param side 检查方向
      * @return true 如果该方向被充能
      */
-    [[nodiscard]] static bool isSidePowered(IWorld& world,
-                                            const BlockPos& pos,
-                                            Direction side);
+    [[nodiscard]] static bool isSidePowered(IWorld& world, const BlockPos& pos, Direction side);
 
     // ========== 特殊信号计算 ==========
 
@@ -163,9 +157,7 @@ public:
      * @param facing 比较器朝向（输入端方向）
      * @return i32 输入信号强度 0-15
      */
-    [[nodiscard]] static i32 getComparatorInput(IWorld& world,
-                                                 const BlockPos& pos,
-                                                 Direction facing);
+    [[nodiscard]] static i32 getComparatorInput(IWorld& world, const BlockPos& pos, Direction facing);
 
     /**
      * @brief 获取相邻方块的最大红石信号
@@ -177,8 +169,7 @@ public:
      * @param pos 方块位置
      * @return i32 最大信号强度 0-15
      */
-    [[nodiscard]] static i32 getRedstonePowerFromNeighbors(IWorld& world,
-                                                            const BlockPos& pos);
+    [[nodiscard]] static i32 getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& pos);
 
 private:
     /**

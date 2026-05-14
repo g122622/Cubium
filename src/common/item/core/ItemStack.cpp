@@ -1,15 +1,15 @@
 #include "ItemStack.hpp"
-#include "Item.hpp"
-#include "ItemRegistry.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../world/IWorld.hpp"
 #include "../../entity/core/Entity.hpp"
 #include "../../entity/core/LivingEntity.hpp"
+#include "../../resource/ResourceLocation.hpp"
+#include "../../util/math/random/Random.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../../util/text/TextParser.hpp"
+#include "../../world/IWorld.hpp"
+#include "../../world/block/Block.hpp"
 #include "../enchantment/EnchantmentHelper.hpp"
-#include "../../util/math/random/Random.hpp"
+#include "Item.hpp"
+#include "ItemRegistry.hpp"
 #include <algorithm>
 #include <chrono>
 
@@ -18,18 +18,18 @@ namespace mc {
 namespace {
 // NBT key constants
 namespace nbt_keys {
-    constexpr const char* ID = "id";
-    constexpr const char* COUNT = "Count";
-    constexpr const char* TAG = "tag";
-    constexpr const char* DAMAGE = "Damage";
-    constexpr const char* ENCHANTMENTS = "Enchantments";
-    constexpr const char* DISPLAY = "display";
-    constexpr const char* NAME = "Name";
-    constexpr const char* LORE = "Lore";
-    constexpr const char* REPAIR_COST = "RepairCost";
-    constexpr const char* POTION = "Potion";
-}
-}
+constexpr const char* ID = "id";
+constexpr const char* COUNT = "Count";
+constexpr const char* TAG = "tag";
+constexpr const char* DAMAGE = "Damage";
+constexpr const char* ENCHANTMENTS = "Enchantments";
+constexpr const char* DISPLAY = "display";
+constexpr const char* NAME = "Name";
+constexpr const char* LORE = "Lore";
+constexpr const char* REPAIR_COST = "RepairCost";
+constexpr const char* POTION = "Potion";
+} // namespace nbt_keys
+} // namespace
 
 // ============================================================================
 // 静态常量
@@ -43,7 +43,8 @@ const ItemStack ItemStack::EMPTY;
 
 ItemStack::ItemStack(const Item& item, i32 count)
     : m_item(&item)
-    , m_count(count) {
+    , m_count(count)
+{
     // 数量验证
     if (m_count <= 0) {
         m_item = nullptr;
@@ -53,7 +54,8 @@ ItemStack::ItemStack(const Item& item, i32 count)
 
 ItemStack::ItemStack(const Item* item, i32 count)
     : m_item(item)
-    , m_count(count) {
+    , m_count(count)
+{
     // 数量验证
     if (m_count <= 0 || m_item == nullptr) {
         m_item = nullptr;
@@ -68,14 +70,16 @@ ItemStack::ItemStack(const ItemStack& other)
     , m_customName(other.m_customName ? other.m_customName->deepCopy() : nullptr)
     , m_enchantments(other.m_enchantments)
     , m_potionId(other.m_potionId)
-    , m_customData(other.m_customData) {
+    , m_customData(other.m_customData)
+{
     // 深拷贝 Lore
     for (const auto& line : other.m_lore) {
         m_lore.push_back(line ? line->deepCopy() : nullptr);
     }
 }
 
-ItemStack& ItemStack::operator=(const ItemStack& other) {
+ItemStack& ItemStack::operator=(const ItemStack& other)
+{
     if (this != &other) {
         m_item = other.m_item;
         m_count = other.m_count;
@@ -98,7 +102,8 @@ ItemStack& ItemStack::operator=(const ItemStack& other) {
 // 数量操作
 // ============================================================================
 
-void ItemStack::setCount(i32 count) {
+void ItemStack::setCount(i32 count)
+{
     m_count = count;
     if (m_count <= 0) {
         m_count = 0;
@@ -107,7 +112,8 @@ void ItemStack::setCount(i32 count) {
     }
 }
 
-i32 ItemStack::getMaxStackSize() const {
+i32 ItemStack::getMaxStackSize() const
+{
     if (isEmpty()) {
         return 0;
     }
@@ -122,15 +128,18 @@ i32 ItemStack::getMaxStackSize() const {
 // 附魔
 // ============================================================================
 
-i32 ItemStack::getEnchantmentLevel(const std::string& enchantmentId) const {
+i32 ItemStack::getEnchantmentLevel(const std::string& enchantmentId) const
+{
     return m_enchantments.getLevel(enchantmentId);
 }
 
-bool ItemStack::hasEnchantment(const std::string& enchantmentId) const {
+bool ItemStack::hasEnchantment(const std::string& enchantmentId) const
+{
     return m_enchantments.has(enchantmentId);
 }
 
-void ItemStack::addEnchantment(const std::string& enchantmentId, i32 level) {
+void ItemStack::addEnchantment(const std::string& enchantmentId, i32 level)
+{
     m_enchantments.set(enchantmentId, level);
 }
 
@@ -138,18 +147,21 @@ void ItemStack::addEnchantment(const std::string& enchantmentId, i32 level) {
 // 耐久度
 // ============================================================================
 
-bool ItemStack::isDamageable() const {
+bool ItemStack::isDamageable() const
+{
     if (isEmpty()) {
         return false;
     }
     return m_item->isDamageable();
 }
 
-bool ItemStack::isDamaged() const {
+bool ItemStack::isDamaged() const
+{
     return isDamageable() && m_damage > 0;
 }
 
-void ItemStack::setDamage(i32 damage) {
+void ItemStack::setDamage(i32 damage)
+{
     if (!isDamageable()) {
         return;
     }
@@ -163,18 +175,21 @@ void ItemStack::setDamage(i32 damage) {
     }
 }
 
-i32 ItemStack::getMaxDamage() const {
+i32 ItemStack::getMaxDamage() const
+{
     if (isEmpty()) {
         return 0;
     }
     return m_item->maxDamage();
 }
 
-bool ItemStack::attemptDamageItem(i32 amount) {
+bool ItemStack::attemptDamageItem(i32 amount)
+{
     return attemptDamageItem(amount, nullptr);
 }
 
-bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity) {
+bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
+{
     if (!isDamageable()) {
         return false;
     }
@@ -189,13 +204,13 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity) {
         if (m_item != nullptr) {
             // 检查物品是否为盔甲（通过是否有护甲槽位判断）
             // 简化判断：检查物品是否有防御属性
-            isArmor = (m_item->getFood() == nullptr && m_item->maxDamage() > 0 &&
-                       m_item->maxStackSize() == 1);
+            isArmor = (m_item->getFood() == nullptr && m_item->maxDamage() > 0 && m_item->maxStackSize() == 1);
         }
 
         // 使用静态随机数生成器（每个物品实例应该有自己的随机状态）
         // 为了简化，我们使用时间种子
-        static thread_local math::Random s_random(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+        static thread_local math::Random s_random(
+            static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
         // 每点伤害都有机会被耐久保护抵消
         for (i32 i = 0; i < amount; ++i) {
@@ -227,7 +242,8 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity) {
 // 堆叠操作
 // ============================================================================
 
-bool ItemStack::isStackable() const {
+bool ItemStack::isStackable() const
+{
     if (isEmpty()) {
         return false;
     }
@@ -236,14 +252,16 @@ bool ItemStack::isStackable() const {
         return false;
     }
     // MC 1.16.5: 已损坏的可堆叠物品不能堆叠
-    // 参考: ItemStack.isStackable() - "return this.getMaxStackSize() > 1 && (!this.isDamageable() || !this.isDamaged());"
+    // 参考: ItemStack.isStackable() - "return this.getMaxStackSize() > 1 && (!this.isDamageable() ||
+    // !this.isDamaged());"
     if (isDamageable() && isDamaged()) {
         return false;
     }
     return true;
 }
 
-bool ItemStack::canMergeWith(const ItemStack& other) const {
+bool ItemStack::canMergeWith(const ItemStack& other) const
+{
     if (isEmpty() || other.isEmpty()) {
         return false;
     }
@@ -306,7 +324,8 @@ bool ItemStack::canMergeWith(const ItemStack& other) const {
     return m_count < getMaxStackSize();
 }
 
-bool ItemStack::isSameItem(const ItemStack& other) const {
+bool ItemStack::isSameItem(const ItemStack& other) const
+{
     if (isEmpty() && other.isEmpty()) {
         return true;
     }
@@ -316,7 +335,8 @@ bool ItemStack::isSameItem(const ItemStack& other) const {
     return m_item == other.m_item;
 }
 
-ItemStack ItemStack::split(i32 amount) {
+ItemStack ItemStack::split(i32 amount)
+{
     if (isEmpty()) {
         return EMPTY;
     }
@@ -339,7 +359,8 @@ ItemStack ItemStack::split(i32 amount) {
     return result;
 }
 
-ItemStack ItemStack::copy() const {
+ItemStack ItemStack::copy() const
+{
     if (isEmpty()) {
         return EMPTY;
     }
@@ -361,28 +382,32 @@ ItemStack ItemStack::copy() const {
 // 物品功能
 // ============================================================================
 
-f32 ItemStack::getDestroySpeed(const BlockState& state) const {
+f32 ItemStack::getDestroySpeed(const BlockState& state) const
+{
     if (isEmpty()) {
         return 1.0f;
     }
     return m_item->getDestroySpeed(*this, state);
 }
 
-bool ItemStack::canHarvestBlock(const BlockState& state) const {
+bool ItemStack::canHarvestBlock(const BlockState& state) const
+{
     if (isEmpty()) {
         return false;
     }
     return m_item->canHarvestBlock(state);
 }
 
-void ItemStack::inventoryTick(IWorld& world, Entity& entity, i32 itemSlot, bool isSelected) {
+void ItemStack::inventoryTick(IWorld& world, Entity& entity, i32 itemSlot, bool isSelected)
+{
     if (isEmpty()) {
         return;
     }
     m_item->inventoryTick(*this, world, entity, itemSlot, isSelected);
 }
 
-void ItemStack::onArmorTick(IWorld& world, LivingEntity& player) {
+void ItemStack::onArmorTick(IWorld& world, LivingEntity& player)
+{
     if (isEmpty()) {
         return;
     }
@@ -393,7 +418,8 @@ void ItemStack::onArmorTick(IWorld& world, LivingEntity& player) {
 // 显示名称
 // ============================================================================
 
-std::unique_ptr<text::ITextComponent> ItemStack::getDisplayName() const {
+std::unique_ptr<text::ITextComponent> ItemStack::getDisplayName() const
+{
     if (isEmpty()) {
         return std::make_unique<text::StringTextComponent>("");
     }
@@ -411,13 +437,14 @@ std::unique_ptr<text::ITextComponent> ItemStack::getDisplayName() const {
 // 序列化
 // ============================================================================
 
-void ItemStack::serialize(network::PacketSerializer& ser) const {
+void ItemStack::serialize(network::PacketSerializer& ser) const
+{
     if (isEmpty()) {
-        ser.writeBool(false);  // 表示空物品
+        ser.writeBool(false); // 表示空物品
         return;
     }
 
-    ser.writeBool(true);  // 表示有物品
+    ser.writeBool(true); // 表示有物品
     ser.writeU16(m_item->itemId());
     ser.writeI32(m_count);
 
@@ -433,7 +460,7 @@ void ItemStack::serialize(network::PacketSerializer& ser) const {
     bool hasCustomName = m_customName && !m_customName->getUnformattedText().empty();
     ser.writeBool(hasCustomName);
     if (hasCustomName) {
-        ser.writeString(m_customName->getFormattedText());  // 使用格式化文本保存
+        ser.writeString(m_customName->getFormattedText()); // 使用格式化文本保存
     }
 
     // Lore
@@ -458,7 +485,8 @@ void ItemStack::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<ItemStack> ItemStack::deserialize(network::PacketDeserializer& deser) {
+Result<ItemStack> ItemStack::deserialize(network::PacketDeserializer& deser)
+{
     auto hasItemResult = deser.readBool();
     if (hasItemResult.failed()) {
         return hasItemResult.error();
@@ -571,7 +599,8 @@ Result<ItemStack> ItemStack::deserialize(network::PacketDeserializer& deser) {
 // JSON 序列化
 // ============================================================================
 
-nlohmann::json ItemStack::toJson() const {
+nlohmann::json ItemStack::toJson() const
+{
     nlohmann::json json;
     if (isEmpty()) {
         return json;
@@ -613,7 +642,8 @@ nlohmann::json ItemStack::toJson() const {
     return json;
 }
 
-Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
+Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
+{
     if (json.is_null() || !json.is_object()) {
         return EMPTY;
     }
@@ -683,7 +713,8 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
 // NBT 序列化
 // ============================================================================
 
-void ItemStack::toNbt(nbt::tags::compound_tag& tag) const {
+void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
+{
     if (isEmpty()) {
         tag.put(nbt_keys::ID, std::string("minecraft:air"));
         tag.put(nbt_keys::COUNT, static_cast<i8>(0));
@@ -697,13 +728,8 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const {
     tag.put(nbt_keys::COUNT, static_cast<i8>(m_count));
 
     // 检查是否需要 tag
-    bool needTag = m_damage > 0 ||
-                   hasEnchantments() ||
-                   m_customName ||
-                   !m_lore.empty() ||
-                   m_repairCost > 0 ||
-                   !m_potionId.empty() ||
-                   hasTag();
+    bool needTag = m_damage > 0 || hasEnchantments() || m_customName || !m_lore.empty() || m_repairCost > 0 ||
+        !m_potionId.empty() || hasTag();
 
     if (!needTag) {
         return;
@@ -764,7 +790,8 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const {
     tag.value.emplace(nbt_keys::TAG, std::move(tagCompound));
 }
 
-Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
+Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
+{
     // 获取物品ID
     auto it = tag.value.find(nbt_keys::ID);
     if (it == tag.value.end() || it->second->id() != nbt::TagId::String) {
@@ -876,7 +903,8 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
 // 比较操作符
 // ============================================================================
 
-bool ItemStack::operator==(const ItemStack& other) const {
+bool ItemStack::operator==(const ItemStack& other) const
+{
     if (isEmpty() && other.isEmpty()) {
         return true;
     }
@@ -908,21 +936,17 @@ bool ItemStack::operator==(const ItemStack& other) const {
         }
     }
 
-    return m_item == other.m_item &&
-           m_count == other.m_count &&
-           m_damage == other.m_damage &&
-           customNameEqual &&
-           loreEqual &&
-           m_potionId == other.m_potionId &&
-           m_customData == other.m_customData &&
-           m_enchantments.getAll() == other.m_enchantments.getAll();
+    return m_item == other.m_item && m_count == other.m_count && m_damage == other.m_damage && customNameEqual &&
+        loreEqual && m_potionId == other.m_potionId && m_customData == other.m_customData &&
+        m_enchantments.getAll() == other.m_enchantments.getAll();
 }
 
 // ============================================================================
 // 容器物品
 // ============================================================================
 
-ItemStack ItemStack::getContainerItem() const {
+ItemStack ItemStack::getContainerItem() const
+{
     if (isEmpty()) {
         return EMPTY;
     }
@@ -938,18 +962,21 @@ ItemStack ItemStack::getContainerItem() const {
     return result;
 }
 
-bool ItemStack::hasContainerItem() const {
+bool ItemStack::hasContainerItem() const
+{
     if (isEmpty()) {
         return false;
     }
     return m_item->hasContainerItem();
 }
 
-bool ItemStack::hasTag() const {
+bool ItemStack::hasTag() const
+{
     return m_customData.is_object() && !m_customData.empty();
 }
 
-const nlohmann::json* ItemStack::getTag() const {
+const nlohmann::json* ItemStack::getTag() const
+{
     if (!hasTag()) {
         return nullptr;
     }
@@ -957,7 +984,8 @@ const nlohmann::json* ItemStack::getTag() const {
     return &m_customData;
 }
 
-nlohmann::json* ItemStack::getTag() {
+nlohmann::json* ItemStack::getTag()
+{
     if (!hasTag()) {
         return nullptr;
     }
@@ -965,7 +993,8 @@ nlohmann::json* ItemStack::getTag() {
     return &m_customData;
 }
 
-nlohmann::json& ItemStack::getOrCreateTag() {
+nlohmann::json& ItemStack::getOrCreateTag()
+{
     if (!m_customData.is_object()) {
         m_customData = nlohmann::json::object();
     }
@@ -973,7 +1002,8 @@ nlohmann::json& ItemStack::getOrCreateTag() {
     return m_customData;
 }
 
-const nlohmann::json* ItemStack::getChildTag(const std::string& name) const {
+const nlohmann::json* ItemStack::getChildTag(const std::string& name) const
+{
     if (!m_customData.is_object()) {
         return nullptr;
     }
@@ -986,7 +1016,8 @@ const nlohmann::json* ItemStack::getChildTag(const std::string& name) const {
     return &(*iter);
 }
 
-nlohmann::json& ItemStack::getOrCreateChildTag(const std::string& name) {
+nlohmann::json& ItemStack::getOrCreateChildTag(const std::string& name)
+{
     nlohmann::json& child = getOrCreateTag()[name];
     if (!child.is_object()) {
         child = nlohmann::json::object();
@@ -995,7 +1026,8 @@ nlohmann::json& ItemStack::getOrCreateChildTag(const std::string& name) {
     return child;
 }
 
-void ItemStack::removeChildTag(const std::string& name) {
+void ItemStack::removeChildTag(const std::string& name)
+{
     if (!m_customData.is_object()) {
         return;
     }
@@ -1010,7 +1042,8 @@ void ItemStack::removeChildTag(const std::string& name) {
 // 标签合并
 // ============================================================================
 
-void ItemStack::mergeTag(const nlohmann::json& other) {
+void ItemStack::mergeTag(const nlohmann::json& other)
+{
     if (!other.is_object()) {
         return;
     }
@@ -1018,7 +1051,8 @@ void ItemStack::mergeTag(const nlohmann::json& other) {
     mergeJsonObjects(tag, other);
 }
 
-void ItemStack::mergeTag(nlohmann::json&& other) {
+void ItemStack::mergeTag(nlohmann::json&& other)
+{
     if (!other.is_object()) {
         return;
     }
@@ -1027,7 +1061,8 @@ void ItemStack::mergeTag(nlohmann::json&& other) {
     mergeJsonObjects(tag, other);
 }
 
-void ItemStack::mergeJsonObjects(nlohmann::json& target, const nlohmann::json& source) {
+void ItemStack::mergeJsonObjects(nlohmann::json& target, const nlohmann::json& source)
+{
     if (!target.is_object() || !source.is_object()) {
         // 非对象类型，直接替换
         target = source;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../core/UseAction.hpp"
-#include "../../core/ActionResult.hpp"
 #include "../../../core/Types.hpp"
-#include "../../core/ItemStack.hpp"
 #include "../../../entity/inventory/PlayerInventory.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../core/Item.hpp"
+#include "../../core/ItemStack.hpp"
+#include "../../core/UseAction.hpp"
 #include <functional>
 #include <vector>
 
@@ -17,7 +17,7 @@ class World;
 class LivingEntity;
 
 namespace entity {
-    class AbstractArrowEntity;
+class AbstractArrowEntity;
 }
 
 namespace item {
@@ -82,11 +82,7 @@ public:
      *
      * 完成装填。
      */
-    void onPlayerStoppedUsing(
-        ItemStack& stack,
-        IWorld& world,
-        LivingEntity& entity,
-        i32 timeLeft) override;
+    void onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft) override;
 
     // ========== 弩特有方法 ==========
 
@@ -149,11 +145,7 @@ private:
      * @brief 发射弹丸
      */
     static void fireProjectiles(
-        IWorld& world,
-        LivingEntity& shooter,
-        ItemStack& crossbow,
-        f32 velocity,
-        f32 inaccuracy);
+        IWorld& world, LivingEntity& shooter, ItemStack& crossbow, f32 velocity, f32 inaccuracy);
 
     /**
      * @brief 获取已装填的弹丸列表

@@ -1,7 +1,7 @@
 #include "SquidEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
@@ -16,11 +16,13 @@ SquidEntity::SquidEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SquidEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> SquidEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<SquidEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void SquidEntity::sprayInk() {
+void SquidEntity::sprayInk()
+{
     if (!m_sprayingInk) {
         m_sprayingInk = true;
         m_sprayTimer = SPRAY_INK_DURATION;
@@ -43,17 +45,14 @@ void SquidEntity::sprayInk() {
                 f32 vy = random.nextFloat() * 0.1f;
                 f32 vz = (random.nextFloat() - 0.5f) * 0.5f;
 
-                world()->addParticle(
-                    ParticleTypeId::SquidInk,
-                    Vector3(px, py, pz),
-                    Vector3(vx, vy, vz)
-                );
+                world()->addParticle(ParticleTypeId::SquidInk, Vector3(px, py, pz), Vector3(vx, vy, vz));
             }
         }
     }
 }
 
-void SquidEntity::tick() {
+void SquidEntity::tick()
+{
     WaterMobEntity::tick();
 
     // 更新喷墨计时器
@@ -78,8 +77,10 @@ void SquidEntity::tick() {
 
         // 平滑转向
         f32 angleDiff = m_targetSwimAngle - m_swimAngle;
-        while (angleDiff > 180.0f) angleDiff -= 360.0f;
-        while (angleDiff < -180.0f) angleDiff += 360.0f;
+        while (angleDiff > 180.0f)
+            angleDiff -= 360.0f;
+        while (angleDiff < -180.0f)
+            angleDiff += 360.0f;
         m_swimAngle += angleDiff * 0.1f;
 
         // 游泳推进
@@ -93,13 +94,15 @@ void SquidEntity::tick() {
     }
 }
 
-void SquidEntity::registerGoals() {
+void SquidEntity::registerGoals()
+{
     // TODO: 鱿鱼 AI 目标
     // - SquidSwimGoal: 随机游泳
     // - SquidFleeGoal: 逃跑
 }
 
-void SquidEntity::registerAttributes() {
+void SquidEntity::registerAttributes()
+{
     // 调用父类方法
     WaterMobEntity::registerAttributes();
 

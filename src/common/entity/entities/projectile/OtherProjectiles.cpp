@@ -1,11 +1,11 @@
 #include "OtherProjectiles.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../entities/player/Player.hpp"
-#include "../../damage/DamageSource.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../core/LivingEntity.hpp"
+#include "../../damage/DamageSource.hpp"
+#include "../../entities/player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
@@ -17,24 +17,25 @@ namespace entity {
 // ============================================================================
 
 namespace {
-    // 钓鱼时间常量（MC 1.16.5）
-    constexpr i32 MIN_WAIT_TICKS = 100;    // 最小等待时间 (5秒)
-    constexpr i32 MAX_WAIT_TICKS = 600;    // 最大等待时间 (30秒)
-    constexpr i32 LURE_REDUCTION = 100;    // 饵钓每级减少的时间 (5秒)
-    constexpr i32 MIN_CATCHABLE_TICKS = 20;  // 最小捕获窗口 (1秒)
-    constexpr i32 MAX_CATCHABLE_TICKS = 40;  // 最大捕获窗口 (2秒)
-}
+// 钓鱼时间常量（MC 1.16.5）
+constexpr i32 MIN_WAIT_TICKS = 100;     // 最小等待时间 (5秒)
+constexpr i32 MAX_WAIT_TICKS = 600;     // 最大等待时间 (30秒)
+constexpr i32 LURE_REDUCTION = 100;     // 饵钓每级减少的时间 (5秒)
+constexpr i32 MIN_CATCHABLE_TICKS = 20; // 最小捕获窗口 (1秒)
+constexpr i32 MAX_CATCHABLE_TICKS = 40; // 最大捕获窗口 (2秒)
+} // namespace
 
 LlamaSpitEntity::LlamaSpitEntity(LegacyEntityType type, EntityId id)
     : ThrowableEntity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> LlamaSpitEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> LlamaSpitEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<LlamaSpitEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void LlamaSpitEntity::onEntityHit(const RayTraceResult& result) {
+void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
+{
     if (!result.hitEntity) {
         return;
     }
@@ -43,17 +44,16 @@ void LlamaSpitEntity::onEntityHit(const RayTraceResult& result) {
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::MobProjectile, shooter, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, shooter, this, false);
     } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::MobProjectile, this, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, this, this, false);
     }
 
     // TODO: target->attackEntityFrom(*damageSource, 1.0f);
 }
 
-void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/) {
+void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)
+{
     // 播放命中粒子
     remove();
 }
@@ -68,22 +68,25 @@ FishingBobberEntity::FishingBobberEntity(LegacyEntityType type, EntityId id)
     m_noGravity = false;
 }
 
-std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<FishingBobberEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void FishingBobberEntity::setShooter(Entity* shooter) {
+void FishingBobberEntity::setShooter(Entity* shooter)
+{
     // 设置钓鱼者（仅支持玩家）
     m_angler = dynamic_cast<Player*>(shooter);
 }
 
-void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy) {
+void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy)
+{
     // 设置发射者
     setShooter(&shooter);
 
     // 计算发射方向
     // MC 1.16.5: ProjectileHelper.func_234618_a_
-    constexpr f32 DEG_TO_RAD = 0.017453292f;  // PI / 180
+    constexpr f32 DEG_TO_RAD = 0.017453292f; // PI / 180
 
     f32 radPitch = (pitch + pitchOffset) * DEG_TO_RAD;
     f32 radYaw = -yaw * DEG_TO_RAD;
@@ -118,7 +121,8 @@ void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pit
     m_velocity.z = z;
 }
 
-void FishingBobberEntity::tick() {
+void FishingBobberEntity::tick()
+{
     Entity::tick();
 
     m_lifetime++;
@@ -170,7 +174,7 @@ void FishingBobberEntity::tick() {
             // 咬钩中，等待玩家收杆
             if (m_ticksCatchable > 0) {
                 m_ticksCatchable--;
-                m_fishAngle += 0.15f;  // 鱼游动动画
+                m_fishAngle += 0.15f; // 鱼游动动画
                 // 如果超时未收杆，重置状态
                 if (m_ticksCatchable <= 0) {
                     m_state = State::Bobbing;
@@ -187,16 +191,19 @@ void FishingBobberEntity::tick() {
     }
 }
 
-void FishingBobberEntity::updateWaterState() {
+void FishingBobberEntity::updateWaterState()
+{
     // 通过检查碰撞箱判断是否在水中
     // Entity::isInWater() 已在 tick() 中更新
 }
 
-bool FishingBobberEntity::isInWater() const {
+bool FishingBobberEntity::isInWater() const
+{
     return Entity::isInWater();
 }
 
-bool FishingBobberEntity::checkOpenWater() {
+bool FishingBobberEntity::checkOpenWater()
+{
     // MC 1.16.5: 检查浮标位置周围是否满足开放水域条件
     // 需要检查 Y-1 到 Y+2 四层，每层 5x5 范围
     if (m_world == nullptr) {
@@ -204,8 +211,8 @@ bool FishingBobberEntity::checkOpenWater() {
     }
 
     BlockPos bobberPos(static_cast<i32>(std::floor(m_position.x)),
-                       static_cast<i32>(std::floor(m_position.y)),
-                       static_cast<i32>(std::floor(m_position.z)));
+        static_cast<i32>(std::floor(m_position.y)),
+        static_cast<i32>(std::floor(m_position.z)));
 
     // 简化实现：检查浮标周围是否有足够的水
     // 完整实现需要检查每层的水类型
@@ -223,10 +230,11 @@ bool FishingBobberEntity::checkOpenWater() {
     }
 
     // 开放水域大约需要 75% 以上是水
-    return waterCount >= 60;  // 4层 * 25格 * 0.6 = 60
+    return waterCount >= 60; // 4层 * 25格 * 0.6 = 60
 }
 
-void FishingBobberEntity::catchingFish() {
+void FishingBobberEntity::catchingFish()
+{
     // 阶段1：等待咬钩
     if (m_ticksCaughtDelay > 0) {
         m_ticksCaughtDelay--;
@@ -241,8 +249,7 @@ void FishingBobberEntity::catchingFish() {
             f32 px = x() + std::sin(angle) * radius;
             f32 py = std::floor(y()) + 1.0f;
             f32 pz = z() + std::cos(angle) * radius;
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Splash,
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Splash,
                 Vector3(px, py, pz),
                 Vector3(0.0f, 0.0f, 0.0f),
                 Vector3(0.1f, 0.0f, 0.1f),
@@ -268,19 +275,16 @@ void FishingBobberEntity::catchingFish() {
 
             // 15% 概率生成气泡
             if (rng.nextFloat() < 0.15f) {
-                m_world->addParticle(
-                    client::renderer::trident::particle::ParticleTypeId::Bubble,
+                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble,
                     Vector3(d0, d1 - 0.1f, d2),
                     Vector3(sinAngle, 0.1f, cosAngle));
             }
 
             // 钓鱼涟漪粒子
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Fishing,
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Fishing,
                 Vector3(d0, d1, d2),
                 Vector3(cosAngle * 0.04f, 0.01f, -sinAngle * 0.04f));
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Fishing,
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Fishing,
                 Vector3(d0, d1, d2),
                 Vector3(-cosAngle * 0.04f, 0.01f, sinAngle * 0.04f));
         }
@@ -293,7 +297,9 @@ void FishingBobberEntity::catchingFish() {
             m_ticksCatchable = math::Random().nextInt(MIN_CATCHABLE_TICKS, MAX_CATCHABLE_TICKS);
             m_state = State::Fishing;
             // MC 1.16.5: 播放水溅音效
-            playSound(SoundEvents::ENTITY_FISHING_BOBBER_SPLASH, 0.25f, 1.0f + (math::Random().nextFloat() - math::Random().nextFloat()) * 0.4f);
+            playSound(SoundEvents::ENTITY_FISHING_BOBBER_SPLASH,
+                0.25f,
+                1.0f + (math::Random().nextFloat() - math::Random().nextFloat()) * 0.4f);
         }
         return;
     }
@@ -305,43 +311,45 @@ void FishingBobberEntity::catchingFish() {
     }
 }
 
-void FishingBobberEntity::spawnFishingParticles() {
+void FishingBobberEntity::spawnFishingParticles()
+{
     // MC 1.16.5: 钓鱼粒子效果
     // 浮标在水面时的涟漪效果
     if (isInWater() && m_world) {
         math::Random rng;
         if (rng.nextInt(5) == 0) {
             m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Fishing,
-                m_position,
-                Vector3(0.0f, 0.01f, 0.0f));
+                client::renderer::trident::particle::ParticleTypeId::Fishing, m_position, Vector3(0.0f, 0.01f, 0.0f));
         }
     }
 }
 
-void FishingBobberEntity::setWaitTime() {
+void FishingBobberEntity::setWaitTime()
+{
     // MC 1.16.5: 设置咬钩等待时间
     // 基础时间: 100-600 ticks
     // 饵钓附魔: 每级减少 100 ticks
     math::Random rng;
     m_ticksCaughtDelay = rng.nextInt(MIN_WAIT_TICKS, MAX_WAIT_TICKS);
     m_ticksCaughtDelay -= m_speedBonus * LURE_REDUCTION;
-    m_ticksCaughtDelay = std::max(20, m_ticksCaughtDelay);  // 最小 1 秒
+    m_ticksCaughtDelay = std::max(20, m_ticksCaughtDelay); // 最小 1 秒
 
     // 鱼接近时间
     m_ticksCatchableDelay = 0;
     m_ticksCatchable = 0;
 }
 
-i32 FishingBobberEntity::spawnCatchItems() {
+i32 FishingBobberEntity::spawnCatchItems()
+{
     // TODO: 使用钓鱼掉落表生成物品
     // 目前返回 1 表示钓到鱼（用于耐久消耗）
     return 1;
 }
 
-i32 FishingBobberEntity::reelIn() {
+i32 FishingBobberEntity::reelIn()
+{
     // 收杆
-    i32 damage = 0;  // 钓鱼竿耐久消耗
+    i32 damage = 0; // 钓鱼竿耐久消耗
 
     if (m_state == State::Fishing && m_ticksCatchable > 0) {
         // 成功钓到鱼
@@ -371,11 +379,13 @@ ShulkerBulletEntity::ShulkerBulletEntity(LegacyEntityType type, EntityId id)
     m_noGravity = true;
 }
 
-std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<ShulkerBulletEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void ShulkerBulletEntity::tick() {
+void ShulkerBulletEntity::tick()
+{
     // 更新飞行方向
     updateDirection();
 
@@ -385,11 +395,9 @@ void ShulkerBulletEntity::tick() {
     // 检查是否击中目标
     if (m_target && m_target->isAlive()) {
         // 计算到目标的方向
-        Vector3 dir(
-            m_target->x() - m_position.x,
+        Vector3 dir(m_target->x() - m_position.x,
             m_target->y() + m_target->eyeHeight() / 2.0f - m_position.y,
-            m_target->z() - m_position.z
-        );
+            m_target->z() - m_position.z);
         f32 dist = dir.length();
         if (dist > 0.0f) {
             dir = dir.normalized();
@@ -401,7 +409,8 @@ void ShulkerBulletEntity::tick() {
     }
 }
 
-void ShulkerBulletEntity::updateDirection() {
+void ShulkerBulletEntity::updateDirection()
+{
     // 潜影贝子弹会沿轴向移动，并在需要时改变方向
     m_flightSteps++;
 
@@ -412,7 +421,8 @@ void ShulkerBulletEntity::updateDirection() {
     }
 }
 
-void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result) {
+void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
+{
     if (!result.hitEntity) {
         return;
     }
@@ -421,11 +431,9 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result) {
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::MobProjectile, shooter, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, shooter, this, false);
     } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::MobProjectile, this, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, this, this, false);
     }
 
     // TODO: target->attackEntityFrom(*damageSource, 4.0f);
@@ -438,7 +446,8 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result) {
     remove();
 }
 
-void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/) {
+void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
+{
     remove();
 }
 
@@ -449,14 +458,16 @@ void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/) {
 EvokerFangsEntity::EvokerFangsEntity(LegacyEntityType type, EntityId id)
     : Entity(type, id)
 {
-    m_warmupDelay = 20;  // 默认预热时间
+    m_warmupDelay = 20; // 默认预热时间
 }
 
-std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<EvokerFangsEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void EvokerFangsEntity::tick() {
+void EvokerFangsEntity::tick()
+{
     Entity::tick();
 
     m_ticksExisted++;
@@ -493,11 +504,13 @@ EyeOfEnderEntity::EyeOfEnderEntity(LegacyEntityType type, EntityId id)
     m_noGravity = false;
 }
 
-std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<EyeOfEnderEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void EyeOfEnderEntity::tick() {
+void EyeOfEnderEntity::tick()
+{
     Entity::tick();
 
     m_lifetime++;
@@ -527,12 +540,13 @@ void EyeOfEnderEntity::tick() {
     // }
 
     // 超时移除
-    if (m_lifetime > 1200) {  // 60秒
+    if (m_lifetime > 1200) { // 60秒
         remove();
     }
 }
 
-void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ) {
+void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
+{
     m_targetX = targetX;
     m_targetZ = targetZ;
 }
@@ -547,11 +561,13 @@ FireworkRocketEntity::FireworkRocketEntity(LegacyEntityType type, EntityId id)
     m_noGravity = false;
 }
 
-std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<FireworkRocketEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void FireworkRocketEntity::tick() {
+void FireworkRocketEntity::tick()
+{
     ProjectileEntity::tick();
 
     m_lifetime++;
@@ -568,7 +584,8 @@ void FireworkRocketEntity::tick() {
     }
 }
 
-void FireworkRocketEntity::explode() {
+void FireworkRocketEntity::explode()
+{
     // 如果从弩射出，对周围实体造成伤害
     if (m_shotFromCrossbow) {
         dealExplosionDamage();
@@ -580,7 +597,8 @@ void FireworkRocketEntity::explode() {
     remove();
 }
 
-void FireworkRocketEntity::dealExplosionDamage() {
+void FireworkRocketEntity::dealExplosionDamage()
+{
     // TODO: 对范围内的实体造成爆炸伤害
     // 如果烟花有爆炸效果，每个爆炸效果造成 5-7 点伤害
     // 还会造成击退

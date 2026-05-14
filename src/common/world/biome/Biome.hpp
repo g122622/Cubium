@@ -2,12 +2,12 @@
 
 #include "../../core/Types.hpp"
 #include "../block/Block.hpp"
-#include "BiomeEffects.hpp"
-#include "BiomeAmbientSounds.hpp"
-#include "BiomeGenerationSettings.hpp"
 #include "../spawn/MobSpawnInfo.hpp"
-#include <string>
+#include "BiomeAmbientSounds.hpp"
+#include "BiomeEffects.hpp"
+#include "BiomeGenerationSettings.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 
@@ -21,11 +21,7 @@ class BlockPos;
  * 参考 MC Biome.Climate
  */
 struct BiomeClimate {
-    enum class Precipitation {
-        None,
-        Rain,
-        Snow
-    };
+    enum class Precipitation { None, Rain, Snow };
 
     Precipitation precipitation = Precipitation::Rain;
     f32 temperature = 0.5f;
@@ -34,8 +30,11 @@ struct BiomeClimate {
 
     BiomeClimate() = default;
     BiomeClimate(Precipitation precip, f32 temp, f32 modifier, f32 down)
-        : precipitation(precip), temperature(temp)
-        , temperatureModifier(modifier), downfall(down) {}
+        : precipitation(precip)
+        , temperature(temp)
+        , temperatureModifier(modifier)
+        , downfall(down)
+    {}
 };
 
 /**
@@ -110,7 +109,8 @@ public:
      * @param y Y坐标（高度）
      * @return 位置相关温度
      */
-    [[nodiscard]] f32 getTemperature(i32 y) const {
+    [[nodiscard]] f32 getTemperature(i32 y) const
+    {
         f32 temp = m_climate.temperature;
 
         // 海拔 > 64 时降温
@@ -132,9 +132,7 @@ public:
      * @param pos 方块位置
      * @return 位置相关温度
      */
-    [[nodiscard]] f32 getTemperature(const BlockPos& pos) const {
-        return getTemperature(pos.y);
-    }
+    [[nodiscard]] f32 getTemperature(const BlockPos& pos) const { return getTemperature(pos.y); }
 
     /**
      * @brief 判断是否应该降雪
@@ -145,9 +143,7 @@ public:
      * @param y Y坐标
      * @return 是否应该降雪
      */
-    [[nodiscard]] bool doesSnowGenerate(i32 y) const {
-        return getTemperature(y) < 0.15f;
-    }
+    [[nodiscard]] bool doesSnowGenerate(i32 y) const { return getTemperature(y) < 0.15f; }
 
     /**
      * @brief 判断水是否应该结冰
@@ -158,9 +154,7 @@ public:
      * @param y Y坐标
      * @return 是否应该结冰
      */
-    [[nodiscard]] bool doesWaterFreeze(i32 y) const {
-        return getTemperature(y) < 0.15f;
-    }
+    [[nodiscard]] bool doesWaterFreeze(i32 y) const { return getTemperature(y) < 0.15f; }
 
     // === 方块设置 ===
     [[nodiscard]] const BlockState* surfaceBlock() const { return m_surfaceBlock; }
@@ -261,9 +255,7 @@ public:
      *
      * @return 音乐配置，如果没有专属音乐返回空 optional
      */
-    [[nodiscard]] const std::optional<world::biome::BiomeMusic>& getMusic() const {
-        return m_ambientSounds.music();
-    }
+    [[nodiscard]] const std::optional<world::biome::BiomeMusic>& getMusic() const { return m_ambientSounds.music(); }
 
 private:
     BiomeId m_id = 0;
@@ -271,8 +263,8 @@ private:
     Category m_category = Category::None;
 
     // 地形参数
-    f32 m_depth = 0.0f;       ///< 深度/基础高度
-    f32 m_scale = 0.0f;       ///< 高度变化比例
+    f32 m_depth = 0.0f; ///< 深度/基础高度
+    f32 m_scale = 0.0f; ///< 高度变化比例
 
     // 气候参数
     BiomeClimate m_climate;
@@ -291,13 +283,13 @@ private:
 
     // 生物生成设置
     world::spawn::MobSpawnInfo m_spawnInfo;
-    f32 m_creatureSpawnProbability = 10.0f / 128.0f;  ///< 动物生成概率，默认 ~7.8%
+    f32 m_creatureSpawnProbability = 10.0f / 128.0f; ///< 动物生成概率，默认 ~7.8%
 
     // 视觉效果
-    world::biome::BiomeEffects m_effects;  ///< 生物群系视觉效果（水体颜色、雾颜色等）
+    world::biome::BiomeEffects m_effects; ///< 生物群系视觉效果（水体颜色、雾颜色等）
 
     // 环境音效
-    world::biome::BiomeAmbientSounds m_ambientSounds;  ///< 生物群系环境音效配置
+    world::biome::BiomeAmbientSounds m_ambientSounds; ///< 生物群系环境音效配置
 };
 
 // ============================================================================
@@ -313,7 +305,7 @@ namespace Biomes {
 constexpr BiomeId Ocean = 0;
 constexpr BiomeId Plains = 1;
 constexpr BiomeId Desert = 2;
-constexpr BiomeId Mountains = 3;           // extreme_hills
+constexpr BiomeId Mountains = 3; // extreme_hills
 constexpr BiomeId Forest = 4;
 constexpr BiomeId Taiga = 5;
 constexpr BiomeId Swamp = 6;
@@ -322,7 +314,7 @@ constexpr BiomeId NetherWastes = 8;
 constexpr BiomeId TheEnd = 9;
 constexpr BiomeId FrozenOcean = 10;
 constexpr BiomeId FrozenRiver = 11;
-constexpr BiomeId SnowyPlains = 12;        // snowy_tundra
+constexpr BiomeId SnowyPlains = 12; // snowy_tundra
 constexpr BiomeId SnowyMountains = 13;
 
 // 蘑菇岛 (14-15)
@@ -334,9 +326,9 @@ constexpr BiomeId Beach = 16;
 
 // 山地变体和丘陵 (17-20)
 constexpr BiomeId DesertHills = 17;
-constexpr BiomeId WoodedHills = 18;        // 也称作 wooded_hills
+constexpr BiomeId WoodedHills = 18; // 也称作 wooded_hills
 constexpr BiomeId TaigaHills = 19;
-constexpr BiomeId MountainEdge = 20;       // MC 中已弃用，但 ID 保留
+constexpr BiomeId MountainEdge = 20; // MC 中已弃用，但 ID 保留
 
 // 丛林 (21-23)
 constexpr BiomeId Jungle = 21;
@@ -366,7 +358,7 @@ constexpr BiomeId GiantTreeTaiga = 32;
 constexpr BiomeId GiantTreeTaigaHills = 33;
 
 // 热带草原 (34-36)
-constexpr BiomeId WoodedMountains = 34;    // extreme_hills_with_trees
+constexpr BiomeId WoodedMountains = 34; // extreme_hills_with_trees
 constexpr BiomeId Savanna = 35;
 constexpr BiomeId SavannaPlateau = 36;
 

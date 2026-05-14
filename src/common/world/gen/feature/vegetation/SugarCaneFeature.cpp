@@ -1,8 +1,8 @@
 #include "SugarCaneFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -11,10 +11,7 @@ namespace mc {
 // ============================================================================
 
 bool SugarCaneFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const SugarCaneFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SugarCaneFeatureConfig& config)
 {
     if (!config.state) {
         return false;
@@ -120,12 +117,10 @@ bool SugarCaneFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos)
     u32 blockId = state->blockId();
 
     // 甘蔗可以生长在草地、泥土、沙子、红沙、甘蔗上
-    return blockId == VanillaBlocks::GRASS_BLOCK->blockId() ||
-           blockId == VanillaBlocks::DIRT->blockId() ||
-           blockId == VanillaBlocks::SAND->blockId() ||
-           blockId == VanillaBlocks::PODZOL->blockId() ||
-           blockId == VanillaBlocks::MYCELIUM->blockId() ||
-           (VanillaBlocks::SUGAR_CANE && blockId == VanillaBlocks::SUGAR_CANE->blockId());
+    return blockId == VanillaBlocks::GRASS_BLOCK->blockId() || blockId == VanillaBlocks::DIRT->blockId() ||
+        blockId == VanillaBlocks::SAND->blockId() || blockId == VanillaBlocks::PODZOL->blockId() ||
+        blockId == VanillaBlocks::MYCELIUM->blockId() ||
+        (VanillaBlocks::SUGAR_CANE && blockId == VanillaBlocks::SUGAR_CANE->blockId());
 }
 
 // ============================================================================
@@ -133,19 +128,13 @@ bool SugarCaneFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos)
 // ============================================================================
 
 ConfiguredSugarCaneFeature::ConfiguredSugarCaneFeature(
-    std::unique_ptr<SugarCaneFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<SugarCaneFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredSugarCaneFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;

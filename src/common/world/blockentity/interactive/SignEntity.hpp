@@ -1,7 +1,7 @@
 #pragma once
 
-#include "world/blockentity/BlockEntity.hpp"
 #include "util/text/ITextComponent.hpp"
+#include "world/blockentity/BlockEntity.hpp"
 #include <array>
 #include <memory>
 #include <string>
@@ -198,14 +198,13 @@ private:
      * @param text 文本组件
      * @return 截断后的文本组件
      */
-    [[nodiscard]] static std::unique_ptr<text::ITextComponent> truncateText(
-        std::unique_ptr<text::ITextComponent> text);
+    [[nodiscard]] static std::unique_ptr<text::ITextComponent> truncateText(std::unique_ptr<text::ITextComponent> text);
 
-    std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> m_lines;  ///< 4行富文本
-    bool m_editable = true;                   ///< 是否可编辑
-    Player* m_editor = nullptr;               ///< 当前编辑者
-    i32 m_textColor = 0;                      ///< 文本颜色（DyeColor 值）
-    bool m_glowing = false;                   ///< 是否发光
+    std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> m_lines; ///< 4行富文本
+    bool m_editable = true;                                                ///< 是否可编辑
+    Player* m_editor = nullptr;                                            ///< 当前编辑者
+    i32 m_textColor = 0;                                                   ///< 文本颜色（DyeColor 值）
+    bool m_glowing = false;                                                ///< 是否发光
 };
 
 } // namespace blockentity

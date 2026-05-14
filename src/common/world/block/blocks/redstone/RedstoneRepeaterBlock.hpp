@@ -1,9 +1,9 @@
 #pragma once
 
-#include "RedstoneDiodeBlock.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/core/ActionResult.hpp"
+#include "RedstoneDiodeBlock.hpp"
 
 namespace mc {
 namespace blocks {
@@ -42,20 +42,20 @@ public:
      *
      * 重写以更新 LOCKED 状态。
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
     // ========== 红石二极管接口实现 ==========
 
     [[nodiscard]] i32 getDelay(const BlockState& state) const override;
 
-    [[nodiscard]] bool shouldBePowered(IWorld& world, const BlockPos& pos,
-                                       const BlockState& state) const override;
+    [[nodiscard]] bool shouldBePowered(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 
-    [[nodiscard]] bool isLocked(IWorld& world, const BlockPos& pos,
-                                const BlockState& state) const override;
+    [[nodiscard]] bool isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 
     // ========== 中继器特有方法 ==========
 
@@ -98,8 +98,7 @@ public:
      *
      * MC Java: 右键点击中继器可以在 1-4 档延迟之间循环切换。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

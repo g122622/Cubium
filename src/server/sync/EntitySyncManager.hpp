@@ -3,8 +3,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/entity/EntityManager.hpp"
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
 
 namespace mc::server {
 namespace sync {

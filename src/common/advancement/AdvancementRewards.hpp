@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <nlohmann/json.hpp>
-#include <vector>
 #include <optional>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::advancement {
 
@@ -37,13 +37,14 @@ public:
      * @param function 函数ID
      */
     AdvancementRewards(u32 experience,
-                       std::vector<ResourceLocation> loot,
-                       std::vector<ResourceLocation> recipes,
-                       std::optional<ResourceLocation> function)
+        std::vector<ResourceLocation> loot,
+        std::vector<ResourceLocation> recipes,
+        std::optional<ResourceLocation> function)
         : m_experience(experience)
         , m_loot(std::move(loot))
         , m_recipes(std::move(recipes))
-        , m_function(std::move(function)) {}
+        , m_function(std::move(function))
+    {}
 
     /**
      * @brief 获取经验值奖励
@@ -68,7 +69,8 @@ public:
     /**
      * @brief 是否为空奖励
      */
-    [[nodiscard]] bool isEmpty() const noexcept {
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
         return m_experience == 0 && m_loot.empty() && m_recipes.empty() && !m_function.has_value();
     }
 

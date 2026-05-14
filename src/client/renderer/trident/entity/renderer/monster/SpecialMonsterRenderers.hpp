@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../core/LivingRenderer.hpp"
-#include "../../model/monster/SpecialMonsterModels.hpp"
 #include "../../model/monster/MoreMonsterModels.hpp"
+#include "../../model/monster/SpecialMonsterModels.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity {
@@ -19,11 +19,13 @@ public:
     WitherRenderer() { m_shadowSize = 0.5f; }
     ~WitherRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither.png");
     }
@@ -37,11 +39,13 @@ public:
     WitherArmorRenderer() { m_shadowSize = 0.5f; }
     ~WitherArmorRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither_armor.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither_armor.png");
     }
@@ -55,11 +59,13 @@ public:
     SlimeRenderer() { m_shadowSize = 0.25f; }
     ~SlimeRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/slime/slime.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/slime/slime.png");
     }
@@ -73,11 +79,13 @@ public:
     GuardianRenderer() { m_shadowSize = 0.5f; }
     ~GuardianRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/guardian.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/guardian.png");
     }
@@ -91,11 +99,13 @@ public:
     ElderGuardianRenderer() { m_shadowSize = 0.75f; }
     ~ElderGuardianRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/guardian_elder.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/guardian_elder.png");
     }
@@ -109,11 +119,13 @@ public:
     ShulkerRenderer() { m_shadowSize = 0.0f; }
     ~ShulkerRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/shulker/shulker.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/shulker/shulker.png");
     }
@@ -127,11 +139,13 @@ public:
     SilverfishRenderer() { m_shadowSize = 0.0f; }
     ~SilverfishRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/silverfish.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/silverfish.png");
     }
@@ -145,11 +159,13 @@ public:
     EndermiteRenderer() { m_shadowSize = 0.0f; }
     ~EndermiteRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/endermite.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/endermite.png");
     }
@@ -163,11 +179,13 @@ public:
     IllagerRenderer() { m_shadowSize = 0.5f; }
     ~IllagerRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/illager.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/illager.png");
     }
@@ -181,11 +199,13 @@ public:
     VexRenderer() { m_shadowSize = 0.0f; }
     ~VexRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vex.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vex.png");
     }
@@ -199,11 +219,13 @@ public:
     VindicatorRenderer() { m_shadowSize = 0.5f; }
     ~VindicatorRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vindicator.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vindicator.png");
     }
@@ -217,11 +239,13 @@ public:
     EvokerRenderer() { m_shadowSize = 0.5f; }
     ~EvokerRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/evoker.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/evoker.png");
     }
@@ -235,11 +259,13 @@ public:
     PillagerRenderer() { m_shadowSize = 0.5f; }
     ~PillagerRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/pillager.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/pillager.png");
     }
@@ -253,11 +279,13 @@ public:
     RavagerRenderer() { m_shadowSize = 0.8f; }
     ~RavagerRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/ravager.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/ravager.png");
     }
@@ -271,11 +299,13 @@ public:
     WitchRenderer() { m_shadowSize = 0.5f; }
     ~WitchRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/witch.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/witch.png");
     }
@@ -289,11 +319,13 @@ public:
     IronGolemRenderer() { m_shadowSize = 0.7f; }
     ~IronGolemRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/iron_golem.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/iron_golem.png");
     }
@@ -307,11 +339,13 @@ public:
     SnowGolemRenderer() { m_shadowSize = 0.0f; }
     ~SnowGolemRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/snow_golem.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/snow_golem.png");
     }
@@ -325,11 +359,13 @@ public:
     BeeRenderer() { m_shadowSize = 0.0f; }
     ~BeeRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bee/bee.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bee/bee.png");
     }
@@ -343,11 +379,13 @@ public:
     BeeAngryRenderer() { m_shadowSize = 0.0f; }
     ~BeeAngryRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bee/bee_angry.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bee/bee_angry.png");
     }
@@ -361,11 +399,13 @@ public:
     FoxRenderer() { m_shadowSize = 0.4f; }
     ~FoxRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fox/fox.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fox/fox.png");
     }
@@ -379,11 +419,13 @@ public:
     FoxSnowRenderer() { m_shadowSize = 0.4f; }
     ~FoxSnowRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fox/snow_fox.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fox/snow_fox.png");
     }
@@ -397,11 +439,13 @@ public:
     PandaRenderer() { m_shadowSize = 0.5f; }
     ~PandaRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/panda/panda.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/panda/panda.png");
     }
@@ -415,11 +459,13 @@ public:
     ParrotRenderer() { m_shadowSize = 0.0f; }
     ~ParrotRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/parrot/parrot_red_blue.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/parrot/parrot_red_blue.png");
     }
@@ -433,11 +479,13 @@ public:
     PhantomRenderer() { m_shadowSize = 0.0f; }
     ~PhantomRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/phantom.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/phantom.png");
     }
@@ -454,11 +502,13 @@ public:
     PolarBearRenderer() { m_shadowSize = 0.7f; }
     ~PolarBearRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/polar_bear.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/polar_bear.png");
     }

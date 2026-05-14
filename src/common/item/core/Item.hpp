@@ -2,11 +2,11 @@
 
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
-#include "UseAction.hpp"
 #include "ActionResult.hpp"
+#include "UseAction.hpp"
+#include <functional>
 #include <memory>
 #include <string>
-#include <functional>
 #include <vector>
 
 namespace mc {
@@ -32,13 +32,13 @@ class BlockPos;
 
 // Forward declaration for attribute system
 namespace entity::attribute {
-    class Attribute;
-    class AttributeModifier;
-}
+class Attribute;
+class AttributeModifier;
+} // namespace entity::attribute
 
 // Forward declaration for food system
 namespace item::food {
-    class Food;
+class Food;
 }
 
 // Forward declaration for item group
@@ -46,12 +46,12 @@ class ItemGroup;
 
 // Forward declaration for item tag
 namespace item::tag {
-    class ItemTag;
+class ItemTag;
 }
 
 // Forward declaration for item attribute modifiers
 namespace item {
-    class ItemAttributeModifiers;
+class ItemAttributeModifiers;
 }
 
 // ============================================================================
@@ -64,10 +64,10 @@ namespace item {
  * 参考: net.minecraft.item.Rarity
  */
 enum class ItemRarity : u8 {
-    Common = 0,     // 普通 - 白色
-    Uncommon = 1,   // 少见 - 黄色
-    Rare = 2,       // 稀有 - 青色
-    Epic = 3        // 史诗 - 紫色
+    Common = 0,   // 普通 - 白色
+    Uncommon = 1, // 少见 - 黄色
+    Rare = 2,     // 稀有 - 青色
+    Epic = 3      // 史诗 - 紫色
 };
 
 // ============================================================================
@@ -121,8 +121,8 @@ public:
      */
     ItemProperties& burnable(bool value = true);
 
-/**
- * * @brief 设置是否可修复
+    /**
+     * * @brief 设置是否可修复
      */
     ItemProperties& repairable(bool value = true);
 
@@ -311,8 +311,7 @@ public:
      * @param repair 修复材料物品堆
      * @return 是否可以修复
      */
-    [[nodiscard]] virtual bool getIsRepairable(const ItemStack& toRepair,
-                                                const ItemStack& repair) const;
+    [[nodiscard]] virtual bool getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const;
 
     // ========================================================================
     // 物品堆相关
@@ -333,8 +332,7 @@ public:
      * @param state 目标方块状态
      * @return 挖掘速度倍率（默认1.0）
      */
-    [[nodiscard]] virtual f32 getDestroySpeed(const ItemStack& stack,
-                                               const BlockState& state) const;
+    [[nodiscard]] virtual f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const;
 
     /**
      * @brief 是否可以采集方块
@@ -426,8 +424,7 @@ public:
      * @param hand 使用的手
      * @return 是否成功交互
      */
-    virtual bool itemInteractionForEntity(ItemStack& stack, Player& player,
-                                          LivingEntity& target, Hand hand);
+    virtual bool itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand);
 
     /**
      * @brief 物品使用完成
@@ -453,8 +450,7 @@ public:
      * @param entity 使用的实体
      * @param timeLeft 剩余使用时间（ticks）
      */
-    virtual void onPlayerStoppedUsing(ItemStack& stack, IWorld& world,
-                                      LivingEntity& entity, i32 timeLeft);
+    virtual void onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft);
 
     /**
      * @brief 获取使用动作类型
@@ -465,9 +461,7 @@ public:
      * @param stack 物品堆
      * @return 使用动作类型
      */
-    [[nodiscard]] virtual UseAction getUseAction(const ItemStack& /*stack*/) const {
-        return UseAction::None;
-    }
+    [[nodiscard]] virtual UseAction getUseAction(const ItemStack& /*stack*/) const { return UseAction::None; }
 
     // ========================================================================
     // 物品Tick与提示
@@ -485,8 +479,7 @@ public:
      * @param itemSlot 物品栏槽位
      * @param isSelected 是否被选中
      */
-    virtual void inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
-                               i32 itemSlot, bool isSelected) const;
+    virtual void inventoryTick(ItemStack& stack, IWorld& world, Entity& entity, i32 itemSlot, bool isSelected) const;
 
     /**
      * @brief 护甲物品每tick调用
@@ -511,8 +504,8 @@ public:
      * @param tooltip 提示文本列表
      * @param advanced 是否显示高级提示
      */
-    virtual void addInformation(const ItemStack& stack, IWorld& world,
-                                std::vector<std::string>& tooltip, bool advanced) const;
+    virtual void addInformation(
+        const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const;
 
     /**
      * @brief 是否有附魔光效
@@ -620,8 +613,8 @@ public:
      * @param breaker 破坏者（玩家）
      * @return 是否成功破坏
      */
-    virtual bool onBlockDestroyed(ItemStack& stack, IWorld& world, const BlockState& state,
-                                  const BlockPos& pos, LivingEntity& breaker);
+    virtual bool onBlockDestroyed(
+        ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& breaker);
 
     /**
      * @brief 物品是否适合作为方块工具
@@ -644,8 +637,7 @@ public:
      * @param slot 装备槽位
      * @return 属性修饰符
      */
-    [[nodiscard]] virtual item::ItemAttributeModifiers getAttributeModifiers(
-        i32 equipmentSlot) const;
+    [[nodiscard]] virtual item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const;
 
     /**
      * @brief 填充物品到创造模式物品组
@@ -672,9 +664,7 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual std::string toString() const {
-        return m_itemLocation.toString();
-    }
+    [[nodiscard]] virtual std::string toString() const { return m_itemLocation.toString(); }
 
 protected:
     friend class ItemRegistry;
@@ -699,8 +689,8 @@ protected:
     bool m_repairable = true;
 
     // 新增成员变量
-    const item::food::Food* m_food = nullptr;       ///< 食物属性（非食物为nullptr）
-    const ItemGroup* m_creativeTab = nullptr;       ///< 创造模式物品组
+    const item::food::Food* m_food = nullptr; ///< 食物属性（非食物为nullptr）
+    const ItemGroup* m_creativeTab = nullptr; ///< 创造模式物品组
 };
 
 } // namespace mc

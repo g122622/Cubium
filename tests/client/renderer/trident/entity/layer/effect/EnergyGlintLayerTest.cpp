@@ -5,17 +5,17 @@
  * 测试附魔光效层渲染器的 shouldRender 方法，验证对附魔物品的检测逻辑。
  */
 
-#include <gtest/gtest.h>
-#include <type_traits>
 #include "client/renderer/trident/entity/layer/effect/EnergyGlintLayer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include <type_traits>
+#include <gtest/gtest.h>
 
 namespace mc::client::renderer::entity::layer::effect::test {
 
@@ -31,8 +31,8 @@ namespace mc::client::renderer::entity::layer::effect::test {
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, EntityId(1)) {
-    }
+        : LivingEntity(LegacyEntityType::Player, EntityId(1))
+    {}
 
     void tick() override {}
 };
@@ -48,7 +48,8 @@ public:
  */
 class EnergyGlintLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化附魔注册表
         mc::item::enchant::EnchantmentRegistry::initialize();
         // 初始化物品注册表
@@ -61,7 +62,8 @@ protected:
         layer_ = std::make_unique<TestEnergyGlintLayer>();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         layer_.reset();
         entity_.reset();
         mc::item::enchant::EnchantmentRegistry::clear();
@@ -75,15 +77,14 @@ protected:
 // 类型检查测试
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, InheritsFromLayerRenderer) {
+TEST_F(EnergyGlintLayerTest, InheritsFromLayerRenderer)
+{
     // 验证 EnergyGlintLayer 继承自 LayerRenderer
-    EXPECT_TRUE((std::is_base_of_v<
-        core::LayerRenderer<LivingEntity>,
-        EnergyGlintLayer<LivingEntity>
-    >));
+    EXPECT_TRUE((std::is_base_of_v<core::LayerRenderer<LivingEntity>, EnergyGlintLayer<LivingEntity>>));
 }
 
-TEST_F(EnergyGlintLayerTest, TemplateWorksForLivingEntity) {
+TEST_F(EnergyGlintLayerTest, TemplateWorksForLivingEntity)
+{
     // 验证模板实例化正确
     EXPECT_NO_THROW(EnergyGlintLayer<LivingEntity> layer);
 }
@@ -92,7 +93,8 @@ TEST_F(EnergyGlintLayerTest, TemplateWorksForLivingEntity) {
 // shouldRender 测试 - 无装备情况
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_NoEquipment_ReturnsFalse) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_NoEquipment_ReturnsFalse)
+{
     // 无任何装备时，shouldRender 应返回 false
     EXPECT_FALSE(layer_->shouldRender(*entity_));
 }
@@ -101,7 +103,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_NoEquipment_ReturnsFalse) {
 // shouldRender 测试 - 非附魔物品
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedMainHand_ReturnsFalse) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedMainHand_ReturnsFalse)
+{
     // 主手持有非附魔物品
     ItemStack stoneSword(mc::Items::STONE_SWORD, 1);
     entity_->setEquipment(EquipmentSlot::MainHand, stoneSword);
@@ -109,7 +112,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedMainHand_ReturnsFalse) {
     EXPECT_FALSE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedOffHand_ReturnsFalse) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedOffHand_ReturnsFalse)
+{
     // 副手持有非附魔物品
     ItemStack shield(mc::Items::SHIELD, 1);
     entity_->setEquipment(EquipmentSlot::OffHand, shield);
@@ -117,7 +121,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedOffHand_ReturnsFalse) {
     EXPECT_FALSE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedArmor_ReturnsFalse) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedArmor_ReturnsFalse)
+{
     // 穿戴非附魔盔甲
     ItemStack ironHelmet(mc::Items::IRON_HELMET, 1);
     ItemStack ironChestplate(mc::Items::IRON_CHESTPLATE, 1);
@@ -136,7 +141,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_NonEnchantedArmor_ReturnsFalse) {
 // shouldRender 测试 - 附魔主手物品
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedMainHand_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedMainHand_ReturnsTrue)
+{
     // 主手持有附魔物品
     ItemStack diamondSword(mc::Items::DIAMOND_SWORD, 1);
     diamondSword.addEnchantment("minecraft:sharpness", 3);
@@ -146,7 +152,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedMainHand_ReturnsTrue) {
     EXPECT_TRUE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedMainHandMultipleEnchants_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedMainHandMultipleEnchants_ReturnsTrue)
+{
     // 主手持有多重附魔物品
     ItemStack diamondSword(mc::Items::DIAMOND_SWORD, 1);
     diamondSword.addEnchantment("minecraft:sharpness", 5);
@@ -162,7 +169,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedMainHandMultipleEnchants_Retu
 // shouldRender 测试 - 附魔副手物品
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedOffHand_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedOffHand_ReturnsTrue)
+{
     // 副手持有附魔物品
     ItemStack enchantedBook(mc::Items::ENCHANTED_BOOK, 1);
     enchantedBook.addEnchantment("minecraft:mending", 1);
@@ -176,7 +184,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedOffHand_ReturnsTrue) {
 // shouldRender 测试 - 附魔盔甲
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedHelmet_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedHelmet_ReturnsTrue)
+{
     // 头盔附魔
     ItemStack diamondHelmet(mc::Items::DIAMOND_HELMET, 1);
     diamondHelmet.addEnchantment("minecraft:protection", 4);
@@ -186,7 +195,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedHelmet_ReturnsTrue) {
     EXPECT_TRUE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedChestplate_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedChestplate_ReturnsTrue)
+{
     // 胸甲附魔
     ItemStack diamondChestplate(mc::Items::DIAMOND_CHESTPLATE, 1);
     diamondChestplate.addEnchantment("minecraft:protection", 4);
@@ -196,7 +206,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedChestplate_ReturnsTrue) {
     EXPECT_TRUE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedLeggings_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedLeggings_ReturnsTrue)
+{
     // 护腿附魔
     ItemStack diamondLeggings(mc::Items::DIAMOND_LEGGINGS, 1);
     diamondLeggings.addEnchantment("minecraft:protection", 4);
@@ -206,7 +217,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedLeggings_ReturnsTrue) {
     EXPECT_TRUE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedBoots_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedBoots_ReturnsTrue)
+{
     // 靴子附魔
     ItemStack diamondBoots(mc::Items::DIAMOND_BOOTS, 1);
     diamondBoots.addEnchantment("minecraft:protection", 4);
@@ -220,13 +232,14 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedBoots_ReturnsTrue) {
 // shouldRender 测试 - 混合情况
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_MixedEnchantedAndNonEnchanted_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_MixedEnchantedAndNonEnchanted_ReturnsTrue)
+{
     // 混合穿戴附魔和非附魔装备
-    ItemStack ironHelmet(mc::Items::IRON_HELMET, 1);  // 非附魔
+    ItemStack ironHelmet(mc::Items::IRON_HELMET, 1); // 非附魔
     ItemStack diamondChestplate(mc::Items::DIAMOND_CHESTPLATE, 1);
-    diamondChestplate.addEnchantment("minecraft:protection", 4);  // 附魔
-    ItemStack ironLeggings(mc::Items::IRON_LEGGINGS, 1);  // 非附魔
-    ItemStack diamondBoots(mc::Items::DIAMOND_BOOTS, 1);  // 非附魔
+    diamondChestplate.addEnchantment("minecraft:protection", 4); // 附魔
+    ItemStack ironLeggings(mc::Items::IRON_LEGGINGS, 1);         // 非附魔
+    ItemStack diamondBoots(mc::Items::DIAMOND_BOOTS, 1);         // 非附魔
 
     entity_->setEquipment(EquipmentSlot::Head, ironHelmet);
     entity_->setEquipment(EquipmentSlot::Chest, diamondChestplate);
@@ -237,7 +250,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_MixedEnchantedAndNonEnchanted_ReturnsT
     EXPECT_TRUE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_AllEnchanted_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_AllEnchanted_ReturnsTrue)
+{
     // 所有装备都附魔
     ItemStack diamondSword(mc::Items::DIAMOND_SWORD, 1);
     diamondSword.addEnchantment("minecraft:sharpness", 5);
@@ -271,7 +285,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_AllEnchanted_ReturnsTrue) {
 // shouldRender 测试 - 空物品堆
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EmptyItemStack_ReturnsFalse) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EmptyItemStack_ReturnsFalse)
+{
     // 设置空物品堆
     ItemStack emptyStack;
     entity_->setEquipment(EquipmentSlot::MainHand, emptyStack);
@@ -283,7 +298,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EmptyItemStack_ReturnsFalse) {
 // shouldRender 测试 - 工具附魔
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedTool_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedTool_ReturnsTrue)
+{
     // 工具附魔
     ItemStack diamondPickaxe(mc::Items::DIAMOND_PICKAXE, 1);
     diamondPickaxe.addEnchantment("minecraft:fortune", 3);
@@ -293,7 +309,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedTool_ReturnsTrue) {
     EXPECT_TRUE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedToolWithSilkTouch_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedToolWithSilkTouch_ReturnsTrue)
+{
     // 工具附魔（精准采集）
     ItemStack diamondPickaxe(mc::Items::DIAMOND_PICKAXE, 1);
     diamondPickaxe.addEnchantment("minecraft:silk_touch", 1);
@@ -307,7 +324,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedToolWithSilkTouch_ReturnsTrue
 // shouldRender 测试 - 特殊附魔
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedWithMending_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedWithMending_ReturnsTrue)
+{
     // 经验修补附魔
     ItemStack diamondSword(mc::Items::DIAMOND_SWORD, 1);
     diamondSword.addEnchantment("minecraft:mending", 1);
@@ -317,7 +335,8 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedWithMending_ReturnsTrue) {
     EXPECT_TRUE(layer_->shouldRender(*entity_));
 }
 
-TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedWithCurse_ReturnsTrue) {
+TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedWithCurse_ReturnsTrue)
+{
     // 诅咒附魔也应该显示光效
     ItemStack diamondSword(mc::Items::DIAMOND_SWORD, 1);
     diamondSword.addEnchantment("minecraft:vanishing_curse", 1);
@@ -331,25 +350,29 @@ TEST_F(EnergyGlintLayerTest, ShouldRender_EnchantedWithCurse_ReturnsTrue) {
 // calculateGlintOffset 测试
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_ZeroTicks_ReturnsZero) {
+TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_ZeroTicks_ReturnsZero)
+{
     f32 offset = layer_->calculateGlintOffset(0.0f);
     EXPECT_FLOAT_EQ(offset, 0.0f);
 }
 
-TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_PositiveTicks_ReturnsValueBetweenZeroAndOne) {
+TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_PositiveTicks_ReturnsValueBetweenZeroAndOne)
+{
     f32 offset = layer_->calculateGlintOffset(100.0f);
     EXPECT_GE(offset, 0.0f);
     EXPECT_LT(offset, 1.0f);
 }
 
-TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_WrapsAroundAtModulo) {
+TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_WrapsAroundAtModulo)
+{
     // 100 ticks: offset = 100 * 0.01 = 1.0, mod 1.0 = 0.0
     f32 offset1 = layer_->calculateGlintOffset(100.0f);
     f32 offset2 = layer_->calculateGlintOffset(0.0f);
     EXPECT_FLOAT_EQ(offset1, offset2);
 }
 
-TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_IncreasesWithTime) {
+TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_IncreasesWithTime)
+{
     f32 offset1 = layer_->calculateGlintOffset(0.0f);
     f32 offset2 = layer_->calculateGlintOffset(50.0f);
     f32 offset3 = layer_->calculateGlintOffset(99.0f);
@@ -357,7 +380,8 @@ TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_IncreasesWithTime) {
     EXPECT_GT(offset3, offset2);
 }
 
-TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_NegativeTicks_StillValid) {
+TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_NegativeTicks_StillValid)
+{
     f32 offset = layer_->calculateGlintOffset(-10.0f);
     EXPECT_GE(offset, 0.0f);
     EXPECT_LT(offset, 1.0f);
@@ -367,7 +391,8 @@ TEST_F(EnergyGlintLayerTest, CalculateGlintOffset_NegativeTicks_StillValid) {
 // buildGlintMesh 测试
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesNonEmptyMesh) {
+TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesNonEmptyMesh)
+{
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
 
@@ -377,7 +402,8 @@ TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesNonEmptyMesh) {
     EXPECT_GT(indices.size(), 0u);
 }
 
-TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesValidTriangleIndices) {
+TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesValidTriangleIndices)
+{
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
 
@@ -392,7 +418,8 @@ TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesValidTriangleIndices) {
     }
 }
 
-TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesCubeMesh) {
+TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesCubeMesh)
+{
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
 
@@ -405,7 +432,8 @@ TEST_F(EnergyGlintLayerTest, BuildGlintMesh_ProducesCubeMesh) {
     EXPECT_EQ(indices.size(), 36u);
 }
 
-TEST_F(EnergyGlintLayerTest, BuildGlintMesh_UVScrollsWithOffset) {
+TEST_F(EnergyGlintLayerTest, BuildGlintMesh_UVScrollsWithOffset)
+{
     std::vector<model::ModelVertex> vertices1, vertices2;
     std::vector<u32> indices1, indices2;
 
@@ -422,7 +450,8 @@ TEST_F(EnergyGlintLayerTest, BuildGlintMesh_UVScrollsWithOffset) {
 // EnchantmentHelper 集成测试
 // ============================================================================
 
-TEST_F(EnergyGlintLayerTest, EnchantmentHelper_HasEnchantments_ReturnsCorrectValue) {
+TEST_F(EnergyGlintLayerTest, EnchantmentHelper_HasEnchantments_ReturnsCorrectValue)
+{
     // 验证 EnchantmentHelper 与 ItemStack 的集成
     ItemStack diamondSword(mc::Items::DIAMOND_SWORD, 1);
 
@@ -434,7 +463,8 @@ TEST_F(EnergyGlintLayerTest, EnchantmentHelper_HasEnchantments_ReturnsCorrectVal
     EXPECT_TRUE(mc::item::enchant::EnchantmentHelper::hasEnchantments(diamondSword));
 }
 
-TEST_F(EnergyGlintLayerTest, ItemStack_HasEnchantments_ReturnsCorrectValue) {
+TEST_F(EnergyGlintLayerTest, ItemStack_HasEnchantments_ReturnsCorrectValue)
+{
     // 验证 ItemStack::hasEnchantments() 方法
     ItemStack diamondSword(mc::Items::DIAMOND_SWORD, 1);
 

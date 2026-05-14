@@ -1,21 +1,22 @@
 #include "entity/inventory/container/HopperContainer.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
-#include "world/blockentity/transport/HopperEntity.hpp"
-#include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/blockentity/transport/HopperEntity.hpp"
 
 namespace mc {
 
 // ========== 构造函数 ==========
 
 HopperContainer::HopperContainer(ContainerId id,
-                                 PlayerInventory* playerInventory,
-                                 IInventory* hopperInventory,
-                                 blockentity::HopperEntity* hopperEntity)
+    PlayerInventory* playerInventory,
+    IInventory* hopperInventory,
+    blockentity::HopperEntity* hopperEntity)
     : AbstractContainerMenu(id, playerInventory)
     , m_hopperInventory(hopperInventory)
-    , m_hopperEntity(hopperEntity) {
+    , m_hopperEntity(hopperEntity)
+{
 
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(hopperInventory != nullptr);
@@ -30,7 +31,8 @@ HopperContainer::HopperContainer(ContainerId id,
 
 // ========== 容器接口 ==========
 
-bool HopperContainer::stillValid(const Player& player) const {
+bool HopperContainer::stillValid(const Player& player) const
+{
     // MC 1.16.5: 如果没有关联的方块实体，背包可访问
     if (m_hopperEntity == nullptr) {
         return m_hopperInventory->isUsableByPlayer(player);
@@ -40,17 +42,18 @@ bool HopperContainer::stillValid(const Player& player) const {
     // 参考 net.minecraft.inventory.container.HopperContainer.canInteractWith
     // -> lowerChestInventory.isUsableByPlayer(playerIn)
     const BlockPos pos = m_hopperEntity->getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f,
+    return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
-               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f; // 8^2 = 64
 }
 
-void HopperContainer::slotsChanged(IInventory* inventory) {
+void HopperContainer::slotsChanged(IInventory* inventory)
+{
     AbstractContainerMenu::slotsChanged(inventory);
 }
 
-ItemStack HopperContainer::quickMoveStack(i32 slotIndex, Player& player) {
+ItemStack HopperContainer::quickMoveStack(i32 slotIndex, Player& player)
+{
     (void)player;
 
     Slot* slot = getSlot(slotIndex);
@@ -85,7 +88,8 @@ ItemStack HopperContainer::quickMoveStack(i32 slotIndex, Player& player) {
 
 // ========== 私有方法 ==========
 
-void HopperContainer::initSlots(PlayerInventory* playerInventory) {
+void HopperContainer::initSlots(PlayerInventory* playerInventory)
+{
     // ========== 漏斗槽位（1行5列）==========
     // MC 1.16.5: x从44开始，y=20
 
@@ -101,7 +105,7 @@ void HopperContainer::initSlots(PlayerInventory* playerInventory) {
 
     for (i32 row = 0; row < 3; ++row) {
         for (i32 col = 0; col < 9; ++col) {
-            i32 slotIndex = 9 + row * 9 + col;  // 玩家背包从索引9开始
+            i32 slotIndex = 9 + row * 9 + col; // 玩家背包从索引9开始
             i32 x = 8 + col * SLOT_SIZE;
             i32 y = PLAYER_INV_Y + row * SLOT_SIZE;
 
@@ -113,7 +117,7 @@ void HopperContainer::initSlots(PlayerInventory* playerInventory) {
     // MC 1.16.5: y=109
 
     for (i32 col = 0; col < 9; ++col) {
-        i32 slotIndex = col;  // 快捷栏从索引0开始
+        i32 slotIndex = col; // 快捷栏从索引0开始
         i32 x = 8 + col * SLOT_SIZE;
         i32 y = HOTBAR_Y;
 

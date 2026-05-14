@@ -5,12 +5,12 @@
  * 测试植被特征的注册、配置和生物群系集成。
  */
 
-#include <gtest/gtest.h>
-#include "../src/common/world/gen/feature/FeatureIds.hpp"
-#include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
-#include "../src/common/world/gen/feature/vegetation/VegetationFeatures.hpp"
 #include "../src/common/world/biome/BiomeGenerationSettings.hpp"
 #include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
+#include "../src/common/world/gen/feature/FeatureIds.hpp"
+#include "../src/common/world/gen/feature/vegetation/VegetationFeatures.hpp"
+#include <gtest/gtest.h>
 
 #include <algorithm>
 
@@ -27,23 +27,23 @@ namespace {
 
 class VegetationFeatureTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 初始化方块系统
         VanillaBlocks::initialize();
         // 初始化特征注册表
         FeatureRegistry::instance().initialize();
     }
 
-    static void TearDownTestSuite() {
-        FeatureRegistry::instance().clear();
-    }
+    static void TearDownTestSuite() { FeatureRegistry::instance().clear(); }
 };
 
 // ============================================================================
 // FeatureIds 测试
 // ============================================================================
 
-TEST_F(VegetationFeatureTest, OreFeatureIdsAreConsecutive) {
+TEST_F(VegetationFeatureTest, OreFeatureIdsAreConsecutive)
+{
     // 验证矿石特征ID是连续的
     EXPECT_EQ(OreFeatureIds::CoalOre, 0u);
     EXPECT_EQ(OreFeatureIds::IronOre, 1u);
@@ -59,14 +59,16 @@ TEST_F(VegetationFeatureTest, OreFeatureIdsAreConsecutive) {
     EXPECT_EQ(OreFeatureIds::Count, 11u);
 }
 
-TEST_F(VegetationFeatureTest, LakeFeatureIdsAreConsecutive) {
+TEST_F(VegetationFeatureTest, LakeFeatureIdsAreConsecutive)
+{
     // 验证湖泊特征ID是连续的（Lakes阶段）
     EXPECT_EQ(LakeFeatureIds::WaterLake, 0u);
     EXPECT_EQ(LakeFeatureIds::LavaLake, 1u);
     EXPECT_EQ(LakeFeatureIds::Count, 2u);
 }
 
-TEST_F(VegetationFeatureTest, TreeFeatureIdsAreConsecutive) {
+TEST_F(VegetationFeatureTest, TreeFeatureIdsAreConsecutive)
+{
     // 验证树木特征ID是连续的
     // 注意：ID顺序必须与 TreeFeatures::initialize() 中注册顺序一致
     EXPECT_EQ(TreeFeatureIds::OakTree, 0u);
@@ -87,7 +89,8 @@ TEST_F(VegetationFeatureTest, TreeFeatureIdsAreConsecutive) {
     EXPECT_EQ(TreeFeatureIds::Count, 15u);
 }
 
-TEST_F(VegetationFeatureTest, FlowerFeatureIdsHaveCorrectOffset) {
+TEST_F(VegetationFeatureTest, FlowerFeatureIdsHaveCorrectOffset)
+{
     // 验证花卉特征ID偏移量正确
     EXPECT_EQ(FlowerFeatureIds::Offset, TreeFeatureIds::Count);
     EXPECT_EQ(FlowerFeatureIds::PlainsFlowers, TreeFeatureIds::Count);
@@ -98,7 +101,8 @@ TEST_F(VegetationFeatureTest, FlowerFeatureIdsHaveCorrectOffset) {
     EXPECT_EQ(FlowerFeatureIds::Count, 5u);
 }
 
-TEST_F(VegetationFeatureTest, GrassFeatureIdsHaveCorrectOffset) {
+TEST_F(VegetationFeatureTest, GrassFeatureIdsHaveCorrectOffset)
+{
     // 验证草丛特征ID偏移量正确
     const u32 expectedOffset = TreeFeatureIds::Count + FlowerFeatureIds::Count;
     EXPECT_EQ(GrassFeatureIds::Offset, expectedOffset);
@@ -112,7 +116,8 @@ TEST_F(VegetationFeatureTest, GrassFeatureIdsHaveCorrectOffset) {
     EXPECT_EQ(GrassFeatureIds::Count, 7u);
 }
 
-TEST_F(VegetationFeatureTest, MushroomFeatureIdsHaveCorrectOffset) {
+TEST_F(VegetationFeatureTest, MushroomFeatureIdsHaveCorrectOffset)
+{
     // 验证蘑菇特征ID偏移量正确
     const u32 expectedOffset = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count;
     EXPECT_EQ(MushroomFeatureIds::Offset, expectedOffset);
@@ -121,32 +126,38 @@ TEST_F(VegetationFeatureTest, MushroomFeatureIdsHaveCorrectOffset) {
     EXPECT_EQ(MushroomFeatureIds::Count, 2u);
 }
 
-TEST_F(VegetationFeatureTest, CactusFeatureIdsHaveCorrectOffset) {
+TEST_F(VegetationFeatureTest, CactusFeatureIdsHaveCorrectOffset)
+{
     // 验证仙人掌特征ID偏移量正确
-    const u32 expectedOffset = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count + MushroomFeatureIds::Count;
+    const u32 expectedOffset =
+        TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count + MushroomFeatureIds::Count;
     EXPECT_EQ(CactusFeatureIds::Offset, expectedOffset);
     EXPECT_EQ(CactusFeatureIds::DesertCactus, expectedOffset);
     EXPECT_EQ(CactusFeatureIds::BadlandsCactus, expectedOffset + 1);
     EXPECT_EQ(CactusFeatureIds::Count, 2u);
 }
 
-TEST_F(VegetationFeatureTest, SugarCaneFeatureIdsHaveCorrectOffset) {
+TEST_F(VegetationFeatureTest, SugarCaneFeatureIdsHaveCorrectOffset)
+{
     // 验证甘蔗特征ID偏移量正确
-    const u32 expectedOffset = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count + MushroomFeatureIds::Count + CactusFeatureIds::Count;
+    const u32 expectedOffset = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count +
+        MushroomFeatureIds::Count + CactusFeatureIds::Count;
     EXPECT_EQ(SugarCaneFeatureIds::Offset, expectedOffset);
     EXPECT_EQ(SugarCaneFeatureIds::Normal, expectedOffset);
     EXPECT_EQ(SugarCaneFeatureIds::Dense, expectedOffset + 1);
     EXPECT_EQ(SugarCaneFeatureIds::Count, 2u);
 }
 
-TEST_F(VegetationFeatureTest, IceSpikeFeatureIdsAreConsecutive) {
+TEST_F(VegetationFeatureTest, IceSpikeFeatureIdsAreConsecutive)
+{
     // 验证冰刺特征ID是连续的
     EXPECT_EQ(IceSpikeFeatureIds::Spike, 0u);
     EXPECT_EQ(IceSpikeFeatureIds::Iceberg, 1u);
     EXPECT_EQ(IceSpikeFeatureIds::Count, 2u);
 }
 
-TEST_F(VegetationFeatureTest, EndSurfaceFeatureIdsAreOffsetAfterIceSpikes) {
+TEST_F(VegetationFeatureTest, EndSurfaceFeatureIdsAreOffsetAfterIceSpikes)
+{
     EXPECT_EQ(EndSurfaceFeatureIds::Offset, IceSpikeFeatureIds::Count);
     EXPECT_EQ(EndSurfaceFeatureIds::ObsidianSpike, IceSpikeFeatureIds::Count);
     EXPECT_EQ(EndSurfaceFeatureIds::EndGateway, IceSpikeFeatureIds::Count + 1);
@@ -154,21 +165,18 @@ TEST_F(VegetationFeatureTest, EndSurfaceFeatureIdsAreOffsetAfterIceSpikes) {
     EXPECT_EQ(EndSurfaceFeatureIds::Count, 3u);
 }
 
-TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount) {
+TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount)
+{
     // 验证VegetalDecoration阶段特征总数正确
-    const u32 expectedTotal =
-        TreeFeatureIds::Count +
-        FlowerFeatureIds::Count +
-        GrassFeatureIds::Count +
-        MushroomFeatureIds::Count +
-        CactusFeatureIds::Count +
-        SugarCaneFeatureIds::Count;
+    const u32 expectedTotal = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count +
+        MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count;
 
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, expectedTotal);
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 33u); // 15+5+7+2+2+2
 }
 
-TEST_F(VegetationFeatureTest, OceanFeatureIdsAreOffsetAfterLandVegetation) {
+TEST_F(VegetationFeatureTest, OceanFeatureIdsAreOffsetAfterLandVegetation)
+{
     const u32 oceanBase = VegetationIds::TotalVegetalFeatures;
 
     EXPECT_EQ(KelpFeatureIds::Offset, oceanBase);
@@ -189,7 +197,8 @@ TEST_F(VegetationFeatureTest, OceanFeatureIdsAreOffsetAfterLandVegetation) {
     EXPECT_EQ(BlueIceFeatureIds::Normal, BlueIceFeatureIds::Offset);
 }
 
-TEST_F(VegetationFeatureTest, NetherFungusIdsAreOffsetAfterOceanFeatures) {
+TEST_F(VegetationFeatureTest, NetherFungusIdsAreOffsetAfterOceanFeatures)
+{
     const u32 expectedOffset = VegetationIds::TotalVegetalFeatures + OceanFeatureIds::TotalOceanFeatures;
 
     EXPECT_EQ(NetherFungusIds::Offset, expectedOffset);
@@ -202,7 +211,8 @@ TEST_F(VegetationFeatureTest, NetherFungusIdsAreOffsetAfterOceanFeatures) {
 // FeatureRegistry 集成测试
 // ============================================================================
 
-TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
+TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures)
+{
     // 验证FeatureRegistry中注册了所有特征
     const auto& lakeFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::Lakes);
     EXPECT_EQ(lakeFeatures.size(), LakeFeatureIds::Count);
@@ -214,9 +224,7 @@ TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
     // 现在包含海洋特征和下界植被特征:
     // 33(陆地植被) + 25(海洋特征) + 3(下界植被) = 61
     const u32 expectedVegetalCount =
-        VegetationIds::TotalVegetalFeatures +
-        OceanFeatureIds::TotalOceanFeatures +
-        NetherFungusIds::Count;
+        VegetationIds::TotalVegetalFeatures + OceanFeatureIds::TotalOceanFeatures + NetherFungusIds::Count;
     EXPECT_EQ(vegetalFeatures.size(), expectedVegetalCount);
 
     const auto& surfaceFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::SurfaceStructures);
@@ -224,7 +232,8 @@ TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
     EXPECT_EQ(surfaceFeatures.size(), expectedSurfaceCount);
 }
 
-TEST_F(VegetationFeatureTest, FeatureRegistryFeatureNames) {
+TEST_F(VegetationFeatureTest, FeatureRegistryFeatureNames)
+{
     // 验证特征名称正确设置
     const auto& lakeFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::Lakes);
     ASSERT_LT(LakeFeatureIds::WaterLake, lakeFeatures.size());
@@ -245,7 +254,8 @@ TEST_F(VegetationFeatureTest, FeatureRegistryFeatureNames) {
     EXPECT_STREQ(oreFeatures[OreFeatureIds::DiamondOre]->name(), "diamond_ore");
 }
 
-TEST_F(VegetationFeatureTest, FeatureRegistryOceanAndNetherFeatureNames) {
+TEST_F(VegetationFeatureTest, FeatureRegistryOceanAndNetherFeatureNames)
+{
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
     ASSERT_LT(KelpFeatureIds::Cold, vegetalFeatures.size());
@@ -282,7 +292,8 @@ TEST_F(VegetationFeatureTest, FeatureRegistryOceanAndNetherFeatureNames) {
     EXPECT_STREQ(vegetalFeatures[NetherFungusIds::NetherFire]->name(), "nether_fire");
 }
 
-TEST_F(VegetationFeatureTest, TreeFeatureNames) {
+TEST_F(VegetationFeatureTest, TreeFeatureNames)
+{
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
     // 基础树木
@@ -315,7 +326,8 @@ TEST_F(VegetationFeatureTest, TreeFeatureNames) {
     EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::GiantJungleTree]->name(), "giant_jungle_tree");
 }
 
-TEST_F(VegetationFeatureTest, FlowerFeatureNames) {
+TEST_F(VegetationFeatureTest, FlowerFeatureNames)
+{
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
     EXPECT_NE(vegetalFeatures[FlowerFeatureIds::PlainsFlowers], nullptr);
@@ -328,7 +340,8 @@ TEST_F(VegetationFeatureTest, FlowerFeatureNames) {
     EXPECT_STREQ(vegetalFeatures[FlowerFeatureIds::FlowerForestFlowers]->name(), "flower_forest_flowers");
 }
 
-TEST_F(VegetationFeatureTest, GrassFeatureNames) {
+TEST_F(VegetationFeatureTest, GrassFeatureNames)
+{
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
     EXPECT_NE(vegetalFeatures[GrassFeatureIds::PlainsGrass], nullptr);
@@ -341,7 +354,8 @@ TEST_F(VegetationFeatureTest, GrassFeatureNames) {
     EXPECT_STREQ(vegetalFeatures[GrassFeatureIds::BadlandsDeadBush]->name(), "badlands_dead_bush");
 }
 
-TEST_F(VegetationFeatureTest, MushroomFeatureNames) {
+TEST_F(VegetationFeatureTest, MushroomFeatureNames)
+{
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
     EXPECT_NE(vegetalFeatures[MushroomFeatureIds::BrownMushroom], nullptr);
@@ -351,7 +365,8 @@ TEST_F(VegetationFeatureTest, MushroomFeatureNames) {
     EXPECT_STREQ(vegetalFeatures[MushroomFeatureIds::RedMushroom]->name(), "red_mushroom");
 }
 
-TEST_F(VegetationFeatureTest, CactusFeatureNames) {
+TEST_F(VegetationFeatureTest, CactusFeatureNames)
+{
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
     EXPECT_NE(vegetalFeatures[CactusFeatureIds::DesertCactus], nullptr);
@@ -361,7 +376,8 @@ TEST_F(VegetationFeatureTest, CactusFeatureNames) {
     EXPECT_STREQ(vegetalFeatures[CactusFeatureIds::BadlandsCactus]->name(), "badlands_cactus");
 }
 
-TEST_F(VegetationFeatureTest, SugarCaneFeatureNames) {
+TEST_F(VegetationFeatureTest, SugarCaneFeatureNames)
+{
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
     EXPECT_NE(vegetalFeatures[SugarCaneFeatureIds::Normal], nullptr);
@@ -371,7 +387,8 @@ TEST_F(VegetationFeatureTest, SugarCaneFeatureNames) {
     EXPECT_STREQ(vegetalFeatures[SugarCaneFeatureIds::Dense]->name(), "sugar_cane_dense");
 }
 
-TEST_F(VegetationFeatureTest, IceSpikeFeatureNames) {
+TEST_F(VegetationFeatureTest, IceSpikeFeatureNames)
+{
     const auto& surfaceFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::SurfaceStructures);
 
     EXPECT_NE(surfaceFeatures[IceSpikeFeatureIds::Spike], nullptr);
@@ -393,7 +410,8 @@ TEST_F(VegetationFeatureTest, IceSpikeFeatureNames) {
 // BiomeGenerationSettings 集成测试
 // ============================================================================
 
-TEST_F(VegetationFeatureTest, PlainsBiomeSettings) {
+TEST_F(VegetationFeatureTest, PlainsBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createPlains();
 
     // 平原应该有矿石特征
@@ -422,7 +440,8 @@ TEST_F(VegetationFeatureTest, PlainsBiomeSettings) {
     EXPECT_TRUE(hasPlainsGrass);
 }
 
-TEST_F(VegetationFeatureTest, ForestBiomeSettings) {
+TEST_F(VegetationFeatureTest, ForestBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createForest();
 
     // 森林应该有树木
@@ -448,7 +467,8 @@ TEST_F(VegetationFeatureTest, ForestBiomeSettings) {
     EXPECT_TRUE(hasForestGrass);
 }
 
-TEST_F(VegetationFeatureTest, DesertBiomeSettings) {
+TEST_F(VegetationFeatureTest, DesertBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createDesert();
 
     // 沙漠应该有仙人掌
@@ -465,7 +485,8 @@ TEST_F(VegetationFeatureTest, DesertBiomeSettings) {
     EXPECT_TRUE(hasDeadBush);
 }
 
-TEST_F(VegetationFeatureTest, SwampBiomeSettings) {
+TEST_F(VegetationFeatureTest, SwampBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createSwamp();
 
     // 沼泽应该有甘蔗和蘑菇
@@ -488,7 +509,8 @@ TEST_F(VegetationFeatureTest, SwampBiomeSettings) {
     EXPECT_TRUE(hasSwampFlowers);
 }
 
-TEST_F(VegetationFeatureTest, RiverBiomeSettings) {
+TEST_F(VegetationFeatureTest, RiverBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createRiver();
 
     // 河流配置不应额外生成湖泊
@@ -513,7 +535,8 @@ TEST_F(VegetationFeatureTest, RiverBiomeSettings) {
     EXPECT_TRUE(hasSeagrass);
 }
 
-TEST_F(VegetationFeatureTest, FrozenRiverBiomeSettings) {
+TEST_F(VegetationFeatureTest, FrozenRiverBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createFrozenRiver();
 
     // 冻河配置不应额外生成湖泊
@@ -525,12 +548,8 @@ TEST_F(VegetationFeatureTest, FrozenRiverBiomeSettings) {
     bool hasWarmWaterVegetation = false;
 
     for (u32 id : vegetal) {
-        if (id == SugarCaneFeatureIds::Normal ||
-            id == SugarCaneFeatureIds::Dense ||
-            id == SeagrassFeatureIds::Simple ||
-            id == SeagrassFeatureIds::Mixed ||
-            id == SeagrassFeatureIds::Warm ||
-            id == SeagrassFeatureIds::DeepWarm) {
+        if (id == SugarCaneFeatureIds::Normal || id == SugarCaneFeatureIds::Dense || id == SeagrassFeatureIds::Simple ||
+            id == SeagrassFeatureIds::Mixed || id == SeagrassFeatureIds::Warm || id == SeagrassFeatureIds::DeepWarm) {
             hasWarmWaterVegetation = true;
             break;
         }
@@ -539,7 +558,8 @@ TEST_F(VegetationFeatureTest, FrozenRiverBiomeSettings) {
     EXPECT_FALSE(hasWarmWaterVegetation);
 }
 
-TEST_F(VegetationFeatureTest, SwampHillsBiomeSettings) {
+TEST_F(VegetationFeatureTest, SwampHillsBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createSwampHills();
 
     // 沼泽山丘应保留湿地装饰
@@ -562,7 +582,8 @@ TEST_F(VegetationFeatureTest, SwampHillsBiomeSettings) {
     EXPECT_FALSE(hasDenseSugarCane);
 }
 
-TEST_F(VegetationFeatureTest, IceSpikesBiomeSettings) {
+TEST_F(VegetationFeatureTest, IceSpikesBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createIceSpikes();
 
     // 冰刺平原应该有冰刺结构
@@ -579,7 +600,8 @@ TEST_F(VegetationFeatureTest, IceSpikesBiomeSettings) {
     EXPECT_TRUE(hasIceberg);
 }
 
-TEST_F(VegetationFeatureTest, TheEndBiomeSettings) {
+TEST_F(VegetationFeatureTest, TheEndBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createTheEnd();
 
     const auto& surface = settings.getFeatures(DecorationStage::SurfaceStructures);
@@ -594,7 +616,8 @@ TEST_F(VegetationFeatureTest, TheEndBiomeSettings) {
     EXPECT_TRUE(hasEndSpike);
 }
 
-TEST_F(VegetationFeatureTest, EndHighlandsBiomeSettings) {
+TEST_F(VegetationFeatureTest, EndHighlandsBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createEndHighlands();
 
     const auto& surface = settings.getFeatures(DecorationStage::SurfaceStructures);
@@ -609,7 +632,8 @@ TEST_F(VegetationFeatureTest, EndHighlandsBiomeSettings) {
     EXPECT_TRUE(hasEndGateway);
 }
 
-TEST_F(VegetationFeatureTest, BadlandsBiomeSettings) {
+TEST_F(VegetationFeatureTest, BadlandsBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createBadlands();
 
     // 恶地应该有恶地仙人掌
@@ -630,7 +654,8 @@ TEST_F(VegetationFeatureTest, BadlandsBiomeSettings) {
     EXPECT_TRUE(hasDeadBush);
 }
 
-TEST_F(VegetationFeatureTest, FlowerForestBiomeSettings) {
+TEST_F(VegetationFeatureTest, FlowerForestBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createFlowerForest();
 
     // 繁花森林应该有繁花森林花卉
@@ -650,7 +675,8 @@ TEST_F(VegetationFeatureTest, FlowerForestBiomeSettings) {
     EXPECT_GE(flowerForestFlowersCount, 1);
 }
 
-TEST_F(VegetationFeatureTest, MountainsBiomeSettings) {
+TEST_F(VegetationFeatureTest, MountainsBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createMountains();
 
     // 山地应该有绿宝石矿石
@@ -680,7 +706,8 @@ TEST_F(VegetationFeatureTest, MountainsBiomeSettings) {
     EXPECT_TRUE(hasTaigaGrass);
 }
 
-TEST_F(VegetationFeatureTest, OceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, OceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createOcean();
 
     // 海洋不应该有绿宝石
@@ -711,11 +738,8 @@ TEST_F(VegetationFeatureTest, OceanBiomeSettings) {
         if (id == SeagrassFeatureIds::Simple) {
             hasSeagrass = true;
         }
-        if (id == CoralFeatureIds::DeadTube ||
-            id == CoralFeatureIds::DeadBrain ||
-            id == CoralFeatureIds::DeadBubble ||
-            id == CoralFeatureIds::DeadFire ||
-            id == CoralFeatureIds::DeadHorn) {
+        if (id == CoralFeatureIds::DeadTube || id == CoralFeatureIds::DeadBrain || id == CoralFeatureIds::DeadBubble ||
+            id == CoralFeatureIds::DeadFire || id == CoralFeatureIds::DeadHorn) {
             hasDeadCoral = true;
         }
         if (id == OceanDecorationFeatureIds::OceanProps) {
@@ -729,7 +753,8 @@ TEST_F(VegetationFeatureTest, OceanBiomeSettings) {
     EXPECT_TRUE(hasOceanProps);
 }
 
-TEST_F(VegetationFeatureTest, LukewarmOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, LukewarmOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createLukewarmOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -739,7 +764,8 @@ TEST_F(VegetationFeatureTest, LukewarmOceanBiomeSettings) {
     EXPECT_TRUE(hasFeatureId(vegetal, OceanDecorationFeatureIds::OceanProps));
 }
 
-TEST_F(VegetationFeatureTest, DeepOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, DeepOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createDeepOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -748,7 +774,8 @@ TEST_F(VegetationFeatureTest, DeepOceanBiomeSettings) {
     EXPECT_TRUE(hasFeatureId(vegetal, OceanDecorationFeatureIds::OceanProps));
 }
 
-TEST_F(VegetationFeatureTest, WarmOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, WarmOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createWarmOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -758,18 +785,12 @@ TEST_F(VegetationFeatureTest, WarmOceanBiomeSettings) {
     bool hasOceanProps = false;
 
     for (u32 id : vegetal) {
-        if (id == CoralFeatureIds::Tube ||
-            id == CoralFeatureIds::Brain ||
-            id == CoralFeatureIds::Bubble ||
-            id == CoralFeatureIds::Fire ||
-            id == CoralFeatureIds::Horn) {
+        if (id == CoralFeatureIds::Tube || id == CoralFeatureIds::Brain || id == CoralFeatureIds::Bubble ||
+            id == CoralFeatureIds::Fire || id == CoralFeatureIds::Horn) {
             hasLiveCoral = true;
         }
-        if (id == CoralFeatureIds::DeadTube ||
-            id == CoralFeatureIds::DeadBrain ||
-            id == CoralFeatureIds::DeadBubble ||
-            id == CoralFeatureIds::DeadFire ||
-            id == CoralFeatureIds::DeadHorn) {
+        if (id == CoralFeatureIds::DeadTube || id == CoralFeatureIds::DeadBrain || id == CoralFeatureIds::DeadBubble ||
+            id == CoralFeatureIds::DeadFire || id == CoralFeatureIds::DeadHorn) {
             hasDeadCoral = true;
         }
         if (id == SeaPickleFeatureIds::Normal) {
@@ -786,7 +807,8 @@ TEST_F(VegetationFeatureTest, WarmOceanBiomeSettings) {
     EXPECT_TRUE(hasOceanProps);
 }
 
-TEST_F(VegetationFeatureTest, DeepLukewarmOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, DeepLukewarmOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createDeepLukewarmOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -795,7 +817,8 @@ TEST_F(VegetationFeatureTest, DeepLukewarmOceanBiomeSettings) {
     EXPECT_TRUE(hasFeatureId(vegetal, OceanDecorationFeatureIds::OceanProps));
 }
 
-TEST_F(VegetationFeatureTest, ColdOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, ColdOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createColdOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -825,7 +848,8 @@ TEST_F(VegetationFeatureTest, ColdOceanBiomeSettings) {
     EXPECT_TRUE(hasOceanProps);
 }
 
-TEST_F(VegetationFeatureTest, DeepColdOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, DeepColdOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createDeepColdOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -834,7 +858,8 @@ TEST_F(VegetationFeatureTest, DeepColdOceanBiomeSettings) {
     EXPECT_TRUE(hasFeatureId(vegetal, OceanDecorationFeatureIds::OceanProps));
 }
 
-TEST_F(VegetationFeatureTest, FrozenOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, FrozenOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createFrozenOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -854,7 +879,8 @@ TEST_F(VegetationFeatureTest, FrozenOceanBiomeSettings) {
     EXPECT_TRUE(hasOceanProps);
 }
 
-TEST_F(VegetationFeatureTest, DeepFrozenOceanBiomeSettings) {
+TEST_F(VegetationFeatureTest, DeepFrozenOceanBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createDeepFrozenOcean();
 
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
@@ -864,7 +890,8 @@ TEST_F(VegetationFeatureTest, DeepFrozenOceanBiomeSettings) {
     EXPECT_TRUE(hasFeatureId(vegetal, OceanDecorationFeatureIds::OceanProps));
 }
 
-TEST_F(VegetationFeatureTest, TaigaBiomeSettings) {
+TEST_F(VegetationFeatureTest, TaigaBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createTaiga();
 
     // 针叶林应该有云杉树和针叶林草丛
@@ -881,7 +908,8 @@ TEST_F(VegetationFeatureTest, TaigaBiomeSettings) {
     EXPECT_TRUE(hasTaigaGrass);
 }
 
-TEST_F(VegetationFeatureTest, JungleBiomeSettings) {
+TEST_F(VegetationFeatureTest, JungleBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createJungle();
 
     // 丛林应该有丛林树和丛林草丛
@@ -898,7 +926,8 @@ TEST_F(VegetationFeatureTest, JungleBiomeSettings) {
     EXPECT_TRUE(hasJungleGrass);
 }
 
-TEST_F(VegetationFeatureTest, SavannaBiomeSettings) {
+TEST_F(VegetationFeatureTest, SavannaBiomeSettings)
+{
     auto settings = BiomeGenerationSettings::createSavanna();
 
     // 稀树草原应该有稀疏橡树和稀树草原草丛

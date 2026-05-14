@@ -1,18 +1,18 @@
 #pragma once
 
-#include "../../kagero/widget/Widget.hpp"
 #include "../../kagero/paint/PaintContext.hpp"
+#include "../../kagero/widget/Widget.hpp"
 #include "common/core/Types.hpp"
 
 namespace mc {
 class Player;
 class ItemStack;
-}
+} // namespace mc
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
 class GuiSpriteAtlas;
-}
+} // namespace mc::client::renderer::trident::gui
 
 namespace mc::client::renderer::trident::item {
 class ItemRenderer;
@@ -24,30 +24,30 @@ namespace mc::client::ui::minecraft::widgets {
  * @brief HUD元素颜色常量
  */
 namespace HudColors {
-    // 快捷栏
-    constexpr u32 HOTBAR_SLOT = 0xFF8B8B8B;           // 槽位背景
-    constexpr u32 HOTBAR_SLOT_HIGHLIGHT = 0xFFFFFFFF; // 选中槽位高亮
-    constexpr u32 HOTBAR_BACKGROUND = 0xFF000000;     // 背景
-    constexpr u32 HOTBAR_BORDER = 0xFF373737;         // 边框
+// 快捷栏
+constexpr u32 HOTBAR_SLOT = 0xFF8B8B8B;           // 槽位背景
+constexpr u32 HOTBAR_SLOT_HIGHLIGHT = 0xFFFFFFFF; // 选中槽位高亮
+constexpr u32 HOTBAR_BACKGROUND = 0xFF000000;     // 背景
+constexpr u32 HOTBAR_BORDER = 0xFF373737;         // 边框
 
-    // 生命值
-    constexpr u32 HEALTH_RED = 0xFFFF0000;            // 红心
-    constexpr u32 HEALTH_YELLOW = 0xFFFFF600;         // 黄心（吸收）
-    constexpr u32 HEALTH_EMPTY = 0xFF2A0A0A;          // 空心
+// 生命值
+constexpr u32 HEALTH_RED = 0xFFFF0000;    // 红心
+constexpr u32 HEALTH_YELLOW = 0xFFFFF600; // 黄心（吸收）
+constexpr u32 HEALTH_EMPTY = 0xFF2A0A0A;  // 空心
 
-    // 饥饿值
-    constexpr u32 HUNGER_FULL = 0xFFE0A010;           // 满饥饿
-    constexpr u32 HUNGER_EMPTY = 0xFF1A0A00;          // 空饥饿
+// 饥饿值
+constexpr u32 HUNGER_FULL = 0xFFE0A010;  // 满饥饿
+constexpr u32 HUNGER_EMPTY = 0xFF1A0A00; // 空饥饿
 
-    // 经验条
-    constexpr u32 XP_BACKGROUND = 0xFF202020;         // 背景
-    constexpr u32 XP_FOREGROUND = 0xFF7FFF00;         // 前景
-    constexpr u32 XP_TEXT = 0xFF7FFF00;               // 文字
+// 经验条
+constexpr u32 XP_BACKGROUND = 0xFF202020; // 背景
+constexpr u32 XP_FOREGROUND = 0xFF7FFF00; // 前景
+constexpr u32 XP_TEXT = 0xFF7FFF00;       // 文字
 
-    // 物品提示
-    constexpr u32 TOOLTIP_BACKGROUND = 0xF0100010;    // 背景带透明
-    constexpr u32 TOOLTIP_BORDER = 0xFF5000FF;        // 边框
-    constexpr u32 TOOLTIP_TEXT = 0xFFFFFFFF;          // 文字
+// 物品提示
+constexpr u32 TOOLTIP_BACKGROUND = 0xF0100010; // 背景带透明
+constexpr u32 TOOLTIP_BORDER = 0xFF5000FF;     // 边框
+constexpr u32 TOOLTIP_TEXT = 0xFFFFFFFF;       // 文字
 } // namespace HudColors
 
 /**
@@ -120,8 +120,7 @@ private:
     /**
      * @brief 渲染快捷栏
      */
-    void renderHotbar(kagero::widget::PaintContext& ctx,
-                      renderer::trident::gui::GuiRenderer& gui);
+    void renderHotbar(kagero::widget::PaintContext& ctx, renderer::trident::gui::GuiRenderer& gui);
 
     /**
      * @brief 渲染生命值和盔甲

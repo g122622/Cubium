@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
 #include "entity/inventory/container/EnchantmentContainer.hpp"
-#include "entity/inventory/PlayerInventory.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "world/block/BlockPos.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
 #include "item/Items.hpp"
+#include "world/block/BlockPos.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -12,7 +12,8 @@ using namespace mc;
 
 class EnchantmentTableContainerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         playerInventory_ = std::make_unique<PlayerInventory>();
     }
@@ -20,26 +21,30 @@ protected:
     std::unique_ptr<PlayerInventory> playerInventory_;
 };
 
-TEST_F(EnchantmentTableContainerTest, Create_HasCorrectSlotCount) {
+TEST_F(EnchantmentTableContainerTest, Create_HasCorrectSlotCount)
+{
     // 容器实际槽位数量 = 附魔台槽位 + 玩家背包槽位 = 2 + 36 = 38
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
     EXPECT_EQ(container.getSlotCount(), 38);
 }
 
-TEST_F(EnchantmentTableContainerTest, ContainerType_IsCorrect) {
+TEST_F(EnchantmentTableContainerTest, ContainerType_IsCorrect)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
     EXPECT_EQ(container.getId(), ContainerId(1));
 }
 
-TEST_F(EnchantmentTableContainerTest, SlotIndices_AreCorrect) {
+TEST_F(EnchantmentTableContainerTest, SlotIndices_AreCorrect)
+{
     EXPECT_EQ(EnchantmentContainer::SLOT_ITEM, 0);
     EXPECT_EQ(EnchantmentContainer::SLOT_LAPIS, 1);
     EXPECT_EQ(EnchantmentContainer::ENCHANTMENT_SLOTS, 2);
 }
 
-TEST_F(EnchantmentTableContainerTest, Constants_AreCorrect) {
+TEST_F(EnchantmentTableContainerTest, Constants_AreCorrect)
+{
     // 验证GUI布局常量存在
     EXPECT_GT(EnchantmentContainer::ITEM_SLOT_X, 0);
     EXPECT_GT(EnchantmentContainer::ITEM_SLOT_Y, 0);
@@ -50,7 +55,8 @@ TEST_F(EnchantmentTableContainerTest, Constants_AreCorrect) {
     EXPECT_EQ(EnchantmentContainer::ENCHANTMENT_OPTIONS, 3);
 }
 
-TEST_F(EnchantmentTableContainerTest, GetItemSlot_ReturnsEmptyWhenEmpty) {
+TEST_F(EnchantmentTableContainerTest, GetItemSlot_ReturnsEmptyWhenEmpty)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -58,7 +64,8 @@ TEST_F(EnchantmentTableContainerTest, GetItemSlot_ReturnsEmptyWhenEmpty) {
     EXPECT_TRUE(item.isEmpty());
 }
 
-TEST_F(EnchantmentTableContainerTest, GetLapisSlot_ReturnsEmptyWhenEmpty) {
+TEST_F(EnchantmentTableContainerTest, GetLapisSlot_ReturnsEmptyWhenEmpty)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -66,7 +73,8 @@ TEST_F(EnchantmentTableContainerTest, GetLapisSlot_ReturnsEmptyWhenEmpty) {
     EXPECT_TRUE(lapis.isEmpty());
 }
 
-TEST_F(EnchantmentTableContainerTest, GetEnchantPower_ReturnsZeroWithoutWorld) {
+TEST_F(EnchantmentTableContainerTest, GetEnchantPower_ReturnsZeroWithoutWorld)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -74,7 +82,8 @@ TEST_F(EnchantmentTableContainerTest, GetEnchantPower_ReturnsZeroWithoutWorld) {
     EXPECT_EQ(container.getEnchantPower(), 0);
 }
 
-TEST_F(EnchantmentTableContainerTest, GetEnchantmentLevel_ReturnsZeroForInvalidIndex) {
+TEST_F(EnchantmentTableContainerTest, GetEnchantmentLevel_ReturnsZeroForInvalidIndex)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -83,7 +92,8 @@ TEST_F(EnchantmentTableContainerTest, GetEnchantmentLevel_ReturnsZeroForInvalidI
     EXPECT_EQ(container.getEnchantmentLevel(100), 0);
 }
 
-TEST_F(EnchantmentTableContainerTest, GetEnchantmentClue_ReturnsEmptyForInvalidIndex) {
+TEST_F(EnchantmentTableContainerTest, GetEnchantmentClue_ReturnsEmptyForInvalidIndex)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -92,7 +102,8 @@ TEST_F(EnchantmentTableContainerTest, GetEnchantmentClue_ReturnsEmptyForInvalidI
     EXPECT_EQ(container.getEnchantmentClue(100), "");
 }
 
-TEST_F(EnchantmentTableContainerTest, GetEnchantmentWorldClue_ReturnsZeroForInvalidIndex) {
+TEST_F(EnchantmentTableContainerTest, GetEnchantmentWorldClue_ReturnsZeroForInvalidIndex)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -101,7 +112,8 @@ TEST_F(EnchantmentTableContainerTest, GetEnchantmentWorldClue_ReturnsZeroForInva
     EXPECT_EQ(container.getEnchantmentWorldClue(100), 0);
 }
 
-TEST_F(EnchantmentTableContainerTest, IsEnchantmentOptionAvailable_ReturnsFalseForInvalidIndex) {
+TEST_F(EnchantmentTableContainerTest, IsEnchantmentOptionAvailable_ReturnsFalseForInvalidIndex)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -110,7 +122,8 @@ TEST_F(EnchantmentTableContainerTest, IsEnchantmentOptionAvailable_ReturnsFalseF
     EXPECT_FALSE(container.isEnchantmentOptionAvailable(100));
 }
 
-TEST_F(EnchantmentTableContainerTest, IsEnchantmentOptionAvailable_ReturnsFalseWhenEmpty) {
+TEST_F(EnchantmentTableContainerTest, IsEnchantmentOptionAvailable_ReturnsFalseWhenEmpty)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 
@@ -122,24 +135,27 @@ TEST_F(EnchantmentTableContainerTest, IsEnchantmentOptionAvailable_ReturnsFalseW
 
 // ========== 创造模式经验消耗豁免测试 ==========
 
-TEST_F(EnchantmentTableContainerTest, EnchantmentOptions_ConstantsAreCorrect) {
+TEST_F(EnchantmentTableContainerTest, EnchantmentOptions_ConstantsAreCorrect)
+{
     // 验证附魔选项常量
     EXPECT_EQ(EnchantmentContainer::ENCHANTMENT_OPTIONS, 3);
 }
 
-TEST_F(EnchantmentTableContainerTest, EnchantmentCost_MatchesMC1165) {
+TEST_F(EnchantmentTableContainerTest, EnchantmentCost_MatchesMC1165)
+{
     // MC 1.16.5: 附魔选项索引 + 1 = 消耗的经验等级和青金石数量
     // 选项 0 = 1 级, 1 个青金石
     // 选项 1 = 2 级, 2 个青金石
     // 选项 2 = 3 级, 3 个青金石
     // 这些值在 enchantItem() 方法中计算: cost = optionIndex + 1
     // 创造模式玩家不消耗经验（在 enchantItem 中检查 player.isCreative()）
-    EXPECT_EQ(0 + 1, 1);  // 选项 0
-    EXPECT_EQ(1 + 1, 2);  // 选项 1
-    EXPECT_EQ(2 + 1, 3);  // 选项 2
+    EXPECT_EQ(0 + 1, 1); // 选项 0
+    EXPECT_EQ(1 + 1, 2); // 选项 1
+    EXPECT_EQ(2 + 1, 3); // 选项 2
 }
 
-TEST_F(EnchantmentTableContainerTest, SlotConstants_AreCorrect) {
+TEST_F(EnchantmentTableContainerTest, SlotConstants_AreCorrect)
+{
     // 验证槽位索引
     EXPECT_EQ(EnchantmentContainer::SLOT_ITEM, 0);
     EXPECT_EQ(EnchantmentContainer::SLOT_LAPIS, 1);
@@ -150,7 +166,8 @@ TEST_F(EnchantmentTableContainerTest, SlotConstants_AreCorrect) {
 
 class EnchantmentContainerWithPlayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
@@ -160,41 +177,47 @@ protected:
     std::unique_ptr<PlayerInventory> playerInventory_;
 };
 
-TEST_F(EnchantmentContainerWithPlayerTest, CreateWithPlayer_HasCorrectSlotCount) {
+TEST_F(EnchantmentContainerWithPlayerTest, CreateWithPlayer_HasCorrectSlotCount)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
     EXPECT_EQ(container.getSlotCount(), 38);
 }
 
-TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSurvivalMode) {
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSurvivalMode)
+{
     // 默认生存模式
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
     EXPECT_FALSE(container.isPlayerCreative());
 }
 
-TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsTrueInCreativeMode) {
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsTrueInCreativeMode)
+{
     player_->setGameMode(GameMode::Creative);
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
     EXPECT_TRUE(container.isPlayerCreative());
 }
 
-TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSpectatorMode) {
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSpectatorMode)
+{
     player_->setGameMode(GameMode::Spectator);
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
     EXPECT_FALSE(container.isPlayerCreative());
 }
 
-TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInAdventureMode) {
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInAdventureMode)
+{
     player_->setGameMode(GameMode::Adventure);
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
     EXPECT_FALSE(container.isPlayerCreative());
 }
 
-TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ChangesWithGameMode) {
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ChangesWithGameMode)
+{
     BlockPos pos(0, 0, 0);
     EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
 

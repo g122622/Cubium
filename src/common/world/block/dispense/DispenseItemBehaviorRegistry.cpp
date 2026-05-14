@@ -1,29 +1,33 @@
 #include "DispenseItemBehaviorRegistry.hpp"
-#include "IDispenseItemBehavior.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/potion/PotionUtils.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "../../../entity/core/Entity.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entity/entities/projectile/OtherProjectiles.hpp"
-#include "../../../entity/core/Entity.hpp"
+#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "../../../item/Items.hpp"
+#include "../../../item/potion/PotionUtils.hpp"
+#include "IDispenseItemBehavior.hpp"
 
 namespace mc {
 namespace blocks {
 
 DispenseItemBehaviorRegistry::DispenseItemBehaviorRegistry()
-    : m_defaultBehavior(std::make_unique<DefaultDispenseItemBehavior>()) {
-}
+    : m_defaultBehavior(std::make_unique<DefaultDispenseItemBehavior>())
+{}
 
-DispenseItemBehaviorRegistry& DispenseItemBehaviorRegistry::instance() {
+DispenseItemBehaviorRegistry& DispenseItemBehaviorRegistry::instance()
+{
     static DispenseItemBehaviorRegistry instance;
     return instance;
 }
 
-void DispenseItemBehaviorRegistry::registerBehavior(const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior) {
+void DispenseItemBehaviorRegistry::registerBehavior(
+    const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior)
+{
     m_behaviors[itemId] = std::move(behavior);
 }
 
-IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const ItemStack& stack) const {
+IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const ItemStack& stack) const
+{
     if (stack.isEmpty()) {
         return nullptr;
     }
@@ -34,7 +38,8 @@ IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const ItemStack
     return getBehavior(item->itemLocation().toString());
 }
 
-IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const std::string& itemId) const {
+IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const std::string& itemId) const
+{
     auto it = m_behaviors.find(itemId);
     if (it != m_behaviors.end()) {
         return it->second.get();
@@ -42,15 +47,18 @@ IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const std::stri
     return nullptr;
 }
 
-bool DispenseItemBehaviorRegistry::hasBehavior(const std::string& itemId) const {
+bool DispenseItemBehaviorRegistry::hasBehavior(const std::string& itemId) const
+{
     return m_behaviors.find(itemId) != m_behaviors.end();
 }
 
-IDispenseItemBehavior* DispenseItemBehaviorRegistry::getDefaultBehavior() {
+IDispenseItemBehavior* DispenseItemBehaviorRegistry::getDefaultBehavior()
+{
     return m_defaultBehavior.get();
 }
 
-void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
+void DispenseItemBehaviorRegistry::initDefaultBehaviors()
+{
     // ========================================================================
     // 投掷物发射行为
     // 参考: MC 1.16.5 DispenserBlock.static block()
@@ -73,8 +81,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // 光灵箭: velocity=1.1, inaccuracy=6.0
     registerBehavior<ProjectileDispenseBehavior>(
@@ -91,8 +99,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // 药水箭: velocity=1.1, inaccuracy=6.0
     // 参考 MC 1.16.5: AbstractArrowEntity.setPotionEffect(itemStack)
@@ -115,8 +123,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // --- 投掷物品 ---
     // 雪球: velocity=1.1, inaccuracy=6.0
@@ -130,8 +138,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // 鸡蛋: velocity=1.1, inaccuracy=6.0
     registerBehavior<ProjectileDispenseBehavior>(
@@ -144,8 +152,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // 末影珍珠: velocity=1.1, inaccuracy=6.0
     registerBehavior<ProjectileDispenseBehavior>(
@@ -158,8 +166,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // 附魔之瓶: velocity=1.1, inaccuracy=3.0 (更精确)
     // MC 1.16.5: inaccuracy * 0.5 = 3.0
@@ -173,8 +181,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 3.0f
-    );
+        1.1f,
+        3.0f);
 
     // 喷溅药水: velocity=1.1, inaccuracy=6.0
     // 参考 MC 1.16.5: PotionEntity.setItemStack() 在 onImpact() 中读取效果
@@ -193,8 +201,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // 滞留药水: velocity=1.1, inaccuracy=6.0
     // 参考 MC 1.16.5: PotionEntity.setItemStack() 在 onImpact() 中读取效果
@@ -213,8 +221,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
             }
             return entity;
         },
-        1.1f, 6.0f
-    );
+        1.1f,
+        6.0f);
 
     // ========================================================================
     // TODO: 以下发射行为需要额外的系统支持

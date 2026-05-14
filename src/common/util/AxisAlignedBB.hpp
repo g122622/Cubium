@@ -54,12 +54,10 @@ public:
      * @param height 实体高度
      * @return 以pos为底面中心的AABB
      */
-    [[nodiscard]] static AxisAlignedBB fromPosition(const Vector3& pos, f32 width, f32 height) noexcept {
+    [[nodiscard]] static AxisAlignedBB fromPosition(const Vector3& pos, f32 width, f32 height) noexcept
+    {
         f32 hw = width / 2.0f;
-        return AxisAlignedBB(
-            pos.x - hw, pos.y, pos.z - hw,
-            pos.x + hw, pos.y + height, pos.z + hw
-        );
+        return AxisAlignedBB(pos.x - hw, pos.y, pos.z - hw, pos.x + hw, pos.y + height, pos.z + hw);
     }
 
     /**
@@ -67,11 +65,14 @@ public:
      * @param x, y, z 方块坐标
      * @return 覆盖整个方块的AABB (x, y, z) -> (x+1, y+1, z+1)
      */
-    [[nodiscard]] static AxisAlignedBB fromBlock(i32 x, i32 y, i32 z) noexcept {
-        return AxisAlignedBB(
-            static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z),
-            static_cast<f32>(x + 1), static_cast<f32>(y + 1), static_cast<f32>(z + 1)
-        );
+    [[nodiscard]] static AxisAlignedBB fromBlock(i32 x, i32 y, i32 z) noexcept
+    {
+        return AxisAlignedBB(static_cast<f32>(x),
+            static_cast<f32>(y),
+            static_cast<f32>(z),
+            static_cast<f32>(x + 1),
+            static_cast<f32>(y + 1),
+            static_cast<f32>(z + 1));
     }
 
     // 基本属性
@@ -79,49 +80,46 @@ public:
     [[nodiscard]] f32 height() const noexcept { return maxY - minY; }
     [[nodiscard]] f32 depth() const noexcept { return maxZ - minZ; }
 
-    [[nodiscard]] Vector3 center() const noexcept {
-        return Vector3(
-            (minX + maxX) / 2.0f,
-            (minY + maxY) / 2.0f,
-            (minZ + maxZ) / 2.0f
-        );
+    [[nodiscard]] Vector3 center() const noexcept
+    {
+        return Vector3((minX + maxX) / 2.0f, (minY + maxY) / 2.0f, (minZ + maxZ) / 2.0f);
     }
 
-    [[nodiscard]] f32 volume() const noexcept {
-        return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
-    }
+    [[nodiscard]] f32 volume() const noexcept { return (maxX - minX) * (maxY - minY) * (maxZ - minZ); }
 
     // 相交检测
-    [[nodiscard]] bool intersects(const AxisAlignedBB& other) const noexcept {
-        return minX < other.maxX && maxX > other.minX &&
-               minY < other.maxY && maxY > other.minY &&
-               minZ < other.maxZ && maxZ > other.minZ;
+    [[nodiscard]] bool intersects(const AxisAlignedBB& other) const noexcept
+    {
+        return minX < other.maxX && maxX > other.minX && minY < other.maxY && maxY > other.minY && minZ < other.maxZ &&
+            maxZ > other.minZ;
     }
 
-    [[nodiscard]] bool contains(const Vector3& point) const noexcept {
-        return point.x >= minX && point.x <= maxX &&
-               point.y >= minY && point.y <= maxY &&
-               point.z >= minZ && point.z <= maxZ;
+    [[nodiscard]] bool contains(const Vector3& point) const noexcept
+    {
+        return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY && point.z >= minZ &&
+            point.z <= maxZ;
     }
 
-    [[nodiscard]] bool contains(const AxisAlignedBB& other) const noexcept {
-        return minX <= other.minX && maxX >= other.maxX &&
-               minY <= other.minY && maxY >= other.maxY &&
-               minZ <= other.minZ && maxZ >= other.maxZ;
+    [[nodiscard]] bool contains(const AxisAlignedBB& other) const noexcept
+    {
+        return minX <= other.minX && maxX >= other.maxX && minY <= other.minY && maxY >= other.maxY &&
+            minZ <= other.minZ && maxZ >= other.maxZ;
     }
 
     // 变换
-    void offset(f32 dx, f32 dy, f32 dz) noexcept {
-        minX += dx; maxX += dx;
-        minY += dy; maxY += dy;
-        minZ += dz; maxZ += dz;
+    void offset(f32 dx, f32 dy, f32 dz) noexcept
+    {
+        minX += dx;
+        maxX += dx;
+        minY += dy;
+        maxY += dy;
+        minZ += dz;
+        maxZ += dz;
     }
 
-    [[nodiscard]] AxisAlignedBB offsetted(f32 dx, f32 dy, f32 dz) const noexcept {
-        return AxisAlignedBB(
-            minX + dx, minY + dy, minZ + dz,
-            maxX + dx, maxY + dy, maxZ + dz
-        );
+    [[nodiscard]] AxisAlignedBB offsetted(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        return AxisAlignedBB(minX + dx, minY + dy, minZ + dz, maxX + dx, maxY + dy, maxZ + dz);
     }
 
     /**
@@ -129,28 +127,22 @@ public:
      * @param dx, dy, dz 各方向的扩展量
      * @return 扩展后的AABB
      */
-    [[nodiscard]] AxisAlignedBB expand(f32 dx, f32 dy, f32 dz) const noexcept {
-        return AxisAlignedBB(
-            minX - dx, minY - dy, minZ - dz,
-            maxX + dx, maxY + dy, maxZ + dz
-        );
+    [[nodiscard]] AxisAlignedBB expand(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        return AxisAlignedBB(minX - dx, minY - dy, minZ - dz, maxX + dx, maxY + dy, maxZ + dz);
     }
 
     /**
      * @brief 均匀扩展AABB
      * @param amount 各方向扩展量
      */
-    [[nodiscard]] AxisAlignedBB grow(f32 amount) const noexcept {
-        return expand(amount, amount, amount);
-    }
+    [[nodiscard]] AxisAlignedBB grow(f32 amount) const noexcept { return expand(amount, amount, amount); }
 
     /**
      * @brief 均匀收缩AABB
      * @param amount 各方向收缩量
      */
-    [[nodiscard]] AxisAlignedBB shrink(f32 amount) const noexcept {
-        return expand(-amount, -amount, -amount);
-    }
+    [[nodiscard]] AxisAlignedBB shrink(f32 amount) const noexcept { return expand(-amount, -amount, -amount); }
 
     // ========== MC碰撞检测核心算法 ==========
 
@@ -170,7 +162,8 @@ public:
      * - 正偏移时，返回min(offsetX, other.minX - maxX)
      * - 负偏移时，返回max(offsetX, other.maxX - minX)
      */
-    [[nodiscard]] f32 calculateXOffset(const AxisAlignedBB& other, f32 offsetX) const noexcept {
+    [[nodiscard]] f32 calculateXOffset(const AxisAlignedBB& other, f32 offsetX) const noexcept
+    {
         // Y或Z范围不相交，不影响移动
         if (maxY <= other.minY || minY >= other.maxY) return offsetX;
         if (maxZ <= other.minZ || minZ >= other.maxZ) return offsetX;
@@ -203,7 +196,8 @@ public:
      * @param offsetY 期望的Y轴偏移量
      * @return 实际允许的偏移量
      */
-    [[nodiscard]] f32 calculateYOffset(const AxisAlignedBB& other, f32 offsetY) const noexcept {
+    [[nodiscard]] f32 calculateYOffset(const AxisAlignedBB& other, f32 offsetY) const noexcept
+    {
         // X或Z范围不相交，不影响移动
         if (maxX <= other.minX || minX >= other.maxX) return offsetY;
         if (maxZ <= other.minZ || minZ >= other.maxZ) return offsetY;
@@ -236,7 +230,8 @@ public:
      * @param offsetZ 期望的Z轴偏移量
      * @return 实际允许的偏移量
      */
-    [[nodiscard]] f32 calculateZOffset(const AxisAlignedBB& other, f32 offsetZ) const noexcept {
+    [[nodiscard]] f32 calculateZOffset(const AxisAlignedBB& other, f32 offsetZ) const noexcept
+    {
         // X或Y范围不相交，不影响移动
         if (maxX <= other.minX || minX >= other.maxX) return offsetZ;
         if (maxY <= other.minY || minY >= other.maxY) return offsetZ;
@@ -264,14 +259,13 @@ public:
     }
 
     // 比较运算
-    [[nodiscard]] bool operator==(const AxisAlignedBB& other) const noexcept {
-        return minX == other.minX && minY == other.minY && minZ == other.minZ &&
-               maxX == other.maxX && maxY == other.maxY && maxZ == other.maxZ;
+    [[nodiscard]] bool operator==(const AxisAlignedBB& other) const noexcept
+    {
+        return minX == other.minX && minY == other.minY && minZ == other.minZ && maxX == other.maxX &&
+            maxY == other.maxY && maxZ == other.maxZ;
     }
 
-    [[nodiscard]] bool operator!=(const AxisAlignedBB& other) const noexcept {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator!=(const AxisAlignedBB& other) const noexcept { return !(*this == other); }
 };
 
 } // namespace mc

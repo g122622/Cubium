@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../../core/Item.hpp"
 #include "../../../core/Types.hpp"
+#include "../../core/Item.hpp"
 #include <memory>
 
 namespace mc {
 namespace entity {
-    class EntityType;
+class EntityType;
 }
 
 namespace item {
@@ -24,9 +24,7 @@ public:
      * @param fishTypeName 鱼实体类型名称（如 "minecraft:cod"）
      * @param properties 物品属性
      */
-    FishBucketItem(
-        const char* fishTypeName,
-        const ItemProperties& properties);
+    FishBucketItem(const char* fishTypeName, const ItemProperties& properties);
 
     ~FishBucketItem() override = default;
 

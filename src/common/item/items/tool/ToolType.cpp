@@ -4,7 +4,8 @@ namespace mc {
 namespace item {
 namespace tool {
 
-const char* toString(ToolType type) {
+const char* toString(ToolType type)
+{
     switch (type) {
         case ToolType::None:
             return "none";

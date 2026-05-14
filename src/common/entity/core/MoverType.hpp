@@ -28,13 +28,19 @@ enum class MoverType : u8 {
  * @param type 移动类型
  * @return 名称字符串
  */
-inline const char* getMoverTypeName(MoverType type) {
+inline const char* getMoverTypeName(MoverType type)
+{
     switch (type) {
-        case MoverType::Self: return "self";
-        case MoverType::Player: return "player";
-        case MoverType::Piston: return "piston";
-        case MoverType::ShulkerBox: return "shulker_box";
-        case MoverType::Shulker: return "shulker";
+        case MoverType::Self:
+            return "self";
+        case MoverType::Player:
+            return "player";
+        case MoverType::Piston:
+            return "piston";
+        case MoverType::ShulkerBox:
+            return "shulker_box";
+        case MoverType::Shulker:
+            return "shulker";
     }
     return "unknown";
 }

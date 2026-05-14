@@ -1,13 +1,13 @@
 #include "LookAtGoal.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/EntityUtils.hpp"
-#include "../GoalConstants.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../world/IWorld.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
 #include "../../controller/LookController.hpp"
+#include "../GoalConstants.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -16,8 +16,7 @@ namespace mc::entity::ai::goal {
 
 LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance)
     : LookAtGoal(mob, maxDistance, DEFAULT_LOOK_CHANCE)
-{
-}
+{}
 
 LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance, f32 chance)
     : m_mob(mob)
@@ -36,7 +35,8 @@ LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance, f32 chance, EntityFilter
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Look});
 }
 
-bool LookAtGoal::shouldExecute() {
+bool LookAtGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     // MC 1.16.5: 检查概率
@@ -56,7 +56,8 @@ bool LookAtGoal::shouldExecute() {
     return m_lookTarget != nullptr;
 }
 
-bool LookAtGoal::shouldContinueExecuting() {
+bool LookAtGoal::shouldContinueExecuting()
+{
     if (!m_lookTarget) return false;
 
     // MC 1.16.5: 检查目标是否存活
@@ -74,7 +75,8 @@ bool LookAtGoal::shouldContinueExecuting() {
     return m_lookTime > 0;
 }
 
-void LookAtGoal::startExecuting() {
+void LookAtGoal::startExecuting()
+{
     if (!m_mob) return;
 
     // MC 1.16.5: 设置看向时间 (40 + random.nextInt(40))
@@ -82,11 +84,13 @@ void LookAtGoal::startExecuting() {
     m_lookTime = LOOK_AT_MIN_TIME + rng.nextInt(LOOK_AT_MAX_TIME - LOOK_AT_MIN_TIME);
 }
 
-void LookAtGoal::resetTask() {
+void LookAtGoal::resetTask()
+{
     m_lookTarget = nullptr;
 }
 
-void LookAtGoal::tick() {
+void LookAtGoal::tick()
+{
     if (!m_mob || !m_lookTarget) return;
 
     // MC 1.16.5: 使用 LookController 看向目标眼睛位置
@@ -99,7 +103,8 @@ void LookAtGoal::tick() {
     --m_lookTime;
 }
 
-LivingEntity* LookAtGoal::findTarget() {
+LivingEntity* LookAtGoal::findTarget()
+{
     if (!m_mob || !m_mob->world()) return nullptr;
 
     // MC 1.16.5: 查找最近的 LivingEntity
@@ -107,10 +112,9 @@ LivingEntity* LookAtGoal::findTarget() {
     // 直接使用 findClosestEntity 单次遍历
     f64 maxDistSq = static_cast<f64>(m_maxDistance) * static_cast<f64>(m_maxDistance);
 
-    return EntityUtils::findClosestEntity<LivingEntity>(
-        m_mob->world(),
+    return EntityUtils::findClosestEntity<LivingEntity>(m_mob->world(),
         m_mob->position(),
-        m_maxDistance + 3.0f,  // MC 1.16.5: boundingBox.grow(maxDistance, 3.0D, maxDistance)
+        m_maxDistance + 3.0f, // MC 1.16.5: boundingBox.grow(maxDistance, 3.0D, maxDistance)
         m_mob,
         [this, maxDistSq](LivingEntity* entity) {
             // 检查是否在最大距离内
@@ -120,8 +124,7 @@ LivingEntity* LookAtGoal::findTarget() {
             if (m_filter && !m_filter(entity)) return false;
 
             return true;
-        }
-    );
+        });
 }
 
 // ==================== LookRandomlyGoal ====================
@@ -133,7 +136,8 @@ LookRandomlyGoal::LookRandomlyGoal(MobEntity* mob)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool LookRandomlyGoal::shouldExecute() {
+bool LookRandomlyGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     // MC 1.16.5: 默认概率执行 (0.02f)
@@ -141,12 +145,14 @@ bool LookRandomlyGoal::shouldExecute() {
     return rng.nextFloat() < RANDOM_LOOK_CHANCE;
 }
 
-bool LookRandomlyGoal::shouldContinueExecuting() {
+bool LookRandomlyGoal::shouldContinueExecuting()
+{
     // MC 1.16.5: return this.idleTime >= 0;
     return m_idleTime >= 0;
 }
 
-void LookRandomlyGoal::startExecuting() {
+void LookRandomlyGoal::startExecuting()
+{
     if (!m_mob) return;
 
     // MC 1.16.5: 选择随机方向
@@ -163,11 +169,13 @@ void LookRandomlyGoal::startExecuting() {
     m_idleTime = RANDOM_LOOK_MIN_TIME + rng.nextInt(RANDOM_LOOK_MAX_TIME - RANDOM_LOOK_MIN_TIME);
 }
 
-void LookRandomlyGoal::resetTask() {
+void LookRandomlyGoal::resetTask()
+{
     m_idleTime = 0;
 }
 
-void LookRandomlyGoal::tick() {
+void LookRandomlyGoal::tick()
+{
     if (!m_mob) return;
 
     // MC 1.16.5: --this.idleTime;
@@ -178,11 +186,7 @@ void LookRandomlyGoal::tick() {
     // );
     if (auto* lookCtrl = m_mob->lookController()) {
         f64 eyeY = m_mob->y() + m_mob->eyeHeight();
-        lookCtrl->setLookPosition(
-            m_mob->x() + m_lookX,
-            eyeY,
-            m_mob->z() + m_lookZ
-        );
+        lookCtrl->setLookPosition(m_mob->x() + m_lookX, eyeY, m_mob->z() + m_lookZ);
     }
 }
 

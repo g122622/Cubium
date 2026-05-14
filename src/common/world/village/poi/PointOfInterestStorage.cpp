@@ -11,7 +11,8 @@ namespace poi {
 
 // ========== POI注册 ==========
 
-bool PointOfInterestStorage::registerPOI(BlockPos pos, PointOfInterestType type) {
+bool PointOfInterestStorage::registerPOI(BlockPos pos, PointOfInterestType type)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 检查是否已存在
@@ -32,7 +33,8 @@ bool PointOfInterestStorage::registerPOI(BlockPos pos, PointOfInterestType type)
     return true;
 }
 
-bool PointOfInterestStorage::unregisterPOI(BlockPos pos) {
+bool PointOfInterestStorage::unregisterPOI(BlockPos pos)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_byPosition.find(pos);
@@ -45,10 +47,7 @@ bool PointOfInterestStorage::unregisterPOI(BlockPos pos) {
 
     // 从类型索引中移除
     auto& typeList = m_byType[type];
-    typeList.erase(
-        std::remove(typeList.begin(), typeList.end(), poi),
-        typeList.end()
-    );
+    typeList.erase(std::remove(typeList.begin(), typeList.end(), poi), typeList.end());
 
     // 从位置索引中移除
     m_byPosition.erase(it);
@@ -64,7 +63,8 @@ bool PointOfInterestStorage::unregisterPOI(BlockPos pos) {
     return true;
 }
 
-bool PointOfInterestStorage::updatePOI(BlockPos pos, PointOfInterestType newType) {
+bool PointOfInterestStorage::updatePOI(BlockPos pos, PointOfInterestType newType)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_byPosition.find(pos);
@@ -81,10 +81,7 @@ bool PointOfInterestStorage::updatePOI(BlockPos pos, PointOfInterestType newType
 
     // 从旧类型索引中移除
     auto& oldTypeList = m_byType[oldType];
-    oldTypeList.erase(
-        std::remove(oldTypeList.begin(), oldTypeList.end(), poi),
-        oldTypeList.end()
-    );
+    oldTypeList.erase(std::remove(oldTypeList.begin(), oldTypeList.end(), poi), oldTypeList.end());
 
     // 更新POI类型（list中元素地址稳定）
     u64 chunkKey = getChunkKey(pos);
@@ -105,12 +102,14 @@ bool PointOfInterestStorage::updatePOI(BlockPos pos, PointOfInterestType newType
     return false;
 }
 
-bool PointOfInterestStorage::hasPOI(BlockPos pos) const {
+bool PointOfInterestStorage::hasPOI(BlockPos pos) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_byPosition.find(pos) != m_byPosition.end();
 }
 
-const PointOfInterest* PointOfInterestStorage::getPOI(BlockPos pos) const {
+const PointOfInterest* PointOfInterestStorage::getPOI(BlockPos pos) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_byPosition.find(pos);
     return it != m_byPosition.end() ? it->second : nullptr;
@@ -118,7 +117,8 @@ const PointOfInterest* PointOfInterestStorage::getPOI(BlockPos pos) const {
 
 // ========== 占用管理 ==========
 
-bool PointOfInterestStorage::acquirePOI(BlockPos pos, u64 ownerId, i64 gameTime) {
+bool PointOfInterestStorage::acquirePOI(BlockPos pos, u64 ownerId, i64 gameTime)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_byPosition.find(pos);
@@ -129,7 +129,8 @@ bool PointOfInterestStorage::acquirePOI(BlockPos pos, u64 ownerId, i64 gameTime)
     return it->second->acquire(ownerId, gameTime);
 }
 
-bool PointOfInterestStorage::releasePOI(BlockPos pos, u64 ownerId) {
+bool PointOfInterestStorage::releasePOI(BlockPos pos, u64 ownerId)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_byPosition.find(pos);
@@ -140,7 +141,8 @@ bool PointOfInterestStorage::releasePOI(BlockPos pos, u64 ownerId) {
     return it->second->release(ownerId);
 }
 
-i32 PointOfInterestStorage::releaseAllByOwner(u64 ownerId) {
+i32 PointOfInterestStorage::releaseAllByOwner(u64 ownerId)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     i32 count = 0;
@@ -155,9 +157,7 @@ i32 PointOfInterestStorage::releaseAllByOwner(u64 ownerId) {
 
 // ========== 空间查询 ==========
 
-POISearchResult PointOfInterestStorage::findNearest(
-    BlockPos center,
-    const POISearchCriteria& criteria) const
+POISearchResult PointOfInterestStorage::findNearest(BlockPos center, const POISearchCriteria& criteria) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -240,9 +240,7 @@ POISearchResult PointOfInterestStorage::findNearest(
 }
 
 std::optional<BlockPos> PointOfInterestStorage::findNearestFree(
-    BlockPos center,
-    PointOfInterestType type,
-    f32 maxDistance) const
+    BlockPos center, PointOfInterestType type, f32 maxDistance) const
 {
     POISearchCriteria criteria;
     criteria.type = type;
@@ -254,9 +252,7 @@ std::optional<BlockPos> PointOfInterestStorage::findNearestFree(
 }
 
 std::optional<BlockPos> PointOfInterestStorage::findNearest(
-    BlockPos center,
-    PointOfInterestType type,
-    f32 maxDistance) const
+    BlockPos center, PointOfInterestType type, f32 maxDistance) const
 {
     POISearchCriteria criteria;
     criteria.type = type;
@@ -267,10 +263,7 @@ std::optional<BlockPos> PointOfInterestStorage::findNearest(
 }
 
 std::optional<BlockPos> PointOfInterestStorage::findNearestUnacquired(
-    BlockPos center,
-    PointOfInterestType type,
-    f32 maxDistance,
-    u64 excludeOwnerId) const
+    BlockPos center, PointOfInterestType type, f32 maxDistance, u64 excludeOwnerId) const
 {
     POISearchCriteria criteria;
     criteria.type = type;
@@ -282,8 +275,7 @@ std::optional<BlockPos> PointOfInterestStorage::findNearestUnacquired(
 }
 
 std::vector<const PointOfInterest*> PointOfInterestStorage::findAllInChunk(
-    ChunkCoord chunkX, ChunkCoord chunkZ,
-    std::optional<PointOfInterestType> typeFilter) const
+    ChunkCoord chunkX, ChunkCoord chunkZ, std::optional<PointOfInterestType> typeFilter) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -305,9 +297,7 @@ std::vector<const PointOfInterest*> PointOfInterestStorage::findAllInChunk(
 }
 
 std::vector<const PointOfInterest*> PointOfInterestStorage::findAllInRange(
-    BlockPos center,
-    f32 radius,
-    std::optional<PointOfInterestType> typeFilter) const
+    BlockPos center, f32 radius, std::optional<PointOfInterestType> typeFilter) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -328,8 +318,7 @@ std::vector<const PointOfInterest*> PointOfInterestStorage::findAllInRange(
     return result;
 }
 
-std::vector<const PointOfInterest*> PointOfInterestStorage::findAllByType(
-    PointOfInterestType type) const
+std::vector<const PointOfInterest*> PointOfInterestStorage::findAllByType(PointOfInterestType type) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -346,12 +335,14 @@ std::vector<const PointOfInterest*> PointOfInterestStorage::findAllByType(
 
 // ========== 区块回调 ==========
 
-void PointOfInterestStorage::onChunkLoaded(ChunkCoord chunkX, ChunkCoord chunkZ) {
+void PointOfInterestStorage::onChunkLoaded(ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_loadedChunks.insert(getChunkKey(chunkX, chunkZ));
 }
 
-void PointOfInterestStorage::onChunkUnloaded(ChunkCoord chunkX, ChunkCoord chunkZ) {
+void PointOfInterestStorage::onChunkUnloaded(ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     u64 chunkKey = getChunkKey(chunkX, chunkZ);
@@ -363,10 +354,7 @@ void PointOfInterestStorage::onChunkUnloaded(ChunkCoord chunkX, ChunkCoord chunk
         for (const auto& poi : it->second) {
             m_byPosition.erase(poi.getPosition());
             auto& typeList = m_byType[poi.getType()];
-            typeList.erase(
-                std::remove(typeList.begin(), typeList.end(), &poi),
-                typeList.end()
-            );
+            typeList.erase(std::remove(typeList.begin(), typeList.end(), &poi), typeList.end());
         }
         m_chunkPOIs.erase(it);
     }
@@ -374,25 +362,29 @@ void PointOfInterestStorage::onChunkUnloaded(ChunkCoord chunkX, ChunkCoord chunk
 
 // ========== 统计 ==========
 
-size_t PointOfInterestStorage::getTotalCount() const {
+size_t PointOfInterestStorage::getTotalCount() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_byPosition.size();
 }
 
-size_t PointOfInterestStorage::getCountByType(PointOfInterestType type) const {
+size_t PointOfInterestStorage::getCountByType(PointOfInterestType type) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_byType.find(type);
     return it != m_byType.end() ? it->second.size() : 0;
 }
 
-size_t PointOfInterestStorage::getLoadedChunkCount() const {
+size_t PointOfInterestStorage::getLoadedChunkCount() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_loadedChunks.size();
 }
 
 // ========== 序列化 ==========
 
-void PointOfInterestStorage::serialize(nbt::tags::compound_tag& tag) const {
+void PointOfInterestStorage::serialize(nbt::tags::compound_tag& tag) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto poisList = std::make_unique<nbt::tags::compound_list_tag>();
@@ -413,7 +405,8 @@ void PointOfInterestStorage::serialize(nbt::tags::compound_tag& tag) const {
     tag.value["LoadedChunks"] = std::move(chunksList);
 }
 
-void PointOfInterestStorage::deserialize(const nbt::tags::compound_tag& tag) {
+void PointOfInterestStorage::deserialize(const nbt::tags::compound_tag& tag)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 清空现有数据
@@ -456,28 +449,25 @@ void PointOfInterestStorage::deserialize(const nbt::tags::compound_tag& tag) {
 
 // ========== 私有方法 ==========
 
-u64 PointOfInterestStorage::getChunkKey(BlockPos pos) {
-    return getChunkKey(
-        static_cast<ChunkCoord>(pos.x >> 4),
-        static_cast<ChunkCoord>(pos.z >> 4)
-    );
+u64 PointOfInterestStorage::getChunkKey(BlockPos pos)
+{
+    return getChunkKey(static_cast<ChunkCoord>(pos.x >> 4), static_cast<ChunkCoord>(pos.z >> 4));
 }
 
-u64 PointOfInterestStorage::getChunkKey(ChunkCoord x, ChunkCoord z) {
-    return (static_cast<u64>(static_cast<u32>(x)) << 32) |
-           static_cast<u64>(static_cast<u32>(z));
+u64 PointOfInterestStorage::getChunkKey(ChunkCoord x, ChunkCoord z)
+{
+    return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
 }
 
-f32 PointOfInterestStorage::distance(BlockPos a, BlockPos b) {
+f32 PointOfInterestStorage::distance(BlockPos a, BlockPos b)
+{
     f32 dx = static_cast<f32>(a.x - b.x);
     f32 dy = static_cast<f32>(a.y - b.y);
     f32 dz = static_cast<f32>(a.z - b.z);
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-bool PointOfInterestStorage::matchesCriteria(
-    const PointOfInterest& poi,
-    const POISearchCriteria& criteria) const
+bool PointOfInterestStorage::matchesCriteria(const PointOfInterest& poi, const POISearchCriteria& criteria) const
 {
     // 检查占用状态
     if (criteria.requireUnoccupied && poi.isOccupied()) {
@@ -485,19 +475,20 @@ bool PointOfInterestStorage::matchesCriteria(
     }
 
     // 检查排除的占用者
-    if (criteria.excludeOwner.has_value() &&
-        poi.isOwnedBy(criteria.excludeOwner.value())) {
+    if (criteria.excludeOwner.has_value() && poi.isOwnedBy(criteria.excludeOwner.value())) {
         return false;
     }
 
     return true;
 }
 
-std::list<PointOfInterest>& PointOfInterestStorage::getOrCreateChunkPOIs(u64 chunkKey) {
+std::list<PointOfInterest>& PointOfInterestStorage::getOrCreateChunkPOIs(u64 chunkKey)
+{
     return m_chunkPOIs[chunkKey];
 }
 
-const std::list<PointOfInterest>* PointOfInterestStorage::getChunkPOIs(u64 chunkKey) const {
+const std::list<PointOfInterest>* PointOfInterestStorage::getChunkPOIs(u64 chunkKey) const
+{
     auto it = m_chunkPOIs.find(chunkKey);
     return it != m_chunkPOIs.end() ? &it->second : nullptr;
 }

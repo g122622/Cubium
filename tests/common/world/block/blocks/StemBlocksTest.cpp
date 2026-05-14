@@ -18,7 +18,8 @@ namespace {
  */
 class StemBlocksTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
         // 初始化物品注册表
@@ -30,7 +31,8 @@ protected:
 // MelonStemBlock 测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, MelonStemBlock_GetSeedItem_ReturnsMelonSeedsItemId) {
+TEST_F(StemBlocksTest, MelonStemBlock_GetSeedItem_ReturnsMelonSeedsItemId)
+{
     ASSERT_NE(VanillaBlocks::MELON_STEM, nullptr) << "MELON_STEM should be registered";
 
     auto* melonStem = dynamic_cast<const StemBlock*>(VanillaBlocks::MELON_STEM);
@@ -43,7 +45,8 @@ TEST_F(StemBlocksTest, MelonStemBlock_GetSeedItem_ReturnsMelonSeedsItemId) {
         << "MelonStemBlock::getSeedItem() should return Items::MELON_SEEDS->itemId()";
 }
 
-TEST_F(StemBlocksTest, MelonStemBlock_GetCrop_ReturnsMelonBlock) {
+TEST_F(StemBlocksTest, MelonStemBlock_GetCrop_ReturnsMelonBlock)
+{
     ASSERT_NE(VanillaBlocks::MELON_STEM, nullptr) << "MELON_STEM should be registered";
 
     auto* melonStem = dynamic_cast<const StemBlock*>(VanillaBlocks::MELON_STEM);
@@ -51,27 +54,26 @@ TEST_F(StemBlocksTest, MelonStemBlock_GetCrop_ReturnsMelonBlock) {
 
     const StemGrownBlock* crop = melonStem->getCrop();
     ASSERT_NE(crop, nullptr) << "MelonStemBlock::getCrop() should return non-null";
-    EXPECT_EQ(crop, VanillaBlocks::MELON)
-        << "MelonStemBlock::getCrop() should return MELON block";
+    EXPECT_EQ(crop, VanillaBlocks::MELON) << "MelonStemBlock::getCrop() should return MELON block";
 }
 
-TEST_F(StemBlocksTest, MelonStemBlock_HasCorrectBlockProperties) {
+TEST_F(StemBlocksTest, MelonStemBlock_HasCorrectBlockProperties)
+{
     ASSERT_NE(VanillaBlocks::MELON_STEM, nullptr) << "MELON_STEM should be registered";
 
     // 茎方块应该没有碰撞（可以穿过）
-    EXPECT_FALSE(VanillaBlocks::MELON_STEM->defaultState().isSolid())
-        << "Melon stem should not be solid";
+    EXPECT_FALSE(VanillaBlocks::MELON_STEM->defaultState().isSolid()) << "Melon stem should not be solid";
 
     // 硬度应该为0
-    EXPECT_FLOAT_EQ(VanillaBlocks::MELON_STEM->hardness(), 0.0f)
-        << "Melon stem should have 0 hardness";
+    EXPECT_FLOAT_EQ(VanillaBlocks::MELON_STEM->hardness(), 0.0f) << "Melon stem should have 0 hardness";
 }
 
 // ============================================================================
 // PumpkinStemBlock 测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, PumpkinStemBlock_GetSeedItem_ReturnsPumpkinSeedsItemId) {
+TEST_F(StemBlocksTest, PumpkinStemBlock_GetSeedItem_ReturnsPumpkinSeedsItemId)
+{
     ASSERT_NE(VanillaBlocks::PUMPKIN_STEM, nullptr) << "PUMPKIN_STEM should be registered";
 
     auto* pumpkinStem = dynamic_cast<const StemBlock*>(VanillaBlocks::PUMPKIN_STEM);
@@ -84,7 +86,8 @@ TEST_F(StemBlocksTest, PumpkinStemBlock_GetSeedItem_ReturnsPumpkinSeedsItemId) {
         << "PumpkinStemBlock::getSeedItem() should return Items::PUMPKIN_SEEDS->itemId()";
 }
 
-TEST_F(StemBlocksTest, PumpkinStemBlock_GetCrop_ReturnsPumpkinBlock) {
+TEST_F(StemBlocksTest, PumpkinStemBlock_GetCrop_ReturnsPumpkinBlock)
+{
     ASSERT_NE(VanillaBlocks::PUMPKIN_STEM, nullptr) << "PUMPKIN_STEM should be registered";
 
     auto* pumpkinStem = dynamic_cast<const StemBlock*>(VanillaBlocks::PUMPKIN_STEM);
@@ -92,25 +95,24 @@ TEST_F(StemBlocksTest, PumpkinStemBlock_GetCrop_ReturnsPumpkinBlock) {
 
     const StemGrownBlock* crop = pumpkinStem->getCrop();
     ASSERT_NE(crop, nullptr) << "PumpkinStemBlock::getCrop() should return non-null";
-    EXPECT_EQ(crop, VanillaBlocks::PUMPKIN)
-        << "PumpkinStemBlock::getCrop() should return PUMPKIN block";
+    EXPECT_EQ(crop, VanillaBlocks::PUMPKIN) << "PumpkinStemBlock::getCrop() should return PUMPKIN block";
 }
 
-TEST_F(StemBlocksTest, PumpkinStemBlock_HasCorrectBlockProperties) {
+TEST_F(StemBlocksTest, PumpkinStemBlock_HasCorrectBlockProperties)
+{
     ASSERT_NE(VanillaBlocks::PUMPKIN_STEM, nullptr) << "PUMPKIN_STEM should be registered";
 
-    EXPECT_FALSE(VanillaBlocks::PUMPKIN_STEM->defaultState().isSolid())
-        << "Pumpkin stem should not be solid";
+    EXPECT_FALSE(VanillaBlocks::PUMPKIN_STEM->defaultState().isSolid()) << "Pumpkin stem should not be solid";
 
-    EXPECT_FLOAT_EQ(VanillaBlocks::PUMPKIN_STEM->hardness(), 0.0f)
-        << "Pumpkin stem should have 0 hardness";
+    EXPECT_FLOAT_EQ(VanillaBlocks::PUMPKIN_STEM->hardness(), 0.0f) << "Pumpkin stem should have 0 hardness";
 }
 
 // ============================================================================
 // MelonAttachedStemBlock 测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, MelonAttachedStemBlock_GetSeedItem_ReturnsMelonSeedsItemId) {
+TEST_F(StemBlocksTest, MelonAttachedStemBlock_GetSeedItem_ReturnsMelonSeedsItemId)
+{
     ASSERT_NE(VanillaBlocks::ATTACHED_MELON_STEM, nullptr) << "ATTACHED_MELON_STEM should be registered";
 
     auto* attachedMelonStem = dynamic_cast<const AttachedStemBlock*>(VanillaBlocks::ATTACHED_MELON_STEM);
@@ -123,7 +125,8 @@ TEST_F(StemBlocksTest, MelonAttachedStemBlock_GetSeedItem_ReturnsMelonSeedsItemI
         << "MelonAttachedStemBlock::getSeedItem() should return Items::MELON_SEEDS->itemId()";
 }
 
-TEST_F(StemBlocksTest, MelonAttachedStemBlock_GetCrop_ReturnsMelonBlock) {
+TEST_F(StemBlocksTest, MelonAttachedStemBlock_GetCrop_ReturnsMelonBlock)
+{
     ASSERT_NE(VanillaBlocks::ATTACHED_MELON_STEM, nullptr) << "ATTACHED_MELON_STEM should be registered";
 
     auto* attachedMelonStem = dynamic_cast<const AttachedStemBlock*>(VanillaBlocks::ATTACHED_MELON_STEM);
@@ -131,15 +134,15 @@ TEST_F(StemBlocksTest, MelonAttachedStemBlock_GetCrop_ReturnsMelonBlock) {
 
     const StemGrownBlock* crop = attachedMelonStem->getCrop();
     ASSERT_NE(crop, nullptr) << "MelonAttachedStemBlock::getCrop() should return non-null";
-    EXPECT_EQ(crop, VanillaBlocks::MELON)
-        << "MelonAttachedStemBlock::getCrop() should return MELON block";
+    EXPECT_EQ(crop, VanillaBlocks::MELON) << "MelonAttachedStemBlock::getCrop() should return MELON block";
 }
 
 // ============================================================================
 // PumpkinAttachedStemBlock 测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, PumpkinAttachedStemBlock_GetSeedItem_ReturnsPumpkinSeedsItemId) {
+TEST_F(StemBlocksTest, PumpkinAttachedStemBlock_GetSeedItem_ReturnsPumpkinSeedsItemId)
+{
     ASSERT_NE(VanillaBlocks::ATTACHED_PUMPKIN_STEM, nullptr) << "ATTACHED_PUMPKIN_STEM should be registered";
 
     auto* attachedPumpkinStem = dynamic_cast<const AttachedStemBlock*>(VanillaBlocks::ATTACHED_PUMPKIN_STEM);
@@ -152,7 +155,8 @@ TEST_F(StemBlocksTest, PumpkinAttachedStemBlock_GetSeedItem_ReturnsPumpkinSeedsI
         << "PumpkinAttachedStemBlock::getSeedItem() should return Items::PUMPKIN_SEEDS->itemId()";
 }
 
-TEST_F(StemBlocksTest, PumpkinAttachedStemBlock_GetCrop_ReturnsPumpkinBlock) {
+TEST_F(StemBlocksTest, PumpkinAttachedStemBlock_GetCrop_ReturnsPumpkinBlock)
+{
     ASSERT_NE(VanillaBlocks::ATTACHED_PUMPKIN_STEM, nullptr) << "ATTACHED_PUMPKIN_STEM should be registered";
 
     auto* attachedPumpkinStem = dynamic_cast<const AttachedStemBlock*>(VanillaBlocks::ATTACHED_PUMPKIN_STEM);
@@ -160,15 +164,15 @@ TEST_F(StemBlocksTest, PumpkinAttachedStemBlock_GetCrop_ReturnsPumpkinBlock) {
 
     const StemGrownBlock* crop = attachedPumpkinStem->getCrop();
     ASSERT_NE(crop, nullptr) << "PumpkinAttachedStemBlock::getCrop() should return non-null";
-    EXPECT_EQ(crop, VanillaBlocks::PUMPKIN)
-        << "PumpkinAttachedStemBlock::getCrop() should return PUMPKIN block";
+    EXPECT_EQ(crop, VanillaBlocks::PUMPKIN) << "PumpkinAttachedStemBlock::getCrop() should return PUMPKIN block";
 }
 
 // ============================================================================
 // MelonBlock 关联测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, MelonBlock_GetStem_ReturnsMelonStem) {
+TEST_F(StemBlocksTest, MelonBlock_GetStem_ReturnsMelonStem)
+{
     ASSERT_NE(VanillaBlocks::MELON, nullptr) << "MELON should be registered";
 
     auto* melonBlock = dynamic_cast<const MelonBlock*>(VanillaBlocks::MELON);
@@ -176,11 +180,11 @@ TEST_F(StemBlocksTest, MelonBlock_GetStem_ReturnsMelonStem) {
 
     const Block* stem = melonBlock->getStem();
     ASSERT_NE(stem, nullptr) << "MelonBlock::getStem() should return non-null";
-    EXPECT_EQ(stem, VanillaBlocks::MELON_STEM)
-        << "MelonBlock::getStem() should return MELON_STEM";
+    EXPECT_EQ(stem, VanillaBlocks::MELON_STEM) << "MelonBlock::getStem() should return MELON_STEM";
 }
 
-TEST_F(StemBlocksTest, MelonBlock_GetAttachedStem_ReturnsMelonAttachedStem) {
+TEST_F(StemBlocksTest, MelonBlock_GetAttachedStem_ReturnsMelonAttachedStem)
+{
     ASSERT_NE(VanillaBlocks::MELON, nullptr) << "MELON should be registered";
 
     auto* melonBlock = dynamic_cast<const MelonBlock*>(VanillaBlocks::MELON);
@@ -196,7 +200,8 @@ TEST_F(StemBlocksTest, MelonBlock_GetAttachedStem_ReturnsMelonAttachedStem) {
 // PumpkinBlock 关联测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, PumpkinBlock_GetStem_ReturnsPumpkinStem) {
+TEST_F(StemBlocksTest, PumpkinBlock_GetStem_ReturnsPumpkinStem)
+{
     ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr) << "PUMPKIN should be registered";
 
     auto* pumpkinBlock = dynamic_cast<const PumpkinBlock*>(VanillaBlocks::PUMPKIN);
@@ -204,11 +209,11 @@ TEST_F(StemBlocksTest, PumpkinBlock_GetStem_ReturnsPumpkinStem) {
 
     const Block* stem = pumpkinBlock->getStem();
     ASSERT_NE(stem, nullptr) << "PumpkinBlock::getStem() should return non-null";
-    EXPECT_EQ(stem, VanillaBlocks::PUMPKIN_STEM)
-        << "PumpkinBlock::getStem() should return PUMPKIN_STEM";
+    EXPECT_EQ(stem, VanillaBlocks::PUMPKIN_STEM) << "PumpkinBlock::getStem() should return PUMPKIN_STEM";
 }
 
-TEST_F(StemBlocksTest, PumpkinBlock_GetAttachedStem_ReturnsPumpkinAttachedStem) {
+TEST_F(StemBlocksTest, PumpkinBlock_GetAttachedStem_ReturnsPumpkinAttachedStem)
+{
     ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr) << "PUMPKIN should be registered";
 
     auto* pumpkinBlock = dynamic_cast<const PumpkinBlock*>(VanillaBlocks::PUMPKIN);
@@ -220,7 +225,8 @@ TEST_F(StemBlocksTest, PumpkinBlock_GetAttachedStem_ReturnsPumpkinAttachedStem) 
         << "PumpkinBlock::getAttachedStem() should return ATTACHED_PUMPKIN_STEM";
 }
 
-TEST_F(StemBlocksTest, PumpkinBlock_GetCarvedPumpkin_ReturnsCarvedPumpkin) {
+TEST_F(StemBlocksTest, PumpkinBlock_GetCarvedPumpkin_ReturnsCarvedPumpkin)
+{
     ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr) << "PUMPKIN should be registered";
 
     auto* pumpkinBlock = dynamic_cast<const PumpkinBlock*>(VanillaBlocks::PUMPKIN);
@@ -235,7 +241,8 @@ TEST_F(StemBlocksTest, PumpkinBlock_GetCarvedPumpkin_ReturnsCarvedPumpkin) {
 // 方块注册有效性测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, AllStemBlocksHaveValidBlockIds) {
+TEST_F(StemBlocksTest, AllStemBlocksHaveValidBlockIds)
+{
     ASSERT_NE(VanillaBlocks::MELON_STEM, nullptr);
     EXPECT_GT(VanillaBlocks::MELON_STEM->blockId(), 0u) << "MELON_STEM should have non-zero block ID";
 
@@ -246,10 +253,12 @@ TEST_F(StemBlocksTest, AllStemBlocksHaveValidBlockIds) {
     EXPECT_GT(VanillaBlocks::ATTACHED_MELON_STEM->blockId(), 0u) << "ATTACHED_MELON_STEM should have non-zero block ID";
 
     ASSERT_NE(VanillaBlocks::ATTACHED_PUMPKIN_STEM, nullptr);
-    EXPECT_GT(VanillaBlocks::ATTACHED_PUMPKIN_STEM->blockId(), 0u) << "ATTACHED_PUMPKIN_STEM should have non-zero block ID";
+    EXPECT_GT(VanillaBlocks::ATTACHED_PUMPKIN_STEM->blockId(), 0u)
+        << "ATTACHED_PUMPKIN_STEM should have non-zero block ID";
 }
 
-TEST_F(StemBlocksTest, AllStemBlocksHaveUniqueBlockIds) {
+TEST_F(StemBlocksTest, AllStemBlocksHaveUniqueBlockIds)
+{
     std::set<u32> blockIds;
     blockIds.insert(VanillaBlocks::MELON_STEM->blockId());
     blockIds.insert(VanillaBlocks::PUMPKIN_STEM->blockId());
@@ -259,7 +268,8 @@ TEST_F(StemBlocksTest, AllStemBlocksHaveUniqueBlockIds) {
     EXPECT_EQ(blockIds.size(), 4u) << "All 4 stem blocks should have unique block IDs";
 }
 
-TEST_F(StemBlocksTest, AllSeedItemsHaveValidNonZeroItemIds) {
+TEST_F(StemBlocksTest, AllSeedItemsHaveValidNonZeroItemIds)
+{
     ASSERT_NE(Items::MELON_SEEDS, nullptr);
     EXPECT_GT(Items::MELON_SEEDS->itemId(), 0u) << "MELON_SEEDS should have non-zero item ID";
 
@@ -267,7 +277,8 @@ TEST_F(StemBlocksTest, AllSeedItemsHaveValidNonZeroItemIds) {
     EXPECT_GT(Items::PUMPKIN_SEEDS->itemId(), 0u) << "PUMPKIN_SEEDS should have non-zero item ID";
 }
 
-TEST_F(StemBlocksTest, SeedItemsHaveUniqueItemIds) {
+TEST_F(StemBlocksTest, SeedItemsHaveUniqueItemIds)
+{
     std::set<u32> itemIds;
     itemIds.insert(Items::MELON_SEEDS->itemId());
     itemIds.insert(Items::PUMPKIN_SEEDS->itemId());
@@ -279,7 +290,8 @@ TEST_F(StemBlocksTest, SeedItemsHaveUniqueItemIds) {
 // 双向关联完整性测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, MelonStemToMelonBlockAssociationIsBidirectional) {
+TEST_F(StemBlocksTest, MelonStemToMelonBlockAssociationIsBidirectional)
+{
     // 茎 -> 果实
     auto* melonStem = dynamic_cast<const StemBlock*>(VanillaBlocks::MELON_STEM);
     ASSERT_NE(melonStem, nullptr);
@@ -289,13 +301,13 @@ TEST_F(StemBlocksTest, MelonStemToMelonBlockAssociationIsBidirectional) {
     // 果实 -> 茎
     auto* melonBlock = dynamic_cast<const MelonBlock*>(crop);
     ASSERT_NE(melonBlock, nullptr);
-    EXPECT_EQ(melonBlock->getStem(), VanillaBlocks::MELON_STEM)
-        << "MelonBlock should reference back to MELON_STEM";
+    EXPECT_EQ(melonBlock->getStem(), VanillaBlocks::MELON_STEM) << "MelonBlock should reference back to MELON_STEM";
     EXPECT_EQ(melonBlock->getAttachedStem(), VanillaBlocks::ATTACHED_MELON_STEM)
         << "MelonBlock should reference ATTACHED_MELON_STEM";
 }
 
-TEST_F(StemBlocksTest, PumpkinStemToPumpkinBlockAssociationIsBidirectional) {
+TEST_F(StemBlocksTest, PumpkinStemToPumpkinBlockAssociationIsBidirectional)
+{
     // 茎 -> 果实
     auto* pumpkinStem = dynamic_cast<const StemBlock*>(VanillaBlocks::PUMPKIN_STEM);
     ASSERT_NE(pumpkinStem, nullptr);
@@ -315,7 +327,8 @@ TEST_F(StemBlocksTest, PumpkinStemToPumpkinBlockAssociationIsBidirectional) {
 // AttachedStemBlock 状态属性测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, AttachedStemBlocks_HaveHorizontalFacingProperty) {
+TEST_F(StemBlocksTest, AttachedStemBlocks_HaveHorizontalFacingProperty)
+{
     // 连接茎应该有 HORIZONTAL_FACING 属性
     auto* attachedMelonStem = dynamic_cast<const AttachedStemBlock*>(VanillaBlocks::ATTACHED_MELON_STEM);
     ASSERT_NE(attachedMelonStem, nullptr);
@@ -337,7 +350,8 @@ TEST_F(StemBlocksTest, AttachedStemBlocks_HaveHorizontalFacingProperty) {
 // StemBlock 状态属性测试
 // ============================================================================
 
-TEST_F(StemBlocksTest, StemBlocks_HaveAgeProperty) {
+TEST_F(StemBlocksTest, StemBlocks_HaveAgeProperty)
+{
     // 茎应该有 AGE_0_7 属性
     auto* melonStem = dynamic_cast<const StemBlock*>(VanillaBlocks::MELON_STEM);
     ASSERT_NE(melonStem, nullptr);

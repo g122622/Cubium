@@ -1,19 +1,19 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
+#include <cfloat>
 #include <memory>
-#include <nlohmann/json.hpp>
-#include <vector>
 #include <string>
 #include <unordered_map>
-#include <cfloat>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::command {
 
 // 前向声明
-template<typename S>
+template <typename S>
 class CommandContext;
 
 /**
@@ -23,7 +23,7 @@ class CommandContext;
  *
  * 参考 MC 的 ArgumentType 接口设计
  */
-template<typename T>
+template <typename T>
 class ArgumentType {
 public:
     virtual ~ArgumentType() = default;
@@ -44,17 +44,13 @@ public:
     /**
      * @brief 获取示例值列表
      */
-    [[nodiscard]] virtual std::vector<std::string> getExamples() const {
-        return {};
-    }
+    [[nodiscard]] virtual std::vector<std::string> getExamples() const { return {}; }
 
     /**
      * @brief 序列化参数类型元数据
      * @return 用于命令树同步的类型元数据
      */
-    [[nodiscard]] virtual nlohmann::json serializeMetadata() const {
-        return nlohmann::json::object();
-    }
+    [[nodiscard]] virtual nlohmann::json serializeMetadata() const { return nlohmann::json::object(); }
 };
 
 // ========== 字符串参数 ==========
@@ -70,40 +66,46 @@ public:
 class StringArgumentType : public ArgumentType<std::string> {
 public:
     enum class StringType {
-        SingleWord,      // 单个单词
-        QuotablePhrase,  // 可引号短语
-        GreedyPhrase     // 贪婪短语
+        SingleWord,     // 单个单词
+        QuotablePhrase, // 可引号短语
+        GreedyPhrase    // 贪婪短语
     };
 
     explicit StringArgumentType(StringType type = StringType::QuotablePhrase)
-        : m_type(type) {}
+        : m_type(type)
+    {}
 
-    [[nodiscard]] std::string parse(StringReader& reader) override {
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
         switch (m_type) {
             case StringType::SingleWord:
                 return reader.readUnquotedString();
             case StringType::QuotablePhrase:
                 return reader.readString();
-            case StringType::GreedyPhrase:
-                {
-                    std::string remaining = reader.getRemaining();
-                    reader.setCursor(reader.getTotalLength());
-                    return remaining;
-                }
+            case StringType::GreedyPhrase: {
+                std::string remaining = reader.getRemaining();
+                reader.setCursor(reader.getTotalLength());
+                return remaining;
+            }
         }
         return "";
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override
+    {
         switch (m_type) {
-            case StringType::SingleWord: return "word";
-            case StringType::QuotablePhrase: return "phrase";
-            case StringType::GreedyPhrase: return "greedy_string";
+            case StringType::SingleWord:
+                return "word";
+            case StringType::QuotablePhrase:
+                return "phrase";
+            case StringType::GreedyPhrase:
+                return "greedy_string";
         }
         return "string";
     }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
         switch (m_type) {
             case StringType::SingleWord:
                 return {"word", "123"};
@@ -115,29 +117,28 @@ public:
         return {};
     }
 
-    [[nodiscard]] nlohmann::json serializeMetadata() const override {
-        return nlohmann::json{{"mode", getTypeName()}};
-    }
+    [[nodiscard]] nlohmann::json serializeMetadata() const override { return nlohmann::json{{"mode", getTypeName()}}; }
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<StringArgumentType> word() {
+    static std::shared_ptr<StringArgumentType> word()
+    {
         return std::make_shared<StringArgumentType>(StringType::SingleWord);
     }
 
-    static std::shared_ptr<StringArgumentType> string() {
+    static std::shared_ptr<StringArgumentType> string()
+    {
         return std::make_shared<StringArgumentType>(StringType::QuotablePhrase);
     }
 
-    static std::shared_ptr<StringArgumentType> greedyString() {
+    static std::shared_ptr<StringArgumentType> greedyString()
+    {
         return std::make_shared<StringArgumentType>(StringType::GreedyPhrase);
     }
 
     // ========== 静态获取方法 ==========
 
-    static std::string getString(StringReader& reader) {
-        return reader.readString();
-    }
+    static std::string getString(StringReader& reader) { return reader.readString(); }
 
 private:
     StringType m_type;
@@ -154,63 +155,54 @@ class IntegerArgumentType : public ArgumentType<i32> {
 public:
     explicit IntegerArgumentType(i32 min = INT32_MIN, i32 max = INT32_MAX)
         : m_min(min)
-        , m_max(max) {}
+        , m_max(max)
+    {}
 
-    [[nodiscard]] i32 parse(StringReader& reader) override {
+    [[nodiscard]] i32 parse(StringReader& reader) override
+    {
         i32 start = reader.getCursor();
         i32 result = reader.readInt();
 
         if (result < m_min) {
             reader.setCursor(start);
             throw CommandException(
-                CommandErrorType::IntegerTooLow,
-                "Integer must be at least " + std::to_string(m_min),
-                start
-            );
+                CommandErrorType::IntegerTooLow, "Integer must be at least " + std::to_string(m_min), start);
         }
         if (result > m_max) {
             reader.setCursor(start);
             throw CommandException(
-                CommandErrorType::IntegerTooHigh,
-                "Integer must be at most " + std::to_string(m_max),
-                start
-            );
+                CommandErrorType::IntegerTooHigh, "Integer must be at most " + std::to_string(m_max), start);
         }
 
         return result;
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "integer";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "integer"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
-        return {"0", "123", "-123"};
-    }
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0", "123", "-123"}; }
 
-    [[nodiscard]] nlohmann::json serializeMetadata() const override {
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
         return nlohmann::json{{"min", m_min}, {"max", m_max}};
     }
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<IntegerArgumentType> integer() {
-        return std::make_shared<IntegerArgumentType>();
-    }
+    static std::shared_ptr<IntegerArgumentType> integer() { return std::make_shared<IntegerArgumentType>(); }
 
-    static std::shared_ptr<IntegerArgumentType> integer(i32 min) {
+    static std::shared_ptr<IntegerArgumentType> integer(i32 min)
+    {
         return std::make_shared<IntegerArgumentType>(min, INT32_MAX);
     }
 
-    static std::shared_ptr<IntegerArgumentType> integer(i32 min, i32 max) {
+    static std::shared_ptr<IntegerArgumentType> integer(i32 min, i32 max)
+    {
         return std::make_shared<IntegerArgumentType>(min, max);
     }
 
     // ========== 静态获取方法 ==========
 
-    static i32 getInteger(StringReader& reader) {
-        return reader.readInt();
-    }
+    static i32 getInteger(StringReader& reader) { return reader.readInt(); }
 
 private:
     i32 m_min;
@@ -226,61 +218,52 @@ class FloatArgumentType : public ArgumentType<f32> {
 public:
     explicit FloatArgumentType(f32 min = -FLT_MAX, f32 max = FLT_MAX)
         : m_min(min)
-        , m_max(max) {}
+        , m_max(max)
+    {}
 
-    [[nodiscard]] f32 parse(StringReader& reader) override {
+    [[nodiscard]] f32 parse(StringReader& reader) override
+    {
         i32 start = reader.getCursor();
         f64 result = reader.readDouble();
 
         if (result < m_min) {
             reader.setCursor(start);
             throw CommandException(
-                CommandErrorType::FloatTooLow,
-                "Float must be at least " + std::to_string(m_min),
-                start
-            );
+                CommandErrorType::FloatTooLow, "Float must be at least " + std::to_string(m_min), start);
         }
         if (result > m_max) {
             reader.setCursor(start);
             throw CommandException(
-                CommandErrorType::FloatTooHigh,
-                "Float must be at most " + std::to_string(m_max),
-                start
-            );
+                CommandErrorType::FloatTooHigh, "Float must be at most " + std::to_string(m_max), start);
         }
 
         return static_cast<f32>(result);
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "float";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "float"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
-        return {"0", "1.5", "-2.5"};
-    }
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0", "1.5", "-2.5"}; }
 
-    [[nodiscard]] nlohmann::json serializeMetadata() const override {
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
         return nlohmann::json{{"min", m_min}, {"max", m_max}};
     }
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<FloatArgumentType> floatArg() {
-        return std::make_shared<FloatArgumentType>();
-    }
+    static std::shared_ptr<FloatArgumentType> floatArg() { return std::make_shared<FloatArgumentType>(); }
 
-    static std::shared_ptr<FloatArgumentType> floatArg(f32 min) {
+    static std::shared_ptr<FloatArgumentType> floatArg(f32 min)
+    {
         return std::make_shared<FloatArgumentType>(min, FLT_MAX);
     }
 
-    static std::shared_ptr<FloatArgumentType> floatArg(f32 min, f32 max) {
+    static std::shared_ptr<FloatArgumentType> floatArg(f32 min, f32 max)
+    {
         return std::make_shared<FloatArgumentType>(min, max);
     }
 
-    static f32 getFloat(StringReader& reader) {
-        return static_cast<f32>(reader.readDouble());
-    }
+    static f32 getFloat(StringReader& reader) { return static_cast<f32>(reader.readDouble()); }
 
 private:
     f32 m_min;
@@ -294,29 +277,17 @@ private:
  */
 class BoolArgumentType : public ArgumentType<bool> {
 public:
-    [[nodiscard]] bool parse(StringReader& reader) override {
-        return reader.readBool();
-    }
+    [[nodiscard]] bool parse(StringReader& reader) override { return reader.readBool(); }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "bool";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "bool"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
-        return {"true", "false"};
-    }
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"true", "false"}; }
 
-    [[nodiscard]] nlohmann::json serializeMetadata() const override {
-        return nlohmann::json::object();
-    }
+    [[nodiscard]] nlohmann::json serializeMetadata() const override { return nlohmann::json::object(); }
 
-    static std::shared_ptr<BoolArgumentType> boolArg() {
-        return std::make_shared<BoolArgumentType>();
-    }
+    static std::shared_ptr<BoolArgumentType> boolArg() { return std::make_shared<BoolArgumentType>(); }
 
-    static bool getBool(StringReader& reader) {
-        return reader.readBool();
-    }
+    static bool getBool(StringReader& reader) { return reader.readBool(); }
 };
 
 // ========== 枚举参数模板 ==========
@@ -339,48 +310,41 @@ public:
  *     .add("spectator", GameMode::Spectator);
  * @endcode
  */
-template<typename T>
+template <typename T>
 class EnumArgumentType : public ArgumentType<T> {
 public:
-    EnumArgumentType& add(const std::string& name, T value) {
+    EnumArgumentType& add(const std::string& name, T value)
+    {
         m_names.push_back(name);
         m_values[name] = value;
         return *this;
     }
 
-    [[nodiscard]] T parse(StringReader& reader) override {
+    [[nodiscard]] T parse(StringReader& reader) override
+    {
         i32 start = reader.getCursor();
         std::string name = reader.readUnquotedString();
 
         auto it = m_values.find(name);
         if (it == m_values.end()) {
             reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::Unknown,
-                "Unknown value: " + name,
-                start
-            );
+            throw CommandException(CommandErrorType::Unknown, "Unknown value: " + name, start);
         }
 
         return it->second;
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "enum";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "enum"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
-        return m_names;
-    }
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return m_names; }
 
-    [[nodiscard]] nlohmann::json serializeMetadata() const override {
-        return nlohmann::json{{"values", m_names}};
-    }
+    [[nodiscard]] nlohmann::json serializeMetadata() const override { return nlohmann::json{{"values", m_names}}; }
 
     // ========== 静态方法 ==========
 
-    template<typename S>
-    static T getEnum(CommandContext<S>& context, const std::string& name) {
+    template <typename S>
+    static T getEnum(CommandContext<S>& context, const std::string& name)
+    {
         return context.template getArgument<T>(name);
     }
 

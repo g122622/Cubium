@@ -93,7 +93,8 @@ constexpr const char* UNLUCK_UUID = "CC5AF142-2BD2-4215-B636-2605A17BEFD1";
  * @param uuidStr UUID 字符串
  * @return std::string 类型的 UUID
  */
-inline std::string fromString(const char* uuidStr) {
+inline std::string fromString(const char* uuidStr)
+{
     return std::string(uuidStr);
 }
 

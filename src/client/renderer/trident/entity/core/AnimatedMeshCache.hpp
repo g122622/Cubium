@@ -1,12 +1,12 @@
 #pragma once
 
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
-#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/core/Types.hpp"
+#include <memory>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
 namespace mc::client::renderer::entity::core {
 
@@ -44,13 +44,11 @@ public:
      * @param pipeline 渲染管线（用于创建/更新网格）
      * @return 指向网格的指针，如果创建失败返回 nullptr
      */
-    pipeline::EntityMesh* getOrUpdateMesh(
-        EntityId entityId,
+    pipeline::EntityMesh* getOrUpdateMesh(EntityId entityId,
         model::EntityModel& model,
         const std::string& typeId,
         const AnimationContext& state,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 移除实体的缓存网格
@@ -103,10 +101,10 @@ private:
     UvRemapFunc m_uvRemapFunc;
 
     /// 动画更新策略参数
-    static constexpr u32 ACTIVE_UPDATE_INTERVAL = 2;     ///< 活跃动画更新间隔（帧）
-    static constexpr u32 IDLE_UPDATE_INTERVAL = 6;       ///< 非活跃动画更新间隔（帧）
-    static constexpr u32 FORCE_UPDATE_INTERVAL = 12;     ///< 强制刷新间隔，防止长期漂移
-    static constexpr f64 STATE_CHANGE_THRESHOLD = 0.08;  ///< 动画参数变化阈值
+    static constexpr u32 ACTIVE_UPDATE_INTERVAL = 2;    ///< 活跃动画更新间隔（帧）
+    static constexpr u32 IDLE_UPDATE_INTERVAL = 6;      ///< 非活跃动画更新间隔（帧）
+    static constexpr u32 FORCE_UPDATE_INTERVAL = 12;    ///< 强制刷新间隔，防止长期漂移
+    static constexpr f64 STATE_CHANGE_THRESHOLD = 0.08; ///< 动画参数变化阈值
 
     /// 缓存大小限制
     static constexpr size_t MAX_CACHE_SIZE = 1024;

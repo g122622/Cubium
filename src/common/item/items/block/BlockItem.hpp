@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../context/BlockItemUseContext.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../context/BlockItemUseContext.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../core/Item.hpp"
 
 namespace mc {
 
@@ -125,9 +125,8 @@ protected:
      * @param state 方块状态
      * @return 是否成功设置了方块实体数据
      */
-    [[nodiscard]] virtual bool onBlockPlaced(const BlockPos& pos, IWorld& world,
-                                              Player* player, const ItemStack& stack,
-                                              const BlockState& state) const;
+    [[nodiscard]] virtual bool onBlockPlaced(
+        const BlockPos& pos, IWorld& world, Player* player, const ItemStack& stack, const BlockState& state) const;
 
     /**
      * @brief 检查放置位置是否有效
@@ -150,9 +149,8 @@ protected:
      * @param state 原始方块状态
      * @return 修改后的方块状态
      */
-    [[nodiscard]] const BlockState* applyBlockStateFromNBT(const BlockPos& pos, IWorld& world,
-                                                            const ItemStack& stack,
-                                                            const BlockState& state) const;
+    [[nodiscard]] const BlockState* applyBlockStateFromNBT(
+        const BlockPos& pos, IWorld& world, const ItemStack& stack, const BlockState& state) const;
 
 private:
     const Block* m_block;

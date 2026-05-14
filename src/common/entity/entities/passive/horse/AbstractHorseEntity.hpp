@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
-#include "../../../interfaces/IJumpingMount.hpp"
-#include "../../../interfaces/IEquipable.hpp"
-#include "../../../core/DataParameter.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../world/blockentity/core/SimpleInventory.hpp"
+#include "../../../core/DataParameter.hpp"
+#include "../../../interfaces/IEquipable.hpp"
+#include "../../../interfaces/IJumpingMount.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
 #include <optional>
 
@@ -28,9 +28,7 @@ class ItemStack;
  *
  * 参考 MC 1.16.5 AbstractHorseEntity
  */
-class AbstractHorseEntity : public AnimalEntity,
-                            public entity::IJumpingMount,
-                            public entity::IEquipable {
+class AbstractHorseEntity : public AnimalEntity, public entity::IJumpingMount, public entity::IEquipable {
 public:
     /**
      * @brief 构造函数
@@ -139,49 +137,37 @@ public:
      * @brief 检查是否正在吃
      * @return 是否正在吃
      */
-    [[nodiscard]] bool isEating() const {
-        return getHorseWatchableBoolean(STATUS_FLAG_EATING);
-    }
+    [[nodiscard]] bool isEating() const { return getHorseWatchableBoolean(STATUS_FLAG_EATING); }
 
     /**
      * @brief 设置进食状态
      * @param eating 是否正在吃
      */
-    void setEating(bool eating) {
-        setHorseWatchableBoolean(STATUS_FLAG_EATING, eating);
-    }
+    void setEating(bool eating) { setHorseWatchableBoolean(STATUS_FLAG_EATING, eating); }
 
     /**
      * @brief 检查是否已繁殖
      * @return 是否已繁殖
      */
-    [[nodiscard]] bool isBred() const {
-        return getHorseWatchableBoolean(STATUS_FLAG_BRED);
-    }
+    [[nodiscard]] bool isBred() const { return getHorseWatchableBoolean(STATUS_FLAG_BRED); }
 
     /**
      * @brief 设置繁殖状态
      * @param bred 是否已繁殖
      */
-    void setBred(bool bred) {
-        setHorseWatchableBoolean(STATUS_FLAG_BRED, bred);
-    }
+    void setBred(bool bred) { setHorseWatchableBoolean(STATUS_FLAG_BRED, bred); }
 
     /**
      * @brief 检查嘴巴是否张开
      * @return 嘴巴是否张开
      */
-    [[nodiscard]] bool isMouthOpen() const {
-        return getHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN);
-    }
+    [[nodiscard]] bool isMouthOpen() const { return getHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN); }
 
     /**
      * @brief 设置嘴巴张开状态
      * @param open 嘴巴是否张开
      */
-    void setMouthOpen(bool open) {
-        setHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN, open);
-    }
+    void setMouthOpen(bool open) { setHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN, open); }
 
     /**
      * @brief 获取愤怒音效
@@ -387,10 +373,10 @@ protected:
     i32 m_maxTemper = 100;
 
     // 跳跃状态
-    i32 m_jumpPower = 0;        // MC 1.16.5: 跳跃力度 (0-100)
-    f32 m_jumpStrength = 0.0f;  // 基础跳跃强度
+    i32 m_jumpPower = 0;       // MC 1.16.5: 跳跃力度 (0-100)
+    f32 m_jumpStrength = 0.0f; // 基础跳跃强度
     bool m_isJumping = false;
-    bool m_allowStandSliding = false;  // MC 1.16.5: 允许站立滑动
+    bool m_allowStandSliding = false; // MC 1.16.5: 允许站立滑动
     i32 m_jumpCooldown = 0;
 
     // 加速状态
@@ -400,7 +386,7 @@ protected:
     // 属性（马特有）
     f32 m_speed = 0.0f;
     f32 m_jumpHeight = 0.0f;
-    f32 m_horseHealth = 0.0f;  // 改名避免与基类冲突
+    f32 m_horseHealth = 0.0f; // 改名避免与基类冲突
 
     // 库存（鞍槽 + 马铠槽）
     std::unique_ptr<blockentity::SimpleInventory> m_inventory;
@@ -420,8 +406,8 @@ protected:
 
 private:
     // MC 1.16.5 数据参数
-    static entity::DataParameter<i8> STATUS_PARAM;  // 使用 i8 代替 u8（DataValue 支持的类型）
-    static entity::DataParameter<i64> OWNER_UUID_PARAM;  // 0 表示无主人
+    static entity::DataParameter<i8> STATUS_PARAM;      // 使用 i8 代替 u8（DataValue 支持的类型）
+    static entity::DataParameter<i64> OWNER_UUID_PARAM; // 0 表示无主人
 
     // MC 1.16.5 状态标志位
     // 参考 AbstractHorseEntity.java 行128-138
@@ -436,14 +422,14 @@ private:
     static constexpr i8 STATUS_FLAG_MOUTH_OPEN = 64; // bit 6: 嘴张开
 
     // 常量
-    static constexpr f32 MIN_SPEED = 0.1127f;       // 最小速度
-    static constexpr f32 MAX_SPEED = 0.3375f;       // 最大速度
-    static constexpr f32 MIN_JUMP = 0.4f;           // 最小跳跃
-    static constexpr f32 MAX_JUMP = 1.0f;           // 最大跳跃
-    static constexpr f32 MIN_HEALTH = 15.0f;        // 最小生命值
-    static constexpr f32 MAX_HEALTH = 30.0f;        // 最大生命值
-    static constexpr i32 MAX_BOOST_TIME = 300;      // 最大加速时间（ticks）
-    static constexpr f32 JUMP_POWER_SCALE = 0.98f;  // 跳跃蓄力缩放
+    static constexpr f32 MIN_SPEED = 0.1127f;      // 最小速度
+    static constexpr f32 MAX_SPEED = 0.3375f;      // 最大速度
+    static constexpr f32 MIN_JUMP = 0.4f;          // 最小跳跃
+    static constexpr f32 MAX_JUMP = 1.0f;          // 最大跳跃
+    static constexpr f32 MIN_HEALTH = 15.0f;       // 最小生命值
+    static constexpr f32 MAX_HEALTH = 30.0f;       // 最大生命值
+    static constexpr i32 MAX_BOOST_TIME = 300;     // 最大加速时间（ticks）
+    static constexpr f32 JUMP_POWER_SCALE = 0.98f; // 跳跃蓄力缩放
 };
 
 } // namespace mc

@@ -6,8 +6,7 @@ namespace mc::client::renderer::entity::model::animal {
 
 VillagerModel::VillagerModel(f32 scale)
     : VillagerModel(scale, 64, 64)
-{
-}
+{}
 
 VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
 {
@@ -58,10 +57,10 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     // 手臂（交叉在胸前）
     m_arms = std::make_shared<ModelRenderer>("arms");
     m_arms->setTextureOffset(44, 22);
-    m_arms->addBox(-8.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, static_cast<f64>(scale));  // 左臂
+    m_arms->addBox(-8.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, static_cast<f64>(scale)); // 左臂
     // 右臂需要mirror=true - 参考 MC 1.16.5 VillagerModel 第55行
     m_arms->setTextureOffset(44, 22);
-    m_arms->addBox(4.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, true, static_cast<f64>(scale));  // 右臂，mirror=true
+    m_arms->addBox(4.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, true, static_cast<f64>(scale)); // 右臂，mirror=true
     m_arms->setTextureOffset(40, 38);
     m_arms->addBox(-4.0f, 2.0f, -2.0f, 8.0f, 4.0f, 4.0f, static_cast<f64>(scale)); // 连接部分
     m_arms->setRotationPoint(0.0f, 2.0f, 0.0f);
@@ -87,7 +86,8 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_parts.push_back(m_arms);
 }
 
-void VillagerModel::render(f64 scale) {
+void VillagerModel::render(f64 scale)
+{
     for (auto& part : m_parts) {
         if (part) {
             part->render(scale);
@@ -95,9 +95,9 @@ void VillagerModel::render(f64 scale) {
     }
 }
 
-void VillagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                               f64 ageInTicks, f64 netHeadYaw,
-                               f64 headPitch, f64 /*scale*/) {
+void VillagerModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
+{
     // 头部旋转
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
@@ -117,7 +117,8 @@ void VillagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 腿部动画
     m_rightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount * 0.5));
-    m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmount * 0.5));
+    m_leftLeg->setRotateAngleX(
+        static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmount * 0.5));
     m_rightLeg->setRotateAngleY(0.0f);
     m_leftLeg->setRotateAngleY(0.0f);
 }

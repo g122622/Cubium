@@ -1,7 +1,7 @@
 #include "TickManager.hpp"
+#include "../../IWorld.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../fluid/FluidRegistry.hpp"
-#include "../../IWorld.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::world::tick {
@@ -11,7 +11,8 @@ namespace mc::world::tick {
 // ============================================================================
 
 TickManager::TickManager(IWorld& world)
-    : m_world(world) {
+    : m_world(world)
+{
 
     // 创建方块tick列表
     // 过滤器：无过滤器（在tick回调中检查空气方块）
@@ -20,13 +21,9 @@ TickManager::TickManager(IWorld& world)
         // 过滤器：无过滤
         [](Block&) -> bool { return false; },
         // 序列化：Block -> ResourceLocation
-        [](Block& block) -> const ResourceLocation& {
-            return block.blockLocation();
-        },
+        [](Block& block) -> const ResourceLocation& { return block.blockLocation(); },
         // 反序列化：ResourceLocation -> Block*
-        [](const ResourceLocation& id) -> Block* {
-            return BlockRegistry::instance().getBlock(id);
-        },
+        [](const ResourceLocation& id) -> Block* { return BlockRegistry::instance().getBlock(id); },
         // tick回调：执行方块tick
         // 参考: MC 1.16.5 ServerWorld.tickBlock
         // 必须检查当前位置的方块是否是调度时的目标方块
@@ -38,24 +35,17 @@ TickManager::TickManager(IWorld& world)
                 block.tick(w, pos, *mutableState, w.getRandom());
             }
             // 如果方块不匹配，说明方块已改变，跳过此次tick
-        }
-    );
+        });
 
     // 创建流体tick列表
     // 过滤器：忽略空流体
     m_fluidTicks = std::make_unique<ServerTickList<fluid::Fluid>>(
         world,
-        [](fluid::Fluid& fluid) -> bool {
-            return fluid.isEmpty();
-        },
+        [](fluid::Fluid& fluid) -> bool { return fluid.isEmpty(); },
         // 序列化：Fluid -> ResourceLocation
-        [](fluid::Fluid& fluid) -> const ResourceLocation& {
-            return fluid.fluidLocation();
-        },
+        [](fluid::Fluid& fluid) -> const ResourceLocation& { return fluid.fluidLocation(); },
         // 反序列化：ResourceLocation -> Fluid*
-        [](const ResourceLocation& id) -> fluid::Fluid* {
-            return fluid::FluidRegistry::instance().getFluid(id);
-        },
+        [](const ResourceLocation& id) -> fluid::Fluid* { return fluid::FluidRegistry::instance().getFluid(id); },
         // tick回调：执行流体tick
         // 参考: MC 1.16.5 ServerWorld.tickFluid
         // 必须检查当前位置的流体是否是调度时的目标流体
@@ -70,8 +60,7 @@ TickManager::TickManager(IWorld& world)
                 }
                 // 如果流体不匹配，说明流体已改变，跳过此次tick
             }
-        }
-    );
+        });
 }
 
 TickManager::~TickManager() = default;
@@ -80,23 +69,28 @@ TickManager::~TickManager() = default;
 // 方块tick调度
 // ============================================================================
 
-void TickManager::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay) {
+void TickManager::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay)
+{
     m_blockTicks->scheduleTick(pos, block, delay);
 }
 
-void TickManager::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay, TickPriority priority) {
+void TickManager::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay, TickPriority priority)
+{
     m_blockTicks->scheduleTick(pos, block, delay, priority);
 }
 
-bool TickManager::isBlockTickScheduled(const BlockPos& pos, Block& block) const {
+bool TickManager::isBlockTickScheduled(const BlockPos& pos, Block& block) const
+{
     return m_blockTicks->isTickScheduled(pos, block);
 }
 
-bool TickManager::isBlockTickPending(const BlockPos& pos, Block& block) const {
+bool TickManager::isBlockTickPending(const BlockPos& pos, Block& block) const
+{
     return m_blockTicks->isTickPending(pos, block);
 }
 
-bool TickManager::cancelBlockTick(const BlockPos& pos, Block& block) {
+bool TickManager::cancelBlockTick(const BlockPos& pos, Block& block)
+{
     return m_blockTicks->cancelTick(pos, block);
 }
 
@@ -104,23 +98,28 @@ bool TickManager::cancelBlockTick(const BlockPos& pos, Block& block) {
 // 流体tick调度
 // ============================================================================
 
-void TickManager::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay) {
+void TickManager::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay)
+{
     m_fluidTicks->scheduleTick(pos, fluid, delay);
 }
 
-void TickManager::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay, TickPriority priority) {
+void TickManager::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay, TickPriority priority)
+{
     m_fluidTicks->scheduleTick(pos, fluid, delay, priority);
 }
 
-bool TickManager::isFluidTickScheduled(const BlockPos& pos, fluid::Fluid& fluid) const {
+bool TickManager::isFluidTickScheduled(const BlockPos& pos, fluid::Fluid& fluid) const
+{
     return m_fluidTicks->isTickScheduled(pos, fluid);
 }
 
-bool TickManager::isFluidTickPending(const BlockPos& pos, fluid::Fluid& fluid) const {
+bool TickManager::isFluidTickPending(const BlockPos& pos, fluid::Fluid& fluid) const
+{
     return m_fluidTicks->isTickPending(pos, fluid);
 }
 
-bool TickManager::cancelFluidTick(const BlockPos& pos, fluid::Fluid& fluid) {
+bool TickManager::cancelFluidTick(const BlockPos& pos, fluid::Fluid& fluid)
+{
     return m_fluidTicks->cancelTick(pos, fluid);
 }
 
@@ -128,9 +127,9 @@ bool TickManager::cancelFluidTick(const BlockPos& pos, fluid::Fluid& fluid) {
 // 执行tick
 // ============================================================================
 
-void TickManager::tick(u64 currentTick) {
-    MC_TRACE_EVENT("server.tick", "TickManager::tick",
-        "currentTick", currentTick);
+void TickManager::tick(u64 currentTick)
+{
+    MC_TRACE_EVENT("server.tick", "TickManager::tick", "currentTick", currentTick);
 
     // 设置当前tick用于调度计算
     m_blockTicks->setCurrentTick(currentTick);
@@ -153,14 +152,14 @@ void TickManager::tick(u64 currentTick) {
 // 区块序列化
 // ============================================================================
 
-std::vector<ScheduledTick<Block>> TickManager::getPendingBlockTicks(
-    i32 chunkX, i32 chunkZ, bool remove) {
+std::vector<ScheduledTick<Block>> TickManager::getPendingBlockTicks(i32 chunkX, i32 chunkZ, bool remove)
+{
 
     return m_blockTicks->getPendingTicks(chunkX, chunkZ, remove, true);
 }
 
-std::vector<ScheduledTick<fluid::Fluid>> TickManager::getPendingFluidTicks(
-    i32 chunkX, i32 chunkZ, bool remove) {
+std::vector<ScheduledTick<fluid::Fluid>> TickManager::getPendingFluidTicks(i32 chunkX, i32 chunkZ, bool remove)
+{
 
     return m_fluidTicks->getPendingTicks(chunkX, chunkZ, remove, true);
 }
@@ -169,19 +168,23 @@ std::vector<ScheduledTick<fluid::Fluid>> TickManager::getPendingFluidTicks(
 // 统计
 // ============================================================================
 
-size_t TickManager::pendingBlockTickCount() const {
+size_t TickManager::pendingBlockTickCount() const
+{
     return m_blockTicks->pendingCount();
 }
 
-size_t TickManager::pendingFluidTickCount() const {
+size_t TickManager::pendingFluidTickCount() const
+{
     return m_fluidTicks->pendingCount();
 }
 
-size_t TickManager::executedBlockTickCount() const {
+size_t TickManager::executedBlockTickCount() const
+{
     return m_blockTicks->executedThisTickCount();
 }
 
-size_t TickManager::executedFluidTickCount() const {
+size_t TickManager::executedFluidTickCount() const
+{
     return m_fluidTicks->executedThisTickCount();
 }
 

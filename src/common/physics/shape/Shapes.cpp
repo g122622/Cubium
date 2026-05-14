@@ -19,7 +19,8 @@ bool Shapes::s_initialized = false;
 // 初始化
 // ============================================================================
 
-void Shapes::ensureInitialized() {
+void Shapes::ensureInitialized()
+{
     if (s_initialized) return;
 
     // 创建空形状
@@ -32,12 +33,10 @@ void Shapes::ensureInitialized() {
     s_block = VoxelShape(blockShape, {0.0, 1.0}, {0.0, 1.0}, {0.0, 1.0});
 
     // 创建无限大形状
-    s_infinity = VoxelShape(
-        std::make_shared<DiscreteVoxelShape>(1, 1, 1),
+    s_infinity = VoxelShape(std::make_shared<DiscreteVoxelShape>(1, 1, 1),
         {-std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()},
         {-std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()},
-        {-std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()}
-    );
+        {-std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()});
     s_infinity.m_shape->fill(0, 0, 0);
 
     s_initialized = true;
@@ -47,22 +46,26 @@ void Shapes::ensureInitialized() {
 // 基础形状
 // ============================================================================
 
-VoxelShape Shapes::empty() {
+VoxelShape Shapes::empty()
+{
     ensureInitialized();
     return s_empty;
 }
 
-VoxelShape Shapes::block() {
+VoxelShape Shapes::block()
+{
     ensureInitialized();
     return s_block;
 }
 
-VoxelShape Shapes::infinity() {
+VoxelShape Shapes::infinity()
+{
     ensureInitialized();
     return s_infinity;
 }
 
-VoxelShape Shapes::box(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ) {
+VoxelShape Shapes::box(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ)
+{
     if (minX > maxX || minY > maxY || minZ > maxZ) {
         // 抛出异常或返回空
         return empty();
@@ -70,7 +73,8 @@ VoxelShape Shapes::box(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 max
     return create(minX, minY, minZ, maxX, maxY, maxZ);
 }
 
-VoxelShape Shapes::create(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ) {
+VoxelShape Shapes::create(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ)
+{
     // 检查尺寸是否太小
     if (maxX - minX < EPSILON || maxY - minY < EPSILON || maxZ - minZ < EPSILON) {
         return empty();
@@ -114,15 +118,15 @@ VoxelShape Shapes::create(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 
     const i32 ySize = 1 << yBits;
     const i32 zSize = 1 << zBits;
 
-    auto shape = DiscreteVoxelShape::withFilledBounds(
-        xSize, ySize, zSize,
+    auto shape = DiscreteVoxelShape::withFilledBounds(xSize,
+        ySize,
+        zSize,
         static_cast<i32>(std::round(minX * xSize)),
         static_cast<i32>(std::round(minY * ySize)),
         static_cast<i32>(std::round(minZ * zSize)),
         static_cast<i32>(std::round(maxX * xSize)),
         static_cast<i32>(std::round(maxY * ySize)),
-        static_cast<i32>(std::round(maxZ * zSize))
-    );
+        static_cast<i32>(std::round(maxZ * zSize)));
 
     // 创建立方体坐标点
     std::vector<f64> xPoints(xSize + 1);
@@ -140,10 +144,13 @@ VoxelShape Shapes::create(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 
     }
 
     return VoxelShape(std::make_shared<DiscreteVoxelShape>(std::move(shape)),
-                      std::move(xPoints), std::move(yPoints), std::move(zPoints));
+        std::move(xPoints),
+        std::move(yPoints),
+        std::move(zPoints));
 }
 
-VoxelShape Shapes::create(const AxisAlignedBB& aabb) {
+VoxelShape Shapes::create(const AxisAlignedBB& aabb)
+{
     return create(aabb.minX, aabb.minY, aabb.minZ, aabb.maxX, aabb.maxY, aabb.maxZ);
 }
 
@@ -151,11 +158,13 @@ VoxelShape Shapes::create(const AxisAlignedBB& aabb) {
 // 布尔运算
 // ============================================================================
 
-VoxelShape Shapes::or_(const VoxelShape& a, const VoxelShape& b) {
+VoxelShape Shapes::or_(const VoxelShape& a, const VoxelShape& b)
+{
     return join(a, b, BooleanOps::Or());
 }
 
-VoxelShape Shapes::or_(const VoxelShape& first, const std::vector<VoxelShape>& others) {
+VoxelShape Shapes::or_(const VoxelShape& first, const std::vector<VoxelShape>& others)
+{
     VoxelShape result = first;
     for (const auto& shape : others) {
         result = or_(result, shape);
@@ -163,11 +172,13 @@ VoxelShape Shapes::or_(const VoxelShape& first, const std::vector<VoxelShape>& o
     return result;
 }
 
-VoxelShape Shapes::join(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op) {
+VoxelShape Shapes::join(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op)
+{
     return joinUnoptimized(a, b, op).optimize();
 }
 
-VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op) {
+VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op)
+{
     // 特殊情况处理
     if (!op.apply(false, false)) {
         // FALSE 操作会导致无限体积，不允许
@@ -214,14 +225,12 @@ VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, con
         }
 
         // 创建相交区域
-        const AxisAlignedBB intersection(
-            std::max(aBounds.minX, bBounds.minX),
+        const AxisAlignedBB intersection(std::max(aBounds.minX, bBounds.minX),
             std::max(aBounds.minY, bBounds.minY),
             std::max(aBounds.minZ, bBounds.minZ),
             std::min(aBounds.maxX, bBounds.maxX),
             std::min(aBounds.maxY, bBounds.maxY),
-            std::min(aBounds.maxZ, bBounds.maxZ)
-        );
+            std::min(aBounds.maxZ, bBounds.maxZ));
 
         return create(intersection);
     }
@@ -230,9 +239,10 @@ VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, con
     return empty();
 }
 
-bool Shapes::joinIsNotEmpty(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op) {
+bool Shapes::joinIsNotEmpty(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op)
+{
     if (!op.apply(false, false)) {
-        return false;  // FALSE 操作
+        return false; // FALSE 操作
     }
 
     const bool aEmpty = a.isEmpty();
@@ -284,7 +294,8 @@ bool Shapes::joinIsNotEmpty(const VoxelShape& a, const VoxelShape& b, const Bool
 // 面遮挡检测
 // ============================================================================
 
-bool Shapes::blockOccludes(const VoxelShape& sourceShape, const VoxelShape& targetShape, Direction direction) {
+bool Shapes::blockOccludes(const VoxelShape& sourceShape, const VoxelShape& targetShape, Direction direction)
+{
     // 如果两个都是完整方块，完全遮挡
     if (isBlock(sourceShape) && isBlock(targetShape)) {
         return true;
@@ -326,7 +337,8 @@ bool Shapes::blockOccludes(const VoxelShape& sourceShape, const VoxelShape& targ
     }
 }
 
-bool Shapes::mergedFaceOccludes(const VoxelShape& sourceShape, const VoxelShape& targetShape, Direction direction) {
+bool Shapes::mergedFaceOccludes(const VoxelShape& sourceShape, const VoxelShape& targetShape, Direction direction)
+{
     // 如果任意一个是完整方块，完全遮挡
     if (isBlock(sourceShape) || isBlock(targetShape)) {
         return true;
@@ -356,7 +368,8 @@ bool Shapes::mergedFaceOccludes(const VoxelShape& sourceShape, const VoxelShape&
     return !joinIsNotEmpty(block(), merged, BooleanOps::OnlyFirst());
 }
 
-bool Shapes::faceShapeOccludes(const VoxelShape& faceShape1, const VoxelShape& faceShape2) {
+bool Shapes::faceShapeOccludes(const VoxelShape& faceShape1, const VoxelShape& faceShape2)
+{
     // 如果任意一个是完整方块，完全遮挡
     if (isBlock(faceShape1) || isBlock(faceShape2)) {
         return true;
@@ -376,7 +389,8 @@ bool Shapes::faceShapeOccludes(const VoxelShape& faceShape1, const VoxelShape& f
 // 切片操作
 // ============================================================================
 
-VoxelShape Shapes::slice(const VoxelShape& shape, Axis axis, i32 index) {
+VoxelShape Shapes::slice(const VoxelShape& shape, Axis axis, i32 index)
+{
     if (shape.isEmpty()) {
         return empty();
     }
@@ -409,8 +423,7 @@ VoxelShape Shapes::slice(const VoxelShape& shape, Axis axis, i32 index) {
     }
 
     // 创建新的离散形状
-    auto newShape = std::make_shared<DiscreteVoxelShape>(
-        endX - startX, endY - startY, endZ - startZ);
+    auto newShape = std::make_shared<DiscreteVoxelShape>(endX - startX, endY - startY, endZ - startZ);
 
     for (i32 x = startX; x < endX; ++x) {
         for (i32 y = startY; y < endY; ++y) {
@@ -451,7 +464,8 @@ VoxelShape Shapes::slice(const VoxelShape& shape, Axis axis, i32 index) {
     return VoxelShape(newShape, newXCoords, newYCoords, newZCoords);
 }
 
-VoxelShape Shapes::createSlice(const VoxelShape& shape, Axis axis, i32 index) {
+VoxelShape Shapes::createSlice(const VoxelShape& shape, Axis axis, i32 index)
+{
     return slice(shape, axis, index);
 }
 
@@ -459,8 +473,8 @@ VoxelShape Shapes::createSlice(const VoxelShape& shape, Axis axis, i32 index) {
 // 碰撞检测
 // ============================================================================
 
-f64 Shapes::collide(Axis axis, const AxisAlignedBB& entityBox,
-                    const std::vector<VoxelShape>& shapes, f64 movement) {
+f64 Shapes::collide(Axis axis, const AxisAlignedBB& entityBox, const std::vector<VoxelShape>& shapes, f64 movement)
+{
     for (const VoxelShape& shape : shapes) {
         if (std::abs(movement) < EPSILON) {
             return 0.0;
@@ -474,12 +488,14 @@ f64 Shapes::collide(Axis axis, const AxisAlignedBB& entityBox,
 // 辅助函数
 // ============================================================================
 
-bool Shapes::isBlock(const VoxelShape& shape) {
+bool Shapes::isBlock(const VoxelShape& shape)
+{
     ensureInitialized();
     return shape.isCubeLike();
 }
 
-bool Shapes::isEmpty(const VoxelShape& shape) {
+bool Shapes::isEmpty(const VoxelShape& shape)
+{
     return shape.isEmpty();
 }
 
@@ -492,11 +508,14 @@ namespace {
 class SimpleIndexMerger : public Shapes::IndexMerger {
 public:
     SimpleIndexMerger(std::vector<f64> list, std::vector<std::pair<i32, i32>> pairs)
-        : m_list(std::move(list)), m_pairs(std::move(pairs)) {}
+        : m_list(std::move(list))
+        , m_pairs(std::move(pairs))
+    {}
 
     const std::vector<f64>& getList() const override { return m_list; }
 
-    bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override {
+    bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
+    {
         for (size_t i = 0; i < m_pairs.size(); ++i) {
             if (!consumer(m_pairs[i].first, m_pairs[i].second, static_cast<i32>(i))) {
                 return false;
@@ -515,12 +534,14 @@ private:
 } // anonymous namespace
 
 std::unique_ptr<Shapes::IndexMerger> Shapes::createIndexMerger(
-    i32 size, const std::vector<f64>& a, const std::vector<f64>& b,
-    bool aIncluded, bool bIncluded) {
+    i32 size, const std::vector<f64>& a, const std::vector<f64>& b, bool aIncluded, bool bIncluded)
+{
 
     std::set<f64> allCoords;
-    for (f64 v : a) allCoords.insert(v);
-    for (f64 v : b) allCoords.insert(v);
+    for (f64 v : a)
+        allCoords.insert(v);
+    for (f64 v : b)
+        allCoords.insert(v);
 
     std::vector<f64> merged(allCoords.begin(), allCoords.end());
     std::vector<std::pair<i32, i32>> pairs;

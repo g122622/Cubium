@@ -1,22 +1,22 @@
 #pragma once
 
-#include "Types.hpp"
 #include "BlendMode.hpp"
 #include "CompareOp.hpp"
 #include "CullMode.hpp"
+#include "Types.hpp"
 #include "buffer/IBuffer.hpp"
+#include "camera/ICamera.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "mesh/MeshData.hpp"
+#include "pipeline/IPipeline.hpp"
+#include "pipeline/RenderState.hpp"
+#include "pipeline/RenderType.hpp"
 #include "texture/ITexture.hpp"
 #include "texture/ITextureAtlas.hpp"
 #include "texture/TextureRegion.hpp"
-#include "pipeline/RenderState.hpp"
-#include "pipeline/RenderType.hpp"
-#include "pipeline/IPipeline.hpp"
-#include "camera/ICamera.hpp"
-#include "mesh/MeshData.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include <memory>
 #include <functional>
+#include <memory>
 
 namespace mc::client::renderer::api {
 
@@ -25,13 +25,13 @@ namespace mc::client::renderer::api {
  */
 struct RenderEngineConfig {
     std::string appName = "Trident";
-    bool enableValidation = true;    // 启用验证层
-    bool enableVSync = true;         // 垂直同步
-    bool enableAntiAliasing = true;  // 抗锯齿开关
-    u32 msaaSamples = 4;             // MSAA 采样数（当前用于配置与日志）
-    u32 maxFramesInFlight = 2;       // 最大帧在飞数
-    u32 initialWindowWidth = 1280;   // 初始窗口宽度
-    u32 initialWindowHeight = 720;   // 初始窗口高度
+    bool enableValidation = true;   // 启用验证层
+    bool enableVSync = true;        // 垂直同步
+    bool enableAntiAliasing = true; // 抗锯齿开关
+    u32 msaaSamples = 4;            // MSAA 采样数（当前用于配置与日志）
+    u32 maxFramesInFlight = 2;      // 最大帧在飞数
+    u32 initialWindowWidth = 1280;  // 初始窗口宽度
+    u32 initialWindowHeight = 720;  // 初始窗口高度
 };
 
 /**
@@ -40,11 +40,11 @@ struct RenderEngineConfig {
  * 包含当前帧渲染所需的所有信息。
  */
 struct FrameContext {
-    u32 frameIndex = 0;          // 当前帧索引 (用于多帧资源轮换)
-    u32 imageIndex = 0;          // 当前交换链图像索引
-    f64 deltaTime = 0.0f;        // 帧时间（秒）
-    f64 totalTime = 0.0f;        // 总运行时间（秒）
-    const ICamera* camera = nullptr;  // 当前相机
+    u32 frameIndex = 0;              // 当前帧索引 (用于多帧资源轮换)
+    u32 imageIndex = 0;              // 当前交换链图像索引
+    f64 deltaTime = 0.0f;            // 帧时间（秒）
+    f64 totalTime = 0.0f;            // 总运行时间（秒）
+    const ICamera* camera = nullptr; // 当前相机
 
     // 矩阵缓存
     glm::mat4 viewMatrix{1.0f};
@@ -202,7 +202,8 @@ public:
      * @param tileSize 瓦片大小
      * @return 纹理图集或错误
      */
-    [[nodiscard]] virtual Result<std::unique_ptr<ITextureAtlas>> createTextureAtlas(u32 width, u32 height, u32 tileSize) = 0;
+    [[nodiscard]] virtual Result<std::unique_ptr<ITextureAtlas>> createTextureAtlas(
+        u32 width, u32 height, u32 tileSize) = 0;
 
     // ========================================================================
     // 渲染状态
@@ -260,8 +261,8 @@ public:
      * @param vertexOffset 顶点偏移
      * @param firstInstance 起始实例
      */
-    virtual void drawIndexedInstanced(u32 indexCount, u32 instanceCount,
-                                       u32 firstIndex = 0, i32 vertexOffset = 0, u32 firstInstance = 0) = 0;
+    virtual void drawIndexedInstanced(
+        u32 indexCount, u32 instanceCount, u32 firstIndex = 0, i32 vertexOffset = 0, u32 firstInstance = 0) = 0;
 
     // ========================================================================
     // 状态查询
@@ -307,10 +308,10 @@ public:
  * @brief 渲染后端类型
  */
 enum class RenderBackend : u8 {
-    Vulkan,     // Vulkan 渲染后端
-    OpenGL,     // OpenGL 渲染后端 (未来支持)
-    DirectX,    // DirectX 渲染后端 (未来支持)
-    Metal       // Metal 渲染后端 (未来支持)
+    Vulkan,  // Vulkan 渲染后端
+    OpenGL,  // OpenGL 渲染后端 (未来支持)
+    DirectX, // DirectX 渲染后端 (未来支持)
+    Metal    // Metal 渲染后端 (未来支持)
 };
 
 /**

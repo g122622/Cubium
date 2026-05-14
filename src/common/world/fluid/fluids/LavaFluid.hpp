@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../FlowingFluid.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include "../../../util/math/random/IRandom.hpp"
+#include "../FlowingFluid.hpp"
 
 namespace mc {
 namespace fluid {
@@ -23,19 +23,18 @@ class LavaFluid : public FlowingFluid {
 public:
     [[nodiscard]] i32 getTickDelay(IWorld& world) const override;
 
-    [[nodiscard]] i32 getTickDelay(IWorld& world, const BlockPos& pos,
-                                   const FluidState& state,
-                                   const FluidState& correctState) const override;
+    [[nodiscard]] i32 getTickDelay(
+        IWorld& world, const BlockPos& pos, const FluidState& state, const FluidState& correctState) const override;
 
-    [[nodiscard]] i32 getTickDelay() const override {
+    [[nodiscard]] i32 getTickDelay() const override
+    {
         // 基础延迟值，实际延迟由 getTickDelay(IWorld&) 根据维度计算
         // 主世界: 30 tick, 下界: 10 tick
         return 30;
     }
 
-    [[nodiscard]] bool canDisplace(const FluidState& state, IWorld& world,
-                                   const BlockPos& pos, const Fluid& fluid,
-                                   Direction dir) const override;
+    [[nodiscard]] bool canDisplace(
+        const FluidState& state, IWorld& world, const BlockPos& pos, const Fluid& fluid, Direction dir) const override;
 
     [[nodiscard]] i32 getLevelDecrease(IWorld& world) const override;
 
@@ -47,8 +46,7 @@ public:
 
     [[nodiscard]] f32 getExplosionResistance() const override { return 100.0f; }
 
-    void randomTick(IWorld& world, const BlockPos& pos,
-                    const FluidState& state, math::IRandom& random) override;
+    void randomTick(IWorld& world, const BlockPos& pos, const FluidState& state, math::IRandom& random) override;
 
     [[nodiscard]] bool ticksRandomly() const override { return true; }
 
@@ -63,8 +61,7 @@ public:
     [[nodiscard]] bool isEquivalentTo(const Fluid& other) const override;
 
 protected:
-    void beforeReplacingBlock(IWorld& world, const BlockPos& pos,
-                              const BlockState* state) override;
+    void beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state) override;
 
     /**
      * @brief 流入指定位置（重写以处理岩浆与水的交互）
@@ -78,8 +75,11 @@ protected:
      * @param dir 流入方向
      * @param fluidState 流入的流体状态
      */
-    void flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
-                  Direction dir, const FluidState& fluidState) override;
+    void flowInto(IWorld& world,
+        const BlockPos& pos,
+        const BlockState* blockState,
+        Direction dir,
+        const FluidState& fluidState) override;
 
 private:
     /**
@@ -118,12 +118,14 @@ class LavaSourceFluid : public LavaFluid {
 public:
     LavaSourceFluid();
 
-    [[nodiscard]] bool isSource(const FluidState& state) const override {
+    [[nodiscard]] bool isSource(const FluidState& state) const override
+    {
         (void)state;
         return true;
     }
 
-    [[nodiscard]] i32 getLevel(const FluidState& state) const override {
+    [[nodiscard]] i32 getLevel(const FluidState& state) const override
+    {
         (void)state;
         return 8;
     }
@@ -154,7 +156,8 @@ class LavaFlowingFluid : public LavaFluid {
 public:
     LavaFlowingFluid();
 
-    [[nodiscard]] bool isSource(const FluidState& state) const override {
+    [[nodiscard]] bool isSource(const FluidState& state) const override
+    {
         (void)state;
         return false;
     }

@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include "item/crafting/RecipeManager.hpp"
-#include "item/crafting/IRecipe.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "item/crafting/IRecipe.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::crafting;
@@ -10,17 +10,22 @@ using namespace mc::crafting;
 // 简单的测试配方类
 class TestRecipe : public CraftingRecipe {
 public:
-    TestRecipe(const ResourceLocation& id, RecipeType type,
-               std::vector<Ingredient> ingredients, ItemStack result,
-               i32 width = 0, i32 height = 0)
+    TestRecipe(const ResourceLocation& id,
+        RecipeType type,
+        std::vector<Ingredient> ingredients,
+        ItemStack result,
+        i32 width = 0,
+        i32 height = 0)
         : m_id(id)
         , m_type(type)
         , m_ingredients(std::move(ingredients))
         , m_result(std::move(result))
         , m_width(width)
-        , m_height(height) {}
+        , m_height(height)
+    {}
 
-    bool matches(const CraftingInventory& inventory) const override {
+    bool matches(const CraftingInventory& inventory) const override
+    {
         // 简单的测试匹配逻辑
         // 检查每个原料是否在网格中
         if (m_ingredients.empty()) {
@@ -45,22 +50,20 @@ public:
         return true;
     }
 
-    ItemStack assemble(const CraftingInventory& inventory) const override {
+    ItemStack assemble(const CraftingInventory& inventory) const override
+    {
         (void)inventory;
         return m_result.copy();
     }
 
-    ItemStack getResultItem() const override {
-        return m_result;
-    }
+    ItemStack getResultItem() const override { return m_result; }
 
-    std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override {
+    std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override
+    {
         return RecipeUtils::getDefaultRemainingItems(inventory);
     }
 
-    const std::vector<Ingredient>& getIngredients() const override {
-        return m_ingredients;
-    }
+    const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
 
     i32 getRecipeWidth() const override { return m_width; }
     i32 getRecipeHeight() const override { return m_height; }
@@ -79,12 +82,14 @@ private:
 
 class RecipeManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 每个测试开始前清空注册表
         RecipeManager::instance().clear();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 每个测试结束后清空注册表
         RecipeManager::instance().clear();
     }
@@ -92,23 +97,22 @@ protected:
 
 // ========== 基础测试 ==========
 
-TEST_F(RecipeManagerTest, IsSingleton) {
+TEST_F(RecipeManagerTest, IsSingleton)
+{
     RecipeManager& instance1 = RecipeManager::instance();
     RecipeManager& instance2 = RecipeManager::instance();
     EXPECT_EQ(&instance1, &instance2);
 }
 
-TEST_F(RecipeManagerTest, StartsEmpty) {
+TEST_F(RecipeManagerTest, StartsEmpty)
+{
     EXPECT_EQ(RecipeManager::instance().getRecipeCount(), 0u);
 }
 
-TEST_F(RecipeManagerTest, ClearRemovesAllRecipes) {
+TEST_F(RecipeManagerTest, ClearRemovesAllRecipes)
+{
     auto recipe = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe1"), RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     RecipeManager::instance().registerRecipe(std::move(recipe));
     EXPECT_EQ(RecipeManager::instance().getRecipeCount(), 1u);
@@ -119,33 +123,25 @@ TEST_F(RecipeManagerTest, ClearRemovesAllRecipes) {
 
 // ========== 注册测试 ==========
 
-TEST_F(RecipeManagerTest, RegisterRecipe_Success) {
+TEST_F(RecipeManagerTest, RegisterRecipe_Success)
+{
     auto recipe = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe1"), RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     bool result = RecipeManager::instance().registerRecipe(std::move(recipe));
     EXPECT_TRUE(result);
     EXPECT_EQ(RecipeManager::instance().getRecipeCount(), 1u);
 }
 
-TEST_F(RecipeManagerTest, RegisterRecipe_DuplicateId_Fails) {
+TEST_F(RecipeManagerTest, RegisterRecipe_DuplicateId_Fails)
+{
     auto recipe1 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe1"), RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
-    auto recipe2 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"), // 相同ID
+    auto recipe2 = std::make_unique<TestRecipe>(ResourceLocation("test", "recipe1"), // 相同ID
         RecipeType::ShapedCrafting,
         std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ItemStack());
 
     bool result1 = RecipeManager::instance().registerRecipe(std::move(recipe1));
     EXPECT_TRUE(result1);
@@ -156,25 +152,19 @@ TEST_F(RecipeManagerTest, RegisterRecipe_DuplicateId_Fails) {
     EXPECT_EQ(RecipeManager::instance().getRecipeCount(), 1u);
 }
 
-TEST_F(RecipeManagerTest, RegisterRecipe_NullRecipe_Fails) {
+TEST_F(RecipeManagerTest, RegisterRecipe_NullRecipe_Fails)
+{
     bool result = RecipeManager::instance().registerRecipe(nullptr);
     EXPECT_FALSE(result);
 }
 
-TEST_F(RecipeManagerTest, RegisterMultipleRecipes) {
+TEST_F(RecipeManagerTest, RegisterMultipleRecipes)
+{
     auto recipe1 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe1"), RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     auto recipe2 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe2"),
-        RecipeType::ShapedCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe2"), RecipeType::ShapedCrafting, std::vector<Ingredient>(), ItemStack());
 
     RecipeManager::instance().registerRecipe(std::move(recipe1));
     RecipeManager::instance().registerRecipe(std::move(recipe2));
@@ -184,15 +174,12 @@ TEST_F(RecipeManagerTest, RegisterMultipleRecipes) {
 
 // ========== 查询测试 ==========
 
-TEST_F(RecipeManagerTest, GetRecipe_ById_Found) {
+TEST_F(RecipeManagerTest, GetRecipe_ById_Found)
+{
     ResourceLocation id("test", "recipe1");
 
-    auto recipe = std::make_unique<TestRecipe>(
-        id,
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+    auto recipe =
+        std::make_unique<TestRecipe>(id, RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     RecipeManager::instance().registerRecipe(std::move(recipe));
 
@@ -201,56 +188,44 @@ TEST_F(RecipeManagerTest, GetRecipe_ById_Found) {
     EXPECT_EQ(found->getId(), id);
 }
 
-TEST_F(RecipeManagerTest, GetRecipe_ById_NotFound) {
+TEST_F(RecipeManagerTest, GetRecipe_ById_NotFound)
+{
     ResourceLocation id("test", "nonexistent");
 
     const CraftingRecipe* found = RecipeManager::instance().getRecipe(id);
     EXPECT_EQ(found, nullptr);
 }
 
-TEST_F(RecipeManagerTest, HasRecipe_Existing_ReturnsTrue) {
+TEST_F(RecipeManagerTest, HasRecipe_Existing_ReturnsTrue)
+{
     ResourceLocation id("test", "recipe1");
 
-    auto recipe = std::make_unique<TestRecipe>(
-        id,
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+    auto recipe =
+        std::make_unique<TestRecipe>(id, RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     RecipeManager::instance().registerRecipe(std::move(recipe));
 
     EXPECT_TRUE(RecipeManager::instance().hasRecipe(id));
 }
 
-TEST_F(RecipeManagerTest, HasRecipe_NonExisting_ReturnsFalse) {
+TEST_F(RecipeManagerTest, HasRecipe_NonExisting_ReturnsFalse)
+{
     ResourceLocation id("test", "nonexistent");
     EXPECT_FALSE(RecipeManager::instance().hasRecipe(id));
 }
 
 // ========== 类型查询测试 ==========
 
-TEST_F(RecipeManagerTest, GetRecipesByType) {
+TEST_F(RecipeManagerTest, GetRecipesByType)
+{
     auto shaped1 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "shaped1"),
-        RecipeType::ShapedCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "shaped1"), RecipeType::ShapedCrafting, std::vector<Ingredient>(), ItemStack());
 
     auto shaped2 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "shaped2"),
-        RecipeType::ShapedCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "shaped2"), RecipeType::ShapedCrafting, std::vector<Ingredient>(), ItemStack());
 
     auto shapeless = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "shapeless"),
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "shapeless"), RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     RecipeManager::instance().registerRecipe(std::move(shaped1));
     RecipeManager::instance().registerRecipe(std::move(shaped2));
@@ -268,13 +243,15 @@ TEST_F(RecipeManagerTest, GetRecipesByType) {
 
 // ========== 匹配测试 ==========
 
-TEST_F(RecipeManagerTest, FindMatchingRecipe_NoRecipes_ReturnsNull) {
+TEST_F(RecipeManagerTest, FindMatchingRecipe_NoRecipes_ReturnsNull)
+{
     CraftingInventory inventory(3, 3);
     const CraftingRecipe* found = RecipeManager::instance().findMatchingRecipe(inventory);
     EXPECT_EQ(found, nullptr);
 }
 
-TEST_F(RecipeManagerTest, FindMatchingRecipe_MatchingRecipe_ReturnsRecipe) {
+TEST_F(RecipeManagerTest, FindMatchingRecipe_MatchingRecipe_ReturnsRecipe)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered, skipping test";
@@ -284,12 +261,10 @@ TEST_F(RecipeManagerTest, FindMatchingRecipe_MatchingRecipe_ReturnsRecipe) {
     Ingredient stoneIngredient = Ingredient::fromItem(*stone);
     ItemStack result(*stone, 2); // 结果：2个石头
 
-    auto recipe = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "stone_doubling"),
+    auto recipe = std::make_unique<TestRecipe>(ResourceLocation("test", "stone_doubling"),
         RecipeType::ShapelessCrafting,
         std::vector<Ingredient>{stoneIngredient},
-        result
-    );
+        result);
 
     RecipeManager::instance().registerRecipe(std::move(recipe));
 
@@ -302,7 +277,8 @@ TEST_F(RecipeManagerTest, FindMatchingRecipe_MatchingRecipe_ReturnsRecipe) {
     EXPECT_EQ(found->getId(), ResourceLocation("test", "stone_doubling"));
 }
 
-TEST_F(RecipeManagerTest, FindMatchingRecipe_NoMatch_ReturnsNull) {
+TEST_F(RecipeManagerTest, FindMatchingRecipe_NoMatch_ReturnsNull)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
 
@@ -314,12 +290,10 @@ TEST_F(RecipeManagerTest, FindMatchingRecipe_NoMatch_ReturnsNull) {
     Ingredient stoneIngredient = Ingredient::fromItem(*stone);
     ItemStack result(*stone, 2);
 
-    auto recipe = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "stone_doubling"),
+    auto recipe = std::make_unique<TestRecipe>(ResourceLocation("test", "stone_doubling"),
         RecipeType::ShapelessCrafting,
         std::vector<Ingredient>{stoneIngredient},
-        result
-    );
+        result);
 
     RecipeManager::instance().registerRecipe(std::move(recipe));
 
@@ -333,7 +307,8 @@ TEST_F(RecipeManagerTest, FindMatchingRecipe_NoMatch_ReturnsNull) {
 
 // ========== 结果查询测试 ==========
 
-TEST_F(RecipeManagerTest, GetRecipesForResult) {
+TEST_F(RecipeManagerTest, GetRecipesForResult)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
 
@@ -342,26 +317,20 @@ TEST_F(RecipeManagerTest, GetRecipesForResult) {
     }
 
     // 创建两个产出石头的配方
-    auto recipe1 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
+    auto recipe1 = std::make_unique<TestRecipe>(ResourceLocation("test", "recipe1"),
         RecipeType::ShapelessCrafting,
         std::vector<Ingredient>(),
-        ItemStack(*stone, 1)
-    );
+        ItemStack(*stone, 1));
 
-    auto recipe2 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe2"),
+    auto recipe2 = std::make_unique<TestRecipe>(ResourceLocation("test", "recipe2"),
         RecipeType::ShapelessCrafting,
         std::vector<Ingredient>(),
-        ItemStack(*stone, 2)
-    );
+        ItemStack(*stone, 2));
 
-    auto recipe3 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe3"),
+    auto recipe3 = std::make_unique<TestRecipe>(ResourceLocation("test", "recipe3"),
         RecipeType::ShapelessCrafting,
         std::vector<Ingredient>(),
-        ItemStack(*dirt, 1)
-    );
+        ItemStack(*dirt, 1));
 
     RecipeManager::instance().registerRecipe(std::move(recipe1));
     RecipeManager::instance().registerRecipe(std::move(recipe2));
@@ -378,28 +347,19 @@ TEST_F(RecipeManagerTest, GetRecipesForResult) {
 
 // ========== 遍历测试 ==========
 
-TEST_F(RecipeManagerTest, ForEachRecipe) {
+TEST_F(RecipeManagerTest, ForEachRecipe)
+{
     auto recipe1 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe1"), RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     auto recipe2 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe2"),
-        RecipeType::ShapedCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe2"), RecipeType::ShapedCrafting, std::vector<Ingredient>(), ItemStack());
 
     RecipeManager::instance().registerRecipe(std::move(recipe1));
     RecipeManager::instance().registerRecipe(std::move(recipe2));
 
     std::vector<ResourceLocation> ids;
-    RecipeManager::instance().forEachRecipe([&ids](const CraftingRecipe& recipe) {
-        ids.push_back(recipe.getId());
-    });
+    RecipeManager::instance().forEachRecipe([&ids](const CraftingRecipe& recipe) { ids.push_back(recipe.getId()); });
 
     EXPECT_EQ(ids.size(), 2u);
     EXPECT_NE(std::find(ids.begin(), ids.end(), ResourceLocation("test", "recipe1")), ids.end());
@@ -408,20 +368,13 @@ TEST_F(RecipeManagerTest, ForEachRecipe) {
 
 // ========== GetAllRecipes测试 ==========
 
-TEST_F(RecipeManagerTest, GetAllRecipes) {
+TEST_F(RecipeManagerTest, GetAllRecipes)
+{
     auto recipe1 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
-        RecipeType::ShapelessCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe1"), RecipeType::ShapelessCrafting, std::vector<Ingredient>(), ItemStack());
 
     auto recipe2 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe2"),
-        RecipeType::ShapedCrafting,
-        std::vector<Ingredient>(),
-        ItemStack()
-    );
+        ResourceLocation("test", "recipe2"), RecipeType::ShapedCrafting, std::vector<Ingredient>(), ItemStack());
 
     RecipeManager::instance().registerRecipe(std::move(recipe1));
     RecipeManager::instance().registerRecipe(std::move(recipe2));
@@ -432,7 +385,8 @@ TEST_F(RecipeManagerTest, GetAllRecipes) {
 
 // ========== FindAllMatchingRecipes测试 ==========
 
-TEST_F(RecipeManagerTest, FindAllMatchingRecipes) {
+TEST_F(RecipeManagerTest, FindAllMatchingRecipes)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered, skipping test";
@@ -441,19 +395,15 @@ TEST_F(RecipeManagerTest, FindAllMatchingRecipes) {
     Ingredient stoneIngredient = Ingredient::fromItem(*stone);
 
     // 创建多个可能匹配的配方
-    auto recipe1 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe1"),
+    auto recipe1 = std::make_unique<TestRecipe>(ResourceLocation("test", "recipe1"),
         RecipeType::ShapelessCrafting,
         std::vector<Ingredient>{stoneIngredient},
-        ItemStack(*stone, 1)
-    );
+        ItemStack(*stone, 1));
 
-    auto recipe2 = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "recipe2"),
+    auto recipe2 = std::make_unique<TestRecipe>(ResourceLocation("test", "recipe2"),
         RecipeType::ShapelessCrafting,
         std::vector<Ingredient>{stoneIngredient},
-        ItemStack(*stone, 2)
-    );
+        ItemStack(*stone, 2));
 
     RecipeManager::instance().registerRecipe(std::move(recipe1));
     RecipeManager::instance().registerRecipe(std::move(recipe2));

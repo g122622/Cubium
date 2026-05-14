@@ -10,10 +10,10 @@ namespace layer {
 
 ZoomLayer::ZoomLayer(Mode mode)
     : m_mode(mode)
-{
-}
+{}
 
-i32 ZoomLayer::apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) {
+i32 ZoomLayer::apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z)
+{
     // 参考 MC ZoomLayer.apply:
     // int i = area.getValue(this.getOffsetX(x), this.getOffsetZ(z));
     // context.setPosition((long)(x >> 1 << 1), (long)(z >> 1 << 1));
@@ -44,9 +44,9 @@ i32 ZoomLayer::apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) {
     i32 baseZ = getOffsetZ(z);
 
     // 获取四个角落的值
-    i32 v00 = area.getValue(baseX, baseZ);       // 左上
-    i32 v10 = area.getValue(baseX + 1, baseZ);   // 右上
-    i32 v01 = area.getValue(baseX, baseZ + 1);   // 左下
+    i32 v00 = area.getValue(baseX, baseZ);         // 左上
+    i32 v10 = area.getValue(baseX + 1, baseZ);     // 右上
+    i32 v01 = area.getValue(baseX, baseZ + 1);     // 左下
     i32 v11 = area.getValue(baseX + 1, baseZ + 1); // 右下
 
     // 设置位置种子（用于模糊模式的随机）
@@ -77,7 +77,8 @@ i32 ZoomLayer::apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) {
     }
 }
 
-i32 ZoomLayer::pickZoomed(IAreaContext& ctx, i32 a, i32 b, i32 c, i32 d) {
+i32 ZoomLayer::pickZoomed(IAreaContext& ctx, i32 a, i32 b, i32 c, i32 d)
+{
     // 参考 MC ZoomLayer.pickZoomed:
     // if (second == third && third == fourth) {
     //     return second;
@@ -123,9 +124,7 @@ i32 ZoomLayer::pickZoomed(IAreaContext& ctx, i32 a, i32 b, i32 c, i32 d) {
     return ctx.pickRandom(a, b, c, d);
 }
 
-std::unique_ptr<IAreaFactory> ZoomLayer::apply(
-    IExtendedAreaContext& context,
-    std::unique_ptr<IAreaFactory> input)
+std::unique_ptr<IAreaFactory> ZoomLayer::apply(IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input)
 {
     auto sharedContext = std::dynamic_pointer_cast<LayerContext>(context.shared_from_this());
     return std::make_unique<TransformFactory>(this, sharedContext, std::move(input));

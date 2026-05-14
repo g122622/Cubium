@@ -1,14 +1,14 @@
 #pragma once
 
 #include "ChunkGenerateTask.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/world/chunk/SingleChunkLifecycleManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
 #include <atomic>
-#include <future>
 #include <functional>
+#include <future>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -211,14 +211,16 @@ public:
      * @param targetStatus 请求目标状态
      * @return 对应区块结果的 future
      */
-    [[nodiscard]] std::future<ChunkData*> requestChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus);
+    [[nodiscard]] std::future<ChunkData*> requestChunkAsync(
+        ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus);
 
     /**
      * @brief 以异步 Future 方式请求 FULL 区块
      *
      * 这是旧调用点迁移期间保留的薄别名。
      */
-    [[nodiscard]] std::future<ChunkData*> getChunkAsync(ChunkCoord x, ChunkCoord z) {
+    [[nodiscard]] std::future<ChunkData*> getChunkAsync(ChunkCoord x, ChunkCoord z)
+    {
         return requestChunkAsync(x, z, ChunkStatuses::FULL);
     }
 
@@ -227,7 +229,8 @@ public:
      *
      * 这是旧调用点迁移期间保留的薄别名。
      */
-    [[nodiscard]] std::future<ChunkData*> getChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus* targetStatus) {
+    [[nodiscard]] std::future<ChunkData*> getChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus* targetStatus)
+    {
         MC_ASSERT_RELEASE(targetStatus != nullptr);
         return requestChunkAsync(x, z, *targetStatus);
     }
@@ -240,18 +243,15 @@ public:
      * @param targetStatus 请求目标状态
      * @param callback 完成回调
      */
-    void requestChunkAsync(
-        ChunkCoord x,
-        ChunkCoord z,
-        const ChunkStatus& targetStatus,
-        ChunkCallback callback);
+    void requestChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, ChunkCallback callback);
 
     /**
      * @brief 以异步回调方式请求 FULL 区块
      *
      * 这是旧调用点迁移期间保留的薄别名。
      */
-    void getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback callback) {
+    void getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback callback)
+    {
         requestChunkAsync(x, z, ChunkStatuses::FULL, std::move(callback));
     }
 
@@ -260,7 +260,8 @@ public:
      *
      * 这是旧调用点迁移期间保留的薄别名。
      */
-    void getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback callback, const ChunkStatus* targetStatus) {
+    void getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback callback, const ChunkStatus* targetStatus)
+    {
         MC_ASSERT_RELEASE(targetStatus != nullptr);
         requestChunkAsync(x, z, *targetStatus, std::move(callback));
     }
@@ -319,7 +320,8 @@ public:
      *
      * @param callback 票据级别变化回调
      */
-    void setTicketLevelChangeCallback(world::ChunkLoadTicketManager::LevelChangeCallback callback) {
+    void setTicketLevelChangeCallback(world::ChunkLoadTicketManager::LevelChangeCallback callback)
+    {
         m_ticketManager.setLevelChangeCallback(std::move(callback));
     }
 
@@ -330,7 +332,8 @@ public:
      * @param z 区块 Z 坐标
      * @return 若票据系统判定该区块应加载则返回 true
      */
-    [[nodiscard]] bool shouldChunkLoad(ChunkCoord x, ChunkCoord z) const {
+    [[nodiscard]] bool shouldChunkLoad(ChunkCoord x, ChunkCoord z) const
+    {
         return m_ticketManager.shouldChunkLoad(x, z);
     }
 
@@ -486,8 +489,7 @@ private:
      * @param callback 异步回调，可为空
      * @param promise future 对应的 promise，可为空
      */
-    void submitChunkRequest(
-        ChunkCoord x,
+    void submitChunkRequest(ChunkCoord x,
         ChunkCoord z,
         const ChunkStatus& targetStatus,
         ChunkCallback callback,
@@ -502,7 +504,8 @@ private:
      * @param lifecycleManager 要推进的单区块状态机
      * @param decision 生命周期管理器产出的动作决策
      */
-    void advanceChunkState(SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision);
+    void advanceChunkState(
+        SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
      * @brief 执行一次存档来源解析
@@ -518,8 +521,7 @@ private:
      * @param decision 当前调度决策
      */
     void enqueueChunkGenerationAsync(
-        SingleChunkLifecycleManager& lifecycleManager,
-        const SingleChunkLifecycleManager::EnqueueDecision& decision);
+        SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
      * @brief 完成所有已就绪等待者
@@ -545,10 +547,7 @@ private:
      * @return 优先级，数值越小越优先
      */
     [[nodiscard]] i32 computeSchedulePriority(
-        ChunkCoord x,
-        ChunkCoord z,
-        const ChunkStatus& targetStatus,
-        i32 ticketLevel) const;
+        ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const;
 
     /**
      * @brief 根据目标阶段计算需要先满足的邻居前置阶段
@@ -566,10 +565,7 @@ private:
      * @param prerequisiteStatus 邻居必须达到的前置阶段
      * @return 若所有依赖邻居均已满足则返回 true
      */
-    [[nodiscard]] bool areNeighborsReady(
-        ChunkCoord x,
-        ChunkCoord z,
-        const ChunkStatus& prerequisiteStatus) const;
+    [[nodiscard]] bool areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const;
 
     /**
      * @brief 在区块完成推进后，唤醒其影响范围内阻塞的邻居请求
@@ -599,8 +595,7 @@ private:
      * @param neighbors 输出区块窗口
      * @param neighborAdapters 临时适配器持有容器
      */
-    void collectNeighborChunks(
-        ChunkCoord x,
+    void collectNeighborChunks(ChunkCoord x,
         ChunkCoord z,
         i32 radius,
         IChunk* centerChunk,
@@ -615,9 +610,7 @@ private:
      * @param lifecycleManager 目标区块的生命周期管理器
      * @param targetStatus 目标生成阶段
      */
-    void executeGenerationSync(
-        SingleChunkLifecycleManager& lifecycleManager,
-        const ChunkStatus& targetStatus);
+    void executeGenerationSync(SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
 
     /**
      * @brief 完成一次异步生成结果并写入内存缓存
@@ -667,9 +660,7 @@ private:
      * @param z 区块 Z 坐标
      * @return 64 位区块键
      */
-    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) {
-        return ChunkId(x, z, 0).toId();
-    }
+    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) { return ChunkId(x, z, 0).toId(); }
 
     ServerWorld* m_world = nullptr;
     std::unique_ptr<IChunkGenerator> m_generator;

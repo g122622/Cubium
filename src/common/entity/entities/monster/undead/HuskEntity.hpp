@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ZombieEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "ZombieEntity.hpp"
 #include <memory>
 
 namespace mc {

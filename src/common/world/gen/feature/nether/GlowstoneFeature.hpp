@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -26,7 +26,8 @@ struct GlowstoneFeatureConfig : public IFeatureConfig {
     explicit GlowstoneFeatureConfig(i32 distance, i32 branches, i32 branchLen)
         : maxDistance(distance)
         , branchCount(branches)
-        , maxBranchLength(branchLen) {}
+        , maxBranchLength(branchLen)
+    {}
 };
 
 /**
@@ -45,22 +46,14 @@ public:
      * @param config 配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const GlowstoneFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const GlowstoneFeatureConfig& config);
 
 private:
     /**
      * @brief 从起点向指定方向延伸萤石
      */
     void growBranch(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& start,
-        i32 dx, i32 dy, i32 dz,
-        i32 length);
+        WorldGenRegion& world, math::Random& random, const BlockPos& start, i32 dx, i32 dy, i32 dz, i32 length);
 
     /**
      * @brief 检查位置是否可以放置萤石
@@ -73,12 +66,9 @@ private:
  */
 class ConfiguredGlowstoneFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredGlowstoneFeature(
-        std::unique_ptr<GlowstoneFeatureConfig> config,
-        const char* featureName);
+    ConfiguredGlowstoneFeature(std::unique_ptr<GlowstoneFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

@@ -1,16 +1,16 @@
 #include "ScaffoldingBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../WaterLoggableHelpers.hpp"
-#include "../../BlockRegistry.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../entity/entities/misc/MiscEntities.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../entity/entities/misc/MiscEntities.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
-#include "../../../../core/Types.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../tick/base/TickPriority.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -34,21 +34,22 @@ ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
 {
     // 创建状态容器
     // 参考 MC 1.16.5: DISTANCE 属性范围是 0-7
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::DISTANCE_0_7())
-        .add(BlockStateProperties::WATERLOGGED())
-        .add(BlockStateProperties::BOTTOM())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::DISTANCE_0_7())
+            .add(BlockStateProperties::WATERLOGGED())
+            .add(BlockStateProperties::BOTTOM())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     // 参考 MC 1.16.5: 默认 distance=7, waterlogged=false, bottom=false
     setDefaultState(defaultState()
-        .with(BlockStateProperties::DISTANCE_0_7(), 7)
-        .with(BlockStateProperties::WATERLOGGED(), false)
-        .with(BlockStateProperties::BOTTOM(), false));
+            .with(BlockStateProperties::DISTANCE_0_7(), 7)
+            .with(BlockStateProperties::WATERLOGGED(), false)
+            .with(BlockStateProperties::BOTTOM(), false));
 
     // 创建形状
     // 顶部平台：边框形状 (field_220121_d)
@@ -61,24 +62,21 @@ ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
     // 完整形状 (field_220122_e)
     // 包含顶部平台、四个角支柱、底部平台
     m_fullShape = CollisionShape::combine(
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f),  // 顶部平台
-            CollisionShape::box(0.0f, 0.0f, 0.0f, CORNER_SIZE, 1.0f, CORNER_SIZE)  // 西北角
-        ),
-        CollisionShape::combine(
-            CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, CORNER_SIZE),  // 东北角
+        CollisionShape::combine(CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f), // 顶部平台
+            CollisionShape::box(0.0f, 0.0f, 0.0f, CORNER_SIZE, 1.0f, CORNER_SIZE)                  // 西北角
+            ),
+        CollisionShape::combine(CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, CORNER_SIZE), // 东北角
             CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 1.0f - CORNER_SIZE, CORNER_SIZE, 1.0f, 1.0f),  // 西南角
-                CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f)  // 东南角
-            )
-        )
-    );
+                CollisionShape::box(0.0f, 0.0f, 1.0f - CORNER_SIZE, CORNER_SIZE, 1.0f, 1.0f),       // 西南角
+                CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f) // 东南角
+                )));
 
     // 空形状用于碰撞检测
     m_emptyShape = CollisionShape::empty();
 }
 
-BlockState ScaffoldingBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState ScaffoldingBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     BlockPos pos = context.placementPos();
     IWorld& world = const_cast<IWorld&>(context.getWorld());
 
@@ -97,8 +95,7 @@ BlockState ScaffoldingBlock::getStateForPlacement(BlockItemUseContext& context) 
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-BlockState ScaffoldingBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState ScaffoldingBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
@@ -121,13 +118,15 @@ BlockState ScaffoldingBlock::updatePostPlacement(
     return state;
 }
 
-void ScaffoldingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void ScaffoldingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(state);
     // 参考 MC 1.16.5: 方块添加时调度 tick
     world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::Normal);
 }
 
-void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
 
     // 检查当前位置的方块是否还是脚手架
@@ -141,9 +140,8 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
     bool bottom = shouldShowBottom(world, pos, distance);
 
     // 创建新状态
-    BlockState newState = state
-        .with(BlockStateProperties::DISTANCE_0_7(), distance)
-        .with(BlockStateProperties::BOTTOM(), bottom);
+    BlockState newState =
+        state.with(BlockStateProperties::DISTANCE_0_7(), distance).with(BlockStateProperties::BOTTOM(), bottom);
 
     // 参考 MC 1.16.5: tick() 方法
     // distance == 7 表示需要掉落
@@ -167,14 +165,12 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
 
                 // 在方块中心位置生成物品实体
                 math::Random& rng = world.getRandom();
-                ItemDropHelper::spawnItemEntity(
-                    &world,
+                ItemDropHelper::spawnItemEntity(&world,
                     stack,
                     static_cast<f64>(pos.x) + 0.5,
                     static_cast<f64>(pos.y) + 0.5,
                     static_cast<f64>(pos.z) + 0.5,
-                    rng
-                );
+                    rng);
             }
         } else {
             // 新的 distance=7，生成下落方块实体
@@ -188,9 +184,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
                 // 创建下落实体
                 auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
                 fallingEntity->setPosition(
-                    static_cast<f32>(pos.x) + 0.5f,
-                    static_cast<f32>(pos.y),
-                    static_cast<f32>(pos.z) + 0.5f);
+                    static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
                 fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
                 fallingEntity->setBlockId(currentState->blockId());
                 fallingEntity->setFallStartPos(static_cast<f64>(pos.y));
@@ -210,10 +204,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
     }
 }
 
-bool ScaffoldingBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const
+bool ScaffoldingBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
     // 参考 MC 1.16.5: func_220117_a(worldIn, pos) < 7
@@ -221,7 +212,8 @@ bool ScaffoldingBlock::isValidPosition(
     return calculateDistance(world, pos) < 7;
 }
 
-const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const {
+const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 参考 MC 1.16.5: getShape 方法
     // 当 bottom=true 时返回 field_220122_e（完整形状）
@@ -232,7 +224,8 @@ const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const 
     return m_topShape;
 }
 
-const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& state) const
+{
     // 参考 MC 1.16.5: getCollisionShape 方法
     // 脚手架的碰撞形状比较特殊：
     // - 当 distance != 0 且 bottom=true 时，玩家可以站在底部平台上
@@ -251,14 +244,16 @@ const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& stat
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* ScaffoldingBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* ScaffoldingBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 // ========== 静态方法实现 ==========
 
-i32 ScaffoldingBlock::calculateDistance(IWorld& world, const BlockPos& pos) {
+i32 ScaffoldingBlock::calculateDistance(IWorld& world, const BlockPos& pos)
+{
     // 参考 MC 1.16.5: ScaffoldingBlock.func_220117_a
     // MC 使用 BlockPos.Mutable 从 pos 向下移动，然后遍历水平方向
     BlockPos belowPos = pos.down();
@@ -282,9 +277,7 @@ i32 ScaffoldingBlock::calculateDistance(IWorld& world, const BlockPos& pos) {
     // 这表示从 belowPos 向水平方向移动
     // 即检查 (pos.down()).offset(direction)
     static const Direction horizontalDirections[] = {
-        Direction::North, Direction::East,
-        Direction::South, Direction::West
-    };
+        Direction::North, Direction::East, Direction::South, Direction::West};
 
     for (Direction dir : horizontalDirections) {
         BlockPos neighborBelowPos = belowPos.offset(dir);
@@ -294,7 +287,7 @@ i32 ScaffoldingBlock::calculateDistance(IWorld& world, const BlockPos& pos) {
             i32 neighborDistance = neighborBelowState->get(BlockStateProperties::DISTANCE_0_7());
             minDistance = std::min(minDistance, neighborDistance + 1);
             if (minDistance == 1) {
-                break;  // 已经找到最小距离，提前退出
+                break; // 已经找到最小距离，提前退出
             }
         }
     }
@@ -302,7 +295,8 @@ i32 ScaffoldingBlock::calculateDistance(IWorld& world, const BlockPos& pos) {
     return minDistance;
 }
 
-bool ScaffoldingBlock::shouldShowBottom(IWorld& world, const BlockPos& pos, i32 distance) {
+bool ScaffoldingBlock::shouldShowBottom(IWorld& world, const BlockPos& pos, i32 distance)
+{
     // 参考 MC 1.16.5: func_220116_a
     // 如果 distance > 0 且下方不是脚手架，则显示底部支撑柱
     if (distance > 0) {
@@ -313,7 +307,8 @@ bool ScaffoldingBlock::shouldShowBottom(IWorld& world, const BlockPos& pos, i32 
     return false;
 }
 
-bool ScaffoldingBlock::isScaffolding(const BlockState* state) {
+bool ScaffoldingBlock::isScaffolding(const BlockState* state)
+{
     if (state == nullptr) {
         return false;
     }

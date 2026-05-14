@@ -1,15 +1,16 @@
 #include "Ast.hpp"
 #include <algorithm>
 #include <cctype>
+#include <map>
 #include <regex>
 #include <set>
-#include <map>
 
 namespace mc::client::ui::kagero::tpl::ast {
 
 // ========== BindingInfo ==========
 
-BindingInfo BindingInfo::parse(const std::string& value) {
+BindingInfo BindingInfo::parse(const std::string& value)
+{
     BindingInfo info;
 
     if (value.empty()) {
@@ -39,8 +40,8 @@ BindingInfo BindingInfo::parse(const std::string& value) {
 
 // ========== Attribute ==========
 
-Attribute Attribute::createStatic(const std::string& name, const std::string& value,
-                                   const SourceLocation& loc) {
+Attribute Attribute::createStatic(const std::string& name, const std::string& value, const SourceLocation& loc)
+{
     Attribute attr;
     attr.name = name;
     attr.rawValue = value;
@@ -60,7 +61,8 @@ Attribute Attribute::createStatic(const std::string& name, const std::string& va
             } else {
                 attr.value = value;
             }
-        } catch (...) {
+        }
+        catch (...) {
             try {
                 size_t pos;
                 f32 floatVal = std::stof(value, &pos);
@@ -69,7 +71,8 @@ Attribute Attribute::createStatic(const std::string& name, const std::string& va
                 } else {
                     attr.value = value;
                 }
-            } catch (...) {
+            }
+            catch (...) {
                 attr.value = value;
             }
         }
@@ -78,8 +81,8 @@ Attribute Attribute::createStatic(const std::string& name, const std::string& va
     return attr;
 }
 
-Attribute Attribute::createBinding(const std::string& name, const std::string& bindingPath,
-                                    const SourceLocation& loc) {
+Attribute Attribute::createBinding(const std::string& name, const std::string& bindingPath, const SourceLocation& loc)
+{
     Attribute attr;
     attr.name = name;
     attr.rawValue = bindingPath;
@@ -90,8 +93,8 @@ Attribute Attribute::createBinding(const std::string& name, const std::string& b
     return attr;
 }
 
-Attribute Attribute::createEvent(const std::string& name, const std::string& callbackName,
-                                  const SourceLocation& loc) {
+Attribute Attribute::createEvent(const std::string& name, const std::string& callbackName, const SourceLocation& loc)
+{
     Attribute attr;
     attr.name = name;
     attr.rawValue = callbackName;
@@ -102,17 +105,16 @@ Attribute Attribute::createEvent(const std::string& name, const std::string& cal
     return attr;
 }
 
-std::string Attribute::baseName() const {
+std::string Attribute::baseName() const
+{
     static const std::string bindPrefix = "bind:";
     static const std::string onPrefix = "on:";
 
-    if (name.size() > bindPrefix.size() &&
-        name.substr(0, bindPrefix.size()) == bindPrefix) {
+    if (name.size() > bindPrefix.size() && name.substr(0, bindPrefix.size()) == bindPrefix) {
         return name.substr(bindPrefix.size());
     }
 
-    if (name.size() > onPrefix.size() &&
-        name.substr(0, onPrefix.size()) == onPrefix) {
+    if (name.size() > onPrefix.size() && name.substr(0, onPrefix.size()) == onPrefix) {
         return name.substr(onPrefix.size());
     }
 
@@ -121,20 +123,24 @@ std::string Attribute::baseName() const {
 
 // ========== ElementNode ==========
 
-void ElementNode::addAttribute(const Attribute& attr) {
+void ElementNode::addAttribute(const Attribute& attr)
+{
     attributes[attr.name] = attr;
 }
 
-const Attribute* ElementNode::getAttribute(const std::string& name) const {
+const Attribute* ElementNode::getAttribute(const std::string& name) const
+{
     auto it = attributes.find(name);
     return it != attributes.end() ? &it->second : nullptr;
 }
 
-bool ElementNode::hasAttribute(const std::string& name) const {
+bool ElementNode::hasAttribute(const std::string& name) const
+{
     return attributes.find(name) != attributes.end();
 }
 
-void ElementNode::categorizeAttributes() {
+void ElementNode::categorizeAttributes()
+{
     staticAttrs.clear();
     bindingAttrs.clear();
     eventAttrs.clear();
@@ -157,7 +163,8 @@ void ElementNode::categorizeAttributes() {
     }
 }
 
-std::unique_ptr<Node> ElementNode::clone() const {
+std::unique_ptr<Node> ElementNode::clone() const
+{
     auto node = std::make_unique<ElementNode>(type);
     node->tagName = tagName;
     node->id = id;
@@ -179,7 +186,8 @@ std::unique_ptr<Node> ElementNode::clone() const {
 
 // ========== DocumentNode ==========
 
-ElementNode* DocumentNode::rootElement() {
+ElementNode* DocumentNode::rootElement()
+{
     for (auto& child : children) {
         if (auto* elem = dynamic_cast<ElementNode*>(child.get())) {
             return elem;
@@ -188,7 +196,8 @@ ElementNode* DocumentNode::rootElement() {
     return nullptr;
 }
 
-const ElementNode* DocumentNode::rootElement() const {
+const ElementNode* DocumentNode::rootElement() const
+{
     for (const auto& child : children) {
         if (const auto* elem = dynamic_cast<const ElementNode*>(child.get())) {
             return elem;
@@ -197,7 +206,8 @@ const ElementNode* DocumentNode::rootElement() const {
     return nullptr;
 }
 
-std::unique_ptr<Node> DocumentNode::clone() const {
+std::unique_ptr<Node> DocumentNode::clone() const
+{
     auto node = std::make_unique<DocumentNode>();
     node->sourcePath = sourcePath;
     node->version = version;
@@ -212,9 +222,9 @@ std::unique_ptr<Node> DocumentNode::clone() const {
 
 // ========== 工具函数 ==========
 
-NodeType getNodeTypeFromTagName(const std::string& tagName) {
-    static const std::map<std::string, NodeType> tagMap = {
-        {"screen", NodeType::Screen},
+NodeType getNodeTypeFromTagName(const std::string& tagName)
+{
+    static const std::map<std::string, NodeType> tagMap = {{"screen", NodeType::Screen},
         {"widget", NodeType::Widget},
         {"button", NodeType::Button},
         {"text", NodeType::Text},
@@ -227,47 +237,55 @@ NodeType getNodeTypeFromTagName(const std::string& tagName) {
         {"viewport3d", NodeType::Viewport3D},
         {"scrollable", NodeType::Scrollable},
         {"list", NodeType::List},
-        {"style", NodeType::Style}
-    };
+        {"style", NodeType::Style}};
 
     std::string lowerName = tagName;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
     auto it = tagMap.find(lowerName);
     return it != tagMap.end() ? it->second : NodeType::Widget;
 }
 
-bool isValidWidgetTag(const std::string& tagName) {
-    static const std::set<std::string> validTags = {
-        "screen", "widget", "button", "text", "textfield",
-        "slider", "checkbox", "image", "grid", "slot",
-        "viewport3d", "scrollable", "list", "style",
-        "container"
-    };
+bool isValidWidgetTag(const std::string& tagName)
+{
+    static const std::set<std::string> validTags = {"screen",
+        "widget",
+        "button",
+        "text",
+        "textfield",
+        "slider",
+        "checkbox",
+        "image",
+        "grid",
+        "slot",
+        "viewport3d",
+        "scrollable",
+        "list",
+        "style",
+        "container"};
 
     std::string lowerName = tagName;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
     return validTags.find(lowerName) != validTags.end();
 }
 
-bool isValidAttributeName(const std::string& name) {
+bool isValidAttributeName(const std::string& name)
+{
     if (name.empty()) {
         return false;
     }
 
     // 允许的属性前缀
-    static const std::vector<std::string> allowedPrefixes = {
-        "bind:",
-        "on:"
-    };
+    static const std::vector<std::string> allowedPrefixes = {"bind:", "on:"};
 
     // 检查是否有前缀
     for (const auto& prefix : allowedPrefixes) {
-        if (name.size() > prefix.size() &&
-            name.substr(0, prefix.size()) == prefix) {
+        if (name.size() > prefix.size() && name.substr(0, prefix.size()) == prefix) {
             // 前缀后面的部分必须是有效的标识符
             std::string suffix = name.substr(prefix.size());
             return isValidCallbackName(suffix);
@@ -277,8 +295,7 @@ bool isValidAttributeName(const std::string& name) {
     // 静态属性名必须是有效的标识符（允许连字符和冒号）
     for (size_t i = 0; i < name.size(); ++i) {
         char c = name[i];
-        if (!std::isalnum(static_cast<unsigned char>(c)) &&
-            c != '_' && c != '-' && c != ':') {
+        if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '-' && c != ':') {
             return false;
         }
     }
@@ -286,7 +303,8 @@ bool isValidAttributeName(const std::string& name) {
     return true;
 }
 
-bool isValidBindingPath(const std::string& path) {
+bool isValidBindingPath(const std::string& path)
+{
     if (path.empty()) {
         return false;
     }
@@ -328,7 +346,8 @@ bool isValidBindingPath(const std::string& path) {
     return hasSegmentChar; // 必须以有效段结尾
 }
 
-bool isValidCallbackName(const std::string& name) {
+bool isValidCallbackName(const std::string& name)
+{
     if (name.empty()) {
         return false;
     }

@@ -7,8 +7,7 @@ namespace mc::server::interaction {
 
 InventoryManager::InventoryManager(core::PlayerManager& playerManager)
     : m_playerManager(playerManager)
-{
-}
+{}
 
 PlayerInventory* InventoryManager::getInventory(PlayerId playerId)
 {
@@ -111,8 +110,7 @@ void InventoryManager::cleanupInventory(PlayerId playerId)
     spdlog::debug("Cleaned up inventory for player {}", playerId);
 }
 
-void InventoryManager::setOnInventoryUpdate(
-    std::function<void(PlayerId, const PlayerInventory&)> callback)
+void InventoryManager::setOnInventoryUpdate(std::function<void(PlayerId, const PlayerInventory&)> callback)
 {
     m_onInventoryUpdate = std::move(callback);
 }

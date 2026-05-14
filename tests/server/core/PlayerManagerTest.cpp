@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
 #include "server/core/PlayerManager.hpp"
-#include "server/core/ServerCoreConfig.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
-#include "common/network/connection/LocalConnection.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/connection/LocalConnection.hpp"
+#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "server/core/ServerCoreConfig.hpp"
 #include <algorithm>
+#include <gtest/gtest.h>
 
 using namespace mc::server::core;
 using namespace mc::network;
@@ -16,17 +16,17 @@ using mc::server::ServerCoreConfig;
  */
 class PlayerManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建本地连接对用于测试
         m_connectionPair = std::make_unique<LocalConnectionPair>();
         m_connectionPair->connect();
     }
 
-    void TearDown() override {
-        m_connectionPair.reset();
-    }
+    void TearDown() override { m_connectionPair.reset(); }
 
-    ConnectionPtr createConnection() {
+    ConnectionPtr createConnection()
+    {
         return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
@@ -34,20 +34,23 @@ protected:
     std::unique_ptr<LocalConnectionPair> m_connectionPair;
 };
 
-TEST_F(PlayerManagerTest, DefaultConstruction) {
+TEST_F(PlayerManagerTest, DefaultConstruction)
+{
     PlayerManager manager;
     EXPECT_EQ(manager.playerCount(), 0u);
     EXPECT_EQ(manager.maxPlayers(), 20); // default
 }
 
-TEST_F(PlayerManagerTest, ConstructionWithConfig) {
+TEST_F(PlayerManagerTest, ConstructionWithConfig)
+{
     m_config.maxPlayers = 50;
     m_config.viewDistance = 12;
     PlayerManager manager(m_config);
     EXPECT_EQ(manager.maxPlayers(), 50);
 }
 
-TEST_F(PlayerManagerTest, AddPlayer) {
+TEST_F(PlayerManagerTest, AddPlayer)
+{
     PlayerManager manager;
     auto conn = createConnection();
 
@@ -60,7 +63,8 @@ TEST_F(PlayerManagerTest, AddPlayer) {
     EXPECT_TRUE(manager.hasPlayer(1));
 }
 
-TEST_F(PlayerManagerTest, AddPlayerDuplicate) {
+TEST_F(PlayerManagerTest, AddPlayerDuplicate)
+{
     PlayerManager manager;
     auto conn = createConnection();
 
@@ -73,7 +77,8 @@ TEST_F(PlayerManagerTest, AddPlayerDuplicate) {
     EXPECT_EQ(manager.playerCount(), 1u);
 }
 
-TEST_F(PlayerManagerTest, AddPlayerWhenFull) {
+TEST_F(PlayerManagerTest, AddPlayerWhenFull)
+{
     m_config.maxPlayers = 2;
     PlayerManager manager(m_config);
 
@@ -81,15 +86,19 @@ TEST_F(PlayerManagerTest, AddPlayerWhenFull) {
     auto conn2 = createConnection();
     auto conn3 = createConnection();
 
-    ASSERT_NE(manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Player1")), "Player1", conn1), nullptr);
-    ASSERT_NE(manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Player2")), "Player2", conn2), nullptr);
+    ASSERT_NE(manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Player1")), "Player1", conn1),
+        nullptr);
+    ASSERT_NE(manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Player2")), "Player2", conn2),
+        nullptr);
 
     // 已满时应返回 nullptr
-    EXPECT_EQ(manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Player3")), "Player3", conn3), nullptr);
+    EXPECT_EQ(manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Player3")), "Player3", conn3),
+        nullptr);
     EXPECT_TRUE(manager.isFull());
 }
 
-TEST_F(PlayerManagerTest, RemovePlayer) {
+TEST_F(PlayerManagerTest, RemovePlayer)
+{
     PlayerManager manager;
     auto conn = createConnection();
 
@@ -101,14 +110,16 @@ TEST_F(PlayerManagerTest, RemovePlayer) {
     EXPECT_FALSE(manager.hasPlayer(1));
 }
 
-TEST_F(PlayerManagerTest, RemoveNonexistentPlayer) {
+TEST_F(PlayerManagerTest, RemoveNonexistentPlayer)
+{
     PlayerManager manager;
     // 移除不存在的玩家应该安全
     manager.removePlayer(999);
     EXPECT_EQ(manager.playerCount(), 0u);
 }
 
-TEST_F(PlayerManagerTest, GetPlayer) {
+TEST_F(PlayerManagerTest, GetPlayer)
+{
     PlayerManager manager;
     auto conn = createConnection();
 
@@ -125,7 +136,8 @@ TEST_F(PlayerManagerTest, GetPlayer) {
     EXPECT_EQ(manager.getPlayer(999), nullptr);
 }
 
-TEST_F(PlayerManagerTest, SessionMapping) {
+TEST_F(PlayerManagerTest, SessionMapping)
+{
     PlayerManager manager;
     auto conn = createConnection();
 
@@ -139,7 +151,8 @@ TEST_F(PlayerManagerTest, SessionMapping) {
     EXPECT_EQ(manager.getPlayerIdBySession(100), 0u);
 }
 
-TEST_F(PlayerManagerTest, RemovePlayerBySessionId) {
+TEST_F(PlayerManagerTest, RemovePlayerBySessionId)
+{
     PlayerManager manager;
     auto conn = createConnection();
 
@@ -152,7 +165,8 @@ TEST_F(PlayerManagerTest, RemovePlayerBySessionId) {
     EXPECT_EQ(manager.getPlayerIdBySession(100), 0u);
 }
 
-TEST_F(PlayerManagerTest, ForEachPlayer) {
+TEST_F(PlayerManagerTest, ForEachPlayer)
+{
     PlayerManager manager;
     auto conn1 = createConnection();
     auto conn2 = createConnection();
@@ -161,16 +175,15 @@ TEST_F(PlayerManagerTest, ForEachPlayer) {
     manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     std::vector<mc::PlayerId> ids;
-    manager.forEachPlayer([&ids](mc::server::ServerPlayerData& player) {
-        ids.push_back(player.playerId);
-    });
+    manager.forEachPlayer([&ids](mc::server::ServerPlayerData& player) { ids.push_back(player.playerId); });
 
     EXPECT_EQ(ids.size(), 2u);
     EXPECT_NE(std::find(ids.begin(), ids.end(), mc::PlayerId(1)), ids.end());
     EXPECT_NE(std::find(ids.begin(), ids.end(), mc::PlayerId(2)), ids.end());
 }
 
-TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall) {
+TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall)
+{
     PlayerManager manager;
     auto conn1 = createConnection();
     auto conn2 = createConnection();
@@ -189,7 +202,8 @@ TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall) {
     EXPECT_EQ(nestedLookupSuccess, 2u);
 }
 
-TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration) {
+TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration)
+{
     PlayerManager manager;
     auto conn1 = createConnection();
     auto conn2 = createConnection();
@@ -209,7 +223,8 @@ TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration) {
     EXPECT_EQ(manager.playerCount(), 2u);
 }
 
-TEST_F(PlayerManagerTest, GetPlayerIds) {
+TEST_F(PlayerManagerTest, GetPlayerIds)
+{
     PlayerManager manager;
     auto conn1 = createConnection();
     auto conn2 = createConnection();
@@ -221,7 +236,8 @@ TEST_F(PlayerManagerTest, GetPlayerIds) {
     EXPECT_EQ(ids.size(), 2u);
 }
 
-TEST_F(PlayerManagerTest, NextPlayerId) {
+TEST_F(PlayerManagerTest, NextPlayerId)
+{
     PlayerManager manager;
 
     auto id1 = manager.nextPlayerId();
@@ -232,7 +248,8 @@ TEST_F(PlayerManagerTest, NextPlayerId) {
     EXPECT_NE(id2, id3);
 }
 
-TEST_F(PlayerManagerTest, ChunkSyncManager) {
+TEST_F(PlayerManagerTest, ChunkSyncManager)
+{
     PlayerManager manager;
     auto& chunkSync = manager.chunkSyncManager();
     EXPECT_EQ(chunkSync.defaultViewDistance(), 10);
@@ -241,7 +258,8 @@ TEST_F(PlayerManagerTest, ChunkSyncManager) {
     EXPECT_EQ(chunkSync.defaultViewDistance(), 12);
 }
 
-TEST_F(PlayerManagerTest, SetMaxPlayers) {
+TEST_F(PlayerManagerTest, SetMaxPlayers)
+{
     PlayerManager manager;
     EXPECT_EQ(manager.maxPlayers(), 20);
 
@@ -251,7 +269,8 @@ TEST_F(PlayerManagerTest, SetMaxPlayers) {
 
 // ========== IP 地址相关测试 ==========
 
-TEST_F(PlayerManagerTest, LocalConnectionHasEmptyIpAddress) {
+TEST_F(PlayerManagerTest, LocalConnectionHasEmptyIpAddress)
+{
     PlayerManager manager;
     auto conn = createConnection();
 
@@ -266,13 +285,15 @@ TEST_F(PlayerManagerTest, LocalConnectionHasEmptyIpAddress) {
     EXPECT_EQ(player->ipAddress, "");
 }
 
-TEST_F(PlayerManagerTest, GetPlayerIdsByAddress) {
+TEST_F(PlayerManagerTest, GetPlayerIdsByAddress)
+{
     PlayerManager manager;
     auto conn1 = createConnection();
     auto conn2 = createConnection();
     auto conn3 = createConnection();
 
-    auto* player1 = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    auto* player1 =
+        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
     auto* player2 = manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
     auto* player3 = manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Eve")), "Eve", conn3);
 
@@ -282,8 +303,8 @@ TEST_F(PlayerManagerTest, GetPlayerIdsByAddress) {
 
     // 手动设置 IP 地址（模拟 TCP 连接）
     player1->ipAddress = "192.168.1.100";
-    player2->ipAddress = "192.168.1.100";  // 同一 IP
-    player3->ipAddress = "192.168.1.200";  // 不同 IP
+    player2->ipAddress = "192.168.1.100"; // 同一 IP
+    player3->ipAddress = "192.168.1.200"; // 不同 IP
 
     // 查找同一 IP 的玩家
     auto players100 = manager.getPlayerIdsByAddress("192.168.1.100");
@@ -302,10 +323,11 @@ TEST_F(PlayerManagerTest, GetPlayerIdsByAddress) {
 
     // 查找空 IP（本地连接）
     auto localPlayers = manager.getPlayerIdsByAddress("");
-    EXPECT_EQ(localPlayers.size(), 0u);  // 没有空 IP 的玩家（都设置了 IP）
+    EXPECT_EQ(localPlayers.size(), 0u); // 没有空 IP 的玩家（都设置了 IP）
 }
 
-TEST_F(PlayerManagerTest, FindByUsername) {
+TEST_F(PlayerManagerTest, FindByUsername)
+{
     PlayerManager manager;
     auto conn = createConnection();
 

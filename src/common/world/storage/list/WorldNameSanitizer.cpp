@@ -10,15 +10,33 @@ const char* WorldNameSanitizer::ILLEGAL_CHARS = "/\\:*?\"<>|";
 bool WorldNameSanitizer::isReservedName(const std::string& name)
 {
     // Windows 保留名
-    static const char* reservedNames[] = {
-        "CON", "PRN", "AUX", "NUL",
-        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
-    };
+    static const char* reservedNames[] = {"CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        "COM1",
+        "COM2",
+        "COM3",
+        "COM4",
+        "COM5",
+        "COM6",
+        "COM7",
+        "COM8",
+        "COM9",
+        "LPT1",
+        "LPT2",
+        "LPT3",
+        "LPT4",
+        "LPT5",
+        "LPT6",
+        "LPT7",
+        "LPT8",
+        "LPT9"};
 
     std::string upperName = name;
-    std::transform(upperName.begin(), upperName.end(), upperName.begin(),
-        [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    std::transform(upperName.begin(), upperName.end(), upperName.begin(), [](unsigned char c) {
+        return static_cast<char>(std::toupper(c));
+    });
 
     // 检查是否有扩展名，如果有则去除
     size_t dotPos = upperName.find('.');
@@ -43,18 +61,17 @@ std::string WorldNameSanitizer::sanitizeName(const std::string& name)
     std::string result = name;
 
     // 替换非法字符为 '_'
-    std::transform(result.begin(), result.end(), result.begin(),
-        [](unsigned char c) {
-            // 检查是否为非法字符
-            if (std::strchr(ILLEGAL_CHARS, static_cast<char>(c)) != nullptr) {
-                return '_';
-            }
-            // 控制字符
-            if (c < 32) {
-                return '_';
-            }
-            return static_cast<char>(c);
-        });
+    std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) {
+        // 检查是否为非法字符
+        if (std::strchr(ILLEGAL_CHARS, static_cast<char>(c)) != nullptr) {
+            return '_';
+        }
+        // 控制字符
+        if (c < 32) {
+            return '_';
+        }
+        return static_cast<char>(c);
+    });
 
     // 去除首尾空格和点
     size_t start = result.find_first_not_of(" .");
@@ -77,11 +94,7 @@ std::string WorldNameSanitizer::sanitizeName(const std::string& name)
     return result;
 }
 
-bool WorldNameSanitizer::parseExistingNameWithNumber(
-    const std::string& name,
-    std::string& baseName,
-    i32& number
-)
+bool WorldNameSanitizer::parseExistingNameWithNumber(const std::string& name, std::string& baseName, i32& number)
 {
     // 匹配模式 "Name (N)" 其中 N 是数字
     if (name.length() < 4) {
@@ -111,15 +124,14 @@ bool WorldNameSanitizer::parseExistingNameWithNumber(
         number = std::stoi(numStr);
         baseName = name.substr(0, spacePos);
         return true;
-    } catch (...) {
+    }
+    catch (...) {
         return false;
     }
 }
 
 Result<std::string> WorldNameSanitizer::findAvailableLevelId(
-    const std::filesystem::path& savesDir,
-    const std::string& requestedName
-)
+    const std::filesystem::path& savesDir, const std::string& requestedName)
 {
     std::string baseName = sanitizeName(requestedName);
     if (baseName.empty()) {
@@ -185,10 +197,7 @@ Result<std::string> WorldNameSanitizer::findAvailableLevelId(
     return oss.str();
 }
 
-bool WorldNameSanitizer::isLevelIdAvailable(
-    const std::filesystem::path& savesDir,
-    const std::string& levelId
-)
+bool WorldNameSanitizer::isLevelIdAvailable(const std::filesystem::path& savesDir, const std::string& levelId)
 {
     std::error_code ec;
     std::filesystem::path worldDir = savesDir / levelId;

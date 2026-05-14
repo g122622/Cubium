@@ -6,23 +6,21 @@ namespace mc::client::renderer::entity::renderer::animal {
 using mc::CatEntity;
 
 namespace {
-    // MC 1.16.5 猫类型纹理
-    // 0: Tabby, 1: Black, 2: Red, 3: Siamese, 4: British Shorthair
-    // 5: Calico, 6: Persian, 7: Ragdoll, 8: White, 9: Jellie, 10: Black (All Black)
-    const char* CAT_TEXTURES[11] = {
-        "textures/entity/cat/tabby.png",
-        "textures/entity/cat/black.png",
-        "textures/entity/cat/red.png",
-        "textures/entity/cat/siamese.png",
-        "textures/entity/cat/british_shorthair.png",
-        "textures/entity/cat/calico.png",
-        "textures/entity/cat/persian.png",
-        "textures/entity/cat/ragdoll.png",
-        "textures/entity/cat/white.png",
-        "textures/entity/cat/jellie.png",
-        "textures/entity/cat/all_black.png"
-    };
-}
+// MC 1.16.5 猫类型纹理
+// 0: Tabby, 1: Black, 2: Red, 3: Siamese, 4: British Shorthair
+// 5: Calico, 6: Persian, 7: Ragdoll, 8: White, 9: Jellie, 10: Black (All Black)
+const char* CAT_TEXTURES[11] = {"textures/entity/cat/tabby.png",
+    "textures/entity/cat/black.png",
+    "textures/entity/cat/red.png",
+    "textures/entity/cat/siamese.png",
+    "textures/entity/cat/british_shorthair.png",
+    "textures/entity/cat/calico.png",
+    "textures/entity/cat/persian.png",
+    "textures/entity/cat/ragdoll.png",
+    "textures/entity/cat/white.png",
+    "textures/entity/cat/jellie.png",
+    "textures/entity/cat/all_black.png"};
+} // namespace
 
 CatRenderer::CatRenderer()
     : m_model(0.0f)
@@ -31,7 +29,8 @@ CatRenderer::CatRenderer()
     setShadowSize(0.4f);
 }
 
-void CatRenderer::render(Entity& entity, f64 partialTicks) {
+void CatRenderer::render(Entity& entity, f64 partialTicks)
+{
     auto& cat = static_cast<CatEntity&>(entity);
 
     // 选择模型（幼体或成体）
@@ -45,18 +44,25 @@ void CatRenderer::render(Entity& entity, f64 partialTicks) {
     model.setSitting(cat.isSitting());
 
     // 计算动画参数 - 从 TameableEntity（继承自 AnimalEntity -> LivingEntity）获取
-    f64 limbSwing = static_cast<f64>(cat.prevLimbSwing()) + (static_cast<f64>(cat.limbSwing()) - static_cast<f64>(cat.prevLimbSwing())) * partialTicks;
-    f64 limbSwingAmount = static_cast<f64>(cat.prevLimbSwingAmount()) + (static_cast<f64>(cat.limbSwingAmount()) - static_cast<f64>(cat.prevLimbSwingAmount())) * partialTicks;
+    f64 limbSwing = static_cast<f64>(cat.prevLimbSwing()) +
+        (static_cast<f64>(cat.limbSwing()) - static_cast<f64>(cat.prevLimbSwing())) * partialTicks;
+    f64 limbSwingAmount = static_cast<f64>(cat.prevLimbSwingAmount()) +
+        (static_cast<f64>(cat.limbSwingAmount()) - static_cast<f64>(cat.prevLimbSwingAmount())) * partialTicks;
     f64 ageInTicks = static_cast<f64>(cat.ticksExisted());
 
     // 头部旋转
-    f64 bodyYaw = static_cast<f64>(cat.prevRenderYawOffset()) + (static_cast<f64>(cat.renderYawOffset()) - static_cast<f64>(cat.prevRenderYawOffset())) * partialTicks;
-    f64 headYaw = static_cast<f64>(cat.prevRotationYawHead()) + (static_cast<f64>(cat.rotationYawHead()) - static_cast<f64>(cat.prevRotationYawHead())) * partialTicks;
+    f64 bodyYaw = static_cast<f64>(cat.prevRenderYawOffset()) +
+        (static_cast<f64>(cat.renderYawOffset()) - static_cast<f64>(cat.prevRenderYawOffset())) * partialTicks;
+    f64 headYaw = static_cast<f64>(cat.prevRotationYawHead()) +
+        (static_cast<f64>(cat.rotationYawHead()) - static_cast<f64>(cat.prevRotationYawHead())) * partialTicks;
     f64 netHeadYaw = headYaw - bodyYaw;
-    while (netHeadYaw < -180.0) netHeadYaw += 360.0;
-    while (netHeadYaw > 180.0) netHeadYaw -= 360.0;
+    while (netHeadYaw < -180.0)
+        netHeadYaw += 360.0;
+    while (netHeadYaw > 180.0)
+        netHeadYaw -= 360.0;
 
-    f64 headPitch = static_cast<f64>(cat.prevPitch()) + (static_cast<f64>(cat.pitch()) - static_cast<f64>(cat.prevPitch())) * partialTicks;
+    f64 headPitch = static_cast<f64>(cat.prevPitch()) +
+        (static_cast<f64>(cat.pitch()) - static_cast<f64>(cat.prevPitch())) * partialTicks;
     f64 scale = isChild ? 0.5 : 1.0;
 
     model.setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
@@ -68,27 +74,30 @@ void CatRenderer::render(Entity& entity, f64 partialTicks) {
     }
 }
 
-ResourceLocation CatRenderer::getEntityTexture(CatEntity& entity) {
+ResourceLocation CatRenderer::getEntityTexture(CatEntity& entity)
+{
     u32 catType = static_cast<u32>(entity.getCatType());
     return getCatTexture(catType);
 }
 
-ResourceLocation CatRenderer::getEntityTexture(const CatEntity& entity) const {
+ResourceLocation CatRenderer::getEntityTexture(const CatEntity& entity) const
+{
     u32 catType = static_cast<u32>(entity.getCatType());
     return getCatTexture(catType);
 }
 
-ResourceLocation CatRenderer::getCatTexture(u32 catType) {
+ResourceLocation CatRenderer::getCatTexture(u32 catType)
+{
     if (catType >= 11) {
         catType = 0;
     }
     return ResourceLocation("minecraft", CAT_TEXTURES[catType]);
 }
 
-void registerCatRenderer(EntityRendererManager& manager) {
-    manager.registerRenderer("minecraft:cat", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<CatRenderer>();
-    });
+void registerCatRenderer(EntityRendererManager& manager)
+{
+    manager.registerRenderer(
+        "minecraft:cat", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<CatRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

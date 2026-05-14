@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../Goal.hpp"
 
 namespace mc {
 
@@ -60,16 +60,16 @@ private:
 
     BlazeEntity* m_blaze;
     LivingEntity* m_target = nullptr;
-    i32 m_attackStep = 0;        // 攻击阶段（0=未开始，1=充能，2-4=连发火球）
-    i32 m_attackTime = 0;        // 攻击计时器
-    i32 m_unseenTime = 0;        // 看不到目标的时间
+    i32 m_attackStep = 0; // 攻击阶段（0=未开始，1=充能，2-4=连发火球）
+    i32 m_attackTime = 0; // 攻击计时器
+    i32 m_unseenTime = 0; // 看不到目标的时间
 
     // MC 1.16.5 常量
-    static constexpr i32 CHARGE_TIME = 60;       // 充能时间（ticks）
-    static constexpr i32 FIREBALL_INTERVAL = 6;  // 火球间隔（ticks）
-    static constexpr i32 COOLDOWN_TIME = 100;    // 冷却时间（ticks）
-    static constexpr i32 MAX_FIREBALLS = 3;      // 最多连发火球数
-    static constexpr f64 MELEE_RANGE_SQ = 4.0;   // 近战范围平方
+    static constexpr i32 CHARGE_TIME = 60;      // 充能时间（ticks）
+    static constexpr i32 FIREBALL_INTERVAL = 6; // 火球间隔（ticks）
+    static constexpr i32 COOLDOWN_TIME = 100;   // 冷却时间（ticks）
+    static constexpr i32 MAX_FIREBALLS = 3;     // 最多连发火球数
+    static constexpr f64 MELEE_RANGE_SQ = 4.0;  // 近战范围平方
 };
 
 } // namespace entity::ai::goal

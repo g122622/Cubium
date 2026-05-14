@@ -11,9 +11,8 @@ namespace command {
 namespace {
 
 [[nodiscard]] std::vector<std::shared_ptr<LiteralCommandNode<ServerCommandSource>>> getVisibleRootCommands(
-    CommandDispatcher<ServerCommandSource>& dispatcher,
-    const ServerCommandSource& source
-) {
+    CommandDispatcher<ServerCommandSource>& dispatcher, const ServerCommandSource& source)
+{
     std::vector<std::shared_ptr<LiteralCommandNode<ServerCommandSource>>> commands;
     for (const auto& [name, child] : dispatcher.getRoot()->getChildren()) {
         (void)name;
@@ -32,33 +31,25 @@ namespace {
 
 } // namespace
 
-void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto helpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("help");
-    helpNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(0);
-    });
-    support::applyMetadata(
-        helpNode,
-        support::makeMetadata(
-            "Show command help.",
-            "/help [command]",
-            0));
-    helpNode->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
-        return showHelp(ctx, dispatcher);
-    });
+    helpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
+    support::applyMetadata(helpNode, support::makeMetadata("Show command help.", "/help [command]", 0));
+    helpNode->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) { return showHelp(ctx, dispatcher); });
 
-    auto commandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "command",
-        StringArgumentType::word());
-    commandArg->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
-        return showCommandHelp(ctx, dispatcher);
-    });
+    auto commandArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("command", StringArgumentType::word());
+    commandArg->setCommand(
+        [&dispatcher](CommandContext<ServerCommandSource>& ctx) { return showCommandHelp(ctx, dispatcher); });
     helpNode->addChild(commandArg);
 
     dispatcher.registerCommand(helpNode);
 }
 
-i32 HelpCommand::showHelp(CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher) {
+i32 HelpCommand::showHelp(
+    CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto& source = context.getSource();
     const auto commands = getVisibleRootCommands(dispatcher, source);
 
@@ -80,7 +71,9 @@ i32 HelpCommand::showHelp(CommandContext<ServerCommandSource>& context, CommandD
     return 1;
 }
 
-i32 HelpCommand::showCommandHelp(CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher) {
+i32 HelpCommand::showCommandHelp(
+    CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto& source = context.getSource();
     const std::string commandName = context.getArgument<std::string>("command");
     auto node = dispatcher.getRoot()->getChild(commandName);

@@ -1,44 +1,44 @@
-#include <vulkan/vulkan.h>
 #include "TridentEngine.hpp"
+#include "../../../resource/EntityTextureLoader.hpp"
+#include "../../../resource/ItemTextureAtlas.hpp"
+#include "../../../ui/DefaultAsciiFont.hpp"
+#include "../../../ui/Font.hpp"
+#include "../../MeshTypes.hpp"
+#include "../../api/IRenderEngine.hpp"
+#include "../../util/ShaderPath.hpp"
+#include "../block/BreakProgressRenderer.hpp"
+#include "../chunk/ChunkRenderer.hpp"
+#include "../cloud/CloudRenderer.hpp"
+#include "../entity/core/EntityRendererManager.hpp"
+#include "../entity/effect/fire/FireEffect.hpp"
+#include "../entity/pipeline/EntityPipeline.hpp"
+#include "../entity/pipeline/EntityTextureAtlas.hpp"
+#include "../entity/util/WorldTextRenderer.hpp"
+#include "../firstperson/FirstPersonRenderer.hpp"
+#include "../fog/FogManager.hpp"
+#include "../gui/GuiRenderer.hpp"
+#include "../item/ItemRenderer.hpp"
+#include "../particle/ParticleManager.hpp"
+#include "../sky/SkyRenderer.hpp"
+#include "../weather/WeatherRenderer.hpp"
 #include "TridentContext.hpp"
 #include "TridentSwapchain.hpp"
-#include "render/RenderPassManager.hpp"
-#include "render/FrameManager.hpp"
-#include "render/DescriptorManager.hpp"
-#include "render/UniformManager.hpp"
-#include "pipeline/TridentPipeline.hpp"
 #include "buffer/TridentBuffer.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "pipeline/TridentPipeline.hpp"
+#include "render/DescriptorManager.hpp"
+#include "render/FrameManager.hpp"
+#include "render/RenderPassManager.hpp"
+#include "render/UniformManager.hpp"
 #include "texture/TridentTexture.hpp"
-#include "../../api/IRenderEngine.hpp"
-#include "../chunk/ChunkRenderer.hpp"
-#include "../../MeshTypes.hpp"
-#include "../../util/ShaderPath.hpp"
-#include "../sky/SkyRenderer.hpp"
-#include "../fog/FogManager.hpp"
-#include "../cloud/CloudRenderer.hpp"
-#include "../gui/GuiRenderer.hpp"
-#include "../particle/ParticleManager.hpp"
-#include "../weather/WeatherRenderer.hpp"
-#include "../../../ui/Font.hpp"
-#include "../../../ui/DefaultAsciiFont.hpp"
-#include "../item/ItemRenderer.hpp"
-#include "../../../resource/ItemTextureAtlas.hpp"
-#include "../../../resource/EntityTextureLoader.hpp"
-#include "../entity/core/EntityRendererManager.hpp"
-#include "../entity/pipeline/EntityTextureAtlas.hpp"
-#include "../entity/pipeline/EntityPipeline.hpp"
-#include "../entity/util/WorldTextRenderer.hpp"
-#include "../entity/effect/fire/FireEffect.hpp"
-#include "../block/BreakProgressRenderer.hpp"
-#include "../firstperson/FirstPersonRenderer.hpp"
-#include <GLFW/glfw3.h>
-#include <spdlog/spdlog.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include <cstring>
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <filesystem>
-#include "common/perfetto/TraceEvents.hpp"
+#include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <spdlog/spdlog.h>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -55,28 +55,35 @@ struct ChunkPushConstants {
 static_assert(sizeof(ChunkPushConstants) == 80, "ChunkPushConstants layout must match chunk.vert push-constant block");
 static_assert(offsetof(ChunkPushConstants, chunkRelativeOffset) == 64, "ChunkPushConstants offset mismatch");
 
-[[nodiscard]] u32 sampleCountToValue(VkSampleCountFlagBits sampleCount) {
+[[nodiscard]] u32 sampleCountToValue(VkSampleCountFlagBits sampleCount)
+{
     switch (sampleCount) {
-        case VK_SAMPLE_COUNT_64_BIT: return 64;
-        case VK_SAMPLE_COUNT_32_BIT: return 32;
-        case VK_SAMPLE_COUNT_16_BIT: return 16;
-        case VK_SAMPLE_COUNT_8_BIT: return 8;
-        case VK_SAMPLE_COUNT_4_BIT: return 4;
-        case VK_SAMPLE_COUNT_2_BIT: return 2;
-        default: return 1;
+        case VK_SAMPLE_COUNT_64_BIT:
+            return 64;
+        case VK_SAMPLE_COUNT_32_BIT:
+            return 32;
+        case VK_SAMPLE_COUNT_16_BIT:
+            return 16;
+        case VK_SAMPLE_COUNT_8_BIT:
+            return 8;
+        case VK_SAMPLE_COUNT_4_BIT:
+            return 4;
+        case VK_SAMPLE_COUNT_2_BIT:
+            return 2;
+        default:
+            return 1;
     }
 }
 
-[[nodiscard]] VkSampleCountFlagBits selectSampleCount(u32 requestedSamples, VkSampleCountFlagBits supportedSamples) {
-    const std::array<VkSampleCountFlagBits, 7> sampleOrder = {
-        VK_SAMPLE_COUNT_64_BIT,
+[[nodiscard]] VkSampleCountFlagBits selectSampleCount(u32 requestedSamples, VkSampleCountFlagBits supportedSamples)
+{
+    const std::array<VkSampleCountFlagBits, 7> sampleOrder = {VK_SAMPLE_COUNT_64_BIT,
         VK_SAMPLE_COUNT_32_BIT,
         VK_SAMPLE_COUNT_16_BIT,
         VK_SAMPLE_COUNT_8_BIT,
         VK_SAMPLE_COUNT_4_BIT,
         VK_SAMPLE_COUNT_2_BIT,
-        VK_SAMPLE_COUNT_1_BIT
-    };
+        VK_SAMPLE_COUNT_1_BIT};
 
     for (VkSampleCountFlagBits sampleCount : sampleOrder) {
         if (requestedSamples >= sampleCountToValue(sampleCount) && (supportedSamples & sampleCount) == sampleCount) {
@@ -92,7 +99,8 @@ static_assert(offsetof(ChunkPushConstants, chunkRelativeOffset) == 64, "ChunkPus
  */
 class TridentTextureAtlasAdapter final : public api::ITextureAtlas {
 public:
-    [[nodiscard]] Result<void> initialize(TridentContext* context, u32 width, u32 height, u32 tileSize) {
+    [[nodiscard]] Result<void> initialize(TridentContext* context, u32 width, u32 height, u32 tileSize)
+    {
         return m_atlas.create(context, width, height, tileSize);
     }
 
@@ -101,13 +109,12 @@ public:
     [[nodiscard]] u32 tileSize() const override { return m_atlas.tileSize(); }
     [[nodiscard]] u32 tilesPerRow() const override { return m_atlas.tilesPerRow(); }
 
-    [[nodiscard]] api::TextureRegion getRegion(u32 tileX, u32 tileY) const override {
+    [[nodiscard]] api::TextureRegion getRegion(u32 tileX, u32 tileY) const override
+    {
         return m_atlas.getRegion(tileX, tileY);
     }
 
-    [[nodiscard]] api::TextureRegion getRegion(u32 tileIndex) const override {
-        return m_atlas.getRegion(tileIndex);
-    }
+    [[nodiscard]] api::TextureRegion getRegion(u32 tileIndex) const override { return m_atlas.getRegion(tileIndex); }
 
     [[nodiscard]] api::ITexture* texture() override { return &m_atlas.texture(); }
     [[nodiscard]] const api::ITexture* texture() const override { return &m_atlas.texture(); }
@@ -126,7 +133,8 @@ private:
 
 TridentEngine::TridentEngine() = default;
 
-TridentEngine::~TridentEngine() {
+TridentEngine::~TridentEngine()
+{
     destroy();
 }
 
@@ -134,7 +142,8 @@ TridentEngine::~TridentEngine() {
 // IRenderEngine 接口实现 - 生命周期
 // ============================================================================
 
-Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConfig& config) {
+Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConfig& config)
+{
     MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initialize");
 
     if (m_initialized) {
@@ -156,10 +165,7 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
 
     // 1. 创建 Vulkan 上下文
     m_context = std::make_unique<TridentContext>();
-    auto contextResult = m_context->initialize(
-        static_cast<GLFWwindow*>(window),
-        m_tridentConfig
-    );
+    auto contextResult = m_context->initialize(static_cast<GLFWwindow*>(window), m_tridentConfig);
     if (contextResult.failed()) {
         m_context.reset();
         return contextResult.error();
@@ -172,7 +178,8 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
 
     if (config.enableAntiAliasing && m_config.msaaSamples != requestedSampleCount) {
         spdlog::warn("Requested MSAA x{} is not fully supported by the device, falling back to x{}",
-                     requestedSampleCount, m_config.msaaSamples);
+            requestedSampleCount,
+            m_config.msaaSamples);
     }
 
     // 2. 创建交换链
@@ -234,11 +241,8 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
 
     // 6. 创建 Uniform 管理器
     m_uniformManager = std::make_unique<UniformManager>();
-    auto uniformResult = m_uniformManager->initialize(
-        m_context.get(),
-        m_descriptorManager.get(),
-        config.maxFramesInFlight
-    );
+    auto uniformResult =
+        m_uniformManager->initialize(m_context.get(), m_descriptorManager.get(), config.maxFramesInFlight);
     if (uniformResult.failed()) {
         m_descriptorManager->destroy();
         m_frameManager->destroy();
@@ -258,13 +262,13 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
     m_frameContext = api::FrameContext{};
 
     m_initialized = true;
-    spdlog::info("Renderer AA config: enabled={}, samples={}",
-                 config.enableAntiAliasing, m_config.msaaSamples);
+    spdlog::info("Renderer AA config: enabled={}, samples={}", config.enableAntiAliasing, m_config.msaaSamples);
     spdlog::info("TridentEngine initialized successfully");
     return {};
 }
 
-void TridentEngine::destroy() {
+void TridentEngine::destroy()
+{
     if (!m_initialized) return;
 
     // 等待设备空闲
@@ -385,7 +389,8 @@ void TridentEngine::destroy() {
 // IRenderEngine 接口实现 - 帧渲染
 // ============================================================================
 
-Result<void> TridentEngine::beginFrame() {
+Result<void> TridentEngine::beginFrame()
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
@@ -426,7 +431,7 @@ Result<void> TridentEngine::beginFrame() {
 
     // 清除值
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.1f, 0.1f, 0.2f, 1.0f}};  // 天空蓝
+    clearValues[0].color = {{0.1f, 0.1f, 0.2f, 1.0f}}; // 天空蓝
     clearValues[1].depthStencil = {1.0f, 0};
 
     renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
@@ -453,7 +458,8 @@ Result<void> TridentEngine::beginFrame() {
     return {};
 }
 
-Result<void> TridentEngine::endFrame() {
+Result<void> TridentEngine::endFrame()
+{
     if (!m_frameStarted) {
         return Error(ErrorCode::InvalidState, "Frame not started");
     }
@@ -467,7 +473,8 @@ Result<void> TridentEngine::endFrame() {
     return {};
 }
 
-Result<void> TridentEngine::present() {
+Result<void> TridentEngine::present()
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
@@ -484,7 +491,8 @@ Result<void> TridentEngine::present() {
     return {};
 }
 
-Result<void> TridentEngine::render() {
+Result<void> TridentEngine::render()
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
@@ -515,10 +523,7 @@ Result<void> TridentEngine::render() {
         m_frameContext.projectionMatrix = m_frameContext.camera->projectionMatrix();
         m_frameContext.viewProjectionMatrix = m_frameContext.projectionMatrix * m_frameContext.viewMatrix;
         m_uniformManager->updateCamera(
-            m_frameContext.viewMatrix,
-            m_frameContext.projectionMatrix,
-            m_frameContext.frameIndex
-        );
+            m_frameContext.viewMatrix, m_frameContext.projectionMatrix, m_frameContext.frameIndex);
     }
 
     // 3. 渲染天空
@@ -532,14 +537,12 @@ Result<void> TridentEngine::render() {
             cameraForward = m_frameContext.camera->forward();
         }
 
-        m_skyRendererPtr->render(
-            cmd,
+        m_skyRendererPtr->render(cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
             glm::vec3(cameraPos),
             glm::vec3(cameraForward),
-            m_frameContext.frameIndex
-        );
+            m_frameContext.frameIndex);
     }
 
     // 4. 更新雾效果（在渲染区块之前）
@@ -559,14 +562,12 @@ Result<void> TridentEngine::render() {
         } else {
             // 陆地上的雾效果
             m_fogManager->resetToLand();
-            m_fogManager->update(
-                m_renderDistanceChunks,
+            m_fogManager->update(m_renderDistanceChunks,
                 m_rainStrength,
                 m_thunderStrength,
                 m_landFogDensity,
                 m_skyRendererPtr->fogColor(),
-                glm::vec3(cameraPos)
-            );
+                glm::vec3(cameraPos));
         }
     }
 
@@ -581,27 +582,24 @@ Result<void> TridentEngine::render() {
         // 目前使用 Fancy 模式和主世界云高度
         constexpr f64 CLOUD_HEIGHT = 192.0f; // 主世界云高度
 
-        m_cloudRenderer->update(
-            m_dayTime,
+        m_cloudRenderer->update(m_dayTime,
             m_gameTime,
             m_partialTick,
             CLOUD_HEIGHT,
             m_skyRendererPtr->fogColor() // 云颜色使用雾颜色
         );
 
-        m_cloudRenderer->render(
-            cmd,
+        m_cloudRenderer->render(cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
             glm::vec3(cameraPos),
             m_cloudMode,
-            m_frameContext.frameIndex
-        );
+            m_frameContext.frameIndex);
     }
 
     // 5. 渲染区块
-    if (m_chunkRendererInitialized && m_chunkRenderer && m_chunkPipeline &&
-        m_chunkPipeline->isValid() && m_chunkTextureDescriptorSet != VK_NULL_HANDLE) {
+    if (m_chunkRendererInitialized && m_chunkRenderer && m_chunkPipeline && m_chunkPipeline->isValid() &&
+        m_chunkTextureDescriptorSet != VK_NULL_HANDLE) {
 
         // 清理延迟销毁队列：在高负载时延长保留窗口，降低旧缓冲区被过早释放的风险。
         m_chunkRenderer->processPendingDestroys(32);
@@ -613,42 +611,17 @@ Result<void> TridentEngine::render() {
             m_chunkPipeline->bind(cmd);
 
             VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
-            vkCmdBindDescriptorSets(
-                cmd,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                chunkLayout,
-                0,
-                1,
-                &cameraSet,
-                0,
-                nullptr
-            );
+            vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, chunkLayout, 0, 1, &cameraSet, 0, nullptr);
 
             vkCmdBindDescriptorSets(
-                cmd,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                chunkLayout,
-                1,
-                1,
-                &m_chunkTextureDescriptorSet,
-                0,
-                nullptr
-            );
+                cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, chunkLayout, 1, 1, &m_chunkTextureDescriptorSet, 0, nullptr);
 
             // 绑定雾效果描述符集（set = 2）
             if (m_fogManagerInitialized && m_fogManager) {
                 VkDescriptorSet fogSet = m_fogManager->descriptorSet(m_frameContext.frameIndex);
                 if (fogSet != VK_NULL_HANDLE) {
                     vkCmdBindDescriptorSets(
-                        cmd,
-                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        chunkLayout,
-                        2,
-                        1,
-                        &fogSet,
-                        0,
-                        nullptr
-                    );
+                        cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, chunkLayout, 2, 1, &fogSet, 0, nullptr);
                 }
             }
 
@@ -656,33 +629,21 @@ Result<void> TridentEngine::render() {
             if (m_frameContext.camera) {
                 const auto cameraPos = m_frameContext.camera->position();
                 chunkCameraPos = glm::dvec3(
-                    static_cast<f64>(cameraPos.x),
-                    static_cast<f64>(cameraPos.y),
-                    static_cast<f64>(cameraPos.z)
-                );
+                    static_cast<f64>(cameraPos.x), static_cast<f64>(cameraPos.y), static_cast<f64>(cameraPos.z));
             }
 
-            m_chunkRenderer->render(cmd, chunkLayout,
-                [cmd, chunkLayout, chunkCameraPos](const ChunkId& chunkId) {
-                    ChunkPushConstants pushConstants{};
-                    pushConstants.model = glm::mat4(1.0f);
-                    pushConstants.chunkRelativeOffset = glm::vec4(
-                        static_cast<f32>(static_cast<f64>(chunkId.x * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.x),
-                        static_cast<f32>(-chunkCameraPos.y),
-                        static_cast<f32>(static_cast<f64>(chunkId.z * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.z),
-                        0.0f
-                    );
+            m_chunkRenderer->render(cmd, chunkLayout, [cmd, chunkLayout, chunkCameraPos](const ChunkId& chunkId) {
+                ChunkPushConstants pushConstants{};
+                pushConstants.model = glm::mat4(1.0f);
+                pushConstants.chunkRelativeOffset = glm::vec4(
+                    static_cast<f32>(static_cast<f64>(chunkId.x * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.x),
+                    static_cast<f32>(-chunkCameraPos.y),
+                    static_cast<f32>(static_cast<f64>(chunkId.z * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.z),
+                    0.0f);
 
-                    vkCmdPushConstants(
-                        cmd,
-                        chunkLayout,
-                        VK_SHADER_STAGE_VERTEX_BIT,
-                        0,
-                        sizeof(ChunkPushConstants),
-                        &pushConstants
-                    );
-                }
-            );
+                vkCmdPushConstants(
+                    cmd, chunkLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ChunkPushConstants), &pushConstants);
+            });
 
             // 半透明层（如水）延后渲染：开启混合，关闭深度写入，并按距离排序。
             if (m_chunkTranslucentPipeline && m_chunkTranslucentPipeline->isValid()) {
@@ -692,42 +653,31 @@ Result<void> TridentEngine::render() {
                 } else {
                     m_chunkTranslucentPipeline->bind(cmd);
 
-                    VkDescriptorSet translucentCameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
-                    vkCmdBindDescriptorSets(
-                        cmd,
+                    VkDescriptorSet translucentCameraSet =
+                        m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+                    vkCmdBindDescriptorSets(cmd,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         translucentLayout,
                         0,
                         1,
                         &translucentCameraSet,
                         0,
-                        nullptr
-                    );
+                        nullptr);
 
-                    vkCmdBindDescriptorSets(
-                        cmd,
+                    vkCmdBindDescriptorSets(cmd,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         translucentLayout,
                         1,
                         1,
                         &m_chunkTextureDescriptorSet,
                         0,
-                        nullptr
-                    );
+                        nullptr);
 
                     if (m_fogManagerInitialized && m_fogManager) {
                         VkDescriptorSet fogSet = m_fogManager->descriptorSet(m_frameContext.frameIndex);
                         if (fogSet != VK_NULL_HANDLE) {
                             vkCmdBindDescriptorSets(
-                                cmd,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                translucentLayout,
-                                2,
-                                1,
-                                &fogSet,
-                                0,
-                                nullptr
-                            );
+                                cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, translucentLayout, 2, 1, &fogSet, 0, nullptr);
                         }
                     }
 
@@ -742,25 +692,23 @@ Result<void> TridentEngine::render() {
                         [cmd, translucentLayout, chunkCameraPos](const ChunkId& chunkId) {
                             ChunkPushConstants pushConstants{};
                             pushConstants.model = glm::mat4(1.0f);
-                            pushConstants.chunkRelativeOffset = glm::vec4(
-                                static_cast<f32>(static_cast<f64>(chunkId.x * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.x),
-                                static_cast<f32>(-chunkCameraPos.y),
-                                static_cast<f32>(static_cast<f64>(chunkId.z * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.z),
-                                0.0f
-                            );
+                            pushConstants.chunkRelativeOffset =
+                                glm::vec4(static_cast<f32>(static_cast<f64>(chunkId.x * ::mc::world::CHUNK_WIDTH) -
+                                              chunkCameraPos.x),
+                                    static_cast<f32>(-chunkCameraPos.y),
+                                    static_cast<f32>(
+                                        static_cast<f64>(chunkId.z * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.z),
+                                    0.0f);
 
-                            vkCmdPushConstants(
-                                cmd,
+                            vkCmdPushConstants(cmd,
                                 translucentLayout,
                                 VK_SHADER_STAGE_VERTEX_BIT,
                                 0,
                                 sizeof(ChunkPushConstants),
-                                &pushConstants
-                            );
+                                &pushConstants);
                         },
                         cameraPos,
-                        true
-                    );
+                        true);
                 }
             }
         }
@@ -773,7 +721,8 @@ Result<void> TridentEngine::render() {
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
         }
-        m_breakProgressRenderer->updateMesh(Vector3(static_cast<f32>(cameraPos.x), static_cast<f32>(cameraPos.y), static_cast<f32>(cameraPos.z)));
+        m_breakProgressRenderer->updateMesh(
+            Vector3(static_cast<f32>(cameraPos.x), static_cast<f32>(cameraPos.y), static_cast<f32>(cameraPos.z)));
 
         // 渲染
         if (m_breakProgressRenderer->hasProgressToRender()) {
@@ -803,14 +752,12 @@ Result<void> TridentEngine::render() {
         }
 
         m_weatherRenderer->update(m_rainStrength, m_thunderStrength, m_gameTime, m_partialTick);
-        m_weatherRenderer->render(
-            cmd,
+        m_weatherRenderer->render(cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
             glm::vec3(cameraPos),
             m_frameContext.frameIndex,
-            m_frustum
-        );
+            m_frustum);
     }
 
     // 6.6 渲染粒子
@@ -821,14 +768,12 @@ Result<void> TridentEngine::render() {
         }
 
         m_particleManager->tick();
-        m_particleManager->render(
-            cmd,
+        m_particleManager->render(cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
             glm::vec3(cameraPos),
             m_frameContext.frameIndex,
-            m_frustum
-        );
+            m_frustum);
     }
 
     // 6.7 渲染第一人称手部
@@ -841,8 +786,8 @@ Result<void> TridentEngine::render() {
     if (m_guiRendererInitialized && m_guiRendererPtr) {
         const f64 guiScale = std::max(m_guiScaleFactor, 1.0);
         m_guiRendererPtr->setFontScale(guiScale);
-        m_guiRendererPtr->beginFrame(static_cast<f64>(m_windowWidth) / guiScale,
-                                     static_cast<f64>(m_windowHeight) / guiScale);
+        m_guiRendererPtr->beginFrame(
+            static_cast<f64>(m_windowWidth) / guiScale, static_cast<f64>(m_windowHeight) / guiScale);
         if (m_guiRenderCallback) {
             m_guiRenderCallback();
         }
@@ -863,7 +808,8 @@ Result<void> TridentEngine::render() {
 // IRenderEngine 接口实现 - 窗口和相机
 // ============================================================================
 
-Result<void> TridentEngine::onResize(u32 width, u32 height) {
+Result<void> TridentEngine::onResize(u32 width, u32 height)
+{
     if (!m_initialized) return {};
 
     if (width == 0 || height == 0) {
@@ -878,7 +824,8 @@ Result<void> TridentEngine::onResize(u32 width, u32 height) {
     return recreateSwapchain();
 }
 
-void TridentEngine::setGuiScaleFactor(f64 scaleFactor) {
+void TridentEngine::setGuiScaleFactor(f64 scaleFactor)
+{
     m_guiScaleFactor = std::max(scaleFactor, 1.0);
 
     if (m_guiRendererInitialized && m_guiRendererPtr) {
@@ -886,7 +833,8 @@ void TridentEngine::setGuiScaleFactor(f64 scaleFactor) {
     }
 }
 
-void TridentEngine::setCamera(const api::ICamera* camera) {
+void TridentEngine::setCamera(const api::ICamera* camera)
+{
     m_frameContext.camera = camera;
 
     if (camera) {
@@ -900,10 +848,7 @@ void TridentEngine::setCamera(const api::ICamera* camera) {
 
         // 更新 Uniform 缓冲区
         m_uniformManager->updateCamera(
-            m_frameContext.viewMatrix,
-            m_frameContext.projectionMatrix,
-            m_frameContext.frameIndex
-        );
+            m_frameContext.viewMatrix, m_frameContext.projectionMatrix, m_frameContext.frameIndex);
     }
 }
 
@@ -911,7 +856,8 @@ void TridentEngine::setCamera(const api::ICamera* camera) {
 // IRenderEngine 接口实现 - 资源创建
 // ============================================================================
 
-Result<std::unique_ptr<api::IVertexBuffer>> TridentEngine::createVertexBuffer(u64 size, u32 vertexStride) {
+Result<std::unique_ptr<api::IVertexBuffer>> TridentEngine::createVertexBuffer(u64 size, u32 vertexStride)
+{
     auto buffer = std::make_unique<TridentVertexBuffer>();
     auto result = buffer->create(m_context.get(), size, vertexStride);
     if (result.failed()) {
@@ -921,7 +867,8 @@ Result<std::unique_ptr<api::IVertexBuffer>> TridentEngine::createVertexBuffer(u6
     return std::move(vertexBuffer);
 }
 
-Result<std::unique_ptr<api::IIndexBuffer>> TridentEngine::createIndexBuffer(u64 size, api::IndexType type) {
+Result<std::unique_ptr<api::IIndexBuffer>> TridentEngine::createIndexBuffer(u64 size, api::IndexType type)
+{
     auto buffer = std::make_unique<TridentIndexBuffer>();
     auto result = buffer->create(m_context.get(), size, type);
     if (result.failed()) {
@@ -931,7 +878,8 @@ Result<std::unique_ptr<api::IIndexBuffer>> TridentEngine::createIndexBuffer(u64 
     return std::move(indexBuffer);
 }
 
-Result<std::unique_ptr<api::IUniformBuffer>> TridentEngine::createUniformBuffer(u64 size, u32 frameCount) {
+Result<std::unique_ptr<api::IUniformBuffer>> TridentEngine::createUniformBuffer(u64 size, u32 frameCount)
+{
     auto buffer = std::make_unique<TridentUniformBuffer>();
     auto result = buffer->create(m_context.get(), size, frameCount);
     if (result.failed()) {
@@ -941,7 +889,8 @@ Result<std::unique_ptr<api::IUniformBuffer>> TridentEngine::createUniformBuffer(
     return std::move(uniformBuffer);
 }
 
-Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::TextureDesc& desc) {
+Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::TextureDesc& desc)
+{
     auto texture = std::make_unique<TridentTexture>();
     auto result = texture->create(m_context.get(), desc);
     if (result.failed()) {
@@ -951,7 +900,8 @@ Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::T
     return std::move(apiTexture);
 }
 
-Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u32 width, u32 height, u32 tileSize) {
+Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u32 width, u32 height, u32 tileSize)
+{
     auto atlas = std::make_unique<TridentTextureAtlasAdapter>();
     auto result = atlas->initialize(m_context.get(), width, height, tileSize);
     if (result.failed()) {
@@ -965,16 +915,19 @@ Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u3
 // IRenderEngine 接口实现 - 渲染状态
 // ============================================================================
 
-void TridentEngine::setRenderType(const api::RenderType& type) {
+void TridentEngine::setRenderType(const api::RenderType& type)
+{
     m_currentRenderType = type;
     // TODO: 实际绑定对应的管线
 }
 
-const api::RenderType& TridentEngine::currentRenderType() const {
+const api::RenderType& TridentEngine::currentRenderType() const
+{
     return m_currentRenderType;
 }
 
-void TridentEngine::bindTexture(u32 binding, const api::ITexture* texture) {
+void TridentEngine::bindTexture(u32 binding, const api::ITexture* texture)
+{
     if (texture == nullptr || !texture->isValid()) {
         return;
     }
@@ -1005,7 +958,8 @@ void TridentEngine::bindTexture(u32 binding, const api::ITexture* texture) {
     vkUpdateDescriptorSets(device(), 1, &descriptorWrite, 0, nullptr);
 }
 
-void TridentEngine::bindUniformBuffer(u32 binding, const api::IUniformBuffer* buffer) {
+void TridentEngine::bindUniformBuffer(u32 binding, const api::IUniformBuffer* buffer)
+{
     if (buffer == nullptr || !buffer->isValid() || m_uniformManager == nullptr) {
         return;
     }
@@ -1045,22 +999,25 @@ void TridentEngine::bindUniformBuffer(u32 binding, const api::IUniformBuffer* bu
 // IRenderEngine 接口实现 - 绘制
 // ============================================================================
 
-void TridentEngine::drawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset) {
+void TridentEngine::drawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset)
+{
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
     if (cmd == VK_NULL_HANDLE) return;
 
     vkCmdDrawIndexed(cmd, indexCount, 1, firstIndex, vertexOffset, 0);
 }
 
-void TridentEngine::draw(u32 vertexCount, u32 firstVertex) {
+void TridentEngine::draw(u32 vertexCount, u32 firstVertex)
+{
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
     if (cmd == VK_NULL_HANDLE) return;
 
     vkCmdDraw(cmd, vertexCount, 1, firstVertex, 0);
 }
 
-void TridentEngine::drawIndexedInstanced(u32 indexCount, u32 instanceCount,
-                                          u32 firstIndex, i32 vertexOffset, u32 firstInstance) {
+void TridentEngine::drawIndexedInstanced(
+    u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance)
+{
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
     if (cmd == VK_NULL_HANDLE) return;
 
@@ -1071,39 +1028,48 @@ void TridentEngine::drawIndexedInstanced(u32 indexCount, u32 instanceCount,
 // IRenderEngine 接口实现 - 状态查询
 // ============================================================================
 
-bool TridentEngine::isInitialized() const {
+bool TridentEngine::isInitialized() const
+{
     return m_initialized;
 }
 
-u32 TridentEngine::currentFrameIndex() const {
+u32 TridentEngine::currentFrameIndex() const
+{
     return m_frameManager ? m_frameManager->currentFrameIndex() : 0;
 }
 
-u32 TridentEngine::currentImageIndex() const {
+u32 TridentEngine::currentImageIndex() const
+{
     return m_frameManager ? m_frameManager->currentImageIndex() : 0;
 }
 
-const api::FrameContext& TridentEngine::frameContext() const {
+const api::FrameContext& TridentEngine::frameContext() const
+{
     return m_frameContext;
 }
 
-u32 TridentEngine::maxFramesInFlight() const {
+u32 TridentEngine::maxFramesInFlight() const
+{
     return m_tridentConfig.maxFramesInFlight;
 }
 
-bool TridentEngine::isMinimized() const {
+bool TridentEngine::isMinimized() const
+{
     return m_minimized;
 }
 
-u32 TridentEngine::windowWidth() const {
+u32 TridentEngine::windowWidth() const
+{
     return m_windowWidth;
 }
 
-u32 TridentEngine::windowHeight() const {
+u32 TridentEngine::windowHeight() const
+{
     return m_windowHeight;
 }
 
-const api::ICamera* TridentEngine::camera() const {
+const api::ICamera* TridentEngine::camera() const
+{
     return m_frameContext.camera;
 }
 
@@ -1111,40 +1077,49 @@ const api::ICamera* TridentEngine::camera() const {
 // Trident 特有接口
 // ============================================================================
 
-VkRenderPass TridentEngine::renderPass() const {
+VkRenderPass TridentEngine::renderPass() const
+{
     return m_renderPassManager ? m_renderPassManager->renderPass() : VK_NULL_HANDLE;
 }
 
-VkCommandBuffer TridentEngine::currentCommandBuffer() const {
+VkCommandBuffer TridentEngine::currentCommandBuffer() const
+{
     return m_frameManager ? m_frameManager->currentCommandBuffer() : VK_NULL_HANDLE;
 }
 
-VkPipelineLayout TridentEngine::pipelineLayout() const {
+VkPipelineLayout TridentEngine::pipelineLayout() const
+{
     return m_descriptorManager ? m_descriptorManager->pipelineLayout() : VK_NULL_HANDLE;
 }
 
-VkDescriptorPool TridentEngine::descriptorPool() const {
+VkDescriptorPool TridentEngine::descriptorPool() const
+{
     return m_descriptorManager ? m_descriptorManager->pool() : VK_NULL_HANDLE;
 }
 
-VkDescriptorSetLayout TridentEngine::cameraDescriptorLayout() const {
+VkDescriptorSetLayout TridentEngine::cameraDescriptorLayout() const
+{
     return m_descriptorManager ? m_descriptorManager->cameraLayout() : VK_NULL_HANDLE;
 }
 
-VkDescriptorSetLayout TridentEngine::textureDescriptorLayout() const {
+VkDescriptorSetLayout TridentEngine::textureDescriptorLayout() const
+{
     return m_descriptorManager ? m_descriptorManager->textureLayout() : VK_NULL_HANDLE;
 }
 
-VkDescriptorSetLayout TridentEngine::fogDescriptorLayout() const {
+VkDescriptorSetLayout TridentEngine::fogDescriptorLayout() const
+{
     return m_descriptorManager ? m_descriptorManager->fogLayout() : VK_NULL_HANDLE;
 }
 
-VkDescriptorSet TridentEngine::cameraDescriptorSet() const {
+VkDescriptorSet TridentEngine::cameraDescriptorSet() const
+{
     if (!m_uniformManager || !m_frameManager) return VK_NULL_HANDLE;
     return m_uniformManager->cameraDescriptorSet(m_frameManager->currentFrameIndex());
 }
 
-void TridentEngine::updateTime(i64 dayTime, i64 gameTime, f64 partialTick) {
+void TridentEngine::updateTime(i64 dayTime, i64 gameTime, f64 partialTick)
+{
     m_dayTime = dayTime;
     m_gameTime = gameTime;
     m_partialTick = partialTick;
@@ -1154,12 +1129,14 @@ void TridentEngine::updateTime(i64 dayTime, i64 gameTime, f64 partialTick) {
     }
 }
 
-void TridentEngine::updateWeather(f64 rainStrength, f64 thunderStrength) {
+void TridentEngine::updateWeather(f64 rainStrength, f64 thunderStrength)
+{
     m_rainStrength = rainStrength;
     m_thunderStrength = thunderStrength;
 }
 
-Result<void> TridentEngine::setVSyncEnabled(bool enabled) {
+Result<void> TridentEngine::setVSyncEnabled(bool enabled)
+{
     if (m_config.enableVSync == enabled) {
         return Result<void>::ok();
     }
@@ -1179,36 +1156,43 @@ Result<void> TridentEngine::setVSyncEnabled(bool enabled) {
     return Result<void>::ok();
 }
 
-void TridentEngine::setRenderDistanceChunks(i32 renderDistanceChunks) {
+void TridentEngine::setRenderDistanceChunks(i32 renderDistanceChunks)
+{
     m_renderDistanceChunks = std::max<i32>(2, renderDistanceChunks);
 }
 
-void TridentEngine::setLandFogDensity(f64 fogDensity) {
+void TridentEngine::setLandFogDensity(f64 fogDensity)
+{
     m_landFogDensity = std::clamp(fogDensity, 0.0, 2.0);
 }
 
-void TridentEngine::setCloudMode(cloud::CloudMode mode) {
+void TridentEngine::setCloudMode(cloud::CloudMode mode)
+{
     m_cloudMode = mode;
     if (m_cloudRenderer) {
         m_cloudRenderer->setCloudMode(mode);
     }
 }
 
-void TridentEngine::updateLiquidState(bool inWater, bool inLava, u32 waterFogColor) {
+void TridentEngine::updateLiquidState(bool inWater, bool inLava, u32 waterFogColor)
+{
     m_inWater = inWater;
     m_inLava = inLava;
     m_waterFogColor = waterFogColor;
 }
 
-VkCommandPool TridentEngine::commandPool() const {
+VkCommandPool TridentEngine::commandPool() const
+{
     return m_frameManager ? m_frameManager->commandPool() : VK_NULL_HANDLE;
 }
 
-VkCommandBuffer TridentEngine::beginSingleTimeCommands() const {
+VkCommandBuffer TridentEngine::beginSingleTimeCommands() const
+{
     return m_context ? m_context->beginSingleTimeCommands() : VK_NULL_HANDLE;
 }
 
-void TridentEngine::endSingleTimeCommands(VkCommandBuffer cmd) const {
+void TridentEngine::endSingleTimeCommands(VkCommandBuffer cmd) const
+{
     if (m_context && cmd != VK_NULL_HANDLE) {
         m_context->endSingleTimeCommands(cmd);
     }
@@ -1218,35 +1202,43 @@ void TridentEngine::endSingleTimeCommands(VkCommandBuffer cmd) const {
 // 兼容性接口
 // ============================================================================
 
-VkDevice TridentEngine::device() const {
+VkDevice TridentEngine::device() const
+{
     return m_context ? m_context->device() : VK_NULL_HANDLE;
 }
 
-VkPhysicalDevice TridentEngine::physicalDevice() const {
+VkPhysicalDevice TridentEngine::physicalDevice() const
+{
     return m_context ? m_context->physicalDevice() : VK_NULL_HANDLE;
 }
 
-VkQueue TridentEngine::graphicsQueue() const {
+VkQueue TridentEngine::graphicsQueue() const
+{
     return m_context ? m_context->graphicsQueue() : VK_NULL_HANDLE;
 }
 
-VkImageView TridentEngine::swapchainImageView(u32 index) const {
+VkImageView TridentEngine::swapchainImageView(u32 index) const
+{
     return m_swapchain ? m_swapchain->imageView(index) : VK_NULL_HANDLE;
 }
 
-u32 TridentEngine::swapchainImageCount() const {
+u32 TridentEngine::swapchainImageCount() const
+{
     return m_swapchain ? m_swapchain->imageCount() : 0;
 }
 
-VkFormat TridentEngine::swapchainFormat() const {
+VkFormat TridentEngine::swapchainFormat() const
+{
     return m_swapchain ? m_swapchain->format() : VK_FORMAT_UNDEFINED;
 }
 
-VkExtent2D TridentEngine::swapchainExtent() const {
+VkExtent2D TridentEngine::swapchainExtent() const
+{
     return m_swapchain ? m_swapchain->extent() : VkExtent2D{0, 0};
 }
 
-VkImageView TridentEngine::depthImageView() const {
+VkImageView TridentEngine::depthImageView() const
+{
     return m_renderPassManager ? m_renderPassManager->depthImageView() : VK_NULL_HANDLE;
 }
 
@@ -1254,19 +1246,22 @@ VkImageView TridentEngine::depthImageView() const {
 // 渲染回调
 // ============================================================================
 
-void TridentEngine::setGuiRenderCallback(GuiRenderCallback callback) {
+void TridentEngine::setGuiRenderCallback(GuiRenderCallback callback)
+{
     // 只允许设置一次 GUI 渲染回调，以避免在渲染过程中被替换导致不一致行为
     MC_ASSERT_RELEASE(!m_guiRenderCallback);
     m_guiRenderCallback = std::move(callback);
 }
 
-void TridentEngine::setEntityRenderCallback(EntityRenderCallback callback) {
+void TridentEngine::setEntityRenderCallback(EntityRenderCallback callback)
+{
     // 只允许设置一次实体渲染回调，以避免在渲染过程中被替换导致不一致行为
     MC_ASSERT_RELEASE(!m_entityRenderCallback);
     m_entityRenderCallback = std::move(callback);
 }
 
-void TridentEngine::setFirstPersonRenderCallback(FirstPersonRenderCallback callback) {
+void TridentEngine::setFirstPersonRenderCallback(FirstPersonRenderCallback callback)
+{
     // 只允许设置一次第一人称渲染回调，以避免在渲染过程中被替换导致不一致行为
     MC_ASSERT_RELEASE(!m_firstPersonRenderCallback);
     m_firstPersonRenderCallback = std::move(callback);
@@ -1276,7 +1271,8 @@ void TridentEngine::setFirstPersonRenderCallback(FirstPersonRenderCallback callb
 // 私有方法
 // ============================================================================
 
-Result<void> TridentEngine::recreateSwapchain() {
+Result<void> TridentEngine::recreateSwapchain()
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
@@ -1334,96 +1330,114 @@ Result<void> TridentEngine::recreateSwapchain() {
 // 子渲染器访问器
 // ============================================================================
 
-ChunkRenderer& TridentEngine::chunkRenderer() {
+ChunkRenderer& TridentEngine::chunkRenderer()
+{
     if (!m_chunkRenderer) {
         m_chunkRenderer = std::make_unique<ChunkRenderer>();
     }
     return *m_chunkRenderer;
 }
 
-const ChunkRenderer& TridentEngine::chunkRenderer() const {
+const ChunkRenderer& TridentEngine::chunkRenderer() const
+{
     return *m_chunkRenderer;
 }
 
-sky::SkyRenderer& TridentEngine::skyRenderer() {
+sky::SkyRenderer& TridentEngine::skyRenderer()
+{
     if (!m_skyRendererPtr) {
         m_skyRendererPtr = std::make_unique<sky::SkyRenderer>();
     }
     return *m_skyRendererPtr;
 }
 
-const sky::SkyRenderer& TridentEngine::skyRenderer() const {
+const sky::SkyRenderer& TridentEngine::skyRenderer() const
+{
     return *m_skyRendererPtr;
 }
 
-gui::GuiRenderer& TridentEngine::guiRenderer() {
+gui::GuiRenderer& TridentEngine::guiRenderer()
+{
     if (!m_guiRendererPtr) {
         m_guiRendererPtr = std::make_unique<gui::GuiRenderer>();
     }
     return *m_guiRendererPtr;
 }
 
-const gui::GuiRenderer& TridentEngine::guiRenderer() const {
+const gui::GuiRenderer& TridentEngine::guiRenderer() const
+{
     return *m_guiRendererPtr;
 }
 
-Font& TridentEngine::font() {
+Font& TridentEngine::font()
+{
     if (!m_font) {
         m_font = std::make_unique<Font>();
     }
     return *m_font;
 }
 
-const Font& TridentEngine::font() const {
+const Font& TridentEngine::font() const
+{
     return *m_font;
 }
 
-item::ItemRenderer& TridentEngine::itemRenderer() {
+item::ItemRenderer& TridentEngine::itemRenderer()
+{
     if (!m_itemRendererPtr) {
         m_itemRendererPtr = std::make_unique<item::ItemRenderer>();
     }
     return *m_itemRendererPtr;
 }
 
-const item::ItemRenderer& TridentEngine::itemRenderer() const {
+const item::ItemRenderer& TridentEngine::itemRenderer() const
+{
     return *m_itemRendererPtr;
 }
 
-ItemTextureAtlas& TridentEngine::itemTextureAtlas() {
+ItemTextureAtlas& TridentEngine::itemTextureAtlas()
+{
     return m_itemTextureAtlas;
 }
 
-const ItemTextureAtlas& TridentEngine::itemTextureAtlas() const {
+const ItemTextureAtlas& TridentEngine::itemTextureAtlas() const
+{
     return m_itemTextureAtlas;
 }
 
-entity::EntityRendererManager& TridentEngine::entityRendererManager() {
+entity::EntityRendererManager& TridentEngine::entityRendererManager()
+{
     if (!m_entityRendererManager) {
         m_entityRendererManager = std::make_unique<entity::EntityRendererManager>();
     }
     return *m_entityRendererManager;
 }
 
-const entity::EntityRendererManager& TridentEngine::entityRendererManager() const {
+const entity::EntityRendererManager& TridentEngine::entityRendererManager() const
+{
     return *m_entityRendererManager;
 }
 
-EntityTextureAtlas& TridentEngine::entityTextureAtlas() {
+EntityTextureAtlas& TridentEngine::entityTextureAtlas()
+{
     return m_entityTextureAtlas;
 }
 
-const EntityTextureAtlas& TridentEngine::entityTextureAtlas() const {
+const EntityTextureAtlas& TridentEngine::entityTextureAtlas() const
+{
     return m_entityTextureAtlas;
 }
 
-fog::FogManager& TridentEngine::fogManager() {
+fog::FogManager& TridentEngine::fogManager()
+{
     if (!m_fogManager) {
         m_fogManager = std::make_unique<fog::FogManager>();
     }
     return *m_fogManager;
 }
 
-const fog::FogManager& TridentEngine::fogManager() const {
+const fog::FogManager& TridentEngine::fogManager() const
+{
     return *m_fogManager;
 }
 
@@ -1431,7 +1445,8 @@ const fog::FogManager& TridentEngine::fogManager() const {
 // 子渲染器初始化
 // ============================================================================
 
-Result<void> TridentEngine::initializeChunkRenderer() {
+Result<void> TridentEngine::initializeChunkRenderer()
+{
     if (m_chunkRendererInitialized) {
         return {};
     }
@@ -1442,12 +1457,11 @@ Result<void> TridentEngine::initializeChunkRenderer() {
         m_chunkRenderer = std::make_unique<ChunkRenderer>();
     }
 
-    auto result = m_chunkRenderer->initialize(
-        device(),
+    auto result = m_chunkRenderer->initialize(device(),
         physicalDevice(),
         commandPool(),
         graphicsQueue(),
-        1024  // max chunks
+        1024 // max chunks
     );
 
     if (result.failed()) {
@@ -1492,21 +1506,18 @@ Result<void> TridentEngine::initializeChunkRenderer() {
 #ifdef __APPLE__
     attrs[0] = {0, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<u32>(offsetof(Vertex, x))};
     attrs[1] = {2, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<u32>(offsetof(Vertex, nx))};
-    attrs[2] = {4, 0, VK_FORMAT_R32G32_SFLOAT,    static_cast<u32>(offsetof(Vertex, u))};
+    attrs[2] = {4, 0, VK_FORMAT_R32G32_SFLOAT, static_cast<u32>(offsetof(Vertex, u))};
 #else
     attrs[0] = {0, 0, VK_FORMAT_R64G64B64_SFLOAT, static_cast<u32>(offsetof(Vertex, x))};
     attrs[1] = {2, 0, VK_FORMAT_R64G64B64_SFLOAT, static_cast<u32>(offsetof(Vertex, nx))};
-    attrs[2] = {4, 0, VK_FORMAT_R64G64_SFLOAT,    static_cast<u32>(offsetof(Vertex, u))};
+    attrs[2] = {4, 0, VK_FORMAT_R64G64_SFLOAT, static_cast<u32>(offsetof(Vertex, u))};
 #endif
-    attrs[3] = {5, 0, VK_FORMAT_R8G8B8A8_UNORM,   static_cast<u32>(offsetof(Vertex, color))};
-    attrs[4] = {6, 0, VK_FORMAT_R8_UINT,          static_cast<u32>(offsetof(Vertex, light))};
+    attrs[3] = {5, 0, VK_FORMAT_R8G8B8A8_UNORM, static_cast<u32>(offsetof(Vertex, color))};
+    attrs[4] = {6, 0, VK_FORMAT_R8_UINT, static_cast<u32>(offsetof(Vertex, light))};
     pipelineConfig.vertexAttributes.assign(attrs.begin(), attrs.end());
 
     pipelineConfig.descriptorSetLayouts = {
-        m_descriptorManager->cameraLayout(),
-        m_descriptorManager->textureLayout(),
-        m_descriptorManager->fogLayout()
-    };
+        m_descriptorManager->cameraLayout(), m_descriptorManager->textureLayout(), m_descriptorManager->fogLayout()};
 
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1551,7 +1562,8 @@ Result<void> TridentEngine::initializeChunkRenderer() {
     return {};
 }
 
-Result<void> TridentEngine::initializeSkyRenderer() {
+Result<void> TridentEngine::initializeSkyRenderer()
+{
     if (m_skyRendererInitialized) {
         return {};
     }
@@ -1563,14 +1575,7 @@ Result<void> TridentEngine::initializeSkyRenderer() {
     }
 
     auto result = m_skyRendererPtr->initialize(
-        device(),
-        physicalDevice(),
-        commandPool(),
-        graphicsQueue(),
-        renderPass(),
-        swapchainExtent(),
-        m_msaaSamples
-    );
+        device(), physicalDevice(), commandPool(), graphicsQueue(), renderPass(), swapchainExtent(), m_msaaSamples);
 
     if (result.failed()) {
         m_skyRendererPtr.reset();
@@ -1582,7 +1587,8 @@ Result<void> TridentEngine::initializeSkyRenderer() {
     return {};
 }
 
-Result<void> TridentEngine::initializeGuiRenderer() {
+Result<void> TridentEngine::initializeGuiRenderer()
+{
     if (m_guiRendererInitialized) {
         return {};
     }
@@ -1593,13 +1599,7 @@ Result<void> TridentEngine::initializeGuiRenderer() {
         m_guiRendererPtr = std::make_unique<GuiRenderer>();
     }
 
-    auto result = m_guiRendererPtr->initialize(
-        device(),
-        physicalDevice(),
-        commandPool(),
-        renderPass(),
-        m_msaaSamples
-    );
+    auto result = m_guiRendererPtr->initialize(device(), physicalDevice(), commandPool(), renderPass(), m_msaaSamples);
 
     if (result.failed()) {
         m_guiRendererPtr.reset();
@@ -1626,7 +1626,8 @@ Result<void> TridentEngine::initializeGuiRenderer() {
     return {};
 }
 
-Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceManager) {
+Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceManager)
+{
     if (m_itemRendererInitialized) {
         return {};
     }
@@ -1639,13 +1640,8 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
 
     if (!m_itemTextureAtlasInitialized) {
         if (!m_itemTextureAtlas.isValid()) {
-            auto createResult = m_itemTextureAtlas.create(
-                device(),
-                physicalDevice(),
-                commandPool(),
-                graphicsQueue(),
-                4096,
-                4096);
+            auto createResult =
+                m_itemTextureAtlas.create(device(), physicalDevice(), commandPool(), graphicsQueue(), 4096, 4096);
             if (createResult.failed()) {
                 return createResult.error();
             }
@@ -1695,7 +1691,8 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
     return {};
 }
 
-Result<void> TridentEngine::initializeEntityRenderer() {
+Result<void> TridentEngine::initializeEntityRenderer()
+{
     if (m_entityRendererInitialized) {
         return {};
     }
@@ -1718,16 +1715,14 @@ Result<void> TridentEngine::initializeEntityRenderer() {
         m_entityPipeline = std::make_unique<EntityPipeline>();
     }
 
-    auto pipelineResult = m_entityPipeline->initialize(
-        device(),
+    auto pipelineResult = m_entityPipeline->initialize(device(),
         physicalDevice(),
         graphicsQueue(),
         renderPass(),
         cameraDescriptorLayout(),
         descriptorPool(),
         commandPool(),
-        m_msaaSamples
-    );
+        m_msaaSamples);
 
     if (pipelineResult.failed()) {
         spdlog::error("Failed to initialize entity pipeline: {}", pipelineResult.error().toString());
@@ -1741,13 +1736,7 @@ Result<void> TridentEngine::initializeEntityRenderer() {
         // 初始化世界文本渲染器（用于名称标签等）
         if (m_font && m_font->isValid()) {
             bool textRendererInit = entity::util::WorldTextRenderer::initialize(
-                device(),
-                physicalDevice(),
-                commandPool(),
-                graphicsQueue(),
-                *m_entityPipeline,
-                m_font.get()
-            );
+                device(), physicalDevice(), commandPool(), graphicsQueue(), *m_entityPipeline, m_font.get());
             if (textRendererInit) {
                 spdlog::info("WorldTextRenderer initialized");
             } else {
@@ -1761,11 +1750,7 @@ Result<void> TridentEngine::initializeEntityRenderer() {
         // TODO：需要资源包来加载火焰纹理，这里先初始化一个基本版本
         // 完整的火焰纹理将在 initializeEntityTextureAtlas 中加载
         bool fireEffectInit = entity::effect::fire::FireEffect::initialize(
-            device(),
-            physicalDevice(),
-            commandPool(),
-            graphicsQueue(),
-            {}  // 空资源包列表，使用程序化纹理
+            device(), physicalDevice(), commandPool(), graphicsQueue(), {} // 空资源包列表，使用程序化纹理
         );
         if (fireEffectInit) {
             spdlog::info("FireEffect initialized");
@@ -1779,7 +1764,8 @@ Result<void> TridentEngine::initializeEntityRenderer() {
     return {};
 }
 
-Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resourceManager) {
+Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resourceManager)
+{
     if (m_entityTextureAtlasInitialized) {
         return {};
     }
@@ -1791,12 +1777,7 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
     spdlog::info("Initializing entity texture atlas...");
 
     // 初始化实体纹理图集
-    auto initResult = m_entityTextureAtlas.initialize(
-        device(),
-        physicalDevice(),
-        commandPool(),
-        graphicsQueue()
-    );
+    auto initResult = m_entityTextureAtlas.initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
     if (initResult.failed()) {
         return initResult.error();
     }
@@ -1824,8 +1805,7 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
         std::filesystem::path("resources/skins/player.png"),
         std::filesystem::path("resources/skins/local_player.png"),
         std::filesystem::path("resources/skins/steve.png"),
-        std::filesystem::path("resources/skins/alex.png")
-    };
+        std::filesystem::path("resources/skins/alex.png")};
 
     for (const auto& candidate : localSkinCandidates) {
         std::error_code existsError;
@@ -1841,9 +1821,8 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
             break;
         }
 
-        spdlog::warn("Failed to load local player skin from {}: {}",
-                     candidate.string(),
-                     localSkinResult.error().toString());
+        spdlog::warn(
+            "Failed to load local player skin from {}: {}", candidate.string(), localSkinResult.error().toString());
     }
 
     if (loadedCount > 0) {
@@ -1854,18 +1833,14 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
         if (buildResult.failed()) {
             spdlog::warn("Failed to build entity texture atlas: {}", buildResult.error().toString());
         } else {
-            spdlog::info("Entity texture atlas built: {}x{}",
-                        buildResult.value().width, buildResult.value().height);
+            spdlog::info("Entity texture atlas built: {}x{}", buildResult.value().width, buildResult.value().height);
 
             // 设置纹理图集到 EntityRendererManager（用于 UV 重映射）
             m_entityRendererManager->setTextureAtlas(&m_entityTextureAtlas);
 
             // 设置纹理图集到 EntityPipeline
             if (m_entityPipeline && m_entityPipeline->isInitialized()) {
-                m_entityPipeline->setTextureAtlas(
-                    m_entityTextureAtlas.imageView(),
-                    m_entityTextureAtlas.sampler()
-                );
+                m_entityPipeline->setTextureAtlas(m_entityTextureAtlas.imageView(), m_entityTextureAtlas.sampler());
                 spdlog::info("Entity texture atlas bound to pipeline");
             }
 
@@ -1882,7 +1857,8 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
     return {};
 }
 
-Result<void> TridentEngine::initializeFogManager() {
+Result<void> TridentEngine::initializeFogManager()
+{
     if (m_fogManagerInitialized) {
         return {};
     }
@@ -1894,12 +1870,7 @@ Result<void> TridentEngine::initializeFogManager() {
     }
 
     auto result = m_fogManager->initialize(
-        device(),
-        physicalDevice(),
-        descriptorPool(),
-        m_descriptorManager->fogLayout(),
-        maxFramesInFlight()
-    );
+        device(), physicalDevice(), descriptorPool(), m_descriptorManager->fogLayout(), maxFramesInFlight());
 
     if (result.failed()) {
         m_fogManager.reset();
@@ -1911,7 +1882,8 @@ Result<void> TridentEngine::initializeFogManager() {
     return {};
 }
 
-Result<void> TridentEngine::initializeCloudRenderer(ResourceManager* resourceManager) {
+Result<void> TridentEngine::initializeCloudRenderer(ResourceManager* resourceManager)
+{
     if (m_cloudRendererInitialized) {
         return {};
     }
@@ -1922,16 +1894,14 @@ Result<void> TridentEngine::initializeCloudRenderer(ResourceManager* resourceMan
         m_cloudRenderer = std::make_unique<cloud::CloudRenderer>();
     }
 
-    auto result = m_cloudRenderer->initialize(
-        device(),
+    auto result = m_cloudRenderer->initialize(device(),
         physicalDevice(),
         commandPool(),
         graphicsQueue(),
         renderPass(),
         swapchainExtent(),
         m_msaaSamples,
-        resourceManager
-    );
+        resourceManager);
 
     if (result.failed()) {
         m_cloudRenderer.reset();
@@ -1943,7 +1913,8 @@ Result<void> TridentEngine::initializeCloudRenderer(ResourceManager* resourceMan
     return {};
 }
 
-Result<void> TridentEngine::reloadCloudTexture(ResourceManager* resourceManager) {
+Result<void> TridentEngine::reloadCloudTexture(ResourceManager* resourceManager)
+{
     if (!m_cloudRendererInitialized || !m_cloudRenderer) {
         return {};
     }
@@ -1951,14 +1922,16 @@ Result<void> TridentEngine::reloadCloudTexture(ResourceManager* resourceManager)
     return m_cloudRenderer->reloadTexture(resourceManager);
 }
 
-cloud::CloudRenderer& TridentEngine::cloudRenderer() {
+cloud::CloudRenderer& TridentEngine::cloudRenderer()
+{
     if (!m_cloudRenderer) {
         m_cloudRenderer = std::make_unique<cloud::CloudRenderer>();
     }
     return *m_cloudRenderer;
 }
 
-const cloud::CloudRenderer& TridentEngine::cloudRenderer() const {
+const cloud::CloudRenderer& TridentEngine::cloudRenderer() const
+{
     return *m_cloudRenderer;
 }
 
@@ -1966,7 +1939,8 @@ const cloud::CloudRenderer& TridentEngine::cloudRenderer() const {
 // 粒子管理器
 // ============================================================================
 
-Result<void> TridentEngine::initializeParticleManager() {
+Result<void> TridentEngine::initializeParticleManager()
+{
     if (m_particleManagerInitialized) {
         return {};
     }
@@ -1978,14 +1952,7 @@ Result<void> TridentEngine::initializeParticleManager() {
     }
 
     auto result = m_particleManager->initialize(
-        device(),
-        physicalDevice(),
-        commandPool(),
-        graphicsQueue(),
-        renderPass(),
-        swapchainExtent(),
-        m_msaaSamples
-    );
+        device(), physicalDevice(), commandPool(), graphicsQueue(), renderPass(), swapchainExtent(), m_msaaSamples);
 
     if (result.failed()) {
         m_particleManager.reset();
@@ -1997,14 +1964,16 @@ Result<void> TridentEngine::initializeParticleManager() {
     return {};
 }
 
-particle::ParticleManager& TridentEngine::particleManager() {
+particle::ParticleManager& TridentEngine::particleManager()
+{
     if (!m_particleManager) {
         m_particleManager = std::make_unique<particle::ParticleManager>();
     }
     return *m_particleManager;
 }
 
-const particle::ParticleManager& TridentEngine::particleManager() const {
+const particle::ParticleManager& TridentEngine::particleManager() const
+{
     return *m_particleManager;
 }
 
@@ -2012,7 +1981,8 @@ const particle::ParticleManager& TridentEngine::particleManager() const {
 // 天气渲染器
 // ============================================================================
 
-Result<void> TridentEngine::initializeWeatherRenderer() {
+Result<void> TridentEngine::initializeWeatherRenderer()
+{
     if (m_weatherRendererInitialized) {
         return {};
     }
@@ -2024,14 +1994,7 @@ Result<void> TridentEngine::initializeWeatherRenderer() {
     }
 
     auto result = m_weatherRenderer->initialize(
-        device(),
-        physicalDevice(),
-        commandPool(),
-        graphicsQueue(),
-        renderPass(),
-        swapchainExtent(),
-        m_msaaSamples
-    );
+        device(), physicalDevice(), commandPool(), graphicsQueue(), renderPass(), swapchainExtent(), m_msaaSamples);
 
     if (result.failed()) {
         m_weatherRenderer.reset();
@@ -2043,18 +2006,21 @@ Result<void> TridentEngine::initializeWeatherRenderer() {
     return {};
 }
 
-weather::WeatherRenderer& TridentEngine::weatherRenderer() {
+weather::WeatherRenderer& TridentEngine::weatherRenderer()
+{
     if (!m_weatherRenderer) {
         m_weatherRenderer = std::make_unique<weather::WeatherRenderer>();
     }
     return *m_weatherRenderer;
 }
 
-const weather::WeatherRenderer& TridentEngine::weatherRenderer() const {
+const weather::WeatherRenderer& TridentEngine::weatherRenderer() const
+{
     return *m_weatherRenderer;
 }
 
-Result<void> TridentEngine::initializeBreakProgressRenderer(ResourceManager* resourceManager) {
+Result<void> TridentEngine::initializeBreakProgressRenderer(ResourceManager* resourceManager)
+{
     if (m_breakProgressRendererInitialized) {
         return {};
     }
@@ -2086,18 +2052,21 @@ Result<void> TridentEngine::initializeBreakProgressRenderer(ResourceManager* res
     return {};
 }
 
-block::BreakProgressRenderer& TridentEngine::breakProgressRenderer() {
+block::BreakProgressRenderer& TridentEngine::breakProgressRenderer()
+{
     if (!m_breakProgressRenderer) {
         m_breakProgressRenderer = std::make_unique<block::BreakProgressRenderer>();
     }
     return *m_breakProgressRenderer;
 }
 
-const block::BreakProgressRenderer& TridentEngine::breakProgressRenderer() const {
+const block::BreakProgressRenderer& TridentEngine::breakProgressRenderer() const
+{
     return *m_breakProgressRenderer;
 }
 
-Result<void> TridentEngine::initializeFirstPersonRenderer() {
+Result<void> TridentEngine::initializeFirstPersonRenderer()
+{
     if (m_firstPersonRendererInitialized) {
         return {};
     }
@@ -2108,8 +2077,7 @@ Result<void> TridentEngine::initializeFirstPersonRenderer() {
         m_firstPersonRenderer = std::make_unique<firstperson::FirstPersonRenderer>();
     }
 
-    auto result = m_firstPersonRenderer->initialize(
-        device(),
+    auto result = m_firstPersonRenderer->initialize(device(),
         physicalDevice(),
         commandPool(),
         graphicsQueue(),
@@ -2118,8 +2086,7 @@ Result<void> TridentEngine::initializeFirstPersonRenderer() {
         descriptorPool(),
         &m_entityTextureAtlas,
         maxFramesInFlight(),
-        m_msaaSamples
-    );
+        m_msaaSamples);
 
     if (result.failed()) {
         m_firstPersonRenderer.reset();
@@ -2138,18 +2105,21 @@ Result<void> TridentEngine::initializeFirstPersonRenderer() {
     return {};
 }
 
-firstperson::FirstPersonRenderer& TridentEngine::firstPersonRenderer() {
+firstperson::FirstPersonRenderer& TridentEngine::firstPersonRenderer()
+{
     if (!m_firstPersonRenderer) {
         m_firstPersonRenderer = std::make_unique<firstperson::FirstPersonRenderer>();
     }
     return *m_firstPersonRenderer;
 }
 
-const firstperson::FirstPersonRenderer& TridentEngine::firstPersonRenderer() const {
+const firstperson::FirstPersonRenderer& TridentEngine::firstPersonRenderer() const
+{
     return *m_firstPersonRenderer;
 }
 
-Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResult) {
+Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResult)
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
@@ -2158,8 +2128,8 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
         return Error(ErrorCode::InvalidArgument, "Atlas result has no pixel data");
     }
 
-    spdlog::info("Updating texture atlas: {}x{}, {} regions",
-                 atlasResult.width, atlasResult.height, atlasResult.regions.size());
+    spdlog::info(
+        "Updating texture atlas: {}x{}, {} regions", atlasResult.width, atlasResult.height, atlasResult.regions.size());
 
     // 保存纹理区域映射
     m_textureRegions = atlasResult.regions;
@@ -2174,11 +2144,10 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
     }
 
     // 加载纹理图集到区块渲染器
-    auto loadResult = m_chunkRenderer->loadTextureAtlas(
-        atlasResult.pixels.data(),
+    auto loadResult = m_chunkRenderer->loadTextureAtlas(atlasResult.pixels.data(),
         atlasResult.width,
         atlasResult.height,
-        16  // tileSize
+        16 // tileSize
     );
     if (loadResult.failed()) {
         spdlog::error("Failed to load texture atlas to chunk renderer: {}", loadResult.error().toString());
@@ -2213,7 +2182,8 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
     return {};
 }
 
-const TextureRegion* TridentEngine::getTextureRegion(const ResourceLocation& location) const {
+const TextureRegion* TridentEngine::getTextureRegion(const ResourceLocation& location) const
+{
     auto it = m_textureRegions.find(location);
     if (it != m_textureRegions.end()) {
         return &it->second;
@@ -2229,7 +2199,8 @@ const TextureRegion* TridentEngine::getTextureRegion(const ResourceLocation& loc
 
 namespace mc::client::renderer::api {
 
-std::unique_ptr<IRenderEngine> createRenderEngine(RenderBackend backend) {
+std::unique_ptr<IRenderEngine> createRenderEngine(RenderBackend backend)
+{
     switch (backend) {
         case RenderBackend::Vulkan:
             return std::make_unique<trident::TridentEngine>();

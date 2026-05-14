@@ -10,8 +10,7 @@ namespace mc::world::storage {
 
 AutoSave::AutoSave(WorldStorageService& storage)
     : m_storage(storage)
-{
-}
+{}
 
 AutoSave::~AutoSave()
 {
@@ -29,8 +28,7 @@ void AutoSave::start()
         return;
     }
     m_running = true;
-    spdlog::info("AutoSave started with interval {}ms, threshold {}",
-                 m_config.saveIntervalMs, m_config.dirtyThreshold);
+    spdlog::info("AutoSave started with interval {}ms, threshold {}", m_config.saveIntervalMs, m_config.dirtyThreshold);
 }
 
 void AutoSave::stop()
@@ -123,8 +121,7 @@ bool AutoSave::shouldSave(u64 tickCount) const
 
     // 阈值触发
     if (dirtyCount >= config.dirtyThreshold) {
-        spdlog::debug("AutoSave triggered by threshold: {} >= {}",
-                      dirtyCount, config.dirtyThreshold);
+        spdlog::debug("AutoSave triggered by threshold: {} >= {}", dirtyCount, config.dirtyThreshold);
         return true;
     }
 
@@ -136,8 +133,7 @@ bool AutoSave::shouldSave(u64 tickCount) const
     }
 
     if (tickCount - lastSaveTick >= ticksPerInterval && dirtyCount > 0) {
-        spdlog::debug("AutoSave triggered by timer: {} ticks elapsed",
-                      tickCount - lastSaveTick);
+        spdlog::debug("AutoSave triggered by timer: {} ticks elapsed", tickCount - lastSaveTick);
         return true;
     }
 
@@ -156,17 +152,16 @@ Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshot
 
     // 可选：创建快照
     if (createSnapshot) {
-        std::string name = snapshotName.empty()
-            ? fmt::format("{}{}", config.snapshotPrefix,
-                          std::chrono::duration_cast<std::chrono::milliseconds>(
-                              std::chrono::system_clock::now().time_since_epoch()
-                          ).count())
-            : snapshotName;
+        std::string name = snapshotName.empty() ? fmt::format("{}{}",
+                                                      config.snapshotPrefix,
+                                                      std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                          std::chrono::system_clock::now().time_since_epoch())
+                                                          .count())
+                                                : snapshotName;
 
         auto backupResult = m_storage.createBackup(name);
         if (backupResult.failed()) {
-            spdlog::warn("Failed to create auto-save snapshot: {}",
-                         backupResult.error().message());
+            spdlog::warn("Failed to create auto-save snapshot: {}", backupResult.error().message());
         } else {
             spdlog::info("Created auto-save snapshot: {}", name);
             pruneOldSnapshots();

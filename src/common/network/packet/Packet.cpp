@@ -9,25 +9,26 @@ namespace mc::network {
 
 Packet::Packet(PacketType type)
     : m_type(type)
-{
-}
+{}
 
 // ============================================================================
 // KeepAlivePacket 实现
 // ============================================================================
 
-Result<std::vector<u8>> KeepAlivePacket::serialize() const {
+Result<std::vector<u8>> KeepAlivePacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU32(static_cast<u32>(PACKET_HEADER_SIZE + sizeof(u64))); // size
-    serializer.writeU16(static_cast<u16>(m_type)); // type
-    serializer.writeU16(m_flags); // flags
-    serializer.writeU16(0); // reserved
-    serializer.writeU16(0); // padding (确保头部为12字节)
-    serializer.writeU64(m_timestamp); // timestamp
+    serializer.writeU16(static_cast<u16>(m_type));                           // type
+    serializer.writeU16(m_flags);                                            // flags
+    serializer.writeU16(0);                                                  // reserved
+    serializer.writeU16(0);                                                  // padding (确保头部为12字节)
+    serializer.writeU64(m_timestamp);                                        // timestamp
     return serializer.buffer();
 }
 
-Result<void> KeepAlivePacket::deserialize(const u8* data, size_t size) {
+Result<void> KeepAlivePacket::deserialize(const u8* data, size_t size)
+{
     if (size < PACKET_HEADER_SIZE + sizeof(u64)) {
         return Error(ErrorCode::InvalidArgument, "Packet too small for keep alive");
     }
@@ -35,8 +36,8 @@ Result<void> KeepAlivePacket::deserialize(const u8* data, size_t size) {
     PacketDeserializer deserializer(data, size);
 
     // 读取头部
-    (void)deserializer.readU32(); // size
-    (void)deserializer.readU16(); // type (可以忽略，因为我们知道包类型)
+    (void)deserializer.readU32();              // size
+    (void)deserializer.readU16();              // type (可以忽略，因为我们知道包类型)
     auto flagsResult = deserializer.readU16(); // flags
     if (flagsResult.success()) {
         m_flags = flagsResult.value();
@@ -57,7 +58,8 @@ Result<void> KeepAlivePacket::deserialize(const u8* data, size_t size) {
 // DisconnectPacket 实现
 // ============================================================================
 
-Result<std::vector<u8>> DisconnectPacket::serialize() const {
+Result<std::vector<u8>> DisconnectPacket::serialize() const
+{
     PacketSerializer serializer;
 
     // VarInt 编码的字符串长度（1-3字节）
@@ -66,10 +68,10 @@ Result<std::vector<u8>> DisconnectPacket::serialize() const {
     const size_t contentSize = varIntSize + strSize;
 
     serializer.writeU32(static_cast<u32>(PACKET_HEADER_SIZE + contentSize)); // size
-    serializer.writeU16(static_cast<u16>(m_type)); // type
-    serializer.writeU16(m_flags); // flags
-    serializer.writeU16(0); // reserved
-    serializer.writeU16(0); // padding
+    serializer.writeU16(static_cast<u16>(m_type));                           // type
+    serializer.writeU16(m_flags);                                            // flags
+    serializer.writeU16(0);                                                  // reserved
+    serializer.writeU16(0);                                                  // padding
 
     // 写入断开原因
     serializer.writeString(m_reason);
@@ -77,7 +79,8 @@ Result<std::vector<u8>> DisconnectPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> DisconnectPacket::deserialize(const u8* data, size_t size) {
+Result<void> DisconnectPacket::deserialize(const u8* data, size_t size)
+{
     if (size < PACKET_HEADER_SIZE) {
         return Error(ErrorCode::InvalidArgument, "Packet too small for disconnect");
     }
@@ -85,8 +88,8 @@ Result<void> DisconnectPacket::deserialize(const u8* data, size_t size) {
     PacketDeserializer deserializer(data, size);
 
     // 读取头部
-    (void)deserializer.readU32(); // size
-    (void)deserializer.readU16(); // type
+    (void)deserializer.readU32();              // size
+    (void)deserializer.readU16();              // type
     auto flagsResult = deserializer.readU16(); // flags
     if (flagsResult.success()) {
         m_flags = flagsResult.value();

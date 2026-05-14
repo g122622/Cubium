@@ -1,7 +1,7 @@
 #include "RedstoneDiodeBlock.hpp"
+#include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../VanillaBlocks.hpp"
@@ -12,43 +12,49 @@ namespace blocks {
 
 RedstoneDiodeBlock::RedstoneDiodeBlock(const std::string& id, const BlockProperties& properties)
     : Block(properties)
-    , m_id(id) {
+    , m_id(id)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::POWERED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::POWERED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::POWERED(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::POWERED(), false));
 }
 
-Direction RedstoneDiodeBlock::getFacing(const BlockState& state) {
+Direction RedstoneDiodeBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
-bool RedstoneDiodeBlock::isPowered(const BlockState& state) {
+bool RedstoneDiodeBlock::isPowered(const BlockState& state)
+{
     return state.get(BlockStateProperties::POWERED());
 }
 
-void RedstoneDiodeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void RedstoneDiodeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // MC Java: 放置时通知邻居更新
     notifyNeighbors(world, pos, state);
 }
 
-void RedstoneDiodeBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void RedstoneDiodeBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // MC Java: 移除时通知邻居更新
     notifyNeighbors(world, pos, state);
 }
 
-void RedstoneDiodeBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                         const BlockPos& neighborPos, bool isMoving) {
+void RedstoneDiodeBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -60,10 +66,13 @@ void RedstoneDiodeBlock::neighborChanged(IWorld& world, const BlockPos& pos, Blo
     }
 }
 
-BlockState RedstoneDiodeBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState RedstoneDiodeBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
@@ -81,7 +90,8 @@ BlockState RedstoneDiodeBlock::updatePostPlacement(
     return state;
 }
 
-void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     // 如果被锁定，不更新
     if (isLocked(world, pos, state)) {
@@ -107,12 +117,8 @@ void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     }
 }
 
-i32 RedstoneDiodeBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+i32 RedstoneDiodeBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
@@ -130,22 +136,21 @@ i32 RedstoneDiodeBlock::getWeakPower(
 }
 
 i32 RedstoneDiodeBlock::getStrongPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     // MC Java: 二极管输出强信号，可以充能方块
     return getWeakPower(state, world, pos, side);
 }
 
-const CollisionShape& RedstoneDiodeBlock::getShape(const BlockState& state) const {
+const CollisionShape& RedstoneDiodeBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static const CollisionShape diodeShape = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 2.0f, 16.0f);
     return diodeShape;
 }
 
-i32 RedstoneDiodeBlock::getInputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+i32 RedstoneDiodeBlock::getInputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     Direction facing = getFacing(state);
     Direction inputDir = Directions::opposite(facing);
     BlockPos inputPos = pos.offset(inputDir);
@@ -170,7 +175,8 @@ i32 RedstoneDiodeBlock::getInputSignal(IWorld& world, const BlockPos& pos, const
     return power;
 }
 
-i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     Direction facing = getFacing(state);
     i32 maxPower = 0;
 
@@ -211,24 +217,28 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
     return maxPower;
 }
 
-bool RedstoneDiodeBlock::isDiode(const BlockState& state) const {
+bool RedstoneDiodeBlock::isDiode(const BlockState& state) const
+{
     const Block& block = state.getBlock();
     // 检查是否是中继器或比较器
     return dynamic_cast<const RedstoneDiodeBlock*>(&block) != nullptr;
 }
 
-bool RedstoneDiodeBlock::isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+bool RedstoneDiodeBlock::isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     return getPowerOnSides(world, pos, state) > 0;
 }
 
-i32 RedstoneDiodeBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+i32 RedstoneDiodeBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // 默认输出15，子类可以重写
     return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
 }
 
-void RedstoneDiodeBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void RedstoneDiodeBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 如果被锁定，不更新
     if (isLocked(world, pos, state)) {
         return;
@@ -252,7 +262,8 @@ void RedstoneDiodeBlock::updateState(IWorld& world, const BlockPos& pos, const B
     }
 }
 
-bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     Direction facing = getFacing(state);
     BlockPos outputPos = pos.offset(facing);
 
@@ -272,7 +283,8 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
     return outputFacing != Directions::opposite(facing);
 }
 
-void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // MC Java: notifyNeighbors
     // 通知输入端周围的方块更新
     Direction facing = getFacing(state);
@@ -288,7 +300,7 @@ void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, con
 
     // 然后通知输入端周围的其他邻居（除了二极管本身）
     for (Direction dir : Directions::all()) {
-        if (dir == facing) continue;  // 跳过输出方向
+        if (dir == facing) continue; // 跳过输出方向
 
         BlockPos neighborPos = inputPos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);

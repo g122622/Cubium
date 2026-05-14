@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "../renderer/MeshTypes.hpp"
 #include "BlockModelLoader.hpp"
 #include "BlockStateLoader.hpp"
 #include "TextureAtlasBuilder.hpp"
-#include <memory>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <map>
+#include <memory>
 
 namespace mc {
 
@@ -28,11 +28,11 @@ struct BlockAppearance {
     };
 
     std::vector<ModelElement> elements;
-    std::map<std::string, TextureRegion> faceTextures; // 方向 -> 纹理区域
-    std::map<std::string, i32> faceTintIndices;         // 方向 -> tintindex（仅存储 >= 0）
+    std::map<std::string, TextureRegion> faceTextures;                      // 方向 -> 纹理区域
+    std::map<std::string, i32> faceTintIndices;                             // 方向 -> tintindex（仅存储 >= 0）
     std::map<std::string, std::vector<FaceTextureLayer>> faceTextureLayers; // 方向 -> 多层纹理（按模型顺序）
-    i32 xRotation = 0;  // X轴旋转
-    i32 yRotation = 0;  // Y轴旋转
+    i32 xRotation = 0;                                                      // X轴旋转
+    i32 yRotation = 0;                                                      // Y轴旋转
     bool uvLock = false;
 };
 
@@ -118,16 +118,14 @@ public:
      * @return 方块外观指针，找不到返回 nullptr
      */
     [[nodiscard]] const BlockAppearance* getBlockAppearance(
-        const ResourceLocation& blockId,
-        const std::map<std::string, std::string>& properties = {}) const;
+        const ResourceLocation& blockId, const std::map<std::string, std::string>& properties = {}) const;
 
     /**
      * @brief 获取纹理区域
      * @param textureLocation 纹理资源位置
      * @return 纹理区域指针，找不到返回 nullptr
      */
-    [[nodiscard]] const TextureRegion* getTextureRegion(
-        const ResourceLocation& textureLocation) const;
+    [[nodiscard]] const TextureRegion* getTextureRegion(const ResourceLocation& textureLocation) const;
 
     /**
      * @brief 按资源包优先级读取并解码 PNG 纹理
@@ -140,24 +138,21 @@ public:
      *
      * @note 本方法不会写入纹理图集缓存，只做一次性加载。
      */
-    [[nodiscard]] Result<DecodedTexture> loadTextureRGBA(
-        const ResourceLocation& textureLocation) const;
+    [[nodiscard]] Result<DecodedTexture> loadTextureRGBA(const ResourceLocation& textureLocation) const;
 
     /**
      * @brief 获取已烘焙的模型
      * @param modelLocation 模型资源位置
      * @return 烘焙模型指针，找不到返回 nullptr
      */
-    [[nodiscard]] const BakedBlockModel* getBakedModel(
-        const ResourceLocation& modelLocation);
+    [[nodiscard]] const BakedBlockModel* getBakedModel(const ResourceLocation& modelLocation);
 
     /**
      * @brief 获取方块状态定义
      * @param blockId 方块资源位置
      * @return 方块状态定义指针，找不到返回 nullptr
      */
-    [[nodiscard]] const BlockStateDefinition* getBlockState(
-        const ResourceLocation& blockId) const;
+    [[nodiscard]] const BlockStateDefinition* getBlockState(const ResourceLocation& blockId) const;
 
     // ========================================================================
     // 访问器

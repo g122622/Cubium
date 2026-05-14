@@ -2,15 +2,15 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../world/block/BlockPos.hpp"
-#include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 
 namespace mc {
 
@@ -24,28 +24,33 @@ TurtleEntity::TurtleEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<TurtleEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void TurtleEntity::setHomePos(const BlockPos& pos) {
+void TurtleEntity::setHomePos(const BlockPos& pos)
+{
     m_homePos = pos;
     m_hasHomePos = true;
 }
 
-bool TurtleEntity::isInWater() const {
+bool TurtleEntity::isInWater() const
+{
     // MC 1.16.5: 海龟在水中
     return Entity::isInWater();
 }
 
-bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // TODO: 检查是否是海草
     // return itemStack.getItem() == Items::SEAGRASS;
     (void)itemStack;
     return false;
 }
 
-std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& partner) {
+std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& partner)
+{
     // TODO: 创建小海龟
     // auto baby = std::make_unique<TurtleEntity>(LegacyEntityType::Unknown, 0);
     // baby->setChild(true);
@@ -55,7 +60,8 @@ std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& partner) {
     return nullptr;
 }
 
-void TurtleEntity::tick() {
+void TurtleEntity::tick()
+{
     AnimalEntity::tick();
 
     // 更新产卵计时器
@@ -70,7 +76,8 @@ void TurtleEntity::tick() {
     }
 }
 
-void TurtleEntity::registerGoals() {
+void TurtleEntity::registerGoals()
+{
     // 调用父类方法注册基础动物 AI
     // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
@@ -85,7 +92,8 @@ void TurtleEntity::registerGoals() {
     // - TurtleTravelGoal: 前往海里
 }
 
-void TurtleEntity::registerAttributes() {
+void TurtleEntity::registerAttributes()
+{
     // 调用父类方法
     AnimalEntity::registerAttributes();
 

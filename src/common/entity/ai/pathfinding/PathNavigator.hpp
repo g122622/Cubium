@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../goal/GoalConstants.hpp"
 #include "Path.hpp"
 #include "PathFinder.hpp"
-#include "../goal/GoalConstants.hpp"
-#include "../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -112,7 +112,8 @@ public:
     /**
      * @brief 停止导航
      */
-    void stop() {
+    void stop()
+    {
         clearPath();
         m_speed = 1.0;
     }
@@ -208,13 +209,13 @@ protected:
     // 使用 GoalConstants.hpp 中的常量: PATH_STUCK_THRESHOLD, PATH_STUCK_DISTANCE_THRESHOLD
 
     // MC 1.16.5: 超时检测字段
-    i32 m_timeoutCachedNodeX = 0;     // timeoutCachedNode X
-    i32 m_timeoutCachedNodeY = 0;     // timeoutCachedNode Y
-    i32 m_timeoutCachedNodeZ = 0;     // timeoutCachedNode Z
-    i64 m_timeoutTimer = 0;           // timeoutTimer (毫秒)
-    i64 m_lastTimeoutCheck = 0;       // lastTimeoutCheck (毫秒)
-    f64 m_timeoutLimit = 0.0;         // timeoutLimit
-    bool m_isStuck = false;           // field_244431_t
+    i32 m_timeoutCachedNodeX = 0; // timeoutCachedNode X
+    i32 m_timeoutCachedNodeY = 0; // timeoutCachedNode Y
+    i32 m_timeoutCachedNodeZ = 0; // timeoutCachedNode Z
+    i64 m_timeoutTimer = 0;       // timeoutTimer (毫秒)
+    i64 m_lastTimeoutCheck = 0;   // lastTimeoutCheck (毫秒)
+    f64 m_timeoutLimit = 0.0;     // timeoutLimit
+    bool m_isStuck = false;       // field_244431_t
 
     bool m_canSwim = false;
     bool m_canOpenDoors = false;

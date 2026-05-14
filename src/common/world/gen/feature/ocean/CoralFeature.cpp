@@ -1,10 +1,10 @@
 #include "CoralFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../WorldConstants.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include <array>
 #include <cmath>
 
@@ -12,29 +12,25 @@ namespace mc {
 
 namespace {
 
-[[nodiscard]] const BlockState* getCoralBlockState(blocks::CoralColor color, bool isDead) {
+[[nodiscard]] const BlockState* getCoralBlockState(blocks::CoralColor color, bool isDead)
+{
     if (isDead) {
         switch (color) {
             case blocks::CoralColor::Tube:
-                return VanillaBlocks::DEAD_TUBE_CORAL_BLOCK
-                    ? &VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_TUBE_CORAL_BLOCK ? &VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->defaultState()
+                                                            : nullptr;
             case blocks::CoralColor::Brain:
-                return VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK
-                    ? &VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK ? &VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK->defaultState()
+                                                             : nullptr;
             case blocks::CoralColor::Bubble:
-                return VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK
-                    ? &VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK ? &VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK->defaultState()
+                                                              : nullptr;
             case blocks::CoralColor::Fire:
-                return VanillaBlocks::DEAD_FIRE_CORAL_BLOCK
-                    ? &VanillaBlocks::DEAD_FIRE_CORAL_BLOCK->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_FIRE_CORAL_BLOCK ? &VanillaBlocks::DEAD_FIRE_CORAL_BLOCK->defaultState()
+                                                            : nullptr;
             case blocks::CoralColor::Horn:
-                return VanillaBlocks::DEAD_HORN_CORAL_BLOCK
-                    ? &VanillaBlocks::DEAD_HORN_CORAL_BLOCK->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_HORN_CORAL_BLOCK ? &VanillaBlocks::DEAD_HORN_CORAL_BLOCK->defaultState()
+                                                            : nullptr;
             default:
                 return nullptr;
         }
@@ -56,29 +52,25 @@ namespace {
     }
 }
 
-[[nodiscard]] const BlockState* getCoralFanState(blocks::CoralColor color, bool isDead) {
+[[nodiscard]] const BlockState* getCoralFanState(blocks::CoralColor color, bool isDead)
+{
     if (isDead) {
         switch (color) {
             case blocks::CoralColor::Tube:
-                return VanillaBlocks::DEAD_TUBE_CORAL_FAN
-                    ? &VanillaBlocks::DEAD_TUBE_CORAL_FAN->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_TUBE_CORAL_FAN ? &VanillaBlocks::DEAD_TUBE_CORAL_FAN->defaultState()
+                                                          : nullptr;
             case blocks::CoralColor::Brain:
-                return VanillaBlocks::DEAD_BRAIN_CORAL_FAN
-                    ? &VanillaBlocks::DEAD_BRAIN_CORAL_FAN->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_BRAIN_CORAL_FAN ? &VanillaBlocks::DEAD_BRAIN_CORAL_FAN->defaultState()
+                                                           : nullptr;
             case blocks::CoralColor::Bubble:
-                return VanillaBlocks::DEAD_BUBBLE_CORAL_FAN
-                    ? &VanillaBlocks::DEAD_BUBBLE_CORAL_FAN->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_BUBBLE_CORAL_FAN ? &VanillaBlocks::DEAD_BUBBLE_CORAL_FAN->defaultState()
+                                                            : nullptr;
             case blocks::CoralColor::Fire:
-                return VanillaBlocks::DEAD_FIRE_CORAL_FAN
-                    ? &VanillaBlocks::DEAD_FIRE_CORAL_FAN->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_FIRE_CORAL_FAN ? &VanillaBlocks::DEAD_FIRE_CORAL_FAN->defaultState()
+                                                          : nullptr;
             case blocks::CoralColor::Horn:
-                return VanillaBlocks::DEAD_HORN_CORAL_FAN
-                    ? &VanillaBlocks::DEAD_HORN_CORAL_FAN->defaultState()
-                    : nullptr;
+                return VanillaBlocks::DEAD_HORN_CORAL_FAN ? &VanillaBlocks::DEAD_HORN_CORAL_FAN->defaultState()
+                                                          : nullptr;
             default:
                 return nullptr;
         }
@@ -100,11 +92,10 @@ namespace {
     }
 }
 
-[[nodiscard]] const BlockState* getCoralWallFanState(
-    blocks::CoralColor color,
-    Direction supportDirection,
-    bool isDead) {
-    if (supportDirection == Direction::Up || supportDirection == Direction::Down || supportDirection == Direction::None) {
+[[nodiscard]] const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction supportDirection, bool isDead)
+{
+    if (supportDirection == Direction::Up || supportDirection == Direction::Down ||
+        supportDirection == Direction::None) {
         return nullptr;
     }
 
@@ -160,12 +151,14 @@ namespace {
     return &wallFanBlock->defaultState().with(BlockStateProperties::FACING(), supportDirection);
 }
 
-[[nodiscard]] bool isWaterAt(WorldGenRegion& world, const BlockPos& pos) {
+[[nodiscard]] bool isWaterAt(WorldGenRegion& world, const BlockPos& pos)
+{
     const BlockState* state = world.getBlockState(pos);
     return state != nullptr && VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER);
 }
 
-[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
+{
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
     if (oceanFloorY > 0) {
         return oceanFloorY;
@@ -188,7 +181,8 @@ namespace {
     return -1;
 }
 
-[[nodiscard]] bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead) {
+[[nodiscard]] bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead)
+{
     const BlockState* coralState = getCoralBlockState(color, isDead);
     if (coralState == nullptr || !isWaterAt(world, pos)) {
         return false;
@@ -198,13 +192,13 @@ namespace {
     return true;
 }
 
-void placeCoralDecorations(
-    WorldGenRegion& world,
+void placeCoralDecorations(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,
-    bool includeDecorations) {
+    bool includeDecorations)
+{
     if (!includeDecorations) {
         return;
     }
@@ -217,9 +211,8 @@ void placeCoralDecorations(
             // MC第35行：在珊瑚扇基础上，5%概率放海泡菜而不是珊瑚扇
             if (VanillaBlocks::SEA_PICKLE != nullptr && random.nextFloat() < 0.05f) {
                 const i32 pickleCount = random.nextInt(4) + 1;
-                const BlockState* pickleState = &VanillaBlocks::SEA_PICKLE->defaultState().with(
-                    BlockStateProperties::PICKLES_1_4(),
-                    pickleCount);
+                const BlockState* pickleState =
+                    &VanillaBlocks::SEA_PICKLE->defaultState().with(BlockStateProperties::PICKLES_1_4(), pickleCount);
                 world.setBlockState(topPos, pickleState);
             } else if (const BlockState* fanState = getCoralFanState(color, isDead); fanState != nullptr) {
                 world.setBlockState(topPos, fanState);
@@ -240,20 +233,19 @@ void placeCoralDecorations(
         }
 
         // 参考 MC CoralFeature.java 第43行：FACING应为direction而非opposite
-        if (const BlockState* wallFanState = getCoralWallFanState(color, horizontal, isDead);
-            wallFanState != nullptr) {
+        if (const BlockState* wallFanState = getCoralWallFanState(color, horizontal, isDead); wallFanState != nullptr) {
             world.setBlockState(sidePos, wallFanState);
         }
     }
 }
 
-[[nodiscard]] bool placeCoralWithDecorations(
-    WorldGenRegion& world,
+[[nodiscard]] bool placeCoralWithDecorations(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,
-    bool includeDecorations) {
+    bool includeDecorations)
+{
     if (!placeCoralBase(world, pos, color, isDead)) {
         return false;
     }
@@ -269,10 +261,7 @@ void placeCoralDecorations(
 // ============================================================================
 
 bool CoralFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     // 在当前区块内随机选择一个 X/Z，使用海底高度图定位珊瑚基点。
     const i32 placeX = pos.x + random.nextInt(16);
@@ -310,13 +299,7 @@ bool CoralFeature::place(
     }
 
     if (!placed) {
-        placed = placeCoralWithDecorations(
-            world,
-            random,
-            placePos,
-            config.color,
-            config.isDead,
-            config.includeWallFan);
+        placed = placeCoralWithDecorations(world, random, placePos, config.color, config.isDead, config.includeWallFan);
     }
 
     return placed;
@@ -356,19 +339,13 @@ bool CoralFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
     return false;
 }
 
-void CoralFeature::placeCoralBlock(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    blocks::CoralColor color) const
+void CoralFeature::placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const
 {
     [[maybe_unused]] const bool placed = placeCoralBase(world, pos, color, false);
 }
 
 void CoralFeature::placeCoralFan(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    blocks::CoralColor color,
-    Direction direction) const
+    WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const
 {
     if (!isWaterAt(world, pos)) {
         return;
@@ -391,10 +368,7 @@ void CoralFeature::placeCoralFan(
 // ============================================================================
 
 bool CoralTreeFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     // 参考 MC CoralTreeFeature.java 第18-52行
     const i32 trunkHeight = random.nextInt(3) + 1;
@@ -403,13 +377,7 @@ bool CoralTreeFeature::place(
     i32 placedTrunk = 0;
     for (i32 y = 0; y < trunkHeight; ++y) {
         const BlockPos trunkPos(pos.x, pos.y + y, pos.z);
-        if (!placeCoralWithDecorations(
-            world,
-            random,
-            trunkPos,
-            config.color,
-            config.isDead,
-            config.includeWallFan)) {
+        if (!placeCoralWithDecorations(world, random, trunkPos, config.color, config.isDead, config.includeWallFan)) {
             break;
         }
         topPos = trunkPos;
@@ -426,22 +394,20 @@ bool CoralTreeFeature::place(
     for (i32 i = 0; i < branchCount; ++i) {
         const Direction direction = horizontalDirections[static_cast<size_t>(random.nextInt(4))];
         // MC第38行：分支长度nextInt(5) + 2，即2-6
-        generateBranch(
-            world,
+        generateBranch(world,
             random,
             topPos,
             config.color,
             config.isDead,
             direction,
-            random.nextInt(5) + 2,  // 修正：应为2-6而非2-4
+            random.nextInt(5) + 2, // 修正：应为2-6而非2-4
             config.includeWallFan);
     }
 
     return true;
 }
 
-void CoralTreeFeature::generateBranch(
-    WorldGenRegion& world,
+void CoralTreeFeature::generateBranch(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
@@ -468,23 +434,14 @@ void CoralTreeFeature::generateBranch(
 // ============================================================================
 
 bool CoralMushroomFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     const i32 stemHeight = random.nextInt(2) + 1;
     bool placedAny = false;
 
     for (i32 y = 0; y < stemHeight; ++y) {
         const BlockPos stemPos(pos.x, pos.y + y, pos.z);
-        if (!placeCoralWithDecorations(
-            world,
-            random,
-            stemPos,
-            config.color,
-            config.isDead,
-            config.includeWallFan)) {
+        if (!placeCoralWithDecorations(world, random, stemPos, config.color, config.isDead, config.includeWallFan)) {
             break;
         }
         placedAny = true;
@@ -501,8 +458,7 @@ bool CoralMushroomFeature::place(
     return true;
 }
 
-void CoralMushroomFeature::generateCap(
-    WorldGenRegion& world,
+void CoralMushroomFeature::generateCap(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
@@ -512,10 +468,10 @@ void CoralMushroomFeature::generateCap(
 {
     // 参考 MC CoralMushroomFeature.java 第27行
     // MC使用复杂的边界检测逻辑来生成蘑菇形状
-    const i32 i = radius + 1;  // X范围
-    const i32 j = radius;      // Y范围
-    const i32 k = radius + 1;  // Z范围
-    const i32 l = 0;           // 向下偏移
+    const i32 i = radius + 1; // X范围
+    const i32 j = radius;     // Y范围
+    const i32 k = radius + 1; // Z范围
+    const i32 l = 0;          // 向下偏移
 
     for (i32 i1 = 0; i1 <= i; ++i1) {
         for (i32 j1 = 0; j1 <= j; ++j1) {
@@ -530,15 +486,10 @@ void CoralMushroomFeature::generateCap(
 
                 if (cond1 && cond2 && cond3 && cond4) {
                     if (random.nextFloat() < 0.1f) {
-                        continue;  // 10%概率跳过
+                        continue; // 10%概率跳过
                     }
-                    [[maybe_unused]] const bool placed = placeCoralWithDecorations(
-                        world,
-                        random,
-                        capPos,
-                        color,
-                        isDead,
-                        includeDecorations);
+                    [[maybe_unused]] const bool placed =
+                        placeCoralWithDecorations(world, random, capPos, color, isDead, includeDecorations);
                 }
             }
         }
@@ -550,26 +501,14 @@ void CoralMushroomFeature::generateCap(
 // ============================================================================
 
 bool CoralClawFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
-    bool placedAny = placeCoralWithDecorations(
-        world,
-        random,
-        pos,
-        config.color,
-        config.isDead,
-        config.includeWallFan);
+    bool placedAny = placeCoralWithDecorations(world, random, pos, config.color, config.isDead, config.includeWallFan);
 
     const auto directions = Directions::horizontal();
     const Direction mainDirection = directions[static_cast<size_t>(random.nextInt(4))];
     const std::array<Direction, 3> clawDirections = {
-        mainDirection,
-        Directions::rotateY(mainDirection),
-        Directions::rotateYCCW(mainDirection)
-    };
+        mainDirection, Directions::rotateY(mainDirection), Directions::rotateYCCW(mainDirection)};
 
     for (Direction direction : clawDirections) {
         if (random.nextFloat() < 0.75f) {
@@ -581,8 +520,7 @@ bool CoralClawFeature::place(
     return placedAny;
 }
 
-void CoralClawFeature::generateClaw(
-    WorldGenRegion& world,
+void CoralClawFeature::generateClaw(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
@@ -605,9 +543,8 @@ void CoralClawFeature::generateClaw(
         }
 
         if (i > 0 && random.nextFloat() < 0.25f) {
-            currentDirection = random.nextBoolean()
-                ? Directions::rotateY(currentDirection)
-                : Directions::rotateYCCW(currentDirection);
+            currentDirection =
+                random.nextBoolean() ? Directions::rotateY(currentDirection) : Directions::rotateYCCW(currentDirection);
         }
     }
 }
@@ -616,20 +553,13 @@ void CoralClawFeature::generateClaw(
 // ConfiguredCoralFeature 实现
 // ============================================================================
 
-ConfiguredCoralFeature::ConfiguredCoralFeature(
-    std::unique_ptr<CoralFeatureConfig> config,
-    const char* featureName)
+ConfiguredCoralFeature::ConfiguredCoralFeature(std::unique_ptr<CoralFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredCoralFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);

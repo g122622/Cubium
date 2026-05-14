@@ -1,14 +1,14 @@
 ﻿#include "world/blockentity/storage/ShulkerBoxEntity.hpp"
-#include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "item/Items.hpp"
-#include "util/property/Properties.hpp"
-#include "util/Direction.hpp"
-#include "entity/entities/player/Player.hpp"
 #include "entity/core/Entity.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "item/Items.hpp"
 #include "util/AxisAlignedBB.hpp"
+#include "util/Direction.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/MathConstants.hpp"
+#include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -20,9 +20,9 @@ namespace {
  *
  * 与 Java 版行为一致：检测方块正上方 1 格体积内是否有实体。
  */
-[[nodiscard]] AxisAlignedBB makeShulkerOpenSpaceBox(const BlockPos& pos) {
-    return AxisAlignedBB(
-        static_cast<f32>(pos.x),
+[[nodiscard]] AxisAlignedBB makeShulkerOpenSpaceBox(const BlockPos& pos)
+{
+    return AxisAlignedBB(static_cast<f32>(pos.x),
         static_cast<f32>(pos.y + 1),
         static_cast<f32>(pos.z),
         static_cast<f32>(pos.x + 1),
@@ -35,13 +35,13 @@ namespace {
  *
  * 参考: ShulkerBoxTileEntity.getTopBoundingBox(Direction)
  */
-[[nodiscard]] AxisAlignedBB getTopBoundingBox(const BlockPos& pos, Direction facing) {
+[[nodiscard]] AxisAlignedBB getTopBoundingBox(const BlockPos& pos, Direction facing)
+{
     // 获取相反方向的边界盒
     Direction opposite = Directions::opposite(facing);
 
     // 基础碰撞盒
-    AxisAlignedBB box(
-        static_cast<f32>(pos.x),
+    AxisAlignedBB box(static_cast<f32>(pos.x),
         static_cast<f32>(pos.y),
         static_cast<f32>(pos.z),
         static_cast<f32>(pos.x + 1),
@@ -49,14 +49,12 @@ namespace {
         static_cast<f32>(pos.z + 1));
 
     // 向朝向方向扩展后收缩
-    box = box.expand(
-        static_cast<f32>(Directions::xOffset(facing)) * 0.5f,
+    box = box.expand(static_cast<f32>(Directions::xOffset(facing)) * 0.5f,
         static_cast<f32>(Directions::yOffset(facing)) * 0.5f,
         static_cast<f32>(Directions::zOffset(facing)) * 0.5f);
 
     // 收缩朝向反方向的边界（使用 expand 的反向）
-    box = box.expand(
-        -static_cast<f32>(Directions::xOffset(opposite)),
+    box = box.expand(-static_cast<f32>(Directions::xOffset(opposite)),
         -static_cast<f32>(Directions::yOffset(opposite)),
         -static_cast<f32>(Directions::zOffset(opposite)));
 
@@ -69,16 +67,18 @@ namespace {
 
 ShulkerBoxEntity::ShulkerBoxEntity(const BlockPos& pos)
     : LootableContainerBlockEntity(BlockEntityType::ShulkerBox, pos)
-    , m_inventory(SHULKER_BOX_SIZE) {
-}
+    , m_inventory(SHULKER_BOX_SIZE)
+{}
 
 ShulkerBoxEntity::~ShulkerBoxEntity() = default;
 
-f32 ShulkerBoxEntity::getProgress(f32 partialTick) const {
+f32 ShulkerBoxEntity::getProgress(f32 partialTick) const
+{
     return m_prevProgress + (m_progress - m_prevProgress) * partialTick;
 }
 
-void ShulkerBoxEntity::openContainer(Player* player) {
+void ShulkerBoxEntity::openContainer(Player* player)
+{
     // 触发战利品表填充
     fillWithLoot(player);
 
@@ -96,7 +96,8 @@ void ShulkerBoxEntity::openContainer(Player* player) {
     LootableContainerBlockEntity::setChanged();
 }
 
-void ShulkerBoxEntity::closeContainer(Player* player) {
+void ShulkerBoxEntity::closeContainer(Player* player)
+{
     // 基类已处理观察者检查
     LootableContainerBlockEntity::closeContainer(player);
 
@@ -106,11 +107,13 @@ void ShulkerBoxEntity::closeContainer(Player* player) {
     LootableContainerBlockEntity::setChanged();
 }
 
-bool ShulkerBoxEntity::canOpen(IWorld& world) const {
+bool ShulkerBoxEntity::canOpen(IWorld& world) const
+{
     return checkCanOpen(world);
 }
 
-void ShulkerBoxEntity::tick(IWorld& world) {
+void ShulkerBoxEntity::tick(IWorld& world)
+{
     // 缓存朝向（仅首次或朝向未初始化时）
     if (m_cachedFacing == Direction::None) {
         cacheFacing(world);
@@ -120,13 +123,13 @@ void ShulkerBoxEntity::tick(IWorld& world) {
     updateAnimation(0.0f);
 
     // MC 1.16.5: 在 Opening 或 Closing 状态时推动实体
-    if (m_animationStatus == AnimationStatus::Opening ||
-        m_animationStatus == AnimationStatus::Closing) {
+    if (m_animationStatus == AnimationStatus::Opening || m_animationStatus == AnimationStatus::Closing) {
         moveCollidedEntities(world, m_cachedFacing);
     }
 }
 
-void ShulkerBoxEntity::updateAnimation(f32 partialTick) {
+void ShulkerBoxEntity::updateAnimation(f32 partialTick)
+{
     MC_UNUSED(partialTick);
 
     m_prevProgress = m_progress;
@@ -159,7 +162,8 @@ void ShulkerBoxEntity::updateAnimation(f32 partialTick) {
     }
 }
 
-void ShulkerBoxEntity::moveCollidedEntities(IWorld& world, Direction facing) {
+void ShulkerBoxEntity::moveCollidedEntities(IWorld& world, Direction facing)
+{
     if (facing == Direction::None) {
         return;
     }
@@ -216,15 +220,14 @@ void ShulkerBoxEntity::moveCollidedEntities(IWorld& world, Direction facing) {
         }
 
         // 推动实体
-        entity->move(
-            dx * static_cast<f32>(Directions::xOffset(facing)),
+        entity->move(dx * static_cast<f32>(Directions::xOffset(facing)),
             dy * static_cast<f32>(Directions::yOffset(facing)),
-            dz * static_cast<f32>(Directions::zOffset(facing))
-        );
+            dz * static_cast<f32>(Directions::zOffset(facing)));
     }
 }
 
-void ShulkerBoxEntity::cacheFacing(IWorld& world) {
+void ShulkerBoxEntity::cacheFacing(IWorld& world)
+{
     const BlockState* state = world.getBlockState(m_pos);
     if (state == nullptr) {
         return;
@@ -235,13 +238,15 @@ void ShulkerBoxEntity::cacheFacing(IWorld& world) {
     }
 }
 
-bool ShulkerBoxEntity::checkCanOpen(IWorld& world) const {
+bool ShulkerBoxEntity::checkCanOpen(IWorld& world) const
+{
     const AxisAlignedBB openSpace = makeShulkerOpenSpaceBox(m_pos);
     const std::vector<Entity*> collidingEntities = world.getEntitiesInAABB(openSpace, nullptr);
     return collidingEntities.empty();
 }
 
-bool ShulkerBoxEntity::load(const nlohmann::json& data) {
+bool ShulkerBoxEntity::load(const nlohmann::json& data)
+{
     if (!LootableContainerBlockEntity::load(data)) {
         return false;
     }
@@ -254,7 +259,8 @@ bool ShulkerBoxEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void ShulkerBoxEntity::save(nlohmann::json& data) const {
+void ShulkerBoxEntity::save(nlohmann::json& data) const
+{
     LootableContainerBlockEntity::save(data);
 
     // 保存物品
@@ -263,7 +269,8 @@ void ShulkerBoxEntity::save(nlohmann::json& data) const {
     data["items"] = itemsJson;
 }
 
-std::unique_ptr<BlockEntity> ShulkerBoxEntity::clone() const {
+std::unique_ptr<BlockEntity> ShulkerBoxEntity::clone() const
+{
     auto clone = std::make_unique<ShulkerBoxEntity>(m_pos);
     clone->m_animationStatus = m_animationStatus;
     clone->m_progress = m_progress;
@@ -280,7 +287,8 @@ std::unique_ptr<BlockEntity> ShulkerBoxEntity::clone() const {
 
 // ========== ISidedInventory 接口实现 ==========
 
-std::vector<i32> ShulkerBoxEntity::getSlotsForFace(Direction side) const {
+std::vector<i32> ShulkerBoxEntity::getSlotsForFace(Direction side) const
+{
     MC_UNUSED(side);
     // MC 1.16.5: 潜影盒可以从任意方向访问所有槽位
     // SLOTS = IntStream.range(0, 27).toArray()
@@ -296,7 +304,8 @@ std::vector<i32> ShulkerBoxEntity::getSlotsForFace(Direction side) const {
     return allSlots;
 }
 
-bool ShulkerBoxEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
+bool ShulkerBoxEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
     MC_UNUSED(slot);
     MC_UNUSED(direction);
 
@@ -318,7 +327,8 @@ bool ShulkerBoxEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction
     return true;
 }
 
-bool ShulkerBoxEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const {
+bool ShulkerBoxEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
     MC_UNUSED(slot);
     MC_UNUSED(stack);
     MC_UNUSED(direction);

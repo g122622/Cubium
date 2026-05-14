@@ -1,70 +1,70 @@
 #pragma once
 
-#include "EntityType.hpp"
-#include "EntityRegistry.hpp"
-#include "EntitySpawnPlacementRegistry.hpp"
-#include "../entities/passive/basic/PigEntity.hpp"
-#include "../entities/passive/basic/CowEntity.hpp"
-#include "../entities/passive/basic/SheepEntity.hpp"
-#include "../entities/passive/basic/ChickenEntity.hpp"
-#include "../entities/passive/basic/RabbitEntity.hpp"
-#include "../entities/passive/basic/MooshroomEntity.hpp"
-#include "../entities/passive/tamable/WolfEntity.hpp"
-#include "../entities/passive/tamable/CatEntity.hpp"
-#include "../entities/passive/tamable/OcelotEntity.hpp"
-#include "../entities/passive/tamable/ParrotEntity.hpp"
-#include "../entities/passive/special/FoxEntity.hpp"
-#include "../entities/passive/special/PandaEntity.hpp"
-#include "../entities/passive/special/PolarBearEntity.hpp"
-#include "../entities/passive/special/TurtleEntity.hpp"
-#include "../entities/passive/special/BeeEntity.hpp"
-#include "../entities/passive/special/StriderEntity.hpp"
-#include "../entities/passive/water/WaterMobEntity.hpp"
-#include "../entities/passive/water/SquidEntity.hpp"
-#include "../entities/passive/water/DolphinEntity.hpp"
-#include "../entities/passive/fish/AbstractFishEntity.hpp"
-#include "../entities/passive/fish/CodEntity.hpp"
-#include "../entities/passive/fish/SalmonEntity.hpp"
-#include "../entities/passive/fish/PufferfishEntity.hpp"
-#include "../entities/passive/fish/TropicalFishEntity.hpp"
+#include "../entities/monster/MonsterEntity.hpp"
+#include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
+#include "../entities/monster/arthropod/EndermiteEntity.hpp"
+#include "../entities/monster/arthropod/SpiderEntity.hpp"
+#include "../entities/monster/basic/CreeperEntity.hpp"
+#include "../entities/monster/basic/GiantEntity.hpp"
+#include "../entities/monster/basic/PhantomEntity.hpp"
+#include "../entities/monster/basic/SlimeEntity.hpp"
+#include "../entities/monster/end/EndermanEntity.hpp"
+#include "../entities/monster/end/ShulkerEntity.hpp"
+#include "../entities/monster/illager/EvokerEntity.hpp"
+#include "../entities/monster/illager/IllagerEntities.hpp"
+#include "../entities/monster/illager/IllusionerEntity.hpp"
+#include "../entities/monster/illager/RavagerEntity.hpp"
+#include "../entities/monster/illager/VexEntity.hpp"
+#include "../entities/monster/illager/WitchEntity.hpp"
+#include "../entities/monster/nether/BlazeEntity.hpp"
+#include "../entities/monster/nether/NetherEntities.hpp"
+#include "../entities/monster/ocean/ElderGuardianEntity.hpp"
+#include "../entities/monster/ocean/GuardianEntity.hpp"
+#include "../entities/monster/undead/DrownedEntity.hpp"
+#include "../entities/monster/undead/HuskEntity.hpp"
+#include "../entities/monster/undead/SkeletonEntity.hpp"
+#include "../entities/monster/undead/StrayEntity.hpp"
+#include "../entities/monster/undead/WitherSkeletonEntity.hpp"
+#include "../entities/monster/undead/ZombieEntity.hpp"
 #include "../entities/passive/ambient/AmbientEntity.hpp"
 #include "../entities/passive/ambient/BatEntity.hpp"
+#include "../entities/passive/basic/ChickenEntity.hpp"
+#include "../entities/passive/basic/CowEntity.hpp"
+#include "../entities/passive/basic/MooshroomEntity.hpp"
+#include "../entities/passive/basic/PigEntity.hpp"
+#include "../entities/passive/basic/RabbitEntity.hpp"
+#include "../entities/passive/basic/SheepEntity.hpp"
+#include "../entities/passive/fish/AbstractFishEntity.hpp"
+#include "../entities/passive/fish/CodEntity.hpp"
+#include "../entities/passive/fish/PufferfishEntity.hpp"
+#include "../entities/passive/fish/SalmonEntity.hpp"
+#include "../entities/passive/fish/TropicalFishEntity.hpp"
 #include "../entities/passive/golem/GolemEntity.hpp"
 #include "../entities/passive/golem/IronGolemEntity.hpp"
 #include "../entities/passive/golem/SnowGolemEntity.hpp"
 #include "../entities/passive/horse/AbstractHorseEntity.hpp"
-#include "../entities/passive/horse/HorseEntity.hpp"
 #include "../entities/passive/horse/DonkeyEntity.hpp"
+#include "../entities/passive/horse/HorseEntity.hpp"
+#include "../entities/passive/horse/LlamaEntity.hpp"
 #include "../entities/passive/horse/MuleEntity.hpp"
 #include "../entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "../entities/passive/horse/ZombieHorseEntity.hpp"
-#include "../entities/passive/horse/LlamaEntity.hpp"
-#include "../entities/monster/MonsterEntity.hpp"
-#include "../entities/monster/undead/ZombieEntity.hpp"
-#include "../entities/monster/undead/SkeletonEntity.hpp"
-#include "../entities/monster/undead/HuskEntity.hpp"
-#include "../entities/monster/undead/DrownedEntity.hpp"
-#include "../entities/monster/undead/StrayEntity.hpp"
-#include "../entities/monster/undead/WitherSkeletonEntity.hpp"
-#include "../entities/monster/basic/PhantomEntity.hpp"
-#include "../entities/monster/arthropod/SpiderEntity.hpp"
-#include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
-#include "../entities/monster/arthropod/EndermiteEntity.hpp"
-#include "../entities/monster/basic/CreeperEntity.hpp"
-#include "../entities/monster/basic/SlimeEntity.hpp"
-#include "../entities/monster/basic/GiantEntity.hpp"
-#include "../entities/monster/end/EndermanEntity.hpp"
-#include "../entities/monster/end/ShulkerEntity.hpp"
-#include "../entities/monster/nether/BlazeEntity.hpp"
-#include "../entities/monster/nether/NetherEntities.hpp"
-#include "../entities/monster/ocean/GuardianEntity.hpp"
-#include "../entities/monster/ocean/ElderGuardianEntity.hpp"
-#include "../entities/monster/illager/WitchEntity.hpp"
-#include "../entities/monster/illager/EvokerEntity.hpp"
-#include "../entities/monster/illager/IllusionerEntity.hpp"
-#include "../entities/monster/illager/RavagerEntity.hpp"
-#include "../entities/monster/illager/VexEntity.hpp"
-#include "../entities/monster/illager/IllagerEntities.hpp"
+#include "../entities/passive/special/BeeEntity.hpp"
+#include "../entities/passive/special/FoxEntity.hpp"
+#include "../entities/passive/special/PandaEntity.hpp"
+#include "../entities/passive/special/PolarBearEntity.hpp"
+#include "../entities/passive/special/StriderEntity.hpp"
+#include "../entities/passive/special/TurtleEntity.hpp"
+#include "../entities/passive/tamable/CatEntity.hpp"
+#include "../entities/passive/tamable/OcelotEntity.hpp"
+#include "../entities/passive/tamable/ParrotEntity.hpp"
+#include "../entities/passive/tamable/WolfEntity.hpp"
+#include "../entities/passive/water/DolphinEntity.hpp"
+#include "../entities/passive/water/SquidEntity.hpp"
+#include "../entities/passive/water/WaterMobEntity.hpp"
+#include "EntityRegistry.hpp"
+#include "EntitySpawnPlacementRegistry.hpp"
+#include "EntityType.hpp"
 // #include "../entities/boss/EnderDragonEntity.hpp"
 // #include "../entities/boss/WitherEntity.hpp"
 // #include "../entities/villager/VillagerEntity.hpp"
@@ -74,13 +74,13 @@
 // #include "../entities/projectile/ProjectileItemEntity.hpp"
 // #include "../entities/projectile/AbstractFireballEntity.hpp"
 // #include "../entities/projectile/OtherProjectiles.hpp"
+#include "../entities/item/ItemEntity.hpp"
+#include "../entities/misc/MiscEntities.hpp"
+#include "../entities/orb/ExperienceOrbEntity.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../entities/vehicle/MinecartEntity.hpp"
-#include "../entities/item/ItemEntity.hpp"
-#include "../entities/orb/ExperienceOrbEntity.hpp"
-#include "../entities/misc/MiscEntities.hpp"
-#include <spdlog/spdlog.h>
 #include <mutex>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace entity {
@@ -101,10 +101,9 @@ public:
      * 包括动物、怪物和其他实体类型。
      * 此方法线程安全，可以安全地多次调用，后续调用将被忽略。
      */
-    static void registerAll() {
-        std::call_once(s_onceFlag, []() {
-            doRegisterAll();
-        });
+    static void registerAll()
+    {
+        std::call_once(s_onceFlag, []() { doRegisterAll(); });
     }
 
     /**
@@ -112,7 +111,8 @@ public:
      * @param typeId 实体类型ID
      * @return 本地化名称键（如 entity.minecraft.pig）
      */
-    static std::string getLocalizedNameKey(EntityTypeId typeId) {
+    static std::string getLocalizedNameKey(EntityTypeId typeId)
+    {
         const auto* type = EntityRegistry::instance().getType(typeId);
         if (!type) {
             return "entity.minecraft.unknown";
@@ -129,526 +129,435 @@ public:
 private:
     static inline std::once_flag s_onceFlag;
 
-    static void doRegisterAll() {
+    static void doRegisterAll()
+    {
         auto& registry = EntityRegistry::instance();
 
         // ========== 动物 ==========
         // 猪
-        registry.registerType(
-            EntityTypes::PIG,
+        registry.registerType(EntityTypes::PIG,
             EntityType::Builder(&PigEntity::create, EntityClassification::Creature)
                 .size(0.9f, 0.9f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 牛
-        registry.registerType(
-            EntityTypes::COW,
+        registry.registerType(EntityTypes::COW,
             EntityType::Builder(&CowEntity::create, EntityClassification::Creature)
                 .size(0.9f, 1.4f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 羊
-        registry.registerType(
-            EntityTypes::SHEEP,
+        registry.registerType(EntityTypes::SHEEP,
             EntityType::Builder(&SheepEntity::create, EntityClassification::Creature)
                 .size(0.9f, 1.3f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 鸡
-        registry.registerType(
-            EntityTypes::CHICKEN,
+        registry.registerType(EntityTypes::CHICKEN,
             EntityType::Builder(&ChickenEntity::create, EntityClassification::Creature)
                 .size(0.4f, 0.7f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 兔子
-        registry.registerType(
-            EntityTypes::RABBIT,
+        registry.registerType(EntityTypes::RABBIT,
             EntityType::Builder(&RabbitEntity::create, EntityClassification::Creature)
                 .size(0.4f, 0.5f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 哞菇
-        registry.registerType(
-            EntityTypes::MOOSHROOM,
+        registry.registerType(EntityTypes::MOOSHROOM,
             EntityType::Builder(&MooshroomEntity::create, EntityClassification::Creature)
                 .size(0.9f, 1.4f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 可驯服动物 ==========
         // 狼
-        registry.registerType(
-            EntityTypes::WOLF,
+        registry.registerType(EntityTypes::WOLF,
             EntityType::Builder(&WolfEntity::create, EntityClassification::Creature)
                 .size(0.6f, 0.85f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 猫
-        registry.registerType(
-            EntityTypes::CAT,
+        registry.registerType(EntityTypes::CAT,
             EntityType::Builder(&CatEntity::create, EntityClassification::Creature)
                 .size(0.6f, 0.7f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 特殊动物 ==========
         // 狐狸
-        registry.registerType(
-            EntityTypes::FOX,
+        registry.registerType(EntityTypes::FOX,
             EntityType::Builder(&FoxEntity::create, EntityClassification::Creature)
                 .size(0.6f, 0.7f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 熊猫
-        registry.registerType(
-            EntityTypes::PANDA,
+        registry.registerType(EntityTypes::PANDA,
             EntityType::Builder(&PandaEntity::create, EntityClassification::Creature)
                 .size(1.3f, 1.25f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 北极熊
-        registry.registerType(
-            EntityTypes::POLAR_BEAR,
+        registry.registerType(EntityTypes::POLAR_BEAR,
             EntityType::Builder(&PolarBearEntity::create, EntityClassification::Creature)
                 .size(1.4f, 1.4f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 海龟
-        registry.registerType(
-            EntityTypes::TURTLE,
+        registry.registerType(EntityTypes::TURTLE,
             EntityType::Builder(&TurtleEntity::create, EntityClassification::Creature)
                 .size(1.2f, 0.4f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 蜜蜂
-        registry.registerType(
-            EntityTypes::BEE,
+        registry.registerType(EntityTypes::BEE,
             EntityType::Builder(&BeeEntity::create, EntityClassification::Creature)
-                .size(0.4f, 0.3f)  // MC 1.16.5: 0.4 x 0.3
+                .size(0.4f, 0.3f) // MC 1.16.5: 0.4 x 0.3
                 .trackingRange(8)
                 .updateInterval(1) // 蜜蜂更新频繁
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 炽足兽
-        registry.registerType(
-            EntityTypes::STRIDER,
+        registry.registerType(EntityTypes::STRIDER,
             EntityType::Builder(&StriderEntity::create, EntityClassification::Creature)
-                .size(0.9f, 1.8f)  // MC 1.16.5: 0.9 x 1.8
+                .size(0.9f, 1.8f) // MC 1.16.5: 0.9 x 1.8
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 豹猫
-        registry.registerType(
-            EntityTypes::OCELOT,
+        registry.registerType(EntityTypes::OCELOT,
             EntityType::Builder(&OcelotEntity::create, EntityClassification::Creature)
                 .size(0.6f, 0.7f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 鹦鹉
-        registry.registerType(
-            EntityTypes::PARROT,
+        registry.registerType(EntityTypes::PARROT,
             EntityType::Builder(&ParrotEntity::create, EntityClassification::Creature)
                 .size(0.5f, 0.9f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 水生生物 ==========
         // 鱿鱼
-        registry.registerType(
-            EntityTypes::SQUID,
+        registry.registerType(EntityTypes::SQUID,
             EntityType::Builder(&SquidEntity::create, EntityClassification::WaterCreature)
                 .size(0.8f, 0.8f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 海豚
-        registry.registerType(
-            EntityTypes::DOLPHIN,
+        registry.registerType(EntityTypes::DOLPHIN,
             EntityType::Builder(&DolphinEntity::create, EntityClassification::WaterCreature)
                 .size(0.9f, 0.6f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 鱼类 ==========
         // 鳕鱼
-        registry.registerType(
-            EntityTypes::COD,
+        registry.registerType(EntityTypes::COD,
             EntityType::Builder(&CodEntity::create, EntityClassification::WaterCreature)
                 .size(0.5f, 0.3f)
-                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 鲑鱼
-        registry.registerType(
-            EntityTypes::SALMON,
+        registry.registerType(EntityTypes::SALMON,
             EntityType::Builder(&SalmonEntity::create, EntityClassification::WaterCreature)
                 .size(0.7f, 0.4f)
-                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 河豚
-        registry.registerType(
-            EntityTypes::PUFFERFISH,
+        registry.registerType(EntityTypes::PUFFERFISH,
             EntityType::Builder(&PufferfishEntity::create, EntityClassification::WaterCreature)
                 .size(0.7f, 0.7f)
-                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 热带鱼
-        registry.registerType(
-            EntityTypes::TROPICAL_FISH,
+        registry.registerType(EntityTypes::TROPICAL_FISH,
             EntityType::Builder(&TropicalFishEntity::create, EntityClassification::WaterCreature)
                 .size(0.5f, 0.4f)
-                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 环境生物 ==========
         // 蝙蝠
-        registry.registerType(
-            EntityTypes::BAT,
+        registry.registerType(EntityTypes::BAT,
             EntityType::Builder(&BatEntity::create, EntityClassification::Ambient)
                 .size(0.5f, 0.9f)
                 .trackingRange(5)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 傀儡 ==========
         // 铁傀儡
-        registry.registerType(
-            EntityTypes::IRON_GOLEM,
+        registry.registerType(EntityTypes::IRON_GOLEM,
             EntityType::Builder(&IronGolemEntity::create, EntityClassification::Misc)
                 .size(1.4f, 2.7f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 雪傀儡
-        registry.registerType(
-            EntityTypes::SNOW_GOLEM,
+        registry.registerType(EntityTypes::SNOW_GOLEM,
             EntityType::Builder(&SnowGolemEntity::create, EntityClassification::Misc)
                 .size(0.7f, 1.9f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 怪物 ==========
         // 僵尸
-        registry.registerType(
-            EntityTypes::ZOMBIE,
+        registry.registerType(EntityTypes::ZOMBIE,
             EntityType::Builder(&ZombieEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 骷髅
-        registry.registerType(
-            EntityTypes::SKELETON,
+        registry.registerType(EntityTypes::SKELETON,
             EntityType::Builder(&SkeletonEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.99f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 苦力怕
-        registry.registerType(
-            EntityTypes::CREEPER,
+        registry.registerType(EntityTypes::CREEPER,
             EntityType::Builder(&CreeperEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.7f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 蜘蛛
-        registry.registerType(
-            EntityTypes::SPIDER,
+        registry.registerType(EntityTypes::SPIDER,
             EntityType::Builder(&SpiderEntity::create, EntityClassification::Monster)
                 .size(1.4f, 0.9f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 末影人
-        registry.registerType(
-            EntityTypes::ENDERMAN,
+        registry.registerType(EntityTypes::ENDERMAN,
             EntityType::Builder(&EndermanEntity::create, EntityClassification::Monster)
                 .size(0.6f, 2.9f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 烈焰人
-        registry.registerType(
-            EntityTypes::BLAZE,
+        registry.registerType(EntityTypes::BLAZE,
             EntityType::Builder(&BlazeEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.8f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 女巫
-        registry.registerType(
-            EntityTypes::WITCH,
+        registry.registerType(EntityTypes::WITCH,
             EntityType::Builder(&WitchEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 史莱姆
-        registry.registerType(
-            EntityTypes::SLIME,
+        registry.registerType(EntityTypes::SLIME,
             EntityType::Builder(&SlimeEntity::create, EntityClassification::Monster)
                 .size(0.6f, 0.6f) // 尺寸会动态变化
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 海洋怪物 ==========
         // 守卫者
-        registry.registerType(
-            EntityTypes::GUARDIAN,
+        registry.registerType(EntityTypes::GUARDIAN,
             EntityType::Builder(&GuardianEntity::create, EntityClassification::Monster)
                 .size(0.85f, 0.85f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 远古守卫者
-        registry.registerType(
-            EntityTypes::ELDER_GUARDIAN,
+        registry.registerType(EntityTypes::ELDER_GUARDIAN,
             EntityType::Builder(&ElderGuardianEntity::create, EntityClassification::Monster)
                 .size(1.9975f, 1.9975f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 亡灵变种 ==========
         // 尸壳
-        registry.registerType(
-            EntityTypes::HUSK,
+        registry.registerType(EntityTypes::HUSK,
             EntityType::Builder(&HuskEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 溺尸
-        registry.registerType(
-            EntityTypes::DROWNED,
+        registry.registerType(EntityTypes::DROWNED,
             EntityType::Builder(&DrownedEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 流浪者
-        registry.registerType(
-            EntityTypes::STRAY,
+        registry.registerType(EntityTypes::STRAY,
             EntityType::Builder(&StrayEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.99f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 凋灵骷髅
-        registry.registerType(
-            EntityTypes::WITHER_SKELETON,
+        registry.registerType(EntityTypes::WITHER_SKELETON,
             EntityType::Builder(&WitherSkeletonEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.99f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 节肢动物变种 ==========
         // 洞穴蜘蛛
-        registry.registerType(
-            EntityTypes::CAVE_SPIDER,
+        registry.registerType(EntityTypes::CAVE_SPIDER,
             EntityType::Builder(&CaveSpiderEntity::create, EntityClassification::Monster)
                 .size(0.7f, 0.5f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 马类 ==========
         // 马
-        registry.registerType(
-            EntityTypes::HORSE,
+        registry.registerType(EntityTypes::HORSE,
             EntityType::Builder(&HorseEntity::create, EntityClassification::Creature)
                 .size(1.3964844f, 1.6f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 驴
-        registry.registerType(
-            EntityTypes::DONKEY,
+        registry.registerType(EntityTypes::DONKEY,
             EntityType::Builder(&DonkeyEntity::create, EntityClassification::Creature)
                 .size(1.3964844f, 1.5f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 骡
-        registry.registerType(
-            EntityTypes::MULE,
+        registry.registerType(EntityTypes::MULE,
             EntityType::Builder(&MuleEntity::create, EntityClassification::Creature)
                 .size(1.3964844f, 1.6f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 骷髅马
-        registry.registerType(
-            EntityTypes::SKELETON_HORSE,
+        registry.registerType(EntityTypes::SKELETON_HORSE,
             EntityType::Builder(&SkeletonHorseEntity::create, EntityClassification::Creature)
                 .size(1.3964844f, 1.6f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 僵尸马
-        registry.registerType(
-            EntityTypes::ZOMBIE_HORSE,
+        registry.registerType(EntityTypes::ZOMBIE_HORSE,
             EntityType::Builder(&ZombieHorseEntity::create, EntityClassification::Creature)
                 .size(1.3964844f, 1.6f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 羊驼
-        registry.registerType(
-            EntityTypes::LLAMA,
+        registry.registerType(EntityTypes::LLAMA,
             EntityType::Builder(&LlamaEntity::create, EntityClassification::Creature)
                 .size(0.9f, 1.87f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== Boss ==========
         // 末影龙 - TODO: 需要完成实现
@@ -699,228 +608,189 @@ private:
 
         // ========== 更多怪物 ==========
         // 巨人
-        registry.registerType(
-            EntityTypes::GIANT,
+        registry.registerType(EntityTypes::GIANT,
             EntityType::Builder(&GiantEntity::create, EntityClassification::Monster)
                 .size(3.6f, 12.0f)
                 .trackingRange(16)
                 .updateInterval(3)
-                .build()  // 不可召唤
+                .build() // 不可召唤
         );
 
         // 幻翼
-        registry.registerType(
-            EntityTypes::PHANTOM,
+        registry.registerType(EntityTypes::PHANTOM,
             EntityType::Builder(&PhantomEntity::create, EntityClassification::Monster)
                 .size(0.9f, 0.5f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 末影螨
-        registry.registerType(
-            EntityTypes::ENDERMITE,
+        registry.registerType(EntityTypes::ENDERMITE,
             EntityType::Builder(&EndermiteEntity::create, EntityClassification::Monster)
                 .size(0.4f, 0.3f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 蠹虫
-        registry.registerType(
-            EntityTypes::SILVERFISH,
+        registry.registerType(EntityTypes::SILVERFISH,
             EntityType::Builder(&SilverfishEntity::create, EntityClassification::Monster)
                 .size(0.4f, 0.3f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 潜影贝
-        registry.registerType(
-            EntityTypes::SHULKER,
+        registry.registerType(EntityTypes::SHULKER,
             EntityType::Builder(&ShulkerEntity::create, EntityClassification::Monster)
                 .size(1.0f, 1.0f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .immuneToFire()
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 地狱生物 ==========
         // 恶魂
-        registry.registerType(
-            EntityTypes::GHAST,
+        registry.registerType(EntityTypes::GHAST,
             EntityType::Builder(&GhastEntity::create, EntityClassification::Monster)
                 .size(4.0f, 4.0f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .immuneToFire()
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 岩浆怪
-        registry.registerType(
-            EntityTypes::MAGMA_CUBE,
+        registry.registerType(EntityTypes::MAGMA_CUBE,
             EntityType::Builder(&MagmaCubeEntity::create, EntityClassification::Monster)
-                .size(0.6f, 0.6f)  // 尺寸会动态变化
+                .size(0.6f, 0.6f) // 尺寸会动态变化
                 .trackingRange(10)
                 .updateInterval(3)
                 .immuneToFire()
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 猪灵
-        registry.registerType(
-            EntityTypes::PIGLIN,
+        registry.registerType(EntityTypes::PIGLIN,
             EntityType::Builder(&PiglinEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 猪灵蛮兵
-        registry.registerType(
-            EntityTypes::PIGLIN_BRUTE,
+        registry.registerType(EntityTypes::PIGLIN_BRUTE,
             EntityType::Builder(&PiglinBruteEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 疣猪兽
-        registry.registerType(
-            EntityTypes::HOGLIN,
+        registry.registerType(EntityTypes::HOGLIN,
             EntityType::Builder(&HoglinEntity::create, EntityClassification::Creature)
                 .size(1.3964844f, 1.4f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 僵尸疣猪兽
-        registry.registerType(
-            EntityTypes::ZOGLIN,
+        registry.registerType(EntityTypes::ZOGLIN,
             EntityType::Builder(&ZoglinEntity::create, EntityClassification::Monster)
                 .size(1.3964844f, 1.4f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 灾厄村民 ==========
         // 卫道士
-        registry.registerType(
-            EntityTypes::VINDICATOR,
+        registry.registerType(EntityTypes::VINDICATOR,
             EntityType::Builder(&VindicatorEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 唤魔者
-        registry.registerType(
-            EntityTypes::EVOKER,
+        registry.registerType(EntityTypes::EVOKER,
             EntityType::Builder(&EvokerEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 幻术师
-        registry.registerType(
-            EntityTypes::ILLUSIONER,
+        registry.registerType(EntityTypes::ILLUSIONER,
             EntityType::Builder(&IllusionerEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 掠夺者
-        registry.registerType(
-            EntityTypes::PILLAGER,
+        registry.registerType(EntityTypes::PILLAGER,
             EntityType::Builder(&PillagerEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 劫掠兽
-        registry.registerType(
-            EntityTypes::RAVAGER,
+        registry.registerType(EntityTypes::RAVAGER,
             EntityType::Builder(&RavagerEntity::create, EntityClassification::Monster)
                 .size(1.95f, 2.2f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // 恼鬼
-        registry.registerType(
-            EntityTypes::VEX,
+        registry.registerType(EntityTypes::VEX,
             EntityType::Builder(&VexEntity::create, EntityClassification::Monster)
                 .size(0.4f, 0.8f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 物品 ==========
-        registry.registerType(
-            EntityTypes::ITEM,
+        registry.registerType(EntityTypes::ITEM,
             EntityType::Builder(&ItemEntity::create, EntityClassification::Misc)
                 .size(0.25f, 0.25f)
                 .trackingRange(4)
                 .updateInterval(20)
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 经验球 ==========
-        registry.registerType(
-            EntityTypes::EXPERIENCE_ORB,
+        registry.registerType(EntityTypes::EXPERIENCE_ORB,
             EntityType::Builder(&ExperienceOrbEntity::create, EntityClassification::Misc)
                 .size(0.5f, 0.5f)
                 .trackingRange(6)
-                .updateInterval(1)  // 经验球需要频繁更新
+                .updateInterval(1) // 经验球需要频繁更新
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== TNT ==========
-        registry.registerType(
-            EntityTypes::TNT,
+        registry.registerType(EntityTypes::TNT,
             EntityType::Builder(&entity::TNTEntity::create, EntityClassification::Misc)
                 .size(0.98f, 0.98f)
                 .trackingRange(10)
-                .updateInterval(1)  // TNT 需要频繁更新（引信倒计时）
+                .updateInterval(1) // TNT 需要频繁更新（引信倒计时）
                 .canSummon(true)
-                .build()
-        );
+                .build());
 
         // ========== 玩家 ==========
         // 玩家实体类型由 Player 类自行管理

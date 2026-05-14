@@ -1,7 +1,7 @@
 #include "common/sound/SoundCategory.hpp"
 
-#include <cctype>
 #include <algorithm>
+#include <cctype>
 
 namespace mc::sound {
 
@@ -14,24 +14,25 @@ namespace {
  * 名称与 MC Java 一致。
  */
 constexpr std::string_view s_categoryNames[] = {
-    "master",   // Master
-    "music",    // Music
-    "record",   // Records (注意: MC Java 使用单数形式 "record")
-    "weather",  // Weather
-    "block",    // Blocks (注意: MC Java 使用单数形式 "block")
-    "hostile",  // Hostile
-    "neutral",  // Neutral
-    "player",   // Players (注意: MC Java 使用单数形式 "player")
-    "ambient",  // Ambient
-    "voice"     // Voice
+    "master",  // Master
+    "music",   // Music
+    "record",  // Records (注意: MC Java 使用单数形式 "record")
+    "weather", // Weather
+    "block",   // Blocks (注意: MC Java 使用单数形式 "block")
+    "hostile", // Hostile
+    "neutral", // Neutral
+    "player",  // Players (注意: MC Java 使用单数形式 "player")
+    "ambient", // Ambient
+    "voice"    // Voice
 };
 
 static_assert(std::size(s_categoryNames) == static_cast<size_t>(SoundCategory::Count),
-              "Category names array size must match SoundCategory::Count");
+    "Category names array size must match SoundCategory::Count");
 
 } // anonymous namespace
 
-std::string_view getSoundCategoryName(SoundCategory category) noexcept {
+std::string_view getSoundCategoryName(SoundCategory category) noexcept
+{
     const size_t index = static_cast<size_t>(category);
     if (index >= static_cast<size_t>(SoundCategory::Count)) {
         return "master"; // 默认返回 master
@@ -39,7 +40,8 @@ std::string_view getSoundCategoryName(SoundCategory category) noexcept {
     return s_categoryNames[index];
 }
 
-std::optional<SoundCategory> parseSoundCategory(std::string_view name) noexcept {
+std::optional<SoundCategory> parseSoundCategory(std::string_view name) noexcept
+{
     if (name.empty()) {
         return std::nullopt;
     }

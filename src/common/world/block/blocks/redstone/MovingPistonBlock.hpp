@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "PistonHeadBlock.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../util/Direction.hpp"
 #include <memory>
 
 namespace mc {
@@ -53,7 +53,8 @@ public:
      *
      * 移动中的活塞不能被推动。
      */
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Block;
     }

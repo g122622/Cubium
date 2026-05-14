@@ -1,7 +1,7 @@
 #include "TridentBuffer.hpp"
 #include "../TridentContext.hpp"
-#include <spdlog/spdlog.h>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident {
 
@@ -11,7 +11,8 @@ namespace mc::client::renderer::trident {
 
 TridentBuffer::TridentBuffer() = default;
 
-TridentBuffer::~TridentBuffer() {
+TridentBuffer::~TridentBuffer()
+{
     destroy();
 }
 
@@ -30,7 +31,8 @@ TridentBuffer::TridentBuffer(TridentBuffer&& other) noexcept
     other.m_mapped = nullptr;
 }
 
-TridentBuffer& TridentBuffer::operator=(TridentBuffer&& other) noexcept {
+TridentBuffer& TridentBuffer::operator=(TridentBuffer&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -50,10 +52,7 @@ TridentBuffer& TridentBuffer::operator=(TridentBuffer&& other) noexcept {
 }
 
 Result<void> TridentBuffer::create(
-    TridentContext* context,
-    VkDeviceSize size,
-    VkBufferUsageFlags usage,
-    VkMemoryPropertyFlags properties)
+    TridentContext* context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
@@ -118,7 +117,8 @@ Result<void> TridentBuffer::create(
     return {};
 }
 
-void TridentBuffer::destroy() {
+void TridentBuffer::destroy()
+{
     if (m_buffer == VK_NULL_HANDLE) return;
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
@@ -138,7 +138,8 @@ void TridentBuffer::destroy() {
     m_context = nullptr;
 }
 
-void* TridentBuffer::map() {
+void* TridentBuffer::map()
+{
     if (m_buffer == VK_NULL_HANDLE || !m_context) return nullptr;
     if (m_mapped) return m_mapped;
 
@@ -151,14 +152,16 @@ void* TridentBuffer::map() {
     return m_mapped;
 }
 
-void TridentBuffer::unmap() {
+void TridentBuffer::unmap()
+{
     if (m_mapped && m_context) {
         vkUnmapMemory(m_context->device(), m_memory);
         m_mapped = nullptr;
     }
 }
 
-Result<void> TridentBuffer::upload(const void* data, u64 size, u64 offset) {
+Result<void> TridentBuffer::upload(const void* data, u64 size, u64 offset)
+{
     if (size + offset > m_size) {
         return Error(ErrorCode::OutOfRange, "Upload size exceeds buffer size");
     }
@@ -172,7 +175,8 @@ Result<void> TridentBuffer::upload(const void* data, u64 size, u64 offset) {
     return {};
 }
 
-Result<u32> TridentBuffer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> TridentBuffer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     return m_context->findMemoryType(typeFilter, properties);
 }
 
@@ -182,7 +186,8 @@ Result<u32> TridentBuffer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags 
 
 TridentStagingBuffer::TridentStagingBuffer() = default;
 
-TridentStagingBuffer::~TridentStagingBuffer() {
+TridentStagingBuffer::~TridentStagingBuffer()
+{
     destroy();
 }
 
@@ -200,7 +205,8 @@ TridentStagingBuffer::TridentStagingBuffer(TridentStagingBuffer&& other) noexcep
     other.m_mapped = nullptr;
 }
 
-TridentStagingBuffer& TridentStagingBuffer::operator=(TridentStagingBuffer&& other) noexcept {
+TridentStagingBuffer& TridentStagingBuffer::operator=(TridentStagingBuffer&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -218,7 +224,8 @@ TridentStagingBuffer& TridentStagingBuffer::operator=(TridentStagingBuffer&& oth
     return *this;
 }
 
-Result<void> TridentStagingBuffer::create(TridentContext* context, u64 size) {
+Result<void> TridentStagingBuffer::create(TridentContext* context, u64 size)
+{
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }
@@ -246,8 +253,7 @@ Result<void> TridentStagingBuffer::create(TridentContext* context, u64 size) {
 
     // 查找主机可见内存
     auto typeResult = m_context->findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     if (typeResult.failed()) {
         vkDestroyBuffer(device, m_buffer, nullptr);
@@ -272,7 +278,8 @@ Result<void> TridentStagingBuffer::create(TridentContext* context, u64 size) {
     return {};
 }
 
-void TridentStagingBuffer::destroy() {
+void TridentStagingBuffer::destroy()
+{
     if (m_buffer == VK_NULL_HANDLE) return;
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
@@ -292,7 +299,8 @@ void TridentStagingBuffer::destroy() {
     m_context = nullptr;
 }
 
-void* TridentStagingBuffer::map() {
+void* TridentStagingBuffer::map()
+{
     if (m_buffer == VK_NULL_HANDLE || !m_context) return nullptr;
     if (m_mapped) return m_mapped;
 
@@ -304,14 +312,16 @@ void* TridentStagingBuffer::map() {
     return m_mapped;
 }
 
-void TridentStagingBuffer::unmap() {
+void TridentStagingBuffer::unmap()
+{
     if (m_mapped && m_context) {
         vkUnmapMemory(m_context->device(), m_memory);
         m_mapped = nullptr;
     }
 }
 
-Result<void> TridentStagingBuffer::upload(const void* data, u64 size, u64 offset) {
+Result<void> TridentStagingBuffer::upload(const void* data, u64 size, u64 offset)
+{
     if (size + offset > m_size) {
         return Error(ErrorCode::OutOfRange, "Upload size exceeds buffer size");
     }
@@ -325,7 +335,8 @@ Result<void> TridentStagingBuffer::upload(const void* data, u64 size, u64 offset
     return {};
 }
 
-Result<void> TridentStagingBuffer::copyTo(void* commandBuffer, api::IBuffer* dstBuffer, u64 size) {
+Result<void> TridentStagingBuffer::copyTo(void* commandBuffer, api::IBuffer* dstBuffer, u64 size)
+{
     if (!m_buffer || !dstBuffer || !commandBuffer) {
         return Error(ErrorCode::InvalidArgument, "Invalid buffer or command buffer");
     }
@@ -353,7 +364,8 @@ Result<void> TridentStagingBuffer::copyTo(void* commandBuffer, api::IBuffer* dst
 
 TridentVertexBuffer::TridentVertexBuffer() = default;
 
-TridentVertexBuffer::~TridentVertexBuffer() {
+TridentVertexBuffer::~TridentVertexBuffer()
+{
     destroy();
 }
 
@@ -373,7 +385,8 @@ TridentVertexBuffer::TridentVertexBuffer(TridentVertexBuffer&& other) noexcept
     other.m_mapped = nullptr;
 }
 
-TridentVertexBuffer& TridentVertexBuffer::operator=(TridentVertexBuffer&& other) noexcept {
+TridentVertexBuffer& TridentVertexBuffer::operator=(TridentVertexBuffer&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -393,7 +406,8 @@ TridentVertexBuffer& TridentVertexBuffer::operator=(TridentVertexBuffer&& other)
     return *this;
 }
 
-Result<void> TridentVertexBuffer::create(TridentContext* context, u64 size, u32 vertexStride) {
+Result<void> TridentVertexBuffer::create(TridentContext* context, u64 size, u32 vertexStride)
+{
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }
@@ -418,9 +432,7 @@ Result<void> TridentVertexBuffer::create(TridentContext* context, u64 size, u32 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(device, m_buffer, &memRequirements);
 
-    auto typeResult = m_context->findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto typeResult = m_context->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     if (typeResult.failed()) {
         vkDestroyBuffer(device, m_buffer, nullptr);
@@ -444,7 +456,8 @@ Result<void> TridentVertexBuffer::create(TridentContext* context, u64 size, u32 
     return {};
 }
 
-void TridentVertexBuffer::destroy() {
+void TridentVertexBuffer::destroy()
+{
     if (m_buffer == VK_NULL_HANDLE) return;
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
@@ -465,18 +478,21 @@ void TridentVertexBuffer::destroy() {
     m_context = nullptr;
 }
 
-void* TridentVertexBuffer::map() {
+void* TridentVertexBuffer::map()
+{
     // 设备本地缓冲区不能直接映射，需要通过暂存缓冲区
     // 这里暂时返回 nullptr，实际使用时需要配合暂存缓冲区
     spdlog::warn("Vertex buffer is device-local and cannot be directly mapped");
     return nullptr;
 }
 
-void TridentVertexBuffer::unmap() {
+void TridentVertexBuffer::unmap()
+{
     // 设备本地缓冲区不需要取消映射
 }
 
-Result<void> TridentVertexBuffer::upload(const void* data, u64 size, u64 offset) {
+Result<void> TridentVertexBuffer::upload(const void* data, u64 size, u64 offset)
+{
     // 需要通过暂存缓冲区上传，这里提供一个简化实现
     // 实际使用时应该通过 TridentEngine 的暂存缓冲区
     if (!m_context) {
@@ -504,8 +520,7 @@ Result<void> TridentVertexBuffer::upload(const void* data, u64 size, u64 offset)
     vkGetBufferMemoryRequirements(device, stagingBuffer, &memRequirements);
 
     auto typeResult = m_context->findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     if (typeResult.failed()) {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
@@ -547,11 +562,13 @@ Result<void> TridentVertexBuffer::upload(const void* data, u64 size, u64 offset)
     return Error(ErrorCode::Unsupported, "Vertex buffer upload requires command buffer submission");
 }
 
-u32 TridentVertexBuffer::vertexCount() const {
+u32 TridentVertexBuffer::vertexCount() const
+{
     return m_vertexStride > 0 ? static_cast<u32>(m_size / m_vertexStride) : 0;
 }
 
-void TridentVertexBuffer::bind(void* commandBuffer) {
+void TridentVertexBuffer::bind(void* commandBuffer)
+{
     VkCommandBuffer cmd = static_cast<VkCommandBuffer>(commandBuffer);
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(cmd, 0, 1, &m_buffer, &offset);
@@ -563,7 +580,8 @@ void TridentVertexBuffer::bind(void* commandBuffer) {
 
 TridentIndexBuffer::TridentIndexBuffer() = default;
 
-TridentIndexBuffer::~TridentIndexBuffer() {
+TridentIndexBuffer::~TridentIndexBuffer()
+{
     destroy();
 }
 
@@ -585,7 +603,8 @@ TridentIndexBuffer::TridentIndexBuffer(TridentIndexBuffer&& other) noexcept
     other.m_mapped = nullptr;
 }
 
-TridentIndexBuffer& TridentIndexBuffer::operator=(TridentIndexBuffer&& other) noexcept {
+TridentIndexBuffer& TridentIndexBuffer::operator=(TridentIndexBuffer&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -607,7 +626,8 @@ TridentIndexBuffer& TridentIndexBuffer::operator=(TridentIndexBuffer&& other) no
     return *this;
 }
 
-Result<void> TridentIndexBuffer::create(TridentContext* context, u64 size, api::IndexType type) {
+Result<void> TridentIndexBuffer::create(TridentContext* context, u64 size, api::IndexType type)
+{
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }
@@ -636,9 +656,7 @@ Result<void> TridentIndexBuffer::create(TridentContext* context, u64 size, api::
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(device, m_buffer, &memRequirements);
 
-    auto typeResult = m_context->findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto typeResult = m_context->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     if (typeResult.failed()) {
         vkDestroyBuffer(device, m_buffer, nullptr);
@@ -662,7 +680,8 @@ Result<void> TridentIndexBuffer::create(TridentContext* context, u64 size, api::
     return {};
 }
 
-void TridentIndexBuffer::destroy() {
+void TridentIndexBuffer::destroy()
+{
     if (m_buffer == VK_NULL_HANDLE) return;
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
@@ -678,20 +697,22 @@ void TridentIndexBuffer::destroy() {
     m_context = nullptr;
 }
 
-void* TridentIndexBuffer::map() {
+void* TridentIndexBuffer::map()
+{
     spdlog::warn("Index buffer is device-local and cannot be directly mapped");
     return nullptr;
 }
 
-void TridentIndexBuffer::unmap() {
-}
+void TridentIndexBuffer::unmap() {}
 
-Result<void> TridentIndexBuffer::upload(const void* data, u64 size, u64 offset) {
+Result<void> TridentIndexBuffer::upload(const void* data, u64 size, u64 offset)
+{
     // TODO: 实现通过暂存缓冲区上传
     return Error(ErrorCode::Unsupported, "Index buffer upload requires staging buffer");
 }
 
-void TridentIndexBuffer::bind(void* commandBuffer) {
+void TridentIndexBuffer::bind(void* commandBuffer)
+{
     VkCommandBuffer cmd = static_cast<VkCommandBuffer>(commandBuffer);
     VkIndexType vkIndexType = (m_indexType == api::IndexType::U16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
     vkCmdBindIndexBuffer(cmd, m_buffer, 0, vkIndexType);
@@ -703,7 +724,8 @@ void TridentIndexBuffer::bind(void* commandBuffer) {
 
 TridentUniformBuffer::TridentUniformBuffer() = default;
 
-TridentUniformBuffer::~TridentUniformBuffer() {
+TridentUniformBuffer::~TridentUniformBuffer()
+{
     destroy();
 }
 
@@ -722,7 +744,8 @@ TridentUniformBuffer::TridentUniformBuffer(TridentUniformBuffer&& other) noexcep
     other.m_currentFrame = 0;
 }
 
-TridentUniformBuffer& TridentUniformBuffer::operator=(TridentUniformBuffer&& other) noexcept {
+TridentUniformBuffer& TridentUniformBuffer::operator=(TridentUniformBuffer&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -741,7 +764,8 @@ TridentUniformBuffer& TridentUniformBuffer::operator=(TridentUniformBuffer&& oth
     return *this;
 }
 
-Result<void> TridentUniformBuffer::create(TridentContext* context, u64 size, u32 frameCount) {
+Result<void> TridentUniformBuffer::create(TridentContext* context, u64 size, u32 frameCount)
+{
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }
@@ -773,8 +797,7 @@ Result<void> TridentUniformBuffer::create(TridentContext* context, u64 size, u32
         vkGetBufferMemoryRequirements(device, m_buffers[i], &memRequirements);
 
         auto typeResult = m_context->findMemoryType(
-            memRequirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         if (typeResult.failed()) {
             destroy();
@@ -805,7 +828,8 @@ Result<void> TridentUniformBuffer::create(TridentContext* context, u64 size, u32
     return {};
 }
 
-void TridentUniformBuffer::destroy() {
+void TridentUniformBuffer::destroy()
+{
     if (m_buffers.empty()) return;
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
@@ -832,16 +856,19 @@ void TridentUniformBuffer::destroy() {
     m_context = nullptr;
 }
 
-void* TridentUniformBuffer::map() {
+void* TridentUniformBuffer::map()
+{
     if (m_mapped.empty()) return nullptr;
     return m_mapped[m_currentFrame];
 }
 
-void TridentUniformBuffer::unmap() {
+void TridentUniformBuffer::unmap()
+{
     // 持久映射，不需要取消映射
 }
 
-Result<void> TridentUniformBuffer::upload(const void* data, u64 size, u64 offset) {
+Result<void> TridentUniformBuffer::upload(const void* data, u64 size, u64 offset)
+{
     if (size + offset > m_size) {
         return Error(ErrorCode::OutOfRange, "Upload size exceeds buffer size");
     }
@@ -855,11 +882,13 @@ Result<void> TridentUniformBuffer::upload(const void* data, u64 size, u64 offset
     return {};
 }
 
-void TridentUniformBuffer::advanceFrame() {
+void TridentUniformBuffer::advanceFrame()
+{
     m_currentFrame = (m_currentFrame + 1) % m_frameCount;
 }
 
-VkBuffer TridentUniformBuffer::buffer(u32 frameIndex) const {
+VkBuffer TridentUniformBuffer::buffer(u32 frameIndex) const
+{
     if (frameIndex >= m_buffers.size()) return VK_NULL_HANDLE;
     return m_buffers[frameIndex];
 }

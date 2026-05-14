@@ -24,11 +24,10 @@ public:
     i32 getDeltaY() const { return m_deltaY; }
     JigsawPlacementBehaviour getDestProjection() const { return m_destProjection; }
 
-    bool operator==(const JigsawJunction& other) const {
-        return m_sourceX == other.m_sourceX &&
-               m_sourceZ == other.m_sourceZ &&
-               m_deltaY == other.m_deltaY &&
-               m_destProjection == other.m_destProjection;
+    bool operator==(const JigsawJunction& other) const
+    {
+        return m_sourceX == other.m_sourceX && m_sourceZ == other.m_sourceZ && m_deltaY == other.m_deltaY &&
+            m_destProjection == other.m_destProjection;
     }
 
     bool operator!=(const JigsawJunction& other) const { return !(*this == other); }

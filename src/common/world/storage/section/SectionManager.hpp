@@ -1,19 +1,19 @@
 #pragma once
 
-#include "../db/RocksDBDatabase.hpp"
-#include "../db/SectionKey.hpp"
-#include "../db/SectionCodec.hpp"
-#include "../db/ConsistencyMode.hpp"
-#include "SectionCache.hpp"
 #include "../../../core/Result.hpp"
 #include "../../../core/Types.hpp"
+#include "../db/ConsistencyMode.hpp"
+#include "../db/RocksDBDatabase.hpp"
+#include "../db/SectionCodec.hpp"
+#include "../db/SectionKey.hpp"
 #include "../task/StorageTaskManager.hpp"
-#include <memory>
-#include <vector>
-#include <unordered_set>
-#include <mutex>
-#include <future>
+#include "SectionCache.hpp"
 #include <functional>
+#include <future>
+#include <memory>
+#include <mutex>
+#include <unordered_set>
+#include <vector>
 
 namespace mc::world::storage {
 
@@ -79,11 +79,7 @@ public:
      * @param dimension 维度ID
      * @param config 配置
      */
-    SectionManager(
-        RocksDBDatabase& db,
-        DimensionId dimension,
-        const Config& config
-    );
+    SectionManager(RocksDBDatabase& db, DimensionId dimension, const Config& config);
 
     ~SectionManager() = default;
 
@@ -102,11 +98,11 @@ public:
     /**
      * @brief 同步加载Section
      *
-    * 优先从缓存加载，缓存未命中则从数据库加载。
-    * 返回共享指针，避免缓存驱逐或并发保存导致悬空指针。
+     * 优先从缓存加载，缓存未命中则从数据库加载。
+     * 返回共享指针，避免缓存驱逐或并发保存导致悬空指针。
      *
      * @param key Section标识
-    * @return Section数据快照，失败返回错误
+     * @return Section数据快照，失败返回错误
      */
     Result<std::shared_ptr<const SectionData>> loadSectionSync(const SectionKey& key);
 
@@ -120,9 +116,7 @@ public:
      * @return 未来的Section数据快照
      */
     std::future<Result<std::shared_ptr<const SectionData>>> loadSectionAsync(
-        const SectionKey& key,
-        util::TaskPriority priority = util::TaskPriority::Normal
-    );
+        const SectionKey& key, util::TaskPriority priority = util::TaskPriority::Normal);
 
     /**
      * @brief 批量加载Section
@@ -130,10 +124,7 @@ public:
      * @param keys Section标识列表
      * @param callback 加载完成回调
      */
-    void loadSectionsSync(
-        const std::vector<SectionKey>& keys,
-        LoadCallback callback
-    );
+    void loadSectionsSync(const std::vector<SectionKey>& keys, LoadCallback callback);
 
     // ========================================================================
     // Section保存
@@ -149,11 +140,7 @@ public:
      * @param immediate 是否立即同步写入
      * @return 成功或错误
      */
-    Result<void> saveSectionSync(
-        const SectionKey& key,
-        const SectionData& data,
-        bool immediate = false
-    );
+    Result<void> saveSectionSync(const SectionKey& key, const SectionData& data, bool immediate = false);
 
     /**
      * @brief 异步保存Section
@@ -164,10 +151,7 @@ public:
      * @return 未来的保存结果
      */
     std::future<Result<void>> saveSectionAsync(
-        const SectionKey& key,
-        const SectionData& data,
-        util::TaskPriority priority = util::TaskPriority::Normal
-    );
+        const SectionKey& key, const SectionData& data, util::TaskPriority priority = util::TaskPriority::Normal);
 
     /**
      * @brief 注入任务管理器
@@ -323,19 +307,12 @@ private:
     /**
      * @brief 保存Section到数据库
      */
-    Result<void> saveToDatabase(
-        const SectionKey& key,
-        const SectionData& data,
-        bool sync = false
-    );
+    Result<void> saveToDatabase(const SectionKey& key, const SectionData& data, bool sync = false);
 
     /**
      * @brief 删除Section范围
      */
-    Result<void> deleteSectionRange(
-        const std::vector<u8>& startKey,
-        const std::vector<u8>& endKey
-    );
+    Result<void> deleteSectionRange(const std::vector<u8>& startKey, const std::vector<u8>& endKey);
 
     // ========================================================================
     // 成员变量

@@ -1,9 +1,9 @@
 #include "WaterMobEntity.hpp"
+#include "../../../../physics/PhysicsConstants.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
-#include "../../../../physics/PhysicsConstants.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -15,13 +15,15 @@ WaterMobEntity::WaterMobEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-bool WaterMobEntity::isInWater() const {
+bool WaterMobEntity::isInWater() const
+{
     // 水生生物使用基类的 isInWater() 实现
     // 基类会检查 m_inWater 标志，该标志在 updateEnvironmentState() 中更新
     return Entity::isInWater();
 }
 
-bool WaterMobEntity::isInWaterOrBubble() const {
+bool WaterMobEntity::isInWaterOrBubble() const
+{
     // 检查是否在水中或气泡柱中
     if (isInWater()) {
         return true;
@@ -35,8 +37,8 @@ bool WaterMobEntity::isInWaterOrBubble() const {
 
     // 获取实体当前位置的方块
     const BlockPos blockPos(static_cast<i32>(std::floor(position().x)),
-                           static_cast<i32>(std::floor(position().y)),
-                           static_cast<i32>(std::floor(position().z)));
+        static_cast<i32>(std::floor(position().y)),
+        static_cast<i32>(std::floor(position().z)));
     const BlockState* state = worldPtr->getBlockState(blockPos);
     if (state == nullptr) {
         return false;
@@ -46,7 +48,8 @@ bool WaterMobEntity::isInWaterOrBubble() const {
     return &state->owner() == VanillaBlocks::BUBBLE_COLUMN;
 }
 
-void WaterMobEntity::tick() {
+void WaterMobEntity::tick()
+{
     CreatureEntity::tick();
 
     // 检测水状态变化并触发回调
@@ -62,7 +65,8 @@ void WaterMobEntity::tick() {
     updateAirSupply();
 }
 
-void WaterMobEntity::registerAttributes() {
+void WaterMobEntity::registerAttributes()
+{
     // 调用父类方法
     CreatureEntity::registerAttributes();
 
@@ -70,7 +74,8 @@ void WaterMobEntity::registerAttributes() {
     // 参考 MC 1.16.5 水生生物属性
 }
 
-void WaterMobEntity::updateAirSupply() {
+void WaterMobEntity::updateAirSupply()
+{
     // MC 1.16.5: WaterMobEntity 在水中恢复空气，在陆地/岩浆中消耗空气
     // 与普通生物相反！
     if (!isAlive()) {

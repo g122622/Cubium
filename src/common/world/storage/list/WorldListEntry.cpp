@@ -4,8 +4,7 @@
 
 namespace mc::world::storage {
 
-WorldListEntry::WorldListEntry(
-    std::string levelId,
+WorldListEntry::WorldListEntry(std::string levelId,
     std::filesystem::path worldDir,
     std::string displayName,
     i64 lastPlayedMs,
@@ -21,8 +20,7 @@ WorldListEntry::WorldListEntry(
     std::string versionName,
     i32 dataVersion,
     std::filesystem::path iconPath,
-    std::string errorMessage
-)
+    std::string errorMessage)
     : levelId(std::move(levelId))
     , worldDir(std::move(worldDir))
     , displayName(std::move(displayName))
@@ -40,8 +38,7 @@ WorldListEntry::WorldListEntry(
     , dataVersion(dataVersion)
     , iconPath(std::move(iconPath))
     , errorMessage(std::move(errorMessage))
-{
-}
+{}
 
 bool WorldListEntry::operator<(const WorldListEntry& other) const noexcept
 {
@@ -59,9 +56,7 @@ void sortWorldEntries(std::vector<WorldListEntry>& entries)
 }
 
 std::vector<WorldListEntry> filterWorldEntries(
-    const std::vector<WorldListEntry>& entries,
-    const std::string& searchQuery
-)
+    const std::vector<WorldListEntry>& entries, const std::string& searchQuery)
 {
     if (searchQuery.empty()) {
         return entries;

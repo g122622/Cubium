@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/particles/special/NautilusParticle.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/particles/special/NautilusParticle.hpp"
 #include "common/util/math/MathConstants.hpp"
 
 #include <cmath>
@@ -20,7 +20,8 @@ protected:
 
 // ==================== 创建测试 ====================
 
-TEST_F(NautilusParticleTest, Create_ReturnsValidParticle) {
+TEST_F(NautilusParticleTest, Create_ReturnsValidParticle)
+{
     glm::vec3 pos(10.0f, 64.0f, 20.0f);
     glm::vec3 velocity(1.0f, 0.0f, 0.0f);
 
@@ -30,7 +31,8 @@ TEST_F(NautilusParticleTest, Create_ReturnsValidParticle) {
     EXPECT_TRUE(particle->isAlive());
 }
 
-TEST_F(NautilusParticleTest, Create_SetsPosition) {
+TEST_F(NautilusParticleTest, Create_SetsPosition)
+{
     glm::vec3 pos(10.0f, 64.0f, 20.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -41,7 +43,8 @@ TEST_F(NautilusParticleTest, Create_SetsPosition) {
     EXPECT_FLOAT_EQ(particle->position().z, 20.0f);
 }
 
-TEST_F(NautilusParticleTest, Create_SetsVelocity) {
+TEST_F(NautilusParticleTest, Create_SetsVelocity)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(2.0f, 1.0f, -1.0f);
 
@@ -54,7 +57,8 @@ TEST_F(NautilusParticleTest, Create_SetsVelocity) {
 
 // ==================== 渲染属性测试 ====================
 
-TEST_F(NautilusParticleTest, GetRenderType_ReturnsParticleSheetLit) {
+TEST_F(NautilusParticleTest, GetRenderType_ReturnsParticleSheetLit)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -64,7 +68,8 @@ TEST_F(NautilusParticleTest, GetRenderType_ReturnsParticleSheetLit) {
     EXPECT_EQ(particle->getRenderType(), ParticleRenderType::PARTICLE_SHEET_LIT);
 }
 
-TEST_F(NautilusParticleTest, GetTextureLocation_ReturnsNautilus) {
+TEST_F(NautilusParticleTest, GetTextureLocation_ReturnsNautilus)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -74,7 +79,8 @@ TEST_F(NautilusParticleTest, GetTextureLocation_ReturnsNautilus) {
     EXPECT_EQ(texture.toString(), "minecraft:particle/nautilus");
 }
 
-TEST_F(NautilusParticleTest, GetLightColor_ReturnsMaxBrightness) {
+TEST_F(NautilusParticleTest, GetLightColor_ReturnsMaxBrightness)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -88,7 +94,8 @@ TEST_F(NautilusParticleTest, GetLightColor_ReturnsMaxBrightness) {
 
 // ==================== 物理属性测试 ====================
 
-TEST_F(NautilusParticleTest, HasNoGravity) {
+TEST_F(NautilusParticleTest, HasNoGravity)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -98,7 +105,8 @@ TEST_F(NautilusParticleTest, HasNoGravity) {
     EXPECT_DOUBLE_EQ(particle->gravity(), 0.0);
 }
 
-TEST_F(NautilusParticleTest, HasNoPhysics) {
+TEST_F(NautilusParticleTest, HasNoPhysics)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -108,7 +116,8 @@ TEST_F(NautilusParticleTest, HasNoPhysics) {
     EXPECT_FALSE(particle->hasPhysics());
 }
 
-TEST_F(NautilusParticleTest, HasFriction) {
+TEST_F(NautilusParticleTest, HasFriction)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -120,7 +129,8 @@ TEST_F(NautilusParticleTest, HasFriction) {
 
 // ==================== 生命周期测试 ====================
 
-TEST_F(NautilusParticleTest, Tick_UpdatesPosition) {
+TEST_F(NautilusParticleTest, Tick_UpdatesPosition)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(10.0f, 0.0f, 0.0f);
 
@@ -131,10 +141,11 @@ TEST_F(NautilusParticleTest, Tick_UpdatesPosition) {
     particle->tick(nullptr);
 
     // 位置应该移动了 velocity * 0.1
-    EXPECT_FLOAT_EQ(particle->position().x, 1.0f);  // 10.0 * 0.1 = 1.0
+    EXPECT_FLOAT_EQ(particle->position().x, 1.0f); // 10.0 * 0.1 = 1.0
 }
 
-TEST_F(NautilusParticleTest, Tick_DecaysVelocity) {
+TEST_F(NautilusParticleTest, Tick_DecaysVelocity)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(10.0f, 5.0f, 2.0f);
 
@@ -148,7 +159,8 @@ TEST_F(NautilusParticleTest, Tick_DecaysVelocity) {
     EXPECT_FLOAT_EQ(particle->velocity().z, 2.0f * 0.95f);
 }
 
-TEST_F(NautilusParticleTest, Tick_IncreasesAge) {
+TEST_F(NautilusParticleTest, Tick_IncreasesAge)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -161,7 +173,8 @@ TEST_F(NautilusParticleTest, Tick_IncreasesAge) {
     EXPECT_GT(particle->age(), initialAge);
 }
 
-TEST_F(NautilusParticleTest, Tick_ExpiresAfterLifetime) {
+TEST_F(NautilusParticleTest, Tick_ExpiresAfterLifetime)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -178,7 +191,8 @@ TEST_F(NautilusParticleTest, Tick_ExpiresAfterLifetime) {
 
 // ==================== 缩放测试 ====================
 
-TEST_F(NautilusParticleTest, GetScale_ReturnsValidScale) {
+TEST_F(NautilusParticleTest, GetScale_ReturnsValidScale)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -187,10 +201,11 @@ TEST_F(NautilusParticleTest, GetScale_ReturnsValidScale) {
     // 初始阶段缩放应该有效
     f64 scale = particle->getScale(0.0);
     EXPECT_GT(scale, 0.0);
-    EXPECT_LT(scale, 1.0);  // 初始时较小
+    EXPECT_LT(scale, 1.0); // 初始时较小
 }
 
-TEST_F(NautilusParticleTest, GetScale_MiddlePhase_ReturnsFullSize) {
+TEST_F(NautilusParticleTest, GetScale_MiddlePhase_ReturnsFullSize)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -209,7 +224,8 @@ TEST_F(NautilusParticleTest, GetScale_MiddlePhase_ReturnsFullSize) {
 
 // ==================== 颜色测试 ====================
 
-TEST_F(NautilusParticleTest, Color_IsWhiteOrLightBlue) {
+TEST_F(NautilusParticleTest, Color_IsWhiteOrLightBlue)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -224,10 +240,11 @@ TEST_F(NautilusParticleTest, Color_IsWhiteOrLightBlue) {
     EXPECT_GE(color.g, 0.8f);
     EXPECT_LE(color.g, 1.0f);
     EXPECT_FLOAT_EQ(color.b, 1.0f);
-    EXPECT_FLOAT_EQ(color.a, 1.0f);  // 初始完全不透明
+    EXPECT_FLOAT_EQ(color.a, 1.0f); // 初始完全不透明
 }
 
-TEST_F(NautilusParticleTest, Tick_FadesOutInLatePhase) {
+TEST_F(NautilusParticleTest, Tick_FadesOutInLatePhase)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
@@ -245,7 +262,8 @@ TEST_F(NautilusParticleTest, Tick_FadesOutInLatePhase) {
 
 // ==================== 旋转测试 ====================
 
-TEST_F(NautilusParticleTest, Tick_Rotates) {
+TEST_F(NautilusParticleTest, Tick_Rotates)
+{
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 

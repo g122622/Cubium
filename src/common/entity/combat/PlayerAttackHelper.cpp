@@ -1,21 +1,22 @@
 #include "PlayerAttackHelper.hpp"
-#include "AttackContext.hpp"
-#include "../entities/player/Player.hpp"
-#include "../core/LivingEntity.hpp"
-#include "../attribute/Attributes.hpp"
-#include "../effect/EffectType.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
 #include "../../util/math/MathUtils.hpp"
+#include "../attribute/Attributes.hpp"
+#include "../core/LivingEntity.hpp"
+#include "../effect/EffectType.hpp"
+#include "../entities/player/Player.hpp"
+#include "AttackContext.hpp"
 #include <cmath>
 
 namespace mc::entity::combat {
 
 // ========== 暴击判定 ==========
 
-bool PlayerAttackHelper::isCriticalHit(const Player& player) {
+bool PlayerAttackHelper::isCriticalHit(const Player& player)
+{
     // MC 1.16.5 PlayerEntity.attack() 暴击条件：
     // 1. 玩家正在下落（fallDistance > 0）
     // 2. 玩家不在地面
@@ -66,9 +67,8 @@ bool PlayerAttackHelper::isCriticalHit(const Player& player) {
 
 // ========== 伤害计算 ==========
 
-f32 PlayerAttackHelper::calculateDamage(const Player& player,
-                                          f32 baseDamage,
-                                          f32 cooldownProgress) {
+f32 PlayerAttackHelper::calculateDamage(const Player& player, f32 baseDamage, f32 cooldownProgress)
+{
     f32 damage = baseDamage;
 
     // MC 1.16.5 PlayerEntity.attack():
@@ -95,11 +95,9 @@ f32 PlayerAttackHelper::calculateDamage(const Player& player,
 
 // ========== 击退计算 ==========
 
-f32 PlayerAttackHelper::calculateKnockback(const LivingEntity& attacker,
-                                             const LivingEntity& target,
-                                             f32 baseKnockback,
-                                             bool isSprinting,
-                                             i32 knockbackLevel) {
+f32 PlayerAttackHelper::calculateKnockback(
+    const LivingEntity& attacker, const LivingEntity& target, f32 baseKnockback, bool isSprinting, i32 knockbackLevel)
+{
     // MC 1.16.5 击退计算
     f32 knockback = baseKnockback;
 
@@ -122,9 +120,8 @@ f32 PlayerAttackHelper::calculateKnockback(const LivingEntity& attacker,
     return knockback;
 }
 
-void PlayerAttackHelper::applyKnockback(LivingEntity& target,
-                                          const LivingEntity& attacker,
-                                          f32 strength) {
+void PlayerAttackHelper::applyKnockback(LivingEntity& target, const LivingEntity& attacker, f32 strength)
+{
     // 从攻击者位置计算击退方向
     f64 ratioX = static_cast<f64>(attacker.position().x - target.position().x);
     f64 ratioZ = static_cast<f64>(attacker.position().z - target.position().z);
@@ -132,10 +129,8 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target,
     applyKnockback(target, ratioX, ratioZ, strength);
 }
 
-void PlayerAttackHelper::applyKnockback(LivingEntity& target,
-                                          f64 ratioX,
-                                          f64 ratioZ,
-                                          f32 strength) {
+void PlayerAttackHelper::applyKnockback(LivingEntity& target, f64 ratioX, f64 ratioZ, f32 strength)
+{
     // MC 1.16.5 LivingEntity.applyKnockback()
     // 击退抗性降低击退强度
     strength = static_cast<f32>(static_cast<f64>(strength) *
@@ -176,8 +171,8 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target,
     // 设置新速度
     // X/Z轴：当前速度的一半减去击退向量（注意方向是反的）
     target.setVelocity(static_cast<f32>(static_cast<f64>(velocity.x) / 2.0 - knockbackX),
-                       static_cast<f32>(newVelocityY),
-                       static_cast<f32>(static_cast<f64>(velocity.z) / 2.0 - knockbackZ));
+        static_cast<f32>(newVelocityY),
+        static_cast<f32>(static_cast<f64>(velocity.z) / 2.0 - knockbackZ));
 
     // 设置为空中状态
     target.setOnGround(false);
@@ -185,7 +180,8 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target,
 
 // ========== 攻击冷却 ==========
 
-f32 PlayerAttackHelper::applyCooldown(f32 damage, f32 cooldownProgress) {
+f32 PlayerAttackHelper::applyCooldown(f32 damage, f32 cooldownProgress)
+{
     // MC 1.16.5 PlayerEntity.attack():
     // float f2 = this.getCooledAttackStrength(0.5F);
     // f = f * (0.2F + f2 * f2 * 0.8F);
@@ -195,11 +191,13 @@ f32 PlayerAttackHelper::applyCooldown(f32 damage, f32 cooldownProgress) {
     return damage * (0.2f + cooldownProgress * cooldownProgress * 0.8f);
 }
 
-bool PlayerAttackHelper::isCooldownReady(f32 cooldownProgress, f32 threshold) {
+bool PlayerAttackHelper::isCooldownReady(f32 cooldownProgress, f32 threshold)
+{
     return cooldownProgress >= threshold;
 }
 
-f32 PlayerAttackHelper::getCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed) {
+f32 PlayerAttackHelper::getCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed)
+{
     // MC 1.16.5: cooldownProgress = ticksSinceLastAttack / (20 / attackSpeed)
     // 攻击间隔 = 20 / attackSpeed tick
     if (attackSpeed <= 0.0f) {
@@ -212,13 +210,15 @@ f32 PlayerAttackHelper::getCooldownProgress(i32 ticksSinceLastAttack, f32 attack
     return math::clamp(progress, 0.0f, 1.0f);
 }
 
-f32 PlayerAttackHelper::ticksToCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed) {
+f32 PlayerAttackHelper::ticksToCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed)
+{
     return getCooldownProgress(ticksSinceLastAttack, attackSpeed);
 }
 
 // ========== 火焰附加 ==========
 
-bool PlayerAttackHelper::applyFireAspect(LivingEntity& target, i32 fireAspectLevel) {
+bool PlayerAttackHelper::applyFireAspect(LivingEntity& target, i32 fireAspectLevel)
+{
     if (fireAspectLevel <= 0) {
         return false;
     }
@@ -234,7 +234,8 @@ bool PlayerAttackHelper::applyFireAspect(LivingEntity& target, i32 fireAspectLev
 
 // ========== 横扫攻击 ==========
 
-f32 PlayerAttackHelper::getSweepingDamageRatio(i32 sweepingLevel) {
+f32 PlayerAttackHelper::getSweepingDamageRatio(i32 sweepingLevel)
+{
     // MC 1.16.5 SweepingEnchantment:
     // I: 50%, II: 67%, III: 75%
     // 公式: 1 - 1/(level + 1)
@@ -246,8 +247,8 @@ f32 PlayerAttackHelper::getSweepingDamageRatio(i32 sweepingLevel) {
 
 // ========== 附魔伤害加成 ==========
 
-f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon,
-                                                   CreatureAttribute targetCreatureType) {
+f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, CreatureAttribute targetCreatureType)
+{
     if (weapon.isEmpty()) {
         return 0.0f;
     }
@@ -255,8 +256,8 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon,
     f32 bonus = 0.0f;
 
     // 锋利附魔
-    i32 sharpnessLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        weapon, &item::enchant::AllEnchantments::SHARPNESS);
+    i32 sharpnessLevel =
+        item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::SHARPNESS);
     if (sharpnessLevel > 0) {
         // MC 1.16.5: 锋利 I = 0.5 + level * 0.5
         // 即 I=1.0, II=1.5, III=2.0, IV=2.5, V=3.0
@@ -265,8 +266,8 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon,
 
     // 亡灵杀手附魔（对亡灵生物）
     if (targetCreatureType == CreatureAttribute::Undead) {
-        i32 smiteLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-            weapon, &item::enchant::AllEnchantments::SMITE);
+        i32 smiteLevel =
+            item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::SMITE);
         if (smiteLevel > 0) {
             // MC 1.16.5: 亡灵杀手每级 +2.5
             bonus += static_cast<f32>(smiteLevel) * 2.5f;
@@ -288,9 +289,8 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon,
 
 // ========== 附魔回调 ==========
 
-void PlayerAttackHelper::applyEnchantmentEffects(LivingEntity& attacker,
-                                                  Entity& target,
-                                                  const ItemStack& weapon) {
+void PlayerAttackHelper::applyEnchantmentEffects(LivingEntity& attacker, Entity& target, const ItemStack& weapon)
+{
     // 调用攻击者身上的附魔回调
     // 这会触发节肢杀手等附魔的效果
     attacker.onAttackEntity(target);
@@ -298,9 +298,8 @@ void PlayerAttackHelper::applyEnchantmentEffects(LivingEntity& attacker,
 
 // ========== 创建攻击上下文 ==========
 
-AttackContext PlayerAttackHelper::createContext(Player& player,
-                                                  LivingEntity& target,
-                                                  f32 cooldownProgress) {
+AttackContext PlayerAttackHelper::createContext(Player& player, LivingEntity& target, f32 cooldownProgress)
+{
     AttackContext context(static_cast<Entity*>(&player), &target);
 
     // 设置攻击冷却
@@ -337,11 +336,11 @@ AttackContext PlayerAttackHelper::createContext(Player& player,
         }
 
         // 击退附魔
-        i32 knockbackLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-            mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
+        i32 knockbackLevel =
+            item::enchant::EnchantmentHelper::getEnchantmentLevel(mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
         if (knockbackLevel > 0) {
-            context.setKnockbackStrength(
-                context.getKnockbackStrength() + item::enchant::KnockbackEnchantment::getKnockbackBonus(knockbackLevel));
+            context.setKnockbackStrength(context.getKnockbackStrength() +
+                item::enchant::KnockbackEnchantment::getKnockbackBonus(knockbackLevel));
         }
     }
 

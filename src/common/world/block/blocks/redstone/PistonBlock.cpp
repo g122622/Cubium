@@ -1,16 +1,16 @@
 #include "PistonBlock.hpp"
-#include "PistonStructureHelper.hpp"
-#include "MovingPistonBlock.hpp"
-#include "PistonHeadBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../blockentity/interactive/PistonBlockEntity.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../blockentity/interactive/PistonBlockEntity.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
+#include "../../../tick/base/TickPriority.hpp"
+#include "MovingPistonBlock.hpp"
+#include "PistonHeadBlock.hpp"
+#include "PistonStructureHelper.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -18,42 +18,48 @@ namespace blocks {
 
 PistonBlock::PistonBlock(const BlockProperties& properties, bool sticky)
     : Block(properties)
-    , m_sticky(sticky) {
+    , m_sticky(sticky)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::FACING())
-        .add(BlockStateProperties::EXTENDED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::FACING())
+                         .add(BlockStateProperties::EXTENDED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING(), Direction::North)
-        .with(BlockStateProperties::EXTENDED(), false));
+            .with(BlockStateProperties::FACING(), Direction::North)
+            .with(BlockStateProperties::EXTENDED(), false));
 }
 
-bool PistonBlock::isExtended(const BlockState& state) {
+bool PistonBlock::isExtended(const BlockState& state)
+{
     return state.get(BlockStateProperties::EXTENDED());
 }
 
-BlockState PistonBlock::withExtended(BlockState state, bool extended) {
+BlockState PistonBlock::withExtended(BlockState state, bool extended)
+{
     return state.with(BlockStateProperties::EXTENDED(), extended);
 }
 
-Direction PistonBlock::getFacing(const BlockState& state) {
+Direction PistonBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::FACING());
 }
 
-void PistonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void PistonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // MC 1.16.5: 放置时检查是否需要伸出
     checkForMove(world, pos, state);
 }
 
-void PistonBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                   const BlockPos& neighborPos, bool isMoving) {
+void PistonBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -65,7 +71,8 @@ void PistonBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& nei
     }
 }
 
-void PistonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void PistonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
@@ -73,10 +80,13 @@ void PistonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     // 活塞动画由 PistonBlockEntity 处理
 }
 
-BlockState PistonBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState PistonBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
     MC_UNUSED(world);
@@ -86,7 +96,8 @@ BlockState PistonBlock::updatePostPlacement(
     return state;
 }
 
-bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     Direction facing = getFacing(state);
 
     // MC 1.16.5: 检查活塞本体除前面外5个方向是否被充能
@@ -125,13 +136,13 @@ bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const Blo
     return false;
 }
 
-bool PistonBlock::canPush(
-    const BlockState& blockState,
+bool PistonBlock::canPush(const BlockState& blockState,
     IWorld& world,
     const BlockPos& pos,
     Direction facing,
     bool destroyBlocks,
-    Direction direction) {
+    Direction direction)
+{
 
     // MC 1.16.5: PistonBlock.canPush
 
@@ -152,8 +163,7 @@ bool PistonBlock::canPush(
 
     // 不可推动的方块
     // 参考 MC 1.16.5: PistonBlock.canPush - obsidian, crying_obsidian, respawn_anchor, etc.
-    if (blockState.is(VanillaBlocks::OBSIDIAN) ||
-        blockState.is(VanillaBlocks::CRYING_OBSIDIAN) ||
+    if (blockState.is(VanillaBlocks::OBSIDIAN) || blockState.is(VanillaBlocks::CRYING_OBSIDIAN) ||
         blockState.is(VanillaBlocks::RESPAWN_ANCHOR)) {
         return false;
     }
@@ -202,7 +212,8 @@ bool PistonBlock::canPush(
     return true;
 }
 
-void PistonBlock::checkForMove(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void PistonBlock::checkForMove(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // MC 1.16.5: checkForMove
     Direction facing = getFacing(state);
     bool shouldExtend = shouldBeExtended(world, pos, state);
@@ -222,7 +233,8 @@ void PistonBlock::checkForMove(IWorld& world, const BlockPos& pos, const BlockSt
     }
 }
 
-bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& state) {
+bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     Direction facing = getFacing(state);
 
     // 使用 PistonStructureHelper 计算推动链
@@ -243,7 +255,8 @@ bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& s
     return true;
 }
 
-bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& state) {
+bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     Direction facing = getFacing(state);
 
     // 更新活塞状态为收回
@@ -252,16 +265,15 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
 
     if (m_sticky) {
         // 粘性活塞：尝试拉回方块
-        BlockPos frontPos = pos.offset(facing);  // 活塞头位置
-        BlockPos pullPos = frontPos.offset(facing);  // 活塞头前面的方块
+        BlockPos frontPos = pos.offset(facing);     // 活塞头位置
+        BlockPos pullPos = frontPos.offset(facing); // 活塞头前面的方块
 
         const BlockState* pullState = world.getBlockState(pullPos);
         if (pullState && !pullState->isAir()) {
             // 检查方块是否可以被拉回
             if (canPush(*pullState, world, pullPos, Directions::opposite(facing), false, facing)) {
                 Material::PushReaction reaction = pullState->getMaterial().getPushReaction();
-                if (reaction == Material::PushReaction::Normal ||
-                    pullState->is(VanillaBlocks::PISTON) ||
+                if (reaction == Material::PushReaction::Normal || pullState->is(VanillaBlocks::PISTON) ||
                     pullState->is(VanillaBlocks::STICKY_PISTON)) {
                     // 执行拉回
                     doMove(world, pos, facing, false);
@@ -281,7 +293,8 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
     return true;
 }
 
-bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, bool extending) {
+bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, bool extending)
+{
     // MC 1.16.5: doMove
     BlockPos frontPos = pos.offset(facing);
 
@@ -315,7 +328,8 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
                 if (blockItem != nullptr) {
                     ItemStack dropStack(blockItem, 1);
                     math::Random rng;
-                    ItemDropHelper::spawnItemEntity(&world, dropStack,
+                    ItemDropHelper::spawnItemEntity(&world,
+                        dropStack,
                         static_cast<f64>(destroyPos.x) + 0.5,
                         static_cast<f64>(destroyPos.y) + 0.5,
                         static_cast<f64>(destroyPos.z) + 0.5,
@@ -336,13 +350,12 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
         BlockPos newPos = movePos.offset(moveDir);
 
         // 创建移动活塞方块（暂时，需要 PistonBlockEntity 来处理动画）
-        BlockState movingState = VanillaBlocks::MOVING_PISTON->defaultState()
-            .with(BlockStateProperties::FACING(), facing);
+        BlockState movingState =
+            VanillaBlocks::MOVING_PISTON->defaultState().with(BlockStateProperties::FACING(), facing);
         world.setBlockState(newPos, &movingState, 68);
 
         // 创建 PistonBlockEntity
-        auto entity = std::make_unique<blockentity::PistonBlockEntity>(
-            newPos, moveState, facing, extending, false);
+        auto entity = std::make_unique<blockentity::PistonBlockEntity>(newPos, moveState, facing, extending, false);
         world.setBlockEntity(newPos, entity.release());
 
         // 清除原位置
@@ -353,13 +366,15 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
     if (extending) {
         // 创建活塞头状态
         BlockState pistonHeadState = VanillaBlocks::PISTON_HEAD->defaultState()
-            .with(BlockStateProperties::FACING(), facing)
-            .with(PistonHeadBlock::getTypeProperty(), m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
+                                         .with(BlockStateProperties::FACING(), facing)
+                                         .with(PistonHeadBlock::getTypeProperty(),
+                                             m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
         // 创建移动活塞方块
         BlockState movingState = VanillaBlocks::MOVING_PISTON->defaultState()
-            .with(BlockStateProperties::FACING(), facing)
-            .with(PistonHeadBlock::getTypeProperty(), m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
+                                     .with(BlockStateProperties::FACING(), facing)
+                                     .with(PistonHeadBlock::getTypeProperty(),
+                                         m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
         world.setBlockState(pos, &movingState, 68);
 
@@ -373,7 +388,8 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
     return true;
 }
 
-Material::PushReaction PistonBlock::getBlockPushReaction(const BlockState& state) const {
+Material::PushReaction PistonBlock::getBlockPushReaction(const BlockState& state) const
+{
     // 已伸出的活塞不能被推动
     if (isExtended(state)) {
         return Material::PushReaction::Block;

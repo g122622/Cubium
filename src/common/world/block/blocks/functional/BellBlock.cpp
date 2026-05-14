@@ -1,13 +1,13 @@
 #include "BellBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -15,23 +15,24 @@ namespace blocks {
 // ========== BellBlock 实现 ==========
 
 BellBlock::BellBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::BELL_ATTACHMENT())
-        .add(BlockStateProperties::POWERED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::BELL_ATTACHMENT())
+                         .add(BlockStateProperties::POWERED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::BELL_ATTACHMENT(), BlockStateProperties::BellAttachment::Floor)
-        .with(BlockStateProperties::POWERED(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::BELL_ATTACHMENT(), BlockStateProperties::BellAttachment::Floor)
+            .with(BlockStateProperties::POWERED(), false));
 
     // 创建钟的形状
     constexpr f32 P = 1.0f / 16.0f;
@@ -51,7 +52,8 @@ BellBlock::BellBlock(const BlockProperties& properties)
     }
 }
 
-BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.horizontalDirection();
     Direction clickedFace = context.getClickedFace();
 
@@ -71,13 +73,13 @@ BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::BELL_ATTACHMENT(), attachment);
 }
 
-BlockState BellBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState BellBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     BlockStateProperties::BellAttachment attachment = state.get(BlockStateProperties::BELL_ATTACHMENT());
     Direction bellFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -119,7 +121,8 @@ BlockState BellBlock::updatePostPlacement(
             if (blockItem != nullptr) {
                 ItemStack dropStack(blockItem, 1);
                 math::Random rng;
-                ItemDropHelper::spawnItemEntity(&world, dropStack,
+                ItemDropHelper::spawnItemEntity(&world,
+                    dropStack,
                     static_cast<f64>(currentPos.x) + 0.5,
                     static_cast<f64>(currentPos.y) + 0.5,
                     static_cast<f64>(currentPos.z) + 0.5,
@@ -132,13 +135,15 @@ BlockState BellBlock::updatePostPlacement(
     return state;
 }
 
-const BlockState& BellBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& BellBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& BellBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& BellBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }
@@ -148,7 +153,8 @@ const BlockState& BellBlock::mirror(const BlockState& state, Mirror mirror) cons
     return rotate(state, rotation);
 }
 
-const CollisionShape& BellBlock::getShape(const BlockState& state) const {
+const CollisionShape& BellBlock::getShape(const BlockState& state) const
+{
     BlockStateProperties::BellAttachment attachment = state.get(BlockStateProperties::BELL_ATTACHMENT());
 
     switch (attachment) {

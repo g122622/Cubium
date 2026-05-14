@@ -53,9 +53,7 @@ public:
     // 包格式
     // -------------------------------------------------------------------------
 
-    PackFormat getTargetFormat() const override {
-        return PackFormat::V1_11_to_1_12;
-    }
+    PackFormat getTargetFormat() const override { return PackFormat::V1_11_to_1_12; }
 
 private:
     const TextureMapper& m_textureMapper;

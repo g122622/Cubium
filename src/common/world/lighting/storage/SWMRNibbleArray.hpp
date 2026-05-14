@@ -36,10 +36,10 @@ public:
 
     /** 状态枚举 */
     enum class State : u8 {
-        Null = 0,       // 不存在
-        Uninit = 1,     // 未初始化（全零）
-        Init = 2,       // 已初始化
-        Hidden = 3      // 隐藏状态
+        Null = 0,   // 不存在
+        Uninit = 1, // 未初始化（全零）
+        Init = 2,   // 已初始化
+        Hidden = 3  // 隐藏状态
     };
 
     // ========================================================================
@@ -78,7 +78,8 @@ public:
         , m_stateVisible(other.m_stateVisible.load())
         , m_storageUpdating(std::move(other.m_storageUpdating))
         , m_storageVisible(other.m_storageVisible.load())
-        , m_updatingDirty(other.m_updatingDirty) {
+        , m_updatingDirty(other.m_updatingDirty)
+    {
         other.m_stateUpdating = State::Null;
         other.m_stateVisible.store(State::Null);
         other.m_storageVisible.store(nullptr);
@@ -88,7 +89,8 @@ public:
     /**
      * @brief 移动赋值运算符
      */
-    SWMRNibbleArray& operator=(SWMRNibbleArray&& other) noexcept {
+    SWMRNibbleArray& operator=(SWMRNibbleArray&& other) noexcept
+    {
         if (this != &other) {
             // 释放当前的可见存储
             auto* oldVisible = m_storageVisible.load();
@@ -280,7 +282,8 @@ public:
     /**
      * @brief 计算线性索引
      */
-    [[nodiscard]] static constexpr i32 getIndex(i32 x, i32 y, i32 z) {
+    [[nodiscard]] static constexpr i32 getIndex(i32 x, i32 y, i32 z)
+    {
         return (x & 15) | ((z & 15) << 4) | ((y & 15) << 8);
     }
 

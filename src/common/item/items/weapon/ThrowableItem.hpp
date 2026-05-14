@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../core/ActionResult.hpp"
 #include "../../../core/Types.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../core/Item.hpp"
 #include <functional>
 
 namespace mc {
@@ -13,9 +13,9 @@ class World;
 class ItemStack;
 
 namespace entity {
-    class ProjectileItemEntity;
-    class ThrowableEntity;
-}
+class ProjectileItemEntity;
+class ThrowableEntity;
+} // namespace entity
 
 namespace item {
 
@@ -55,10 +55,7 @@ public:
      *
      * 投掷物品。
      */
-    [[nodiscard]] ItemActionResult onItemRightClick(
-        IWorld& world,
-        Player& player,
-        Hand hand) override;
+    [[nodiscard]] ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     // ========== 投掷物品特有方法 ==========
 
@@ -83,9 +80,7 @@ protected:
      * @return 投掷实体（调用者负责释放）
      */
     [[nodiscard]] virtual entity::ProjectileItemEntity* createProjectile(
-        IWorld& world,
-        Player& player,
-        const ItemStack& stack) const = 0;
+        IWorld& world, Player& player, const ItemStack& stack) const = 0;
 
     /**
      * @brief 播放投掷音效

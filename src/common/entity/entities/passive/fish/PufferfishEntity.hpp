@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AbstractFishEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "AbstractFishEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -123,9 +123,9 @@ private:
     i32 m_deflateTimer = 0;
 
     // MC 1.16.5: 收缩延迟常量
-    static constexpr i32 PUFF_DURATION = 60;              // 膨胀持续时间（ticks）
-    static constexpr i32 DEFLATE_SEMI_TO_DEFLATE = 100;   // 半膨胀到未膨胀的延迟
-    static constexpr i32 DEFLATE_FULL_TO_SEMI = 60;       // 完全膨胀到半膨胀的延迟
+    static constexpr i32 PUFF_DURATION = 60;            // 膨胀持续时间（ticks）
+    static constexpr i32 DEFLATE_SEMI_TO_DEFLATE = 100; // 半膨胀到未膨胀的延迟
+    static constexpr i32 DEFLATE_FULL_TO_SEMI = 60;     // 完全膨胀到半膨胀的延迟
 };
 
 } // namespace mc

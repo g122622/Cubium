@@ -1,12 +1,12 @@
 #pragma once
 
-#include "PackFormat.hpp"
+#include "../../core/Result.hpp"
 #include "../IResourcePack.hpp"
 #include "../ResourceLocation.hpp"
-#include "../../core/Result.hpp"
+#include "PackFormat.hpp"
 #include <memory>
-#include <vector>
 #include <string_view>
+#include <vector>
 
 namespace mc {
 namespace resource {
@@ -54,8 +54,7 @@ public:
      * @param unifiedPath 统一纹理路径
      * @return 可能的文件路径向量（按优先级排序）
      */
-    [[nodiscard]] virtual std::vector<std::string> getTexturePathVariants(
-        std::string_view unifiedPath) const = 0;
+    [[nodiscard]] virtual std::vector<std::string> getTexturePathVariants(std::string_view unifiedPath) const = 0;
 
     /**
      * @brief 将纹理名称从旧版格式转换为现代格式
@@ -101,8 +100,7 @@ public:
      * @param unifiedPath 统一模型路径
      * @return 可能的文件路径向量
      */
-    [[nodiscard]] virtual std::vector<std::string> getModelPathVariants(
-        std::string_view unifiedPath) const = 0;
+    [[nodiscard]] virtual std::vector<std::string> getModelPathVariants(std::string_view unifiedPath) const = 0;
 
     // -------------------------------------------------------------------------
     // 方块状态路径转换
@@ -142,9 +140,7 @@ public:
      * @param unifiedPath 统一资源路径
      * @return 如果资源可以找到则返回 true
      */
-    [[nodiscard]] virtual bool hasResourceVariant(
-        const IResourcePack& pack,
-        std::string_view unifiedPath) const = 0;
+    [[nodiscard]] virtual bool hasResourceVariant(const IResourcePack& pack, std::string_view unifiedPath) const = 0;
 
     /**
      * @brief 从第一个匹配的变体路径读取资源
@@ -156,8 +152,7 @@ public:
      * @return 资源数据，如果未找到则返回错误
      */
     [[nodiscard]] virtual Result<std::vector<u8>> readResourceVariant(
-        const IResourcePack& pack,
-        std::string_view unifiedPath) const = 0;
+        const IResourcePack& pack, std::string_view unifiedPath) const = 0;
 
     // -------------------------------------------------------------------------
     // 工厂方法
@@ -179,13 +174,9 @@ public:
  */
 class BaseResourceMapper : public ResourceMapper {
 public:
-    bool hasResourceVariant(
-        const IResourcePack& pack,
-        std::string_view unifiedPath) const override;
+    bool hasResourceVariant(const IResourcePack& pack, std::string_view unifiedPath) const override;
 
-    Result<std::vector<u8>> readResourceVariant(
-        const IResourcePack& pack,
-        std::string_view unifiedPath) const override;
+    Result<std::vector<u8>> readResourceVariant(const IResourcePack& pack, std::string_view unifiedPath) const override;
 
 protected:
     /**
@@ -195,9 +186,7 @@ protected:
      * @param paths 要尝试的路径（按顺序）
      * @return 资源数据或错误
      */
-    Result<std::vector<u8>> tryReadFromPaths(
-        const IResourcePack& pack,
-        const std::vector<std::string>& paths) const;
+    Result<std::vector<u8>> tryReadFromPaths(const IResourcePack& pack, const std::vector<std::string>& paths) const;
 };
 
 } // namespace compat

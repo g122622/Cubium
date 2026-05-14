@@ -2,8 +2,8 @@
 
 #include "ItemCameraTransforms.hpp"
 #include "MatrixStack.hpp"
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <memory>
 
@@ -15,7 +15,7 @@ class TridentEngine;
 namespace mc::client {
 class ResourceManager;
 class ItemTextureAtlas;
-}
+} // namespace mc::client
 
 namespace mc::client::renderer::firstperson {
 
@@ -49,9 +49,7 @@ public:
      * @param resourceManager 资源管理器
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        trident::TridentEngine* engine,
-        ResourceManager* resourceManager);
+    [[nodiscard]] Result<void> initialize(trident::TridentEngine* engine, ResourceManager* resourceManager);
 
     /**
      * @brief 销毁资源
@@ -70,10 +68,8 @@ public:
      * @param transformType 变换类型
      * @param leftHanded 是否为左手
      */
-    void renderItem(MatrixStack& matrixStack,
-                    const ItemStack& itemStack,
-                    TransformType transformType,
-                    bool leftHanded = false);
+    void renderItem(
+        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     /**
      * @brief 渲染方块物品
@@ -85,10 +81,8 @@ public:
      * @param transformType 变换类型
      * @param leftHanded 是否为左手
      */
-    void renderBlockItem(MatrixStack& matrixStack,
-                         const ItemStack& itemStack,
-                         TransformType transformType,
-                         bool leftHanded = false);
+    void renderBlockItem(
+        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     /**
      * @brief 渲染普通物品
@@ -100,10 +94,8 @@ public:
      * @param transformType 变换类型
      * @param leftHanded 是否为左手
      */
-    void renderRegularItem(MatrixStack& matrixStack,
-                           const ItemStack& itemStack,
-                           TransformType transformType,
-                           bool leftHanded = false);
+    void renderRegularItem(
+        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     // ========== 变换应用 ==========
 
@@ -118,10 +110,8 @@ public:
      * @param leftHanded 是否为左手
      * @return 是否应用了变换
      */
-    bool applyTransform(MatrixStack& matrixStack,
-                        const ItemStack& itemStack,
-                        TransformType transformType,
-                        bool leftHanded = false);
+    bool applyTransform(
+        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     /**
      * @brief 应用默认手持变换
@@ -132,9 +122,7 @@ public:
      * @param transformType 变换类型
      * @param leftHanded 是否为左手
      */
-    void applyDefaultTransform(MatrixStack& matrixStack,
-                               TransformType transformType,
-                               bool leftHanded = false);
+    void applyDefaultTransform(MatrixStack& matrixStack, TransformType transformType, bool leftHanded = false);
 
     // ========== 访问器 ==========
 

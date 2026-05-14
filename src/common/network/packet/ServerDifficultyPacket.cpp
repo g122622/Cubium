@@ -5,15 +5,13 @@ namespace mc::network {
 
 ServerDifficultyPacket::ServerDifficultyPacket()
     : Packet(PacketType::ServerDifficulty)
-{
-}
+{}
 
 ServerDifficultyPacket::ServerDifficultyPacket(Difficulty difficulty, bool locked)
     : Packet(PacketType::ServerDifficulty)
     , m_difficulty(difficulty)
     , m_locked(locked)
-{
-}
+{}
 
 Result<std::vector<u8>> ServerDifficultyPacket::serialize() const
 {

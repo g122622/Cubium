@@ -3,17 +3,17 @@
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
-#include <vector>
 #include <functional>
 #include <optional>
+#include <vector>
 
 // Forward declaration
 namespace mc {
 namespace network {
 class PacketSerializer;
 class PacketDeserializer;
-}
-}
+} // namespace network
+} // namespace mc
 
 namespace mc {
 namespace crafting {
@@ -135,9 +135,7 @@ public:
      *
      * 注意：返回的物品堆数量均为1
      */
-    [[nodiscard]] const std::vector<ItemStack>& getMatchingStacks() const {
-        return m_matchingStacks;
-    }
+    [[nodiscard]] const std::vector<ItemStack>& getMatchingStacks() const { return m_matchingStacks; }
 
     /**
      * @brief 检查是否为简单原料
@@ -152,25 +150,19 @@ public:
      * @brief 检查是否为空Ingredient
      * @return 如果没有任何匹配项返回true
      */
-    [[nodiscard]] bool isEmpty() const {
-        return m_matchingStacks.empty() && !m_hasTag;
-    }
+    [[nodiscard]] bool isEmpty() const { return m_matchingStacks.empty() && !m_hasTag; }
 
     /**
      * @brief 检查是否有物品标签
      * @return 如果使用标签匹配返回true
      */
-    [[nodiscard]] bool hasTag() const {
-        return m_hasTag;
-    }
+    [[nodiscard]] bool hasTag() const { return m_hasTag; }
 
     /**
      * @brief 获取物品标签（如果有）
      * @return 物品标签名，如果没有则返回空字符串
      */
-    [[nodiscard]] const std::string& getTag() const {
-        return m_tag;
-    }
+    [[nodiscard]] const std::string& getTag() const { return m_tag; }
 
     /**
      * @brief 合并多个原料为一个
@@ -189,9 +181,7 @@ public:
     /**
      * @brief 比较两个Ingredient是否不相等
      */
-    bool operator!=(const Ingredient& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const Ingredient& other) const { return !(*this == other); }
 
     /**
      * @brief 获取用于哈希的值
@@ -231,7 +221,7 @@ private:
     std::vector<ItemStack> m_matchingStacks;
     std::string m_tag;
     bool m_hasTag = false;
-    bool m_isSimple = true;  ///< 是否为简单原料（不包含可损坏物品）
+    bool m_isSimple = true; ///< 是否为简单原料（不包含可损坏物品）
 
     // 用于缓存解析后的标签物品
     mutable bool m_tagResolved = false;
@@ -255,10 +245,8 @@ private:
 
 // std::hash 特化，允许Ingredient用于unordered容器
 namespace std {
-template<>
+template <>
 struct hash<mc::crafting::Ingredient> {
-    size_t operator()(const mc::crafting::Ingredient& ingredient) const {
-        return ingredient.hash();
-    }
+    size_t operator()(const mc::crafting::Ingredient& ingredient) const { return ingredient.hash(); }
 };
-}
+} // namespace std

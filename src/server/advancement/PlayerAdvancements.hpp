@@ -3,8 +3,8 @@
 #include "common/advancement/Advancement.hpp"
 #include "common/advancement/AdvancementProgress.hpp"
 #include "common/core/Types.hpp"
-#include <memory>
 #include <map>
+#include <memory>
 #include <set>
 #include <vector>
 #include <nlohmann/json.hpp>

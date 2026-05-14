@@ -3,16 +3,17 @@
  * @brief GuiSpriteManager 单元测试（纯数据结构测试，不依赖Vulkan）
  */
 
-#include <gtest/gtest.h>
 #include "client/renderer/trident/gui/GuiSpriteManager.hpp"
 #include "common/core/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::renderer::trident::gui;
 
 /**
  * @brief 测试 GuiSpriteManager 默认构造
  */
-TEST(GuiSpriteManagerTest, DefaultConstruction) {
+TEST(GuiSpriteManagerTest, DefaultConstruction)
+{
     GuiSpriteManager manager;
 
     EXPECT_EQ(manager.spriteCount(), 0);
@@ -23,7 +24,8 @@ TEST(GuiSpriteManagerTest, DefaultConstruction) {
 /**
  * @brief 测试精灵注册和查询
  */
-TEST(GuiSpriteManagerTest, RegisterAndFindSprite) {
+TEST(GuiSpriteManagerTest, RegisterAndFindSprite)
+{
     GuiSpriteManager manager;
 
     // 注册精灵
@@ -49,7 +51,8 @@ TEST(GuiSpriteManagerTest, RegisterAndFindSprite) {
 /**
  * @brief 测试精灵存在性检查
  */
-TEST(GuiSpriteManagerTest, HasSprite) {
+TEST(GuiSpriteManagerTest, HasSprite)
+{
     GuiSpriteManager manager;
 
     manager.registerSprite("test", 0, 0, 16, 16, 256, 256);
@@ -61,7 +64,8 @@ TEST(GuiSpriteManagerTest, HasSprite) {
 /**
  * @brief 测试使用 GuiSprite 对象注册
  */
-TEST(GuiSpriteManagerTest, RegisterSpriteObject) {
+TEST(GuiSpriteManagerTest, RegisterSpriteObject)
+{
     GuiSpriteManager manager;
 
     GuiSprite sprite;
@@ -89,7 +93,8 @@ TEST(GuiSpriteManagerTest, RegisterSpriteObject) {
 /**
  * @brief 测试批量注册精灵
  */
-TEST(GuiSpriteManagerTest, RegisterSprites) {
+TEST(GuiSpriteManagerTest, RegisterSprites)
+{
     GuiSpriteManager manager;
 
     std::vector<GuiSprite> sprites;
@@ -108,7 +113,8 @@ TEST(GuiSpriteManagerTest, RegisterSprites) {
 /**
  * @brief 测试清空精灵
  */
-TEST(GuiSpriteManagerTest, ClearSprites) {
+TEST(GuiSpriteManagerTest, ClearSprites)
+{
     GuiSpriteManager manager;
 
     manager.registerSprite("sprite1", 0, 0, 16, 16, 256, 256);
@@ -125,7 +131,8 @@ TEST(GuiSpriteManagerTest, ClearSprites) {
 /**
  * @brief 测试设置图集尺寸
  */
-TEST(GuiSpriteManagerTest, SetAtlasSize) {
+TEST(GuiSpriteManagerTest, SetAtlasSize)
+{
     GuiSpriteManager manager;
 
     EXPECT_EQ(manager.atlasWidth(), 256);
@@ -148,7 +155,8 @@ TEST(GuiSpriteManagerTest, SetAtlasSize) {
 /**
  * @brief 测试精灵ID覆盖
  */
-TEST(GuiSpriteManagerTest, SpriteOverride) {
+TEST(GuiSpriteManagerTest, SpriteOverride)
+{
     GuiSpriteManager manager;
 
     manager.registerSprite("test", 0, 0, 16, 16, 256, 256);
@@ -160,17 +168,18 @@ TEST(GuiSpriteManagerTest, SpriteOverride) {
 
     // 覆盖同名精灵
     manager.registerSprite("test", 0, 0, 32, 32, 256, 256);
-    EXPECT_EQ(manager.spriteCount(), 1);  // 数量不变
+    EXPECT_EQ(manager.spriteCount(), 1); // 数量不变
 
     const GuiSprite* sprite2 = manager.getSprite("test");
     ASSERT_NE(sprite2, nullptr);
-    EXPECT_EQ(sprite2->width, 32);  // 尺寸已更新
+    EXPECT_EQ(sprite2->width, 32); // 尺寸已更新
 }
 
 /**
  * @brief 测试空ID精灵注册
  */
-TEST(GuiSpriteManagerTest, RegisterEmptyIdSprite) {
+TEST(GuiSpriteManagerTest, RegisterEmptyIdSprite)
+{
     GuiSpriteManager manager;
 
     GuiSprite emptySprite;
@@ -187,7 +196,8 @@ TEST(GuiSpriteManagerTest, RegisterEmptyIdSprite) {
 /**
  * @brief 测试拷贝和移动
  */
-TEST(GuiSpriteManagerTest, CopyAndMove) {
+TEST(GuiSpriteManagerTest, CopyAndMove)
+{
     GuiSpriteManager manager1;
     manager1.registerSprite("test", 0, 0, 16, 16, 256, 256);
     manager1.setAtlasSize(512, 512);
@@ -213,7 +223,8 @@ TEST(GuiSpriteManagerTest, CopyAndMove) {
 /**
  * @brief 测试 UV 坐标计算精度
  */
-TEST(GuiSpriteManagerTest, UVCoordinatePrecision) {
+TEST(GuiSpriteManagerTest, UVCoordinatePrecision)
+{
     GuiSpriteManager manager;
 
     // 测试各种图集尺寸
@@ -247,7 +258,8 @@ TEST(GuiSpriteManagerTest, UVCoordinatePrecision) {
 /**
  * @brief 测试心形图标精灵定义
  */
-TEST(GuiSpriteManagerTest, HeartIconSprites) {
+TEST(GuiSpriteManagerTest, HeartIconSprites)
+{
     GuiSpriteManager manager;
     static const int ATLAS_SIZE = 256;
 
@@ -278,7 +290,8 @@ TEST(GuiSpriteManagerTest, HeartIconSprites) {
 /**
  * @brief 测试快捷栏精灵定义
  */
-TEST(GuiSpriteManagerTest, HotbarSprites) {
+TEST(GuiSpriteManagerTest, HotbarSprites)
+{
     GuiSpriteManager manager;
     static const int ATLAS_SIZE = 256;
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "TameableEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "TameableEntity.hpp"
 #include <memory>
 #include <random>
 
@@ -46,17 +46,17 @@ public:
      * @brief 猫皮肤类型
      */
     enum class CatType : u8 {
-        Tabby = 0,        // 虎斑猫
-        Black = 1,        // 黑猫
-        Red = 2,          // 红猫/姜黄猫
-        Siamese = 3,      // 暹罗猫
+        Tabby = 0,            // 虎斑猫
+        Black = 1,            // 黑猫
+        Red = 2,              // 红猫/姜黄猫
+        Siamese = 3,          // 暹罗猫
         BritishShorthair = 4, // 英国短毛猫
-        Calico = 5,       // 三花猫
-        Persian = 6,      // 波斯猫
-        Ragdoll = 7,      // 布偶猫
-        White = 8,        // 白猫
-        Jellie = 9,       // Jellie猫（社区投票）
-        AllBlack = 10     // 全黑猫（万圣节）
+        Calico = 5,           // 三花猫
+        Persian = 6,          // 波斯猫
+        Ragdoll = 7,          // 布偶猫
+        White = 8,            // 白猫
+        Jellie = 9,           // Jellie猫（社区投票）
+        AllBlack = 10         // 全黑猫（万圣节）
     };
 
     /**

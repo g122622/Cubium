@@ -1,23 +1,23 @@
 #pragma once
 
-#include "Village.hpp"
-#include "poi/PointOfInterestStorage.hpp"
+#include "../../core/Types.hpp"
 #include "../block/BlockPos.hpp"
 #include "../chunk/ChunkPos.hpp"
-#include "../../core/Types.hpp"
-#include <vector>
+#include "Village.hpp"
+#include "poi/PointOfInterestStorage.hpp"
+#include <functional>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
-#include <optional>
-#include <functional>
+#include <vector>
 
 namespace mc {
 namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
+} // namespace nbt
 
 // 前向声明
 class IWorld;
@@ -75,9 +75,7 @@ public:
     /**
      * @brief 获取所有村庄
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<Village>>& getAllVillages() const {
-        return m_villages;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<Village>>& getAllVillages() const { return m_villages; }
 
     /**
      * @brief 获取村庄数量
@@ -200,9 +198,7 @@ public:
     /**
      * @brief 设置村庄创建回调
      */
-    void setVillageCreatedCallback(VillageCreatedCallback callback) {
-        m_onVillageCreated = std::move(callback);
-    }
+    void setVillageCreatedCallback(VillageCreatedCallback callback) { m_onVillageCreated = std::move(callback); }
 
 private:
     /**

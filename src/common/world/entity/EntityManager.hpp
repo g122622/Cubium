@@ -1,15 +1,15 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/AxisAlignedBB.hpp"
 #include "../../entity/core/Entity.hpp"
 #include "../../entity/core/EntityClassification.hpp"
+#include "../../util/AxisAlignedBB.hpp"
+#include "../../util/math/Vector3.hpp"
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
-#include <functional>
-#include <mutex>
 
 namespace mc {
 
@@ -81,8 +81,7 @@ public:
      * @return 实体列表
      */
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
-        const AxisAlignedBB& box,
-        const Entity* except = nullptr) const;
+        const AxisAlignedBB& box, const Entity* except = nullptr) const;
 
     /**
      * @brief 获取范围内的所有实体
@@ -92,9 +91,7 @@ public:
      * @return 实体列表
      */
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
-        const Vector3& pos,
-        f32 range,
-        const Entity* except = nullptr) const;
+        const Vector3& pos, f32 range, const Entity* except = nullptr) const;
 
     /**
      * @brief 获取指定类型的所有实体
@@ -162,7 +159,7 @@ private:
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
     EntityId m_nextId = 1;
-    std::vector<EntityId> m_freeIds;  // 可重用的ID池
+    std::vector<EntityId> m_freeIds; // 可重用的ID池
 
     // 内部方法（假设已持有锁）
     void removeDeadEntitiesInternal();

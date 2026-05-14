@@ -2,9 +2,9 @@
 
 #include "common/resource/IResourcePack.hpp"
 #include <filesystem>
+#include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
-#include <shared_mutex>
 
 namespace mc {
 
@@ -35,8 +35,7 @@ public:
     [[nodiscard]] bool hasResource(std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory,
-        std::string_view extension = "") const override;
+        std::string_view directory, std::string_view extension = "") const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
     // 额外方法
@@ -54,9 +53,9 @@ private:
      */
     [[nodiscard]] static std::string normalizePath(std::string_view path);
 
-    std::filesystem::path m_zipPath;    ///< ZIP 文件路径
-    std::string m_name;                       ///< 资源包名称（文件名）
-    PackMetadata m_metadata;             ///< 元数据
+    std::filesystem::path m_zipPath;           ///< ZIP 文件路径
+    std::string m_name;                        ///< 资源包名称（文件名）
+    PackMetadata m_metadata;                   ///< 元数据
     std::unordered_set<std::string> m_entries; ///< 文件路径索引
 
     /// 可变缓存（mutable 以支持 const 方法中的缓存）

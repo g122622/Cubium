@@ -29,8 +29,12 @@ void ClientApplication::openInventoryScreen()
         return;
     }
 
-    auto clickSender = [this](ContainerId containerId, i32 slotIndex, i32 button, i16 transactionId, ClickAction action,
-                              const ItemStack& cursorItem) {
+    auto clickSender = [this](ContainerId containerId,
+                           i32 slotIndex,
+                           i32 button,
+                           i16 transactionId,
+                           ClickAction action,
+                           const ItemStack& cursorItem) {
         if (m_networkClient) {
             m_networkClient->sendContainerClick(
                 ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
@@ -49,8 +53,7 @@ void ClientApplication::openInventoryScreen()
         closeSender);
 
     if (m_renderer && m_renderer->isGuiRendererInitialized()) {
-        inventoryScreen->setRenderers(
-            &m_renderer->guiRenderer(),
+        inventoryScreen->setRenderers(&m_renderer->guiRenderer(),
             m_guiTextureManager.get(),
             m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
         inventoryScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
@@ -73,8 +76,7 @@ void ClientApplication::openCreativeScreen()
 
     auto creativeScreen = std::make_unique<CreativeScreen>(m_player->inventory(), actionSender);
     if (m_renderer && m_renderer->isGuiRendererInitialized()) {
-        creativeScreen->setRenderers(
-            &m_renderer->guiRenderer(),
+        creativeScreen->setRenderers(&m_renderer->guiRenderer(),
             m_guiTextureManager.get(),
             m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
         creativeScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
@@ -118,8 +120,9 @@ void ClientApplication::handleEvents()
 {
     // 处理聊天框键盘输入（优先于游戏输入）
     // 检查聊天框是否打开
-    auto* chatWidget = m_kageroEngine ?
-        static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId)) : nullptr;
+    auto* chatWidget = m_kageroEngine
+        ? static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId))
+        : nullptr;
     if (chatWidget && chatWidget->isOpen()) {
         // 聊天框打开时，ESC 关闭聊天框
         if (m_input.isKeyJustPressed(GLFW_KEY_ESCAPE)) {
@@ -131,35 +134,26 @@ void ClientApplication::handleEvents()
     }
 
     // 处理 Screen 栈事件
-    auto* screenStack = m_kageroEngine ?
-        static_cast<ui::minecraft::widgets::ScreenStackWidget*>(m_kageroEngine->getLayer(m_screenStackLayerId)) : nullptr;
+    auto* screenStack = m_kageroEngine
+        ? static_cast<ui::minecraft::widgets::ScreenStackWidget*>(m_kageroEngine->getLayer(m_screenStackLayerId))
+        : nullptr;
     if (screenStack && screenStack->hasScreen()) {
-        const i32 guiMouseX = static_cast<i32>(m_input.mouseX() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)));
-        const i32 guiMouseY = static_cast<i32>(m_input.mouseY() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)));
+        const i32 guiMouseX =
+            static_cast<i32>(m_input.mouseX() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)));
+        const i32 guiMouseY =
+            static_cast<i32>(m_input.mouseY() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)));
 
         if (m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-            m_kageroEngine->handleClick(
-                guiMouseX,
-                guiMouseY,
-                GLFW_MOUSE_BUTTON_LEFT);
+            m_kageroEngine->handleClick(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_LEFT);
         }
         if (m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
-            m_kageroEngine->handleClick(
-                guiMouseX,
-                guiMouseY,
-                GLFW_MOUSE_BUTTON_RIGHT);
+            m_kageroEngine->handleClick(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_RIGHT);
         }
         if (m_input.isMouseButtonJustReleased(GLFW_MOUSE_BUTTON_LEFT)) {
-            m_kageroEngine->handleRelease(
-                guiMouseX,
-                guiMouseY,
-                GLFW_MOUSE_BUTTON_LEFT);
+            m_kageroEngine->handleRelease(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_LEFT);
         }
         if (m_input.isMouseButtonJustReleased(GLFW_MOUSE_BUTTON_RIGHT)) {
-            m_kageroEngine->handleRelease(
-                guiMouseX,
-                guiMouseY,
-                GLFW_MOUSE_BUTTON_RIGHT);
+            m_kageroEngine->handleRelease(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_RIGHT);
         }
 
         const f64 screenScrollDelta = m_input.scrollDeltaY();
@@ -178,8 +172,9 @@ void ClientApplication::handleEvents()
 
 void ClientApplication::handleGameplayInput()
 {
-    auto* chatWidget = m_kageroEngine ?
-        static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId)) : nullptr;
+    auto* chatWidget = m_kageroEngine
+        ? static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId))
+        : nullptr;
 
     if (handleGameplayShortcutInput(chatWidget)) {
         return;
@@ -191,8 +186,7 @@ void ClientApplication::handleGameplayInput()
 bool ClientApplication::handleGameplayShortcutInput(ui::minecraft::widgets::ChatWidget* chatWidget)
 {
     // 检查ALT键切换鼠标捕获
-    if (m_input.isKeyJustPressed(GLFW_KEY_LEFT_ALT) ||
-        m_input.isKeyJustPressed(GLFW_KEY_RIGHT_ALT)) {
+    if (m_input.isKeyJustPressed(GLFW_KEY_LEFT_ALT) || m_input.isKeyJustPressed(GLFW_KEY_RIGHT_ALT)) {
         toggleMouseCapture();
     }
 
@@ -252,7 +246,7 @@ void ClientApplication::handleMouseAndMovementInput()
     f32 sensitivity = m_settings.mouseSensitivity.get() * 0.2f;
     f32 deltaYaw = static_cast<f32>(m_input.mouseDeltaX()) * sensitivity;
     f32 deltaPitch = static_cast<f32>(m_input.mouseDeltaY()) * sensitivity;
-    m_player->rotate(deltaYaw, -deltaPitch);  // pitch方向相反
+    m_player->rotate(deltaYaw, -deltaPitch); // pitch方向相反
 
     // 收集移动输入
     f32 forward = 0.0f;

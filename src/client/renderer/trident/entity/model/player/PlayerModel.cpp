@@ -8,7 +8,7 @@ namespace mc::client::renderer::entity::model::player {
 using mc::client::renderer::entity::model::ModelRenderer;
 
 namespace {
-    constexpr f64 DEG_TO_RAD = mc::math::PI_DOUBLE / 180.0;
+constexpr f64 DEG_TO_RAD = mc::math::PI_DOUBLE / 180.0;
 }
 
 PlayerModel::PlayerModel(f64 scale, bool slimArms)
@@ -35,7 +35,8 @@ PlayerModel::PlayerModel(f64 scale, bool slimArms)
     setupEars();
 }
 
-void PlayerModel::setupStandardArms() {
+void PlayerModel::setupStandardArms()
+{
     // 参考 MC 1.16.5 PlayerModel 构造函数（标准手臂）
     // 左臂：4x12x4，纹理位置 (32, 48)，旋转点 (5, 2, 0)
     if (m_leftArm) {
@@ -62,7 +63,8 @@ void PlayerModel::setupStandardArms() {
     }
 }
 
-void PlayerModel::setupSlimArms() {
+void PlayerModel::setupSlimArms()
+{
     // 参考 MC 1.16.5 PlayerModel 构造函数（纤细手臂）
     // 左臂：3x12x4，纹理位置 (32, 48)，旋转点 (5, 2.5, 0)
     if (m_leftArm) {
@@ -89,7 +91,8 @@ void PlayerModel::setupSlimArms() {
     }
 }
 
-void PlayerModel::setupWearParts() {
+void PlayerModel::setupWearParts()
+{
     // 参考 MC 1.16.5 PlayerModel 构造函数
     // 外观层部件比主部件大 0.25（膨胀）
 
@@ -115,13 +118,13 @@ void PlayerModel::setupWearParts() {
         m_rightArmwear->setTextureSize(64, 64);
         m_rightArmwear->setTextureOffset(40, 32);
         m_rightArmwear->addBox(-2.0f, -2.0f, -2.0f, 3.0f, 12.0f, 4.0f, 0.25f);
-        m_rightArmwear->setRotationPoint(-5.0f, 2.5f, 10.0f);  // 注意：MC 原版这里 Z=10.0F
+        m_rightArmwear->setRotationPoint(-5.0f, 2.5f, 10.0f); // 注意：MC 原版这里 Z=10.0F
     } else {
         m_rightArmwear = std::make_shared<ModelRenderer>("rightArmwear");
         m_rightArmwear->setTextureSize(64, 64);
         m_rightArmwear->setTextureOffset(40, 32);
         m_rightArmwear->addBox(-3.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, 0.25f);
-        m_rightArmwear->setRotationPoint(-5.0f, 2.0f, 10.0f);  // 注意：MC 原版这里 Z=10.0F
+        m_rightArmwear->setRotationPoint(-5.0f, 2.0f, 10.0f); // 注意：MC 原版这里 Z=10.0F
     }
     m_parts.push_back(m_rightArmwear);
 
@@ -150,7 +153,8 @@ void PlayerModel::setupWearParts() {
     m_parts.push_back(m_bodywear);
 }
 
-void PlayerModel::setupCape() {
+void PlayerModel::setupCape()
+{
     // 参考 MC 1.16.5 PlayerModel 构造函数
     // 斗篷：10x16x1，纹理尺寸 64x32，纹理位置 (0, 0)
     m_cape = std::make_shared<ModelRenderer>("cape");
@@ -161,7 +165,8 @@ void PlayerModel::setupCape() {
     m_parts.push_back(m_cape);
 }
 
-void PlayerModel::setupEars() {
+void PlayerModel::setupEars()
+{
     // 参考 MC 1.16.5 PlayerModel 构造函数
     // Deadmau5 耳朵：6x6x1，纹理位置 (24, 0)
     m_ears = std::make_shared<ModelRenderer>("ears");
@@ -171,14 +176,15 @@ void PlayerModel::setupEars() {
     m_parts.push_back(m_ears);
 }
 
-void PlayerModel::render(f64 scale) {
+void PlayerModel::render(f64 scale)
+{
     // 渲染基础部件
     BipedModel::render(scale);
 }
 
-void PlayerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void PlayerModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
@@ -188,15 +194,17 @@ void PlayerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 处理手臂姿态
     animateArms(limbSwing, limbSwingAmount);
 
-    (void)ageInTicks;  // 玩家不使用 ageInTicks 进行额外动画
+    (void)ageInTicks; // 玩家不使用 ageInTicks 进行额外动画
 }
 
-void PlayerModel::setArmPose(ArmPose leftArmPose, ArmPose rightArmPose) {
+void PlayerModel::setArmPose(ArmPose leftArmPose, ArmPose rightArmPose)
+{
     m_leftArmPose = leftArmPose;
     m_rightArmPose = rightArmPose;
 }
 
-void PlayerModel::setVisible(bool visible) {
+void PlayerModel::setVisible(bool visible)
+{
     BipedModel::setVisible(visible);
 
     if (m_leftArmwear) m_leftArmwear->setVisible(visible);
@@ -208,7 +216,8 @@ void PlayerModel::setVisible(bool visible) {
     if (m_ears) m_ears->setVisible(visible);
 }
 
-void PlayerModel::translateHand(i32 side) {
+void PlayerModel::translateHand(i32 side)
+{
     // 参考 MC 1.16.5 PlayerModel.translateHand
     // 纤细手臂模式下需要偏移手臂位置
     ModelRenderer* arm = nullptr;
@@ -217,12 +226,12 @@ void PlayerModel::translateHand(i32 side) {
     if (side == static_cast<i32>(HandSide::Right)) {
         arm = m_rightArm.get();
         if (m_slimArms) {
-            offset = -0.5f;  // 纤细右手向左偏移
+            offset = -0.5f; // 纤细右手向左偏移
         }
     } else {
         arm = m_leftArm.get();
         if (m_slimArms) {
-            offset = 0.5f;  // 纤细左手向右偏移
+            offset = 0.5f; // 纤细左手向右偏移
         }
     }
 
@@ -233,7 +242,8 @@ void PlayerModel::translateHand(i32 side) {
     }
 }
 
-void PlayerModel::copyAnglesToWear() {
+void PlayerModel::copyAnglesToWear()
+{
     // 参考 MC 1.16.5 PlayerModel.setRotationAngles
     // 复制主部件角度到外观层
     if (m_leftLeg && m_leftLegwear) {
@@ -253,7 +263,8 @@ void PlayerModel::copyAnglesToWear() {
     }
 }
 
-void PlayerModel::animateArms(f64 limbSwing, f64 limbSwingAmount) {
+void PlayerModel::animateArms(f64 limbSwing, f64 limbSwingAmount)
+{
     // 参考 MC 1.16.5 BipedModel.func_241654_b_ 和 func_241655_c_
     // 手臂姿态处理已在基类 BipedModel::setAngles 中完成
     // 这里只需要处理玩家特有的动画
@@ -267,7 +278,8 @@ void PlayerModel::animateArms(f64 limbSwing, f64 limbSwingAmount) {
     (void)limbSwingAmount;
 }
 
-void PlayerModel::animateBow(f64 limbSwing) {
+void PlayerModel::animateBow(f64 limbSwing)
+{
     // 参考 MC 1.16.5 BipedModel 弓姿态
     // 右手持弓，左手拉弦
     if (m_rightArm) {
@@ -278,10 +290,11 @@ void PlayerModel::animateBow(f64 limbSwing) {
         m_leftArm->setRotateAngleY(0.1f + 0.4f);
         m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     }
-    (void)limbSwing;  // 弓姿态不依赖 limbSwing
+    (void)limbSwing; // 弓姿态不依赖 limbSwing
 }
 
-void PlayerModel::animateCrossbowCharge() {
+void PlayerModel::animateCrossbowCharge()
+{
     // 参考 MC 1.16.5 BipedModel 弩装填姿态
     if (m_rightArm) {
         m_rightArm->setRotateAngleY(-0.8f);
@@ -293,7 +306,8 @@ void PlayerModel::animateCrossbowCharge() {
     }
 }
 
-void PlayerModel::animateCrossbowHold() {
+void PlayerModel::animateCrossbowHold()
+{
     // 参考 MC 1.16.5 BipedModel 弩持有姿态
     if (m_rightArm) {
         m_rightArm->setRotateAngleY(-0.3f);
@@ -305,13 +319,15 @@ void PlayerModel::animateCrossbowHold() {
     }
 }
 
-void PlayerModel::renderCape(f64 scale) {
+void PlayerModel::renderCape(f64 scale)
+{
     if (m_cape) {
         m_cape->render(scale);
     }
 }
 
-void PlayerModel::renderEars(f64 scale) {
+void PlayerModel::renderEars(f64 scale)
+{
     if (m_ears && m_head) {
         // 耳朵跟随头部角度
         m_ears->copyModelAngles(*m_head);
@@ -321,7 +337,8 @@ void PlayerModel::renderEars(f64 scale) {
     }
 }
 
-void PlayerModel::updateCapePosition(bool wearingChestplate, bool crouching) {
+void PlayerModel::updateCapePosition(bool wearingChestplate, bool crouching)
+{
     // 参考 MC 1.16.5 PlayerModel.setRotationAngles
     // 根据胸甲和蹲伏状态调整斗篷位置
     if (m_cape) {

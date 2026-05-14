@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "server/world/ServerWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "server/world/ServerWorld.hpp"
 
 #include <utility>
 #include <vector>
@@ -14,7 +14,8 @@ namespace {
 
 class ServerWorldBlockUpdateCallbackTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
 
         ServerWorldConfig config;
@@ -28,7 +29,8 @@ protected:
         ASSERT_TRUE(result.success());
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         if (m_world) {
             m_world->shutdown();
             m_world.reset();
@@ -40,12 +42,12 @@ protected:
 
 } // namespace
 
-TEST_F(ServerWorldBlockUpdateCallbackTest, SetBlockInvokesBlockChangedCallback) {
+TEST_F(ServerWorldBlockUpdateCallbackTest, SetBlockInvokesBlockChangedCallback)
+{
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
 
-    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
-        blockUpdates.emplace_back(pos, blockStateId);
-    });
+    m_world->setOnBlockChanged(
+        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     m_world->setBlockState(0, 64, 0, stoneState);
@@ -58,15 +60,15 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, SetBlockInvokesBlockChangedCallback) 
     EXPECT_EQ(blockUpdates[1].second, 0u);
 }
 
-TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceAboveSolidTurnsIntoWater) {
+TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceAboveSolidTurnsIntoWater)
+{
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
 
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     m_world->setBlockState(0, 64, 0, &VanillaBlocks::ICE->defaultState());
 
-    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
-        blockUpdates.emplace_back(pos, blockStateId);
-    });
+    m_world->setOnBlockChanged(
+        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
 
     ASSERT_TRUE(m_world->setBlockState(0, 64, 0, nullptr));
 
@@ -79,15 +81,15 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceAboveSolidTurnsIntoWater) 
     EXPECT_EQ(blockUpdates[0].second, VanillaBlocks::WATER->defaultState().stateId());
 }
 
-TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceWithoutSupportTurnsIntoAir) {
+TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceWithoutSupportTurnsIntoAir)
+{
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
 
     m_world->setBlockState(0, 63, 0, nullptr);
     m_world->setBlockState(0, 64, 0, &VanillaBlocks::ICE->defaultState());
 
-    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
-        blockUpdates.emplace_back(pos, blockStateId);
-    });
+    m_world->setOnBlockChanged(
+        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
 
     ASSERT_TRUE(m_world->setBlockState(0, 64, 0, nullptr));
 

@@ -1,15 +1,15 @@
 #include "TemptGoal.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../GoalConstants.hpp"
-#include "../../controller/LookController.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
-#include "../../../../world/IWorld.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../core/CreatureEntity.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../core/EntityUtils.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../entities/player/Player.hpp"
+#include "../../controller/LookController.hpp"
+#include "../../pathfinding/PathNavigator.hpp"
+#include "../GoalConstants.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -25,7 +25,8 @@ TemptGoal::TemptGoal(CreatureEntity* creature, f64 speed, ItemPredicate itemPred
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool TemptGoal::shouldExecute() {
+bool TemptGoal::shouldExecute()
+{
     if (!m_creature) return false;
 
     // MC 1.16.5: 检查冷却
@@ -41,7 +42,8 @@ bool TemptGoal::shouldExecute() {
     return m_temptingPlayer != nullptr;
 }
 
-bool TemptGoal::shouldContinueExecuting() {
+bool TemptGoal::shouldContinueExecuting()
+{
     if (!m_creature || !m_temptingPlayer) return false;
 
     // MC 1.16.5: 检查玩家是否存活
@@ -95,7 +97,8 @@ bool TemptGoal::shouldContinueExecuting() {
     return shouldExecute();
 }
 
-void TemptGoal::startExecuting() {
+void TemptGoal::startExecuting()
+{
     if (!m_temptingPlayer) return;
 
     // MC 1.16.5: 记录玩家初始位置和视角
@@ -107,7 +110,8 @@ void TemptGoal::startExecuting() {
     m_isRunning = true;
 }
 
-void TemptGoal::resetTask() {
+void TemptGoal::resetTask()
+{
     m_temptingPlayer = nullptr;
     m_isRunning = false;
 
@@ -119,7 +123,8 @@ void TemptGoal::resetTask() {
     m_delayTemptCounter = TEMPT_COOLDOWN;
 }
 
-void TemptGoal::tick() {
+void TemptGoal::tick()
+{
     if (!m_creature || !m_temptingPlayer) return;
 
     // MC 1.16.5: 使用 getHorizontalFaceSpeed() + 20 和 getVerticalFaceSpeed()
@@ -145,26 +150,25 @@ void TemptGoal::tick() {
     }
 }
 
-bool TemptGoal::isTempting(const ItemStack& stack) const {
+bool TemptGoal::isTempting(const ItemStack& stack) const
+{
     return m_itemPredicate(stack);
 }
 
-bool TemptGoal::isScaredByPlayerMovement() const {
+bool TemptGoal::isScaredByPlayerMovement() const
+{
     return m_scaredByMovement;
 }
 
-Player* TemptGoal::findTemptingPlayer() {
+Player* TemptGoal::findTemptingPlayer()
+{
     if (!m_creature || !m_creature->world()) return nullptr;
 
     // MC 1.16.5: 使用 EntityPredicate 搜索玩家
     // EntityPredicate.setDistance(10.0D).allowInvulnerable().allowFriendlyFire()
     //               .setSkipAttackChecks().setLineOfSiteRequired()
     return EntityUtils::findClosestEntity<Player>(
-        m_creature->world(),
-        m_creature->position(),
-        TEMPT_RANGE,
-        m_creature,
-        [this](Player* playerEntity) {
+        m_creature->world(), m_creature->position(), TEMPT_RANGE, m_creature, [this](Player* playerEntity) {
             const ItemStack& mainHand = playerEntity->getHeldItem(Hand::MainHand);
             const ItemStack& offHand = playerEntity->getHeldItem(Hand::OffHand);
             return isTempting(mainHand) || isTempting(offHand);

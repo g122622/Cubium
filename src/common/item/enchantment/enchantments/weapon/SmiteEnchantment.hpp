@@ -20,20 +20,19 @@ namespace enchant {
  */
 class SmiteEnchantment : public DamageEnchantment {
 public:
-    SmiteEnchantment() : DamageEnchantment(Type::Undead) {}
+    SmiteEnchantment()
+        : DamageEnchantment(Type::Undead)
+    {}
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:smite";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:smite"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.smite";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Uncommon;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 };
 
 } // namespace enchant

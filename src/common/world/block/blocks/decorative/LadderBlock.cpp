@@ -1,9 +1,9 @@
 #include "LadderBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../WaterLoggableHelpers.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,16 +12,17 @@ LadderBlock::LadderBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 创建状态容器（HORIZONTAL_FACING 属性）
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::WATERLOGGED(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建各方向的形状
     // 梯子形状：非常薄的板，厚度约1像素
@@ -31,7 +32,8 @@ LadderBlock::LadderBlock(const BlockProperties& properties)
     m_shapes[static_cast<size_t>(Direction::East)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f / 16.0f, 1.0f, 1.0f);
 }
 
-BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 根据点击的面确定朝向
     Direction facing = context.getClickedFace();
 
@@ -57,10 +59,7 @@ BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-bool LadderBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const
+bool LadderBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     // 参考 MC 1.16.5: LadderBlock.isValidPosition
     // 梯子需要附着在固体方块的侧面
@@ -77,8 +76,7 @@ bool LadderBlock::isValidPosition(
     return attachState->isSolidSide(world, attachPos, facing);
 }
 
-BlockState LadderBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState LadderBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
@@ -109,20 +107,23 @@ BlockState LadderBlock::updatePostPlacement(
     return state;
 }
 
-const BlockState& LadderBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& LadderBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const BlockState& LadderBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& LadderBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rot = Directions::mirrorToRotation(mirror, facing);
     Direction newFacing = Directions::rotateDirection(facing, rot);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const CollisionShape& LadderBlock::getShape(const BlockState& state) const {
+const CollisionShape& LadderBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
 
@@ -133,7 +134,8 @@ const CollisionShape& LadderBlock::getShape(const BlockState& state) const {
     return m_shapes[static_cast<size_t>(Direction::North)];
 }
 
-const CollisionShape& LadderBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& LadderBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 梯子没有碰撞箱
     static CollisionShape emptyShape = CollisionShape::empty();
@@ -142,7 +144,8 @@ const CollisionShape& LadderBlock::getCollisionShape(const BlockState& state) co
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* LadderBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* LadderBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }

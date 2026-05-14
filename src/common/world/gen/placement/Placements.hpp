@@ -12,12 +12,15 @@ namespace mc {
  * 参考 MC NoisePlacementConfig
  */
 struct NoisePlacementConfig : public IPlacementConfig {
-    f64 noiseLevel;     ///< 噪声阈值
-    f64 noiseFactor;    ///< 噪声因子
-    f64 noiseOffset;    ///< 噪声偏移
+    f64 noiseLevel;  ///< 噪声阈值
+    f64 noiseFactor; ///< 噪声因子
+    f64 noiseOffset; ///< 噪声偏移
 
     NoisePlacementConfig(f64 level, f64 factor, f64 offset)
-        : noiseLevel(level), noiseFactor(factor), noiseOffset(offset) {}
+        : noiseLevel(level)
+        , noiseFactor(factor)
+        , noiseOffset(offset)
+    {}
 };
 
 /**
@@ -27,12 +30,15 @@ struct NoisePlacementConfig : public IPlacementConfig {
  * 参考 MC CountNoisePlacementConfig
  */
 struct CountNoiseConfig : public IPlacementConfig {
-    f64 noiseLevel;     ///< 噪声阈值
-    i32 belowCount;     ///< 低于阈值时的数量
-    i32 aboveCount;     ///< 高于阈值时的数量
+    f64 noiseLevel; ///< 噪声阈值
+    i32 belowCount; ///< 低于阈值时的数量
+    i32 aboveCount; ///< 高于阈值时的数量
 
     CountNoiseConfig(f64 level, i32 below, i32 above)
-        : noiseLevel(level), belowCount(below), aboveCount(above) {}
+        : noiseLevel(level)
+        , belowCount(below)
+        , aboveCount(above)
+    {}
 };
 
 /**
@@ -41,12 +47,15 @@ struct CountNoiseConfig : public IPlacementConfig {
  * 参考 MC AtSurfaceWithExtraConfig
  */
 struct AtSurfaceWithExtraConfig : public IPlacementConfig {
-    i32 count;          ///< 基础数量
-    f32 extraChance;    ///< 额外数量的概率
-    i32 extraCount;     ///< 额外数量
+    i32 count;       ///< 基础数量
+    f32 extraChance; ///< 额外数量的概率
+    i32 extraCount;  ///< 额外数量
 
     AtSurfaceWithExtraConfig(i32 c, f32 chance, i32 extra)
-        : count(c), extraChance(chance), extraCount(extra) {}
+        : count(c)
+        , extraChance(chance)
+        , extraCount(extra)
+    {}
 };
 
 /**
@@ -56,11 +65,13 @@ struct AtSurfaceWithExtraConfig : public IPlacementConfig {
  * 参考 MC DepthAverageConfig
  */
 struct DepthAverageConfig : public IPlacementConfig {
-    i32 baseline;       ///< 基准深度
-    i32 spread;         ///< 扩散范围
+    i32 baseline; ///< 基准深度
+    i32 spread;   ///< 扩散范围
 
     DepthAverageConfig(i32 base, i32 spread)
-        : baseline(base), spread(spread) {}
+        : baseline(base)
+        , spread(spread)
+    {}
 };
 
 /**
@@ -70,11 +81,13 @@ struct DepthAverageConfig : public IPlacementConfig {
  * 参考 MC RandomOffsetPlacementConfig
  */
 struct RandomOffsetConfig : public IPlacementConfig {
-    i32 xzSpread;       ///< XZ平面扩散
-    i32 ySpread;        ///< Y轴扩散
+    i32 xzSpread; ///< XZ平面扩散
+    i32 ySpread;  ///< Y轴扩散
 
     RandomOffsetConfig(i32 xz, i32 y)
-        : xzSpread(xz), ySpread(y) {}
+        : xzSpread(xz)
+        , ySpread(y)
+    {}
 };
 
 /**
@@ -84,10 +97,11 @@ struct RandomOffsetConfig : public IPlacementConfig {
  * 参考 MC WaterDepthThresholdConfig
  */
 struct WaterDepthThresholdConfig : public IPlacementConfig {
-    i32 maxWaterDepth;  ///< 最大水深
+    i32 maxWaterDepth; ///< 最大水深
 
     explicit WaterDepthThresholdConfig(i32 depth)
-        : maxWaterDepth(depth) {}
+        : maxWaterDepth(depth)
+    {}
 };
 
 /**
@@ -96,9 +110,11 @@ struct WaterDepthThresholdConfig : public IPlacementConfig {
  * 在海平面附近放置特征。
  */
 struct SeaLevelConfig : public IPlacementConfig {
-    i32 offset;         ///< 相对于海平面的偏移
+    i32 offset; ///< 相对于海平面的偏移
 
-    explicit SeaLevelConfig(i32 off = 0) : offset(off) {}
+    explicit SeaLevelConfig(i32 off = 0)
+        : offset(off)
+    {}
 };
 
 // ============================================================================
@@ -113,8 +129,7 @@ struct SeaLevelConfig : public IPlacementConfig {
  */
 class NoisePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -130,8 +145,7 @@ public:
  */
 class CountNoisePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -147,8 +161,7 @@ public:
  */
 class DepthAveragePlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -164,8 +177,7 @@ public:
  */
 class TopSolidPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -181,8 +193,7 @@ public:
  */
 class CarvingMaskPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -198,8 +209,7 @@ public:
  */
 class RandomOffsetPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -215,8 +225,7 @@ public:
  */
 class WaterDepthThresholdPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -231,8 +240,7 @@ public:
  */
 class SeaLevelPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -248,8 +256,7 @@ public:
  */
 class SpreadPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
@@ -265,8 +272,7 @@ public:
  */
 class CountExtraPlacement : public Placement {
 public:
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region,
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
         math::Random& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;

@@ -1,6 +1,6 @@
 #include "EntityMetadataSerializer.hpp"
-#include "PacketSerializer.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "PacketSerializer.hpp"
 #include <cstring>
 
 namespace mc::network {
@@ -10,61 +10,63 @@ namespace mc::network {
 // ============================================================================
 
 namespace {
-    // MC 1.16.5 数据类型ID
-    enum class MetadataTypeId : u8 {
-        Byte = 0,
-        VarInt = 1,
-        Float = 2,
-        String = 3,
-        TextComponent = 4,
-        OptChat = 5,
-        Slot = 6,
-        Boolean = 7,
-        Rotation = 8,
-        Position = 9,
-        OptPosition = 10,
-        Direction = 11,
-        OptUUID = 12,
-        OptBlockID = 13,
-        NBT = 14,
-        Particle = 15,
-        VillagerData = 16,
-        OptVarInt = 17,
-        Pose = 18
-    };
+// MC 1.16.5 数据类型ID
+enum class MetadataTypeId : u8 {
+    Byte = 0,
+    VarInt = 1,
+    Float = 2,
+    String = 3,
+    TextComponent = 4,
+    OptChat = 5,
+    Slot = 6,
+    Boolean = 7,
+    Rotation = 8,
+    Position = 9,
+    OptPosition = 10,
+    Direction = 11,
+    OptUUID = 12,
+    OptBlockID = 13,
+    NBT = 14,
+    Particle = 15,
+    VillagerData = 16,
+    OptVarInt = 17,
+    Pose = 18
+};
 
-    // DataValue 索引到类型ID映射
-    MetadataTypeId getTypeId(const entity::DataValue& value) {
-        switch (value.index()) {
-            case 0:  // i8
-                return MetadataTypeId::Byte;
-            case 1:  // i32
-                return MetadataTypeId::VarInt;
-            case 2:  // i64
-                return MetadataTypeId::VarInt; // 使用 VarInt 近似
-            case 3:  // f32
-                return MetadataTypeId::Float;
-            case 4:  // std::string
-                return MetadataTypeId::String;
-            case 5:  // bool
-                return MetadataTypeId::Boolean;
-            case 6:  // Vector3i
-                return MetadataTypeId::Position;
-            case 7:  // Vector2f
-                return MetadataTypeId::Rotation;
-            case 8:  // Vector3f
-                return MetadataTypeId::Rotation;
-            default:
-                return MetadataTypeId::Byte;
-        }
+// DataValue 索引到类型ID映射
+MetadataTypeId getTypeId(const entity::DataValue& value)
+{
+    switch (value.index()) {
+        case 0: // i8
+            return MetadataTypeId::Byte;
+        case 1: // i32
+            return MetadataTypeId::VarInt;
+        case 2:                            // i64
+            return MetadataTypeId::VarInt; // 使用 VarInt 近似
+        case 3:                            // f32
+            return MetadataTypeId::Float;
+        case 4: // std::string
+            return MetadataTypeId::String;
+        case 5: // bool
+            return MetadataTypeId::Boolean;
+        case 6: // Vector3i
+            return MetadataTypeId::Position;
+        case 7: // Vector2f
+            return MetadataTypeId::Rotation;
+        case 8: // Vector3f
+            return MetadataTypeId::Rotation;
+        default:
+            return MetadataTypeId::Byte;
     }
 }
+} // namespace
 
 // ============================================================================
 // 序列化
 // ============================================================================
 
-std::vector<u8> EntityMetadataSerializer::serialize(const entity::EntityDataManager& manager, bool dirtyOnly) {
+std::vector<u8> EntityMetadataSerializer::serialize(const entity::EntityDataManager& manager, bool dirtyOnly)
+{
     std::vector<u8> output;
 
     const auto& entries = manager.getAllEntries();
@@ -84,7 +86,8 @@ std::vector<u8> EntityMetadataSerializer::serialize(const entity::EntityDataMana
     return output;
 }
 
-void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& value, std::vector<u8>& output) {
+void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& value, std::vector<u8>& output)
+{
     // 参数ID (u8，因为MC使用单字节索引)
     output.push_back(static_cast<u8>(id & 0xFF));
 
@@ -169,7 +172,8 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
 // 反序列化
 // ============================================================================
 
-bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::EntityDataManager& manager) {
+bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::EntityDataManager& manager)
+{
     size_t offset = 0;
 
     while (offset < data.size()) {
@@ -255,7 +259,8 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
 // 辅助方法
 // ============================================================================
 
-void EntityMetadataSerializer::writeVarInt(i32 value, std::vector<u8>& output) {
+void EntityMetadataSerializer::writeVarInt(i32 value, std::vector<u8>& output)
+{
     u32 uval = static_cast<u32>(value);
     do {
         u8 byte = uval & 0x7F;
@@ -267,7 +272,8 @@ void EntityMetadataSerializer::writeVarInt(i32 value, std::vector<u8>& output) {
     } while (uval != 0);
 }
 
-void EntityMetadataSerializer::writeVarLong(i64 value, std::vector<u8>& output) {
+void EntityMetadataSerializer::writeVarLong(i64 value, std::vector<u8>& output)
+{
     u64 uval = static_cast<u64>(value);
     do {
         u8 byte = uval & 0x7F;
@@ -279,7 +285,8 @@ void EntityMetadataSerializer::writeVarLong(i64 value, std::vector<u8>& output) 
     } while (uval != 0);
 }
 
-i32 EntityMetadataSerializer::readVarInt(const u8* data, size_t size, size_t& offset) {
+i32 EntityMetadataSerializer::readVarInt(const u8* data, size_t size, size_t& offset)
+{
     i32 result = 0;
     int shift = 0;
 
@@ -296,7 +303,8 @@ i32 EntityMetadataSerializer::readVarInt(const u8* data, size_t size, size_t& of
     return result;
 }
 
-i64 EntityMetadataSerializer::readVarLong(const u8* data, size_t size, size_t& offset) {
+i64 EntityMetadataSerializer::readVarLong(const u8* data, size_t size, size_t& offset)
+{
     i64 result = 0;
     int shift = 0;
 
@@ -313,7 +321,8 @@ i64 EntityMetadataSerializer::readVarLong(const u8* data, size_t size, size_t& o
     return result;
 }
 
-void EntityMetadataSerializer::writeString(const std::string& str, std::vector<u8>& output) {
+void EntityMetadataSerializer::writeString(const std::string& str, std::vector<u8>& output)
+{
     // 截断过长的字符串
     size_t writeLen = std::min(str.size(), static_cast<size_t>(MAX_STRING_LENGTH));
     // 字符串长度 (VarInt)
@@ -322,7 +331,8 @@ void EntityMetadataSerializer::writeString(const std::string& str, std::vector<u
     output.insert(output.end(), str.begin(), str.begin() + writeLen);
 }
 
-std::string EntityMetadataSerializer::readString(const u8* data, size_t size, size_t& offset) {
+std::string EntityMetadataSerializer::readString(const u8* data, size_t size, size_t& offset)
+{
     i32 length = readVarInt(data, size, offset);
 
     // 验证长度
@@ -330,7 +340,7 @@ std::string EntityMetadataSerializer::readString(const u8* data, size_t size, si
         return "";
     }
     if (static_cast<size_t>(length) > MAX_STRING_LENGTH) {
-        return "";  // 字符串过长，返回空字符串
+        return ""; // 字符串过长，返回空字符串
     }
     if (offset + static_cast<size_t>(length) > size) {
         return "";

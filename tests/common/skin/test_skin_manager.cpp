@@ -1,20 +1,22 @@
-#include <gtest/gtest.h>
-#include "common/skin/manager/SkinManager.hpp"
-#include "common/skin/manager/DefaultSkinProvider.hpp"
 #include "common/skin/core/GameProfile.hpp"
+#include "common/skin/manager/DefaultSkinProvider.hpp"
+#include "common/skin/manager/SkinManager.hpp"
 #include <filesystem>
 #include <fstream>
+#include <gtest/gtest.h>
 
 using namespace mc::skin;
 
 class SkinManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         testDir_ = "./test_skin_manager_" + std::to_string(std::time(nullptr));
         manager_ = std::make_unique<SkinManager>(testDir_);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         manager_.reset();
 
         // 清理临时目录
@@ -26,12 +28,14 @@ protected:
     std::unique_ptr<SkinManager> manager_;
 };
 
-TEST_F(SkinManagerTest, Initialize) {
+TEST_F(SkinManagerTest, Initialize)
+{
     auto result = manager_->initialize();
     EXPECT_TRUE(result.success());
 }
 
-TEST_F(SkinManagerTest, DefaultSkinSteve) {
+TEST_F(SkinManagerTest, DefaultSkinSteve)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 
@@ -41,23 +45,19 @@ TEST_F(SkinManagerTest, DefaultSkinSteve) {
 
     // 应该是 steve 或 alex
     std::string skinStr = skin.toString();
-    EXPECT_TRUE(skinStr.find("steve") != std::string::npos ||
-                skinStr.find("alex") != std::string::npos);
+    EXPECT_TRUE(skinStr.find("steve") != std::string::npos || skinStr.find("alex") != std::string::npos);
 }
 
-TEST_F(SkinManagerTest, DefaultSkinTypeForUUID) {
+TEST_F(SkinManagerTest, DefaultSkinTypeForUUID)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 
     // 相同的 UUID 应该返回相同的皮肤类型
     std::array<mc::u8, 16> uuid1 = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
     std::array<mc::u8, 16> uuid2 = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x01
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x01};
 
     SkinType type1 = manager_->getDefaultSkinType(uuid1);
     SkinType type2 = manager_->getDefaultSkinType(uuid2);
@@ -67,14 +67,13 @@ TEST_F(SkinManagerTest, DefaultSkinTypeForUUID) {
     EXPECT_TRUE(type2 == SkinType::Default || type2 == SkinType::Slim);
 }
 
-TEST_F(SkinManagerTest, GetOrCreatePlayerInfo) {
+TEST_F(SkinManagerTest, GetOrCreatePlayerInfo)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     GameProfile profile(uuid, "TestPlayer");
 
@@ -87,14 +86,13 @@ TEST_F(SkinManagerTest, GetOrCreatePlayerInfo) {
     EXPECT_EQ(info1.get(), info2.get());
 }
 
-TEST_F(SkinManagerTest, GetPlayerInfo) {
+TEST_F(SkinManagerTest, GetPlayerInfo)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     // 不存在时返回 nullptr
     auto info1 = manager_->getPlayerInfo(uuid);
@@ -109,14 +107,13 @@ TEST_F(SkinManagerTest, GetPlayerInfo) {
     EXPECT_EQ("TestPlayer", info2->name());
 }
 
-TEST_F(SkinManagerTest, RemovePlayerInfo) {
+TEST_F(SkinManagerTest, RemovePlayerInfo)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     GameProfile profile(uuid, "TestPlayer");
     manager_->getOrCreatePlayerInfo(profile);
@@ -130,18 +127,15 @@ TEST_F(SkinManagerTest, RemovePlayerInfo) {
     EXPECT_EQ(nullptr, info2);
 }
 
-TEST_F(SkinManagerTest, ClearAllPlayerInfos) {
+TEST_F(SkinManagerTest, ClearAllPlayerInfos)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 
     std::array<mc::u8, 16> uuid1 = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
     std::array<mc::u8, 16> uuid2 = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x01
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x01};
 
     GameProfile profile1(uuid1, "Player1");
     GameProfile profile2(uuid2, "Player2");
@@ -158,7 +152,8 @@ TEST_F(SkinManagerTest, ClearAllPlayerInfos) {
     EXPECT_EQ(nullptr, manager_->getPlayerInfo(uuid2));
 }
 
-TEST_F(SkinManagerTest, CacheAccess) {
+TEST_F(SkinManagerTest, CacheAccess)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 
@@ -166,7 +161,8 @@ TEST_F(SkinManagerTest, CacheAccess) {
     EXPECT_NO_THROW(manager_->cache());
 }
 
-TEST_F(SkinManagerTest, DefaultSkinProviderAccess) {
+TEST_F(SkinManagerTest, DefaultSkinProviderAccess)
+{
     auto initResult = manager_->initialize();
     ASSERT_TRUE(initResult.success());
 

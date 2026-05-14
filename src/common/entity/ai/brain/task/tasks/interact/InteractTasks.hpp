@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Task.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../world/ServerWorld.hpp"
 #include "../../memory/Brain.hpp"
+#include "../Task.hpp"
 
 namespace mc {
 namespace entity {
@@ -27,12 +27,11 @@ public:
         , m_range(range)
     {}
 
-    std::string getName() const override {
-        return "VillagerInteractTask";
-    }
+    std::string getName() const override { return "VillagerInteractTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -41,7 +40,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::INTERACTION_TARGET);
         // if (target.has_value()) {
@@ -49,7 +49,8 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::INTERACTION_TARGET);
         // if (!target.has_value()) return;
@@ -63,7 +64,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::INTERACTION_TARGET);
     }
 
@@ -89,12 +91,11 @@ public:
         : Task<E>({}, 20, 40)
     {}
 
-    std::string getName() const override {
-        return "InteractWithDoorTask";
-    }
+    std::string getName() const override { return "InteractWithDoorTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否需要开门
@@ -104,7 +105,8 @@ protected:
         return false;
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // 检查路径上的门
         // auto doors = getDoorsInPath(owner);
         // for (auto& doorPos : doors) {
@@ -139,12 +141,11 @@ public:
         , m_stopDistance(stopDistance)
     {}
 
-    std::string getName() const override {
-        return "FollowOwnerTask";
-    }
+    std::string getName() const override { return "FollowOwnerTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否是驯服动物
@@ -158,7 +159,8 @@ protected:
         return false;
     }
 
-    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // Player* owner = tameable->getOwner();
@@ -167,7 +169,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // TameableEntity* tameable = dynamic_cast<TameableEntity*>(owner);
         // Player* owner = tameable->getOwner();
         // if (owner) {
@@ -175,7 +178,8 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // TameableEntity* tameable = dynamic_cast<TameableEntity*>(owner);
         // Player* owner = tameable->getOwner();
         // if (owner) {
@@ -186,7 +190,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
     }
 
@@ -212,12 +217,11 @@ public:
         , m_protectRange(protectRange)
     {}
 
-    std::string getName() const override {
-        return "ProtectOwnerTask";
-    }
+    std::string getName() const override { return "ProtectOwnerTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否是驯服动物
@@ -235,7 +239,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // TameableEntity* tameable = dynamic_cast<TameableEntity*>(owner);
         // Player* owner = tameable->getOwner();
         // LivingEntity* attacker = owner->getLastHurtBy();
@@ -246,7 +251,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->setAttackTarget(nullptr);
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
     }
@@ -272,12 +278,11 @@ public:
         , m_speed(speed)
     {}
 
-    std::string getName() const override {
-        return "PickupItemTask";
-    }
+    std::string getName() const override { return "PickupItemTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -286,7 +291,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto wantedItem = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
         // if (wantedItem.has_value()) {
@@ -294,7 +300,8 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto wantedItem = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
         // if (!wantedItem.has_value()) return;
@@ -309,7 +316,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
     }
 
@@ -334,12 +342,11 @@ public:
         , m_followDistance(followDistance)
     {}
 
-    std::string getName() const override {
-        return "FollowParentTask";
-    }
+    std::string getName() const override { return "FollowParentTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否是幼年动物
@@ -352,7 +359,8 @@ protected:
         return false;
     }
 
-    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto parent = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
         // return parent.has_value() && (*parent)->isAlive() &&
@@ -360,7 +368,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto parent = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
         // if (parent.has_value()) {
@@ -368,7 +377,8 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto parent = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
         // if (parent.has_value()) {
@@ -379,7 +389,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
     }
 
@@ -404,12 +415,11 @@ public:
         , m_range(range)
     {}
 
-    std::string getName() const override {
-        return "TemptTask";
-    }
+    std::string getName() const override { return "TemptTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override {
+    bool shouldExecute(ServerWorld* world, E* owner) override
+    {
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -418,7 +428,8 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override {
+    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto temptingPlayer = brain->getMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
         // if (temptingPlayer.has_value()) {
@@ -426,7 +437,8 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // auto brain = owner->getBrain();
         // auto temptingPlayer = brain->getMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
         // if (temptingPlayer.has_value()) {
@@ -441,7 +453,8 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override {
+    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    {
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
     }

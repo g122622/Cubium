@@ -1,11 +1,11 @@
 #pragma once
 
 #include "IBlockEntityRenderer.hpp"
-#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include <unordered_map>
-#include <memory>
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <functional>
+#include <memory>
+#include <unordered_map>
 
 namespace mc {
 
@@ -57,8 +57,9 @@ public:
      * @tparam TEntity 方块实体类型
      * @tparam TRenderer 渲染器类型
      */
-    template<typename TEntity, typename TRenderer>
-    void registerRenderer() {
+    template <typename TEntity, typename TRenderer>
+    void registerRenderer()
+    {
         static_assert(std::is_base_of_v<BlockEntityRenderer<TEntity>, TRenderer>,
             "TRenderer must inherit from BlockEntityRenderer<TEntity>");
 
@@ -150,5 +151,5 @@ private:
 };
 
 } // namespace blockentity
-} // namespace mc::client::renderer::trident
+} // namespace client::renderer::trident
 } // namespace mc

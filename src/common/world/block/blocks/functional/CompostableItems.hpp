@@ -66,11 +66,11 @@ private:
     static void registerCompostable(const Item* item, float chance);
 
     // 按概率等级注册物品
-    static void registerChance30();   // 30% 概率物品
-    static void registerChance50();   // 50% 概率物品
-    static void registerChance65();   // 65% 概率物品
-    static void registerChance85();   // 85% 概率物品
-    static void registerChance100();  // 100% 概率物品
+    static void registerChance30();  // 30% 概率物品
+    static void registerChance50();  // 50% 概率物品
+    static void registerChance65();  // 65% 概率物品
+    static void registerChance85();  // 85% 概率物品
+    static void registerChance100(); // 100% 概率物品
 };
 
 } // namespace blocks

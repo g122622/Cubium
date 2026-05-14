@@ -2,51 +2,39 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "server/command/support/CommandMetadata.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "common/network/packet/SpawnPositionPacket.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include <spdlog/spdlog.h>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
 
-void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto setWorldSpawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("setworldspawn");
-    setWorldSpawnNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    setWorldSpawnNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(
-        setWorldSpawnNode,
-        support::makeMetadata(
-            "Sets the world spawn point.",
-            "/setworldspawn [<pos>]",
-            2,
-            {},
-            true));
+        setWorldSpawnNode, support::makeMetadata("Sets the world spawn point.", "/setworldspawn [<pos>]", 2, {}, true));
 
     // /setworldspawn - 设置当前位置为世界出生点
-    setWorldSpawnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setCurrentPosition(ctx);
-    });
+    setWorldSpawnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setCurrentPosition(ctx); });
 
     // /setworldspawn <pos>
-    auto posNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3()
-    );
-    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setPosition(ctx);
-    });
+    auto posNode =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPosition(ctx); });
 
     setWorldSpawnNode->addChild(posNode);
     dispatcher.registerCommand(setWorldSpawnNode);
 }
 
-i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>& context) {
+i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     if (!source.isPlayer()) {
@@ -73,16 +61,15 @@ i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>
     broadcastSpawnPosition(server, pos);
 
     std::ostringstream ss;
-    ss << "Set world spawn point to "
-       << static_cast<BlockCoord>(pos.x) << ", "
-       << static_cast<BlockCoord>(pos.y) << ", "
-       << static_cast<BlockCoord>(pos.z);
+    ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
+       << ", " << static_cast<BlockCoord>(pos.z);
     source.sendMessage(ss.str());
 
     return 1;
 }
 
-i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& context) {
+i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
 
@@ -105,21 +92,18 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
     broadcastSpawnPosition(server, pos);
 
     std::ostringstream ss;
-    ss << "Set world spawn point to "
-       << static_cast<BlockCoord>(pos.x) << ", "
-       << static_cast<BlockCoord>(pos.y) << ", "
-       << static_cast<BlockCoord>(pos.z);
+    ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
+       << ", " << static_cast<BlockCoord>(pos.z);
     source.sendMessage(ss.str());
 
     return 1;
 }
 
-void SetWorldSpawnCommand::broadcastSpawnPosition(server::IServer* server, const Vector3d& pos) {
+void SetWorldSpawnCommand::broadcastSpawnPosition(server::IServer* server, const Vector3d& pos)
+{
     // 创建出生点数据包
     network::SpawnPositionPacket spawnPosPacket(
-        BlockPos(static_cast<BlockCoord>(pos.x),
-                 static_cast<BlockCoord>(pos.y),
-                 static_cast<BlockCoord>(pos.z)));
+        BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z)));
 
     auto spawnPosResult = spawnPosPacket.serialize();
     if (spawnPosResult.failed()) {
@@ -128,8 +112,7 @@ void SetWorldSpawnCommand::broadcastSpawnPosition(server::IServer* server, const
     }
 
     // 通过 ConnectionManager 广播给所有玩家
-    server->connectionManager().broadcastPacket(
-        network::PacketType::SpawnPosition, spawnPosResult.value());
+    server->connectionManager().broadcastPacket(network::PacketType::SpawnPosition, spawnPosResult.value());
 }
 
 } // namespace command

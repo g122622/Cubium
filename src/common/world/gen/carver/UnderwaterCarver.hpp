@@ -1,9 +1,9 @@
 #pragma once
 
-#include "WorldCarver.hpp"
-#include "CaveCarver.hpp"
-#include "CanyonCarver.hpp"
 #include "../../../core/Types.hpp"
+#include "CanyonCarver.hpp"
+#include "CaveCarver.hpp"
+#include "WorldCarver.hpp"
 #include <memory>
 
 namespace mc::world::gen::carver {
@@ -29,12 +29,12 @@ public:
      * 重写以实现MC原版的填充逻辑
      */
     bool carve(ChunkPrimer& chunk,
-               const BiomeProvider& biomeProvider,
-               i32 seaLevel,
-               ChunkCoord chunkX,
-               ChunkCoord chunkZ,
-               CarvingMask& carvingMask,
-               const ProbabilityConfig& config) override;
+        const BiomeProvider& biomeProvider,
+        i32 seaLevel,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        CarvingMask& carvingMask,
+        const ProbabilityConfig& config) override;
 
 protected:
     /**
@@ -53,14 +53,16 @@ protected:
      * @brief 雕刻单个椭球区域（水下版本）
      * 实现MC原版的Y==10特殊逻辑
      */
-    bool carveEllipsoidUnderwater(
-        ChunkPrimer& chunk,
+    bool carveEllipsoidUnderwater(ChunkPrimer& chunk,
         const BiomeProvider& biomeProvider,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
-        f32 centerX, f32 centerY, f32 centerZ,
-        f32 horizontalRadius, f32 verticalRadius,
+        f32 centerX,
+        f32 centerY,
+        f32 centerZ,
+        f32 horizontalRadius,
+        f32 verticalRadius,
         CarvingMask& carvingMask,
         i64 seed);
 
@@ -68,10 +70,7 @@ protected:
      * @brief 检查椭球是否在雕刻范围内（水下版本，不检查流体）
      */
     [[nodiscard]] static bool isInCarvingRangeUnderwater(
-        ChunkCoord chunkX, ChunkCoord chunkZ,
-        f32 x, f32 z,
-        i32 step, i32 maxSteps,
-        f32 radius);
+        ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius);
 };
 
 /**
@@ -110,4 +109,4 @@ std::unique_ptr<UnderwaterCanyonCarver> createUnderwaterCanyonCarver();
 namespace mc {
 using UnderwaterCaveCarver = world::gen::carver::UnderwaterCaveCarver;
 using UnderwaterCanyonCarver = world::gen::carver::UnderwaterCanyonCarver;
-}
+} // namespace mc

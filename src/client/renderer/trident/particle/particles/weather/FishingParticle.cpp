@@ -9,9 +9,9 @@ FishingParticle::FishingParticle(const glm::vec3& pos, const glm::vec3& velocity
     mc::math::Random rng;
 
     // MC 1.16.5: 钓鱼粒子向下移动
-    setGravity(0.0);  // 无重力
+    setGravity(0.0); // 无重力
     setSize(DEFAULT_SIZE * (0.5f + rng.nextFloat() * 0.5f));
-    setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.6f));  // 淡蓝色半透明
+    setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.6f)); // 淡蓝色半透明
 
     setFriction(0.98f);
     setHasPhysics(false);
@@ -19,15 +19,14 @@ FishingParticle::FishingParticle(const glm::vec3& pos, const glm::vec3& velocity
 }
 
 std::unique_ptr<Particle> FishingParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<FishingParticle>(pos, velocity);
 }
 
-void FishingParticle::tick(mc::client::ClientWorld* world) {
+void FishingParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

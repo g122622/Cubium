@@ -1,10 +1,10 @@
 #include "WeatherUtils.hpp"
+#include "../../util/math/random/Random.hpp"
 #include "../../world/IWorld.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../../world/chunk/ChunkData.hpp"
 #include "../../world/biome/Biome.hpp"
 #include "../../world/biome/BiomeRegistry.hpp"
-#include "../../util/math/random/Random.hpp"
+#include "../../world/block/BlockPos.hpp"
+#include "../../world/chunk/ChunkData.hpp"
 #include <cmath>
 
 namespace mc::weather {
@@ -24,13 +24,15 @@ namespace {
 
 } // namespace
 
-bool WeatherUtils::canSeeSky(const mc::IWorld& world, const mc::BlockPos& pos) {
+bool WeatherUtils::canSeeSky(const mc::IWorld& world, const mc::BlockPos& pos)
+{
     // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
     // 直接使用 IWorld::canSeeSky，它基于天空光照等级判断
     return world.canSeeSky(pos);
 }
 
-bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos) {
+bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos)
+{
     if (world.isUltraWarm() || !canSeeSky(world, pos)) {
         return false;
     }
@@ -47,7 +49,8 @@ bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos) {
     return getPrecipitationType(biome->temperature()) == 1;
 }
 
-bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos) {
+bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
+{
     if (world.isUltraWarm() || !canSeeSky(world, pos)) {
         return false;
     }
@@ -64,7 +67,8 @@ bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos) {
     return getPrecipitationType(biome->temperature()) == 2;
 }
 
-i32 WeatherUtils::getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, i32 maxTime) {
+i32 WeatherUtils::getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, i32 maxTime)
+{
     if (minTime >= maxTime) {
         return minTime;
     }
@@ -72,25 +76,23 @@ i32 WeatherUtils::getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, 
     return minTime + rng.nextInt(range);
 }
 
-i32 WeatherUtils::getRandomClearDuration(mc::math::IRandom& rng) {
-    return getRandomWeatherDuration(rng,
-        WeatherConstants::MIN_CLEAR_TIME,
-        WeatherConstants::MAX_CLEAR_TIME);
+i32 WeatherUtils::getRandomClearDuration(mc::math::IRandom& rng)
+{
+    return getRandomWeatherDuration(rng, WeatherConstants::MIN_CLEAR_TIME, WeatherConstants::MAX_CLEAR_TIME);
 }
 
-i32 WeatherUtils::getRandomRainDuration(mc::math::IRandom& rng) {
-    return getRandomWeatherDuration(rng,
-        WeatherConstants::MIN_RAIN_TIME,
-        WeatherConstants::MAX_RAIN_TIME);
+i32 WeatherUtils::getRandomRainDuration(mc::math::IRandom& rng)
+{
+    return getRandomWeatherDuration(rng, WeatherConstants::MIN_RAIN_TIME, WeatherConstants::MAX_RAIN_TIME);
 }
 
-i32 WeatherUtils::getRandomThunderDuration(mc::math::IRandom& rng) {
-    return getRandomWeatherDuration(rng,
-        WeatherConstants::MIN_THUNDER_TIME,
-        WeatherConstants::MAX_THUNDER_TIME);
+i32 WeatherUtils::getRandomThunderDuration(mc::math::IRandom& rng)
+{
+    return getRandomWeatherDuration(rng, WeatherConstants::MIN_THUNDER_TIME, WeatherConstants::MAX_THUNDER_TIME);
 }
 
-f32 WeatherUtils::calculateStarBrightness(f32 rainStrength, i64 dayTime) {
+f32 WeatherUtils::calculateStarBrightness(f32 rainStrength, i64 dayTime)
+{
     // 星星只在夜晚可见
     // 夜晚时间: 约 12542 - 23459 (日落到日出)
     if (dayTime < 12542 || dayTime > 23459) {

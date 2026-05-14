@@ -9,15 +9,7 @@ namespace mc {
  *
  * 对齐 1.16.5 `CoatColors`。
  */
-enum class CoatColors : u8 {
-    White = 0,
-    Creamy = 1,
-    Chestnut = 2,
-    Brown = 3,
-    Black = 4,
-    Gray = 5,
-    DarkBrown = 6
-};
+enum class CoatColors : u8 { White = 0, Creamy = 1, Chestnut = 2, Brown = 3, Black = 4, Gray = 5, DarkBrown = 6 };
 
 inline constexpr u8 COAT_COLORS_COUNT = 7;
 

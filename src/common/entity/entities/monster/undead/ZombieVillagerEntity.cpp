@@ -1,17 +1,17 @@
 #include "ZombieVillagerEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../effect/EffectInstance.hpp"
-#include "../../../effect/EffectType.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../utils/ItemDropHelper.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../effect/EffectInstance.hpp"
+#include "../../../effect/EffectType.hpp"
+#include "../../../utils/ItemDropHelper.hpp"
 #include <memory>
 #include <spdlog/spdlog.h>
 
@@ -21,38 +21,35 @@ namespace mc {
 // 静态数据参数初始化
 // ============================================================================
 
-entity::DataParameter<bool> ZombieVillagerEntity::CONVERTING_PARAM =
-    entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> ZombieVillagerEntity::CONVERTING_PARAM = entity::EntityDataManager::createKey<bool>();
 
-entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_TYPE_PARAM =
-    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_TYPE_PARAM = entity::EntityDataManager::createKey<i32>();
 
 entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_PROFESSION_PARAM =
     entity::EntityDataManager::createKey<i32>();
 
-entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_LEVEL_PARAM =
-    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_LEVEL_PARAM = entity::EntityDataManager::createKey<i32>();
 
 // ============================================================================
 // 常量
 // ============================================================================
 
 namespace {
-    // 基础治愈时间范围（ticks）
-    constexpr i32 CONVERSION_TIME_MIN = 3600;   // 3分钟
-    constexpr i32 CONVERSION_TIME_MAX = 6000;   // 5分钟
+// 基础治愈时间范围（ticks）
+constexpr i32 CONVERSION_TIME_MIN = 3600; // 3分钟
+constexpr i32 CONVERSION_TIME_MAX = 6000; // 5分钟
 
-    // 力量效果加速：每级减少 10% 的治愈时间
-    constexpr f32 STRENGTH_SPEEDUP_PER_LEVEL = 0.1f;
+// 力量效果加速：每级减少 10% 的治愈时间
+constexpr f32 STRENGTH_SPEEDUP_PER_LEVEL = 0.1f;
 
-    // 铁栏杆/床加速检测范围和概率
-    constexpr i32 SPEEDUP_CHECK_RANGE = 4;
-    constexpr f32 SPEEDUP_CHANCE = 0.3f;
-    constexpr i32 SPEEDUP_MAX_BONUS = 14;  // 最多加速14次
+// 铁栏杆/床加速检测范围和概率
+constexpr i32 SPEEDUP_CHECK_RANGE = 4;
+constexpr f32 SPEEDUP_CHANCE = 0.3f;
+constexpr i32 SPEEDUP_MAX_BONUS = 14; // 最多加速14次
 
-    // 恶心效果持续时间（治愈后）
-    constexpr i32 NAUSEA_DURATION = 200;  // 10秒
-}
+// 恶心效果持续时间（治愈后）
+constexpr i32 NAUSEA_DURATION = 200; // 10秒
+} // namespace
 
 // ============================================================================
 // 构造函数
@@ -72,7 +69,8 @@ ZombieVillagerEntity::ZombieVillagerEntity(LegacyEntityType type, EntityId id)
     registerData();
 }
 
-std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<ZombieVillagerEntity>(LegacyEntityType::Unknown, 0);
 }
 
@@ -80,7 +78,8 @@ std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/) {
 // 数据同步
 // ============================================================================
 
-void ZombieVillagerEntity::registerData() {
+void ZombieVillagerEntity::registerData()
+{
     ZombieEntity::registerData();
 
     // 注册僵尸村民特有的数据参数
@@ -90,7 +89,8 @@ void ZombieVillagerEntity::registerData() {
     m_dataManager.registerParam(VILLAGER_LEVEL_PARAM, 1);
 }
 
-void ZombieVillagerEntity::syncMetadataFromDataManager() {
+void ZombieVillagerEntity::syncMetadataFromDataManager()
+{
     ZombieEntity::syncMetadataFromDataManager();
 
     // 从数据管理器同步治愈状态
@@ -98,11 +98,13 @@ void ZombieVillagerEntity::syncMetadataFromDataManager() {
 
     // 从数据管理器同步村民数据
     m_villagerData.setType(static_cast<entity::VillagerType>(m_dataManager.get<i32>(VILLAGER_TYPE_PARAM)));
-    m_villagerData.setProfession(static_cast<entity::VillagerProfession>(m_dataManager.get<i32>(VILLAGER_PROFESSION_PARAM)));
+    m_villagerData.setProfession(
+        static_cast<entity::VillagerProfession>(m_dataManager.get<i32>(VILLAGER_PROFESSION_PARAM)));
     m_villagerData.setLevel(m_dataManager.get<i32>(VILLAGER_LEVEL_PARAM));
 }
 
-void ZombieVillagerEntity::setVillagerData(const entity::VillagerData& data) {
+void ZombieVillagerEntity::setVillagerData(const entity::VillagerData& data)
+{
     m_villagerData = data;
 
     // 同步到数据管理器
@@ -111,22 +113,26 @@ void ZombieVillagerEntity::setVillagerData(const entity::VillagerData& data) {
     m_dataManager.set(VILLAGER_LEVEL_PARAM, data.level());
 }
 
-void ZombieVillagerEntity::setProfession(entity::VillagerProfession profession) {
+void ZombieVillagerEntity::setProfession(entity::VillagerProfession profession)
+{
     m_villagerData.setProfession(profession);
     m_dataManager.set(VILLAGER_PROFESSION_PARAM, static_cast<i32>(profession));
 }
 
-void ZombieVillagerEntity::setVillagerType(entity::VillagerType type) {
+void ZombieVillagerEntity::setVillagerType(entity::VillagerType type)
+{
     m_villagerData.setType(type);
     m_dataManager.set(VILLAGER_TYPE_PARAM, static_cast<i32>(type));
 }
 
-void ZombieVillagerEntity::setTradingLevel(i32 level) {
+void ZombieVillagerEntity::setTradingLevel(i32 level)
+{
     m_villagerData.setLevel(level);
     m_dataManager.set(VILLAGER_LEVEL_PARAM, level);
 }
 
-void ZombieVillagerEntity::setTradingExperience(i32 exp) {
+void ZombieVillagerEntity::setTradingExperience(i32 exp)
+{
     m_villagerData.setExperience(exp);
     // 注意：经验值不需要同步到客户端，仅服务端保存
 }
@@ -135,7 +141,8 @@ void ZombieVillagerEntity::setTradingExperience(i32 exp) {
 // 治愈系统
 // ============================================================================
 
-void ZombieVillagerEntity::setConversionTime(i32 time) {
+void ZombieVillagerEntity::setConversionTime(i32 time)
+{
     m_conversionTime = time;
     m_converting = time > 0;
 
@@ -143,7 +150,8 @@ void ZombieVillagerEntity::setConversionTime(i32 time) {
     m_dataManager.set(CONVERTING_PARAM, m_converting);
 }
 
-void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 time) {
+void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 time)
+{
     // 计算治愈时间
     if (time < 0) {
         // 随机时间：3600-6000 ticks (3-5分钟)
@@ -164,26 +172,27 @@ void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 t
     // 添加力量效果（持续整个治愈时间）
     // MC 1.16.5: 根据难度添加力量效果
     // 简单: 无力量, 普通: 力量 I, 困难: 力量 II
-    i32 strengthLevel = 0;  // TODO: 从世界获取难度
+    i32 strengthLevel = 0; // TODO: 从世界获取难度
     if (strengthLevel > 0) {
-        addEffect(entity::effect::EffectInstance(
-            entity::effect::EffectType::Strength,
+        addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Strength,
             time,
-            strengthLevel - 1,  // amplifier = level - 1
-            false,  // ambient
-            true,   // visible
-            true    // showIcon
-        ));
+            strengthLevel - 1, // amplifier = level - 1
+            false,             // ambient
+            true,              // visible
+            true               // showIcon
+            ));
     }
 
     // 广播治愈状态（客户端播放音效）
     // world()->broadcastEntityStatus(id(), static_cast<u8>(16));
 
     spdlog::debug("ZombieVillagerEntity::startConverting: started conversion, time={} ticks, starter={}",
-                  time, starterUuid.empty() ? "none" : starterUuid);
+        time,
+        starterUuid.empty() ? "none" : starterUuid);
 }
 
-void ZombieVillagerEntity::stopConverting() {
+void ZombieVillagerEntity::stopConverting()
+{
     m_converting = false;
     m_conversionTime = 0;
     m_conversionStarterUuid.clear();
@@ -197,14 +206,14 @@ void ZombieVillagerEntity::stopConverting() {
     spdlog::debug("ZombieVillagerEntity::stopConverting: stopped conversion");
 }
 
-void ZombieVillagerEntity::finishConverting() {
+void ZombieVillagerEntity::finishConverting()
+{
     if (m_world == nullptr) {
         spdlog::warn("ZombieVillagerEntity::finishConverting: world is null");
         return;
     }
 
-    spdlog::debug("ZombieVillagerEntity::finishConverting: converting to villager at ({}, {}, {})",
-                  x(), y(), z());
+    spdlog::debug("ZombieVillagerEntity::finishConverting: converting to villager at ({}, {}, {})", x(), y(), z());
 
     // 创建村民实体
     auto& registry = entity::EntityRegistry::instance();
@@ -259,13 +268,11 @@ void ZombieVillagerEntity::finishConverting() {
             // 其他装备根据掉落概率丢弃
             // MC 1.16.5: 只有 dropChance > 1.0 的装备才会丢弃
             // 简化实现：直接丢弃所有非绑定装备
-            ItemDropHelper::spawnItemAtEntity(
-                this,
+            ItemDropHelper::spawnItemAtEntity(this,
                 equipment,
-                0.5f,  // Y offset
+                0.5f, // Y offset
                 rng,
-                ItemDropHelper::DEFAULT_PICKUP_DELAY
-            );
+                ItemDropHelper::DEFAULT_PICKUP_DELAY);
         }
     }
 
@@ -288,14 +295,13 @@ void ZombieVillagerEntity::finishConverting() {
     }
 
     // 给村民添加恶心效果（10秒）
-    villager->addEffect(entity::effect::EffectInstance(
-        entity::effect::EffectType::Nausea,
+    villager->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Nausea,
         NAUSEA_DURATION,
-        0,  // amplifier = 0 (level I)
-        false,  // ambient
-        true,   // visible
-        true    // showIcon
-    ));
+        0,     // amplifier = 0 (level I)
+        false, // ambient
+        true,  // visible
+        true   // showIcon
+        ));
 
     // 播放治愈音效
     playSound(SoundEvents::ENTITY_ZOMBIE_VILLAGER_CURE, 1.0f, 1.0f);
@@ -317,7 +323,8 @@ void ZombieVillagerEntity::finishConverting() {
     spdlog::debug("ZombieVillagerEntity::finishConverting: successfully converted to villager id={}", newId);
 }
 
-i32 ZombieVillagerEntity::getConversionProgress() const {
+i32 ZombieVillagerEntity::getConversionProgress() const
+{
     if (m_world == nullptr) {
         return 1;
     }
@@ -373,7 +380,8 @@ i32 ZombieVillagerEntity::getConversionProgress() const {
     return progress;
 }
 
-bool ZombieVillagerEntity::canDespawn(f64 distanceToClosestPlayer) const {
+bool ZombieVillagerEntity::canDespawn(f64 distanceToClosestPlayer) const
+{
     // 正在治愈的僵尸村民不能消失
     if (m_converting) {
         return false;
@@ -392,7 +400,8 @@ bool ZombieVillagerEntity::canDespawn(f64 distanceToClosestPlayer) const {
 // 生命周期
 // ============================================================================
 
-void ZombieVillagerEntity::tick() {
+void ZombieVillagerEntity::tick()
+{
     ZombieEntity::tick();
 
     // 更新治愈倒计时
@@ -411,13 +420,15 @@ void ZombieVillagerEntity::tick() {
 // AI 目标
 // ============================================================================
 
-void ZombieVillagerEntity::registerGoals() {
+void ZombieVillagerEntity::registerGoals()
+{
     ZombieEntity::registerGoals();
 
     // 僵尸村民没有额外 AI（与普通僵尸相同）
 }
 
-void ZombieVillagerEntity::registerAttributes() {
+void ZombieVillagerEntity::registerAttributes()
+{
     ZombieEntity::registerAttributes();
 
     // 僵尸村民的属性与普通僵尸相同
@@ -427,19 +438,23 @@ void ZombieVillagerEntity::registerAttributes() {
 // 声音
 // ============================================================================
 
-std::optional<ResourceLocation> ZombieVillagerEntity::getAmbientSound() const {
+std::optional<ResourceLocation> ZombieVillagerEntity::getAmbientSound() const
+{
     return SoundEvents::ENTITY_ZOMBIE_VILLAGER_AMBIENT;
 }
 
-std::optional<ResourceLocation> ZombieVillagerEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> ZombieVillagerEntity::getHurtSound(DamageSource& /*source*/) const
+{
     return SoundEvents::ENTITY_ZOMBIE_VILLAGER_HURT;
 }
 
-std::optional<ResourceLocation> ZombieVillagerEntity::getDeathSound() const {
+std::optional<ResourceLocation> ZombieVillagerEntity::getDeathSound() const
+{
     return SoundEvents::ENTITY_ZOMBIE_VILLAGER_DEATH;
 }
 
-std::optional<ResourceLocation> ZombieVillagerEntity::getStepSound() const {
+std::optional<ResourceLocation> ZombieVillagerEntity::getStepSound() const
+{
     return SoundEvents::ENTITY_ZOMBIE_VILLAGER_STEP;
 }
 
@@ -447,7 +462,8 @@ std::optional<ResourceLocation> ZombieVillagerEntity::getStepSound() const {
 // 属性
 // ============================================================================
 
-f32 ZombieVillagerEntity::eyeHeight() const {
+f32 ZombieVillagerEntity::eyeHeight() const
+{
     return isBaby() ? 0.93f : 1.79f;
 }
 

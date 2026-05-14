@@ -2,17 +2,17 @@
 
 #include "../CriterionTrigger.hpp"
 #include "../conditions/BlockPredicate.hpp"
-#include "../conditions/LocationPredicate.hpp"
 #include "../conditions/ItemPredicate.hpp"
+#include "../conditions/LocationPredicate.hpp"
 #include <memory>
 
 // 前向声明
 namespace mc {
-    class BlockState;
-    class IWorld;
-    class BlockPos;
-    class ItemStack;
-}
+class BlockState;
+class IWorld;
+class BlockPos;
+class ItemStack;
+} // namespace mc
 
 namespace mc::advancement {
 
@@ -32,9 +32,7 @@ class EnterBlockTrigger : public AbstractCriterionTrigger<EnterBlockTriggerInsta
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:enter_block";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -86,18 +84,11 @@ class PlacedBlockTrigger : public AbstractCriterionTrigger<PlacedBlockTriggerIns
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:placed_block";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
-    void trigger(
-        ServerPlayer& player,
-        const BlockState& state,
-        const BlockPos& pos,
-        const ItemStack& item
-    );
+    void trigger(ServerPlayer& player, const BlockState& state, const BlockPos& pos, const ItemStack& item);
 };
 
 /**
@@ -108,18 +99,10 @@ public:
     static constexpr const char* TRIGGER_ID = "minecraft:placed_block";
 
     PlacedBlockTriggerInstance() = default;
-    PlacedBlockTriggerInstance(
-        BlockPredicate block,
-        LocationPredicate location,
-        ItemPredicate item
-    );
+    PlacedBlockTriggerInstance(BlockPredicate block, LocationPredicate location, ItemPredicate item);
 
     [[nodiscard]] bool test(
-        const BlockState& state,
-        const IWorld& world,
-        const BlockPos& pos,
-        const ItemStack& item
-    ) const;
+        const BlockState& state, const IWorld& world, const BlockPos& pos, const ItemStack& item) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
@@ -139,9 +122,7 @@ class SlideDownBlockTrigger : public AbstractCriterionTrigger<SlideDownBlockTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:slide_down_block";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -176,18 +157,11 @@ class BeeNestDestroyedTrigger : public AbstractCriterionTrigger<BeeNestDestroyed
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:bee_nest_destroyed";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
-    void trigger(
-        ServerPlayer& player,
-        const BlockState& state,
-        const ItemStack& tool,
-        i32 numBeesInside
-    );
+    void trigger(ServerPlayer& player, const BlockState& state, const ItemStack& tool, i32 numBeesInside);
 };
 
 /**
@@ -200,11 +174,7 @@ public:
     BeeNestDestroyedTriggerInstance() = default;
     BeeNestDestroyedTriggerInstance(BlockPredicate block, ItemPredicate item, IntBounds numBees);
 
-    [[nodiscard]] bool test(
-        const BlockState& state,
-        const ItemStack& tool,
-        i32 numBeesInside
-    ) const;
+    [[nodiscard]] bool test(const BlockState& state, const ItemStack& tool, i32 numBeesInside) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;

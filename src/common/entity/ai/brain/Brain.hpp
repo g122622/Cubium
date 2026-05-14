@@ -1,27 +1,30 @@
 #pragma once
 
 #include "memory/Memory.hpp"
-#include "memory/MemoryModuleType.hpp"
 #include "memory/MemoryModuleStatus.hpp"
+#include "memory/MemoryModuleType.hpp"
 #include "schedule/Activity.hpp"
 #include "schedule/Schedule.hpp"
 #include "sensor/Sensor.hpp"
 #include "sensor/SensorType.hpp"
 #include "task/Task.hpp"
-#include <unordered_map>
-#include <unordered_set>
+#include <any>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
-#include <functional>
-#include <any>
 
 // std::hash 特化用于 MemoryRequirement pair
 namespace std {
-template<>
-struct hash<std::pair<const mc::entity::ai::brain::memory::MemoryModuleTypeBase*, mc::entity::ai::brain::memory::MemoryModuleStatus>> {
-    size_t operator()(const std::pair<const mc::entity::ai::brain::memory::MemoryModuleTypeBase*, mc::entity::ai::brain::memory::MemoryModuleStatus>& p) const noexcept {
+template <>
+struct hash<std::pair<const mc::entity::ai::brain::memory::MemoryModuleTypeBase*,
+    mc::entity::ai::brain::memory::MemoryModuleStatus>> {
+    size_t operator()(const std::pair<const mc::entity::ai::brain::memory::MemoryModuleTypeBase*,
+        mc::entity::ai::brain::memory::MemoryModuleStatus>& p) const noexcept
+    {
         auto h1 = reinterpret_cast<size_t>(p.first);
         auto h2 = static_cast<size_t>(p.second);
         return h1 ^ (h2 << 1);
@@ -65,7 +68,8 @@ public:
     using PriorityTaskMap = std::map<i32, ActivityTaskMap>;
     using MemoryRequirement = std::pair<const memory::MemoryModuleTypeBase*, memory::MemoryModuleStatus>;
     using ActivityRequirementMap = std::unordered_map<schedule::Activity, std::unordered_set<MemoryRequirement>>;
-    using ForgettingMap = std::unordered_map<schedule::Activity, std::unordered_set<const memory::MemoryModuleTypeBase*>>;
+    using ForgettingMap =
+        std::unordered_map<schedule::Activity, std::unordered_set<const memory::MemoryModuleTypeBase*>>;
 
     /**
      * @brief 构造Brain
@@ -76,14 +80,16 @@ public:
      * @brief 注册内存模块类型
      */
     template <typename T>
-    void registerMemory(const memory::MemoryModuleType<T>* type) {
+    void registerMemory(const memory::MemoryModuleType<T>* type)
+    {
         m_memories[type] = std::nullopt;
     }
 
     /**
      * @brief 注册传感器
      */
-    void registerSensor(std::unique_ptr<sensor::Sensor<E>> sensor) {
+    void registerSensor(std::unique_ptr<sensor::Sensor<E>> sensor)
+    {
         if (sensor) {
             // 注册传感器使用的内存模块
             for (auto* memType : sensor->getUsedMemories()) {
@@ -99,28 +105,23 @@ public:
      * @brief 设置日程
      * @param schedule 日程指针（通常指向静态日程实例）
      */
-    void setSchedule(const schedule::Schedule* schedule) {
-        m_schedulePtr = schedule;
-    }
+    void setSchedule(const schedule::Schedule* schedule) { m_schedulePtr = schedule; }
 
     /**
      * @brief 获取日程
      */
-    [[nodiscard]] const schedule::Schedule* getSchedule() const {
-        return m_schedulePtr;
-    }
+    [[nodiscard]] const schedule::Schedule* getSchedule() const { return m_schedulePtr; }
 
     /**
      * @brief 设置后备活动
      */
-    void setFallbackActivity(const schedule::Activity& activity) {
-        m_fallbackActivity = activity;
-    }
+    void setFallbackActivity(const schedule::Activity& activity) { m_fallbackActivity = activity; }
 
     /**
      * @brief 设置默认活动
      */
-    void setDefaultActivities(const std::unordered_set<schedule::Activity>& activities) {
+    void setDefaultActivities(const std::unordered_set<schedule::Activity>& activities)
+    {
         m_defaultActivities = activities;
     }
 
@@ -132,12 +133,12 @@ public:
      * @param requirements 记忆要求
      * @param memoriesToForget 切换活动时要遗忘的记忆
      */
-    void registerActivity(
-        const schedule::Activity& activity,
+    void registerActivity(const schedule::Activity& activity,
         i32 priority,
         std::vector<std::unique_ptr<task::Task<E>>> tasks,
         const std::unordered_set<MemoryRequirement>& requirements = {},
-        const std::unordered_set<const memory::MemoryModuleTypeBase*>& memoriesToForget = {}) {
+        const std::unordered_set<const memory::MemoryModuleTypeBase*>& memoriesToForget = {})
+    {
 
         if (!requirements.empty()) {
             m_requiredMemoryStates[activity] = requirements;
@@ -155,7 +156,8 @@ public:
     /**
      * @brief 切换到指定活动
      */
-    void switchTo(const schedule::Activity& activity) {
+    void switchTo(const schedule::Activity& activity)
+    {
         if (hasRequiredMemories(activity)) {
             startActivity(activity);
         } else {
@@ -166,14 +168,16 @@ public:
     /**
      * @brief 检查是否正在进行某活动
      */
-    [[nodiscard]] bool hasActivity(const schedule::Activity& activity) const {
+    [[nodiscard]] bool hasActivity(const schedule::Activity& activity) const
+    {
         return m_activities.find(activity) != m_activities.end();
     }
 
     /**
      * @brief 获取当前活动
      */
-    [[nodiscard]] std::optional<schedule::Activity> getCurrentActivity() const {
+    [[nodiscard]] std::optional<schedule::Activity> getCurrentActivity() const
+    {
         for (const auto& activity : m_activities) {
             if (m_defaultActivities.find(activity) == m_defaultActivities.end()) {
                 return activity;
@@ -187,7 +191,8 @@ public:
     /**
      * @brief 检查是否有某个记忆
      */
-    [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type) const {
+    [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type) const
+    {
         return hasMemory(type, memory::MemoryModuleStatus::VALUE_PRESENT);
     }
 
@@ -196,8 +201,8 @@ public:
      *
      * MC 1.16.5: 未注册的记忆任何状态都返回false
      */
-    [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type,
-                                  memory::MemoryModuleStatus status) const {
+    [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type, memory::MemoryModuleStatus status) const
+    {
         auto it = m_memories.find(type);
         if (it == m_memories.end()) {
             // MC 1.16.5: 未注册的记忆返回false，即使状态是REGISTERED
@@ -223,7 +228,8 @@ public:
      * @return 记忆值，如果不存在或类型不匹配返回 std::nullopt
      */
     template <typename T>
-    std::optional<T> getMemory(const memory::MemoryModuleType<T>* type) const {
+    std::optional<T> getMemory(const memory::MemoryModuleType<T>* type) const
+    {
         auto it = m_memories.find(type);
         if (it == m_memories.end() || !it->second.has_value()) {
             return std::nullopt;
@@ -235,7 +241,8 @@ public:
                 const auto& memory = std::any_cast<const memory::Memory<T>&>(anyValue);
                 return memory.getValue();
             }
-        } catch (const std::bad_any_cast&) {
+        }
+        catch (const std::bad_any_cast&) {
             // 类型不匹配，返回 nullopt
         }
         return std::nullopt;
@@ -248,9 +255,10 @@ public:
      * @param value 记忆值
      */
     template <typename T>
-    void setMemory(const memory::MemoryModuleType<T>* type, const T& value) {
+    void setMemory(const memory::MemoryModuleType<T>* type, const T& value)
+    {
         m_memories[type] = memory::Memory<T>::permanent(value);
-        m_memoryTTL[type] = std::numeric_limits<i64>::max();  // 永不过期
+        m_memoryTTL[type] = std::numeric_limits<i64>::max(); // 永不过期
     }
 
     /**
@@ -261,7 +269,8 @@ public:
      * @param ttl 存活时间(ticks)
      */
     template <typename T>
-    void setMemoryWithTTL(const memory::MemoryModuleType<T>* type, const T& value, i64 ttl) {
+    void setMemoryWithTTL(const memory::MemoryModuleType<T>* type, const T& value, i64 ttl)
+    {
         m_memories[type] = memory::Memory<T>::timed(value, ttl);
         m_memoryTTL[type] = ttl;
     }
@@ -272,7 +281,8 @@ public:
      * @param type 记忆模块类型
      */
     template <typename T>
-    void removeMemory(const memory::MemoryModuleType<T>* type) {
+    void removeMemory(const memory::MemoryModuleType<T>* type)
+    {
         m_memories[type] = std::nullopt;
         m_memoryTTL.erase(type);
     }
@@ -287,7 +297,8 @@ public:
      * @param dayTime 日内时间
      * @param random 随机数生成器（用于任务持续时间）
      */
-    void tick(IWorld* world, E* entity, i64 gameTime, i32 dayTime, math::Random& random) {
+    void tick(IWorld* world, E* entity, i64 gameTime, i32 dayTime, math::Random& random)
+    {
         // 更新记忆TTL
         tickMemories();
 
@@ -308,7 +319,8 @@ public:
      * @brief 停止所有任务
      * MC 1.16.5: 直接遍历避免临时vector分配
      */
-    void stopAllTasks(IWorld* world, E* owner, i64 gameTime) {
+    void stopAllTasks(IWorld* world, E* owner, i64 gameTime)
+    {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
                 for (auto& task : taskSet) {
@@ -323,7 +335,8 @@ public:
     /**
      * @brief 重置Brain状态
      */
-    void clear() {
+    void clear()
+    {
         m_memories.clear();
         m_activities.clear();
         m_activities.insert(m_defaultActivities.begin(), m_defaultActivities.end());
@@ -334,7 +347,8 @@ private:
      * @brief 更新记忆TTL
      * MC 1.16.5: 使用原地删除避免临时vector分配
      */
-    void tickMemories() {
+    void tickMemories()
+    {
         auto it = m_memoryTTL.begin();
         while (it != m_memoryTTL.end()) {
             if (it->second != std::numeric_limits<i64>::max()) {
@@ -352,7 +366,8 @@ private:
     /**
      * @brief 更新传感器
      */
-    void tickSensors(IWorld* world, E* entity) {
+    void tickSensors(IWorld* world, E* entity)
+    {
         for (auto& sensor : m_sensors) {
             sensor->tick(world, entity);
         }
@@ -361,7 +376,8 @@ private:
     /**
      * @brief 根据日程更新活动
      */
-    void updateActivity(i32 dayTime, i64 gameTime) {
+    void updateActivity(i32 dayTime, i64 gameTime)
+    {
         if (m_schedulePtr && gameTime - m_lastGameTime > 20) {
             m_lastGameTime = gameTime;
             auto scheduledActivity = m_schedulePtr->getScheduledActivity(dayTime);
@@ -376,7 +392,8 @@ private:
      *
      * MC 1.16.5: 如果活动没有配置记忆要求，返回 false
      */
-    [[nodiscard]] bool hasRequiredMemories(const schedule::Activity& activity) const {
+    [[nodiscard]] bool hasRequiredMemories(const schedule::Activity& activity) const
+    {
         auto it = m_requiredMemoryStates.find(activity);
         if (it == m_requiredMemoryStates.end()) {
             // MC 1.16.5: 活动没有记忆要求配置时返回 false
@@ -394,7 +411,8 @@ private:
     /**
      * @brief 开始活动
      */
-    void startActivity(const schedule::Activity& activity) {
+    void startActivity(const schedule::Activity& activity)
+    {
         if (hasActivity(activity)) {
             return;
         }
@@ -419,7 +437,8 @@ private:
     /**
      * @brief 启动任务
      */
-    void startTasks(IWorld* world, E* entity, i64 gameTime, math::Random& random) {
+    void startTasks(IWorld* world, E* entity, i64 gameTime, math::Random& random)
+    {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
                 if (hasActivity(activity)) {
@@ -437,7 +456,8 @@ private:
      * @brief 更新任务
      * MC 1.16.5: 直接遍历避免临时vector分配
      */
-    void tickTasks(IWorld* world, E* entity, i64 gameTime) {
+    void tickTasks(IWorld* world, E* entity, i64 gameTime)
+    {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
                 for (auto& task : taskSet) {
@@ -452,7 +472,8 @@ private:
     /**
      * @brief 获取运行中的任务
      */
-    std::vector<task::Task<E>*> getRunningTasks() {
+    std::vector<task::Task<E>*> getRunningTasks()
+    {
         std::vector<task::Task<E>*> result;
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {

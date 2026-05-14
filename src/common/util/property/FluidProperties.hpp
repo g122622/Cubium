@@ -11,8 +11,8 @@
  * - FALLING: 是否下落，用于流体从上方落下
  */
 
-#include "IntegerProperty.hpp"
 #include "BooleanProperty.hpp"
+#include "IntegerProperty.hpp"
 
 namespace mc::fluid {
 
@@ -37,7 +37,8 @@ public:
      * - 方块level=1-7 -> 流体level=1-7
      * - 方块level=8-15 -> 流体level=8 + falling=true
      */
-    static const IntegerProperty& LEVEL_1_8() {
+    static const IntegerProperty& LEVEL_1_8()
+    {
         static auto prop = IntegerProperty::create("level", 1, 8);
         return *prop;
     }
@@ -48,7 +49,8 @@ public:
      * 当流体从上方落下时设置为true。
      * 下落的流体总是level=8，但falling=true。
      */
-    static const BooleanProperty& FALLING() {
+    static const BooleanProperty& FALLING()
+    {
         static auto prop = BooleanProperty::create("falling");
         return *prop;
     }

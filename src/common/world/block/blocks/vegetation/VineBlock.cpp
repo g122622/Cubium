@@ -1,46 +1,49 @@
 #include "VineBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../BlockRegistry.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../WorldConstants.hpp"
+#include "../../BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {
 
 VineBlock::VineBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::UP())
-        .add(BlockStateProperties::NORTH())
-        .add(BlockStateProperties::SOUTH())
-        .add(BlockStateProperties::EAST())
-        .add(BlockStateProperties::WEST())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::UP())
+            .add(BlockStateProperties::NORTH())
+            .add(BlockStateProperties::SOUTH())
+            .add(BlockStateProperties::EAST())
+            .add(BlockStateProperties::WEST())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态：无连接
     setDefaultState(defaultState()
-        .with(BlockStateProperties::UP(), false)
-        .with(BlockStateProperties::NORTH(), false)
-        .with(BlockStateProperties::SOUTH(), false)
-        .with(BlockStateProperties::EAST(), false)
-        .with(BlockStateProperties::WEST(), false));
+            .with(BlockStateProperties::UP(), false)
+            .with(BlockStateProperties::NORTH(), false)
+            .with(BlockStateProperties::SOUTH(), false)
+            .with(BlockStateProperties::EAST(), false)
+            .with(BlockStateProperties::WEST(), false));
 
     // 创建各方向的形状（薄层）
-    constexpr f32 thickness = 0.0625f;  // 1/16 块厚度
+    constexpr f32 thickness = 0.0625f; // 1/16 块厚度
     m_northShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, thickness);
     m_southShape = CollisionShape::box(0.0f, 0.0f, 1.0f - thickness, 1.0f, 1.0f, 1.0f);
     m_eastShape = CollisionShape::box(1.0f - thickness, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
     m_westShape = CollisionShape::box(0.0f, 0.0f, 0.0f, thickness, 1.0f, 1.0f);
 }
 
-BlockState VineBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState VineBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 根据点击的面确定初始连接方向
     Direction clickedFace = context.getClickedFace();
     const IWorld& world = context.getWorld();
@@ -66,10 +69,8 @@ BlockState VineBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WEST(), west);
 }
 
-bool VineBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool VineBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     // 检查至少有一个方向可以附着
     if (state.get(BlockStateProperties::UP()) && canAttachTo(world, pos, Direction::Up)) {
@@ -94,13 +95,13 @@ bool VineBlock::isValidPosition(
     return belowState != nullptr && belowState->is(this);
 }
 
-BlockState VineBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState VineBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -148,7 +149,8 @@ BlockState VineBlock::updatePostPlacement(
     return state;
 }
 
-const BlockState& VineBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& VineBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     bool north = state.get(BlockStateProperties::NORTH());
     bool south = state.get(BlockStateProperties::SOUTH());
     bool east = state.get(BlockStateProperties::EAST());
@@ -158,20 +160,17 @@ const BlockState& VineBlock::rotate(const BlockState& state, Rotation rotation) 
         case Rotation::None:
             return state;
         case Rotation::Clockwise90:
-            return state
-                .with(BlockStateProperties::NORTH(), west)
+            return state.with(BlockStateProperties::NORTH(), west)
                 .with(BlockStateProperties::SOUTH(), east)
                 .with(BlockStateProperties::EAST(), north)
                 .with(BlockStateProperties::WEST(), south);
         case Rotation::Clockwise180:
-            return state
-                .with(BlockStateProperties::NORTH(), south)
+            return state.with(BlockStateProperties::NORTH(), south)
                 .with(BlockStateProperties::SOUTH(), north)
                 .with(BlockStateProperties::EAST(), west)
                 .with(BlockStateProperties::WEST(), east);
         case Rotation::CounterClockwise90:
-            return state
-                .with(BlockStateProperties::NORTH(), east)
+            return state.with(BlockStateProperties::NORTH(), east)
                 .with(BlockStateProperties::SOUTH(), west)
                 .with(BlockStateProperties::EAST(), south)
                 .with(BlockStateProperties::WEST(), north);
@@ -180,43 +179,43 @@ const BlockState& VineBlock::rotate(const BlockState& state, Rotation rotation) 
     }
 }
 
-const BlockState& VineBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& VineBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     switch (mirror) {
         case Mirror::None:
             return state;
         case Mirror::LeftRight: {
             bool north = state.get(BlockStateProperties::NORTH());
             bool south = state.get(BlockStateProperties::SOUTH());
-            return state
-                .with(BlockStateProperties::NORTH(), south)
-                .with(BlockStateProperties::SOUTH(), north);
+            return state.with(BlockStateProperties::NORTH(), south).with(BlockStateProperties::SOUTH(), north);
         }
         case Mirror::FrontBack: {
             bool east = state.get(BlockStateProperties::EAST());
             bool west = state.get(BlockStateProperties::WEST());
-            return state
-                .with(BlockStateProperties::EAST(), west)
-                .with(BlockStateProperties::WEST(), east);
+            return state.with(BlockStateProperties::EAST(), west).with(BlockStateProperties::WEST(), east);
         }
         default:
             return state;
     }
 }
 
-const CollisionShape& VineBlock::getShape(const BlockState& state) const {
+const CollisionShape& VineBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 返回空形状（藤蔓是薄层，没有碰撞）
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-const CollisionShape& VineBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& VineBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 参考: net.minecraft.block.VineBlock#randomTick
     // 25% 概率生长
     if (random.nextInt(4) != 0) {
@@ -243,7 +242,7 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
         if (adjState != nullptr && adjState->isAir()) {
             // 目标位置是空气，尝试蔓延
-            Direction cwDir = Directions::rotateY(direction);   // 顺时针
+            Direction cwDir = Directions::rotateY(direction);     // 顺时针
             Direction ccwDir = Directions::rotateYCCW(direction); // 逆时针
             const BooleanProperty* cwProp = getPropertyFor(cwDir);
             const BooleanProperty* ccwProp = getPropertyFor(ccwDir);
@@ -276,7 +275,7 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
                         world.setBlockState(cwAdjPos, &newState, 2);
                     }
                 } else if (hasCCW && adjState->isAir() &&
-                           canAttachTo(static_cast<IBlockReader&>(world), ccwSourcePos, oppositeDir)) {
+                    canAttachTo(static_cast<IBlockReader&>(world), ccwSourcePos, oppositeDir)) {
                     const BooleanProperty* oppositeProp = getPropertyFor(oppositeDir);
                     if (oppositeProp != nullptr) {
                         const BlockState& newState = defaultState().with(*oppositeProp, true);
@@ -348,10 +347,11 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     }
 }
 
-bool VineBlock::hasRoomToSpread(IBlockReader& world, const BlockPos& pos) const {
+bool VineBlock::hasRoomToSpread(IBlockReader& world, const BlockPos& pos) const
+{
     // 参考: net.minecraft.block.VineBlock#func_196539_a
     // 检查9x3x9范围内的藤蔓数量，最多允许5个
-    i32 vineCount = 5;  // 从5开始倒数
+    i32 vineCount = 5; // 从5开始倒数
 
     for (i32 dx = -4; dx <= 4; ++dx) {
         for (i32 dy = -1; dy <= 1; ++dy) {
@@ -371,17 +371,15 @@ bool VineBlock::hasRoomToSpread(IBlockReader& world, const BlockPos& pos) const 
     return true;
 }
 
-bool VineBlock::hasHorizontalConnection(const BlockState& state) const {
-    return state.get(BlockStateProperties::NORTH()) ||
-           state.get(BlockStateProperties::SOUTH()) ||
-           state.get(BlockStateProperties::EAST()) ||
-           state.get(BlockStateProperties::WEST());
+bool VineBlock::hasHorizontalConnection(const BlockState& state) const
+{
+    return state.get(BlockStateProperties::NORTH()) || state.get(BlockStateProperties::SOUTH()) ||
+        state.get(BlockStateProperties::EAST()) || state.get(BlockStateProperties::WEST());
 }
 
 BlockState VineBlock::copyRandomHorizontalConnections(
-    const BlockState& source,
-    const BlockState& target,
-    math::IRandom& random) const {
+    const BlockState& source, const BlockState& target, math::IRandom& random) const
+{
 
     BlockState result = target;
 
@@ -406,7 +404,8 @@ BlockState VineBlock::copyRandomHorizontalConnections(
     return result;
 }
 
-const BooleanProperty* VineBlock::getPropertyFor(Direction direction) const {
+const BooleanProperty* VineBlock::getPropertyFor(Direction direction) const
+{
     switch (direction) {
         case Direction::Up:
             return &BlockStateProperties::UP();
@@ -423,7 +422,8 @@ const BooleanProperty* VineBlock::getPropertyFor(Direction direction) const {
     }
 }
 
-bool VineBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
+bool VineBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const
+{
     BlockPos adjPos = pos.offset(direction);
     const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -435,7 +435,8 @@ bool VineBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction 
     return adjState->isSolid();
 }
 
-i32 VineBlock::getConnectionCount(const BlockState& state) const {
+i32 VineBlock::getConnectionCount(const BlockState& state) const
+{
     i32 count = 0;
     if (state.get(BlockStateProperties::UP())) count++;
     if (state.get(BlockStateProperties::NORTH())) count++;

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/storage/db/SectionKey.hpp"
-#include "common/core/Result.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -12,13 +12,7 @@ namespace mc::world::storage {
 /**
  * @brief 存储任务类型
  */
-enum class StorageTaskType : u8 {
-    SectionLoad,
-    SectionSave,
-    SectionFlush,
-    SnapshotCreate,
-    SnapshotRestore
-};
+enum class StorageTaskType : u8 { SectionLoad, SectionSave, SectionFlush, SnapshotCreate, SnapshotRestore };
 
 /**
  * @brief 存储任务包装

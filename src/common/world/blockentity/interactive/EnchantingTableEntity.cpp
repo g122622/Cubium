@@ -1,9 +1,9 @@
 ﻿#include "EnchantingTableEntity.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/VanillaBlocks.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../IWorld.hpp"
+#include "../../block/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc {
@@ -14,8 +14,7 @@ namespace {
 /// 玩家触发附魔台翻书动画的水平半径（方块）。
 constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE = 3.0f;
 /// 翻书动画判定中使用的平方半径，避免每帧开方。
-constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE_SQ =
-    ENCHANTING_TABLE_PLAYER_RANGE * ENCHANTING_TABLE_PLAYER_RANGE;
+constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE_SQ = ENCHANTING_TABLE_PLAYER_RANGE * ENCHANTING_TABLE_PLAYER_RANGE;
 
 /**
  * @brief 检测附魔台附近是否存在玩家。
@@ -24,11 +23,10 @@ constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE_SQ =
  * @param tablePos 附魔台位置。
  * @return true 表示半径内存在玩家，可驱动翻书动画展开。
  */
-[[nodiscard]] bool hasNearbyPlayer(IWorld& world, const BlockPos& tablePos) {
+[[nodiscard]] bool hasNearbyPlayer(IWorld& world, const BlockPos& tablePos)
+{
     const Vector3 center(
-        static_cast<f32>(tablePos.x) + 0.5f,
-        static_cast<f32>(tablePos.y) + 0.5f,
-        static_cast<f32>(tablePos.z) + 0.5f);
+        static_cast<f32>(tablePos.x) + 0.5f, static_cast<f32>(tablePos.y) + 0.5f, static_cast<f32>(tablePos.z) + 0.5f);
 
     const std::vector<Entity*> nearbyEntities =
         world.getEntitiesInRange(center, ENCHANTING_TABLE_PLAYER_RANGE, nullptr);
@@ -54,17 +52,19 @@ constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE_SQ =
 
 EnchantingTableEntity::EnchantingTableEntity(const BlockPos& pos)
     : BlockEntity(BlockEntityType::EnchantingTable, pos)
-    , m_randomSeed(static_cast<i32>(std::hash<BlockPos>{}(pos) % 10000)) {
-}
+    , m_randomSeed(static_cast<i32>(std::hash<BlockPos>{}(pos) % 10000))
+{}
 
 // ========== 方块实体接口 ==========
 
-void EnchantingTableEntity::tick(IWorld& world) {
+void EnchantingTableEntity::tick(IWorld& world)
+{
     MC_UNUSED(world);
     // 附魔台不需要 tick 更新
 }
 
-bool EnchantingTableEntity::load(const nlohmann::json& data) {
+bool EnchantingTableEntity::load(const nlohmann::json& data)
+{
     BlockEntity::load(data);
 
     // 加载自定义名称
@@ -76,7 +76,8 @@ bool EnchantingTableEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void EnchantingTableEntity::save(nlohmann::json& data) const {
+void EnchantingTableEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     // 保存自定义名称
@@ -85,7 +86,8 @@ void EnchantingTableEntity::save(nlohmann::json& data) const {
     }
 }
 
-std::unique_ptr<BlockEntity> EnchantingTableEntity::clone() const {
+std::unique_ptr<BlockEntity> EnchantingTableEntity::clone() const
+{
     auto entity = std::make_unique<EnchantingTableEntity>(m_pos);
     entity->m_customName = m_customName;
     entity->m_enchantPower = m_enchantPower;
@@ -94,7 +96,8 @@ std::unique_ptr<BlockEntity> EnchantingTableEntity::clone() const {
 
 // ========== 附魔力量 ==========
 
-void EnchantingTableEntity::recalculateEnchantPower(IWorld& world) {
+void EnchantingTableEntity::recalculateEnchantPower(IWorld& world)
+{
     m_enchantPower = 0;
 
     // 检查附魔台周围2格范围内的书架
@@ -110,11 +113,7 @@ void EnchantingTableEntity::recalculateEnchantPower(IWorld& world) {
             if (std::abs(dx) == 2 || std::abs(dz) == 2) {
                 // 检查两层高度：y+0 和 y+1
                 for (i32 dy = 0; dy <= 1; ++dy) {
-                    BlockPos bookshelfPos(
-                        m_pos.x + dx,
-                        m_pos.y + dy,
-                        m_pos.z + dz
-                    );
+                    BlockPos bookshelfPos(m_pos.x + dx, m_pos.y + dy, m_pos.z + dz);
 
                     if (isValidBookshelf(world, bookshelfPos, m_pos)) {
                         m_enchantPower++;
@@ -128,12 +127,10 @@ void EnchantingTableEntity::recalculateEnchantPower(IWorld& world) {
     m_enchantPower = std::min(m_enchantPower, 15);
 }
 
-bool EnchantingTableEntity::isValidBookshelf(IWorld& world,
-                                              const BlockPos& bookshelfPos,
-                                              const BlockPos& tablePos) {
+bool EnchantingTableEntity::isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos)
+{
     // 检查书架位置是否是书架方块
-    const BlockState* bookshelfState = world.getBlockState(
-        bookshelfPos.x, bookshelfPos.y, bookshelfPos.z);
+    const BlockState* bookshelfState = world.getBlockState(bookshelfPos.x, bookshelfPos.y, bookshelfPos.z);
 
     if (bookshelfState == nullptr || bookshelfState->isAir()) {
         return false;
@@ -151,14 +148,11 @@ bool EnchantingTableEntity::isValidBookshelf(IWorld& world,
 
     // 计算中间位置（书架和附魔台之间的方块）
     // 书架在距离2的位置，中间方块在距离1的位置
-    BlockPos middlePos(
-        tablePos.x + (dx > 0 ? 1 : (dx < 0 ? -1 : 0)),
-        bookshelfPos.y,  // 与书架同一高度
-        tablePos.z + (dz > 0 ? 1 : (dz < 0 ? -1 : 0))
-    );
+    BlockPos middlePos(tablePos.x + (dx > 0 ? 1 : (dx < 0 ? -1 : 0)),
+        bookshelfPos.y, // 与书架同一高度
+        tablePos.z + (dz > 0 ? 1 : (dz < 0 ? -1 : 0)));
 
-    const BlockState* middleState = world.getBlockState(
-        middlePos.x, middlePos.y, middlePos.z);
+    const BlockState* middleState = world.getBlockState(middlePos.x, middlePos.y, middlePos.z);
 
     // 中间必须是空气
     return middleState == nullptr || middleState->isAir();
@@ -166,14 +160,16 @@ bool EnchantingTableEntity::isValidBookshelf(IWorld& world,
 
 // ========== 自定义名称 ==========
 
-void EnchantingTableEntity::setCustomName(const std::string& name) {
+void EnchantingTableEntity::setCustomName(const std::string& name)
+{
     m_customName = name;
     setChanged();
 }
 
 // ========== 动画 ==========
 
-void EnchantingTableEntity::updateAnimation(IWorld& world, f32 dt) {
+void EnchantingTableEntity::updateAnimation(IWorld& world, f32 dt)
+{
     m_prevBookRotation = m_bookRotation;
     m_prevBookOpen = m_bookOpen;
     m_prevBookPageAngle = m_bookPageAngle;

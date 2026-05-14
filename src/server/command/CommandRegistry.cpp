@@ -1,73 +1,73 @@
 ﻿#include "CommandRegistry.hpp"
-#include "commands/GameModeCommand.hpp"
-#include "commands/DifficultyCommand.hpp"
-#include "commands/DefaultGameModeCommand.hpp"
-#include "commands/TimeCommand.hpp"
-#include "commands/KickCommand.hpp"
-#include "commands/KillCommand.hpp"
-#include "commands/ListCommand.hpp"
-#include "commands/HelpCommand.hpp"
-#include "commands/SeedCommand.hpp"
-#include "commands/TeleportCommand.hpp"
-#include "commands/GiveCommand.hpp"
-#include "commands/ClearCommand.hpp"
-#include "commands/WeatherCommand.hpp"
-#include "commands/ExperienceCommand.hpp"
-#include "commands/SayCommand.hpp"
-#include "commands/StopCommand.hpp"
-#include "commands/SetIdleTimeoutCommand.hpp"
-#include "commands/SummonCommand.hpp"
-#include "commands/SetBlockCommand.hpp"
-#include "commands/FillCommand.hpp"
-#include "commands/ExecuteCommand.hpp"
-#include "commands/OpCommand.hpp"
-#include "commands/DeOpCommand.hpp"
+#include "commands/AdvancementCommand.hpp"
+#include "commands/AttributeCommand.hpp"
 #include "commands/BanCommand.hpp"
 #include "commands/BanIpCommand.hpp"
 #include "commands/BanListCommand.hpp"
-#include "commands/PardonCommand.hpp"
-#include "commands/PardonIpCommand.hpp"
-#include "commands/WhitelistCommand.hpp"
-#include "commands/SaveAllCommand.hpp"
-#include "commands/SaveOnCommand.hpp"
-#include "commands/SaveOffCommand.hpp"
-#include "commands/SpawnPointCommand.hpp"
-#include "commands/SetWorldSpawnCommand.hpp"
-#include "commands/MessageCommand.hpp"
-#include "commands/TellRawCommand.hpp"
-#include "commands/TitleCommand.hpp"
-#include "commands/PlaySoundCommand.hpp"
-#include "commands/StopSoundCommand.hpp"
-#include "commands/EffectCommand.hpp"
-#include "commands/EnchantCommand.hpp"
-#include "commands/MeCommand.hpp"
-#include "commands/ParticleCommand.hpp"
-#include "commands/LocateCommand.hpp"
-#include "commands/LocateBiomeCommand.hpp"
-#include "commands/AttributeCommand.hpp"
+#include "commands/BossBarCommand.hpp"
+#include "commands/ClearCommand.hpp"
 #include "commands/CloneCommand.hpp"
 #include "commands/DataCommand.hpp"
-#include "commands/FunctionCommand.hpp"
-#include "commands/ScheduleCommand.hpp"
-#include "commands/SpreadPlayersCommand.hpp"
-#include "commands/WorldBorderCommand.hpp"
-#include "commands/ScoreboardCommand.hpp"
-#include "commands/BossBarCommand.hpp"
-#include "commands/TagCommand.hpp"
-#include "commands/TeamCommand.hpp"
-#include "commands/AdvancementCommand.hpp"
 #include "commands/DataPackCommand.hpp"
+#include "commands/DeOpCommand.hpp"
+#include "commands/DefaultGameModeCommand.hpp"
+#include "commands/DifficultyCommand.hpp"
+#include "commands/EffectCommand.hpp"
+#include "commands/EnchantCommand.hpp"
+#include "commands/ExecuteCommand.hpp"
+#include "commands/ExperienceCommand.hpp"
+#include "commands/FillCommand.hpp"
 #include "commands/ForceLoadCommand.hpp"
+#include "commands/FunctionCommand.hpp"
+#include "commands/GameModeCommand.hpp"
 #include "commands/GameRuleCommand.hpp"
+#include "commands/GiveCommand.hpp"
+#include "commands/HelpCommand.hpp"
+#include "commands/KickCommand.hpp"
+#include "commands/KillCommand.hpp"
+#include "commands/ListCommand.hpp"
+#include "commands/LocateBiomeCommand.hpp"
+#include "commands/LocateCommand.hpp"
 #include "commands/LootCommand.hpp"
+#include "commands/MeCommand.hpp"
+#include "commands/MessageCommand.hpp"
+#include "commands/OpCommand.hpp"
+#include "commands/PardonCommand.hpp"
+#include "commands/PardonIpCommand.hpp"
+#include "commands/ParticleCommand.hpp"
+#include "commands/PlaySoundCommand.hpp"
 #include "commands/PublishCommand.hpp"
 #include "commands/RecipeCommand.hpp"
 #include "commands/ReloadCommand.hpp"
 #include "commands/ReplaceItemCommand.hpp"
+#include "commands/SaveAllCommand.hpp"
+#include "commands/SaveOffCommand.hpp"
+#include "commands/SaveOnCommand.hpp"
+#include "commands/SayCommand.hpp"
+#include "commands/ScheduleCommand.hpp"
+#include "commands/ScoreboardCommand.hpp"
+#include "commands/SeedCommand.hpp"
+#include "commands/SetBlockCommand.hpp"
+#include "commands/SetIdleTimeoutCommand.hpp"
+#include "commands/SetWorldSpawnCommand.hpp"
+#include "commands/SpawnPointCommand.hpp"
 #include "commands/SpectateCommand.hpp"
+#include "commands/SpreadPlayersCommand.hpp"
+#include "commands/StopCommand.hpp"
+#include "commands/StopSoundCommand.hpp"
+#include "commands/SummonCommand.hpp"
+#include "commands/TagCommand.hpp"
+#include "commands/TeamCommand.hpp"
+#include "commands/TeleportCommand.hpp"
+#include "commands/TellRawCommand.hpp"
+#include "commands/TimeCommand.hpp"
+#include "commands/TitleCommand.hpp"
 #include "commands/TriggerCommand.hpp"
-#include <spdlog/spdlog.h>
+#include "commands/WeatherCommand.hpp"
+#include "commands/WhitelistCommand.hpp"
+#include "commands/WorldBorderCommand.hpp"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -78,7 +78,8 @@ CommandRegistry::CommandRegistry()
     registerDefaults();
 }
 
-Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSource& source) {
+Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSource& source)
+{
     auto result = m_dispatcher.execute(input, source);
     if (result.success()) {
         return result.value().result();
@@ -86,19 +87,23 @@ Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSour
     return result.error();
 }
 
-std::future<Suggestions> CommandRegistry::getSuggestions(const std::string& input, ServerCommandSource& source) {
+std::future<Suggestions> CommandRegistry::getSuggestions(const std::string& input, ServerCommandSource& source)
+{
     return m_dispatcher.getSuggestions(input, source);
 }
 
-CommandTreeSnapshot CommandRegistry::getCommandTreeSnapshot() const {
+CommandTreeSnapshot CommandRegistry::getCommandTreeSnapshot() const
+{
     return buildCommandTreeSnapshot(m_dispatcher);
 }
 
-std::string CommandRegistry::getCommandTreeJson() const {
+std::string CommandRegistry::getCommandTreeJson() const
+{
     return getCommandTreeSnapshot().toJsonString();
 }
 
-void CommandRegistry::registerDefaults() {
+void CommandRegistry::registerDefaults()
+{
     if (m_defaultsRegistered) {
         return;
     }
@@ -175,7 +180,8 @@ void CommandRegistry::registerDefaults() {
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());
 }
 
-std::vector<std::string> CommandRegistry::getCommandNames() const {
+std::vector<std::string> CommandRegistry::getCommandNames() const
+{
     std::vector<std::string> names;
     const auto& children = m_dispatcher.getRoot()->getChildren();
     names.reserve(children.size());
@@ -189,11 +195,13 @@ std::vector<std::string> CommandRegistry::getCommandNames() const {
     return names;
 }
 
-bool CommandRegistry::hasCommand(const std::string& name) const {
+bool CommandRegistry::hasCommand(const std::string& name) const
+{
     return m_dispatcher.getRoot()->getChild(name) != nullptr;
 }
 
-CommandRegistry& CommandRegistry::getGlobal() {
+CommandRegistry& CommandRegistry::getGlobal()
+{
     static CommandRegistry registry;
     return registry;
 }

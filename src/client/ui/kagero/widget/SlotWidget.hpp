@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Widget.hpp"
 #include "../paint/PaintContext.hpp"
+#include "Widget.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <functional>
 #include <string>
@@ -55,7 +55,8 @@ public:
      * @param y Y坐标
      */
     SlotWidget(std::string id, i32 x, i32 y)
-        : Widget(std::move(id)) {
+        : Widget(std::move(id))
+    {
         setBounds(Rect(x, y, 16, 16)); // 默认槽位大小16x16
     }
 
@@ -67,13 +68,15 @@ public:
      * @param size 尺寸（宽高相等）
      */
     SlotWidget(std::string id, i32 x, i32 y, i32 size)
-        : Widget(std::move(id)) {
+        : Widget(std::move(id))
+    {
         setBounds(Rect(x, y, size, size));
     }
 
     // ==================== 生命周期 ====================
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         if (!isVisible()) return;
         if (m_showBackground) {
             ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 40, 40, 40));
@@ -86,7 +89,8 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -99,7 +103,8 @@ public:
         return true;
     }
 
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -112,7 +117,8 @@ public:
         return true;
     }
 
-    bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override {
+    bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
+    {
         (void)scanCode;
 
         if (action == 1 || action == 2) {
@@ -127,9 +133,7 @@ public:
     /**
      * @brief 设置物品
      */
-    void setItem(const mc::ItemStack& item) {
-        m_item = item;
-    }
+    void setItem(const mc::ItemStack& item) { m_item = item; }
 
     /**
      * @brief 获取物品
@@ -149,9 +153,7 @@ public:
     /**
      * @brief 清空槽位
      */
-    void clearItem() {
-        m_item = mc::ItemStack();
-    }
+    void clearItem() { m_item = mc::ItemStack(); }
 
     // ==================== 属性设置 ====================
 
@@ -168,9 +170,7 @@ public:
     /**
      * @brief 设置背景纹理路径
      */
-    void setBackgroundTexture(const std::string& path) {
-        m_backgroundTexture = path;
-    }
+    void setBackgroundTexture(const std::string& path) { m_backgroundTexture = path; }
 
     /**
      * @brief 获取背景纹理路径
@@ -223,32 +223,28 @@ public:
      * @brief 设置槽位点击回调（与文档一致）
      * @param callback 回调函数，参数为(槽位索引, 鼠标按钮, 是否按住Shift)
      */
-    void setOnSlotClick(OnSlotClickCallback callback) {
-        m_onSlotClick = std::move(callback);
-    }
+    void setOnSlotClick(OnSlotClickCallback callback) { m_onSlotClick = std::move(callback); }
 
     /**
      * @brief 设置释放回调
      */
-    void setOnRelease(OnSlotReleaseCallback callback) {
-        m_onRelease = std::move(callback);
-    }
+    void setOnRelease(OnSlotReleaseCallback callback) { m_onRelease = std::move(callback); }
 
 protected:
-    mc::ItemStack m_item;               ///< 槽位中的物品
-    i32 m_slotIndex = -1;               ///< 槽位索引
+    mc::ItemStack m_item; ///< 槽位中的物品
+    i32 m_slotIndex = -1; ///< 槽位索引
 
     // 显示属性
-    std::string m_backgroundTexture;         ///< 背景纹理路径
-    bool m_showBackground = true;       ///< 是否显示背景
-    bool m_interactive = true;          ///< 是否可交互
-    bool m_showCount = true;            ///< 是否显示数量
-    bool m_shiftHeld = false;           ///< Shift键是否按下
+    std::string m_backgroundTexture;                             ///< 背景纹理路径
+    bool m_showBackground = true;                                ///< 是否显示背景
+    bool m_interactive = true;                                   ///< 是否可交互
+    bool m_showCount = true;                                     ///< 是否显示数量
+    bool m_shiftHeld = false;                                    ///< Shift键是否按下
     u32 m_highlightColor = Colors::fromARGB(128, 255, 255, 255); ///< 高亮颜色
 
     // 回调
-    OnSlotClickCallback m_onSlotClick;  ///< 槽位点击回调
-    OnSlotReleaseCallback m_onRelease;  ///< 释放回调
+    OnSlotClickCallback m_onSlotClick; ///< 槽位点击回调
+    OnSlotReleaseCallback m_onRelease; ///< 释放回调
 };
 
 } // namespace mc::client::ui::kagero::widget

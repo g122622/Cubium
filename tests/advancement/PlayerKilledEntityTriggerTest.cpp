@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
-#include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -21,12 +21,14 @@ using namespace mc::advancement;
  */
 class PlayerKilledEntityTriggerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置触发器
         CriterionTriggers::instance().registerBuiltinTriggers();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
         CriterionTriggers::instance().clear();
     }
@@ -34,25 +36,26 @@ protected:
 
 // ========== PlayerKilledEntityTrigger 注册测试 ==========
 
-TEST_F(PlayerKilledEntityTriggerTest, TriggerRegistration) {
+TEST_F(PlayerKilledEntityTriggerTest, TriggerRegistration)
+{
     // 验证触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(PlayerKilledEntityTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(PlayerKilledEntityTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:player_killed_entity");
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerTriggerRegistration) {
+TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerTriggerRegistration)
+{
     // 验证反向触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(EntityKilledPlayerTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(EntityKilledPlayerTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:entity_killed_player");
 }
 
 // ========== PlayerKilledEntityTriggerInstance fromJson 测试 ==========
 
-TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonEmpty) {
+TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonEmpty)
+{
     // 空条件应该匹配任何击杀
     nlohmann::json conditions = {};
 
@@ -66,7 +69,8 @@ TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonEmpty) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonWithEntityPredicate) {
+TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonWithEntityPredicate)
+{
     // 带实体谓词的条件
     nlohmann::json conditions = R"({
         "entity": {
@@ -84,7 +88,8 @@ TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonWithEntityPredicate) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonWithKillingBlow) {
+TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonWithKillingBlow)
+{
     // 带伤害源谓词的条件
     nlohmann::json conditions = R"({
         "killing_blow": {
@@ -102,7 +107,8 @@ TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonWithKillingBlow) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonFullConditions) {
+TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonFullConditions)
+{
     // 完整条件
     nlohmann::json conditions = R"({
         "entity": {
@@ -128,7 +134,8 @@ TEST_F(PlayerKilledEntityTriggerTest, InstanceFromJsonFullConditions) {
 
 // ========== PlayerKilledEntityTriggerInstance test 测试 ==========
 
-TEST_F(PlayerKilledEntityTriggerTest, TestEmptyConditions) {
+TEST_F(PlayerKilledEntityTriggerTest, TestEmptyConditions)
+{
     // 空条件应该匹配任何实体和伤害源
     PlayerKilledEntityTriggerInstance instance;
 
@@ -138,7 +145,8 @@ TEST_F(PlayerKilledEntityTriggerTest, TestEmptyConditions) {
     EXPECT_TRUE(instance.conditionsToJson().is_null());
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, TestWithEntityPredicate) {
+TEST_F(PlayerKilledEntityTriggerTest, TestWithEntityPredicate)
+{
     // 带实体类型的条件
     nlohmann::json entityJson = R"({
         "type": "minecraft:zombie"
@@ -154,7 +162,8 @@ TEST_F(PlayerKilledEntityTriggerTest, TestWithEntityPredicate) {
     EXPECT_TRUE(conditionsJson.contains("entity"));
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, TestWithDamageSourcePredicate) {
+TEST_F(PlayerKilledEntityTriggerTest, TestWithDamageSourcePredicate)
+{
     // 带伤害源的条件
     // 注意：DamageSourcePredicate 的 fromJson/toJson 尚未完全实现
     // 所以这里只测试构造函数，不测试序列化
@@ -168,7 +177,8 @@ TEST_F(PlayerKilledEntityTriggerTest, TestWithDamageSourcePredicate) {
 
 // ========== conditionsToJson 序列化测试 ==========
 
-TEST_F(PlayerKilledEntityTriggerTest, ConditionsToJsonRoundtrip) {
+TEST_F(PlayerKilledEntityTriggerTest, ConditionsToJsonRoundtrip)
+{
     // 测试序列化和反序列化的往返
     // 注意：DamageSourcePredicate 的序列化尚未完全实现
     // 所以只测试 entity 部分
@@ -197,21 +207,24 @@ TEST_F(PlayerKilledEntityTriggerTest, ConditionsToJsonRoundtrip) {
 
 // ========== 静态工厂方法测试 ==========
 
-TEST_F(PlayerKilledEntityTriggerTest, FactoryEntityKilled) {
+TEST_F(PlayerKilledEntityTriggerTest, FactoryEntityKilled)
+{
     // entityKilled() 工厂方法
     auto instance = PlayerKilledEntityTrigger::entityKilled();
     ASSERT_NE(instance, nullptr);
-    EXPECT_TRUE(instance->conditionsToJson().is_null());  // 空条件
+    EXPECT_TRUE(instance->conditionsToJson().is_null()); // 空条件
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, FactoryEntityKilledWithPredicate) {
+TEST_F(PlayerKilledEntityTriggerTest, FactoryEntityKilledWithPredicate)
+{
     // entityKilled(predicate) 工厂方法
     EntityPredicate predicate;
     auto instance = PlayerKilledEntityTrigger::entityKilled(predicate);
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, FactoryKilledByEntity) {
+TEST_F(PlayerKilledEntityTriggerTest, FactoryKilledByEntity)
+{
     // killedByEntity() 工厂方法
     EntityPredicate predicate;
     auto instance = PlayerKilledEntityTrigger::killedByEntity(predicate);
@@ -220,7 +233,8 @@ TEST_F(PlayerKilledEntityTriggerTest, FactoryKilledByEntity) {
 
 // ========== EntityKilledPlayerTrigger 测试 ==========
 
-TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerFromJson) {
+TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerFromJson)
+{
     nlohmann::json conditions = R"({
         "entity": {
             "type": "minecraft:zombie"
@@ -237,12 +251,14 @@ TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerFromJson) {
     ASSERT_NE(instance, nullptr);
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerTestEmptyConditions) {
+TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerTestEmptyConditions)
+{
     EntityKilledPlayerTriggerInstance instance;
     EXPECT_TRUE(instance.conditionsToJson().is_null());
 }
 
-TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerConditionsToJson) {
+TEST_F(PlayerKilledEntityTriggerTest, EntityKilledPlayerConditionsToJson)
+{
     // 注意：DamageSourcePredicate 的序列化尚未完全实现
     EntityKilledPlayerTriggerInstance instance;
 

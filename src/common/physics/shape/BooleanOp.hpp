@@ -34,12 +34,14 @@ class BooleanOp {
 public:
     using OpFunc = std::function<bool(bool, bool)>;
 
-    BooleanOp() : m_func(nullptr) {}
-    explicit BooleanOp(OpFunc func) : m_func(std::move(func)) {}
+    BooleanOp()
+        : m_func(nullptr)
+    {}
+    explicit BooleanOp(OpFunc func)
+        : m_func(std::move(func))
+    {}
 
-    bool apply(bool a, bool b) const {
-        return m_func ? m_func(a, b) : false;
-    }
+    bool apply(bool a, bool b) const { return m_func ? m_func(a, b) : false; }
 
     explicit operator bool() const { return m_func != nullptr; }
 
@@ -72,81 +74,115 @@ private:
 namespace BooleanOps {
 
 /// 始终返回false
-inline BooleanOp False() { return BooleanOp(); }
+inline BooleanOp False()
+{
+    return BooleanOp();
+}
 
 /// 非或运算 (!a && !b)
-inline BooleanOp NotOr() {
+inline BooleanOp NotOr()
+{
     return BooleanOp([](bool a, bool b) { return !a && !b; });
 }
 
 /// 仅第二个 (b && !a)
-inline BooleanOp OnlySecond() {
+inline BooleanOp OnlySecond()
+{
     return BooleanOp([](bool a, bool b) { return b && !a; });
 }
 
 /// 非第一个 (!a)
-inline BooleanOp NotFirst() {
-    return BooleanOp([](bool a, bool b) { (void)b; return !a; });
+inline BooleanOp NotFirst()
+{
+    return BooleanOp([](bool a, bool b) {
+        (void)b;
+        return !a;
+    });
 }
 
 /// 仅第一个 (a && !b)
-inline BooleanOp OnlyFirst() {
+inline BooleanOp OnlyFirst()
+{
     return BooleanOp([](bool a, bool b) { return a && !b; });
 }
 
 /// 非第二个 (!b)
-inline BooleanOp NotSecond() {
-    return BooleanOp([](bool a, bool b) { (void)a; return !b; });
+inline BooleanOp NotSecond()
+{
+    return BooleanOp([](bool a, bool b) {
+        (void)a;
+        return !b;
+    });
 }
 
 /// 不等 (a != b)
-inline BooleanOp NotSame() {
+inline BooleanOp NotSame()
+{
     return BooleanOp([](bool a, bool b) { return a != b; });
 }
 
 /// 与非 (!a || !b)
-inline BooleanOp NotAnd() {
+inline BooleanOp NotAnd()
+{
     return BooleanOp([](bool a, bool b) { return !a || !b; });
 }
 
 /// 与运算 (a && b)
-inline BooleanOp And() {
+inline BooleanOp And()
+{
     return BooleanOp([](bool a, bool b) { return a && b; });
 }
 
 /// 相等 (a == b)
-inline BooleanOp Same() {
+inline BooleanOp Same()
+{
     return BooleanOp([](bool a, bool b) { return a == b; });
 }
 
 /// 第二个 (b)
-inline BooleanOp Second() {
-    return BooleanOp([](bool a, bool b) { (void)a; return b; });
+inline BooleanOp Second()
+{
+    return BooleanOp([](bool a, bool b) {
+        (void)a;
+        return b;
+    });
 }
 
 /// 蕴含 (!a || b)
-inline BooleanOp Causes() {
+inline BooleanOp Causes()
+{
     return BooleanOp([](bool a, bool b) { return !a || b; });
 }
 
 /// 第一个 (a)
-inline BooleanOp First() {
-    return BooleanOp([](bool a, bool b) { (void)b; return a; });
+inline BooleanOp First()
+{
+    return BooleanOp([](bool a, bool b) {
+        (void)b;
+        return a;
+    });
 }
 
 /// 被蕴含 (a || !b)
-inline BooleanOp CausedBy() {
+inline BooleanOp CausedBy()
+{
     return BooleanOp([](bool a, bool b) { return a || !b; });
 }
 
 /// 或运算 (a || b)
-inline BooleanOp Or() {
+inline BooleanOp Or()
+{
     return BooleanOp([](bool a, bool b) { return a || b; });
 }
 
 /// 始终返回true
-inline BooleanOp True() {
-    return BooleanOp([](bool a, bool b) { (void)a; (void)b; return true; });
+inline BooleanOp True()
+{
+    return BooleanOp([](bool a, bool b) {
+        (void)a;
+        (void)b;
+        return true;
+    });
 }
 
 } // namespace BooleanOps

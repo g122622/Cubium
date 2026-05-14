@@ -1,34 +1,34 @@
 #include "FolderResourcePack.hpp"
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 namespace fs = std::filesystem;
 
 namespace mc {
 
 namespace {
-    std::string getDirectoryName(const std::string& path) {
-        fs::path p(path);
-        return p.filename().string();
-    }
+std::string getDirectoryName(const std::string& path)
+{
+    fs::path p(path);
+    return p.filename().string();
 }
+} // namespace
 
 FolderResourcePack::FolderResourcePack(std::string rootPath)
     : m_rootPath(std::move(rootPath))
     , m_name(getDirectoryName(m_rootPath))
-{
-}
+{}
 
-Result<void> FolderResourcePack::initialize() {
+Result<void> FolderResourcePack::initialize()
+{
     // 检查根目录是否存在
     if (!fs::exists(m_rootPath)) {
-        return Error(ErrorCode::ResourcePackNotFound,
-                     std::string("Resource pack not found: ") + m_rootPath);
+        return Error(ErrorCode::ResourcePackNotFound, std::string("Resource pack not found: ") + m_rootPath);
     }
 
     if (!fs::is_directory(m_rootPath)) {
-        return Error(ErrorCode::ResourcePackInvalid,
-                     std::string("Resource pack path is not a directory: ") + m_rootPath);
+        return Error(
+            ErrorCode::ResourcePackInvalid, std::string("Resource pack path is not a directory: ") + m_rootPath);
     }
 
     // 读取pack.mcmeta
@@ -47,24 +47,26 @@ Result<void> FolderResourcePack::initialize() {
     return Result<void>::ok();
 }
 
-bool FolderResourcePack::hasResource(std::string_view resourcePath) const {
+bool FolderResourcePack::hasResource(std::string_view resourcePath) const
+{
     std::string fullPath = normalizePath(resourcePath);
     return fs::exists(fullPath) && fs::is_regular_file(fullPath);
 }
 
-Result<std::vector<u8>> FolderResourcePack::readResource(std::string_view resourcePath) const {
+Result<std::vector<u8>> FolderResourcePack::readResource(std::string_view resourcePath) const
+{
     std::string fullPath = normalizePath(resourcePath);
 
     if (!fs::exists(fullPath)) {
         return Error(ErrorCode::ResourceNotFound,
-                     std::string("Resource not found in folder pack: ") + std::string(m_name) + ", name: " + std::string(resourcePath));
+            std::string("Resource not found in folder pack: ") + std::string(m_name) +
+                ", name: " + std::string(resourcePath));
     }
 
     std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
 
     if (!file.is_open()) {
-        return Error(ErrorCode::FileOpenFailed,
-                     std::string("Cannot open resource: ") + fullPath);
+        return Error(ErrorCode::FileOpenFailed, std::string("Cannot open resource: ") + fullPath);
     }
 
     auto size = file.tellg();
@@ -74,22 +76,20 @@ Result<std::vector<u8>> FolderResourcePack::readResource(std::string_view resour
     file.read(reinterpret_cast<char*>(data.data()), size);
 
     if (!file) {
-        return Error(ErrorCode::FileReadFailed,
-                     std::string("Failed to read resource: ") + fullPath);
+        return Error(ErrorCode::FileReadFailed, std::string("Failed to read resource: ") + fullPath);
     }
 
     return data;
 }
 
 Result<std::vector<std::string>> FolderResourcePack::listResources(
-    std::string_view directory,
-    std::string_view extension) const
+    std::string_view directory, std::string_view extension) const
 {
     std::string fullPath = m_rootPath + "/" + std::string(directory);
 
     if (!fs::exists(fullPath) || !fs::is_directory(fullPath)) {
         return Error(ErrorCode::NotFound,
-                     std::string("Directory not found in folder pack: ") + std::string(m_name) + ", path: " + fullPath);
+            std::string("Directory not found in folder pack: ") + std::string(m_name) + ", path: " + fullPath);
     }
 
     std::vector<std::string> resources;
@@ -122,15 +122,16 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
             }
             resources.push_back(relativePath);
         }
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::OperationFailed,
-                     std::string("Failed to list directory: ") + e.what());
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::OperationFailed, std::string("Failed to list directory: ") + e.what());
     }
 
     return resources;
 }
 
-std::string FolderResourcePack::normalizePath(std::string_view resourcePath) const {
+std::string FolderResourcePack::normalizePath(std::string_view resourcePath) const
+{
     std::string path(resourcePath);
 
     // 确保使用正斜杠

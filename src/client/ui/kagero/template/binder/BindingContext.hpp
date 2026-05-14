@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../../state/StateStore.hpp"
-#include "../../state/ReactiveState.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../state/ReactiveState.hpp"
+#include "../../state/StateStore.hpp"
 #include "../../widget/Widget.hpp"
-#include <functional>
-#include <unordered_map>
 #include <any>
-#include <typeindex>
+#include <functional>
 #include <type_traits>
+#include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::binder {
@@ -21,20 +21,48 @@ namespace mc::client::ui::kagero::tpl::binder {
  */
 class Value {
 public:
-    Value() : m_type(ValueType::Null) {}
+    Value()
+        : m_type(ValueType::Null)
+    {}
 
     // 基本类型构造
-    explicit Value(std::nullptr_t) : m_type(ValueType::Null) {}
-    explicit Value(bool v) : m_type(ValueType::Bool), m_boolValue(v) {}
-    explicit Value(i32 v) : m_type(ValueType::Integer), m_intValue(v) {}
-    explicit Value(f32 v) : m_type(ValueType::Float), m_floatValue(v) {}
-    explicit Value(const std::string& v) : m_type(ValueType::String), m_stringValue(v) {}
-    explicit Value(std::string&& v) : m_type(ValueType::String), m_stringValue(std::move(v)) {}
-    explicit Value(const char* v) : m_type(ValueType::String), m_stringValue(v ? v : "") {}  // 处理字符串字面量
+    explicit Value(std::nullptr_t)
+        : m_type(ValueType::Null)
+    {}
+    explicit Value(bool v)
+        : m_type(ValueType::Bool)
+        , m_boolValue(v)
+    {}
+    explicit Value(i32 v)
+        : m_type(ValueType::Integer)
+        , m_intValue(v)
+    {}
+    explicit Value(f32 v)
+        : m_type(ValueType::Float)
+        , m_floatValue(v)
+    {}
+    explicit Value(const std::string& v)
+        : m_type(ValueType::String)
+        , m_stringValue(v)
+    {}
+    explicit Value(std::string&& v)
+        : m_type(ValueType::String)
+        , m_stringValue(std::move(v))
+    {}
+    explicit Value(const char* v)
+        : m_type(ValueType::String)
+        , m_stringValue(v ? v : "")
+    {} // 处理字符串字面量
 
     // 数组类型构造
-    explicit Value(const std::vector<Value>& v) : m_type(ValueType::Array), m_arrayValue(v) {}
-    explicit Value(std::vector<Value>&& v) : m_type(ValueType::Array), m_arrayValue(std::move(v)) {}
+    explicit Value(const std::vector<Value>& v)
+        : m_type(ValueType::Array)
+        , m_arrayValue(v)
+    {}
+    explicit Value(std::vector<Value>&& v)
+        : m_type(ValueType::Array)
+        , m_arrayValue(std::move(v))
+    {}
 
     // 从std::any构造
     static Value fromAny(const std::any& any);
@@ -74,7 +102,8 @@ public:
     [[nodiscard]] std::unordered_map<std::string, Value>& asObject() { return m_objectValue; }
 
     // 创建对象值
-    static Value fromObject(std::unordered_map<std::string, Value> properties) {
+    static Value fromObject(std::unordered_map<std::string, Value> properties)
+    {
         Value v;
         v.m_type = ValueType::Object;
         v.m_objectValue = std::move(properties);
@@ -94,15 +123,7 @@ public:
     bool operator!=(const Value& other) const { return !(*this == other); }
 
     // 类型枚举
-    enum class ValueType : u8 {
-        Null,
-        Bool,
-        Integer,
-        Float,
-        String,
-        Array,
-        Object
-    };
+    enum class ValueType : u8 { Null, Bool, Integer, Float, String, Array, Object };
 
     [[nodiscard]] ValueType type() const { return m_type; }
 
@@ -181,8 +202,9 @@ public:
      * @param ptr 变量指针
      * @param onUpdate 可选的更新回调
      */
-    template<typename T>
-    void expose(const std::string& path, const T* ptr, StateChangeCallback onUpdate = nullptr) {
+    template <typename T>
+    void expose(const std::string& path, const T* ptr, StateChangeCallback onUpdate = nullptr)
+    {
         ExposedVar var;
         var.ptr = const_cast<T*>(ptr);
         var.typeId = typeid(T).hash_code();
@@ -200,8 +222,9 @@ public:
      * @param ptr 变量指针
      * @param onUpdate 可选的更新回调
      */
-    template<typename T>
-    void exposeWritable(const std::string& path, T* ptr, StateChangeCallback onUpdate = nullptr) {
+    template <typename T>
+    void exposeWritable(const std::string& path, T* ptr, StateChangeCallback onUpdate = nullptr)
+    {
         ExposedVar var;
         var.ptr = ptr;
         var.typeId = typeid(T).hash_code();
@@ -233,8 +256,9 @@ public:
      * @param path 绑定路径
      * @param reactive 响应式状态引用
      */
-    template<typename T>
-    void exposeReactive(const std::string& path, state::Reactive<T>& reactive) {
+    template <typename T>
+    void exposeReactive(const std::string& path, state::Reactive<T>& reactive)
+    {
         // 暴露读取
         ExposedVar var;
         var.ptr = &reactive;
@@ -307,9 +331,8 @@ public:
      * @param loopValue 当前循环变量值
      * @return 解析后的值
      */
-    [[nodiscard]] Value resolveBinding(const std::string& path,
-                                        const std::string& loopVar = "",
-                                        const Value& loopValue = Value()) const;
+    [[nodiscard]] Value resolveBinding(
+        const std::string& path, const std::string& loopVar = "", const Value& loopValue = Value()) const;
 
     /**
      * @brief 设置绑定路径的值
@@ -410,8 +433,9 @@ public:
      * @param name 集合名
      * @param items 元素数组
      */
-    template<typename T>
-    void setCollection(const std::string& name, const std::vector<T>& items) {
+    template <typename T>
+    void setCollection(const std::string& name, const std::vector<T>& items)
+    {
         std::vector<Value> values;
         values.reserve(items.size());
         for (const auto& item : items) {
@@ -444,13 +468,13 @@ private:
      * @brief 暴露的变量信息
      */
     struct ExposedVar {
-        void* ptr = nullptr;                        ///< 变量指针
-        size_t typeId = 0;                          ///< 类型ID
-        const char* typeName = "";                  ///< 类型名称
-        bool isWritable = false;                    ///< 是否可写
-        std::function<Value()> readFunc;            ///< 读取函数
-        std::function<void(const Value&)> writeFunc;///< 写入函数
-        StateChangeCallback onUpdate;               ///< 更新回调
+        void* ptr = nullptr;                         ///< 变量指针
+        size_t typeId = 0;                           ///< 类型ID
+        const char* typeName = "";                   ///< 类型名称
+        bool isWritable = false;                     ///< 是否可写
+        std::function<Value()> readFunc;             ///< 读取函数
+        std::function<void(const Value&)> writeFunc; ///< 写入函数
+        StateChangeCallback onUpdate;                ///< 更新回调
     };
 
     /**

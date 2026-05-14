@@ -19,9 +19,7 @@ struct SegmentAabbHit {
 };
 
 [[nodiscard]] std::optional<SegmentAabbHit> intersectSegmentAabb(
-    const Vector3& start,
-    const Vector3& end,
-    const AxisAlignedBB& box)
+    const Vector3& start, const Vector3& end, const AxisAlignedBB& box)
 {
     constexpr f32 EPSILON = 1.0e-7f;
 
@@ -60,13 +58,7 @@ struct SegmentAabbHit {
     }
 
     const f32 hitT = std::clamp(tMin, 0.0f, 1.0f);
-    return SegmentAabbHit{
-        hitT,
-        Vector3(
-            start.x + delta.x * hitT,
-            start.y + delta.y * hitT,
-            start.z + delta.z * hitT)
-    };
+    return SegmentAabbHit{hitT, Vector3(start.x + delta.x * hitT, start.y + delta.y * hitT, start.z + delta.z * hitT)};
 }
 
 } // namespace
@@ -82,10 +74,8 @@ void ProjectileHelper::rotateTowardsMovement(Entity& projectile, f32 rotationSpe
     f32 currentYaw = projectile.yaw();
     f32 currentPitch = projectile.pitch();
 
-    const f32 targetYaw =
-        std::atan2(velocity.z, velocity.x) * math::RAD_TO_DEG + 90.0f;
-    const f32 targetPitch =
-        std::atan2(horizontal, velocity.y) * math::RAD_TO_DEG - 90.0f;
+    const f32 targetYaw = std::atan2(velocity.z, velocity.x) * math::RAD_TO_DEG + 90.0f;
+    const f32 targetPitch = std::atan2(horizontal, velocity.y) * math::RAD_TO_DEG - 90.0f;
 
     while (targetPitch - currentPitch < -180.0f) {
         currentPitch -= 360.0f;
@@ -100,19 +90,14 @@ void ProjectileHelper::rotateTowardsMovement(Entity& projectile, f32 rotationSpe
         currentYaw += 360.0f;
     }
 
-    projectile.setRotation(
-        currentYaw + (targetYaw - currentYaw) * rotationSpeed,
+    projectile.setRotation(currentYaw + (targetYaw - currentYaw) * rotationSpeed,
         currentPitch + (targetPitch - currentPitch) * rotationSpeed);
 }
 
-AxisAlignedBB ProjectileHelper::createMovementSearchBox(
-    const Entity& projectile,
-    const Vector3& movement,
-    f32 margin)
+AxisAlignedBB ProjectileHelper::createMovementSearchBox(const Entity& projectile, const Vector3& movement, f32 margin)
 {
     const AxisAlignedBB box = projectile.boundingBox();
-    return AxisAlignedBB(
-        std::min(box.minX, box.minX + movement.x) - margin,
+    return AxisAlignedBB(std::min(box.minX, box.minX + movement.x) - margin,
         std::min(box.minY, box.minY + movement.y) - margin,
         std::min(box.minZ, box.minZ + movement.z) - margin,
         std::max(box.maxX, box.maxX + movement.x) + margin,
@@ -120,8 +105,7 @@ AxisAlignedBB ProjectileHelper::createMovementSearchBox(
         std::max(box.maxZ, box.maxZ + movement.z) + margin);
 }
 
-RayTraceResult ProjectileHelper::rayTraceEntities(
-    const IWorld& world,
+RayTraceResult ProjectileHelper::rayTraceEntities(const IWorld& world,
     const Entity& projectile,
     const Vector3& start,
     const Vector3& end,

@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include "common/world/gen/feature/ore/OreFeature.hpp"
 #include "common/world/gen/placement/Placement.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -16,12 +16,11 @@ using namespace mc;
 
 class RuleTestTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(RuleTestTest, StoneRuleTest) {
+TEST_F(RuleTestTest, StoneRuleTest)
+{
     auto rule = createOreTarget(OreTargetType::NaturalStone);
     math::Random random(12345);
 
@@ -36,7 +35,8 @@ TEST_F(RuleTestTest, StoneRuleTest) {
     EXPECT_FALSE(rule->test(*air, random));
 }
 
-TEST_F(RuleTestTest, BlockIdRuleTest) {
+TEST_F(RuleTestTest, BlockIdRuleTest)
+{
     auto rule = createOreTarget(OreTargetType::Netherrack);
     math::Random random(12345);
 
@@ -58,23 +58,21 @@ TEST_F(RuleTestTest, BlockIdRuleTest) {
 
 class OreFeatureConfigTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(OreFeatureConfigTest, CreateConfig) {
+TEST_F(OreFeatureConfigTest, CreateConfig)
+{
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone),
-        &VanillaBlocks::COAL_ORE->defaultState(),
-        17);
+        createOreTarget(OreTargetType::NaturalStone), &VanillaBlocks::COAL_ORE->defaultState(), 17);
 
     EXPECT_TRUE(config->state->is(VanillaBlocks::COAL_ORE));
     EXPECT_EQ(config->size, 17);
     EXPECT_NE(config->target, nullptr);
 }
 
-TEST_F(OreFeatureConfigTest, NaturalStoneTarget) {
+TEST_F(OreFeatureConfigTest, NaturalStoneTarget)
+{
     auto target = OreFeatureConfig::naturalStone();
     EXPECT_NE(target, nullptr);
 }
@@ -85,14 +83,13 @@ TEST_F(OreFeatureConfigTest, NaturalStoneTarget) {
 
 class PlacementTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(PlacementTest, CountPlacement) {
+TEST_F(PlacementTest, CountPlacement)
+{
     CountPlacement placement;
-    CountPlacementConfig config(5);  // 5次尝试
+    CountPlacementConfig config(5); // 5次尝试
     ChunkPrimer chunk(0, 0);
     math::Random random(12345);
 
@@ -101,7 +98,8 @@ TEST_F(PlacementTest, CountPlacement) {
     EXPECT_EQ(config.count, 5);
 }
 
-TEST_F(PlacementTest, HeightRangePlacementConfig) {
+TEST_F(PlacementTest, HeightRangePlacementConfig)
+{
     HeightRangePlacementConfig config(world::MIN_BUILD_HEIGHT, 128, world::MAX_BUILD_HEIGHT);
 
     math::Random random(12345);
@@ -112,7 +110,8 @@ TEST_F(PlacementTest, HeightRangePlacementConfig) {
     }
 }
 
-TEST_F(PlacementTest, HeightRangePlacementConfigUniform) {
+TEST_F(PlacementTest, HeightRangePlacementConfigUniform)
+{
     auto config = HeightRangePlacementConfig::uniform(10, 50);
 
     math::Random random(12345);
@@ -123,7 +122,8 @@ TEST_F(PlacementTest, HeightRangePlacementConfigUniform) {
     }
 }
 
-TEST_F(PlacementTest, BiomePlacementConfig) {
+TEST_F(PlacementTest, BiomePlacementConfig)
+{
     BiomePlacementConfig config({1, 5, 10});
 
     EXPECT_TRUE(config.isAllowed(1));
@@ -133,8 +133,9 @@ TEST_F(PlacementTest, BiomePlacementConfig) {
     EXPECT_FALSE(config.isAllowed(100));
 }
 
-TEST_F(PlacementTest, ChancePlacementConfig) {
-    ChancePlacementConfig config(0.5f);  // 50% 概率
+TEST_F(PlacementTest, ChancePlacementConfig)
+{
+    ChancePlacementConfig config(0.5f); // 50% 概率
 
     math::Random random(12345);
     int success = 0;
@@ -155,12 +156,11 @@ TEST_F(PlacementTest, ChancePlacementConfig) {
 
 class BlockStateProviderTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(BlockStateProviderTest, SimpleProvider) {
+TEST_F(BlockStateProviderTest, SimpleProvider)
+{
     SimpleBlockStateProvider provider(&VanillaBlocks::STONE->defaultState());
     math::Random random(12345);
 
@@ -169,7 +169,8 @@ TEST_F(BlockStateProviderTest, SimpleProvider) {
     EXPECT_TRUE(state->is(VanillaBlocks::STONE));
 }
 
-TEST_F(BlockStateProviderTest, DifferentBlocks) {
+TEST_F(BlockStateProviderTest, DifferentBlocks)
+{
     SimpleBlockStateProvider grassProvider(&VanillaBlocks::GRASS_BLOCK->defaultState());
     SimpleBlockStateProvider dirtProvider(&VanillaBlocks::DIRT->defaultState());
     math::Random random(12345);
@@ -189,13 +190,15 @@ TEST_F(BlockStateProviderTest, DifferentBlocks) {
 
 class OreFeatureTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         chunk = std::make_unique<ChunkPrimer>(0, 0);
         random = std::make_unique<math::Random>(12345);
     }
 
-    void fillWithStone() {
+    void fillWithStone()
+    {
         const BlockState* stone = &VanillaBlocks::STONE->defaultState();
         ASSERT_NE(stone, nullptr);
 
@@ -212,17 +215,18 @@ protected:
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(OreFeatureTest, CreateOreFeature) {
+TEST_F(OreFeatureTest, CreateOreFeature)
+{
     EXPECT_STREQ(OreFeature::name(), "ore");
 }
 
-TEST_F(OreFeatureTest, PlaceSmallOre) {
+TEST_F(OreFeatureTest, PlaceSmallOre)
+{
     fillWithStone();
 
-    auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone),
+    auto config = std::make_unique<OreFeatureConfig>(createOreTarget(OreTargetType::NaturalStone),
         &VanillaBlocks::COAL_ORE->defaultState(),
-        8);  // 小矿脉
+        8); // 小矿脉
 
     // 注意：WorldGenRegion 需要完整实现才能测试 place 方法
     // 这里只验证配置正确创建
@@ -236,12 +240,11 @@ TEST_F(OreFeatureTest, PlaceSmallOre) {
 
 class OreFeaturesTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(OreFeaturesTest, InitializeFeatures) {
+TEST_F(OreFeaturesTest, InitializeFeatures)
+{
     // 初始化不应该崩溃
     EXPECT_NO_THROW(OreFeatures::initialize());
 
@@ -249,7 +252,8 @@ TEST_F(OreFeaturesTest, InitializeFeatures) {
     EXPECT_GT(features.size(), 0u);
 }
 
-TEST_F(OreFeaturesTest, CreateCoalOre) {
+TEST_F(OreFeaturesTest, CreateCoalOre)
+{
     auto feature = OreFeatures::createCoalOre();
     ASSERT_NE(feature, nullptr);
 
@@ -258,7 +262,8 @@ TEST_F(OreFeaturesTest, CreateCoalOre) {
     EXPECT_EQ(config.size, 17);
 }
 
-TEST_F(OreFeaturesTest, CreateIronOre) {
+TEST_F(OreFeaturesTest, CreateIronOre)
+{
     auto feature = OreFeatures::createIronOre();
     ASSERT_NE(feature, nullptr);
 
@@ -267,7 +272,8 @@ TEST_F(OreFeaturesTest, CreateIronOre) {
     EXPECT_EQ(config.size, 9);
 }
 
-TEST_F(OreFeaturesTest, CreateGoldOre) {
+TEST_F(OreFeaturesTest, CreateGoldOre)
+{
     auto feature = OreFeatures::createGoldOre();
     ASSERT_NE(feature, nullptr);
 
@@ -276,7 +282,8 @@ TEST_F(OreFeaturesTest, CreateGoldOre) {
     EXPECT_EQ(config.size, 9);
 }
 
-TEST_F(OreFeaturesTest, CreateDiamondOre) {
+TEST_F(OreFeaturesTest, CreateDiamondOre)
+{
     auto feature = OreFeatures::createDiamondOre();
     ASSERT_NE(feature, nullptr);
 
@@ -285,7 +292,8 @@ TEST_F(OreFeaturesTest, CreateDiamondOre) {
     EXPECT_EQ(config.size, 8);
 }
 
-TEST_F(OreFeaturesTest, CreateRedstoneOre) {
+TEST_F(OreFeaturesTest, CreateRedstoneOre)
+{
     auto feature = OreFeatures::createRedstoneOre();
     ASSERT_NE(feature, nullptr);
 
@@ -294,7 +302,8 @@ TEST_F(OreFeaturesTest, CreateRedstoneOre) {
     EXPECT_EQ(config.size, 8);
 }
 
-TEST_F(OreFeaturesTest, CreateLapisOre) {
+TEST_F(OreFeaturesTest, CreateLapisOre)
+{
     auto feature = OreFeatures::createLapisOre();
     ASSERT_NE(feature, nullptr);
 
@@ -303,16 +312,18 @@ TEST_F(OreFeaturesTest, CreateLapisOre) {
     EXPECT_EQ(config.size, 7);
 }
 
-TEST_F(OreFeaturesTest, CreateEmeraldOre) {
+TEST_F(OreFeaturesTest, CreateEmeraldOre)
+{
     auto feature = OreFeatures::createEmeraldOre();
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
     EXPECT_TRUE(config.state->is(VanillaBlocks::EMERALD_ORE));
-    EXPECT_EQ(config.size, 1);  // 绿宝石是单个方块
+    EXPECT_EQ(config.size, 1); // 绿宝石是单个方块
 }
 
-TEST_F(OreFeaturesTest, CreateCopperOre) {
+TEST_F(OreFeaturesTest, CreateCopperOre)
+{
     auto feature = OreFeatures::createCopperOre();
     ASSERT_NE(feature, nullptr);
 
@@ -325,7 +336,8 @@ TEST_F(OreFeaturesTest, CreateCopperOre) {
 // 矿石分布参数测试
 // ============================================================================
 
-TEST_F(OreFeaturesTest, OreDistributionParameters) {
+TEST_F(OreFeaturesTest, OreDistributionParameters)
+{
     // 验证矿石分布参数符合 MC 1.16.5 规范
 
     // 煤矿：Y 0-127，每区块20个，矿脉大小17

@@ -3,9 +3,9 @@
 #include "Block.hpp"
 #include "BlockRegistry.hpp"
 #include "blocks/AirBlock.hpp"
-#include "blocks/SimpleBlock.hpp"
 #include "blocks/RotatedPillarBlock.hpp"
 #include "blocks/SignBlock.hpp"
+#include "blocks/SimpleBlock.hpp"
 
 namespace mc {
 
@@ -30,8 +30,8 @@ public:
     // 基础方块
     // ========================================================================
     static Block* AIR;
-    static Block* CAVE_AIR;     // 洞穴空气 - 用于洞穴生成
-    static Block* VOID_AIR;     // 虚空空气 - 用于世界边界外
+    static Block* CAVE_AIR; // 洞穴空气 - 用于洞穴生成
+    static Block* VOID_AIR; // 虚空空气 - 用于世界边界外
     static Block* STONE;
     static Block* GRASS_BLOCK;
     static Block* DIRT;
@@ -78,25 +78,25 @@ public:
     static Block* EMERALD_ORE;
     static Block* LAPIS_ORE;
     static Block* REDSTONE_ORE;
-    static Block* COPPER_ORE;           // 铜矿 (1.17+)
+    static Block* COPPER_ORE; // 铜矿 (1.17+)
 
     // ========================================================================
     // 下界矿石
     // ========================================================================
-    static Block* NETHER_QUARTZ_ORE;    // 下界石英矿
-    static Block* NETHER_GOLD_ORE;      // 下界金矿
-    static Block* ANCIENT_DEBRIS;       // 远古残骸
+    static Block* NETHER_QUARTZ_ORE; // 下界石英矿
+    static Block* NETHER_GOLD_ORE;   // 下界金矿
+    static Block* ANCIENT_DEBRIS;    // 远古残骸
 
     // ========================================================================
     // 矿物方块
     // ========================================================================
-    static Block* COAL_BLOCK;           // 煤炭块
+    static Block* COAL_BLOCK; // 煤炭块
     static Block* GOLD_BLOCK;
     static Block* IRON_BLOCK;
     static Block* LAPIS_BLOCK;
     static Block* EMERALD_BLOCK;
     static Block* REDSTONE_BLOCK;
-    static Block* NETHERITE_BLOCK;      // 下界合金块
+    static Block* NETHERITE_BLOCK; // 下界合金块
 
     // ========================================================================
     // 建筑方块
@@ -114,25 +114,25 @@ public:
     static Block* CRAFTING_TABLE;
     static Block* CAULDRON;
     static Block* ENCHANTING_TABLE;
-    static Block* CHEST;              // 箱子（含水）
-    static Block* TRAPPED_CHEST;      // 陷阱箱（含水）
-    static Block* LOOM;               // 织布机
-    static Block* BARREL;             // 木桶
-    static Block* CARTOGRAPHY_TABLE;  // 制图台
-    static Block* FLETCHING_TABLE;    // 制箭台
-    static Block* SMITHING_TABLE;     // 锻造台
-    static Block* COMPOSTER;          // 堆肥桶
-    static Block* LECTERN;            // 讲台
-    static Block* JUKEBOX;            // 唱片机
+    static Block* CHEST;             // 箱子（含水）
+    static Block* TRAPPED_CHEST;     // 陷阱箱（含水）
+    static Block* LOOM;              // 织布机
+    static Block* BARREL;            // 木桶
+    static Block* CARTOGRAPHY_TABLE; // 制图台
+    static Block* FLETCHING_TABLE;   // 制箭台
+    static Block* SMITHING_TABLE;    // 锻造台
+    static Block* COMPOSTER;         // 堆肥桶
+    static Block* LECTERN;           // 讲台
+    static Block* JUKEBOX;           // 唱片机
 
     // ========================================================================
     // 含水方块
     // ========================================================================
-    static Block* LADDER;             // 梯子（含水）
-    static Block* CHAIN;              // 锁链（含水）
-    static Block* SCAFFOLDING;        // 脚手架（含水）
-    static Block* GLASS_PANE;         // 玻璃板（含水）
-    static Block* IRON_BARS;          // 铁栏杆（含水）
+    static Block* LADDER;      // 梯子（含水）
+    static Block* CHAIN;       // 锁链（含水）
+    static Block* SCAFFOLDING; // 脚手架（含水）
+    static Block* GLASS_PANE;  // 玻璃板（含水）
+    static Block* IRON_BARS;   // 铁栏杆（含水）
 
     // ========================================================================
     // 门和栅栏门
@@ -271,13 +271,13 @@ public:
     static Block* WHITE_TULIP;
     static Block* PINK_TULIP;
     static Block* OXEYE_DAISY;
-    static Block* LILY_OF_THE_VALLEY;  // 铃兰
-    static Block* SUNFLOWER;           // 向日葵
-    static Block* LILAC;               // 丁香
-    static Block* ROSE_BUSH;           // 玫瑰丛
-    static Block* PEONY;               // 牡丹
-    static Block* CORNFLOWER;          // 矢车菊
-    static Block* WITHER_ROSE;         // 凋零玫瑰
+    static Block* LILY_OF_THE_VALLEY; // 铃兰
+    static Block* SUNFLOWER;          // 向日葵
+    static Block* LILAC;              // 丁香
+    static Block* ROSE_BUSH;          // 玫瑰丛
+    static Block* PEONY;              // 牡丹
+    static Block* CORNFLOWER;         // 矢车菊
+    static Block* WITHER_ROSE;        // 凋零玫瑰
     static Block* BROWN_MUSHROOM;
     static Block* RED_MUSHROOM;
     static Block* BROWN_MUSHROOM_BLOCK; // 棕色蘑菇方块
@@ -342,9 +342,9 @@ public:
     // ========================================================================
     static Block* END_STONE_BRICKS;
     static Block* END_ROD;
-    static Block* CHORUS_PLANT;       // 紫颂植物
-    static Block* CHORUS_FLOWER;      // 紫颂花
-    static Block* DRAGON_EGG;         // 龙蛋
+    static Block* CHORUS_PLANT;  // 紫颂植物
+    static Block* CHORUS_FLOWER; // 紫颂花
+    static Block* DRAGON_EGG;    // 龙蛋
 
     // ========================================================================
     // 骨块与干草块
@@ -355,20 +355,20 @@ public:
     // ========================================================================
     // 其他方块
     // ========================================================================
-    static Block* SNOW;            // 雪层（可堆叠）
-    static Block* SNOW_BLOCK;      // 雪块（固体方块，用于冰刺等）
+    static Block* SNOW;       // 雪层（可堆叠）
+    static Block* SNOW_BLOCK; // 雪块（固体方块，用于冰刺等）
     static Block* ICE;
-    static Block* GLASS;          // 玻璃（透明，不传播天空光）
+    static Block* GLASS; // 玻璃（透明，不传播天空光）
 
     // ========================================================================
     // 南瓜和西瓜系列
     // ========================================================================
-    static Block* MELON;               // 西瓜方块
-    static Block* PUMPKIN;             // 南瓜方块（可被剪刀雕刻）
-    static Block* CARVED_PUMPKIN;      // 雕刻南瓜（可生成傀儡）
-    static Block* MELON_STEM;          // 西瓜茎
-    static Block* PUMPKIN_STEM;        // 南瓜茎
-    static Block* ATTACHED_MELON_STEM; // 连接西瓜茎（西瓜生成后茎变成的方块）
+    static Block* MELON;                 // 西瓜方块
+    static Block* PUMPKIN;               // 南瓜方块（可被剪刀雕刻）
+    static Block* CARVED_PUMPKIN;        // 雕刻南瓜（可生成傀儡）
+    static Block* MELON_STEM;            // 西瓜茎
+    static Block* PUMPKIN_STEM;          // 南瓜茎
+    static Block* ATTACHED_MELON_STEM;   // 连接西瓜茎（西瓜生成后茎变成的方块）
     static Block* ATTACHED_PUMPKIN_STEM; // 连接南瓜茎（南瓜生成后茎变成的方块）
     // 注意：JACK_O_LANTERN 在其他方块部分定义
 
@@ -376,62 +376,62 @@ public:
     static Block* GLOWSTONE;
     static Block* END_STONE;
     static Block* OBSIDIAN;
-    static Block* NETHER_PORTAL;      // 下界传送门
-    static Block* END_PORTAL;         // 末地传送门
-    static Block* END_PORTAL_FRAME;   // 末地传送门框架
-    static Block* END_GATEWAY;        // 末地折跃门
-    static Block* BEACON;             // 信标
-    static Block* BREWING_STAND;      // 酿造台
-    static Block* ENDER_CHEST;        // 末影箱
-    static Block* LANTERN;            // 灯笼
-    static Block* SOUL_LANTERN;       // 灵魂灯笼
-    static Block* CAMPFIRE;           // 营火
-    static Block* SOUL_CAMPFIRE;      // 灵魂营火
-    static Block* JACK_O_LANTERN;     // 南瓜灯
+    static Block* NETHER_PORTAL;    // 下界传送门
+    static Block* END_PORTAL;       // 末地传送门
+    static Block* END_PORTAL_FRAME; // 末地传送门框架
+    static Block* END_GATEWAY;      // 末地折跃门
+    static Block* BEACON;           // 信标
+    static Block* BREWING_STAND;    // 酿造台
+    static Block* ENDER_CHEST;      // 末影箱
+    static Block* LANTERN;          // 灯笼
+    static Block* SOUL_LANTERN;     // 灵魂灯笼
+    static Block* CAMPFIRE;         // 营火
+    static Block* SOUL_CAMPFIRE;    // 灵魂营火
+    static Block* JACK_O_LANTERN;   // 南瓜灯
 
     // ========================================================================
     // 红石方块
     // ========================================================================
-    static Block* REDSTONE_WIRE;          // 红石线
-    static Block* REDSTONE_TORCH;         // 红石火把
-    static Block* REDSTONE_WALL_TORCH;    // 墙上的红石火把
-    static Block* REDSTONE_LAMP;          // 红石灯
-    static Block* REDSTONE_REPEATER;      // 红石中继器
-    static Block* REDSTONE_COMPARATOR;    // 红石比较器
-    static Block* OBSERVER;               // 侦测器
-    static Block* LEVER;                  // 拉杆
-    static Block* STONE_BUTTON;           // 石头按钮
-    static Block* OAK_BUTTON;             // 橡木按钮
-    static Block* SPRUCE_BUTTON;          // 云杉木按钮
-    static Block* BIRCH_BUTTON;           // 白桦木按钮
-    static Block* JUNGLE_BUTTON;          // 丛林木按钮
-    static Block* ACACIA_BUTTON;          // 金合欢木按钮
-    static Block* DARK_OAK_BUTTON;        // 深色橡木按钮
-    static Block* CRIMSON_BUTTON;         // 绯红按钮
-    static Block* WARPED_BUTTON;          // 诡异按钮
-    static Block* STONE_PRESSURE_PLATE;   // 石头压力板
-    static Block* OAK_PRESSURE_PLATE;     // 橡木压力板
-    static Block* LIGHT_WEIGHTED_PRESSURE_PLATE;  // 轻质测重压力板
-    static Block* HEAVY_WEIGHTED_PRESSURE_PLATE;  // 重质测重压力板
-    static Block* DAYLIGHT_DETECTOR;      // 日光探测器
-    static Block* PISTON;                 // 活塞
-    static Block* STICKY_PISTON;          // 粘性活塞
-    static Block* PISTON_HEAD;            // 活塞头
-    static Block* MOVING_PISTON;          // 移动中的活塞
-    static Block* DISPENSER;              // 发射器
-    static Block* DROPPER;                // 投掷器
-    static Block* NOTE_BLOCK;             // 音符盒
-    static Block* TRIPWIRE;               // 绊线
-    static Block* TRIPWIRE_HOOK;          // 绊线钩
-    static Block* TARGET;                 // 标靶
+    static Block* REDSTONE_WIRE;                 // 红石线
+    static Block* REDSTONE_TORCH;                // 红石火把
+    static Block* REDSTONE_WALL_TORCH;           // 墙上的红石火把
+    static Block* REDSTONE_LAMP;                 // 红石灯
+    static Block* REDSTONE_REPEATER;             // 红石中继器
+    static Block* REDSTONE_COMPARATOR;           // 红石比较器
+    static Block* OBSERVER;                      // 侦测器
+    static Block* LEVER;                         // 拉杆
+    static Block* STONE_BUTTON;                  // 石头按钮
+    static Block* OAK_BUTTON;                    // 橡木按钮
+    static Block* SPRUCE_BUTTON;                 // 云杉木按钮
+    static Block* BIRCH_BUTTON;                  // 白桦木按钮
+    static Block* JUNGLE_BUTTON;                 // 丛林木按钮
+    static Block* ACACIA_BUTTON;                 // 金合欢木按钮
+    static Block* DARK_OAK_BUTTON;               // 深色橡木按钮
+    static Block* CRIMSON_BUTTON;                // 绯红按钮
+    static Block* WARPED_BUTTON;                 // 诡异按钮
+    static Block* STONE_PRESSURE_PLATE;          // 石头压力板
+    static Block* OAK_PRESSURE_PLATE;            // 橡木压力板
+    static Block* LIGHT_WEIGHTED_PRESSURE_PLATE; // 轻质测重压力板
+    static Block* HEAVY_WEIGHTED_PRESSURE_PLATE; // 重质测重压力板
+    static Block* DAYLIGHT_DETECTOR;             // 日光探测器
+    static Block* PISTON;                        // 活塞
+    static Block* STICKY_PISTON;                 // 粘性活塞
+    static Block* PISTON_HEAD;                   // 活塞头
+    static Block* MOVING_PISTON;                 // 移动中的活塞
+    static Block* DISPENSER;                     // 发射器
+    static Block* DROPPER;                       // 投掷器
+    static Block* NOTE_BLOCK;                    // 音符盒
+    static Block* TRIPWIRE;                      // 绊线
+    static Block* TRIPWIRE_HOOK;                 // 绊线钩
+    static Block* TARGET;                        // 标靶
 
     // ========================================================================
     // 铁轨方块
     // ========================================================================
-    static Block* RAIL;                   // 普通铁轨
-    static Block* POWERED_RAIL;           // 动力铁轨
-    static Block* DETECTOR_RAIL;          // 探测铁轨
-    static Block* ACTIVATOR_RAIL;         // 激活铁轨
+    static Block* RAIL;           // 普通铁轨
+    static Block* POWERED_RAIL;   // 动力铁轨
+    static Block* DETECTOR_RAIL;  // 探测铁轨
+    static Block* ACTIVATOR_RAIL; // 激活铁轨
 
     // ========================================================================
     // 染色玻璃 (16色)
@@ -512,7 +512,7 @@ public:
     static Block* GREEN_TERRACOTTA;
     static Block* RED_TERRACOTTA;
     static Block* BLACK_TERRACOTTA;
-    static Block* TERRACOTTA;  // 普通陶瓦
+    static Block* TERRACOTTA; // 普通陶瓦
 
     // ========================================================================
     // 下界方块
@@ -524,43 +524,43 @@ public:
     static Block* BLACKSTONE;
     static Block* POLISHED_BLACKSTONE;
     static Block* CRYING_OBSIDIAN;
-    static Block* RESPAWN_ANCHOR;      // 重生锚
-    static Block* MAGMA;              // 岩浆块 (发光)
-    static Block* NETHER_WART_BLOCK;  // 地狱疣块
-    static Block* WARPED_WART_BLOCK;  // 诡异疣块
-    static Block* FIRE;               // 火
-    static Block* SOUL_FIRE;          // 灵魂火
-    static Block* NETHER_WART;        // 下界疣（作物）
+    static Block* RESPAWN_ANCHOR;    // 重生锚
+    static Block* MAGMA;             // 岩浆块 (发光)
+    static Block* NETHER_WART_BLOCK; // 地狱疣块
+    static Block* WARPED_WART_BLOCK; // 诡异疣块
+    static Block* FIRE;              // 火
+    static Block* SOUL_FIRE;         // 灵魂火
+    static Block* NETHER_WART;       // 下界疣（作物）
 
     // ========================================================================
     // 自然方块扩展
     // ========================================================================
-    static Block* CLAY;               // 粘土
-    static Block* MYCELIUM;           // 菌丝
-    static Block* GRASS_PATH;         // 草径
-    static Block* PACKED_ICE;         // 浮冰
-    static Block* BLUE_ICE;           // 蓝冰
-    static Block* FROSTED_ICE;        // 霜冰
-    static Block* SLIME_BLOCK;        // 粘液块
-    static Block* HONEY_BLOCK;        // 蜂蜜块
-    static Block* CACTUS;             // 仙人掌
-    static Block* DEAD_BUSH;          // 枯萎灌木
-    static Block* LILY_PAD;           // 睡莲
-    static Block* VINE;               // 藤蔓
-    static Block* COBWEB;             // 蜘蛛网
-    static Block* SUGAR_CANE;         // 甘蔗
-    static Block* FARMLAND;           // 耕地
-    static Block* RED_SAND;           // 红沙
-    static Block* DRIED_KELP_BLOCK;   // 干海带块
-    static Block* SEA_PICKLE;         // 海泡菜
-    static Block* KELP;               // 海带顶部
-    static Block* KELP_PLANT;         // 海带茎
-    static Block* SEAGRASS;           // 海草
-    static Block* TALL_SEAGRASS;      // 高海草
-    static Block* BUBBLE_COLUMN;      // 气泡柱
-    static Block* TURTLE_EGG;         // 海龟蛋
-    static Block* BAMBOO;             // 竹子
-    static Block* BAMBOO_SAPLING;     // 竹子幼苗
+    static Block* CLAY;             // 粘土
+    static Block* MYCELIUM;         // 菌丝
+    static Block* GRASS_PATH;       // 草径
+    static Block* PACKED_ICE;       // 浮冰
+    static Block* BLUE_ICE;         // 蓝冰
+    static Block* FROSTED_ICE;      // 霜冰
+    static Block* SLIME_BLOCK;      // 粘液块
+    static Block* HONEY_BLOCK;      // 蜂蜜块
+    static Block* CACTUS;           // 仙人掌
+    static Block* DEAD_BUSH;        // 枯萎灌木
+    static Block* LILY_PAD;         // 睡莲
+    static Block* VINE;             // 藤蔓
+    static Block* COBWEB;           // 蜘蛛网
+    static Block* SUGAR_CANE;       // 甘蔗
+    static Block* FARMLAND;         // 耕地
+    static Block* RED_SAND;         // 红沙
+    static Block* DRIED_KELP_BLOCK; // 干海带块
+    static Block* SEA_PICKLE;       // 海泡菜
+    static Block* KELP;             // 海带顶部
+    static Block* KELP_PLANT;       // 海带茎
+    static Block* SEAGRASS;         // 海草
+    static Block* TALL_SEAGRASS;    // 高海草
+    static Block* BUBBLE_COLUMN;    // 气泡柱
+    static Block* TURTLE_EGG;       // 海龟蛋
+    static Block* BAMBOO;           // 竹子
+    static Block* BAMBOO_SAPLING;   // 竹子幼苗
 
     // ========================================================================
     // 珊瑚方块
@@ -601,7 +601,7 @@ public:
     static Block* FIRE_CORAL_WALL_FAN;
     static Block* HORN_CORAL_WALL_FAN;
 
-    static Block* CONDUIT;            // 潮涌核心
+    static Block* CONDUIT; // 潮涌核心
 
     // ========================================================================
     // 告示牌（含水）
@@ -655,9 +655,7 @@ public:
      * @param block 方块指针（可能为 nullptr）
      * @return 方块默认状态指针，如果方块为空则返回 nullptr
      */
-    [[nodiscard]] static const BlockState* getState(Block* block) {
-        return block ? &block->defaultState() : nullptr;
-    }
+    [[nodiscard]] static const BlockState* getState(Block* block) { return block ? &block->defaultState() : nullptr; }
 
 private:
     static bool s_initialized;
@@ -672,24 +670,24 @@ private:
     static void registerBuildingBlocks();
     static void registerFunctionalBlocks();
     static void registerWoolBlocks();
-    static void registerCarpetBlocks();        // 地毯
+    static void registerCarpetBlocks(); // 地毯
     static void registerPlanksVariants();
     static void registerNetherBlocks();
     static void registerTreeVariants();
     static void registerVegetationBlocks();
-    static void registerColoredBlocks();  // 染色玻璃、混凝土、陶瓦等
-    static void registerStoneBricks();     // 石砖系列
-    static void registerQuartzBlocks();    // 石英系列
-    static void registerPrismarineBlocks(); // 海晶系列
-    static void registerSignBlocks();       // 告示牌
-    static void registerPurpurBlocks();    // 紫珀系列
-    static void registerEndBlocks();       // 末地方块
-    static void registerBoneAndHayBlocks(); // 骨块和干草块
+    static void registerColoredBlocks();         // 染色玻璃、混凝土、陶瓦等
+    static void registerStoneBricks();           // 石砖系列
+    static void registerQuartzBlocks();          // 石英系列
+    static void registerPrismarineBlocks();      // 海晶系列
+    static void registerSignBlocks();            // 告示牌
+    static void registerPurpurBlocks();          // 紫珀系列
+    static void registerEndBlocks();             // 末地方块
+    static void registerBoneAndHayBlocks();      // 骨块和干草块
     static void registerNetherExtensionBlocks(); // 下界扩展方块（岩浆块等）
-    static void registerNaturalBlocks();    // 自然扩展方块
-    static void registerPumpkinMelonBlocks(); // 南瓜和西瓜系列
-    static void registerRedstoneBlocks();   // 红石方块
-    static void registerStairsSlabsWalls(); // 楼梯、台阶、墙、栅栏、活板门
+    static void registerNaturalBlocks();         // 自然扩展方块
+    static void registerPumpkinMelonBlocks();    // 南瓜和西瓜系列
+    static void registerRedstoneBlocks();        // 红石方块
+    static void registerStairsSlabsWalls();      // 楼梯、台阶、墙、栅栏、活板门
 };
 
 } // namespace mc

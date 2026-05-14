@@ -1,25 +1,25 @@
 #pragma once
 
-#include "MatrixStack.hpp"
-#include "PlayerModel.hpp"
 #include "ArmPose.hpp"
 #include "ItemCameraTransforms.hpp"
+#include "MatrixStack.hpp"
+#include "PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <array>
-#include <vulkan/vulkan.h>
-#include <memory>
 #include <limits>
+#include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 // 前向声明
 namespace mc {
 class Player;
 class LivingEntity;
-}
+} // namespace mc
 
 namespace mc::client {
 class ItemTextureAtlas;
@@ -28,10 +28,10 @@ class ItemTextureAtlas;
 namespace mc::client::renderer::trident::firstperson {
 
 // 导入类型
-using entity::pipeline::EntityTextureAtlas;
+using entity::model::ModelVertex;
 using entity::pipeline::EntityMesh;
 using entity::pipeline::EntityPipeline;
-using entity::model::ModelVertex;
+using entity::pipeline::EntityTextureAtlas;
 
 /**
  * @brief 第一人称手部渲染器
@@ -101,15 +101,14 @@ public:
      * @param device Vulkan 设备
      * @param physicalDevice Vulkan 物理设备
      * @param commandPool 命令池
-    * @param graphicsQueue 图形队列（必须与 commandPool 的队列族匹配）
+     * @param graphicsQueue 图形队列（必须与 commandPool 的队列族匹配）
      * @param renderPass 渲染通道
      * @param cameraDescriptorLayout 相机描述符布局
      * @param descriptorPool 描述符池
      * @param entityTextureAtlas 实体纹理图集（玩家皮肤）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device,
+    [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -152,9 +151,7 @@ public:
      * @param cameraDescriptorSet 相机描述符集
      * @param context 渲染上下文
      */
-    void render(VkCommandBuffer cmd,
-                VkDescriptorSet cameraDescriptorSet,
-                const RenderContext& context);
+    void render(VkCommandBuffer cmd, VkDescriptorSet cameraDescriptorSet, const RenderContext& context);
 
     // ========== 动画控制 ==========
 
@@ -206,12 +203,11 @@ private:
      * @brief 渲染单只手臂
      *
      * @param stack 矩阵栈
-    * @param side 手侧（左/右）
+     * @param side 手侧（左/右）
      * @param equipProgress 装备进度
      * @param swingProgress 挥动进度
      */
-    void renderArmFirstPerson(MatrixStack& stack, HandSide side,
-                              f32 equipProgress, f32 swingProgress);
+    void renderArmFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress, f32 swingProgress);
 
     /**
      * @brief 渲染手持物品（基础版本）
@@ -223,9 +219,12 @@ private:
      * @param equipProgress 装备进度
      * @param swingProgress 挥动进度
      */
-    void renderItemInHand(MatrixStack& stack, mc::Player* player,
-                          const ItemStack& itemStack, HandSide side,
-                          f32 equipProgress, f32 swingProgress);
+    void renderItemInHand(MatrixStack& stack,
+        mc::Player* player,
+        const ItemStack& itemStack,
+        HandSide side,
+        f32 equipProgress,
+        f32 swingProgress);
 
     /**
      * @brief 渲染手持物品（带使用状态）
@@ -240,16 +239,21 @@ private:
      * @param useCount 使用计数
      * @param partialTicks 部分 tick
      */
-    void renderItemInHand(MatrixStack& stack, mc::Player* player,
-                          const ItemStack& itemStack, HandSide side,
-                          f32 equipProgress, f32 swingProgress,
-                          bool isUsingItem, i32 useCount, f32 partialTicks);
+    void renderItemInHand(MatrixStack& stack,
+        mc::Player* player,
+        const ItemStack& itemStack,
+        HandSide side,
+        f32 equipProgress,
+        f32 swingProgress,
+        bool isUsingItem,
+        i32 useCount,
+        f32 partialTicks);
 
     /**
      * @brief 渲染地图（特殊物品）
      */
-    void renderMapFirstPerson(MatrixStack& stack, const ItemStack& mapStack,
-                              f32 pitch, f32 equipProgress, f32 swingProgress);
+    void renderMapFirstPerson(
+        MatrixStack& stack, const ItemStack& mapStack, f32 pitch, f32 equipProgress, f32 swingProgress);
 
     // ========== 变换方法 ==========
 
@@ -276,8 +280,8 @@ private:
      * @param item 物品堆
      * @param useCount 剩余使用时间
      */
-    void transformEatOrDrink(MatrixStack& matrixStack, f32 partialTicks, HandSide side,
-                             const ItemStack& item, i32 useCount);
+    void transformEatOrDrink(
+        MatrixStack& matrixStack, f32 partialTicks, HandSide side, const ItemStack& item, i32 useCount);
 
     /**
      * @brief 应用拉弓变换
@@ -304,8 +308,7 @@ private:
      * @param useCount 使用计数
      * @param isCharged 是否已装填
      */
-    void transformCrossbow(MatrixStack& stack, f32 partialTicks, HandSide side,
-                           i32 useCount, bool isCharged);
+    void transformCrossbow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged);
 
     /**
      * @brief 计算挥动动画参数
@@ -358,8 +361,7 @@ private:
      * @brief 创建或更新 GPU 缓冲区
      */
     [[nodiscard]] Result<void> createOrUpdateBuffers(
-        const std::vector<ModelVertex>& vertices,
-        const std::vector<u32>& indices);
+        const std::vector<ModelVertex>& vertices, const std::vector<u32>& indices);
 
     /**
      * @brief 将模型 UV 重映射到玩家皮肤图集区域

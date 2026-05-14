@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
-#include "common/network/connection/LocalConnection.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/connection/LocalConnection.hpp"
+#include <atomic>
 #include <thread>
 #include <vector>
-#include <atomic>
+#include <gtest/gtest.h>
 
 using namespace mc::network;
 using namespace mc;
@@ -12,20 +12,23 @@ using namespace mc;
 // 基础测试
 // ============================================================================
 
-TEST(LocalConnectionTest, CreateEndpoint) {
+TEST(LocalConnectionTest, CreateEndpoint)
+{
     LocalEndpoint endpoint;
     EXPECT_FALSE(endpoint.isConnected());
     EXPECT_FALSE(endpoint.hasData());
     EXPECT_EQ(endpoint.pendingCount(), 0);
 }
 
-TEST(LocalConnectionTest, CreateConnectionPair) {
+TEST(LocalConnectionTest, CreateConnectionPair)
+{
     LocalConnectionPair pair;
     EXPECT_FALSE(pair.clientEndpoint().isConnected());
     EXPECT_FALSE(pair.serverEndpoint().isConnected());
 }
 
-TEST(LocalConnectionTest, ConnectPair) {
+TEST(LocalConnectionTest, ConnectPair)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -33,7 +36,8 @@ TEST(LocalConnectionTest, ConnectPair) {
     EXPECT_TRUE(pair.serverEndpoint().isConnected());
 }
 
-TEST(LocalConnectionTest, DisconnectPair) {
+TEST(LocalConnectionTest, DisconnectPair)
+{
     LocalConnectionPair pair;
     pair.connect();
     EXPECT_TRUE(pair.clientEndpoint().isConnected());
@@ -47,7 +51,8 @@ TEST(LocalConnectionTest, DisconnectPair) {
 // 发送/接收测试
 // ============================================================================
 
-TEST(LocalConnectionTest, SendReceiveSinglePacket) {
+TEST(LocalConnectionTest, SendReceiveSinglePacket)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -62,16 +67,13 @@ TEST(LocalConnectionTest, SendReceiveSinglePacket) {
     EXPECT_EQ(receiveData, sendData);
 }
 
-TEST(LocalConnectionTest, SendMultiplePackets) {
+TEST(LocalConnectionTest, SendMultiplePackets)
+{
     LocalConnectionPair pair;
     pair.connect();
 
     // 发送多个数据包
-    std::vector<std::vector<u8>> packets = {
-        {1, 2, 3},
-        {4, 5, 6, 7},
-        {8, 9, 10, 11, 12}
-    };
+    std::vector<std::vector<u8>> packets = {{1, 2, 3}, {4, 5, 6, 7}, {8, 9, 10, 11, 12}};
 
     for (const auto& packet : packets) {
         pair.clientEndpoint().send(packet.data(), packet.size());
@@ -89,7 +91,8 @@ TEST(LocalConnectionTest, SendMultiplePackets) {
     EXPECT_FALSE(pair.serverEndpoint().hasData());
 }
 
-TEST(LocalConnectionTest, BidirectionalCommunication) {
+TEST(LocalConnectionTest, BidirectionalCommunication)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -110,7 +113,8 @@ TEST(LocalConnectionTest, BidirectionalCommunication) {
     EXPECT_EQ(clientReceive, serverData);
 }
 
-TEST(LocalConnectionTest, EmptyQueue) {
+TEST(LocalConnectionTest, EmptyQueue)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -119,7 +123,8 @@ TEST(LocalConnectionTest, EmptyQueue) {
     EXPECT_FALSE(pair.serverEndpoint().receive(data));
 }
 
-TEST(LocalConnectionTest, DisconnectClearsQueue) {
+TEST(LocalConnectionTest, DisconnectClearsQueue)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -137,7 +142,8 @@ TEST(LocalConnectionTest, DisconnectClearsQueue) {
 // 线程安全测试
 // ============================================================================
 
-TEST(LocalConnectionTest, MultithreadSendReceive) {
+TEST(LocalConnectionTest, MultithreadSendReceive)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -170,7 +176,8 @@ TEST(LocalConnectionTest, MultithreadSendReceive) {
     EXPECT_EQ(receivedCount.load(), numPackets);
 }
 
-TEST(LocalConnectionTest, BlockingReceive) {
+TEST(LocalConnectionTest, BlockingReceive)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -197,7 +204,8 @@ TEST(LocalConnectionTest, BlockingReceive) {
     EXPECT_GE(duration.count(), 50); // 至少等待了发送延迟
 }
 
-TEST(LocalConnectionTest, BlockingReceiveTimeout) {
+TEST(LocalConnectionTest, BlockingReceiveTimeout)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -215,7 +223,8 @@ TEST(LocalConnectionTest, BlockingReceiveTimeout) {
 // 大数据测试
 // ============================================================================
 
-TEST(LocalConnectionTest, LargePacket) {
+TEST(LocalConnectionTest, LargePacket)
+{
     LocalConnectionPair pair;
     pair.connect();
 
@@ -237,7 +246,8 @@ TEST(LocalConnectionTest, LargePacket) {
 // 边界情况测试
 // ============================================================================
 
-TEST(LocalConnectionTest, SendToDisconnectedEndpoint) {
+TEST(LocalConnectionTest, SendToDisconnectedEndpoint)
+{
     LocalConnectionPair pair;
     // 不连接
 
@@ -248,7 +258,8 @@ TEST(LocalConnectionTest, SendToDisconnectedEndpoint) {
     EXPECT_FALSE(pair.serverEndpoint().hasData());
 }
 
-TEST(LocalConnectionTest, Reconnect) {
+TEST(LocalConnectionTest, Reconnect)
+{
     LocalConnectionPair pair;
 
     // 第一次连接

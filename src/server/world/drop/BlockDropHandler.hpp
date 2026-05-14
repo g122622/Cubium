@@ -1,11 +1,11 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/entity/loot/LootContext.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -34,15 +34,15 @@ class ExperienceDropHandler;
  * 用于确定矿石经验掉落的类型。
  */
 enum class OreType : i32 {
-    None = -1,          // 非矿石
-    Coal = 0,           // 煤矿 (0-2 经验)
-    Diamond = 1,        // 钻石矿 (3-7 经验)
-    Emerald = 2,        // 绿宝石矿 (3-7 经验)
-    Lapis = 3,          // 青金石矿 (2-5 经验)
-    NetherQuartz = 4,   // 下界石英矿 (2-5 经验)
-    NetherGold = 5,     // 下界金矿 (0-1 经验)
-    Redstone = 6,       // 红石矿 (1-5 经验)
-    Spawner = 7         // 刷怪笼 (15-44 经验)
+    None = -1,        // 非矿石
+    Coal = 0,         // 煤矿 (0-2 经验)
+    Diamond = 1,      // 钻石矿 (3-7 经验)
+    Emerald = 2,      // 绿宝石矿 (3-7 经验)
+    Lapis = 3,        // 青金石矿 (2-5 经验)
+    NetherQuartz = 4, // 下界石英矿 (2-5 经验)
+    NetherGold = 5,   // 下界金矿 (0-1 经验)
+    Redstone = 6,     // 红石矿 (1-5 经验)
+    Spawner = 7       // 刷怪笼 (15-44 经验)
 };
 
 /**
@@ -80,8 +80,7 @@ public:
      * @param lootTableManager 掉落表管理器
      * @return 生成的掉落物列表
      */
-    [[nodiscard]] static std::vector<ItemStack> generateDrops(
-        IWorld& world,
+    [[nodiscard]] static std::vector<ItemStack> generateDrops(IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         const Player* player,
@@ -99,8 +98,7 @@ public:
      * @param throwerUuid 投掷者UUID（防止立即拾取）
      * @return 生成的实体ID列表
      */
-    static std::vector<EntityId> spawnDrops(
-        server::ServerWorld& world,
+    static std::vector<EntityId> spawnDrops(server::ServerWorld& world,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
         const std::string& throwerUuid = "");
@@ -111,8 +109,7 @@ public:
      * 与 spawnDrops(ServerWorld&, ...) 逻辑一致，但直接写入 EntityManager，
      * 避免 IntegratedServer 依赖 ServerWorld。
      */
-    static std::vector<EntityId> spawnDrops(
-        EntityManager& entityManager,
+    static std::vector<EntityId> spawnDrops(EntityManager& entityManager,
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
@@ -131,10 +128,7 @@ public:
      * @param tool 使用的工具（可为null）
      * @return 如果可以采集返回true
      */
-    [[nodiscard]] static bool canHarvestBlock(
-        const BlockState& state,
-        const Player* player,
-        const ItemStack* tool);
+    [[nodiscard]] static bool canHarvestBlock(const BlockState& state, const Player* player, const ItemStack* tool);
 
     /**
      * @brief 获取方块的默认掉落
@@ -174,14 +168,9 @@ public:
      * @param rng 随机数生成器
      * @return 生成的经验球数量
      */
-    static i32 spawnOreExperience(
-        server::ServerWorld& world,
-        const BlockPos& pos,
-        OreType oreType,
-        math::Random& rng);
+    static i32 spawnOreExperience(server::ServerWorld& world, const BlockPos& pos, OreType oreType, math::Random& rng);
 
-    static i32 spawnOreExperience(
-        EntityManager& entityManager,
+    static i32 spawnOreExperience(EntityManager& entityManager,
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         OreType oreType,
@@ -201,15 +190,13 @@ public:
      * @param rng 随机数生成器
      * @return 生成的经验球数量
      */
-    static i32 handleBlockBreakExperience(
-        server::ServerWorld& world,
+    static i32 handleBlockBreakExperience(server::ServerWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         const ItemStack* tool,
         math::Random& rng);
 
-    static i32 handleBlockBreakExperience(
-        EntityManager& entityManager,
+    static i32 handleBlockBreakExperience(EntityManager& entityManager,
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         const BlockState& state,
@@ -228,8 +215,7 @@ private:
      * @param random 随机数生成器
      * @return 构建的掉落上下文
      */
-    [[nodiscard]] static std::unique_ptr<loot::LootContext> buildLootContext(
-        IWorld& world,
+    [[nodiscard]] static std::unique_ptr<loot::LootContext> buildLootContext(IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         const Player* player,

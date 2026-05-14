@@ -1,7 +1,7 @@
 #include "EndBiomeProvider.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../BiomeRegistry.hpp"
 #include "../../layer/BiomeValues.hpp"
-#include "../../../../util/math/random/Random.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,12 +17,12 @@ namespace end {
 // MC 1.16.5 末地生物群系 ID
 // 参考 BiomeValues.hpp
 namespace EndBiomes {
-    constexpr BiomeId TheEnd = 9;           // 末地主岛
-    constexpr BiomeId SmallEndIslands = 40; // 小型末地岛屿
-    constexpr BiomeId EndMidlands = 41;     // 末地中部
-    constexpr BiomeId EndHighlands = 42;    // 末地高地
-    constexpr BiomeId EndBarrens = 43;      // 末地荒地
-}
+constexpr BiomeId TheEnd = 9;           // 末地主岛
+constexpr BiomeId SmallEndIslands = 40; // 小型末地岛屿
+constexpr BiomeId EndMidlands = 41;     // 末地中部
+constexpr BiomeId EndHighlands = 42;    // 末地高地
+constexpr BiomeId EndBarrens = 43;      // 末地荒地
+} // namespace EndBiomes
 
 // ============================================================================
 // 构造函数
@@ -42,24 +42,28 @@ EndBiomeProvider::EndBiomeProvider(u64 seed)
 // 生物群系获取
 // ============================================================================
 
-BiomeId EndBiomeProvider::getBiome(i32 x, i32 y, i32 z) const {
+BiomeId EndBiomeProvider::getBiome(i32 x, i32 y, i32 z) const
+{
     MC_UNUSED(y);
     return getNoiseBiome(x >> 2, 0, z >> 2);
 }
 
-BiomeId EndBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
+BiomeId EndBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
+{
     MC_UNUSED(noiseY);
     return selectBiome(noiseX, noiseZ);
 }
 
-f32 EndBiomeProvider::getDepth(i32 x, i32 z) const {
+f32 EndBiomeProvider::getDepth(i32 x, i32 z) const
+{
     // 末地地形深度（平坦地形）
     MC_UNUSED(x);
     MC_UNUSED(z);
     return 0.0f;
 }
 
-f32 EndBiomeProvider::getScale(i32 x, i32 z) const {
+f32 EndBiomeProvider::getScale(i32 x, i32 z) const
+{
     // 末地地形比例（平坦地形）
     MC_UNUSED(x);
     MC_UNUSED(z);
@@ -70,14 +74,16 @@ f32 EndBiomeProvider::getScale(i32 x, i32 z) const {
 // 末地特有方法
 // ============================================================================
 
-bool EndBiomeProvider::isInMainIsland(i32 x, i32 z) const {
+bool EndBiomeProvider::isInMainIsland(i32 x, i32 z) const
+{
     // 对外部世界坐标保持语义：等价于原版 (noiseX >> 2)^2 + (noiseZ >> 2)^2 <= 4096。
     const i64 i = static_cast<i64>(x >> 4);
     const i64 j = static_cast<i64>(z >> 4);
     return i * i + j * j <= MAIN_ISLAND_RADIUS_SQ;
 }
 
-f32 EndBiomeProvider::getIslandHeight(i32 x, i32 z) const {
+f32 EndBiomeProvider::getIslandHeight(i32 x, i32 z) const
+{
     return computeIslandHeight(*m_islandNoise, x, z);
 }
 
@@ -85,7 +91,8 @@ f32 EndBiomeProvider::getIslandHeight(i32 x, i32 z) const {
 // 生物群系选择
 // ============================================================================
 
-BiomeId EndBiomeProvider::selectBiome(i32 noiseX, i32 noiseZ) const {
+BiomeId EndBiomeProvider::selectBiome(i32 noiseX, i32 noiseZ) const
+{
     // 参考原版 EndBiomeProvider#getNoiseBiome：
     // i = noiseX >> 2, j = noiseZ >> 2
     // if i*i + j*j <= 4096 -> THE_END
@@ -114,10 +121,7 @@ BiomeId EndBiomeProvider::selectBiome(i32 noiseX, i32 noiseZ) const {
     return height < -20.0f ? EndBiomes::SmallEndIslands : EndBiomes::EndBarrens;
 }
 
-f32 EndBiomeProvider::computeIslandHeight(
-    const SimplexNoiseGenerator& noise,
-    i32 x,
-    i32 z)
+f32 EndBiomeProvider::computeIslandHeight(const SimplexNoiseGenerator& noise, i32 x, i32 z)
 {
     const i32 i = x / 2;
     const i32 j = z / 2;
@@ -158,7 +162,8 @@ f32 EndBiomeProvider::computeIslandHeight(
 // 生物群系容器填充
 // ============================================================================
 
-void EndBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) {
+void EndBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     const i32 startNoiseX = chunkX << 2;
     const i32 startNoiseZ = chunkZ << 2;
 

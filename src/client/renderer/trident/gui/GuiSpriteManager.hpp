@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "client/renderer/trident/gui/GuiSprite.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 namespace mc::client::renderer::trident::gui {
 
@@ -56,8 +56,7 @@ public:
      * @param atlasWidth 图集总宽度（像素）
      * @param atlasHeight 图集总高度（像素）
      */
-    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height,
-                        i32 atlasWidth, i32 atlasHeight);
+    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height, i32 atlasWidth, i32 atlasHeight);
 
     /**
      * @brief 批量注册精灵
@@ -113,8 +112,8 @@ public:
 
 private:
     std::unordered_map<std::string, GuiSprite> m_sprites;
-    i32 m_atlasWidth = 256;   ///< 用于精灵UV计算的图集宽度
-    i32 m_atlasHeight = 256;  ///< 用于精灵UV计算的图集高度
+    i32 m_atlasWidth = 256;  ///< 用于精灵UV计算的图集宽度
+    i32 m_atlasHeight = 256; ///< 用于精灵UV计算的图集高度
 };
 
 } // namespace mc::client::renderer::trident::gui

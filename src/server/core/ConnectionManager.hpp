@@ -129,7 +129,8 @@ public:
      * @param payload 数据包负载
      * @param out 输出序列化器
      */
-    static void encapsulatePacket(network::PacketType type, const std::vector<u8>& payload, network::PacketSerializer& out);
+    static void encapsulatePacket(
+        network::PacketType type, const std::vector<u8>& payload, network::PacketSerializer& out);
 
 private:
     PlayerManager& m_playerManager;

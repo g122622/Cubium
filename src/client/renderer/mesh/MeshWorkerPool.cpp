@@ -3,15 +3,14 @@
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
-#include <spdlog/spdlog.h>
 #include <string>
+#include <spdlog/spdlog.h>
 
 namespace mc::client {
 
 MeshWorkerPool::MeshWorkerPool(i32 threadCount)
     : m_threadCount(threadCount > 0 ? threadCount : getOptimalThreadCount())
-{
-}
+{}
 
 MeshWorkerPool::~MeshWorkerPool()
 {
@@ -91,10 +90,7 @@ void MeshWorkerPool::submit(MeshWorkerTask task)
 
     if (!task.chunkData) {
         spdlog::warn(
-            "MeshWorkerPool: submit ignored for chunk ({}, {}), chunk data is null",
-            task.chunkId.x,
-            task.chunkId.z
-        );
+            "MeshWorkerPool: submit ignored for chunk ({}, {}), chunk data is null", task.chunkId.x, task.chunkId.z);
         return;
     }
 
@@ -108,10 +104,7 @@ void MeshWorkerPool::submit(MeshWorkerTask task)
     m_condition.notify_one();
 }
 
-void MeshWorkerPool::drainCompleted(
-    const std::function<void(MeshWorkerResult&&)>& callback,
-    u32 maxCount
-)
+void MeshWorkerPool::drainCompleted(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount)
 {
     if (!callback || maxCount == 0) {
         return;
@@ -169,9 +162,7 @@ void MeshWorkerPool::workerLoop(i32 workerId)
         {
             std::unique_lock<std::mutex> lock(m_queueMutex);
 
-            m_condition.wait(lock, [this] {
-                return !m_taskQueue.empty() || m_stop.load(std::memory_order_acquire);
-            });
+            m_condition.wait(lock, [this] { return !m_taskQueue.empty() || m_stop.load(std::memory_order_acquire); });
 
             if (m_stop.load(std::memory_order_acquire) && m_taskQueue.empty()) {
                 break;
@@ -195,12 +186,10 @@ void MeshWorkerPool::workerLoop(i32 workerId)
 void MeshWorkerPool::executeTask(const MeshWorkerTask& task)
 {
     ChunkPos chunkPos(task.chunkId.x, task.chunkId.z);
-    MC_TRACE_CHUNK_MESH_EVENT(
-        "BuildMesh",
-        "pos", fmt::format("({}, {})", task.chunkId.x, task.chunkId.z),
-        [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-        });
+    MC_TRACE_CHUNK_MESH_EVENT("BuildMesh",
+        "pos",
+        fmt::format("({}, {})", task.chunkId.x, task.chunkId.z),
+        [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     MeshWorkerResult result;
     result.chunkId = task.chunkId;
@@ -223,12 +212,7 @@ void MeshWorkerPool::executeTask(const MeshWorkerTask& task)
 
         MC_TRACE_CHUNK_MESH_EVENT("GenerateSolidMesh");
         ChunkMesher::generateSplitMesh(
-            *task.chunkData,
-            result.solidMesh,
-            result.transparentMesh,
-            neighborPtrs,
-            task.cancelSignal.get()
-        );
+            *task.chunkData, result.solidMesh, result.transparentMesh, neighborPtrs, task.cancelSignal.get());
 
         if (isCancelled(task)) {
             result.cancelled = true;
@@ -236,21 +220,13 @@ void MeshWorkerPool::executeTask(const MeshWorkerTask& task)
         } else {
             result.success = true;
         }
-
-    } catch (const std::exception& e) {
-        spdlog::error(
-            "MeshWorkerPool: build failed for chunk ({}, {}): {}",
-            task.chunkId.x,
-            task.chunkId.z,
-            e.what()
-        );
+    }
+    catch (const std::exception& e) {
+        spdlog::error("MeshWorkerPool: build failed for chunk ({}, {}): {}", task.chunkId.x, task.chunkId.z, e.what());
         result.success = false;
-    } catch (...) {
-        spdlog::error(
-            "MeshWorkerPool: build failed for chunk ({}, {}): unknown error",
-            task.chunkId.x,
-            task.chunkId.z
-        );
+    }
+    catch (...) {
+        spdlog::error("MeshWorkerPool: build failed for chunk ({}, {}): unknown error", task.chunkId.x, task.chunkId.z);
         result.success = false;
     }
 

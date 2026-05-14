@@ -1,14 +1,14 @@
-#include <gtest/gtest.h>
-#include <array>
-#include <vector>
-#include "../src/common/world/gen/feature/DecorationStage.hpp"
-#include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
-#include "../src/common/world/gen/feature/FeatureIds.hpp"
-#include "../src/common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "../src/common/world/chunk/ChunkPrimer.hpp"
 #include "../src/common/world/biome/Biome.hpp"
 #include "../src/common/world/biome/BiomeGenerationSettings.hpp"
 #include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/chunk/ChunkPrimer.hpp"
+#include "../src/common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
+#include "../src/common/world/gen/feature/DecorationStage.hpp"
+#include "../src/common/world/gen/feature/FeatureIds.hpp"
+#include <array>
+#include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -22,14 +22,15 @@ struct SeedProbeCall {
 class SeedProbeFeature final : public ConfiguredFeatureBase {
 public:
     explicit SeedProbeFeature(u32 featureOrdinal)
-        : m_featureOrdinal(featureOrdinal) {}
+        : m_featureOrdinal(featureOrdinal)
+    {}
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override {
+        const BlockPos& pos) override
+    {
         (void)region;
         (void)chunk;
         (void)generator;
@@ -63,7 +64,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(DecorationStageTest, GetAllReturnsCorrectOrder) {
+TEST_F(DecorationStageTest, GetAllReturnsCorrectOrder)
+{
     const auto& stages = DecorationStages::getAll();
 
     EXPECT_EQ(stages.size(), static_cast<size_t>(DecorationStage::Count));
@@ -79,7 +81,8 @@ TEST_F(DecorationStageTest, GetAllReturnsCorrectOrder) {
     EXPECT_EQ(stages[9], DecorationStage::TopLayerModification);
 }
 
-TEST_F(DecorationStageTest, GetNameReturnsCorrectStrings) {
+TEST_F(DecorationStageTest, GetNameReturnsCorrectStrings)
+{
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::RawGeneration), "raw_generation");
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::Lakes), "lakes");
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::LocalModifications), "local_modifications");
@@ -92,7 +95,8 @@ TEST_F(DecorationStageTest, GetNameReturnsCorrectStrings) {
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::TopLayerModification), "top_layer_modification");
 }
 
-TEST_F(DecorationStageTest, GetIndexReturnsCorrectValues) {
+TEST_F(DecorationStageTest, GetIndexReturnsCorrectValues)
+{
     EXPECT_EQ(DecorationStages::getIndex(DecorationStage::RawGeneration), 0);
     EXPECT_EQ(DecorationStages::getIndex(DecorationStage::Lakes), 1);
     EXPECT_EQ(DecorationStages::getIndex(DecorationStage::UndergroundOres), 6);
@@ -100,18 +104,21 @@ TEST_F(DecorationStageTest, GetIndexReturnsCorrectValues) {
     EXPECT_EQ(DecorationStages::getIndex(DecorationStage::TopLayerModification), 9);
 }
 
-TEST_F(DecorationStageTest, FromIndexReturnsCorrectStage) {
+TEST_F(DecorationStageTest, FromIndexReturnsCorrectStage)
+{
     EXPECT_EQ(DecorationStages::fromIndex(0), DecorationStage::RawGeneration);
     EXPECT_EQ(DecorationStages::fromIndex(6), DecorationStage::UndergroundOres);
     EXPECT_EQ(DecorationStages::fromIndex(9), DecorationStage::TopLayerModification);
 }
 
-TEST_F(DecorationStageTest, FromIndexInvalidReturnsRawGeneration) {
+TEST_F(DecorationStageTest, FromIndexInvalidReturnsRawGeneration)
+{
     EXPECT_EQ(DecorationStages::fromIndex(100), DecorationStage::RawGeneration);
     EXPECT_EQ(DecorationStages::fromIndex(255), DecorationStage::RawGeneration);
 }
 
-TEST_F(DecorationStageTest, FromNameReturnsCorrectStage) {
+TEST_F(DecorationStageTest, FromNameReturnsCorrectStage)
+{
     EXPECT_EQ(DecorationStages::fromName("raw_generation"), DecorationStage::RawGeneration);
     EXPECT_EQ(DecorationStages::fromName("lakes"), DecorationStage::Lakes);
     EXPECT_EQ(DecorationStages::fromName("underground_ores"), DecorationStage::UndergroundOres);
@@ -119,7 +126,8 @@ TEST_F(DecorationStageTest, FromNameReturnsCorrectStage) {
     EXPECT_EQ(DecorationStages::fromName("top_layer_modification"), DecorationStage::TopLayerModification);
 }
 
-TEST_F(DecorationStageTest, FromNameInvalidReturnsRawGeneration) {
+TEST_F(DecorationStageTest, FromNameInvalidReturnsRawGeneration)
+{
     EXPECT_EQ(DecorationStages::fromName("invalid"), DecorationStage::RawGeneration);
     EXPECT_EQ(DecorationStages::fromName(""), DecorationStage::RawGeneration);
 }
@@ -133,7 +141,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(BiomeGenerationSettingsTest, DefaultConstruction) {
+TEST_F(BiomeGenerationSettingsTest, DefaultConstruction)
+{
     BiomeGenerationSettings settings;
 
     // 验证所有阶段为空
@@ -144,7 +153,8 @@ TEST_F(BiomeGenerationSettingsTest, DefaultConstruction) {
     EXPECT_FALSE(settings.hasFeatures());
 }
 
-TEST_F(BiomeGenerationSettingsTest, AddFeature) {
+TEST_F(BiomeGenerationSettingsTest, AddFeature)
+{
     BiomeGenerationSettings settings;
 
     settings.addFeature(DecorationStage::UndergroundOres, 0);
@@ -163,7 +173,8 @@ TEST_F(BiomeGenerationSettingsTest, AddFeature) {
     EXPECT_TRUE(settings.hasFeatures());
 }
 
-TEST_F(BiomeGenerationSettingsTest, Clear) {
+TEST_F(BiomeGenerationSettingsTest, Clear)
+{
     BiomeGenerationSettings settings;
 
     settings.addFeature(DecorationStage::UndergroundOres, 0);
@@ -177,7 +188,8 @@ TEST_F(BiomeGenerationSettingsTest, Clear) {
     EXPECT_TRUE(settings.getFeatures(DecorationStage::VegetalDecoration).empty());
 }
 
-TEST_F(BiomeGenerationSettingsTest, CreateDefault) {
+TEST_F(BiomeGenerationSettingsTest, CreateDefault)
+{
     BiomeGenerationSettings settings = BiomeGenerationSettings::createDefault();
 
     // 默认设置应该包含矿石
@@ -194,7 +206,8 @@ TEST_F(BiomeGenerationSettingsTest, CreateDefault) {
     EXPECT_EQ(lakes[1], LakeFeatureIds::LavaLake);
 }
 
-TEST_F(BiomeGenerationSettingsTest, CreatePlains) {
+TEST_F(BiomeGenerationSettingsTest, CreatePlains)
+{
     BiomeGenerationSettings settings = BiomeGenerationSettings::createPlains();
 
     EXPECT_TRUE(settings.hasFeatures());
@@ -204,7 +217,8 @@ TEST_F(BiomeGenerationSettingsTest, CreatePlains) {
     EXPECT_GE(ores.size(), 1u);
 }
 
-TEST_F(BiomeGenerationSettingsTest, CreateForest) {
+TEST_F(BiomeGenerationSettingsTest, CreateForest)
+{
     BiomeGenerationSettings settings = BiomeGenerationSettings::createForest();
 
     EXPECT_TRUE(settings.hasFeatures());
@@ -214,28 +228,30 @@ TEST_F(BiomeGenerationSettingsTest, CreateForest) {
     EXPECT_GE(ores.size(), 1u);
 }
 
-TEST_F(BiomeGenerationSettingsTest, CreateMountains) {
+TEST_F(BiomeGenerationSettingsTest, CreateMountains)
+{
     BiomeGenerationSettings settings = BiomeGenerationSettings::createMountains();
 
     EXPECT_TRUE(settings.hasFeatures());
 
     // 山地应该有矿石和绿宝石
     const auto& ores = settings.getFeatures(DecorationStage::UndergroundOres);
-    EXPECT_GE(ores.size(), 6u);  // 基础矿石 + 绿宝石
+    EXPECT_GE(ores.size(), 6u); // 基础矿石 + 绿宝石
 }
 
-TEST_F(BiomeGenerationSettingsTest, CreateOcean) {
+TEST_F(BiomeGenerationSettingsTest, CreateOcean)
+{
     BiomeGenerationSettings settings = BiomeGenerationSettings::createOcean();
 
     EXPECT_TRUE(settings.hasFeatures());
 
     // 海洋现在有海带和海草
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
-    EXPECT_GE(vegetal.size(), 2u);  // 至少有海带和海草
+    EXPECT_GE(vegetal.size(), 2u); // 至少有海带和海草
 
     // 海洋也有矿石
     const auto& ores = settings.getFeatures(DecorationStage::UndergroundOres);
-    EXPECT_GE(ores.size(), 7u);  // 基础矿石
+    EXPECT_GE(ores.size(), 7u); // 基础矿石
 }
 
 // ============================================================================
@@ -244,24 +260,25 @@ TEST_F(BiomeGenerationSettingsTest, CreateOcean) {
 
 class FeatureRegistryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 清除注册表以确保测试隔离
         FeatureRegistry::instance().clear();
     }
 
-    void TearDown() override {
-        FeatureRegistry::instance().clear();
-    }
+    void TearDown() override { FeatureRegistry::instance().clear(); }
 };
 
-TEST_F(FeatureRegistryTest, InstanceReturnsSingleton) {
+TEST_F(FeatureRegistryTest, InstanceReturnsSingleton)
+{
     FeatureRegistry& reg1 = FeatureRegistry::instance();
     FeatureRegistry& reg2 = FeatureRegistry::instance();
 
     EXPECT_EQ(&reg1, &reg2);
 }
 
-TEST_F(FeatureRegistryTest, ClearRemovesAllFeatures) {
+TEST_F(FeatureRegistryTest, ClearRemovesAllFeatures)
+{
     // 验证清除后为空
     FeatureRegistry::instance().clear();
 
@@ -270,14 +287,16 @@ TEST_F(FeatureRegistryTest, ClearRemovesAllFeatures) {
     }
 }
 
-TEST_F(FeatureRegistryTest, GetFeaturesReturnsEmptyForUnregisteredStage) {
+TEST_F(FeatureRegistryTest, GetFeaturesReturnsEmptyForUnregisteredStage)
+{
     FeatureRegistry::instance().clear();
 
     const auto& features = FeatureRegistry::instance().getFeatures(DecorationStage::UndergroundOres);
     EXPECT_TRUE(features.empty());
 }
 
-TEST_F(FeatureRegistryTest, FeatureGeneratorUsesMcStyleFeatureSeed) {
+TEST_F(FeatureRegistryTest, FeatureGeneratorUsesMcStyleFeatureSeed)
+{
     VanillaBlocks::initialize();
     SeedProbeFeature::clearCalls();
 
@@ -299,13 +318,7 @@ TEST_F(FeatureRegistryTest, FeatureGeneratorUsesMcStyleFeatureSeed) {
     DebugChunkGenerator generator;
 
     constexpr u64 worldSeed = 0xABCDEF1234567890ULL;
-    FeatureGenerator::placeFeatures(
-        region,
-        chunk,
-        generator,
-        biome,
-        DecorationStage::VegetalDecoration,
-        worldSeed);
+    FeatureGenerator::placeFeatures(region, chunk, generator, biome, DecorationStage::VegetalDecoration, worldSeed);
 
     const auto& calls = SeedProbeFeature::calls();
     ASSERT_EQ(calls.size(), 2u);
@@ -321,8 +334,7 @@ TEST_F(FeatureRegistryTest, FeatureGeneratorUsesMcStyleFeatureSeed) {
 
     const i32 stageOrdinal = static_cast<i32>(DecorationStage::VegetalDecoration);
     for (u32 featureIndex = 0; featureIndex < 2u; ++featureIndex) {
-        const u64 featureSeed =
-            decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
+        const u64 featureSeed = decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
         math::Random expectedRng(featureSeed);
         const u64 expectedSample = expectedRng.nextU64();
         EXPECT_EQ(calls[featureIndex].sampledValue, expectedSample);

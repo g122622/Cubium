@@ -16,8 +16,8 @@ namespace mc::skin {
  * 参考 MC 1.16.5 PlayerModel 构造函数
  */
 enum class SkinType : u8 {
-    Default = 0,  // 宽手臂 (4px)，Steve 模型
-    Slim = 1      // 窄手臂 (3px)，Alex 模型
+    Default = 0, // 宽手臂 (4px)，Steve 模型
+    Slim = 1     // 窄手臂 (3px)，Alex 模型
 };
 
 /**

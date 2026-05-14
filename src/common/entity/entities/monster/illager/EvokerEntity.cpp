@@ -82,7 +82,7 @@ void EvokerEntity::registerAttributes()
     SpellcastingIllagerEntity::registerAttributes();
     // MC 1.16.5 EvokerEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);  // MC 1.16.5: 唤魔者移动速度
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f); // MC 1.16.5: 唤魔者移动速度
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0f);
 }
 

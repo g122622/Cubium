@@ -1,8 +1,8 @@
 #include "MeshBuildScheduler.hpp"
+#include <algorithm>
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 #include <spdlog/spdlog.h>
-#include <algorithm>
 
 namespace mc::client {
 
@@ -10,20 +10,19 @@ namespace {
 constexpr f32 EPSILON = 1e-5f;
 } // namespace
 
-MeshBuildScheduler::MeshBuildScheduler(
-    MeshWorkerPool& workerPool,
-    const MeshSchedulerConfig& config
-)
+MeshBuildScheduler::MeshBuildScheduler(MeshWorkerPool& workerPool, const MeshSchedulerConfig& config)
     : m_workerPool(workerPool)
     , m_config(config)
 {
     if (m_config.maxDispatchedTaskCount <= 0) {
-        spdlog::warn("MeshBuildScheduler: invalid maxDispatchedTaskCount={}, fallback to 1", m_config.maxDispatchedTaskCount);
+        spdlog::warn(
+            "MeshBuildScheduler: invalid maxDispatchedTaskCount={}, fallback to 1", m_config.maxDispatchedTaskCount);
         m_config.maxDispatchedTaskCount = 1;
     }
 
     if (m_config.reprioritizeIntervalFrames <= 0) {
-        spdlog::warn("MeshBuildScheduler: invalid reprioritizeIntervalFrames={}, fallback to 1", m_config.reprioritizeIntervalFrames);
+        spdlog::warn("MeshBuildScheduler: invalid reprioritizeIntervalFrames={}, fallback to 1",
+            m_config.reprioritizeIntervalFrames);
         m_config.reprioritizeIntervalFrames = 1;
     }
 
@@ -36,7 +35,8 @@ MeshBuildScheduler::MeshBuildScheduler(
     m_config.behindCancelDotThreshold = std::clamp(m_config.behindCancelDotThreshold, -1.0f, 1.0f);
 
     if (m_config.behindCancelDistanceChunks < 0.0f) {
-        spdlog::warn("MeshBuildScheduler: invalid behindCancelDistanceChunks={}, fallback to 0", m_config.behindCancelDistanceChunks);
+        spdlog::warn("MeshBuildScheduler: invalid behindCancelDistanceChunks={}, fallback to 0",
+            m_config.behindCancelDistanceChunks);
         m_config.behindCancelDistanceChunks = 0.0f;
     }
 }
@@ -55,11 +55,9 @@ void MeshBuildScheduler::setViewState(const MeshSchedulerViewState& viewState)
 u64 MeshBuildScheduler::submit(MeshBuildRequest request)
 {
     if (!request.chunkData) {
-        spdlog::warn(
-            "MeshBuildScheduler: submit ignored for chunk ({}, {}), chunk data is null",
+        spdlog::warn("MeshBuildScheduler: submit ignored for chunk ({}, {}), chunk data is null",
             request.chunkId.x,
-            request.chunkId.z
-        );
+            request.chunkId.z);
         return 0;
     }
 
@@ -162,10 +160,7 @@ void MeshBuildScheduler::tick()
     dispatchPendingTasks();
 }
 
-void MeshBuildScheduler::drainCompleted(
-    const std::function<void(MeshWorkerResult&&)>& callback,
-    u32 maxCount
-)
+void MeshBuildScheduler::drainCompleted(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount)
 {
     m_workerPool.drainCompleted(
         [this, &callback](MeshWorkerResult&& result) {
@@ -205,12 +200,10 @@ void MeshBuildScheduler::drainCompleted(
                 }
 
                 if (!result.success) {
-                    spdlog::warn(
-                        "MeshBuildScheduler: mesh build failed for latest task {}, chunk ({}, {})",
+                    spdlog::warn("MeshBuildScheduler: mesh build failed for latest task {}, chunk ({}, {})",
                         result.taskId,
                         result.chunkId.x,
-                        result.chunkId.z
-                    );
+                        result.chunkId.z);
                     shouldDeliver = true;
                     return;
                 }
@@ -223,8 +216,7 @@ void MeshBuildScheduler::drainCompleted(
                 callback(std::move(result));
             }
         },
-        maxCount
-    );
+        maxCount);
 }
 
 bool MeshBuildScheduler::isTaskTracked(u64 taskId) const
@@ -289,10 +281,8 @@ bool MeshBuildScheduler::shouldReprioritize() const
         return true;
     }
 
-    const glm::vec2 cameraDelta(
-        m_viewState.cameraPosition.x - m_lastReprioritizedViewState.cameraPosition.x,
-        m_viewState.cameraPosition.z - m_lastReprioritizedViewState.cameraPosition.z
-    );
+    const glm::vec2 cameraDelta(m_viewState.cameraPosition.x - m_lastReprioritizedViewState.cameraPosition.x,
+        m_viewState.cameraPosition.z - m_lastReprioritizedViewState.cameraPosition.z);
 
     const f32 cameraMoveDistance = glm::length(cameraDelta);
     if (cameraMoveDistance >= m_config.cameraMoveThreshold) {
@@ -301,9 +291,7 @@ bool MeshBuildScheduler::shouldReprioritize() const
 
     const glm::vec2 currentForward(m_viewState.cameraForward.x, m_viewState.cameraForward.z);
     const glm::vec2 lastForward(
-        m_lastReprioritizedViewState.cameraForward.x,
-        m_lastReprioritizedViewState.cameraForward.z
-    );
+        m_lastReprioritizedViewState.cameraForward.x, m_lastReprioritizedViewState.cameraForward.z);
 
     const f32 currentForwardLen = glm::length(currentForward);
     const f32 lastForwardLen = glm::length(lastForward);
@@ -352,16 +340,12 @@ void MeshBuildScheduler::reprioritizePendingTasks()
         removeTaskImmediately(taskId);
     }
 
-    std::sort(
-        m_pendingOrder.begin(),
-        m_pendingOrder.end(),
-        [](const PendingSortItem& lhs, const PendingSortItem& rhs) {
-            if (lhs.score != rhs.score) {
-                return lhs.score < rhs.score;
-            }
-            return lhs.submitOrder < rhs.submitOrder;
+    std::sort(m_pendingOrder.begin(), m_pendingOrder.end(), [](const PendingSortItem& lhs, const PendingSortItem& rhs) {
+        if (lhs.score != rhs.score) {
+            return lhs.score < rhs.score;
         }
-    );
+        return lhs.submitOrder < rhs.submitOrder;
+    });
 
     m_pendingOrderDirty = false;
     if (m_hasViewState) {
@@ -536,11 +520,7 @@ void MeshBuildScheduler::updateTaskScore(ScheduledTask& task)
 
     // 使用 Frustum 类进行视锥剔除
     task.inFrustum = m_frustum.isChunkVisible(
-        task.chunkId.x,
-        task.chunkId.z,
-        m_viewState.minBuildHeight,
-        m_viewState.maxBuildHeight
-    );
+        task.chunkId.x, task.chunkId.z, m_viewState.minBuildHeight, m_viewState.maxBuildHeight);
 
     f32 score = task.distanceChunks;
 
@@ -557,10 +537,7 @@ void MeshBuildScheduler::updateTaskScore(ScheduledTask& task)
     task.score = score;
 }
 
-f32 MeshBuildScheduler::chunkDistanceInChunks(
-    const MeshSchedulerViewState& viewState,
-    const ChunkId& chunkId
-)
+f32 MeshBuildScheduler::chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId& chunkId)
 {
     const f32 chunkCenterOffset = static_cast<f32>(world::CHUNK_WIDTH) * 0.5f;
     const f32 centerX = static_cast<f32>(chunkId.x * world::CHUNK_WIDTH) + chunkCenterOffset;
@@ -571,10 +548,7 @@ f32 MeshBuildScheduler::chunkDistanceInChunks(
     return distanceBlocks / static_cast<f32>(world::CHUNK_WIDTH);
 }
 
-f32 MeshBuildScheduler::chunkForwardDot(
-    const MeshSchedulerViewState& viewState,
-    const ChunkId& chunkId
-)
+f32 MeshBuildScheduler::chunkForwardDot(const MeshSchedulerViewState& viewState, const ChunkId& chunkId)
 {
     const f32 chunkCenterOffset = static_cast<f32>(world::CHUNK_WIDTH) * 0.5f;
     const f32 centerX = static_cast<f32>(chunkId.x * world::CHUNK_WIDTH) + chunkCenterOffset;

@@ -1,7 +1,7 @@
 #include "ExplosionContext.hpp"
+#include "../../entity/core/Entity.hpp"
 #include "../block/Block.hpp"
 #include "../fluid/Fluid.hpp"
-#include "../../entity/core/Entity.hpp"
 
 namespace mc {
 namespace world {
@@ -10,8 +10,8 @@ namespace explosion {
 // ========== ExplosionContext ==========
 
 std::optional<f32> ExplosionContext::getExplosionResistance(
-    const BlockState& blockState,
-    const fluid::FluidState* fluidState) const {
+    const BlockState& blockState, const fluid::FluidState* fluidState) const
+{
 
     // 如果是空气方块且没有流体，返回空（不消耗爆炸强度）
     if (blockState.isAir()) {
@@ -33,9 +33,8 @@ std::optional<f32> ExplosionContext::getExplosionResistance(
     return blockResistance;
 }
 
-bool ExplosionContext::canDestroyBlock(
-    const BlockState& blockState,
-    f32 /*explosionPower*/) const {
+bool ExplosionContext::canDestroyBlock(const BlockState& blockState, f32 /*explosionPower*/) const
+{
 
     // 默认情况下，所有方块都可以被破坏
     // 但方块的实际抗性会在射线追踪中决定是否真的被破坏
@@ -45,21 +44,20 @@ bool ExplosionContext::canDestroyBlock(
 // ========== EntityExplosionContext ==========
 
 EntityExplosionContext::EntityExplosionContext(const Entity* source)
-    : m_source(source) {
-}
+    : m_source(source)
+{}
 
 std::optional<f32> EntityExplosionContext::getExplosionResistance(
-    const BlockState& blockState,
-    const fluid::FluidState* fluidState) const {
+    const BlockState& blockState, const fluid::FluidState* fluidState) const
+{
 
     // 默认行为：使用基类实现
     // 特殊实体（如凋灵之首）可以覆盖此方法
     return ExplosionContext::getExplosionResistance(blockState, fluidState);
 }
 
-bool EntityExplosionContext::canDestroyBlock(
-    const BlockState& blockState,
-    f32 explosionPower) const {
+bool EntityExplosionContext::canDestroyBlock(const BlockState& blockState, f32 explosionPower) const
+{
 
     // 默认行为：使用基类实现
     // 特殊实体（如 TNT 矿车不破坏铁轨）可以覆盖此方法

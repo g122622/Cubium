@@ -95,9 +95,7 @@ public:
      *
      * @return 如果来自桶或正在被骑乘返回 true
      */
-    [[nodiscard]] bool preventDespawn() const override {
-        return WaterMobEntity::preventDespawn() || m_fromBucket;
-    }
+    [[nodiscard]] bool preventDespawn() const override { return WaterMobEntity::preventDespawn() || m_fromBucket; }
 
     /**
      * @brief 检查是否可以消失
@@ -108,7 +106,8 @@ public:
      * @param distanceToClosestPlayer 到最近玩家的距离
      * @return 如果可以消失返回 true
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override {
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override
+    {
         (void)distanceToClosestPlayer;
         return !m_fromBucket && !hasCustomName();
     }
@@ -140,7 +139,7 @@ private:
     f32 m_swimAngle = 0.0f;
     bool m_flopping = false;
     i32 m_flopTimer = 0;
-    bool m_fromBucket = false;  // 是否来自桶（从桶放出的鱼不会消失）
+    bool m_fromBucket = false; // 是否来自桶（从桶放出的鱼不会消失）
 
     static constexpr i32 MAX_AIR_SUPPLY = 480;
 };

@@ -11,8 +11,8 @@
 
 #include "common/core/Types.hpp"
 #include <array>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <string>
 #include <string_view>
@@ -77,9 +77,7 @@ public:
 
 private:
     /// MD5 初始哈希值（A, B, C, D）
-    static constexpr std::array<u32, 4> INITIAL_HASH = {
-        0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476
-    };
+    static constexpr std::array<u32, 4> INITIAL_HASH = {0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476};
 
     /// MD5 块大小（64 字节 = 512 位）
     static constexpr std::size_t BLOCK_SIZE = 64;
@@ -103,29 +101,19 @@ private:
     // MD5 辅助函数
 
     /// F 函数: (X & Y) | (~X & Z)
-    [[nodiscard]] static constexpr u32 f(u32 x, u32 y, u32 z) {
-        return (x & y) | (~x & z);
-    }
+    [[nodiscard]] static constexpr u32 f(u32 x, u32 y, u32 z) { return (x & y) | (~x & z); }
 
     /// G 函数: (X & Z) | (Y & ~Z)
-    [[nodiscard]] static constexpr u32 g(u32 x, u32 y, u32 z) {
-        return (x & z) | (y & ~z);
-    }
+    [[nodiscard]] static constexpr u32 g(u32 x, u32 y, u32 z) { return (x & z) | (y & ~z); }
 
     /// H 函数: X ^ Y ^ Z
-    [[nodiscard]] static constexpr u32 h(u32 x, u32 y, u32 z) {
-        return x ^ y ^ z;
-    }
+    [[nodiscard]] static constexpr u32 h(u32 x, u32 y, u32 z) { return x ^ y ^ z; }
 
     /// I 函数: Y ^ (X | ~Z)
-    [[nodiscard]] static constexpr u32 i(u32 x, u32 y, u32 z) {
-        return y ^ (x | ~z);
-    }
+    [[nodiscard]] static constexpr u32 i(u32 x, u32 y, u32 z) { return y ^ (x | ~z); }
 
     /// 循环左移
-    [[nodiscard]] static constexpr u32 rotl(u32 x, std::size_t n) {
-        return (x << n) | (x >> (32 - n));
-    }
+    [[nodiscard]] static constexpr u32 rotl(u32 x, std::size_t n) { return (x << n) | (x >> (32 - n)); }
 };
 
 } // namespace crypto

@@ -3,19 +3,19 @@
 #include "../core/TemplateConfig.hpp"
 #include "../core/TemplateError.hpp"
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::parser {
 
 // 引入core命名空间的类型
-using core::TemplateConfig;
-using core::TemplateError;
-using core::TemplateErrorType;
-using core::TemplateErrorInfo;
-using core::TemplateErrorCollector;
 using core::SourceLocation;
 using core::SourceRange;
+using core::TemplateConfig;
+using core::TemplateError;
+using core::TemplateErrorCollector;
+using core::TemplateErrorInfo;
+using core::TemplateErrorType;
 
 /**
  * @brief Token类型枚举
@@ -24,31 +24,31 @@ using core::SourceRange;
  */
 enum class TokenType : u8 {
     // 结构Token
-    OpenTag,            ///< < 开始标签
-    CloseTag,           ///< > 结束标签
-    OpenCloseTag,       ///< </ 关闭标签开始
-    SelfCloseTag,       ///< /> 自关闭标签
-    OpenComment,        ///< <!-- 注释开始
-    CloseComment,       ///< --> 注释结束
+    OpenTag,      ///< < 开始标签
+    CloseTag,     ///< > 结束标签
+    OpenCloseTag, ///< </ 关闭标签开始
+    SelfCloseTag, ///< /> 自关闭标签
+    OpenComment,  ///< <!-- 注释开始
+    CloseComment, ///< --> 注释结束
 
     // 文本和标识符
-    Text,               ///< 文本内容
-    Identifier,         ///< 标识符（标签名、属性名）
-    StringLiteral,      ///< 字符串字面量（引号包围）
-    NumberLiteral,      ///< 数字字面量
+    Text,          ///< 文本内容
+    Identifier,    ///< 标识符（标签名、属性名）
+    StringLiteral, ///< 字符串字面量（引号包围）
+    NumberLiteral, ///< 数字字面量
 
     // 属性相关
-    Equals,             ///< = 等号
-    Colon,              ///< : 冒号（用于bind:, on:）
+    Equals, ///< = 等号
+    Colon,  ///< : 冒号（用于bind:, on:）
 
     // 特殊
-    Whitespace,         ///< 空白字符
-    Newline,            ///< 换行符
-    Comment,            ///< 注释内容
-    EndOfFile,          ///< 文件结束
+    Whitespace, ///< 空白字符
+    Newline,    ///< 换行符
+    Comment,    ///< 注释内容
+    EndOfFile,  ///< 文件结束
 
     // 错误
-    Error               ///< 错误Token
+    Error ///< 错误Token
 };
 
 /**
@@ -60,12 +60,15 @@ enum class TokenType : u8 {
  * @brief Token结构
  */
 struct Token {
-    TokenType type;              ///< Token类型
-    std::string value;                ///< Token值
-    SourceLocation location;     ///< 源码位置
+    TokenType type;          ///< Token类型
+    std::string value;       ///< Token值
+    SourceLocation location; ///< 源码位置
 
     Token(TokenType t = TokenType::Error, std::string v = "", SourceLocation loc = SourceLocation())
-        : type(t), value(std::move(v)), location(loc) {}
+        : type(t)
+        , value(std::move(v))
+        , location(loc)
+    {}
 
     /**
      * @brief 检查是否是特定类型的Token
@@ -75,9 +78,7 @@ struct Token {
     /**
      * @brief 检查是否是特定类型和值的Token
      */
-    [[nodiscard]] bool is(TokenType t, const std::string& v) const {
-        return type == t && value == v;
-    }
+    [[nodiscard]] bool is(TokenType t, const std::string& v) const { return type == t && value == v; }
 
     /**
      * @brief 检查是否是标识符
@@ -102,7 +103,8 @@ struct Token {
     /**
      * @brief 检查是否是关键字
      */
-    [[nodiscard]] bool isKeyword(const std::string& keyword) const {
+    [[nodiscard]] bool isKeyword(const std::string& keyword) const
+    {
         return type == TokenType::Identifier && value == keyword;
     }
 
@@ -170,23 +172,20 @@ public:
     /**
      * @brief 获取第一个错误
      */
-    [[nodiscard]] const TemplateErrorInfo* firstError() const {
-        return m_errors.empty() ? nullptr : &m_errors.front();
-    }
+    [[nodiscard]] const TemplateErrorInfo* firstError() const { return m_errors.empty() ? nullptr : &m_errors.front(); }
 
     // ========== 迭代器接口 ==========
 
     /**
      * @brief 检查是否还有下一个Token
      */
-    [[nodiscard]] bool hasNext() const {
-        return m_currentIndex < m_tokens.size();
-    }
+    [[nodiscard]] bool hasNext() const { return m_currentIndex < m_tokens.size(); }
 
     /**
      * @brief 获取当前Token
      */
-    [[nodiscard]] const Token& current() const {
+    [[nodiscard]] const Token& current() const
+    {
         static const Token errorToken(TokenType::Error);
         return m_currentIndex < m_tokens.size() ? m_tokens[m_currentIndex] : errorToken;
     }
@@ -395,20 +394,20 @@ private:
     [[nodiscard]] Token makeToken(TokenType type, const std::string& value) const;
 
 private:
-    std::string m_source;                        ///< 源码
-    std::string m_sourcePath;                    ///< 源文件路径
+    std::string m_source;     ///< 源码
+    std::string m_sourcePath; ///< 源文件路径
 
-    size_t m_pos = 0;                       ///< 当前位置（字符偏移）
-    SourceLocation m_location;              ///< 当前位置（行列）
+    size_t m_pos = 0;          ///< 当前位置（字符偏移）
+    SourceLocation m_location; ///< 当前位置（行列）
 
-    std::vector<Token> m_tokens;            ///< Token列表
-    std::vector<TemplateErrorInfo> m_errors;///< 错误列表
+    std::vector<Token> m_tokens;             ///< Token列表
+    std::vector<TemplateErrorInfo> m_errors; ///< 错误列表
 
-    size_t m_currentIndex = 0;              ///< 当前Token索引（用于迭代）
+    size_t m_currentIndex = 0; ///< 当前Token索引（用于迭代）
 
     // 特殊状态
-    bool m_inTag = false;                   ///< 是否在标签内部
-    bool m_inAttribute = false;             ///< 是否在属性值内部
+    bool m_inTag = false;       ///< 是否在标签内部
+    bool m_inAttribute = false; ///< 是否在属性值内部
 };
 
 } // namespace mc::client::ui::kagero::tpl::parser

@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
-#include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/Packet.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/util/NibbleArray.hpp"
-#include "common/util/Direction.hpp"
-#include "common/world/chunk/ChunkData.hpp"
 #include "common/network/sync/ChunkSync.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 
 using namespace mc::network;
 using namespace mc;
@@ -17,15 +17,16 @@ using namespace mc;
 
 class LightUpdatePacketTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建测试用光照数据
         skyLightData.resize(NibbleArray::BYTE_SIZE);
         blockLightData.resize(NibbleArray::BYTE_SIZE);
 
         // 填充测试数据
         for (size_t i = 0; i < NibbleArray::BYTE_SIZE; ++i) {
-            skyLightData[i] = static_cast<u8>(i % 256);  // 天空光变化
-            blockLightData[i] = static_cast<u8>((i * 2) % 256);  // 方块光变化
+            skyLightData[i] = static_cast<u8>(i % 256);         // 天空光变化
+            blockLightData[i] = static_cast<u8>((i * 2) % 256); // 方块光变化
         }
     }
 
@@ -33,7 +34,8 @@ protected:
     std::vector<u8> blockLightData;
 };
 
-TEST_F(LightUpdatePacketTest, BasicConstruction) {
+TEST_F(LightUpdatePacketTest, BasicConstruction)
+{
     LightUpdatePacket packet(10, 20, 5, std::move(skyLightData), std::move(blockLightData), false);
 
     EXPECT_EQ(packet.chunkX(), 10);
@@ -44,7 +46,8 @@ TEST_F(LightUpdatePacketTest, BasicConstruction) {
     EXPECT_FALSE(packet.trustEdges());
 }
 
-TEST_F(LightUpdatePacketTest, ConstructionWithTrustEdges) {
+TEST_F(LightUpdatePacketTest, ConstructionWithTrustEdges)
+{
     LightUpdatePacket packet(0, 0, 0, {}, {}, true);
 
     EXPECT_TRUE(packet.trustEdges());
@@ -52,7 +55,8 @@ TEST_F(LightUpdatePacketTest, ConstructionWithTrustEdges) {
     EXPECT_FALSE(packet.hasBlockLight());
 }
 
-TEST_F(LightUpdatePacketTest, Setters) {
+TEST_F(LightUpdatePacketTest, Setters)
+{
     LightUpdatePacket packet;
 
     packet.setChunkX(100);
@@ -71,7 +75,8 @@ TEST_F(LightUpdatePacketTest, Setters) {
     EXPECT_TRUE(packet.hasSkyLight());
 }
 
-TEST_F(LightUpdatePacketTest, SerializeDeserialize_BothLights) {
+TEST_F(LightUpdatePacketTest, SerializeDeserialize_BothLights)
+{
     // 创建原始数据副本
     std::vector<u8> skyCopy = skyLightData;
     std::vector<u8> blockCopy = blockLightData;
@@ -109,7 +114,8 @@ TEST_F(LightUpdatePacketTest, SerializeDeserialize_BothLights) {
     }
 }
 
-TEST_F(LightUpdatePacketTest, SerializeDeserialize_SkyLightOnly) {
+TEST_F(LightUpdatePacketTest, SerializeDeserialize_SkyLightOnly)
+{
     LightUpdatePacket original(10, 20, 0, std::move(skyLightData), {}, false);
 
     PacketSerializer ser;
@@ -126,7 +132,8 @@ TEST_F(LightUpdatePacketTest, SerializeDeserialize_SkyLightOnly) {
     EXPECT_EQ(deserialized.skyLight().size(), NibbleArray::BYTE_SIZE);
 }
 
-TEST_F(LightUpdatePacketTest, SerializeDeserialize_BlockLightOnly) {
+TEST_F(LightUpdatePacketTest, SerializeDeserialize_BlockLightOnly)
+{
     LightUpdatePacket original(10, 20, 0, {}, std::move(blockLightData), false);
 
     PacketSerializer ser;
@@ -143,7 +150,8 @@ TEST_F(LightUpdatePacketTest, SerializeDeserialize_BlockLightOnly) {
     EXPECT_EQ(deserialized.blockLight().size(), NibbleArray::BYTE_SIZE);
 }
 
-TEST_F(LightUpdatePacketTest, SerializeDeserialize_NoLight) {
+TEST_F(LightUpdatePacketTest, SerializeDeserialize_NoLight)
+{
     LightUpdatePacket original(0, 0, 0, {}, {}, false);
 
     PacketSerializer ser;
@@ -159,7 +167,8 @@ TEST_F(LightUpdatePacketTest, SerializeDeserialize_NoLight) {
     EXPECT_FALSE(deserialized.hasBlockLight());
 }
 
-TEST_F(LightUpdatePacketTest, SectionPosEncoding) {
+TEST_F(LightUpdatePacketTest, SectionPosEncoding)
+{
     // 测试 sectionPos() 方法的编码
     LightUpdatePacket packet(100, -200, 15, {}, {}, false);
 
@@ -175,7 +184,8 @@ TEST_F(LightUpdatePacketTest, SectionPosEncoding) {
     EXPECT_EQ(sectionPos, expectedPos);
 }
 
-TEST_F(LightUpdatePacketTest, NegativeCoordinates) {
+TEST_F(LightUpdatePacketTest, NegativeCoordinates)
+{
     LightUpdatePacket original(-1000, -2000, -5, std::move(skyLightData), std::move(blockLightData), false);
 
     PacketSerializer ser;
@@ -192,16 +202,17 @@ TEST_F(LightUpdatePacketTest, NegativeCoordinates) {
     EXPECT_EQ(deserialized.sectionY(), -5);
 }
 
-TEST_F(LightUpdatePacketTest, InvalidSkyLightSize) {
+TEST_F(LightUpdatePacketTest, InvalidSkyLightSize)
+{
     // 创建过大的光照数据
-    std::vector<u8> largeData(5000, 0xFF);  // 超过最大 4096
+    std::vector<u8> largeData(5000, 0xFF); // 超过最大 4096
 
     PacketSerializer ser;
-    ser.writeI32(0);  // chunkX
-    ser.writeI32(0);  // chunkZ
-    ser.writeI32(0);  // sectionY
-    ser.writeU8(0x01);  // flags - sky light present
-    ser.writeVarUInt(static_cast<u32>(largeData.size()));  // 大小
+    ser.writeI32(0);                                      // chunkX
+    ser.writeI32(0);                                      // chunkZ
+    ser.writeI32(0);                                      // sectionY
+    ser.writeU8(0x01);                                    // flags - sky light present
+    ser.writeVarUInt(static_cast<u32>(largeData.size())); // 大小
     ser.writeBytes(largeData);
 
     PacketDeserializer deser(ser.buffer().data(), ser.size());
@@ -211,16 +222,17 @@ TEST_F(LightUpdatePacketTest, InvalidSkyLightSize) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LightUpdatePacketTest, InvalidBlockLightSize) {
+TEST_F(LightUpdatePacketTest, InvalidBlockLightSize)
+{
     // 创建过大的光照数据
-    std::vector<u8> largeData(5000, 0xFF);  // 超过最大 4096
+    std::vector<u8> largeData(5000, 0xFF); // 超过最大 4096
 
     PacketSerializer ser;
-    ser.writeI32(0);  // chunkX
-    ser.writeI32(0);  // chunkZ
-    ser.writeI32(0);  // sectionY
-    ser.writeU8(0x02);  // flags - block light present
-    ser.writeVarUInt(static_cast<u32>(largeData.size()));  // 大小
+    ser.writeI32(0);                                      // chunkX
+    ser.writeI32(0);                                      // chunkZ
+    ser.writeI32(0);                                      // sectionY
+    ser.writeU8(0x02);                                    // flags - block light present
+    ser.writeVarUInt(static_cast<u32>(largeData.size())); // 大小
     ser.writeBytes(largeData);
 
     PacketDeserializer deser(ser.buffer().data(), ser.size());
@@ -230,7 +242,8 @@ TEST_F(LightUpdatePacketTest, InvalidBlockLightSize) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LightUpdatePacketTest, MaximumCoordinates) {
+TEST_F(LightUpdatePacketTest, MaximumCoordinates)
+{
     // 测试最大坐标值
     LightUpdatePacket packet(0x3FFFFF, 0x3FFFFF, 0xFFFFF, {}, {}, false);
 
@@ -248,7 +261,8 @@ TEST_F(LightUpdatePacketTest, MaximumCoordinates) {
     EXPECT_EQ(deserialized.sectionY(), 0xFFFFF);
 }
 
-TEST_F(LightUpdatePacketTest, MinimumCoordinates) {
+TEST_F(LightUpdatePacketTest, MinimumCoordinates)
+{
     // 测试最小坐标值（负数）
     LightUpdatePacket packet(-0x40000, -0x40000, -0x80000, {}, {}, false);
 
@@ -272,7 +286,8 @@ TEST_F(LightUpdatePacketTest, MinimumCoordinates) {
 
 class ChunkSectionLightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建带有光照数据的区块段
         section = std::make_unique<ChunkSection>();
 
@@ -293,7 +308,8 @@ protected:
     std::unique_ptr<ChunkSection> section;
 };
 
-TEST_F(ChunkSectionLightTest, SerializeSectionPreservesLightData) {
+TEST_F(ChunkSectionLightTest, SerializeSectionPreservesLightData)
+{
     // 序列化
     auto serialized = ChunkSerializer::serializeSection(*section);
 
@@ -329,7 +345,8 @@ TEST_F(ChunkSectionLightTest, SerializeSectionPreservesLightData) {
     }
 }
 
-TEST_F(ChunkSectionLightTest, EmptySectionLightData) {
+TEST_F(ChunkSectionLightTest, EmptySectionLightData)
+{
     // 创建空区块段
     ChunkSection emptySection;
 
@@ -360,7 +377,8 @@ TEST_F(ChunkSectionLightTest, EmptySectionLightData) {
 
 class ChunkDataLightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建测试区块
         chunk = std::make_unique<ChunkData>(0, 0);
 
@@ -389,37 +407,42 @@ protected:
     std::unique_ptr<ChunkData> chunk;
 };
 
-TEST_F(ChunkDataLightTest, GetSkyLight) {
+TEST_F(ChunkDataLightTest, GetSkyLight)
+{
     // 验证区块光照存储正确
     // 设置的是 15-y, 所以:
     // y=0 -> 光照=15 (底部)
     // y=15 -> 光照=0 (顶部)
-    EXPECT_EQ(chunk->getSkyLight(0, 0, 0), 15);   // 底层 (localY=0)
-    EXPECT_EQ(chunk->getSkyLight(0, 1, 0), 14);   // y=1 -> 15-1=14
-    EXPECT_EQ(chunk->getSkyLight(0, 15, 0), 0);   // 顶层 (localY=15)
+    EXPECT_EQ(chunk->getSkyLight(0, 0, 0), 15); // 底层 (localY=0)
+    EXPECT_EQ(chunk->getSkyLight(0, 1, 0), 14); // y=1 -> 15-1=14
+    EXPECT_EQ(chunk->getSkyLight(0, 15, 0), 0); // 顶层 (localY=15)
 }
 
-TEST_F(ChunkDataLightTest, GetBlockLight) {
+TEST_F(ChunkDataLightTest, GetBlockLight)
+{
     // 验证方块光照存储正确
     EXPECT_EQ(chunk->getBlockLight(0, 15, 0), 0);
     EXPECT_EQ(chunk->getBlockLight(8, 8, 8), 0);
 }
 
-TEST_F(ChunkDataLightTest, SetBlockLight) {
+TEST_F(ChunkDataLightTest, SetBlockLight)
+{
     // 设置发光方块
     chunk->setBlockLight(5, 5, 5, 15);
 
     EXPECT_EQ(chunk->getBlockLight(5, 5, 5), 15);
 }
 
-TEST_F(ChunkDataLightTest, SetSkyLight) {
+TEST_F(ChunkDataLightTest, SetSkyLight)
+{
     // 设置天空光
     chunk->setSkyLight(10, 10, 10, 8);
 
     EXPECT_EQ(chunk->getSkyLight(10, 10, 10), 8);
 }
 
-TEST_F(ChunkDataLightTest, SkyLightNibbleArrayDirectAccess) {
+TEST_F(ChunkDataLightTest, SkyLightNibbleArrayDirectAccess)
+{
     // 测试直接访问 NibbleArray
     ChunkSection* section = chunk->getSection(0);
     ASSERT_NE(section, nullptr);
@@ -434,7 +457,8 @@ TEST_F(ChunkDataLightTest, SkyLightNibbleArrayDirectAccess) {
     EXPECT_EQ(chunk->getSkyLight(7, 7, 7), 12);
 }
 
-TEST_F(ChunkDataLightTest, BlockLightNibbleArrayDirectAccess) {
+TEST_F(ChunkDataLightTest, BlockLightNibbleArrayDirectAccess)
+{
     // 测试直接访问 NibbleArray
     ChunkSection* section = chunk->getSection(0);
     ASSERT_NE(section, nullptr);
@@ -455,42 +479,45 @@ TEST_F(ChunkDataLightTest, BlockLightNibbleArrayDirectAccess) {
 
 class LightNibbleArrayTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        array = std::make_unique<NibbleArray>();
-    }
+    void SetUp() override { array = std::make_unique<NibbleArray>(); }
 
     std::unique_ptr<NibbleArray> array;
 };
 
-TEST_F(LightNibbleArrayTest, InitiallyEmpty) {
+TEST_F(LightNibbleArrayTest, InitiallyEmpty)
+{
     EXPECT_TRUE(array->isEmpty());
     EXPECT_FALSE(array->isValid());
 }
 
-TEST_F(LightNibbleArrayTest, SetAndGet) {
+TEST_F(LightNibbleArrayTest, SetAndGet)
+{
     array->set(5, 10, 3, 12);
 
     EXPECT_EQ(array->get(5, 10, 3), 12);
     EXPECT_TRUE(array->isValid());
 }
 
-TEST_F(LightNibbleArrayTest, ValueTruncation) {
+TEST_F(LightNibbleArrayTest, ValueTruncation)
+{
     // 值大于15应该被截断
     array->set(0, 0, 0, 20);
 
-    EXPECT_EQ(array->get(0, 0, 0), 4);  // 20 & 0xF = 4
+    EXPECT_EQ(array->get(0, 0, 0), 4); // 20 & 0xF = 4
 }
 
-TEST_F(LightNibbleArrayTest, IndexWrapping) {
+TEST_F(LightNibbleArrayTest, IndexWrapping)
+{
     // 坐标自动取模
     array->set(0, 0, 0, 7);
-    array->set(16, 0, 0, 8);  // 16 % 16 = 0, 应该覆盖前一个值
+    array->set(16, 0, 0, 8); // 16 % 16 = 0, 应该覆盖前一个值
 
     EXPECT_EQ(array->get(0, 0, 0), 8);
-    EXPECT_EQ(array->get(16, 0, 0), 8);  // 读取也会取模
+    EXPECT_EQ(array->get(16, 0, 0), 8); // 读取也会取模
 }
 
-TEST_F(LightNibbleArrayTest, Fill) {
+TEST_F(LightNibbleArrayTest, Fill)
+{
     array->fill(10);
 
     // 验证所有位置都是10
@@ -503,16 +530,18 @@ TEST_F(LightNibbleArrayTest, Fill) {
     }
 }
 
-TEST_F(LightNibbleArrayTest, FilledStaticMethod) {
+TEST_F(LightNibbleArrayTest, FilledStaticMethod)
+{
     auto filledArray = NibbleArray::filled(15);
 
     EXPECT_TRUE(filledArray.isValid());
     EXPECT_EQ(filledArray.get(7, 7, 7), 15);
 }
 
-TEST_F(LightNibbleArrayTest, LinearIndexAccess) {
+TEST_F(LightNibbleArrayTest, LinearIndexAccess)
+{
     // 使用线性索引设置
-    array->set(0, 15);  // 设置索引0为15
+    array->set(0, 15); // 设置索引0为15
 
     EXPECT_EQ(array->get(0), 15);
 
@@ -521,15 +550,17 @@ TEST_F(LightNibbleArrayTest, LinearIndexAccess) {
     EXPECT_EQ(array->get(0, 0, 0), 15);
 }
 
-TEST_F(LightNibbleArrayTest, DataSize) {
-    array->set(0, 0, 0, 1);  // 触发分配
+TEST_F(LightNibbleArrayTest, DataSize)
+{
+    array->set(0, 0, 0, 1); // 触发分配
 
     EXPECT_EQ(array->data().size(), NibbleArray::BYTE_SIZE);
     EXPECT_EQ(NibbleArray::BYTE_SIZE, 2048);
     EXPECT_EQ(NibbleArray::VALUE_COUNT, 4096);
 }
 
-TEST_F(LightNibbleArrayTest, Copy) {
+TEST_F(LightNibbleArrayTest, Copy)
+{
     array->set(5, 5, 5, 7);
     array->set(10, 10, 10, 13);
 
@@ -543,7 +574,8 @@ TEST_F(LightNibbleArrayTest, Copy) {
     EXPECT_EQ(copy.get(5, 5, 5), 7);
 }
 
-TEST_F(LightNibbleArrayTest, ConstructFromData) {
+TEST_F(LightNibbleArrayTest, ConstructFromData)
+{
     // 创建测试数据
     std::vector<u8> data(NibbleArray::BYTE_SIZE, 0xAB);
 
@@ -554,15 +586,16 @@ TEST_F(LightNibbleArrayTest, ConstructFromData) {
     // 0xAB = 10101011
     // 偶数索引存储低4位 (B = 1011 = 11)
     // 奇数索引存储高4位 (A = 1010 = 10)
-    EXPECT_EQ(arrayFromData.get(0), 0xB);  // 索引0，低4位
-    EXPECT_EQ(arrayFromData.get(1), 0xA);  // 索引1，高4位
+    EXPECT_EQ(arrayFromData.get(0), 0xB); // 索引0，低4位
+    EXPECT_EQ(arrayFromData.get(1), 0xA); // 索引1，高4位
 }
 
 // ============================================================================
 // LightEngineUtils 方向测试
 // ============================================================================
 
-TEST(LightEngineUtilsDirectionTest, AllDirections) {
+TEST(LightEngineUtilsDirectionTest, AllDirections)
+{
     // 测试所有方向
     EXPECT_EQ(mc::Directions::fromDelta(1, 0, 0), mc::Direction::East);
     EXPECT_EQ(mc::Directions::fromDelta(-1, 0, 0), mc::Direction::West);
@@ -572,23 +605,22 @@ TEST(LightEngineUtilsDirectionTest, AllDirections) {
     EXPECT_EQ(mc::Directions::fromDelta(0, 0, -1), mc::Direction::North);
 }
 
-TEST(LightEngineUtilsDirectionTest, OffsetsConsistency) {
+TEST(LightEngineUtilsDirectionTest, OffsetsConsistency)
+{
     // 验证方向偏移的一致性
     for (int i = 0; i < 6; ++i) {
         mc::Direction dir = static_cast<mc::Direction>(i);
 
         // 根据偏移获取方向
         mc::Direction fromOffset = mc::Directions::fromDelta(
-            mc::Directions::xOffset(dir),
-            mc::Directions::yOffset(dir),
-            mc::Directions::zOffset(dir)
-        );
+            mc::Directions::xOffset(dir), mc::Directions::yOffset(dir), mc::Directions::zOffset(dir));
 
         EXPECT_EQ(fromOffset, dir) << "Direction offset consistency failed for direction " << i;
     }
 }
 
-TEST(LightEngineUtilsDirectionTest, OppositeDirections) {
+TEST(LightEngineUtilsDirectionTest, OppositeDirections)
+{
     EXPECT_EQ(mc::Directions::opposite(mc::Direction::Down), mc::Direction::Up);
     EXPECT_EQ(mc::Directions::opposite(mc::Direction::Up), mc::Direction::Down);
     EXPECT_EQ(mc::Directions::opposite(mc::Direction::North), mc::Direction::South);
@@ -597,7 +629,8 @@ TEST(LightEngineUtilsDirectionTest, OppositeDirections) {
     EXPECT_EQ(mc::Directions::opposite(mc::Direction::East), mc::Direction::West);
 }
 
-TEST(LightEngineUtilsDirectionTest, AxisDirection) {
+TEST(LightEngineUtilsDirectionTest, AxisDirection)
+{
     // 垂直方向
     EXPECT_TRUE(mc::Directions::isVertical(mc::Direction::Up));
     EXPECT_TRUE(mc::Directions::isVertical(mc::Direction::Down));

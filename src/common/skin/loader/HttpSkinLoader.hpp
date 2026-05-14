@@ -1,9 +1,9 @@
 #pragma once
 
 #include "SkinLoader.hpp"
-#include <unordered_map>
-#include <mutex>
 #include <future>
+#include <mutex>
+#include <unordered_map>
 
 namespace mc::skin {
 
@@ -70,8 +70,8 @@ private:
     std::mutex m_pendingMutex;
     std::unordered_map<std::string, std::future<Result<SkinLoadResult>>> m_pendingLoads;
 
-    u32 m_connectTimeout = 5000;   // 5 秒
-    u32 m_readTimeout = 30000;     // 30 秒
+    u32 m_connectTimeout = 5000; // 5 秒
+    u32 m_readTimeout = 30000;   // 30 秒
     bool m_initialized = false;
 };
 

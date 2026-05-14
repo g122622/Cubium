@@ -3,9 +3,9 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
-#include <vector>
-#include <memory>
 #include <array>
+#include <memory>
+#include <vector>
 
 namespace mc::client::renderer::entity::model {
 
@@ -15,18 +15,22 @@ namespace mc::client::renderer::entity::model {
  * 包含位置、纹理坐标和法线信息
  */
 struct ModelVertex {
-    Vector3f position;   // 顶点位置
-    Vector2f texCoord;   // UV坐标
-    Vector3f normal;     // 法线
+    Vector3f position; // 顶点位置
+    Vector2f texCoord; // UV坐标
+    Vector3f normal;   // 法线
 
     ModelVertex() = default;
     ModelVertex(f64 x, f64 y, f64 z, f64 u, f64 v, f64 nx = 0, f64 ny = 0, f64 nz = 0)
         : position(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z))
         , texCoord(static_cast<f32>(u), static_cast<f32>(v))
-        , normal(static_cast<f32>(nx), static_cast<f32>(ny), static_cast<f32>(nz)) {}
+        , normal(static_cast<f32>(nx), static_cast<f32>(ny), static_cast<f32>(nz))
+    {}
 
     ModelVertex(const Vector3f& pos, const Vector2f& tex, const Vector3f& norm)
-        : position(pos), texCoord(tex), normal(norm) {}
+        : position(pos)
+        , texCoord(tex)
+        , normal(norm)
+    {}
 };
 
 /**
@@ -50,10 +54,14 @@ struct TexturedQuad {
      * @param mirror 是否镜像（影响顶点顺序）
      */
     TexturedQuad(const std::array<Vector3f, 4>& positions,
-                 f64 u1, f64 v1, f64 u2, f64 v2,
-                 f64 texWidth, f64 texHeight,
-                 const Vector3f& normal,
-                 bool mirror = false);
+        f64 u1,
+        f64 v1,
+        f64 u2,
+        f64 v2,
+        f64 texWidth,
+        f64 texHeight,
+        const Vector3f& normal,
+        bool mirror = false);
 };
 
 /**
@@ -63,9 +71,9 @@ struct TexturedQuad {
  * UV坐标根据纹理偏移自动计算。
  */
 struct ModelBox {
-    f64 posX1, posY1, posZ1;  // 最小角
-    f64 posX2, posY2, posZ2;  // 最大角
-    std::array<TexturedQuad, 6> quads;  // 6个面：东、西、北、下、上、南
+    f64 posX1, posY1, posZ1;           // 最小角
+    f64 posX2, posY2, posZ2;           // 最大角
+    std::array<TexturedQuad, 6> quads; // 6个面：东、西、北、下、上、南
 
     /**
      * @brief 构造模型盒子
@@ -84,12 +92,20 @@ struct ModelBox {
      * @param texHeight 纹理高度
      * @param mirror 是否镜像
      */
-    ModelBox(i32 texOffX, i32 texOffY,
-             f64 x, f64 y, f64 z,
-             f64 width, f64 height, f64 depth,
-             f64 deltaX = 0.0f, f64 deltaY = 0.0f, f64 deltaZ = 0.0f,
-             f64 texWidth = 64.0f, f64 texHeight = 32.0f,
-             bool mirror = false);
+    ModelBox(i32 texOffX,
+        i32 texOffY,
+        f64 x,
+        f64 y,
+        f64 z,
+        f64 width,
+        f64 height,
+        f64 depth,
+        f64 deltaX = 0.0f,
+        f64 deltaY = 0.0f,
+        f64 deltaZ = 0.0f,
+        f64 texWidth = 64.0f,
+        f64 texHeight = 32.0f,
+        bool mirror = false);
 };
 
 /**
@@ -126,7 +142,8 @@ public:
     /**
      * @brief 设置位置偏移
      */
-    void setOffset(f64 x, f64 y, f64 z) {
+    void setOffset(f64 x, f64 y, f64 z)
+    {
         m_offsetX = x;
         m_offsetY = y;
         m_offsetZ = z;
@@ -135,7 +152,8 @@ public:
     /**
      * @brief 设置旋转点
      */
-    void setRotationPoint(f64 x, f64 y, f64 z) {
+    void setRotationPoint(f64 x, f64 y, f64 z)
+    {
         m_rotationPointX = x;
         m_rotationPointY = y;
         m_rotationPointZ = z;
@@ -144,7 +162,8 @@ public:
     /**
      * @brief 设置旋转角度（弧度）
      */
-    void setRotation(f64 x, f64 y, f64 z) {
+    void setRotation(f64 x, f64 y, f64 z)
+    {
         m_rotateAngleX = x;
         m_rotateAngleY = y;
         m_rotateAngleZ = z;
@@ -153,7 +172,8 @@ public:
     /**
      * @brief 设置缩放
      */
-    void setScale(f64 x, f64 y, f64 z) {
+    void setScale(f64 x, f64 y, f64 z)
+    {
         m_scaleX = x;
         m_scaleY = y;
         m_scaleZ = z;
@@ -187,17 +207,20 @@ public:
      * @param delta 膨胀值
      * @return 本部件引用
      */
-    ModelRenderer& addBox(i32 textureOffsetX, i32 textureOffsetY,
-                          f64 x, f64 y, f64 z,
-                          f64 width, f64 height, f64 depth,
-                          f64 delta = 0.0f);
+    ModelRenderer& addBox(i32 textureOffsetX,
+        i32 textureOffsetY,
+        f64 x,
+        f64 y,
+        f64 z,
+        f64 width,
+        f64 height,
+        f64 depth,
+        f64 delta = 0.0f);
 
     /**
      * @brief 添加一个盒子（带镜像选项）
      */
-    ModelRenderer& addBox(f64 x, f64 y, f64 z,
-                          f64 width, f64 height, f64 depth,
-                          bool mirror, f64 delta = 0.0f);
+    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth, bool mirror, f64 delta = 0.0f);
 
     /**
      * @brief 清除所有盒子
@@ -218,9 +241,7 @@ public:
      * @brief 添加子部件
      * @param child 子部件
      */
-    void addChild(std::shared_ptr<ModelRenderer> child) {
-        m_children.push_back(child);
-    }
+    void addChild(std::shared_ptr<ModelRenderer> child) { m_children.push_back(child); }
 
     /**
      * @brief 创建并添加子部件
@@ -237,9 +258,7 @@ public:
      * @param indices 索引输出缓冲区
      * @param scale 缩放因子（默认 1/16）
      */
-    void generateMesh(std::vector<ModelVertex>& vertices,
-                      std::vector<u32>& indices,
-                      f64 scale = 1.0f / 16.0f) const;
+    void generateMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 scale = 1.0f / 16.0f) const;
 
     /**
      * @brief 生成渲染网格（带变换矩阵）
@@ -249,9 +268,9 @@ public:
      * @param scale 缩放因子
      */
     void generateMesh(std::vector<ModelVertex>& vertices,
-                      std::vector<u32>& indices,
-                      const std::array<f64, 16>& parentMatrix,
-                      f64 scale = 1.0f / 16.0f) const;
+        std::vector<u32>& indices,
+        const std::array<f64, 16>& parentMatrix,
+        f64 scale = 1.0f / 16.0f) const;
 
     // ========== 渲染（遗留接口，未来移除） ==========
 

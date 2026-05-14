@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/spawn/MobSpawnInfo.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/spawn/MobSpawnInfo.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace test {
@@ -15,24 +15,28 @@ namespace test {
  */
 class WorldGenSpawnerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化生物群系注册表
         BiomeRegistry::instance().initialize();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
     }
 };
 
 // ========== 基本功能测试 ==========
 
-TEST_F(WorldGenSpawnerTest, CreateSpawner) {
+TEST_F(WorldGenSpawnerTest, CreateSpawner)
+{
     WorldGenSpawner spawner;
     EXPECT_TRUE(spawner.isEnabled());
 }
 
-TEST_F(WorldGenSpawnerTest, EnableDisable) {
+TEST_F(WorldGenSpawnerTest, EnableDisable)
+{
     WorldGenSpawner spawner;
     EXPECT_TRUE(spawner.isEnabled());
 
@@ -45,7 +49,8 @@ TEST_F(WorldGenSpawnerTest, EnableDisable) {
 
 // ========== MobSpawnInfo 测试 ==========
 
-TEST_F(WorldGenSpawnerTest, PlainsSpawnInfo) {
+TEST_F(WorldGenSpawnerTest, PlainsSpawnInfo)
+{
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createPlains();
 
     // 检查动物生成条目
@@ -70,7 +75,8 @@ TEST_F(WorldGenSpawnerTest, PlainsSpawnInfo) {
     EXPECT_FALSE(monsters.empty());
 }
 
-TEST_F(WorldGenSpawnerTest, ForestSpawnInfo) {
+TEST_F(WorldGenSpawnerTest, ForestSpawnInfo)
+{
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createForest();
 
     // 森林应该有狼
@@ -82,7 +88,8 @@ TEST_F(WorldGenSpawnerTest, ForestSpawnInfo) {
     EXPECT_TRUE(hasWolf);
 }
 
-TEST_F(WorldGenSpawnerTest, DesertSpawnInfo) {
+TEST_F(WorldGenSpawnerTest, DesertSpawnInfo)
+{
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createDesert();
 
     // 沙漠应该有尸壳
@@ -98,7 +105,8 @@ TEST_F(WorldGenSpawnerTest, DesertSpawnInfo) {
     EXPECT_LE(creatures.size(), 2);
 }
 
-TEST_F(WorldGenSpawnerTest, OceanSpawnInfo) {
+TEST_F(WorldGenSpawnerTest, OceanSpawnInfo)
+{
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createOcean();
 
     // 海洋应该有水生生物
@@ -116,14 +124,16 @@ TEST_F(WorldGenSpawnerTest, OceanSpawnInfo) {
 
 // ========== SpawnEntry 测试 ==========
 
-TEST_F(WorldGenSpawnerTest, SpawnEntryDefaults) {
+TEST_F(WorldGenSpawnerTest, SpawnEntryDefaults)
+{
     world::spawn::SpawnEntry entry;
     EXPECT_EQ(entry.weight, 0);
     EXPECT_EQ(entry.minCount, 1);
     EXPECT_EQ(entry.maxCount, 4);
 }
 
-TEST_F(WorldGenSpawnerTest, SpawnEntryCustomValues) {
+TEST_F(WorldGenSpawnerTest, SpawnEntryCustomValues)
+{
     world::spawn::SpawnEntry entry("minecraft:pig", 100, 2, 5);
     EXPECT_EQ(entry.entityTypeId, "minecraft:pig");
     EXPECT_EQ(entry.weight, 100);
@@ -131,7 +141,8 @@ TEST_F(WorldGenSpawnerTest, SpawnEntryCustomValues) {
     EXPECT_EQ(entry.maxCount, 5);
 }
 
-TEST_F(WorldGenSpawnerTest, SpawnEntryWithCosts) {
+TEST_F(WorldGenSpawnerTest, SpawnEntryWithCosts)
+{
     world::spawn::SpawnCosts costs(0.5, 1.0);
     world::spawn::SpawnEntry entry("minecraft:zombie", 80, 3, 6, costs);
     EXPECT_EQ(entry.costs.energyBudget, 0.5);
@@ -140,7 +151,8 @@ TEST_F(WorldGenSpawnerTest, SpawnEntryWithCosts) {
 
 // ========== Biome 集成测试 ==========
 
-TEST_F(WorldGenSpawnerTest, BiomeSpawnInfo) {
+TEST_F(WorldGenSpawnerTest, BiomeSpawnInfo)
+{
     const Biome& plains = BiomeRegistry::instance().get(Biomes::Plains);
 
     // 生物群系应该有生成概率

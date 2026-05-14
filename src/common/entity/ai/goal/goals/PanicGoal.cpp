@@ -1,14 +1,14 @@
 #include "PanicGoal.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../core/CreatureEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
 #include "../../../core/Entity.hpp"
-#include "../GoalConstants.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../../util/RandomPositionGenerator.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/math/MathUtils.hpp"
+#include "../GoalConstants.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -22,7 +22,8 @@ PanicGoal::PanicGoal(CreatureEntity* creature, f64 speed)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-bool PanicGoal::shouldExecute() {
+bool PanicGoal::shouldExecute()
+{
     if (!m_creature) return false;
 
     // MC 1.16.5: 检查是否有复仇目标(getRevengeTarget)或着火(isBurning)
@@ -37,9 +38,7 @@ bool PanicGoal::shouldExecute() {
     // MC 1.16.5: 如果着火，尝试找水
     if (isBurning) {
         BlockPos waterPos = getRandomWaterPosition(
-            static_cast<i32>(PANIC_WATER_SEARCH_RANGE),
-            static_cast<i32>(PANIC_WATER_SEARCH_VERTICAL)
-        );
+            static_cast<i32>(PANIC_WATER_SEARCH_RANGE), static_cast<i32>(PANIC_WATER_SEARCH_VERTICAL));
         if (waterPos.x != 0 || waterPos.y != 0 || waterPos.z != 0) {
             m_targetX = static_cast<f64>(waterPos.x) + 0.5;
             m_targetY = static_cast<f64>(waterPos.y) + 0.5;
@@ -52,7 +51,8 @@ bool PanicGoal::shouldExecute() {
     return findRandomPosition();
 }
 
-bool PanicGoal::shouldContinueExecuting() {
+bool PanicGoal::shouldContinueExecuting()
+{
     if (!m_creature) return false;
 
     // MC 1.16.5: 继续执行直到路径完成
@@ -64,7 +64,8 @@ bool PanicGoal::shouldContinueExecuting() {
     return true;
 }
 
-void PanicGoal::startExecuting() {
+void PanicGoal::startExecuting()
+{
     if (m_creature) {
         // MC 1.16.5: 使用 navigator.tryMoveToXYZ
         if (auto* nav = m_creature->navigator()) {
@@ -74,25 +75,27 @@ void PanicGoal::startExecuting() {
     }
 }
 
-void PanicGoal::resetTask() {
+void PanicGoal::resetTask()
+{
     m_running = false;
     // MC 1.16.5: 不清除导航路径，让其他目标接管
 }
 
-void PanicGoal::tick() {
+void PanicGoal::tick()
+{
     // MC 1.16.5: PanicGoal 的 tick 是空的
     // 路径在 startExecuting 中设置，不需要每 tick 更新
 }
 
-bool PanicGoal::findRandomPosition() {
+bool PanicGoal::findRandomPosition()
+{
     if (!m_creature) return false;
 
     // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTarget(creature, 5, 4)
     Vector3 targetPos;
-    if (util::RandomPositionGenerator::findRandomTarget(
-            m_creature,
-            PANIC_ESCAPE_MIN_DISTANCE,  // 5 水平范围
-            PANIC_WATER_SEARCH_VERTICAL,  // 4 垂直范围
+    if (util::RandomPositionGenerator::findRandomTarget(m_creature,
+            PANIC_ESCAPE_MIN_DISTANCE,   // 5 水平范围
+            PANIC_WATER_SEARCH_VERTICAL, // 4 垂直范围
             targetPos)) {
         m_targetX = targetPos.x;
         m_targetY = targetPos.y;
@@ -103,7 +106,8 @@ bool PanicGoal::findRandomPosition() {
     return false;
 }
 
-BlockPos PanicGoal::getRandomWaterPosition(i32 horizontalRange, i32 verticalRange) {
+BlockPos PanicGoal::getRandomWaterPosition(i32 horizontalRange, i32 verticalRange)
+{
     if (!m_creature || !m_creature->world()) {
         return BlockPos(0, 0, 0);
     }

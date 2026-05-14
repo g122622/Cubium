@@ -1,24 +1,25 @@
 #include "ChorusFruitItem.hpp"
-#include "../../core/ItemStack.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/entities/passive/special/FoxEntity.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../core/ItemStack.hpp"
 
 namespace mc {
 namespace item::items {
 
 ChorusFruitItem::ChorusFruitItem(const food::Food* food, ItemProperties properties)
-    : FoodItem(food, std::move(properties)) {
-}
+    : FoodItem(food, std::move(properties))
+{}
 
-ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) {
+ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
+{
     // 调用父类方法处理基本的食用逻辑
     ItemStack result = FoodItem::onItemUseFinish(stack, world, entity);
 
@@ -47,9 +48,10 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
 
             // 在原位置播放音效
             world.playSound(soundEvent,
-                           sound::SoundCategory::Players,
-                           Vector3(static_cast<f32>(d0), static_cast<f32>(d1), static_cast<f32>(d2)),
-                           1.0f, 1.0f);
+                sound::SoundCategory::Players,
+                Vector3(static_cast<f32>(d0), static_cast<f32>(d1), static_cast<f32>(d2)),
+                1.0f,
+                1.0f);
 
             // 在新位置播放音效（实体自己播放）
             entity.playSound(soundEvent, 1.0f, 1.0f);

@@ -108,14 +108,14 @@ private:
     [[nodiscard]] math::Vector4f calculateColor(f64 phase) const;
 
     // 动画常量（参考 MC 1.16.5）
-    static constexpr f64 BOB_AMPLITUDE = 0.1;       // 浮动高度幅度
-    static constexpr f64 BOB_FREQUENCY = 0.05;      // 浮动速度（1/20 弧度/tick）
-    static constexpr f64 BOB_BASE = 0.3;            // 基础高度偏移（MC 1.16.5: + 0.3）
-    static constexpr f64 COLOR_SPEED = 0.1;         // 颜色变化速度
-    static constexpr f64 BASE_SIZE = 0.25;          // 基础大小
-    static constexpr f64 SIZE_INCREMENT = 0.015;    // 每级大小增量
-    static constexpr i32 FULL_LIGHT = 15728640;     // 固定全亮光照 (0xF00000)
+    static constexpr f64 BOB_AMPLITUDE = 0.1;    // 浮动高度幅度
+    static constexpr f64 BOB_FREQUENCY = 0.05;   // 浮动速度（1/20 弧度/tick）
+    static constexpr f64 BOB_BASE = 0.3;         // 基础高度偏移（MC 1.16.5: + 0.3）
+    static constexpr f64 COLOR_SPEED = 0.1;      // 颜色变化速度
+    static constexpr f64 BASE_SIZE = 0.25;       // 基础大小
+    static constexpr f64 SIZE_INCREMENT = 0.015; // 每级大小增量
+    static constexpr i32 FULL_LIGHT = 15728640;  // 固定全亮光照 (0xF00000)
 };
 
-} // namespace mc::client::renderer::entity::renderer::projectile
+} // namespace client::renderer::entity::renderer::projectile
 } // namespace mc

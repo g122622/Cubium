@@ -17,14 +17,16 @@ static constexpr f64 EPSILON = 1.0E-7;
 // ============================================================================
 
 VoxelShape::VoxelShape()
-    : m_shape(std::make_shared<DiscreteVoxelShape>(0, 0, 0)) {
+    : m_shape(std::make_shared<DiscreteVoxelShape>(0, 0, 0))
+{
     m_xPoints = {0.0};
     m_yPoints = {0.0};
     m_zPoints = {0.0};
 }
 
 VoxelShape::VoxelShape(std::shared_ptr<DiscreteVoxelShape> shape)
-    : m_shape(std::move(shape)) {
+    : m_shape(std::move(shape))
+{
     if (m_shape) {
         // 创建立方体坐标点（0, 1, 2, ... n）
         const i32 xSize = m_shape->getXSize();
@@ -48,24 +50,26 @@ VoxelShape::VoxelShape(std::shared_ptr<DiscreteVoxelShape> shape)
 }
 
 VoxelShape::VoxelShape(std::shared_ptr<DiscreteVoxelShape> shape,
-                       std::vector<f64> xPoints,
-                       std::vector<f64> yPoints,
-                       std::vector<f64> zPoints)
-    : m_shape(std::move(shape)),
-      m_xPoints(std::move(xPoints)),
-      m_yPoints(std::move(yPoints)),
-      m_zPoints(std::move(zPoints)) {
-}
+    std::vector<f64> xPoints,
+    std::vector<f64> yPoints,
+    std::vector<f64> zPoints)
+    : m_shape(std::move(shape))
+    , m_xPoints(std::move(xPoints))
+    , m_yPoints(std::move(yPoints))
+    , m_zPoints(std::move(zPoints))
+{}
 
 VoxelShape::VoxelShape(const VoxelShape& other)
-    : m_shape(other.m_shape),
-      m_xPoints(other.m_xPoints),
-      m_yPoints(other.m_yPoints),
-      m_zPoints(other.m_zPoints) {
+    : m_shape(other.m_shape)
+    , m_xPoints(other.m_xPoints)
+    , m_yPoints(other.m_yPoints)
+    , m_zPoints(other.m_zPoints)
+{
     // 不拷贝面形状缓存
 }
 
-VoxelShape& VoxelShape::operator=(const VoxelShape& other) {
+VoxelShape& VoxelShape::operator=(const VoxelShape& other)
+{
     if (this != &other) {
         m_shape = other.m_shape;
         m_xPoints = other.m_xPoints;
@@ -77,14 +81,15 @@ VoxelShape& VoxelShape::operator=(const VoxelShape& other) {
 }
 
 VoxelShape::VoxelShape(VoxelShape&& other) noexcept
-    : m_shape(std::move(other.m_shape)),
-      m_xPoints(std::move(other.m_xPoints)),
-      m_yPoints(std::move(other.m_yPoints)),
-      m_zPoints(std::move(other.m_zPoints)),
-      m_faces(std::move(other.m_faces)) {
-}
+    : m_shape(std::move(other.m_shape))
+    , m_xPoints(std::move(other.m_xPoints))
+    , m_yPoints(std::move(other.m_yPoints))
+    , m_zPoints(std::move(other.m_zPoints))
+    , m_faces(std::move(other.m_faces))
+{}
 
-VoxelShape& VoxelShape::operator=(VoxelShape&& other) noexcept {
+VoxelShape& VoxelShape::operator=(VoxelShape&& other) noexcept
+{
     if (this != &other) {
         m_shape = std::move(other.m_shape);
         m_xPoints = std::move(other.m_xPoints);
@@ -99,7 +104,8 @@ VoxelShape& VoxelShape::operator=(VoxelShape&& other) noexcept {
 // 边界查询
 // ============================================================================
 
-f64 VoxelShape::min(Axis axis) const {
+f64 VoxelShape::min(Axis axis) const
+{
     const i32 first = m_shape->firstFull(axis);
     const i32 size = m_shape->getSize(axis);
     if (first >= size) {
@@ -108,7 +114,8 @@ f64 VoxelShape::min(Axis axis) const {
     return get(axis, first);
 }
 
-f64 VoxelShape::max(Axis axis) const {
+f64 VoxelShape::max(Axis axis) const
+{
     const i32 last = m_shape->lastFull(axis);
     if (last <= 0) {
         return -std::numeric_limits<f64>::infinity();
@@ -116,28 +123,25 @@ f64 VoxelShape::max(Axis axis) const {
     return get(axis, last);
 }
 
-AxisAlignedBB VoxelShape::bounds() const {
+AxisAlignedBB VoxelShape::bounds() const
+{
     if (isEmpty()) {
         // 抛出异常或返回无效AABB
         return AxisAlignedBB(0, 0, 0, 0, 0, 0);
     }
-    return AxisAlignedBB(
-        min(Axis::X), min(Axis::Y), min(Axis::Z),
-        max(Axis::X), max(Axis::Y), max(Axis::Z)
-    );
+    return AxisAlignedBB(min(Axis::X), min(Axis::Y), min(Axis::Z), max(Axis::X), max(Axis::Y), max(Axis::Z));
 }
 
-VoxelShape VoxelShape::singleEncompassing() const {
+VoxelShape VoxelShape::singleEncompassing() const
+{
     if (isEmpty()) {
         return Shapes::empty();
     }
-    return Shapes::box(
-        min(Axis::X), min(Axis::Y), min(Axis::Z),
-        max(Axis::X), max(Axis::Y), max(Axis::Z)
-    );
+    return Shapes::box(min(Axis::X), min(Axis::Y), min(Axis::Z), max(Axis::X), max(Axis::Y), max(Axis::Z));
 }
 
-bool VoxelShape::isEmpty() const {
+bool VoxelShape::isEmpty() const
+{
     return m_shape->isEmpty();
 }
 
@@ -145,17 +149,22 @@ bool VoxelShape::isEmpty() const {
 // 坐标访问
 // ============================================================================
 
-const std::vector<f64>& VoxelShape::getCoords(Axis axis) const {
+const std::vector<f64>& VoxelShape::getCoords(Axis axis) const
+{
     switch (axis) {
-        case Axis::X: return m_xPoints;
-        case Axis::Y: return m_yPoints;
-        case Axis::Z: return m_zPoints;
+        case Axis::X:
+            return m_xPoints;
+        case Axis::Y:
+            return m_yPoints;
+        case Axis::Z:
+            return m_zPoints;
     }
     static const std::vector<f64> empty;
     return empty;
 }
 
-f64 VoxelShape::get(Axis axis, i32 index) const {
+f64 VoxelShape::get(Axis axis, i32 index) const
+{
     return getCoords(axis)[static_cast<size_t>(index)];
 }
 
@@ -163,7 +172,8 @@ f64 VoxelShape::get(Axis axis, i32 index) const {
 // 变换
 // ============================================================================
 
-VoxelShape VoxelShape::move(f64 dx, f64 dy, f64 dz) const {
+VoxelShape VoxelShape::move(f64 dx, f64 dy, f64 dz) const
+{
     if (isEmpty()) {
         return Shapes::empty();
     }
@@ -185,11 +195,13 @@ VoxelShape VoxelShape::move(f64 dx, f64 dy, f64 dz) const {
     return VoxelShape(m_shape, std::move(newXPoints), std::move(newYPoints), std::move(newZPoints));
 }
 
-VoxelShape VoxelShape::move(const Vector3& delta) const {
+VoxelShape VoxelShape::move(const Vector3& delta) const
+{
     return move(static_cast<f64>(delta.x), static_cast<f64>(delta.y), static_cast<f64>(delta.z));
 }
 
-VoxelShape VoxelShape::optimize() const {
+VoxelShape VoxelShape::optimize() const
+{
     // 简化实现：收集所有盒子并合并
     // 完整实现应该使用更复杂的优化算法
 
@@ -206,10 +218,7 @@ VoxelShape VoxelShape::optimize() const {
     // 使用OR操作合并所有盒子
     VoxelShape result = Shapes::empty();
     for (const auto& box : boxes) {
-        result = Shapes::or_(result, Shapes::box(
-            box.minX, box.minY, box.minZ,
-            box.maxX, box.maxY, box.maxZ
-        ));
+        result = Shapes::or_(result, Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ));
     }
 
     return result;
@@ -219,37 +228,39 @@ VoxelShape VoxelShape::optimize() const {
 // 遍历
 // ============================================================================
 
-void VoxelShape::forAllEdges(const DoubleLineConsumer& consumer) {
-    m_shape->forAllEdges([this, &consumer](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        consumer(
-            get(Axis::X, x1),
-            get(Axis::Y, y1),
-            get(Axis::Z, z1),
-            get(Axis::X, x2),
-            get(Axis::Y, y2),
-            get(Axis::Z, z2)
-        );
-    }, true);
+void VoxelShape::forAllEdges(const DoubleLineConsumer& consumer)
+{
+    m_shape->forAllEdges(
+        [this, &consumer](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
+            consumer(get(Axis::X, x1),
+                get(Axis::Y, y1),
+                get(Axis::Z, z1),
+                get(Axis::X, x2),
+                get(Axis::Y, y2),
+                get(Axis::Z, z2));
+        },
+        true);
 }
 
-void VoxelShape::forAllBoxes(const DoubleLineConsumer& consumer) const {
-    m_shape->forAllBoxes([this, &consumer](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
-        consumer(
-            get(Axis::X, x1),
-            get(Axis::Y, y1),
-            get(Axis::Z, z1),
-            get(Axis::X, x2),
-            get(Axis::Y, y2),
-            get(Axis::Z, z2)
-        );
-    }, true);
+void VoxelShape::forAllBoxes(const DoubleLineConsumer& consumer) const
+{
+    m_shape->forAllBoxes(
+        [this, &consumer](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
+            consumer(get(Axis::X, x1),
+                get(Axis::Y, y1),
+                get(Axis::Z, z1),
+                get(Axis::X, x2),
+                get(Axis::Y, y2),
+                get(Axis::Z, z2));
+        },
+        true);
 }
 
-std::vector<AxisAlignedBB> VoxelShape::toAabbs() const {
+std::vector<AxisAlignedBB> VoxelShape::toAabbs() const
+{
     std::vector<AxisAlignedBB> result;
-    forAllBoxes([&result](f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) {
-        result.emplace_back(x1, y1, z1, x2, y2, z2);
-    });
+    forAllBoxes(
+        [&result](f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) { result.emplace_back(x1, y1, z1, x2, y2, z2); });
     return result;
 }
 
@@ -257,7 +268,8 @@ std::vector<AxisAlignedBB> VoxelShape::toAabbs() const {
 // 面形状
 // ============================================================================
 
-VoxelShape VoxelShape::getFaceShape(Direction dir) const {
+VoxelShape VoxelShape::getFaceShape(Direction dir) const
+{
     if (!isEmpty() && !Shapes::isBlock(*this)) {
         if (!m_faces) {
             m_faces = std::make_unique<VoxelShape[]>(6);
@@ -275,7 +287,8 @@ VoxelShape VoxelShape::getFaceShape(Direction dir) const {
     return *this;
 }
 
-VoxelShape VoxelShape::calculateFace(Direction dir) const {
+VoxelShape VoxelShape::calculateFace(Direction dir) const
+{
     const Axis axis = Directions::getAxis(dir);
     if (isCubeLikeAlong(axis)) {
         return *this;
@@ -289,17 +302,15 @@ VoxelShape VoxelShape::calculateFace(Direction dir) const {
     return Shapes::slice(*this, axis, sliceIndex);
 }
 
-bool VoxelShape::isCubeLikeAlong(Axis axis) const {
+bool VoxelShape::isCubeLikeAlong(Axis axis) const
+{
     const std::vector<f64>& coords = getCoords(axis);
-    return coords.size() == 2 &&
-           std::abs(coords[0]) < EPSILON &&
-           std::abs(coords[1] - 1.0) < EPSILON;
+    return coords.size() == 2 && std::abs(coords[0]) < EPSILON && std::abs(coords[1] - 1.0) < EPSILON;
 }
 
-bool VoxelShape::isCubeLike() const {
-    return isCubeLikeAlong(Axis::X) &&
-           isCubeLikeAlong(Axis::Y) &&
-           isCubeLikeAlong(Axis::Z);
+bool VoxelShape::isCubeLike() const
+{
+    return isCubeLikeAlong(Axis::X) && isCubeLikeAlong(Axis::Y) && isCubeLikeAlong(Axis::Z);
 }
 
 // ============================================================================
@@ -309,32 +320,42 @@ bool VoxelShape::isCubeLike() const {
 namespace {
 
 // 辅助函数：获取AABB在指定轴上的最小值
-f64 getAABBMin(const AxisAlignedBB& box, Axis axis) {
+f64 getAABBMin(const AxisAlignedBB& box, Axis axis)
+{
     switch (axis) {
-        case Axis::X: return box.minX;
-        case Axis::Y: return box.minY;
-        case Axis::Z: return box.minZ;
+        case Axis::X:
+            return box.minX;
+        case Axis::Y:
+            return box.minY;
+        case Axis::Z:
+            return box.minZ;
     }
     return 0.0;
 }
 
 // 辅助函数：获取AABB在指定轴上的最大值
-f64 getAABBMax(const AxisAlignedBB& box, Axis axis) {
+f64 getAABBMax(const AxisAlignedBB& box, Axis axis)
+{
     switch (axis) {
-        case Axis::X: return box.maxX;
-        case Axis::Y: return box.maxY;
-        case Axis::Z: return box.maxZ;
+        case Axis::X:
+            return box.maxX;
+        case Axis::Y:
+            return box.maxY;
+        case Axis::Z:
+            return box.maxZ;
     }
     return 0.0;
 }
 
 } // anonymous namespace
 
-f64 VoxelShape::collide(Axis axis, const AxisAlignedBB& entityBox, f64 movement) const {
+f64 VoxelShape::collide(Axis axis, const AxisAlignedBB& entityBox, f64 movement) const
+{
     return collideX(AxisCycles::between(axis, Axis::X), entityBox, movement);
 }
 
-f64 VoxelShape::collideX(AxisCycle cycle, const AxisAlignedBB& entityBox, f64 movement) const {
+f64 VoxelShape::collideX(AxisCycle cycle, const AxisAlignedBB& entityBox, f64 movement) const
+{
     if (isEmpty()) {
         return movement;
     }
@@ -398,7 +419,8 @@ f64 VoxelShape::collideX(AxisCycle cycle, const AxisAlignedBB& entityBox, f64 mo
 // 形状比较
 // ============================================================================
 
-bool VoxelShape::equal(const VoxelShape& a, const VoxelShape& b) {
+bool VoxelShape::equal(const VoxelShape& a, const VoxelShape& b)
+{
     return !Shapes::joinIsNotEmpty(a, b, BooleanOps::NotSame());
 }
 
@@ -406,7 +428,8 @@ bool VoxelShape::equal(const VoxelShape& a, const VoxelShape& b) {
 // 索引查找
 // ============================================================================
 
-i32 VoxelShape::findIndex(Axis axis, f64 coord) const {
+i32 VoxelShape::findIndex(Axis axis, f64 coord) const
+{
     const std::vector<f64>& coords = getCoords(axis);
     const i32 size = m_shape->getSize(axis);
 
@@ -426,7 +449,8 @@ i32 VoxelShape::findIndex(Axis axis, f64 coord) const {
     return low - 1;
 }
 
-f64 VoxelShape::min(Axis axis, f64 coord1, f64 coord2) const {
+f64 VoxelShape::min(Axis axis, f64 coord1, f64 coord2) const
+{
     const Axis axis1 = AxisCycles::cycle(AxisCycle::FORWARD, axis);
     const Axis axis2 = AxisCycles::cycle(AxisCycle::BACKWARD, axis);
 
@@ -440,7 +464,8 @@ f64 VoxelShape::min(Axis axis, f64 coord1, f64 coord2) const {
     return get(axis, first);
 }
 
-f64 VoxelShape::max(Axis axis, f64 coord1, f64 coord2) const {
+f64 VoxelShape::max(Axis axis, f64 coord1, f64 coord2) const
+{
     const Axis axis1 = AxisCycles::cycle(AxisCycle::FORWARD, axis);
     const Axis axis2 = AxisCycles::cycle(AxisCycle::BACKWARD, axis);
 
@@ -458,7 +483,8 @@ f64 VoxelShape::max(Axis axis, f64 coord1, f64 coord2) const {
 // 光线投射
 // ============================================================================
 
-std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vector3& end, const BlockPos& offset) const {
+std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vector3& end, const BlockPos& offset) const
+{
     if (isEmpty()) {
         return std::nullopt;
     }
@@ -478,30 +504,23 @@ std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vecto
 
     if (m_shape->isFullWide(xi, yi, zi)) {
         const Direction dir = Directions::opposite(
-            Directions::fromVector(
-                static_cast<f32>(diff.x),
-                static_cast<f32>(diff.y),
-                static_cast<f32>(diff.z)
-            )
-        );
+            Directions::fromVector(static_cast<f32>(diff.x), static_cast<f32>(diff.y), static_cast<f32>(diff.z)));
         return BlockHitResult(adjustedStart, dir, offset, true);
     }
 
     // 对所有AABB进行射线检测
     std::vector<AxisAlignedBB> boxes = toAabbs();
-    f64 closestT = 2.0;  // 超过1表示未命中
+    f64 closestT = 2.0; // 超过1表示未命中
     Direction hitDir = Direction::None;
 
     for (const auto& box : boxes) {
         // 将盒子移动到世界坐标
-        AxisAlignedBB worldBox(
-            static_cast<f32>(box.minX + offset.x),
+        AxisAlignedBB worldBox(static_cast<f32>(box.minX + offset.x),
             static_cast<f32>(box.minY + offset.y),
             static_cast<f32>(box.minZ + offset.z),
             static_cast<f32>(box.maxX + offset.x),
             static_cast<f32>(box.maxY + offset.y),
-            static_cast<f32>(box.maxZ + offset.z)
-        );
+            static_cast<f32>(box.maxZ + offset.z));
 
         // 计算射线与盒子的交点
         // 使用 slab 方法
@@ -576,11 +595,9 @@ std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vecto
     }
 
     if (closestT <= 1.0) {
-        Vector3 hitPoint(
-            start.x + static_cast<f32>(diff.x * closestT),
+        Vector3 hitPoint(start.x + static_cast<f32>(diff.x * closestT),
             start.y + static_cast<f32>(diff.y * closestT),
-            start.z + static_cast<f32>(diff.z * closestT)
-        );
+            start.z + static_cast<f32>(diff.z * closestT));
         return BlockHitResult(hitPoint, hitDir, offset, false);
     }
 
@@ -591,7 +608,8 @@ std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vecto
 // 最近点
 // ============================================================================
 
-std::optional<Vector3> VoxelShape::closestPointTo(const Vector3& point) const {
+std::optional<Vector3> VoxelShape::closestPointTo(const Vector3& point) const
+{
     if (isEmpty()) {
         return std::nullopt;
     }
@@ -604,9 +622,8 @@ std::optional<Vector3> VoxelShape::closestPointTo(const Vector3& point) const {
         const f64 py = std::clamp(static_cast<f64>(point.y), y1, y2);
         const f64 pz = std::clamp(static_cast<f64>(point.z), z1, z2);
 
-        const f64 distSq = point.distanceSquared(Vector3(static_cast<f32>(px),
-                                                          static_cast<f32>(py),
-                                                          static_cast<f32>(pz)));
+        const f64 distSq =
+            point.distanceSquared(Vector3(static_cast<f32>(px), static_cast<f32>(py), static_cast<f32>(pz)));
 
         if (distSq < closestDistSq) {
             closestDistSq = distSq;
@@ -621,14 +638,14 @@ std::optional<Vector3> VoxelShape::closestPointTo(const Vector3& point) const {
 // 内部方法
 // ============================================================================
 
-bool VoxelShape::isCubePointRange(Axis axis) const {
+bool VoxelShape::isCubePointRange(Axis axis) const
+{
     const std::vector<f64>& coords = getCoords(axis);
-    return coords.size() == 2 &&
-           std::abs(coords[0]) < EPSILON &&
-           std::abs(coords[1] - 1.0) < EPSILON;
+    return coords.size() == 2 && std::abs(coords[0]) < EPSILON && std::abs(coords[1] - 1.0) < EPSILON;
 }
 
-void VoxelShape::initFaceCache() const {
+void VoxelShape::initFaceCache() const
+{
     if (!m_faces) {
         m_faces = std::make_unique<VoxelShape[]>(6);
     }

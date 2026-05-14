@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../kagero/state/StateStore.hpp"
 #include "../kagero/event/EventBus.hpp"
+#include "../kagero/state/StateStore.hpp"
 #include "../kagero/template/binder/BindingContext.hpp"
 #include "../kagero/template/compiler/TemplateCompiler.hpp"
 #include "../kagero/template/runtime/TemplateInstance.hpp"
@@ -37,12 +37,10 @@ public:
      * @param stateStore 状态存储
      * @param eventBus 事件总线
      */
-    MinecraftUIContext(
-        Font& font,
+    MinecraftUIContext(Font& font,
         renderer::trident::gui::GuiRenderer& renderer,
         kagero::state::StateStore& stateStore,
-        kagero::event::EventBus& eventBus
-    );
+        kagero::event::EventBus& eventBus);
 
     /**
      * @brief 从模板创建屏幕

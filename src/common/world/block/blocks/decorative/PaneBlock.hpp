@@ -2,11 +2,11 @@
 
 #include <array>
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 namespace blocks {
@@ -41,8 +41,7 @@ public:
     /**
      * @brief 邻居更新
      */
-    BlockState updatePostPlacement(
-        const BlockState& state,
+    BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -71,7 +70,8 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
@@ -94,8 +94,8 @@ protected:
      * @param direction 方向
      * @return 如果应该连接返回true
      */
-    [[nodiscard]] bool shouldConnectTo(IWorld& world, const BlockPos& pos,
-                                        const BlockState& neighborState, Direction direction) const;
+    [[nodiscard]] bool shouldConnectTo(
+        IWorld& world, const BlockPos& pos, const BlockState& neighborState, Direction direction) const;
 
     /**
      * @brief 计算形状索引

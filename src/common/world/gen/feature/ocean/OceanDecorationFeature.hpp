@@ -37,10 +37,7 @@ struct OceanDecorationFeatureConfig : public IFeatureConfig {
 class OceanDecorationFeature {
 public:
     bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const OceanDecorationFeatureConfig& config);
+        WorldGenRegion& world, math::Random& random, const BlockPos& pos, const OceanDecorationFeatureConfig& config);
 
 private:
     [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
@@ -49,8 +46,7 @@ private:
 
     [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const;
 
-    bool placeSingleDecoration(
-        WorldGenRegion& world,
+    bool placeSingleDecoration(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& centerPos,
         const OceanDecorationFeatureConfig& config);
@@ -61,12 +57,9 @@ private:
  */
 class ConfiguredOceanDecorationFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredOceanDecorationFeature(
-        std::unique_ptr<OceanDecorationFeatureConfig> config,
-        const char* featureName);
+    ConfiguredOceanDecorationFeature(std::unique_ptr<OceanDecorationFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

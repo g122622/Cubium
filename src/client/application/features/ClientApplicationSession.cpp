@@ -5,13 +5,13 @@
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
+#include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
+#include "client/ui/minecraft/screens/LoadingScreen.hpp"
+#include "client/ui/minecraft/screens/MainMenuScreen.hpp"
+#include "client/ui/minecraft/screens/PauseScreen.hpp"
+#include "client/ui/minecraft/screens/WorldSelectionScreen.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "client/ui/minecraft/screens/MainMenuScreen.hpp"
-#include "client/ui/minecraft/screens/WorldSelectionScreen.hpp"
-#include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
-#include "client/ui/minecraft/screens/PauseScreen.hpp"
-#include "client/ui/minecraft/screens/LoadingScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/world/storage/core/WorldStoragePaths.hpp"
@@ -23,7 +23,8 @@ namespace mc::client {
 
 // ========== 辅助函数实现 ==========
 
-ui::minecraft::widgets::ScreenStackWidget* getScreenStackWidget(ClientApplication* app) {
+ui::minecraft::widgets::ScreenStackWidget* getScreenStackWidget(ClientApplication* app)
+{
     if (!app || !app->m_kageroEngine) {
         return nullptr;
     }
@@ -35,9 +36,7 @@ ui::minecraft::widgets::ScreenStackWidget* getScreenStackWidget(ClientApplicatio
 
 void ClientApplication::setupStateMachineCallbacks()
 {
-    m_stateMachine.setOnStateChanged([this](ClientAppState from, ClientAppState to) {
-        onStateChanged(from, to);
-    });
+    m_stateMachine.setOnStateChanged([this](ClientAppState from, ClientAppState to) { onStateChanged(from, to); });
 
     m_stateMachine.setLoadingProgressCallback([this](const std::string& stage, f32 progress) {
         spdlog::info("[Loading] {} - {:.0f}%", stage, progress * 100.0f);
@@ -48,8 +47,8 @@ void ClientApplication::setupStateMachineCallbacks()
 void ClientApplication::onStateChanged(ClientAppState from, ClientAppState to)
 {
     spdlog::info("[StateMachine] State changed: {} -> {}",
-                 ClientAppStateMachine::stateToString(from),
-                 ClientAppStateMachine::stateToString(to));
+        ClientAppStateMachine::stateToString(from),
+        ClientAppStateMachine::stateToString(to));
 
     // 状态进入逻辑
     switch (to) {
@@ -107,12 +106,11 @@ Result<void> ClientApplication::startIntegratedWorld(const WorldLaunchConfig& co
 {
     if (!m_stateMachine.canStartWorld()) {
         return Error(ErrorCode::InvalidState,
-                     "Cannot start world in current state: " +
-                     std::string(ClientAppStateMachine::stateToString(m_stateMachine.state())));
+            "Cannot start world in current state: " +
+                std::string(ClientAppStateMachine::stateToString(m_stateMachine.state())));
     }
 
-    spdlog::info("[Session] Starting integrated world: {} (seed={})",
-                 config.displayName, config.seed);
+    spdlog::info("[Session] Starting integrated world: {} (seed={})", config.displayName, config.seed);
 
     // 转换到加载状态
     if (!m_stateMachine.startLoadingWorld(config)) {
@@ -152,8 +150,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     auto serverResult = m_integratedServer->initialize(serverConfig);
     if (serverResult.failed()) {
-        spdlog::error("[Session] Failed to initialize integrated server: {}",
-                      serverResult.error().toString());
+        spdlog::error("[Session] Failed to initialize integrated server: {}", serverResult.error().toString());
         m_integratedServer.reset();
         return serverResult.error();
     }
@@ -163,25 +160,16 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     // 初始化网络客户端
     m_networkClient = std::make_unique<NetworkClient>();
     m_commandManager = std::make_unique<command::ClientCommandManager>();
-    m_commandManager->setPlayerNameProvider([this]() {
-        return collectPlayerCompletionCandidates();
-    });
-    m_commandManager->setEntityNameProvider([this]() {
-        return collectEntityCompletionCandidates();
-    });
+    m_commandManager->setPlayerNameProvider([this]() { return collectPlayerCompletionCandidates(); });
+    m_commandManager->setEntityNameProvider([this]() { return collectEntityCompletionCandidates(); });
     setupNetworkCallbacks();
 
     // 初始化皮肤管理器
     m_skinManager = std::make_unique<skin::ClientSkinManager>();
     auto skinResult = m_skinManager->initialize(
-        m_renderer->device(),
-        m_renderer->physicalDevice(),
-        m_renderer->commandPool(),
-        m_renderer->graphicsQueue()
-    );
+        m_renderer->device(), m_renderer->physicalDevice(), m_renderer->commandPool(), m_renderer->graphicsQueue());
     if (skinResult.failed()) {
-        spdlog::warn("[Session] Failed to initialize skin manager: {}",
-                     skinResult.error().toString());
+        spdlog::warn("[Session] Failed to initialize skin manager: {}", skinResult.error().toString());
         // 皮肤管理器初始化失败不是致命错误
     } else {
         spdlog::info("[Session] Skin manager initialized");
@@ -194,8 +182,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     clientConfig.username = m_settings.username.get();
     auto clientResult = m_networkClient->connectLocal(m_integratedServer->getClientEndpoint(), clientConfig);
     if (clientResult.failed()) {
-        spdlog::error("[Session] Failed to connect to integrated server: {}",
-                      clientResult.error().toString());
+        spdlog::error("[Session] Failed to connect to integrated server: {}", clientResult.error().toString());
         m_integratedServer->stop();
         m_integratedServer.reset();
         m_networkClient.reset();
@@ -211,8 +198,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     // 初始化世界
     auto worldResult = m_world.initialize(config.seed);
     if (worldResult.failed()) {
-        spdlog::error("[Session] Failed to initialize world: {}",
-                      worldResult.error().toString());
+        spdlog::error("[Session] Failed to initialize world: {}", worldResult.error().toString());
         m_integratedServer->stop();
         m_integratedServer.reset();
         m_networkClient.reset();
@@ -247,10 +233,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         // 设置相机信息给 EntityRendererManager（用于名称标签渲染）
         if (frameContext.camera) {
             m_renderer->entityRendererManager().setCameraInfo(
-                frameContext.camera->position(),
-                frameContext.viewMatrix,
-                frustum
-            );
+                frameContext.camera->position(), frameContext.viewMatrix, frustum);
         }
 
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
@@ -338,8 +321,7 @@ void ClientApplication::destroyGameSession()
 
     // 1. 清理 HUD 引用
     if (m_kageroEngine) {
-        auto* hudWidget = static_cast<ui::minecraft::widgets::HudWidget*>(
-            m_kageroEngine->getLayer(m_hudLayerId));
+        auto* hudWidget = static_cast<ui::minecraft::widgets::HudWidget*>(m_kageroEngine->getLayer(m_hudLayerId));
         if (hudWidget) {
             hudWidget->setPlayer(nullptr);
         }
@@ -401,7 +383,7 @@ bool ClientApplication::leaveWorldToMainMenu()
 {
     if (!m_stateMachine.canReturnToMainMenu()) {
         spdlog::warn("[Session] Cannot leave world in current state: {}",
-                     ClientAppStateMachine::stateToString(m_stateMachine.state()));
+            ClientAppStateMachine::stateToString(m_stateMachine.state()));
         return false;
     }
 
@@ -433,7 +415,7 @@ void ClientApplication::showMainMenu()
 {
     if (!m_stateMachine.isInMainMenu()) {
         spdlog::warn("[Session] Cannot show main menu in current state: {}",
-                     ClientAppStateMachine::stateToString(m_stateMachine.state()));
+            ClientAppStateMachine::stateToString(m_stateMachine.state()));
         return;
     }
 
@@ -453,9 +435,7 @@ void ClientApplication::showMainMenu()
     auto mainMenuScreen = std::make_unique<ui::minecraft::MainMenuScreen>();
 
     // 设置回调
-    mainMenuScreen->setOnSinglePlayer([this]() {
-        showWorldSelection();
-    });
+    mainMenuScreen->setOnSinglePlayer([this]() { showWorldSelection(); });
 
     mainMenuScreen->setOnMultiPlayer([this]() {
         // TODO: 多人游戏支持
@@ -489,7 +469,7 @@ void ClientApplication::showPauseMenu()
 {
     if (!m_stateMachine.canPause()) {
         spdlog::warn("[Session] Cannot show pause menu in current state: {}",
-                     ClientAppStateMachine::stateToString(m_stateMachine.state()));
+            ClientAppStateMachine::stateToString(m_stateMachine.state()));
         return;
     }
 
@@ -588,9 +568,7 @@ void ClientApplication::showWorldSelection()
         }
     });
 
-    worldSelectionScreen->setOnCreateWorld([this]() {
-        showCreateWorld();
-    });
+    worldSelectionScreen->setOnCreateWorld([this]() { showCreateWorld(); });
 
     worldSelectionScreen->setOnBack([this, screenStack]() {
         // 返回主菜单
@@ -629,8 +607,8 @@ void ClientApplication::showCreateWorld()
         // 使用 WorldNameSanitizer 生成可用的世界目录名
         // 参考 MC 1.16.5 CreateWorldScreen.calcSaveDirName() 和 FileUtil.findAvailableName()
         auto storagePaths = world::storage::WorldStoragePaths::defaultPaths();
-        auto levelIdResult = world::storage::WorldNameSanitizer::findAvailableLevelId(
-            storagePaths.savesDir(), request.displayName);
+        auto levelIdResult =
+            world::storage::WorldNameSanitizer::findAvailableLevelId(storagePaths.savesDir(), request.displayName);
 
         if (!levelIdResult.success()) {
             spdlog::error("[Session] Failed to generate levelId: {}", levelIdResult.error().toString());

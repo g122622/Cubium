@@ -1,11 +1,11 @@
 #include "UnderwaterCarver.hpp"
+#include "../../../core/Constants.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../core/Constants.hpp"
-#include <unordered_set>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <unordered_set>
 
 namespace mc::world::gen::carver {
 
@@ -15,8 +15,7 @@ namespace mc::world::gen::carver {
 
 static const std::unordered_set<u32>& getUnderwaterCarvableBlocks()
 {
-    static std::unordered_set<u32> blocks = {
-        // 标准可雕刻方块
+    static std::unordered_set<u32> blocks = {// 标准可雕刻方块
         VanillaBlocks::STONE->blockId(),
         VanillaBlocks::GRANITE->blockId(),
         VanillaBlocks::DIORITE->blockId(),
@@ -56,8 +55,7 @@ static const std::unordered_set<u32>& getUnderwaterCarvableBlocks()
         VanillaBlocks::OBSIDIAN->blockId(),
         // AIR 由 isAir() 检查
         // CAVE_AIR 由 WorldCarver::getCaveAirState() 提供
-        VanillaBlocks::PACKED_ICE->blockId()
-    };
+        VanillaBlocks::PACKED_ICE->blockId()};
     return blocks;
 }
 
@@ -67,11 +65,9 @@ static const std::unordered_set<u32>& getUnderwaterCarvableBlocks()
 
 UnderwaterCaveCarver::UnderwaterCaveCarver()
     : CaveCarver(world::MAX_BUILD_HEIGHT)
-{
-}
+{}
 
-bool UnderwaterCaveCarver::carve(
-    ChunkPrimer& chunk,
+bool UnderwaterCaveCarver::carve(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -80,9 +76,8 @@ bool UnderwaterCaveCarver::carve(
     const ProbabilityConfig& config)
 {
     // 参考 MC CaveWorldCarver.carveRegion
-    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
-                     static_cast<u64>(chunkZ) * 132897987541ULL +
-                     static_cast<u64>(m_maxHeight));
+    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
+        static_cast<u64>(m_maxHeight));
 
     if (!shouldCarve(rng, chunkX, chunkZ, config)) {
         return false;
@@ -110,11 +105,18 @@ bool UnderwaterCaveCarver::carve(
         if (rng.nextInt(4) == 0) {
             // 生成房间（使用水下版本）
             const f32 roomRadius = rng.nextFloat(1.0f, 7.0f);
-            carveEllipsoidUnderwater(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                      startXPos, startYPos, startZPos,
-                      roomRadius, 0.5f,
-                      carvingMask,
-                      static_cast<i64>(rng.nextU64()));
+            carveEllipsoidUnderwater(chunk,
+                biomeProvider,
+                seaLevel,
+                chunkX,
+                chunkZ,
+                startXPos,
+                startYPos,
+                startZPos,
+                roomRadius,
+                0.5f,
+                carvingMask,
+                static_cast<i64>(rng.nextU64()));
             numTunnels += rng.nextInt(5);
         }
 
@@ -152,12 +154,18 @@ bool UnderwaterCaveCarver::carve(
 
                 // 每隔几步雕刻一个椭球
                 if (step % 4 == 0) {
-                    carveEllipsoidUnderwater(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                              currentX, currentY, currentZ,
-                              radius * (1.0f + tunnelRng.nextFloat() * 0.3f),
-                              radius * 0.5f,
-                              carvingMask,
-                              static_cast<i64>(tunnelRng.nextU64()));
+                    carveEllipsoidUnderwater(chunk,
+                        biomeProvider,
+                        seaLevel,
+                        chunkX,
+                        chunkZ,
+                        currentX,
+                        currentY,
+                        currentZ,
+                        radius * (1.0f + tunnelRng.nextFloat() * 0.3f),
+                        radius * 0.5f,
+                        carvingMask,
+                        static_cast<i64>(tunnelRng.nextU64()));
                 }
             }
         }
@@ -189,10 +197,7 @@ bool UnderwaterCaveCarver::isUnderwaterCarvable(const BlockState& state)
 }
 
 bool UnderwaterCaveCarver::isInCarvingRangeUnderwater(
-    ChunkCoord chunkX, ChunkCoord chunkZ,
-    f32 x, f32 z,
-    i32 step, i32 maxSteps,
-    f32 radius)
+    ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius)
 {
     // 参考 MC WorldCarver.func_222702_a_
     const f32 chunkCenterX = static_cast<f32>(chunkX * 16 + 8);
@@ -207,14 +212,16 @@ bool UnderwaterCaveCarver::isInCarvingRangeUnderwater(
     return dx * dx + dz * dz - remainingSteps * remainingSteps <= maxDist * maxDist;
 }
 
-bool UnderwaterCaveCarver::carveEllipsoidUnderwater(
-    ChunkPrimer& chunk,
+bool UnderwaterCaveCarver::carveEllipsoidUnderwater(ChunkPrimer& chunk,
     const BiomeProvider& /*biomeProvider*/,
     i32 /*seaLevel*/,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
-    f32 centerX, f32 centerY, f32 centerZ,
-    f32 horizontalRadius, f32 verticalRadius,
+    f32 centerX,
+    f32 centerY,
+    f32 centerZ,
+    f32 horizontalRadius,
+    f32 verticalRadius,
     CarvingMask& carvingMask,
     i64 seed)
 {
@@ -235,8 +242,7 @@ bool UnderwaterCaveCarver::carveEllipsoidUnderwater(
     const i32 chunkEndZ = chunkStartZ + 15;
 
     // 检查椭球是否在区块范围外
-    if (endX < chunkStartX - 16 || startX > chunkEndX + 16 ||
-        endZ < chunkStartZ - 16 || startZ > chunkEndZ + 16) {
+    if (endX < chunkStartX - 16 || startX > chunkEndX + 16 || endZ < chunkStartZ - 16 || startZ > chunkEndZ + 16) {
         return false;
     }
 
@@ -338,8 +344,7 @@ bool UnderwaterCaveCarver::carveEllipsoidUnderwater(
 
 UnderwaterCanyonCarver::UnderwaterCanyonCarver()
     : CanyonCarver(world::MAX_BUILD_HEIGHT)
-{
-}
+{}
 
 bool UnderwaterCanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
 {

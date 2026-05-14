@@ -56,7 +56,6 @@ protected:
      * @return true 如果成功投掷
      */
     bool tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state) override;
-
 };
 
 } // namespace blocks

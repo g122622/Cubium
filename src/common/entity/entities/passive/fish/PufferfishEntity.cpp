@@ -1,20 +1,21 @@
 #include "PufferfishEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
 PufferfishEntity::PufferfishEntity(LegacyEntityType type, EntityId id)
     : AbstractFishEntity(type, id)
-{
-}
+{}
 
-std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<PufferfishEntity>(LegacyEntityType::Unknown, 0);
 }
 
-f32 PufferfishEntity::getPuffSize() const {
+f32 PufferfishEntity::getPuffSize() const
+{
     switch (m_puffState) {
         case PuffState::Deflated:
             return 0.35f;
@@ -27,7 +28,8 @@ f32 PufferfishEntity::getPuffSize() const {
     }
 }
 
-void PufferfishEntity::tick() {
+void PufferfishEntity::tick()
+{
     AbstractFishEntity::tick();
 
     if (m_puffState == PuffState::Deflated) {
@@ -57,7 +59,8 @@ void PufferfishEntity::tick() {
     }
 }
 
-void PufferfishEntity::setPuffState(PuffState state) {
+void PufferfishEntity::setPuffState(PuffState state)
+{
     if (state == m_puffState) {
         return;
     }
@@ -70,14 +73,16 @@ void PufferfishEntity::setPuffState(PuffState state) {
     }
 }
 
-std::optional<ResourceLocation> PufferfishEntity::getAmbientSound() const {
+std::optional<ResourceLocation> PufferfishEntity::getAmbientSound() const
+{
     if (!isInWater()) {
         return SoundEvents::ENTITY_PUFFER_FISH_FLOP;
     }
     return SoundEvents::ENTITY_PUFFER_FISH_AMBIENT;
 }
 
-void PufferfishEntity::registerAttributes() {
+void PufferfishEntity::registerAttributes()
+{
     // 调用父类方法
     AbstractFishEntity::registerAttributes();
 

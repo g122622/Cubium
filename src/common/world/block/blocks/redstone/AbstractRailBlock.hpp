@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../Block.hpp"
+#include "../../Material.hpp"
 
 namespace mc {
 namespace blocks {
@@ -33,11 +33,10 @@ enum class RailShape : u8 {
  * @param shape 铁轨形状
  * @return 是否为上升形状
  */
-[[nodiscard]] constexpr bool isAscending(RailShape shape) {
-    return shape == RailShape::AscendingEast ||
-           shape == RailShape::AscendingWest ||
-           shape == RailShape::AscendingNorth ||
-           shape == RailShape::AscendingSouth;
+[[nodiscard]] constexpr bool isAscending(RailShape shape)
+{
+    return shape == RailShape::AscendingEast || shape == RailShape::AscendingWest ||
+        shape == RailShape::AscendingNorth || shape == RailShape::AscendingSouth;
 }
 
 /**
@@ -71,8 +70,7 @@ public:
     /**
      * @brief 邻居更新
      */
-    BlockState updatePostPlacement(
-        const BlockState& state,
+    BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -85,9 +83,7 @@ public:
      * @brief 检查是否可以放置
      */
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 形状 ==========
 
@@ -99,7 +95,8 @@ public:
     /**
      * @brief 获取碰撞形状（铁轨无碰撞）
      */
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override {
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         static CollisionShape emptyShape = CollisionShape::empty();
         return emptyShape;
@@ -110,7 +107,8 @@ public:
     /**
      * @brief 是否可以提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return m_isPowered;
     }
@@ -181,7 +179,7 @@ private:
 
 // 枚举特征特化 - 必须在命名空间外
 namespace mc {
-template<>
+template <>
 struct EnumProperty<blocks::RailShape>::Traits {
     static std::string toString(const blocks::RailShape& value);
     static std::optional<blocks::RailShape> fromName(std::string_view name);

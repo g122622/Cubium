@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../renderer/MeshTypes.hpp"
+#include "../renderer/mesh/MeshBuildScheduler.hpp"
+#include "ClientWeather.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
@@ -8,9 +11,6 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/chunk/ChunkData.hpp"
-#include "../renderer/MeshTypes.hpp"
-#include "../renderer/mesh/MeshBuildScheduler.hpp"
-#include "ClientWeather.hpp"
 #include "entity/ClientEntityManager.hpp"
 #include <array>
 #include <functional>
@@ -24,7 +24,7 @@ namespace mc::client {
 namespace renderer::trident::particle {
 class ParticleManager;
 enum class ParticleTypeId : u16;
-}
+} // namespace renderer::trident::particle
 
 /**
  * @brief 客户端区块数据
@@ -69,7 +69,8 @@ public:
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const;
     void setBlockState(i32 x, i32 y, i32 z, const BlockState* state);
 
-    [[nodiscard]] bool isWithinWorldBounds(i32 /*x*/, i32 y, i32 /*z*/) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32 /*x*/, i32 y, i32 /*z*/) const override
+    {
         return y >= m_minBuildHeight && y < m_maxBuildHeight;
     }
 
@@ -104,7 +105,8 @@ public:
 
     [[nodiscard]] size_t chunkCount() const { return m_chunks.size(); }
 
-    void setChunkUnloadCallback(std::function<void(const ChunkId&)> callback) {
+    void setChunkUnloadCallback(std::function<void(const ChunkId&)> callback)
+    {
         // 只允许注册一次
         MC_ASSERT_RELEASE(!m_chunkUnloadCallback);
         m_chunkUnloadCallback = std::move(callback);
@@ -148,14 +150,11 @@ public:
      *
      * @param manager 粒子管理器指针（由 ClientApplication 管理）
      */
-    void setParticleManager(renderer::trident::particle::ParticleManager* manager) {
-        m_particleManager = manager;
-    }
+    void setParticleManager(renderer::trident::particle::ParticleManager* manager) { m_particleManager = manager; }
 
-    [[nodiscard]] renderer::trident::particle::ParticleManager* particleManager() {
-        return m_particleManager;
-    }
-    [[nodiscard]] const renderer::trident::particle::ParticleManager* particleManager() const {
+    [[nodiscard]] renderer::trident::particle::ParticleManager* particleManager() { return m_particleManager; }
+    [[nodiscard]] const renderer::trident::particle::ParticleManager* particleManager() const
+    {
         return m_particleManager;
     }
 
@@ -170,10 +169,7 @@ public:
      * @param pos 粒子位置
      * @param velocity 粒子速度
      */
-    void addParticle(
-        renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity);
+    void addParticle(renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
 
     /**
      * @brief 生成粒子（带数量和偏移）
@@ -186,8 +182,7 @@ public:
      * @param offset 随机偏移范围
      * @param count 粒子数量
      */
-    void addParticle(
-        renderer::trident::particle::ParticleTypeId type,
+    void addParticle(renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -202,23 +197,19 @@ public:
      * @param maxDistance 最大距离（默认 256 格）
      * @return 是否应生成粒子
      */
-    [[nodiscard]] bool shouldSpawnParticleAt(
-        const Vector3& pos,
-        f32 maxDistance = 256.0f) const;
+    [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const;
 
     void onRainStrengthChange(f32 strength);
     void onThunderStrengthChange(f32 strength);
     void onBeginRaining();
     void onEndRaining();
 
-    void onLightUpdate(
-        i32 chunkX,
+    void onLightUpdate(i32 chunkX,
         i32 chunkZ,
         i32 sectionY,
         const std::vector<u8>& skyLight,
         const std::vector<u8>& blockLight,
-        bool trustEdges
-    );
+        bool trustEdges);
 
     // ========== 出生点 ==========
 

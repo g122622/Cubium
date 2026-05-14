@@ -1,8 +1,8 @@
 #pragma once
 
-#include "CowEntity.hpp"
-#include "../../../interfaces/IShearable.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../interfaces/IShearable.hpp"
+#include "CowEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -32,8 +32,8 @@ public:
      * @brief 哞菇类型
      */
     enum class MooshroomType : u8 {
-        Red = 0,    // 红色哞菇
-        Brown = 1   // 棕色哞菇
+        Red = 0,  // 红色哞菇
+        Brown = 1 // 棕色哞菇
     };
 
     /**

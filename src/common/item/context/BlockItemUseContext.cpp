@@ -5,37 +5,37 @@
 namespace mc {
 
 BlockItemUseContext::BlockItemUseContext(IWorld& world,
-                                         Player* player,
-                                         const ItemStack& stack,
-                                         const Vector3& hitPos,
-                                         const BlockPos& blockPos,
-                                         Direction face,
-                                         f32 playerYaw)
+    Player* player,
+    const ItemStack& stack,
+    const Vector3& hitPos,
+    const BlockPos& blockPos,
+    Direction face,
+    f32 playerYaw)
     : ItemUseContext(world, player, stack, hitPos, blockPos, face, Hand::MainHand, playerYaw)
     , m_replacingClickedBlock(false)
 {
     // 计算相邻位置（击中面的另一侧）
-    m_adjacentPos = BlockPos(
-        blockPos.x + Directions::xOffset(face),
+    m_adjacentPos = BlockPos(blockPos.x + Directions::xOffset(face),
         blockPos.y + Directions::yOffset(face),
-        blockPos.z + Directions::zOffset(face)
-    );
+        blockPos.z + Directions::zOffset(face));
 
     // 计算玩家水平朝向
     // MC 的 yaw: 0=南, 90=西, 180=北, 270=东
     // 我们的 Direction: North=2, South=3, West=4, East=5
     f32 yaw = playerYaw;
-    while (yaw < 0.0f) yaw += 360.0f;
-    while (yaw >= 360.0f) yaw -= 360.0f;
+    while (yaw < 0.0f)
+        yaw += 360.0f;
+    while (yaw >= 360.0f)
+        yaw -= 360.0f;
 
     if (yaw < 45.0f || yaw >= 315.0f) {
-        m_horizontalDirection = Direction::South;  // 面向南
+        m_horizontalDirection = Direction::South; // 面向南
     } else if (yaw < 135.0f) {
-        m_horizontalDirection = Direction::West;   // 面向西
+        m_horizontalDirection = Direction::West; // 面向西
     } else if (yaw < 225.0f) {
-        m_horizontalDirection = Direction::North;  // 面向北
+        m_horizontalDirection = Direction::North; // 面向北
     } else {
-        m_horizontalDirection = Direction::East;   // 面向东
+        m_horizontalDirection = Direction::East; // 面向东
     }
 
     initialize();

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../item/core/ActionResult.hpp"
 #include <array>
 
 namespace mc {
@@ -58,19 +58,19 @@ public:
 
     // ========== 红石 ==========
 
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] int getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -80,16 +80,15 @@ public:
     /**
      * @brief 获取充能等级
      */
-    [[nodiscard]] static int getCharges(const BlockState& state) {
+    [[nodiscard]] static int getCharges(const BlockState& state)
+    {
         return state.get(BlockStateProperties::CHARGES_0_4());
     }
 
     /**
      * @brief 是否已充满
      */
-    [[nodiscard]] static bool isFullyCharged(const BlockState& state) {
-        return getCharges(state) >= 4;
-    }
+    [[nodiscard]] static bool isFullyCharged(const BlockState& state) { return getCharges(state) >= 4; }
 
     /**
      * @brief 充能
@@ -120,9 +119,7 @@ public:
      * @return 光照等级 (0-15)
      */
     [[nodiscard]] u8 getLightLevel(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr) const override;
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     /**
      * @brief 右键交互 - 充能或设置重生点
@@ -132,8 +129,7 @@ public:
      * - 在非下界维度使用会爆炸
      * - 充能后在非下界设置重生点
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

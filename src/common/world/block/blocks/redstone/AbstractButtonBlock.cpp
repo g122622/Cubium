@@ -1,7 +1,7 @@
 #include "AbstractButtonBlock.hpp"
+#include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include <unordered_map>
 
@@ -13,46 +13,52 @@ using AttachFace = BlockStateProperties::AttachFace;
 
 AbstractButtonBlock::AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed)
     : Block(properties)
-    , m_ticksToStayPressed(ticksToStayPressed) {
+    , m_ticksToStayPressed(ticksToStayPressed)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::POWERED())
-        .add(BlockStateProperties::ATTACH_FACE())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::POWERED())
+                         .add(BlockStateProperties::ATTACH_FACE())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::POWERED(), false)
-        .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::POWERED(), false)
+            .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
 }
 
-bool AbstractButtonBlock::isPowered(const BlockState& state) {
+bool AbstractButtonBlock::isPowered(const BlockState& state)
+{
     return state.get(BlockStateProperties::POWERED());
 }
 
-BlockState AbstractButtonBlock::withPowered(BlockState state, bool powered) {
+BlockState AbstractButtonBlock::withPowered(BlockState state, bool powered)
+{
     return state.with(BlockStateProperties::POWERED(), powered);
 }
 
-Direction AbstractButtonBlock::getFacing(const BlockState& state) {
+Direction AbstractButtonBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
-void AbstractButtonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void AbstractButtonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
     // 按钮放置时不触发信号
 }
 
-void AbstractButtonBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                          const BlockPos& neighborPos, bool isMoving) {
+void AbstractButtonBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -88,10 +94,13 @@ void AbstractButtonBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bl
     }
 }
 
-BlockState AbstractButtonBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState AbstractButtonBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(facingState);
     MC_UNUSED(world);
     MC_UNUSED(currentPos);
@@ -122,7 +131,8 @@ BlockState AbstractButtonBlock::updatePostPlacement(
     return state;
 }
 
-void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     if (isPowered(state)) {
         // 按钮弹起
@@ -138,12 +148,8 @@ void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& s
     }
 }
 
-i32 AbstractButtonBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+i32 AbstractButtonBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -154,11 +160,8 @@ i32 AbstractButtonBlock::getWeakPower(
 }
 
 i32 AbstractButtonBlock::getStrongPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
@@ -172,16 +175,16 @@ i32 AbstractButtonBlock::getStrongPower(
     Direction facing = getFacing(state);
     AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
 
-    Direction outputDir = Direction::North;  // 默认值
+    Direction outputDir = Direction::North; // 默认值
     switch (attachFace) {
         case AttachFace::Floor:
-            outputDir = Direction::Up;    // 地板按钮强信号向上（附着面）
+            outputDir = Direction::Up; // 地板按钮强信号向上（附着面）
             break;
         case AttachFace::Ceiling:
-            outputDir = Direction::Down;  // 天花板按钮强信号向下（附着面）
+            outputDir = Direction::Down; // 天花板按钮强信号向下（附着面）
             break;
         case AttachFace::Wall:
-            outputDir = Directions::opposite(facing);  // 墙按钮强信号向附着面（背面）
+            outputDir = Directions::opposite(facing); // 墙按钮强信号向附着面（背面）
             break;
         default:
             break;
@@ -195,18 +198,21 @@ i32 AbstractButtonBlock::getStrongPower(
     return 0;
 }
 
-const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) const {
+const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) const
+{
     // 采用原版按钮的大致体素尺寸：墙面 6x4 像素，地板/天花板 6x6 像素。
     static const CollisionShape floorUnpressed = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 2.0f, 11.0f);
     static const CollisionShape floorPressed = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 1.0f, 11.0f);
     static const CollisionShape ceilingUnpressed = CollisionShape::fromPixelBox(5.0f, 14.0f, 5.0f, 11.0f, 16.0f, 11.0f);
     static const CollisionShape ceilingPressed = CollisionShape::fromPixelBox(5.0f, 15.0f, 5.0f, 11.0f, 16.0f, 11.0f);
 
-    static const CollisionShape wallNorthUnpressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 14.0f, 11.0f, 10.0f, 16.0f);
+    static const CollisionShape wallNorthUnpressed =
+        CollisionShape::fromPixelBox(5.0f, 6.0f, 14.0f, 11.0f, 10.0f, 16.0f);
     static const CollisionShape wallNorthPressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 15.0f, 11.0f, 10.0f, 16.0f);
     static const CollisionShape wallSouthUnpressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 0.0f, 11.0f, 10.0f, 2.0f);
     static const CollisionShape wallSouthPressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 0.0f, 11.0f, 10.0f, 1.0f);
-    static const CollisionShape wallWestUnpressed = CollisionShape::fromPixelBox(14.0f, 6.0f, 5.0f, 16.0f, 10.0f, 11.0f);
+    static const CollisionShape wallWestUnpressed =
+        CollisionShape::fromPixelBox(14.0f, 6.0f, 5.0f, 16.0f, 10.0f, 11.0f);
     static const CollisionShape wallWestPressed = CollisionShape::fromPixelBox(15.0f, 6.0f, 5.0f, 16.0f, 10.0f, 11.0f);
     static const CollisionShape wallEastUnpressed = CollisionShape::fromPixelBox(0.0f, 6.0f, 5.0f, 2.0f, 10.0f, 11.0f);
     static const CollisionShape wallEastPressed = CollisionShape::fromPixelBox(0.0f, 6.0f, 5.0f, 1.0f, 10.0f, 11.0f);
@@ -236,7 +242,8 @@ const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) con
     }
 }
 
-void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 如果已经按下，不重复触发
     if (isPowered(state)) {
         return;
@@ -257,12 +264,14 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
     world.tickManager().scheduleBlockTick(pos, *this, m_ticksToStayPressed, world::tick::TickPriority::High);
 }
 
-bool AbstractButtonBlock::canAttachToFace(Direction facing) const {
+bool AbstractButtonBlock::canAttachToFace(Direction facing) const
+{
     // 按钮可以附着在任何水平方向
     return Directions::isHorizontal(facing);
 }
 
-void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Direction facing) {
+void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Direction facing)
+{
     // 获取按钮输出方向
     const BlockState* state = world.getBlockState(pos);
     if (!state) {
@@ -272,22 +281,22 @@ void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Di
     AttachFace attachFace = state->get(BlockStateProperties::ATTACH_FACE());
 
     // MC Java: 计算输出方向和支撑位置
-    Direction outputDir = Direction::North;  // 默认值
+    Direction outputDir = Direction::North; // 默认值
     BlockPos supportPos = pos;
 
     switch (attachFace) {
         case AttachFace::Floor:
             outputDir = Direction::Up;
-            supportPos = pos.down();  // 支撑在下方
+            supportPos = pos.down(); // 支撑在下方
             break;
         case AttachFace::Ceiling:
             outputDir = Direction::Down;
-            supportPos = pos.up();  // 支撑在上方
+            supportPos = pos.up(); // 支撑在上方
             break;
         case AttachFace::Wall:
             // 墙按钮向附着面方向输出，即 facing 的反方向
             outputDir = Directions::opposite(facing);
-            supportPos = pos.offset(Directions::opposite(facing));  // 支撑在背面
+            supportPos = pos.offset(Directions::opposite(facing)); // 支撑在背面
             break;
         default:
             break;

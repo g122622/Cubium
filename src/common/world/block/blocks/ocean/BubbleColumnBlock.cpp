@@ -1,10 +1,10 @@
 #include "BubbleColumnBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,25 +12,29 @@ namespace blocks {
 using namespace mc; // Bring BlockStateProperties into scope
 
 BubbleColumnBlock::BubbleColumnBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::DRAG())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::DRAG())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::DRAG(), false));
 }
 
-bool BubbleColumnBlock::isDrag(const BlockState& state) const {
+bool BubbleColumnBlock::isDrag(const BlockState& state) const
+{
     return state.get(BlockStateProperties::DRAG());
 }
 
-BlockState BubbleColumnBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BubbleColumnBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
@@ -40,17 +44,15 @@ BlockState BubbleColumnBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState().with(BlockStateProperties::DRAG(), drag);
 }
 
-bool BubbleColumnBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool BubbleColumnBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
     // 气泡柱只能出现在水中（或已有气泡柱位置）
     const BlockState* currentState = world.getBlockState(pos);
-    const bool isWater = currentState != nullptr && VanillaBlocks::WATER != nullptr &&
-        currentState->is(VanillaBlocks::WATER);
+    const bool isWater =
+        currentState != nullptr && VanillaBlocks::WATER != nullptr && currentState->is(VanillaBlocks::WATER);
     const bool isBubbleColumn = currentState != nullptr && currentState->is(this);
     if (!isWater && !isBubbleColumn) {
         return false;
@@ -72,13 +74,13 @@ bool BubbleColumnBlock::isValidPosition(
     return belowState->is(this);
 }
 
-BlockState BubbleColumnBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState BubbleColumnBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     // MC 1.16.5: 气泡柱更新逻辑
     // 1. 下方源变化时更新drag状态
@@ -102,7 +104,8 @@ BlockState BubbleColumnBlock::updatePostPlacement(
     return state;
 }
 
-void BubbleColumnBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void BubbleColumnBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     MC_UNUSED(&world);
     MC_UNUSED(&pos);
 
@@ -121,7 +124,8 @@ void BubbleColumnBlock::onEntityCollision(const BlockState& state, IWorld& world
     entity.setFallDistance(0.0f);
 }
 
-void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
 
     // MC 1.16.5: 气泡柱传播逻辑
@@ -155,19 +159,22 @@ void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-const CollisionShape& BubbleColumnBlock::getShape(const BlockState& state) const {
+const CollisionShape& BubbleColumnBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-const CollisionShape& BubbleColumnBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& BubbleColumnBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-bool BubbleColumnBlock::checkSource(const IWorld& world, const BlockPos& pos) const {
+bool BubbleColumnBlock::checkSource(const IWorld& world, const BlockPos& pos) const
+{
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 

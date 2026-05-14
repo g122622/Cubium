@@ -1,22 +1,22 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
+#include "core/Types.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/inventory/ContainerTypes.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
+#include "world/IWorld.hpp"
+#include "world/IWorldWriter.hpp"
+#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/EnchantingTableBlock.hpp"
+#include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/blockentity/BlockEntityType.hpp"
-#include "world/IWorld.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "world/IWorldWriter.hpp"
-#include "world/fluid/Fluid.hpp"
 #include "world/chunk/ChunkData.hpp"
+#include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "entity/inventory/PlayerInventory.hpp"
-#include "entity/inventory/ContainerTypes.hpp"
-#include "core/Types.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -46,58 +46,64 @@ public:
         , m_openContainerCalled(false)
         , m_lastContainerType(ContainerType::Player)
         , m_lastContainerPos(0, 0, 0)
-        , m_lastContainerPlayer(nullptr) {
-    }
+        , m_lastContainerPlayer(nullptr)
+    {}
 
     // ========== IWorld 核心接口 ==========
 
-    [[nodiscard]] bool isClientSide() override {
-        return m_isClient;
-    }
+    [[nodiscard]] bool isClientSide() override { return m_isClient; }
 
-    [[nodiscard]] server::ServerWorld* asServerWorld() override {
-        return m_isClient ? nullptr : reinterpret_cast<server::ServerWorld*>(0x1);  // 非 null 表示服务端
+    [[nodiscard]] server::ServerWorld* asServerWorld() override
+    {
+        return m_isClient ? nullptr : reinterpret_cast<server::ServerWorld*>(0x1); // 非 null 表示服务端
     }
 
     // IWorldWriter 接口
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         if (state == nullptr) return false;
         m_blockStates[BlockPos(x, y, z)] = state;
         return true;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
         MC_UNUSED(flags);
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blockStates.find(pos);
         return it == m_blockStates.end() ? nullptr : it->second;
     }
 
-    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override {
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
         const auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
 
-    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override {
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
         const auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
 
-    void setOwnedBlockEntity(std::unique_ptr<BlockEntity> entity) {
+    void setOwnedBlockEntity(std::unique_ptr<BlockEntity> entity)
+    {
         const BlockPos pos = entity->getPos();
         m_blockEntities[pos] = std::move(entity);
     }
 
-    bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override {
+    bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override
+    {
         m_openContainerCalled = true;
         m_lastContainerType = type;
         m_lastContainerPos = pos;
         m_lastContainerPlayer = &player;
-        return !m_isClient;  // 客户端返回 false，服务端返回 true
+        return !m_isClient; // 客户端返回 false，服务端返回 true
     }
 
     // ========== 测试验证方法 ==========
@@ -107,21 +113,22 @@ public:
     [[nodiscard]] BlockPos getLastContainerPos() const { return m_lastContainerPos; }
     [[nodiscard]] Player* getLastContainerPlayer() const { return m_lastContainerPlayer; }
 
-    void setBlockStateAt(const BlockPos& pos, const BlockState* state) {
-        m_blockStates[pos] = state;
-    }
+    void setBlockStateAt(const BlockPos& pos, const BlockState* state) { m_blockStates[pos] = state; }
 
     // ========== IWorld 存根方法 ==========
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("EnchantingTableTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("EnchantingTableTestWorld::tickManager not implemented");
     }
 
@@ -141,49 +148,53 @@ private:
 
 class EnchantingTableBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         enchantingTable_ = std::make_unique<EnchantingTableBlock>(
-            BlockProperties(Material::ROCK)
-                .hardness(5.0f)
-                .resistance(1200.0f)
-                .notSolid()
-        );
+            BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid());
     }
 
     std::unique_ptr<EnchantingTableBlock> enchantingTable_;
 };
 
-TEST_F(EnchantingTableBlockTest, Create_HasCorrectProperties) {
+TEST_F(EnchantingTableBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(enchantingTable_, nullptr);
 }
 
-TEST_F(EnchantingTableBlockTest, HasBlockEntity_ReturnsTrue) {
+TEST_F(EnchantingTableBlockTest, HasBlockEntity_ReturnsTrue)
+{
     EXPECT_TRUE(enchantingTable_->hasBlockEntity());
 }
 
-TEST_F(EnchantingTableBlockTest, GetBlockEntityType_ReturnsCorrectType) {
+TEST_F(EnchantingTableBlockTest, GetBlockEntityType_ReturnsCorrectType)
+{
     EXPECT_EQ(enchantingTable_->getBlockEntityType(), BlockEntityType::EnchantingTable);
 }
 
-TEST_F(EnchantingTableBlockTest, GetShape_ReturnsValidShape) {
+TEST_F(EnchantingTableBlockTest, GetShape_ReturnsValidShape)
+{
     const auto& state = enchantingTable_->defaultState();
     const auto& shape = enchantingTable_->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(EnchantingTableBlockTest, GetOcclusionShape_CanBeEmpty) {
+TEST_F(EnchantingTableBlockTest, GetOcclusionShape_CanBeEmpty)
+{
     const auto& state = enchantingTable_->defaultState();
     const auto& shape = enchantingTable_->getOcclusionShape(state);
     // 附魔台是非固体方块，遮挡形状可以为空
     EXPECT_TRUE(shape.isEmpty());
 }
 
-TEST_F(EnchantingTableBlockTest, GetPushReaction_ReturnsBlock) {
+TEST_F(EnchantingTableBlockTest, GetPushReaction_ReturnsBlock)
+{
     const auto& state = enchantingTable_->defaultState();
     EXPECT_EQ(enchantingTable_->getPushReaction(state), Material::PushReaction::Block);
 }
 
-TEST_F(EnchantingTableBlockTest, CreateBlockEntity_ReturnsEnchantingTableEntity) {
+TEST_F(EnchantingTableBlockTest, CreateBlockEntity_ReturnsEnchantingTableEntity)
+{
     BlockPos pos(10, 20, 30);
     auto entity = enchantingTable_->createBlockEntity(pos);
     ASSERT_NE(entity, nullptr);
@@ -195,13 +206,10 @@ TEST_F(EnchantingTableBlockTest, CreateBlockEntity_ReturnsEnchantingTableEntity)
 
 class EnchantingTableBlockInteractionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         enchantingTable_ = std::make_unique<EnchantingTableBlock>(
-            BlockProperties(Material::ROCK)
-                .hardness(5.0f)
-                .resistance(1200.0f)
-                .notSolid()
-        );
+            BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid());
         pos_ = BlockPos(10, 64, 20);
     }
 
@@ -209,7 +217,8 @@ protected:
     BlockPos pos_;
 };
 
-TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSuccess) {
+TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSuccess)
+{
     // 客户端世界
     EnchantingTableTestWorld world(true);
 
@@ -226,8 +235,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsS
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enchantingTable_->onBlockActivated(
-        state, world, pos_, player, Hand::MainHand, hit);
+    ActionResultType result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 客户端应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -236,7 +244,8 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsS
     EXPECT_FALSE(world.wasOpenContainerCalled());
 }
 
-TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensContainer) {
+TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensContainer)
+{
     // 服务端世界
     EnchantingTableTestWorld world(false);
 
@@ -253,8 +262,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensCon
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enchantingTable_->onBlockActivated(
-        state, world, pos_, player, Hand::MainHand, hit);
+    ActionResultType result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 服务端应返回 Consume
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -266,7 +274,8 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensCon
     EXPECT_EQ(world.getLastContainerPlayer(), &player);
 }
 
-TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_NoBlockEntity_ReturnsPass) {
+TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_NoBlockEntity_ReturnsPass)
+{
     // 服务端世界
     EnchantingTableTestWorld world(false);
 
@@ -279,8 +288,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_NoBlockEntity_Retur
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enchantingTable_->onBlockActivated(
-        state, world, pos_, player, Hand::MainHand, hit);
+    ActionResultType result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 没有方块实体时应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -289,7 +297,8 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_NoBlockEntity_Retur
     EXPECT_FALSE(world.wasOpenContainerCalled());
 }
 
-TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_WrongBlockEntityType_ReturnsPass) {
+TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_WrongBlockEntityType_ReturnsPass)
+{
     // 服务端世界
     EnchantingTableTestWorld world(false);
 
@@ -306,8 +315,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_WrongBlockEntityTyp
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enchantingTable_->onBlockActivated(
-        state, world, pos_, player, Hand::MainHand, hit);
+    ActionResultType result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 错误类型的方块实体应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -316,7 +324,8 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_WrongBlockEntityTyp
     EXPECT_FALSE(world.wasOpenContainerCalled());
 }
 
-TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior) {
+TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
+{
     // 服务端世界
     EnchantingTableTestWorld world(false);
 
@@ -333,8 +342,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavio
     // 使用副手执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enchantingTable_->onBlockActivated(
-        state, world, pos_, player, Hand::OffHand, hit);
+    ActionResultType result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::OffHand, hit);
 
     // 副手交互应与服务端行为一致
     EXPECT_EQ(result, ActionResultType::Consume);

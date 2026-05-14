@@ -13,7 +13,8 @@ TridentModel::TridentModel()
     setupParts();
 }
 
-void TridentModel::setupParts() {
+void TridentModel::setupParts()
+{
     // 参考 MC 1.16.5 TridentModel
     // 纹理尺寸 32x32
 
@@ -56,13 +57,14 @@ void TridentModel::setupParts() {
     m_shaft->addChild(m_rightProng);
 }
 
-void TridentModel::render(f64 scale) {
+void TridentModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void TridentModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void TridentModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 三叉戟没有动画角度设置
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -81,7 +83,8 @@ ShulkerBulletModel::ShulkerBulletModel()
     setupParts();
 }
 
-void ShulkerBulletModel::setupParts() {
+void ShulkerBulletModel::setupParts()
+{
     // 参考 MC 1.16.5 ShulkerBulletModel
     m_bullet = std::make_shared<ModelRenderer>("bullet");
     m_bullet->setTextureOffset(0, 0);
@@ -94,13 +97,14 @@ void ShulkerBulletModel::setupParts() {
     m_parts.push_back(m_bullet);
 }
 
-void ShulkerBulletModel::render(f64 scale) {
+void ShulkerBulletModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void ShulkerBulletModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                    f64 ageInTicks, f64 netHeadYaw,
-                                    f64 headPitch, f64 scale) {
+void ShulkerBulletModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_bullet->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_bullet->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
@@ -126,7 +130,8 @@ LlamaSpitModel::LlamaSpitModel(f32 scale)
     setupParts(scale);
 }
 
-void LlamaSpitModel::setupParts(f32 scale) {
+void LlamaSpitModel::setupParts(f32 scale)
+{
     // 参考 MC 1.16.5 LlamaSpitModel
     // 创建一个由 7 个 box 组成的十字形结构
     m_main = std::make_shared<ModelRenderer>("main");
@@ -149,13 +154,14 @@ void LlamaSpitModel::setupParts(f32 scale) {
     m_parts.push_back(m_main);
 }
 
-void LlamaSpitModel::render(f64 scale) {
+void LlamaSpitModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void LlamaSpitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                f64 ageInTicks, f64 netHeadYaw,
-                                f64 headPitch, f64 scale) {
+void LlamaSpitModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 没有动画
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -181,7 +187,8 @@ EnderCrystalModel::EnderCrystalModel(f32 scale)
     setupParts(scale);
 }
 
-void EnderCrystalModel::setupParts(f32 scale) {
+void EnderCrystalModel::setupParts(f32 scale)
+{
     // 参考 MC 1.16.5 EnderCrystalModel (EnderCrystalRenderer)
     // 核心立方体
     m_cube = std::make_shared<ModelRenderer>("cube");
@@ -205,13 +212,14 @@ void EnderCrystalModel::setupParts(f32 scale) {
     m_parts.push_back(m_base);
 }
 
-void EnderCrystalModel::render(f64 scale) {
+void EnderCrystalModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void EnderCrystalModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                   f64 ageInTicks, f64 netHeadYaw,
-                                   f64 headPitch, f64 scale) {
+void EnderCrystalModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 末影水晶旋转动画
     m_cube->setRotateAngleY(static_cast<f32>(ageInTicks * 0.1));
     m_glass->setRotateAngleY(static_cast<f32>(ageInTicks * 0.05));
@@ -232,7 +240,8 @@ SpectralArrowModel::SpectralArrowModel()
     setupParts();
 }
 
-void SpectralArrowModel::setupParts() {
+void SpectralArrowModel::setupParts()
+{
     m_arrow = std::make_shared<ModelRenderer>("arrow");
     m_arrow->setTextureOffset(0, 0);
     m_arrow->addBox(0.0f, -0.5f, -0.5f, 16.0f, 1.0f, 1.0f);
@@ -240,13 +249,14 @@ void SpectralArrowModel::setupParts() {
     m_parts.push_back(m_arrow);
 }
 
-void SpectralArrowModel::render(f64 scale) {
+void SpectralArrowModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void SpectralArrowModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                    f64 ageInTicks, f64 netHeadYaw,
-                                    f64 headPitch, f64 scale) {
+void SpectralArrowModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     (void)limbSwing;
     (void)limbSwingAmount;
     (void)ageInTicks;
@@ -264,7 +274,8 @@ WitherSkullModel::WitherSkullModel()
     setupParts();
 }
 
-void WitherSkullModel::setupParts() {
+void WitherSkullModel::setupParts()
+{
     // 参考 MC 1.16.5 GenericHeadModel
     // Y 偏移为 -8.0F（不是 -4.0F）
     m_head = std::make_shared<ModelRenderer>("head");
@@ -274,13 +285,14 @@ void WitherSkullModel::setupParts() {
     m_parts.push_back(m_head);
 }
 
-void WitherSkullModel::render(f64 scale) {
+void WitherSkullModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void WitherSkullModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                   f64 ageInTicks, f64 netHeadYaw,
-                                   f64 headPitch, f64 scale) {
+void WitherSkullModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
@@ -299,7 +311,8 @@ DragonFireballModel::DragonFireballModel()
     setupParts();
 }
 
-void DragonFireballModel::setupParts() {
+void DragonFireballModel::setupParts()
+{
     m_core = std::make_shared<ModelRenderer>("core");
     m_core->setTextureOffset(0, 0);
     m_core->addBox(-4.0f, -4.0f, -4.0f, 8.0f, 8.0f, 8.0f);
@@ -313,13 +326,14 @@ void DragonFireballModel::setupParts() {
     m_parts.push_back(m_outer);
 }
 
-void DragonFireballModel::render(f64 scale) {
+void DragonFireballModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void DragonFireballModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                     f64 ageInTicks, f64 netHeadYaw,
-                                     f64 headPitch, f64 scale) {
+void DragonFireballModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     m_core->setRotateAngleY(static_cast<f32>(ageInTicks * 0.1));
     m_outer->setRotateAngleY(static_cast<f32>(-ageInTicks * 0.05));
     m_outer->setRotateAngleX(static_cast<f32>(ageInTicks * 0.03));
@@ -340,7 +354,8 @@ EvokerFangsModel::EvokerFangsModel()
     setupParts();
 }
 
-void EvokerFangsModel::setupParts() {
+void EvokerFangsModel::setupParts()
+{
     // 参考 MC 1.16.5 EvokerFangsModel
     // 底座: 10x12x10，旋转点 (-5, 22, -5)
     m_base = std::make_shared<ModelRenderer>("base");
@@ -364,13 +379,14 @@ void EvokerFangsModel::setupParts() {
     m_parts.push_back(m_lowerJaw);
 }
 
-void EvokerFangsModel::render(f64 scale) {
+void EvokerFangsModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void EvokerFangsModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                  f64 ageInTicks, f64 netHeadYaw,
-                                  f64 headPitch, f64 scale) {
+void EvokerFangsModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 EvokerFangsModel.setRotationAngles
     // f = limbSwing * 2.0F，限制在 [0, 1]
     // f = 1.0F - f * f * f

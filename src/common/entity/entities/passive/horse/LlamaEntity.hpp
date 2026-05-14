@@ -17,12 +17,7 @@ public:
     /**
      * @brief 羊驼颜色
      */
-    enum class LlamaColor : u8 {
-        Creamy = 0,
-        White = 1,
-        Brown = 2,
-        Gray = 3
-    };
+    enum class LlamaColor : u8 { Creamy = 0, White = 1, Brown = 2, Gray = 3 };
 
     /**
      * @brief 构造羊驼实体

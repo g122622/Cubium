@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/Types.hpp"
 #include "../core/Result.hpp"
+#include "../core/Types.hpp"
 #include <string>
 
 namespace mc {

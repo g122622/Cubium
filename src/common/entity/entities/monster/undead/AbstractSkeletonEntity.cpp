@@ -6,8 +6,7 @@ namespace mc {
 
 AbstractSkeletonEntity::AbstractSkeletonEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
-{
-}
+{}
 
 void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {

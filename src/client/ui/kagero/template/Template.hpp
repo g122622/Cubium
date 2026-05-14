@@ -73,8 +73,8 @@
 #include "runtime/TemplateInstance.hpp"
 
 // 内置组件和事件
-#include "bindings/BuiltinWidgets.hpp"
 #include "bindings/BuiltinEvents.hpp"
+#include "bindings/BuiltinWidgets.hpp"
 
 /**
  * @brief Kagero模板系统命名空间

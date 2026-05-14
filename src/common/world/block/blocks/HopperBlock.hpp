@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../Block.hpp"
-#include "../Material.hpp"
-#include "../BlockPos.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../../../util/property/Properties.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
+#include "../Block.hpp"
+#include "../BlockPos.hpp"
+#include "../Material.hpp"
 #include <memory>
 
 namespace mc {
@@ -71,12 +71,7 @@ public:
      * @param isMoving 是否正在移动
      */
     void neighborChanged(
-        IWorld& world,
-        const BlockPos& pos,
-        Block& neighborBlock,
-        const BlockPos& neighborPos,
-        bool isMoving
-    ) override;
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     // ========== 形状 ==========
 
@@ -85,16 +80,14 @@ public:
      * @param state 方块状态
      * @return 碰撞形状
      */
-    [[nodiscard]] const CollisionShape& getShape(
-        const BlockState& state) const override;
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
      * @brief 获取射线追踪形状
      * @param state 方块状态
      * @return 射线追踪形状
      */
-    [[nodiscard]] const CollisionShape& getRaytraceShape(
-        const BlockState& state) const;
+    [[nodiscard]] const CollisionShape& getRaytraceShape(const BlockState& state) const;
 
     // ========== 方块实体 ==========
 
@@ -114,9 +107,7 @@ public:
      * @brief 获取方块实体类型
      * @return 方块实体类型
      */
-    [[nodiscard]] BlockEntityType getBlockEntityType() const {
-        return BlockEntityType::Hopper;
-    }
+    [[nodiscard]] BlockEntityType getBlockEntityType() const { return BlockEntityType::Hopper; }
 
     // ========== 交互 ==========
 
@@ -130,30 +121,24 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
-        const BlockRaycastResult& hit
-    ) override;
+        const BlockRaycastResult& hit) override;
 
     // ========== 红石 ==========
 
     /**
      * @brief 检查是否可以提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
-        return false;
-    }
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override { return false; }
 
     /**
      * @brief 检查是否有红石比较器输入覆盖
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
-        return true;
-    }
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override { return true; }
 
     /**
      * @brief 获取红石比较器信号
@@ -163,10 +148,7 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] i32 getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 实体碰撞 ==========
 
@@ -177,12 +159,7 @@ public:
      * @param pos 方块位置
      * @param entity 碰撞的实体
      */
-    void onEntityCollision(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Entity& entity
-    ) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
 
     // ========== 旋转和镜像 ==========
 
@@ -192,10 +169,7 @@ public:
      * @param rotation 旋转
      * @return 旋转后的状态
      */
-    [[nodiscard]] const BlockState& rotate(
-        const BlockState& state,
-        Rotation rotation
-    ) const override;
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
 
     /**
      * @brief 镜像方块状态
@@ -203,10 +177,7 @@ public:
      * @param mirror 镜像
      * @return 镜像后的状态
      */
-    [[nodiscard]] const BlockState& mirror(
-        const BlockState& state,
-        Mirror mirror
-    ) const override;
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     // ========== 静态工具方法 ==========
 

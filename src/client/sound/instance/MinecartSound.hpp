@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/sound/instance/SoundInstance.hpp"
 #include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
 
 namespace mc::client::sound {
 
@@ -43,7 +43,7 @@ public:
 private:
     EntitySoundHandler* m_handler = nullptr;
     EntityId m_entityId;
-    f32 m_distance = 0.0f;  // 音量平滑距离值
+    f32 m_distance = 0.0f; // 音量平滑距离值
 };
 
 /**
@@ -68,9 +68,8 @@ public:
      * @param minecartState 矿车状态快照
      * @param handler EntitySoundHandler 指针
      */
-    RidingMinecartSoundStateful(const EntitySoundState& playerState,
-                                 const EntitySoundState& minecartState,
-                                 EntitySoundHandler* handler);
+    RidingMinecartSoundStateful(
+        const EntitySoundState& playerState, const EntitySoundState& minecartState, EntitySoundHandler* handler);
 
     /**
      * @brief 每帧更新

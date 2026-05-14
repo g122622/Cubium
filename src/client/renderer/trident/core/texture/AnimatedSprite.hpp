@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/metadata/AnimationMetadata.hpp"
 #include "client/renderer/api/texture/TextureRegion.hpp"
-#include <vector>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc::client::renderer::trident {
 
@@ -31,9 +31,9 @@ public:
      * @brief 单帧图像数据
      */
     struct FrameData {
-        std::vector<u8> pixels;  ///< RGBA像素数据
-        u32 width = 0;           ///< 帧宽度
-        u32 height = 0;          ///< 帧高度
+        std::vector<u8> pixels; ///< RGBA像素数据
+        u32 width = 0;          ///< 帧宽度
+        u32 height = 0;         ///< 帧高度
     };
 
     /**
@@ -48,8 +48,7 @@ public:
      * @param atlasX 在图集中的X位置（像素）
      * @param atlasY 在图集中的Y位置（像素）
      */
-    AnimatedSprite(
-        const mc::resource::metadata::AnimationMetadata& metadata,
+    AnimatedSprite(const mc::resource::metadata::AnimationMetadata& metadata,
         std::vector<FrameData>&& frames,
         u32 atlasX,
         u32 atlasY);
@@ -79,9 +78,7 @@ public:
      * 将当前帧的像素数据上传到纹理图集中的精灵位置。
      * 如果启用了插值且处于帧切换过程中，会上传插值后的帧。
      */
-    [[nodiscard]] mc::Result<void> uploadCurrentFrame(
-        TridentContext* context,
-        TridentTextureAtlas& atlas);
+    [[nodiscard]] mc::Result<void> uploadCurrentFrame(TridentContext* context, TridentTextureAtlas& atlas);
 
     /**
      * @brief 获取插值帧进度
@@ -99,14 +96,13 @@ public:
      * @brief 检查是否为有效动画
      * @return 如果有多个帧返回true
      */
-    [[nodiscard]] bool isAnimated() const noexcept {
-        return m_frames.size() > 1;
-    }
+    [[nodiscard]] bool isAnimated() const noexcept { return m_frames.size() > 1; }
 
     /**
      * @brief 获取当前帧索引
      */
-    [[nodiscard]] i32 currentFrameIndex() const noexcept {
+    [[nodiscard]] i32 currentFrameIndex() const noexcept
+    {
         if (m_metadata.frames.empty()) {
             return static_cast<i32>(m_frameCounter);
         }
@@ -123,7 +119,8 @@ public:
      *
      * 表示当前帧已播放的时间比例。
      */
-    [[nodiscard]] f32 frameProgress() const noexcept {
+    [[nodiscard]] f32 frameProgress() const noexcept
+    {
         if (m_currentFrameTime <= 0) {
             return 0.0f;
         }
@@ -133,44 +130,32 @@ public:
     /**
      * @brief 获取帧宽度
      */
-    [[nodiscard]] u32 frameWidth() const noexcept {
-        return m_frameWidth;
-    }
+    [[nodiscard]] u32 frameWidth() const noexcept { return m_frameWidth; }
 
     /**
      * @brief 获取帧高度
      */
-    [[nodiscard]] u32 frameHeight() const noexcept {
-        return m_frameHeight;
-    }
+    [[nodiscard]] u32 frameHeight() const noexcept { return m_frameHeight; }
 
     /**
      * @brief 获取图集X位置
      */
-    [[nodiscard]] u32 atlasX() const noexcept {
-        return m_atlasX;
-    }
+    [[nodiscard]] u32 atlasX() const noexcept { return m_atlasX; }
 
     /**
      * @brief 获取图集Y位置
      */
-    [[nodiscard]] u32 atlasY() const noexcept {
-        return m_atlasY;
-    }
+    [[nodiscard]] u32 atlasY() const noexcept { return m_atlasY; }
 
     /**
      * @brief 获取总帧数
      */
-    [[nodiscard]] mc::Size frameCount() const noexcept {
-        return m_frames.size();
-    }
+    [[nodiscard]] mc::Size frameCount() const noexcept { return m_frames.size(); }
 
     /**
      * @brief 获取动画元数据
      */
-    [[nodiscard]] const mc::resource::metadata::AnimationMetadata& metadata() const noexcept {
-        return m_metadata;
-    }
+    [[nodiscard]] const mc::resource::metadata::AnimationMetadata& metadata() const noexcept { return m_metadata; }
 
 private:
     /**
@@ -188,25 +173,23 @@ private:
      * @return 成功或错误
      */
     [[nodiscard]] mc::Result<void> uploadFrame(
-        TridentContext* context,
-        TridentTextureAtlas& atlas,
-        const FrameData& frame);
+        TridentContext* context, TridentTextureAtlas& atlas, const FrameData& frame);
 
     // ========== 成员变量 ==========
 
-    mc::resource::metadata::AnimationMetadata m_metadata;  ///< 动画元数据
-    std::vector<FrameData> m_frames;                    ///< 帧数据数组
+    mc::resource::metadata::AnimationMetadata m_metadata; ///< 动画元数据
+    std::vector<FrameData> m_frames;                      ///< 帧数据数组
 
-    u32 m_atlasX = 0;           ///< 图集X位置
-    u32 m_atlasY = 0;           ///< 图集Y位置
-    u32 m_frameWidth = 0;       ///< 帧宽度
-    u32 m_frameHeight = 0;      ///< 帧高度
+    u32 m_atlasX = 0;      ///< 图集X位置
+    u32 m_atlasY = 0;      ///< 图集Y位置
+    u32 m_frameWidth = 0;  ///< 帧宽度
+    u32 m_frameHeight = 0; ///< 帧高度
 
-    mc::Size m_frameCounter = 0;   ///< 当前帧计数器（在frames数组中的位置）
-    i32 m_tickCounter = 0;      ///< 当前帧内tick计数
-    i32 m_currentFrameTime = 1; ///< 当前帧持续时间
+    mc::Size m_frameCounter = 0; ///< 当前帧计数器（在frames数组中的位置）
+    i32 m_tickCounter = 0;       ///< 当前帧内tick计数
+    i32 m_currentFrameTime = 1;  ///< 当前帧持续时间
 
-    bool m_needsUpload = true;  ///< 是否需要上传帧数据
+    bool m_needsUpload = true; ///< 是否需要上传帧数据
 };
 
 } // namespace mc::client::renderer::trident

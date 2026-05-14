@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Enchantment.hpp"
-#include <unordered_map>
 #include <memory>
-#include <vector>
 #include <mutex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace item {

@@ -20,8 +20,8 @@ public:
      * @brief 测重压力板类型
      */
     enum class Sensitivity : u8 {
-        Light = 0,  ///< 轻质（每物品+1信号强度）
-        Heavy = 1   ///< 重质（每10物品+1信号强度）
+        Light = 0, ///< 轻质（每物品+1信号强度）
+        Heavy = 1  ///< 重质（每10物品+1信号强度）
     };
 
     /**

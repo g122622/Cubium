@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ArgumentType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/util/property/Properties.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -20,7 +20,8 @@ class BlockStateInput {
 public:
     BlockStateInput() = default;
     explicit BlockStateInput(const BlockState* state)
-        : m_state(state) {}
+        : m_state(state)
+    {}
 
     [[nodiscard]] const BlockState* state() const { return m_state; }
     [[nodiscard]] bool isValid() const { return m_state != nullptr; }
@@ -45,7 +46,8 @@ private:
  */
 class BlockStateArgumentType : public ArgumentType<BlockStateInput> {
 public:
-    [[nodiscard]] BlockStateInput parse(StringReader& reader) override {
+    [[nodiscard]] BlockStateInput parse(StringReader& reader) override
+    {
         i32 start = reader.getCursor();
 
         // 1. 读取方块 ID 部分（可能包含命名空间和属性）
@@ -55,18 +57,14 @@ public:
         return parseBlockState(blockIdStr, reader, start);
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "block_state";
+    [[nodiscard]] std::string getTypeName() const override { return "block_state"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"stone", "minecraft:stone", "stone[facing=north]", "oak_stairs[half=top,facing=east]"};
     }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
-        return {"stone", "minecraft:stone", "stone[facing=north]",
-                "oak_stairs[half=top,facing=east]"};
-    }
-
-    static std::shared_ptr<BlockStateArgumentType> blockState() {
-        return std::make_shared<BlockStateArgumentType>();
-    }
+    static std::shared_ptr<BlockStateArgumentType> blockState() { return std::make_shared<BlockStateArgumentType>(); }
 
 private:
     /**
@@ -77,9 +75,8 @@ private:
      * @param start 开始位置
      * @return 解析后的方块状态输入
      */
-    BlockStateInput parseBlockState(const std::string& input,
-                                     StringReader& reader,
-                                     i32 start) {
+    BlockStateInput parseBlockState(const std::string& input, StringReader& reader, i32 start)
+    {
         // 1. 分离方块名和属性部分
         size_t bracketPos = input.find('[');
         std::string blockName;
@@ -104,11 +101,7 @@ private:
         // 3. 获取方块
         Block* block = BlockRegistry::instance().getBlock(location);
         if (block == nullptr) {
-            throw CommandException(
-                CommandErrorType::Unknown,
-                "Unknown block: " + location.toString(),
-                start
-            );
+            throw CommandException(CommandErrorType::Unknown, "Unknown block: " + location.toString(), start);
         }
 
         // 4. 获取默认状态
@@ -133,10 +126,11 @@ private:
      * @return 应用属性后的方块状态
      */
     const BlockState* applyProperties(const Block* block,
-                                       const BlockState* defaultState,
-                                       const std::string& propsStr,
-                                       StringReader& reader,
-                                       i32 start) {
+        const BlockState* defaultState,
+        const std::string& propsStr,
+        StringReader& reader,
+        i32 start)
+    {
         const auto& container = block->stateContainer();
         const auto& properties = container.properties();
 
@@ -146,8 +140,7 @@ private:
         size_t startPos = 0;
         while (startPos < propsStr.size()) {
             // 跳过空白
-            while (startPos < propsStr.size() &&
-                   (propsStr[startPos] == ' ' || propsStr[startPos] == '\t')) {
+            while (startPos < propsStr.size() && (propsStr[startPos] == ' ' || propsStr[startPos] == '\t')) {
                 startPos++;
             }
             if (startPos >= propsStr.size()) break;
@@ -155,11 +148,9 @@ private:
             // 读取属性名
             size_t eqPos = propsStr.find('=', startPos);
             if (eqPos == std::string::npos) {
-                throw CommandException(
-                    CommandErrorType::Unknown,
+                throw CommandException(CommandErrorType::Unknown,
                     "Expected '=' after property name in: " + propsStr.substr(startPos),
-                    start
-                );
+                    start);
             }
 
             std::string propName = propsStr.substr(startPos, eqPos - startPos);
@@ -170,8 +161,7 @@ private:
             // 读取属性值
             size_t valueStart = eqPos + 1;
             // 跳过值前的空白
-            while (valueStart < propsStr.size() &&
-                   (propsStr[valueStart] == ' ' || propsStr[valueStart] == '\t')) {
+            while (valueStart < propsStr.size() && (propsStr[valueStart] == ' ' || propsStr[valueStart] == '\t')) {
                 valueStart++;
             }
 
@@ -188,12 +178,9 @@ private:
             // 查找属性
             auto propIt = properties.find(propName);
             if (propIt == properties.end()) {
-                throw CommandException(
-                    CommandErrorType::Unknown,
-                    "Unknown property '" + propName + "' for block " +
-                        block->blockLocation().toString(),
-                    start
-                );
+                throw CommandException(CommandErrorType::Unknown,
+                    "Unknown property '" + propName + "' for block " + block->blockLocation().toString(),
+                    start);
             }
 
             const IProperty* prop = propIt->second;
@@ -201,21 +188,16 @@ private:
             // 检查重复属性
             if (wantedProps.find(prop) != wantedProps.end()) {
                 throw CommandException(
-                    CommandErrorType::Unknown,
-                    "Duplicate property '" + propName + "' in block state",
-                    start
-                );
+                    CommandErrorType::Unknown, "Duplicate property '" + propName + "' in block state", start);
             }
 
             // 解析属性值
             auto parsedValue = prop->parseValue(propValue);
             if (!parsedValue) {
-                throw CommandException(
-                    CommandErrorType::Unknown,
-                    "Invalid value '" + propValue + "' for property '" + propName +
-                        "' of block " + block->blockLocation().toString(),
-                    start
-                );
+                throw CommandException(CommandErrorType::Unknown,
+                    "Invalid value '" + propValue + "' for property '" + propName + "' of block " +
+                        block->blockLocation().toString(),
+                    start);
             }
 
             wantedProps[prop] = *parsedValue;

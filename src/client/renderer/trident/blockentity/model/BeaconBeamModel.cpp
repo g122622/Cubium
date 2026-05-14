@@ -1,6 +1,6 @@
 #include "BeaconBeamModel.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <cstdlib>
 
@@ -8,10 +8,10 @@ namespace mc::client::renderer::blockentity::model {
 
 BeaconBeamModel::BeaconBeamModel()
     : m_segments()
-{
-}
+{}
 
-f32 BeaconBeamModel::calculateBeamRotation(i64 gameTime, f32 partialTick) {
+f32 BeaconBeamModel::calculateBeamRotation(i64 gameTime, f32 partialTick)
+{
     // MC 1.16.5: f = Math.floorMod(totalWorldTime, 40L) + partialTicks
     // rotation = f * 2.25F - 45.0F
     const f32 f = static_cast<f32>(math::floorMod(gameTime, ROTATION_PERIOD)) + partialTick;
@@ -19,10 +19,7 @@ f32 BeaconBeamModel::calculateBeamRotation(i64 gameTime, f32 partialTick) {
 }
 
 void BeaconBeamModel::generateMesh(
-    std::vector<entity::model::ModelVertex>& vertices,
-    std::vector<u32>& indices,
-    i64 gameTime,
-    f32 partialTick) const
+    std::vector<entity::model::ModelVertex>& vertices, std::vector<u32>& indices, i64 gameTime, f32 partialTick) const
 {
     if (m_segments.empty()) {
         return;
@@ -55,8 +52,7 @@ void BeaconBeamModel::generateMesh(
     }
 }
 
-void BeaconBeamModel::renderSegment(
-    std::vector<entity::model::ModelVertex>& vertices,
+void BeaconBeamModel::renderSegment(std::vector<entity::model::ModelVertex>& vertices,
     std::vector<u32>& indices,
     i32 yOffset,
     i32 height,
@@ -91,39 +87,82 @@ void BeaconBeamModel::renderSegment(
     // 参数: x1=0.0, z1=-beamRadius, x2=beamRadius, z2=0.0 (等价)
     // 实际: p_228840_8_=0.0F, p_228840_9_=-beamRadius, p_228840_10_=beamRadius, p_228840_11_=-beamRadius
     // 这是一个面，从 (0, -radius) 到 (radius, -radius)，即 Z 负方向的背面
-    addQuad(vertices, indices,
-            static_cast<f32>(yOffset), static_cast<f32>(yOffset + height),
-            0.0f, -radius, radius, -radius,
-            0.0f, 1.0f, v2, v1,
-            colors[0], colors[1], colors[2], alpha);
+    addQuad(vertices,
+        indices,
+        static_cast<f32>(yOffset),
+        static_cast<f32>(yOffset + height),
+        0.0f,
+        -radius,
+        radius,
+        -radius,
+        0.0f,
+        1.0f,
+        v2,
+        v1,
+        colors[0],
+        colors[1],
+        colors[2],
+        alpha);
 
     // 面2: 正面 (Z+)
     // MC: p_228840_8_=radius, p_228840_9_=-radius, p_228840_10_=radius, p_228840_11_=radius
-    addQuad(vertices, indices,
-            static_cast<f32>(yOffset), static_cast<f32>(yOffset + height),
-            radius, -radius, radius, radius,
-            0.0f, 1.0f, v2, v1,
-            colors[0], colors[1], colors[2], alpha);
+    addQuad(vertices,
+        indices,
+        static_cast<f32>(yOffset),
+        static_cast<f32>(yOffset + height),
+        radius,
+        -radius,
+        radius,
+        radius,
+        0.0f,
+        1.0f,
+        v2,
+        v1,
+        colors[0],
+        colors[1],
+        colors[2],
+        alpha);
 
     // 面3: 右面 (X+)
     // MC: p_228840_10_=radius, p_228840_11_=-radius, p_228840_14_=radius, p_228840_15_=-radius
-    addQuad(vertices, indices,
-            static_cast<f32>(yOffset), static_cast<f32>(yOffset + height),
-            radius, -radius, -radius, -radius,
-            0.0f, 1.0f, v2, v1,
-            colors[0], colors[1], colors[2], alpha);
+    addQuad(vertices,
+        indices,
+        static_cast<f32>(yOffset),
+        static_cast<f32>(yOffset + height),
+        radius,
+        -radius,
+        -radius,
+        -radius,
+        0.0f,
+        1.0f,
+        v2,
+        v1,
+        colors[0],
+        colors[1],
+        colors[2],
+        alpha);
 
     // 面4: 左面 (X-)
     // MC: p_228840_12_=-radius, p_228840_13_=radius, p_228840_8_=0.0F, p_228840_9_=-radius
-    addQuad(vertices, indices,
-            static_cast<f32>(yOffset), static_cast<f32>(yOffset + height),
-            -radius, radius, -radius, -radius,
-            0.0f, 1.0f, v2, v1,
-            colors[0], colors[1], colors[2], alpha);
+    addQuad(vertices,
+        indices,
+        static_cast<f32>(yOffset),
+        static_cast<f32>(yOffset + height),
+        -radius,
+        radius,
+        -radius,
+        -radius,
+        0.0f,
+        1.0f,
+        v2,
+        v1,
+        colors[0],
+        colors[1],
+        colors[2],
+        alpha);
 }
 
-void BeaconBeamModel::addQuad(
-    std::vector<entity::model::ModelVertex>& vertices,
+void BeaconBeamModel::addQuad(std::vector<entity::model::ModelVertex>& vertices,
     std::vector<u32>& indices,
     f32 yMin,
     f32 yMax,
@@ -169,32 +208,16 @@ void BeaconBeamModel::addQuad(
     const f32 nz = 0.0f;
 
     // 顶点0: 右上
-    vertices.emplace_back(
-        entity::model::ModelVertex(
-            x1, yMax, z1,
-            u2, v1,
-            nx, ny, nz));
+    vertices.emplace_back(entity::model::ModelVertex(x1, yMax, z1, u2, v1, nx, ny, nz));
 
     // 顶点1: 右下
-    vertices.emplace_back(
-        entity::model::ModelVertex(
-            x1, yMin, z1,
-            u2, v2,
-            nx, ny, nz));
+    vertices.emplace_back(entity::model::ModelVertex(x1, yMin, z1, u2, v2, nx, ny, nz));
 
     // 顶点2: 左下
-    vertices.emplace_back(
-        entity::model::ModelVertex(
-            x2, yMin, z2,
-            u1, v2,
-            nx, ny, nz));
+    vertices.emplace_back(entity::model::ModelVertex(x2, yMin, z2, u1, v2, nx, ny, nz));
 
     // 顶点3: 左上
-    vertices.emplace_back(
-        entity::model::ModelVertex(
-            x2, yMax, z2,
-            u1, v1,
-            nx, ny, nz));
+    vertices.emplace_back(entity::model::ModelVertex(x2, yMax, z2, u1, v1, nx, ny, nz));
 
     // 两个三角形（顺时针绕序）
     // 三角形1: 0-1-2

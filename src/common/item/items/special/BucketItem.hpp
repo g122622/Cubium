@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Item.hpp"
 #include "../../../core/Types.hpp"
+#include "../../core/Item.hpp"
 
 namespace mc {
 
@@ -9,7 +9,7 @@ namespace mc {
 namespace fluid {
 class Fluid;
 class FluidState;
-}
+} // namespace fluid
 
 /**
  * @brief 桶物品
@@ -27,9 +27,7 @@ public:
      * @param containedFluid 桶中装的流体（nullptr表示空桶）
      * @param properties 物品属性
      */
-    BucketItem(
-        fluid::Fluid* containedFluid,
-        const ItemProperties& properties);
+    BucketItem(fluid::Fluid* containedFluid, const ItemProperties& properties);
 
     ~BucketItem() override = default;
 
@@ -71,8 +69,7 @@ public:
      * @param hand 使用的手
      * @return 是否成功交互
      */
-    bool itemInteractionForEntity(ItemStack& stack, Player& player,
-                                  LivingEntity& target, Hand hand) override;
+    bool itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand) override;
 
     /**
      * @brief 获取填充后的桶物品
@@ -99,11 +96,7 @@ protected:
      * @param hit 射线检测结果
      * @return 是否成功放置
      */
-    bool tryPlaceContainedLiquid(
-        Player* player,
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockRaycastResult& hit);
+    bool tryPlaceContainedLiquid(Player* player, IWorld& world, const BlockPos& pos, const BlockRaycastResult& hit);
 
     /**
      * @brief 检查方块是否可以容纳流体
@@ -113,10 +106,7 @@ protected:
      * @param state 方块状态
      * @return 是否可以容纳流体
      */
-    bool canBlockContainFluid(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state) const;
+    bool canBlockContainFluid(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
 private:
     fluid::Fluid* m_containedFluid;

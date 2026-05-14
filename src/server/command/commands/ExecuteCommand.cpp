@@ -1,16 +1,16 @@
 #include "ExecuteCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
 
 #include <sstream>
 
@@ -22,7 +22,8 @@ namespace {
 /**
  * @brief 解析方块ID
  */
-Block* parseBlockId(const std::string& input) {
+Block* parseBlockId(const std::string& input)
+{
     auto& registry = BlockRegistry::instance();
 
     std::string namespace_;
@@ -48,87 +49,53 @@ Block* parseBlockId(const std::string& input) {
 
 } // namespace
 
-void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto executeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("execute");
-    executeNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        executeNode,
-        support::makeMetadata(
-            "Executes a command.",
-            "/execute as|at|positioned|run|if|unless ...",
-            2,
-            {},
-            false));
+    executeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(executeNode,
+        support::makeMetadata("Executes a command.", "/execute as|at|positioned|run|if|unless ...", 2, {}, false));
 
     // /execute as <entity> <command>
     auto asNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("as");
     auto asEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "entity",
-        EntityArgumentType::player()
-    );
+        "entity", EntityArgumentType::player());
     // 注：完整实现需要支持嵌套命令，这里简化处理
-    asEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeAs(ctx);
-    });
+    asEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeAs(ctx); });
 
     // /execute at <entity> <command>
     auto atNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("at");
     auto atEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "entity",
-        EntityArgumentType::player()
-    );
-    atEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeAt(ctx);
-    });
+        "entity", EntityArgumentType::player());
+    atEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeAt(ctx); });
 
     // /execute positioned <pos> <command>
     auto positionedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("positioned");
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3()
-    );
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executePositioned(ctx);
-    });
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executePositioned(ctx); });
 
     // /execute run <command>
     auto runNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     // 注：完整实现需要支持嵌套命令，这里简化处理
-    runNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeRun(ctx);
-    });
+    runNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeRun(ctx); });
 
     // /execute if block <pos> <block> <command>
     auto ifNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("if");
     auto ifBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto ifBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos",
-        BlockPosArgumentType::blockPos()
-    );
-    auto ifBlockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "block",
-        StringArgumentType::string()
-    );
-    ifBlockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeIfBlock(ctx);
-    });
+    auto ifBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto ifBlockArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("block", StringArgumentType::string());
+    ifBlockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeIfBlock(ctx); });
 
     // /execute unless block <pos> <block> <command>
     auto unlessNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("unless");
     auto unlessBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto unlessBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos",
-        BlockPosArgumentType::blockPos()
-    );
-    auto unlessBlockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "block",
-        StringArgumentType::string()
-    );
-    unlessBlockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeUnlessBlock(ctx);
-    });
+    auto unlessBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto unlessBlockArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("block", StringArgumentType::string());
+    unlessBlockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeUnlessBlock(ctx); });
 
     // 构建命令树
     asNode->addChild(asEntityArg);
@@ -155,7 +122,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     dispatcher.registerCommand(executeNode);
 }
 
-i32 ExecuteCommand::executeAs(CommandContext<ServerCommandSource>& context) {
+i32 ExecuteCommand::executeAs(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
 
@@ -181,9 +149,7 @@ i32 ExecuteCommand::executeAs(CommandContext<ServerCommandSource>& context) {
         }
 
         // 创建修改后的命令源（使用 withPosition 方法）
-        ServerCommandSource modifiedSource = source.withPosition(
-            Vector3d(playerData->x, playerData->y, playerData->z)
-        );
+        ServerCommandSource modifiedSource = source.withPosition(Vector3d(playerData->x, playerData->y, playerData->z));
 
         // TODO: 执行嵌套命令
         // 当前简化实现：仅报告成功
@@ -193,7 +159,8 @@ i32 ExecuteCommand::executeAs(CommandContext<ServerCommandSource>& context) {
     return totalResult;
 }
 
-i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context) {
+i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
 
@@ -218,9 +185,7 @@ i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context) {
         }
 
         // 创建修改位置的命令源
-        ServerCommandSource modifiedSource = source.withPosition(
-            Vector3d(playerData->x, playerData->y, playerData->z)
-        );
+        ServerCommandSource modifiedSource = source.withPosition(Vector3d(playerData->x, playerData->y, playerData->z));
 
         // TODO: 执行嵌套命令
         totalResult++;
@@ -229,7 +194,8 @@ i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context) {
     return totalResult;
 }
 
-i32 ExecuteCommand::executePositioned(CommandContext<ServerCommandSource>& context) {
+i32 ExecuteCommand::executePositioned(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     Vector3d position = context.getArgument<Vector3d>("pos");
 
@@ -243,7 +209,8 @@ i32 ExecuteCommand::executePositioned(CommandContext<ServerCommandSource>& conte
     return 1;
 }
 
-i32 ExecuteCommand::executeRun(CommandContext<ServerCommandSource>& context) {
+i32 ExecuteCommand::executeRun(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     // TODO: 执行嵌套命令
@@ -253,7 +220,8 @@ i32 ExecuteCommand::executeRun(CommandContext<ServerCommandSource>& context) {
     return 1;
 }
 
-i32 ExecuteCommand::executeIfBlock(CommandContext<ServerCommandSource>& context) {
+i32 ExecuteCommand::executeIfBlock(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     Vector3i position = context.getArgument<Vector3i>("pos");
     std::string blockInput = context.getArgument<std::string>("block");
@@ -290,7 +258,8 @@ i32 ExecuteCommand::executeIfBlock(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 ExecuteCommand::executeUnlessBlock(CommandContext<ServerCommandSource>& context) {
+i32 ExecuteCommand::executeUnlessBlock(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     Vector3i position = context.getArgument<Vector3i>("pos");
     std::string blockInput = context.getArgument<std::string>("block");

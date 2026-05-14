@@ -1,8 +1,8 @@
 #include "VillageManager.hpp"
 #include "../../util/nbt/Nbt.hpp"
 #include "../IWorld.hpp"
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace mc {
@@ -34,12 +34,12 @@ constexpr std::array<poi::PointOfInterestType, 16> ALL_BED_TYPES = {
 
 VillageManager::VillageManager(IWorld& world)
     : m_world(world)
-{
-}
+{}
 
 // ========== 村庄查询 ==========
 
-Village* VillageManager::getVillageAt(BlockPos pos) {
+Village* VillageManager::getVillageAt(BlockPos pos)
+{
     for (auto& village : m_villages) {
         if (village->isWithinVillage(pos)) {
             return village.get();
@@ -48,7 +48,8 @@ Village* VillageManager::getVillageAt(BlockPos pos) {
     return nullptr;
 }
 
-const Village* VillageManager::getVillageAt(BlockPos pos) const {
+const Village* VillageManager::getVillageAt(BlockPos pos) const
+{
     for (const auto& village : m_villages) {
         if (village->isWithinVillage(pos)) {
             return village.get();
@@ -57,7 +58,8 @@ const Village* VillageManager::getVillageAt(BlockPos pos) const {
     return nullptr;
 }
 
-Village* VillageManager::getOrCreateVillage(BlockPos pos) {
+Village* VillageManager::getOrCreateVillage(BlockPos pos)
+{
     // 首先检查是否已有村庄
     Village* existing = getVillageAt(pos);
     if (existing) {
@@ -92,14 +94,16 @@ Village* VillageManager::getOrCreateVillage(BlockPos pos) {
     return createVillage(center);
 }
 
-Village* VillageManager::getVillageById(VillageId id) {
+Village* VillageManager::getVillageById(VillageId id)
+{
     auto it = m_villageById.find(id);
     return it != m_villageById.end() ? it->second : nullptr;
 }
 
 // ========== 村民管理 ==========
 
-void VillageManager::onVillagerJoin(u64 villagerId, BlockPos pos) {
+void VillageManager::onVillagerJoin(u64 villagerId, BlockPos pos)
+{
     // 如果村民已在其他村庄，先离开
     onVillagerLeave(villagerId);
 
@@ -114,14 +118,12 @@ void VillageManager::onVillagerJoin(u64 villagerId, BlockPos pos) {
     m_villagerToVillage[villagerId] = village;
 
     // 更新区块映射 - 将村庄关联到村民所在区块
-    u64 chunkKey = getChunkKey(
-        static_cast<ChunkCoord>(pos.x >> 4),
-        static_cast<ChunkCoord>(pos.z >> 4)
-    );
+    u64 chunkKey = getChunkKey(static_cast<ChunkCoord>(pos.x >> 4), static_cast<ChunkCoord>(pos.z >> 4));
     m_chunkToVillages[chunkKey].insert(village->getId());
 }
 
-void VillageManager::onVillagerLeave(u64 villagerId) {
+void VillageManager::onVillagerLeave(u64 villagerId)
+{
     auto it = m_villagerToVillage.find(villagerId);
     if (it == m_villagerToVillage.end()) {
         return;
@@ -132,12 +134,14 @@ void VillageManager::onVillagerLeave(u64 villagerId) {
     m_villagerToVillage.erase(it);
 }
 
-Village* VillageManager::getVillageForVillager(u64 villagerId) {
+Village* VillageManager::getVillageForVillager(u64 villagerId)
+{
     auto it = m_villagerToVillage.find(villagerId);
     return it != m_villagerToVillage.end() ? it->second : nullptr;
 }
 
-std::vector<u64> VillageManager::getVillagersInVillage(VillageId villageId) const {
+std::vector<u64> VillageManager::getVillagersInVillage(VillageId villageId) const
+{
     std::vector<u64> result;
     Village* village = const_cast<VillageManager*>(this)->getVillageById(villageId);
     if (village) {
@@ -152,7 +156,8 @@ std::vector<u64> VillageManager::getVillagersInVillage(VillageId villageId) cons
 
 // ========== POI管理 ==========
 
-void VillageManager::onBlockPlaced(BlockPos pos, u32 blockId) {
+void VillageManager::onBlockPlaced(BlockPos pos, u32 blockId)
+{
     // 检查是否为POI类型
     poi::PointOfInterestType poiType = poi::POITypeHelper::fromBlockId(blockId);
     if (poiType == poi::PointOfInterestType::None) {
@@ -173,7 +178,8 @@ void VillageManager::onBlockPlaced(BlockPos pos, u32 blockId) {
     }
 }
 
-void VillageManager::onBlockRemoved(BlockPos pos) {
+void VillageManager::onBlockRemoved(BlockPos pos)
+{
     // 尝试注销POI
     if (m_poiStorage.hasPOI(pos)) {
         m_poiStorage.unregisterPOI(pos);
@@ -189,7 +195,8 @@ void VillageManager::onBlockRemoved(BlockPos pos) {
 
 // ========== 袭击管理 ==========
 
-bool VillageManager::isInRaidRange(BlockPos pos) const {
+bool VillageManager::isInRaidRange(BlockPos pos) const
+{
     for (const auto& village : m_villages) {
         if (village->isUnderRaid() && village->isWithinRaidTrigger(pos)) {
             return true;
@@ -198,7 +205,8 @@ bool VillageManager::isInRaidRange(BlockPos pos) const {
     return false;
 }
 
-Village* VillageManager::getVillageUnderRaid(BlockPos pos) {
+Village* VillageManager::getVillageUnderRaid(BlockPos pos)
+{
     for (auto& village : m_villages) {
         if (village->isUnderRaid() && village->isWithinRaidTrigger(pos)) {
             return village.get();
@@ -209,7 +217,8 @@ Village* VillageManager::getVillageUnderRaid(BlockPos pos) {
 
 // ========== Tick更新 ==========
 
-void VillageManager::tick(i64 gameTime) {
+void VillageManager::tick(i64 gameTime)
+{
     // 更新所有村庄，传递可修改的 POI 存储
     for (auto& village : m_villages) {
         village->tick(m_world, gameTime, &m_poiStorage);
@@ -228,11 +237,13 @@ void VillageManager::tick(i64 gameTime) {
 
 // ========== 区块回调 ==========
 
-void VillageManager::onChunkLoaded(ChunkCoord x, ChunkCoord z) {
+void VillageManager::onChunkLoaded(ChunkCoord x, ChunkCoord z)
+{
     m_poiStorage.onChunkLoaded(x, z);
 }
 
-void VillageManager::onChunkUnloaded(ChunkCoord x, ChunkCoord z) {
+void VillageManager::onChunkUnloaded(ChunkCoord x, ChunkCoord z)
+{
     m_poiStorage.onChunkUnloaded(x, z);
 
     // 更新区块到村庄的映射
@@ -242,7 +253,8 @@ void VillageManager::onChunkUnloaded(ChunkCoord x, ChunkCoord z) {
 
 // ========== 序列化 ==========
 
-void VillageManager::serialize(nbt::tags::compound_tag& tag) const {
+void VillageManager::serialize(nbt::tags::compound_tag& tag) const
+{
     // 序列化村庄
     auto villagesList = std::make_unique<nbt::tags::compound_list_tag>();
     for (const auto& village : m_villages) {
@@ -260,7 +272,8 @@ void VillageManager::serialize(nbt::tags::compound_tag& tag) const {
     tag.put("NextVillageId", static_cast<std::int64_t>(m_nextVillageId));
 }
 
-void VillageManager::deserialize(const nbt::tags::compound_tag& tag) {
+void VillageManager::deserialize(const nbt::tags::compound_tag& tag)
+{
     // 清空现有数据
     m_villages.clear();
     m_villageById.clear();
@@ -314,7 +327,8 @@ void VillageManager::deserialize(const nbt::tags::compound_tag& tag) {
 
 // ========== 私有方法 ==========
 
-Village* VillageManager::createVillage(BlockPos center) {
+Village* VillageManager::createVillage(BlockPos center)
+{
     auto village = std::make_unique<Village>(center);
 
     VillageId id = m_nextVillageId++;
@@ -336,8 +350,9 @@ Village* VillageManager::createVillage(BlockPos center) {
     return ptr;
 }
 
-void VillageManager::removeEmptyVillages() {
-    for (auto it = m_villages.begin(); it != m_villages.end(); ) {
+void VillageManager::removeEmptyVillages()
+{
+    for (auto it = m_villages.begin(); it != m_villages.end();) {
         if ((*it)->getPopulation() == 0 && (*it)->getBedCount() == 0) {
             // 移除村庄ID映射
             for (auto& [id, ptr] : m_villageById) {
@@ -353,13 +368,15 @@ void VillageManager::removeEmptyVillages() {
     }
 }
 
-void VillageManager::updateVillageBounds() {
+void VillageManager::updateVillageBounds()
+{
     for (auto& village : m_villages) {
         village->recalculateBounds(m_poiStorage);
     }
 }
 
-Village* VillageManager::checkPlayerEnterVillage(BlockPos playerPos, BlockPos prevPos) {
+Village* VillageManager::checkPlayerEnterVillage(BlockPos playerPos, BlockPos prevPos)
+{
     // 检查当前位置是否在村庄内
     Village* currentVillage = getVillageAt(playerPos);
 
@@ -385,9 +402,9 @@ Village* VillageManager::checkPlayerEnterVillage(BlockPos playerPos, BlockPos pr
     return nullptr;
 }
 
-u64 VillageManager::getChunkKey(ChunkCoord x, ChunkCoord z) {
-    return (static_cast<u64>(static_cast<u32>(x)) << 32) |
-           static_cast<u64>(static_cast<u32>(z));
+u64 VillageManager::getChunkKey(ChunkCoord x, ChunkCoord z)
+{
+    return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
 }
 
 } // namespace village

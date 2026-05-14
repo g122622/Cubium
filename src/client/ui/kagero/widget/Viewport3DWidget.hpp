@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Widget.hpp"
 #include "../paint/PaintContext.hpp"
+#include "Widget.hpp"
 #include <functional>
 #include <memory>
 
@@ -11,7 +11,7 @@ namespace mc {
 class Entity;
 class Player;
 
-}
+} // namespace mc
 
 namespace mc::client::ui::kagero::widget {
 
@@ -41,9 +41,9 @@ public:
      * @brief 渲染模式
      */
     enum class RenderMode : u8 {
-        Entity,     ///< 渲染实体
-        Item,       ///< 渲染物品
-        Block       ///< 渲染方块
+        Entity, ///< 渲染实体
+        Item,   ///< 渲染物品
+        Block   ///< 渲染方块
     };
 
     /**
@@ -60,18 +60,21 @@ public:
      * @param height 高度
      */
     Viewport3DWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
-        : Widget(std::move(id)) {
+        : Widget(std::move(id))
+    {
         setBounds(Rect(x, y, width, height));
     }
 
     // ==================== 生命周期 ====================
 
-    void init() override {
+    void init() override
+    {
         // 初始化帧缓冲区等资源
         initFramebuffer();
     }
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         if (!isVisible()) return;
         ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 16, 16, 20));
         ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 90, 90, 120));
@@ -79,7 +82,8 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -95,7 +99,8 @@ public:
         return false;
     }
 
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override {
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -107,7 +112,8 @@ public:
         return false;
     }
 
-    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override {
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -123,7 +129,8 @@ public:
         return true;
     }
 
-    bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override {
+    bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override
+    {
         (void)mouseX;
         (void)mouseY;
 
@@ -141,7 +148,8 @@ public:
     /**
      * @brief 设置要渲染的实体
      */
-    void setEntity(mc::Entity* entity) {
+    void setEntity(mc::Entity* entity)
+    {
         m_entity = entity;
         m_renderMode = RenderMode::Entity;
     }
@@ -154,7 +162,8 @@ public:
     /**
      * @brief 设置要渲染的玩家
      */
-    void setPlayer(mc::Player* player) {
+    void setPlayer(mc::Player* player)
+    {
         m_player = player;
         m_entity = nullptr; // Player继承自Entity
         m_renderMode = RenderMode::Entity;
@@ -170,7 +179,8 @@ public:
     /**
      * @brief 设置相机距离
      */
-    void setCameraDistance(f32 distance) {
+    void setCameraDistance(f32 distance)
+    {
         m_cameraDistance = std::max(m_minDistance, std::min(m_maxDistance, distance));
     }
 
@@ -182,7 +192,8 @@ public:
     /**
      * @brief 设置相机旋转
      */
-    void setRotation(f32 pitch, f32 yaw) {
+    void setRotation(f32 pitch, f32 yaw)
+    {
         m_pitch = std::max(-90.0f, std::min(90.0f, pitch));
         m_yaw = yaw;
     }
@@ -190,7 +201,8 @@ public:
     /**
      * @brief 旋转相机
      */
-    void rotate(f32 deltaPitch, f32 deltaYaw) {
+    void rotate(f32 deltaPitch, f32 deltaYaw)
+    {
         m_pitch += deltaPitch;
         m_yaw += deltaYaw;
         m_pitch = std::max(-90.0f, std::min(90.0f, m_pitch));
@@ -209,7 +221,8 @@ public:
     /**
      * @brief 重置相机角度
      */
-    void resetRotation() {
+    void resetRotation()
+    {
         m_pitch = 0.0f;
         m_yaw = 180.0f; // 默认面向正面
     }
@@ -249,21 +262,18 @@ public:
     /**
      * @brief 设置旋转灵敏度
      */
-    void setRotationSensitivity(f32 sensitivity) {
-        m_rotationSensitivity = sensitivity;
-    }
+    void setRotationSensitivity(f32 sensitivity) { m_rotationSensitivity = sensitivity; }
 
     /**
      * @brief 设置缩放灵敏度
      */
-    void setZoomSensitivity(f32 sensitivity) {
-        m_zoomSensitivity = sensitivity;
-    }
+    void setZoomSensitivity(f32 sensitivity) { m_zoomSensitivity = sensitivity; }
 
     /**
      * @brief 设置缩放范围
      */
-    void setZoomRange(f32 minDistance, f32 maxDistance) {
+    void setZoomRange(f32 minDistance, f32 maxDistance)
+    {
         m_minDistance = minDistance;
         m_maxDistance = maxDistance;
         m_cameraDistance = std::max(minDistance, std::min(maxDistance, m_cameraDistance));
@@ -293,7 +303,8 @@ protected:
     /**
      * @brief 初始化帧缓冲区
      */
-    void initFramebuffer() {
+    void initFramebuffer()
+    {
         // TODO: 创建Vulkan帧缓冲区
         // m_framebuffer = ...
     }
@@ -301,21 +312,24 @@ protected:
     /**
      * @brief 渲染实体到帧缓冲区
      */
-    void renderEntityToFBO() {
+    void renderEntityToFBO()
+    {
         // TODO: 实现实体渲染
     }
 
     /**
      * @brief 渲染物品到帧缓冲区
      */
-    void renderItemToFBO() {
+    void renderItemToFBO()
+    {
         // TODO: 实现物品渲染
     }
 
     /**
      * @brief 渲染方块到帧缓冲区
      */
-    void renderBlockToFBO() {
+    void renderBlockToFBO()
+    {
         // TODO: 实现方块渲染
     }
 

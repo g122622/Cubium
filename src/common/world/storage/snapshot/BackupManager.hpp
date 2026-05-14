@@ -23,12 +23,12 @@ using BackupID = u64;
  * @brief 快照元数据
  */
 struct SnapshotMetadata {
-    BackupID id;                        ///< 备份ID
-    i64 timestamp;                      ///< 创建时间戳（毫秒）
-    size_t size;                        ///< 总大小（字节）
-    u32 fileCount;                      ///< 文件数量
-    std::string name;                   ///< 显示名称
-    std::string description;            ///< 描述
+    BackupID id;             ///< 备份ID
+    i64 timestamp;           ///< 创建时间戳（毫秒）
+    size_t size;             ///< 总大小（字节）
+    u32 fileCount;           ///< 文件数量
+    std::string name;        ///< 显示名称
+    std::string description; ///< 描述
 };
 
 /**
@@ -80,9 +80,7 @@ public:
      * @param description 可选描述
      * @return 成功返回备份ID，失败返回错误
      */
-    Result<BackupID> createBackup(RocksDBDatabase& db,
-                                   const std::string& name,
-                                   const std::string& description = "");
+    Result<BackupID> createBackup(RocksDBDatabase& db, const std::string& name, const std::string& description = "");
 
     /**
      * @brief 列出所有备份
@@ -100,8 +98,7 @@ public:
      * @param targetDir 恢复目标目录
      * @return 成功或错误
      */
-    Result<void> restoreBackup(BackupID id,
-                                const std::filesystem::path& targetDir);
+    Result<void> restoreBackup(BackupID id, const std::filesystem::path& targetDir);
 
     /**
      * @brief 删除备份

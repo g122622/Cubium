@@ -14,10 +14,10 @@ class ItemStack;
  * 参考: net.minecraft.util.ActionResultType
  */
 enum class ActionResultType : u8 {
-    Success = 0,    ///< 成功执行，消耗物品
-    Consume = 1,    ///< 消耗物品但不执行动作
-    Fail = 2,       ///< 执行失败，不消耗物品
-    Pass = 3        ///< 传递给下一个处理器
+    Success = 0, ///< 成功执行，消耗物品
+    Consume = 1, ///< 消耗物品但不执行动作
+    Fail = 2,    ///< 执行失败，不消耗物品
+    Pass = 3     ///< 传递给下一个处理器
 };
 
 /**
@@ -28,7 +28,7 @@ enum class ActionResultType : u8 {
  *
  * @tparam T 结果值类型
  */
-template<typename T>
+template <typename T>
 class ActionResult {
 public:
     /**
@@ -37,13 +37,16 @@ public:
      * @param result 结果值
      */
     ActionResult(ActionResultType type, T result)
-        : m_type(type), m_result(std::move(result)) {}
+        : m_type(type)
+        , m_result(std::move(result))
+    {}
 
     /**
      * @brief 创建成功结果
      * @param result 结果值
      */
-    [[nodiscard]] static ActionResult success(T result) {
+    [[nodiscard]] static ActionResult success(T result)
+    {
         return ActionResult(ActionResultType::Success, std::move(result));
     }
 
@@ -51,7 +54,8 @@ public:
      * @brief 创建消耗结果
      * @param result 结果值
      */
-    [[nodiscard]] static ActionResult consume(T result) {
+    [[nodiscard]] static ActionResult consume(T result)
+    {
         return ActionResult(ActionResultType::Consume, std::move(result));
     }
 
@@ -59,17 +63,13 @@ public:
      * @brief 创建失败结果
      * @param result 结果值
      */
-    [[nodiscard]] static ActionResult fail(T result) {
-        return ActionResult(ActionResultType::Fail, std::move(result));
-    }
+    [[nodiscard]] static ActionResult fail(T result) { return ActionResult(ActionResultType::Fail, std::move(result)); }
 
     /**
      * @brief 创建传递结果
      * @param result 结果值
      */
-    [[nodiscard]] static ActionResult pass(T result) {
-        return ActionResult(ActionResultType::Pass, std::move(result));
-    }
+    [[nodiscard]] static ActionResult pass(T result) { return ActionResult(ActionResultType::Pass, std::move(result)); }
 
     /**
      * @brief 获取结果类型
@@ -109,7 +109,8 @@ public:
     /**
      * @brief 是否成功或消耗（表示动作已处理）
      */
-    [[nodiscard]] bool isSuccessOrConsume() const {
+    [[nodiscard]] bool isSuccessOrConsume() const
+    {
         return m_type == ActionResultType::Success || m_type == ActionResultType::Consume;
     }
 

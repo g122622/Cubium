@@ -6,12 +6,14 @@ namespace mc::client::ui::kagero::tpl::bindings {
 
 // ========== BuiltinEvents实现 ==========
 
-BuiltinEvents& BuiltinEvents::instance() {
+BuiltinEvents& BuiltinEvents::instance()
+{
     static BuiltinEvents instance;
     return instance;
 }
 
-void BuiltinEvents::initialize() {
+void BuiltinEvents::initialize()
+{
     if (m_initialized) return;
 
     registerClickEvents();
@@ -25,12 +27,13 @@ void BuiltinEvents::initialize() {
     m_initialized = true;
 }
 
-void BuiltinEvents::registerHandler(const std::string& eventName, EventHandler handler) {
+void BuiltinEvents::registerHandler(const std::string& eventName, EventHandler handler)
+{
     m_handlers[eventName] = std::move(handler);
 }
 
-bool BuiltinEvents::handle(widget::Widget* widget, const std::string& eventName,
-                           const event::Event& event) {
+bool BuiltinEvents::handle(widget::Widget* widget, const std::string& eventName, const event::Event& event)
+{
     auto it = m_handlers.find(eventName);
     if (it == m_handlers.end()) {
         return false;
@@ -40,11 +43,13 @@ bool BuiltinEvents::handle(widget::Widget* widget, const std::string& eventName,
     return true;
 }
 
-bool BuiltinEvents::hasEvent(const std::string& eventName) const {
+bool BuiltinEvents::hasEvent(const std::string& eventName) const
+{
     return m_handlers.find(eventName) != m_handlers.end();
 }
 
-std::vector<std::string> BuiltinEvents::registeredEvents() const {
+std::vector<std::string> BuiltinEvents::registeredEvents() const
+{
     std::vector<std::string> events;
     events.reserve(m_handlers.size());
     for (const auto& [name, handler] : m_handlers) {
@@ -53,12 +58,14 @@ std::vector<std::string> BuiltinEvents::registeredEvents() const {
     return events;
 }
 
-event::EventType BuiltinEvents::getEventType(const std::string& eventName) const {
+event::EventType BuiltinEvents::getEventType(const std::string& eventName) const
+{
     auto it = m_eventTypes.find(eventName);
     return it != m_eventTypes.end() ? it->second : event::EventType::Custom;
 }
 
-void BuiltinEvents::registerClickEvents() {
+void BuiltinEvents::registerClickEvents()
+{
     // click事件
     m_handlers[event_names::CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
@@ -110,7 +117,8 @@ void BuiltinEvents::registerClickEvents() {
     m_eventTypes[event_names::MOUSE_UP] = event::EventType::MouseRelease;
 }
 
-void BuiltinEvents::registerHoverEvents() {
+void BuiltinEvents::registerHoverEvents()
+{
     // mouseEnter事件
     m_handlers[event_names::MOUSE_ENTER] = [](widget::Widget* widget, const event::Event&) {
         if (widget) {
@@ -140,7 +148,8 @@ void BuiltinEvents::registerHoverEvents() {
     m_eventTypes[event_names::MOUSE_MOVE] = event::EventType::MouseMove;
 }
 
-void BuiltinEvents::registerFocusEvents() {
+void BuiltinEvents::registerFocusEvents()
+{
     // focus事件
     m_handlers[event_names::FOCUS] = [](widget::Widget* widget, const event::Event&) {
         if (widget) {
@@ -160,7 +169,8 @@ void BuiltinEvents::registerFocusEvents() {
     m_eventTypes[event_names::BLUR] = event::EventType::FocusLost;
 }
 
-void BuiltinEvents::registerKeyEvents() {
+void BuiltinEvents::registerKeyEvents()
+{
     // keyDown事件
     m_handlers[event_names::KEY_DOWN] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible() && widget->isFocused()) {
@@ -206,7 +216,8 @@ void BuiltinEvents::registerKeyEvents() {
     m_eventTypes[event_names::CHAR_INPUT] = event::EventType::CharInput;
 }
 
-void BuiltinEvents::registerValueEvents() {
+void BuiltinEvents::registerValueEvents()
+{
     // change事件
     m_handlers[event_names::CHANGE] = [](widget::Widget* widget, const event::Event&) {
         // 值变化处理，由具体Widget实现
@@ -222,13 +233,13 @@ void BuiltinEvents::registerValueEvents() {
     m_eventTypes[event_names::INPUT] = event::EventType::TextChange;
 }
 
-void BuiltinEvents::registerDragEvents() {
+void BuiltinEvents::registerDragEvents()
+{
     // drag事件
     m_handlers[event_names::DRAG] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::MouseDragEvent*>(&event)) {
-                widget->onDrag(dragEvent->x(), dragEvent->y(),
-                              dragEvent->deltaX(), dragEvent->deltaY());
+                widget->onDrag(dragEvent->x(), dragEvent->y(), dragEvent->deltaX(), dragEvent->deltaY());
             }
         }
     };
@@ -257,7 +268,8 @@ void BuiltinEvents::registerDragEvents() {
     m_eventTypes[event_names::DRAG_END] = event::EventType::Custom;
 }
 
-void BuiltinEvents::registerScrollEvents() {
+void BuiltinEvents::registerScrollEvents()
+{
     // scroll事件
     m_handlers[event_names::SCROLL] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
@@ -273,7 +285,8 @@ void BuiltinEvents::registerScrollEvents() {
 
 namespace event_utils {
 
-event::EventType inferEventType(const std::string& eventName) {
+event::EventType inferEventType(const std::string& eventName)
+{
     static const std::unordered_map<std::string, event::EventType> eventTypeMap = {
         {event_names::CLICK, event::EventType::MouseClick},
         {event_names::DOUBLE_CLICK, event::EventType::MouseClick},
@@ -300,39 +313,45 @@ event::EventType inferEventType(const std::string& eventName) {
         {event_names::HIDE, event::EventType::WidgetHide},
         {event_names::RESIZE, event::EventType::WidgetResize},
         {event_names::SLOT_CLICK, event::EventType::MouseClick},
-        {event_names::SELECTION_CHANGE, event::EventType::ValueChange}
-    };
+        {event_names::SELECTION_CHANGE, event::EventType::ValueChange}};
 
     auto it = eventTypeMap.find(eventName);
     return it != eventTypeMap.end() ? it->second : event::EventType::Custom;
 }
 
-event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks) {
+event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks)
+{
     return event::MouseClickEvent(x, y, button, clicks);
 }
 
-event::MouseReleaseEvent createReleaseEvent(i32 x, i32 y, i32 button) {
+event::MouseReleaseEvent createReleaseEvent(i32 x, i32 y, i32 button)
+{
     return event::MouseReleaseEvent(x, y, button);
 }
 
-event::MouseDragEvent createDragEvent(i32 x, i32 y, i32 deltaX, i32 deltaY, i32 button) {
+event::MouseDragEvent createDragEvent(i32 x, i32 y, i32 deltaX, i32 deltaY, i32 button)
+{
     return event::MouseDragEvent(x, y, deltaX, deltaY, button);
 }
 
-event::MouseScrollEvent createScrollEvent(i32 x, i32 y, f64 deltaX, f64 deltaY) {
+event::MouseScrollEvent createScrollEvent(i32 x, i32 y, f64 deltaX, f64 deltaY)
+{
     return event::MouseScrollEvent(x, y, deltaX, deltaY);
 }
 
-event::KeyEvent createKeyEvent(i32 key, i32 scanCode, i32 action, i32 mods) {
+event::KeyEvent createKeyEvent(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     return event::KeyEvent(key, scanCode, action, mods);
 }
 
-event::CharInputEvent createCharInputEvent(u32 codePoint) {
+event::CharInputEvent createCharInputEvent(u32 codePoint)
+{
     return event::CharInputEvent(codePoint);
 }
 
-template<typename T>
-event::ValueChangeEvent<T> createValueChangeEvent(const T& oldValue, const T& newValue) {
+template <typename T>
+event::ValueChangeEvent<T> createValueChangeEvent(const T& oldValue, const T& newValue)
+{
     return event::ValueChangeEvent<T>(oldValue, newValue);
 }
 
@@ -342,10 +361,10 @@ template event::ValueChangeEvent<f32> createValueChangeEvent(const f32&, const f
 template event::ValueChangeEvent<bool> createValueChangeEvent(const bool&, const bool&);
 template event::ValueChangeEvent<std::string> createValueChangeEvent(const std::string&, const std::string&);
 
-i32 parseKeyCode(const std::string& keyName) {
+i32 parseKeyCode(const std::string& keyName)
+{
     // 简化版本，只支持常用键
-    static const std::unordered_map<std::string, i32> keyMap = {
-        {"unknown", 0},
+    static const std::unordered_map<std::string, i32> keyMap = {{"unknown", 0},
         {"space", 32},
         {"enter", 257},
         {"tab", 258},
@@ -365,12 +384,28 @@ i32 parseKeyCode(const std::string& keyName) {
         {"num_lock", 282},
         {"print_screen", 283},
         {"pause", 284},
-        {"f1", 290}, {"f2", 291}, {"f3", 292}, {"f4", 293},
-        {"f5", 294}, {"f6", 295}, {"f7", 296}, {"f8", 297},
-        {"f9", 298}, {"f10", 299}, {"f11", 300}, {"f12", 301},
-        {"kp_0", 320}, {"kp_1", 321}, {"kp_2", 322}, {"kp_3", 323},
-        {"kp_4", 324}, {"kp_5", 325}, {"kp_6", 326}, {"kp_7", 327},
-        {"kp_8", 328}, {"kp_9", 329},
+        {"f1", 290},
+        {"f2", 291},
+        {"f3", 292},
+        {"f4", 293},
+        {"f5", 294},
+        {"f6", 295},
+        {"f7", 296},
+        {"f8", 297},
+        {"f9", 298},
+        {"f10", 299},
+        {"f11", 300},
+        {"f12", 301},
+        {"kp_0", 320},
+        {"kp_1", 321},
+        {"kp_2", 322},
+        {"kp_3", 323},
+        {"kp_4", 324},
+        {"kp_5", 325},
+        {"kp_6", 326},
+        {"kp_7", 327},
+        {"kp_8", 328},
+        {"kp_9", 329},
         {"kp_decimal", 330},
         {"kp_divide", 331},
         {"kp_multiply", 332},
@@ -385,12 +420,11 @@ i32 parseKeyCode(const std::string& keyName) {
         {"right_shift", 344},
         {"right_control", 345},
         {"right_alt", 346},
-        {"right_super", 347}
-    };
+        {"right_super", 347}};
 
     std::string lower = keyName;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(
+        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     auto it = keyMap.find(lower);
     if (it != keyMap.end()) {
@@ -411,10 +445,11 @@ i32 parseKeyCode(const std::string& keyName) {
     return 0; // 未知键
 }
 
-i32 parseMouseButton(const std::string& buttonName) {
+i32 parseMouseButton(const std::string& buttonName)
+{
     std::string lower = buttonName;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(
+        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     if (lower == "left" || lower == "0") return 0;
     if (lower == "right" || lower == "1") return 1;
@@ -425,13 +460,14 @@ i32 parseMouseButton(const std::string& buttonName) {
     return 0;
 }
 
-i32 parseKeyMods(const std::string& mods) {
+i32 parseKeyMods(const std::string& mods)
+{
     i32 result = 0;
 
     // 解析修饰键字符串，格式如 "shift+ctrl" 或 "alt"
     std::string lower = mods;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(
+        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     if (lower.find("shift") != std::string::npos) result |= 0x01;
     if (lower.find("ctrl") != std::string::npos || lower.find("control") != std::string::npos) result |= 0x02;

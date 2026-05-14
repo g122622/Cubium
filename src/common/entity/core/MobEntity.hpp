@@ -1,26 +1,26 @@
 #pragma once
 
-#include "LivingEntity.hpp"
-#include "../ai/goal/GoalSelector.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "../ai/goal/GoalSelector.hpp"
+#include "LivingEntity.hpp"
 #include <memory>
 
 namespace mc {
 
 // 前向声明
 namespace entity::ai::controller {
-    class LookController;
-    class MovementController;
-    class JumpController;
-}
+class LookController;
+class MovementController;
+class JumpController;
+} // namespace entity::ai::controller
 
 namespace entity::ai {
-    class EntitySenses;
+class EntitySenses;
 }
 
 namespace entity::ai::pathfinding {
-    class PathNavigator;
+class PathNavigator;
 }
 
 /**
@@ -277,7 +277,8 @@ public:
      * MC 1.16.5: isWithinHomeDistanceCurrentPosition()
      * @return 如果当前位置在家范围内返回 true
      */
-    [[nodiscard]] bool isWithinHomeDistanceCurrentPosition() const {
+    [[nodiscard]] bool isWithinHomeDistanceCurrentPosition() const
+    {
         return isWithinHomeDistanceFromPosition(BlockPos(position()));
     }
 
@@ -290,9 +291,10 @@ public:
      * @param pos 要检查的位置
      * @return 如果位置在家范围内返回 true
      */
-    [[nodiscard]] bool isWithinHomeDistanceFromPosition(const BlockPos& pos) const {
+    [[nodiscard]] bool isWithinHomeDistanceFromPosition(const BlockPos& pos) const
+    {
         if (m_maximumHomeDistance < 0.0f) {
-            return true;  // 未设置家范围，任何位置都允许
+            return true; // 未设置家范围，任何位置都允许
         }
         // MC 1.16.5: this.homePosition.distanceSq(pos) < (double)(this.maximumHomeDistance * this.maximumHomeDistance)
         f64 dx = static_cast<f64>(m_homePosition.x - pos.x);
@@ -310,7 +312,8 @@ public:
      * @param pos 家位置
      * @param distance 家范围半径
      */
-    void setHomePosAndDistance(const BlockPos& pos, i32 distance) {
+    void setHomePosAndDistance(const BlockPos& pos, i32 distance)
+    {
         m_homePosition = pos;
         m_maximumHomeDistance = static_cast<f32>(distance);
     }
@@ -344,9 +347,7 @@ public:
      *
      * MC 1.16.5: 将最大距离设为 -1.0F
      */
-    void clearHome() {
-        m_maximumHomeDistance = -1.0f;
-    }
+    void clearHome() { m_maximumHomeDistance = -1.0f; }
 
     // ========== 持久化系统 (Persistence) ==========
 
@@ -395,7 +396,8 @@ public:
      * @param distanceToClosestPlayer 到最近玩家的距离
      * @return 如果实体可以消失返回 true
      */
-    [[nodiscard]] virtual bool canDespawn(double distanceToClosestPlayer) const {
+    [[nodiscard]] virtual bool canDespawn(double distanceToClosestPlayer) const
+    {
         (void)distanceToClosestPlayer;
         return true;
     }
@@ -481,19 +483,19 @@ protected:
 
     // AI 状态
     bool m_aiEnabled = true;
-    bool m_aggroed = false;  // MC 1.16.5: 激怒状态
-    i32 m_idleTime = 0;  // 空闲时间（用于随机漫步等）
+    bool m_aggroed = false; // MC 1.16.5: 激怒状态
+    i32 m_idleTime = 0;     // 空闲时间（用于随机漫步等）
     i32 m_livingSoundTime = 0;
 
     // 经验值（死亡时掉落）
     i32 m_experienceValue = 0;
 
     // 家范围系统 (MC 1.16.5 MobEntity)
-    BlockPos m_homePosition;       // 家位置，默认为 (0, 0, 0)
-    f32 m_maximumHomeDistance = -1.0f;  // 家范围半径，-1 表示未设置
+    BlockPos m_homePosition;           // 家位置，默认为 (0, 0, 0)
+    f32 m_maximumHomeDistance = -1.0f; // 家范围半径，-1 表示未设置
 
     // 持久化系统 (MC 1.16.5 MobEntity)
-    bool m_persistenceRequired = false;  // 是否需要持久化（不消失）
+    bool m_persistenceRequired = false; // 是否需要持久化（不消失）
 };
 
 } // namespace mc

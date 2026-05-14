@@ -18,7 +18,8 @@ AudioData::AudioData(AudioFormat format, std::vector<u8> data)
     duration = calculateDuration();
 }
 
-size_t AudioData::sampleCount() const noexcept {
+size_t AudioData::sampleCount() const noexcept
+{
     if (format.channels == 0 || format.bitsPerSample == 0) {
         return 0;
     }
@@ -27,7 +28,8 @@ size_t AudioData::sampleCount() const noexcept {
     return samples.size() / (format.channels * bytesPerSample);
 }
 
-f32 AudioData::calculateDuration() const noexcept {
+f32 AudioData::calculateDuration() const noexcept
+{
     if (format.sampleRate == 0 || format.channels == 0) {
         return 0.0f;
     }

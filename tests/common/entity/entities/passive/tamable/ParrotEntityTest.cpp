@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -26,7 +26,8 @@ namespace {
  */
 class ParrotTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -34,26 +35,31 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ParrotTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ParrotTestWorld::tickManager not implemented");
     }
 
@@ -66,7 +72,8 @@ private:
 
 class ParrotEntityTestFixture : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
@@ -79,7 +86,8 @@ protected:
 // 参考 MC 1.16.5: ParrotEntity.TAME_ITEMS = {WHEAT_SEEDS, MELON_SEEDS, PUMPKIN_SEEDS, BEETROOT_SEEDS}
 // ============================================================================
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_WheatSeeds_ReturnsTrue) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_WheatSeeds_ReturnsTrue)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 小麦种子可以驯服鹦鹉
@@ -87,7 +95,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_WheatSeeds_ReturnsTrue) {
     EXPECT_TRUE(parrot.isTameItem(stack));
 }
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_PumpkinSeeds_ReturnsTrue) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_PumpkinSeeds_ReturnsTrue)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 南瓜种子可以驯服鹦鹉
@@ -95,7 +104,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_PumpkinSeeds_ReturnsTrue) {
     EXPECT_TRUE(parrot.isTameItem(stack));
 }
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_MelonSeeds_ReturnsTrue) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_MelonSeeds_ReturnsTrue)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 西瓜种子可以驯服鹦鹉
@@ -103,7 +113,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_MelonSeeds_ReturnsTrue) {
     EXPECT_TRUE(parrot.isTameItem(stack));
 }
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_BeetrootSeeds_ReturnsTrue) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_BeetrootSeeds_ReturnsTrue)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 甜菜种子可以驯服鹦鹉
@@ -115,7 +126,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_BeetrootSeeds_ReturnsTrue) {
 // 非驯服物品测试
 // ============================================================================
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_Wheat_ReturnsFalse) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_Wheat_ReturnsFalse)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 小麦不能驯服鹦鹉
@@ -123,7 +135,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Wheat_ReturnsFalse) {
     EXPECT_FALSE(parrot.isTameItem(stack));
 }
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_Bone_ReturnsFalse) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_Bone_ReturnsFalse)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 骨头不能驯服鹦鹉（骨头用于驯服狼）
@@ -131,7 +144,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Bone_ReturnsFalse) {
     EXPECT_FALSE(parrot.isTameItem(stack));
 }
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_Cod_ReturnsFalse) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_Cod_ReturnsFalse)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 生鳕鱼不能驯服鹦鹉（生鳕鱼用于驯服猫）
@@ -139,7 +153,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Cod_ReturnsFalse) {
     EXPECT_FALSE(parrot.isTameItem(stack));
 }
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_Apple_ReturnsFalse) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_Apple_ReturnsFalse)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 苹果不能驯服鹦鹉
@@ -151,7 +166,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Apple_ReturnsFalse) {
 // 空物品测试
 // ============================================================================
 
-TEST_F(ParrotEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse) {
+TEST_F(ParrotEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 空物品堆不能驯服
@@ -164,7 +180,8 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse) {
 // 参考 MC 1.16.5: 鹦鹉是唯一不能繁殖的可驯服动物
 // ============================================================================
 
-TEST_F(ParrotEntityTestFixture, IsBreedingItem_AnyItem_ReturnsFalse) {
+TEST_F(ParrotEntityTestFixture, IsBreedingItem_AnyItem_ReturnsFalse)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 鹦鹉不能繁殖，任何物品都返回 false
@@ -178,7 +195,8 @@ TEST_F(ParrotEntityTestFixture, IsBreedingItem_AnyItem_ReturnsFalse) {
     EXPECT_FALSE(parrot.isBreedingItem(wheat));
 }
 
-TEST_F(ParrotEntityTestFixture, SpawnBaby_ReturnsNullptr) {
+TEST_F(ParrotEntityTestFixture, SpawnBaby_ReturnsNullptr)
+{
     ParrotEntity parent1(LegacyEntityType::Unknown, 0);
     ParrotEntity parent2(LegacyEntityType::Unknown, 0);
 
@@ -191,7 +209,8 @@ TEST_F(ParrotEntityTestFixture, SpawnBaby_ReturnsNullptr) {
 // 变种测试
 // ============================================================================
 
-TEST_F(ParrotEntityTestFixture, Variant_CanBeSetAndGet) {
+TEST_F(ParrotEntityTestFixture, Variant_CanBeSetAndGet)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     parrot.setVariant(ParrotEntity::ParrotVariant::Blue);
@@ -207,7 +226,8 @@ TEST_F(ParrotEntityTestFixture, Variant_CanBeSetAndGet) {
     EXPECT_EQ(parrot.getVariant(), ParrotEntity::ParrotVariant::Gray);
 }
 
-TEST_F(ParrotEntityTestFixture, RandomizeVariant_SetsValidVariant) {
+TEST_F(ParrotEntityTestFixture, RandomizeVariant_SetsValidVariant)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     parrot.randomizeVariant();
@@ -222,7 +242,8 @@ TEST_F(ParrotEntityTestFixture, RandomizeVariant_SetsValidVariant) {
 // 飞行测试
 // ============================================================================
 
-TEST_F(ParrotEntityTestFixture, Flying_CanBeSetAndCleared) {
+TEST_F(ParrotEntityTestFixture, Flying_CanBeSetAndCleared)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 初始不飞行
@@ -237,7 +258,8 @@ TEST_F(ParrotEntityTestFixture, Flying_CanBeSetAndCleared) {
     EXPECT_FALSE(parrot.isFlying());
 }
 
-TEST_F(ParrotEntityTestFixture, CanFly_AlwaysReturnsTrue) {
+TEST_F(ParrotEntityTestFixture, CanFly_AlwaysReturnsTrue)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 鹦鹉始终可以飞
@@ -248,7 +270,8 @@ TEST_F(ParrotEntityTestFixture, CanFly_AlwaysReturnsTrue) {
 // 模仿测试
 // ============================================================================
 
-TEST_F(ParrotEntityTestFixture, Imitation_CanBeSetAndQueried) {
+TEST_F(ParrotEntityTestFixture, Imitation_CanBeSetAndQueried)
+{
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
 
     // 初始不模仿

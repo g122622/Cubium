@@ -1,12 +1,12 @@
 #include "CactusBlock.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
 #include "../../../../entity/core/LivingEntity.hpp"
 #include "../../../../entity/damage/DamageSource.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../VanillaBlocks.hpp"
 
 #include <algorithm>
 
@@ -16,14 +16,15 @@ namespace blocks {
 // ========== 构造函数 ==========
 
 CactusBlock::CactusBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AGE_0_15())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::AGE_0_15())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -38,24 +39,25 @@ CactusBlock::CactusBlock(const BlockProperties& properties)
 
 // ========== 状态属性 ==========
 
-i32 CactusBlock::getAge(const BlockState& state) const {
+i32 CactusBlock::getAge(const BlockState& state) const
+{
     return state.get(BlockStateProperties::AGE_0_15());
 }
 
-const BlockState& CactusBlock::withAge(i32 age) const {
+const BlockState& CactusBlock::withAge(i32 age) const
+{
     return defaultState().with(BlockStateProperties::AGE_0_15(), std::clamp(age, 0, 15));
 }
 
 // ========== 放置逻辑 ==========
 
-BlockState CactusBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CactusBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-bool CactusBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool CactusBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -67,10 +69,8 @@ bool CactusBlock::isValidPosition(
         return false;
     }
 
-    const bool supported =
-        (VanillaBlocks::SAND != nullptr && belowState->is(VanillaBlocks::SAND)) ||
-        (VanillaBlocks::RED_SAND != nullptr && belowState->is(VanillaBlocks::RED_SAND)) ||
-        belowState->is(this);
+    const bool supported = (VanillaBlocks::SAND != nullptr && belowState->is(VanillaBlocks::SAND)) ||
+        (VanillaBlocks::RED_SAND != nullptr && belowState->is(VanillaBlocks::RED_SAND)) || belowState->is(this);
 
     if (!supported) {
         return false;
@@ -87,13 +87,13 @@ bool CactusBlock::isValidPosition(
     return true;
 }
 
-BlockState CactusBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState CactusBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(world);
     MC_UNUSED(currentPos);
@@ -124,7 +124,8 @@ BlockState CactusBlock::updatePostPlacement(
 
 // ========== 生长逻辑 ==========
 
-void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
@@ -145,7 +146,7 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 
     if (height >= 3) {
-        return;  // 已达到最高高度
+        return; // 已达到最高高度
     }
 
     // 随机生长
@@ -168,18 +169,21 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
 
 // ========== 形状 ==========
 
-const CollisionShape& CactusBlock::getShape(const BlockState& state) const {
+const CollisionShape& CactusBlock::getShape(const BlockState& state) const
+{
     i32 age = getAge(state);
     return m_shapesByAge[static_cast<std::size_t>(std::min(age, 15))];
 }
 
-const CollisionShape& CactusBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& CactusBlock::getCollisionShape(const BlockState& state) const
+{
     return getShape(state);
 }
 
 // ========== 实体交互 ==========
 
-void CactusBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void CactusBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);

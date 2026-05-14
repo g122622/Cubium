@@ -2,8 +2,8 @@
 
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 

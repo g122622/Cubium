@@ -45,44 +45,46 @@ enum class LightType : u8 {
  * @brief 光照常量
  */
 namespace LightConstants {
-    /**
-     * @brief 最大光照等级
-     */
-    constexpr u8 MAX_LIGHT = 15;
+/**
+ * @brief 最大光照等级
+ */
+constexpr u8 MAX_LIGHT = 15;
 
-    /**
-     * @brief 最小光照等级
-     */
-    constexpr u8 MIN_LIGHT = 0;
+/**
+ * @brief 最小光照等级
+ */
+constexpr u8 MIN_LIGHT = 0;
 
-    /**
-     * @brief 天空光照默认值
-     */
-    constexpr u8 SKY_LIGHT_DEFAULT = 15;
+/**
+ * @brief 天空光照默认值
+ */
+constexpr u8 SKY_LIGHT_DEFAULT = 15;
 
-    /**
-     * @brief 方块光照默认值
-     */
-    constexpr u8 BLOCK_LIGHT_DEFAULT = 0;
+/**
+ * @brief 方块光照默认值
+ */
+constexpr u8 BLOCK_LIGHT_DEFAULT = 0;
 
-    /**
-     * @brief 光照传播衰减值
-     */
-    constexpr u8 PROPAGATION_DECAY = 1;
+/**
+ * @brief 光照传播衰减值
+ */
+constexpr u8 PROPAGATION_DECAY = 1;
 
-    /**
-     * @brief 检查光照等级是否有效
-     */
-    [[nodiscard]] constexpr bool isValidLight(u8 light) {
-        return light <= MAX_LIGHT;
-    }
+/**
+ * @brief 检查光照等级是否有效
+ */
+[[nodiscard]] constexpr bool isValidLight(u8 light)
+{
+    return light <= MAX_LIGHT;
+}
 
-    /**
-     * @brief 获取光照类型的默认值
-     */
-    [[nodiscard]] constexpr u8 getDefaultValue(LightType type) {
-        return type == LightType::SKY ? SKY_LIGHT_DEFAULT : BLOCK_LIGHT_DEFAULT;
-    }
+/**
+ * @brief 获取光照类型的默认值
+ */
+[[nodiscard]] constexpr u8 getDefaultValue(LightType type)
+{
+    return type == LightType::SKY ? SKY_LIGHT_DEFAULT : BLOCK_LIGHT_DEFAULT;
+}
 } // namespace LightConstants
 
 } // namespace mc

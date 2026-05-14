@@ -6,10 +6,10 @@ namespace network {
 
 BlockBreakAnimPacket::BlockBreakAnimPacket()
     : Packet(PacketType::BlockBreakAnim)
-{
-}
+{}
 
-size_t BlockBreakAnimPacket::expectedSize() const {
+size_t BlockBreakAnimPacket::expectedSize() const
+{
     // VarInt (breakerId, 最多5字节)
     // Position (x, y, z 各 i32 = 12字节)
     // Byte (stage = 1字节)
@@ -17,7 +17,8 @@ size_t BlockBreakAnimPacket::expectedSize() const {
     return 18;
 }
 
-Result<std::vector<u8>> BlockBreakAnimPacket::serialize() const {
+Result<std::vector<u8>> BlockBreakAnimPacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     // 写入挖掘者实体ID (VarInt)
@@ -36,7 +37,8 @@ Result<std::vector<u8>> BlockBreakAnimPacket::serialize() const {
     return result;
 }
 
-Result<void> BlockBreakAnimPacket::deserialize(const u8* data, size_t size) {
+Result<void> BlockBreakAnimPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deserializer(data, size);
 
     // 读取挖掘者实体ID

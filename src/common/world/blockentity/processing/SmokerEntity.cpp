@@ -1,20 +1,22 @@
 #include "world/blockentity/processing/SmokerEntity.hpp"
-#include "item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blockentity {
 
 SmokerEntity::SmokerEntity(const BlockPos& pos)
-    : AbstractFurnaceEntity(BlockEntityType::Smoker, pos) {
-}
+    : AbstractFurnaceEntity(BlockEntityType::Smoker, pos)
+{}
 
-const ResourceLocation& SmokerEntity::getFireCrackleSound() const {
+const ResourceLocation& SmokerEntity::getFireCrackleSound() const
+{
     return SoundEvents::BLOCK_SMOKER_SMOKE;
 }
 
-std::unique_ptr<BlockEntity> SmokerEntity::clone() const {
+std::unique_ptr<BlockEntity> SmokerEntity::clone() const
+{
     auto cloned = std::make_unique<SmokerEntity>(m_pos);
 
     nlohmann::json state;
@@ -25,7 +27,8 @@ std::unique_ptr<BlockEntity> SmokerEntity::clone() const {
     return cloned;
 }
 
-bool SmokerEntity::canSmelt(IWorld& world) const {
+bool SmokerEntity::canSmelt(IWorld& world) const
+{
     // MC 1.16.5: 烟熏炉只能烹饪食物
     // 通过配方类型过滤：只有 Smoking 类型的配方才能使用
     const crafting::SmeltingRecipe* recipe = getRecipe(world);

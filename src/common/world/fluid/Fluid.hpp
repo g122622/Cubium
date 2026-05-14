@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "../../resource/ResourceLocation.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../../util/property/StateContainer.hpp"
-#include <memory>
 #include <functional>
+#include <memory>
 
 namespace mc {
 
@@ -48,14 +48,15 @@ public:
      *
      * 创建一个空的流体状态。主要用于 STL 容器支持。
      */
-    FluidState() : StateHolder<Fluid, FluidState>(nullptr, {}, 0), m_fluidId(0) {}
+    FluidState()
+        : StateHolder<Fluid, FluidState>(nullptr, {}, 0)
+        , m_fluidId(0)
+    {}
 
     /**
      * @brief 构造流体状态
      */
-    FluidState(const Fluid& fluid,
-               std::unordered_map<const IProperty*, size_t> values,
-               u32 stateId);
+    FluidState(const Fluid& fluid, std::unordered_map<const IProperty*, size_t> values, u32 stateId);
 
     // ========== 流体属性 ==========
 
@@ -151,8 +152,7 @@ public:
      * @param dir 流入方向
      * @return 是否可替换
      */
-    [[nodiscard]] bool canDisplace(IWorld& world, const BlockPos& pos,
-                                    const Fluid& fluid, Direction dir) const;
+    [[nodiscard]] bool canDisplace(IWorld& world, const BlockPos& pos, const Fluid& fluid, Direction dir) const;
 
 protected:
     [[nodiscard]] std::string ownerName() const override;
@@ -262,7 +262,8 @@ public:
      *
      * 默认返回无上下文版本；岩浆会根据维度覆盖。
      */
-    [[nodiscard]] virtual i32 getTickDelay(IWorld& world) const {
+    [[nodiscard]] virtual i32 getTickDelay(IWorld& world) const
+    {
         (void)world;
         return getTickDelay();
     }
@@ -294,8 +295,7 @@ public:
      * @param state 流体状态
      * @return 流动方向（归一化）
      */
-    [[nodiscard]] virtual Vector3 getFlow(IBlockReader& world, const BlockPos& pos,
-                                           const FluidState& state) const;
+    [[nodiscard]] virtual Vector3 getFlow(IBlockReader& world, const BlockPos& pos, const FluidState& state) const;
 
     /**
      * @brief 执行tick
@@ -314,8 +314,7 @@ public:
      * @param state 流体状态
      * @param random 随机数生成器
      */
-    virtual void randomTick(IWorld& world, const BlockPos& pos,
-                            const FluidState& state, math::IRandom& random);
+    virtual void randomTick(IWorld& world, const BlockPos& pos, const FluidState& state, math::IRandom& random);
 
     /**
      * @brief 是否执行随机tick
@@ -328,9 +327,7 @@ public:
      * @param other 其他流体
      * @return 是否等效
      */
-    [[nodiscard]] virtual bool isEquivalentTo(const Fluid& other) const {
-        return this == &other;
-    }
+    [[nodiscard]] virtual bool isEquivalentTo(const Fluid& other) const { return this == &other; }
 
     /**
      * @brief 检查流体是否在指定标签中
@@ -345,9 +342,7 @@ public:
      *
      * EmptyFluid重写返回true，其他流体返回false。
      */
-    [[nodiscard]] virtual bool isEmpty() const {
-        return false;
-    }
+    [[nodiscard]] virtual bool isEmpty() const { return false; }
 
     /**
      * @brief 检查是否可以被指定流体替换
@@ -359,9 +354,8 @@ public:
      * @param dir 流入方向
      * @return 是否可替换
      */
-    [[nodiscard]] virtual bool canDisplace(const FluidState& state, IWorld& world,
-                                            const BlockPos& pos, const Fluid& fluid,
-                                            Direction dir) const;
+    [[nodiscard]] virtual bool canDisplace(
+        const FluidState& state, IWorld& world, const BlockPos& pos, const Fluid& fluid, Direction dir) const;
 
     /**
      * @brief 获取碰撞形状
@@ -371,16 +365,13 @@ public:
      * @param pos 位置
      * @return 碰撞形状
      */
-    [[nodiscard]] virtual CollisionShape getShape(const FluidState& state,
-                                                         IBlockReader& world,
-                                                         const BlockPos& pos) const;
+    [[nodiscard]] virtual CollisionShape getShape(
+        const FluidState& state, IBlockReader& world, const BlockPos& pos) const;
 
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual std::string toString() const {
-        return m_fluidLocation.toString();
-    }
+    [[nodiscard]] virtual std::string toString() const { return m_fluidLocation.toString(); }
 
 protected:
     friend class FluidRegistry;

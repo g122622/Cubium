@@ -5,7 +5,8 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-bool FrostWalkerEnchantment::isCompatibleWith(const Enchantment& other) const {
+bool FrostWalkerEnchantment::isCompatibleWith(const Enchantment& other) const
+{
     // 与深海探索者互斥
     if (other.id() == "minecraft:depth_strider") {
         return false;

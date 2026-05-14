@@ -1,9 +1,9 @@
 #include "HorseEntity.hpp"
 
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -11,8 +11,7 @@ namespace {
 
 [[nodiscard]] constexpr i32 packHorseVariant(CoatColors color, CoatTypes type)
 {
-    return static_cast<i32>(getCoatColorId(color)) |
-           (static_cast<i32>(getCoatTypeId(type)) << 8);
+    return static_cast<i32>(getCoatColorId(color)) | (static_cast<i32>(getCoatTypeId(type)) << 8);
 }
 
 } // namespace
@@ -103,33 +102,40 @@ void HorseEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
 }
 
-std::optional<ResourceLocation> HorseEntity::getAmbientSound() const {
+std::optional<ResourceLocation> HorseEntity::getAmbientSound() const
+{
     return SoundEvents::ENTITY_HORSE_AMBIENT;
 }
 
-std::optional<ResourceLocation> HorseEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> HorseEntity::getHurtSound(DamageSource& /*source*/) const
+{
     return SoundEvents::ENTITY_HORSE_HURT;
 }
 
-std::optional<ResourceLocation> HorseEntity::getDeathSound() const {
+std::optional<ResourceLocation> HorseEntity::getDeathSound() const
+{
     return SoundEvents::ENTITY_HORSE_DEATH;
 }
 
-std::optional<ResourceLocation> HorseEntity::getAngrySound() const {
+std::optional<ResourceLocation> HorseEntity::getAngrySound() const
+{
     // MC 1.16.5: HorseEntity.getAngrySound() 返回 ENTITY_HORSE_ANGRY
     // 注意：基类 makeMad() 会先调用 makeHorseRear() 然后调用此方法获取音效并播放
     return SoundEvents::ENTITY_HORSE_ANGRY;
 }
 
-void HorseEntity::playEatSound() {
+void HorseEntity::playEatSound()
+{
     playSound(SoundEvents::ENTITY_HORSE_EAT, 1.0f, 1.0f);
 }
 
-void HorseEntity::playJumpSound() {
+void HorseEntity::playJumpSound()
+{
     playSound(SoundEvents::ENTITY_HORSE_JUMP, 0.4f, 1.0f);
 }
 
-void HorseEntity::playAngrySound() {
+void HorseEntity::playAngrySound()
+{
     playSound(SoundEvents::ENTITY_HORSE_ANGRY, 1.0f, 1.0f);
 }
 

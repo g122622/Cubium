@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <string>
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
+#include "common/core/Types.hpp"
 #include <filesystem>
 #include <mutex>
 #include <optional>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace mc::server::core {
 
@@ -18,8 +18,8 @@ namespace mc::server::core {
  * 存储单个白名单玩家的信息。
  */
 struct WhitelistEntry {
-    std::string uuid;      ///< 玩家 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
-    std::string name;      ///< 玩家名称
+    std::string uuid; ///< 玩家 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+    std::string name; ///< 玩家名称
 
     /**
      * @brief 默认构造函数
@@ -32,15 +32,15 @@ struct WhitelistEntry {
      * @param playerName 玩家名称
      */
     WhitelistEntry(std::string playerUuid, std::string playerName)
-        : uuid(std::move(playerUuid)), name(std::move(playerName)) {}
+        : uuid(std::move(playerUuid))
+        , name(std::move(playerName))
+    {}
 
     /**
      * @brief 检查条目是否有效
      * @return true 如果 UUID 和名称都不为空
      */
-    [[nodiscard]] bool isValid() const {
-        return !uuid.empty() && !name.empty();
-    }
+    [[nodiscard]] bool isValid() const { return !uuid.empty() && !name.empty(); }
 };
 
 /**
@@ -223,8 +223,8 @@ public:
 
 private:
     mutable std::mutex m_mutex;
-    std::unordered_map<std::string, WhitelistEntry> m_entriesByUuid;  ///< UUID -> 条目
-    std::unordered_map<std::string, std::string> m_nameToUuid;        ///< 名称（小写）-> UUID
+    std::unordered_map<std::string, WhitelistEntry> m_entriesByUuid; ///< UUID -> 条目
+    std::unordered_map<std::string, std::string> m_nameToUuid;       ///< 名称（小写）-> UUID
     std::filesystem::path m_filePath;
     bool m_enabled = false;
 };

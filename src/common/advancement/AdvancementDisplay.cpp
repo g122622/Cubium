@@ -5,13 +5,13 @@
 namespace mc::advancement {
 
 AdvancementDisplay::AdvancementDisplay(ItemStack icon,
-                                       std::unique_ptr<text::ITextComponent> title,
-                                       std::unique_ptr<text::ITextComponent> description,
-                                       AdvancementFrame frame,
-                                       bool showToast,
-                                       bool announceToChat,
-                                       bool hidden,
-                                       std::optional<ResourceLocation> background)
+    std::unique_ptr<text::ITextComponent> title,
+    std::unique_ptr<text::ITextComponent> description,
+    AdvancementFrame frame,
+    bool showToast,
+    bool announceToChat,
+    bool hidden,
+    std::optional<ResourceLocation> background)
     : m_icon(std::move(icon))
     , m_title(std::move(title))
     , m_description(std::move(description))
@@ -19,10 +19,11 @@ AdvancementDisplay::AdvancementDisplay(ItemStack icon,
     , m_showToast(showToast)
     , m_announceToChat(announceToChat)
     , m_hidden(hidden)
-    , m_background(std::move(background)) {
-}
+    , m_background(std::move(background))
+{}
 
-Result<AdvancementDisplay> AdvancementDisplay::fromJson(const nlohmann::json& json) {
+Result<AdvancementDisplay> AdvancementDisplay::fromJson(const nlohmann::json& json)
+{
     if (!json.is_object()) {
         return Error(ErrorCode::ResourceParseError, "Display must be a JSON object");
     }
@@ -86,19 +87,18 @@ Result<AdvancementDisplay> AdvancementDisplay::fromJson(const nlohmann::json& js
         background = ResourceLocation(json["background"].get<std::string>());
     }
 
-    return AdvancementDisplay(
-        std::move(icon),
+    return AdvancementDisplay(std::move(icon),
         std::move(title),
         std::move(description),
         frame,
         showToast,
         announceToChat,
         hidden,
-        std::move(background)
-    );
+        std::move(background));
 }
 
-nlohmann::json AdvancementDisplay::toJson() const {
+nlohmann::json AdvancementDisplay::toJson() const
+{
     nlohmann::json json;
 
     // 图标
@@ -133,7 +133,8 @@ nlohmann::json AdvancementDisplay::toJson() const {
     return json;
 }
 
-std::unique_ptr<text::ITextComponent> AdvancementDisplay::getTitleCopy() const {
+std::unique_ptr<text::ITextComponent> AdvancementDisplay::getTitleCopy() const
+{
     if (m_title) {
         return m_title->deepCopy();
     }

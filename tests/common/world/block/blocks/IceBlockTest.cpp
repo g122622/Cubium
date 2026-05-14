@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "core/Constants.hpp"
 #include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "core/Constants.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <map>
 #include <memory>
@@ -26,7 +26,8 @@ public:
     IceTestWorld() = default;
 
     // 延迟初始化 TickManager（首次调用时初始化）
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
@@ -34,7 +35,8 @@ public:
 
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -44,7 +46,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -61,50 +64,44 @@ public:
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_blockLight, x, y, z);
-    }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z); }
 
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override {
-        return sampleLight(m_skyLight, x, y, z);
-    }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z); }
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] bool isUltraWarm() const override { return m_isUltraWarm; }
 
     void setUltraWarm(bool value) { m_isUltraWarm = value; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) {
-        m_skyLight[pos] = light;
-    }
+    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) {
-        m_blockLight[pos] = light;
-    }
+    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
 
     // TickManager interface
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<IceTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
-    void advanceTick() {
+    void advanceTick()
+    {
         tickManager().tick(m_currentTick);
         ++m_currentTick;
     }
 
 private:
-    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z) {
+    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z)
+    {
         const BlockPos pos(x, y, z);
         const auto it = lights.find(pos);
         if (it != lights.end()) {
@@ -114,79 +111,64 @@ private:
     }
 
     std::map<BlockPos, const BlockState*> m_blocks;
-    std::map<BlockPos, BlockState> m_ownedStates;  // 存储方块状态副本，避免悬空指针
+    std::map<BlockPos, BlockState> m_ownedStates; // 存储方块状态副本，避免悬空指针
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
-    u64 m_currentTick = 0;          // 当前游戏刻
+    u64 m_currentTick = 0; // 当前游戏刻
     bool m_isUltraWarm = false;
 };
 
 class SequenceRandom final : public math::IRandom {
 public:
     explicit SequenceRandom(std::vector<i32> values)
-        : m_values(std::move(values)) {
-    }
+        : m_values(std::move(values))
+    {}
 
-    void setSeed(u64 seed) override {
+    void setSeed(u64 seed) override
+    {
         m_seed = seed;
         m_index = 0;
     }
 
-    [[nodiscard]] u64 nextU64() override {
-        return static_cast<u64>(nextValue());
-    }
+    [[nodiscard]] u64 nextU64() override { return static_cast<u64>(nextValue()); }
 
-    [[nodiscard]] u32 nextU32() override {
-        return static_cast<u32>(nextValue());
-    }
+    [[nodiscard]] u32 nextU32() override { return static_cast<u32>(nextValue()); }
 
-    [[nodiscard]] i32 nextInt(i32 bound) override {
-        return nextValue() % bound;
-    }
+    [[nodiscard]] i32 nextInt(i32 bound) override { return nextValue() % bound; }
 
-    [[nodiscard]] i32 nextInt() override {
-        return nextValue();
-    }
+    [[nodiscard]] i32 nextInt() override { return nextValue(); }
 
-    [[nodiscard]] i32 nextInt(i32 min, i32 max) override {
-        return min + (nextValue() % (max - min + 1));
-    }
+    [[nodiscard]] i32 nextInt(i32 min, i32 max) override { return min + (nextValue() % (max - min + 1)); }
 
-    [[nodiscard]] bool nextBoolean() override {
-        return (nextValue() & 1) != 0;
-    }
+    [[nodiscard]] bool nextBoolean() override { return (nextValue() & 1) != 0; }
 
-    [[nodiscard]] f32 nextFloat() override {
+    [[nodiscard]] f32 nextFloat() override
+    {
         return static_cast<f32>(nextValue() & 0x00FFFFFF) / static_cast<f32>(1 << 24);
     }
 
-    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override {
-        return min + nextFloat() * (max - min);
-    }
+    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override { return min + nextFloat() * (max - min); }
 
-    [[nodiscard]] f64 nextDouble() override {
+    [[nodiscard]] f64 nextDouble() override
+    {
         return static_cast<f64>(nextValue() & 0x001FFFFFFFFFFFFF) / static_cast<f64>(1ULL << 53);
     }
 
-    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override {
-        return min + nextDouble() * (max - min);
-    }
+    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override { return min + nextDouble() * (max - min); }
 
-    [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override {
+    [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override
+    {
         return mean + stddev * static_cast<f32>(nextValue());
     }
 
-    [[nodiscard]] i64 nextLong() override {
-        return static_cast<i64>(nextValue());
-    }
+    [[nodiscard]] i64 nextLong() override { return static_cast<i64>(nextValue()); }
 
-    [[nodiscard]] i64 nextLong(i64 bound) override {
-        return static_cast<i64>(nextValue() % bound);
-    }
+    [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
 
 private:
-    [[nodiscard]] i32 nextValue() {
+    [[nodiscard]] i32 nextValue()
+    {
         if (m_index < m_values.size()) {
             return m_values[m_index++];
         }
@@ -200,13 +182,15 @@ private:
 
 class IceBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
     }
 };
 
-TEST_F(IceBlockTest, RandomTickTurnsIceIntoWaterInNormalDimension) {
+TEST_F(IceBlockTest, RandomTickTurnsIceIntoWaterInNormalDimension)
+{
     IceTestWorld world;
     IceBlock ice(BlockProperties(Material::ICE).hardness(0.5f));
     SequenceRandom random({0});
@@ -224,7 +208,8 @@ TEST_F(IceBlockTest, RandomTickTurnsIceIntoWaterInNormalDimension) {
     EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
 }
 
-TEST_F(IceBlockTest, RandomTickTurnsIceIntoAirInUltraWarmDimension) {
+TEST_F(IceBlockTest, RandomTickTurnsIceIntoAirInUltraWarmDimension)
+{
     IceTestWorld world;
     IceBlock ice(BlockProperties(Material::ICE).hardness(0.5f));
     SequenceRandom random({0});
@@ -246,9 +231,10 @@ TEST_F(IceBlockTest, RandomTickTurnsIceIntoAirInUltraWarmDimension) {
 // tick() 检查融化条件，如果满足则调用 slightlyMelt() 增加 AGE 或融化
 // 每次调用 randomTick 都会处理一次 tick 逻辑
 // 霜冰需要 AGE 从 0 增加到 3（4 次），然后才会融化成水
-TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoWaterInNormalDimension) {
+TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoWaterInNormalDimension)
+{
     IceTestWorld world;
-    world.ensureTickManager();  // 确保 TickManager 已初始化
+    world.ensureTickManager(); // 确保 TickManager 已初始化
 
     // 使用已注册的 FROSTED_ICE 方块，确保状态正确初始化
     ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr) << "FROSTED_ICE should be registered";
@@ -265,7 +251,7 @@ TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoWaterInNormalDimension) {
     // 注意：tick() 内部会调度下一次 tick，但我们直接调用 randomTick 即可
     for (int i = 0; i < 4; ++i) {
         const BlockState* currentState = world.getBlockState(pos);
-        if (currentState == nullptr) break;  // 已经融化
+        if (currentState == nullptr) break; // 已经融化
         BlockState mutableState = *currentState;
         // 使用世界的随机数生成器（固定种子，确定性测试）
         VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
@@ -276,9 +262,10 @@ TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoWaterInNormalDimension) {
     EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
 }
 
-TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoAirInUltraWarmDimension) {
+TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoAirInUltraWarmDimension)
+{
     IceTestWorld world;
-    world.ensureTickManager();  // 确保 TickManager 已初始化
+    world.ensureTickManager(); // 确保 TickManager 已初始化
     world.setUltraWarm(true);
 
     // 使用已注册的 FROSTED_ICE 方块
@@ -293,7 +280,7 @@ TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoAirInUltraWarmDimension) {
     // 霜冰需要 4 次 tick 才能融化（age 0->1->2->3->melt）
     for (int i = 0; i < 4; ++i) {
         const BlockState* currentState = world.getBlockState(pos);
-        if (currentState == nullptr) break;  // 已经融化
+        if (currentState == nullptr) break; // 已经融化
         BlockState mutableState = *currentState;
         VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
     }

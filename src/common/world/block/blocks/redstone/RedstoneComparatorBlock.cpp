@@ -1,26 +1,31 @@
 #include "RedstoneComparatorBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../redstone/RedstoneHelper.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/redstone/ComparatorEntity.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../blockentity/BlockEntity.hpp"
+#include "../../../blockentity/redstone/ComparatorEntity.hpp"
+#include "../../../redstone/RedstoneHelper.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
+#include "../../../tick/base/TickPriority.hpp"
 #include <unordered_map>
 
 namespace mc {
 
 // EnumProperty Traits 实现 - 必须在 mc 命名空间
-std::string EnumProperty<blocks::ComparatorMode>::Traits::toString(const blocks::ComparatorMode& value) {
+std::string EnumProperty<blocks::ComparatorMode>::Traits::toString(const blocks::ComparatorMode& value)
+{
     switch (value) {
-        case blocks::ComparatorMode::Compare: return "compare";
-        case blocks::ComparatorMode::Subtract: return "subtract";
-        default: return "compare";
+        case blocks::ComparatorMode::Compare:
+            return "compare";
+        case blocks::ComparatorMode::Subtract:
+            return "subtract";
+        default:
+            return "compare";
     }
 }
 
-std::optional<blocks::ComparatorMode> EnumProperty<blocks::ComparatorMode>::Traits::fromName(std::string_view name) {
+std::optional<blocks::ComparatorMode> EnumProperty<blocks::ComparatorMode>::Traits::fromName(std::string_view name)
+{
     if (name == "compare") return blocks::ComparatorMode::Compare;
     if (name == "subtract") return blocks::ComparatorMode::Subtract;
     return std::nullopt;
@@ -30,58 +35,64 @@ namespace blocks {
 
 // 比较器模式属性
 namespace {
-    const EnumProperty<ComparatorMode>& MODE_PROP() {
-        static auto prop = EnumProperty<ComparatorMode>::create("mode", {
-            ComparatorMode::Compare,
-            ComparatorMode::Subtract
-        });
-        return *prop;
-    }
+const EnumProperty<ComparatorMode>& MODE_PROP()
+{
+    static auto prop =
+        EnumProperty<ComparatorMode>::create("mode", {ComparatorMode::Compare, ComparatorMode::Subtract});
+    return *prop;
 }
+} // namespace
 
 RedstoneComparatorBlock::RedstoneComparatorBlock(const BlockProperties& properties)
-    : RedstoneDiodeBlock("redstone_comparator", properties) {
+    : RedstoneDiodeBlock("redstone_comparator", properties)
+{
 
     // 创建状态容器 - MC 1.16.5 比较器只有三个属性：HORIZONTAL_FACING, MODE, POWERED
     // 注意：比较器没有 LOCKED 属性（与中继器不同，比较器不会被侧面信号锁定）
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::POWERED())
-        .add(MODE_PROP())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::POWERED())
+                         .add(MODE_PROP())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::POWERED(), false)
-        .with(MODE_PROP(), ComparatorMode::Compare));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::POWERED(), false)
+            .with(MODE_PROP(), ComparatorMode::Compare));
 }
 
-std::unique_ptr<BlockEntity> RedstoneComparatorBlock::createBlockEntity(const BlockPos& pos) {
+std::unique_ptr<BlockEntity> RedstoneComparatorBlock::createBlockEntity(const BlockPos& pos)
+{
     return std::make_unique<blockentity::ComparatorEntity>(pos);
 }
 
-i32 RedstoneComparatorBlock::getDelay(const BlockState& state) const {
+i32 RedstoneComparatorBlock::getDelay(const BlockState& state) const
+{
     MC_UNUSED(state);
     return COMPARATOR_DELAY;
 }
 
-ComparatorMode RedstoneComparatorBlock::getMode(const BlockState& state) {
+ComparatorMode RedstoneComparatorBlock::getMode(const BlockState& state)
+{
     return state.get(MODE_PROP());
 }
 
-BlockState RedstoneComparatorBlock::withMode(BlockState state, ComparatorMode mode) {
+BlockState RedstoneComparatorBlock::withMode(BlockState state, ComparatorMode mode)
+{
     return state.with(MODE_PROP(), mode);
 }
 
-bool RedstoneComparatorBlock::isSubtractMode(const BlockState& state) {
+bool RedstoneComparatorBlock::isSubtractMode(const BlockState& state)
+{
     return getMode(state) == ComparatorMode::Subtract;
 }
 
-i32 RedstoneComparatorBlock::getStoredOutputSignal(IWorld& world, const BlockPos& pos) const {
+i32 RedstoneComparatorBlock::getStoredOutputSignal(IWorld& world, const BlockPos& pos) const
+{
     BlockEntity* be = world.getBlockEntity(pos);
     if (auto* comparator = dynamic_cast<blockentity::ComparatorEntity*>(be)) {
         return comparator->getOutputSignal();
@@ -89,15 +100,16 @@ i32 RedstoneComparatorBlock::getStoredOutputSignal(IWorld& world, const BlockPos
     return 0;
 }
 
-void RedstoneComparatorBlock::storeOutputSignal(IWorld& world, const BlockPos& pos, i32 signal) const {
+void RedstoneComparatorBlock::storeOutputSignal(IWorld& world, const BlockPos& pos, i32 signal) const
+{
     BlockEntity* be = world.getBlockEntity(pos);
     if (auto* comparator = dynamic_cast<blockentity::ComparatorEntity*>(be)) {
         comparator->setOutputSignal(signal);
     }
 }
 
-bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos,
-                                            const BlockState& state) const {
+bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // MC Java 正确逻辑：
     // 1. 获取主输入信号（背面）- 使用 calculateInputStrength 检测容器信号
     // 2. 获取侧面输入信号
@@ -131,8 +143,8 @@ bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos
     return false;
 }
 
-i32 RedstoneComparatorBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos,
-                                                  const BlockState& state) const {
+i32 RedstoneComparatorBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // MC Java: 从 BlockEntity 读取输出信号
     // 这实现了"前端信号保持"特性
     if (!isPowered(state)) {
@@ -149,9 +161,9 @@ i32 RedstoneComparatorBlock::calculateOutputSignal(IWorld& world, const BlockPos
     return calculateOutput(world, pos, state);
 }
 
-void RedstoneComparatorBlock::onStateChanged(IWorld& world, const BlockPos& pos,
-                                             const BlockState& oldState,
-                                             const BlockState& newState) {
+void RedstoneComparatorBlock::onStateChanged(
+    IWorld& world, const BlockPos& pos, const BlockState& oldState, const BlockState& newState)
+{
     // 当状态变化时，更新 BlockEntity 中的输出信号
     if (isPowered(newState)) {
         i32 outputSignal = calculateOutput(world, pos, newState);
@@ -161,8 +173,8 @@ void RedstoneComparatorBlock::onStateChanged(IWorld& world, const BlockPos& pos,
     }
 }
 
-i32 RedstoneComparatorBlock::calculateOutput(IWorld& world, const BlockPos& pos,
-                                            const BlockState& state) const {
+i32 RedstoneComparatorBlock::calculateOutput(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // 获取主输入信号（背面）
     // MC Java: calculateInputStrength 包含容器信号检测
     i32 mainInput = calculateInputStrength(world, pos, state);
@@ -182,8 +194,8 @@ i32 RedstoneComparatorBlock::calculateOutput(IWorld& world, const BlockPos& pos,
     }
 }
 
-i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPos& pos,
-                                                     const BlockState& state) const {
+i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     // 先获取基础红石信号
     i32 input = getInputSignal(world, pos, state);
 
@@ -227,13 +239,13 @@ i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPo
     return input;
 }
 
-ActionResultType RedstoneComparatorBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType RedstoneComparatorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(player);
     MC_UNUSED(hand);
@@ -241,9 +253,8 @@ ActionResultType RedstoneComparatorBlock::onBlockActivated(
 
     // MC Java: 右键点击比较器可以在比较模式和减法模式之间切换
     ComparatorMode currentMode = getMode(state);
-    ComparatorMode newMode = (currentMode == ComparatorMode::Compare)
-        ? ComparatorMode::Subtract
-        : ComparatorMode::Compare;
+    ComparatorMode newMode =
+        (currentMode == ComparatorMode::Compare) ? ComparatorMode::Subtract : ComparatorMode::Compare;
 
     // 设置新模式
     BlockState newState = withMode(state, newMode);
@@ -252,12 +263,7 @@ ActionResultType RedstoneComparatorBlock::onBlockActivated(
     // 播放点击音效
     f32 pitch = (newMode == ComparatorMode::Subtract) ? 0.55f : 0.5f;
     world.playSound(
-        ResourceLocation("minecraft:block.comparator.click"),
-        sound::SoundCategory::Blocks,
-        pos.center(),
-        0.3f,
-        pitch
-    );
+        ResourceLocation("minecraft:block.comparator.click"), sound::SoundCategory::Blocks, pos.center(), 0.3f, pitch);
 
     // 比较器模式改变后需要更新输出
     // 立即触发状态检查

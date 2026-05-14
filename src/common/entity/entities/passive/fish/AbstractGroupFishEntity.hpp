@@ -20,8 +20,7 @@ public:
      */
     AbstractGroupFishEntity(LegacyEntityType type, EntityId id)
         : AbstractFishEntity(type, id)
-    {
-    }
+    {}
 
     ~AbstractGroupFishEntity() override = default;
 
@@ -48,18 +47,12 @@ public:
     /**
      * @brief 当前是否已经跟随群首
      */
-    [[nodiscard]] bool hasGroupLeader() const
-    {
-        return m_groupLeader != nullptr && m_groupLeader->isAlive();
-    }
+    [[nodiscard]] bool hasGroupLeader() const { return m_groupLeader != nullptr && m_groupLeader->isAlive(); }
 
     /**
      * @brief 当前是否是群首
      */
-    [[nodiscard]] bool isGroupLeader() const
-    {
-        return m_groupLeader == nullptr && m_groupSize > 1;
-    }
+    [[nodiscard]] bool isGroupLeader() const { return m_groupLeader == nullptr && m_groupSize > 1; }
 
     /**
      * @brief 当前记录的群体大小
@@ -170,10 +163,7 @@ public:
     }
 
 private:
-    void increaseGroupSize()
-    {
-        ++m_groupSize;
-    }
+    void increaseGroupSize() { ++m_groupSize; }
 
     void decreaseGroupSize()
     {

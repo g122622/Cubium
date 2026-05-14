@@ -19,9 +19,8 @@ public:
     explicit ZombieModel(bool slim = false);
     ~ZombieModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置纹理尺寸
@@ -43,7 +42,7 @@ public:
 private:
     void setupParts() override;
 
-    bool m_slim = false;        // 是否使用细长纹理
+    bool m_slim = false;         // 是否使用细长纹理
     bool m_isAggressive = false; // 是否处于攻击状态（影响手臂动画）
 };
 

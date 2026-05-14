@@ -29,16 +29,12 @@ class MoodSoundAmbience {
 public:
     MoodSoundAmbience() = default;
 
-    MoodSoundAmbience(const ResourceLocation& soundEvent,
-                      i32 tickDelay,
-                      i32 blockSearchExtent,
-                      f64 offset)
+    MoodSoundAmbience(const ResourceLocation& soundEvent, i32 tickDelay, i32 blockSearchExtent, f64 offset)
         : m_soundEvent(soundEvent)
         , m_tickDelay(tickDelay)
         , m_blockSearchExtent(blockSearchExtent)
         , m_offset(offset)
-    {
-    }
+    {}
 
     [[nodiscard]] const ResourceLocation& soundEvent() const { return m_soundEvent; }
     [[nodiscard]] i32 tickDelay() const { return m_tickDelay; }
@@ -46,12 +42,12 @@ public:
     [[nodiscard]] f64 offset() const { return m_offset; }
 
     /// 默认洞穴心境音效 (MC 1.16.5)
-    static MoodSoundAmbience defaultCaveMood() {
-        return MoodSoundAmbience(
-            ResourceLocation("minecraft:ambient.cave"),
-            6000,  // tick_delay
-            8,     // block_search_extent
-            2.0    // offset
+    static MoodSoundAmbience defaultCaveMood()
+    {
+        return MoodSoundAmbience(ResourceLocation("minecraft:ambient.cave"),
+            6000, // tick_delay
+            8,    // block_search_extent
+            2.0   // offset
         );
     }
 
@@ -84,8 +80,7 @@ public:
     SoundAdditionsAmbience(const ResourceLocation& soundEvent, f64 tickChance)
         : m_soundEvent(soundEvent)
         , m_tickChance(tickChance)
-    {
-    }
+    {}
 
     [[nodiscard]] const ResourceLocation& soundEvent() const { return m_soundEvent; }
     [[nodiscard]] f64 tickChance() const { return m_tickChance; }
@@ -115,16 +110,12 @@ class BiomeMusic {
 public:
     BiomeMusic() = default;
 
-    BiomeMusic(const ResourceLocation& soundEvent,
-               u32 minDelayTicks,
-               u32 maxDelayTicks,
-               bool replaceCurrent)
+    BiomeMusic(const ResourceLocation& soundEvent, u32 minDelayTicks, u32 maxDelayTicks, bool replaceCurrent)
         : m_soundEvent(soundEvent)
         , m_minDelayTicks(minDelayTicks)
         , m_maxDelayTicks(maxDelayTicks)
         , m_replaceCurrent(replaceCurrent)
-    {
-    }
+    {}
 
     [[nodiscard]] const ResourceLocation& soundEvent() const { return m_soundEvent; }
     [[nodiscard]] u32 minDelayTicks() const { return m_minDelayTicks; }
@@ -167,10 +158,9 @@ public:
     void setMusic(const BiomeMusic& music) { m_music = music; }
 
     /// 是否有任何环境音效
-    [[nodiscard]] bool hasAnySound() const {
-        return m_loopSound.has_value() ||
-               m_moodSound.has_value() ||
-               m_additionsSound.has_value();
+    [[nodiscard]] bool hasAnySound() const
+    {
+        return m_loopSound.has_value() || m_moodSound.has_value() || m_additionsSound.has_value();
     }
 
     /// 是否有音乐

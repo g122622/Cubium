@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 
 namespace mc {
 
@@ -38,8 +38,7 @@ struct SeagrassFeatureConfig : public IFeatureConfig {
         , horizontalSpread(8)
     {}
 
-    SeagrassFeatureConfig(
-        const BlockState* seagrass,
+    SeagrassFeatureConfig(const BlockState* seagrass,
         const BlockState* tallLower,
         const BlockState* tallUpper,
         f32 tallChance = 0.3f,
@@ -72,20 +71,13 @@ public:
      * @param config 海草配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const SeagrassFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SeagrassFeatureConfig& config);
 
 private:
     /**
      * @brief 检查海草是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        const BlockState& seagrassState) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& seagrassState) const;
 
     /**
      * @brief 检查位置是否为水
@@ -95,10 +87,7 @@ private:
     /**
      * @brief 放置高海草
      */
-    bool placeTallSeagrass(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        const SeagrassFeatureConfig& config) const;
+    bool placeTallSeagrass(WorldGenRegion& world, const BlockPos& pos, const SeagrassFeatureConfig& config) const;
 };
 
 /**
@@ -106,12 +95,9 @@ private:
  */
 class ConfiguredSeagrassFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredSeagrassFeature(
-        std::unique_ptr<SeagrassFeatureConfig> config,
-        const char* featureName);
+    ConfiguredSeagrassFeature(std::unique_ptr<SeagrassFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

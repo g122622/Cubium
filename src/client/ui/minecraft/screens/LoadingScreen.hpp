@@ -1,7 +1,7 @@
 #pragma once
 
-#include "TemplateScreen.hpp"
 #include "../../kagero/state/ReactiveState.hpp"
+#include "TemplateScreen.hpp"
 #include <memory>
 
 namespace mc::client::ui::minecraft {

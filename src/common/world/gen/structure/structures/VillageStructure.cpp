@@ -1,11 +1,11 @@
 #include "VillageStructure.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
-#include "../../../biome/Biome.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
+#include "../../jigsaw/JigsawManager.hpp"
+#include "../../jigsaw/JigsawPattern.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -32,37 +32,33 @@ VillageStructure::VillageStructure(const VillageConfig& config)
     initializeBiomes();
 }
 
-void VillageStructure::initializeBiomes() {
+void VillageStructure::initializeBiomes()
+{
     // 根据村庄类型设置有效生物群系
     switch (m_config.type) {
         case VillageType::Plains:
-            m_validBiomes = { Plains, SunflowerPlains };
+            m_validBiomes = {Plains, SunflowerPlains};
             break;
         case VillageType::Desert:
-            m_validBiomes = { Desert, DesertHills, DesertLakes };
+            m_validBiomes = {Desert, DesertHills, DesertLakes};
             break;
         case VillageType::Savanna:
-            m_validBiomes = { Savanna, SavannaPlateau, ShatteredSavanna };
+            m_validBiomes = {Savanna, SavannaPlateau, ShatteredSavanna};
             break;
         case VillageType::Taiga:
-            m_validBiomes = { Taiga, TaigaHills, TaigaMountains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains };
+            m_validBiomes = {Taiga, TaigaHills, TaigaMountains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains};
             break;
         case VillageType::Snowy:
-            m_validBiomes = { SnowyPlains, SnowyMountains };
+            m_validBiomes = {SnowyPlains, SnowyMountains};
             break;
         case VillageType::Zombie:
             // 僵尸村庄可以在任何村庄生物群系生成
-            m_validBiomes = { Plains, Desert, Savanna, Taiga, SnowyPlains };
+            m_validBiomes = {Plains, Desert, Savanna, Taiga, SnowyPlains};
             break;
     }
 }
 
-bool VillageStructure::canGenerate(
-    IWorld& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ)
+bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     (void)world;
     (void)rng;
@@ -77,9 +73,7 @@ bool VillageStructure::canGenerate(
     }
 
     // 检查地形是否具备建造空间：中心与四角高差不能过大
-    constexpr i32 SAMPLE_OFFSETS[5][2] = {
-        {0, 0}, {-8, -8}, {-8, 8}, {8, -8}, {8, 8}
-    };
+    constexpr i32 SAMPLE_OFFSETS[5][2] = {{0, 0}, {-8, -8}, {-8, 8}, {8, -8}, {8, 8}};
 
     i32 minHeight = std::numeric_limits<i32>::max();
     i32 maxHeight = std::numeric_limits<i32>::min();
@@ -100,11 +94,7 @@ bool VillageStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> VillageStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -145,19 +135,13 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
     BlockPos startPos(startX, startY, startZ);
 
     // 使用 JigsawManager 组装并放置村庄
-    jigsaw::JigsawManager::assembleAndPlace(
-        world,
-        patternRegistry,
-        *startPool,
-        m_config.size,
-        startPos,
-        rng
-    );
+    jigsaw::JigsawManager::assembleAndPlace(world, patternRegistry, *startPool, m_config.size, startPos, rng);
 
     return start;
 }
 
-ResourceLocation VillageStructure::getStartPool(VillageType type) {
+ResourceLocation VillageStructure::getStartPool(VillageType type)
+{
     switch (type) {
         case VillageType::Plains:
             return ResourceLocation("minecraft", "village/plains/town_centers");
@@ -177,15 +161,23 @@ ResourceLocation VillageStructure::getStartPool(VillageType type) {
     }
 }
 
-const char* VillageStructure::getVillageTypeName(VillageType type) {
+const char* VillageStructure::getVillageTypeName(VillageType type)
+{
     switch (type) {
-        case VillageType::Plains:   return "plains";
-        case VillageType::Desert:   return "desert";
-        case VillageType::Savanna:  return "savanna";
-        case VillageType::Taiga:    return "taiga";
-        case VillageType::Snowy:    return "snowy";
-        case VillageType::Zombie:   return "zombie";
-        default:                     return "unknown";
+        case VillageType::Plains:
+            return "plains";
+        case VillageType::Desert:
+            return "desert";
+        case VillageType::Savanna:
+            return "savanna";
+        case VillageType::Taiga:
+            return "taiga";
+        case VillageType::Snowy:
+            return "snowy";
+        case VillageType::Zombie:
+            return "zombie";
+        default:
+            return "unknown";
     }
 }
 

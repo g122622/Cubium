@@ -1,9 +1,9 @@
 #include "EntityTextureLoader.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/IResourcePack.hpp"
-#include <spdlog/spdlog.h>
 #include <unordered_map>
+#include <spdlog/spdlog.h>
 
 namespace mc::client {
 
@@ -120,7 +120,8 @@ const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTU
 
 } // namespace
 
-bool EntityTextureLoader::needsTexture(entity::EntityClassification classification) {
+bool EntityTextureLoader::needsTexture(entity::EntityClassification classification)
+{
     switch (classification) {
         case entity::EntityClassification::Creature:      // 动物
         case entity::EntityClassification::WaterCreature: // 水生生物
@@ -128,15 +129,15 @@ bool EntityTextureLoader::needsTexture(entity::EntityClassification classificati
         case entity::EntityClassification::Ambient:       // 环境生物（蝙蝠）
         case entity::EntityClassification::Monster:       // 怪物
             return true;
-        case entity::EntityClassification::Misc:          // 物品、经验球等
+        case entity::EntityClassification::Misc: // 物品、经验球等
         default:
             return false;
     }
 }
 
 Result<u32> EntityTextureLoader::loadAllEntityTextures(
-    const std::vector<IResourcePack*>& packs,
-    EntityTextureAtlas& atlas) {
+    const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas)
+{
 
     u32 loadedCount = 0;
     auto& registry = entity::EntityRegistry::instance();
@@ -165,7 +166,8 @@ Result<u32> EntityTextureLoader::loadAllEntityTextures(
                 auto result = atlas.addTexture(*pack, loc);
                 if (result.success()) {
                     loaded = true;
-                    spdlog::info("EntityTextureLoader: Loaded texture '{}' for entity '{}'", loc.toString(), entityName);
+                    spdlog::info(
+                        "EntityTextureLoader: Loaded texture '{}' for entity '{}'", loc.toString(), entityName);
                     break;
                 }
             }
@@ -184,15 +186,16 @@ Result<u32> EntityTextureLoader::loadAllEntityTextures(
     return loadedCount;
 }
 
-Result<u32> EntityTextureLoader::loadDefaultTextures(mc::IResourcePack& pack, EntityTextureAtlas& atlas) {
+Result<u32> EntityTextureLoader::loadDefaultTextures(mc::IResourcePack& pack, EntityTextureAtlas& atlas)
+{
     // 向后兼容：使用新的 loadAllEntityTextures
     std::vector<IResourcePack*> packs{&pack};
     return loadAllEntityTextures(packs, atlas);
 }
 
-Result<void> EntityTextureLoader::loadEntityTexture(mc::IResourcePack& pack,
-                                                     EntityTextureAtlas& atlas,
-                                                     const std::string& entityTypeId) {
+Result<void> EntityTextureLoader::loadEntityTexture(
+    mc::IResourcePack& pack, EntityTextureAtlas& atlas, const std::string& entityTypeId)
+{
     auto paths = getTexturePaths(entityTypeId);
 
     for (const auto& loc : paths) {
@@ -206,9 +209,8 @@ Result<void> EntityTextureLoader::loadEntityTexture(mc::IResourcePack& pack,
     return Result<void>::ok();
 }
 
-u32 EntityTextureLoader::loadAdditionalTextures(
-    const std::vector<IResourcePack*>& packs,
-    EntityTextureAtlas& atlas) {
+u32 EntityTextureLoader::loadAdditionalTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas)
+{
 
     u32 loadedCount = 0;
 
@@ -224,8 +226,8 @@ u32 EntityTextureLoader::loadAdditionalTextures(
                 auto result = atlas.addTexture(*pack, loc);
                 if (result.success()) {
                     loadedCount++;
-                    spdlog::debug("EntityTextureLoader: Loaded additional texture {} for entity {}",
-                                 loc.toString(), entityName);
+                    spdlog::debug(
+                        "EntityTextureLoader: Loaded additional texture {} for entity {}", loc.toString(), entityName);
                     break;
                 }
             }
@@ -235,7 +237,8 @@ u32 EntityTextureLoader::loadAdditionalTextures(
     return loadedCount;
 }
 
-std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::string& entityTypeId) {
+std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::string& entityTypeId)
+{
     std::vector<ResourceLocation> paths;
     std::string name = parseEntityName(entityTypeId);
 
@@ -257,7 +260,8 @@ std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::st
     return paths;
 }
 
-std::string EntityTextureLoader::parseEntityName(const std::string& entityTypeId) {
+std::string EntityTextureLoader::parseEntityName(const std::string& entityTypeId)
+{
     // 解析 "minecraft:pig" -> "pig"
     size_t colonPos = entityTypeId.find(':');
     if (colonPos != std::string::npos && colonPos + 1 < entityTypeId.size()) {

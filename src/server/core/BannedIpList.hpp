@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <string>
-#include <vector>
-#include <unordered_map>
+#include "common/core/Types.hpp"
 #include <filesystem>
 #include <mutex>
 #include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::server::core {
 
@@ -18,11 +18,11 @@ namespace mc::server::core {
  * 参考 MC 1.16.5 IPBanEntry。
  */
 struct BannedIpEntry {
-    std::string ip;            ///< IP 地址
-    std::string created;       ///< 封禁创建时间（格式：yyyy-MM-dd HH:mm:ss Z）
-    std::string source;        ///< 封禁执行者名称
-    std::string expires;       ///< 过期时间（"forever" 表示永久封禁）
-    std::string reason;        ///< 封禁原因
+    std::string ip;      ///< IP 地址
+    std::string created; ///< 封禁创建时间（格式：yyyy-MM-dd HH:mm:ss Z）
+    std::string source;  ///< 封禁执行者名称
+    std::string expires; ///< 过期时间（"forever" 表示永久封禁）
+    std::string reason;  ///< 封禁原因
 
     /**
      * @brief 默认构造函数
@@ -37,25 +37,23 @@ struct BannedIpEntry {
      * @param banExpires 过期时间（空字符串表示永久）
      * @param banReason 封禁原因
      */
-    BannedIpEntry(
-        std::string ipAddress,
+    BannedIpEntry(std::string ipAddress,
         std::string banCreated,
         std::string banSource,
         std::string banExpires,
-        std::string banReason
-    ) : ip(std::move(ipAddress)),
-        created(std::move(banCreated)),
-        source(std::move(banSource)),
-        expires(std::move(banExpires)),
-        reason(std::move(banReason)) {}
+        std::string banReason)
+        : ip(std::move(ipAddress))
+        , created(std::move(banCreated))
+        , source(std::move(banSource))
+        , expires(std::move(banExpires))
+        , reason(std::move(banReason))
+    {}
 
     /**
      * @brief 检查条目是否有效
      * @return true 如果 IP 不为空
      */
-    [[nodiscard]] bool isValid() const {
-        return !ip.empty();
-    }
+    [[nodiscard]] bool isValid() const { return !ip.empty(); }
 
     /**
      * @brief 检查封禁是否已过期
@@ -67,9 +65,7 @@ struct BannedIpEntry {
      * @brief 获取显示名称
      * @return IP 地址
      */
-    [[nodiscard]] std::string getDisplayName() const {
-        return ip;
-    }
+    [[nodiscard]] std::string getDisplayName() const { return ip; }
 };
 
 /**
@@ -232,7 +228,7 @@ private:
     static std::string getCurrentTimeString();
 
     mutable std::mutex m_mutex;
-    mutable std::unordered_map<std::string, BannedIpEntry> m_entries;  ///< IP -> 条目
+    mutable std::unordered_map<std::string, BannedIpEntry> m_entries; ///< IP -> 条目
     std::filesystem::path m_filePath;
 };
 

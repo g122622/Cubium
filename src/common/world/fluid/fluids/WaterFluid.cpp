@@ -1,16 +1,16 @@
 #include "WaterFluid.hpp"
-#include "../FluidRegistry.hpp"
-#include "../FluidTags.hpp"
+#include "../../../entity/loot/LootContext.hpp"
+#include "../../../entity/loot/LootTable.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/FluidProperties.hpp"
 #include "../../../util/property/Properties.hpp"
-#include "../../block/VanillaBlocks.hpp"
-#include "../../block/Block.hpp"
-#include "../../blockentity/BlockEntity.hpp"
 #include "../../IWorld.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../entity/loot/LootTable.hpp"
-#include "../../../entity/loot/LootContext.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../block/Block.hpp"
+#include "../../block/VanillaBlocks.hpp"
+#include "../../blockentity/BlockEntity.hpp"
+#include "../FluidRegistry.hpp"
+#include "../FluidTags.hpp"
 
 namespace mc {
 namespace fluid {
@@ -19,7 +19,8 @@ namespace fluid {
 // WaterFluid 基类实现
 // ============================================================================
 
-const BlockState* WaterFluid::getBlockState(const FluidState& state) const {
+const BlockState* WaterFluid::getBlockState(const FluidState& state) const
+{
     // 方块LEVEL映射:
     // - 源头(level=8, isSource=true) -> 方块level=0
     // - 流动(level=1-7) -> 方块level=8-level
@@ -53,8 +54,8 @@ const BlockState* WaterFluid::getBlockState(const FluidState& state) const {
     return &waterBlock->defaultState().with(levelProp, blockLevel);
 }
 
-void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
-                                       const BlockState* state) {
+void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state)
+{
     // 参考: net.minecraft.fluid.WaterFluid#beforeReplacingBlock
     // MC 1.16.5: TileEntity tileentity = state.hasTileEntity() ? worldIn.getTileEntity(pos) : null;
     //           Block.spawnDrops(state, worldIn, pos, tileentity);
@@ -83,9 +84,9 @@ void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
         math::Random rng(static_cast<u64>(world.seed() ^ static_cast<u64>(pos.x ^ pos.z)));
 
         auto context = loot::LootContextBuilder(world)
-            .withRandom(rng)
-            .withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z))
-            .build();
+                           .withRandom(rng)
+                           .withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z))
+                           .build();
 
         if (context) {
             // 设置方块状态和位置参数
@@ -113,16 +114,16 @@ void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
     }
 }
 
-bool WaterFluid::isEquivalentTo(const Fluid& fluid) const {
+bool WaterFluid::isEquivalentTo(const Fluid& fluid) const
+{
     // 水和流动水视为等效
     const auto& loc = fluid.fluidLocation();
-    return loc.namespace_() == "minecraft" &&
-           (loc.path() == "water" || loc.path() == "flowing_water");
+    return loc.namespace_() == "minecraft" && (loc.path() == "water" || loc.path() == "flowing_water");
 }
 
-bool WaterFluid::canDisplace(const FluidState& state, IWorld& world,
-                             const BlockPos& pos, const Fluid& fluid,
-                             Direction dir) const {
+bool WaterFluid::canDisplace(
+    const FluidState& state, IWorld& world, const BlockPos& pos, const Fluid& fluid, Direction dir) const
+{
     (void)state;
     (void)world;
     (void)pos;
@@ -133,21 +134,23 @@ bool WaterFluid::canDisplace(const FluidState& state, IWorld& world,
 // WaterSourceFluid 实现
 // ============================================================================
 
-WaterSourceFluid::WaterSourceFluid() {
+WaterSourceFluid::WaterSourceFluid()
+{
     // 源头没有LEVEL属性，只有FALLING
     auto container = StateContainer<Fluid, FluidState>::Builder(*this)
-        .add(FluidProperties::FALLING())
-        .create([this](const Fluid& fluid, auto values, u32 id) {
-            return std::make_unique<FluidState>(fluid, std::move(values), id);
-        });
+                         .add(FluidProperties::FALLING())
+                         .create([this](const Fluid& fluid, auto values, u32 id) {
+                             return std::make_unique<FluidState>(fluid, std::move(values), id);
+                         });
     createFluidState(std::move(container));
     setDefaultState(stateContainer().baseState());
 }
 
-FlowingFluid& WaterSourceFluid::getFlowing() {
+FlowingFluid& WaterSourceFluid::getFlowing()
+{
     if (m_flowingCache == nullptr) {
-        m_flowingCache = static_cast<FlowingFluid*>(
-            FluidRegistry::instance().getFluid(ResourceLocation("minecraft:flowing_water")));
+        m_flowingCache =
+            static_cast<FlowingFluid*>(FluidRegistry::instance().getFluid(ResourceLocation("minecraft:flowing_water")));
     }
     return *m_flowingCache;
 }
@@ -156,37 +159,40 @@ FlowingFluid& WaterSourceFluid::getFlowing() {
 // WaterFlowingFluid 实现
 // ============================================================================
 
-WaterFlowingFluid::WaterFlowingFluid() {
+WaterFlowingFluid::WaterFlowingFluid()
+{
     // 流动水有LEVEL_1_8和FALLING属性
     auto container = StateContainer<Fluid, FluidState>::Builder(*this)
-        .add(FluidProperties::LEVEL_1_8())
-        .add(FluidProperties::FALLING())
-        .create([this](const Fluid& fluid, auto values, u32 id) {
-            return std::make_unique<FluidState>(fluid, std::move(values), id);
-        });
+                         .add(FluidProperties::LEVEL_1_8())
+                         .add(FluidProperties::FALLING())
+                         .create([this](const Fluid& fluid, auto values, u32 id) {
+                             return std::make_unique<FluidState>(fluid, std::move(values), id);
+                         });
     createFluidState(std::move(container));
     setDefaultState(stateContainer().baseState());
 }
 
-i32 WaterFlowingFluid::getLevel(const FluidState& state) const {
+i32 WaterFlowingFluid::getLevel(const FluidState& state) const
+{
     auto& levelProp = FluidProperties::LEVEL_1_8();
     auto opt = state.getOptional(levelProp);
     return opt.has_value() ? opt.value() : 8;
 }
 
-FlowingFluid& WaterFlowingFluid::getStill() {
+FlowingFluid& WaterFlowingFluid::getStill()
+{
     if (m_stillCache == nullptr) {
-        m_stillCache = static_cast<FlowingFluid*>(
-            FluidRegistry::instance().getFluid(ResourceLocation("minecraft:water")));
+        m_stillCache =
+            static_cast<FlowingFluid*>(FluidRegistry::instance().getFluid(ResourceLocation("minecraft:water")));
     }
     return *m_stillCache;
 }
 
-bool WaterFlowingFluid::isEquivalentTo(const Fluid& fluid) const {
+bool WaterFlowingFluid::isEquivalentTo(const Fluid& fluid) const
+{
     // 水和流动水视为等效
     const auto& loc = fluid.fluidLocation();
-    return loc.namespace_() == "minecraft" &&
-           (loc.path() == "water" || loc.path() == "flowing_water");
+    return loc.namespace_() == "minecraft" && (loc.path() == "water" || loc.path() == "flowing_water");
 }
 
 } // namespace fluid

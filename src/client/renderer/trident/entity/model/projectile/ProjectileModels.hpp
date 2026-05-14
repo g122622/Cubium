@@ -17,18 +17,17 @@ public:
     ~TridentModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
 
-    std::shared_ptr<ModelRenderer> m_shaft;      // 主杆
-    std::shared_ptr<ModelRenderer> m_crossbar;   // 横杆
-    std::shared_ptr<ModelRenderer> m_leftProng;  // 左叉尖
+    std::shared_ptr<ModelRenderer> m_shaft;       // 主杆
+    std::shared_ptr<ModelRenderer> m_crossbar;    // 横杆
+    std::shared_ptr<ModelRenderer> m_leftProng;   // 左叉尖
     std::shared_ptr<ModelRenderer> m_middleProng; // 中叉尖
-    std::shared_ptr<ModelRenderer> m_rightProng; // 右叉尖 (镜像)
+    std::shared_ptr<ModelRenderer> m_rightProng;  // 右叉尖 (镜像)
 };
 
 /**
@@ -42,9 +41,8 @@ public:
     ~ShulkerBulletModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -64,9 +62,8 @@ public:
     ~LlamaSpitModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts(f32 scale);
@@ -86,9 +83,8 @@ public:
     ~EnderCrystalModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts(f32 scale);
@@ -116,9 +112,8 @@ public:
     ~SpectralArrowModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -135,9 +130,8 @@ public:
     ~WitherSkullModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -162,9 +156,8 @@ public:
     ~DragonFireballModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -185,16 +178,15 @@ public:
     ~EvokerFangsModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
 
-    std::shared_ptr<ModelRenderer> m_base;       // 底座
-    std::shared_ptr<ModelRenderer> m_upperJaw;   // 上颚
-    std::shared_ptr<ModelRenderer> m_lowerJaw;   // 下颚
+    std::shared_ptr<ModelRenderer> m_base;     // 底座
+    std::shared_ptr<ModelRenderer> m_upperJaw; // 上颚
+    std::shared_ptr<ModelRenderer> m_lowerJaw; // 下颚
 };
 
 } // namespace mc::client::renderer::entity::model::projectile

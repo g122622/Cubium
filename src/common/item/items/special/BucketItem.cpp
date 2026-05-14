@@ -1,37 +1,36 @@
 #include "BucketItem.hpp"
+#include "../../../core/Constants.hpp"
+#include "../../../entity/core/AgeableEntity.hpp"
+#include "../../../entity/entities/passive/basic/CowEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/IBucketPickupHandler.hpp"
 #include "../../../world/block/ILiquidContainer.hpp"
 #include "../../../world/block/IWaterLoggable.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/block/blocks/LiquidBlock.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidRegistry.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
-#include "../../../world/block/blocks/LiquidBlock.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/entities/passive/basic/CowEntity.hpp"
-#include "../../../entity/core/AgeableEntity.hpp"
-#include "../../core/ItemStack.hpp"
+#include "../../Items.hpp"
 #include "../../context/BlockItemUseContext.hpp"
 #include "../../core/ItemRegistry.hpp"
-#include "../../Items.hpp"
-#include "../../../util/math/ray/Raycast.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../sound/SoundCategory.hpp"
+#include "../../core/ItemStack.hpp"
 
 namespace mc {
 
-BucketItem::BucketItem(
-    fluid::Fluid* containedFluid,
-    const ItemProperties& properties)
+BucketItem::BucketItem(fluid::Fluid* containedFluid, const ItemProperties& properties)
     : Item(properties)
-    , m_containedFluid(containedFluid) {
-}
+    , m_containedFluid(containedFluid)
+{}
 
-ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
+ActionResultType BucketItem::onItemUse(ItemUseContext& context)
+{
     IWorld& world = context.getWorld();
     BlockPos pos = context.blockPos();
     Direction face = context.getFace();
@@ -63,12 +62,9 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
             fluid::Fluid* pickedFluid = pickupHandler->pickupFluid(world, pos, *blockState);
             if (pickedFluid != nullptr) {
                 // 播放取水音效
-                Vector3 soundPos(static_cast<f32>(pos.x) + 0.5f,
-                                 static_cast<f32>(pos.y) + 0.5f,
-                                 static_cast<f32>(pos.z) + 0.5f);
-                world.playSound(SoundEvents::ITEM_BUCKET_FILL,
-                                sound::SoundCategory::Blocks,
-                                soundPos, 1.0f, 1.0f);
+                Vector3 soundPos(
+                    static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
+                world.playSound(SoundEvents::ITEM_BUCKET_FILL, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
 
                 // 非创造模式下替换物品
                 if (player == nullptr || !player->isCreative()) {
@@ -105,11 +101,9 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
                 if (liquidContainer->receiveFluid(world, targetPos, *targetState, fluidState)) {
                     // 播放倒水音效
                     Vector3 soundPos(static_cast<f32>(targetPos.x) + 0.5f,
-                                     static_cast<f32>(targetPos.y) + 0.5f,
-                                     static_cast<f32>(targetPos.z) + 0.5f);
-                    world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
-                                    sound::SoundCategory::Blocks,
-                                    soundPos, 1.0f, 1.0f);
+                        static_cast<f32>(targetPos.y) + 0.5f,
+                        static_cast<f32>(targetPos.z) + 0.5f);
+                    world.playSound(SoundEvents::ITEM_BUCKET_EMPTY, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
 
                     // 非创造模式下替换为空桶
                     if (player == nullptr || !player->isCreative()) {
@@ -147,7 +141,8 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
     return ActionResultType::Fail;
 }
 
-ItemActionResult BucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult BucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     if (world.isClientSide()) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
@@ -163,10 +158,8 @@ ItemActionResult BucketItem::onItemRightClick(IWorld& world, Player& player, Han
 }
 
 bool BucketItem::tryPlaceContainedLiquid(
-    Player* player,
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockRaycastResult& hit) {
+    Player* player, IWorld& world, const BlockPos& pos, const BlockRaycastResult& hit)
+{
     MC_UNUSED(player);
     MC_UNUSED(hit);
 
@@ -228,10 +221,8 @@ bool BucketItem::tryPlaceContainedLiquid(
     return false;
 }
 
-bool BucketItem::canBlockContainFluid(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state) const {
+bool BucketItem::canBlockContainFluid(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     if (m_containedFluid == nullptr) {
         return false;
     }
@@ -249,7 +240,8 @@ bool BucketItem::canBlockContainFluid(
     return liquidContainer->canContainFluid(world, pos, state, *m_containedFluid);
 }
 
-BucketItem* BucketItem::getFilledBucket(fluid::Fluid& fluid) {
+BucketItem* BucketItem::getFilledBucket(fluid::Fluid& fluid)
+{
     // 参考 MC 1.16.5: fluid.getFilledBucket()
     // 使用 FluidTags 判断流体类型，返回对应的桶物品
     if (fluid::FluidTags::WATER().contains(fluid)) {
@@ -263,13 +255,14 @@ BucketItem* BucketItem::getFilledBucket(fluid::Fluid& fluid) {
     return nullptr;
 }
 
-BucketItem* BucketItem::getEmptyBucket() {
+BucketItem* BucketItem::getEmptyBucket()
+{
     MC_ASSERT_RELEASE(Items::BUCKET != nullptr);
     return static_cast<BucketItem*>(Items::BUCKET);
 }
 
-bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player,
-                                          LivingEntity& target, Hand hand) {
+bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
+{
     // MC 1.16.5: BucketItem.itemInteractionForEntity()
     // 只有空桶可以挤奶
     if (m_containedFluid != nullptr) {

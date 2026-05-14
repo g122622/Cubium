@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
-#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 
 using namespace mc;
 using namespace mc::world;
@@ -13,22 +13,22 @@ using namespace mc::world;
 
 class ChunkTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // ============================================================================
 // ChunkSection 测试
 // ============================================================================
 
-TEST_F(ChunkTest, ChunkSection_Construction) {
+TEST_F(ChunkTest, ChunkSection_Construction)
+{
     ChunkSection section;
     EXPECT_EQ(section.getBlockCount(), 0);
     EXPECT_TRUE(section.isEmpty());
 }
 
-TEST_F(ChunkTest, ChunkSection_SetGetBlock) {
+TEST_F(ChunkTest, ChunkSection_SetGetBlock)
+{
     ChunkSection section;
 
     // 设置方块
@@ -47,7 +47,8 @@ TEST_F(ChunkTest, ChunkSection_SetGetBlock) {
     EXPECT_EQ(outOfBounds, nullptr);
 }
 
-TEST_F(ChunkTest, ChunkSection_FastAccess) {
+TEST_F(ChunkTest, ChunkSection_FastAccess)
+{
     ChunkSection section;
     i32 index = ChunkSection::blockIndex(3, 5, 7);
 
@@ -59,7 +60,8 @@ TEST_F(ChunkTest, ChunkSection_FastAccess) {
     EXPECT_EQ(block->blockId(), VanillaBlocks::DIRT->blockId());
 }
 
-TEST_F(ChunkTest, ChunkSection_BlockCount) {
+TEST_F(ChunkTest, ChunkSection_BlockCount)
+{
     ChunkSection section;
 
     // 添加方块
@@ -80,7 +82,8 @@ TEST_F(ChunkTest, ChunkSection_BlockCount) {
     EXPECT_EQ(section.getBlockCount(), 1);
 }
 
-TEST_F(ChunkTest, ChunkSection_RandomTickCounters) {
+TEST_F(ChunkTest, ChunkSection_RandomTickCounters)
+{
     ChunkSection section;
 
     EXPECT_FALSE(section.needsRandomTickAny());
@@ -96,7 +99,8 @@ TEST_F(ChunkTest, ChunkSection_RandomTickCounters) {
     EXPECT_EQ(section.blockTickRefCount(), 0);
 }
 
-TEST_F(ChunkTest, ChunkSection_FastAccessRebuildsRandomTickCounters) {
+TEST_F(ChunkTest, ChunkSection_FastAccessRebuildsRandomTickCounters)
+{
     ChunkSection section;
     i32 index = ChunkSection::blockIndex(3, 5, 7);
 
@@ -107,7 +111,8 @@ TEST_F(ChunkTest, ChunkSection_FastAccessRebuildsRandomTickCounters) {
     EXPECT_EQ(section.blockTickRefCount(), 1);
 }
 
-TEST_F(ChunkTest, ChunkSection_LightAccess) {
+TEST_F(ChunkTest, ChunkSection_LightAccess)
+{
     ChunkSection section;
 
     // 天空光照
@@ -123,7 +128,8 @@ TEST_F(ChunkTest, ChunkSection_LightAccess) {
     EXPECT_EQ(section.getBlockLight(-1, 0, 0), 0);
 }
 
-TEST_F(ChunkTest, ChunkSection_Serialization) {
+TEST_F(ChunkTest, ChunkSection_Serialization)
+{
     ChunkSection original;
     original.setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
     original.setBlockState(7, 7, 7, &VanillaBlocks::DIRT->defaultState());
@@ -149,7 +155,8 @@ TEST_F(ChunkTest, ChunkSection_Serialization) {
     EXPECT_EQ(restored->getBlockLight(3, 3, 3), 10);
 }
 
-TEST_F(ChunkTest, ChunkSection_Fill) {
+TEST_F(ChunkTest, ChunkSection_Fill)
+{
     ChunkSection section;
     u32 stoneStateId = VanillaBlocks::STONE->defaultState().stateId();
     section.fill(stoneStateId);
@@ -171,7 +178,8 @@ TEST_F(ChunkTest, ChunkSection_Fill) {
 // ChunkData 测试
 // ============================================================================
 
-TEST_F(ChunkTest, ChunkData_Construction) {
+TEST_F(ChunkTest, ChunkData_Construction)
+{
     ChunkData chunk(10, 20);
     EXPECT_EQ(chunk.x(), 10);
     EXPECT_EQ(chunk.z(), 20);
@@ -180,7 +188,8 @@ TEST_F(ChunkTest, ChunkData_Construction) {
     EXPECT_FALSE(chunk.isFullyGenerated());
 }
 
-TEST_F(ChunkTest, ChunkData_SetGetBlock) {
+TEST_F(ChunkTest, ChunkData_SetGetBlock)
+{
     ChunkData chunk;
 
     // 设置方块
@@ -201,7 +210,8 @@ TEST_F(ChunkTest, ChunkData_SetGetBlock) {
     EXPECT_EQ(outOfBounds, nullptr);
 }
 
-TEST_F(ChunkTest, ChunkData_SectionManagement) {
+TEST_F(ChunkTest, ChunkData_SectionManagement)
+{
     ChunkData chunk;
 
     // 初始没有段
@@ -214,10 +224,11 @@ TEST_F(ChunkTest, ChunkData_SectionManagement) {
 
     // 段3应该被创建
     EXPECT_TRUE(chunk.hasSection(3));
-    EXPECT_FALSE(chunk.hasSection(0));  // 段0不应该被创建
+    EXPECT_FALSE(chunk.hasSection(0)); // 段0不应该被创建
 }
 
-TEST_F(ChunkTest, ChunkData_HeightMap) {
+TEST_F(ChunkTest, ChunkData_HeightMap)
+{
     ChunkData chunk;
 
     // 设置一些方块
@@ -236,7 +247,8 @@ TEST_F(ChunkTest, ChunkData_HeightMap) {
     EXPECT_EQ(chunk.getHighestBlock(0, 0), 20);
 }
 
-TEST_F(ChunkTest, ChunkData_Serialization) {
+TEST_F(ChunkTest, ChunkData_Serialization)
+{
     ChunkData original(5, 10);
     original.setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
     original.setBlockState(8, 100, 8, &VanillaBlocks::DIRT->defaultState());

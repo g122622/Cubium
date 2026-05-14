@@ -1,15 +1,15 @@
 #include "SeaPickleBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../WaterLoggableHelpers.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../BlockRegistry.hpp"
+#include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../../entity/core/Entity.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -17,21 +17,22 @@ namespace blocks {
 using namespace mc; // Bring BlockStateProperties into scope
 
 SeaPickleBlock::SeaPickleBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::PICKLES_1_4())
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::PICKLES_1_4())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::PICKLES_1_4(), 1)
-        .with(BlockStateProperties::WATERLOGGED(), true));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::PICKLES_1_4(), 1).with(BlockStateProperties::WATERLOGGED(), true));
 
     // 创建各数量的形状
     // 1个：小型，2个：中型，3个：大型，4个：最大
@@ -41,15 +42,18 @@ SeaPickleBlock::SeaPickleBlock(const BlockProperties& properties)
     m_shapesByCount[3] = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.5f, 0.875f);
 }
 
-i32 SeaPickleBlock::getPickles(const BlockState& state) const {
+i32 SeaPickleBlock::getPickles(const BlockState& state) const
+{
     return state.get(BlockStateProperties::PICKLES_1_4());
 }
 
-BlockState SeaPickleBlock::withPickles(i32 count) const {
+BlockState SeaPickleBlock::withPickles(i32 count) const
+{
     return defaultState().with(BlockStateProperties::PICKLES_1_4(), std::clamp(count, 1, 4));
 }
 
-BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
@@ -72,10 +76,8 @@ BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-bool SeaPickleBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool SeaPickleBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -91,13 +93,13 @@ bool SeaPickleBlock::isValidPosition(
     return belowState->isSolid();
 }
 
-BlockState SeaPickleBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState SeaPickleBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -120,10 +122,8 @@ BlockState SeaPickleBlock::updatePostPlacement(
     return state;
 }
 
-u8 SeaPickleBlock::getLightLevel(
-    const BlockState& state,
-    IWorld* world,
-    const BlockPos* pos) const {
+u8 SeaPickleBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // 在水中时发光，亮度随数量增加
@@ -137,14 +137,16 @@ u8 SeaPickleBlock::getLightLevel(
     return static_cast<u8>(3 + count * 3);
 }
 
-const CollisionShape& SeaPickleBlock::getShape(const BlockState& state) const {
+const CollisionShape& SeaPickleBlock::getShape(const BlockState& state) const
+{
     i32 count = getPickles(state);
     return m_shapesByCount[std::clamp(count - 1, 0, 3)];
 }
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* SeaPickleBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* SeaPickleBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }

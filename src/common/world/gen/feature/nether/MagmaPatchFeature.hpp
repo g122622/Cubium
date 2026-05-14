@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -30,7 +30,12 @@ struct MagmaPatchFeatureConfig : public IFeatureConfig {
     MagmaPatchFeatureConfig() = default;
 
     explicit MagmaPatchFeatureConfig(i32 r, f32 magma, f32 fire, i32 minD, i32 maxD)
-        : radius(r), magmaChance(magma), fireChance(fire), minDepth(minD), maxDepth(maxD) {}
+        : radius(r)
+        , magmaChance(magma)
+        , fireChance(fire)
+        , minDepth(minD)
+        , maxDepth(maxD)
+    {}
 };
 
 /**
@@ -44,11 +49,7 @@ public:
     /**
      * @brief 放置岩浆池
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const MagmaPatchFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const MagmaPatchFeatureConfig& config);
 
 private:
     /**
@@ -62,12 +63,9 @@ private:
  */
 class ConfiguredMagmaPatchFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredMagmaPatchFeature(
-        std::unique_ptr<MagmaPatchFeatureConfig> config,
-        const char* featureName);
+    ConfiguredMagmaPatchFeature(std::unique_ptr<MagmaPatchFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
@@ -111,7 +109,10 @@ struct NetherFireFeatureConfig : public IFeatureConfig {
     NetherFireFeatureConfig() = default;
 
     explicit NetherFireFeatureConfig(i32 s, i32 minH, i32 maxH)
-        : spread(s), minHeight(minH), maxHeight(maxH) {}
+        : spread(s)
+        , minHeight(minH)
+        , maxHeight(maxH)
+    {}
 };
 
 /**
@@ -121,11 +122,7 @@ struct NetherFireFeatureConfig : public IFeatureConfig {
  */
 class NetherFireFeature {
 public:
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const NetherFireFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const NetherFireFeatureConfig& config);
 };
 
 /**
@@ -133,12 +130,9 @@ public:
  */
 class ConfiguredNetherFireFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredNetherFireFeature(
-        std::unique_ptr<NetherFireFeatureConfig> config,
-        const char* featureName);
+    ConfiguredNetherFireFeature(std::unique_ptr<NetherFireFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

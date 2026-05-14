@@ -7,7 +7,7 @@ namespace mc {
 class LayerContext;
 class TransformFactory;
 class MergeFactory;
-}
+} // namespace mc
 
 namespace mc {
 namespace layer {
@@ -41,7 +41,8 @@ namespace layer {
  */
 class IC0Transformer : public ITransformer1 {
 public:
-    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override {
+    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override
+    {
         return apply(ctx, area.getValue(x, z));
     }
 
@@ -58,8 +59,7 @@ public:
 
     // ITransformer1 工厂方法
     [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
-        std::unique_ptr<IAreaFactory> input) override;
+        IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input) override;
 };
 
 /**
@@ -83,7 +83,8 @@ public:
  */
 class IC1Transformer : public ITransformer1 {
 public:
-    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override {
+    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override
+    {
         return apply(ctx, area.getValue(x + 1, z + 1));
     }
 
@@ -100,8 +101,7 @@ public:
 
     // ITransformer1 工厂方法
     [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
-        std::unique_ptr<IAreaFactory> input) override;
+        IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input) override;
 };
 
 /**
@@ -135,7 +135,8 @@ public:
  */
 class ICastleTransformer : public ITransformer1 {
 public:
-    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override {
+    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override
+    {
         return apply(ctx,
             area.getValue(x + 1, z),     // north: (x+1, z)
             area.getValue(x + 2, z + 1), // east:  (x+2, z+1)
@@ -162,8 +163,7 @@ public:
 
     // ITransformer1 工厂方法
     [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
-        std::unique_ptr<IAreaFactory> input) override;
+        IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input) override;
 };
 
 /**
@@ -198,8 +198,10 @@ public:
  */
 class IBishopTransformer : public ITransformer1 {
 public:
-    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override {
-        return apply(ctx, x,
+    [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z) override
+    {
+        return apply(ctx,
+            x,
             area.getValue(x, z + 2),     // south (MC name, 实际是左下 sw)
             area.getValue(x + 2, z + 2), // southEast (右下 se)
             area.getValue(x + 2, z),     // east (MC name, 实际是右上 ne)
@@ -226,8 +228,7 @@ public:
 
     // ITransformer1 工厂方法
     [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
-        std::unique_ptr<IAreaFactory> input) override;
+        IExtendedAreaContext& context, std::unique_ptr<IAreaFactory> input) override;
 };
 
 } // namespace layer

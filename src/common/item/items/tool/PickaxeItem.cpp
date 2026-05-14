@@ -1,24 +1,18 @@
 #include "PickaxeItem.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
-PickaxeItem::PickaxeItem(const tier::IItemTier& tier,
-                         i32 attackDamage,
-                         f32 attackSpeed,
-                         ItemProperties properties)
-    : ToolItem(static_cast<f32>(attackDamage),
-               attackSpeed,
-               tier,
-               initializeEffectiveBlocks(),
-               ToolType::Pickaxe,
-               properties) {
-}
+PickaxeItem::PickaxeItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties)
+    : ToolItem(
+          static_cast<f32>(attackDamage), attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Pickaxe, properties)
+{}
 
-bool PickaxeItem::canHarvestBlock(const BlockState& state) const {
+bool PickaxeItem::canHarvestBlock(const BlockState& state) const
+{
     // 1. 如果方块需要镐，检查挖掘等级
     if (state.getHarvestTool() == TOOL_TYPE_PICKAXE) {
         return m_tier.getHarvestLevel() >= state.getHarvestLevel();
@@ -34,7 +28,8 @@ bool PickaxeItem::canHarvestBlock(const BlockState& state) const {
     return false;
 }
 
-f32 PickaxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
+f32 PickaxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
+{
     // 镐对 ROCK, IRON, ANVIL 材质有高效率
     const Material& mat = state.getMaterial();
     if (mat == Material::ROCK || mat == Material::IRON || mat == Material::ANVIL) {
@@ -49,13 +44,13 @@ f32 PickaxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state
     return 1.0f;
 }
 
-bool PickaxeItem::isEffectiveMaterial(const Material& material) const {
-    return material == Material::ROCK ||
-           material == Material::IRON ||
-           material == Material::ANVIL;
+bool PickaxeItem::isEffectiveMaterial(const Material& material) const
+{
+    return material == Material::ROCK || material == Material::IRON || material == Material::ANVIL;
 }
 
-std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks() {
+std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks()
+{
     std::unordered_set<const Block*> blocks;
 
     // 基础石头类

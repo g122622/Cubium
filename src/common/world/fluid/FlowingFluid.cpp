@@ -1,19 +1,19 @@
 #include "FlowingFluid.hpp"
-#include "FluidRegistry.hpp"
+#include "../../physics/collision/CollisionShape.hpp"
+#include "../../util/Direction.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../IWorld.hpp"
-#include "../tick/manager/TickManager.hpp"
 #include "../block/Block.hpp"
-#include "../block/ILiquidContainer.hpp"
 #include "../block/BlockPos.hpp"
+#include "../block/ILiquidContainer.hpp"
 #include "../block/Material.hpp"
 #include "../block/VanillaBlocks.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/Direction.hpp"
-#include "../../physics/collision/CollisionShape.hpp"
+#include "../tick/manager/TickManager.hpp"
+#include "FluidRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <vector>
 
@@ -31,62 +31,63 @@ struct FaceRectangle {
     f32 vMax;
 };
 
-[[nodiscard]] bool approximatelyEqual(f32 lhs, f32 rhs) {
+[[nodiscard]] bool approximatelyEqual(f32 lhs, f32 rhs)
+{
     return std::fabs(lhs - rhs) <= FACE_EPSILON;
 }
 
-[[nodiscard]] bool hasSuffix(const std::string& value, const char* suffix) {
+[[nodiscard]] bool hasSuffix(const std::string& value, const char* suffix)
+{
     const size_t suffixLength = std::strlen(suffix);
-    return value.size() >= suffixLength &&
-           value.compare(value.size() - suffixLength, suffixLength, suffix) == 0;
+    return value.size() >= suffixLength && value.compare(value.size() - suffixLength, suffixLength, suffix) == 0;
 }
 
-void addFaceRectangles(std::vector<FaceRectangle>& rectangles,
-                       const CollisionShape& shape,
-                       Direction direction) {
+void addFaceRectangles(std::vector<FaceRectangle>& rectangles, const CollisionShape& shape, Direction direction)
+{
     if (shape.isEmpty()) {
         return;
     }
 
     for (const auto& box : shape.boxes()) {
         switch (direction) {
-        case Direction::Up:
-            if (box.maxY >= 1.0f - FACE_EPSILON) {
-                rectangles.push_back({box.minX, box.maxX, box.minZ, box.maxZ});
-            }
-            break;
-        case Direction::Down:
-            if (box.minY <= FACE_EPSILON) {
-                rectangles.push_back({box.minX, box.maxX, box.minZ, box.maxZ});
-            }
-            break;
-        case Direction::North:
-            if (box.minZ <= FACE_EPSILON) {
-                rectangles.push_back({box.minX, box.maxX, box.minY, box.maxY});
-            }
-            break;
-        case Direction::South:
-            if (box.maxZ >= 1.0f - FACE_EPSILON) {
-                rectangles.push_back({box.minX, box.maxX, box.minY, box.maxY});
-            }
-            break;
-        case Direction::West:
-            if (box.minX <= FACE_EPSILON) {
-                rectangles.push_back({box.minZ, box.maxZ, box.minY, box.maxY});
-            }
-            break;
-        case Direction::East:
-            if (box.maxX >= 1.0f - FACE_EPSILON) {
-                rectangles.push_back({box.minZ, box.maxZ, box.minY, box.maxY});
-            }
-            break;
-        case Direction::None:
-            break;
+            case Direction::Up:
+                if (box.maxY >= 1.0f - FACE_EPSILON) {
+                    rectangles.push_back({box.minX, box.maxX, box.minZ, box.maxZ});
+                }
+                break;
+            case Direction::Down:
+                if (box.minY <= FACE_EPSILON) {
+                    rectangles.push_back({box.minX, box.maxX, box.minZ, box.maxZ});
+                }
+                break;
+            case Direction::North:
+                if (box.minZ <= FACE_EPSILON) {
+                    rectangles.push_back({box.minX, box.maxX, box.minY, box.maxY});
+                }
+                break;
+            case Direction::South:
+                if (box.maxZ >= 1.0f - FACE_EPSILON) {
+                    rectangles.push_back({box.minX, box.maxX, box.minY, box.maxY});
+                }
+                break;
+            case Direction::West:
+                if (box.minX <= FACE_EPSILON) {
+                    rectangles.push_back({box.minZ, box.maxZ, box.minY, box.maxY});
+                }
+                break;
+            case Direction::East:
+                if (box.maxX >= 1.0f - FACE_EPSILON) {
+                    rectangles.push_back({box.minZ, box.maxZ, box.minY, box.maxY});
+                }
+                break;
+            case Direction::None:
+                break;
         }
     }
 }
 
-[[nodiscard]] bool intervalsCoverUnit(std::vector<std::pair<f32, f32>> intervals) {
+[[nodiscard]] bool intervalsCoverUnit(std::vector<std::pair<f32, f32>> intervals)
+{
     if (intervals.empty()) {
         return false;
     }
@@ -119,9 +120,9 @@ void addFaceRectangles(std::vector<FaceRectangle>& rectangles,
     return coveredMax >= 1.0f - FACE_EPSILON;
 }
 
-[[nodiscard]] bool facesFillSquare(const CollisionShape& firstShape,
-                                   const CollisionShape& secondShape,
-                                   Direction direction) {
+[[nodiscard]] bool facesFillSquare(
+    const CollisionShape& firstShape, const CollisionShape& secondShape, Direction direction)
+{
     std::vector<FaceRectangle> rectangles;
     rectangles.reserve(firstShape.boxCount() + secondShape.boxCount());
     addFaceRectangles(rectangles, firstShape, direction);
@@ -183,7 +184,8 @@ void addFaceRectangles(std::vector<FaceRectangle>& rectangles,
 // FlowingFluid 实现
 // ============================================================================
 
-FluidState FlowingFluid::getFlowingState(i32 level, bool falling) const {
+FluidState FlowingFluid::getFlowingState(i32 level, bool falling) const
+{
     // level范围是1-8，但源头是level=8
     level = std::clamp(level, 1, 8);
     const FluidState& state = const_cast<FlowingFluid*>(this)->getFlowing().defaultState();
@@ -192,7 +194,8 @@ FluidState FlowingFluid::getFlowingState(i32 level, bool falling) const {
     return state.with(levelProp, level).with(fallingProp, falling);
 }
 
-FluidState FlowingFluid::getStillState(bool falling) const {
+FluidState FlowingFluid::getStillState(bool falling) const
+{
     // 源头level=8，但isSource=true
     const FluidState& state = const_cast<FlowingFluid*>(this)->getStill().defaultState();
     auto& fallingProp = FluidProperties::FALLING();
@@ -202,13 +205,15 @@ FluidState FlowingFluid::getStillState(bool falling) const {
     return state;
 }
 
-void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
-    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::tick",
-        "position", pos.toString(),
-        "fluidState", state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state)
+{
+    MC_TRACE_EVENT("fluid.tick",
+        "FlowingFluid::tick",
+        "position",
+        pos.toString(),
+        "fluidState",
+        state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     if (!state.isSource()) {
         const BlockState* currentBlock = world.getBlockState(pos);
@@ -233,8 +238,8 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
     flowAround(world, pos, state);
 }
 
-Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
-                               const FluidState& state) const {
+Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos, const FluidState& state) const
+{
     f32 flowX = 0.0f;
     f32 flowZ = 0.0f;
     BlockPos samplePos;
@@ -276,8 +281,7 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
     if (state.isFalling()) {
         for (Direction dir : Directions::horizontal()) {
             samplePos = pos.offset(Directions::toBlockFace(dir));
-            if (causesDownwardCurrent(world, samplePos, dir) ||
-                causesDownwardCurrent(world, samplePos.up(), dir)) {
+            if (causesDownwardCurrent(world, samplePos, dir) || causesDownwardCurrent(world, samplePos.up(), dir)) {
                 flow = flow.normalized() + Vector3(0.0f, -6.0f, 0.0f);
                 break;
             }
@@ -287,7 +291,8 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
     return flow.normalized();
 }
 
-bool FlowingFluid::causesDownwardCurrent(IBlockReader& world, const BlockPos& pos, Direction side) const {
+bool FlowingFluid::causesDownwardCurrent(IBlockReader& world, const BlockPos& pos, Direction side) const
+{
     const BlockState* blockState = world.getBlockState(pos);
     const FluidState* fluidState = world.getFluidState(pos);
 
@@ -311,8 +316,8 @@ bool FlowingFluid::causesDownwardCurrent(IBlockReader& world, const BlockPos& po
     return blockState->isSolidSide(world, pos, side);
 }
 
-CollisionShape FlowingFluid::getShape(const FluidState& state, IBlockReader& world,
-                                       const BlockPos& pos) const {
+CollisionShape FlowingFluid::getShape(const FluidState& state, IBlockReader& world, const BlockPos& pos) const
+{
     // 检查是否为满高度
     if (state.getLevel() == 8 && isFullHeight(state, world, pos)) {
         return CollisionShape::fullBlock();
@@ -325,28 +330,31 @@ CollisionShape FlowingFluid::getShape(const FluidState& state, IBlockReader& wor
     return CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, height, 1.0f);
 }
 
-bool FlowingFluid::isFullHeight(const FluidState& state, IBlockReader& world, const BlockPos& pos) const {
+bool FlowingFluid::isFullHeight(const FluidState& state, IBlockReader& world, const BlockPos& pos) const
+{
     BlockPos above = pos.up();
     const FluidState* aboveFluid = world.getFluidState(above);
     return aboveFluid != nullptr && aboveFluid->getFluid().isEquivalentTo(*this);
 }
 
-i32 FlowingFluid::getTickDelay(IWorld& world, const BlockPos& pos,
-                               const FluidState& state,
-                               const FluidState& correctState) const {
+i32 FlowingFluid::getTickDelay(
+    IWorld& world, const BlockPos& pos, const FluidState& state, const FluidState& correctState) const
+{
     (void)pos;
     (void)state;
     (void)correctState;
     return Fluid::getTickDelay(world);
 }
 
-void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidState& state) {
-    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::flowAround",
-        "position", pos.toString(),
-        "fluidState", state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidState& state)
+{
+    MC_TRACE_EVENT("fluid.tick",
+        "FlowingFluid::flowAround",
+        "position",
+        pos.toString(),
+        "fluidState",
+        state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     if (state.isEmpty()) {
         return;
@@ -357,26 +365,35 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
     const BlockState* belowBlock = world.getBlockState(belowPos);
     FluidState belowFlowState = calculateCorrectFlowingState(world, belowPos, belowBlock);
 
-    if (canFlow(world, pos, currentBlock, Direction::Down, belowPos, belowBlock,
-                *world.getFluidState(belowPos), belowFlowState.getFluid())) {
+    if (canFlow(world,
+            pos,
+            currentBlock,
+            Direction::Down,
+            belowPos,
+            belowBlock,
+            *world.getFluidState(belowPos),
+            belowFlowState.getFluid())) {
         flowInto(world, belowPos, belowBlock, Direction::Down, belowFlowState);
         if (getHorizontalSourceCount(world, pos) >= 3) {
             spreadHorizontally(world, pos, state, currentBlock);
         }
-    } else if (state.isSource() || !canFlowDown(world, belowFlowState.getFluid(), pos, currentBlock, belowPos, belowBlock)) {
+    } else if (state.isSource() ||
+        !canFlowDown(world, belowFlowState.getFluid(), pos, currentBlock, belowPos, belowBlock)) {
         spreadHorizontally(world, pos, state, currentBlock);
     }
 }
 
-void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
-                                        const FluidState& state, const BlockState* blockState) {
-    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::spreadHorizontally",
-        "position", pos.toString(),
-        "fluidState", state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
-    
+void FlowingFluid::spreadHorizontally(
+    IWorld& world, const BlockPos& pos, const FluidState& state, const BlockState* blockState)
+{
+    MC_TRACE_EVENT("fluid.tick",
+        "FlowingFluid::spreadHorizontally",
+        "position",
+        pos.toString(),
+        "fluidState",
+        state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+
     i32 spreadLevel = state.isFalling() ? 7 : state.getLevel() - getLevelDecrease(world);
     if (spreadLevel <= 0) {
         return;
@@ -388,22 +405,31 @@ void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
         BlockPos targetPos = pos.offset(Directions::toBlockFace(dir));
         const BlockState* targetBlock = world.getBlockState(targetPos);
         if (targetBlock != nullptr &&
-            canFlow(world, pos, blockState, dir, targetPos, targetBlock,
-                    *world.getFluidState(targetPos), fluidState.getFluid())) {
+            canFlow(world,
+                pos,
+                blockState,
+                dir,
+                targetPos,
+                targetBlock,
+                *world.getFluidState(targetPos),
+                fluidState.getFluid())) {
             flowInto(world, targetPos, targetBlock, dir, fluidState);
         }
     }
 }
 
-void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
-                             Direction dir, const FluidState& state) {
-    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::flowInto",
-        "position", pos.toString(),
-        "direction", Directions::toString(dir),
-        "fluidState", state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+void FlowingFluid::flowInto(
+    IWorld& world, const BlockPos& pos, const BlockState* blockState, Direction dir, const FluidState& state)
+{
+    MC_TRACE_EVENT("fluid.tick",
+        "FlowingFluid::flowInto",
+        "position",
+        pos.toString(),
+        "direction",
+        Directions::toString(dir),
+        "fluidState",
+        state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     if (blockState != nullptr) {
         Block* blockRef = Block::getBlock(blockState->blockId());
@@ -432,9 +458,9 @@ void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState
     }
 }
 
-FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
-                                                       const BlockPos& pos,
-                                                       const BlockState* blockState) const {
+FluidState FlowingFluid::calculateCorrectFlowingState(
+    IWorld& world, const BlockPos& pos, const BlockState* blockState) const
+{
     if (blockState == nullptr) {
         return *Fluid::getFluidState(FluidRegistry::EMPTY_ID);
     }
@@ -467,8 +493,7 @@ FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
         const BlockState* belowBlock = world.getBlockState(belowPos);
         if (belowBlock != nullptr) {
             const FluidState* belowFluid = belowBlock->getFluidState();
-            if (belowBlock->owner().material().isSolid() ||
-                (belowFluid != nullptr && isSameSource(*belowFluid))) {
+            if (belowBlock->owner().material().isSolid() || (belowFluid != nullptr && isSameSource(*belowFluid))) {
                 return getStillState(false);
             }
         }
@@ -485,14 +510,18 @@ FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
     }
 
     i32 nextLevel = maxLevel - getLevelDecrease(world);
-    return nextLevel <= 0 ? *Fluid::getFluidState(FluidRegistry::EMPTY_ID)
-                          : getFlowingState(nextLevel, false);
+    return nextLevel <= 0 ? *Fluid::getFluidState(FluidRegistry::EMPTY_ID) : getFlowingState(nextLevel, false);
 }
 
-bool FlowingFluid::canFlow(IWorld& world, const BlockPos& fromPos,
-                            const BlockState* fromBlock, Direction dir,
-                            const BlockPos& toPos, const BlockState* toBlock,
-                            const FluidState& toFluid, const Fluid& fluid) const {
+bool FlowingFluid::canFlow(IWorld& world,
+    const BlockPos& fromPos,
+    const BlockState* fromBlock,
+    Direction dir,
+    const BlockPos& toPos,
+    const BlockState* toBlock,
+    const FluidState& toFluid,
+    const Fluid& fluid) const
+{
     // 检查目标流体是否可以被替换
     if (!toFluid.canDisplace(world, toPos, fluid, dir)) {
         return false;
@@ -507,10 +536,13 @@ bool FlowingFluid::canFlow(IWorld& world, const BlockPos& fromPos,
     return isBlocked(world, toPos, toBlock, fluid);
 }
 
-bool FlowingFluid::doesSideHaveHoles(Direction dir, IWorld& world,
-                                      const BlockPos& pos, const BlockState* state,
-                                      const BlockPos& neighborPos,
-                                      const BlockState* neighborState) const {
+bool FlowingFluid::doesSideHaveHoles(Direction dir,
+    IWorld& world,
+    const BlockPos& pos,
+    const BlockState* state,
+    const BlockPos& neighborPos,
+    const BlockState* neighborState) const
+{
     if (state == nullptr || neighborState == nullptr) {
         return true;
     }
@@ -525,7 +557,8 @@ bool FlowingFluid::doesSideHaveHoles(Direction dir, IWorld& world,
     return !facesFillSquare(fromShape, toShape, dir);
 }
 
-bool FlowingFluid::canFormSource(IWorld& world, const BlockPos& pos) {
+bool FlowingFluid::canFormSource(IWorld& world, const BlockPos& pos)
+{
     if (!canSourcesMultiply()) {
         return false;
     }
@@ -551,7 +584,8 @@ bool FlowingFluid::canFormSource(IWorld& world, const BlockPos& pos) {
     return belowFluid != nullptr && isSameSource(*belowFluid);
 }
 
-i32 FlowingFluid::getHorizontalSourceCount(IWorld& world, const BlockPos& pos) const {
+i32 FlowingFluid::getHorizontalSourceCount(IWorld& world, const BlockPos& pos) const
+{
     i32 count = 0;
 
     for (Direction dir : Directions::horizontal()) {
@@ -566,8 +600,8 @@ i32 FlowingFluid::getHorizontalSourceCount(IWorld& world, const BlockPos& pos) c
     return count;
 }
 
-bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos,
-                              const BlockState* block, const Fluid& fluid) const {
+bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos, const BlockState* block, const Fluid& fluid) const
+{
     if (block == nullptr) {
         return false;
     }
@@ -580,15 +614,15 @@ bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos,
     }
 
     const std::string& path = blockRef.blockLocation().path();
-    if (hasSuffix(path, "_door") || hasSuffix(path, "_sign") ||
-        path == "ladder" || path == "sugar_cane" || path == "bubble_column") {
+    if (hasSuffix(path, "_door") || hasSuffix(path, "_sign") || path == "ladder" || path == "sugar_cane" ||
+        path == "bubble_column") {
         return false;
     }
 
     const Material& material = blockRef.material();
 
-    if (material == Material::PORTAL || material == Material::STRUCTURE_VOID ||
-        material == Material::OCEAN_PLANT || material == Material::SEA_GRASS) {
+    if (material == Material::PORTAL || material == Material::STRUCTURE_VOID || material == Material::OCEAN_PLANT ||
+        material == Material::SEA_GRASS) {
         return false;
     }
 
@@ -599,18 +633,25 @@ bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos,
     return !material.blocksMovement();
 }
 
-bool FlowingFluid::isSameOrEmpty(const FluidState& state) const {
+bool FlowingFluid::isSameOrEmpty(const FluidState& state) const
+{
     return state.isEmpty() || isEquivalentTo(state.getFluid());
 }
 
-bool FlowingFluid::isSameSource(const FluidState& state) const {
+bool FlowingFluid::isSameSource(const FluidState& state) const
+{
     return isEquivalentTo(state.getFluid()) && state.isSource();
 }
 
-i32 FlowingFluid::calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 decay, Direction excludeDir,
-                                      const BlockState* blockState, const BlockPos& sourcePos,
-                                      std::unordered_map<i16, std::pair<const BlockState*, const FluidState*>>& stateCache,
-                                      std::unordered_map<i16, bool>& fallCache) const {
+i32 FlowingFluid::calculateFlowDecay(IWorld& world,
+    const BlockPos& pos,
+    i32 decay,
+    Direction excludeDir,
+    const BlockState* blockState,
+    const BlockPos& sourcePos,
+    std::unordered_map<i16, std::pair<const BlockState*, const FluidState*>>& stateCache,
+    std::unordered_map<i16, bool>& fallCache) const
+{
     i32 minDecay = 1000;
 
     for (Direction dir : Directions::horizontal()) {
@@ -657,9 +698,14 @@ i32 FlowingFluid::calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 dec
             }
 
             if (decay < getSpreadDistance(world)) {
-                i32 neighborDecay = calculateFlowDecay(world, neighborPos, decay + 1,
-                                                        Directions::opposite(dir), neighborBlock,
-                                                        sourcePos, stateCache, fallCache);
+                i32 neighborDecay = calculateFlowDecay(world,
+                    neighborPos,
+                    decay + 1,
+                    Directions::opposite(dir),
+                    neighborBlock,
+                    sourcePos,
+                    stateCache,
+                    fallCache);
                 if (neighborDecay < minDecay) {
                     minDecay = neighborDecay;
                 }
@@ -670,9 +716,13 @@ i32 FlowingFluid::calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 dec
     return minDecay;
 }
 
-bool FlowingFluid::canFlowDown(IWorld& world, const Fluid& fluid,
-                                const BlockPos& pos, const BlockState* blockState,
-                                const BlockPos& belowPos, const BlockState* belowBlock) const {
+bool FlowingFluid::canFlowDown(IWorld& world,
+    const Fluid& fluid,
+    const BlockPos& pos,
+    const BlockState* blockState,
+    const BlockPos& belowPos,
+    const BlockState* belowBlock) const
+{
     if (!doesSideHaveHoles(Direction::Down, world, pos, blockState, belowPos, belowBlock)) {
         return false;
     }
@@ -685,24 +735,31 @@ bool FlowingFluid::canFlowDown(IWorld& world, const Fluid& fluid,
     return isBlocked(world, belowPos, belowBlock, fluid);
 }
 
-bool FlowingFluid::canFlowInto(IWorld& world, const BlockPos& fromPos,
-                                const BlockState* fromBlock, Direction dir,
-                                const BlockPos& toPos, const BlockState* toBlock,
-                                const FluidState& toFluid, const Fluid& fluidIn) const {
+bool FlowingFluid::canFlowInto(IWorld& world,
+    const BlockPos& fromPos,
+    const BlockState* fromBlock,
+    Direction dir,
+    const BlockPos& toPos,
+    const BlockState* toBlock,
+    const FluidState& toFluid,
+    const Fluid& fluidIn) const
+{
     if (!isSameSource(toFluid) && doesSideHaveHoles(dir, world, fromPos, fromBlock, toPos, toBlock)) {
         return isBlocked(world, toPos, toBlock, fluidIn);
     }
     return false;
 }
 
-i16 FlowingFluid::packRelativePos(const BlockPos& source, const BlockPos& target) const {
+i16 FlowingFluid::packRelativePos(const BlockPos& source, const BlockPos& target) const
+{
     i32 dx = target.x - source.x;
     i32 dz = target.z - source.z;
     return static_cast<i16>(((dx + 128) & 0xFF) << 8 | ((dz + 128) & 0xFF));
 }
 
 std::unordered_map<Direction, FluidState> FlowingFluid::getFlowDirections(
-    IWorld& world, const BlockPos& pos, const BlockState* blockState) {
+    IWorld& world, const BlockPos& pos, const BlockState* blockState)
+{
     std::unordered_map<Direction, FluidState> result;
     i32 minDecay = 1000;
 
@@ -726,7 +783,8 @@ std::unordered_map<Direction, FluidState> FlowingFluid::getFlowDirections(
 
         FluidState targetState = calculateCorrectFlowingState(world, neighborPos, neighborBlock);
 
-        if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid, targetState.getFluid())) {
+        if (canFlowInto(
+                world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid, targetState.getFluid())) {
             BlockPos below = neighborPos.down();
             const BlockState* belowBlock = world.getBlockState(below);
             bool canFall = canFlowDown(world, *this, neighborPos, neighborBlock, below, belowBlock);
@@ -736,9 +794,8 @@ std::unordered_map<Direction, FluidState> FlowingFluid::getFlowDirections(
             if (canFall) {
                 decay = 0;
             } else {
-                decay = calculateFlowDecay(world, neighborPos, 1,
-                                           Directions::opposite(dir), neighborBlock,
-                                           pos, stateCache, fallCache);
+                decay = calculateFlowDecay(
+                    world, neighborPos, 1, Directions::opposite(dir), neighborBlock, pos, stateCache, fallCache);
             }
 
             if (decay < minDecay) {

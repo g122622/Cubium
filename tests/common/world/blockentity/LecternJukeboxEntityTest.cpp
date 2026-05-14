@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::blockentity;
@@ -22,7 +22,8 @@ namespace {
  * @param path 资源路径。
  * @return 已注册物品指针。
  */
-Item* ensureTestItem(const char* path) {
+Item* ensureTestItem(const char* path)
+{
     auto& registry = ItemRegistry::instance();
     const ResourceLocation id("minecraft", path);
     if (Item* existing = registry.getItem(id); existing != nullptr) {
@@ -35,20 +36,22 @@ Item* ensureTestItem(const char* path) {
 class DummyWorld final : public test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
     }
-
 };
 
 } // namespace
 
 class LecternEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_book = ensureTestItem("book");
         m_writableBook = ensureTestItem("writable_book");
@@ -64,13 +67,15 @@ protected:
     Item* m_stick = nullptr;
 };
 
-TEST_F(LecternEntityTest, SetBook_RejectsNonBookItems) {
+TEST_F(LecternEntityTest, SetBook_RejectsNonBookItems)
+{
     LecternEntity entity(BlockPos(1, 2, 3));
     EXPECT_FALSE(entity.setBook(ItemStack(m_stick, 1)));
     EXPECT_FALSE(entity.hasBook());
 }
 
-TEST_F(LecternEntityTest, SetBook_AcceptsSupportedBookTypes) {
+TEST_F(LecternEntityTest, SetBook_AcceptsSupportedBookTypes)
+{
     LecternEntity entity(BlockPos(1, 2, 3));
     EXPECT_TRUE(entity.setBook(ItemStack(m_book, 1)));
     EXPECT_TRUE(entity.setBook(ItemStack(m_writableBook, 1)));
@@ -78,7 +83,8 @@ TEST_F(LecternEntityTest, SetBook_AcceptsSupportedBookTypes) {
     EXPECT_TRUE(entity.setBook(ItemStack(m_enchantedBook, 1)));
 }
 
-TEST_F(LecternEntityTest, WritableBook_HasExpectedPageAndComparatorRange) {
+TEST_F(LecternEntityTest, WritableBook_HasExpectedPageAndComparatorRange)
+{
     LecternEntity entity(BlockPos(1, 2, 3));
     ASSERT_TRUE(entity.setBook(ItemStack(m_writableBook, 1)));
 
@@ -90,7 +96,8 @@ TEST_F(LecternEntityTest, WritableBook_HasExpectedPageAndComparatorRange) {
     EXPECT_EQ(entity.getComparatorSignal(), 15);
 }
 
-TEST_F(LecternEntityTest, SaveLoad_PreservesBookAndPage) {
+TEST_F(LecternEntityTest, SaveLoad_PreservesBookAndPage)
+{
     LecternEntity original(BlockPos(4, 5, 6));
     ASSERT_TRUE(original.setBook(ItemStack(m_writtenBook, 1)));
     original.setPage(24);
@@ -106,7 +113,8 @@ TEST_F(LecternEntityTest, SaveLoad_PreservesBookAndPage) {
     EXPECT_EQ(loaded.getBook().getItem(), m_writtenBook);
 }
 
-TEST_F(LecternEntityTest, Clone_CopiesBookAndProgress) {
+TEST_F(LecternEntityTest, Clone_CopiesBookAndProgress)
+{
     LecternEntity original(BlockPos(7, 8, 9));
     ASSERT_TRUE(original.setBook(ItemStack(m_enchantedBook, 1)));
     original.openContainer();
@@ -123,7 +131,8 @@ TEST_F(LecternEntityTest, Clone_CopiesBookAndProgress) {
 
 class JukeboxEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_disc13 = ensureTestItem("music_disc_13");
         m_discCat = ensureTestItem("music_disc_cat");
@@ -135,7 +144,8 @@ protected:
     Item* m_stick = nullptr;
 };
 
-TEST_F(JukeboxEntityTest, StartPlaying_OnlyWorksForMusicDisc) {
+TEST_F(JukeboxEntityTest, StartPlaying_OnlyWorksForMusicDisc)
+{
     DummyWorld world;
     JukeboxEntity entity(BlockPos(1, 2, 3));
     entity.setRecord(ItemStack(m_stick, 1));
@@ -150,7 +160,8 @@ TEST_F(JukeboxEntityTest, StartPlaying_OnlyWorksForMusicDisc) {
     EXPECT_GT(entity.getComparatorSignal(), 0);
 }
 
-TEST_F(JukeboxEntityTest, SaveLoadAndClone_PreserveRecordState) {
+TEST_F(JukeboxEntityTest, SaveLoadAndClone_PreserveRecordState)
+{
     JukeboxEntity original(BlockPos(3, 4, 5));
     original.setRecord(ItemStack(m_discCat, 1));
 

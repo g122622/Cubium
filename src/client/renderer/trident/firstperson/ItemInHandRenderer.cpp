@@ -1,6 +1,6 @@
 #include "ItemInHandRenderer.hpp"
-#include "../core/TridentEngine.hpp"
 #include "../../../resource/ResourceManager.hpp"
+#include "../core/TridentEngine.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -15,10 +15,10 @@ using namespace mc::math;
 
 ItemInHandRenderer::ItemInHandRenderer()
     : m_transforms()
-{
-}
+{}
 
-ItemInHandRenderer::~ItemInHandRenderer() {
+ItemInHandRenderer::~ItemInHandRenderer()
+{
     destroy();
 }
 
@@ -26,9 +26,7 @@ ItemInHandRenderer::~ItemInHandRenderer() {
 // 初始化
 // ============================================================================
 
-Result<void> ItemInHandRenderer::initialize(
-    trident::TridentEngine* engine,
-    ResourceManager* resourceManager)
+Result<void> ItemInHandRenderer::initialize(trident::TridentEngine* engine, ResourceManager* resourceManager)
 {
     if (engine == nullptr) {
         return Error(ErrorCode::NullPointer, "TridentEngine is null");
@@ -39,60 +37,62 @@ Result<void> ItemInHandRenderer::initialize(
 
     // 设置默认变换
     // 第三人称右手
-    m_transforms.thirdPersonRight = ItemTransform(
-        0.0f, 0.0f, 0.0f,        // 旋转
-        0.0f, 3.0f, 1.0f,        // 平移
-        0.55f, 0.55f, 0.55f      // 缩放
+    m_transforms.thirdPersonRight = ItemTransform(0.0f,
+        0.0f,
+        0.0f, // 旋转
+        0.0f,
+        3.0f,
+        1.0f, // 平移
+        0.55f,
+        0.55f,
+        0.55f // 缩放
     );
 
     // 第三人称左手（镜像右手）
-    m_transforms.thirdPersonLeft = ItemTransform(
-        0.0f, 0.0f, 0.0f,
-        0.0f, 3.0f, 1.0f,
-        0.55f, 0.55f, 0.55f
-    );
+    m_transforms.thirdPersonLeft = ItemTransform(0.0f, 0.0f, 0.0f, 0.0f, 3.0f, 1.0f, 0.55f, 0.55f, 0.55f);
 
     // 第一人称右手
-    m_transforms.firstPersonRight = ItemTransform(
-        0.0f, 45.0f, 0.0f,       // Y 轴旋转 45 度
-        0.0f, 2.5f, 0.0f,        // Y 平移
-        0.4f, 0.4f, 0.4f         // 缩放
+    m_transforms.firstPersonRight = ItemTransform(0.0f,
+        45.0f,
+        0.0f, // Y 轴旋转 45 度
+        0.0f,
+        2.5f,
+        0.0f, // Y 平移
+        0.4f,
+        0.4f,
+        0.4f // 缩放
     );
 
     // 第一人称左手（镜像右手）
-    m_transforms.firstPersonLeft = ItemTransform(
-        0.0f, -45.0f, 0.0f,      // Y 轴旋转 -45 度
-        0.0f, 2.5f, 0.0f,
-        0.4f, 0.4f, 0.4f
-    );
+    m_transforms.firstPersonLeft = ItemTransform(0.0f,
+        -45.0f,
+        0.0f, // Y 轴旋转 -45 度
+        0.0f,
+        2.5f,
+        0.0f,
+        0.4f,
+        0.4f,
+        0.4f);
 
     // GUI 显示
-    m_transforms.gui = ItemTransform(
-        30.0f, 225.0f, 0.0f,     // 俯视角度
-        0.0f, 0.0f, 0.0f,
-        0.625f, 0.625f, 0.625f
-    );
+    m_transforms.gui = ItemTransform(30.0f,
+        225.0f,
+        0.0f, // 俯视角度
+        0.0f,
+        0.0f,
+        0.0f,
+        0.625f,
+        0.625f,
+        0.625f);
 
     // 地面掉落物
-    m_transforms.ground = ItemTransform(
-        0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f,
-        0.25f, 0.25f, 0.25f
-    );
+    m_transforms.ground = ItemTransform(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
 
     // 固定位置（物品展示框）
-    m_transforms.fixed = ItemTransform(
-        0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.5f
-    );
+    m_transforms.fixed = ItemTransform(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f);
 
     // 头部位置（如南瓜）
-    m_transforms.head = ItemTransform(
-        0.0f, 180.0f, 0.0f,
-        0.0f, 0.0f, 0.0f,
-        1.0f, 1.0f, 1.0f
-    );
+    m_transforms.head = ItemTransform(0.0f, 180.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 
     m_initialized = true;
 
@@ -100,7 +100,8 @@ Result<void> ItemInHandRenderer::initialize(
     return {};
 }
 
-void ItemInHandRenderer::destroy() {
+void ItemInHandRenderer::destroy()
+{
     m_engine = nullptr;
     m_resourceManager = nullptr;
     m_initialized = false;
@@ -110,10 +111,9 @@ void ItemInHandRenderer::destroy() {
 // 渲染方法
 // ============================================================================
 
-void ItemInHandRenderer::renderItem(MatrixStack& matrixStack,
-                                     const ItemStack& itemStack,
-                                     TransformType transformType,
-                                     bool leftHanded) {
+void ItemInHandRenderer::renderItem(
+    MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
+{
     if (!m_initialized || itemStack.isEmpty()) {
         return;
     }
@@ -137,10 +137,9 @@ void ItemInHandRenderer::renderItem(MatrixStack& matrixStack,
     // 这部分将在集成 ItemRenderer 和 BlockModelCache 后实现
 }
 
-void ItemInHandRenderer::renderBlockItem(MatrixStack& matrixStack,
-                                          const ItemStack& itemStack,
-                                          TransformType transformType,
-                                          bool leftHanded) {
+void ItemInHandRenderer::renderBlockItem(
+    MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
+{
     // TODO: 实现方块物品渲染
     // 需要 BlockModelCache 支持
     (void)matrixStack;
@@ -149,10 +148,9 @@ void ItemInHandRenderer::renderBlockItem(MatrixStack& matrixStack,
     (void)leftHanded;
 }
 
-void ItemInHandRenderer::renderRegularItem(MatrixStack& matrixStack,
-                                            const ItemStack& itemStack,
-                                            TransformType transformType,
-                                            bool leftHanded) {
+void ItemInHandRenderer::renderRegularItem(
+    MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
+{
     // TODO: 实现普通物品渲染
     // 需要 ItemTextureAtlas 支持
     (void)matrixStack;
@@ -165,10 +163,9 @@ void ItemInHandRenderer::renderRegularItem(MatrixStack& matrixStack,
 // 变换应用
 // ============================================================================
 
-bool ItemInHandRenderer::applyTransform(MatrixStack& matrixStack,
-                                          const ItemStack& itemStack,
-                                          TransformType transformType,
-                                          bool leftHanded) {
+bool ItemInHandRenderer::applyTransform(
+    MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
+{
     // TODO: 从物品模型获取自定义变换
     // const Item* item = itemStack.getItem();
     // if (item != nullptr) {
@@ -185,9 +182,8 @@ bool ItemInHandRenderer::applyTransform(MatrixStack& matrixStack,
     return false;
 }
 
-void ItemInHandRenderer::applyDefaultTransform(MatrixStack& matrixStack,
-                                                TransformType transformType,
-                                                bool leftHanded) {
+void ItemInHandRenderer::applyDefaultTransform(MatrixStack& matrixStack, TransformType transformType, bool leftHanded)
+{
     // 获取对应的变换
     const ItemTransform& transform = m_transforms.getTransform(transformType);
 

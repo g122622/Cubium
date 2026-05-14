@@ -1,34 +1,36 @@
-#include <gtest/gtest.h>
 #include "common/util/math/frustum/Frustum.hpp"
+#include "common/core/Constants.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/core/Constants.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <cmath>
+#include <gtest/gtest.h>
 
 using namespace mc::math::frustum;
 using namespace mc;
 
 // 辅助函数：创建透视投影矩阵
-glm::mat4 createPerspectiveMatrix(f32 fov, f32 aspect, f32 nearPlane, f32 farPlane) {
+glm::mat4 createPerspectiveMatrix(f32 fov, f32 aspect, f32 nearPlane, f32 farPlane)
+{
     return glm::perspective(glm::radians(fov), aspect, nearPlane, farPlane);
 }
 
 // 辅助函数：创建视图矩阵（相机在原点，看向 -Z 方向）
-glm::mat4 createViewMatrix(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up) {
+glm::mat4 createViewMatrix(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up)
+{
     return glm::lookAt(position, target, up);
 }
 
 class FrustumTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建默认的透视和视图矩阵
         projection = createPerspectiveMatrix(70.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
-        view = createViewMatrix(
-            glm::vec3(0.0f, 0.0f, 0.0f),   // 相机位置
-            glm::vec3(0.0f, 0.0f, -1.0f),  // 看向 -Z
-            glm::vec3(0.0f, 1.0f, 0.0f)    // 上方向
+        view = createViewMatrix(glm::vec3(0.0f, 0.0f, 0.0f), // 相机位置
+            glm::vec3(0.0f, 0.0f, -1.0f),                    // 看向 -Z
+            glm::vec3(0.0f, 1.0f, 0.0f)                      // 上方向
         );
         viewProjection = projection * view;
     }
@@ -40,7 +42,8 @@ protected:
 
 // ========== 平面提取测试 ==========
 
-TEST_F(FrustumTest, ExtractPlanesFromMatrix) {
+TEST_F(FrustumTest, ExtractPlanesFromMatrix)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -55,14 +58,16 @@ TEST_F(FrustumTest, ExtractPlanesFromMatrix) {
     }
 }
 
-TEST_F(FrustumTest, ExtractPlanesFromMatrices) {
+TEST_F(FrustumTest, ExtractPlanesFromMatrices)
+{
     Frustum frustum;
     frustum.extractFromMatrices(projection, view);
 
     EXPECT_TRUE(frustum.isValid());
 }
 
-TEST_F(FrustumTest, PlanesHaveCorrectOrientation) {
+TEST_F(FrustumTest, PlanesHaveCorrectOrientation)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -85,7 +90,8 @@ TEST_F(FrustumTest, PlanesHaveCorrectOrientation) {
     // 近平面法向量：对于右手坐标系相机看向 -Z，视锥内部在近平面的"前方"
     // 即更负的 Z 方向，所以法向量指向 -Z
     const auto& nearPlane = frustum.getPlane(Frustum::Near);
-    EXPECT_LT(nearPlane.normal.z, 0.0f) << "Near plane normal should point into frustum (-Z for right-hand system looking -Z)";
+    EXPECT_LT(nearPlane.normal.z, 0.0f)
+        << "Near plane normal should point into frustum (-Z for right-hand system looking -Z)";
 
     // 远平面法向量：视锥内部在远平面的"后方"（更接近相机）
     // 所以法向量指向 +Z
@@ -95,7 +101,8 @@ TEST_F(FrustumTest, PlanesHaveCorrectOrientation) {
 
 // ========== 点可见性测试 ==========
 
-TEST_F(FrustumTest, PointVisibility_PointInFront) {
+TEST_F(FrustumTest, PointVisibility_PointInFront)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -108,7 +115,8 @@ TEST_F(FrustumTest, PointVisibility_PointInFront) {
     EXPECT_TRUE(frustum.isPointVisible(pointOffCenter));
 }
 
-TEST_F(FrustumTest, PointVisibility_PointBehind) {
+TEST_F(FrustumTest, PointVisibility_PointBehind)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -117,25 +125,28 @@ TEST_F(FrustumTest, PointVisibility_PointBehind) {
     EXPECT_FALSE(frustum.isPointVisible(pointBehind));
 }
 
-TEST_F(FrustumTest, PointVisibility_PointTooFar) {
+TEST_F(FrustumTest, PointVisibility_PointTooFar)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
     // 远裁剪面之外的点应该不可见
-    Vector3 pointTooFar(0.0f, 0.0f, -1500.0f);  // 超过 far plane 1000
+    Vector3 pointTooFar(0.0f, 0.0f, -1500.0f); // 超过 far plane 1000
     EXPECT_FALSE(frustum.isPointVisible(pointTooFar));
 }
 
-TEST_F(FrustumTest, PointVisibility_PointTooClose) {
+TEST_F(FrustumTest, PointVisibility_PointTooClose)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
     // 近裁剪面之内的点应该不可见
-    Vector3 pointTooClose(0.0f, 0.0f, -0.05f);  // 小于 near plane 0.1
+    Vector3 pointTooClose(0.0f, 0.0f, -0.05f); // 小于 near plane 0.1
     EXPECT_FALSE(frustum.isPointVisible(pointTooClose));
 }
 
-TEST_F(FrustumTest, PointVisibility_PointAtBoundary) {
+TEST_F(FrustumTest, PointVisibility_PointAtBoundary)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -144,7 +155,8 @@ TEST_F(FrustumTest, PointVisibility_PointAtBoundary) {
     EXPECT_TRUE(frustum.isPointVisible(pointOnNearPlane));
 }
 
-TEST_F(FrustumTest, PointVisibility_GlmVersion) {
+TEST_F(FrustumTest, PointVisibility_GlmVersion)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -157,7 +169,8 @@ TEST_F(FrustumTest, PointVisibility_GlmVersion) {
 
 // ========== 球可见性测试 ==========
 
-TEST_F(FrustumTest, SphereVisibility_SphereInFront) {
+TEST_F(FrustumTest, SphereVisibility_SphereInFront)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -166,7 +179,8 @@ TEST_F(FrustumTest, SphereVisibility_SphereInFront) {
     EXPECT_TRUE(frustum.isSphereVisible(center, radius));
 }
 
-TEST_F(FrustumTest, SphereVisibility_SphereBehind) {
+TEST_F(FrustumTest, SphereVisibility_SphereBehind)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -175,17 +189,19 @@ TEST_F(FrustumTest, SphereVisibility_SphereBehind) {
     EXPECT_FALSE(frustum.isSphereVisible(center, radius));
 }
 
-TEST_F(FrustumTest, SphereVisibility_SpherePartiallyVisible) {
+TEST_F(FrustumTest, SphereVisibility_SpherePartiallyVisible)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
     // 球心在视锥外，但部分伸入视锥
-    Vector3 center(0.0f, 0.0f, 15.0f);  // 在相机后面
-    f32 radius = 20.0f;  // 大球，部分在视锥内
+    Vector3 center(0.0f, 0.0f, 15.0f); // 在相机后面
+    f32 radius = 20.0f;                // 大球，部分在视锥内
     EXPECT_TRUE(frustum.isSphereVisible(center, radius));
 }
 
-TEST_F(FrustumTest, SphereVisibility_SphereTooFar) {
+TEST_F(FrustumTest, SphereVisibility_SphereTooFar)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -194,12 +210,13 @@ TEST_F(FrustumTest, SphereVisibility_SphereTooFar) {
     EXPECT_FALSE(frustum.isSphereVisible(center, radius));
 }
 
-TEST_F(FrustumTest, SphereVisibility_SphereAtEdge) {
+TEST_F(FrustumTest, SphereVisibility_SphereAtEdge)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
     // 球心在视锥边缘，但球的一部分在视锥内
-    Vector3 center(20.0f, 0.0f, -10.0f);  // 可能在边缘
+    Vector3 center(20.0f, 0.0f, -10.0f); // 可能在边缘
     f32 radius = 5.0f;
     // 边缘测试：确保不会崩溃，且返回有效的布尔值
     bool result = frustum.isSphereVisible(center, radius);
@@ -207,7 +224,8 @@ TEST_F(FrustumTest, SphereVisibility_SphereAtEdge) {
     EXPECT_TRUE(result == true || result == false);
 }
 
-TEST_F(FrustumTest, SphereVisibility_GlmVersion) {
+TEST_F(FrustumTest, SphereVisibility_GlmVersion)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -218,7 +236,8 @@ TEST_F(FrustumTest, SphereVisibility_GlmVersion) {
 
 // ========== AABB 可见性测试 ==========
 
-TEST_F(FrustumTest, AABBVisibility_AABBInFront) {
+TEST_F(FrustumTest, AABBVisibility_AABBInFront)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -227,7 +246,8 @@ TEST_F(FrustumTest, AABBVisibility_AABBInFront) {
     EXPECT_TRUE(frustum.isAABBVisible(aabb));
 }
 
-TEST_F(FrustumTest, AABBVisibility_AABBBehind) {
+TEST_F(FrustumTest, AABBVisibility_AABBBehind)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -236,16 +256,18 @@ TEST_F(FrustumTest, AABBVisibility_AABBBehind) {
     EXPECT_FALSE(frustum.isAABBVisible(aabb));
 }
 
-TEST_F(FrustumTest, AABBVisibility_AABBPartiallyVisible) {
+TEST_F(FrustumTest, AABBVisibility_AABBPartiallyVisible)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
     // 部分在视锥内的 AABB（跨越近裁剪面）
     AxisAlignedBB aabb(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
-    EXPECT_TRUE(frustum.isAABBVisible(aabb));  // 保守测试，应该报告可见
+    EXPECT_TRUE(frustum.isAABBVisible(aabb)); // 保守测试，应该报告可见
 }
 
-TEST_F(FrustumTest, AABBVisibility_AABBTooFar) {
+TEST_F(FrustumTest, AABBVisibility_AABBTooFar)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -254,7 +276,8 @@ TEST_F(FrustumTest, AABBVisibility_AABBTooFar) {
     EXPECT_FALSE(frustum.isAABBVisible(aabb));
 }
 
-TEST_F(FrustumTest, AABBVisibility_AABBAtEdge) {
+TEST_F(FrustumTest, AABBVisibility_AABBAtEdge)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -266,7 +289,8 @@ TEST_F(FrustumTest, AABBVisibility_AABBAtEdge) {
     EXPECT_TRUE(result == true || result == false);
 }
 
-TEST_F(FrustumTest, AABBVisibility_WorldCoordinates) {
+TEST_F(FrustumTest, AABBVisibility_WorldCoordinates)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(0.0f, 0.0f, 0.0f));
@@ -276,7 +300,8 @@ TEST_F(FrustumTest, AABBVisibility_WorldCoordinates) {
     EXPECT_TRUE(frustum.isAABBVisibleWorld(worldAABB));
 }
 
-TEST_F(FrustumTest, AABBVisibility_LargeAABB) {
+TEST_F(FrustumTest, AABBVisibility_LargeAABB)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -285,20 +310,22 @@ TEST_F(FrustumTest, AABBVisibility_LargeAABB) {
     EXPECT_TRUE(frustum.isAABBVisible(hugeAABB));
 }
 
-TEST_F(FrustumTest, AABBVisibility_EmptyAABB) {
+TEST_F(FrustumTest, AABBVisibility_EmptyAABB)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
     // 空 AABB（实际上是一个点在原点）
     // 相机在原点看向 -Z，近裁剪面在 z=-0.1
     // 原点 (0,0,0) 在近平面之前（z > -0.1），所以不在视锥内
-    AxisAlignedBB emptyAABB;  // 默认构造，min = max = 0
+    AxisAlignedBB emptyAABB; // 默认构造，min = max = 0
     EXPECT_FALSE(frustum.isAABBVisible(emptyAABB));
 }
 
 // ========== 区块可见性测试 ==========
 
-TEST_F(FrustumTest, ChunkVisibility_ChunkInFront) {
+TEST_F(FrustumTest, ChunkVisibility_ChunkInFront)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -307,7 +334,8 @@ TEST_F(FrustumTest, ChunkVisibility_ChunkInFront) {
     EXPECT_TRUE(frustum.isChunkVisible(0, -1, 0, mc::world::MAX_BUILD_HEIGHT));
 }
 
-TEST_F(FrustumTest, ChunkVisibility_ChunkBehind) {
+TEST_F(FrustumTest, ChunkVisibility_ChunkBehind)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -316,7 +344,8 @@ TEST_F(FrustumTest, ChunkVisibility_ChunkBehind) {
     EXPECT_FALSE(frustum.isChunkVisible(0, 1, 0, mc::world::MAX_BUILD_HEIGHT));
 }
 
-TEST_F(FrustumTest, ChunkVisibility_ChunkAtCameraPosition) {
+TEST_F(FrustumTest, ChunkVisibility_ChunkAtCameraPosition)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(8.0f, 64.0f, 8.0f));
@@ -325,7 +354,8 @@ TEST_F(FrustumTest, ChunkVisibility_ChunkAtCameraPosition) {
     EXPECT_TRUE(frustum.isChunkVisible(0, 0, 0, mc::world::MAX_BUILD_HEIGHT));
 }
 
-TEST_F(FrustumTest, ChunkVisibility_CameraMoved) {
+TEST_F(FrustumTest, ChunkVisibility_CameraMoved)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -352,34 +382,38 @@ TEST_F(FrustumTest, ChunkVisibility_CameraMoved) {
 
 // ========== 区块段可见性测试 ==========
 
-TEST_F(FrustumTest, ChunkSectionVisibility_SectionInFront) {
+TEST_F(FrustumTest, ChunkSectionVisibility_SectionInFront)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
 
-    EXPECT_TRUE(frustum.isChunkSectionVisible(0, 4, -1));  // Y=64 左右的段
+    EXPECT_TRUE(frustum.isChunkSectionVisible(0, 4, -1)); // Y=64 左右的段
 }
 
-TEST_F(FrustumTest, ChunkSectionVisibility_SectionBehind) {
+TEST_F(FrustumTest, ChunkSectionVisibility_SectionBehind)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
 
-    EXPECT_FALSE(frustum.isChunkSectionVisible(0, 4, 1));  // 相机后方的段
+    EXPECT_FALSE(frustum.isChunkSectionVisible(0, 4, 1)); // 相机后方的段
 }
 
-TEST_F(FrustumTest, ChunkSectionVisibility_SectionAbove) {
+TEST_F(FrustumTest, ChunkSectionVisibility_SectionAbove)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
 
     // 上方的段（可能被顶平面裁剪，取决于 FOV）
-    frustum.isChunkSectionVisible(0, 15, -1);  // 最顶层段
+    frustum.isChunkSectionVisible(0, 15, -1); // 最顶层段
 }
 
 // ========== 相机位置测试 ==========
 
-TEST_F(FrustumTest, CameraPosition_SetGet) {
+TEST_F(FrustumTest, CameraPosition_SetGet)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -391,7 +425,8 @@ TEST_F(FrustumTest, CameraPosition_SetGet) {
     EXPECT_EQ(frustum.getCameraPosition().z, -50.0f);
 }
 
-TEST_F(FrustumTest, CameraPosition_GlmVersion) {
+TEST_F(FrustumTest, CameraPosition_GlmVersion)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
@@ -405,7 +440,8 @@ TEST_F(FrustumTest, CameraPosition_GlmVersion) {
 
 // ========== 工具函数测试 ==========
 
-TEST_F(FrustumTest, Utils_CreateChunkAABB) {
+TEST_F(FrustumTest, Utils_CreateChunkAABB)
+{
     auto aabb = FrustumUtils::createChunkAABB(0, 0, 0, mc::world::MAX_BUILD_HEIGHT);
 
     EXPECT_FLOAT_EQ(aabb.minX, 0.0f);
@@ -416,7 +452,8 @@ TEST_F(FrustumTest, Utils_CreateChunkAABB) {
     EXPECT_FLOAT_EQ(aabb.maxZ, 16.0f);
 }
 
-TEST_F(FrustumTest, Utils_CreateChunkAABB_Negative) {
+TEST_F(FrustumTest, Utils_CreateChunkAABB_Negative)
+{
     auto aabb = FrustumUtils::createChunkAABB(-1, -1, -64, 320);
 
     EXPECT_FLOAT_EQ(aabb.minX, -16.0f);
@@ -425,7 +462,8 @@ TEST_F(FrustumTest, Utils_CreateChunkAABB_Negative) {
     EXPECT_FLOAT_EQ(aabb.maxZ, 0.0f);
 }
 
-TEST_F(FrustumTest, Utils_CreateSectionAABB) {
+TEST_F(FrustumTest, Utils_CreateSectionAABB)
+{
     auto aabb = FrustumUtils::createSectionAABB(0, 0, 0);
 
     EXPECT_FLOAT_EQ(aabb.minX, 0.0f);
@@ -436,14 +474,16 @@ TEST_F(FrustumTest, Utils_CreateSectionAABB) {
     EXPECT_FLOAT_EQ(aabb.maxZ, 16.0f);
 }
 
-TEST_F(FrustumTest, Utils_CreateSectionAABB_HighSection) {
+TEST_F(FrustumTest, Utils_CreateSectionAABB_HighSection)
+{
     auto aabb = FrustumUtils::createSectionAABB(0, 10, 0);
 
     EXPECT_FLOAT_EQ(aabb.minY, 160.0f);
     EXPECT_FLOAT_EQ(aabb.maxY, 176.0f);
 }
 
-TEST_F(FrustumTest, Utils_CreateEntityAABB) {
+TEST_F(FrustumTest, Utils_CreateEntityAABB)
+{
     Vector3 pos(10.0f, 64.0f, 20.0f);
     auto aabb = FrustumUtils::createEntityAABB(pos, 0.6f, 1.8f);
 
@@ -455,7 +495,8 @@ TEST_F(FrustumTest, Utils_CreateEntityAABB) {
     EXPECT_FLOAT_EQ(aabb.maxZ, 20.3f);
 }
 
-TEST_F(FrustumTest, Utils_CreateBlockAABB) {
+TEST_F(FrustumTest, Utils_CreateBlockAABB)
+{
     auto aabb = FrustumUtils::createBlockAABB(10, 20, 30);
 
     EXPECT_FLOAT_EQ(aabb.minX, 10.0f);
@@ -466,7 +507,8 @@ TEST_F(FrustumTest, Utils_CreateBlockAABB) {
     EXPECT_FLOAT_EQ(aabb.maxZ, 31.0f);
 }
 
-TEST_F(FrustumTest, Utils_ExpandAABB) {
+TEST_F(FrustumTest, Utils_ExpandAABB)
+{
     AxisAlignedBB aabb(0.0f, 0.0f, 0.0f, 10.0f, 10.0f, 10.0f);
     auto expanded = FrustumUtils::expandAABB(aabb, 1.0f);
 
@@ -480,7 +522,8 @@ TEST_F(FrustumTest, Utils_ExpandAABB) {
 
 // ========== 视角变化测试 ==========
 
-TEST_F(FrustumTest, DifferentFOV) {
+TEST_F(FrustumTest, DifferentFOV)
+{
     // 窄视角（更小的视锥）
     glm::mat4 narrowProjection = createPerspectiveMatrix(30.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
     Frustum narrowFrustum;
@@ -499,13 +542,12 @@ TEST_F(FrustumTest, DifferentFOV) {
     wideFrustum.isPointVisible(edgePoint);
 }
 
-TEST_F(FrustumTest, RotatedCamera) {
+TEST_F(FrustumTest, RotatedCamera)
+{
     // 相机旋转90度看向 +X
-    glm::mat4 rotatedView = createViewMatrix(
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(1.0f, 0.0f, 0.0f),  // 看向 +X
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
+    glm::mat4 rotatedView = createViewMatrix(glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(1.0f, 0.0f, 0.0f), // 看向 +X
+        glm::vec3(0.0f, 1.0f, 0.0f));
 
     Frustum frustum;
     frustum.extractFromMatrix(projection * rotatedView);
@@ -516,20 +558,22 @@ TEST_F(FrustumTest, RotatedCamera) {
 
     // 负 Z 方向的点现在在侧面，取决于 FOV
     Vector3 pointSide(0.0f, 0.0f, -10.0f);
-    frustum.isPointVisible(pointSide);  // 不崩溃即可
+    frustum.isPointVisible(pointSide); // 不崩溃即可
 }
 
 // ========== 边界情况测试 ==========
 
-TEST_F(FrustumTest, UninitializedFrustum) {
+TEST_F(FrustumTest, UninitializedFrustum)
+{
     Frustum frustum;
     EXPECT_FALSE(frustum.isValid());
 
     // 未初始化时调用应该安全（但结果未定义）
-    frustum.isPointVisible(Vector3(0.0f, 0.0f, 0.0f));  // 不崩溃即可
+    frustum.isPointVisible(Vector3(0.0f, 0.0f, 0.0f)); // 不崩溃即可
 }
 
-TEST_F(FrustumTest, VerySmallNearPlane) {
+TEST_F(FrustumTest, VerySmallNearPlane)
+{
     glm::mat4 smallNearProjection = createPerspectiveMatrix(70.0f, 16.0f / 9.0f, 0.001f, 1000.0f);
     Frustum frustum;
     frustum.extractFromMatrix(smallNearProjection * view);
@@ -539,7 +583,8 @@ TEST_F(FrustumTest, VerySmallNearPlane) {
     EXPECT_TRUE(frustum.isPointVisible(nearPoint));
 }
 
-TEST_F(FrustumTest, VeryLargeFarPlane) {
+TEST_F(FrustumTest, VeryLargeFarPlane)
+{
     glm::mat4 largeFarProjection = createPerspectiveMatrix(70.0f, 16.0f / 9.0f, 0.1f, 100000.0f);
     Frustum frustum;
     frustum.extractFromMatrix(largeFarProjection * view);
@@ -549,7 +594,8 @@ TEST_F(FrustumTest, VeryLargeFarPlane) {
     EXPECT_TRUE(frustum.isPointVisible(farPoint));
 }
 
-TEST_F(FrustumTest, NegativeAspectRatio) {
+TEST_F(FrustumTest, NegativeAspectRatio)
+{
     // 负宽高比应该被 glm 处理
     EXPECT_NO_THROW({
         glm::mat4 negAspectProjection = createPerspectiveMatrix(70.0f, -16.0f / 9.0f, 0.1f, 1000.0f);
@@ -558,13 +604,14 @@ TEST_F(FrustumTest, NegativeAspectRatio) {
     });
 }
 
-TEST_F(FrustumTest, ExtremeCoordinates) {
+TEST_F(FrustumTest, ExtremeCoordinates)
+{
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(1000000.0f, 64.0f, 1000000.0f));
 
     // 大坐标下的区块测试
-    i32 farChunkX = 62500;  // 约 1000000 / 16
+    i32 farChunkX = 62500; // 约 1000000 / 16
     i32 farChunkZ = 62500;
 
     // 不崩溃即可

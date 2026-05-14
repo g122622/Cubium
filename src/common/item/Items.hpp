@@ -41,8 +41,8 @@ public:
     // ========================================================================
     // 宝石碎片
     // ========================================================================
-    static Item* DIAMOND_SHARD;        // 自定义：钻石碎片（暂用）
-    static Item* EMERALD_SHARD;        // 自定义：绿宝石碎片（暂用）
+    static Item* DIAMOND_SHARD; // 自定义：钻石碎片（暂用）
+    static Item* EMERALD_SHARD; // 自定义：绿宝石碎片（暂用）
 
     // ========================================================================
     // 煤炭相关
@@ -178,8 +178,8 @@ public:
     // ========================================================================
     // 特殊护甲
     // ========================================================================
-    static Item* TURTLE_HELMET;    // 海龟壳 - 在酿造材料部分已声明
-    static Item* ELYTRA;           // 鞘翅
+    static Item* TURTLE_HELMET; // 海龟壳 - 在酿造材料部分已声明
+    static Item* ELYTRA;        // 鞘翅
 
     // ========================================================================
     // 食物
@@ -262,16 +262,16 @@ public:
     // ========================================================================
     static Item* FLINT;
     static Item* FLINT_AND_STEEL;
-    static Item* SHEARS;                // 剪刀
-    static Item* NAME_TAG;              // 命名牌
-    static Item* SADDLE;                // 鞍
+    static Item* SHEARS;   // 剪刀
+    static Item* NAME_TAG; // 命名牌
+    static Item* SADDLE;   // 鞍
     static Item* STRING;
     static Item* FEATHER;
     static Item* GUNPOWDER;
     static Item* LEATHER;
     static Item* SLIME_BALL;
     static Item* EGG;
-    static Item* SNOWBALL;              // 雪球
+    static Item* SNOWBALL; // 雪球
     static Item* COMPASS;
     static Item* CLOCK;
     static Item* FERMENTED_SPIDER_EYE;
@@ -283,7 +283,7 @@ public:
     static Item* FIRE_CHARGE;
     static Item* FIREWORK_STAR;
     static Item* FIREWORK_ROCKET;
-    static Item* EXPERIENCE_BOTTLE;     // 附魔之瓶
+    static Item* EXPERIENCE_BOTTLE; // 附魔之瓶
 
     // ========================================================================
     // 染料 (16色)
@@ -329,21 +329,21 @@ public:
     // ========================================================================
     // 水域更新材料
     // ========================================================================
-    static Item* SCUTE;                  // 鳞甲 - 海龟掉落
-    static Item* HEART_OF_THE_SEA;       // 海洋之心 - 宝藏物品
-    static Item* NAUTILUS_SHELL;         // 鹦鹉螺壳 - 溺尸掉落/钓鱼
-    static Item* PHANTOM_MEMBRANE;       // 幻翼膜 - 幻翼掉落
+    static Item* SCUTE;            // 鳞甲 - 海龟掉落
+    static Item* HEART_OF_THE_SEA; // 海洋之心 - 宝藏物品
+    static Item* NAUTILUS_SHELL;   // 鹦鹉螺壳 - 溺尸掉落/钓鱼
+    static Item* PHANTOM_MEMBRANE; // 幻翼膜 - 幻翼掉落
     // DRIED_KELP 在食物部分声明
 
     // ========================================================================
     // 酿造材料
     // ========================================================================
-    static Item* NETHER_WART;            // 地狱疣 - 酿造基础材料
+    static Item* NETHER_WART; // 地狱疣 - 酿造基础材料
     // GOLDEN_CARROT 在食物部分声明
-    static Item* GHAST_TEAR;             // 恶魂之泪 - 生命恢复药水
-    static Item* RABBIT_FOOT;            // 兔子脚 - 跳跃药水
-    static Item* MAGMA_CREAM;            // 岩浆膏 - 防火药水
-    static Item* DRAGON_BREATH;          // 龙息 - 滞留药水
+    static Item* GHAST_TEAR;    // 恶魂之泪 - 生命恢复药水
+    static Item* RABBIT_FOOT;   // 兔子脚 - 跳跃药水
+    static Item* MAGMA_CREAM;   // 岩浆膏 - 防火药水
+    static Item* DRAGON_BREATH; // 龙息 - 滞留药水
     // PUFFERFISH 在食物部分声明
     // TURTLE_HELMET 在特殊护甲部分声明
     static Item* GLISTERING_MELON_SLICE; // 闪烁的西瓜片 - 瞬间治疗药水
@@ -351,48 +351,48 @@ public:
     // ========================================================================
     // 药水相关
     // ========================================================================
-    static Item* GLASS_BOTTLE;           // 玻璃瓶
-    static Item* POTION;                 // 药水
-    static Item* SPLASH_POTION;          // 喷溅药水
-    static Item* LINGERING_POTION;       // 滞留药水
+    static Item* GLASS_BOTTLE;     // 玻璃瓶
+    static Item* POTION;           // 药水
+    static Item* SPLASH_POTION;    // 喷溅药水
+    static Item* LINGERING_POTION; // 滞留药水
 
     // ========================================================================
     // 武器和弹药
     // ========================================================================
-    static Item* BOW;                    // 弓
-    static Item* ARROW;                  // 箭矢
-    static Item* SPECTRAL_ARROW;         // 光灵箭
-    static Item* TIPPED_ARROW;           // 药水箭
-    static Item* CROSSBOW;               // 弩
-    static Item* TRIDENT;                // 三叉戟
-    static Item* SHIELD;                 // 盾牌
-    static Item* FISHING_ROD;            // 钓鱼竿
+    static Item* BOW;            // 弓
+    static Item* ARROW;          // 箭矢
+    static Item* SPECTRAL_ARROW; // 光灵箭
+    static Item* TIPPED_ARROW;   // 药水箭
+    static Item* CROSSBOW;       // 弩
+    static Item* TRIDENT;        // 三叉戟
+    static Item* SHIELD;         // 盾牌
+    static Item* FISHING_ROD;    // 钓鱼竿
 
     // ========================================================================
     // 桶类
     // ========================================================================
-    static Item* BUCKET;                 // 空桶
-    static Item* WATER_BUCKET;           // 水桶
-    static Item* LAVA_BUCKET;            // 岩浆桶
-    static Item* COD_BUCKET;             // 鳕鱼桶
-    static Item* SALMON_BUCKET;          // 鲑鱼桶
-    static Item* PUFFERFISH_BUCKET;      // 河豚桶
-    static Item* TROPICAL_FISH_BUCKET;   // 热带鱼桶
-    static Item* MILK_BUCKET;            // 牛奶桶
+    static Item* BUCKET;               // 空桶
+    static Item* WATER_BUCKET;         // 水桶
+    static Item* LAVA_BUCKET;          // 岩浆桶
+    static Item* COD_BUCKET;           // 鳕鱼桶
+    static Item* SALMON_BUCKET;        // 鲑鱼桶
+    static Item* PUFFERFISH_BUCKET;    // 河豚桶
+    static Item* TROPICAL_FISH_BUCKET; // 热带鱼桶
+    static Item* MILK_BUCKET;          // 牛奶桶
 
     // ========================================================================
     // 书本类物品
     // ========================================================================
-    static Item* BOOK;                   // 书
-    static Item* ENCHANTED_BOOK;         // 附魔书
-    static Item* WRITABLE_BOOK;          // 书与笔
-    static Item* WRITTEN_BOOK;           // 成书
+    static Item* BOOK;           // 书
+    static Item* ENCHANTED_BOOK; // 附魔书
+    static Item* WRITABLE_BOOK;  // 书与笔
+    static Item* WRITTEN_BOOK;   // 成书
 
     // ========================================================================
     // 海绵
     // ========================================================================
-    static Item* SPONGE;                 // 海绵（干燥）
-    static Item* WET_SPONGE;             // 湿海绵
+    static Item* SPONGE;     // 海绵（干燥）
+    static Item* WET_SPONGE; // 湿海绵
 
     // ========================================================================
     // 矿车
@@ -407,9 +407,9 @@ public:
     // ========================================================================
     // 悬挂实体物品
     // ========================================================================
-    static Item* PAINTING;               // 画作
-    static Item* ITEM_FRAME;             // 物品展示框
-    static Item* LEAD;                   // 拴绳
+    static Item* PAINTING;   // 画作
+    static Item* ITEM_FRAME; // 物品展示框
+    static Item* LEAD;       // 拴绳
 
 private:
     static bool s_initialized;

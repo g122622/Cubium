@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../util/math/Vector3.hpp"
 #include "../util/Direction.hpp"
+#include "../util/math/Vector3.hpp"
 #include "../world/chunk/ChunkPos.hpp"
 
 namespace mc {
@@ -10,8 +10,8 @@ namespace mc {
  * @brief 射线检测结果类型
  */
 enum class RaycastType : u8 {
-    Miss,   ///< 未击中任何方块
-    Block   ///< 击中方块
+    Miss, ///< 未击中任何方块
+    Block ///< 击中方块
 };
 
 /**
@@ -40,28 +40,20 @@ public:
     /**
      * @brief 构造hit结果
      */
-    BlockRaycastResult(
-        const Vector3& hitPos,
-        const BlockPos& blockPos,
-        Direction face,
-        f32 distance)
+    BlockRaycastResult(const Vector3& hitPos, const BlockPos& blockPos, Direction face, f32 distance)
         : m_type(RaycastType::Block)
         , m_hitPos(hitPos)
         , m_blockPos(blockPos)
         , m_face(face)
         , m_distance(distance)
-    {
-    }
+    {}
 
     // ==================== 静态工厂方法 ====================
 
     /**
      * @brief 创建miss结果
      */
-    [[nodiscard]] static BlockRaycastResult miss()
-    {
-        return BlockRaycastResult();
-    }
+    [[nodiscard]] static BlockRaycastResult miss() { return BlockRaycastResult(); }
 
     /**
      * @brief 创建hit结果
@@ -71,10 +63,7 @@ public:
      * @param distance 从射线起点到击中点的距离
      */
     [[nodiscard]] static BlockRaycastResult hit(
-        const Vector3& hitPos,
-        const BlockPos& blockPos,
-        Direction face,
-        f32 distance)
+        const Vector3& hitPos, const BlockPos& blockPos, Direction face, f32 distance)
     {
         return BlockRaycastResult(hitPos, blockPos, face, distance);
     }
@@ -130,11 +119,9 @@ public:
      */
     [[nodiscard]] BlockPos adjacentPos() const
     {
-        return BlockPos(
-            m_blockPos.x + Directions::xOffset(m_face),
+        return BlockPos(m_blockPos.x + Directions::xOffset(m_face),
             m_blockPos.y + Directions::yOffset(m_face),
-            m_blockPos.z + Directions::zOffset(m_face)
-        );
+            m_blockPos.z + Directions::zOffset(m_face));
     }
 
 private:

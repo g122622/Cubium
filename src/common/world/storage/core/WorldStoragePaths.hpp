@@ -37,10 +37,7 @@ public:
      * @param savesDir 存档根目录路径，如果为空则使用工作目录下的 "saves"
      * @param backupsDir 备份目录路径，如果为空则使用 savesDir 同级的 "backups"
      */
-    explicit WorldStoragePaths(
-        std::filesystem::path savesDir,
-        std::filesystem::path backupsDir
-    );
+    explicit WorldStoragePaths(std::filesystem::path savesDir, std::filesystem::path backupsDir);
 
     /**
      * @brief 使用默认路径构造
@@ -143,10 +140,7 @@ public:
      * @param levelId 世界目录名
      * @param snapshotId 快照ID
      */
-    [[nodiscard]] std::filesystem::path snapshotPath(
-        const std::string& levelId,
-        const std::string& snapshotId
-    ) const;
+    [[nodiscard]] std::filesystem::path snapshotPath(const std::string& levelId, const std::string& snapshotId) const;
 
     /**
      * @brief 获取指定快照的清单文件路径
@@ -154,9 +148,7 @@ public:
      * @param snapshotId 快照ID
      */
     [[nodiscard]] std::filesystem::path snapshotManifestPath(
-        const std::string& levelId,
-        const std::string& snapshotId
-    ) const;
+        const std::string& levelId, const std::string& snapshotId) const;
 
     /**
      * @brief 获取指定快照的增量数据目录
@@ -164,9 +156,7 @@ public:
      * @param snapshotId 快照ID
      */
     [[nodiscard]] std::filesystem::path snapshotDeltaPath(
-        const std::string& levelId,
-        const std::string& snapshotId
-    ) const;
+        const std::string& levelId, const std::string& snapshotId) const;
 
     // ============================================================================
     // 导入路径（格式转换）

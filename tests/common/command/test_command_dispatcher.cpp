@@ -3,41 +3,41 @@
  * @brief Command framework tests
  */
 
-#include <gtest/gtest.h>
-#include <algorithm>
-#include "common/command/StringReader.hpp"
-#include "common/command/CommandNode.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/ICommandSource.hpp"
+#include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/suggestions/Suggestions.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "server/core/TeleportManager.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/PositionTracker.hpp"
-#include "server/core/PacketHandler.hpp"
 #include "server/core/GameModeManager.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "server/world/weather/WeatherManager.hpp"
-#include "server/world/entity/EntityTracker.hpp"
-#include "server/world/entity/ItemPickupManager.hpp"
+#include "server/core/KeepAliveManager.hpp"
+#include "server/core/PacketHandler.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/PositionTracker.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/core/TimeManager.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
-#include "server/interaction/MiningManager.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
-#include "server/sync/EntitySyncManager.hpp"
+#include "server/interaction/MiningManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
+#include "server/sync/EntitySyncManager.hpp"
 #include "server/sync/LightSyncManager.hpp"
-#include "common/world/entity/EntityManager.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/entity/EntityTracker.hpp"
+#include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/weather/WeatherManager.hpp"
+#include <algorithm>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::command;
@@ -49,7 +49,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(StringReaderTest, BasicRead) {
+TEST_F(StringReaderTest, BasicRead)
+{
     StringReader reader("hello world");
 
     EXPECT_TRUE(reader.canRead());
@@ -58,7 +59,8 @@ TEST_F(StringReaderTest, BasicRead) {
     EXPECT_EQ(reader.getCursor(), 1);
 }
 
-TEST_F(StringReaderTest, ReadUnquotedString) {
+TEST_F(StringReaderTest, ReadUnquotedString)
+{
     StringReader reader("hello world");
 
     std::string word = reader.readUnquotedString();
@@ -70,7 +72,8 @@ TEST_F(StringReaderTest, ReadUnquotedString) {
     EXPECT_EQ(word, "world");
 }
 
-TEST_F(StringReaderTest, ReadQuotedString) {
+TEST_F(StringReaderTest, ReadQuotedString)
+{
     StringReader reader("\"hello world\" rest");
 
     std::string str = reader.readQuotedString();
@@ -78,14 +81,16 @@ TEST_F(StringReaderTest, ReadQuotedString) {
     EXPECT_EQ(reader.getRemaining(), " rest");
 }
 
-TEST_F(StringReaderTest, ReadQuotedStringWithEscape) {
+TEST_F(StringReaderTest, ReadQuotedStringWithEscape)
+{
     StringReader reader("\"hello \\\"world\\\"\" rest");
 
     std::string str = reader.readQuotedString();
     EXPECT_EQ(str, "hello \"world\"");
 }
 
-TEST_F(StringReaderTest, ReadStringAutoDetect) {
+TEST_F(StringReaderTest, ReadStringAutoDetect)
+{
     StringReader reader1("hello world");
     StringReader reader2("\"quoted string\"");
 
@@ -93,7 +98,8 @@ TEST_F(StringReaderTest, ReadStringAutoDetect) {
     EXPECT_EQ(reader2.readString(), "quoted string");
 }
 
-TEST_F(StringReaderTest, ReadInt) {
+TEST_F(StringReaderTest, ReadInt)
+{
     StringReader reader("123");
 
     i32 value = reader.readInt();
@@ -101,14 +107,16 @@ TEST_F(StringReaderTest, ReadInt) {
     EXPECT_FALSE(reader.canRead());
 }
 
-TEST_F(StringReaderTest, ReadNegativeInt) {
+TEST_F(StringReaderTest, ReadNegativeInt)
+{
     StringReader reader("-456");
 
     i32 value = reader.readInt();
     EXPECT_EQ(value, -456);
 }
 
-TEST_F(StringReaderTest, ReadIntWithRange) {
+TEST_F(StringReaderTest, ReadIntWithRange)
+{
     StringReader reader1("50");
     StringReader reader2("150");
 
@@ -117,7 +125,8 @@ TEST_F(StringReaderTest, ReadIntWithRange) {
     EXPECT_THROW((void)reader2.readInt(0, 100), CommandException);
 }
 
-TEST_F(StringReaderTest, ReadBool) {
+TEST_F(StringReaderTest, ReadBool)
+{
     StringReader reader1("true");
     StringReader reader2("false");
 
@@ -125,21 +134,24 @@ TEST_F(StringReaderTest, ReadBool) {
     EXPECT_FALSE(reader2.readBool());
 }
 
-TEST_F(StringReaderTest, ReadDouble) {
+TEST_F(StringReaderTest, ReadDouble)
+{
     StringReader reader("3.14159");
 
     f64 value = reader.readDouble();
     EXPECT_NEAR(value, 3.14159, 0.00001);
 }
 
-TEST_F(StringReaderTest, SkipWhitespace) {
+TEST_F(StringReaderTest, SkipWhitespace)
+{
     StringReader reader("   hello");
 
     reader.skipWhitespace();
     EXPECT_EQ(reader.peek(), 'h');
 }
 
-TEST_F(StringReaderTest, Expect) {
+TEST_F(StringReaderTest, Expect)
+{
     StringReader reader("hello");
 
     reader.expect('h');
@@ -148,7 +160,8 @@ TEST_F(StringReaderTest, Expect) {
     EXPECT_THROW(reader.expect('x'), CommandException);
 }
 
-TEST_F(StringReaderTest, TryRead) {
+TEST_F(StringReaderTest, TryRead)
+{
     StringReader reader("hello world");
 
     EXPECT_TRUE(reader.tryRead("hello"));
@@ -164,7 +177,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(CommandNodeTest, LiteralNode) {
+TEST_F(CommandNodeTest, LiteralNode)
+{
     auto node = std::make_shared<LiteralCommandNode<int>>("gamemode");
 
     EXPECT_EQ(node->getType(), NodeType::Literal);
@@ -172,7 +186,8 @@ TEST_F(CommandNodeTest, LiteralNode) {
     EXPECT_FALSE(node->hasCommand());
 }
 
-TEST_F(CommandNodeTest, NodeWithCommand) {
+TEST_F(CommandNodeTest, NodeWithCommand)
+{
     auto node = std::make_shared<LiteralCommandNode<int>>("test");
 
     node->setCommand([](CommandContext<int>&) { return 1; });
@@ -180,7 +195,8 @@ TEST_F(CommandNodeTest, NodeWithCommand) {
     EXPECT_TRUE(node->hasCommand());
 }
 
-TEST_F(CommandNodeTest, NodeWithRequirement) {
+TEST_F(CommandNodeTest, NodeWithRequirement)
+{
     auto node = std::make_shared<LiteralCommandNode<int>>("admin");
 
     node->setRequirement([](const int& source) { return source >= 2; });
@@ -189,7 +205,8 @@ TEST_F(CommandNodeTest, NodeWithRequirement) {
     EXPECT_FALSE(node->canUse(1));
 }
 
-TEST_F(CommandNodeTest, NodeChildren) {
+TEST_F(CommandNodeTest, NodeChildren)
+{
     auto root = std::make_shared<LiteralCommandNode<int>>("root");
     auto child1 = std::make_shared<LiteralCommandNode<int>>("child1");
     auto child2 = std::make_shared<LiteralCommandNode<int>>("child2");
@@ -203,7 +220,8 @@ TEST_F(CommandNodeTest, NodeChildren) {
     EXPECT_EQ(root->getChild("nonexistent"), nullptr);
 }
 
-TEST_F(CommandNodeTest, RootNode) {
+TEST_F(CommandNodeTest, RootNode)
+{
     auto root = std::make_shared<RootCommandNode<int>>();
 
     EXPECT_EQ(root->getType(), NodeType::Root);
@@ -217,7 +235,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(ArgumentTypeTest, StringArgument) {
+TEST_F(ArgumentTypeTest, StringArgument)
+{
     auto wordArg = StringArgumentType::word();
     auto phraseArg = StringArgumentType::string();
     auto greedyArg = StringArgumentType::greedyString();
@@ -232,7 +251,8 @@ TEST_F(ArgumentTypeTest, StringArgument) {
     EXPECT_EQ(greedyArg->parse(reader3), "hello world rest");
 }
 
-TEST_F(ArgumentTypeTest, IntegerArgument) {
+TEST_F(ArgumentTypeTest, IntegerArgument)
+{
     auto intArg = IntegerArgumentType::integer(0, 100);
 
     StringReader reader1("50");
@@ -245,7 +265,8 @@ TEST_F(ArgumentTypeTest, IntegerArgument) {
     EXPECT_THROW((void)intArg->parse(reader3), CommandException);
 }
 
-TEST_F(ArgumentTypeTest, FloatArgument) {
+TEST_F(ArgumentTypeTest, FloatArgument)
+{
     auto floatArg = FloatArgumentType::floatArg(0.0f, 1.0f);
 
     StringReader reader1("0.5");
@@ -255,7 +276,8 @@ TEST_F(ArgumentTypeTest, FloatArgument) {
     EXPECT_THROW((void)floatArg->parse(reader2), CommandException);
 }
 
-TEST_F(ArgumentTypeTest, BoolArgument) {
+TEST_F(ArgumentTypeTest, BoolArgument)
+{
     auto boolArg = BoolArgumentType::boolArg();
 
     StringReader reader1("true");
@@ -268,7 +290,8 @@ TEST_F(ArgumentTypeTest, BoolArgument) {
     EXPECT_THROW((void)boolArg->parse(reader3), CommandException);
 }
 
-TEST_F(ArgumentTypeTest, EnumArgument) {
+TEST_F(ArgumentTypeTest, EnumArgument)
+{
     enum class TestEnum { A, B, C };
 
     auto enumArg = std::make_shared<EnumArgumentType<TestEnum>>();
@@ -293,7 +316,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(CommandResultTest, SuccessResult) {
+TEST_F(CommandResultTest, SuccessResult)
+{
     auto result = CommandResult::success(5);
 
     EXPECT_TRUE(result.isSuccess());
@@ -302,7 +326,8 @@ TEST_F(CommandResultTest, SuccessResult) {
     EXPECT_TRUE(result);
 }
 
-TEST_F(CommandResultTest, FailureResult) {
+TEST_F(CommandResultTest, FailureResult)
+{
     auto result = CommandResult::failure("Error message");
 
     EXPECT_FALSE(result.isSuccess());
@@ -319,7 +344,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(CommandExceptionTest, CreateException) {
+TEST_F(CommandExceptionTest, CreateException)
+{
     CommandException ex(CommandErrorType::IntegerExpected, "Expected integer", 5);
 
     EXPECT_EQ(ex.type(), CommandErrorType::IntegerExpected);
@@ -327,7 +353,8 @@ TEST_F(CommandExceptionTest, CreateException) {
     EXPECT_EQ(ex.cursor(), 5);
 }
 
-TEST_F(CommandExceptionTest, SimpleException) {
+TEST_F(CommandExceptionTest, SimpleException)
+{
     SimpleCommandException simpleEx(CommandErrorType::EntityNotFound, "Entity not found");
 
     CommandException ex = simpleEx.create();
@@ -335,7 +362,8 @@ TEST_F(CommandExceptionTest, SimpleException) {
     EXPECT_EQ(ex.cursor(), -1);
 }
 
-TEST_F(CommandExceptionTest, ExceptionWithInput) {
+TEST_F(CommandExceptionTest, ExceptionWithInput)
+{
     CommandException ex(CommandErrorType::Unknown, "Error", 5);
     CommandException withInput = ex.withInput("test input");
 
@@ -349,7 +377,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(SuggestionsTest, BuildSuggestions) {
+TEST_F(SuggestionsTest, BuildSuggestions)
+{
     SuggestionsBuilder builder("test", 0);
     builder.suggest("testing");
     builder.suggest("testcase");
@@ -360,14 +389,16 @@ TEST_F(SuggestionsTest, BuildSuggestions) {
     EXPECT_EQ(suggestions.size(), 3u);
 }
 
-TEST_F(SuggestionsTest, ApplySuggestion) {
+TEST_F(SuggestionsTest, ApplySuggestion)
+{
     Suggestion suggestion(6, "world");
 
     std::string result = suggestion.apply("hello ");
     EXPECT_EQ(result, "hello world");
 }
 
-TEST_F(SuggestionsTest, MergeSuggestions) {
+TEST_F(SuggestionsTest, MergeSuggestions)
+{
     Suggestions a;
     Suggestions b;
 
@@ -375,7 +406,8 @@ TEST_F(SuggestionsTest, MergeSuggestions) {
     EXPECT_TRUE(merged.isEmpty());
 }
 
-TEST_F(SuggestionsTest, SuggestionComparison) {
+TEST_F(SuggestionsTest, SuggestionComparison)
+{
     Suggestion s1(0, "apple");
     Suggestion s2(0, "banana");
     Suggestion s3(0, "apple");
@@ -384,21 +416,15 @@ TEST_F(SuggestionsTest, SuggestionComparison) {
     EXPECT_TRUE(s1 == s3);
 }
 
-TEST_F(SuggestionsTest, RequiredArgumentBuilderSuggestsCustomProvider) {
+TEST_F(SuggestionsTest, RequiredArgumentBuilderSuggestsCustomProvider)
+{
     CommandDispatcher<int> dispatcher;
 
-    auto destination = argument<int, std::string>(
-        "destination",
-        std::make_shared<ArgumentCommandNode<int, std::string>>(
-            "destination",
-            StringArgumentType::word()
-        )
-    ).suggests(std::make_shared<CandidateSuggestionProvider<int>>(
-        std::vector<std::string>{"spawn", "home", "mine"}
-    ));
-    auto root = std::static_pointer_cast<LiteralCommandNode<int>>(
-        literal<int>("warp").then(destination).build()
-    );
+    auto destination = argument<int, std::string>("destination",
+        std::make_shared<ArgumentCommandNode<int, std::string>>("destination", StringArgumentType::word()))
+                           .suggests(std::make_shared<CandidateSuggestionProvider<int>>(
+                               std::vector<std::string>{"spawn", "home", "mine"}));
+    auto root = std::static_pointer_cast<LiteralCommandNode<int>>(literal<int>("warp").then(destination).build());
     dispatcher.registerCommand(root);
 
     int source = 0;
@@ -420,13 +446,15 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(CommandDispatcherTest, DispatcherCreation) {
+TEST_F(CommandDispatcherTest, DispatcherCreation)
+{
     CommandDispatcher<int> dispatcher;
     EXPECT_NE(dispatcher.getRoot(), nullptr);
     EXPECT_EQ(dispatcher.getRoot()->getType(), NodeType::Root);
 }
 
-TEST_F(CommandDispatcherTest, RegisterLiteralNode) {
+TEST_F(CommandDispatcherTest, RegisterLiteralNode)
+{
     CommandDispatcher<int> dispatcher;
 
     auto node = std::make_shared<LiteralCommandNode<int>>("test");
@@ -438,7 +466,8 @@ TEST_F(CommandDispatcherTest, RegisterLiteralNode) {
     EXPECT_NE(dispatcher.getRoot()->getChild("test"), nullptr);
 }
 
-TEST_F(CommandDispatcherTest, ParseCommand) {
+TEST_F(CommandDispatcherTest, ParseCommand)
+{
     CommandDispatcher<int> dispatcher;
 
     auto node = std::make_shared<LiteralCommandNode<int>>("test");
@@ -456,17 +485,13 @@ TEST_F(CommandDispatcherTest, ParseCommand) {
     EXPECT_TRUE(result.getRemaining().empty());
 }
 
-TEST_F(CommandDispatcherTest, ExecuteArgumentCommandStoresParsedValue) {
+TEST_F(CommandDispatcherTest, ExecuteArgumentCommandStoresParsedValue)
+{
     CommandDispatcher<int> dispatcher;
 
     auto root = std::make_shared<LiteralCommandNode<int>>("add");
-    auto valueArg = std::make_shared<ArgumentCommandNode<int, i32>>(
-        "value",
-        IntegerArgumentType::integer()
-    );
-    valueArg->setCommand([](CommandContext<int>& ctx) {
-        return ctx.getArgument<i32>("value") + ctx.getSource();
-    });
+    auto valueArg = std::make_shared<ArgumentCommandNode<int, i32>>("value", IntegerArgumentType::integer());
+    valueArg->setCommand([](CommandContext<int>& ctx) { return ctx.getArgument<i32>("value") + ctx.getSource(); });
     root->addChild(valueArg);
     dispatcher.registerCommand(root);
 
@@ -478,7 +503,8 @@ TEST_F(CommandDispatcherTest, ExecuteArgumentCommandStoresParsedValue) {
     EXPECT_EQ(result.value().result(), 12);
 }
 
-TEST_F(CommandDispatcherTest, ExecuteFailsOnUnknownExtraArgument) {
+TEST_F(CommandDispatcherTest, ExecuteFailsOnUnknownExtraArgument)
+{
     CommandDispatcher<int> dispatcher;
 
     auto node = std::make_shared<LiteralCommandNode<int>>("list");
@@ -491,13 +517,12 @@ TEST_F(CommandDispatcherTest, ExecuteFailsOnUnknownExtraArgument) {
     EXPECT_TRUE(result.failed());
 }
 
-TEST_F(CommandDispatcherTest, ExecuteRedirectAlias) {
+TEST_F(CommandDispatcherTest, ExecuteRedirectAlias)
+{
     CommandDispatcher<int> dispatcher;
 
     auto target = std::make_shared<LiteralCommandNode<int>>("target");
-    target->setCommand([](CommandContext<int>&) {
-        return 42;
-    });
+    target->setCommand([](CommandContext<int>&) { return 42; });
 
     auto alias = std::make_shared<LiteralCommandNode<int>>("alias");
     alias->setRedirect(target);
@@ -513,14 +538,12 @@ TEST_F(CommandDispatcherTest, ExecuteRedirectAlias) {
     EXPECT_EQ(result.value().result(), 42);
 }
 
-TEST_F(CommandDispatcherTest, SuggestionsFollowRedirectedNode) {
+TEST_F(CommandDispatcherTest, SuggestionsFollowRedirectedNode)
+{
     CommandDispatcher<int> dispatcher;
 
     auto target = std::make_shared<LiteralCommandNode<int>>("experience");
-    auto amountArg = std::make_shared<ArgumentCommandNode<int, i32>>(
-        "mode",
-        IntegerArgumentType::integer()
-    );
+    auto amountArg = std::make_shared<ArgumentCommandNode<int, i32>>("mode", IntegerArgumentType::integer());
     target->addChild(amountArg);
 
     auto alias = std::make_shared<LiteralCommandNode<int>>("xp");
@@ -534,12 +557,10 @@ TEST_F(CommandDispatcherTest, SuggestionsFollowRedirectedNode) {
 
     ASSERT_FALSE(suggestions.isEmpty());
     const auto& list = suggestions.getList();
-    EXPECT_TRUE(std::any_of(list.begin(), list.end(), [](const Suggestion& suggestion) {
-        return suggestion.getText() == "0";
-    }));
-    EXPECT_TRUE(std::any_of(list.begin(), list.end(), [](const Suggestion& suggestion) {
-        return suggestion.getText() == "123";
-    }));
+    EXPECT_TRUE(std::any_of(
+        list.begin(), list.end(), [](const Suggestion& suggestion) { return suggestion.getText() == "0"; }));
+    EXPECT_TRUE(std::any_of(
+        list.begin(), list.end(), [](const Suggestion& suggestion) { return suggestion.getText() == "123"; }));
 }
 
 // ========== ICommandSource Tests ==========
@@ -549,7 +570,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(CommandSourceTest, SilentCommandSource) {
+TEST_F(CommandSourceTest, SilentCommandSource)
+{
     auto& silent = SilentCommandSource::instance();
 
     EXPECT_FALSE(silent.shouldReceiveFeedback());

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
+#include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/layer/LayerUtil.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/core/Constants.hpp"
 
 #include <array>
 #include <memory>
@@ -26,7 +26,8 @@ protected:
      *
      * @note 方块和生物群系注册表是生成流程的前置条件。
      */
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
@@ -36,7 +37,8 @@ protected:
      *
      * @note 雕刻器会把石头替换为空气或熔岩，用于稳定统计雕刻结果。
      */
-    static void fillChunkWithStone(ChunkPrimer& chunk) {
+    static void fillChunkWithStone(ChunkPrimer& chunk)
+    {
         const BlockState* stone = &VanillaBlocks::STONE->defaultState();
         ASSERT_NE(stone, nullptr);
 
@@ -54,7 +56,8 @@ protected:
      *
      * @note 当前雕刻逻辑对生物群系依赖较弱，但仍应保持输入数据完整。
      */
-    static void fillChunkBiomes(ChunkPrimer& chunk, BiomeId biomeId) {
+    static void fillChunkBiomes(ChunkPrimer& chunk, BiomeId biomeId)
+    {
         BiomeContainer& biomes = chunk.getBiomes();
         for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
             for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
@@ -68,7 +71,8 @@ protected:
     /**
      * @brief 创建用于雕刻测试的实体区块
      */
-    static std::unique_ptr<ChunkPrimer> makeSolidChunk(ChunkCoord chunkX, ChunkCoord chunkZ) {
+    static std::unique_ptr<ChunkPrimer> makeSolidChunk(ChunkCoord chunkX, ChunkCoord chunkZ)
+    {
         auto chunk = std::make_unique<ChunkPrimer>(chunkX, chunkZ);
         fillChunkWithStone(*chunk);
         fillChunkBiomes(*chunk, Biomes::Plains);
@@ -79,7 +83,8 @@ protected:
     /**
      * @brief 统计被雕刻后非石头方块数量
      */
-    static i32 countNonStoneBlocks(const ChunkPrimer& chunk) {
+    static i32 countNonStoneBlocks(const ChunkPrimer& chunk)
+    {
         const BlockState* stone = &VanillaBlocks::STONE->defaultState();
         i32 count = 0;
 
@@ -102,7 +107,8 @@ protected:
      *
      * @note applyCarvers 当前不读取 region 数据，此处仅满足接口约束。
      */
-    static std::array<IChunk*, 9> makeRegionChunks(IChunk* centerChunk) {
+    static std::array<IChunk*, 9> makeRegionChunks(IChunk* centerChunk)
+    {
         std::array<IChunk*, 9> chunks{};
         chunks.fill(centerChunk);
         return chunks;
@@ -111,7 +117,8 @@ protected:
     /**
      * @brief 逐方块断言两个区块完全一致
      */
-    static void expectChunkBlocksEqual(const ChunkPrimer& lhs, const ChunkPrimer& rhs) {
+    static void expectChunkBlocksEqual(const ChunkPrimer& lhs, const ChunkPrimer& rhs)
+    {
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
                 for (i32 y = 0; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
@@ -129,7 +136,8 @@ protected:
  *
  * @note 若未初始化雕刻器，此测试会在首个发生雕刻的区块上失败。
  */
-TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipelineParity) {
+TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipelineParity)
+{
     constexpr u64 seed = 0x4D435245424F524EULL;
 
     DimensionSettings defaultSettings = DimensionSettings::overworld();
@@ -170,8 +178,7 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipe
         }
     }
 
-    EXPECT_TRUE(foundCarvedChunk)
-        << "No carved chunk found in search range, cannot validate constructor parity";
+    EXPECT_TRUE(foundCarvedChunk) << "No carved chunk found in search range, cannot validate constructor parity";
 }
 
 /**
@@ -179,7 +186,8 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipe
  *
  * 验证 24x24x24 高斯查找表在构造时正确初始化。
  */
-TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization) {
+TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
+{
     // 创建生成器时高斯查找表应该被初始化
     constexpr u64 seed = 12345ULL;
     DimensionSettings settings = DimensionSettings::overworld();
@@ -202,7 +210,8 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization) {
  * 该函数产生负密度值来平滑结构边界地形。
  * 中心点有最大的负偏移（向下凹陷），边缘趋于零。
  */
-TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues) {
+TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues)
+{
     // 中心点应该有最大的负偏移（用于向下平滑地形）
     f64 centerOffset = NoiseChunkGenerator::calculateStructureDensityOffset(0, 0, 0);
     EXPECT_LT(centerOffset, 0.0) << "Center should have negative density offset for terrain smoothing";
@@ -239,14 +248,15 @@ TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues) {
  *
  * 验证查找表索引计算不会越界。
  */
-TEST(NoiseChunkGeneratorDensityTest, GaussianLUTBoundaryCheck) {
+TEST(NoiseChunkGeneratorDensityTest, GaussianLUTBoundaryCheck)
+{
     // 边界内点（-12 到 +11）
     for (i32 dx = -12; dx < 12; ++dx) {
         for (i32 dy = -12; dy < 12; ++dy) {
             for (i32 dz = -12; dz < 12; ++dz) {
                 // 应该不崩溃
                 f64 offset = NoiseChunkGenerator::calculateStructureDensityOffset(dx, dy, dz);
-                (void)offset;  // 仅验证计算能完成
+                (void)offset; // 仅验证计算能完成
             }
         }
     }

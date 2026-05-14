@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "ChunkLoadTicket.hpp"
 #include "ChunkDistanceGraph.hpp"
+#include "ChunkLoadTicket.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <memory>
-#include <mutex>
 
 namespace mc::world {
 
@@ -84,8 +84,9 @@ public:
      * manager.registerTicket(TicketTypes::FORCED, 100, 200, 31, ChunkPos(100, 200));
      * @endcode
      */
-    template<typename T>
-    void registerTicket(const ChunkLoadTicketType<T>& type, ChunkCoord x, ChunkCoord z, i32 level, const T& value) {
+    template <typename T>
+    void registerTicket(const ChunkLoadTicketType<T>& type, ChunkCoord x, ChunkCoord z, i32 level, const T& value)
+    {
         ChunkPos pos(x, z);
         ChunkLoadTicket ticket(type, level, value);
         addTicket(pos, std::move(ticket));
@@ -107,8 +108,9 @@ public:
      * manager.releaseTicket(TicketTypes::FORCED, 100, 200, 31, ChunkPos(100, 200));
      * @endcode
      */
-    template<typename T>
-    void releaseTicket(const ChunkLoadTicketType<T>& type, ChunkCoord x, ChunkCoord z, i32 level, const T& value) {
+    template <typename T>
+    void releaseTicket(const ChunkLoadTicketType<T>& type, ChunkCoord x, ChunkCoord z, i32 level, const T& value)
+    {
         ChunkPos pos(x, z);
         ChunkLoadTicket ticket(type, level, value);
         removeTicket(pos, ticket);
@@ -166,7 +168,8 @@ public:
      * @param z 区块 Z 坐标
      * @return true 表示区块应该被加载
      */
-    [[nodiscard]] bool shouldChunkLoad(ChunkCoord x, ChunkCoord z) const {
+    [[nodiscard]] bool shouldChunkLoad(ChunkCoord x, ChunkCoord z) const
+    {
         return shouldChunkLoad(getChunkLevel(x, z));
     }
 
@@ -176,9 +179,7 @@ public:
      * @param level 区块级别
      * @return true 表示区块应该被加载
      */
-    [[nodiscard]] static bool shouldChunkLoad(i32 level) {
-        return level <= MAX_LOADED_LEVEL;
-    }
+    [[nodiscard]] static bool shouldChunkLoad(i32 level) { return level <= MAX_LOADED_LEVEL; }
 
     /**
      * @brief 处理票据更新
@@ -333,7 +334,8 @@ private:
     void setupTrackerCallback(PlayerChunkTracker* tracker);
 
     /// 区块位置转键
-    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) {
+    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
+    {
         return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
     }
 

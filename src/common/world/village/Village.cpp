@@ -1,8 +1,8 @@
 #include "Village.hpp"
+#include "../../core/Types.hpp"
+#include "../../entity/core/Entity.hpp"
 #include "../../util/nbt/Nbt.hpp"
 #include "../IWorld.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../core/Types.hpp"
 #include "poi/PointOfInterestStorage.hpp"
 #include "poi/PointOfInterestType.hpp"
 
@@ -56,10 +56,10 @@ constexpr std::array<poi::PointOfInterestType, 12> WORKSTATION_TYPES = {
 Village::Village(BlockPos center)
     : m_center(center)
     , m_radius(VillageConfig::BASE_RADIUS)
-{
-}
+{}
 
-bool Village::isWithinVillage(BlockPos pos) const {
+bool Village::isWithinVillage(BlockPos pos) const
+{
     f32 dx = static_cast<f32>(pos.x - m_center.x);
     f32 dy = static_cast<f32>(pos.y - m_center.y);
     f32 dz = static_cast<f32>(pos.z - m_center.z);
@@ -67,7 +67,8 @@ bool Village::isWithinVillage(BlockPos pos) const {
     return distSq <= m_radius * m_radius;
 }
 
-bool Village::isWithinRaidTrigger(BlockPos pos) const {
+bool Village::isWithinRaidTrigger(BlockPos pos) const
+{
     f32 dx = static_cast<f32>(pos.x - m_center.x);
     f32 dz = static_cast<f32>(pos.z - m_center.z);
     f32 distSq = dx * dx + dz * dz;
@@ -75,7 +76,8 @@ bool Village::isWithinRaidTrigger(BlockPos pos) const {
     return distSq <= triggerRadius * triggerRadius;
 }
 
-void Village::recalculateBounds(const poi::PointOfInterestStorage& poiStorage) {
+void Village::recalculateBounds(const poi::PointOfInterestStorage& poiStorage)
+{
     // 基于床位和工作站重新计算村庄边界
     // 使用质心作为新中心
 
@@ -108,34 +110,38 @@ void Village::recalculateBounds(const poi::PointOfInterestStorage& poiStorage) {
     m_bedCount = static_cast<i32>(beds.size());
 
     // 计算半径：基础半径 + 每个床位增加的半径
-    m_radius = std::min(
-        VillageConfig::BASE_RADIUS + static_cast<f32>(m_bedCount) * VillageConfig::RADIUS_PER_BED,
-        VillageConfig::MAX_RADIUS
-    );
+    m_radius = std::min(VillageConfig::BASE_RADIUS + static_cast<f32>(m_bedCount) * VillageConfig::RADIUS_PER_BED,
+        VillageConfig::MAX_RADIUS);
 }
 
-void Village::addVillager(u64 villagerId) {
+void Village::addVillager(u64 villagerId)
+{
     m_villagers.insert(villagerId);
 }
 
-void Village::removeVillager(u64 villagerId) {
+void Village::removeVillager(u64 villagerId)
+{
     m_villagers.erase(villagerId);
 }
 
-bool Village::hasVillager(u64 villagerId) const {
+bool Village::hasVillager(u64 villagerId) const
+{
     return m_villagers.find(villagerId) != m_villagers.end();
 }
 
-i32 Village::getAvailableBeds() const {
+i32 Village::getAvailableBeds() const
+{
     return m_bedCount - getPopulation();
 }
 
-bool Village::canBreed() const {
+bool Village::canBreed() const
+{
     // 村民繁殖条件：有足够的床位
     return getAvailableBeds() > 0 && getPopulation() > 0;
 }
 
-void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage) {
+void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage)
+{
     // 1. 更新流言（衰减）
     m_gossipManager.tick(gameTime);
 
@@ -152,7 +158,8 @@ void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poi
     tickRaidCheck(world, gameTime);
 }
 
-void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage) {
+void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage)
+{
     // 参考 MC 1.16.5: 村庄不直接管理村民列表的移除，由 VillageManager 通过
     // 村民的 Brain 记忆模块和工作站绑定来管理村民与村庄的关联。
     // 这里实现简化的范围检查：记录村民最后出现时间，超时的村民从列表移除。
@@ -180,8 +187,8 @@ void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInteres
         // 获取村民位置
         Vector3 pos = entity->position();
         BlockPos blockPos(static_cast<i32>(std::floor(pos.x)),
-                         static_cast<i32>(std::floor(pos.y)),
-                         static_cast<i32>(std::floor(pos.z)));
+            static_cast<i32>(std::floor(pos.y)),
+            static_cast<i32>(std::floor(pos.z)));
 
         // 检查是否在村庄范围内
         if (isWithinVillage(blockPos)) {
@@ -222,7 +229,8 @@ void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInteres
     }
 }
 
-void Village::tickPOIStats(const poi::PointOfInterestStorage& poiStorage) {
+void Village::tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
+{
     // 更新床位计数
     i32 bedCount = 0;
     for (const auto bedType : ALL_BED_TYPES) {
@@ -248,13 +256,12 @@ void Village::tickPOIStats(const poi::PointOfInterestStorage& poiStorage) {
     }
 
     // 重新计算村庄边界（基于床位数）
-    m_radius = std::min(
-        VillageConfig::BASE_RADIUS + static_cast<f32>(m_bedCount) * VillageConfig::RADIUS_PER_BED,
-        VillageConfig::MAX_RADIUS
-    );
+    m_radius = std::min(VillageConfig::BASE_RADIUS + static_cast<f32>(m_bedCount) * VillageConfig::RADIUS_PER_BED,
+        VillageConfig::MAX_RADIUS);
 }
 
-void Village::tickRaidCheck(IWorld& world, i64 gameTime) {
+void Village::tickRaidCheck(IWorld& world, i64 gameTime)
+{
     // 如果村庄当前不在袭击中，无需检查
     if (!m_underRaid) {
         return;
@@ -281,7 +288,8 @@ void Village::tickRaidCheck(IWorld& world, i64 gameTime) {
     (void)gameTime; // 暂时未使用
 }
 
-std::optional<BlockPos> Village::findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const {
+std::optional<BlockPos> Village::findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const
+{
     // 在村庄范围内搜索钟 POI
     auto bells = poiStorage.findAllInRange(m_center, m_radius, poi::PointOfInterestType::Bell);
 
@@ -309,7 +317,8 @@ std::optional<BlockPos> Village::findMeetingPoint(const poi::PointOfInterestStor
     return std::nullopt;
 }
 
-void Village::serialize(nbt::tags::compound_tag& tag) const {
+void Village::serialize(nbt::tags::compound_tag& tag) const
+{
     tag.put("Id", static_cast<std::int64_t>(m_id));
     tag.put("CenterX", static_cast<std::int32_t>(m_center.x));
     tag.put("CenterY", static_cast<std::int32_t>(m_center.y));
@@ -354,7 +363,8 @@ void Village::serialize(nbt::tags::compound_tag& tag) const {
     tag.value["Gossip"] = std::make_unique<nbt::tags::compound_tag>(std::move(gossipTag));
 }
 
-Village Village::deserialize(const nbt::tags::compound_tag& tag) {
+Village Village::deserialize(const nbt::tags::compound_tag& tag)
+{
     BlockPos center;
     center.x = tag.get<nbt::tags::int_tag>("CenterX");
     center.y = tag.get<nbt::tags::int_tag>("CenterY");

@@ -4,11 +4,11 @@
 #include "client/renderer/trident/item/ItemRenderer.hpp"
 #include "common/util/StringUtils.hpp"
 
-#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <cmath>
 #include <string>
 #include <utility>
+#include <GLFW/glfw3.h>
 
 namespace mc::client {
 
@@ -20,8 +20,8 @@ CreativeScreen::CreativeScreen(PlayerInventory& inventory, CreativeActionSender 
 }
 
 void CreativeScreen::setRenderers(renderer::trident::gui::GuiRenderer* gui,
-                                  renderer::trident::gui::GuiTextureManager* textureManager,
-                                  renderer::trident::item::ItemRenderer* itemRenderer)
+    renderer::trident::gui::GuiTextureManager* textureManager,
+    renderer::trident::item::ItemRenderer* itemRenderer)
 {
     m_gui = gui;
     m_textureManager = textureManager;
@@ -202,9 +202,8 @@ void CreativeScreen::renderBackground()
         return;
     }
 
-    m_gui->fillGradientRect(0.0, 0.0,
-                            static_cast<f64>(m_screenWidth), static_cast<f64>(m_screenHeight),
-                            0xD0141A1F, 0xE00C1016);
+    m_gui->fillGradientRect(
+        0.0, 0.0, static_cast<f64>(m_screenWidth), static_cast<f64>(m_screenHeight), 0xD0141A1F, 0xE00C1016);
 }
 
 void CreativeScreen::renderPanelBackground()
@@ -216,15 +215,34 @@ void CreativeScreen::renderPanelBackground()
     const f64 palettePanelWidth = 172.0;
     const f64 inventoryPanelWidth = static_cast<f64>(176);
 
-    m_gui->fillRect(static_cast<f64>(m_leftPos + 4), static_cast<f64>(m_topPos + 18), palettePanelWidth, 170.0, 0xCC23262C);
-    m_gui->fillRect(static_cast<f64>(m_leftPos + INVENTORY_X), static_cast<f64>(m_topPos + INVENTORY_Y), inventoryPanelWidth, 176.0, 0xCC2A2F37);
-    m_gui->drawRect(static_cast<f64>(m_leftPos + 4), static_cast<f64>(m_topPos + 18), palettePanelWidth, 170.0, 0xFF4DA3FF);
-    m_gui->drawRect(static_cast<f64>(m_leftPos + INVENTORY_X), static_cast<f64>(m_topPos + INVENTORY_Y), inventoryPanelWidth, 176.0, 0xFFFFB84D);
+    m_gui->fillRect(
+        static_cast<f64>(m_leftPos + 4), static_cast<f64>(m_topPos + 18), palettePanelWidth, 170.0, 0xCC23262C);
+    m_gui->fillRect(static_cast<f64>(m_leftPos + INVENTORY_X),
+        static_cast<f64>(m_topPos + INVENTORY_Y),
+        inventoryPanelWidth,
+        176.0,
+        0xCC2A2F37);
+    m_gui->drawRect(
+        static_cast<f64>(m_leftPos + 4), static_cast<f64>(m_topPos + 18), palettePanelWidth, 170.0, 0xFF4DA3FF);
+    m_gui->drawRect(static_cast<f64>(m_leftPos + INVENTORY_X),
+        static_cast<f64>(m_topPos + INVENTORY_Y),
+        inventoryPanelWidth,
+        176.0,
+        0xFFFFB84D);
 
     if (m_gui->font() != nullptr) {
-        m_gui->drawText(getTitle(), static_cast<f64>(m_leftPos + TITLE_X), static_cast<f64>(m_topPos + TITLE_Y), 0xFFF5F7FA, false);
-        m_gui->drawText("Search", static_cast<f64>(m_leftPos + SEARCH_X), static_cast<f64>(m_topPos + SEARCH_Y - 10), 0xFFB9C1CC, false);
-        m_gui->drawText("Inventory", static_cast<f64>(m_leftPos + INVENTORY_X + 8), static_cast<f64>(m_topPos + INVENTORY_Y - 10), 0xFFD8CFA3, false);
+        m_gui->drawText(
+            getTitle(), static_cast<f64>(m_leftPos + TITLE_X), static_cast<f64>(m_topPos + TITLE_Y), 0xFFF5F7FA, false);
+        m_gui->drawText("Search",
+            static_cast<f64>(m_leftPos + SEARCH_X),
+            static_cast<f64>(m_topPos + SEARCH_Y - 10),
+            0xFFB9C1CC,
+            false);
+        m_gui->drawText("Inventory",
+            static_cast<f64>(m_leftPos + INVENTORY_X + 8),
+            static_cast<f64>(m_topPos + INVENTORY_Y - 10),
+            0xFFD8CFA3,
+            false);
     }
 }
 
@@ -236,8 +254,16 @@ void CreativeScreen::renderSearchBox()
 
     const i32 searchX = m_leftPos + SEARCH_X;
     const i32 searchY = m_topPos + SEARCH_Y;
-    m_gui->fillRect(static_cast<f64>(searchX), static_cast<f64>(searchY), static_cast<f64>(SEARCH_WIDTH), static_cast<f64>(SEARCH_HEIGHT), 0xFF0F1318);
-    m_gui->drawRect(static_cast<f64>(searchX), static_cast<f64>(searchY), static_cast<f64>(SEARCH_WIDTH), static_cast<f64>(SEARCH_HEIGHT), 0xFF4DA3FF);
+    m_gui->fillRect(static_cast<f64>(searchX),
+        static_cast<f64>(searchY),
+        static_cast<f64>(SEARCH_WIDTH),
+        static_cast<f64>(SEARCH_HEIGHT),
+        0xFF0F1318);
+    m_gui->drawRect(static_cast<f64>(searchX),
+        static_cast<f64>(searchY),
+        static_cast<f64>(SEARCH_WIDTH),
+        static_cast<f64>(SEARCH_HEIGHT),
+        0xFF4DA3FF);
 
     if (m_gui->font() != nullptr) {
         const std::string displayText = m_searchText.empty() ? std::string("Search creative items...") : m_searchText;
@@ -276,7 +302,9 @@ void CreativeScreen::renderPaletteGrid(i32 mouseX, i32 mouseY)
                 if (!entry.stack.isEmpty()) {
                     renderItemIcon(entry.stack, m_leftPos + cellX, m_topPos + cellY);
                     if (entry.stack.getCount() > 1) {
-                        renderItemCount(entry.stack.getCount(), m_leftPos + cellX + SLOT_SIZE - 2, m_topPos + cellY + SLOT_SIZE - 8);
+                        renderItemCount(entry.stack.getCount(),
+                            m_leftPos + cellX + SLOT_SIZE - 2,
+                            m_topPos + cellY + SLOT_SIZE - 8);
                     }
                 }
             } else if (visibleIndex < visibleCount) {
@@ -295,7 +323,11 @@ void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
     for (i32 i = 0; i < PlayerInventory::ARMOR_SIZE; ++i) {
         const i32 slotIndex = InventorySlots::ARMOR_START + i;
         const i32 x = m_leftPos + INVENTORY_X + ARMOR_X;
-        const i32 y = m_topPos + INVENTORY_Y + (i == 0 ? ARMOR_Y_HEAD : i == 1 ? ARMOR_Y_CHEST : i == 2 ? ARMOR_Y_LEGS : ARMOR_Y_FEET);
+        const i32 y = m_topPos + INVENTORY_Y +
+            (i == 0          ? ARMOR_Y_HEAD
+                    : i == 1 ? ARMOR_Y_CHEST
+                    : i == 2 ? ARMOR_Y_LEGS
+                             : ARMOR_Y_FEET);
         const bool hovered = isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
         renderSlotFrame(x, y, hovered ? 0xFFFFB84D : 0xFF63502E, 0xFF1A1712);
 
@@ -308,7 +340,10 @@ void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
     const i32 offhandSlot = InventorySlots::OFFHAND;
     const i32 offhandX = m_leftPos + INVENTORY_X + OFFHAND_X;
     const i32 offhandY = m_topPos + INVENTORY_Y + OFFHAND_Y;
-    renderSlotFrame(offhandX, offhandY, isMouseOver(mouseX, mouseY, offhandX, offhandY, SLOT_SIZE, SLOT_SIZE) ? 0xFFFFB84D : 0xFF63502E, 0xFF1A1712);
+    renderSlotFrame(offhandX,
+        offhandY,
+        isMouseOver(mouseX, mouseY, offhandX, offhandY, SLOT_SIZE, SLOT_SIZE) ? 0xFFFFB84D : 0xFF63502E,
+        0xFF1A1712);
     const ItemStack offhandStack = m_inventory->getItem(offhandSlot);
     if (!offhandStack.isEmpty()) {
         renderItemIcon(offhandStack, offhandX, offhandY);
@@ -338,7 +373,12 @@ void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
         const i32 y = m_topPos + INVENTORY_Y + HOTBAR_Y;
         const bool hovered = isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
         const bool selected = slotIndex == m_inventory->getSelectedSlot();
-        renderSlotFrame(x, y, selected ? 0xFFF7D26A : hovered ? 0xFFFFB84D : 0xFF5A5F69, selected ? 0xFF2B2516 : 0xFF1C2028);
+        renderSlotFrame(x,
+            y,
+            selected      ? 0xFFF7D26A
+                : hovered ? 0xFFFFB84D
+                          : 0xFF5A5F69,
+            selected ? 0xFF2B2516 : 0xFF1C2028);
 
         const ItemStack stack = m_inventory->getItem(slotIndex);
         if (!stack.isEmpty()) {
@@ -357,14 +397,16 @@ void CreativeScreen::renderItemIcon(const ItemStack& stack, i32 screenX, i32 scr
     }
 
     if (m_itemRenderer != nullptr) {
-        m_itemRenderer->renderItem(*m_gui, stack,
-                                   static_cast<f32>(screenX),
-                                   static_cast<f32>(screenY),
-                                   static_cast<f32>(SLOT_SIZE));
+        m_itemRenderer->renderItem(
+            *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
         return;
     }
 
-    m_gui->fillRect(static_cast<f64>(screenX), static_cast<f64>(screenY), static_cast<f64>(SLOT_SIZE), static_cast<f64>(SLOT_SIZE), 0x80FFFFFF);
+    m_gui->fillRect(static_cast<f64>(screenX),
+        static_cast<f64>(screenY),
+        static_cast<f64>(SLOT_SIZE),
+        static_cast<f64>(SLOT_SIZE),
+        0x80FFFFFF);
 }
 
 void CreativeScreen::renderItemCount(i32 count, i32 screenX, i32 screenY)
@@ -382,8 +424,16 @@ void CreativeScreen::renderSlotFrame(i32 screenX, i32 screenY, u32 borderColor, 
         return;
     }
 
-    m_gui->fillRect(static_cast<f64>(screenX), static_cast<f64>(screenY), static_cast<f64>(SLOT_SIZE), static_cast<f64>(SLOT_SIZE), fillColor);
-    m_gui->drawRect(static_cast<f64>(screenX), static_cast<f64>(screenY), static_cast<f64>(SLOT_SIZE), static_cast<f64>(SLOT_SIZE), borderColor);
+    m_gui->fillRect(static_cast<f64>(screenX),
+        static_cast<f64>(screenY),
+        static_cast<f64>(SLOT_SIZE),
+        static_cast<f64>(SLOT_SIZE),
+        fillColor);
+    m_gui->drawRect(static_cast<f64>(screenX),
+        static_cast<f64>(screenY),
+        static_cast<f64>(SLOT_SIZE),
+        static_cast<f64>(SLOT_SIZE),
+        borderColor);
 }
 
 void CreativeScreen::renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 mouseY)
@@ -402,7 +452,8 @@ void CreativeScreen::renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 m
 
     if (stack.isDamageable() && stack.getMaxDamage() > 0) {
         const i32 remainingDurability = std::max(0, stack.getMaxDamage() - stack.getDamage());
-        lines.emplace_back("Durability: " + std::to_string(remainingDurability) + "/" + std::to_string(stack.getMaxDamage()));
+        lines.emplace_back(
+            "Durability: " + std::to_string(remainingDurability) + "/" + std::to_string(stack.getMaxDamage()));
     }
 
     f64 maxTextWidth = 0.0;
@@ -534,7 +585,11 @@ i32 CreativeScreen::getInventorySlotAt(i32 mouseX, i32 mouseY) const
 {
     for (i32 i = 0; i < PlayerInventory::ARMOR_SIZE; ++i) {
         const i32 x = m_leftPos + INVENTORY_X + ARMOR_X;
-        const i32 y = m_topPos + INVENTORY_Y + (i == 0 ? ARMOR_Y_HEAD : i == 1 ? ARMOR_Y_CHEST : i == 2 ? ARMOR_Y_LEGS : ARMOR_Y_FEET);
+        const i32 y = m_topPos + INVENTORY_Y +
+            (i == 0          ? ARMOR_Y_HEAD
+                    : i == 1 ? ARMOR_Y_CHEST
+                    : i == 2 ? ARMOR_Y_LEGS
+                             : ARMOR_Y_FEET);
         if (isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE)) {
             return InventorySlots::ARMOR_START + i;
         }

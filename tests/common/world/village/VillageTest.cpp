@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
-#include "common/world/village/Village.hpp"
-#include "common/world/village/poi/PointOfInterestStorage.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
+#include "../../TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/fluid/Fluid.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/core/Constants.hpp"
-#include "../../TestWorldHelper.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "common/world/village/Village.hpp"
+#include "common/world/village/poi/PointOfInterestStorage.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -27,7 +27,8 @@ namespace {
  */
 class VillageTestWorld final : public ::mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -35,41 +36,40 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override {
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
         auto it = m_entities.find(static_cast<u64>(id));
         return it != m_entities.end() ? it->second : nullptr;
     }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override {
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
         auto it = m_entities.find(static_cast<u64>(id));
         return it != m_entities.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("VillageTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("VillageTestWorld::tickManager not implemented");
     }
 
     // 实体管理
-    void addTestEntity(Entity* entity, u64 id) {
-        m_entities[id] = entity;
-    }
+    void addTestEntity(Entity* entity, u64 id) { m_entities[id] = entity; }
 
-    void removeTestEntity(u64 id) {
-        m_entities.erase(id);
-    }
+    void removeTestEntity(u64 id) { m_entities.erase(id); }
 
-    void setCurrentTick(u64 tick) {
-        m_currentTick = tick;
-    }
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -85,8 +85,8 @@ private:
 class TestVillagerEntity : public Entity {
 public:
     TestVillagerEntity(EntityId id, IWorld* world = nullptr)
-        : Entity(LegacyEntityType::Villager, id, world) {
-    }
+        : Entity(LegacyEntityType::Villager, id, world)
+    {}
 
     void tick() override { /* 空实现 */ }
 };
@@ -96,7 +96,8 @@ public:
  */
 class VillageTickTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         m_world.setCurrentTick(0);
     }
@@ -107,13 +108,14 @@ protected:
 
 // ========== 村民范围检查测试 ==========
 
-TEST_F(VillageTickTest, TickVillagerCheck_VillagerWithinRange_UpdatesLastSeenTime) {
+TEST_F(VillageTickTest, TickVillagerCheck_VillagerWithinRange_UpdatesLastSeenTime)
+{
     // 创建村庄，中心在 (0, 64, 0)
     Village village(BlockPos(0, 64, 0));
 
     // 创建测试村民并添加到村庄
     auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
-    villager->setPosition(10.0f, 64.0f, 10.0f);  // 在村庄范围内
+    villager->setPosition(10.0f, 64.0f, 10.0f); // 在村庄范围内
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
 
@@ -128,13 +130,14 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerWithinRange_UpdatesLastSeenTim
     m_world.removeTestEntity(1);
 }
 
-TEST_F(VillageTickTest, TickVillagerCheck_VillagerOutOfRange_RemovedAfterTimeout) {
+TEST_F(VillageTickTest, TickVillagerCheck_VillagerOutOfRange_RemovedAfterTimeout)
+{
     // 创建村庄，中心在 (0, 64, 0)，默认半径 64
     Village village(BlockPos(0, 64, 0));
 
     // 创建测试村民
     auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
-    villager->setPosition(10.0f, 64.0f, 10.0f);  // 初始在范围内
+    villager->setPosition(10.0f, 64.0f, 10.0f); // 初始在范围内
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
 
@@ -144,7 +147,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerOutOfRange_RemovedAfterTimeout
     EXPECT_TRUE(village.hasVillager(1));
 
     // 将村民移出村庄范围
-    villager->setPosition(200.0f, 64.0f, 200.0f);  // 超出村庄半径
+    villager->setPosition(200.0f, 64.0f, 200.0f); // 超出村庄半径
 
     // 等待超时时间的一半，村民应该仍在列表中
     m_world.setCurrentTick(100 + Village::VILLAGER_TIMEOUT / 2);
@@ -162,7 +165,8 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerOutOfRange_RemovedAfterTimeout
     m_world.removeTestEntity(1);
 }
 
-TEST_F(VillageTickTest, TickVillagerCheck_EntityRemoved_RemovedFromVillage) {
+TEST_F(VillageTickTest, TickVillagerCheck_EntityRemoved_RemovedFromVillage)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 创建村民并添加到村庄
@@ -187,7 +191,8 @@ TEST_F(VillageTickTest, TickVillagerCheck_EntityRemoved_RemovedFromVillage) {
     EXPECT_EQ(village.getPopulation(), 0);
 }
 
-TEST_F(VillageTickTest, TickVillagerCheck_NonVillagerEntity_RemovedFromVillage) {
+TEST_F(VillageTickTest, TickVillagerCheck_NonVillagerEntity_RemovedFromVillage)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 创建一个非村民实体（使用 Unknown 类型）
@@ -209,7 +214,8 @@ TEST_F(VillageTickTest, TickVillagerCheck_NonVillagerEntity_RemovedFromVillage) 
 
 // ========== POI 释放测试 ==========
 
-TEST_F(VillageTickTest, TickVillagerCheck_VillagerRemoved_ReleasesPOI) {
+TEST_F(VillageTickTest, TickVillagerCheck_VillagerRemoved_ReleasesPOI)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 注册一个床位 POI
@@ -232,7 +238,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerRemoved_ReleasesPOI) {
     EXPECT_TRUE(village.hasVillager(1));
 
     // 将村民移出范围并等待超时
-    villager->setPosition(500.0f, 64.0f, 500.0f);  // 远离村庄
+    villager->setPosition(500.0f, 64.0f, 500.0f); // 远离村庄
 
     // 超时后移除
     m_world.setCurrentTick(100 + Village::VILLAGER_TIMEOUT + 100);
@@ -249,7 +255,8 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerRemoved_ReleasesPOI) {
     m_world.removeTestEntity(1);
 }
 
-TEST_F(VillageTickTest, TickVillagerCheck_MultipleVillagers_OnlyRemovesTimedOut) {
+TEST_F(VillageTickTest, TickVillagerCheck_MultipleVillagers_OnlyRemovesTimedOut)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 创建多个村民
@@ -294,7 +301,8 @@ TEST_F(VillageTickTest, TickVillagerCheck_MultipleVillagers_OnlyRemovesTimedOut)
 
 // ========== POI 统计更新测试 ==========
 
-TEST_F(VillageTickTest, TickPOIStats_UpdatesBedCount) {
+TEST_F(VillageTickTest, TickPOIStats_UpdatesBedCount)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 添加多个床位 POI
@@ -310,7 +318,8 @@ TEST_F(VillageTickTest, TickPOIStats_UpdatesBedCount) {
     EXPECT_EQ(village.getBedCount(), 3);
 }
 
-TEST_F(VillageTickTest, TickPOIStats_UpdatesWorkstationCount) {
+TEST_F(VillageTickTest, TickPOIStats_UpdatesWorkstationCount)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 添加床位（用于村庄边界计算）- 放在中心
@@ -340,7 +349,8 @@ TEST_F(VillageTickTest, TickPOIStats_UpdatesWorkstationCount) {
     EXPECT_EQ(village.getWorkstationCount(), 3);
 }
 
-TEST_F(VillageTickTest, TickPOIStats_UpdatesMeetingPoint) {
+TEST_F(VillageTickTest, TickPOIStats_UpdatesMeetingPoint)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 添加床位
@@ -363,7 +373,8 @@ TEST_F(VillageTickTest, TickPOIStats_UpdatesMeetingPoint) {
     EXPECT_EQ(village.getMeetingPoint(), bellPos);
 }
 
-TEST_F(VillageTickTest, TickPOIStats_NoMeetingPointWhenNoBell) {
+TEST_F(VillageTickTest, TickPOIStats_NoMeetingPointWhenNoBell)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 只添加床位，没有钟
@@ -382,7 +393,8 @@ TEST_F(VillageTickTest, TickPOIStats_NoMeetingPointWhenNoBell) {
 
 // ========== 序列化测试 ==========
 
-TEST_F(VillageTickTest, SerializeDeserialize_PreservesVillagers) {
+TEST_F(VillageTickTest, SerializeDeserialize_PreservesVillagers)
+{
     Village original(BlockPos(100, 64, 200));
 
     // 添加村民
@@ -417,7 +429,8 @@ TEST_F(VillageTickTest, SerializeDeserialize_PreservesVillagers) {
     EXPECT_EQ(deserialized.getLastRaidTime(), 1000);
 }
 
-TEST_F(VillageTickTest, SerializeDeserialize_PreservesMeetingPoint) {
+TEST_F(VillageTickTest, SerializeDeserialize_PreservesMeetingPoint)
+{
     Village original(BlockPos(0, 64, 0));
     original.setMeetingPoint(BlockPos(50, 70, 50));
 
@@ -434,79 +447,87 @@ TEST_F(VillageTickTest, SerializeDeserialize_PreservesMeetingPoint) {
 
 // ========== 边界测试 ==========
 
-TEST_F(VillageTickTest, IsWithinVillage_PositionCheck) {
+TEST_F(VillageTickTest, IsWithinVillage_PositionCheck)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 默认半径是 64 格
     // 在半径内的点（距离中心 < 64）
-    EXPECT_TRUE(village.isWithinVillage(BlockPos(0, 64, 0)));     // 距离 0
-    EXPECT_TRUE(village.isWithinVillage(BlockPos(40, 64, 40)));   // 距离 sqrt(3200) ≈ 56.6
-    EXPECT_TRUE(village.isWithinVillage(BlockPos(0, 100, 0)));    // 高度也算在内，距离 36
+    EXPECT_TRUE(village.isWithinVillage(BlockPos(0, 64, 0)));   // 距离 0
+    EXPECT_TRUE(village.isWithinVillage(BlockPos(40, 64, 40))); // 距离 sqrt(3200) ≈ 56.6
+    EXPECT_TRUE(village.isWithinVillage(BlockPos(0, 100, 0)));  // 高度也算在内，距离 36
 
     // 刚好在边界上（距离中心 = 64）
-    EXPECT_TRUE(village.isWithinVillage(BlockPos(64, 64, 0)));    // 距离 64
+    EXPECT_TRUE(village.isWithinVillage(BlockPos(64, 64, 0))); // 距离 64
 
     // 超出半径的点（距离中心 > 64）
-    EXPECT_FALSE(village.isWithinVillage(BlockPos(65, 64, 0)));   // 距离 65
-    EXPECT_FALSE(village.isWithinVillage(BlockPos(50, 64, 50)));  // 距离 sqrt(5000) ≈ 70.7
-    EXPECT_FALSE(village.isWithinVillage(BlockPos(0, 64, 100)));  // 距离 100
+    EXPECT_FALSE(village.isWithinVillage(BlockPos(65, 64, 0)));  // 距离 65
+    EXPECT_FALSE(village.isWithinVillage(BlockPos(50, 64, 50))); // 距离 sqrt(5000) ≈ 70.7
+    EXPECT_FALSE(village.isWithinVillage(BlockPos(0, 64, 100))); // 距离 100
 }
 
-TEST_F(VillageTickTest, IsWithinRaidTrigger_PositionCheck) {
+TEST_F(VillageTickTest, IsWithinRaidTrigger_PositionCheck)
+{
     Village village(BlockPos(0, 64, 0));
 
     // 袭击触发范围是 96 格
     EXPECT_TRUE(village.isWithinRaidTrigger(BlockPos(50, 64, 50)));
     EXPECT_TRUE(village.isWithinRaidTrigger(BlockPos(90, 64, 0)));
-    EXPECT_FALSE(village.isWithinRaidTrigger(BlockPos(100, 64, 0)));  // 超出触发范围
+    EXPECT_FALSE(village.isWithinRaidTrigger(BlockPos(100, 64, 0))); // 超出触发范围
 }
 
 // ========== 繁殖测试 ==========
 
-TEST_F(VillageTickTest, CanBreed_HasAvailableBeds_ReturnsTrue) {
+TEST_F(VillageTickTest, CanBreed_HasAvailableBeds_ReturnsTrue)
+{
     Village village(BlockPos(0, 64, 0));
 
     village.addVillager(1);
     village.addVillager(2);
-    village.setBedCount(5);  // 5 张床，2 个村民
+    village.setBedCount(5); // 5 张床，2 个村民
 
     EXPECT_TRUE(village.canBreed());
     EXPECT_EQ(village.getAvailableBeds(), 3);
 }
 
-TEST_F(VillageTickTest, CanBreed_NoAvailableBeds_ReturnsFalse) {
+TEST_F(VillageTickTest, CanBreed_NoAvailableBeds_ReturnsFalse)
+{
     Village village(BlockPos(0, 64, 0));
 
     village.addVillager(1);
     village.addVillager(2);
-    village.setBedCount(2);  // 2 张床，2 个村民
+    village.setBedCount(2); // 2 张床，2 个村民
 
     EXPECT_FALSE(village.canBreed());
     EXPECT_EQ(village.getAvailableBeds(), 0);
 }
 
-TEST_F(VillageTickTest, CanBreed_NoVillagers_ReturnsFalse) {
+TEST_F(VillageTickTest, CanBreed_NoVillagers_ReturnsFalse)
+{
     Village village(BlockPos(0, 64, 0));
 
-    village.setBedCount(5);  // 有床但没有村民
+    village.setBedCount(5); // 有床但没有村民
 
     EXPECT_FALSE(village.canBreed());
 }
 
 // ========== Village ID 测试 ==========
 
-TEST_F(VillageTickTest, VillageId_InitiallyZero) {
+TEST_F(VillageTickTest, VillageId_InitiallyZero)
+{
     Village village(BlockPos(0, 64, 0));
     EXPECT_EQ(village.getId(), 0);
 }
 
-TEST_F(VillageTickTest, VillageId_CanBeSetAndRetrieved) {
+TEST_F(VillageTickTest, VillageId_CanBeSetAndRetrieved)
+{
     Village village(BlockPos(0, 64, 0));
     village.setId(12345);
     EXPECT_EQ(village.getId(), 12345);
 }
 
-TEST_F(VillageTickTest, VillageId_SerializeDeserialize) {
+TEST_F(VillageTickTest, VillageId_SerializeDeserialize)
+{
     Village original(BlockPos(100, 64, 200));
     original.setId(42);
 
@@ -517,7 +538,8 @@ TEST_F(VillageTickTest, VillageId_SerializeDeserialize) {
     EXPECT_EQ(deserialized.getId(), 42);
 }
 
-TEST_F(VillageTickTest, VillageId_DeserializeBackwardCompatibility_NoIdField) {
+TEST_F(VillageTickTest, VillageId_DeserializeBackwardCompatibility_NoIdField)
+{
     // 测试没有 ID 字段的旧数据（向后兼容）
     nbt::tags::compound_tag tag;
     tag.put("CenterX", 0);
@@ -533,16 +555,18 @@ TEST_F(VillageTickTest, VillageId_DeserializeBackwardCompatibility_NoIdField) {
     // 不设置 Id 字段
 
     Village deserialized = Village::deserialize(tag);
-    EXPECT_EQ(deserialized.getId(), 0);  // 默认值
+    EXPECT_EQ(deserialized.getId(), 0); // 默认值
 }
 
-TEST_F(VillageTickTest, VillageId_LargeIdValue) {
+TEST_F(VillageTickTest, VillageId_LargeIdValue)
+{
     Village village(BlockPos(0, 64, 0));
     village.setId(UINT64_MAX);
     EXPECT_EQ(village.getId(), UINT64_MAX);
 }
 
-TEST_F(VillageTickTest, VillageId_MultipleVillagesHaveUniqueIds) {
+TEST_F(VillageTickTest, VillageId_MultipleVillagesHaveUniqueIds)
+{
     Village village1(BlockPos(0, 64, 0));
     Village village2(BlockPos(100, 64, 100));
 
@@ -552,7 +576,8 @@ TEST_F(VillageTickTest, VillageId_MultipleVillagesHaveUniqueIds) {
     EXPECT_NE(village1.getId(), village2.getId());
 }
 
-TEST_F(VillageTickTest, VillageId_SerializePreservesAllFields) {
+TEST_F(VillageTickTest, VillageId_SerializePreservesAllFields)
+{
     Village original(BlockPos(50, 70, 100));
     original.setId(999);
     original.setBedCount(10);

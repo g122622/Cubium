@@ -10,10 +10,10 @@ namespace mc::network {
 
 RespawnPacket::RespawnPacket()
     : Packet(PacketType::Respawn)
-{
-}
+{}
 
-Result<std::vector<u8>> RespawnPacket::serialize() const {
+Result<std::vector<u8>> RespawnPacket::serialize() const
+{
     PacketSerializer ser;
 
     // 写入包头
@@ -37,7 +37,7 @@ Result<std::vector<u8>> RespawnPacket::serialize() const {
     // 注意：这与维度 ID 不同（下界类型ID是1，但维度ID是-1）
     i32 dimensionTypeId = m_dimensionType;
     if (dimensionTypeId == 0) {
-        dimensionTypeId = 0;  // Overworld
+        dimensionTypeId = 0; // Overworld
     } else if (dimensionTypeId == -1 || dimensionTypeId == 1) {
         // 下界维度 ID=-1, 类型 ID=1
         // 末地维度 ID=1, 类型 ID=2
@@ -80,7 +80,8 @@ Result<std::vector<u8>> RespawnPacket::serialize() const {
     return result;
 }
 
-Result<void> RespawnPacket::deserialize(const u8* data, size_t size) {
+Result<void> RespawnPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deser(data, size);
 
     // 跳过包头
@@ -110,7 +111,7 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size) {
     } else if (name == "minecraft:the_end" || name == "the_end") {
         m_dimension = 1;
     } else {
-        m_dimension = 0;  // 默认主世界
+        m_dimension = 0; // 默认主世界
     }
 
     // 读取种子哈希
@@ -155,7 +156,8 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
-size_t RespawnPacket::expectedSize() const {
+size_t RespawnPacket::expectedSize() const
+{
     // VarInt + 字符串 + u64 + 3*u8 + 3*bool
     // 保守估计
     return sizeof(PacketHeader) + 5 + 32 + 8 + 3 + 3;
@@ -167,10 +169,10 @@ size_t RespawnPacket::expectedSize() const {
 
 DimensionInfoPacket::DimensionInfoPacket()
     : Packet(PacketType::DimensionInfo)
-{
-}
+{}
 
-Result<std::vector<u8>> DimensionInfoPacket::serialize() const {
+Result<std::vector<u8>> DimensionInfoPacket::serialize() const
+{
     PacketSerializer ser;
 
     // 写入包头
@@ -193,7 +195,8 @@ Result<std::vector<u8>> DimensionInfoPacket::serialize() const {
     return result;
 }
 
-Result<void> DimensionInfoPacket::deserialize(const u8* data, size_t size) {
+Result<void> DimensionInfoPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deser(data, size);
 
     // 跳过包头
@@ -252,7 +255,8 @@ Result<void> DimensionInfoPacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
-size_t DimensionInfoPacket::expectedSize() const {
+size_t DimensionInfoPacket::expectedSize() const
+{
     size_t size = sizeof(PacketHeader) + sizeof(u32);
     for (const auto& dim : m_dimensions) {
         size += sizeof(i32) + dim.name.size() + sizeof(bool) * 2 + sizeof(f32);
@@ -266,10 +270,10 @@ size_t DimensionInfoPacket::expectedSize() const {
 
 ConfirmDimensionChangePacket::ConfirmDimensionChangePacket()
     : Packet(PacketType::ConfirmDimensionChange)
-{
-}
+{}
 
-Result<std::vector<u8>> ConfirmDimensionChangePacket::serialize() const {
+Result<std::vector<u8>> ConfirmDimensionChangePacket::serialize() const
+{
     PacketSerializer ser;
 
     // 写入包头
@@ -283,7 +287,8 @@ Result<std::vector<u8>> ConfirmDimensionChangePacket::serialize() const {
     return result;
 }
 
-Result<void> ConfirmDimensionChangePacket::deserialize(const u8* data, size_t size) {
+Result<void> ConfirmDimensionChangePacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deser(data, size);
 
     // 跳过包头
@@ -302,7 +307,8 @@ Result<void> ConfirmDimensionChangePacket::deserialize(const u8* data, size_t si
     return {};
 }
 
-size_t ConfirmDimensionChangePacket::expectedSize() const {
+size_t ConfirmDimensionChangePacket::expectedSize() const
+{
     return sizeof(PacketHeader) + sizeof(i32);
 }
 

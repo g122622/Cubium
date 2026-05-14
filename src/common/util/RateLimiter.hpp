@@ -18,58 +18,58 @@ public:
     explicit RateLimiter(size_t max_calls_per_sec)
         : max_calls_per_sec_(max_calls_per_sec)
         , last_reset_time_(std::chrono::steady_clock::now())
-        , call_count_(0) {}
+        , call_count_(0)
+    {}
 
     /**
      * @brief 尝试获取调用许可
      * @return true 如果允许调用，false 如果被限流
      */
-    bool tryAcquire() {
+    bool tryAcquire()
+    {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            now - last_reset_time_).count();
-        
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_reset_time_).count();
+
         if (elapsed >= 1) {
             // 重置计数器
             last_reset_time_ = now;
             call_count_ = 0;
         }
-        
+
         if (call_count_ < max_calls_per_sec_) {
             ++call_count_;
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * @brief 获取剩余可调用次数
      * @return 当前时间窗口内剩余可调用次数
      */
-    size_t remaining_calls() const {
+    size_t remaining_calls() const
+    {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            now - last_reset_time_).count();
-        
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_reset_time_).count();
+
         if (elapsed >= 1) {
             return max_calls_per_sec_;
         }
-        
-        return (call_count_ < max_calls_per_sec_) 
-            ? (max_calls_per_sec_ - call_count_) 
-            : 0;
+
+        return (call_count_ < max_calls_per_sec_) ? (max_calls_per_sec_ - call_count_) : 0;
     }
-    
+
     /**
      * @brief 重置限流器
      * @param max_calls_per_sec 新的每秒最大调用次数（可选）
      */
-    void reset(size_t max_calls_per_sec = 0) {
+    void reset(size_t max_calls_per_sec = 0)
+    {
         std::lock_guard<std::mutex> lock(mutex_);
         if (max_calls_per_sec > 0) {
             max_calls_per_sec_ = max_calls_per_sec;
@@ -91,15 +91,14 @@ private:
  * @param max_calls_per_sec 每秒内最大调用次数
  * @return 限流后的函数包装器
  */
-template<typename Func>
-auto make_rate_limited(Func&& func, size_t max_calls_per_sec) {
+template <typename Func>
+auto make_rate_limited(Func&& func, size_t max_calls_per_sec)
+{
     auto limiter = std::make_shared<RateLimiter>(max_calls_per_sec);
-    
-    return [limiter, func = std::forward<Func>(func)](auto&&... args) 
-        -> std::invoke_result_t<Func, decltype(args)...> {
-        
+
+    return [limiter, func = std::forward<Func>(func)](auto&&... args) -> std::invoke_result_t<Func, decltype(args)...> {
         using ReturnType = std::invoke_result_t<Func, decltype(args)...>;
-        
+
         if (limiter->tryAcquire()) {
             if constexpr (std::is_void_v<ReturnType>) {
                 func(std::forward<decltype(args)>(args)...);
@@ -120,13 +119,12 @@ auto make_rate_limited(Func&& func, size_t max_calls_per_sec) {
  * @param on_limit_exceeded 限流时的回调函数
  * @return 限流后的函数包装器
  */
-template<typename Func, typename OnLimit>
-auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLimit&& on_limit) {
+template <typename Func, typename OnLimit>
+auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLimit&& on_limit)
+{
     auto limiter = std::make_shared<RateLimiter>(max_calls_per_sec);
-    
-    return [limiter, func = std::forward<Func>(func), 
-            on_limit = std::forward<OnLimit>(on_limit)](auto&&... args) {
-        
+
+    return [limiter, func = std::forward<Func>(func), on_limit = std::forward<OnLimit>(on_limit)](auto&&... args) {
         if (limiter->tryAcquire()) {
             func(std::forward<decltype(args)>(args)...);
         } else {
@@ -135,7 +133,7 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
     };
 }
 
-} // namespace mc::util::log
+} // namespace mc::util
 
 // // example.cpp - 使用示例
 // #include "rate_limiter.hpp"
@@ -143,8 +141,8 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 // #include <thread>
 
 // void test_function(int id) {
-//     std::cout << "Function called with id: " << id 
-//               << " at " << std::chrono::system_clock::now().time_since_epoch().count() 
+//     std::cout << "Function called with id: " << id
+//               << " at " << std::chrono::system_clock::now().time_since_epoch().count()
 //               << std::endl;
 // }
 
@@ -154,10 +152,10 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 
 // int main() {
 //     using namespace mc::util::log;
-    
+
 //     // 示例1：直接使用限流器
 //     RateLimiter limiter(5); // 每秒最多5次调用
-    
+
 //     for (int i = 0; i < 10; ++i) {
 //         if (limiter.tryAcquire()) {
 //             std::cout << "Call " << i << " allowed" << std::endl;
@@ -166,13 +164,13 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 //         }
 //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 //     }
-    
+
 //     std::cout << "\n--- 等待1秒重置 ---\n" << std::endl;
 //     std::this_thread::sleep_for(std::chrono::seconds(1));
-    
+
 //     // 示例2：使用包装器限流函数
 //     auto limited_test = make_rate_limited(test_function, 3);
-    
+
 //     for (int i = 0; i < 10; ++i) {
 //         try {
 //             limited_test(i);
@@ -181,11 +179,11 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 //         }
 //         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 //     }
-    
+
 //     std::cout << "\n--- 带返回值的函数限流 ---\n" << std::endl;
-    
+
 //     auto limited_add = make_rate_limited(add, 2);
-    
+
 //     for (int i = 0; i < 5; ++i) {
 //         try {
 //             int result = limited_add(i, i * 2);
@@ -195,19 +193,19 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 //         }
 //         std::this_thread::sleep_for(std::chrono::milliseconds(300));
 //     }
-    
+
 //     std::cout << "\n--- 带回调的限流函数 ---\n" << std::endl;
-    
+
 //     auto limited_with_callback = make_rate_limited_with_callback(
 //         test_function, 2, []() {
 //             std::cout << "Rate limit exceeded, call dropped!" << std::endl;
 //         }
 //     );
-    
+
 //     for (int i = 0; i < 10; ++i) {
 //         limited_with_callback(i);
 //         std::this_thread::sleep_for(std::chrono::milliseconds(150));
 //     }
-    
+
 //     return 0;
 // }

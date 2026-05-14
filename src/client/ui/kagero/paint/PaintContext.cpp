@@ -50,56 +50,67 @@ private:
 PaintContext::PaintContext(paint::ICanvas& canvas)
     : m_canvas(canvas)
     , m_fillPaint(std::make_unique<SimplePaint>())
-    , m_strokePaint(std::make_unique<SimplePaint>()) {
+    , m_strokePaint(std::make_unique<SimplePaint>())
+{
     // 初始化画笔默认样式
     m_fillPaint->setStyle(paint::PaintStyle::Fill);
     m_strokePaint->setStyle(paint::PaintStyle::Stroke);
 }
 
-paint::ICanvas& PaintContext::canvas() {
+paint::ICanvas& PaintContext::canvas()
+{
     return m_canvas;
 }
 
-const paint::ICanvas& PaintContext::canvas() const {
+const paint::ICanvas& PaintContext::canvas() const
+{
     return m_canvas;
 }
 
-void PaintContext::drawTextCentered(const std::string& text, const Rect& bounds, u32 color) {
+void PaintContext::drawTextCentered(const std::string& text, const Rect& bounds, u32 color)
+{
     // 使用缓存的画笔
     m_fillPaint->setColor(paint::Color::fromARGB(color));
     m_canvas.drawText(text, static_cast<f32>(bounds.centerX()), static_cast<f32>(bounds.centerY()), *m_fillPaint);
 }
 
-void PaintContext::drawBorder(const Rect& bounds, f32 width, u32 color) {
+void PaintContext::drawBorder(const Rect& bounds, f32 width, u32 color)
+{
     m_strokePaint->setColor(paint::Color::fromARGB(color));
     m_strokePaint->setStrokeWidth(width);
     m_canvas.drawRect(bounds, *m_strokePaint);
 }
 
-void PaintContext::drawFilledRect(const Rect& bounds, u32 color) {
+void PaintContext::drawFilledRect(const Rect& bounds, u32 color)
+{
     m_fillPaint->setColor(paint::Color::fromARGB(color));
     m_canvas.drawRect(bounds, *m_fillPaint);
 }
 
-void PaintContext::drawNinePatch(const paint::IImage& image, const Rect& center, const Rect& dst, u32 tint) {
+void PaintContext::drawNinePatch(const paint::IImage& image, const Rect& center, const Rect& dst, u32 tint)
+{
     m_fillPaint->setColor(paint::Color::fromARGB(tint));
     m_canvas.drawImageNine(image, center, dst, m_fillPaint.get());
 }
 
-void PaintContext::drawText(const std::string& text, i32 x, i32 y, u32 color) {
+void PaintContext::drawText(const std::string& text, i32 x, i32 y, u32 color)
+{
     m_fillPaint->setColor(paint::Color::fromARGB(color));
     m_canvas.drawText(text, static_cast<f32>(x), static_cast<f32>(y), *m_fillPaint);
 }
 
-void PaintContext::drawImage(const paint::IImage& image, const Rect& dst) {
+void PaintContext::drawImage(const paint::IImage& image, const Rect& dst)
+{
     m_canvas.drawImageRect(image, Rect(0, 0, image.width(), image.height()), dst);
 }
 
-void PaintContext::drawImage(const paint::IImage& image, i32 x, i32 y) {
+void PaintContext::drawImage(const paint::IImage& image, i32 x, i32 y)
+{
     m_canvas.drawImage(image, static_cast<f32>(x), static_cast<f32>(y));
 }
 
-void PaintContext::drawRoundedRect(const Rect& bounds, f32 radius, u32 color) {
+void PaintContext::drawRoundedRect(const Rect& bounds, f32 radius, u32 color)
+{
     m_fillPaint->setColor(paint::Color::fromARGB(color));
     paint::RRect rrect;
     rrect.rect = bounds;
@@ -108,25 +119,30 @@ void PaintContext::drawRoundedRect(const Rect& bounds, f32 radius, u32 color) {
     m_canvas.drawRRect(rrect, *m_fillPaint);
 }
 
-void PaintContext::drawGradientRect(const Rect& bounds, u32 startColor, u32 endColor, bool vertical) {
+void PaintContext::drawGradientRect(const Rect& bounds, u32 startColor, u32 endColor, bool vertical)
+{
     m_canvas.drawGradientRect(bounds, startColor, endColor, vertical);
 }
 
-f32 PaintContext::getTextWidth(const std::string& text) const {
+f32 PaintContext::getTextWidth(const std::string& text) const
+{
     return m_canvas.getTextWidth(text);
 }
 
-u32 PaintContext::getFontHeight() const {
+u32 PaintContext::getFontHeight() const
+{
     return m_canvas.getFontHeight();
 }
 
-i32 PaintContext::pushClip(const Rect& rect) {
+i32 PaintContext::pushClip(const Rect& rect)
+{
     i32 saveCount = m_canvas.save();
     m_canvas.clipRect(rect);
     return saveCount;
 }
 
-i32 PaintContext::pushClipRounded(const Rect& bounds, f32 radius) {
+i32 PaintContext::pushClipRounded(const Rect& bounds, f32 radius)
+{
     i32 saveCount = m_canvas.save();
     paint::RRect rrect;
     rrect.rect = bounds;
@@ -136,23 +152,28 @@ i32 PaintContext::pushClipRounded(const Rect& bounds, f32 radius) {
     return saveCount;
 }
 
-void PaintContext::popClip() {
+void PaintContext::popClip()
+{
     m_canvas.restore();
 }
 
-i32 PaintContext::save() {
+i32 PaintContext::save()
+{
     return m_canvas.save();
 }
 
-void PaintContext::restore() {
+void PaintContext::restore()
+{
     m_canvas.restore();
 }
 
-void PaintContext::translate(f32 dx, f32 dy) {
+void PaintContext::translate(f32 dx, f32 dy)
+{
     m_canvas.translate(dx, dy);
 }
 
-void PaintContext::concat(const paint::Matrix& matrix) {
+void PaintContext::concat(const paint::Matrix& matrix)
+{
     m_canvas.concat(matrix);
 }
 

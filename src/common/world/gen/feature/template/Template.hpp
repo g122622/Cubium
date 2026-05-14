@@ -1,16 +1,16 @@
 #pragma once
 
 #include "../../../../core/Types.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../../util/nbt/Nbt.hpp"
 #include "../../../../util/Direction.hpp"
-#include "../../structure/StructureBoundingBox.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/nbt/Nbt.hpp"
+#include "../../../block/BlockPos.hpp"
+#include "../../structure/StructureBoundingBox.hpp"
 #include "RuleTest.hpp"
-#include <vector>
 #include <memory>
 #include <optional>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 
@@ -25,8 +25,8 @@ namespace feature {
 namespace template_ {
 
 // 使用 Direction.hpp 中定义的 Rotation 和 Mirror 枚举
-using mc::Rotation;
 using mc::Mirror;
+using mc::Rotation;
 
 // 前向声明
 class StructureProcessor;
@@ -37,7 +37,7 @@ class StructureProcessorList;
  */
 struct BlockInfo {
     BlockPos pos;
-    u32 blockStateId = 0;  // 使用 BlockState 的 ID 来避免完整类型定义
+    u32 blockStateId = 0; // 使用 BlockState 的 ID 来避免完整类型定义
     std::unique_ptr<nbt::CompoundTag> nbt;
 
     BlockInfo();
@@ -61,7 +61,10 @@ struct ProcessedBlockInfo {
     std::unique_ptr<nbt::CompoundTag> nbt;
 
     ProcessedBlockInfo() = default;
-    ProcessedBlockInfo(const BlockPos& p, u32 stateId) : pos(p), blockStateId(stateId) {}
+    ProcessedBlockInfo(const BlockPos& p, u32 stateId)
+        : pos(p)
+        , blockStateId(stateId)
+    {}
     ProcessedBlockInfo(const ProcessedBlockInfo& other);
     ProcessedBlockInfo(ProcessedBlockInfo&& other) noexcept;
     ProcessedBlockInfo& operator=(const ProcessedBlockInfo& other);
@@ -73,7 +76,8 @@ struct ProcessedBlockInfo {
      * @param info 源方块信息
      * @return 处理后的方块信息
      */
-    static ProcessedBlockInfo fromBlockInfo(const BlockInfo& info) {
+    static ProcessedBlockInfo fromBlockInfo(const BlockInfo& info)
+    {
         ProcessedBlockInfo result;
         result.pos = info.pos;
         result.blockStateId = info.blockStateId;
@@ -118,7 +122,11 @@ public:
      * @brief 获取世界读取器（用于 GravityStructureProcessor 等需要高度信息的处理器）
      */
     [[nodiscard]] const IWorld* getWorld() const { return m_world; }
-    PlacementSettings& setWorld(const IWorld* world) { m_world = world; return *this; }
+    PlacementSettings& setWorld(const IWorld* world)
+    {
+        m_world = world;
+        return *this;
+    }
 
     /**
      * @brief 获取确定性随机数生成器
@@ -136,7 +144,11 @@ public:
      *
      * 当需要固定随机序列时使用
      */
-    PlacementSettings& setRandom(math::Random* random) { m_random = random; return *this; }
+    PlacementSettings& setRandom(math::Random* random)
+    {
+        m_random = random;
+        return *this;
+    }
 
     [[nodiscard]] PlacementSettings copy() const;
 
@@ -150,10 +162,10 @@ private:
     bool m_keepLiquids = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
-    u32 m_blockUpdateFlags = 18;  // 默认标志：更新邻居和通知观察者
+    u32 m_blockUpdateFlags = 18; // 默认标志：更新邻居和通知观察者
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;  // 可选的世界读取器
-    math::Random* m_random = nullptr;  // 可选的预设随机数生成器
+    math::Random* m_random = nullptr; // 可选的预设随机数生成器
 };
 
 /**
@@ -177,8 +189,7 @@ public:
      * @param settings 放置设置
      * @return 处理后的方块信息，或 nullopt 表示跳过此方块
      */
-    [[nodiscard]] virtual std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] virtual std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -204,13 +215,18 @@ public:
     [[nodiscard]] bool empty() const { return m_processors.empty(); }
 
     // 迭代器支持
-    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator begin() const { return m_processors.begin(); }
-    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator end() const { return m_processors.end(); }
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator begin() const
+    {
+        return m_processors.begin();
+    }
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator end() const
+    {
+        return m_processors.end();
+    }
     [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator begin() { return m_processors.begin(); }
     [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator end() { return m_processors.end(); }
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -228,12 +244,23 @@ struct TemplateJigsawBlockInfo {
     std::string name;
     std::string targetPool;
     std::string targetName;
-    i32 jointType = 0;  // 0=rollable, 1=aligned
-    u32 blockStateId = 0;  // 方块状态ID，用于读取 orientation 属性
+    i32 jointType = 0;    // 0=rollable, 1=aligned
+    u32 blockStateId = 0; // 方块状态ID，用于读取 orientation 属性
 
     TemplateJigsawBlockInfo() = default;
-    TemplateJigsawBlockInfo(const BlockPos& p, const std::string& n, const std::string& pool, const std::string& tgt, i32 joint = 0, u32 stateId = 0)
-        : pos(p), name(n), targetPool(pool), targetName(tgt), jointType(joint), blockStateId(stateId) {}
+    TemplateJigsawBlockInfo(const BlockPos& p,
+        const std::string& n,
+        const std::string& pool,
+        const std::string& tgt,
+        i32 joint = 0,
+        u32 stateId = 0)
+        : pos(p)
+        , name(n)
+        , targetPool(pool)
+        , targetName(tgt)
+        , jointType(joint)
+        , blockStateId(stateId)
+    {}
 };
 
 /**
@@ -246,10 +273,10 @@ struct TemplateJigsawBlockInfo {
  */
 struct TemplateEntityInfo {
     std::string typeId;
-    f64 posx = 0.0;  // 精确位置 X
-    f64 posy = 0.0;  // 精确位置 Y
-    f64 posz = 0.0;  // 精确位置 Z
-    BlockPos blockPos;  // 方块坐标
+    f64 posx = 0.0;    // 精确位置 X
+    f64 posy = 0.0;    // 精确位置 Y
+    f64 posz = 0.0;    // 精确位置 Z
+    BlockPos blockPos; // 方块坐标
     std::unique_ptr<nbt::CompoundTag> nbt;
 
     TemplateEntityInfo();
@@ -354,8 +381,7 @@ public:
     [[nodiscard]] size_t getJigsawBlockCount() const { return m_jigsawBlocks.size(); }
 
     [[nodiscard]] structure::StructureBoundingBox getBoundingBox(
-        const PlacementSettings& settings,
-        const BlockPos& pos) const;
+        const PlacementSettings& settings, const BlockPos& pos) const;
 
     /**
      * @brief 放置模板到世界（基础版本）
@@ -370,8 +396,7 @@ public:
      * @param flags 方块更新标志
      * @return 是否成功放置
      */
-    bool place(
-        IWorldWriter& world,
+    bool place(IWorldWriter& world,
         const BlockPos& pos,
         const PlacementSettings& settings,
         math::Random& rng,
@@ -395,26 +420,16 @@ public:
      * @return 是否成功放置
      */
     bool placeInWorld(
-        IWorld& world,
-        const BlockPos& pos,
-        const PlacementSettings& settings,
-        math::Random& rng,
-        u32 flags = 18) const;
+        IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags = 18) const;
 
     [[nodiscard]] static BlockPos transformBlockPos(
-        const BlockPos& pos,
-        Mirror mirror,
-        Rotation rotation,
-        const BlockPos& center);
+        const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center);
 
-    [[nodiscard]] static BlockPos getTransformedPosition(
-        const BlockPos& pos,
-        Rotation rotation,
-        const BlockPos& size);
+    [[nodiscard]] static BlockPos getTransformedPosition(const BlockPos& pos, Rotation rotation, const BlockPos& size);
 
 private:
     BlockPos m_size;
-    std::vector<Palette> m_palettes;  // MC 1.16.5: 多调色板支持
+    std::vector<Palette> m_palettes; // MC 1.16.5: 多调色板支持
     std::vector<TemplateJigsawBlockInfo> m_jigsawBlocks;
     std::vector<TemplateEntityInfo> m_entities;
 };
@@ -428,8 +443,7 @@ class GravityStructureProcessor : public StructureProcessor {
 public:
     explicit GravityStructureProcessor(i32 heightmapType = 0, i32 offset = 0);
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -452,8 +466,7 @@ class BlockIgnoreStructureProcessor : public StructureProcessor {
 public:
     explicit BlockIgnoreStructureProcessor(const std::vector<u32>& blocksToIgnore = {});
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -477,8 +490,7 @@ class JigsawReplacementStructureProcessor : public StructureProcessor {
 public:
     JigsawReplacementStructureProcessor();
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -502,8 +514,7 @@ class IntegrityProcessor : public StructureProcessor {
 public:
     explicit IntegrityProcessor(f32 integrity);
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -531,8 +542,7 @@ public:
      */
     explicit RuleStructureProcessor(std::vector<std::unique_ptr<RuleEntry>> rules);
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -555,8 +565,7 @@ class NopStructureProcessor : public StructureProcessor {
 public:
     NopStructureProcessor() = default;
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -574,8 +583,7 @@ class LavaSubmergingProcessor : public StructureProcessor {
 public:
     LavaSubmergingProcessor() = default;
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -597,8 +605,7 @@ public:
      */
     explicit BlockAgeProcessor(f32 mossiness);
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -625,8 +632,7 @@ class BlackstoneReplacementProcessor : public StructureProcessor {
 public:
     BlackstoneReplacementProcessor();
 
-    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
-        const BlockPos& seedPos,
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
@@ -641,7 +647,7 @@ private:
  * @brief 预定义处理器列表
  */
 namespace ProcessorLists {
-    [[nodiscard]] const StructureProcessorList& empty();
+[[nodiscard]] const StructureProcessorList& empty();
 }
 
 } // namespace template_

@@ -2,11 +2,11 @@
 
 #include <thread>
 
-#include "server/world/entity/EntityTracker.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "server/world/entity/EntityTracker.hpp"
 
 using namespace mc;
 using namespace mc::server;
@@ -55,18 +55,15 @@ public:
 
 class EntityTrackerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        tracker = std::make_unique<EntityTracker>();
-    }
+    void SetUp() override { tracker = std::make_unique<EntityTracker>(); }
 
-    void TearDown() override {
-        tracker.reset();
-    }
+    void TearDown() override { tracker.reset(); }
 
     std::unique_ptr<EntityTracker> tracker;
 };
 
-TEST_F(EntityTrackerTest, TrackEntity) {
+TEST_F(EntityTrackerTest, TrackEntity)
+{
     TestEntity entity(1);
     tracker->trackEntity(&entity);
 
@@ -74,7 +71,8 @@ TEST_F(EntityTrackerTest, TrackEntity) {
     EXPECT_EQ(tracker->trackedEntityCount(), 1);
 }
 
-TEST_F(EntityTrackerTest, TrackMultipleEntities) {
+TEST_F(EntityTrackerTest, TrackMultipleEntities)
+{
     TestEntity entity1(1);
     TestEntity entity2(2);
     TestEntity entity3(3);
@@ -89,17 +87,19 @@ TEST_F(EntityTrackerTest, TrackMultipleEntities) {
     EXPECT_EQ(tracker->trackedEntityCount(), 3);
 }
 
-TEST_F(EntityTrackerTest, TrackSameEntityTwice) {
+TEST_F(EntityTrackerTest, TrackSameEntityTwice)
+{
     TestEntity entity(1);
     tracker->trackEntity(&entity);
-    tracker->trackEntity(&entity);  // 重复追踪
+    tracker->trackEntity(&entity); // 重复追踪
 
     // 应该只追踪一次
     EXPECT_TRUE(tracker->isTracking(1));
     EXPECT_EQ(tracker->trackedEntityCount(), 1);
 }
 
-TEST_F(EntityTrackerTest, UntrackEntity) {
+TEST_F(EntityTrackerTest, UntrackEntity)
+{
     TestEntity entity(1);
     tracker->trackEntity(&entity);
     EXPECT_TRUE(tracker->isTracking(1));
@@ -109,17 +109,20 @@ TEST_F(EntityTrackerTest, UntrackEntity) {
     EXPECT_EQ(tracker->trackedEntityCount(), 0);
 }
 
-TEST_F(EntityTrackerTest, UntrackNonExistentEntity) {
+TEST_F(EntityTrackerTest, UntrackNonExistentEntity)
+{
     // 移除不存在的实体不应崩溃
     tracker->untrackEntity(999);
     EXPECT_EQ(tracker->trackedEntityCount(), 0);
 }
 
-TEST_F(EntityTrackerTest, IsTrackingReturnsFalseForUnknownEntity) {
+TEST_F(EntityTrackerTest, IsTrackingReturnsFalseForUnknownEntity)
+{
     EXPECT_FALSE(tracker->isTracking(999));
 }
 
-TEST_F(EntityTrackerTest, TrackedEntityCount) {
+TEST_F(EntityTrackerTest, TrackedEntityCount)
+{
     EXPECT_EQ(tracker->trackedEntityCount(), 0);
 
     TestEntity entity1(1);
@@ -138,7 +141,8 @@ TEST_F(EntityTrackerTest, TrackedEntityCount) {
     EXPECT_EQ(tracker->trackedEntityCount(), 0);
 }
 
-TEST_F(EntityTrackerTest, SetTrackingDistance) {
+TEST_F(EntityTrackerTest, SetTrackingDistance)
+{
     tracker->setTrackingDistance(5);
     EXPECT_EQ(tracker->trackingDistance(), 5);
 
@@ -150,7 +154,8 @@ TEST_F(EntityTrackerTest, SetTrackingDistance) {
 // EntityTracker Player Tracking Tests
 // ============================================================================
 
-TEST_F(EntityTrackerTest, RemovePlayerClearsTracking) {
+TEST_F(EntityTrackerTest, RemovePlayerClearsTracking)
+{
     // 首先添加一些实体追踪
     TestEntity entity1(1);
     TestEntity entity2(2);
@@ -165,7 +170,8 @@ TEST_F(EntityTrackerTest, RemovePlayerClearsTracking) {
     EXPECT_TRUE(tracker->isTracking(2));
 }
 
-TEST_F(EntityTrackerTest, GetPlayerTrackedEntitiesEmpty) {
+TEST_F(EntityTrackerTest, GetPlayerTrackedEntitiesEmpty)
+{
     // 新玩家没有追踪任何实体
     auto tracked = tracker->getPlayerTrackedEntities(100);
     EXPECT_TRUE(tracked.empty());
@@ -175,7 +181,8 @@ TEST_F(EntityTrackerTest, GetPlayerTrackedEntitiesEmpty) {
 // EntityTracker ShouldTrack Distance Tests
 // ============================================================================
 
-TEST_F(EntityTrackerTest, TrackingDistanceCalculation) {
+TEST_F(EntityTrackerTest, TrackingDistanceCalculation)
+{
     // 默认追踪距离是 10 区块 = 160 方块
     EXPECT_EQ(tracker->trackingDistance(), 10);
 }
@@ -184,7 +191,8 @@ TEST_F(EntityTrackerTest, TrackingDistanceCalculation) {
 // EntityTracker Thread Safety Tests
 // ============================================================================
 
-TEST_F(EntityTrackerTest, ConcurrentTrackUntrack) {
+TEST_F(EntityTrackerTest, ConcurrentTrackUntrack)
+{
     std::vector<std::thread> threads;
 
     // 并发追踪和取消追踪
@@ -206,7 +214,8 @@ TEST_F(EntityTrackerTest, ConcurrentTrackUntrack) {
     EXPECT_TRUE(true);
 }
 
-TEST_F(EntityTrackerTest, ConcurrentTrackAndCount) {
+TEST_F(EntityTrackerTest, ConcurrentTrackAndCount)
+{
     std::vector<std::thread> threads;
     std::atomic<int> successCount{0};
 
@@ -236,7 +245,8 @@ TEST_F(EntityTrackerTest, ConcurrentTrackAndCount) {
 // TrackedEntity Structure Tests
 // ============================================================================
 
-TEST(TrackedEntityTest, DefaultValues) {
+TEST(TrackedEntityTest, DefaultValues)
+{
     TrackedEntity tracked;
     tracked.entityId = 1;
 
@@ -249,7 +259,8 @@ TEST(TrackedEntityTest, DefaultValues) {
     EXPECT_TRUE(tracked.needsFullUpdate);
 }
 
-TEST(TrackedEntityTest, TrackingPlayersSet) {
+TEST(TrackedEntityTest, TrackingPlayersSet)
+{
     TrackedEntity tracked;
     tracked.trackingPlayers.insert(1);
     tracked.trackingPlayers.insert(2);
@@ -266,7 +277,8 @@ TEST(TrackedEntityTest, TrackingPlayersSet) {
 // EntityTracker Integration with LivingEntity/MobEntity
 // ============================================================================
 
-TEST_F(EntityTrackerTest, TrackLivingEntity) {
+TEST_F(EntityTrackerTest, TrackLivingEntity)
+{
     TestLivingEntity entity(1);
     entity.setPosition(100.0, 64.0, 200.0);
     entity.setRotation(45.0f, 30.0f);
@@ -276,7 +288,8 @@ TEST_F(EntityTrackerTest, TrackLivingEntity) {
     EXPECT_TRUE(tracker->isTracking(1));
 }
 
-TEST_F(EntityTrackerTest, TrackMobEntity) {
+TEST_F(EntityTrackerTest, TrackMobEntity)
+{
     TestMobEntity entity(1);
     entity.setPosition(50.0, 70.0, -30.0);
 
@@ -285,7 +298,8 @@ TEST_F(EntityTrackerTest, TrackMobEntity) {
     EXPECT_TRUE(tracker->isTracking(1));
 }
 
-TEST_F(EntityTrackerTest, TrackEntityWithPosition) {
+TEST_F(EntityTrackerTest, TrackEntityWithPosition)
+{
     TestEntity entity(1);
     entity.setPosition(123.0, 64.0, 456.0);
 

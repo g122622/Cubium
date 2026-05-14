@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Template.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/nbt/Nbt.hpp"
+#include "Template.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -47,8 +47,7 @@ public:
      * @return 加载的模板，失败返回 nullptr
      */
     [[nodiscard]] static std::unique_ptr<Template> loadFromResourcePack(
-        const IResourcePack& pack,
-        const ResourceLocation& location);
+        const IResourcePack& pack, const ResourceLocation& location);
 
     /**
      * @brief 从原始 NBT 字节加载模板
@@ -76,9 +75,7 @@ private:
      * @return Jigsaw 信息，如果不是 Jigsaw 方块返回空
      */
     [[nodiscard]] static TemplateJigsawBlockInfo parseJigsawBlock(
-        const nbt::CompoundTag* nbt,
-        const BlockPos& pos,
-        u32 blockStateId);
+        const nbt::CompoundTag* nbt, const BlockPos& pos, u32 blockStateId);
 };
 
 } // namespace template_

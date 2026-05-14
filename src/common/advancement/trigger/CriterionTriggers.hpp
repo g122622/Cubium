@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CriterionTrigger.hpp"
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::advancement {
@@ -54,8 +54,9 @@ public:
     /**
      * @brief 获取触发器（模板版本）
      */
-    template<typename T>
-    [[nodiscard]] T* getTrigger() {
+    template <typename T>
+    [[nodiscard]] T* getTrigger()
+    {
         return static_cast<T*>(getTrigger(ResourceLocation(T::TRIGGER_ID)));
     }
 

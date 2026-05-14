@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "../Structure.hpp"
 #include <memory>
 
 namespace mc::world::gen::structure {
@@ -16,16 +16,17 @@ public:
     /**
      * @brief 在区块中生成片段
      */
-    void generate(IWorldWriter& world, math::Random& rng,
-                  i32 chunkX, i32 chunkZ,
-                  const StructureBoundingBox& chunkBounds) override;
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
 
 private:
     /**
      * @brief 检查位置是否在区块边界内
      */
-    [[nodiscard]] bool isInBounds(i32 x, i32 y, i32 z,
-                                   const StructureBoundingBox& chunkBounds) const;
+    [[nodiscard]] bool isInBounds(i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds) const;
 };
 
 /**
@@ -36,7 +37,9 @@ private:
  */
 class RuinedPortalStructure : public Structure {
 public:
-    RuinedPortalStructure() : Structure(StructureType::RuinedPortal) {}
+    RuinedPortalStructure()
+        : Structure(StructureType::RuinedPortal)
+    {}
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
@@ -46,21 +49,13 @@ public:
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成废弃传送门
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     static constexpr StructureSeparationSettings m_settings{40, 15, 34222645};
@@ -70,8 +65,7 @@ private:
     /**
      * @brief 生成传送门框架
      */
-    void generatePortalFrame(IWorldWriter& world, i32 x, i32 y, i32 z,
-                            math::Random& rng, bool isNether) const;
+    void generatePortalFrame(IWorldWriter& world, i32 x, i32 y, i32 z, math::Random& rng, bool isNether) const;
 };
 
 } // namespace mc::world::gen::structure

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractRaiderEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AbstractRaiderEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -29,14 +29,14 @@ public:
      * MC 1.16.5: 用于客户端渲染
      */
     enum class ArmPose : u8 {
-        Crossed = 0,       // 交叉
-        Attacking = 1,     // 攻击
-        Spellcasting = 2,  // 施法
-        BowAndArrow = 3,   // 弓箭
-        CrossbowHold = 4,  // 弩持有
-        CrossbowCharge = 5,// 弩装填
-        Celebrating = 6,   // 庆祝
-        Neutral = 7        // 中立
+        Crossed = 0,        // 交叉
+        Attacking = 1,      // 攻击
+        Spellcasting = 2,   // 施法
+        BowAndArrow = 3,    // 弓箭
+        CrossbowHold = 4,   // 弩持有
+        CrossbowCharge = 5, // 弩装填
+        Celebrating = 6,    // 庆祝
+        Neutral = 7         // 中立
     };
 
     /**

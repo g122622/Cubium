@@ -1,13 +1,13 @@
 #include "PotionItem.hpp"
 
-#include "../../potion/PotionUtils.hpp"
-#include "../../potion/Potions.hpp"
-#include "../../Items.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/effect/EffectType.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../Items.hpp"
+#include "../../potion/PotionUtils.hpp"
+#include "../../potion/Potions.hpp"
 
 namespace mc {
 namespace item {
@@ -16,13 +16,14 @@ namespace item {
  * @brief 构造药水物品
  */
 PotionItem::PotionItem(const ItemProperties& properties)
-    : Item(properties) {
-}
+    : Item(properties)
+{}
 
 /**
  * @brief 获取使用时长
  */
-i32 PotionItem::getUseDuration(const ItemStack& /*stack*/) const {
+i32 PotionItem::getUseDuration(const ItemStack& /*stack*/) const
+{
     // MC 1.16.5: 32 ticks
     return 32;
 }
@@ -30,7 +31,8 @@ i32 PotionItem::getUseDuration(const ItemStack& /*stack*/) const {
 /**
  * @brief 获取使用动作
  */
-UseAction PotionItem::getUseAction(const ItemStack& /*stack*/) const {
+UseAction PotionItem::getUseAction(const ItemStack& /*stack*/) const
+{
     return UseAction::Drink;
 }
 
@@ -42,7 +44,8 @@ UseAction PotionItem::getUseAction(const ItemStack& /*stack*/) const {
  * 2. 消耗物品（非创造模式）
  * 3. 返回玻璃瓶
  */
-ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) {
+ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
+{
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
 
     // 应用效果
@@ -85,7 +88,8 @@ ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& e
 /**
  * @brief 右键使用物品
  */
-ItemActionResult PotionItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult PotionItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     // MC 1.16.5: 使用 DrinkHelper.startDrinking()
     // 药水可以随时饮用，不像食物需要饥饿
     // 检查玩家是否可以饮用（不是正在使用其他物品）
@@ -96,7 +100,8 @@ ItemActionResult PotionItem::onItemRightClick(IWorld& world, Player& player, Han
 /**
  * @brief 是否有药水效果
  */
-bool PotionItem::hasEffect(const ItemStack& stack) const {
+bool PotionItem::hasEffect(const ItemStack& stack) const
+{
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
     return potion != nullptr && potion->hasEffects();
 }
@@ -104,7 +109,8 @@ bool PotionItem::hasEffect(const ItemStack& stack) const {
 /**
  * @brief 获取翻译键
  */
-std::string PotionItem::getTranslationKey(const ItemStack& stack) const {
+std::string PotionItem::getTranslationKey(const ItemStack& stack) const
+{
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
     if (potion != nullptr && potion->hasEffects()) {
         return std::string("item.minecraft.potion.effect.") + potion->baseName();
@@ -119,7 +125,8 @@ std::string PotionItem::getTranslationKey(const ItemStack& stack) const {
  * - 瞬间效果：直接应用（治疗/伤害根据目标是否亡灵）
  * - 非瞬间效果：添加到实体
  */
-void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWorld& /*world*/) {
+void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWorld& /*world*/)
+{
     if (potion == nullptr) {
         return;
     }
@@ -147,12 +154,12 @@ void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWor
                     // 亡灵生物受到伤害
                     // 参考 MC 1.16.5: DamageSources.MAGIC
                     // 暂时使用普通伤害（没有 Magic 伤害源）
-                    livingEntity->heal(-amount);  // 负数治疗 = 伤害
+                    livingEntity->heal(-amount); // 负数治疗 = 伤害
                 } else {
                     // 普通生物治疗
                     livingEntity->heal(amount);
                 }
-            } else {  // InstantDamage
+            } else { // InstantDamage
                 if (isUndead) {
                     // 亡灵生物治疗
                     livingEntity->heal(amount);

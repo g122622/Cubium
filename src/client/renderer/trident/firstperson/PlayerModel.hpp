@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "ArmPose.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 
@@ -58,9 +58,8 @@ public:
      * @param headPitch 头部俯仰角（度）
      * @param scale 缩放因子
      */
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     // ========== 玩家特有部件访问器 ==========
 
@@ -235,13 +234,13 @@ private:
     bool m_smallArms = false;
 
     // 重写父类部件以使用正确类型
-    using BipedModel::m_head;
     using BipedModel::m_body;
-    using BipedModel::m_rightArm;
+    using BipedModel::m_head;
     using BipedModel::m_leftArm;
-    using BipedModel::m_rightLeg;
     using BipedModel::m_leftLeg;
     using BipedModel::m_parts;
+    using BipedModel::m_rightArm;
+    using BipedModel::m_rightLeg;
 };
 
 } // namespace mc::client::renderer

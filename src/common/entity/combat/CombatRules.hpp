@@ -75,14 +75,14 @@ private:
     ~CombatRules() = delete;
 
     // 常量
-    static constexpr f32 ARMOR_MAX_EFFECTIVE = 20.0f;    // 有效护甲上限
-    static constexpr f32 ARMOR_MIN_RATIO = 0.2f;         // 护甲最小比例
-    static constexpr f32 ARMOR_DIVISOR = 25.0f;          // 护甲减伤除数
-    static constexpr f32 TOUGHNESS_FACTOR = 4.0f;        // 韧性因子
-    static constexpr f32 TOUGHNESS_BASE = 2.0f;          // 韧性基数
-    static constexpr f32 EPF_MAX = 20.0f;                // EPF 上限
-    static constexpr f32 RESISTANCE_FACTOR = 0.2f;       // 抗性因子
-    static constexpr i32 RESISTANCE_MAX_LEVEL = 5;       // 抗性最大等级
+    static constexpr f32 ARMOR_MAX_EFFECTIVE = 20.0f; // 有效护甲上限
+    static constexpr f32 ARMOR_MIN_RATIO = 0.2f;      // 护甲最小比例
+    static constexpr f32 ARMOR_DIVISOR = 25.0f;       // 护甲减伤除数
+    static constexpr f32 TOUGHNESS_FACTOR = 4.0f;     // 韧性因子
+    static constexpr f32 TOUGHNESS_BASE = 2.0f;       // 韧性基数
+    static constexpr f32 EPF_MAX = 20.0f;             // EPF 上限
+    static constexpr f32 RESISTANCE_FACTOR = 0.2f;    // 抗性因子
+    static constexpr i32 RESISTANCE_MAX_LEVEL = 5;    // 抗性最大等级
 };
 
 } // namespace entity::combat

@@ -1,6 +1,6 @@
 #include "world/blockentity/interactive/BannerEntity.hpp"
-#include "world/IWorld.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -8,12 +8,13 @@ namespace blockentity {
 // ========== BannerEntity 实现 ==========
 
 BannerEntity::BannerEntity(const BlockPos& pos)
-    : BlockEntity(BlockEntityType::Banner, pos) {
-}
+    : BlockEntity(BlockEntityType::Banner, pos)
+{}
 
 BannerEntity::~BannerEntity() = default;
 
-bool BannerEntity::addPattern(const BannerPattern& pattern) {
+bool BannerEntity::addPattern(const BannerPattern& pattern)
+{
     if (static_cast<i32>(m_patterns.size()) >= MAX_PATTERNS) {
         return false;
     }
@@ -23,7 +24,8 @@ bool BannerEntity::addPattern(const BannerPattern& pattern) {
     return true;
 }
 
-void BannerEntity::setPatterns(const std::vector<BannerPattern>& patterns) {
+void BannerEntity::setPatterns(const std::vector<BannerPattern>& patterns)
+{
     m_patterns.clear();
     for (const auto& pattern : patterns) {
         if (static_cast<i32>(m_patterns.size()) < MAX_PATTERNS) {
@@ -33,7 +35,8 @@ void BannerEntity::setPatterns(const std::vector<BannerPattern>& patterns) {
     setChanged();
 }
 
-bool BannerEntity::removeTopPattern() {
+bool BannerEntity::removeTopPattern()
+{
     if (m_patterns.empty()) {
         return false;
     }
@@ -43,19 +46,22 @@ bool BannerEntity::removeTopPattern() {
     return true;
 }
 
-void BannerEntity::clearPatterns() {
+void BannerEntity::clearPatterns()
+{
     m_patterns.clear();
     setChanged();
 }
 
-void BannerEntity::setBaseColor(DyeColor color) {
+void BannerEntity::setBaseColor(DyeColor color)
+{
     if (m_baseColor != color) {
         m_baseColor = color;
         setChanged();
     }
 }
 
-std::string BannerEntity::getTextureName() const {
+std::string BannerEntity::getTextureName() const
+{
     // 生成纹理名称，用于渲染
     // 格式: banner_<base_color>[_<pattern_hash>_<color>]*
     // 每个图案追加 "_<hash>_<color>"
@@ -63,18 +69,21 @@ std::string BannerEntity::getTextureName() const {
 
     // 添加图案信息
     for (const auto& pattern : m_patterns) {
-        name += "_" + BannerPatterns::getHashName(pattern.pattern) + "_" + std::to_string(static_cast<i32>(pattern.color));
+        name +=
+            "_" + BannerPatterns::getHashName(pattern.pattern) + "_" + std::to_string(static_cast<i32>(pattern.color));
     }
 
     return name;
 }
 
-void BannerEntity::tick(IWorld& world) {
+void BannerEntity::tick(IWorld& world)
+{
     MC_UNUSED(world);
     // 旗帜不需要tick更新
 }
 
-bool BannerEntity::load(const nlohmann::json& data) {
+bool BannerEntity::load(const nlohmann::json& data)
+{
     if (!BlockEntity::load(data)) {
         return false;
     }
@@ -107,7 +116,8 @@ bool BannerEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void BannerEntity::save(nlohmann::json& data) const {
+void BannerEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     // 保存底色
@@ -124,7 +134,8 @@ void BannerEntity::save(nlohmann::json& data) const {
     data["patterns"] = patternsJson;
 }
 
-std::unique_ptr<BlockEntity> BannerEntity::clone() const {
+std::unique_ptr<BlockEntity> BannerEntity::clone() const
+{
     auto clone = std::make_unique<BannerEntity>(m_pos);
     clone->m_patterns = m_patterns;
     clone->m_baseColor = m_baseColor;

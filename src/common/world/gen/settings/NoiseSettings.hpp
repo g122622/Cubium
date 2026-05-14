@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../core/Constants.hpp"
+#include "../../../core/Types.hpp"
 #include "ScalingSettings.hpp"
 #include "SlideSettings.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../core/Constants.hpp"
 
 namespace mc {
 
@@ -22,53 +22,44 @@ namespace mc {
  */
 struct NoiseSettings {
     // === 基本尺寸 ===
-    i32 height = world::MAX_BUILD_HEIGHT;  ///< 噪声高度
-    i32 sizeHorizontal = 1;                 ///< 水平大小
-    i32 sizeVertical = 2;                   ///< 垂直大小
+    i32 height = world::MAX_BUILD_HEIGHT; ///< 噪声高度
+    i32 sizeHorizontal = 1;               ///< 水平大小
+    i32 sizeVertical = 2;                 ///< 垂直大小
 
     // === 缩放设置 ===
     ScalingSettings scaling;
 
     // === 滑动设置 ===
-    SlideSettings topSlide{-10, 3, 0};      ///< 顶部滑动
-    SlideSettings bottomSlide{-30, 0, 0};   ///< 底部滑动
+    SlideSettings topSlide{-10, 3, 0};    ///< 顶部滑动
+    SlideSettings bottomSlide{-30, 0, 0}; ///< 底部滑动
 
     // === 密度参数 ===
-    f32 densityFactor = 1.0f;                ///< 密度因子
-    f32 densityOffset = -0.46875f;           ///< 密度偏移
+    f32 densityFactor = 1.0f;      ///< 密度因子
+    f32 densityOffset = -0.46875f; ///< 密度偏移
 
     // === 噪声选项 ===
-    bool simplexSurfaceNoise = true;        ///< 使用 Simplex 地表噪声
-    bool randomDensityOffset = true;        ///< 随机密度偏移
-    bool isAmplified = false;               ///< 放大化地形
+    bool simplexSurfaceNoise = true; ///< 使用 Simplex 地表噪声
+    bool randomDensityOffset = true; ///< 随机密度偏移
+    bool isAmplified = false;        ///< 放大化地形
 
     // === 噪声尺寸计算 ===
-    [[nodiscard]] i32 noiseSizeX() const {
-        return 16 / (sizeHorizontal * 4);
-    }
+    [[nodiscard]] i32 noiseSizeX() const { return 16 / (sizeHorizontal * 4); }
 
-    [[nodiscard]] i32 noiseSizeY() const {
-        return height / (sizeVertical * 4);
-    }
+    [[nodiscard]] i32 noiseSizeY() const { return height / (sizeVertical * 4); }
 
-    [[nodiscard]] i32 noiseSizeZ() const {
-        return 16 / (sizeHorizontal * 4);
-    }
+    [[nodiscard]] i32 noiseSizeZ() const { return 16 / (sizeHorizontal * 4); }
 
-    [[nodiscard]] i32 verticalNoiseGranularity() const {
-        return sizeVertical * 4;
-    }
+    [[nodiscard]] i32 verticalNoiseGranularity() const { return sizeVertical * 4; }
 
-    [[nodiscard]] i32 horizontalNoiseGranularity() const {
-        return sizeHorizontal * 4;
-    }
+    [[nodiscard]] i32 horizontalNoiseGranularity() const { return sizeHorizontal * 4; }
 
     // === 预设 ===
 
     /**
      * @brief 主世界设置
      */
-    static NoiseSettings overworld() {
+    static NoiseSettings overworld()
+    {
         NoiseSettings settings;
         settings.height = world::MAX_BUILD_HEIGHT;
         settings.sizeHorizontal = 1;
@@ -85,7 +76,8 @@ struct NoiseSettings {
     /**
      * @brief 放大化主世界设置
      */
-    static NoiseSettings amplified() {
+    static NoiseSettings amplified()
+    {
         NoiseSettings settings = overworld();
         settings.isAmplified = true;
         settings.densityFactor = 2.0f;
@@ -95,7 +87,8 @@ struct NoiseSettings {
     /**
      * @brief 下界设置
      */
-    static NoiseSettings nether() {
+    static NoiseSettings nether()
+    {
         NoiseSettings settings;
         settings.height = 128;
         settings.sizeHorizontal = 1;
@@ -112,7 +105,8 @@ struct NoiseSettings {
     /**
      * @brief 末地设置
      */
-    static NoiseSettings end() {
+    static NoiseSettings end()
+    {
         NoiseSettings settings;
         settings.height = 128;
         settings.sizeHorizontal = 2;

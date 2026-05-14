@@ -1,33 +1,33 @@
 #include <gtest/gtest.h>
 
-#include "world/block/WaterLoggableHelpers.hpp"
-#include "world/block/IWaterLoggable.hpp"
-#include "world/block/blocks/building/FenceBlock.hpp"
-#include "world/block/blocks/building/WallBlock.hpp"
-#include "world/block/blocks/building/TrapDoorBlock.hpp"
-#include "world/block/blocks/building/StairsBlock.hpp"
-#include "world/block/blocks/building/SlabBlock.hpp"
-#include "world/block/blocks/decorative/LadderBlock.hpp"
-#include "world/block/blocks/decorative/LanternBlock.hpp"
-#include "world/block/blocks/decorative/ChainBlock.hpp"
-#include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
-#include "world/block/blocks/decorative/PaneBlock.hpp"
-#include "world/block/blocks/ChestBlock.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/fluid/Fluid.hpp"
-#include "world/fluid/FluidRegistry.hpp"
-#include "world/fluid/FluidTags.hpp"
-#include "world/tick/manager/TickManager.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/block/IWaterLoggable.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/WaterLoggableHelpers.hpp"
+#include "world/block/blocks/ChestBlock.hpp"
+#include "world/block/blocks/building/FenceBlock.hpp"
+#include "world/block/blocks/building/SlabBlock.hpp"
+#include "world/block/blocks/building/StairsBlock.hpp"
+#include "world/block/blocks/building/TrapDoorBlock.hpp"
+#include "world/block/blocks/building/WallBlock.hpp"
+#include "world/block/blocks/decorative/ChainBlock.hpp"
+#include "world/block/blocks/decorative/LadderBlock.hpp"
+#include "world/block/blocks/decorative/LanternBlock.hpp"
+#include "world/block/blocks/decorative/PaneBlock.hpp"
+#include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidRegistry.hpp"
+#include "world/fluid/FluidTags.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -41,21 +41,25 @@ class WaterlogTestWorld final : public test::BaseTestWorld {
 public:
     WaterlogTestWorld() = default;
 
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
     }
 
-    void setBlockDirectly(const BlockPos& pos, const BlockState* state) {
+    void setBlockDirectly(const BlockPos& pos, const BlockState* state)
+    {
         m_blocks[packPos(pos.x, pos.y, pos.z)] = state;
     }
 
-    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state) {
+    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state)
+    {
         m_fluids[packPos(pos.x, pos.y, pos.z)] = state;
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(packPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second;
@@ -63,16 +67,19 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
 
-    bool setBlockState(const BlockPos& pos, const BlockState* state) {
+    bool setBlockState(const BlockPos& pos, const BlockState* state)
+    {
         return setBlockState(pos.x, pos.y, pos.z, state);
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         // First check if there's a fluid at this position
         const auto fluidIt = m_fluids.find(packPos(x, y, z));
         if (fluidIt != m_fluids.end() && fluidIt->second != nullptr) {
@@ -95,22 +102,26 @@ public:
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         MC_UNUSED(entity);
         return 0;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<WaterlogTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
 private:
-    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z) {
+    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z)
+    {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
     }
 
@@ -120,10 +131,10 @@ private:
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
 };
 
-BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
+BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw)
+{
     static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
-    return BlockItemUseContext(
-        world,
+    return BlockItemUseContext(world,
         nullptr,
         EMPTY_STACK,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
@@ -138,12 +149,11 @@ BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Dir
 
 class WaterLoggableHelpersTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(WaterLoggableHelpersTest, IsWaterFluidState_ReturnsTrueForWater) {
+TEST_F(WaterLoggableHelpersTest, IsWaterFluidState_ReturnsTrueForWater)
+{
     WaterlogTestWorld world;
     BlockPos pos(0, 0, 0);
 
@@ -157,7 +167,8 @@ TEST_F(WaterLoggableHelpersTest, IsWaterFluidState_ReturnsTrueForWater) {
     EXPECT_TRUE(waterloggable::isWaterFluidState(fluidState));
 }
 
-TEST_F(WaterLoggableHelpersTest, IsWaterFluidState_ReturnsFalseForAir) {
+TEST_F(WaterLoggableHelpersTest, IsWaterFluidState_ReturnsFalseForAir)
+{
     WaterlogTestWorld world;
     BlockPos pos(0, 0, 0);
 
@@ -166,7 +177,8 @@ TEST_F(WaterLoggableHelpersTest, IsWaterFluidState_ReturnsFalseForAir) {
     EXPECT_FALSE(waterloggable::isWaterFluidState(fluidState));
 }
 
-TEST_F(WaterLoggableHelpersTest, IsWaterSourceFluidState_ReturnsTrueForSource) {
+TEST_F(WaterLoggableHelpersTest, IsWaterSourceFluidState_ReturnsTrueForSource)
+{
     fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
     ASSERT_NE(waterFluid, nullptr);
     const fluid::FluidState* sourceState = &waterFluid->defaultState();
@@ -174,7 +186,8 @@ TEST_F(WaterLoggableHelpersTest, IsWaterSourceFluidState_ReturnsTrueForSource) {
     EXPECT_TRUE(waterloggable::isWaterSourceFluidState(sourceState));
 }
 
-TEST_F(WaterLoggableHelpersTest, ShouldWaterlogAt_ReturnsTrueInWater) {
+TEST_F(WaterLoggableHelpersTest, ShouldWaterlogAt_ReturnsTrueInWater)
+{
     WaterlogTestWorld world;
     BlockPos pos(5, 10, 5);
 
@@ -185,14 +198,16 @@ TEST_F(WaterLoggableHelpersTest, ShouldWaterlogAt_ReturnsTrueInWater) {
     EXPECT_TRUE(waterloggable::shouldWaterlogAt(world, pos));
 }
 
-TEST_F(WaterLoggableHelpersTest, ShouldWaterlogAt_ReturnsFalseInAir) {
+TEST_F(WaterLoggableHelpersTest, ShouldWaterlogAt_ReturnsFalseInAir)
+{
     WaterlogTestWorld world;
     BlockPos pos(5, 10, 5);
 
     EXPECT_FALSE(waterloggable::shouldWaterlogAt(world, pos));
 }
 
-TEST_F(WaterLoggableHelpersTest, GetWaterFluidState_ReturnsWaterWhenWaterlogged) {
+TEST_F(WaterLoggableHelpersTest, GetWaterFluidState_ReturnsWaterWhenWaterlogged)
+{
     FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
 
     BlockState state = fence.defaultState().with(BlockStateProperties::WATERLOGGED(), true);
@@ -202,7 +217,8 @@ TEST_F(WaterLoggableHelpersTest, GetWaterFluidState_ReturnsWaterWhenWaterlogged)
     EXPECT_TRUE(waterState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(WaterLoggableHelpersTest, GetWaterFluidState_ReturnsNullptrWhenNotWaterlogged) {
+TEST_F(WaterLoggableHelpersTest, GetWaterFluidState_ReturnsNullptrWhenNotWaterlogged)
+{
     FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
 
     BlockState state = fence.defaultState().with(BlockStateProperties::WATERLOGGED(), false);
@@ -215,12 +231,11 @@ TEST_F(WaterLoggableHelpersTest, GetWaterFluidState_ReturnsNullptrWhenNotWaterlo
 
 class FenceBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(FenceBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
+TEST_F(FenceBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
+{
     FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
 
     BlockState waterloggedState = fence.defaultState().with(BlockStateProperties::WATERLOGGED(), true);
@@ -230,7 +245,8 @@ TEST_F(FenceBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
     EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(FenceBlockWaterlogTest, GetFluidState_ReturnsEmptyWhenNotWaterlogged) {
+TEST_F(FenceBlockWaterlogTest, GetFluidState_ReturnsEmptyWhenNotWaterlogged)
+{
     FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
 
     BlockState normalState = fence.defaultState().with(BlockStateProperties::WATERLOGGED(), false);
@@ -240,7 +256,8 @@ TEST_F(FenceBlockWaterlogTest, GetFluidState_ReturnsEmptyWhenNotWaterlogged) {
     EXPECT_TRUE(fluidState == nullptr || fluidState->isEmpty());
 }
 
-TEST_F(FenceBlockWaterlogTest, IsWaterlogged_ReturnsCorrectValue) {
+TEST_F(FenceBlockWaterlogTest, IsWaterlogged_ReturnsCorrectValue)
+{
     FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
 
     BlockState waterloggedState = fence.defaultState().with(BlockStateProperties::WATERLOGGED(), true);
@@ -250,7 +267,8 @@ TEST_F(FenceBlockWaterlogTest, IsWaterlogged_ReturnsCorrectValue) {
     EXPECT_FALSE(fence.isWaterlogged(normalState));
 }
 
-TEST_F(FenceBlockWaterlogTest, Placement_WaterloggedInWater) {
+TEST_F(FenceBlockWaterlogTest, Placement_WaterloggedInWater)
+{
     FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
     WaterlogTestWorld world;
 
@@ -271,12 +289,11 @@ TEST_F(FenceBlockWaterlogTest, Placement_WaterloggedInWater) {
 
 class WallBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(WallBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
+TEST_F(WallBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
+{
     WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
 
     BlockState waterloggedState = wall.defaultState().with(BlockStateProperties::WATERLOGGED(), true);
@@ -286,7 +303,8 @@ TEST_F(WallBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
     EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(WallBlockWaterlogTest, Placement_WaterloggedInWater) {
+TEST_F(WallBlockWaterlogTest, Placement_WaterloggedInWater)
+{
     WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
     WaterlogTestWorld world;
 
@@ -307,12 +325,11 @@ TEST_F(WallBlockWaterlogTest, Placement_WaterloggedInWater) {
 
 class TrapDoorBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(TrapDoorBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
+TEST_F(TrapDoorBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
+{
     TrapDoorBlock trapdoor(BlockProperties(Material::WOOD).hardness(3.0f), false);
 
     BlockState waterloggedState = trapdoor.defaultState().with(BlockStateProperties::WATERLOGGED(), true);
@@ -322,7 +339,8 @@ TEST_F(TrapDoorBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
     EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(TrapDoorBlockWaterlogTest, Placement_WaterloggedInWater) {
+TEST_F(TrapDoorBlockWaterlogTest, Placement_WaterloggedInWater)
+{
     TrapDoorBlock trapdoor(BlockProperties(Material::WOOD).hardness(3.0f), false);
     WaterlogTestWorld world;
 
@@ -343,30 +361,30 @@ TEST_F(TrapDoorBlockWaterlogTest, Placement_WaterloggedInWater) {
 
 class SlabBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
+TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
+{
     SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     BlockState waterloggedState = slab.defaultState()
-        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Bottom)
-        .with(BlockStateProperties::WATERLOGGED(), true);
+                                      .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Bottom)
+                                      .with(BlockStateProperties::WATERLOGGED(), true);
     const fluid::FluidState* fluidState = slab.getFluidState(waterloggedState);
 
     ASSERT_NE(fluidState, nullptr);
     EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsEmptyForDoubleSlab) {
+TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsEmptyForDoubleSlab)
+{
     SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // Double slabs cannot be waterlogged
     BlockState doubleState = slab.defaultState()
-        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
-        .with(BlockStateProperties::WATERLOGGED(), true);
+                                 .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+                                 .with(BlockStateProperties::WATERLOGGED(), true);
     const fluid::FluidState* fluidState = slab.getFluidState(doubleState);
 
     // Double slab should not hold water
@@ -377,12 +395,11 @@ TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsEmptyForDoubleSlab) {
 
 class StairsBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(StairsBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
+TEST_F(StairsBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
+{
     BlockState baseState = VanillaBlocks::STONE->defaultState();
     StairsBlock stairs(baseState, BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
@@ -395,7 +412,8 @@ TEST_F(StairsBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged) {
 
 // ========== ScheduleWaterTick Test ==========
 
-TEST_F(WaterLoggableHelpersTest, ScheduleWaterTick_SchedulesFluidTick) {
+TEST_F(WaterLoggableHelpersTest, ScheduleWaterTick_SchedulesFluidTick)
+{
     WaterlogTestWorld world;
     BlockPos pos(0, 0, 0);
 
@@ -405,13 +423,15 @@ TEST_F(WaterLoggableHelpersTest, ScheduleWaterTick_SchedulesFluidTick) {
 
 // ========== GetWaterFluid Helper Tests ==========
 
-TEST_F(WaterLoggableHelpersTest, GetWaterFluid_ReturnsValidPointer) {
+TEST_F(WaterLoggableHelpersTest, GetWaterFluid_ReturnsValidPointer)
+{
     fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
     ASSERT_NE(waterFluid, nullptr);
     EXPECT_TRUE(waterFluid->isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(WaterLoggableHelpersTest, GetWaterFluid_ReturnsSameInstanceOnMultipleCalls) {
+TEST_F(WaterLoggableHelpersTest, GetWaterFluid_ReturnsSameInstanceOnMultipleCalls)
+{
     fluid::Fluid* water1 = waterloggable::getWaterFluid();
     fluid::Fluid* water2 = waterloggable::getWaterFluid();
     EXPECT_EQ(water1, water2) << "getWaterFluid should return cached instance";
@@ -419,13 +439,15 @@ TEST_F(WaterLoggableHelpersTest, GetWaterFluid_ReturnsSameInstanceOnMultipleCall
 
 // ========== IsWaterFluid Helper Tests ==========
 
-TEST_F(WaterLoggableHelpersTest, IsWaterFluid_ReturnsTrueForWater) {
+TEST_F(WaterLoggableHelpersTest, IsWaterFluid_ReturnsTrueForWater)
+{
     fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
     ASSERT_NE(waterFluid, nullptr);
     EXPECT_TRUE(waterloggable::isWaterFluid(*waterFluid));
 }
 
-TEST_F(WaterLoggableHelpersTest, IsWaterFluid_ReturnsFalseForLava) {
+TEST_F(WaterLoggableHelpersTest, IsWaterFluid_ReturnsFalseForLava)
+{
     fluid::Fluid* lavaFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID);
     ASSERT_NE(lavaFluid, nullptr);
     EXPECT_FALSE(waterloggable::isWaterFluid(*lavaFluid));
@@ -433,7 +455,8 @@ TEST_F(WaterLoggableHelpersTest, IsWaterFluid_ReturnsFalseForLava) {
 
 // ========== HasAnyWaterAt Tests ==========
 
-TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsTrueForWaterSource) {
+TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsTrueForWaterSource)
+{
     WaterlogTestWorld world;
     BlockPos pos(3, 5, 7);
 
@@ -444,7 +467,8 @@ TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsTrueForWaterSource) {
     EXPECT_TRUE(waterloggable::hasAnyWaterAt(world, pos));
 }
 
-TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsFalseForAir) {
+TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsFalseForAir)
+{
     WaterlogTestWorld world;
     BlockPos pos(1, 2, 3);
 
@@ -453,7 +477,8 @@ TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsFalseForAir) {
 
 // ========== SlabBlock CanContainFluid Tests ==========
 
-TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsFalseForDoubleSlab) {
+TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsFalseForDoubleSlab)
+{
     SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
     WaterlogTestWorld world;
 
@@ -462,13 +487,14 @@ TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsFalseForDoubleSlab) {
 
     // Double slab cannot contain fluid
     BlockState doubleState = slab.defaultState()
-        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
-        .with(BlockStateProperties::WATERLOGGED(), false);
+                                 .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+                                 .with(BlockStateProperties::WATERLOGGED(), false);
 
     EXPECT_FALSE(slab.canContainFluid(world, BlockPos(0, 0, 0), doubleState, *waterFluid));
 }
 
-TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsTrueForBottomSlab) {
+TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsTrueForBottomSlab)
+{
     SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
     WaterlogTestWorld world;
 
@@ -477,19 +503,20 @@ TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsTrueForBottomSlab) {
 
     // Bottom slab can contain fluid
     BlockState bottomState = slab.defaultState()
-        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Bottom)
-        .with(BlockStateProperties::WATERLOGGED(), false);
+                                 .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Bottom)
+                                 .with(BlockStateProperties::WATERLOGGED(), false);
 
     EXPECT_TRUE(slab.canContainFluid(world, BlockPos(0, 0, 0), bottomState, *waterFluid));
 }
 
-TEST_F(SlabBlockWaterlogTest, IsWaterlogged_ReturnsFalseForDoubleSlab) {
+TEST_F(SlabBlockWaterlogTest, IsWaterlogged_ReturnsFalseForDoubleSlab)
+{
     SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // Even with WATERLOGGED=true, double slab should report as not waterlogged
     BlockState doubleState = slab.defaultState()
-        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
-        .with(BlockStateProperties::WATERLOGGED(), true);
+                                 .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+                                 .with(BlockStateProperties::WATERLOGGED(), true);
 
     EXPECT_FALSE(slab.isWaterlogged(doubleState));
 }

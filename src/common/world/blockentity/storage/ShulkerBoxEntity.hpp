@@ -1,8 +1,8 @@
 #pragma once
 
+#include "entity/inventory/ISidedInventory.hpp"
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
-#include "entity/inventory/ISidedInventory.hpp"
 #include <memory>
 
 namespace mc {
@@ -32,16 +32,16 @@ public:
 
     /// 潜影盒打开状态枚举
     enum class AnimationStatus : u8 {
-        Closed = 0,     ///< 关闭状态
-        Opening = 1,    ///< 打开中
-        Opened = 2,     ///< 已打开
-        Closing = 3     ///< 关闭中
+        Closed = 0,  ///< 关闭状态
+        Opening = 1, ///< 打开中
+        Opened = 2,  ///< 已打开
+        Closing = 3  ///< 关闭中
     };
 
     // ========== 构造函数 ==========
 
-    using ContainerBlockEntity::openContainer;
     using ContainerBlockEntity::closeContainer;
+    using ContainerBlockEntity::openContainer;
 
     /**
      * @brief 构造函数
@@ -70,7 +70,10 @@ public:
     ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
     void clear() override { m_inventory.clear(); }
     void setChanged() override { LootableContainerBlockEntity::setChanged(); }
-    [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override { return m_inventory.canPlaceItem(slot, stack); }
+    [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override
+    {
+        return m_inventory.canPlaceItem(slot, stack);
+    }
     void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
 
     // ========== ISidedInventory 接口实现 ==========
@@ -192,12 +195,12 @@ private:
      */
     void cacheFacing(IWorld& world);
 
-    SimpleInventory m_inventory;       ///< 27格物品存储
-    AnimationStatus m_animationStatus = AnimationStatus::Closed;  ///< 动画状态
-    f32 m_progress = 0.0f;             ///< 打开进度 (0.0 - 1.0)
-    f32 m_prevProgress = 0.0f;         ///< 上一帧打开进度
-    i32 m_openCount = 0;               ///< 打开计数
-    Direction m_cachedFacing = Direction::None;  ///< 缓存的朝向（避免每帧查询）
+    SimpleInventory m_inventory;                                 ///< 27格物品存储
+    AnimationStatus m_animationStatus = AnimationStatus::Closed; ///< 动画状态
+    f32 m_progress = 0.0f;                                       ///< 打开进度 (0.0 - 1.0)
+    f32 m_prevProgress = 0.0f;                                   ///< 上一帧打开进度
+    i32 m_openCount = 0;                                         ///< 打开计数
+    Direction m_cachedFacing = Direction::None;                  ///< 缓存的朝向（避免每帧查询）
 };
 
 } // namespace blockentity

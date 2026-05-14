@@ -1,9 +1,9 @@
 #include "application/ClientApplication.hpp"
 #include "minecraft-reborn/version.h"
 
-#include <spdlog/spdlog.h>
 #include <iostream>
 #include <string>
+#include <spdlog/spdlog.h>
 
 namespace {
 
@@ -24,10 +24,8 @@ void printBanner()
 
 )" << std::endl;
 
-    std::cout << "  Minecraft Reborn Client v"
-              << MC_VERSION_MAJOR << "."
-              << MC_VERSION_MINOR << "."
-              << MC_VERSION_PATCH << std::endl;
+    std::cout << "  Minecraft Reborn Client v" << MC_VERSION_MAJOR << "." << MC_VERSION_MINOR << "." << MC_VERSION_PATCH
+              << std::endl;
     std::cout << "  ========================================\n" << std::endl;
 }
 
@@ -99,7 +97,7 @@ int main(int argc, char* argv[])
             params.quickPlayLevelId = argv[++i];
         }
         // if (arg == "--quick-play-new") {
-            params.quickPlayNew = true;
+        params.quickPlayNew = true;
         // }
     }
 
@@ -123,8 +121,8 @@ int main(int argc, char* argv[])
 
         spdlog::info("Client exited successfully");
         return 0;
-
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         spdlog::critical("Fatal error: {}", e.what());
         return 1;
     }

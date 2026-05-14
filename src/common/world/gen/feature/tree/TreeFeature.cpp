@@ -1,15 +1,15 @@
 #include "TreeFeature.hpp"
-#include "trunk/StraightTrunkPlacer.hpp"
-#include "trunk/TrunkPlacers.hpp"
-#include "foliage/BlobFoliagePlacer.hpp"
-#include "foliage/FoliagePlacers.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockRegistry.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../util/property/Properties.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include "../../placement/PlacementUtils.hpp"
+#include "foliage/BlobFoliagePlacer.hpp"
+#include "foliage/FoliagePlacers.hpp"
+#include "trunk/StraightTrunkPlacer.hpp"
+#include "trunk/TrunkPlacers.hpp"
 #include <map>
 #include <mutex>
 #include <queue>
@@ -28,11 +28,8 @@ std::mutex g_treeFeaturesMutex;
 // ============================================================================
 
 bool TreeFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& startPos,
-    const TreeFeatureConfig& config
-) {
+    WorldGenRegion& world, math::Random& random, const BlockPos& startPos, const TreeFeatureConfig& config)
+{
     if (config.trunkPlacer == nullptr || config.foliagePlacer == nullptr) {
         return false;
     }
@@ -66,9 +63,8 @@ bool TreeFeature::place(
 
     // 放置树干
     std::set<BlockPos> trunkBlocks;
-    std::vector<FoliagePosition> foliagePositions = config.trunkPlacer->placeTrunk(
-        world, random, trunkHeight, startPos, trunkBlocks, config.trunkBlock
-    );
+    std::vector<FoliagePosition> foliagePositions =
+        config.trunkPlacer->placeTrunk(world, random, trunkHeight, startPos, trunkBlocks, config.trunkBlock);
 
     if (foliagePositions.empty()) {
         return false;
@@ -77,9 +73,7 @@ bool TreeFeature::place(
     // 放置树叶
     std::set<BlockPos> foliageBlocks;
     config.foliagePlacer->placeFoliage(
-        world, random, trunkHeight, foliagePositions, trunkBlocks,
-        trunkHeight - 1, config.foliageBlock, foliageBlocks
-    );
+        world, random, trunkHeight, foliagePositions, trunkBlocks, trunkHeight - 1, config.foliageBlock, foliageBlocks);
 
     // 设置树叶距离属性（用于树叶腐烂机制）
     setFoliageDistance(world, trunkBlocks, foliageBlocks);
@@ -87,7 +81,8 @@ bool TreeFeature::place(
     return true;
 }
 
-bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos) {
+bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos)
+{
     if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
@@ -98,27 +93,18 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos) {
     }
 
     // 检查是否是树叶
-    if (state->is(VanillaBlocks::OAK_LEAVES) ||
-        state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-        state->is(VanillaBlocks::BIRCH_LEAVES) ||
-        state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        state->is(VanillaBlocks::ACACIA_LEAVES) ||
-        state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+    if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
+        state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
+        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
         return true;
     }
 
     // 检查是否是植被
-    if (state->is(VanillaBlocks::SHORT_GRASS) ||
-        state->is(VanillaBlocks::TALL_GRASS) ||
-        state->is(VanillaBlocks::FERN) ||
-        state->is(VanillaBlocks::DANDELION) ||
-        state->is(VanillaBlocks::POPPY) ||
-        state->is(VanillaBlocks::OAK_SAPLING) ||
-        state->is(VanillaBlocks::SPRUCE_SAPLING) ||
-        state->is(VanillaBlocks::BIRCH_SAPLING) ||
-        state->is(VanillaBlocks::JUNGLE_SAPLING) ||
-        state->is(VanillaBlocks::ACACIA_SAPLING) ||
-        state->is(VanillaBlocks::DARK_OAK_SAPLING)) {
+    if (state->is(VanillaBlocks::SHORT_GRASS) || state->is(VanillaBlocks::TALL_GRASS) ||
+        state->is(VanillaBlocks::FERN) || state->is(VanillaBlocks::DANDELION) || state->is(VanillaBlocks::POPPY) ||
+        state->is(VanillaBlocks::OAK_SAPLING) || state->is(VanillaBlocks::SPRUCE_SAPLING) ||
+        state->is(VanillaBlocks::BIRCH_SAPLING) || state->is(VanillaBlocks::JUNGLE_SAPLING) ||
+        state->is(VanillaBlocks::ACACIA_SAPLING) || state->is(VanillaBlocks::DARK_OAK_SAPLING)) {
         return true;
     }
 
@@ -130,7 +116,8 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos) {
     return false;
 }
 
-bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos) {
+bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos)
+{
     if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
@@ -141,19 +128,17 @@ bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos) {
     }
 
     // 检查是否是树叶
-    if (state->is(VanillaBlocks::OAK_LEAVES) ||
-        state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-        state->is(VanillaBlocks::BIRCH_LEAVES) ||
-        state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        state->is(VanillaBlocks::ACACIA_LEAVES) ||
-        state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+    if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
+        state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
+        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
         return true;
     }
 
     return false;
 }
 
-bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos) {
+bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos)
+{
     if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
@@ -163,15 +148,13 @@ bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos)
         return false;
     }
 
-        // 检查是否是泥土类方块或耕地
-    return state->is(VanillaBlocks::DIRT) ||
-           state->is(VanillaBlocks::GRASS_BLOCK) ||
-           state->is(VanillaBlocks::COARSE_DIRT) ||
-            state->is(VanillaBlocks::PODZOL) ||
-            state->is(VanillaBlocks::FARMLAND);
+    // 检查是否是泥土类方块或耕地
+    return state->is(VanillaBlocks::DIRT) || state->is(VanillaBlocks::GRASS_BLOCK) ||
+        state->is(VanillaBlocks::COARSE_DIRT) || state->is(VanillaBlocks::PODZOL) || state->is(VanillaBlocks::FARMLAND);
 }
 
-bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos) {
+bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos)
+{
     if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
@@ -185,11 +168,8 @@ bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos) {
 }
 
 i32 TreeFeature::calculateAvailableHeight(
-    WorldGenRegion& world,
-    i32 maxHeight,
-    const BlockPos& startPos,
-    const TreeFeatureConfig& config
-) const {
+    WorldGenRegion& world, i32 maxHeight, const BlockPos& startPos, const TreeFeatureConfig& config) const
+{
     (void)config;
     BlockPos pos;
 
@@ -220,10 +200,8 @@ i32 TreeFeature::calculateAvailableHeight(
 }
 
 void TreeFeature::setFoliageDistance(
-    WorldGenRegion& world,
-    const std::set<BlockPos>& trunkBlocks,
-    const std::set<BlockPos>& foliageBlocks
-) {
+    WorldGenRegion& world, const std::set<BlockPos>& trunkBlocks, const std::set<BlockPos>& foliageBlocks)
+{
     // BFS 从树干方块开始，计算每个树叶到最近树干的曼哈顿距离
     // 参考: net.minecraft.world.gen.feature.TreeFeature.func_236408_b_
 
@@ -244,11 +222,7 @@ void TreeFeature::setFoliageDistance(
     }
 
     // 6 个方向偏移
-    static const BlockPos offsets[] = {
-        {1, 0, 0}, {-1, 0, 0},
-        {0, 1, 0}, {0, -1, 0},
-        {0, 0, 1}, {0, 0, -1}
-    };
+    static const BlockPos offsets[] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
 
     // BFS 扩散，最大距离 7
     while (!queue.empty()) {
@@ -261,11 +235,7 @@ void TreeFeature::setFoliageDistance(
         }
 
         for (const auto& offset : offsets) {
-            BlockPos neighbor(
-                current.x + offset.x,
-                current.y + offset.y,
-                current.z + offset.z
-            );
+            BlockPos neighbor(current.x + offset.x, current.y + offset.y, current.z + offset.z);
 
             // 只处理树叶方块
             if (foliageBlocks.find(neighbor) == foliageBlocks.end()) {
@@ -290,11 +260,8 @@ void TreeFeature::setFoliageDistance(
         dist = std::max(1, std::min(7, dist));
 
         const BlockState* currentState = world.getBlockState(pos);
-        if (currentState != nullptr &&
-            currentState->hasProperty(BlockStateProperties::DISTANCE_1_7())) {
-            const BlockState& newState = currentState->with(
-                BlockStateProperties::DISTANCE_1_7(), dist
-            );
+        if (currentState != nullptr && currentState->hasProperty(BlockStateProperties::DISTANCE_1_7())) {
+            const BlockState& newState = currentState->with(BlockStateProperties::DISTANCE_1_7(), dist);
             world.setBlockState(pos, &newState);
         }
     }
@@ -304,22 +271,16 @@ void TreeFeature::setFoliageDistance(
 // ConfiguredTreeFeature 实现
 // ============================================================================
 
-ConfiguredTreeFeature::ConfiguredTreeFeature(
-    std::unique_ptr<TreeFeatureConfig> featureConfig,
+ConfiguredTreeFeature::ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> featureConfig,
     std::unique_ptr<ConfiguredPlacement> placement,
     const char* featureName)
     : m_config(std::move(featureConfig))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredTreeFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)generator;
     (void)chunk;
@@ -358,7 +319,8 @@ bool ConfiguredTreeFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredTreeFeature>> TreeFeatures::s_features;
 
-void TreeFeatures::initialize() {
+void TreeFeatures::initialize()
+{
     std::lock_guard<std::mutex> lock(g_treeFeaturesMutex);
     s_features.clear();
 
@@ -382,139 +344,136 @@ void TreeFeatures::initialize() {
     spdlog::info("[TreeFeatures] Initialized {} tree features", s_features.size());
 }
 
-std::vector<std::unique_ptr<ConfiguredTreeFeature>> TreeFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredTreeFeature>> TreeFeatures::getAllFeaturesAndClear()
+{
     std::lock_guard<std::mutex> lock(g_treeFeaturesMutex);
     std::vector<std::unique_ptr<ConfiguredTreeFeature>> result = std::move(s_features);
     s_features.clear();
     return result;
 }
 
-const std::vector<std::unique_ptr<ConfiguredTreeFeature>>& TreeFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredTreeFeature>>& TreeFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createOakTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createOakTree()
+{
     // 橡树配置
     auto config = std::make_unique<TreeFeatureConfig>(oakConfig());
 
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(4),
-        {Biomes::Forest, Biomes::WoodedHills, Biomes::DarkForest});
+        PlacementUtils::createCountedSurfacePlacement(4), {Biomes::Forest, Biomes::WoodedHills, Biomes::DarkForest});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "oak_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "oak_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createBirchTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createBirchTree()
+{
     // 白桦配置
     auto config = std::make_unique<TreeFeatureConfig>(birchConfig());
 
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(3),
-        {Biomes::BirchForest, Biomes::Forest});
+        PlacementUtils::createCountedSurfacePlacement(3), {Biomes::BirchForest, Biomes::Forest});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "birch_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "birch_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSpruceTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSpruceTree()
+{
     // 云杉配置
     auto config = std::make_unique<TreeFeatureConfig>(spruceConfig());
 
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(3),
-        {Biomes::Taiga, Biomes::SnowyTaiga, Biomes::GiantTreeTaiga,
-         Biomes::Mountains, Biomes::WoodedMountains, Biomes::MountainEdge, Biomes::StoneShore});
+    auto placement = PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(3),
+        {Biomes::Taiga,
+            Biomes::SnowyTaiga,
+            Biomes::GiantTreeTaiga,
+            Biomes::Mountains,
+            Biomes::WoodedMountains,
+            Biomes::MountainEdge,
+            Biomes::StoneShore});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "spruce_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "spruce_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createJungleTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createJungleTree()
+{
     // 丛林木配置
     auto config = std::make_unique<TreeFeatureConfig>(jungleConfig());
 
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(6),
-        {Biomes::Jungle});
+    auto placement =
+        PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(6), {Biomes::Jungle});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "jungle_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "jungle_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSparseOakTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSparseOakTree()
+{
     // 稀疏橡树（用于平原）
     auto config = std::make_unique<TreeFeatureConfig>(oakConfig());
 
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.1f),
+    auto placement = PlacementUtils::appendBiomePlacement(PlacementUtils::createChanceSurfacePlacement(0.1f),
         {Biomes::Plains, Biomes::Savanna, Biomes::SavannaPlateau, Biomes::ShatteredSavanna});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "sparse_oak_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "sparse_oak_tree");
 }
 
-TreeFeatureConfig TreeFeatures::oakConfig() {
+TreeFeatureConfig TreeFeatures::oakConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 2, 0);
-    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        3
-    );
+    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 3);
     config.minHeight = 4;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::birchConfig() {
+TreeFeatureConfig TreeFeatures::birchConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::BIRCH_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::BIRCH_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(5, 2, 0);
-    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        2
-    );
+    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     config.minHeight = 5;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::spruceConfig() {
+TreeFeatureConfig TreeFeatures::spruceConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(5, 2, 1);
     // 使用云杉树叶放置器生成锥形树冠
     // SpruceFoliagePlacer(radius, offset, height)
-    config.foliagePlacer = std::make_unique<SpruceFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
+    config.foliagePlacer = std::make_unique<SpruceFoliagePlacer>(FeatureSpread::spread(2, 1),
         FeatureSpread::fixed(0),
-        2  // height
+        2 // height
     );
     config.minHeight = 5;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::jungleConfig() {
+TreeFeatureConfig TreeFeatures::jungleConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 8, 0);
     // 使用丛林树叶放置器
     // JungleFoliagePlacer(radius, offset, height)
-    config.foliagePlacer = std::make_unique<JungleFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
+    config.foliagePlacer = std::make_unique<JungleFoliagePlacer>(FeatureSpread::spread(2, 1),
         FeatureSpread::fixed(0),
-        2  // height
+        2 // height
     );
     config.minHeight = 4;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::acaciaConfig() {
+TreeFeatureConfig TreeFeatures::acaciaConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::ACACIA_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::ACACIA_LEAVES);
@@ -522,15 +481,13 @@ TreeFeatureConfig TreeFeatures::acaciaConfig() {
     config.trunkPlacer = std::make_unique<ForkyTrunkPlacer>(5, 2, 1);
     // 金合欢使用伞形树叶
     // AcaciaFoliagePlacer(radius, offset)
-    config.foliagePlacer = std::make_unique<AcaciaFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+    config.foliagePlacer = std::make_unique<AcaciaFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     config.minHeight = 4;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::darkOakConfig() {
+TreeFeatureConfig TreeFeatures::darkOakConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::DARK_OAK_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::DARK_OAK_LEAVES);
@@ -538,16 +495,16 @@ TreeFeatureConfig TreeFeatures::darkOakConfig() {
     config.trunkPlacer = std::make_unique<DarkOakTrunkPlacer>(6, 3, 1);
     // 深色橡树使用密集球形树叶
     // DarkOakFoliagePlacer(radius, offset, height)
-    config.foliagePlacer = std::make_unique<DarkOakFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
+    config.foliagePlacer = std::make_unique<DarkOakFoliagePlacer>(FeatureSpread::spread(2, 1),
         FeatureSpread::fixed(0),
-        4  // height
+        4 // height
     );
     config.minHeight = 6;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::giantSpruceConfig() {
+TreeFeatureConfig TreeFeatures::giantSpruceConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LEAVES);
@@ -555,16 +512,16 @@ TreeFeatureConfig TreeFeatures::giantSpruceConfig() {
     config.trunkPlacer = std::make_unique<GiantTrunkPlacer>(13, 5, 3);
     // 巨型云杉使用更大的锥形树叶
     // MegaPineFoliagePlacer(radius, offset, height)
-    config.foliagePlacer = std::make_unique<MegaPineFoliagePlacer>(
-        FeatureSpread::spread(3, 2),
+    config.foliagePlacer = std::make_unique<MegaPineFoliagePlacer>(FeatureSpread::spread(3, 2),
         FeatureSpread::fixed(0),
-        8  // height
+        8 // height
     );
     config.minHeight = 13;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::giantJungleConfig() {
+TreeFeatureConfig TreeFeatures::giantJungleConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LEAVES);
@@ -572,197 +529,171 @@ TreeFeatureConfig TreeFeatures::giantJungleConfig() {
     config.trunkPlacer = std::make_unique<MegaJungleTrunkPlacer>(10, 8, 5);
     // 巨型丛林木使用丛林树叶放置器
     // JungleFoliagePlacer(radius, offset, height)
-    config.foliagePlacer = std::make_unique<JungleFoliagePlacer>(
-        FeatureSpread::spread(3, 2),
+    config.foliagePlacer = std::make_unique<JungleFoliagePlacer>(FeatureSpread::spread(3, 2),
         FeatureSpread::fixed(0),
-        3  // height
+        3 // height
     );
     config.minHeight = 10;
     return config;
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createAcaciaTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createAcaciaTree()
+{
     // 金合欢树配置
     auto config = std::make_unique<TreeFeatureConfig>(acaciaConfig());
 
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(2),
+    auto placement = PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(2),
         {Biomes::Savanna, Biomes::SavannaPlateau, Biomes::ShatteredSavanna});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "acacia_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "acacia_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createDarkOakTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createDarkOakTree()
+{
     // 深色橡树配置
     auto config = std::make_unique<TreeFeatureConfig>(darkOakConfig());
 
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(3),
-        {Biomes::DarkForest, Biomes::DarkForestHills});
+        PlacementUtils::createCountedSurfacePlacement(3), {Biomes::DarkForest, Biomes::DarkForestHills});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "dark_oak_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "dark_oak_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantSpruceTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantSpruceTree()
+{
     // 巨型云杉配置
     auto config = std::make_unique<TreeFeatureConfig>(giantSpruceConfig());
 
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.3f),
-        {Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
+        PlacementUtils::createChanceSurfacePlacement(0.3f), {Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "giant_spruce_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "giant_spruce_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantJungleTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantJungleTree()
+{
     // 巨型丛林木配置
     auto config = std::make_unique<TreeFeatureConfig>(giantJungleConfig());
 
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.2f),
-        {Biomes::Jungle});
+    auto placement =
+        PlacementUtils::appendBiomePlacement(PlacementUtils::createChanceSurfacePlacement(0.2f), {Biomes::Jungle});
 
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "giant_jungle_tree");
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "giant_jungle_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createFancyOakTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createFancyOakTree()
+{
     auto config = std::make_unique<TreeFeatureConfig>(fancyOakConfig());
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.1f),
-        {Biomes::Forest, Biomes::FlowerForest, Biomes::Plains});
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "fancy_oak_tree");
+        PlacementUtils::createChanceSurfacePlacement(0.1f), {Biomes::Forest, Biomes::FlowerForest, Biomes::Plains});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "fancy_oak_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createPineTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createPineTree()
+{
     auto config = std::make_unique<TreeFeatureConfig>(pineConfig());
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(2),
-        {Biomes::Taiga, Biomes::SnowyTaiga, Biomes::GiantTreeTaiga});
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "pine_tree");
+        PlacementUtils::createCountedSurfacePlacement(2), {Biomes::Taiga, Biomes::SnowyTaiga, Biomes::GiantTreeTaiga});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "pine_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createJungleBush() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createJungleBush()
+{
     auto config = std::make_unique<TreeFeatureConfig>(jungleBushConfig());
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(8),
-        {Biomes::Jungle, Biomes::JungleHills, Biomes::JungleEdge});
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "jungle_bush");
+        PlacementUtils::createCountedSurfacePlacement(8), {Biomes::Jungle, Biomes::JungleHills, Biomes::JungleEdge});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "jungle_bush");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSwampTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSwampTree()
+{
     auto config = std::make_unique<TreeFeatureConfig>(swampConfig());
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(2),
-        {Biomes::Swamp, Biomes::SwampHills});
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "swamp_tree");
+        PlacementUtils::createCountedSurfacePlacement(2), {Biomes::Swamp, Biomes::SwampHills});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "swamp_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createMegaPineTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createMegaPineTree()
+{
     auto config = std::make_unique<TreeFeatureConfig>(megaPineConfig());
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.3f),
-        {Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "mega_pine_tree");
+        PlacementUtils::createChanceSurfacePlacement(0.3f), {Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "mega_pine_tree");
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createTallBirchTree() {
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createTallBirchTree()
+{
     auto config = std::make_unique<TreeFeatureConfig>(tallBirchConfig());
     auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(3),
-        {Biomes::TallBirchForest, Biomes::TallBirchHills});
-    return std::make_unique<ConfiguredTreeFeature>(
-        std::move(config), std::move(placement), "tall_birch_tree");
+        PlacementUtils::createCountedSurfacePlacement(3), {Biomes::TallBirchForest, Biomes::TallBirchHills});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "tall_birch_tree");
 }
 
-TreeFeatureConfig TreeFeatures::fancyOakConfig() {
+TreeFeatureConfig TreeFeatures::fancyOakConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES);
     config.trunkPlacer = std::make_unique<FancyTrunkPlacer>(3, 11, 0);
-    config.foliagePlacer = std::make_unique<FancyFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        4
-    );
+    config.foliagePlacer =
+        std::make_unique<FancyFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 4);
     config.minHeight = 4;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::pineConfig() {
+TreeFeatureConfig TreeFeatures::pineConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(6, 4, 0);
-    config.foliagePlacer = std::make_unique<PineFoliagePlacer>(
-        FeatureSpread::spread(1, 1),
-        FeatureSpread::fixed(1),
-        4
-    );
+    config.foliagePlacer = std::make_unique<PineFoliagePlacer>(FeatureSpread::spread(1, 1), FeatureSpread::fixed(1), 4);
     config.minHeight = 6;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::jungleBushConfig() {
+TreeFeatureConfig TreeFeatures::jungleBushConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(1, 0, 0);
-    config.foliagePlacer = std::make_unique<BushFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+    config.foliagePlacer = std::make_unique<BushFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     config.minHeight = 1;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::swampConfig() {
+TreeFeatureConfig TreeFeatures::swampConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(5, 3, 0);
-    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
-        FeatureSpread::spread(3, 0),
-        FeatureSpread::fixed(0),
-        3
-    );
+    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(3, 0), FeatureSpread::fixed(0), 3);
     config.maxWaterDepth = 1;
     config.minHeight = 5;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::megaPineConfig() {
+TreeFeatureConfig TreeFeatures::megaPineConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LEAVES);
     config.trunkPlacer = std::make_unique<GiantTrunkPlacer>(13, 5, 3);
-    config.foliagePlacer = std::make_unique<MegaPineFoliagePlacer>(
-        FeatureSpread::spread(3, 2),
-        FeatureSpread::fixed(0),
-        13
-    );
+    config.foliagePlacer =
+        std::make_unique<MegaPineFoliagePlacer>(FeatureSpread::spread(3, 2), FeatureSpread::fixed(0), 13);
     config.minHeight = 13;
     return config;
 }
 
-TreeFeatureConfig TreeFeatures::tallBirchConfig() {
+TreeFeatureConfig TreeFeatures::tallBirchConfig()
+{
     TreeFeatureConfig config;
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::BIRCH_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::BIRCH_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(5, 2, 6);
-    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        2
-    );
+    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     config.minHeight = 5;
     return config;
 }

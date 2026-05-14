@@ -3,24 +3,20 @@
 
 namespace mc::client::sound {
 
-MovingTickableSound::MovingTickableSound(
-    const ResourceLocation& soundEventId,
+MovingTickableSound::MovingTickableSound(const ResourceLocation& soundEventId,
     SoundCategory category,
     const EntitySoundHandler* handler,
     EntityId entityId,
     f32 volume,
-    f32 pitch
-)
-    : TickableSound(
-        soundEventId,
-        category,
-        glm::vec3(0.0f),  // 初始位置，将在tick中更新
-        volume,
-        pitch,
-        true,  // 循环
-        AttenuationType::Linear,
-        DEFAULT_ATTENUATION_DISTANCE
-    )
+    f32 pitch)
+    : TickableSound(soundEventId,
+          category,
+          glm::vec3(0.0f), // 初始位置，将在tick中更新
+          volume,
+          pitch,
+          true, // 循环
+          AttenuationType::Linear,
+          DEFAULT_ATTENUATION_DISTANCE)
     , m_handler(handler)
     , m_entityId(entityId)
 {
@@ -28,7 +24,8 @@ MovingTickableSound::MovingTickableSound(
     m_attenuationDistance = 16.0f;
 }
 
-void MovingTickableSound::tick() {
+void MovingTickableSound::tick()
+{
     // 检查处理器是否有效
     if (!m_handler) {
         markDone();

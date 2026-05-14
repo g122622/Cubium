@@ -1,23 +1,23 @@
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class LivingEntity;
 class BlockState;
-}
+} // namespace mc
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 struct EntityMesh;
-}
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity::layer::entity {
 
@@ -36,7 +36,7 @@ namespace mc::client::renderer::entity::layer::entity {
  *
  * @tparam TEntity 实体类型
  */
-template<typename TEntity>
+template <typename TEntity>
 class HeldBlockLayer : public core::LayerRenderer<TEntity> {
 public:
     HeldBlockLayer() = default;
@@ -45,26 +45,22 @@ public:
     /**
      * @brief 渲染方块持有层（GPU管线路径）
      */
-    void renderPipeline(
-        TEntity& entity,
+    void renderPipeline(TEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染方块持有层（CPU路径 - 已废弃）
      */
-    void render(
-        TEntity& entity,
+    void render(TEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override;
+        f32 scale) override;
 
     /**
      * @brief 检查是否应该渲染持有的方块
@@ -80,21 +76,18 @@ private:
     /**
      * @brief 渲染持有的方块（GPU管线路径）
      */
-    void renderBlockPipeline(
-        const ::mc::BlockState& blockState,
-        f32 x, f32 y, f32 z,
+    void renderBlockPipeline(const ::mc::BlockState& blockState,
+        f32 x,
+        f32 y,
+        f32 z,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 构建简单方块网格
      */
-    void buildBlockMesh(
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+    void buildBlockMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建方块网格

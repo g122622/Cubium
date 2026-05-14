@@ -35,22 +35,22 @@ public:
      * @return 药水实体（喷溅型）
      */
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
-        IWorld& world,
-        Player& player,
-        const ItemStack& stack) const override;
+        IWorld& world, Player& player, const ItemStack& stack) const override;
 
 protected:
     /**
      * @brief 获取基础翻译键
      */
-    [[nodiscard]] std::string getBaseTranslationKey() const override {
+    [[nodiscard]] std::string getBaseTranslationKey() const override
+    {
         return std::string("item.minecraft.splash_potion");
     }
 
     /**
      * @brief 获取带效果后缀的翻译键前缀
      */
-    [[nodiscard]] std::string getEffectTranslationKeyPrefix() const override {
+    [[nodiscard]] std::string getEffectTranslationKeyPrefix() const override
+    {
         return std::string("item.minecraft.splash_potion.effect.");
     }
 };

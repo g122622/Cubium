@@ -1,27 +1,31 @@
 #include "RedstoneSystem.hpp"
 #include "../IWorld.hpp"
-#include "../tick/manager/TickManager.hpp"
 #include "../block/Block.hpp"
+#include "../tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace world {
 namespace redstone {
 
-RedstoneSystem& RedstoneSystem::instance() {
+RedstoneSystem& RedstoneSystem::instance()
+{
     static RedstoneSystem instance;
     return instance;
 }
 
-void RedstoneSystem::notifyNeighbor(IWorld& world, const BlockPos& neighborPos,
-                                    const BlockState& neighborState,
-                                    Block& sourceBlock, const BlockPos& sourcePos) {
+void RedstoneSystem::notifyNeighbor(IWorld& world,
+    const BlockPos& neighborPos,
+    const BlockState& neighborState,
+    Block& sourceBlock,
+    const BlockPos& sourcePos)
+{
     // 使用 IWorld 的封装方法，避免直接使用 const_cast
     world.notifyNeighborChanged(neighborPos, neighborState, sourceBlock, sourcePos, false);
 }
 
-void RedstoneSystem::updateNeighborsInDirections(IWorld& world, const BlockPos& pos,
-                                                  Block& block,
-                                                  const Direction* directions, size_t directionCount) {
+void RedstoneSystem::updateNeighborsInDirections(
+    IWorld& world, const BlockPos& pos, Block& block, const Direction* directions, size_t directionCount)
+{
     for (size_t i = 0; i < directionCount; ++i) {
         Direction dir = directions[i];
         BlockPos neighborPos = pos.offset(dir);
@@ -35,7 +39,8 @@ void RedstoneSystem::updateNeighborsInDirections(IWorld& world, const BlockPos& 
     }
 }
 
-void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& block) {
+void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& block)
+{
     // MC Java: 防止无限递归更新
     // 如果当前位置正在更新，则跳过
     if (m_context.isUpdating(pos)) {
@@ -58,8 +63,8 @@ void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& 
     m_context.endUpdate(pos);
 }
 
-void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos,
-                                           Block& block, Direction skipDirection) {
+void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos, Block& block, Direction skipDirection)
+{
     // MC Java: 防止无限递归更新
     if (m_context.isUpdating(pos)) {
         return;
@@ -85,7 +90,8 @@ void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos,
     m_context.endUpdate(pos);
 }
 
-void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const BlockPos& pos, Block& block) {
+void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const BlockPos& pos, Block& block)
+{
     // MC Java: 防止无限递归更新
     if (m_context.isUpdating(pos)) {
         return;
@@ -111,7 +117,8 @@ void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const Block
     m_context.endUpdate(pos);
 }
 
-void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
+void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos)
+{
     // 比较器可以从四个水平方向检测容器
     // 当容器内容变化时，需要更新周围可能存在的比较器
 
@@ -133,19 +140,20 @@ void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
         // 检查是否是红石元件（包括比较器）
         if (neighborBlock.canProvidePower(*neighborState)) {
             // 使用 IWorld 的封装方法
-            world.notifyNeighborChanged(neighborPos, *neighborState,
-                                        const_cast<Block&>(sourceState->getBlock()), pos, false);
+            world.notifyNeighborChanged(
+                neighborPos, *neighborState, const_cast<Block&>(sourceState->getBlock()), pos, false);
         }
     }
 }
 
-void RedstoneSystem::scheduleUpdate(IWorld& world, const BlockPos& pos, Block& block,
-                                    i32 delay, tick::TickPriority priority) {
+void RedstoneSystem::scheduleUpdate(
+    IWorld& world, const BlockPos& pos, Block& block, i32 delay, tick::TickPriority priority)
+{
     world.tickManager().scheduleBlockTick(pos, block, delay, priority);
 }
 
-void RedstoneSystem::scheduleExtremelyHighPriorityUpdate(IWorld& world, const BlockPos& pos,
-                                                          Block& block, i32 delay) {
+void RedstoneSystem::scheduleExtremelyHighPriorityUpdate(IWorld& world, const BlockPos& pos, Block& block, i32 delay)
+{
     world.tickManager().scheduleBlockTick(pos, block, delay, tick::TickPriority::ExtremelyHigh);
 }
 
@@ -153,7 +161,8 @@ void RedstoneSystem::scheduleExtremelyHighPriorityUpdate(IWorld& world, const Bl
 // 红石火把烧毁跟踪
 // ============================================================================
 
-bool RedstoneSystem::checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTick) {
+bool RedstoneSystem::checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTick)
+{
     auto it = m_torchRecords.find(pos);
     if (it == m_torchRecords.end()) {
         // 创建新记录
@@ -177,8 +186,7 @@ bool RedstoneSystem::checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTic
     }
 
     // 移除过期的翻转记录
-    while (!record.flipTimes.empty() &&
-           currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
+    while (!record.flipTimes.empty() && currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
         record.flipTimes.pop_front();
     }
 
@@ -196,7 +204,8 @@ bool RedstoneSystem::checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTic
     return false;
 }
 
-bool RedstoneSystem::isTorchBurnedOut(const BlockPos& pos, u64 currentTick) const {
+bool RedstoneSystem::isTorchBurnedOut(const BlockPos& pos, u64 currentTick) const
+{
     auto it = m_torchRecords.find(pos);
     if (it == m_torchRecords.end()) {
         return false;
@@ -211,11 +220,13 @@ bool RedstoneSystem::isTorchBurnedOut(const BlockPos& pos, u64 currentTick) cons
     return currentTick - record.burnoutTime < static_cast<u64>(BURNOUT_COOLDOWN);
 }
 
-void RedstoneSystem::clearTorchRecord(const BlockPos& pos) {
+void RedstoneSystem::clearTorchRecord(const BlockPos& pos)
+{
     m_torchRecords.erase(pos);
 }
 
-void RedstoneSystem::cleanupBurnoutRecords(u64 currentTick) {
+void RedstoneSystem::cleanupBurnoutRecords(u64 currentTick)
+{
     // 清理已过冷却期的记录
     auto it = m_torchRecords.begin();
     while (it != m_torchRecords.end()) {
@@ -230,7 +241,7 @@ void RedstoneSystem::cleanupBurnoutRecords(u64 currentTick) {
         } else {
             // 正常记录：清理过期的翻转时间
             while (!record.flipTimes.empty() &&
-                   currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
+                currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
                 record.flipTimes.pop_front();
             }
 

@@ -4,10 +4,10 @@ namespace mc {
 
 AgeableEntity::AgeableEntity(LegacyEntityType type, EntityId id)
     : CreatureEntity(type, id)
-{
-}
+{}
 
-void AgeableEntity::setGrowingAge(i32 age) {
+void AgeableEntity::setGrowingAge(i32 age)
+{
     const bool wasChild = isChild();
     m_growingAge = age;
     if (wasChild != isChild()) {
@@ -15,11 +15,13 @@ void AgeableEntity::setGrowingAge(i32 age) {
     }
 }
 
-void AgeableEntity::setChild(bool child) {
+void AgeableEntity::setChild(bool child)
+{
     setGrowingAge(child ? BABY_AGE : MAX_AGE);
 }
 
-void AgeableEntity::ageUp(i32 seconds) {
+void AgeableEntity::ageUp(i32 seconds)
+{
     i32 ticks = seconds * 20; // 秒转换为tick
     const bool wasChild = isChild();
     m_growingAge += ticks;
@@ -34,7 +36,8 @@ void AgeableEntity::ageUp(i32 seconds) {
     }
 }
 
-void AgeableEntity::addGrowingAge(i32 amount) {
+void AgeableEntity::addGrowingAge(i32 amount)
+{
     const bool wasChild = isChild();
     m_growingAge += amount;
 
@@ -48,25 +51,29 @@ void AgeableEntity::addGrowingAge(i32 amount) {
     }
 }
 
-bool AgeableEntity::canBreed() const {
+bool AgeableEntity::canBreed() const
+{
     // 必须是成体且不在爱心状态
     return !isChild() && m_loveTimer <= 0;
 }
 
-void AgeableEntity::setInLove(u64 /*playerInLove*/) {
+void AgeableEntity::setInLove(u64 /*playerInLove*/)
+{
     if (canBreed()) {
         m_loveTimer = LOVE_TIMER_MAX;
     }
 }
 
-void AgeableEntity::tick() {
+void AgeableEntity::tick()
+{
     CreatureEntity::tick();
 
     updateAge();
     updateLove();
 }
 
-void AgeableEntity::updateAge() {
+void AgeableEntity::updateAge()
+{
     const bool wasChild = isChild();
 
     if (isChild()) {
@@ -97,7 +104,8 @@ void AgeableEntity::updateAge() {
     }
 }
 
-void AgeableEntity::updateLove() {
+void AgeableEntity::updateLove()
+{
     if (m_loveTimer > 0) {
         --m_loveTimer;
 
@@ -107,7 +115,8 @@ void AgeableEntity::updateLove() {
     }
 }
 
-f32 AgeableEntity::getChildScale() const {
+f32 AgeableEntity::getChildScale() const
+{
     if (isChild()) {
         return BABY_SCALE;
     }

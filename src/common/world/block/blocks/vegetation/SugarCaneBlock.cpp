@@ -1,24 +1,26 @@
 #include "SugarCaneBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
 namespace blocks {
 
 SugarCaneBlock::SugarCaneBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AGE_0_15())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AGE_0_15())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -28,22 +30,23 @@ SugarCaneBlock::SugarCaneBlock(const BlockProperties& properties)
     m_shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 1.0f, 0.875f);
 }
 
-i32 SugarCaneBlock::getAge(const BlockState& state) const {
+i32 SugarCaneBlock::getAge(const BlockState& state) const
+{
     return state.get(BlockStateProperties::AGE_0_15());
 }
 
-const BlockState& SugarCaneBlock::withAge(i32 age) const {
+const BlockState& SugarCaneBlock::withAge(i32 age) const
+{
     return defaultState().with(BlockStateProperties::AGE_0_15(), std::min(age, 15));
 }
 
-BlockState SugarCaneBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState SugarCaneBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-bool SugarCaneBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool SugarCaneBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -60,8 +63,7 @@ bool SugarCaneBlock::isValidPosition(
         return true;
     }
 
-    const bool validGround =
-        (VanillaBlocks::GRASS_BLOCK != nullptr && belowState->is(VanillaBlocks::GRASS_BLOCK)) ||
+    const bool validGround = (VanillaBlocks::GRASS_BLOCK != nullptr && belowState->is(VanillaBlocks::GRASS_BLOCK)) ||
         (VanillaBlocks::DIRT != nullptr && belowState->is(VanillaBlocks::DIRT)) ||
         (VanillaBlocks::SAND != nullptr && belowState->is(VanillaBlocks::SAND)) ||
         (VanillaBlocks::RED_SAND != nullptr && belowState->is(VanillaBlocks::RED_SAND));
@@ -69,7 +71,8 @@ bool SugarCaneBlock::isValidPosition(
     return validGround && isNearWater(world, pos);
 }
 
-bool SugarCaneBlock::isNearWater(IBlockReader& world, const BlockPos& pos) const {
+bool SugarCaneBlock::isNearWater(IBlockReader& world, const BlockPos& pos) const
+{
     // 检查根部同高度四个方向是否有水
     const i32 waterY = pos.y - 1;
     for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
@@ -83,13 +86,13 @@ bool SugarCaneBlock::isNearWater(IBlockReader& world, const BlockPos& pos) const
     return false;
 }
 
-BlockState SugarCaneBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState SugarCaneBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
@@ -107,7 +110,8 @@ BlockState SugarCaneBlock::updatePostPlacement(
     return state;
 }
 
-void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
@@ -128,7 +132,7 @@ void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     }
 
     if (height >= 3) {
-        return;  // 已达到最高高度
+        return; // 已达到最高高度
     }
 
     // 随机生长
@@ -145,12 +149,14 @@ void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     }
 }
 
-const CollisionShape& SugarCaneBlock::getShape(const BlockState& state) const {
+const CollisionShape& SugarCaneBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& SugarCaneBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& SugarCaneBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;

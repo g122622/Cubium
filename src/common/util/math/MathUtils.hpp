@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../../core/Constants.hpp"
 #include "../../core/Types.hpp"
 #include "MathConstants.hpp"
-#include "../../core/Constants.hpp"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <limits>
 
@@ -44,7 +44,7 @@ constexpr f32 RAD_TO_DEG = 180.0f / PI;
 /**
  * @brief 数值限制在范围内
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline constexpr T clamp(T value, T minVal, T maxVal) noexcept
 {
     return std::clamp(value, minVal, maxVal);
@@ -86,9 +86,8 @@ template<typename T>
  *
  * 参考 MC 1.16.5: ImprovedNoiseGenerator.lerp3
  */
-[[nodiscard]] inline f32 lerp3(f32 t1, f32 t2, f32 t3,
-                                f32 v0, f32 v1, f32 v2, f32 v3,
-                                f32 v4, f32 v5, f32 v6, f32 v7) noexcept
+[[nodiscard]] inline f32 lerp3(
+    f32 t1, f32 t2, f32 t3, f32 v0, f32 v1, f32 v2, f32 v3, f32 v4, f32 v5, f32 v6, f32 v7) noexcept
 {
     // 沿 X 轴插值
     const f32 i0 = lerp(v0, v1, t1);
@@ -129,9 +128,7 @@ template<typename T>
  *
  * 参考 MC 1.16.5: LinearPosTest 使用的映射插值
  */
-[[nodiscard]] inline f32 mappedLerp(f32 outputMin, f32 outputMax,
-                                     f32 inputMin, f32 inputMax,
-                                     f32 inputValue) noexcept
+[[nodiscard]] inline f32 mappedLerp(f32 outputMin, f32 outputMax, f32 inputMin, f32 inputMax, f32 inputValue) noexcept
 {
     if (inputMax <= inputMin) {
         return outputMin;
@@ -152,7 +149,7 @@ template<typename T>
 /**
  * @brief 平方
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline constexpr T square(T x) noexcept
 {
     return x * x;
@@ -161,7 +158,7 @@ template<typename T>
 /**
  * @brief 立方
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline constexpr T cube(T x) noexcept
 {
     return x * x * x;
@@ -203,7 +200,7 @@ template<typename T>
 /**
  * @brief 向上取整到整数
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline T ceilTo(f32 x) noexcept
 {
     return static_cast<T>(std::ceil(x));
@@ -212,7 +209,7 @@ template<typename T>
 /**
  * @brief 向上取整到整数 (f64 版本)
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline T ceilTo(f64 x) noexcept
 {
     return static_cast<T>(std::ceil(x));
@@ -221,7 +218,7 @@ template<typename T>
 /**
  * @brief 向下取整到整数
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline T floorTo(f32 x) noexcept
 {
     return static_cast<T>(std::floor(x));
@@ -230,7 +227,7 @@ template<typename T>
 /**
  * @brief 向下取整到整数 (f64 版本)
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline T floorTo(f64 x) noexcept
 {
     return static_cast<T>(std::floor(x));
@@ -239,7 +236,7 @@ template<typename T>
 /**
  * @brief 四舍五入到整数
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline T roundTo(f32 x) noexcept
 {
     return static_cast<T>(std::round(x));
@@ -248,7 +245,7 @@ template<typename T>
 /**
  * @brief 四舍五入到整数 (f64 版本)
  */
-template<typename T>
+template <typename T>
 [[nodiscard]] inline T roundTo(f64 x) noexcept
 {
     return static_cast<T>(std::round(x));
@@ -271,9 +268,8 @@ template<typename T>
  */
 [[nodiscard]] inline constexpr ChunkCoord toChunkCoord(BlockCoord worldCoord) noexcept
 {
-    return worldCoord >= 0
-               ? worldCoord / world::CHUNK_WIDTH
-               : (worldCoord - world::CHUNK_WIDTH + 1) / world::CHUNK_WIDTH;
+    return worldCoord >= 0 ? worldCoord / world::CHUNK_WIDTH
+                           : (worldCoord - world::CHUNK_WIDTH + 1) / world::CHUNK_WIDTH;
 }
 
 /**
@@ -591,9 +587,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     // MC 1.16.5: MathHelper.getCoordinateRandom
     // 注意：MC 使用 (x * 3129871) XOR (z * 116129781) XOR y
     // 但这里的 XOR 操作顺序很重要
-    i64 i = static_cast<i64>(x * 3129871) ^
-            (static_cast<i64>(z) * 116129781LL) ^
-            static_cast<i64>(y);
+    i64 i = static_cast<i64>(x * 3129871) ^ (static_cast<i64>(z) * 116129781LL) ^ static_cast<i64>(y);
     i = i * i * 42317861LL + i * 11LL;
     return static_cast<u64>(i >> 16);
 }
@@ -625,8 +619,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  */
 [[nodiscard]] inline u64 getPositionRandomXZ(i32 x, i32 z) noexcept
 {
-    i64 i = static_cast<i64>(x * 3129871) ^
-            (static_cast<i64>(z) * 116129781LL);
+    i64 i = static_cast<i64>(x * 3129871) ^ (static_cast<i64>(z) * 116129781LL);
     i = i * i * 42317861LL + i * 11LL;
     return static_cast<u64>(i >> 16);
 }

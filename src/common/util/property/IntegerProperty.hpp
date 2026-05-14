@@ -39,12 +39,14 @@ public:
      * @return 属性实例
      * @throws std::invalid_argument 如果 min < 0 或 max <= min
      */
-    [[nodiscard]] static std::unique_ptr<IntegerProperty> create(const std::string& name, i32 min, i32 max) {
+    [[nodiscard]] static std::unique_ptr<IntegerProperty> create(const std::string& name, i32 min, i32 max)
+    {
         if (min < 0) {
             throw std::invalid_argument("Min value of " + name + " must be 0 or greater");
         }
         if (max <= min) {
-            throw std::invalid_argument("Max value of " + name + " must be greater than min (" + std::to_string(min) + ")");
+            throw std::invalid_argument(
+                "Max value of " + name + " must be greater than min (" + std::to_string(min) + ")");
         }
         return std::unique_ptr<IntegerProperty>(new IntegerProperty(name, min, max));
     }
@@ -52,28 +54,23 @@ public:
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] i32 minValue() const noexcept {
-        return m_min;
-    }
+    [[nodiscard]] i32 minValue() const noexcept { return m_min; }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] i32 maxValue() const noexcept {
-        return m_max;
-    }
+    [[nodiscard]] i32 maxValue() const noexcept { return m_max; }
 
     /**
      * @brief 将整数值转换为字符串
      */
-    [[nodiscard]] std::string valueToString(const i32& value) const override {
-        return std::to_string(value);
-    }
+    [[nodiscard]] std::string valueToString(const i32& value) const override { return std::to_string(value); }
 
     /**
      * @brief 解析字符串为整数值
      */
-    [[nodiscard]] std::optional<i32> parse(std::string_view str) const override {
+    [[nodiscard]] std::optional<i32> parse(std::string_view str) const override
+    {
         try {
             size_t pos = 0;
             i32 value = std::stoi(std::string(str), &pos);
@@ -85,7 +82,8 @@ public:
                 return std::nullopt;
             }
             return value;
-        } catch (const std::exception&) {
+        }
+        catch (const std::exception&) {
             return std::nullopt;
         }
     }
@@ -93,7 +91,8 @@ public:
     /**
      * @brief 计算哈希值
      */
-    [[nodiscard]] size_t hashCode() const override {
+    [[nodiscard]] size_t hashCode() const override
+    {
         size_t h = std::hash<std::string>{}(m_name);
         h ^= (std::hash<std::string>{}("IntegerProperty") << 1);
         h ^= (std::hash<i32>{}(m_min) << 2);
@@ -104,7 +103,8 @@ public:
     /**
      * @brief 比较两个属性是否相等
      */
-    [[nodiscard]] bool equals(const IProperty& other) const override {
+    [[nodiscard]] bool equals(const IProperty& other) const override
+    {
         if (!Property<i32>::equals(other)) return false;
         const auto* intOther = dynamic_cast<const IntegerProperty*>(&other);
         if (!intOther) return false;
@@ -114,9 +114,7 @@ public:
     /**
      * @brief 获取类型名称
      */
-    [[nodiscard]] const char* typeName() const override {
-        return "IntegerProperty";
-    }
+    [[nodiscard]] const char* typeName() const override { return "IntegerProperty"; }
 
 private:
     i32 m_min;
@@ -125,10 +123,11 @@ private:
     IntegerProperty(const std::string& name, i32 min, i32 max)
         : Property<i32>(name, generateValues(min, max))
         , m_min(min)
-        , m_max(max) {
-    }
+        , m_max(max)
+    {}
 
-    static std::vector<i32> generateValues(i32 min, i32 max) {
+    static std::vector<i32> generateValues(i32 min, i32 max)
+    {
         std::vector<i32> values;
         values.reserve(static_cast<size_t>(max - min + 1));
         for (i32 i = min; i <= max; ++i) {

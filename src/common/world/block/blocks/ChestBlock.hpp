@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../../../util/property/Properties.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
 #include "../Block.hpp"
+#include "../BlockPos.hpp"
 #include "../IWaterLoggable.hpp"
 #include "../Material.hpp"
-#include "../BlockPos.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../../../util/property/Properties.hpp"
 #include <memory>
 
 namespace mc {
@@ -66,14 +66,12 @@ public:
      * @param isMoving 是否正在移动
      * @return 更新后的方块状态
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& neighborState,
         IWorld& world,
         const BlockPos& pos,
-        const BlockPos& neighborPos
-    ) override;
+        const BlockPos& neighborPos) override;
 
     // ========== 方块实体 ==========
 
@@ -101,22 +99,21 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
-        const BlockRaycastResult& hit
-    ) override;
+        const BlockRaycastResult& hit) override;
 
     // ========== 红石 ==========
 
     /**
      * @brief 检查是否可以提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
-        return false;  // 普通箱子不提供信号
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
+        return false; // 普通箱子不提供信号
     }
 
     /**
@@ -124,7 +121,8 @@ public:
      *
      * 箱子可以通过比较器输出信号，因此需要返回 true。
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
@@ -137,10 +135,7 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] i32 getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 移除处理 ==========
 
@@ -184,9 +179,7 @@ public:
      * @brief 获取方块实体类型
      * @return 方块实体类型
      */
-    [[nodiscard]] virtual BlockEntityType getBlockEntityType() const {
-        return BlockEntityType::Chest;
-    }
+    [[nodiscard]] virtual BlockEntityType getBlockEntityType() const { return BlockEntityType::Chest; }
 
     // ========== IWaterLoggable 接口实现 ==========
 
@@ -198,7 +191,8 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
@@ -210,12 +204,7 @@ protected:
      * @param pos 当前位置
      * @param facing 合并方向
      */
-    void combineChests(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction facing
-    );
+    void combineChests(const BlockState& state, IWorld& world, const BlockPos& pos, Direction facing);
 
     /**
      * @brief 检查相邻位置是否可以合并
@@ -226,11 +215,7 @@ protected:
      * @return 如果可以合并返回true
      */
     [[nodiscard]] bool canCombineWithChestAt(
-        IWorld& world,
-        const BlockPos& pos,
-        Direction facing,
-        Direction expectedFacing
-    ) const;
+        IWorld& world, const BlockPos& pos, Direction facing, Direction expectedFacing) const;
 };
 
 } // namespace blocks

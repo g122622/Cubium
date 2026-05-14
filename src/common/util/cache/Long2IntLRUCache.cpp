@@ -5,30 +5,35 @@ namespace mc {
 Long2IntLRUCache::Long2IntLRUCache(i32 maxSize)
     : m_maxSize(maxSize)
 {
-    m_cache.reserve(static_cast<size_t>(maxSize * 2));  // 预分配空间
+    m_cache.reserve(static_cast<size_t>(maxSize * 2)); // 预分配空间
 }
 
-bool Long2IntLRUCache::get(i64 key, i32& value) {
+bool Long2IntLRUCache::get(i64 key, i32& value)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return getLocked(key, value);
 }
 
-void Long2IntLRUCache::put(i64 key, i32 value) {
+void Long2IntLRUCache::put(i64 key, i32 value)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     putLocked(key, value);
 }
 
-i32 Long2IntLRUCache::size() const {
+i32 Long2IntLRUCache::size() const
+{
     return static_cast<i32>(m_cache.size());
 }
 
-void Long2IntLRUCache::clear() {
+void Long2IntLRUCache::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_cache.clear();
     m_list.clear();
 }
 
-bool Long2IntLRUCache::getLocked(i64 key, i32& value) {
+bool Long2IntLRUCache::getLocked(i64 key, i32& value)
+{
     // 注意：此方法不加锁，调用方必须已持有锁
     auto it = m_cache.find(key);
     if (it != m_cache.end()) {
@@ -40,7 +45,8 @@ bool Long2IntLRUCache::getLocked(i64 key, i32& value) {
     return false;
 }
 
-void Long2IntLRUCache::putLocked(i64 key, i32 value) {
+void Long2IntLRUCache::putLocked(i64 key, i32 value)
+{
     // 注意：此方法不加锁，调用方必须已持有锁
 
     // 检查是否已存在

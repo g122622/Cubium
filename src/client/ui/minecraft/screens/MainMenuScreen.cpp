@@ -7,14 +7,15 @@ namespace mc::client::ui::minecraft {
 
 MainMenuScreen::MainMenuScreen()
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
-          kagero::state::StateStore::instance(),
-          kagero::event::EventBus::instance()),
-          "mainMenu") {
+                         kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
+          "mainMenu")
+{
     loadTemplateFile("src/client/ui/minecraft/templates/main_menu.tpl");
     registerCallbacks();
 }
 
-void MainMenuScreen::registerCallbacks() {
+void MainMenuScreen::registerCallbacks()
+{
     exposeSimpleCallback("onSinglePlayer", [this]() {
         if (m_onSinglePlayer) {
             m_onSinglePlayer();
@@ -40,7 +41,8 @@ void MainMenuScreen::registerCallbacks() {
     });
 }
 
-bool MainMenuScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+bool MainMenuScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     (void)scanCode;
     (void)mods;
 

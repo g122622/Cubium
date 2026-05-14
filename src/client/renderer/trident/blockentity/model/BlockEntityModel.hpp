@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/api/mesh/MeshData.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 #include <vector>
@@ -42,9 +42,7 @@ public:
      * @return 创建的部件
      */
     std::shared_ptr<entity::model::ModelRenderer> createPart(
-        const std::string& name,
-        i32 textureWidth = 64,
-        i32 textureHeight = 64);
+        const std::string& name, i32 textureWidth = 64, i32 textureHeight = 64);
 
     /**
      * @brief 添加已有部件
@@ -55,9 +53,7 @@ public:
     /**
      * @brief 获取所有部件
      */
-    [[nodiscard]] const std::vector<std::shared_ptr<entity::model::ModelRenderer>>& getParts() const {
-        return m_parts;
-    }
+    [[nodiscard]] const std::vector<std::shared_ptr<entity::model::ModelRenderer>>& getParts() const { return m_parts; }
 
     // ========== 渲染 ==========
 
@@ -68,16 +64,15 @@ public:
      * @param scale 缩放因子（默认 1/16）
      */
     virtual void generateMesh(
-        std::vector<entity::model::ModelVertex>& vertices,
-        std::vector<u32>& indices,
-        f64 scale = 1.0 / 16.0) const;
+        std::vector<entity::model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale = 1.0 / 16.0) const;
 
     // ========== 纹理 ==========
 
     [[nodiscard]] i32 textureWidth() const { return m_textureWidth; }
     [[nodiscard]] i32 textureHeight() const { return m_textureHeight; }
 
-    void setTextureSize(i32 width, i32 height) {
+    void setTextureSize(i32 width, i32 height)
+    {
         m_textureWidth = width;
         m_textureHeight = height;
     }

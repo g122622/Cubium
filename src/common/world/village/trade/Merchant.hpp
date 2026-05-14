@@ -10,7 +10,7 @@ namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
+} // namespace nbt
 
 // 前向声明
 class Player;

@@ -1,6 +1,6 @@
 #include "ServerChunkManager.hpp"
-#include "ServerWorld.hpp"
 #include "../sync/ChunkSendManager.hpp"
+#include "ServerWorld.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -27,64 +27,72 @@ public:
     explicit ChunkDataChunkAdapter(std::shared_ptr<ChunkData> chunk)
         : m_chunk(std::move(chunk))
         , m_status(m_chunk && m_chunk->isFullyGenerated() ? ChunkLoadStatus::Generated : ChunkLoadStatus::Generating)
-    {
-    }
+    {}
 
     [[nodiscard]] ChunkCoord x() const override { return m_chunk ? m_chunk->x() : 0; }
     [[nodiscard]] ChunkCoord z() const override { return m_chunk ? m_chunk->z() : 0; }
     [[nodiscard]] ChunkPos pos() const override { return m_chunk ? m_chunk->pos() : ChunkPos(0, 0); }
 
-    [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override {
+    [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override
+    {
         return m_chunk ? m_chunk->getBlockState(x, y, z) : nullptr;
     }
 
-    void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override {
+    void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         m_chunk->setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] u32 getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const override {
+    [[nodiscard]] u32 getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const override
+    {
         return m_chunk ? m_chunk->getBlockStateId(x, y, z) : 0;
     }
 
-    void setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId) override {
+    void setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId) override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         m_chunk->setBlockStateId(x, y, z, stateId);
     }
 
-    [[nodiscard]] ChunkSection* getSection(i32 index) override {
+    [[nodiscard]] ChunkSection* getSection(i32 index) override
+    {
         return m_chunk ? m_chunk->getSection(index) : nullptr;
     }
 
-    [[nodiscard]] const ChunkSection* getSection(i32 index) const override {
+    [[nodiscard]] const ChunkSection* getSection(i32 index) const override
+    {
         return m_chunk ? m_chunk->getSection(index) : nullptr;
     }
 
-    [[nodiscard]] bool hasSection(i32 index) const override {
-        return m_chunk ? m_chunk->hasSection(index) : false;
-    }
+    [[nodiscard]] bool hasSection(i32 index) const override { return m_chunk ? m_chunk->hasSection(index) : false; }
 
-    ChunkSection* createSection(i32 index) override {
+    ChunkSection* createSection(i32 index) override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         return m_chunk->createSection(index);
     }
 
-    [[nodiscard]] const ChunkSection* const* getSections() const override {
+    [[nodiscard]] const ChunkSection* const* getSections() const override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         return m_chunk->getSections();
     }
 
-    [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override {
+    [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         return m_chunk->getBiomeAtBlock(x, y, z);
     }
 
-    [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override {
+    [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         return m_chunk->getTopBlockY(type, x, z);
     }
 
-    void updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override {
+    void updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override
+    {
         MC_UNUSED(type);
         MC_UNUSED(y);
         MC_UNUSED(state);
@@ -92,20 +100,18 @@ public:
         m_chunk->updateHeightMap(x, z);
     }
 
-    [[nodiscard]] ChunkLoadStatus getStatus() const override {
-        return m_status;
-    }
+    [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
 
-    void setStatus(ChunkLoadStatus status) override {
-        m_status = status;
-    }
+    void setStatus(ChunkLoadStatus status) override { m_status = status; }
 
-    [[nodiscard]] bool isModified() const override {
+    [[nodiscard]] bool isModified() const override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         return m_chunk->isDirty();
     }
 
-    void setModified(bool modified) override {
+    void setModified(bool modified) override
+    {
         MC_ASSERT_RELEASE(m_chunk != nullptr);
         m_chunk->setDirty(modified);
     }
@@ -270,7 +276,8 @@ ChunkData* ServerChunkManager::requestFullChunkSync(ChunkCoord x, ChunkCoord z)
     return requestChunkSync(x, z, ChunkStatuses::FULL);
 }
 
-std::future<ChunkData*> ServerChunkManager::requestChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus)
+std::future<ChunkData*> ServerChunkManager::requestChunkAsync(
+    ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus)
 {
     auto promise = std::make_shared<std::promise<ChunkData*>>();
     auto future = promise->get_future();
@@ -279,27 +286,19 @@ std::future<ChunkData*> ServerChunkManager::requestChunkAsync(ChunkCoord x, Chun
 }
 
 void ServerChunkManager::requestChunkAsync(
-    ChunkCoord x,
-    ChunkCoord z,
-    const ChunkStatus& targetStatus,
-    ChunkCallback callback)
+    ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, ChunkCallback callback)
 {
     submitChunkRequest(x, z, targetStatus, std::move(callback), {});
 }
 
-void ServerChunkManager::submitChunkRequest(
-    ChunkCoord x,
+void ServerChunkManager::submitChunkRequest(ChunkCoord x,
     ChunkCoord z,
     const ChunkStatus& targetStatus,
     ChunkCallback callback,
     std::shared_ptr<std::promise<ChunkData*>> promise)
 {
     MC_TRACE_EVENT(
-        "server.chunk",
-        "ServerChunkManager::submitChunkRequest",
-        "x", x,
-        "z", z,
-        "targetStatus", targetStatus.name());
+        "server.chunk", "ServerChunkManager::submitChunkRequest", "x", x, "z", z, "targetStatus", targetStatus.name());
 
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         std::vector<SingleChunkLifecycleManager::Waiter> waiters;
@@ -319,8 +318,7 @@ void ServerChunkManager::submitChunkRequest(
 // ============================================================================
 
 void ServerChunkManager::advanceChunkState(
-    SingleChunkLifecycleManager& lifecycleManager,
-    const SingleChunkLifecycleManager::EnqueueDecision& decision)
+    SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision)
 {
     if (decision.shouldWakeReadyWaiters) {
         completeReadyWaiters(lifecycleManager);
@@ -367,8 +365,7 @@ void ServerChunkManager::resolveChunkSourceSync(SingleChunkLifecycleManager& lif
 }
 
 void ServerChunkManager::enqueueChunkGenerationAsync(
-    SingleChunkLifecycleManager& lifecycleManager,
-    const SingleChunkLifecycleManager::EnqueueDecision& decision)
+    SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision)
 {
     const ChunkCoord x = lifecycleManager.x();
     const ChunkCoord z = lifecycleManager.z();
@@ -379,8 +376,7 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
         lifecycleManager.noteGenerationStarted(decision.generation);
         executeGenerationSync(lifecycleManager, *decision.targetStatus);
         auto completionDecision = lifecycleManager.noteGenerationFinished(
-            decision.generation,
-            SingleChunkLifecycleManager::CompletionState::Succeeded);
+            decision.generation, SingleChunkLifecycleManager::CompletionState::Succeeded);
         MC_UNUSED(completionDecision);
         completeReadyWaiters(lifecycleManager);
         wakeBlockedNeighborsAsync(x, z);
@@ -389,8 +385,7 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
 
     lifecycleManager.noteGenerationQueued(decision.generation);
 
-    auto task = std::make_unique<ChunkGenerateTask>(
-        x,
+    auto task = std::make_unique<ChunkGenerateTask>(x,
         z,
         *decision.targetStatus,
         [this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
@@ -407,7 +402,8 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
                 }
 
                 const i32 regionRadius = std::max(0, status.taskRange());
-                std::vector<IChunk*> neighbors(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
+                std::vector<IChunk*> neighbors(
+                    static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
                 std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
                 collectNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, neighbors, neighborAdapters);
                 WorldGenRegion region(chunk.x(), chunk.z(), regionRadius, std::move(neighbors));
@@ -438,7 +434,8 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
             if (!cancelSignal.load(std::memory_order_acquire) && chunk.hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
                 std::vector<SpawnedEntityData> entities;
                 constexpr i32 spawnRegionRadius = 1;
-                std::vector<IChunk*> neighbors(static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
+                std::vector<IChunk*> neighbors(
+                    static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
                 std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
                 collectNeighborChunks(chunk.x(), chunk.z(), spawnRegionRadius, &chunk, neighbors, neighborAdapters);
                 WorldGenRegion region(chunk.x(), chunk.z(), spawnRegionRadius, std::move(neighbors));
@@ -586,9 +583,8 @@ void ServerChunkManager::wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
         }
 
         const ChunkStatus* prerequisiteStatus = getNeighborPrerequisiteStatus(neighbor->requestedStatus());
-        const bool neighborsReady = prerequisiteStatus == nullptr
-            ? true
-            : areNeighborsReady(neighbor->x(), neighbor->z(), *prerequisiteStatus);
+        const bool neighborsReady =
+            prerequisiteStatus == nullptr ? true : areNeighborsReady(neighbor->x(), neighbor->z(), *prerequisiteStatus);
         advanceChunkState(*neighbor, neighbor->noteNeighborProgress(neighborsReady));
     }
 }
@@ -598,8 +594,7 @@ void ServerChunkManager::wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
 // ============================================================================
 
 void ServerChunkManager::executeGenerationSync(
-    SingleChunkLifecycleManager& lifecycleManager,
-    const ChunkStatus& targetStatus)
+    SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
 {
     ChunkPrimer* primer = lifecycleManager.createGeneratingChunk();
     MC_ASSERT_RELEASE(primer != nullptr);
@@ -616,7 +611,8 @@ void ServerChunkManager::executeGenerationSync(
         const i32 regionRadius = std::max(0, status.taskRange());
         std::vector<IChunk*> neighbors(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
         std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
-        collectNeighborChunks(lifecycleManager.x(), lifecycleManager.z(), regionRadius, primer, neighbors, neighborAdapters);
+        collectNeighborChunks(
+            lifecycleManager.x(), lifecycleManager.z(), regionRadius, primer, neighbors, neighborAdapters);
         WorldGenRegion region(lifecycleManager.x(), lifecycleManager.z(), regionRadius, std::move(neighbors));
 
         if (status == ChunkStatuses::STRUCTURE_STARTS) {
@@ -645,9 +641,11 @@ void ServerChunkManager::executeGenerationSync(
     if (primer->hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
         std::vector<SpawnedEntityData> entities;
         constexpr i32 spawnRegionRadius = 1;
-        std::vector<IChunk*> neighbors(static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
+        std::vector<IChunk*> neighbors(
+            static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
         std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
-        collectNeighborChunks(lifecycleManager.x(), lifecycleManager.z(), spawnRegionRadius, primer, neighbors, neighborAdapters);
+        collectNeighborChunks(
+            lifecycleManager.x(), lifecycleManager.z(), spawnRegionRadius, primer, neighbors, neighborAdapters);
         WorldGenRegion region(lifecycleManager.x(), lifecycleManager.z(), spawnRegionRadius, std::move(neighbors));
         m_generator->spawnInitialMobs(region, *primer, entities);
 
@@ -662,10 +660,7 @@ void ServerChunkManager::executeGenerationSync(
     MC_ASSERT_RELEASE(stored != nullptr);
 }
 
-bool ServerChunkManager::areNeighborsReady(
-    ChunkCoord x,
-    ChunkCoord z,
-    const ChunkStatus& prerequisiteStatus) const
+bool ServerChunkManager::areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const
 {
     if (prerequisiteStatus.taskRange() <= 0) {
         return true;
@@ -706,7 +701,8 @@ const ChunkStatus* ServerChunkManager::getNeighborPrerequisiteStatus(const Chunk
 
         const i32 statusRange = status.taskRange();
         if (statusRange > prerequisiteRange ||
-            (statusRange == prerequisiteRange && prerequisiteStage && status.ordinal() > prerequisiteStage->ordinal())) {
+            (statusRange == prerequisiteRange && prerequisiteStage &&
+                status.ordinal() > prerequisiteStage->ordinal())) {
             prerequisiteRange = statusRange;
             prerequisiteStage = &status;
         }
@@ -721,10 +717,7 @@ const ChunkStatus* ServerChunkManager::getNeighborPrerequisiteStatus(const Chunk
 }
 
 i32 ServerChunkManager::computeSchedulePriority(
-    ChunkCoord x,
-    ChunkCoord z,
-    const ChunkStatus& targetStatus,
-    i32 ticketLevel) const
+    ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const
 {
     const i32 normalizedLevel = std::clamp(ticketLevel, 0, world::ChunkDistanceGraph::MAX_LEVEL);
     const i32 statusPenalty = std::max(0, ChunkStatuses::FULL.ordinal() - targetStatus.ordinal());
@@ -736,8 +729,7 @@ i32 ServerChunkManager::computeSchedulePriority(
 // 邻居窗口
 // ============================================================================
 
-void ServerChunkManager::collectNeighborChunks(
-    ChunkCoord x,
+void ServerChunkManager::collectNeighborChunks(ChunkCoord x,
     ChunkCoord z,
     i32 radius,
     IChunk* centerChunk,
@@ -867,11 +859,7 @@ void ServerChunkManager::saveChunkSectionsSync(const ChunkData& chunk)
         auto saveResult = sectionManager.saveSectionSync(sectionKey, sectionDataResult.value());
         if (saveResult.failed()) {
             spdlog::info(
-                "保存 section 失败 ({}, {}, {}): {}",
-                chunk.x(),
-                sectionY,
-                chunk.z(),
-                saveResult.error().message());
+                "保存 section 失败 ({}, {}, {}): {}", chunk.x(), sectionY, chunk.z(), saveResult.error().message());
         }
     }
 }
@@ -911,8 +899,7 @@ std::unique_ptr<ChunkData> ServerChunkManager::tryToLoadChunkFromStorageSync(Chu
                     for (i32 biomeX = 0; biomeX < mc::BiomeContainer::BIOME_WIDTH; ++biomeX) {
                         const size_t biomeIndex = static_cast<size_t>(
                             biomeY * mc::BiomeContainer::BIOME_WIDTH * mc::BiomeContainer::BIOME_DEPTH +
-                            biomeZ * mc::BiomeContainer::BIOME_WIDTH +
-                            biomeX);
+                            biomeZ * mc::BiomeContainer::BIOME_WIDTH + biomeX);
                         biomeContainer.setBiome(biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
                     }
                 }
@@ -927,12 +914,7 @@ std::unique_ptr<ChunkData> ServerChunkManager::tryToLoadChunkFromStorageSync(Chu
 
         auto applyResult = world::storage::SectionCodec::toChunkSection(*sectionData, *section);
         if (applyResult.failed()) {
-            spdlog::info(
-                "应用 section 数据失败 ({}, {}, {}): {}",
-                x,
-                sectionY,
-                z,
-                applyResult.error().message());
+            spdlog::info("应用 section 数据失败 ({}, {}, {}): {}", x, sectionY, z, applyResult.error().message());
             continue;
         }
 
@@ -1016,8 +998,7 @@ void ServerChunkManager::checkChunkUnloading()
                 continue;
             }
 
-            if (!lifecycleManager->shouldLoad() &&
-                !m_ticketManager.hasTrackingPlayers(key) &&
+            if (!lifecycleManager->shouldLoad() && !m_ticketManager.hasTrackingPlayers(key) &&
                 !lifecycleManager->hasGeneratingChunk()) {
                 toUnload.push_back(key);
             }

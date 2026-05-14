@@ -1,10 +1,10 @@
 #include "SurfaceBuilders.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
+#include "../../../util/math/MathConstants.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../biome/Biome.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
-#include "../../biome/Biome.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/math/MathConstants.hpp"
+#include "../../chunk/ChunkPrimer.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -13,7 +13,8 @@ namespace mc {
 
 namespace {
 
-[[nodiscard]] const BlockState* getStateOrNull(Block* block) {
+[[nodiscard]] const BlockState* getStateOrNull(Block* block)
+{
     return block != nullptr ? VanillaBlocks::getState(block) : nullptr;
 }
 
@@ -25,7 +26,8 @@ namespace {
  */
 class GlobalInfoNoise {
 public:
-    static PerlinNoiseGenerator& instance() {
+    static PerlinNoiseGenerator& instance()
+    {
         // 使用固定种子初始化（MC Biome.INFO_NOISE 使用派生种子）
         static PerlinNoiseGenerator s_noise(12345ULL, 0, 0);
         return s_noise;
@@ -40,150 +42,120 @@ public:
 
 SurfaceBuilderConfig SurfaceBuilderConfig::grass()
 {
-    return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK),
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK),
         VanillaBlocks::getState(VanillaBlocks::DIRT),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::sand()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::SAND),
         VanillaBlocks::getState(VanillaBlocks::SAND),
-        VanillaBlocks::getState(VanillaBlocks::SAND),
-        VanillaBlocks::getState(VanillaBlocks::SAND)
-    );
+        VanillaBlocks::getState(VanillaBlocks::SAND));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::stone()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::STONE),
         VanillaBlocks::getState(VanillaBlocks::STONE),
-        VanillaBlocks::getState(VanillaBlocks::STONE),
-        VanillaBlocks::getState(VanillaBlocks::STONE)
-    );
+        VanillaBlocks::getState(VanillaBlocks::STONE));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::gravel()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::GRAVEL),
         VanillaBlocks::getState(VanillaBlocks::GRAVEL),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::redSand()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::RED_SAND),
         VanillaBlocks::getState(VanillaBlocks::RED_SAND),
-        VanillaBlocks::getState(VanillaBlocks::RED_SAND),
-        VanillaBlocks::getState(VanillaBlocks::RED_SAND)
-    );
+        VanillaBlocks::getState(VanillaBlocks::RED_SAND));
 }
 
 // ========== MC原版预设配置 ==========
 
 SurfaceBuilderConfig SurfaceBuilderConfig::podzolDirtGravel()
 {
-    return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::PODZOL),
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::PODZOL),
         VanillaBlocks::getState(VanillaBlocks::DIRT),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::gravelOnly()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::GRAVEL),
         VanillaBlocks::getState(VanillaBlocks::GRAVEL),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::grassDirtGravel()
 {
-    return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK),
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK),
         VanillaBlocks::getState(VanillaBlocks::DIRT),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::stoneStoneGravel()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::STONE),
         VanillaBlocks::getState(VanillaBlocks::STONE),
-        VanillaBlocks::getState(VanillaBlocks::STONE),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::coarseDirtDirtGravel()
 {
-    return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::COARSE_DIRT),
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::COARSE_DIRT),
         VanillaBlocks::getState(VanillaBlocks::DIRT),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::sandSandGravel()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::SAND),
         VanillaBlocks::getState(VanillaBlocks::SAND),
-        VanillaBlocks::getState(VanillaBlocks::SAND),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::grassDirtSand()
 {
-    return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK),
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK),
         VanillaBlocks::getState(VanillaBlocks::DIRT),
-        VanillaBlocks::getState(VanillaBlocks::SAND)
-    );
+        VanillaBlocks::getState(VanillaBlocks::SAND));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::redSandWhiteTerracottaGravel()
 {
-    return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::RED_SAND),
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::RED_SAND),
         VanillaBlocks::getState(VanillaBlocks::WHITE_TERRACOTTA),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::myceliumDirtGravel()
 {
-    return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::MYCELIUM),
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::MYCELIUM),
         VanillaBlocks::getState(VanillaBlocks::DIRT),
-        VanillaBlocks::getState(VanillaBlocks::GRAVEL)
-    );
+        VanillaBlocks::getState(VanillaBlocks::GRAVEL));
 }
 
 SurfaceBuilderConfig SurfaceBuilderConfig::netherrack()
 {
-    return SurfaceBuilderConfig(
+    return SurfaceBuilderConfig(VanillaBlocks::getState(VanillaBlocks::NETHERRACK),
         VanillaBlocks::getState(VanillaBlocks::NETHERRACK),
-        VanillaBlocks::getState(VanillaBlocks::NETHERRACK),
-        VanillaBlocks::getState(VanillaBlocks::NETHERRACK)
-    );
+        VanillaBlocks::getState(VanillaBlocks::NETHERRACK));
 }
 
 // ============================================================================
 // SurfaceBuilder 基类实现
 // ============================================================================
 
-void SurfaceBuilder::buildDefaultSurface(
-    math::Random& random,
+void SurfaceBuilder::buildDefaultSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -193,15 +165,15 @@ void SurfaceBuilder::buildDefaultSurface(
     const BlockState* middle,
     const BlockState* bottom)
 {
-    const i32 k = x & 15;  // 区块内X坐标
-    const i32 l = z & 15;  // 区块内Z坐标
+    const i32 k = x & 15; // 区块内X坐标
+    const i32 l = z & 15; // 区块内Z坐标
 
     // 计算地表深度
     // 参考 MC DefaultSurfaceBuilder 第25行
     const i32 j = static_cast<i32>(surfaceNoise / 3.0 + 3.0 + random.nextDouble() * 0.25);
 
-    const BlockState* blockstate = top;       // 表层方块
-    const BlockState* blockstate1 = middle;   // 次层方块
+    const BlockState* blockstate = top;     // 表层方块
+    const BlockState* blockstate1 = middle; // 次层方块
     i32 currentDepth = -1;
 
     for (i32 y = startHeight; y >= 0; --y) {
@@ -220,7 +192,7 @@ void SurfaceBuilder::buildDefaultSurface(
 
                 // MC第36-39行：深度<=0时的处理
                 if (j <= 0) {
-                    blockstate = nullptr;  // AIR
+                    blockstate = nullptr; // AIR
                     blockstate1 = defaultBlock;
                 } else if (y >= seaLevel - 4 && y <= seaLevel + 1) {
                     // MC第39-41行：海平面附近使用配置的表层
@@ -248,7 +220,7 @@ void SurfaceBuilder::buildDefaultSurface(
                     }
                 } else if (y < seaLevel - 7 - j) {
                     // MC第57-60行：深层水下底板
-                    blockstate = nullptr;  // AIR
+                    blockstate = nullptr; // AIR
                     blockstate1 = defaultBlock;
                     if (bottom != nullptr) {
                         chunk.setBlockState(x, y, z, bottom);
@@ -287,11 +259,11 @@ void SurfaceBuilder::buildDefaultSurface(
 // DefaultSurfaceBuilder 实现
 // ============================================================================
 
-void DefaultSurfaceBuilder::buildSurface(
-    math::Random& random,
+void DefaultSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -300,12 +272,21 @@ void DefaultSurfaceBuilder::buildSurface(
     u64 worldSeed,
     const SurfaceBuilderConfig& config)
 {
-    (void)worldSeed;  // DefaultSurfaceBuilder不需要种子
+    (void)worldSeed; // DefaultSurfaceBuilder不需要种子
 
-    buildDefaultSurface(
-        random, chunk, biome, x, z, startHeight, surfaceNoise,
-        defaultBlock, defaultFluid, seaLevel,
-        config.topBlock, config.underBlock, config.underWaterBlock);
+    buildDefaultSurface(random,
+        chunk,
+        biome,
+        x,
+        z,
+        startHeight,
+        surfaceNoise,
+        defaultBlock,
+        defaultFluid,
+        seaLevel,
+        config.topBlock,
+        config.underBlock,
+        config.underWaterBlock);
 }
 
 i32 DefaultSurfaceBuilder::calculateDepth(f64 noise, math::Random& random) const
@@ -319,11 +300,11 @@ i32 DefaultSurfaceBuilder::calculateDepth(f64 noise, math::Random& random) const
 // MountainSurfaceBuilder 实现
 // ============================================================================
 
-void MountainSurfaceBuilder::buildSurface(
-    math::Random& random,
+void MountainSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -332,21 +313,41 @@ void MountainSurfaceBuilder::buildSurface(
     u64 worldSeed,
     const SurfaceBuilderConfig& config)
 {
-    (void)config;  // MountainSurfaceBuilder根据噪声选择配置
+    (void)config; // MountainSurfaceBuilder根据噪声选择配置
     (void)worldSeed;
 
     // 参考 MC MountainSurfaceBuilder
     // 根据噪声值委托给DefaultSurfaceBuilder使用不同配置
     if (surfaceNoise > 1.0) {
         const SurfaceBuilderConfig stoneConfig = SurfaceBuilderConfig::stoneStoneGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            stoneConfig.topBlock, stoneConfig.underBlock, stoneConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            stoneConfig.topBlock,
+            stoneConfig.underBlock,
+            stoneConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            grassConfig.topBlock, grassConfig.underBlock, grassConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            grassConfig.topBlock,
+            grassConfig.underBlock,
+            grassConfig.underWaterBlock);
     }
 }
 
@@ -354,11 +355,11 @@ void MountainSurfaceBuilder::buildSurface(
 // GravellyMountainSurfaceBuilder 实现
 // ============================================================================
 
-void GravellyMountainSurfaceBuilder::buildSurface(
-    math::Random& random,
+void GravellyMountainSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -374,19 +375,49 @@ void GravellyMountainSurfaceBuilder::buildSurface(
     // 根据噪声值选择不同配置
     if (surfaceNoise > 2.0 || surfaceNoise < -1.0) {
         const SurfaceBuilderConfig gravelConfig = SurfaceBuilderConfig::gravelOnly();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            gravelConfig.topBlock, gravelConfig.underBlock, gravelConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            gravelConfig.topBlock,
+            gravelConfig.underBlock,
+            gravelConfig.underWaterBlock);
     } else if (surfaceNoise > 1.0) {
         const SurfaceBuilderConfig stoneConfig = SurfaceBuilderConfig::stoneStoneGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            stoneConfig.topBlock, stoneConfig.underBlock, stoneConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            stoneConfig.topBlock,
+            stoneConfig.underBlock,
+            stoneConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            grassConfig.topBlock, grassConfig.underBlock, grassConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            grassConfig.topBlock,
+            grassConfig.underBlock,
+            grassConfig.underWaterBlock);
     }
 }
 
@@ -394,11 +425,11 @@ void GravellyMountainSurfaceBuilder::buildSurface(
 // ShatteredSavannaSurfaceBuilder 实现
 // ============================================================================
 
-void ShatteredSavannaSurfaceBuilder::buildSurface(
-    math::Random& random,
+void ShatteredSavannaSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -414,19 +445,49 @@ void ShatteredSavannaSurfaceBuilder::buildSurface(
     // 根据噪声值委托给DefaultSurfaceBuilder使用不同配置
     if (surfaceNoise > 1.75) {
         const SurfaceBuilderConfig stoneConfig = SurfaceBuilderConfig::stoneStoneGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            stoneConfig.topBlock, stoneConfig.underBlock, stoneConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            stoneConfig.topBlock,
+            stoneConfig.underBlock,
+            stoneConfig.underWaterBlock);
     } else if (surfaceNoise > -0.5) {
         const SurfaceBuilderConfig coarseConfig = SurfaceBuilderConfig::coarseDirtDirtGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            coarseConfig.topBlock, coarseConfig.underBlock, coarseConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            coarseConfig.topBlock,
+            coarseConfig.underBlock,
+            coarseConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            grassConfig.topBlock, grassConfig.underBlock, grassConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            grassConfig.topBlock,
+            grassConfig.underBlock,
+            grassConfig.underWaterBlock);
     }
 }
 
@@ -434,11 +495,11 @@ void ShatteredSavannaSurfaceBuilder::buildSurface(
 // GiantTreeTaigaSurfaceBuilder 实现
 // ============================================================================
 
-void GiantTreeTaigaSurfaceBuilder::buildSurface(
-    math::Random& random,
+void GiantTreeTaigaSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -454,19 +515,49 @@ void GiantTreeTaigaSurfaceBuilder::buildSurface(
     // 根据噪声值委托给DefaultSurfaceBuilder使用不同配置
     if (surfaceNoise > 1.75) {
         const SurfaceBuilderConfig coarseConfig = SurfaceBuilderConfig::coarseDirtDirtGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            coarseConfig.topBlock, coarseConfig.underBlock, coarseConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            coarseConfig.topBlock,
+            coarseConfig.underBlock,
+            coarseConfig.underWaterBlock);
     } else if (surfaceNoise > -0.95) {
         const SurfaceBuilderConfig podzolConfig = SurfaceBuilderConfig::podzolDirtGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            podzolConfig.topBlock, podzolConfig.underBlock, podzolConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            podzolConfig.topBlock,
+            podzolConfig.underBlock,
+            podzolConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-            defaultBlock, defaultFluid, seaLevel,
-            grassConfig.topBlock, grassConfig.underBlock, grassConfig.underWaterBlock);
+        buildDefaultSurface(random,
+            chunk,
+            biome,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            defaultBlock,
+            defaultFluid,
+            seaLevel,
+            grassConfig.topBlock,
+            grassConfig.underBlock,
+            grassConfig.underWaterBlock);
     }
 }
 
@@ -474,11 +565,11 @@ void GiantTreeTaigaSurfaceBuilder::buildSurface(
 // SwampSurfaceBuilder 实现
 // ============================================================================
 
-void SwampSurfaceBuilder::buildSurface(
-    math::Random& random,
+void SwampSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -497,12 +588,7 @@ void SwampSurfaceBuilder::buildSurface(
     // 使用全局 INFO_NOISE 采样
     // MC 第16行：Biome.INFO_NOISE.noiseAt((double)x * 0.25D, (double)z * 0.25D, false)
     const f64 infoNoiseValue = static_cast<f64>(
-        GlobalInfoNoise::instance().noiseAt(
-            static_cast<f32>(x) * 0.25f,
-            static_cast<f32>(z) * 0.25f,
-            false
-        )
-    );
+        GlobalInfoNoise::instance().noiseAt(static_cast<f32>(x) * 0.25f, static_cast<f32>(z) * 0.25f, false));
 
     if (infoNoiseValue > 0.0) {
         // 在水面附近查找空气方块下的方块
@@ -520,10 +606,19 @@ void SwampSurfaceBuilder::buildSurface(
     }
 
     // 委托给 DefaultSurfaceBuilder 完成常规地表生成
-    buildDefaultSurface(
-        random, chunk, biome, x, z, startHeight, surfaceNoise,
-        defaultBlock, defaultFluid, seaLevel,
-        config.topBlock, config.underBlock, config.underWaterBlock);
+    buildDefaultSurface(random,
+        chunk,
+        biome,
+        x,
+        z,
+        startHeight,
+        surfaceNoise,
+        defaultBlock,
+        defaultFluid,
+        seaLevel,
+        config.topBlock,
+        config.underBlock,
+        config.underWaterBlock);
 }
 
 void SwampSurfaceBuilder::setSeed(u64 seed)
@@ -536,11 +631,11 @@ void SwampSurfaceBuilder::setSeed(u64 seed)
 // FrozenOceanSurfaceBuilder 实现
 // ============================================================================
 
-void FrozenOceanSurfaceBuilder::buildSurface(
-    math::Random& random,
+void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -566,25 +661,18 @@ void FrozenOceanSurfaceBuilder::buildSurface(
     // MC 第35行：min(abs(noise), field_205199_h.noiseAt(...) * 15.0)
     if (m_icebergHeightNoise && m_icebergDensityNoise) {
         const f64 noiseValue = std::abs(surfaceNoise);
-        const f64 heightNoise = static_cast<f64>(
-            m_icebergHeightNoise->noiseAt(
-                static_cast<f32>(x) * 0.1f,
-                static_cast<f32>(z) * 0.1f,
-                false
-            )
-        ) * 15.0;
+        const f64 heightNoise = static_cast<f64>(m_icebergHeightNoise->noiseAt(
+                                    static_cast<f32>(x) * 0.1f, static_cast<f32>(z) * 0.1f, false)) *
+            15.0;
 
         const f64 d2 = std::min(noiseValue, heightNoise);
 
         if (d2 > 1.8) {
             // MC 第37-43行：计算冰山密度
             const f64 densityNoise = std::abs(
-                static_cast<f64>(m_icebergDensityNoise->noiseAt(
-                    static_cast<f32>(x) * 0.09765625f,  // 1/1024 * 100
+                static_cast<f64>(m_icebergDensityNoise->noiseAt(static_cast<f32>(x) * 0.09765625f, // 1/1024 * 100
                     static_cast<f32>(z) * 0.09765625f,
-                    false
-                ))
-            );
+                    false)));
 
             icebergHeight = d2 * d2 * 1.2;
             f64 maxHeight = std::ceil(densityNoise * 40.0) + 14.0;
@@ -631,8 +719,8 @@ void FrozenOceanSurfaceBuilder::buildSurface(
             if (random.nextDouble() > 0.01) {
                 chunk.setBlockState(localX, y, localZ, packedIceState);
             }
-        } else if (currentState && currentState->isLiquid() &&
-                   y > static_cast<i32>(icebergBase) && y < seaLevel && icebergBase != 0.0) {
+        } else if (currentState && currentState->isLiquid() && y > static_cast<i32>(icebergBase) && y < seaLevel &&
+            icebergBase != 0.0) {
             if (random.nextDouble() > 0.15) {
                 chunk.setBlockState(localX, y, localZ, packedIceState);
             }
@@ -646,7 +734,7 @@ void FrozenOceanSurfaceBuilder::buildSurface(
             if (currentDepth == -1) {
                 // 到达地表
                 if (depth <= 0) {
-                    topState = nullptr;  // AIR
+                    topState = nullptr; // AIR
                     underState = defaultBlock;
                 } else if (y >= seaLevel - 4 && y <= seaLevel + 1) {
                     topState = config.topBlock;
@@ -667,7 +755,7 @@ void FrozenOceanSurfaceBuilder::buildSurface(
                 if (y >= seaLevel - 1) {
                     chunk.setBlockState(localX, y, localZ, topState);
                 } else if (y < seaLevel - 7 - depth) {
-                    topState = nullptr;  // AIR
+                    topState = nullptr; // AIR
                     underState = defaultBlock;
                     chunk.setBlockState(localX, y, localZ, gravelState);
                 } else {
@@ -724,11 +812,11 @@ void FrozenOceanSurfaceBuilder::setSeed(u64 seed)
 // BadlandsSurfaceBuilder 实现
 // ============================================================================
 
-void BadlandsSurfaceBuilder::buildSurface(
-    math::Random& random,
+void BadlandsSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -780,7 +868,7 @@ void BadlandsSurfaceBuilder::buildSurface(
                 useOrangeLayer = false;
 
                 if (depth <= 0) {
-                    topState = nullptr;  // AIR
+                    topState = nullptr; // AIR
                 } else if (y >= seaLevel - 4 && y <= seaLevel + 1) {
                     topState = whiteTerracottaState ? whiteTerracottaState : config.underBlock;
                 }
@@ -843,22 +931,14 @@ bool BadlandsSurfaceBuilder::isTerracottaColor(const BlockState* state) const
 {
     if (!state) return false;
     const Block* block = &state->owner();
-    return block == VanillaBlocks::WHITE_TERRACOTTA ||
-           block == VanillaBlocks::ORANGE_TERRACOTTA ||
-           block == VanillaBlocks::MAGENTA_TERRACOTTA ||
-           block == VanillaBlocks::LIGHT_BLUE_TERRACOTTA ||
-           block == VanillaBlocks::YELLOW_TERRACOTTA ||
-           block == VanillaBlocks::LIME_TERRACOTTA ||
-           block == VanillaBlocks::PINK_TERRACOTTA ||
-           block == VanillaBlocks::GRAY_TERRACOTTA ||
-           block == VanillaBlocks::LIGHT_GRAY_TERRACOTTA ||
-           block == VanillaBlocks::CYAN_TERRACOTTA ||
-           block == VanillaBlocks::PURPLE_TERRACOTTA ||
-           block == VanillaBlocks::BLUE_TERRACOTTA ||
-           block == VanillaBlocks::BROWN_TERRACOTTA ||
-           block == VanillaBlocks::GREEN_TERRACOTTA ||
-           block == VanillaBlocks::RED_TERRACOTTA ||
-           block == VanillaBlocks::BLACK_TERRACOTTA;
+    return block == VanillaBlocks::WHITE_TERRACOTTA || block == VanillaBlocks::ORANGE_TERRACOTTA ||
+        block == VanillaBlocks::MAGENTA_TERRACOTTA || block == VanillaBlocks::LIGHT_BLUE_TERRACOTTA ||
+        block == VanillaBlocks::YELLOW_TERRACOTTA || block == VanillaBlocks::LIME_TERRACOTTA ||
+        block == VanillaBlocks::PINK_TERRACOTTA || block == VanillaBlocks::GRAY_TERRACOTTA ||
+        block == VanillaBlocks::LIGHT_GRAY_TERRACOTTA || block == VanillaBlocks::CYAN_TERRACOTTA ||
+        block == VanillaBlocks::PURPLE_TERRACOTTA || block == VanillaBlocks::BLUE_TERRACOTTA ||
+        block == VanillaBlocks::BROWN_TERRACOTTA || block == VanillaBlocks::GREEN_TERRACOTTA ||
+        block == VanillaBlocks::RED_TERRACOTTA || block == VanillaBlocks::BLACK_TERRACOTTA;
 }
 
 void BadlandsSurfaceBuilder::setSeed(u64 seed)
@@ -962,7 +1042,7 @@ void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
         }
     }
 
-    (void)seed;  // 已通过 rng 使用
+    (void)seed; // 已通过 rng 使用
 }
 
 const BlockState* BadlandsSurfaceBuilder::getTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ)
@@ -973,13 +1053,9 @@ const BlockState* BadlandsSurfaceBuilder::getTerracottaLayer(i32 worldX, i32 wor
     }
 
     // 使用噪声计算 Y 轴偏移
-    const f64 noiseValue = static_cast<f64>(
-        m_bandOffsetNoise->noiseAt(
-            static_cast<f32>(worldX) / 512.0f,
-            static_cast<f32>(worldZ) / 512.0f,
-            false
-        )
-    ) * 2.0;
+    const f64 noiseValue = static_cast<f64>(m_bandOffsetNoise->noiseAt(
+                               static_cast<f32>(worldX) / 512.0f, static_cast<f32>(worldZ) / 512.0f, false)) *
+        2.0;
 
     const i32 offset = static_cast<i32>(std::round(noiseValue));
     const i32 bandIndex = ((worldY + offset) % 64 + 64) % 64;
@@ -994,11 +1070,11 @@ const BlockState* BadlandsSurfaceBuilder::getTerracottaLayer(i32 worldX, i32 wor
 // ErodedBadlandsSurfaceBuilder 实现
 // ============================================================================
 
-void ErodedBadlandsSurfaceBuilder::buildSurface(
-    math::Random& random,
+void ErodedBadlandsSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -1012,20 +1088,30 @@ void ErodedBadlandsSurfaceBuilder::buildSurface(
     // 参考 MC ErodedBadlandsSurfaceBuilder
     // 侵蚀恶地使用红沙和白陶瓦
     const SurfaceBuilderConfig erodedConfig = SurfaceBuilderConfig::redSandWhiteTerracottaGravel();
-    buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-        defaultBlock, defaultFluid, seaLevel,
-        erodedConfig.topBlock, erodedConfig.underBlock, erodedConfig.underWaterBlock);
+    buildDefaultSurface(random,
+        chunk,
+        biome,
+        x,
+        z,
+        startHeight,
+        surfaceNoise,
+        defaultBlock,
+        defaultFluid,
+        seaLevel,
+        erodedConfig.topBlock,
+        erodedConfig.underBlock,
+        erodedConfig.underWaterBlock);
 }
 
 // ============================================================================
 // WoodedBadlandsSurfaceBuilder 实现
 // ============================================================================
 
-void WoodedBadlandsSurfaceBuilder::buildSurface(
-    math::Random& random,
+void WoodedBadlandsSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -1041,20 +1127,30 @@ void WoodedBadlandsSurfaceBuilder::buildSurface(
     const BlockState* grassState = VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK);
     const BlockState* dirtState = VanillaBlocks::getState(VanillaBlocks::DIRT);
 
-    buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-        defaultBlock, defaultFluid, seaLevel,
-        grassState, dirtState, config.underWaterBlock);
+    buildDefaultSurface(random,
+        chunk,
+        biome,
+        x,
+        z,
+        startHeight,
+        surfaceNoise,
+        defaultBlock,
+        defaultFluid,
+        seaLevel,
+        grassState,
+        dirtState,
+        config.underWaterBlock);
 }
 
 // ============================================================================
 // NetherSurfaceBuilder 实现
 // ============================================================================
 
-void NetherSurfaceBuilder::buildSurface(
-    math::Random& random,
+void NetherSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -1070,20 +1166,30 @@ void NetherSurfaceBuilder::buildSurface(
 
     // 参考 MC NetherSurfaceBuilder
     const SurfaceBuilderConfig netherConfig = SurfaceBuilderConfig::netherrack();
-    buildDefaultSurface(random, chunk, biome, x, z, startHeight, surfaceNoise,
-        defaultBlock, defaultFluid, seaLevel,
-        netherConfig.topBlock, netherConfig.underBlock, netherConfig.underWaterBlock);
+    buildDefaultSurface(random,
+        chunk,
+        biome,
+        x,
+        z,
+        startHeight,
+        surfaceNoise,
+        defaultBlock,
+        defaultFluid,
+        seaLevel,
+        netherConfig.topBlock,
+        netherConfig.underBlock,
+        netherConfig.underWaterBlock);
 }
 
 // ============================================================================
 // NetherForestsSurfaceBuilder 实现
 // ============================================================================
 
-void NetherForestsSurfaceBuilder::buildSurface(
-    math::Random& random,
+void NetherForestsSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -1113,24 +1219,12 @@ void NetherForestsSurfaceBuilder::buildSurface(
     bool useUnderWater = false;
 
     if (m_noise) {
-        const f64 noiseValue = static_cast<f64>(
-            m_noise->getValue(
-                static_cast<f32>(x) * 0.1f,
-                static_cast<f32>(seaLevel),
-                static_cast<f32>(z) * 0.1f,
-                0.0f, 0.0f, false
-            )
-        );
+        const f64 noiseValue = static_cast<f64>(m_noise->getValue(
+            static_cast<f32>(x) * 0.1f, static_cast<f32>(seaLevel), static_cast<f32>(z) * 0.1f, 0.0f, 0.0f, false));
         useUnderAsTop = noiseValue > 0.15 + static_cast<f64>(random.nextDouble()) * 0.35;
 
         const f64 noiseValue2 = static_cast<f64>(
-            m_noise->getValue(
-                static_cast<f32>(x) * 0.1f,
-                109.0f,
-                static_cast<f32>(z) * 0.1f,
-                0.0f, 0.0f, false
-            )
-        );
+            m_noise->getValue(static_cast<f32>(x) * 0.1f, 109.0f, static_cast<f32>(z) * 0.1f, 0.0f, 0.0f, false));
         useUnderWater = noiseValue2 > 0.25 + static_cast<f64>(random.nextDouble()) * 0.9;
     }
 
@@ -1207,11 +1301,11 @@ void NetherForestsSurfaceBuilder::setSeed(u64 seed)
 // SoulSandValleySurfaceBuilder 实现
 // ============================================================================
 
-void SoulSandValleySurfaceBuilder::buildSurface(
-    math::Random& random,
+void SoulSandValleySurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,
@@ -1274,11 +1368,11 @@ void SoulSandValleySurfaceBuilder::buildSurface(
 // BasaltDeltasSurfaceBuilder 实现
 // ============================================================================
 
-void BasaltDeltasSurfaceBuilder::buildSurface(
-    math::Random& random,
+void BasaltDeltasSurfaceBuilder::buildSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
-    i32 x, i32 z,
+    i32 x,
+    i32 z,
     i32 startHeight,
     f64 surfaceNoise,
     const BlockState* defaultBlock,

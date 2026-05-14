@@ -9,13 +9,7 @@ namespace mc {
  *
  * 对齐 1.16.5 `CoatTypes`。
  */
-enum class CoatTypes : u8 {
-    None = 0,
-    White = 1,
-    WhiteField = 2,
-    WhiteDots = 3,
-    BlackDots = 4
-};
+enum class CoatTypes : u8 { None = 0, White = 1, WhiteField = 2, WhiteDots = 3, BlackDots = 4 };
 
 inline constexpr u8 COAT_TYPES_COUNT = 5;
 

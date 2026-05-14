@@ -59,16 +59,14 @@ public:
      * @param attenuation 衰减类型
      * @param attenuationDistance 衰减距离
      */
-    SoundInstance(
-        const ResourceLocation& soundEventId,
+    SoundInstance(const ResourceLocation& soundEventId,
         SoundCategory category,
         const glm::vec3& position,
         f32 volume,
         f32 pitch,
         bool looping,
         AttenuationType attenuation,
-        f32 attenuationDistance
-    );
+        f32 attenuationDistance);
 
     // ========================================================================
     // 工厂方法
@@ -85,11 +83,7 @@ public:
      * @param pitch 音调（默认1.0）
      */
     [[nodiscard]] static SoundInstance createGlobal(
-        const ResourceLocation& soundEventId,
-        SoundCategory category,
-        f32 volume = 1.0f,
-        f32 pitch = 1.0f
-    );
+        const ResourceLocation& soundEventId, SoundCategory category, f32 volume = 1.0f, f32 pitch = 1.0f);
 
     /**
      * @brief 创建位置声音
@@ -104,13 +98,13 @@ public:
      * @param volume 音量（默认1.0）
      * @param pitch 音调（默认1.0）
      */
-    [[nodiscard]] static SoundInstance createLocated(
-        const ResourceLocation& soundEventId,
+    [[nodiscard]] static SoundInstance createLocated(const ResourceLocation& soundEventId,
         SoundCategory category,
-        f32 x, f32 y, f32 z,
+        f32 x,
+        f32 y,
+        f32 z,
         f32 volume = 1.0f,
-        f32 pitch = 1.0f
-    );
+        f32 pitch = 1.0f);
 
     /**
      * @brief 创建音乐声音
@@ -122,10 +116,7 @@ public:
      * @param pitch 音调（默认1.0）
      */
     [[nodiscard]] static SoundInstance createMusic(
-        const ResourceLocation& soundEventId,
-        f32 volume = 1.0f,
-        f32 pitch = 1.0f
-    );
+        const ResourceLocation& soundEventId, f32 volume = 1.0f, f32 pitch = 1.0f);
 
     /**
      * @brief 创建唱片机声音
@@ -137,10 +128,7 @@ public:
      * @param y Y坐标
      * @param z Z坐标
      */
-    [[nodiscard]] static SoundInstance createRecord(
-        const ResourceLocation& soundEventId,
-        f32 x, f32 y, f32 z
-    );
+    [[nodiscard]] static SoundInstance createRecord(const ResourceLocation& soundEventId, f32 x, f32 y, f32 z);
 
     // ========================================================================
     // ISoundInstance 接口实现
@@ -196,7 +184,11 @@ public:
      *
      * 同时取消循环，与 MC 原版行为一致。
      */
-    void markDone() { m_done = true; m_looping = false; }
+    void markDone()
+    {
+        m_done = true;
+        m_looping = false;
+    }
 
 protected:
     ResourceLocation m_soundEventId;

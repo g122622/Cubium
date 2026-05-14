@@ -12,8 +12,8 @@ namespace mc::sound {
  * 参考: net.minecraft.client.audio.Sound.Type
  */
 enum class SoundType : u8 {
-    File,   ///< 直接文件引用（OGG 文件）
-    Event   ///< 引用另一个声音事件
+    File, ///< 直接文件引用（OGG 文件）
+    Event ///< 引用另一个声音事件
 };
 
 /**
@@ -24,8 +24,8 @@ enum class SoundType : u8 {
  * 参考: net.minecraft.client.audio.ISound.AttenuationType
  */
 enum class AttenuationType : u8 {
-    None,   ///< 无衰减（全局声音，如背景音乐）
-    Linear  ///< 线性衰减（基于距离）
+    None,  ///< 无衰减（全局声音，如背景音乐）
+    Linear ///< 线性衰减（基于距离）
 };
 
 /**
@@ -59,10 +59,10 @@ using AudioSourceId = u32;
  * @brief 音频源状态
  */
 enum class AudioSourceState : u8 {
-    Initial,   ///< 初始状态（未播放）
-    Playing,   ///< 正在播放
-    Paused,    ///< 已暂停
-    Stopped    ///< 已停止
+    Initial, ///< 初始状态（未播放）
+    Playing, ///< 正在播放
+    Paused,  ///< 已暂停
+    Stopped  ///< 已停止
 };
 
 /**

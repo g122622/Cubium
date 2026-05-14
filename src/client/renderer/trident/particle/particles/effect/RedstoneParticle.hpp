@@ -31,21 +31,22 @@ public:
     RedstoneParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/redstone");
     }
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
         return 0xF0;
     }
@@ -72,21 +73,22 @@ public:
     EnchantParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/enchant");
     }
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
         return 0xF0;
     }
@@ -113,17 +115,17 @@ public:
     FallingDustParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/falling_dust");
     }
 

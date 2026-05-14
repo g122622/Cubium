@@ -12,13 +12,13 @@ namespace entity {
  * 定义玩家尝试睡眠时可能返回的各种结果。
  */
 enum class SleepResult : u8 {
-    OK,                     // 成功入睡
-    NOT_POSSIBLE_HERE,      // 此维度不能睡眠（下界/末地）
-    NOT_POSSIBLE_NOW,       // 现在不是睡眠时间（非夜晚）
-    TOO_FAR_AWAY,           // 离床太远
-    OBSTRUCTED,             // 床被阻挡（上方没有空间）
-    OTHER_PROBLEM,          // 其他问题（如已经在睡眠中）
-    NOT_SAFE                // 周围有怪物
+    OK,                // 成功入睡
+    NOT_POSSIBLE_HERE, // 此维度不能睡眠（下界/末地）
+    NOT_POSSIBLE_NOW,  // 现在不是睡眠时间（非夜晚）
+    TOO_FAR_AWAY,      // 离床太远
+    OBSTRUCTED,        // 床被阻挡（上方没有空间）
+    OTHER_PROBLEM,     // 其他问题（如已经在睡眠中）
+    NOT_SAFE           // 周围有怪物
 };
 
 /**
@@ -30,7 +30,8 @@ enum class SleepResult : u8 {
  * @param result 睡眠结果
  * @return 翻译键字符串（如 "block.minecraft.bed.no_sleep"）
  */
-[[nodiscard]] inline const char* getSleepResultMessage(SleepResult result) {
+[[nodiscard]] inline const char* getSleepResultMessage(SleepResult result)
+{
     switch (result) {
         case SleepResult::NOT_POSSIBLE_NOW:
             return "block.minecraft.bed.no_sleep";
@@ -54,7 +55,8 @@ enum class SleepResult : u8 {
  * @param result 睡眠结果
  * @return true 如果成功入睡
  */
-[[nodiscard]] inline bool isSleepSuccess(SleepResult result) {
+[[nodiscard]] inline bool isSleepSuccess(SleepResult result)
+{
     return result == SleepResult::OK;
 }
 

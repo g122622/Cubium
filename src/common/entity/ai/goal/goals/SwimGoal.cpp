@@ -1,9 +1,9 @@
 #include "SwimGoal.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../ai/controller/JumpController.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../ai/controller/JumpController.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../pathfinding/PathNavigator.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -19,7 +19,8 @@ SwimGoal::SwimGoal(MobEntity* mob)
     }
 }
 
-bool SwimGoal::shouldExecute() {
+bool SwimGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     // MC 1.16.5: isInWater() && getFluidHeight(FluidTags.WATER) > getEyeHeight()
@@ -27,14 +28,15 @@ bool SwimGoal::shouldExecute() {
     if (m_mob->isInWater()) {
         // MC 1.16.5: func_233571_b_ 获取流体高度，func_233579_cu_ 获取眼睛高度
         // 需要检查水位是否超过眼睛高度
-        f32 fluidHeight = m_mob->getFluidHeight();  // 水位高度
-        f32 eyeHeight = m_mob->eyeHeight();         // 眼睛高度
+        f32 fluidHeight = m_mob->getFluidHeight(); // 水位高度
+        f32 eyeHeight = m_mob->eyeHeight();        // 眼睛高度
         return fluidHeight > eyeHeight;
     }
     return m_mob->isInLava();
 }
 
-void SwimGoal::tick() {
+void SwimGoal::tick()
+{
     if (!m_mob) return;
 
     // MC 1.16.5: 以 80% 概率跳跃

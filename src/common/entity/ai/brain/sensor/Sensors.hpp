@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Sensor.hpp"
-#include "../Brain.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
 #include "../../../core/AgeableEntity.hpp"
 #include "../../../core/EntityUtils.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
 #include "../../../entities/player/Player.hpp"
-#include <vector>
+#include "../Brain.hpp"
+#include "Sensor.hpp"
 #include <algorithm>
+#include <vector>
 
 namespace mc {
 class IWorld;
@@ -19,11 +19,11 @@ class VillageManager;
 namespace poi {
 class PointOfInterestStorage;
 enum class PointOfInterestType : u16;
-}
-}
+} // namespace poi
+} // namespace village
 class GlobalPos;
-}
-}
+} // namespace world
+} // namespace mc
 
 namespace mc {
 namespace entity {
@@ -43,15 +43,14 @@ template <typename E>
 class NearestPlayersSensor : public Sensor<E> {
 public:
     NearestPlayersSensor()
-        : Sensor<E>(20)  // 每20tick更新一次
+        : Sensor<E>(20) // 每20tick更新一次
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::NEAREST_PLAYERS,
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::NEAREST_PLAYERS,
             memory::MemoryModuleTypes::NEAREST_VISIBLE_PLAYER,
-            memory::MemoryModuleTypes::NEAREST_VISIBLE_TARGETABLE_PLAYER
-        };
+            memory::MemoryModuleTypes::NEAREST_VISIBLE_TARGETABLE_PLAYER};
     }
 
 protected:
@@ -74,11 +73,9 @@ public:
         , m_range(range)
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::VISIBLE_MOBS,
-            memory::MemoryModuleTypes::NEAREST_VISIBLE_NEMESIS
-        };
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::VISIBLE_MOBS, memory::MemoryModuleTypes::NEAREST_VISIBLE_NEMESIS};
     }
 
 protected:
@@ -100,14 +97,12 @@ template <typename E>
 class HurtBySensor : public Sensor<E> {
 public:
     HurtBySensor()
-        : Sensor<E>(1)  // 每 tick 检查（伤害需要快速响应）
+        : Sensor<E>(1) // 每 tick 检查（伤害需要快速响应）
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::HURT_BY,
-            memory::MemoryModuleTypes::HURT_BY_ENTITY
-        };
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::HURT_BY, memory::MemoryModuleTypes::HURT_BY_ENTITY};
     }
 
 protected:
@@ -130,11 +125,9 @@ public:
         , m_range(range)
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::MOBS,
-            memory::MemoryModuleTypes::NEAREST_HOSTILE
-        };
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::MOBS, memory::MemoryModuleTypes::NEAREST_HOSTILE};
     }
 
 protected:
@@ -156,14 +149,12 @@ template <typename E>
 class WorkStationSensor : public Sensor<E> {
 public:
     WorkStationSensor()
-        : Sensor<E>(40)  // 每2秒更新一次
+        : Sensor<E>(40) // 每2秒更新一次
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::JOB_SITE,
-            memory::MemoryModuleTypes::POTENTIAL_JOB_SITE
-        };
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::JOB_SITE, memory::MemoryModuleTypes::POTENTIAL_JOB_SITE};
     }
 
 protected:
@@ -182,15 +173,14 @@ template <typename E>
 class VillagePoiSensor : public Sensor<E> {
 public:
     VillagePoiSensor()
-        : Sensor<E>(40)  // 每2秒更新一次
+        : Sensor<E>(40) // 每2秒更新一次
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::HOME,
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::HOME,
             memory::MemoryModuleTypes::MEETING_POINT,
-            memory::MemoryModuleTypes::NEAREST_BED
-        };
+            memory::MemoryModuleTypes::NEAREST_BED};
     }
 
 protected:
@@ -212,11 +202,9 @@ public:
         : Sensor<E>(20)
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::VISIBLE_VILLAGER_BABIES,
-            memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT
-        };
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::VISIBLE_VILLAGER_BABIES, memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT};
     }
 
 protected:
@@ -239,11 +227,9 @@ public:
         , m_range(range)
     {}
 
-    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return {
-            memory::MemoryModuleTypes::AVOID_TARGET,
-            memory::MemoryModuleTypes::NEAREST_REPELLENT
-        };
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::AVOID_TARGET, memory::MemoryModuleTypes::NEAREST_REPELLENT};
     }
 
 protected:

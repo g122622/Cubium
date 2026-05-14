@@ -14,47 +14,47 @@ namespace {
  * MC 1.16.5 使用 2-3 字符的短名作为哈希名
  */
 const char* const HASH_NAMES[] = {
-    "b",       // Base
-    "bl",      // SquareBottomLeft
-    "br",      // SquareBottomRight
-    "tl",      // SquareTopLeft
-    "tr",      // SquareTopRight
-    "bs",      // StripeBottom
-    "ts",      // StripeTop
-    "ls",      // StripeLeft
-    "rs",      // StripeRight
-    "cs",      // StripeCenter
-    "ms",      // StripeMiddle
-    "drs",     // StripeDownright
-    "dls",     // StripeDownleft
-    "ss",      // StripeSmall
-    "cr",      // Cross
-    "sc",      // StraightCross
-    "bt",      // TriangleBottom
-    "tt",      // TriangleTop
-    "bts",     // TrianglesBottom
-    "tts",     // TrianglesTop
-    "ld",      // DiagonalLeft
-    "rd",      // DiagonalRight
-    "lud",     // DiagonalLeftMirror
-    "rud",     // DiagonalRightMirror
-    "mc",      // CircleMiddle
-    "mr",      // RhombusMiddle
-    "vh",      // HalfVertical
-    "hh",      // HalfHorizontal
-    "vhr",     // HalfVerticalMirror
-    "hhb",     // HalfHorizontalMirror
-    "bo",      // Border
-    "cbo",     // CurlyBorder
-    "gra",     // Gradient
-    "gru",     // GradientUp
-    "bri",     // Bricks
-    "glb",     // Globe
-    "cre",     // Creeper
-    "sku",     // Skull
-    "flo",     // Flower
-    "moj",     // Mojang
-    "pig"      // Piglin
+    "b",   // Base
+    "bl",  // SquareBottomLeft
+    "br",  // SquareBottomRight
+    "tl",  // SquareTopLeft
+    "tr",  // SquareTopRight
+    "bs",  // StripeBottom
+    "ts",  // StripeTop
+    "ls",  // StripeLeft
+    "rs",  // StripeRight
+    "cs",  // StripeCenter
+    "ms",  // StripeMiddle
+    "drs", // StripeDownright
+    "dls", // StripeDownleft
+    "ss",  // StripeSmall
+    "cr",  // Cross
+    "sc",  // StraightCross
+    "bt",  // TriangleBottom
+    "tt",  // TriangleTop
+    "bts", // TrianglesBottom
+    "tts", // TrianglesTop
+    "ld",  // DiagonalLeft
+    "rd",  // DiagonalRight
+    "lud", // DiagonalLeftMirror
+    "rud", // DiagonalRightMirror
+    "mc",  // CircleMiddle
+    "mr",  // RhombusMiddle
+    "vh",  // HalfVertical
+    "hh",  // HalfHorizontal
+    "vhr", // HalfVerticalMirror
+    "hhb", // HalfHorizontalMirror
+    "bo",  // Border
+    "cbo", // CurlyBorder
+    "gra", // Gradient
+    "gru", // GradientUp
+    "bri", // Bricks
+    "glb", // Globe
+    "cre", // Creeper
+    "sku", // Skull
+    "flo", // Flower
+    "moj", // Mojang
+    "pig"  // Piglin
 };
 
 /**
@@ -63,101 +63,102 @@ const char* const HASH_NAMES[] = {
  * 索引与 BannerPatternType 枚举值对应
  */
 const char* const FILE_NAMES[] = {
-    "base",                  // Base
-    "square_bottom_left",    // SquareBottomLeft
-    "square_bottom_right",   // SquareBottomRight
-    "square_top_left",       // SquareTopLeft
-    "square_top_right",      // SquareTopRight
-    "stripe_bottom",         // StripeBottom
-    "stripe_top",            // StripeTop
-    "stripe_left",           // StripeLeft
-    "stripe_right",          // StripeRight
-    "stripe_center",         // StripeCenter
-    "stripe_middle",         // StripeMiddle
-    "stripe_downright",      // StripeDownright
-    "stripe_downleft",       // StripeDownleft
-    "small_stripes",         // StripeSmall
-    "cross",                 // Cross
-    "straight_cross",        // StraightCross
-    "triangle_bottom",       // TriangleBottom
-    "triangle_top",          // TriangleTop
-    "triangles_bottom",      // TrianglesBottom
-    "triangles_top",         // TrianglesTop
-    "diagonal_left",         // DiagonalLeft
-    "diagonal_up_right",     // DiagonalRight
-    "diagonal_up_left",      // DiagonalLeftMirror
-    "diagonal_right",        // DiagonalRightMirror
-    "circle",                // CircleMiddle
-    "rhombus",               // RhombusMiddle
-    "half_vertical",         // HalfVertical
-    "half_horizontal",       // HalfHorizontal
-    "half_vertical_right",   // HalfVerticalMirror
+    "base",                   // Base
+    "square_bottom_left",     // SquareBottomLeft
+    "square_bottom_right",    // SquareBottomRight
+    "square_top_left",        // SquareTopLeft
+    "square_top_right",       // SquareTopRight
+    "stripe_bottom",          // StripeBottom
+    "stripe_top",             // StripeTop
+    "stripe_left",            // StripeLeft
+    "stripe_right",           // StripeRight
+    "stripe_center",          // StripeCenter
+    "stripe_middle",          // StripeMiddle
+    "stripe_downright",       // StripeDownright
+    "stripe_downleft",        // StripeDownleft
+    "small_stripes",          // StripeSmall
+    "cross",                  // Cross
+    "straight_cross",         // StraightCross
+    "triangle_bottom",        // TriangleBottom
+    "triangle_top",           // TriangleTop
+    "triangles_bottom",       // TrianglesBottom
+    "triangles_top",          // TrianglesTop
+    "diagonal_left",          // DiagonalLeft
+    "diagonal_up_right",      // DiagonalRight
+    "diagonal_up_left",       // DiagonalLeftMirror
+    "diagonal_right",         // DiagonalRightMirror
+    "circle",                 // CircleMiddle
+    "rhombus",                // RhombusMiddle
+    "half_vertical",          // HalfVertical
+    "half_horizontal",        // HalfHorizontal
+    "half_vertical_right",    // HalfVerticalMirror
     "half_horizontal_bottom", // HalfHorizontalMirror
-    "border",                // Border
-    "curly_border",          // CurlyBorder
-    "gradient",              // Gradient
-    "gradient_up",           // GradientUp
-    "bricks",                // Bricks
-    "globe",                 // Globe
-    "creeper",               // Creeper
-    "skull",                 // Skull
-    "flower",                // Flower
-    "mojang",                // Mojang
-    "piglin"                 // Piglin
+    "border",                 // Border
+    "curly_border",           // CurlyBorder
+    "gradient",               // Gradient
+    "gradient_up",            // GradientUp
+    "bricks",                 // Bricks
+    "globe",                  // Globe
+    "creeper",                // Creeper
+    "skull",                  // Skull
+    "flower",                 // Flower
+    "mojang",                 // Mojang
+    "piglin"                  // Piglin
 };
 
 /**
  * @brief 图案是否需要特殊物品表
  */
 constexpr bool HAS_PATTERN_ITEM[] = {
-    false,  // Base
-    false,  // SquareBottomLeft
-    false,  // SquareBottomRight
-    false,  // SquareTopLeft
-    false,  // SquareTopRight
-    false,  // StripeBottom
-    false,  // StripeTop
-    false,  // StripeLeft
-    false,  // StripeRight
-    false,  // StripeCenter
-    false,  // StripeMiddle
-    false,  // StripeDownright
-    false,  // StripeDownleft
-    false,  // StripeSmall
-    false,  // Cross
-    false,  // StraightCross
-    false,  // TriangleBottom
-    false,  // TriangleTop
-    false,  // TrianglesBottom
-    false,  // TrianglesTop
-    false,  // DiagonalLeft
-    false,  // DiagonalRight
-    false,  // DiagonalLeftMirror
-    false,  // DiagonalRightMirror
-    false,  // CircleMiddle
-    false,  // RhombusMiddle
-    false,  // HalfVertical
-    false,  // HalfHorizontal
-    false,  // HalfVerticalMirror
-    false,  // HalfHorizontalMirror
-    false,  // Border
-    false,  // CurlyBorder
-    false,  // Gradient
-    false,  // GradientUp
-    false,  // Bricks
-    true,   // Globe
-    true,   // Creeper
-    true,   // Skull
-    true,   // Flower
-    true,   // Mojang
-    true    // Piglin
+    false, // Base
+    false, // SquareBottomLeft
+    false, // SquareBottomRight
+    false, // SquareTopLeft
+    false, // SquareTopRight
+    false, // StripeBottom
+    false, // StripeTop
+    false, // StripeLeft
+    false, // StripeRight
+    false, // StripeCenter
+    false, // StripeMiddle
+    false, // StripeDownright
+    false, // StripeDownleft
+    false, // StripeSmall
+    false, // Cross
+    false, // StraightCross
+    false, // TriangleBottom
+    false, // TriangleTop
+    false, // TrianglesBottom
+    false, // TrianglesTop
+    false, // DiagonalLeft
+    false, // DiagonalRight
+    false, // DiagonalLeftMirror
+    false, // DiagonalRightMirror
+    false, // CircleMiddle
+    false, // RhombusMiddle
+    false, // HalfVertical
+    false, // HalfHorizontal
+    false, // HalfVerticalMirror
+    false, // HalfHorizontalMirror
+    false, // Border
+    false, // CurlyBorder
+    false, // Gradient
+    false, // GradientUp
+    false, // Bricks
+    true,  // Globe
+    true,  // Creeper
+    true,  // Skull
+    true,  // Flower
+    true,  // Mojang
+    true   // Piglin
 };
 
 constexpr size_t PATTERN_COUNT = static_cast<size_t>(BannerPatternType::Count);
 
 } // namespace
 
-BannerPatternType BannerPatterns::byHash(const std::string& hashName) {
+BannerPatternType BannerPatterns::byHash(const std::string& hashName)
+{
     for (size_t i = 0; i < PATTERN_COUNT; ++i) {
         if (hashName == HASH_NAMES[i]) {
             return static_cast<BannerPatternType>(i);
@@ -167,19 +168,22 @@ BannerPatternType BannerPatterns::byHash(const std::string& hashName) {
     return BannerPatternType::Base;
 }
 
-std::string BannerPatterns::getHashName(BannerPatternType type) {
+std::string BannerPatterns::getHashName(BannerPatternType type)
+{
     const size_t index = static_cast<size_t>(type);
     MC_ASSERT_RELEASE(index < PATTERN_COUNT);
     return HASH_NAMES[index];
 }
 
-std::string BannerPatterns::getFileName(BannerPatternType type) {
+std::string BannerPatterns::getFileName(BannerPatternType type)
+{
     const size_t index = static_cast<size_t>(type);
     MC_ASSERT_RELEASE(index < PATTERN_COUNT);
     return FILE_NAMES[index];
 }
 
-bool BannerPatterns::hasPatternItem(BannerPatternType type) {
+bool BannerPatterns::hasPatternItem(BannerPatternType type)
+{
     const size_t index = static_cast<size_t>(type);
     MC_ASSERT_RELEASE(index < PATTERN_COUNT);
     return HAS_PATTERN_ITEM[index];

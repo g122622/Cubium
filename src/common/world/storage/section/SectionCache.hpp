@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../db/SectionKey.hpp"
 #include "../../../core/Types.hpp"
-#include <unordered_map>
+#include "../db/SectionKey.hpp"
 #include <list>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <unordered_map>
 
 namespace mc::world::storage {
 
@@ -60,7 +60,8 @@ public:
         size_t capacity = 0;
 
         /// 命中率
-        [[nodiscard]] double hitRate() const {
+        [[nodiscard]] double hitRate() const
+        {
             size_t total = hits + misses;
             return total > 0 ? static_cast<double>(hits) / static_cast<double>(total) : 0.0;
         }
@@ -113,11 +114,7 @@ public:
      * @param dirty 是否标记为脏
      * @return 被驱逐的Section（如果有）
      */
-    std::shared_ptr<SectionData> put(
-        const SectionKey& key,
-        std::shared_ptr<SectionData> data,
-        bool dirty = false
-    );
+    std::shared_ptr<SectionData> put(const SectionKey& key, std::shared_ptr<SectionData> data, bool dirty = false);
 
     /**
      * @brief 检查Section是否存在
@@ -186,16 +183,14 @@ public:
      *
      * @return 脏Section数据列表
      */
-    [[nodiscard]] std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>>
-        getDirtySections() const;
+    [[nodiscard]] std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> getDirtySections() const;
 
     /**
      * @brief 获取所有缓存Section数据
      *
      * @return 所有缓存Section数据列表
      */
-    [[nodiscard]] std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>>
-        getAllSections() const;
+    [[nodiscard]] std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> getAllSections() const;
 
     // ========================================================================
     // 缓存管理

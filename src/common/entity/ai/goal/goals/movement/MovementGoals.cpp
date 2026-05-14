@@ -1,12 +1,12 @@
 #include "MovementGoals.hpp"
+#include "../../../../../util/math/MathConstants.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
 #include "../../../../core/CreatureEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../controller/MovementController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/math/MathConstants.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../world/IWorld.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -17,8 +17,7 @@ using namespace mc::math;
 
 WaterAvoidingRandomWalkingGoal::WaterAvoidingRandomWalkingGoal(CreatureEntity* creature, f64 speed)
     : WaterAvoidingRandomWalkingGoal(creature, speed, 0.001f)
-{
-}
+{}
 
 WaterAvoidingRandomWalkingGoal::WaterAvoidingRandomWalkingGoal(CreatureEntity* creature, f64 speed, f32 chance)
     : m_creature(creature)
@@ -28,7 +27,8 @@ WaterAvoidingRandomWalkingGoal::WaterAvoidingRandomWalkingGoal(CreatureEntity* c
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
-bool WaterAvoidingRandomWalkingGoal::shouldExecute() {
+bool WaterAvoidingRandomWalkingGoal::shouldExecute()
+{
     if (!m_creature) return false;
 
     // 检查是否被骑乘
@@ -44,7 +44,8 @@ bool WaterAvoidingRandomWalkingGoal::shouldExecute() {
     return getRandomPosition();
 }
 
-bool WaterAvoidingRandomWalkingGoal::shouldContinueExecuting() {
+bool WaterAvoidingRandomWalkingGoal::shouldContinueExecuting()
+{
     if (!m_creature) return false;
 
     // 检查是否被骑乘
@@ -68,7 +69,8 @@ bool WaterAvoidingRandomWalkingGoal::shouldContinueExecuting() {
     return false;
 }
 
-void WaterAvoidingRandomWalkingGoal::startExecuting() {
+void WaterAvoidingRandomWalkingGoal::startExecuting()
+{
     if (m_creature) {
         m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
         m_timeout = MAX_TIMEOUT;
@@ -76,7 +78,8 @@ void WaterAvoidingRandomWalkingGoal::startExecuting() {
     }
 }
 
-void WaterAvoidingRandomWalkingGoal::resetTask() {
+void WaterAvoidingRandomWalkingGoal::resetTask()
+{
     if (m_creature) {
         m_creature->clearNavigation();
     }
@@ -84,13 +87,15 @@ void WaterAvoidingRandomWalkingGoal::resetTask() {
     m_timeout = 0;
 }
 
-void WaterAvoidingRandomWalkingGoal::tick() {
+void WaterAvoidingRandomWalkingGoal::tick()
+{
     if (m_timeout > 0) {
         m_timeout--;
     }
 }
 
-bool WaterAvoidingRandomWalkingGoal::getRandomPosition() {
+bool WaterAvoidingRandomWalkingGoal::getRandomPosition()
+{
     if (!m_creature) return false;
 
     math::Random rng = m_creature->getRandom();
@@ -119,7 +124,8 @@ bool WaterAvoidingRandomWalkingGoal::getRandomPosition() {
     return false;
 }
 
-bool WaterAvoidingRandomWalkingGoal::isInWaterOrLava(f64 x, f64 y, f64 z) const {
+bool WaterAvoidingRandomWalkingGoal::isInWaterOrLava(f64 x, f64 y, f64 z) const
+{
     if (!m_creature || !m_creature->world()) {
         return false;
     }
@@ -141,7 +147,8 @@ LeapAtTargetGoal::LeapAtTargetGoal(MobEntity* mob, f32 leapHeight)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Jump});
 }
 
-bool LeapAtTargetGoal::shouldExecute() {
+bool LeapAtTargetGoal::shouldExecute()
+{
     if (!m_mob) return false;
 
     // 获取攻击目标
@@ -166,12 +173,14 @@ bool LeapAtTargetGoal::shouldExecute() {
     return true;
 }
 
-bool LeapAtTargetGoal::shouldContinueExecuting() {
+bool LeapAtTargetGoal::shouldContinueExecuting()
+{
     // 跳跃后立即结束
     return !m_leaped;
 }
 
-void LeapAtTargetGoal::startExecuting() {
+void LeapAtTargetGoal::startExecuting()
+{
     if (!m_mob || !m_target) return;
 
     // 计算跳跃向量
@@ -196,7 +205,8 @@ void LeapAtTargetGoal::startExecuting() {
     m_leaped = true;
 }
 
-void LeapAtTargetGoal::resetTask() {
+void LeapAtTargetGoal::resetTask()
+{
     m_target = nullptr;
     m_leaped = false;
     if (m_mob) {

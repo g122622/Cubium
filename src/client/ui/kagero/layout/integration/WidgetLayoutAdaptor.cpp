@@ -12,7 +12,8 @@ namespace {
  * 容器型 Widget 会创建 `ContainerLayoutAdaptor`，其余 Widget 使用通用适配器。
  * 该函数只负责包装，不接管 Widget 所有权。
  */
-std::unique_ptr<WidgetLayoutAdaptor> createChildAdaptor(widget::Widget* widget) {
+std::unique_ptr<WidgetLayoutAdaptor> createChildAdaptor(widget::Widget* widget)
+{
     if (widget == nullptr) {
         return nullptr;
     }
@@ -31,19 +32,22 @@ std::unique_ptr<WidgetLayoutAdaptor> createChildAdaptor(widget::Widget* widget) 
 // ============================================================================
 
 WidgetLayoutAdaptor::WidgetLayoutAdaptor(widget::Widget* widget)
-    : m_widget(widget) {
+    : m_widget(widget)
+{
     if (m_widget != nullptr) {
         m_constraints.margin = m_widget->margin();
         m_constraints.padding = m_widget->padding();
     }
 }
 
-const std::string& WidgetLayoutAdaptor::id() const {
+const std::string& WidgetLayoutAdaptor::id() const
+{
     static const std::string empty;
     return m_widget != nullptr ? m_widget->id() : empty;
 }
 
-Size WidgetLayoutAdaptor::currentSize() const {
+Size WidgetLayoutAdaptor::currentSize() const
+{
     if (m_widget == nullptr) {
         return Size();
     }
@@ -51,7 +55,8 @@ Size WidgetLayoutAdaptor::currentSize() const {
     return Size(m_widget->width(), m_widget->height());
 }
 
-Rect WidgetLayoutAdaptor::currentBounds() const {
+Rect WidgetLayoutAdaptor::currentBounds() const
+{
     if (m_widget == nullptr) {
         return Rect();
     }
@@ -59,21 +64,23 @@ Rect WidgetLayoutAdaptor::currentBounds() const {
     return m_widget->bounds();
 }
 
-Margin WidgetLayoutAdaptor::margin() const {
+Margin WidgetLayoutAdaptor::margin() const
+{
     return m_constraints.margin;
 }
 
-Padding WidgetLayoutAdaptor::padding() const {
+Padding WidgetLayoutAdaptor::padding() const
+{
     return m_constraints.padding;
 }
 
-Size WidgetLayoutAdaptor::measure(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec) {
+Size WidgetLayoutAdaptor::measure(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
+{
     if (m_cacheValid && m_lastWidthSpec == widthSpec && m_lastHeightSpec == heightSpec) {
         return m_lastMeasuredSize;
     }
 
-    Size measured = m_measureFunc ? m_measureFunc(this, widthSpec, heightSpec)
-                                  : measureDefault(widthSpec, heightSpec);
+    Size measured = m_measureFunc ? m_measureFunc(this, widthSpec, heightSpec) : measureDefault(widthSpec, heightSpec);
 
     measured.width = m_constraints.clampWidth(measured.width);
     measured.height = m_constraints.clampHeight(measured.height);
@@ -85,7 +92,8 @@ Size WidgetLayoutAdaptor::measure(const MeasureSpec& widthSpec, const MeasureSpe
     return measured;
 }
 
-Size WidgetLayoutAdaptor::measureDefault(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec) {
+Size WidgetLayoutAdaptor::measureDefault(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
+{
     if (m_widget == nullptr) {
         return Size();
     }
@@ -135,13 +143,12 @@ Size WidgetLayoutAdaptor::measureDefault(const MeasureSpec& widthSpec, const Mea
     return result;
 }
 
-Size WidgetLayoutAdaptor::measureContainer(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec) {
+Size WidgetLayoutAdaptor::measureContainer(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
+{
     const auto children = getChildren();
     if (children.empty()) {
-        return Size(
-            m_constraints.minWidth + m_constraints.padding.horizontal(),
-            m_constraints.minHeight + m_constraints.padding.vertical()
-        );
+        return Size(m_constraints.minWidth + m_constraints.padding.horizontal(),
+            m_constraints.minHeight + m_constraints.padding.vertical());
     }
 
     i32 maxWidth = m_constraints.minWidth;
@@ -152,10 +159,7 @@ Size WidgetLayoutAdaptor::measureContainer(const MeasureSpec& widthSpec, const M
             continue;
         }
 
-        Size childSize = child->measure(
-            MeasureSpec::MakeUnspecified(),
-            MeasureSpec::MakeUnspecified()
-        );
+        Size childSize = child->measure(MeasureSpec::MakeUnspecified(), MeasureSpec::MakeUnspecified());
 
         childSize.width += child->constraints().margin.horizontal();
         childSize.height += child->constraints().margin.vertical();
@@ -170,7 +174,8 @@ Size WidgetLayoutAdaptor::measureContainer(const MeasureSpec& widthSpec, const M
     return Size(widthSpec.resolve(maxWidth), heightSpec.resolve(maxHeight));
 }
 
-void WidgetLayoutAdaptor::applyLayout(const LayoutResult& result) {
+void WidgetLayoutAdaptor::applyLayout(const LayoutResult& result)
+{
     if (m_widget == nullptr) {
         return;
     }
@@ -180,11 +185,13 @@ void WidgetLayoutAdaptor::applyLayout(const LayoutResult& result) {
     m_renderDirty = result.needsRepaint;
 }
 
-void WidgetLayoutAdaptor::applyLayout(i32 x, i32 y, i32 width, i32 height) {
+void WidgetLayoutAdaptor::applyLayout(i32 x, i32 y, i32 width, i32 height)
+{
     applyLayout(LayoutResult(x, y, width, height));
 }
 
-void WidgetLayoutAdaptor::requestLayout() {
+void WidgetLayoutAdaptor::requestLayout()
+{
     if (m_layoutDirty) {
         return;
     }
@@ -194,7 +201,8 @@ void WidgetLayoutAdaptor::requestLayout() {
     propagateLayoutRequest();
 }
 
-void WidgetLayoutAdaptor::propagateLayoutRequest() {
+void WidgetLayoutAdaptor::propagateLayoutRequest()
+{
     if (m_widget == nullptr) {
         return;
     }
@@ -213,7 +221,8 @@ void WidgetLayoutAdaptor::propagateLayoutRequest() {
     parentWidget->setBounds(parentWidget->bounds());
 }
 
-std::vector<WidgetLayoutAdaptor*> WidgetLayoutAdaptor::getChildren() {
+std::vector<WidgetLayoutAdaptor*> WidgetLayoutAdaptor::getChildren()
+{
     std::vector<WidgetLayoutAdaptor*> children;
     m_childAdaptorsCache.clear();
 
@@ -244,7 +253,8 @@ std::vector<WidgetLayoutAdaptor*> WidgetLayoutAdaptor::getChildren() {
     return children;
 }
 
-size_t WidgetLayoutAdaptor::childCount() const {
+size_t WidgetLayoutAdaptor::childCount() const
+{
     if (m_widget == nullptr) {
         return 0;
     }
@@ -257,7 +267,8 @@ size_t WidgetLayoutAdaptor::childCount() const {
     return container->widgetCount();
 }
 
-bool WidgetLayoutAdaptor::isContainer() const {
+bool WidgetLayoutAdaptor::isContainer() const
+{
     return m_widget != nullptr && dynamic_cast<const widget::IWidgetContainer*>(m_widget) != nullptr;
 }
 
@@ -265,14 +276,13 @@ bool WidgetLayoutAdaptor::isContainer() const {
 // ContainerLayoutAdaptor 实现
 // ============================================================================
 
-ContainerLayoutAdaptor::ContainerLayoutAdaptor(
-    widget::Widget* widget,
-    widget::IWidgetContainer* container
-) : WidgetLayoutAdaptor(widget)
-  , m_container(container) {
-}
+ContainerLayoutAdaptor::ContainerLayoutAdaptor(widget::Widget* widget, widget::IWidgetContainer* container)
+    : WidgetLayoutAdaptor(widget)
+    , m_container(container)
+{}
 
-std::vector<WidgetLayoutAdaptor> ContainerLayoutAdaptor::getChildAdaptors() {
+std::vector<WidgetLayoutAdaptor> ContainerLayoutAdaptor::getChildAdaptors()
+{
     std::vector<WidgetLayoutAdaptor> result;
     if (m_container == nullptr) {
         return result;

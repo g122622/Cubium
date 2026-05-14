@@ -6,17 +6,17 @@
 #include "ClientWorld.hpp"
 #include "../renderer/trident/chunk/ChunkMesher.hpp"
 #include "../renderer/trident/particle/ParticleManager.hpp"
-#include "../renderer/trident/particle/ParticleTypes.hpp"
 #include "../renderer/trident/particle/ParticleRegistry.hpp"
+#include "../renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
-#include "common/util/math/MathConstants.hpp"
 #include "common/network/sync/ChunkSync.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/perfetto/TraceEvents.hpp"
-#include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cmath>
 #include <glm/geometric.hpp>
@@ -228,11 +228,11 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const BlockPos pos(x, y, z);
     MC_TRACE_INSTANT("client.lighting",
         "ClientWorld::setBlockState",
-        "pos", fmt::format("({}, {}, {})", x, y, z),
-        "stateId", state ? state->stateId() : 0,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        fmt::format("({}, {}, {})", x, y, z),
+        "stateId",
+        state ? state->stateId() : 0,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
@@ -342,13 +342,7 @@ void ClientWorld::rebuildMesh(ClientChunk& chunk)
     const ChunkData* neighbors[6] = {nullptr};
     getNeighborChunks(chunk.chunkId, neighbors);
 
-    ChunkMesher::generateSplitMesh(
-        *chunk.data,
-        chunk.solidMesh,
-        chunk.transparentMesh,
-        neighbors,
-        nullptr
-    );
+    ChunkMesher::generateSplitMesh(*chunk.data, chunk.solidMesh, chunk.transparentMesh, neighbors, nullptr);
 
     chunk.meshRebuildPending = false;
     chunk.hasMeshResult = true;
@@ -404,11 +398,7 @@ void ClientWorld::requestChunkMeshRebuild(const ChunkId& id)
 void ClientWorld::scheduleNeighborMeshRebuild(const ChunkId& id)
 {
     const ChunkId neighborIds[4] = {
-        ChunkId(id.x - 1, id.z),
-        ChunkId(id.x + 1, id.z),
-        ChunkId(id.x, id.z - 1),
-        ChunkId(id.x, id.z + 1)
-    };
+        ChunkId(id.x - 1, id.z), ChunkId(id.x + 1, id.z), ChunkId(id.x, id.z - 1), ChunkId(id.x, id.z + 1)};
 
     for (const ChunkId& neighborId : neighborIds) {
         ClientChunk* neighbor = getChunk(neighborId);
@@ -581,10 +571,7 @@ f32 ClientWorld::getInterpolatedCelestialAngle(f32 partialTick) const
         dayTimeForInterp = m_prevDayTime + static_cast<i64>(diff * partialTick);
     }
 
-    f32 d0 = std::fmod(
-        static_cast<f32>(dayTimeForInterp) / static_cast<f32>(mc::game::DAY_LENGTH_TICKS) - 0.25f,
-        1.0f
-    );
+    f32 d0 = std::fmod(static_cast<f32>(dayTimeForInterp) / static_cast<f32>(mc::game::DAY_LENGTH_TICKS) - 0.25f, 1.0f);
     if (d0 < 0.0f) {
         d0 += 1.0f;
     }
@@ -605,10 +592,7 @@ void ClientWorld::initializeMeshSystem(i32 threadCount, const MeshSchedulerConfi
 
     m_meshBuildScheduler = std::make_unique<MeshBuildScheduler>(*m_meshWorkerPool, schedulerConfig);
 
-    spdlog::info(
-        "ClientWorld: mesh system initialized with {} worker threads",
-        m_meshWorkerPool->threadCount()
-    );
+    spdlog::info("ClientWorld: mesh system initialized with {} worker threads", m_meshWorkerPool->threadCount());
 
     for (auto& [chunkId, chunk] : m_chunks) {
         if (!chunk || !chunk->data || !chunk->isLoaded) {
@@ -685,8 +669,7 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
             chunk->needsMeshUpdate = true;
             chunk->activeMeshTaskId = 0;
         },
-        dynamicBudget
-    );
+        dynamicBudget);
 }
 
 void ClientWorld::onRainStrengthChange(f32 strength)
@@ -709,8 +692,7 @@ void ClientWorld::onEndRaining()
     m_weather.endRain();
 }
 
-void ClientWorld::onLightUpdate(
-    i32 chunkX,
+void ClientWorld::onLightUpdate(i32 chunkX,
     i32 chunkZ,
     i32 sectionY,
     const std::vector<u8>& skyLight,
@@ -720,12 +702,14 @@ void ClientWorld::onLightUpdate(
 {
     MC_TRACE_EVENT("client.lighting",
         "ClientWorld::onLightUpdate",
-        "Section", fmt::format("({}, {}, {})", chunkX, sectionY, chunkZ),
-        "SkyLightSize", skyLight.size(),
-        "BlockLightSize", blockLight.size(),
-        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(chunkX, sectionY, chunkZ).toLong())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "Section",
+        fmt::format("({}, {}, {})", chunkX, sectionY, chunkZ),
+        "SkyLightSize",
+        skyLight.size(),
+        "BlockLightSize",
+        blockLight.size(),
+        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(chunkX, sectionY, chunkZ).toLong())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     const ChunkId id(chunkX, chunkZ);
     ClientChunk* chunk = getChunk(id);
@@ -761,27 +745,21 @@ void ClientWorld::setSpawnPoint(i32 x, i32 y, i32 z, f32 angle)
 // ========== 粒子接口实现 ==========
 
 void ClientWorld::addParticle(
-    renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity)
+    renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     if (!m_particleManager) {
         return;
     }
 
     auto particle = renderer::trident::particle::ParticleRegistry::instance().createParticle(
-        type,
-        glm::vec3(pos.x, pos.y, pos.z),
-        glm::vec3(velocity.x, velocity.y, velocity.z),
-        this);
+        type, glm::vec3(pos.x, pos.y, pos.z), glm::vec3(velocity.x, velocity.y, velocity.z), this);
 
     if (particle) {
         m_particleManager->addParticle(std::move(particle));
     }
 }
 
-void ClientWorld::addParticle(
-    renderer::trident::particle::ParticleTypeId type,
+void ClientWorld::addParticle(renderer::trident::particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
@@ -793,16 +771,12 @@ void ClientWorld::addParticle(
 
     math::Random rng;
     for (u32 i = 0; i < count; ++i) {
-        glm::vec3 particlePos(
-            pos.x + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.x : 0.0f),
+        glm::vec3 particlePos(pos.x + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.x : 0.0f),
             pos.y + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.y : 0.0f),
-            pos.z + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.z : 0.0f)
-        );
-        glm::vec3 particleVel(
-            velocity.x + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f,
+            pos.z + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.z : 0.0f));
+        glm::vec3 particleVel(velocity.x + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f,
             velocity.y + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f,
-            velocity.z + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f
-        );
+            velocity.z + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f);
 
         auto particle = renderer::trident::particle::ParticleRegistry::instance().createParticle(
             type, particlePos, particleVel, this);
@@ -813,9 +787,7 @@ void ClientWorld::addParticle(
     }
 }
 
-bool ClientWorld::shouldSpawnParticleAt(
-    const Vector3& pos,
-    f32 maxDistance) const
+bool ClientWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 检查粒子位置到相机的距离
     const f32 dx = pos.x - m_cameraPosition.x;

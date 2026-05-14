@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include <unordered_map>
 #include <list>
 #include <mutex>
+#include <unordered_map>
 
 namespace mc {
 
@@ -60,7 +60,8 @@ public:
      *
      * @note 使用位运算打包，高 32 位为 x，低 32 位为 z
      */
-    [[nodiscard]] static i64 packCoords(i32 x, i32 z) {
+    [[nodiscard]] static i64 packCoords(i32 x, i32 z)
+    {
         return (static_cast<i64>(x) << 32) | (static_cast<i64>(z) & 0xFFFFFFFFLL);
     }
 
@@ -103,7 +104,7 @@ private:
 
     // 双向链表节点：存储 (key, value)
     using ListNode = std::pair<i64, i32>;
-    mutable std::list<ListNode> m_list;  // 前面是最新，后面是最旧
+    mutable std::list<ListNode> m_list; // 前面是最新，后面是最旧
 
     // 哈希表：key -> 链表迭代器
     mutable std::unordered_map<i64, std::list<ListNode>::iterator> m_cache;

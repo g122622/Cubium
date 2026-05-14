@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../../world/block/BlockPos.hpp"
 #include "../../../../util/math/Vector3.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 
 #include <memory>
 

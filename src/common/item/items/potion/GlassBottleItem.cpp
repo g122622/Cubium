@@ -1,28 +1,31 @@
 #include "GlassBottleItem.hpp"
 
-#include "../../potion/PotionUtils.hpp"
-#include "../../potion/Potions.hpp"
 #include "../../../core/BlockRaycastResult.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/blocks/CauldronBlock.hpp"
 #include "../../../world/fluid/Fluid.hpp"
+#include "../../potion/PotionUtils.hpp"
+#include "../../potion/Potions.hpp"
 
 namespace {
 
-[[nodiscard]] bool canFillFromWaterSource(const mc::IWorld& world, const mc::BlockPos& pos) {
+[[nodiscard]] bool canFillFromWaterSource(const mc::IWorld& world, const mc::BlockPos& pos)
+{
     const mc::fluid::FluidState* fluidState = world.getFluidState(pos);
     return fluidState != nullptr && !fluidState->isEmpty() && fluidState->isSource() && world.isWaterAt(pos);
 }
 
-[[nodiscard]] bool canFillFromCauldron(const mc::IWorld& world, const mc::BlockPos& pos) {
+[[nodiscard]] bool canFillFromCauldron(const mc::IWorld& world, const mc::BlockPos& pos)
+{
     const mc::BlockState* state = world.getBlockState(pos);
     return state != nullptr && state->is(mc::VanillaBlocks::CAULDRON) &&
-           mc::blocks::CauldronBlock::getLevel(*state) > 0;
+        mc::blocks::CauldronBlock::getLevel(*state) > 0;
 }
 
-[[nodiscard]] bool hasBottleFillTarget(const mc::IWorld& world, const mc::Ray& ray, mc::f32 maxDistance) {
+[[nodiscard]] bool hasBottleFillTarget(const mc::IWorld& world, const mc::Ray& ray, mc::f32 maxDistance)
+{
     constexpr mc::f32 SAMPLE_STEP = 0.1f;
 
     for (mc::f32 distance = 0.0f; distance <= maxDistance; distance += SAMPLE_STEP) {
@@ -44,16 +47,14 @@ namespace item {
 // ========== GlassBottleItem 实现 ==========
 
 GlassBottleItem::GlassBottleItem(const ItemProperties& properties)
-    : Item(properties) {
-}
+    : Item(properties)
+{}
 
-ItemActionResult GlassBottleItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult GlassBottleItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     const ItemStack heldStack = player.getHeldItem(hand);
 
-    const Vector3 eyePosition(
-        player.x(),
-        player.y() + player.eyeHeight(),
-        player.z());
+    const Vector3 eyePosition(player.x(), player.y() + player.eyeHeight(), player.z());
     const Ray ray = Ray::fromAngles(eyePosition, player.pitch(), player.yaw());
     constexpr f32 MAX_DISTANCE = 5.0f;
 

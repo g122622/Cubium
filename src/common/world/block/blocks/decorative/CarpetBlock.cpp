@@ -12,22 +12,21 @@ CarpetBlock::CarpetBlock(const BlockProperties& properties)
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f / 16.0f, 1.0f);
 }
 
-const CollisionShape& CarpetBlock::getShape(const BlockState& state) const {
+const CollisionShape& CarpetBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& CarpetBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& CarpetBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 地毯没有碰撞箱（可以穿过）
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-bool CarpetBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const
+bool CarpetBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
     // 参考 MC 1.16.5: CarpetBlock.isValidPosition
@@ -38,8 +37,7 @@ bool CarpetBlock::isValidPosition(
     return belowState != nullptr && !belowState->isAir();
 }
 
-BlockState CarpetBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState CarpetBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,

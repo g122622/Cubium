@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "common/world/gen/structure/structures/OceanRuinStructure.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
-#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/structure/structures/OceanRuinStructure.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;
@@ -17,16 +17,15 @@ using namespace mc::world::gen::feature::template_;
 
 class OceanRuinStructureTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // ============================================================================
 // OceanRuinConfig 测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Config_DefaultValues) {
+TEST_F(OceanRuinStructureTest, Config_DefaultValues)
+{
     OceanRuinConfig config;
 
     EXPECT_EQ(config.biomeType, OceanRuinType::Cold);
@@ -34,7 +33,8 @@ TEST_F(OceanRuinStructureTest, Config_DefaultValues) {
     EXPECT_FLOAT_EQ(config.clusterProbability, 0.9f);
 }
 
-TEST_F(OceanRuinStructureTest, Config_WarmType) {
+TEST_F(OceanRuinStructureTest, Config_WarmType)
+{
     OceanRuinConfig config;
     config.biomeType = OceanRuinType::Warm;
     config.largeProbability = 0.5f;
@@ -49,14 +49,10 @@ TEST_F(OceanRuinStructureTest, Config_WarmType) {
 // OceanRuinPiece 测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Piece_Construction) {
+TEST_F(OceanRuinStructureTest, Piece_Construction)
+{
     OceanRuinPiece piece(
-        "underwater_ruin/brick_1",
-        BlockPos(100, 64, 200),
-        Rotation::None,
-        0.8f,
-        OceanRuinType::Cold,
-        false);
+        "underwater_ruin/brick_1", BlockPos(100, 64, 200), Rotation::None, 0.8f, OceanRuinType::Cold, false);
 
     EXPECT_EQ(piece.templateName(), "underwater_ruin/brick_1");
     EXPECT_EQ(piece.integrity(), 0.8f);
@@ -64,21 +60,18 @@ TEST_F(OceanRuinStructureTest, Piece_Construction) {
     EXPECT_FALSE(piece.isLarge());
 }
 
-TEST_F(OceanRuinStructureTest, Piece_LargeRuin) {
+TEST_F(OceanRuinStructureTest, Piece_LargeRuin)
+{
     OceanRuinPiece piece(
-        "underwater_ruin/big_brick_1",
-        BlockPos(0, 0, 0),
-        Rotation::Clockwise90,
-        0.9f,
-        OceanRuinType::Cold,
-        true);
+        "underwater_ruin/big_brick_1", BlockPos(0, 0, 0), Rotation::Clockwise90, 0.9f, OceanRuinType::Cold, true);
 
     EXPECT_TRUE(piece.isLarge());
     EXPECT_EQ(piece.integrity(), 0.9f);
     EXPECT_EQ(piece.ruinType(), OceanRuinType::Cold);
 }
 
-TEST_F(OceanRuinStructureTest, Piece_RotationVariants) {
+TEST_F(OceanRuinStructureTest, Piece_RotationVariants)
+{
     // 测试所有旋转变体
     OceanRuinPiece piece0("test", BlockPos(0, 0, 0), Rotation::None, 1.0f, OceanRuinType::Cold, false);
     OceanRuinPiece piece90("test", BlockPos(0, 0, 0), Rotation::Clockwise90, 1.0f, OceanRuinType::Cold, false);
@@ -96,7 +89,8 @@ TEST_F(OceanRuinStructureTest, Piece_RotationVariants) {
 // OceanRuinStructure 测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Structure_BasicProperties) {
+TEST_F(OceanRuinStructureTest, Structure_BasicProperties)
+{
     OceanRuinStructure structure;
 
     EXPECT_EQ(structure.name(), "ocean_ruin");
@@ -109,7 +103,8 @@ TEST_F(OceanRuinStructureTest, Structure_BasicProperties) {
     EXPECT_GT(settings.salt, 0);
 }
 
-TEST_F(OceanRuinStructureTest, Structure_ValidBiomes) {
+TEST_F(OceanRuinStructureTest, Structure_ValidBiomes)
+{
     OceanRuinStructure structure;
     const auto& biomes = structure.validBiomes();
 
@@ -129,7 +124,8 @@ TEST_F(OceanRuinStructureTest, Structure_ValidBiomes) {
     EXPECT_TRUE(hasDeepOcean) << "Missing DeepOcean biome";
 }
 
-TEST_F(OceanRuinStructureTest, Structure_TemplateNames) {
+TEST_F(OceanRuinStructureTest, Structure_TemplateNames)
+{
     // 验证模板名称已定义
     // 暖海模板
     EXPECT_FALSE(OceanRuinStructure::s_warmTemplates.empty());
@@ -144,11 +140,11 @@ TEST_F(OceanRuinStructureTest, Structure_TemplateNames) {
     EXPECT_FALSE(OceanRuinStructure::s_mossyBigTemplates.empty());
 }
 
-TEST_F(OceanRuinStructureTest, Structure_TemplateNameFormats) {
+TEST_F(OceanRuinStructureTest, Structure_TemplateNameFormats)
+{
     // 验证模板名称格式符合 MC 1.16.5
     for (const auto& name : OceanRuinStructure::s_warmTemplates) {
-        EXPECT_TRUE(name.find("underwater_ruin/warm_") != std::string::npos)
-            << "Invalid warm template name: " << name;
+        EXPECT_TRUE(name.find("underwater_ruin/warm_") != std::string::npos) << "Invalid warm template name: " << name;
     }
 
     for (const auto& name : OceanRuinStructure::s_brickTemplates) {
@@ -166,7 +162,8 @@ TEST_F(OceanRuinStructureTest, Structure_TemplateNameFormats) {
 // OceanRuinType 测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Type_EnumValues) {
+TEST_F(OceanRuinStructureTest, Type_EnumValues)
+{
     // 验证枚举值
     OceanRuinType warm = OceanRuinType::Warm;
     OceanRuinType cold = OceanRuinType::Cold;
@@ -180,7 +177,8 @@ TEST_F(OceanRuinStructureTest, Type_EnumValues) {
 // 完整度测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Integrity_Values) {
+TEST_F(OceanRuinStructureTest, Integrity_Values)
+{
     // MC 1.16.5: 大型废墟完整度 0.9，小型废墟完整度 0.8
     // 冷海废墟三层叠加完整度：传入值、0.7、0.5
 
@@ -195,9 +193,9 @@ TEST_F(OceanRuinStructureTest, Integrity_Values) {
     EXPECT_LE(smallIntegrity, 1.0f);
 
     // 冷海叠加层
-    f32 layer1 = 1.0f;  // 传入值
-    f32 layer2 = 0.7f;  // 第二层
-    f32 layer3 = 0.5f;  // 第三层
+    f32 layer1 = 1.0f; // 传入值
+    f32 layer2 = 0.7f; // 第二层
+    f32 layer3 = 0.5f; // 第三层
 
     EXPECT_GT(layer1, layer2);
     EXPECT_GT(layer2, layer3);
@@ -207,21 +205,16 @@ TEST_F(OceanRuinStructureTest, Integrity_Values) {
 // 旋转测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Rotation_AllVariants) {
+TEST_F(OceanRuinStructureTest, Rotation_AllVariants)
+{
     // 验证所有旋转值可以正常使用
     math::Random rng(12345);
 
     for (int i = 0; i < 100; ++i) {
-        i32 rotationValue = rng.nextInt(4) * 90;  // 0, 90, 180, 270
+        i32 rotationValue = rng.nextInt(4) * 90; // 0, 90, 180, 270
         Rotation rotation = static_cast<Rotation>(rotationValue);
 
-        OceanRuinPiece piece(
-            "test_template",
-            BlockPos(0, 0, 0),
-            rotation,
-            0.8f,
-            OceanRuinType::Cold,
-            false);
+        OceanRuinPiece piece("test_template", BlockPos(0, 0, 0), rotation, 0.8f, OceanRuinType::Cold, false);
 
         // 验证构造成功
         EXPECT_EQ(piece.templateName(), "test_template");
@@ -232,7 +225,8 @@ TEST_F(OceanRuinStructureTest, Rotation_AllVariants) {
 // 分离设置测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, SeparationSettings_MC1165Values) {
+TEST_F(OceanRuinStructureTest, SeparationSettings_MC1165Values)
+{
     OceanRuinStructure structure;
     auto settings = structure.separationSettings();
 
@@ -246,7 +240,8 @@ TEST_F(OceanRuinStructureTest, SeparationSettings_MC1165Values) {
 // 配置概率测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Config_ProbabilityRanges) {
+TEST_F(OceanRuinStructureTest, Config_ProbabilityRanges)
+{
     OceanRuinConfig config;
 
     // 验证概率值在有效范围内

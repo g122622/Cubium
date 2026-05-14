@@ -1,10 +1,10 @@
 #include "BigMushroomFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../core/Constants.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -13,10 +13,7 @@ namespace mc {
 // ============================================================================
 
 bool BigMushroomFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const BigMushroomFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BigMushroomFeatureConfig& config)
 {
     // 计算蘑菇高度
     i32 height = calculateHeight(random);
@@ -35,14 +32,13 @@ bool BigMushroomFeature::place(
     return true;
 }
 
-void BigMushroomFeature::generateStem(
-    WorldGenRegion& world,
+void BigMushroomFeature::generateStem(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     const BigMushroomFeatureConfig& config,
     i32 height)
 {
-    (void)random;  // 暂不使用
+    (void)random; // 暂不使用
 
     for (i32 y = 0; y < height; ++y) {
         BlockPos stemPos(pos.x, pos.y + y, pos.z);
@@ -51,12 +47,9 @@ void BigMushroomFeature::generateStem(
         const BlockState* currentState = world.getBlockState(stemPos);
         if (currentState && !currentState->isAir()) {
             // 蘑菇柄可以替换树叶方块
-            if (currentState->is(VanillaBlocks::OAK_LEAVES) ||
-                currentState->is(VanillaBlocks::SPRUCE_LEAVES) ||
-                currentState->is(VanillaBlocks::BIRCH_LEAVES) ||
-                currentState->is(VanillaBlocks::JUNGLE_LEAVES) ||
-                currentState->is(VanillaBlocks::ACACIA_LEAVES) ||
-                currentState->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+            if (currentState->is(VanillaBlocks::OAK_LEAVES) || currentState->is(VanillaBlocks::SPRUCE_LEAVES) ||
+                currentState->is(VanillaBlocks::BIRCH_LEAVES) || currentState->is(VanillaBlocks::JUNGLE_LEAVES) ||
+                currentState->is(VanillaBlocks::ACACIA_LEAVES) || currentState->is(VanillaBlocks::DARK_OAK_LEAVES)) {
                 // 允许替换树叶
             } else {
                 continue;
@@ -81,10 +74,7 @@ i32 BigMushroomFeature::calculateHeight(math::Random& random) const
 }
 
 bool BigMushroomFeature::canPlaceAt(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    i32 height,
-    const BigMushroomFeatureConfig& config) const
+    WorldGenRegion& world, const BlockPos& pos, i32 height, const BigMushroomFeatureConfig& config) const
 {
     (void)config;
 
@@ -102,10 +92,8 @@ bool BigMushroomFeature::canPlaceAt(
 
     u32 belowBlockId = belowState->blockId();
     bool isValidGround = belowBlockId == VanillaBlocks::GRASS_BLOCK->blockId() ||
-                         belowBlockId == VanillaBlocks::DIRT->blockId() ||
-                         belowBlockId == VanillaBlocks::MYCELIUM->blockId() ||
-                         belowBlockId == VanillaBlocks::PODZOL->blockId() ||
-                         belowBlockId == VanillaBlocks::COARSE_DIRT->blockId();
+        belowBlockId == VanillaBlocks::DIRT->blockId() || belowBlockId == VanillaBlocks::MYCELIUM->blockId() ||
+        belowBlockId == VanillaBlocks::PODZOL->blockId() || belowBlockId == VanillaBlocks::COARSE_DIRT->blockId();
 
     if (!isValidGround) {
         return false;
@@ -124,12 +112,9 @@ bool BigMushroomFeature::canPlaceAt(
                 // 必须为空气或树叶
                 if (state && !state->isAir()) {
                     // 允许替换树叶方块
-                    if (state->is(VanillaBlocks::OAK_LEAVES) ||
-                        state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-                        state->is(VanillaBlocks::BIRCH_LEAVES) ||
-                        state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-                        state->is(VanillaBlocks::ACACIA_LEAVES) ||
-                        state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+                    if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
+                        state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
+                        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
                         continue;
                     }
                     return false;
@@ -145,11 +130,7 @@ bool BigMushroomFeature::canPlaceAt(
 // BigBrownMushroomFeature 实现
 // ============================================================================
 
-i32 BigBrownMushroomFeature::getCapRadius(
-    i32 baseRadius,
-    i32 totalHeight,
-    i32 capRadius,
-    i32 currentHeight) const
+i32 BigBrownMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const
 {
     (void)baseRadius;
     (void)totalHeight;
@@ -159,8 +140,7 @@ i32 BigBrownMushroomFeature::getCapRadius(
     return currentHeight <= 3 ? 0 : capRadius;
 }
 
-void BigBrownMushroomFeature::generateCap(
-    WorldGenRegion& world,
+void BigBrownMushroomFeature::generateCap(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     i32 height,
@@ -202,11 +182,7 @@ void BigBrownMushroomFeature::generateCap(
 // BigRedMushroomFeature 实现
 // ============================================================================
 
-i32 BigRedMushroomFeature::getCapRadius(
-    i32 baseRadius,
-    i32 totalHeight,
-    i32 capRadius,
-    i32 currentHeight) const
+i32 BigRedMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const
 {
     (void)baseRadius;
 
@@ -221,8 +197,7 @@ i32 BigRedMushroomFeature::getCapRadius(
     return capRadius > 0 ? capRadius - 1 : 0;
 }
 
-void BigRedMushroomFeature::generateCap(
-    WorldGenRegion& world,
+void BigRedMushroomFeature::generateCap(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     i32 height,
@@ -270,9 +245,7 @@ void BigRedMushroomFeature::generateCap(
 // ============================================================================
 
 ConfiguredBigMushroomFeature::ConfiguredBigMushroomFeature(
-    std::unique_ptr<BigMushroomFeatureConfig> config,
-    const char* featureName,
-    bool isBrown)
+    std::unique_ptr<BigMushroomFeatureConfig> config, const char* featureName, bool isBrown)
     : m_config(std::move(config))
     , m_name(featureName)
 {
@@ -284,11 +257,7 @@ ConfiguredBigMushroomFeature::ConfiguredBigMushroomFeature(
 }
 
 bool ConfiguredBigMushroomFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -341,8 +310,7 @@ std::unique_ptr<ConfiguredBigMushroomFeature> BigMushroomFeatures::createBrownMu
     }
     config->capRadius = 2;
 
-    return std::make_unique<ConfiguredBigMushroomFeature>(
-        std::move(config), "brown_mushroom", true);
+    return std::make_unique<ConfiguredBigMushroomFeature>(std::move(config), "brown_mushroom", true);
 }
 
 std::unique_ptr<ConfiguredBigMushroomFeature> BigMushroomFeatures::createRedMushroom()
@@ -362,8 +330,7 @@ std::unique_ptr<ConfiguredBigMushroomFeature> BigMushroomFeatures::createRedMush
     }
     config->capRadius = 2;
 
-    return std::make_unique<ConfiguredBigMushroomFeature>(
-        std::move(config), "red_mushroom", false);
+    return std::make_unique<ConfiguredBigMushroomFeature>(std::move(config), "red_mushroom", false);
 }
 
 } // namespace mc

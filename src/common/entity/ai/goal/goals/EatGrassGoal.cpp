@@ -1,11 +1,11 @@
 #include "EatGrassGoal.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../world/block/Block.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../pathfinding/PathNavigator.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -17,7 +17,8 @@ EatGrassGoal::EatGrassGoal(MobEntity* mob, EatGrassCallback onEatGrass, IsChildC
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look, GoalFlag::Jump});
 }
 
-bool EatGrassGoal::shouldExecute() {
+bool EatGrassGoal::shouldExecute()
+{
     if (!m_mob || !m_mob->world()) {
         return false;
     }
@@ -37,7 +38,7 @@ bool EatGrassGoal::shouldExecute() {
     // 检查当前位置（草）
     if (isGrassAt(m_world, entityPos)) {
         m_targetPos = entityPos;
-        m_isEatingGrassBlock = false;  // 是草
+        m_isEatingGrassBlock = false; // 是草
         return true;
     }
 
@@ -46,18 +47,20 @@ bool EatGrassGoal::shouldExecute() {
     if (m_world->getBlockState(belowPos) != nullptr &&
         m_world->getBlockState(belowPos)->is(VanillaBlocks::GRASS_BLOCK)) {
         m_targetPos = belowPos;
-        m_isEatingGrassBlock = true;  // 是草方块
+        m_isEatingGrassBlock = true; // 是草方块
         return true;
     }
 
     return false;
 }
 
-bool EatGrassGoal::shouldContinueExecuting() {
+bool EatGrassGoal::shouldContinueExecuting()
+{
     return m_eatingGrassTimer > 0;
 }
 
-void EatGrassGoal::startExecuting() {
+void EatGrassGoal::startExecuting()
+{
     m_eatingGrassTimer = EAT_DURATION;
 
     // MC 1.16.5: 清除导航路径
@@ -72,11 +75,13 @@ void EatGrassGoal::startExecuting() {
     // 这里我们暂时跳过客户端同步，因为需要网络系统支持
 }
 
-void EatGrassGoal::resetTask() {
+void EatGrassGoal::resetTask()
+{
     m_eatingGrassTimer = 0;
 }
 
-void EatGrassGoal::tick() {
+void EatGrassGoal::tick()
+{
     // MC 1.16.5: 递减计时器
     m_eatingGrassTimer = std::max(0, m_eatingGrassTimer - 1);
 
@@ -86,7 +91,8 @@ void EatGrassGoal::tick() {
     }
 }
 
-bool EatGrassGoal::isGrassAt(IWorld* world, const BlockPos& pos) const {
+bool EatGrassGoal::isGrassAt(IWorld* world, const BlockPos& pos) const
+{
     if (!world) {
         return false;
     }
@@ -101,7 +107,8 @@ bool EatGrassGoal::isGrassAt(IWorld* world, const BlockPos& pos) const {
     return state->is(VanillaBlocks::SHORT_GRASS) || state->is(VanillaBlocks::TALL_GRASS);
 }
 
-void EatGrassGoal::eatGrass() {
+void EatGrassGoal::eatGrass()
+{
     if (!m_world || !m_mob) {
         return;
     }
@@ -127,7 +134,7 @@ void EatGrassGoal::eatGrass() {
 
             // 设置为泥土
             const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
-            m_world->setBlockState(m_targetPos, dirtState, 2);  // flag 2 = 通知邻居
+            m_world->setBlockState(m_targetPos, dirtState, 2); // flag 2 = 通知邻居
         }
     } else {
         // 草（草丛/高草丛） -> 空气

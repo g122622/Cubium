@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/passive/basic/ChickenEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/passive/basic/ChickenEntity.hpp"
 #include "common/item/Items.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -20,7 +20,8 @@ namespace {
 
 class ChickenTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -28,17 +29,20 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         if (auto* itemEntity = dynamic_cast<ItemEntity*>(entity.get())) {
             m_spawnedStacks.push_back(itemEntity->getItemStack());
         }
@@ -50,10 +54,12 @@ public:
     [[nodiscard]] const std::vector<ItemStack>& spawnedStacks() const { return m_spawnedStacks; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ChickenTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ChickenTestWorld::tickManager not implemented");
     }
 
@@ -65,7 +71,8 @@ private:
 
 class ChickenEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
@@ -73,7 +80,8 @@ protected:
     ChickenTestWorld m_world;
 };
 
-TEST_F(ChickenEntityTest, Tick_EmitsEggItemAfterTimerExpires) {
+TEST_F(ChickenEntityTest, Tick_EmitsEggItemAfterTimerExpires)
+{
     ChickenEntity chicken(LegacyEntityType::Unknown, 1);
     chicken.setWorld(&m_world);
     chicken.setPosition(0.5f, 64.0f, 0.5f);

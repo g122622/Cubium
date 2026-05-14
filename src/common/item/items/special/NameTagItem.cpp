@@ -1,19 +1,19 @@
 #include "NameTagItem.hpp"
-#include "../../core/ItemStack.hpp"
 #include "../../../entity/core/MobEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../util/text/ITextComponent.hpp"
+#include "../../core/ItemStack.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
 namespace item::items {
 
 NameTagItem::NameTagItem(ItemProperties properties)
-    : Item(std::move(properties)) {
-}
+    : Item(std::move(properties))
+{}
 
-bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player,
-                                            LivingEntity& target, Hand hand) {
+bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
+{
     // MC 1.16.5: NameTagItem.itemInteractionForEntity()
 
     // 检查物品是否有自定义名称
@@ -54,8 +54,7 @@ bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player,
         stack.shrink(1);
     }
 
-    spdlog::debug("NameTagItem: Named mob {} with '{}', persistence enabled",
-                  mob->id(), mob->customNameText());
+    spdlog::debug("NameTagItem: Named mob {} with '{}', persistence enabled", mob->id(), mob->customNameText());
 
     return true;
 }

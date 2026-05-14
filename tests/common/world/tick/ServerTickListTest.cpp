@@ -1,16 +1,16 @@
-#include <gtest/gtest.h>
-#include "common/world/tick/base/TickPriority.hpp"
-#include "common/world/tick/base/ScheduledTick.hpp"
-#include "common/world/tick/list/ITickList.hpp"
-#include "common/world/tick/list/EmptyTickList.hpp"
 #include "common/world/tick/list/ServerTickList.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/world/tick/base/ScheduledTick.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/list/EmptyTickList.hpp"
+#include "common/world/tick/list/ITickList.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gtest/gtest.h>
 
 #include <stdexcept>
 
@@ -21,7 +21,8 @@ namespace {
 class MockTickTarget {
 public:
     explicit MockTickTarget(int value)
-        : id(value) {}
+        : id(value)
+    {}
 
     int id;
 };
@@ -30,7 +31,10 @@ class ServerTickListTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isUltraWarm() const override { return false; }
     [[nodiscard]] mc::world::tick::TickManager& tickManager() override { throw std::runtime_error("unused"); }
-    [[nodiscard]] const mc::world::tick::TickManager& tickManager() const override { throw std::runtime_error("unused"); }
+    [[nodiscard]] const mc::world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("unused");
+    }
     [[nodiscard]] bool hasChunk(mc::ChunkCoord, mc::ChunkCoord) const override { return true; }
 };
 
@@ -40,7 +44,8 @@ public:
 // TickPriority Tests
 // ============================================================================
 
-TEST(TickPriorityTest, FromIntReturnsCorrectPriority) {
+TEST(TickPriorityTest, FromIntReturnsCorrectPriority)
+{
     EXPECT_EQ(fromInt(-3), TickPriority::ExtremelyHigh);
     EXPECT_EQ(fromInt(-2), TickPriority::VeryHigh);
     EXPECT_EQ(fromInt(-1), TickPriority::High);
@@ -50,12 +55,14 @@ TEST(TickPriorityTest, FromIntReturnsCorrectPriority) {
     EXPECT_EQ(fromInt(3), TickPriority::ExtremelyLow);
 }
 
-TEST(TickPriorityTest, FromIntClampsOutOfRange) {
+TEST(TickPriorityTest, FromIntClampsOutOfRange)
+{
     EXPECT_EQ(fromInt(-100), TickPriority::ExtremelyHigh);
     EXPECT_EQ(fromInt(100), TickPriority::ExtremelyLow);
 }
 
-TEST(TickPriorityTest, ToIntReturnsCorrectValue) {
+TEST(TickPriorityTest, ToIntReturnsCorrectValue)
+{
     EXPECT_EQ(toInt(TickPriority::ExtremelyHigh), -3);
     EXPECT_EQ(toInt(TickPriority::VeryHigh), -2);
     EXPECT_EQ(toInt(TickPriority::High), -1);
@@ -69,7 +76,8 @@ TEST(TickPriorityTest, ToIntReturnsCorrectValue) {
 // ScheduledTick Tests
 // ============================================================================
 
-TEST(ScheduledTickTest, Construction) {
+TEST(ScheduledTickTest, Construction)
+{
     mc::BlockPos pos(10, 20, 30);
     MockTickTarget target(1);
 
@@ -84,7 +92,8 @@ TEST(ScheduledTickTest, Construction) {
     EXPECT_EQ(tick.tickEntryId, 1);
 }
 
-TEST(ScheduledTickTest, ComparisonOrdersByScheduledTick) {
+TEST(ScheduledTickTest, ComparisonOrdersByScheduledTick)
+{
     MockTickTarget target(1);
 
     ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 10, TickPriority::Normal, 1);
@@ -94,17 +103,19 @@ TEST(ScheduledTickTest, ComparisonOrdersByScheduledTick) {
     EXPECT_FALSE(tick2 < tick1);
 }
 
-TEST(ScheduledTickTest, ComparisonOrdersByPriorityWhenSameTick) {
+TEST(ScheduledTickTest, ComparisonOrdersByPriorityWhenSameTick)
+{
     MockTickTarget target(1);
 
     ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::High, 1);
     ScheduledTick<MockTickTarget> tick2(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 2);
 
-    EXPECT_TRUE(tick1 < tick2);  // High优先级 < Normal优先级
+    EXPECT_TRUE(tick1 < tick2); // High优先级 < Normal优先级
     EXPECT_FALSE(tick2 < tick1);
 }
 
-TEST(ScheduledTickTest, ComparisonOrdersByIdWhenSameTickAndPriority) {
+TEST(ScheduledTickTest, ComparisonOrdersByIdWhenSameTickAndPriority)
+{
     MockTickTarget target(1);
 
     ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 1);
@@ -114,21 +125,26 @@ TEST(ScheduledTickTest, ComparisonOrdersByIdWhenSameTickAndPriority) {
     EXPECT_FALSE(tick2 < tick1);
 }
 
-TEST(ScheduledTickTest, EqualityBasedOnPositionAndTarget) {
+TEST(ScheduledTickTest, EqualityBasedOnPositionAndTarget)
+{
     MockTickTarget target1(1);
     MockTickTarget target2(2);
 
-    ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target1, 10, TickPriority::Normal, 1);  // Same pos and target
-    ScheduledTick<MockTickTarget> tick2(mc::BlockPos(0, 0, 0), &target1, 20, TickPriority::High, 2);    // Same pos and target
-    ScheduledTick<MockTickTarget> tick3(mc::BlockPos(1, 0, 0), &target1, 10, TickPriority::Normal, 3);  // Different pos
-    ScheduledTick<MockTickTarget> tick4(mc::BlockPos(0, 0, 0), &target2, 10, TickPriority::Normal, 4);  // Different target
+    ScheduledTick<MockTickTarget> tick1(
+        mc::BlockPos(0, 0, 0), &target1, 10, TickPriority::Normal, 1); // Same pos and target
+    ScheduledTick<MockTickTarget> tick2(
+        mc::BlockPos(0, 0, 0), &target1, 20, TickPriority::High, 2); // Same pos and target
+    ScheduledTick<MockTickTarget> tick3(mc::BlockPos(1, 0, 0), &target1, 10, TickPriority::Normal, 3); // Different pos
+    ScheduledTick<MockTickTarget> tick4(
+        mc::BlockPos(0, 0, 0), &target2, 10, TickPriority::Normal, 4); // Different target
 
     EXPECT_TRUE(tick1 == tick2);  // Same position and target
-    EXPECT_FALSE(tick1 == tick3);  // Different position
-    EXPECT_FALSE(tick1 == tick4);  // Different target
+    EXPECT_FALSE(tick1 == tick3); // Different position
+    EXPECT_FALSE(tick1 == tick4); // Different target
 }
 
-TEST(ScheduledTickTest, HashCodeConsistency) {
+TEST(ScheduledTickTest, HashCodeConsistency)
+{
     MockTickTarget target(1);
 
     ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 10, TickPriority::Normal, 1);
@@ -142,7 +158,8 @@ TEST(ScheduledTickTest, HashCodeConsistency) {
 // EmptyTickList Tests
 // ============================================================================
 
-TEST(EmptyTickListTest, AllOperationsReturnFalse) {
+TEST(EmptyTickListTest, AllOperationsReturnFalse)
+{
     EmptyTickList<MockTickTarget>& tickList = EmptyTickList<MockTickTarget>::get();
 
     MockTickTarget target(1);
@@ -153,7 +170,8 @@ TEST(EmptyTickListTest, AllOperationsReturnFalse) {
     EXPECT_EQ(tickList.pendingCount(), 0);
 }
 
-TEST(EmptyTickListTest, ScheduleDoesNothing) {
+TEST(EmptyTickListTest, ScheduleDoesNothing)
+{
     EmptyTickList<MockTickTarget>& tickList = EmptyTickList<MockTickTarget>::get();
 
     MockTickTarget target(1);
@@ -167,7 +185,8 @@ TEST(EmptyTickListTest, ScheduleDoesNothing) {
     EXPECT_EQ(tickList.pendingCount(), 0);
 }
 
-TEST(EmptyTickListTest, SingletonPattern) {
+TEST(EmptyTickListTest, SingletonPattern)
+{
     EmptyTickList<MockTickTarget>& list1 = EmptyTickList<MockTickTarget>::get();
     EmptyTickList<MockTickTarget>& list2 = EmptyTickList<MockTickTarget>::get();
 
@@ -181,7 +200,8 @@ TEST(EmptyTickListTest, SingletonPattern) {
 // Note: ServerTickList tests would require a mock ServerWorld
 // For now, we'll test basic functionality
 
-TEST(ServerTickListTest, Construction) {
+TEST(ServerTickListTest, Construction)
+{
     // ServerTickList requires ServerWorld reference, filter, serializer, deserializer, and callback
     // We'll test the basic scheduling and cancellation logic
 
@@ -189,7 +209,8 @@ TEST(ServerTickListTest, Construction) {
     // For full integration tests, see the integration test suite
 }
 
-TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution) {
+TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution)
+{
     ServerTickListTestWorld world;
     MockTickTarget target(1);
     size_t executionCount = 0;
@@ -202,9 +223,7 @@ TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution) {
             return id;
         },
         [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
-        [&executionCount](mc::IWorld&, const mc::BlockPos&, MockTickTarget&) {
-            ++executionCount;
-        });
+        [&executionCount](mc::IWorld&, const mc::BlockPos&, MockTickTarget&) { ++executionCount; });
 
     const mc::BlockPos pos(64, 62, 87);
     tickList.setCurrentTick(20);

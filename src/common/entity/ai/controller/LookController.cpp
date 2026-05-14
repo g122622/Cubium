@@ -1,9 +1,9 @@
 #include "LookController.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../core/Entity.hpp"
-#include "../pathfinding/PathNavigator.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../core/Entity.hpp"
+#include "../../core/LivingEntity.hpp"
+#include "../../core/MobEntity.hpp"
+#include "../pathfinding/PathNavigator.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::controller {
@@ -12,7 +12,8 @@ LookController::LookController(MobEntity* mob)
     : m_mob(mob)
 {}
 
-void LookController::setLookPosition(f64 x, f64 y, f64 z) {
+void LookController::setLookPosition(f64 x, f64 y, f64 z)
+{
     // MC 1.16.5: 使用 getFaceRotSpeed() (默认10) 而非 getHorizontalFaceSpeed() (默认75)
     if (m_mob) {
         setLookPosition(x, y, z, m_mob->getFaceRotSpeed(), m_mob->getVerticalFaceSpeed());
@@ -21,7 +22,8 @@ void LookController::setLookPosition(f64 x, f64 y, f64 z) {
     }
 }
 
-void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch) {
+void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch)
+{
     m_posX = x;
     m_posY = y;
     m_posZ = z;
@@ -30,7 +32,8 @@ void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 delt
     m_isLooking = true;
 }
 
-void LookController::setLookPositionWithEntity(const Entity& entity, f32 deltaYaw, f32 deltaPitch) {
+void LookController::setLookPositionWithEntity(const Entity& entity, f32 deltaYaw, f32 deltaPitch)
+{
     // MC 1.16.5: LivingEntity 使用 getPosYEye()，其他实体使用碰撞盒中心
     f64 eyeY;
     if (const auto* living = dynamic_cast<const LivingEntity*>(&entity)) {
@@ -44,7 +47,8 @@ void LookController::setLookPositionWithEntity(const Entity& entity, f32 deltaYa
     setLookPosition(entity.x(), eyeY, entity.z(), deltaYaw, deltaPitch);
 }
 
-void LookController::tick() {
+void LookController::tick()
+{
     if (!m_mob) return;
 
     // 1. 首先处理俯仰角重置（MC在tick开头处理）
@@ -90,7 +94,8 @@ void LookController::tick() {
     }
 }
 
-f32 LookController::getTargetYaw() const {
+f32 LookController::getTargetYaw() const
+{
     if (!m_mob) return 0.0f;
 
     f64 dx = m_posX - m_mob->x();
@@ -103,11 +108,12 @@ f32 LookController::getTargetYaw() const {
     return yaw;
 }
 
-f32 LookController::getTargetPitch() const {
+f32 LookController::getTargetPitch() const
+{
     if (!m_mob) return 0.0f;
 
     f64 dx = m_posX - m_mob->x();
-    f64 dy = m_posY - (m_mob->y() + m_mob->eyeHeight());  // 眼睛高度
+    f64 dy = m_posY - (m_mob->y() + m_mob->eyeHeight()); // 眼睛高度
     f64 dz = m_posZ - m_mob->z();
 
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);

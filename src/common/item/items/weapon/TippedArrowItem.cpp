@@ -1,9 +1,9 @@
 #include "TippedArrowItem.hpp"
-#include "../../potion/PotionUtils.hpp"
-#include "../../potion/PotionRegistry.hpp"
-#include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../potion/PotionRegistry.hpp"
+#include "../../potion/PotionUtils.hpp"
 
 namespace mc {
 namespace item {
@@ -14,13 +14,10 @@ static constexpr const char* NBT_CUSTOM_POTION_EFFECTS = "CustomPotionEffects";
 
 TippedArrowItem::TippedArrowItem(const ItemProperties& properties)
     : ArrowItem(properties)
-{
-}
+{}
 
 entity::AbstractArrowEntity* TippedArrowItem::createArrow(
-    IWorld& world,
-    const ItemStack& stack,
-    LivingEntity& shooter) const
+    IWorld& world, const ItemStack& stack, LivingEntity& shooter) const
 {
     // 创建箭矢实体
     auto arrow = entity::ArrowEntity::createFromShooter(shooter, &world);
@@ -42,22 +39,21 @@ entity::AbstractArrowEntity* TippedArrowItem::createArrow(
     return arrow.release();
 }
 
-bool TippedArrowItem::isInfinite(
-    const ItemStack& /*arrowStack*/,
-    const ItemStack& /*bowStack*/,
-    Player& player) const
+bool TippedArrowItem::isInfinite(const ItemStack& /*arrowStack*/, const ItemStack& /*bowStack*/, Player& player) const
 {
     // MC 1.16.5: 药水箭不受益于无限附魔
     // 只有创造模式下才能无限使用
     return player.isCreative();
 }
 
-const potion::Potion* TippedArrowItem::getPotion(const ItemStack& stack) {
+const potion::Potion* TippedArrowItem::getPotion(const ItemStack& stack)
+{
     // 使用 PotionUtils 获取药水
     return potion::PotionUtils::getPotion(stack);
 }
 
-std::vector<entity::effect::EffectInstance> TippedArrowItem::getEffects(const ItemStack& stack) {
+std::vector<entity::effect::EffectInstance> TippedArrowItem::getEffects(const ItemStack& stack)
+{
     // 获取药水的基础效果
     std::vector<entity::effect::EffectInstance> effects;
 
@@ -72,7 +68,8 @@ std::vector<entity::effect::EffectInstance> TippedArrowItem::getEffects(const It
     return effects;
 }
 
-void TippedArrowItem::setPotion(ItemStack& stack, const potion::Potion* potion) {
+void TippedArrowItem::setPotion(ItemStack& stack, const potion::Potion* potion)
+{
     potion::PotionUtils::setPotion(stack, potion);
 }
 

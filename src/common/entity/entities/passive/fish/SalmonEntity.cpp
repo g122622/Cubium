@@ -6,8 +6,7 @@ namespace mc {
 
 SalmonEntity::SalmonEntity(LegacyEntityType type, EntityId id)
     : AbstractGroupFishEntity(type, id)
-{
-}
+{}
 
 std::unique_ptr<Entity> SalmonEntity::create(IWorld* /*world*/)
 {

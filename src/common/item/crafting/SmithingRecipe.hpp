@@ -41,11 +41,7 @@ public:
      * @param result 结果物品
      */
     SmithingRecipe(
-        const ResourceLocation& id,
-        const Ingredient& base,
-        const Ingredient& addition,
-        const ItemStack& result
-    );
+        const ResourceLocation& id, const Ingredient& base, const Ingredient& addition, const ItemStack& result);
 
     ~SmithingRecipe() override = default;
 
@@ -62,9 +58,7 @@ public:
     /**
      * @brief 锻造台配方需要2个输入槽位
      */
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override {
-        return width * height >= 2;
-    }
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override { return width * height >= 2; }
 
     /**
      * @brief 获取合成后剩余的物品堆
@@ -94,7 +88,7 @@ private:
     Ingredient m_base;
     Ingredient m_addition;
     ItemStack m_result;
-    mutable std::vector<Ingredient> m_ingredients;  ///< 缓存的原料列表
+    mutable std::vector<Ingredient> m_ingredients; ///< 缓存的原料列表
 };
 
 } // namespace crafting

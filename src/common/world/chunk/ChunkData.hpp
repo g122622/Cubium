@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
+#include "../../core/Types.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockPos.hpp"
 #include "../blockentity/BlockEntity.hpp"
@@ -12,16 +12,16 @@
 #undef BYTE_SIZE
 #include "../../util/NibbleArray.hpp"
 #pragma pop_macro("BYTE_SIZE")
-#include "../lighting/storage/SWMRNibbleArray.hpp"
-#include "ChunkPos.hpp"
-#include "ChunkId.hpp"
-#include "IChunk.hpp"
 #include "../WorldConstants.hpp"
-#include <vector>
-#include <memory>
+#include "../lighting/storage/SWMRNibbleArray.hpp"
+#include "ChunkId.hpp"
+#include "ChunkPos.hpp"
+#include "IChunk.hpp"
 #include <array>
 #include <cstring>
+#include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 
@@ -46,7 +46,8 @@ public:
     void setBlockState(i32 x, i32 y, i32 z, const BlockState* state);
 
     // 快速访问 (无边界检查)
-    [[nodiscard]] u32 getBlockStateIdFast(i32 index) const {
+    [[nodiscard]] u32 getBlockStateIdFast(i32 index) const
+    {
         if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
             return 0;
         }
@@ -55,9 +56,7 @@ public:
     void setBlockStateIdFast(i32 index, u32 stateId);
 
     // 索引计算
-    [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z) {
-        return y * SIZE * SIZE + z * SIZE + x;
-    }
+    [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z) { return y * SIZE * SIZE + z * SIZE + x; }
 
     // 段信息
     [[nodiscard]] bool isEmpty() const { return m_blockCount == 0; }
@@ -121,16 +120,16 @@ public:
 
 private:
     // 使用状态ID存储 (紧凑格式，后续可改为调色板)
-    std::vector<u32> m_blockStates;  // BlockState::stateId()
-    NibbleArray m_skyLight;          // 天空光照 (4位/方块)
-    NibbleArray m_blockLight;        // 方块光照 (4位/方块)
-    u16 m_blockCount = 0;            // 非空气方块数量
+    std::vector<u32> m_blockStates; // BlockState::stateId()
+    NibbleArray m_skyLight;         // 天空光照 (4位/方块)
+    NibbleArray m_blockLight;       // 方块光照 (4位/方块)
+    u16 m_blockCount = 0;           // 非空气方块数量
     bool m_needsRecalculate = false;
 
     // 随机刻计数器 (MC 1.16.5 用于性能优化)
     // 参考: net.minecraft.world.chunk.ChunkSection.blockTickRefCount 和 fluidRefCount
-    u16 m_blockTickRefCount = 0;     // ticksRandomly 方块数量
-    u16 m_fluidRefCount = 0;         // 流体方块数量
+    u16 m_blockTickRefCount = 0; // ticksRandomly 方块数量
+    u16 m_fluidRefCount = 0;     // 流体方块数量
 };
 
 // ============================================================================
@@ -139,7 +138,6 @@ private:
 
 class ChunkData : public IChunk {
 public:
-
     ChunkData();
     ChunkData(ChunkCoord x, ChunkCoord z);
     ~ChunkData() override;
@@ -189,7 +187,8 @@ public:
 
     // 高度图 (IChunk 接口)
     [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override;
-    void updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
+    void updateHeightmap(
+        HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
 
     // 区块状态 (IChunk 接口)
     [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
@@ -227,7 +226,7 @@ public:
     // ========================================================================
 
     // 光照段数量（包含上下缓冲区）
-    static constexpr i32 LIGHT_SECTIONS = world::CHUNK_SECTIONS + 2;  // -1 到 16 段
+    static constexpr i32 LIGHT_SECTIONS = world::CHUNK_SECTIONS + 2; // -1 到 16 段
 
     /**
      * @brief 获取天空光照空映射

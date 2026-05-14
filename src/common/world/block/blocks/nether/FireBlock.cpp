@@ -1,18 +1,18 @@
 #include "FireBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../BlockTags.hpp"
-#include "../../FireInfoRegistry.hpp"
+#include "../../../../entity/combat/DifficultyHelper.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../entity/core/LivingEntity.hpp"
 #include "../../../../entity/damage/DamageSource.hpp"
-#include "../../../../entity/combat/DifficultyHelper.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
-#include "../../../dimension/teleport/PortalSize.hpp"
+#include "../../../IWorld.hpp"
 #include "../../../dimension/DimensionManager.hpp"
+#include "../../../dimension/teleport/PortalSize.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../BlockTags.hpp"
+#include "../../FireInfoRegistry.hpp"
 #include "../../VanillaBlocks.hpp"
 
 namespace mc {
@@ -22,55 +22,59 @@ namespace blocks {
 
 FireBlock::FireBlock(const BlockProperties& properties, i32 fireDamage)
     : Block(properties)
-    , m_fireDamage(fireDamage) {
+    , m_fireDamage(fireDamage)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AGE_0_15())
-        .add(BlockStateProperties::NORTH())
-        .add(BlockStateProperties::SOUTH())
-        .add(BlockStateProperties::EAST())
-        .add(BlockStateProperties::WEST())
-        .add(BlockStateProperties::UP())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AGE_0_15())
+            .add(BlockStateProperties::NORTH())
+            .add(BlockStateProperties::SOUTH())
+            .add(BlockStateProperties::EAST())
+            .add(BlockStateProperties::WEST())
+            .add(BlockStateProperties::UP())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::AGE_0_15(), 0)
-        .with(BlockStateProperties::NORTH(), false)
-        .with(BlockStateProperties::SOUTH(), false)
-        .with(BlockStateProperties::EAST(), false)
-        .with(BlockStateProperties::WEST(), false)
-        .with(BlockStateProperties::UP(), false));
+            .with(BlockStateProperties::AGE_0_15(), 0)
+            .with(BlockStateProperties::NORTH(), false)
+            .with(BlockStateProperties::SOUTH(), false)
+            .with(BlockStateProperties::EAST(), false)
+            .with(BlockStateProperties::WEST(), false)
+            .with(BlockStateProperties::UP(), false));
 
     // 火焰形状（无碰撞）
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 }
 
-i32 FireBlock::getAge(const BlockState& state) const {
+i32 FireBlock::getAge(const BlockState& state) const
+{
     return state.get(BlockStateProperties::AGE_0_15());
 }
 
-BlockState FireBlock::withAge(i32 age) const {
+BlockState FireBlock::withAge(i32 age) const
+{
     return defaultState().with(BlockStateProperties::AGE_0_15(), std::min(age, 15));
 }
 
-BlockState FireBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState FireBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-bool FireBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool FireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
     // 检查周围是否有可支撑的方块
-    for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
+    for (Direction dir :
+        {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
         BlockPos adjPos = pos.offset(dir);
         const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -82,13 +86,13 @@ bool FireBlock::isValidPosition(
     return canBurn(world, pos);
 }
 
-BlockState FireBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState FireBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingPos);
 
@@ -123,7 +127,8 @@ BlockState FireBlock::updatePostPlacement(
     }
 }
 
-void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 参考 MC 1.16.5: FireBlock.tick()
 
     // 1. 检查位置有效性
@@ -160,7 +165,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     if (age < 15 && random.nextInt(3) == 0) {
         BlockState newState = withAge(age + 1);
         world.setBlockState(pos, &newState, 2);
-        state = newState;  // 更新本地状态引用
+        state = newState; // 更新本地状态引用
         age = age + 1;
     }
 
@@ -191,7 +196,8 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     trySpread(world, pos, age, random);
 }
 
-void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
     // 火焰方块被放置时，立即检测并点燃下界传送门
 
@@ -211,7 +217,8 @@ void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockStat
     }
 }
 
-bool FireBlock::tryLightNetherPortal(IWorld& world, const BlockPos& pos) {
+bool FireBlock::tryLightNetherPortal(IWorld& world, const BlockPos& pos)
+{
     // 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
     // 检查火焰周围是否形成有效的下界传送门框架
 
@@ -232,7 +239,8 @@ bool FireBlock::tryLightNetherPortal(IWorld& world, const BlockPos& pos) {
     return false;
 }
 
-void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     i32 age = getAge(state);
 
     // 火焰可能熄灭
@@ -245,7 +253,8 @@ void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     trySpread(world, pos, age, random);
 }
 
-void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     MC_UNUSED(state);
     MC_UNUSED(pos);
 
@@ -273,23 +282,27 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
     }
 }
 
-const CollisionShape& FireBlock::getShape(const BlockState& state) const {
+const CollisionShape& FireBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-const CollisionShape& FireBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& FireBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
 }
 
-bool FireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const {
+bool FireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const
+{
     // 参考 MC 1.16.5: FireBlock.canBurn()
     // 检查指定位置是否可以燃烧（检查周围是否有可燃方块）
 
     // 遍历6个方向，检查是否有可燃方块
-    for (Direction dir : {Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::East, Direction::West}) {
+    for (Direction dir :
+        {Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::East, Direction::West}) {
         BlockPos adjPos = pos.offset(dir);
         const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -301,7 +314,8 @@ bool FireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const {
     return false;
 }
 
-void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRandom& random) {
+void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRandom& random)
+{
     // 参考 MC 1.16.5: FireBlock.tick() 中的蔓延逻辑
 
     // 检查游戏规则
@@ -383,7 +397,8 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
     }
 }
 
-bool FireBlock::canDie(IWorld& world, const BlockPos& pos) const {
+bool FireBlock::canDie(IWorld& world, const BlockPos& pos) const
+{
     // 参考 MC 1.16.5: FireBlock.canDie()
     // 检查火焰位置或相邻位置是否在下雨
 
@@ -401,24 +416,27 @@ bool FireBlock::canDie(IWorld& world, const BlockPos& pos) const {
     return false;
 }
 
-bool FireBlock::canDieAt(IWorld& world, const BlockPos& pos) const {
+bool FireBlock::canDieAt(IWorld& world, const BlockPos& pos) const
+{
     // 同 canDie，用于远距离蔓延检查
     return canDie(world, pos);
 }
 
-i32 FireBlock::getNeighborEncouragement(IWorld& world, const BlockPos& pos) const {
+i32 FireBlock::getNeighborEncouragement(IWorld& world, const BlockPos& pos) const
+{
     // 参考 MC 1.16.5: FireBlock.getNeighborEncouragement()
     // 获取目标位置周围的最大火焰蔓延速度
 
     const BlockState* targetState = world.getBlockState(pos);
     if (targetState != nullptr && !targetState->isAir()) {
-        return 0;  // 目标位置不是空气
+        return 0; // 目标位置不是空气
     }
 
     i32 maxEncouragement = 0;
 
     // 检查6个方向
-    for (Direction dir : {Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::East, Direction::West}) {
+    for (Direction dir :
+        {Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::East, Direction::West}) {
         BlockPos adjPos = pos.offset(dir);
         const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -431,7 +449,9 @@ i32 FireBlock::getNeighborEncouragement(IWorld& world, const BlockPos& pos) cons
     return maxEncouragement;
 }
 
-void FireBlock::tryCatchFire(IWorld& world, const BlockPos& pos, i32 chance, math::IRandom& random, i32 age, Direction face) {
+void FireBlock::tryCatchFire(
+    IWorld& world, const BlockPos& pos, i32 chance, math::IRandom& random, i32 age, Direction face)
+{
     // 参考 MC 1.16.5: FireBlock.tryCatchFire()
 
     const BlockState* state = world.getBlockState(pos);
@@ -453,9 +473,8 @@ void FireBlock::tryCatchFire(IWorld& world, const BlockPos& pos, i32 chance, mat
     }
 
     // 检查含水状态
-    if (state->hasProperty(BlockStateProperties::WATERLOGGED()) &&
-        state->get(BlockStateProperties::WATERLOGGED())) {
-        return;  // 含水方块不可燃
+    if (state->hasProperty(BlockStateProperties::WATERLOGGED()) && state->get(BlockStateProperties::WATERLOGGED())) {
+        return; // 含水方块不可燃
     }
 
     // ===== 点燃或烧毁 =====
@@ -478,11 +497,13 @@ void FireBlock::tryCatchFire(IWorld& world, const BlockPos& pos, i32 chance, mat
     state->catchFire(world, pos, face, nullptr);
 }
 
-bool FireBlock::areNeighborsFlammable(IBlockReader& world, const BlockPos& pos) const {
+bool FireBlock::areNeighborsFlammable(IBlockReader& world, const BlockPos& pos) const
+{
     // 参考 MC 1.16.5: FireBlock.areNeighborsFlammable()
     // 检查周围是否有可燃方块
 
-    for (Direction dir : {Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::East, Direction::West}) {
+    for (Direction dir :
+        {Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::East, Direction::West}) {
         BlockPos adjPos = pos.offset(dir);
         const BlockState* adjState = world.getBlockState(adjPos);
 
@@ -494,7 +515,8 @@ bool FireBlock::areNeighborsFlammable(IBlockReader& world, const BlockPos& pos) 
     return false;
 }
 
-bool FireBlock::canCatchFire(IWorld& world, const BlockPos& pos, Direction face) const {
+bool FireBlock::canCatchFire(IWorld& world, const BlockPos& pos, Direction face) const
+{
     // 参考 MC 1.16.5: IForgeBlock.canCatchFire()
     // 检查指定位置是否可以被点燃
 
@@ -504,16 +526,16 @@ bool FireBlock::canCatchFire(IWorld& world, const BlockPos& pos, Direction face)
     }
 
     // 检查含水状态
-    if (state->hasProperty(BlockStateProperties::WATERLOGGED()) &&
-        state->get(BlockStateProperties::WATERLOGGED())) {
-        return false;  // 含水方块不可燃
+    if (state->hasProperty(BlockStateProperties::WATERLOGGED()) && state->get(BlockStateProperties::WATERLOGGED())) {
+        return false; // 含水方块不可燃
     }
 
     // 检查可燃性
     return state->getFlammability(&world, &pos, face) > 0;
 }
 
-bool FireBlock::isFlammable(const BlockState& state) const {
+bool FireBlock::isFlammable(const BlockState& state) const
+{
     return state.getMaterial().isFlammable();
 }
 

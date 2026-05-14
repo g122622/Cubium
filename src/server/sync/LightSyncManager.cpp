@@ -4,31 +4,29 @@
 #undef BYTE_SIZE
 
 #include "LightSyncManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/IChunk.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "server/world/ServerChunkManager.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/IChunk.hpp"
-#include "common/util/NibbleArray.hpp"
-#include "common/world/WorldConstants.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 
 #pragma pop_macro("BYTE_SIZE")
 
 namespace mc::server::sync {
 
-LightSyncManager::LightSyncManager(WorldLightManager& lightManager,
-                                   ServerChunkManager& chunkManager)
+LightSyncManager::LightSyncManager(WorldLightManager& lightManager, ServerChunkManager& chunkManager)
     : m_lightManager(lightManager)
     , m_chunkManager(chunkManager)
-{
-}
+{}
 
 void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
 {
-    MC_TRACE_EVENT("server.lighting", "LightSyncManager::initializeChunkLighting",
-                   "Chunk", fmt::format("({}, {})", x, z));
+    MC_TRACE_EVENT(
+        "server.lighting", "LightSyncManager::initializeChunkLighting", "Chunk", fmt::format("({}, {})", x, z));
 
     MC_TRACE_EVENT("server.lighting", "GetChunkData");
     auto chunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
@@ -106,17 +104,20 @@ void LightSyncManager::onBlockStateChanged(i32 x, i32 y, i32 z, i32 oldLightLeve
     m_lightManager.checkBlock(x, y, z);
 
     if (newLightLevel > oldLightLevel) {
-        spdlog::debug("[LightSync] Emission increased at ({}, {}, {}): {} -> {}",
-                      x, y, z, oldLightLevel, newLightLevel);
+        spdlog::debug(
+            "[LightSync] Emission increased at ({}, {}, {}): {} -> {}", x, y, z, oldLightLevel, newLightLevel);
         m_lightManager.onBlockEmissionIncrease(x, y, z, newLightLevel);
     }
 }
 
 void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
 {
-    MC_TRACE_EVENT("server.lighting", "LightSyncManager::markLightChanged",
-                   "Type", (type == LightType::SKY) ? "SKY" : "BLOCK",
-                   "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
+    MC_TRACE_EVENT("server.lighting",
+        "LightSyncManager::markLightChanged",
+        "Type",
+        (type == LightType::SKY) ? "SKY" : "BLOCK",
+        "Section",
+        fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 
     // 标记区块为脏
     auto chunk = m_chunkManager.tryToGetChunkSharedInMem(pos.x, pos.z);
@@ -128,8 +129,7 @@ void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
     syncLightDataToChunk(type, pos);
 
     const char* typeName = (type == LightType::SKY) ? "SKY" : "BLOCK";
-    spdlog::trace("[LightSync] {} light changed at section ({}, {}, {})",
-                  typeName, pos.x, pos.y, pos.z);
+    spdlog::trace("[LightSync] {} light changed at section ({}, {}, {})", typeName, pos.x, pos.y, pos.z);
 }
 
 void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& pos)
@@ -160,9 +160,7 @@ void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& po
     // 获取数据副本并同步到 ChunkSection
     std::vector<u8> data = lightData->toByteArray();
     if (data.size() == NibbleArray::BYTE_SIZE) {
-        NibbleArray& targetArray = (type == LightType::SKY)
-            ? section->skyLightNibble()
-            : section->blockLightNibble();
+        NibbleArray& targetArray = (type == LightType::SKY) ? section->skyLightNibble() : section->blockLightNibble();
         targetArray.data() = std::move(data);
     }
 }

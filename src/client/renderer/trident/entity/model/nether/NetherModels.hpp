@@ -16,9 +16,8 @@ public:
     ~GhastModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
     void setupParts();
@@ -39,9 +38,8 @@ public:
     ~MagmaCubeModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置挤压动画状态
@@ -74,9 +72,8 @@ public:
     ~PiglinModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置动作状态
@@ -111,8 +108,8 @@ private:
     void setupPiglinParts(f32 scale);
 
     // 猪灵特有部件（耳朵）
-    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_leftEar;   // 左耳
-    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_rightEar;  // 右耳
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_leftEar;  // 左耳
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_rightEar; // 右耳
 
     // 外观层部件引用（从 PlayerModel 风格）
     std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bipedLeftArmwear;
@@ -138,9 +135,8 @@ public:
     ~BoarModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 protected:
     std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
@@ -150,15 +146,15 @@ private:
     void setupParts();
 
     // 头部部件
-    std::shared_ptr<ModelRenderer> m_head;           // 头部
-    std::shared_ptr<ModelRenderer> m_leftTusk;       // 左獠牙
-    std::shared_ptr<ModelRenderer> m_rightTusk;      // 右獠牙
-    std::shared_ptr<ModelRenderer> m_leftEar;        // 左耳
-    std::shared_ptr<ModelRenderer> m_rightEar;       // 右耳
+    std::shared_ptr<ModelRenderer> m_head;      // 头部
+    std::shared_ptr<ModelRenderer> m_leftTusk;  // 左獠牙
+    std::shared_ptr<ModelRenderer> m_rightTusk; // 右獠牙
+    std::shared_ptr<ModelRenderer> m_leftEar;   // 左耳
+    std::shared_ptr<ModelRenderer> m_rightEar;  // 右耳
 
     // 身体部件
-    std::shared_ptr<ModelRenderer> m_body;           // 身体
-    std::shared_ptr<ModelRenderer> m_mane;           // 鬃毛
+    std::shared_ptr<ModelRenderer> m_body; // 身体
+    std::shared_ptr<ModelRenderer> m_mane; // 鬃毛
     std::shared_ptr<ModelRenderer> m_rightFrontLeg;
     std::shared_ptr<ModelRenderer> m_leftFrontLeg;
     std::shared_ptr<ModelRenderer> m_rightBackLeg;
@@ -177,9 +173,8 @@ public:
     ~StriderModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置是否有乘客
@@ -190,19 +185,19 @@ public:
 private:
     void setupParts();
 
-    std::shared_ptr<ModelRenderer> m_body;           // 身体
-    std::shared_ptr<ModelRenderer> m_rightLeg;       // 右腿
-    std::shared_ptr<ModelRenderer> m_leftLeg;        // 左腿
+    std::shared_ptr<ModelRenderer> m_body;     // 身体
+    std::shared_ptr<ModelRenderer> m_rightLeg; // 右腿
+    std::shared_ptr<ModelRenderer> m_leftLeg;  // 左腿
 
     // 6 个毛发/皮瓣部件
-    std::shared_ptr<ModelRenderer> m_flapLeftBottom;   // 左下皮瓣
-    std::shared_ptr<ModelRenderer> m_flapLeftMiddle;   // 左中皮瓣
-    std::shared_ptr<ModelRenderer> m_flapLeftTop;      // 左上皮瓣
-    std::shared_ptr<ModelRenderer> m_flapRightBottom;  // 右下皮瓣
-    std::shared_ptr<ModelRenderer> m_flapRightMiddle;  // 右中皮瓣
-    std::shared_ptr<ModelRenderer> m_flapRightTop;     // 右上皮瓣
+    std::shared_ptr<ModelRenderer> m_flapLeftBottom;  // 左下皮瓣
+    std::shared_ptr<ModelRenderer> m_flapLeftMiddle;  // 左中皮瓣
+    std::shared_ptr<ModelRenderer> m_flapLeftTop;     // 左上皮瓣
+    std::shared_ptr<ModelRenderer> m_flapRightBottom; // 右下皮瓣
+    std::shared_ptr<ModelRenderer> m_flapRightMiddle; // 右中皮瓣
+    std::shared_ptr<ModelRenderer> m_flapRightTop;    // 右上皮瓣
 
-    bool m_hasPassengers = false;  // 是否有乘客
+    bool m_hasPassengers = false; // 是否有乘客
 };
 
 } // namespace mc::client::renderer::entity::model::nether

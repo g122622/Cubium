@@ -54,10 +54,8 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
     m_renderer->updateTime(m_renderDayTime, m_renderGameTime, m_renderTickAccumulator);
 
     // 更新天气状态到渲染器
-    m_renderer->updateWeather(
-        m_world.weather().rainStrength(m_renderTickAccumulator),
-        m_world.weather().thunderStrength(m_renderTickAccumulator)
-    );
+    m_renderer->updateWeather(m_world.weather().rainStrength(m_renderTickAccumulator),
+        m_world.weather().thunderStrength(m_renderTickAccumulator));
 }
 
 } // namespace mc::client

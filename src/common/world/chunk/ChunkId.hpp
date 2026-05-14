@@ -17,11 +17,18 @@ namespace mc {
 struct ChunkId {
     ChunkCoord x;
     ChunkCoord z;
-    i32 dimension;  // 0=主世界, 1=下界, 2=末地
+    i32 dimension; // 0=主世界, 1=下界, 2=末地
 
-    ChunkId() : x(0), z(0), dimension(0) {}
+    ChunkId()
+        : x(0)
+        , z(0)
+        , dimension(0)
+    {}
     ChunkId(ChunkCoord x, ChunkCoord z, i32 dim = 0)
-        : x(x), z(z), dimension(dim) {}
+        : x(x)
+        , z(z)
+        , dimension(dim)
+    {}
 
     /**
      * @brief 编码为64位唯一ID
@@ -29,7 +36,8 @@ struct ChunkId {
      * 编码格式：高16位=维度，中间24位=X，低24位=Z
      * 支持坐标范围 -8388608 到 8388607
      */
-    [[nodiscard]] u64 toId() const {
+    [[nodiscard]] u64 toId() const
+    {
         u64 dim = static_cast<u64>(static_cast<u32>(dimension) & 0xFFFF);
         u64 dx = static_cast<u64>(static_cast<u32>(x) & 0xFFFFFF);
         u64 dz = static_cast<u64>(static_cast<u32>(z) & 0xFFFFFF);
@@ -39,7 +47,8 @@ struct ChunkId {
     /**
      * @brief 从64位ID解码
      */
-    [[nodiscard]] static ChunkId fromId(u64 id) {
+    [[nodiscard]] static ChunkId fromId(u64 id)
+    {
         ChunkId cid;
         cid.dimension = static_cast<i32>(static_cast<u16>(id >> 48));
         // 处理24位有符号数
@@ -54,19 +63,14 @@ struct ChunkId {
     /**
      * @brief 转换为区块位置（不含维度）
      */
-    [[nodiscard]] ChunkPos chunkPos() const noexcept {
-        return ChunkPos(x, z);
-    }
+    [[nodiscard]] ChunkPos chunkPos() const noexcept { return ChunkPos(x, z); }
 
-    bool operator==(const ChunkId& other) const {
-        return x == other.x && z == other.z && dimension == other.dimension;
-    }
+    bool operator==(const ChunkId& other) const { return x == other.x && z == other.z && dimension == other.dimension; }
 
-    bool operator!=(const ChunkId& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const ChunkId& other) const { return !(*this == other); }
 
-    bool operator<(const ChunkId& other) const {
+    bool operator<(const ChunkId& other) const
+    {
         if (dimension != other.dimension) return dimension < other.dimension;
         if (x != other.x) return x < other.x;
         return z < other.z;
@@ -77,10 +81,8 @@ struct ChunkId {
 
 // 哈希支持
 namespace std {
-template<>
+template <>
 struct hash<mc::ChunkId> {
-    size_t operator()(const mc::ChunkId& id) const {
-        return static_cast<size_t>(id.toId());
-    }
+    size_t operator()(const mc::ChunkId& id) const { return static_cast<size_t>(id.toId()); }
 };
-}
+} // namespace std

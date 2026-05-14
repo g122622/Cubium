@@ -92,9 +92,7 @@ public:
      * @param outLocalSlot 输出：局部槽位索引
      * @return 如果转换成功返回true
      */
-    [[nodiscard]] bool getContainerAndSlot(i32 globalSlot,
-                                           IInventory** outContainer,
-                                           i32& outLocalSlot) const;
+    [[nodiscard]] bool getContainerAndSlot(i32 globalSlot, IInventory** outContainer, i32& outLocalSlot) const;
 
     // ========== 物品查找扩展 ==========
 
@@ -119,8 +117,8 @@ public:
     [[nodiscard]] bool hasItem(const Item& item) const override;
 
 private:
-    IInventory* m_upper;  ///< 上半部分（左侧箱子，27格）
-    IInventory* m_lower;  ///< 下半部分（右侧箱子，27格）
+    IInventory* m_upper; ///< 上半部分（左侧箱子，27格）
+    IInventory* m_lower; ///< 下半部分（右侧箱子，27格）
 };
 
 } // namespace blockentity

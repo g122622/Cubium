@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "Random.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace math {
@@ -57,9 +57,18 @@ public:
  */
 class RandomValueRange : public IRandomRange {
 public:
-    RandomValueRange() : m_min(0.0f), m_max(0.0f) {}
-    RandomValueRange(f32 value) : m_min(value), m_max(value) {}
-    RandomValueRange(f32 min, f32 max) : m_min(min), m_max(max) {}
+    RandomValueRange()
+        : m_min(0.0f)
+        , m_max(0.0f)
+    {}
+    RandomValueRange(f32 value)
+        : m_min(value)
+        , m_max(value)
+    {}
+    RandomValueRange(f32 min, f32 max)
+        : m_min(min)
+        , m_max(max)
+    {}
 
     /**
      * @brief 获取最小值
@@ -74,7 +83,8 @@ public:
     /**
      * @brief 生成随机浮点数
      */
-    [[nodiscard]] f32 generateFloat(Random& random) const override {
+    [[nodiscard]] f32 generateFloat(Random& random) const override
+    {
         if (m_min == m_max) {
             return m_min;
         }
@@ -84,7 +94,8 @@ public:
     /**
      * @brief 生成随机整数
      */
-    [[nodiscard]] i32 generateInt(Random& random) const override {
+    [[nodiscard]] i32 generateInt(Random& random) const override
+    {
         if (m_min == m_max) {
             return static_cast<i32>(m_min);
         }
@@ -96,13 +107,9 @@ public:
      */
     [[nodiscard]] bool isFixed() const override { return m_min == m_max; }
 
-    bool operator==(const RandomValueRange& other) const {
-        return m_min == other.m_min && m_max == other.m_max;
-    }
+    bool operator==(const RandomValueRange& other) const { return m_min == other.m_min && m_max == other.m_max; }
 
-    bool operator!=(const RandomValueRange& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const RandomValueRange& other) const { return !(*this == other); }
 
 private:
     f32 m_min;
@@ -117,7 +124,10 @@ private:
  */
 class BinomialRange : public IRandomRange {
 public:
-    BinomialRange(i32 n, f32 p) : m_n(n), m_p(p) {}
+    BinomialRange(i32 n, f32 p)
+        : m_n(n)
+        , m_p(p)
+    {}
 
     /**
      * @brief 获取试验次数
@@ -139,9 +149,7 @@ public:
     /**
      * @brief 生成随机浮点数
      */
-    [[nodiscard]] f32 generateFloat(Random& random) const override {
-        return static_cast<f32>(generateInt(random));
-    }
+    [[nodiscard]] f32 generateFloat(Random& random) const override { return static_cast<f32>(generateInt(random)); }
 
     /**
      * @brief 是否为固定值
@@ -171,7 +179,9 @@ private:
  */
 class ConstantRange : public IRandomRange {
 public:
-    explicit ConstantRange(i32 value) : m_value(value) {}
+    explicit ConstantRange(i32 value)
+        : m_value(value)
+    {}
 
     /**
      * @brief 获取值

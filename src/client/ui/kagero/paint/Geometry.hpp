@@ -19,18 +19,12 @@ using mc::client::ui::kagero::Rect;
  * 对于2D仿射变换，最后一行始终为 [0, 0, 1]。
  */
 struct Matrix {
-    std::array<f32, 9> m = {
-        1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f
-    };
+    std::array<f32, 9> m = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
     /**
      * @brief 创建单位矩阵
      */
-    [[nodiscard]] static Matrix identity() {
-        return Matrix{};
-    }
+    [[nodiscard]] static Matrix identity() { return Matrix{}; }
 
     /**
      * @brief 创建平移矩阵

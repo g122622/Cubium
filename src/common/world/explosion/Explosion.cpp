@@ -1,29 +1,29 @@
 #include "Explosion.hpp"
+#include "../../core/Constants.hpp"
+#include "../../entity/core/Entity.hpp"
+#include "../../entity/core/LivingEntity.hpp"
+#include "../../entity/damage/DamageSource.hpp"
+#include "../../entity/entities/player/GameModeUtils.hpp"
+#include "../../entity/entities/player/Player.hpp"
+#include "../../entity/loot/LootContext.hpp"
+#include "../../entity/loot/LootTable.hpp"
+#include "../../entity/utils/ItemDropHelper.hpp"
+#include "../../item/core/ItemStack.hpp"
+#include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../resource/ResourceLocation.hpp"
+#include "../../sound/SoundCategory.hpp"
+#include "../../util/AxisAlignedBB.hpp"
+#include "../../util/math/MathUtils.hpp"
+#include "../../util/math/ray/Raycast.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockRegistry.hpp"
 #include "../block/VanillaBlocks.hpp"
 #include "../fluid/Fluid.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../entity/core/LivingEntity.hpp"
-#include "../../entity/entities/player/Player.hpp"
-#include "../../entity/entities/player/GameModeUtils.hpp"
-#include "../../entity/damage/DamageSource.hpp"
-#include "../../entity/utils/ItemDropHelper.hpp"
-#include "../../entity/loot/LootTable.hpp"
-#include "../../entity/loot/LootContext.hpp"
-#include "../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../item/core/ItemStack.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../../util/math/ray/Raycast.hpp"
-#include "../../sound/SoundCategory.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../core/Constants.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <unordered_set>
 
 namespace mc {
@@ -37,13 +37,13 @@ using namespace mc::game::explosion;
 // ============================================================================
 
 Explosion::Explosion(IWorld& world,
-                     const Vector3& position,
-                     f32 radius,
-                     ExplosionMode mode,
-                     bool causesFire,
-                     Entity* source,
-                     std::unique_ptr<DamageSource> damageSource,
-                     const loot::LootTableManager* lootTableManager)
+    const Vector3& position,
+    f32 radius,
+    ExplosionMode mode,
+    bool causesFire,
+    Entity* source,
+    std::unique_ptr<DamageSource> damageSource,
+    const loot::LootTableManager* lootTableManager)
     : m_world(world)
     , m_position(position)
     , m_radius(radius)
@@ -53,14 +53,15 @@ Explosion::Explosion(IWorld& world,
     , m_damageSource(std::move(damageSource))
     , m_context(std::make_unique<EntityExplosionContext>(source))
     , m_lootTableManager(lootTableManager)
-    , m_random(static_cast<u64>(std::abs(position.x * 3129871.0 + position.y * 116129781.0 + position.z * 172917.0))) {
-}
+    , m_random(static_cast<u64>(std::abs(position.x * 3129871.0 + position.y * 116129781.0 + position.z * 172917.0)))
+{}
 
 // ============================================================================
 // 核心方法
 // ============================================================================
 
-void Explosion::explode() {
+void Explosion::explode()
+{
     // 第一阶段：计算
     calculateAffectedBlocks();
     calculateAffectedEntities();
@@ -81,7 +82,8 @@ void Explosion::explode() {
 // 第一阶段：计算
 // ============================================================================
 
-void Explosion::calculateAffectedBlocks() {
+void Explosion::calculateAffectedBlocks()
+{
     // 使用 std::unordered_set 避免重复
     std::unordered_set<i64> affectedPositions;
 
@@ -112,8 +114,8 @@ void Explosion::calculateAffectedBlocks() {
 
                     for (f32 step = 0.3f; f > 0.0f; f -= 0.22500001f) {
                         BlockPos pos(static_cast<i32>(std::floor(x)),
-                                    static_cast<i32>(std::floor(y)),
-                                    static_cast<i32>(std::floor(z)));
+                            static_cast<i32>(std::floor(y)),
+                            static_cast<i32>(std::floor(z)));
 
                         // 获取方块状态
                         const BlockState* blockState = m_world.getBlockState(pos);
@@ -139,8 +141,8 @@ void Explosion::calculateAffectedBlocks() {
                         if (f > 0.0f && m_context->canDestroyBlock(*blockState, f)) {
                             // 添加到受影响方块列表（使用位置哈希去重）
                             i64 posKey = (static_cast<i64>(pos.x) & 0xFFFFFFLL) |
-                                        ((static_cast<i64>(pos.y) & 0xFFFFLL) << 24) |
-                                        ((static_cast<i64>(pos.z) & 0xFFFFFFLL) << 40);
+                                ((static_cast<i64>(pos.y) & 0xFFFFLL) << 24) |
+                                ((static_cast<i64>(pos.z) & 0xFFFFFFLL) << 40);
                             affectedPositions.insert(posKey);
                         }
 
@@ -167,15 +169,18 @@ void Explosion::calculateAffectedBlocks() {
     }
 }
 
-void Explosion::calculateAffectedEntities() {
+void Explosion::calculateAffectedEntities()
+{
     // 实体影响范围 = radius * 2
     f32 range = m_radius * ENTITY_RANGE_MULTIPLIER;
 
     // 创建搜索 AABB
-    AxisAlignedBB searchBox(
-        m_position.x - range, m_position.y - range, m_position.z - range,
-        m_position.x + range, m_position.y + range, m_position.z + range
-    );
+    AxisAlignedBB searchBox(m_position.x - range,
+        m_position.y - range,
+        m_position.z - range,
+        m_position.x + range,
+        m_position.y + range,
+        m_position.z + range);
 
     // 获取范围内的所有实体
     std::vector<Entity*> entities = m_world.getEntitiesInAABB(searchBox, m_source);
@@ -203,7 +208,7 @@ void Explosion::calculateAffectedEntities() {
         f32 distanceRatio = std::sqrt(distanceSq) / range;
 
         if (distanceRatio > 1.0f) {
-            continue;  // 超出影响范围
+            continue; // 超出影响范围
         }
 
         // 归一化方向向量
@@ -245,8 +250,7 @@ void Explosion::calculateAffectedEntities() {
                 // 参考 MC 1.16.5 ProtectionEnchantment.getBlastDamageReduction
                 f32 knockback = impact;
                 i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
-                    living->getArmorSlots(),
-                    DamageFlags::EXPLOSION);
+                    living->getArmorSlots(), DamageFlags::EXPLOSION);
                 if (blastProtection > 0) {
                     // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
                     // 击退减少: knockback * (1 - EPF * 0.15)
@@ -288,9 +292,10 @@ void Explosion::calculateAffectedEntities() {
 // 第二阶段：执行
 // ============================================================================
 
-void Explosion::destroyBlocks() {
+void Explosion::destroyBlocks()
+{
     if (m_mode == ExplosionMode::None) {
-        return;  // 不破坏方块
+        return; // 不破坏方块
     }
 
     // 随机打乱方块顺序（Fisher-Yates 洗牌算法）
@@ -339,8 +344,7 @@ void Explosion::destroyBlocks() {
                         bool merged = false;
                         for (auto& [existingStack, existingPos] : allDrops) {
                             // 检查是否可以合并（相同物品、相同位置附近）
-                            if (existingStack.canMergeWith(drop) &&
-                                existingPos.distanceSq(pos) <= 4) {  // 2格范围内
+                            if (existingStack.canMergeWith(drop) && existingPos.distanceSq(pos) <= 4) { // 2格范围内
                                 // 尝试合并
                                 i32 space = existingStack.getMaxStackSize() - existingStack.getCount();
                                 if (space > 0) {
@@ -379,18 +383,19 @@ void Explosion::destroyBlocks() {
                 throwerUuid = m_source->uuid();
             }
 
-            ItemDropHelper::spawnItemEntities(
-                &m_world, pos, singleDrop, m_random, throwerUuid);
+            ItemDropHelper::spawnItemEntities(&m_world, pos, singleDrop, m_random, throwerUuid);
         }
     }
 }
 
-void Explosion::applyKnockback() {
+void Explosion::applyKnockback()
+{
     // 击退已经在 calculateAffectedEntities() 中应用
     // 这里可以处理额外的玩家击退同步
 }
 
-void Explosion::spawnParticles() {
+void Explosion::spawnParticles()
+{
     // 根据爆炸半径选择粒子类型
     using ParticleTypeId = client::renderer::trident::particle::ParticleTypeId;
 
@@ -403,24 +408,24 @@ void Explosion::spawnParticles() {
     }
 }
 
-void Explosion::playSound() {
+void Explosion::playSound()
+{
     // 播放爆炸音效
     f32 pitch = EXPLOSION_PITCH_BASE + (m_random.nextFloat() * 2.0f - 1.0f) * EXPLOSION_PITCH_RANGE * 0.5f;
 
-    m_world.playSound(
-        ResourceLocation("minecraft:entity.generic.explode"),
+    m_world.playSound(ResourceLocation("minecraft:entity.generic.explode"),
         sound::SoundCategory::Blocks,
         m_position,
         EXPLOSION_VOLUME,
-        pitch
-    );
+        pitch);
 }
 
 // ============================================================================
 // 辅助方法
 // ============================================================================
 
-f32 Explosion::getBlockDensity(const AxisAlignedBB& entityBox) {
+f32 Explosion::getBlockDensity(const AxisAlignedBB& entityBox)
+{
     // 参考 MC 1.16.5 Explosion.getBlockDensity
     // 在实体碰撞箱内采样点，检测有多少可以看到爆炸中心
 
@@ -450,19 +455,14 @@ f32 Explosion::getBlockDensity(const AxisAlignedBB& entityBox) {
         for (f32 fy = 0.0f; fy <= 1.0f; fy += stepY) {
             for (f32 fz = 0.0f; fz <= 1.0f; fz += stepZ) {
                 // 采样点位置（世界坐标）
-                Vector3 samplePoint(
-                    entityBox.minX + fx * (entityBox.maxX - entityBox.minX) + offsetX,
+                Vector3 samplePoint(entityBox.minX + fx * (entityBox.maxX - entityBox.minX) + offsetX,
                     entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
-                    entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ
-                );
+                    entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ);
 
                 // 使用射线检测是否有方块阻挡
                 // 参考 MC 1.16.5: world.rayTraceBlocks(samplePoint, explosionPos, COLLIDER, NONE, entity)
-                Ray ray(samplePoint, Vector3(
-                    m_position.x - samplePoint.x,
-                    m_position.y - samplePoint.y,
-                    m_position.z - samplePoint.z
-                ));
+                Ray ray(samplePoint,
+                    Vector3(m_position.x - samplePoint.x, m_position.y - samplePoint.y, m_position.z - samplePoint.z));
                 f32 distance = (m_position - samplePoint).length();
                 RaycastContext context(ray, distance);
 
@@ -480,7 +480,8 @@ f32 Explosion::getBlockDensity(const AxisAlignedBB& entityBox) {
     return total > 0 ? static_cast<f32>(visible) / static_cast<f32>(total) : 0.0f;
 }
 
-std::optional<f32> Explosion::getExplosionResistance(const BlockPos& pos) {
+std::optional<f32> Explosion::getExplosionResistance(const BlockPos& pos)
+{
     const BlockState* blockState = m_world.getBlockState(pos);
     if (!blockState || blockState->isAir()) {
         return std::nullopt;
@@ -492,14 +493,16 @@ std::optional<f32> Explosion::getExplosionResistance(const BlockPos& pos) {
     return m_context->getExplosionResistance(*blockState, fluidState);
 }
 
-f32 Explosion::calculateDamage(Entity& entity, f32 distance, f32 density) {
+f32 Explosion::calculateDamage(Entity& entity, f32 distance, f32 density)
+{
     // MC 1.16.5 伤害公式
     // damage = floor((impact^2 + impact) / 2 * 7 * radius + 1)
     f32 impact = (1.0f - distance / (m_radius * ENTITY_RANGE_MULTIPLIER)) * density;
     return std::floor((impact * impact + impact) / 2.0f * DAMAGE_MULTIPLIER * m_radius + 1.0f);
 }
 
-void Explosion::spawnFire() {
+void Explosion::spawnFire()
+{
     // 参考 MC 1.16.5 Explosion.doExplosionB
     // 1/3 概率在空位置生成火焰，前提是下方方块是不透明固体方块
 
@@ -529,9 +532,8 @@ void Explosion::spawnFire() {
     }
 }
 
-std::vector<ItemStack> Explosion::generateBlockDrops(
-    const BlockPos& pos,
-    const BlockState& state) {
+std::vector<ItemStack> Explosion::generateBlockDrops(const BlockPos& pos, const BlockState& state)
+{
 
     if (m_lootTableManager == nullptr) {
         return {};
@@ -554,14 +556,14 @@ std::vector<ItemStack> Explosion::generateBlockDrops(
     // 参考 MC 1.16.5 Explosion.doExplosionB
     BlockState* mutableState = const_cast<BlockState*>(&state);
     BlockPos* mutablePos = const_cast<BlockPos*>(&pos);
-    ItemStack emptyTool;  // 空工具（爆炸不使用工具）
+    ItemStack emptyTool; // 空工具（爆炸不使用工具）
 
     auto contextBuilder = loot::LootContextBuilder(m_world)
-        .withRandom(m_random)
-        .withParameter(loot::LootParams::BLOCK_STATE, mutableState)
-        .withParameter(loot::LootParams::BLOCK_POS, mutablePos)
-        .withParameter(loot::LootParams::TOOL, &emptyTool)
-        .withOwnedValue(loot::LootParams::EXPLOSION_RADIUS, m_radius);  // 爆炸半径参数
+                              .withRandom(m_random)
+                              .withParameter(loot::LootParams::BLOCK_STATE, mutableState)
+                              .withParameter(loot::LootParams::BLOCK_POS, mutablePos)
+                              .withParameter(loot::LootParams::TOOL, &emptyTool)
+                              .withOwnedValue(loot::LootParams::EXPLOSION_RADIUS, m_radius); // 爆炸半径参数
 
     // 设置掉落表解析器（用于处理嵌套掉落表）
     contextBuilder.withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
@@ -609,15 +611,14 @@ std::vector<ItemStack> Explosion::generateBlockDrops(
     }
 
     // 移除空掉落物
-    drops.erase(
-        std::remove_if(drops.begin(), drops.end(),
-            [](const ItemStack& stack) { return stack.isEmpty(); }),
+    drops.erase(std::remove_if(drops.begin(), drops.end(), [](const ItemStack& stack) { return stack.isEmpty(); }),
         drops.end());
 
     return drops;
 }
 
-void Explosion::spawnItemEntities(const BlockPos& pos, const std::vector<ItemStack>& drops) {
+void Explosion::spawnItemEntities(const BlockPos& pos, const std::vector<ItemStack>& drops)
+{
     // 此方法已被 destroyBlocks 中的内联实现替代
     // 保留此方法以供未来可能的扩展使用
     MC_UNUSED(pos);

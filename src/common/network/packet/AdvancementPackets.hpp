@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../core/Result.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../item/core/ItemStack.hpp"
 #include "../../advancement/AdvancementFrame.hpp"
+#include "../../core/Result.hpp"
+#include "../../core/Types.hpp"
+#include "../../item/core/ItemStack.hpp"
+#include "../../resource/ResourceLocation.hpp"
 #include "PacketSerializer.hpp"
-#include <vector>
 #include <map>
-#include <set>
 #include <optional>
+#include <set>
+#include <vector>
 
 // Forward declarations
 namespace mc::text {
@@ -22,7 +22,7 @@ class AdvancementProgress;
 class AdvancementDisplay;
 class AdvancementRewards;
 struct Criterion;
-}
+} // namespace mc::advancement
 
 namespace mc {
 
@@ -37,8 +37,8 @@ namespace mc {
  */
 struct AdvancementDisplayData {
     ItemStack icon;
-    std::string title;           // JSON序列化的文本组件
-    std::string description;      // JSON序列化的文本组件
+    std::string title;       // JSON序列化的文本组件
+    std::string description; // JSON序列化的文本组件
     advancement::AdvancementFrame frame = advancement::AdvancementFrame::Task;
     bool showToast = true;
     bool announceToChat = true;
@@ -84,7 +84,7 @@ struct AdvancementData {
     std::optional<ResourceLocation> parent;
     std::optional<AdvancementDisplayData> display;
     std::optional<AdvancementRewardsData> rewards;
-    std::map<std::string, std::string> criteria;  // criterionName -> triggerId
+    std::map<std::string, std::string> criteria; // criterionName -> triggerId
     std::vector<std::vector<std::string>> requirements;
 
     // 序列化
@@ -103,7 +103,7 @@ struct AdvancementData {
  */
 struct CriterionProgressData {
     std::string criterionName;
-    std::optional<i64> obtainedTime;  // 毫秒时间戳
+    std::optional<i64> obtainedTime; // 毫秒时间戳
 
     // 序列化
     void serialize(network::PacketSerializer& ser) const;
@@ -152,9 +152,7 @@ public:
     void setFirstSync(bool first) { m_firstSync = first; }
     void addAdvancement(const AdvancementData& data) { m_advancementsToAdd.push_back(data); }
     void removeAdvancement(const ResourceLocation& id) { m_advancementsToRemove.insert(id); }
-    void setProgress(const ResourceLocation& id, const AdvancementProgressData& data) {
-        m_progress[id] = data;
-    }
+    void setProgress(const ResourceLocation& id, const AdvancementProgressData& data) { m_progress[id] = data; }
     void setAdvancementsToAdd(std::vector<AdvancementData> data) { m_advancementsToAdd = std::move(data); }
     void setAdvancementsToRemove(std::set<ResourceLocation> data) { m_advancementsToRemove = std::move(data); }
     void setProgress(std::map<ResourceLocation, AdvancementProgressData> data) { m_progress = std::move(data); }
@@ -233,7 +231,8 @@ public:
     /**
      * @brief 构造打开标签页操作
      */
-    static SeenAdvancementsPacket openedTab(const ResourceLocation& tab) {
+    static SeenAdvancementsPacket openedTab(const ResourceLocation& tab)
+    {
         SeenAdvancementsPacket packet;
         packet.m_action = AdvancementAction::OpenedTab;
         packet.m_tab = tab;
@@ -243,7 +242,8 @@ public:
     /**
      * @brief 构造关闭界面操作
      */
-    static SeenAdvancementsPacket closedScreen() {
+    static SeenAdvancementsPacket closedScreen()
+    {
         SeenAdvancementsPacket packet;
         packet.m_action = AdvancementAction::ClosedScreen;
         return packet;

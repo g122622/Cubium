@@ -3,26 +3,26 @@
  * @brief 掉落表 JSON 序列化器测试
  */
 
-#include <gtest/gtest.h>
 #include "entity/loot/LootSerializers.hpp"
-#include "entity/loot/LootTable.hpp"
-#include "entity/loot/LootPool.hpp"
-#include "entity/loot/LootEntry.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/loot/LootConditions.hpp"
-#include "entity/loot/StatePropertiesPredicate.hpp"
+#include "entity/loot/LootEntry.hpp"
 #include "entity/loot/LootFunctions.hpp"
-#include "util/math/random/Random.hpp"
-#include "item/core/ItemRegistry.hpp"
+#include "entity/loot/LootPool.hpp"
+#include "entity/loot/LootTable.hpp"
+#include "entity/loot/StatePropertiesPredicate.hpp"
 #include "item/Items.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/VanillaBlocks.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/chunk/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::loot;
@@ -30,22 +30,23 @@ using namespace mc::loot;
 // Test implementation of IWorld for loot testing
 class LootSerializersTestWorld : public test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("LootSerializersTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("LootSerializersTestWorld::tickManager not implemented");
     }
 };
 
 class LootSerializersTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 
     LootSerializersTestWorld m_world;
 };
@@ -54,7 +55,8 @@ protected:
 // RandomValueRange Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseRandomValueRange_FixedInteger) {
+TEST_F(LootSerializersTest, ParseRandomValueRange_FixedInteger)
+{
     nlohmann::json json = 5;
 
     auto result = LootSerializers::parseRandomValueRange(json);
@@ -66,7 +68,8 @@ TEST_F(LootSerializersTest, ParseRandomValueRange_FixedInteger) {
     EXPECT_FLOAT_EQ(5.0f, range.getMax());
 }
 
-TEST_F(LootSerializersTest, ParseRandomValueRange_FixedFloat) {
+TEST_F(LootSerializersTest, ParseRandomValueRange_FixedFloat)
+{
     nlohmann::json json = 3.5f;
 
     auto result = LootSerializers::parseRandomValueRange(json);
@@ -78,11 +81,9 @@ TEST_F(LootSerializersTest, ParseRandomValueRange_FixedFloat) {
     EXPECT_FLOAT_EQ(3.5f, range.getMax());
 }
 
-TEST_F(LootSerializersTest, ParseRandomValueRange_RangeObject) {
-    nlohmann::json json = {
-        {"min", 1},
-        {"max", 5}
-    };
+TEST_F(LootSerializersTest, ParseRandomValueRange_RangeObject)
+{
+    nlohmann::json json = {{"min", 1}, {"max", 5}};
 
     auto result = LootSerializers::parseRandomValueRange(json);
     ASSERT_TRUE(result.success());
@@ -93,12 +94,9 @@ TEST_F(LootSerializersTest, ParseRandomValueRange_RangeObject) {
     EXPECT_FLOAT_EQ(5.0f, range.getMax());
 }
 
-TEST_F(LootSerializersTest, ParseRandomValueRange_WithType) {
-    nlohmann::json json = {
-        {"type", "minecraft:uniform"},
-        {"min", 2.0f},
-        {"max", 8.0f}
-    };
+TEST_F(LootSerializersTest, ParseRandomValueRange_WithType)
+{
+    nlohmann::json json = {{"type", "minecraft:uniform"}, {"min", 2.0f}, {"max", 8.0f}};
 
     auto result = LootSerializers::parseRandomValueRange(json);
     ASSERT_TRUE(result.success());
@@ -108,7 +106,8 @@ TEST_F(LootSerializersTest, ParseRandomValueRange_WithType) {
     EXPECT_FLOAT_EQ(8.0f, range.getMax());
 }
 
-TEST_F(LootSerializersTest, ParseRandomValueRange_InvalidType) {
+TEST_F(LootSerializersTest, ParseRandomValueRange_InvalidType)
+{
     nlohmann::json json = "invalid";
 
     auto result = LootSerializers::parseRandomValueRange(json);
@@ -119,12 +118,9 @@ TEST_F(LootSerializersTest, ParseRandomValueRange_InvalidType) {
 // BinomialRange Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseBinomialRange_Basic) {
-    nlohmann::json json = {
-        {"type", "minecraft:binomial"},
-        {"n", 10},
-        {"p", 0.5f}
-    };
+TEST_F(LootSerializersTest, ParseBinomialRange_Basic)
+{
+    nlohmann::json json = {{"type", "minecraft:binomial"}, {"n", 10}, {"p", 0.5f}};
 
     auto result = LootSerializers::parseBinomialRange(json);
     ASSERT_TRUE(result.success());
@@ -134,21 +130,17 @@ TEST_F(LootSerializersTest, ParseBinomialRange_Basic) {
     EXPECT_FLOAT_EQ(0.5f, range.getP());
 }
 
-TEST_F(LootSerializersTest, ParseBinomialRange_MissingN) {
-    nlohmann::json json = {
-        {"type", "minecraft:binomial"},
-        {"p", 0.5f}
-    };
+TEST_F(LootSerializersTest, ParseBinomialRange_MissingN)
+{
+    nlohmann::json json = {{"type", "minecraft:binomial"}, {"p", 0.5f}};
 
     auto result = LootSerializers::parseBinomialRange(json);
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseBinomialRange_MissingP) {
-    nlohmann::json json = {
-        {"type", "minecraft:binomial"},
-        {"n", 10}
-    };
+TEST_F(LootSerializersTest, ParseBinomialRange_MissingP)
+{
+    nlohmann::json json = {{"type", "minecraft:binomial"}, {"n", 10}};
 
     auto result = LootSerializers::parseBinomialRange(json);
     EXPECT_FALSE(result.success());
@@ -158,7 +150,8 @@ TEST_F(LootSerializersTest, ParseBinomialRange_MissingP) {
 // ConstantRange Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseConstantRange_FromInteger) {
+TEST_F(LootSerializersTest, ParseConstantRange_FromInteger)
+{
     nlohmann::json json = 7;
 
     auto result = LootSerializers::parseConstantRange(json);
@@ -168,11 +161,9 @@ TEST_F(LootSerializersTest, ParseConstantRange_FromInteger) {
     EXPECT_EQ(7, range.getValue());
 }
 
-TEST_F(LootSerializersTest, ParseConstantRange_FromObject) {
-    nlohmann::json json = {
-        {"type", "minecraft:constant"},
-        {"value", 42}
-    };
+TEST_F(LootSerializersTest, ParseConstantRange_FromObject)
+{
+    nlohmann::json json = {{"type", "minecraft:constant"}, {"value", 42}};
 
     auto result = LootSerializers::parseConstantRange(json);
     ASSERT_TRUE(result.success());
@@ -185,7 +176,8 @@ TEST_F(LootSerializersTest, ParseConstantRange_FromObject) {
 // IRandomRange Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseRandomRange_ConstantFromNumber) {
+TEST_F(LootSerializersTest, ParseRandomRange_ConstantFromNumber)
+{
     nlohmann::json json = 15;
 
     auto result = LootSerializers::parseRandomRange(json);
@@ -196,12 +188,9 @@ TEST_F(LootSerializersTest, ParseRandomRange_ConstantFromNumber) {
     EXPECT_EQ(15, range->generateInt(rng));
 }
 
-TEST_F(LootSerializersTest, ParseRandomRange_UniformType) {
-    nlohmann::json json = {
-        {"type", "minecraft:uniform"},
-        {"min", 1},
-        {"max", 10}
-    };
+TEST_F(LootSerializersTest, ParseRandomRange_UniformType)
+{
+    nlohmann::json json = {{"type", "minecraft:uniform"}, {"min", 1}, {"max", 10}};
 
     auto result = LootSerializers::parseRandomRange(json);
     ASSERT_TRUE(result.success());
@@ -213,12 +202,9 @@ TEST_F(LootSerializersTest, ParseRandomRange_UniformType) {
     EXPECT_LE(value, 10);
 }
 
-TEST_F(LootSerializersTest, ParseRandomRange_BinomialType) {
-    nlohmann::json json = {
-        {"type", "minecraft:binomial"},
-        {"n", 5},
-        {"p", 0.3f}
-    };
+TEST_F(LootSerializersTest, ParseRandomRange_BinomialType)
+{
+    nlohmann::json json = {{"type", "minecraft:binomial"}, {"n", 5}, {"p", 0.3f}};
 
     auto result = LootSerializers::parseRandomRange(json);
     ASSERT_TRUE(result.success());
@@ -230,11 +216,9 @@ TEST_F(LootSerializersTest, ParseRandomRange_BinomialType) {
     EXPECT_LE(value, 5);
 }
 
-TEST_F(LootSerializersTest, ParseRandomRange_ConstantType) {
-    nlohmann::json json = {
-        {"type", "minecraft:constant"},
-        {"value", 100}
-    };
+TEST_F(LootSerializersTest, ParseRandomRange_ConstantType)
+{
+    nlohmann::json json = {{"type", "minecraft:constant"}, {"value", 100}};
 
     auto result = LootSerializers::parseRandomRange(json);
     ASSERT_TRUE(result.success());
@@ -244,11 +228,9 @@ TEST_F(LootSerializersTest, ParseRandomRange_ConstantType) {
     EXPECT_EQ(100, range->generateInt(rng));
 }
 
-TEST_F(LootSerializersTest, ParseRandomRange_DefaultIsUniform) {
-    nlohmann::json json = {
-        {"min", 5},
-        {"max", 15}
-    };
+TEST_F(LootSerializersTest, ParseRandomRange_DefaultIsUniform)
+{
+    nlohmann::json json = {{"min", 5}, {"max", 15}};
 
     auto result = LootSerializers::parseRandomRange(json);
     ASSERT_TRUE(result.success());
@@ -264,11 +246,9 @@ TEST_F(LootSerializersTest, ParseRandomRange_DefaultIsUniform) {
 // LootCondition Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseCondition_RandomChance) {
-    nlohmann::json json = {
-        {"condition", "minecraft:random_chance"},
-        {"chance", 0.5f}
-    };
+TEST_F(LootSerializersTest, ParseCondition_RandomChance)
+{
+    nlohmann::json json = {{"condition", "minecraft:random_chance"}, {"chance", 0.5f}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
@@ -277,10 +257,9 @@ TEST_F(LootSerializersTest, ParseCondition_RandomChance) {
     EXPECT_EQ("random_chance", condition->getType());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_SilkTouch) {
-    nlohmann::json json = {
-        {"condition", "minecraft:silk_touch"}
-    };
+TEST_F(LootSerializersTest, ParseCondition_SilkTouch)
+{
+    nlohmann::json json = {{"condition", "minecraft:silk_touch"}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
@@ -289,14 +268,10 @@ TEST_F(LootSerializersTest, ParseCondition_SilkTouch) {
     EXPECT_EQ("silk_touch", condition->getType());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_Inverted) {
+TEST_F(LootSerializersTest, ParseCondition_Inverted)
+{
     nlohmann::json json = {
-        {"condition", "minecraft:inverted"},
-        {"term", {
-            {"condition", "minecraft:random_chance"},
-            {"chance", 0.3f}
-        }}
-    };
+        {"condition", "minecraft:inverted"}, {"term", {{"condition", "minecraft:random_chance"}, {"chance", 0.3f}}}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
@@ -305,46 +280,40 @@ TEST_F(LootSerializersTest, ParseCondition_Inverted) {
     EXPECT_EQ("inverted", condition->getType());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_Alternative) {
-    nlohmann::json json = {
-        {"condition", "minecraft:alternative"},
-        {"terms", {
-            {{"condition", "minecraft:random_chance"}, {"chance", 0.3f}},
-            {{"condition", "minecraft:random_chance"}, {"chance", 0.5f}}
-        }}
-    };
+TEST_F(LootSerializersTest, ParseCondition_Alternative)
+{
+    nlohmann::json json = {{"condition", "minecraft:alternative"},
+        {"terms",
+            {{{"condition", "minecraft:random_chance"}, {"chance", 0.3f}},
+                {{"condition", "minecraft:random_chance"}, {"chance", 0.5f}}}}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
 
     auto condition = result.value();
-    EXPECT_EQ("or", condition->getType());  // alternative -> OrCondition
+    EXPECT_EQ("or", condition->getType()); // alternative -> OrCondition
 }
 
-TEST_F(LootSerializersTest, ParseCondition_MissingType) {
-    nlohmann::json json = {
-        {"chance", 0.5f}
-    };
+TEST_F(LootSerializersTest, ParseCondition_MissingType)
+{
+    nlohmann::json json = {{"chance", 0.5f}};
 
     auto result = LootSerializers::parseCondition(json);
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_UnknownType) {
-    nlohmann::json json = {
-        {"condition", "minecraft:unknown_condition"}
-    };
+TEST_F(LootSerializersTest, ParseCondition_UnknownType)
+{
+    nlohmann::json json = {{"condition", "minecraft:unknown_condition"}};
 
     auto result = LootSerializers::parseCondition(json);
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_BlockOnly) {
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_BlockOnly)
+{
     // 仅检查方块 ID
-    nlohmann::json json = {
-        {"condition", "minecraft:block_state_property"},
-        {"block", "minecraft:stone"}
-    };
+    nlohmann::json json = {{"condition", "minecraft:block_state_property"}, {"block", "minecraft:stone"}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
@@ -358,15 +327,12 @@ TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_BlockOnly) {
     EXPECT_TRUE(blockStateCond->getProperties().isEmpty());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithExactProperty) {
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithExactProperty)
+{
     // 检查方块 ID + 精确属性匹配
-    nlohmann::json json = {
-        {"condition", "minecraft:block_state_property"},
+    nlohmann::json json = {{"condition", "minecraft:block_state_property"},
         {"block", "minecraft:beetroots"},
-        {"properties", {
-            {"age", "3"}
-        }}
-    };
+        {"properties", {{"age", "3"}}}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
@@ -380,15 +346,12 @@ TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithExactProperty)
     EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 1);
 }
 
-TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithRangeProperty) {
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithRangeProperty)
+{
     // 检查方块 ID + 范围属性匹配
-    nlohmann::json json = {
-        {"condition", "minecraft:block_state_property"},
+    nlohmann::json json = {{"condition", "minecraft:block_state_property"},
         {"block", "minecraft:wheat"},
-        {"properties", {
-            {"age", {{"min", "5"}, {"max", "7"}}}
-        }}
-    };
+        {"properties", {{"age", {{"min", "5"}, {"max", "7"}}}}}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
@@ -402,16 +365,12 @@ TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithRangeProperty)
     EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 1);
 }
 
-TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithMultipleProperties) {
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithMultipleProperties)
+{
     // 多属性匹配
-    nlohmann::json json = {
-        {"condition", "minecraft:block_state_property"},
+    nlohmann::json json = {{"condition", "minecraft:block_state_property"},
         {"block", "minecraft:oak_door"},
-        {"properties", {
-            {"facing", "north"},
-            {"open", "true"}
-        }}
-    };
+        {"properties", {{"facing", "north"}, {"open", "true"}}}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
@@ -425,18 +384,17 @@ TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithMultipleProper
     EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 2);
 }
 
-TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_MissingBlock) {
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_MissingBlock)
+{
     // 缺少 block 字段
-    nlohmann::json json = {
-        {"condition", "minecraft:block_state_property"},
-        {"properties", {{"age", "3"}}}
-    };
+    nlohmann::json json = {{"condition", "minecraft:block_state_property"}, {"properties", {{"age", "3"}}}};
 
     auto result = LootSerializers::parseCondition(json);
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, BlockStateCondition_Serialization) {
+TEST_F(LootSerializersTest, BlockStateCondition_Serialization)
+{
     // 测试序列化
     StatePropertiesPredicate properties;
     properties.addExactMatch("age", "3");
@@ -455,12 +413,9 @@ TEST_F(LootSerializersTest, BlockStateCondition_Serialization) {
 // LootFunction Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseFunction_SetCount) {
-    nlohmann::json json = {
-        {"function", "minecraft:set_count"},
-        {"count", {{"min", 1}, {"max", 5}}},
-        {"add", false}
-    };
+TEST_F(LootSerializersTest, ParseFunction_SetCount)
+{
+    nlohmann::json json = {{"function", "minecraft:set_count"}, {"count", {{"min", 1}, {"max", 5}}}, {"add", false}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
@@ -469,12 +424,10 @@ TEST_F(LootSerializersTest, ParseFunction_SetCount) {
     EXPECT_EQ("set_count", function->getType());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_LootingEnchant) {
+TEST_F(LootSerializersTest, ParseFunction_LootingEnchant)
+{
     nlohmann::json json = {
-        {"function", "minecraft:looting_enchant"},
-        {"count", {{"min", 0}, {"max", 1}}},
-        {"limit", 3}
-    };
+        {"function", "minecraft:looting_enchant"}, {"count", {{"min", 0}, {"max", 1}}}, {"limit", 3}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
@@ -483,12 +436,10 @@ TEST_F(LootSerializersTest, ParseFunction_LootingEnchant) {
     EXPECT_EQ("looting_enchant", function->getType());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_SetDamage) {
+TEST_F(LootSerializersTest, ParseFunction_SetDamage)
+{
     nlohmann::json json = {
-        {"function", "minecraft:set_damage"},
-        {"damage", {{"min", 0.5f}, {"max", 1.0f}}},
-        {"add", true}
-    };
+        {"function", "minecraft:set_damage"}, {"damage", {{"min", 0.5f}, {"max", 1.0f}}}, {"add", true}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
@@ -497,12 +448,10 @@ TEST_F(LootSerializersTest, ParseFunction_SetDamage) {
     EXPECT_EQ("set_damage", function->getType());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_EnchantWithLevels) {
+TEST_F(LootSerializersTest, ParseFunction_EnchantWithLevels)
+{
     nlohmann::json json = {
-        {"function", "minecraft:enchant_with_levels"},
-        {"levels", {{"min", 10}, {"max", 30}}},
-        {"treasure", true}
-    };
+        {"function", "minecraft:enchant_with_levels"}, {"levels", {{"min", 10}, {"max", 30}}}, {"treasure", true}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
@@ -511,10 +460,9 @@ TEST_F(LootSerializersTest, ParseFunction_EnchantWithLevels) {
     EXPECT_EQ("enchant_with_levels", function->getType());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_FurnaceSmelt) {
-    nlohmann::json json = {
-        {"function", "minecraft:furnace_smelt"}
-    };
+TEST_F(LootSerializersTest, ParseFunction_FurnaceSmelt)
+{
+    nlohmann::json json = {{"function", "minecraft:furnace_smelt"}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
@@ -523,19 +471,17 @@ TEST_F(LootSerializersTest, ParseFunction_FurnaceSmelt) {
     EXPECT_EQ("furnace_smelt", function->getType());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_MissingFunctionField) {
-    nlohmann::json json = {
-        {"count", 5}
-    };
+TEST_F(LootSerializersTest, ParseFunction_MissingFunctionField)
+{
+    nlohmann::json json = {{"count", 5}};
 
     auto result = LootSerializers::parseFunction(json);
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_UnknownType) {
-    nlohmann::json json = {
-        {"function", "minecraft:unknown_function"}
-    };
+TEST_F(LootSerializersTest, ParseFunction_UnknownType)
+{
+    nlohmann::json json = {{"function", "minecraft:unknown_function"}};
 
     auto result = LootSerializers::parseFunction(json);
     EXPECT_FALSE(result.success());
@@ -545,13 +491,9 @@ TEST_F(LootSerializersTest, ParseFunction_UnknownType) {
 // LootEntry Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseEntry_Item) {
-    nlohmann::json json = {
-        {"type", "minecraft:item"},
-        {"name", "minecraft:diamond"},
-        {"weight", 10},
-        {"quality", 2}
-    };
+TEST_F(LootSerializersTest, ParseEntry_Item)
+{
+    nlohmann::json json = {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}, {"weight", 10}, {"quality", 2}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
@@ -562,11 +504,9 @@ TEST_F(LootSerializersTest, ParseEntry_Item) {
     EXPECT_EQ(2, entry->getQuality());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_Empty) {
-    nlohmann::json json = {
-        {"type", "minecraft:empty"},
-        {"weight", 1}
-    };
+TEST_F(LootSerializersTest, ParseEntry_Empty)
+{
+    nlohmann::json json = {{"type", "minecraft:empty"}, {"weight", 1}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
@@ -575,11 +515,9 @@ TEST_F(LootSerializersTest, ParseEntry_Empty) {
     EXPECT_EQ(LootEntryType::Empty, entry->getType());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_LootTable) {
-    nlohmann::json json = {
-        {"type", "minecraft:loot_table"},
-        {"name", "minecraft:blocks/diamond_ore"}
-    };
+TEST_F(LootSerializersTest, ParseEntry_LootTable)
+{
+    nlohmann::json json = {{"type", "minecraft:loot_table"}, {"name", "minecraft:blocks/diamond_ore"}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
@@ -588,14 +526,12 @@ TEST_F(LootSerializersTest, ParseEntry_LootTable) {
     EXPECT_EQ(LootEntryType::Table, entry->getType());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_Alternatives) {
-    nlohmann::json json = {
-        {"type", "minecraft:alternatives"},
-        {"children", {
-            {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}},
-            {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}
-        }}
-    };
+TEST_F(LootSerializersTest, ParseEntry_Alternatives)
+{
+    nlohmann::json json = {{"type", "minecraft:alternatives"},
+        {"children",
+            {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}},
+                {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}}}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
@@ -604,14 +540,12 @@ TEST_F(LootSerializersTest, ParseEntry_Alternatives) {
     EXPECT_EQ(LootEntryType::Alternatives, entry->getType());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_Group) {
-    nlohmann::json json = {
-        {"type", "minecraft:group"},
-        {"children", {
-            {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}},
-            {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}
-        }}
-    };
+TEST_F(LootSerializersTest, ParseEntry_Group)
+{
+    nlohmann::json json = {{"type", "minecraft:group"},
+        {"children",
+            {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}},
+                {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}}}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
@@ -620,14 +554,12 @@ TEST_F(LootSerializersTest, ParseEntry_Group) {
     EXPECT_EQ(LootEntryType::Group, entry->getType());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_Sequence) {
-    nlohmann::json json = {
-        {"type", "minecraft:sequence"},
-        {"children", {
-            {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}},
-            {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}
-        }}
-    };
+TEST_F(LootSerializersTest, ParseEntry_Sequence)
+{
+    nlohmann::json json = {{"type", "minecraft:sequence"},
+        {"children",
+            {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}},
+                {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}}}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
@@ -636,14 +568,11 @@ TEST_F(LootSerializersTest, ParseEntry_Sequence) {
     EXPECT_EQ(LootEntryType::Sequence, entry->getType());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_WithConditions) {
-    nlohmann::json json = {
-        {"type", "minecraft:item"},
+TEST_F(LootSerializersTest, ParseEntry_WithConditions)
+{
+    nlohmann::json json = {{"type", "minecraft:item"},
         {"name", "minecraft:diamond"},
-        {"conditions", {
-            {{"condition", "minecraft:random_chance"}, {"chance", 0.5f}}
-        }}
-    };
+        {"conditions", {{{"condition", "minecraft:random_chance"}, {"chance", 0.5f}}}}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
@@ -653,19 +582,17 @@ TEST_F(LootSerializersTest, ParseEntry_WithConditions) {
     EXPECT_EQ(1, entry->getConditions().size());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_MissingName) {
-    nlohmann::json json = {
-        {"type", "minecraft:item"}
-    };
+TEST_F(LootSerializersTest, ParseEntry_MissingName)
+{
+    nlohmann::json json = {{"type", "minecraft:item"}};
 
     auto result = LootSerializers::parseEntry(json);
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_UnknownType) {
-    nlohmann::json json = {
-        {"type", "minecraft:unknown_type"}
-    };
+TEST_F(LootSerializersTest, ParseEntry_UnknownType)
+{
+    nlohmann::json json = {{"type", "minecraft:unknown_type"}};
 
     auto result = LootSerializers::parseEntry(json);
     EXPECT_FALSE(result.success());
@@ -675,13 +602,9 @@ TEST_F(LootSerializersTest, ParseEntry_UnknownType) {
 // LootPool Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParsePool_Basic) {
-    nlohmann::json json = {
-        {"rolls", 2},
-        {"entries", {
-            {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}
-        }}
-    };
+TEST_F(LootSerializersTest, ParsePool_Basic)
+{
+    nlohmann::json json = {{"rolls", 2}, {"entries", {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}}}};
 
     auto result = LootSerializers::parsePool(json);
     ASSERT_TRUE(result.success());
@@ -692,14 +615,11 @@ TEST_F(LootSerializersTest, ParsePool_Basic) {
     EXPECT_EQ(1u, pool->getEntries().size());
 }
 
-TEST_F(LootSerializersTest, ParsePool_WithBonusRolls) {
-    nlohmann::json json = {
-        {"rolls", {{"min", 1}, {"max", 3}}},
+TEST_F(LootSerializersTest, ParsePool_WithBonusRolls)
+{
+    nlohmann::json json = {{"rolls", {{"min", 1}, {"max", 3}}},
         {"bonus_rolls", {{"min", 0}, {"max", 1}}},
-        {"entries", {
-            {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}
-        }}
-    };
+        {"entries", {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}}}};
 
     auto result = LootSerializers::parsePool(json);
     ASSERT_TRUE(result.success());
@@ -711,15 +631,13 @@ TEST_F(LootSerializersTest, ParsePool_WithBonusRolls) {
     EXPECT_FLOAT_EQ(1.0f, pool->getBonusRolls().getMax());
 }
 
-TEST_F(LootSerializersTest, ParsePool_WithMultipleEntries) {
-    nlohmann::json json = {
-        {"rolls", 1},
-        {"entries", {
-            {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}, {"weight", 10}},
-            {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}, {"weight", 5}},
-            {{"type", "minecraft:empty"}, {"weight", 85}}
-        }}
-    };
+TEST_F(LootSerializersTest, ParsePool_WithMultipleEntries)
+{
+    nlohmann::json json = {{"rolls", 1},
+        {"entries",
+            {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}, {"weight", 10}},
+                {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}, {"weight", 5}},
+                {{"type", "minecraft:empty"}, {"weight", 85}}}}};
 
     auto result = LootSerializers::parsePool(json);
     ASSERT_TRUE(result.success());
@@ -728,12 +646,9 @@ TEST_F(LootSerializersTest, ParsePool_WithMultipleEntries) {
     EXPECT_EQ(3u, pool->getEntries().size());
 }
 
-TEST_F(LootSerializersTest, ParsePool_MissingRolls) {
-    nlohmann::json json = {
-        {"entries", {
-            {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}
-        }}
-    };
+TEST_F(LootSerializersTest, ParsePool_MissingRolls)
+{
+    nlohmann::json json = {{"entries", {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}}}};
 
     auto result = LootSerializers::parsePool(json);
     EXPECT_FALSE(result.success());
@@ -743,7 +658,8 @@ TEST_F(LootSerializersTest, ParsePool_MissingRolls) {
 // LootTable Parsing Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ParseLootTable_Empty) {
+TEST_F(LootSerializersTest, ParseLootTable_Empty)
+{
     nlohmann::json json = nlohmann::json::object();
 
     auto result = LootSerializers::parseLootTable(json);
@@ -753,17 +669,10 @@ TEST_F(LootSerializersTest, ParseLootTable_Empty) {
     EXPECT_EQ(0u, table->getPools().size());
 }
 
-TEST_F(LootSerializersTest, ParseLootTable_SinglePool) {
+TEST_F(LootSerializersTest, ParseLootTable_SinglePool)
+{
     nlohmann::json json = {
-        {"pools", {
-            {
-                {"rolls", 1},
-                {"entries", {
-                    {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}
-                }}
-            }
-        }}
-    };
+        {"pools", {{{"rolls", 1}, {"entries", {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}}}}}}};
 
     auto result = LootSerializers::parseLootTable(json);
     ASSERT_TRUE(result.success());
@@ -772,23 +681,11 @@ TEST_F(LootSerializersTest, ParseLootTable_SinglePool) {
     EXPECT_EQ(1u, table->getPools().size());
 }
 
-TEST_F(LootSerializersTest, ParseLootTable_MultiplePools) {
-    nlohmann::json json = {
-        {"pools", {
-            {
-                {"rolls", 1},
-                {"entries", {
-                    {{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}
-                }}
-            },
-            {
-                {"rolls", 2},
-                {"entries", {
-                    {{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}
-                }}
-            }
-        }}
-    };
+TEST_F(LootSerializersTest, ParseLootTable_MultiplePools)
+{
+    nlohmann::json json = {{"pools",
+        {{{"rolls", 1}, {"entries", {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}}}},
+            {{"rolls", 2}, {"entries", {{{"type", "minecraft:item"}, {"name", "minecraft:emerald"}}}}}}}};
 
     auto result = LootSerializers::parseLootTable(json);
     ASSERT_TRUE(result.success());
@@ -797,40 +694,28 @@ TEST_F(LootSerializersTest, ParseLootTable_MultiplePools) {
     EXPECT_EQ(2u, table->getPools().size());
 }
 
-TEST_F(LootSerializersTest, ParseLootTable_ComplexExample) {
+TEST_F(LootSerializersTest, ParseLootTable_ComplexExample)
+{
     // 典型的方块掉落表 JSON
-    nlohmann::json json = {
-        {"type", "minecraft:block"},
-        {"pools", {
-            {
-                {"rolls", 1},
-                {"entries", {
-                    {
-                        {"type", "minecraft:alternatives"},
-                        {"children", {
-                            {
-                                {"type", "minecraft:item"},
-                                {"name", "minecraft:diamond_ore"},
-                                {"conditions", {
-                                    {{"condition", "minecraft:match_tool"}, {"predicate", {{"enchantments", {
-                                        {{"enchantment", "minecraft:silk_touch"}}
-                                    }}}}}
-                                }}
-                            },
-                            {
-                                {"type", "minecraft:item"},
-                                {"name", "minecraft:diamond"},
-                                {"functions", {
-                                    {{"function", "minecraft:apply_bonus"}, {"enchantment", "minecraft:fortune"}, {"formula", "minecraft:ore_drops"}},
-                                    {{"function", "minecraft:explosion_decay"}}
-                                }}
-                            }
-                        }}
-                    }
-                }}
-            }
-        }}
-    };
+    nlohmann::json json = {{"type", "minecraft:block"},
+        {"pools",
+            {{{"rolls", 1},
+                {"entries",
+                    {{{"type", "minecraft:alternatives"},
+                        {"children",
+                            {{{"type", "minecraft:item"},
+                                 {"name", "minecraft:diamond_ore"},
+                                 {"conditions",
+                                     {{{"condition", "minecraft:match_tool"},
+                                         {"predicate",
+                                             {{"enchantments", {{{"enchantment", "minecraft:silk_touch"}}}}}}}}}},
+                                {{"type", "minecraft:item"},
+                                    {"name", "minecraft:diamond"},
+                                    {"functions",
+                                        {{{"function", "minecraft:apply_bonus"},
+                                             {"enchantment", "minecraft:fortune"},
+                                             {"formula", "minecraft:ore_drops"}},
+                                            {{"function", "minecraft:explosion_decay"}}}}}}}}}}}}}};
 
     auto result = LootSerializers::parseLootTable(json);
     ASSERT_TRUE(result.success());
@@ -839,7 +724,8 @@ TEST_F(LootSerializersTest, ParseLootTable_ComplexExample) {
     EXPECT_EQ(1u, table->getPools().size());
 }
 
-TEST_F(LootSerializersTest, ParseLootTable_FromString) {
+TEST_F(LootSerializersTest, ParseLootTable_FromString)
+{
     std::string jsonStr = R"({
         "pools": [
             {
@@ -858,14 +744,16 @@ TEST_F(LootSerializersTest, ParseLootTable_FromString) {
     EXPECT_EQ(1u, table->getPools().size());
 }
 
-TEST_F(LootSerializersTest, ParseLootTable_InvalidJson) {
+TEST_F(LootSerializersTest, ParseLootTable_InvalidJson)
+{
     std::string jsonStr = "{ invalid json }";
 
     auto result = LootSerializers::parseLootTable(jsonStr);
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseLootTable_NotAnObject) {
+TEST_F(LootSerializersTest, ParseLootTable_NotAnObject)
+{
     nlohmann::json json = "not an object";
 
     auto result = LootSerializers::parseLootTable(json);
@@ -876,7 +764,8 @@ TEST_F(LootSerializersTest, ParseLootTable_NotAnObject) {
 // Serialization Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, ToJson_RandomValueRange) {
+TEST_F(LootSerializersTest, ToJson_RandomValueRange)
+{
     RandomValueRange range(1.0f, 5.0f);
     nlohmann::json json = LootSerializers::toJson(range);
 
@@ -885,7 +774,8 @@ TEST_F(LootSerializersTest, ToJson_RandomValueRange) {
     EXPECT_FLOAT_EQ(5.0f, json["max"].get<f32>());
 }
 
-TEST_F(LootSerializersTest, ToJson_RandomValueRange_Fixed) {
+TEST_F(LootSerializersTest, ToJson_RandomValueRange_Fixed)
+{
     RandomValueRange range(3.0f);
     nlohmann::json json = LootSerializers::toJson(range);
 
@@ -893,7 +783,8 @@ TEST_F(LootSerializersTest, ToJson_RandomValueRange_Fixed) {
     EXPECT_EQ(3, json.get<i32>());
 }
 
-TEST_F(LootSerializersTest, ToJson_BinomialRange) {
+TEST_F(LootSerializersTest, ToJson_BinomialRange)
+{
     BinomialRange range(10, 0.5f);
     nlohmann::json json = LootSerializers::toJson(range);
 
@@ -903,7 +794,8 @@ TEST_F(LootSerializersTest, ToJson_BinomialRange) {
     EXPECT_FLOAT_EQ(0.5f, json["p"].get<f32>());
 }
 
-TEST_F(LootSerializersTest, ToJson_ConstantRange) {
+TEST_F(LootSerializersTest, ToJson_ConstantRange)
+{
     ConstantRange range(42);
     nlohmann::json json = LootSerializers::toJson(range);
 
@@ -911,7 +803,8 @@ TEST_F(LootSerializersTest, ToJson_ConstantRange) {
     EXPECT_EQ(42, json.get<i32>());
 }
 
-TEST_F(LootSerializersTest, ToJson_LootTable) {
+TEST_F(LootSerializersTest, ToJson_LootTable)
+{
     auto table = std::make_unique<LootTable>();
     auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 3.0f));
     pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f, 1.0f), 1, 0));
@@ -925,7 +818,8 @@ TEST_F(LootSerializersTest, ToJson_LootTable) {
     EXPECT_EQ(1u, json["pools"].size());
 }
 
-TEST_F(LootSerializersTest, ToJsonString_Pretty) {
+TEST_F(LootSerializersTest, ToJsonString_Pretty)
+{
     auto table = std::make_unique<LootTable>();
     auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f));
     pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
@@ -938,13 +832,14 @@ TEST_F(LootSerializersTest, ToJsonString_Pretty) {
     EXPECT_TRUE(jsonStr.find("\"minecraft:diamond\"") != std::string::npos);
 }
 
-TEST_F(LootSerializersTest, ToJsonString_Compact) {
+TEST_F(LootSerializersTest, ToJsonString_Compact)
+{
     auto table = std::make_unique<LootTable>();
     auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f));
     pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
     table->addPool(std::move(pool));
 
-    std::string jsonStr = LootSerializers::toJsonString(*table);  // 默认紧凑格式
+    std::string jsonStr = LootSerializers::toJsonString(*table); // 默认紧凑格式
 
     EXPECT_TRUE(jsonStr.find("\"pools\"") != std::string::npos);
     // 紧凑格式不应该有缩进
@@ -955,7 +850,8 @@ TEST_F(LootSerializersTest, ToJsonString_Compact) {
 // Round-trip Tests
 // ============================================================================
 
-TEST_F(LootSerializersTest, RoundTrip_SimpleTable) {
+TEST_F(LootSerializersTest, RoundTrip_SimpleTable)
+{
     // 创建原始掉落表
     auto originalTable = std::make_unique<LootTable>();
     auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 3.0f));
@@ -979,7 +875,8 @@ TEST_F(LootSerializersTest, RoundTrip_SimpleTable) {
     EXPECT_EQ(2u, parsedPool->getEntries().size());
 }
 
-TEST_F(LootSerializersTest, RoundTrip_TableWithConditions) {
+TEST_F(LootSerializersTest, RoundTrip_TableWithConditions)
+{
     // 创建带条件的掉落表
     auto originalTable = std::make_unique<LootTable>();
     auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f));

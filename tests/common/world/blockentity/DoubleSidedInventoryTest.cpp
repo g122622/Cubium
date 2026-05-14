@@ -1,14 +1,15 @@
-#include <gtest/gtest.h>
 #include "world/blockentity/storage/DoubleSidedInventory.hpp"
-#include "world/blockentity/core/SimpleInventory.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "world/blockentity/core/SimpleInventory.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::blockentity;
 
 namespace {
-Item* ensureTestItem(const char* path) {
+Item* ensureTestItem(const char* path)
+{
     auto& registry = ItemRegistry::instance();
     const ResourceLocation id("minecraft", path);
     if (Item* existing = registry.getItem(id); existing != nullptr) {
@@ -22,7 +23,8 @@ Item* ensureTestItem(const char* path) {
 
 class DoubleSidedInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_diamond = ensureTestItem("diamond");
         m_iron = ensureTestItem("iron_ingot");
@@ -32,8 +34,7 @@ protected:
         m_lowerInventory = std::make_unique<SimpleInventory>(27);
 
         // 创建双箱
-        m_doubleInventory = std::make_unique<DoubleSidedInventory>(
-            m_upperInventory.get(), m_lowerInventory.get());
+        m_doubleInventory = std::make_unique<DoubleSidedInventory>(m_upperInventory.get(), m_lowerInventory.get());
     }
 
     std::unique_ptr<SimpleInventory> m_upperInventory;
@@ -43,39 +44,47 @@ protected:
     Item* m_iron = nullptr;
 };
 
-TEST_F(DoubleSidedInventoryTest, Create_HasCorrectSize) {
+TEST_F(DoubleSidedInventoryTest, Create_HasCorrectSize)
+{
     // 双箱 = 27 + 27 = 54 格
     EXPECT_EQ(m_doubleInventory->getContainerSize(), 54);
 }
 
-TEST_F(DoubleSidedInventoryTest, Create_IsEmptyInitially) {
+TEST_F(DoubleSidedInventoryTest, Create_IsEmptyInitially)
+{
     EXPECT_TRUE(m_doubleInventory->isEmpty());
 }
 
-TEST_F(DoubleSidedInventoryTest, GetUpper_ReturnsUpperInventory) {
+TEST_F(DoubleSidedInventoryTest, GetUpper_ReturnsUpperInventory)
+{
     EXPECT_EQ(m_doubleInventory->getUpper(), m_upperInventory.get());
 }
 
-TEST_F(DoubleSidedInventoryTest, GetLower_ReturnsLowerInventory) {
+TEST_F(DoubleSidedInventoryTest, GetLower_ReturnsLowerInventory)
+{
     EXPECT_EQ(m_doubleInventory->getLower(), m_lowerInventory.get());
 }
 
-TEST_F(DoubleSidedInventoryTest, IsPartOfLargeChest_UpperReturnsTrue) {
+TEST_F(DoubleSidedInventoryTest, IsPartOfLargeChest_UpperReturnsTrue)
+{
     EXPECT_TRUE(m_doubleInventory->isPartOfLargeChest(m_upperInventory.get()));
 }
 
-TEST_F(DoubleSidedInventoryTest, IsPartOfLargeChest_LowerReturnsTrue) {
+TEST_F(DoubleSidedInventoryTest, IsPartOfLargeChest_LowerReturnsTrue)
+{
     EXPECT_TRUE(m_doubleInventory->isPartOfLargeChest(m_lowerInventory.get()));
 }
 
-TEST_F(DoubleSidedInventoryTest, IsPartOfLargeChest_OtherReturnsFalse) {
+TEST_F(DoubleSidedInventoryTest, IsPartOfLargeChest_OtherReturnsFalse)
+{
     SimpleInventory other(27);
     EXPECT_FALSE(m_doubleInventory->isPartOfLargeChest(&other));
 }
 
 // ========== 槽位转换测试 ==========
 
-TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot0ToUpperSlot0) {
+TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot0ToUpperSlot0)
+{
     IInventory* container = nullptr;
     i32 localSlot = -1;
 
@@ -84,7 +93,8 @@ TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot0ToUpperSlot0) {
     EXPECT_EQ(localSlot, 0);
 }
 
-TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot26ToUpperSlot26) {
+TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot26ToUpperSlot26)
+{
     IInventory* container = nullptr;
     i32 localSlot = -1;
 
@@ -93,7 +103,8 @@ TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot26ToUpperSlot26) {
     EXPECT_EQ(localSlot, 26);
 }
 
-TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot27ToLowerSlot0) {
+TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot27ToLowerSlot0)
+{
     IInventory* container = nullptr;
     i32 localSlot = -1;
 
@@ -102,7 +113,8 @@ TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot27ToLowerSlot0) {
     EXPECT_EQ(localSlot, 0);
 }
 
-TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot53ToLowerSlot26) {
+TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot53ToLowerSlot26)
+{
     IInventory* container = nullptr;
     i32 localSlot = -1;
 
@@ -111,7 +123,8 @@ TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_Slot53ToLowerSlot26) {
     EXPECT_EQ(localSlot, 26);
 }
 
-TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_InvalidSlotReturnsFalse) {
+TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_InvalidSlotReturnsFalse)
+{
     IInventory* container = nullptr;
     i32 localSlot = -1;
 
@@ -122,7 +135,8 @@ TEST_F(DoubleSidedInventoryTest, GetContainerAndSlot_InvalidSlotReturnsFalse) {
 
 // ========== 物品操作测试 ==========
 
-TEST_F(DoubleSidedInventoryTest, SetItem_UpperSlot) {
+TEST_F(DoubleSidedInventoryTest, SetItem_UpperSlot)
+{
     m_doubleInventory->setItem(5, ItemStack(m_diamond, 32));
 
     EXPECT_EQ(m_upperInventory->getItem(5).getItem(), m_diamond);
@@ -131,7 +145,8 @@ TEST_F(DoubleSidedInventoryTest, SetItem_UpperSlot) {
     EXPECT_EQ(m_doubleInventory->getItem(5).getCount(), 32);
 }
 
-TEST_F(DoubleSidedInventoryTest, SetItem_LowerSlot) {
+TEST_F(DoubleSidedInventoryTest, SetItem_LowerSlot)
+{
     m_doubleInventory->setItem(30, ItemStack(m_iron, 16));
 
     // 30 - 27 = 3
@@ -141,7 +156,8 @@ TEST_F(DoubleSidedInventoryTest, SetItem_LowerSlot) {
     EXPECT_EQ(m_doubleInventory->getItem(30).getCount(), 16);
 }
 
-TEST_F(DoubleSidedInventoryTest, RemoveItem_RemovesFromCorrectContainer) {
+TEST_F(DoubleSidedInventoryTest, RemoveItem_RemovesFromCorrectContainer)
+{
     m_doubleInventory->setItem(10, ItemStack(m_diamond, 10));
 
     ItemStack removed = m_doubleInventory->removeItem(10, 5);
@@ -152,7 +168,8 @@ TEST_F(DoubleSidedInventoryTest, RemoveItem_RemovesFromCorrectContainer) {
     EXPECT_EQ(m_upperInventory->getItem(10).getCount(), 5);
 }
 
-TEST_F(DoubleSidedInventoryTest, Clear_ClearsBothContainers) {
+TEST_F(DoubleSidedInventoryTest, Clear_ClearsBothContainers)
+{
     m_upperInventory->setItem(0, ItemStack(m_diamond, 10));
     m_lowerInventory->setItem(0, ItemStack(m_iron, 20));
 
@@ -163,30 +180,35 @@ TEST_F(DoubleSidedInventoryTest, Clear_ClearsBothContainers) {
     EXPECT_TRUE(m_lowerInventory->isEmpty());
 }
 
-TEST_F(DoubleSidedInventoryTest, IsEmpty_ReturnsFalseWhenUpperHasItems) {
+TEST_F(DoubleSidedInventoryTest, IsEmpty_ReturnsFalseWhenUpperHasItems)
+{
     m_upperInventory->setItem(0, ItemStack(m_diamond, 1));
     EXPECT_FALSE(m_doubleInventory->isEmpty());
 }
 
-TEST_F(DoubleSidedInventoryTest, IsEmpty_ReturnsFalseWhenLowerHasItems) {
+TEST_F(DoubleSidedInventoryTest, IsEmpty_ReturnsFalseWhenLowerHasItems)
+{
     m_lowerInventory->setItem(0, ItemStack(m_diamond, 1));
     EXPECT_FALSE(m_doubleInventory->isEmpty());
 }
 
 // ========== 物品查找测试 ==========
 
-TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_ReturnsZeroWhenEmpty) {
+TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_ReturnsZeroWhenEmpty)
+{
     EXPECT_EQ(m_doubleInventory->getFirstEmptySlot(), 0);
 }
 
-TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_ReturnsCorrectSlot) {
+TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_ReturnsCorrectSlot)
+{
     m_doubleInventory->setItem(0, ItemStack(m_diamond, 1));
     m_doubleInventory->setItem(1, ItemStack(m_diamond, 1));
 
     EXPECT_EQ(m_doubleInventory->getFirstEmptySlot(), 2);
 }
 
-TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_ReturnsMinusOneWhenFull) {
+TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_ReturnsMinusOneWhenFull)
+{
     // 填满所有槽位
     for (i32 i = 0; i < 54; ++i) {
         m_doubleInventory->setItem(i, ItemStack(m_diamond, 1));
@@ -195,7 +217,8 @@ TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_ReturnsMinusOneWhenFull) {
     EXPECT_EQ(m_doubleInventory->getFirstEmptySlot(), -1);
 }
 
-TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_CrossesContainerBoundary) {
+TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_CrossesContainerBoundary)
+{
     // 填满上半部分
     for (i32 i = 0; i < 27; ++i) {
         m_upperInventory->setItem(i, ItemStack(m_diamond, 1));
@@ -205,17 +228,19 @@ TEST_F(DoubleSidedInventoryTest, GetFirstEmptySlot_CrossesContainerBoundary) {
     EXPECT_EQ(m_doubleInventory->getFirstEmptySlot(), 27);
 }
 
-TEST_F(DoubleSidedInventoryTest, CountItem_CountsBothContainers) {
+TEST_F(DoubleSidedInventoryTest, CountItem_CountsBothContainers)
+{
     m_upperInventory->setItem(0, ItemStack(m_diamond, 10));
     m_upperInventory->setItem(1, ItemStack(m_diamond, 20));
     m_lowerInventory->setItem(0, ItemStack(m_diamond, 15));
     m_lowerInventory->setItem(1, ItemStack(m_iron, 5));
 
-    EXPECT_EQ(m_doubleInventory->countItem(*m_diamond), 45);  // 10 + 20 + 15
+    EXPECT_EQ(m_doubleInventory->countItem(*m_diamond), 45); // 10 + 20 + 15
     EXPECT_EQ(m_doubleInventory->countItem(*m_iron), 5);
 }
 
-TEST_F(DoubleSidedInventoryTest, HasItem_ReturnsTrueWhenPresent) {
+TEST_F(DoubleSidedInventoryTest, HasItem_ReturnsTrueWhenPresent)
+{
     m_lowerInventory->setItem(10, ItemStack(m_diamond, 1));
 
     EXPECT_TRUE(m_doubleInventory->hasItem(*m_diamond));
@@ -224,7 +249,8 @@ TEST_F(DoubleSidedInventoryTest, HasItem_ReturnsTrueWhenPresent) {
 
 // ========== 变更通知测试 ==========
 
-TEST_F(DoubleSidedInventoryTest, SetChanged_MarksContainers) {
+TEST_F(DoubleSidedInventoryTest, SetChanged_MarksContainers)
+{
     // 设置变更标志
     m_doubleInventory->setChanged();
 
@@ -235,18 +261,21 @@ TEST_F(DoubleSidedInventoryTest, SetChanged_MarksContainers) {
 
 // ========== 最大堆叠测试 ==========
 
-TEST_F(DoubleSidedInventoryTest, GetMaxStackSize_Returns64) {
+TEST_F(DoubleSidedInventoryTest, GetMaxStackSize_Returns64)
+{
     EXPECT_EQ(m_doubleInventory->getMaxStackSize(), 64);
 }
 
-TEST_F(DoubleSidedInventoryTest, CanPlaceItem_DelegatesToUpperContainer) {
+TEST_F(DoubleSidedInventoryTest, CanPlaceItem_DelegatesToUpperContainer)
+{
     ItemStack stack(m_diamond, 1);
 
     EXPECT_TRUE(m_doubleInventory->canPlaceItem(0, stack));
     EXPECT_TRUE(m_doubleInventory->canPlaceItem(26, stack));
 }
 
-TEST_F(DoubleSidedInventoryTest, CanPlaceItem_DelegatesToLowerContainer) {
+TEST_F(DoubleSidedInventoryTest, CanPlaceItem_DelegatesToLowerContainer)
+{
     ItemStack stack(m_diamond, 1);
 
     EXPECT_TRUE(m_doubleInventory->canPlaceItem(27, stack));
@@ -255,19 +284,21 @@ TEST_F(DoubleSidedInventoryTest, CanPlaceItem_DelegatesToLowerContainer) {
 
 // ========== 边界条件测试 ==========
 
-TEST_F(DoubleSidedInventoryTest, SetItem_OutOfRangeBehavior) {
+TEST_F(DoubleSidedInventoryTest, SetItem_OutOfRangeBehavior)
+{
     // 注意：DoubleSidedInventory 内部会检查槽位范围
     // 越界访问应该有保护或断言
 
     // 在边界上操作
-    m_doubleInventory->setItem(0, ItemStack(m_diamond, 1));   // 第一个槽位
-    m_doubleInventory->setItem(53, ItemStack(m_iron, 1));      // 最后一个槽位
+    m_doubleInventory->setItem(0, ItemStack(m_diamond, 1)); // 第一个槽位
+    m_doubleInventory->setItem(53, ItemStack(m_iron, 1));   // 最后一个槽位
 
     EXPECT_EQ(m_doubleInventory->getItem(0).getItem(), m_diamond);
     EXPECT_EQ(m_doubleInventory->getItem(53).getItem(), m_iron);
 }
 
-TEST_F(DoubleSidedInventoryTest, RemoveItemNoUpdate_RemovesWithoutNotify) {
+TEST_F(DoubleSidedInventoryTest, RemoveItemNoUpdate_RemovesWithoutNotify)
+{
     m_doubleInventory->setItem(5, ItemStack(m_diamond, 10));
 
     ItemStack removed = m_doubleInventory->removeItemNoUpdate(5);

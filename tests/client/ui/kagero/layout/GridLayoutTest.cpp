@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
-#include "client/ui/kagero/widget/Widget.hpp"
-#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include "common/core/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::layout;
@@ -11,13 +11,14 @@ using namespace mc::client::ui::kagero::widget;
 
 class GridTestWidget : public Widget {
 public:
-    explicit GridTestWidget(const std::string& id) : Widget(id) {}
-    void paint(PaintContext& ctx) override {
-        (void)ctx;
-    }
+    explicit GridTestWidget(const std::string& id)
+        : Widget(id)
+    {}
+    void paint(PaintContext& ctx) override { (void)ctx; }
 };
 
-TEST(GridLayoutTest, BasicGridPlacement) {
+TEST(GridLayoutTest, BasicGridPlacement)
+{
     GridLayout layout;
     layout.setColumns(2);
     layout.setColumnGap(10);

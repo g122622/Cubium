@@ -1,26 +1,26 @@
 #include "ItemPickupManager.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/entity/EntityTracker.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/Packet.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/world/entity/EntityManager.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include <spdlog/spdlog.h>
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "server/application/IServer.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/entity/EntityTracker.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::server {
 
@@ -28,7 +28,8 @@ namespace mc::server {
 // tick
 // ============================================================================
 
-void ItemPickupManager::tick(IServer& server) {
+void ItemPickupManager::tick(IServer& server)
+{
     // 处理物品合并
     processItemMerging(server);
 
@@ -45,20 +46,19 @@ void ItemPickupManager::tick(IServer& server) {
 // checkPlayerPickup
 // ============================================================================
 
-void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player) {
+void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player)
+{
     // 计算拾取范围
     f32 range = calculatePickupRange(player);
     Vector3 playerPos = player.position();
 
     // 查找附近的物品实体
-    AxisAlignedBB searchBox(
-        playerPos.x - range,
+    AxisAlignedBB searchBox(playerPos.x - range,
         playerPos.y - range,
         playerPos.z - range,
         playerPos.x + range,
         playerPos.y + player.height() + range,
-        playerPos.z + range
-    );
+        playerPos.z + range);
 
     auto nearbyEntities = server.world().getEntitiesInAABB(searchBox, &player);
 
@@ -91,15 +91,12 @@ void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player) {
 // tryPickupItem
 // ============================================================================
 
-bool ItemPickupManager::tryPickupItem(
-    IServer& server,
-    Entity& player,
-    ItemEntity& itemEntity)
+bool ItemPickupManager::tryPickupItem(IServer& server, Entity& player, ItemEntity& itemEntity)
 {
     // 获取物品堆
     ItemStack& stack = const_cast<ItemStack&>(itemEntity.getItemStack());
     if (stack.isEmpty()) {
-        return true;  // 空物品，直接移除
+        return true; // 空物品，直接移除
     }
 
     // 检查是否是玩家
@@ -136,23 +133,24 @@ bool ItemPickupManager::tryPickupItem(
 // processItemMerging
 // ============================================================================
 
-void ItemPickupManager::processItemMerging(IServer& server) {
+void ItemPickupManager::processItemMerging(IServer& server)
+{
     // 收集所有存活的物品实体
     std::vector<ItemEntity*> itemEntities;
     server.entityManager().forEachEntity([&itemEntities](Entity* entity) {
         if (entity && entity->isAlive() && entity->legacyType() == LegacyEntityType::Item) {
             itemEntities.push_back(static_cast<ItemEntity*>(entity));
         }
-        return true;  // 继续遍历
+        return true; // 继续遍历
     });
 
     if (itemEntities.size() < 2) {
-        return;  // 少于2个物品无需合并
+        return; // 少于2个物品无需合并
     }
 
     // 使用空间哈希网格优化合并检测
     // 哈希键 = 区块坐标，每个单元格大小为 MERGE_RANGE
-    constexpr f32 CELL_SIZE = MERGE_RANGE * 2.0f;  // 单元格大小为合并范围的2倍
+    constexpr f32 CELL_SIZE = MERGE_RANGE * 2.0f; // 单元格大小为合并范围的2倍
     std::unordered_map<i64, std::vector<ItemEntity*>> grid;
 
     // 将物品分配到网格单元格
@@ -166,10 +164,7 @@ void ItemPickupManager::processItemMerging(IServer& server) {
 
     // 只检查同一单元格和相邻单元格内的物品
     constexpr i32 NEIGHBOR_OFFSETS[9][2] = {
-        {-1, -1}, {-1, 0}, {-1, 1},
-        {0, -1},  {0, 0},  {0, 1},
-        {1, -1},  {1, 0},  {1, 1}
-    };
+        {-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 0}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
     constexpr f32 MERGE_RANGE_SQ = MERGE_RANGE * MERGE_RANGE;
 
     for (const auto& [key, items] : grid) {
@@ -179,8 +174,8 @@ void ItemPickupManager::processItemMerging(IServer& server) {
         // 获取当前单元格和相邻单元格的所有物品
         std::vector<ItemEntity*> nearbyItems;
         for (const auto& offset : NEIGHBOR_OFFSETS) {
-            i64 neighborKey = (static_cast<i64>(cellX + offset[0]) << 32) |
-                              (static_cast<i64>(cellZ + offset[1]) & 0xFFFFFFFF);
+            i64 neighborKey =
+                (static_cast<i64>(cellX + offset[0]) << 32) | (static_cast<i64>(cellZ + offset[1]) & 0xFFFFFFFF);
             auto it = grid.find(neighborKey);
             if (it != grid.end()) {
                 nearbyItems.insert(nearbyItems.end(), it->second.begin(), it->second.end());
@@ -226,7 +221,8 @@ void ItemPickupManager::processItemMerging(IServer& server) {
 // calculatePickupRange
 // ============================================================================
 
-f32 ItemPickupManager::calculatePickupRange(const Entity& player) const {
+f32 ItemPickupManager::calculatePickupRange(const Entity& player) const
+{
     f32 range = PICKUP_RANGE;
 
     // 潜行时范围缩小
@@ -244,7 +240,8 @@ f32 ItemPickupManager::calculatePickupRange(const Entity& player) const {
 // canPickup
 // ============================================================================
 
-bool ItemPickupManager::canPickup(const Entity& player, const ItemEntity& itemEntity) const {
+bool ItemPickupManager::canPickup(const Entity& player, const ItemEntity& itemEntity) const
+{
     // 检查是否可拾取
     if (!itemEntity.canBePickedUp()) {
         return false;
@@ -260,7 +257,8 @@ bool ItemPickupManager::canPickup(const Entity& player, const ItemEntity& itemEn
 // sendInventoryUpdate
 // ============================================================================
 
-void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player) {
+void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player)
+{
     // 获取玩家ID
     PlayerId playerId = player.playerId();
     ServerPlayerData* playerData = server.playerManager().getPlayer(playerId);
@@ -282,9 +280,9 @@ void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player) {
     network::PacketSerializer fullPacket;
     fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + payload.size()));
     fullPacket.writeU16(static_cast<u16>(network::PacketType::PlayerInventory));
-    fullPacket.writeU16(0);  // flags
-    fullPacket.writeU16(0);  // reserved
-    fullPacket.writeU16(0);  // padding
+    fullPacket.writeU16(0); // flags
+    fullPacket.writeU16(0); // reserved
+    fullPacket.writeU16(0); // padding
     fullPacket.writeBytes(payload.buffer());
 
     // 发送给玩家
@@ -295,7 +293,8 @@ void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player) {
 // sendItemEntityUpdate
 // ============================================================================
 
-void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity) {
+void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity)
+{
     network::SpawnEntityPacket packet;
     packet.setEntityId(static_cast<u32>(itemEntity.id()));
 
@@ -311,11 +310,9 @@ void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& 
     packet.setRotation(itemEntity.yaw(), itemEntity.pitch());
 
     const auto velocity = itemEntity.velocity();
-    packet.setVelocity(
-        static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+    packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
         static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f))
-    );
+        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
     packet.setItemStack(itemEntity.getItemStack());
 
     auto result = packet.serialize();
@@ -349,11 +346,7 @@ void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& 
 // sendCollectItem
 // ============================================================================
 
-void ItemPickupManager::sendCollectItem(
-    IServer& server,
-    EntityId entityId,
-    EntityId collectorId,
-    i32 pickupItemCount)
+void ItemPickupManager::sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount)
 {
     network::CollectItemPacket collectPacket;
     collectPacket.setCollectedEntityId(static_cast<u32>(entityId));

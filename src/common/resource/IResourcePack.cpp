@@ -2,7 +2,8 @@
 
 namespace mc {
 
-Result<std::string> IResourcePack::readTextResource(std::string_view resourcePath) const {
+Result<std::string> IResourcePack::readTextResource(std::string_view resourcePath) const
+{
     auto result = readResource(resourcePath);
     if (result.failed()) {
         return result.error();

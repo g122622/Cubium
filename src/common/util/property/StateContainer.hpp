@@ -1,19 +1,19 @@
 #pragma once
 
-#include "IProperty.hpp"
-#include "StateHolder.hpp"
-#include "Property.hpp"
 #include "BooleanProperty.hpp"
-#include "IntegerProperty.hpp"
 #include "DirectionProperty.hpp"
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <functional>
+#include "IProperty.hpp"
+#include "IntegerProperty.hpp"
+#include "Property.hpp"
+#include "StateHolder.hpp"
 #include <algorithm>
+#include <functional>
+#include <memory>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
-#include <regex>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 
@@ -32,23 +32,26 @@ namespace mc {
  * - 属性名称必须符合 [a-z0-9_]+ 格式
  * - 每个属性至少需要2个值
  */
-template<typename Owner, typename State>
+template <typename Owner, typename State>
 class StateContainer {
 public:
-    using StateFactory = std::function<std::unique_ptr<State>(
-        const Owner&, std::unordered_map<const IProperty*, size_t>, u32)>;
+    using StateFactory =
+        std::function<std::unique_ptr<State>(const Owner&, std::unordered_map<const IProperty*, size_t>, u32)>;
 
     /**
      * @brief 构建器
      */
     class Builder {
     public:
-        explicit Builder(Owner& owner) : m_owner(owner) {}
+        explicit Builder(Owner& owner)
+            : m_owner(owner)
+        {}
 
         /**
          * @brief 添加属性（拥有所有权）
          */
-        Builder& add(std::unique_ptr<IProperty> prop) {
+        Builder& add(std::unique_ptr<IProperty> prop)
+        {
             if (!prop) {
                 throw std::invalid_argument("Property cannot be null");
             }
@@ -63,7 +66,8 @@ public:
         /**
          * @brief 添加属性（借用引用，不转移所有权）
          */
-        Builder& add(const IProperty* prop) {
+        Builder& add(const IProperty* prop)
+        {
             if (!prop) {
                 throw std::invalid_argument("Property cannot be null");
             }
@@ -75,53 +79,50 @@ public:
         /**
          * @brief 添加属性（引用版本）
          */
-        template<typename T>
-        Builder& add(const Property<T>& prop) {
+        template <typename T>
+        Builder& add(const Property<T>& prop)
+        {
             return add(static_cast<const IProperty*>(&prop));
         }
 
         /**
          * @brief 添加布尔属性
          */
-        Builder& addBoolean(const std::string& name) {
-            return add(BooleanProperty::create(name));
-        }
+        Builder& addBoolean(const std::string& name) { return add(BooleanProperty::create(name)); }
 
         /**
          * @brief 添加整数属性
          */
-        Builder& addInteger(const std::string& name, i32 min, i32 max) {
+        Builder& addInteger(const std::string& name, i32 min, i32 max)
+        {
             return add(IntegerProperty::create(name, min, max));
         }
 
         /**
          * @brief 添加方向属性（所有方向）
          */
-        Builder& addDirection(const std::string& name) {
-            return add(DirectionProperty::create(name));
-        }
+        Builder& addDirection(const std::string& name) { return add(DirectionProperty::create(name)); }
 
         /**
          * @brief 添加方向属性（仅水平方向）
          */
-        Builder& addHorizontalDirection(const std::string& name) {
+        Builder& addHorizontalDirection(const std::string& name)
+        {
             return add(DirectionProperty::createHorizontal(name));
         }
 
         /**
          * @brief 添加坐标轴属性
          */
-        Builder& addAxis(const std::string& name) {
-            return add(AxisProperty::create(name));
-        }
+        Builder& addAxis(const std::string& name) { return add(AxisProperty::create(name)); }
 
         /**
          * @brief 构建状态容器
          */
-        std::unique_ptr<StateContainer> create(StateFactory factory) {
-            return std::unique_ptr<StateContainer>(new StateContainer(
-                m_owner, std::move(m_properties), std::move(m_ownedProperties), factory
-            ));
+        std::unique_ptr<StateContainer> create(StateFactory factory)
+        {
+            return std::unique_ptr<StateContainer>(
+                new StateContainer(m_owner, std::move(m_properties), std::move(m_ownedProperties), factory));
         }
 
     private:
@@ -129,21 +130,19 @@ public:
         std::unordered_map<std::string, const IProperty*> m_properties;
         std::vector<std::unique_ptr<IProperty>> m_ownedProperties;
 
-        void validateProperty(const IProperty& prop) {
+        void validateProperty(const IProperty& prop)
+        {
             static const std::regex NAME_PATTERN("^[a-z0-9_]+$");
             if (!std::regex_match(prop.name(), NAME_PATTERN)) {
                 throw std::invalid_argument("Invalid property name: " + prop.name());
             }
             if (prop.valueCount() <= 1) {
-                throw std::invalid_argument(
-                    "Property " + prop.name() + " must have more than 1 possible value"
-                );
+                throw std::invalid_argument("Property " + prop.name() + " must have more than 1 possible value");
             }
             for (size_t i = 0; i < prop.valueCount(); ++i) {
                 if (!std::regex_match(prop.valueToString(i), NAME_PATTERN)) {
                     throw std::invalid_argument(
-                        "Property " + prop.name() + " has invalid value name: " + prop.valueToString(i)
-                    );
+                        "Property " + prop.name() + " has invalid value name: " + prop.valueToString(i));
                 }
             }
             if (m_properties.find(prop.name()) != m_properties.end()) {
@@ -158,17 +157,20 @@ public:
     [[nodiscard]] const Owner& owner() const { return m_owner; }
     [[nodiscard]] const std::unordered_map<std::string, const IProperty*>& properties() const { return m_properties; }
 
-    [[nodiscard]] const IProperty* getProperty(std::string_view name) const {
+    [[nodiscard]] const IProperty* getProperty(std::string_view name) const
+    {
         auto it = m_properties.find(std::string(name));
         return it != m_properties.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const State* getStateById(u32 id) const {
+    [[nodiscard]] const State* getStateById(u32 id) const
+    {
         if (id >= m_states.size()) return nullptr;
         return m_states[id].get();
     }
 
-    [[nodiscard]] std::string toString() const {
+    [[nodiscard]] std::string toString() const
+    {
         std::ostringstream ss;
         ss << "StateContainer{owner=" << typeid(Owner).name();
         if (!m_properties.empty()) {
@@ -187,12 +189,13 @@ public:
 
 private:
     StateContainer(Owner& owner,
-                   std::unordered_map<std::string, const IProperty*> propertiesToTransfer,
-                   std::vector<std::unique_ptr<IProperty>> ownedProperties,
-                   StateFactory factory)
+        std::unordered_map<std::string, const IProperty*> propertiesToTransfer,
+        std::vector<std::unique_ptr<IProperty>> ownedProperties,
+        StateFactory factory)
         : m_owner(owner)
         , m_properties(std::move(propertiesToTransfer))
-        , m_ownedProperties(std::move(ownedProperties)) {
+        , m_ownedProperties(std::move(ownedProperties))
+    {
         std::vector<const IProperty*> props;
         for (const auto& [name, prop] : m_properties) {
             props.push_back(prop);
@@ -200,7 +203,8 @@ private:
         generateStates(props, factory);
     }
 
-    void generateStates(const std::vector<const IProperty*>& props, StateFactory factory) {
+    void generateStates(const std::vector<const IProperty*>& props, StateFactory factory)
+    {
         size_t totalStates = 1;
         for (const auto* prop : props) {
             totalStates *= prop->valueCount();

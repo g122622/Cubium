@@ -8,11 +8,10 @@ namespace mc::client::ui::kagero::layout {
 // FlexLayout 实现
 // ============================================================================
 
-std::vector<LayoutResult> FlexLayout::compute(
-    const Rect& containerBounds,
+std::vector<LayoutResult> FlexLayout::compute(const Rect& containerBounds,
     const std::vector<WidgetLayoutAdaptor*>& children,
-    const LayoutConstraints& containerConstraints
-) {
+    const LayoutConstraints& containerConstraints)
+{
     if (children.empty()) {
         return {};
     }
@@ -53,9 +52,7 @@ std::vector<LayoutResult> FlexLayout::compute(
         for (size_t i = 0; i < line.items.size(); ++i) {
             size_t idx = line.indices[i];
             auto* child = line.items[i];
-            i32 childCross = isHorizontal ?
-                m_measuredSizes[idx].height :
-                m_measuredSizes[idx].width;
+            i32 childCross = isHorizontal ? m_measuredSizes[idx].height : m_measuredSizes[idx].width;
             childCross += child->constraints().margin.vertical();
             lineCrossSize = std::max(lineCrossSize, childCross);
         }
@@ -75,9 +72,7 @@ std::vector<LayoutResult> FlexLayout::compute(
         for (size_t i = 0; i < line.items.size(); ++i) {
             size_t idx = line.indices[i];
             auto* child = line.items[i];
-            i32 childMain = isHorizontal ?
-                m_measuredSizes[idx].width :
-                m_measuredSizes[idx].height;
+            i32 childMain = isHorizontal ? m_measuredSizes[idx].width : m_measuredSizes[idx].height;
             childMain += child->constraints().margin.horizontal();
             lineMainSize += childMain;
         }
@@ -154,12 +149,10 @@ std::vector<LayoutResult> FlexLayout::compute(
             if (m_config.isReverse()) {
                 if (isHorizontal) {
                     result.bounds.x = containerBounds.right() - containerConstraints.padding.right -
-                                     (result.bounds.x - containerBounds.x - containerConstraints.padding.left) -
-                                     result.bounds.width;
+                        (result.bounds.x - containerBounds.x - containerConstraints.padding.left) - result.bounds.width;
                 } else {
                     result.bounds.y = containerBounds.bottom() - containerConstraints.padding.bottom -
-                                     (result.bounds.y - containerBounds.y - containerConstraints.padding.top) -
-                                     result.bounds.height;
+                        (result.bounds.y - containerBounds.y - containerConstraints.padding.top) - result.bounds.height;
                 }
             }
         }
@@ -171,10 +164,8 @@ std::vector<LayoutResult> FlexLayout::compute(
 }
 
 Size FlexLayout::measure(
-    const MeasureSpec& widthSpec,
-    const MeasureSpec& heightSpec,
-    const std::vector<WidgetLayoutAdaptor*>& children
-) {
+    const MeasureSpec& widthSpec, const MeasureSpec& heightSpec, const std::vector<WidgetLayoutAdaptor*>& children)
+{
     if (children.empty()) {
         // 即使没有子元素，也要尊重测量规格
         return Size(widthSpec.resolve(0), heightSpec.resolve(0));
@@ -245,11 +236,8 @@ Size FlexLayout::measure(
     return result;
 }
 
-void FlexLayout::measureChildren(
-    const std::vector<WidgetLayoutAdaptor*>& children,
-    i32 mainAxisSize,
-    bool isHorizontal
-) {
+void FlexLayout::measureChildren(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal)
+{
     MeasureSpec mainSpec = MeasureSpec::MakeAtMost(mainAxisSize);
     MeasureSpec crossSpec = MeasureSpec::MakeUnspecified();
 
@@ -263,15 +251,11 @@ void FlexLayout::measureChildren(
         // 根据主轴方向确定测量规格
         MeasureSpec childMainSpec, childCrossSpec;
         if (isHorizontal) {
-            childMainSpec = MeasureSpec::MakeAtMost(
-                mainAxisSize - child->constraints().margin.horizontal()
-            );
+            childMainSpec = MeasureSpec::MakeAtMost(mainAxisSize - child->constraints().margin.horizontal());
             childCrossSpec = MeasureSpec::MakeUnspecified();
         } else {
             childMainSpec = MeasureSpec::MakeUnspecified();
-            childCrossSpec = MeasureSpec::MakeAtMost(
-                mainAxisSize - child->constraints().margin.vertical()
-            );
+            childCrossSpec = MeasureSpec::MakeAtMost(mainAxisSize - child->constraints().margin.vertical());
         }
 
         // 考虑子元素的最小/最大尺寸约束
@@ -296,9 +280,7 @@ void FlexLayout::measureChildren(
         }
 
         Size size = child->measure(
-            isHorizontal ? childMainSpec : childCrossSpec,
-            isHorizontal ? childCrossSpec : childMainSpec
-        );
+            isHorizontal ? childMainSpec : childCrossSpec, isHorizontal ? childCrossSpec : childMainSpec);
 
         // 应用最小/最大约束
         size.width = constraints.clampWidth(size.width);
@@ -308,11 +290,8 @@ void FlexLayout::measureChildren(
     }
 }
 
-void FlexLayout::collectLines(
-    const std::vector<WidgetLayoutAdaptor*>& children,
-    i32 mainAxisSize,
-    bool isHorizontal
-) {
+void FlexLayout::collectLines(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal)
+{
     m_lines.clear();
 
     if (m_config.wrap == Wrap::NoWrap || mainAxisSize <= 0) {
@@ -366,11 +345,8 @@ void FlexLayout::collectLines(
     }
 }
 
-void FlexLayout::distributeFreeSpace(
-    FlexLine& line,
-    i32 freeSpace,
-    bool isHorizontal
-) {
+void FlexLayout::distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHorizontal)
+{
     if (freeSpace <= 0 || line.totalGrow <= 0.0f) return;
 
     // 按grow比例分配剩余空间
@@ -391,11 +367,8 @@ void FlexLayout::distributeFreeSpace(
     }
 }
 
-void FlexLayout::shrinkSpace(
-    FlexLine& line,
-    i32 overflow,
-    bool isHorizontal
-) {
+void FlexLayout::shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal)
+{
     if (overflow <= 0 || line.totalShrink <= 0.0f) return;
 
     // 按shrink比例缩小
@@ -409,24 +382,17 @@ void FlexLayout::shrinkSpace(
         i32 reduction = static_cast<i32>(overflow * ratio);
 
         if (isHorizontal) {
-            m_measuredSizes[idx].width = std::max(
-                child->constraints().minWidth,
-                m_measuredSizes[idx].width - reduction
-            );
+            m_measuredSizes[idx].width =
+                std::max(child->constraints().minWidth, m_measuredSizes[idx].width - reduction);
         } else {
-            m_measuredSizes[idx].height = std::max(
-                child->constraints().minHeight,
-                m_measuredSizes[idx].height - reduction
-            );
+            m_measuredSizes[idx].height =
+                std::max(child->constraints().minHeight, m_measuredSizes[idx].height - reduction);
         }
     }
 }
 
-void FlexLayout::applyJustifyContent(
-    FlexLine& line,
-    i32 mainAxisSize,
-    bool isHorizontal
-) {
+void FlexLayout::applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHorizontal)
+{
     if (line.items.empty()) return;
 
     // 计算当前行的主轴总尺寸
@@ -502,11 +468,8 @@ void FlexLayout::applyJustifyContent(
     }
 }
 
-void FlexLayout::applyAlignItems(
-    FlexLine& line,
-    i32 crossAxisSize,
-    bool isHorizontal
-) {
+void FlexLayout::applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHorizontal)
+{
     for (size_t i = 0; i < line.items.size(); ++i) {
         auto* child = line.items[i];
         size_t idx = line.indices[i];
@@ -516,11 +479,9 @@ void FlexLayout::applyAlignItems(
             align = m_config.alignItems;
         }
 
-        i32 childCross = isHorizontal ?
-            m_measuredSizes[idx].height : m_measuredSizes[idx].width;
-        i32 childMarginCross = isHorizontal ?
-            child->constraints().margin.vertical() :
-            child->constraints().margin.horizontal();
+        i32 childCross = isHorizontal ? m_measuredSizes[idx].height : m_measuredSizes[idx].width;
+        i32 childMarginCross =
+            isHorizontal ? child->constraints().margin.vertical() : child->constraints().margin.horizontal();
 
         i32 totalChildCross = childCross + childMarginCross;
         i32 freeCross = crossAxisSize - totalChildCross;
@@ -542,53 +503,41 @@ void FlexLayout::applyAlignItems(
             continue;
         }
 
-        i32 crossOffset = child->constraints().margin.top;  // 默认从上/左开始
+        i32 crossOffset = child->constraints().margin.top; // 默认从上/左开始
 
         switch (align) {
             case Align::Start:
-                crossOffset = isHorizontal ?
-                    child->constraints().margin.top :
-                    child->constraints().margin.left;
+                crossOffset = isHorizontal ? child->constraints().margin.top : child->constraints().margin.left;
                 break;
 
             case Align::End:
                 crossOffset = crossAxisSize - childCross -
-                    (isHorizontal ? child->constraints().margin.bottom :
-                                    child->constraints().margin.right);
+                    (isHorizontal ? child->constraints().margin.bottom : child->constraints().margin.right);
                 break;
 
             case Align::Center:
                 crossOffset = (crossAxisSize - totalChildCross) / 2 +
-                    (isHorizontal ? child->constraints().margin.top :
-                                    child->constraints().margin.left);
+                    (isHorizontal ? child->constraints().margin.top : child->constraints().margin.left);
                 break;
 
             case Align::Stretch:
                 // 拉伸到交叉轴尺寸
                 if (isHorizontal) {
                     m_measuredSizes[idx].height = crossAxisSize - childMarginCross;
-                    m_measuredSizes[idx].height = child->flexItem().clampHeight(
-                        m_measuredSizes[idx].height
-                    );
+                    m_measuredSizes[idx].height = child->flexItem().clampHeight(m_measuredSizes[idx].height);
                     m_results[idx].bounds.height = m_measuredSizes[idx].height;
                 } else {
                     m_measuredSizes[idx].width = crossAxisSize - childMarginCross;
-                    m_measuredSizes[idx].width = child->flexItem().clampWidth(
-                        m_measuredSizes[idx].width
-                    );
+                    m_measuredSizes[idx].width = child->flexItem().clampWidth(m_measuredSizes[idx].width);
                     m_results[idx].bounds.width = m_measuredSizes[idx].width;
                 }
-                crossOffset = isHorizontal ?
-                    child->constraints().margin.top :
-                    child->constraints().margin.left;
+                crossOffset = isHorizontal ? child->constraints().margin.top : child->constraints().margin.left;
                 break;
 
             case Align::Baseline:
                 // 基线对齐（主要用于文本）
                 // 简化实现：等同于Start
-                crossOffset = isHorizontal ?
-                    child->constraints().margin.top :
-                    child->constraints().margin.left;
+                crossOffset = isHorizontal ? child->constraints().margin.top : child->constraints().margin.left;
                 break;
         }
 
@@ -600,13 +549,8 @@ void FlexLayout::applyAlignItems(
     }
 }
 
-void FlexLayout::layoutLine(
-    FlexLine& line,
-    i32 mainAxisSize,
-    i32 crossAxisSize,
-    i32 lineOffset,
-    bool isHorizontal
-) {
+void FlexLayout::layoutLine(FlexLine& line, i32 mainAxisSize, i32 crossAxisSize, i32 lineOffset, bool isHorizontal)
+{
     // 此方法暂时不使用，布局逻辑已整合到compute()中
     (void)line;
     (void)mainAxisSize;
@@ -615,20 +559,15 @@ void FlexLayout::layoutLine(
     (void)isHorizontal;
 }
 
-void FlexLayout::positionChildren(
-    const Rect& containerBounds,
-    bool isHorizontal
-) {
+void FlexLayout::positionChildren(const Rect& containerBounds, bool isHorizontal)
+{
     // 此方法暂时不使用，布局逻辑已整合到compute()中
     (void)containerBounds;
     (void)isHorizontal;
 }
 
-i32 FlexLayout::calculateMainAxisSize(
-    WidgetLayoutAdaptor* child,
-    const MeasureSpec& mainSpec,
-    bool isHorizontal
-) {
+i32 FlexLayout::calculateMainAxisSize(WidgetLayoutAdaptor* child, const MeasureSpec& mainSpec, bool isHorizontal)
+{
     const auto& constraints = child->constraints();
 
     if (isHorizontal) {
@@ -645,11 +584,8 @@ i32 FlexLayout::calculateMainAxisSize(
 }
 
 i32 FlexLayout::calculateCrossAxisSize(
-    WidgetLayoutAdaptor* child,
-    const MeasureSpec& crossSpec,
-    bool isHorizontal,
-    i32 baseline
-) {
+    WidgetLayoutAdaptor* child, const MeasureSpec& crossSpec, bool isHorizontal, i32 baseline)
+{
     const auto& constraints = child->constraints();
 
     if (isHorizontal) {

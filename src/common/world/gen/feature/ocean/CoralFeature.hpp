@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Feature.hpp"
-#include "../ConfiguredFeature.hpp"
 #include "../../../block/blocks/coral/CoralBlock.hpp"
+#include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 
 namespace mc {
 
@@ -48,19 +48,13 @@ public:
      * @param config 珊瑚配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const CoralFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 protected:
     /**
      * @brief 检查珊瑚是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查位置是否为水
@@ -70,19 +64,12 @@ protected:
     /**
      * @brief 放置珊瑚方块
      */
-    void placeCoralBlock(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        blocks::CoralColor color) const;
+    void placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const;
 
     /**
      * @brief 放置珊瑚扇
      */
-    void placeCoralFan(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        blocks::CoralColor color,
-        Direction direction) const;
+    void placeCoralFan(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
 };
 
 /**
@@ -90,12 +77,9 @@ protected:
  */
 class ConfiguredCoralFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredCoralFeature(
-        std::unique_ptr<CoralFeatureConfig> config,
-        const char* featureName);
+    ConfiguredCoralFeature(std::unique_ptr<CoralFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
@@ -118,15 +102,10 @@ private:
  */
 class CoralTreeFeature {
 public:
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const CoralFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 private:
-    void generateBranch(
-        WorldGenRegion& world,
+    void generateBranch(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
@@ -143,15 +122,10 @@ private:
  */
 class CoralMushroomFeature {
 public:
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const CoralFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 private:
-    void generateCap(
-        WorldGenRegion& world,
+    void generateCap(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
@@ -167,15 +141,10 @@ private:
  */
 class CoralClawFeature {
 public:
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const CoralFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 private:
-    void generateClaw(
-        WorldGenRegion& world,
+    void generateClaw(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,

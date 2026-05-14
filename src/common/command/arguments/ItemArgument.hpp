@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/command/StringReader.hpp"
-#include "common/command/CommandContext.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
-#include "common/item/core/ItemRegistry.hpp"
-#include "common/item/core/Item.hpp"
 #include "ArgumentType.hpp"
+#include "common/command/CommandContext.hpp"
+#include "common/command/StringReader.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include <memory>
 #include <vector>
 
@@ -25,7 +25,9 @@ namespace command {
 class ItemInput {
 public:
     ItemInput() = default;
-    explicit ItemInput(ItemId itemId) : m_itemId(itemId) {}
+    explicit ItemInput(ItemId itemId)
+        : m_itemId(itemId)
+    {}
 
     [[nodiscard]] ItemId itemId() const noexcept { return m_itemId; }
     [[nodiscard]] bool isValid() const noexcept { return m_itemId != 0; }
@@ -34,7 +36,8 @@ public:
      * @brief 获取物品
      * @return 物品指针，如果无效返回 nullptr
      */
-    [[nodiscard]] const Item* getItem() const {
+    [[nodiscard]] const Item* getItem() const
+    {
         if (!isValid()) return nullptr;
         return ItemRegistry::instance().getItem(m_itemId);
     }
@@ -62,7 +65,8 @@ private:
  */
 class ItemArgumentType : public ArgumentType<ItemInput> {
 public:
-    [[nodiscard]] ItemInput parse(StringReader& reader) override {
+    [[nodiscard]] ItemInput parse(StringReader& reader) override
+    {
         i32 start = reader.getCursor();
 
         // 读取物品名称
@@ -87,34 +91,28 @@ public:
 
         if (item == nullptr) {
             reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::Unknown,
-                "Unknown item: " + str,
-                start
-            );
+            throw CommandException(CommandErrorType::Unknown, "Unknown item: " + str, start);
         }
 
         return ItemInput(item->itemId());
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "item";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "item"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
         return {"minecraft:stone", "stone", "minecraft:diamond_sword", "diamond_sword"};
     }
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<ItemArgumentType> item() {
-        return std::make_shared<ItemArgumentType>();
-    }
+    static std::shared_ptr<ItemArgumentType> item() { return std::make_shared<ItemArgumentType>(); }
 
     // ========== 静态获取方法 ==========
 
-    template<typename S>
-    static ItemInput getItem(CommandContext<S>& context, const std::string& name) {
+    template <typename S>
+    static ItemInput getItem(CommandContext<S>& context, const std::string& name)
+    {
         return context.template getArgument<ItemInput>(name);
     }
 };
@@ -126,20 +124,21 @@ public:
  */
 class ItemPredicateArgumentType : public ArgumentType<ItemInput> {
 public:
-    [[nodiscard]] ItemInput parse(StringReader& reader) override {
+    [[nodiscard]] ItemInput parse(StringReader& reader) override
+    {
         // 与 ItemArgumentType 相同，但允许通配符等
         return ItemArgumentType().parse(reader);
     }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "item_predicate";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "item_predicate"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
         return {"minecraft:stone", "stone", "#minecraft:logs"};
     }
 
-    static std::shared_ptr<ItemPredicateArgumentType> itemPredicate() {
+    static std::shared_ptr<ItemPredicateArgumentType> itemPredicate()
+    {
         return std::make_shared<ItemPredicateArgumentType>();
     }
 };

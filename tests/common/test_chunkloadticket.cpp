@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
-#include "common/world/chunk/ChunkLoadTicket.hpp"
-#include "common/world/chunk/ChunkDistanceGraph.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/chunk/ChunkDistanceGraph.hpp"
+#include "common/world/chunk/ChunkLoadTicket.hpp"
+#include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <future>
 #include <thread>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::world;
@@ -18,24 +18,25 @@ using namespace mc::world;
 
 class ChunkLoadTicketTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        TicketTypes::initializeTicketTypes();
-    }
+    void SetUp() override { TicketTypes::initializeTicketTypes(); }
 };
 
-TEST_F(ChunkLoadTicketTest, TicketTypeCreation) {
+TEST_F(ChunkLoadTicketTest, TicketTypeCreation)
+{
     auto type = ChunkLoadTicketType<ChunkPos>::create("test");
     EXPECT_EQ(type.name(), "test");
     EXPECT_EQ(type.lifespan(), 0u);
 }
 
-TEST_F(ChunkLoadTicketTest, TicketTypeWithLifespan) {
+TEST_F(ChunkLoadTicketTest, TicketTypeWithLifespan)
+{
     auto type = ChunkLoadTicketType<u32>::create("test_lifespan", 100);
     EXPECT_EQ(type.name(), "test_lifespan");
     EXPECT_EQ(type.lifespan(), 100u);
 }
 
-TEST_F(ChunkLoadTicketTest, TicketComparison) {
+TEST_F(ChunkLoadTicketTest, TicketComparison)
+{
     // 级别小的优先级高
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
     ChunkLoadTicket t2(TicketTypes::PLAYER, 32, ChunkPos(0, 0));
@@ -44,17 +45,19 @@ TEST_F(ChunkLoadTicketTest, TicketComparison) {
     EXPECT_TRUE(t1.hasHigherPriorityThan(t2));
 }
 
-TEST_F(ChunkLoadTicketTest, TicketExpiration) {
+TEST_F(ChunkLoadTicketTest, TicketExpiration)
+{
     auto type = ChunkLoadTicketType<ChunkPos>::create("test_expire", 100);
     ChunkLoadTicket ticket(type, 31, ChunkPos(0, 0));
 
     ticket.setTimestamp(0);
-    EXPECT_FALSE(ticket.isExpired(50));   // 未过期
-    EXPECT_FALSE(ticket.isExpired(100));  // 刚好过期时间
-    EXPECT_TRUE(ticket.isExpired(101));   // 已过期
+    EXPECT_FALSE(ticket.isExpired(50));  // 未过期
+    EXPECT_FALSE(ticket.isExpired(100)); // 刚好过期时间
+    EXPECT_TRUE(ticket.isExpired(101));  // 已过期
 }
 
-TEST_F(ChunkLoadTicketTest, TicketLevel) {
+TEST_F(ChunkLoadTicketTest, TicketLevel)
+{
     ChunkLoadTicket ticket(TicketTypes::PLAYER, 31, ChunkPos(5, 10));
     EXPECT_EQ(ticket.level(), 31);
     EXPECT_TRUE(ticket.hasChunkValue());
@@ -62,7 +65,8 @@ TEST_F(ChunkLoadTicketTest, TicketLevel) {
     EXPECT_EQ(ticket.chunkValue().z, 10);
 }
 
-TEST_F(ChunkLoadTicketTest, TicketWithIntValue) {
+TEST_F(ChunkLoadTicketTest, TicketWithIntValue)
+{
     ChunkLoadTicket ticket(TicketTypes::POST_TELEPORT, 31, 42u);
     EXPECT_TRUE(ticket.hasIntValue());
     EXPECT_EQ(ticket.intValue(), 42u);
@@ -72,7 +76,8 @@ TEST_F(ChunkLoadTicketTest, TicketWithIntValue) {
 // ChunkTicketSet 测试
 // ============================================================================
 
-TEST(ChunkTicketSetTest, AddAndRemoveTicket) {
+TEST(ChunkTicketSetTest, AddAndRemoveTicket)
+{
     ChunkTicketSet set;
 
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
@@ -92,7 +97,8 @@ TEST(ChunkTicketSetTest, AddAndRemoveTicket) {
     EXPECT_EQ(set.size(), 1u);
 }
 
-TEST(ChunkTicketSetTest, MinLevel) {
+TEST(ChunkTicketSetTest, MinLevel)
+{
     ChunkTicketSet set;
 
     // 空集合返回最大级别
@@ -102,13 +108,14 @@ TEST(ChunkTicketSetTest, MinLevel) {
     EXPECT_EQ(set.getMinLevel(), 33);
 
     set.addTicket(ChunkLoadTicket(TicketTypes::FORCED, 31, ChunkPos(0, 0)));
-    EXPECT_EQ(set.getMinLevel(), 31);  // 更小的级别
+    EXPECT_EQ(set.getMinLevel(), 31); // 更小的级别
 
     set.addTicket(ChunkLoadTicket(TicketTypes::PORTAL, 32, ChunkPos(0, 0)));
-    EXPECT_EQ(set.getMinLevel(), 31);  // 仍然是最小的
+    EXPECT_EQ(set.getMinLevel(), 31); // 仍然是最小的
 }
 
-TEST(ChunkTicketSetTest, RemoveExpired) {
+TEST(ChunkTicketSetTest, RemoveExpired)
+{
     auto expireType = ChunkLoadTicketType<ChunkPos>::create("expire", 10);
     auto permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
 
@@ -122,12 +129,12 @@ TEST(ChunkTicketSetTest, RemoveExpired) {
     set.addTicket(permanent);
     EXPECT_EQ(set.size(), 2u);
 
-    set.removeExpired(5);  // 未过期
+    set.removeExpired(5); // 未过期
     EXPECT_EQ(set.size(), 2u);
 
-    set.removeExpired(20);  // 过期
+    set.removeExpired(20); // 过期
     EXPECT_EQ(set.size(), 1u);
-    EXPECT_EQ(set.getMinLevel(), 31);  // permanent 票据仍然存在
+    EXPECT_EQ(set.getMinLevel(), 31); // permanent 票据仍然存在
 }
 
 // ============================================================================
@@ -139,13 +146,15 @@ protected:
     ChunkDistanceGraph graph;
 };
 
-TEST_F(ChunkDistanceGraphTest, InitialLevel) {
+TEST_F(ChunkDistanceGraphTest, InitialLevel)
+{
     // 未设置的区块级别应为 MAX_LEVEL
     EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
     EXPECT_EQ(graph.getLevel(100, -50), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(ChunkDistanceGraphTest, SetSourceLevel) {
+TEST_F(ChunkDistanceGraphTest, SetSourceLevel)
+{
     // 设置源级别
     graph.updateSourceLevel(0, 0, 0, true);
     graph.processUpdates(100);
@@ -153,14 +162,15 @@ TEST_F(ChunkDistanceGraphTest, SetSourceLevel) {
     EXPECT_EQ(graph.getLevel(0, 0), 0);
 }
 
-TEST_F(ChunkDistanceGraphTest, LevelPropagation) {
+TEST_F(ChunkDistanceGraphTest, LevelPropagation)
+{
     // 设置源区块级别并传播
     graph.updateSourceLevel(0, 0, 0, true);
     graph.processUpdates(100);
 
     // 检查级别传播
     EXPECT_EQ(graph.getLevel(0, 0), 0);
-    EXPECT_EQ(graph.getLevel(1, 0), 1);  // 相邻区块 = 源 + 1
+    EXPECT_EQ(graph.getLevel(1, 0), 1); // 相邻区块 = 源 + 1
     EXPECT_EQ(graph.getLevel(0, 1), 1);
     EXPECT_EQ(graph.getLevel(-1, 0), 1);
     EXPECT_EQ(graph.getLevel(0, -1), 1);
@@ -170,7 +180,8 @@ TEST_F(ChunkDistanceGraphTest, LevelPropagation) {
     EXPECT_EQ(graph.getLevel(1, 1), 2);
 }
 
-TEST_F(ChunkDistanceGraphTest, LevelChangeCallback) {
+TEST_F(ChunkDistanceGraphTest, LevelChangeCallback)
+{
     std::vector<ChunkCoord> xs;
     std::vector<ChunkCoord> zs;
     std::vector<i32> oldLevels;
@@ -201,7 +212,8 @@ TEST_F(ChunkDistanceGraphTest, LevelChangeCallback) {
     EXPECT_TRUE(foundCenter);
 }
 
-TEST_F(ChunkDistanceGraphTest, ClearGraph) {
+TEST_F(ChunkDistanceGraphTest, ClearGraph)
+{
     graph.updateSourceLevel(0, 0, 0, true);
     graph.processUpdates(100);
     EXPECT_EQ(graph.getLevel(0, 0), 0);
@@ -220,7 +232,8 @@ protected:
     ChunkDistanceGraph graph;
 };
 
-TEST_F(ChunkDistanceGraphExtendedTest, MultipleSources) {
+TEST_F(ChunkDistanceGraphExtendedTest, MultipleSources)
+{
     // 设置两个源，级别不同
     graph.updateSourceLevel(0, 0, 20, true);
     graph.updateSourceLevel(10, 0, 20, true);
@@ -233,7 +246,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, MultipleSources) {
     EXPECT_EQ(graph.getLevel(5, 0), 25);
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, LevelIncreaseOnSourceRemoval) {
+TEST_F(ChunkDistanceGraphExtendedTest, LevelIncreaseOnSourceRemoval)
+{
     // 设置源
     graph.updateSourceLevel(0, 0, 23, true);
     graph.processUpdates(1000);
@@ -247,7 +261,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, LevelIncreaseOnSourceRemoval) {
     EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, LevelPropagationChain) {
+TEST_F(ChunkDistanceGraphExtendedTest, LevelPropagationChain)
+{
     // 设置级别 0 的源
     graph.updateSourceLevel(0, 0, 0, true);
     graph.processUpdates(1000);
@@ -255,18 +270,15 @@ TEST_F(ChunkDistanceGraphExtendedTest, LevelPropagationChain) {
     // 验证级别传播链
     // 中心级别 0，邻居 1，邻居的邻居 2，依此类推
     for (i32 dist = 0; dist <= 10; ++dist) {
-        EXPECT_EQ(graph.getLevel(dist, 0), dist)
-            << "Level at (" << dist << ", 0) should be " << dist;
-        EXPECT_EQ(graph.getLevel(-dist, 0), dist)
-            << "Level at (" << (-dist) << ", 0) should be " << dist;
-        EXPECT_EQ(graph.getLevel(0, dist), dist)
-            << "Level at (0, " << dist << ") should be " << dist;
-        EXPECT_EQ(graph.getLevel(0, -dist), dist)
-            << "Level at (0, " << (-dist) << ") should be " << dist;
+        EXPECT_EQ(graph.getLevel(dist, 0), dist) << "Level at (" << dist << ", 0) should be " << dist;
+        EXPECT_EQ(graph.getLevel(-dist, 0), dist) << "Level at (" << (-dist) << ", 0) should be " << dist;
+        EXPECT_EQ(graph.getLevel(0, dist), dist) << "Level at (0, " << dist << ") should be " << dist;
+        EXPECT_EQ(graph.getLevel(0, -dist), dist) << "Level at (0, " << (-dist) << ") should be " << dist;
     }
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, DiagonalPropagation) {
+TEST_F(ChunkDistanceGraphExtendedTest, DiagonalPropagation)
+{
     // 级别应该沿对角线传播
     graph.updateSourceLevel(0, 0, 0, true);
     graph.processUpdates(1000);
@@ -278,7 +290,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, DiagonalPropagation) {
     EXPECT_EQ(graph.getLevel(3, 3), 6);
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, LevelChangeCallbackOrder) {
+TEST_F(ChunkDistanceGraphExtendedTest, LevelChangeCallbackOrder)
+{
     std::vector<std::tuple<ChunkCoord, ChunkCoord, i32, i32>> changes;
 
     graph.setLevelChangeCallback([&](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -304,7 +317,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, LevelChangeCallbackOrder) {
     EXPECT_TRUE(foundCenter);
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, ProcessUpdatesInBatches) {
+TEST_F(ChunkDistanceGraphExtendedTest, ProcessUpdatesInBatches)
+{
     // 设置源
     graph.updateSourceLevel(0, 0, 0, true);
 
@@ -312,7 +326,7 @@ TEST_F(ChunkDistanceGraphExtendedTest, ProcessUpdatesInBatches) {
     i32 totalProcessed = 0;
     i32 processed;
     do {
-        processed = graph.processUpdates(10);  // 每次处理 10 个
+        processed = graph.processUpdates(10); // 每次处理 10 个
         totalProcessed += processed;
     } while (processed > 0);
 
@@ -320,7 +334,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, ProcessUpdatesInBatches) {
     EXPECT_EQ(graph.getLevel(0, 0), 0);
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, NegativeCoordinates) {
+TEST_F(ChunkDistanceGraphExtendedTest, NegativeCoordinates)
+{
     // 测试负坐标
     graph.updateSourceLevel(-100, -50, 25, true);
     graph.processUpdates(1000);
@@ -332,7 +347,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, NegativeCoordinates) {
     EXPECT_EQ(graph.getLevel(-100, -51), 26);
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, LargeCoordinates) {
+TEST_F(ChunkDistanceGraphExtendedTest, LargeCoordinates)
+{
     // 测试大坐标
     graph.updateSourceLevel(100000, 200000, 20, true);
     graph.processUpdates(1000);
@@ -341,7 +357,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, LargeCoordinates) {
     EXPECT_EQ(graph.getLevel(100001, 200000), 21);
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, MultipleUpdatesSamePosition) {
+TEST_F(ChunkDistanceGraphExtendedTest, MultipleUpdatesSamePosition)
+{
     // 对同一位置进行多次更新
     graph.updateSourceLevel(0, 0, 30, true);
     graph.processUpdates(1000);
@@ -355,10 +372,11 @@ TEST_F(ChunkDistanceGraphExtendedTest, MultipleUpdatesSamePosition) {
     // 更高的级别不应该覆盖（已经有更低的级别）
     graph.updateSourceLevel(0, 0, 25, true);
     graph.processUpdates(1000);
-    EXPECT_EQ(graph.getLevel(0, 0), 20);  // 仍然是 20
+    EXPECT_EQ(graph.getLevel(0, 0), 20); // 仍然是 20
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, SourceLevelOverride) {
+TEST_F(ChunkDistanceGraphExtendedTest, SourceLevelOverride)
+{
     // 先设置一个较高级别
     graph.updateSourceLevel(0, 0, 30, true);
     graph.processUpdates(1000);
@@ -372,10 +390,11 @@ TEST_F(ChunkDistanceGraphExtendedTest, SourceLevelOverride) {
     // 然后设置更高级别（应该不会覆盖）
     graph.updateSourceLevel(0, 0, 35, true);
     graph.processUpdates(1000);
-    EXPECT_EQ(graph.getLevel(0, 0), 20);  // 仍然是 20
+    EXPECT_EQ(graph.getLevel(0, 0), 20); // 仍然是 20
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, AllLevelsMethod) {
+TEST_F(ChunkDistanceGraphExtendedTest, AllLevelsMethod)
+{
     graph.updateSourceLevel(0, 0, 31, true);
     graph.processUpdates(1000);
 
@@ -389,7 +408,8 @@ TEST_F(ChunkDistanceGraphExtendedTest, AllLevelsMethod) {
     }
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, PropagationLimitedByMaxLevel) {
+TEST_F(ChunkDistanceGraphExtendedTest, PropagationLimitedByMaxLevel)
+{
     // 设置一个较高的级别
     graph.updateSourceLevel(0, 0, 33, true);
     graph.processUpdates(1000);
@@ -397,11 +417,12 @@ TEST_F(ChunkDistanceGraphExtendedTest, PropagationLimitedByMaxLevel) {
     // 级别应该在传播时受 MAX_LEVEL 限制
     // 相邻区块级别为 34，但不会超过 MAX_LEVEL
     EXPECT_EQ(graph.getLevel(0, 0), 33);
-    EXPECT_EQ(graph.getLevel(1, 0), 34);  // MAX_LEVEL
-    EXPECT_EQ(graph.getLevel(2, 0), 34);  // 仍然是 MAX_LEVEL
+    EXPECT_EQ(graph.getLevel(1, 0), 34); // MAX_LEVEL
+    EXPECT_EQ(graph.getLevel(2, 0), 34); // 仍然是 MAX_LEVEL
 }
 
-TEST_F(ChunkDistanceGraphExtendedTest, TwoSourcesDifferentLevels) {
+TEST_F(ChunkDistanceGraphExtendedTest, TwoSourcesDifferentLevels)
+{
     // 两个不同级别的源
     graph.updateSourceLevel(0, 0, 20, true);
     graph.updateSourceLevel(10, 0, 25, true);
@@ -424,16 +445,18 @@ TEST_F(ChunkDistanceGraphExtendedTest, TwoSourcesDifferentLevels) {
 
 class PlayerChunkTrackerTest : public ::testing::Test {
 protected:
-    PlayerChunkTracker tracker{10};  // 视距 10
+    PlayerChunkTracker tracker{10}; // 视距 10
 };
 
-TEST_F(PlayerChunkTrackerTest, InitialPosition) {
+TEST_F(PlayerChunkTrackerTest, InitialPosition)
+{
     EXPECT_EQ(tracker.playerX(), 0);
     EXPECT_EQ(tracker.playerZ(), 0);
     EXPECT_EQ(tracker.viewDistance(), 10);
 }
 
-TEST_F(PlayerChunkTrackerTest, SetPlayerPosition) {
+TEST_F(PlayerChunkTrackerTest, SetPlayerPosition)
+{
     tracker.setPlayerPosition(5, 3);
     EXPECT_EQ(tracker.playerX(), 5);
     EXPECT_EQ(tracker.playerZ(), 3);
@@ -441,10 +464,11 @@ TEST_F(PlayerChunkTrackerTest, SetPlayerPosition) {
     // 票据级别应该更新
     tracker.processUpdates(100);
     i32 level = tracker.getLevel(5, 3);
-    EXPECT_LE(level, 31);  // 玩家所在区块应该有较低的级别
+    EXPECT_LE(level, 31); // 玩家所在区块应该有较低的级别
 }
 
-TEST_F(PlayerChunkTrackerTest, ChunksInRange) {
+TEST_F(PlayerChunkTrackerTest, ChunksInRange)
+{
     tracker.setPlayerPosition(0, 0);
 
     // 中心区块应该在范围内
@@ -460,7 +484,8 @@ TEST_F(PlayerChunkTrackerTest, ChunksInRange) {
     EXPECT_FALSE(tracker.isChunkInRange(0, 11));
 }
 
-TEST_F(PlayerChunkTrackerTest, ViewDistanceChange) {
+TEST_F(PlayerChunkTrackerTest, ViewDistanceChange)
+{
     tracker.setPlayerPosition(0, 0);
     EXPECT_EQ(tracker.viewDistance(), 10);
     EXPECT_TRUE(tracker.isChunkInRange(10, 0));
@@ -468,7 +493,7 @@ TEST_F(PlayerChunkTrackerTest, ViewDistanceChange) {
     tracker.setViewDistance(5);
     EXPECT_EQ(tracker.viewDistance(), 5);
     EXPECT_TRUE(tracker.isChunkInRange(5, 0));
-    EXPECT_FALSE(tracker.isChunkInRange(10, 0));  // 现在超出了视距
+    EXPECT_FALSE(tracker.isChunkInRange(10, 0)); // 现在超出了视距
 }
 
 // ============================================================================
@@ -477,12 +502,11 @@ TEST_F(PlayerChunkTrackerTest, ViewDistanceChange) {
 
 class ChunkLoadTicketManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        TicketTypes::initializeTicketTypes();
-    }
+    void SetUp() override { TicketTypes::initializeTicketTypes(); }
 };
 
-TEST_F(ChunkLoadTicketManagerTest, PlayerPositionUpdate) {
+TEST_F(ChunkLoadTicketManagerTest, PlayerPositionUpdate)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(10);
 
@@ -511,9 +535,10 @@ TEST_F(ChunkLoadTicketManagerTest, PlayerPositionUpdate) {
     EXPECT_TRUE(foundLoad);
 }
 
-TEST_F(ChunkLoadTicketManagerTest, ChunkUnloadWhenPlayerLeaves) {
+TEST_F(ChunkLoadTicketManagerTest, ChunkUnloadWhenPlayerLeaves)
+{
     ChunkLoadTicketManager manager;
-    manager.setViewDistance(2);  // 小视距便于测试
+    manager.setViewDistance(2); // 小视距便于测试
 
     // 玩家进入 (0, 0)
     manager.updatePlayerPosition(1, 0, 0);
@@ -530,7 +555,8 @@ TEST_F(ChunkLoadTicketManagerTest, ChunkUnloadWhenPlayerLeaves) {
     EXPECT_FALSE(manager.shouldChunkLoad(0, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, ForcedChunk) {
+TEST_F(ChunkLoadTicketManagerTest, ForcedChunk)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(2);
 
@@ -552,7 +578,8 @@ TEST_F(ChunkLoadTicketManagerTest, ForcedChunk) {
     EXPECT_FALSE(manager.shouldChunkLoad(100, 100));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, MultiplePlayers) {
+TEST_F(ChunkLoadTicketManagerTest, MultiplePlayers)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -577,7 +604,8 @@ TEST_F(ChunkLoadTicketManagerTest, MultiplePlayers) {
     EXPECT_EQ(manager.playerCount(), 1u);
 }
 
-TEST_F(ChunkLoadTicketManagerTest, ViewDistanceChange) {
+TEST_F(ChunkLoadTicketManagerTest, ViewDistanceChange)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -603,7 +631,8 @@ TEST_F(ChunkLoadTicketManagerTest, ViewDistanceChange) {
     EXPECT_TRUE(manager.shouldChunkLoad(10, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, TicketCount) {
+TEST_F(ChunkLoadTicketManagerTest, TicketCount)
+{
     ChunkLoadTicketManager manager;
 
     // 初始没有票据
@@ -623,12 +652,11 @@ TEST_F(ChunkLoadTicketManagerTest, TicketCount) {
 
 class ChunkLoadTicketManagerExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        TicketTypes::initializeTicketTypes();
-    }
+    void SetUp() override { TicketTypes::initializeTicketTypes(); }
 };
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, PortalTicketExpiration) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, PortalTicketExpiration)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(2);
 
@@ -657,7 +685,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, PortalTicketExpiration) {
     // 注意：这个测试验证票据系统的行为，实际过期逻辑可能需要额外设置
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedChunkPersistsAfterPlayerLeave) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedChunkPersistsAfterPlayerLeave)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(2);
 
@@ -686,7 +715,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedChunkPersistsAfterPlayerLeave) 
     EXPECT_FALSE(manager.shouldChunkLoad(100, 100));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersOverlappingChunks) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersOverlappingChunks)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -699,9 +729,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersOverlappingChunks) {
     manager.processUpdates();
 
     // 验证重叠区域的加载状态
-    EXPECT_TRUE(manager.shouldChunkLoad(0, 0));  // 玩家 1 的位置
-    EXPECT_TRUE(manager.shouldChunkLoad(3, 0));  // 玩家 2 的位置
-    EXPECT_TRUE(manager.shouldChunkLoad(1, 0));  // 中间区块
+    EXPECT_TRUE(manager.shouldChunkLoad(0, 0)); // 玩家 1 的位置
+    EXPECT_TRUE(manager.shouldChunkLoad(3, 0)); // 玩家 2 的位置
+    EXPECT_TRUE(manager.shouldChunkLoad(1, 0)); // 中间区块
 
     // 玩家 1 离开
     manager.removePlayer(1);
@@ -709,14 +739,15 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersOverlappingChunks) {
 
     // 玩家 2 的区块仍然加载
     EXPECT_TRUE(manager.shouldChunkLoad(3, 0));
-    EXPECT_TRUE(manager.shouldChunkLoad(1, 0));  // 仍在玩家 2 的视距内
+    EXPECT_TRUE(manager.shouldChunkLoad(1, 0)); // 仍在玩家 2 的视距内
 
     // 玩家 1 原来的位置可能不在玩家 2 的视距内
     // 视距 5，玩家 2 在 (3, 0)，所以 (0, 0) 在视距外
     // 注意：实际行为取决于票据传播
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, GetChunkTickets) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, GetChunkTickets)
+{
     ChunkLoadTicketManager manager;
 
     // 初始没有票据
@@ -737,10 +768,11 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, GetChunkTickets) {
 
     tickets = manager.getChunkTickets(0, 0);
     EXPECT_NE(tickets, nullptr);
-    EXPECT_GE(tickets->size(), 2u);  // 玩家票据 + 强制加载票据
+    EXPECT_GE(tickets->size(), 2u); // 玩家票据 + 强制加载票据
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMovementTriggersLoadUnload) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMovementTriggersLoadUnload)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(3);
 
@@ -776,7 +808,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMovementTriggersLoadUnload) {
     EXPECT_FALSE(loadedChunks.empty());
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, SamePlayerPositionUpdate) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, SamePlayerPositionUpdate)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -794,7 +827,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, SamePlayerPositionUpdate) {
     EXPECT_EQ(manager.totalTicketCount(), ticketCount);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceBoundaryConditions) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceBoundaryConditions)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(10);
 
@@ -814,9 +848,10 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceBoundaryConditions) {
     EXPECT_FALSE(manager.shouldChunkLoad(11, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, SmallViewDistance) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, SmallViewDistance)
+{
     ChunkLoadTicketManager manager;
-    manager.setViewDistance(1);  // 最小视距
+    manager.setViewDistance(1); // 最小视距
 
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
@@ -832,8 +867,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, SmallViewDistance) {
     // 距离 1 的区块：PlayerChunkTracker 级别 = 32 + 1 = 33 (Border)
     // 距离 2 的区块：PlayerChunkTracker 级别 = 32 + 2 = 34 (MAX_LEVEL)
 
-    EXPECT_TRUE(manager.shouldChunkLoad(0, 0));   // 玩家位置
-    EXPECT_TRUE(manager.shouldChunkLoad(1, 0));   // 距离 1，级别 33 (Border)
+    EXPECT_TRUE(manager.shouldChunkLoad(0, 0)); // 玩家位置
+    EXPECT_TRUE(manager.shouldChunkLoad(1, 0)); // 距离 1，级别 33 (Border)
     EXPECT_TRUE(manager.shouldChunkLoad(-1, 0));
     EXPECT_TRUE(manager.shouldChunkLoad(0, 1));
     EXPECT_TRUE(manager.shouldChunkLoad(0, -1));
@@ -850,9 +885,10 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, SmallViewDistance) {
     EXPECT_FALSE(manager.shouldChunkLoad(0, 3));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance)
+{
     ChunkLoadTicketManager manager;
-    manager.setViewDistance(10);  // 使用正常视距
+    manager.setViewDistance(10); // 使用正常视距
 
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
@@ -873,7 +909,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance) {
     EXPECT_FALSE(manager.shouldChunkLoad(11, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, NegativePlayerPosition) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, NegativePlayerPosition)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -885,7 +922,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, NegativePlayerPosition) {
     EXPECT_FALSE(manager.shouldChunkLoad(-16, -20)); // 超出视距
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, RemoveNonExistentPlayer) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, RemoveNonExistentPlayer)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -894,7 +932,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, RemoveNonExistentPlayer) {
     EXPECT_EQ(manager.playerCount(), 0u);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, RegisterReleaseTicketManually) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, RegisterReleaseTicketManually)
+{
     ChunkLoadTicketManager manager;
 
     // 手动注册票据
@@ -910,7 +949,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, RegisterReleaseTicketManually) {
     EXPECT_FALSE(manager.shouldChunkLoad(100, 200));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, MultipleForcedChunks) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, MultipleForcedChunks)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(2);
 
@@ -951,7 +991,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, MultipleForcedChunks) {
     }
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, DistanceGraphAccess) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, DistanceGraphAccess)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -963,7 +1004,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, DistanceGraphAccess) {
     EXPECT_GT(graph.size(), 0u);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackMultipleChanges) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackMultipleChanges)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(3);
 
@@ -989,7 +1031,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackMultipleChanges) {
     EXPECT_GT(unloadCount, 0);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPlayers) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPlayers)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(3);
 
@@ -1004,7 +1047,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPl
             return;
         }
 
-        if (newLevel > ChunkLoadTicketManager::MAX_LOADED_LEVEL || oldLevel <= ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+        if (newLevel > ChunkLoadTicketManager::MAX_LOADED_LEVEL ||
+            oldLevel <= ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
             return;
         }
 
@@ -1034,7 +1078,8 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPl
     worker.join();
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ShouldChunkLoadStaticMethod) {
+TEST_F(ChunkLoadTicketManagerExtendedTest, ShouldChunkLoadStaticMethod)
+{
     // 测试静态方法
     EXPECT_TRUE(ChunkLoadTicketManager::shouldChunkLoad(31));
     EXPECT_TRUE(ChunkLoadTicketManager::shouldChunkLoad(32));
@@ -1049,12 +1094,11 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ShouldChunkLoadStaticMethod) {
 
 class PlayerChunkTrackerExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        TicketTypes::initializeTicketTypes();
-    }
+    void SetUp() override { TicketTypes::initializeTicketTypes(); }
 };
 
-TEST_F(PlayerChunkTrackerExtendedTest, InitialStateWithoutPosition) {
+TEST_F(PlayerChunkTrackerExtendedTest, InitialStateWithoutPosition)
+{
     PlayerChunkTracker tracker(10);
 
     // 初始位置为 (0, 0)
@@ -1066,13 +1110,14 @@ TEST_F(PlayerChunkTrackerExtendedTest, InitialStateWithoutPosition) {
     EXPECT_EQ(tracker.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, PositionChangePropagation) {
+TEST_F(PlayerChunkTrackerExtendedTest, PositionChangePropagation)
+{
     PlayerChunkTracker tracker(5);
     tracker.setPlayerPosition(0, 0);
     tracker.processUpdates(1000);
 
     // 验证初始位置周围的级别
-    EXPECT_EQ(tracker.getLevel(0, 0), viewDistanceToLevel(5));  // 28
+    EXPECT_EQ(tracker.getLevel(0, 0), viewDistanceToLevel(5)); // 28
 
     // 移动到新位置
     tracker.setPlayerPosition(10, 10);
@@ -1085,13 +1130,14 @@ TEST_F(PlayerChunkTrackerExtendedTest, PositionChangePropagation) {
     EXPECT_EQ(tracker.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceChangeUpdatesLevel) {
+TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceChangeUpdatesLevel)
+{
     PlayerChunkTracker tracker(10);
     tracker.setPlayerPosition(0, 0);
     tracker.processUpdates(1000);
 
     i32 oldLevel = tracker.getLevel(0, 0);
-    EXPECT_EQ(oldLevel, viewDistanceToLevel(10));  // 23
+    EXPECT_EQ(oldLevel, viewDistanceToLevel(10)); // 23
 
     // 改变视距到更大值（票据级别降低）
     // viewDistanceToLevel(15) = 18 < 23，应该能更新
@@ -1100,7 +1146,7 @@ TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceChangeUpdatesLevel) {
 
     // 级别应该更新为 18（更低的级别意味着更大的加载范围）
     i32 newLevel = tracker.getLevel(0, 0);
-    EXPECT_EQ(newLevel, viewDistanceToLevel(15));  // 18
+    EXPECT_EQ(newLevel, viewDistanceToLevel(15)); // 18
     // 视距增大，级别降低
     EXPECT_LT(newLevel, oldLevel);
 
@@ -1113,7 +1159,8 @@ TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceChangeUpdatesLevel) {
     EXPECT_EQ(tracker.getLevel(16, 0), 34);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceDecreaseUpdatesLevel) {
+TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceDecreaseUpdatesLevel)
+{
     PlayerChunkTracker tracker(15);
     tracker.setPlayerPosition(0, 0);
     tracker.processUpdates(1000);
@@ -1140,12 +1187,11 @@ TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceDecreaseUpdatesLevel) {
     EXPECT_EQ(newFarLevel, ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, MultiplePositionUpdates) {
+TEST_F(PlayerChunkTrackerExtendedTest, MultiplePositionUpdates)
+{
     PlayerChunkTracker tracker(5);
 
-    std::vector<std::pair<ChunkCoord, ChunkCoord>> positions = {
-        {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}
-    };
+    std::vector<std::pair<ChunkCoord, ChunkCoord>> positions = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}};
 
     for (const auto& [x, z] : positions) {
         tracker.setPlayerPosition(x, z);
@@ -1155,13 +1201,14 @@ TEST_F(PlayerChunkTrackerExtendedTest, MultiplePositionUpdates) {
     }
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, LargeViewDistanceRange) {
+TEST_F(PlayerChunkTrackerExtendedTest, LargeViewDistanceRange)
+{
     PlayerChunkTracker tracker(32);
     tracker.setPlayerPosition(0, 0);
     tracker.processUpdates(10000);
 
     // 验证大范围内的级别传播
-    EXPECT_EQ(tracker.getLevel(0, 0), viewDistanceToLevel(32));  // 1
+    EXPECT_EQ(tracker.getLevel(0, 0), viewDistanceToLevel(32)); // 1
 
     // 边缘区块
     EXPECT_EQ(tracker.getLevel(32, 0), 33);
@@ -1171,7 +1218,8 @@ TEST_F(PlayerChunkTrackerExtendedTest, LargeViewDistanceRange) {
     EXPECT_EQ(tracker.getLevel(33, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeAfterMove) {
+TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeAfterMove)
+{
     PlayerChunkTracker tracker(5);
 
     // 初始位置
@@ -1190,7 +1238,8 @@ TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeAfterMove) {
     EXPECT_FALSE(tracker.isChunkInRange(0, 0));
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeCount) {
+TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeCount)
+{
     PlayerChunkTracker tracker(3);
     tracker.setPlayerPosition(0, 0);
 
@@ -1206,7 +1255,8 @@ TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeCount) {
     EXPECT_EQ(tracker.chunksInRangeCount(), 121u);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, EdgeCoordinates) {
+TEST_F(PlayerChunkTrackerExtendedTest, EdgeCoordinates)
+{
     PlayerChunkTracker tracker(5);
     tracker.setPlayerPosition(0, 0);
 
@@ -1222,7 +1272,8 @@ TEST_F(PlayerChunkTrackerExtendedTest, EdgeCoordinates) {
     EXPECT_FALSE(tracker.isChunkInRange(-6, -5));
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, TicketLevelConsistency) {
+TEST_F(PlayerChunkTrackerExtendedTest, TicketLevelConsistency)
+{
     PlayerChunkTracker tracker(10);
     tracker.setPlayerPosition(50, 50);
     tracker.processUpdates(1000);
@@ -1232,7 +1283,8 @@ TEST_F(PlayerChunkTrackerExtendedTest, TicketLevelConsistency) {
     EXPECT_EQ(tracker.getLevel(50, 50), tracker.ticketLevel());
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, LevelChangeCallbackIntegration) {
+TEST_F(PlayerChunkTrackerExtendedTest, LevelChangeCallbackIntegration)
+{
     PlayerChunkTracker tracker(5);
 
     std::vector<i32> levelsChanged;
@@ -1263,7 +1315,8 @@ TEST_F(PlayerChunkTrackerExtendedTest, LevelChangeCallbackIntegration) {
 // ChunkLoadLevel 测试
 // ============================================================================
 
-TEST(ChunkLoadLevelTest, LevelToLoadLevelConversion) {
+TEST(ChunkLoadLevelTest, LevelToLoadLevelConversion)
+{
     EXPECT_EQ(levelToLoadLevel(31), ChunkLoadLevel::Full);
     EXPECT_EQ(levelToLoadLevel(30), ChunkLoadLevel::Full);
     EXPECT_EQ(levelToLoadLevel(32), ChunkLoadLevel::EntityTicking);
@@ -1272,7 +1325,8 @@ TEST(ChunkLoadLevelTest, LevelToLoadLevelConversion) {
     EXPECT_EQ(levelToLoadLevel(100), ChunkLoadLevel::Unloaded);
 }
 
-TEST(ChunkLoadLevelTest, ShouldChunkLoad) {
+TEST(ChunkLoadLevelTest, ShouldChunkLoad)
+{
     EXPECT_TRUE(shouldChunkLoad(31));
     EXPECT_TRUE(shouldChunkLoad(32));
     EXPECT_TRUE(shouldChunkLoad(33));
@@ -1280,7 +1334,8 @@ TEST(ChunkLoadLevelTest, ShouldChunkLoad) {
     EXPECT_FALSE(shouldChunkLoad(100));
 }
 
-TEST(ChunkLoadLevelTest, ViewDistanceToLevel) {
+TEST(ChunkLoadLevelTest, ViewDistanceToLevel)
+{
     EXPECT_EQ(viewDistanceToLevel(10), 23);
     EXPECT_EQ(viewDistanceToLevel(5), 28);
     EXPECT_EQ(viewDistanceToLevel(15), 18);
@@ -1292,12 +1347,11 @@ TEST(ChunkLoadLevelTest, ViewDistanceToLevel) {
 
 class ChunkLoadTicketExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        TicketTypes::initializeTicketTypes();
-    }
+    void SetUp() override { TicketTypes::initializeTicketTypes(); }
 };
 
-TEST_F(ChunkLoadTicketExtendedTest, UnitTypeTicket) {
+TEST_F(ChunkLoadTicketExtendedTest, UnitTypeTicket)
+{
     // 测试 Unit 类型票据（不需要关联值）
     ChunkLoadTicket startTicket(TicketTypes::START, 31, Unit{});
     EXPECT_EQ(startTicket.level(), 31);
@@ -1307,7 +1361,8 @@ TEST_F(ChunkLoadTicketExtendedTest, UnitTypeTicket) {
     EXPECT_FALSE(startTicket.hasIntValue());
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, DragonTypeTicket) {
+TEST_F(ChunkLoadTicketExtendedTest, DragonTypeTicket)
+{
     ChunkLoadTicket dragonTicket(TicketTypes::DRAGON, 31, Unit{});
     EXPECT_EQ(dragonTicket.level(), 31);
     EXPECT_EQ(dragonTicket.typeName(), "dragon");
@@ -1315,7 +1370,8 @@ TEST_F(ChunkLoadTicketExtendedTest, DragonTypeTicket) {
     EXPECT_FALSE(dragonTicket.hasIntValue());
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, ForceTicksFlag) {
+TEST_F(ChunkLoadTicketExtendedTest, ForceTicksFlag)
+{
     ChunkLoadTicket ticket(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
     EXPECT_FALSE(ticket.isForceTicks());
 
@@ -1326,28 +1382,31 @@ TEST_F(ChunkLoadTicketExtendedTest, ForceTicksFlag) {
     EXPECT_FALSE(ticket.isForceTicks());
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, PortalTicketExpiration) {
+TEST_F(ChunkLoadTicketExtendedTest, PortalTicketExpiration)
+{
     // PORTAL 票据有 300 tick 生命周期
     ChunkLoadTicket portalTicket(TicketTypes::PORTAL, 31, ChunkPos(10, 20));
     portalTicket.setTimestamp(0);
 
     EXPECT_FALSE(portalTicket.isExpired(0));
-    EXPECT_FALSE(portalTicket.isExpired(299));   // 刚好未过期
-    EXPECT_TRUE(portalTicket.isExpired(301));    // 已过期
-    EXPECT_TRUE(portalTicket.isExpired(1000));   // 已过期很久
+    EXPECT_FALSE(portalTicket.isExpired(299)); // 刚好未过期
+    EXPECT_TRUE(portalTicket.isExpired(301));  // 已过期
+    EXPECT_TRUE(portalTicket.isExpired(1000)); // 已过期很久
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, PostTeleportTicketExpiration) {
+TEST_F(ChunkLoadTicketExtendedTest, PostTeleportTicketExpiration)
+{
     // POST_TELEPORT 票据有 5 tick 生命周期
     ChunkLoadTicket teleportTicket(TicketTypes::POST_TELEPORT, 31, 42u);
     teleportTicket.setTimestamp(0);
 
     EXPECT_FALSE(teleportTicket.isExpired(0));
-    EXPECT_FALSE(teleportTicket.isExpired(5));   // 刚好未过期
-    EXPECT_TRUE(teleportTicket.isExpired(6));    // 已过期
+    EXPECT_FALSE(teleportTicket.isExpired(5)); // 刚好未过期
+    EXPECT_TRUE(teleportTicket.isExpired(6));  // 已过期
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, TicketTypeComparison) {
+TEST_F(ChunkLoadTicketExtendedTest, TicketTypeComparison)
+{
     auto type1 = ChunkLoadTicketType<ChunkPos>::create("type1");
     auto type2 = ChunkLoadTicketType<ChunkPos>::create("type2");
     auto type1Copy = ChunkLoadTicketType<ChunkPos>::create("type1");
@@ -1356,7 +1415,8 @@ TEST_F(ChunkLoadTicketExtendedTest, TicketTypeComparison) {
     EXPECT_NE(type1, type2);
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, TicketEquality) {
+TEST_F(ChunkLoadTicketExtendedTest, TicketEquality)
+{
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(5, 10));
     ChunkLoadTicket t2(TicketTypes::PLAYER, 31, ChunkPos(5, 10));
     ChunkLoadTicket t3(TicketTypes::PLAYER, 31, ChunkPos(5, 11)); // 不同位置
@@ -1369,7 +1429,8 @@ TEST_F(ChunkLoadTicketExtendedTest, TicketEquality) {
     EXPECT_NE(t1, t5);
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, TicketWithNegativeCoordinates) {
+TEST_F(ChunkLoadTicketExtendedTest, TicketWithNegativeCoordinates)
+{
     // 测试负坐标
     ChunkLoadTicket ticket(TicketTypes::PLAYER, 31, ChunkPos(-100, -200));
     EXPECT_TRUE(ticket.hasChunkValue());
@@ -1377,7 +1438,8 @@ TEST_F(ChunkLoadTicketExtendedTest, TicketWithNegativeCoordinates) {
     EXPECT_EQ(ticket.chunkValue().z, -200);
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, TicketPriorityOrdering) {
+TEST_F(ChunkLoadTicketExtendedTest, TicketPriorityOrdering)
+{
     // 相同类型，不同级别
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
     ChunkLoadTicket t2(TicketTypes::PLAYER, 32, ChunkPos(0, 0));
@@ -1393,19 +1455,18 @@ TEST_F(ChunkLoadTicketExtendedTest, TicketPriorityOrdering) {
     EXPECT_TRUE(t2 < t1);
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, CustomComparator) {
+TEST_F(ChunkLoadTicketExtendedTest, CustomComparator)
+{
     // 使用自定义比较器
-    auto customType = ChunkLoadTicketType<ChunkPos>::create(
-        "custom",
-        [](const ChunkPos& a, const ChunkPos& b) {
-            // 按曼哈顿距离排序
-            return (std::abs(a.x) + std::abs(a.z)) < (std::abs(b.x) + std::abs(b.z));
-        }
-    );
+    auto customType = ChunkLoadTicketType<ChunkPos>::create("custom", [](const ChunkPos& a, const ChunkPos& b) {
+        // 按曼哈顿距离排序
+        return (std::abs(a.x) + std::abs(a.z)) < (std::abs(b.x) + std::abs(b.z));
+    });
     EXPECT_EQ(customType.name(), "custom");
 }
 
-TEST_F(ChunkLoadTicketExtendedTest, AllPredefinedTicketTypes) {
+TEST_F(ChunkLoadTicketExtendedTest, AllPredefinedTicketTypes)
+{
     // 验证所有预定义票据类型
     EXPECT_EQ(TicketTypes::PLAYER.name(), "player");
     EXPECT_EQ(TicketTypes::FORCED.name(), "forced");
@@ -1417,9 +1478,9 @@ TEST_F(ChunkLoadTicketExtendedTest, AllPredefinedTicketTypes) {
     EXPECT_EQ(TicketTypes::LIGHT.name(), "light");
 
     // 验证生命周期
-    EXPECT_EQ(TicketTypes::PLAYER.lifespan(), 0u);       // 永久
-    EXPECT_EQ(TicketTypes::FORCED.lifespan(), 0u);       // 永久
-    EXPECT_EQ(TicketTypes::PORTAL.lifespan(), 300u);     // 300 tick
+    EXPECT_EQ(TicketTypes::PLAYER.lifespan(), 0u);        // 永久
+    EXPECT_EQ(TicketTypes::FORCED.lifespan(), 0u);        // 永久
+    EXPECT_EQ(TicketTypes::PORTAL.lifespan(), 300u);      // 300 tick
     EXPECT_EQ(TicketTypes::POST_TELEPORT.lifespan(), 5u); // 5 tick
 }
 
@@ -1429,12 +1490,11 @@ TEST_F(ChunkLoadTicketExtendedTest, AllPredefinedTicketTypes) {
 
 class ChunkTicketSetExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        TicketTypes::initializeTicketTypes();
-    }
+    void SetUp() override { TicketTypes::initializeTicketTypes(); }
 };
 
-TEST_F(ChunkTicketSetExtendedTest, MultipleTicketsOfDifferentTypes) {
+TEST_F(ChunkTicketSetExtendedTest, MultipleTicketsOfDifferentTypes)
+{
     ChunkTicketSet set;
 
     // 添加多种类型的票据
@@ -1444,10 +1504,11 @@ TEST_F(ChunkTicketSetExtendedTest, MultipleTicketsOfDifferentTypes) {
     set.addTicket(ChunkLoadTicket(TicketTypes::LIGHT, 33, ChunkPos(0, 0)));
 
     EXPECT_EQ(set.size(), 4u);
-    EXPECT_EQ(set.getMinLevel(), 31);  // 最小级别
+    EXPECT_EQ(set.getMinLevel(), 31); // 最小级别
 }
 
-TEST_F(ChunkTicketSetExtendedTest, TicketSetWithExpiration) {
+TEST_F(ChunkTicketSetExtendedTest, TicketSetWithExpiration)
+{
     auto expireType1 = ChunkLoadTicketType<ChunkPos>::create("expire1", 10);
     auto expireType2 = ChunkLoadTicketType<ChunkPos>::create("expire2", 20);
     auto permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
@@ -1480,7 +1541,8 @@ TEST_F(ChunkTicketSetExtendedTest, TicketSetWithExpiration) {
     EXPECT_EQ(set.size(), 1u);
 }
 
-TEST_F(ChunkTicketSetExtendedTest, RemoveNonExistentTicket) {
+TEST_F(ChunkTicketSetExtendedTest, RemoveNonExistentTicket)
+{
     ChunkTicketSet set;
 
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
@@ -1495,12 +1557,14 @@ TEST_F(ChunkTicketSetExtendedTest, RemoveNonExistentTicket) {
     EXPECT_EQ(set.size(), 1u);
 }
 
-TEST_F(ChunkTicketSetExtendedTest, MinLevelWithEmptySet) {
+TEST_F(ChunkTicketSetExtendedTest, MinLevelWithEmptySet)
+{
     ChunkTicketSet set;
     EXPECT_EQ(set.getMinLevel(), static_cast<i32>(ChunkLoadLevel::MaxLevel));
 }
 
-TEST_F(ChunkTicketSetExtendedTest, MinLevelAfterRemoval) {
+TEST_F(ChunkTicketSetExtendedTest, MinLevelAfterRemoval)
+{
     ChunkTicketSet set;
 
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
@@ -1524,7 +1588,8 @@ TEST_F(ChunkTicketSetExtendedTest, MinLevelAfterRemoval) {
     EXPECT_EQ(set.getMinLevel(), static_cast<i32>(ChunkLoadLevel::MaxLevel));
 }
 
-TEST_F(ChunkTicketSetExtendedTest, DuplicateTicketHandling) {
+TEST_F(ChunkTicketSetExtendedTest, DuplicateTicketHandling)
+{
     ChunkTicketSet set;
 
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
@@ -1534,15 +1599,16 @@ TEST_F(ChunkTicketSetExtendedTest, DuplicateTicketHandling) {
     set.addTicket(t1);
     set.addTicket(t1);
 
-    EXPECT_EQ(set.size(), 1u);  // 只保留一个
+    EXPECT_EQ(set.size(), 1u); // 只保留一个
 
     // 添加级别相同但值不同的票据
     ChunkLoadTicket t2(TicketTypes::PLAYER, 31, ChunkPos(1, 1));
     set.addTicket(t2);
-    EXPECT_EQ(set.size(), 2u);  // 不同票据
+    EXPECT_EQ(set.size(), 2u); // 不同票据
 }
 
-TEST_F(ChunkTicketSetExtendedTest, TicketSetIterator) {
+TEST_F(ChunkTicketSetExtendedTest, TicketSetIterator)
+{
     ChunkTicketSet set;
 
     ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
@@ -1565,7 +1631,8 @@ TEST_F(ChunkTicketSetExtendedTest, TicketSetIterator) {
     EXPECT_EQ(count, 3);
 }
 
-TEST_F(ChunkTicketSetExtendedTest, ExpirationPreservesMinLevel) {
+TEST_F(ChunkTicketSetExtendedTest, ExpirationPreservesMinLevel)
+{
     auto expireType = ChunkLoadTicketType<ChunkPos>::create("expire", 5);
     auto permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
 
@@ -1580,11 +1647,11 @@ TEST_F(ChunkTicketSetExtendedTest, ExpirationPreservesMinLevel) {
     expiring.setTimestamp(0);
     set.addTicket(expiring);
 
-    EXPECT_EQ(set.getMinLevel(), 31);  // 过期票据提供最小级别
+    EXPECT_EQ(set.getMinLevel(), 31); // 过期票据提供最小级别
 
     // 过期后
     set.removeExpired(10);
-    EXPECT_EQ(set.getMinLevel(), 33);  // 只剩永久票据
+    EXPECT_EQ(set.getMinLevel(), 33); // 只剩永久票据
 }
 
 // ============================================================================
@@ -1593,12 +1660,11 @@ TEST_F(ChunkTicketSetExtendedTest, ExpirationPreservesMinLevel) {
 
 class ForcedChunkQueryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        TicketTypes::initializeTicketTypes();
-    }
+    void SetUp() override { TicketTypes::initializeTicketTypes(); }
 };
 
-TEST_F(ForcedChunkQueryTest, GetForcedChunksEmpty) {
+TEST_F(ForcedChunkQueryTest, GetForcedChunksEmpty)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1607,7 +1673,8 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksEmpty) {
     EXPECT_TRUE(forcedChunks.empty());
 }
 
-TEST_F(ForcedChunkQueryTest, GetForcedChunksSingleChunk) {
+TEST_F(ForcedChunkQueryTest, GetForcedChunksSingleChunk)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1621,7 +1688,8 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksSingleChunk) {
     EXPECT_EQ(forcedChunks[0].z, 20);
 }
 
-TEST_F(ForcedChunkQueryTest, GetForcedChunksMultipleChunks) {
+TEST_F(ForcedChunkQueryTest, GetForcedChunksMultipleChunks)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1646,7 +1714,8 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksMultipleChunks) {
     EXPECT_TRUE(foundMinus515);
 }
 
-TEST_F(ForcedChunkQueryTest, GetForcedChunksAfterRemoval) {
+TEST_F(ForcedChunkQueryTest, GetForcedChunksAfterRemoval)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1667,7 +1736,8 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksAfterRemoval) {
     EXPECT_EQ(forcedChunks[0].z, 20);
 }
 
-TEST_F(ForcedChunkQueryTest, GetForcedChunksOnlyReturnsForced) {
+TEST_F(ForcedChunkQueryTest, GetForcedChunksOnlyReturnsForced)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1685,7 +1755,8 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksOnlyReturnsForced) {
     EXPECT_EQ(forcedChunks[0].z, 100);
 }
 
-TEST_F(ForcedChunkQueryTest, IsForcedChunkBasic) {
+TEST_F(ForcedChunkQueryTest, IsForcedChunkBasic)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1707,7 +1778,8 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkBasic) {
     EXPECT_FALSE(manager.isForcedChunk(10, 20));
 }
 
-TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerTickets) {
+TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerTickets)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1727,7 +1799,8 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerTickets) {
     EXPECT_TRUE(manager.isForcedChunk(100, 100)); // 强制加载区块
 }
 
-TEST_F(ForcedChunkQueryTest, IsForcedChunkNegativeCoordinates) {
+TEST_F(ForcedChunkQueryTest, IsForcedChunkNegativeCoordinates)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1741,7 +1814,8 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkNegativeCoordinates) {
     EXPECT_FALSE(manager.isForcedChunk(-100, -201));
 }
 
-TEST_F(ForcedChunkQueryTest, IsForcedChunkAfterPlayerRemoval) {
+TEST_F(ForcedChunkQueryTest, IsForcedChunkAfterPlayerRemoval)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1761,7 +1835,8 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkAfterPlayerRemoval) {
     EXPECT_TRUE(manager.shouldChunkLoad(100, 100));
 }
 
-TEST_F(ForcedChunkQueryTest, MultipleForcedChunksConsistency) {
+TEST_F(ForcedChunkQueryTest, MultipleForcedChunksConsistency)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
@@ -1785,7 +1860,8 @@ TEST_F(ForcedChunkQueryTest, MultipleForcedChunksConsistency) {
     }
 }
 
-TEST_F(ForcedChunkQueryTest, IsForcedChunkDoesNotAffectTickets) {
+TEST_F(ForcedChunkQueryTest, IsForcedChunkDoesNotAffectTickets)
+{
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 

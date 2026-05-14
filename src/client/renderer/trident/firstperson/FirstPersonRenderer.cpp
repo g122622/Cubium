@@ -1,9 +1,9 @@
 #include "FirstPersonRenderer.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
-#include "common/item/core/Item.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -13,7 +13,8 @@ using namespace mc::math;
 
 namespace {
 
-[[nodiscard]] std::size_t handIndex(Hand hand) {
+[[nodiscard]] std::size_t handIndex(Hand hand)
+{
     return hand == Hand::MainHand ? 0u : 1u;
 }
 
@@ -32,7 +33,8 @@ static constexpr f32 SIDE_OFFSET_Z = -0.72f;
 static constexpr f32 EQUIP_SPEED = 0.4f;
 
 // 将向量长度归一化，长度过小时回退为零向量，避免数值抖动。
-[[nodiscard]] Vector3f normalizeSafe(const Vector3f& value) {
+[[nodiscard]] Vector3f normalizeSafe(const Vector3f& value)
+{
     const f32 lengthSq = value.x * value.x + value.y * value.y + value.z * value.z;
     if (lengthSq <= 1e-8f) {
         return Vector3f(0.0f, 0.0f, 0.0f);
@@ -42,12 +44,9 @@ static constexpr f32 EQUIP_SPEED = 0.4f;
     return Vector3f(value.x * invLength, value.y * invLength, value.z * invLength);
 }
 
-[[nodiscard]] Vector3f cross(const Vector3f& lhs, const Vector3f& rhs) {
-    return Vector3f(
-        lhs.y * rhs.z - lhs.z * rhs.y,
-        lhs.z * rhs.x - lhs.x * rhs.z,
-        lhs.x * rhs.y - lhs.y * rhs.x
-    );
+[[nodiscard]] Vector3f cross(const Vector3f& lhs, const Vector3f& rhs)
+{
+    return Vector3f(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x);
 }
 
 /**
@@ -59,15 +58,13 @@ static constexpr f32 EQUIP_SPEED = 0.4f;
  * 由于 OpenGL/Vulkan 视空间前向为 -Z，模型矩阵的第 3 列使用 -forward，
  * 这样可与相机 view 矩阵精确抵消，避免水平转头时手臂发生自转。
  */
-void applyCameraAlignedBasis(MatrixStack& stack, const Player& player) {
+void applyCameraAlignedBasis(MatrixStack& stack, const Player& player)
+{
     const f32 pitchRad = math::toRadians(static_cast<f32>(player.pitch()));
     const f32 yawRad = math::toRadians(static_cast<f32>(player.yaw()));
 
-    const Vector3f forward = normalizeSafe(Vector3f(
-        -std::sin(yawRad) * std::cos(pitchRad),
-        std::sin(pitchRad),
-        std::cos(yawRad) * std::cos(pitchRad)
-    ));
+    const Vector3f forward = normalizeSafe(
+        Vector3f(-std::sin(yawRad) * std::cos(pitchRad), std::sin(pitchRad), std::cos(yawRad) * std::cos(pitchRad)));
 
     const Vector3f worldUp(0.0f, 1.0f, 0.0f);
     const Vector3f right = normalizeSafe(cross(forward, worldUp));
@@ -95,11 +92,11 @@ void applyCameraAlignedBasis(MatrixStack& stack, const Player& player) {
 // ============================================================================
 
 FirstPersonRenderer::FirstPersonRenderer()
-    : m_model(false)  // 默认使用标准手臂
-{
-}
+    : m_model(false) // 默认使用标准手臂
+{}
 
-FirstPersonRenderer::~FirstPersonRenderer() {
+FirstPersonRenderer::~FirstPersonRenderer()
+{
     destroy();
 }
 
@@ -107,8 +104,7 @@ FirstPersonRenderer::~FirstPersonRenderer() {
 // 初始化
 // ============================================================================
 
-Result<void> FirstPersonRenderer::initialize(
-    VkDevice device,
+Result<void> FirstPersonRenderer::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
@@ -146,32 +142,28 @@ Result<void> FirstPersonRenderer::initialize(
     m_armPipeline = std::make_unique<EntityPipeline>();
     m_itemPipeline = std::make_unique<EntityPipeline>();
 
-    auto result = m_armPipeline->initialize(
-        device,
+    auto result = m_armPipeline->initialize(device,
         physicalDevice,
         graphicsQueue,
         renderPass,
         cameraDescriptorLayout,
         descriptorPool,
         commandPool,
-        sampleCount
-    );
+        sampleCount);
 
     if (result.failed()) {
         destroy();
         return result.error();
     }
 
-    result = m_itemPipeline->initialize(
-        device,
+    result = m_itemPipeline->initialize(device,
         physicalDevice,
         graphicsQueue,
         renderPass,
         cameraDescriptorLayout,
         descriptorPool,
         commandPool,
-        sampleCount
-    );
+        sampleCount);
 
     if (result.failed()) {
         destroy();
@@ -180,10 +172,7 @@ Result<void> FirstPersonRenderer::initialize(
 
     // 设置手臂纹理图集
     if (entityTextureAtlas && entityTextureAtlas->isBuilt()) {
-        m_armPipeline->setTextureAtlas(
-            entityTextureAtlas->imageView(),
-            entityTextureAtlas->sampler()
-        );
+        m_armPipeline->setTextureAtlas(entityTextureAtlas->imageView(), entityTextureAtlas->sampler());
     }
 
     m_initialized = true;
@@ -191,7 +180,8 @@ Result<void> FirstPersonRenderer::initialize(
     return {};
 }
 
-void FirstPersonRenderer::destroy() {
+void FirstPersonRenderer::destroy()
+{
     destroyItemMeshes();
     invalidateArmMeshes();
 
@@ -210,7 +200,8 @@ void FirstPersonRenderer::destroy() {
     m_initialized = false;
 }
 
-void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas* itemTextureAtlas) {
+void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas* itemTextureAtlas)
+{
     m_itemTextureAtlas = itemTextureAtlas;
 
     // 图集切换后强制重建手持物品网格，避免旧 UV 映射失效。
@@ -221,7 +212,8 @@ void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas
     }
 }
 
-void FirstPersonRenderer::setPlayerSkinLocation(const ResourceLocation& playerSkinLocation) {
+void FirstPersonRenderer::setPlayerSkinLocation(const ResourceLocation& playerSkinLocation)
+{
     m_playerSkinLocation = playerSkinLocation;
 
     // 皮肤切换后强制重建手臂网格，确保 UV 立即生效。
@@ -236,7 +228,8 @@ void FirstPersonRenderer::setPlayerSkinLocation(const ResourceLocation& playerSk
 // 每帧更新
 // ============================================================================
 
-void FirstPersonRenderer::tick(Player* player) {
+void FirstPersonRenderer::tick(Player* player)
+{
     // 保存上一帧的装备进度
     m_prevMainHandEquipProgress = m_mainHandEquipProgress;
     m_prevOffHandEquipProgress = m_offHandEquipProgress;
@@ -267,7 +260,7 @@ void FirstPersonRenderer::tick(Player* player) {
 
     // 装备进度向 1.0 靠拢（使用攻击冷却影响速度）
     // MC 1.16.5: equippedProgress += clamp((!requip ? f^3 : 0) - equippedProgress, -0.4, 0.4)
-    const f32 mainTarget = cooldownStrength * cooldownStrength * cooldownStrength;  // f^3
+    const f32 mainTarget = cooldownStrength * cooldownStrength * cooldownStrength; // f^3
     const f32 offTarget = 1.0f;
 
     m_mainHandEquipProgress += clamp(mainTarget - m_mainHandEquipProgress, -0.4f, 0.4f);
@@ -285,9 +278,8 @@ void FirstPersonRenderer::tick(Player* player) {
 // 渲染
 // ============================================================================
 
-void FirstPersonRenderer::render(VkCommandBuffer cmd,
-                                  VkDescriptorSet cameraDescriptorSet,
-                                  const RenderContext& context) {
+void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDescriptorSet, const RenderContext& context)
+{
     if (!m_initialized) {
         return;
     }
@@ -304,10 +296,10 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
     HandSide primaryHand = getPrimaryHand(player);
 
     // 计算插值后的装备进度
-    f32 mainEquipProgress = lerp(m_prevMainHandEquipProgress, m_mainHandEquipProgress,
-                                  static_cast<f32>(context.partialTick));
-    f32 offEquipProgress = lerp(m_prevOffHandEquipProgress, m_offHandEquipProgress,
-                                 static_cast<f32>(context.partialTick));
+    f32 mainEquipProgress =
+        lerp(m_prevMainHandEquipProgress, m_mainHandEquipProgress, static_cast<f32>(context.partialTick));
+    f32 offEquipProgress =
+        lerp(m_prevOffHandEquipProgress, m_offHandEquipProgress, static_cast<f32>(context.partialTick));
 
     // 优先使用上层传入的动画状态，便于未来接入完整客户端动画系统。
     if (context.mainHandEquipProgress > 0.0f || context.offHandEquipProgress > 0.0f) {
@@ -319,8 +311,7 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
     f32 mainSwingProgress = context.mainHandSwingProgress;
     f32 offSwingProgress = context.offHandSwingProgress;
     if (mainSwingProgress <= 0.0f && offSwingProgress <= 0.0f) {
-        const f32 fallbackSwing = lerp(m_prevSwingProgress, m_swingProgress,
-                                       static_cast<f32>(context.partialTick));
+        const f32 fallbackSwing = lerp(m_prevSwingProgress, m_swingProgress, static_cast<f32>(context.partialTick));
         if (m_swingHand == Hand::MainHand) {
             mainSwingProgress = fallbackSwing;
         } else {
@@ -354,11 +345,9 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
         renderOffHand = false;
     }
 
-    const Vector3f cameraPos(
-        static_cast<f32>(player->x()),
+    const Vector3f cameraPos(static_cast<f32>(player->x()),
         static_cast<f32>(player->y() + player->eyeHeight()),
-        static_cast<f32>(player->z())
-    );
+        static_cast<f32>(player->z()));
 
     const auto toModelMatrix = [](const Matrix4f& matrix) {
         std::array<f64, 16> modelMatrix{};
@@ -371,10 +360,7 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
         return modelMatrix;
     };
 
-    const auto renderHand = [&](Hand hand,
-                                const ItemStack& heldItem,
-                                f32 equipProgress,
-                                f32 swingProgress) {
+    const auto renderHand = [&](Hand hand, const ItemStack& heldItem, f32 equipProgress, f32 swingProgress) {
         const HandSide handSide = resolveHandSide(hand, primaryHand);
 
         MatrixStack baseStack;
@@ -411,16 +397,28 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
         renderItemInHand(itemStack, player, heldItem, handSide, equipProgress, swingProgress);
 
         m_itemPipeline->bind(cmd);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_itemPipeline->pipelineLayout(), 0, 1, &cameraDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_itemPipeline->pipelineLayout(),
+            0,
+            1,
+            &cameraDescriptorSet,
+            0,
+            nullptr);
         m_itemPipeline->bindTextureDescriptor(cmd);
         const auto itemModelMatrix = toModelMatrix(itemStack.last());
         m_itemPipeline->drawMesh(cmd, itemMeshState.mesh, itemModelMatrix, cameraPos, 1.0);
 
         // 恢复手臂管线，供后续手臂绘制继续使用。
         m_armPipeline->bind(cmd);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_armPipeline->pipelineLayout(), 0, 1, &cameraDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_armPipeline->pipelineLayout(),
+            0,
+            1,
+            &cameraDescriptorSet,
+            0,
+            nullptr);
         m_armPipeline->bindTextureDescriptor(cmd);
     };
 
@@ -428,8 +426,8 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
     m_armPipeline->bind(cmd);
 
     // 绑定相机描述符集
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_armPipeline->pipelineLayout(), 0, 1, &cameraDescriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(
+        cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_armPipeline->pipelineLayout(), 0, 1, &cameraDescriptorSet, 0, nullptr);
 
     // 绑定纹理描述符集
     m_armPipeline->bindTextureDescriptor(cmd);
@@ -444,10 +442,9 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
     }
 }
 
-void FirstPersonRenderer::renderArmFirstPerson(MatrixStack& matrixStack,
-                                                HandSide side,
-                                                f32 equipProgress,
-                                                f32 swingProgress) {
+void FirstPersonRenderer::renderArmFirstPerson(
+    MatrixStack& matrixStack, HandSide side, f32 equipProgress, f32 swingProgress)
+{
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
     // 对齐 MC 1.16.5 FirstPersonRenderer::renderArmFirstPerson。
@@ -472,17 +469,22 @@ void FirstPersonRenderer::renderArmFirstPerson(MatrixStack& matrixStack,
     matrixStack.translate(sideSign * 5.6f, 0.0f, 0.0f);
 }
 
-void FirstPersonRenderer::renderItemInHand(MatrixStack& stack, Player* player,
-                                            const ItemStack& itemStack, HandSide side,
-                                            f32 equipProgress, f32 swingProgress) {
-    renderItemInHand(stack, player, itemStack, side, equipProgress, swingProgress,
-                     false, 0, static_cast<f32>(PI));
+void FirstPersonRenderer::renderItemInHand(
+    MatrixStack& stack, Player* player, const ItemStack& itemStack, HandSide side, f32 equipProgress, f32 swingProgress)
+{
+    renderItemInHand(stack, player, itemStack, side, equipProgress, swingProgress, false, 0, static_cast<f32>(PI));
 }
 
-void FirstPersonRenderer::renderItemInHand(MatrixStack& stack, Player* player,
-                                            const ItemStack& itemStack, HandSide side,
-                                            f32 equipProgress, f32 swingProgress,
-                                            bool isUsingItem, i32 useCount, f32 partialTicks) {
+void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
+    Player* player,
+    const ItemStack& itemStack,
+    HandSide side,
+    f32 equipProgress,
+    f32 swingProgress,
+    bool isUsingItem,
+    i32 useCount,
+    f32 partialTicks)
+{
     if (player == nullptr || itemStack.isEmpty()) {
         return;
     }
@@ -535,8 +537,9 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack, Player* player,
     }
 }
 
-void FirstPersonRenderer::renderMapFirstPerson(MatrixStack& stack, const ItemStack& mapStack,
-                                                f32 pitch, f32 equipProgress, f32 swingProgress) {
+void FirstPersonRenderer::renderMapFirstPerson(
+    MatrixStack& stack, const ItemStack& mapStack, f32 pitch, f32 equipProgress, f32 swingProgress)
+{
     // TODO: 实现地图渲染
     (void)stack;
     (void)mapStack;
@@ -549,17 +552,15 @@ void FirstPersonRenderer::renderMapFirstPerson(MatrixStack& stack, const ItemSta
 // 变换方法
 // ============================================================================
 
-void FirstPersonRenderer::transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress) {
+void FirstPersonRenderer::transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress)
+{
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
-    stack.translate(
-        sideSign * SIDE_OFFSET_X,
-        SIDE_OFFSET_Y + equipProgress * -0.6f,
-        SIDE_OFFSET_Z
-    );
+    stack.translate(sideSign * SIDE_OFFSET_X, SIDE_OFFSET_Y + equipProgress * -0.6f, SIDE_OFFSET_Z);
 }
 
-void FirstPersonRenderer::transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress) {
+void FirstPersonRenderer::transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress)
+{
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
     const f32 swing = std::sin(swingProgress * swingProgress * static_cast<f32>(PI));
@@ -571,8 +572,9 @@ void FirstPersonRenderer::transformFirstPerson(MatrixStack& stack, HandSide side
     stack.rotateY(sideSign * -45.0f);
 }
 
-void FirstPersonRenderer::transformEatOrDrink(MatrixStack& matrixStack, f32 partialTicks,
-                                               HandSide side, const ItemStack& item, i32 useCount) {
+void FirstPersonRenderer::transformEatOrDrink(
+    MatrixStack& matrixStack, f32 partialTicks, HandSide side, const ItemStack& item, i32 useCount)
+{
     const Item* itemPtr = item.getItem();
     if (itemPtr == nullptr) {
         return;
@@ -607,8 +609,8 @@ void FirstPersonRenderer::transformEatOrDrink(MatrixStack& matrixStack, f32 part
     matrixStack.rotateZ(sideSign * f3 * 30.0f);
 }
 
-void FirstPersonRenderer::transformBow(MatrixStack& stack, f32 partialTicks,
-                                        HandSide side, i32 useCount) {
+void FirstPersonRenderer::transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
+{
     // MC 1.16.5: FirstPersonRenderer BOW 分支
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
@@ -637,8 +639,8 @@ void FirstPersonRenderer::transformBow(MatrixStack& stack, f32 partialTicks,
     stack.rotateY(-sideSign * 45.0f);
 }
 
-void FirstPersonRenderer::transformSpear(MatrixStack& stack, f32 partialTicks,
-                                          HandSide side, i32 useCount) {
+void FirstPersonRenderer::transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
+{
     // MC 1.16.5: FirstPersonRenderer SPEAR 分支
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
@@ -663,8 +665,9 @@ void FirstPersonRenderer::transformSpear(MatrixStack& stack, f32 partialTicks,
     stack.rotateY(-sideSign * 45.0f);
 }
 
-void FirstPersonRenderer::transformCrossbow(MatrixStack& stack, f32 partialTicks,
-                                             HandSide side, i32 useCount, bool isCharged) {
+void FirstPersonRenderer::transformCrossbow(
+    MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged)
+{
     // MC 1.16.5: FirstPersonRenderer CROSSBOW 分支
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
@@ -701,7 +704,8 @@ void FirstPersonRenderer::transformCrossbow(MatrixStack& stack, f32 partialTicks
 // 动画控制
 // ============================================================================
 
-void FirstPersonRenderer::resetEquippedProgress(Hand hand) {
+void FirstPersonRenderer::resetEquippedProgress(Hand hand)
+{
     if (hand == Hand::MainHand) {
         m_mainHandEquipProgress = 0.0f;
     } else {
@@ -713,7 +717,8 @@ void FirstPersonRenderer::resetEquippedProgress(Hand hand) {
 // GPU 资源管理
 // ============================================================================
 
-void FirstPersonRenderer::invalidateArmMeshes() {
+void FirstPersonRenderer::invalidateArmMeshes()
+{
     if (!m_armPipeline) {
         m_mainHandArmMeshValid = false;
         m_offHandArmMeshValid = false;
@@ -731,7 +736,8 @@ void FirstPersonRenderer::invalidateArmMeshes() {
     }
 }
 
-void FirstPersonRenderer::invalidateItemMeshes() {
+void FirstPersonRenderer::invalidateItemMeshes()
+{
     for (auto& itemMeshState : m_itemMeshes) {
         if (itemMeshState.valid) {
             retireItemMesh(itemMeshState.mesh);
@@ -741,7 +747,8 @@ void FirstPersonRenderer::invalidateItemMeshes() {
     }
 }
 
-void FirstPersonRenderer::cleanupRetiredItemMeshes() {
+void FirstPersonRenderer::cleanupRetiredItemMeshes()
+{
     if (!m_itemPipeline) {
         m_retiredItemMeshes.clear();
         return;
@@ -762,20 +769,20 @@ void FirstPersonRenderer::cleanupRetiredItemMeshes() {
     }
 }
 
-void FirstPersonRenderer::retireItemMesh(EntityMesh& mesh) {
-    if (mesh.vertexBuffer == VK_NULL_HANDLE &&
-        mesh.vertexMemory == VK_NULL_HANDLE &&
-        mesh.indexBuffer == VK_NULL_HANDLE &&
-        mesh.indexMemory == VK_NULL_HANDLE) {
+void FirstPersonRenderer::retireItemMesh(EntityMesh& mesh)
+{
+    if (mesh.vertexBuffer == VK_NULL_HANDLE && mesh.vertexMemory == VK_NULL_HANDLE &&
+        mesh.indexBuffer == VK_NULL_HANDLE && mesh.indexMemory == VK_NULL_HANDLE) {
         mesh = {};
         return;
     }
 
-    m_retiredItemMeshes.push_back(RetiredItemMesh{ mesh, m_itemMeshRetirementFrames });
+    m_retiredItemMeshes.push_back(RetiredItemMesh{mesh, m_itemMeshRetirementFrames});
     mesh = {};
 }
 
-void FirstPersonRenderer::destroyItemMeshes() {
+void FirstPersonRenderer::destroyItemMeshes()
+{
     if (m_itemPipeline) {
         for (auto& itemMeshState : m_itemMeshes) {
             if (itemMeshState.valid) {
@@ -797,7 +804,8 @@ void FirstPersonRenderer::destroyItemMeshes() {
     m_retiredItemMeshes.clear();
 }
 
-void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand) {
+void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand)
+{
     if (!m_armPipeline) {
         return;
     }
@@ -829,12 +837,13 @@ void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand) {
         armMeshValid = true;
     } else {
         spdlog::error("FirstPersonRenderer: Failed to create {} hand arm mesh: {}",
-                      isMainHand ? "main" : "off",
-                      result.error().message());
+            isMainHand ? "main" : "off",
+            result.error().message());
     }
 }
 
-void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack) {
+void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack)
+{
     if (!m_itemPipeline || !m_itemTextureAtlas || itemStack.isEmpty()) {
         return;
     }
@@ -882,19 +891,16 @@ void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack) 
 
     // 正面
     vertices.emplace_back(-halfSize, -halfSize, 0.0f, region->u0, region->v1, 0.0f, 0.0f, 1.0f);
-    vertices.emplace_back(-halfSize,  halfSize, 0.0f, region->u0, region->v0, 0.0f, 0.0f, 1.0f);
-    vertices.emplace_back( halfSize,  halfSize, 0.0f, region->u1, region->v0, 0.0f, 0.0f, 1.0f);
-    vertices.emplace_back( halfSize, -halfSize, 0.0f, region->u1, region->v1, 0.0f, 0.0f, 1.0f);
+    vertices.emplace_back(-halfSize, halfSize, 0.0f, region->u0, region->v0, 0.0f, 0.0f, 1.0f);
+    vertices.emplace_back(halfSize, halfSize, 0.0f, region->u1, region->v0, 0.0f, 0.0f, 1.0f);
+    vertices.emplace_back(halfSize, -halfSize, 0.0f, region->u1, region->v1, 0.0f, 0.0f, 1.0f);
     // 背面
-    vertices.emplace_back( halfSize, -halfSize, 0.0f, region->u0, region->v1, 0.0f, 0.0f, -1.0f);
-    vertices.emplace_back( halfSize,  halfSize, 0.0f, region->u0, region->v0, 0.0f, 0.0f, -1.0f);
-    vertices.emplace_back(-halfSize,  halfSize, 0.0f, region->u1, region->v0, 0.0f, 0.0f, -1.0f);
+    vertices.emplace_back(halfSize, -halfSize, 0.0f, region->u0, region->v1, 0.0f, 0.0f, -1.0f);
+    vertices.emplace_back(halfSize, halfSize, 0.0f, region->u0, region->v0, 0.0f, 0.0f, -1.0f);
+    vertices.emplace_back(-halfSize, halfSize, 0.0f, region->u1, region->v0, 0.0f, 0.0f, -1.0f);
     vertices.emplace_back(-halfSize, -halfSize, 0.0f, region->u1, region->v1, 0.0f, 0.0f, -1.0f);
 
-    indices = {
-        0, 1, 2, 0, 2, 3,
-        4, 5, 6, 4, 6, 7
-    };
+    indices = {0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7};
 
     auto createResult = m_itemPipeline->createMesh(vertices, indices);
     if (createResult.failed()) {
@@ -907,19 +913,18 @@ void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack) 
     itemMeshState.itemId = itemId;
 }
 
-void FirstPersonRenderer::remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const {
+void FirstPersonRenderer::remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const
+{
     if (vertices.empty() || m_entityTextureAtlas == nullptr || !m_entityTextureAtlas->isBuilt()) {
         return;
     }
 
     const mc::TextureRegion* region = m_entityTextureAtlas->getRegion(m_playerSkinLocation);
     if (region == nullptr) {
-        const std::array<ResourceLocation, 4> fallbacks = {
-            ResourceLocation("minecraft:textures/entity/steve.png"),
+        const std::array<ResourceLocation, 4> fallbacks = {ResourceLocation("minecraft:textures/entity/steve.png"),
             ResourceLocation("minecraft:textures/entity/player/wide/steve.png"),
             ResourceLocation("minecraft:textures/entity/alex.png"),
-            ResourceLocation("minecraft:textures/entity/player/slim/alex.png")
-        };
+            ResourceLocation("minecraft:textures/entity/player/slim/alex.png")};
 
         for (const auto& location : fallbacks) {
             region = m_entityTextureAtlas->getRegion(location);
@@ -947,7 +952,8 @@ void FirstPersonRenderer::remapToPlayerSkinRegion(std::vector<ModelVertex>& vert
 // 工具方法
 // ============================================================================
 
-f32 FirstPersonRenderer::getSwingProgress(f32 partialTicks, Player* player, Hand hand) const {
+f32 FirstPersonRenderer::getSwingProgress(f32 partialTicks, Player* player, Hand hand) const
+{
     if (player == nullptr) {
         return 0.0f;
     }
@@ -962,7 +968,8 @@ f32 FirstPersonRenderer::getSwingProgress(f32 partialTicks, Player* player, Hand
     return 0.0f;
 }
 
-ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const {
+ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const
+{
     if (player == nullptr) {
         return ArmPose::Empty;
     }
@@ -1028,7 +1035,8 @@ ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const {
     return ArmPose::Item;
 }
 
-HandSide FirstPersonRenderer::getPrimaryHand(Player* player) {
+HandSide FirstPersonRenderer::getPrimaryHand(Player* player)
+{
     if (player == nullptr) {
         return HandSide::Right;
     }
@@ -1037,7 +1045,8 @@ HandSide FirstPersonRenderer::getPrimaryHand(Player* player) {
     return player->getPrimaryHand();
 }
 
-ItemStack FirstPersonRenderer::getHeldItem(Player* player, Hand hand) {
+ItemStack FirstPersonRenderer::getHeldItem(Player* player, Hand hand)
+{
     if (player == nullptr) {
         return ItemStack();
     }
@@ -1051,14 +1060,16 @@ ItemStack FirstPersonRenderer::getHeldItem(Player* player, Hand hand) {
     }
 }
 
-HandSide FirstPersonRenderer::resolveHandSide(Hand hand, HandSide primaryHand) {
+HandSide FirstPersonRenderer::resolveHandSide(Hand hand, HandSide primaryHand)
+{
     if (hand == Hand::MainHand) {
         return primaryHand;
     }
     return primaryHand == HandSide::Right ? HandSide::Left : HandSide::Right;
 }
 
-std::shared_ptr<ModelRenderer> FirstPersonRenderer::selectArmModel(Hand hand, HandSide primaryHand) const {
+std::shared_ptr<ModelRenderer> FirstPersonRenderer::selectArmModel(Hand hand, HandSide primaryHand) const
+{
     const HandSide handSide = resolveHandSide(hand, primaryHand);
     return handSide == HandSide::Right ? m_model.rightArm() : m_model.leftArm();
 }

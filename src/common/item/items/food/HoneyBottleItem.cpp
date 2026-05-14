@@ -1,19 +1,20 @@
 #include "HoneyBottleItem.hpp"
-#include "../../core/ItemStack.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../Items.hpp"
+#include "../../core/ItemStack.hpp"
 
 namespace mc {
 namespace item::items {
 
 HoneyBottleItem::HoneyBottleItem(const food::Food* food, ItemProperties properties)
-    : FoodItem(food, std::move(properties)) {
-}
+    : FoodItem(food, std::move(properties))
+{}
 
-ItemStack HoneyBottleItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) {
+ItemStack HoneyBottleItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
+{
     // 调用父类方法处理基本的食用逻辑（恢复饥饿值、饱和度、效果等）
     ItemStack result = FoodItem::onItemUseFinish(stack, world, entity);
 
@@ -36,13 +37,15 @@ ItemStack HoneyBottleItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
     return result;
 }
 
-i32 HoneyBottleItem::getUseDuration(const ItemStack& stack) const {
+i32 HoneyBottleItem::getUseDuration(const ItemStack& stack) const
+{
     // MC 1.16.5: 蜂蜜瓶使用时间为40 ticks（2秒）
     (void)stack;
     return 40;
 }
 
-UseAction HoneyBottleItem::getUseAction(const ItemStack& stack) const {
+UseAction HoneyBottleItem::getUseAction(const ItemStack& stack) const
+{
     // MC 1.16.5: 蜂蜜瓶使用 Drink 动作
     (void)stack;
     return UseAction::Drink;

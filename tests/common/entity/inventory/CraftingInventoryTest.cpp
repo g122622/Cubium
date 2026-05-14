@@ -1,12 +1,13 @@
-#include <gtest/gtest.h>
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
 class CraftingInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 获取测试用的物品
         stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
         dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
@@ -18,7 +19,8 @@ protected:
 
 // ========== 构造函数测试 ==========
 
-TEST_F(CraftingInventoryTest, Create_2x2) {
+TEST_F(CraftingInventoryTest, Create_2x2)
+{
     CraftingInventory inv(2, 2);
 
     EXPECT_EQ(inv.getWidth(), 2);
@@ -27,7 +29,8 @@ TEST_F(CraftingInventoryTest, Create_2x2) {
     EXPECT_TRUE(inv.isEmpty());
 }
 
-TEST_F(CraftingInventoryTest, Create_3x3) {
+TEST_F(CraftingInventoryTest, Create_3x3)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_EQ(inv.getWidth(), 3);
@@ -36,7 +39,8 @@ TEST_F(CraftingInventoryTest, Create_3x3) {
     EXPECT_TRUE(inv.isEmpty());
 }
 
-TEST_F(CraftingInventoryTest, Create_1x1) {
+TEST_F(CraftingInventoryTest, Create_1x1)
+{
     CraftingInventory inv(1, 1);
 
     EXPECT_EQ(inv.getWidth(), 1);
@@ -47,31 +51,36 @@ TEST_F(CraftingInventoryTest, Create_1x1) {
 
 // ========== 槽位索引测试 ==========
 
-TEST_F(CraftingInventoryTest, PosToSlot_TopLeft) {
+TEST_F(CraftingInventoryTest, PosToSlot_TopLeft)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_EQ(inv.posToSlot(0, 0), 0);
 }
 
-TEST_F(CraftingInventoryTest, PosToSlot_TopRight) {
+TEST_F(CraftingInventoryTest, PosToSlot_TopRight)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_EQ(inv.posToSlot(2, 0), 2);
 }
 
-TEST_F(CraftingInventoryTest, PosToSlot_BottomLeft) {
+TEST_F(CraftingInventoryTest, PosToSlot_BottomLeft)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_EQ(inv.posToSlot(0, 2), 6);
 }
 
-TEST_F(CraftingInventoryTest, PosToSlot_BottomRight) {
+TEST_F(CraftingInventoryTest, PosToSlot_BottomRight)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_EQ(inv.posToSlot(2, 2), 8);
 }
 
-TEST_F(CraftingInventoryTest, PosToSlot_OutOfBounds_Negative) {
+TEST_F(CraftingInventoryTest, PosToSlot_OutOfBounds_Negative)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_EQ(inv.posToSlot(-1, 0), -1);
@@ -79,7 +88,8 @@ TEST_F(CraftingInventoryTest, PosToSlot_OutOfBounds_Negative) {
     EXPECT_EQ(inv.posToSlot(-1, -1), -1);
 }
 
-TEST_F(CraftingInventoryTest, PosToSlot_OutOfBounds_TooLarge) {
+TEST_F(CraftingInventoryTest, PosToSlot_OutOfBounds_TooLarge)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_EQ(inv.posToSlot(3, 0), -1);
@@ -87,7 +97,8 @@ TEST_F(CraftingInventoryTest, PosToSlot_OutOfBounds_TooLarge) {
     EXPECT_EQ(inv.posToSlot(3, 3), -1);
 }
 
-TEST_F(CraftingInventoryTest, SlotToPos_Valid) {
+TEST_F(CraftingInventoryTest, SlotToPos_Valid)
+{
     CraftingInventory inv(3, 3);
 
     i32 x, y;
@@ -105,7 +116,8 @@ TEST_F(CraftingInventoryTest, SlotToPos_Valid) {
     EXPECT_EQ(y, 2);
 }
 
-TEST_F(CraftingInventoryTest, SlotToPos_Invalid) {
+TEST_F(CraftingInventoryTest, SlotToPos_Invalid)
+{
     CraftingInventory inv(3, 3);
 
     i32 x, y;
@@ -116,7 +128,8 @@ TEST_F(CraftingInventoryTest, SlotToPos_Invalid) {
 
 // ========== 物品操作测试 ==========
 
-TEST_F(CraftingInventoryTest, SetGetItem_BySlot) {
+TEST_F(CraftingInventoryTest, SetGetItem_BySlot)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -131,7 +144,8 @@ TEST_F(CraftingInventoryTest, SetGetItem_BySlot) {
     EXPECT_FALSE(inv.isEmpty());
 }
 
-TEST_F(CraftingInventoryTest, SetGetItem_ByPosition) {
+TEST_F(CraftingInventoryTest, SetGetItem_ByPosition)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -147,14 +161,16 @@ TEST_F(CraftingInventoryTest, SetGetItem_ByPosition) {
     EXPECT_EQ(inv.getItemAt(1, 1).getCount(), 16);
 }
 
-TEST_F(CraftingInventoryTest, GetItem_EmptySlot) {
+TEST_F(CraftingInventoryTest, GetItem_EmptySlot)
+{
     CraftingInventory inv(3, 3);
 
     EXPECT_TRUE(inv.getItem(0).isEmpty());
     EXPECT_TRUE(inv.getItemAt(0, 0).isEmpty());
 }
 
-TEST_F(CraftingInventoryTest, RemoveItem_Partial) {
+TEST_F(CraftingInventoryTest, RemoveItem_Partial)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -168,7 +184,8 @@ TEST_F(CraftingInventoryTest, RemoveItem_Partial) {
     EXPECT_EQ(inv.getItem(0).getCount(), 48);
 }
 
-TEST_F(CraftingInventoryTest, RemoveItem_All) {
+TEST_F(CraftingInventoryTest, RemoveItem_All)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -182,7 +199,8 @@ TEST_F(CraftingInventoryTest, RemoveItem_All) {
     EXPECT_TRUE(inv.getItem(0).isEmpty());
 }
 
-TEST_F(CraftingInventoryTest, RemoveItemNoUpdate) {
+TEST_F(CraftingInventoryTest, RemoveItemNoUpdate)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -196,7 +214,8 @@ TEST_F(CraftingInventoryTest, RemoveItemNoUpdate) {
     EXPECT_TRUE(inv.getItem(0).isEmpty());
 }
 
-TEST_F(CraftingInventoryTest, Clear) {
+TEST_F(CraftingInventoryTest, Clear)
+{
     if (!stone || !dirt) {
         GTEST_SKIP() << "Required items not registered";
     }
@@ -217,7 +236,8 @@ TEST_F(CraftingInventoryTest, Clear) {
 
 // ========== 回调测试 ==========
 
-TEST_F(CraftingInventoryTest, ContentChangedCallback) {
+TEST_F(CraftingInventoryTest, ContentChangedCallback)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -225,9 +245,7 @@ TEST_F(CraftingInventoryTest, ContentChangedCallback) {
     CraftingInventory inv(3, 3);
 
     bool callbackCalled = false;
-    inv.setContentChangedCallback([&callbackCalled]() {
-        callbackCalled = true;
-    });
+    inv.setContentChangedCallback([&callbackCalled]() { callbackCalled = true; });
 
     inv.setItem(0, ItemStack(*stone, 1));
 
@@ -236,7 +254,8 @@ TEST_F(CraftingInventoryTest, ContentChangedCallback) {
 
 // ========== 边界计算测试 ==========
 
-TEST_F(CraftingInventoryTest, ContentBounds_Empty) {
+TEST_F(CraftingInventoryTest, ContentBounds_Empty)
+{
     CraftingInventory inv(3, 3);
 
     i32 minX, minY, maxX, maxY;
@@ -245,7 +264,8 @@ TEST_F(CraftingInventoryTest, ContentBounds_Empty) {
     EXPECT_FALSE(hasContent);
 }
 
-TEST_F(CraftingInventoryTest, ContentBounds_SingleItem) {
+TEST_F(CraftingInventoryTest, ContentBounds_SingleItem)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -264,7 +284,8 @@ TEST_F(CraftingInventoryTest, ContentBounds_SingleItem) {
     EXPECT_EQ(maxY, 1);
 }
 
-TEST_F(CraftingInventoryTest, ContentBounds_MultipleItems) {
+TEST_F(CraftingInventoryTest, ContentBounds_MultipleItems)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -285,7 +306,8 @@ TEST_F(CraftingInventoryTest, ContentBounds_MultipleItems) {
     EXPECT_EQ(maxY, 2);
 }
 
-TEST_F(CraftingInventoryTest, IsAllEmpty) {
+TEST_F(CraftingInventoryTest, IsAllEmpty)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -305,7 +327,8 @@ TEST_F(CraftingInventoryTest, IsAllEmpty) {
 
 // ========== SetItems测试 ==========
 
-TEST_F(CraftingInventoryTest, SetItems_CorrectSize) {
+TEST_F(CraftingInventoryTest, SetItems_CorrectSize)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -322,7 +345,8 @@ TEST_F(CraftingInventoryTest, SetItems_CorrectSize) {
     EXPECT_TRUE(inv.getItemAt(1, 1).isSameItem(items[3]));
 }
 
-TEST_F(CraftingInventoryTest, SetItems_WrongSize) {
+TEST_F(CraftingInventoryTest, SetItems_WrongSize)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -345,14 +369,13 @@ TEST_F(CraftingInventoryTest, SetItems_WrongSize) {
 
 class CraftResultInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
-    }
+    void SetUp() override { stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone")); }
 
     Item* stone = nullptr;
 };
 
-TEST_F(CraftResultInventoryTest, Create) {
+TEST_F(CraftResultInventoryTest, Create)
+{
     CraftResultInventory inv;
 
     EXPECT_EQ(inv.getContainerSize(), 1);
@@ -360,7 +383,8 @@ TEST_F(CraftResultInventoryTest, Create) {
     EXPECT_FALSE(inv.hasResult());
 }
 
-TEST_F(CraftResultInventoryTest, SetResultItem) {
+TEST_F(CraftResultInventoryTest, SetResultItem)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -375,7 +399,8 @@ TEST_F(CraftResultInventoryTest, SetResultItem) {
     EXPECT_EQ(inv.getResultItem().getCount(), 4);
 }
 
-TEST_F(CraftResultInventoryTest, GetItem_ValidSlot) {
+TEST_F(CraftResultInventoryTest, GetItem_ValidSlot)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -388,7 +413,8 @@ TEST_F(CraftResultInventoryTest, GetItem_ValidSlot) {
     EXPECT_TRUE(inv.getItem(0).isSameItem(result));
 }
 
-TEST_F(CraftResultInventoryTest, GetItem_InvalidSlot) {
+TEST_F(CraftResultInventoryTest, GetItem_InvalidSlot)
+{
     CraftResultInventory inv;
 
     EXPECT_TRUE(inv.getItem(-1).isEmpty());
@@ -396,7 +422,8 @@ TEST_F(CraftResultInventoryTest, GetItem_InvalidSlot) {
     EXPECT_TRUE(inv.getItem(100).isEmpty());
 }
 
-TEST_F(CraftResultInventoryTest, RemoveItem) {
+TEST_F(CraftResultInventoryTest, RemoveItem)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }
@@ -410,7 +437,8 @@ TEST_F(CraftResultInventoryTest, RemoveItem) {
     EXPECT_FALSE(inv.hasResult());
 }
 
-TEST_F(CraftResultInventoryTest, Clear) {
+TEST_F(CraftResultInventoryTest, Clear)
+{
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered";
     }

@@ -8,7 +8,8 @@
 
 namespace mc::client {
 
-TEST(GuiItemColorTest, ItemTextureColorUsesItemSamplerBranch) {
+TEST(GuiItemColorTest, ItemTextureColorUsesItemSamplerBranch)
+{
     constexpr u32 color = GuiRenderer::ITEM_TEXTURE_COLOR;
     constexpr u32 alpha = (color >> 24) & 0xFF;
 
@@ -19,7 +20,8 @@ TEST(GuiItemColorTest, ItemTextureColorUsesItemSamplerBranch) {
     EXPECT_GE(alpha, 254u);
 }
 
-TEST(GuiItemColorTest, ItemTextureColorIsNotTransparent) {
+TEST(GuiItemColorTest, ItemTextureColorIsNotTransparent)
+{
     constexpr u32 color = GuiRenderer::ITEM_TEXTURE_COLOR;
     constexpr u32 alpha = (color >> 24) & 0xFF;
     const f32 outputAlpha = static_cast<f32>(alpha) / 255.0f;
@@ -27,9 +29,9 @@ TEST(GuiItemColorTest, ItemTextureColorIsNotTransparent) {
     EXPECT_GT(outputAlpha, 0.99f);
 }
 
-TEST(GuiShaderRegressionTest, FontSamplingUsesTextureAlpha) {
-    const std::filesystem::path shaderPath =
-        std::filesystem::path(MC_SOURCE_DIR) / "shaders" / "gui.frag";
+TEST(GuiShaderRegressionTest, FontSamplingUsesTextureAlpha)
+{
+    const std::filesystem::path shaderPath = std::filesystem::path(MC_SOURCE_DIR) / "shaders" / "gui.frag";
     ASSERT_TRUE(std::filesystem::exists(shaderPath)) << "Shader file not found: " << shaderPath.string();
 
     std::ifstream shaderFile(shaderPath, std::ios::binary);
@@ -43,9 +45,9 @@ TEST(GuiShaderRegressionTest, FontSamplingUsesTextureAlpha) {
         << "Font slot should write glyph coverage to alpha channel";
 }
 
-TEST(GuiShaderRegressionTest, SolidRectMarkerStillEnabled) {
-    const std::filesystem::path shaderPath =
-        std::filesystem::path(MC_SOURCE_DIR) / "shaders" / "gui.frag";
+TEST(GuiShaderRegressionTest, SolidRectMarkerStillEnabled)
+{
+    const std::filesystem::path shaderPath = std::filesystem::path(MC_SOURCE_DIR) / "shaders" / "gui.frag";
     ASSERT_TRUE(std::filesystem::exists(shaderPath)) << "Shader file not found: " << shaderPath.string();
 
     std::ifstream shaderFile(shaderPath, std::ios::binary);

@@ -1,7 +1,7 @@
 #include "KeyBinding.hpp"
 
-#include <spdlog/spdlog.h>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -115,8 +115,7 @@ std::vector<std::string> KeyBinding::getCategories()
     return categories;
 }
 
-void KeyBinding::updateAll(
-    const std::vector<i32>& pressedKeys,
+void KeyBinding::updateAll(const std::vector<i32>& pressedKeys,
     const std::vector<i32>& justPressedKeys,
     const std::vector<i32>& justReleasedKeys)
 {
@@ -141,7 +140,8 @@ void KeyBinding::updateAll(
         binding->m_justReleased = isJustReleased(key);
 
         // 触发状态回调
-        if (s_stateCallback && (binding->m_pressed != wasPressed || binding->m_justPressed || binding->m_justReleased)) {
+        if (s_stateCallback &&
+            (binding->m_pressed != wasPressed || binding->m_justPressed || binding->m_justReleased)) {
             s_stateCallback(*binding, binding->m_pressed);
         }
     }
@@ -191,8 +191,7 @@ void KeyBinding::registerBinding()
     s_bindings[m_id] = this;
     s_categoryBindings[m_category].push_back(this);
 
-    spdlog::trace("Registered key binding '{}' (key: {}, category: {})",
-                  m_id, m_currentKey, m_category);
+    spdlog::trace("Registered key binding '{}' (key: {}, category: {})", m_id, m_currentKey, m_category);
 }
 
 void KeyBinding::unregisterBinding()
@@ -206,10 +205,7 @@ void KeyBinding::unregisterBinding()
     auto it = s_categoryBindings.find(m_category);
     if (it != s_categoryBindings.end()) {
         auto& bindings = it->second;
-        bindings.erase(
-            std::remove(bindings.begin(), bindings.end(), this),
-            bindings.end()
-        );
+        bindings.erase(std::remove(bindings.begin(), bindings.end(), this), bindings.end());
         if (bindings.empty()) {
             s_categoryBindings.erase(it);
         }

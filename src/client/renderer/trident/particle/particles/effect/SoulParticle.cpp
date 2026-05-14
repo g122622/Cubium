@@ -27,15 +27,14 @@ SoulFireFlameParticle::SoulFireFlameParticle(const glm::vec3& pos, const glm::ve
 }
 
 std::unique_ptr<Particle> SoulFireFlameParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SoulFireFlameParticle>(pos, velocity);
 }
 
-void SoulFireFlameParticle::tick(mc::client::ClientWorld* world) {
+void SoulFireFlameParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -66,7 +65,8 @@ void SoulFireFlameParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-f64 SoulFireFlameParticle::getScale(f64 partialTick) const {
+f64 SoulFireFlameParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -97,15 +97,14 @@ SoulParticle::SoulParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> SoulParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SoulParticle>(pos, velocity);
 }
 
-void SoulParticle::tick(mc::client::ClientWorld* world) {
+void SoulParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -131,7 +130,8 @@ void SoulParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.8f * (1.0f - lifeRatio));
 }
 
-f64 SoulParticle::getScale(f64 partialTick) const {
+f64 SoulParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }

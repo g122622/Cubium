@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../BiomeValues.hpp"
 #include "../LayerContext.hpp"
 #include "TransformerTraits.hpp"
-#include "../BiomeValues.hpp"
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 namespace layer {
@@ -79,8 +79,7 @@ public:
     [[nodiscard]] i32 getOffsetX(i32 x) const override final { return x + 1; }
     [[nodiscard]] i32 getOffsetZ(i32 z) const override final { return z + 1; }
 
-    [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
+    [[nodiscard]] std::unique_ptr<IAreaFactory> apply(IExtendedAreaContext& context,
         std::unique_ptr<IAreaFactory> input1,
         std::unique_ptr<IAreaFactory> input2) override;
 };
@@ -101,8 +100,7 @@ public:
     [[nodiscard]] i32 getOffsetX(i32 x) const override final { return x; }
     [[nodiscard]] i32 getOffsetZ(i32 z) const override final { return z; }
 
-    [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
+    [[nodiscard]] std::unique_ptr<IAreaFactory> apply(IExtendedAreaContext& context,
         std::unique_ptr<IAreaFactory> input1,
         std::unique_ptr<IAreaFactory> input2) override;
 };
@@ -123,8 +121,7 @@ public:
     [[nodiscard]] i32 getOffsetX(i32 x) const override final { return x; }
     [[nodiscard]] i32 getOffsetZ(i32 z) const override final { return z; }
 
-    [[nodiscard]] std::unique_ptr<IAreaFactory> apply(
-        IExtendedAreaContext& context,
+    [[nodiscard]] std::unique_ptr<IAreaFactory> apply(IExtendedAreaContext& context,
         std::unique_ptr<IAreaFactory> input1,
         std::unique_ptr<IAreaFactory> input2) override;
 };

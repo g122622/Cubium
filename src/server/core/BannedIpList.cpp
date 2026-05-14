@@ -1,12 +1,12 @@
 #include "BannedIpList.hpp"
 
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <spdlog/spdlog.h>
 #include <algorithm>
-#include <iomanip>
 #include <ctime>
+#include <fstream>
+#include <iomanip>
 #include <sstream>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::core {
 
@@ -17,7 +17,8 @@ BannedIpList::BannedIpList() = default;
 
 // ========== 条目管理 ==========
 
-bool BannedIpList::addEntry(const BannedIpEntry& entry) {
+bool BannedIpList::addEntry(const BannedIpEntry& entry)
+{
     if (!entry.isValid()) {
         return false;
     }
@@ -35,7 +36,8 @@ bool BannedIpList::addEntry(const BannedIpEntry& entry) {
     return true;
 }
 
-bool BannedIpList::removeEntry(const std::string& ip) {
+bool BannedIpList::removeEntry(const std::string& ip)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entries.find(ip);
@@ -47,7 +49,8 @@ bool BannedIpList::removeEntry(const std::string& ip) {
     return true;
 }
 
-bool BannedIpList::isBanned(const std::string& ip) const {
+bool BannedIpList::isBanned(const std::string& ip) const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -61,7 +64,8 @@ bool BannedIpList::isBanned(const std::string& ip) const {
     return !it->second.hasExpired();
 }
 
-std::optional<BannedIpEntry> BannedIpList::getEntry(const std::string& ip) const {
+std::optional<BannedIpEntry> BannedIpList::getEntry(const std::string& ip) const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -80,7 +84,8 @@ std::optional<BannedIpEntry> BannedIpList::getEntry(const std::string& ip) const
     return it->second;
 }
 
-std::vector<BannedIpEntry> BannedIpList::getAllEntries() const {
+std::vector<BannedIpEntry> BannedIpList::getAllEntries() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -98,7 +103,8 @@ std::vector<BannedIpEntry> BannedIpList::getAllEntries() const {
     return entries;
 }
 
-std::vector<std::string> BannedIpList::getAllBannedIps() const {
+std::vector<std::string> BannedIpList::getAllBannedIps() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -116,7 +122,8 @@ std::vector<std::string> BannedIpList::getAllBannedIps() const {
     return ips;
 }
 
-size_t BannedIpList::size() const {
+size_t BannedIpList::size() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -124,7 +131,8 @@ size_t BannedIpList::size() const {
     return m_entries.size();
 }
 
-bool BannedIpList::empty() const {
+bool BannedIpList::empty() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -132,14 +140,16 @@ bool BannedIpList::empty() const {
     return m_entries.empty();
 }
 
-void BannedIpList::clear() {
+void BannedIpList::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entries.clear();
 }
 
 // ========== 文件操作 ==========
 
-Result<void> BannedIpList::load(const std::filesystem::path& path) {
+Result<void> BannedIpList::load(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     m_filePath = path;
@@ -154,9 +164,9 @@ Result<void> BannedIpList::load(const std::filesystem::path& path) {
         try {
             std::ofstream file(path);
             file << "[]";
-        } catch (const std::exception& e) {
-            return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to create banned IPs file: {}", e.what()));
+        }
+        catch (const std::exception& e) {
+            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create banned IPs file: {}", e.what()));
         }
         return {};
     }
@@ -165,16 +175,14 @@ Result<void> BannedIpList::load(const std::filesystem::path& path) {
     try {
         std::ifstream file(path);
         if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed,
-                        fmt::format("Failed to open banned IPs file: {}", path.string()));
+            return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open banned IPs file: {}", path.string()));
         }
 
         nlohmann::json json;
         file >> json;
 
         if (!json.is_array()) {
-            return Error(ErrorCode::FileCorrupted,
-                        "Banned IPs file must be a JSON array");
+            return Error(ErrorCode::FileCorrupted, "Banned IPs file must be a JSON array");
         }
 
         for (const auto& item : json) {
@@ -245,17 +253,17 @@ Result<void> BannedIpList::load(const std::filesystem::path& path) {
 
         spdlog::info("Loaded {} banned IP entries from {}", m_entries.size(), path.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileCorrupted,
-                    fmt::format("Failed to parse banned IPs JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed,
-                    fmt::format("Failed to read banned IPs file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse banned IPs JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read banned IPs file: {}", e.what()));
     }
 }
 
-Result<void> BannedIpList::save(const std::filesystem::path& path) {
+Result<void> BannedIpList::save(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::filesystem::path savePath = path.empty() ? m_filePath : path;
@@ -294,24 +302,24 @@ Result<void> BannedIpList::save(const std::filesystem::path& path) {
         std::ofstream file(savePath);
         if (!file.is_open()) {
             return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to open banned IPs file for writing: {}", savePath.string()));
+                fmt::format("Failed to open banned IPs file for writing: {}", savePath.string()));
         }
 
         file << json.dump(2);
 
         spdlog::info("Saved {} banned IP entries to {}", json.size(), savePath.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to serialize banned IPs JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to save banned IPs file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to serialize banned IPs JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save banned IPs file: {}", e.what()));
     }
 }
 
-Result<void> BannedIpList::reload() {
+Result<void> BannedIpList::reload()
+{
     if (m_filePath.empty()) {
         return Error(ErrorCode::InvalidArgument, "No file path to reload banned IPs from");
     }
@@ -321,7 +329,8 @@ Result<void> BannedIpList::reload() {
 
 // ========== 私有方法 ==========
 
-void BannedIpList::removeExpired() const {
+void BannedIpList::removeExpired() const
+{
     // 注意：此方法在持锁状态下由其他公共方法调用
     // 所以这里不需要再加锁
 
@@ -338,7 +347,8 @@ void BannedIpList::removeExpired() const {
     }
 }
 
-std::string BannedIpList::getCurrentTimeString() {
+std::string BannedIpList::getCurrentTimeString()
+{
     auto now = std::chrono::system_clock::now();
     auto now_time = std::chrono::system_clock::to_time_t(now);
 
@@ -356,7 +366,8 @@ std::string BannedIpList::getCurrentTimeString() {
 
 // ========== BannedIpEntry 方法 ==========
 
-bool BannedIpEntry::hasExpired() const {
+bool BannedIpEntry::hasExpired() const
+{
     if (expires.empty() || expires == "forever") {
         return false;
     }

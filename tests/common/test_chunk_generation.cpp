@@ -1,18 +1,18 @@
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
+#include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/ChunkStatus.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/ChunkStatus.hpp"
 #include "common/world/chunk/SingleChunkLifecycleManager.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/noise/ImprovedNoiseGenerator.hpp"
 #include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
 #include "common/world/gen/settings/NoiseSettings.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/util/math/random/Random.hpp"
 
 using namespace mc;
 
@@ -20,7 +20,8 @@ using namespace mc;
 // ChunkStatus 测试
 // ============================================================================
 
-TEST(ChunkStatus, BasicProperties) {
+TEST(ChunkStatus, BasicProperties)
+{
     // EMPTY 是根
     EXPECT_EQ(ChunkStatuses::EMPTY.name(), "empty");
     EXPECT_EQ(ChunkStatuses::EMPTY.ordinal(), 0);
@@ -37,7 +38,8 @@ TEST(ChunkStatus, BasicProperties) {
     EXPECT_EQ(ChunkStatuses::FULL.parent(), &ChunkStatuses::HEIGHTMAPS);
 }
 
-TEST(ChunkStatus, Ordering) {
+TEST(ChunkStatus, Ordering)
+{
     // isAtLeast 测试
     EXPECT_TRUE(ChunkStatuses::FULL.isAtLeast(ChunkStatuses::EMPTY));
     EXPECT_TRUE(ChunkStatuses::FULL.isAtLeast(ChunkStatuses::BIOMES));
@@ -57,7 +59,8 @@ TEST(ChunkStatus, Ordering) {
     EXPECT_TRUE(ChunkStatuses::FULL > ChunkStatuses::EMPTY);
 }
 
-TEST(ChunkStatus, TaskRange) {
+TEST(ChunkStatus, TaskRange)
+{
     // STRUCTURE_REFERENCES 阶段需要邻居区块
     EXPECT_EQ(ChunkStatuses::STRUCTURE_REFERENCES.taskRange(), 8);
 
@@ -68,14 +71,15 @@ TEST(ChunkStatus, TaskRange) {
     EXPECT_EQ(ChunkStatuses::FEATURES.taskRange(), 8);
 
     // 其他阶段不需要邻居或需要较少邻居
-    EXPECT_EQ(ChunkStatuses::EMPTY.taskRange(), -1);  // 特殊值
+    EXPECT_EQ(ChunkStatuses::EMPTY.taskRange(), -1); // 特殊值
     EXPECT_EQ(ChunkStatuses::BIOMES.taskRange(), 0);
     EXPECT_EQ(ChunkStatuses::FULL.taskRange(), 0);
 }
 
-TEST(ChunkStatus, GetAll) {
+TEST(ChunkStatus, GetAll)
+{
     const auto& all = ChunkStatus::getAll();
-    EXPECT_EQ(all.size(), 13u);  // 13个阶段
+    EXPECT_EQ(all.size(), 13u); // 13个阶段
 
     // 验证顺序
     EXPECT_EQ(all[0], ChunkStatuses::EMPTY);
@@ -93,7 +97,8 @@ TEST(ChunkStatus, GetAll) {
     EXPECT_EQ(all[12], ChunkStatuses::FULL);
 }
 
-TEST(ChunkStatus, NewStages) {
+TEST(ChunkStatus, NewStages)
+{
     // 验证新增的阶段
     EXPECT_EQ(ChunkStatuses::STRUCTURE_STARTS.name(), "structure_starts");
     EXPECT_EQ(ChunkStatuses::STRUCTURE_REFERENCES.name(), "structure_references");
@@ -108,7 +113,8 @@ TEST(ChunkStatus, NewStages) {
     EXPECT_TRUE(ChunkStatuses::SPAWN.isBefore(ChunkStatuses::HEIGHTMAPS));
 }
 
-TEST(ChunkStatus, HeightmapFlags) {
+TEST(ChunkStatus, HeightmapFlags)
+{
     // 验证高度图标志
     EXPECT_TRUE(hasFlag(ChunkStatuses::EMPTY.heightmaps(), HeightmapFlag::PRE_FEATURES));
     EXPECT_TRUE(hasFlag(ChunkStatuses::BIOMES.heightmaps(), HeightmapFlag::PRE_FEATURES));
@@ -119,7 +125,8 @@ TEST(ChunkStatus, HeightmapFlags) {
     EXPECT_TRUE(hasFlag(ChunkStatuses::FULL.heightmaps(), HeightmapFlag::POST_FEATURES));
 }
 
-TEST(ChunkStatus, ChunkType) {
+TEST(ChunkStatus, ChunkType)
+{
     // FULL 是 LEVELCHUNK 类型
     EXPECT_EQ(ChunkStatuses::FULL.type(), ChunkType::LEVELCHUNK);
 
@@ -129,7 +136,8 @@ TEST(ChunkStatus, ChunkType) {
     EXPECT_EQ(ChunkStatuses::FEATURES.type(), ChunkType::PROTOCHUNK);
 }
 
-TEST(ChunkStatus, ByNameAndOrdinal) {
+TEST(ChunkStatus, ByNameAndOrdinal)
+{
     // 按名称查找
     const ChunkStatus* status = ChunkStatus::byName("empty");
     ASSERT_NE(status, nullptr);
@@ -169,20 +177,23 @@ TEST(ChunkStatus, ByNameAndOrdinal) {
 
 class ChunkPrimerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
     }
 };
 
-TEST_F(ChunkPrimerTest, Creation) {
+TEST_F(ChunkPrimerTest, Creation)
+{
     ChunkPrimer primer(10, 20);
     EXPECT_EQ(primer.x(), 10);
     EXPECT_EQ(primer.z(), 20);
     EXPECT_EQ(primer.getChunkStatus(), ChunkStatuses::EMPTY);
 }
 
-TEST_F(ChunkPrimerTest, SetStatus) {
+TEST_F(ChunkPrimerTest, SetStatus)
+{
     ChunkPrimer primer(0, 0);
 
     primer.setChunkStatus(ChunkStatuses::BIOMES);
@@ -197,7 +208,8 @@ TEST_F(ChunkPrimerTest, SetStatus) {
     EXPECT_TRUE(primer.hasCompletedStatus(ChunkStatuses::FULL));
 }
 
-TEST_F(ChunkPrimerTest, TopBlockYReturnsBlockCoordinate) {
+TEST_F(ChunkPrimerTest, TopBlockYReturnsBlockCoordinate)
+{
     ASSERT_NE(VanillaBlocks::STONE, nullptr);
     ASSERT_NE(VanillaBlocks::WATER, nullptr);
 
@@ -228,15 +240,17 @@ TEST_F(ChunkPrimerTest, TopBlockYReturnsBlockCoordinate) {
 // SingleChunkLifecycleManager 测试
 // ============================================================================
 
-TEST(SingleChunkLifecycleManagerTest, Creation) {
+TEST(SingleChunkLifecycleManagerTest, Creation)
+{
     SingleChunkLifecycleManager holder(5, 10);
     EXPECT_EQ(holder.x(), 5);
     EXPECT_EQ(holder.z(), 10);
     EXPECT_EQ(holder.getStatus(), ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.getLevel(), 33);  // 默认级别
+    EXPECT_EQ(holder.getLevel(), 33); // 默认级别
 }
 
-TEST(SingleChunkLifecycleManagerTest, SetStatus) {
+TEST(SingleChunkLifecycleManagerTest, SetStatus)
+{
     SingleChunkLifecycleManager holder(0, 0);
 
     holder.setStatus(ChunkStatuses::STRUCTURE_STARTS);

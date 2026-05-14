@@ -24,17 +24,15 @@ public:
      * @param closeSender 关闭发送器
      */
     ChestScreen(ContainerId containerId,
-                mc::PlayerInventory* playerInventory,
-                i32 rows,
-                ContainerClickSender clickSender = {},
-                ContainerCloseSender closeSender = {});
+        mc::PlayerInventory* playerInventory,
+        i32 rows,
+        ContainerClickSender clickSender = {},
+        ContainerCloseSender closeSender = {});
 
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] std::string getTitle() const override {
-        return "Chest";
-    }
+    [[nodiscard]] std::string getTitle() const override { return "Chest"; }
 
 protected:
     void onInit() override;

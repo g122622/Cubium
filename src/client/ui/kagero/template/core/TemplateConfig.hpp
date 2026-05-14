@@ -5,11 +5,11 @@
 namespace mc::client::ui::kagero::tpl::core {
 
 // 引入基础类型
-using mc::i32;
-using mc::u8;
-using mc::u64;
 using mc::f32;
+using mc::i32;
 using mc::Size;
+using mc::u64;
+using mc::u8;
 
 /**
  * @brief 模板系统配置
@@ -47,14 +47,13 @@ struct TemplateConfig {
     /**
      * @brief 获取默认配置
      */
-    static TemplateConfig defaults() {
-        return TemplateConfig{};
-    }
+    static TemplateConfig defaults() { return TemplateConfig{}; }
 
     /**
      * @brief 获取开发模式配置（启用调试）
      */
-    static TemplateConfig development() {
+    static TemplateConfig development()
+    {
         TemplateConfig config;
         config.debugOutput = true;
         return config;
@@ -63,7 +62,8 @@ struct TemplateConfig {
     /**
      * @brief 获取生产模式配置（启用缓存，禁用调试）
      */
-    static TemplateConfig production() {
+    static TemplateConfig production()
+    {
         TemplateConfig config;
         config.enableCache = true;
         config.debugOutput = false;
@@ -75,7 +75,7 @@ struct TemplateConfig {
  * @brief 模板版本枚举
  */
 enum class TemplateVersion : u8 {
-    V1_0 = 1,   ///< 初始版本
+    V1_0 = 1, ///< 初始版本
     LATEST = V1_0
 };
 
@@ -83,32 +83,32 @@ enum class TemplateVersion : u8 {
  * @brief 模板源码位置信息
  */
 struct SourceLocation {
-    size_t line = 1;        ///< 行号（从1开始）
-    size_t column = 1;      ///< 列号（从1开始）
-    size_t offset = 0;      ///< 文件偏移量
+    size_t line = 1;   ///< 行号（从1开始）
+    size_t column = 1; ///< 列号（从1开始）
+    size_t offset = 0; ///< 文件偏移量
 
     SourceLocation() = default;
     SourceLocation(size_t line_, size_t column_, size_t offset_ = 0)
-        : line(line_), column(column_), offset(offset_) {}
+        : line(line_)
+        , column(column_)
+        , offset(offset_)
+    {}
 
     /**
      * @brief 创建无效位置
      */
-    static SourceLocation invalid() {
-        return SourceLocation(0, 0, 0);
-    }
+    static SourceLocation invalid() { return SourceLocation(0, 0, 0); }
 
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const {
-        return line > 0 && column > 0;
-    }
+    [[nodiscard]] bool isValid() const { return line > 0 && column > 0; }
 
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] std::string toString() const {
+    [[nodiscard]] std::string toString() const
+    {
         return "line " + std::to_string(line) + ", column " + std::to_string(column);
     }
 };
@@ -122,19 +122,20 @@ struct SourceRange {
 
     SourceRange() = default;
     SourceRange(SourceLocation start_, SourceLocation end_)
-        : start(start_), end(end_) {}
+        : start(start_)
+        , end(end_)
+    {}
 
     /**
      * @brief 从单个位置创建范围
      */
-    static SourceRange at(const SourceLocation& loc) {
-        return SourceRange(loc, loc);
-    }
+    static SourceRange at(const SourceLocation& loc) { return SourceRange(loc, loc); }
 
     /**
      * @brief 合并两个范围
      */
-    [[nodiscard]] SourceRange merge(const SourceRange& other) const {
+    [[nodiscard]] SourceRange merge(const SourceRange& other) const
+    {
         SourceRange result;
         result.start = start.offset < other.start.offset ? start : other.start;
         result.end = end.offset > other.end.offset ? end : other.end;

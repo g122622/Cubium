@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Potion.hpp"
 #include "../core/Item.hpp"
 #include "../crafting/Ingredient.hpp"
-#include <vector>
+#include "Potion.hpp"
 #include <functional>
+#include <vector>
 
 namespace mc {
 namespace potion {
@@ -16,17 +16,17 @@ namespace potion {
  *
  * @tparam T 输入输出类型（Potion 或 Item）
  */
-template<typename T>
+template <typename T>
 struct MixPredicate {
-    std::function<const T*()> input;   ///< 输入提供者
-    crafting::Ingredient reagent;       ///< 酿造材料
-    std::function<const T*()> output;   ///< 输出提供者
+    std::function<const T*()> input;  ///< 输入提供者
+    crafting::Ingredient reagent;     ///< 酿造材料
+    std::function<const T*()> output; ///< 输出提供者
 
     MixPredicate(const T* inputIn, crafting::Ingredient reagentIn, const T* outputIn)
         : input([inputIn]() { return inputIn; })
         , reagent(std::move(reagentIn))
-        , output([outputIn]() { return outputIn; }) {
-    }
+        , output([outputIn]() { return outputIn; })
+    {}
 };
 
 /**

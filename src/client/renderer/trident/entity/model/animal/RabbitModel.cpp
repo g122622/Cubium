@@ -6,25 +6,26 @@ namespace mc::client::renderer::entity::model::animal {
 
 RabbitModel::RabbitModel()
     : AgeableModel(
-        // 参考 MC 1.16.5 RabbitModel
-        // 幼体头部缩放: 0.56666666 = 17/30 (Java 使用 1.5F / (17F / 30F) = 45/17 ≈ 2.647)
-        // 但实际渲染时使用 matrixStack.scale(17F / 30F, 17F / 30F, 17F / 30F) 头部
-        // 身体使用 matrixStack.scale(0.4F, 0.4F, 0.4F)
-        // childHeadScale = 17F / 30F ≈ 0.56666666
-        // 所以 AgeableModel 的 1.5f / childHeadScale = 1.5 / 0.56666666 ≈ 2.647
-        true,    // isChildHeadScaled
-        5.0f,    // childHeadOffsetY
-        2.0f,    // childHeadOffsetZ
-        17.0f / 30.0f,  // childHeadScale = 0.56666666
-        2.5f,    // childBodyScale = 1/0.4 = 2.5
-        24.0f    // childBodyOffsetY
-    )
+          // 参考 MC 1.16.5 RabbitModel
+          // 幼体头部缩放: 0.56666666 = 17/30 (Java 使用 1.5F / (17F / 30F) = 45/17 ≈ 2.647)
+          // 但实际渲染时使用 matrixStack.scale(17F / 30F, 17F / 30F, 17F / 30F) 头部
+          // 身体使用 matrixStack.scale(0.4F, 0.4F, 0.4F)
+          // childHeadScale = 17F / 30F ≈ 0.56666666
+          // 所以 AgeableModel 的 1.5f / childHeadScale = 1.5 / 0.56666666 ≈ 2.647
+          true,          // isChildHeadScaled
+          5.0f,          // childHeadOffsetY
+          2.0f,          // childHeadOffsetZ
+          17.0f / 30.0f, // childHeadScale = 0.56666666
+          2.5f,          // childBodyScale = 1/0.4 = 2.5
+          24.0f          // childBodyOffsetY
+      )
 {
     setTextureSize(64, 32);
     setupParts();
 }
 
-void RabbitModel::setupParts() {
+void RabbitModel::setupParts()
+{
     // 参考 MC 1.16.5 RabbitModel
     // 所有部件都有初始旋转角度
 
@@ -52,7 +53,7 @@ void RabbitModel::setupParts() {
     m_leftThigh->setMirror(true);
     m_leftThigh->addBox(-1.0f, 0.0f, 0.0f, 2.0f, 4.0f, 5.0f);
     m_leftThigh->setRotationPoint(3.0f, 17.5f, 3.7f);
-    m_leftThigh->setRotateAngleX(-0.34906584f);  // -mc::math::PI_DOUBLE * 0.111
+    m_leftThigh->setRotateAngleX(-0.34906584f); // -mc::math::PI_DOUBLE * 0.111
     m_parts.push_back(m_leftThigh);
 
     // 右大腿 - Java: tex (16, 15), mirror=true, rotateAngleX=-0.34906584
@@ -79,7 +80,7 @@ void RabbitModel::setupParts() {
     m_leftArm->setMirror(true);
     m_leftArm->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 7.0f, 2.0f);
     m_leftArm->setRotationPoint(3.0f, 17.0f, -1.0f);
-    m_leftArm->setRotateAngleX(-0.17453292f);  // -mc::math::PI_DOUBLE * 0.0556
+    m_leftArm->setRotateAngleX(-0.17453292f); // -mc::math::PI_DOUBLE * 0.0556
     m_parts.push_back(m_leftArm);
 
     // 右前腿 - Java: tex (0, 15), mirror=true, rotateAngleX=-0.17453292
@@ -105,7 +106,7 @@ void RabbitModel::setupParts() {
     m_rightEar->setMirror(true);
     m_rightEar->addBox(-2.5f, -9.0f, -1.0f, 2.0f, 5.0f, 1.0f);
     m_rightEar->setRotationPoint(0.0f, 16.0f, -1.0f);
-    m_rightEar->setRotateAngleY(-0.2617994f);  // -mc::math::PI_DOUBLE * 0.0833
+    m_rightEar->setRotateAngleY(-0.2617994f); // -mc::math::PI_DOUBLE * 0.0833
     m_parts.push_back(m_rightEar);
 
     // 左耳 - Java: tex (58, 0), mirror=true, rotateAngleY=0.2617994
@@ -114,7 +115,7 @@ void RabbitModel::setupParts() {
     m_leftEar->setMirror(true);
     m_leftEar->addBox(0.5f, -9.0f, -1.0f, 2.0f, 5.0f, 1.0f);
     m_leftEar->setRotationPoint(0.0f, 16.0f, -1.0f);
-    m_leftEar->setRotateAngleY(0.2617994f);  // mc::math::PI_DOUBLE * 0.0833
+    m_leftEar->setRotateAngleY(0.2617994f); // mc::math::PI_DOUBLE * 0.0833
     m_parts.push_back(m_leftEar);
 
     // 尾巴 - Java: tex (52, 6), mirror=true, rotateAngleX=-0.3490659
@@ -135,7 +136,8 @@ void RabbitModel::setupParts() {
     m_parts.push_back(m_nose);
 }
 
-void RabbitModel::render(f64 scale) {
+void RabbitModel::render(f64 scale)
+{
     // 参考 MC 1.16.5 RabbitModel.render()
     // 成年兔子: scale(0.6) + translate(0, 1, 0)
     // 幼体兔子由 AgeableModel::render() 处理头部和身体分开缩放
@@ -162,7 +164,8 @@ void RabbitModel::render(f64 scale) {
     }
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getHeadParts() const {
+std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getHeadParts() const
+{
     std::vector<std::shared_ptr<ModelRenderer>> parts;
     parts.push_back(m_head);
     parts.push_back(m_rightEar);
@@ -171,7 +174,8 @@ std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getHeadParts() const {
     return parts;
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getBodyParts() const {
+std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getBodyParts() const
+{
     std::vector<std::shared_ptr<ModelRenderer>> parts;
     parts.push_back(m_body);
     parts.push_back(m_leftFoot);
@@ -184,9 +188,9 @@ std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getBodyParts() const {
     return parts;
 }
 
-void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                             f64 ageInTicks, f64 netHeadYaw,
-                             f64 headPitch, f64 scale) {
+void RabbitModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 RabbitModel.setRotationAngles
 
     // 跳跃动画
@@ -238,14 +242,16 @@ void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     (void)scale;
 }
 
-void RabbitModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 partialTick) {
+void RabbitModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 partialTick)
+{
     // 参考 MC 1.16.5 RabbitModel.setLivingAnimations
-    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(partialTick) * (float)Math.mc::math::PI_DOUBLE);
-    // 注意：jumpRotation 需要从实体获取，这里设置一个默认值
-    // 实际使用时应该调用 setJumpRotation() 从外部设置
+    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(partialTick) *
+    // (float)Math.mc::math::PI_DOUBLE); 注意：jumpRotation 需要从实体获取，这里设置一个默认值 实际使用时应该调用
+    // setJumpRotation() 从外部设置
 }
 
-void RabbitModel::setJumpRotation(f32 jumpRotation) {
+void RabbitModel::setJumpRotation(f32 jumpRotation)
+{
     m_jumpRotation = jumpRotation;
 }
 

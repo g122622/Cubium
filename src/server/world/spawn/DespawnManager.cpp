@@ -1,19 +1,20 @@
 #include "DespawnManager.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "common/world/entity/EntityManager.hpp"
-#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
-#include "common/entity/core/EntityClassification.hpp"
-#include "common/entity/combat/DifficultyHelper.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include <spdlog/spdlog.h>
+#include "common/util/math/random/Random.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::spawn {
 
-void DespawnManager::tick(::mc::server::ServerWorld& world) {
+void DespawnManager::tick(::mc::server::ServerWorld& world)
+{
     if (!m_enabled) {
         return;
     }
@@ -28,7 +29,7 @@ void DespawnManager::tick(::mc::server::ServerWorld& world) {
                 mobsToCheck.push_back(mob);
             }
         }
-        return true;  // 继续遍历
+        return true; // 继续遍历
     });
 
     // 检查实体数量限制
@@ -42,17 +43,18 @@ void DespawnManager::tick(::mc::server::ServerWorld& world) {
         if (shouldDespawn(*mob, world)) {
             mob->remove();
             spdlog::debug("DespawnManager: Despawning mob {} at ({}, {}, {})",
-                         mob->id(),
-                         mob->position().x,
-                         mob->position().y,
-                         mob->position().z);
+                mob->id(),
+                mob->position().x,
+                mob->position().y,
+                mob->position().z);
         }
 
         ++checksThisTick;
     }
 }
 
-bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& world) const {
+bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& world) const
+{
     // 已移除的实体不需要检查
     if (mob.isRemoved()) {
         return false;
@@ -121,7 +123,8 @@ bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& wo
     return false;
 }
 
-f64 DespawnManager::getClosestPlayerDistanceSq(::mc::server::ServerWorld& world, const Vector3& pos) const {
+f64 DespawnManager::getClosestPlayerDistanceSq(::mc::server::ServerWorld& world, const Vector3& pos) const
+{
     f64 closestDistSq = std::numeric_limits<f64>::max();
 
     auto players = world.entityManager().getPlayers();
@@ -131,7 +134,8 @@ f64 DespawnManager::getClosestPlayerDistanceSq(::mc::server::ServerWorld& world,
         }
 
         // MC 1.16.5: 观察者模式的玩家不计入距离检查
-        if (const Player* playerEntity = dynamic_cast<const Player*>(player); playerEntity && playerEntity->isSpectator()) {
+        if (const Player* playerEntity = dynamic_cast<const Player*>(player);
+            playerEntity && playerEntity->isSpectator()) {
             continue;
         }
 

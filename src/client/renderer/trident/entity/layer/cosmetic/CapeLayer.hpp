@@ -1,22 +1,22 @@
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <unordered_map>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class Player;
 struct TextureRegion;
-}
+} // namespace mc
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 struct EntityMesh;
-}
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity::layer::cosmetic {
 
@@ -35,26 +35,22 @@ public:
     /**
      * @brief 渲染斗篷层（GPU管线路径）
      */
-    void renderPipeline(
-        ::mc::Player& entity,
+    void renderPipeline(::mc::Player& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染斗篷层（CPU路径 - 已废弃）
      */
-    void render(
-        ::mc::Player& entity,
+    void render(::mc::Player& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override;
+        f32 scale) override;
 
     /**
      * @brief 检查是否应该渲染斗篷
@@ -80,24 +76,19 @@ private:
      * @param partialTicks 部分 tick
      * @return 斗篷旋转角度（度）
      */
-    [[nodiscard]] f32 calculateCapeSwing(::mc::Player& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const;
+    [[nodiscard]] f32 calculateCapeSwing(::mc::Player& entity,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        f32 partialTicks) const;
 
     /**
      * @brief 构建斗篷网格
      */
-    void buildCapeMesh(
-        f32 swingAngle,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+    void buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建斗篷网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateCapeMesh(
-        f32 swingAngle,
-        pipeline::EntityPipeline& pipeline
-    );
+    [[nodiscard]] pipeline::EntityMesh* getOrCreateCapeMesh(f32 swingAngle, pipeline::EntityPipeline& pipeline);
 
     const TextureRegion* m_customCapeRegion = nullptr;
 

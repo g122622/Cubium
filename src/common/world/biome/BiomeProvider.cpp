@@ -1,6 +1,6 @@
 #include "BiomeProvider.hpp"
-#include "BiomeRegistry.hpp"
 #include "../../util/math/random/Random.hpp"
+#include "BiomeRegistry.hpp"
 #include <cmath>
 
 namespace mc {
@@ -11,16 +11,14 @@ namespace mc {
 
 BiomeProvider::BiomeProvider(u64 seed)
     : m_seed(seed)
-{
-}
+{}
 
 const Biome& BiomeProvider::getBiomeDefinition(BiomeId id) const
 {
     return BiomeRegistry::instance().get(id);
 }
 
-std::optional<BlockPos> BiomeProvider::findBiome(
-    i32 centerX,
+std::optional<BlockPos> BiomeProvider::findBiome(i32 centerX,
     i32 centerY,
     i32 centerZ,
     i32 radius,

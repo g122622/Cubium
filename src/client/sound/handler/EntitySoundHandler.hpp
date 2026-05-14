@@ -4,10 +4,10 @@
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <glm/glm.hpp>
 #include <memory>
-#include <unordered_map>
 #include <shared_mutex>
+#include <unordered_map>
+#include <glm/glm.hpp>
 
 namespace mc::client::sound {
 
@@ -33,8 +33,8 @@ struct EntitySoundState {
     EntityId targetEntityId{0}; // 守卫者的攻击目标ID（0表示无目标）
 
     // 矿车相关状态
-    EntityId vehicleId{0};      // 玩家正在骑乘的载具ID（用于矿车声音）
-    bool isRiding = false;      // 是否正在骑乘
+    EntityId vehicleId{0}; // 玩家正在骑乘的载具ID（用于矿车声音）
+    bool isRiding = false; // 是否正在骑乘
 };
 
 /**
@@ -138,11 +138,11 @@ public:
      * @param pitch 音调
      */
     void playMovingSound(SoundEngine& engine,
-                         const ResourceLocation& soundEventId,
-                         SoundCategory category,
-                         EntityId entityId,
-                         f32 volume,
-                         f32 pitch);
+        const ResourceLocation& soundEventId,
+        SoundCategory category,
+        EntityId entityId,
+        f32 volume,
+        f32 pitch);
 
     // ========================================================================
     // 音频线程调用 - tick 更新

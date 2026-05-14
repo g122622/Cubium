@@ -1,20 +1,20 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/attribute/Attributes.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -26,27 +26,18 @@ namespace {
 
 class TestGoalWorld final : public test::BaseTestWorld {
 public:
-    void setEntities(std::vector<Entity*> entities) {
-        m_entities = std::move(entities);
-    }
+    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
 
-    void setAllWater(bool enabled) {
-        m_allWater = enabled;
-    }
+    void setAllWater(bool enabled) { m_allWater = enabled; }
 
-    void setAllLava(bool enabled) {
-        m_allLava = enabled;
-    }
+    void setAllLava(bool enabled) { m_allLava = enabled; }
 
-    void setWaterBlock(i32 x, i32 y, i32 z) {
-        m_waterBlocks.push_back(BlockPos(x, y, z));
-    }
+    void setWaterBlock(i32 x, i32 y, i32 z) { m_waterBlocks.push_back(BlockPos(x, y, z)); }
 
-    void setLavaBlock(i32 x, i32 y, i32 z) {
-        m_lavaBlocks.push_back(BlockPos(x, y, z));
-    }
+    void setLavaBlock(i32 x, i32 y, i32 z) { m_lavaBlocks.push_back(BlockPos(x, y, z)); }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity* except) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity* except) const override
+    {
         std::vector<Entity*> result;
         for (Entity* entity : m_entities) {
             if (entity == except) {
@@ -57,7 +48,9 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3& pos, f32 range, const Entity* except) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
+        const Vector3& pos, f32 range, const Entity* except) const override
+    {
         std::vector<Entity*> result;
         const f32 rangeSq = range * range;
 
@@ -74,7 +67,8 @@ public:
         return result;
     }
 
-    [[nodiscard]] bool isWaterAt(const BlockPos& pos) const override {
+    [[nodiscard]] bool isWaterAt(const BlockPos& pos) const override
+    {
         if (m_allWater) {
             return true;
         }
@@ -82,7 +76,8 @@ public:
         return contains(m_waterBlocks, pos.x, pos.y, pos.z);
     }
 
-    [[nodiscard]] bool isLavaAt(const BlockPos& pos) const override {
+    [[nodiscard]] bool isLavaAt(const BlockPos& pos) const override
+    {
         if (m_allLava) {
             return true;
         }
@@ -91,16 +86,19 @@ public:
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("TestGoalWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("TestGoalWorld::tickManager not implemented");
     }
 
     // Random interface (stubbed for tests)
 private:
-    [[nodiscard]] static bool contains(const std::vector<BlockPos>& blocks, i32 x, i32 y, i32 z) {
+    [[nodiscard]] static bool contains(const std::vector<BlockPos>& blocks, i32 x, i32 y, i32 z)
+    {
         const auto it = std::find_if(blocks.begin(), blocks.end(), [x, y, z](const BlockPos& pos) {
             return pos.x == x && pos.y == y && pos.z == z;
         });
@@ -117,7 +115,8 @@ private:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(LegacyEntityType::Cow, 1) {
+        : CreatureEntity(LegacyEntityType::Cow, 1)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -125,38 +124,43 @@ public:
 
 class TestTemptItem final : public Item {
 public:
-    TestTemptItem() : Item(ItemProperties().maxStackSize(64)) {}
+    TestTemptItem()
+        : Item(ItemProperties().maxStackSize(64))
+    {}
 };
 
 class TestPlainItem final : public Item {
 public:
-    TestPlainItem() : Item(ItemProperties().maxStackSize(64)) {}
+    TestPlainItem()
+        : Item(ItemProperties().maxStackSize(64))
+    {}
 };
 
 class TestBowItem final : public Item {
 public:
-    TestBowItem() : Item(ItemProperties().maxStackSize(1)) {}
+    TestBowItem()
+        : Item(ItemProperties().maxStackSize(1))
+    {}
 
-    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override {
-        return UseAction::Bow;
-    }
+    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override { return UseAction::Bow; }
 };
 
 class ExposedPanicGoal final : public PanicGoal {
 public:
-    using PanicGoal::PanicGoal;
     using PanicGoal::getRandomWaterPosition;
+    using PanicGoal::PanicGoal;
 };
 
 class ExposedWaterAvoidingRandomWalkingGoal final : public WaterAvoidingRandomWalkingGoal {
 public:
-    using WaterAvoidingRandomWalkingGoal::WaterAvoidingRandomWalkingGoal;
     using WaterAvoidingRandomWalkingGoal::isInWaterOrLava;
+    using WaterAvoidingRandomWalkingGoal::WaterAvoidingRandomWalkingGoal;
 };
 
 } // namespace
 
-TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems) {
+TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems)
+{
     TestGoalWorld world;
     TestCreatureEntity creature;
     creature.setWorld(&world);
@@ -181,9 +185,7 @@ TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems) {
 
     world.setEntities({&closePlayer, &temptingPlayer});
 
-    TemptGoal goal(&creature, 1.0, [&temptItem](const ItemStack& stack) {
-        return stack.getItem() == &temptItem;
-    });
+    TemptGoal goal(&creature, 1.0, [&temptItem](const ItemStack& stack) { return stack.getItem() == &temptItem; });
 
     EXPECT_TRUE(goal.shouldExecute());
     goal.startExecuting();
@@ -193,7 +195,8 @@ TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems) {
     EXPECT_FALSE(goal.shouldContinueExecuting());
 }
 
-TEST(AiGoalRegressionTest, PanicGoal_FindsNearbyWaterWhenBurning) {
+TEST(AiGoalRegressionTest, PanicGoal_FindsNearbyWaterWhenBurning)
+{
     TestGoalWorld world;
     world.setAllWater(true);
     TestCreatureEntity creature;
@@ -210,7 +213,8 @@ TEST(AiGoalRegressionTest, PanicGoal_FindsNearbyWaterWhenBurning) {
     EXPECT_NE(waterPos.z, 0);
 }
 
-TEST(AiGoalRegressionTest, WaterAvoidingRandomWalkingGoal_DetectsWaterAndLava) {
+TEST(AiGoalRegressionTest, WaterAvoidingRandomWalkingGoal_DetectsWaterAndLava)
+{
     TestGoalWorld world;
     TestCreatureEntity creature;
     creature.setWorld(&world);
@@ -227,7 +231,8 @@ TEST(AiGoalRegressionTest, WaterAvoidingRandomWalkingGoal_DetectsWaterAndLava) {
     EXPECT_TRUE(goal.shouldExecute());
 }
 
-TEST(AiGoalRegressionTest, RangedBowAttackGoal_RequiresBowUseAction) {
+TEST(AiGoalRegressionTest, RangedBowAttackGoal_RequiresBowUseAction)
+{
     TestGoalWorld world;
     TestCreatureEntity creature;
     creature.setWorld(&world);

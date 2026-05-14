@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include "Raid.hpp"
-#include "../../block/BlockPos.hpp"
-#include "../../../core/Types.hpp"
 #include "../../../command/ICommandSource.hpp"
+#include "../../../core/Types.hpp"
+#include "../../block/BlockPos.hpp"
+#include "Raid.hpp"
 
 #include <functional>
 #include <memory>
@@ -16,7 +16,7 @@ class Player;
 namespace world::village {
 class Village;
 class VillageManager;
-}
+} // namespace world::village
 
 namespace world::village::raid {
 
@@ -171,18 +171,14 @@ public:
      *
      * @param callback 回调函数对象。
      */
-    void setBadOmenCheckCallback(BadOmenCheckCallback callback) {
-        m_badOmenCheckCallback = std::move(callback);
-    }
+    void setBadOmenCheckCallback(BadOmenCheckCallback callback) { m_badOmenCheckCallback = std::move(callback); }
 
     /**
      * @brief 设置袭击事件回调。
      *
      * @param callbacks 回调结构体。
      */
-    void setCallbacks(RaidCallbacks callbacks) {
-        m_callbacks = std::move(callbacks);
-    }
+    void setCallbacks(RaidCallbacks callbacks) { m_callbacks = std::move(callbacks); }
 
     /**
      * @brief 获取袭击事件回调。
@@ -248,7 +244,7 @@ private:
     std::vector<std::unique_ptr<Raid>> m_raids;
     RaidId m_nextRaidId = 1;
     BadOmenCheckCallback m_badOmenCheckCallback;
-    RaidCallbacks m_callbacks;  ///< 袭击事件回调
+    RaidCallbacks m_callbacks; ///< 袭击事件回调
 };
 
 } // namespace world::village::raid

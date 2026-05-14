@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "../ColorResolver.hpp"
-#include <unordered_map>
+#include "common/core/Types.hpp"
 #include <array>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace mc {
 class Biome;
@@ -21,7 +21,7 @@ namespace client {
  */
 class BiomeColorCacheEntry {
 public:
-    static constexpr i32 CACHE_SIZE = 16;  // 每个区块16x16
+    static constexpr i32 CACHE_SIZE = 16; // 每个区块16x16
 
     BiomeColorCacheEntry() = default;
 
@@ -55,7 +55,7 @@ private:
     std::array<std::array<u32, CACHE_SIZE * CACHE_SIZE>, 3> m_caches{};
 
     // 有效标志位（使用位图）
-    std::array<u32, CACHE_SIZE * CACHE_SIZE> m_validBits{};  // 每个位置3位，分别对应3个解析器
+    std::array<u32, CACHE_SIZE * CACHE_SIZE> m_validBits{}; // 每个位置3位，分别对应3个解析器
 
     bool m_fullyInvalid = true;
 };
@@ -87,15 +87,9 @@ public:
      * @param compute 计算函数（缓存未命中时调用）
      * @return 颜色值
      */
-    template<typename ComputeFunc>
+    template <typename ComputeFunc>
     [[nodiscard]] u32 getOrCompute(
-        ChunkCoord chunkX,
-        ChunkCoord chunkZ,
-        i32 localX,
-        i32 localZ,
-        size_t resolverId,
-        ComputeFunc compute
-    );
+        ChunkCoord chunkX, ChunkCoord chunkZ, i32 localX, i32 localZ, size_t resolverId, ComputeFunc compute);
 
     /**
      * @brief 使指定区块的缓存失效
@@ -127,9 +121,9 @@ public:
      * @brief 获取缓存统计信息
      */
     struct Stats {
-        size_t totalEntries;     // 总缓存条目数
-        size_t cacheHits;        // 缓存命中次数
-        size_t cacheMisses;      // 缓存未命中次数
+        size_t totalEntries; // 总缓存条目数
+        size_t cacheHits;    // 缓存命中次数
+        size_t cacheMisses;  // 缓存未命中次数
     };
     [[nodiscard]] Stats getStats() const;
 
@@ -140,9 +134,9 @@ private:
     [[nodiscard]] BiomeColorCacheEntry& getOrCreateEntry(ChunkCoord chunkX, ChunkCoord chunkZ);
 
     // 区块键
-    [[nodiscard]] static u64 makeKey(ChunkCoord x, ChunkCoord z) {
-        return (static_cast<u64>(static_cast<u32>(x)) << 32) |
-               static_cast<u64>(static_cast<u32>(z));
+    [[nodiscard]] static u64 makeKey(ChunkCoord x, ChunkCoord z)
+    {
+        return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
     }
 
     std::unordered_map<u64, BiomeColorCacheEntry> m_entries;
@@ -157,15 +151,10 @@ private:
 // 模板实现
 // ============================================================================
 
-template<typename ComputeFunc>
+template <typename ComputeFunc>
 u32 BiomeColorCache::getOrCompute(
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
-    i32 localX,
-    i32 localZ,
-    size_t resolverId,
-    ComputeFunc compute
-) {
+    ChunkCoord chunkX, ChunkCoord chunkZ, i32 localX, i32 localZ, size_t resolverId, ComputeFunc compute)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     const u64 key = makeKey(chunkX, chunkZ);

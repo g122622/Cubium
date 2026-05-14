@@ -1,9 +1,9 @@
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "entity/loot/LootTable.hpp"
 #include "entity/loot/LootContext.hpp"
-#include "world/IWorld.hpp"
+#include "entity/loot/LootTable.hpp"
 #include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -11,12 +11,13 @@ namespace blockentity {
 // ========== 构造函数 ==========
 
 LootableContainerBlockEntity::LootableContainerBlockEntity(BlockEntityType type, const BlockPos& pos)
-    : LockableBlockEntity(type, pos) {
-}
+    : LockableBlockEntity(type, pos)
+{}
 
 // ========== 战利品表接口 ==========
 
-void LootableContainerBlockEntity::setLootTable(const ResourceLocation& lootTable, i64 seed) {
+void LootableContainerBlockEntity::setLootTable(const ResourceLocation& lootTable, i64 seed)
+{
     m_hasLootTable = true;
     m_lootTable = lootTable;
     m_lootTableSeed = seed;
@@ -26,7 +27,8 @@ void LootableContainerBlockEntity::setLootTable(const ResourceLocation& lootTabl
 
 // ========== 容器访问重写 ==========
 
-bool LootableContainerBlockEntity::isEmpty() const {
+bool LootableContainerBlockEntity::isEmpty() const
+{
     // MC 1.16.5: 在检查前自动填充战利品表
     // 注意：这里需要 const_cast 因为 fillWithLoot 不是 const 方法
     if (m_hasLootTable && !m_lootFilled) {
@@ -38,7 +40,8 @@ bool LootableContainerBlockEntity::isEmpty() const {
     return LockableBlockEntity::isEmpty();
 }
 
-void LootableContainerBlockEntity::openContainer(Player* player) {
+void LootableContainerBlockEntity::openContainer(Player* player)
+{
     // MC 1.16.5: 观察者模式玩家不能打开有战利品表的容器
     if (m_hasLootTable && player != nullptr) {
         // 检查玩家是否是观察者模式（需要在 Player 类中实现）
@@ -55,7 +58,8 @@ void LootableContainerBlockEntity::openContainer(Player* player) {
 
 // ========== 序列化 ==========
 
-bool LootableContainerBlockEntity::load(const nlohmann::json& data) {
+bool LootableContainerBlockEntity::load(const nlohmann::json& data)
+{
     if (!LockableBlockEntity::load(data)) {
         return false;
     }
@@ -73,7 +77,8 @@ bool LootableContainerBlockEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void LootableContainerBlockEntity::save(nlohmann::json& data) const {
+void LootableContainerBlockEntity::save(nlohmann::json& data) const
+{
     LockableBlockEntity::save(data);
 
     // 保存战利品表（仅在未填充时保存）
@@ -87,7 +92,8 @@ void LootableContainerBlockEntity::save(nlohmann::json& data) const {
 
 // ========== 战利品填充 ==========
 
-void LootableContainerBlockEntity::fillWithLoot(Player* player) {
+void LootableContainerBlockEntity::fillWithLoot(Player* player)
+{
     // 如果没有战利品表或已填充，不执行
     if (!m_hasLootTable || m_lootFilled) {
         return;
@@ -110,7 +116,8 @@ void LootableContainerBlockEntity::fillWithLoot(Player* player) {
     fillWithLootFromTable(const_cast<loot::LootTableManager&>(*lootTableManager), player);
 }
 
-bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager& lootTableManager, Player* player) {
+bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager& lootTableManager, Player* player)
+{
     // 如果没有战利品表或已填充，不执行
     if (!m_hasLootTable || m_lootFilled) {
         return false;
@@ -163,9 +170,8 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
     }
 
     // 设置战利品表解析器（支持嵌套战利品表）
-    builder.withLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
-        return lootTableManager.getTable(id);
-    });
+    builder.withLootTableResolver(
+        [&lootTableManager](const std::string& id) -> const loot::LootTable* { return lootTableManager.getTable(id); });
 
     auto context = builder.build(loot::LootParameterSet());
 
@@ -187,7 +193,8 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
         // 尝试找到可堆叠的槽位
         for (i32 slot = 0; slot < containerSize && !stack.isEmpty(); ++slot) {
             ItemStack existing = inventory->getItem(slot);
-            if (!existing.isEmpty() && existing.canMergeWith(stack) && existing.getCount() < existing.getMaxStackSize()) {
+            if (!existing.isEmpty() && existing.canMergeWith(stack) &&
+                existing.getCount() < existing.getMaxStackSize()) {
                 // 尝试堆叠
                 i32 space = existing.getMaxStackSize() - existing.getCount();
                 i32 toAdd = std::min(space, stack.getCount());

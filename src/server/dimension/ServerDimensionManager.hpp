@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/world/dimension/DimensionManager.hpp"
 #include "ServerDimension.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/biome/BiomeProvider.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
-#include <functional>
 
 namespace mc {
 
@@ -157,16 +157,16 @@ public:
      * @param position 目标位置（如果为空，则使用维度的出生点）
      * @return 是否成功
      */
-    [[nodiscard]] bool transferPlayerToDimension(PlayerId playerId,
-                                                  DimensionId targetDim,
-                                                  const std::optional<Vector3d>& position = std::nullopt);
+    [[nodiscard]] bool transferPlayerToDimension(
+        PlayerId playerId, DimensionId targetDim, const std::optional<Vector3d>& position = std::nullopt);
 
     /**
      * @brief 设置维度切换回调
      *
      * 当玩家成功切换维度后调用。
      */
-    void setDimensionChangeCallback(DimensionChangeCallback callback) {
+    void setDimensionChangeCallback(DimensionChangeCallback callback)
+    {
         // 不允许多次注册
         if (m_dimensionChangeCallback) {
             throw std::invalid_argument("Dimension change callback already set");

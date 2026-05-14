@@ -2,16 +2,16 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "server/application/IServer.hpp"
-#include "server/command/support/CommandMetadata.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/WorldConstants.hpp"
-#include <sstream>
+#include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <algorithm>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -31,75 +31,47 @@ constexpr i32 WORLD_BORDER_MAX = 30000000;
 void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto forceloadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("forceload");
-    forceloadNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        forceloadNode,
+    forceloadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(forceloadNode,
         support::makeMetadata(
-            "Forces chunks to stay loaded.",
-            "/forceload <add|remove|query> <pos> [to]",
-            2,
-            {},
-            true));
+            "Forces chunks to stay loaded.", "/forceload <add|remove|query> <pos> [to]", 2, {}, true));
 
     // /forceload add <from> [to]
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
-    auto toArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "to",
-        Vec3ArgumentType::vec3());
-    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return addForceLoad(ctx);
-    });
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    auto toArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("to", Vec3ArgumentType::vec3());
+    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addForceLoad(ctx); });
     posArg->addChild(toArg);
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return addForceLoad(ctx);
-    });
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addForceLoad(ctx); });
     addNode->addChild(posArg);
     forceloadNode->addChild(addNode);
 
     // /forceload remove <pos> [to]
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removePosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
-    auto removeToArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "to",
-        Vec3ArgumentType::vec3());
-    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return removeForceLoad(ctx);
-    });
+    auto removePosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    auto removeToArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("to", Vec3ArgumentType::vec3());
+    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeForceLoad(ctx); });
     removePosArg->addChild(removeToArg);
-    removePosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return removeForceLoad(ctx);
-    });
+    removePosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeForceLoad(ctx); });
     removeNode->addChild(removePosArg);
 
     // /forceload remove all
     auto allNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("all");
-    allNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return removeAllForceLoad(ctx);
-    });
+    allNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeAllForceLoad(ctx); });
     removeNode->addChild(allNode);
 
     forceloadNode->addChild(removeNode);
 
     // /forceload query [<pos>]
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
-    auto queryPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3());
-    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return queryForceLoad(ctx);
-    });
+    auto queryPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryForceLoad(ctx); });
     queryNode->addChild(queryPosArg);
     // /forceload query (without position - list all)
-    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return listAllForceLoad(ctx);
-    });
+    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listAllForceLoad(ctx); });
     forceloadNode->addChild(queryNode);
 
     dispatcher.registerCommand(forceloadNode);
@@ -126,11 +98,7 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
 
     // 转换为区块坐标
-    BlockPos blockPos(
-        static_cast<BlockCoord>(pos.x),
-        static_cast<BlockCoord>(pos.y),
-        static_cast<BlockCoord>(pos.z)
-    );
+    BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
 
     ChunkCoord chunkX = blockPos.x >> 4;
     ChunkCoord chunkZ = blockPos.z >> 4;
@@ -144,11 +112,7 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
     // 检查是否有范围参数
     if (context.hasArgument("to")) {
         const Vector3d& to = context.getArgument<Vector3d>("to");
-        BlockPos toPos(
-            static_cast<BlockCoord>(to.x),
-            static_cast<BlockCoord>(to.y),
-            static_cast<BlockCoord>(to.z)
-        );
+        BlockPos toPos(static_cast<BlockCoord>(to.x), static_cast<BlockCoord>(to.y), static_cast<BlockCoord>(to.z));
         ChunkCoord toChunkX = toPos.x >> 4;
         ChunkCoord toChunkZ = toPos.z >> 4;
 
@@ -164,15 +128,14 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
     i64 maxBlockX = static_cast<i64>(maxChunkX) * 16 + 15;
     i64 maxBlockZ = static_cast<i64>(maxChunkZ) * 16 + 15;
 
-    if (minBlockX < WORLD_BORDER_MIN || minBlockZ < WORLD_BORDER_MIN ||
-        maxBlockX >= WORLD_BORDER_MAX || maxBlockZ >= WORLD_BORDER_MAX) {
+    if (minBlockX < WORLD_BORDER_MIN || minBlockZ < WORLD_BORDER_MIN || maxBlockX >= WORLD_BORDER_MAX ||
+        maxBlockZ >= WORLD_BORDER_MAX) {
         source.sendError("commands.forceload.failed.outOfWorld");
         return 0;
     }
 
     // 计算区块数量并检查限制
-    i64 totalChunks = (static_cast<i64>(maxChunkX) - minChunkX + 1) *
-                      (static_cast<i64>(maxChunkZ) - minChunkZ + 1);
+    i64 totalChunks = (static_cast<i64>(maxChunkX) - minChunkX + 1) * (static_cast<i64>(maxChunkZ) - minChunkZ + 1);
 
     if (totalChunks > MAX_FORCE_LOAD_CHUNKS) {
         std::ostringstream ss;
@@ -215,8 +178,8 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
         source.sendMessage(ss.str());
     } else {
         std::ostringstream ss;
-        ss << "commands.forceload.added.multiple:" << successCount << "," << dimensionName
-           << ",[" << minChunkX << ", " << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
+        ss << "commands.forceload.added.multiple:" << successCount << "," << dimensionName << ",[" << minChunkX << ", "
+           << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
         source.sendMessage(ss.str());
     }
 
@@ -244,11 +207,7 @@ i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& conte
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
 
     // 转换为区块坐标
-    BlockPos blockPos(
-        static_cast<BlockCoord>(pos.x),
-        static_cast<BlockCoord>(pos.y),
-        static_cast<BlockCoord>(pos.z)
-    );
+    BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
 
     ChunkCoord chunkX = blockPos.x >> 4;
     ChunkCoord chunkZ = blockPos.z >> 4;
@@ -262,11 +221,7 @@ i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& conte
     // 检查是否有范围参数
     if (context.hasArgument("to")) {
         const Vector3d& to = context.getArgument<Vector3d>("to");
-        BlockPos toPos(
-            static_cast<BlockCoord>(to.x),
-            static_cast<BlockCoord>(to.y),
-            static_cast<BlockCoord>(to.z)
-        );
+        BlockPos toPos(static_cast<BlockCoord>(to.x), static_cast<BlockCoord>(to.y), static_cast<BlockCoord>(to.z));
         ChunkCoord toChunkX = toPos.x >> 4;
         ChunkCoord toChunkZ = toPos.z >> 4;
 
@@ -314,8 +269,8 @@ i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& conte
         source.sendMessage(ss.str());
     } else {
         std::ostringstream ss;
-        ss << "commands.forceload.removed.multiple:" << removedCount << "," << dimensionName
-           << ",[" << minChunkX << ", " << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
+        ss << "commands.forceload.removed.multiple:" << removedCount << "," << dimensionName << ",[" << minChunkX
+           << ", " << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
         source.sendMessage(ss.str());
     }
 
@@ -343,11 +298,7 @@ i32 ForceLoadCommand::queryForceLoad(CommandContext<ServerCommandSource>& contex
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
 
     // 转换为区块坐标
-    BlockPos blockPos(
-        static_cast<BlockCoord>(pos.x),
-        static_cast<BlockCoord>(pos.y),
-        static_cast<BlockCoord>(pos.z)
-    );
+    BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
 
     ChunkCoord chunkX = blockPos.x >> 4;
     ChunkCoord chunkZ = blockPos.z >> 4;
@@ -419,11 +370,10 @@ i32 ForceLoadCommand::listAllForceLoad(CommandContext<ServerCommandSource>& cont
     }
 
     // 按坐标排序
-    std::sort(forcedChunks.begin(), forcedChunks.end(),
-        [](const ChunkPos& a, const ChunkPos& b) {
-            if (a.x != b.x) return a.x < b.x;
-            return a.z < b.z;
-        });
+    std::sort(forcedChunks.begin(), forcedChunks.end(), [](const ChunkPos& a, const ChunkPos& b) {
+        if (a.x != b.x) return a.x < b.x;
+        return a.z < b.z;
+    });
 
     // 构建区块列表字符串
     std::ostringstream chunkList;

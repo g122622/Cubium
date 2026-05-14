@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ReactiveState.hpp"
-#include <unordered_set>
 #include <algorithm>
+#include <unordered_set>
 
 namespace mc::client::ui::kagero::state {
 
@@ -31,21 +31,18 @@ public:
     /**
      * @brief 添加观察者
      */
-    void addObserver(IStateObserver* observer) {
-        m_observers.insert(observer);
-    }
+    void addObserver(IStateObserver* observer) { m_observers.insert(observer); }
 
     /**
      * @brief 移除观察者
      */
-    void removeObserver(IStateObserver* observer) {
-        m_observers.erase(observer);
-    }
+    void removeObserver(IStateObserver* observer) { m_observers.erase(observer); }
 
     /**
      * @brief 通知所有观察者
      */
-    void notifyAll() {
+    void notifyAll()
+    {
         for (auto* observer : m_observers) {
             observer->onStateChanged();
         }
@@ -54,9 +51,7 @@ public:
     /**
      * @brief 清除所有观察者
      */
-    void clear() {
-        m_observers.clear();
-    }
+    void clear() { m_observers.clear(); }
 
     /**
      * @brief 获取观察者数量
@@ -74,7 +69,7 @@ private:
  *
  * @tparam T 状态类型
  */
-template<typename T>
+template <typename T>
 class AutoObserver {
 public:
     using Callback = std::function<void(const T&)>;
@@ -86,7 +81,8 @@ public:
      */
     AutoObserver(Reactive<T>& reactive, Callback callback)
         : m_reactive(reactive)
-        , m_callback(std::move(callback)) {
+        , m_callback(std::move(callback))
+    {
         m_observerId = m_reactive.observe([this](const T& oldValue, const T& newValue) {
             if (m_callback) {
                 m_callback(newValue);
@@ -97,7 +93,8 @@ public:
     /**
      * @brief 析构时自动移除观察
      */
-    ~AutoObserver() {
+    ~AutoObserver()
+    {
         if (m_observerId != 0) {
             m_reactive.removeObserver(m_observerId);
         }
@@ -115,7 +112,8 @@ public:
     AutoObserver(AutoObserver&& other) noexcept
         : m_reactive(other.m_reactive)
         , m_callback(std::move(other.m_callback))
-        , m_observerId(0) {
+        , m_observerId(0)
+    {
         // 重新注册观察者，因为回调 lambda 捕获的是 this 指针
         m_observerId = m_reactive.observe([this](const T& oldValue, const T& newValue) {
             if (m_callback) {
@@ -127,7 +125,8 @@ public:
         other.m_observerId = 0;
     }
 
-    AutoObserver& operator=(AutoObserver&& other) noexcept {
+    AutoObserver& operator=(AutoObserver&& other) noexcept
+    {
         if (this != &other) {
             // 移除当前观察者
             if (m_observerId != 0) {
@@ -153,7 +152,8 @@ public:
     /**
      * @brief 手动触发回调
      */
-    void trigger() {
+    void trigger()
+    {
         if (m_callback) {
             m_callback(m_reactive.get());
         }
@@ -184,29 +184,27 @@ public:
     /**
      * @brief 观察响应式状态
      */
-    template<typename T>
-    void observe(Reactive<T>& reactive) {
+    template <typename T>
+    void observe(Reactive<T>& reactive)
+    {
         auto id = reactive.observe([this](const T&, const T&) {
             if (m_callback) {
                 m_callback();
             }
         });
-        m_observerIds.push_back([id, &reactive]() {
-            reactive.removeObserver(id);
-        });
+        m_observerIds.push_back([id, &reactive]() { reactive.removeObserver(id); });
     }
 
     /**
      * @brief 设置回调
      */
-    void setCallback(Callback callback) {
-        m_callback = std::move(callback);
-    }
+    void setCallback(Callback callback) { m_callback = std::move(callback); }
 
     /**
      * @brief 清除所有观察
      */
-    void clear() {
+    void clear()
+    {
         for (auto& remover : m_observerIds) {
             remover();
         }
@@ -223,7 +221,7 @@ private:
  *
  * 延迟触发状态变化通知，避免频繁更新
  */
-template<typename T>
+template <typename T>
 class DebouncedObserver {
 public:
     using Callback = std::function<void(const T&)>;
@@ -237,7 +235,8 @@ public:
     DebouncedObserver(Reactive<T>& reactive, Callback callback, u32 delayMs = 100)
         : m_reactive(reactive)
         , m_callback(std::move(callback))
-        , m_delayMs(delayMs) {
+        , m_delayMs(delayMs)
+    {
         m_observerId = m_reactive.observe([this](const T&, const T& newValue) {
             m_pendingValue = newValue;
             m_hasPending = true;
@@ -245,9 +244,7 @@ public:
         });
     }
 
-    ~DebouncedObserver() {
-        m_reactive.removeObserver(m_observerId);
-    }
+    ~DebouncedObserver() { m_reactive.removeObserver(m_observerId); }
 
     // 禁止拷贝
     DebouncedObserver(const DebouncedObserver&) = delete;
@@ -258,7 +255,8 @@ public:
      *
      * 每帧调用此方法来检查延迟是否已过
      */
-    void update() {
+    void update()
+    {
         if (!m_hasPending) return;
 
         auto now = std::chrono::steady_clock::now();
@@ -275,7 +273,8 @@ public:
     /**
      * @brief 立即触发回调（跳过延迟）
      */
-    void flush() {
+    void flush()
+    {
         if (m_hasPending && m_callback) {
             m_callback(m_pendingValue);
         }

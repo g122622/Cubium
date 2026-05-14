@@ -9,43 +9,44 @@ namespace {
 /// 格式化类型信息
 struct FormattingInfo {
     TextFormatting formatting;
-    char code;           // § 代码字符
-    const char* name;    // 名称
-    u32 color;           // ARGB 颜色值（仅颜色类型有效）
+    char code;        // § 代码字符
+    const char* name; // 名称
+    u32 color;        // ARGB 颜色值（仅颜色类型有效）
 };
 
 /// 格式化类型查找表
 constexpr FormattingInfo FORMATTING_TABLE[] = {
     // 颜色
-    { TextFormatting::Black,        '0', "black",        0xFF000000 },
-    { TextFormatting::DarkBlue,     '1', "dark_blue",    0xFF0000AA },
-    { TextFormatting::DarkGreen,    '2', "dark_green",   0xFF00AA00 },
-    { TextFormatting::DarkAqua,     '3', "dark_aqua",    0xFF00AAAA },
-    { TextFormatting::DarkRed,      '4', "dark_red",     0xFFAA0000 },
-    { TextFormatting::DarkPurple,   '5', "dark_purple",  0xFFAA00AA },
-    { TextFormatting::Gold,         '6', "gold",         0xFFFFAA00 },
-    { TextFormatting::Gray,         '7', "gray",         0xFFAAAAAA },
-    { TextFormatting::DarkGray,     '8', "dark_gray",    0xFF555555 },
-    { TextFormatting::Blue,         '9', "blue",         0xFF5555FF },
-    { TextFormatting::Green,        'a', "green",        0xFF55FF55 },
-    { TextFormatting::Aqua,         'b', "aqua",         0xFF55FFFF },
-    { TextFormatting::Red,          'c', "red",          0xFFFF5555 },
-    { TextFormatting::LightPurple,  'd', "light_purple", 0xFFFF55FF },
-    { TextFormatting::Yellow,       'e', "yellow",       0xFFFFFF55 },
-    { TextFormatting::White,        'f', "white",        0xFFFFFFFF },
+    {TextFormatting::Black, '0', "black", 0xFF000000},
+    {TextFormatting::DarkBlue, '1', "dark_blue", 0xFF0000AA},
+    {TextFormatting::DarkGreen, '2', "dark_green", 0xFF00AA00},
+    {TextFormatting::DarkAqua, '3', "dark_aqua", 0xFF00AAAA},
+    {TextFormatting::DarkRed, '4', "dark_red", 0xFFAA0000},
+    {TextFormatting::DarkPurple, '5', "dark_purple", 0xFFAA00AA},
+    {TextFormatting::Gold, '6', "gold", 0xFFFFAA00},
+    {TextFormatting::Gray, '7', "gray", 0xFFAAAAAA},
+    {TextFormatting::DarkGray, '8', "dark_gray", 0xFF555555},
+    {TextFormatting::Blue, '9', "blue", 0xFF5555FF},
+    {TextFormatting::Green, 'a', "green", 0xFF55FF55},
+    {TextFormatting::Aqua, 'b', "aqua", 0xFF55FFFF},
+    {TextFormatting::Red, 'c', "red", 0xFFFF5555},
+    {TextFormatting::LightPurple, 'd', "light_purple", 0xFFFF55FF},
+    {TextFormatting::Yellow, 'e', "yellow", 0xFFFFFF55},
+    {TextFormatting::White, 'f', "white", 0xFFFFFFFF},
     // 样式
-    { TextFormatting::Obfuscated,    'k', "obfuscated",    0xFFFFFFFF },
-    { TextFormatting::Bold,          'l', "bold",          0xFFFFFFFF },
-    { TextFormatting::Strikethrough, 'm', "strikethrough", 0xFFFFFFFF },
-    { TextFormatting::Underline,     'n', "underline",     0xFFFFFFFF },
-    { TextFormatting::Italic,        'o', "italic",        0xFFFFFFFF },
-    { TextFormatting::Reset,         'r', "reset",         0xFFFFFFFF },
+    {TextFormatting::Obfuscated, 'k', "obfuscated", 0xFFFFFFFF},
+    {TextFormatting::Bold, 'l', "bold", 0xFFFFFFFF},
+    {TextFormatting::Strikethrough, 'm', "strikethrough", 0xFFFFFFFF},
+    {TextFormatting::Underline, 'n', "underline", 0xFFFFFFFF},
+    {TextFormatting::Italic, 'o', "italic", 0xFFFFFFFF},
+    {TextFormatting::Reset, 'r', "reset", 0xFFFFFFFF},
 };
 
 constexpr size_t FORMATTING_TABLE_SIZE = sizeof(FORMATTING_TABLE) / sizeof(FORMATTING_TABLE[0]);
 
 /// 查找格式化类型信息
-const FormattingInfo* findFormattingInfo(TextFormatting formatting) noexcept {
+const FormattingInfo* findFormattingInfo(TextFormatting formatting) noexcept
+{
     for (size_t i = 0; i < FORMATTING_TABLE_SIZE; ++i) {
         if (FORMATTING_TABLE[i].formatting == formatting) {
             return &FORMATTING_TABLE[i];
@@ -58,22 +59,25 @@ const FormattingInfo* findFormattingInfo(TextFormatting formatting) noexcept {
 
 // ========== TextFormatting 工具函数 ==========
 
-u32 getFormattingColor(TextFormatting formatting) noexcept {
+u32 getFormattingColor(TextFormatting formatting) noexcept
+{
     const auto* info = findFormattingInfo(formatting);
     return info ? info->color : 0xFFFFFFFF;
 }
 
-bool isColor(TextFormatting formatting) noexcept {
+bool isColor(TextFormatting formatting) noexcept
+{
     return static_cast<u8>(formatting) <= static_cast<u8>(TextFormatting::White);
 }
 
-bool isStyle(TextFormatting formatting) noexcept {
+bool isStyle(TextFormatting formatting) noexcept
+{
     const u8 value = static_cast<u8>(formatting);
-    return value >= static_cast<u8>(TextFormatting::Obfuscated) &&
-           value <= static_cast<u8>(TextFormatting::Italic);
+    return value >= static_cast<u8>(TextFormatting::Obfuscated) && value <= static_cast<u8>(TextFormatting::Italic);
 }
 
-TextFormatting fromCode(char code) noexcept {
+TextFormatting fromCode(char code) noexcept
+{
     // 转换为小写
     char lower = static_cast<char>(std::tolower(static_cast<unsigned char>(code)));
 
@@ -85,17 +89,20 @@ TextFormatting fromCode(char code) noexcept {
     return TextFormatting::None;
 }
 
-char toCode(TextFormatting formatting) noexcept {
+char toCode(TextFormatting formatting) noexcept
+{
     const auto* info = findFormattingInfo(formatting);
     return info ? info->code : '\0';
 }
 
-TextFormatting fromName(const std::string& name) noexcept {
+TextFormatting fromName(const std::string& name) noexcept
+{
     // 转换为小写
     std::string lowerName;
     lowerName.reserve(name.size());
-    std::transform(name.begin(), name.end(), std::back_inserter(lowerName),
-        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(name.begin(), name.end(), std::back_inserter(lowerName), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
     for (size_t i = 0; i < FORMATTING_TABLE_SIZE; ++i) {
         if (FORMATTING_TABLE[i].name == lowerName) {
@@ -105,21 +112,24 @@ TextFormatting fromName(const std::string& name) noexcept {
     return TextFormatting::None;
 }
 
-std::string toName(TextFormatting formatting) {
+std::string toName(TextFormatting formatting)
+{
     const auto* info = findFormattingInfo(formatting);
     return info ? info->name : "";
 }
 
 // ========== Style 类实现 ==========
 
-u32 Style::getColorARGB() const noexcept {
+u32 Style::getColorARGB() const noexcept
+{
     if (m_color.has_value()) {
         return getFormattingColor(*m_color);
     }
     return 0xFFFFFFFF; // 默认白色
 }
 
-Style Style::mergeWithParent(const Style& parent) const noexcept {
+Style Style::mergeWithParent(const Style& parent) const noexcept
+{
     Style result;
 
     // 颜色：子样式优先
@@ -139,14 +149,14 @@ Style Style::mergeWithParent(const Style& parent) const noexcept {
     return result;
 }
 
-bool Style::isEmpty() const noexcept {
-    return !m_color.has_value() &&
-           !m_bold && !m_italic && !m_underlined &&
-           !m_strikethrough && !m_obfuscated &&
-           !m_clickEvent.has_value() && !m_hoverEvent.has_value();
+bool Style::isEmpty() const noexcept
+{
+    return !m_color.has_value() && !m_bold && !m_italic && !m_underlined && !m_strikethrough && !m_obfuscated &&
+        !m_clickEvent.has_value() && !m_hoverEvent.has_value();
 }
 
-nlohmann::json Style::toJson() const {
+nlohmann::json Style::toJson() const
+{
     nlohmann::json json = nlohmann::json::object();
 
     if (m_color.has_value()) {
@@ -177,7 +187,8 @@ nlohmann::json Style::toJson() const {
     return json;
 }
 
-Style Style::fromJson(const nlohmann::json& json) {
+Style Style::fromJson(const nlohmann::json& json)
+{
     Style style;
 
     if (json.contains("color") && json["color"].is_string()) {
@@ -208,20 +219,17 @@ Style Style::fromJson(const nlohmann::json& json) {
     return style;
 }
 
-bool Style::operator==(const Style& other) const noexcept {
-    return m_color == other.m_color &&
-           m_bold == other.m_bold &&
-           m_italic == other.m_italic &&
-           m_underlined == other.m_underlined &&
-           m_strikethrough == other.m_strikethrough &&
-           m_obfuscated == other.m_obfuscated &&
-           m_clickEvent == other.m_clickEvent &&
-           m_hoverEvent == other.m_hoverEvent;
+bool Style::operator==(const Style& other) const noexcept
+{
+    return m_color == other.m_color && m_bold == other.m_bold && m_italic == other.m_italic &&
+        m_underlined == other.m_underlined && m_strikethrough == other.m_strikethrough &&
+        m_obfuscated == other.m_obfuscated && m_clickEvent == other.m_clickEvent && m_hoverEvent == other.m_hoverEvent;
 }
 
 // ========== 工具函数 ==========
 
-std::string getStyleCodes(const Style& style) {
+std::string getStyleCodes(const Style& style)
+{
     std::string codes;
 
     // 颜色代码

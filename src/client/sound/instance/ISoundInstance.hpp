@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/sound/SoundTypes.hpp"
-#include "common/sound/SoundCategory.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundTypes.hpp"
 
 #include <glm/glm.hpp>
 
@@ -13,9 +13,9 @@
 namespace mc::client::sound {
 
 // 从 mc::sound 引入类型
-using ::mc::sound::SoundInstanceId;
-using ::mc::sound::SoundCategory;
 using ::mc::sound::AttenuationType;
+using ::mc::sound::SoundCategory;
+using ::mc::sound::SoundInstanceId;
 
 // 前向声明
 class SoundHandler;
@@ -126,9 +126,7 @@ public:
     /**
      * @brief 获取位置向量
      */
-    [[nodiscard]] glm::vec3 getPosition() const {
-        return glm::vec3(getX(), getY(), getZ());
-    }
+    [[nodiscard]] glm::vec3 getPosition() const { return glm::vec3(getX(), getY(), getZ()); }
 
     // ========================================================================
     // 循环和延迟

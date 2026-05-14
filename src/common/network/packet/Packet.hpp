@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
-#include <vector>
+#include "../../core/Types.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc::network {
 
@@ -22,11 +22,11 @@ enum class PacketType : u16 {
     TeleportConfirm = 102,
     ChatMessage = 103,
     BlockInteraction = 104,
-    PlayerTryUseItemOnBlock = 105,  // 方块放置
-    PlayerInput = 106,              // 玩家输入 (骑乘/移动) - MC 1.16.5 CInputPacket
-    MoveVehicle = 107,              // 载具移动 - MC 1.16.5 CMoveVehiclePacket
-    EntityAction = 108,             // 实体动作 (跳跃、潜行等) - MC 1.16.5 CEntityActionPacket
-    UseEntity = 109,                // 实体交互 - MC 1.16.5 CUseEntityPacket
+    PlayerTryUseItemOnBlock = 105, // 方块放置
+    PlayerInput = 106,             // 玩家输入 (骑乘/移动) - MC 1.16.5 CInputPacket
+    MoveVehicle = 107,             // 载具移动 - MC 1.16.5 CMoveVehiclePacket
+    EntityAction = 108,            // 实体动作 (跳跃、潜行等) - MC 1.16.5 CEntityActionPacket
+    UseEntity = 109,               // 实体交互 - MC 1.16.5 CUseEntityPacket
 
     // 服务端 -> 客户端 (登录阶段)
     LoginResponse = 200,
@@ -39,99 +39,99 @@ enum class PacketType : u16 {
     BlockUpdate = 205,
     Teleport = 206,
     ChatBroadcast = 207,
-    TimeUpdate = 208,   // 时间同步
+    TimeUpdate = 208,      // 时间同步
     GameStateChange = 209, // 游戏状态变化（天气等）
 
     // 实体同步包 (S->C)
-    SpawnEntity = 210,          // 实体生成（物品、经验球等）
-    SpawnMob = 211,             // Mob生成
-    SpawnLiving = 212,          // LivingEntity生成
-    EntityMetadata = 213,       // 实体数据同步
-    EntityVelocity = 214,       // 实体速度
-    EntityTeleport = 215,       // 实体传送
-    EntityDestroy = 216,        // 实体销毁
-    EntityAnimation = 217,      // 实体动画
-    EntityMove = 218,           // 实体移动（相对）
-    EntityHeadLook = 219,       // 实体头部朝向
-    EntityStatus = 220,         // 实体状态（受伤、死亡等）
-    LightUpdate = 221,          // 光照更新 (S->C)
-    CollectItem = 222,          // 物品拾取动画 (S->C)
-    BlockBreakAnim = 223,       // 方块破坏动画 (S->C)
-    SetPassengers = 224,        // 设置乘客列表 (S->C)
+    SpawnEntity = 210,     // 实体生成（物品、经验球等）
+    SpawnMob = 211,        // Mob生成
+    SpawnLiving = 212,     // LivingEntity生成
+    EntityMetadata = 213,  // 实体数据同步
+    EntityVelocity = 214,  // 实体速度
+    EntityTeleport = 215,  // 实体传送
+    EntityDestroy = 216,   // 实体销毁
+    EntityAnimation = 217, // 实体动画
+    EntityMove = 218,      // 实体移动（相对）
+    EntityHeadLook = 219,  // 实体头部朝向
+    EntityStatus = 220,    // 实体状态（受伤、死亡等）
+    LightUpdate = 221,     // 光照更新 (S->C)
+    CollectItem = 222,     // 物品拾取动画 (S->C)
+    BlockBreakAnim = 223,  // 方块破坏动画 (S->C)
+    SetPassengers = 224,   // 设置乘客列表 (S->C)
 
     // 维度相关包
-    Respawn = 225,              // 重生/维度切换 (S->C) - 参考 MC 1.16.5 SRespawnPacket
-    DimensionInfo = 226,        // 维度信息 (S->C)
+    Respawn = 225,                // 重生/维度切换 (S->C) - 参考 MC 1.16.5 SRespawnPacket
+    DimensionInfo = 226,          // 维度信息 (S->C)
     ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
-    SpawnPosition = 228,        // 世界出生点 (S->C)
-    VehicleMove = 229,          // 载具移动同步 (S->C) - MC 1.16.5 SMoveVehiclePacket
+    SpawnPosition = 228,          // 世界出生点 (S->C)
+    VehicleMove = 229,            // 载具移动同步 (S->C) - MC 1.16.5 SMoveVehiclePacket
 
     // 命令系统
-    CommandTree = 230,          // 命令树同步 (S->C)
+    CommandTree = 230, // 命令树同步 (S->C)
 
     // 玩家列表
-    PlayerListItem = 232,       // 玩家列表更新 (S->C)
+    PlayerListItem = 232, // 玩家列表更新 (S->C)
 
     // 睡眠系统
-    Sleep = 231,                // 睡眠状态同步 (S->C)
+    Sleep = 231, // 睡眠状态同步 (S->C)
 
     // 背包相关包 (双向)
-    ContainerContent = 300,     // 容器内容同步 (S->C)
-    ContainerSlot = 301,        // 单个槽位更新 (S->C)
-    ContainerClick = 302,       // 容器点击 (C->S)
-    CloseContainer = 303,       // 关闭容器 (双向)
-    OpenContainer = 304,        // 打开容器 (S->C)
-    PlayerInventory = 305,      // 玩家背包同步 (S->C)
-    HotbarSelect = 306,         // 快捷栏选择 (C->S)
-    HotbarSet = 307,            // 快捷栏设置 (S->C)
-    PlayerAbilities = 308,      // 玩家能力同步 (S->C)
+    ContainerContent = 300,        // 容器内容同步 (S->C)
+    ContainerSlot = 301,           // 单个槽位更新 (S->C)
+    ContainerClick = 302,          // 容器点击 (C->S)
+    CloseContainer = 303,          // 关闭容器 (双向)
+    OpenContainer = 304,           // 打开容器 (S->C)
+    PlayerInventory = 305,         // 玩家背包同步 (S->C)
+    HotbarSelect = 306,            // 快捷栏选择 (C->S)
+    HotbarSet = 307,               // 快捷栏设置 (S->C)
+    PlayerAbilities = 308,         // 玩家能力同步 (S->C)
     CreativeInventoryAction = 309, // 创造模式背包动作 (C->S)
-    ServerDifficulty = 310,     // 难度同步 (S->C)
+    ServerDifficulty = 310,        // 难度同步 (S->C)
 
     // 声音相关包 (S->C)
-    PlaySound = 400,            // 播放声音
-    StopSound = 401,            // 停止声音
-    PlaySoundEffect = 402,      // 播放声音效果（实体/方块等）
-    MovingSound = 403,          // 移动声音（跟随实体）
-    WorldEvent = 404,           // 世界事件（音效/粒子效果）
+    PlaySound = 400,       // 播放声音
+    StopSound = 401,       // 停止声音
+    PlaySoundEffect = 402, // 播放声音效果（实体/方块等）
+    MovingSound = 403,     // 移动声音（跟随实体）
+    WorldEvent = 404,      // 世界事件（音效/粒子效果）
 
     // 玩家经验包 (S->C)
-    SetExperience = 500,        // 同步玩家经验
-    SpawnExperienceOrb = 501,   // 生成经验球
+    SetExperience = 500,      // 同步玩家经验
+    SpawnExperienceOrb = 501, // 生成经验球
 
     // 粒子包 (S->C)
-    Particle = 510,             // 粒子生成
+    Particle = 510, // 粒子生成
 
     // 爆炸包 (S->C)
-    Explosion = 511,            // 爆炸事件
+    Explosion = 511, // 爆炸事件
 
     // 标题包 (S->C)
-    Title = 520,                // 标题显示
+    Title = 520, // 标题显示
 
     // 世界边界包 (S->C)
-    WorldBorder = 530,          // 世界边界同步
+    WorldBorder = 530, // 世界边界同步
 
     // 成就包 (S->C)
     AdvancementInfo = 540,      // 成就信息同步
     SelectAdvancementTab = 541, // 成就标签页选择
 
     // 成就包 (C->S)
-    SeenAdvancements = 600,     // 成就界面操作
+    SeenAdvancements = 600, // 成就界面操作
 
     // 记分板包 (S->C)
-    ScoreboardObjective = 700,  // 目标同步 (创建/移除/更新)
-    UpdateScore = 701,          // 分数更新 (设置/移除)
-    DisplayObjective = 702,     // 显示目标 (设置显示槽位)
-    Teams = 703,                // 队伍同步 (创建/移除/更新/成员变更)
+    ScoreboardObjective = 700, // 目标同步 (创建/移除/更新)
+    UpdateScore = 701,         // 分数更新 (设置/移除)
+    DisplayObjective = 702,    // 显示目标 (设置显示槽位)
+    Teams = 703,               // 队伍同步 (创建/移除/更新/成员变更)
 };
 
 // 数据包头
 struct PacketHeader {
-    u32 size;           // 数据包总大小 (包含头部)
-    u16 type;           // 数据包类型 (PacketType)
-    u16 flags;          // 标志位
-    u16 reserved;       // 保留
-    u16 padding;        // 填充 (确保头部大小为12字节)
+    u32 size;     // 数据包总大小 (包含头部)
+    u16 type;     // 数据包类型 (PacketType)
+    u16 flags;    // 标志位
+    u16 reserved; // 保留
+    u16 padding;  // 填充 (确保头部大小为12字节)
 };
 
 static_assert(sizeof(PacketHeader) == 12, "PacketHeader should be 12 bytes");
@@ -163,7 +163,9 @@ protected:
 // 心跳包 (KeepAlive)
 class KeepAlivePacket : public Packet {
 public:
-    KeepAlivePacket() : Packet(PacketType::KeepAlive) {}
+    KeepAlivePacket()
+        : Packet(PacketType::KeepAlive)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -178,7 +180,9 @@ private:
 // 断开连接包
 class DisconnectPacket : public Packet {
 public:
-    DisconnectPacket() : Packet(PacketType::Disconnect) {}
+    DisconnectPacket()
+        : Packet(PacketType::Disconnect)
+    {}
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;

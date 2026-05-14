@@ -1,14 +1,14 @@
 #pragma once
 
-#include "SectionKey.hpp"
-#include "../../../core/Types.hpp"
 #include "../../../core/Result.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../util/NibbleArray.hpp"
 #include "../../chunk/ChunkData.hpp"
+#include "SectionKey.hpp"
 #include <array>
-#include <vector>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace mc::world::storage {
 
@@ -49,20 +49,24 @@ enum class SectionFlags : u16 {
 /**
  * @brief Section标志位操作
  */
-inline SectionFlags operator|(SectionFlags a, SectionFlags b) {
+inline SectionFlags operator|(SectionFlags a, SectionFlags b)
+{
     return static_cast<SectionFlags>(static_cast<u16>(a) | static_cast<u16>(b));
 }
 
-inline SectionFlags operator&(SectionFlags a, SectionFlags b) {
+inline SectionFlags operator&(SectionFlags a, SectionFlags b)
+{
     return static_cast<SectionFlags>(static_cast<u16>(a) & static_cast<u16>(b));
 }
 
-inline SectionFlags& operator|=(SectionFlags& a, SectionFlags b) {
+inline SectionFlags& operator|=(SectionFlags& a, SectionFlags b)
+{
     a = a | b;
     return a;
 }
 
-inline bool hasFlag(SectionFlags flags, SectionFlags flag) {
+inline bool hasFlag(SectionFlags flags, SectionFlags flag)
+{
     return (flags & flag) == flag;
 }
 
@@ -236,14 +240,13 @@ private:
     /**
      * @brief 计算方块索引
      */
-    [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z) {
-        return y * SIZE * SIZE + z * SIZE + x;
-    }
+    [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z) { return y * SIZE * SIZE + z * SIZE + x; }
 
     /**
      * @brief 计算生物群系索引
      */
-    [[nodiscard]] static i32 biomeIndex(i32 x, i32 y, i32 z) {
+    [[nodiscard]] static i32 biomeIndex(i32 x, i32 y, i32 z)
+    {
         i32 bx = x / 4;
         i32 by = y / 4;
         i32 bz = z / 4;
@@ -272,10 +275,7 @@ public:
      * @return SectionData
      */
     [[nodiscard]] static Result<SectionData> fromChunkSection(
-        const ChunkSection& section,
-        const SectionKey& key,
-        const std::vector<BiomeId>& biomes = {}
-    );
+        const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes = {});
 
     /**
      * @brief 将SectionData应用到ChunkSection
@@ -284,10 +284,7 @@ public:
      * @param section 目标ChunkSection
      * @return 成功或错误
      */
-    [[nodiscard]] static Result<void> toChunkSection(
-        const SectionData& data,
-        ChunkSection& section
-    );
+    [[nodiscard]] static Result<void> toChunkSection(const SectionData& data, ChunkSection& section);
 
     // ========================================================================
     // 压缩工具
@@ -303,11 +300,7 @@ public:
      * @param compressionLevel 压缩级别（1-22，默认3）
      * @return 压缩后的数据
      */
-    [[nodiscard]] static Result<std::vector<u8>> compress(
-        const u8* data,
-        size_t size,
-        i32 compressionLevel = 3
-    );
+    [[nodiscard]] static Result<std::vector<u8>> compress(const u8* data, size_t size, i32 compressionLevel = 3);
 
     /**
      * @brief 解压缩数据
@@ -318,10 +311,7 @@ public:
      * @return 解压缩后的数据
      */
     [[nodiscard]] static Result<std::vector<u8>> decompress(
-        const u8* compressedData,
-        size_t compressedSize,
-        size_t expectedSize
-    );
+        const u8* compressedData, size_t compressedSize, size_t expectedSize);
 
     // ========================================================================
     // 常量

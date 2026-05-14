@@ -1,6 +1,6 @@
 #include "GameModeManager.hpp"
-#include "PlayerManager.hpp"
 #include "ConnectionManager.hpp"
+#include "PlayerManager.hpp"
 #include "ServerPlayerData.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -11,14 +11,14 @@ namespace mc::server::core {
 GameModeManager::GameModeManager(PlayerManager& playerManager, ConnectionManager& connectionManager)
     : m_playerManager(playerManager)
     , m_connectionManager(connectionManager)
-{
-}
+{}
 
 // ============================================================================
 // 游戏模式管理
 // ============================================================================
 
-bool GameModeManager::setGameMode(PlayerId playerId, GameMode mode) {
+bool GameModeManager::setGameMode(PlayerId playerId, GameMode mode)
+{
     // 获取玩家数据
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
@@ -54,12 +54,15 @@ bool GameModeManager::setGameMode(PlayerId playerId, GameMode mode) {
     }
 
     spdlog::info("GameModeManager: Player {} changed game mode from {} to {}",
-                 playerId, static_cast<int>(oldMode), static_cast<int>(mode));
+        playerId,
+        static_cast<int>(oldMode),
+        static_cast<int>(mode));
 
     return true;
 }
 
-bool GameModeManager::setGameModeLocal(PlayerId playerId, GameMode mode) {
+bool GameModeManager::setGameModeLocal(PlayerId playerId, GameMode mode)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return false;
@@ -69,7 +72,8 @@ bool GameModeManager::setGameModeLocal(PlayerId playerId, GameMode mode) {
     return true;
 }
 
-GameMode GameModeManager::getGameMode(PlayerId playerId) const {
+GameMode GameModeManager::getGameMode(PlayerId playerId) const
+{
     const auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return GameMode::NotSet;
@@ -81,7 +85,8 @@ GameMode GameModeManager::getGameMode(PlayerId playerId) const {
 // 能力同步
 // ============================================================================
 
-bool GameModeManager::syncAbilities(PlayerId playerId) {
+bool GameModeManager::syncAbilities(PlayerId playerId)
+{
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return false;
@@ -90,7 +95,8 @@ bool GameModeManager::syncAbilities(PlayerId playerId) {
     return sendAbilitiesPacket(playerId, player->gameMode);
 }
 
-u8 GameModeManager::getAbilitiesForGameMode(GameMode mode) {
+u8 GameModeManager::getAbilitiesForGameMode(GameMode mode)
+{
     // 使用 GameModeUtils 计算能力
     PlayerAbilities abilities = entity::GameModeUtils::getAbilitiesForGameMode(mode);
 
@@ -115,7 +121,8 @@ u8 GameModeManager::getAbilitiesForGameMode(GameMode mode) {
 // 私有方法
 // ============================================================================
 
-bool GameModeManager::sendGameModeChangePacket(PlayerId playerId, GameMode mode) {
+bool GameModeManager::sendGameModeChangePacket(PlayerId playerId, GameMode mode)
+{
     network::GameStateChangePacket packet = network::GameStateChangePacket::gameModeChange(mode);
 
     auto result = packet.serialize();
@@ -124,14 +131,11 @@ bool GameModeManager::sendGameModeChangePacket(PlayerId playerId, GameMode mode)
         return false;
     }
 
-    return m_connectionManager.sendPacketToPlayer(
-        playerId,
-        network::PacketType::GameStateChange,
-        result.value()
-    );
+    return m_connectionManager.sendPacketToPlayer(playerId, network::PacketType::GameStateChange, result.value());
 }
 
-bool GameModeManager::sendAbilitiesPacket(PlayerId playerId, GameMode mode) {
+bool GameModeManager::sendAbilitiesPacket(PlayerId playerId, GameMode mode)
+{
     network::PlayerAbilitiesPacket packet = network::PlayerAbilitiesPacket::fromGameMode(mode);
 
     auto result = packet.serialize();
@@ -140,11 +144,7 @@ bool GameModeManager::sendAbilitiesPacket(PlayerId playerId, GameMode mode) {
         return false;
     }
 
-    return m_connectionManager.sendPacketToPlayer(
-        playerId,
-        network::PacketType::PlayerAbilities,
-        result.value()
-    );
+    return m_connectionManager.sendPacketToPlayer(playerId, network::PacketType::PlayerAbilities, result.value());
 }
 
 } // namespace mc::server::core

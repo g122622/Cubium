@@ -25,7 +25,8 @@ namespace Attributes {
  * 默认值: 20.0 (玩家)
  * 范围: 1.0 ~ 1024.0 (MC 1.16.5 最小值为 1.0，不能为 0)
  */
-inline std::unique_ptr<Attribute> maxHealth() {
+inline std::unique_ptr<Attribute> maxHealth()
+{
     return std::make_unique<Attribute>("generic.max_health", 20.0, 1.0, 1024.0);
 }
 
@@ -36,7 +37,8 @@ inline std::unique_ptr<Attribute> maxHealth() {
  * 默认值: 32.0 (大多数生物)
  * 范围: 0.0 ~ 2048.0
  */
-inline std::unique_ptr<Attribute> followRange() {
+inline std::unique_ptr<Attribute> followRange()
+{
     return std::make_unique<Attribute>("generic.follow_range", 32.0, 0.0, 2048.0);
 }
 
@@ -48,7 +50,8 @@ inline std::unique_ptr<Attribute> followRange() {
  * 范围: 0.0 ~ 1.0
  * 1.0 表示完全免疫击退
  */
-inline std::unique_ptr<Attribute> knockbackResistance() {
+inline std::unique_ptr<Attribute> knockbackResistance()
+{
     return std::make_unique<Attribute>("generic.knockback_resistance", 0.0, 0.0, 1.0);
 }
 
@@ -59,7 +62,8 @@ inline std::unique_ptr<Attribute> knockbackResistance() {
  * 默认值: 0.7 (生物), 0.1 (玩家)
  * 范围: 0.0 ~ 1024.0
  */
-inline std::unique_ptr<Attribute> movementSpeed() {
+inline std::unique_ptr<Attribute> movementSpeed()
+{
     return std::make_unique<Attribute>("generic.movement_speed", 0.7, 0.0, 1024.0);
 }
 
@@ -70,7 +74,8 @@ inline std::unique_ptr<Attribute> movementSpeed() {
  * 默认值: 0.4 (飞行玩家)
  * 范围: 0.0 ~ 1024.0
  */
-inline std::unique_ptr<Attribute> flyingSpeed() {
+inline std::unique_ptr<Attribute> flyingSpeed()
+{
     return std::make_unique<Attribute>("generic.flying_speed", 0.4, 0.0, 1024.0);
 }
 
@@ -81,7 +86,8 @@ inline std::unique_ptr<Attribute> flyingSpeed() {
  * 默认值: 2.0 (玩家)
  * 范围: 0.0 ~ 2048.0
  */
-inline std::unique_ptr<Attribute> attackDamage() {
+inline std::unique_ptr<Attribute> attackDamage()
+{
     return std::make_unique<Attribute>("generic.attack_damage", 2.0, 0.0, 2048.0);
 }
 
@@ -92,7 +98,8 @@ inline std::unique_ptr<Attribute> attackDamage() {
  * 默认值: 0.0
  * 范围: 0.0 ~ 5.0
  */
-inline std::unique_ptr<Attribute> attackKnockback() {
+inline std::unique_ptr<Attribute> attackKnockback()
+{
     return std::make_unique<Attribute>("generic.attack_knockback", 0.0, 0.0, 5.0);
 }
 
@@ -103,7 +110,8 @@ inline std::unique_ptr<Attribute> attackKnockback() {
  * 默认值: 4.0 (玩家)
  * 范围: 0.0 ~ 1024.0
  */
-inline std::unique_ptr<Attribute> attackSpeed() {
+inline std::unique_ptr<Attribute> attackSpeed()
+{
     return std::make_unique<Attribute>("generic.attack_speed", 4.0, 0.0, 1024.0);
 }
 
@@ -114,7 +122,8 @@ inline std::unique_ptr<Attribute> attackSpeed() {
  * 默认值: 0.0
  * 范围: 0.0 ~ 30.0
  */
-inline std::unique_ptr<Attribute> armor() {
+inline std::unique_ptr<Attribute> armor()
+{
     return std::make_unique<Attribute>("generic.armor", 0.0, 0.0, 30.0);
 }
 
@@ -125,7 +134,8 @@ inline std::unique_ptr<Attribute> armor() {
  * 默认值: 0.0
  * 范围: 0.0 ~ 20.0
  */
-inline std::unique_ptr<Attribute> armorToughness() {
+inline std::unique_ptr<Attribute> armorToughness()
+{
     return std::make_unique<Attribute>("generic.armor_toughness", 0.0, 0.0, 20.0);
 }
 
@@ -136,7 +146,8 @@ inline std::unique_ptr<Attribute> armorToughness() {
  * 默认值: 0.0
  * 范围: -1024.0 ~ 1024.0
  */
-inline std::unique_ptr<Attribute> luck() {
+inline std::unique_ptr<Attribute> luck()
+{
     return std::make_unique<Attribute>("generic.luck", 0.0, -1024.0, 1024.0);
 }
 
@@ -147,7 +158,8 @@ inline std::unique_ptr<Attribute> luck() {
  * 默认值: 0.0
  * 范围: 0.0 ~ 2048.0
  */
-inline std::unique_ptr<Attribute> maxAbsorption() {
+inline std::unique_ptr<Attribute> maxAbsorption()
+{
     return std::make_unique<Attribute>("generic.max_absorption", 0.0, 0.0, 2048.0);
 }
 
@@ -158,7 +170,8 @@ inline std::unique_ptr<Attribute> maxAbsorption() {
  * 默认值: 300 (15秒)
  * 范围: 0 ~ 6000
  */
-inline std::unique_ptr<Attribute> breathMax() {
+inline std::unique_ptr<Attribute> breathMax()
+{
     // 注意：使用整数属性，这里用 double 表示
     return std::make_unique<Attribute>("generic.breath_max", 300.0, 0.0, 6000.0);
 }
@@ -170,7 +183,8 @@ inline std::unique_ptr<Attribute> breathMax() {
  * 默认值: 0.42
  * 范围: 0.0 ~ 8.0
  */
-inline std::unique_ptr<Attribute> jumpBoost() {
+inline std::unique_ptr<Attribute> jumpBoost()
+{
     return std::make_unique<Attribute>("generic.jump_boost", 0.42, 0.0, 8.0);
 }
 
@@ -181,7 +195,8 @@ inline std::unique_ptr<Attribute> jumpBoost() {
  * 默认值: 0.7
  * 范围: 0.0 ~ 2.0
  */
-inline std::unique_ptr<Attribute> horseJumpStrength() {
+inline std::unique_ptr<Attribute> horseJumpStrength()
+{
     return std::make_unique<Attribute>("horse.jump_strength", 0.7, 0.0, 2.0);
 }
 
@@ -192,7 +207,8 @@ inline std::unique_ptr<Attribute> horseJumpStrength() {
  * 默认值: 0.0
  * 范围: 0.0 ~ 1.0
  */
-inline std::unique_ptr<Attribute> zombieSpawnReinforcements() {
+inline std::unique_ptr<Attribute> zombieSpawnReinforcements()
+{
     return std::make_unique<Attribute>("zombie.spawn_reinforcements", 0.0, 0.0, 1.0);
 }
 
@@ -210,7 +226,8 @@ inline std::unique_ptr<Attribute> zombieSpawnReinforcements() {
  * 范围: -8.0 ~ 8.0 (Forge 允许负重力)
  * 注意：缓降药水会修改此属性
  */
-inline std::unique_ptr<Attribute> entityGravity() {
+inline std::unique_ptr<Attribute> entityGravity()
+{
     return std::make_unique<Attribute>("forge.entity_gravity", 0.08, -8.0, 8.0);
 }
 
@@ -222,7 +239,8 @@ inline std::unique_ptr<Attribute> entityGravity() {
  * 默认值: 1.0
  * 范围: 0.0 ~ 1024.0
  */
-inline std::unique_ptr<Attribute> swimSpeed() {
+inline std::unique_ptr<Attribute> swimSpeed()
+{
     return std::make_unique<Attribute>("forge.swim_speed", 1.0, 0.0, 1024.0);
 }
 
@@ -249,8 +267,8 @@ constexpr const char* HORSE_JUMP_STRENGTH = "horse.jump_strength";
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max";
 constexpr const char* JUMP_BOOST = "generic.jump_boost";
-constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity";  // Forge 扩展
-constexpr const char* SWIM_SPEED = "forge.swim_speed";          // Forge 扩展
+constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
+constexpr const char* SWIM_SPEED = "forge.swim_speed";         // Forge 扩展
 
 } // namespace Attributes
 

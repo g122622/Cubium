@@ -1,26 +1,25 @@
-#include <gtest/gtest.h>
 #include "network/packet/TitlePacket.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "util/text/TextStyle.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::network;
 using namespace mc::text;
 using mc::i32;
-using mc::u8;
 using mc::u16;
+using mc::u8;
 
 // ==================== TitlePacket 基础测试 ====================
 
 class TitlePacketTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        testText = R"({"text":"Hello World","color":"red"})";
-    }
+    void SetUp() override { testText = R"({"text":"Hello World","color":"red"})"; }
 
     std::string testText;
 };
 
-TEST_F(TitlePacketTest, DefaultConstruction) {
+TEST_F(TitlePacketTest, DefaultConstruction)
+{
     TitlePacket packet;
     EXPECT_EQ(packet.action(), TitleAction::Clear);
     EXPECT_FALSE(packet.text().has_value());
@@ -29,7 +28,8 @@ TEST_F(TitlePacketTest, DefaultConstruction) {
     EXPECT_EQ(packet.fadeOut(), -1);
 }
 
-TEST_F(TitlePacketTest, CreateTitle) {
+TEST_F(TitlePacketTest, CreateTitle)
+{
     auto packet = TitlePacket::createTitle(testText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
@@ -37,7 +37,8 @@ TEST_F(TitlePacketTest, CreateTitle) {
     EXPECT_EQ(packet.text().value(), testText);
 }
 
-TEST_F(TitlePacketTest, CreateTitleFromComponent) {
+TEST_F(TitlePacketTest, CreateTitleFromComponent)
+{
     auto component = std::make_unique<StringTextComponent>("Hello World");
     Style style;
     style.setColor(TextFormatting::Red);
@@ -51,7 +52,8 @@ TEST_F(TitlePacketTest, CreateTitleFromComponent) {
     EXPECT_TRUE(packet.text()->find("Hello World") != std::string::npos);
 }
 
-TEST_F(TitlePacketTest, CreateSubtitle) {
+TEST_F(TitlePacketTest, CreateSubtitle)
+{
     auto packet = TitlePacket::createSubtitle(testText);
 
     EXPECT_EQ(packet.action(), TitleAction::Subtitle);
@@ -59,7 +61,8 @@ TEST_F(TitlePacketTest, CreateSubtitle) {
     EXPECT_EQ(packet.text().value(), testText);
 }
 
-TEST_F(TitlePacketTest, CreateSubtitleFromComponent) {
+TEST_F(TitlePacketTest, CreateSubtitleFromComponent)
+{
     auto component = std::make_unique<StringTextComponent>("Subtitle Text");
     auto packet = TitlePacket::createSubtitle(*component);
 
@@ -68,7 +71,8 @@ TEST_F(TitlePacketTest, CreateSubtitleFromComponent) {
     EXPECT_TRUE(packet.text()->find("Subtitle Text") != std::string::npos);
 }
 
-TEST_F(TitlePacketTest, CreateActionbar) {
+TEST_F(TitlePacketTest, CreateActionbar)
+{
     auto packet = TitlePacket::createActionbar(testText);
 
     EXPECT_EQ(packet.action(), TitleAction::Actionbar);
@@ -76,7 +80,8 @@ TEST_F(TitlePacketTest, CreateActionbar) {
     EXPECT_EQ(packet.text().value(), testText);
 }
 
-TEST_F(TitlePacketTest, CreateActionbarFromComponent) {
+TEST_F(TitlePacketTest, CreateActionbarFromComponent)
+{
     auto component = std::make_unique<StringTextComponent>("Action Bar");
     auto packet = TitlePacket::createActionbar(*component);
 
@@ -85,7 +90,8 @@ TEST_F(TitlePacketTest, CreateActionbarFromComponent) {
     EXPECT_TRUE(packet.text()->find("Action Bar") != std::string::npos);
 }
 
-TEST_F(TitlePacketTest, CreateTimes) {
+TEST_F(TitlePacketTest, CreateTimes)
+{
     i32 fadeIn = 10;
     i32 stay = 70;
     i32 fadeOut = 20;
@@ -99,21 +105,24 @@ TEST_F(TitlePacketTest, CreateTimes) {
     EXPECT_EQ(packet.fadeOut(), fadeOut);
 }
 
-TEST_F(TitlePacketTest, CreateClear) {
+TEST_F(TitlePacketTest, CreateClear)
+{
     auto packet = TitlePacket::createClear();
 
     EXPECT_EQ(packet.action(), TitleAction::Clear);
     EXPECT_FALSE(packet.text().has_value());
 }
 
-TEST_F(TitlePacketTest, CreateReset) {
+TEST_F(TitlePacketTest, CreateReset)
+{
     auto packet = TitlePacket::createReset();
 
     EXPECT_EQ(packet.action(), TitleAction::Reset);
     EXPECT_FALSE(packet.text().has_value());
 }
 
-TEST_F(TitlePacketTest, SettersAndGetters) {
+TEST_F(TitlePacketTest, SettersAndGetters)
+{
     TitlePacket packet;
 
     packet.setAction(TitleAction::Title);
@@ -133,14 +142,13 @@ TEST_F(TitlePacketTest, SettersAndGetters) {
 
 class TitlePacketSerializeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        testText = R"({"text":"Test Title","bold":true})";
-    }
+    void SetUp() override { testText = R"({"text":"Test Title","bold":true})"; }
 
     std::string testText;
 };
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeTitle) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeTitle)
+{
     auto original = TitlePacket::createTitle(testText);
 
     auto result = original.serialize();
@@ -158,7 +166,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeTitle) {
     EXPECT_EQ(deserialized.text().value(), testText);
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeSubtitle) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeSubtitle)
+{
     auto original = TitlePacket::createSubtitle(testText);
 
     auto result = original.serialize();
@@ -173,7 +182,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeSubtitle) {
     EXPECT_EQ(deserialized.text().value(), testText);
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeActionbar) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeActionbar)
+{
     auto original = TitlePacket::createActionbar(testText);
 
     auto result = original.serialize();
@@ -188,7 +198,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeActionbar) {
     EXPECT_EQ(deserialized.text().value(), testText);
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeTimes) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeTimes)
+{
     i32 fadeIn = 10;
     i32 stay = 70;
     i32 fadeOut = 20;
@@ -209,7 +220,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeTimes) {
     EXPECT_EQ(deserialized.fadeOut(), fadeOut);
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeClear) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeClear)
+{
     auto original = TitlePacket::createClear();
 
     auto result = original.serialize();
@@ -223,7 +235,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeClear) {
     EXPECT_FALSE(deserialized.text().has_value());
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeReset) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeReset)
+{
     auto original = TitlePacket::createReset();
 
     auto result = original.serialize();
@@ -237,7 +250,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeReset) {
     EXPECT_FALSE(deserialized.text().has_value());
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeEmptyText) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeEmptyText)
+{
     auto original = TitlePacket::createTitle("");
 
     auto result = original.serialize();
@@ -252,7 +266,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeEmptyText) {
     EXPECT_EQ(deserialized.text().value(), "");
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeLongText) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeLongText)
+{
     // 构造一个长JSON文本
     std::string longText = R"({"text":")";
     for (int i = 0; i < 100; ++i) {
@@ -274,7 +289,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeLongText) {
     EXPECT_EQ(deserialized.text().value(), longText);
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeZeroTimes) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeZeroTimes)
+{
     auto original = TitlePacket::createTimes(0, 0, 0);
 
     auto result = original.serialize();
@@ -289,7 +305,8 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeZeroTimes) {
     EXPECT_EQ(deserialized.fadeOut(), 0);
 }
 
-TEST_F(TitlePacketSerializeTest, SerializeDeserializeLargeTimes) {
+TEST_F(TitlePacketSerializeTest, SerializeDeserializeLargeTimes)
+{
     auto original = TitlePacket::createTimes(1000, 5000, 1000);
 
     auto result = original.serialize();
@@ -306,13 +323,15 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeLargeTimes) {
 
 // ==================== TitlePacket 错误处理测试 ====================
 
-TEST(TitlePacketErrorTest, DeserializeEmptyData) {
+TEST(TitlePacketErrorTest, DeserializeEmptyData)
+{
     TitlePacket packet;
     auto result = packet.deserialize(nullptr, 0);
     EXPECT_FALSE(result.success());
 }
 
-TEST(TitlePacketErrorTest, DeserializeTruncatedData) {
+TEST(TitlePacketErrorTest, DeserializeTruncatedData)
+{
     auto original = TitlePacket::createTitle("Test");
     auto result = original.serialize();
     ASSERT_TRUE(result.success());
@@ -326,10 +345,11 @@ TEST(TitlePacketErrorTest, DeserializeTruncatedData) {
     EXPECT_FALSE(deserResult.success());
 }
 
-TEST(TitlePacketErrorTest, DeserializeInvalidActionType) {
+TEST(TitlePacketErrorTest, DeserializeInvalidActionType)
+{
     // 手动构造一个无效的动作类型
     mc::network::PacketSerializer serializer;
-    serializer.writeVarInt(99);  // 无效的动作类型
+    serializer.writeVarInt(99); // 无效的动作类型
 
     std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
 
@@ -340,7 +360,8 @@ TEST(TitlePacketErrorTest, DeserializeInvalidActionType) {
 
 // ==================== TitlePacket 与 ITextComponent 集成测试 ====================
 
-TEST(TitlePacketComponentTest, CreateFromSimpleText) {
+TEST(TitlePacketComponentTest, CreateFromSimpleText)
+{
     auto component = std::make_unique<StringTextComponent>("Simple Text");
     auto packet = TitlePacket::createTitle(*component);
 
@@ -349,7 +370,8 @@ TEST(TitlePacketComponentTest, CreateFromSimpleText) {
     EXPECT_TRUE(packet.text()->find("Simple Text") != std::string::npos);
 }
 
-TEST(TitlePacketComponentTest, CreateFromStyledText) {
+TEST(TitlePacketComponentTest, CreateFromStyledText)
+{
     auto component = std::make_unique<StringTextComponent>("Styled Text");
     Style style;
     style.setColor(TextFormatting::Gold);
@@ -366,7 +388,8 @@ TEST(TitlePacketComponentTest, CreateFromStyledText) {
     EXPECT_TRUE(packet.text()->find("italic") != std::string::npos);
 }
 
-TEST(TitlePacketComponentTest, CreateFromNestedText) {
+TEST(TitlePacketComponentTest, CreateFromNestedText)
+{
     auto mainText = std::make_unique<StringTextComponent>("Main ");
     Style mainStyle;
     mainStyle.setColor(TextFormatting::Red);
@@ -388,24 +411,21 @@ TEST(TitlePacketComponentTest, CreateFromNestedText) {
 
 // ==================== TitlePacket 所有动作类型测试 ====================
 
-TEST(TitlePacketAllActionsTest, AllActionTypesSerialize) {
+TEST(TitlePacketAllActionsTest, AllActionTypesSerialize)
+{
     // 测试所有动作类型
-    std::vector<TitleAction> actions = {
-        TitleAction::Title,
+    std::vector<TitleAction> actions = {TitleAction::Title,
         TitleAction::Subtitle,
         TitleAction::Actionbar,
         TitleAction::Times,
         TitleAction::Clear,
-        TitleAction::Reset
-    };
+        TitleAction::Reset};
 
     for (auto action : actions) {
         TitlePacket packet;
         packet.setAction(action);
 
-        if (action == TitleAction::Title ||
-            action == TitleAction::Subtitle ||
-            action == TitleAction::Actionbar) {
+        if (action == TitleAction::Title || action == TitleAction::Subtitle || action == TitleAction::Actionbar) {
             packet.setText("Test");
         } else if (action == TitleAction::Times) {
             packet.setTimes(10, 70, 20);
@@ -423,7 +443,8 @@ TEST(TitlePacketAllActionsTest, AllActionTypesSerialize) {
 
 // ==================== 性能测试 ====================
 
-TEST(TitlePacketPerfTest, SerializeDeserializePerformance) {
+TEST(TitlePacketPerfTest, SerializeDeserializePerformance)
+{
     auto packet = TitlePacket::createTitle("Performance Test Title");
 
     for (int i = 0; i < 1000; ++i) {
@@ -439,7 +460,8 @@ TEST(TitlePacketPerfTest, SerializeDeserializePerformance) {
     }
 }
 
-TEST(TitlePacketPerfTest, AllActionTypesPerformance) {
+TEST(TitlePacketPerfTest, AllActionTypesPerformance)
+{
     for (int i = 0; i < 100; ++i) {
         // Title
         auto titlePacket = TitlePacket::createTitle("Title");
@@ -475,7 +497,8 @@ TEST(TitlePacketPerfTest, AllActionTypesPerformance) {
 
 // ==================== 命令场景模拟测试 ====================
 
-TEST(TitlePacketCommandTest, SimulateTitleCommand) {
+TEST(TitlePacketCommandTest, SimulateTitleCommand)
+{
     // 模拟 /title @a title {"text":"Welcome","color":"yellow"}
     std::string jsonText = R"({"text":"Welcome","color":"yellow"})";
     auto packet = TitlePacket::createTitle(jsonText);
@@ -494,7 +517,8 @@ TEST(TitlePacketCommandTest, SimulateTitleCommand) {
     EXPECT_EQ(received.text().value(), jsonText);
 }
 
-TEST(TitlePacketCommandTest, SimulateTimesCommand) {
+TEST(TitlePacketCommandTest, SimulateTimesCommand)
+{
     // 模拟 /title @a times 10 70 20
     auto packet = TitlePacket::createTimes(10, 70, 20);
 
@@ -507,7 +531,8 @@ TEST(TitlePacketCommandTest, SimulateTimesCommand) {
     ASSERT_TRUE(result.success());
 }
 
-TEST(TitlePacketCommandTest, SimulateClearCommand) {
+TEST(TitlePacketCommandTest, SimulateClearCommand)
+{
     // 模拟 /title @a clear
     auto packet = TitlePacket::createClear();
 
@@ -517,7 +542,8 @@ TEST(TitlePacketCommandTest, SimulateClearCommand) {
     ASSERT_TRUE(result.success());
 }
 
-TEST(TitlePacketCommandTest, SimulateResetCommand) {
+TEST(TitlePacketCommandTest, SimulateResetCommand)
+{
     // 模拟 /title @a reset
     auto packet = TitlePacket::createReset();
 
@@ -527,7 +553,8 @@ TEST(TitlePacketCommandTest, SimulateResetCommand) {
     ASSERT_TRUE(result.success());
 }
 
-TEST(TitlePacketCommandTest, SimulateSubtitleCommand) {
+TEST(TitlePacketCommandTest, SimulateSubtitleCommand)
+{
     // 模拟 /title @a subtitle {"text":"A Subtitle","color":"gray"}
     std::string jsonText = R"({"text":"A Subtitle","color":"gray"})";
     auto packet = TitlePacket::createSubtitle(jsonText);
@@ -539,7 +566,8 @@ TEST(TitlePacketCommandTest, SimulateSubtitleCommand) {
     ASSERT_TRUE(result.success());
 }
 
-TEST(TitlePacketCommandTest, SimulateActionbarCommand) {
+TEST(TitlePacketCommandTest, SimulateActionbarCommand)
+{
     // 模拟 /title @a actionbar {"text":"Action Bar Message"}
     std::string jsonText = R"({"text":"Action Bar Message"})";
     auto packet = TitlePacket::createActionbar(jsonText);
@@ -553,7 +581,8 @@ TEST(TitlePacketCommandTest, SimulateActionbarCommand) {
 
 // ==================== 特殊字符和 Unicode 测试 ====================
 
-TEST(TitlePacketSpecialCharTest, UnicodeCharacters) {
+TEST(TitlePacketSpecialCharTest, UnicodeCharacters)
+{
     // 测试 Unicode 字符（中文、日文、表情符号等）
     std::string unicodeText = R"({"text":"你好世界 🌍 Привет мир"})";
     auto packet = TitlePacket::createTitle(unicodeText);
@@ -571,7 +600,8 @@ TEST(TitlePacketSpecialCharTest, UnicodeCharacters) {
     EXPECT_EQ(deserialized.text().value(), unicodeText);
 }
 
-TEST(TitlePacketSpecialCharTest, JsonEscapeSequences) {
+TEST(TitlePacketSpecialCharTest, JsonEscapeSequences)
+{
     // 测试 JSON 转义序列
     std::string escapedText = R"({"text":"Line1\nLine2\tTabbed\"Quoted\""})";
     auto packet = TitlePacket::createTitle(escapedText);
@@ -587,7 +617,8 @@ TEST(TitlePacketSpecialCharTest, JsonEscapeSequences) {
     EXPECT_EQ(deserialized.text().value(), escapedText);
 }
 
-TEST(TitlePacketSpecialCharTest, MinecraftFormattingCodes) {
+TEST(TitlePacketSpecialCharTest, MinecraftFormattingCodes)
+{
     // 测试 Minecraft 格式代码（§ 符号）
     std::string mcText = R"({"text":"§cRed Text §lBold§r Reset"})";
     auto packet = TitlePacket::createTitle(mcText);
@@ -603,9 +634,11 @@ TEST(TitlePacketSpecialCharTest, MinecraftFormattingCodes) {
     EXPECT_EQ(deserialized.text().value(), mcText);
 }
 
-TEST(TitlePacketSpecialCharTest, ComplexJsonWithMultipleComponents) {
+TEST(TitlePacketSpecialCharTest, ComplexJsonWithMultipleComponents)
+{
     // 测试复杂的 JSON 文本组件（带 extra 数组）
-    std::string complexText = R"({"text":"Main","color":"red","extra":[{"text":" ","color":"white"},{"text":"Extra","color":"gold","bold":true}]})";
+    std::string complexText =
+        R"({"text":"Main","color":"red","extra":[{"text":" ","color":"white"},{"text":"Extra","color":"gold","bold":true}]})";
     auto packet = TitlePacket::createTitle(complexText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
@@ -619,7 +652,8 @@ TEST(TitlePacketSpecialCharTest, ComplexJsonWithMultipleComponents) {
     EXPECT_EQ(deserialized.text().value(), complexText);
 }
 
-TEST(TitlePacketSpecialCharTest, SpecialMinecraftText) {
+TEST(TitlePacketSpecialCharTest, SpecialMinecraftText)
+{
     // 测试 Minecraft 特殊文本（如翻译键、记分板、选择器）
     std::string specialText = R"({"translate":"death.attack.player","with":["Player1","Player2"]})";
     auto packet = TitlePacket::createTitle(specialText);
@@ -637,7 +671,8 @@ TEST(TitlePacketSpecialCharTest, SpecialMinecraftText) {
 
 // ==================== 边界条件测试 ====================
 
-TEST(TitlePacketBoundaryTest, NegativeTimes) {
+TEST(TitlePacketBoundaryTest, NegativeTimes)
+{
     // 测试负数时间值（MC 1.16.5 使用负值表示使用默认值）
     auto packet = TitlePacket::createTimes(-1, -1, -1);
 
@@ -657,7 +692,8 @@ TEST(TitlePacketBoundaryTest, NegativeTimes) {
     EXPECT_EQ(deserialized.fadeOut(), -1);
 }
 
-TEST(TitlePacketBoundaryTest, MaxIntTimes) {
+TEST(TitlePacketBoundaryTest, MaxIntTimes)
+{
     // 测试最大整数值
     auto packet = TitlePacket::createTimes(2147483647, 2147483647, 2147483647);
 
@@ -677,7 +713,8 @@ TEST(TitlePacketBoundaryTest, MaxIntTimes) {
     EXPECT_EQ(deserialized.fadeOut(), 2147483647);
 }
 
-TEST(TitlePacketBoundaryTest, ActionbarWithEmptyText) {
+TEST(TitlePacketBoundaryTest, ActionbarWithEmptyText)
+{
     // 测试空文本的动作栏
     auto packet = TitlePacket::createActionbar("");
 
@@ -696,7 +733,8 @@ TEST(TitlePacketBoundaryTest, ActionbarWithEmptyText) {
     EXPECT_EQ(deserialized.text().value(), "");
 }
 
-TEST(TitlePacketBoundaryTest, RapidActionSequence) {
+TEST(TitlePacketBoundaryTest, RapidActionSequence)
+{
     // 模拟快速连续发送不同类型的标题包
     std::vector<TitlePacket> packets;
 

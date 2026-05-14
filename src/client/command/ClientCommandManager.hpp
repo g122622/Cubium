@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "common/command/CommandTreeSnapshot.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <vector>
 
@@ -78,8 +78,7 @@ private:
     /**
      * @brief 收集某个节点的候选建议
      */
-    [[nodiscard]] mc::command::Suggestions collectSuggestions(
-        const mc::command::CommandTreeNodeSnapshot& node,
+    [[nodiscard]] mc::command::Suggestions collectSuggestions(const mc::command::CommandTreeNodeSnapshot& node,
         std::string_view fullInput,
         i32 start,
         i32 end,
@@ -88,15 +87,13 @@ private:
     /**
      * @brief 获取节点候选项
      */
-    [[nodiscard]] std::vector<std::string> getCandidates(
-        const mc::command::CommandTreeNodeSnapshot& node) const;
+    [[nodiscard]] std::vector<std::string> getCandidates(const mc::command::CommandTreeNodeSnapshot& node) const;
 
     /**
      * @brief 判断是否应当将 token 视为固定候选
      */
     [[nodiscard]] bool matchesFixedCandidate(
-        const mc::command::CommandTreeNodeSnapshot& node,
-        std::string_view token) const;
+        const mc::command::CommandTreeNodeSnapshot& node, std::string_view token) const;
 
     /**
      * @brief 判断是否为命令输入

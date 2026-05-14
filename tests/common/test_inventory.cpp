@@ -1,29 +1,29 @@
-#include <gtest/gtest.h>
-#include "../src/common/entity/inventory/IInventory.hpp"
-#include "../src/common/entity/inventory/Slot.hpp"
-#include "../src/common/entity/inventory/PlayerInventory.hpp"
+#include "../src/common/core/Constants.hpp"
 #include "../src/common/entity/core/LivingEntity.hpp"
 #include "../src/common/entity/damage/DamageSource.hpp"
+#include "../src/common/entity/entities/player/Player.hpp"
+#include "../src/common/entity/inventory/IInventory.hpp"
+#include "../src/common/entity/inventory/PlayerInventory.hpp"
+#include "../src/common/entity/inventory/Slot.hpp"
+#include "../src/common/item/Items.hpp"
 #include "../src/common/item/armor/ArmorMaterial.hpp"
+#include "../src/common/item/core/ItemRegistry.hpp"
+#include "../src/common/item/enchantment/EnchantmentHelper.hpp"
+#include "../src/common/item/enchantment/EnchantmentRegistry.hpp"
 #include "../src/common/item/items/armor/ArmorItem.hpp"
 #include "../src/common/item/items/armor/DyeableArmorItem.hpp"
 #include "../src/common/item/items/armor/ElytraItem.hpp"
-#include "../src/common/entity/entities/player/Player.hpp"
-#include "../src/common/item/core/ItemRegistry.hpp"
-#include "../src/common/item/Items.hpp"
+#include "../src/common/util/math/random/Random.hpp"
 #include "../src/common/world/IWorld.hpp"
+#include "../src/common/world/block/Block.hpp"
+#include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/blockentity/core/SimpleInventory.hpp"
 #include "../src/common/world/border/WorldBorder.hpp"
 #include "../src/common/world/chunk/ChunkData.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
 #include "../src/common/world/tick/manager/TickManager.hpp"
-#include "../src/common/core/Constants.hpp"
-#include "../src/common/world/block/Block.hpp"
-#include "../src/common/world/block/VanillaBlocks.hpp"
-#include "../src/common/util/math/random/Random.hpp"
-#include "../src/common/world/blockentity/core/SimpleInventory.hpp"
-#include "../src/common/item/enchantment/EnchantmentRegistry.hpp"
-#include "../src/common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/TestWorldHelper.hpp"
+#include <gtest/gtest.h>
 
 #include <array>
 
@@ -34,7 +34,8 @@ namespace {
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1) {
+        : LivingEntity(LegacyEntityType::Player, 1)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -42,17 +43,22 @@ public:
 
 class ArmorTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
     }
 
@@ -68,12 +74,11 @@ private:
 
 class InventorySlotsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-TEST_F(InventorySlotsTest, ConstantsAreCorrect) {
+TEST_F(InventorySlotsTest, ConstantsAreCorrect)
+{
     // 快捷栏
     EXPECT_EQ(InventorySlots::HOTBAR_START, 0);
     EXPECT_EQ(InventorySlots::HOTBAR_END, 8);
@@ -106,7 +111,8 @@ TEST_F(InventorySlotsTest, ConstantsAreCorrect) {
 
 class PlayerInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
 
@@ -121,13 +127,15 @@ protected:
     Item* m_diamondSword = nullptr;
 };
 
-TEST_F(PlayerInventoryTest, InitialState) {
+TEST_F(PlayerInventoryTest, InitialState)
+{
     EXPECT_EQ(m_inventory->getContainerSize(), 41);
     EXPECT_TRUE(m_inventory->isEmpty());
     EXPECT_EQ(m_inventory->getSelectedSlot(), 0);
 }
 
-TEST_F(PlayerInventoryTest, SetAndGetItem) {
+TEST_F(PlayerInventoryTest, SetAndGetItem)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 32);
@@ -138,7 +146,8 @@ TEST_F(PlayerInventoryTest, SetAndGetItem) {
     EXPECT_EQ(m_inventory->getItem(0).getItem(), m_diamond);
 }
 
-TEST_F(PlayerInventoryTest, HotbarOperations) {
+TEST_F(PlayerInventoryTest, HotbarOperations)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     // 设置选中槽位
@@ -159,7 +168,8 @@ TEST_F(PlayerInventoryTest, HotbarOperations) {
     EXPECT_EQ(m_inventory->getSelectedStack().getCount(), 10);
 }
 
-TEST_F(PlayerInventoryTest, RemoveItem) {
+TEST_F(PlayerInventoryTest, RemoveItem)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     m_inventory->setItem(0, ItemStack(*m_diamond, 32));
@@ -175,7 +185,8 @@ TEST_F(PlayerInventoryTest, RemoveItem) {
     EXPECT_TRUE(m_inventory->getItem(0).isEmpty());
 }
 
-TEST_F(PlayerInventoryTest, ClearInventory) {
+TEST_F(PlayerInventoryTest, ClearInventory)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     m_inventory->setItem(0, ItemStack(*m_diamond, 10));
@@ -189,21 +200,23 @@ TEST_F(PlayerInventoryTest, ClearInventory) {
     EXPECT_TRUE(m_inventory->isEmpty());
 }
 
-TEST_F(PlayerInventoryTest, AddItem) {
+TEST_F(PlayerInventoryTest, AddItem)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     // 添加到空背包
     ItemStack stack(*m_diamond, 32);
     i32 remaining = m_inventory->add(stack);
 
-    EXPECT_EQ(remaining, 32);  // 全部添加成功
+    EXPECT_EQ(remaining, 32); // 全部添加成功
     EXPECT_TRUE(stack.isEmpty());
 
     // 检查物品在快捷栏
     EXPECT_EQ(m_inventory->getItem(0).getCount(), 32);
 }
 
-TEST_F(PlayerInventoryTest, AddItemMerging) {
+TEST_F(PlayerInventoryTest, AddItemMerging)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     // 先放入一些钻石
@@ -216,15 +229,16 @@ TEST_F(PlayerInventoryTest, AddItemMerging) {
     // 槽位 0 从 50 变成 64（堆叠上限），剩余 6 个会放到下一个空槽位
     // MC 1.16.5 行为: 空槽位优先级是 选中槽 → 副手 → 快捷栏 → 主背包
     // 所以剩余的 6 个会放到副手槽 (slot 40)，而不是 slot 1
-    EXPECT_EQ(remaining, 20);  // 全部添加成功
-    EXPECT_EQ(m_inventory->getItem(0).getCount(), 64);  // 达到堆叠上限
-    EXPECT_TRUE(stack.isEmpty());  // 全部添加成功，stack 变空
+    EXPECT_EQ(remaining, 20);                          // 全部添加成功
+    EXPECT_EQ(m_inventory->getItem(0).getCount(), 64); // 达到堆叠上限
+    EXPECT_TRUE(stack.isEmpty());                      // 全部添加成功，stack 变空
 
     // 剩余的 6 个应该放在副手槽 (slot 40)
     EXPECT_EQ(m_inventory->getItem(40).getCount(), 6);
 }
 
-TEST_F(PlayerInventoryTest, AddMultipleItems) {
+TEST_F(PlayerInventoryTest, AddMultipleItems)
+{
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(m_stick, nullptr);
 
@@ -240,7 +254,8 @@ TEST_F(PlayerInventoryTest, AddMultipleItems) {
     EXPECT_EQ(m_inventory->countItem(*m_stick), 16);
 }
 
-TEST_F(PlayerInventoryTest, FindSlot) {
+TEST_F(PlayerInventoryTest, FindSlot)
+{
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(m_stick, nullptr);
 
@@ -252,7 +267,8 @@ TEST_F(PlayerInventoryTest, FindSlot) {
     EXPECT_EQ(m_inventory->findSlot(*ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"))), -1);
 }
 
-TEST_F(PlayerInventoryTest, CountItem) {
+TEST_F(PlayerInventoryTest, CountItem)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     m_inventory->setItem(0, ItemStack(*m_diamond, 10));
@@ -262,7 +278,8 @@ TEST_F(PlayerInventoryTest, CountItem) {
     EXPECT_EQ(m_inventory->countItem(*m_diamond), 45);
 }
 
-TEST_F(PlayerInventoryTest, HasItem) {
+TEST_F(PlayerInventoryTest, HasItem)
+{
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(m_stick, nullptr);
 
@@ -272,7 +289,8 @@ TEST_F(PlayerInventoryTest, HasItem) {
     EXPECT_FALSE(m_inventory->hasItem(*m_stick));
 }
 
-TEST_F(PlayerInventoryTest, GetFirstEmptySlot) {
+TEST_F(PlayerInventoryTest, GetFirstEmptySlot)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     // 空背包
@@ -286,7 +304,8 @@ TEST_F(PlayerInventoryTest, GetFirstEmptySlot) {
     EXPECT_EQ(m_inventory->getFirstEmptySlot(), 3);
 }
 
-TEST_F(PlayerInventoryTest, SwapSlots) {
+TEST_F(PlayerInventoryTest, SwapSlots)
+{
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(m_stick, nullptr);
 
@@ -301,7 +320,8 @@ TEST_F(PlayerInventoryTest, SwapSlots) {
     EXPECT_EQ(m_inventory->getItem(5).getCount(), 10);
 }
 
-TEST_F(PlayerInventoryTest, PlaceItem) {
+TEST_F(PlayerInventoryTest, PlaceItem)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     // 放入空槽位
@@ -317,7 +337,8 @@ TEST_F(PlayerInventoryTest, PlaceItem) {
     EXPECT_EQ(m_inventory->getItem(0).getCount(), 52);
 }
 
-TEST_F(PlayerInventoryTest, ArmorSlots) {
+TEST_F(PlayerInventoryTest, ArmorSlots)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack helmet(*m_diamond, 1);
@@ -342,7 +363,8 @@ TEST_F(PlayerInventoryTest, ArmorSlots) {
     EXPECT_EQ(m_inventory->getItem(InventorySlots::ARMOR_FEET).getCount(), 1);
 }
 
-TEST(ArmorItemTest, RightClickEquipsMatchingArmorSlot) {
+TEST(ArmorItemTest, RightClickEquipsMatchingArmorSlot)
+{
     ArmorTestWorld world;
     Player player(1, "armor-test");
 
@@ -357,8 +379,7 @@ TEST(ArmorItemTest, RightClickEquipsMatchingArmorSlot) {
         player.inventory().clear();
         player.inventory().setSelectedSlot(0);
 
-        item::items::ArmorItem armorItem(
-            item::armor::ArmorMaterials::IRON,
+        item::items::ArmorItem armorItem(item::armor::ArmorMaterials::IRON,
             slot,
             ItemProperties().maxDamage(item::armor::ArmorMaterials::IRON.getDurability(slot)));
         player.inventory().setItem(0, ItemStack(armorItem));
@@ -373,17 +394,16 @@ TEST(ArmorItemTest, RightClickEquipsMatchingArmorSlot) {
     }
 }
 
-TEST(ArmorItemTest, RightClickPassesWhenArmorSlotOccupied) {
+TEST(ArmorItemTest, RightClickPassesWhenArmorSlotOccupied)
+{
     ArmorTestWorld world;
     Player player(2, "armor-pass-test");
 
-    item::items::ArmorItem armorItem(
-        item::armor::ArmorMaterials::IRON,
+    item::items::ArmorItem armorItem(item::armor::ArmorMaterials::IRON,
         item::armor::ArmorSlot::Head,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Head)));
     player.inventory().setItem(0, ItemStack(armorItem));
-    item::items::ArmorItem equippedHelmet(
-        item::armor::ArmorMaterials::IRON,
+    item::items::ArmorItem equippedHelmet(item::armor::ArmorMaterials::IRON,
         item::armor::ArmorSlot::Head,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Head)));
     player.inventory().setHelmet(ItemStack(equippedHelmet));
@@ -396,7 +416,8 @@ TEST(ArmorItemTest, RightClickPassesWhenArmorSlotOccupied) {
     EXPECT_EQ(result.getResult().getItem(), &armorItem);
 }
 
-TEST_F(PlayerInventoryTest, OffhandSlot) {
+TEST_F(PlayerInventoryTest, OffhandSlot)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 5);
@@ -406,7 +427,8 @@ TEST_F(PlayerInventoryTest, OffhandSlot) {
     EXPECT_EQ(m_inventory->getItem(InventorySlots::OFFHAND).getCount(), 5);
 }
 
-TEST_F(PlayerInventoryTest, SerializationEmpty) {
+TEST_F(PlayerInventoryTest, SerializationEmpty)
+{
     network::PacketSerializer ser;
     m_inventory->serialize(ser);
 
@@ -422,7 +444,8 @@ TEST_F(PlayerInventoryTest, SerializationEmpty) {
     EXPECT_EQ(loaded.getSelectedSlot(), 0);
 }
 
-TEST_F(PlayerInventoryTest, SerializationWithItems) {
+TEST_F(PlayerInventoryTest, SerializationWithItems)
+{
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(m_stick, nullptr);
 
@@ -450,7 +473,8 @@ TEST_F(PlayerInventoryTest, SerializationWithItems) {
     EXPECT_EQ(loaded.getItem(40).getCount(), 8);
 }
 
-TEST_F(PlayerInventoryTest, DamageableItemStacking) {
+TEST_F(PlayerInventoryTest, DamageableItemStacking)
+{
     ASSERT_NE(m_diamondSword, nullptr);
 
     // 有耐久度的物品堆叠数为1
@@ -463,7 +487,8 @@ TEST_F(PlayerInventoryTest, DamageableItemStacking) {
     EXPECT_FALSE(m_inventory->getItem(0).canMergeWith(anotherSword));
 }
 
-TEST_F(PlayerInventoryTest, IsHotbar) {
+TEST_F(PlayerInventoryTest, IsHotbar)
+{
     EXPECT_TRUE(PlayerInventory::isHotbar(0));
     EXPECT_TRUE(PlayerInventory::isHotbar(4));
     EXPECT_TRUE(PlayerInventory::isHotbar(8));
@@ -472,7 +497,8 @@ TEST_F(PlayerInventoryTest, IsHotbar) {
     EXPECT_FALSE(PlayerInventory::isHotbar(40));
 }
 
-TEST_F(PlayerInventoryTest, GetBestHotbarSlot) {
+TEST_F(PlayerInventoryTest, GetBestHotbarSlot)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     // 空背包，返回第一个槽位
@@ -493,22 +519,22 @@ TEST_F(PlayerInventoryTest, GetBestHotbarSlot) {
 
 class SlotTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         item::enchant::EnchantmentRegistry::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     }
 
-    void TearDown() override {
-        item::enchant::EnchantmentRegistry::clear();
-    }
+    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
 
     std::unique_ptr<PlayerInventory> m_inventory;
     Item* m_diamond = nullptr;
 };
 
-TEST_F(SlotTest, BasicOperations) {
+TEST_F(SlotTest, BasicOperations)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     Slot slot(m_inventory.get(), 0, 10, 20);
@@ -531,7 +557,8 @@ TEST_F(SlotTest, BasicOperations) {
     EXPECT_EQ(slot.getItem().getCount(), 22);
 }
 
-TEST_F(SlotTest, MaxStackSize) {
+TEST_F(SlotTest, MaxStackSize)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     Slot slot(m_inventory.get(), 0, 0, 0);
@@ -541,19 +568,17 @@ TEST_F(SlotTest, MaxStackSize) {
     EXPECT_EQ(slot.getMaxStackSize(stack), 64);
 }
 
-TEST_F(SlotTest, MayPlace) {
+TEST_F(SlotTest, MayPlace)
+{
     Slot slot(m_inventory.get(), 0, 0, 0);
 
     EXPECT_TRUE(slot.mayPlace(ItemStack::EMPTY));
 }
 
-TEST_F(SlotTest, ArmorSlotOnlyAcceptsMatchingArmorType) {
-    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
-                            item::armor::ArmorSlot slot) {
-        return item::items::ArmorItem(
-            material,
-            slot,
-            ItemProperties().maxDamage(material.getDurability(slot)));
+TEST_F(SlotTest, ArmorSlotOnlyAcceptsMatchingArmorType)
+{
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material, item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(material, slot, ItemProperties().maxDamage(material.getDurability(slot)));
     };
 
     const auto helmet = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Head);
@@ -583,7 +608,8 @@ TEST_F(SlotTest, ArmorSlotOnlyAcceptsMatchingArmorType) {
     EXPECT_FALSE(feetSlot.mayPlace(ItemStack(*m_diamond)));
 }
 
-TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForEmptySlot) {
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForEmptySlot)
+{
     ArmorSlot headSlot(m_inventory.get(), InventorySlots::ARMOR_HEAD, 0, 0, ArmorSlot::ArmorType::Head);
     Player player(EntityId(1), "TestPlayer");
 
@@ -591,13 +617,10 @@ TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForEmptySlot) {
     EXPECT_TRUE(headSlot.mayPickup(player));
 }
 
-TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForCreativePlayer) {
-    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
-                            item::armor::ArmorSlot slot) {
-        return item::items::ArmorItem(
-            material,
-            slot,
-            ItemProperties().maxDamage(material.getDurability(slot)));
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForCreativePlayer)
+{
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material, item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(material, slot, ItemProperties().maxDamage(material.getDurability(slot)));
     };
 
     const auto helmet = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Head);
@@ -612,13 +635,10 @@ TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForCreativePlayer) {
     EXPECT_TRUE(headSlot.mayPickup(player));
 }
 
-TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForNormalArmor) {
-    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
-                            item::armor::ArmorSlot slot) {
-        return item::items::ArmorItem(
-            material,
-            slot,
-            ItemProperties().maxDamage(material.getDurability(slot)));
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForNormalArmor)
+{
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material, item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(material, slot, ItemProperties().maxDamage(material.getDurability(slot)));
     };
 
     const auto chestplate = makeArmorItem(item::armor::ArmorMaterials::DIAMOND, item::armor::ArmorSlot::Chest);
@@ -633,13 +653,10 @@ TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForNormalArmor) {
     EXPECT_TRUE(chestSlot.mayPickup(player));
 }
 
-TEST_F(SlotTest, ArmorSlotMayPickupReturnsFalseForBindingCurseArmor) {
-    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
-                            item::armor::ArmorSlot slot) {
-        return item::items::ArmorItem(
-            material,
-            slot,
-            ItemProperties().maxDamage(material.getDurability(slot)));
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsFalseForBindingCurseArmor)
+{
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material, item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(material, slot, ItemProperties().maxDamage(material.getDurability(slot)));
     };
 
     const auto boots = makeArmorItem(item::armor::ArmorMaterials::DIAMOND, item::armor::ArmorSlot::Feet);
@@ -663,13 +680,10 @@ TEST_F(SlotTest, ArmorSlotMayPickupReturnsFalseForBindingCurseArmor) {
     EXPECT_TRUE(feetSlot.mayPickup(creativePlayer));
 }
 
-TEST_F(SlotTest, ArmorSlotMayPickupWithMultipleEnchantments) {
-    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
-                            item::armor::ArmorSlot slot) {
-        return item::items::ArmorItem(
-            material,
-            slot,
-            ItemProperties().maxDamage(material.getDurability(slot)));
+TEST_F(SlotTest, ArmorSlotMayPickupWithMultipleEnchantments)
+{
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material, item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(material, slot, ItemProperties().maxDamage(material.getDurability(slot)));
     };
 
     const auto leggings = makeArmorItem(item::armor::ArmorMaterials::NETHERITE, item::armor::ArmorSlot::Legs);
@@ -691,27 +705,24 @@ TEST_F(SlotTest, ArmorSlotMayPickupWithMultipleEnchantments) {
     EXPECT_FALSE(legsSlot.mayPickup(player));
 
     // 验证绑定诅咒附魔确实存在
-    EXPECT_TRUE(item::enchant::EnchantmentHelper::hasBindingCurse(
-        m_inventory->getItem(InventorySlots::ARMOR_LEGS)));
+    EXPECT_TRUE(item::enchant::EnchantmentHelper::hasBindingCurse(m_inventory->getItem(InventorySlots::ARMOR_LEGS)));
 }
 
-TEST(ArmorItemTest, TotalArmorStatsSumAllEquippedPieces) {
+TEST(ArmorItemTest, TotalArmorStatsSumAllEquippedPieces)
+{
     TestLivingEntity entity;
 
-    const item::items::ArmorItem helmet(
-        item::armor::ArmorMaterials::NETHERITE,
+    const item::items::ArmorItem helmet(item::armor::ArmorMaterials::NETHERITE,
         item::armor::ArmorSlot::Head,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Head)));
-    const item::items::ArmorItem chestplate(
-        item::armor::ArmorMaterials::NETHERITE,
+    const item::items::ArmorItem chestplate(item::armor::ArmorMaterials::NETHERITE,
         item::armor::ArmorSlot::Chest,
-        ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Chest)));
-    const item::items::ArmorItem leggings(
-        item::armor::ArmorMaterials::NETHERITE,
+        ItemProperties().maxDamage(
+            item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Chest)));
+    const item::items::ArmorItem leggings(item::armor::ArmorMaterials::NETHERITE,
         item::armor::ArmorSlot::Legs,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Legs)));
-    const item::items::ArmorItem boots(
-        item::armor::ArmorMaterials::NETHERITE,
+    const item::items::ArmorItem boots(item::armor::ArmorMaterials::NETHERITE,
         item::armor::ArmorSlot::Feet,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Feet)));
 
@@ -725,9 +736,9 @@ TEST(ArmorItemTest, TotalArmorStatsSumAllEquippedPieces) {
     EXPECT_FLOAT_EQ(item::items::ArmorItem::getTotalKnockbackResistance(entity), 0.4f);
 }
 
-TEST(DyeableArmorItemTest, ColorRoundTripUsesDisplayTag) {
-    const item::items::DyeableArmorItem leatherBoots(
-        item::armor::ArmorMaterials::LEATHER,
+TEST(DyeableArmorItemTest, ColorRoundTripUsesDisplayTag)
+{
+    const item::items::DyeableArmorItem leatherBoots(item::armor::ArmorMaterials::LEATHER,
         item::armor::ArmorSlot::Feet,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Feet)));
 
@@ -748,7 +759,8 @@ TEST(DyeableArmorItemTest, ColorRoundTripUsesDisplayTag) {
     EXPECT_FALSE(stack.hasTag());
 }
 
-TEST(ElytraItemTest, RightClickEquipsChestSlot) {
+TEST(ElytraItemTest, RightClickEquipsChestSlot)
+{
     ArmorTestWorld world;
     Player player(3, "elytra-test");
 
@@ -764,7 +776,8 @@ TEST(ElytraItemTest, RightClickEquipsChestSlot) {
     EXPECT_EQ(player.inventory().getChestplate().getCount(), 1);
 }
 
-TEST(ElytraItemTest, InventoryTickDamagesOnlyWhenGlidingInChestSlot) {
+TEST(ElytraItemTest, InventoryTickDamagesOnlyWhenGlidingInChestSlot)
+{
     ArmorTestWorld world;
     world.setCurrentTick(20);
 
@@ -789,7 +802,8 @@ TEST(ElytraItemTest, InventoryTickDamagesOnlyWhenGlidingInChestSlot) {
 
 class IInventoryInterfaceTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }
@@ -797,7 +811,8 @@ protected:
     std::unique_ptr<PlayerInventory> m_inventory;
 };
 
-TEST_F(IInventoryInterfaceTest, HasAny_WorksWithIInventory) {
+TEST_F(IInventoryInterfaceTest, HasAny_WorksWithIInventory)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -810,13 +825,15 @@ TEST_F(IInventoryInterfaceTest, HasAny_WorksWithIInventory) {
     EXPECT_TRUE(inv->hasAny(items));
 }
 
-TEST_F(IInventoryInterfaceTest, HasAny_EmptySet) {
+TEST_F(IInventoryInterfaceTest, HasAny_EmptySet)
+{
     IInventory* inv = m_inventory.get();
     std::unordered_set<const Item*> empty;
     EXPECT_FALSE(inv->hasAny(empty));
 }
 
-TEST_F(IInventoryInterfaceTest, HasAny_MultipleItems) {
+TEST_F(IInventoryInterfaceTest, HasAny_MultipleItems)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     ASSERT_NE(diamond, nullptr);
@@ -838,7 +855,8 @@ TEST_F(IInventoryInterfaceTest, HasAny_MultipleItems) {
     EXPECT_TRUE(inv->hasAny(items));
 }
 
-TEST_F(IInventoryInterfaceTest, HasAny_AfterPartialRemove) {
+TEST_F(IInventoryInterfaceTest, HasAny_AfterPartialRemove)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -858,7 +876,8 @@ TEST_F(IInventoryInterfaceTest, HasAny_AfterPartialRemove) {
     EXPECT_FALSE(inv->hasAny(items));
 }
 
-TEST_F(IInventoryInterfaceTest, HasAny_WithNullItemInSet) {
+TEST_F(IInventoryInterfaceTest, HasAny_WithNullItemInSet)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -877,7 +896,8 @@ TEST_F(IInventoryInterfaceTest, HasAny_WithNullItemInSet) {
 
 class IInventoryEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }
@@ -885,7 +905,8 @@ protected:
     std::unique_ptr<PlayerInventory> m_inventory;
 };
 
-TEST_F(IInventoryEdgeCaseTest, HasAny_EmptyInventory) {
+TEST_F(IInventoryEdgeCaseTest, HasAny_EmptyInventory)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -896,7 +917,8 @@ TEST_F(IInventoryEdgeCaseTest, HasAny_EmptyInventory) {
     EXPECT_FALSE(inv->hasAny(items));
 }
 
-TEST_F(IInventoryEdgeCaseTest, HasAny_EmptySet) {
+TEST_F(IInventoryEdgeCaseTest, HasAny_EmptySet)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -910,7 +932,8 @@ TEST_F(IInventoryEdgeCaseTest, HasAny_EmptySet) {
     EXPECT_FALSE(inv->hasAny(empty));
 }
 
-TEST_F(IInventoryEdgeCaseTest, HasAny_AllNullItems) {
+TEST_F(IInventoryEdgeCaseTest, HasAny_AllNullItems)
+{
     IInventory* inv = m_inventory.get();
 
     // 集合中只有空指针
@@ -926,7 +949,8 @@ TEST_F(IInventoryEdgeCaseTest, HasAny_AllNullItems) {
     EXPECT_FALSE(inv->hasAny(items));
 }
 
-TEST_F(IInventoryEdgeCaseTest, HasAny_MultipleItemsInDifferentSlots) {
+TEST_F(IInventoryEdgeCaseTest, HasAny_MultipleItemsInDifferentSlots)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     Item* iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
@@ -961,27 +985,28 @@ TEST_F(IInventoryEdgeCaseTest, HasAny_MultipleItemsInDifferentSlots) {
 
 class PlayerInventoryNewMethodsTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
         item::enchant::EnchantmentRegistry::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }
 
-    void TearDown() override {
-        item::enchant::EnchantmentRegistry::clear();
-    }
+    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
 
     std::unique_ptr<PlayerInventory> m_inventory;
 };
 
-TEST_F(PlayerInventoryNewMethodsTest, TickDoesNotCrashOnNullPlayer) {
+TEST_F(PlayerInventoryNewMethodsTest, TickDoesNotCrashOnNullPlayer)
+{
     // PlayerInventory::tick() 在 m_player 为 nullptr 时应该安全返回
     // 不会崩溃
     EXPECT_NO_THROW(m_inventory->tick());
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, TickDoesNotCrashOnNullWorld) {
+TEST_F(PlayerInventoryNewMethodsTest, TickDoesNotCrashOnNullWorld)
+{
     // 即使有 player 但 world 为 nullptr，也应该安全返回
     ArmorTestWorld world;
     Player player(EntityId(1), "TestPlayer");
@@ -990,7 +1015,8 @@ TEST_F(PlayerInventoryNewMethodsTest, TickDoesNotCrashOnNullWorld) {
     EXPECT_NO_THROW(inventory.tick());
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, DropAllItemsClearsInventory) {
+TEST_F(PlayerInventoryNewMethodsTest, DropAllItemsClearsInventory)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -1008,13 +1034,10 @@ TEST_F(PlayerInventoryNewMethodsTest, DropAllItemsClearsInventory) {
     // 但 player 为 nullptr 时会直接返回
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, DamageArmorWithZeroDamageDoesNothing) {
-    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
-                            item::armor::ArmorSlot slot) {
-        return item::items::ArmorItem(
-            material,
-            slot,
-            ItemProperties().maxDamage(material.getDurability(slot)));
+TEST_F(PlayerInventoryNewMethodsTest, DamageArmorWithZeroDamageDoesNothing)
+{
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material, item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(material, slot, ItemProperties().maxDamage(material.getDurability(slot)));
     };
 
     const auto helmet = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Head);
@@ -1027,13 +1050,10 @@ TEST_F(PlayerInventoryNewMethodsTest, DamageArmorWithZeroDamageDoesNothing) {
     EXPECT_FALSE(m_inventory->getHelmet().isEmpty());
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, DamageArmorDamagesAllArmorPieces) {
-    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
-                            item::armor::ArmorSlot slot) {
-        return item::items::ArmorItem(
-            material,
-            slot,
-            ItemProperties().maxDamage(material.getDurability(slot)));
+TEST_F(PlayerInventoryNewMethodsTest, DamageArmorDamagesAllArmorPieces)
+{
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material, item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(material, slot, ItemProperties().maxDamage(material.getDurability(slot)));
     };
 
     // 装备全套铁甲
@@ -1065,12 +1085,12 @@ TEST_F(PlayerInventoryNewMethodsTest, DamageArmorDamagesAllArmorPieces) {
     EXPECT_GE(m_inventory->getBoots().getDamage(), initialBootsDamage + 1);
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, DamageArmorFireDamageSkipsBurnableArmor) {
+TEST_F(PlayerInventoryNewMethodsTest, DamageArmorFireDamageSkipsBurnableArmor)
+{
     // 皮革护甲是可燃烧的，火焰伤害不应该损坏它
     // 注意：这里需要验证皮革护甲确实设置了 isBurnable = true
     // 如果皮革护甲没有设置 isBurnable，则火焰伤害会正常损坏它
-    const auto leatherHelmet = item::items::ArmorItem(
-        item::armor::ArmorMaterials::LEATHER,
+    const auto leatherHelmet = item::items::ArmorItem(item::armor::ArmorMaterials::LEATHER,
         item::armor::ArmorSlot::Head,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Head)));
 
@@ -1104,7 +1124,8 @@ TEST_F(PlayerInventoryNewMethodsTest, DamageArmorFireDamageSkipsBurnableArmor) {
     EXPECT_GE(m_inventory->getHelmet().getDamage(), initialDamage + (isLeatherBurnable ? 1 : 2));
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, GetDestroySpeedReturnsCorrectValue) {
+TEST_F(PlayerInventoryNewMethodsTest, GetDestroySpeedReturnsCorrectValue)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -1124,7 +1145,8 @@ TEST_F(PlayerInventoryNewMethodsTest, GetDestroySpeedReturnsCorrectValue) {
     EXPECT_NO_THROW(static_cast<void>(m_inventory->getDestroySpeed(VanillaBlocks::AIR->defaultState())));
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, PlaceItemBackInInventoryMergesExistingStacks) {
+TEST_F(PlayerInventoryNewMethodsTest, PlaceItemBackInInventoryMergesExistingStacks)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -1141,7 +1163,8 @@ TEST_F(PlayerInventoryNewMethodsTest, PlaceItemBackInInventoryMergesExistingStac
     EXPECT_TRUE(stack.isEmpty());
 }
 
-TEST_F(PlayerInventoryNewMethodsTest, PlaceItemBackInInventoryFindsEmptySlot) {
+TEST_F(PlayerInventoryNewMethodsTest, PlaceItemBackInInventoryFindsEmptySlot)
+{
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
 
@@ -1159,5 +1182,5 @@ TEST_F(PlayerInventoryNewMethodsTest, PlaceItemBackInInventoryFindsEmptySlot) {
 
     // 由于 getFirstEmptySlot() 不检查护甲和副手槽，应该会失败
     // 这是 MC 1.16.5 的预期行为：护甲和副手槽有特殊的放置逻辑
-    EXPECT_FALSE(result);  // 没有空槽位可用
+    EXPECT_FALSE(result); // 没有空槽位可用
 }

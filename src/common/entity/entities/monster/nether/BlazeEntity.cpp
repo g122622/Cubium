@@ -1,16 +1,16 @@
 #include "BlazeEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../sound/SoundEvents.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "../../../ai/goal/goals/special/BlazeFireballAttackGoal.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/special/BlazeFireballAttackGoal.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../player/Player.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -31,26 +31,31 @@ BlazeEntity::BlazeEntity(LegacyEntityType type, EntityId id)
     setExperienceValue(10);
 }
 
-std::unique_ptr<Entity> BlazeEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> BlazeEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<BlazeEntity>(LegacyEntityType::Blaze, EntityId(0));
 }
 
-std::optional<ResourceLocation> BlazeEntity::getAmbientSound() const {
+std::optional<ResourceLocation> BlazeEntity::getAmbientSound() const
+{
     // MC 1.16.5: entity.blaze.ambient
     return SoundEvents::ENTITY_BLAZE_AMBIENT;
 }
 
-std::optional<ResourceLocation> BlazeEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> BlazeEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.blaze.hurt
     return SoundEvents::ENTITY_BLAZE_HURT;
 }
 
-std::optional<ResourceLocation> BlazeEntity::getDeathSound() const {
+std::optional<ResourceLocation> BlazeEntity::getDeathSound() const
+{
     // MC 1.16.5: entity.blaze.death
     return SoundEvents::ENTITY_BLAZE_DEATH;
 }
 
-void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/) {
+void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
+{
     // MC 1.16.5: 发射小火球
     // 此方法由 RangedAttackGoal 调用，但烈焰人使用专用的 BlazeFireballAttackGoal
     // 所以这个方法在当前实现中不会被调用
@@ -68,7 +73,8 @@ void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charg
     }
 }
 
-void BlazeEntity::tick() {
+void BlazeEntity::tick()
+{
     // MC 1.16.5 BlazeEntity.tick()
 
     // 空中悬浮减速
@@ -83,12 +89,11 @@ void BlazeEntity::tick() {
 
         // 随机播放燃烧音效（24分之1概率）
         if (random.nextInt(24) == 0 && !isSilent()) {
-            world()->playSound(
-                SoundEvents::ENTITY_BLAZE_BURN,
+            world()->playSound(SoundEvents::ENTITY_BLAZE_BURN,
                 sound::SoundCategory::Hostile,
                 m_position,
-                1.0f + random.nextFloat() * 0.3f,  // 音量
-                random.nextFloat() * 0.7f + 0.3f    // 音调
+                1.0f + random.nextFloat() * 0.3f, // 音量
+                random.nextFloat() * 0.7f + 0.3f  // 音调
             );
         }
 
@@ -98,11 +103,7 @@ void BlazeEntity::tick() {
             f32 px = static_cast<f32>(x()) + (random.nextFloat() - 0.5f) * width();
             f32 py = static_cast<f32>(y()) + random.nextFloat() * height();
             f32 pz = static_cast<f32>(z()) + (random.nextFloat() - 0.5f) * width();
-            world()->addParticle(
-                ParticleTypeId::LargeSmoke,
-                Vector3(px, py, pz),
-                Vector3(0.0, 0.0, 0.0)
-            );
+            world()->addParticle(ParticleTypeId::LargeSmoke, Vector3(px, py, pz), Vector3(0.0, 0.0, 0.0));
         }
     }
 
@@ -114,7 +115,8 @@ void BlazeEntity::tick() {
     MonsterEntity::tick();
 }
 
-void BlazeEntity::registerGoals() {
+void BlazeEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
 
     // MC 1.16.5 BlazeEntity.registerGoals()
@@ -129,9 +131,8 @@ void BlazeEntity::registerGoals() {
 
     // 优先级 8: LookAtGoal（看向玩家）
     // 使用 filter 筛选 Player 类型
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this, 8.0f, 0.02f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             return dynamic_cast<const Player*>(entity) != nullptr;
         }));
 
@@ -146,7 +147,8 @@ void BlazeEntity::registerGoals() {
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 }
 
-void BlazeEntity::registerAttributes() {
+void BlazeEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     // MC 1.16.5 BlazeEntity 属性
@@ -156,7 +158,8 @@ void BlazeEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
-void BlazeEntity::updateAITasks() {
+void BlazeEntity::updateAITasks()
+{
     // MC 1.16.5: 更新 AI 任务
     // 烈焰人的 AI 任务由 BlazeFireballAttackGoal 处理
 }

@@ -13,11 +13,11 @@
  * - 线程安全性测试
  */
 
-#include <gtest/gtest.h>
-#include <thread>
-#include <chrono>
-#include <atomic>
 #include "client/ui/kagero/state/StateStore.hpp"
+#include <atomic>
+#include <chrono>
+#include <thread>
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero::state;
 using mc::i32;
@@ -31,13 +31,15 @@ using mc::u64;
 
 class StateStoreTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 清空状态存储
         StateStore::instance().clear();
         StateStore::instance().clearMiddlewares();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         StateStore::instance().clear();
         StateStore::instance().clearMiddlewares();
     }
@@ -47,7 +49,8 @@ protected:
 // 基本状态操作测试
 // ============================================================================
 
-TEST_F(StateStoreTest, SetAndGet) {
+TEST_F(StateStoreTest, SetAndGet)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("player.health", 100);
@@ -63,7 +66,8 @@ TEST_F(StateStoreTest, SetAndGet) {
     EXPECT_TRUE(store.get<bool>("ui.paused"));
 }
 
-TEST_F(StateStoreTest, GetWithDefaultValue) {
+TEST_F(StateStoreTest, GetWithDefaultValue)
+{
     StateStore& store = StateStore::instance();
 
     // 键不存在时返回默认值
@@ -72,7 +76,8 @@ TEST_F(StateStoreTest, GetWithDefaultValue) {
     EXPECT_FLOAT_EQ(store.get<f32>("nonexistent.key", 1.5f), 1.5f);
 }
 
-TEST_F(StateStoreTest, Has) {
+TEST_F(StateStoreTest, Has)
+{
     StateStore& store = StateStore::instance();
 
     EXPECT_FALSE(store.has("player.health"));
@@ -84,7 +89,8 @@ TEST_F(StateStoreTest, Has) {
     EXPECT_FALSE(store.has("player.health"));
 }
 
-TEST_F(StateStoreTest, Remove) {
+TEST_F(StateStoreTest, Remove)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("player.health", 100);
@@ -97,7 +103,8 @@ TEST_F(StateStoreTest, Remove) {
     EXPECT_NO_THROW(store.remove("nonexistent.key"));
 }
 
-TEST_F(StateStoreTest, Clear) {
+TEST_F(StateStoreTest, Clear)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("a", 1);
@@ -111,7 +118,8 @@ TEST_F(StateStoreTest, Clear) {
     EXPECT_FALSE(store.has("c"));
 }
 
-TEST_F(StateStoreTest, Keys) {
+TEST_F(StateStoreTest, Keys)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("a", 1);
@@ -127,7 +135,8 @@ TEST_F(StateStoreTest, Keys) {
     EXPECT_NE(std::find(keys.begin(), keys.end(), "c"), keys.end());
 }
 
-TEST_F(StateStoreTest, OverwriteValue) {
+TEST_F(StateStoreTest, OverwriteValue)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("player.health", 100);
@@ -137,7 +146,8 @@ TEST_F(StateStoreTest, OverwriteValue) {
     EXPECT_EQ(store.get<i32>("player.health"), 50);
 }
 
-TEST_F(StateStoreTest, TypeMismatch) {
+TEST_F(StateStoreTest, TypeMismatch)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("test", 42);
@@ -150,7 +160,8 @@ TEST_F(StateStoreTest, TypeMismatch) {
 // 订阅机制测试
 // ============================================================================
 
-TEST_F(StateStoreTest, Subscribe) {
+TEST_F(StateStoreTest, Subscribe)
+{
     StateStore& store = StateStore::instance();
 
     int callCount = 0;
@@ -175,7 +186,8 @@ TEST_F(StateStoreTest, Subscribe) {
     EXPECT_EQ(callCount, 2); // 不应该增加
 }
 
-TEST_F(StateStoreTest, MultipleSubscribers) {
+TEST_F(StateStoreTest, MultipleSubscribers)
+{
     StateStore& store = StateStore::instance();
 
     int count1 = 0, count2 = 0, count3 = 0;
@@ -202,14 +214,16 @@ TEST_F(StateStoreTest, MultipleSubscribers) {
     store.unsubscribe(id3);
 }
 
-TEST_F(StateStoreTest, UnsubscribeNonExistent) {
+TEST_F(StateStoreTest, UnsubscribeNonExistent)
+{
     StateStore& store = StateStore::instance();
 
     // 取消不存在的订阅ID应返回false
     EXPECT_FALSE(store.unsubscribe(99999));
 }
 
-TEST_F(StateStoreTest, UnsubscribeAll) {
+TEST_F(StateStoreTest, UnsubscribeAll)
+{
     StateStore& store = StateStore::instance();
 
     int count = 0;
@@ -228,7 +242,8 @@ TEST_F(StateStoreTest, UnsubscribeAll) {
     EXPECT_EQ(count, 0);
 }
 
-TEST_F(StateStoreTest, SubscribeToDifferentKeys) {
+TEST_F(StateStoreTest, SubscribeToDifferentKeys)
+{
     StateStore& store = StateStore::instance();
 
     int healthCount = 0;
@@ -250,7 +265,8 @@ TEST_F(StateStoreTest, SubscribeToDifferentKeys) {
 // 动作分发测试
 // ============================================================================
 
-TEST_F(StateStoreTest, Dispatch) {
+TEST_F(StateStoreTest, Dispatch)
+{
     StateStore& store = StateStore::instance();
 
     auto incrementHealth = [](StateStore& s) {
@@ -265,7 +281,8 @@ TEST_F(StateStoreTest, Dispatch) {
     EXPECT_EQ(store.get<i32>("player.health"), 20);
 }
 
-TEST_F(StateStoreTest, DispatchComplexAction) {
+TEST_F(StateStoreTest, DispatchComplexAction)
+{
     StateStore& store = StateStore::instance();
 
     auto initPlayer = [](StateStore& s) {
@@ -285,14 +302,14 @@ TEST_F(StateStoreTest, DispatchComplexAction) {
 // 中间件测试
 // ============================================================================
 
-TEST_F(StateStoreTest, Middleware) {
+TEST_F(StateStoreTest, Middleware)
+{
     StateStore& store = StateStore::instance();
 
     std::vector<std::string> changedKeys;
 
-    store.addMiddleware([&changedKeys](const std::string& key, const std::any&, StateStore&) {
-        changedKeys.push_back(key);
-    });
+    store.addMiddleware(
+        [&changedKeys](const std::string& key, const std::any&, StateStore&) { changedKeys.push_back(key); });
 
     store.set<i32>("a", 1);
     store.set<i32>("b", 2);
@@ -310,19 +327,16 @@ TEST_F(StateStoreTest, Middleware) {
     EXPECT_TRUE(changedKeys.empty());
 }
 
-TEST_F(StateStoreTest, MultipleMiddlewares) {
+TEST_F(StateStoreTest, MultipleMiddlewares)
+{
     StateStore& store = StateStore::instance();
 
     int count = 0;
     std::string lastKey;
 
-    store.addMiddleware([&count](const std::string&, const std::any&, StateStore&) {
-        count++;
-    });
+    store.addMiddleware([&count](const std::string&, const std::any&, StateStore&) { count++; });
 
-    store.addMiddleware([&lastKey](const std::string& key, const std::any&, StateStore&) {
-        lastKey = key;
-    });
+    store.addMiddleware([&lastKey](const std::string& key, const std::any&, StateStore&) { lastKey = key; });
 
     store.set<i32>("test", 42);
 
@@ -330,7 +344,8 @@ TEST_F(StateStoreTest, MultipleMiddlewares) {
     EXPECT_EQ(lastKey, "test");
 }
 
-TEST_F(StateStoreTest, MiddlewareCanModifyState) {
+TEST_F(StateStoreTest, MiddlewareCanModifyState)
+{
     StateStore& store = StateStore::instance();
 
     // 中间件记录变化后的值
@@ -352,7 +367,8 @@ TEST_F(StateStoreTest, MiddlewareCanModifyState) {
 // 批量更新测试
 // ============================================================================
 
-TEST_F(StateStoreTest, BatchUpdate) {
+TEST_F(StateStoreTest, BatchUpdate)
+{
     StateStore& store = StateStore::instance();
 
     int callCount = 0;
@@ -379,7 +395,8 @@ TEST_F(StateStoreTest, BatchUpdate) {
     EXPECT_EQ(callCount, 3);
 }
 
-TEST_F(StateStoreTest, BatchUpdateNested) {
+TEST_F(StateStoreTest, BatchUpdateNested)
+{
     StateStore& store = StateStore::instance();
 
     int callCount = 0;
@@ -388,27 +405,28 @@ TEST_F(StateStoreTest, BatchUpdateNested) {
     // 嵌套批量更新
     store.batchUpdate([](StateStore& s1) {
         s1.set<i32>("test", 1);
-        s1.batchUpdate([](StateStore& s2) {
-            s2.set<i32>("test", 2);
-        });
+        s1.batchUpdate([](StateStore& s2) { s2.set<i32>("test", 2); });
     });
 
     // 应该只在外层批量更新结束时通知
     EXPECT_EQ(callCount, 1);
 }
 
-TEST_F(StateStoreTest, BatchUpdateException) {
+TEST_F(StateStoreTest, BatchUpdateException)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("test", 0);
 
     // 即使抛出异常，批量更新深度也应该正确递减
-    EXPECT_THROW({
-        store.batchUpdate([](StateStore& s) {
-            s.set<i32>("test", 1);
-            throw std::runtime_error("test error");
-        });
-    }, std::runtime_error);
+    EXPECT_THROW(
+        {
+            store.batchUpdate([](StateStore& s) {
+                s.set<i32>("test", 1);
+                throw std::runtime_error("test error");
+            });
+        },
+        std::runtime_error);
 
     // 值应该已经被设置
     EXPECT_EQ(store.get<i32>("test"), 1);
@@ -422,13 +440,12 @@ TEST_F(StateStoreTest, BatchUpdateException) {
 // 线程安全性测试
 // ============================================================================
 
-TEST_F(StateStoreTest, ThreadSafety) {
+TEST_F(StateStoreTest, ThreadSafety)
+{
     StateStore& store = StateStore::instance();
 
     std::atomic<int> callCount{0};
-    store.subscribe("counter", [&]() {
-        callCount++;
-    });
+    store.subscribe("counter", [&]() { callCount++; });
 
     const int numThreads = 10;
     const int iterations = 100;
@@ -450,7 +467,8 @@ TEST_F(StateStoreTest, ThreadSafety) {
     EXPECT_EQ(callCount.load(), numThreads * iterations);
 }
 
-TEST_F(StateStoreTest, ConcurrentReadWrite) {
+TEST_F(StateStoreTest, ConcurrentReadWrite)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("value", 0);
@@ -488,7 +506,8 @@ TEST_F(StateStoreTest, ConcurrentReadWrite) {
     SUCCEED();
 }
 
-TEST_F(StateStoreTest, ConcurrentSubscribe) {
+TEST_F(StateStoreTest, ConcurrentSubscribe)
+{
     StateStore& store = StateStore::instance();
 
     const int numThreads = 10;
@@ -519,7 +538,8 @@ TEST_F(StateStoreTest, ConcurrentSubscribe) {
 // 边界情况测试
 // ============================================================================
 
-TEST_F(StateStoreTest, EmptyKey) {
+TEST_F(StateStoreTest, EmptyKey)
+{
     StateStore& store = StateStore::instance();
 
     // 空键也是有效的
@@ -528,7 +548,8 @@ TEST_F(StateStoreTest, EmptyKey) {
     EXPECT_EQ(store.get<i32>(""), 42);
 }
 
-TEST_F(StateStoreTest, LongKey) {
+TEST_F(StateStoreTest, LongKey)
+{
     StateStore& store = StateStore::instance();
 
     std::string longKey(1000, 'a');
@@ -536,7 +557,8 @@ TEST_F(StateStoreTest, LongKey) {
     EXPECT_EQ(store.get<i32>(longKey), 42);
 }
 
-TEST_F(StateStoreTest, SpecialCharactersInKey) {
+TEST_F(StateStoreTest, SpecialCharactersInKey)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("key.with.dots", 1);
@@ -550,7 +572,8 @@ TEST_F(StateStoreTest, SpecialCharactersInKey) {
     EXPECT_EQ(store.get<i32>("key with spaces"), 4);
 }
 
-TEST_F(StateStoreTest, ClearWithSubscribers) {
+TEST_F(StateStoreTest, ClearWithSubscribers)
+{
     StateStore& store = StateStore::instance();
 
     int callCount = 0;
@@ -569,7 +592,8 @@ TEST_F(StateStoreTest, ClearWithSubscribers) {
 // StateBindingPoint 测试
 // ============================================================================
 
-TEST_F(StateStoreTest, StateBindingPointGetSet) {
+TEST_F(StateStoreTest, StateBindingPointGetSet)
+{
     StateStore& store = StateStore::instance();
 
     StateBindingPoint point("test.binding");
@@ -579,16 +603,15 @@ TEST_F(StateStoreTest, StateBindingPointGetSet) {
     EXPECT_EQ(point.key(), "test.binding");
 }
 
-TEST_F(StateStoreTest, StateBindingPointBind) {
+TEST_F(StateStoreTest, StateBindingPointBind)
+{
     StateStore& store = StateStore::instance();
 
     StateBindingPoint point("test.binding");
     point.set<i32>(0);
 
     int callCount = 0;
-    u64 id = point.bind([&]() {
-        callCount++;
-    });
+    u64 id = point.bind([&]() { callCount++; });
 
     point.set<i32>(42);
     EXPECT_EQ(callCount, 1);
@@ -602,27 +625,26 @@ TEST_F(StateStoreTest, StateBindingPointBind) {
 // Selector 测试
 // ============================================================================
 
-TEST_F(StateStoreTest, SelectorBasic) {
+TEST_F(StateStoreTest, SelectorBasic)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("player.baseHealth", 90);
     store.set<i32>("player.healthBonus", 10);
 
-    Selector<i32> totalHealth([](const StateStore& s) {
-        return s.get<i32>("player.baseHealth", 0) + s.get<i32>("player.healthBonus", 0);
-    });
+    Selector<i32> totalHealth(
+        [](const StateStore& s) { return s.get<i32>("player.baseHealth", 0) + s.get<i32>("player.healthBonus", 0); });
 
     EXPECT_EQ(totalHealth.select(), 100);
 }
 
-TEST_F(StateStoreTest, SelectorWithChangingState) {
+TEST_F(StateStoreTest, SelectorWithChangingState)
+{
     StateStore& store = StateStore::instance();
 
     store.set<i32>("value", 10);
 
-    Selector<i32> selector([](const StateStore& s) {
-        return s.get<i32>("value", 0) * 2;
-    });
+    Selector<i32> selector([](const StateStore& s) { return s.get<i32>("value", 0) * 2; });
 
     EXPECT_EQ(selector.select(), 20);
 

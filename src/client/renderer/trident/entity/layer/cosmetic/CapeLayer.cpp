@@ -1,7 +1,7 @@
 #include "CapeLayer.hpp"
 #include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
@@ -11,13 +11,12 @@
 namespace mc::client::renderer::entity::layer::cosmetic {
 
 namespace {
-    constexpr f32 CAPE_WIDTH = 10.0f / 16.0f;   // 斗篷宽度（世界单位）
-    constexpr f32 CAPE_HEIGHT = 16.0f / 16.0f;  // 斗篷高度
-    constexpr i32 SWING_ANGLE_BUCKETS = 36;     // 摆动角度分桶数（每10度一个桶）
-}
+constexpr f32 CAPE_WIDTH = 10.0f / 16.0f;  // 斗篷宽度（世界单位）
+constexpr f32 CAPE_HEIGHT = 16.0f / 16.0f; // 斗篷高度
+constexpr i32 SWING_ANGLE_BUCKETS = 36;    // 摆动角度分桶数（每10度一个桶）
+} // namespace
 
-void CapeLayer::renderPipeline(
-    ::mc::Player& entity,
+void CapeLayer::renderPipeline(::mc::Player& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -38,38 +37,27 @@ void CapeLayer::renderPipeline(
 
     // 计算斗篷变换矩阵
     std::array<f64, 16> capeTransform;
-    capeTransform = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    capeTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 斗篷附着在身体背部
     // 位置在身体中心偏后
-    capeTransform[3] = 0.0;           // X
-    capeTransform[7] = 1.0 - CAPE_HEIGHT / 2.0;  // Y - 斗篷中心在身体上方
-    capeTransform[11] = 0.125;        // Z - 略微向后偏移
+    capeTransform[3] = 0.0;                     // X
+    capeTransform[7] = 1.0 - CAPE_HEIGHT / 2.0; // Y - 斗篷中心在身体上方
+    capeTransform[11] = 0.125;                  // Z - 略微向后偏移
 
     // 获取实体的世界位置
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用实体的受伤时间
     f32 hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
     f32 deathTime = static_cast<f32>(entity.deathTime());
 
-    pipeline.drawMesh(cmd, *mesh, capeTransform, entityPos, 1.0,
-                      Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+    pipeline.drawMesh(cmd, *mesh, capeTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
     spdlog::trace("CapeLayer: Rendered cape with swing angle {:.1f}", swingAngle);
 }
 
-void CapeLayer::render(
-    ::mc::Player& entity,
+void CapeLayer::render(::mc::Player& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -89,7 +77,8 @@ void CapeLayer::render(
     (void)scale;
 }
 
-bool CapeLayer::shouldRender(const ::mc::Player& entity) const {
+bool CapeLayer::shouldRender(const ::mc::Player& entity) const
+{
     (void)entity;
     // 检查玩家是否有斗篷纹理
     // 在完整实现中，还需要检查：
@@ -98,7 +87,9 @@ bool CapeLayer::shouldRender(const ::mc::Player& entity) const {
     return m_customCapeRegion != nullptr;
 }
 
-f32 CapeLayer::calculateCapeSwing(::mc::Player& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const {
+f32 CapeLayer::calculateCapeSwing(
+    ::mc::Player& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const
+{
     // 参考 MC 1.16.5 CapeLayer.render() 中的摆动计算
     // 核心逻辑：
     // 1. 使用 chasingPos 系统计算平滑移动向量
@@ -121,9 +112,12 @@ f32 CapeLayer::calculateCapeSwing(::mc::Player& entity, const mc::client::render
     f64 interpChasingZ = prevChasingZ + (chasingZ - prevChasingZ) * partialTicks;
 
     // 插值实际位置
-    f64 interpX = static_cast<f64>(entity.prevX()) + (static_cast<f64>(entity.x()) - static_cast<f64>(entity.prevX())) * partialTicks;
-    f64 interpY = static_cast<f64>(entity.prevY()) + (static_cast<f64>(entity.y()) - static_cast<f64>(entity.prevY())) * partialTicks;
-    f64 interpZ = static_cast<f64>(entity.prevZ()) + (static_cast<f64>(entity.z()) - static_cast<f64>(entity.prevZ())) * partialTicks;
+    f64 interpX = static_cast<f64>(entity.prevX()) +
+        (static_cast<f64>(entity.x()) - static_cast<f64>(entity.prevX())) * partialTicks;
+    f64 interpY = static_cast<f64>(entity.prevY()) +
+        (static_cast<f64>(entity.y()) - static_cast<f64>(entity.prevY())) * partialTicks;
+    f64 interpZ = static_cast<f64>(entity.prevZ()) +
+        (static_cast<f64>(entity.z()) - static_cast<f64>(entity.prevZ())) * partialTicks;
 
     // 计算移动向量 (MC 1.16.5: d0, d1, d2)
     f64 d0 = interpChasingX - interpX;
@@ -138,7 +132,7 @@ f32 CapeLayer::calculateCapeSwing(::mc::Player& entity, const mc::client::render
     // 计算方向向量 (MC 1.16.5: d3, d4)
     // d3 = MathHelper.sin(f * PI/180)
     // d4 = -MathHelper.cos(f * PI/180)
-    f64 f = interpRenderYawOffset + (interpRenderYawOffset - prevRenderYawOffset);  // body rotation
+    f64 f = interpRenderYawOffset + (interpRenderYawOffset - prevRenderYawOffset); // body rotation
     f64 d3 = std::sin(f * mc::math::PI_DOUBLE / 180.0);
     f64 d4 = -std::cos(f * mc::math::PI_DOUBLE / 180.0);
 
@@ -181,10 +175,7 @@ f32 CapeLayer::calculateCapeSwing(::mc::Player& entity, const mc::client::render
     return f1;
 }
 
-void CapeLayer::buildCapeMesh(
-    f32 swingAngle,
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+void CapeLayer::buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     vertices.clear();
     indices.clear();
@@ -223,14 +214,18 @@ void CapeLayer::buildCapeMesh(
     // 正面
     vertices.push_back(model::ModelVertex(-halfWidth, topY, 0.02f, u0, v0, 0.0f, 0.0f, 1.0f));
     vertices.push_back(model::ModelVertex(halfWidth, topY, 0.02f, u1, v0, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex(halfWidth, bottomY + bottomYOffset, bottomZ + 0.02f, u1, v1, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex(-halfWidth, bottomY + bottomYOffset, bottomZ + 0.02f, u0, v1, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(
+        model::ModelVertex(halfWidth, bottomY + bottomYOffset, bottomZ + 0.02f, u1, v1, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(
+        model::ModelVertex(-halfWidth, bottomY + bottomYOffset, bottomZ + 0.02f, u0, v1, 0.0f, 0.0f, 1.0f));
 
     // 反面
     vertices.push_back(model::ModelVertex(-halfWidth, topY, -0.02f, u0, v0, 0.0f, 0.0f, -1.0f));
     vertices.push_back(model::ModelVertex(halfWidth, topY, -0.02f, u1, v0, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex(halfWidth, bottomY + bottomYOffset, bottomZ - 0.02f, u1, v1, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex(-halfWidth, bottomY + bottomYOffset, bottomZ - 0.02f, u0, v1, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(
+        model::ModelVertex(halfWidth, bottomY + bottomYOffset, bottomZ - 0.02f, u1, v1, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(
+        model::ModelVertex(-halfWidth, bottomY + bottomYOffset, bottomZ - 0.02f, u0, v1, 0.0f, 0.0f, -1.0f));
 
     // 索引（两个三角形组成一个四边形，正反两面）
     // 正面
@@ -250,9 +245,7 @@ void CapeLayer::buildCapeMesh(
     indices.push_back(6);
 }
 
-pipeline::EntityMesh* CapeLayer::getOrCreateCapeMesh(
-    f32 swingAngle,
-    pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* CapeLayer::getOrCreateCapeMesh(f32 swingAngle, pipeline::EntityPipeline& pipeline)
 {
     // 将摆动角度离散化到桶中
     i32 bucket = static_cast<i32>(swingAngle / 10.0f * SWING_ANGLE_BUCKETS);

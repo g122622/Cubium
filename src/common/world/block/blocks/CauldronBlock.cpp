@@ -1,18 +1,18 @@
 #include "CauldronBlock.hpp"
-#include "../../IWorld.hpp"
-#include "../VanillaBlocks.hpp"
-#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/items/armor/DyeableArmorItem.hpp"
 #include "../../../item/potion/PotionUtils.hpp"
 #include "../../../item/potion/Potions.hpp"
-#include "../../../sound/SoundEvents.hpp"
 #include "../../../sound/SoundCategory.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../IWorld.hpp"
+#include "../VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -22,14 +22,15 @@ using math::IRandom;
 // ========== 构造函数 ==========
 
 CauldronBlock::CauldronBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::LEVEL_0_3())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::LEVEL_0_3())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -82,9 +83,9 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
 
 // ========== 放置和更新 ==========
 
-void CauldronBlock::neighborChanged(IWorld& world, const BlockPos& pos,
-                                     Block& neighborBlock, const BlockPos& neighborPos,
-                                     bool isMoving) {
+void CauldronBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -93,7 +94,8 @@ void CauldronBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     // 水位变化由交互和雨天填充控制
 }
 
-void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, IRandom& random) {
+void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, IRandom& random)
+{
     MC_UNUSED(state);
     MC_UNUSED(random);
 
@@ -116,13 +118,13 @@ void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
 
 // ========== 交互 ==========
 
-ActionResultType CauldronBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType CauldronBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(hit);
 
@@ -165,17 +167,20 @@ ActionResultType CauldronBlock::onBlockActivated(
 
 // ========== 形状 ==========
 
-const CollisionShape& CauldronBlock::getShape(const BlockState& state) const {
+const CollisionShape& CauldronBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_outerShape;
 }
 
-const CollisionShape& CauldronBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& CauldronBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_outerShape;
 }
 
-const CollisionShape& CauldronBlock::getContentShape(i32 level) const {
+const CollisionShape& CauldronBlock::getContentShape(i32 level) const
+{
     if (level < 0 || level > 3) {
         return VoxelShapes::empty();
     }
@@ -184,10 +189,8 @@ const CollisionShape& CauldronBlock::getContentShape(i32 level) const {
 
 // ========== 红石 ==========
 
-i32 CauldronBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+i32 CauldronBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -198,11 +201,13 @@ i32 CauldronBlock::getComparatorInputOverride(
 
 // ========== 静态工具方法 ==========
 
-i32 CauldronBlock::getLevel(const BlockState& state) {
+i32 CauldronBlock::getLevel(const BlockState& state)
+{
     return state.get(BlockStateProperties::LEVEL_0_3());
 }
 
-void CauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const BlockState& state, i32 level) {
+void CauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const BlockState& state, i32 level)
+{
     if (level < 0) level = 0;
     if (level > 3) level = 3;
 
@@ -213,22 +218,21 @@ void CauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const BlockStat
     }
 }
 
-bool CauldronBlock::isEmpty(const BlockState& state) {
+bool CauldronBlock::isEmpty(const BlockState& state)
+{
     return getLevel(state) == 0;
 }
 
-bool CauldronBlock::isFull(const BlockState& state) {
+bool CauldronBlock::isFull(const BlockState& state)
+{
     return getLevel(state) == 3;
 }
 
 // ========== 私有方法 ==========
 
 ActionResultType CauldronBlock::handleBucketInteraction(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    Player& player,
-    ItemStack& heldItem) {
+    IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
+{
 
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
@@ -256,8 +260,7 @@ ActionResultType CauldronBlock::handleBucketInteraction(
                     player.inventory().add(emptyBucket);
                     if (!emptyBucket.isEmpty()) {
                         // 背包满了，在玩家位置掉落物品
-                        ItemDropHelper::spawnItemAtEntity(
-                            &player, emptyBucket, 0.5f, world.getRandom());
+                        ItemDropHelper::spawnItemAtEntity(&player, emptyBucket, 0.5f, world.getRandom());
                     }
                 }
             }
@@ -284,8 +287,7 @@ ActionResultType CauldronBlock::handleBucketInteraction(
                     player.inventory().add(waterBucket);
                     if (!waterBucket.isEmpty()) {
                         // 背包满了，在玩家位置掉落物品
-                        ItemDropHelper::spawnItemAtEntity(
-                            &player, waterBucket, 0.5f, world.getRandom());
+                        ItemDropHelper::spawnItemAtEntity(&player, waterBucket, 0.5f, world.getRandom());
                     }
                 }
             }
@@ -297,11 +299,8 @@ ActionResultType CauldronBlock::handleBucketInteraction(
 }
 
 ActionResultType CauldronBlock::handleBottleInteraction(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    Player& player,
-    ItemStack& heldItem) {
+    IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
+{
 
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
@@ -321,9 +320,10 @@ ActionResultType CauldronBlock::handleBottleInteraction(
 
             // MC 1.16.5: 玻璃瓶取水使用 ITEM_BOTTLE_FILL
             world.playSound(SoundEvents::ITEM_BOTTLE_FILL,
-                            sound::SoundCategory::Blocks,
-                            Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
-                            1.0f, 1.0f);
+                sound::SoundCategory::Blocks,
+                Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                1.0f,
+                1.0f);
 
             // 非创造模式：替换为水瓶
             if (!player.abilities().creativeMode) {
@@ -336,8 +336,7 @@ ActionResultType CauldronBlock::handleBottleInteraction(
                     player.inventory().add(waterBottle);
                     if (!waterBottle.isEmpty()) {
                         // 背包满了，在玩家位置掉落物品
-                        ItemDropHelper::spawnItemAtEntity(
-                            &player, waterBottle, 0.5f, world.getRandom());
+                        ItemDropHelper::spawnItemAtEntity(&player, waterBottle, 0.5f, world.getRandom());
                     }
                 }
             }
@@ -353,9 +352,10 @@ ActionResultType CauldronBlock::handleBottleInteraction(
 
             // MC 1.16.5: 水瓶倒水使用 ITEM_BOTTLE_EMPTY
             world.playSound(SoundEvents::ITEM_BOTTLE_EMPTY,
-                            sound::SoundCategory::Blocks,
-                            Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
-                            1.0f, 1.0f);
+                sound::SoundCategory::Blocks,
+                Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                1.0f,
+                1.0f);
 
             // 非创造模式：替换为玻璃瓶
             if (!player.abilities().creativeMode) {
@@ -369,8 +369,7 @@ ActionResultType CauldronBlock::handleBottleInteraction(
                     player.inventory().add(glassBottle);
                     if (!glassBottle.isEmpty()) {
                         // 背包满了，在玩家位置掉落物品
-                        ItemDropHelper::spawnItemAtEntity(
-                            &player, glassBottle, 0.5f, world.getRandom());
+                        ItemDropHelper::spawnItemAtEntity(&player, glassBottle, 0.5f, world.getRandom());
                     }
                 }
             }
@@ -382,11 +381,8 @@ ActionResultType CauldronBlock::handleBottleInteraction(
 }
 
 ActionResultType CauldronBlock::handleLeatherArmorCleaning(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    Player& player,
-    ItemStack& heldItem) {
+    IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
+{
 
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
@@ -418,11 +414,8 @@ ActionResultType CauldronBlock::handleLeatherArmorCleaning(
 }
 
 ActionResultType CauldronBlock::handleBannerCleaning(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    Player& player,
-    ItemStack& heldItem) {
+    IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
+{
 
     MC_UNUSED(player);
     MC_UNUSED(world);
@@ -445,20 +438,24 @@ ActionResultType CauldronBlock::handleBannerCleaning(
     return ActionResultType::Pass;
 }
 
-void CauldronBlock::playFillSound(IWorld& world, const BlockPos& pos) {
+void CauldronBlock::playFillSound(IWorld& world, const BlockPos& pos)
+{
     // 参考: net.minecraft.block.CauldronBlock - 使用 playSound 而不是 playEvent
     world.playSound(SoundEvents::ITEM_BUCKET_FILL,
-                    sound::SoundCategory::Blocks,
-                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
-                    1.0f, 1.0f);
+        sound::SoundCategory::Blocks,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+        1.0f,
+        1.0f);
 }
 
-void CauldronBlock::playEmptySound(IWorld& world, const BlockPos& pos) {
+void CauldronBlock::playEmptySound(IWorld& world, const BlockPos& pos)
+{
     // 参考: net.minecraft.block.CauldronBlock - 使用 playSound 而不是 playEvent
     world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
-                    sound::SoundCategory::Blocks,
-                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
-                    1.0f, 1.0f);
+        sound::SoundCategory::Blocks,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+        1.0f,
+        1.0f);
 }
 
 } // namespace blocks

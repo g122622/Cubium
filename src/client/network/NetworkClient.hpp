@@ -1,30 +1,30 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/connection/LocalConnection.hpp"
+#include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
+#include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
-#include "common/network/packet/DimensionPackets.hpp"
-#include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
-#include "common/skin/network/SkinPackets.hpp"
-#include "common/network/connection/LocalConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/skin/network/SkinPackets.hpp"
 #include "common/sound/SoundCategory.hpp"
-#include <asio.hpp>
+#include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <thread>
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
+#include <asio.hpp>
 
 namespace mc::client {
 
@@ -32,13 +32,7 @@ namespace mc::client {
 // 客户端网络状态
 // ============================================================================
 
-enum class ClientState : u8 {
-    Disconnected = 0,
-    Connecting = 1,
-    LoggingIn = 2,
-    Playing = 3,
-    Disconnecting = 4
-};
+enum class ClientState : u8 { Disconnected = 0, Connecting = 1, LoggingIn = 2, Playing = 3, Disconnecting = 4 };
 
 // ============================================================================
 // 客户端配置
@@ -49,8 +43,8 @@ struct NetworkClientConfig {
     u16 serverPort = 25565;
     std::string username = "Player";
     u32 connectTimeoutMs = 5000;
-    u32 keepAliveIntervalMs = 15000;  // 心跳间隔
-    u32 reconnectDelayMs = 1000;       // 重连延迟
+    u32 keepAliveIntervalMs = 15000; // 心跳间隔
+    u32 reconnectDelayMs = 1000;     // 重连延迟
     bool autoReconnect = true;
 };
 
@@ -86,8 +80,20 @@ struct NetworkClientCallbacks {
     std::function<void(ContainerId containerId)> onCloseContainer;
 
     // 实体事件
-    std::function<void(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw)> onSpawnMob;
-    std::function<void(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 vx, f32 vy, f32 vz, const ItemStack* itemStack)> onSpawnEntity;
+    std::function<void(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw)>
+        onSpawnMob;
+    std::function<void(u32 entityId,
+        const std::string& typeId,
+        f32 x,
+        f32 y,
+        f32 z,
+        f32 yaw,
+        f32 pitch,
+        f32 vx,
+        f32 vy,
+        f32 vz,
+        const ItemStack* itemStack)>
+        onSpawnEntity;
     std::function<void(u32 entityId, f32 deltaX, f32 deltaY, f32 deltaZ)> onEntityMove;
     std::function<void(u32 entityId, i16 vx, i16 vy, i16 vz)> onEntityVelocity;
     std::function<void(u32 entityId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch)> onEntityTeleport;
@@ -112,30 +118,36 @@ struct NetworkClientCallbacks {
     std::function<void(Difficulty difficulty, bool locked)> onDifficultyChange;
 
     // 玩家能力事件
-    std::function<void(bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed)> onPlayerAbilities;
+    std::function<void(bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed)>
+        onPlayerAbilities;
 
     // 光照更新事件
-    std::function<void(i32 chunkX, i32 chunkZ, i32 sectionY,
-                       const std::vector<u8>& skyLight,
-                       const std::vector<u8>& blockLight,
-                       bool trustEdges)> onLightUpdate;
+    std::function<void(i32 chunkX,
+        i32 chunkZ,
+        i32 sectionY,
+        const std::vector<u8>& skyLight,
+        const std::vector<u8>& blockLight,
+        bool trustEdges)>
+        onLightUpdate;
 
     // 方块破坏动画事件
     std::function<void(EntityId breakerEntityId, i32 x, i32 y, i32 z, i8 stage)> onBlockBreakAnim;
 
     // 声音事件
     std::function<void(const ResourceLocation& soundEventId,
-                       mc::sound::SoundCategory category,
-                       f32 x, f32 y, f32 z,
-                       f32 volume,
-                       f32 pitch)> onPlaySound;
-    std::function<void(const std::optional<ResourceLocation>& soundEventId,
-                       const std::optional<mc::sound::SoundCategory>& category)> onStopSound;
-    std::function<void(const ResourceLocation& soundEventId,
-                       mc::sound::SoundCategory category,
-                       i32 entityId,
-                       f32 volume,
-                       f32 pitch)> onMovingSound;
+        mc::sound::SoundCategory category,
+        f32 x,
+        f32 y,
+        f32 z,
+        f32 volume,
+        f32 pitch)>
+        onPlaySound;
+    std::function<void(
+        const std::optional<ResourceLocation>& soundEventId, const std::optional<mc::sound::SoundCategory>& category)>
+        onStopSound;
+    std::function<void(
+        const ResourceLocation& soundEventId, mc::sound::SoundCategory category, i32 entityId, f32 volume, f32 pitch)>
+        onMovingSound;
 
     // 实体元数据事件
     std::function<void(u32 entityId, const std::vector<u8>& metadata)> onEntityMetadata;
@@ -149,25 +161,40 @@ struct NetworkClientCallbacks {
     std::function<void(const std::vector<std::array<u8, 16>>& uuids)> onPlayerListRemove;
     std::function<void(const skin::PlayerListEntry& entry)> onPlayerListUpdateGameMode;
     std::function<void(const std::array<u8, 16>& uuid, i32 ping)> onPlayerListUpdateLatency;
-    std::function<void(const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName)> onPlayerListUpdateDisplayName;
+    std::function<void(const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName)>
+        onPlayerListUpdateDisplayName;
 
     // 粒子事件
     std::function<void(client::renderer::trident::particle::ParticleTypeId type,
-                       f64 x, f64 y, f64 z,
-                       f32 vx, f32 vy, f32 vz,
-                       f32 ox, f32 oy, f32 oz,
-                       u32 count)> onParticle;
+        f64 x,
+        f64 y,
+        f64 z,
+        f32 vx,
+        f32 vy,
+        f32 vz,
+        f32 ox,
+        f32 oy,
+        f32 oz,
+        u32 count)>
+        onParticle;
 
     // 世界事件（音效/粒子效果）
     std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
 
     // 重生/维度切换事件
-    std::function<void(i32 dimensionType, DimensionId dimension, u64 hashedSeed,
-                       GameMode gameMode, GameMode previousGameMode,
-                       bool isDebug, bool isFlat, bool keepData)> onRespawn;
+    std::function<void(i32 dimensionType,
+        DimensionId dimension,
+        u64 hashedSeed,
+        GameMode gameMode,
+        GameMode previousGameMode,
+        bool isDebug,
+        bool isFlat,
+        bool keepData)>
+        onRespawn;
 
     // 维度信息事件
-    std::function<void(const std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>>& dimensions)> onDimensionInfo;
+    std::function<void(const std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>>& dimensions)>
+        onDimensionInfo;
 
     // 世界出生点事件（包含偏航角，用于指南针指向）
     std::function<void(i32 x, i32 y, i32 z, f32 angle)> onSpawnPosition;
@@ -182,9 +209,9 @@ struct NetworkClientCallbacks {
     std::function<void(i32 slot)> onHotbarSet;
 
     // 标题显示事件
-    std::function<void(network::TitleAction action,
-                       const std::optional<std::string>& text,
-                       i32 fadeIn, i32 stay, i32 fadeOut)> onTitle;
+    std::function<void(
+        network::TitleAction action, const std::optional<std::string>& text, i32 fadeIn, i32 stay, i32 fadeOut)>
+        onTitle;
 };
 
 // ============================================================================
@@ -202,8 +229,7 @@ public:
 
     // 连接管理
     [[nodiscard]] Result<void> connect(const NetworkClientConfig& config);
-    [[nodiscard]] Result<void> connectLocal(network::LocalEndpoint* endpoint,
-                                            const NetworkClientConfig& config = {});
+    [[nodiscard]] Result<void> connectLocal(network::LocalEndpoint* endpoint, const NetworkClientConfig& config = {});
     void disconnect(const std::string& reason = "Client disconnect");
     [[nodiscard]] bool isConnected() const;
     [[nodiscard]] ClientState state() const;
@@ -216,10 +242,8 @@ public:
     // 发送数据包
     void sendLoginRequest();
     void sendPlayerMove(const network::PlayerPosition& pos, network::PlayerMovePacket::MoveType type);
-    void sendBlockInteraction(network::BlockInteractionAction action,
-                              i32 x, i32 y, i32 z, Direction face);
-    void sendBlockPlacement(i32 x, i32 y, i32 z, Direction face,
-                            f32 hitX, f32 hitY, f32 hitZ, u8 hand = 0);
+    void sendBlockInteraction(network::BlockInteractionAction action, i32 x, i32 y, i32 z, Direction face);
+    void sendBlockPlacement(i32 x, i32 y, i32 z, Direction face, f32 hitX, f32 hitY, f32 hitZ, u8 hand = 0);
     void sendHotbarSelect(i32 slot);
     void sendTeleportConfirm(u32 teleportId);
     void sendKeepAlive(u64 id);

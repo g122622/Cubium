@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include <vector>
-#include <mutex>
 #include <atomic>
+#include <mutex>
+#include <vector>
 
 namespace mc {
 
@@ -64,9 +64,7 @@ public:
      *
      * @note 使用 XOR 打包，比 OR 更分散
      */
-    [[nodiscard]] static i64 packCoords(i32 x, i32 z) {
-        return (static_cast<i64>(x) << 32) ^ static_cast<i64>(z);
-    }
+    [[nodiscard]] static i64 packCoords(i32 x, i32 z) { return (static_cast<i64>(x) << 32) ^ static_cast<i64>(z); }
 
     /**
      * @brief 获取缓存大小
@@ -115,7 +113,8 @@ public:
     /**
      * @brief 重置统计计数器
      */
-    void resetStats() {
+    void resetStats()
+    {
         m_hitCount.store(0);
         m_missCount.store(0);
     }
@@ -125,9 +124,9 @@ private:
      * @brief 缓存条目
      */
     struct Entry {
-        i64 key = 0;          ///< 坐标键
-        i32 value = 0;        ///< 缓存值
-        u32 timestamp = 0;    ///< 访问时间戳（用于 LRU）
+        i64 key = 0;           ///< 坐标键
+        i32 value = 0;         ///< 缓存值
+        u32 timestamp = 0;     ///< 访问时间戳（用于 LRU）
         bool occupied = false; ///< 是否被占用
     };
 
@@ -161,12 +160,12 @@ private:
      */
     [[nodiscard]] Entry* findEmptySlot(i64 key);
 
-    std::vector<Entry> m_table;   ///< 哈希表
-    u32 m_capacity;               ///< 表容量（2 的幂次）
-    u32 m_maxSize;                ///< 最大条目数
-    u32 m_shift;                  ///< 用于哈希的位移量（64 - log2(capacity)）
-    std::atomic<u32> m_size{0};   ///< 当前条目数
-    u32 m_timestamp = 0;          ///< 全局时间戳计数器
+    std::vector<Entry> m_table; ///< 哈希表
+    u32 m_capacity;             ///< 表容量（2 的幂次）
+    u32 m_maxSize;              ///< 最大条目数
+    u32 m_shift;                ///< 用于哈希的位移量（64 - log2(capacity)）
+    std::atomic<u32> m_size{0}; ///< 当前条目数
+    u32 m_timestamp = 0;        ///< 全局时间戳计数器
 
     mutable std::mutex m_mutex;
 

@@ -26,8 +26,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -37,14 +37,15 @@ namespace mc::client {
 
 namespace {
 
-template<typename Menu>
+template <typename Menu>
 AbstractContainerScreen<Menu>* asContainerScreen(IScreen* screen)
 {
     return dynamic_cast<AbstractContainerScreen<Menu>*>(screen);
 }
 
-template<typename Menu>
-void applyContainerContent(AbstractContainerScreen<Menu>* screen, ContainerId containerId, const std::vector<ItemStack>& items)
+template <typename Menu>
+void applyContainerContent(
+    AbstractContainerScreen<Menu>* screen, ContainerId containerId, const std::vector<ItemStack>& items)
 {
     if (!screen) {
         return;
@@ -63,8 +64,9 @@ void applyContainerContent(AbstractContainerScreen<Menu>* screen, ContainerId co
     }
 }
 
-template<typename Menu>
-bool applyContainerSlot(AbstractContainerScreen<Menu>* screen, ContainerId containerId, i32 slotIndex, const ItemStack& item)
+template <typename Menu>
+bool applyContainerSlot(
+    AbstractContainerScreen<Menu>* screen, ContainerId containerId, i32 slotIndex, const ItemStack& item)
 {
     if (!screen) {
         return false;
@@ -84,11 +86,18 @@ bool applyContainerSlot(AbstractContainerScreen<Menu>* screen, ContainerId conta
     return true;
 }
 
-std::function<void(ContainerId, i32, i32, i16, ClickAction, const ItemStack&)> makeContainerClickSender(NetworkClient* networkClient)
+std::function<void(ContainerId, i32, i32, i16, ClickAction, const ItemStack&)> makeContainerClickSender(
+    NetworkClient* networkClient)
 {
-    return [networkClient](ContainerId containerId, i32 slotIndex, i32 button, i16 transactionId, ClickAction action, const ItemStack& cursorItem) {
+    return [networkClient](ContainerId containerId,
+               i32 slotIndex,
+               i32 button,
+               i16 transactionId,
+               ClickAction action,
+               const ItemStack& cursorItem) {
         if (networkClient) {
-            networkClient->sendContainerClick(ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
+            networkClient->sendContainerClick(
+                ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
         }
     };
 }
@@ -194,16 +203,13 @@ void ClientApplication::setupNetworkCallbacks()
             spdlog::error("Failed to apply command tree: {}", result.error().toString());
             return;
         }
-        m_commandManager->setPlayerNameProvider([this]() {
-            return collectPlayerCompletionCandidates();
-        });
-        m_commandManager->setEntityNameProvider([this]() {
-            return collectEntityCompletionCandidates();
-        });
+        m_commandManager->setPlayerNameProvider([this]() { return collectPlayerCompletionCandidates(); });
+        m_commandManager->setEntityNameProvider([this]() { return collectEntityCompletionCandidates(); });
 
         // 更新 ChatWidget 的 commandManager 指针
         if (m_kageroEngine && m_chatLayerId != 0) {
-            auto* chatWidget = static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
+            auto* chatWidget =
+                static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
             if (chatWidget) {
                 chatWidget->setCommandManager(m_commandManager.get());
                 spdlog::info("[ClientApplication] Updated ChatWidget commandManager after command tree sync");
@@ -286,12 +292,12 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onChatMessage = [this](const std::string& message, PlayerId senderId) {
         if (m_kageroEngine) {
-            auto* chatWidget = static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
+            auto* chatWidget =
+                static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
             if (chatWidget) {
                 const auto it = m_knownPlayerNames.find(senderId);
-                const std::string senderName = (senderId != 0 && it != m_knownPlayerNames.end())
-                    ? it->second
-                    : std::string();
+                const std::string senderName =
+                    (senderId != 0 && it != m_knownPlayerNames.end()) ? it->second : std::string();
                 if (!senderName.empty()) {
                     chatWidget->addMessage(senderName + ": " + message, 0xFFFFFFFF);
                 } else {
@@ -328,11 +334,13 @@ void ClientApplication::setupNetworkCallbacks()
 
         auto& inventory = m_player->inventory();
         inventory.setSelectedSlot(selectedSlot);
-        for (i32 slotIndex = 0; slotIndex < static_cast<i32>(items.size()) && slotIndex < inventory.getContainerSize(); ++slotIndex) {
+        for (i32 slotIndex = 0; slotIndex < static_cast<i32>(items.size()) && slotIndex < inventory.getContainerSize();
+            ++slotIndex) {
             inventory.setItem(slotIndex, items[static_cast<size_t>(slotIndex)]);
         }
 
-        if (auto* inventoryScreen = asContainerScreen<mc::InventoryCraftingMenu>(ScreenManager::instance().getCurrentScreen())) {
+        if (auto* inventoryScreen =
+                asContainerScreen<mc::InventoryCraftingMenu>(ScreenManager::instance().getCurrentScreen())) {
             applyContainerContent(inventoryScreen, mc::inventory::PLAYER_CONTAINER_ID, items);
         }
     };
@@ -373,19 +381,34 @@ void ClientApplication::setupNetworkCallbacks()
             case ContainerType::ShulkerBox: {
                 // 根据容器类型计算行数（MC 1.16.5 对齐：不再传输 slotCount）
                 const ContainerType containerType = static_cast<ContainerType>(packet.type());
-                i32 rows = 3;  // 默认3行
+                i32 rows = 3; // 默认3行
                 switch (containerType) {
-                    case ContainerType::Generic9x1: rows = 1; break;
-                    case ContainerType::Generic9x2: rows = 2; break;
-                    case ContainerType::Generic9x3: rows = 3; break;
-                    case ContainerType::Generic9x4: rows = 4; break;
-                    case ContainerType::Generic9x5: rows = 5; break;
-                    case ContainerType::Generic9x6: rows = 6; break;
-                    case ContainerType::ShulkerBox: rows = 3; break;
-                    default: rows = 3; break;
+                    case ContainerType::Generic9x1:
+                        rows = 1;
+                        break;
+                    case ContainerType::Generic9x2:
+                        rows = 2;
+                        break;
+                    case ContainerType::Generic9x3:
+                        rows = 3;
+                        break;
+                    case ContainerType::Generic9x4:
+                        rows = 4;
+                        break;
+                    case ContainerType::Generic9x5:
+                        rows = 5;
+                        break;
+                    case ContainerType::Generic9x6:
+                        rows = 6;
+                        break;
+                    case ContainerType::ShulkerBox:
+                        rows = 3;
+                        break;
+                    default:
+                        rows = 3;
+                        break;
                 }
-                screen = std::make_unique<ChestScreen>(
-                    packet.containerId(),
+                screen = std::make_unique<ChestScreen>(packet.containerId(),
                     &m_player->inventory(),
                     rows,
                     makeContainerClickSender(m_networkClient.get()),
@@ -396,8 +419,7 @@ void ClientApplication::setupNetworkCallbacks()
             case ContainerType::Furnace:
             case ContainerType::BlastFurnace:
             case ContainerType::Smoker:
-                screen = std::make_unique<FurnaceScreen>(
-                    packet.containerId(),
+                screen = std::make_unique<FurnaceScreen>(packet.containerId(),
                     &m_player->inventory(),
                     makeContainerClickSender(m_networkClient.get()),
                     makeContainerCloseSender(m_networkClient.get()));
@@ -413,27 +435,27 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         if (m_renderer && m_renderer->isGuiRendererInitialized()) {
-            if (auto* inventoryContainerScreen = dynamic_cast<AbstractContainerScreen<mc::InventoryCraftingMenu>*>(screen.get())) {
-                inventoryContainerScreen->setRenderers(
-                    &m_renderer->guiRenderer(),
+            if (auto* inventoryContainerScreen =
+                    dynamic_cast<AbstractContainerScreen<mc::InventoryCraftingMenu>*>(screen.get())) {
+                inventoryContainerScreen->setRenderers(&m_renderer->guiRenderer(),
                     m_guiTextureManager.get(),
                     m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
                 inventoryContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
-            } else if (auto* craftingContainerScreen = dynamic_cast<AbstractContainerScreen<mc::CraftingMenu>*>(screen.get())) {
-                craftingContainerScreen->setRenderers(
-                    &m_renderer->guiRenderer(),
+            } else if (auto* craftingContainerScreen =
+                           dynamic_cast<AbstractContainerScreen<mc::CraftingMenu>*>(screen.get())) {
+                craftingContainerScreen->setRenderers(&m_renderer->guiRenderer(),
                     m_guiTextureManager.get(),
                     m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
                 craftingContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
-            } else if (auto* chestContainerScreen = dynamic_cast<AbstractContainerScreen<mc::blockentity::ChestContainer>*>(screen.get())) {
-                chestContainerScreen->setRenderers(
-                    &m_renderer->guiRenderer(),
+            } else if (auto* chestContainerScreen =
+                           dynamic_cast<AbstractContainerScreen<mc::blockentity::ChestContainer>*>(screen.get())) {
+                chestContainerScreen->setRenderers(&m_renderer->guiRenderer(),
                     m_guiTextureManager.get(),
                     m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
                 chestContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
-            } else if (auto* furnaceContainerScreen = dynamic_cast<AbstractContainerScreen<mc::blockentity::FurnaceContainer>*>(screen.get())) {
-                furnaceContainerScreen->setRenderers(
-                    &m_renderer->guiRenderer(),
+            } else if (auto* furnaceContainerScreen =
+                           dynamic_cast<AbstractContainerScreen<mc::blockentity::FurnaceContainer>*>(screen.get())) {
+                furnaceContainerScreen->setRenderers(&m_renderer->guiRenderer(),
                     m_guiTextureManager.get(),
                     m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
                 furnaceContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
@@ -516,7 +538,17 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    callbacks.onSpawnEntity = [this](u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 vx, f32 vy, f32 vz, const ItemStack* itemStack) {
+    callbacks.onSpawnEntity = [this](u32 entityId,
+                                  const std::string& typeId,
+                                  f32 x,
+                                  f32 y,
+                                  f32 z,
+                                  f32 yaw,
+                                  f32 pitch,
+                                  f32 vx,
+                                  f32 vy,
+                                  f32 vz,
+                                  const ItemStack* itemStack) {
         auto& entityManager = m_world.entityManager();
         ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
         if (!entity) {
@@ -538,27 +570,28 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    callbacks.onSpawnMob = [this](u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw) {
-        auto& entityManager = m_world.entityManager();
-        ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
-        if (!entity) {
-            entity = entityManager.getEntity(static_cast<EntityId>(entityId));
-        }
+    callbacks.onSpawnMob =
+        [this](u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw) {
+            auto& entityManager = m_world.entityManager();
+            ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
+            if (!entity) {
+                entity = entityManager.getEntity(static_cast<EntityId>(entityId));
+            }
 
-        if (!entity) {
-            return;
-        }
+            if (!entity) {
+                return;
+            }
 
-        // 出生时使用立即设置（不是插值）
-        entity->setPosition(x, y, z);
-        entity->setRotation(yaw, pitch);
-        entity->setHeadRotation(headYaw);
+            // 出生时使用立即设置（不是插值）
+            entity->setPosition(x, y, z);
+            entity->setRotation(yaw, pitch);
+            entity->setHeadRotation(headYaw);
 
-        // 通知音频系统实体生成
-        if (m_audioService) {
-            m_audioService->onEntitySpawn(entityId, typeId, x, y, z);
-        }
-    };
+            // 通知音频系统实体生成
+            if (m_audioService) {
+                m_audioService->onEntitySpawn(entityId, typeId, x, y, z);
+            }
+        };
 
     callbacks.onEntityDestroy = [this](const std::vector<u32>& entityIds) {
         auto& entityManager = m_world.entityManager();
@@ -615,9 +648,8 @@ void ClientApplication::setupNetworkCallbacks()
         const EntityId eid = static_cast<EntityId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
             if (m_player) {
-                m_player->setVelocity(static_cast<f32>(vx) * scale,
-                                      static_cast<f32>(vy) * scale,
-                                      static_cast<f32>(vz) * scale);
+                m_player->setVelocity(
+                    static_cast<f32>(vx) * scale, static_cast<f32>(vy) * scale, static_cast<f32>(vz) * scale);
             }
             return;
         }
@@ -627,9 +659,7 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        entity->setVelocity(static_cast<f32>(vx) * scale,
-                            static_cast<f32>(vy) * scale,
-                            static_cast<f32>(vz) * scale);
+        entity->setVelocity(static_cast<f32>(vx) * scale, static_cast<f32>(vy) * scale, static_cast<f32>(vz) * scale);
     };
 
     callbacks.onEntityMetadata = [this](u32 entityId, const std::vector<u8>& metadata) {
@@ -711,7 +741,8 @@ void ClientApplication::setupNetworkCallbacks()
             }
             case static_cast<u8>(EntityStatusPacket::Status::TamingSucceeded): {
                 // 状态 7: 驯服成功 - 显示爱心粒子
-                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0, 0.0);
+                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0,
+                // 0.0);
                 if (m_world.particleManager() != nullptr) {
                     // 在实体头顶位置生成爱心粒子
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
@@ -719,8 +750,7 @@ void ClientApplication::setupNetworkCallbacks()
                         client::renderer::trident::particle::ParticleTypeId::Heart,
                         heartPos,
                         glm::vec3(0.0f, 0.0f, 0.0f),
-                        &m_world
-                    );
+                        &m_world);
                 }
                 break;
             }
@@ -735,40 +765,33 @@ void ClientApplication::setupNetworkCallbacks()
                         // getPosXRandom(1.0D) = posX + (rand.nextDouble() - 0.5) * width * 2.0
                         // getPosYRandom() + 0.5D = posY + rand.nextDouble() * height + 0.5
                         // getPosZRandom(1.0D) = posZ + (rand.nextDouble() - 0.5) * width * 2.0
-                        f32 randomWidth = m_random.nextFloat(-1.0f, 1.0f);  // [-1, 1]
-                        f32 randomHeight = m_random.nextFloat();  // [0, 1)
-                        glm::vec3 smokePos = entityPos + glm::vec3(
-                            randomWidth * 0.5f,  // width 假设约 0.5
-                            randomHeight * 1.0f + 0.5f,  // height + 0.5
-                            randomWidth * 0.5f
-                        );
+                        f32 randomWidth = m_random.nextFloat(-1.0f, 1.0f); // [-1, 1]
+                        f32 randomHeight = m_random.nextFloat();           // [0, 1)
+                        glm::vec3 smokePos = entityPos +
+                            glm::vec3(randomWidth * 0.5f,   // width 假设约 0.5
+                                randomHeight * 1.0f + 0.5f, // height + 0.5
+                                randomWidth * 0.5f);
                         // 速度：高斯分布，标准差 0.02
-                        glm::vec3 velocity(
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f),
-                            m_random.nextGaussian(0.0f, 0.02f),
-                            m_random.nextGaussian(0.0f, 0.02f)
-                        );
+                            m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Smoke,
-                            smokePos,
-                            velocity,
-                            &m_world
-                        );
+                            client::renderer::trident::particle::ParticleTypeId::Smoke, smokePos, velocity, &m_world);
                     }
                 }
                 break;
             }
             case static_cast<u8>(EntityStatusPacket::Status::LoveHeart): {
                 // 状态 18: 繁殖爱心效果
-                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0, 0.0);
+                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0,
+                // 0.0);
                 if (m_world.particleManager() != nullptr) {
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
                     m_world.particleManager()->addPendingParticle(
                         client::renderer::trident::particle::ParticleTypeId::Heart,
                         heartPos,
                         glm::vec3(0.0f, 0.0f, 0.0f),
-                        &m_world
-                    );
+                        &m_world);
                 }
                 break;
             }
@@ -789,42 +812,41 @@ void ClientApplication::setupNetworkCallbacks()
         closeInventoryScreenIfModeMismatch();
     };
 
-    callbacks.onRainStrengthChange = [this](f32 rainStrength) {
-        m_world.onRainStrengthChange(rainStrength);
-    };
+    callbacks.onRainStrengthChange = [this](f32 rainStrength) { m_world.onRainStrengthChange(rainStrength); };
 
-    callbacks.onThunderStrengthChange = [this](f32 thunderStrength) {
-        m_world.onThunderStrengthChange(thunderStrength);
-    };
+    callbacks.onThunderStrengthChange = [this](
+                                            f32 thunderStrength) { m_world.onThunderStrengthChange(thunderStrength); };
 
-    callbacks.onBeginRaining = [this]() {
-        m_world.onBeginRaining();
-    };
+    callbacks.onBeginRaining = [this]() { m_world.onBeginRaining(); };
 
-    callbacks.onEndRaining = [this]() {
-        m_world.onEndRaining();
-    };
+    callbacks.onEndRaining = [this]() { m_world.onEndRaining(); };
 
-    callbacks.onPlayerAbilities = [this](bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed) {
-        spdlog::debug("Player abilities updated: invulnerable={}, flying={}, canFly={}, creativeMode={}",
-                      invulnerable, flying, canFly, creativeMode);
-        if (m_player) {
-            PlayerAbilities& abilities = m_player->abilities();
-            abilities.invulnerable = invulnerable;
-            abilities.flying = flying;
-            abilities.canFly = canFly;
-            abilities.creativeMode = creativeMode;
-            abilities.flySpeed = flySpeed;
-            abilities.walkSpeed = walkSpeed;
-        }
+    callbacks.onPlayerAbilities =
+        [this](bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed) {
+            spdlog::debug("Player abilities updated: invulnerable={}, flying={}, canFly={}, creativeMode={}",
+                invulnerable,
+                flying,
+                canFly,
+                creativeMode);
+            if (m_player) {
+                PlayerAbilities& abilities = m_player->abilities();
+                abilities.invulnerable = invulnerable;
+                abilities.flying = flying;
+                abilities.canFly = canFly;
+                abilities.creativeMode = creativeMode;
+                abilities.flySpeed = flySpeed;
+                abilities.walkSpeed = walkSpeed;
+            }
 
-        closeInventoryScreenIfModeMismatch();
-    };
+            closeInventoryScreenIfModeMismatch();
+        };
 
-    callbacks.onLightUpdate = [this](i32 chunkX, i32 chunkZ, i32 sectionY,
-                                      const std::vector<u8>& skyLight,
-                                      const std::vector<u8>& blockLight,
-                                      bool trustEdges) {
+    callbacks.onLightUpdate = [this](i32 chunkX,
+                                  i32 chunkZ,
+                                  i32 sectionY,
+                                  const std::vector<u8>& skyLight,
+                                  const std::vector<u8>& blockLight,
+                                  bool trustEdges) {
         m_world.onLightUpdate(chunkX, chunkZ, sectionY, skyLight, blockLight, trustEdges);
     };
 
@@ -843,31 +865,24 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onPlaySound = [this](const ResourceLocation& soundEventId,
-                                   mc::sound::SoundCategory category,
-                                   f32 x,
-                                   f32 y,
-                                   f32 z,
-                                   f32 volume,
-                                   f32 pitch) {
+                                mc::sound::SoundCategory category,
+                                f32 x,
+                                f32 y,
+                                f32 z,
+                                f32 volume,
+                                f32 pitch) {
         if (!m_audioService) {
             spdlog::error("Received sound event '{}' but audio service is not initialized", soundEventId.toString());
             return;
         }
 
-        auto sound = sound::SoundInstance::createLocated(
-            soundEventId,
-            category,
-            x,
-            y,
-            z,
-            volume,
-            pitch);
+        auto sound = sound::SoundInstance::createLocated(soundEventId, category, x, y, z, volume, pitch);
 
         m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
     };
 
     callbacks.onStopSound = [this](const std::optional<ResourceLocation>& soundEventId,
-                                   const std::optional<mc::sound::SoundCategory>& category) {
+                                const std::optional<mc::sound::SoundCategory>& category) {
         if (!m_audioService) {
             return;
         }
@@ -888,25 +903,19 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onMovingSound = [this](const ResourceLocation& soundEventId,
-                                      mc::sound::SoundCategory category,
-                                      i32 entityId,
-                                      f32 volume,
-                                      f32 pitch) {
+                                  mc::sound::SoundCategory category,
+                                  i32 entityId,
+                                  f32 volume,
+                                  f32 pitch) {
         if (!m_audioService) {
-            spdlog::error("Received moving sound event '{}' but audio service is not initialized",
-                         soundEventId.toString());
+            spdlog::error(
+                "Received moving sound event '{}' but audio service is not initialized", soundEventId.toString());
             return;
         }
 
         // 使用 AudioService 的 playMovingSound 方法
         // 这会创建一个跟随实体位置的 TickableSound
-        m_audioService->playMovingSound(
-            soundEventId,
-            category,
-            static_cast<u32>(entityId),
-            volume,
-            pitch
-        );
+        m_audioService->playMovingSound(soundEventId, category, static_cast<u32>(entityId), volume, pitch);
     };
 
     callbacks.onSetExperience = [this](f32 progress, i32 totalXp, i32 level) {
@@ -919,7 +928,8 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onSpawnExperienceOrb = [this](u32 entityId, f64 x, f64 y, f64 z, i16 xpValue) {
         auto& entityManager = m_world.entityManager();
-        ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), mc::entity::EntityTypes::EXPERIENCE_ORB);
+        ClientEntity* entity =
+            entityManager.spawnEntity(static_cast<EntityId>(entityId), mc::entity::EntityTypes::EXPERIENCE_ORB);
         if (!entity) {
             entity = entityManager.getEntity(static_cast<EntityId>(entityId));
         }
@@ -934,10 +944,16 @@ void ClientApplication::setupNetworkCallbacks()
 
     // 粒子回调
     callbacks.onParticle = [this](client::renderer::trident::particle::ParticleTypeId type,
-                                   f64 x, f64 y, f64 z,
-                                   f32 vx, f32 vy, f32 vz,
-                                   f32 ox, f32 oy, f32 oz,
-                                   u32 count) {
+                               f64 x,
+                               f64 y,
+                               f64 z,
+                               f32 vx,
+                               f32 vy,
+                               f32 vz,
+                               f32 ox,
+                               f32 oy,
+                               f32 oz,
+                               u32 count) {
         if (!m_world.particleManager()) {
             return;
         }
@@ -976,8 +992,7 @@ void ClientApplication::setupNetworkCallbacks()
             }
 
             m_skinManager->registerPlayerSkin(profile);
-            spdlog::debug("PlayerList: Registered skin for {} ({})", entry.name,
-                         profile.uuidToString());
+            spdlog::debug("PlayerList: Registered skin for {} ({})", entry.name, profile.uuidToString());
         }
     };
 
@@ -999,7 +1014,8 @@ void ClientApplication::setupNetworkCallbacks()
         // 延迟更新 - 暂时不需要特殊处理
     };
 
-    callbacks.onPlayerListUpdateDisplayName = [this](const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName) {
+    callbacks.onPlayerListUpdateDisplayName = [this](const std::array<u8, 16>& uuid,
+                                                  const std::optional<std::string>& displayName) {
         MC_UNUSED(uuid);
         MC_UNUSED(displayName);
         // 显示名更新 - 暂时不需要特殊处理
@@ -1059,20 +1075,12 @@ void ClientApplication::setupNetworkCallbacks()
             if (localPlayerIsRiding) {
                 // 本地玩家开始骑乘
                 if (m_audioService) {
-                    m_audioService->updateEntityRidingState(
-                        static_cast<u32>(localPlayerEntityId),
-                        true,
-                        entityId
-                    );
+                    m_audioService->updateEntityRidingState(static_cast<u32>(localPlayerEntityId), true, entityId);
                 }
             } else if (localPlayer->vehicleId() == vehicleEntityId) {
                 // 本地玩家从这个载具下来了（vehicleId 已在上面被清除）
                 if (m_audioService) {
-                    m_audioService->updateEntityRidingState(
-                        static_cast<u32>(localPlayerEntityId),
-                        false,
-                        0
-                    );
+                    m_audioService->updateEntityRidingState(static_cast<u32>(localPlayerEntityId), false, 0);
                 }
             }
         }
@@ -1080,11 +1088,19 @@ void ClientApplication::setupNetworkCallbacks()
 
     // ========== 重生/维度切换事件 ==========
 
-    callbacks.onRespawn = [this](i32 dimensionType, DimensionId dimension, u64 hashedSeed,
-                                  GameMode gameMode, GameMode previousGameMode,
-                                  bool isDebug, bool isFlat, bool keepData) {
+    callbacks.onRespawn = [this](i32 dimensionType,
+                              DimensionId dimension,
+                              u64 hashedSeed,
+                              GameMode gameMode,
+                              GameMode previousGameMode,
+                              bool isDebug,
+                              bool isFlat,
+                              bool keepData) {
         spdlog::info("Received Respawn: dimensionType={}, dimension={}, gameMode={}, keepData={}",
-                     dimensionType, static_cast<i32>(dimension), static_cast<i32>(gameMode), keepData);
+            dimensionType,
+            static_cast<i32>(dimension),
+            static_cast<i32>(gameMode),
+            keepData);
 
         // TODO: 实现完整的重生/维度切换逻辑
         // 1. 如果维度改变，清空世界区块和实体
@@ -1097,15 +1113,20 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    callbacks.onDimensionInfo = [this](const std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>>& dimensions) {
-        spdlog::info("Received DimensionInfo: {} dimensions available", dimensions.size());
-        // TODO: 更新维度管理器的可用维度列表
-        // 目前仅记录日志
-        for (const auto& [id, name, hasSkyLight, hasCeiling, ambientLight] : dimensions) {
-            spdlog::debug("  Dimension: id={}, name={}, hasSkyLight={}, hasCeiling={}, ambientLight={}",
-                          static_cast<i32>(id), name, hasSkyLight, hasCeiling, ambientLight);
-        }
-    };
+    callbacks.onDimensionInfo =
+        [this](const std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>>& dimensions) {
+            spdlog::info("Received DimensionInfo: {} dimensions available", dimensions.size());
+            // TODO: 更新维度管理器的可用维度列表
+            // 目前仅记录日志
+            for (const auto& [id, name, hasSkyLight, hasCeiling, ambientLight] : dimensions) {
+                spdlog::debug("  Dimension: id={}, name={}, hasSkyLight={}, hasCeiling={}, ambientLight={}",
+                    static_cast<i32>(id),
+                    name,
+                    hasSkyLight,
+                    hasCeiling,
+                    ambientLight);
+            }
+        };
 
     callbacks.onSpawnPosition = [this](i32 x, i32 y, i32 z, f32 angle) {
         spdlog::info("Received SpawnPosition: ({}, {}, {}), angle={:.1f}", x, y, z, angle);
@@ -1184,17 +1205,16 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     // 标题显示回调
-    callbacks.onTitle = [this](network::TitleAction action,
-                               const std::optional<std::string>& text,
-                               i32 fadeIn, i32 stay, i32 fadeOut) {
-        if (m_kageroEngine) {
-            auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
-                m_kageroEngine->getLayer(m_titleLayerId));
-            if (titleWidget) {
-                titleWidget->handleTitlePacket(action, text, fadeIn, stay, fadeOut);
+    callbacks.onTitle =
+        [this](network::TitleAction action, const std::optional<std::string>& text, i32 fadeIn, i32 stay, i32 fadeOut) {
+            if (m_kageroEngine) {
+                auto* titleWidget =
+                    static_cast<ui::minecraft::widgets::TitleWidget*>(m_kageroEngine->getLayer(m_titleLayerId));
+                if (titleWidget) {
+                    titleWidget->handleTitlePacket(action, text, fadeIn, stay, fadeOut);
+                }
             }
-        }
-    };
+        };
 
     m_networkClient->setCallbacks(callbacks);
 }
@@ -1234,8 +1254,9 @@ void ClientApplication::handleChatCommand(const std::string& input)
         return;
     }
 
-    auto* chatWidget = m_kageroEngine ?
-        static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId)) : nullptr;
+    auto* chatWidget = m_kageroEngine
+        ? static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId))
+        : nullptr;
 
     if (chatWidget) {
         chatWidget->addMessage(input, 0xFFFFFFFF);

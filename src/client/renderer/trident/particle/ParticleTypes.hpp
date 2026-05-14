@@ -331,7 +331,8 @@ enum class ParticleTypeId : u16 {
  * @param id 粒子类型 ID
  * @return 是否有效
  */
-[[nodiscard]] constexpr bool isValidParticleType(ParticleTypeId id) {
+[[nodiscard]] constexpr bool isValidParticleType(ParticleTypeId id)
+{
     return static_cast<u16>(id) < static_cast<u16>(ParticleTypeId::Count);
 }
 
@@ -341,10 +342,9 @@ enum class ParticleTypeId : u16 {
  * @param id 粒子类型 ID
  * @return 是否需要方块状态
  */
-[[nodiscard]] constexpr bool requiresBlockState(ParticleTypeId id) {
-    return id == ParticleTypeId::Block ||
-           id == ParticleTypeId::Breaking ||
-           id == ParticleTypeId::FallingDust;
+[[nodiscard]] constexpr bool requiresBlockState(ParticleTypeId id)
+{
+    return id == ParticleTypeId::Block || id == ParticleTypeId::Breaking || id == ParticleTypeId::FallingDust;
 }
 
 /**
@@ -353,10 +353,9 @@ enum class ParticleTypeId : u16 {
  * @param id 粒子类型 ID
  * @return 是否需要物品数据
  */
-[[nodiscard]] constexpr bool requiresItemData(ParticleTypeId id) {
-    return id == ParticleTypeId::Item ||
-           id == ParticleTypeId::ItemSlime ||
-           id == ParticleTypeId::ItemSnowball;
+[[nodiscard]] constexpr bool requiresItemData(ParticleTypeId id)
+{
+    return id == ParticleTypeId::Item || id == ParticleTypeId::ItemSlime || id == ParticleTypeId::ItemSnowball;
 }
 
 /**
@@ -365,10 +364,9 @@ enum class ParticleTypeId : u16 {
  * @param id 粒子类型 ID
  * @return 是否需要红石颜色数据
  */
-[[nodiscard]] constexpr bool requiresDustColor(ParticleTypeId id) {
-    return id == ParticleTypeId::Redstone ||
-           id == ParticleTypeId::Dust ||
-           id == ParticleTypeId::DustColorTransition;
+[[nodiscard]] constexpr bool requiresDustColor(ParticleTypeId id)
+{
+    return id == ParticleTypeId::Redstone || id == ParticleTypeId::Dust || id == ParticleTypeId::DustColorTransition;
 }
 
 } // namespace mc::client::renderer::trident::particle

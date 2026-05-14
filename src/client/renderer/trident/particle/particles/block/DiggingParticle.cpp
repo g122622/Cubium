@@ -2,11 +2,11 @@
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <spdlog/spdlog.h>
-#include <glm/glm.hpp>
+#include "common/world/block/VanillaBlocks.hpp"
 #include <optional>
+#include <glm/glm.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -31,9 +31,7 @@ constexpr f64 DEFAULT_V1 = 1.0;
  * @param rng 随机数生成器
  * @return 纹理区域，如果没有可用纹理返回 nullopt
  */
-std::optional<TextureRegion> selectRandomFaceTexture(
-    const BlockAppearance* appearance,
-    math::Random& rng)
+std::optional<TextureRegion> selectRandomFaceTexture(const BlockAppearance* appearance, math::Random& rng)
 {
     if (!appearance || appearance->faceTextures.empty()) {
         return std::nullopt;
@@ -73,14 +71,14 @@ DiggingParticle::DiggingParticle(const glm::vec3& pos, const glm::vec3& velocity
 
     setGravity(DEFAULT_GRAVITY);
     setSize(DEFAULT_SIZE * (0.5f + rng.nextFloat() * 0.5f));
-    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));  // 使用纹理原色
+    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); // 使用纹理原色
     setFriction(0.92f);
-    setHasPhysics(true);  // 方块粒子有物理碰撞
+    setHasPhysics(true); // 方块粒子有物理碰撞
     setMaxAge(DEFAULT_LIFETIME * (0.8f + rng.nextFloat() * 0.4f));
 
     // 随机 UV 偏移：将 16x16 纹理划分为 4x4 区域，随机选取一个
     // 参考 MC 1.16.5 DiggingParticle 的 field_217587_G 和 field_217588_H
-    m_uvOffsetU = static_cast<f32>(rng.nextInt(4));  // 0, 1, 2, 或 3
+    m_uvOffsetU = static_cast<f32>(rng.nextInt(4)); // 0, 1, 2, 或 3
     m_uvOffsetV = static_cast<f32>(rng.nextInt(4));
 
     // 初始化方块纹理
@@ -88,9 +86,7 @@ DiggingParticle::DiggingParticle(const glm::vec3& pos, const glm::vec3& velocity
 }
 
 std::unique_ptr<Particle> DiggingParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     // 默认使用石头方块状态
@@ -112,14 +108,13 @@ std::unique_ptr<Particle> DiggingParticle::create(
 }
 
 std::unique_ptr<Particle> DiggingParticle::createWithBlock(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    const BlockState& blockState)
+    const glm::vec3& pos, const glm::vec3& velocity, const BlockState& blockState)
 {
     return std::make_unique<DiggingParticle>(pos, velocity, blockState);
 }
 
-void DiggingParticle::tick(mc::client::ClientWorld* world) {
+void DiggingParticle::tick(mc::client::ClientWorld* world)
+{
     m_prevPosition = m_position;
 
     m_age += 1.0f;
@@ -154,21 +149,21 @@ void DiggingParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-ResourceLocation DiggingParticle::getTextureLocation() const {
+ResourceLocation DiggingParticle::getTextureLocation() const
+{
     // 对于 TERRAIN_SHEET 类型粒子，返回方块纹理路径
     // 实际渲染使用 buildVertices 中预计算的 m_textureRegion
     return ResourceLocation("minecraft:block/stone");
 }
 
-void DiggingParticle::buildVertices(
-    const glm::vec3& cameraPos,
+void DiggingParticle::buildVertices(const glm::vec3& cameraPos,
     f64 partialTick,
     const ParticleTextureAtlas& /*atlas*/,
     std::vector<ParticleVertex>& outVertices) const
 {
     // 插值位置
-    glm::dvec3 interpPos = glm::dvec3(m_prevPosition) +
-        (glm::dvec3(m_position) - glm::dvec3(m_prevPosition)) * partialTick;
+    glm::dvec3 interpPos =
+        glm::dvec3(m_prevPosition) + (glm::dvec3(m_position) - glm::dvec3(m_prevPosition)) * partialTick;
 
     // 插值旋转
     f64 interpRoll = m_prevRoll + (m_roll - m_prevRoll) * partialTick;
@@ -177,7 +172,7 @@ void DiggingParticle::buildVertices(
     glm::dvec3 toCamera = glm::dvec3(cameraPos) - interpPos;
     f64 dist = glm::length(toCamera);
     if (dist < 0.001) {
-        return;  // 太近了，跳过
+        return; // 太近了，跳过
     }
     toCamera = glm::normalize(toCamera);
 
@@ -201,9 +196,7 @@ void DiggingParticle::buildVertices(
         up = newUp;
     }
 
-    glm::vec3 interpPosF(static_cast<f32>(interpPos.x),
-                         static_cast<f32>(interpPos.y),
-                         static_cast<f32>(interpPos.z));
+    glm::vec3 interpPosF(static_cast<f32>(interpPos.x), static_cast<f32>(interpPos.y), static_cast<f32>(interpPos.z));
     glm::vec3 rightF(static_cast<f32>(right.x), static_cast<f32>(right.y), static_cast<f32>(right.z));
     glm::vec3 upF(static_cast<f32>(up.x), static_cast<f32>(up.y), static_cast<f32>(up.z));
 
@@ -246,40 +239,33 @@ void DiggingParticle::buildVertices(
 
     // 四个顶点（quad）
     // 左下
-    outVertices.push_back({
-        interpPosF - rightF * halfSizeF - upF * halfSizeF,
-        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v1)),  // UV: 左下
+    outVertices.push_back({interpPosF - rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v1)), // UV: 左下
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
     // 右下
-    outVertices.push_back({
-        interpPosF + rightF * halfSizeF - upF * halfSizeF,
-        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v1)),  // UV: 右下
+    outVertices.push_back({interpPosF + rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v1)), // UV: 右下
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
     // 右上
-    outVertices.push_back({
-        interpPosF + rightF * halfSizeF + upF * halfSizeF,
-        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v0)),  // UV: 右上
+    outVertices.push_back({interpPosF + rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v0)), // UV: 右上
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
     // 左上
-    outVertices.push_back({
-        interpPosF - rightF * halfSizeF + upF * halfSizeF,
-        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v0)),  // UV: 左上
+    outVertices.push_back({interpPosF - rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v0)), // UV: 左上
         m_color,
         static_cast<f32>(m_size * scale),
-        m_color.a
-    });
+        m_color.a});
 }
 
-void DiggingParticle::initializeBlockTexture() {
+void DiggingParticle::initializeBlockTexture()
+{
     // 获取 BlockModelCache
     BlockModelCache* modelCache = ChunkMesher::modelCache();
     if (!modelCache) {

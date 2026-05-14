@@ -1,14 +1,14 @@
 #pragma once
 
-#include "AbstractIllagerEntity.hpp"
-#include "../../../interfaces/ICrossbowUser.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../interfaces/ICrossbowUser.hpp"
+#include "AbstractIllagerEntity.hpp"
 
 // Forward declarations
 namespace mc {
 class ItemStack;
 class LivingEntity;
-}
+} // namespace mc
 
 namespace mc {
 

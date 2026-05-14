@@ -1,15 +1,15 @@
 #include "LiquidBlock.hpp"
-#include "../Block.hpp"
-#include "../VanillaBlocks.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../../util/property/FluidProperties.hpp"
-#include "../../IWorld.hpp"
-#include "../../tick/manager/TickManager.hpp"
-#include "../BlockPos.hpp"
 #include "../../../util/Direction.hpp"
-#include "../../fluid/FluidTags.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/property/FluidProperties.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../IWorld.hpp"
+#include "../../fluid/FluidTags.hpp"
+#include "../../tick/manager/TickManager.hpp"
+#include "../Block.hpp"
+#include "../BlockPos.hpp"
+#include "../VanillaBlocks.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <functional>
 
 namespace mc {
@@ -21,21 +21,23 @@ namespace block {
 
 // 方块LEVEL属性 (0-15)
 namespace {
-    const IntegerProperty& LEVEL_0_15() {
-        return BlockStateProperties::LEVEL_0_15();
-    }
+const IntegerProperty& LEVEL_0_15()
+{
+    return BlockStateProperties::LEVEL_0_15();
 }
+} // namespace
 
 LiquidBlock::LiquidBlock(fluid::FlowingFluid& fluid, BlockProperties properties)
     : Block(properties)
-    , m_fluid(fluid) {
+    , m_fluid(fluid)
+{
 
     // 创建方块状态容器，包含LEVEL属性
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(LEVEL_0_15())
-        .create([this](const Block& block, auto values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(LEVEL_0_15())
+                         .create([this](const Block& block, auto values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态（level=0，即源头）
@@ -45,23 +47,26 @@ LiquidBlock::LiquidBlock(fluid::FlowingFluid& fluid, BlockProperties properties)
     buildFluidStateCache();
 }
 
-const mc::fluid::FluidState* LiquidBlock::getFluidState(const BlockState& state) const {
+const mc::fluid::FluidState* LiquidBlock::getFluidState(const BlockState& state) const
+{
     i32 blockLevel = state.get(LEVEL_0_15());
     return &m_fluidStateCache[blockLevel];
 }
 
-const CollisionShape& LiquidBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& LiquidBlock::getCollisionShape(const BlockState& state) const
+{
     // 液体方块没有碰撞形状
     (void)state;
     return VoxelShapes::empty();
 }
 
-bool LiquidBlock::ticksRandomly() const {
+bool LiquidBlock::ticksRandomly() const
+{
     return m_fluid.ticksRandomly();
 }
 
-void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state,
-                             math::IRandom& random) {
+void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     const fluid::FluidState* fluidState = getFluidState(state);
     if (fluidState != nullptr && !fluidState->isEmpty()) {
         fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
@@ -69,7 +74,8 @@ void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 参考: net.minecraft.block.FlowingFluidBlock#onBlockAdded
     // 只有当 reactWithNeighbors 返回 true 时才调度流体 tick
     // 如果岩浆放置时旁边有水，会先反应变成石头/黑曜石，返回 false，不再调度 tick
@@ -82,9 +88,9 @@ void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSt
     }
 }
 
-void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
-                                   Block& neighborBlock, const BlockPos& neighborPos,
-                                   bool isMoving) {
+void LiquidBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     // 参考: net.minecraft.block.LiquidBlock#neighborChanged
     // 只有当 reactWithNeighbors 返回 true 时才调度流体 tick
     const BlockState* currentState = world.getBlockState(pos);
@@ -108,13 +114,13 @@ void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
 // MC 1.16.5 中 FlowingFluidBlock 没有 tick 方法
 // 流体 tick 由 TickManager 的 fluidTicks 列表直接调用 Fluid.tick()
 
-BlockState LiquidBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState LiquidBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
     // 参考: net.minecraft.block.FlowingFluidBlock#updatePostPlacement
     // MC行为：只有当当前流体是源头或邻居流体是源头时才调度tick
     // 如果反应发生则不调度
@@ -145,7 +151,8 @@ BlockState LiquidBlock::updatePostPlacement(
     return state;
 }
 
-bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state) {
+bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 参考: net.minecraft.block.LiquidBlock#reactWithNeighbors
     // 只处理岩浆方块
 
@@ -161,9 +168,8 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
 
     // 检查下方是否有灵魂土（用于玄武岩生成）
     const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-    bool hasSoulSoilBelow = (belowState != nullptr &&
-        VanillaBlocks::SOUL_SOIL != nullptr &&
-        belowState->is(VanillaBlocks::SOUL_SOIL));
+    bool hasSoulSoilBelow =
+        (belowState != nullptr && VanillaBlocks::SOUL_SOIL != nullptr && belowState->is(VanillaBlocks::SOUL_SOIL));
 
     // 检查所有方向（除了下方）
     for (Direction dir : Directions::all()) {
@@ -198,8 +204,7 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
         // 检查蓝冰 + 灵魂土 -> 玄武岩
         if (hasSoulSoilBelow) {
             const BlockState* neighborBlock = world.getBlockState(neighborPos);
-            if (neighborBlock != nullptr &&
-                VanillaBlocks::BLUE_ICE != nullptr &&
+            if (neighborBlock != nullptr && VanillaBlocks::BLUE_ICE != nullptr &&
                 neighborBlock->is(VanillaBlocks::BLUE_ICE)) {
                 // 岩浆 + 蓝冰 + 灵魂土 -> 玄武岩
                 if (VanillaBlocks::BASALT != nullptr) {
@@ -214,17 +219,17 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
     return true;
 }
 
-void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos) {
+void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos)
+{
     // 参考: net.minecraft.block.LiquidBlock#triggerMixEffects
     // 播放嘶嘶声和烟雾粒子效果
 
     // 播放嘶嘶声
-    world.playSound(
-        ResourceLocation("minecraft:block.lava.extinguish"),
+    world.playSound(ResourceLocation("minecraft:block.lava.extinguish"),
         sound::SoundCategory::Blocks,
         Vector3(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f),
-        0.5f,  // 音量
-        1.0f   // 音调
+        0.5f, // 音量
+        1.0f  // 音调
     );
 
     // 生成烟雾粒子 - 使用位置和索引派生确定性随机数
@@ -233,20 +238,19 @@ void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos) {
         math::Random random(particleSeed);
         f32 offsetX = random.nextFloat() * 0.6f - 0.3f;
         f32 offsetZ = random.nextFloat() * 0.6f - 0.3f;
-        world.addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Smoke,
+        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Smoke,
             Vector3(pos.x + 0.5f + offsetX, pos.y + 1.0f, pos.z + 0.5f + offsetZ),
-            Vector3(0.0f, 0.1f, 0.0f)
-        );
+            Vector3(0.0f, 0.1f, 0.0f));
     }
 }
 
-fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state) {
+fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 参考: net.minecraft.block.LiquidBlock#pickupFluid
     // 只有源头方块可以被舀起
 
     i32 blockLevel = state.get(LEVEL_0_15());
-    if (blockLevel == 0) {  // 源头
+    if (blockLevel == 0) { // 源头
         // 移除流体方块
         if (VanillaBlocks::AIR != nullptr) {
             world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 11);
@@ -254,36 +258,39 @@ fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const
         return &m_fluid.getStill();
     }
 
-    return nullptr;  // 非源头，无法舀起
+    return nullptr; // 非源头，无法舀起
 }
 
-i32 LiquidBlock::blockLevelToFluidLevel(i32 blockLevel) {
+i32 LiquidBlock::blockLevelToFluidLevel(i32 blockLevel)
+{
     // 方块level=0 -> 流体level=8（源头）
     // 方块level=1-7 -> 流体level=8-blockLevel（反向）
     // 方块level=8-15 -> 流体level=8（下落）
     if (blockLevel == 0) {
-        return 8;  // 源头
+        return 8; // 源头
     } else if (blockLevel >= 1 && blockLevel <= 7) {
-        return 8 - blockLevel;  // 1->7, 2->6, ..., 7->1
+        return 8 - blockLevel; // 1->7, 2->6, ..., 7->1
     } else {
-        return 8;  // 下落，level>=8
+        return 8; // 下落，level>=8
     }
 }
 
-i32 LiquidBlock::fluidLevelToBlockLevel(i32 fluidLevel, bool falling) {
+i32 LiquidBlock::fluidLevelToBlockLevel(i32 fluidLevel, bool falling)
+{
     // 流体level=8, falling=false -> 方块level=0（源头）
     // 流体level=1-7 -> 方块level=8-fluidLevel
     // 流体level=8, falling=true -> 方块level=8（下落）
     if (falling) {
         return 8;
     } else if (fluidLevel == 8) {
-        return 0;  // 源头
+        return 0; // 源头
     } else {
         return 8 - fluidLevel;
     }
 }
 
-void LiquidBlock::buildFluidStateCache() {
+void LiquidBlock::buildFluidStateCache()
+{
     m_fluidStateCache.clear();
     m_fluidStateCache.reserve(16);
 
@@ -299,8 +306,8 @@ void LiquidBlock::buildFluidStateCache() {
             m_fluidStateCache.push_back(m_fluid.getStill().defaultState());
         } else {
             // 流动状态
-            m_fluidStateCache.push_back(m_fluid.getFlowing().defaultState()
-                .with(levelProp, fluidLevel).with(fallingProp, falling));
+            m_fluidStateCache.push_back(
+                m_fluid.getFlowing().defaultState().with(levelProp, fluidLevel).with(fallingProp, falling));
         }
     }
 }

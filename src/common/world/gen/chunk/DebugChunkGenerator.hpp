@@ -1,8 +1,8 @@
 #pragma once
 
-#include "IChunkGenerator.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "IChunkGenerator.hpp"
 #include <vector>
 
 namespace mc {
@@ -44,8 +44,8 @@ public:
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    i32 spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                          std::vector<SpawnedEntityData>& outEntities) override;
+    i32 spawnInitialMobs(
+        WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
 
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;

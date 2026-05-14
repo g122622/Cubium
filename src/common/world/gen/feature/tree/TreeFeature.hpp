@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../Feature.hpp"
-#include "../ConfiguredFeature.hpp"
-#include "trunk/TrunkPlacer.hpp"
-#include "foliage/FoliagePlacer.hpp"
 #include "../../../block/Block.hpp"
 #include "../../placement/Placement.hpp"
+#include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
+#include "foliage/FoliagePlacer.hpp"
+#include "trunk/TrunkPlacer.hpp"
 #include <memory>
 
 namespace mc {
@@ -45,15 +45,14 @@ struct TreeFeatureConfig : public IFeatureConfig {
 
     TreeFeatureConfig() = default;
 
-    TreeFeatureConfig(
-        const BlockState* trunk,
+    TreeFeatureConfig(const BlockState* trunk,
         const BlockState* foliage,
         std::unique_ptr<TrunkPlacer> trunkPlacer_,
-        std::unique_ptr<FoliagePlacer> foliagePlacer_
-    ) : trunkBlock(trunk)
-      , foliageBlock(foliage)
-      , trunkPlacer(std::move(trunkPlacer_))
-      , foliagePlacer(std::move(foliagePlacer_))
+        std::unique_ptr<FoliagePlacer> foliagePlacer_)
+        : trunkBlock(trunk)
+        , foliageBlock(foliage)
+        , trunkPlacer(std::move(trunkPlacer_))
+        , foliagePlacer(std::move(foliagePlacer_))
     {}
 
     /**
@@ -79,7 +78,8 @@ struct TreeFeatureConfig : public IFeatureConfig {
     /**
      * @brief 赋值运算符（深拷贝）
      */
-    TreeFeatureConfig& operator=(const TreeFeatureConfig& other) {
+    TreeFeatureConfig& operator=(const TreeFeatureConfig& other)
+    {
         if (this != &other) {
             trunkBlock = other.trunkBlock;
             foliageBlock = other.foliageBlock;
@@ -121,12 +121,7 @@ public:
      * @param config 树木配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& startPos,
-        const TreeFeatureConfig& config
-    );
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& startPos, const TreeFeatureConfig& config);
 
     /**
      * @brief 检查位置是否可以放置树干
@@ -177,11 +172,7 @@ private:
      * @return 可用高度
      */
     [[nodiscard]] i32 calculateAvailableHeight(
-        WorldGenRegion& world,
-        i32 maxHeight,
-        const BlockPos& startPos,
-        const TreeFeatureConfig& config
-    ) const;
+        WorldGenRegion& world, i32 maxHeight, const BlockPos& startPos, const TreeFeatureConfig& config) const;
 
     /**
      * @brief 设置树叶距离属性
@@ -194,10 +185,7 @@ private:
      * @param foliageBlocks 树叶方块集合
      */
     void setFoliageDistance(
-        WorldGenRegion& world,
-        const std::set<BlockPos>& trunkBlocks,
-        const std::set<BlockPos>& foliageBlocks
-    );
+        WorldGenRegion& world, const std::set<BlockPos>& trunkBlocks, const std::set<BlockPos>& foliageBlocks);
 };
 
 /**
@@ -214,16 +202,14 @@ public:
      * @param placement 放置规则
      * @param featureName 特征名称
      */
-    ConfiguredTreeFeature(
-        std::unique_ptr<TreeFeatureConfig> featureConfig,
+    ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> featureConfig,
         std::unique_ptr<ConfiguredPlacement> placement,
         const char* featureName = "tree");
 
     /**
      * @brief 在指定位置放置树木（实现 ConfiguredFeatureBase 接口）
      */
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

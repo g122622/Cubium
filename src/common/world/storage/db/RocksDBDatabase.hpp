@@ -1,20 +1,20 @@
 #pragma once
 
-#include "RocksDBConfig.hpp"
-#include "ColumnFamilies.hpp"
-#include "SectionKey.hpp"
 #include "../../../core/Result.hpp"
-#include <rocksdb/db.h>
-#include <rocksdb/slice.h>
-#include <rocksdb/options.h>
-#include <rocksdb/write_batch.h>
-#include <rocksdb/iterator.h>
-#include <rocksdb/utilities/backup_engine.h>
+#include "ColumnFamilies.hpp"
+#include "RocksDBConfig.hpp"
+#include "SectionKey.hpp"
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <rocksdb/db.h>
+#include <rocksdb/iterator.h>
+#include <rocksdb/options.h>
+#include <rocksdb/slice.h>
+#include <rocksdb/utilities/backup_engine.h>
+#include <rocksdb/write_batch.h>
 
 namespace mc::world::storage {
 
@@ -44,9 +44,7 @@ public:
      * @return 成功返回数据库实例，失败返回错误
      */
     static Result<std::unique_ptr<RocksDBDatabase>> open(
-        const std::filesystem::path& path,
-        const RocksDBConfig& config = RocksDBConfig{}
-    );
+        const std::filesystem::path& path, const RocksDBConfig& config = RocksDBConfig{});
 
     /**
      * @brief 以只读模式打开数据库
@@ -54,9 +52,7 @@ public:
      * @param path 数据库路径
      * @return 成功返回数据库实例，失败返回错误
      */
-    static Result<std::unique_ptr<RocksDBDatabase>> openReadOnly(
-        const std::filesystem::path& path
-    );
+    static Result<std::unique_ptr<RocksDBDatabase>> openReadOnly(const std::filesystem::path& path);
 
     // ========================================================================
     // 构造与析构
@@ -98,18 +94,12 @@ public:
      * @param key 键
      * @return 成功返回值，失败返回错误
      */
-    Result<std::vector<u8>> get(
-        const std::string& cfName,
-        const std::vector<u8>& key
-    );
+    Result<std::vector<u8>> get(const std::string& cfName, const std::vector<u8>& key);
 
     /**
      * @brief 单点读取（Slice版本）
      */
-    Result<std::vector<u8>> get(
-        const std::string& cfName,
-        const rocksdb::Slice& key
-    );
+    Result<std::vector<u8>> get(const std::string& cfName, const rocksdb::Slice& key);
 
     /**
      * @brief 单点写入
@@ -121,21 +111,13 @@ public:
      * @return 成功返回空，失败返回错误
      */
     Result<void> put(
-        const std::string& cfName,
-        const std::vector<u8>& key,
-        const std::vector<u8>& value,
-        bool sync = false
-    );
+        const std::string& cfName, const std::vector<u8>& key, const std::vector<u8>& value, bool sync = false);
 
     /**
      * @brief 单点写入（Slice版本）
      */
     Result<void> put(
-        const std::string& cfName,
-        const rocksdb::Slice& key,
-        const rocksdb::Slice& value,
-        bool sync = false
-    );
+        const std::string& cfName, const rocksdb::Slice& key, const rocksdb::Slice& value, bool sync = false);
 
     /**
      * @brief 删除键
@@ -144,18 +126,12 @@ public:
      * @param key 键
      * @return 成功返回空，失败返回错误
      */
-    Result<void> del(
-        const std::string& cfName,
-        const std::vector<u8>& key
-    );
+    Result<void> del(const std::string& cfName, const std::vector<u8>& key);
 
     /**
      * @brief 删除键（Slice版本）
      */
-    Result<void> del(
-        const std::string& cfName,
-        const rocksdb::Slice& key
-    );
+    Result<void> del(const std::string& cfName, const rocksdb::Slice& key);
 
     /**
      * @brief 检查键是否存在
@@ -164,10 +140,7 @@ public:
      * @param key 键
      * @return 存在返回true，不存在返回false
      */
-    [[nodiscard]] bool exists(
-        const std::string& cfName,
-        const std::vector<u8>& key
-    );
+    [[nodiscard]] bool exists(const std::string& cfName, const std::vector<u8>& key);
 
     // ========================================================================
     // 批量操作
@@ -192,9 +165,7 @@ public:
      * @param cfName 列族名
      * @return 迭代器
      */
-    [[nodiscard]] std::unique_ptr<rocksdb::Iterator> newIterator(
-        const std::string& cfName
-    );
+    [[nodiscard]] std::unique_ptr<rocksdb::Iterator> newIterator(const std::string& cfName);
 
     /**
      * @brief 范围删除
@@ -204,11 +175,7 @@ public:
      * @param endKey 结束键（不包含）
      * @return 成功返回空，失败返回错误
      */
-    Result<void> deleteRange(
-        const std::string& cfName,
-        const std::vector<u8>& startKey,
-        const std::vector<u8>& endKey
-    );
+    Result<void> deleteRange(const std::string& cfName, const std::vector<u8>& startKey, const std::vector<u8>& endKey);
 
     // ========================================================================
     // 快照
@@ -245,10 +212,7 @@ public:
      * @param metadata 元数据（JSON格式）
      * @return 成功返回备份ID，失败返回错误
      */
-    Result<u64> createBackup(
-        const std::filesystem::path& backupDir,
-        const std::string& metadata = ""
-    );
+    Result<u64> createBackup(const std::filesystem::path& backupDir, const std::string& metadata = "");
 
     /**
      * @brief 从备份恢复
@@ -259,10 +223,7 @@ public:
      * @return 成功返回空，失败返回错误
      */
     Result<void> restoreFromBackup(
-        const std::filesystem::path& backupDir,
-        u64 backupId,
-        const std::filesystem::path& targetDir
-    );
+        const std::filesystem::path& backupDir, u64 backupId, const std::filesystem::path& targetDir);
 
     // ========================================================================
     // 管理操作
@@ -302,10 +263,7 @@ public:
      * @param property 属性名
      * @return 属性值，不存在返回空
      */
-    [[nodiscard]] std::string getProperty(
-        const std::string& cfName,
-        const std::string& property
-    );
+    [[nodiscard]] std::string getProperty(const std::string& cfName, const std::string& property);
 
     // ========================================================================
     // 列族管理
@@ -344,10 +302,7 @@ private:
     /**
      * @brief 私有构造函数
      */
-    RocksDBDatabase(
-        const std::filesystem::path& path,
-        const RocksDBConfig& config
-    );
+    RocksDBDatabase(const std::filesystem::path& path, const RocksDBConfig& config);
 
     /**
      * @brief 初始化列族

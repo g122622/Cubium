@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
 #include <unordered_map>
 #include <vector>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class IResourcePack;
@@ -20,10 +20,10 @@ namespace mc::client::renderer::trident::particle {
  * 存储粒子纹理在图集中的位置和动画信息。
  */
 struct SpriteInfo {
-    glm::vec2 uvMin;        ///< UV 左上角坐标
-    glm::vec2 uvMax;        ///< UV 右下角坐标
-    u32 frameCount = 1;     ///< 动画帧数（1 表示静态纹理）
-    f64 frameTime = 0.0f;   ///< 每帧时间（秒）
+    glm::vec2 uvMin;      ///< UV 左上角坐标
+    glm::vec2 uvMax;      ///< UV 右下角坐标
+    u32 frameCount = 1;   ///< 动画帧数（1 表示静态纹理）
+    f64 frameTime = 0.0f; ///< 每帧时间（秒）
 
     /**
      * @brief 检查是否为动画精灵
@@ -33,7 +33,8 @@ struct SpriteInfo {
     /**
      * @brief 获取单帧 UV 高度
      */
-    [[nodiscard]] f64 frameHeight() const {
+    [[nodiscard]] f64 frameHeight() const
+    {
         if (frameCount <= 1) {
             return uvMax.y - uvMin.y;
         }
@@ -95,8 +96,7 @@ public:
      * @param height 图集高度（默认 256）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(
-        VkDevice device,
+    [[nodiscard]] Result<void> create(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
@@ -111,14 +111,13 @@ public:
     /**
      * @brief 从资源包加载粒子纹理
      *
-    * 加载 textures/particle 目录下的 PNG 文件。
+     * 加载 textures/particle 目录下的 PNG 文件。
      * 动画纹理通过垂直帧条存储（帧数 = 高度 / 宽度）。
      *
      * @param resourcePacks 资源包列表
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadFromResourcePacks(
-        const std::vector<IResourcePack*>& resourcePacks);
+    [[nodiscard]] Result<void> loadFromResourcePacks(const std::vector<IResourcePack*>& resourcePacks);
 
     /**
      * @brief 上传纹理数据到 GPU
@@ -152,10 +151,7 @@ public:
      * @param maxAge 粒子最大年龄（秒）
      * @return UV 坐标 (minU, minV, maxU, maxV)
      */
-    [[nodiscard]] glm::vec4 getAnimatedFrameUV(
-        const ResourceLocation& location,
-        f64 age,
-        f64 maxAge) const;
+    [[nodiscard]] glm::vec4 getAnimatedFrameUV(const ResourceLocation& location, f64 age, f64 maxAge) const;
 
     /**
      * @brief 获取动画精灵的随机帧 UV 坐标
@@ -166,9 +162,7 @@ public:
      * @param seed 随机种子
      * @return UV 坐标 (minU, minV, maxU, maxV)
      */
-    [[nodiscard]] glm::vec4 getRandomFrameUV(
-        const ResourceLocation& location,
-        u32 seed) const;
+    [[nodiscard]] glm::vec4 getRandomFrameUV(const ResourceLocation& location, u32 seed) const;
 
     // ========================================================================
     // 状态查询
@@ -272,8 +266,7 @@ private:
     /**
      * @brief 转换图像布局
      */
-    void transitionImageLayout(
-        VkCommandBuffer cmd,
+    void transitionImageLayout(VkCommandBuffer cmd,
         VkImageLayout oldLayout,
         VkImageLayout newLayout,
         VkPipelineStageFlags srcStage,

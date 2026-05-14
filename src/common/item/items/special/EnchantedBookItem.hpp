@@ -45,7 +45,8 @@ public:
     /**
      * @brief 附魔书始终有附魔光效
      */
-    [[nodiscard]] bool hasEffect(const ItemStack& stack) const override {
+    [[nodiscard]] bool hasEffect(const ItemStack& stack) const override
+    {
         (void)stack;
         return true;
     }

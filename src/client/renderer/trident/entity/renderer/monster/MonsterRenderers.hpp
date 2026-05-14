@@ -1,13 +1,13 @@
 #pragma once
 
-#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
-#include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
-#include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
-#include "client/renderer/trident/entity/model/monster/CreeperModel.hpp"
-#include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
-#include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/model/monster/BlazeModel.hpp"
+#include "client/renderer/trident/entity/model/monster/CreeperModel.hpp"
+#include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
+#include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
 #include <memory>
 
 namespace mc {

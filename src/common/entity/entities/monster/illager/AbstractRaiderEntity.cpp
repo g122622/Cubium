@@ -1,32 +1,35 @@
 #include "AbstractRaiderEntity.hpp"
-#include "../../../../world/village/raid/Raid.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/village/raid/Raid.hpp"
 
 namespace mc {
 
 AbstractRaiderEntity::AbstractRaiderEntity(LegacyEntityType type, EntityId id)
     : PatrollerEntity(type, id)
-{
-}
+{}
 
-void AbstractRaiderEntity::joinRaid(world::village::raid::Raid* raid, i32 wave) {
+void AbstractRaiderEntity::joinRaid(world::village::raid::Raid* raid, i32 wave)
+{
     m_raid = raid;
     m_wave = wave;
     m_canJoinRaid = false;
 }
 
-void AbstractRaiderEntity::leaveRaid() {
+void AbstractRaiderEntity::leaveRaid()
+{
     m_raid = nullptr;
     m_wave = 0;
     m_canJoinRaid = true;
 }
 
-void AbstractRaiderEntity::startCelebrating() {
+void AbstractRaiderEntity::startCelebrating()
+{
     m_celebrationTime = CELEBRATION_DURATION;
     setState(RaiderState::Celebrating);
 }
 
-void AbstractRaiderEntity::tick() {
+void AbstractRaiderEntity::tick()
+{
     PatrollerEntity::tick();
 
     // 更新庆祝时间
@@ -46,7 +49,8 @@ void AbstractRaiderEntity::tick() {
     }
 }
 
-void AbstractRaiderEntity::die(DamageSource& cause) {
+void AbstractRaiderEntity::die(DamageSource& cause)
+{
     // 通知袭击掠夺者死亡
     if (m_raid != nullptr && m_world != nullptr) {
         m_raid->onRaiderDeath(id(), *m_world);

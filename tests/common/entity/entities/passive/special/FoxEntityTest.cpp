@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -23,7 +23,8 @@ namespace {
  */
 class FoxTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -31,17 +32,20 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
@@ -49,10 +53,12 @@ public:
     [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("FoxTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("FoxTestWorld::tickManager not implemented");
     }
 
@@ -63,7 +69,8 @@ private:
 
 class FoxEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
@@ -73,13 +80,15 @@ protected:
 
 // ========== 狐狸类型测试 ==========
 
-TEST_F(FoxEntityTest, FoxType_DefaultIsRed) {
+TEST_F(FoxEntityTest, FoxType_DefaultIsRed)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
     // 默认类型是红色狐狸
     EXPECT_EQ(fox.getFoxType(), FoxEntity::FoxType::Red);
 }
 
-TEST_F(FoxEntityTest, FoxType_CanSetAndGetType) {
+TEST_F(FoxEntityTest, FoxType_CanSetAndGetType)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     fox.setFoxType(FoxEntity::FoxType::Snow);
@@ -91,14 +100,16 @@ TEST_F(FoxEntityTest, FoxType_CanSetAndGetType) {
 
 // ========== 信任系统测试 ==========
 
-TEST_F(FoxEntityTest, TrustSystem_NoTrustedPlayersInitially) {
+TEST_F(FoxEntityTest, TrustSystem_NoTrustedPlayersInitially)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     EXPECT_FALSE(fox.trusts(12345));
     EXPECT_FALSE(fox.getFirstTrustedPlayer().has_value());
 }
 
-TEST_F(FoxEntityTest, TrustSystem_CanAddTrustedPlayer) {
+TEST_F(FoxEntityTest, TrustSystem_CanAddTrustedPlayer)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     fox.addTrustedPlayer(12345);
@@ -106,7 +117,8 @@ TEST_F(FoxEntityTest, TrustSystem_CanAddTrustedPlayer) {
     EXPECT_EQ(fox.getFirstTrustedPlayer().value_or(0), 12345);
 }
 
-TEST_F(FoxEntityTest, TrustSystem_CanAddMultipleTrustedPlayers) {
+TEST_F(FoxEntityTest, TrustSystem_CanAddMultipleTrustedPlayers)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     fox.addTrustedPlayer(111);
@@ -117,19 +129,21 @@ TEST_F(FoxEntityTest, TrustSystem_CanAddMultipleTrustedPlayers) {
     EXPECT_EQ(fox.getFirstTrustedPlayer().value_or(0), 111);
 }
 
-TEST_F(FoxEntityTest, TrustSystem_MaxTwoTrustedPlayers) {
+TEST_F(FoxEntityTest, TrustSystem_MaxTwoTrustedPlayers)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     fox.addTrustedPlayer(111);
     fox.addTrustedPlayer(222);
-    fox.addTrustedPlayer(333);  // 应该替换第一个
+    fox.addTrustedPlayer(333); // 应该替换第一个
 
-    EXPECT_FALSE(fox.trusts(111));  // 第一个被替换
+    EXPECT_FALSE(fox.trusts(111)); // 第一个被替换
     EXPECT_TRUE(fox.trusts(222));
     EXPECT_TRUE(fox.trusts(333));
 }
 
-TEST_F(FoxEntityTest, TrustSystem_CanRemoveTrustedPlayer) {
+TEST_F(FoxEntityTest, TrustSystem_CanRemoveTrustedPlayer)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     fox.addTrustedPlayer(12345);
@@ -139,11 +153,12 @@ TEST_F(FoxEntityTest, TrustSystem_CanRemoveTrustedPlayer) {
     EXPECT_FALSE(fox.trusts(12345));
 }
 
-TEST_F(FoxEntityTest, TrustSystem_DoesNotAddDuplicate) {
+TEST_F(FoxEntityTest, TrustSystem_DoesNotAddDuplicate)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     fox.addTrustedPlayer(12345);
-    fox.addTrustedPlayer(12345);  // 重复添加
+    fox.addTrustedPlayer(12345); // 重复添加
 
     // 应该只有一个
     EXPECT_TRUE(fox.trusts(12345));
@@ -153,14 +168,16 @@ TEST_F(FoxEntityTest, TrustSystem_DoesNotAddDuplicate) {
 
 // ========== 繁殖物品测试 ==========
 
-TEST_F(FoxEntityTest, IsBreedingItem_AcceptsSweetBerries) {
+TEST_F(FoxEntityTest, IsBreedingItem_AcceptsSweetBerries)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     ItemStack sweetBerriesStack(Items::SWEET_BERRIES, 1);
     EXPECT_TRUE(fox.isBreedingItem(sweetBerriesStack));
 }
 
-TEST_F(FoxEntityTest, IsBreedingItem_RejectsOtherItems) {
+TEST_F(FoxEntityTest, IsBreedingItem_RejectsOtherItems)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     // 测试不接受其他物品
@@ -181,7 +198,8 @@ TEST_F(FoxEntityTest, IsBreedingItem_RejectsOtherItems) {
 
 // ========== spawnBaby 测试 ==========
 
-TEST_F(FoxEntityTest, SpawnBaby_CreatesChildFox) {
+TEST_F(FoxEntityTest, SpawnBaby_CreatesChildFox)
+{
     FoxEntity parent1(LegacyEntityType::Unknown, 1);
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
@@ -200,7 +218,8 @@ TEST_F(FoxEntityTest, SpawnBaby_CreatesChildFox) {
     EXPECT_NE(babyFox, nullptr);
 }
 
-TEST_F(FoxEntityTest, SpawnBaby_InheritsParentType) {
+TEST_F(FoxEntityTest, SpawnBaby_InheritsParentType)
+{
     FoxEntity parent1(LegacyEntityType::Unknown, 1);
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
@@ -243,7 +262,8 @@ TEST_F(FoxEntityTest, SpawnBaby_InheritsParentType) {
     EXPECT_GT(snowCount, 10) << "Snow type should appear at least 10 times in 100 iterations";
 }
 
-TEST_F(FoxEntityTest, SpawnBaby_InheritsTrustedPlayers) {
+TEST_F(FoxEntityTest, SpawnBaby_InheritsTrustedPlayers)
+{
     FoxEntity parent1(LegacyEntityType::Unknown, 1);
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
@@ -252,7 +272,7 @@ TEST_F(FoxEntityTest, SpawnBaby_InheritsTrustedPlayers) {
     parent1.addTrustedPlayer(222);
 
     FoxEntity parent2(LegacyEntityType::Unknown, 2);
-    parent2.setWorld(&m_world);  // 设置世界以获得随机数
+    parent2.setWorld(&m_world); // 设置世界以获得随机数
     parent2.setFoxType(FoxEntity::FoxType::Snow);
     parent2.addTrustedPlayer(333);
 
@@ -267,13 +287,14 @@ TEST_F(FoxEntityTest, SpawnBaby_InheritsTrustedPlayers) {
     // parent1 有 [111, 222]，parent2 有 [333]
     // 添加 parent1 后：[111, 222]
     // 添加 parent2 后：由于 MAX=2，会替换最早的 (111)，结果为 [222, 333]
-    EXPECT_EQ(babyFox->getTrustedPlayers().size(), 2u);  // 最多2个信任玩家
-    EXPECT_TRUE(babyFox->trusts(222));  // 来自 parent1
-    EXPECT_TRUE(babyFox->trusts(333));  // 来自 parent2
-    EXPECT_FALSE(babyFox->trusts(111));  // 被替换掉了
+    EXPECT_EQ(babyFox->getTrustedPlayers().size(), 2u); // 最多2个信任玩家
+    EXPECT_TRUE(babyFox->trusts(222));                  // 来自 parent1
+    EXPECT_TRUE(babyFox->trusts(333));                  // 来自 parent2
+    EXPECT_FALSE(babyFox->trusts(111));                 // 被替换掉了
 }
 
-TEST_F(FoxEntityTest, SpawnBaby_PositionIsSet) {
+TEST_F(FoxEntityTest, SpawnBaby_PositionIsSet)
+{
     FoxEntity parent(LegacyEntityType::Unknown, 1);
     parent.setWorld(&m_world);
     parent.setPosition(100.0f, 64.0f, -50.0f);
@@ -293,7 +314,8 @@ TEST_F(FoxEntityTest, SpawnBaby_PositionIsSet) {
 
 // ========== 属性测试 ==========
 
-TEST_F(FoxEntityTest, Attributes_HasCorrectBaseValues) {
+TEST_F(FoxEntityTest, Attributes_HasCorrectBaseValues)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     // MC 1.16.5: 狐狸生命值为 10
@@ -307,7 +329,8 @@ TEST_F(FoxEntityTest, Attributes_HasCorrectBaseValues) {
 // 注意：FoxEntity 使用 AnimalEntity 的默认尺寸，不在此测试尺寸
 // 因为 AnimalEntity 的默认尺寸可能随实现变化
 
-TEST_F(FoxEntityTest, EyeHeight_DifferentForChildAndAdult) {
+TEST_F(FoxEntityTest, EyeHeight_DifferentForChildAndAdult)
+{
     FoxEntity adultFox(LegacyEntityType::Unknown, 1);
     adultFox.setChild(false);
 
@@ -321,12 +344,14 @@ TEST_F(FoxEntityTest, EyeHeight_DifferentForChildAndAdult) {
 
 // ========== 睡眠状态测试 ==========
 
-TEST_F(FoxEntityTest, SleepState_DefaultNotSleeping) {
+TEST_F(FoxEntityTest, SleepState_DefaultNotSleeping)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
     EXPECT_FALSE(fox.isSleeping());
 }
 
-TEST_F(FoxEntityTest, SleepState_CanSetSleeping) {
+TEST_F(FoxEntityTest, SleepState_CanSetSleeping)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     fox.setSleeping(true);
@@ -338,13 +363,15 @@ TEST_F(FoxEntityTest, SleepState_CanSetSleeping) {
 
 // ========== 叼物品测试 ==========
 
-TEST_F(FoxEntityTest, HeldItem_DefaultNotHolding) {
+TEST_F(FoxEntityTest, HeldItem_DefaultNotHolding)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
     EXPECT_FALSE(fox.isHoldingItem());
     EXPECT_EQ(fox.getHeldItem(), nullptr);
 }
 
-TEST_F(FoxEntityTest, HeldItem_CanSetAndClear) {
+TEST_F(FoxEntityTest, HeldItem_CanSetAndClear)
+{
     FoxEntity fox(LegacyEntityType::Unknown, 1);
 
     auto item = std::make_unique<ItemStack>(Items::SWEET_BERRIES, 1);

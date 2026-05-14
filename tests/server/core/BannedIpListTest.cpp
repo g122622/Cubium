@@ -1,23 +1,25 @@
-#include <gtest/gtest.h>
 #include "server/core/BannedIpList.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <thread>
 #include <vector>
-#include <algorithm>
+#include <gtest/gtest.h>
 
 using namespace mc::server::core;
 
 class BannedIpListTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建临时测试目录
         testDir_ = std::filesystem::temp_directory_path() / "banned_ips_test";
         std::filesystem::create_directories(testDir_);
         testFile_ = testDir_ / "banned-ips.json";
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理临时目录
         if (std::filesystem::exists(testDir_)) {
             std::filesystem::remove_all(testDir_);
@@ -30,14 +32,16 @@ protected:
 
 // ========== 基本功能测试 ==========
 
-TEST_F(BannedIpListTest, DefaultState) {
+TEST_F(BannedIpListTest, DefaultState)
+{
     BannedIpList banList;
 
     EXPECT_TRUE(banList.empty());
     EXPECT_EQ(banList.size(), 0);
 }
 
-TEST_F(BannedIpListTest, AddEntry) {
+TEST_F(BannedIpListTest, AddEntry)
+{
     BannedIpList banList;
 
     BannedIpEntry entry("192.168.1.100", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "DDoS attack");
@@ -46,7 +50,8 @@ TEST_F(BannedIpListTest, AddEntry) {
     EXPECT_TRUE(banList.isBanned("192.168.1.100"));
 }
 
-TEST_F(BannedIpListTest, AddDuplicateEntry) {
+TEST_F(BannedIpListTest, AddDuplicateEntry)
+{
     BannedIpList banList;
 
     BannedIpEntry entry1("192.168.1.100", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "DDoS attack");
@@ -58,7 +63,8 @@ TEST_F(BannedIpListTest, AddDuplicateEntry) {
     EXPECT_EQ(banList.size(), 1);
 }
 
-TEST_F(BannedIpListTest, RemoveEntry) {
+TEST_F(BannedIpListTest, RemoveEntry)
+{
     BannedIpList banList;
 
     BannedIpEntry entry("192.168.1.100", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "DDoS attack");
@@ -69,13 +75,15 @@ TEST_F(BannedIpListTest, RemoveEntry) {
     EXPECT_FALSE(banList.isBanned("192.168.1.100"));
 }
 
-TEST_F(BannedIpListTest, RemoveNonExistentEntry) {
+TEST_F(BannedIpListTest, RemoveNonExistentEntry)
+{
     BannedIpList banList;
 
     EXPECT_FALSE(banList.removeEntry("192.168.1.100"));
 }
 
-TEST_F(BannedIpListTest, GetEntry) {
+TEST_F(BannedIpListTest, GetEntry)
+{
     BannedIpList banList;
 
     BannedIpEntry entry("192.168.1.100", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "DDoS attack");
@@ -92,7 +100,8 @@ TEST_F(BannedIpListTest, GetEntry) {
     EXPECT_FALSE(result2.has_value());
 }
 
-TEST_F(BannedIpListTest, GetAllEntries) {
+TEST_F(BannedIpListTest, GetAllEntries)
+{
     BannedIpList banList;
 
     banList.addEntry(BannedIpEntry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "Reason1"));
@@ -103,7 +112,8 @@ TEST_F(BannedIpListTest, GetAllEntries) {
     EXPECT_EQ(entries.size(), 3);
 }
 
-TEST_F(BannedIpListTest, GetAllBannedIps) {
+TEST_F(BannedIpListTest, GetAllBannedIps)
+{
     BannedIpList banList;
 
     banList.addEntry(BannedIpEntry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Reason"));
@@ -117,7 +127,8 @@ TEST_F(BannedIpListTest, GetAllBannedIps) {
     EXPECT_NE(std::find(ips.begin(), ips.end(), "192.168.1.101"), ips.end());
 }
 
-TEST_F(BannedIpListTest, Clear) {
+TEST_F(BannedIpListTest, Clear)
+{
     BannedIpList banList;
 
     banList.addEntry(BannedIpEntry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Reason"));
@@ -130,7 +141,8 @@ TEST_F(BannedIpListTest, Clear) {
 
 // ========== 条目有效性测试 ==========
 
-TEST_F(BannedIpListTest, InvalidEntry) {
+TEST_F(BannedIpListTest, InvalidEntry)
+{
     BannedIpList banList;
 
     // 空 IP
@@ -139,19 +151,23 @@ TEST_F(BannedIpListTest, InvalidEntry) {
     EXPECT_FALSE(banList.addEntry(entry1));
 }
 
-TEST_F(BannedIpListTest, EntryGetDisplayName) {
+TEST_F(BannedIpListTest, EntryGetDisplayName)
+{
     BannedIpEntry entry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Reason");
     EXPECT_EQ(entry.getDisplayName(), "192.168.1.100");
 }
 
 // ========== 文件操作测试 ==========
 
-TEST_F(BannedIpListTest, SaveAndLoad) {
+TEST_F(BannedIpListTest, SaveAndLoad)
+{
     // 创建并保存
     {
         BannedIpList banList;
-        banList.addEntry(BannedIpEntry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "DDoS attack"));
-        banList.addEntry(BannedIpEntry("192.168.1.101", "2024-01-15 11:00:00 +0800", "Admin2", "2024-02-15 00:00:00 +0800", "Temporary ban"));
+        banList.addEntry(
+            BannedIpEntry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "DDoS attack"));
+        banList.addEntry(BannedIpEntry(
+            "192.168.1.101", "2024-01-15 11:00:00 +0800", "Admin2", "2024-02-15 00:00:00 +0800", "Temporary ban"));
         banList.addEntry(BannedIpEntry("10.0.0.50", "2024-01-15 12:00:00 +0800", "Admin3", "forever", "Spam"));
 
         auto result = banList.save(testFile_);
@@ -182,15 +198,17 @@ TEST_F(BannedIpListTest, SaveAndLoad) {
     }
 }
 
-TEST_F(BannedIpListTest, LoadNonExistentFile) {
+TEST_F(BannedIpListTest, LoadNonExistentFile)
+{
     BannedIpList banList;
 
     auto result = banList.load(testDir_ / "non_existent.json");
-    EXPECT_TRUE(result.success());  // 应该成功，创建空列表
+    EXPECT_TRUE(result.success()); // 应该成功，创建空列表
     EXPECT_TRUE(banList.empty());
 }
 
-TEST_F(BannedIpListTest, Reload) {
+TEST_F(BannedIpListTest, Reload)
+{
     BannedIpList banList;
 
     // 初始保存
@@ -213,7 +231,8 @@ TEST_F(BannedIpListTest, Reload) {
     EXPECT_FALSE(banList.isBanned("192.168.1.100"));
 }
 
-TEST_F(BannedIpListTest, LoadInvalidJson) {
+TEST_F(BannedIpListTest, LoadInvalidJson)
+{
     // 创建无效 JSON 文件
     std::ofstream file(testFile_);
     file << "not a valid json";
@@ -224,7 +243,8 @@ TEST_F(BannedIpListTest, LoadInvalidJson) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(BannedIpListTest, LoadNonArrayJson) {
+TEST_F(BannedIpListTest, LoadNonArrayJson)
+{
     // 创建非数组 JSON 文件
     std::ofstream file(testFile_);
     file << R"({"ip": "192.168.1.100", "source": "Admin"})";
@@ -235,7 +255,8 @@ TEST_F(BannedIpListTest, LoadNonArrayJson) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(BannedIpListTest, LoadWithMissingFields) {
+TEST_F(BannedIpListTest, LoadWithMissingFields)
+{
     // 创建缺少字段的 JSON 文件
     std::ofstream file(testFile_);
     file << R"([
@@ -246,13 +267,14 @@ TEST_F(BannedIpListTest, LoadWithMissingFields) {
 
     BannedIpList banList;
     auto result = banList.load(testFile_);
-    EXPECT_TRUE(result.success());  // 缺少可选字段应该被接受
+    EXPECT_TRUE(result.success()); // 缺少可选字段应该被接受
     EXPECT_EQ(banList.size(), 2);
 }
 
 // ========== 线程安全测试 ==========
 
-TEST_F(BannedIpListTest, ThreadSafety) {
+TEST_F(BannedIpListTest, ThreadSafety)
+{
     BannedIpList banList;
     constexpr int numThreads = 4;
     constexpr int entriesPerThread = 100;
@@ -278,14 +300,17 @@ TEST_F(BannedIpListTest, ThreadSafety) {
 
 // ========== 各种 IP 格式测试 ==========
 
-TEST_F(BannedIpListTest, VariousIpFormats) {
+TEST_F(BannedIpListTest, VariousIpFormats)
+{
     BannedIpList banList;
 
     // IPv4 地址
     EXPECT_TRUE(banList.addEntry(BannedIpEntry("127.0.0.1", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test")));
     EXPECT_TRUE(banList.addEntry(BannedIpEntry("0.0.0.0", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test")));
-    EXPECT_TRUE(banList.addEntry(BannedIpEntry("255.255.255.255", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test")));
-    EXPECT_TRUE(banList.addEntry(BannedIpEntry("192.168.1.1", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test")));
+    EXPECT_TRUE(
+        banList.addEntry(BannedIpEntry("255.255.255.255", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test")));
+    EXPECT_TRUE(
+        banList.addEntry(BannedIpEntry("192.168.1.1", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test")));
     EXPECT_TRUE(banList.addEntry(BannedIpEntry("10.0.0.1", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test")));
 
     EXPECT_EQ(banList.size(), 5);
@@ -300,7 +325,8 @@ TEST_F(BannedIpListTest, VariousIpFormats) {
 
 // ========== 复杂场景测试 ==========
 
-TEST_F(BannedIpListTest, AddRemoveMultiple) {
+TEST_F(BannedIpListTest, AddRemoveMultiple)
+{
     BannedIpList banList;
 
     // 添加多个
@@ -318,12 +344,14 @@ TEST_F(BannedIpListTest, AddRemoveMultiple) {
     EXPECT_TRUE(banList.isBanned("192.168.1.102"));
 
     // 再次添加已删除的
-    EXPECT_TRUE(banList.addEntry(BannedIpEntry("192.168.1.101", "2024-01-15 13:00:00 +0800", "Admin", "forever", "R2-new")));
+    EXPECT_TRUE(
+        banList.addEntry(BannedIpEntry("192.168.1.101", "2024-01-15 13:00:00 +0800", "Admin", "forever", "R2-new")));
     EXPECT_EQ(banList.size(), 3);
     EXPECT_TRUE(banList.isBanned("192.168.1.101"));
 }
 
-TEST_F(BannedIpListTest, FilePathTracking) {
+TEST_F(BannedIpListTest, FilePathTracking)
+{
     BannedIpList banList;
 
     banList.load(testFile_);
@@ -331,7 +359,8 @@ TEST_F(BannedIpListTest, FilePathTracking) {
 
     // reload 应该使用上次加载的路径
     std::ofstream file(testFile_);
-    file << R"([{"ip": "192.168.1.100", "created": "2024-01-15 10:00:00 +0800", "source": "Admin", "expires": "forever", "reason": "Test"}])";
+    file
+        << R"([{"ip": "192.168.1.100", "created": "2024-01-15 10:00:00 +0800", "source": "Admin", "expires": "forever", "reason": "Test"}])";
     file.close();
 
     auto result = banList.reload();
@@ -341,12 +370,18 @@ TEST_F(BannedIpListTest, FilePathTracking) {
 
 // ========== JSON 完整性测试 ==========
 
-TEST_F(BannedIpListTest, JsonRoundTrip) {
+TEST_F(BannedIpListTest, JsonRoundTrip)
+{
     BannedIpList banList;
 
     // 添加各种特殊字符的条目
-    banList.addEntry(BannedIpEntry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin \"Quoted\"", "forever", "Reason with \"quotes\" and \\ backslash"));
-    banList.addEntry(BannedIpEntry("192.168.1.101", "2024-01-15 11:00:00 +0800", "Admin\nNewLine", "forever", "Reason\nwith\nnewlines"));
+    banList.addEntry(BannedIpEntry("192.168.1.100",
+        "2024-01-15 10:00:00 +0800",
+        "Admin \"Quoted\"",
+        "forever",
+        "Reason with \"quotes\" and \\ backslash"));
+    banList.addEntry(BannedIpEntry(
+        "192.168.1.101", "2024-01-15 11:00:00 +0800", "Admin\nNewLine", "forever", "Reason\nwith\nnewlines"));
 
     // 保存
     auto saveResult = banList.save(testFile_);

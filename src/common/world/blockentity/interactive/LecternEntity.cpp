@@ -16,32 +16,32 @@ namespace {
  * @return true 表示该物品可放入讲台。
  * @note 当前项目尚未完整注册 BOOK/WRITTEN_BOOK 等专用物品，这里按命名后缀兼容。
  */
-[[nodiscard]] bool isLecternBookItem(const Item* item) {
+[[nodiscard]] bool isLecternBookItem(const Item* item)
+{
     if (item == nullptr) {
         return false;
     }
 
     const std::string& path = item->itemLocation().path();
-    return path == "book" ||
-           path == "written_book" ||
-           path == "writable_book" ||
-           path == "enchanted_book";
+    return path == "book" || path == "written_book" || path == "writable_book" || path == "enchanted_book";
 }
 
 } // namespace
 
 LecternEntity::LecternEntity(const BlockPos& pos)
     : BlockEntity(BlockEntityType::Lectern, pos)
-    , m_inventory(1) {
-}
+    , m_inventory(1)
+{}
 
 LecternEntity::~LecternEntity() = default;
 
-ItemStack LecternEntity::getBook() const {
+ItemStack LecternEntity::getBook() const
+{
     return m_inventory.getItem(SLOT_BOOK);
 }
 
-bool LecternEntity::setBook(const ItemStack& book) {
+bool LecternEntity::setBook(const ItemStack& book)
+{
     if (!isValidBook(book)) {
         return false;
     }
@@ -52,18 +52,21 @@ bool LecternEntity::setBook(const ItemStack& book) {
     return true;
 }
 
-ItemStack LecternEntity::removeBook() {
+ItemStack LecternEntity::removeBook()
+{
     ItemStack book = m_inventory.extractItem(SLOT_BOOK);
     m_page = 0;
     setChanged();
     return book;
 }
 
-bool LecternEntity::hasBook() const {
+bool LecternEntity::hasBook() const
+{
     return !m_inventory.getItem(SLOT_BOOK).isEmpty();
 }
 
-i32 LecternEntity::getTotalPages() const {
+i32 LecternEntity::getTotalPages() const
+{
     const ItemStack book = getBook();
     if (book.isEmpty()) {
         return 0;
@@ -95,7 +98,8 @@ i32 LecternEntity::getTotalPages() const {
     return 1;
 }
 
-void LecternEntity::setPage(i32 page) {
+void LecternEntity::setPage(i32 page)
+{
     i32 totalPages = getTotalPages();
     if (totalPages == 0) {
         return;
@@ -108,7 +112,8 @@ void LecternEntity::setPage(i32 page) {
     }
 }
 
-bool LecternEntity::nextPage() {
+bool LecternEntity::nextPage()
+{
     i32 totalPages = getTotalPages();
     if (totalPages == 0 || m_page >= totalPages - 1) {
         return false;
@@ -119,7 +124,8 @@ bool LecternEntity::nextPage() {
     return true;
 }
 
-bool LecternEntity::prevPage() {
+bool LecternEntity::prevPage()
+{
     if (m_page <= 0) {
         return false;
     }
@@ -129,7 +135,8 @@ bool LecternEntity::prevPage() {
     return true;
 }
 
-i32 LecternEntity::getComparatorSignal() const {
+i32 LecternEntity::getComparatorSignal() const
+{
     if (!hasBook()) {
         return 0;
     }
@@ -142,23 +149,27 @@ i32 LecternEntity::getComparatorSignal() const {
     return static_cast<i32>((static_cast<f32>(m_page) / static_cast<f32>(totalPages - 1)) * 14.0f) + 1;
 }
 
-void LecternEntity::openContainer() {
+void LecternEntity::openContainer()
+{
     ++m_openCount;
     setChanged();
 }
 
-void LecternEntity::closeContainer() {
+void LecternEntity::closeContainer()
+{
     if (m_openCount > 0) {
         --m_openCount;
         setChanged();
     }
 }
 
-void LecternEntity::tick(IWorld& world) {
+void LecternEntity::tick(IWorld& world)
+{
     MC_UNUSED(world);
 }
 
-bool LecternEntity::isValidBook(const ItemStack& stack) {
+bool LecternEntity::isValidBook(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -166,11 +177,13 @@ bool LecternEntity::isValidBook(const ItemStack& stack) {
     return isLecternBookItem(stack.getItem());
 }
 
-void LecternEntity::updateBlockState(IWorld& world) {
+void LecternEntity::updateBlockState(IWorld& world)
+{
     MC_UNUSED(world);
 }
 
-bool LecternEntity::load(const nlohmann::json& data) {
+bool LecternEntity::load(const nlohmann::json& data)
+{
     if (!BlockEntity::load(data)) {
         return false;
     }
@@ -192,7 +205,8 @@ bool LecternEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void LecternEntity::save(nlohmann::json& data) const {
+void LecternEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     const ItemStack book = m_inventory.getItem(SLOT_BOOK);
@@ -203,7 +217,8 @@ void LecternEntity::save(nlohmann::json& data) const {
     data["Page"] = m_page;
 }
 
-std::unique_ptr<BlockEntity> LecternEntity::clone() const {
+std::unique_ptr<BlockEntity> LecternEntity::clone() const
+{
     auto clone = std::make_unique<LecternEntity>(m_pos);
     clone->m_inventory.setItem(SLOT_BOOK, m_inventory.getItem(SLOT_BOOK));
     clone->m_page = m_page;

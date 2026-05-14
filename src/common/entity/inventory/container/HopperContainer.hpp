@@ -53,9 +53,9 @@ public:
      * @param hopperEntity 漏斗实体（可选，用于距离检查）
      */
     HopperContainer(ContainerId id,
-                    PlayerInventory* playerInventory,
-                    IInventory* hopperInventory,
-                    blockentity::HopperEntity* hopperEntity = nullptr);
+        PlayerInventory* playerInventory,
+        IInventory* hopperInventory,
+        blockentity::HopperEntity* hopperEntity = nullptr);
 
     /**
      * @brief 析构函数
@@ -91,7 +91,7 @@ private:
      */
     void initSlots(PlayerInventory* playerInventory);
 
-    IInventory* m_hopperInventory;           ///< 漏斗背包
+    IInventory* m_hopperInventory;             ///< 漏斗背包
     blockentity::HopperEntity* m_hopperEntity; ///< 漏斗实体（可选，用于距离检查）
 };
 

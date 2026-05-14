@@ -6,9 +6,9 @@ namespace mc::network {
 // ========== ScoreboardObjectivePacket ==========
 
 ScoreboardObjectivePacket::ScoreboardObjectivePacket(const std::string& objectiveName,
-                                                     ObjectiveAction action,
-                                                     const std::string& displayName,
-                                                     const std::string& renderType)
+    ObjectiveAction action,
+    const std::string& displayName,
+    const std::string& renderType)
     : m_objectiveName(objectiveName)
     , m_action(action)
     , m_displayName(displayName)
@@ -17,21 +17,25 @@ ScoreboardObjectivePacket::ScoreboardObjectivePacket(const std::string& objectiv
     setObjectiveName(objectiveName);
 }
 
-void ScoreboardObjectivePacket::setObjectiveName(const std::string& name) {
+void ScoreboardObjectivePacket::setObjectiveName(const std::string& name)
+{
     // 限制名称长度
     m_objectiveName = name.substr(0, std::min(name.length(), MAX_NAME_LENGTH));
 }
 
-void ScoreboardObjectivePacket::setDisplayName(const std::string& name) {
+void ScoreboardObjectivePacket::setDisplayName(const std::string& name)
+{
     // 限制显示名称长度
     m_displayName = name.substr(0, std::min(name.length(), MAX_DISPLAY_NAME_LENGTH));
 }
 
-void ScoreboardObjectivePacket::setRenderType(const std::string& type) {
+void ScoreboardObjectivePacket::setRenderType(const std::string& type)
+{
     m_renderType = (type == "hearts") ? "hearts" : "integer";
 }
 
-void ScoreboardObjectivePacket::serialize(PacketSerializer& ser) const {
+void ScoreboardObjectivePacket::serialize(PacketSerializer& ser) const
+{
     ser.writeString(m_objectiveName);
     ser.writeU8(static_cast<u8>(m_action));
 
@@ -42,7 +46,8 @@ void ScoreboardObjectivePacket::serialize(PacketSerializer& ser) const {
     }
 }
 
-Result<UpdateScorePacket> UpdateScorePacket::deserialize(PacketDeserializer& deser) {
+Result<UpdateScorePacket> UpdateScorePacket::deserialize(PacketDeserializer& deser)
+{
     UpdateScorePacket packet;
 
     auto playerNameResult = deser.readString();
@@ -77,10 +82,8 @@ Result<UpdateScorePacket> UpdateScorePacket::deserialize(PacketDeserializer& des
 
 // ========== UpdateScorePacket ==========
 
-UpdateScorePacket::UpdateScorePacket(const std::string& playerName,
-                                     const std::string& objectiveName,
-                                     i32 score,
-                                     ScoreAction action)
+UpdateScorePacket::UpdateScorePacket(
+    const std::string& playerName, const std::string& objectiveName, i32 score, ScoreAction action)
     : m_playerName(playerName)
     , m_objectiveName(objectiveName)
     , m_score(score)
@@ -90,15 +93,18 @@ UpdateScorePacket::UpdateScorePacket(const std::string& playerName,
     setObjectiveName(objectiveName);
 }
 
-void UpdateScorePacket::setPlayerName(const std::string& name) {
+void UpdateScorePacket::setPlayerName(const std::string& name)
+{
     m_playerName = name.substr(0, std::min(name.length(), MAX_NAME_LENGTH));
 }
 
-void UpdateScorePacket::setObjectiveName(const std::string& name) {
+void UpdateScorePacket::setObjectiveName(const std::string& name)
+{
     m_objectiveName = name.substr(0, std::min(name.length(), ScoreboardObjectivePacket::MAX_NAME_LENGTH));
 }
 
-void UpdateScorePacket::serialize(PacketSerializer& ser) const {
+void UpdateScorePacket::serialize(PacketSerializer& ser) const
+{
     ser.writeString(m_playerName);
     ser.writeU8(static_cast<u8>(m_action));
 
@@ -113,7 +119,8 @@ void UpdateScorePacket::serialize(PacketSerializer& ser) const {
     }
 }
 
-Result<ScoreboardObjectivePacket> ScoreboardObjectivePacket::deserialize(PacketDeserializer& deser) {
+Result<ScoreboardObjectivePacket> ScoreboardObjectivePacket::deserialize(PacketDeserializer& deser)
+{
     ScoreboardObjectivePacket packet;
 
     auto nameResult = deser.readString();
@@ -154,21 +161,25 @@ DisplayObjectivePacket::DisplayObjectivePacket(i32 position, const std::string& 
     setPosition(position);
 }
 
-void DisplayObjectivePacket::setPosition(i32 position) {
+void DisplayObjectivePacket::setPosition(i32 position)
+{
     // 限制位置范围（0-18）
     m_position = std::clamp(position, 0, 18);
 }
 
-void DisplayObjectivePacket::setObjectiveName(const std::string& name) {
+void DisplayObjectivePacket::setObjectiveName(const std::string& name)
+{
     m_objectiveName = name.substr(0, std::min(name.length(), ScoreboardObjectivePacket::MAX_NAME_LENGTH));
 }
 
-void DisplayObjectivePacket::serialize(PacketSerializer& ser) const {
+void DisplayObjectivePacket::serialize(PacketSerializer& ser) const
+{
     ser.writeU8(static_cast<u8>(m_position));
     ser.writeString(m_objectiveName);
 }
 
-Result<DisplayObjectivePacket> DisplayObjectivePacket::deserialize(PacketDeserializer& deser) {
+Result<DisplayObjectivePacket> DisplayObjectivePacket::deserialize(PacketDeserializer& deser)
+{
     DisplayObjectivePacket packet;
 
     auto positionResult = deser.readU8();
@@ -195,47 +206,54 @@ TeamsPacket::TeamsPacket(const std::string& teamName, TeamAction action)
     setTeamName(teamName);
 }
 
-void TeamsPacket::setTeamName(const std::string& name) {
+void TeamsPacket::setTeamName(const std::string& name)
+{
     m_teamName = name.substr(0, std::min(name.length(), MAX_NAME_LENGTH));
 }
 
-void TeamsPacket::setDisplayName(const std::string& name) {
+void TeamsPacket::setDisplayName(const std::string& name)
+{
     m_displayName = name.substr(0, std::min(name.length(), MAX_DISPLAY_NAME_LENGTH));
 }
 
-void TeamsPacket::setPrefix(const std::string& prefix) {
+void TeamsPacket::setPrefix(const std::string& prefix)
+{
     m_prefix = prefix.substr(0, std::min(prefix.length(), MAX_PREFIX_SUFFIX_LENGTH));
 }
 
-void TeamsPacket::setSuffix(const std::string& suffix) {
+void TeamsPacket::setSuffix(const std::string& suffix)
+{
     m_suffix = suffix.substr(0, std::min(suffix.length(), MAX_PREFIX_SUFFIX_LENGTH));
 }
 
-void TeamsPacket::setNameTagVisibility(const std::string& visibility) {
+void TeamsPacket::setNameTagVisibility(const std::string& visibility)
+{
     // 验证可见性值
-    if (visibility == "always" || visibility == "never" ||
-        visibility == "hideForOtherTeams" || visibility == "hideForOwnTeam") {
+    if (visibility == "always" || visibility == "never" || visibility == "hideForOtherTeams" ||
+        visibility == "hideForOwnTeam") {
         m_nameTagVisibility = visibility;
     } else {
         m_nameTagVisibility = "always";
     }
 }
 
-void TeamsPacket::setCollisionRule(const std::string& rule) {
+void TeamsPacket::setCollisionRule(const std::string& rule)
+{
     // 验证碰撞规则值
-    if (rule == "always" || rule == "never" ||
-        rule == "pushOtherTeams" || rule == "pushOwnTeam") {
+    if (rule == "always" || rule == "never" || rule == "pushOtherTeams" || rule == "pushOwnTeam") {
         m_collisionRule = rule;
     } else {
         m_collisionRule = "always";
     }
 }
 
-void TeamsPacket::setColor(const std::string& color) {
+void TeamsPacket::setColor(const std::string& color)
+{
     m_color = color;
 }
 
-void TeamsPacket::setAllowFriendlyFire(bool allow) noexcept {
+void TeamsPacket::setAllowFriendlyFire(bool allow) noexcept
+{
     if (allow) {
         m_friendlyFlags |= 0x01;
     } else {
@@ -243,7 +261,8 @@ void TeamsPacket::setAllowFriendlyFire(bool allow) noexcept {
     }
 }
 
-void TeamsPacket::setSeeFriendlyInvisibles(bool see) noexcept {
+void TeamsPacket::setSeeFriendlyInvisibles(bool see) noexcept
+{
     if (see) {
         m_friendlyFlags |= 0x02;
     } else {
@@ -251,7 +270,8 @@ void TeamsPacket::setSeeFriendlyInvisibles(bool see) noexcept {
     }
 }
 
-void TeamsPacket::setPlayers(const std::vector<std::string>& players) {
+void TeamsPacket::setPlayers(const std::vector<std::string>& players)
+{
     m_players = players;
     // 限制每个玩家名称长度
     for (auto& player : m_players) {
@@ -259,7 +279,8 @@ void TeamsPacket::setPlayers(const std::vector<std::string>& players) {
     }
 }
 
-void TeamsPacket::serialize(PacketSerializer& ser) const {
+void TeamsPacket::serialize(PacketSerializer& ser) const
+{
     ser.writeString(m_teamName);
     ser.writeU8(static_cast<u8>(m_action));
 
@@ -281,7 +302,8 @@ void TeamsPacket::serialize(PacketSerializer& ser) const {
     }
 }
 
-Result<TeamsPacket> TeamsPacket::deserialize(PacketDeserializer& deser) {
+Result<TeamsPacket> TeamsPacket::deserialize(PacketDeserializer& deser)
+{
     TeamsPacket packet;
 
     auto nameResult = deser.readString();
@@ -340,7 +362,8 @@ Result<TeamsPacket> TeamsPacket::deserialize(PacketDeserializer& deser) {
         packet.m_color = colorResult.value();
     }
 
-    if (packet.m_action == TeamAction::Create || packet.m_action == TeamAction::AddMember || packet.m_action == TeamAction::RemoveMember) {
+    if (packet.m_action == TeamAction::Create || packet.m_action == TeamAction::AddMember ||
+        packet.m_action == TeamAction::RemoveMember) {
         auto countResult = deser.readVarInt();
         if (countResult.failed()) {
             return countResult.error();

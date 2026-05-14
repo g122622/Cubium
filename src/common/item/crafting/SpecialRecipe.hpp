@@ -29,7 +29,8 @@ public:
      * @param id 配方ID
      */
     explicit SpecialRecipe(const ResourceLocation& id)
-        : m_id(id) {}
+        : m_id(id)
+    {}
 
     ~SpecialRecipe() override = default;
 
@@ -70,7 +71,8 @@ public:
      * @brief 获取原料列表
      * @return 空列表（特殊配方没有固定的原料列表）
      */
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override {
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override
+    {
         static const std::vector<Ingredient> empty;
         return empty;
     }
@@ -79,7 +81,8 @@ public:
      * @brief 获取配方分组
      * @return 空字符串（特殊配方不使用分组）
      */
-    [[nodiscard]] const std::string& getGroup() const override {
+    [[nodiscard]] const std::string& getGroup() const override
+    {
         static const std::string empty;
         return empty;
     }
@@ -90,7 +93,8 @@ public:
      * @param height 网格高度
      * @return 默认返回 true（特殊配方通常可以在任何尺寸的网格中制作）
      */
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override {
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override
+    {
         (void)width;
         (void)height;
         return true;

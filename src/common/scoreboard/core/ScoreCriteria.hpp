@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ScoreCriteriaRenderType.hpp"
 #include "../../core/Result.hpp"
 #include "../../util/assert/AssertMacros.hpp"
-#include <string>
+#include "ScoreCriteriaRenderType.hpp"
 #include <memory>
-#include <vector>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::scoreboard {
 
@@ -66,9 +66,7 @@ public:
      *
      * @return 默认渲染类型
      */
-    [[nodiscard]] virtual RenderType getDefaultRenderType() const noexcept {
-        return RenderType::Integer;
-    }
+    [[nodiscard]] virtual RenderType getDefaultRenderType() const noexcept { return RenderType::Integer; }
 
     /**
      * @brief 分数变更时调用
@@ -79,7 +77,8 @@ public:
      * @param score 分数对象
      * @param oldScore 变更前的分数值
      */
-    virtual void onScoreChanged(Score& score, i32 oldScore) {
+    virtual void onScoreChanged(Score& score, i32 oldScore)
+    {
         MC_UNUSED(score);
         MC_UNUSED(oldScore);
     }
@@ -93,7 +92,8 @@ public:
      * @param playerName 玩家名称
      * @param scoreboard 记分板
      */
-    virtual void onPlayerDeath(const std::string& playerName, Scoreboard& scoreboard) {
+    virtual void onPlayerDeath(const std::string& playerName, Scoreboard& scoreboard)
+    {
         MC_UNUSED(playerName);
         MC_UNUSED(scoreboard);
     }
@@ -108,10 +108,9 @@ public:
      * @param isPlayer 受害者是否为玩家
      * @param scoreboard 记分板
      */
-    virtual void onPlayerKill(const std::string& playerName,
-                              const std::string& victimType,
-                              bool isPlayer,
-                              Scoreboard& scoreboard) {
+    virtual void onPlayerKill(
+        const std::string& playerName, const std::string& victimType, bool isPlayer, Scoreboard& scoreboard)
+    {
         MC_UNUSED(playerName);
         MC_UNUSED(victimType);
         MC_UNUSED(isPlayer);
@@ -128,10 +127,9 @@ public:
      * @param isPlayer 击杀者是否为玩家
      * @param scoreboard 记分板
      */
-    virtual void onPlayerKilled(const std::string& playerName,
-                                const std::string& killerType,
-                                bool isPlayer,
-                                Scoreboard& scoreboard) {
+    virtual void onPlayerKilled(
+        const std::string& playerName, const std::string& killerType, bool isPlayer, Scoreboard& scoreboard)
+    {
         MC_UNUSED(playerName);
         MC_UNUSED(killerType);
         MC_UNUSED(isPlayer);
@@ -146,7 +144,8 @@ public:
      * @param playerName 玩家名称
      * @param scoreboard 记分板
      */
-    virtual void onPlayerTick(const std::string& playerName, Scoreboard& scoreboard) {
+    virtual void onPlayerTick(const std::string& playerName, Scoreboard& scoreboard)
+    {
         MC_UNUSED(playerName);
         MC_UNUSED(scoreboard);
     }

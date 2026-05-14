@@ -1,17 +1,17 @@
 #include "CloudRenderer.hpp"
-#include "../util/VulkanUtils.hpp"
-#include "../../util/ShaderPath.hpp"
 #include "../../../resource/ResourceManager.hpp"
+#include "../../util/ShaderPath.hpp"
+#include "../util/VulkanUtils.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/perfetto/TraceEvents.hpp"
-#include <spdlog/spdlog.h>
-#include <glm/gtc/matrix_transform.hpp>
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
-#include <array>
 #include <vector>
+#include <glm/gtc/matrix_transform.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::cloud {
 
@@ -43,7 +43,8 @@ constexpr i32 CLOUD_GRID_MIN = -32;
 constexpr i32 CLOUD_GRID_MAX = 32;
 
 // 取模到 [0, mod-1]
-[[nodiscard]] i32 positiveModulo(i32 value, i32 mod) {
+[[nodiscard]] i32 positiveModulo(i32 value, i32 mod)
+{
     if (mod <= 0) {
         return 0;
     }
@@ -51,7 +52,8 @@ constexpr i32 CLOUD_GRID_MAX = 32;
     return (r < 0) ? (r + mod) : r;
 }
 
-Result<std::vector<u8>> readBinaryFile(const char* path) {
+Result<std::vector<u8>> readBinaryFile(const char* path)
+{
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         return Error(ErrorCode::FileNotFound, "Failed to open shader file: " + std::string(path));
@@ -73,7 +75,8 @@ Result<std::vector<u8>> readBinaryFile(const char* path) {
     return data;
 }
 
-Result<VkShaderModule> createShaderModule(VkDevice device, const char* path) {
+Result<VkShaderModule> createShaderModule(VkDevice device, const char* path)
+{
     auto codeResult = readBinaryFile(path);
     if (codeResult.failed()) {
         return codeResult.error();
@@ -92,8 +95,7 @@ Result<VkShaderModule> createShaderModule(VkDevice device, const char* path) {
     VkShaderModule shaderModule = VK_NULL_HANDLE;
     const VkResult result = vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to create shader module: " + std::string(path));
+        return Error(ErrorCode::InitializationFailed, "Failed to create shader module: " + std::string(path));
     }
 
     return shaderModule;
@@ -109,13 +111,11 @@ Result<VkShaderModule> createShaderModule(VkDevice device, const char* path) {
  * @brief 云顶点结构
  */
 struct CloudVertex {
-    f32 x, y, z;       // 位置
-    f32 u, v;          // 纹理坐标
-    f32 nx, ny, nz;    // 法线
+    f32 x, y, z;    // 位置
+    f32 u, v;       // 纹理坐标
+    f32 nx, ny, nz; // 法线
 
-    CloudVertex(f64 px, f64 py, f64 pz,
-                f64 tu, f64 tv,
-                f64 pnx, f64 pny, f64 pnz)
+    CloudVertex(f64 px, f64 py, f64 pz, f64 tu, f64 tv, f64 pnx, f64 pny, f64 pnz)
         : x(static_cast<f32>(px))
         , y(static_cast<f32>(py))
         , z(static_cast<f32>(pz))
@@ -123,7 +123,8 @@ struct CloudVertex {
         , v(static_cast<f32>(tv))
         , nx(static_cast<f32>(pnx))
         , ny(static_cast<f32>(pny))
-        , nz(static_cast<f32>(pnz)) {}
+        , nz(static_cast<f32>(pnz))
+    {}
 };
 
 // ============================================================================
@@ -132,7 +133,8 @@ struct CloudVertex {
 
 CloudRenderer::CloudRenderer() = default;
 
-CloudRenderer::~CloudRenderer() {
+CloudRenderer::~CloudRenderer()
+{
     destroy();
 }
 
@@ -175,7 +177,8 @@ CloudRenderer::CloudRenderer(CloudRenderer&& other) noexcept
     other.m_initialized = false;
 }
 
-CloudRenderer& CloudRenderer::operator=(CloudRenderer&& other) noexcept {
+CloudRenderer& CloudRenderer::operator=(CloudRenderer&& other) noexcept
+{
     if (this != &other) {
         destroy();
 
@@ -222,15 +225,15 @@ CloudRenderer& CloudRenderer::operator=(CloudRenderer&& other) noexcept {
 // 初始化
 // ============================================================================
 
-Result<void> CloudRenderer::initialize(
-    VkDevice device,
+Result<void> CloudRenderer::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
     VkExtent2D extent,
     VkSampleCountFlagBits sampleCount,
-    const ResourceManager* resourceManager) {
+    const ResourceManager* resourceManager)
+{
     if (m_initialized) {
         return Result<void>::ok();
     }
@@ -289,7 +292,8 @@ Result<void> CloudRenderer::initialize(
     return Result<void>::ok();
 }
 
-void CloudRenderer::destroy() {
+void CloudRenderer::destroy()
+{
     if (m_device == VK_NULL_HANDLE) return;
 
     VkDevice device = m_device;
@@ -377,12 +381,14 @@ void CloudRenderer::destroy() {
     spdlog::debug("CloudRenderer destroyed");
 }
 
-Result<void> CloudRenderer::onResize(VkExtent2D extent) {
+Result<void> CloudRenderer::onResize(VkExtent2D extent)
+{
     m_extent = extent;
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::reloadTexture(const ResourceManager* resourceManager) {
+Result<void> CloudRenderer::reloadTexture(const ResourceManager* resourceManager)
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "CloudRenderer is not initialized");
     }
@@ -407,8 +413,8 @@ Result<void> CloudRenderer::reloadTexture(const ResourceManager* resourceManager
 // 更新与渲染
 // ============================================================================
 
-void CloudRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
-                           f64 cloudHeight, const glm::vec4& cloudColor) {
+void CloudRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick, f64 cloudHeight, const glm::vec4& cloudColor)
+{
     m_dayTime = dayTime;
     m_gameTime = gameTime;
     m_partialTick = partialTick;
@@ -449,11 +455,12 @@ void CloudRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
 }
 
 void CloudRenderer::render(VkCommandBuffer cmd,
-                           const glm::mat4& projection,
-                           const glm::mat4& view,
-                           const glm::vec3& cameraPos,
-                           CloudMode mode,
-                           u32 frameIndex) {
+    const glm::mat4& projection,
+    const glm::mat4& view,
+    const glm::vec3& cameraPos,
+    CloudMode mode,
+    u32 frameIndex)
+{
     if (!m_initialized || mode == CloudMode::Off || std::isnan(m_cloudHeight)) {
         return;
     }
@@ -534,9 +541,8 @@ void CloudRenderer::render(VkCommandBuffer cmd,
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     // 绑定描述符集
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayout, 0, 1,
-                            &m_descriptorSets[frameIndex], 0, nullptr);
+    vkCmdBindDescriptorSets(
+        cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[frameIndex], 0, nullptr);
 
     // 绑定顶点缓冲区
     VkDeviceSize offsets[] = {0};
@@ -561,8 +567,7 @@ void CloudRenderer::render(VkCommandBuffer cmd,
     model = glm::translate(model, glm::vec3(-fracX, f4, -fracZ));
 
     glm::mat4 mvp = viewProjection * model;
-    vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-                       0, sizeof(glm::mat4), &mvp);
+    vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mvp);
 
     // 绘制
     vkCmdDraw(cmd, vertexCount, 1, 0, 0);
@@ -572,7 +577,8 @@ void CloudRenderer::render(VkCommandBuffer cmd,
 // 资源创建
 // ============================================================================
 
-Result<void> CloudRenderer::createCloudVBO() {
+Result<void> CloudRenderer::createCloudVBO()
+{
     if (m_fastVBO != VK_NULL_HANDLE) {
         vkDestroyBuffer(m_device, m_fastVBO, nullptr);
         m_fastVBO = VK_NULL_HANDLE;
@@ -683,10 +689,10 @@ Result<void> CloudRenderer::createCloudVBO() {
         // 创建缓冲区
         VkDeviceSize bufferSize = sizeof(CloudVertex) * vertices.size();
         auto result = createBuffer(bufferSize,
-                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    m_fastVBO, m_fastVBOMemory);
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            m_fastVBO,
+            m_fastVBOMemory);
         if (result.failed()) {
             return result;
         }
@@ -854,10 +860,10 @@ Result<void> CloudRenderer::createCloudVBO() {
         // 创建缓冲区
         VkDeviceSize bufferSize = sizeof(CloudVertex) * vertices.size();
         auto result = createBuffer(bufferSize,
-                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    m_fancyVBO, m_fancyVBOMemory);
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            m_fancyVBO,
+            m_fancyVBOMemory);
         if (result.failed()) {
             return result;
         }
@@ -873,11 +879,16 @@ Result<void> CloudRenderer::createCloudVBO() {
     }
 
     spdlog::debug("Cloud VBO created: Fast={} vertices, Fancy={} vertices (grid: {}, {}, {})",
-                  m_fastVertexCount, m_fancyVertexCount, gridOffsetX, gridOffsetY, gridOffsetZ);
+        m_fastVertexCount,
+        m_fancyVertexCount,
+        gridOffsetX,
+        gridOffsetY,
+        gridOffsetZ);
     return Result<void>::ok();
 }
 
-std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height) {
+std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height)
+{
     std::vector<u8> data(width * height * 4); // RGBA
 
     // 使用 Perlin 噪声生成云图案
@@ -923,9 +934,9 @@ std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height) {
             alpha = std::clamp(alpha + dither, 0.0, 1.0);
 
             u32 idx = (y * width + x) * 4;
-            data[idx + 0] = 255; // R
-            data[idx + 1] = 255; // G
-            data[idx + 2] = 255; // B
+            data[idx + 0] = 255;                             // R
+            data[idx + 1] = 255;                             // G
+            data[idx + 2] = 255;                             // B
             data[idx + 3] = static_cast<u8>(alpha * 255.0f); // A
         }
     }
@@ -933,7 +944,8 @@ std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height) {
     return data;
 }
 
-void CloudRenderer::buildCloudMaskFromTexture(const std::vector<u8>& textureData, u32 width, u32 height) {
+void CloudRenderer::buildCloudMaskFromTexture(const std::vector<u8>& textureData, u32 width, u32 height)
+{
     m_cloudMaskWidth = width;
     m_cloudMaskHeight = height;
     m_cloudMask.assign(static_cast<size_t>(width) * static_cast<size_t>(height), 0);
@@ -984,7 +996,8 @@ void CloudRenderer::buildCloudMaskFromTexture(const std::vector<u8>& textureData
     m_cloudMask.swap(smoothedMask);
 }
 
-bool CloudRenderer::isCloudCellOpaque(i32 gridX, i32 gridZ) const {
+bool CloudRenderer::isCloudCellOpaque(i32 gridX, i32 gridZ) const
+{
     if (m_cloudMask.empty() || m_cloudMaskWidth == 0 || m_cloudMaskHeight == 0) {
         return true;
     }
@@ -995,7 +1008,8 @@ bool CloudRenderer::isCloudCellOpaque(i32 gridX, i32 gridZ) const {
     return m_cloudMask[idx] != 0;
 }
 
-Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager) {
+Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager)
+{
     // 若已有纹理资源，先释放，避免重建时泄漏。
     if (m_textureSampler != VK_NULL_HANDLE) {
         vkDestroySampler(m_device, m_textureSampler, nullptr);
@@ -1026,10 +1040,12 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
             textureWidth = loadResult.value().width;
             textureHeight = loadResult.value().height;
             spdlog::info("Cloud texture loaded from resource pack: {} ({}x{})",
-                         cloudTextureLocation.toString(), textureWidth, textureHeight);
+                cloudTextureLocation.toString(),
+                textureWidth,
+                textureHeight);
         } else {
             spdlog::warn("Failed to load cloud texture from resource packs: {}. Falling back to procedural texture.",
-                         loadResult.error().toString());
+                loadResult.error().toString());
         }
     }
 
@@ -1050,10 +1066,10 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
 
     auto result = createBuffer(imageSize,
-                                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                stagingBuffer, stagingMemory);
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingMemory);
     if (result.failed()) {
         return result;
     }
@@ -1096,8 +1112,7 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(m_device, m_textureImage, &memReqs);
 
-    auto memTypeResult = findMemoryType(memReqs.memoryTypeBits,
-                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = findMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
         vkFreeMemory(m_device, stagingMemory, nullptr);
@@ -1137,8 +1152,8 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                          VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(
+        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     // 复制缓冲区到图像
     VkBufferImageCopy region{};
@@ -1152,8 +1167,7 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {textureWidth, textureHeight, 1};
 
-    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_textureImage,
-                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // 转换为着色器只读
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -1161,8 +1175,16 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     endSingleTimeCommands(cmd);
 
@@ -1215,7 +1237,8 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     return Result<void>::ok();
 }
 
-void CloudRenderer::updateTextureDescriptors() {
+void CloudRenderer::updateTextureDescriptors()
+{
     if (m_descriptorPool == VK_NULL_HANDLE) {
         return;
     }
@@ -1239,15 +1262,16 @@ void CloudRenderer::updateTextureDescriptors() {
     }
 }
 
-Result<void> CloudRenderer::createUniformBuffers() {
+Result<void> CloudRenderer::createUniformBuffers()
+{
     VkDeviceSize bufferSize = sizeof(CloudUBO);
 
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         auto result = createBuffer(bufferSize,
-                                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    m_uniformBuffers[i], m_uniformBuffersMemory[i]);
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            m_uniformBuffers[i],
+            m_uniformBuffersMemory[i]);
         if (result.failed()) {
             return result;
         }
@@ -1263,7 +1287,8 @@ Result<void> CloudRenderer::createUniformBuffers() {
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createDescriptorSetLayout() {
+Result<void> CloudRenderer::createDescriptorSetLayout()
+{
     // 绑定 0: 纹理采样器
     // 绑定 1: Uniform 缓冲区
     std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
@@ -1287,8 +1312,7 @@ Result<void> CloudRenderer::createDescriptorSetLayout() {
     layoutInfo.bindingCount = static_cast<u32>(bindings.size());
     layoutInfo.pBindings = bindings.data();
 
-    VkResult result = vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr,
-                                                   &m_descriptorSetLayout);
+    VkResult result = vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout);
     if (result != VK_SUCCESS) {
         return Error(ErrorCode::InitializationFailed, "Failed to create cloud descriptor set layout");
     }
@@ -1296,7 +1320,8 @@ Result<void> CloudRenderer::createDescriptorSetLayout() {
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createDescriptorSets() {
+Result<void> CloudRenderer::createDescriptorSets()
+{
     // 创建描述符池
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1316,9 +1341,7 @@ Result<void> CloudRenderer::createDescriptorSets() {
     }
 
     // 分配描述符集
-    std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts{
-        m_descriptorSetLayout, m_descriptorSetLayout
-    };
+    std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts{m_descriptorSetLayout, m_descriptorSetLayout};
 
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1363,14 +1386,15 @@ Result<void> CloudRenderer::createDescriptorSets() {
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pBufferInfo = &bufferInfo;
 
-        vkUpdateDescriptorSets(m_device, static_cast<u32>(descriptorWrites.size()),
-                               descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            m_device, static_cast<u32>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createPipelineLayout() {
+Result<void> CloudRenderer::createPipelineLayout()
+{
     // 推送常量：视图-投影矩阵
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1392,7 +1416,8 @@ Result<void> CloudRenderer::createPipelineLayout() {
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
+Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
+{
     // 加载着色器
     const auto vertPath = resolveShaderPath("cloud.vert.spv");
     const auto fragPath = resolveShaderPath("cloud.frag.spv");
@@ -1505,10 +1530,8 @@ Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
 
     // 颜色混合（Alpha 混合）
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                                           VK_COLOR_COMPONENT_G_BIT |
-                                           VK_COLOR_COMPONENT_B_BIT |
-                                           VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_TRUE;
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -1524,10 +1547,7 @@ Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
     colorBlending.pAttachments = &colorBlendAttachment;
 
     // 动态状态
-    std::array<VkDynamicState, 2> dynamicStates = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
+    std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -1552,8 +1572,8 @@ Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
         pipelineInfo.renderPass = m_renderPass;
         pipelineInfo.subpass = 0;
 
-        VkResult result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1,
-                                                     &pipelineInfo, nullptr, &m_fastPipeline);
+        VkResult result =
+            vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_fastPipeline);
         if (result != VK_SUCCESS) {
             vkDestroyShaderModule(m_device, vertShader, nullptr);
             vkDestroyShaderModule(m_device, fragShader, nullptr);
@@ -1579,8 +1599,8 @@ Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
         pipelineInfo.renderPass = m_renderPass;
         pipelineInfo.subpass = 0;
 
-        VkResult result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1,
-                                                     &pipelineInfo, nullptr, &m_fancyPipeline);
+        VkResult result =
+            vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_fancyPipeline);
         if (result != VK_SUCCESS) {
             vkDestroyShaderModule(m_device, vertShader, nullptr);
             vkDestroyShaderModule(m_device, fragShader, nullptr);
@@ -1596,7 +1616,8 @@ Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
     return Result<void>::ok();
 }
 
-void CloudRenderer::updateUniformBuffer(u32 frameIndex) {
+void CloudRenderer::updateUniformBuffer(u32 frameIndex)
+{
     // 计算纹理偏移（基于相机整数网格坐标）
     // 参考 MC 1.16.5: f3 = floor(cloudsX) * 0.00390625F
     // 其中 cloudsX = (viewEntityX + animOffset) / 12.0
@@ -1626,7 +1647,8 @@ void CloudRenderer::updateUniformBuffer(u32 frameIndex) {
     }
 }
 
-void CloudRenderer::updateCloudMesh(CloudMode mode) {
+void CloudRenderer::updateCloudMesh(CloudMode mode)
+{
     // 云网格在初始化时已创建，这里可以用于动态更新
     // 目前不需要，因为云网格是静态的
     m_cloudMeshDirty = false;
@@ -1636,13 +1658,13 @@ void CloudRenderer::updateCloudMesh(CloudMode mode) {
 // Vulkan 辅助函数
 // ============================================================================
 
-Result<u32> CloudRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> CloudRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
 
     for (u32 i = 0; i < memProperties.memoryTypeCount; ++i) {
-        if ((typeFilter & (1 << i)) &&
-            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
         }
     }
@@ -1651,10 +1673,11 @@ Result<u32> CloudRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags 
 }
 
 Result<void> CloudRenderer::createBuffer(VkDeviceSize size,
-                                          VkBufferUsageFlags usage,
-                                          VkMemoryPropertyFlags properties,
-                                          VkBuffer& buffer,
-                                          VkDeviceMemory& memory) {
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer& buffer,
+    VkDeviceMemory& memory)
+{
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
@@ -1690,7 +1713,8 @@ Result<void> CloudRenderer::createBuffer(VkDeviceSize size,
     return Result<void>::ok();
 }
 
-VkCommandBuffer CloudRenderer::beginSingleTimeCommands() {
+VkCommandBuffer CloudRenderer::beginSingleTimeCommands()
+{
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -1708,7 +1732,8 @@ VkCommandBuffer CloudRenderer::beginSingleTimeCommands() {
     return commandBuffer;
 }
 
-void CloudRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void CloudRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
 #include "../../model/animal/WolfModel.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class WolfEntity;
@@ -17,7 +17,7 @@ class WolfEntity;
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 struct EntityMesh;
-}
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity::layer::entity {
 
@@ -36,26 +36,22 @@ public:
     /**
      * @brief 渲染项圈层（GPU管线路径）
      */
-    void renderPipeline(
-        ::mc::WolfEntity& entity,
+    void renderPipeline(::mc::WolfEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染项圈层（CPU路径 - 已废弃）
      */
-    void render(
-        ::mc::WolfEntity& entity,
+    void render(::mc::WolfEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override;
+        f32 scale) override;
 
     /**
      * @brief 检查是否应该渲染项圈
@@ -73,10 +69,7 @@ private:
     /**
      * @brief 构建项圈网格
      */
-    void buildCollarMesh(
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+    void buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建项圈网格

@@ -2,8 +2,8 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include <memory>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -57,8 +57,8 @@ public:
      * @param height 高度（Z 方向）
      * @param output 输出数组（大小必须 >= width * height）
      */
-    virtual void getValuesBatch(i32 startX, i32 startZ, i32 width, i32 height,
-                                 i32* output) const {
+    virtual void getValuesBatch(i32 startX, i32 startZ, i32 width, i32 height, i32* output) const
+    {
         // 默认实现：循环调用 getValue
         if (output == nullptr || width <= 0 || height <= 0) {
             return;
@@ -159,9 +159,8 @@ public:
      * @param input2 第二个输入区域（将被持有）
      * @return 延迟区域
      */
-    [[nodiscard]] virtual std::unique_ptr<IArea> makeArea(PixelFunc pixelFunc,
-                                                          std::unique_ptr<IArea> input1,
-                                                          std::unique_ptr<IArea> input2) = 0;
+    [[nodiscard]] virtual std::unique_ptr<IArea> makeArea(
+        PixelFunc pixelFunc, std::unique_ptr<IArea> input1, std::unique_ptr<IArea> input2) = 0;
 };
 
 // ============================================================================
@@ -254,8 +253,7 @@ public:
      * @return 区域工厂
      */
     [[nodiscard]] virtual std::unique_ptr<class IAreaFactory> apply(
-        IExtendedAreaContext& context,
-        std::unique_ptr<class IAreaFactory> input) = 0;
+        IExtendedAreaContext& context, std::unique_ptr<class IAreaFactory> input) = 0;
 };
 
 // ============================================================================
@@ -288,10 +286,7 @@ public:
      * @param z Z 坐标
      * @return 变换后的值
      */
-    [[nodiscard]] virtual i32 apply(IAreaContext& ctx,
-                                    const IArea& area1,
-                                    const IArea& area2,
-                                    i32 x, i32 z) = 0;
+    [[nodiscard]] virtual i32 apply(IAreaContext& ctx, const IArea& area1, const IArea& area2, i32 x, i32 z) = 0;
 
     /**
      * @brief 获取 X 偏移量（用于采样）
@@ -314,8 +309,7 @@ public:
      * @param input2 第二个输入工厂
      * @return 区域工厂
      */
-    [[nodiscard]] virtual std::unique_ptr<class IAreaFactory> apply(
-        IExtendedAreaContext& context,
+    [[nodiscard]] virtual std::unique_ptr<class IAreaFactory> apply(IExtendedAreaContext& context,
         std::unique_ptr<class IAreaFactory> input1,
         std::unique_ptr<class IAreaFactory> input2) = 0;
 };
@@ -367,15 +361,12 @@ public:
      */
     explicit SharedFactory(std::unique_ptr<IAreaFactory> factory)
         : m_factory(std::move(factory))
-    {
-    }
+    {}
 
     /**
      * @brief 创建区域（调用底层工厂的 create）
      */
-    [[nodiscard]] std::unique_ptr<IArea> create() const override {
-        return m_factory->create();
-    }
+    [[nodiscard]] std::unique_ptr<IArea> create() const override { return m_factory->create(); }
 
     /**
      * @brief 创建一个引用相同底层工厂的新 SharedFactory
@@ -383,7 +374,8 @@ public:
      * 这允许在需要 unique_ptr 的 API 中共享工厂。
      * 注意：返回的工厂与原始工厂共享相同的底层工厂实例。
      */
-    [[nodiscard]] std::unique_ptr<SharedFactory> share() const {
+    [[nodiscard]] std::unique_ptr<SharedFactory> share() const
+    {
         // 创建一个新的 SharedFactory，共享同一个底层工厂
         // 这里使用 const_cast 是安全的，因为我们只需要读取访问
         return std::unique_ptr<SharedFactory>(new SharedFactory(m_factory));
@@ -393,8 +385,7 @@ private:
     // 私有构造函数，用于 share() 方法
     explicit SharedFactory(std::shared_ptr<IAreaFactory> factory)
         : m_factory(std::move(factory))
-    {
-    }
+    {}
 
     std::shared_ptr<IAreaFactory> m_factory;
 };

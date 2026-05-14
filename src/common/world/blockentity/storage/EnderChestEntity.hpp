@@ -102,10 +102,10 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 private:
-    f32 m_lidAngle = 0.0f;      ///< 当前盖子角度 (0-1)
-    f32 m_prevLidAngle = 0.0f;   ///< 上一帧盖子角度
-    i32 m_openCount = 0;         ///< 打开计数
-    i32 m_ticksSinceSync = 0;    ///< 同步计数器
+    f32 m_lidAngle = 0.0f;     ///< 当前盖子角度 (0-1)
+    f32 m_prevLidAngle = 0.0f; ///< 上一帧盖子角度
+    i32 m_openCount = 0;       ///< 打开计数
+    i32 m_ticksSinceSync = 0;  ///< 同步计数器
 };
 
 } // namespace blockentity

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../../FeatureSpread.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../chunk/ChunkPos.hpp"
+#include "../../FeatureSpread.hpp"
 #include "../trunk/TrunkPlacer.hpp"
-#include <vector>
-#include <set>
 #include <memory>
+#include <set>
+#include <vector>
 
 namespace mc {
 
@@ -45,16 +45,14 @@ public:
      * @param foliageBlock 树叶方块状态
      * @param outFoliageBlocks 输出参数，放置的树叶方块位置集合
      */
-    void placeFoliage(
-        WorldGenRegion& world,
+    void placeFoliage(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const std::vector<FoliagePosition>& foliagePositions,
         const std::set<BlockPos>& trunkBlocks,
         i32 trunkOffset,
         const BlockState* foliageBlock,
-        std::set<BlockPos>& outFoliageBlocks
-    );
+        std::set<BlockPos>& outFoliageBlocks);
 
     /**
      * @brief 获取树叶高度
@@ -88,16 +86,14 @@ protected:
      * @param trunkTop 是否是树干顶部
      * @param foliageBlock 树叶方块状态
      */
-    void placeFoliageLayer(
-        WorldGenRegion& world,
+    void placeFoliageLayer(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& centerPos,
         i32 radius,
         std::set<BlockPos>& foliageBlocks,
         i32 y,
         bool trunkTop,
-        const BlockState* foliageBlock
-    );
+        const BlockState* foliageBlock);
 
     /**
      * @brief 检查是否应该跳过该位置的树叶
@@ -111,19 +107,14 @@ protected:
      * @return 是否跳过
      */
     [[nodiscard]] virtual bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const;
 
     /**
      * @brief 内部放置树叶
      *
      * 由 placeFoliage 调用，子类实现具体逻辑。
      */
-    virtual void placeFoliageInternal(
-        WorldGenRegion& world,
+    virtual void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -131,8 +122,7 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) = 0;
+        const BlockState* foliageBlock) = 0;
 
     FeatureSpread m_radius;
     FeatureSpread m_offset;

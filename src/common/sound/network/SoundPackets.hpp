@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundTypes.hpp"
 #include "common/world/block/BlockPos.hpp"
 
-#include <glm/glm.hpp>
 #include <optional>
+#include <glm/glm.hpp>
 
 namespace mc::sound {
 
@@ -56,11 +56,8 @@ public:
      * @param volume 音量倍率（0.0-1.0，可超过1.0用于增大衰减距离）
      * @param pitch 音调倍率（0.5-2.0）
      */
-    PlaySoundPacket(const ResourceLocation& soundEventId,
-                    SoundCategory category,
-                    const glm::vec3& position,
-                    f32 volume,
-                    f32 pitch);
+    PlaySoundPacket(
+        const ResourceLocation& soundEventId, SoundCategory category, const glm::vec3& position, f32 volume, f32 pitch);
 
     // ========================================================================
     // Packet 接口实现
@@ -121,7 +118,7 @@ public:
 private:
     ResourceLocation m_soundEventId;
     SoundCategory m_category = SoundCategory::Master;
-    i32 m_x = 0;    // 定点整数（实际值 * 8）
+    i32 m_x = 0; // 定点整数（实际值 * 8）
     i32 m_y = 0;
     i32 m_z = 0;
     f32 m_volume = 1.0f;
@@ -166,8 +163,7 @@ public:
      *
      * @note 如果两者都为 nullopt，则停止所有声音
      */
-    StopSoundPacket(const std::optional<ResourceLocation>& soundEventId,
-                    const std::optional<SoundCategory>& category);
+    StopSoundPacket(const std::optional<ResourceLocation>& soundEventId, const std::optional<SoundCategory>& category);
 
     /**
      * @brief 构造停止特定声音事件的包
@@ -208,9 +204,7 @@ public:
     /**
      * @brief 检查是否停止所有声音
      */
-    [[nodiscard]] bool isStopAll() const noexcept {
-        return !m_soundEventId.has_value() && !m_category.has_value();
-    }
+    [[nodiscard]] bool isStopAll() const noexcept { return !m_soundEventId.has_value() && !m_category.has_value(); }
 
 private:
     std::optional<ResourceLocation> m_soundEventId;
@@ -241,11 +235,8 @@ public:
      * @param volume 音量倍率
      * @param pitch 音调倍率
      */
-    PlaySoundEffectPacket(const ResourceLocation& soundEventId,
-                          SoundCategory category,
-                          const glm::vec3& position,
-                          f32 volume,
-                          f32 pitch);
+    PlaySoundEffectPacket(
+        const ResourceLocation& soundEventId, SoundCategory category, const glm::vec3& position, f32 volume, f32 pitch);
 
     // ========================================================================
     // Packet 接口实现
@@ -314,11 +305,8 @@ public:
      * @param volume 音量倍率（0.0-1.0，可超过1.0）
      * @param pitch 音调倍率（0.5-2.0）
      */
-    MovingSoundPacket(const ResourceLocation& soundEventId,
-                      SoundCategory category,
-                      i32 entityId,
-                      f32 volume,
-                      f32 pitch);
+    MovingSoundPacket(
+        const ResourceLocation& soundEventId, SoundCategory category, i32 entityId, f32 volume, f32 pitch);
 
     // ========================================================================
     // Packet 接口实现

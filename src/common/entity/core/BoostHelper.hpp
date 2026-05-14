@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "DataParameter.hpp"
 #include "EntityDataManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <memory>
 
 namespace mc {
 
 // Forward declarations
-class MobEntity;  // MobEntity 定义在 mc 命名空间，不是 mc::entity
+class MobEntity; // MobEntity 定义在 mc 命名空间，不是 mc::entity
 
 /**
  * @brief 加速辅助类
@@ -41,8 +41,8 @@ public:
      * @param saddledParam 鞍状态数据参数
      */
     BoostHelper(entity::EntityDataManager& manager,
-                entity::DataParameter<i32> boostTimeParam,
-                entity::DataParameter<bool> saddledParam)
+        entity::DataParameter<i32> boostTimeParam,
+        entity::DataParameter<bool> saddledParam)
         : m_manager(&manager)
         , m_boostTimeParam(boostTimeParam)
         , m_saddledParam(saddledParam)
@@ -56,8 +56,9 @@ public:
      * @param saddledParam 鞍状态数据参数
      */
     void init(entity::EntityDataManager& manager,
-              entity::DataParameter<i32> boostTimeParam,
-              entity::DataParameter<bool> saddledParam) {
+        entity::DataParameter<i32> boostTimeParam,
+        entity::DataParameter<bool> saddledParam)
+    {
         m_manager = &manager;
         m_boostTimeParam = boostTimeParam;
         m_saddledParam = saddledParam;
@@ -77,7 +78,8 @@ public:
      *
      * 此方法应在实体注册数据参数后调用。
      */
-    void syncFromDataManager() {
+    void syncFromDataManager()
+    {
         if (!m_initialized) return;
         saddledRaw = true;
         field_233611_b_ = 0;
@@ -92,8 +94,9 @@ public:
      * @param rng 随机数生成器
      * @return 如果成功加速返回true
      */
-    template<typename Random>
-    bool boost(Random& rng) {
+    template <typename Random>
+    bool boost(Random& rng)
+    {
         if (saddledRaw) {
             return false;
         }
@@ -117,7 +120,8 @@ public:
      *
      * @param tag NBT复合标签
      */
-    void writeToNbt(nbt::tags::compound_tag& tag) const {
+    void writeToNbt(nbt::tags::compound_tag& tag) const
+    {
         // NBT 没有布尔类型，使用 i8 (Byte) 存储
         tag.put("Saddle", static_cast<i8>(getSaddled() ? 1 : 0));
     }
@@ -130,7 +134,8 @@ public:
      *
      * @param tag NBT复合标签
      */
-    void readFromNbt(const nbt::tags::compound_tag& tag) {
+    void readFromNbt(const nbt::tags::compound_tag& tag)
+    {
         auto it = tag.value.find("Saddle");
         if (it != tag.value.end()) {
             // NBT 没有布尔类型，从 Byte 读取
@@ -149,7 +154,8 @@ public:
      *
      * @param saddled 是否有鞍
      */
-    void setSaddledFromBoolean(bool saddled) {
+    void setSaddledFromBoolean(bool saddled)
+    {
         if (m_initialized) {
             m_manager->set(m_saddledParam, saddled);
         }
@@ -162,7 +168,8 @@ public:
      * MC 1.16.5: getSaddled()
      * 从 EntityDataManager 读取鞍状态。
      */
-    [[nodiscard]] bool getSaddled() const {
+    [[nodiscard]] bool getSaddled() const
+    {
         if (m_initialized) {
             return m_manager->get(m_saddledParam);
         }
@@ -173,7 +180,8 @@ public:
      * @brief 设置加速时间
      * @param time 加速时间
      */
-    void setBoostTime(i32 time) {
+    void setBoostTime(i32 time)
+    {
         if (m_initialized) {
             m_manager->set(m_boostTimeParam, time);
         }
@@ -183,7 +191,8 @@ public:
      * @brief 获取加速时间
      * @return 加速时间（ticks）
      */
-    [[nodiscard]] i32 getBoostTime() const {
+    [[nodiscard]] i32 getBoostTime() const
+    {
         if (m_initialized) {
             return m_manager->get(m_boostTimeParam);
         }
@@ -197,9 +206,7 @@ public:
      * 加速期间：field_233611_b_ 从 0 递增到 boostTimeRaw（包含边界值）
      * 当 field_233611_b_ > boostTimeRaw 时，加速结束
      */
-    [[nodiscard]] bool isBoosting() const {
-        return saddledRaw && field_233611_b_ <= boostTimeRaw;
-    }
+    [[nodiscard]] bool isBoosting() const { return saddledRaw && field_233611_b_ <= boostTimeRaw; }
 
     /**
      * @brief Tick更新
@@ -207,7 +214,8 @@ public:
      * 每tick调用以更新加速状态。
      * @return 是否需要继续加速
      */
-    bool tick() {
+    bool tick()
+    {
         if (saddledRaw) {
             field_233611_b_++;
             if (field_233611_b_ > boostTimeRaw) {
@@ -220,9 +228,9 @@ public:
     }
 
     // 公开成员（与MC保持一致）
-    bool saddledRaw = false;     ///< 原始鞍状态（加速中时为true）
-    i32 field_233611_b_ = 0;     ///< 当前加速tick (MC命名: field_233611_b_)
-    i32 boostTimeRaw = 0;        ///< 原始加速时间
+    bool saddledRaw = false; ///< 原始鞍状态（加速中时为true）
+    i32 field_233611_b_ = 0; ///< 当前加速tick (MC命名: field_233611_b_)
+    i32 boostTimeRaw = 0;    ///< 原始加速时间
 
 private:
     entity::EntityDataManager* m_manager = nullptr;

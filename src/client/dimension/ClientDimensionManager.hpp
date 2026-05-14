@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/world/dimension/DimensionType.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include <memory>
 #include <vector>
 
@@ -23,10 +23,10 @@ public:
      * @brief 维度切换状态
      */
     enum class TransitionState {
-        None,           ///< 无切换
-        Leaving,        ///< 正在离开当前维度
-        Loading,        ///< 正在加载新维度
-        Entering        ///< 正在进入新维度
+        None,    ///< 无切换
+        Leaving, ///< 正在离开当前维度
+        Loading, ///< 正在加载新维度
+        Entering ///< 正在进入新维度
     };
 
     ClientDimensionManager();

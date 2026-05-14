@@ -11,11 +11,11 @@
  * - 辅助函数测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
-#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
 #include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
 #include <limits>
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::layout;
@@ -30,7 +30,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(FlexConfigTest, DefaultValues) {
+TEST_F(FlexConfigTest, DefaultValues)
+{
     FlexConfig config;
 
     EXPECT_EQ(config.direction, Direction::Row);
@@ -40,7 +41,8 @@ TEST_F(FlexConfigTest, DefaultValues) {
     EXPECT_EQ(config.gap, 0);
 }
 
-TEST_F(FlexConfigTest, IsHorizontal) {
+TEST_F(FlexConfigTest, IsHorizontal)
+{
     FlexConfig config;
 
     config.direction = Direction::Row;
@@ -56,7 +58,8 @@ TEST_F(FlexConfigTest, IsHorizontal) {
     EXPECT_FALSE(config.isHorizontal());
 }
 
-TEST_F(FlexConfigTest, IsVertical) {
+TEST_F(FlexConfigTest, IsVertical)
+{
     FlexConfig config;
 
     config.direction = Direction::Column;
@@ -72,7 +75,8 @@ TEST_F(FlexConfigTest, IsVertical) {
     EXPECT_FALSE(config.isVertical());
 }
 
-TEST_F(FlexConfigTest, IsReverse) {
+TEST_F(FlexConfigTest, IsReverse)
+{
     FlexConfig config;
 
     config.direction = Direction::Row;
@@ -88,7 +92,8 @@ TEST_F(FlexConfigTest, IsReverse) {
     EXPECT_TRUE(config.isReverse());
 }
 
-TEST_F(FlexConfigTest, ShouldWrap) {
+TEST_F(FlexConfigTest, ShouldWrap)
+{
     FlexConfig config;
 
     config.wrap = Wrap::NoWrap;
@@ -107,18 +112,15 @@ TEST_F(FlexConfigTest, ShouldWrap) {
 
 class FlexLayoutTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        layout = std::make_unique<FlexLayout>();
-    }
+    void SetUp() override { layout = std::make_unique<FlexLayout>(); }
 
-    void TearDown() override {
-        layout.reset();
-    }
+    void TearDown() override { layout.reset(); }
 
     std::unique_ptr<FlexLayout> layout;
 };
 
-TEST_F(FlexLayoutTest, DefaultConfig) {
+TEST_F(FlexLayoutTest, DefaultConfig)
+{
     EXPECT_EQ(layout->direction(), Direction::Row);
     EXPECT_EQ(layout->justifyContent(), JustifyContent::Start);
     EXPECT_EQ(layout->alignItems(), Align::Stretch);
@@ -126,7 +128,8 @@ TEST_F(FlexLayoutTest, DefaultConfig) {
     EXPECT_EQ(layout->gap(), 0);
 }
 
-TEST_F(FlexLayoutTest, SetDirection) {
+TEST_F(FlexLayoutTest, SetDirection)
+{
     layout->setDirection(Direction::Column);
     EXPECT_EQ(layout->direction(), Direction::Column);
 
@@ -134,7 +137,8 @@ TEST_F(FlexLayoutTest, SetDirection) {
     EXPECT_EQ(layout->direction(), Direction::RowReverse);
 }
 
-TEST_F(FlexLayoutTest, SetJustifyContent) {
+TEST_F(FlexLayoutTest, SetJustifyContent)
+{
     layout->setJustifyContent(JustifyContent::Center);
     EXPECT_EQ(layout->justifyContent(), JustifyContent::Center);
 
@@ -142,7 +146,8 @@ TEST_F(FlexLayoutTest, SetJustifyContent) {
     EXPECT_EQ(layout->justifyContent(), JustifyContent::SpaceBetween);
 }
 
-TEST_F(FlexLayoutTest, SetAlignItems) {
+TEST_F(FlexLayoutTest, SetAlignItems)
+{
     layout->setAlignItems(Align::Center);
     EXPECT_EQ(layout->alignItems(), Align::Center);
 
@@ -150,12 +155,14 @@ TEST_F(FlexLayoutTest, SetAlignItems) {
     EXPECT_EQ(layout->alignItems(), Align::End);
 }
 
-TEST_F(FlexLayoutTest, SetWrap) {
+TEST_F(FlexLayoutTest, SetWrap)
+{
     layout->setWrap(Wrap::Wrap);
     EXPECT_EQ(layout->wrap(), Wrap::Wrap);
 }
 
-TEST_F(FlexLayoutTest, SetGap) {
+TEST_F(FlexLayoutTest, SetGap)
+{
     layout->setGap(10);
     EXPECT_EQ(layout->gap(), 10);
 
@@ -163,7 +170,8 @@ TEST_F(FlexLayoutTest, SetGap) {
     EXPECT_EQ(layout->gap(), 20);
 }
 
-TEST_F(FlexLayoutTest, SetConfig) {
+TEST_F(FlexLayoutTest, SetConfig)
+{
     FlexConfig config;
     config.direction = Direction::Column;
     config.justifyContent = JustifyContent::SpaceAround;
@@ -178,7 +186,8 @@ TEST_F(FlexLayoutTest, SetConfig) {
     EXPECT_EQ(layout->gap(), 15);
 }
 
-TEST_F(FlexLayoutTest, EmptyChildren) {
+TEST_F(FlexLayoutTest, EmptyChildren)
+{
     std::vector<WidgetLayoutAdaptor*> children;
     Rect container(0, 0, 400, 300);
 
@@ -187,14 +196,11 @@ TEST_F(FlexLayoutTest, EmptyChildren) {
     EXPECT_TRUE(results.empty());
 }
 
-TEST_F(FlexLayoutTest, MeasureEmptyChildren) {
+TEST_F(FlexLayoutTest, MeasureEmptyChildren)
+{
     std::vector<WidgetLayoutAdaptor*> children;
 
-    Size size = layout->measure(
-        MeasureSpec::MakeExactly(400),
-        MeasureSpec::MakeExactly(300),
-        children
-    );
+    Size size = layout->measure(MeasureSpec::MakeExactly(400), MeasureSpec::MakeExactly(300), children);
 
     // Exactly规格应该返回规格指定的尺寸
     EXPECT_EQ(size.width, 400);
@@ -210,7 +216,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(FlexLineTest, DefaultValues) {
+TEST_F(FlexLineTest, DefaultValues)
+{
     FlexLine line;
 
     EXPECT_EQ(line.mainSize, 0);
@@ -223,7 +230,8 @@ TEST_F(FlexLineTest, DefaultValues) {
     EXPECT_TRUE(line.indices.empty());
 }
 
-TEST_F(FlexLineTest, ItemCount) {
+TEST_F(FlexLineTest, ItemCount)
+{
     FlexLine line;
     EXPECT_EQ(line.itemCount(), 0u);
 }
@@ -232,7 +240,8 @@ TEST_F(FlexLineTest, ItemCount) {
 // 辅助函数测试
 // ============================================================================
 
-TEST(FlexHelperTest, DefaultFlexConfig) {
+TEST(FlexHelperTest, DefaultFlexConfig)
+{
     FlexConfig config = defaultFlexConfig();
 
     EXPECT_EQ(config.direction, Direction::Row);
@@ -242,7 +251,8 @@ TEST(FlexHelperTest, DefaultFlexConfig) {
     EXPECT_EQ(config.gap, 0);
 }
 
-TEST(FlexHelperTest, CenterRowFlexConfig) {
+TEST(FlexHelperTest, CenterRowFlexConfig)
+{
     FlexConfig config = centerRowFlexConfig();
 
     EXPECT_EQ(config.direction, Direction::Row);
@@ -250,7 +260,8 @@ TEST(FlexHelperTest, CenterRowFlexConfig) {
     EXPECT_EQ(config.alignItems, Align::Center);
 }
 
-TEST(FlexHelperTest, CenterColumnFlexConfig) {
+TEST(FlexHelperTest, CenterColumnFlexConfig)
+{
     FlexConfig config = centerColumnFlexConfig();
 
     EXPECT_EQ(config.direction, Direction::Column);
@@ -258,7 +269,8 @@ TEST(FlexHelperTest, CenterColumnFlexConfig) {
     EXPECT_EQ(config.alignItems, Align::Center);
 }
 
-TEST(FlexHelperTest, SpaceBetweenFlexConfig) {
+TEST(FlexHelperTest, SpaceBetweenFlexConfig)
+{
     FlexConfig config = spaceBetweenFlexConfig();
 
     EXPECT_EQ(config.direction, Direction::Row);

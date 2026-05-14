@@ -1,10 +1,10 @@
 #include "StairsBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -14,25 +14,26 @@ namespace blocks {
 StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& properties)
     : Block(properties)
     , m_baseState(&baseState)
-    , m_fullCubeShape(CollisionShape::fullBlock()) {
+    , m_fullCubeShape(CollisionShape::fullBlock())
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
-        .add(BlockStateProperties::STAIRS_SHAPE())
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
+                         .add(BlockStateProperties::STAIRS_SHAPE())
+                         .add(BlockStateProperties::WATERLOGGED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
-        .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight)
-        .with(BlockStateProperties::WATERLOGGED(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+            .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 
     // 预计算所有40种形状
     // 楼梯形状：由两个三角形棱柱组成
@@ -52,53 +53,45 @@ StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& pro
 
     // EAST 直梯 (朝向东，即从西向东上升)
     // 下半: (0,0,0)-(1,0.5,1) + (0.5,0.5,0)-(1,1,1)
-    m_shapes[getShapeIndex(Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f));
     // 上半: (0,0,0)-(1,0.5,1) + (0,0.5,0)-(0.5,1,1)
-    m_shapes[getShapeIndex(Direction::East, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::East, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 1.0f));
 
     // WEST 直梯 (朝向西，即从东向西上升)
-    m_shapes[getShapeIndex(Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 1.0f)
-        );
-    m_shapes[getShapeIndex(Direction::West, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 1.0f));
+    m_shapes[getShapeIndex(
+        Direction::West, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f));
 
     // SOUTH 直梯 (朝向南，即从北向南上升)
-    m_shapes[getShapeIndex(Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-        );
-    m_shapes[getShapeIndex(Direction::South, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f));
+    m_shapes[getShapeIndex(
+        Direction::South, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f));
 
     // NORTH 直梯 (朝向北，即从南向北上升)
-    m_shapes[getShapeIndex(Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-        );
-    m_shapes[getShapeIndex(Direction::North, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f));
+    m_shapes[getShapeIndex(
+        Direction::North, BlockStateProperties::DoubleBlockHalf::Upper, BlockStateProperties::StairsShape::Straight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f));
 
     // 内角楼梯形状 (INNER_LEFT, INNER_RIGHT)
     // 内角楼梯由一个完整的一半高度方块 + 一个直梯台阶组成
@@ -106,128 +99,100 @@ StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& pro
 
     // EAST 内角
     // INNER_LEFT: 从北转东
-    m_shapes[getShapeIndex(Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)
-            ),
-            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)),
+            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f));
     // INNER_RIGHT: 从南转东
-    m_shapes[getShapeIndex(Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerRight)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)
-            ),
-            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerRight)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)),
+            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f));
 
     // WEST 内角
-    m_shapes[getShapeIndex(Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-            ),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)
-        );
-    m_shapes[getShapeIndex(Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerRight)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-            ),
-            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f));
+    m_shapes[getShapeIndex(
+        Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerRight)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)),
+            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f));
 
     // SOUTH 内角
-    m_shapes[getShapeIndex(Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-            ),
-            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)
-        );
-    m_shapes[getShapeIndex(Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerRight)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)
-            ),
-            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)),
+            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f));
+    m_shapes[getShapeIndex(Direction::South,
+        BlockStateProperties::DoubleBlockHalf::Lower,
+        BlockStateProperties::StairsShape::InnerRight)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)),
+            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f));
 
     // NORTH 内角
-    m_shapes[getShapeIndex(Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)
-            ),
-            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-        );
-    m_shapes[getShapeIndex(Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerRight)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-                CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-            ),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::InnerLeft)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)),
+            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f));
+    m_shapes[getShapeIndex(Direction::North,
+        BlockStateProperties::DoubleBlockHalf::Lower,
+        BlockStateProperties::StairsShape::InnerRight)] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+                                    CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f));
 
     // 外角楼梯形状 (OUTER_LEFT, OUTER_RIGHT)
     // 外角楼梯只有一个角落的台阶
 
     // EAST 外角
-    m_shapes[getShapeIndex(Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-        );
-    m_shapes[getShapeIndex(Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterRight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f));
+    m_shapes[getShapeIndex(
+        Direction::East, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterRight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f));
 
     // WEST 外角
-    m_shapes[getShapeIndex(Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)
-        );
-    m_shapes[getShapeIndex(Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterRight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f));
+    m_shapes[getShapeIndex(
+        Direction::West, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterRight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f));
 
     // SOUTH 外角
-    m_shapes[getShapeIndex(Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f)
-        );
-    m_shapes[getShapeIndex(Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterRight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::South, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f));
+    m_shapes[getShapeIndex(Direction::South,
+        BlockStateProperties::DoubleBlockHalf::Lower,
+        BlockStateProperties::StairsShape::OuterRight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f));
 
     // NORTH 外角
-    m_shapes[getShapeIndex(Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f)
-        );
-    m_shapes[getShapeIndex(Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterRight)] =
-        CollisionShape::combine(
-            CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
-            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f)
-        );
+    m_shapes[getShapeIndex(
+        Direction::North, BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::StairsShape::OuterLeft)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f));
+    m_shapes[getShapeIndex(Direction::North,
+        BlockStateProperties::DoubleBlockHalf::Lower,
+        BlockStateProperties::StairsShape::OuterRight)] =
+        CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f),
+            CollisionShape::box(0.0f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f));
 
     // 上半部分的形状（将下半部分的形状垂直翻转）
     const Direction facingDirs[] = {Direction::North, Direction::South, Direction::West, Direction::East};
@@ -256,14 +221,16 @@ StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& pro
 
 // ========== 状态容器 ==========
 
-void StairsBlock::fillStateContainer(StateContainer<Block, BlockState>& container) {
+void StairsBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
+{
     // 属性已在构造函数中添加
     MC_UNUSED(container);
 }
 
 // ========== 放置和更新 ==========
 
-BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 获取水平朝向
     Direction facing = context.horizontalDirection();
 
@@ -274,19 +241,19 @@ BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context) {
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), isTop ? BlockStateProperties::DoubleBlockHalf::Upper
-                                                   : BlockStateProperties::DoubleBlockHalf::Lower)
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
+            isTop ? BlockStateProperties::DoubleBlockHalf::Upper : BlockStateProperties::DoubleBlockHalf::Lower)
         .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-BlockState StairsBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState StairsBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facingPos);
 
@@ -307,7 +274,8 @@ BlockState StairsBlock::updatePostPlacement(
 
 // ========== 形状 ==========
 
-const CollisionShape& StairsBlock::getShape(const BlockState& state) const {
+const CollisionShape& StairsBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
     BlockStateProperties::StairsShape shape = state.get(BlockStateProperties::STAIRS_SHAPE());
@@ -317,24 +285,28 @@ const CollisionShape& StairsBlock::getShape(const BlockState& state) const {
     return m_shapes[index];
 }
 
-const CollisionShape& StairsBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& StairsBlock::getCollisionShape(const BlockState& state) const
+{
     return getShape(state);
 }
 
-const CollisionShape& StairsBlock::getOcclusionShape(const BlockState& state) const {
+const CollisionShape& StairsBlock::getOcclusionShape(const BlockState& state) const
+{
     // 楼梯不阻挡全部光照
     return getShape(state);
 }
 
 // ========== 旋转和镜像 ==========
 
-const BlockState& StairsBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& StairsBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& StairsBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& StairsBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }
@@ -376,7 +348,8 @@ const BlockState& StairsBlock::mirror(const BlockState& state, Mirror mirror) co
 
 // ========== 静态方法 ==========
 
-bool StairsBlock::isStairs(const BlockState& state) {
+bool StairsBlock::isStairs(const BlockState& state)
+{
     // 检查方块是否继承自 StairsBlock
     // 简化实现：检查是否有 STAIRS_SHAPE 属性
     return state.hasProperty(BlockStateProperties::STAIRS_SHAPE());
@@ -384,7 +357,8 @@ bool StairsBlock::isStairs(const BlockState& state) {
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* StairsBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* StairsBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
@@ -392,9 +366,8 @@ const fluid::FluidState* StairsBlock::getFluidState(const BlockState& state) con
 // ========== 私有方法 ==========
 
 BlockStateProperties::StairsShape StairsBlock::calculateShape(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
@@ -448,9 +421,8 @@ BlockStateProperties::StairsShape StairsBlock::calculateShape(
 }
 
 std::optional<BlockStateProperties::StairsShape> StairsBlock::neighborIsStairs(
-    IWorld& world,
-    const BlockPos& pos,
-    Direction facing) const {
+    IWorld& world, const BlockPos& pos, Direction facing) const
+{
 
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
@@ -474,18 +446,27 @@ std::optional<BlockStateProperties::StairsShape> StairsBlock::neighborIsStairs(
 }
 
 size_t StairsBlock::getShapeIndex(
-    Direction facing,
-    BlockStateProperties::DoubleBlockHalf half,
-    BlockStateProperties::StairsShape shape) {
+    Direction facing, BlockStateProperties::DoubleBlockHalf half, BlockStateProperties::StairsShape shape)
+{
 
     // 索引计算: facing (0-3) + half*4 (0或4) + shape*8 (0, 8, 16, 24, 32)
     size_t facingIdx = 0;
     switch (facing) {
-        case Direction::North: facingIdx = 0; break;
-        case Direction::South: facingIdx = 1; break;
-        case Direction::West:  facingIdx = 2; break;
-        case Direction::East:  facingIdx = 3; break;
-        default: facingIdx = 0; break;
+        case Direction::North:
+            facingIdx = 0;
+            break;
+        case Direction::South:
+            facingIdx = 1;
+            break;
+        case Direction::West:
+            facingIdx = 2;
+            break;
+        case Direction::East:
+            facingIdx = 3;
+            break;
+        default:
+            facingIdx = 0;
+            break;
     }
 
     size_t halfIdx = (half == BlockStateProperties::DoubleBlockHalf::Upper) ? 1 : 0;

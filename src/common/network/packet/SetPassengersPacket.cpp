@@ -5,17 +5,16 @@ namespace mc::network {
 
 SetPassengersPacket::SetPassengersPacket()
     : Packet(PacketType::SetPassengers)
-{
-}
+{}
 
 SetPassengersPacket::SetPassengersPacket(u32 entityId, const std::vector<u32>& passengerIds)
     : Packet(PacketType::SetPassengers)
     , m_entityId(entityId)
     , m_passengerIds(passengerIds)
-{
-}
+{}
 
-Result<std::vector<u8>> SetPassengersPacket::serialize() const {
+Result<std::vector<u8>> SetPassengersPacket::serialize() const
+{
     PacketSerializer ser;
     ser.writeVarInt(static_cast<i32>(m_entityId));
     ser.writeVarInt(static_cast<i32>(m_passengerIds.size()));
@@ -25,7 +24,8 @@ Result<std::vector<u8>> SetPassengersPacket::serialize() const {
     return ser.buffer();
 }
 
-Result<void> SetPassengersPacket::deserialize(const u8* data, size_t size) {
+Result<void> SetPassengersPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deser(data, size);
 
     auto entityIdResult = deser.readVarInt();

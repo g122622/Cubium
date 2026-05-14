@@ -9,36 +9,36 @@ namespace mc::util {
  * @brief 内存信息
  */
 struct MemoryInfo {
-    u64 totalPhysicalMB;      // 总物理内存 (MB)
-    u64 availablePhysicalMB;  // 可用物理内存 (MB)
-    u64 usedPhysicalMB;       // 已用物理内存 (MB)
-    u64 processUsedMB;        // 进程已用内存 (MB)
-    u32 usagePercent;         // 使用百分比
+    u64 totalPhysicalMB;     // 总物理内存 (MB)
+    u64 availablePhysicalMB; // 可用物理内存 (MB)
+    u64 usedPhysicalMB;      // 已用物理内存 (MB)
+    u64 processUsedMB;       // 进程已用内存 (MB)
+    u32 usagePercent;        // 使用百分比
 };
 
 /**
  * @brief CPU信息
  */
 struct CpuInfo {
-    std::string vendor;            // CPU厂商
-    std::string brand;             // CPU品牌/型号
-    u32 coreCount;            // 核心数量
-    u32 threadCount;          // 线程数量
-    u32 clockSpeedMHz;        // 时钟速度 (MHz)
-    bool is64Bit;             // 是否64位
+    std::string vendor; // CPU厂商
+    std::string brand;  // CPU品牌/型号
+    u32 coreCount;      // 核心数量
+    u32 threadCount;    // 线程数量
+    u32 clockSpeedMHz;  // 时钟速度 (MHz)
+    bool is64Bit;       // 是否64位
 };
 
 /**
  * @brief GPU信息
  */
 struct GpuInfo {
-    std::string vendor;            // GPU厂商 (NVIDIA, AMD, Intel等)
-    std::string name;              // GPU型号
-    std::string driverVersion;     // 驱动版本
-    u64 dedicatedVideoMB;     // 专用显存 (MB)
-    u64 sharedSystemMB;       // 共享系统内存 (MB)
-    u32 apiMajorVersion;      // 图形API主版本号
-    u32 apiMinorVersion;      // 图形API次版本号
+    std::string vendor;        // GPU厂商 (NVIDIA, AMD, Intel等)
+    std::string name;          // GPU型号
+    std::string driverVersion; // 驱动版本
+    u64 dedicatedVideoMB;      // 专用显存 (MB)
+    u64 sharedSystemMB;        // 共享系统内存 (MB)
+    u32 apiMajorVersion;       // 图形API主版本号
+    u32 apiMinorVersion;       // 图形API次版本号
 };
 
 /**
@@ -87,10 +87,8 @@ public:
      * @param properties Vulkan物理设备属性
      * @param memoryProperties Vulkan内存属性
      */
-    static GpuInfo getGpuInfoFromVulkan(
-        const struct VkPhysicalDeviceProperties_T* properties,
-        const struct VkPhysicalDeviceMemoryProperties_T* memoryProperties
-    );
+    static GpuInfo getGpuInfoFromVulkan(const struct VkPhysicalDeviceProperties_T* properties,
+        const struct VkPhysicalDeviceMemoryProperties_T* memoryProperties);
 
     /**
      * @brief 获取平台名称
@@ -105,23 +103,23 @@ public:
     static bool is64BitSystem();
 
 private:
-    // 平台特定实现
-    #ifdef _WIN32
+// 平台特定实现
+#ifdef _WIN32
     static MemoryInfo getMemoryInfoWindows();
     static CpuInfo getCpuInfoWindows();
     static u64 getProcessMemoryMBWindows();
     static std::string getPlatformNameWindows();
-    #elif defined(__linux__)
+#elif defined(__linux__)
     static MemoryInfo getMemoryInfoLinux();
     static CpuInfo getCpuInfoLinux();
     static u64 getProcessMemoryMBLinux();
     static std::string getPlatformNameLinux();
-    #elif defined(__APPLE__)
+#elif defined(__APPLE__)
     static MemoryInfo getMemoryInfoMacOS();
     static CpuInfo getCpuInfoMacOS();
     static u64 getProcessMemoryMBMacOS();
     static std::string getPlatformNameMacOS();
-    #endif
+#endif
 };
 
 } // namespace mc::util

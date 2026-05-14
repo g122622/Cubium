@@ -26,8 +26,7 @@ TEST(PlayerModelPartTest, ExposesVanillaMasksAndNames)
     EXPECT_EQ(PLAYER_MODEL_PARTS_ALL_MASK, 0x7F);
 
     EXPECT_STREQ(getPlayerModelPartName(PlayerModelPart::LeftSleeve), "left_sleeve");
-    EXPECT_STREQ(getPlayerModelPartTranslationKey(PlayerModelPart::RightPantsLeg),
-                 "options.modelPart.right_pants_leg");
+    EXPECT_STREQ(getPlayerModelPartTranslationKey(PlayerModelPart::RightPantsLeg), "options.modelPart.right_pants_leg");
 }
 
 TEST(PlayerSupportTypesTest, PlayerTracksChatVisibilityAndModelParts)

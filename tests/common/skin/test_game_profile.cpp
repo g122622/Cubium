@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include <array>
+#include <gtest/gtest.h>
 
 using namespace mc::skin;
 
@@ -10,18 +10,18 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(GameProfileTest, DefaultConstruction) {
+TEST_F(GameProfileTest, DefaultConstruction)
+{
     GameProfile profile;
     EXPECT_FALSE(profile.hasValidUUID());
     EXPECT_TRUE(profile.name().empty());
     EXPECT_TRUE(profile.properties().empty());
 }
 
-TEST_F(GameProfileTest, UUIDConstruction) {
+TEST_F(GameProfileTest, UUIDConstruction)
+{
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     GameProfile profile(uuid, "TestPlayer");
     EXPECT_TRUE(profile.hasValidUUID());
@@ -32,11 +32,10 @@ TEST_F(GameProfileTest, UUIDConstruction) {
     }
 }
 
-TEST_F(GameProfileTest, UUIDToString) {
+TEST_F(GameProfileTest, UUIDToString)
+{
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     GameProfile profile(uuid, "Test");
     std::string uuidStr = profile.uuidToString();
@@ -44,11 +43,10 @@ TEST_F(GameProfileTest, UUIDToString) {
     EXPECT_EQ("550e8400-e29b-41d4-a716-446655440000", uuidStr);
 }
 
-TEST_F(GameProfileTest, UUIDToStringNoDashes) {
+TEST_F(GameProfileTest, UUIDToStringNoDashes)
+{
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     GameProfile profile(uuid, "Test");
     std::string uuidStr = profile.uuidToStringNoDashes();
@@ -56,14 +54,13 @@ TEST_F(GameProfileTest, UUIDToStringNoDashes) {
     EXPECT_EQ("550e8400e29b41d4a716446655440000", uuidStr);
 }
 
-TEST_F(GameProfileTest, ParseUUID) {
+TEST_F(GameProfileTest, ParseUUID)
+{
     std::string uuidStr1 = "550e8400-e29b-41d4-a716-446655440000";
     auto uuid1 = GameProfile::parseUUID(uuidStr1);
 
     std::array<mc::u8, 16> expected = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     for (size_t i = 0; i < 16; ++i) {
         EXPECT_EQ(expected[i], uuid1[i]);
@@ -78,7 +75,8 @@ TEST_F(GameProfileTest, ParseUUID) {
     }
 }
 
-TEST_F(GameProfileTest, ParseInvalidUUID) {
+TEST_F(GameProfileTest, ParseInvalidUUID)
+{
     std::string invalidStr = "invalid-uuid";
     auto uuid = GameProfile::parseUUID(invalidStr);
 
@@ -88,7 +86,8 @@ TEST_F(GameProfileTest, ParseInvalidUUID) {
     }
 }
 
-TEST_F(GameProfileTest, PropertyManagement) {
+TEST_F(GameProfileTest, PropertyManagement)
+{
     GameProfile profile;
 
     profile.addProperty({"textures", "base64data", "signature"});
@@ -112,11 +111,10 @@ TEST_F(GameProfileTest, PropertyManagement) {
     EXPECT_FALSE(prop->hasSignature());
 }
 
-TEST_F(GameProfileTest, UUIDHashCode) {
+TEST_F(GameProfileTest, UUIDHashCode)
+{
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     GameProfile profile(uuid, "Test");
     mc::i32 hash1 = profile.uuidHashCode();
@@ -125,17 +123,17 @@ TEST_F(GameProfileTest, UUIDHashCode) {
     EXPECT_EQ(hash1, hash2);
 }
 
-TEST_F(GameProfileTest, SetName) {
+TEST_F(GameProfileTest, SetName)
+{
     GameProfile profile;
     profile.setName("Player1");
     EXPECT_EQ("Player1", profile.name());
 }
 
-TEST_F(GameProfileTest, SetUUID) {
+TEST_F(GameProfileTest, SetUUID)
+{
     std::array<mc::u8, 16> uuid = {
-        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-        0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10
-    };
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
 
     GameProfile profile;
     profile.setUUID(uuid);

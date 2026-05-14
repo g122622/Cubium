@@ -3,12 +3,12 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "server/application/IServer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -18,51 +18,34 @@
 namespace mc {
 namespace command {
 
-void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
     auto experienceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("experience");
-    experienceNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        experienceNode,
+    experienceNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(experienceNode,
         support::makeMetadata(
-            "Add, set, or query player experience.",
-            "/experience <add|set|query> <player> ...",
-            2,
-            {"xp"},
-            false));
+            "Add, set, or query player experience.", "/experience <add|set|query> <player> ...", 2, {"xp"}, false));
 
     // /xp 是 /experience 的别名
     auto xpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("xp");
-    xpNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    xpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     xpNode->setRedirect(experienceNode);
 
     // /experience add <player> <amount> [points|levels]
     // 注意：amount 参数允许负值（原版 MC 支持）
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::players()
-    );
-    auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "amount",
-        IntegerArgumentType::integer()  // 移除最小值限制，允许负值
+        "player", EntityArgumentType::players());
+    auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("amount",
+        IntegerArgumentType::integer() // 移除最小值限制，允许负值
     );
     auto pointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
-    pointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return addPoints(ctx);
-    });
+    pointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addPoints(ctx); });
     auto levelsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("levels");
-    levelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return addLevels(ctx);
-    });
-    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return addPoints(ctx);
-    });
+    levelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addLevels(ctx); });
+    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addPoints(ctx); });
     amountArg->addChild(pointsNode);
     amountArg->addChild(levelsNode);
     playerArg->addChild(amountArg);
@@ -71,24 +54,14 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /experience set <player> <amount> [points|levels]
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::players()
-    );
-    auto setAmountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "amount",
-        IntegerArgumentType::integer(0)
-    );
+        "player", EntityArgumentType::players());
+    auto setAmountArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("amount", IntegerArgumentType::integer(0));
     auto setPointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
-    setPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setPoints(ctx);
-    });
+    setPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPoints(ctx); });
     auto setLevelsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("levels");
-    setLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setLevels(ctx);
-    });
-    setAmountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setPoints(ctx);
-    });
+    setLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setLevels(ctx); });
+    setAmountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPoints(ctx); });
     setAmountArg->addChild(setPointsNode);
     setAmountArg->addChild(setLevelsNode);
     setPlayerArg->addChild(setAmountArg);
@@ -97,20 +70,12 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /experience query <player> [points|levels]
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
     auto queryPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
+        "player", EntityArgumentType::player());
     auto queryPointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
-    queryPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return queryPoints(ctx);
-    });
+    queryPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryPoints(ctx); });
     auto queryLevelsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("levels");
-    queryLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return queryLevels(ctx);
-    });
-    queryPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return queryLevels(ctx);
-    });
+    queryLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryLevels(ctx); });
+    queryPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryLevels(ctx); });
     queryPlayerArg->addChild(queryPointsNode);
     queryPlayerArg->addChild(queryLevelsNode);
     queryNode->addChild(queryPlayerArg);
@@ -177,7 +142,8 @@ std::string getPlayerName(ServerCommandSource& source, PlayerId playerId, Player
 
 } // namespace
 
-i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context) {
+i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
@@ -206,7 +172,8 @@ i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context) {
     return amount;
 }
 
-i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context) {
+i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
@@ -235,7 +202,8 @@ i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context) {
     return amount;
 }
 
-i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context) {
+i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
@@ -265,7 +233,8 @@ i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context) {
     return amount;
 }
 
-i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context) {
+i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
@@ -294,7 +263,8 @@ i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context) {
     return amount;
 }
 
-i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context) {
+i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 
@@ -322,7 +292,8 @@ i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
     return totalXp;
 }
 
-i32 ExperienceCommand::queryLevels(CommandContext<ServerCommandSource>& context) {
+i32 ExperienceCommand::queryLevels(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 

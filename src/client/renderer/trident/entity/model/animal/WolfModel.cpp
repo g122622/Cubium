@@ -5,12 +5,12 @@
 namespace mc::client::renderer::entity::model::animal {
 
 WolfModel::WolfModel()
-    : AgeableModel()  // WolfModel 使用 AgeableModel 默认构造函数
+    : AgeableModel() // WolfModel 使用 AgeableModel 默认构造函数
 {
     setTextureSize(64, 32);
 
     // 参考 MC 1.16.5 WolfModel 构造函数
-    f32 f = 0.0f;  // scale
+    f32 f = 0.0f; // scale
     f32 f1 = 13.5f;
 
     // 头部 - Java: this.head.setRotationPoint(-1.0F, 13.5F, -7.0F);
@@ -96,19 +96,23 @@ WolfModel::WolfModel()
     m_parts.push_back(m_tail);
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> WolfModel::getHeadParts() const {
-    return { m_head };
+std::vector<std::shared_ptr<ModelRenderer>> WolfModel::getHeadParts() const
+{
+    return {m_head};
 }
 
-std::vector<std::shared_ptr<ModelRenderer>> WolfModel::getBodyParts() const {
-    return { m_body, m_legBackRight, m_legBackLeft, m_legFrontRight, m_legFrontLeft, m_tail, m_mane };
+std::vector<std::shared_ptr<ModelRenderer>> WolfModel::getBodyParts() const
+{
+    return {m_body, m_legBackRight, m_legBackLeft, m_legFrontRight, m_legFrontLeft, m_tail, m_mane};
 }
 
-void WolfModel::render(f64 scale) {
+void WolfModel::render(f64 scale)
+{
     AgeableModel::render(scale);
 }
 
-void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*partialTick*/) {
+void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*partialTick*/)
+{
     // 参考 MC 1.16.5 WolfModel.setLivingAnimations
 
     // 愤怒状态（func_233678_J__）：尾巴不摇
@@ -122,23 +126,23 @@ void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*pa
     if (m_isSitting) {
         // Java: 坐下时身体、鬃毛、尾巴和腿的位置
         m_mane->setRotationPoint(-1.0f, 16.0f, -3.0f);
-        m_mane->setRotateAngleX(1.2566371f);  // 约 72 度
+        m_mane->setRotateAngleX(1.2566371f); // 约 72 度
         m_mane->setRotateAngleY(0.0f);
         m_body->setRotationPoint(0.0f, 18.0f, 0.0f);
-        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));  // 45 度
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 4.0)); // 45 度
         m_tail->setRotationPoint(-1.0f, 21.0f, 6.0f);
         m_legBackRight->setRotationPoint(-2.5f, 22.7f, 2.0f);
-        m_legBackRight->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * 1.5));  // 270 度
+        m_legBackRight->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * 1.5)); // 270 度
         m_legBackLeft->setRotationPoint(0.5f, 22.7f, 2.0f);
         m_legBackLeft->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * 1.5));
-        m_legFrontRight->setRotateAngleX(5.811947f);  // 约 333 度
+        m_legFrontRight->setRotateAngleX(5.811947f); // 约 333 度
         m_legFrontRight->setRotationPoint(-2.49f, 17.0f, -4.0f);
         m_legFrontLeft->setRotateAngleX(5.811947f);
         m_legFrontLeft->setRotationPoint(0.51f, 17.0f, -4.0f);
     } else {
         // 正常站立姿态
         m_body->setRotationPoint(0.0f, 14.0f, 2.0f);
-        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));  // 90 度
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0)); // 90 度
         m_mane->setRotationPoint(-1.0f, 14.0f, -3.0f);
         m_mane->setRotateAngleX(m_body->rotateAngleX());
         m_tail->setRotationPoint(-1.0f, 12.0f, 8.0f);
@@ -150,23 +154,28 @@ void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*pa
         // 腿部步态动画
         f32 limbSwingFloat = static_cast<f32>(limbSwing);
         f32 limbSwingAmountFloat = static_cast<f32>(limbSwingAmount);
-        m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662) * 1.4 * limbSwingAmountFloat));
-        m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat));
-        m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat));
-        m_legFrontLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662) * 1.4 * limbSwingAmountFloat));
+        m_legBackRight->setRotateAngleX(
+            static_cast<f32>(std::cos(limbSwingFloat * 0.6662) * 1.4 * limbSwingAmountFloat));
+        m_legBackLeft->setRotateAngleX(
+            static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat));
+        m_legFrontRight->setRotateAngleX(
+            static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat));
+        m_legFrontLeft->setRotateAngleX(
+            static_cast<f32>(std::cos(limbSwingFloat * 0.6662) * 1.4 * limbSwingAmountFloat));
     }
 
     // 摇晃动画（湿状态抖水）
-    // Java: headChild.rotateAngleZ = entityIn.getInterestedAngle(partialTick) + entityIn.getShakeAngle(partialTick, 0.0F);
+    // Java: headChild.rotateAngleZ = entityIn.getInterestedAngle(partialTick) + entityIn.getShakeAngle(partialTick,
+    // 0.0F);
     m_headChild->setRotateAngleZ(m_interestedAngle + m_shakeAngle);
     m_mane->setRotateAngleZ(m_shakeAngle * -0.08f);
     m_body->setRotateAngleZ(m_shakeAngle * -0.16f);
     m_tailChild->setRotateAngleZ(m_shakeAngle * -0.2f);
 }
 
-void WolfModel::setAngles(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 /*scale*/) {
+void WolfModel::setAngles(
+    f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
+{
     // 参考 MC 1.16.5 WolfModel.setRotationAngles
     // 注意：大部分动画在 setLivingAnimations 中处理
 
@@ -178,7 +187,9 @@ void WolfModel::setAngles(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
     m_tail->setRotateAngleX(static_cast<f32>(ageInTicks));
 }
 
-void WolfModel::setAnimState(bool isSitting, bool isAngry, bool isWet, f32 tailRotation, f32 shakeAngle, f32 interestedAngle) {
+void WolfModel::setAnimState(
+    bool isSitting, bool isAngry, bool isWet, f32 tailRotation, f32 shakeAngle, f32 interestedAngle)
+{
     m_isSitting = isSitting;
     m_isAngry = isAngry;
     m_isWet = isWet;

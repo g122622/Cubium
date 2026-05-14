@@ -1,12 +1,13 @@
 #include "CarrotBlock.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
 
 CarrotBlock::CarrotBlock(const BlockProperties& properties)
-    : CropBlock(properties) {
+    : CropBlock(properties)
+{
 
     // 预计算胡萝卜各生长阶段的形状
     // 高度：2, 3, 4, 5, 6, 7, 8, 9 像素
@@ -18,18 +19,21 @@ CarrotBlock::CarrotBlock(const BlockProperties& properties)
     }
 }
 
-u32 CarrotBlock::getCropItem() const {
+u32 CarrotBlock::getCropItem() const
+{
     // 胡萝卜的作物和种子是同一个物品
     // 参考: net.minecraft.block.CarrotBlock#getCropItem
     return Items::CARROT->itemId();
 }
 
-u32 CarrotBlock::getSeedItem() const {
+u32 CarrotBlock::getSeedItem() const
+{
     // 胡萝卜的作物和种子是同一个物品
     return Items::CARROT->itemId();
 }
 
-const CollisionShape& CarrotBlock::getShape(const BlockState& state) const {
+const CollisionShape& CarrotBlock::getShape(const BlockState& state) const
+{
     int age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 7);
     return m_carrotShapesByAge[age];

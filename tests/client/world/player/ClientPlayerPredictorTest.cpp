@@ -12,23 +12,21 @@ using namespace mc::client;
  */
 class ClientPlayerPredictorTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        predictor = std::make_unique<ClientPlayerPredictor>();
-    }
+    void SetUp() override { predictor = std::make_unique<ClientPlayerPredictor>(); }
 
-    void TearDown() override {
-        predictor.reset();
-    }
+    void TearDown() override { predictor.reset(); }
 
     std::unique_ptr<ClientPlayerPredictor> predictor;
 };
 
-TEST_F(ClientPlayerPredictorTest, InitialState) {
+TEST_F(ClientPlayerPredictorTest, InitialState)
+{
     EXPECT_FALSE(predictor->hasServerPosition());
     EXPECT_EQ(predictor->currentSequence(), 0u);
 }
 
-TEST_F(ClientPlayerPredictorTest, Reset) {
+TEST_F(ClientPlayerPredictorTest, Reset)
+{
     Vector3 pos(100.0f, 64.0f, 200.0f);
     predictor->reset(pos, 45.0f, 30.0f);
 
@@ -50,7 +48,8 @@ TEST_F(ClientPlayerPredictorTest, Reset) {
     EXPECT_FLOAT_EQ(serverPos.z, 200.0f);
 }
 
-TEST_F(ClientPlayerPredictorTest, ResetClearsPendingInputs) {
+TEST_F(ClientPlayerPredictorTest, ResetClearsPendingInputs)
+{
     // Generate some inputs
     predictor->handleMovementInput(1.0f, 0.0f, false, false);
     predictor->handleMovementInput(0.0f, 1.0f, true, false);
@@ -65,7 +64,8 @@ TEST_F(ClientPlayerPredictorTest, ResetClearsPendingInputs) {
     EXPECT_EQ(predictor->currentSequence(), 0u);
 }
 
-TEST_F(ClientPlayerPredictorTest, MovementInputUpdatesSequence) {
+TEST_F(ClientPlayerPredictorTest, MovementInputUpdatesSequence)
+{
     predictor->handleMovementInput(1.0f, 0.0f, false, false);
     EXPECT_EQ(predictor->currentSequence(), 1u);
 
@@ -76,7 +76,8 @@ TEST_F(ClientPlayerPredictorTest, MovementInputUpdatesSequence) {
     EXPECT_EQ(predictor->currentSequence(), 3u);
 }
 
-TEST_F(ClientPlayerPredictorTest, RotationInput) {
+TEST_F(ClientPlayerPredictorTest, RotationInput)
+{
     predictor->handleRotationInput(10.0f, 5.0f);
 
     auto [yaw, pitch] = predictor->predictedRotation();
@@ -90,7 +91,8 @@ TEST_F(ClientPlayerPredictorTest, RotationInput) {
     EXPECT_FLOAT_EQ(pitch2, 3.0f);
 }
 
-TEST_F(ClientPlayerPredictorTest, PitchClamping) {
+TEST_F(ClientPlayerPredictorTest, PitchClamping)
+{
     // Pitch should be clamped to [-90, 90]
     predictor->handleRotationInput(0.0f, 100.0f);
     auto [yaw1, pitch1] = predictor->predictedRotation();
@@ -101,7 +103,8 @@ TEST_F(ClientPlayerPredictorTest, PitchClamping) {
     EXPECT_FLOAT_EQ(pitch2, -90.0f);
 }
 
-TEST_F(ClientPlayerPredictorTest, YawNormalization) {
+TEST_F(ClientPlayerPredictorTest, YawNormalization)
+{
     // Yaw should be normalized to [-180, 180]
     predictor->handleRotationInput(200.0f, 0.0f);
     auto [yaw1, pitch1] = predictor->predictedRotation();
@@ -113,7 +116,8 @@ TEST_F(ClientPlayerPredictorTest, YawNormalization) {
     EXPECT_FLOAT_EQ(yaw2, -170.0f);
 }
 
-TEST_F(ClientPlayerPredictorTest, ReceiveServerPosition) {
+TEST_F(ClientPlayerPredictorTest, ReceiveServerPosition)
+{
     // Reset first
     Vector3 initialPos(0.0f, 64.0f, 0.0f);
     predictor->reset(initialPos, 0.0f, 0.0f);
@@ -130,7 +134,8 @@ TEST_F(ClientPlayerPredictorTest, ReceiveServerPosition) {
     EXPECT_FLOAT_EQ(receivedServerPos.z, 100.0f);
 }
 
-TEST_F(ClientPlayerPredictorTest, SmallCorrectionThreshold) {
+TEST_F(ClientPlayerPredictorTest, SmallCorrectionThreshold)
+{
     // Set small threshold
     predictor->setCorrectionThreshold(0.01f);
 
@@ -148,7 +153,8 @@ TEST_F(ClientPlayerPredictorTest, SmallCorrectionThreshold) {
     EXPECT_FLOAT_EQ(predictedPos.z, 0.05f);
 }
 
-TEST_F(ClientPlayerPredictorTest, LargeCorrectionTriggersSmoothing) {
+TEST_F(ClientPlayerPredictorTest, LargeCorrectionTriggersSmoothing)
+{
     // Set large threshold
     predictor->setCorrectionThreshold(1.0f);
 
@@ -165,7 +171,8 @@ TEST_F(ClientPlayerPredictorTest, LargeCorrectionTriggersSmoothing) {
     EXPECT_FLOAT_EQ(predictedPos.x, 100.0f);
 }
 
-TEST_F(ClientPlayerPredictorTest, TickUpdatesPrediction) {
+TEST_F(ClientPlayerPredictorTest, TickUpdatesPrediction)
+{
     Vector3 initialPos(0.0f, 64.0f, 0.0f);
     predictor->reset(initialPos, 0.0f, 0.0f);
     predictor->setMovementSpeed(10.0f);
@@ -181,7 +188,8 @@ TEST_F(ClientPlayerPredictorTest, TickUpdatesPrediction) {
     EXPECT_GT(predictedPos.z, 0.0f);
 }
 
-TEST_F(ClientPlayerPredictorTest, AcknowledgeInput) {
+TEST_F(ClientPlayerPredictorTest, AcknowledgeInput)
+{
     predictor->handleMovementInput(1.0f, 0.0f, false, false);
     predictor->handleMovementInput(0.0f, 1.0f, false, false);
     predictor->handleMovementInput(-1.0f, 0.0f, false, false);
@@ -195,20 +203,23 @@ TEST_F(ClientPlayerPredictorTest, AcknowledgeInput) {
     EXPECT_EQ(predictor->currentSequence(), 3u);
 }
 
-TEST_F(ClientPlayerPredictorTest, SetMovementSpeed) {
+TEST_F(ClientPlayerPredictorTest, SetMovementSpeed)
+{
     predictor->setMovementSpeed(100.0f);
     // Movement speed is applied in prediction updates
     // No direct getter, so we verify through tick behavior
     EXPECT_NO_THROW(predictor->tick(0.016f));
 }
 
-TEST_F(ClientPlayerPredictorTest, SetCorrectionThreshold) {
+TEST_F(ClientPlayerPredictorTest, SetCorrectionThreshold)
+{
     predictor->setCorrectionThreshold(0.5f);
     // Threshold affects when correction is triggered
     EXPECT_NO_THROW(predictor->tick(0.016f));
 }
 
-TEST_F(ClientPlayerPredictorTest, ClearPendingInputs) {
+TEST_F(ClientPlayerPredictorTest, ClearPendingInputs)
+{
     predictor->handleMovementInput(1.0f, 0.0f, false, false);
     predictor->handleMovementInput(0.0f, 1.0f, false, false);
     predictor->handleMovementInput(-1.0f, 0.0f, false, false);
@@ -220,7 +231,8 @@ TEST_F(ClientPlayerPredictorTest, ClearPendingInputs) {
     EXPECT_EQ(predictor->currentSequence(), 0u);
 }
 
-TEST_F(ClientPlayerPredictorTest, DiagonalMovement) {
+TEST_F(ClientPlayerPredictorTest, DiagonalMovement)
+{
     Vector3 initialPos(0.0f, 64.0f, 0.0f);
     predictor->reset(initialPos, 0.0f, 0.0f);
     predictor->setMovementSpeed(10.0f);

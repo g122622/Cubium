@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Constants.hpp"
+#include "../../core/Types.hpp"
+#include "../../util/Direction.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/Vector3.hpp"
-#include "../../util/Direction.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -28,22 +28,19 @@ public:
         : x(0)
         , y(0)
         , z(0)
-    {
-    }
+    {}
 
     BlockPos(BlockCoord x_, BlockCoord y_, BlockCoord z_) noexcept
         : x(x_)
         , y(y_)
         , z(z_)
-    {
-    }
+    {}
 
     explicit BlockPos(const Vector3& pos) noexcept
         : x(static_cast<BlockCoord>(std::floor(pos.x)))
         , y(static_cast<BlockCoord>(std::floor(pos.y)))
         , z(static_cast<BlockCoord>(std::floor(pos.z)))
-    {
-    }
+    {}
 
     // 静态常量
     static BlockPos zero() { return {0, 0, 0}; }
@@ -59,10 +56,7 @@ public:
         return {x - other.x, y - other.y, z - other.z};
     }
 
-    [[nodiscard]] BlockPos operator*(i32 scalar) const noexcept
-    {
-        return {x * scalar, y * scalar, z * scalar};
-    }
+    [[nodiscard]] BlockPos operator*(i32 scalar) const noexcept { return {x * scalar, y * scalar, z * scalar}; }
 
     BlockPos& operator+=(const BlockPos& other) noexcept
     {
@@ -86,10 +80,7 @@ public:
         return x == other.x && y == other.y && z == other.z;
     }
 
-    [[nodiscard]] bool operator!=(const BlockPos& other) const noexcept
-    {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator!=(const BlockPos& other) const noexcept { return !(*this == other); }
 
     // 排序支持
     [[nodiscard]] bool operator<(const BlockPos& other) const noexcept
@@ -165,13 +156,20 @@ public:
     [[nodiscard]] BlockPos offset(BlockFace face, i32 distance = 1) const noexcept
     {
         switch (face) {
-            case BlockFace::Top:    return {x, y + distance, z};
-            case BlockFace::Bottom: return {x, y - distance, z};
-            case BlockFace::North:  return {x, y, z - distance};
-            case BlockFace::South:  return {x, y, z + distance};
-            case BlockFace::East:   return {x + distance, y, z};
-            case BlockFace::West:   return {x - distance, y, z};
-            default: return *this;
+            case BlockFace::Top:
+                return {x, y + distance, z};
+            case BlockFace::Bottom:
+                return {x, y - distance, z};
+            case BlockFace::North:
+                return {x, y, z - distance};
+            case BlockFace::South:
+                return {x, y, z + distance};
+            case BlockFace::East:
+                return {x + distance, y, z};
+            case BlockFace::West:
+                return {x - distance, y, z};
+            default:
+                return *this;
         }
     }
 
@@ -182,10 +180,11 @@ public:
      * @param distance 距离（默认1）
      * @return 相邻方块位置
      */
-    [[nodiscard]] BlockPos offset(Direction dir, i32 distance = 1) const noexcept {
+    [[nodiscard]] BlockPos offset(Direction dir, i32 distance = 1) const noexcept
+    {
         return {x + Directions::xOffset(dir) * distance,
-                y + Directions::yOffset(dir) * distance,
-                z + Directions::zOffset(dir) * distance};
+            y + Directions::yOffset(dir) * distance,
+            z + Directions::zOffset(dir) * distance};
     }
 
     // 转换为64位唯一ID
@@ -210,10 +209,7 @@ public:
     [[nodiscard]] BlockCoord localZ() const noexcept { return math::toLocalCoord(z); }
 
     // 区块段索引 (Y / 16)
-    [[nodiscard]] i32 sectionIndex() const noexcept
-    {
-        return y / world::CHUNK_SECTION_HEIGHT;
-    }
+    [[nodiscard]] i32 sectionIndex() const noexcept { return y / world::CHUNK_SECTION_HEIGHT; }
 
     // 转为字符串
     [[nodiscard]] std::string toString() const
@@ -231,7 +227,8 @@ public:
      * @param end 结束位置
      * @param callback 回调函数，返回 false 可提前终止遍历
      */
-    void forEachBetween(const BlockPos& end, std::function<bool(const BlockPos&)> callback) const {
+    void forEachBetween(const BlockPos& end, std::function<bool(const BlockPos&)> callback) const
+    {
         i32 minX = std::min(x, end.x);
         i32 maxX = std::max(x, end.x);
         i32 minY = std::min(y, end.y);
@@ -262,8 +259,8 @@ public:
      * @param radiusZ Z方向半径
      * @param callback 回调函数，返回 false 可提前终止遍历
      */
-    void forEachInCube(i32 radiusX, i32 radiusY, i32 radiusZ,
-                       std::function<bool(const BlockPos&)> callback) const {
+    void forEachInCube(i32 radiusX, i32 radiusY, i32 radiusZ, std::function<bool(const BlockPos&)> callback) const
+    {
         BlockPos pos;
         for (i32 dy = -radiusY; dy <= radiusY; ++dy) {
             pos.y = y + dy;
@@ -285,7 +282,8 @@ public:
      * @param radius 半径
      * @param callback 回调函数，返回 false 可提前终止遍历
      */
-    void forEachInCube(i32 radius, std::function<bool(const BlockPos&)> callback) const {
+    void forEachInCube(i32 radius, std::function<bool(const BlockPos&)> callback) const
+    {
         forEachInCube(radius, radius, radius, callback);
     }
 
@@ -294,12 +292,10 @@ public:
      *
      * @param callback 回调函数，返回 false 可提前终止遍历
      */
-    void forEachNeighbor(std::function<bool(const BlockPos&)> callback) const {
+    void forEachNeighbor(std::function<bool(const BlockPos&)> callback) const
+    {
         static constexpr Direction directions[] = {
-            Direction::Down, Direction::Up,
-            Direction::North, Direction::South,
-            Direction::West, Direction::East
-        };
+            Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
 
         for (Direction dir : directions) {
             if (!callback(offset(dir))) {
@@ -313,7 +309,8 @@ public:
      *
      * @param callback 回调函数，返回 false 可提前终止遍历
      */
-    void forEachNeighborIncludingDiagonal(std::function<bool(const BlockPos&)> callback) const {
+    void forEachNeighborIncludingDiagonal(std::function<bool(const BlockPos&)> callback) const
+    {
         BlockPos pos;
         for (i32 dy = -1; dy <= 1; ++dy) {
             pos.y = y + dy;
@@ -356,14 +353,21 @@ public:
  */
 class BlockPosMutable : public BlockPos {
 public:
-    BlockPosMutable() noexcept : BlockPos() {}
-    BlockPosMutable(BlockCoord x_, BlockCoord y_, BlockCoord z_) noexcept : BlockPos(x_, y_, z_) {}
-    explicit BlockPosMutable(const BlockPos& pos) noexcept : BlockPos(pos) {}
+    BlockPosMutable() noexcept
+        : BlockPos()
+    {}
+    BlockPosMutable(BlockCoord x_, BlockCoord y_, BlockCoord z_) noexcept
+        : BlockPos(x_, y_, z_)
+    {}
+    explicit BlockPosMutable(const BlockPos& pos) noexcept
+        : BlockPos(pos)
+    {}
 
     /**
      * @brief 设置X坐标
      */
-    BlockPosMutable& setX(BlockCoord newX) noexcept {
+    BlockPosMutable& setX(BlockCoord newX) noexcept
+    {
         x = newX;
         return *this;
     }
@@ -371,7 +375,8 @@ public:
     /**
      * @brief 设置Y坐标
      */
-    BlockPosMutable& setY(BlockCoord newY) noexcept {
+    BlockPosMutable& setY(BlockCoord newY) noexcept
+    {
         y = newY;
         return *this;
     }
@@ -379,7 +384,8 @@ public:
     /**
      * @brief 设置Z坐标
      */
-    BlockPosMutable& setZ(BlockCoord newZ) noexcept {
+    BlockPosMutable& setZ(BlockCoord newZ) noexcept
+    {
         z = newZ;
         return *this;
     }
@@ -387,7 +393,8 @@ public:
     /**
      * @brief 设置所有坐标
      */
-    BlockPosMutable& set(BlockCoord newX, BlockCoord newY, BlockCoord newZ) noexcept {
+    BlockPosMutable& set(BlockCoord newX, BlockCoord newY, BlockCoord newZ) noexcept
+    {
         x = newX;
         y = newY;
         z = newZ;
@@ -397,7 +404,8 @@ public:
     /**
      * @brief 从另一个 BlockPos 设置
      */
-    BlockPosMutable& set(const BlockPos& pos) noexcept {
+    BlockPosMutable& set(const BlockPos& pos) noexcept
+    {
         x = pos.x;
         y = pos.y;
         z = pos.z;
@@ -407,7 +415,8 @@ public:
     /**
      * @brief 移动位置
      */
-    BlockPosMutable& move(Direction dir, i32 distance = 1) noexcept {
+    BlockPosMutable& move(Direction dir, i32 distance = 1) noexcept
+    {
         x += Directions::xOffset(dir) * distance;
         y += Directions::yOffset(dir) * distance;
         z += Directions::zOffset(dir) * distance;
@@ -417,15 +426,29 @@ public:
     /**
      * @brief 移动位置
      */
-    BlockPosMutable& move(BlockFace face, i32 distance = 1) noexcept {
+    BlockPosMutable& move(BlockFace face, i32 distance = 1) noexcept
+    {
         switch (face) {
-            case BlockFace::Top:    y += distance; break;
-            case BlockFace::Bottom: y -= distance; break;
-            case BlockFace::North:  z -= distance; break;
-            case BlockFace::South:  z += distance; break;
-            case BlockFace::East:   x += distance; break;
-            case BlockFace::West:   x -= distance; break;
-            default: break;
+            case BlockFace::Top:
+                y += distance;
+                break;
+            case BlockFace::Bottom:
+                y -= distance;
+                break;
+            case BlockFace::North:
+                z -= distance;
+                break;
+            case BlockFace::South:
+                z += distance;
+                break;
+            case BlockFace::East:
+                x += distance;
+                break;
+            case BlockFace::West:
+                x -= distance;
+                break;
+            default:
+                break;
         }
         return *this;
     }
@@ -433,7 +456,8 @@ public:
     /**
      * @brief 移动位置
      */
-    BlockPosMutable& move(i32 dx, i32 dy, i32 dz) noexcept {
+    BlockPosMutable& move(i32 dx, i32 dy, i32 dz) noexcept
+    {
         x += dx;
         y += dy;
         z += dz;
@@ -443,20 +467,15 @@ public:
     /**
      * @brief 转换为不可变 BlockPos
      */
-    [[nodiscard]] BlockPos toImmutable() const noexcept {
-        return BlockPos(x, y, z);
-    }
+    [[nodiscard]] BlockPos toImmutable() const noexcept { return BlockPos(x, y, z); }
 };
 
 } // namespace mc
 
 // 哈希函数支持
 namespace std {
-template<>
+template <>
 struct hash<mc::BlockPos> {
-    size_t operator()(const mc::BlockPos& pos) const noexcept
-    {
-        return static_cast<size_t>(pos.toId());
-    }
+    size_t operator()(const mc::BlockPos& pos) const noexcept { return static_cast<size_t>(pos.toId()); }
 };
 } // namespace std

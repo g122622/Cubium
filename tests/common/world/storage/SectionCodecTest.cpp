@@ -1,18 +1,18 @@
-#include <gtest/gtest.h>
-#include "world/storage/db/SectionKey.hpp"
 #include "world/storage/db/SectionCodec.hpp"
-#include "world/chunk/ChunkData.hpp"
 #include "core/Types.hpp"
+#include "world/chunk/ChunkData.hpp"
+#include "world/storage/db/SectionKey.hpp"
+#include <gtest/gtest.h>
 
 namespace mc::world::storage {
 namespace {
 
 // 测试用生物群系 ID
 namespace TestBiomes {
-    constexpr BiomeId PLAINS = 1;
-    constexpr BiomeId DESERT = 2;
-    constexpr BiomeId FOREST = 4;
-}
+constexpr BiomeId PLAINS = 1;
+constexpr BiomeId DESERT = 2;
+constexpr BiomeId FOREST = 4;
+} // namespace TestBiomes
 
 class SectionKeyTest : public ::testing::Test {
 protected:
@@ -21,7 +21,7 @@ protected:
 
 TEST_F(SectionKeyTest, Construction)
 {
-    SectionKey key(10, 20, 5, 0);  // Overworld
+    SectionKey key(10, 20, 5, 0); // Overworld
     EXPECT_EQ(key.chunkX, 10);
     EXPECT_EQ(key.chunkZ, 20);
     EXPECT_EQ(key.sectionY, 5);
@@ -30,7 +30,7 @@ TEST_F(SectionKeyTest, Construction)
 
 TEST_F(SectionKeyTest, NegativeCoordinates)
 {
-    SectionKey key(-100, -200, 0, 1);  // Nether
+    SectionKey key(-100, -200, 0, 1); // Nether
     EXPECT_EQ(key.chunkX, -100);
     EXPECT_EQ(key.chunkZ, -200);
     EXPECT_EQ(key.sectionY, 0);
@@ -39,7 +39,7 @@ TEST_F(SectionKeyTest, NegativeCoordinates)
 
 TEST_F(SectionKeyTest, SerializeDeserialize)
 {
-    SectionKey original(123, -456, 10, 2);  // The End
+    SectionKey original(123, -456, 10, 2); // The End
     auto serialized = original.serialize();
 
     EXPECT_EQ(serialized.size(), 13u);
@@ -76,7 +76,8 @@ protected:
     void SetUp() override {}
 };
 
-SectionData makeMalformedSectionData() {
+SectionData makeMalformedSectionData()
+{
     SectionData data;
     data.blockStates.clear();
     data.biomes.clear();
@@ -104,8 +105,8 @@ TEST_F(SectionCodecTest, EmptySection)
 TEST_F(SectionCodecTest, SingleBlock)
 {
     ChunkSection section;
-    section.setBlockStateId(0, 0, 0, 1);  // Set a single block
-    section.setBlockCount(1);  // 手动设置方块数量
+    section.setBlockStateId(0, 0, 0, 1); // Set a single block
+    section.setBlockCount(1);            // 手动设置方块数量
 
     SectionKey key(5, 10, 3, 0);
     auto result = SectionCodec::fromChunkSection(section, key);
@@ -127,7 +128,7 @@ TEST_F(SectionCodecTest, MultipleBlocks)
     for (int y = 0; y < 4; ++y) {
         for (int z = 0; z < 4; ++z) {
             for (int x = 0; x < 4; ++x) {
-                section.setBlockStateId(x, y, z, 2);  // Grass block
+                section.setBlockStateId(x, y, z, 2); // Grass block
                 ++blockCount;
             }
         }
@@ -149,7 +150,7 @@ TEST_F(SectionCodecTest, SerializeDeserialize)
     original.setBlockStateId(7, 8, 9, 100);
     original.setBlockCount(2);
 
-    SectionKey key(100, -200, 7, 1);  // Nether
+    SectionKey key(100, -200, 7, 1); // Nether
     auto encodeResult = SectionCodec::fromChunkSection(original, key);
     ASSERT_TRUE(encodeResult.success());
 

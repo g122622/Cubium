@@ -13,7 +13,8 @@ namespace {
  * @param path ��Դ·����
  * @return ��ע����Ʒָ�롣
  */
-Item* ensureTestItem(const char* path) {
+Item* ensureTestItem(const char* path)
+{
     auto& registry = ItemRegistry::instance();
     const ResourceLocation id("minecraft", path);
     if (Item* existing = registry.getItem(id); existing != nullptr) {
@@ -25,7 +26,8 @@ Item* ensureTestItem(const char* path) {
 
 } // namespace
 
-TEST(ItemStackJsonTest, RoundTrip_WithRegisteredItem_PreservesItemAndCount) {
+TEST(ItemStackJsonTest, RoundTrip_WithRegisteredItem_PreservesItemAndCount)
+{
     Items::initialize();
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
@@ -41,7 +43,8 @@ TEST(ItemStackJsonTest, RoundTrip_WithRegisteredItem_PreservesItemAndCount) {
     EXPECT_EQ(result.getCount(), 13);
 }
 
-TEST(ItemStackJsonTest, RoundTrip_PreservesNestedTagData) {
+TEST(ItemStackJsonTest, RoundTrip_PreservesNestedTagData)
+{
     Items::initialize();
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "EffectType.hpp"
 #include "../../core/Types.hpp"
+#include "EffectType.hpp"
 #include <memory>
 
 // Forward declaration
@@ -10,8 +10,8 @@ namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
-}
+} // namespace nbt
+} // namespace mc
 
 namespace mc {
 
@@ -38,14 +38,12 @@ public:
      * @param visible 是否显示粒子
      * @param showIcon 是否显示图标
      */
-    EffectInstance(
-        EffectType type,
+    EffectInstance(EffectType type,
         i32 duration = 600,
         i32 amplifier = 0,
         bool ambient = false,
         bool visible = true,
-        bool showIcon = true
-    );
+        bool showIcon = true);
 
     /**
      * @brief 复制构造
@@ -163,7 +161,7 @@ private:
     bool m_ambient;
     bool m_visible;
     bool m_showIcon;
-    bool m_applied = false;  // 是否已应用属性修改
+    bool m_applied = false; // 是否已应用属性修改
 };
 
 } // namespace effect

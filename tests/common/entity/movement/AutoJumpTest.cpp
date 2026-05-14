@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include "common/entity/movement/AutoJump.hpp"
 #include "common/entity/movement/AutoJumpConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity::movement;
@@ -14,12 +14,14 @@ namespace {
 // 配置测试
 // ============================================================================
 
-TEST(AutoJumpTest, DefaultEnabled) {
+TEST(AutoJumpTest, DefaultEnabled)
+{
     AutoJump autoJump;
     EXPECT_TRUE(autoJump.isEnabled());
 }
 
-TEST(AutoJumpTest, CanEnableDisable) {
+TEST(AutoJumpTest, CanEnableDisable)
+{
     AutoJump autoJump;
 
     autoJump.setEnabled(false);
@@ -29,7 +31,8 @@ TEST(AutoJumpTest, CanEnableDisable) {
     EXPECT_TRUE(autoJump.isEnabled());
 }
 
-TEST(AutoJumpTest, JumpBoostLevelAffectsMaxHeight) {
+TEST(AutoJumpTest, JumpBoostLevelAffectsMaxHeight)
+{
     AutoJump autoJump;
 
     // 默认等级 0
@@ -50,7 +53,8 @@ TEST(AutoJumpTest, JumpBoostLevelAffectsMaxHeight) {
     EXPECT_EQ(0, autoJump.jumpBoostLevel());
 }
 
-TEST(AutoJumpTest, CooldownMechanics) {
+TEST(AutoJumpTest, CooldownMechanics)
+{
     AutoJump autoJump;
 
     // 默认冷却为 0
@@ -69,22 +73,23 @@ TEST(AutoJumpTest, CooldownMechanics) {
 // 方向计算测试
 // ============================================================================
 
-TEST(AutoJumpTest, IsMovingForwardDetection) {
+TEST(AutoJumpTest, IsMovingForwardDetection)
+{
     // 向前移动（点积 > 阈值）
-    Vector3 forward(0.0f, 0.0f, -1.0f);  // 面向 -Z
-    Vector3 movingForward(0.0f, 0.0f, -1.0f);  // 向 -Z 移动
+    Vector3 forward(0.0f, 0.0f, -1.0f);       // 面向 -Z
+    Vector3 movingForward(0.0f, 0.0f, -1.0f); // 向 -Z 移动
     EXPECT_TRUE(AutoJump::isMovingForward(movingForward, forward));
 
     // 向后移动（点积 < 阈值）
-    Vector3 movingBackward(0.0f, 0.0f, 1.0f);  // 向 +Z 移动
+    Vector3 movingBackward(0.0f, 0.0f, 1.0f); // 向 +Z 移动
     EXPECT_FALSE(AutoJump::isMovingForward(movingBackward, forward));
 
     // 侧向移动（点积接近 0）
-    Vector3 strafingLeft(-1.0f, 0.0f, 0.0f);  // 向 -X 移动
-    EXPECT_TRUE(AutoJump::isMovingForward(strafingLeft, forward));  // 点积 = 0 > -0.15
+    Vector3 strafingLeft(-1.0f, 0.0f, 0.0f);                       // 向 -X 移动
+    EXPECT_TRUE(AutoJump::isMovingForward(strafingLeft, forward)); // 点积 = 0 > -0.15
 
     // 斜向前移动
-    Vector3 diagonal(-0.707f, 0.0f, -0.707f);  // 向左前方
+    Vector3 diagonal(-0.707f, 0.0f, -0.707f); // 向左前方
     EXPECT_TRUE(AutoJump::isMovingForward(diagonal, forward));
 
     // 斜向后移动（应该不触发）
@@ -96,7 +101,8 @@ TEST(AutoJumpTest, IsMovingForwardDetection) {
 // 高度计算测试
 // ============================================================================
 
-TEST(AutoJumpTest, MaxJumpHeightCalculation) {
+TEST(AutoJumpTest, MaxJumpHeightCalculation)
+{
     AutoJump autoJump;
 
     // 无跳跃药水
@@ -119,7 +125,8 @@ TEST(AutoJumpTest, MaxJumpHeightCalculation) {
 // 常量验证测试
 // ============================================================================
 
-TEST(AutoJumpConstantsTest, VerifyValues) {
+TEST(AutoJumpConstantsTest, VerifyValues)
+{
     // 验证常量与 MC 源码一致
     EXPECT_FLOAT_EQ(1.2f, BASE_JUMP_HEIGHT);
     EXPECT_FLOAT_EQ(0.75f, JUMP_BOOST_PER_LEVEL);
@@ -138,12 +145,13 @@ TEST(AutoJumpConstantsTest, VerifyValues) {
 // 边界条件测试
 // ============================================================================
 
-TEST(AutoJumpTest, ZeroInputReturnsEmptyDirection) {
+TEST(AutoJumpTest, ZeroInputReturnsEmptyDirection)
+{
     // 当速度和输入都为零时，calculateMovementDirection 应该返回零向量
     // 这需要 Player 实例，所以这里只验证常量逻辑
 
     // 验证阈值正确
-    EXPECT_LT(FORWARD_THRESHOLD, 0.0f);  // 阈值应该是负数
+    EXPECT_LT(FORWARD_THRESHOLD, 0.0f); // 阈值应该是负数
 
     // 验证最小跳跃高度大于 0
     EXPECT_GT(MIN_JUMP_HEIGHT, 0.0f);
@@ -152,7 +160,8 @@ TEST(AutoJumpTest, ZeroInputReturnsEmptyDirection) {
     EXPECT_GT(BASE_JUMP_HEIGHT, MIN_JUMP_HEIGHT);
 }
 
-TEST(AutoJumpTest, CooldownPreventsMultipleJumps) {
+TEST(AutoJumpTest, CooldownPreventsMultipleJumps)
+{
     AutoJump autoJump;
 
     // 设置冷却
@@ -171,7 +180,8 @@ TEST(AutoJumpTest, CooldownPreventsMultipleJumps) {
 // 启用/禁用测试
 // ============================================================================
 
-TEST(AutoJumpTest, DisabledDoesNotTrigger) {
+TEST(AutoJumpTest, DisabledDoesNotTrigger)
+{
     AutoJump autoJump;
     autoJump.setEnabled(false);
 
@@ -189,7 +199,8 @@ TEST(AutoJumpTest, DisabledDoesNotTrigger) {
 // 方向阈值测试
 // ============================================================================
 
-TEST(AutoJumpTest, ForwardThresholdEdgeCases) {
+TEST(AutoJumpTest, ForwardThresholdEdgeCases)
+{
     // 测试阈值边界情况
     Vector3 forward(0.0f, 0.0f, -1.0f);
 
@@ -204,11 +215,11 @@ TEST(AutoJumpTest, ForwardThresholdEdgeCases) {
 
     // 90度侧方：点积 = 0
     Vector3 side(1.0f, 0.0f, 0.0f);
-    EXPECT_TRUE(AutoJump::isMovingForward(side, forward));  // 0 > -0.15
+    EXPECT_TRUE(AutoJump::isMovingForward(side, forward)); // 0 > -0.15
 
     // 120度：点积 = cos(120°) = -0.5
     Vector3 backSide(-0.5f, 0.0f, 0.866f);
-    EXPECT_FALSE(AutoJump::isMovingForward(backSide, forward));  // -0.5 < -0.15
+    EXPECT_FALSE(AutoJump::isMovingForward(backSide, forward)); // -0.5 < -0.15
 }
 
 } // namespace

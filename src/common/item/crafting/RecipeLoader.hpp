@@ -1,12 +1,12 @@
 #pragma once
 
+#include "core/Result.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/RecipeSerializers.hpp"
 #include "resource/ResourceLocation.hpp"
-#include "core/Result.hpp"
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace mc {
 
@@ -44,8 +44,8 @@ public:
      * @brief 加载结果回调
      */
     struct LoadResult {
-        size_t successCount = 0;    ///< 成功加载的配方数
-        size_t failedCount = 0;     ///< 加载失败的配方数
+        size_t successCount = 0;         ///< 成功加载的配方数
+        size_t failedCount = 0;          ///< 加载失败的配方数
         std::vector<std::string> errors; ///< 错误信息列表
     };
 
@@ -68,8 +68,7 @@ public:
      * - "data/minecraft/recipes/crafting_table.json" -> "minecraft:crafting_table"
      * - "data/mod_id/recipes/subdir/item.json" -> "mod_id:subdir/item"
      */
-    Result<LoadResult> loadFromDirectory(const std::string& directoryPath,
-                                          ProgressCallback callback = nullptr);
+    Result<LoadResult> loadFromDirectory(const std::string& directoryPath, ProgressCallback callback = nullptr);
 
     /**
      * @brief 加载单个配方文件
@@ -84,8 +83,7 @@ public:
      * @param jsonString JSON字符串
      * @return 配方ID（如果成功）
      */
-    Result<ResourceLocation> loadRecipeJson(const ResourceLocation& id,
-                                             const std::string& jsonString);
+    Result<ResourceLocation> loadRecipeJson(const ResourceLocation& id, const std::string& jsonString);
 
     /**
      * @brief 加载内置原版配方
@@ -121,7 +119,6 @@ public:
     [[nodiscard]] ResourceLocation pathToRecipeId(const std::string& filePath) const;
 
 private:
-
     /**
      * @brief 注册内置原版配方
      */

@@ -6,10 +6,11 @@ namespace item {
 namespace enchant {
 
 ProtectionEnchantment::ProtectionEnchantment(Type protectionType)
-    : m_protectionType(protectionType) {
-}
+    : m_protectionType(protectionType)
+{}
 
-i32 ProtectionEnchantment::getMinCost(i32 level) const {
+i32 ProtectionEnchantment::getMinCost(i32 level) const
+{
     // 参考 MC 1.16.5 ProtectionEnchantment.Type 枚举值
     // ALL("all", 1, 11)       - minEnchantability=1,  levelCost=11
     // FIRE("fire", 10, 8)     - minEnchantability=10, levelCost=8
@@ -32,7 +33,8 @@ i32 ProtectionEnchantment::getMinCost(i32 level) const {
     }
 }
 
-i32 ProtectionEnchantment::getMaxCost(i32 level) const {
+i32 ProtectionEnchantment::getMaxCost(i32 level) const
+{
     // 参考 MC 1.16.5 ProtectionEnchantment.Type 枚举值
     // getMaxEnchantability = getMinEnchantability + levelCost
     switch (m_protectionType) {
@@ -51,7 +53,8 @@ i32 ProtectionEnchantment::getMaxCost(i32 level) const {
     }
 }
 
-i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const {
+i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const
+{
     // MC 1.16.5 calcModifierDamage 逻辑:
     // - 如果伤害源可以无视创造模式保护 (canHarmInCreative/bypassesInvulnerability)，返回 0
     // - 全保护对所有伤害有效，每级 EPF = level
@@ -75,7 +78,7 @@ i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const 
             if (damageType & DamageFlags::FIRE) {
                 return level * 2;
             }
-            return 0;  // 对其他伤害无效
+            return 0; // 对其他伤害无效
 
         case Type::Fall:
             // 摔落保护只对摔落伤害有效，每级 EPF = level * 3
@@ -89,21 +92,22 @@ i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const 
             if (damageType & DamageFlags::EXPLOSION) {
                 return level * 2;
             }
-            return 0;  // 对其他伤害无效
+            return 0; // 对其他伤害无效
 
         case Type::Projectile:
             // 弹射物保护只对弹射物伤害有效，每级 EPF = level * 2
             if (damageType & DamageFlags::PROJECTILE) {
                 return level * 2;
             }
-            return 0;  // 对其他伤害无效
+            return 0; // 对其他伤害无效
 
         default:
             return 0;
     }
 }
 
-bool ProtectionEnchantment::isCompatibleWith(const Enchantment& other) const {
+bool ProtectionEnchantment::isCompatibleWith(const Enchantment& other) const
+{
     // 保护类附魔之间互斥（不同类型的保护不能共存）
     // 但摔落保护可以与其他保护共存
     if (const auto* protection = dynamic_cast<const ProtectionEnchantment*>(&other)) {
@@ -113,9 +117,9 @@ bool ProtectionEnchantment::isCompatibleWith(const Enchantment& other) const {
         }
         // 如果有一个是摔落保护，检查另一个是否也是摔落保护
         if (m_protectionType == Type::Fall && protection->m_protectionType == Type::Fall) {
-            return false;  // 相同类型的保护也互斥
+            return false; // 相同类型的保护也互斥
         }
-        return true;  // 摔落保护可以与其他保护共存
+        return true; // 摔落保护可以与其他保护共存
     }
     return Enchantment::isCompatibleWith(other);
 }

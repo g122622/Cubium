@@ -1,16 +1,16 @@
 #include "BlockLightEngine.hpp"
-#include "../IChunkLightProvider.hpp"
-#include "../../chunk/IChunk.hpp"
-#include "../../chunk/ChunkData.hpp"
-#include "../../block/Block.hpp"
-#include "../../IWorld.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../physics/shape/Shapes.hpp"
 #include "../../../physics/shape/VoxelShape.hpp"
+#include "../../IWorld.hpp"
+#include "../../block/Block.hpp"
+#include "../../chunk/ChunkData.hpp"
+#include "../../chunk/IChunk.hpp"
+#include "../IChunkLightProvider.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cstring>
 #include <spdlog/spdlog.h>
-#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
 
@@ -26,7 +26,8 @@ namespace {
  * 用于面遮挡检测。对于完整方块和空形状有优化路径。
  * 参考 Moonrise 中使用 Shapes.faceShapeOccludes 的逻辑
  */
-VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
+VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
+{
     if (shape.isEmpty()) {
         return Shapes::empty();
     }
@@ -51,7 +52,8 @@ VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
 // ============================================================================
 
 BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
-    : StarLightEngine(false) {  // false = 不是天空光照
+    : StarLightEngine(false)
+{ // false = 不是天空光照
 
     // 世界高度范围由基类从世界高度常量自动计算
     // m_minSection, m_maxSection, m_minLightSection, m_maxLightSection
@@ -69,14 +71,15 @@ BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
     m_increaseQueue.resize(16 * 16 * 16);
     m_decreaseQueue.resize(16 * 16 * 16);
 
-    (void)provider;  // 暂时未使用
+    (void)provider; // 暂时未使用
 }
 
 // ============================================================================
 // 世界设置
 // ============================================================================
 
-void BlockStarLightEngine::setWorld(void* world) {
+void BlockStarLightEngine::setWorld(void* world)
+{
     StarLightEngine::setWorld(world);
     // 缓存已在构造函数中初始化
 }
@@ -85,36 +88,42 @@ void BlockStarLightEngine::setWorld(void* world) {
 // 空映射管理
 // ============================================================================
 
-const bool* BlockStarLightEngine::getEmptinessMap(const IChunk* chunk) const {
+const bool* BlockStarLightEngine::getEmptinessMap(const IChunk* chunk) const
+{
     return chunk->getBlockEmptinessMap();
 }
 
-void BlockStarLightEngine::setEmptinessMap(const IChunk* chunk, const bool* map) {
+void BlockStarLightEngine::setEmptinessMap(const IChunk* chunk, const bool* map)
+{
     // 注意: const_cast 是因为 IChunk 接口定义的 set 方法不是 const
     const_cast<IChunk*>(chunk)->setBlockEmptinessMap(map);
 }
 
-SWMRNibbleArray* const* BlockStarLightEngine::getNibblesOnChunk(const IChunk* chunk) const {
+SWMRNibbleArray* const* BlockStarLightEngine::getNibblesOnChunk(const IChunk* chunk) const
+{
     return chunk->getBlockNibbles();
 }
 
-void BlockStarLightEngine::setNibbles(const IChunk* chunk, SWMRNibbleArray* const* nibbles) {
+void BlockStarLightEngine::setNibbles(const IChunk* chunk, SWMRNibbleArray* const* nibbles)
+{
     const_cast<IChunk*>(chunk)->setBlockNibbles(nibbles);
 }
 
-bool BlockStarLightEngine::canUseChunk(const IChunk* chunk) const {
+bool BlockStarLightEngine::canUseChunk(const IChunk* chunk) const
+{
     // 区块必须处于 LIGHT 状态或之后，且光照数据正确
-    // 参考 Moonrise: chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && (isClientSide || chunk.isLightCorrect())
+    // 参考 Moonrise: chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && (isClientSide ||
+    // chunk.isLightCorrect())
     ChunkLoadStatus status = chunk->getStatus();
-    return status == ChunkLoadStatus::Generated ||
-           status == ChunkLoadStatus::Loaded;
+    return status == ChunkLoadStatus::Generated || status == ChunkLoadStatus::Loaded;
 }
 
 // ============================================================================
 // Nibble 数组管理
 // ============================================================================
 
-void BlockStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude, bool initRemovedNibbles) {
+void BlockStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude, bool initRemovedNibbles)
+{
     if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
         return;
     }
@@ -130,14 +139,15 @@ void BlockStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool e
             return;
         }
         // 与 Moonrise 一致：创建 UNINIT 状态的 Nibble（不是 NULL 状态）
-        nibble = new SWMRNibbleArray(nullptr, false);  // UNINIT 状态
+        nibble = new SWMRNibbleArray(nullptr, false); // UNINIT 状态
         setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
     } else {
         nibble->setNonNull();
     }
 }
 
-void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ) {
+void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
+{
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
         // 方块光照去初始化时设为 Hidden 状态，保持外观但停止传播
@@ -149,10 +159,12 @@ void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ) {
 // 方块检查
 // ============================================================================
 
-void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
-                                       i32 worldX, i32 worldY, i32 worldZ) {
-    MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::checkBlock",
-                   "Position", fmt::format("({}, {}, {})", worldX, worldY, worldZ));
+void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ)
+{
+    MC_TRACE_EVENT("server.lighting",
+        "BlockStarLightEngine::checkBlock",
+        "Position",
+        fmt::format("({}, {}, {})", worldX, worldY, worldZ));
 
     // 方块可以改变透明度、发光等级和传播方向
 
@@ -175,29 +187,23 @@ void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
         // 检查方块是否使用形状进行光照遮挡（条件透明）
         bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
 
-        appendToIncreaseQueue(
-            ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1))
-                | (static_cast<u64>(emittedLevel & 0xF) << 28)
-                | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
-                | (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
-        );
+        appendToIncreaseQueue(((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+            (static_cast<u64>(emittedLevel & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+            (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0));
     }
 
     // 添加到减亮队列
-    appendToDecreaseQueue(
-        ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1))
-            | (static_cast<u64>(currentLevel & 0xF) << 28)
-            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
-    );
+    appendToDecreaseQueue(((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+        (static_cast<u64>(currentLevel & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32));
 }
 
 // ============================================================================
 // 光照计算
 // ============================================================================
 
-i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAccess,
-                                               i32 worldX, i32 worldY, i32 worldZ,
-                                               i32 expected) {
+i32 BlockStarLightEngine::calculateLightValue(
+    StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 expected)
+{
     // 参考 Moonrise BlockStarLightEngine.calculateLightValue
     const BlockState* centerState = getBlockState(worldX, worldY, worldZ);
     IWorld* world = lightAccess->getWorld();
@@ -254,7 +260,8 @@ i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAc
             // here the block can be conditionally opaque (i.e light cannot propagate from it), so we need to test that
             // we don't read the blockstate because most of the time this is false, so using the faster
             // known transparency lookup results in a net win
-            CollisionShape neighbourFace = neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
+            CollisionShape neighbourFace =
+                neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
             CollisionShape thisFace;
             if (conditionallyOpaqueState != nullptr) {
                 thisFace = conditionallyOpaqueState->getFaceOcclusionShape(getNMSDirection(dir));
@@ -286,9 +293,9 @@ i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAc
 // 传播方块变化
 // ============================================================================
 
-void BlockStarLightEngine::propagateBlockChanges(StarLightLightingProvider* lightAccess,
-                                                  const IChunk* chunk,
-                                                  const std::vector<BlockPos>& positions) {
+void BlockStarLightEngine::propagateBlockChanges(
+    StarLightLightingProvider* lightAccess, const IChunk* chunk, const std::vector<BlockPos>& positions)
+{
     for (const BlockPos& pos : positions) {
         checkBlock(lightAccess, pos.x, pos.y, pos.z);
     }
@@ -300,8 +307,8 @@ void BlockStarLightEngine::propagateBlockChanges(StarLightLightingProvider* ligh
 // 光源获取
 // ============================================================================
 
-std::vector<BlockPos> BlockStarLightEngine::getSources(StarLightLightingProvider* lightAccess,
-                                                         const IChunk* chunk) {
+std::vector<BlockPos> BlockStarLightEngine::getSources(StarLightLightingProvider* lightAccess, const IChunk* chunk)
+{
     std::vector<BlockPos> sources;
 
     i32 offX = chunk->x() << 4;
@@ -320,10 +327,9 @@ std::vector<BlockPos> BlockStarLightEngine::getSources(StarLightLightingProvider
         i32 offY = sectionY << 4;
 
         for (i32 index = 0; index < 4096; ++index) {
-            const BlockState* state = section->getBlockState(
-                index & 15,           // x
-                (index >> 8) & 15,    // y
-                (index >> 4) & 15     // z
+            const BlockState* state = section->getBlockState(index & 15, // x
+                (index >> 8) & 15,                                       // y
+                (index >> 4) & 15                                        // z
             );
             if (state == nullptr || state->getBlock().getLightLevel(*state) == 0) {
                 continue;
@@ -340,8 +346,9 @@ std::vector<BlockPos> BlockStarLightEngine::getSources(StarLightLightingProvider
     return sources;
 }
 
-i32 BlockStarLightEngine::getLightEmission(StarLightLightingProvider* lightAccess,
-                                            const BlockState* state, i32 x, i32 y, i32 z) const {
+i32 BlockStarLightEngine::getLightEmission(
+    StarLightLightingProvider* lightAccess, const BlockState* state, i32 x, i32 y, i32 z) const
+{
     if (state == nullptr) {
         return 0;
     }
@@ -352,8 +359,8 @@ i32 BlockStarLightEngine::getLightEmission(StarLightLightingProvider* lightAcces
 // 区块照亮
 // ============================================================================
 
-void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
-                                       const IChunk* chunk, bool needsEdgeChecks) {
+void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks)
+{
     IWorld* world = lightAccess->getWorld();
 
     std::vector<BlockPos> positions = getSources(lightAccess, chunk);
@@ -371,12 +378,9 @@ void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
         // 检查方块是否使用形状进行光照遮挡（条件透明）
         bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
 
-        appendToIncreaseQueue(
-            ((pos.x + (pos.z << 6) + (pos.y << 12) + encodeOffset) & ((1LL << 28) - 1))
-                | (static_cast<u64>(emittedLight & 0xF) << 28)
-                | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
-                | (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
-        );
+        appendToIncreaseQueue(((pos.x + (pos.z << 6) + (pos.y << 12) + encodeOffset) & ((1LL << 28) - 1)) |
+            (static_cast<u64>(emittedLight & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+            (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0));
 
         setLightLevel(pos.x, pos.y, pos.z, emittedLight);
     }
@@ -396,21 +400,24 @@ void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
 // WorldLightManager 接口实现
 // ============================================================================
 
-void BlockStarLightEngine::onBlockEmissionIncrease(StarLightLightingProvider* lightAccess,
-                                                      i32 x, i32 y, i32 z, i32 lightLevel) {
+void BlockStarLightEngine::onBlockEmissionIncrease(
+    StarLightLightingProvider* lightAccess, i32 x, i32 y, i32 z, i32 lightLevel)
+{
     // 方块发光等级增加，需要重新检查该位置
     (void)lightLevel;
     checkBlock(lightAccess, x, y, z);
 }
 
-i32 BlockStarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+i32 BlockStarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight)
+{
     if (!updateBlockLight) {
         return maxUpdates;
     }
     return performUpdates(nullptr, maxUpdates);
 }
 
-void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty)
+{
     // 区块段状态更新
     // 在 Starlight 架构中，空映射通过区块接口管理
     // 空区块段可以跳过光照传播计算
@@ -419,11 +426,13 @@ void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmp
     (void)isEmpty;
 }
 
-u8 BlockStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const {
+u8 BlockStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const
+{
     return static_cast<u8>(getLightLevel(x, y, z));
 }
 
-void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
+void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain)
+{
     // 设置指定区块段的光照数据（从存档加载）
     i32 chunkY = pos.y;
     if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
@@ -469,7 +478,8 @@ void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& arr
     setNibbleInCache(pos.x, chunkY, pos.z, nibble);
 }
 
-SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) {
+SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos)
+{
     // 获取指定区块段的光照数据（用于保存）
     i32 chunkY = pos.y;
     if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
@@ -502,7 +512,8 @@ SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) {
     return nibbles[index];
 }
 
-void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk) {
+void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk)
+{
     MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::updateEmptinessMap");
 
     if (chunk == nullptr) {

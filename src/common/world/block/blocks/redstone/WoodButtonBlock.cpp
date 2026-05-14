@@ -1,7 +1,7 @@
 #include "WoodButtonBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,18 +12,17 @@ namespace blocks {
 static constexpr i32 WOOD_BUTTON_PRESS_TIME = 30;
 
 WoodButtonBlock::WoodButtonBlock(const BlockProperties& properties)
-    : AbstractButtonBlock(properties, WOOD_BUTTON_PRESS_TIME) {
-}
+    : AbstractButtonBlock(properties, WOOD_BUTTON_PRESS_TIME)
+{}
 
-void WoodButtonBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const {
+void WoodButtonBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
+{
     // 参考 MC 1.16.5: WoodButtonBlock.playSound
-    world.playSound(
-        pressed ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
+    world.playSound(pressed ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
         sound::SoundCategory::Blocks,
         pos.center(),
         0.3f,
-        0.6f
-    );
+        0.6f);
 }
 
 } // namespace blocks

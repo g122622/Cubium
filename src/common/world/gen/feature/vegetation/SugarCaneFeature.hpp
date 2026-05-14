@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 
 namespace mc {
 
@@ -47,34 +47,24 @@ public:
      * @param config 甘蔗配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const SugarCaneFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SugarCaneFeatureConfig& config);
 
 private:
     /**
      * @brief 检查甘蔗是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查周围是否有水
      * 甘蔗需要相邻的水源才能生长
      */
-    [[nodiscard]] bool hasWaterNearby(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool hasWaterNearby(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查下方方块是否支持甘蔗生长
      */
-    [[nodiscard]] bool isValidGround(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**
@@ -82,12 +72,9 @@ private:
  */
 class ConfiguredSugarCaneFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredSugarCaneFeature(
-        std::unique_ptr<SugarCaneFeatureConfig> config,
-        const char* featureName);
+    ConfiguredSugarCaneFeature(std::unique_ptr<SugarCaneFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "world/blockentity/BlockEntity.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/blockentity/BlockEntity.hpp"
 #include <array>
 
 namespace mc {
@@ -50,9 +50,7 @@ public:
      * @brief 检查是否需要tick
      * @return 附魔台总是返回false（不需要tick）
      */
-    [[nodiscard]] bool needsTick() const override {
-        return false;
-    }
+    [[nodiscard]] bool needsTick() const override { return false; }
 
     /**
      * @brief 从JSON加载数据
@@ -136,9 +134,7 @@ private:
      * @param tablePos 附魔台位置
      * @return 如果有效返回true
      */
-    [[nodiscard]] static bool isValidBookshelf(IWorld& world,
-                                                const BlockPos& bookshelfPos,
-                                                const BlockPos& tablePos);
+    [[nodiscard]] static bool isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos);
 
     /// 附魔力量（0-15，每个书架+1，书架最大15个）
     i32 m_enchantPower = 0;

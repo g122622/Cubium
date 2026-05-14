@@ -1,8 +1,8 @@
 #include "PotionBrewing.hpp"
-#include "PotionUtils.hpp"
-#include "Potions.hpp"
 #include "../Items.hpp"
 #include "../crafting/Ingredient.hpp"
+#include "PotionUtils.hpp"
+#include "Potions.hpp"
 
 namespace mc {
 namespace potion {
@@ -16,7 +16,8 @@ bool PotionBrewing::s_initialized = false;
 
 // ========== 公共方法 ==========
 
-void PotionBrewing::initialize() {
+void PotionBrewing::initialize()
+{
     if (s_initialized) {
         return;
     }
@@ -223,7 +224,8 @@ void PotionBrewing::initialize() {
     // 伤害药水 + 发酵蛛眼 → （反转治疗药水的转换已在上面）
 }
 
-bool PotionBrewing::isPotionItem(const ItemStack& stack) {
+bool PotionBrewing::isPotionItem(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -235,7 +237,8 @@ bool PotionBrewing::isPotionItem(const ItemStack& stack) {
     return false;
 }
 
-bool PotionBrewing::isReagent(const ItemStack& stack) {
+bool PotionBrewing::isReagent(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -256,16 +259,18 @@ bool PotionBrewing::isReagent(const ItemStack& stack) {
     return false;
 }
 
-bool PotionBrewing::canBrew(const ItemStack& potionStack, const ItemStack& reagentStack) {
+bool PotionBrewing::canBrew(const ItemStack& potionStack, const ItemStack& reagentStack)
+{
     if (!isPotionItem(potionStack) || reagentStack.isEmpty()) {
         return false;
     }
 
     return hasPotionConversion(PotionUtils::getPotion(potionStack), reagentStack) ||
-           hasItemConversion(potionStack.getItem(), reagentStack);
+        hasItemConversion(potionStack.getItem(), reagentStack);
 }
 
-ItemStack PotionBrewing::brew(const ItemStack& potionStack, const ItemStack& reagentStack) {
+ItemStack PotionBrewing::brew(const ItemStack& potionStack, const ItemStack& reagentStack)
+{
     if (potionStack.isEmpty()) {
         return potionStack;
     }
@@ -290,7 +295,8 @@ ItemStack PotionBrewing::brew(const ItemStack& potionStack, const ItemStack& rea
     return potionStack;
 }
 
-bool PotionBrewing::isBrewablePotion(const Potion* potion) {
+bool PotionBrewing::isBrewablePotion(const Potion* potion)
+{
     if (potion == nullptr) {
         return false;
     }
@@ -304,25 +310,29 @@ bool PotionBrewing::isBrewablePotion(const Potion* potion) {
 
 // ========== 私有方法 ==========
 
-void PotionBrewing::addContainer(const Item* item) {
+void PotionBrewing::addContainer(const Item* item)
+{
     if (item != nullptr) {
         s_potionItems.push_back(crafting::Ingredient::fromItem(item));
     }
 }
 
-void PotionBrewing::addContainerRecipe(const Item* input, const Item* reagent, const Item* output) {
+void PotionBrewing::addContainerRecipe(const Item* input, const Item* reagent, const Item* output)
+{
     if (input != nullptr && reagent != nullptr && output != nullptr) {
         s_itemMixes.emplace_back(input, crafting::Ingredient::fromItem(reagent), output);
     }
 }
 
-void PotionBrewing::addMix(const Potion* input, const Item* reagent, const Potion* output) {
+void PotionBrewing::addMix(const Potion* input, const Item* reagent, const Potion* output)
+{
     if (input != nullptr && reagent != nullptr && output != nullptr) {
         s_potionMixes.emplace_back(input, crafting::Ingredient::fromItem(reagent), output);
     }
 }
 
-bool PotionBrewing::hasPotionConversion(const Potion* potion, const ItemStack& reagent) {
+bool PotionBrewing::hasPotionConversion(const Potion* potion, const ItemStack& reagent)
+{
     if (potion == nullptr || reagent.isEmpty()) {
         return false;
     }
@@ -335,7 +345,8 @@ bool PotionBrewing::hasPotionConversion(const Potion* potion, const ItemStack& r
     return false;
 }
 
-bool PotionBrewing::hasItemConversion(const Item* item, const ItemStack& reagent) {
+bool PotionBrewing::hasItemConversion(const Item* item, const ItemStack& reagent)
+{
     if (item == nullptr || reagent.isEmpty()) {
         return false;
     }
@@ -348,7 +359,8 @@ bool PotionBrewing::hasItemConversion(const Item* item, const ItemStack& reagent
     return false;
 }
 
-const Potion* PotionBrewing::doPotionConversion(const Potion* potion, const ItemStack& reagent) {
+const Potion* PotionBrewing::doPotionConversion(const Potion* potion, const ItemStack& reagent)
+{
     if (potion == nullptr || reagent.isEmpty()) {
         return nullptr;
     }
@@ -361,7 +373,8 @@ const Potion* PotionBrewing::doPotionConversion(const Potion* potion, const Item
     return nullptr;
 }
 
-const Item* PotionBrewing::doItemConversion(const Item* item, const ItemStack& reagent) {
+const Item* PotionBrewing::doItemConversion(const Item* item, const ItemStack& reagent)
+{
     if (item == nullptr || reagent.isEmpty()) {
         return nullptr;
     }

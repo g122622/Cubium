@@ -1,45 +1,37 @@
 #include "ChunkBiomeAccessor.hpp"
-#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 
 namespace mc::client {
 
 using namespace mc::world;
 
-ChunkBiomeAccessor::ChunkBiomeAccessor(
-    const ChunkData& chunk,
+ChunkBiomeAccessor::ChunkBiomeAccessor(const ChunkData& chunk,
     const std::array<const ChunkData*, 4>& neighbors,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
     i32 minBuildHeight,
-    i32 maxBuildHeight
-)
+    i32 maxBuildHeight)
     : m_chunk(chunk)
     , m_neighbors(neighbors)
     , m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
     , m_minBuildHeight(minBuildHeight)
     , m_maxBuildHeight(maxBuildHeight)
-{
-}
+{}
 
 ChunkBiomeAccessor::ChunkBiomeAccessor(
-    const ChunkData& chunk,
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
-    i32 minBuildHeight,
-    i32 maxBuildHeight
-)
+    const ChunkData& chunk, ChunkCoord chunkX, ChunkCoord chunkZ, i32 minBuildHeight, i32 maxBuildHeight)
     : m_chunk(chunk)
     , m_neighbors{{nullptr, nullptr, nullptr, nullptr}}
     , m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
     , m_minBuildHeight(minBuildHeight)
     , m_maxBuildHeight(maxBuildHeight)
-{
-}
+{}
 
-const Biome* ChunkBiomeAccessor::getBiome(i32 x, i32 y, i32 z) const {
+const Biome* ChunkBiomeAccessor::getBiome(i32 x, i32 y, i32 z) const
+{
     // 检查Y范围
     if (y < m_minBuildHeight || y >= m_maxBuildHeight) {
         return nullptr;
@@ -56,24 +48,25 @@ const Biome* ChunkBiomeAccessor::getBiome(i32 x, i32 y, i32 z) const {
     return &BiomeRegistry::instance().get(biomeId);
 }
 
-bool ChunkBiomeAccessor::isChunkLoaded(ChunkCoord x, ChunkCoord z) const {
+bool ChunkBiomeAccessor::isChunkLoaded(ChunkCoord x, ChunkCoord z) const
+{
     if (x == m_chunkX && z == m_chunkZ) {
         return true;
     }
 
     // 检查是否是邻居区块
-    if (x == m_chunkX - 1 && z == m_chunkZ) return m_neighbors[0] != nullptr;  // 西
-    if (x == m_chunkX + 1 && z == m_chunkZ) return m_neighbors[1] != nullptr;  // 东
-    if (x == m_chunkX && z == m_chunkZ - 1) return m_neighbors[2] != nullptr;  // 北
-    if (x == m_chunkX && z == m_chunkZ + 1) return m_neighbors[3] != nullptr;  // 南
+    if (x == m_chunkX - 1 && z == m_chunkZ) return m_neighbors[0] != nullptr; // 西
+    if (x == m_chunkX + 1 && z == m_chunkZ) return m_neighbors[1] != nullptr; // 东
+    if (x == m_chunkX && z == m_chunkZ - 1) return m_neighbors[2] != nullptr; // 北
+    if (x == m_chunkX && z == m_chunkZ + 1) return m_neighbors[3] != nullptr; // 南
 
     return false;
 }
 
-const Biome* ChunkBiomeAccessor::getBiomeLocal(i32 localX, i32 y, i32 localZ) const {
-    if (localX < 0 || localX >= CHUNK_WIDTH ||
-        localZ < 0 || localZ >= CHUNK_WIDTH ||
-        y < m_minBuildHeight || y >= m_maxBuildHeight) {
+const Biome* ChunkBiomeAccessor::getBiomeLocal(i32 localX, i32 y, i32 localZ) const
+{
+    if (localX < 0 || localX >= CHUNK_WIDTH || localZ < 0 || localZ >= CHUNK_WIDTH || y < m_minBuildHeight ||
+        y >= m_maxBuildHeight) {
         return nullptr;
     }
 
@@ -81,12 +74,8 @@ const Biome* ChunkBiomeAccessor::getBiomeLocal(i32 localX, i32 y, i32 localZ) co
     return &BiomeRegistry::instance().get(biomeId);
 }
 
-const ChunkData* ChunkBiomeAccessor::resolveChunk(
-    i32 worldX,
-    i32 worldZ,
-    i32& outLocalX,
-    i32& outLocalZ
-) const {
+const ChunkData* ChunkBiomeAccessor::resolveChunk(i32 worldX, i32 worldZ, i32& outLocalX, i32& outLocalZ) const
+{
     // 计算区块坐标
     const ChunkCoord targetChunkX = worldX >> 4;
     const ChunkCoord targetChunkZ = worldZ >> 4;

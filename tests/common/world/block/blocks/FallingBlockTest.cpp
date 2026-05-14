@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 
+#include "core/Constants.hpp"
+#include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
-#include "world/IWorld.hpp"
-#include "world/tick/manager/TickManager.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "core/Constants.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
@@ -17,7 +17,8 @@ using namespace mc::blocks;
 // 空气穿透测试
 // ============================================================================
 
-TEST(FallingBlockCanFallThroughTest, Air_ReturnsTrue) {
+TEST(FallingBlockCanFallThroughTest, Air_ReturnsTrue)
+{
     // 空气应该可以穿透
     EXPECT_TRUE(FallingBlock::canFallThrough(nullptr));
     EXPECT_TRUE(FallingBlock::canFallThrough(&VanillaBlocks::AIR->defaultState()));
@@ -27,7 +28,8 @@ TEST(FallingBlockCanFallThroughTest, Air_ReturnsTrue) {
 // 火焰穿透测试（MC 1.16.5: state.isIn(BlockTags.FIRE)）
 // ============================================================================
 
-TEST(FallingBlockCanFallThroughTest, Fire_ReturnsTrue) {
+TEST(FallingBlockCanFallThroughTest, Fire_ReturnsTrue)
+{
     // 普通火应该可以穿透
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState* fireState = &VanillaBlocks::FIRE->defaultState();
@@ -36,7 +38,8 @@ TEST(FallingBlockCanFallThroughTest, Fire_ReturnsTrue) {
     EXPECT_TRUE(FallingBlock::canFallThrough(fireState));
 }
 
-TEST(FallingBlockCanFallThroughTest, SoulFire_ReturnsTrue) {
+TEST(FallingBlockCanFallThroughTest, SoulFire_ReturnsTrue)
+{
     // 灵魂火应该可以穿透
     ASSERT_NE(VanillaBlocks::SOUL_FIRE, nullptr);
     const BlockState* soulFireState = &VanillaBlocks::SOUL_FIRE->defaultState();
@@ -45,7 +48,8 @@ TEST(FallingBlockCanFallThroughTest, SoulFire_ReturnsTrue) {
     EXPECT_TRUE(FallingBlock::canFallThrough(soulFireState));
 }
 
-TEST(FallingBlockCanFallThroughTest, FireTagContainsBothFireTypes) {
+TEST(FallingBlockCanFallThroughTest, FireTagContainsBothFireTypes)
+{
     // 验证 FIRE 标签同时包含普通火和灵魂火
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     ASSERT_NE(VanillaBlocks::SOUL_FIRE, nullptr);
@@ -64,7 +68,8 @@ TEST(FallingBlockCanFallThroughTest, FireTagContainsBothFireTypes) {
 // 液体穿透测试
 // ============================================================================
 
-TEST(FallingBlockCanFallThroughTest, Water_ReturnsTrue) {
+TEST(FallingBlockCanFallThroughTest, Water_ReturnsTrue)
+{
     // 水应该可以穿透
     ASSERT_NE(VanillaBlocks::WATER, nullptr);
     const BlockState* waterState = &VanillaBlocks::WATER->defaultState();
@@ -73,7 +78,8 @@ TEST(FallingBlockCanFallThroughTest, Water_ReturnsTrue) {
     EXPECT_TRUE(FallingBlock::canFallThrough(waterState));
 }
 
-TEST(FallingBlockCanFallThroughTest, Lava_ReturnsTrue) {
+TEST(FallingBlockCanFallThroughTest, Lava_ReturnsTrue)
+{
     // 岩浆应该可以穿透
     ASSERT_NE(VanillaBlocks::LAVA, nullptr);
     const BlockState* lavaState = &VanillaBlocks::LAVA->defaultState();
@@ -86,7 +92,8 @@ TEST(FallingBlockCanFallThroughTest, Lava_ReturnsTrue) {
 // 可替换材质穿透测试
 // ============================================================================
 
-TEST(FallingBlockCanFallThroughTest, TallGrass_ReturnsTrue) {
+TEST(FallingBlockCanFallThroughTest, TallGrass_ReturnsTrue)
+{
     // 草应该可以穿透（可替换材质）
     // 注意：TALL_GRASS 可能为空，如果未注册则跳过
     if (VanillaBlocks::TALL_GRASS != nullptr) {
@@ -99,7 +106,8 @@ TEST(FallingBlockCanFallThroughTest, TallGrass_ReturnsTrue) {
 // 固体方块不穿透测试
 // ============================================================================
 
-TEST(FallingBlockCanFallThroughTest, Stone_ReturnsFalse) {
+TEST(FallingBlockCanFallThroughTest, Stone_ReturnsFalse)
+{
     // 石头不应该可以穿透
     ASSERT_NE(VanillaBlocks::STONE, nullptr);
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
@@ -108,7 +116,8 @@ TEST(FallingBlockCanFallThroughTest, Stone_ReturnsFalse) {
     EXPECT_FALSE(FallingBlock::canFallThrough(stoneState));
 }
 
-TEST(FallingBlockCanFallThroughTest, Dirt_ReturnsFalse) {
+TEST(FallingBlockCanFallThroughTest, Dirt_ReturnsFalse)
+{
     // 泥土不应该可以穿透
     ASSERT_NE(VanillaBlocks::DIRT, nullptr);
     const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
@@ -121,7 +130,8 @@ TEST(FallingBlockCanFallThroughTest, Dirt_ReturnsFalse) {
 // 沙子下落测试
 // ============================================================================
 
-TEST(FallingBlockBehaviorTest, SandIsRegisteredAsFallingBlock) {
+TEST(FallingBlockBehaviorTest, SandIsRegisteredAsFallingBlock)
+{
     // 验证沙子是下落方块
     ASSERT_NE(VanillaBlocks::SAND, nullptr);
     const Block* sandBlock = VanillaBlocks::SAND;
@@ -129,7 +139,8 @@ TEST(FallingBlockBehaviorTest, SandIsRegisteredAsFallingBlock) {
     EXPECT_NE(fallingBlock, nullptr);
 }
 
-TEST(FallingBlockBehaviorTest, GravelIsRegisteredAsFallingBlock) {
+TEST(FallingBlockBehaviorTest, GravelIsRegisteredAsFallingBlock)
+{
     // 验证砾石是下落方块
     ASSERT_NE(VanillaBlocks::GRAVEL, nullptr);
     const Block* gravelBlock = VanillaBlocks::GRAVEL;
@@ -137,7 +148,8 @@ TEST(FallingBlockBehaviorTest, GravelIsRegisteredAsFallingBlock) {
     EXPECT_NE(fallingBlock, nullptr);
 }
 
-TEST(FallingBlockBehaviorTest, RedSandIsRegisteredAsFallingBlock) {
+TEST(FallingBlockBehaviorTest, RedSandIsRegisteredAsFallingBlock)
+{
     // 验证红沙是下落方块
     ASSERT_NE(VanillaBlocks::RED_SAND, nullptr);
     const Block* redSandBlock = VanillaBlocks::RED_SAND;

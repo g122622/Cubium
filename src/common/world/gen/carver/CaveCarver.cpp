@@ -1,10 +1,10 @@
 #include "CaveCarver.hpp"
-#include "../../block/BlockRegistry.hpp"
+#include "../../../core/Constants.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../../core/Constants.hpp"
-#include <cmath>
+#include "../../block/BlockRegistry.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
@@ -14,20 +14,15 @@ namespace mc {
 
 CaveCarver::CaveCarver(i32 maxHeight)
     : WorldCarver<ProbabilityConfig>(maxHeight)
-{
-}
+{}
 
 bool CaveCarver::shouldCarve(
-    math::IRandom& rng,
-    ChunkCoord /*chunkX*/,
-    ChunkCoord /*chunkZ*/,
-    const ProbabilityConfig& config) const
+    math::IRandom& rng, ChunkCoord /*chunkX*/, ChunkCoord /*chunkZ*/, const ProbabilityConfig& config) const
 {
     return rng.nextFloat() <= config.probability;
 }
 
-bool CaveCarver::carve(
-    ChunkPrimer& chunk,
+bool CaveCarver::carve(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -36,9 +31,8 @@ bool CaveCarver::carve(
     const ProbabilityConfig& config)
 {
     // 参考 MC CaveWorldCarver.carveRegion
-    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
-                     static_cast<u64>(chunkZ) * 132897987541ULL +
-                     static_cast<u64>(m_maxHeight));
+    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
+        static_cast<u64>(m_maxHeight));
 
     if (!shouldCarve(rng, chunkX, chunkZ, config)) {
         return false;
@@ -67,11 +61,18 @@ bool CaveCarver::carve(
         if (rng.nextInt(4) == 0) {
             // 生成房间
             const f32 roomRadius = rng.nextFloat(1.0f, 7.0f);
-            carveRoom(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                      static_cast<i64>(rng.nextU64()),
-                      startXPos, startYPos, startZPos,
-                      roomRadius, 0.5f,
-                      carvingMask);
+            carveRoom(chunk,
+                biomeProvider,
+                seaLevel,
+                chunkX,
+                chunkZ,
+                static_cast<i64>(rng.nextU64()),
+                startXPos,
+                startYPos,
+                startZPos,
+                roomRadius,
+                0.5f,
+                carvingMask);
             numTunnels += rng.nextInt(5);
         }
 
@@ -85,12 +86,22 @@ bool CaveCarver::carve(
             // 隧道长度
             const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4 + 1);
 
-            carveTunnel(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                        static_cast<i64>(rng.nextU64()),
-                        startXPos, startYPos, startZPos,
-                        radius, yaw, pitch,
-                        0, length, getVerticalScale(),
-                        carvingMask);
+            carveTunnel(chunk,
+                biomeProvider,
+                seaLevel,
+                chunkX,
+                chunkZ,
+                static_cast<i64>(rng.nextU64()),
+                startXPos,
+                startYPos,
+                startZPos,
+                radius,
+                yaw,
+                pitch,
+                0,
+                length,
+                getVerticalScale(),
+                carvingMask);
         }
 
         carved = true;
@@ -128,17 +139,20 @@ f32 CaveCarver::getCaveRadius(math::IRandom& rng) const
     return radius;
 }
 
-void CaveCarver::carveTunnel(
-    ChunkPrimer& chunk,
+void CaveCarver::carveTunnel(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
     i64 seed,
-    f32 startX, f32 startY, f32 startZ,
+    f32 startX,
+    f32 startY,
+    f32 startZ,
     f32 radius,
-    f32 yaw, f32 pitch,
-    i32 startIndex, i32 endIndex,
+    f32 yaw,
+    f32 pitch,
+    i32 startIndex,
+    i32 endIndex,
     f32 verticalScale,
     CarvingMask& carvingMask)
 {
@@ -186,21 +200,39 @@ void CaveCarver::carveTunnel(
             // 生成两个分支隧道
             const f32 branchRadius = radius * rng.nextFloat(0.5f, 1.0f);
 
-            carveTunnel(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                        static_cast<i64>(rng.nextU64()),
-                        currentX, currentY, currentZ,
-                        branchRadius,
-                        currentYaw - math::HALF_PI, currentPitch / 3.0f,
-                        i, endIndex, 1.0f,
-                        carvingMask);
+            carveTunnel(chunk,
+                biomeProvider,
+                seaLevel,
+                chunkX,
+                chunkZ,
+                static_cast<i64>(rng.nextU64()),
+                currentX,
+                currentY,
+                currentZ,
+                branchRadius,
+                currentYaw - math::HALF_PI,
+                currentPitch / 3.0f,
+                i,
+                endIndex,
+                1.0f,
+                carvingMask);
 
-            carveTunnel(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                        static_cast<i64>(rng.nextU64()),
-                        currentX, currentY, currentZ,
-                        branchRadius,
-                        currentYaw + math::HALF_PI, currentPitch / 3.0f,
-                        i, endIndex, 1.0f,
-                        carvingMask);
+            carveTunnel(chunk,
+                biomeProvider,
+                seaLevel,
+                chunkX,
+                chunkZ,
+                static_cast<i64>(rng.nextU64()),
+                currentX,
+                currentY,
+                currentZ,
+                branchRadius,
+                currentYaw + math::HALF_PI,
+                currentPitch / 3.0f,
+                i,
+                endIndex,
+                1.0f,
+                carvingMask);
             return;
         }
 
@@ -211,22 +243,31 @@ void CaveCarver::carveTunnel(
 
         // 检查是否在雕刻范围内
         if (isInCarvingRange(chunkX, chunkZ, currentX, currentZ, i, endIndex, radius)) {
-            carveEllipsoid(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                           currentX, currentY, currentZ,
-                           horizontalRadius, vertRadius,
-                           carvingMask, static_cast<i64>(rng.nextU64()));
+            carveEllipsoid(chunk,
+                biomeProvider,
+                seaLevel,
+                chunkX,
+                chunkZ,
+                currentX,
+                currentY,
+                currentZ,
+                horizontalRadius,
+                vertRadius,
+                carvingMask,
+                static_cast<i64>(rng.nextU64()));
         }
     }
 }
 
-void CaveCarver::carveRoom(
-    ChunkPrimer& chunk,
+void CaveCarver::carveRoom(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
     i64 seed,
-    f32 centerX, f32 centerY, f32 centerZ,
+    f32 centerX,
+    f32 centerY,
+    f32 centerZ,
     f32 radius,
     f32 verticalScale,
     CarvingMask& carvingMask)
@@ -236,10 +277,18 @@ void CaveCarver::carveRoom(
     const f32 horizontalRadius = 1.5f + std::sin(math::HALF_PI) * radius;
     const f32 vertRadius = horizontalRadius * verticalScale;
 
-    carveEllipsoid(chunk, biomeProvider, seaLevel, chunkX, chunkZ,
-                   centerX + 1.0f, centerY, centerZ,
-                   horizontalRadius, vertRadius,
-                   carvingMask, seed);
+    carveEllipsoid(chunk,
+        biomeProvider,
+        seaLevel,
+        chunkX,
+        chunkZ,
+        centerX + 1.0f,
+        centerY,
+        centerZ,
+        horizontalRadius,
+        vertRadius,
+        carvingMask,
+        seed);
 }
 
 } // namespace mc

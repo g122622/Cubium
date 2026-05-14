@@ -1,25 +1,25 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include <unordered_map>
+#include "common/world/block/BlockPos.hpp"
 #include <functional>
+#include <unordered_map>
 
 namespace mc {
 class BlockState;
 class ItemStack;
-}
+} // namespace mc
 
 namespace mc::server {
 class ServerWorld;
 struct ServerPlayerData;
-}
+} // namespace mc::server
 
 namespace mc::server::core {
 class PlayerManager;
 class ConnectionManager;
-}
+} // namespace mc::server::core
 
 namespace mc::server::interaction {
 class InventoryManager;
@@ -50,8 +50,7 @@ public:
     /**
      * @brief 构造函数
      */
-    MiningManager(core::PlayerManager& playerManager,
-                  core::ConnectionManager& connectionManager);
+    MiningManager(core::PlayerManager& playerManager, core::ConnectionManager& connectionManager);
 
     /**
      * @brief 设置物品栏管理器（用于获取手持物品）
@@ -79,8 +78,7 @@ public:
      * @param pos 方块位置
      * @param action 交互动作
      */
-    void handleBlockInteraction(PlayerId playerId, const BlockPos& pos,
-                                network::BlockInteractionAction action);
+    void handleBlockInteraction(PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action);
 
     /**
      * @brief 每 tick 更新挖掘进度
@@ -112,15 +110,13 @@ public:
      * @brief 设置破坏动画广播回调
      * @param callback 回调函数 (playerId, x, y, z, stage)
      */
-    void setOnBreakAnimBroadcast(
-        std::function<void(PlayerId, i32, i32, i32, i8)> callback);
+    void setOnBreakAnimBroadcast(std::function<void(PlayerId, i32, i32, i32, i8)> callback);
 
     /**
      * @brief 设置挖掘完成回调
      * @param callback 回调函数 (playerId, pos)
      */
-    void setOnMiningComplete(
-        std::function<void(PlayerId, const BlockPos&)> callback);
+    void setOnMiningComplete(std::function<void(PlayerId, const BlockPos&)> callback);
 
 private:
     /**
@@ -130,9 +126,7 @@ private:
      * @param playerId 玩家ID
      * @return 每tick的挖掘进度增量
      */
-    [[nodiscard]] f32 calculateMiningSpeed(ServerWorld& world,
-                                            const BlockPos& pos,
-                                            PlayerId playerId) const;
+    [[nodiscard]] f32 calculateMiningSpeed(ServerWorld& world, const BlockPos& pos, PlayerId playerId) const;
 
     /**
      * @brief 计算玩家的挖掘速度倍率
@@ -146,9 +140,9 @@ private:
      * @return 挖掘速度倍率
      */
     [[nodiscard]] f32 calculateDigSpeedMultiplier(ServerWorld& world,
-                                                   const ItemStack& heldItem,
-                                                   const BlockState& blockState,
-                                                   const ServerPlayerData& playerData) const;
+        const ItemStack& heldItem,
+        const BlockState& blockState,
+        const ServerPlayerData& playerData) const;
 
     /**
      * @brief 计算急迫效果乘数
@@ -181,8 +175,7 @@ private:
      * @param playerData 玩家数据（用于获取位置）
      * @return 如果眼睛在水中返回 true
      */
-    [[nodiscard]] bool areEyesInWater(ServerWorld& world,
-                                      const ServerPlayerData& playerData) const;
+    [[nodiscard]] bool areEyesInWater(ServerWorld& world, const ServerPlayerData& playerData) const;
 
     /**
      * @brief 广播破坏动画
@@ -196,10 +189,10 @@ private:
     struct MiningState {
         BlockPos position;
         f32 progress = 0.0f;
-        u8 lastStage = 255;  // 上次广播的阶段 (0-9)
+        u8 lastStage = 255; // 上次广播的阶段 (0-9)
         bool active = false;
         u64 startTick = 0;
-        EntityId breakerId = 0;  // 用于广播动画
+        EntityId breakerId = 0; // 用于广播动画
     };
 
     core::PlayerManager& m_playerManager;

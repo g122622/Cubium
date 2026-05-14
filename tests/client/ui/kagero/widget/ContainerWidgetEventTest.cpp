@@ -1,18 +1,21 @@
-#include <gtest/gtest.h>
-#include "client/ui/kagero/widget/ContainerWidget.hpp"
 #include "client/ui/kagero/widget/ButtonWidget.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
+#include <gtest/gtest.h>
 
 namespace mc::client::ui::kagero::widget {
 
 // 测试用的 Mock Widget，用于跟踪 tick 调用
 class MockTickWidget : public Widget {
 public:
-    MockTickWidget(const std::string& id) : Widget(id) {
+    MockTickWidget(const std::string& id)
+        : Widget(id)
+    {
         setBounds(Rect(0, 0, 100, 20));
     }
 
-    void tick(f32 dt) override {
+    void tick(f32 dt) override
+    {
         tickCount++;
         lastDt = dt;
     }
@@ -23,21 +26,21 @@ public:
 
 class ContainerWidgetEventTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         container = std::make_unique<ContainerWidget>("testContainer");
         container->setBounds(Rect(0, 0, 400, 300));
     }
 
-    void TearDown() override {
-        container.reset();
-    }
+    void TearDown() override { container.reset(); }
 
     std::unique_ptr<ContainerWidget> container;
 };
 
 // ========== Tick 事件传播测试 ==========
 
-TEST_F(ContainerWidgetEventTest, Tick_PropagatesToChildren) {
+TEST_F(ContainerWidgetEventTest, Tick_PropagatesToChildren)
+{
     auto tickWidget = std::make_unique<MockTickWidget>("tickWidget");
     tickWidget->setVisible(true);
     tickWidget->setActive(true);
@@ -49,7 +52,8 @@ TEST_F(ContainerWidgetEventTest, Tick_PropagatesToChildren) {
     // ContainerWidget::tick 会调用 tickChildren
 }
 
-TEST_F(ContainerWidgetEventTest, Tick_DoesNotTickInvisibleChildren) {
+TEST_F(ContainerWidgetEventTest, Tick_DoesNotTickInvisibleChildren)
+{
     auto tickWidget = std::make_unique<MockTickWidget>("tickWidget");
     tickWidget->setVisible(false);
     tickWidget->setActive(true);
@@ -62,7 +66,8 @@ TEST_F(ContainerWidgetEventTest, Tick_DoesNotTickInvisibleChildren) {
 
 // ========== 点击事件传播测试 ==========
 
-TEST_F(ContainerWidgetEventTest, Click_PropagatesToVisibleChild) {
+TEST_F(ContainerWidgetEventTest, Click_PropagatesToVisibleChild)
+{
     auto button = std::make_unique<ButtonWidget>("btn", 10, 10, 100, 20, "Test");
     button->setActive(true);
     bool clicked = false;
@@ -70,18 +75,20 @@ TEST_F(ContainerWidgetEventTest, Click_PropagatesToVisibleChild) {
 
     container->addChild(std::move(button));
 
-    EXPECT_TRUE(container->onClick(50, 20, 0));  // 左键点击按钮区域
+    EXPECT_TRUE(container->onClick(50, 20, 0)); // 左键点击按钮区域
     EXPECT_TRUE(clicked);
 }
 
-TEST_F(ContainerWidgetEventTest, Click_ReturnsFalseWhenNoWidgetClicked) {
+TEST_F(ContainerWidgetEventTest, Click_ReturnsFalseWhenNoWidgetClicked)
+{
     auto button = std::make_unique<ButtonWidget>("btn", 10, 10, 100, 20, "Test");
     container->addChild(std::move(button));
 
-    EXPECT_FALSE(container->onClick(200, 200, 0));  // 点击空白区域
+    EXPECT_FALSE(container->onClick(200, 200, 0)); // 点击空白区域
 }
 
-TEST_F(ContainerWidgetEventTest, Click_DoesNotHitInvisibleWidget) {
+TEST_F(ContainerWidgetEventTest, Click_DoesNotHitInvisibleWidget)
+{
     auto button = std::make_unique<ButtonWidget>("btn", 10, 10, 100, 20, "Test");
     button->setVisible(false);
     bool clicked = false;
@@ -93,7 +100,8 @@ TEST_F(ContainerWidgetEventTest, Click_DoesNotHitInvisibleWidget) {
     EXPECT_FALSE(clicked);
 }
 
-TEST_F(ContainerWidgetEventTest, Click_TopWidgetReceivesEvent) {
+TEST_F(ContainerWidgetEventTest, Click_TopWidgetReceivesEvent)
+{
     bool topClicked = false;
     bool bottomClicked = false;
 
@@ -104,16 +112,17 @@ TEST_F(ContainerWidgetEventTest, Click_TopWidgetReceivesEvent) {
     top->setOnPress([&topClicked](ButtonWidget&) { topClicked = true; });
 
     container->addChild(std::move(bottom));
-    container->addChild(std::move(top));  // 后添加的在上面
+    container->addChild(std::move(top)); // 后添加的在上面
 
     EXPECT_TRUE(container->onClick(50, 20, 0));
     EXPECT_TRUE(topClicked);
-    EXPECT_FALSE(bottomClicked);  // 底层未收到事件
+    EXPECT_FALSE(bottomClicked); // 底层未收到事件
 }
 
 // ========== 焦点管理测试 ==========
 
-TEST_F(ContainerWidgetEventTest, Focus_ClickSetsFocus) {
+TEST_F(ContainerWidgetEventTest, Focus_ClickSetsFocus)
+{
     auto textField = std::make_unique<TextFieldWidget>("field", 10, 10, 200, 20);
     textField->setActive(true);
     auto* fieldPtr = textField.get();
@@ -125,7 +134,8 @@ TEST_F(ContainerWidgetEventTest, Focus_ClickSetsFocus) {
     EXPECT_TRUE(fieldPtr->isFocused());
 }
 
-TEST_F(ContainerWidgetEventTest, Focus_ClickElsewhereClearsFocus) {
+TEST_F(ContainerWidgetEventTest, Focus_ClickElsewhereClearsFocus)
+{
     auto textField = std::make_unique<TextFieldWidget>("field", 10, 10, 200, 20);
     textField->setActive(true);
     auto* fieldPtr = textField.get();
@@ -141,7 +151,8 @@ TEST_F(ContainerWidgetEventTest, Focus_ClickElsewhereClearsFocus) {
     EXPECT_FALSE(fieldPtr->isFocused());
 }
 
-TEST_F(ContainerWidgetEventTest, Focus_TabNavigation) {
+TEST_F(ContainerWidgetEventTest, Focus_TabNavigation)
+{
     auto field1 = std::make_unique<TextFieldWidget>("field1", 10, 10, 200, 20);
     auto field2 = std::make_unique<TextFieldWidget>("field2", 10, 40, 200, 20);
     auto* field1Ptr = field1.get();
@@ -165,7 +176,8 @@ TEST_F(ContainerWidgetEventTest, Focus_TabNavigation) {
     EXPECT_FALSE(container->focusNext());
 }
 
-TEST_F(ContainerWidgetEventTest, Focus_ReverseTabNavigation) {
+TEST_F(ContainerWidgetEventTest, Focus_ReverseTabNavigation)
+{
     auto field1 = std::make_unique<TextFieldWidget>("field1", 10, 10, 200, 20);
     auto field2 = std::make_unique<TextFieldWidget>("field2", 10, 40, 200, 20);
     auto* field1Ptr = field1.get();
@@ -185,7 +197,8 @@ TEST_F(ContainerWidgetEventTest, Focus_ReverseTabNavigation) {
     EXPECT_FALSE(container->focusPrevious());
 }
 
-TEST_F(ContainerWidgetEventTest, Focus_ClearFocus) {
+TEST_F(ContainerWidgetEventTest, Focus_ClearFocus)
+{
     auto textField = std::make_unique<TextFieldWidget>("field", 10, 10, 200, 20);
     auto* fieldPtr = textField.get();
 
@@ -201,7 +214,8 @@ TEST_F(ContainerWidgetEventTest, Focus_ClearFocus) {
 
 // ========== 键盘事件传播测试 ==========
 
-TEST_F(ContainerWidgetEventTest, Key_SentToFocusedWidget) {
+TEST_F(ContainerWidgetEventTest, Key_SentToFocusedWidget)
+{
     auto textField = std::make_unique<TextFieldWidget>("field", 10, 10, 200, 20);
     textField->setActive(true);
     auto* fieldPtr = textField.get();
@@ -214,11 +228,12 @@ TEST_F(ContainerWidgetEventTest, Key_SentToFocusedWidget) {
     // TextFieldWidget 通过 onChar 处理字符输入，onKey 处理特殊键
     // 测试字符输入
     bool handled = container->onChar(static_cast<u32>('A'));
-    EXPECT_TRUE(handled);  // TextField 应该处理
+    EXPECT_TRUE(handled); // TextField 应该处理
     EXPECT_EQ(fieldPtr->text(), std::string("A"));
 }
 
-TEST_F(ContainerWidgetEventTest, Key_NotHandledWhenNoFocus) {
+TEST_F(ContainerWidgetEventTest, Key_NotHandledWhenNoFocus)
+{
     auto textField = std::make_unique<TextFieldWidget>("field", 10, 10, 200, 20);
     container->addChild(std::move(textField));
 
@@ -231,7 +246,8 @@ TEST_F(ContainerWidgetEventTest, Key_NotHandledWhenNoFocus) {
 
 // ========== 滚动事件传播测试 ==========
 
-TEST_F(ContainerWidgetEventTest, Scroll_PropagatesToChild) {
+TEST_F(ContainerWidgetEventTest, Scroll_PropagatesToChild)
+{
     // 创建一个可滚动的容器作为子组件
     auto scrollContainer = std::make_unique<ContainerWidget>("scrollContainer");
     scrollContainer->setBounds(Rect(10, 10, 200, 100));
@@ -249,7 +265,8 @@ TEST_F(ContainerWidgetEventTest, Scroll_PropagatesToChild) {
 
 // ========== 拖动事件传播测试 ==========
 
-TEST_F(ContainerWidgetEventTest, Drag_PropagatesToHoveredChild) {
+TEST_F(ContainerWidgetEventTest, Drag_PropagatesToHoveredChild)
+{
     auto button = std::make_unique<ButtonWidget>("btn", 10, 10, 100, 20, "Test");
     button->setActive(true);
     container->addChild(std::move(button));

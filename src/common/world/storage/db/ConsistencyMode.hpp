@@ -39,7 +39,8 @@ struct ConsistencyConfig {
      * - Eventual: false
      * - Strongest: true（所有写入）
      */
-    [[nodiscard]] bool walSync() const noexcept {
+    [[nodiscard]] bool walSync() const noexcept
+    {
         return mode == ConsistencyMode::Strong || mode == ConsistencyMode::Strongest;
     }
 
@@ -50,9 +51,7 @@ struct ConsistencyConfig {
      * - Eventual: false
      * - Strongest: true
      */
-    [[nodiscard]] bool syncOnWrite() const noexcept {
-        return mode == ConsistencyMode::Strongest;
-    }
+    [[nodiscard]] bool syncOnWrite() const noexcept { return mode == ConsistencyMode::Strongest; }
 };
 
 } // namespace mc::world::storage

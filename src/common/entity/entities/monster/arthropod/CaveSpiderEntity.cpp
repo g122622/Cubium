@@ -10,11 +10,13 @@ CaveSpiderEntity::CaveSpiderEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<CaveSpiderEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void CaveSpiderEntity::registerAttributes() {
+void CaveSpiderEntity::registerAttributes()
+{
     // 调用父类方法
     SpiderEntity::registerAttributes();
 

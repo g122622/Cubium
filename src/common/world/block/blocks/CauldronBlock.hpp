@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Block.hpp"
-#include "../Material.hpp"
-#include "../BlockPos.hpp"
-#include "../../../util/property/Properties.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../Block.hpp"
+#include "../BlockPos.hpp"
+#include "../Material.hpp"
 #include <memory>
 
 namespace mc {
@@ -67,9 +67,8 @@ public:
      * @param neighborPos 邻居位置
      * @param isMoving 是否正在移动
      */
-    void neighborChanged(IWorld& world, const BlockPos& pos,
-                         Block& neighborBlock, const BlockPos& neighborPos,
-                         bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     /**
      * @brief 执行随机刻（雨天填充水）
@@ -97,14 +96,12 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
-        const BlockRaycastResult& hit
-    ) override;
+        const BlockRaycastResult& hit) override;
 
     // ========== 形状 ==========
 
@@ -139,15 +136,13 @@ public:
      * @return 信号强度 (0-3对应水位)
      */
     [[nodiscard]] i32 getComparatorInputOverride(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     /**
      * @brief 检查是否有红石比较器输入覆盖
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
@@ -195,11 +190,7 @@ private:
      * @return 交互结果
      */
     ActionResultType handleBucketInteraction(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        Player& player,
-        ItemStack& heldItem);
+        IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
      * @brief 处理玻璃瓶交互
@@ -211,11 +202,7 @@ private:
      * @return 交互结果
      */
     ActionResultType handleBottleInteraction(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        Player& player,
-        ItemStack& heldItem);
+        IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
      * @brief 处理皮革盔甲清洗
@@ -227,11 +214,7 @@ private:
      * @return 交互结果
      */
     ActionResultType handleLeatherArmorCleaning(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        Player& player,
-        ItemStack& heldItem);
+        IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
      * @brief 处理旗帜清洗
@@ -243,11 +226,7 @@ private:
      * @return 交互结果
      */
     ActionResultType handleBannerCleaning(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        Player& player,
-        ItemStack& heldItem);
+        IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
      * @brief 播放加水音效

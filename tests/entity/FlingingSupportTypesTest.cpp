@@ -13,8 +13,7 @@ class FlingingDummyTarget : public LivingEntity {
 public:
     explicit FlingingDummyTarget(EntityId id)
         : LivingEntity(LegacyEntityType::Unknown, id)
-    {
-    }
+    {}
 };
 
 TEST(FlingingSupportTypesTest, HoglinAndZoglinImplementMarker)

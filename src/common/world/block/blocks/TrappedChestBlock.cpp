@@ -6,15 +6,11 @@ namespace mc {
 namespace blocks {
 
 TrappedChestBlock::TrappedChestBlock(const BlockProperties& properties)
-    : ChestBlock(properties) {
-}
+    : ChestBlock(properties)
+{}
 
-i32 TrappedChestBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+i32 TrappedChestBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (!blockEntity || blockEntity->getType() != BlockEntityType::TrappedChest) {
         return 0;
@@ -27,12 +23,8 @@ i32 TrappedChestBlock::getWeakPower(
     return chest->getOpenCount();
 }
 
-i32 TrappedChestBlock::getStrongPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
+i32 TrappedChestBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     // 仅从顶面输出强充能
     if (side != Direction::Up) {
         return 0;

@@ -1,8 +1,8 @@
 #include "GlowstoneFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -11,15 +11,11 @@ namespace mc {
 // ============================================================================
 
 bool GlowstoneFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const GlowstoneFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const GlowstoneFeatureConfig& config)
 {
     // 检查起始位置是否有效（应该在下界岩或基岩下方）
     const BlockState* state = world.getBlockState(pos);
-    if (!state || (!state->is(VanillaBlocks::NETHERRACK) &&
-                   !state->is(VanillaBlocks::BEDROCK))) {
+    if (!state || (!state->is(VanillaBlocks::NETHERRACK) && !state->is(VanillaBlocks::BEDROCK))) {
         return false;
     }
 
@@ -42,9 +38,9 @@ bool GlowstoneFeature::place(
     // 生成多个分支
     for (i32 i = 0; i < config.branchCount; ++i) {
         // 随机方向
-        i32 dx = random.nextInt(3) - 1;  // -1, 0, 1
-        i32 dy = random.nextInt(2) - 1;  // -1, 0 (向下或水平)
-        i32 dz = random.nextInt(3) - 1;  // -1, 0, 1
+        i32 dx = random.nextInt(3) - 1; // -1, 0, 1
+        i32 dy = random.nextInt(2) - 1; // -1, 0 (向下或水平)
+        i32 dz = random.nextInt(3) - 1; // -1, 0, 1
 
         // 跳过零方向
         if (dx == 0 && dy == 0 && dz == 0) {
@@ -59,11 +55,7 @@ bool GlowstoneFeature::place(
 }
 
 void GlowstoneFeature::growBranch(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& start,
-    i32 dx, i32 dy, i32 dz,
-    i32 length)
+    WorldGenRegion& world, math::Random& random, const BlockPos& start, i32 dx, i32 dy, i32 dz, i32 length)
 {
     const BlockState* glowstone = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
     if (!glowstone) {
@@ -108,7 +100,7 @@ void GlowstoneFeature::growBranch(
             dy = random.nextInt(2) - 1;
             dz = random.nextInt(3) - 1;
             if (dx == 0 && dy == 0 && dz == 0) {
-                dy = -1;  // 默认向下
+                dy = -1; // 默认向下
             }
         }
     }
@@ -126,19 +118,13 @@ bool GlowstoneFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) co
 // ============================================================================
 
 ConfiguredGlowstoneFeature::ConfiguredGlowstoneFeature(
-    std::unique_ptr<GlowstoneFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<GlowstoneFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredGlowstoneFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -151,37 +137,40 @@ bool ConfiguredGlowstoneFeature::place(
 
 std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> GlowstoneFeatures::s_features;
 
-void GlowstoneFeatures::initialize() {
+void GlowstoneFeatures::initialize()
+{
     if (!s_features.empty()) return;
 
     s_features.push_back(createNormal());
     s_features.push_back(createLarge());
 }
 
-const std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>>& GlowstoneFeatures::getAllFeatures() {
+const std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>>& GlowstoneFeatures::getAllFeatures()
+{
     return s_features;
 }
 
-std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> GlowstoneFeatures::getAllFeaturesAndClear() {
+std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> GlowstoneFeatures::getAllFeaturesAndClear()
+{
     auto result = std::move(s_features);
     s_features.clear();
     return result;
 }
 
-std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createNormal() {
-    auto config = std::make_unique<GlowstoneFeatureConfig>(
-        8,   // maxDistance
-        4,   // branchCount
-        6    // maxBranchLength
+std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createNormal()
+{
+    auto config = std::make_unique<GlowstoneFeatureConfig>(8, // maxDistance
+        4,                                                    // branchCount
+        6                                                     // maxBranchLength
     );
     return std::make_unique<ConfiguredGlowstoneFeature>(std::move(config), "glowstone");
 }
 
-std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createLarge() {
-    auto config = std::make_unique<GlowstoneFeatureConfig>(
-        12,  // maxDistance
-        6,   // branchCount
-        8    // maxBranchLength
+std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createLarge()
+{
+    auto config = std::make_unique<GlowstoneFeatureConfig>(12, // maxDistance
+        6,                                                     // branchCount
+        8                                                      // maxBranchLength
     );
     return std::make_unique<ConfiguredGlowstoneFeature>(std::move(config), "glowstone_large");
 }

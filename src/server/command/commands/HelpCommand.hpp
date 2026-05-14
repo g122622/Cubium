@@ -15,8 +15,10 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 showHelp(CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher);
-    static i32 showCommandHelp(CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher);
+    static i32 showHelp(
+        CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher);
+    static i32 showCommandHelp(
+        CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher);
 };
 
 } // namespace command

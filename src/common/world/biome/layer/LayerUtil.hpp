@@ -1,15 +1,15 @@
 #pragma once
 
+#include "../BiomeProvider.hpp"
 #include "LayerContext.hpp"
-#include "transformers/SourceLayers.hpp"
+#include "transformers/BiomeLayers.hpp"
 #include "transformers/ClimateLayers.hpp"
 #include "transformers/EdgeLayers.hpp"
-#include "transformers/ZoomLayers.hpp"
-#include "transformers/BiomeLayers.hpp"
 #include "transformers/MergeLayers.hpp"
-#include "../BiomeProvider.hpp"
-#include <memory>
+#include "transformers/SourceLayers.hpp"
+#include "transformers/ZoomLayers.hpp"
 #include <functional>
+#include <memory>
 
 namespace mc {
 
@@ -28,8 +28,7 @@ namespace LayerUtil {
  * @param contextFactory 上下文工厂函数
  * @return 缩放后的区域工厂
  */
-std::unique_ptr<IAreaFactory> repeatZoom(
-    u64 seed,
+std::unique_ptr<IAreaFactory> repeatZoom(u64 seed,
     layer::ZoomLayer& zoom,
     std::unique_ptr<IAreaFactory> input,
     i32 count,
@@ -48,11 +47,7 @@ std::unique_ptr<IAreaFactory> repeatZoom(
  * @return 最终区域工厂
  */
 std::unique_ptr<IAreaFactory> buildOverworldLayers(
-    u64 seed,
-    bool legacyBiomeInit = false,
-    bool largeBiomes = false,
-    i32 biomeSize = 4,
-    i32 riverSize = 4);
+    u64 seed, bool legacyBiomeInit = false, bool largeBiomes = false, i32 biomeSize = 4, i32 riverSize = 4);
 
 /**
  * @brief 创建主世界层堆叠
@@ -147,16 +142,15 @@ public:
      *
      * 使用 LayerStack::sampleBatch 优化性能。
      */
-    void getBiomesBatch(i32 startX, i32 startY, i32 startZ, i32 width, i32 height,
-                         BiomeId* output) const override;
+    void getBiomesBatch(i32 startX, i32 startY, i32 startZ, i32 width, i32 height, BiomeId* output) const override;
 
     /**
      * @brief 批量获取噪声坐标的生物群系
      *
      * Layer 系统本质是 2D，噪声坐标会先转换为方块坐标再批量采样。
      */
-    void getNoiseBiomesBatch(i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ,
-                              i32 width, i32 height, BiomeId* output) const override;
+    void getNoiseBiomesBatch(
+        i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ, i32 width, i32 height, BiomeId* output) const override;
 
 private:
     std::unique_ptr<LayerStack> m_layerStack;

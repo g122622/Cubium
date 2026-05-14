@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../core/Item.hpp"
-#include "../../food/Food.hpp"
 #include "../../core/UseAction.hpp"
+#include "../../food/Food.hpp"
 
 namespace mc {
 

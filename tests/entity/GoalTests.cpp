@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "common/core/EnumSet.hpp"
-#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
-#include "common/entity/ai/goal/PrioritizedGoal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/PrioritizedGoal.hpp"
 
 using namespace mc;
 using namespace mc::entity::ai;
@@ -15,21 +15,18 @@ using namespace mc::entity::ai;
 
 class TestEnum {
 public:
-    enum Value : u8 {
-        A = 0,
-        B = 1,
-        C = 2,
-        Count = 3
-    };
+    enum Value : u8 { A = 0, B = 1, C = 2, Count = 3 };
 };
 
-TEST(EnumSetTest, DefaultConstruction) {
+TEST(EnumSetTest, DefaultConstruction)
+{
     EnumSet<TestEnum::Value> set;
     EXPECT_TRUE(set.empty());
     EXPECT_EQ(set.count(), 0);
 }
 
-TEST(EnumSetTest, InitializerListConstruction) {
+TEST(EnumSetTest, InitializerListConstruction)
+{
     EnumSet<TestEnum::Value> set{TestEnum::A, TestEnum::C};
     EXPECT_FALSE(set.empty());
     EXPECT_EQ(set.count(), 2);
@@ -38,7 +35,8 @@ TEST(EnumSetTest, InitializerListConstruction) {
     EXPECT_TRUE(set.test(TestEnum::C));
 }
 
-TEST(EnumSetTest, SetAndReset) {
+TEST(EnumSetTest, SetAndReset)
+{
     EnumSet<TestEnum::Value> set;
     set.set(TestEnum::A);
     EXPECT_TRUE(set.test(TestEnum::A));
@@ -48,7 +46,8 @@ TEST(EnumSetTest, SetAndReset) {
     EXPECT_FALSE(set.test(TestEnum::A));
 }
 
-TEST(EnumSetTest, Operators) {
+TEST(EnumSetTest, Operators)
+{
     EnumSet<TestEnum::Value> a{TestEnum::A, TestEnum::B};
     EnumSet<TestEnum::Value> b{TestEnum::B, TestEnum::C};
 
@@ -70,7 +69,8 @@ TEST(EnumSetTest, Operators) {
     EXPECT_FALSE(diff.test(TestEnum::B));
 }
 
-TEST(EnumSetTest, Intersects) {
+TEST(EnumSetTest, Intersects)
+{
     EnumSet<TestEnum::Value> a{TestEnum::A, TestEnum::B};
     EnumSet<TestEnum::Value> b{TestEnum::B, TestEnum::C};
     EnumSet<TestEnum::Value> c{TestEnum::C};
@@ -79,12 +79,11 @@ TEST(EnumSetTest, Intersects) {
     EXPECT_FALSE(a.intersects(c));
 }
 
-TEST(EnumSetTest, ForEach) {
+TEST(EnumSetTest, ForEach)
+{
     EnumSet<TestEnum::Value> set{TestEnum::A, TestEnum::C};
     std::vector<TestEnum::Value> values;
-    set.forEach([&values](TestEnum::Value v) {
-        values.push_back(v);
-    });
+    set.forEach([&values](TestEnum::Value v) { values.push_back(v); });
 
     ASSERT_EQ(values.size(), 2);
     EXPECT_EQ(values[0], TestEnum::A);
@@ -97,36 +96,34 @@ TEST(EnumSetTest, ForEach) {
 
 class TestGoal : public Goal {
 public:
-    TestGoal() : m_shouldExecute(false), m_shouldContinue(false),
-                 m_startCount(0), m_resetCount(0), m_tickCount(0) {}
+    TestGoal()
+        : m_shouldExecute(false)
+        , m_shouldContinue(false)
+        , m_startCount(0)
+        , m_resetCount(0)
+        , m_tickCount(0)
+    {}
 
     explicit TestGoal(const EnumSet<GoalFlag>& flags)
-        : Goal(flags), m_shouldExecute(false), m_shouldContinue(false),
-          m_startCount(0), m_resetCount(0), m_tickCount(0) {}
+        : Goal(flags)
+        , m_shouldExecute(false)
+        , m_shouldContinue(false)
+        , m_startCount(0)
+        , m_resetCount(0)
+        , m_tickCount(0)
+    {}
 
-    [[nodiscard]] bool shouldExecute() override {
-        return m_shouldExecute;
-    }
+    [[nodiscard]] bool shouldExecute() override { return m_shouldExecute; }
 
-    [[nodiscard]] bool shouldContinueExecuting() override {
-        return m_shouldContinue;
-    }
+    [[nodiscard]] bool shouldContinueExecuting() override { return m_shouldContinue; }
 
-    void startExecuting() override {
-        m_startCount++;
-    }
+    void startExecuting() override { m_startCount++; }
 
-    void resetTask() override {
-        m_resetCount++;
-    }
+    void resetTask() override { m_resetCount++; }
 
-    void tick() override {
-        m_tickCount++;
-    }
+    void tick() override { m_tickCount++; }
 
-    [[nodiscard]] std::string getTypeName() const override {
-        return "TestGoal";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "TestGoal"; }
 
     void setShouldExecute(bool value) { m_shouldExecute = value; }
     void setShouldContinue(bool value) { m_shouldContinue = value; }
@@ -146,12 +143,14 @@ private:
 // Goal 测试
 // ============================================================================
 
-TEST(GoalTest, DefaultFlags) {
+TEST(GoalTest, DefaultFlags)
+{
     TestGoal goal;
     EXPECT_TRUE(goal.getMutexFlags().empty());
 }
 
-TEST(GoalTest, SetMutexFlags) {
+TEST(GoalTest, SetMutexFlags)
+{
     TestGoal goal;
     goal.setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 
@@ -160,12 +159,14 @@ TEST(GoalTest, SetMutexFlags) {
     EXPECT_FALSE(goal.getMutexFlags().test(GoalFlag::Jump));
 }
 
-TEST(GoalTest, ConstructWithFlags) {
+TEST(GoalTest, ConstructWithFlags)
+{
     TestGoal goal(EnumSet<GoalFlag>{GoalFlag::Target});
     EXPECT_TRUE(goal.getMutexFlags().test(GoalFlag::Target));
 }
 
-TEST(GoalTest, DefaultPreemptible) {
+TEST(GoalTest, DefaultPreemptible)
+{
     TestGoal goal;
     EXPECT_TRUE(goal.isPreemptible());
 }
@@ -174,7 +175,8 @@ TEST(GoalTest, DefaultPreemptible) {
 // PrioritizedGoal 测试
 // ============================================================================
 
-TEST(PrioritizedGoalTest, Priority) {
+TEST(PrioritizedGoalTest, Priority)
+{
     auto innerGoal = std::make_unique<TestGoal>();
     TestGoal* innerPtr = innerGoal.get();
 
@@ -183,7 +185,8 @@ TEST(PrioritizedGoalTest, Priority) {
     EXPECT_EQ(prioritized.getGoal(), innerPtr);
 }
 
-TEST(PrioritizedGoalTest, Preemption) {
+TEST(PrioritizedGoalTest, Preemption)
+{
     auto lowGoal = std::make_unique<TestGoal>();
     auto highGoal = std::make_unique<TestGoal>();
 
@@ -198,7 +201,8 @@ TEST(PrioritizedGoalTest, Preemption) {
     EXPECT_FALSE(high.isPreemptedBy(low));
 }
 
-TEST(PrioritizedGoalTest, NonPreemptible) {
+TEST(PrioritizedGoalTest, NonPreemptible)
+{
     class NonPreemptibleGoal : public Goal {
     public:
         [[nodiscard]] bool shouldExecute() override { return true; }
@@ -216,7 +220,8 @@ TEST(PrioritizedGoalTest, NonPreemptible) {
     EXPECT_FALSE(low.isPreemptedBy(high));
 }
 
-TEST(PrioritizedGoalTest, RunningState) {
+TEST(PrioritizedGoalTest, RunningState)
+{
     auto innerGoal = std::make_unique<TestGoal>();
     TestGoal* innerPtr = innerGoal.get();
     innerGoal->setShouldExecute(true);
@@ -238,7 +243,8 @@ TEST(PrioritizedGoalTest, RunningState) {
     EXPECT_EQ(innerPtr->getResetCount(), 1);
 }
 
-TEST(PrioritizedGoalTest, DelegatesToInner) {
+TEST(PrioritizedGoalTest, DelegatesToInner)
+{
     auto innerGoal = std::make_unique<TestGoal>();
     TestGoal* innerPtr = innerGoal.get();
     innerPtr->setShouldExecute(true);
@@ -260,7 +266,8 @@ TEST(PrioritizedGoalTest, DelegatesToInner) {
 // GoalSelector 测试
 // ============================================================================
 
-TEST(GoalSelectorTest, AddAndRemoveGoal) {
+TEST(GoalSelectorTest, AddAndRemoveGoal)
+{
     GoalSelector selector;
 
     auto goal = new TestGoal();
@@ -272,7 +279,8 @@ TEST(GoalSelectorTest, AddAndRemoveGoal) {
     EXPECT_EQ(selector.getAllGoals().size(), 0);
 }
 
-TEST(GoalSelectorTest, PriorityOrdering) {
+TEST(GoalSelectorTest, PriorityOrdering)
+{
     GoalSelector selector;
 
     auto lowGoal = new TestGoal();
@@ -292,9 +300,10 @@ TEST(GoalSelectorTest, PriorityOrdering) {
     EXPECT_EQ(selector.getAllGoals().size(), 2);
 }
 
-TEST(GoalSelectorTest, MutexFlags) {
+TEST(GoalSelectorTest, MutexFlags)
+{
     GoalSelector selector;
-    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
+    selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
     auto goal1 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
     auto goal2 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
@@ -314,9 +323,10 @@ TEST(GoalSelectorTest, MutexFlags) {
     EXPECT_EQ(goal2->getStartCount(), 0);
 }
 
-TEST(GoalSelectorTest, DisableFlags) {
+TEST(GoalSelectorTest, DisableFlags)
+{
     GoalSelector selector;
-    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
+    selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
     auto goal = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
     goal->setShouldExecute(true);
@@ -341,9 +351,10 @@ TEST(GoalSelectorTest, DisableFlags) {
     EXPECT_EQ(goal->getStartCount(), 1);
 }
 
-TEST(GoalSelectorTest, TickRunningGoals) {
+TEST(GoalSelectorTest, TickRunningGoals)
+{
     GoalSelector selector;
-    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
+    selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
     auto goal = new TestGoal();
     goal->setShouldExecute(true);
@@ -358,9 +369,10 @@ TEST(GoalSelectorTest, TickRunningGoals) {
     EXPECT_EQ(goal->getTickCount(), 2);
 }
 
-TEST(GoalSelectorTest, StopWhenShouldNotContinue) {
+TEST(GoalSelectorTest, StopWhenShouldNotContinue)
+{
     GoalSelector selector;
-    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
+    selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
     auto goal = new TestGoal();
     goal->setShouldExecute(true);
@@ -381,9 +393,10 @@ TEST(GoalSelectorTest, StopWhenShouldNotContinue) {
     EXPECT_EQ(goal->getResetCount(), 1);
 }
 
-TEST(GoalSelectorTest, RemoveAllGoals) {
+TEST(GoalSelectorTest, RemoveAllGoals)
+{
     GoalSelector selector;
-    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
+    selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
     auto goal1 = new TestGoal();
     auto goal2 = new TestGoal();
@@ -402,9 +415,10 @@ TEST(GoalSelectorTest, RemoveAllGoals) {
     EXPECT_FALSE(selector.hasRunningGoals());
 }
 
-TEST(GoalSelectorTest, ForEachRunningGoal) {
+TEST(GoalSelectorTest, ForEachRunningGoal)
+{
     GoalSelector selector;
-    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
+    selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
     auto goal1 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
     auto goal2 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Look});
@@ -420,9 +434,7 @@ TEST(GoalSelectorTest, ForEachRunningGoal) {
     selector.tick();
 
     int count = 0;
-    selector.forEachRunningGoal([&count](PrioritizedGoal& /*goal*/) {
-        count++;
-    });
+    selector.forEachRunningGoal([&count](PrioritizedGoal& /*goal*/) { count++; });
 
     EXPECT_EQ(count, 2);
 }
@@ -431,7 +443,8 @@ TEST(GoalSelectorTest, ForEachRunningGoal) {
 // GoalFlag 测试
 // ============================================================================
 
-TEST(GoalFlagTest, AllFlags) {
+TEST(GoalFlagTest, AllFlags)
+{
     auto all = allGoalFlags();
 
     EXPECT_TRUE(all.test(GoalFlag::Move));
@@ -449,17 +462,17 @@ TEST(GoalFlagTest, AllFlags) {
 
 using namespace mc::entity::ai::goal;
 
-TEST(TargetPredicateTest, CanBeCreatedFromLambda) {
+TEST(TargetPredicateTest, CanBeCreatedFromLambda)
+{
     // 测试 TargetPredicate 可以从 lambda 创建
-    TargetPredicate pred = [](const LivingEntity* entity) -> bool {
-        return entity != nullptr;
-    };
+    TargetPredicate pred = [](const LivingEntity* entity) -> bool { return entity != nullptr; };
 
     // 验证谓词可以调用
     EXPECT_TRUE(pred(nullptr) == false);
 }
 
-TEST(TargetPredicateTest, CanBeUsedForConditionChecking) {
+TEST(TargetPredicateTest, CanBeUsedForConditionChecking)
+{
     // 测试用于条件检查的谓词
     int callCount = 0;
     TargetPredicate countingPred = [&callCount](const LivingEntity* /*entity*/) -> bool {
@@ -471,7 +484,8 @@ TEST(TargetPredicateTest, CanBeUsedForConditionChecking) {
     EXPECT_TRUE(static_cast<bool>(countingPred));
 }
 
-TEST(TargetPredicateTest, CanBeEmpty) {
+TEST(TargetPredicateTest, CanBeEmpty)
+{
     // 测试空谓词
     TargetPredicate emptyPred;
 
@@ -479,7 +493,8 @@ TEST(TargetPredicateTest, CanBeEmpty) {
     EXPECT_FALSE(static_cast<bool>(emptyPred));
 }
 
-TEST(TargetPredicateTest, CanCaptureExternalState) {
+TEST(TargetPredicateTest, CanCaptureExternalState)
+{
     // 测试谓词可以捕获外部状态
     bool flag = false;
     TargetPredicate statefulPred = [&flag](const LivingEntity* /*entity*/) -> bool {

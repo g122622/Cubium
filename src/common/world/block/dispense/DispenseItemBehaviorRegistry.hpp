@@ -1,10 +1,10 @@
 #pragma once
 
-#include "IDispenseItemBehavior.hpp"
 #include "../../../item/core/Item.hpp"
 #include "../../../item/core/ItemStack.hpp"
-#include <unordered_map>
+#include "IDispenseItemBehavior.hpp"
 #include <memory>
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -58,8 +58,9 @@ public:
      * @param itemId 物品ID
      * @param args 构造函数参数
      */
-    template<typename T, typename... Args>
-    void registerBehavior(const std::string& itemId, Args&&... args) {
+    template <typename T, typename... Args>
+    void registerBehavior(const std::string& itemId, Args&&... args)
+    {
         registerBehavior(itemId, std::make_unique<T>(std::forward<Args>(args)...));
     }
 
@@ -120,7 +121,8 @@ private:
  * @param itemId 物品ID
  * @param behavior 发射行为
  */
-inline void registerDispenseBehavior(const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior) {
+inline void registerDispenseBehavior(const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior)
+{
     DispenseItemBehaviorRegistry::instance().registerBehavior(itemId, std::move(behavior));
 }
 
@@ -132,8 +134,9 @@ inline void registerDispenseBehavior(const std::string& itemId, std::unique_ptr<
  * @param itemId 物品ID
  * @param args 构造函数参数
  */
-template<typename T, typename... Args>
-inline void registerDispenseBehavior(const std::string& itemId, Args&&... args) {
+template <typename T, typename... Args>
+inline void registerDispenseBehavior(const std::string& itemId, Args&&... args)
+{
     DispenseItemBehaviorRegistry::instance().registerBehavior<T>(itemId, std::forward<Args>(args)...);
 }
 

@@ -58,20 +58,23 @@ struct TemplateErrorInfo {
     std::string message;
     SourceLocation location;
     std::string sourcePath;
-    std::string context;  ///< 错误上下文（周围代码）
+    std::string context; ///< 错误上下文（周围代码）
 
-    TemplateErrorInfo(TemplateErrorType type_, std::string message_,
-                      SourceLocation location_ = SourceLocation(),
-                      std::string sourcePath_ = "")
+    TemplateErrorInfo(TemplateErrorType type_,
+        std::string message_,
+        SourceLocation location_ = SourceLocation(),
+        std::string sourcePath_ = "")
         : type(type_)
         , message(std::move(message_))
         , location(location_)
-        , sourcePath(std::move(sourcePath_)) {}
+        , sourcePath(std::move(sourcePath_))
+    {}
 
     /**
      * @brief 获取错误类型名称
      */
-    [[nodiscard]] const char* typeName() const {
+    [[nodiscard]] const char* typeName() const
+    {
         switch (type) {
             case TemplateErrorType::LexerError:
             case TemplateErrorType::UnexpectedCharacter:
@@ -120,7 +123,8 @@ struct TemplateErrorInfo {
     /**
      * @brief 格式化为完整错误消息
      */
-    [[nodiscard]] std::string format() const {
+    [[nodiscard]] std::string format() const
+    {
         std::string result;
         result += typeName();
         result += ": ";
@@ -149,12 +153,15 @@ class TemplateError : public std::runtime_error {
 public:
     explicit TemplateError(TemplateErrorInfo info)
         : std::runtime_error(info.format())
-        , m_info(std::move(info)) {}
+        , m_info(std::move(info))
+    {}
 
-    TemplateError(TemplateErrorType type, const std::string& message,
-                  SourceLocation location = SourceLocation(),
-                  const std::string& sourcePath = "")
-        : TemplateError(TemplateErrorInfo(type, message, location, sourcePath)) {}
+    TemplateError(TemplateErrorType type,
+        const std::string& message,
+        SourceLocation location = SourceLocation(),
+        const std::string& sourcePath = "")
+        : TemplateError(TemplateErrorInfo(type, message, location, sourcePath))
+    {}
 
     /**
      * @brief 获取错误信息
@@ -174,69 +181,74 @@ public:
     /**
      * @brief 添加上下文信息
      */
-    void setContext(const std::string& context) {
-        m_info.context = context;
-    }
+    void setContext(const std::string& context) { m_info.context = context; }
 
     // ========== 工厂方法 ==========
 
     /**
      * @brief 创建词法错误
      */
-    static TemplateError lexer(const std::string& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError lexer(const std::string& message, SourceLocation loc = SourceLocation())
+    {
         return TemplateError(TemplateErrorType::LexerError, message, loc);
     }
 
     /**
      * @brief 创建语法错误
      */
-    static TemplateError parser(const std::string& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError parser(const std::string& message, SourceLocation loc = SourceLocation())
+    {
         return TemplateError(TemplateErrorType::ParserError, message, loc);
     }
 
     /**
      * @brief 创建语义错误
      */
-    static TemplateError semantic(const std::string& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError semantic(const std::string& message, SourceLocation loc = SourceLocation())
+    {
         return TemplateError(TemplateErrorType::SemanticError, message, loc);
     }
 
     /**
      * @brief 创建编译错误
      */
-    static TemplateError compile(const std::string& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError compile(const std::string& message, SourceLocation loc = SourceLocation())
+    {
         return TemplateError(TemplateErrorType::CompileError, message, loc);
     }
 
     /**
      * @brief 创建运行时错误
      */
-    static TemplateError runtime(const std::string& message) {
+    static TemplateError runtime(const std::string& message)
+    {
         return TemplateError(TemplateErrorType::RuntimeError, message);
     }
 
     /**
      * @brief 创建"未知标签"错误
      */
-    static TemplateError unknownTag(const std::string& tagName, SourceLocation loc = SourceLocation()) {
-        return TemplateError(TemplateErrorType::UnknownTag,
-            "Unknown tag: <" + tagName + ">", loc);
+    static TemplateError unknownTag(const std::string& tagName, SourceLocation loc = SourceLocation())
+    {
+        return TemplateError(TemplateErrorType::UnknownTag, "Unknown tag: <" + tagName + ">", loc);
     }
 
     /**
      * @brief 创建"无效绑定路径"错误
      */
-    static TemplateError invalidBindingPath(const std::string& path, SourceLocation loc = SourceLocation()) {
-        return TemplateError(TemplateErrorType::InvalidBindingPath,
-            "Invalid binding path: '" + path + "'", loc);
+    static TemplateError invalidBindingPath(const std::string& path, SourceLocation loc = SourceLocation())
+    {
+        return TemplateError(TemplateErrorType::InvalidBindingPath, "Invalid binding path: '" + path + "'", loc);
     }
 
     /**
      * @brief 创建"内联脚本不允许"错误
      */
-    static TemplateError inlineScriptNotAllowed(SourceLocation loc = SourceLocation()) {
+    static TemplateError inlineScriptNotAllowed(SourceLocation loc = SourceLocation())
+    {
         return TemplateError(TemplateErrorType::InlineScriptNotAllowed,
-            "Inline scripts/expressions are not allowed in Kagero templates (strict mode)", loc);
+            "Inline scripts/expressions are not allowed in Kagero templates (strict mode)",
+            loc);
     }
 
 private:
@@ -253,15 +265,13 @@ public:
     /**
      * @brief 添加错误
      */
-    void addError(TemplateErrorInfo error) {
-        m_errors.push_back(std::move(error));
-    }
+    void addError(TemplateErrorInfo error) { m_errors.push_back(std::move(error)); }
 
     /**
      * @brief 添加错误（简化版）
      */
-    void addError(TemplateErrorType type, const std::string& message,
-                  SourceLocation location = SourceLocation()) {
+    void addError(TemplateErrorType type, const std::string& message, SourceLocation location = SourceLocation())
+    {
         m_errors.emplace_back(type, message, location);
     }
 
@@ -283,9 +293,7 @@ public:
     /**
      * @brief 获取第一个错误
      */
-    [[nodiscard]] const TemplateErrorInfo* firstError() const {
-        return m_errors.empty() ? nullptr : &m_errors.front();
-    }
+    [[nodiscard]] const TemplateErrorInfo* firstError() const { return m_errors.empty() ? nullptr : &m_errors.front(); }
 
     /**
      * @brief 清除所有错误
@@ -295,7 +303,8 @@ public:
     /**
      * @brief 如果有错误则抛出第一个错误
      */
-    void throwIfErrors() const {
+    void throwIfErrors() const
+    {
         if (hasErrors()) {
             throw TemplateError(m_errors.front());
         }
@@ -304,7 +313,8 @@ public:
     /**
      * @brief 合并另一个收集器的错误
      */
-    void merge(const TemplateErrorCollector& other) {
+    void merge(const TemplateErrorCollector& other)
+    {
         for (const auto& error : other.m_errors) {
             m_errors.push_back(error);
         }

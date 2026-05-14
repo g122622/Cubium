@@ -1,34 +1,37 @@
 #include "GoldenAppleItem.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../core/ActionResult.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/effect/EffectType.hpp"
 #include "../../../entity/effect/EffectInstance.hpp"
+#include "../../../entity/effect/EffectType.hpp"
 #include "../../../entity/entities/monster/undead/ZombieVillagerEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include <spdlog/spdlog.h>
+#include "../../core/ActionResult.hpp"
+#include "../../core/ItemStack.hpp"
 #include <chrono>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace item::items {
 
 GoldenAppleItem::GoldenAppleItem(const food::Food* food, ItemProperties properties)
     : Item(std::move(properties))
-    , m_food(food) {
-}
+    , m_food(food)
+{}
 
-i32 GoldenAppleItem::getUseDuration(const ItemStack& /*stack*/) const {
+i32 GoldenAppleItem::getUseDuration(const ItemStack& /*stack*/) const
+{
     // MC 1.16.5: 金苹果食用时间为 32 ticks
     return 32;
 }
 
-UseAction GoldenAppleItem::getUseAction(const ItemStack& /*stack*/) const {
+UseAction GoldenAppleItem::getUseAction(const ItemStack& /*stack*/) const
+{
     return UseAction::Eat;
 }
 
-ItemActionResult GoldenAppleItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
+ItemActionResult GoldenAppleItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand)
+{
     // MC 1.16.5: 金苹果可以在任何时候食用
     ItemStack stack = player.getHeldItem(hand);
     if (stack.isEmpty()) {
@@ -43,7 +46,8 @@ ItemActionResult GoldenAppleItem::onItemRightClick(IWorld& /*world*/, Player& pl
     return ItemActionResult::pass(stack);
 }
 
-ItemStack GoldenAppleItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity& entity) {
+ItemStack GoldenAppleItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity& entity)
+{
     // MC 1.16.5: 金苹果食用完成
     // 1. 恢复饥饿值和饱和度
     // 2. 应用药水效果
@@ -61,17 +65,16 @@ ItemStack GoldenAppleItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, 
         if (m_food->hasEffects()) {
             // 使用实体ID和时间生成随机数
             math::Random rng(static_cast<u64>(entity.id()) ^
-                            static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+                static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
             for (const auto& effect : m_food->getEffects()) {
                 if (rng.nextFloat() < effect.probability) {
-                    entity::effect::EffectInstance instance(
-                        effect.type,
+                    entity::effect::EffectInstance instance(effect.type,
                         effect.duration,
                         effect.amplifier,
-                        false,  // 非环境效果
-                        true,   // 显示粒子
-                        true    // 显示图标
+                        false, // 非环境效果
+                        true,  // 显示粒子
+                        true   // 显示图标
                     );
                     player->addEffect(std::move(instance));
                 }
@@ -87,8 +90,8 @@ ItemStack GoldenAppleItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, 
     return stack;
 }
 
-bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
-                                                LivingEntity& target, Hand /*hand*/) {
+bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand /*hand*/)
+{
     // MC 1.16.5: 金苹果对僵尸村民使用
     // 参考 ZombieVillagerEntity.func_230254_b_ (interact)
 
@@ -123,13 +126,17 @@ bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
 
     spdlog::debug("GoldenAppleItem: Started curing zombie villager at ({}, {}, {}), "
                   "conversion time: {} ticks, starter: {}",
-                  zombieVillager->x(), zombieVillager->y(), zombieVillager->z(),
-                  conversionTime, player.uuid());
+        zombieVillager->x(),
+        zombieVillager->y(),
+        zombieVillager->z(),
+        conversionTime,
+        player.uuid());
 
     return true;
 }
 
-bool GoldenAppleItem::canEat(const ItemStack& /*stack*/, const Player& player) const {
+bool GoldenAppleItem::canEat(const ItemStack& /*stack*/, const Player& player) const
+{
     // MC 1.16.5: 金苹果可以在任何时候食用（不要求饥饿）
     // 但不能在旁观模式食用
     if (player.isSpectator()) {

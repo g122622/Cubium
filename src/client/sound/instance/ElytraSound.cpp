@@ -8,22 +8,22 @@
 namespace mc::client::sound {
 
 ElytraSound::ElytraSound(const ClientEntity& player)
-    : TickableSound(
-          SoundEvents::ITEM_ELYTRA_FLYING,
+    : TickableSound(SoundEvents::ITEM_ELYTRA_FLYING,
           SoundCategory::Players,
           glm::vec3(player.x(), player.y(), player.z()),
-          0.1f,   // MC 1.16.5: 初始音量 0.1
-          1.0f,   // 音调
-          true,   // 循环
+          0.1f, // MC 1.16.5: 初始音量 0.1
+          1.0f, // 音调
+          true, // 循环
           AttenuationType::Linear,
-          16.0f   // 衰减距离
-      )
+          16.0f // 衰减距离
+          )
     , m_player(player)
 {
     // MC 1.16.5: ElytraSound 循环播放
 }
 
-void ElytraSound::tick() {
+void ElytraSound::tick()
+{
     ++m_time;
 
     // 检查玩家是否正在鞘翅飞行

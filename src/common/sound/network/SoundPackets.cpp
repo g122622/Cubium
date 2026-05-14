@@ -9,14 +9,10 @@ namespace mc::sound {
 
 PlaySoundPacket::PlaySoundPacket()
     : network::Packet(network::PacketType::PlaySound)
-{
-}
+{}
 
-PlaySoundPacket::PlaySoundPacket(const ResourceLocation& soundEventId,
-                                 SoundCategory category,
-                                 const glm::vec3& position,
-                                 f32 volume,
-                                 f32 pitch)
+PlaySoundPacket::PlaySoundPacket(
+    const ResourceLocation& soundEventId, SoundCategory category, const glm::vec3& position, f32 volume, f32 pitch)
     : network::Packet(network::PacketType::PlaySound)
     , m_soundEventId(soundEventId)
     , m_category(category)
@@ -25,24 +21,22 @@ PlaySoundPacket::PlaySoundPacket(const ResourceLocation& soundEventId,
     , m_z(static_cast<i32>(position.z * 8.0f))
     , m_volume(volume)
     , m_pitch(pitch)
+{}
+
+glm::vec3 PlaySoundPacket::getPosition() const noexcept
 {
+    return glm::vec3(static_cast<f32>(m_x) / 8.0f, static_cast<f32>(m_y) / 8.0f, static_cast<f32>(m_z) / 8.0f);
 }
 
-glm::vec3 PlaySoundPacket::getPosition() const noexcept {
-    return glm::vec3(
-        static_cast<f32>(m_x) / 8.0f,
-        static_cast<f32>(m_y) / 8.0f,
-        static_cast<f32>(m_z) / 8.0f
-    );
-}
-
-size_t PlaySoundPacket::expectedSize() const {
+size_t PlaySoundPacket::expectedSize() const
+{
     // 包体大小预估：
     // 声音事件ID字符串 + category(varint) + x/y/z(i32*3) + volume/pitch(f32*2)
     return 64;
 }
 
-Result<std::vector<u8>> PlaySoundPacket::serialize() const {
+Result<std::vector<u8>> PlaySoundPacket::serialize() const
+{
     network::PacketSerializer serializer;
     serializer.reserve(expectedSize());
 
@@ -65,7 +59,8 @@ Result<std::vector<u8>> PlaySoundPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> PlaySoundPacket::deserialize(const u8* data, size_t size) {
+Result<void> PlaySoundPacket::deserialize(const u8* data, size_t size)
+{
     network::PacketDeserializer deserializer(data, size);
 
     // 读取声音事件ID
@@ -128,37 +123,35 @@ StopSoundPacket::StopSoundPacket()
     : network::Packet(network::PacketType::StopSound)
     , m_soundEventId(std::nullopt)
     , m_category(std::nullopt)
-{
-}
+{}
 
-StopSoundPacket::StopSoundPacket(const std::optional<ResourceLocation>& soundEventId,
-                                  const std::optional<SoundCategory>& category)
+StopSoundPacket::StopSoundPacket(
+    const std::optional<ResourceLocation>& soundEventId, const std::optional<SoundCategory>& category)
     : network::Packet(network::PacketType::StopSound)
     , m_soundEventId(soundEventId)
     , m_category(category)
-{
-}
+{}
 
 StopSoundPacket::StopSoundPacket(const ResourceLocation& soundEventId)
     : network::Packet(network::PacketType::StopSound)
     , m_soundEventId(soundEventId)
     , m_category(std::nullopt)
-{
-}
+{}
 
 StopSoundPacket::StopSoundPacket(SoundCategory category)
     : network::Packet(network::PacketType::StopSound)
     , m_soundEventId(std::nullopt)
     , m_category(category)
-{
-}
+{}
 
-size_t StopSoundPacket::expectedSize() const {
+size_t StopSoundPacket::expectedSize() const
+{
     // 标志字节 + 可选的声音事件ID + 可选的类别
     return 64;
 }
 
-Result<std::vector<u8>> StopSoundPacket::serialize() const {
+Result<std::vector<u8>> StopSoundPacket::serialize() const
+{
     network::PacketSerializer serializer;
     serializer.reserve(expectedSize());
 
@@ -188,7 +181,8 @@ Result<std::vector<u8>> StopSoundPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> StopSoundPacket::deserialize(const u8* data, size_t size) {
+Result<void> StopSoundPacket::deserialize(const u8* data, size_t size)
+{
     network::PacketDeserializer deserializer(data, size);
 
     // 读取标志字节
@@ -234,14 +228,10 @@ Result<void> StopSoundPacket::deserialize(const u8* data, size_t size) {
 
 PlaySoundEffectPacket::PlaySoundEffectPacket()
     : network::Packet(network::PacketType::PlaySoundEffect)
-{
-}
+{}
 
-PlaySoundEffectPacket::PlaySoundEffectPacket(const ResourceLocation& soundEventId,
-                                             SoundCategory category,
-                                             const glm::vec3& position,
-                                             f32 volume,
-                                             f32 pitch)
+PlaySoundEffectPacket::PlaySoundEffectPacket(
+    const ResourceLocation& soundEventId, SoundCategory category, const glm::vec3& position, f32 volume, f32 pitch)
     : network::Packet(network::PacketType::PlaySoundEffect)
     , m_soundEventId(soundEventId)
     , m_category(category)
@@ -250,22 +240,20 @@ PlaySoundEffectPacket::PlaySoundEffectPacket(const ResourceLocation& soundEventI
     , m_z(static_cast<i32>(position.z * 8.0f))
     , m_volume(volume)
     , m_pitch(pitch)
+{}
+
+glm::vec3 PlaySoundEffectPacket::getPosition() const noexcept
 {
+    return glm::vec3(static_cast<f32>(m_x) / 8.0f, static_cast<f32>(m_y) / 8.0f, static_cast<f32>(m_z) / 8.0f);
 }
 
-glm::vec3 PlaySoundEffectPacket::getPosition() const noexcept {
-    return glm::vec3(
-        static_cast<f32>(m_x) / 8.0f,
-        static_cast<f32>(m_y) / 8.0f,
-        static_cast<f32>(m_z) / 8.0f
-    );
-}
-
-size_t PlaySoundEffectPacket::expectedSize() const {
+size_t PlaySoundEffectPacket::expectedSize() const
+{
     return 64;
 }
 
-Result<std::vector<u8>> PlaySoundEffectPacket::serialize() const {
+Result<std::vector<u8>> PlaySoundEffectPacket::serialize() const
+{
     network::PacketSerializer serializer;
     serializer.reserve(expectedSize());
 
@@ -282,7 +270,8 @@ Result<std::vector<u8>> PlaySoundEffectPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> PlaySoundEffectPacket::deserialize(const u8* data, size_t size) {
+Result<void> PlaySoundEffectPacket::deserialize(const u8* data, size_t size)
+{
     network::PacketDeserializer deserializer(data, size);
 
     auto idResult = deserializer.readString();
@@ -339,29 +328,26 @@ Result<void> PlaySoundEffectPacket::deserialize(const u8* data, size_t size) {
 
 MovingSoundPacket::MovingSoundPacket()
     : network::Packet(network::PacketType::MovingSound)
-{
-}
+{}
 
-MovingSoundPacket::MovingSoundPacket(const ResourceLocation& soundEventId,
-                                     SoundCategory category,
-                                     i32 entityId,
-                                     f32 volume,
-                                     f32 pitch)
+MovingSoundPacket::MovingSoundPacket(
+    const ResourceLocation& soundEventId, SoundCategory category, i32 entityId, f32 volume, f32 pitch)
     : network::Packet(network::PacketType::MovingSound)
     , m_soundEventId(soundEventId)
     , m_category(category)
     , m_entityId(entityId)
     , m_volume(volume)
     , m_pitch(pitch)
-{
-}
+{}
 
-size_t MovingSoundPacket::expectedSize() const {
+size_t MovingSoundPacket::expectedSize() const
+{
     // 声音事件ID字符串 + category(varint) + entityId(varint) + volume(f32) + pitch(f32)
     return 64;
 }
 
-Result<std::vector<u8>> MovingSoundPacket::serialize() const {
+Result<std::vector<u8>> MovingSoundPacket::serialize() const
+{
     network::PacketSerializer serializer;
     serializer.reserve(expectedSize());
 
@@ -381,7 +367,8 @@ Result<std::vector<u8>> MovingSoundPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> MovingSoundPacket::deserialize(const u8* data, size_t size) {
+Result<void> MovingSoundPacket::deserialize(const u8* data, size_t size)
+{
     network::PacketDeserializer deserializer(data, size);
 
     // 读取声音事件ID
@@ -430,8 +417,7 @@ Result<void> MovingSoundPacket::deserialize(const u8* data, size_t size) {
 
 WorldEventPacket::WorldEventPacket()
     : network::Packet(network::PacketType::WorldEvent)
-{
-}
+{}
 
 WorldEventPacket::WorldEventPacket(i32 eventId, i32 x, i32 y, i32 z, i32 data)
     : network::Packet(network::PacketType::WorldEvent)
@@ -440,8 +426,7 @@ WorldEventPacket::WorldEventPacket(i32 eventId, i32 x, i32 y, i32 z, i32 data)
     , m_y(y)
     , m_z(z)
     , m_data(data)
-{
-}
+{}
 
 WorldEventPacket::WorldEventPacket(i32 eventId, const BlockPos& pos, i32 data)
     : network::Packet(network::PacketType::WorldEvent)
@@ -450,15 +435,16 @@ WorldEventPacket::WorldEventPacket(i32 eventId, const BlockPos& pos, i32 data)
     , m_y(pos.y)
     , m_z(pos.z)
     , m_data(data)
-{
-}
+{}
 
-size_t WorldEventPacket::expectedSize() const {
+size_t WorldEventPacket::expectedSize() const
+{
     // eventId(varint) + x(i32) + y(i32) + z(i32) + data(i32)
     return 20;
 }
 
-Result<std::vector<u8>> WorldEventPacket::serialize() const {
+Result<std::vector<u8>> WorldEventPacket::serialize() const
+{
     network::PacketSerializer serializer;
     serializer.reserve(expectedSize());
 
@@ -476,7 +462,8 @@ Result<std::vector<u8>> WorldEventPacket::serialize() const {
     return serializer.buffer();
 }
 
-Result<void> WorldEventPacket::deserialize(const u8* data, size_t size) {
+Result<void> WorldEventPacket::deserialize(const u8* data, size_t size)
+{
     network::PacketDeserializer deserializer(data, size);
 
     // 读取事件ID

@@ -10,7 +10,7 @@ SplashParticle::SplashParticle(const glm::vec3& pos, const glm::vec3& velocity)
 
     setGravity(DEFAULT_GRAVITY);
     setSize(DEFAULT_SIZE * (0.5f + rng.nextFloat() * 0.5f));
-    setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.7f));  // 淡蓝色半透明
+    setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.7f)); // 淡蓝色半透明
 
     setFriction(0.95f);
     setHasPhysics(false);
@@ -18,15 +18,14 @@ SplashParticle::SplashParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> SplashParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SplashParticle>(pos, velocity);
 }
 
-void SplashParticle::tick(mc::client::ClientWorld* world) {
+void SplashParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

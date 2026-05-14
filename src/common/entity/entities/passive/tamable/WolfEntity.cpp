@@ -1,19 +1,19 @@
 #include "WolfEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/interact/TameableGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include <cmath>
 
 namespace mc {
@@ -28,41 +28,39 @@ WolfEntity::WolfEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/)
+{
     // 使用临时ID 0，实际ID由 EntityManager 分配
     return std::make_unique<WolfEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool WolfEntity::isTameItem(const ItemStack& itemStack) const {
+bool WolfEntity::isTameItem(const ItemStack& itemStack) const
+{
     // 狼用骨头驯服
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::BONE;
 }
 
-bool WolfEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool WolfEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // 驯服后用肉类繁殖（MC 1.16.5: item.isFood() && item.getFood().isMeat()）
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
-    return item == Items::PORKCHOP
-        || item == Items::COOKED_PORKCHOP
-        || item == Items::BEEF
-        || item == Items::COOKED_BEEF
-        || item == Items::CHICKEN
-        || item == Items::COOKED_CHICKEN
-        || item == Items::RABBIT
-        || item == Items::COOKED_RABBIT
-        || item == Items::MUTTON
-        || item == Items::COOKED_MUTTON
-        || item == Items::ROTTEN_FLESH;
+    return item == Items::PORKCHOP || item == Items::COOKED_PORKCHOP || item == Items::BEEF ||
+        item == Items::COOKED_BEEF || item == Items::CHICKEN || item == Items::COOKED_CHICKEN ||
+        item == Items::RABBIT || item == Items::COOKED_RABBIT || item == Items::MUTTON ||
+        item == Items::COOKED_MUTTON || item == Items::ROTTEN_FLESH;
 }
 
-bool WolfEntity::isFoodItem(const ItemStack& itemStack) const {
+bool WolfEntity::isFoodItem(const ItemStack& itemStack) const
+{
     // 同繁殖物品
     return isBreedingItem(itemStack);
 }
 
-std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/) {
+std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
     // 创建小狼
     auto baby = std::make_unique<WolfEntity>(LegacyEntityType::Unknown, 0);
 
@@ -75,7 +73,8 @@ std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/) {
     return baby;
 }
 
-void WolfEntity::tick() {
+void WolfEntity::tick()
+{
     TameableEntity::tick();
 
     if (!isAlive()) {
@@ -90,11 +89,9 @@ void WolfEntity::tick() {
         m_stepSoundDistance += horizontalDistance * 0.6f;
         if (m_stepSoundDistance > m_nextStepSoundDistance && onGround() && !isInWater()) {
             m_nextStepSoundDistance = std::floor(m_stepSoundDistance) + 1.0f;
-            const BlockPos stepPos(
-                static_cast<i32>(std::floor(x())),
+            const BlockPos stepPos(static_cast<i32>(std::floor(x())),
                 static_cast<i32>(std::floor(y() - 0.2f)),
-                static_cast<i32>(std::floor(z()))
-            );
+                static_cast<i32>(std::floor(z())));
             const BlockState* blockState = m_world != nullptr ? m_world->getBlockState(stepPos) : nullptr;
             playStepSound(stepPos, blockState);
         }
@@ -107,7 +104,8 @@ void WolfEntity::tick() {
     m_wasInWater = inWater;
 }
 
-std::optional<ResourceLocation> WolfEntity::getAmbientSound() const {
+std::optional<ResourceLocation> WolfEntity::getAmbientSound() const
+{
     math::Random random = getRandom();
 
     if (isAngry()) {
@@ -125,15 +123,18 @@ std::optional<ResourceLocation> WolfEntity::getAmbientSound() const {
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& /*source*/) const
+{
     return makeSoundEventId("hurt");
 }
 
-std::optional<ResourceLocation> WolfEntity::getDeathSound() const {
+std::optional<ResourceLocation> WolfEntity::getDeathSound() const
+{
     return makeSoundEventId("death");
 }
 
-void WolfEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
+void WolfEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
+{
     auto soundEvent = makeSoundEventId("step");
     if (!soundEvent.has_value()) {
         return;
@@ -142,17 +143,16 @@ void WolfEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*bloc
     playSound(*soundEvent, 0.15f, 1.0f);
 }
 
-void WolfEntity::playStepSound() {
+void WolfEntity::playStepSound()
+{
     const BlockPos stepPos(
-        static_cast<i32>(std::floor(x())),
-        static_cast<i32>(std::floor(y() - 0.2f)),
-        static_cast<i32>(std::floor(z()))
-    );
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y() - 0.2f)), static_cast<i32>(std::floor(z())));
     const BlockState* blockState = m_world != nullptr ? m_world->getBlockState(stepPos) : nullptr;
     playStepSound(stepPos, blockState);
 }
 
-void WolfEntity::playShakingSound() {
+void WolfEntity::playShakingSound()
+{
     auto soundEvent = makeSoundEventId("shake");
     if (!soundEvent.has_value()) {
         return;
@@ -162,7 +162,8 @@ void WolfEntity::playShakingSound() {
     playSound(*soundEvent, getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
 }
 
-f32 WolfEntity::getTailAngle() const {
+f32 WolfEntity::getTailAngle() const
+{
     // 根据生命值计算尾巴角度
     // 参考 MC 1.16.5 WolfEntity.getTailAngle()
     if (isAngry()) {
@@ -175,13 +176,16 @@ f32 WolfEntity::getTailAngle() const {
     return TAIL_ANGLE_UNHEALTHY + (healthRatio * (TAIL_ANGLE_HEALTHY - TAIL_ANGLE_UNHEALTHY));
 }
 
-bool WolfEntity::isInWater() const {
+bool WolfEntity::isInWater() const
+{
     // 调用父类实现检查是否在水中
     return TameableEntity::isInWater();
 }
 
-void WolfEntity::registerGoals() {
-    // 调用父类方法（已包含 SwimGoal, PanicGoal, BreedGoal, FollowParentGoal, RandomWalkingGoal, LookAtGoal, LookRandomlyGoal）
+void WolfEntity::registerGoals()
+{
+    // 调用父类方法（已包含 SwimGoal, PanicGoal, BreedGoal, FollowParentGoal, RandomWalkingGoal, LookAtGoal,
+    // LookRandomlyGoal）
     TameableEntity::registerGoals();
 
     // 狼特有目标
@@ -205,20 +209,22 @@ void WolfEntity::registerGoals() {
     // m_targetSelector.addGoal(4, new NonTamedTargetGoal(this, EntityClassification::Monster, true));
 }
 
-void WolfEntity::registerAttributes() {
+void WolfEntity::registerAttributes()
+{
     // 调用父类方法
     TameableEntity::registerAttributes();
 
     // 狼的属性
     // 参考 MC 1.16.5 狼属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);  // 驯服前8血
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0); // 驯服前8血
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
 
     // 驯服后会增加到20血，这里由 onTamed 处理
 }
 
-void WolfEntity::onTamed(bool tamed) {
+void WolfEntity::onTamed(bool tamed)
+{
     if (tamed) {
         // 驯服后增加生命值上限
         // 参考 MC 1.16.5 狼驯服后从8血变为20血

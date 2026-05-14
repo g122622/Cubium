@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../HorizontalBlock.hpp"
 #include "../../IGrowable.hpp"
+#include "../HorizontalBlock.hpp"
 #include <array>
 
 namespace mc {
@@ -42,9 +42,7 @@ public:
     /**
      * @brief 获取 AGE 属性
      */
-    static const IntegerProperty& AGE() {
-        return BlockStateProperties::AGE_0_2();
-    }
+    static const IntegerProperty& AGE() { return BlockStateProperties::AGE_0_2(); }
 
     /**
      * @brief 获取最大年龄
@@ -71,14 +69,11 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 邻居更新 ==========
 
-    BlockState updatePostPlacement(
-        const BlockState& state,
+    BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -94,22 +89,12 @@ public:
     // ========== IGrowable 接口 ==========
 
     [[nodiscard]] bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const override;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     [[nodiscard]] bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
-    void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 形状 ==========
 
@@ -120,10 +105,7 @@ public:
     /**
      * @brief 不阻挡实体移动
      */
-    [[nodiscard]] bool allowsMovement(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+    [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
 protected:
     /**

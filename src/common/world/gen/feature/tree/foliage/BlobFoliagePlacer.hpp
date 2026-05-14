@@ -22,7 +22,8 @@ public:
      */
     BlobFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
-    [[nodiscard]] i32 getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const override {
+    [[nodiscard]] i32 getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const override
+    {
         return m_height;
     }
 
@@ -31,8 +32,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -40,15 +40,10 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;

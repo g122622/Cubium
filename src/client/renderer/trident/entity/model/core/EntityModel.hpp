@@ -33,9 +33,8 @@ public:
      * @param indices 索引输出缓冲区
      * @param scale 缩放因子
      */
-    virtual void generateMesh(std::vector<ModelVertex>& vertices,
-                              std::vector<u32>& indices,
-                              f64 scale = 1.0f / 16.0f) const;
+    virtual void generateMesh(
+        std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 scale = 1.0f / 16.0f) const;
 
     /**
      * @brief 设置动画参数
@@ -46,9 +45,8 @@ public:
      * @param headPitch 头部俯仰角
      * @param scale 缩放因子
      */
-    virtual void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                           f64 ageInTicks, f64 netHeadYaw,
-                           f64 headPitch, f64 scale);
+    virtual void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale);
 
     /**
      * @brief 设置生物动画状态（每帧调用）
@@ -82,16 +80,15 @@ public:
     /**
      * @brief 获取所有部件
      */
-    [[nodiscard]] const std::vector<std::shared_ptr<ModelRenderer>>& getParts() const {
-        return m_parts;
-    }
+    [[nodiscard]] const std::vector<std::shared_ptr<ModelRenderer>>& getParts() const { return m_parts; }
 
     // ========== 纹理 ==========
 
     [[nodiscard]] i32 textureWidth() const { return m_textureWidth; }
     [[nodiscard]] i32 textureHeight() const { return m_textureHeight; }
 
-    void setTextureSize(i32 width, i32 height) {
+    void setTextureSize(i32 width, i32 height)
+    {
         m_textureWidth = width;
         m_textureHeight = height;
     }
@@ -99,7 +96,8 @@ public:
     /**
      * @brief 设置所有部件可见性
      */
-    virtual void setAllVisible(bool visible) {
+    virtual void setAllVisible(bool visible)
+    {
         for (auto& part : m_parts) {
             if (part) {
                 part->setVisible(visible);
@@ -145,9 +143,9 @@ protected:
     std::vector<std::shared_ptr<ModelRenderer>> m_parts;
 
     // 状态字段（参考 MC 1.16.5 EntityModel）
-    f32 m_swingProgress = 0.0f;   // 挥动进度
-    bool m_isSitting = false;      // 是否坐下
-    bool m_isChild = true;         // 是否为幼体（默认为 true）
+    f32 m_swingProgress = 0.0f; // 挥动进度
+    bool m_isSitting = false;   // 是否坐下
+    bool m_isChild = true;      // 是否为幼体（默认为 true）
 };
 
 } // namespace mc::client::renderer::entity::model

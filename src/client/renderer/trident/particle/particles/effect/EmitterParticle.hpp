@@ -42,9 +42,7 @@ public:
      * @param velocity 初始速度
      * @param lifetime 生命周期（ticks）
      */
-    EmitterParticle(const glm::vec3& pos,
-                    const glm::vec3& velocity,
-                    f64 lifetime);
+    EmitterParticle(const glm::vec3& pos, const glm::vec3& velocity, f64 lifetime);
 
     /**
      * @brief 构造发射器粒子（带发射数量）
@@ -54,19 +52,14 @@ public:
      * @param lifetime 生命周期（ticks）
      * @param emitCount 总发射次数（0 = 无限）
      */
-    EmitterParticle(const glm::vec3& pos,
-                    const glm::vec3& velocity,
-                    f64 lifetime,
-                    u32 emitCount);
+    EmitterParticle(const glm::vec3& pos, const glm::vec3& velocity, f64 lifetime, u32 emitCount);
 
     void tick(mc::client::ClientWorld* world) override;
 
     /**
      * @brief 发射器粒子不渲染
      */
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::NO_RENDER;
-    }
+    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::NO_RENDER; }
 
     /**
      * @brief 发射一个粒子
@@ -78,10 +71,7 @@ public:
      * @param pos 位置
      * @param velocity 速度
      */
-    void emit(mc::client::ClientWorld* world,
-              ParticleTypeId type,
-              const glm::vec3& pos,
-              const glm::vec3& velocity);
+    void emit(mc::client::ClientWorld* world, ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity);
 
     /**
      * @brief 发射一个粒子（带随机偏移）
@@ -94,11 +84,11 @@ public:
      * @param velocitySpread 速度随机范围
      */
     void emitWithOffset(mc::client::ClientWorld* world,
-                        ParticleTypeId type,
-                        const glm::vec3& center,
-                        const glm::vec3& offset,
-                        const glm::vec3& baseVelocity,
-                        const glm::vec3& velocitySpread);
+        ParticleTypeId type,
+        const glm::vec3& center,
+        const glm::vec3& offset,
+        const glm::vec3& baseVelocity,
+        const glm::vec3& velocitySpread);
 
     /**
      * @brief 检查是否应该发射
@@ -123,9 +113,9 @@ public:
     void setEmitInterval(u32 interval) { m_emitInterval = interval; }
 
 protected:
-    u32 m_emitCount = 0;             ///< 剩余发射次数（0 = 无限）
-    u32 m_emitInterval = 1;          ///< 发射间隔（ticks）
-    u32 m_ticksSinceLastEmit = 0;    ///< 上次发射后的 tick 数
+    u32 m_emitCount = 0;          ///< 剩余发射次数（0 = 无限）
+    u32 m_emitInterval = 1;       ///< 发射间隔（ticks）
+    u32 m_ticksSinceLastEmit = 0; ///< 上次发射后的 tick 数
 };
 
 /**
@@ -149,15 +139,13 @@ public:
      * @brief 工厂方法
      */
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
 private:
-    static constexpr f64 EMITTER_LIFETIME = 8.0;  // 爆炸延迟（约 0.4 秒）
-    static constexpr u32 EMIT_DELAY = 2;          // 发射延迟（ticks）
+    static constexpr f64 EMITTER_LIFETIME = 8.0; // 爆炸延迟（约 0.4 秒）
+    static constexpr u32 EMIT_DELAY = 2;         // 发射延迟（ticks）
 };
 
 /**
@@ -176,23 +164,18 @@ public:
      * @param lifetime 持续时间（ticks）
      * @param emitCount 发射次数
      */
-    FlameEmitterParticle(const glm::vec3& pos,
-                         const glm::vec3& velocity,
-                         f64 lifetime,
-                         u32 emitCount);
+    FlameEmitterParticle(const glm::vec3& pos, const glm::vec3& velocity, f64 lifetime, u32 emitCount);
 
     /**
      * @brief 工厂方法
      */
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
 private:
-    static constexpr u32 EMIT_INTERVAL = 2;  // 每 2 tick 发射一次
+    static constexpr u32 EMIT_INTERVAL = 2; // 每 2 tick 发射一次
 };
 
 /**
@@ -202,15 +185,10 @@ private:
  */
 class SmokeEmitterParticle : public EmitterParticle {
 public:
-    SmokeEmitterParticle(const glm::vec3& pos,
-                         const glm::vec3& velocity,
-                         f64 lifetime,
-                         u32 emitCount);
+    SmokeEmitterParticle(const glm::vec3& pos, const glm::vec3& velocity, f64 lifetime, u32 emitCount);
 
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 

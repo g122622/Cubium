@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class LivingEntity;
@@ -16,7 +16,7 @@ class LivingEntity;
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 struct EntityMesh;
-}
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity::layer::entity {
 
@@ -29,7 +29,7 @@ namespace mc::client::renderer::entity::layer::entity {
  *
  * @tparam TEntity 实体类型
  */
-template<typename TEntity>
+template <typename TEntity>
 class ArrowLayer : public core::LayerRenderer<TEntity> {
 public:
     ArrowLayer() = default;
@@ -38,26 +38,22 @@ public:
     /**
      * @brief 渲染箭矢层（GPU管线路径）
      */
-    void renderPipeline(
-        TEntity& entity,
+    void renderPipeline(TEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染箭矢层（CPU路径 - 已废弃）
      */
-    void render(
-        TEntity& entity,
+    void render(TEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override;
+        f32 scale) override;
 
     /**
      * @brief 检查是否应该渲染箭矢
@@ -68,22 +64,20 @@ private:
     /**
      * @brief 构建单个箭矢网格
      */
-    void buildArrowMesh(
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+    void buildArrowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 渲染单个箭矢（GPU管线路径）
      */
-    void renderArrowPipeline(
-        TEntity& entity,
-        f32 x, f32 y, f32 z,
-        f32 yaw, f32 pitch,
+    void renderArrowPipeline(TEntity& entity,
+        f32 x,
+        f32 y,
+        f32 z,
+        f32 yaw,
+        f32 pitch,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 获取或创建箭矢网格

@@ -61,9 +61,7 @@ public:
     void pause();
     void resume();
     void setPaused(bool paused);
-    void updateListener(const glm::vec3& position,
-                        const glm::vec3& forward,
-                        const glm::vec3& up);
+    void updateListener(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up);
     void setListenerVelocity(const glm::vec3& velocity);
     void setVolume(SoundCategory category, f32 volume);
     void reloadSoundDefinitions();
@@ -100,8 +98,10 @@ public:
      * @param inBossFight 是否在Boss战斗中
      * @param biomeMusic 当前生物群系的音乐配置（可选）
      */
-    void updateMusicState(i32 dimension, bool inCreative, bool inBossFight,
-                         const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
+    void updateMusicState(i32 dimension,
+        bool inCreative,
+        bool inBossFight,
+        const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
 
     /**
      * @brief 设置菜单状态
@@ -223,11 +223,8 @@ public:
      * @param volume 音量
      * @param pitch 音调
      */
-    void playMovingSound(const ResourceLocation& soundEventId,
-                         SoundCategory category,
-                         u32 entityId,
-                         f32 volume,
-                         f32 pitch);
+    void playMovingSound(
+        const ResourceLocation& soundEventId, SoundCategory category, u32 entityId, f32 volume, f32 pitch);
 
 private:
     enum class CommandType : u8 {
@@ -364,4 +361,3 @@ private:
 } // namespace sound
 } // namespace client
 } // namespace mc
-

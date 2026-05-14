@@ -48,19 +48,13 @@ public:
      * @brief 获取弱信号
      */
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     /**
      * @brief 获取强信号
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     // ========== 属性访问 ==========
 
@@ -77,7 +71,8 @@ public:
     /**
      * @brief 检查状态是否有铁轨形状属性
      */
-    [[nodiscard]] bool hasRailShapeProperty(const BlockState& state) const override {
+    [[nodiscard]] bool hasRailShapeProperty(const BlockState& state) const override
+    {
         return state.hasProperty(SHAPE());
     }
 
@@ -89,7 +84,8 @@ public:
     /**
      * @brief 获取形状属性
      */
-    static const EnumProperty<RailShape>& SHAPE() {
+    static const EnumProperty<RailShape>& SHAPE()
+    {
         static auto prop = RailShapeProperty::create("shape");
         return *prop;
     }
@@ -97,9 +93,7 @@ public:
     /**
      * @brief 获取激活属性
      */
-    static const BooleanProperty& POWERED() {
-        return BlockStateProperties::POWERED();
-    }
+    static const BooleanProperty& POWERED() { return BlockStateProperties::POWERED(); }
 };
 
 } // namespace blocks

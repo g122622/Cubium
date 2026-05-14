@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
 
 namespace mc {

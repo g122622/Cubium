@@ -1,31 +1,30 @@
 #include "JigsawStructure.hpp"
-#include "../jigsaw/JigsawManager.hpp"
-#include "../jigsaw/JigsawPattern.hpp"
-#include "../chunk/IChunkGenerator.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../block/BlockPos.hpp"
+#include "../chunk/IChunkGenerator.hpp"
+#include "../jigsaw/JigsawManager.hpp"
+#include "../jigsaw/JigsawPattern.hpp"
 
 namespace {
 
 class JigsawPlacedPieceAdapter final : public mc::world::gen::structure::StructurePiece {
 public:
     explicit JigsawPlacedPieceAdapter(const mc::world::gen::jigsaw::PlacedPiece& placed)
-        : StructurePiece(
-              90,
+        : StructurePiece(90,
               placed.boundingBox.minX(),
               placed.boundingBox.minY(),
               placed.boundingBox.minZ(),
               placed.boundingBox.maxX(),
               placed.boundingBox.maxY(),
-              placed.boundingBox.maxZ()) {
-    }
+              placed.boundingBox.maxZ())
+    {}
 
-    void generate(
-        mc::IWorldWriter&,
+    void generate(mc::IWorldWriter&,
         mc::math::Random&,
         mc::i32,
         mc::i32,
-        const mc::world::gen::structure::StructureBoundingBox&) override {
+        const mc::world::gen::structure::StructureBoundingBox&) override
+    {
         // 实际方块放置已在 JigsawManager::assembleAndPlace 中完成
     }
 };
@@ -40,25 +39,15 @@ namespace structure {
 const std::string JigsawStructure::m_name = "jigsaw";
 const std::vector<BiomeId> JigsawStructure::m_validBiomes;
 
-JigsawStructure::JigsawStructure(
-    const JigsawConfig& config,
-    i32 startY,
-    bool nearTerrain,
-    bool adjustForTerrain)
+JigsawStructure::JigsawStructure(const JigsawConfig& config, i32 startY, bool nearTerrain, bool adjustForTerrain)
     : Structure(StructureType::Village)
     , m_config(config)
     , m_startY(startY)
     , m_nearTerrain(nearTerrain)
     , m_adjustForTerrain(adjustForTerrain)
-{
-}
+{}
 
-bool JigsawStructure::canGenerate(
-    IWorld& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ)
+bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     (void)world;
     (void)rng;
@@ -82,11 +71,7 @@ bool JigsawStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> JigsawStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -102,13 +87,7 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     BlockPos startPos(chunkX * 16 + 8, m_startY, chunkZ * 16 + 8);
 
     // 组装结构
-    auto placedPieces = jigsaw::JigsawManager::assemble(
-        patternRegistry,
-        *startPool,
-        m_config.size,
-        startPos,
-        rng
-    );
+    auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
 
     for (const auto& placed : placedPieces) {
         start->addPiece(std::make_unique<JigsawPlacedPieceAdapter>(placed));

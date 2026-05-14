@@ -6,19 +6,20 @@ namespace mc {
 namespace world {
 namespace redstone {
 
-bool RedstoneHelper::isNormalCube(const BlockState& state) {
+bool RedstoneHelper::isNormalCube(const BlockState& state)
+{
     // 实体方块：固体、不透明、非空气
     return state.isSolid() && state.isOpaque() && !state.isAir();
 }
 
-bool RedstoneHelper::canConnectRedstone(const BlockState& state) {
+bool RedstoneHelper::canConnectRedstone(const BlockState& state)
+{
     // 检查方块是否可以输出红石信号
     return state.getBlock().canProvidePower(state);
 }
 
-bool RedstoneHelper::isRedstoneConductor(IWorld& world,
-                                          const BlockPos& pos,
-                                          const BlockState& state) {
+bool RedstoneHelper::isRedstoneConductor(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 红石导体检查：
     // 1. 必须是实体方块
     // 2. 不阻挡红石信号传输
@@ -34,7 +35,8 @@ bool RedstoneHelper::isRedstoneConductor(IWorld& world,
     return true;
 }
 
-i32 RedstoneHelper::getEntitySignal(IWorld& world, const BlockPos& pos) {
+i32 RedstoneHelper::getEntitySignal(IWorld& world, const BlockPos& pos)
+{
     // 检查位置上的实体是否输出红石信号
     // 例如：装有漏斗的矿车、动力矿车等
     // 待实体系统完善后实现

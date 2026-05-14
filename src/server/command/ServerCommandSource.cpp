@@ -1,26 +1,24 @@
 #include "ServerCommandSource.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
 
-ServerCommandSource::ServerCommandSource(
-    server::IServer* server,
+ServerCommandSource::ServerCommandSource(server::IServer* server,
     ServerPlayer* player,
     server::ServerWorld* world,
     const Vector3d& position,
     const Vector2f& rotation,
     i32 permissionLevel,
     PlayerId playerId,
-    std::string playerName
-)
+    std::string playerName)
     : m_server(server)
     , m_player(player)
     , m_playerId(player ? player->playerId() : playerId)
@@ -40,10 +38,9 @@ ServerCommandSource::ServerCommandSource(
     }
 }
 
-void ServerCommandSource::sendMessage(
-    const std::string& message,
-    const std::optional<Uuid>& /*senderUuid*/
-) {
+void ServerCommandSource::sendMessage(const std::string& message, const std::optional<Uuid>& /*senderUuid*/
+)
+{
     if (m_player) {
         m_player->sendSystemMessage(message);
         return;
@@ -54,9 +51,7 @@ void ServerCommandSource::sendMessage(
             chatPacket.serialize(payload);
 
             if (m_server->connectionManager().sendPacketToPlayer(
-                    m_playerId,
-                    network::PacketType::ChatBroadcast,
-                    payload.buffer())) {
+                    m_playerId, network::PacketType::ChatBroadcast, payload.buffer())) {
                 return;
             }
         }
@@ -68,35 +63,38 @@ void ServerCommandSource::sendMessage(
     spdlog::info("{}", message);
 }
 
-void ServerCommandSource::sendError(const std::string& message) {
+void ServerCommandSource::sendError(const std::string& message)
+{
     // 错误消息使用红色格式（对于支持的客户端）
     std::string formattedMessage = "§c" + message;
     sendMessage(formattedMessage);
 }
 
-bool ServerCommandSource::shouldReceiveFeedback() const {
+bool ServerCommandSource::shouldReceiveFeedback() const
+{
     return !m_feedbackDisabled;
 }
 
-bool ServerCommandSource::shouldReceiveErrors() const {
+bool ServerCommandSource::shouldReceiveErrors() const
+{
     return true;
 }
 
-bool ServerCommandSource::allowLogging() const {
+bool ServerCommandSource::allowLogging() const
+{
     return true;
 }
 
-ServerPlayer& ServerCommandSource::assertPlayer() const {
+ServerPlayer& ServerCommandSource::assertPlayer() const
+{
     if (!m_player) {
-        throw CommandException(
-            CommandErrorType::PermissionDenied,
-            "commands.requires.player"
-        );
+        throw CommandException(CommandErrorType::PermissionDenied, "commands.requires.player");
     }
     return *m_player;
 }
 
-ServerCommandSource ServerCommandSource::withPlayer(ServerPlayer* player) const {
+ServerCommandSource ServerCommandSource::withPlayer(ServerPlayer* player) const
+{
     ServerCommandSource source(*this);
     source.m_player = player;
     if (player) {
@@ -106,57 +104,63 @@ ServerCommandSource ServerCommandSource::withPlayer(ServerPlayer* player) const 
     return source;
 }
 
-ServerCommandSource ServerCommandSource::withPosition(const Vector3d& pos) const {
+ServerCommandSource ServerCommandSource::withPosition(const Vector3d& pos) const
+{
     ServerCommandSource source(*this);
     source.m_position = pos;
     return source;
 }
 
-ServerCommandSource ServerCommandSource::withRotation(const Vector2f& rot) const {
+ServerCommandSource ServerCommandSource::withRotation(const Vector2f& rot) const
+{
     ServerCommandSource source(*this);
     source.m_rotation = rot;
     return source;
 }
 
-ServerCommandSource ServerCommandSource::withWorld(server::ServerWorld* world) const {
+ServerCommandSource ServerCommandSource::withWorld(server::ServerWorld* world) const
+{
     ServerCommandSource source(*this);
     source.m_world = world;
     return source;
 }
 
-ServerCommandSource ServerCommandSource::withFeedbackDisabled() const {
+ServerCommandSource ServerCommandSource::withFeedbackDisabled() const
+{
     ServerCommandSource source(*this);
     source.m_feedbackDisabled = true;
     return source;
 }
 
-ServerCommandSource ServerCommandSource::withSuppressedOutput() const {
+ServerCommandSource ServerCommandSource::withSuppressedOutput() const
+{
     return withFeedbackDisabled();
 }
 
-ServerCommandSource ServerCommandSource::withPermissionLevel(i32 level) const {
+ServerCommandSource ServerCommandSource::withPermissionLevel(i32 level) const
+{
     ServerCommandSource source(*this);
     source.m_permissionLevel = level;
     return source;
 }
 
-ServerCommandSource ServerCommandSource::withMaximumPermission(i32 level) const {
+ServerCommandSource ServerCommandSource::withMaximumPermission(i32 level) const
+{
     ServerCommandSource source(*this);
     source.m_permissionLevel = std::max(source.m_permissionLevel, level);
     return source;
 }
 
-ServerCommandSource ServerCommandSource::forConsole(server::IServer* server) {
-    return ServerCommandSource(
-        server,
-        nullptr,  // 无玩家
-        nullptr,  // 无世界
+ServerCommandSource ServerCommandSource::forConsole(server::IServer* server)
+{
+    return ServerCommandSource(server,
+        nullptr, // 无玩家
+        nullptr, // 无世界
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         4,
         0,
-        "Console"
-    );
+        "Console");
 }
 
 } // namespace command

@@ -1,19 +1,19 @@
 #include "IDispenseItemBehavior.hpp"
-#include "../../IWorld.hpp"
-#include "../Block.hpp"
-#include "../../../util/property/Properties.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../entity/entities/item/ItemEntity.hpp"
-#include "../../../entity/entities/projectile/ProjectileEntity.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entity/entities/projectile/OtherProjectiles.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../entity/entities/projectile/ProjectileEntity.hpp"
+#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/math/Vector3.hpp"
+#include "../../../util/property/Properties.hpp"
 #include "../../../world/WorldEvents.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../core/Types.hpp"
+#include "../../IWorld.hpp"
+#include "../Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -22,8 +22,9 @@ namespace blocks {
 // DefaultDispenseItemBehavior
 // ============================================================================
 
-ItemStack DefaultDispenseItemBehavior::dispense(IWorld& world, const BlockPos& pos,
-                                                 const BlockState& state, ItemStack& stack) {
+ItemStack DefaultDispenseItemBehavior::dispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+{
     // 获取发射方向
     Direction direction = state.get(BlockStateProperties::FACING());
 
@@ -37,9 +38,14 @@ ItemStack DefaultDispenseItemBehavior::dispense(IWorld& world, const BlockPos& p
     return result;
 }
 
-ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world, const BlockPos& pos, const BlockState& state,
-                                                   ItemStack& stack, Direction direction,
-                                                   f32 speed, f32 inaccuracy) {
+ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    ItemStack& stack,
+    Direction direction,
+    f32 speed,
+    f32 inaccuracy)
+{
     MC_UNUSED(state);
     MC_UNUSED(inaccuracy);
 
@@ -61,7 +67,7 @@ ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world, const BlockPos&
     // 使物品看起来从发射口出来
     f32 adjustedY = dispensePos.y;
     if (Directions::getAxis(direction) == Axis::Y) {
-        adjustedY -= 0.125f;  // 向上/向下时
+        adjustedY -= 0.125f; // 向上/向下时
     } else {
         adjustedY -= 0.15625f; // 水平方向时
     }
@@ -78,19 +84,21 @@ ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world, const BlockPos&
     // vy = random.gaussian() * 0.0075 * speed + 0.2
     // vz = random.gaussian() * 0.0075 * speed + direction.zOffset * baseVelocity
     f32 gaussianFactor = 0.0075f * speed;
-    f32 vx = static_cast<f32>(rng.nextGaussian()) * gaussianFactor
-           + static_cast<f32>(Directions::xOffset(direction)) * baseVelocity;
+    f32 vx = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +
+        static_cast<f32>(Directions::xOffset(direction)) * baseVelocity;
     f32 vy = static_cast<f32>(rng.nextGaussian()) * gaussianFactor + 0.2f;
-    f32 vz = static_cast<f32>(rng.nextGaussian()) * gaussianFactor
-           + static_cast<f32>(Directions::zOffset(direction)) * baseVelocity;
+    f32 vz = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +
+        static_cast<f32>(Directions::zOffset(direction)) * baseVelocity;
 
     // 创建物品实体（ItemEntity在mc命名空间，不在mc::entity中）
-    auto itemEntity = std::make_unique<ItemEntity>(
-        EntityId(0),  // ID由世界分配
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), // ID由世界分配
         dispensedStack,
-        dispensePos.x, adjustedY, dispensePos.z,
-        vx, vy, vz
-    );
+        dispensePos.x,
+        adjustedY,
+        dispensePos.z,
+        vx,
+        vy,
+        vz);
 
     // 设置拾取延迟（发射器发射的物品不能立即被拾取）
     itemEntity->setPickupDelay(10);
@@ -102,7 +110,8 @@ ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world, const BlockPos&
     return stack;
 }
 
-void DefaultDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos) {
+void DefaultDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos)
+{
     // MC 1.16.5: 播放发射音效 (事件ID 1000)
     // 参考: DefaultDispenseItemBehavior.playSound()
     if (!world.isClientSide()) {
@@ -110,7 +119,8 @@ void DefaultDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos) 
     }
 }
 
-void DefaultDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& pos, Direction direction) {
+void DefaultDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& pos, Direction direction)
+{
     // MC 1.16.5: 生成发射烟雾粒子 (事件ID 2000，数据为方向索引)
     // 参考: DefaultDispenseItemBehavior.spawnDispenseParticles()
     if (!world.isClientSide()) {
@@ -119,7 +129,8 @@ void DefaultDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& 
     }
 }
 
-Vector3 DefaultDispenseItemBehavior::getDispensePosition(const BlockPos& pos, Direction direction) {
+Vector3 DefaultDispenseItemBehavior::getDispensePosition(const BlockPos& pos, Direction direction)
+{
     // 计算发射位置：从方块面中心稍微向外偏移
     // MC 1.16.5: DispenserBlock.getDispensePosition()
     f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(direction)) * 0.7f;
@@ -132,17 +143,20 @@ Vector3 DefaultDispenseItemBehavior::getDispensePosition(const BlockPos& pos, Di
 // OptionalDispenseItemBehavior
 // ============================================================================
 
-void OptionalDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos) {
+void OptionalDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos)
+{
     // MC 1.16.5: 根据成功/失败播放不同音效
     // 成功: 1000 (DISPENSER_DISPENSE_SOUND)
     // 失败: 1001 (DISPENSER_FAIL_SOUND)
     if (!world.isClientSide()) {
-        i32 eventId = m_success ? world::WorldEvents::DISPENSER_DISPENSE_SOUND : world::WorldEvents::DISPENSER_FAIL_SOUND;
+        i32 eventId =
+            m_success ? world::WorldEvents::DISPENSER_DISPENSE_SOUND : world::WorldEvents::DISPENSER_FAIL_SOUND;
         world.playEvent(eventId, pos, 0);
     }
 }
 
-void OptionalDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& pos, Direction direction) {
+void OptionalDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& pos, Direction direction)
+{
     // 只有成功时才生成粒子
     if (m_success) {
         DefaultDispenseItemBehavior::spawnParticles(world, pos, direction);
@@ -155,14 +169,16 @@ void OptionalDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos&
 
 ProjectileDispenseBehavior::ProjectileDispenseBehavior(
     std::function<std::unique_ptr<mc::Entity>(IWorld&, const Vector3&, const ItemStack&)> createProjectile,
-    f32 velocity, f32 inaccuracy)
+    f32 velocity,
+    f32 inaccuracy)
     : m_createProjectile(std::move(createProjectile))
     , m_velocity(velocity)
-    , m_inaccuracy(inaccuracy) {
-}
+    , m_inaccuracy(inaccuracy)
+{}
 
-ItemStack ProjectileDispenseBehavior::dispense(IWorld& world, const BlockPos& pos,
-                                                const BlockState& state, ItemStack& stack) {
+ItemStack ProjectileDispenseBehavior::dispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+{
     // 获取发射方向
     Direction direction = state.get(BlockStateProperties::FACING());
 
@@ -189,13 +205,11 @@ ItemStack ProjectileDispenseBehavior::dispense(IWorld& world, const BlockPos& po
     // 设置发射方向和速度（MC 1.16.5 算法）
     // shoot(x, y, z, velocity, inaccuracy)
     // Y方向额外+0.1使投掷物稍向上
-    projectileEntity->shoot(
-        static_cast<f32>(Directions::xOffset(direction)),
+    projectileEntity->shoot(static_cast<f32>(Directions::xOffset(direction)),
         static_cast<f32>(Directions::yOffset(direction)) + 0.1f,
         static_cast<f32>(Directions::zOffset(direction)),
         m_velocity,
-        m_inaccuracy
-    );
+        m_inaccuracy);
 
     // 添加到世界
     world.spawnEntity(std::move(projectile));

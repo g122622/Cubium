@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
-#include "../../../interfaces/IFlyingAnimal.hpp"
-#include "../../../interfaces/IAngerable.hpp"
-#include "../../../core/DataParameter.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../core/DataParameter.hpp"
+#include "../../../interfaces/IAngerable.hpp"
+#include "../../../interfaces/IFlyingAnimal.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -271,9 +271,9 @@ private:
     static entity::DataParameter<i32> ANGER_TIME_PARAM;
 
     // 数据参数标志位
-    static constexpr i8 FLAG_NEAR_TARGET = 2;   // bit 1: 接近攻击目标
-    static constexpr i8 FLAG_HAS_STUNG = 4;     // bit 2: 已螫刺
-    static constexpr i8 FLAG_HAS_NECTAR = 8;    // bit 3: 携带花蜜
+    static constexpr i8 FLAG_NEAR_TARGET = 2; // bit 1: 接近攻击目标
+    static constexpr i8 FLAG_HAS_STUNG = 4;   // bit 2: 已螫刺
+    static constexpr i8 FLAG_HAS_NECTAR = 8;  // bit 3: 携带花蜜
 
     // ========== 花粉状态 ==========
     bool m_hasNectar = false;
@@ -290,7 +290,7 @@ private:
 
     // ========== 愤怒系统 ==========
     LivingEntity* m_attackTarget = nullptr;
-    i32 m_angerTime = 0;  // 本地缓存，从 DataParameter 同步
+    i32 m_angerTime = 0; // 本地缓存，从 DataParameter 同步
     bool m_attacking = false;
     u64 m_targetPlayerId = 0;
 
@@ -302,7 +302,7 @@ private:
 
     // ========== 常量 ==========
     static constexpr i32 MAX_ANGER_TIME = 1200; // 60秒
-    static constexpr i32 STING_DAMAGE = 2; // 螫刺伤害
+    static constexpr i32 STING_DAMAGE = 2;      // 螫刺伤害
 
     // ========== 私有辅助方法 ==========
 

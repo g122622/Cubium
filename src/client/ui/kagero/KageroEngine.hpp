@@ -1,14 +1,14 @@
 #pragma once
 
-#include "widget/Widget.hpp"
-#include "widget/ContainerWidget.hpp"
-#include "paint/PaintContext.hpp"
-#include "paint/contracts/ICanvas.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "paint/PaintContext.hpp"
+#include "paint/contracts/ICanvas.hpp"
+#include "widget/ContainerWidget.hpp"
+#include "widget/Widget.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc::client::ui::kagero {
 
@@ -27,11 +27,11 @@ struct KageroConfig {
  * 层之间通过Z索引控制渲染顺序。
  */
 struct LayerInfo {
-    std::unique_ptr<widget::Widget> widget;  ///< 层Widget
-    bool visible = true;                       ///< 是否可见
-    i32 zIndex = 0;                            ///< Z索引（越大越靠上）
-    bool modal = false;                        ///< 是否阻止下层事件
-    size_t id = 0;                             ///< 层ID
+    std::unique_ptr<widget::Widget> widget; ///< 层Widget
+    bool visible = true;                    ///< 是否可见
+    i32 zIndex = 0;                         ///< Z索引（越大越靠上）
+    bool modal = false;                     ///< 是否阻止下层事件
+    size_t id = 0;                          ///< 层ID
 };
 
 /**

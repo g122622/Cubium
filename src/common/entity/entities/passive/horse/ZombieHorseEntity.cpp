@@ -14,11 +14,13 @@ ZombieHorseEntity::ZombieHorseEntity(LegacyEntityType type, EntityId id)
     setJumpStrength(0.96f);
 }
 
-std::unique_ptr<Entity> ZombieHorseEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ZombieHorseEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<ZombieHorseEntity>(LegacyEntityType::Unknown, 0);
 }
 
-bool ZombieHorseEntity::canBeRiddenBy(Player* player) const {
+bool ZombieHorseEntity::canBeRiddenBy(Player* player) const
+{
     // 僵尸马不需要驯服即可骑乘
     if (m_rider != nullptr && m_rider != player) {
         return false;
@@ -26,17 +28,20 @@ bool ZombieHorseEntity::canBeRiddenBy(Player* player) const {
     return true;
 }
 
-void ZombieHorseEntity::tick() {
+void ZombieHorseEntity::tick()
+{
     AbstractHorseEntity::tick();
     // 僵尸马不需要额外的 tick 逻辑
 }
 
-void ZombieHorseEntity::registerGoals() {
+void ZombieHorseEntity::registerGoals()
+{
     AbstractHorseEntity::registerGoals();
     // 僵尸马没有额外 AI
 }
 
-void ZombieHorseEntity::registerAttributes() {
+void ZombieHorseEntity::registerAttributes()
+{
     AbstractHorseEntity::registerAttributes();
 
     // 僵尸马的属性

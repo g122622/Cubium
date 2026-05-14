@@ -37,9 +37,9 @@
  */
 
 // 核心组件
-#include "core/MeasureSpec.hpp"
-#include "core/LayoutResult.hpp"
 #include "core/LayoutEngine.hpp"
+#include "core/LayoutResult.hpp"
+#include "core/MeasureSpec.hpp"
 
 // 约束系统
 #include "constraints/LayoutConstraints.hpp"
@@ -58,7 +58,8 @@ namespace mc::client::ui::kagero::layout {
  * 注册所有内置布局算法。
  * 通常在程序启动时调用一次。
  */
-inline void initLayoutSystem() {
+inline void initLayoutSystem()
+{
     // 布局引擎在首次访问时自动初始化
     (void)LayoutEngine::instance();
 }

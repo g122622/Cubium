@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Structure.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../chunk/IChunkGenerator.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include <unordered_map>
+#include "Structure.hpp"
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -85,10 +85,7 @@ public:
      * @param chunkZ 区块 Z 坐标
      * @return 是否应该生成
      */
-    [[nodiscard]] bool shouldGenerateStructureStart(
-        const Structure& structure,
-        i32 chunkX,
-        i32 chunkZ) const;
+    [[nodiscard]] bool shouldGenerateStructureStart(const Structure& structure, i32 chunkX, i32 chunkZ) const;
 
     /**
      * @brief 在指定区块生成结构起点
@@ -100,8 +97,7 @@ public:
      * @param chunkZ 区块 Z 坐标
      * @return 生成的结构起点，如果无法生成则返回 nullptr
      */
-    [[nodiscard]] std::unique_ptr<StructureStart> generateStructureStart(
-        const Structure& structure,
+    [[nodiscard]] std::unique_ptr<StructureStart> generateStructureStart(const Structure& structure,
         IWorldWriter& world,
         IChunkGenerator& generator,
         math::Random& rng,
@@ -117,8 +113,7 @@ public:
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      */
-    void placeStructureInChunk(
-        const Structure& structure,
+    void placeStructureInChunk(const Structure& structure,
         IWorldWriter& world,
         ChunkPrimer& chunk,
         StructureStart& start,
@@ -140,5 +135,5 @@ private:
     [[nodiscard]] math::Random createRandom(i32 chunkX, i32 chunkZ, i32 salt) const;
 };
 
-} // namespace mc::world::gen::structure
+} // namespace world::gen::structure
 } // namespace mc

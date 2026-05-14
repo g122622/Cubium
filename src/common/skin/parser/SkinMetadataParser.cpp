@@ -13,9 +13,9 @@ namespace {
 /**
  * @brief Base64 解码
  */
-std::vector<u8> base64Decode(const std::string& encoded) {
-    static const std::string base64Chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+std::vector<u8> base64Decode(const std::string& encoded)
+{
+    static const std::string base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::vector<u8> decoded;
 
@@ -78,16 +78,17 @@ std::vector<u8> base64Decode(const std::string& encoded) {
 
 } // anonymous namespace
 
-Result<SkinTextures> SkinMetadataParser::parse(const GameProfileProperty& property) {
+Result<SkinTextures> SkinMetadataParser::parse(const GameProfileProperty& property)
+{
     if (property.name != "textures") {
-        return Error(ErrorCode::InvalidArgument,
-                    "Property is not 'textures': " + property.name);
+        return Error(ErrorCode::InvalidArgument, "Property is not 'textures': " + property.name);
     }
 
     return parseBase64(property.value);
 }
 
-Result<SkinTextures> SkinMetadataParser::parseBase64(const std::string& base64Data) {
+Result<SkinTextures> SkinMetadataParser::parseBase64(const std::string& base64Data)
+{
     // Base64 解码
     auto decoded = base64Decode(base64Data);
     if (decoded.empty()) {
@@ -100,7 +101,8 @@ Result<SkinTextures> SkinMetadataParser::parseBase64(const std::string& base64Da
     return parseJson(jsonData);
 }
 
-Result<SkinTextures> SkinMetadataParser::parseJson(const std::string& jsonData) {
+Result<SkinTextures> SkinMetadataParser::parseJson(const std::string& jsonData)
+{
     SkinTextures textures;
 
     try {
@@ -170,17 +172,19 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const std::string& jsonData) 
         }
 
         spdlog::debug("SkinMetadataParser: Parsed textures - skin:{}, cape:{}, elytra:{}",
-                     textures.hasSkin(), textures.hasCape(), textures.hasElytra());
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::InvalidData,
-                    std::string("Failed to parse textures JSON: ") + e.what());
+            textures.hasSkin(),
+            textures.hasCape(),
+            textures.hasElytra());
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::InvalidData, std::string("Failed to parse textures JSON: ") + e.what());
     }
 
     return textures;
 }
 
-bool SkinMetadataParser::verifySignature(const GameProfileProperty& property) {
+bool SkinMetadataParser::verifySignature(const GameProfileProperty& property)
+{
     // TODO: 实现签名验证
     // 需要使用 Mojang 的公钥验证签名
     // 签名数据是 property.signature
@@ -189,7 +193,7 @@ bool SkinMetadataParser::verifySignature(const GameProfileProperty& property) {
     if (!property.hasSignature()) {
         // 没有签名，在离线模式下可以接受
         spdlog::debug("SkinMetadataParser: No signature for textures property");
-        return true;  // 允许无签名
+        return true; // 允许无签名
     }
 
     // 生产环境应该验证签名
@@ -198,7 +202,8 @@ bool SkinMetadataParser::verifySignature(const GameProfileProperty& property) {
     return true;
 }
 
-void SkinMetadataParser::parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures) {
+void SkinMetadataParser::parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures)
+{
     // 此方法在 parseJson 中已经实现，这里保留用于未来扩展
 }
 

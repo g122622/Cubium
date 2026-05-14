@@ -1,17 +1,17 @@
 #include "VillagerEntity.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
-#include "../../attribute/Attributes.hpp"
-#include "../../ai/goal/goals/villager/VillagerGoals.hpp"
-#include "../../ai/brain/memory/MemoryModuleType.hpp"
-#include "../../ai/brain/schedule/Schedule.hpp"
-#include "../../ai/brain/schedule/Activity.hpp"
-#include "../../ai/brain/sensor/Sensors.hpp"
+#include "../../../world/village/trade/Merchant.hpp"
 #include "../../../world/village/trade/VillagerTrades.hpp"
 #include "../../../world/village/trade/WanderingTraderTrades.hpp"
-#include "../../../world/village/trade/Merchant.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../ai/brain/memory/MemoryModuleType.hpp"
+#include "../../ai/brain/schedule/Activity.hpp"
+#include "../../ai/brain/schedule/Schedule.hpp"
+#include "../../ai/brain/sensor/Sensors.hpp"
+#include "../../ai/goal/goals/villager/VillagerGoals.hpp"
+#include "../../attribute/Attributes.hpp"
 #include <memory>
 
 namespace mc {
@@ -21,7 +21,8 @@ namespace entity {
 // VillagerEntity
 // ============================================================================
 
-std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<VillagerEntity>(LegacyEntityType::Villager, 0);
 }
 
@@ -34,7 +35,8 @@ VillagerEntity::VillagerEntity(LegacyEntityType type, EntityId id)
     initializeBrain();
 }
 
-void VillagerEntity::tick() {
+void VillagerEntity::tick()
+{
     AbstractVillagerEntity::tick();
 
     // 更新Brain系统
@@ -57,7 +59,8 @@ void VillagerEntity::tick() {
     // TODO: 检查是否在工作时间且在工作站点附近
 }
 
-void VillagerEntity::initializeBrain() {
+void VillagerEntity::initializeBrain()
+{
     if (!m_brain) {
         return;
     }
@@ -103,25 +106,25 @@ void VillagerEntity::initializeBrain() {
     m_brain->setFallbackActivity(ai::brain::schedule::Activity::IDLE);
 }
 
-void VillagerEntity::setProfession(VillagerProfession profession) {
+void VillagerEntity::setProfession(VillagerProfession profession)
+{
     m_villagerData.setProfession(profession);
 
     // 根据职业更新交易列表
     updateOffers();
 }
 
-bool VillagerEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool VillagerEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // 村民用食物繁殖：面包、土豆、胡萝卜、甜菜根
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
 
-    return item == Items::BREAD ||
-           item == Items::POTATO ||
-           item == Items::CARROT ||
-           item == Items::BEETROOT;
+    return item == Items::BREAD || item == Items::POTATO || item == Items::CARROT || item == Items::BEETROOT;
 }
 
-std::unique_ptr<AgeableEntity> VillagerEntity::createChild() {
+std::unique_ptr<AgeableEntity> VillagerEntity::createChild()
+{
     auto child = std::make_unique<VillagerEntity>(LegacyEntityType::Unknown, 0);
     child->setChild(true);
 
@@ -134,19 +137,21 @@ std::unique_ptr<AgeableEntity> VillagerEntity::createChild() {
     return child;
 }
 
-bool VillagerEntity::canWork() const {
+bool VillagerEntity::canWork() const
+{
     // 不是傻子且有工作站点
-    return !isNitwit() &&
-           (m_workStation.x != 0 || m_workStation.y != 0 || m_workStation.z != 0);
+    return !isNitwit() && (m_workStation.x != 0 || m_workStation.y != 0 || m_workStation.z != 0);
 }
 
-void VillagerEntity::rest() {
+void VillagerEntity::rest()
+{
     m_working = false;
     m_atWorkstation = false;
     // TODO: 去睡觉
 }
 
-void VillagerEntity::work() {
+void VillagerEntity::work()
+{
     m_working = true;
     m_workTime++;
 
@@ -157,11 +162,13 @@ void VillagerEntity::work() {
     }
 }
 
-void VillagerEntity::play() {
+void VillagerEntity::play()
+{
     // TODO: 与其他村民互动
 }
 
-void VillagerEntity::registerGoals() {
+void VillagerEntity::registerGoals()
+{
     AgeableEntity::registerGoals();
 
     using namespace ai::goal::villager;
@@ -190,7 +197,8 @@ void VillagerEntity::registerGoals() {
     }
 }
 
-void VillagerEntity::registerAttributes() {
+void VillagerEntity::registerAttributes()
+{
     AgeableEntity::registerAttributes();
 
     // 村民属性
@@ -198,7 +206,8 @@ void VillagerEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
 }
 
-void VillagerEntity::restockTrades() {
+void VillagerEntity::restockTrades()
+{
     // 补充交易物品
     if (m_offers) {
         m_offers->restockAll();
@@ -206,7 +215,8 @@ void VillagerEntity::restockTrades() {
     m_lastRestock = m_workTime;
 }
 
-void VillagerEntity::updateOffers() {
+void VillagerEntity::updateOffers()
+{
     // 根据职业和等级生成交易列表
     using namespace world::village::trade;
 
@@ -217,12 +227,11 @@ void VillagerEntity::updateOffers() {
     }
 
     // 生成新的交易列表
-    m_offers = VillagerTrades::generateOffers(
-        m_villagerData.profession(),
+    m_offers = VillagerTrades::generateOffers(m_villagerData.profession(),
         m_villagerData.type(),
         m_villagerData.level(),
-        0,  // 需求修正
-        0   // 种子
+        0, // 需求修正
+        0  // 种子
     );
 }
 
@@ -230,19 +239,21 @@ void VillagerEntity::updateOffers() {
 // WanderingTraderEntity
 // ============================================================================
 
-std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(0));
 }
 
 WanderingTraderEntity::WanderingTraderEntity(LegacyEntityType type, EntityId id)
     : AbstractVillagerEntity(type, id)
 {
-    m_despawnDelay = 48000;  // 40分钟 = 48000 ticks
+    m_despawnDelay = 48000; // 40分钟 = 48000 ticks
     registerAttributes();
     registerGoals();
 }
 
-void WanderingTraderEntity::tick() {
+void WanderingTraderEntity::tick()
+{
     AbstractVillagerEntity::tick();
 
     // 消失倒计时
@@ -256,12 +267,14 @@ void WanderingTraderEntity::tick() {
     }
 }
 
-void WanderingTraderEntity::restockTrades() {
+void WanderingTraderEntity::restockTrades()
+{
     // 流浪商人会自动补充交易
     // TODO: 实现交易补充
 }
 
-void WanderingTraderEntity::spawnLlamas() {
+void WanderingTraderEntity::spawnLlamas()
+{
     if (m_hasLlamas || m_llamaCount <= 0) {
         return;
     }
@@ -272,7 +285,8 @@ void WanderingTraderEntity::spawnLlamas() {
     m_hasLlamas = true;
 }
 
-void WanderingTraderEntity::registerGoals() {
+void WanderingTraderEntity::registerGoals()
+{
     AgeableEntity::registerGoals();
 
     // TODO: 添加流浪商人特有AI目标
@@ -281,7 +295,8 @@ void WanderingTraderEntity::registerGoals() {
     // - 逃跑（遇到威胁时）
 }
 
-void WanderingTraderEntity::registerAttributes() {
+void WanderingTraderEntity::registerAttributes()
+{
     AgeableEntity::registerAttributes();
 
     // 流浪商人属性
@@ -289,7 +304,8 @@ void WanderingTraderEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
 }
 
-void WanderingTraderEntity::updateOffers() {
+void WanderingTraderEntity::updateOffers()
+{
     using namespace world::village::trade;
 
     // 确保交易系统已初始化

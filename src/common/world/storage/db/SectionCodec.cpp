@@ -1,73 +1,72 @@
 #include "SectionCodec.hpp"
 #include "perfetto/TraceEvents.hpp"
+#include <algorithm>
+#include <cstring>
 #include <spdlog/spdlog.h>
 #include <zstd.h>
-#include <cstring>
-#include <algorithm>
 
 namespace mc::world::storage {
 
 namespace {
 
-[[nodiscard]] Result<void> validateSectionDataLayout(const SectionData& data, const char* context) {
+[[nodiscard]] Result<void> validateSectionDataLayout(const SectionData& data, const char* context)
+{
     if (data.blockStates.size() != SectionData::VOLUME) {
         spdlog::error("[{}] blockStates size mismatch: expected {}, got {}",
-                      context,
-                      SectionData::VOLUME,
-                      data.blockStates.size());
+            context,
+            SectionData::VOLUME,
+            data.blockStates.size());
         return Error(ErrorCode::InvalidData,
-                     fmt::format("{}: blockStates size mismatch (expected {}, got {})",
-                                 context,
-                                 SectionData::VOLUME,
-                                 data.blockStates.size()));
+            fmt::format("{}: blockStates size mismatch (expected {}, got {})",
+                context,
+                SectionData::VOLUME,
+                data.blockStates.size()));
     }
 
     if (data.biomes.size() != SectionData::BIOME_COUNT) {
-        spdlog::error("[{}] biomes size mismatch: expected {}, got {}",
-                      context,
-                      SectionData::BIOME_COUNT,
-                      data.biomes.size());
+        spdlog::error(
+            "[{}] biomes size mismatch: expected {}, got {}", context, SectionData::BIOME_COUNT, data.biomes.size());
         return Error(ErrorCode::InvalidData,
-                     fmt::format("{}: biomes size mismatch (expected {}, got {})",
-                                 context,
-                                 SectionData::BIOME_COUNT,
-                                 data.biomes.size()));
+            fmt::format("{}: biomes size mismatch (expected {}, got {})",
+                context,
+                SectionData::BIOME_COUNT,
+                data.biomes.size()));
     }
 
     if (data.nonEmptyBlockCount > SectionData::VOLUME) {
         spdlog::error("[{}] nonEmptyBlockCount out of range: expected <= {}, got {}",
-                      context,
-                      SectionData::VOLUME,
-                      data.nonEmptyBlockCount);
+            context,
+            SectionData::VOLUME,
+            data.nonEmptyBlockCount);
         return Error(ErrorCode::InvalidData,
-                     fmt::format("{}: nonEmptyBlockCount out of range ({} > {})",
-                                 context,
-                                 data.nonEmptyBlockCount,
-                                 SectionData::VOLUME));
+            fmt::format("{}: nonEmptyBlockCount out of range ({} > {})",
+                context,
+                data.nonEmptyBlockCount,
+                SectionData::VOLUME));
     }
 
     if (data.skyLight.has_value() && data.skyLight->size() != SectionCodec::LIGHT_DATA_SIZE) {
         spdlog::error("[{}] skyLight size mismatch: expected {}, got {}",
-                      context,
-                      SectionCodec::LIGHT_DATA_SIZE,
-                      data.skyLight->size());
+            context,
+            SectionCodec::LIGHT_DATA_SIZE,
+            data.skyLight->size());
         return Error(ErrorCode::InvalidData,
-                     fmt::format("{}: skyLight size mismatch (expected {}, got {})",
-                                 context,
-                                 SectionCodec::LIGHT_DATA_SIZE,
-                                 data.skyLight->size()));
+            fmt::format("{}: skyLight size mismatch (expected {}, got {})",
+                context,
+                SectionCodec::LIGHT_DATA_SIZE,
+                data.skyLight->size()));
     }
 
     if (data.blockLight.has_value() && data.blockLight->size() != SectionCodec::LIGHT_DATA_SIZE) {
         spdlog::error("[{}] blockLight size mismatch: expected {}, got {}",
-                      context,
-                      SectionCodec::LIGHT_DATA_SIZE,
-                      data.blockLight->size());
+            context,
+            SectionCodec::LIGHT_DATA_SIZE,
+            data.blockLight->size());
         return Error(ErrorCode::InvalidData,
-                     fmt::format("{}: blockLight size mismatch (expected {}, got {})",
-                                 context,
-                                 SectionCodec::LIGHT_DATA_SIZE,
-                                 data.blockLight->size()));
+            fmt::format("{}: blockLight size mismatch (expected {}, got {})",
+                context,
+                SectionCodec::LIGHT_DATA_SIZE,
+                data.blockLight->size()));
     }
 
     return {};
@@ -79,7 +78,8 @@ namespace {
 // SectionData 实现
 // ============================================================================
 
-SectionData::SectionData() {
+SectionData::SectionData()
+{
     initializeDefaults();
 }
 
@@ -95,7 +95,8 @@ SectionData::SectionData(i32 chunkX, i32 chunkZ, i8 sectionY, DimensionId dimens
     initializeDefaults();
 }
 
-void SectionData::initializeDefaults() {
+void SectionData::initializeDefaults()
+{
     // 初始化方块状态数组（全为空气，stateId=0）
     blockStates.resize(VOLUME, 0);
     nonEmptyBlockCount = 0;
@@ -112,7 +113,8 @@ void SectionData::initializeDefaults() {
     contentHash = 0;
 }
 
-void SectionData::clear() {
+void SectionData::clear()
+{
     std::fill(blockStates.begin(), blockStates.end(), 0);
     nonEmptyBlockCount = 0;
     std::fill(biomes.begin(), biomes.end(), 1);
@@ -125,14 +127,16 @@ void SectionData::clear() {
 // 数据访问
 // ============================================================================
 
-u32 SectionData::getBlockStateId(i32 x, i32 y, i32 z) const {
+u32 SectionData::getBlockStateId(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 0;
     }
     return blockStates[static_cast<size_t>(blockIndex(x, y, z))];
 }
 
-void SectionData::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
+void SectionData::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
     }
@@ -150,14 +154,16 @@ void SectionData::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
     blockStates[static_cast<size_t>(idx)] = stateId;
 }
 
-BiomeId SectionData::getBiome(i32 x, i32 y, i32 z) const {
+BiomeId SectionData::getBiome(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 1; // 默认平原
     }
     return biomes[static_cast<size_t>(biomeIndex(x, y, z))];
 }
 
-void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome) {
+void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
+{
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
     }
@@ -168,9 +174,9 @@ void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome) {
 // 序列化
 // ============================================================================
 
-Result<std::vector<u8>> SectionData::serialize() const {
-    MC_TRACE_EVENT("storage.db", "SectionData::serialize",
-                   "sectionY", static_cast<i32>(key.sectionY));
+Result<std::vector<u8>> SectionData::serialize() const
+{
+    MC_TRACE_EVENT("storage.db", "SectionData::serialize", "sectionY", static_cast<i32>(key.sectionY));
 
     auto validationResult = validateSectionDataLayout(*this, "SectionData::serialize");
     if (validationResult.failed()) {
@@ -230,10 +236,8 @@ Result<std::vector<u8>> SectionData::serialize() const {
     // 方块状态数据
     if (!isEmpty()) {
         // 压缩方块状态
-        auto compressResult = SectionCodec::compress(
-            reinterpret_cast<const u8*>(blockStates.data()),
-            blockStates.size() * sizeof(u32)
-        );
+        auto compressResult =
+            SectionCodec::compress(reinterpret_cast<const u8*>(blockStates.data()), blockStates.size() * sizeof(u32));
 
         if (!compressResult.success()) {
             return compressResult.error();
@@ -274,7 +278,8 @@ Result<std::vector<u8>> SectionData::serialize() const {
     return output;
 }
 
-Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
+Result<SectionData> SectionData::deserialize(const u8* data, size_t size)
+{
     MC_TRACE_EVENT("storage.db", "SectionData::deserialize", "size", size);
 
     if (size < 12) {
@@ -286,23 +291,18 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
     // 解析Header
     u16 version = (static_cast<u16>(data[0]) << 8) | data[1];
     if (version > static_cast<u16>(SectionFormatVersion::Current)) {
-        return Error(ErrorCode::InvalidData,
-                     fmt::format("Unsupported section format version: {}", version));
+        return Error(ErrorCode::InvalidData, fmt::format("Unsupported section format version: {}", version));
     }
 
     SectionFlags flags = static_cast<SectionFlags>((static_cast<u16>(data[2]) << 8) | data[3]);
     result.nonEmptyBlockCount = (static_cast<u16>(data[4]) << 8) | data[5];
     // data[6], data[7] reserved
-    result.contentHash = (static_cast<u64>(data[8]) << 24) |
-                         (static_cast<u64>(data[9]) << 16) |
-                         (static_cast<u64>(data[10]) << 8) |
-                         static_cast<u64>(data[11]);
+    result.contentHash = (static_cast<u64>(data[8]) << 24) | (static_cast<u64>(data[9]) << 16) |
+        (static_cast<u64>(data[10]) << 8) | static_cast<u64>(data[11]);
 
     if (result.nonEmptyBlockCount > VOLUME) {
         return Error(ErrorCode::InvalidData,
-                     fmt::format("Section data has invalid block count: {} > {}",
-                                 result.nonEmptyBlockCount,
-                                 VOLUME));
+            fmt::format("Section data has invalid block count: {} > {}", result.nonEmptyBlockCount, VOLUME));
     }
 
     size_t offset = 12;
@@ -314,10 +314,8 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
         }
 
         // 读取压缩大小
-        u32 compressedSize = (static_cast<u32>(data[offset]) << 24) |
-                             (static_cast<u32>(data[offset + 1]) << 16) |
-                             (static_cast<u32>(data[offset + 2]) << 8) |
-                             static_cast<u32>(data[offset + 3]);
+        u32 compressedSize = (static_cast<u32>(data[offset]) << 24) | (static_cast<u32>(data[offset + 1]) << 16) |
+            (static_cast<u32>(data[offset + 2]) << 8) | static_cast<u32>(data[offset + 3]);
         offset += 4;
 
         if (offset + compressedSize > size) {
@@ -325,11 +323,8 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
         }
 
         // 解压缩
-        auto decompressResult = SectionCodec::decompress(
-            data + offset,
-            compressedSize,
-            SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE
-        );
+        auto decompressResult =
+            SectionCodec::decompress(data + offset, compressedSize, SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE);
 
         if (!decompressResult.success()) {
             return decompressResult.error();
@@ -394,7 +389,8 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
 // 哈希计算
 // ============================================================================
 
-void SectionData::computeHash() {
+void SectionData::computeHash()
+{
     // 使用简单的FNV-1a哈希
     // 注意：这是一个简化的哈希实现，生产环境可能需要更强的哈希如xxHash或SipHash
 
@@ -429,10 +425,8 @@ void SectionData::computeHash() {
 // ============================================================================
 
 Result<SectionData> SectionCodec::fromChunkSection(
-    const ChunkSection& section,
-    const SectionKey& key,
-    const std::vector<BiomeId>& biomes
-) {
+    const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes)
+{
     MC_TRACE_EVENT("storage.db", "SectionCodec::fromChunkSection");
 
     SectionData data(key);
@@ -495,10 +489,8 @@ Result<SectionData> SectionCodec::fromChunkSection(
     return data;
 }
 
-Result<void> SectionCodec::toChunkSection(
-    const SectionData& data,
-    ChunkSection& section
-) {
+Result<void> SectionCodec::toChunkSection(const SectionData& data, ChunkSection& section)
+{
     MC_TRACE_EVENT("storage.db", "SectionCodec::toChunkSection");
 
     auto validationResult = validateSectionDataLayout(data, "SectionCodec::toChunkSection");
@@ -539,31 +531,20 @@ Result<void> SectionCodec::toChunkSection(
 // 压缩工具
 // ============================================================================
 
-Result<std::vector<u8>> SectionCodec::compress(
-    const u8* data,
-    size_t size,
-    i32 compressionLevel
-) {
-    MC_TRACE_EVENT("storage.db", "SectionCodec::compress",
-                   "size", size,
-                   "level", compressionLevel);
+Result<std::vector<u8>> SectionCodec::compress(const u8* data, size_t size, i32 compressionLevel)
+{
+    MC_TRACE_EVENT("storage.db", "SectionCodec::compress", "size", size, "level", compressionLevel);
 
     // 获取压缩后最大大小
     size_t bound = ZSTD_compressBound(size);
     std::vector<u8> compressed(bound);
 
     // 执行压缩
-    size_t result = ZSTD_compress(
-        compressed.data(),
-        compressed.size(),
-        data,
-        size,
-        compressionLevel
-    );
+    size_t result = ZSTD_compress(compressed.data(), compressed.size(), data, size, compressionLevel);
 
     if (ZSTD_isError(result)) {
-        return Error(ErrorCode::CompressionFailed,
-                     fmt::format("ZSTD compression failed: {}", ZSTD_getErrorName(result)));
+        return Error(
+            ErrorCode::CompressionFailed, fmt::format("ZSTD compression failed: {}", ZSTD_getErrorName(result)));
     }
 
     // 调整到实际大小
@@ -572,33 +553,23 @@ Result<std::vector<u8>> SectionCodec::compress(
     return compressed;
 }
 
-Result<std::vector<u8>> SectionCodec::decompress(
-    const u8* compressedData,
-    size_t compressedSize,
-    size_t expectedSize
-) {
-    MC_TRACE_EVENT("storage.db", "SectionCodec::decompress",
-                   "compressedSize", compressedSize,
-                   "expectedSize", expectedSize);
+Result<std::vector<u8>> SectionCodec::decompress(const u8* compressedData, size_t compressedSize, size_t expectedSize)
+{
+    MC_TRACE_EVENT(
+        "storage.db", "SectionCodec::decompress", "compressedSize", compressedSize, "expectedSize", expectedSize);
 
     std::vector<u8> decompressed(expectedSize);
 
-    size_t result = ZSTD_decompress(
-        decompressed.data(),
-        decompressed.size(),
-        compressedData,
-        compressedSize
-    );
+    size_t result = ZSTD_decompress(decompressed.data(), decompressed.size(), compressedData, compressedSize);
 
     if (ZSTD_isError(result)) {
-        return Error(ErrorCode::DecompressionFailed,
-                     fmt::format("ZSTD decompression failed: {}", ZSTD_getErrorName(result)));
+        return Error(
+            ErrorCode::DecompressionFailed, fmt::format("ZSTD decompression failed: {}", ZSTD_getErrorName(result)));
     }
 
     if (result != expectedSize) {
         return Error(ErrorCode::DecompressionFailed,
-                     fmt::format("Decompressed size mismatch: expected {}, got {}",
-                                 expectedSize, result));
+            fmt::format("Decompressed size mismatch: expected {}, got {}", expectedSize, result));
     }
 
     return decompressed;

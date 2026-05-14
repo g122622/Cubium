@@ -1,12 +1,12 @@
 #include "SettingsBase.hpp"
 
-#include <spdlog/spdlog.h>
 #include <fstream>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4996)  // 禁用 getenv 不安全警告
+#pragma warning(disable : 4996) // 禁用 getenv 不安全警告
 #endif
 
 namespace mc {
@@ -24,8 +24,7 @@ Result<void> SettingsBase::load(const std::filesystem::path& path)
     // 读取文件内容
     std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) {
-        return Error(ErrorCode::FileOpenFailed,
-                     "Failed to open settings file: " + path.string());
+        return Error(ErrorCode::FileOpenFailed, "Failed to open settings file: " + path.string());
     }
 
     try {
@@ -42,13 +41,11 @@ Result<void> SettingsBase::load(const std::filesystem::path& path)
     }
     catch (const nlohmann::json::parse_error& e) {
         file.close();
-        return Error(ErrorCode::FileCorrupted,
-                     "Failed to parse settings file: " + std::string(e.what()));
+        return Error(ErrorCode::FileCorrupted, "Failed to parse settings file: " + std::string(e.what()));
     }
     catch (const std::exception& e) {
         file.close();
-        return Error(ErrorCode::FileReadFailed,
-                     "Failed to read settings file: " + std::string(e.what()));
+        return Error(ErrorCode::FileReadFailed, "Failed to read settings file: " + std::string(e.what()));
     }
 }
 
@@ -61,8 +58,7 @@ Result<void> SettingsBase::save(const std::filesystem::path& path) const
     if (!dir.empty() && !std::filesystem::exists(dir)) {
         std::error_code ec;
         if (!std::filesystem::create_directories(dir, ec)) {
-            return Error(ErrorCode::FileWriteFailed,
-                         "Failed to create settings directory: " + dir.string());
+            return Error(ErrorCode::FileWriteFailed, "Failed to create settings directory: " + dir.string());
         }
     }
 
@@ -74,11 +70,10 @@ Result<void> SettingsBase::save(const std::filesystem::path& path) const
         // 写入文件
         std::ofstream file(path, std::ios::binary | std::ios::trunc);
         if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed,
-                         "Failed to create settings file: " + path.string());
+            return Error(ErrorCode::FileOpenFailed, "Failed to create settings file: " + path.string());
         }
 
-        file << j.dump(4);  // 美化输出，缩进 4 空格
+        file << j.dump(4); // 美化输出，缩进 4 空格
         file.close();
 
         m_dirty = false;
@@ -86,8 +81,7 @@ Result<void> SettingsBase::save(const std::filesystem::path& path) const
         return Result<void>::ok();
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                     "Failed to write settings file: " + std::string(e.what()));
+        return Error(ErrorCode::FileWriteFailed, "Failed to write settings file: " + std::string(e.what()));
     }
 }
 

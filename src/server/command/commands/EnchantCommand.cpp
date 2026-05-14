@@ -1,61 +1,46 @@
 #include "EnchantCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/PlayerResolver.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto enchantNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enchant");
-    enchantNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        enchantNode,
+    enchantNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(enchantNode,
         support::makeMetadata(
-            "Adds an enchantment to a player's held item.",
-            "/enchant <player> <enchantment> [<level>]",
-            2,
-            {},
-            true));
+            "Adds an enchantment to a player's held item.", "/enchant <player> <enchantment> [<level>]", 2, {}, true));
 
     // /enchant <player>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
+        "player", EntityArgumentType::player());
 
     // /enchant <player> <enchantment>
     auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "enchantment",
-        StringArgumentType::word()
-    );
-    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return enchantItem(ctx);
-    });
+        "enchantment", StringArgumentType::word());
+    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enchantItem(ctx); });
 
     // /enchant <player> <enchantment> <level>
     auto levelNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "level",
-        IntegerArgumentType::integer(0, 32767)  // MC 1.16.5 允许任意正整数等级
+        "level", IntegerArgumentType::integer(0, 32767) // MC 1.16.5 允许任意正整数等级
     );
-    levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return enchantItem(ctx);
-    });
+    levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enchantItem(ctx); });
 
     enchantmentNode->addChild(levelNode);
     playerNode->addChild(enchantmentNode);
@@ -63,7 +48,8 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     dispatcher.registerCommand(enchantNode);
 }
 
-i32 EnchantCommand::enchantItem(CommandContext<ServerCommandSource>& context) {
+i32 EnchantCommand::enchantItem(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -97,8 +83,8 @@ i32 EnchantCommand::enchantItem(CommandContext<ServerCommandSource>& context) {
     // 检查等级是否有效
     if (level > enchantment->maxLevel()) {
         std::ostringstream ss;
-        ss << "Level " << level << " is too high for " << enchantmentName
-           << " (maximum is " << enchantment->maxLevel() << ")";
+        ss << "Level " << level << " is too high for " << enchantmentName << " (maximum is " << enchantment->maxLevel()
+           << ")";
         source.sendError(ss.str());
         return 0;
     }

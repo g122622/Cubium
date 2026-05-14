@@ -14,7 +14,8 @@
 
 namespace mc::command {
 
-void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     // /gamerule <rule> - 查询规则值
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("gamerule");
     queryNode->setRequirement([](const ServerCommandSource& source) {
@@ -23,26 +24,18 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     });
 
     // /gamerule <rule> <value> - 设置规则值
-    auto ruleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "rule",
-        StringArgumentType::string()
-    );
+    auto ruleArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("rule", StringArgumentType::string());
 
     auto valueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "value",
-        StringArgumentType::greedyString()
-    );
+        "value", StringArgumentType::greedyString());
 
     // 构建命令树
     // /gamerule <rule> -> 查询
-    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeQuery(ctx);
-    });
+    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeQuery(ctx); });
 
     // /gamerule <rule> <value> -> 设置
-    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeSet(ctx);
-    });
+    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeSet(ctx); });
 
     // 连接节点
     queryNode->addChild(ruleArg);
@@ -51,7 +44,8 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     dispatcher.registerCommand(queryNode);
 }
 
-i32 GameRuleCommand::executeQuery(CommandContext<ServerCommandSource>& context) {
+i32 GameRuleCommand::executeQuery(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     std::string ruleName = context.getArgument<std::string>("rule");
 
@@ -94,7 +88,8 @@ i32 GameRuleCommand::executeQuery(CommandContext<ServerCommandSource>& context) 
     return 1;
 }
 
-i32 GameRuleCommand::executeSet(CommandContext<ServerCommandSource>& context) {
+i32 GameRuleCommand::executeSet(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     std::string ruleName = context.getArgument<std::string>("rule");
     std::string valueStr = context.getArgument<std::string>("value");
@@ -123,14 +118,13 @@ i32 GameRuleCommand::executeSet(CommandContext<ServerCommandSource>& context) {
         // 格式化显示值
         if (ruleType == world::gamerule::GameRuleValueType::Boolean) {
             // 转换为标准 true/false 格式
-            std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(),
-                           [](unsigned char c) { return std::tolower(c); });
+            std::transform(
+                valueStr.begin(), valueStr.end(), valueStr.begin(), [](unsigned char c) { return std::tolower(c); });
             displayValue = (valueStr == "true" || valueStr == "1") ? "true" : "false";
         }
 
         source.sendMessage("Game rule " + ruleName + " has been updated to " + displayValue);
-        spdlog::info("Game rule '{}' changed to '{}' by {}",
-                     ruleName, displayValue, source.name());
+        spdlog::info("Game rule '{}' changed to '{}' by {}", ruleName, displayValue, source.name());
         return 1;
     } else {
         source.sendError("Invalid value for game rule " + ruleName + ": " + valueStr);
@@ -138,7 +132,8 @@ i32 GameRuleCommand::executeSet(CommandContext<ServerCommandSource>& context) {
     }
 }
 
-std::vector<std::string> GameRuleCommand::getAllRuleNames() {
+std::vector<std::string> GameRuleCommand::getAllRuleNames()
+{
     return world::gamerule::GameRules::getRuleNames();
 }
 

@@ -2,8 +2,8 @@
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandSource.hpp"
-#include "server/command/ServerCommandSource.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "server/command/ServerCommandSource.hpp"
 
 namespace mc {
 namespace server {

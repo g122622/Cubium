@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Widget.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc::client::ui::kagero::widget {
 
@@ -138,7 +138,7 @@ public:
  * };
  * @endcode
  */
-template<typename Derived>
+template <typename Derived>
 class WidgetContainerMixin : public IWidgetContainer {
 public:
     WidgetContainerMixin() = default;
@@ -152,7 +152,8 @@ public:
     WidgetContainerMixin(WidgetContainerMixin&&) = default;
     WidgetContainerMixin& operator=(WidgetContainerMixin&&) = default;
 
-    void addWidget(Widget::Ptr widget) override {
+    void addWidget(Widget::Ptr widget) override
+    {
         if (widget) {
             widget->setParent(this);
             widget->init();
@@ -164,17 +165,14 @@ public:
      * @brief 添加子组件（别名，与文档一致）
      * @param widget 子组件
      */
-    void addChild(Widget::Ptr widget) {
-        addWidget(std::move(widget));
-    }
+    void addChild(Widget::Ptr widget) { addWidget(std::move(widget)); }
 
-    void removeWidget(Widget* widget) override {
+    void removeWidget(Widget* widget) override
+    {
         if (widget == nullptr) return;
 
-        auto it = std::find_if(m_children.begin(), m_children.end(),
-            [widget](const Widget::Ptr& ptr) {
-                return ptr.get() == widget;
-            });
+        auto it = std::find_if(
+            m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
 
         if (it != m_children.end()) {
             (*it)->setParent(nullptr);
@@ -187,15 +185,12 @@ public:
      * @param id 组件ID
      * @return 是否成功移除
      */
-    bool removeChild(const std::string& id) {
-        return removeWidgetById(id);
-    }
+    bool removeChild(const std::string& id) { return removeWidgetById(id); }
 
-    bool removeWidgetById(const std::string& id) override {
-        auto it = std::find_if(m_children.begin(), m_children.end(),
-            [&id](const Widget::Ptr& ptr) {
-                return ptr->id() == id;
-            });
+    bool removeWidgetById(const std::string& id) override
+    {
+        auto it = std::find_if(
+            m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) { return ptr->id() == id; });
 
         if (it != m_children.end()) {
             (*it)->setParent(nullptr);
@@ -205,7 +200,8 @@ public:
         return false;
     }
 
-    void clearWidgets() override {
+    void clearWidgets() override
+    {
         for (auto& child : m_children) {
             child->setParent(nullptr);
         }
@@ -215,30 +211,21 @@ public:
     /**
      * @brief 清空所有子组件（别名，与文档一致）
      */
-    void clearChildren() {
-        clearWidgets();
-    }
+    void clearChildren() { clearWidgets(); }
 
-    [[nodiscard]] const std::vector<Widget::Ptr>& widgets() const override {
-        return m_children;
-    }
+    [[nodiscard]] const std::vector<Widget::Ptr>& widgets() const override { return m_children; }
 
     /**
      * @brief 获取子组件数量（别名，与文档一致）
      */
-    [[nodiscard]] size_t childCount() const {
-        return m_children.size();
-    }
+    [[nodiscard]] size_t childCount() const { return m_children.size(); }
 
-    [[nodiscard]] size_t widgetCount() const override {
-        return m_children.size();
-    }
+    [[nodiscard]] size_t widgetCount() const override { return m_children.size(); }
 
-    [[nodiscard]] Widget* findWidgetById(const std::string& id) override {
-        auto it = std::find_if(m_children.begin(), m_children.end(),
-            [&id](const Widget::Ptr& ptr) {
-                return ptr->id() == id;
-            });
+    [[nodiscard]] Widget* findWidgetById(const std::string& id) override
+    {
+        auto it = std::find_if(
+            m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) { return ptr->id() == id; });
 
         return (it != m_children.end()) ? it->get() : nullptr;
     }
@@ -246,24 +233,20 @@ public:
     /**
      * @brief 通过ID查找子组件（别名，与文档一致）
      */
-    [[nodiscard]] Widget* findChild(const std::string& id) {
-        return findWidgetById(id);
-    }
+    [[nodiscard]] Widget* findChild(const std::string& id) { return findWidgetById(id); }
 
-    [[nodiscard]] const Widget* findWidgetById(const std::string& id) const override {
-        auto it = std::find_if(m_children.begin(), m_children.end(),
-            [&id](const Widget::Ptr& ptr) {
-                return ptr->id() == id;
-            });
+    [[nodiscard]] const Widget* findWidgetById(const std::string& id) const override
+    {
+        auto it = std::find_if(
+            m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) { return ptr->id() == id; });
 
         return (it != m_children.end()) ? it->get() : nullptr;
     }
 
-    [[nodiscard]] const Widget* findChild(const std::string& id) const {
-        return findWidgetById(id);
-    }
+    [[nodiscard]] const Widget* findChild(const std::string& id) const { return findWidgetById(id); }
 
-    [[nodiscard]] Widget* getWidgetAt(i32 x, i32 y) override {
+    [[nodiscard]] Widget* getWidgetAt(i32 x, i32 y) override
+    {
         // 从后往前遍历（后添加的在上面）
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
             Widget* widget = it->get();
@@ -274,7 +257,8 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Widget* getWidgetAt(i32 x, i32 y) const override {
+    [[nodiscard]] const Widget* getWidgetAt(i32 x, i32 y) const override
+    {
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
             const Widget* widget = it->get();
             if (widget->isVisible() && widget->isActive() && widget->contains(x, y)) {
@@ -284,13 +268,12 @@ public:
         return nullptr;
     }
 
-    void bringToFront(Widget* widget) override {
+    void bringToFront(Widget* widget) override
+    {
         if (widget == nullptr) return;
 
-        auto it = std::find_if(m_children.begin(), m_children.end(),
-            [widget](const Widget::Ptr& ptr) {
-                return ptr.get() == widget;
-            });
+        auto it = std::find_if(
+            m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
 
         // 由于 getWidgetAt 从后往前遍历，"最前面"应该是列表末尾
         if (it != m_children.end() && it != m_children.end() - 1) {
@@ -300,13 +283,12 @@ public:
         }
     }
 
-    void sendToBack(Widget* widget) override {
+    void sendToBack(Widget* widget) override
+    {
         if (widget == nullptr) return;
 
-        auto it = std::find_if(m_children.begin(), m_children.end(),
-            [widget](const Widget::Ptr& ptr) {
-                return ptr.get() == widget;
-            });
+        auto it = std::find_if(
+            m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
 
         // 由于 getWidgetAt 从后往前遍历，"最后面"应该是列表开头
         if (it != m_children.end() && it != m_children.begin()) {
@@ -316,13 +298,15 @@ public:
         }
     }
 
-    void forEachWidget(const std::function<void(Widget&)>& callback) override {
+    void forEachWidget(const std::function<void(Widget&)>& callback) override
+    {
         for (auto& child : m_children) {
             callback(*child);
         }
     }
 
-    void forEachWidget(const std::function<void(const Widget&)>& callback) const override {
+    void forEachWidget(const std::function<void(const Widget&)>& callback) const override
+    {
         for (const auto& child : m_children) {
             callback(*child);
         }
@@ -334,7 +318,8 @@ public:
      * @brief 设置焦点组件
      * @param widget 要聚焦的组件（nullptr清除焦点）
      */
-    void setFocusedWidget(Widget* widget) {
+    void setFocusedWidget(Widget* widget)
+    {
         if (m_focusedWidget != widget) {
             if (m_focusedWidget != nullptr) {
                 m_focusedWidget->setFocused(false);
@@ -357,15 +342,14 @@ public:
     /**
      * @brief 清除焦点
      */
-    void clearFocus() {
-        setFocusedWidget(nullptr);
-    }
+    void clearFocus() { setFocusedWidget(nullptr); }
 
     /**
      * @brief 将焦点移动到下一个可聚焦的子组件（Tab导航）
      * @return 如果成功移动焦点返回true
      */
-    bool focusNext() {
+    bool focusNext()
+    {
         // 如果没有焦点，聚焦第一个可聚焦的组件
         if (m_focusedWidget == nullptr) {
             for (auto& child : m_children) {
@@ -396,7 +380,8 @@ public:
      * @brief 将焦点移动到上一个可聚焦的子组件（Shift+Tab导航）
      * @return 如果成功移动焦点返回true
      */
-    bool focusPrevious() {
+    bool focusPrevious()
+    {
         // 如果没有焦点，聚焦最后一个可聚焦的组件
         if (m_focusedWidget == nullptr) {
             for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
@@ -428,7 +413,8 @@ protected:
      * @brief 绘制所有子组件
      * @param ctx 绘图上下文
      */
-    void paintChildren(PaintContext& ctx) {
+    void paintChildren(PaintContext& ctx)
+    {
         for (auto& child : m_children) {
             if (child->isVisible()) {
                 child->paint(ctx);
@@ -440,7 +426,8 @@ protected:
      * @brief 更新所有子组件
      * @param dt 增量时间
      */
-    void tickChildren(f32 dt) {
+    void tickChildren(f32 dt)
+    {
         for (auto& child : m_children) {
             if (child->isVisible() && child->isActive()) {
                 child->tick(dt);
@@ -455,7 +442,8 @@ protected:
      * @param button 鼠标按钮
      * @return 如果有组件处理了事件返回true
      */
-    bool handleClickInChildren(i32 mouseX, i32 mouseY, i32 button) {
+    bool handleClickInChildren(i32 mouseX, i32 mouseY, i32 button)
+    {
         Widget* widget = getWidgetAt(mouseX, mouseY);
         if (widget != nullptr) {
             // 点击时自动设置焦点
@@ -474,7 +462,8 @@ protected:
      * @param button 鼠标按钮
      * @return 如果有组件处理了事件返回true
      */
-    bool handleReleaseInChildren(i32 mouseX, i32 mouseY, i32 button) {
+    bool handleReleaseInChildren(i32 mouseX, i32 mouseY, i32 button)
+    {
         Widget* widget = getWidgetAt(mouseX, mouseY);
         if (widget != nullptr) {
             return widget->onRelease(mouseX, mouseY, button);
@@ -490,7 +479,8 @@ protected:
      * @param deltaY Y轴移动量
      * @return 如果有组件处理了事件返回true
      */
-    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) {
+    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+    {
         // 拖动事件发送到悬停的组件
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
             Widget* widget = it->get();
@@ -510,7 +500,8 @@ protected:
      * @param delta 滚动量
      * @return 如果有组件处理了事件返回true
      */
-    bool handleScrollInChildren(i32 mouseX, i32 mouseY, f64 delta) {
+    bool handleScrollInChildren(i32 mouseX, i32 mouseY, f64 delta)
+    {
         Widget* widget = getWidgetAt(mouseX, mouseY);
         if (widget != nullptr) {
             return widget->onScroll(mouseX, mouseY, delta);
@@ -526,9 +517,9 @@ protected:
      * @param mods 修饰键
      * @return 如果有组件处理了事件返回true
      */
-    bool handleKeyInChildren(i32 key, i32 scanCode, i32 action, i32 mods) {
-        if (m_focusedWidget != nullptr &&
-            m_focusedWidget->isVisible() && m_focusedWidget->isActive()) {
+    bool handleKeyInChildren(i32 key, i32 scanCode, i32 action, i32 mods)
+    {
+        if (m_focusedWidget != nullptr && m_focusedWidget->isVisible() && m_focusedWidget->isActive()) {
             return m_focusedWidget->onKey(key, scanCode, action, mods);
         }
         return false;
@@ -539,9 +530,9 @@ protected:
      * @param codePoint Unicode码点
      * @return 如果有组件处理了事件返回true
      */
-    bool handleCharInChildren(u32 codePoint) {
-        if (m_focusedWidget != nullptr &&
-            m_focusedWidget->isVisible() && m_focusedWidget->isActive()) {
+    bool handleCharInChildren(u32 codePoint)
+    {
+        if (m_focusedWidget != nullptr && m_focusedWidget->isVisible() && m_focusedWidget->isActive()) {
             return m_focusedWidget->onChar(codePoint);
         }
         return false;

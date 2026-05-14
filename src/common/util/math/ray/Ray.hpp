@@ -29,18 +29,14 @@ public:
     Ray(const Vector3f& origin, const Vector3f& direction)
         : origin(origin)
         , direction(direction)
-    {
-    }
+    {}
 
     /**
      * @brief 获取射线上距离t处的点
      * @param t 距离参数
      * @return 射线上的点 origin + direction * t
      */
-    [[nodiscard]] Vector3f at(f32 t) const noexcept
-    {
-        return origin + direction * t;
-    }
+    [[nodiscard]] Vector3f at(f32 t) const noexcept { return origin + direction * t; }
 
     /**
      * @brief 从pitch和yaw角度创建射线（角度制）
@@ -53,8 +49,7 @@ public:
      * @param yawDeg 偏航角（度），正为左转
      * @return 射线对象
      */
-    [[nodiscard]] static Ray fromAngles(
-        const Vector3f& origin, f32 pitchDeg, f32 yawDeg) noexcept
+    [[nodiscard]] static Ray fromAngles(const Vector3f& origin, f32 pitchDeg, f32 yawDeg) noexcept
     {
         // 转换为弧度
         const f32 pitchRad = math::toRadians(pitchDeg);

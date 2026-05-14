@@ -1,17 +1,17 @@
-#include <gtest/gtest.h>
 #include "world/blockentity/transport/HopperEntity.hpp"
-#include "world/blockentity/transport/IHopper.hpp"
-#include "world/block/BlockPos.hpp"
-#include "util/Direction.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "util/Direction.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/blockentity/transport/IHopper.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::blockentity;
 
-
 namespace {
-Item* ensureHopperTestItem(const char* path) {
+Item* ensureHopperTestItem(const char* path)
+{
     auto& registry = ItemRegistry::instance();
     const ResourceLocation id("minecraft", path);
     if (Item* existing = registry.getItem(id); existing != nullptr) {
@@ -25,7 +25,8 @@ Item* ensureHopperTestItem(const char* path) {
 
 class HopperEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         hopper_ = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
         m_diamond = ensureHopperTestItem("diamond");
@@ -35,59 +36,71 @@ protected:
     Item* m_diamond = nullptr;
 };
 
-TEST_F(HopperEntityTest, Create_HasCorrectType) {
+TEST_F(HopperEntityTest, Create_HasCorrectType)
+{
     EXPECT_EQ(hopper_->getType(), BlockEntityType::Hopper);
 }
 
-TEST_F(HopperEntityTest, Create_HasCorrectPosition) {
+TEST_F(HopperEntityTest, Create_HasCorrectPosition)
+{
     EXPECT_EQ(hopper_->getPos(), BlockPos(10, 20, 30));
 }
 
-TEST_F(HopperEntityTest, Create_HasCorrectSize) {
+TEST_F(HopperEntityTest, Create_HasCorrectSize)
+{
     EXPECT_EQ(hopper_->getContainerSize(), HopperEntity::HOPPER_SIZE);
-    EXPECT_EQ(HopperEntity::HOPPER_SIZE, 5);  // 漏斗有5格
+    EXPECT_EQ(HopperEntity::HOPPER_SIZE, 5); // 漏斗有5格
 }
 
-TEST_F(HopperEntityTest, Create_IsEmptyInitially) {
+TEST_F(HopperEntityTest, Create_IsEmptyInitially)
+{
     EXPECT_TRUE(hopper_->isEmpty());
 }
 
-TEST_F(HopperEntityTest, Create_TransferCooldownIsMinusOne) {
+TEST_F(HopperEntityTest, Create_TransferCooldownIsMinusOne)
+{
     // -1 表示刚放置的漏斗
     EXPECT_EQ(hopper_->getTransferCooldown(), -1);
 }
 
-TEST_F(HopperEntityTest, Create_NotOnTransferCooldownInitially) {
+TEST_F(HopperEntityTest, Create_NotOnTransferCooldownInitially)
+{
     // -1 意味着不在冷却中
     EXPECT_FALSE(hopper_->isOnTransferCooldown());
 }
 
-TEST_F(HopperEntityTest, SetTransferCooldown_UpdatesValue) {
+TEST_F(HopperEntityTest, SetTransferCooldown_UpdatesValue)
+{
     hopper_->setTransferCooldown(8);
     EXPECT_EQ(hopper_->getTransferCooldown(), 8);
 }
 
-TEST_F(HopperEntityTest, SetTransferCooldown_SetsOnCooldown) {
+TEST_F(HopperEntityTest, SetTransferCooldown_SetsOnCooldown)
+{
     hopper_->setTransferCooldown(5);
     EXPECT_TRUE(hopper_->isOnTransferCooldown());
 }
 
-TEST_F(HopperEntityTest, SetTransferCooldown_ZeroMeansNotOnCooldown) {
+TEST_F(HopperEntityTest, SetTransferCooldown_ZeroMeansNotOnCooldown)
+{
     hopper_->setTransferCooldown(0);
     EXPECT_FALSE(hopper_->isOnTransferCooldown());
 }
 
-TEST_F(HopperEntityTest, NeedsTick_ReturnsTrue) {
+TEST_F(HopperEntityTest, NeedsTick_ReturnsTrue)
+{
     EXPECT_TRUE(hopper_->needsTick());
 }
 
-TEST_F(HopperEntityTest, GetInventory_ReturnsValidPointer) {
+TEST_F(HopperEntityTest, GetInventory_ReturnsValidPointer)
+{
     IInventory* inventory = hopper_->getInventory();
     ASSERT_NE(inventory, nullptr);
     EXPECT_EQ(inventory->getContainerSize(), HopperEntity::HOPPER_SIZE);
 }
 
-TEST_F(HopperEntityTest, Save_ContainsBasicInfo) {
+TEST_F(HopperEntityTest, Save_ContainsBasicInfo)
+{
     nlohmann::json data;
     hopper_->save(data);
 
@@ -96,7 +109,8 @@ TEST_F(HopperEntityTest, Save_ContainsBasicInfo) {
     EXPECT_TRUE(data.contains("TransferCooldown"));
 }
 
-TEST_F(HopperEntityTest, Load_LoadsTransferCooldown) {
+TEST_F(HopperEntityTest, Load_LoadsTransferCooldown)
+{
     nlohmann::json data;
     data["TransferCooldown"] = 5;
 
@@ -104,7 +118,8 @@ TEST_F(HopperEntityTest, Load_LoadsTransferCooldown) {
     EXPECT_EQ(hopper_->getTransferCooldown(), 5);
 }
 
-TEST_F(HopperEntityTest, Clone_CreatesCopy) {
+TEST_F(HopperEntityTest, Clone_CreatesCopy)
+{
     std::unique_ptr<BlockEntity> copy = hopper_->clone();
 
     ASSERT_NE(copy, nullptr);
@@ -112,27 +127,32 @@ TEST_F(HopperEntityTest, Clone_CreatesCopy) {
     EXPECT_EQ(copy->getPos(), BlockPos(10, 20, 30));
 }
 
-TEST_F(HopperEntityTest, SetChanged_MarksAsChanged) {
+TEST_F(HopperEntityTest, SetChanged_MarksAsChanged)
+{
     EXPECT_FALSE(hopper_->isChanged());
     hopper_->setChanged();
     EXPECT_TRUE(hopper_->isChanged());
 }
 
-TEST_F(HopperEntityTest, IsFull_ReturnsFalseWhenEmpty) {
+TEST_F(HopperEntityTest, IsFull_ReturnsFalseWhenEmpty)
+{
     EXPECT_FALSE(hopper_->isFull());
 }
 
-TEST_F(HopperEntityTest, TransferCooldown_ConstantsAreCorrect) {
+TEST_F(HopperEntityTest, TransferCooldown_ConstantsAreCorrect)
+{
     EXPECT_EQ(HopperEntity::TRANSFER_COOLDOWN, 8);
     EXPECT_EQ(HopperEntity::TRANSFER_COOLDOWN_CHAIN, 7);
 }
 
-TEST_F(HopperEntityTest, MayTransfer_ReturnsFalseForNormalCooldown) {
+TEST_F(HopperEntityTest, MayTransfer_ReturnsFalseForNormalCooldown)
+{
     hopper_->setTransferCooldown(8);
     EXPECT_FALSE(hopper_->mayTransfer());
 }
 
-TEST_F(HopperEntityTest, MayTransfer_ReturnsTrueForAboveNormalCooldown) {
+TEST_F(HopperEntityTest, MayTransfer_ReturnsTrueForAboveNormalCooldown)
+{
     hopper_->setTransferCooldown(9);
     EXPECT_TRUE(hopper_->mayTransfer());
 }
@@ -141,80 +161,92 @@ TEST_F(HopperEntityTest, MayTransfer_ReturnsTrueForAboveNormalCooldown) {
 
 class IHopperTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        hopper_ = std::make_unique<HopperEntity>(BlockPos(100, 64, -50));
-    }
+    void SetUp() override { hopper_ = std::make_unique<HopperEntity>(BlockPos(100, 64, -50)); }
 
     std::unique_ptr<HopperEntity> hopper_;
 };
 
-TEST_F(IHopperTest, GetHopperPos_ReturnsCorrectPosition) {
+TEST_F(IHopperTest, GetHopperPos_ReturnsCorrectPosition)
+{
     EXPECT_EQ(hopper_->getHopperPos(), BlockPos(100, 64, -50));
 }
 
-TEST_F(IHopperTest, GetXPos_ReturnsCenterX) {
+TEST_F(IHopperTest, GetXPos_ReturnsCenterX)
+{
     EXPECT_DOUBLE_EQ(hopper_->getXPos(), 100.5);
 }
 
-TEST_F(IHopperTest, GetYPos_ReturnsCenterY) {
+TEST_F(IHopperTest, GetYPos_ReturnsCenterY)
+{
     EXPECT_DOUBLE_EQ(hopper_->getYPos(), 64.5);
 }
 
-TEST_F(IHopperTest, GetZPos_ReturnsCenterZ) {
-    EXPECT_DOUBLE_EQ(hopper_->getZPos(), -49.5);  // -50 + 0.5
+TEST_F(IHopperTest, GetZPos_ReturnsCenterZ)
+{
+    EXPECT_DOUBLE_EQ(hopper_->getZPos(), -49.5); // -50 + 0.5
 }
 
-TEST_F(IHopperTest, GetOutputDirection_ReturnsDownByDefault) {
+TEST_F(IHopperTest, GetOutputDirection_ReturnsDownByDefault)
+{
     EXPECT_EQ(hopper_->getOutputDirection(), Direction::Down);
 }
 
-TEST_F(IHopperTest, GetWorld_ReturnsNullptrInitially) {
+TEST_F(IHopperTest, GetWorld_ReturnsNullptrInitially)
+{
     EXPECT_EQ(hopper_->getWorld(), nullptr);
 }
 
-TEST_F(IHopperTest, GetCollectionArea_ReturnsValidAABB) {
+TEST_F(IHopperTest, GetCollectionArea_ReturnsValidAABB)
+{
     AxisAlignedBB area = IHopper::getCollectionArea(*hopper_);
 
     // 收集区域应该在漏斗上方一格
     // 碗状区域 + 上方完整方块区域
-    EXPECT_GE(area.minY, hopper_->getYPos());  // 至少从漏斗中心开始
+    EXPECT_GE(area.minY, hopper_->getYPos()); // 至少从漏斗中心开始
 }
 
 // ========== Direction 工具函数测试（补充边界条件测试） ==========
 
-class DirectionTest : public ::testing::Test {
-};
+class DirectionTest : public ::testing::Test {};
 
-TEST_F(DirectionTest, Opposite_DownReturnsUp) {
+TEST_F(DirectionTest, Opposite_DownReturnsUp)
+{
     EXPECT_EQ(Directions::opposite(Direction::Down), Direction::Up);
 }
 
-TEST_F(DirectionTest, Opposite_UpReturnsDown) {
+TEST_F(DirectionTest, Opposite_UpReturnsDown)
+{
     EXPECT_EQ(Directions::opposite(Direction::Up), Direction::Down);
 }
 
-TEST_F(DirectionTest, Opposite_NorthReturnsSouth) {
+TEST_F(DirectionTest, Opposite_NorthReturnsSouth)
+{
     EXPECT_EQ(Directions::opposite(Direction::North), Direction::South);
 }
 
-TEST_F(DirectionTest, Opposite_SouthReturnsNorth) {
+TEST_F(DirectionTest, Opposite_SouthReturnsNorth)
+{
     EXPECT_EQ(Directions::opposite(Direction::South), Direction::North);
 }
 
-TEST_F(DirectionTest, Opposite_WestReturnsEast) {
+TEST_F(DirectionTest, Opposite_WestReturnsEast)
+{
     EXPECT_EQ(Directions::opposite(Direction::West), Direction::East);
 }
 
-TEST_F(DirectionTest, Opposite_EastReturnsWest) {
+TEST_F(DirectionTest, Opposite_EastReturnsWest)
+{
     EXPECT_EQ(Directions::opposite(Direction::East), Direction::West);
 }
 
-TEST_F(DirectionTest, Opposite_NoneReturnsNone) {
+TEST_F(DirectionTest, Opposite_NoneReturnsNone)
+{
     // 测试边界条件
     EXPECT_EQ(Directions::opposite(Direction::None), Direction::None);
 }
 
-TEST_F(DirectionTest, IsValid_ReturnsTrueForValidDirections) {
+TEST_F(DirectionTest, IsValid_ReturnsTrueForValidDirections)
+{
     EXPECT_TRUE(Directions::isValid(Direction::Down));
     EXPECT_TRUE(Directions::isValid(Direction::Up));
     EXPECT_TRUE(Directions::isValid(Direction::North));
@@ -223,11 +255,13 @@ TEST_F(DirectionTest, IsValid_ReturnsTrueForValidDirections) {
     EXPECT_TRUE(Directions::isValid(Direction::East));
 }
 
-TEST_F(DirectionTest, IsValid_ReturnsFalseForNone) {
+TEST_F(DirectionTest, IsValid_ReturnsFalseForNone)
+{
     EXPECT_FALSE(Directions::isValid(Direction::None));
 }
 
-TEST_F(DirectionTest, XOffset_ReturnsCorrectValues) {
+TEST_F(DirectionTest, XOffset_ReturnsCorrectValues)
+{
     EXPECT_EQ(Directions::xOffset(Direction::West), -1);
     EXPECT_EQ(Directions::xOffset(Direction::East), 1);
     EXPECT_EQ(Directions::xOffset(Direction::Up), 0);
@@ -236,7 +270,8 @@ TEST_F(DirectionTest, XOffset_ReturnsCorrectValues) {
     EXPECT_EQ(Directions::xOffset(Direction::South), 0);
 }
 
-TEST_F(DirectionTest, YOffset_ReturnsCorrectValues) {
+TEST_F(DirectionTest, YOffset_ReturnsCorrectValues)
+{
     EXPECT_EQ(Directions::yOffset(Direction::Down), -1);
     EXPECT_EQ(Directions::yOffset(Direction::Up), 1);
     EXPECT_EQ(Directions::yOffset(Direction::North), 0);
@@ -245,7 +280,8 @@ TEST_F(DirectionTest, YOffset_ReturnsCorrectValues) {
     EXPECT_EQ(Directions::yOffset(Direction::East), 0);
 }
 
-TEST_F(DirectionTest, ZOffset_ReturnsCorrectValues) {
+TEST_F(DirectionTest, ZOffset_ReturnsCorrectValues)
+{
     EXPECT_EQ(Directions::zOffset(Direction::North), -1);
     EXPECT_EQ(Directions::zOffset(Direction::South), 1);
     EXPECT_EQ(Directions::zOffset(Direction::Up), 0);
@@ -254,64 +290,77 @@ TEST_F(DirectionTest, ZOffset_ReturnsCorrectValues) {
     EXPECT_EQ(Directions::zOffset(Direction::East), 0);
 }
 
-TEST_F(DirectionTest, XOffset_NoneReturnsZero) {
+TEST_F(DirectionTest, XOffset_NoneReturnsZero)
+{
     EXPECT_EQ(Directions::xOffset(Direction::None), 0);
 }
 
-TEST_F(DirectionTest, YOffset_NoneReturnsZero) {
+TEST_F(DirectionTest, YOffset_NoneReturnsZero)
+{
     EXPECT_EQ(Directions::yOffset(Direction::None), 0);
 }
 
-TEST_F(DirectionTest, ZOffset_NoneReturnsZero) {
+TEST_F(DirectionTest, ZOffset_NoneReturnsZero)
+{
     EXPECT_EQ(Directions::zOffset(Direction::None), 0);
 }
 
-TEST_F(DirectionTest, ToString_NoneReturnsNone) {
+TEST_F(DirectionTest, ToString_NoneReturnsNone)
+{
     EXPECT_EQ(Directions::toString(Direction::None), "none");
 }
 
-TEST_F(DirectionTest, GetAxis_NoneReturnsY) {
+TEST_F(DirectionTest, GetAxis_NoneReturnsY)
+{
     // 默认返回Y轴
     EXPECT_EQ(Directions::getAxis(Direction::None), Axis::Y);
 }
 
-TEST_F(DirectionTest, GetAxisDirection_NoneReturnsPositive) {
+TEST_F(DirectionTest, GetAxisDirection_NoneReturnsPositive)
+{
     EXPECT_EQ(Directions::getAxisDirection(Direction::None), AxisDirection::Positive);
 }
 
-TEST_F(DirectionTest, IsHorizontal_ReturnsTrueForHorizontalDirections) {
+TEST_F(DirectionTest, IsHorizontal_ReturnsTrueForHorizontalDirections)
+{
     EXPECT_TRUE(Directions::isHorizontal(Direction::North));
     EXPECT_TRUE(Directions::isHorizontal(Direction::South));
     EXPECT_TRUE(Directions::isHorizontal(Direction::West));
     EXPECT_TRUE(Directions::isHorizontal(Direction::East));
 }
 
-TEST_F(DirectionTest, IsHorizontal_ReturnsFalseForVerticalDirections) {
+TEST_F(DirectionTest, IsHorizontal_ReturnsFalseForVerticalDirections)
+{
     EXPECT_FALSE(Directions::isHorizontal(Direction::Up));
     EXPECT_FALSE(Directions::isHorizontal(Direction::Down));
 }
 
-TEST_F(DirectionTest, IsHorizontal_ReturnsFalseForNone) {
+TEST_F(DirectionTest, IsHorizontal_ReturnsFalseForNone)
+{
     EXPECT_FALSE(Directions::isHorizontal(Direction::None));
 }
 
-TEST_F(DirectionTest, IsVertical_ReturnsTrueForVerticalDirections) {
+TEST_F(DirectionTest, IsVertical_ReturnsTrueForVerticalDirections)
+{
     EXPECT_TRUE(Directions::isVertical(Direction::Up));
     EXPECT_TRUE(Directions::isVertical(Direction::Down));
 }
 
-TEST_F(DirectionTest, IsVertical_ReturnsFalseForHorizontalDirections) {
+TEST_F(DirectionTest, IsVertical_ReturnsFalseForHorizontalDirections)
+{
     EXPECT_FALSE(Directions::isVertical(Direction::North));
     EXPECT_FALSE(Directions::isVertical(Direction::South));
     EXPECT_FALSE(Directions::isVertical(Direction::West));
     EXPECT_FALSE(Directions::isVertical(Direction::East));
 }
 
-TEST_F(DirectionTest, IsVertical_ReturnsFalseForNone) {
+TEST_F(DirectionTest, IsVertical_ReturnsFalseForNone)
+{
     EXPECT_FALSE(Directions::isVertical(Direction::None));
 }
 
-TEST_F(DirectionTest, FromDelta_ReturnsCorrectDirections) {
+TEST_F(DirectionTest, FromDelta_ReturnsCorrectDirections)
+{
     EXPECT_EQ(Directions::fromDelta(0, -1, 0), Direction::Down);
     EXPECT_EQ(Directions::fromDelta(0, 1, 0), Direction::Up);
     EXPECT_EQ(Directions::fromDelta(0, 0, -1), Direction::North);
@@ -320,13 +369,15 @@ TEST_F(DirectionTest, FromDelta_ReturnsCorrectDirections) {
     EXPECT_EQ(Directions::fromDelta(1, 0, 0), Direction::East);
 }
 
-TEST_F(DirectionTest, FromDelta_ReturnsNoneForInvalidDeltas) {
+TEST_F(DirectionTest, FromDelta_ReturnsNoneForInvalidDeltas)
+{
     EXPECT_EQ(Directions::fromDelta(0, 0, 0), Direction::None);
-    EXPECT_EQ(Directions::fromDelta(1, 1, 0), Direction::None);  // 多个轴有变化
-    EXPECT_EQ(Directions::fromDelta(2, 0, 0), Direction::None);  // 值不在 -1, 0, 1 范围
+    EXPECT_EQ(Directions::fromDelta(1, 1, 0), Direction::None); // 多个轴有变化
+    EXPECT_EQ(Directions::fromDelta(2, 0, 0), Direction::None); // 值不在 -1, 0, 1 范围
 }
 
-TEST_F(HopperEntityTest, SaveLoad_PreservesInventoryBySlot) {
+TEST_F(HopperEntityTest, SaveLoad_PreservesInventoryBySlot)
+{
     IInventory* inventory = hopper_->getInventory();
     ASSERT_NE(inventory, nullptr);
     inventory->setItem(2, ItemStack(m_diamond, 6));
@@ -343,7 +394,8 @@ TEST_F(HopperEntityTest, SaveLoad_PreservesInventoryBySlot) {
     EXPECT_EQ(loadedInventory->getItem(2).getCount(), 6);
 }
 
-TEST_F(HopperEntityTest, Clone_CopiesInventoryAndCooldownState) {
+TEST_F(HopperEntityTest, Clone_CopiesInventoryAndCooldownState)
+{
     hopper_->setTransferCooldown(9);
     IInventory* inventory = hopper_->getInventory();
     ASSERT_NE(inventory, nullptr);

@@ -1,13 +1,13 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../spawn/MobSpawnInfo.hpp"
-#include "../../biome/Biome.hpp"
 #include "../../../entity/core/EntitySpawnPlacementRegistry.hpp"
-#include <vector>
+#include "../../../util/math/Vector3.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../biome/Biome.hpp"
+#include "../../spawn/MobSpawnInfo.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -18,9 +18,9 @@ class Entity;
 class MobEntity;
 
 namespace entity {
-    class EntityType;
-    struct ILivingEntityData;
-}
+class EntityType;
+struct ILivingEntityData;
+} // namespace entity
 
 /**
  * @brief 生成的实体数据
@@ -46,9 +46,17 @@ struct SpawnedEntityData {
 
     SpawnedEntityData() = default;
 
-    SpawnedEntityData(std::string typeId, f32 px, f32 py, f32 pz,
-                      world::spawn::SpawnReason reason = world::spawn::SpawnReason::ChunkGeneration)
-        : entityTypeId(std::move(typeId)), x(px), y(py), z(pz), spawnReason(reason) {}
+    SpawnedEntityData(std::string typeId,
+        f32 px,
+        f32 py,
+        f32 pz,
+        world::spawn::SpawnReason reason = world::spawn::SpawnReason::ChunkGeneration)
+        : entityTypeId(std::move(typeId))
+        , x(px)
+        , y(py)
+        , z(pz)
+        , spawnReason(reason)
+    {}
 };
 
 /**
@@ -90,15 +98,13 @@ public:
      * @param outEntities 输出：生成的实体数据列表
      * @return 实际生成的实体数量
      */
-    i32 spawnInitialMobs(
-        WorldGenRegion& region,
+    i32 spawnInitialMobs(WorldGenRegion& region,
         const Biome& biome,
         i32 chunkX,
         i32 chunkZ,
         IChunkGenerator& generator,
         math::Random& random,
-        std::vector<SpawnedEntityData>& outEntities
-    );
+        std::vector<SpawnedEntityData>& outEntities);
 
     /**
      * @brief 设置是否启用生成
@@ -126,16 +132,14 @@ private:
      * @param outEntities 输出：生成的实体数据
      * @return 实际生成的数量
      */
-    i32 spawnGroup(
-        WorldGenRegion& region,
+    i32 spawnGroup(WorldGenRegion& region,
         const entity::EntityType& entityType,
         f32 x,
         f32 y,
         f32 z,
         i32 count,
         math::Random& random,
-        std::vector<SpawnedEntityData>& outEntities
-    );
+        std::vector<SpawnedEntityData>& outEntities);
 
     /**
      * @brief 获取实体类型的生成高度
@@ -146,12 +150,7 @@ private:
      * @param z Z 坐标
      * @return 生成高度，如果无法生成返回 -1
      */
-    [[nodiscard]] i32 getSpawnHeight(
-        WorldGenRegion& region,
-        const entity::EntityType& entityType,
-        i32 x,
-        i32 z
-    ) const;
+    [[nodiscard]] i32 getSpawnHeight(WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 z) const;
 
     /**
      * @brief 检查位置是否可以生成实体
@@ -164,12 +163,7 @@ private:
      * @return 是否可以生成
      */
     [[nodiscard]] bool canSpawnAt(
-        WorldGenRegion& region,
-        const entity::EntityType& entityType,
-        i32 x,
-        i32 y,
-        i32 z
-    ) const;
+        WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 检查方块是否允许实体生成
@@ -177,12 +171,7 @@ private:
      * 参考 MC EntitySpawnPlacementRegistry.canSpawnAtLocation
      */
     [[nodiscard]] bool checkSpawnRules(
-        WorldGenRegion& region,
-        const entity::EntityType& entityType,
-        i32 x,
-        i32 y,
-        i32 z
-    ) const;
+        WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const;
 };
 
 } // namespace mc

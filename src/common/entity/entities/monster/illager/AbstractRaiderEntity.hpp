@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PatrollerEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../entity/damage/DamageSource.hpp"
+#include "PatrollerEntity.hpp"
 
 namespace mc {
 namespace world::village::raid {

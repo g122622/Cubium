@@ -11,22 +11,14 @@ namespace mc::command {
 void DefaultGameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto defaultGameModeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("defaultgamemode");
-    defaultGameModeNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        defaultGameModeNode,
+    defaultGameModeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(defaultGameModeNode,
         support::makeMetadata(
-            "Set the server default game mode.",
-            "/defaultgamemode <survival|creative|adventure|spectator>",
-            2));
+            "Set the server default game mode.", "/defaultgamemode <survival|creative|adventure|spectator>", 2));
 
     auto modeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>(
-        "gamemode",
-        GameModeArgumentType::gameMode());
-    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setDefaultMode(ctx);
-    });
+        "gamemode", GameModeArgumentType::gameMode());
+    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setDefaultMode(ctx); });
     defaultGameModeNode->addChild(modeArg);
 
     dispatcher.registerCommand(defaultGameModeNode);

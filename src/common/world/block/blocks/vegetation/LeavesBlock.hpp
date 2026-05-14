@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -50,8 +50,7 @@ public:
     /**
      * @brief 邻居更新时调度距离更新
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -84,9 +83,9 @@ public:
      *
      * 树叶透明度为1，允许部分光线通过
      */
-    [[nodiscard]] i32 getOpacity(const BlockState& state,
-                                  IWorld* world = nullptr,
-                                  const BlockPos* pos = nullptr) const override {
+    [[nodiscard]] i32 getOpacity(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
@@ -96,9 +95,9 @@ public:
     /**
      * @brief 是否传播天空光
      */
-    [[nodiscard]] bool propagatesSkylightDown(const BlockState& state,
-                                               IWorld* world = nullptr,
-                                               const BlockPos* pos = nullptr) const override {
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
@@ -108,7 +107,8 @@ public:
     /**
      * @brief 是否不透明
      */
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

@@ -12,24 +12,13 @@ namespace command {
 void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
-    functionNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    functionNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(
-        functionNode,
-        support::makeMetadata(
-            "Runs a function from a data pack.",
-            "/function <name>",
-            2,
-            {},
-            true));
+        functionNode, support::makeMetadata("Runs a function from a data pack.", "/function <name>", 2, {}, true));
 
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "name",
-        StringArgumentType::string());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return runFunction(ctx);
-    });
+    auto nameArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return runFunction(ctx); });
     functionNode->addChild(nameArg);
 
     dispatcher.registerCommand(functionNode);

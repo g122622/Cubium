@@ -20,45 +20,33 @@ class FireAspectEnchantment : public Enchantment {
 public:
     FireAspectEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:fire_aspect";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:fire_aspect"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.fire_aspect";
     }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Weapon;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] i32 minLevel() const override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 2;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 2; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Rare;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Rare; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 10 + (level - 1) * 20;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + (level - 1) * 20; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 50;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 
     /**
      * @brief 获取燃烧时间（tick）
      * @param level 附魔等级
      * @return 燃烧时间（tick）
      */
-    [[nodiscard]] static i32 getFireDuration(i32 level) {
+    [[nodiscard]] static i32 getFireDuration(i32 level)
+    {
         // 每级 4 秒 = 80 tick
         return level * 80;
     }

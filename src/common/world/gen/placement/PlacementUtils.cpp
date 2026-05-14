@@ -4,16 +4,14 @@ namespace mc {
 namespace PlacementUtils {
 
 std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
-    std::unique_ptr<ConfiguredPlacement> root,
-    std::vector<u32> allowedBiomes)
+    std::unique_ptr<ConfiguredPlacement> root, std::vector<u32> allowedBiomes)
 {
     if (!root || allowedBiomes.empty()) {
         return root;
     }
 
     auto biomeConfigured = std::make_unique<ConfiguredPlacement>(
-        std::make_unique<BiomePlacement>(),
-        std::make_unique<BiomePlacementConfig>(std::move(allowedBiomes)));
+        std::make_unique<BiomePlacement>(), std::make_unique<BiomePlacementConfig>(std::move(allowedBiomes)));
 
     ConfiguredPlacement* current = root.get();
     while (current->next() != nullptr) {
@@ -23,9 +21,7 @@ std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
     return root;
 }
 
-std::unique_ptr<ConfiguredPlacement> createCountedSurfacePlacement(
-    i32 count,
-    i32 maxWaterDepth)
+std::unique_ptr<ConfiguredPlacement> createCountedSurfacePlacement(i32 count, i32 maxWaterDepth)
 {
     auto surfacePlacement = std::make_unique<SurfacePlacement>();
     auto surfaceConfig = std::make_unique<SurfacePlacementConfig>(maxWaterDepth, false);
@@ -36,21 +32,17 @@ std::unique_ptr<ConfiguredPlacement> createCountedSurfacePlacement(
     auto countPlacement = std::make_unique<CountPlacement>();
     auto countConfig = std::make_unique<CountPlacementConfig>(count);
 
-    auto surfaceConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(surfacePlacement), std::move(surfaceConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(countPlacement), std::move(countConfig));
+    auto surfaceConfigured =
+        std::make_unique<ConfiguredPlacement>(std::move(surfacePlacement), std::move(surfaceConfig));
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
 
     squareConfigured->setNext(std::move(surfaceConfigured));
     countConfigured->setNext(std::move(squareConfigured));
     return countConfigured;
 }
 
-std::unique_ptr<ConfiguredPlacement> createChanceSurfacePlacement(
-    f32 chance,
-    i32 maxWaterDepth)
+std::unique_ptr<ConfiguredPlacement> createChanceSurfacePlacement(f32 chance, i32 maxWaterDepth)
 {
     auto surfacePlacement = std::make_unique<SurfacePlacement>();
     auto surfaceConfig = std::make_unique<SurfacePlacementConfig>(maxWaterDepth, false);
@@ -61,22 +53,17 @@ std::unique_ptr<ConfiguredPlacement> createChanceSurfacePlacement(
     auto chancePlacement = std::make_unique<ChancePlacement>();
     auto chanceConfig = std::make_unique<ChancePlacementConfig>(chance);
 
-    auto surfaceConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(surfacePlacement), std::move(surfaceConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(squarePlacement), std::move(squareConfig));
-    auto chanceConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(chancePlacement), std::move(chanceConfig));
+    auto surfaceConfigured =
+        std::make_unique<ConfiguredPlacement>(std::move(surfacePlacement), std::move(surfaceConfig));
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
+    auto chanceConfigured = std::make_unique<ConfiguredPlacement>(std::move(chancePlacement), std::move(chanceConfig));
 
     squareConfigured->setNext(std::move(surfaceConfigured));
     chanceConfigured->setNext(std::move(squareConfigured));
     return chanceConfigured;
 }
 
-std::unique_ptr<ConfiguredPlacement> createCountedHeightPlacement(
-    i32 count,
-    i32 minY,
-    i32 maxY)
+std::unique_ptr<ConfiguredPlacement> createCountedHeightPlacement(i32 count, i32 minY, i32 maxY)
 {
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(minY, 0, maxY);
@@ -87,12 +74,9 @@ std::unique_ptr<ConfiguredPlacement> createCountedHeightPlacement(
     auto countPlacement = std::make_unique<CountPlacement>();
     auto countConfig = std::make_unique<CountPlacementConfig>(count);
 
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(
-        std::move(countPlacement), std::move(countConfig));
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
 
     squareConfigured->setNext(std::move(heightConfigured));
     countConfigured->setNext(std::move(squareConfigured));

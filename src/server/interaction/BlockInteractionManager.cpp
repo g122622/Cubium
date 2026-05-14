@@ -1,25 +1,25 @@
 #include "BlockInteractionManager.hpp"
 #include "InventoryManager.hpp"
 #include "SignCommandHelper.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/world/drop/BlockDropHandler.hpp"
-#include "server/application/IServer.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "server/player/ServerPlayer.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/entity/entities/player/Player.hpp"
 #include "common/core/BlockRaycastResult.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
-#include "common/util/math/random/Random.hpp"
-#include <spdlog/spdlog.h>
+#include "server/application/IServer.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/drop/BlockDropHandler.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::interaction {
 
@@ -37,9 +37,7 @@ ServerPlayerData* BlockInteractionManager::validatePlayer(PlayerId playerId) con
 }
 
 std::optional<Error> BlockInteractionManager::validateInteractionPreconditions(
-    PlayerId playerId,
-    const BlockPos& pos,
-    bool checkYRange) const
+    PlayerId playerId, const BlockPos& pos, bool checkYRange) const
 {
     // 验证玩家
     auto* playerData = validatePlayer(playerId);
@@ -108,14 +106,11 @@ u32 BlockInteractionManager::setBlockToAir(const BlockPos& pos, const BlockState
 // ============================================================================
 
 BlockInteractionManager::BlockInteractionManager(
-    ServerWorld& world,
-    core::PlayerManager& playerManager,
-    loot::LootTableManager& lootTableManager)
+    ServerWorld& world, core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager)
     : m_world(world)
     , m_playerManager(playerManager)
     , m_lootTableManager(lootTableManager)
-{
-}
+{}
 
 void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryManager)
 {
@@ -127,18 +122,17 @@ void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryMan
 // ============================================================================
 
 Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
-    PlayerId playerId,
-    const BlockPos& pos,
-    network::BlockInteractionAction action)
+    PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action)
 {
     MC_TRACE_EVENT("server.world",
         "BlockInteractionManager::handleBlockInteraction",
-        "pos", pos.toString(),
-        "playerId", playerId,
-        "action", static_cast<u8>(action),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        "action",
+        static_cast<u8>(action),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     // 验证前置条件
     auto preconditionError = validateInteractionPreconditions(playerId, pos, true);
@@ -186,20 +180,17 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
 }
 
 Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
-    PlayerId playerId,
-    const BlockPos& pos,
-    const Vector3& hitPos,
-    Direction face,
-    const ItemStack& heldItem)
+    PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, const ItemStack& heldItem)
 {
     MC_TRACE_EVENT("server.world",
         "BlockInteractionManager::handleBlockPlacement",
-        "pos", pos.toString(),
-        "playerId", playerId,
-        "face", Directions::toString(face),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        "face",
+        Directions::toString(face),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     // 检查世界修改权限
     auto worldError = checkWorldModificationAllowed();
@@ -278,7 +269,7 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
             }
         }
     } else if (playerData->gameMode == GameMode::Creative) {
-        itemConsumed = true;  // 创造模式不实际消耗
+        itemConsumed = true; // 创造模式不实际消耗
     }
 
     if (m_onBlockPlace) {
@@ -289,20 +280,17 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
 }
 
 Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
-    PlayerId playerId,
-    const BlockPos& pos,
-    Hand hand,
-    const Vector3& hitPos,
-    Direction face)
+    PlayerId playerId, const BlockPos& pos, Hand hand, const Vector3& hitPos, Direction face)
 {
     MC_TRACE_EVENT("server.world",
         "BlockInteractionManager::handleBlockUse",
-        "pos", pos.toString(),
-        "playerId", playerId,
-        "hand", hand == Hand::MainHand ? "main" : "off",
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        "hand",
+        hand == Hand::MainHand ? "main" : "off",
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     // 验证前置条件（方块使用不需要检查 Y 范围）
     auto preconditionError = validateInteractionPreconditions(playerId, pos, false);
@@ -330,13 +318,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     Player interactionPlayer(playerId, playerData->username);
     const BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, face, 0.0f);
 
-    ActionResultType result = block->onBlockActivated(
-        *state,
-        m_world,
-        pos,
-        interactionPlayer,
-        hand,
-        hitResult);
+    ActionResultType result = block->onBlockActivated(*state, m_world, pos, interactionPlayer, hand, hitResult);
 
     // MC 1.16.5: 如果方块交互成功，检查是否为告示牌并执行命令
     bool handled = (result == ActionResultType::Success || result == ActionResultType::Consume);
@@ -360,17 +342,15 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     return BlockInteractionResult{handled, handled ? "Block used" : "Block use pass"};
 }
 
-Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
-    PlayerId playerId,
-    const BlockPos& pos)
+Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId playerId, const BlockPos& pos)
 {
     MC_TRACE_EVENT("server.world",
         "BlockInteractionManager::handleBlockBreak",
-        "pos", pos.toString(),
-        "playerId", playerId,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     // 检查世界修改权限
     auto worldError = checkWorldModificationAllowed();
@@ -446,10 +426,7 @@ bool BlockInteractionManager::canInteract(PlayerId playerId, const BlockPos& pos
     return distanceSquared <= MAX_INTERACT_DISTANCE_SQ;
 }
 
-bool BlockInteractionManager::canBreakBlock(
-    PlayerId playerId,
-    const BlockPos& pos,
-    const BlockState* state) const
+bool BlockInteractionManager::canBreakBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state) const
 {
     if (!state || state->isAir() || state->hardness() < 0.0f) {
         return false;
@@ -458,9 +435,7 @@ bool BlockInteractionManager::canBreakBlock(
 }
 
 bool BlockInteractionManager::wouldCollideWithPlayer(
-    PlayerId playerId,
-    const BlockPos& placePos,
-    const BlockState& state) const
+    PlayerId playerId, const BlockPos& placePos, const BlockState& state) const
 {
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (playerData == nullptr) {
@@ -473,8 +448,7 @@ bool BlockInteractionManager::wouldCollideWithPlayer(
     }
 
     const f32 halfWidth = Player::PLAYER_WIDTH * 0.5f;
-    const AxisAlignedBB playerBoundingBox(
-        playerData->x - halfWidth,
+    const AxisAlignedBB playerBoundingBox(playerData->x - halfWidth,
         playerData->y,
         playerData->z - halfWidth,
         playerData->x + halfWidth,
@@ -485,39 +459,25 @@ bool BlockInteractionManager::wouldCollideWithPlayer(
 }
 
 void BlockInteractionManager::generateBlockDrops(
-    const BlockPos& pos,
-    const BlockState& state,
-    PlayerId playerId,
-    const ItemStack* tool)
+    const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool)
 {
     // 使用 BlockDropHandler 生成掉落物
-    auto drops = BlockDropHandler::generateDrops(
-        m_world, pos, state, nullptr, tool, m_lootTableManager);
+    auto drops = BlockDropHandler::generateDrops(m_world, pos, state, nullptr, tool, m_lootTableManager);
 
     if (!drops.empty()) {
-        BlockDropHandler::spawnDrops(
-            m_world,
-            pos,
-            drops,
-            "");
+        BlockDropHandler::spawnDrops(m_world, pos, drops, "");
     }
 
     // 处理矿石经验掉落
     // 使用随机种子生成器
-    const u64 seed = static_cast<u64>(static_cast<u64>(pos.x)) ^
-                     static_cast<u64>(static_cast<u64>(pos.y) << 1) ^
-                     static_cast<u64>(static_cast<u64>(pos.z) << 2) ^
-                     static_cast<u64>(std::hash<PlayerId>{}(playerId));
+    const u64 seed = static_cast<u64>(static_cast<u64>(pos.x)) ^ static_cast<u64>(static_cast<u64>(pos.y) << 1) ^
+        static_cast<u64>(static_cast<u64>(pos.z) << 2) ^ static_cast<u64>(std::hash<PlayerId>{}(playerId));
     math::Random rng(seed);
-    BlockDropHandler::handleBlockBreakExperience(
-        m_world,
-        pos,
-        state,
-        tool,
-        rng);
+    BlockDropHandler::handleBlockBreakExperience(m_world, pos, state, tool, rng);
 }
 
-bool BlockInteractionManager::handleSignCommand(const BlockPos& pos, mc::ServerPlayer& player) {
+bool BlockInteractionManager::handleSignCommand(const BlockPos& pos, mc::ServerPlayer& player)
+{
     // MC 1.16.5: 参考 SignBlock.onBlockActivated()
     // 当玩家右键点击告示牌时，执行告示牌上的命令
 

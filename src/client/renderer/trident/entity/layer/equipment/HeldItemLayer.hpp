@@ -2,8 +2,8 @@
 
 #include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class ItemStack;
@@ -21,7 +21,7 @@ namespace mc::client::renderer::entity::layer::equipment {
  *
  * @tparam TEntity 实体类型
  */
-template<typename TEntity>
+template <typename TEntity>
 class HeldItemLayer : public core::LayerRenderer<TEntity> {
 public:
     /**
@@ -34,26 +34,22 @@ public:
     /**
      * @brief 渲染手持物品层（GPU管线路径）
      */
-    void renderPipeline(
-        TEntity& entity,
+    void renderPipeline(TEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) override;
+        pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 渲染手持物品层（CPU路径 - 已废弃）
      */
-    void render(
-        TEntity& entity,
+    void render(TEntity& entity,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
         f32 ageInTicks,
         f32 netHeadYaw,
         f32 headPitch,
-        f32 scale
-    ) override;
+        f32 scale) override;
 
     /**
      * @brief 检查是否应该渲染手持物品层
@@ -70,27 +66,23 @@ protected:
      * @param context 动画上下文
      * @param pipeline 渲染管线
      */
-    virtual void renderHandItemPipeline(
-        TEntity& entity,
+    virtual void renderHandItemPipeline(TEntity& entity,
         mc::Hand hand,
         mc::HandSide handSide,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    );
+        pipeline::EntityPipeline& pipeline);
 
     /**
      * @brief 渲染特定手的物品（CPU路径 - 已废弃）
      */
-    virtual void renderHandItem(
-        TEntity& entity,
+    virtual void renderHandItem(TEntity& entity,
         mc::Hand hand,
         mc::HandSide handSide,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
-        f32 scale
-    );
+        f32 scale);
 
     /**
      * @brief 获取手持物品
@@ -98,10 +90,7 @@ protected:
      * @param hand 手槽（主手或副手）
      * @return 物品堆指针，如果无物品返回 nullptr
      */
-    [[nodiscard]] virtual const ItemStack* getHeldItem(
-        const TEntity& entity,
-        mc::Hand hand
-    ) const;
+    [[nodiscard]] virtual const ItemStack* getHeldItem(const TEntity& entity, mc::Hand hand) const;
 
     /**
      * @brief 计算手持物品变换矩阵
@@ -112,12 +101,7 @@ protected:
      * @param outMatrix 输出变换矩阵
      */
     virtual void computeItemTransform(
-        mc::HandSide handSide,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 swingProgress,
-        std::array<f64, 16>& outMatrix
-    );
+        mc::HandSide handSide, f32 limbSwing, f32 limbSwingAmount, f32 swingProgress, std::array<f64, 16>& outMatrix);
 };
 
 } // namespace mc::client::renderer::entity::layer::equipment

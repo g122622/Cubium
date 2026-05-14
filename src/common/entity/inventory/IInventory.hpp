@@ -128,7 +128,8 @@ public:
      * @brief 查找第一个空槽位
      * @return 空槽位索引，没有空槽位返回-1
      */
-    [[nodiscard]] virtual i32 getFirstEmptySlot() const {
+    [[nodiscard]] virtual i32 getFirstEmptySlot() const
+    {
         for (i32 i = 0; i < getContainerSize(); ++i) {
             if (getItem(i).isEmpty()) {
                 return i;
@@ -142,7 +143,8 @@ public:
      * @param item 要统计的物品
      * @return 总数量
      */
-    [[nodiscard]] virtual i32 countItem(const Item& item) const {
+    [[nodiscard]] virtual i32 countItem(const Item& item) const
+    {
         i32 total = 0;
         for (i32 i = 0; i < getContainerSize(); ++i) {
             const ItemStack& stack = getItem(i);
@@ -158,7 +160,8 @@ public:
      * @param item 要检查的物品
      * @return 是否包含
      */
-    [[nodiscard]] virtual bool hasItem(const Item& item) const {
+    [[nodiscard]] virtual bool hasItem(const Item& item) const
+    {
         for (i32 i = 0; i < getContainerSize(); ++i) {
             if (getItem(i).getItem() == &item) {
                 return true;
@@ -172,7 +175,8 @@ public:
      * @param items 物品集合
      * @return 是否包含
      */
-    [[nodiscard]] virtual bool hasAny(const std::unordered_set<const Item*>& items) const {
+    [[nodiscard]] virtual bool hasAny(const std::unordered_set<const Item*>& items) const
+    {
         for (i32 i = 0; i < getContainerSize(); ++i) {
             const ItemStack& stack = getItem(i);
             if (!stack.isEmpty() && items.count(stack.getItem()) > 0) {
@@ -187,7 +191,8 @@ public:
      * @param item 要查找的物品
      * @return 槽位索引，未找到返回-1
      */
-    [[nodiscard]] virtual i32 findSlot(const Item& item) const {
+    [[nodiscard]] virtual i32 findSlot(const Item& item) const
+    {
         for (i32 i = 0; i < getContainerSize(); ++i) {
             if (getItem(i).getItem() == &item) {
                 return i;
@@ -202,7 +207,8 @@ public:
      * @param stack 要放置的物品
      * @return 是否可以放置
      */
-    [[nodiscard]] virtual bool canPlaceItem(i32 slot, const ItemStack& stack) const {
+    [[nodiscard]] virtual bool canPlaceItem(i32 slot, const ItemStack& stack) const
+    {
         (void)slot;
         (void)stack;
         return true;

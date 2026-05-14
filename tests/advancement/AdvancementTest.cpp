@@ -1,20 +1,20 @@
 #include <gtest/gtest.h>
 
 #include "common/advancement/Advancement.hpp"
-#include "common/advancement/AdvancementProgress.hpp"
-#include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/AdvancementList.hpp"
+#include "common/advancement/AdvancementManager.hpp"
+#include "common/advancement/AdvancementProgress.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
-#include "common/advancement/trigger/impl/ImpossibleTrigger.hpp"
-#include "common/advancement/trigger/impl/TickTrigger.hpp"
-#include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/advancement/trigger/impl/ImpossibleTrigger.hpp"
+#include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
+#include "common/advancement/trigger/impl/TickTrigger.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/StringTextComponent.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include <nlohmann/json.hpp>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 // Undef Windows macros that may conflict with method names
 #ifdef parent
@@ -35,21 +35,21 @@ using namespace mc::advancement;
  */
 class AdvancementTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置触发器
         CriterionTriggers::instance().registerBuiltinTriggers();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
         CriterionTriggers::instance().clear();
     }
 
     // 创建一个简单的测试成就
     Advancement::Ptr createTestAdvancement(
-        const std::string& id,
-        const std::string& parentId = "",
-        bool hasDisplay = true)
+        const std::string& id, const std::string& parentId = "", bool hasDisplay = true)
     {
         Advancement::Builder builder{ResourceLocation(id)};
 
@@ -58,14 +58,13 @@ protected:
         }
 
         if (hasDisplay) {
-            AdvancementDisplay display(
-                ItemStack(),  // 图标
+            AdvancementDisplay display(ItemStack(), // 图标
                 std::make_unique<mc::text::StringTextComponent>("Test Title"),
                 std::make_unique<mc::text::StringTextComponent>("Test Description"),
                 AdvancementFrame::Task,
-                true,  // showToast
-                true,  // announceToChat
-                false  // hidden
+                true, // showToast
+                true, // announceToChat
+                false // hidden
             );
             builder.display(std::move(display));
         }
@@ -80,7 +79,8 @@ protected:
 
 // ========== Advancement 测试 ==========
 
-TEST_F(AdvancementTest, BasicAdvancement) {
+TEST_F(AdvancementTest, BasicAdvancement)
+{
     auto advancement = createTestAdvancement("minecraft:test/advancement");
     ASSERT_NE(advancement, nullptr);
 
@@ -90,7 +90,8 @@ TEST_F(AdvancementTest, BasicAdvancement) {
     EXPECT_FALSE(advancement->getParent().has_value());
 }
 
-TEST_F(AdvancementTest, AdvancementWithParent) {
+TEST_F(AdvancementTest, AdvancementWithParent)
+{
     auto parentAdv = createTestAdvancement("minecraft:test/parent");
     auto child = createTestAdvancement("minecraft:test/child", "minecraft:test/parent");
 
@@ -100,7 +101,8 @@ TEST_F(AdvancementTest, AdvancementWithParent) {
     EXPECT_EQ(child->getParent()->toString(), "minecraft:test/parent");
 }
 
-TEST_F(AdvancementTest, AdvancementFromJson) {
+TEST_F(AdvancementTest, AdvancementFromJson)
+{
     nlohmann::json json = R"({
         "parent": "minecraft:story/root",
         "display": {
@@ -132,7 +134,8 @@ TEST_F(AdvancementTest, AdvancementFromJson) {
     EXPECT_EQ(advancementPtr->getParent()->toString(), "minecraft:story/root");
 }
 
-TEST_F(AdvancementTest, AdvancementToJson) {
+TEST_F(AdvancementTest, AdvancementToJson)
+{
     auto advancement = createTestAdvancement("minecraft:test/advancement");
     ASSERT_NE(advancement, nullptr);
 
@@ -144,7 +147,8 @@ TEST_F(AdvancementTest, AdvancementToJson) {
 
 // ========== AdvancementProgress 测试 ==========
 
-TEST_F(AdvancementTest, CriterionProgress) {
+TEST_F(AdvancementTest, CriterionProgress)
+{
     CriterionProgress progress;
 
     // 初始状态
@@ -162,7 +166,8 @@ TEST_F(AdvancementTest, CriterionProgress) {
     EXPECT_FALSE(progress.getObtainedTime().has_value());
 }
 
-TEST_F(AdvancementTest, AdvancementProgressGrantRevoke) {
+TEST_F(AdvancementTest, AdvancementProgressGrantRevoke)
+{
     // 创建带条件的成就
     Advancement::Builder builder(ResourceLocation("minecraft:test/progress"));
     auto trigger = std::make_shared<ImpossibleTriggerInstance>();
@@ -200,13 +205,14 @@ TEST_F(AdvancementTest, AdvancementProgressGrantRevoke) {
     EXPECT_EQ(progress.countCompletedCriteria(), 1);
 }
 
-TEST_F(AdvancementTest, AdvancementProgressRequirements) {
+TEST_F(AdvancementTest, AdvancementProgressRequirements)
+{
     // 创建带需求的成就（OR关系）
     Advancement::Builder builder(ResourceLocation("minecraft:test/requirements"));
     auto trigger = std::make_shared<ImpossibleTriggerInstance>();
     builder.criterion("a", trigger);
     builder.criterion("b", trigger);
-    builder.requirements({{"a", "b"}});  // OR: 任一满足
+    builder.requirements({{"a", "b"}}); // OR: 任一满足
 
     auto result = builder.build();
     ASSERT_TRUE(result.success());
@@ -224,7 +230,8 @@ TEST_F(AdvancementTest, AdvancementProgressRequirements) {
     EXPECT_TRUE(progress2.isDone());
 }
 
-TEST_F(AdvancementTest, AdvancementProgressSerialization) {
+TEST_F(AdvancementTest, AdvancementProgressSerialization)
+{
     Advancement::Builder builder(ResourceLocation("minecraft:test/serialization"));
     auto trigger = std::make_shared<ImpossibleTriggerInstance>();
     builder.criterion("criterion1", trigger);
@@ -257,7 +264,8 @@ TEST_F(AdvancementTest, AdvancementProgressSerialization) {
 
 // ========== AdvancementManager 测试 ==========
 
-TEST_F(AdvancementTest, ManagerRegisterGet) {
+TEST_F(AdvancementTest, ManagerRegisterGet)
+{
     auto& manager = AdvancementManager::instance();
     manager.clear();
 
@@ -281,7 +289,8 @@ TEST_F(AdvancementTest, ManagerRegisterGet) {
     manager.clear();
 }
 
-TEST_F(AdvancementTest, ManagerHierarchy) {
+TEST_F(AdvancementTest, ManagerHierarchy)
+{
     auto& manager = AdvancementManager::instance();
     manager.clear();
 
@@ -311,9 +320,9 @@ TEST_F(AdvancementTest, ManagerHierarchy) {
 
 // ========== CriterionTrigger 测试 ==========
 
-TEST_F(AdvancementTest, ImpossibleTrigger) {
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(ImpossibleTrigger::TRIGGER_ID));
+TEST_F(AdvancementTest, ImpossibleTrigger)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(ImpossibleTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     // Impossible 触发器不能从 JSON 创建实例
@@ -323,9 +332,9 @@ TEST_F(AdvancementTest, ImpossibleTrigger) {
     EXPECT_NE(result.value(), nullptr);
 }
 
-TEST_F(AdvancementTest, TickTrigger) {
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(TickTrigger::TRIGGER_ID));
+TEST_F(AdvancementTest, TickTrigger)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(TickTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     // Tick 触发器无条件
@@ -338,9 +347,9 @@ TEST_F(AdvancementTest, TickTrigger) {
     EXPECT_EQ(instance->getId().toString(), "minecraft:tick");
 }
 
-TEST_F(AdvancementTest, InventoryChangedTrigger) {
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+TEST_F(AdvancementTest, InventoryChangedTrigger)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     // 创建带条件的实例
@@ -359,7 +368,8 @@ TEST_F(AdvancementTest, InventoryChangedTrigger) {
 
 // ========== ItemPredicate 测试 ==========
 
-TEST_F(AdvancementTest, ItemPredicateBasic) {
+TEST_F(AdvancementTest, ItemPredicateBasic)
+{
     nlohmann::json json = R"({
         "item": "minecraft:diamond",
         "count": {"min": 1, "max": 10}
@@ -375,7 +385,8 @@ TEST_F(AdvancementTest, ItemPredicateBasic) {
     // EXPECT_TRUE(predicate.test(diamond));
 }
 
-TEST_F(AdvancementTest, ItemPredicateAny) {
+TEST_F(AdvancementTest, ItemPredicateAny)
+{
     ItemPredicate any;
     EXPECT_TRUE(any.isAny());
 
@@ -387,7 +398,8 @@ TEST_F(AdvancementTest, ItemPredicateAny) {
 
 // ========== AdvancementList 测试 ==========
 
-TEST_F(AdvancementTest, AdvancementListOperations) {
+TEST_F(AdvancementTest, AdvancementListOperations)
+{
     AdvancementList list;
 
     auto root = createTestAdvancement("minecraft:test/root");
@@ -412,7 +424,8 @@ TEST_F(AdvancementTest, AdvancementListOperations) {
 
 // ========== 集成测试 ==========
 
-TEST_F(AdvancementTest, FullWorkflow) {
+TEST_F(AdvancementTest, FullWorkflow)
+{
     auto& manager = AdvancementManager::instance();
     manager.clear();
 
@@ -442,7 +455,8 @@ TEST_F(AdvancementTest, FullWorkflow) {
 
 // ========== InventoryChangedTriggerInstance 测试 ==========
 
-TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotCounting) {
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotCounting)
+{
     // 创建槽位条件测试
     nlohmann::json conditions = R"({
         "slots": {
@@ -452,8 +466,7 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotCounting) {
         }
     })"_json;
 
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     auto result = trigger->fromJson(conditions);
@@ -469,7 +482,8 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotCounting) {
     EXPECT_TRUE(instance->getItems().empty());
 }
 
-TEST_F(AdvancementTest, InventoryChangedTriggerInstance_ItemPredicateParsing) {
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_ItemPredicateParsing)
+{
     // 创建物品条件测试
     nlohmann::json conditions = R"({
         "items": [
@@ -478,8 +492,7 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_ItemPredicateParsing) {
         ]
     })"_json;
 
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     auto result = trigger->fromJson(conditions);
@@ -493,7 +506,8 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_ItemPredicateParsing) {
     EXPECT_EQ(items.size(), 2);
 }
 
-TEST_F(AdvancementTest, InventoryChangedTriggerInstance_Serialization) {
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_Serialization)
+{
     // 测试序列化和反序列化
     nlohmann::json conditions = R"({
         "slots": {
@@ -503,8 +517,7 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_Serialization) {
         "items": [{"item": "minecraft:gold_ingot"}]
     })"_json;
 
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     auto result = trigger->fromJson(conditions);
@@ -519,7 +532,8 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_Serialization) {
     EXPECT_TRUE(json.contains("items"));
 }
 
-TEST_F(AdvancementTest, InventoryChangedTrigger_HasItemsFactory) {
+TEST_F(AdvancementTest, InventoryChangedTrigger_HasItemsFactory)
+{
     // 使用 JSON 解析来创建 ItemPredicate
     nlohmann::json diamondJson = R"({"item": "minecraft:diamond"})"_json;
     auto result1 = ItemPredicate::fromJson(diamondJson);
@@ -545,12 +559,12 @@ TEST_F(AdvancementTest, InventoryChangedTrigger_HasItemsFactory) {
     EXPECT_EQ(instance2->getItems().size(), 2);
 }
 
-TEST_F(AdvancementTest, InventoryChangedTriggerInstance_AnyMatch) {
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_AnyMatch)
+{
     // 空条件应该匹配任何情况
     nlohmann::json conditions = {};
 
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     auto result = trigger->fromJson(conditions);
@@ -560,15 +574,15 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_AnyMatch) {
     ASSERT_NE(instance, nullptr);
 
     // 创建模拟物品栏（空）
-    std::vector<ItemStack> emptyInventory(41);  // 41 slots
+    std::vector<ItemStack> emptyInventory(41); // 41 slots
 
     // 应该匹配任何情况
-    EXPECT_TRUE(instance->testWithInventory(41, [&emptyInventory](i32 slot) -> const ItemStack& {
-        return emptyInventory[static_cast<std::size_t>(slot)];
-    }));
+    EXPECT_TRUE(instance->testWithInventory(41,
+        [&emptyInventory](i32 slot) -> const ItemStack& { return emptyInventory[static_cast<std::size_t>(slot)]; }));
 }
 
-TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotConditions) {
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotConditions)
+{
     // 测试槽位条件：占用槽位数、满槽位数、空槽位数
     nlohmann::json conditions = R"({
         "slots": {
@@ -578,8 +592,7 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotConditions) {
         }
     })"_json;
 
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     auto result = trigger->fromJson(conditions);
@@ -609,7 +622,8 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotConditions) {
     EXPECT_FALSE(instance->getSlotsEmpty().isUnbounded());
 }
 
-TEST_F(AdvancementTest, InventoryChangedTriggerInstance_MultipleItemPredicates) {
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_MultipleItemPredicates)
+{
     // 测试多个物品谓词：所有谓词都必须匹配
     nlohmann::json conditions = R"({
         "items": [
@@ -618,8 +632,7 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_MultipleItemPredicates) 
         ]
     })"_json;
 
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     auto result = trigger->fromJson(conditions);
@@ -637,12 +650,12 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_MultipleItemPredicates) 
     std::vector<ItemStack> emptyInventory(41);
 
     // 由于物品栏为空，不应该匹配（需要两个物品都有）
-    EXPECT_FALSE(instance->testWithInventory(41, [&emptyInventory](i32 slot) -> const ItemStack& {
-        return emptyInventory[static_cast<std::size_t>(slot)];
-    }));
+    EXPECT_FALSE(instance->testWithInventory(41,
+        [&emptyInventory](i32 slot) -> const ItemStack& { return emptyInventory[static_cast<std::size_t>(slot)]; }));
 }
 
-TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SingleItemPredicate) {
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SingleItemPredicate)
+{
     // 测试单个物品谓词：只需要有一个匹配
     nlohmann::json conditions = R"({
         "items": [
@@ -650,8 +663,7 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SingleItemPredicate) {
         ]
     })"_json;
 
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
 
     auto result = trigger->fromJson(conditions);
@@ -668,9 +680,8 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SingleItemPredicate) {
     std::vector<ItemStack> emptyInventory(41);
 
     // 由于物品栏为空，不应该匹配
-    EXPECT_FALSE(instance->testWithInventory(41, [&emptyInventory](i32 slot) -> const ItemStack& {
-        return emptyInventory[static_cast<std::size_t>(slot)];
-    }));
+    EXPECT_FALSE(instance->testWithInventory(41,
+        [&emptyInventory](i32 slot) -> const ItemStack& { return emptyInventory[static_cast<std::size_t>(slot)]; }));
 }
 
 // main 函数由 gtest_main 库提供

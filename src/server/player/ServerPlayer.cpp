@@ -1,95 +1,97 @@
 #include "ServerPlayer.hpp"
 
-#include "common/network/packet/ProtocolPackets.hpp"
-#include "common/network/packet/TitlePacket.hpp"
-#include "common/network/packet/SleepPacket.hpp"
-#include "common/entity/player/SleepManager.hpp"
-#include "common/entity/player/SpawnPointValidator.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/dimension/DimensionType.hpp"
-#include "common/world/dimension/DimensionManager.hpp"
-#include "common/world/dimension/teleport/Teleporter.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/item/core/Item.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/util/property/Properties.hpp"
-#include "common/util/Direction.hpp"
-#include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/core/Constants.hpp"
+#include "../advancement/PlayerAdvancements.hpp"
+#include "../advancement/TriggerInstantiation.hpp"
+#include "../application/IServer.hpp"
+#include "../application/MinecraftServer.hpp"
+#include "../core/ConnectionManager.hpp"
+#include "../dimension/ServerDimension.hpp"
+#include "../dimension/ServerDimensionManager.hpp"
+#include "../event/ServerEventBus.hpp"
+#include "../event/events/ServerEvents.hpp"
+#include "../world/ServerWorld.hpp"
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
-#include "../advancement/PlayerAdvancements.hpp"
-#include "../advancement/TriggerInstantiation.hpp"
-#include "../event/ServerEventBus.hpp"
-#include "../event/events/ServerEvents.hpp"
-#include "../core/ConnectionManager.hpp"
-#include "../world/ServerWorld.hpp"
-#include "../dimension/ServerDimensionManager.hpp"
-#include "../dimension/ServerDimension.hpp"
-#include "../application/IServer.hpp"
-#include "../application/MinecraftServer.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/player/SleepManager.hpp"
+#include "common/entity/player/SpawnPointValidator.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/SleepPacket.hpp"
+#include "common/network/packet/TitlePacket.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/dimension/teleport/Teleporter.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
 
 ServerPlayer::ServerPlayer(EntityId id, const std::string& name)
-    : Player(id, name) {
+    : Player(id, name)
+{
     initAdvancements();
     setupInventoryCallback();
 }
 
-void ServerPlayer::initAdvancements() {
+void ServerPlayer::initAdvancements()
+{
     m_advancements = std::make_shared<server::PlayerAdvancements>(static_cast<PlayerId>(id()));
 }
 
-void ServerPlayer::setupInventoryCallback() {
+void ServerPlayer::setupInventoryCallback()
+{
     // 设置物品栏变更回调，用于触发成就检测
     inventory().setChangeCallback([this](i32 slot, const ItemStack& oldItem, const ItemStack& newItem) {
         // 发布 InventoryChangedEvent
-        server::event::InventoryChangedEvent event{
-            0,  // timestamp，需要从 world 获取
+        server::event::InventoryChangedEvent event{0, // timestamp，需要从 world 获取
             static_cast<PlayerId>(id()),
             &inventory(),
             slot,
             oldItem.isEmpty() ? nullptr : &oldItem,
-            newItem.isEmpty() ? nullptr : &newItem
-        };
+            newItem.isEmpty() ? nullptr : &newItem};
         server::event::ServerEventBus::instance().publish(event);
     });
 }
 
-void ServerPlayer::sendChatMessage(const std::string& message) {
+void ServerPlayer::sendChatMessage(const std::string& message)
+{
     network::ChatMessagePacket chatPacket(message, static_cast<PlayerId>(id()));
     network::PacketSerializer payload;
     chatPacket.serialize(payload);
 
-    const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
-        network::PacketType::ChatBroadcast,
-        payload.buffer());
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
 
     if (!sendFullPacket(fullPacket)) {
         spdlog::debug("ServerPlayer: chat message not sent (player={}, no connection)", username());
     }
 }
 
-void ServerPlayer::sendSystemMessage(const std::string& message) {
+void ServerPlayer::sendSystemMessage(const std::string& message)
+{
     network::ChatMessagePacket chatPacket(message, 0);
     network::PacketSerializer payload;
     chatPacket.serialize(payload);
 
-    const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
-        network::PacketType::ChatBroadcast,
-        payload.buffer());
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
 
     if (!sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: system message not sent (player={}, no connection)", username());
     }
 }
 
-void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar) {
+void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
+{
     // 参考 MC 1.16.5 PlayerEntity.sendStatusMessage(ITextComponent, boolean)
     // actionBar 参数用于控制消息显示位置：
     // - actionBar = true: 显示在物品栏上方的 Action Bar 区域
@@ -111,9 +113,8 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
             return;
         }
 
-        const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
-            network::PacketType::Title,
-            payloadResult.value());
+        const auto fullPacket =
+            server::core::ConnectionManager::encapsulatePacket(network::PacketType::Title, payloadResult.value());
 
         if (!sendFullPacket(fullPacket)) {
             spdlog::debug("ServerPlayer: actionbar message not sent (player={}, no connection)", username());
@@ -124,38 +125,42 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
     }
 }
 
-void ServerPlayer::syncExperience() {
+void ServerPlayer::syncExperience()
+{
     const auto payloadResult = network::SetExperiencePacket::fromPlayer(*this).serialize();
     if (payloadResult.failed()) {
         spdlog::warn("ServerPlayer: failed to serialize experience packet (player={})", username());
         return;
     }
 
-    const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
-        network::PacketType::SetExperience,
-        payloadResult.value());
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::SetExperience, payloadResult.value());
 
     if (!sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: experience sync skipped (player={}, no connection)", username());
     }
 }
 
-void ServerPlayer::addExperience(i32 amount) {
+void ServerPlayer::addExperience(i32 amount)
+{
     Player::addExperience(amount);
     syncExperience();
 }
 
-void ServerPlayer::setExperienceLevel(i32 level) {
+void ServerPlayer::setExperienceLevel(i32 level)
+{
     Player::setExperienceLevel(level);
     syncExperience();
 }
 
-void ServerPlayer::addExperienceLevels(i32 levels) {
+void ServerPlayer::addExperienceLevels(i32 levels)
+{
     Player::addExperienceLevels(levels);
     syncExperience();
 }
 
-bool ServerPlayer::consumeExperience(i32 amount) {
+bool ServerPlayer::consumeExperience(i32 amount)
+{
     bool result = Player::consumeExperience(amount);
     if (result) {
         syncExperience();
@@ -163,7 +168,8 @@ bool ServerPlayer::consumeExperience(i32 amount) {
     return result;
 }
 
-bool ServerPlayer::consumeExperienceLevels(i32 levels) {
+bool ServerPlayer::consumeExperienceLevels(i32 levels)
+{
     bool result = Player::consumeExperienceLevels(levels);
     if (result) {
         syncExperience();
@@ -171,18 +177,21 @@ bool ServerPlayer::consumeExperienceLevels(i32 levels) {
     return result;
 }
 
-void ServerPlayer::setExperience(i32 level, f32 progress, i32 totalExperience) {
+void ServerPlayer::setExperience(i32 level, f32 progress, i32 totalExperience)
+{
     Player::setExperience(level, progress, totalExperience);
     syncExperience();
 }
 
 // ========== 统计系统实现 ==========
 
-void ServerPlayer::awardCraftedStat(const ResourceLocation& itemId, i32 count) {
+void ServerPlayer::awardCraftedStat(const ResourceLocation& itemId, i32 count)
+{
     m_statistics.incrementCrafted(itemId, count);
 }
 
-void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount) {
+void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
+{
     // MC 1.16.5: 更新合成统计
     if (!stack.isEmpty() && stack.getItem() != nullptr) {
         // 获取物品的资源位置
@@ -196,7 +205,8 @@ void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount) {
     }
 }
 
-void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId) {
+void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
+{
     // MC 1.16.5: 触发配方解锁成就
     // 参考: net.minecraft.advancements.CriteriaTriggers.RECIPE_UNLOCKED.trigger(player, recipe)
     if (m_advancements != nullptr) {
@@ -216,7 +226,8 @@ void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId) {
 
 // ========== 睡眠系统实现 ==========
 
-entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos) {
+entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos)
+{
     // 参考 MC 1.16.5 ServerPlayerEntity.trySleep()
 
     // 1. 检查是否已经在睡眠
@@ -290,13 +301,13 @@ entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos) {
         m_world->updateAllPlayersSleepingFlag();
     }
 
-    spdlog::info("ServerPlayer: player {} started sleeping at ({}, {}, {})",
-                  username(), bedPos.x, bedPos.y, bedPos.z);
+    spdlog::info("ServerPlayer: player {} started sleeping at ({}, {}, {})", username(), bedPos.x, bedPos.y, bedPos.z);
 
     return entity::SleepResult::OK;
 }
 
-void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag) {
+void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag)
+{
     if (!isSleeping()) {
         return;
     }
@@ -311,7 +322,7 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag) {
     if (resetTimer) {
         setSleepTimer(0);
     } else {
-        setSleepTimer(100);  // 用于唤醒动画
+        setSleepTimer(100); // 用于唤醒动画
     }
 
     // [网络同步] 发送唤醒包给客户端
@@ -323,7 +334,8 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag) {
         const BlockState* bedState = m_world->getBlockState(bedPos.value());
         if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
             Direction bedFacing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
-            std::optional<Vector3> wakePos = entity::SleepManager::findWakeUpPosition(*m_world, bedPos.value(), bedFacing);
+            std::optional<Vector3> wakePos =
+                entity::SleepManager::findWakeUpPosition(*m_world, bedPos.value(), bedFacing);
             if (wakePos.has_value()) {
                 setPosition(wakePos.value());
             }
@@ -338,13 +350,15 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag) {
     spdlog::info("ServerPlayer: player {} stopped sleeping", username());
 }
 
-void ServerPlayer::wakeUp() {
+void ServerPlayer::wakeUp()
+{
     stopSleepInBed(true, true);
 }
 
 // ========== 重生系统实现 ==========
 
-Vector3d ServerPlayer::determineRespawnPosition() const {
+Vector3d ServerPlayer::determineRespawnPosition() const
+{
     // 参考 MC 1.16.5 PlayerList.func_232644_a_ (respawnPlayer)
     // 1. 检查玩家个人重生点
     auto spawnPoint = getSpawnPoint();
@@ -366,13 +380,13 @@ Vector3d ServerPlayer::determineRespawnPosition() const {
         if (spawnWorld != nullptr) {
             // 验证重生点是否有效
             // 参考 MC 1.16.5 PlayerEntity.func_242374_a_
-            SpawnPointValidationResult validationResult = SpawnPointValidator::validate(
-                *spawnWorld, spawnPoint.value(), spawnForced, true);
+            SpawnPointValidationResult validationResult =
+                SpawnPointValidator::validate(*spawnWorld, spawnPoint.value(), spawnForced, true);
 
             if (validationResult == SpawnPointValidationResult::Valid) {
                 // 重生点有效，查找安全的生成位置
-                auto safePos = SpawnPointValidator::findSafeSpawnPosition(
-                    *spawnWorld, spawnPoint.value(), spawnForced, true);
+                auto safePos =
+                    SpawnPointValidator::findSafeSpawnPosition(*spawnWorld, spawnPoint.value(), spawnForced, true);
 
                 if (safePos.has_value()) {
                     const Vector3& pos = safePos.value();
@@ -383,7 +397,8 @@ Vector3d ServerPlayer::determineRespawnPosition() const {
             // 重生点无效，清除它并发送消息
             // 参考 MC 1.16.5: 发送 SChangeGameStatePacket.field_241764_a_
             spdlog::info("ServerPlayer: spawn point invalid for player {} (reason: {}), falling back to world spawn",
-                         username(), static_cast<i32>(validationResult));
+                username(),
+                static_cast<i32>(validationResult));
 
             // 如果重生点无效，直接清除它（防止每次重生都检查）
             // 注意：这里使用 const_cast 是因为此方法是 const 的
@@ -401,7 +416,8 @@ Vector3d ServerPlayer::determineRespawnPosition() const {
     return Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
 }
 
-DimensionId ServerPlayer::determineRespawnDimension() const {
+DimensionId ServerPlayer::determineRespawnDimension() const
+{
     // 参考 MC 1.16.5 PlayerList.func_232644_a_ (respawnPlayer)
     // 1. 检查玩家个人重生点的维度
     auto spawnPoint = getSpawnPoint();
@@ -420,8 +436,8 @@ DimensionId ServerPlayer::determineRespawnDimension() const {
 
         if (spawnWorld != nullptr) {
             // 验证重生点
-            SpawnPointValidationResult validationResult = SpawnPointValidator::validate(
-                *spawnWorld, spawnPoint.value(), spawnForced, true);
+            SpawnPointValidationResult validationResult =
+                SpawnPointValidator::validate(*spawnWorld, spawnPoint.value(), spawnForced, true);
 
             if (validationResult == SpawnPointValidationResult::Valid) {
                 return spawnDimId;
@@ -436,7 +452,8 @@ DimensionId ServerPlayer::determineRespawnDimension() const {
     return DimensionId(0);
 }
 
-void ServerPlayer::sendSleepPacket(const BlockPos& bedPos) {
+void ServerPlayer::sendSleepPacket(const BlockPos& bedPos)
+{
     if (!hasConnection()) {
         return;
     }
@@ -448,14 +465,14 @@ void ServerPlayer::sendSleepPacket(const BlockPos& bedPos) {
         return;
     }
 
-    const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
-        network::PacketType::Sleep,
-        payloadResult.value());
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::Sleep, payloadResult.value());
 
     static_cast<void>(sendFullPacket(fullPacket));
 }
 
-void ServerPlayer::sendWakeUpPacket() {
+void ServerPlayer::sendWakeUpPacket()
+{
     if (!hasConnection()) {
         return;
     }
@@ -467,14 +484,14 @@ void ServerPlayer::sendWakeUpPacket() {
         return;
     }
 
-    const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
-        network::PacketType::Sleep,
-        payloadResult.value());
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::Sleep, payloadResult.value());
 
     static_cast<void>(sendFullPacket(fullPacket));
 }
 
-bool ServerPlayer::sendFullPacket(const std::vector<u8>& packet) const {
+bool ServerPlayer::sendFullPacket(const std::vector<u8>& packet) const
+{
     if (!hasConnection()) {
         return false;
     }
@@ -485,7 +502,8 @@ bool ServerPlayer::sendFullPacket(const std::vector<u8>& packet) const {
 
 // ========== 维度传送实现 ==========
 
-bool ServerPlayer::onPortalTriggered() {
+bool ServerPlayer::onPortalTriggered()
+{
     // 参考 MC 1.16.5 ServerPlayerEntity.tickPortal()
     // 当传送门触发时，确定目标维度并传送
 
@@ -515,7 +533,8 @@ bool ServerPlayer::onPortalTriggered() {
     return changeDimension(targetDim);
 }
 
-bool ServerPlayer::changeDimension(DimensionId targetDim) {
+bool ServerPlayer::changeDimension(DimensionId targetDim)
+{
     // 参考 MC 1.16.5 ServerPlayerEntity.changeDimension()
 
     if (m_server == nullptr) {
@@ -529,7 +548,7 @@ bool ServerPlayer::changeDimension(DimensionId targetDim) {
 
     // 清除乘客（复制列表以避免迭代时修改）
     if (hasPassengers()) {
-        auto passengers = getPassengers();  // 复制
+        auto passengers = getPassengers(); // 复制
         for (EntityId passengerId : passengers) {
             if (m_world != nullptr) {
                 if (Entity* passenger = m_world->getEntity(passengerId)) {
@@ -543,10 +562,8 @@ bool ServerPlayer::changeDimension(DimensionId targetDim) {
     Vector3d currentPos(position().x, position().y, position().z);
 
     // 计算目标位置（坐标转换）
-    Vector3d targetPos = Teleporter::transformPosition(
-        currentPos,
-        DimensionType::fromId(currentDim),
-        DimensionType::fromId(targetDim));
+    Vector3d targetPos =
+        Teleporter::transformPosition(currentPos, DimensionType::fromId(currentDim), DimensionType::fromId(targetDim));
 
     // 根据 MC 1.16.5 逻辑：
     // 下界传送：搜索已存在的传送门，找不到则创建
@@ -573,20 +590,23 @@ bool ServerPlayer::changeDimension(DimensionId targetDim) {
                     // 找到已存在的传送门，使用其位置
                     targetPos = portalInfo->position;
                     spdlog::debug("ServerPlayer: found existing portal at ({:.1f}, {:.1f}, {:.1f})",
-                                  targetPos.x, targetPos.y, targetPos.z);
+                        targetPos.x,
+                        targetPos.y,
+                        targetPos.z);
                 } else {
                     // 没找到传送门，创建新传送门
                     PortalInfo newPortal = teleporter.createPortal(*targetWorld, targetPos);
                     if (newPortal.valid) {
                         targetPos = newPortal.position;
                         // 记录传送门位置
-                        BlockPos portalBlock(
-                            math::floorTo<BlockCoord>(targetPos.x),
+                        BlockPos portalBlock(math::floorTo<BlockCoord>(targetPos.x),
                             math::floorTo<BlockCoord>(targetPos.y),
                             math::floorTo<BlockCoord>(targetPos.z));
                         targetDimension->recordPortalPosition(portalBlock);
                         spdlog::info("ServerPlayer: created new portal at ({:.1f}, {:.1f}, {:.1f})",
-                                     targetPos.x, targetPos.y, targetPos.z);
+                            targetPos.x,
+                            targetPos.y,
+                            targetPos.z);
                     }
                 }
             }
@@ -600,19 +620,21 @@ bool ServerPlayer::changeDimension(DimensionId targetDim) {
     triggerPortalCooldown();
 
     spdlog::info("ServerPlayer: {} teleporting from dimension {} to {} at ({:.1f}, {:.1f}, {:.1f})",
-                  username(), currentDim, targetDim, targetPos.x, targetPos.y, targetPos.z);
+        username(),
+        currentDim,
+        targetDim,
+        targetPos.x,
+        targetPos.y,
+        targetPos.z);
 
     // 通过 ServerDimensionManager 执行实际的维度切换
     PlayerId playerId = static_cast<PlayerId>(id());
-    bool success = m_server->dimensionManager().transferPlayerToDimension(
-        playerId, targetDim, targetPos);
+    bool success = m_server->dimensionManager().transferPlayerToDimension(playerId, targetDim, targetPos);
 
     if (success) {
         // 更新实体的维度属性
         setDimension(targetDim);
-        setPosition(static_cast<f32>(targetPos.x),
-                    static_cast<f32>(targetPos.y),
-                    static_cast<f32>(targetPos.z));
+        setPosition(static_cast<f32>(targetPos.x), static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z));
     }
 
     return success;

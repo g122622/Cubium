@@ -1,16 +1,17 @@
 #include "StemBlock.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 #include <algorithm>
 #include <functional>
 
 namespace {
 
-[[nodiscard]] mc::i32 getBonemealAgeIncrease(const mc::IWorld& world, const mc::BlockPos& pos) {
+[[nodiscard]] mc::i32 getBonemealAgeIncrease(const mc::IWorld& world, const mc::BlockPos& pos)
+{
     const mc::u64 seed = world.seed() ^ static_cast<mc::u64>(std::hash<mc::BlockPos>{}(pos));
     mc::math::Random random(seed);
     return 2 + random.nextInt(4);
@@ -25,14 +26,15 @@ namespace blocks {
 
 StemBlock::StemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
     : BushBlock(properties)
-    , m_crop(crop) {
+    , m_crop(crop)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::AGE_0_7())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::AGE_0_7())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -49,26 +51,28 @@ StemBlock::StemBlock(const StemGrownBlock* crop, const BlockProperties& properti
     }
 }
 
-int StemBlock::getAge(const BlockState& state) const {
+int StemBlock::getAge(const BlockState& state) const
+{
     return state.get(BlockStateProperties::AGE_0_7());
 }
 
-const BlockState& StemBlock::withAge(int age) const {
+const BlockState& StemBlock::withAge(int age) const
+{
     return defaultState().with(BlockStateProperties::AGE_0_7(), std::min(age, getMaxAge()));
 }
 
-bool StemBlock::isMaxAge(const BlockState& state) const {
+bool StemBlock::isMaxAge(const BlockState& state) const
+{
     return getAge(state) >= getMaxAge();
 }
 
-BlockState StemBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState StemBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState().with(BlockStateProperties::AGE_0_7(), 0);
 }
 
-bool StemBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool StemBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -83,7 +87,8 @@ bool StemBlock::isValidPosition(
     return canSustain(*belowState, world, belowPos);
 }
 
-void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     // 如果已经成熟，尝试生成果实
     if (isMaxAge(state)) {
         tryGrowFruit(state, world, pos, random);
@@ -117,11 +122,8 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
 // ========== IGrowable 接口实现 ==========
 
-bool StemBlock::canGrow(
-    IBlockReader& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    bool isClientSide) const {
+bool StemBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -131,11 +133,8 @@ bool StemBlock::canGrow(
     return !isMaxAge(state);
 }
 
-bool StemBlock::canUseBonemeal(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) const {
+bool StemBlock::canUseBonemeal(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(random);
@@ -145,11 +144,8 @@ bool StemBlock::canUseBonemeal(
     return true;
 }
 
-void StemBlock::grow(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) {
+void StemBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
 
     MC_UNUSED(random);
 
@@ -165,21 +161,21 @@ void StemBlock::grow(
     }
 }
 
-void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     math::Random random(world.seed());
     grow(world, random, pos, state);
 }
 
-const CollisionShape& StemBlock::getShape(const BlockState& state) const {
+const CollisionShape& StemBlock::getShape(const BlockState& state) const
+{
     int age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 7);
     return m_shapesByAge[age];
 }
 
-bool StemBlock::canSustain(
-    const BlockState& groundState,
-    IWorld& world,
-    const BlockPos& groundPos) const {
+bool StemBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
@@ -187,7 +183,8 @@ bool StemBlock::canSustain(
     return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
 }
 
-bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random) {
+bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random)
+{
     MC_UNUSED(state);
 
     // 随机选择一个水平方向
@@ -210,8 +207,7 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
         return false;
     }
 
-    const bool canSupportFruit =
-        (VanillaBlocks::FARMLAND != nullptr && belowFruitState->is(VanillaBlocks::FARMLAND)) ||
+    const bool canSupportFruit = (VanillaBlocks::FARMLAND != nullptr && belowFruitState->is(VanillaBlocks::FARMLAND)) ||
         (VanillaBlocks::DIRT != nullptr && belowFruitState->is(VanillaBlocks::DIRT)) ||
         (VanillaBlocks::GRASS_BLOCK != nullptr && belowFruitState->is(VanillaBlocks::GRASS_BLOCK));
     if (!canSupportFruit) {
@@ -226,8 +222,8 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
         // 将茎变为连接茎，朝向果实方向
         const Block* attachedStem = m_crop->getAttachedStem();
         if (attachedStem != nullptr) {
-            const BlockState& stemState = attachedStem->defaultState()
-                .with(BlockStateProperties::HORIZONTAL_FACING(), dir);
+            const BlockState& stemState =
+                attachedStem->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), dir);
             world.setBlockState(pos, &stemState, 3);
         }
 
@@ -241,14 +237,15 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
 
 AttachedStemBlock::AttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
     : BushBlock(properties)
-    , m_crop(crop) {
+    , m_crop(crop)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -260,8 +257,7 @@ AttachedStemBlock::AttachedStemBlock(const StemGrownBlock* crop, const BlockProp
     constexpr f32 P = 1.0f / 16.0f;
 
     // North: (6, 0, 0) -> (10, 10, 10)
-    m_shapesByDirection[Direction::North] =
-        CollisionShape::box(6.0f * P, 0.0f, 0.0f, 10.0f * P, 10.0f * P, 10.0f * P);
+    m_shapesByDirection[Direction::North] = CollisionShape::box(6.0f * P, 0.0f, 0.0f, 10.0f * P, 10.0f * P, 10.0f * P);
 
     // South: (6, 0, 6) -> (10, 10, 16)
     m_shapesByDirection[Direction::South] =
@@ -276,17 +272,18 @@ AttachedStemBlock::AttachedStemBlock(const StemGrownBlock* crop, const BlockProp
         CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 16.0f * P, 10.0f * P, 10.0f * P);
 }
 
-BlockState AttachedStemBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState AttachedStemBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection());
 }
 
-BlockState AttachedStemBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState AttachedStemBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(world);
     MC_UNUSED(currentPos);
@@ -311,7 +308,8 @@ BlockState AttachedStemBlock::updatePostPlacement(
     return BushBlock::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
 }
 
-const CollisionShape& AttachedStemBlock::getShape(const BlockState& state) const {
+const CollisionShape& AttachedStemBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     auto it = m_shapesByDirection.find(facing);
     if (it != m_shapesByDirection.end()) {
@@ -321,13 +319,15 @@ const CollisionShape& AttachedStemBlock::getShape(const BlockState& state) const
     return m_shapesByDirection.at(Direction::North);
 }
 
-const BlockState& AttachedStemBlock::rotate(const BlockState& state, Rotation rotation) const {
+const BlockState& AttachedStemBlock::rotate(const BlockState& state, Rotation rotation) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
-const BlockState& AttachedStemBlock::mirror(const BlockState& state, Mirror mirror) const {
+const BlockState& AttachedStemBlock::mirror(const BlockState& state, Mirror mirror) const
+{
     if (mirror == Mirror::None) {
         return state;
     }

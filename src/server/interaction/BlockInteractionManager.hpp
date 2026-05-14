@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/util/Direction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <functional>
 #include <optional>
 
@@ -17,10 +17,10 @@ namespace loot {
 class LootTableManager;
 }
 namespace server {
-struct ServerPlayerData;  // 前向声明（struct 而非 class）
+struct ServerPlayerData; // 前向声明（struct 而非 class）
 class IServer;
-}
-}
+} // namespace server
+} // namespace mc
 
 namespace mc::server {
 
@@ -29,7 +29,7 @@ class ServerWorld;
 namespace core {
 class PlayerManager;
 class ConnectionManager;
-}
+} // namespace core
 namespace interaction {
 class InventoryManager;
 }
@@ -80,9 +80,8 @@ public:
     /**
      * @brief 构造函数
      */
-    BlockInteractionManager(ServerWorld& world,
-                           core::PlayerManager& playerManager,
-                           loot::LootTableManager& lootTableManager);
+    BlockInteractionManager(
+        ServerWorld& world, core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager);
 
     /**
      * @brief 设置物品栏管理器（用于物品消耗）
@@ -103,9 +102,7 @@ public:
      * @return 交互结果
      */
     [[nodiscard]] Result<BlockInteractionResult> handleBlockInteraction(
-        PlayerId playerId,
-        const BlockPos& pos,
-        network::BlockInteractionAction action);
+        PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action);
 
     /**
      * @brief 处理方块放置数据包
@@ -117,11 +114,7 @@ public:
      * @return 放置结果
      */
     [[nodiscard]] Result<BlockPlacementResult> handleBlockPlacement(
-        PlayerId playerId,
-        const BlockPos& pos,
-        const Vector3& hitPos,
-        Direction face,
-        const ItemStack& heldItem);
+        PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, const ItemStack& heldItem);
 
     /**
      * @brief 处理方块使用（右键激活）
@@ -133,11 +126,7 @@ public:
      * @return 交互结果
      */
     [[nodiscard]] Result<BlockInteractionResult> handleBlockUse(
-        PlayerId playerId,
-        const BlockPos& pos,
-        Hand hand,
-        const Vector3& hitPos,
-        Direction face);
+        PlayerId playerId, const BlockPos& pos, Hand hand, const Vector3& hitPos, Direction face);
 
     /**
      * @brief 处理方块破坏（挖掘完成）
@@ -145,9 +134,7 @@ public:
      * @param pos 方块位置
      * @return 破坏结果
      */
-    [[nodiscard]] Result<BlockBreakResult> handleBlockBreak(
-        PlayerId playerId,
-        const BlockPos& pos);
+    [[nodiscard]] Result<BlockBreakResult> handleBlockBreak(PlayerId playerId, const BlockPos& pos);
 
     /**
      * @brief 设置方块破坏回调
@@ -181,9 +168,7 @@ private:
      * @return 错误信息，如果检查通过则返回 std::nullopt
      */
     [[nodiscard]] std::optional<Error> validateInteractionPreconditions(
-        PlayerId playerId,
-        const BlockPos& pos,
-        bool checkYRange = true) const;
+        PlayerId playerId, const BlockPos& pos, bool checkYRange = true) const;
 
     /**
      * @brief 获取方块状态并检查是否为空气
@@ -236,9 +221,7 @@ private:
      * 用于阻止将有碰撞体的方块放置到玩家体内。
      */
     [[nodiscard]] bool wouldCollideWithPlayer(
-        PlayerId playerId,
-        const BlockPos& placePos,
-        const BlockState& state) const;
+        PlayerId playerId, const BlockPos& placePos, const BlockState& state) const;
 
     /**
      * @brief 生成方块掉落物

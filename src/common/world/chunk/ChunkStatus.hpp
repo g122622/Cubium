@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include <array>
 #include <functional>
+#include <set>
 #include <string>
 #include <vector>
-#include <array>
-#include <set>
 
 namespace mc {
 
@@ -15,7 +15,7 @@ class ChunkPrimer;
 
 // 前向声明 server 命名空间中的类
 namespace server {
-    class ServerWorld;
+class ServerWorld;
 }
 
 // ============================================================================
@@ -28,10 +28,7 @@ namespace server {
  * PROTOCHUNK: 原型区块（生成中的区块）
  * LEVELCHUNK: 完整区块（可加载的区块）
  */
-enum class ChunkType : u8 {
-    PROTOCHUNK,
-    LEVELCHUNK
-};
+enum class ChunkType : u8 { PROTOCHUNK, LEVELCHUNK };
 
 // ============================================================================
 // 高度图类型标志
@@ -43,14 +40,14 @@ enum class ChunkType : u8 {
  * 用于指定区块生成阶段需要更新的高度图类型
  */
 enum class HeightmapFlag : u32 {
-    NONE            = 0,
-    WORLD_SURFACE_WG    = 1 << 0,   // 世界表面（生成时）
-    OCEAN_FLOOR_WG      = 1 << 1,   // 海底（生成时）
-    WORLD_SURFACE       = 1 << 2,   // 世界表面
-    OCEAN_FLOOR         = 1 << 3,   // 海底
-    MOTION_BLOCKING     = 1 << 4,   // 阻挡运动
-    MOTION_BLOCKING_NO_LEAVES = 1 << 5,  // 阻挡运动（不含树叶）
-    LIGHT_BLOCKING      = 1 << 6,   // 光照阻挡
+    NONE = 0,
+    WORLD_SURFACE_WG = 1 << 0,          // 世界表面（生成时）
+    OCEAN_FLOOR_WG = 1 << 1,            // 海底（生成时）
+    WORLD_SURFACE = 1 << 2,             // 世界表面
+    OCEAN_FLOOR = 1 << 3,               // 海底
+    MOTION_BLOCKING = 1 << 4,           // 阻挡运动
+    MOTION_BLOCKING_NO_LEAVES = 1 << 5, // 阻挡运动（不含树叶）
+    LIGHT_BLOCKING = 1 << 6,            // 光照阻挡
 
     // 预定义组合
     PRE_FEATURES = WORLD_SURFACE_WG | OCEAN_FLOOR_WG,
@@ -58,20 +55,24 @@ enum class HeightmapFlag : u32 {
 };
 
 // 位运算操作符
-inline constexpr HeightmapFlag operator|(HeightmapFlag a, HeightmapFlag b) {
+inline constexpr HeightmapFlag operator|(HeightmapFlag a, HeightmapFlag b)
+{
     return static_cast<HeightmapFlag>(static_cast<u32>(a) | static_cast<u32>(b));
 }
 
-inline constexpr HeightmapFlag operator&(HeightmapFlag a, HeightmapFlag b) {
+inline constexpr HeightmapFlag operator&(HeightmapFlag a, HeightmapFlag b)
+{
     return static_cast<HeightmapFlag>(static_cast<u32>(a) & static_cast<u32>(b));
 }
 
-inline constexpr HeightmapFlag& operator|=(HeightmapFlag& a, HeightmapFlag b) {
+inline constexpr HeightmapFlag& operator|=(HeightmapFlag& a, HeightmapFlag b)
+{
     a = a | b;
     return a;
 }
 
-inline constexpr bool hasFlag(HeightmapFlag flags, HeightmapFlag flag) {
+inline constexpr bool hasFlag(HeightmapFlag flags, HeightmapFlag flag)
+{
     return (static_cast<u32>(flags) & static_cast<u32>(flag)) != 0;
 }
 
@@ -102,12 +103,10 @@ public:
      * @param chunk 要处理的区块
      * @param neighbors 邻居区块数组（可能为空）
      */
-    using SelectiveTask = std::function<void(
-        server::ServerWorld& world,
+    using SelectiveTask = std::function<void(server::ServerWorld& world,
         class IChunkGenerator& generator,
         ChunkPrimer& chunk,
-        const std::array<IChunk*, 8>& neighbors
-    )>;
+        const std::array<IChunk*, 8>& neighbors)>;
 
     /**
      * @brief 简单生成任务（不需要邻居区块）
@@ -115,11 +114,8 @@ public:
      * @param generator 区块生成器
      * @param chunk 要处理的区块
      */
-    using SimpleTask = std::function<void(
-        server::ServerWorld& world,
-        class IChunkGenerator& generator,
-        ChunkPrimer& chunk
-    )>;
+    using SimpleTask =
+        std::function<void(server::ServerWorld& world, class IChunkGenerator& generator, ChunkPrimer& chunk)>;
 
     // === 构造函数 ===
 
@@ -134,14 +130,12 @@ public:
      * @param heightmaps 此阶段更新的高度图
      * @param type 区块类型
      */
-    ChunkStatus(
-        const std::string& name,
+    ChunkStatus(const std::string& name,
         i32 ordinal,
         const ChunkStatus* parent,
         i32 taskRange,
         HeightmapFlag heightmaps,
-        ChunkType type
-    );
+        ChunkType type);
 
     // === 属性访问 ===
 
@@ -157,16 +151,12 @@ public:
     /**
      * @brief 检查此状态是否达到或超过指定状态
      */
-    [[nodiscard]] bool isAtLeast(const ChunkStatus& status) const {
-        return m_ordinal >= status.m_ordinal;
-    }
+    [[nodiscard]] bool isAtLeast(const ChunkStatus& status) const { return m_ordinal >= status.m_ordinal; }
 
     /**
      * @brief 检查此状态是否低于指定状态
      */
-    [[nodiscard]] bool isBefore(const ChunkStatus& status) const {
-        return m_ordinal < status.m_ordinal;
-    }
+    [[nodiscard]] bool isBefore(const ChunkStatus& status) const { return m_ordinal < status.m_ordinal; }
 
     // === 静态方法 ===
 
@@ -208,29 +198,17 @@ public:
 
     // === 比较运算符 ===
 
-    bool operator==(const ChunkStatus& other) const {
-        return m_ordinal == other.m_ordinal;
-    }
+    bool operator==(const ChunkStatus& other) const { return m_ordinal == other.m_ordinal; }
 
-    bool operator!=(const ChunkStatus& other) const {
-        return m_ordinal != other.m_ordinal;
-    }
+    bool operator!=(const ChunkStatus& other) const { return m_ordinal != other.m_ordinal; }
 
-    bool operator<(const ChunkStatus& other) const {
-        return m_ordinal < other.m_ordinal;
-    }
+    bool operator<(const ChunkStatus& other) const { return m_ordinal < other.m_ordinal; }
 
-    bool operator<=(const ChunkStatus& other) const {
-        return m_ordinal <= other.m_ordinal;
-    }
+    bool operator<=(const ChunkStatus& other) const { return m_ordinal <= other.m_ordinal; }
 
-    bool operator>(const ChunkStatus& other) const {
-        return m_ordinal > other.m_ordinal;
-    }
+    bool operator>(const ChunkStatus& other) const { return m_ordinal > other.m_ordinal; }
 
-    bool operator>=(const ChunkStatus& other) const {
-        return m_ordinal >= other.m_ordinal;
-    }
+    bool operator>=(const ChunkStatus& other) const { return m_ordinal >= other.m_ordinal; }
 
 private:
     std::string m_name;

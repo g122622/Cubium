@@ -24,15 +24,14 @@ SmokeParticle::SmokeParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> SmokeParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SmokeParticle>(pos, velocity);
 }
 
-void SmokeParticle::tick(mc::client::ClientWorld* world) {
+void SmokeParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -47,7 +46,7 @@ void SmokeParticle::tick(mc::client::ClientWorld* world) {
     mc::math::Random rng;
     m_velocity.x += (rng.nextFloat() - 0.5f) * 0.005f;
     m_velocity.z += (rng.nextFloat() - 0.5f) * 0.005f;
-    m_velocity.y += 0.001f;  // 轻微向上
+    m_velocity.y += 0.001f; // 轻微向上
 
     m_position += m_velocity;
     m_velocity *= m_friction;
@@ -61,7 +60,8 @@ void SmokeParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = 0.8f * (1.0f - lifeRatio);
 }
 
-f64 SmokeParticle::getScale(f64 partialTick) const {
+f64 SmokeParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }

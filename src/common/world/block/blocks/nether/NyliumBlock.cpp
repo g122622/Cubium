@@ -1,7 +1,7 @@
 #include "NyliumBlock.hpp"
+#include "../../../../util/math/random/IRandom.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../../util/math/random/IRandom.hpp"
 
 namespace mc::blocks {
 
@@ -10,16 +10,13 @@ namespace mc::blocks {
 // ============================================================================
 
 NyliumBlock::NyliumBlock(BlockProperties properties)
-    : Block(std::move(properties)) {
-}
+    : Block(std::move(properties))
+{}
 
-void NyliumBlock::randomTick(
-    IWorld& world,
-    const BlockPos& pos,
-    BlockState& state,
-    math::IRandom& random) {
+void NyliumBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
 
-    MC_UNUSED(random);  // 退化不需要随机数
+    MC_UNUSED(random); // 退化不需要随机数
 
     // 参考: MC 1.16.5 NyliumBlock.randomTick()
     // 如果位置不够暗，退化为下界岩
@@ -32,12 +29,10 @@ void NyliumBlock::randomTick(
     }
 }
 
-bool NyliumBlock::isDarkEnough(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state) {
+bool NyliumBlock::isDarkEnough(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
 
-    MC_UNUSED(state);  // 暂时未使用
+    MC_UNUSED(state); // 暂时未使用
 
     // 参考: MC 1.16.5 NyliumBlock.isDarkEnough()
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);

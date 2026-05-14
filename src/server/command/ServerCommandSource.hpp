@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/command/CommandSource.hpp"
 #include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandSource.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc {
 
@@ -16,7 +16,7 @@ class ServerPlayer;
 namespace server {
 class ServerWorld;
 class IServer;
-}
+} // namespace server
 
 namespace command {
 
@@ -41,21 +41,18 @@ public:
      * @param rotation 朝向
      * @param permissionLevel 权限等级 (0-4)
      */
-    ServerCommandSource(
-        server::IServer* server,
+    ServerCommandSource(server::IServer* server,
         ServerPlayer* player = nullptr,
         server::ServerWorld* world = nullptr,
         const Vector3d& position = Vector3d(0, 0, 0),
         const Vector2f& rotation = Vector2f(0, 0),
         i32 permissionLevel = 0,
         PlayerId playerId = 0,
-        std::string playerName = ""
-    );
+        std::string playerName = "");
 
     // ========== ICommandSource 接口实现 ==========
 
-    void sendMessage(const std::string& message,
-                    const std::optional<Uuid>& senderUuid = std::nullopt) override;
+    void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) override;
 
     /**
      * @brief 发送错误消息
@@ -106,9 +103,7 @@ public:
      * @param level 要求的权限等级
      * @return true 如果有足够权限
      */
-    [[nodiscard]] bool hasPermission(i32 level) const noexcept {
-        return m_permissionLevel >= level;
-    }
+    [[nodiscard]] bool hasPermission(i32 level) const noexcept { return m_permissionLevel >= level; }
 
     // ========== 显示名称 ==========
 

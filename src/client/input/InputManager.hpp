@@ -2,9 +2,9 @@
 
 #include "common/core/Types.hpp"
 
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
-#include <functional>
 
 // 前向声明
 struct GLFWwindow;

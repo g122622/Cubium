@@ -36,8 +36,7 @@ bool checkLightLevel(i32 skyLight, i32 blockLight, bool isMonster);
  * @param entityHeight 实体高度
  * @return 是否可以生成
  */
-bool canSpawnAtPosition(IWorld& world, i32 x, i32 y, i32 z,
-                        f32 entityWidth, f32 entityHeight);
+bool canSpawnAtPosition(IWorld& world, i32 x, i32 y, i32 z, f32 entityWidth, f32 entityHeight);
 
 /**
  * @brief 检查位置是否有足够的碰撞空间
@@ -47,8 +46,7 @@ bool canSpawnAtPosition(IWorld& world, i32 x, i32 y, i32 z,
  * @param height 实体高度
  * @return 是否有足够空间
  */
-bool hasCollisionSpace(IWorld& world, i32 x, i32 y, i32 z,
-                       f32 width, f32 height);
+bool hasCollisionSpace(IWorld& world, i32 x, i32 y, i32 z, f32 width, f32 height);
 
 /**
  * @brief 检查方块是否阻止生成
@@ -84,5 +82,5 @@ bool isInLava(IWorld& world, i32 x, i32 y, i32 z);
 
 } // namespace SpawnConditions
 
-} // namespace mc::world::spawn
+} // namespace world::spawn
 } // namespace mc

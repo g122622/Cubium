@@ -1,23 +1,23 @@
 #include "MinecartEntity.hpp"
+#include "../../../item/Items.hpp"
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/blocks/redstone/DetectorRailBlock.hpp"
 #include "../../../world/block/blocks/redstone/ActivatorRailBlock.hpp"
+#include "../../../world/block/blocks/redstone/DetectorRailBlock.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/blockentity/transport/HopperEntity.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../../world/redstone/RedstonePower.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../player/Player.hpp"
-#include "../item/ItemEntity.hpp"
-#include "../../utils/ItemDropHelper.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../inventory/IInventory.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../utils/ItemDropHelper.hpp"
+#include "../item/ItemEntity.hpp"
+#include "../player/Player.hpp"
 #include <cmath>
 
 namespace mc {
@@ -27,22 +27,22 @@ using namespace mc::math;
 using blocks::AbstractRailBlock;
 
 namespace {
-    // MC 1.16.5 矿车常量
-    constexpr f64 MINECART_MAX_SPEED_ON_RAIL = 2.0;      // moveAlongTrack 中的最大速度
-    constexpr f64 RAIL_HEIGHT_OFFSET = 0.0625;           // 1/16 方块高度偏移
-    constexpr f64 RAIL_POSITION_SCALE = 2.0;             // 铁轨位置缩放因子
-    constexpr f64 UNPOWERED_RAIL_STOP_THRESHOLD = 0.03; // 未充能铁轨停止阈值
-    constexpr f64 PLAYER_PUSH_THRESHOLD = 0.01;         // 玩家推动阈值
-    constexpr f64 PLAYER_PUSH_FACTOR = 0.1;             // 玩家推动系数
+// MC 1.16.5 矿车常量
+constexpr f64 MINECART_MAX_SPEED_ON_RAIL = 2.0;     // moveAlongTrack 中的最大速度
+constexpr f64 RAIL_HEIGHT_OFFSET = 0.0625;          // 1/16 方块高度偏移
+constexpr f64 RAIL_POSITION_SCALE = 2.0;            // 铁轨位置缩放因子
+constexpr f64 UNPOWERED_RAIL_STOP_THRESHOLD = 0.03; // 未充能铁轨停止阈值
+constexpr f64 PLAYER_PUSH_THRESHOLD = 0.01;         // 玩家推动阈值
+constexpr f64 PLAYER_PUSH_FACTOR = 0.1;             // 玩家推动系数
 
-    // MC 1.16.5 AbstractMinecartEntity 数据参数
-    entity::DataParameter<i32> ROLLING_AMPLITUDE_PARAM{0};
-    entity::DataParameter<i32> ROLLING_DIRECTION_PARAM{1};
-    entity::DataParameter<f32> DAMAGE_PARAM{2};
-    entity::DataParameter<i32> DISPLAY_TILE_PARAM{3};
-    entity::DataParameter<i32> DISPLAY_TILE_OFFSET_PARAM{4};
-    entity::DataParameter<bool> SHOW_BLOCK_PARAM{5};
-}
+// MC 1.16.5 AbstractMinecartEntity 数据参数
+entity::DataParameter<i32> ROLLING_AMPLITUDE_PARAM{0};
+entity::DataParameter<i32> ROLLING_DIRECTION_PARAM{1};
+entity::DataParameter<f32> DAMAGE_PARAM{2};
+entity::DataParameter<i32> DISPLAY_TILE_PARAM{3};
+entity::DataParameter<i32> DISPLAY_TILE_OFFSET_PARAM{4};
+entity::DataParameter<bool> SHOW_BLOCK_PARAM{5};
+} // namespace
 
 // ============================================================================
 // AbstractMinecartEntity
@@ -63,19 +63,21 @@ AbstractMinecartEntity::AbstractMinecartEntity(Type type)
     registerData();
 }
 
-void AbstractMinecartEntity::registerData() {
+void AbstractMinecartEntity::registerData()
+{
     // MC 1.16.5 AbstractMinecartEntity.registerData()
     Entity::registerData();
 
     m_dataManager.registerParam(ROLLING_AMPLITUDE_PARAM, 0);
     m_dataManager.registerParam(ROLLING_DIRECTION_PARAM, 1);
     m_dataManager.registerParam(DAMAGE_PARAM, 0.0f);
-    m_dataManager.registerParam(DISPLAY_TILE_PARAM, 0);  // 空气方块状态ID
+    m_dataManager.registerParam(DISPLAY_TILE_PARAM, 0); // 空气方块状态ID
     m_dataManager.registerParam(DISPLAY_TILE_OFFSET_PARAM, 6);
     m_dataManager.registerParam(SHOW_BLOCK_PARAM, false);
 }
 
-void AbstractMinecartEntity::tick() {
+void AbstractMinecartEntity::tick()
+{
     // MC 1.16.5 AbstractMinecartEntity.tick()
 
     // 更新摇晃动画
@@ -108,7 +110,8 @@ void AbstractMinecartEntity::tick() {
     Entity::tick();
 }
 
-bool AbstractMinecartEntity::isOnRailAt(const BlockPos& pos) const {
+bool AbstractMinecartEntity::isOnRailAt(const BlockPos& pos) const
+{
     // MC 1.16.5: 检查指定位置是否有铁轨
     const IWorld* worldPtr = world();
     if (!worldPtr) {
@@ -121,19 +124,16 @@ bool AbstractMinecartEntity::isOnRailAt(const BlockPos& pos) const {
     }
 
     // 检查是否为铁轨类方块
-    return state->is(VanillaBlocks::RAIL) ||
-           state->is(VanillaBlocks::POWERED_RAIL) ||
-           state->is(VanillaBlocks::DETECTOR_RAIL) ||
-           state->is(VanillaBlocks::ACTIVATOR_RAIL);
+    return state->is(VanillaBlocks::RAIL) || state->is(VanillaBlocks::POWERED_RAIL) ||
+        state->is(VanillaBlocks::DETECTOR_RAIL) || state->is(VanillaBlocks::ACTIVATOR_RAIL);
 }
 
-void AbstractMinecartEntity::checkRailState() {
+void AbstractMinecartEntity::checkRailState()
+{
     // MC 1.16.5: 检查当前位置或下方一格是否有铁轨
-    BlockPos currentPos(
-        static_cast<BlockCoord>(std::floor(x())),
+    BlockPos currentPos(static_cast<BlockCoord>(std::floor(x())),
         static_cast<BlockCoord>(std::floor(y())),
-        static_cast<BlockCoord>(std::floor(z()))
-    );
+        static_cast<BlockCoord>(std::floor(z())));
 
     // 检查当前方块
     if (isOnRailAt(currentPos)) {
@@ -164,7 +164,8 @@ void AbstractMinecartEntity::checkRailState() {
     m_onRail = false;
 }
 
-void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
+void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos)
+{
     // MC 1.16.5 AbstractMinecartEntity.moveAlongTrack()
     // 行431: 矿车在铁轨上不会积累摔落伤害
     setFallDistance(0.0f);
@@ -202,7 +203,7 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
     const AbstractRailBlock* abstractRailBlock = dynamic_cast<const AbstractRailBlock*>(railBlock);
     if (abstractRailBlock) {
         railshape = abstractRailBlock->getRailShape(*railState);
-        m_railShape = railshape;  // 更新缓存
+        m_railShape = railshape; // 更新缓存
     }
 
     // 检查是否为动力铁轨（非激活铁轨）
@@ -254,9 +255,9 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
 
     // MC 1.16.5 行466-481: 根据铁轨方向向量重新计算速度分量
     auto [dir1, dir2] = getRailDirectionVectors(railshape);
-    f64 d4 = dir2.x - dir1.x;  // X方向差值
-    f64 d5 = dir2.z - dir1.z;  // Z方向差值
-    f64 d6 = std::sqrt(d4 * d4 + d5 * d5);  // 方向向量长度
+    f64 d4 = dir2.x - dir1.x;              // X方向差值
+    f64 d5 = dir2.z - dir1.z;              // Z方向差值
+    f64 d6 = std::sqrt(d4 * d4 + d5 * d5); // 方向向量长度
 
     // 计算当前速度在铁轨方向上的投影
     f64 d7 = vx * d4 + vz * d5;
@@ -281,16 +282,15 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
         Entity* passenger = worldPtr->getEntity(passengers[0]);
         if (passenger != nullptr && passenger->legacyType() == LegacyEntityType::Player) {
             // 获取乘客的移动输入速度
-            f64 passengerSpeedSq = passenger->velocityX() * passenger->velocityX() + passenger->velocityZ() * passenger->velocityZ();
+            f64 passengerSpeedSq =
+                passenger->velocityX() * passenger->velocityX() + passenger->velocityZ() * passenger->velocityZ();
             f64 minecartSpeedSq = vx * vx + vz * vz;
             if (passengerSpeedSq > 1.0e-4 && minecartSpeedSq < PLAYER_PUSH_THRESHOLD) {
                 // 玩家在移动但矿车几乎静止，推动矿车
-                setVelocity(
-                    velocityX() + static_cast<f32>(passenger->velocityX() * PLAYER_PUSH_FACTOR),
+                setVelocity(velocityX() + static_cast<f32>(passenger->velocityX() * PLAYER_PUSH_FACTOR),
                     velocityY(),
-                    velocityZ() + static_cast<f32>(passenger->velocityZ() * PLAYER_PUSH_FACTOR)
-                );
-                isUnpoweredRailFlag = false;  // 取消减速
+                    velocityZ() + static_cast<f32>(passenger->velocityZ() * PLAYER_PUSH_FACTOR));
+                isUnpoweredRailFlag = false; // 取消减速
             }
         }
     }
@@ -304,11 +304,7 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
             setVelocity(0.0f, velocityY(), 0.0f);
         } else {
             // 减半速度
-            setVelocity(
-                velocityX() * 0.5f,
-                velocityY(),
-                velocityZ() * 0.5f
-            );
+            setVelocity(velocityX() * 0.5f, velocityY(), velocityZ() * 0.5f);
         }
     }
 
@@ -342,13 +338,11 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
 
     // MC 1.16.5 行523-527: 斜坡位置调整
     // 检查是否需要上升到斜坡的顶端
-    if (dir1.y != 0 &&
-        static_cast<BlockCoord>(std::floor(x())) - pos.x == dir1.x &&
+    if (dir1.y != 0 && static_cast<BlockCoord>(std::floor(x())) - pos.x == dir1.x &&
         static_cast<BlockCoord>(std::floor(z())) - pos.z == dir1.z) {
         setPosition(x(), y() + static_cast<f64>(dir1.y), z());
-    } else if (dir2.y != 0 &&
-               static_cast<BlockCoord>(std::floor(x())) - pos.x == dir2.x &&
-               static_cast<BlockCoord>(std::floor(z())) - pos.z == dir2.z) {
+    } else if (dir2.y != 0 && static_cast<BlockCoord>(std::floor(x())) - pos.x == dir2.x &&
+        static_cast<BlockCoord>(std::floor(z())) - pos.z == dir2.z) {
         setPosition(x(), y() + static_cast<f64>(dir2.y), z());
     }
 
@@ -362,11 +356,9 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
             f64 d17 = (railPos.y - vector3d3.y) * 0.05;
             f64 d18 = std::sqrt(velocityX() * velocityX() + velocityZ() * velocityZ());
             if (d18 > 0.0) {
-                setVelocity(
-                    velocityX() * static_cast<f32>((d18 + d17) / d18),
+                setVelocity(velocityX() * static_cast<f32>((d18 + d17) / d18),
                     velocityY(),
-                    velocityZ() * static_cast<f32>((d18 + d17) / d18)
-                );
+                    velocityZ() * static_cast<f32>((d18 + d17) / d18));
             }
             setPosition(x(), vector3d3.y, z());
         }
@@ -377,11 +369,9 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
     BlockCoord i = static_cast<BlockCoord>(std::floor(z()));
     if (j != pos.x || i != pos.z) {
         f64 d26 = std::sqrt(velocityX() * velocityX() + velocityZ() * velocityZ());
-        setVelocity(
-            static_cast<f32>(d26 * static_cast<f64>(j - pos.x)),
+        setVelocity(static_cast<f32>(d26 * static_cast<f64>(j - pos.x)),
             velocityY(),
-            static_cast<f32>(d26 * static_cast<f64>(i - pos.z))
-        );
+            static_cast<f32>(d26 * static_cast<f64>(i - pos.z)));
     }
 
     // MC 1.16.5 行550-551: 调用 AbstractRailBlock.onMinecartPass()
@@ -395,11 +385,9 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
         f64 d27 = std::sqrt(velocityX() * velocityX() + velocityZ() * velocityZ());
         if (d27 > 0.01) {
             // 已有速度，加速
-            setVelocity(
-                velocityX() + static_cast<f32>(velocityX() / d27 * 0.06),
+            setVelocity(velocityX() + static_cast<f32>(velocityX() / d27 * 0.06),
                 velocityY(),
-                velocityZ() + static_cast<f32>(velocityZ() / d27 * 0.06)
-            );
+                velocityZ() + static_cast<f32>(velocityZ() / d27 * 0.06));
         } else {
             // 静止矿车，根据铁轨方向选择初始推动方向
             f64 d20 = velocityX();
@@ -422,7 +410,8 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
     }
 }
 
-void AbstractMinecartEntity::moveDerailedMinecart() {
+void AbstractMinecartEntity::moveDerailedMinecart()
+{
     // MC 1.16.5: moveDerailedMinecart()
     f64 vx = velocityX();
     f64 vy = velocityY();
@@ -463,7 +452,8 @@ void AbstractMinecartEntity::moveDerailedMinecart() {
     }
 }
 
-std::pair<Vector3, Vector3> AbstractMinecartEntity::getRailDirectionVectors(RailShape shape) const {
+std::pair<Vector3, Vector3> AbstractMinecartEntity::getRailDirectionVectors(RailShape shape) const
+{
     // MC 1.16.5: MATRIX 映射 (AbstractMinecartEntity.java 行60-79)
     // 方向向量定义（Vector3i整数向量）：
     // WEST = (-1, 0, 0), EAST = (1, 0, 0)
@@ -477,54 +467,55 @@ std::pair<Vector3, Vector3> AbstractMinecartEntity::getRailDirectionVectors(Rail
     switch (shape) {
         case RailShape::NorthSouth:
             // NORTH_SOUTH: Pair.of(NORTH, SOUTH) = (0, 0, -1), (0, 0, 1)
-            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f) };
+            return {Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f)};
 
         case RailShape::EastWest:
             // EAST_WEST: Pair.of(WEST, EAST) = (-1, 0, 0), (1, 0, 0)
-            return { Vector3(-1.0f, 0.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f) };
+            return {Vector3(-1.0f, 0.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f)};
 
         case RailShape::AscendingEast:
             // ASCENDING_EAST: Pair.of(WEST_DOWN, EAST) = (-1, -1, 0), (1, 0, 0)
             // 矿车从西向东上坡：西端点低（Y=-1），东端点高（Y=0）
-            return { Vector3(-1.0f, -1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f) };
+            return {Vector3(-1.0f, -1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f)};
 
         case RailShape::AscendingWest:
             // ASCENDING_WEST: Pair.of(WEST, EAST_DOWN) = (-1, 0, 0), (1, -1, 0)
             // 矿车从东向西上坡：东端点低（Y=-1），西端点高（Y=0）
-            return { Vector3(-1.0f, 0.0f, 0.0f), Vector3(1.0f, -1.0f, 0.0f) };
+            return {Vector3(-1.0f, 0.0f, 0.0f), Vector3(1.0f, -1.0f, 0.0f)};
 
         case RailShape::AscendingNorth:
             // ASCENDING_NORTH: Pair.of(NORTH, SOUTH_DOWN) = (0, 0, -1), (0, -1, 1)
             // 矿车从南向北上坡：南端点低（Y=-1），北端点高（Y=0）
-            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 1.0f) };
+            return {Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 1.0f)};
 
         case RailShape::AscendingSouth:
             // ASCENDING_SOUTH: Pair.of(NORTH_DOWN, SOUTH) = (0, -1, -1), (0, 0, 1)
             // 矿车从北向南上坡：北端点低（Y=-1），南端点高（Y=0）
-            return { Vector3(0.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f) };
+            return {Vector3(0.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f)};
 
         case RailShape::SouthEast:
             // SOUTH_EAST: Pair.of(SOUTH, EAST) = (0, 0, 1), (1, 0, 0)
-            return { Vector3(0.0f, 0.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f) };
+            return {Vector3(0.0f, 0.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f)};
 
         case RailShape::SouthWest:
             // SOUTH_WEST: Pair.of(SOUTH, WEST) = (0, 0, 1), (-1, 0, 0)
-            return { Vector3(0.0f, 0.0f, 1.0f), Vector3(-1.0f, 0.0f, 0.0f) };
+            return {Vector3(0.0f, 0.0f, 1.0f), Vector3(-1.0f, 0.0f, 0.0f)};
 
         case RailShape::NorthWest:
             // NORTH_WEST: Pair.of(NORTH, WEST) = (0, 0, -1), (-1, 0, 0)
-            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f) };
+            return {Vector3(0.0f, 0.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f)};
 
         case RailShape::NorthEast:
             // NORTH_EAST: Pair.of(NORTH, EAST) = (0, 0, -1), (1, 0, 0)
-            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f) };
+            return {Vector3(0.0f, 0.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f)};
 
         default:
-            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f) };
+            return {Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f)};
     }
 }
 
-Vector3 AbstractMinecartEntity::getPosOnRail(f64 x, f64 y, f64 z) const {
+Vector3 AbstractMinecartEntity::getPosOnRail(f64 x, f64 y, f64 z) const
+{
     // MC 1.16.5 AbstractMinecartEntity.getPos()
     // 行637-684: 计算矿车在铁轨上的精确位置
 
@@ -568,7 +559,7 @@ Vector3 AbstractMinecartEntity::getPosOnRail(f64 x, f64 y, f64 z) const {
     f64 d5 = static_cast<f64>(k) + 0.5 + static_cast<f64>(vector3i1.z) * 0.5;
 
     f64 d6 = d3 - d0;
-    f64 d7 = (d4 - d1) * RAIL_POSITION_SCALE;  // Y差值乘以2（因为斜坡上升1格）
+    f64 d7 = (d4 - d1) * RAIL_POSITION_SCALE; // Y差值乘以2（因为斜坡上升1格）
     f64 d8 = d5 - d2;
     f64 d9;
 
@@ -597,18 +588,16 @@ Vector3 AbstractMinecartEntity::getPosOnRail(f64 x, f64 y, f64 z) const {
     return Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
 }
 
-void AbstractMinecartEntity::applyDrag() {
+void AbstractMinecartEntity::applyDrag()
+{
     // MC 1.16.5: applyDrag()
     // 摩擦力取决于是否有乘客
     f64 drag = getPassengers().empty() ? EMPTY_DRAG : OCCUPIED_DRAG;
-    setVelocity(
-        velocityX() * static_cast<f32>(drag),
-        velocityY(),
-        velocityZ() * static_cast<f32>(drag)
-    );
+    setVelocity(velocityX() * static_cast<f32>(drag), velocityY(), velocityZ() * static_cast<f32>(drag));
 }
 
-void AbstractMinecartEntity::handleEntityCollisions() {
+void AbstractMinecartEntity::handleEntityCollisions()
+{
     // MC 1.16.5: collideWithEntities()
     // 同时处理实体推动和矿车间碰撞，避免重复查询
 
@@ -683,19 +672,22 @@ void AbstractMinecartEntity::handleEntityCollisions() {
     }
 }
 
-void AbstractMinecartEntity::handleMinecartCollisions() {
+void AbstractMinecartEntity::handleMinecartCollisions()
+{
     // 已在 handleEntityCollisions() 中处理
     // 此方法保留为空以保持API兼容性
 }
 
-void AbstractMinecartEntity::updateRollingAnimation() {
+void AbstractMinecartEntity::updateRollingAnimation()
+{
     // MC 1.16.5: 摇晃动画
     if (m_rollingAmplitude > 0) {
         m_rollingAmplitude--;
     }
 }
 
-void AbstractMinecartEntity::updateRotation() {
+void AbstractMinecartEntity::updateRotation()
+{
     // MC 1.16.5: 根据移动方向更新朝向
     f32 vx = velocityX();
     f32 vz = velocityZ();
@@ -706,8 +698,10 @@ void AbstractMinecartEntity::updateRotation() {
 
         // 处理180度转向
         f32 yawDiff = targetYaw - yaw();
-        while (yawDiff < -180.0f) yawDiff += 360.0f;
-        while (yawDiff > 180.0f) yawDiff -= 360.0f;
+        while (yawDiff < -180.0f)
+            yawDiff += 360.0f;
+        while (yawDiff > 180.0f)
+            yawDiff -= 360.0f;
 
         // 检测是否需要翻转
         if (yawDiff > 90.0f || yawDiff < -90.0f) {
@@ -718,7 +712,8 @@ void AbstractMinecartEntity::updateRotation() {
     }
 }
 
-bool AbstractMinecartEntity::isPoweredRail(const BlockPos& pos) const {
+bool AbstractMinecartEntity::isPoweredRail(const BlockPos& pos) const
+{
     // 检查是否为动力铁轨
     const IWorld* worldPtr = world();
     if (!worldPtr) {
@@ -733,7 +728,8 @@ bool AbstractMinecartEntity::isPoweredRail(const BlockPos& pos) const {
     return state->is(VanillaBlocks::POWERED_RAIL);
 }
 
-bool AbstractMinecartEntity::isDetectorRail(const BlockPos& pos) const {
+bool AbstractMinecartEntity::isDetectorRail(const BlockPos& pos) const
+{
     // 检查是否为探测铁轨
     const IWorld* worldPtr = world();
     if (!worldPtr) {
@@ -748,7 +744,8 @@ bool AbstractMinecartEntity::isDetectorRail(const BlockPos& pos) const {
     return state->is(VanillaBlocks::DETECTOR_RAIL);
 }
 
-bool AbstractMinecartEntity::isActivatorRail(const BlockPos& pos) const {
+bool AbstractMinecartEntity::isActivatorRail(const BlockPos& pos) const
+{
     // 检查是否为激活铁轨
     const IWorld* worldPtr = world();
     if (!worldPtr) {
@@ -763,7 +760,8 @@ bool AbstractMinecartEntity::isActivatorRail(const BlockPos& pos) const {
     return state->is(VanillaBlocks::ACTIVATOR_RAIL);
 }
 
-bool AbstractMinecartEntity::isRailPowered(const BlockPos& pos) {
+bool AbstractMinecartEntity::isRailPowered(const BlockPos& pos)
+{
     // 检查铁轨是否接收红石信号
     IWorld* worldPtr = Entity::world();
     if (!worldPtr) {
@@ -773,7 +771,8 @@ bool AbstractMinecartEntity::isRailPowered(const BlockPos& pos) {
     return world::redstone::RedstonePower::isPowered(*worldPtr, pos);
 }
 
-bool AbstractMinecartEntity::isNormalBlockAt(const BlockPos& pos) const {
+bool AbstractMinecartEntity::isNormalBlockAt(const BlockPos& pos) const
+{
     // MC 1.16.5: func_213900_a()
     // 检查指定位置是否为完整方块（用于动力铁轨方向判断）
     const IWorld* worldPtr = world();
@@ -791,7 +790,8 @@ bool AbstractMinecartEntity::isNormalBlockAt(const BlockPos& pos) const {
     return state->isSolid() && state->isOpaque() && !state->isAir();
 }
 
-void AbstractMinecartEntity::moveMinecartOnRail(const BlockPos& pos) {
+void AbstractMinecartEntity::moveMinecartOnRail(const BlockPos& pos)
+{
     // MC 1.16.5: moveMinecartOnRail()
     // 在铁轨上移动矿车，应用速度限制
 
@@ -813,7 +813,8 @@ void AbstractMinecartEntity::moveMinecartOnRail(const BlockPos& pos) {
     move(static_cast<f32>(vx), 0.0f, static_cast<f32>(vz));
 }
 
-f32 AbstractMinecartEntity::getMaxSpeedWithRail() const {
+f32 AbstractMinecartEntity::getMaxSpeedWithRail() const
+{
     // MC 1.16.5 Forge: getMaxSpeedWithRail()
     // 如果不在铁轨上，使用基础最大速度
     if (!m_onRail) {
@@ -836,7 +837,8 @@ f32 AbstractMinecartEntity::getMaxSpeedWithRail() const {
     return getMaxSpeed();
 }
 
-void AbstractMinecartEntity::dropItem() {
+void AbstractMinecartEntity::dropItem()
+{
     // MC 1.16.5: killMinecart()
     // 根据矿车类型掉落对应物品
 
@@ -889,22 +891,18 @@ void AbstractMinecartEntity::dropItem() {
     // 使用 ItemDropHelper 在实体位置生成物品
     // 参考 MC 1.16.5: entityDropItem(stack)
     math::Random& rng = worldPtr->getRandom();
-    ItemDropHelper::spawnItemEntity(
-        worldPtr,
-        stack,
-        x(), y(), z(),
-        rng,
-        ItemDropHelper::DEFAULT_PICKUP_DELAY
-    );
+    ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
 
     remove();
 }
 
-void AbstractMinecartEntity::activate() {
+void AbstractMinecartEntity::activate()
+{
     // 默认无操作，子类重写
 }
 
-void AbstractMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+void AbstractMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
+{
     // 默认无操作，子类重写
     MC_UNUSED(x);
     MC_UNUSED(y);
@@ -912,11 +910,13 @@ void AbstractMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
     MC_UNUSED(powered);
 }
 
-void AbstractMinecartEntity::applyForce(f32 x, f32 z) {
+void AbstractMinecartEntity::applyForce(f32 x, f32 z)
+{
     addVelocity(x, 0.0f, z);
 }
 
-bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount) {
+bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
+{
     // MC 1.16.5: AbstractMinecartEntity.attackEntityFrom()
     // 矿车不继承 LivingEntity，所以这不是 override
 
@@ -953,7 +953,8 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount) {
     m_damage += static_cast<i32>(amount * 10.0f);
 
     // 8. 检查攻击者是否为创造模式玩家
-    // boolean flag = source.getTrueSource() instanceof PlayerEntity && ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
+    // boolean flag = source.getTrueSource() instanceof PlayerEntity &&
+    // ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
     bool isCreative = false;
     Entity* attacker = source.source();
     if (attacker != nullptr && attacker->legacyType() == LegacyEntityType::Player) {
@@ -985,7 +986,8 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount) {
 // RideableMinecartEntity
 // ============================================================================
 
-void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
+{
     // MC 1.16.5: 激活铁轨弹出乘客
     MC_UNUSED(x);
     MC_UNUSED(y);
@@ -1014,10 +1016,10 @@ void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
 ChestMinecartEntity::ChestMinecartEntity(EntityId id)
     : AbstractMinecartEntity(Type::Chest, id)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
-{
-}
+{}
 
-void ChestMinecartEntity::applyDrag() {
+void ChestMinecartEntity::applyDrag()
+{
     // MC 1.16.5: 箱子矿车摩擦力
     // 根据红石信号强度增加摩擦
     f32 drag = 0.98f;
@@ -1027,14 +1029,11 @@ void ChestMinecartEntity::applyDrag() {
     // drag -= signal * 0.001f;
     // 目前简化处理，使用固定摩擦力
 
-    setVelocity(
-        velocityX() * drag,
-        velocityY(),
-        velocityZ() * drag
-    );
+    setVelocity(velocityX() * drag, velocityY(), velocityZ() * drag);
 }
 
-void ChestMinecartEntity::dropItem() {
+void ChestMinecartEntity::dropItem()
+{
     // MC 1.16.5: 先掉落库存内容，再掉落矿车物品
     IWorld* worldPtr = world();
     if (!worldPtr || worldPtr->isClientSide()) {
@@ -1050,12 +1049,7 @@ void ChestMinecartEntity::dropItem() {
             if (!stack.isEmpty()) {
                 // 使用 ItemDropHelper 在矿车位置生成物品实体
                 ItemDropHelper::spawnItemEntity(
-                    worldPtr,
-                    stack,
-                    x(), y(), z(),
-                    rng,
-                    ItemDropHelper::DEFAULT_PICKUP_DELAY
-                );
+                    worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
             }
         }
     }
@@ -1064,35 +1058,42 @@ void ChestMinecartEntity::dropItem() {
     AbstractMinecartEntity::dropItem();
 }
 
-i32 ChestMinecartEntity::getContainerSize() const {
+i32 ChestMinecartEntity::getContainerSize() const
+{
     return m_inventory ? m_inventory->getContainerSize() : 0;
 }
 
-bool ChestMinecartEntity::isInventoryEmpty() const {
+bool ChestMinecartEntity::isInventoryEmpty() const
+{
     return m_inventory ? m_inventory->isEmpty() : true;
 }
 
-ItemStack ChestMinecartEntity::getInventoryItem(i32 slot) const {
+ItemStack ChestMinecartEntity::getInventoryItem(i32 slot) const
+{
     return m_inventory ? m_inventory->getItem(slot) : ItemStack();
 }
 
-void ChestMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack) {
+void ChestMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack)
+{
     if (m_inventory) {
         m_inventory->setItem(slot, stack);
     }
 }
 
-ItemStack ChestMinecartEntity::removeInventoryItem(i32 slot, i32 count) {
+ItemStack ChestMinecartEntity::removeInventoryItem(i32 slot, i32 count)
+{
     return m_inventory ? m_inventory->removeItem(slot, count) : ItemStack();
 }
 
-void ChestMinecartEntity::clearInventory() {
+void ChestMinecartEntity::clearInventory()
+{
     if (m_inventory) {
         m_inventory->clear();
     }
 }
 
-IInventory* ChestMinecartEntity::getInventory() {
+IInventory* ChestMinecartEntity::getInventory()
+{
     return m_inventory.get();
 }
 
@@ -1100,7 +1101,8 @@ IInventory* ChestMinecartEntity::getInventory() {
 // FurnaceMinecartEntity
 // ============================================================================
 
-void FurnaceMinecartEntity::tick() {
+void FurnaceMinecartEntity::tick()
+{
     AbstractMinecartEntity::tick();
 
     // MC 1.16.5 FurnaceMinecartEntity.tick() 行54-72
@@ -1124,7 +1126,8 @@ void FurnaceMinecartEntity::tick() {
     // }
 }
 
-void FurnaceMinecartEntity::updatePushDirection() {
+void FurnaceMinecartEntity::updatePushDirection()
+{
     // MC 1.16.5 FurnaceMinecartEntity.moveAlongTrack() 行90-104
     // 根据当前速度更新推动方向
     f64 vx = velocityX();
@@ -1140,7 +1143,8 @@ void FurnaceMinecartEntity::updatePushDirection() {
     }
 }
 
-void FurnaceMinecartEntity::applyDrag() {
+void FurnaceMinecartEntity::applyDrag()
+{
     // MC 1.16.5: 熔炉矿车摩擦力
     f64 pushMag = m_pushX * m_pushX + m_pushZ * m_pushZ;
 
@@ -1150,24 +1154,17 @@ void FurnaceMinecartEntity::applyDrag() {
         m_pushZ /= static_cast<f32>(pushMag);
 
         f32 drag = 0.8f;
-        setVelocity(
-            velocityX() * drag + m_pushX * 0.1f,
-            velocityY(),
-            velocityZ() * drag + m_pushZ * 0.1f
-        );
+        setVelocity(velocityX() * drag + m_pushX * 0.1f, velocityY(), velocityZ() * drag + m_pushZ * 0.1f);
     } else {
         f32 drag = 0.98f;
-        setVelocity(
-            velocityX() * drag,
-            velocityY(),
-            velocityZ() * drag
-        );
+        setVelocity(velocityX() * drag, velocityY(), velocityZ() * drag);
     }
 
     AbstractMinecartEntity::applyDrag();
 }
 
-void FurnaceMinecartEntity::addFuel(i32 ticks) {
+void FurnaceMinecartEntity::addFuel(i32 ticks)
+{
     // MC 1.16.5: 燃料上限检查
     // if (this.fuel + 3600 <= 32000) { this.fuel += 3600; }
     if (m_fuel + ticks <= MAX_FUEL) {
@@ -1177,12 +1174,14 @@ void FurnaceMinecartEntity::addFuel(i32 ticks) {
     }
 }
 
-void FurnaceMinecartEntity::activate() {
+void FurnaceMinecartEntity::activate()
+{
     // MC 1.16.5: 添加燃料（玩家交互时）
     addFuel(3600); // 3分钟 = 180秒 * 20 ticks/秒
 }
 
-void FurnaceMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+void FurnaceMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
+{
     // MC 1.16.5: 激活铁轨可以改变熔炉矿车的推动方向
     MC_UNUSED(x);
     MC_UNUSED(y);
@@ -1200,7 +1199,8 @@ void FurnaceMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powere
     }
 }
 
-void FurnaceMinecartEntity::dropItem() {
+void FurnaceMinecartEntity::dropItem()
+{
     // MC 1.16.5: 熔炉矿车被破坏时掉落熔炉
     IWorld* worldPtr = world();
     if (!worldPtr || worldPtr->isClientSide()) {
@@ -1221,7 +1221,8 @@ void FurnaceMinecartEntity::dropItem() {
 // TNTMinecartEntity
 // ============================================================================
 
-void TNTMinecartEntity::tick() {
+void TNTMinecartEntity::tick()
+{
     AbstractMinecartEntity::tick();
 
     // MC 1.16.5 TNTMinecartEntity.tick() 行46-62
@@ -1257,9 +1258,10 @@ void TNTMinecartEntity::tick() {
     }
 }
 
-void TNTMinecartEntity::ignite() {
+void TNTMinecartEntity::ignite()
+{
     // MC 1.16.5 TNTMinecartEntity.ignite() 行147-156
-    m_fuse = DEFAULT_FUSE;  // 80 ticks = 4 seconds
+    m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
 
     IWorld* worldPtr = Entity::world();
     if (worldPtr && !worldPtr->isClientSide()) {
@@ -1268,12 +1270,14 @@ void TNTMinecartEntity::ignite() {
 
         // MC 1.16.5: 播放点燃音效
         // if (!isSilent()) {
-        //     worldPtr->playSound(nullptr, x(), y(), z(), SoundEvents::ENTITY_TNT_PRIMED, SoundCategory::BLOCKS, 1.0f, 1.0f);
+        //     worldPtr->playSound(nullptr, x(), y(), z(), SoundEvents::ENTITY_TNT_PRIMED,
+        //     SoundCategory::BLOCKS, 1.0f, 1.0f);
         // }
     }
 }
 
-void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
+{
     // MC 1.16.5 TNTMinecartEntity.onActivatorRailPass() 行124-128
     MC_UNUSED(x);
     MC_UNUSED(y);
@@ -1284,7 +1288,8 @@ void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
     }
 }
 
-bool TNTMinecartEntity::hurt(DamageSource& source, f32 amount) {
+bool TNTMinecartEntity::hurt(DamageSource& source, f32 amount)
+{
     // MC 1.16.5 TNTMinecartEntity.attackEntityFrom() 行67-77
     // 检查是否为燃烧的箭矢
     Entity* directSource = source.directSource();
@@ -1312,12 +1317,14 @@ bool TNTMinecartEntity::hurt(DamageSource& source, f32 amount) {
     return AbstractMinecartEntity::hurt(source, amount);
 }
 
-bool TNTMinecartEntity::onProjectileHit(DamageSource& source, f32 amount) {
+bool TNTMinecartEntity::onProjectileHit(DamageSource& source, f32 amount)
+{
     // MC 1.16.5: 燃烧箭矢命中时直接爆炸
     return hurt(source, amount);
 }
 
-void TNTMinecartEntity::dropItem() {
+void TNTMinecartEntity::dropItem()
+{
     // MC 1.16.5 TNTMinecartEntity.killMinecart() 行79-94
     // 火焰或爆炸伤害时点燃而非爆炸掉落
     f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
@@ -1337,14 +1344,15 @@ void TNTMinecartEntity::dropItem() {
 
     // 目前简化处理：如果已点燃则不执行
     if (m_fuse >= 0) {
-        return;  // 已点燃，等待爆炸
+        return; // 已点燃，等待爆炸
     }
 
     // 调用父类方法掉落矿车物品
     AbstractMinecartEntity::dropItem();
 }
 
-void TNTMinecartEntity::checkFireIgnition() {
+void TNTMinecartEntity::checkFireIgnition()
+{
     // MC 1.16.5: 在火焰或岩浆中自动点燃
     if (m_fuse < 0) {
         if (isOnFire() || isInLava()) {
@@ -1353,7 +1361,8 @@ void TNTMinecartEntity::checkFireIgnition() {
     }
 }
 
-void TNTMinecartEntity::explode(f32 speedFactor) {
+void TNTMinecartEntity::explode(f32 speedFactor)
+{
     // MC 1.16.5 TNTMinecartEntity.explodeCart() 行99-109
     IWorld* worldPtr = Entity::world();
     if (!worldPtr || worldPtr->isClientSide()) {
@@ -1374,13 +1383,11 @@ void TNTMinecartEntity::explode(f32 speedFactor) {
     // 创建爆炸
     // MC 1.16.5: TNT矿车爆炸时不破坏铁轨
     // canExplosionDestroyBlock: 如果已点燃且目标方块是铁轨，返回 false
-    worldPtr->createExplosion(
-        Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
+    worldPtr->createExplosion(Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
         radius,
         world::explosion::ExplosionMode::Break,
-        false,  // 不产生火焰
-        this
-    );
+        false, // 不产生火焰
+        this);
 
     remove();
 }
@@ -1392,10 +1399,10 @@ void TNTMinecartEntity::explode(f32 speedFactor) {
 HopperMinecartEntity::HopperMinecartEntity(EntityId id)
     : AbstractMinecartEntity(Type::Hopper, id)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
-{
-}
+{}
 
-void HopperMinecartEntity::tick() {
+void HopperMinecartEntity::tick()
+{
     AbstractMinecartEntity::tick();
 
     // MC 1.16.5: 冷却计时
@@ -1450,7 +1457,8 @@ void HopperMinecartEntity::tick() {
     transferItemsOut();
 }
 
-void HopperMinecartEntity::suckItems() {
+void HopperMinecartEntity::suckItems()
+{
     IWorld* worldPtr = Entity::world();
     if (!worldPtr || !m_inventory) {
         return;
@@ -1481,7 +1489,7 @@ void HopperMinecartEntity::suckItems() {
             // 完全吸收
             itemEntity->remove();
             m_suckCooldown = TRANSFER_COOLDOWN;
-            return;  // 每tick只处理一个物品
+            return; // 每tick只处理一个物品
         } else if (remaining.getCount() < stack.getCount()) {
             // 部分吸收
             itemEntity->setItemStack(remaining);
@@ -1491,7 +1499,8 @@ void HopperMinecartEntity::suckItems() {
     }
 }
 
-void HopperMinecartEntity::transferItemsOut() {
+void HopperMinecartEntity::transferItemsOut()
+{
     IWorld* worldPtr = Entity::world();
     if (!worldPtr || !m_inventory) {
         return;
@@ -1542,39 +1551,47 @@ void HopperMinecartEntity::transferItemsOut() {
     }
 }
 
-i32 HopperMinecartEntity::getContainerSize() const {
+i32 HopperMinecartEntity::getContainerSize() const
+{
     return m_inventory ? m_inventory->getContainerSize() : 0;
 }
 
-bool HopperMinecartEntity::isInventoryEmpty() const {
+bool HopperMinecartEntity::isInventoryEmpty() const
+{
     return m_inventory ? m_inventory->isEmpty() : true;
 }
 
-ItemStack HopperMinecartEntity::getInventoryItem(i32 slot) const {
+ItemStack HopperMinecartEntity::getInventoryItem(i32 slot) const
+{
     return m_inventory ? m_inventory->getItem(slot) : ItemStack();
 }
 
-void HopperMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack) {
+void HopperMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack)
+{
     if (m_inventory) {
         m_inventory->setItem(slot, stack);
     }
 }
 
-ItemStack HopperMinecartEntity::removeInventoryItem(i32 slot, i32 count) {
+ItemStack HopperMinecartEntity::removeInventoryItem(i32 slot, i32 count)
+{
     return m_inventory ? m_inventory->removeItem(slot, count) : ItemStack();
 }
 
-void HopperMinecartEntity::clearInventory() {
+void HopperMinecartEntity::clearInventory()
+{
     if (m_inventory) {
         m_inventory->clear();
     }
 }
 
-IInventory* HopperMinecartEntity::getInventory() {
+IInventory* HopperMinecartEntity::getInventory()
+{
     return m_inventory.get();
 }
 
-void HopperMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+void HopperMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
+{
     // MC 1.16.5 HopperMinecartEntity.onActivatorRailPass() 行55-61
     // boolean flag = !receivingPower;
     // if (flag != this.getBlocked()) { this.setBlocked(flag); }
@@ -1604,14 +1621,16 @@ void HopperMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered
 // CommandBlockMinecartEntity
 // ============================================================================
 
-void CommandBlockMinecartEntity::tick() {
+void CommandBlockMinecartEntity::tick()
+{
     AbstractMinecartEntity::tick();
 
     // MC 1.16.5: 命令方块矿车不自动执行命令
     // 命令只在通过激活铁轨时执行
 }
 
-void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
+{
     MC_UNUSED(x);
     MC_UNUSED(y);
     MC_UNUSED(z);
@@ -1626,7 +1645,8 @@ void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool p
     }
 }
 
-void CommandBlockMinecartEntity::executeCommand() {
+void CommandBlockMinecartEntity::executeCommand()
+{
     // MC 1.16.5: 执行命令
     if (m_command.empty()) {
         return;

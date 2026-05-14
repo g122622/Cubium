@@ -100,14 +100,14 @@ enum class PotionId : u16 {
  * 用于生成药水物品的翻译键
  */
 enum class PotionPrefix : u8 {
-    Empty,      // 空
-    Water,      // 水瓶
-    Mundane,    // 平凡的药水
-    Thick,      // 浓稠的药水
-    Awkward,    // 尴尬的药水
-    Regular,    // 普通药水
-    Long,       // 延长版
-    Strong      // 加强版
+    Empty,   // 空
+    Water,   // 水瓶
+    Mundane, // 平凡的药水
+    Thick,   // 浓稠的药水
+    Awkward, // 尴尬的药水
+    Regular, // 普通药水
+    Long,    // 延长版
+    Strong   // 加强版
 };
 
 /**
@@ -142,10 +142,8 @@ enum class PotionPrefix : u8 {
 
 // std::hash 特化
 namespace std {
-template<>
+template <>
 struct hash<mc::potion::PotionId> {
-    size_t operator()(mc::potion::PotionId id) const noexcept {
-        return static_cast<size_t>(id);
-    }
+    size_t operator()(mc::potion::PotionId id) const noexcept { return static_cast<size_t>(id); }
 };
 } // namespace std

@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
-#include "world/storage/player/PlayerSaveData.hpp"
-#include "world/storage/player/PlayerDataManager.hpp"
-#include "world/storage/db/RocksDBDatabase.hpp"
-#include "world/storage/db/ColumnFamilies.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "world/storage/db/ColumnFamilies.hpp"
+#include "world/storage/db/RocksDBDatabase.hpp"
+#include "world/storage/player/PlayerDataManager.hpp"
+#include "world/storage/player/PlayerSaveData.hpp"
 #include <filesystem>
 #include <fstream>
+#include <gtest/gtest.h>
 
 namespace mc::world::storage {
 namespace {
@@ -15,13 +15,15 @@ class PlayerStorageTest : public ::testing::Test {
 protected:
     std::filesystem::path m_testDir;
 
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建临时测试目录
         m_testDir = std::filesystem::temp_directory_path() / "player_storage_test";
         std::filesystem::create_directories(m_testDir);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理临时目录
         if (std::filesystem::exists(m_testDir)) {
             std::filesystem::remove_all(m_testDir);
@@ -33,16 +35,16 @@ protected:
 // PlayerSaveData 测试
 // ============================================================================
 
-class PlayerSaveDataTest : public PlayerStorageTest {
-};
+class PlayerSaveDataTest : public PlayerStorageTest {};
 
-TEST_F(PlayerSaveDataTest, DefaultConstruction) {
+TEST_F(PlayerSaveDataTest, DefaultConstruction)
+{
     PlayerSaveData data;
 
     EXPECT_TRUE(data.uuid.empty());
     EXPECT_TRUE(data.username.empty());
     EXPECT_EQ(data.posX, 0.0);
-    EXPECT_EQ(data.posY, 64.0);  // 默认出生高度
+    EXPECT_EQ(data.posY, 64.0); // 默认出生高度
     EXPECT_EQ(data.posZ, 0.0);
     EXPECT_EQ(data.yaw, 0.0f);
     EXPECT_EQ(data.pitch, 0.0f);
@@ -55,14 +57,16 @@ TEST_F(PlayerSaveDataTest, DefaultConstruction) {
     EXPECT_EQ(data.airSupply, 300);
 }
 
-TEST_F(PlayerSaveDataTest, ParameterizedConstruction) {
+TEST_F(PlayerSaveDataTest, ParameterizedConstruction)
+{
     PlayerSaveData data("test-uuid-123", "TestPlayer");
 
     EXPECT_EQ(data.uuid, "test-uuid-123");
     EXPECT_EQ(data.username, "TestPlayer");
 }
 
-TEST_F(PlayerSaveDataTest, NbtSerializationBasic) {
+TEST_F(PlayerSaveDataTest, NbtSerializationBasic)
+{
     PlayerSaveData original;
     original.uuid = "test-uuid-456";
     original.username = "Steve";
@@ -94,7 +98,8 @@ TEST_F(PlayerSaveDataTest, NbtSerializationBasic) {
     EXPECT_EQ(nbt.get<nbt::tags::int_tag>("XpLevel"), 10);
 }
 
-TEST_F(PlayerSaveDataTest, NbtRoundTrip) {
+TEST_F(PlayerSaveDataTest, NbtRoundTrip)
+{
     PlayerSaveData original;
     original.uuid = "roundtrip-test";
     original.username = "Alex";
@@ -103,7 +108,7 @@ TEST_F(PlayerSaveDataTest, NbtRoundTrip) {
     original.posZ = -567.890;
     original.yaw = 180.0f;
     original.pitch = -30.0f;
-    original.dimension = -1;  // Nether
+    original.dimension = -1; // Nether
     original.gameMode = GameMode::Survival;
     original.health = 12.5f;
     original.maxHealth = 20.0f;
@@ -181,7 +186,8 @@ TEST_F(PlayerSaveDataTest, NbtRoundTrip) {
     EXPECT_EQ(restored.spawnForced, original.spawnForced);
 }
 
-TEST_F(PlayerSaveDataTest, BinarySerialization) {
+TEST_F(PlayerSaveDataTest, BinarySerialization)
+{
     PlayerSaveData original;
     original.uuid = "binary-test";
     original.username = "BinaryPlayer";
@@ -213,10 +219,11 @@ TEST_F(PlayerSaveDataTest, BinarySerialization) {
     EXPECT_EQ(restored.foodLevel, original.foodLevel);
 }
 
-TEST_F(PlayerSaveDataTest, SpawnPointRoundTrip) {
+TEST_F(PlayerSaveDataTest, SpawnPointRoundTrip)
+{
     PlayerSaveData original;
     original.uuid = "spawn-test";
-    original.spawnPoint = GlobalPos(-1, BlockPos(-100, 70, 300));  // Nether spawn
+    original.spawnPoint = GlobalPos(-1, BlockPos(-100, 70, 300)); // Nether spawn
     original.spawnForced = true;
 
     nbt::tags::compound_tag nbt = original.toNbt();
@@ -232,7 +239,8 @@ TEST_F(PlayerSaveDataTest, SpawnPointRoundTrip) {
     EXPECT_TRUE(restored.spawnForced);
 }
 
-TEST_F(PlayerSaveDataTest, AbilitiesRoundTrip) {
+TEST_F(PlayerSaveDataTest, AbilitiesRoundTrip)
+{
     PlayerSaveData original;
     original.uuid = "abilities-test";
     original.invulnerable = true;
@@ -253,7 +261,8 @@ TEST_F(PlayerSaveDataTest, AbilitiesRoundTrip) {
     EXPECT_FLOAT_EQ(restored.walkSpeed, 0.25f);
 }
 
-TEST_F(PlayerSaveDataTest, ExperienceRoundTrip) {
+TEST_F(PlayerSaveDataTest, ExperienceRoundTrip)
+{
     PlayerSaveData original;
     original.uuid = "xp-test";
     original.experienceLevel = 30;
@@ -272,7 +281,8 @@ TEST_F(PlayerSaveDataTest, ExperienceRoundTrip) {
     EXPECT_EQ(restored.xpSeed, 99999);
 }
 
-TEST_F(PlayerSaveDataTest, EmptyEffects) {
+TEST_F(PlayerSaveDataTest, EmptyEffects)
+{
     PlayerSaveData original;
     original.uuid = "effects-empty";
     // 不添加任何效果
@@ -285,7 +295,8 @@ TEST_F(PlayerSaveDataTest, EmptyEffects) {
     EXPECT_TRUE(restored.effects.empty());
 }
 
-TEST_F(PlayerSaveDataTest, EnteredNetherPosition) {
+TEST_F(PlayerSaveDataTest, EnteredNetherPosition)
+{
     PlayerSaveData original;
     original.uuid = "nether-pos-test";
     original.enteredNetherPosition = Vector3d(100.5, 64.0, -200.5);
@@ -301,7 +312,8 @@ TEST_F(PlayerSaveDataTest, EnteredNetherPosition) {
     EXPECT_DOUBLE_EQ(restored.enteredNetherPosition->z, -200.5);
 }
 
-TEST_F(PlayerSaveDataTest, SleepingState) {
+TEST_F(PlayerSaveDataTest, SleepingState)
+{
     PlayerSaveData original;
     original.uuid = "sleep-test";
     original.sleeping = true;
@@ -330,7 +342,8 @@ protected:
     std::unique_ptr<RocksDBDatabase> m_db;
     std::unique_ptr<PlayerDataManager> m_manager;
 
-    void SetUp() override {
+    void SetUp() override
+    {
         PlayerStorageTest::SetUp();
 
         // 创建测试数据库
@@ -341,14 +354,16 @@ protected:
         m_manager = std::make_unique<PlayerDataManager>(*m_db);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_manager.reset();
         m_db.reset();
         PlayerStorageTest::TearDown();
     }
 };
 
-TEST_F(PlayerDataManagerTest, SaveAndLoad) {
+TEST_F(PlayerDataManagerTest, SaveAndLoad)
+{
     PlayerSaveData original;
     original.uuid = "save-load-test";
     original.username = "TestPlayer";
@@ -375,13 +390,15 @@ TEST_F(PlayerDataManagerTest, SaveAndLoad) {
     EXPECT_FLOAT_EQ(loaded->health, original.health);
 }
 
-TEST_F(PlayerDataManagerTest, LoadNonexistentPlayer) {
+TEST_F(PlayerDataManagerTest, LoadNonexistentPlayer)
+{
     auto result = m_manager->loadPlayer("nonexistent-uuid");
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value(), nullptr);
 }
 
-TEST_F(PlayerDataManagerTest, HasPlayer) {
+TEST_F(PlayerDataManagerTest, HasPlayer)
+{
     EXPECT_FALSE(m_manager->hasPlayer("has-player-test"));
 
     PlayerSaveData data;
@@ -392,7 +409,8 @@ TEST_F(PlayerDataManagerTest, HasPlayer) {
     EXPECT_TRUE(m_manager->hasPlayer("has-player-test"));
 }
 
-TEST_F(PlayerDataManagerTest, DeletePlayer) {
+TEST_F(PlayerDataManagerTest, DeletePlayer)
+{
     PlayerSaveData data;
     data.uuid = "delete-test";
     auto saveResult = m_manager->savePlayerImmediate(data);
@@ -406,7 +424,8 @@ TEST_F(PlayerDataManagerTest, DeletePlayer) {
     EXPECT_FALSE(m_manager->hasPlayer("delete-test"));
 }
 
-TEST_F(PlayerDataManagerTest, CacheBehavior) {
+TEST_F(PlayerDataManagerTest, CacheBehavior)
+{
     PlayerSaveData original;
     original.uuid = "cache-test";
     original.username = "CachePlayer";
@@ -428,7 +447,8 @@ TEST_F(PlayerDataManagerTest, CacheBehavior) {
     EXPECT_EQ(loadResult1.value(), loadResult2.value());
 }
 
-TEST_F(PlayerDataManagerTest, DirtyTracking) {
+TEST_F(PlayerDataManagerTest, DirtyTracking)
+{
     PlayerSaveData data;
     data.uuid = "dirty-test";
     data.username = "DirtyPlayer";
@@ -452,7 +472,8 @@ TEST_F(PlayerDataManagerTest, DirtyTracking) {
     EXPECT_EQ(m_manager->dirtyCount(), 0u);
 }
 
-TEST_F(PlayerDataManagerTest, SaveAllDirty) {
+TEST_F(PlayerDataManagerTest, SaveAllDirty)
+{
     // 创建多个玩家
     for (int i = 0; i < 5; ++i) {
         PlayerSaveData data;
@@ -470,7 +491,8 @@ TEST_F(PlayerDataManagerTest, SaveAllDirty) {
     EXPECT_EQ(m_manager->dirtyCount(), 0u);
 }
 
-TEST_F(PlayerDataManagerTest, SaveAll) {
+TEST_F(PlayerDataManagerTest, SaveAll)
+{
     // 创建并立即保存一些玩家
     for (int i = 0; i < 3; ++i) {
         PlayerSaveData data;
@@ -493,7 +515,8 @@ TEST_F(PlayerDataManagerTest, SaveAll) {
     EXPECT_EQ(saveResult.value(), 5u);
 }
 
-TEST_F(PlayerDataManagerTest, ClearCache) {
+TEST_F(PlayerDataManagerTest, ClearCache)
+{
     PlayerSaveData data;
     data.uuid = "clear-cache-test";
     auto saveResult = m_manager->savePlayerImmediate(data);
@@ -507,7 +530,8 @@ TEST_F(PlayerDataManagerTest, ClearCache) {
     EXPECT_EQ(m_manager->dirtyCount(), 0u);
 }
 
-TEST_F(PlayerDataManagerTest, UpdatePlayer) {
+TEST_F(PlayerDataManagerTest, UpdatePlayer)
+{
     PlayerSaveData data;
     data.uuid = "update-test";
     data.username = "OriginalName";
@@ -529,7 +553,8 @@ TEST_F(PlayerDataManagerTest, UpdatePlayer) {
     EXPECT_FLOAT_EQ(loadResult.value()->health, 15.0f);
 }
 
-TEST_F(PlayerDataManagerTest, FromServerPlayerDataConversion) {
+TEST_F(PlayerDataManagerTest, FromServerPlayerDataConversion)
+{
     // 创建简化的测试数据
     server::ServerPlayerData serverData;
     serverData.playerId = 12345;
@@ -555,7 +580,8 @@ TEST_F(PlayerDataManagerTest, FromServerPlayerDataConversion) {
     EXPECT_TRUE(saveData.onGround);
 }
 
-TEST_F(PlayerDataManagerTest, CallbackTest) {
+TEST_F(PlayerDataManagerTest, CallbackTest)
+{
     bool callbackCalled = false;
     std::string savedUuid;
 

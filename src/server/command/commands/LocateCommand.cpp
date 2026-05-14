@@ -2,9 +2,9 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include <sstream>
 
 namespace mc {
@@ -13,24 +13,13 @@ namespace command {
 void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto locateNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("locate");
-    locateNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(0);
-    });
+    locateNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
     support::applyMetadata(
-        locateNode,
-        support::makeMetadata(
-            "Locates the closest structure.",
-            "/locate <structure>",
-            0,
-            {},
-            true));
+        locateNode, support::makeMetadata("Locates the closest structure.", "/locate <structure>", 0, {}, true));
 
     auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "structure",
-        StringArgumentType::string());
-    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return locateStructure(ctx);
-    });
+        "structure", StringArgumentType::string());
+    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return locateStructure(ctx); });
     locateNode->addChild(structureArg);
 
     dispatcher.registerCommand(locateNode);
@@ -51,19 +40,17 @@ i32 LocateCommand::locateStructure(CommandContext<ServerCommandSource>& context)
     // 规范化结构名称
     std::string normalizedName = normalizeStructureName(structureName);
 
-    BlockPos searchCenter(
-        static_cast<BlockCoord>(playerPos.x),
+    BlockPos searchCenter(static_cast<BlockCoord>(playerPos.x),
         static_cast<BlockCoord>(playerPos.y),
-        static_cast<BlockCoord>(playerPos.z)
-    );
+        static_cast<BlockCoord>(playerPos.z));
 
     // TODO: 实现真正的结构搜索，遍历区块查找结构起始点
     // 当前使用占位实现，返回基于玩家位置的估算
     // 实际实现需要访问世界的 StructureManager 并调用其搜索方法
 
     std::ostringstream ss;
-    ss << "Searching for structure '" << structureName << "' near ("
-       << searchCenter.x << ", " << searchCenter.y << ", " << searchCenter.z << ")...";
+    ss << "Searching for structure '" << structureName << "' near (" << searchCenter.x << ", " << searchCenter.y << ", "
+       << searchCenter.z << ")...";
     source.sendMessage(ss.str());
 
     // 占位实现：提示功能尚未完全实现

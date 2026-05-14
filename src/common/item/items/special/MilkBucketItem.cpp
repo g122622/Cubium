@@ -2,34 +2,37 @@
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../world/IWorld.hpp"
 #include "../../../sound/SoundEvents.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../Items.hpp"
 #include "../../core/ItemStack.hpp"
 #include "../../core/UseAction.hpp"
-#include "../../Items.hpp"
-#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {
 namespace special {
 
 MilkBucketItem::MilkBucketItem(ItemProperties properties)
-    : Item(std::move(properties)) {
-}
+    : Item(std::move(properties))
+{}
 
-i32 MilkBucketItem::getUseDuration(const ItemStack& stack) const {
+i32 MilkBucketItem::getUseDuration(const ItemStack& stack) const
+{
     (void)stack;
     // MC 1.16.5: 牛奶桶饮用时间为 32 ticks
     return 32;
 }
 
-UseAction MilkBucketItem::getUseAction(const ItemStack& stack) const {
+UseAction MilkBucketItem::getUseAction(const ItemStack& stack) const
+{
     (void)stack;
     // MC 1.16.5: 牛奶桶返回 Drink 动作
     return UseAction::Drink;
 }
 
-ItemActionResult MilkBucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult MilkBucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     (void)world;
 
     // MC 1.16.5: 牛奶桶可以在任何时候饮用
@@ -44,7 +47,8 @@ ItemActionResult MilkBucketItem::onItemRightClick(IWorld& world, Player& player,
     return ItemActionResult::pass(stack);
 }
 
-ItemStack MilkBucketItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) {
+ItemStack MilkBucketItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
+{
     (void)world;
 
     // MC 1.16.5: 清除所有药水效果
@@ -87,7 +91,8 @@ ItemStack MilkBucketItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entit
     return stack;
 }
 
-bool MilkBucketItem::canEat(const ItemStack& stack, const Player& player) const {
+bool MilkBucketItem::canEat(const ItemStack& stack, const Player& player) const
+{
     (void)stack;
     (void)player;
 

@@ -1,22 +1,24 @@
-#include <gtest/gtest.h>
 #include "server/world/spawn/NaturalSpawner.hpp"
-#include "common/world/spawn/MobSpawnInfo.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/spawn/MobSpawnInfo.hpp"
 #include <array>
 #include <utility>
+#include <gtest/gtest.h>
 
 namespace {
 
 mc::world::spawn::EntityDensityManager createTemporaryDensityManager(
-    mc::world::spawn::MobDensityTracker& densityTracker) {
+    mc::world::spawn::MobDensityTracker& densityTracker)
+{
     std::unordered_map<mc::entity::EntityClassification, mc::i32> entityCounts;
     entityCounts[mc::entity::EntityClassification::Monster] = 200;
     entityCounts[mc::entity::EntityClassification::Creature] = 5;
     return mc::world::spawn::EntityDensityManager(10, std::move(entityCounts), densityTracker);
 }
 
-void clobberStack() {
+void clobberStack()
+{
     std::array<mc::u8, 4096> scratch{};
     for (std::size_t i = 0; i < scratch.size(); ++i) {
         scratch[i] = static_cast<mc::u8>(i);
@@ -38,7 +40,8 @@ namespace test {
  */
 class NaturalSpawnerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化实体放置注册表
         world::spawn::EntitySpawnPlacementRegistry::initializeDefaults();
     }
@@ -46,18 +49,21 @@ protected:
 
 // ========== MobDensityTracker 测试 ==========
 
-TEST_F(NaturalSpawnerTest, MobDensityTracker_InitialState) {
+TEST_F(NaturalSpawnerTest, MobDensityTracker_InitialState)
+{
     world::spawn::MobDensityTracker tracker;
     EXPECT_EQ(tracker.size(), 0);
 }
 
-TEST_F(NaturalSpawnerTest, MobDensityTracker_AddCharge) {
+TEST_F(NaturalSpawnerTest, MobDensityTracker_AddCharge)
+{
     world::spawn::MobDensityTracker tracker;
     tracker.addCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
     EXPECT_EQ(tracker.size(), 1);
 }
 
-TEST_F(NaturalSpawnerTest, MobDensityTracker_GetTotalCharge) {
+TEST_F(NaturalSpawnerTest, MobDensityTracker_GetTotalCharge)
+{
     world::spawn::MobDensityTracker tracker;
 
     // 在原点添加密度
@@ -72,7 +78,8 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_GetTotalCharge) {
     EXPECT_LT(chargeAtFar, chargeAtOrigin);
 }
 
-TEST_F(NaturalSpawnerTest, MobDensityTracker_MultipleCharges) {
+TEST_F(NaturalSpawnerTest, MobDensityTracker_MultipleCharges)
+{
     world::spawn::MobDensityTracker tracker;
 
     // 添加多个密度点
@@ -87,7 +94,8 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_MultipleCharges) {
     EXPECT_GT(charge, 1.0);
 }
 
-TEST_F(NaturalSpawnerTest, MobDensityTracker_Clear) {
+TEST_F(NaturalSpawnerTest, MobDensityTracker_Clear)
+{
     world::spawn::MobDensityTracker tracker;
     tracker.addCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
     EXPECT_EQ(tracker.size(), 1);
@@ -96,7 +104,8 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_Clear) {
     EXPECT_EQ(tracker.size(), 0);
 }
 
-TEST_F(NaturalSpawnerTest, MobDensityTracker_DistanceFalloff) {
+TEST_F(NaturalSpawnerTest, MobDensityTracker_DistanceFalloff)
+{
     world::spawn::MobDensityTracker tracker;
 
     // 在原点添加密度
@@ -118,7 +127,8 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_DistanceFalloff) {
 
 // ========== EntityDensityManager 测试 ==========
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawn) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawn)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -138,7 +148,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawn) {
     EXPECT_FALSE(manager.canSpawn(entity::EntityClassification::Misc));
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithLimit) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithLimit)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -154,7 +165,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithLimit) {
     EXPECT_TRUE(manager.canSpawn(entity::EntityClassification::Creature));
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnBelowLimit) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnBelowLimit)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -167,7 +179,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnBelowLimit) {
     EXPECT_TRUE(manager.canSpawn(entity::EntityClassification::Monster));
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensity) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensity)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -182,7 +195,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensity) {
     EXPECT_TRUE(manager.canSpawnWithDensity("minecraft:zombie", Vector3(0, 0, 0), validCosts));
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensityExceeded) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensityExceeded)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -196,7 +210,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensityExceeded) {
     EXPECT_FALSE(manager.canSpawnWithDensity("minecraft:zombie", Vector3(0, 0, 0), costs));
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_CountSnapshotSurvivesTemporarySource) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_CountSnapshotSurvivesTemporarySource)
+{
     world::spawn::MobDensityTracker densityTracker;
     auto manager = createTemporaryDensityManager(densityTracker);
 
@@ -209,7 +224,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CountSnapshotSurvivesTemporarySo
     EXPECT_TRUE(manager.canSpawn(entity::EntityClassification::Creature));
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawn) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawn)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -223,7 +239,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawn) {
     EXPECT_EQ(densityTracker.size(), 1);
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawnWithoutCosts) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawnWithoutCosts)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -237,7 +254,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawnWithoutCosts) {
     EXPECT_EQ(densityTracker.size(), 0);
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_GetCount) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_GetCount)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -251,7 +269,8 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_GetCount) {
     EXPECT_EQ(manager.getCount(entity::EntityClassification::Ambient), 0);
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_ViewDistance) {
+TEST_F(NaturalSpawnerTest, EntityDensityManager_ViewDistance)
+{
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
@@ -261,26 +280,30 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_ViewDistance) {
 
 // ========== NaturalSpawner 基本功能测试 ==========
 
-TEST_F(NaturalSpawnerTest, CreateSpawner) {
+TEST_F(NaturalSpawnerTest, CreateSpawner)
+{
     world::spawn::NaturalSpawner spawner;
     EXPECT_EQ(spawner.getSpawnDistance(), 8);
     EXPECT_EQ(spawner.getSpawnRange(), 20);
     EXPECT_EQ(spawner.getMaxEntities(), 200);
 }
 
-TEST_F(NaturalSpawnerTest, SetSpawnDistance) {
+TEST_F(NaturalSpawnerTest, SetSpawnDistance)
+{
     world::spawn::NaturalSpawner spawner;
     spawner.setSpawnDistance(16);
     EXPECT_EQ(spawner.getSpawnDistance(), 16);
 }
 
-TEST_F(NaturalSpawnerTest, SetSpawnRange) {
+TEST_F(NaturalSpawnerTest, SetSpawnRange)
+{
     world::spawn::NaturalSpawner spawner;
     spawner.setSpawnRange(32);
     EXPECT_EQ(spawner.getSpawnRange(), 32);
 }
 
-TEST_F(NaturalSpawnerTest, SetMaxEntities) {
+TEST_F(NaturalSpawnerTest, SetMaxEntities)
+{
     world::spawn::NaturalSpawner spawner;
     spawner.setMaxEntities(100);
     EXPECT_EQ(spawner.getMaxEntities(), 100);
@@ -288,106 +311,126 @@ TEST_F(NaturalSpawnerTest, SetMaxEntities) {
 
 // ========== 常量测试 ==========
 
-TEST_F(NaturalSpawnerTest, Constants_MinSpawnDistance) {
+TEST_F(NaturalSpawnerTest, Constants_MinSpawnDistance)
+{
     // 最小生成距离平方：24^2 = 576
     EXPECT_DOUBLE_EQ(world::spawn::NaturalSpawner::MIN_SPAWN_DISTANCE_SQ, 576.0);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxSpawnDistance) {
+TEST_F(NaturalSpawnerTest, Constants_MaxSpawnDistance)
+{
     // 最大生成距离平方：128^2 = 16384
     EXPECT_DOUBLE_EQ(world::spawn::NaturalSpawner::MAX_SPAWN_DISTANCE_SQ, 16384.0);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxMonsters) {
+TEST_F(NaturalSpawnerTest, Constants_MaxMonsters)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_MONSTERS, 70);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxCreatures) {
+TEST_F(NaturalSpawnerTest, Constants_MaxCreatures)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_CREATURES, 10);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxAmbient) {
+TEST_F(NaturalSpawnerTest, Constants_MaxAmbient)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_AMBIENT, 15);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxWaterCreatures) {
+TEST_F(NaturalSpawnerTest, Constants_MaxWaterCreatures)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_WATER_CREATURES, 5);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxGroupSize) {
+TEST_F(NaturalSpawnerTest, Constants_MaxGroupSize)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_GROUP_SIZE, 4);
 }
 
 // ========== SpawnCosts 测试 ==========
 
-TEST_F(NaturalSpawnerTest, SpawnCosts_DefaultValues) {
+TEST_F(NaturalSpawnerTest, SpawnCosts_DefaultValues)
+{
     world::spawn::SpawnCosts costs;
     EXPECT_DOUBLE_EQ(costs.energyBudget, 0.0);
     EXPECT_DOUBLE_EQ(costs.charge, 0.0);
     EXPECT_FALSE(costs.isValid());
 }
 
-TEST_F(NaturalSpawnerTest, SpawnCosts_ValidValues) {
+TEST_F(NaturalSpawnerTest, SpawnCosts_ValidValues)
+{
     world::spawn::SpawnCosts costs(1.0, 0.5);
     EXPECT_DOUBLE_EQ(costs.energyBudget, 1.0);
     EXPECT_DOUBLE_EQ(costs.charge, 0.5);
     EXPECT_TRUE(costs.isValid());
 }
 
-TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroBudget) {
+TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroBudget)
+{
     world::spawn::SpawnCosts costs(0.0, 0.5);
     EXPECT_FALSE(costs.isValid());
 }
 
-TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroCharge) {
+TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroCharge)
+{
     world::spawn::SpawnCosts costs(1.0, 0.0);
     EXPECT_FALSE(costs.isValid());
 }
 
 // ========== 实体分类限制测试 ==========
 
-TEST_F(NaturalSpawnerTest, EntityLimits_Monster) {
+TEST_F(NaturalSpawnerTest, EntityLimits_Monster)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_MONSTERS, 70);
 }
 
-TEST_F(NaturalSpawnerTest, EntityLimits_Creature) {
+TEST_F(NaturalSpawnerTest, EntityLimits_Creature)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_CREATURES, 10);
 }
 
-TEST_F(NaturalSpawnerTest, EntityLimits_Ambient) {
+TEST_F(NaturalSpawnerTest, EntityLimits_Ambient)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_AMBIENT, 15);
 }
 
-TEST_F(NaturalSpawnerTest, EntityLimits_WaterCreature) {
+TEST_F(NaturalSpawnerTest, EntityLimits_WaterCreature)
+{
     EXPECT_EQ(world::spawn::NaturalSpawner::MAX_WATER_CREATURES, 5);
 }
 
 // ========== MobSpawnInfo 工厂方法测试 ==========
 
-TEST_F(NaturalSpawnerTest, MobSpawnInfo_Plains) {
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_Plains)
+{
     auto info = world::spawn::MobSpawnInfo::createPlains();
     EXPECT_GT(info.getCreatureSpawns().size(), 0);
     EXPECT_GT(info.getMonsterSpawns().size(), 0);
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 }
 
-TEST_F(NaturalSpawnerTest, MobSpawnInfo_Forest) {
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_Forest)
+{
     auto info = world::spawn::MobSpawnInfo::createForest();
     EXPECT_GT(info.getCreatureSpawns().size(), 0);
     EXPECT_TRUE(info.isPlayerSpawnFriendly());
 }
 
-TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean) {
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
+{
     auto info = world::spawn::MobSpawnInfo::createOcean();
     EXPECT_GT(info.getWaterCreatureSpawns().size(), 0);
 }
 
-TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert) {
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert)
+{
     auto info = world::spawn::MobSpawnInfo::createDesert();
     EXPECT_GT(info.getMonsterSpawns().size(), 0);
 }
 
-TEST_F(NaturalSpawnerTest, MobSpawnInfo_Snowy) {
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_Snowy)
+{
     auto info = world::spawn::MobSpawnInfo::createSnowy();
     EXPECT_GT(info.getMonsterSpawns().size(), 0);
 }

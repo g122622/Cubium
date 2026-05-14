@@ -1,11 +1,11 @@
 #include "WitherEntity.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
+#include "../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc {
@@ -17,7 +17,8 @@ DataParameter<i32> WitherEntity::HEAD_TARGET_1 = EntityDataManager::createKey<i3
 DataParameter<i32> WitherEntity::HEAD_TARGET_2 = EntityDataManager::createKey<i32>();
 DataParameter<i32> WitherEntity::HEAD_TARGET_3 = EntityDataManager::createKey<i32>();
 
-std::unique_ptr<Entity> WitherEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> WitherEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<WitherEntity>(LegacyEntityType::Wither, EntityId(0));
 }
 
@@ -34,22 +35,26 @@ WitherEntity::WitherEntity(LegacyEntityType type, EntityId id)
     registerGoals();
 }
 
-std::optional<ResourceLocation> WitherEntity::getAmbientSound() const {
+std::optional<ResourceLocation> WitherEntity::getAmbientSound() const
+{
     // MC 1.16.5: entity.wither.ambient
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> WitherEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> WitherEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: entity.wither.hurt
     return makeSoundEventId("hurt");
 }
 
-std::optional<ResourceLocation> WitherEntity::getDeathSound() const {
+std::optional<ResourceLocation> WitherEntity::getDeathSound() const
+{
     // MC 1.16.5: entity.wither.death
     return makeSoundEventId("death");
 }
 
-bool WitherEntity::isInvulnerableTo(DamageSource& source) const {
+bool WitherEntity::isInvulnerableTo(DamageSource& source) const
+{
     // MC 1.16.5 WitherEntity.attackEntityFrom()
     // 凋灵免疫溺水伤害
     if (source.type() == DamageType::Drown) {
@@ -72,17 +77,20 @@ bool WitherEntity::isInvulnerableTo(DamageSource& source) const {
     return MobEntity::isInvulnerableTo(source);
 }
 
-bool WitherEntity::canRangedAttack() const {
+bool WitherEntity::canRangedAttack() const
+{
     // 无敌阶段不能远程攻击
     return m_invulTime <= 0;
 }
 
-std::string WitherEntity::getBossName() const {
+std::string WitherEntity::getBossName() const
+{
     // TODO: 返回自定义名称或默认名称
     return "Wither";
 }
 
-i32 WitherEntity::getWatchedTargetId(i32 head) const {
+i32 WitherEntity::getWatchedTargetId(i32 head) const
+{
     // MC 1.16.5: 从数据管理器获取头部目标
     // head: 0=主头, 1=左头, 2=右头
     switch (head) {
@@ -97,7 +105,8 @@ i32 WitherEntity::getWatchedTargetId(i32 head) const {
     }
 }
 
-void WitherEntity::updateWatchedTargetId(i32 head, i32 targetId) {
+void WitherEntity::updateWatchedTargetId(i32 head, i32 targetId)
+{
     // MC 1.16.5: 更新数据管理器中的头部目标
     // head: 0=主头, 1=左头, 2=右头
     switch (head) {
@@ -115,7 +124,8 @@ void WitherEntity::updateWatchedTargetId(i32 head, i32 targetId) {
     }
 }
 
-void WitherEntity::registerData() {
+void WitherEntity::registerData()
+{
     // MC 1.16.5 WitherEntity.registerData()
     // 调用父类注册数据参数
     MobEntity::registerData();
@@ -127,7 +137,8 @@ void WitherEntity::registerData() {
     m_dataManager.registerParam(HEAD_TARGET_3, 0);
 }
 
-void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target) {
+void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
+{
     // MC 1.16.5: launchWitherSkullToEntity()
     if (!target || !target->isAlive()) {
         return;
@@ -174,13 +185,15 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target) {
     playSound(SoundEvents::ENTITY_WITHER_SHOOT, 1.0f, 1.0f);
 }
 
-void WitherEntity::ignite() {
+void WitherEntity::ignite()
+{
     // MC 1.16.5: 开始生成序列
     m_invulTime = INVULNERABILITY_TIME;
     setHealth(maxHealth() / 3.0f);
 }
 
-void WitherEntity::tick() {
+void WitherEntity::tick()
+{
     // MC 1.16.5 WitherEntity.tick()
 
     // 更新上一帧头部角度
@@ -196,7 +209,8 @@ void WitherEntity::tick() {
     updateAITasks();
 }
 
-void WitherEntity::updateAITasks() {
+void WitherEntity::updateAITasks()
+{
     // MC 1.16.5 WitherEntity.updateAITasks()
 
     // 无敌阶段处理
@@ -231,7 +245,8 @@ void WitherEntity::updateAITasks() {
     }
 }
 
-void WitherEntity::updateHeadTargets() {
+void WitherEntity::updateHeadTargets()
+{
     // MC 1.16.5: 更新三个头的目标
     // 主头追踪 getAttackTarget()
     // 侧头每20tick更新一次目标，追踪最近的非亡灵生物
@@ -270,7 +285,7 @@ void WitherEntity::updateHeadTargets() {
                 if (livingTarget != nullptr) {
                     // 检查距离和视线
                     f32 distSq = distanceSqTo(*livingTarget);
-                    if (distSq <= 900.0f && canSee(*livingTarget)) {  // 30格距离
+                    if (distSq <= 900.0f && canSee(*livingTarget)) { // 30格距离
                         // 目标有效，发射凋灵之首
                         launchWitherSkullToEntity(i, livingTarget);
                         // 设置攻击冷却：40-60 tick
@@ -335,7 +350,8 @@ void WitherEntity::updateHeadTargets() {
     }
 }
 
-f32 WitherEntity::getHeadX(i32 head) const {
+f32 WitherEntity::getHeadX(i32 head) const
+{
     // MC 1.16.5: 计算头的X坐标
     if (head == 0) {
         // 主头
@@ -349,12 +365,14 @@ f32 WitherEntity::getHeadX(i32 head) const {
     }
 }
 
-f32 WitherEntity::getHeadY(i32 head) const {
+f32 WitherEntity::getHeadY(i32 head) const
+{
     // MC 1.16.5: 计算头的Y坐标
     return static_cast<f32>(y() + 2.0);
 }
 
-f32 WitherEntity::getHeadZ(i32 head) const {
+f32 WitherEntity::getHeadZ(i32 head) const
+{
     // MC 1.16.5: 计算头的Z坐标
     if (head == 0) {
         // 主头
@@ -368,7 +386,8 @@ f32 WitherEntity::getHeadZ(i32 head) const {
     }
 }
 
-void WitherEntity::breakNearbyBlocks() {
+void WitherEntity::breakNearbyBlocks()
+{
     // MC 1.16.5: 破坏凋灵周围的方块
     // 检查 mobGriefing 游戏规则
     IWorld* worldPtr = world();
@@ -378,7 +397,8 @@ void WitherEntity::breakNearbyBlocks() {
     // TODO: 破坏 1x2x1 范围内的方块（凋灵免疫标签除外）
 }
 
-void WitherEntity::explodeOnSpawn() {
+void WitherEntity::explodeOnSpawn()
+{
     // MC 1.16.5: 生成时创建7.0威力的爆炸
     // TODO: world->createExplosion(this, x(), y(), z(), 7.0f, ...);
 
@@ -386,12 +406,14 @@ void WitherEntity::explodeOnSpawn() {
     // world->playBroadcastSound(this, SoundEvents.ENTITY_WITHER_SPAWN, ...);
 }
 
-void WitherEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/) {
+void WitherEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
+{
     // MC 1.16.5: 主头发射凋灵之首
     launchWitherSkullToEntity(0, target);
 }
 
-void WitherEntity::registerGoals() {
+void WitherEntity::registerGoals()
+{
     MobEntity::registerGoals();
 
     // MC 1.16.5 WitherEntity.registerGoals()
@@ -406,8 +428,8 @@ void WitherEntity::registerGoals() {
     // 优先级 2: NearestAttackableTargetGoal<MobEntity>（攻击非亡灵生物）
 
     // 优先级 6: 看向玩家
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        6, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
             return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
         }));
@@ -416,14 +438,15 @@ void WitherEntity::registerGoals() {
     m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
-void WitherEntity::registerAttributes() {
+void WitherEntity::registerAttributes()
+{
     MobEntity::registerAttributes();
 
     // MC 1.16.5 WitherEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 300.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0);  // MC 1.16.5: 40 而非 64
-    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 4.0);          // MC 1.16.5: 4 点护甲
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0); // MC 1.16.5: 40 而非 64
+    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 4.0);         // MC 1.16.5: 4 点护甲
 
     // TODO: 凋灵可以飞行
     // setNoGravity(true);

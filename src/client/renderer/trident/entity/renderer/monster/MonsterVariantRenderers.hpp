@@ -18,11 +18,13 @@ public:
     ZombieVillagerRenderer() { m_shadowSize = 0.5f; }
     ~ZombieVillagerRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie_villager/zombie_villager.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie_villager/zombie_villager.png");
     }
@@ -36,11 +38,13 @@ public:
     DrownedRenderer() { m_shadowSize = 0.5f; }
     ~DrownedRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/drowned.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/drowned.png");
     }
@@ -54,11 +58,13 @@ public:
     HuskRenderer() { m_shadowSize = 0.5f; }
     ~HuskRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/husk.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/husk.png");
     }
@@ -72,11 +78,13 @@ public:
     StrayRenderer() { m_shadowSize = 0.5f; }
     ~StrayRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/skeleton/stray.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/skeleton/stray.png");
     }
@@ -90,11 +98,13 @@ public:
     CaveSpiderRenderer() { m_shadowSize = 0.5f; }
     ~CaveSpiderRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/spider/cave_spider.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/spider/cave_spider.png");
     }
@@ -108,11 +118,13 @@ public:
     GiantRenderer() { m_shadowSize = 0.5f; }
     ~GiantRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/zombie.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/zombie.png");
     }

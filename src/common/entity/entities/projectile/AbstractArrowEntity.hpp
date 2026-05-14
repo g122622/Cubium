@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ProjectileEntity.hpp"
+#include "../../../world/block/Block.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../effect/EffectInstance.hpp"
-#include "../../../world/block/Block.hpp"
+#include "ProjectileEntity.hpp"
 #include <memory>
-#include <unordered_set>
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 namespace mc {
@@ -18,9 +18,9 @@ namespace entity {
  * @brief 箭矢拾取状态
  */
 enum class PickupStatus : u8 {
-    Disallowed,    // 不允许拾取
-    Allowed,       // 允许拾取
-    CreativeOnly   // 仅创造模式拾取
+    Disallowed,  // 不允许拾取
+    Allowed,     // 允许拾取
+    CreativeOnly // 仅创造模式拾取
 };
 
 /**
@@ -227,17 +227,17 @@ protected:
     [[nodiscard]] bool canHitEntityWithPierce(const mc::Entity& target) const;
 
     // 属性
-    f32 m_damage = 2.0f;            // 基础伤害
-    i32 m_knockbackStrength = 0;    // 击退强度
-    bool m_critical = false;        // 是否暴击
-    u8 m_pierceLevel = 0;           // 穿透等级
-    bool m_inGround = false;        // 是否插在方块中
-    i32 m_ticksInGround = 0;        // 插在方块中的总时间（用于超时移除）
-    i32 m_timeInGround = 0;         // 当前连续插在方块中的时间（用于三叉戟返回）
-    i32 m_arrowShake = 0;           // 箭矢抖动时间
+    f32 m_damage = 2.0f;         // 基础伤害
+    i32 m_knockbackStrength = 0; // 击退强度
+    bool m_critical = false;     // 是否暴击
+    u8 m_pierceLevel = 0;        // 穿透等级
+    bool m_inGround = false;     // 是否插在方块中
+    i32 m_ticksInGround = 0;     // 插在方块中的总时间（用于超时移除）
+    i32 m_timeInGround = 0;      // 当前连续插在方块中的时间（用于三叉戟返回）
+    i32 m_arrowShake = 0;        // 箭矢抖动时间
     PickupStatus m_pickupStatus = PickupStatus::Disallowed;
     bool m_shotFromCrossbow = false;
-    bool m_dealtDamage = false;     // 是否已造成伤害（三叉戟用）
+    bool m_dealtDamage = false; // 是否已造成伤害（三叉戟用）
 
     // 穿透追踪（使用 unordered_set 实现 O(1) 查找，对齐 MC 1.16.5 IntOpenHashSet）
     std::unordered_set<EntityId> m_piercedEntities;
@@ -271,8 +271,7 @@ public:
      * @param shooter 发射者
      * @param world 世界
      */
-    static std::unique_ptr<ArrowEntity> createFromShooter(
-        LivingEntity& shooter, IWorld* world);
+    static std::unique_ptr<ArrowEntity> createFromShooter(LivingEntity& shooter, IWorld* world);
 
     // ========== Entity 接口重写 ==========
 
@@ -307,24 +306,18 @@ public:
      * @brief 添加药水效果
      * @param effect 效果实例
      */
-    void addEffect(const entity::effect::EffectInstance& effect) {
-        m_effects.push_back(effect);
-    }
+    void addEffect(const entity::effect::EffectInstance& effect) { m_effects.push_back(effect); }
 
     /**
      * @brief 设置药水效果列表
      * @param effects 效果列表
      */
-    void setEffects(const std::vector<entity::effect::EffectInstance>& effects) {
-        m_effects = effects;
-    }
+    void setEffects(const std::vector<entity::effect::EffectInstance>& effects) { m_effects = effects; }
 
     /**
      * @brief 获取药水效果列表
      */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const {
-        return m_effects;
-    }
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const { return m_effects; }
 
     /**
      * @brief 是否有药水效果
@@ -340,9 +333,9 @@ public:
     [[nodiscard]] ItemStack getArrowStack() const override;
 
 private:
-    u32 m_color = 0xFFFFFFFF;  // 箭矢颜色（药水箭）
-    bool m_glowing = false;    // 是否发光（光灵箭）
-    std::vector<entity::effect::EffectInstance> m_effects;  // 药水效果列表
+    u32 m_color = 0xFFFFFFFF;                              // 箭矢颜色（药水箭）
+    bool m_glowing = false;                                // 是否发光（光灵箭）
+    std::vector<entity::effect::EffectInstance> m_effects; // 药水效果列表
 };
 
 /**
@@ -377,7 +370,7 @@ public:
     [[nodiscard]] ItemStack getArrowStack() const override;
 
 private:
-    i32 m_glowDuration = 200;  // 发光持续时间（ticks）
+    i32 m_glowDuration = 200; // 发光持续时间（ticks）
 };
 
 } // namespace entity

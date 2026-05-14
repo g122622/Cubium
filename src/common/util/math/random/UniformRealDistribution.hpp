@@ -33,17 +33,14 @@ public:
     explicit UniformRealDistribution(f32 min = 0.0f, f32 max = 1.0f)
         : m_min(min)
         , m_max(max)
-    {
-    }
+    {}
 
     /**
      * @brief 使用指定的随机数生成器生成随机数
      * @param random 随机数生成器
      * @return [min, max) 范围内的随机浮点数
      */
-    [[nodiscard]] f32 operator()(IRandom& random) const {
-        return random.nextFloat(m_min, m_max);
-    }
+    [[nodiscard]] f32 operator()(IRandom& random) const { return random.nextFloat(m_min, m_max); }
 
     /**
      * @brief 创建一个新的 Random 并生成随机数（便捷方法）

@@ -1,7 +1,7 @@
 #include "Score.hpp"
-#include "Scoreboard.hpp"
-#include "ScoreObjective.hpp"
 #include "ScoreCriteria.hpp"
+#include "ScoreObjective.hpp"
+#include "Scoreboard.hpp"
 #include <algorithm>
 #include <climits>
 
@@ -13,11 +13,11 @@ Score::Score(Scoreboard& scoreboard, ScoreObjective& objective, const std::strin
     , m_playerName(playerName)
     , m_score(0)
     , m_locked(false)
-    , m_forceUpdate(true)  // 新创建的分数需要强制更新
-{
-}
+    , m_forceUpdate(true) // 新创建的分数需要强制更新
+{}
 
-void Score::setScorePoints(i32 points) {
+void Score::setScorePoints(i32 points)
+{
     // 限制分数范围
     points = std::clamp(points, MIN_SCORE, MAX_SCORE);
 
@@ -34,7 +34,8 @@ void Score::setScorePoints(i32 points) {
     }
 }
 
-void Score::addScore(i32 amount) {
+void Score::addScore(i32 amount)
+{
     // 检查溢出
     if (amount > 0 && m_score > MAX_SCORE - amount) {
         setScorePoints(MAX_SCORE);
@@ -45,11 +46,13 @@ void Score::addScore(i32 amount) {
     }
 }
 
-void Score::subtractScore(i32 amount) {
+void Score::subtractScore(i32 amount)
+{
     addScore(-amount);
 }
 
-void Score::reset() {
+void Score::reset()
+{
     setScorePoints(0);
     m_locked = false;
 }

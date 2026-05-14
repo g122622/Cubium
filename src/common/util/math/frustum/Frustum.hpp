@@ -19,7 +19,7 @@ namespace mc::math::frustum {
  * 法向量归一化后，distanceToPoint() 返回点到平面的真实距离。
  */
 struct FrustumPlane {
-    Vector3f normal{0.0f, 0.0f, 0.0f};  ///< 平面法向量（归一化，指向视锥内部）
+    Vector3f normal{0.0f, 0.0f, 0.0f}; ///< 平面法向量（归一化，指向视锥内部）
     f32 distance = 0.0f;               ///< 平面到原点的距离（D 系数）
 
     /**
@@ -28,9 +28,7 @@ struct FrustumPlane {
      * @param point 点坐标
      * @return 正值表示点在平面内侧（视锥内），负值表示在外侧
      */
-    [[nodiscard]] f32 distanceToPoint(const Vector3f& point) const noexcept {
-        return normal.dot(point) + distance;
-    }
+    [[nodiscard]] f32 distanceToPoint(const Vector3f& point) const noexcept { return normal.dot(point) + distance; }
 
     /**
      * @brief 计算点到平面的有符号距离（glm 版本）
@@ -38,7 +36,8 @@ struct FrustumPlane {
      * @param point 点坐标
      * @return 正值表示点在平面内侧（视锥内），负值表示在外侧
      */
-    [[nodiscard]] f32 distanceToPoint(const glm::vec3& point) const noexcept {
+    [[nodiscard]] f32 distanceToPoint(const glm::vec3& point) const noexcept
+    {
         return normal.x * point.x + normal.y * point.y + normal.z * point.z + distance;
     }
 
@@ -48,7 +47,8 @@ struct FrustumPlane {
      * 确保法向量长度为 1，这样 distanceToPoint() 返回真正的距离。
      * 归一化后平面方程性质不变，但距离值具有物理意义。
      */
-    void normalize() noexcept {
+    void normalize() noexcept
+    {
         const f32 length = normal.length();
         if (length > 0.0001f) {
             const f32 invLength = 1.0f / length;
@@ -92,12 +92,12 @@ class Frustum {
 public:
     /// 视锥平面索引
     enum PlaneIndex : u8 {
-        Left = 0,    ///< 左平面
-        Right = 1,   ///< 右平面
-        Bottom = 2,  ///< 底平面
-        Top = 3,     ///< 顶平面
-        Near = 4,    ///< 近裁剪面
-        Far = 5      ///< 远裁剪面
+        Left = 0,   ///< 左平面
+        Right = 1,  ///< 右平面
+        Bottom = 2, ///< 底平面
+        Top = 3,    ///< 顶平面
+        Near = 4,   ///< 近裁剪面
+        Far = 5     ///< 远裁剪面
     };
 
     /// 视锥平面数量
@@ -138,15 +138,14 @@ public:
      *
      * @param position 相机世界位置
      */
-    void setCameraPosition(const Vector3f& position) noexcept {
-        m_cameraPosition = position;
-    }
+    void setCameraPosition(const Vector3f& position) noexcept { m_cameraPosition = position; }
 
     /**
      * @brief 设置相机位置（glm 版本）
      * @param position 相机世界位置
      */
-    void setCameraPosition(const glm::vec3& position) noexcept {
+    void setCameraPosition(const glm::vec3& position) noexcept
+    {
         m_cameraPosition = Vector3f(position.x, position.y, position.z);
     }
 
@@ -254,7 +253,8 @@ public:
      * @param index 平面索引
      * @return 平面引用
      */
-    [[nodiscard]] const FrustumPlane& getPlane(PlaneIndex index) const noexcept {
+    [[nodiscard]] const FrustumPlane& getPlane(PlaneIndex index) const noexcept
+    {
         return m_planes[static_cast<size_t>(index)];
     }
 
@@ -262,25 +262,19 @@ public:
      * @brief 获取所有平面
      * @return 平面数组
      */
-    [[nodiscard]] const std::array<FrustumPlane, PLANE_COUNT>& getPlanes() const noexcept {
-        return m_planes;
-    }
+    [[nodiscard]] const std::array<FrustumPlane, PLANE_COUNT>& getPlanes() const noexcept { return m_planes; }
 
     /**
      * @brief 获取相机位置
      * @return 相机世界位置
      */
-    [[nodiscard]] const Vector3f& getCameraPosition() const noexcept {
-        return m_cameraPosition;
-    }
+    [[nodiscard]] const Vector3f& getCameraPosition() const noexcept { return m_cameraPosition; }
 
     /**
      * @brief 检查视锥是否已初始化
      * @return true 如果已从矩阵提取平面
      */
-    [[nodiscard]] bool isValid() const noexcept {
-        return m_valid;
-    }
+    [[nodiscard]] bool isValid() const noexcept { return m_valid; }
 
 private:
     std::array<FrustumPlane, PLANE_COUNT> m_planes;
@@ -315,12 +309,7 @@ namespace FrustumUtils {
  * @param sectionHeight 区块段高度（默认 16）
  * @return 覆盖整个区块段的 AABB
  */
-[[nodiscard]] AxisAlignedBB createSectionAABB(
-    i32 chunkX,
-    i32 sectionY,
-    i32 chunkZ,
-    i32 sectionHeight = 16
-) noexcept;
+[[nodiscard]] AxisAlignedBB createSectionAABB(i32 chunkX, i32 sectionY, i32 chunkZ, i32 sectionHeight = 16) noexcept;
 
 /**
  * @brief 为实体创建 AABB
@@ -330,11 +319,7 @@ namespace FrustumUtils {
  * @param height 实体高度
  * @return 实体 AABB
  */
-[[nodiscard]] AxisAlignedBB createEntityAABB(
-    const Vector3f& position,
-    f32 width,
-    f32 height
-) noexcept;
+[[nodiscard]] AxisAlignedBB createEntityAABB(const Vector3f& position, f32 width, f32 height) noexcept;
 
 /**
  * @brief 为方块创建 AABB
@@ -357,6 +342,6 @@ namespace FrustumUtils {
  */
 [[nodiscard]] AxisAlignedBB expandAABB(const AxisAlignedBB& aabb, f32 margin) noexcept;
 
-}  // namespace FrustumUtils
+} // namespace FrustumUtils
 
-}  // namespace mc::math::frustum
+} // namespace mc::math::frustum

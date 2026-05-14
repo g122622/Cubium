@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/skin/core/SkinTextures.hpp"
+#include "common/core/Types.hpp"
 #include "common/skin/core/GameProfile.hpp"
-#include <vector>
+#include "common/skin/core/SkinTextures.hpp"
 #include <string>
+#include <vector>
 
 namespace mc::skin {
 

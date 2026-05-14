@@ -32,16 +32,15 @@ SpellParticle::SpellParticle(const glm::vec3& pos, const glm::vec3& velocity, co
 }
 
 std::unique_ptr<Particle> SpellParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     // 默认紫色的药水粒子
     return std::make_unique<SpellParticle>(pos, velocity, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f));
 }
 
-void SpellParticle::tick(mc::client::ClientWorld* world) {
+void SpellParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -69,7 +68,8 @@ void SpellParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.8f * (1.0f - lifeRatio));
 }
 
-f64 SpellParticle::getScale(f64 partialTick) const {
+f64 SpellParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -97,15 +97,14 @@ InstantSpellParticle::InstantSpellParticle(const glm::vec3& pos, const glm::vec3
 }
 
 std::unique_ptr<Particle> InstantSpellParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<InstantSpellParticle>(pos, velocity, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
-void InstantSpellParticle::tick(mc::client::ClientWorld* world) {
+void InstantSpellParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -125,7 +124,8 @@ void InstantSpellParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(1.0f - lifeRatio);
 }
 
-f64 InstantSpellParticle::getScale(f64 partialTick) const {
+f64 InstantSpellParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -151,15 +151,14 @@ EntityEffectParticle::EntityEffectParticle(const glm::vec3& pos, const glm::vec3
 }
 
 std::unique_ptr<Particle> EntityEffectParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<EntityEffectParticle>(pos, velocity, glm::vec4(0.5f, 0.0f, 0.5f, 0.5f));
 }
 
-void EntityEffectParticle::tick(mc::client::ClientWorld* world) {
+void EntityEffectParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -184,7 +183,8 @@ void EntityEffectParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.5f * (1.0f - lifeRatio));
 }
 
-f64 EntityEffectParticle::getScale(f64 partialTick) const {
+f64 EntityEffectParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -194,9 +194,7 @@ f64 EntityEffectParticle::getScale(f64 partialTick) const {
 // ============================================================================
 
 AmbientEntityEffectParticle::AmbientEntityEffectParticle(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    const glm::vec4& color)
+    const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
     , m_initialSize(0.1f)
 {
@@ -205,7 +203,7 @@ AmbientEntityEffectParticle::AmbientEntityEffectParticle(
     setGravity(0.0f);
     setSize(0.1f + rng.nextFloat() * 0.02f);
     m_initialSize = size();
-    setFriction(0.98f);  // 更高的摩擦，更慢
+    setFriction(0.98f); // 更高的摩擦，更慢
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 6.0);
 
@@ -214,15 +212,14 @@ AmbientEntityEffectParticle::AmbientEntityEffectParticle(
 }
 
 std::unique_ptr<Particle> AmbientEntityEffectParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<AmbientEntityEffectParticle>(pos, velocity, glm::vec4(0.5f, 0.5f, 1.0f, 0.3f));
 }
 
-void AmbientEntityEffectParticle::tick(mc::client::ClientWorld* world) {
+void AmbientEntityEffectParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -247,7 +244,8 @@ void AmbientEntityEffectParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.3f * (1.0f - lifeRatio));
 }
 
-f64 AmbientEntityEffectParticle::getScale(f64 partialTick) const {
+f64 AmbientEntityEffectParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -277,15 +275,14 @@ WitchParticle::WitchParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> WitchParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<WitchParticle>(pos, velocity);
 }
 
-void WitchParticle::tick(mc::client::ClientWorld* world) {
+void WitchParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

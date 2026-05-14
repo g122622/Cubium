@@ -1,13 +1,13 @@
 #include "FindWaterGoal.hpp"
+#include "../../../../core/Constants.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/Material.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Material.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../../core/Constants.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -18,7 +18,8 @@ FindWaterGoal::FindWaterGoal(CreatureEntity* creature)
     MC_ASSERT(creature != nullptr);
 }
 
-bool FindWaterGoal::shouldExecute() {
+bool FindWaterGoal::shouldExecute()
+{
     if (m_creature == nullptr) {
         return false;
     }
@@ -32,7 +33,8 @@ bool FindWaterGoal::shouldExecute() {
     return findWater();
 }
 
-bool FindWaterGoal::shouldContinueExecuting() {
+bool FindWaterGoal::shouldContinueExecuting()
+{
     if (m_creature == nullptr) {
         return false;
     }
@@ -55,7 +57,8 @@ bool FindWaterGoal::shouldContinueExecuting() {
     return mob->navigator() != nullptr && mob->navigator()->hasPath();
 }
 
-void FindWaterGoal::startExecuting() {
+void FindWaterGoal::startExecuting()
+{
     if (m_creature == nullptr || !m_foundWater) {
         return;
     }
@@ -64,11 +67,13 @@ void FindWaterGoal::startExecuting() {
     m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, 1.0);
 }
 
-void FindWaterGoal::resetTask() {
+void FindWaterGoal::resetTask()
+{
     m_foundWater = false;
 }
 
-void FindWaterGoal::tick() {
+void FindWaterGoal::tick()
+{
     // 每tick检查是否已经到达水中
     if (m_creature != nullptr && m_creature->isInWater()) {
         // 已到达水中，停止导航
@@ -80,15 +85,15 @@ void FindWaterGoal::tick() {
     }
 }
 
-bool FindWaterGoal::findWater() {
+bool FindWaterGoal::findWater()
+{
     if (m_creature == nullptr || m_creature->world() == nullptr) {
         return false;
     }
 
     IWorld* world = m_creature->world();
-    BlockPos entityPos(static_cast<i32>(m_creature->x()),
-                       static_cast<i32>(m_creature->y()),
-                       static_cast<i32>(m_creature->z()));
+    BlockPos entityPos(
+        static_cast<i32>(m_creature->x()), static_cast<i32>(m_creature->y()), static_cast<i32>(m_creature->z()));
 
     // MC 1.16.5: 在实体周围搜索水源
     // 搜索范围：水平方向 16 格，垂直方向 5 格
@@ -110,11 +115,8 @@ bool FindWaterGoal::findWater() {
                 }
 
                 // 计算距离
-                f64 distance = std::sqrt(
-                    static_cast<f64>(dx * dx) +
-                    static_cast<f64>(dy * dy) +
-                    static_cast<f64>(dz * dz)
-                );
+                f64 distance =
+                    std::sqrt(static_cast<f64>(dx * dx) + static_cast<f64>(dy * dy) + static_cast<f64>(dz * dz));
 
                 if (distance < bestDistance) {
                     bestDistance = distance;

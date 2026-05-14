@@ -15,7 +15,7 @@ namespace server {
 class ServerWorld;
 class IServer;
 class PlayerAdvancements;
-}
+} // namespace server
 
 /**
  * @brief 服务端玩家实体。
@@ -259,9 +259,7 @@ public:
      * @param bedPos 床头位置
      * @return 睡眠结果
      */
-    entity::SleepResult tryStartSleeping(const BlockPos& bedPos) override {
-        return trySleep(bedPos);
-    }
+    entity::SleepResult tryStartSleeping(const BlockPos& bedPos) override { return trySleep(bedPos); }
 
     /**
      * @brief 停止睡眠

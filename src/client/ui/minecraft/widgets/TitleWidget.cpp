@@ -1,7 +1,7 @@
 #include "TitleWidget.hpp"
 #include "client/ui/Font.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft::widgets {
 
@@ -20,7 +20,8 @@ TitleWidget::TitleWidget()
 // 标题控制
 // ============================================================================
 
-void TitleWidget::setTitle(const std::string& text) {
+void TitleWidget::setTitle(const std::string& text)
+{
     m_title.text = text;
     m_title.elapsed = 0.0f;
     m_title.remainingTime = m_title.fadeInTime + m_title.stayTime + m_title.fadeOutTime;
@@ -35,7 +36,8 @@ void TitleWidget::setTitle(const std::string& text) {
     }
 }
 
-void TitleWidget::setSubtitle(const std::string& text) {
+void TitleWidget::setSubtitle(const std::string& text)
+{
     m_subtitle.text = text;
     m_subtitle.elapsed = 0.0f;
     m_subtitle.remainingTime = m_subtitle.fadeInTime + m_subtitle.stayTime + m_subtitle.fadeOutTime;
@@ -50,7 +52,8 @@ void TitleWidget::setSubtitle(const std::string& text) {
     }
 }
 
-void TitleWidget::setActionbar(const std::string& text) {
+void TitleWidget::setActionbar(const std::string& text)
+{
     m_actionbar.text = text;
     m_actionbar.elapsed = 0.0f;
     m_actionbar.remainingTime = m_actionbar.fadeInTime + m_actionbar.stayTime + m_actionbar.fadeOutTime;
@@ -65,7 +68,8 @@ void TitleWidget::setActionbar(const std::string& text) {
     }
 }
 
-void TitleWidget::setTimes(i32 fadeIn, i32 stay, i32 fadeOut) {
+void TitleWidget::setTimes(i32 fadeIn, i32 stay, i32 fadeOut)
+{
     // 将 tick 转换为秒（1 tick = 50ms = 0.05s）
     constexpr f32 TICK_TO_SECONDS = 0.05f;
 
@@ -94,7 +98,8 @@ void TitleWidget::setTimes(i32 fadeIn, i32 stay, i32 fadeOut) {
     }
 }
 
-void TitleWidget::clear() {
+void TitleWidget::clear()
+{
     // 立即清除标题和副标题（不显示淡出动画）
     m_title.active = false;
     m_title.text = std::nullopt;
@@ -102,7 +107,8 @@ void TitleWidget::clear() {
     m_subtitle.text = std::nullopt;
 }
 
-void TitleWidget::reset() {
+void TitleWidget::reset()
+{
     // 重置所有状态到默认值
     clear();
 
@@ -110,14 +116,14 @@ void TitleWidget::reset() {
     m_actionbar.text = std::nullopt;
 
     // 重置时间为 MC 1.16.5 默认值
-    m_defaultFadeIn = 0.5f;    // 10 ticks
-    m_defaultStay = 3.5f;      // 70 ticks
-    m_defaultFadeOut = 1.0f;   // 20 ticks
+    m_defaultFadeIn = 0.5f;  // 10 ticks
+    m_defaultStay = 3.5f;    // 70 ticks
+    m_defaultFadeOut = 1.0f; // 20 ticks
 }
 
-void TitleWidget::handleTitlePacket(TitleAction action,
-                                     const std::optional<std::string>& text,
-                                     i32 fadeIn, i32 stay, i32 fadeOut) {
+void TitleWidget::handleTitlePacket(
+    TitleAction action, const std::optional<std::string>& text, i32 fadeIn, i32 stay, i32 fadeOut)
+{
     switch (action) {
         case TitleAction::Title:
             // 设置主标题
@@ -170,7 +176,8 @@ void TitleWidget::handleTitlePacket(TitleAction action,
 // Widget 接口
 // ============================================================================
 
-void TitleWidget::tick(f32 dt) {
+void TitleWidget::tick(f32 dt)
+{
     // 更新主标题
     if (m_title.active) {
         m_title.elapsed += dt;
@@ -199,7 +206,8 @@ void TitleWidget::tick(f32 dt) {
     }
 }
 
-void TitleWidget::paint(kagero::widget::PaintContext& ctx) {
+void TitleWidget::paint(kagero::widget::PaintContext& ctx)
+{
     // 渲染动作栏（在快捷栏上方）
     renderActionbar(ctx);
 
@@ -211,7 +219,8 @@ void TitleWidget::paint(kagero::widget::PaintContext& ctx) {
 // 渲染方法
 // ============================================================================
 
-void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx) {
+void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx)
+{
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
 
@@ -230,19 +239,14 @@ void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx) {
 
             // 应用透明度到颜色
             u32 textColor = static_cast<u32>(static_cast<u8>(alpha * 255.0f)) << 24 | (TITLE_COLOR & 0x00FFFFFF);
-            u32 shadowColor = static_cast<u32>(static_cast<u8>(alpha * TITLE_SHADOW_ALPHA * 255.0f)) << 24 | (SHADOW_COLOR & 0x00FFFFFF);
+            u32 shadowColor = static_cast<u32>(static_cast<u8>(alpha * TITLE_SHADOW_ALPHA * 255.0f)) << 24 |
+                (SHADOW_COLOR & 0x00FFFFFF);
 
             // 绘制阴影（偏移 2 像素）
-            ctx.drawText(text,
-                        static_cast<i32>(x + 2.0f),
-                        static_cast<i32>(titleY + 2.0f),
-                        shadowColor);
+            ctx.drawText(text, static_cast<i32>(x + 2.0f), static_cast<i32>(titleY + 2.0f), shadowColor);
 
             // 绘制文本
-            ctx.drawText(text,
-                        static_cast<i32>(x),
-                        static_cast<i32>(titleY),
-                        textColor);
+            ctx.drawText(text, static_cast<i32>(x), static_cast<i32>(titleY), textColor);
         }
     }
 
@@ -261,24 +265,20 @@ void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx) {
 
             // 应用透明度
             u32 textColor = static_cast<u32>(static_cast<u8>(alpha * 255.0f)) << 24 | (TITLE_COLOR & 0x00FFFFFF);
-            u32 shadowColor = static_cast<u32>(static_cast<u8>(alpha * TITLE_SHADOW_ALPHA * 255.0f)) << 24 | (SHADOW_COLOR & 0x00FFFFFF);
+            u32 shadowColor = static_cast<u32>(static_cast<u8>(alpha * TITLE_SHADOW_ALPHA * 255.0f)) << 24 |
+                (SHADOW_COLOR & 0x00FFFFFF);
 
             // 绘制阴影
-            ctx.drawText(text,
-                        static_cast<i32>(x + 1.0f),
-                        static_cast<i32>(subtitleY + 1.0f),
-                        shadowColor);
+            ctx.drawText(text, static_cast<i32>(x + 1.0f), static_cast<i32>(subtitleY + 1.0f), shadowColor);
 
             // 绘制文本
-            ctx.drawText(text,
-                        static_cast<i32>(x),
-                        static_cast<i32>(subtitleY),
-                        textColor);
+            ctx.drawText(text, static_cast<i32>(x), static_cast<i32>(subtitleY), textColor);
         }
     }
 }
 
-void TitleWidget::renderActionbar(kagero::widget::PaintContext& ctx) {
+void TitleWidget::renderActionbar(kagero::widget::PaintContext& ctx)
+{
     if (!m_actionbar.active || !m_actionbar.text.has_value()) {
         return;
     }
@@ -302,22 +302,18 @@ void TitleWidget::renderActionbar(kagero::widget::PaintContext& ctx) {
 
     // 应用透明度
     u32 textColor = static_cast<u32>(static_cast<u8>(alpha * 255.0f)) << 24 | (TITLE_COLOR & 0x00FFFFFF);
-    u32 shadowColor = static_cast<u32>(static_cast<u8>(alpha * TITLE_SHADOW_ALPHA * 255.0f)) << 24 | (SHADOW_COLOR & 0x00FFFFFF);
+    u32 shadowColor =
+        static_cast<u32>(static_cast<u8>(alpha * TITLE_SHADOW_ALPHA * 255.0f)) << 24 | (SHADOW_COLOR & 0x00FFFFFF);
 
     // 绘制阴影
-    ctx.drawText(text,
-                static_cast<i32>(x + 1.0f),
-                static_cast<i32>(actionbarY + 1.0f),
-                shadowColor);
+    ctx.drawText(text, static_cast<i32>(x + 1.0f), static_cast<i32>(actionbarY + 1.0f), shadowColor);
 
     // 绘制文本
-    ctx.drawText(text,
-                static_cast<i32>(x),
-                static_cast<i32>(actionbarY),
-                textColor);
+    ctx.drawText(text, static_cast<i32>(x), static_cast<i32>(actionbarY), textColor);
 }
 
-f32 TitleWidget::calculateAlpha(const TitleState& state) const {
+f32 TitleWidget::calculateAlpha(const TitleState& state) const
+{
     if (!state.active) {
         return 0.0f;
     }

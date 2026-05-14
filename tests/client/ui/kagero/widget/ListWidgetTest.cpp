@@ -3,11 +3,11 @@
  * @brief ListWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/ListWidget.hpp"
+#include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
-#include "client/ui/Glyph.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -26,7 +26,8 @@ public:
     /**
      * @brief 重置记录状态
      */
-    void reset() {
+    void reset()
+    {
         filledRectCalled = false;
         textCalled = false;
         lastFilledRect = Rect{};
@@ -37,7 +38,8 @@ public:
         lastTextColor = 0;
     }
 
-    void drawRect(const Rect& rect, const paint::IPaint& paint) override {
+    void drawRect(const Rect& rect, const paint::IPaint& paint) override
+    {
         filledRectCalled = true;
         lastFilledRect = rect;
         lastFilledColor = paint.color().toARGB();
@@ -53,7 +55,8 @@ public:
     void drawImageRect(const paint::IImage&, const Rect&, const Rect&) override {}
     void drawImageNine(const paint::IImage&, const Rect&, const Rect&, const paint::IPaint*) override {}
 
-    void drawText(const std::string& text, f32 x, f32 y, const paint::IPaint& paint) override {
+    void drawText(const std::string& text, f32 x, f32 y, const paint::IPaint& paint) override
+    {
         textCalled = true;
         lastText = text;
         lastTextX = x;
@@ -81,7 +84,10 @@ public:
     i32 saveLayerAlpha(const Rect*, u8) override { return 0; }
     [[nodiscard]] i32 width() const override { return 0; }
     [[nodiscard]] i32 height() const override { return 0; }
-    [[nodiscard]] f32 getTextWidth(const std::string& text) const override { return static_cast<f32>(text.size()) * 6.0f; }
+    [[nodiscard]] f32 getTextWidth(const std::string& text) const override
+    {
+        return static_cast<f32>(text.size()) * 6.0f;
+    }
     [[nodiscard]] u32 getFontHeight() const override { return 12; }
 
     bool filledRectCalled = false;
@@ -102,11 +108,13 @@ class TestListItem : public IListItem {
 public:
     TestListItem(std::string text, i32 height = 20)
         : m_text(std::move(text))
-        , m_height(height) {}
+        , m_height(height)
+    {}
 
     [[nodiscard]] i32 getHeight() const override { return m_height; }
 
-    void paintItem(PaintContext& ctx, i32 x, i32 y, i32 width, bool selected, bool hovered) override {
+    void paintItem(PaintContext& ctx, i32 x, i32 y, i32 width, bool selected, bool hovered) override
+    {
         (void)ctx;
         (void)x;
         (void)y;
@@ -125,13 +133,15 @@ private:
 
 // ==================== 构造函数测试 ====================
 
-TEST(ListWidgetTest, DefaultConstructor) {
+TEST(ListWidgetTest, DefaultConstructor)
+{
     ListWidget list;
     EXPECT_TRUE(list.id().empty());
     EXPECT_EQ(0u, list.itemCount());
 }
 
-TEST(ListWidgetTest, ConstructorWithBounds) {
+TEST(ListWidgetTest, ConstructorWithBounds)
+{
     ListWidget list("list", 10, 20, 200, 300);
 
     EXPECT_EQ("list", list.id());
@@ -143,7 +153,8 @@ TEST(ListWidgetTest, ConstructorWithBounds) {
 
 // ==================== 项目操作测试 ====================
 
-TEST(ListWidgetTest, AddItem) {
+TEST(ListWidgetTest, AddItem)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -153,7 +164,8 @@ TEST(ListWidgetTest, AddItem) {
     EXPECT_EQ(2u, list.itemCount());
 }
 
-TEST(ListWidgetTest, InsertItem) {
+TEST(ListWidgetTest, InsertItem)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -164,7 +176,8 @@ TEST(ListWidgetTest, InsertItem) {
     EXPECT_EQ("Item 2", dynamic_cast<TestListItem*>(list.getItem(1))->text());
 }
 
-TEST(ListWidgetTest, RemoveItem) {
+TEST(ListWidgetTest, RemoveItem)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -179,7 +192,8 @@ TEST(ListWidgetTest, RemoveItem) {
     EXPECT_EQ("Item 3", dynamic_cast<TestListItem*>(list.getItem(1))->text());
 }
 
-TEST(ListWidgetTest, ClearItems) {
+TEST(ListWidgetTest, ClearItems)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -191,7 +205,8 @@ TEST(ListWidgetTest, ClearItems) {
     EXPECT_EQ(0u, list.itemCount());
 }
 
-TEST(ListWidgetTest, GetItem) {
+TEST(ListWidgetTest, GetItem)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -210,7 +225,8 @@ TEST(ListWidgetTest, GetItem) {
 
 // ==================== 选择测试 ====================
 
-TEST(ListWidgetTest, SelectItem) {
+TEST(ListWidgetTest, SelectItem)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -226,7 +242,8 @@ TEST(ListWidgetTest, SelectItem) {
     EXPECT_EQ(2, list.selectedIndex());
 }
 
-TEST(ListWidgetTest, ClearSelection) {
+TEST(ListWidgetTest, ClearSelection)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -238,7 +255,8 @@ TEST(ListWidgetTest, ClearSelection) {
     EXPECT_EQ(-1, list.selectedIndex());
 }
 
-TEST(ListWidgetTest, SelectedItem) {
+TEST(ListWidgetTest, SelectedItem)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -252,7 +270,8 @@ TEST(ListWidgetTest, SelectedItem) {
     EXPECT_EQ(nullptr, list.selectedItem());
 }
 
-TEST(ListWidgetTest, SelectionModeNone) {
+TEST(ListWidgetTest, SelectionModeNone)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -262,7 +281,8 @@ TEST(ListWidgetTest, SelectionModeNone) {
     EXPECT_EQ(-1, list.selectedIndex());
 }
 
-TEST(ListWidgetTest, SelectionModeSingle) {
+TEST(ListWidgetTest, SelectionModeSingle)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -278,7 +298,8 @@ TEST(ListWidgetTest, SelectionModeSingle) {
 
 // ==================== 多选测试 ====================
 
-TEST(ListWidgetTest, MultiSelect) {
+TEST(ListWidgetTest, MultiSelect)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -306,7 +327,8 @@ TEST(ListWidgetTest, MultiSelect) {
     EXPECT_TRUE(list.isSelected(1));
 }
 
-TEST(ListWidgetTest, SetSelectedIndices) {
+TEST(ListWidgetTest, SetSelectedIndices)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -325,7 +347,8 @@ TEST(ListWidgetTest, SetSelectedIndices) {
     EXPECT_TRUE(list.isSelected(3));
 }
 
-TEST(ListWidgetTest, SelectedIndices) {
+TEST(ListWidgetTest, SelectedIndices)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -341,7 +364,8 @@ TEST(ListWidgetTest, SelectedIndices) {
 
 // ==================== 回调测试 ====================
 
-TEST(ListWidgetTest, OnSelectCallback) {
+TEST(ListWidgetTest, OnSelectCallback)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -364,7 +388,8 @@ TEST(ListWidgetTest, OnSelectCallback) {
     EXPECT_EQ(2, callCount);
 }
 
-TEST(ListWidgetTest, OnSelectionChangedCallback) {
+TEST(ListWidgetTest, OnSelectionChangedCallback)
+{
     ListWidget list("list");
 
     list.addItem(std::make_unique<TestListItem>("Item 1"));
@@ -392,7 +417,8 @@ TEST(ListWidgetTest, OnSelectionChangedCallback) {
 
 // ==================== 项目高度测试 ====================
 
-TEST(ListWidgetTest, FixedItemHeight) {
+TEST(ListWidgetTest, FixedItemHeight)
+{
     ListWidget list("list");
     list.setItemHeight(30);
 
@@ -405,7 +431,8 @@ TEST(ListWidgetTest, FixedItemHeight) {
     EXPECT_EQ(60, list.contentHeight()); // 2 * 30
 }
 
-TEST(ListWidgetTest, VariableItemHeight) {
+TEST(ListWidgetTest, VariableItemHeight)
+{
     ListWidget list("list");
     list.setItemHeight(0); // 0表示使用项目自己的高度
 
@@ -418,7 +445,8 @@ TEST(ListWidgetTest, VariableItemHeight) {
 
 // ==================== 双击检测测试 ====================
 
-TEST(ListWidgetTest, DoubleClickTime) {
+TEST(ListWidgetTest, DoubleClickTime)
+{
     ListWidget list("list");
 
     EXPECT_EQ(500, list.doubleClickTime());
@@ -429,42 +457,48 @@ TEST(ListWidgetTest, DoubleClickTime) {
 
 // ==================== TextListItem测试 ====================
 
-TEST(TextListItemTest, Constructor) {
+TEST(TextListItemTest, Constructor)
+{
     TextListItem item("Test Item", 25);
 
     EXPECT_EQ(25, item.getHeight());
     EXPECT_EQ("Test Item", item.text());
 }
 
-TEST(TextListItemTest, SetText) {
+TEST(TextListItemTest, SetText)
+{
     TextListItem item("Initial");
 
     item.setText("Updated");
     EXPECT_EQ("Updated", item.text());
 }
 
-TEST(TextListItemTest, SetTextColor) {
+TEST(TextListItemTest, SetTextColor)
+{
     TextListItem item("Test");
 
     item.setTextColor(RED);
     EXPECT_EQ(RED, item.textColor());
 }
 
-TEST(TextListItemTest, SetSelectedColor) {
+TEST(TextListItemTest, SetSelectedColor)
+{
     TextListItem item("Test");
 
     item.setSelectedColor(BLUE);
     // 无法直接验证，但不崩溃即可
 }
 
-TEST(TextListItemTest, SetHoveredColor) {
+TEST(TextListItemTest, SetHoveredColor)
+{
     TextListItem item("Test");
 
     item.setHoveredColor(GREEN);
     // 无法直接验证，但不崩溃即可
 }
 
-TEST(TextListItemTest, PaintItem_DrawsTextAndSelectedBackground) {
+TEST(TextListItemTest, PaintItem_DrawsTextAndSelectedBackground)
+{
     RecordingCanvas canvas;
     PaintContext ctx(canvas);
     TextListItem item("Hello", 20);

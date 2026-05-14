@@ -1,14 +1,14 @@
 #pragma once
 
+#include "common/core/settings/ResourcePackListOption.hpp"
 #include "common/core/settings/SettingsBase.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
-#include "common/core/settings/ResourcePackListOption.hpp"
 #include "common/input/KeyBinding.hpp"
 #include "common/sound/SoundCategory.hpp"
 
+#include <fstream>
 #include <memory>
 #include <vector>
-#include <fstream>
 
 namespace mc::client {
 
@@ -16,24 +16,24 @@ namespace mc::client {
  * @brief 图形质量模式
  */
 enum class GraphicsMode : u8 {
-    Fast = 0,   // 快速模式（简化渲染）
-    Fancy = 1   // 精致模式（完整渲染）
+    Fast = 0, // 快速模式（简化渲染）
+    Fancy = 1 // 精致模式（完整渲染）
 };
 
 /**
  * @brief 云渲染模式
  */
 enum class CloudMode : u8 {
-    Off = 0,    // 关闭
-    Fast = 1,   // 快速（2D）
-    Fancy = 2   // 精致（3D）
+    Off = 0,  // 关闭
+    Fast = 1, // 快速（2D）
+    Fancy = 2 // 精致（3D）
 };
 
 /**
  * @brief 粒子效果模式
  */
 enum class ParticleMode : u8 {
-    Minimal = 0,  // 最小
+    Minimal = 0,   // 最小
     Decreased = 1, // 减少
     All = 2        // 全部
 };
@@ -44,9 +44,9 @@ enum class ParticleMode : u8 {
  * 参考: net.minecraft.client.settings.AmbientOcclusionStatus
  */
 enum class AmbientOcclusionMode : u8 {
-    Off = 0,   // 关闭 - 使用平面光照
-    Min = 1,   // 最小 - 较低质量的 AO
-    Max = 2    // 最大 - 最高质量的 AO（默认）
+    Off = 0, // 关闭 - 使用平面光照
+    Min = 1, // 最小 - 较低质量的 AO
+    Max = 2  // 最大 - 最高质量的 AO（默认）
 };
 
 /**

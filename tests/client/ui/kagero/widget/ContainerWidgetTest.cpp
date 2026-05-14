@@ -3,12 +3,12 @@
  * @brief ContainerWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/widget/ButtonWidget.hpp"
 #include "client/ui/kagero/widget/TextWidget.hpp"
-#include "client/ui/kagero/Types.hpp"
-#include "client/ui/Glyph.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -16,21 +16,24 @@ using namespace mc;
 
 // ==================== 构造函数测试 ====================
 
-TEST(ContainerWidgetTest, DefaultConstructor) {
+TEST(ContainerWidgetTest, DefaultConstructor)
+{
     ContainerWidget container;
     EXPECT_TRUE(container.id().empty());
     EXPECT_EQ(0u, container.childCount());
     EXPECT_EQ(0u, container.widgetCount());
 }
 
-TEST(ContainerWidgetTest, ConstructorWithId) {
+TEST(ContainerWidgetTest, ConstructorWithId)
+{
     ContainerWidget container("main");
     EXPECT_EQ("main", container.id());
 }
 
 // ==================== 子组件管理测试 ====================
 
-TEST(ContainerWidgetTest, AddChild) {
+TEST(ContainerWidgetTest, AddChild)
+{
     ContainerWidget container("main");
 
     auto child = std::make_unique<TextWidget>("child1", 0, 0, 100, 20);
@@ -40,7 +43,8 @@ TEST(ContainerWidgetTest, AddChild) {
     EXPECT_EQ(1u, container.widgetCount());
 }
 
-TEST(ContainerWidgetTest, AddWidget) {
+TEST(ContainerWidgetTest, AddWidget)
+{
     ContainerWidget container("main");
 
     auto child = std::make_unique<TextWidget>("child1", 0, 0, 100, 20);
@@ -50,7 +54,8 @@ TEST(ContainerWidgetTest, AddWidget) {
     EXPECT_EQ(1u, container.widgetCount());
 }
 
-TEST(ContainerWidgetTest, FindChild) {
+TEST(ContainerWidgetTest, FindChild)
+{
     ContainerWidget container("main");
 
     container.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 20));
@@ -68,7 +73,8 @@ TEST(ContainerWidgetTest, FindChild) {
     EXPECT_EQ(found, nullptr);
 }
 
-TEST(ContainerWidgetTest, FindWidgetById) {
+TEST(ContainerWidgetTest, FindWidgetById)
+{
     ContainerWidget container("main");
 
     container.addWidget(std::make_unique<TextWidget>("child1", 0, 0, 100, 20));
@@ -78,7 +84,8 @@ TEST(ContainerWidgetTest, FindWidgetById) {
     EXPECT_EQ("child1", found->id());
 }
 
-TEST(ContainerWidgetTest, RemoveChild) {
+TEST(ContainerWidgetTest, RemoveChild)
+{
     ContainerWidget container("main");
 
     container.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 20));
@@ -95,7 +102,8 @@ TEST(ContainerWidgetTest, RemoveChild) {
     EXPECT_EQ(1u, container.childCount());
 }
 
-TEST(ContainerWidgetTest, ClearChildren) {
+TEST(ContainerWidgetTest, ClearChildren)
+{
     ContainerWidget container("main");
 
     container.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 20));
@@ -107,7 +115,8 @@ TEST(ContainerWidgetTest, ClearChildren) {
     EXPECT_EQ(0u, container.childCount());
 }
 
-TEST(ContainerWidgetTest, ClearWidgets) {
+TEST(ContainerWidgetTest, ClearWidgets)
+{
     ContainerWidget container("main");
 
     container.addWidget(std::make_unique<TextWidget>("child1", 0, 0, 100, 20));
@@ -121,7 +130,8 @@ TEST(ContainerWidgetTest, ClearWidgets) {
 
 // ==================== 父容器测试 ====================
 
-TEST(ContainerWidgetTest, ChildParent) {
+TEST(ContainerWidgetTest, ChildParent)
+{
     ContainerWidget container("main");
 
     auto child = std::make_unique<TextWidget>("child1", 0, 0, 100, 20);
@@ -133,7 +143,8 @@ TEST(ContainerWidgetTest, ChildParent) {
 
 // ==================== 位置检测测试 ====================
 
-TEST(ContainerWidgetTest, GetWidgetAt) {
+TEST(ContainerWidgetTest, GetWidgetAt)
+{
     ContainerWidget container("main");
     container.setBounds(Rect(0, 0, 300, 300));
 
@@ -157,7 +168,8 @@ TEST(ContainerWidgetTest, GetWidgetAt) {
     EXPECT_EQ(found, nullptr);
 }
 
-TEST(ContainerWidgetTest, GetWidgetAtInvisible) {
+TEST(ContainerWidgetTest, GetWidgetAtInvisible)
+{
     ContainerWidget container("main");
     container.setBounds(Rect(0, 0, 300, 300));
 
@@ -170,7 +182,8 @@ TEST(ContainerWidgetTest, GetWidgetAtInvisible) {
     EXPECT_EQ(found, nullptr);
 }
 
-TEST(ContainerWidgetTest, GetWidgetAtInactive) {
+TEST(ContainerWidgetTest, GetWidgetAtInactive)
+{
     ContainerWidget container("main");
     container.setBounds(Rect(0, 0, 300, 300));
 
@@ -185,7 +198,8 @@ TEST(ContainerWidgetTest, GetWidgetAtInactive) {
 
 // ==================== 层级测试 ====================
 
-TEST(ContainerWidgetTest, BringToFront) {
+TEST(ContainerWidgetTest, BringToFront)
+{
     ContainerWidget container("main");
 
     container.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 100));
@@ -208,7 +222,8 @@ TEST(ContainerWidgetTest, BringToFront) {
     EXPECT_EQ("child1", found->id());
 }
 
-TEST(ContainerWidgetTest, SendToBack) {
+TEST(ContainerWidgetTest, SendToBack)
+{
     ContainerWidget container("main");
 
     container.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 100));
@@ -230,7 +245,8 @@ TEST(ContainerWidgetTest, SendToBack) {
 
 // ==================== 遍历测试 ====================
 
-TEST(ContainerWidgetTest, ForEachWidget) {
+TEST(ContainerWidgetTest, ForEachWidget)
+{
     ContainerWidget container("main");
 
     container.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 100));
@@ -238,9 +254,7 @@ TEST(ContainerWidgetTest, ForEachWidget) {
     container.addChild(std::make_unique<TextWidget>("child3", 0, 0, 100, 100));
 
     std::vector<std::string> ids;
-    container.forEachWidget([&ids](Widget& widget) {
-        ids.push_back(widget.id());
-    });
+    container.forEachWidget([&ids](Widget& widget) { ids.push_back(widget.id()); });
 
     EXPECT_EQ(3u, ids.size());
     EXPECT_EQ("child1", ids[0]);
@@ -248,7 +262,8 @@ TEST(ContainerWidgetTest, ForEachWidget) {
     EXPECT_EQ("child3", ids[2]);
 }
 
-TEST(ContainerWidgetTest, ForEachWidgetConst) {
+TEST(ContainerWidgetTest, ForEachWidgetConst)
+{
     ContainerWidget container("main");
 
     container.addChild(std::make_unique<TextWidget>("child1", 0, 0, 100, 100));
@@ -266,7 +281,8 @@ TEST(ContainerWidgetTest, ForEachWidgetConst) {
 
 // ==================== 移除子组件指针测试 ====================
 
-TEST(ContainerWidgetTest, RemoveWidgetPointer) {
+TEST(ContainerWidgetTest, RemoveWidgetPointer)
+{
     ContainerWidget container("main");
 
     auto child = std::make_unique<TextWidget>("child1", 0, 0, 100, 100);

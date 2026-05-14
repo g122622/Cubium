@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace mc {
 
@@ -24,21 +24,21 @@ namespace enchant {
  * 参考 MC 1.16.5 EnchantmentType
  */
 enum class EnchantmentType : u8 {
-    Armor,          ///< 护甲（头盔、胸甲、护腿、靴子）
-    ArmorFeet,      ///< 靴子
-    ArmorLegs,      ///< 护腿
-    ArmorHead,      ///< 头盔
-    ArmorChest,     ///< 胸甲
-    Weapon,         ///< 武器（剑）
-    Digger,         ///< 挖掘工具（镐、斧、铲、锄）
-    FishingRod,     ///< 钓鱼竿
-    Breakable,      ///< 可破坏物品
-    Bow,            ///< 弓
-    Wearable,       ///< 可穿戴物品
-    Crossbow,       ///< 弩
-    Trident,        ///< 三叉戟
-    Vanishable,     ///< 可消失物品
-    All             ///< 所有物品
+    Armor,      ///< 护甲（头盔、胸甲、护腿、靴子）
+    ArmorFeet,  ///< 靴子
+    ArmorLegs,  ///< 护腿
+    ArmorHead,  ///< 头盔
+    ArmorChest, ///< 胸甲
+    Weapon,     ///< 武器（剑）
+    Digger,     ///< 挖掘工具（镐、斧、铲、锄）
+    FishingRod, ///< 钓鱼竿
+    Breakable,  ///< 可破坏物品
+    Bow,        ///< 弓
+    Wearable,   ///< 可穿戴物品
+    Crossbow,   ///< 弩
+    Trident,    ///< 三叉戟
+    Vanishable, ///< 可消失物品
+    All         ///< 所有物品
 };
 
 /**
@@ -48,10 +48,10 @@ enum class EnchantmentType : u8 {
  * 参考 MC 1.16.5 Rarity
  */
 enum class EnchantmentRarity : u8 {
-    Common,     ///< 普通（10权重）- 保护、锋利等
-    Uncommon,   ///< 稀有（5权重）- 冲击、火焰附加等
-    Rare,       ///< 罕见（2权重）- 掉落物倍增、精准采集等
-    VeryRare    ///< 极罕见（1权重）- 时运、经验修补等
+    Common,   ///< 普通（10权重）- 保护、锋利等
+    Uncommon, ///< 稀有（5权重）- 冲击、火焰附加等
+    Rare,     ///< 罕见（2权重）- 掉落物倍增、精准采集等
+    VeryRare  ///< 极罕见（1权重）- 时运、经验修补等
 };
 
 /**

@@ -1,17 +1,15 @@
 #include "IWaterLoggable.hpp"
-#include "WaterLoggableHelpers.hpp"
-#include "../fluid/FluidTags.hpp"
-#include "../IWorld.hpp"
-#include "Block.hpp"
 #include "../../util/property/Properties.hpp"
+#include "../IWorld.hpp"
+#include "../fluid/FluidTags.hpp"
+#include "Block.hpp"
+#include "WaterLoggableHelpers.hpp"
 
 namespace mc {
 
 bool IWaterLoggable::canContainFluid(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    const fluid::Fluid& fluid) const {
+    IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // 只有当方块未含水且流体为水时才能容纳
@@ -22,10 +20,8 @@ bool IWaterLoggable::canContainFluid(
 }
 
 bool IWaterLoggable::receiveFluid(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    const fluid::FluidState& fluidState) {
+    IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::FluidState& fluidState)
+{
     // 检查是否已含水
     if (isWaterlogged(state)) {
         return false;
@@ -52,10 +48,8 @@ bool IWaterLoggable::receiveFluid(
     return true;
 }
 
-fluid::Fluid* IWaterLoggable::pickupFluid(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state) {
+fluid::Fluid* IWaterLoggable::pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     if (!isWaterlogged(state)) {
         return nullptr;
     }
@@ -73,10 +67,8 @@ fluid::Fluid* IWaterLoggable::pickupFluid(
     return waterloggable::getWaterFluid();
 }
 
-bool IWaterLoggable::containsFluid(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state) const {
+bool IWaterLoggable::containsFluid(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     return isWaterlogged(state);

@@ -1,8 +1,8 @@
 #include "EntitySpawnPlacementRegistry.hpp"
+#include "../../util/math/random/Random.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/Material.hpp"
-#include "../../util/math/random/Random.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::world::spawn {
@@ -15,8 +15,7 @@ bool EntitySpawnPlacementRegistry::s_initialized = false;
 // 注册方法
 // ============================================================================
 
-void EntitySpawnPlacementRegistry::registerPlacement(
-    const std::string& entityTypeId,
+void EntitySpawnPlacementRegistry::registerPlacement(const std::string& entityTypeId,
     PlacementType placementType,
     HeightmapType heightmapType,
     PlacementPredicate predicate)
@@ -28,7 +27,8 @@ void EntitySpawnPlacementRegistry::registerPlacement(
 // 查询方法
 // ============================================================================
 
-PlacementType EntitySpawnPlacementRegistry::getPlacementType(const std::string& entityTypeId) {
+PlacementType EntitySpawnPlacementRegistry::getPlacementType(const std::string& entityTypeId)
+{
     auto it = s_registry.find(entityTypeId);
     if (it != s_registry.end()) {
         return it->second.placementType;
@@ -36,7 +36,8 @@ PlacementType EntitySpawnPlacementRegistry::getPlacementType(const std::string& 
     return PlacementType::NoRestrictions;
 }
 
-HeightmapType EntitySpawnPlacementRegistry::getHeightmapType(const std::string& entityTypeId) {
+HeightmapType EntitySpawnPlacementRegistry::getHeightmapType(const std::string& entityTypeId)
+{
     auto it = s_registry.find(entityTypeId);
     if (it != s_registry.end()) {
         return it->second.heightmapType;
@@ -59,10 +60,7 @@ const EntitySpawnPlacementRegistry::PlacementEntry* EntitySpawnPlacementRegistry
 // ============================================================================
 
 bool EntitySpawnPlacementRegistry::canSpawnAtLocation(
-    PlacementType placementType,
-    const ISpawnWorldReader& world,
-    const Vector3i& pos,
-    const std::string& entityTypeId)
+    PlacementType placementType, const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
     // 无限制类型直接返回 true
     if (placementType == PlacementType::NoRestrictions) {
@@ -91,8 +89,7 @@ bool EntitySpawnPlacementRegistry::canSpawnAtLocation(
     }
 }
 
-bool EntitySpawnPlacementRegistry::canSpawnEntity(
-    const std::string& entityTypeId,
+bool EntitySpawnPlacementRegistry::canSpawnEntity(const std::string& entityTypeId,
     ISpawnWorldReader& world,
     SpawnReason reason,
     const Vector3i& pos,
@@ -123,9 +120,7 @@ bool EntitySpawnPlacementRegistry::canSpawnEntity(
 // ============================================================================
 
 bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
-    const ISpawnWorldReader& world,
-    const Vector3i& pos,
-    const std::string& entityTypeId)
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (ON_GROUND case)
 
@@ -140,10 +135,7 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
     bool hasSurfaceSupport = belowState->isSolid();
 
     if (const IWorld* worldReader = dynamic_cast<const IWorld*>(&world)) {
-        hasSurfaceSupport = belowState->isSolidSide(
-            const_cast<IWorld&>(*worldReader),
-            belowPos,
-            Direction::Up);
+        hasSurfaceSupport = belowState->isSolidSide(const_cast<IWorld&>(*worldReader), belowPos, Direction::Up);
     }
 
     if (!hasSurfaceSupport) {
@@ -165,9 +157,7 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
 }
 
 bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
-    const ISpawnWorldReader& world,
-    const Vector3i& pos,
-    const std::string& entityTypeId)
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (IN_WATER case)
 
@@ -210,9 +200,7 @@ bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
 }
 
 bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
-    const ISpawnWorldReader& world,
-    const Vector3i& pos,
-    const std::string& entityTypeId)
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (IN_LAVA case)
 
@@ -236,9 +224,7 @@ bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
 }
 
 bool EntitySpawnPlacementRegistry::isValidSpawnBlock(
-    const ISpawnWorldReader& world,
-    const Vector3i& pos,
-    const std::string& /*entityTypeId*/)
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.isValidEmptySpawnBlock
 
@@ -322,7 +308,8 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:mooshroom", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:turtle", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:trader_llama", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
-    registerPlacement("minecraft:wandering_trader", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
+    registerPlacement(
+        "minecraft:wandering_trader", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:zombie_horse", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:skeleton_horse", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
 

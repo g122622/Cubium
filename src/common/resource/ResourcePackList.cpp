@@ -1,7 +1,7 @@
 #include "ResourcePackList.hpp"
 
-#include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <set>
@@ -63,18 +63,13 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
         if (result.success()) {
             ++addedCount;
             if (result.value().initialized) {
-                spdlog::info("Found resource pack: {} ({})",
-                             result.value().pack->name(),
-                             isZip ? "ZIP" : "folder");
+                spdlog::info("Found resource pack: {} ({})", result.value().pack->name(), isZip ? "ZIP" : "folder");
             } else {
-                spdlog::warn("Resource pack failed to initialize: {} - {}",
-                             path.filename().string(),
-                             result.value().error);
+                spdlog::warn(
+                    "Resource pack failed to initialize: {} - {}", path.filename().string(), result.value().error);
             }
         } else {
-            spdlog::warn("Failed to add resource pack {}: {}",
-                         path.filename().string(),
-                         result.error().toString());
+            spdlog::warn("Failed to add resource pack {}: {}", path.filename().string(), result.error().toString());
         }
     }
 
@@ -83,11 +78,16 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
 }
 
 Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
-    const std::filesystem::path& path,
-    bool enabled,
-    i32 priority)
+    const std::filesystem::path& path, bool enabled, i32 priority)
 {
-    MC_TRACE_EVENT("client.initialization", "ResourcePackList::addPack", "path", path.string(), "enabled", enabled, "priority", priority);
+    MC_TRACE_EVENT("client.initialization",
+        "ResourcePackList::addPack",
+        "path",
+        path.string(),
+        "enabled",
+        enabled,
+        "priority",
+        priority);
 
     if (!std::filesystem::exists(path)) {
         return Error(ErrorCode::FileNotFound, "Resource pack not found: " + path.string());
@@ -103,8 +103,8 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
         PackInfo existing;
         {
             std::unique_lock lock(m_mutex);
-            auto existingIt = std::find_if(m_packs.begin(), m_packs.end(),
-                [&](const PackInfo& pack) { return pack.path == normalizedPath; });
+            auto existingIt = std::find_if(
+                m_packs.begin(), m_packs.end(), [&](const PackInfo& pack) { return pack.path == normalizedPath; });
 
             if (existingIt != m_packs.end()) {
                 foundExisting = true;
@@ -149,9 +149,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
         if (initResult.failed()) {
             info.initialized = false;
             info.error = initResult.error().toString();
-            spdlog::warn("Failed to initialize resource pack {}: {}",
-                         path.filename().string(),
-                         info.error);
+            spdlog::warn("Failed to initialize resource pack {}: {}", path.filename().string(), info.error);
         } else {
             info.initialized = true;
         }
@@ -163,8 +161,8 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
     {
         std::unique_lock lock(m_mutex);
 
-        auto existingIt = std::find_if(m_packs.begin(), m_packs.end(),
-            [&](const PackInfo& pack) { return pack.path == normalizedPath; });
+        auto existingIt = std::find_if(
+            m_packs.begin(), m_packs.end(), [&](const PackInfo& pack) { return pack.path == normalizedPath; });
 
         if (existingIt != m_packs.end()) {
             // 有人抢先插入了，则我们仅更新 enabled/priority 保持语义一致。
@@ -198,8 +196,8 @@ bool ResourcePackList::removePack(const std::string& path)
     bool removed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(),
-            [&](const PackInfo& info) { return info.path == normalizedPath; });
+        auto it = std::find_if(
+            m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == normalizedPath; });
 
         if (it != m_packs.end()) {
             m_packs.erase(it);
@@ -233,8 +231,7 @@ bool ResourcePackList::setEnabled(const std::string& path, bool enabled)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(),
-            [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 
         if (it != m_packs.end() && it->enabled != enabled) {
             it->enabled = enabled;
@@ -254,8 +251,7 @@ bool ResourcePackList::setPriority(const std::string& path, i32 priority)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(),
-            [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 
         if (it != m_packs.end() && it->priority != priority) {
             it->priority = priority;
@@ -277,8 +273,7 @@ bool ResourcePackList::moveUp(const std::string& path)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(),
-            [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 
         if (it == m_packs.end()) {
             return false;
@@ -324,8 +319,7 @@ bool ResourcePackList::moveDown(const std::string& path)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(),
-            [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 
         if (it == m_packs.end()) {
             return false;
@@ -409,10 +403,8 @@ std::vector<ResourcePackList::PackInfo> ResourcePackList::getEnabledPackInfos() 
     }
 
     // 按优先级降序排序
-    std::stable_sort(result.begin(), result.end(),
-        [](const PackInfo& a, const PackInfo& b) {
-            return a.priority > b.priority;
-        });
+    std::stable_sort(
+        result.begin(), result.end(), [](const PackInfo& a, const PackInfo& b) { return a.priority > b.priority; });
 
     return result;
 }
@@ -422,8 +414,7 @@ std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const st
     MC_TRACE_EVENT("client.resource", "ResourcePackList::getPackInfo", "path", path);
 
     std::shared_lock lock(m_mutex);
-    auto it = std::find_if(m_packs.begin(), m_packs.end(),
-        [&](const PackInfo& info) { return info.path == path; });
+    auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 
     if (it == m_packs.end()) {
         return std::nullopt;
@@ -435,8 +426,7 @@ std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const st
 bool ResourcePackList::containsPack(const std::string& path) const
 {
     std::shared_lock lock(m_mutex);
-    return std::any_of(m_packs.begin(), m_packs.end(),
-        [&](const PackInfo& info) { return info.path == path; });
+    return std::any_of(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 }
 
 size_t ResourcePackList::packCount() const
@@ -448,8 +438,8 @@ size_t ResourcePackList::packCount() const
 size_t ResourcePackList::enabledPackCount() const
 {
     std::shared_lock lock(m_mutex);
-    return std::count_if(m_packs.begin(), m_packs.end(),
-        [](const PackInfo& info) { return info.enabled && info.initialized; });
+    return std::count_if(
+        m_packs.begin(), m_packs.end(), [](const PackInfo& info) { return info.enabled && info.initialized; });
 }
 
 // ============================================================================
@@ -484,14 +474,11 @@ Result<std::vector<u8>> ResourcePackList::readResource(std::string_view resource
         }
 
         // 如果读取失败，继续尝试下一个资源包
-        spdlog::debug("Failed to read resource {} from pack {}: {}",
-                      resourcePath,
-                      pack->name(),
-                      result.error().toString());
+        spdlog::debug(
+            "Failed to read resource {} from pack {}: {}", resourcePath, pack->name(), result.error().toString());
     }
 
-    return Error(ErrorCode::ResourceNotFound,
-                 "Resource not found in any enabled pack: " + std::string(resourcePath));
+    return Error(ErrorCode::ResourceNotFound, "Resource not found in any enabled pack: " + std::string(resourcePath));
 }
 
 Result<std::string> ResourcePackList::readTextResource(std::string_view resourcePath) const
@@ -507,9 +494,11 @@ Result<std::string> ResourcePackList::readTextResource(std::string_view resource
     return std::string(data.begin(), data.end());
 }
 
-Result<std::vector<std::string>> ResourcePackList::listResources(std::string_view directory, std::string_view extension) const
+Result<std::vector<std::string>> ResourcePackList::listResources(
+    std::string_view directory, std::string_view extension) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::listResources", "directory", directory, "extension", extension);
+    MC_TRACE_EVENT(
+        "client.resource", "ResourcePackList::listResources", "directory", directory, "extension", extension);
 
     std::vector<std::string> result;
     std::set<std::string> seen;
@@ -538,13 +527,11 @@ Result<std::vector<std::string>> ResourcePackList::listResources(std::string_vie
 void ResourcePackList::loadFromSettings(const ResourcePackListOption& settings)
 {
     MC_TRACE_EVENT("client.initialization", "ResourcePackList::loadFromSettings");
-    
+
     for (const auto& entry : settings.getSortedEnabledEntries()) {
         auto result = addPack(std::filesystem::path(entry.path), entry.enabled, entry.priority);
         if (result.failed()) {
-            spdlog::warn("Failed to add resource pack from settings {}: {}",
-                         entry.path,
-                         result.error().toString());
+            spdlog::warn("Failed to add resource pack from settings {}: {}", entry.path, result.error().toString());
         }
     }
 }

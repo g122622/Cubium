@@ -1,9 +1,9 @@
 #include "SpecialEntityRenderers.hpp"
 #include "../../core/EntityRendererManager.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "client/world/entity/ClientEntity.hpp"
 
 namespace mc::client::renderer::entity::renderer::special {
 
@@ -15,7 +15,8 @@ EnderCrystalRenderer::EnderCrystalRenderer()
     m_shadowSize = 0.0f;
 }
 
-void EnderCrystalRenderer::render(Entity& entity, f64 partialTicks) {
+void EnderCrystalRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 EnderCrystalRenderer.render()
     // 末影水晶渲染：
     // 1. 计算水晶旋转动画（innerRotation）
@@ -39,7 +40,8 @@ ShulkerBulletRenderer::ShulkerBulletRenderer()
     m_shadowSize = 0.0f;
 }
 
-void ShulkerBulletRenderer::render(Entity& entity, f64 partialTicks) {
+void ShulkerBulletRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 ShulkerBulletRenderer.render()
     // 潜影贝子弹渲染：
     // 1. 计算子弹飞行方向
@@ -58,7 +60,8 @@ LlamaSpitRenderer::LlamaSpitRenderer()
     m_shadowSize = 0.0f;
 }
 
-void LlamaSpitRenderer::render(Entity& entity, f64 partialTicks) {
+void LlamaSpitRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 LlamaSpitRenderer.render()
     // 羊驼唾沫渲染：简单的投射物
 
@@ -75,7 +78,8 @@ SpectralArrowRenderer::SpectralArrowRenderer()
     m_shadowSize = 0.0f;
 }
 
-void SpectralArrowRenderer::render(Entity& entity, f64 partialTicks) {
+void SpectralArrowRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 SpectralArrowRenderer.render()
     // 光灵箭渲染：与普通箭类似，但有发光效果
 
@@ -92,7 +96,8 @@ WitherSkullRenderer::WitherSkullRenderer()
     m_shadowSize = 0.0f;
 }
 
-void WitherSkullRenderer::render(Entity& entity, f64 partialTicks) {
+void WitherSkullRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 WitherSkullRenderer.render()
     // 凋灵之首渲染
 
@@ -109,7 +114,8 @@ DragonFireballRenderer::DragonFireballRenderer()
     m_shadowSize = 0.0f;
 }
 
-void DragonFireballRenderer::render(Entity& entity, f64 partialTicks) {
+void DragonFireballRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 DragonFireballRenderer.render()
     // 龙火球渲染
 
@@ -126,7 +132,8 @@ EvokerFangsRenderer::EvokerFangsRenderer()
     m_shadowSize = 0.0f;
 }
 
-void EvokerFangsRenderer::render(Entity& entity, f64 partialTicks) {
+void EvokerFangsRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 EvokerFangsRenderer.render()
     // 唤魔者尖牙渲染
 
@@ -137,21 +144,23 @@ void EvokerFangsRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== LightningBoltRenderer ====================
 
-LightningBoltRenderer::LightningBoltRenderer() {
+LightningBoltRenderer::LightningBoltRenderer()
+{
     m_shadowSize = 0.0f;
 }
 
-void LightningBoltRenderer::render(Entity& entity, f64 partialTicks) {
+void LightningBoltRenderer::render(Entity& entity, f64 partialTicks)
+{
     // CPU 路径 - 已废弃，使用 GPU 路径
     (void)entity;
     (void)partialTicks;
 }
 
-void LightningBoltRenderer::renderLayersPipelineClient(
-    ::mc::client::ClientEntity& entity,
+void LightningBoltRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
     VkCommandBuffer cmd,
     const core::AnimationContext& context,
-    pipeline::EntityPipeline& pipeline) {
+    pipeline::EntityPipeline& pipeline)
+{
     // 参考 MC 1.16.5 LightningBoltRenderer.render()
     // 闪电渲染：
     // 1. 使用 boltVertex 作为随机种子，创建确定性随机数生成器
@@ -188,19 +197,10 @@ void LightningBoltRenderer::renderLayersPipelineClient(
     }
 
     // 获取实体位置
-    Vector3f position(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f position(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 模型矩阵：单位矩阵
-    std::array<f64, 16> modelMatrix = {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
+    std::array<f64, 16> modelMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 使用加法混合模式渲染闪电
     // 参考 MC 1.16.5 RenderType.getLightning()
@@ -210,8 +210,7 @@ void LightningBoltRenderer::renderLayersPipelineClient(
     // 颜色通过顶点传递，这里使用白色作为基础
     Vector4f overlayColor(0.45f, 0.45f, 0.5f, 0.3f);
 
-    pipeline.drawMesh(cmd, result.value(), modelMatrix, position, 1.0,
-                      overlayColor, 0.0f, 0.0f);
+    pipeline.drawMesh(cmd, result.value(), modelMatrix, position, 1.0, overlayColor, 0.0f, 0.0f);
 
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
@@ -220,15 +219,23 @@ void LightningBoltRenderer::renderLayersPipelineClient(
     pipeline.destroyMesh(result.value());
 }
 
-void LightningBoltRenderer::renderQuadSegment(
-    std::vector<model::ModelVertex>& vertices,
+void LightningBoltRenderer::renderQuadSegment(std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices,
-    f32 x1, f32 z1, i32 segmentY,
-    f32 prevX, f32 prevZ,
-    f32 r, f32 g, f32 b,
-    f32 topWidth, f32 bottomWidth,
-    bool flipX1, bool flipZ1,
-    bool flipX2, bool flipZ2) {
+    f32 x1,
+    f32 z1,
+    i32 segmentY,
+    f32 prevX,
+    f32 prevZ,
+    f32 r,
+    f32 g,
+    f32 b,
+    f32 topWidth,
+    f32 bottomWidth,
+    bool flipX1,
+    bool flipZ1,
+    bool flipX2,
+    bool flipZ2)
+{
     // 参考 MC 1.16.5 LightningBoltRenderer.func_229116_a_
     // 渲染一个四边形条带段
     // 顶点位置计算：
@@ -278,9 +285,8 @@ void LightningBoltRenderer::renderQuadSegment(
 }
 
 void LightningBoltRenderer::generateLightningMesh(
-    u64 boltVertex,
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices) {
+    u64 boltVertex, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
+{
     // 参考 MC 1.16.5 LightningBoltRenderer.render()
     // 使用确定性随机数生成器
 
@@ -314,8 +320,8 @@ void LightningBoltRenderer::generateLightningMesh(
 
         // 每次循环有 3 个分支 (k=0..2)
         for (i32 k = 0; k < 3; ++k) {
-            i32 l = 7;      // 起始段索引
-            i32 i1 = 0;     // 结束段索引
+            i32 l = 7;  // 起始段索引
+            i32 i1 = 0; // 结束段索引
 
             // k > 0 时，渲染分支（更短）
             if (k > 0) {
@@ -363,18 +369,14 @@ void LightningBoltRenderer::generateLightningMesh(
                 // 渲染 4 个四边形（围绕闪电）
                 // MC 1.16.5 使用 Matrix4f 和 IVertexBuilder 渲染
                 // 我们直接生成顶点
-                renderQuadSegment(vertices, indices, f2, f3, j1, f4, f5,
-                                  r, g, b, topWidth, bottomWidth,
-                                  false, false, true, false);
-                renderQuadSegment(vertices, indices, f2, f3, j1, f4, f5,
-                                  r, g, b, topWidth, bottomWidth,
-                                  true, false, true, true);
-                renderQuadSegment(vertices, indices, f2, f3, j1, f4, f5,
-                                  r, g, b, topWidth, bottomWidth,
-                                  true, true, false, true);
-                renderQuadSegment(vertices, indices, f2, f3, j1, f4, f5,
-                                  r, g, b, topWidth, bottomWidth,
-                                  false, true, false, false);
+                renderQuadSegment(
+                    vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, false, false, true, false);
+                renderQuadSegment(
+                    vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, true, false, true, true);
+                renderQuadSegment(
+                    vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, true, true, false, true);
+                renderQuadSegment(
+                    vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, false, true, false, false);
             }
         }
     }
@@ -382,11 +384,13 @@ void LightningBoltRenderer::generateLightningMesh(
 
 // ==================== AreaEffectCloudRenderer ====================
 
-AreaEffectCloudRenderer::AreaEffectCloudRenderer() {
+AreaEffectCloudRenderer::AreaEffectCloudRenderer()
+{
     m_shadowSize = 0.0f;
 }
 
-void AreaEffectCloudRenderer::render(Entity& entity, f64 partialTicks) {
+void AreaEffectCloudRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 AreaEffectCloudRenderer.render()
     // 区域效果云渲染：
     // 1. 根据半径缩放
@@ -399,11 +403,13 @@ void AreaEffectCloudRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== FallingBlockRenderer ====================
 
-FallingBlockRenderer::FallingBlockRenderer() {
+FallingBlockRenderer::FallingBlockRenderer()
+{
     m_shadowSize = 0.5f;
 }
 
-void FallingBlockRenderer::render(Entity& entity, f64 partialTicks) {
+void FallingBlockRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 FallingBlockRenderer.render()
     // 下落方块渲染：
     // 1. 获取方块状态
@@ -416,11 +422,13 @@ void FallingBlockRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== ItemFrameRenderer ====================
 
-ItemFrameRenderer::ItemFrameRenderer() {
+ItemFrameRenderer::ItemFrameRenderer()
+{
     m_shadowSize = 0.0f;
 }
 
-void ItemFrameRenderer::render(Entity& entity, f64 partialTicks) {
+void ItemFrameRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 ItemFrameRenderer.render()
     // 物品展示框渲染：
     // 1. 渲染边框
@@ -433,11 +441,13 @@ void ItemFrameRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== PaintingRenderer ====================
 
-PaintingRenderer::PaintingRenderer() {
+PaintingRenderer::PaintingRenderer()
+{
     m_shadowSize = 0.0f;
 }
 
-void PaintingRenderer::render(Entity& entity, f64 partialTicks) {
+void PaintingRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 PaintingRenderer.render()
     // 画渲染：
     // 1. 根据画类型选择纹理
@@ -449,11 +459,13 @@ void PaintingRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== LeashKnotRenderer ====================
 
-LeashKnotRenderer::LeashKnotRenderer() {
+LeashKnotRenderer::LeashKnotRenderer()
+{
     m_shadowSize = 0.0f;
 }
 
-void LeashKnotRenderer::render(Entity& entity, f64 partialTicks) {
+void LeashKnotRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 LeashKnotRenderer.render()
     // 拴绳结渲染：简单的模型
 
@@ -463,11 +475,13 @@ void LeashKnotRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== ArmorStandRenderer ====================
 
-ArmorStandRenderer::ArmorStandRenderer() {
+ArmorStandRenderer::ArmorStandRenderer()
+{
     m_shadowSize = 0.0f;
 }
 
-void ArmorStandRenderer::render(Entity& entity, f64 partialTicks) {
+void ArmorStandRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 ArmorStandRenderer.render()
     // 盔甲架渲染：
     // 1. 渲染盔甲架基座
@@ -481,11 +495,13 @@ void ArmorStandRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== TNTRenderer ====================
 
-TNTRenderer::TNTRenderer() {
+TNTRenderer::TNTRenderer()
+{
     m_shadowSize = 0.5f;
 }
 
-void TNTRenderer::render(Entity& entity, f64 partialTicks) {
+void TNTRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 TNTRenderer.render()
     // TNT渲染：
     // 1. 渲染TNT方块
@@ -497,11 +513,13 @@ void TNTRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== FireworkRocketRenderer ====================
 
-FireworkRocketRenderer::FireworkRocketRenderer() {
+FireworkRocketRenderer::FireworkRocketRenderer()
+{
     m_shadowSize = 0.0f;
 }
 
-void FireworkRocketRenderer::render(Entity& entity, f64 partialTicks) {
+void FireworkRocketRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 参考 MC 1.16.5 FireworkRocketRenderer.render()
     // 烟花火箭渲染：
     // 1. 渲染火箭模型
@@ -513,70 +531,55 @@ void FireworkRocketRenderer::render(Entity& entity, f64 partialTicks) {
 
 // ==================== Registration ====================
 
-void registerSpecialEntityRenderers(EntityRendererManager& manager) {
-    manager.registerRenderer("minecraft:end_crystal", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<EnderCrystalRenderer>();
-    });
+void registerSpecialEntityRenderers(EntityRendererManager& manager)
+{
+    manager.registerRenderer("minecraft:end_crystal",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EnderCrystalRenderer>(); });
 
-    manager.registerRenderer("minecraft:shulker_bullet", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<ShulkerBulletRenderer>();
-    });
+    manager.registerRenderer("minecraft:shulker_bullet",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ShulkerBulletRenderer>(); });
 
-    manager.registerRenderer("minecraft:llama_spit", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<LlamaSpitRenderer>();
-    });
+    manager.registerRenderer("minecraft:llama_spit",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<LlamaSpitRenderer>(); });
 
-    manager.registerRenderer("minecraft:spectral_arrow", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<SpectralArrowRenderer>();
-    });
+    manager.registerRenderer("minecraft:spectral_arrow",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SpectralArrowRenderer>(); });
 
-    manager.registerRenderer("minecraft:wither_skull", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<WitherSkullRenderer>();
-    });
+    manager.registerRenderer("minecraft:wither_skull",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<WitherSkullRenderer>(); });
 
-    manager.registerRenderer("minecraft:dragon_fireball", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<DragonFireballRenderer>();
-    });
+    manager.registerRenderer("minecraft:dragon_fireball",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<DragonFireballRenderer>(); });
 
-    manager.registerRenderer("minecraft:evoker_fangs", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<EvokerFangsRenderer>();
-    });
+    manager.registerRenderer("minecraft:evoker_fangs",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EvokerFangsRenderer>(); });
 
-    manager.registerRenderer("minecraft:lightning_bolt", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<LightningBoltRenderer>();
-    });
+    manager.registerRenderer("minecraft:lightning_bolt",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<LightningBoltRenderer>(); });
 
-    manager.registerRenderer("minecraft:area_effect_cloud", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<AreaEffectCloudRenderer>();
-    });
+    manager.registerRenderer("minecraft:area_effect_cloud",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<AreaEffectCloudRenderer>(); });
 
-    manager.registerRenderer("minecraft:falling_block", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<FallingBlockRenderer>();
-    });
+    manager.registerRenderer("minecraft:falling_block",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<FallingBlockRenderer>(); });
 
-    manager.registerRenderer("minecraft:item_frame", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<ItemFrameRenderer>();
-    });
+    manager.registerRenderer("minecraft:item_frame",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ItemFrameRenderer>(); });
 
-    manager.registerRenderer("minecraft:painting", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<PaintingRenderer>();
-    });
+    manager.registerRenderer("minecraft:painting",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PaintingRenderer>(); });
 
-    manager.registerRenderer("minecraft:leash_knot", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<LeashKnotRenderer>();
-    });
+    manager.registerRenderer("minecraft:leash_knot",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<LeashKnotRenderer>(); });
 
-    manager.registerRenderer("minecraft:armor_stand", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<ArmorStandRenderer>();
-    });
+    manager.registerRenderer("minecraft:armor_stand",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ArmorStandRenderer>(); });
 
-    manager.registerRenderer("minecraft:tnt", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<TNTRenderer>();
-    });
+    manager.registerRenderer(
+        "minecraft:tnt", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<TNTRenderer>(); });
 
-    manager.registerRenderer("minecraft:firework_rocket", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<FireworkRocketRenderer>();
-    });
+    manager.registerRenderer("minecraft:firework_rocket",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<FireworkRocketRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::special

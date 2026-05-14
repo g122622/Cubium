@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "../renderer/MeshTypes.hpp"
-#include "common/world/block/Block.hpp"
 #include "ResourceManager.hpp"
-#include <unordered_map>
+#include "common/core/Types.hpp"
+#include "common/world/block/Block.hpp"
 #include <memory>
+#include <unordered_map>
 
 namespace mc {
 
@@ -118,9 +118,7 @@ public:
      * @param properties 属性字符串（如 "axis=y,facing=north"）
      * @return 方块外观指针，找不到返回 nullptr
      */
-    [[nodiscard]] const BlockAppearance* getBlockAppearance(
-        u32 blockId,
-        const std::string& properties) const;
+    [[nodiscard]] const BlockAppearance* getBlockAppearance(u32 blockId, const std::string& properties) const;
 
     /**
      * @brief 获取缺失模型外观

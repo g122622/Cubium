@@ -4,7 +4,7 @@
 #include <memory>
 
 namespace mc {
-class Biome;  // 前向声明
+class Biome; // 前向声明
 }
 
 namespace mc {
@@ -22,11 +22,7 @@ namespace client {
  */
 class GrassColorResolver : public ColorResolver {
 public:
-    [[nodiscard]] u32 getColor(
-        const Biome& biome,
-        f64 x,
-        f64 z
-    ) const override;
+    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const override;
 };
 
 /**
@@ -40,11 +36,7 @@ public:
  */
 class FoliageColorResolver : public ColorResolver {
 public:
-    [[nodiscard]] u32 getColor(
-        const Biome& biome,
-        f64 x,
-        f64 z
-    ) const override;
+    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const override;
 };
 
 /**
@@ -57,11 +49,7 @@ public:
  */
 class WaterColorResolver : public ColorResolver {
 public:
-    [[nodiscard]] u32 getColor(
-        const Biome& biome,
-        f64 x,
-        f64 z
-    ) const override;
+    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const override;
 };
 
 /**
@@ -97,8 +85,8 @@ public:
     // === 云杉和桦树颜色常量 ===
     // 这些是固定值，不从 colormap 获取，也不属于 BiomeEffects
 
-    static constexpr u32 SPRUCE_LEAVES_COLOR = 0x619961;  ///< 云杉树叶颜色
-    static constexpr u32 BIRCH_LEAVES_COLOR = 0x80A755;   ///< 桦树树叶颜色
+    static constexpr u32 SPRUCE_LEAVES_COLOR = 0x619961; ///< 云杉树叶颜色
+    static constexpr u32 BIRCH_LEAVES_COLOR = 0x80A755;  ///< 桦树树叶颜色
 
     // 注意：沼泽、黑森林、恶地的颜色常量定义在 BiomeEffects.hpp 中
     // 使用 world::biome::BiomeEffects::SWAMP_GRASS_COLOR 等
@@ -114,12 +102,7 @@ public:
      * @param color2 第二种颜色
      * @return 混合后的颜色
      */
-    [[nodiscard]] static u32 calculateSwampColor(
-        f64 x,
-        f64 z,
-        u32 color1,
-        u32 color2
-    );
+    [[nodiscard]] static u32 calculateSwampColor(f64 x, f64 z, u32 color1, u32 color2);
 
 private:
     // 单例实例

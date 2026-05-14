@@ -10,7 +10,8 @@ AmbientEntity::AmbientEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-void AmbientEntity::registerAttributes() {
+void AmbientEntity::registerAttributes()
+{
     // 调用父类方法
     MobEntity::registerAttributes();
 

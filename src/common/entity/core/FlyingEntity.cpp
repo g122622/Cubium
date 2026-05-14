@@ -1,22 +1,24 @@
 #include "FlyingEntity.hpp"
-#include "../attribute/Attributes.hpp"
 #include "../../physics/PhysicsConstants.hpp"
+#include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include "../../world/IWorld.hpp"
+#include "../attribute/Attributes.hpp"
 #include "MoverType.hpp"
 #include <cmath>
 
 namespace mc {
 
 FlyingEntity::FlyingEntity(LegacyEntityType type, EntityId id)
-    : MobEntity(type, id) {
+    : MobEntity(type, id)
+{
     // 飞行生物默认不受重力影响
     // MC 1.16.5: FlyingEntity 构造函数没有特殊操作
     // 重力由 hasGravity() 返回 false 来控制
 }
 
-void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
+void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
+{
     // MC 1.16.5 FlyingEntity.travel(Vector3d)
     // 飞行实体的移动逻辑，分为三种情况：
     // 1. 在水中
@@ -55,18 +57,15 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
 
         // 获取脚下方块的滑度
         // MC: BlockPos ground = new BlockPos(getPosX(), getPosY() - 1.0D, getPosZ())
-        f32 slipperiness = physics::SLIPPERINESS_DEFAULT;  // 默认滑度 0.6
+        f32 slipperiness = physics::SLIPPERINESS_DEFAULT; // 默认滑度 0.6
 
         if (m_onGround && m_world != nullptr) {
-            BlockPos groundPos(
-                static_cast<i32>(std::floor(m_position.x)),
+            BlockPos groundPos(static_cast<i32>(std::floor(m_position.x)),
                 static_cast<i32>(std::floor(m_position.y - 1.0)),
-                static_cast<i32>(std::floor(m_position.z))
-            );
+                static_cast<i32>(std::floor(m_position.z)));
             const BlockState* blockState = m_world->getBlockState(groundPos);
             if (blockState != nullptr) {
-                slipperiness = blockState->getBlock().getSlipperiness(
-                    *blockState, m_world, &groundPos, this);
+                slipperiness = blockState->getBlock().getSlipperiness(*blockState, m_world, &groundPos, this);
             }
         }
 
@@ -86,15 +85,12 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
         // MC 在计算加速度后重新读取滑度
         f32 finalFriction = 0.91f;
         if (m_onGround && m_world != nullptr) {
-            BlockPos groundPos(
-                static_cast<i32>(std::floor(m_position.x)),
+            BlockPos groundPos(static_cast<i32>(std::floor(m_position.x)),
                 static_cast<i32>(std::floor(m_position.y - 1.0)),
-                static_cast<i32>(std::floor(m_position.z))
-            );
+                static_cast<i32>(std::floor(m_position.z)));
             const BlockState* blockState = m_world->getBlockState(groundPos);
             if (blockState != nullptr) {
-                finalFriction = blockState->getBlock().getSlipperiness(
-                    *blockState, m_world, &groundPos, this) * 0.91f;
+                finalFriction = blockState->getBlock().getSlipperiness(*blockState, m_world, &groundPos, this) * 0.91f;
             }
         }
 

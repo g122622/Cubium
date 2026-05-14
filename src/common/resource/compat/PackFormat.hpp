@@ -27,8 +27,8 @@ enum class PackFormat : i32 {
     Unknown = 0,
     V1_6_to_1_8 = 1,
     V1_9_to_1_10 = 2,
-    V1_11_to_1_12 = 3,   ///< 旧版纹理路径: textures/blocks/
-    V1_13_to_1_14 = 4,   ///< 新版纹理路径: textures/block/
+    V1_11_to_1_12 = 3, ///< 旧版纹理路径: textures/blocks/
+    V1_13_to_1_14 = 4, ///< 新版纹理路径: textures/block/
     V1_15_to_1_16_1 = 5,
     V1_16_2_to_1_16_5 = 6,
     V1_17 = 7,

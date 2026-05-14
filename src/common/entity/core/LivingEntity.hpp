@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Entity.hpp"
-#include "../attribute/AttributeMap.hpp"
-#include "../attribute/Attributes.hpp"
-#include "../damage/DamageSource.hpp"
-#include "../damage/CombatTracker.hpp"
-#include "../effect/EffectManager.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundCategory.hpp"
+#include "../attribute/AttributeMap.hpp"
+#include "../attribute/Attributes.hpp"
+#include "../damage/CombatTracker.hpp"
+#include "../damage/DamageSource.hpp"
+#include "../effect/EffectManager.hpp"
+#include "Entity.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 
 #include <array>
@@ -25,13 +25,13 @@ class World;
  * 定义实体可穿戴的装备槽位
  */
 enum class EquipmentSlot : u8 {
-    MainHand = 0,   // 主手
-    OffHand = 1,    // 副手
-    Feet = 2,       // 靴子
-    Legs = 3,       // 护腿
-    Chest = 4,      // 胸甲
-    Head = 5,       // 头盔
-    Count = 6       // 槽位数量
+    MainHand = 0, // 主手
+    OffHand = 1,  // 副手
+    Feet = 2,     // 靴子
+    Legs = 3,     // 护腿
+    Chest = 4,    // 胸甲
+    Head = 5,     // 头盔
+    Count = 6     // 槽位数量
 };
 
 /**
@@ -277,12 +277,13 @@ public:
      *
      * @return 护甲槽位数组 [头盔, 胸甲, 护腿, 靴子]
      */
-    [[nodiscard]] std::array<const ItemStack*, 4> getArmorSlots() const {
+    [[nodiscard]] std::array<const ItemStack*, 4> getArmorSlots() const
+    {
         return {
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Head)],   // 头盔
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Chest)],  // 胸甲
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Legs)],   // 护腿
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Feet)]    // 靴子
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Head)],  // 头盔
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Chest)], // 胸甲
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Legs)],  // 护腿
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Feet)]   // 靴子
         };
     }
 
@@ -314,9 +315,7 @@ public:
      *
      * 参考 MC 1.16.5 LivingEntity.getCreatureAttribute()
      */
-    [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const {
-        return CreatureAttribute::Undefined;
-    }
+    [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const { return CreatureAttribute::Undefined; }
 
     // ========== 空气供应和溺水 ==========
 
@@ -328,7 +327,8 @@ public:
      *
      * @return 如果可以在水下呼吸返回 true
      */
-    [[nodiscard]] virtual bool canBreatheUnderwater() const {
+    [[nodiscard]] virtual bool canBreatheUnderwater() const
+    {
         return getCreatureAttribute() == CreatureAttribute::Undead;
     }
 
@@ -539,9 +539,7 @@ public:
      * MC 1.16.5: LivingEntity.swingArm()
      * 触发攻击动画，持续6 tick。
      */
-    void swingArm() {
-        swing(Hand::MainHand);
-    }
+    void swingArm() { swing(Hand::MainHand); }
 
     /**
      * @brief 挥动手臂（攻击动画）- 指定手
@@ -551,7 +549,8 @@ public:
      *
      * @param hand 挥动的手（主手或副手）
      */
-    void swing(Hand hand) {
+    void swing(Hand hand)
+    {
         // MC 1.16.5: 条件判断允许在动画进行到一半时重新触发
         if (!m_swingInProgress || m_swingProgressInt >= getArmSwingAnimationEnd() / 2 || m_swingProgressInt < 0) {
             m_swingProgressInt = -1;
@@ -651,9 +650,7 @@ public:
      *
      * @param travelVec 移动向量 (x=左右, y=上下, z=前后)
      */
-    virtual void travel(const Vector3& travelVec) {
-        travel(travelVec.x, travelVec.y, travelVec.z);
-    }
+    virtual void travel(const Vector3& travelVec) { travel(travelVec.x, travelVec.y, travelVec.z); }
 
     /**
      * @brief AI步进更新
@@ -846,9 +843,7 @@ public:
      *
      * @return 箭矢数量
      */
-    [[nodiscard]] i32 getArrowCount() const {
-        return m_arrowCount;
-    }
+    [[nodiscard]] i32 getArrowCount() const { return m_arrowCount; }
 
     /**
      * @brief 设置插在身上的箭矢数量
@@ -882,9 +877,7 @@ public:
      *
      * @return 如果实体正在潜行返回true
      */
-    [[nodiscard]] bool isSteppingCarefully() const override {
-        return isSneaking();
-    }
+    [[nodiscard]] bool isSteppingCarefully() const override { return isSneaking(); }
 
     // ========== 刻更新 ==========
 
@@ -973,7 +966,6 @@ protected:
     void playFallSound(f32 distance);
 
 protected:
-
     /**
      * @brief 计算护甲减伤后的伤害
      *
@@ -1024,8 +1016,8 @@ protected:
 
     // 生命值
     f32 m_health = 20.0f;
-    f32 m_lastHealth = 20.0f;           // 上一tick的生命值
-    f32 m_absorption = 0.0f;             // 吸收值（金苹果）
+    f32 m_lastHealth = 20.0f; // 上一tick的生命值
+    f32 m_absorption = 0.0f;  // 吸收值（金苹果）
 
     // 属性
     entity::attribute::AttributeMap m_attributes;
@@ -1034,91 +1026,91 @@ protected:
     std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_equipment;
 
     // 主手偏好
-    HandSide m_primaryHand = HandSide::Right;  // 默认右手为主手
+    HandSide m_primaryHand = HandSide::Right; // 默认右手为主手
 
     // 受伤无敌帧
-    i32 m_hurtTime = 0;                  // 受伤无敌时间
-    i32 m_maxHurtTime = 10;              // 最大受伤无敌时间
-    static constexpr i32 MAX_HURT_RESISTANT_TIME = 20;  // 最大无敌帧（MC 1.16.5：20 tick = 1秒）
-    f32 m_lastDamage = 0.0f;             // 最近伤害量（用于累积伤害）
+    i32 m_hurtTime = 0;                                // 受伤无敌时间
+    i32 m_maxHurtTime = 10;                            // 最大受伤无敌时间
+    static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（MC 1.16.5：20 tick = 1秒）
+    f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
-    i32 m_hurtResistantTime = 0;         // 无敌帧计时器（MC 1.16.5：hurtResistantTime）
+    i32 m_hurtResistantTime = 0;                       // 无敌帧计时器（MC 1.16.5：hurtResistantTime）
 
     // 战斗状态
-    bool m_inCombat = false;             // 是否在战斗中
-    i32 m_lastDamageTimestamp = 0;       // 最后受伤时间戳
+    bool m_inCombat = false;       // 是否在战斗中
+    i32 m_lastDamageTimestamp = 0; // 最后受伤时间戳
 
     // 死亡
-    i32 m_deathTime = 0;                 // 死亡时间
+    i32 m_deathTime = 0; // 死亡时间
 
     // 回血
-    i32 m_healTime = 0;                  // 回血计时器
-    i32 m_regenTickCounter = 0;          // 生命恢复 tick 计数器
+    i32 m_healTime = 0;         // 回血计时器
+    i32 m_regenTickCounter = 0; // 生命恢复 tick 计数器
 
     // 渲染插值属性
-    f32 m_limbSwing = 0.0f;              // 步态动画周期
-    f32 m_prevLimbSwing = 0.0f;          // 上一帧步态周期
-    f32 m_limbSwingAmount = 0.0f;        // 步态动画速度
-    f32 m_prevLimbSwingAmount = 0.0f;    // 上一帧步态速度
-    f32 m_swingProgress = 0.0f;          // 攻击动画进度
-    f32 m_prevSwingProgress = 0.0f;      // 上一帧攻击进度
-    i32 m_swingProgressInt = 0;          // 攻击动画计数
-    bool m_swingInProgress = false;      // 是否正在攻击动画
+    f32 m_limbSwing = 0.0f;               // 步态动画周期
+    f32 m_prevLimbSwing = 0.0f;           // 上一帧步态周期
+    f32 m_limbSwingAmount = 0.0f;         // 步态动画速度
+    f32 m_prevLimbSwingAmount = 0.0f;     // 上一帧步态速度
+    f32 m_swingProgress = 0.0f;           // 攻击动画进度
+    f32 m_prevSwingProgress = 0.0f;       // 上一帧攻击进度
+    i32 m_swingProgressInt = 0;           // 攻击动画计数
+    bool m_swingInProgress = false;       // 是否正在攻击动画
     Hand m_swingingHand = Hand::MainHand; // 正在挥动的手
 
     // 身体旋转
-    f32 m_renderYawOffset = 0.0f;        // 身体旋转偏移
-    f32 m_prevRenderYawOffset = 0.0f;    // 上一帧身体旋转
-    f32 m_rotationYawHead = 0.0f;        // 头部旋转
-    f32 m_prevRotationYawHead = 0.0f;    // 上一帧头部旋转
+    f32 m_renderYawOffset = 0.0f;     // 身体旋转偏移
+    f32 m_prevRenderYawOffset = 0.0f; // 上一帧身体旋转
+    f32 m_rotationYawHead = 0.0f;     // 头部旋转
+    f32 m_prevRotationYawHead = 0.0f; // 上一帧头部旋转
 
     // 跳跃
     bool m_isJumping = false;
-    i32 m_jumpTicks = 0;                 // 跳跃冷却
-    f32 m_jumpUpwardsMotion = physics::JUMP_VELOCITY;     // 跳跃初速度（MC默认值）
+    i32 m_jumpTicks = 0;                              // 跳跃冷却
+    f32 m_jumpUpwardsMotion = physics::JUMP_VELOCITY; // 跳跃初速度（MC默认值）
 
     // 移动
-    f32 m_moveStrafing = 0.0f;           // 横向移动（左右）
-    f32 m_moveForward = 0.0f;            // 前进移动（前后）
-    f32 m_jumpMovementFactor = 0.02f;    // 跳跃时的移动因子
-    f32 m_landMovementFactor = 0.1f;     // 陆地移动因子（AI移动速度）
+    f32 m_moveStrafing = 0.0f;        // 横向移动（左右）
+    f32 m_moveForward = 0.0f;         // 前进移动（前后）
+    f32 m_jumpMovementFactor = 0.02f; // 跳跃时的移动因子
+    f32 m_landMovementFactor = 0.1f;  // 陆地移动因子（AI移动速度）
 
     // 移动距离（用于动画）
-    f32 m_movedDistance = 0.0f;          // 移动距离
-    f32 m_prevMovedDistance = 0.0f;      // 上一帧移动距离
+    f32 m_movedDistance = 0.0f;     // 移动距离
+    f32 m_prevMovedDistance = 0.0f; // 上一帧移动距离
 
     // 受伤动画
-    f32 m_attackedAtYaw = 0.0f;          // 受伤时的偏航角
+    f32 m_attackedAtYaw = 0.0f; // 受伤时的偏航角
 
     // 最近攻击追踪（Target Goals 使用）
-    LivingEntity* m_lastHurtBy = nullptr;           // 最近攻击该实体的实体
-    i32 m_lastHurtByTimestamp = 0;                   // 被攻击时间戳
-    LivingEntity* m_lastHurtTarget = nullptr;        // 该实体最近攻击的目标
-    i32 m_lastHurtTargetTimestamp = 0;               // 攻击目标时间戳
+    LivingEntity* m_lastHurtBy = nullptr;     // 最近攻击该实体的实体
+    i32 m_lastHurtByTimestamp = 0;            // 被攻击时间戳
+    LivingEntity* m_lastHurtTarget = nullptr; // 该实体最近攻击的目标
+    i32 m_lastHurtTargetTimestamp = 0;        // 攻击目标时间戳
 
     // 最近攻击
-    i32 m_ticksSinceLastSwing = 0;       // 上次攻击后的 tick
+    i32 m_ticksSinceLastSwing = 0; // 上次攻击后的 tick
 
     // 战斗追踪
-    CombatTracker m_combatTracker;       // 战斗追踪器
+    CombatTracker m_combatTracker; // 战斗追踪器
 
     // 效果管理
-    entity::effect::EffectManager m_effectManager;  // 效果管理器
+    entity::effect::EffectManager m_effectManager; // 效果管理器
 
     // 物品使用状态
-    Hand m_activeHand = Hand::MainHand;  // 正在使用的手
-    ItemStack m_activeItem;              // 正在使用的物品堆
-    i32 m_activeItemUseCount = 0;        // 剩余使用时间（ticks）
+    Hand m_activeHand = Hand::MainHand; // 正在使用的手
+    ItemStack m_activeItem;             // 正在使用的物品堆
+    i32 m_activeItemUseCount = 0;       // 剩余使用时间（ticks）
 
     // 溺水伤害计时器
-    i32 m_drownDamageTimer = 0;          // 溺水伤害间隔计时器
+    i32 m_drownDamageTimer = 0; // 溺水伤害间隔计时器
 
     // 三叉戟激流攻击状态
-    i32 m_spinAttackDuration = 0;        // 激流攻击剩余持续时间（ticks）
+    i32 m_spinAttackDuration = 0; // 激流攻击剩余持续时间（ticks）
 
     // 箭矢计数
-    i32 m_arrowCount = 0;                // 插在身上的箭矢数量
-    i32 m_arrowHitTimer = 0;             // 箭矢脱落计时器
+    i32 m_arrowCount = 0;    // 插在身上的箭矢数量
+    i32 m_arrowHitTimer = 0; // 箭矢脱落计时器
 };
 
 } // namespace mc

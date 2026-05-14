@@ -1,8 +1,8 @@
 #include "RedstoneLampBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -11,29 +11,33 @@ namespace blocks {
 using namespace mc; // Bring BlockStateProperties into scope
 
 RedstoneLampBlock::RedstoneLampBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::LIT())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::LIT())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态（熄灭）
     setDefaultState(defaultState().with(BlockStateProperties::LIT(), false));
 }
 
-bool RedstoneLampBlock::isLit(const BlockState& state) {
+bool RedstoneLampBlock::isLit(const BlockState& state)
+{
     return state.get(BlockStateProperties::LIT());
 }
 
-BlockState RedstoneLampBlock::withLit(BlockState state, bool lit) {
+BlockState RedstoneLampBlock::withLit(BlockState state, bool lit)
+{
     return state.with(BlockStateProperties::LIT(), lit);
 }
 
-void RedstoneLampBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void RedstoneLampBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 检查是否应该点亮
     bool shouldLit = world::redstone::RedstonePower::isPowered(world, pos);
     if (shouldLit != isLit(state)) {
@@ -46,8 +50,9 @@ void RedstoneLampBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
     }
 }
 
-void RedstoneLampBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                         const BlockPos& neighborPos, bool isMoving) {
+void RedstoneLampBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -73,7 +78,8 @@ void RedstoneLampBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     }
 }
 
-void RedstoneLampBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void RedstoneLampBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     // 检查是否应该熄灭
     bool shouldLit = world::redstone::RedstonePower::isPowered(world, pos);

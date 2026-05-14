@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include <vector>
+#include "../Structure.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc::world::gen::structure {
 
@@ -14,15 +14,15 @@ class MineshaftPiece;
  * @brief 废弃矿井类型
  */
 enum class MineshaftType : u8 {
-    Normal,  ///< 普通废弃矿井
-    Mesa     ///< 恶地废弃矿井（恶地生物群系）
+    Normal, ///< 普通废弃矿井
+    Mesa    ///< 恶地废弃矿井（恶地生物群系）
 };
 
 /**
  * @brief 废弃矿井配置
  */
 struct MineshaftConfig {
-    f32 probability = 0.004f;  ///< 生成概率
+    f32 probability = 0.004f; ///< 生成概率
     MineshaftType type = MineshaftType::Normal;
 };
 
@@ -33,10 +33,11 @@ struct MineshaftConfig {
 /**
  * @brief 随机创建矿井片段
  */
-[[nodiscard]] std::unique_ptr<MineshaftPiece> createMineshaftPiece(
-    std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+[[nodiscard]] std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::Random& rng,
-    i32 x, i32 y, i32 z,
+    i32 x,
+    i32 y,
+    i32 z,
     i32 direction,
     i32 depth,
     MineshaftType type);
@@ -44,11 +45,12 @@ struct MineshaftConfig {
 /**
  * @brief 生成并添加矿井片段
  */
-[[nodiscard]] std::unique_ptr<MineshaftPiece> addMineshaftPiece(
-    MineshaftPiece* parent,
+[[nodiscard]] std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::Random& rng,
-    i32 x, i32 y, i32 z,
+    i32 x,
+    i32 y,
+    i32 z,
     i32 direction,
     i32 depth,
     MineshaftType type);
@@ -66,8 +68,7 @@ class MineshaftPiece : public StructurePiece {
 public:
     using StructurePiece::buildComponent;
 
-    MineshaftPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                   MineshaftType mineshaftType);
+    MineshaftPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, MineshaftType mineshaftType);
 
     [[nodiscard]] MineshaftType mineshaftType() const { return m_mineshaftType; }
 
@@ -77,8 +78,8 @@ public:
      * @param rng 随机数生成器
      * @param maxDepth 最大深度
      */
-    virtual void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
-                                 math::Random& rng, i32 maxDepth) = 0;
+    virtual void buildComponent(
+        std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth) = 0;
 
 protected:
     /**
@@ -108,12 +109,13 @@ class MineshaftRoom : public MineshaftPiece {
 public:
     MineshaftRoom(i32 componentType, math::Random& rng, i32 x, i32 y, i32 z, MineshaftType type);
 
-    void generate(IWorldWriter& world, math::Random& rng,
-                  i32 chunkX, i32 chunkZ,
-                  const StructureBoundingBox& chunkBounds) override;
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
 
-    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
-                        math::Random& rng, i32 maxDepth) override;
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth) override;
 
 private:
     /// 出口方向列表
@@ -132,16 +134,24 @@ private:
  */
 class MineshaftCorridor : public MineshaftPiece {
 public:
-    MineshaftCorridor(i32 componentType, math::Random& rng,
-                      i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                      i32 direction, MineshaftType type);
+    MineshaftCorridor(i32 componentType,
+        math::Random& rng,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 direction,
+        MineshaftType type);
 
-    void generate(IWorldWriter& world, math::Random& rng,
-                  i32 chunkX, i32 chunkZ,
-                  const StructureBoundingBox& chunkBounds) override;
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
 
-    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
-                        math::Random& rng, i32 maxDepth) override;
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth) override;
 
     [[nodiscard]] i32 direction() const { return m_direction; }
 
@@ -149,45 +159,52 @@ private:
     /**
      * @brief 生成走廊地板
      */
-    void generateFloor(IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2,
-                       math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void generateFloor(IWorldWriter& world,
+        i32 x1,
+        i32 z1,
+        i32 x2,
+        i32 z2,
+        math::Random& rng,
+        const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成走廊天花板
      */
-    void generateCeiling(IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2,
-                         math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void generateCeiling(IWorldWriter& world,
+        i32 x1,
+        i32 z1,
+        i32 x2,
+        i32 z2,
+        math::Random& rng,
+        const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成支撑柱
      */
-    void generatePillars(IWorldWriter& world, i32 sectionIndex, math::Random& rng,
-                         const StructureBoundingBox& chunkBounds);
+    void generatePillars(
+        IWorldWriter& world, i32 sectionIndex, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
-        * @brief 生成铁轨
+     * @brief 生成铁轨
      */
-    void generateRails(IWorldWriter& world, math::Random& rng,
-                       const StructureBoundingBox& chunkBounds);
+    void generateRails(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成蜘蛛刷怪笼
      */
-    void generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z,
-                         const StructureBoundingBox& chunkBounds);
+    void generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成宝箱矿车
      */
-    void generateChestMinecart(IWorldWriter& world, i32 x, i32 y, i32 z,
-                               math::Random& rng,
-                               const StructureBoundingBox& chunkBounds);
+    void generateChestMinecart(
+        IWorldWriter& world, i32 x, i32 y, i32 z, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     bool m_hasRails;
     bool m_hasSpiders;
     bool m_spawnerPlaced = false;
     i32 m_sectionCount;
-    i32 m_direction;  ///< 0=北, 1=南, 2=西, 3=东
+    i32 m_direction; ///< 0=北, 1=南, 2=西, 3=东
 };
 
 // ============================================================================
@@ -202,15 +219,23 @@ private:
  */
 class MineshaftCross : public MineshaftPiece {
 public:
-    MineshaftCross(i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                   i32 direction, MineshaftType type);
+    MineshaftCross(i32 componentType,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 direction,
+        MineshaftType type);
 
-    void generate(IWorldWriter& world, math::Random& rng,
-                  i32 chunkX, i32 chunkZ,
-                  const StructureBoundingBox& chunkBounds) override;
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
 
-    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
-                        math::Random& rng, i32 maxDepth) override;
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth) override;
 
     [[nodiscard]] i32 direction() const { return m_direction; }
 
@@ -230,15 +255,23 @@ private:
  */
 class MineshaftStairs : public MineshaftPiece {
 public:
-    MineshaftStairs(i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                    i32 direction, MineshaftType type);
+    MineshaftStairs(i32 componentType,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 direction,
+        MineshaftType type);
 
-    void generate(IWorldWriter& world, math::Random& rng,
-                  i32 chunkX, i32 chunkZ,
-                  const StructureBoundingBox& chunkBounds) override;
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
 
-    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
-                        math::Random& rng, i32 maxDepth) override;
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth) override;
 
     [[nodiscard]] i32 direction() const { return m_direction; }
 
@@ -276,21 +309,13 @@ public:
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成废弃矿井
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     // MC 1.16.5: spacing=1, separation=0, salt=0 (每个区块都可能生成)
@@ -304,10 +329,10 @@ private:
 
 // 片段类型常量
 namespace MineshaftPieceTypes {
-    constexpr i32 ROOM = 60;
-    constexpr i32 CORRIDOR = 61;
-    constexpr i32 CROSS = 62;
-    constexpr i32 STAIRS = 63;
-}
+constexpr i32 ROOM = 60;
+constexpr i32 CORRIDOR = 61;
+constexpr i32 CROSS = 62;
+constexpr i32 STAIRS = 63;
+} // namespace MineshaftPieceTypes
 
 } // namespace mc::world::gen::structure

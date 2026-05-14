@@ -1,9 +1,9 @@
 #include "world/blockentity/interactive/SignEntity.hpp"
-#include "world/IWorld.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "util/text/TextParser.hpp"
+#include "world/IWorld.hpp"
 #include <regex>
 
 namespace mc {
@@ -12,7 +12,8 @@ namespace blockentity {
 // ========== SignEntity 实现 ==========
 
 SignEntity::SignEntity(const BlockPos& pos)
-    : BlockEntity(BlockEntityType::Sign, pos) {
+    : BlockEntity(BlockEntityType::Sign, pos)
+{
     // 初始化空文本行
     for (auto& line : m_lines) {
         line = std::make_unique<text::StringTextComponent>("");
@@ -21,14 +22,16 @@ SignEntity::SignEntity(const BlockPos& pos)
 
 SignEntity::~SignEntity() = default;
 
-const text::ITextComponent* SignEntity::getLine(i32 line) const {
+const text::ITextComponent* SignEntity::getLine(i32 line) const
+{
     if (line < 0 || line >= LINE_COUNT) {
         return nullptr;
     }
     return m_lines[static_cast<std::size_t>(line)].get();
 }
 
-bool SignEntity::setLine(i32 line, std::unique_ptr<text::ITextComponent> text) {
+bool SignEntity::setLine(i32 line, std::unique_ptr<text::ITextComponent> text)
+{
     if (line < 0 || line >= LINE_COUNT || !text) {
         return false;
     }
@@ -44,23 +47,27 @@ bool SignEntity::setLine(i32 line, std::unique_ptr<text::ITextComponent> text) {
     return true;
 }
 
-bool SignEntity::setLineFromLegacy(i32 line, const std::string& text) {
+bool SignEntity::setLineFromLegacy(i32 line, const std::string& text)
+{
     // 解析 § 代码格式的文本
     auto component = text::TextParser::parse(text);
     return setLine(line, std::move(component));
 }
 
-std::string SignEntity::getLineText(i32 line) const {
+std::string SignEntity::getLineText(i32 line) const
+{
     const auto* component = getLine(line);
     return component ? component->getUnformattedText() : "";
 }
 
-std::string SignEntity::getLineFormatted(i32 line) const {
+std::string SignEntity::getLineFormatted(i32 line) const
+{
     const auto* component = getLine(line);
     return component ? component->getFormattedText() : "";
 }
 
-void SignEntity::setLines(std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> lines) {
+void SignEntity::setLines(std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> lines)
+{
     for (std::size_t i = 0; i < LINE_COUNT; ++i) {
         if (lines[i]) {
             m_lines[i] = truncateText(std::move(lines[i]));
@@ -70,44 +77,51 @@ void SignEntity::setLines(std::array<std::unique_ptr<text::ITextComponent>, LINE
     setChanged();
 }
 
-void SignEntity::clearLines() {
+void SignEntity::clearLines()
+{
     for (auto& line : m_lines) {
         line = std::make_unique<text::StringTextComponent>("");
     }
     setChanged();
 }
 
-void SignEntity::setEditable(bool editable) {
+void SignEntity::setEditable(bool editable)
+{
     if (m_editable != editable) {
         m_editable = editable;
         setChanged();
     }
 }
 
-void SignEntity::setEditor(Player* player) {
+void SignEntity::setEditor(Player* player)
+{
     m_editor = player;
 }
 
-void SignEntity::setTextColor(i32 color) {
+void SignEntity::setTextColor(i32 color)
+{
     if (m_textColor != color) {
         m_textColor = color;
         setChanged();
     }
 }
 
-void SignEntity::setGlowing(bool glowing) {
+void SignEntity::setGlowing(bool glowing)
+{
     if (m_glowing != glowing) {
         m_glowing = glowing;
         setChanged();
     }
 }
 
-void SignEntity::tick(IWorld& world) {
+void SignEntity::tick(IWorld& world)
+{
     MC_UNUSED(world);
     // 告示牌不需要 tick 更新
 }
 
-bool SignEntity::validateText(const text::ITextComponent& text) {
+bool SignEntity::validateText(const text::ITextComponent& text)
+{
     // 验证纯文本内容中的控制字符
     std::string plainText = text.getUnformattedText();
     for (char c : plainText) {
@@ -120,8 +134,8 @@ bool SignEntity::validateText(const text::ITextComponent& text) {
     return true;
 }
 
-std::unique_ptr<text::ITextComponent> SignEntity::truncateText(
-    std::unique_ptr<text::ITextComponent> text) {
+std::unique_ptr<text::ITextComponent> SignEntity::truncateText(std::unique_ptr<text::ITextComponent> text)
+{
     std::string plainText = text->getUnformattedText();
     if (plainText.length() <= static_cast<size_t>(MAX_LINE_LENGTH)) {
         return text;
@@ -132,7 +146,8 @@ std::unique_ptr<text::ITextComponent> SignEntity::truncateText(
     return std::make_unique<text::StringTextComponent>(std::move(truncated));
 }
 
-bool SignEntity::load(const nlohmann::json& data) {
+bool SignEntity::load(const nlohmann::json& data)
+{
     if (!BlockEntity::load(data)) {
         return false;
     }
@@ -180,7 +195,8 @@ bool SignEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void SignEntity::save(nlohmann::json& data) const {
+void SignEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     // 保存文本（新格式）
@@ -204,7 +220,8 @@ void SignEntity::save(nlohmann::json& data) const {
     data["glowing"] = m_glowing;
 }
 
-std::unique_ptr<BlockEntity> SignEntity::clone() const {
+std::unique_ptr<BlockEntity> SignEntity::clone() const
+{
     auto cloned = std::make_unique<SignEntity>(m_pos);
     for (std::size_t i = 0; i < m_lines.size(); ++i) {
         if (m_lines[i]) {
@@ -217,7 +234,8 @@ std::unique_ptr<BlockEntity> SignEntity::clone() const {
     return cloned;
 }
 
-bool SignEntity::executeCommand(IWorld& world, Player& player) {
+bool SignEntity::executeCommand(IWorld& world, Player& player)
+{
     MC_UNUSED(world);
 
     // MC 1.16.5: 参考 SignTileEntity.executeCommand()

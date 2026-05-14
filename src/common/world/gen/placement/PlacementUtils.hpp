@@ -21,8 +21,7 @@ namespace PlacementUtils {
  * @return 带有生物群系过滤的放置链
  */
 [[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
-    std::unique_ptr<ConfiguredPlacement> root,
-    std::vector<u32> allowedBiomes);
+    std::unique_ptr<ConfiguredPlacement> root, std::vector<u32> allowedBiomes);
 
 /**
  * @brief 创建地表放置链（带数量）
@@ -33,9 +32,7 @@ namespace PlacementUtils {
  * @param maxWaterDepth 最大水深（树木不能种在太深的水中）
  * @return 放置链
  */
-[[nodiscard]] std::unique_ptr<ConfiguredPlacement> createCountedSurfacePlacement(
-    i32 count,
-    i32 maxWaterDepth = 0);
+[[nodiscard]] std::unique_ptr<ConfiguredPlacement> createCountedSurfacePlacement(i32 count, i32 maxWaterDepth = 0);
 
 /**
  * @brief 创建地表放置链（带概率）
@@ -46,9 +43,7 @@ namespace PlacementUtils {
  * @param maxWaterDepth 最大水深
  * @return 放置链
  */
-[[nodiscard]] std::unique_ptr<ConfiguredPlacement> createChanceSurfacePlacement(
-    f32 chance,
-    i32 maxWaterDepth = 0);
+[[nodiscard]] std::unique_ptr<ConfiguredPlacement> createChanceSurfacePlacement(f32 chance, i32 maxWaterDepth = 0);
 
 /**
  * @brief 创建高度范围放置链（带数量）
@@ -60,10 +55,7 @@ namespace PlacementUtils {
  * @param maxY 最大Y坐标
  * @return 放置链
  */
-[[nodiscard]] std::unique_ptr<ConfiguredPlacement> createCountedHeightPlacement(
-    i32 count,
-    i32 minY,
-    i32 maxY);
+[[nodiscard]] std::unique_ptr<ConfiguredPlacement> createCountedHeightPlacement(i32 count, i32 minY, i32 maxY);
 
 } // namespace PlacementUtils
 

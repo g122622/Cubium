@@ -1,13 +1,13 @@
 #include "MinecartItem.hpp"
-#include "../../context/ItemUseContext.hpp"
-#include "../../core/ItemStack.hpp"
+#include "../../../entity/entities/vehicle/MinecartEntity.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/blocks/redstone/AbstractRailBlock.hpp"
-#include "../../../entity/entities/vehicle/MinecartEntity.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../context/ItemUseContext.hpp"
+#include "../../core/ItemStack.hpp"
 #include <cmath>
 
 namespace mc {
@@ -16,10 +16,10 @@ namespace item {
 MinecartItem::MinecartItem(entity::AbstractMinecartEntity::Type minecartType, const ItemProperties& properties)
     : Item(properties)
     , m_minecartType(minecartType)
-{
-}
+{}
 
-ActionResultType MinecartItem::onItemUse(ItemUseContext& context) {
+ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
+{
     // MC 1.16.5 MinecartItem.onItemUse
     IWorld* world = &context.world();
     if (!world) {

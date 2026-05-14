@@ -12,7 +12,8 @@ OcelotRenderer::OcelotRenderer()
     setShadowSize(0.5f);
 }
 
-void OcelotRenderer::render(Entity& entity, f64 partialTicks) {
+void OcelotRenderer::render(Entity& entity, f64 partialTicks)
+{
     auto& ocelot = static_cast<OcelotEntity&>(entity);
 
     // 选择模型（幼体或成体）
@@ -40,20 +41,22 @@ void OcelotRenderer::render(Entity& entity, f64 partialTicks) {
     }
 }
 
-ResourceLocation OcelotRenderer::getEntityTexture(OcelotEntity& entity) {
+ResourceLocation OcelotRenderer::getEntityTexture(OcelotEntity& entity)
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/cat/ocelot.png");
 }
 
-ResourceLocation OcelotRenderer::getEntityTexture(const OcelotEntity& entity) const {
+ResourceLocation OcelotRenderer::getEntityTexture(const OcelotEntity& entity) const
+{
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/cat/ocelot.png");
 }
 
-void registerOcelotRenderer(EntityRendererManager& manager) {
-    manager.registerRenderer("minecraft:ocelot", []() -> std::unique_ptr<core::EntityRenderer> {
-        return std::make_unique<OcelotRenderer>();
-    });
+void registerOcelotRenderer(EntityRendererManager& manager)
+{
+    manager.registerRenderer("minecraft:ocelot",
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<OcelotRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

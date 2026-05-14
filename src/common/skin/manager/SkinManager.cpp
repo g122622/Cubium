@@ -1,6 +1,6 @@
 #include "SkinManager.hpp"
-#include "common/skin/parser/SkinMetadataParser.hpp"
 #include "common/skin/core/GameProfile.hpp"
+#include "common/skin/parser/SkinMetadataParser.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {
@@ -8,14 +8,16 @@ namespace mc::skin {
 SkinManager::SkinManager(const std::string& cacheDir)
     : m_cacheDir(cacheDir)
     , m_cache(std::make_unique<SkinCache>(cacheDir))
-    , m_defaultSkinProvider(std::make_unique<DefaultSkinProvider>()) {
-}
+    , m_defaultSkinProvider(std::make_unique<DefaultSkinProvider>())
+{}
 
-SkinManager::~SkinManager() {
+SkinManager::~SkinManager()
+{
     shutdown();
 }
 
-Result<void> SkinManager::initialize() {
+Result<void> SkinManager::initialize()
+{
     if (m_initialized.load()) {
         return {};
     }
@@ -30,8 +32,7 @@ Result<void> SkinManager::initialize() {
     // 初始化默认皮肤提供者
     auto defaultResult = m_defaultSkinProvider->initialize();
     if (!defaultResult.success()) {
-        spdlog::warn("SkinManager: Failed to initialize default skin provider: {}",
-                     defaultResult.error().toString());
+        spdlog::warn("SkinManager: Failed to initialize default skin provider: {}", defaultResult.error().toString());
         // 默认皮肤初始化失败也不是致命错误
     }
 
@@ -40,7 +41,8 @@ Result<void> SkinManager::initialize() {
     return {};
 }
 
-void SkinManager::shutdown() {
+void SkinManager::shutdown()
+{
     if (!m_initialized.load()) {
         return;
     }
@@ -61,7 +63,8 @@ void SkinManager::shutdown() {
     spdlog::info("SkinManager shutdown");
 }
 
-std::shared_ptr<PlayerSkinInfo> SkinManager::getOrCreatePlayerInfo(const GameProfile& profile) {
+std::shared_ptr<PlayerSkinInfo> SkinManager::getOrCreatePlayerInfo(const GameProfile& profile)
+{
     std::string key = uuidToKey(profile.uuid());
 
     std::shared_ptr<PlayerSkinInfo> info;
@@ -89,38 +92,44 @@ std::shared_ptr<PlayerSkinInfo> SkinManager::getOrCreatePlayerInfo(const GamePro
     return info;
 }
 
-std::shared_ptr<PlayerSkinInfo> SkinManager::getPlayerInfo(const std::array<u8, 16>& uuid) const {
+std::shared_ptr<PlayerSkinInfo> SkinManager::getPlayerInfo(const std::array<u8, 16>& uuid) const
+{
     std::string key = uuidToKey(uuid);
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     auto it = m_playerInfos.find(key);
     return it != m_playerInfos.end() ? it->second : nullptr;
 }
 
-std::shared_ptr<PlayerSkinInfo> SkinManager::getPlayerInfo(const std::string& uuidStr) const {
+std::shared_ptr<PlayerSkinInfo> SkinManager::getPlayerInfo(const std::string& uuidStr) const
+{
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     auto it = m_playerInfos.find(uuidStr);
     return it != m_playerInfos.end() ? it->second : nullptr;
 }
 
-void SkinManager::removePlayerInfo(const std::array<u8, 16>& uuid) {
+void SkinManager::removePlayerInfo(const std::array<u8, 16>& uuid)
+{
     std::string key = uuidToKey(uuid);
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     m_playerInfos.erase(key);
     spdlog::debug("SkinManager: Removed player info for {}", key);
 }
 
-void SkinManager::clearAllPlayerInfos() {
+void SkinManager::clearAllPlayerInfos()
+{
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     m_playerInfos.clear();
     spdlog::info("SkinManager: Cleared all player infos");
 }
 
-size_t SkinManager::playerCount() const {
+size_t SkinManager::playerCount() const
+{
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     return m_playerInfos.size();
 }
 
-void SkinManager::loadSkin(const GameProfile& profile, const SkinLoadCallbacks& callbacks) {
+void SkinManager::loadSkin(const GameProfile& profile, const SkinLoadCallbacks& callbacks)
+{
     if (m_shuttingDown.load()) {
         return;
     }
@@ -143,20 +152,24 @@ void SkinManager::loadSkin(const GameProfile& profile, const SkinLoadCallbacks& 
     loadFromTextures(profile, info, callbacks);
 }
 
-bool SkinManager::isSkinLoaded(const std::array<u8, 16>& uuid) const {
+bool SkinManager::isSkinLoaded(const std::array<u8, 16>& uuid) const
+{
     auto info = getPlayerInfo(uuid);
     return info && info->isLoaded();
 }
 
-ResourceLocation SkinManager::getDefaultSkin(const std::array<u8, 16>& uuid) const {
+ResourceLocation SkinManager::getDefaultSkin(const std::array<u8, 16>& uuid) const
+{
     return m_defaultSkinProvider->getDefaultSkin(uuid);
 }
 
-SkinType SkinManager::getDefaultSkinType(const std::array<u8, 16>& uuid) const {
+SkinType SkinManager::getDefaultSkinType(const std::array<u8, 16>& uuid) const
+{
     return m_defaultSkinProvider->getDefaultSkinType(uuid);
 }
 
-bool SkinManager::loadFromCache(const SkinTextures& textures, std::shared_ptr<PlayerSkinInfo> info) {
+bool SkinManager::loadFromCache(const SkinTextures& textures, std::shared_ptr<PlayerSkinInfo> info)
+{
     // 尝试从缓存加载皮肤
     if (textures.hasSkin() && textures.skinHash().has_value()) {
         const std::string& hash = *textures.skinHash();
@@ -182,9 +195,9 @@ bool SkinManager::loadFromCache(const SkinTextures& textures, std::shared_ptr<Pl
     return false;
 }
 
-void SkinManager::loadFromTextures(const GameProfile& profile,
-                                   std::shared_ptr<PlayerSkinInfo> info,
-                                   const SkinLoadCallbacks& callbacks) {
+void SkinManager::loadFromTextures(
+    const GameProfile& profile, std::shared_ptr<PlayerSkinInfo> info, const SkinLoadCallbacks& callbacks)
+{
     const GameProfileProperty* texturesProp = profile.getTexturesProperty();
     if (!texturesProp) {
         useDefaultSkin(info);
@@ -197,8 +210,8 @@ void SkinManager::loadFromTextures(const GameProfile& profile,
     // 解析 textures 属性
     auto parseResult = SkinMetadataParser::parse(*texturesProp);
     if (!parseResult.success()) {
-        spdlog::warn("SkinManager: Failed to parse textures for {}: {}",
-                     profile.name(), parseResult.error().toString());
+        spdlog::warn(
+            "SkinManager: Failed to parse textures for {}: {}", profile.name(), parseResult.error().toString());
         useDefaultSkin(info);
         if (callbacks.onSkinFailed) {
             callbacks.onSkinFailed(profile.uuid(), parseResult.error().toString());
@@ -224,8 +237,7 @@ void SkinManager::loadFromTextures(const GameProfile& profile,
 
     // TODO: 实现异步下载
     // 当前简化实现：使用默认皮肤
-    spdlog::info("SkinManager: Skin not in cache, would download: {}",
-                 textures.skinUrl().value_or("(none)"));
+    spdlog::info("SkinManager: Skin not in cache, would download: {}", textures.skinUrl().value_or("(none)"));
 
     // 暂时使用默认皮肤
     useDefaultSkin(info);
@@ -235,17 +247,18 @@ void SkinManager::loadFromTextures(const GameProfile& profile,
     }
 }
 
-void SkinManager::useDefaultSkin(std::shared_ptr<PlayerSkinInfo> info) {
+void SkinManager::useDefaultSkin(std::shared_ptr<PlayerSkinInfo> info)
+{
     ResourceLocation defaultSkin = getDefaultSkin(info->uuid());
     info->setSkinLocation(defaultSkin);
     info->setSkinType(getDefaultSkinType(info->uuid()));
     info->setLoadState(SkinLoadState::UsingDefault);
 
-    spdlog::debug("SkinManager: Using default skin for {}",
-                  info->profile().uuidToString());
+    spdlog::debug("SkinManager: Using default skin for {}", info->profile().uuidToString());
 }
 
-std::string SkinManager::uuidToKey(const std::array<u8, 16>& uuid) {
+std::string SkinManager::uuidToKey(const std::array<u8, 16>& uuid)
+{
     return GameProfile(uuid, "").uuidToStringNoDashes();
 }
 

@@ -1,17 +1,17 @@
 #include "SweetBerryBushBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/EntityType.hpp"
 #include "../../../../entity/core/LivingEntity.hpp"
+#include "../../../../entity/damage/DamageSource.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../physics/PhysicsConstants.hpp"
-#include "../../../../entity/damage/DamageSource.hpp"
-#include "../../../../entity/core/EntityType.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
 #include "../../BlockTags.hpp"
 #include <cmath>
 
@@ -19,12 +19,12 @@ namespace mc {
 namespace blocks {
 
 SweetBerryBushBlock::SweetBerryBushBlock(const BlockProperties& properties)
-    : BushBlock(properties) {
+    : BushBlock(properties)
+{
 
     // 创建状态容器，添加 AGE 属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(AGE())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(AGE()).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -36,24 +36,29 @@ SweetBerryBushBlock::SweetBerryBushBlock(const BlockProperties& properties)
     initShapes();
 }
 
-int SweetBerryBushBlock::getAge(const BlockState& state) const {
+int SweetBerryBushBlock::getAge(const BlockState& state) const
+{
     return static_cast<int>(state.get(AGE()));
 }
 
-const BlockState& SweetBerryBushBlock::withAge(const BlockState& state, int age) const {
+const BlockState& SweetBerryBushBlock::withAge(const BlockState& state, int age) const
+{
     return state.with(AGE(), std::clamp(age, 0, getMaxAge()));
 }
 
-bool SweetBerryBushBlock::isMaxAge(const BlockState& state) const {
+bool SweetBerryBushBlock::isMaxAge(const BlockState& state) const
+{
     return getAge(state) >= getMaxAge();
 }
 
-BlockState SweetBerryBushBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState SweetBerryBushBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     MC_UNUSED(context);
     return defaultState();
 }
 
-void SweetBerryBushBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void SweetBerryBushBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     int age = getAge(state);
     if (age >= getMaxAge()) {
         return;
@@ -76,10 +81,8 @@ void SweetBerryBushBlock::randomTick(IWorld& world, const BlockPos& pos, BlockSt
 }
 
 bool SweetBerryBushBlock::canGrow(
-    IBlockReader& world,
-    const BlockPos& pos,
-    const BlockState& state,
-    bool isClientSide) const {
+    IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -89,10 +92,8 @@ bool SweetBerryBushBlock::canGrow(
 }
 
 bool SweetBerryBushBlock::canUseBonemeal(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) const {
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(random);
@@ -101,11 +102,8 @@ bool SweetBerryBushBlock::canUseBonemeal(
     return true;
 }
 
-void SweetBerryBushBlock::grow(
-    IWorld& world,
-    math::IRandom& random,
-    const BlockPos& pos,
-    const BlockState& state) {
+void SweetBerryBushBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
 
     MC_UNUSED(random);
 
@@ -116,19 +114,22 @@ void SweetBerryBushBlock::grow(
     }
 }
 
-const CollisionShape& SweetBerryBushBlock::getShape(const BlockState& state) const {
+const CollisionShape& SweetBerryBushBlock::getShape(const BlockState& state) const
+{
     int age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 3);
     return m_shapesByAge[age];
 }
 
-const CollisionShape& SweetBerryBushBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& SweetBerryBushBlock::getCollisionShape(const BlockState& state) const
+{
     int age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 3);
     return m_collisionShapesByAge[age];
 }
 
-void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     MC_UNUSED(pos);
 
     // 参考: net.minecraft.block.SweetBerryBushBlock#onEntityCollision
@@ -141,7 +142,8 @@ void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& wor
     }
 
     // 检查实体类型（狐狸和蜜蜂免疫伤害和减速）
-    // MC 1.16.5: if (entityIn instanceof LivingEntity && entityIn.getType() != EntityType.FOX && entityIn.getType() != EntityType.BEE)
+    // MC 1.16.5: if (entityIn instanceof LivingEntity && entityIn.getType() != EntityType.FOX && entityIn.getType() !=
+    // EntityType.BEE)
     const std::string& typeId = entity.getTypeId();
     if (typeId == "minecraft:fox" || typeId == "minecraft:bee") {
         return;
@@ -149,11 +151,9 @@ void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& wor
 
     // 应用减速效果
     // MC 1.16.5: entityIn.setMotionMultiplier(state, new Vector3d(0.8D, 0.75D, 0.8D));
-    entity.setMotionMultiplier(Vector3(
-        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ,
+    entity.setMotionMultiplier(Vector3(physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ,
         physics::SWEET_BERRY_BUSH_SLOWDOWN_Y,
-        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ
-    ));
+        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ));
 
     int age = getAge(state);
 
@@ -185,13 +185,13 @@ void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& wor
     }
 }
 
-ActionResultType SweetBerryBushBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType SweetBerryBushBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(player);
     MC_UNUSED(hand);
@@ -213,7 +213,8 @@ ActionResultType SweetBerryBushBlock::onBlockActivated(
         // 生成浆果掉落
         if (Items::SWEET_BERRIES != nullptr && berryCount > 0) {
             ItemStack dropStack(*Items::SWEET_BERRIES, berryCount);
-            ItemDropHelper::spawnItemEntity(&world, dropStack,
+            ItemDropHelper::spawnItemEntity(&world,
+                dropStack,
                 static_cast<f64>(pos.x) + 0.5,
                 static_cast<f64>(pos.y) + 0.5,
                 static_cast<f64>(pos.z) + 0.5,
@@ -230,10 +231,8 @@ ActionResultType SweetBerryBushBlock::onBlockActivated(
     return ActionResultType::Pass;
 }
 
-bool SweetBerryBushBlock::canSustain(
-    const BlockState& groundState,
-    IWorld& world,
-    const BlockPos& groundPos) const {
+bool SweetBerryBushBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
@@ -244,19 +243,16 @@ bool SweetBerryBushBlock::canSustain(
     return BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(groundState);
 }
 
-void SweetBerryBushBlock::initShapes() {
+void SweetBerryBushBlock::initShapes()
+{
     // 参考 MC 1.16.5 SweetBerryBushBlock 的形状定义
     constexpr f32 P = 1.0f / 16.0f;
 
     // AGE 0: 幼苗形状 (3, 0, 3) -> (13, 8, 13)
-    m_shapesByAge[0] = CollisionShape::box(
-        3.0f * P, 0.0f, 3.0f * P,
-        13.0f * P, 8.0f * P, 13.0f * P);
+    m_shapesByAge[0] = CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 13.0f * P, 8.0f * P, 13.0f * P);
 
     // AGE 1-3: 完整灌木形状 (1, 0, 1) -> (15, 16, 15)
-    CollisionShape fullShape = CollisionShape::box(
-        1.0f * P, 0.0f, 1.0f * P,
-        15.0f * P, 16.0f * P, 15.0f * P);
+    CollisionShape fullShape = CollisionShape::box(1.0f * P, 0.0f, 1.0f * P, 15.0f * P, 16.0f * P, 15.0f * P);
 
     m_shapesByAge[1] = fullShape;
     m_shapesByAge[2] = fullShape;

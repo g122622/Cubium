@@ -1,21 +1,21 @@
-#include <gtest/gtest.h>
 #include <map>
+#include <gtest/gtest.h>
 
-#include "common/entity/core/MobEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/FlyingEntity.hpp"
-#include "common/entity/entities/monster/basic/PhantomEntity.hpp"
-#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/entities/monster/basic/PhantomEntity.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -28,7 +28,13 @@ namespace {
  */
 class EntityTestWorld final : public test::BaseTestWorld {
 public:
-    EntityTestWorld() : m_dayTime(0), m_skyLight(15), m_blockLight(0), m_canSeeSky(true), m_isRaining(false) {}
+    EntityTestWorld()
+        : m_dayTime(0)
+        , m_skyLight(15)
+        , m_blockLight(0)
+        , m_canSeeSky(true)
+        , m_isRaining(false)
+    {}
 
     // 世界时间配置
     void setDayTime(i64 time) { m_dayTime = time; }
@@ -47,11 +53,14 @@ public:
 
     [[nodiscard]] bool canSeeSky(const BlockPos&) const override { return m_canSeeSky; }
 
-    [[nodiscard]] f32 getBrightness(const BlockPos&) const override {
-        return m_brightness.has_value() ? m_brightness.value() : static_cast<f32>(std::max(m_skyLight, m_blockLight)) / 15.0f;
+    [[nodiscard]] f32 getBrightness(const BlockPos&) const override
+    {
+        return m_brightness.has_value() ? m_brightness.value()
+                                        : static_cast<f32>(std::max(m_skyLight, m_blockLight)) / 15.0f;
     }
 
-    [[nodiscard]] u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const override {
+    [[nodiscard]] u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const override
+    {
         u8 sky = m_skyLight > static_cast<u8>(skyDarkening) ? m_skyLight - static_cast<u8>(skyDarkening) : 0;
         return std::max(sky, m_blockLight);
     }
@@ -68,24 +77,33 @@ public:
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void addParticle(client::renderer::trident::particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
+    void addParticle(client::renderer::trident::particle::ParticleTypeId,
+        const Vector3&,
+        const Vector3&,
+        const Vector3&,
+        u32) override
+    {}
 
     // 实体管理（用于测试船骑乘）
     void addTestEntity(Entity* entity) { m_testEntities[entity->id()] = entity; }
     void removeTestEntity(EntityId id) { m_testEntities.erase(id); }
-    [[nodiscard]] Entity* getEntity(EntityId id) override {
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override {
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("EntityTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("EntityTestWorld::tickManager not implemented");
     }
     EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(1); }
@@ -108,20 +126,17 @@ private:
 
 class IsInDaylightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_world = std::make_unique<EntityTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
 
-TEST_F(IsInDaylightTest, ReturnsFalseAtNight) {
+TEST_F(IsInDaylightTest, ReturnsFalseAtNight)
+{
     // 夜晚时间：12000-24000
-    m_world->setDayTime(13000);  // 夜晚
+    m_world->setDayTime(13000); // 夜晚
     m_world->setCanSeeSky(true);
     m_world->setBrightness(1.0f);
 
@@ -132,9 +147,10 @@ TEST_F(IsInDaylightTest, ReturnsFalseAtNight) {
     EXPECT_FALSE(phantom.isInDaylight());
 }
 
-TEST_F(IsInDaylightTest, ReturnsFalseWhenSkyNotVisible) {
-    m_world->setDayTime(6000);   // 白天
-    m_world->setCanSeeSky(false);  // 天空不可见
+TEST_F(IsInDaylightTest, ReturnsFalseWhenSkyNotVisible)
+{
+    m_world->setDayTime(6000);    // 白天
+    m_world->setCanSeeSky(false); // 天空不可见
     m_world->setBrightness(1.0f);
 
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
@@ -144,10 +160,11 @@ TEST_F(IsInDaylightTest, ReturnsFalseWhenSkyNotVisible) {
     EXPECT_FALSE(phantom.isInDaylight());
 }
 
-TEST_F(IsInDaylightTest, ReturnsFalseWithLowBrightness) {
-    m_world->setDayTime(6000);   // 白天
+TEST_F(IsInDaylightTest, ReturnsFalseWithLowBrightness)
+{
+    m_world->setDayTime(6000); // 白天
     m_world->setCanSeeSky(true);
-    m_world->setBrightness(0.3f);  // 低亮度
+    m_world->setBrightness(0.3f); // 低亮度
 
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
     phantom.setWorld(m_world.get());
@@ -156,11 +173,12 @@ TEST_F(IsInDaylightTest, ReturnsFalseWithLowBrightness) {
     EXPECT_FALSE(phantom.isInDaylight());
 }
 
-TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness) {
+TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness)
+{
     // 白天时间：0-11999
-    m_world->setDayTime(6000);   // 中午
+    m_world->setDayTime(6000); // 中午
     m_world->setCanSeeSky(true);
-    m_world->setBrightness(0.8f);  // 高亮度
+    m_world->setBrightness(0.8f); // 高亮度
 
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
     phantom.setWorld(m_world.get());
@@ -181,19 +199,16 @@ TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness) {
 
 class PhantomEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_world = std::make_unique<EntityTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
 
-TEST_F(PhantomEntityTest, DoesNotBurnAtNight) {
-    m_world->setDayTime(13000);  // 夜晚
+TEST_F(PhantomEntityTest, DoesNotBurnAtNight)
+{
+    m_world->setDayTime(13000); // 夜晚
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.2f);
 
@@ -205,7 +220,8 @@ TEST_F(PhantomEntityTest, DoesNotBurnAtNight) {
     EXPECT_NO_THROW(phantom.tick());
 }
 
-TEST_F(PhantomEntityTest, SizeAffectsDimensions) {
+TEST_F(PhantomEntityTest, SizeAffectsDimensions)
+{
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
 
     // 默认尺寸 0
@@ -216,11 +232,12 @@ TEST_F(PhantomEntityTest, SizeAffectsDimensions) {
     EXPECT_EQ(phantom.getPhantomSize(), 2);
 
     // 检查尺寸上限
-    phantom.setPhantomSize(100);  // 超过最大值
-    EXPECT_EQ(phantom.getPhantomSize(), 64);  // 应该被限制为 64
+    phantom.setPhantomSize(100);             // 超过最大值
+    EXPECT_EQ(phantom.getPhantomSize(), 64); // 应该被限制为 64
 }
 
-TEST_F(PhantomEntityTest, SizeAffectsAttackDamage) {
+TEST_F(PhantomEntityTest, SizeAffectsAttackDamage)
+{
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
 
     // 尺寸 0 -> 基础伤害 6.0
@@ -232,7 +249,8 @@ TEST_F(PhantomEntityTest, SizeAffectsAttackDamage) {
     EXPECT_EQ(phantom.getPhantomSize(), 4);
 }
 
-TEST_F(PhantomEntityTest, AttackPhaseDefaultIsCircle) {
+TEST_F(PhantomEntityTest, AttackPhaseDefaultIsCircle)
+{
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
     EXPECT_EQ(phantom.getAttackPhase(), PhantomEntity::AttackPhase::CIRCLE);
 }
@@ -243,44 +261,46 @@ TEST_F(PhantomEntityTest, AttackPhaseDefaultIsCircle) {
 
 class DaytimeTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_world = std::make_unique<EntityTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
 
-TEST_F(DaytimeTest, IsDayDuringMorning) {
-    m_world->setDayTime(0);  // 日出
+TEST_F(DaytimeTest, IsDayDuringMorning)
+{
+    m_world->setDayTime(0); // 日出
     EXPECT_TRUE(m_world->isDaytime());
 }
 
-TEST_F(DaytimeTest, IsDayDuringNoon) {
-    m_world->setDayTime(6000);  // 中午
+TEST_F(DaytimeTest, IsDayDuringNoon)
+{
+    m_world->setDayTime(6000); // 中午
     EXPECT_TRUE(m_world->isDaytime());
 }
 
-TEST_F(DaytimeTest, IsDayJustBeforeSunset) {
-    m_world->setDayTime(11999);  // 日落前一刻
+TEST_F(DaytimeTest, IsDayJustBeforeSunset)
+{
+    m_world->setDayTime(11999); // 日落前一刻
     EXPECT_TRUE(m_world->isDaytime());
 }
 
-TEST_F(DaytimeTest, IsNightAtSunset) {
-    m_world->setDayTime(12000);  // 日落
+TEST_F(DaytimeTest, IsNightAtSunset)
+{
+    m_world->setDayTime(12000); // 日落
     EXPECT_FALSE(m_world->isDaytime());
 }
 
-TEST_F(DaytimeTest, IsNightAtMidnight) {
-    m_world->setDayTime(18000);  // 午夜
+TEST_F(DaytimeTest, IsNightAtMidnight)
+{
+    m_world->setDayTime(18000); // 午夜
     EXPECT_FALSE(m_world->isDaytime());
 }
 
-TEST_F(DaytimeTest, IsNightJustBeforeDawn) {
-    m_world->setDayTime(23999);  // 日出前一刻
+TEST_F(DaytimeTest, IsNightJustBeforeDawn)
+{
+    m_world->setDayTime(23999); // 日出前一刻
     EXPECT_FALSE(m_world->isDaytime());
 }
 
@@ -290,18 +310,15 @@ TEST_F(DaytimeTest, IsNightJustBeforeDawn) {
 
 class GetBrightnessTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_world = std::make_unique<EntityTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
 
-TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition) {
+TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition)
+{
     m_world->setBrightness(0.75f);
 
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
@@ -312,7 +329,8 @@ TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition) {
     EXPECT_FLOAT_EQ(brightness, 0.75f);
 }
 
-TEST_F(GetBrightnessTest, ReturnsZeroWhenNoWorld) {
+TEST_F(GetBrightnessTest, ReturnsZeroWhenNoWorld)
+{
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
     // 不设置世界
     phantom.setPosition(0.0f, 64.0f, 0.0f);
@@ -321,7 +339,8 @@ TEST_F(GetBrightnessTest, ReturnsZeroWhenNoWorld) {
     EXPECT_FLOAT_EQ(brightness, 0.0f);
 }
 
-TEST_F(GetBrightnessTest, UsesEyeHeightForPosition) {
+TEST_F(GetBrightnessTest, UsesEyeHeightForPosition)
+{
     m_world->setBrightness(0.9f);
 
     PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
@@ -342,38 +361,38 @@ TEST_F(GetBrightnessTest, UsesEyeHeightForPosition) {
 
 class MiningFatigueEffectTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_world = std::make_unique<EntityTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
 
-TEST_F(MiningFatigueEffectTest, MiningFatigueLevelIII) {
+TEST_F(MiningFatigueEffectTest, MiningFatigueLevelIII)
+{
     // 挖掘疲劳 III (amplifier = 2)
     EffectInstance fatigue(EffectType::MiningFatigue, 6000, 2, false, true, true);
     EXPECT_EQ(fatigue.amplifier(), 2);
-    EXPECT_EQ(fatigue.getEffectLevel(), 3);  // 显示等级 III
+    EXPECT_EQ(fatigue.getEffectLevel(), 3); // 显示等级 III
 }
 
-TEST_F(MiningFatigueEffectTest, MiningFatigueDuration) {
+TEST_F(MiningFatigueEffectTest, MiningFatigueDuration)
+{
     // 挖掘疲劳持续时间：6000 tick = 5 分钟
     EffectInstance fatigue(EffectType::MiningFatigue, 6000, 2, false, true, true);
     EXPECT_EQ(fatigue.duration(), 6000);
     EXPECT_FALSE(fatigue.isExpired());
 }
 
-TEST_F(MiningFatigueEffectTest, MiningFatigueRange) {
+TEST_F(MiningFatigueEffectTest, MiningFatigueRange)
+{
     // 远古守卫者挖掘疲劳范围：50格
     constexpr f32 MINING_FATIGUE_RANGE = 50.0f;
     EXPECT_FLOAT_EQ(MINING_FATIGUE_RANGE, 50.0f);
 }
 
-TEST_F(MiningFatigueEffectTest, MiningFatigueInterval) {
+TEST_F(MiningFatigueEffectTest, MiningFatigueInterval)
+{
     // 远古守卫者挖掘疲劳间隔：600 tick = 30 秒
     constexpr i32 FATIGUE_INTERVAL = 600;
     EXPECT_EQ(FATIGUE_INTERVAL, 600);
@@ -385,11 +404,10 @@ TEST_F(MiningFatigueEffectTest, MiningFatigueInterval) {
 
 class BoatRidingDaylightTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        m_world = std::make_unique<EntityTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理实体
         m_world.reset();
         m_boat.reset();
@@ -401,7 +419,8 @@ protected:
      * @param phantomPos 幻翼位置
      * @param boatPos 船位置（如果需要船）
      */
-    void setupBoatRiding(const Vector3& phantomPos, const Vector3* boatPos = nullptr) {
+    void setupBoatRiding(const Vector3& phantomPos, const Vector3* boatPos = nullptr)
+    {
         // 创建幻翼
         m_phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(1));
         m_phantom->setWorld(m_world.get());
@@ -412,7 +431,7 @@ protected:
         if (boatPos != nullptr) {
             m_boat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
             m_boat->setId(EntityId(2));
-            m_boat->setWorld(m_world.get());  // 设置世界指针，这样船可以正常工作
+            m_boat->setWorld(m_world.get()); // 设置世界指针，这样船可以正常工作
             m_boat->setPosition(boatPos->x, boatPos->y, boatPos->z);
             m_world->addTestEntity(m_boat.get());
 
@@ -426,7 +445,8 @@ protected:
     std::unique_ptr<PhantomEntity> m_phantom;
 };
 
-TEST_F(BoatRidingDaylightTest, PhantomNotRidingBoatUsesOriginalPosition) {
+TEST_F(BoatRidingDaylightTest, PhantomNotRidingBoatUsesOriginalPosition)
+{
     // 白天、天空可见、高亮度
     m_world->setDayTime(6000);
     m_world->setCanSeeSky(true);
@@ -442,7 +462,8 @@ TEST_F(BoatRidingDaylightTest, PhantomNotRidingBoatUsesOriginalPosition) {
     });
 }
 
-TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp) {
+TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp)
+{
     // 白天、天空可见、高亮度
     m_world->setDayTime(6000);
     m_world->setCanSeeSky(true);
@@ -486,7 +507,8 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp) {
     });
 }
 
-TEST_F(BoatRidingDaylightTest, PhantomRidingNonBoatNoPositionOffset) {
+TEST_F(BoatRidingDaylightTest, PhantomRidingNonBoatNoPositionOffset)
+{
     // 此测试验证当没有船骑乘时，isInDaylight 使用原始位置
     m_world->setDayTime(6000);
     m_world->setCanSeeSky(true);
@@ -507,7 +529,8 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingNonBoatNoPositionOffset) {
     });
 }
 
-TEST_F(BoatRidingDaylightTest, BoatEntityCreatedCorrectly) {
+TEST_F(BoatRidingDaylightTest, BoatEntityCreatedCorrectly)
+{
     // 验证船实体创建正确
     m_boat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
     m_boat->setId(EntityId(1));
@@ -520,7 +543,8 @@ TEST_F(BoatRidingDaylightTest, BoatEntityCreatedCorrectly) {
     EXPECT_NE(dynamic_cast<entity::BoatEntity*>(entityPtr), nullptr);
 }
 
-TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes) {
+TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes)
+{
     // 验证不同类型的船
     auto oakBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
     auto spruceBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE);

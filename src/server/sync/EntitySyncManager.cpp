@@ -1,16 +1,15 @@
 #include "EntitySyncManager.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
-#include <spdlog/spdlog.h>
-#include <cmath>
 #include "common/perfetto/TraceEvents.hpp"
+#include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::sync {
 
 EntitySyncManager::EntitySyncManager(EntityManager& entityManager)
     : m_entityManager(entityManager)
-{
-}
+{}
 
 void EntitySyncManager::tick()
 {
@@ -150,7 +149,10 @@ void EntitySyncManager::broadcastEntitySpawn(EntityId entityId, const Entity& en
         m_onEntitySpawn(entityId, entity);
     }
     spdlog::trace("Broadcast entity spawn: {} at ({}, {}, {})",
-                  entityId, entity.position().x, entity.position().y, entity.position().z);
+        entityId,
+        entity.position().x,
+        entity.position().y,
+        entity.position().z);
 }
 
 void EntitySyncManager::broadcastEntityRemove(EntityId entityId)

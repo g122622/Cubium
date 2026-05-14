@@ -3,10 +3,10 @@
  * @brief Viewport3DWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/Viewport3DWidget.hpp"
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -15,7 +15,8 @@ using namespace mc;
 
 // ==================== 构造函数测试 ====================
 
-TEST(Viewport3DWidgetTest, DefaultConstructor) {
+TEST(Viewport3DWidgetTest, DefaultConstructor)
+{
     Viewport3DWidget viewport;
     EXPECT_TRUE(viewport.id().empty());
     EXPECT_EQ(Viewport3DWidget::RenderMode::Entity, viewport.renderMode());
@@ -24,7 +25,8 @@ TEST(Viewport3DWidgetTest, DefaultConstructor) {
     EXPECT_FLOAT_EQ(180.0f, viewport.yaw());
 }
 
-TEST(Viewport3DWidgetTest, ConstructorWithBounds) {
+TEST(Viewport3DWidgetTest, ConstructorWithBounds)
+{
     Viewport3DWidget viewport("viewport_3d", 10, 20, 400, 300);
 
     EXPECT_EQ("viewport_3d", viewport.id());
@@ -36,21 +38,23 @@ TEST(Viewport3DWidgetTest, ConstructorWithBounds) {
 
 // ==================== 相机操作测试 ====================
 
-TEST(Viewport3DWidgetTest, SetCameraDistance) {
+TEST(Viewport3DWidgetTest, SetCameraDistance)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     viewport.setCameraDistance(50.0f);
     EXPECT_FLOAT_EQ(50.0f, viewport.cameraDistance());
 
     // 超出范围约束
-    viewport.setCameraDistance(1.0f);  // 小于最小值
-    EXPECT_FLOAT_EQ(5.0f, viewport.cameraDistance());  // 最小值
+    viewport.setCameraDistance(1.0f);                 // 小于最小值
+    EXPECT_FLOAT_EQ(5.0f, viewport.cameraDistance()); // 最小值
 
-    viewport.setCameraDistance(200.0f);  // 大于最大值
-    EXPECT_FLOAT_EQ(100.0f, viewport.cameraDistance());  // 最大值
+    viewport.setCameraDistance(200.0f);                 // 大于最大值
+    EXPECT_FLOAT_EQ(100.0f, viewport.cameraDistance()); // 最大值
 }
 
-TEST(Viewport3DWidgetTest, SetRotation) {
+TEST(Viewport3DWidgetTest, SetRotation)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     viewport.setRotation(30.0f, 90.0f);
@@ -59,13 +63,14 @@ TEST(Viewport3DWidgetTest, SetRotation) {
 
     // 俯仰角限制
     viewport.setRotation(-100.0f, 0.0f);
-    EXPECT_FLOAT_EQ(-90.0f, viewport.pitch());  // 限制在-90
+    EXPECT_FLOAT_EQ(-90.0f, viewport.pitch()); // 限制在-90
 
     viewport.setRotation(100.0f, 0.0f);
-    EXPECT_FLOAT_EQ(90.0f, viewport.pitch());  // 限制在90
+    EXPECT_FLOAT_EQ(90.0f, viewport.pitch()); // 限制在90
 }
 
-TEST(Viewport3DWidgetTest, Rotate) {
+TEST(Viewport3DWidgetTest, Rotate)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
     viewport.setRotation(0.0f, 0.0f);
 
@@ -78,18 +83,20 @@ TEST(Viewport3DWidgetTest, Rotate) {
     EXPECT_FLOAT_EQ(50.0f, viewport.yaw());
 }
 
-TEST(Viewport3DWidgetTest, ResetRotation) {
+TEST(Viewport3DWidgetTest, ResetRotation)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
     viewport.setRotation(45.0f, 90.0f);
 
     viewport.resetRotation();
     EXPECT_FLOAT_EQ(0.0f, viewport.pitch());
-    EXPECT_FLOAT_EQ(180.0f, viewport.yaw());  // 默认面向正面
+    EXPECT_FLOAT_EQ(180.0f, viewport.yaw()); // 默认面向正面
 }
 
 // ==================== 显示属性测试 ====================
 
-TEST(Viewport3DWidgetTest, SetRenderMode) {
+TEST(Viewport3DWidgetTest, SetRenderMode)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     viewport.setRenderMode(Viewport3DWidget::RenderMode::Item);
@@ -99,23 +106,26 @@ TEST(Viewport3DWidgetTest, SetRenderMode) {
     EXPECT_EQ(Viewport3DWidget::RenderMode::Block, viewport.renderMode());
 }
 
-TEST(Viewport3DWidgetTest, SetBackgroundColor) {
+TEST(Viewport3DWidgetTest, SetBackgroundColor)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     viewport.setBackgroundColor(fromARGB(255, 100, 149, 237));
     EXPECT_EQ(fromARGB(255, 100, 149, 237), viewport.backgroundColor());
 }
 
-TEST(Viewport3DWidgetTest, SetShowBackground) {
+TEST(Viewport3DWidgetTest, SetShowBackground)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
-    EXPECT_FALSE(viewport.showBackground());  // 默认透明背景
+    EXPECT_FALSE(viewport.showBackground()); // 默认透明背景
 
     viewport.setShowBackground(true);
     EXPECT_TRUE(viewport.showBackground());
 }
 
-TEST(Viewport3DWidgetTest, SetAutoRotate) {
+TEST(Viewport3DWidgetTest, SetAutoRotate)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     EXPECT_FALSE(viewport.autoRotate());
@@ -127,7 +137,8 @@ TEST(Viewport3DWidgetTest, SetAutoRotate) {
     EXPECT_FLOAT_EQ(2.0f, viewport.autoRotateSpeed());
 }
 
-TEST(Viewport3DWidgetTest, SetSensitivity) {
+TEST(Viewport3DWidgetTest, SetSensitivity)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     viewport.setRotationSensitivity(3.0f);
@@ -135,7 +146,8 @@ TEST(Viewport3DWidgetTest, SetSensitivity) {
     // 这些是内部状态，通过行为验证
 }
 
-TEST(Viewport3DWidgetTest, SetZoomRange) {
+TEST(Viewport3DWidgetTest, SetZoomRange)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     viewport.setZoomRange(10.0f, 200.0f);
@@ -152,7 +164,8 @@ TEST(Viewport3DWidgetTest, SetZoomRange) {
 
 // ==================== 状态测试 ====================
 
-TEST(Viewport3DWidgetTest, SetVisible) {
+TEST(Viewport3DWidgetTest, SetVisible)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     EXPECT_TRUE(viewport.isVisible());
@@ -161,7 +174,8 @@ TEST(Viewport3DWidgetTest, SetVisible) {
     EXPECT_FALSE(viewport.isVisible());
 }
 
-TEST(Viewport3DWidgetTest, SetActive) {
+TEST(Viewport3DWidgetTest, SetActive)
+{
     Viewport3DWidget viewport("test", 0, 0, 100, 100);
 
     EXPECT_TRUE(viewport.isActive());

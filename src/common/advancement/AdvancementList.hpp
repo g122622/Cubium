@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "Advancement.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <functional>
 
 namespace mc::advancement {
 
@@ -96,7 +96,10 @@ public:
     /**
      * @brief 获取所有成就
      */
-    [[nodiscard]] const std::unordered_map<ResourceLocation, Advancement::Ptr>& getAll() const noexcept { return m_advancements; }
+    [[nodiscard]] const std::unordered_map<ResourceLocation, Advancement::Ptr>& getAll() const noexcept
+    {
+        return m_advancements;
+    }
 
     /**
      * @brief 获取成就数量

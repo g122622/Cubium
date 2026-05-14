@@ -1,7 +1,7 @@
 #include "EffectResolver.hpp"
 
-#include <unordered_map>
 #include <algorithm>
+#include <unordered_map>
 
 namespace mc {
 namespace command {
@@ -45,10 +45,12 @@ const std::unordered_map<std::string, entity::effect::EffectType> s_effectNameMa
 
 }
 
-std::optional<entity::effect::EffectType> tryParseEffectType(std::string_view name) noexcept {
+std::optional<entity::effect::EffectType> tryParseEffectType(std::string_view name) noexcept
+{
     std::string lowerName(name.size(), '\0');
-    std::transform(name.begin(), name.end(), lowerName.begin(),
-        [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+    std::transform(name.begin(), name.end(), lowerName.begin(), [](char c) {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    });
 
     auto it = s_effectNameMap.find(lowerName);
     if (it != s_effectNameMap.end()) {
@@ -57,7 +59,8 @@ std::optional<entity::effect::EffectType> tryParseEffectType(std::string_view na
     return std::nullopt;
 }
 
-const char* getEffectCommandName(entity::effect::EffectType type) noexcept {
+const char* getEffectCommandName(entity::effect::EffectType type) noexcept
+{
     return entity::effect::getEffectName(type);
 }
 

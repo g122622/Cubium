@@ -7,11 +7,11 @@
  * - 碰撞缓存测试
  */
 
-#include <gtest/gtest.h>
-#include "physics/PhysicsConstants.hpp"
 #include "physics/CollisionCache.hpp"
+#include "physics/PhysicsConstants.hpp"
 #include <thread>
 #include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::physics;
@@ -22,32 +22,38 @@ namespace {
 // 物理常量测试
 // =====================================================
 
-TEST(PhysicsConstantsTest, GravityValue_Correct) {
+TEST(PhysicsConstantsTest, GravityValue_Correct)
+{
     EXPECT_FLOAT_EQ(GRAVITY, 0.08f);
 }
 
-TEST(PhysicsConstantsTest, JumpVelocity_Correct) {
+TEST(PhysicsConstantsTest, JumpVelocity_Correct)
+{
     EXPECT_FLOAT_EQ(JUMP_VELOCITY, 0.42f);
 }
 
-TEST(PhysicsConstantsTest, StepHeight_Correct) {
+TEST(PhysicsConstantsTest, StepHeight_Correct)
+{
     EXPECT_FLOAT_EQ(STEP_HEIGHT, 0.6f);
 }
 
-TEST(PhysicsConstantsTest, DragValues_Correct) {
+TEST(PhysicsConstantsTest, DragValues_Correct)
+{
     EXPECT_FLOAT_EQ(DRAG_AIR, 0.98f);
     EXPECT_FLOAT_EQ(DRAG_GROUND, 0.91f);
     EXPECT_FLOAT_EQ(DRAG_WATER, 0.8f);
     EXPECT_FLOAT_EQ(DRAG_LAVA, 0.5f);
 }
 
-TEST(PhysicsConstantsTest, SlipperinessValues_Correct) {
+TEST(PhysicsConstantsTest, SlipperinessValues_Correct)
+{
     EXPECT_FLOAT_EQ(SLIPPERINESS_DEFAULT, 0.6f);
     EXPECT_FLOAT_EQ(SLIPPERINESS_ICE, 0.98f);
     EXPECT_FLOAT_EQ(SLIPPERINESS_BLUE_ICE, 0.989f);
 }
 
-TEST(PhysicsConstantsTest, GroundMoveFactor_Correct) {
+TEST(PhysicsConstantsTest, GroundMoveFactor_Correct)
+{
     // 默认滑度0.6，移动因子 = speed * 0.216 / (0.6^3) = speed * 0.216 / 0.216 = speed
     f32 factor = getGroundMoveFactor(0.1f, 0.6f);
     EXPECT_NEAR(factor, 0.1f, 0.001f);
@@ -55,10 +61,11 @@ TEST(PhysicsConstantsTest, GroundMoveFactor_Correct) {
     // 冰滑度0.98，摩擦力更小，但移动因子公式使速度减小
     // factor = speed * 0.216 / (0.98^3) = speed * 0.216 / 0.941192 = speed * 0.229
     f32 iceFactor = getGroundMoveFactor(0.1f, 0.98f);
-    EXPECT_NEAR(iceFactor, 0.0229f, 0.001f);  // 冰上起步更慢但滑行更远
+    EXPECT_NEAR(iceFactor, 0.0229f, 0.001f); // 冰上起步更慢但滑行更远
 }
 
-TEST(PhysicsConstantsTest, SpecialBlockConstants_Correct) {
+TEST(PhysicsConstantsTest, SpecialBlockConstants_Correct)
+{
     // 蜘蛛网
     EXPECT_FLOAT_EQ(COBWEB_SLOWDOWN_XZ, 0.25f);
     EXPECT_FLOAT_EQ(COBWEB_SLOWDOWN_Y, 0.05f);
@@ -77,7 +84,8 @@ TEST(PhysicsConstantsTest, SpecialBlockConstants_Correct) {
     EXPECT_FLOAT_EQ(SWEET_BERRY_BUSH_SLOWDOWN_Y, 0.75f);
 }
 
-TEST(PhysicsConstantsTest, SwimConstants_Correct) {
+TEST(PhysicsConstantsTest, SwimConstants_Correct)
+{
     EXPECT_FLOAT_EQ(WATER_BUOYANCY, 0.005f);
     EXPECT_FLOAT_EQ(SWIM_SPEED_BASE, 0.02f);
     EXPECT_FLOAT_EQ(WATER_DRAG, 0.8f);
@@ -85,7 +93,8 @@ TEST(PhysicsConstantsTest, SwimConstants_Correct) {
     EXPECT_FLOAT_EQ(DOLPHINS_GRACE_WATER_DRAG, 0.96f);
 }
 
-TEST(PhysicsConstantsTest, FlyConstants_Correct) {
+TEST(PhysicsConstantsTest, FlyConstants_Correct)
+{
     EXPECT_FLOAT_EQ(FLY_SPEED, 0.05f);
     EXPECT_FLOAT_EQ(WALK_SPEED, 0.1f);
     EXPECT_FLOAT_EQ(FLY_VERTICAL_DRAG, 0.6f);
@@ -94,26 +103,30 @@ TEST(PhysicsConstantsTest, FlyConstants_Correct) {
     EXPECT_FLOAT_EQ(SPRINT_FLY_MULTIPLIER, 2.0f);
 }
 
-TEST(PhysicsConstantsTest, ItemConstants_Correct) {
+TEST(PhysicsConstantsTest, ItemConstants_Correct)
+{
     EXPECT_FLOAT_EQ(ITEM_GRAVITY, 0.04f);
     EXPECT_FLOAT_EQ(ITEM_DRAG, 0.98f);
     EXPECT_FLOAT_EQ(ITEM_WATER_BOUNCE_FACTOR, 0.5f);
 }
 
-TEST(PhysicsConstantsTest, LadderConstants_Correct) {
+TEST(PhysicsConstantsTest, LadderConstants_Correct)
+{
     EXPECT_FLOAT_EQ(LADDER_SPEED_MAX, 0.15f);
     EXPECT_FLOAT_EQ(LADDER_CLIMB_SPEED, 0.15f);
     EXPECT_FLOAT_EQ(LADDER_SLIDE_SPEED, -0.15f);
 }
 
-TEST(PhysicsConstantsTest, ElytraConstants_Correct) {
+TEST(PhysicsConstantsTest, ElytraConstants_Correct)
+{
     EXPECT_FLOAT_EQ(ELYTRA_DRAG_HORIZONTAL, 0.99f);
     EXPECT_FLOAT_EQ(ELYTRA_DRAG_VERTICAL, 0.98f);
     EXPECT_FLOAT_EQ(ELYTRA_MIN_SPEED, 0.4f);
     EXPECT_FLOAT_EQ(ELYTRA_LIFT_COEFFICIENT, 0.75f);
 }
 
-TEST(PhysicsConstantsTest, SlowFallingGravity_Correct) {
+TEST(PhysicsConstantsTest, SlowFallingGravity_Correct)
+{
     EXPECT_FLOAT_EQ(SLOW_FALLING_GRAVITY, 0.01f);
 }
 
@@ -121,7 +134,8 @@ TEST(PhysicsConstantsTest, SlowFallingGravity_Correct) {
 // 碰撞缓存测试（额外的线程安全测试）
 // =====================================================
 
-TEST(CollisionCacheThreadSafeTest, CacheAndRetrieve) {
+TEST(CollisionCacheThreadSafeTest, CacheAndRetrieve)
+{
     CollisionCache cache;
 
     std::vector<AxisAlignedBB> boxes;
@@ -135,7 +149,8 @@ TEST(CollisionCacheThreadSafeTest, CacheAndRetrieve) {
     EXPECT_EQ(retrieved->size(), 2u);
 }
 
-TEST(CollisionCacheThreadSafeTest, CacheMiss) {
+TEST(CollisionCacheThreadSafeTest, CacheMiss)
+{
     CollisionCache cache;
 
     const auto* retrieved = cache.getChunkCollisionBoxes(100, 100);
@@ -143,7 +158,8 @@ TEST(CollisionCacheThreadSafeTest, CacheMiss) {
     EXPECT_EQ(cache.missCount(), 1u);
 }
 
-TEST(CollisionCacheThreadSafeTest, InvalidateChunk) {
+TEST(CollisionCacheThreadSafeTest, InvalidateChunk)
+{
     CollisionCache cache;
 
     std::vector<AxisAlignedBB> boxes;
@@ -156,7 +172,8 @@ TEST(CollisionCacheThreadSafeTest, InvalidateChunk) {
     EXPECT_EQ(cache.getChunkCollisionBoxes(0, 0), nullptr);
 }
 
-TEST(CollisionCacheThreadSafeTest, InvalidateChunkAndNeighbors) {
+TEST(CollisionCacheThreadSafeTest, InvalidateChunkAndNeighbors)
+{
     CollisionCache cache;
 
     // 缓存中心区块和邻居
@@ -180,7 +197,8 @@ TEST(CollisionCacheThreadSafeTest, InvalidateChunkAndNeighbors) {
     }
 }
 
-TEST(CollisionCacheThreadSafeTest, HitMissStats) {
+TEST(CollisionCacheThreadSafeTest, HitMissStats)
+{
     CollisionCache cache;
 
     // 缓存一个区块
@@ -202,7 +220,8 @@ TEST(CollisionCacheThreadSafeTest, HitMissStats) {
     EXPECT_EQ(cache.missCount(), 0u);
 }
 
-TEST(CollisionCacheThreadSafeTest, ThreadSafeHitMissStats) {
+TEST(CollisionCacheThreadSafeTest, ThreadSafeHitMissStats)
+{
     CollisionCache cache;
 
     // 并发测试统计计数器的线程安全
@@ -227,4 +246,4 @@ TEST(CollisionCacheThreadSafeTest, ThreadSafeHitMissStats) {
     EXPECT_EQ(cache.missCount(), 500u);
 }
 
-}  // namespace
+} // namespace

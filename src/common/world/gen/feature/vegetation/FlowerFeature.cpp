@@ -1,8 +1,8 @@
 #include "FlowerFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -10,7 +10,8 @@ namespace mc {
 // FlowerFeatureConfig 实现
 // ============================================================================
 
-const BlockState* FlowerFeatureConfig::getRandomFlower(math::Random& random) const {
+const BlockState* FlowerFeatureConfig::getRandomFlower(math::Random& random) const
+{
     if (flowers.empty()) {
         return nullptr;
     }
@@ -22,10 +23,7 @@ const BlockState* FlowerFeatureConfig::getRandomFlower(math::Random& random) con
 // ============================================================================
 
 bool FlowerFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const FlowerFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const FlowerFeatureConfig& config)
 {
     if (config.flowers.empty()) {
         return false;
@@ -65,10 +63,7 @@ bool FlowerFeature::place(
     return placedCount > 0;
 }
 
-bool FlowerFeature::canPlaceAt(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    const FlowerFeatureConfig& config) const
+bool FlowerFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state && !state->isAir()) {
@@ -109,29 +104,21 @@ bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) co
     u32 blockId = state->blockId();
 
     // 花卉可以生长在草方块和泥土上
-    return blockId == VanillaBlocks::GRASS_BLOCK->blockId() ||
-           blockId == VanillaBlocks::DIRT->blockId() ||
-           (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
+    return blockId == VanillaBlocks::GRASS_BLOCK->blockId() || blockId == VanillaBlocks::DIRT->blockId() ||
+        (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
 }
 
 // ============================================================================
 // ConfiguredFlowerFeature 实现
 // ============================================================================
 
-ConfiguredFlowerFeature::ConfiguredFlowerFeature(
-    std::unique_ptr<FlowerFeatureConfig> config,
-    const char* featureName)
+ConfiguredFlowerFeature::ConfiguredFlowerFeature(std::unique_ptr<FlowerFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredFlowerFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;
@@ -211,7 +198,7 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createForestFlowers()
 std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createFlowerForestFlowers()
 {
     auto config = std::make_unique<FlowerFeatureConfig>();
-    config->tries = 128;  // 繁花森林有更多花卉
+    config->tries = 128; // 繁花森林有更多花卉
     config->xzSpread = 7;
 
     // 繁花森林：所有花卉

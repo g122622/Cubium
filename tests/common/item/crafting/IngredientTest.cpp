@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include "item/crafting/Ingredient.hpp"
 #include "item/core/Item.hpp"
-#include "item/core/ItemStack.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "item/core/ItemStack.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::crafting;
@@ -11,14 +11,16 @@ using namespace mc::crafting;
 class TestItem : public Item {
 public:
     explicit TestItem(const std::string& name)
-        : Item(ItemProperties().maxStackSize(64)) {
+        : Item(ItemProperties().maxStackSize(64))
+    {
         // 使用反射或友元来设置名称，这里简化处理
     }
 };
 
 class IngredientTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 获取一些已注册的物品用于测试
         // 如果没有注册物品，需要先注册测试物品
     }
@@ -26,13 +28,15 @@ protected:
 
 // ========== 空Ingredient测试 ==========
 
-TEST_F(IngredientTest, EmptyIngredient_IsEmpty) {
+TEST_F(IngredientTest, EmptyIngredient_IsEmpty)
+{
     Ingredient ing;
     EXPECT_TRUE(ing.isEmpty());
     EXPECT_TRUE(ing.getMatchingStacks().empty());
 }
 
-TEST_F(IngredientTest, EmptyIngredient_DoesNotMatchAnyItem) {
+TEST_F(IngredientTest, EmptyIngredient_DoesNotMatchAnyItem)
+{
     Ingredient ing;
 
     // 空 Ingredient 匹配空物品堆（MC 1.16.5 行为）
@@ -49,7 +53,8 @@ TEST_F(IngredientTest, EmptyIngredient_DoesNotMatchAnyItem) {
 
 // ========== 单物品Ingredient测试 ==========
 
-TEST_F(IngredientTest, FromSingleItem_HasMatchingStacks) {
+TEST_F(IngredientTest, FromSingleItem_HasMatchingStacks)
+{
     // 使用注册表中的物品
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     if (!stone) {
@@ -62,7 +67,8 @@ TEST_F(IngredientTest, FromSingleItem_HasMatchingStacks) {
     EXPECT_EQ(ing.getMatchingStacks().size(), 1u);
 }
 
-TEST_F(IngredientTest, FromSingleItem_MatchesCorrectItem) {
+TEST_F(IngredientTest, FromSingleItem_MatchesCorrectItem)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered, skipping test";
@@ -79,7 +85,8 @@ TEST_F(IngredientTest, FromSingleItem_MatchesCorrectItem) {
     EXPECT_TRUE(ing.test(stack64));
 }
 
-TEST_F(IngredientTest, FromSingleItem_DoesNotMatchOtherItem) {
+TEST_F(IngredientTest, FromSingleItem_DoesNotMatchOtherItem)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
 
@@ -96,7 +103,8 @@ TEST_F(IngredientTest, FromSingleItem_DoesNotMatchOtherItem) {
 
 // ========== 多物品Ingredient测试 ==========
 
-TEST_F(IngredientTest, FromMultipleItems_MatchesAllItems) {
+TEST_F(IngredientTest, FromMultipleItems_MatchesAllItems)
+{
     Item* oakPlanks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_planks"));
     Item* sprucePlanks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spruce_planks"));
     Item* birchPlanks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "birch_planks"));
@@ -116,7 +124,8 @@ TEST_F(IngredientTest, FromMultipleItems_MatchesAllItems) {
     EXPECT_TRUE(ing.test(*birchPlanks));
 }
 
-TEST_F(IngredientTest, FromMultipleItems_DoesNotMatchOtherItems) {
+TEST_F(IngredientTest, FromMultipleItems_DoesNotMatchOtherItems)
+{
     Item* oakPlanks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_planks"));
     Item* sprucePlanks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spruce_planks"));
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
@@ -131,7 +140,8 @@ TEST_F(IngredientTest, FromMultipleItems_DoesNotMatchOtherItems) {
     EXPECT_FALSE(ing.test(*stone));
 }
 
-TEST_F(IngredientTest, FromEmptyItemList_ReturnsEmptyIngredient) {
+TEST_F(IngredientTest, FromEmptyItemList_ReturnsEmptyIngredient)
+{
     std::vector<const Item*> emptyItems;
     Ingredient ing = Ingredient::fromItems(emptyItems);
 
@@ -140,7 +150,8 @@ TEST_F(IngredientTest, FromEmptyItemList_ReturnsEmptyIngredient) {
 
 // ========== 物品堆Ingredient测试 ==========
 
-TEST_F(IngredientTest, FromStacks_MatchesAllStacks) {
+TEST_F(IngredientTest, FromStacks_MatchesAllStacks)
+{
     Item* oakPlanks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_planks"));
     Item* sprucePlanks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spruce_planks"));
 
@@ -148,10 +159,7 @@ TEST_F(IngredientTest, FromStacks_MatchesAllStacks) {
         GTEST_SKIP() << "Planks items not registered, skipping test";
     }
 
-    std::vector<ItemStack> stacks = {
-        ItemStack(*oakPlanks, 1),
-        ItemStack(*sprucePlanks, 1)
-    };
+    std::vector<ItemStack> stacks = {ItemStack(*oakPlanks, 1), ItemStack(*sprucePlanks, 1)};
 
     Ingredient ing = Ingredient::fromStacks(stacks);
 
@@ -165,7 +173,8 @@ TEST_F(IngredientTest, FromStacks_MatchesAllStacks) {
 
 // ========== 标签Ingredient测试 ==========
 
-TEST_F(IngredientTest, FromTag_HasTagFlag) {
+TEST_F(IngredientTest, FromTag_HasTagFlag)
+{
     Ingredient ing = Ingredient::fromTag("minecraft:planks");
 
     EXPECT_TRUE(ing.hasTag());
@@ -182,7 +191,8 @@ TEST_F(IngredientTest, FromTag_HasTagFlag) {
 
 // ========== 相等比较测试 ==========
 
-TEST_F(IngredientTest, EqualIngredients_AreEqual) {
+TEST_F(IngredientTest, EqualIngredients_AreEqual)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered, skipping test";
@@ -195,7 +205,8 @@ TEST_F(IngredientTest, EqualIngredients_AreEqual) {
     EXPECT_FALSE(ing1 != ing2);
 }
 
-TEST_F(IngredientTest, DifferentIngredients_AreNotEqual) {
+TEST_F(IngredientTest, DifferentIngredients_AreNotEqual)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
 
@@ -210,7 +221,8 @@ TEST_F(IngredientTest, DifferentIngredients_AreNotEqual) {
     EXPECT_TRUE(ing1 != ing2);
 }
 
-TEST_F(IngredientTest, EmptyIngredients_AreEqual) {
+TEST_F(IngredientTest, EmptyIngredients_AreEqual)
+{
     Ingredient ing1;
     Ingredient ing2;
 
@@ -219,7 +231,8 @@ TEST_F(IngredientTest, EmptyIngredients_AreEqual) {
 
 // ========== 哈希测试 ==========
 
-TEST_F(IngredientTest, SameIngredients_HaveSameHash) {
+TEST_F(IngredientTest, SameIngredients_HaveSameHash)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered, skipping test";
@@ -231,7 +244,8 @@ TEST_F(IngredientTest, SameIngredients_HaveSameHash) {
     EXPECT_EQ(ing1.hash(), ing2.hash());
 }
 
-TEST_F(IngredientTest, DifferentIngredients_HaveDifferentHash) {
+TEST_F(IngredientTest, DifferentIngredients_HaveDifferentHash)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
 
@@ -248,7 +262,8 @@ TEST_F(IngredientTest, DifferentIngredients_HaveDifferentHash) {
 
 // ========== 空物品堆测试 ==========
 
-TEST_F(IngredientTest, DoesNotMatchEmptyStack) {
+TEST_F(IngredientTest, DoesNotMatchEmptyStack)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     if (!stone) {
         GTEST_SKIP() << "Stone item not registered, skipping test";
@@ -261,7 +276,8 @@ TEST_F(IngredientTest, DoesNotMatchEmptyStack) {
     EXPECT_FALSE(ing.test(emptyStack));
 }
 
-TEST_F(IngredientTest, NullItemPointer_ReturnsEmptyIngredient) {
+TEST_F(IngredientTest, NullItemPointer_ReturnsEmptyIngredient)
+{
     Ingredient ing = Ingredient::fromItem(static_cast<const Item*>(nullptr));
 
     EXPECT_TRUE(ing.isEmpty());
@@ -269,7 +285,8 @@ TEST_F(IngredientTest, NullItemPointer_ReturnsEmptyIngredient) {
 
 // ========== Item指针匹配测试 ==========
 
-TEST_F(IngredientTest, MatchesItemPointer) {
+TEST_F(IngredientTest, MatchesItemPointer)
+{
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
 

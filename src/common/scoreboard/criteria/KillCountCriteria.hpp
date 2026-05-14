@@ -24,10 +24,8 @@ public:
     [[nodiscard]] bool isReadOnly() const noexcept override { return false; }
     [[nodiscard]] RenderType getDefaultRenderType() const noexcept override { return RenderType::Integer; }
 
-    void onPlayerKill(const std::string& playerName,
-                      const std::string& victimType,
-                      bool isPlayer,
-                      Scoreboard& scoreboard) override;
+    void onPlayerKill(
+        const std::string& playerName, const std::string& victimType, bool isPlayer, Scoreboard& scoreboard) override;
 
 protected:
     std::string m_name;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "../../../core/EnumSet.hpp"
+#include "../../../core/Types.hpp"
 
 namespace mc::entity::ai {
 
@@ -14,18 +14,19 @@ namespace mc::entity::ai {
  * 参考 MC 1.16.5 Goal.Flag
  */
 enum class GoalFlag : u8 {
-    Move,       // 移动
-    Look,       // 视线
-    Jump,       // 跳跃
-    Target,     // 目标选择
-    Count       // 标志数量
+    Move,   // 移动
+    Look,   // 视线
+    Jump,   // 跳跃
+    Target, // 目标选择
+    Count   // 标志数量
 };
 
 /**
  * @brief 获取所有目标标志的集合
  * @return 包含所有标志的集合
  */
-inline EnumSet<GoalFlag> allGoalFlags() {
+inline EnumSet<GoalFlag> allGoalFlags()
+{
     return EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look, GoalFlag::Jump, GoalFlag::Target};
 }
 

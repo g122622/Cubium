@@ -1,13 +1,13 @@
 #include "PathNavigator.hpp"
+#include "../../../util/TimeUtils.hpp"
+#include "../../../util/math/MathUtils.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockPos.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../controller/MovementController.hpp"
-#include "../../../util/TimeUtils.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/IWorld.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
@@ -18,8 +18,7 @@ using namespace mc::math;
 
 PathNavigator::PathNavigator(std::unique_ptr<PathFinder> finder)
     : m_pathFinder(std::move(finder))
-{
-}
+{}
 
 PathNavigator::PathNavigator(MobEntity* mob)
     : m_pathFinder(nullptr)
@@ -28,7 +27,8 @@ PathNavigator::PathNavigator(MobEntity* mob)
     // PathFinder 需要后续设置或使用默认
 }
 
-bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed) {
+bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
+{
     m_targetX = x;
     m_targetY = y;
     m_targetZ = z;
@@ -55,11 +55,8 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed) {
     i32 targetYi = floorTo<i32>(y);
     i32 targetZi = floorTo<i32>(z);
 
-    m_path = std::make_unique<Path>(m_pathFinder->findPath(
-        startX, startY, startZ,
-        targetXi, targetYi, targetZi,
-        m_maxDistance
-    ));
+    m_path = std::make_unique<Path>(
+        m_pathFinder->findPath(startX, startY, startZ, targetXi, targetYi, targetZi, m_maxDistance));
 
     // MC 1.16.5: 调用 trimPath
     trimPath();
@@ -67,11 +64,13 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed) {
     return hasPath();
 }
 
-bool PathNavigator::moveTo(const Entity& target, f64 speed) {
+bool PathNavigator::moveTo(const Entity& target, f64 speed)
+{
     return moveTo(target.x(), target.y(), target.z(), speed);
 }
 
-bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed) {
+bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed)
+{
     m_targetX = x;
     m_targetY = y;
     m_targetZ = z;
@@ -88,11 +87,8 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed) {
     i32 targetYi = floorTo<i32>(y);
     i32 targetZi = floorTo<i32>(z);
 
-    m_path = std::make_unique<Path>(m_pathFinder->findPathToRange(
-        startX, startY, startZ,
-        targetXi, targetYi, targetZi,
-        static_cast<i32>(range)
-    ));
+    m_path = std::make_unique<Path>(
+        m_pathFinder->findPathToRange(startX, startY, startZ, targetXi, targetYi, targetZi, static_cast<i32>(range)));
 
     // MC 1.16.5: 调用 trimPath
     trimPath();
@@ -100,11 +96,13 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed) {
     return hasPath();
 }
 
-i32 PathNavigator::getCurrentIndex() const {
+i32 PathNavigator::getCurrentIndex() const
+{
     return m_path ? m_path->getCurrentIndex() : -1;
 }
 
-bool PathNavigator::recomputePath() {
+bool PathNavigator::recomputePath()
+{
     if (!m_path || m_retryTimer > 0) {
         return false;
     }
@@ -113,7 +111,8 @@ bool PathNavigator::recomputePath() {
     return moveTo(m_targetX, m_targetY, m_targetZ, m_speed);
 }
 
-void PathNavigator::tick() {
+void PathNavigator::tick()
+{
     if (!hasPath() || !m_entity) {
         return;
     }
@@ -138,7 +137,8 @@ void PathNavigator::tick() {
     }
 }
 
-void PathNavigator::followPath() {
+void PathNavigator::followPath()
+{
     if (!m_path || m_path->empty() || !m_entity) {
         return;
     }
@@ -165,17 +165,13 @@ void PathNavigator::followPath() {
     // 需要将 LivingEntity 转换为 MobEntity 来访问 moveController
     if (auto* mob = dynamic_cast<MobEntity*>(m_entity)) {
         if (auto* moveCtrl = mob->moveController()) {
-            moveCtrl->setMoveTo(
-                waypoint->x() + 0.5,
-                waypoint->y(),
-                waypoint->z() + 0.5,
-                m_speed
-            );
+            moveCtrl->setMoveTo(waypoint->x() + 0.5, waypoint->y(), waypoint->z() + 0.5, m_speed);
         }
     }
 }
 
-void PathNavigator::checkForStuck() {
+void PathNavigator::checkForStuck()
+{
     if (!m_entity || !hasPath()) {
         return;
     }
@@ -213,9 +209,7 @@ void PathNavigator::checkForStuck() {
             i32 nodeY = waypoint->y();
             i32 nodeZ = waypoint->z();
 
-            if (nodeX == m_timeoutCachedNodeX &&
-                nodeY == m_timeoutCachedNodeY &&
-                nodeZ == m_timeoutCachedNodeZ) {
+            if (nodeX == m_timeoutCachedNodeX && nodeY == m_timeoutCachedNodeY && nodeZ == m_timeoutCachedNodeZ) {
                 // 同一个节点，累加时间
                 i64 currentTime = TimeUtils::getCurrentTimeMs();
                 m_timeoutTimer += currentTime - m_lastTimeoutCheck;
@@ -252,7 +246,8 @@ void PathNavigator::checkForStuck() {
     }
 }
 
-void PathNavigator::trimPath() {
+void PathNavigator::trimPath()
+{
     // MC 1.16.5: 处理锅（Cauldron）等特殊方块的路径
     // 当实体在锅中时会调整路径点
     if (!m_path || m_path->empty() || !m_entity) {
@@ -290,15 +285,15 @@ void PathNavigator::trimPath() {
             // 如果下一个路径点的 Y 坐标不高于当前点（修正后的坐标），
             // 也需要将下一个点上移
             if (nextPoint != nullptr && nextPoint->y() <= point->y()) {
-                PathPoint newNextPoint = nextPoint->cloneMove(
-                    nextPoint->x(), point->y() + 1, nextPoint->z());
+                PathPoint newNextPoint = nextPoint->cloneMove(nextPoint->x(), point->y() + 1, nextPoint->z());
                 m_path->setPoint(i + 1, newNextPoint);
             }
         }
     }
 }
 
-void PathNavigator::resetTimeout() {
+void PathNavigator::resetTimeout()
+{
     // MC 1.16.5: func_234113_e_
     m_timeoutCachedNodeX = 0;
     m_timeoutCachedNodeY = 0;
@@ -309,7 +304,8 @@ void PathNavigator::resetTimeout() {
     m_isStuck = false;
 }
 
-bool PathNavigator::shouldRecomputePath() const {
+bool PathNavigator::shouldRecomputePath() const
+{
     if (!m_path || m_path->empty()) {
         return false;
     }
@@ -318,10 +314,7 @@ bool PathNavigator::shouldRecomputePath() const {
     if (m_path->getEnd()) {
         // 使用 distanceToSq(x, y, z) 重载避免创建临时 PathPoint 对象
         f32 distSq = m_path->getEnd()->distanceToSq(
-            static_cast<i32>(m_targetX),
-            static_cast<i32>(m_targetY),
-            static_cast<i32>(m_targetZ)
-        );
+            static_cast<i32>(m_targetX), static_cast<i32>(m_targetY), static_cast<i32>(m_targetZ));
         if (distSq > 16.0f) { // 目标移动超过4格
             return true;
         }
@@ -330,7 +323,8 @@ bool PathNavigator::shouldRecomputePath() const {
     return false;
 }
 
-bool PathNavigator::isAtCurrentWaypoint() const {
+bool PathNavigator::isAtCurrentWaypoint() const
+{
     const PathPoint* waypoint = getCurrentWaypoint();
     if (!waypoint || !m_entity) {
         return true;
@@ -351,13 +345,15 @@ bool PathNavigator::isAtCurrentWaypoint() const {
     return distSq < static_cast<f64>(maxDist * maxDist) && dy < 1.0;
 }
 
-void PathNavigator::advanceToNextWaypoint() {
+void PathNavigator::advanceToNextWaypoint()
+{
     if (m_path) {
         m_path->advance();
     }
 }
 
-f32 PathNavigator::getDistanceToTarget() const {
+f32 PathNavigator::getDistanceToTarget() const
+{
     if (!m_entity) {
         return std::numeric_limits<f32>::max();
     }
@@ -369,7 +365,8 @@ f32 PathNavigator::getDistanceToTarget() const {
     return static_cast<f32>(std::sqrt(dx * dx + dy * dy + dz * dz));
 }
 
-const PathPoint* PathNavigator::getCurrentWaypoint() const {
+const PathPoint* PathNavigator::getCurrentWaypoint() const
+{
     return m_path ? m_path->getCurrentTarget() : nullptr;
 }
 

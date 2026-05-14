@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "../../MinMaxBounds.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
+#include <nlohmann/json.hpp>
 
 // 前向声明
 namespace mc {
@@ -14,7 +14,7 @@ class IWorld;
 class Biome;
 class BlockPos;
 class BlockState;
-}
+} // namespace mc
 
 namespace mc::advancement {
 
@@ -96,7 +96,9 @@ public:
      * @brief 构造距离谓词
      */
     explicit DistancePredicate(DoubleBounds range)
-        : m_range(std::move(range)), m_isAny(m_range.isUnbounded()) {}
+        : m_range(std::move(range))
+        , m_isAny(m_range.isUnbounded())
+    {}
 
     /**
      * @brief 检查距离是否匹配
@@ -134,21 +136,13 @@ public:
 
     // ========== 静态工厂方法 ==========
 
-    static DistancePredicate exactly(f64 distance) {
-        return DistancePredicate(DoubleBounds::exactly(distance));
-    }
+    static DistancePredicate exactly(f64 distance) { return DistancePredicate(DoubleBounds::exactly(distance)); }
 
-    static DistancePredicate atLeast(f64 min) {
-        return DistancePredicate(DoubleBounds::atLeast(min));
-    }
+    static DistancePredicate atLeast(f64 min) { return DistancePredicate(DoubleBounds::atLeast(min)); }
 
-    static DistancePredicate atMost(f64 max) {
-        return DistancePredicate(DoubleBounds::atMost(max));
-    }
+    static DistancePredicate atMost(f64 max) { return DistancePredicate(DoubleBounds::atMost(max)); }
 
-    static DistancePredicate between(f64 min, f64 max) {
-        return DistancePredicate(DoubleBounds::between(min, max));
-    }
+    static DistancePredicate between(f64 min, f64 max) { return DistancePredicate(DoubleBounds::between(min, max)); }
 
 private:
     DoubleBounds m_range;

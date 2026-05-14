@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Sensor.hpp"
-#include <memory>
 #include <functional>
-#include <unordered_map>
+#include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace mc {
 namespace entity {
@@ -23,13 +23,13 @@ public:
     using Factory = std::function<std::unique_ptr<Sensor<E>>()>;
 
     explicit SensorType(const std::string& name, Factory factory)
-        : m_name(name), m_factory(std::move(factory)) {}
+        : m_name(name)
+        , m_factory(std::move(factory))
+    {}
 
     [[nodiscard]] const std::string& getName() const { return m_name; }
 
-    [[nodiscard]] std::unique_ptr<Sensor<E>> create() const {
-        return m_factory();
-    }
+    [[nodiscard]] std::unique_ptr<Sensor<E>> create() const { return m_factory(); }
 
 private:
     std::string m_name;

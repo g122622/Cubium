@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "common/sound/SoundCategory.hpp"
+#include "client/sound/resource/SoundDefinition.hpp"
 #include "common/sound/SoundEvent.hpp"
 #include "common/sound/SoundTypes.hpp"
-#include "client/sound/resource/SoundDefinition.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <gtest/gtest.h>
 
 #include <chrono>
 #include <unordered_map>
@@ -15,7 +15,8 @@ namespace {
 // SoundCategory 测试
 // ============================================================================
 
-TEST(SoundCategoryTest, GetCategoryName) {
+TEST(SoundCategoryTest, GetCategoryName)
+{
     EXPECT_EQ(getSoundCategoryName(SoundCategory::Master), "master");
     EXPECT_EQ(getSoundCategoryName(SoundCategory::Music), "music");
     EXPECT_EQ(getSoundCategoryName(SoundCategory::Records), "record");
@@ -28,7 +29,8 @@ TEST(SoundCategoryTest, GetCategoryName) {
     EXPECT_EQ(getSoundCategoryName(SoundCategory::Voice), "voice");
 }
 
-TEST(SoundCategoryTest, ParseValidNames) {
+TEST(SoundCategoryTest, ParseValidNames)
+{
     EXPECT_EQ(parseSoundCategory("master"), SoundCategory::Master);
     EXPECT_EQ(parseSoundCategory("music"), SoundCategory::Music);
     EXPECT_EQ(parseSoundCategory("record"), SoundCategory::Records);
@@ -41,27 +43,31 @@ TEST(SoundCategoryTest, ParseValidNames) {
     EXPECT_EQ(parseSoundCategory("voice"), SoundCategory::Voice);
 }
 
-TEST(SoundCategoryTest, ParseCaseInsensitive) {
+TEST(SoundCategoryTest, ParseCaseInsensitive)
+{
     EXPECT_EQ(parseSoundCategory("MASTER"), SoundCategory::Master);
     EXPECT_EQ(parseSoundCategory("Music"), SoundCategory::Music);
     EXPECT_EQ(parseSoundCategory("BLOCK"), SoundCategory::Blocks);
     EXPECT_EQ(parseSoundCategory("Player"), SoundCategory::Players);
 }
 
-TEST(SoundCategoryTest, ParsePluralAliases) {
+TEST(SoundCategoryTest, ParsePluralAliases)
+{
     // MC Java 有时使用复数形式
     EXPECT_EQ(parseSoundCategory("blocks"), SoundCategory::Blocks);
     EXPECT_EQ(parseSoundCategory("players"), SoundCategory::Players);
     EXPECT_EQ(parseSoundCategory("records"), SoundCategory::Records);
 }
 
-TEST(SoundCategoryTest, ParseInvalidNames) {
+TEST(SoundCategoryTest, ParseInvalidNames)
+{
     EXPECT_FALSE(parseSoundCategory("").has_value());
     EXPECT_FALSE(parseSoundCategory("invalid").has_value());
     EXPECT_FALSE(parseSoundCategory("unknown").has_value());
 }
 
-TEST(SoundCategoryTest, IsValidCategory) {
+TEST(SoundCategoryTest, IsValidCategory)
+{
     EXPECT_TRUE(isValidSoundCategory(SoundCategory::Master));
     EXPECT_TRUE(isValidSoundCategory(SoundCategory::Voice));
     EXPECT_FALSE(isValidSoundCategory(SoundCategory::Count));
@@ -72,7 +78,8 @@ TEST(SoundCategoryTest, IsValidCategory) {
 // SoundEvent 测试
 // ============================================================================
 
-TEST(SoundEventTest, ConstructWithResourceLocation) {
+TEST(SoundEventTest, ConstructWithResourceLocation)
+{
     ResourceLocation loc("minecraft:block.stone.break");
     SoundEvent event(loc);
 
@@ -81,42 +88,47 @@ TEST(SoundEventTest, ConstructWithResourceLocation) {
     EXPECT_TRUE(event.isValid());
 }
 
-TEST(SoundEventTest, ConstructWithString) {
+TEST(SoundEventTest, ConstructWithString)
+{
     SoundEvent event("minecraft:entity.cow.ambient");
 
     EXPECT_EQ(event.getId().toString(), "minecraft:entity.cow.ambient");
     EXPECT_TRUE(event.isValid());
 }
 
-TEST(SoundEventTest, SetAttenuationDistance) {
+TEST(SoundEventTest, SetAttenuationDistance)
+{
     SoundEvent event("minecraft:test.sound");
     event.setAttenuationDistance(32.0f);
 
     EXPECT_EQ(event.getAttenuationDistance(), 32.0f);
 }
 
-TEST(SoundEventTest, EmptyEvent) {
+TEST(SoundEventTest, EmptyEvent)
+{
     SoundEvent event = SoundEvent::empty();
 
     EXPECT_FALSE(event.isValid());
     EXPECT_TRUE(event.getId().path().empty());
 }
 
-TEST(SoundEventTest, Comparison) {
+TEST(SoundEventTest, Comparison)
+{
     SoundEvent event1("minecraft:test.sound");
     SoundEvent event2("minecraft:test.sound");
-    SoundEvent event3("minecraft:aaa.sound");  // 'aaa' < 'test' in alphabetical order
+    SoundEvent event3("minecraft:aaa.sound"); // 'aaa' < 'test' in alphabetical order
 
     EXPECT_EQ(event1, event2);
     EXPECT_NE(event1, event3);
-    EXPECT_LT(event3, event1);  // 'aaa' < 'test'
+    EXPECT_LT(event3, event1); // 'aaa' < 'test'
 }
 
 // ============================================================================
 // SoundTypes 测试
 // ============================================================================
 
-TEST(SoundTypesTest, Constants) {
+TEST(SoundTypesTest, Constants)
+{
     EXPECT_EQ(INVALID_SOUND_INSTANCE_ID, 0u);
     EXPECT_EQ(DEFAULT_ATTENUATION_DISTANCE, 16.0f);
     EXPECT_EQ(MAX_CONCURRENT_SOUNDS, 256u);
@@ -136,7 +148,8 @@ namespace {
 // SoundDefinition 测试
 // ============================================================================
 
-TEST(SoundDefinitionTest, ConstructFromPath) {
+TEST(SoundDefinitionTest, ConstructFromPath)
+{
     SoundDefinition def("minecraft:dig/stone1");
 
     EXPECT_EQ(def.type, SoundType::File);
@@ -148,14 +161,16 @@ TEST(SoundDefinitionTest, ConstructFromPath) {
     EXPECT_EQ(def.attenuationDistance, 16u);
 }
 
-TEST(SoundDefinitionTest, ToOggLocation) {
+TEST(SoundDefinitionTest, ToOggLocation)
+{
     SoundDefinition def("minecraft:dig/stone1");
     ResourceLocation oggLoc = def.toOggLocation();
 
     EXPECT_EQ(oggLoc.toString(), "minecraft:dig/stone1");
 }
 
-TEST(SoundDefinitionTest, ParseSimpleString) {
+TEST(SoundDefinitionTest, ParseSimpleString)
+{
     nlohmann::json json = "dig/stone1";
 
     auto result = SoundDefinition::parse(json, "minecraft");
@@ -166,7 +181,8 @@ TEST(SoundDefinitionTest, ParseSimpleString) {
     EXPECT_EQ(def.location.toString(), "minecraft:dig/stone1");
 }
 
-TEST(SoundDefinitionTest, ParseEventReference) {
+TEST(SoundDefinitionTest, ParseEventReference)
+{
     nlohmann::json json = "#block.stone.break";
 
     auto result = SoundDefinition::parse(json, "minecraft");
@@ -178,7 +194,8 @@ TEST(SoundDefinitionTest, ParseEventReference) {
     EXPECT_EQ(def.location.toString(), "minecraft:block.stone.break");
 }
 
-TEST(SoundDefinitionTest, ParseObjectWithAllFields) {
+TEST(SoundDefinitionTest, ParseObjectWithAllFields)
+{
     nlohmann::json json = R"({
         "name": "dig/stone1",
         "volume": 0.8,
@@ -203,7 +220,8 @@ TEST(SoundDefinitionTest, ParseObjectWithAllFields) {
     EXPECT_EQ(def.attenuationDistance, 32u);
 }
 
-TEST(SoundDefinitionTest, ParseWithTypeField) {
+TEST(SoundDefinitionTest, ParseWithTypeField)
+{
     nlohmann::json json = R"({
         "name": "ambient.cave",
         "type": "event"
@@ -220,7 +238,8 @@ TEST(SoundDefinitionTest, ParseWithTypeField) {
 // SoundEventDefinition 测试
 // ============================================================================
 
-TEST(SoundEventDefinitionTest, ParseMinimal) {
+TEST(SoundEventDefinitionTest, ParseMinimal)
+{
     nlohmann::json json = R"({
         "sounds": ["dig/stone1", "dig/stone2"]
     })"_json;
@@ -235,7 +254,8 @@ TEST(SoundEventDefinitionTest, ParseMinimal) {
     EXPECT_FALSE(def.subtitle.has_value());
 }
 
-TEST(SoundEventDefinitionTest, ParseWithSubtitle) {
+TEST(SoundEventDefinitionTest, ParseWithSubtitle)
+{
     nlohmann::json json = R"({
         "subtitle": "subtitles.block.generic.break",
         "sounds": ["dig/stone1"]
@@ -249,7 +269,8 @@ TEST(SoundEventDefinitionTest, ParseWithSubtitle) {
     EXPECT_EQ(def.subtitle.value(), "subtitles.block.generic.break");
 }
 
-TEST(SoundEventDefinitionTest, ParseWithReplace) {
+TEST(SoundEventDefinitionTest, ParseWithReplace)
+{
     nlohmann::json json = R"({
         "replace": true,
         "sounds": ["custom/stone_break"]
@@ -262,7 +283,8 @@ TEST(SoundEventDefinitionTest, ParseWithReplace) {
     EXPECT_TRUE(def.replace);
 }
 
-TEST(SoundEventDefinitionTest, SelectSoundWeighted) {
+TEST(SoundEventDefinitionTest, SelectSoundWeighted)
+{
     nlohmann::json json = R"({
         "sounds": [
             {"name": "sound1", "weight": 1},
@@ -293,7 +315,8 @@ TEST(SoundEventDefinitionTest, SelectSoundWeighted) {
     EXPECT_GT(count2, count1);
 }
 
-TEST(SoundEventDefinitionTest, SelectSoundSingle) {
+TEST(SoundEventDefinitionTest, SelectSoundSingle)
+{
     nlohmann::json json = R"({
         "sounds": ["only_sound"]
     })"_json;
@@ -309,7 +332,8 @@ TEST(SoundEventDefinitionTest, SelectSoundSingle) {
     EXPECT_EQ(sound->location.path(), "only_sound");
 }
 
-TEST(SoundEventDefinitionTest, SelectSoundMultipleDifferentSelections) {
+TEST(SoundEventDefinitionTest, SelectSoundMultipleDifferentSelections)
+{
     // 测试多次调用 selectSound 会选择不同的声音（概率性）
     nlohmann::json json = R"({
         "sounds": ["sound_a", "sound_b", "sound_c", "sound_d"]
@@ -345,7 +369,8 @@ TEST(SoundEventDefinitionTest, SelectSoundMultipleDifferentSelections) {
     EXPECT_EQ(selectionCounts.size(), 4u);
 }
 
-TEST(SoundEventDefinitionTest, RandomNotStuckOnFirstSound) {
+TEST(SoundEventDefinitionTest, RandomNotStuckOnFirstSound)
+{
     // 专门测试修复的问题：默认种子 0 不应导致总是选择第一个声音
     nlohmann::json json = R"({
         "sounds": ["first", "second", "third"]
@@ -373,7 +398,8 @@ TEST(SoundEventDefinitionTest, RandomNotStuckOnFirstSound) {
     EXPECT_GE(counts.size(), 2u) << "Random selection is stuck on single sound";
 }
 
-TEST(SoundEventDefinitionTest, EmptySoundsError) {
+TEST(SoundEventDefinitionTest, EmptySoundsError)
+{
     nlohmann::json json = R"({
         "sounds": []
     })"_json;

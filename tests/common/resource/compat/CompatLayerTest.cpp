@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
 #include "resource/compat/PackFormat.hpp"
-#include "resource/compat/TextureMapper.hpp"
 #include "resource/compat/ResourceMapper.hpp"
+#include "resource/compat/TextureMapper.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::resource::compat;
@@ -15,7 +15,8 @@ protected:
     void TearDown() override {}
 };
 
-TEST_F(PackFormatTest, DetectFormat_ValidValues) {
+TEST_F(PackFormatTest, DetectFormat_ValidValues)
+{
     EXPECT_EQ(detectPackFormat(1), PackFormat::V1_6_to_1_8);
     EXPECT_EQ(detectPackFormat(2), PackFormat::V1_9_to_1_10);
     EXPECT_EQ(detectPackFormat(3), PackFormat::V1_11_to_1_12);
@@ -27,13 +28,15 @@ TEST_F(PackFormatTest, DetectFormat_ValidValues) {
     EXPECT_EQ(detectPackFormat(9), PackFormat::V1_19);
 }
 
-TEST_F(PackFormatTest, DetectFormat_UnknownValue) {
+TEST_F(PackFormatTest, DetectFormat_UnknownValue)
+{
     EXPECT_EQ(detectPackFormat(0), PackFormat::Unknown);
     EXPECT_EQ(detectPackFormat(-1), PackFormat::Unknown);
     EXPECT_EQ(detectPackFormat(100), PackFormat::Unknown);
 }
 
-TEST_F(PackFormatTest, UsesOldTexturePaths) {
+TEST_F(PackFormatTest, UsesOldTexturePaths)
+{
     // 旧版格式使用 textures/blocks/
     EXPECT_TRUE(usesOldTexturePaths(PackFormat::V1_6_to_1_8));
     EXPECT_TRUE(usesOldTexturePaths(PackFormat::V1_9_to_1_10));
@@ -45,7 +48,8 @@ TEST_F(PackFormatTest, UsesOldTexturePaths) {
     EXPECT_FALSE(usesOldTexturePaths(PackFormat::V1_19));
 }
 
-TEST_F(PackFormatTest, UsesNewTexturePaths) {
+TEST_F(PackFormatTest, UsesNewTexturePaths)
+{
     // 旧版格式不使用新路径
     EXPECT_FALSE(usesNewTexturePaths(PackFormat::V1_6_to_1_8));
     EXPECT_FALSE(usesNewTexturePaths(PackFormat::V1_11_to_1_12));
@@ -59,7 +63,8 @@ TEST_F(PackFormatTest, UsesNewTexturePaths) {
     EXPECT_TRUE(usesNewTexturePaths(PackFormat::V1_19));
 }
 
-TEST_F(PackFormatTest, RequiresTextureNameMapping) {
+TEST_F(PackFormatTest, RequiresTextureNameMapping)
+{
     // 旧版格式需要名称映射
     EXPECT_TRUE(requiresTextureNameMapping(PackFormat::V1_6_to_1_8));
     EXPECT_TRUE(requiresTextureNameMapping(PackFormat::V1_11_to_1_12));
@@ -69,7 +74,8 @@ TEST_F(PackFormatTest, RequiresTextureNameMapping) {
     EXPECT_FALSE(requiresTextureNameMapping(PackFormat::V1_19));
 }
 
-TEST_F(PackFormatTest, PackFormatToString) {
+TEST_F(PackFormatTest, PackFormatToString)
+{
     EXPECT_EQ(packFormatToString(PackFormat::Unknown), "Unknown");
     EXPECT_EQ(packFormatToString(PackFormat::V1_6_to_1_8), "1.6-1.8");
     EXPECT_EQ(packFormatToString(PackFormat::V1_11_to_1_12), "1.11-1.12");
@@ -87,7 +93,8 @@ protected:
 };
 
 // 原木纹理
-TEST_F(TextureMapperTest, LogTextures) {
+TEST_F(TextureMapperTest, LogTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("oak_log"), "log_oak");
     EXPECT_EQ(mapper.getModernName("log_oak"), "oak_log");
 
@@ -103,7 +110,8 @@ TEST_F(TextureMapperTest, LogTextures) {
 }
 
 // 树叶纹理
-TEST_F(TextureMapperTest, LeafTextures) {
+TEST_F(TextureMapperTest, LeafTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("oak_leaves"), "leaves_oak");
     EXPECT_EQ(mapper.getModernName("leaves_oak"), "oak_leaves");
 
@@ -112,7 +120,8 @@ TEST_F(TextureMapperTest, LeafTextures) {
 }
 
 // 羊毛纹理
-TEST_F(TextureMapperTest, WoolTextures) {
+TEST_F(TextureMapperTest, WoolTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("white_wool"), "wool_colored_white");
     EXPECT_EQ(mapper.getModernName("wool_colored_white"), "white_wool");
 
@@ -124,7 +133,8 @@ TEST_F(TextureMapperTest, WoolTextures) {
 }
 
 // 石头变种
-TEST_F(TextureMapperTest, StoneVariants) {
+TEST_F(TextureMapperTest, StoneVariants)
+{
     EXPECT_EQ(mapper.getLegacyName("granite"), "stone_granite");
     EXPECT_EQ(mapper.getModernName("stone_granite"), "granite");
 
@@ -136,7 +146,8 @@ TEST_F(TextureMapperTest, StoneVariants) {
 }
 
 // 草方块
-TEST_F(TextureMapperTest, GrassBlock) {
+TEST_F(TextureMapperTest, GrassBlock)
+{
     EXPECT_EQ(mapper.getLegacyName("grass_block_top"), "grass_top");
     EXPECT_EQ(mapper.getModernName("grass_top"), "grass_block_top");
 
@@ -145,7 +156,8 @@ TEST_F(TextureMapperTest, GrassBlock) {
 }
 
 // 花
-TEST_F(TextureMapperTest, FlowerTextures) {
+TEST_F(TextureMapperTest, FlowerTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("dandelion"), "flower_dandelion");
     EXPECT_EQ(mapper.getModernName("flower_dandelion"), "dandelion");
 
@@ -159,7 +171,8 @@ TEST_F(TextureMapperTest, FlowerTextures) {
 }
 
 // 混凝土
-TEST_F(TextureMapperTest, ConcreteTextures) {
+TEST_F(TextureMapperTest, ConcreteTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("white_concrete"), "concrete_white");
     EXPECT_EQ(mapper.getModernName("concrete_white"), "white_concrete");
 
@@ -168,7 +181,8 @@ TEST_F(TextureMapperTest, ConcreteTextures) {
 }
 
 // 陶瓦
-TEST_F(TextureMapperTest, TerracottaTextures) {
+TEST_F(TextureMapperTest, TerracottaTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("white_terracotta"), "hardened_clay_stained_white");
     EXPECT_EQ(mapper.getModernName("hardened_clay_stained_white"), "white_terracotta");
 
@@ -177,7 +191,8 @@ TEST_F(TextureMapperTest, TerracottaTextures) {
 }
 
 // 砂岩
-TEST_F(TextureMapperTest, SandstoneTextures) {
+TEST_F(TextureMapperTest, SandstoneTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("cut_sandstone"), "sandstone_carved");
     EXPECT_EQ(mapper.getModernName("sandstone_carved"), "cut_sandstone");
 
@@ -186,7 +201,8 @@ TEST_F(TextureMapperTest, SandstoneTextures) {
 }
 
 // 高草
-TEST_F(TextureMapperTest, TallGrassTextures) {
+TEST_F(TextureMapperTest, TallGrassTextures)
+{
     EXPECT_EQ(mapper.getLegacyName("short_grass"), "tallgrass");
     EXPECT_EQ(mapper.getModernName("tallgrass"), "short_grass");
 
@@ -195,26 +211,29 @@ TEST_F(TextureMapperTest, TallGrassTextures) {
 }
 
 // 存在映射
-TEST_F(TextureMapperTest, HasMapping) {
+TEST_F(TextureMapperTest, HasMapping)
+{
     EXPECT_TRUE(mapper.hasMapping("oak_log"));
     EXPECT_TRUE(mapper.hasMapping("log_oak"));
     EXPECT_TRUE(mapper.hasMapping("jungle_log"));
     EXPECT_TRUE(mapper.hasMapping("white_wool"));
 
     EXPECT_FALSE(mapper.hasMapping("nonexistent_texture"));
-    EXPECT_FALSE(mapper.hasMapping("stone"));  // stone 保持不变
+    EXPECT_FALSE(mapper.hasMapping("stone")); // stone 保持不变
 }
 
 // 名称变体
-TEST_F(TextureMapperTest, GetNameVariants) {
+TEST_F(TextureMapperTest, GetNameVariants)
+{
     auto variants = mapper.getNameVariants("jungle_log");
-    EXPECT_GE(variants.size(), 2);  // 至少有现代和旧版名称
+    EXPECT_GE(variants.size(), 2); // 至少有现代和旧版名称
     EXPECT_TRUE(std::find(variants.begin(), variants.end(), "jungle_log") != variants.end());
     EXPECT_TRUE(std::find(variants.begin(), variants.end(), "log_jungle") != variants.end());
 }
 
 // 路径转换
-TEST_F(TextureMapperTest, PathTransformation) {
+TEST_F(TextureMapperTest, PathTransformation)
+{
     // 现代到旧版
     std::string legacy = mapper.toLegacyPath("textures/block/jungle_log.png");
     EXPECT_EQ(legacy, "textures/blocks/log_jungle.png");
@@ -232,7 +251,8 @@ TEST_F(TextureMapperTest, PathTransformation) {
 }
 
 // 路径变体
-TEST_F(TextureMapperTest, GetPathVariants) {
+TEST_F(TextureMapperTest, GetPathVariants)
+{
     auto variants = mapper.getPathVariants("textures/block/jungle_log.png");
 
     // 应该有多个变体
@@ -257,26 +277,30 @@ protected:
     void TearDown() override {}
 };
 
-TEST_F(ResourceMapperFactoryTest, CreateV112Mapper) {
+TEST_F(ResourceMapperFactoryTest, CreateV112Mapper)
+{
     auto mapper = ResourceMapper::create(PackFormat::V1_11_to_1_12);
     ASSERT_NE(mapper, nullptr);
     EXPECT_EQ(mapper->getTargetFormat(), PackFormat::V1_11_to_1_12);
 }
 
-TEST_F(ResourceMapperFactoryTest, CreateV113Mapper) {
+TEST_F(ResourceMapperFactoryTest, CreateV113Mapper)
+{
     auto mapper = ResourceMapper::create(PackFormat::V1_13_to_1_14);
     ASSERT_NE(mapper, nullptr);
     EXPECT_EQ(mapper->getTargetFormat(), PackFormat::V1_13_to_1_14);
 }
 
-TEST_F(ResourceMapperFactoryTest, CreateV116Mapper) {
+TEST_F(ResourceMapperFactoryTest, CreateV116Mapper)
+{
     auto mapper = ResourceMapper::create(PackFormat::V1_16_2_to_1_16_5);
     ASSERT_NE(mapper, nullptr);
     // 现代版本应该使用 v1_13 映射器
     EXPECT_EQ(mapper->getTargetFormat(), PackFormat::V1_13_to_1_14);
 }
 
-TEST_F(ResourceMapperFactoryTest, CreateUnknownMapper) {
+TEST_F(ResourceMapperFactoryTest, CreateUnknownMapper)
+{
     auto mapper = ResourceMapper::create(PackFormat::Unknown);
     ASSERT_NE(mapper, nullptr);
     // 未知格式默认使用现代格式
@@ -290,12 +314,11 @@ class ResourceMapperV112Test : public ::testing::Test {
 protected:
     std::unique_ptr<ResourceMapper> mapper;
 
-    void SetUp() override {
-        mapper = ResourceMapper::create(PackFormat::V1_11_to_1_12);
-    }
+    void SetUp() override { mapper = ResourceMapper::create(PackFormat::V1_11_to_1_12); }
 };
 
-TEST_F(ResourceMapperV112Test, ToUnifiedTexturePath) {
+TEST_F(ResourceMapperV112Test, ToUnifiedTexturePath)
+{
     // 将旧版路径转换为现代路径
     std::string unified = mapper->toUnifiedTexturePath("textures/blocks/log_jungle.png");
     EXPECT_EQ(unified, "textures/block/jungle_log.png");
@@ -307,7 +330,8 @@ TEST_F(ResourceMapperV112Test, ToUnifiedTexturePath) {
     EXPECT_EQ(unified, "textures/item/diamond.png");
 }
 
-TEST_F(ResourceMapperV112Test, GetTexturePathVariants) {
+TEST_F(ResourceMapperV112Test, GetTexturePathVariants)
+{
     auto variants = mapper->getTexturePathVariants("textures/block/jungle_log.png");
 
     // 应该包含现代路径

@@ -7,16 +7,17 @@ namespace item::items {
 
 // NBT tag constants
 namespace {
-    constexpr const char* TAG_STORED_ENCHANTMENTS = "StoredEnchantments";
-    constexpr const char* TAG_ENCHANTMENT_ID = "id";
-    constexpr const char* TAG_ENCHANTMENT_LEVEL = "lvl";
-}
+constexpr const char* TAG_STORED_ENCHANTMENTS = "StoredEnchantments";
+constexpr const char* TAG_ENCHANTMENT_ID = "id";
+constexpr const char* TAG_ENCHANTMENT_LEVEL = "lvl";
+} // namespace
 
 EnchantedBookItem::EnchantedBookItem(ItemProperties properties)
-    : Item(std::move(properties)) {
-}
+    : Item(std::move(properties))
+{}
 
-std::vector<EnchantedBookItem::EnchantmentData> EnchantedBookItem::getEnchantments(const ItemStack& stack) {
+std::vector<EnchantedBookItem::EnchantmentData> EnchantedBookItem::getEnchantments(const ItemStack& stack)
+{
     std::vector<EnchantmentData> result;
 
     const nlohmann::json* tag = stack.getTag();
@@ -50,9 +51,8 @@ std::vector<EnchantedBookItem::EnchantmentData> EnchantedBookItem::getEnchantmen
     return result;
 }
 
-void EnchantedBookItem::addEnchantment(ItemStack& stack,
-                                        const enchant::Enchantment& enchantment,
-                                        i32 level) {
+void EnchantedBookItem::addEnchantment(ItemStack& stack, const enchant::Enchantment& enchantment, i32 level)
+{
     nlohmann::json& tag = stack.getOrCreateTag();
 
     // 获取或创建附魔列表
@@ -89,7 +89,8 @@ void EnchantedBookItem::addEnchantment(ItemStack& stack,
     storedEnchantments.push_back(newEnchant);
 }
 
-bool EnchantedBookItem::hasEnchantments(const ItemStack& stack) {
+bool EnchantedBookItem::hasEnchantments(const ItemStack& stack)
+{
     const nlohmann::json* tag = stack.getTag();
     if (tag == nullptr || !tag->contains(TAG_STORED_ENCHANTMENTS)) {
         return false;
@@ -99,7 +100,8 @@ bool EnchantedBookItem::hasEnchantments(const ItemStack& stack) {
     return storedEnchantments.is_array() && !storedEnchantments.empty();
 }
 
-size_t EnchantedBookItem::getEnchantmentCount(const ItemStack& stack) {
+size_t EnchantedBookItem::getEnchantmentCount(const ItemStack& stack)
+{
     const nlohmann::json* tag = stack.getTag();
     if (tag == nullptr || !tag->contains(TAG_STORED_ENCHANTMENTS)) {
         return 0;

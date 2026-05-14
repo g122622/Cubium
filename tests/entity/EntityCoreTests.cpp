@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "entity/core/EntityClassification.hpp"
-#include "entity/core/EntitySize.hpp"
-#include "entity/core/EntityPose.hpp"
-#include "entity/core/MoverType.hpp"
-#include "entity/core/EntityType.hpp"
-#include "entity/core/EntityRegistry.hpp"
 #include "entity/core/DataParameter.hpp"
-#include "entity/core/EntityDataManager.hpp"
 #include "entity/core/Entity.hpp"
+#include "entity/core/EntityClassification.hpp"
+#include "entity/core/EntityDataManager.hpp"
+#include "entity/core/EntityPose.hpp"
+#include "entity/core/EntityRegistry.hpp"
+#include "entity/core/EntitySize.hpp"
+#include "entity/core/EntityType.hpp"
 #include "entity/core/MobEntity.hpp"
+#include "entity/core/MoverType.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -18,16 +18,18 @@ using namespace mc::entity;
 // EntityClassification 测试
 // ============================================================================
 
-TEST(EntityClassification, MaxCount) {
+TEST(EntityClassification, MaxCount)
+{
     EXPECT_EQ(getMaxCount(EntityClassification::Monster), 70);
     EXPECT_EQ(getMaxCount(EntityClassification::Creature), 10);
     EXPECT_EQ(getMaxCount(EntityClassification::Ambient), 15);
     EXPECT_EQ(getMaxCount(EntityClassification::WaterCreature), 5);
     EXPECT_EQ(getMaxCount(EntityClassification::WaterAmbient), 20);
-    EXPECT_EQ(getMaxCount(EntityClassification::Misc), -1);  // 无限制
+    EXPECT_EQ(getMaxCount(EntityClassification::Misc), -1); // 无限制
 }
 
-TEST(EntityClassification, IsPeaceful) {
+TEST(EntityClassification, IsPeaceful)
+{
     EXPECT_FALSE(isPeaceful(EntityClassification::Monster));
     EXPECT_TRUE(isPeaceful(EntityClassification::Creature));
     EXPECT_TRUE(isPeaceful(EntityClassification::Ambient));
@@ -36,7 +38,8 @@ TEST(EntityClassification, IsPeaceful) {
     EXPECT_TRUE(isPeaceful(EntityClassification::Misc));
 }
 
-TEST(EntityClassification, IsAnimal) {
+TEST(EntityClassification, IsAnimal)
+{
     EXPECT_FALSE(isAnimal(EntityClassification::Monster));
     EXPECT_TRUE(isAnimal(EntityClassification::Creature));
     EXPECT_FALSE(isAnimal(EntityClassification::Ambient));
@@ -45,7 +48,8 @@ TEST(EntityClassification, IsAnimal) {
     EXPECT_FALSE(isAnimal(EntityClassification::Misc));
 }
 
-TEST(EntityClassification, DespawnDistance) {
+TEST(EntityClassification, DespawnDistance)
+{
     EXPECT_EQ(getDespawnDistance(EntityClassification::Monster), 128);
     EXPECT_EQ(getDespawnDistance(EntityClassification::Creature), 128);
     EXPECT_EQ(getDespawnDistance(EntityClassification::WaterAmbient), 64);
@@ -55,7 +59,8 @@ TEST(EntityClassification, DespawnDistance) {
 // EntitySize 测试
 // ============================================================================
 
-TEST(EntitySize, Construction) {
+TEST(EntitySize, Construction)
+{
     EntitySize size(0.6f, 1.8f, false);
 
     EXPECT_FLOAT_EQ(size.width(), 0.6f);
@@ -64,7 +69,8 @@ TEST(EntitySize, Construction) {
     EXPECT_FALSE(size.isFixed());
 }
 
-TEST(EntitySize, CustomEyeHeight) {
+TEST(EntitySize, CustomEyeHeight)
+{
     EntitySize size(0.6f, 1.8f, 1.2f, false);
 
     EXPECT_FLOAT_EQ(size.eyeHeight(), 1.2f);
@@ -74,7 +80,8 @@ TEST(EntitySize, CustomEyeHeight) {
     EXPECT_FLOAT_EQ(scaled.eyeHeight(), 2.4f);
 }
 
-TEST(EntitySize, FixedSize) {
+TEST(EntitySize, FixedSize)
+{
     EntitySize size = EntitySize::fixed(1.0f, 1.0f);
 
     EXPECT_FLOAT_EQ(size.width(), 1.0f);
@@ -82,7 +89,8 @@ TEST(EntitySize, FixedSize) {
     EXPECT_TRUE(size.isFixed());
 }
 
-TEST(EntitySize, FlexibleSize) {
+TEST(EntitySize, FlexibleSize)
+{
     EntitySize size = EntitySize::flexible(0.9f, 1.4f);
 
     EXPECT_FLOAT_EQ(size.width(), 0.9f);
@@ -90,20 +98,22 @@ TEST(EntitySize, FlexibleSize) {
     EXPECT_FALSE(size.isFixed());
 }
 
-TEST(EntitySize, CreateBoundingBox) {
+TEST(EntitySize, CreateBoundingBox)
+{
     EntitySize size(0.6f, 1.8f, false);
     AxisAlignedBB box = size.createBoundingBox(100.0, 64.0, -50.0);
 
     // 碰撞箱应该以实体位置为中心
-    EXPECT_FLOAT_EQ(box.minX, 100.0f - 0.3f);  // 99.7
-    EXPECT_FLOAT_EQ(box.maxX, 100.0f + 0.3f);  // 100.3
-    EXPECT_FLOAT_EQ(box.minY, 64.0f);           // 脚底
-    EXPECT_FLOAT_EQ(box.maxY, 64.0f + 1.8f);    // 65.8
-    EXPECT_FLOAT_EQ(box.minZ, -50.0f - 0.3f);   // -50.3
-    EXPECT_FLOAT_EQ(box.maxZ, -50.0f + 0.3f);   // -49.7
+    EXPECT_FLOAT_EQ(box.minX, 100.0f - 0.3f); // 99.7
+    EXPECT_FLOAT_EQ(box.maxX, 100.0f + 0.3f); // 100.3
+    EXPECT_FLOAT_EQ(box.minY, 64.0f);         // 脚底
+    EXPECT_FLOAT_EQ(box.maxY, 64.0f + 1.8f);  // 65.8
+    EXPECT_FLOAT_EQ(box.minZ, -50.0f - 0.3f); // -50.3
+    EXPECT_FLOAT_EQ(box.maxZ, -50.0f + 0.3f); // -49.7
 }
 
-TEST(EntitySize, Scale) {
+TEST(EntitySize, Scale)
+{
     EntitySize size(0.6f, 1.8f, false);
 
     // 缩放灵活尺寸
@@ -125,11 +135,12 @@ TEST(EntitySize, Scale) {
     EXPECT_FLOAT_EQ(scaled2.height(), 0.9f);
 }
 
-TEST(EntitySize, Comparison) {
+TEST(EntitySize, Comparison)
+{
     EntitySize size1(0.6f, 1.8f, false);
     EntitySize size2(0.6f, 1.8f, false);
     EntitySize size3(0.9f, 1.8f, false);
-    EntitySize size4(0.6f, 1.8f, true);  // 固定尺寸
+    EntitySize size4(0.6f, 1.8f, true); // 固定尺寸
 
     EXPECT_TRUE(size1 == size2);
     EXPECT_FALSE(size1 == size3);
@@ -140,7 +151,8 @@ TEST(EntitySize, Comparison) {
 // EntityPose 测试
 // ============================================================================
 
-TEST(EntityPose, GetPoseName) {
+TEST(EntityPose, GetPoseName)
+{
     EXPECT_STREQ(getPoseName(EntityPose::Standing), "standing");
     EXPECT_STREQ(getPoseName(EntityPose::FallFlying), "fall_flying");
     EXPECT_STREQ(getPoseName(EntityPose::Sleeping), "sleeping");
@@ -150,7 +162,8 @@ TEST(EntityPose, GetPoseName) {
     EXPECT_STREQ(getPoseName(EntityPose::Dying), "dying");
 }
 
-TEST(EntityPose, GetPoseByName) {
+TEST(EntityPose, GetPoseByName)
+{
     EXPECT_EQ(getPoseByName("standing"), EntityPose::Standing);
     EXPECT_EQ(getPoseByName("fall_flying"), EntityPose::FallFlying);
     EXPECT_EQ(getPoseByName("sleeping"), EntityPose::Sleeping);
@@ -158,14 +171,15 @@ TEST(EntityPose, GetPoseByName) {
     EXPECT_EQ(getPoseByName("spin_attack"), EntityPose::SpinAttack);
     EXPECT_EQ(getPoseByName("crouching"), EntityPose::Crouching);
     EXPECT_EQ(getPoseByName("dying"), EntityPose::Dying);
-    EXPECT_EQ(getPoseByName("unknown"), EntityPose::Standing);  // 默认返回站立
+    EXPECT_EQ(getPoseByName("unknown"), EntityPose::Standing); // 默认返回站立
 }
 
 // ============================================================================
 // MoverType 测试
 // ============================================================================
 
-TEST(MoverType, GetMoverTypeName) {
+TEST(MoverType, GetMoverTypeName)
+{
     EXPECT_STREQ(getMoverTypeName(MoverType::Self), "self");
     EXPECT_STREQ(getMoverTypeName(MoverType::Player), "player");
     EXPECT_STREQ(getMoverTypeName(MoverType::Piston), "piston");
@@ -183,17 +197,18 @@ public:
     TestEntity() = default;
 };
 
-TEST(EntityType, Builder) {
+TEST(EntityType, Builder)
+{
     auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;  // 测试用
+        return nullptr; // 测试用
     };
 
     entity::EntityType type = entity::EntityType::Builder(factory, EntityClassification::Creature)
-        .size(0.9f, 1.4f)
-        .trackingRange(static_cast<i32>(10))
-        .updateInterval(static_cast<i32>(3))
-        .immuneToFire()
-        .build();
+                                  .size(0.9f, 1.4f)
+                                  .trackingRange(static_cast<i32>(10))
+                                  .updateInterval(static_cast<i32>(3))
+                                  .immuneToFire()
+                                  .build();
 
     EXPECT_EQ(type.classification(), EntityClassification::Creature);
     EXPECT_FLOAT_EQ(type.size().width(), 0.9f);
@@ -205,29 +220,26 @@ TEST(EntityType, Builder) {
     EXPECT_TRUE(type.serializable());
 }
 
-TEST(EntityType, FixedSize) {
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;
-    };
+TEST(EntityType, FixedSize)
+{
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
 
-    entity::EntityType type = entity::EntityType::Builder(factory, EntityClassification::Misc)
-        .fixedSize(1.0f, 1.0f)
-        .build();
+    entity::EntityType type =
+        entity::EntityType::Builder(factory, EntityClassification::Misc).fixedSize(1.0f, 1.0f).build();
 
     EXPECT_TRUE(type.size().isFixed());
 }
 
-TEST(EntityType, Flags) {
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;
-    };
+TEST(EntityType, Flags)
+{
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
 
     entity::EntityType type = entity::EntityType::Builder(factory, EntityClassification::Monster)
-        .immuneToFire()
-        .immuneToLava()
-        .disableSerialization()
-        .canSummon()
-        .build();
+                                  .immuneToFire()
+                                  .immuneToLava()
+                                  .disableSerialization()
+                                  .canSummon()
+                                  .build();
 
     EXPECT_TRUE(type.hasFlag(entity::EntityFlags::ImmuneToFire));
     EXPECT_TRUE(type.hasFlag(entity::EntityFlags::ImmuneToLava));
@@ -235,7 +247,8 @@ TEST(EntityType, Flags) {
     EXPECT_TRUE(type.hasFlag(entity::EntityFlags::CanSummon));
 }
 
-TEST(EntityType, EntityFlagsOperators) {
+TEST(EntityType, EntityFlagsOperators)
+{
     entity::EntityFlags flags = entity::EntityFlags::ImmuneToFire | entity::EntityFlags::ImmuneToLava;
 
     EXPECT_TRUE(entity::hasEntityFlag(flags, entity::EntityFlags::ImmuneToFire));
@@ -250,7 +263,8 @@ TEST(EntityType, EntityFlagsOperators) {
     EXPECT_FALSE(entity::hasEntityFlag(masked, entity::EntityFlags::ImmuneToLava));
 }
 
-TEST(EntityType, CreateInjectsRegisteredTypeId) {
+TEST(EntityType, CreateInjectsRegisteredTypeId)
+{
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
@@ -259,8 +273,7 @@ TEST(EntityType, CreateInjectsRegisteredTypeId) {
     };
 
     auto registerResult = registry.registerType(
-        "test:spawned_entity",
-        entity::EntityType::Builder(factory, EntityClassification::Misc).build());
+        "test:spawned_entity", entity::EntityType::Builder(factory, EntityClassification::Misc).build());
     ASSERT_TRUE(registerResult.success());
 
     const entity::EntityType* type = registry.getType("test:spawned_entity");
@@ -273,7 +286,8 @@ TEST(EntityType, CreateInjectsRegisteredTypeId) {
     registry.clear();
 }
 
-TEST(Entity, LegacyTypeIdMapping) {
+TEST(Entity, LegacyTypeIdMapping)
+{
     Entity pig(LegacyEntityType::Pig, 1);
     Entity wolf(LegacyEntityType::Wolf, 2);
     Entity zombie(LegacyEntityType::Zombie, 3);
@@ -285,7 +299,8 @@ TEST(Entity, LegacyTypeIdMapping) {
     EXPECT_EQ(unknown.getTypeId(), "minecraft:unknown");
 }
 
-TEST(Entity, ExplicitTypeIdOverridesLegacyMapping) {
+TEST(Entity, ExplicitTypeIdOverridesLegacyMapping)
+{
     Entity entity(LegacyEntityType::Pig, 1);
     entity.setTypeId("minecraft:custom_pig");
 
@@ -296,12 +311,13 @@ TEST(Entity, ExplicitTypeIdOverridesLegacyMapping) {
 // EntityRegistry 测试
 // ============================================================================
 
-TEST(EntityRegistry, RegisterType) {
+TEST(EntityRegistry, RegisterType)
+{
     EntityRegistry& registry = EntityRegistry::instance();
-    registry.clear();  // 清空以便测试
+    registry.clear(); // 清空以便测试
 
     auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;  // 测试用
+        return nullptr; // 测试用
     };
 
     auto result = registry.registerType("test:pig",
@@ -312,26 +328,23 @@ TEST(EntityRegistry, RegisterType) {
     EXPECT_TRUE(result.success());
 
     // 重复注册应该失败
-    auto result2 = registry.registerType("test:pig",
-        entity::EntityType::Builder(factory, EntityClassification::Creature).build());
+    auto result2 =
+        registry.registerType("test:pig", entity::EntityType::Builder(factory, EntityClassification::Creature).build());
     EXPECT_FALSE(result2.success());
     EXPECT_EQ(result2.error().code(), ErrorCode::AlreadyExists);
 
     registry.clear();
 }
 
-TEST(EntityRegistry, GetTypeById) {
+TEST(EntityRegistry, GetTypeById)
+{
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;
-    };
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
 
-    auto result = registry.registerType("test:cow",
-        entity::EntityType::Builder(factory, EntityClassification::Creature)
-            .size(0.9f, 0.9f)
-            .build());
+    auto result = registry.registerType(
+        "test:cow", entity::EntityType::Builder(factory, EntityClassification::Creature).size(0.9f, 0.9f).build());
     ASSERT_TRUE(result.success());
 
     const entity::EntityType* found = registry.getType(result.value());
@@ -346,18 +359,15 @@ TEST(EntityRegistry, GetTypeById) {
     registry.clear();
 }
 
-TEST(EntityRegistry, GetTypeByName) {
+TEST(EntityRegistry, GetTypeByName)
+{
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;
-    };
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
 
-    auto result = registry.registerType("test:zombie",
-        entity::EntityType::Builder(factory, EntityClassification::Monster)
-            .size(0.6f, 1.95f)
-            .build());
+    auto result = registry.registerType(
+        "test:zombie", entity::EntityType::Builder(factory, EntityClassification::Monster).size(0.6f, 1.95f).build());
     ASSERT_TRUE(result.success());
 
     const entity::EntityType* found = registry.getType("test:zombie");
@@ -371,18 +381,17 @@ TEST(EntityRegistry, GetTypeByName) {
     registry.clear();
 }
 
-TEST(EntityRegistry, HasType) {
+TEST(EntityRegistry, HasType)
+{
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;
-    };
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
 
     EXPECT_FALSE(registry.hasType("test:sheep"));
 
-    auto result = registry.registerType("test:sheep",
-        entity::EntityType::Builder(factory, EntityClassification::Creature).build());
+    auto result = registry.registerType(
+        "test:sheep", entity::EntityType::Builder(factory, EntityClassification::Creature).build());
     ASSERT_TRUE(result.success());
 
     EXPECT_TRUE(registry.hasType("test:sheep"));
@@ -390,26 +399,22 @@ TEST(EntityRegistry, HasType) {
     registry.clear();
 }
 
-TEST(EntityRegistry, Size) {
+TEST(EntityRegistry, Size)
+{
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return nullptr;
-    };
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
 
     EXPECT_EQ(registry.size(), 0u);
 
-    registry.registerType("test:entity1",
-        entity::EntityType::Builder(factory, EntityClassification::Creature).build());
+    registry.registerType("test:entity1", entity::EntityType::Builder(factory, EntityClassification::Creature).build());
     EXPECT_EQ(registry.size(), 1u);
 
-    registry.registerType("test:entity2",
-        entity::EntityType::Builder(factory, EntityClassification::Monster).build());
+    registry.registerType("test:entity2", entity::EntityType::Builder(factory, EntityClassification::Monster).build());
     EXPECT_EQ(registry.size(), 2u);
 
-    registry.registerType("test:entity3",
-        entity::EntityType::Builder(factory, EntityClassification::Ambient).build());
+    registry.registerType("test:entity3", entity::EntityType::Builder(factory, EntityClassification::Ambient).build());
     EXPECT_EQ(registry.size(), 3u);
 
     registry.clear();
@@ -419,12 +424,14 @@ TEST(EntityRegistry, Size) {
 // DataParameter 测试
 // ============================================================================
 
-TEST(DataParameter, Construction) {
+TEST(DataParameter, Construction)
+{
     DataParameter<i32> param(1);
     EXPECT_EQ(param.id(), 1u);
 }
 
-TEST(DataParameter, Type) {
+TEST(DataParameter, Type)
+{
     DataParameter<i8> byteParam(0);
     DataParameter<i32> intParam(1);
     DataParameter<i64> longParam(2);
@@ -446,7 +453,8 @@ TEST(DataParameter, Type) {
     EXPECT_EQ(vectorParam.type(), DataSerializerType::Vector3f);
 }
 
-TEST(DataParameter, Comparison) {
+TEST(DataParameter, Comparison)
+{
     DataParameter<i32> param1(1);
     DataParameter<i32> param2(1);
     DataParameter<i32> param3(2);
@@ -460,7 +468,8 @@ TEST(DataParameter, Comparison) {
 // EntityDataManager 测试
 // ============================================================================
 
-TEST(EntityDataManager, RegisterAndSetGet) {
+TEST(EntityDataManager, RegisterAndSetGet)
+{
     EntityDataManager manager;
 
     auto healthParam = EntityDataManager::createKey<i32>();
@@ -476,7 +485,8 @@ TEST(EntityDataManager, RegisterAndSetGet) {
     EXPECT_FALSE(manager.get(fireParam));
 }
 
-TEST(EntityDataManager, SetMarksDirty) {
+TEST(EntityDataManager, SetMarksDirty)
+{
     EntityDataManager manager;
 
     auto param = EntityDataManager::createKey<i32>();
@@ -489,7 +499,8 @@ TEST(EntityDataManager, SetMarksDirty) {
     EXPECT_TRUE(manager.hasParam(param.id()));
 }
 
-TEST(EntityDataManager, SetSameValueNotDirty) {
+TEST(EntityDataManager, SetSameValueNotDirty)
+{
     EntityDataManager manager;
 
     auto param = EntityDataManager::createKey<i32>();
@@ -505,7 +516,8 @@ TEST(EntityDataManager, SetSameValueNotDirty) {
     EXPECT_TRUE(manager.hasDirtyData());
 }
 
-TEST(EntityDataManager, GetDirtyParams) {
+TEST(EntityDataManager, GetDirtyParams)
+{
     EntityDataManager manager;
 
     auto param1 = EntityDataManager::createKey<i32>();
@@ -525,7 +537,8 @@ TEST(EntityDataManager, GetDirtyParams) {
     EXPECT_EQ(dirtyParams.size(), 2u);
 }
 
-TEST(EntityDataManager, ClearDirty) {
+TEST(EntityDataManager, ClearDirty)
+{
     EntityDataManager manager;
 
     auto param1 = EntityDataManager::createKey<i32>();
@@ -543,7 +556,8 @@ TEST(EntityDataManager, ClearDirty) {
     EXPECT_FALSE(manager.hasDirtyData());
 }
 
-TEST(EntityDataManager, ClearDirtySingleParam) {
+TEST(EntityDataManager, ClearDirtySingleParam)
+{
     EntityDataManager manager;
 
     auto param1 = EntityDataManager::createKey<i32>();
@@ -558,13 +572,14 @@ TEST(EntityDataManager, ClearDirtySingleParam) {
     // 只清除param1的脏标记
     manager.clearDirty(param1.id());
 
-    EXPECT_TRUE(manager.hasDirtyData());  // param2仍然是脏的
+    EXPECT_TRUE(manager.hasDirtyData()); // param2仍然是脏的
 
     manager.clearDirty(param2.id());
     EXPECT_FALSE(manager.hasDirtyData());
 }
 
-TEST(EntityDataManager, CopyFrom) {
+TEST(EntityDataManager, CopyFrom)
+{
     EntityDataManager manager1;
     EntityDataManager manager2;
 
@@ -578,7 +593,8 @@ TEST(EntityDataManager, CopyFrom) {
     EXPECT_EQ(manager2.get(param), 100);
 }
 
-TEST(EntityDataManager, DifferentTypes) {
+TEST(EntityDataManager, DifferentTypes)
+{
     EntityDataManager manager;
 
     auto intParam = EntityDataManager::createKey<i32>();
@@ -604,7 +620,8 @@ TEST(EntityDataManager, DifferentTypes) {
     EXPECT_EQ(vec.z, 3);
 }
 
-TEST(EntityDataManager, UniqueIds) {
+TEST(EntityDataManager, UniqueIds)
+{
     EntityDataManager manager;
 
     auto param1 = EntityDataManager::createKey<i32>();
@@ -621,11 +638,11 @@ class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
         : MobEntity(LegacyEntityType::Pig, 100)
-    {
-    }
+    {}
 };
 
-TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState) {
+TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState)
+{
     TestMobEntity vehicle;
     Entity rider(LegacyEntityType::Player, 101);
 

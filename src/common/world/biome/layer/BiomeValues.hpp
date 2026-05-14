@@ -26,7 +26,7 @@ namespace BiomeValues {
 constexpr i32 Ocean = 0;
 constexpr i32 Plains = 1;
 constexpr i32 Desert = 2;
-constexpr i32 Mountains = 3;           // extreme_hills
+constexpr i32 Mountains = 3; // extreme_hills
 constexpr i32 Forest = 4;
 constexpr i32 Taiga = 5;
 constexpr i32 Swamp = 6;
@@ -37,7 +37,7 @@ constexpr i32 TheEnd = 9;
 // 寒冷/雪地生物群系 (10-13)
 constexpr i32 FrozenOcean = 10;
 constexpr i32 FrozenRiver = 11;
-constexpr i32 SnowyPlains = 12;        // snowy_tundra
+constexpr i32 SnowyPlains = 12; // snowy_tundra
 constexpr i32 SnowyMountains = 13;
 
 // 蘑菇岛 (14-15)
@@ -49,9 +49,9 @@ constexpr i32 Beach = 16;
 
 // 山地变体和丘陵 (17-20)
 constexpr i32 DesertHills = 17;
-constexpr i32 WoodedHills = 18;        // 也称作 wooded_hills
+constexpr i32 WoodedHills = 18; // 也称作 wooded_hills
 constexpr i32 TaigaHills = 19;
-constexpr i32 MountainEdge = 20;       // MC 中已弃用，但 ID 保留
+constexpr i32 MountainEdge = 20; // MC 中已弃用，但 ID 保留
 
 // 丛林 (21-23)
 constexpr i32 Jungle = 21;
@@ -81,7 +81,7 @@ constexpr i32 GiantTreeTaiga = 32;
 constexpr i32 GiantTreeTaigaHills = 33;
 
 // 热带草原 (34-36)
-constexpr i32 WoodedMountains = 34;    // extreme_hills_with_trees
+constexpr i32 WoodedMountains = 34; // extreme_hills_with_trees
 constexpr i32 Savanna = 35;
 constexpr i32 SavannaPlateau = 36;
 
@@ -142,12 +142,12 @@ constexpr i32 BasaltDeltas = 173;
 // ============================================================================
 
 namespace Climate {
-    constexpr i32 Ocean = 0;       // 海洋（保持不变）
-    constexpr i32 Warm = 1;        // 温暖区域（沙漠、热带草原等）
-    constexpr i32 Medium = 2;      // 中等温度（平原、森林等）
-    constexpr i32 Cool = 3;        // 凉爽区域（针叶林等）
-    constexpr i32 Icy = 4;         // 冰冻区域（雪地）
-}
+constexpr i32 Ocean = 0;  // 海洋（保持不变）
+constexpr i32 Warm = 1;   // 温暖区域（沙漠、热带草原等）
+constexpr i32 Medium = 2; // 中等温度（平原、森林等）
+constexpr i32 Cool = 3;   // 凉爽区域（针叶林等）
+constexpr i32 Icy = 4;    // 冰冻区域（雪地）
+} // namespace Climate
 
 // ============================================================================
 // 特殊位标记
@@ -160,28 +160,30 @@ namespace Climate {
  * 值存储在 bits 8-11 (mask 0xF00)
  */
 namespace SpecialBits {
-    constexpr i32 Mask = 0xF00;       // bits 8-11
-    constexpr i32 Shift = 8;          // 右移位数
+constexpr i32 Mask = 0xF00; // bits 8-11
+constexpr i32 Shift = 8;    // 右移位数
 
-    /**
-     * @brief 提取特殊变体索引
-     * @param value 层值
-     * @return 特殊变体索引 (0-15)
-     */
-    inline i32 extract(i32 value) {
-        return (value & Mask) >> Shift;
-    }
-
-    /**
-     * @brief 设置特殊变体位
-     * @param value 层值
-     * @param special 特殊变体索引 (0-15)
-     * @return 带有特殊位的值
-     */
-    inline i32 set(i32 value, i32 special) {
-        return (value & ~Mask) | ((special << Shift) & Mask);
-    }
+/**
+ * @brief 提取特殊变体索引
+ * @param value 层值
+ * @return 特殊变体索引 (0-15)
+ */
+inline i32 extract(i32 value)
+{
+    return (value & Mask) >> Shift;
 }
+
+/**
+ * @brief 设置特殊变体位
+ * @param value 层值
+ * @param special 特殊变体索引 (0-15)
+ * @return 带有特殊位的值
+ */
+inline i32 set(i32 value, i32 special)
+{
+    return (value & ~Mask) | ((special << Shift) & Mask);
+}
+} // namespace SpecialBits
 
 // ============================================================================
 // 辅助函数
@@ -190,21 +192,19 @@ namespace SpecialBits {
 /**
  * @brief 检查是否为海洋生物群系（包括深海）
  */
-inline bool isOcean(i32 biome) {
-    return biome == Ocean || biome == DeepOcean ||
-           biome == WarmOcean || biome == LukewarmOcean ||
-           biome == ColdOcean || biome == FrozenOcean ||
-           biome == DeepWarmOcean || biome == DeepLukewarmOcean ||
-           biome == DeepColdOcean || biome == DeepFrozenOcean;
+inline bool isOcean(i32 biome)
+{
+    return biome == Ocean || biome == DeepOcean || biome == WarmOcean || biome == LukewarmOcean || biome == ColdOcean ||
+        biome == FrozenOcean || biome == DeepWarmOcean || biome == DeepLukewarmOcean || biome == DeepColdOcean ||
+        biome == DeepFrozenOcean;
 }
 
 /**
  * @brief 检查是否为浅海洋生物群系（不包括深海）
  */
-inline bool isShallowOcean(i32 biome) {
-    return biome == Ocean || biome == WarmOcean ||
-           biome == LukewarmOcean || biome == ColdOcean ||
-           biome == FrozenOcean;
+inline bool isShallowOcean(i32 biome)
+{
+    return biome == Ocean || biome == WarmOcean || biome == LukewarmOcean || biome == ColdOcean || biome == FrozenOcean;
 }
 
 /**
@@ -223,13 +223,10 @@ bool areBiomesSimilar(i32 a, i32 b);
  * @param biome 生物群系 ID
  * @return 是否为恶地类别
  */
-[[nodiscard]] inline bool isBadlands(i32 biome) {
-    return biome == Badlands ||
-           biome == WoodedBadlandsPlateau ||
-           biome == BadlandsPlateau ||
-           biome == ErodedBadlands ||
-           biome == ModifiedWoodedBadlandsPlateau ||
-           biome == ModifiedBadlandsPlateau;
+[[nodiscard]] inline bool isBadlands(i32 biome)
+{
+    return biome == Badlands || biome == WoodedBadlandsPlateau || biome == BadlandsPlateau || biome == ErodedBadlands ||
+        biome == ModifiedWoodedBadlandsPlateau || biome == ModifiedBadlandsPlateau;
 }
 
 /**
@@ -237,14 +234,10 @@ bool areBiomesSimilar(i32 a, i32 b);
  * @param biome 生物群系 ID
  * @return 是否为丛林类别
  */
-[[nodiscard]] inline bool isJungle(i32 biome) {
-    return biome == Jungle ||
-           biome == JungleHills ||
-           biome == JungleEdge ||
-           biome == BambooJungle ||
-           biome == BambooJungleHills ||
-           biome == ModifiedJungle ||
-           biome == ModifiedJungleEdge;
+[[nodiscard]] inline bool isJungle(i32 biome)
+{
+    return biome == Jungle || biome == JungleHills || biome == JungleEdge || biome == BambooJungle ||
+        biome == BambooJungleHills || biome == ModifiedJungle || biome == ModifiedJungleEdge;
 }
 
 /**
@@ -252,11 +245,9 @@ bool areBiomesSimilar(i32 a, i32 b);
  * @param biome 生物群系 ID
  * @return 是否与丛林兼容
  */
-[[nodiscard]] inline bool isJungleCompatible(i32 biome) {
-    return isJungle(biome) ||
-           biome == Forest ||
-           biome == Taiga ||
-           isOcean(biome);
+[[nodiscard]] inline bool isJungleCompatible(i32 biome)
+{
+    return isJungle(biome) || biome == Forest || biome == Taiga || isOcean(biome);
 }
 
 /**
@@ -264,17 +255,11 @@ bool areBiomesSimilar(i32 a, i32 b);
  * @param biome 生物群系 ID
  * @return 是否为雪地类别
  */
-[[nodiscard]] inline bool isSnowy(i32 biome) {
-    return biome == SnowyPlains ||
-           biome == SnowyMountains ||
-           biome == SnowyBeach ||
-           biome == SnowyTaiga ||
-           biome == SnowyTaigaHills ||
-           biome == SnowyTaigaMountains ||
-           biome == IceSpikes ||
-           biome == FrozenOcean ||
-           biome == DeepFrozenOcean ||
-           biome == FrozenRiver;
+[[nodiscard]] inline bool isSnowy(i32 biome)
+{
+    return biome == SnowyPlains || biome == SnowyMountains || biome == SnowyBeach || biome == SnowyTaiga ||
+        biome == SnowyTaigaHills || biome == SnowyTaigaMountains || biome == IceSpikes || biome == FrozenOcean ||
+        biome == DeepFrozenOcean || biome == FrozenRiver;
 }
 
 /**
@@ -282,12 +267,10 @@ bool areBiomesSimilar(i32 a, i32 b);
  * @param biome 生物群系 ID
  * @return 是否为山地类别
  */
-[[nodiscard]] inline bool isMountain(i32 biome) {
-    return biome == Mountains ||
-           biome == WoodedMountains ||
-           biome == GravellyMountains ||
-           biome == ModifiedGravellyMountains ||
-           biome == MountainEdge;  // MountainEdge 在 MC 中是 ID 20
+[[nodiscard]] inline bool isMountain(i32 biome)
+{
+    return biome == Mountains || biome == WoodedMountains || biome == GravellyMountains ||
+        biome == ModifiedGravellyMountains || biome == MountainEdge; // MountainEdge 在 MC 中是 ID 20
 }
 
 /**
@@ -299,10 +282,10 @@ bool areBiomesSimilar(i32 a, i32 b);
  * @param shallowOnly 是否只检查浅海
  * @return 是否有海洋邻居
  */
-[[nodiscard]] inline bool hasOceanNeighbor(i32 north, i32 east, i32 south, i32 west, bool shallowOnly = false) {
+[[nodiscard]] inline bool hasOceanNeighbor(i32 north, i32 east, i32 south, i32 west, bool shallowOnly = false)
+{
     if (shallowOnly) {
-        return isShallowOcean(north) || isShallowOcean(east) ||
-               isShallowOcean(south) || isShallowOcean(west);
+        return isShallowOcean(north) || isShallowOcean(east) || isShallowOcean(south) || isShallowOcean(west);
     }
     return isOcean(north) || isOcean(east) || isOcean(south) || isOcean(west);
 }

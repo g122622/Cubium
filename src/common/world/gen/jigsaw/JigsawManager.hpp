@@ -1,17 +1,17 @@
 #pragma once
 
-#include "JigsawPiece.hpp"
-#include "JigsawPattern.hpp"
-#include "JigsawJunction.hpp"
 #include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../../util/Direction.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "../structure/StructureBoundingBox.hpp"
 #include "../feature/template/Template.hpp"
-#include <vector>
-#include <queue>
+#include "../structure/StructureBoundingBox.hpp"
+#include "JigsawJunction.hpp"
+#include "JigsawPattern.hpp"
+#include "JigsawPiece.hpp"
 #include <memory>
+#include <queue>
+#include <vector>
 
 namespace mc {
 
@@ -24,17 +24,17 @@ namespace feature {
 namespace template_ {
 class TemplateManager;
 }
-}
-}
-}
+} // namespace feature
+} // namespace gen
+} // namespace world
 
 namespace world {
 namespace gen {
 namespace jigsaw {
 
 // 使用 Direction.hpp 中定义的 Rotation 和 Mirror 枚举
-using mc::Rotation;
 using mc::Mirror;
+using mc::Rotation;
 
 /**
  * @brief 已放置的拼图块信息
@@ -46,12 +46,23 @@ struct PlacedPiece {
     Mirror mirror = Mirror::None;
     i32 groundLevelDelta = 0;
     structure::StructureBoundingBox boundingBox;
-    std::vector<JigsawJoint> joints;  ///< 已变换的连接点
-    std::vector<JigsawJunction> junctions;  ///< JigsawJunction 列表（用于 NoiseChunkGenerator 地形适配）
+    std::vector<JigsawJoint> joints;       ///< 已变换的连接点
+    std::vector<JigsawJunction> junctions; ///< JigsawJunction 列表（用于 NoiseChunkGenerator 地形适配）
 
     PlacedPiece() = default;
-    PlacedPiece(std::unique_ptr<JigsawPiece> p, const BlockPos& pos, Rotation rot, Mirror mir, i32 delta, const structure::StructureBoundingBox& box)
-        : piece(std::move(p)), position(pos), rotation(rot), mirror(mir), groundLevelDelta(delta), boundingBox(box) {}
+    PlacedPiece(std::unique_ptr<JigsawPiece> p,
+        const BlockPos& pos,
+        Rotation rot,
+        Mirror mir,
+        i32 delta,
+        const structure::StructureBoundingBox& box)
+        : piece(std::move(p))
+        , position(pos)
+        , rotation(rot)
+        , mirror(mir)
+        , groundLevelDelta(delta)
+        , boundingBox(box)
+    {}
 };
 
 /**
@@ -60,22 +71,33 @@ struct PlacedPiece {
  * 参考 MC 1.16.5 JigsawManager.Entry
  */
 struct PendingJoint {
-    BlockPos position;              ///< 连接点在世界中的位置
-    std::string sourceName;              ///< 源连接点名称（Jigsaw方块的name字段）
-    std::string targetPool;              ///< 目标模板池
-    std::string targetType;              ///< 目标连接点名称（Jigsaw方块的target字段）
-    i32 depth = 0;                  ///< 当前深度
+    BlockPos position;      ///< 连接点在世界中的位置
+    std::string sourceName; ///< 源连接点名称（Jigsaw方块的name字段）
+    std::string targetPool; ///< 目标模板池
+    std::string targetType; ///< 目标连接点名称（Jigsaw方块的target字段）
+    i32 depth = 0;          ///< 当前深度
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
-    JigsawOrientation orientation = JigsawOrientation::NorthUp;  ///< Jigsaw 方块朝向
-    JigsawJointType jointType = JigsawJointType::Rollable;       ///< 连接类型
+    JigsawOrientation orientation = JigsawOrientation::NorthUp; ///< Jigsaw 方块朝向
+    JigsawJointType jointType = JigsawJointType::Rollable;      ///< 连接类型
 
     PendingJoint() = default;
-    PendingJoint(const BlockPos& pos, const std::string& srcName, const std::string& pool, const std::string& tgtType, i32 d,
-                 JigsawPlacementBehaviour proj = JigsawPlacementBehaviour::Rigid,
-                 JigsawOrientation orient = JigsawOrientation::NorthUp,
-                 JigsawJointType jt = JigsawJointType::Rollable)
-        : position(pos), sourceName(srcName), targetPool(pool), targetType(tgtType), depth(d),
-          projection(proj), orientation(orient), jointType(jt) {}
+    PendingJoint(const BlockPos& pos,
+        const std::string& srcName,
+        const std::string& pool,
+        const std::string& tgtType,
+        i32 d,
+        JigsawPlacementBehaviour proj = JigsawPlacementBehaviour::Rigid,
+        JigsawOrientation orient = JigsawOrientation::NorthUp,
+        JigsawJointType jt = JigsawJointType::Rollable)
+        : position(pos)
+        , sourceName(srcName)
+        , targetPool(pool)
+        , targetType(tgtType)
+        , depth(d)
+        , projection(proj)
+        , orientation(orient)
+        , jointType(jt)
+    {}
 };
 
 /**
@@ -108,8 +130,7 @@ public:
      * @param rng 随机数生成器
      * @return std::vector<PlacedPiece> 已放置的拼图块列表
      */
-    static std::vector<PlacedPiece> assemble(
-        JigsawPatternRegistry& patternRegistry,
+    static std::vector<PlacedPiece> assemble(JigsawPatternRegistry& patternRegistry,
         const JigsawPattern& startPool,
         i32 maxDepth,
         const BlockPos& startPos,
@@ -126,8 +147,7 @@ public:
      * @param rng 随机数生成器
      * @return bool 是否成功生成
      */
-    static bool assembleAndPlace(
-        IWorldWriter& world,
+    static bool assembleAndPlace(IWorldWriter& world,
         JigsawPatternRegistry& patternRegistry,
         const JigsawPattern& startPool,
         i32 maxDepth,
@@ -144,10 +164,7 @@ public:
      * @return std::vector<JigsawJoint> 变换后的连接点列表
      */
     static std::vector<JigsawJoint> getTransformedJoints(
-        const JigsawPiece& piece,
-        const BlockPos& position,
-        i32 rotation,
-        i32 mirror);
+        const JigsawPiece& piece, const BlockPos& position, i32 rotation, i32 mirror);
 
     /**
      * @brief 清除模板缓存
@@ -162,9 +179,7 @@ public:
      * @return 边界框
      */
     static structure::StructureBoundingBox calculateBoundingBox(
-        const JigsawPiece& piece,
-        const BlockPos& pos,
-        Rotation rotation);
+        const JigsawPiece& piece, const BlockPos& pos, Rotation rotation);
 
     /**
      * @brief 检查边界框是否与已放置的拼图块重叠
@@ -173,8 +188,7 @@ public:
      * @return 是否重叠
      */
     static bool boxesIntersect(
-        const std::vector<PlacedPiece>& placedPieces,
-        const structure::StructureBoundingBox& newBox);
+        const std::vector<PlacedPiece>& placedPieces, const structure::StructureBoundingBox& newBox);
 
     /**
      * @brief 获取随机旋转角度
@@ -209,16 +223,12 @@ public:
      * @return 变换后的位置
      */
     static BlockPos transformPosition(
-        const BlockPos& pos,
-        Rotation rotation,
-        Mirror mirror,
-        const BlockPos& templateSize);
+        const BlockPos& pos, Rotation rotation, Mirror mirror, const BlockPos& templateSize);
 
     /**
      * @brief 尝试匹配和放置新拼图块
      */
-    static bool tryPlacePiece(
-        JigsawPatternRegistry& patternRegistry,
+    static bool tryPlacePiece(JigsawPatternRegistry& patternRegistry,
         std::vector<PlacedPiece>& placedPieces,
         std::queue<PendingJoint>& pendingJoints,
         const PendingJoint& joint,
@@ -232,10 +242,7 @@ private:
      * @param placed 已放置的拼图块信息
      * @param rng 随机数生成器
      */
-    static void placePieceRecursive(
-        IWorldWriter& world,
-        const PlacedPiece& placed,
-        math::Random& rng);
+    static void placePieceRecursive(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
 
     /**
      * @brief 放置回退方块（当模板未找到时）
@@ -243,16 +250,12 @@ private:
      * @param placed 已放置的拼图块信息
      * @param rng 随机数生成器
      */
-    static void placeFallbackBlocks(
-        IWorldWriter& world,
-        const PlacedPiece& placed,
-        math::Random& rng);
+    static void placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
 
     /**
      * @brief 处理单个连接点
      */
-    static bool processJoint(
-        JigsawPatternRegistry& patternRegistry,
+    static bool processJoint(JigsawPatternRegistry& patternRegistry,
         std::vector<PlacedPiece>& placedPieces,
         std::queue<PendingJoint>& pendingJoints,
         const PendingJoint& joint,
@@ -264,10 +267,7 @@ private:
      * @brief 获取变换后的连接点
      */
     static std::vector<JigsawJoint> getTransformedJoints(
-        const JigsawPiece& piece,
-        const BlockPos& pos,
-        Rotation rotation,
-        Mirror mirror);
+        const JigsawPiece& piece, const BlockPos& pos, Rotation rotation, Mirror mirror);
 
     static feature::template_::TemplateManager s_templateManager;
 };

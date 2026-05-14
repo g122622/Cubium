@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
-#include "common/item/Items.hpp"
-#include "common/item/items/weapon/ThrowableItems.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/items/weapon/ThrowableItems.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 namespace mc {
 namespace {
@@ -21,24 +21,28 @@ namespace {
  */
 class ThrowableTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ThrowableTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ThrowableTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(entity.get());
         // 不实际存储实体，返回临时ID
         return ++m_lastEntityId;
     }
 
     void addParticle(client::renderer::trident::particle::ParticleTypeId,
-                     const Vector3&,
-                     const Vector3&,
-                     const Vector3& = Vector3(0, 0, 0),
-                     u32 = 1) override {
+        const Vector3&,
+        const Vector3&,
+        const Vector3& = Vector3(0, 0, 0),
+        u32 = 1) override
+    {
         // 测试中忽略粒子效果
     }
 
@@ -51,11 +55,10 @@ private:
 
 class ThrowableItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // Items 清理由静态析构处理
     }
 
@@ -66,7 +69,8 @@ protected:
 // SnowballItem 测试
 // ============================================================================
 
-TEST_F(ThrowableItemTest, SnowballItem_Registered_HasCorrectProperties) {
+TEST_F(ThrowableItemTest, SnowballItem_Registered_HasCorrectProperties)
+{
     ASSERT_NE(Items::SNOWBALL, nullptr);
     EXPECT_EQ(Items::SNOWBALL->maxStackSize(), 16);
 
@@ -77,7 +81,8 @@ TEST_F(ThrowableItemTest, SnowballItem_Registered_HasCorrectProperties) {
     EXPECT_EQ(snowball->getUseDuration(ItemStack::EMPTY), 0);
 }
 
-TEST_F(ThrowableItemTest, SnowballItem_OnRightClick_SpawnsEntity) {
+TEST_F(ThrowableItemTest, SnowballItem_OnRightClick_SpawnsEntity)
+{
     ASSERT_NE(Items::SNOWBALL, nullptr);
 
     Player player(EntityId(1), "TestPlayer");
@@ -102,7 +107,8 @@ TEST_F(ThrowableItemTest, SnowballItem_OnRightClick_SpawnsEntity) {
 // EggItem 测试
 // ============================================================================
 
-TEST_F(ThrowableItemTest, EggItem_Registered_HasCorrectProperties) {
+TEST_F(ThrowableItemTest, EggItem_Registered_HasCorrectProperties)
+{
     ASSERT_NE(Items::EGG, nullptr);
     EXPECT_EQ(Items::EGG->maxStackSize(), 16);
 
@@ -112,7 +118,8 @@ TEST_F(ThrowableItemTest, EggItem_Registered_HasCorrectProperties) {
     EXPECT_FLOAT_EQ(egg->getThrowInaccuracy(), 0.0f);
 }
 
-TEST_F(ThrowableItemTest, EggItem_OnRightClick_SpawnsEntity) {
+TEST_F(ThrowableItemTest, EggItem_OnRightClick_SpawnsEntity)
+{
     ASSERT_NE(Items::EGG, nullptr);
 
     Player player(EntityId(1), "TestPlayer");
@@ -134,7 +141,8 @@ TEST_F(ThrowableItemTest, EggItem_OnRightClick_SpawnsEntity) {
 // EnderPearlItem 测试
 // ============================================================================
 
-TEST_F(ThrowableItemTest, EnderPearlItem_Registered_HasCorrectProperties) {
+TEST_F(ThrowableItemTest, EnderPearlItem_Registered_HasCorrectProperties)
+{
     ASSERT_NE(Items::ENDER_PEARL, nullptr);
     EXPECT_EQ(Items::ENDER_PEARL->maxStackSize(), 16);
 
@@ -144,7 +152,8 @@ TEST_F(ThrowableItemTest, EnderPearlItem_Registered_HasCorrectProperties) {
     EXPECT_FLOAT_EQ(pearl->getThrowInaccuracy(), 0.0f);
 }
 
-TEST_F(ThrowableItemTest, EnderPearlItem_OnRightClick_SpawnsEntity) {
+TEST_F(ThrowableItemTest, EnderPearlItem_OnRightClick_SpawnsEntity)
+{
     ASSERT_NE(Items::ENDER_PEARL, nullptr);
 
     Player player(EntityId(1), "TestPlayer");
@@ -166,7 +175,8 @@ TEST_F(ThrowableItemTest, EnderPearlItem_OnRightClick_SpawnsEntity) {
 // ExperienceBottleItem 测试
 // ============================================================================
 
-TEST_F(ThrowableItemTest, ExperienceBottleItem_Registered_HasCorrectProperties) {
+TEST_F(ThrowableItemTest, ExperienceBottleItem_Registered_HasCorrectProperties)
+{
     ASSERT_NE(Items::EXPERIENCE_BOTTLE, nullptr);
     EXPECT_EQ(Items::EXPERIENCE_BOTTLE->maxStackSize(), 64);
 
@@ -176,7 +186,8 @@ TEST_F(ThrowableItemTest, ExperienceBottleItem_Registered_HasCorrectProperties) 
     EXPECT_FLOAT_EQ(expBottle->getThrowInaccuracy(), 0.0f);
 }
 
-TEST_F(ThrowableItemTest, ExperienceBottleItem_OnRightClick_SpawnsEntity) {
+TEST_F(ThrowableItemTest, ExperienceBottleItem_OnRightClick_SpawnsEntity)
+{
     ASSERT_NE(Items::EXPERIENCE_BOTTLE, nullptr);
 
     Player player(EntityId(1), "TestPlayer");
@@ -198,13 +209,14 @@ TEST_F(ThrowableItemTest, ExperienceBottleItem_OnRightClick_SpawnsEntity) {
 // Survival Mode 消耗测试
 // ============================================================================
 
-TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem) {
+TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem)
+{
     ASSERT_NE(Items::SNOWBALL, nullptr);
 
     Player player(EntityId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
-    player.setGameMode(GameMode::Survival);  // 生存模式
+    player.setGameMode(GameMode::Survival); // 生存模式
 
     ItemStack stack(Items::SNOWBALL, 10);
     player.getHeldItem(Hand::MainHand) = stack;
@@ -220,22 +232,26 @@ TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem) {
 // 投掷物品实体创建测试
 // ============================================================================
 
-TEST_F(ThrowableItemTest, SnowballEntity_CanBeCreated) {
+TEST_F(ThrowableItemTest, SnowballEntity_CanBeCreated)
+{
     entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
     EXPECT_TRUE(snowball.isAlive());
 }
 
-TEST_F(ThrowableItemTest, EggEntity_CanBeCreated) {
+TEST_F(ThrowableItemTest, EggEntity_CanBeCreated)
+{
     entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
     EXPECT_TRUE(egg.isAlive());
 }
 
-TEST_F(ThrowableItemTest, EnderPearlEntity_CanBeCreated) {
+TEST_F(ThrowableItemTest, EnderPearlEntity_CanBeCreated)
+{
     entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
     EXPECT_TRUE(pearl.isAlive());
 }
 
-TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated) {
+TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated)
+{
     entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
     EXPECT_TRUE(bottle.isAlive());
 }
@@ -244,25 +260,29 @@ TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated) {
 // 默认物品测试
 // ============================================================================
 
-TEST_F(ThrowableItemTest, SnowballEntity_GetDefaultItem) {
+TEST_F(ThrowableItemTest, SnowballEntity_GetDefaultItem)
+{
     Items::initialize();
     entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
     EXPECT_EQ(snowball.getDefaultItem(), Items::SNOWBALL);
 }
 
-TEST_F(ThrowableItemTest, EggEntity_GetDefaultItem) {
+TEST_F(ThrowableItemTest, EggEntity_GetDefaultItem)
+{
     Items::initialize();
     entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
     EXPECT_EQ(egg.getDefaultItem(), Items::EGG);
 }
 
-TEST_F(ThrowableItemTest, EnderPearlEntity_GetDefaultItem) {
+TEST_F(ThrowableItemTest, EnderPearlEntity_GetDefaultItem)
+{
     Items::initialize();
     entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
     EXPECT_EQ(pearl.getDefaultItem(), Items::ENDER_PEARL);
 }
 
-TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem) {
+TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem)
+{
     Items::initialize();
     entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
     EXPECT_EQ(bottle.getDefaultItem(), Items::EXPERIENCE_BOTTLE);

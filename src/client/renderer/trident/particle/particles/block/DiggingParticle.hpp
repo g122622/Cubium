@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../Particle.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/util/assert/AssertAll.hpp"
 #include "client/renderer/MeshTypes.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 class ClientWorld;
@@ -39,9 +39,7 @@ public:
      * 创建使用石头纹理的粒子。推荐使用 createWithBlock。
      */
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 带方块状态的工厂方法
@@ -52,15 +50,11 @@ public:
      * @return 粒子实例
      */
     static std::unique_ptr<Particle> createWithBlock(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        const BlockState& blockState);
+        const glm::vec3& pos, const glm::vec3& velocity, const BlockState& blockState);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::TERRAIN_SHEET;
-    }
+    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::TERRAIN_SHEET; }
 
     /**
      * @brief 获取纹理位置
@@ -76,8 +70,7 @@ public:
      *
      * 重写以使用预计算的方块纹理 UV 坐标。
      */
-    void buildVertices(
-        const glm::vec3& cameraPos,
+    void buildVertices(const glm::vec3& cameraPos,
         f64 partialTick,
         const ParticleTextureAtlas& atlas,
         std::vector<ParticleVertex>& outVertices) const override;

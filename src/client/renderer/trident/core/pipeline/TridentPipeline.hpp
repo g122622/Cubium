@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../../api/pipeline/IPipeline.hpp"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -64,10 +64,8 @@ struct TridentPipelineConfig {
     VkBlendFactor srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     VkBlendFactor dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     VkBlendOp alphaBlendOp = VK_BLEND_OP_ADD;
-    VkColorComponentFlags colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                                            VK_COLOR_COMPONENT_G_BIT |
-                                            VK_COLOR_COMPONENT_B_BIT |
-                                            VK_COLOR_COMPONENT_A_BIT;
+    VkColorComponentFlags colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
     // 渲染通道
     VkRenderPass renderPass = VK_NULL_HANDLE;
@@ -112,9 +110,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> createFromDesc(
-        TridentContext* context,
-        const api::PipelineDesc& desc,
-        VkRenderPass renderPass);
+        TridentContext* context, const api::PipelineDesc& desc, VkRenderPass renderPass);
 
     // IPipeline 接口实现
     void destroy() override;
@@ -131,8 +127,7 @@ public:
      * @brief 加载着色器模块
      */
     [[nodiscard]] static Result<VkShaderModule> createShaderModule(
-        TridentContext* context,
-        const std::vector<u8>& code);
+        TridentContext* context, const std::vector<u8>& code);
 
 private:
     TridentContext* m_context = nullptr;

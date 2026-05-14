@@ -5,13 +5,13 @@
 namespace mc {
 
 ItemUseContext::ItemUseContext(IWorld& world,
-                               Player* player,
-                               const ItemStack& stack,
-                               const Vector3& hitPos,
-                               const BlockPos& blockPos,
-                               Direction face,
-                               Hand hand,
-                               f32 playerYaw)
+    Player* player,
+    const ItemStack& stack,
+    const Vector3& hitPos,
+    const BlockPos& blockPos,
+    Direction face,
+    Hand hand,
+    f32 playerYaw)
     : m_world(world)
     , m_player(player)
     , m_stack(const_cast<ItemStack*>(&stack))
@@ -40,10 +40,14 @@ Vector3 ItemUseContext::hitPositionInBlock() const
 f32 ItemUseContext::getHitU(Axis axis) const
 {
     switch (axis) {
-        case Axis::X: return m_hitX;
-        case Axis::Y: return m_hitY;
-        case Axis::Z: return m_hitZ;
-        default: return 0.0f;
+        case Axis::X:
+            return m_hitX;
+        case Axis::Y:
+            return m_hitY;
+        case Axis::Z:
+            return m_hitZ;
+        default:
+            return 0.0f;
     }
 }
 

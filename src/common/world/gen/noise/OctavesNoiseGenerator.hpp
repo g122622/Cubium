@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../../util/math/random/Random.hpp"
 #include "INoiseGenerator.hpp"
 #include "ImprovedNoiseGenerator.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include <vector>
-#include <memory>
 #include <array>
 #include <cmath>
+#include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -119,7 +119,8 @@ public:
      *
      * 防止大坐标导致的精度问题
      */
-    [[nodiscard]] static f32 maintainPrecision(f32 value) {
+    [[nodiscard]] static f32 maintainPrecision(f32 value)
+    {
         // 参考 MC: value - floor(value / 33554432.0 + 0.5) * 33554432.0
         constexpr f32 PRECISION_FACTOR = 33554432.0f;
         return value - std::floor(value / PRECISION_FACTOR + 0.5f) * PRECISION_FACTOR;
@@ -292,8 +293,8 @@ public:
 
 private:
     std::vector<std::unique_ptr<SimplexNoiseGenerator>> m_noiseLevels;
-    f32 m_xFactor = 1.0f;   // field_227463_c_ = 2^maxOctave
-    f32 m_yFactor = 1.0f;   // field_227462_b_ = 1 / (2^(count) - 1)
+    f32 m_xFactor = 1.0f; // field_227463_c_ = 2^maxOctave
+    f32 m_yFactor = 1.0f; // field_227462_b_ = 1 / (2^(count) - 1)
     i32 m_minOctave = 0;
     i32 m_maxOctave = 0;
 

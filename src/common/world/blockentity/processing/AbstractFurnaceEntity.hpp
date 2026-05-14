@@ -1,10 +1,10 @@
 #pragma once
 
-#include "world/blockentity/core/LockableBlockEntity.hpp"
-#include "world/blockentity/processing/FurnaceInventory.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "world/blockentity/core/LockableBlockEntity.hpp"
+#include "world/blockentity/processing/FurnaceInventory.hpp"
 #include <memory>
 
 namespace mc {
@@ -76,7 +76,10 @@ public:
     ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
     void clear() override { m_inventory.clear(); }
     void setChanged() override { LockableBlockEntity::setChanged(); }
-    [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override { return m_inventory.canPlaceItem(slot, stack); }
+    [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override
+    {
+        return m_inventory.canPlaceItem(slot, stack);
+    }
     void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
 
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
@@ -151,7 +154,8 @@ public:
      * @brief 提取并清除累积的熔炼经验
      * @return 累积的经验值
      */
-    f32 extractStoredExperience() {
+    f32 extractStoredExperience()
+    {
         f32 xp = m_storedExperience;
         m_storedExperience = 0.0f;
         return xp;
@@ -218,9 +222,7 @@ public:
      * @param stack 物品堆
      * @return 燃烧时间（tick），如果不是燃料返回0
      */
-    [[nodiscard]] virtual i32 getBurnTimeForFuel(const ItemStack& stack) const {
-        return getBurnTime(stack);
-    }
+    [[nodiscard]] virtual i32 getBurnTimeForFuel(const ItemStack& stack) const { return getBurnTime(stack); }
 
     /**
      * @brief 获取背包
@@ -314,13 +316,13 @@ protected:
     void smeltWithRecipe(const crafting::SmeltingRecipe* recipe);
 
 private:
-    FurnaceInventory m_inventory;       ///< 熔炉背包
-    i32 m_burnTime = 0;                 ///< 当前燃烧时间
-    i32 m_burnTimeTotal = 0;            ///< 当前燃料的总燃烧时间
-    i32 m_cookTime = 0;                 ///< 当前熔炼时间
-    i32 m_cookTimeTotal = 200;          ///< 总熔炼时间
-    f32 m_storedExperience = 0.0f;      ///< 累积的熔炼经验（玩家取出物品时发放）
-    const crafting::SmeltingRecipe* m_lastRecipe = nullptr;  ///< 上次使用的配方
+    FurnaceInventory m_inventory;                           ///< 熔炉背包
+    i32 m_burnTime = 0;                                     ///< 当前燃烧时间
+    i32 m_burnTimeTotal = 0;                                ///< 当前燃料的总燃烧时间
+    i32 m_cookTime = 0;                                     ///< 当前熔炼时间
+    i32 m_cookTimeTotal = 200;                              ///< 总熔炼时间
+    f32 m_storedExperience = 0.0f;                          ///< 累积的熔炼经验（玩家取出物品时发放）
+    const crafting::SmeltingRecipe* m_lastRecipe = nullptr; ///< 上次使用的配方
 };
 
 } // namespace blockentity

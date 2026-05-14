@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
-#include "world/block/blocks/end/EndPortalBlock.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/IWorld.hpp"
-#include "world/tick/manager/TickManager.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/fluid/FluidRegistry.hpp"
+#include "core/Constants.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/end/EndPortalBlock.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/fluid/FluidRegistry.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 #include <map>
 #include <memory>
@@ -28,7 +28,8 @@ class ChorusPlantTestWorld final : public IBlockReader {
 public:
     ChorusPlantTestWorld() = default;
 
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
@@ -36,7 +37,8 @@ public:
 
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -45,7 +47,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -67,14 +70,26 @@ public:
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(1); }  // 末地维度
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(1); } // 末地维度
     [[nodiscard]] u64 seed() const override { return 12345; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
@@ -83,16 +98,16 @@ public:
     [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
     // TickManager interface
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<ChorusPlantTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
@@ -102,10 +117,12 @@ public:
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
     // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
         throw std::runtime_error("ChorusPlantTestWorld::worldBorder not implemented");
     }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
         throw std::runtime_error("ChorusPlantTestWorld::worldBorder not implemented");
     }
 
@@ -127,12 +144,11 @@ private:
 
 class ChorusPlantBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(ChorusPlantBlockTest, Create_HasCorrectProperties) {
+TEST_F(ChorusPlantBlockTest, Create_HasCorrectProperties)
+{
     ChorusPlantBlock block(BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
     const BlockState& state = block.defaultState();
 
@@ -145,7 +161,8 @@ TEST_F(ChorusPlantBlockTest, Create_HasCorrectProperties) {
     EXPECT_FALSE(state.get(BlockStateProperties::DOWN()));
 }
 
-TEST_F(ChorusPlantBlockTest, GetShape_ReturnsValidShape) {
+TEST_F(ChorusPlantBlockTest, GetShape_ReturnsValidShape)
+{
     ChorusPlantBlock block(BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
     const BlockState& state = block.defaultState();
     const CollisionShape& shape = block.getShape(state);
@@ -154,7 +171,8 @@ TEST_F(ChorusPlantBlockTest, GetShape_ReturnsValidShape) {
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(ChorusPlantBlockTest, GetShapeIndex_NoConnections) {
+TEST_F(ChorusPlantBlockTest, GetShapeIndex_NoConnections)
+{
     ChorusPlantBlock block(BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
     const BlockState& state = block.defaultState();
 
@@ -163,24 +181,26 @@ TEST_F(ChorusPlantBlockTest, GetShapeIndex_NoConnections) {
     EXPECT_EQ(index, 0ULL);
 }
 
-TEST_F(ChorusPlantBlockTest, GetShapeIndex_AllConnections) {
+TEST_F(ChorusPlantBlockTest, GetShapeIndex_AllConnections)
+{
     ChorusPlantBlock block(BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
 
     // 设置所有连接为 true
     const BlockState& state = block.defaultState()
-        .with(BlockStateProperties::DOWN(), true)
-        .with(BlockStateProperties::UP(), true)
-        .with(BlockStateProperties::NORTH(), true)
-        .with(BlockStateProperties::SOUTH(), true)
-        .with(BlockStateProperties::WEST(), true)
-        .with(BlockStateProperties::EAST(), true);
+                                  .with(BlockStateProperties::DOWN(), true)
+                                  .with(BlockStateProperties::UP(), true)
+                                  .with(BlockStateProperties::NORTH(), true)
+                                  .with(BlockStateProperties::SOUTH(), true)
+                                  .with(BlockStateProperties::WEST(), true)
+                                  .with(BlockStateProperties::EAST(), true);
 
     // 所有连接时索引应为 63 (所有位都设置)
     size_t index = ChorusPlantBlock::getShapeIndex(state);
     EXPECT_EQ(index, 63ULL);
 }
 
-TEST_F(ChorusPlantBlockTest, GetShapeIndex_SingleConnection) {
+TEST_F(ChorusPlantBlockTest, GetShapeIndex_SingleConnection)
+{
     ChorusPlantBlock block(BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
 
     // 测试各个方向的单独连接
@@ -209,29 +229,28 @@ TEST_F(ChorusPlantBlockTest, GetShapeIndex_SingleConnection) {
     EXPECT_EQ(ChorusPlantBlock::getShapeIndex(eastState), 32ULL);
 }
 
-TEST_F(ChorusPlantBlockTest, GetShapeIndex_MultipleConnections) {
+TEST_F(ChorusPlantBlockTest, GetShapeIndex_MultipleConnections)
+{
     ChorusPlantBlock block(BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
 
     // Up + Down = bit 0 + bit 1 = 3
-    const BlockState& verticalState = block.defaultState()
-        .with(BlockStateProperties::DOWN(), true)
-        .with(BlockStateProperties::UP(), true);
+    const BlockState& verticalState =
+        block.defaultState().with(BlockStateProperties::DOWN(), true).with(BlockStateProperties::UP(), true);
     EXPECT_EQ(ChorusPlantBlock::getShapeIndex(verticalState), 3ULL);
 
     // North + South = bit 2 + bit 3 = 12
-    const BlockState& northSouthState = block.defaultState()
-        .with(BlockStateProperties::NORTH(), true)
-        .with(BlockStateProperties::SOUTH(), true);
+    const BlockState& northSouthState =
+        block.defaultState().with(BlockStateProperties::NORTH(), true).with(BlockStateProperties::SOUTH(), true);
     EXPECT_EQ(ChorusPlantBlock::getShapeIndex(northSouthState), 12ULL);
 
     // East + West = bit 4 + bit 5 = 48
-    const BlockState& eastWestState = block.defaultState()
-        .with(BlockStateProperties::WEST(), true)
-        .with(BlockStateProperties::EAST(), true);
+    const BlockState& eastWestState =
+        block.defaultState().with(BlockStateProperties::WEST(), true).with(BlockStateProperties::EAST(), true);
     EXPECT_EQ(ChorusPlantBlock::getShapeIndex(eastWestState), 48ULL);
 }
 
-TEST_F(ChorusPlantBlockTest, Shape_ChangesWithConnections) {
+TEST_F(ChorusPlantBlockTest, Shape_ChangesWithConnections)
+{
     ChorusPlantBlock block(BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
 
     // 无连接的形状
@@ -240,26 +259,28 @@ TEST_F(ChorusPlantBlockTest, Shape_ChangesWithConnections) {
 
     // 所有连接的形状
     const BlockState& allConnections = block.defaultState()
-        .with(BlockStateProperties::DOWN(), true)
-        .with(BlockStateProperties::UP(), true)
-        .with(BlockStateProperties::NORTH(), true)
-        .with(BlockStateProperties::SOUTH(), true)
-        .with(BlockStateProperties::WEST(), true)
-        .with(BlockStateProperties::EAST(), true);
+                                           .with(BlockStateProperties::DOWN(), true)
+                                           .with(BlockStateProperties::UP(), true)
+                                           .with(BlockStateProperties::NORTH(), true)
+                                           .with(BlockStateProperties::SOUTH(), true)
+                                           .with(BlockStateProperties::WEST(), true)
+                                           .with(BlockStateProperties::EAST(), true);
     const CollisionShape& shapeAllConnections = block.getShape(allConnections);
 
     // 两个形状的引用应该不同（因为索引不同）
     EXPECT_NE(&shapeNoConnection, &shapeAllConnections);
 }
 
-TEST_F(ChorusPlantBlockTest, VanillaBlocks_Registered) {
+TEST_F(ChorusPlantBlockTest, VanillaBlocks_Registered)
+{
     // 确保 VanillaBlocks 中的相关方块已注册
     EXPECT_NE(VanillaBlocks::CHORUS_PLANT, nullptr);
     EXPECT_NE(VanillaBlocks::CHORUS_FLOWER, nullptr);
     EXPECT_NE(VanillaBlocks::END_STONE, nullptr);
 }
 
-TEST_F(ChorusPlantBlockTest, ShapeCenterSize) {
+TEST_F(ChorusPlantBlockTest, ShapeCenterSize)
+{
     // 参考 MC 1.16.5 SixWayBlock
     // apothem = 0.3125 (5像素)
     // 中心形状：(0.1875, 0.1875, 0.1875) -> (0.8125, 0.8125, 0.8125)
@@ -277,7 +298,8 @@ TEST_F(ChorusPlantBlockTest, ShapeCenterSize) {
 // 使用 VanillaBlocks::CHORUS_PLANT 进行测试，因为 canConnect 使用指针比较
 // ============================================================================
 
-TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusPlant) {
+TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusPlant)
+{
     ChorusPlantTestWorld world;
 
     // 在原位置放置紫颂植物
@@ -291,20 +313,21 @@ TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusPlant) {
     // 检查从相邻位置向紫颂植物方向连接
     // BlockPos(0, 65, 0) 向 Down 方向检查，会检查 BlockPos(0, 64, 0) 的方块
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 65, 0), Direction::Down));
+            ->canConnect(world, BlockPos(0, 65, 0), Direction::Down));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 63, 0), Direction::Up));
+            ->canConnect(world, BlockPos(0, 63, 0), Direction::Up));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 1), Direction::North));
+            ->canConnect(world, BlockPos(0, 64, 1), Direction::North));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, -1), Direction::South));
+            ->canConnect(world, BlockPos(0, 64, -1), Direction::South));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(-1, 64, 0), Direction::East));
+            ->canConnect(world, BlockPos(-1, 64, 0), Direction::East));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(1, 64, 0), Direction::West));
+            ->canConnect(world, BlockPos(1, 64, 0), Direction::West));
 }
 
-TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusFlower) {
+TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusFlower)
+{
     ChorusPlantTestWorld world;
 
     // 在各方向放置紫颂花
@@ -313,40 +336,41 @@ TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusFlower) {
     // 上方放置紫颂花
     world.setBlockAt(BlockPos(0, 65, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::Up));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::Up));
 
     // 下方放置紫颂花
     ChorusPlantTestWorld world2;
     world2.setBlockAt(BlockPos(0, 63, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world2, BlockPos(0, 64, 0), Direction::Down));
+            ->canConnect(world2, BlockPos(0, 64, 0), Direction::Down));
 
     // 北方放置紫颂花
     ChorusPlantTestWorld world3;
     world3.setBlockAt(BlockPos(0, 64, -1), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world3, BlockPos(0, 64, 0), Direction::North));
+            ->canConnect(world3, BlockPos(0, 64, 0), Direction::North));
 
     // 南方放置紫颂花
     ChorusPlantTestWorld world4;
     world4.setBlockAt(BlockPos(0, 64, 1), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world4, BlockPos(0, 64, 0), Direction::South));
+            ->canConnect(world4, BlockPos(0, 64, 0), Direction::South));
 
     // 东方放置紫颂花
     ChorusPlantTestWorld world5;
     world5.setBlockAt(BlockPos(1, 64, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world5, BlockPos(0, 64, 0), Direction::East));
+            ->canConnect(world5, BlockPos(0, 64, 0), Direction::East));
 
     // 西方放置紫颂花
     ChorusPlantTestWorld world6;
     world6.setBlockAt(BlockPos(-1, 64, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world6, BlockPos(0, 64, 0), Direction::West));
+            ->canConnect(world6, BlockPos(0, 64, 0), Direction::West));
 }
 
-TEST_F(ChorusPlantBlockTest, CanConnect_ToEndStone_OnlyDownward) {
+TEST_F(ChorusPlantBlockTest, CanConnect_ToEndStone_OnlyDownward)
+{
     ChorusPlantTestWorld world;
 
     // 在下方放置末地石（应该能连接）
@@ -355,36 +379,37 @@ TEST_F(ChorusPlantBlockTest, CanConnect_ToEndStone_OnlyDownward) {
 
     // 只有向下方向能连接到末地石
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
 
     // 其他方向不能连接到末地石
     ChorusPlantTestWorld world2;
-    world2.setBlockAt(BlockPos(0, 65, 0), &endStoneState);  // 上方末地石
+    world2.setBlockAt(BlockPos(0, 65, 0), &endStoneState); // 上方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
+            ->canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
 
     ChorusPlantTestWorld world3;
-    world3.setBlockAt(BlockPos(0, 64, -1), &endStoneState);  // 北方末地石
+    world3.setBlockAt(BlockPos(0, 64, -1), &endStoneState); // 北方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world3, BlockPos(0, 64, 0), Direction::North));
+            ->canConnect(world3, BlockPos(0, 64, 0), Direction::North));
 
     ChorusPlantTestWorld world4;
-    world4.setBlockAt(BlockPos(0, 64, 1), &endStoneState);  // 南方末地石
+    world4.setBlockAt(BlockPos(0, 64, 1), &endStoneState); // 南方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world4, BlockPos(0, 64, 0), Direction::South));
+            ->canConnect(world4, BlockPos(0, 64, 0), Direction::South));
 
     ChorusPlantTestWorld world5;
-    world5.setBlockAt(BlockPos(1, 64, 0), &endStoneState);  // 东方末地石
+    world5.setBlockAt(BlockPos(1, 64, 0), &endStoneState); // 东方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world5, BlockPos(0, 64, 0), Direction::East));
+            ->canConnect(world5, BlockPos(0, 64, 0), Direction::East));
 
     ChorusPlantTestWorld world6;
-    world6.setBlockAt(BlockPos(-1, 64, 0), &endStoneState);  // 西方末地石
+    world6.setBlockAt(BlockPos(-1, 64, 0), &endStoneState); // 西方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world6, BlockPos(0, 64, 0), Direction::West));
+            ->canConnect(world6, BlockPos(0, 64, 0), Direction::West));
 }
 
-TEST_F(ChorusPlantBlockTest, CanConnect_NotToRegularBlocks) {
+TEST_F(ChorusPlantBlockTest, CanConnect_NotToRegularBlocks)
+{
     ChorusPlantTestWorld world;
 
     // 放置普通方块（石头）
@@ -393,33 +418,34 @@ TEST_F(ChorusPlantBlockTest, CanConnect_NotToRegularBlocks) {
 
     // 不能连接到普通方块（即使是在下方）
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
 
     // 其他方向测试
     ChorusPlantTestWorld world2;
     world2.setBlockAt(BlockPos(0, 65, 0), &stoneState);
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
+            ->canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
 }
 
-TEST_F(ChorusPlantBlockTest, CanConnect_NotToAir) {
+TEST_F(ChorusPlantBlockTest, CanConnect_NotToAir)
+{
     ChorusPlantTestWorld world;
 
     // 空世界（所有位置都是空气）
 
     // 不能连接到空气
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::Up));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::Up));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::North));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::North));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::South));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::South));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::East));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::East));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->canConnect(world, BlockPos(0, 64, 0), Direction::West));
+            ->canConnect(world, BlockPos(0, 64, 0), Direction::West));
 }
 
 // ============================================================================
@@ -427,7 +453,8 @@ TEST_F(ChorusPlantBlockTest, CanConnect_NotToAir) {
 // 使用 VanillaBlocks::CHORUS_PLANT 进行测试
 // ============================================================================
 
-TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusPlantBelow) {
+TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusPlantBelow)
+{
     ChorusPlantTestWorld world;
 
     // 在下方放置紫颂植物
@@ -438,10 +465,11 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusPlantBelow) {
 
     // 应该有效（有紫颂植物在下方可以连接）
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->isValidPosition(state, world, BlockPos(0, 64, 0)));
+            ->isValidPosition(state, world, BlockPos(0, 64, 0)));
 }
 
-TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusFlowerBelow) {
+TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusFlowerBelow)
+{
     ChorusPlantTestWorld world;
 
     // 在下方放置紫颂花
@@ -452,10 +480,11 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusFlowerBelow) {
 
     // 应该有效（有紫颂花在下方可以连接）
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->isValidPosition(state, world, BlockPos(0, 64, 0)));
+            ->isValidPosition(state, world, BlockPos(0, 64, 0)));
 }
 
-TEST_F(ChorusPlantBlockTest, IsValidPosition_WithEndStoneBelow) {
+TEST_F(ChorusPlantBlockTest, IsValidPosition_WithEndStoneBelow)
+{
     ChorusPlantTestWorld world;
 
     // 在下方放置末地石
@@ -466,10 +495,11 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_WithEndStoneBelow) {
 
     // 应该有效（有末地石在下方可以连接）
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->isValidPosition(state, world, BlockPos(0, 64, 0)));
+            ->isValidPosition(state, world, BlockPos(0, 64, 0)));
 }
 
-TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusPlantOnSide) {
+TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusPlantOnSide)
+{
     ChorusPlantTestWorld world;
 
     // 在侧面放置紫颂植物（北方）
@@ -480,10 +510,11 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusPlantOnSide) {
 
     // 应该有效（有紫颂植物在侧面可以连接）
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->isValidPosition(state, world, BlockPos(0, 64, 0)));
+            ->isValidPosition(state, world, BlockPos(0, 64, 0)));
 }
 
-TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusFlowerAbove) {
+TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusFlowerAbove)
+{
     ChorusPlantTestWorld world;
 
     // 在上方放置紫颂花
@@ -494,10 +525,11 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_WithChorusFlowerAbove) {
 
     // 应该有效（有紫颂花在上方可以连接）
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->isValidPosition(state, world, BlockPos(0, 64, 0)));
+            ->isValidPosition(state, world, BlockPos(0, 64, 0)));
 }
 
-TEST_F(ChorusPlantBlockTest, IsValidPosition_NoConnections) {
+TEST_F(ChorusPlantBlockTest, IsValidPosition_NoConnections)
+{
     ChorusPlantTestWorld world;
 
     // 空世界（没有可连接的方块）
@@ -505,10 +537,11 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_NoConnections) {
 
     // 应该无效（没有可连接的方块）
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->isValidPosition(state, world, BlockPos(0, 64, 0)));
+            ->isValidPosition(state, world, BlockPos(0, 64, 0)));
 }
 
-TEST_F(ChorusPlantBlockTest, IsValidPosition_WithRegularBlockBelow) {
+TEST_F(ChorusPlantBlockTest, IsValidPosition_WithRegularBlockBelow)
+{
     ChorusPlantTestWorld world;
 
     // 在下方放置普通方块（石头）
@@ -519,7 +552,7 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_WithRegularBlockBelow) {
 
     // 应该无效（石头不是可连接的方块）
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-        ->isValidPosition(state, world, BlockPos(0, 64, 0)));
+            ->isValidPosition(state, world, BlockPos(0, 64, 0)));
 }
 
 // ============================================================================
@@ -527,7 +560,8 @@ TEST_F(ChorusPlantBlockTest, IsValidPosition_WithRegularBlockBelow) {
 // 使用 VanillaBlocks::CHORUS_PLANT 进行测试（非 const 方法）
 // ============================================================================
 
-TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesConnectionState) {
+TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesConnectionState)
+{
     ChorusPlantTestWorld world;
 
     // 初始状态：无连接
@@ -545,13 +579,7 @@ TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesConnectionState) {
 
     // 更新下方邻居 - updatePostPlacement 是非 const 方法，直接使用 VanillaBlocks 指针
     BlockState updatedState = VanillaBlocks::CHORUS_PLANT->updatePostPlacement(
-        initialState,
-        Direction::Down,
-        endStoneState,
-        world,
-        BlockPos(0, 64, 0),
-        BlockPos(0, 63, 0)
-    );
+        initialState, Direction::Down, endStoneState, world, BlockPos(0, 64, 0), BlockPos(0, 63, 0));
 
     // 应该更新向下连接为 true
     EXPECT_TRUE(updatedState.get(BlockStateProperties::DOWN()));
@@ -562,7 +590,8 @@ TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesConnectionState) {
     EXPECT_FALSE(updatedState.get(BlockStateProperties::EAST()));
 }
 
-TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesAllDirections) {
+TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesAllDirections)
+{
     ChorusPlantTestWorld world;
     const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
     const BlockState& initialState = VanillaBlocks::CHORUS_PLANT->defaultState();
@@ -571,47 +600,41 @@ TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesAllDirections) {
     // 向上
     world.setBlockAt(BlockPos(0, 65, 0), &plantState);
     BlockState upState = VanillaBlocks::CHORUS_PLANT->updatePostPlacement(
-        initialState, Direction::Up, plantState, world,
-        BlockPos(0, 64, 0), BlockPos(0, 65, 0));
+        initialState, Direction::Up, plantState, world, BlockPos(0, 64, 0), BlockPos(0, 65, 0));
     EXPECT_TRUE(upState.get(BlockStateProperties::UP()));
 
     // 向下
     ChorusPlantTestWorld world2;
     world2.setBlockAt(BlockPos(0, 63, 0), &plantState);
     BlockState downState = VanillaBlocks::CHORUS_PLANT->updatePostPlacement(
-        initialState, Direction::Down, plantState, world2,
-        BlockPos(0, 64, 0), BlockPos(0, 63, 0));
+        initialState, Direction::Down, plantState, world2, BlockPos(0, 64, 0), BlockPos(0, 63, 0));
     EXPECT_TRUE(downState.get(BlockStateProperties::DOWN()));
 
     // 向北
     ChorusPlantTestWorld world3;
     world3.setBlockAt(BlockPos(0, 64, -1), &plantState);
     BlockState northState = VanillaBlocks::CHORUS_PLANT->updatePostPlacement(
-        initialState, Direction::North, plantState, world3,
-        BlockPos(0, 64, 0), BlockPos(0, 64, -1));
+        initialState, Direction::North, plantState, world3, BlockPos(0, 64, 0), BlockPos(0, 64, -1));
     EXPECT_TRUE(northState.get(BlockStateProperties::NORTH()));
 
     // 向南
     ChorusPlantTestWorld world4;
     world4.setBlockAt(BlockPos(0, 64, 1), &plantState);
     BlockState southState = VanillaBlocks::CHORUS_PLANT->updatePostPlacement(
-        initialState, Direction::South, plantState, world4,
-        BlockPos(0, 64, 0), BlockPos(0, 64, 1));
+        initialState, Direction::South, plantState, world4, BlockPos(0, 64, 0), BlockPos(0, 64, 1));
     EXPECT_TRUE(southState.get(BlockStateProperties::SOUTH()));
 
     // 向东
     ChorusPlantTestWorld world5;
     world5.setBlockAt(BlockPos(1, 64, 0), &plantState);
     BlockState eastState = VanillaBlocks::CHORUS_PLANT->updatePostPlacement(
-        initialState, Direction::East, plantState, world5,
-        BlockPos(0, 64, 0), BlockPos(1, 64, 0));
+        initialState, Direction::East, plantState, world5, BlockPos(0, 64, 0), BlockPos(1, 64, 0));
     EXPECT_TRUE(eastState.get(BlockStateProperties::EAST()));
 
     // 向西
     ChorusPlantTestWorld world6;
     world6.setBlockAt(BlockPos(-1, 64, 0), &plantState);
     BlockState westState = VanillaBlocks::CHORUS_PLANT->updatePostPlacement(
-        initialState, Direction::West, plantState, world6,
-        BlockPos(0, 64, 0), BlockPos(-1, 64, 0));
+        initialState, Direction::West, plantState, world6, BlockPos(0, 64, 0), BlockPos(-1, 64, 0));
     EXPECT_TRUE(westState.get(BlockStateProperties::WEST()));
 }

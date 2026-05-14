@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/Types.hpp"
 #include "../core/Constants.hpp"
+#include "../core/Types.hpp"
 
 namespace mc::world {
 
@@ -10,11 +10,11 @@ namespace mc::world {
 // ============================================================================
 
 enum class ChunkLoadPriority : i32 {
-    Critical = 0,   // 玩家所在区块
-    High = 1,       // 玩家周围区块
-    Normal = 2,     // 正常加载
-    Low = 3,        // 远处区块
-    Background = 4  // 后台生成
+    Critical = 0,  // 玩家所在区块
+    High = 1,      // 玩家周围区块
+    Normal = 2,    // 正常加载
+    Low = 3,       // 远处区块
+    Background = 4 // 后台生成
 };
 
 // ============================================================================
@@ -73,44 +73,49 @@ constexpr i32 ENTITY_DESPAWN_RANGE = 128;
 // ============================================================================
 
 // 检查Y坐标是否在有效范围内
-inline bool isValidY(i32 y) {
+inline bool isValidY(i32 y)
+{
     return y >= MIN_BUILD_HEIGHT && y < MAX_BUILD_HEIGHT;
 }
 
 // 将世界坐标转换为区块坐标
-inline i32 toChunkCoord(i32 worldCoord) {
-    return worldCoord >= 0 ? worldCoord / CHUNK_WIDTH
-                           : (worldCoord + 1) / CHUNK_WIDTH - 1;
+inline i32 toChunkCoord(i32 worldCoord)
+{
+    return worldCoord >= 0 ? worldCoord / CHUNK_WIDTH : (worldCoord + 1) / CHUNK_WIDTH - 1;
 }
 
 // 将世界坐标转换为区块内本地坐标
-inline i32 toLocalCoord(i32 worldCoord) {
+inline i32 toLocalCoord(i32 worldCoord)
+{
     i32 local = worldCoord % CHUNK_WIDTH;
     return local >= 0 ? local : local + CHUNK_WIDTH;
 }
 
 // 将区块坐标转换为世界坐标
-inline i32 toWorldCoord(i32 chunkCoord) {
+inline i32 toWorldCoord(i32 chunkCoord)
+{
     return chunkCoord * CHUNK_WIDTH;
 }
 
 // 将Y坐标转换为区块段索引
-inline i32 toSectionIndex(i32 y) {
+inline i32 toSectionIndex(i32 y)
+{
     return (y - MIN_BUILD_HEIGHT) / CHUNK_SECTION_HEIGHT;
 }
 
 // 将区块段索引转换为Y坐标
-inline i32 sectionToY(i32 sectionIndex) {
+inline i32 sectionToY(i32 sectionIndex)
+{
     return MIN_BUILD_HEIGHT + sectionIndex * CHUNK_SECTION_HEIGHT;
 }
 
 // 检查区块坐标是否有效
-inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ) {
+inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ)
+{
     constexpr i32 WORLD_BORDER = 30000000;
     constexpr i32 MIN_CHUNK = -WORLD_BORDER / CHUNK_WIDTH;
     constexpr i32 MAX_CHUNK = WORLD_BORDER / CHUNK_WIDTH;
-    return chunkX >= MIN_CHUNK && chunkX <= MAX_CHUNK &&
-           chunkZ >= MIN_CHUNK && chunkZ <= MAX_CHUNK;
+    return chunkX >= MIN_CHUNK && chunkX <= MAX_CHUNK && chunkZ >= MIN_CHUNK && chunkZ <= MAX_CHUNK;
 }
 
 } // namespace mc::world

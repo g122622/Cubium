@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "../../MeshTypes.hpp"
+#include "common/core/Types.hpp"
 #include <array>
 
 namespace mc {
@@ -34,9 +34,9 @@ public:
      * 包含4个顶点的光照和颜色乘数。
      */
     struct Result {
-        std::array<float, 4> vertexColorMultiplier{};  ///< 顶点颜色乘数 (0.0-1.0)
-        std::array<u8, 4> vertexSkyLight{};            ///< 顶点天空光 (0-15)
-        std::array<u8, 4> vertexBlockLight{};          ///< 顶点方块光 (0-15)
+        std::array<float, 4> vertexColorMultiplier{}; ///< 顶点颜色乘数 (0.0-1.0)
+        std::array<u8, 4> vertexSkyLight{};           ///< 顶点天空光 (0-15)
+        std::array<u8, 4> vertexBlockLight{};         ///< 顶点方块光 (0-15)
     };
 
     /**
@@ -51,24 +51,22 @@ public:
      * @param nonCubicWeights 非立方体权重数组 (nullptr表示使用立方体模式)
      * @return AO计算结果
      */
-    [[nodiscard]] Result calculate(
-        const ChunkData& chunk,
+    [[nodiscard]] Result calculate(const ChunkData& chunk,
         i32 blockX,
         i32 blockY,
         i32 blockZ,
         Face face,
         const ChunkData* neighborChunks[6],
-        const float* nonCubicWeights = nullptr
-    );
+        const float* nonCubicWeights = nullptr);
 
 private:
     /**
      * @brief 角落采样数据
      */
     struct CornerSample {
-        u8 skyLight = 0;            ///< 天空光照 (0-15)
-        u8 blockLight = 0;          ///< 方块光照 (0-15)
-        float aoBrightness = 1.0f;  ///< AO亮度 (0.2 或 1.0)
+        u8 skyLight = 0;           ///< 天空光照 (0-15)
+        u8 blockLight = 0;         ///< 方块光照 (0-15)
+        float aoBrightness = 1.0f; ///< AO亮度 (0.2 或 1.0)
     };
 
     /**
@@ -82,12 +80,7 @@ private:
      * @return 采样结果
      */
     [[nodiscard]] CornerSample samplePosition(
-        const ChunkData& chunk,
-        i32 x,
-        i32 y,
-        i32 z,
-        const ChunkData* neighborChunks[6]
-    ) const;
+        const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]) const;
 
     /**
      * @brief 检查指定位置是否透明（不透明方块返回false）
@@ -100,12 +93,7 @@ private:
      * @return 如果位置是透明的（可以透光）返回true
      */
     [[nodiscard]] bool isTransparent(
-        const ChunkData& chunk,
-        i32 x,
-        i32 y,
-        i32 z,
-        const ChunkData* neighborChunks[6]
-    ) const;
+        const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]) const;
 
     /**
      * @brief 计算AO亮度
@@ -168,9 +156,7 @@ private:
      * @return 插值后的打包亮度
      */
     [[nodiscard]] static u32 getVertexBrightness(
-        u32 b1, u32 b2, u32 b3, u32 b4,
-        float w1, float w2, float w3, float w4
-    );
+        u32 b1, u32 b2, u32 b3, u32 b4, float w1, float w2, float w3, float w4);
 
     /**
      * @brief 获取指定位置的光照值（天空光和方块光的打包值）
@@ -185,10 +171,7 @@ private:
      * @return 打包的光照值
      */
     [[nodiscard]] static u32 getPackedLight(
-        const ChunkData& chunk,
-        i32 x, i32 y, i32 z,
-        const ChunkData* neighborChunks[6]
-    );
+        const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]);
 };
 
 } // namespace renderer

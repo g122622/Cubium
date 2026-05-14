@@ -1,12 +1,12 @@
 #include "BlockState.hpp"
-#include "Block.hpp"
-#include "Material.hpp"
-#include "BlockSoundType.hpp"
-#include "BlockPos.hpp"
 #include "../IWorld.hpp"
 #include "../fluid/Fluid.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/EmptyFluid.hpp"
+#include "Block.hpp"
+#include "BlockPos.hpp"
+#include "BlockSoundType.hpp"
+#include "Material.hpp"
 #include <algorithm>
 #include <vector>
 
@@ -16,14 +16,14 @@ namespace mc {
 // BlockState
 // ============================================================================
 
-BlockState::BlockState(const Block& block,
-                       std::unordered_map<const IProperty*, size_t> values,
-                       u32 stateId)
-    : StateHolder<Block, BlockState>(&block, std::move(values), stateId) {
+BlockState::BlockState(const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 stateId)
+    : StateHolder<Block, BlockState>(&block, std::move(values), stateId)
+{
     cacheProperties();
 }
 
-void BlockState::cacheProperties() {
+void BlockState::cacheProperties()
+{
     // 缓存方块属性
     m_isSolid = m_owner->isSolid(*this);
     m_isOpaque = m_owner->isOpaque(*this);
@@ -41,67 +41,81 @@ void BlockState::cacheProperties() {
     m_harvestLevel = m_owner->harvestLevel();
 }
 
-bool BlockState::isAir() const {
+bool BlockState::isAir() const
+{
     return m_owner->isAir(*this);
 }
 
-const CollisionShape& BlockState::getCollisionShape() const {
+const CollisionShape& BlockState::getCollisionShape() const
+{
     return m_owner->getCollisionShape(*this);
 }
 
-const CollisionShape& BlockState::getShape() const {
+const CollisionShape& BlockState::getShape() const
+{
     return m_owner->getShape(*this);
 }
 
-const CollisionShape& BlockState::getOcclusionShape() const {
+const CollisionShape& BlockState::getOcclusionShape() const
+{
     return m_owner->getOcclusionShape(*this);
 }
 
-CollisionShape BlockState::getFaceOcclusionShape(Direction direction) const {
+CollisionShape BlockState::getFaceOcclusionShape(Direction direction) const
+{
     return m_owner->getFaceOcclusionShape(*this, direction);
 }
 
-bool BlockState::hasOpaqueCollisionShape() const {
+bool BlockState::hasOpaqueCollisionShape() const
+{
     // 如果方块不透明且有碰撞，则有不透明碰撞形状
     // 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#hasOpaqueCollisionShape
     return m_isOpaque && m_owner->material().blocksMovement();
 }
 
-float BlockState::getAmbientOcclusionLightValue() const {
+float BlockState::getAmbientOcclusionLightValue() const
+{
     // 如果方块有不透明碰撞形状，返回0.2（产生阴影）
     // 否则返回1.0（透明方块如玻璃、树叶不产生阴影）
     // 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getAmbientOcclusionLightValue
     return hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 }
 
-bool BlockState::isSolidSide(IWorld& world, const BlockPos& pos, Direction side) const {
+bool BlockState::isSolidSide(IWorld& world, const BlockPos& pos, Direction side) const
+{
     return m_owner->isSolidSide(*this, world, pos, side);
 }
 
-bool BlockState::isOpaqueCube(IWorld& world, const BlockPos& pos) const {
+bool BlockState::isOpaqueCube(IWorld& world, const BlockPos& pos) const
+{
     // 如果方块是固体的且有不透明碰撞形状，则为不透明完整方块
     MC_UNUSED(world);
     MC_UNUSED(pos);
     return m_isSolid && m_isOpaque && hasOpaqueCollisionShape();
 }
 
-const ResourceLocation& BlockState::blockLocation() const {
+const ResourceLocation& BlockState::blockLocation() const
+{
     return m_owner->blockLocation();
 }
 
-const fluid::FluidState* BlockState::getFluidState() const {
+const fluid::FluidState* BlockState::getFluidState() const
+{
     return m_owner->getFluidState(*this);
 }
 
-const Material& BlockState::getMaterial() const {
+const Material& BlockState::getMaterial() const
+{
     return m_owner->material();
 }
 
-const BlockSoundType& BlockState::getSoundType() const {
+const BlockSoundType& BlockState::getSoundType() const
+{
     return m_owner->getSoundType();
 }
 
-std::string BlockState::toModelKey() const {
+std::string BlockState::toModelKey() const
+{
     if (m_values.empty()) {
         return "";
     }
@@ -114,10 +128,9 @@ std::string BlockState::toModelKey() const {
         sortedValues.emplace_back(entry.first, entry.second);
     }
 
-    std::sort(sortedValues.begin(), sortedValues.end(),
-        [](const auto& a, const auto& b) {
-            return a.first->name() < b.first->name();
-        });
+    std::sort(sortedValues.begin(), sortedValues.end(), [](const auto& a, const auto& b) {
+        return a.first->name() < b.first->name();
+    });
 
     std::string result;
     result.reserve(sortedValues.size() * 16);
@@ -134,19 +147,23 @@ std::string BlockState::toModelKey() const {
     return result;
 }
 
-std::string BlockState::ownerName() const {
+std::string BlockState::ownerName() const
+{
     return m_owner->toString();
 }
 
-u8 BlockState::getHarvestTool() const {
+u8 BlockState::getHarvestTool() const
+{
     return m_harvestTool;
 }
 
-i32 BlockState::getHarvestLevel() const {
+i32 BlockState::getHarvestLevel() const
+{
     return m_harvestLevel;
 }
 
-bool BlockState::isToolEffective(u8 toolType, i32 harvestLevel) const {
+bool BlockState::isToolEffective(u8 toolType, i32 harvestLevel) const
+{
     // 检查工具类型是否匹配
     if (m_harvestTool != toolType) {
         return false;
@@ -155,15 +172,18 @@ bool BlockState::isToolEffective(u8 toolType, i32 harvestLevel) const {
     return harvestLevel >= m_harvestLevel;
 }
 
-bool BlockState::requiresTool() const {
+bool BlockState::requiresTool() const
+{
     return m_owner->requiresTool();
 }
 
-bool BlockState::isStickyBlock() const {
+bool BlockState::isStickyBlock() const
+{
     return m_owner->isStickyBlock(*this);
 }
 
-bool BlockState::canStickTo(const BlockState& other) const {
+bool BlockState::canStickTo(const BlockState& other) const
+{
     return m_owner->canStickTo(*this, other);
 }
 
@@ -171,19 +191,23 @@ bool BlockState::canStickTo(const BlockState& other) const {
 // 火焰相关
 // ============================================================================
 
-i32 BlockState::getFlammability(IWorld* world, const BlockPos* pos, Direction face) const {
+i32 BlockState::getFlammability(IWorld* world, const BlockPos* pos, Direction face) const
+{
     return m_owner->getFlammability(*this, world, pos, face);
 }
 
-i32 BlockState::getFireSpreadSpeed(IWorld* world, const BlockPos* pos, Direction face) const {
+i32 BlockState::getFireSpreadSpeed(IWorld* world, const BlockPos* pos, Direction face) const
+{
     return m_owner->getFireSpreadSpeed(*this, world, pos, face);
 }
 
-bool BlockState::isFireSource(IWorld& world, const BlockPos& pos, Direction side) const {
+bool BlockState::isFireSource(IWorld& world, const BlockPos& pos, Direction side) const
+{
     return m_owner->isFireSource(*this, world, pos, side);
 }
 
-void BlockState::catchFire(IWorld& world, const BlockPos& pos, Direction face, Entity* igniter) const {
+void BlockState::catchFire(IWorld& world, const BlockPos& pos, Direction face, Entity* igniter) const
+{
     m_owner->catchFire(*this, world, pos, face, igniter);
 }
 

@@ -42,8 +42,7 @@ public:
      * @return 爆炸抗性值，如果为空表示不消耗爆炸强度（如空气）
      */
     [[nodiscard]] virtual std::optional<f32> getExplosionResistance(
-        const BlockState& blockState,
-        const fluid::FluidState* fluidState) const;
+        const BlockState& blockState, const fluid::FluidState* fluidState) const;
 
     /**
      * @brief 判断方块是否可被爆炸破坏
@@ -54,9 +53,7 @@ public:
      * @param explosionPower 在该位置的爆炸强度
      * @return true 表示可以破坏
      */
-    [[nodiscard]] virtual bool canDestroyBlock(
-        const BlockState& blockState,
-        f32 explosionPower) const;
+    [[nodiscard]] virtual bool canDestroyBlock(const BlockState& blockState, f32 explosionPower) const;
 };
 
 /**
@@ -74,12 +71,9 @@ public:
     explicit EntityExplosionContext(const Entity* source);
 
     [[nodiscard]] std::optional<f32> getExplosionResistance(
-        const BlockState& blockState,
-        const fluid::FluidState* fluidState) const override;
+        const BlockState& blockState, const fluid::FluidState* fluidState) const override;
 
-    [[nodiscard]] bool canDestroyBlock(
-        const BlockState& blockState,
-        f32 explosionPower) const override;
+    [[nodiscard]] bool canDestroyBlock(const BlockState& blockState, f32 explosionPower) const override;
 
 private:
     const Entity* m_source;

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"
-#include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
 
@@ -24,9 +24,8 @@ public:
      * @param targetStatus 目标生成阶段
      * @param cancelSignal 取消信号
      */
-    using GeneratorFunc = std::function<void(ChunkPrimer& chunk,
-                                             const ChunkStatus& targetStatus,
-                                             const std::atomic<bool>& cancelSignal)>;
+    using GeneratorFunc =
+        std::function<void(ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal)>;
 
     /**
      * @brief 构造区块生成任务
@@ -36,9 +35,7 @@ public:
      * @param targetStatus 目标生成阶段
      * @param generator 生成器函数
      */
-    ChunkGenerateTask(ChunkCoord x, ChunkCoord z,
-                      const ChunkStatus& targetStatus,
-                      GeneratorFunc generator);
+    ChunkGenerateTask(ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, GeneratorFunc generator);
 
     ~ChunkGenerateTask() override = default;
 

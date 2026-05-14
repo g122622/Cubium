@@ -98,9 +98,9 @@ public:
      * @return 任务ID
      */
     u64 submit(std::unique_ptr<ITask> task,
-               TaskCallback callback,
-               TaskPriority priority = TaskPriority::Normal,
-               std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
+        TaskCallback callback,
+        TaskPriority priority = TaskPriority::Normal,
+        std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
 
     // ============================================================================
     // 任务管理
@@ -169,8 +169,8 @@ private:
      * 优先级小的在前，同优先级时间早的在前。
      */
     struct TaskComparator {
-        bool operator()(const std::shared_ptr<InternalTask>& a,
-                        const std::shared_ptr<InternalTask>& b) const {
+        bool operator()(const std::shared_ptr<InternalTask>& a, const std::shared_ptr<InternalTask>& b) const
+        {
             if (a->priority != b->priority) {
                 return static_cast<i8>(a->priority) > static_cast<i8>(b->priority);
             }
@@ -208,9 +208,8 @@ private:
     i32 m_threadCount;
 
     // 任务队列
-    std::priority_queue<std::shared_ptr<InternalTask>,
-                        std::vector<std::shared_ptr<InternalTask>>,
-                        TaskComparator> m_taskQueue;
+    std::priority_queue<std::shared_ptr<InternalTask>, std::vector<std::shared_ptr<InternalTask>>, TaskComparator>
+        m_taskQueue;
     mutable std::mutex m_queueMutex;
     std::condition_variable m_condition;
 

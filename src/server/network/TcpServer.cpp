@@ -1,29 +1,29 @@
 ﻿#include "TcpServer.hpp"
-#include <spdlog/spdlog.h>
 #include <array>
+#include <spdlog/spdlog.h>
 #ifndef _WIN32
 #include <cerrno>
 #endif
 
 #ifdef _WIN32
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #pragma comment(lib, "ws2_32.lib")
-    #define CLOSE_SOCKET closesocket
-    #define INVALID_SOCKET_VALUE INVALID_SOCKET
-    #define SOCKET_ERROR_VALUE SOCKET_ERROR
-    #define SOCKET_TYPE SOCKET
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+#define CLOSE_SOCKET closesocket
+#define INVALID_SOCKET_VALUE INVALID_SOCKET
+#define SOCKET_ERROR_VALUE SOCKET_ERROR
+#define SOCKET_TYPE SOCKET
 #else
-    #include <sys/socket.h>
-    #include <netinet/in.h>
-    #include <netinet/tcp.h>
-    #include <arpa/inet.h>
-    #include <unistd.h>
-    #include <fcntl.h>
-    #define CLOSE_SOCKET close
-    #define INVALID_SOCKET_VALUE -1
-    #define SOCKET_ERROR_VALUE -1
-    #define SOCKET_TYPE int
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#define CLOSE_SOCKET close
+#define INVALID_SOCKET_VALUE -1
+#define SOCKET_ERROR_VALUE -1
+#define SOCKET_TYPE int
 #endif
 
 namespace mc::server {
@@ -31,7 +31,8 @@ namespace mc::server {
 // Winsock初始化辅助类
 class WinsockInitializer {
 public:
-    WinsockInitializer() {
+    WinsockInitializer()
+    {
 #ifdef _WIN32
         WSADATA wsaData;
         m_initialized = (WSAStartup(MAKEWORD(2, 2), &wsaData) == 0);
@@ -41,7 +42,8 @@ public:
 #endif
     }
 
-    ~WinsockInitializer() {
+    ~WinsockInitializer()
+    {
 #ifdef _WIN32
         if (m_initialized) {
             WSACleanup();
@@ -58,27 +60,32 @@ private:
 // 全局Winsock初始化
 static WinsockInitializer s_winsock;
 #ifdef _WIN32
-static bool isWouldBlockError() {
+static bool isWouldBlockError()
+{
     const int err = WSAGetLastError();
     return err == WSAEWOULDBLOCK;
 }
 #else
-static bool isWouldBlockError() {
+static bool isWouldBlockError()
+{
     return errno == EAGAIN || errno == EWOULDBLOCK;
 }
 #endif
 
-TcpServer::TcpServer() {
+TcpServer::TcpServer()
+{
 #ifdef _WIN32
     m_listenSocket = INVALID_SOCKET;
 #endif
 }
 
-TcpServer::~TcpServer() {
+TcpServer::~TcpServer()
+{
     stop();
 }
 
-Result<void> TcpServer::start(const TcpServerConfig& config) {
+Result<void> TcpServer::start(const TcpServerConfig& config)
+{
     if (m_running) {
         return Error(ErrorCode::AlreadyExists, "Server already running");
     }
@@ -101,7 +108,8 @@ Result<void> TcpServer::start(const TcpServerConfig& config) {
     return Result<void>::ok();
 }
 
-void TcpServer::stop() {
+void TcpServer::stop()
+{
     if (!m_running) {
         return;
     }
@@ -122,7 +130,8 @@ void TcpServer::stop() {
     spdlog::info("TCP server stopped");
 }
 
-bool TcpServer::createListenSocket() {
+bool TcpServer::createListenSocket()
+{
     // 创建socket
     m_listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_listenSocket == INVALID_SOCKET_VALUE) {
@@ -132,16 +141,22 @@ bool TcpServer::createListenSocket() {
 
     // 设置SO_REUSEADDR选项
     int optval = 1;
-    if (setsockopt(static_cast<int>(m_listenSocket), SOL_SOCKET, SO_REUSEADDR,
-                   reinterpret_cast<const char*>(&optval), sizeof(optval)) == SOCKET_ERROR_VALUE) {
+    if (setsockopt(static_cast<int>(m_listenSocket),
+            SOL_SOCKET,
+            SO_REUSEADDR,
+            reinterpret_cast<const char*>(&optval),
+            sizeof(optval)) == SOCKET_ERROR_VALUE) {
         spdlog::warn("Failed to set SO_REUSEADDR");
     }
 
     // 设置TCP_NODELAY选项
     if (m_config.noDelay) {
         optval = 1;
-        if (setsockopt(static_cast<int>(m_listenSocket), IPPROTO_TCP, TCP_NODELAY,
-                       reinterpret_cast<const char*>(&optval), sizeof(optval)) == SOCKET_ERROR_VALUE) {
+        if (setsockopt(static_cast<int>(m_listenSocket),
+                IPPROTO_TCP,
+                TCP_NODELAY,
+                reinterpret_cast<const char*>(&optval),
+                sizeof(optval)) == SOCKET_ERROR_VALUE) {
             spdlog::warn("Failed to set TCP_NODELAY");
         }
     }
@@ -152,7 +167,8 @@ bool TcpServer::createListenSocket() {
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(m_config.port);
 
-    if (bind(static_cast<int>(m_listenSocket), reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == SOCKET_ERROR_VALUE) {
+    if (bind(static_cast<int>(m_listenSocket), reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) ==
+        SOCKET_ERROR_VALUE) {
         spdlog::error("Failed to bind socket to port {}", m_config.port);
         closeListenSocket();
         return false;
@@ -177,14 +193,16 @@ bool TcpServer::createListenSocket() {
     return true;
 }
 
-void TcpServer::closeListenSocket() {
+void TcpServer::closeListenSocket()
+{
     if (m_listenSocket != INVALID_SOCKET_VALUE) {
         CLOSE_SOCKET(static_cast<int>(m_listenSocket));
         m_listenSocket = INVALID_SOCKET_VALUE;
     }
 }
 
-void TcpServer::poll() {
+void TcpServer::poll()
+{
     if (!m_running) {
         return;
     }
@@ -223,13 +241,13 @@ void TcpServer::poll() {
     }
 }
 
-void TcpServer::acceptNewConnection() {
+void TcpServer::acceptNewConnection()
+{
     sockaddr_in clientAddr{};
     socklen_t clientAddrLen = static_cast<socklen_t>(sizeof(clientAddr));
 
-    SOCKET_TYPE clientSocket = accept(static_cast<SOCKET_TYPE>(m_listenSocket),
-                              reinterpret_cast<sockaddr*>(&clientAddr),
-                              &clientAddrLen);
+    SOCKET_TYPE clientSocket =
+        accept(static_cast<SOCKET_TYPE>(m_listenSocket), reinterpret_cast<sockaddr*>(&clientAddr), &clientAddrLen);
 
     if (clientSocket == INVALID_SOCKET_VALUE) {
         // 非阻塞模式下没有新连接是正常的
@@ -286,7 +304,8 @@ void TcpServer::acceptNewConnection() {
  * @param session 会话对象
  * @note 非阻塞模式下，WSAEWOULDBLOCK/EAGAIN 视为正常状态。
  */
-void TcpServer::handleSessionData(TcpSession* session) {
+void TcpServer::handleSessionData(TcpSession* session)
+{
     if (session == nullptr || session->state() == SessionState::Disconnected) {
         return;
     }
@@ -299,7 +318,8 @@ void TcpServer::handleSessionData(TcpSession* session) {
     std::array<u8, 8192> buffer{};
     while (true) {
 #ifdef _WIN32
-        const int received = recv(static_cast<SOCKET>(socket), reinterpret_cast<char*>(buffer.data()), static_cast<int>(buffer.size()), 0);
+        const int received = recv(
+            static_cast<SOCKET>(socket), reinterpret_cast<char*>(buffer.data()), static_cast<int>(buffer.size()), 0);
 #else
         const int received = recv(socket, buffer.data(), buffer.size(), 0);
 #endif
@@ -328,7 +348,8 @@ void TcpServer::handleSessionData(TcpSession* session) {
  * @param session 会话对象
  * @note 当前实现按“整包发送”处理，若遇到部分发送会将剩余部分回退到队首。
  */
-void TcpServer::sendSessionData(TcpSession* session) {
+void TcpServer::sendSessionData(TcpSession* session)
+{
     if (session == nullptr || session->state() == SessionState::Disconnected) {
         return;
     }
@@ -347,7 +368,10 @@ void TcpServer::sendSessionData(TcpSession* session) {
         size_t sentTotal = 0;
         while (sentTotal < payload.size()) {
 #ifdef _WIN32
-            const int sent = send(static_cast<SOCKET>(socket), reinterpret_cast<const char*>(payload.data() + sentTotal), static_cast<int>(payload.size() - sentTotal), 0);
+            const int sent = send(static_cast<SOCKET>(socket),
+                reinterpret_cast<const char*>(payload.data() + sentTotal),
+                static_cast<int>(payload.size() - sentTotal),
+                0);
 #else
             const int sent = send(socket, payload.data() + sentTotal, payload.size() - sentTotal, 0);
 #endif
@@ -369,7 +393,8 @@ void TcpServer::sendSessionData(TcpSession* session) {
     }
 }
 
-std::shared_ptr<TcpSession> TcpServer::getSession(SessionId id) {
+std::shared_ptr<TcpSession> TcpServer::getSession(SessionId id)
+{
     std::lock_guard<std::mutex> lock(m_sessionsMutex);
     auto it = m_sessions.find(id);
     if (it != m_sessions.end()) {
@@ -378,44 +403,45 @@ std::shared_ptr<TcpSession> TcpServer::getSession(SessionId id) {
     return nullptr;
 }
 
-size_t TcpServer::getSessionCount() const {
+size_t TcpServer::getSessionCount() const
+{
     std::lock_guard<std::mutex> lock(m_sessionsMutex);
     return m_sessions.size();
 }
 
-void TcpServer::removeSession(SessionId id) {
+void TcpServer::removeSession(SessionId id)
+{
     std::lock_guard<std::mutex> lock(m_sessionsMutex);
     m_sessions.erase(id);
 }
 
-void TcpServer::broadcast(const u8* data, size_t size) {
+void TcpServer::broadcast(const u8* data, size_t size)
+{
     std::lock_guard<std::mutex> lock(m_sessionsMutex);
     for (auto& [id, session] : m_sessions) {
-        if (session->state() == SessionState::Playing ||
-            session->state() == SessionState::Connected) {
+        if (session->state() == SessionState::Playing || session->state() == SessionState::Connected) {
             session->send(data, size);
         }
     }
 }
 
-void TcpServer::broadcastPacket(const network::Packet& packet) {
+void TcpServer::broadcastPacket(const network::Packet& packet)
+{
     auto result = packet.serialize();
     if (result.success()) {
         broadcast(result.value().data(), result.value().size());
     }
 }
 
-void TcpServer::broadcastExcept(SessionId excludeId, const u8* data, size_t size) {
+void TcpServer::broadcastExcept(SessionId excludeId, const u8* data, size_t size)
+{
     std::lock_guard<std::mutex> lock(m_sessionsMutex);
     for (auto& [id, session] : m_sessions) {
         if (id != excludeId &&
-            (session->state() == SessionState::Playing ||
-             session->state() == SessionState::Connected)) {
+            (session->state() == SessionState::Playing || session->state() == SessionState::Connected)) {
             session->send(data, size);
         }
     }
 }
 
 } // namespace mc::server
-
-

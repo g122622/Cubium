@@ -5,17 +5,16 @@ namespace mc::network {
 
 GameStateChangePacket::GameStateChangePacket()
     : Packet(PacketType::GameStateChange)
-{
-}
+{}
 
 GameStateChangePacket::GameStateChangePacket(GameStateChangeReason reason, f32 value)
     : Packet(PacketType::GameStateChange)
     , m_reason(reason)
     , m_value(value)
-{
-}
+{}
 
-Result<std::vector<u8>> GameStateChangePacket::serialize() const {
+Result<std::vector<u8>> GameStateChangePacket::serialize() const
+{
     PacketSerializer serializer(expectedSize());
 
     serializer.writeU8(static_cast<u8>(m_reason));
@@ -26,7 +25,8 @@ Result<std::vector<u8>> GameStateChangePacket::serialize() const {
     return result;
 }
 
-Result<void> GameStateChangePacket::deserialize(const u8* data, size_t size) {
+Result<void> GameStateChangePacket::deserialize(const u8* data, size_t size)
+{
     if (size < expectedSize()) {
         return Error(ErrorCode::InvalidData, "GameStateChangePacket: insufficient data");
     }
@@ -48,7 +48,8 @@ Result<void> GameStateChangePacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
-size_t GameStateChangePacket::expectedSize() const {
+size_t GameStateChangePacket::expectedSize() const
+{
     // 1 byte reason + 4 bytes float
     return 5;
 }

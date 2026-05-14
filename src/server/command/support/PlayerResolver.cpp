@@ -1,16 +1,16 @@
 ﻿#include "PlayerResolver.hpp"
 
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/util/math/random/Random.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <chrono>
+#include <cmath>
 
 namespace mc::command::support {
 
@@ -64,8 +64,7 @@ namespace {
  * @param world 世界实例（用于获取玩家实体）。
  * @return 是否符合条件。
  */
-[[nodiscard]] bool matchesFilter(
-    const server::ServerPlayerData& playerData,
+[[nodiscard]] bool matchesFilter(const server::ServerPlayerData& playerData,
     const EntitySelector& selector,
     server::IServer* server,
     server::ServerWorld* world)
@@ -174,11 +173,12 @@ namespace {
  * @param refY 参考点 Y。
  * @param refZ 参考点 Z。
  */
-void sortPlayerIds(
-    std::vector<PlayerId>& playerIds,
+void sortPlayerIds(std::vector<PlayerId>& playerIds,
     const ServerCommandSource& source,
     const EntitySelector& selector,
-    f32 refX, f32 refY, f32 refZ)
+    f32 refX,
+    f32 refY,
+    f32 refZ)
 {
     auto* server = source.server();
     if (server == nullptr) {
@@ -188,26 +188,24 @@ void sortPlayerIds(
     switch (selector.sort()) {
         case EntitySelectorSort::Nearest: {
             // 按距离近到远排序
-            std::sort(playerIds.begin(), playerIds.end(),
-                [&](PlayerId a, PlayerId b) {
-                    auto* dataA = server->playerManager().getPlayer(a);
-                    auto* dataB = server->playerManager().getPlayer(b);
-                    if (dataA == nullptr) return false;
-                    if (dataB == nullptr) return true;
-                    return distanceSquared(*dataA, refX, refY, refZ) < distanceSquared(*dataB, refX, refY, refZ);
-                });
+            std::sort(playerIds.begin(), playerIds.end(), [&](PlayerId a, PlayerId b) {
+                auto* dataA = server->playerManager().getPlayer(a);
+                auto* dataB = server->playerManager().getPlayer(b);
+                if (dataA == nullptr) return false;
+                if (dataB == nullptr) return true;
+                return distanceSquared(*dataA, refX, refY, refZ) < distanceSquared(*dataB, refX, refY, refZ);
+            });
             break;
         }
         case EntitySelectorSort::Furthest: {
             // 按距离远到近排序
-            std::sort(playerIds.begin(), playerIds.end(),
-                [&](PlayerId a, PlayerId b) {
-                    auto* dataA = server->playerManager().getPlayer(a);
-                    auto* dataB = server->playerManager().getPlayer(b);
-                    if (dataA == nullptr) return false;
-                    if (dataB == nullptr) return true;
-                    return distanceSquared(*dataA, refX, refY, refZ) > distanceSquared(*dataB, refX, refY, refZ);
-                });
+            std::sort(playerIds.begin(), playerIds.end(), [&](PlayerId a, PlayerId b) {
+                auto* dataA = server->playerManager().getPlayer(a);
+                auto* dataB = server->playerManager().getPlayer(b);
+                if (dataA == nullptr) return false;
+                if (dataB == nullptr) return true;
+                return distanceSquared(*dataA, refX, refY, refZ) > distanceSquared(*dataB, refX, refY, refZ);
+            });
             break;
         }
         case EntitySelectorSort::Random: {
@@ -237,11 +235,12 @@ void sortPlayerIds(
  * @param refY 参考点 Y。
  * @param refZ 参考点 Z。
  */
-void applyFilters(
-    std::vector<PlayerId>& playerIds,
+void applyFilters(std::vector<PlayerId>& playerIds,
     const ServerCommandSource& source,
     const EntitySelector& selector,
-    f32 refX, f32 refY, f32 refZ)
+    f32 refX,
+    f32 refY,
+    f32 refZ)
 {
     auto* server = source.server();
     auto* world = source.world();
@@ -251,47 +250,47 @@ void applyFilters(
 
     // 距离过滤
     if (!selector.distance().isUnbounded()) {
-        playerIds.erase(
-            std::remove_if(playerIds.begin(), playerIds.end(),
-                [&](PlayerId id) {
-                    auto* data = server->playerManager().getPlayer(id);
-                    if (data == nullptr) return true;
-                    const f32 distSq = distanceSquared(*data, refX, refY, refZ);
-                    return !selector.distance().testSquared(distSq);
-                }),
+        playerIds.erase(std::remove_if(playerIds.begin(),
+                            playerIds.end(),
+                            [&](PlayerId id) {
+                                auto* data = server->playerManager().getPlayer(id);
+                                if (data == nullptr) return true;
+                                const f32 distSq = distanceSquared(*data, refX, refY, refZ);
+                                return !selector.distance().testSquared(distSq);
+                            }),
             playerIds.end());
     }
 
     // 名称过滤
     if (selector.hasUsername()) {
-        playerIds.erase(
-            std::remove_if(playerIds.begin(), playerIds.end(),
-                [&](PlayerId id) {
-                    auto* data = server->playerManager().getPlayer(id);
-                    if (data == nullptr) return true;
-                    return data->username != selector.username();
-                }),
+        playerIds.erase(std::remove_if(playerIds.begin(),
+                            playerIds.end(),
+                            [&](PlayerId id) {
+                                auto* data = server->playerManager().getPlayer(id);
+                                if (data == nullptr) return true;
+                                return data->username != selector.username();
+                            }),
             playerIds.end());
     }
     if (selector.hasUsernameNegated()) {
-        playerIds.erase(
-            std::remove_if(playerIds.begin(), playerIds.end(),
-                [&](PlayerId id) {
-                    auto* data = server->playerManager().getPlayer(id);
-                    if (data == nullptr) return true;
-                    return data->username == selector.usernameNegated();
-                }),
+        playerIds.erase(std::remove_if(playerIds.begin(),
+                            playerIds.end(),
+                            [&](PlayerId id) {
+                                auto* data = server->playerManager().getPlayer(id);
+                                if (data == nullptr) return true;
+                                return data->username == selector.usernameNegated();
+                            }),
             playerIds.end());
     }
 
     // 通用过滤（包含等级检查和游戏模式检查）
-    playerIds.erase(
-        std::remove_if(playerIds.begin(), playerIds.end(),
-            [&](PlayerId id) {
-                auto* data = server->playerManager().getPlayer(id);
-                if (data == nullptr) return true;
-                return !matchesFilter(*data, selector, server, world);
-            }),
+    playerIds.erase(std::remove_if(playerIds.begin(),
+                        playerIds.end(),
+                        [&](PlayerId id) {
+                            auto* data = server->playerManager().getPlayer(id);
+                            if (data == nullptr) return true;
+                            return !matchesFilter(*data, selector, server, world);
+                        }),
         playerIds.end());
 }
 

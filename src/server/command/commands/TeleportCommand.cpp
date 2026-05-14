@@ -24,8 +24,7 @@ namespace {
  */
 [[nodiscard]] Vector3d readTargetPosition(CommandContext<ServerCommandSource>& context)
 {
-    return Vector3d(
-        static_cast<f64>(context.getArgument<f32>("x")),
+    return Vector3d(static_cast<f64>(context.getArgument<f32>("x")),
         static_cast<f64>(context.getArgument<f32>("y")),
         static_cast<f64>(context.getArgument<f32>("z")));
 }
@@ -39,8 +38,7 @@ namespace {
  *
  * @note 该辅助函数只接受单个玩家结果，多结果由参数类型约束在解析阶段拦截。
  */
-[[nodiscard]] bool tryResolveDestinationPlayer(
-    const ServerCommandSource& source,
+[[nodiscard]] bool tryResolveDestinationPlayer(const ServerCommandSource& source,
     const EntitySelector& selector,
     const server::ServerPlayerData*& destinationPlayer)
 {
@@ -63,8 +61,7 @@ namespace {
  * @param rotation 目标朝向。
  * @return 成功传送的玩家数量。
  */
-[[nodiscard]] i32 teleportPlayers(
-    ServerCommandSource& source,
+[[nodiscard]] i32 teleportPlayers(ServerCommandSource& source,
     const std::vector<PlayerId>& targetPlayerIds,
     const Vector3d& position,
     const Vector2f& rotation)
@@ -79,12 +76,7 @@ namespace {
         }
 
         if (server->teleportManager().requestTeleport(
-                playerId,
-                position.x,
-                position.y,
-                position.z,
-                rotation.x,
-                rotation.y) != 0) {
+                playerId, position.x, position.y, position.z, rotation.x, rotation.y) != 0) {
             ++teleportedCount;
         }
     }
@@ -94,82 +86,48 @@ namespace {
 
 } // namespace
 
-void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
     auto tpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tp");
-    tpNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        tpNode,
-        support::makeMetadata(
-            "Teleport entities.",
+    tpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(tpNode,
+        support::makeMetadata("Teleport entities.",
             "/tp <destination>|<x> <y> <z>|<targets> <destination>|<targets> <x> <y> <z>",
             2,
             {"teleport"},
             true));
 
     auto teleportNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teleport");
-    teleportNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    teleportNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     teleportNode->setRedirect(tpNode);
 
     auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target",
-        EntityArgumentType::player()
-    );
-    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return teleportToEntity(ctx);
-    });
+        "target", EntityArgumentType::player());
+    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportToEntity(ctx); });
 
-    auto selfXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "x",
-        FloatArgumentType::floatArg()
-    );
-    auto selfYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "y",
-        FloatArgumentType::floatArg()
-    );
-    auto selfZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "z",
-        FloatArgumentType::floatArg()
-    );
-    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return teleportToPosition(ctx);
-    });
+    auto selfXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
+    auto selfYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
+    auto selfZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
+    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportToPosition(ctx); });
     selfYArg->addChild(selfZArg);
     selfXArg->addChild(selfYArg);
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::players()
-    );
+        "targets", EntityArgumentType::players());
 
     auto destinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "destination",
-        EntityArgumentType::player()
-    );
-    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return teleportTargetToEntity(ctx);
-    });
+        "destination", EntityArgumentType::player());
+    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportTargetToEntity(ctx); });
 
-    auto targetXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "x",
-        FloatArgumentType::floatArg()
-    );
-    auto targetYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "y",
-        FloatArgumentType::floatArg()
-    );
-    auto targetZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "z",
-        FloatArgumentType::floatArg()
-    );
-    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return teleportTargetToPosition(ctx);
-    });
+    auto targetXArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
+    auto targetYArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
+    auto targetZArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
+    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportTargetToPosition(ctx); });
     targetYArg->addChild(targetZArg);
     targetXArg->addChild(targetYArg);
 
@@ -190,7 +148,8 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
  * @param context 命令上下文。
  * @return 成功时返回 `1`，失败时返回 `0`。
  */
-i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& context) {
+i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
@@ -207,8 +166,7 @@ i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& conte
         return 0;
     }
 
-    const i32 teleportedCount = teleportPlayers(
-        source,
+    const i32 teleportedCount = teleportPlayers(source,
         {source.playerId()},
         Vector3d(destinationPlayer->x, destinationPlayer->y, destinationPlayer->z),
         Vector2f(destinationPlayer->yaw, destinationPlayer->pitch));
@@ -229,7 +187,8 @@ i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& conte
  * @param context 命令上下文。
  * @return 成功时返回 `1`，失败时返回 `0`。
  */
-i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& context) {
+i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
@@ -247,8 +206,7 @@ i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& con
     }
 
     std::ostringstream ss;
-    ss << "Teleported " << source.name() << " to "
-       << position.x << ", " << position.y << ", " << position.z;
+    ss << "Teleported " << source.name() << " to " << position.x << ", " << position.y << ", " << position.z;
     source.sendMessage(ss.str());
     return 1;
 }
@@ -259,7 +217,8 @@ i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& con
  * @param context 命令上下文。
  * @return 成功传送的玩家数量。
  */
-i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>& context) {
+i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
@@ -274,8 +233,7 @@ i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>&
         return 0;
     }
 
-    const i32 teleportedCount = teleportPlayers(
-        source,
+    const i32 teleportedCount = teleportPlayers(source,
         targetPlayerIds,
         Vector3d(destinationPlayer->x, destinationPlayer->y, destinationPlayer->z),
         Vector2f(destinationPlayer->yaw, destinationPlayer->pitch));
@@ -296,7 +254,8 @@ i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>&
  * @param context 命令上下文。
  * @return 成功传送的玩家数量。
  */
-i32 TeleportCommand::teleportTargetToPosition(CommandContext<ServerCommandSource>& context) {
+i32 TeleportCommand::teleportTargetToPosition(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     const EntitySelector targets = context.getArgument<EntitySelector>("targets");
     const auto targetPlayerIds = support::resolvePlayerIds(source, targets);
@@ -309,8 +268,8 @@ i32 TeleportCommand::teleportTargetToPosition(CommandContext<ServerCommandSource
     }
 
     std::ostringstream ss;
-    ss << "Teleported " << teleportedCount << " player(s) to "
-       << position.x << ", " << position.y << ", " << position.z;
+    ss << "Teleported " << teleportedCount << " player(s) to " << position.x << ", " << position.y << ", "
+       << position.z;
     source.sendMessage(ss.str());
     return teleportedCount;
 }

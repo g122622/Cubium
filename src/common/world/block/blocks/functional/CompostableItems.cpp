@@ -13,7 +13,8 @@ bool CompostableItems::s_initialized = false;
 // 公开接口
 // ============================================================================
 
-void CompostableItems::initialize() {
+void CompostableItems::initialize()
+{
     if (s_initialized) {
         return;
     }
@@ -28,7 +29,8 @@ void CompostableItems::initialize() {
     s_initialized = true;
 }
 
-float CompostableItems::getCompostChance(const Item* item) {
+float CompostableItems::getCompostChance(const Item* item)
+{
     if (item == nullptr) {
         return 0.0f;
     }
@@ -40,7 +42,8 @@ float CompostableItems::getCompostChance(const Item* item) {
     return 0.0f;
 }
 
-bool CompostableItems::isCompostable(const Item* item) {
+bool CompostableItems::isCompostable(const Item* item)
+{
     return item != nullptr && s_chances.find(item) != s_chances.end();
 }
 
@@ -48,7 +51,8 @@ bool CompostableItems::isCompostable(const Item* item) {
 // 私有方法
 // ============================================================================
 
-void CompostableItems::registerCompostable(const Item* item, float chance) {
+void CompostableItems::registerCompostable(const Item* item, float chance)
+{
     if (item != nullptr) {
         s_chances[item] = chance;
     }
@@ -58,15 +62,16 @@ void CompostableItems::registerCompostable(const Item* item, float chance) {
 // 30% 概率物品
 // 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.3F, ...)
 // ============================================================================
-void CompostableItems::registerChance30() {
+void CompostableItems::registerChance30()
+{
     // 树叶 (所有种类)
     // 注: 树叶物品需要从方块获取，暂时跳过，等待树叶方块物品注册
 
     // 树苗 (所有种类) - 从 Items 获取
-    registerCompostable(Items::WHEAT_SEEDS, 0.3f);      // 小麦种子
-    registerCompostable(Items::PUMPKIN_SEEDS, 0.3f);    // 南瓜种子
-    registerCompostable(Items::MELON_SEEDS, 0.3f);      // 西瓜种子
-    registerCompostable(Items::BEETROOT_SEEDS, 0.3f);   // 甜菜种子
+    registerCompostable(Items::WHEAT_SEEDS, 0.3f);    // 小麦种子
+    registerCompostable(Items::PUMPKIN_SEEDS, 0.3f);  // 南瓜种子
+    registerCompostable(Items::MELON_SEEDS, 0.3f);    // 西瓜种子
+    registerCompostable(Items::BEETROOT_SEEDS, 0.3f); // 甜菜种子
 
     // 干海带 - 食物
     registerCompostable(Items::DRIED_KELP, 0.3f);
@@ -82,7 +87,8 @@ void CompostableItems::registerChance30() {
 // 50% 概率物品
 // 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.5F, ...)
 // ============================================================================
-void CompostableItems::registerChance50() {
+void CompostableItems::registerChance50()
+{
     // 干海带块 - 需要从方块获取
     // registerCompostable(Items::DRIED_KELP_BLOCK, 0.5f);
 
@@ -100,7 +106,8 @@ void CompostableItems::registerChance50() {
 // 65% 概率物品
 // 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.65F, ...)
 // ============================================================================
-void CompostableItems::registerChance65() {
+void CompostableItems::registerChance65()
+{
     // 苹果
     registerCompostable(Items::APPLE, 0.65f);
 
@@ -142,7 +149,8 @@ void CompostableItems::registerChance65() {
 // 85% 概率物品
 // 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.85F, ...)
 // ============================================================================
-void CompostableItems::registerChance85() {
+void CompostableItems::registerChance85()
+{
     // 面包
     registerCompostable(Items::BREAD, 0.85f);
 
@@ -163,7 +171,8 @@ void CompostableItems::registerChance85() {
 // 100% 概率物品
 // 参考 MC 1.16.5 ComposterBlock.registerCompostable(1.0F, ...)
 // ============================================================================
-void CompostableItems::registerChance100() {
+void CompostableItems::registerChance100()
+{
     // 蛋糕 - 暂未注册
     // registerCompostable(Items::CAKE, 1.0f);
 

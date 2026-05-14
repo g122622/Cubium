@@ -3,63 +3,47 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/player/ServerPlayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/GlobalPos.hpp"
+#include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/PlayerResolver.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto spawnPointNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawnpoint");
-    spawnPointNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        spawnPointNode,
-        support::makeMetadata(
-            "Sets the spawn point for a player.",
-            "/spawnpoint [<player>] [<pos>]",
-            2,
-            {},
-            true));
+    spawnPointNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(spawnPointNode,
+        support::makeMetadata("Sets the spawn point for a player.", "/spawnpoint [<player>] [<pos>]", 2, {}, true));
 
     // /spawnpoint - 设置自己的重生点到当前位置
-    spawnPointNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setSelfSpawnPoint(ctx);
-    });
+    spawnPointNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setSelfSpawnPoint(ctx); });
 
     // /spawnpoint <player>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
-    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setPlayerSpawnPoint(ctx);
-    });
+        "player", EntityArgumentType::player());
+    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPlayerSpawnPoint(ctx); });
 
     // /spawnpoint <player> <pos>
-    auto posNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos",
-        Vec3ArgumentType::vec3()
-    );
-    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setPlayerSpawnPointAtPosition(ctx);
-    });
+    auto posNode =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPlayerSpawnPointAtPosition(ctx); });
 
     playerNode->addChild(posNode);
     spawnPointNode->addChild(playerNode);
     dispatcher.registerCommand(spawnPointNode);
 }
 
-i32 SpawnPointCommand::setSelfSpawnPoint(CommandContext<ServerCommandSource>& context) {
+i32 SpawnPointCommand::setSelfSpawnPoint(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     ServerPlayer* player = source.player();
@@ -69,14 +53,12 @@ i32 SpawnPointCommand::setSelfSpawnPoint(CommandContext<ServerCommandSource>& co
     }
 
     const Vector3d& pos = source.position();
-    BlockPos spawnPos(
-        static_cast<BlockCoord>(std::floor(pos.x)),
+    BlockPos spawnPos(static_cast<BlockCoord>(std::floor(pos.x)),
         static_cast<BlockCoord>(std::floor(pos.y)),
-        static_cast<BlockCoord>(std::floor(pos.z))
-    );
+        static_cast<BlockCoord>(std::floor(pos.z)));
 
     // 获取当前维度
-    DimensionId dimensionId = DimensionId(0);  // 默认主世界
+    DimensionId dimensionId = DimensionId(0); // 默认主世界
     if (source.world() != nullptr) {
         dimensionId = source.world()->dimension();
     }
@@ -85,14 +67,14 @@ i32 SpawnPointCommand::setSelfSpawnPoint(CommandContext<ServerCommandSource>& co
     player->setSpawnPoint(dimensionId, spawnPos, false);
 
     std::ostringstream ss;
-    ss << "Set spawn point to "
-       << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z;
+    ss << "Set spawn point to " << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z;
     source.sendMessage(ss.str());
 
     return 1;
 }
 
-i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& context) {
+i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -125,17 +107,15 @@ i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& 
 
         // 使用玩家的当前位置作为重生点
         const Vector3& pos = player->position();
-        BlockPos spawnPos(
-            static_cast<BlockCoord>(std::floor(pos.x)),
+        BlockPos spawnPos(static_cast<BlockCoord>(std::floor(pos.x)),
             static_cast<BlockCoord>(std::floor(pos.y)),
-            static_cast<BlockCoord>(std::floor(pos.z))
-        );
+            static_cast<BlockCoord>(std::floor(pos.z)));
 
         player->setSpawnPoint(dimensionId, spawnPos, false);
 
         std::ostringstream ss;
-        ss << "Set spawn point for " << player->username() << " to "
-           << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z;
+        ss << "Set spawn point for " << player->username() << " to " << spawnPos.x << ", " << spawnPos.y << ", "
+           << spawnPos.z;
         source.sendMessage(ss.str());
         successCount++;
     }
@@ -143,7 +123,8 @@ i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& 
     return successCount;
 }
 
-i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerCommandSource>& context) {
+i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -167,11 +148,9 @@ i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerComman
     }
 
     const auto& pos = context.getArgument<Vector3d>("pos");
-    BlockPos spawnPos(
-        static_cast<BlockCoord>(std::floor(pos.x)),
+    BlockPos spawnPos(static_cast<BlockCoord>(std::floor(pos.x)),
         static_cast<BlockCoord>(std::floor(pos.y)),
-        static_cast<BlockCoord>(std::floor(pos.z))
-    );
+        static_cast<BlockCoord>(std::floor(pos.z)));
 
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
@@ -184,8 +163,8 @@ i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerComman
         player->setSpawnPoint(dimensionId, spawnPos, false);
 
         std::ostringstream ss;
-        ss << "Set spawn point for " << player->username() << " to "
-           << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z;
+        ss << "Set spawn point for " << player->username() << " to " << spawnPos.x << ", " << spawnPos.y << ", "
+           << spawnPos.z;
         source.sendMessage(ss.str());
         successCount++;
     }

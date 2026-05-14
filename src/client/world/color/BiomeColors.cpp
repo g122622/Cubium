@@ -14,11 +14,8 @@ std::unique_ptr<WaterColorResolver> BiomeColors::s_waterColorResolver;
 
 // === GrassColorResolver ===
 
-u32 GrassColorResolver::getColor(
-    const Biome& biome,
-    f64 x,
-    f64 z
-) const {
+u32 GrassColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
+{
     // 1. 检查是否有覆盖颜色
     auto overrideColor = biome.effects().grassColor();
     if (overrideColor.has_value()) {
@@ -29,11 +26,10 @@ u32 GrassColorResolver::getColor(
     switch (biome.effects().grassColorModifier()) {
         case world::biome::GrassColorModifier::Swamp: {
             // 沼泽使用双色噪声混合
-            return BiomeColors::calculateSwampColor(
-                x, z,
+            return BiomeColors::calculateSwampColor(x,
+                z,
                 world::biome::BiomeEffects::SWAMP_GRASS_COLOR,
-                world::biome::BiomeEffects::SWAMP_GRASS_COLOR_DARK
-            );
+                world::biome::BiomeEffects::SWAMP_GRASS_COLOR_DARK);
         }
         case world::biome::GrassColorModifier::DarkForest: {
             // 黑森林：草颜色变暗
@@ -53,11 +49,8 @@ u32 GrassColorResolver::getColor(
 
 // === FoliageColorResolver ===
 
-u32 FoliageColorResolver::getColor(
-    const Biome& biome,
-    f64 x,
-    f64 z
-) const {
+u32 FoliageColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
+{
     // 1. 检查是否有覆盖颜色
     auto overrideColor = biome.effects().foliageColor();
     if (overrideColor.has_value()) {
@@ -68,11 +61,10 @@ u32 FoliageColorResolver::getColor(
     switch (biome.effects().grassColorModifier()) {
         case world::biome::GrassColorModifier::Swamp: {
             // 沼泽树叶使用相同的双色混合
-            return BiomeColors::calculateSwampColor(
-                x, z,
+            return BiomeColors::calculateSwampColor(x,
+                z,
                 world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR,
-                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK
-            );
+                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK);
         }
         case world::biome::GrassColorModifier::Badlands: {
             // 恶地树叶颜色
@@ -88,44 +80,40 @@ u32 FoliageColorResolver::getColor(
 
 // === WaterColorResolver ===
 
-u32 WaterColorResolver::getColor(
-    const Biome& biome,
-    f64 x,
-    f64 z
-) const {
+u32 WaterColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
+{
     // 水颜色直接从 BiomeEffects 获取
     return biome.waterColor();
 }
 
 // === BiomeColors ===
 
-const ColorResolver& BiomeColors::grassColorResolver() {
+const ColorResolver& BiomeColors::grassColorResolver()
+{
     if (!s_grassColorResolver) {
         s_grassColorResolver = std::make_unique<GrassColorResolver>();
     }
     return *s_grassColorResolver;
 }
 
-const ColorResolver& BiomeColors::foliageColorResolver() {
+const ColorResolver& BiomeColors::foliageColorResolver()
+{
     if (!s_foliageColorResolver) {
         s_foliageColorResolver = std::make_unique<FoliageColorResolver>();
     }
     return *s_foliageColorResolver;
 }
 
-const ColorResolver& BiomeColors::waterColorResolver() {
+const ColorResolver& BiomeColors::waterColorResolver()
+{
     if (!s_waterColorResolver) {
         s_waterColorResolver = std::make_unique<WaterColorResolver>();
     }
     return *s_waterColorResolver;
 }
 
-u32 BiomeColors::calculateSwampColor(
-    f64 x,
-    f64 z,
-    u32 color1,
-    u32 color2
-) {
+u32 BiomeColors::calculateSwampColor(f64 x, f64 z, u32 color1, u32 color2)
+{
     // MC 1.16.5 沼泽颜色算法
     // 使用 2D Perlin 噪声变体进行双色混合
     // 简化实现：使用正弦函数模拟噪声
@@ -139,8 +127,7 @@ u32 BiomeColors::calculateSwampColor(
     // return noise < -0.1 ? 0x4C6139 : 0x6A7039;
 
     // 简化实现：使用确定性哈希
-    const i64 seed = static_cast<i64>(std::floor(x * 0.0225)) * 31337 +
-                     static_cast<i64>(std::floor(z * 0.0225)) * 7919;
+    const i64 seed = static_cast<i64>(std::floor(x * 0.0225)) * 31337 + static_cast<i64>(std::floor(z * 0.0225)) * 7919;
 
     // 简单的哈希函数
     i64 hash = seed;
@@ -149,8 +136,8 @@ u32 BiomeColors::calculateSwampColor(
     hash = hash ^ (hash >> 31);
 
     // 将哈希值映射到 [-1, 1] 范围
-    const f64 noise = static_cast<f64>(hash & 0x7FFFFFFFFFFFFFFFLL) /
-                      static_cast<f64>(0x7FFFFFFFFFFFFFFFLL) * 2.0 - 1.0;
+    const f64 noise =
+        static_cast<f64>(hash & 0x7FFFFFFFFFFFFFFFLL) / static_cast<f64>(0x7FFFFFFFFFFFFFFFLL) * 2.0 - 1.0;
 
     // 根据噪声值选择颜色
     return noise < -0.1 ? color2 : color1;

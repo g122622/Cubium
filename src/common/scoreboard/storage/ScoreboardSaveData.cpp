@@ -10,7 +10,8 @@ namespace mc::scoreboard {
 
 // ========== ObjectiveData ==========
 
-nbt::tags::compound_tag ScoreboardSaveData::ObjectiveData::toNbt() const {
+nbt::tags::compound_tag ScoreboardSaveData::ObjectiveData::toNbt() const
+{
     nbt::tags::compound_tag tag;
     tag.put("Name", name);
     tag.put("CriteriaName", criteriaName);
@@ -19,7 +20,8 @@ nbt::tags::compound_tag ScoreboardSaveData::ObjectiveData::toNbt() const {
     return tag;
 }
 
-Result<ScoreboardSaveData::ObjectiveData> ScoreboardSaveData::ObjectiveData::fromNbt(const nbt::tags::compound_tag& tag) {
+Result<ScoreboardSaveData::ObjectiveData> ScoreboardSaveData::ObjectiveData::fromNbt(const nbt::tags::compound_tag& tag)
+{
     ObjectiveData data;
 
     auto nameIt = tag.value.find("Name");
@@ -71,7 +73,8 @@ Result<ScoreboardSaveData::ObjectiveData> ScoreboardSaveData::ObjectiveData::fro
 
 // ========== ScoreData ==========
 
-nbt::tags::compound_tag ScoreboardSaveData::ScoreData::toNbt() const {
+nbt::tags::compound_tag ScoreboardSaveData::ScoreData::toNbt() const
+{
     nbt::tags::compound_tag tag;
     tag.put("Name", playerName);
     tag.put("Objective", objectiveName);
@@ -83,7 +86,8 @@ nbt::tags::compound_tag ScoreboardSaveData::ScoreData::toNbt() const {
     return tag;
 }
 
-Result<ScoreboardSaveData::ScoreData> ScoreboardSaveData::ScoreData::fromNbt(const nbt::tags::compound_tag& tag) {
+Result<ScoreboardSaveData::ScoreData> ScoreboardSaveData::ScoreData::fromNbt(const nbt::tags::compound_tag& tag)
+{
     ScoreData data;
 
     auto nameIt = tag.value.find("Name");
@@ -127,7 +131,8 @@ Result<ScoreboardSaveData::ScoreData> ScoreboardSaveData::ScoreData::fromNbt(con
 
 // ========== TeamData ==========
 
-nbt::tags::compound_tag ScoreboardSaveData::TeamData::toNbt() const {
+nbt::tags::compound_tag ScoreboardSaveData::TeamData::toNbt() const
+{
     nbt::tags::compound_tag tag;
     tag.put("TeamName", name);
     tag.put("DisplayName", displayName);
@@ -158,7 +163,8 @@ nbt::tags::compound_tag ScoreboardSaveData::TeamData::toNbt() const {
     return tag;
 }
 
-Result<ScoreboardSaveData::TeamData> ScoreboardSaveData::TeamData::fromNbt(const nbt::tags::compound_tag& tag) {
+Result<ScoreboardSaveData::TeamData> ScoreboardSaveData::TeamData::fromNbt(const nbt::tags::compound_tag& tag)
+{
     TeamData data;
 
     auto nameIt = tag.value.find("TeamName");
@@ -293,14 +299,17 @@ Result<ScoreboardSaveData::TeamData> ScoreboardSaveData::TeamData::fromNbt(const
 
 // ========== DisplaySlotData ==========
 
-nbt::tags::compound_tag ScoreboardSaveData::DisplaySlotData::toNbt() const {
+nbt::tags::compound_tag ScoreboardSaveData::DisplaySlotData::toNbt() const
+{
     nbt::tags::compound_tag tag;
     tag.put("Slot", slot);
     tag.put("Objective", objectiveName);
     return tag;
 }
 
-Result<ScoreboardSaveData::DisplaySlotData> ScoreboardSaveData::DisplaySlotData::fromNbt(const nbt::tags::compound_tag& tag) {
+Result<ScoreboardSaveData::DisplaySlotData> ScoreboardSaveData::DisplaySlotData::fromNbt(
+    const nbt::tags::compound_tag& tag)
+{
     DisplaySlotData data;
 
     auto slotIt = tag.value.find("Slot");
@@ -328,7 +337,8 @@ Result<ScoreboardSaveData::DisplaySlotData> ScoreboardSaveData::DisplaySlotData:
 
 // ========== ScoreboardSaveData ==========
 
-ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboard) {
+ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboard)
+{
     ScoreboardSaveData data;
 
     // 注意：由于 getSortedScores 需要非 const 引用，我们需要 const_cast
@@ -414,7 +424,8 @@ ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboa
     return data;
 }
 
-Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const {
+Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
+{
     auto& registry = ScoreCriteriaRegistry::instance();
 
     // 添加目标
@@ -424,7 +435,7 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
             // 使用 dummy 作为默认判据
             criteria = registry.getCriteria("dummy");
             if (!criteria) {
-                continue;  // 跳过无法创建的目标
+                continue; // 跳过无法创建的目标
             }
         }
 
@@ -434,7 +445,8 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
             try {
                 nlohmann::json json = nlohmann::json::parse(objData.displayName);
                 displayName = text::ITextComponent::fromJson(json);
-            } catch (const nlohmann::json::exception&) {
+            }
+            catch (const nlohmann::json::exception&) {
                 // JSON 解析失败，使用纯文本
                 displayName = std::make_unique<text::StringTextComponent>(objData.displayName);
             }
@@ -479,7 +491,8 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
                 if (displayName) {
                     team->setDisplayName(std::move(displayName));
                 }
-            } catch (const nlohmann::json::exception&) {
+            }
+            catch (const nlohmann::json::exception&) {
                 // JSON 解析失败，使用纯文本
                 team->setDisplayName(std::make_unique<text::StringTextComponent>(teamData.displayName));
             }
@@ -493,7 +506,8 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
                 if (prefix) {
                     team->setPrefix(std::move(prefix));
                 }
-            } catch (const nlohmann::json::exception&) {
+            }
+            catch (const nlohmann::json::exception&) {
                 // JSON 解析失败，使用纯文本
                 team->setPrefix(std::make_unique<text::StringTextComponent>(teamData.prefix));
             }
@@ -507,7 +521,8 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
                 if (suffix) {
                     team->setSuffix(std::move(suffix));
                 }
-            } catch (const nlohmann::json::exception&) {
+            }
+            catch (const nlohmann::json::exception&) {
                 // JSON 解析失败，使用纯文本
                 team->setSuffix(std::make_unique<text::StringTextComponent>(teamData.suffix));
             }
@@ -543,7 +558,8 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
     return {};
 }
 
-nbt::tags::compound_tag ScoreboardSaveData::toNbt() const {
+nbt::tags::compound_tag ScoreboardSaveData::toNbt() const
+{
     nbt::tags::compound_tag root;
 
     // 目标列表
@@ -581,7 +597,8 @@ nbt::tags::compound_tag ScoreboardSaveData::toNbt() const {
     return root;
 }
 
-Result<ScoreboardSaveData> ScoreboardSaveData::fromNbt(const nbt::tags::compound_tag& tag) {
+Result<ScoreboardSaveData> ScoreboardSaveData::fromNbt(const nbt::tags::compound_tag& tag)
+{
     ScoreboardSaveData data;
 
     // 读取目标
@@ -645,7 +662,8 @@ Result<ScoreboardSaveData> ScoreboardSaveData::fromNbt(const nbt::tags::compound
 
 // ========== 辅助函数：NBT序列化 ==========
 
-static Result<std::vector<u8>> serializeNbtToBytes(const nbt::tags::compound_tag& tag) {
+static Result<std::vector<u8>> serializeNbtToBytes(const nbt::tags::compound_tag& tag)
+{
     std::ostringstream oss(std::ios::binary);
     oss << nbt::Contexts::java;
     nbt::operator<<(oss, tag);
@@ -656,7 +674,8 @@ static Result<std::vector<u8>> serializeNbtToBytes(const nbt::tags::compound_tag
     return std::vector<u8>(str.begin(), str.end());
 }
 
-static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector<u8>& data) {
+static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector<u8>& data)
+{
     std::istringstream iss(std::string(data.begin(), data.end()), std::ios::binary);
     iss >> nbt::Contexts::java;
     auto root = nbt::tags::compound_tag::read(iss);
@@ -666,12 +685,14 @@ static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector
     return std::move(*root);
 }
 
-Result<std::vector<u8>> ScoreboardSaveData::serialize() const {
+Result<std::vector<u8>> ScoreboardSaveData::serialize() const
+{
     auto nbt = toNbt();
     return serializeNbtToBytes(nbt);
 }
 
-Result<ScoreboardSaveData> ScoreboardSaveData::deserialize(const std::vector<u8>& data) {
+Result<ScoreboardSaveData> ScoreboardSaveData::deserialize(const std::vector<u8>& data)
+{
     auto nbtResult = deserializeNbtFromBytes(data);
     if (nbtResult.failed()) {
         return nbtResult.error();

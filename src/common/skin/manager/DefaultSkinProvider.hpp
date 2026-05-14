@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include <array>
@@ -95,8 +95,8 @@ private:
     ResourceLocation m_steveLocation{"minecraft:textures/entity/steve.png"};
     ResourceLocation m_alexLocation{"minecraft:textures/entity/alex.png"};
 
-    std::vector<u8> m_steveData;  // Steve 皮肤 PNG 数据
-    std::vector<u8> m_alexData;   // Alex 皮肤 PNG 数据
+    std::vector<u8> m_steveData; // Steve 皮肤 PNG 数据
+    std::vector<u8> m_alexData;  // Alex 皮肤 PNG 数据
 
     bool m_initialized = false;
 };

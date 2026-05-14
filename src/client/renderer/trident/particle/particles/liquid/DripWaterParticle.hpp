@@ -27,31 +27,27 @@ public:
      * @brief 工厂方法：创建水滴粒子（悬挂状态）
      */
     static std::unique_ptr<Particle> createDripping(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建下落水滴粒子
      */
     static std::unique_ptr<Particle> createFalling(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
      * @brief 工厂方法：创建落地水滴粒子
      */
     static std::unique_ptr<Particle> createLanding(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         // 根据状态返回不同纹理
         if (m_dripState == DripState::Landed) {
             return ResourceLocation("minecraft:particle/splash");

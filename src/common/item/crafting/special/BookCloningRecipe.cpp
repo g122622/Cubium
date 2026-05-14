@@ -5,10 +5,11 @@ namespace mc {
 namespace crafting {
 
 BookCloningRecipe::BookCloningRecipe(const ResourceLocation& id)
-    : SpecialRecipe(id) {
-}
+    : SpecialRecipe(id)
+{}
 
-bool BookCloningRecipe::matches(const CraftingInventory& inventory) const {
+bool BookCloningRecipe::matches(const CraftingInventory& inventory) const
+{
     bool hasWrittenBook = false;
     bool hasWritableBook = false;
 
@@ -39,7 +40,8 @@ bool BookCloningRecipe::matches(const CraftingInventory& inventory) const {
     return hasWrittenBook && hasWritableBook;
 }
 
-ItemStack BookCloningRecipe::assemble(const CraftingInventory& inventory) const {
+ItemStack BookCloningRecipe::assemble(const CraftingInventory& inventory) const
+{
     ItemStack writtenBook;
     i32 writableBookCount = 0;
 
@@ -74,7 +76,8 @@ ItemStack BookCloningRecipe::assemble(const CraftingInventory& inventory) const 
     return result;
 }
 
-std::vector<ItemStack> BookCloningRecipe::getRemainingItems(const CraftingInventory& inventory) const {
+std::vector<ItemStack> BookCloningRecipe::getRemainingItems(const CraftingInventory& inventory) const
+{
     std::vector<ItemStack> remaining(inventory.getContainerSize());
 
     // 保留原书（只有一本）
@@ -91,7 +94,8 @@ std::vector<ItemStack> BookCloningRecipe::getRemainingItems(const CraftingInvent
     return remaining;
 }
 
-bool BookCloningRecipe::isWrittenBook(const ItemStack& stack) {
+bool BookCloningRecipe::isWrittenBook(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -100,7 +104,8 @@ bool BookCloningRecipe::isWrittenBook(const ItemStack& stack) {
     return item == Items::WRITTEN_BOOK;
 }
 
-bool BookCloningRecipe::isWritableBook(const ItemStack& stack) {
+bool BookCloningRecipe::isWritableBook(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -109,7 +114,8 @@ bool BookCloningRecipe::isWritableBook(const ItemStack& stack) {
     return item == Items::WRITABLE_BOOK;
 }
 
-i32 BookCloningRecipe::getGeneration(const ItemStack& stack) {
+i32 BookCloningRecipe::getGeneration(const ItemStack& stack)
+{
     // 从 NBT 标签获取代数
     const nlohmann::json* tag = stack.getTag();
     if (tag == nullptr || !tag->is_object()) {
@@ -124,7 +130,8 @@ i32 BookCloningRecipe::getGeneration(const ItemStack& stack) {
     return it->get<i32>();
 }
 
-void BookCloningRecipe::setGeneration(ItemStack& stack, i32 generation) {
+void BookCloningRecipe::setGeneration(ItemStack& stack, i32 generation)
+{
     nlohmann::json& tag = stack.getOrCreateTag();
     tag["generation"] = generation;
 }

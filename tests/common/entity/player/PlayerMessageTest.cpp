@@ -7,10 +7,10 @@
  * - canReceiveMessages 默认返回 false
  */
 
-#include <gtest/gtest.h>
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/entities/player/ChatVisibility.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/ChatVisibility.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -20,45 +20,46 @@ namespace {
  */
 class PlayerMessageTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        player = std::make_unique<Player>(1, "TestPlayer");
-    }
+    void SetUp() override { player = std::make_unique<Player>(1, "TestPlayer"); }
 
-    void TearDown() override {
-        player.reset();
-    }
+    void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
 };
 
 // ========== sendStatusMessage 测试 ==========
 
-TEST_F(PlayerMessageTest, SendStatusMessageDoesNotThrow) {
+TEST_F(PlayerMessageTest, SendStatusMessageDoesNotThrow)
+{
     // Player 基类的 sendStatusMessage 应该是空操作，不会抛出异常
     EXPECT_NO_THROW(player->sendStatusMessage("test.message"));
     EXPECT_NO_THROW(player->sendStatusMessage("another.message", true));
     EXPECT_NO_THROW(player->sendStatusMessage("third.message", false));
 }
 
-TEST_F(PlayerMessageTest, SendStatusMessageWithActionBarParameter) {
+TEST_F(PlayerMessageTest, SendStatusMessageWithActionBarParameter)
+{
     // 测试 actionBar 参数的两种情况都不抛出异常
     EXPECT_NO_THROW(player->sendStatusMessage("test.actionbar.true", true));
     EXPECT_NO_THROW(player->sendStatusMessage("test.actionbar.false", false));
 }
 
-TEST_F(PlayerMessageTest, SendStatusMessageWithEmptyString) {
+TEST_F(PlayerMessageTest, SendStatusMessageWithEmptyString)
+{
     // 空字符串应该也不会抛出异常
     EXPECT_NO_THROW(player->sendStatusMessage(""));
     EXPECT_NO_THROW(player->sendStatusMessage("", true));
 }
 
-TEST_F(PlayerMessageTest, SendStatusMessageWithLongMessage) {
+TEST_F(PlayerMessageTest, SendStatusMessageWithLongMessage)
+{
     // 长消息也应该正常处理
     std::string longMessage(1000, 'a');
     EXPECT_NO_THROW(player->sendStatusMessage(longMessage));
 }
 
-TEST_F(PlayerMessageTest, SendStatusMessageWithTranslationKey) {
+TEST_F(PlayerMessageTest, SendStatusMessageWithTranslationKey)
+{
     // 测试翻译键格式
     EXPECT_NO_THROW(player->sendStatusMessage("block.minecraft.bed.occupied"));
     EXPECT_NO_THROW(player->sendStatusMessage("block.minecraft.bed.too_far_away"));
@@ -69,12 +70,14 @@ TEST_F(PlayerMessageTest, SendStatusMessageWithTranslationKey) {
 
 // ========== canReceiveMessages 测试 ==========
 
-TEST_F(PlayerMessageTest, CanReceiveMessagesDefaultFalse) {
+TEST_F(PlayerMessageTest, CanReceiveMessagesDefaultFalse)
+{
     // Player 基类的 canReceiveMessages 默认返回 false
     EXPECT_FALSE(player->canReceiveMessages());
 }
 
-TEST_F(PlayerMessageTest, CanReceiveMessagesAfterStateChange) {
+TEST_F(PlayerMessageTest, CanReceiveMessagesAfterStateChange)
+{
     // Player 基类的 canReceiveMessages 始终返回 false
     // 因为基类没有网络连接能力
     EXPECT_FALSE(player->canReceiveMessages());
@@ -86,7 +89,8 @@ TEST_F(PlayerMessageTest, CanReceiveMessagesAfterStateChange) {
 
 // ========== 虚方法多态性测试 ==========
 
-TEST_F(PlayerMessageTest, VirtualMethodCanBeOverridden) {
+TEST_F(PlayerMessageTest, VirtualMethodCanBeOverridden)
+{
     // 确认 sendStatusMessage 是虚方法，可以被子类重写
     // 这个测试验证方法签名正确
 

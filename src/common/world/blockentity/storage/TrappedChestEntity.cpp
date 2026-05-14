@@ -1,19 +1,20 @@
 ﻿#include "world/blockentity/storage/TrappedChestEntity.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
-#include "entity/entities/player/Player.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
-#include "util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blockentity {
 
 TrappedChestEntity::TrappedChestEntity(const BlockPos& pos)
-    : ChestEntity(BlockEntityType::TrappedChest, pos) {
-}
+    : ChestEntity(BlockEntityType::TrappedChest, pos)
+{}
 
-std::unique_ptr<BlockEntity> TrappedChestEntity::clone() const {
+std::unique_ptr<BlockEntity> TrappedChestEntity::clone() const
+{
     auto cloned = std::make_unique<TrappedChestEntity>(getPos());
 
     nlohmann::json state;
@@ -24,7 +25,8 @@ std::unique_ptr<BlockEntity> TrappedChestEntity::clone() const {
     return cloned;
 }
 
-i32 TrappedChestEntity::getRedstoneSignal(IWorld& world) const {
+i32 TrappedChestEntity::getRedstoneSignal(IWorld& world) const
+{
     // 信号强度等于打开玩家数，但不超过15
     i32 playerCount = getOpenCount();
 
@@ -37,7 +39,8 @@ i32 TrappedChestEntity::getRedstoneSignal(IWorld& world) const {
     return std::min(playerCount, 15);
 }
 
-void TrappedChestEntity::openContainer(Player* player) {
+void TrappedChestEntity::openContainer(Player* player)
+{
     // 先增加计数
     ChestEntity::openContainer(player);
 
@@ -46,7 +49,8 @@ void TrappedChestEntity::openContainer(Player* player) {
     }
 }
 
-void TrappedChestEntity::closeContainer(Player* player) {
+void TrappedChestEntity::closeContainer(Player* player)
+{
     // 先减少计数
     ChestEntity::closeContainer(player);
 
@@ -55,15 +59,15 @@ void TrappedChestEntity::closeContainer(Player* player) {
     }
 }
 
-void TrappedChestEntity::notifyNeighbors(IWorld& world) {
+void TrappedChestEntity::notifyNeighbors(IWorld& world)
+{
     const BlockState* state = world.getBlockState(getPos());
     if (state == nullptr) {
         return;
     }
 
     const Block& block = state->getBlock();
-    world::redstone::RedstoneSystem::instance().updateNeighbors(
-        world, getPos(), const_cast<Block&>(block));
+    world::redstone::RedstoneSystem::instance().updateNeighbors(world, getPos(), const_cast<Block&>(block));
     world::redstone::RedstoneSystem::instance().updateComparators(world, getPos());
 }
 

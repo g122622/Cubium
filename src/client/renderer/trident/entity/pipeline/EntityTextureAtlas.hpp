@@ -1,18 +1,18 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "client/renderer/MeshTypes.hpp"
-#include <vulkan/vulkan.h>
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <string>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <filesystem>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc {
-class IResourcePack;  // Forward declaration in mc namespace
+class IResourcePack; // Forward declaration in mc namespace
 }
 
 namespace mc::client::renderer::entity::pipeline {
@@ -56,11 +56,11 @@ public:
      * @param textureSize 单个纹理大小（默认64）
      */
     [[nodiscard]] Result<void> initialize(VkDevice device,
-                                           VkPhysicalDevice physicalDevice,
-                                           VkCommandPool commandPool,
-                                           VkQueue graphicsQueue,
-                                           u32 maxTextures = 256,
-                                           u32 textureSize = 64);
+        VkPhysicalDevice physicalDevice,
+        VkCommandPool commandPool,
+        VkQueue graphicsQueue,
+        u32 maxTextures = 256,
+        u32 textureSize = 64);
 
     /**
      * @brief 销毁资源
@@ -84,8 +84,8 @@ public:
      * @param location 图集中的资源位置键
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> addTextureFromFile(const std::filesystem::path& filePath,
-                                                  const ResourceLocation& location);
+    [[nodiscard]] Result<void> addTextureFromFile(
+        const std::filesystem::path& filePath, const ResourceLocation& location);
 
     /**
      * @brief 从原始像素数据添加纹理
@@ -99,10 +99,8 @@ public:
      * @param location 图集中的资源位置键
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> addTextureFromPixels(const std::vector<u8>& pixels,
-                                                     u32 width,
-                                                     u32 height,
-                                                     const ResourceLocation& location);
+    [[nodiscard]] Result<void> addTextureFromPixels(
+        const std::vector<u8>& pixels, u32 width, u32 height, const ResourceLocation& location);
 
     /**
      * @brief 是否需要重建
@@ -213,10 +211,10 @@ private:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> loadTextureWithFallback(mc::IResourcePack& pack,
-                                                        const ResourceLocation& location,
-                                                        std::vector<u8>& outData,
-                                                        u32& outWidth,
-                                                        u32& outHeight);
+        const ResourceLocation& location,
+        std::vector<u8>& outData,
+        u32& outWidth,
+        u32& outHeight);
 
     /**
      * @brief 创建纹理采样器

@@ -1,14 +1,14 @@
 #include "ItemEntity.hpp"
-#include "../player/Player.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
-#include "../../../world/entity/EntityManager.hpp"
-#include "../../../world/IWorld.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
-#include <cmath>
-#include <chrono>
-#include <atomic>
+#include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/entity/EntityManager.hpp"
+#include "../player/Player.hpp"
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
 
 namespace mc {
 
@@ -16,7 +16,8 @@ namespace mc {
 // 静态工厂方法
 // ============================================================================
 
-std::unique_ptr<Entity> ItemEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ItemEntity::create(IWorld* /*world*/)
+{
     // 创建一个空的物品实体，使用临时ID 0
     // 实际ID会在 EntityManager::addEntity() 时分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
@@ -39,13 +40,11 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z)
     math::Random rng(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
     m_velocity.x = rng.nextFloat(-0.1f, 0.1f);
-    m_velocity.y = 0.2f;  // 轻微向上
+    m_velocity.y = 0.2f; // 轻微向上
     m_velocity.z = rng.nextFloat(-0.1f, 0.1f);
 }
 
-ItemEntity::ItemEntity(EntityId id, const ItemStack& stack,
-                       f32 x, f32 y, f32 z,
-                       f32 vx, f32 vy, f32 vz)
+ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz)
     : Entity(LegacyEntityType::Item, id)
     , m_itemStack(stack)
 {
@@ -58,7 +57,8 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack,
 // 物品操作
 // ============================================================================
 
-void ItemEntity::setItemStack(const ItemStack& stack) {
+void ItemEntity::setItemStack(const ItemStack& stack)
+{
     m_itemStack = stack;
 }
 
@@ -66,7 +66,8 @@ void ItemEntity::setItemStack(const ItemStack& stack) {
 // Entity 接口
 // ============================================================================
 
-void ItemEntity::tick() {
+void ItemEntity::tick()
+{
     // 更新前保存位置
     m_prevPosition = m_position;
     m_prevYaw = m_yaw;
@@ -100,7 +101,8 @@ void ItemEntity::tick() {
 // 玩家拾取
 // ============================================================================
 
-bool ItemEntity::onPlayerPickup(Player& player) {
+bool ItemEntity::onPlayerPickup(Player& player)
+{
     if (!canBePickedUp()) {
         return false;
     }
@@ -123,7 +125,8 @@ bool ItemEntity::onPlayerPickup(Player& player) {
     return true;
 }
 
-void ItemEntity::setOwner(const std::string& ownerUuid, const std::string& throwerUuid) {
+void ItemEntity::setOwner(const std::string& ownerUuid, const std::string& throwerUuid)
+{
     m_ownerUuid = ownerUuid;
     m_throwerUuid = throwerUuid;
 }
@@ -132,7 +135,8 @@ void ItemEntity::setOwner(const std::string& ownerUuid, const std::string& throw
 // 物品合并
 // ============================================================================
 
-void ItemEntity::updateMerge() {
+void ItemEntity::updateMerge()
+{
     // MC 1.16.5 ItemEntity.java 行 144-155
     // 检查是否允许合并
     if (m_itemStack.isEmpty() || isRemoved()) {
@@ -141,7 +145,7 @@ void ItemEntity::updateMerge() {
 
     // 检查是否可以合并（堆叠未满、拾取延迟不是无限、年龄在允许范围内）
     if (m_itemStack.getCount() >= m_itemStack.getMaxStackSize()) {
-        return;  // 已满堆，不需要合并
+        return; // 已满堆，不需要合并
     }
 
     // 无限拾取延迟的物品不合并
@@ -208,7 +212,8 @@ void ItemEntity::updateMerge() {
     }
 }
 
-bool ItemEntity::tryMergeWith(ItemEntity& other) {
+bool ItemEntity::tryMergeWith(ItemEntity& other)
+{
     if (!canMergeWith(other)) {
         return false;
     }
@@ -243,7 +248,8 @@ bool ItemEntity::tryMergeWith(ItemEntity& other) {
     return true;
 }
 
-bool ItemEntity::canMergeWith(const ItemEntity& other) const {
+bool ItemEntity::canMergeWith(const ItemEntity& other) const
+{
     // 检查是否可以合并
     if (m_itemStack.isEmpty() || other.m_itemStack.isEmpty()) {
         return false;
@@ -289,7 +295,8 @@ bool ItemEntity::canMergeWith(const ItemEntity& other) const {
 // 物理更新
 // ============================================================================
 
-void ItemEntity::updatePhysics() {
+void ItemEntity::updatePhysics()
+{
     // MC 1.16.5 ItemEntity.tick() 物理更新逻辑
     // 参考 ItemEntity.java 行 99-144
 
@@ -314,9 +321,7 @@ void ItemEntity::updatePhysics() {
     }
 
     // 3. 执行移动
-    if (std::abs(m_velocity.x) > 0.001f ||
-        std::abs(m_velocity.y) > 0.001f ||
-        std::abs(m_velocity.z) > 0.001f ||
+    if (std::abs(m_velocity.x) > 0.001f || std::abs(m_velocity.y) > 0.001f || std::abs(m_velocity.z) > 0.001f ||
         !m_onGround) {
 
         // 带碰撞移动
@@ -350,7 +355,8 @@ void ItemEntity::updatePhysics() {
     // 注意：不再调用 Entity::applyPhysics()，因为重力/阻力已在上面应用
 }
 
-void ItemEntity::applyNormalPhysics() {
+void ItemEntity::applyNormalPhysics()
+{
     // 使用统一物理常量
     m_velocity.y -= physics::ITEM_GRAVITY;
     m_velocity.y *= physics::ITEM_DRAG;
@@ -365,7 +371,8 @@ void ItemEntity::applyNormalPhysics() {
     if (std::abs(m_velocity.z) < VELOCITY_THRESHOLD) m_velocity.z = 0.0f;
 }
 
-void ItemEntity::applyWaterPhysics() {
+void ItemEntity::applyWaterPhysics()
+{
     // MC 1.16.5 ItemEntity.java 行 171-176
     // 水中物理：轻微浮力 + 阻力
     // 浮力：当速度小于 0.06 时，向上推 0.0005
@@ -378,7 +385,8 @@ void ItemEntity::applyWaterPhysics() {
     m_velocity.z *= 0.99f;
 }
 
-void ItemEntity::applyLavaPhysics() {
+void ItemEntity::applyLavaPhysics()
+{
     // MC 1.16.5 ItemEntity.java 行 177-182
     // 岩浆中物理：浮力 + 阻力 + 着火
     // 浮力：向上推 0.0005
@@ -397,7 +405,8 @@ void ItemEntity::applyLavaPhysics() {
 // 序列化
 // ============================================================================
 
-void ItemEntity::serialize(network::PacketSerializer& ser) const {
+void ItemEntity::serialize(network::PacketSerializer& ser) const
+{
     // 实体类型和ID
     ser.writeU32(static_cast<u32>(m_legacyType));
     ser.writeU32(static_cast<u32>(m_id));
@@ -426,8 +435,8 @@ void ItemEntity::serialize(network::PacketSerializer& ser) const {
     ser.writeBool(m_unpickable);
 }
 
-Result<std::unique_ptr<ItemEntity>> ItemEntity::deserialize(
-    network::PacketDeserializer& deser, EntityId id) {
+Result<std::unique_ptr<ItemEntity>> ItemEntity::deserialize(network::PacketDeserializer& deser, EntityId id)
+{
 
     // 读取位置（网络协议使用 f64）
     auto xResult = deser.readF64();

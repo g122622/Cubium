@@ -1,12 +1,12 @@
 #include "SlabBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/core/Item.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../WaterLoggableHelpers.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
+#include "../../../IWorld.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -17,26 +17,28 @@ SlabBlock::SlabBlock(const BlockProperties& properties)
     : Block(properties)
     , m_bottomShape(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f))
     , m_topShape(CollisionShape::box(0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f))
-    , m_fullCubeShape(CollisionShape::fullBlock()) {
+    , m_fullCubeShape(CollisionShape::fullBlock())
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::SLAB_TYPE())
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::SLAB_TYPE())
+                         .add(BlockStateProperties::WATERLOGGED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Bottom)
-        .with(BlockStateProperties::WATERLOGGED(), false));
+            .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Bottom)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 // ========== 放置和更新 ==========
 
-BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     BlockPos pos = context.placementPos();
     const BlockState* existingState = context.getWorld().getBlockState(pos);
 
@@ -56,8 +58,8 @@ BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context) {
     // 检查相邻位置是否有同类型台阶
     Direction clickedFace = context.getClickedFace();
     BlockPos neighborPos(pos.x + Directions::xOffset(clickedFace),
-                         pos.y + Directions::yOffset(clickedFace),
-                         pos.z + Directions::zOffset(clickedFace));
+        pos.y + Directions::yOffset(clickedFace),
+        pos.z + Directions::zOffset(clickedFace));
     const BlockState* neighborState = context.getWorld().getBlockState(neighborPos);
 
     if (neighborState != nullptr && &neighborState->getBlock() == this) {
@@ -83,15 +85,13 @@ BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context) {
     bool isTop = (clickedFace == Direction::Down) || (clickedFace != Direction::Up && hitY > 0.5f);
 
     return defaultState()
-        .with(BlockStateProperties::SLAB_TYPE(), isTop ? BlockStateProperties::SlabType::Top
-                                                        : BlockStateProperties::SlabType::Bottom)
+        .with(BlockStateProperties::SLAB_TYPE(),
+            isTop ? BlockStateProperties::SlabType::Top : BlockStateProperties::SlabType::Bottom)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-bool SlabBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool SlabBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -101,9 +101,8 @@ bool SlabBlock::isValidPosition(
     return true;
 }
 
-bool SlabBlock::isReplaceable(
-    const BlockState& state,
-    BlockItemUseContext& context) const {
+bool SlabBlock::isReplaceable(const BlockState& state, BlockItemUseContext& context) const
+{
 
     // 参考: net.minecraft.block.SlabBlock#isReplaceable
     // 只有单层台阶可以被替换为双层台阶
@@ -137,11 +136,11 @@ bool SlabBlock::isReplaceable(
         if (slabType == BlockStateProperties::SlabType::Bottom) {
             // 底部台阶：可以从上方点击，或从侧面点击上半部分
             return clickedFace == Direction::Up ||
-                   (clickedFace != Direction::Up && clickedFace != Direction::Down && hitY > 0.5f);
+                (clickedFace != Direction::Up && clickedFace != Direction::Down && hitY > 0.5f);
         } else {
             // 顶部台阶：可以从下方点击，或从侧面点击下半部分
             return clickedFace == Direction::Down ||
-                   (clickedFace != Direction::Up && clickedFace != Direction::Down && hitY <= 0.5f);
+                (clickedFace != Direction::Up && clickedFace != Direction::Down && hitY <= 0.5f);
         }
     } else {
         // 不是替换点击的方块（可能是相邻放置），允许替换
@@ -149,13 +148,13 @@ bool SlabBlock::isReplaceable(
     }
 }
 
-BlockState SlabBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState SlabBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
@@ -173,7 +172,8 @@ BlockState SlabBlock::updatePostPlacement(
 
 // ========== 形状 ==========
 
-const CollisionShape& SlabBlock::getShape(const BlockState& state) const {
+const CollisionShape& SlabBlock::getShape(const BlockState& state) const
+{
     BlockStateProperties::SlabType type = state.get(BlockStateProperties::SLAB_TYPE());
 
     switch (type) {
@@ -187,19 +187,22 @@ const CollisionShape& SlabBlock::getShape(const BlockState& state) const {
     }
 }
 
-const CollisionShape& SlabBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& SlabBlock::getCollisionShape(const BlockState& state) const
+{
     return getShape(state);
 }
 
 // ========== 静态方法 ==========
 
-bool SlabBlock::isDouble(const BlockState& state) {
+bool SlabBlock::isDouble(const BlockState& state)
+{
     return state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double;
 }
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* SlabBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* SlabBlock::getFluidState(const BlockState& state) const
+{
     // 双层台阶不能含水
     if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
         return Block::getFluidState(state);

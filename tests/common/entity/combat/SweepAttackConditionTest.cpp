@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "entity/entities/player/Player.hpp"
-#include "entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 
 using namespace mc;
@@ -23,7 +23,8 @@ using namespace mc;
  */
 class SweepAttackConditionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
         Items::initialize();
@@ -32,7 +33,8 @@ protected:
         m_player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_player.reset();
         item::enchant::EnchantmentRegistry::clear();
     }
@@ -44,13 +46,15 @@ protected:
 // distanceWalkedModified 基础测试
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, MoveDistanceWalked_InitialValue_IsZero) {
+TEST_F(SweepAttackConditionTest, MoveDistanceWalked_InitialValue_IsZero)
+{
     // 初始状态下移动距离应为 0
     EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 0.0f);
     EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 0.0f);
 }
 
-TEST_F(SweepAttackConditionTest, MoveDistanceWalked_AfterMovement_HasDelta) {
+TEST_F(SweepAttackConditionTest, MoveDistanceWalked_AfterMovement_HasDelta)
+{
     // 模拟移动后 distanceWalkedModified 应该增加
     // 首先设置玩家位置并模拟一些移动
     m_player->setPosition(0.0f, 64.0f, 0.0f);
@@ -70,7 +74,8 @@ TEST_F(SweepAttackConditionTest, MoveDistanceWalked_AfterMovement_HasDelta) {
 // aiMoveSpeed 测试
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, AiMoveSpeed_DefaultValue_IsValid) {
+TEST_F(SweepAttackConditionTest, AiMoveSpeed_DefaultValue_IsValid)
+{
     // aiMoveSpeed() 继承自 LivingEntity，使用 m_landMovementFactor
     // 默认值应该是有效的正浮点数
     f32 speed = m_player->aiMoveSpeed();
@@ -79,7 +84,8 @@ TEST_F(SweepAttackConditionTest, AiMoveSpeed_DefaultValue_IsValid) {
     EXPECT_FALSE(std::isinf(speed));
 }
 
-TEST_F(SweepAttackConditionTest, AiMoveSpeed_CanBeModified) {
+TEST_F(SweepAttackConditionTest, AiMoveSpeed_CanBeModified)
+{
     // 获取默认速度
     f32 defaultSpeed = m_player->aiMoveSpeed();
 
@@ -100,7 +106,8 @@ TEST_F(SweepAttackConditionTest, AiMoveSpeed_CanBeModified) {
 // 横扫攻击静止检测条件边界测试
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_ExactlyEqualsAiMoveSpeed) {
+TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_ExactlyEqualsAiMoveSpeed)
+{
     // 测试边界情况：distanceWalkedDelta == aiMoveSpeed
     // MC 条件: distanceWalkedDelta < aiMoveSpeed，等于时不应触发
 
@@ -112,7 +119,8 @@ TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_ExactlyEqualsAiMov
     EXPECT_FALSE(shouldSweep) << "当 distanceWalkedDelta == aiMoveSpeed 时，横扫攻击不应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyLessThanAiMoveSpeed) {
+TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyLessThanAiMoveSpeed)
+{
     // 测试略小于的情况：distanceWalkedDelta < aiMoveSpeed
     // 应该触发横扫攻击
 
@@ -124,7 +132,8 @@ TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyLessThanAi
     EXPECT_TRUE(shouldSweep) << "当 distanceWalkedDelta < aiMoveSpeed 时，横扫攻击应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyGreaterThanAiMoveSpeed) {
+TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyGreaterThanAiMoveSpeed)
+{
     // 测试略大于的情况：distanceWalkedDelta > aiMoveSpeed
     // 不应触发横扫攻击
 
@@ -136,7 +145,8 @@ TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyGreaterTha
     EXPECT_FALSE(shouldSweep) << "当 distanceWalkedDelta > aiMoveSpeed 时，横扫攻击不应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchLessThanAiMoveSpeed) {
+TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchLessThanAiMoveSpeed)
+{
     // 测试远小于的情况（玩家静止）
     // 应该触发横扫攻击
 
@@ -148,7 +158,8 @@ TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchLessThanAiMove
     EXPECT_TRUE(shouldSweep) << "当玩家几乎静止时，横扫攻击应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_Zero_PlayerStandingStill) {
+TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_Zero_PlayerStandingStill)
+{
     // 测试玩家完全静止（delta = 0）
     // 应该触发横扫攻击
 
@@ -160,7 +171,8 @@ TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_Zero_PlayerStandin
     EXPECT_TRUE(shouldSweep) << "当玩家完全静止时，横扫攻击应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchGreaterThanAiMoveSpeed) {
+TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchGreaterThanAiMoveSpeed)
+{
     // 测试远大于的情况（玩家正在移动）
     // 不应触发横扫攻击
 
@@ -176,7 +188,8 @@ TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchGreaterThanAiM
 // 横扫攻击条件组合测试
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, SweepCondition_AllConditionsMet_CanSweep) {
+TEST_F(SweepAttackConditionTest, SweepCondition_AllConditionsMet_CanSweep)
+{
     // 测试所有条件都满足时可以触发横扫攻击
     f32 aiSpeed = m_player->aiMoveSpeed();
 
@@ -191,15 +204,16 @@ TEST_F(SweepAttackConditionTest, SweepCondition_AllConditionsMet_CanSweep) {
     bool isCritical = false;
     bool isSprintKnockback = false;
     bool isOnGround = true;
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);  // 小于 aiMoveSpeed
+    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f); // 小于 aiMoveSpeed
 
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround
-                    && (distanceWalkedDelta < static_cast<f64>(aiSpeed));
+    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
+        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
 
     EXPECT_TRUE(canSweep) << "所有条件满足时，横扫攻击应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_MovingPlayer_CannotSweep) {
+TEST_F(SweepAttackConditionTest, SweepCondition_MovingPlayer_CannotSweep)
+{
     // 测试玩家正在移动时不能触发横扫攻击
     f32 aiSpeed = m_player->aiMoveSpeed();
 
@@ -208,49 +222,52 @@ TEST_F(SweepAttackConditionTest, SweepCondition_MovingPlayer_CannotSweep) {
     bool isCritical = false;
     bool isSprintKnockback = false;
     bool isOnGround = true;
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 2.0f);  // 大于 aiMoveSpeed
+    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 2.0f); // 大于 aiMoveSpeed
 
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround
-                    && (distanceWalkedDelta < static_cast<f64>(aiSpeed));
+    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
+        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
 
     EXPECT_FALSE(canSweep) << "玩家正在移动时，横扫攻击不应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_CriticalHit_CannotSweep) {
+TEST_F(SweepAttackConditionTest, SweepCondition_CriticalHit_CannotSweep)
+{
     // 测试暴击时不能触发横扫攻击
     f32 aiSpeed = m_player->aiMoveSpeed();
 
     // 暴击攻击
     bool isFullCooldown = true;
-    bool isCritical = true;  // 暴击
+    bool isCritical = true; // 暴击
     bool isSprintKnockback = false;
     bool isOnGround = true;
     f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
 
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround
-                    && (distanceWalkedDelta < static_cast<f64>(aiSpeed));
+    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
+        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
 
     EXPECT_FALSE(canSweep) << "暴击时，横扫攻击不应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_SprintKnockback_CannotSweep) {
+TEST_F(SweepAttackConditionTest, SweepCondition_SprintKnockback_CannotSweep)
+{
     // 测试疾跑击退时不能触发横扫攻击
     f32 aiSpeed = m_player->aiMoveSpeed();
 
     // 疾跑击退
     bool isFullCooldown = true;
     bool isCritical = false;
-    bool isSprintKnockback = true;  // 疾跑击退
+    bool isSprintKnockback = true; // 疾跑击退
     bool isOnGround = true;
     f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
 
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround
-                    && (distanceWalkedDelta < static_cast<f64>(aiSpeed));
+    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
+        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
 
     EXPECT_FALSE(canSweep) << "疾跑击退时，横扫攻击不应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_NotOnGround_CannotSweep) {
+TEST_F(SweepAttackConditionTest, SweepCondition_NotOnGround_CannotSweep)
+{
     // 测试不在地面时不能触发横扫攻击
     f32 aiSpeed = m_player->aiMoveSpeed();
 
@@ -258,28 +275,29 @@ TEST_F(SweepAttackConditionTest, SweepCondition_NotOnGround_CannotSweep) {
     bool isFullCooldown = true;
     bool isCritical = false;
     bool isSprintKnockback = false;
-    bool isOnGround = false;  // 不在地面
+    bool isOnGround = false; // 不在地面
     f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
 
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround
-                    && (distanceWalkedDelta < static_cast<f64>(aiSpeed));
+    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
+        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
 
     EXPECT_FALSE(canSweep) << "不在地面时，横扫攻击不应触发";
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_LowCooldown_CannotSweep) {
+TEST_F(SweepAttackConditionTest, SweepCondition_LowCooldown_CannotSweep)
+{
     // 测试冷却不足时不能触发横扫攻击
     f32 aiSpeed = m_player->aiMoveSpeed();
 
     // 冷却不足
-    bool isFullCooldown = false;  // 冷却不足
+    bool isFullCooldown = false; // 冷却不足
     bool isCritical = false;
     bool isSprintKnockback = false;
     bool isOnGround = true;
     f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
 
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround
-                    && (distanceWalkedDelta < static_cast<f64>(aiSpeed));
+    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
+        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
 
     EXPECT_FALSE(canSweep) << "冷却不足时，横扫攻击不应触发";
 }
@@ -288,7 +306,8 @@ TEST_F(SweepAttackConditionTest, SweepCondition_LowCooldown_CannotSweep) {
 // 数值范围验证
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, AiMoveSpeed_TypicalRange) {
+TEST_F(SweepAttackConditionTest, AiMoveSpeed_TypicalRange)
+{
     // 验证典型的 aiMoveSpeed 范围
     // MC 1.16.5 中玩家的基础移动速度约为 0.1
     f32 speed = m_player->aiMoveSpeed();
@@ -298,7 +317,8 @@ TEST_F(SweepAttackConditionTest, AiMoveSpeed_TypicalRange) {
     EXPECT_LT(speed, 1.0f) << "aiMoveSpeed 应该小于 1.0（玩家移动速度通常在 0.1 左右）";
 }
 
-TEST_F(SweepAttackConditionTest, DistanceWalkedDelta_CalculationConsistency) {
+TEST_F(SweepAttackConditionTest, DistanceWalkedDelta_CalculationConsistency)
+{
     // 验证距离计算的一致性
     // distanceWalkedDelta = distanceWalkedModified - prevDistanceWalkedModified
 

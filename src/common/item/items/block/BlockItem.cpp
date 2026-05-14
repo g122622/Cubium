@@ -1,31 +1,29 @@
 #include "BlockItem.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../world/block/Material.hpp"
-#include "../../../world/block/BlockSoundType.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../sound/SoundCategory.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../sound/SoundCategory.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/BlockSoundType.hpp"
+#include "../../../world/block/Material.hpp"
 
 namespace mc {
 
 BlockItem::BlockItem(const Block& block, ItemProperties properties)
     : Item(properties)
     , m_block(&block)
-{
-}
+{}
 
-ActionResultType BlockItem::onItemUse(ItemUseContext& context) {
+ActionResultType BlockItem::onItemUse(ItemUseContext& context)
+{
     // 参考 MC 1.16.5: BlockItem.onItemUse
     // 创建 BlockItemUseContext 并尝试放置
-    BlockItemUseContext blockContext(
-        context.getWorld(),
+    BlockItemUseContext blockContext(context.getWorld(),
         context.getPlayer(),
         context.getItemStack(),
         context.getHitPos(),
         context.getBlockPos(),
         context.getFace(),
-        context.getPlayerYaw()
-    );
+        context.getPlayerYaw());
 
     ActionResultType result = tryPlace(blockContext);
 
@@ -38,7 +36,8 @@ ActionResultType BlockItem::onItemUse(ItemUseContext& context) {
     return result;
 }
 
-ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
+ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
+{
     // 参考 MC 1.16.5: BlockItem.tryPlace
     if (!context.canPlace()) {
         return ActionResultType::Fail;
@@ -95,15 +94,14 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
     }
 
     // 播放放置音效
-    // 参考 MC 1.16.5: world.playSound(player, pos, soundType.getSound(SoundType.PLACE), SoundCategory.BLOCKS, (volume + 1.0F) / 2.0F, pitch * 0.8F)
+    // 参考 MC 1.16.5: world.playSound(player, pos, soundType.getSound(SoundType.PLACE), SoundCategory.BLOCKS, (volume
+    // + 1.0F) / 2.0F, pitch * 0.8F)
     const BlockSoundType& soundType = m_block->getSoundType();
-    world.playSound(
-        soundType.getPlaceSound(),
+    world.playSound(soundType.getPlaceSound(),
         sound::SoundCategory::Blocks,
         pos.center(),
         (soundType.getVolume() + 1.0f) / 2.0f,
-        soundType.getPitch() * 0.8f
-    );
+        soundType.getPitch() * 0.8f);
 
     // 非创造模式消耗物品
     if (player == nullptr || !player->isCreative()) {
@@ -115,18 +113,21 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
     return ActionResultType::Success;
 }
 
-BlockItemUseContext BlockItem::getBlockItemUseContext(BlockItemUseContext& context) const {
+BlockItemUseContext BlockItem::getBlockItemUseContext(BlockItemUseContext& context) const
+{
     // 默认返回原始上下文
     return context;
 }
 
-const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& /* context */) const {
+const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& /* context */) const
+{
     // 默认实现返回方块的默认状态
     // 子类可以重写以支持有方向的方块（如楼梯、门等）
     return &m_block->defaultState();
 }
 
-bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& state) const {
+bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& state) const
+{
     // 参考 MC 1.16.5: BlockItem.canPlace
     Player* player = context.getPlayer();
 
@@ -185,7 +186,8 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
     return true;
 }
 
-bool BlockItem::checkPositionValid(const BlockItemUseContext& context) const {
+bool BlockItem::checkPositionValid(const BlockItemUseContext& context) const
+{
     const BlockPos& pos = context.placementPos();
 
     // 检查世界边界
@@ -196,7 +198,8 @@ bool BlockItem::checkPositionValid(const BlockItemUseContext& context) const {
     return true;
 }
 
-bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state) const {
+bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state) const
+{
     if (state == nullptr) {
         return false;
     }
@@ -207,9 +210,9 @@ bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state
     return context.getWorld().setBlockState(context.placementPos(), state, 11);
 }
 
-bool BlockItem::onBlockPlaced(const BlockPos& pos, IWorld& world,
-                               Player* player, const ItemStack& stack,
-                               const BlockState& state) const {
+bool BlockItem::onBlockPlaced(
+    const BlockPos& pos, IWorld& world, Player* player, const ItemStack& stack, const BlockState& state) const
+{
     // 参考 MC 1.16.5: BlockItem.onBlockPlaced
     // 默认处理方块实体 NBT 数据
     (void)pos;
@@ -223,9 +226,9 @@ bool BlockItem::onBlockPlaced(const BlockPos& pos, IWorld& world,
     return false;
 }
 
-const BlockState* BlockItem::applyBlockStateFromNBT(const BlockPos& pos, IWorld& world,
-                                                     const ItemStack& stack,
-                                                     const BlockState& state) const {
+const BlockState* BlockItem::applyBlockStateFromNBT(
+    const BlockPos& pos, IWorld& world, const ItemStack& stack, const BlockState& state) const
+{
     // 参考 MC 1.16.5: BlockItem.func_219985_a
     // 从物品堆的 BlockStateTag NBT 数据应用方块状态
     (void)pos;

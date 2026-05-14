@@ -6,7 +6,8 @@ namespace mc::world::spawn {
 // 工厂方法实现（参考 MC 1.16.5 生物群系生成配置）
 // ============================================================================
 
-MobSpawnInfo MobSpawnInfo::createPlains() {
+MobSpawnInfo MobSpawnInfo::createPlains()
+{
     // 参考 MC 1.16.5 PlainsBiome
     // creature_spawn_probability = 0.1F
     MobSpawnInfo info;
@@ -38,7 +39,8 @@ MobSpawnInfo MobSpawnInfo::createPlains() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createForest() {
+MobSpawnInfo MobSpawnInfo::createForest()
+{
     // 参考 MC 1.16.5 ForestBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -67,7 +69,8 @@ MobSpawnInfo MobSpawnInfo::createForest() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createDesert() {
+MobSpawnInfo MobSpawnInfo::createDesert()
+{
     // 参考 MC 1.16.5 DesertBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -92,7 +95,8 @@ MobSpawnInfo MobSpawnInfo::createDesert() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createOcean() {
+MobSpawnInfo MobSpawnInfo::createOcean()
+{
     // 参考 MC 1.16.5 OceanBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -111,7 +115,8 @@ MobSpawnInfo MobSpawnInfo::createOcean() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createWarmOcean() {
+MobSpawnInfo MobSpawnInfo::createWarmOcean()
+{
     // 参考 MC 1.16.5 WarmOceanBiome
     // 暖水海洋：热带鱼和河豚为主，没有鳕鱼和鲑鱼
     MobSpawnInfo info;
@@ -131,7 +136,8 @@ MobSpawnInfo MobSpawnInfo::createWarmOcean() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createLukewarmOcean() {
+MobSpawnInfo MobSpawnInfo::createLukewarmOcean()
+{
     // 参考 MC 1.16.5 LukewarmOceanBiome
     // 温水海洋：混合鱼群
     MobSpawnInfo info;
@@ -153,7 +159,8 @@ MobSpawnInfo MobSpawnInfo::createLukewarmOcean() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createColdOcean() {
+MobSpawnInfo MobSpawnInfo::createColdOcean()
+{
     // 参考 MC 1.16.5 ColdOceanBiome
     // 冷水海洋：更多鲑鱼
     MobSpawnInfo info;
@@ -166,14 +173,15 @@ MobSpawnInfo MobSpawnInfo::createColdOcean() {
     // 水生生物 - 冷水海洋配置
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5));  // 更高权重
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5)); // 更高权重
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 4));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
 
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createFrozenOcean() {
+MobSpawnInfo MobSpawnInfo::createFrozenOcean()
+{
     // 参考 MC 1.16.5 FrozenOceanBiome
     // 冰冻海洋：鲑鱼为主，有北极熊和流浪者
     MobSpawnInfo info;
@@ -182,7 +190,7 @@ MobSpawnInfo MobSpawnInfo::createFrozenOcean() {
     // 怪物 - 冰冻海洋有流浪者
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:stray", 80, 4, 4));  // 冰面上的流浪者
+    info.addMonsterSpawn(SpawnEntry("minecraft:stray", 80, 4, 4)); // 冰面上的流浪者
 
     // 水生生物
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
@@ -198,7 +206,8 @@ MobSpawnInfo MobSpawnInfo::createFrozenOcean() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createDeepOcean() {
+MobSpawnInfo MobSpawnInfo::createDeepOcean()
+{
     // 参考 MC 1.16.5 DeepOceanBiome
     // 深海：更多鱿鱼
     MobSpawnInfo info;
@@ -212,13 +221,14 @@ MobSpawnInfo MobSpawnInfo::createDeepOcean() {
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 5, 1, 5));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 8));  // 深海鱿鱼更多
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 8)); // 深海鱿鱼更多
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
 
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createTaiga() {
+MobSpawnInfo MobSpawnInfo::createTaiga()
+{
     // 参考 MC 1.16.5 TaigaBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -248,7 +258,8 @@ MobSpawnInfo MobSpawnInfo::createTaiga() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createJungle() {
+MobSpawnInfo MobSpawnInfo::createJungle()
+{
     // 参考 MC 1.16.5 JungleBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -278,7 +289,8 @@ MobSpawnInfo MobSpawnInfo::createJungle() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createSavanna() {
+MobSpawnInfo MobSpawnInfo::createSavanna()
+{
     // 参考 MC 1.16.5 SavannaBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -309,7 +321,8 @@ MobSpawnInfo MobSpawnInfo::createSavanna() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createSwamp() {
+MobSpawnInfo MobSpawnInfo::createSwamp()
+{
     // 参考 MC 1.16.5 SwampBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -321,7 +334,7 @@ MobSpawnInfo MobSpawnInfo::createSwamp() {
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 50, 1, 1)); // 沼泽女巫更多
+    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 50, 1, 1));  // 沼泽女巫更多
     info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 1, 1)); // 沼泽史莱姆
 
     // 动物
@@ -337,7 +350,8 @@ MobSpawnInfo MobSpawnInfo::createSwamp() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createMountains() {
+MobSpawnInfo MobSpawnInfo::createMountains()
+{
     // 参考 MC 1.16.5 MountainsBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -365,7 +379,8 @@ MobSpawnInfo MobSpawnInfo::createMountains() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createSnowy() {
+MobSpawnInfo MobSpawnInfo::createSnowy()
+{
     // 参考 MC 1.16.5 SnowyBiome（雪地平原等）
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -391,7 +406,8 @@ MobSpawnInfo MobSpawnInfo::createSnowy() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createEmpty() {
+MobSpawnInfo MobSpawnInfo::createEmpty()
+{
     // 空生成信息，用于没有生物生成的生物群系（如虚空）
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f;
@@ -402,7 +418,8 @@ MobSpawnInfo MobSpawnInfo::createEmpty() {
 // 下界生物群系生成信息
 // ============================================================================
 
-MobSpawnInfo MobSpawnInfo::createNetherWastes() {
+MobSpawnInfo MobSpawnInfo::createNetherWastes()
+{
     // 参考 MC 1.16.5 NetherWastesBiome
     // 生物：猪灵、僵尸猪灵、恶魂、岩浆怪、末影人、炽足兽
     MobSpawnInfo info;
@@ -423,7 +440,8 @@ MobSpawnInfo MobSpawnInfo::createNetherWastes() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createSoulSandValley() {
+MobSpawnInfo MobSpawnInfo::createSoulSandValley()
+{
     // 参考 MC 1.16.5 SoulSandValleyBiome
     // 生物：骷髅、恶魂、末影人、炽足兽
     MobSpawnInfo info;
@@ -442,7 +460,8 @@ MobSpawnInfo MobSpawnInfo::createSoulSandValley() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createCrimsonForest() {
+MobSpawnInfo MobSpawnInfo::createCrimsonForest()
+{
     // 参考 MC 1.16.5 CrimsonForestBiome
     // 生物：猪灵、僵尸猪灵、疣猪兽、炽足兽
     MobSpawnInfo info;
@@ -461,7 +480,8 @@ MobSpawnInfo MobSpawnInfo::createCrimsonForest() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createWarpedForest() {
+MobSpawnInfo MobSpawnInfo::createWarpedForest()
+{
     // 参考 MC 1.16.5 WarpedForestBiome
     // 生物：末影人、炽足兽
     MobSpawnInfo info;
@@ -480,7 +500,8 @@ MobSpawnInfo MobSpawnInfo::createWarpedForest() {
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createBasaltDeltas() {
+MobSpawnInfo MobSpawnInfo::createBasaltDeltas()
+{
     // 参考 MC 1.16.5 BasaltDeltasBiome
     // 生物：岩浆怪、恶魂、炽足兽
     MobSpawnInfo info;
@@ -502,7 +523,8 @@ MobSpawnInfo MobSpawnInfo::createBasaltDeltas() {
 // 末地生物群系生成信息
 // ============================================================================
 
-MobSpawnInfo MobSpawnInfo::createTheEnd() {
+MobSpawnInfo MobSpawnInfo::createTheEnd()
+{
     // 参考 MC 1.16.5 TheEndBiome
     // 只有末影人
     MobSpawnInfo info;

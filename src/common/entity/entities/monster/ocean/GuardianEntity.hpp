@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../MonsterEntity.hpp"
 #include <memory>
 #include <optional>
 

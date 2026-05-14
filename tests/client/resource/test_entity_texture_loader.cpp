@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include "common/resource/ResourceLocation.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -15,7 +15,8 @@ protected:
 };
 
 // 测试实体纹理路径转换
-TEST_F(EntityTexturePathTest, PigTexturePath) {
+TEST_F(EntityTexturePathTest, PigTexturePath)
+{
     // MC 1.13+ 格式
     ResourceLocation loc1("minecraft:textures/entity/pig/pig.png");
     EXPECT_EQ(loc1.namespace_(), "minecraft");
@@ -29,14 +30,16 @@ TEST_F(EntityTexturePathTest, PigTexturePath) {
     EXPECT_EQ(loc2.toFilePath(), "assets/minecraft/textures/entity/pig.png");
 }
 
-TEST_F(EntityTexturePathTest, CowTexturePath) {
+TEST_F(EntityTexturePathTest, CowTexturePath)
+{
     ResourceLocation loc("minecraft:textures/entity/cow/cow.png");
     EXPECT_EQ(loc.namespace_(), "minecraft");
     EXPECT_EQ(loc.path(), "textures/entity/cow/cow.png");
     EXPECT_EQ(loc.toFilePath(), "assets/minecraft/textures/entity/cow/cow.png");
 }
 
-TEST_F(EntityTexturePathTest, SheepTexturePath) {
+TEST_F(EntityTexturePathTest, SheepTexturePath)
+{
     // 羊纹理
     ResourceLocation loc1("minecraft:textures/entity/sheep/sheep.png");
     EXPECT_EQ(loc1.toFilePath(), "assets/minecraft/textures/entity/sheep/sheep.png");
@@ -46,7 +49,8 @@ TEST_F(EntityTexturePathTest, SheepTexturePath) {
     EXPECT_EQ(loc2.toFilePath(), "assets/minecraft/textures/entity/sheep/sheep_fur.png");
 }
 
-TEST_F(EntityTexturePathTest, ChickenTexturePath) {
+TEST_F(EntityTexturePathTest, ChickenTexturePath)
+{
     // 鸡纹理（MC 1.12 格式）
     ResourceLocation loc("minecraft:textures/entity/chicken.png");
     EXPECT_EQ(loc.namespace_(), "minecraft");
@@ -55,7 +59,8 @@ TEST_F(EntityTexturePathTest, ChickenTexturePath) {
 }
 
 // 测试自定义命名空间
-TEST_F(EntityTexturePathTest, CustomNamespace) {
+TEST_F(EntityTexturePathTest, CustomNamespace)
+{
     ResourceLocation loc("mymod:textures/entity/custom_mob.png");
     EXPECT_EQ(loc.namespace_(), "mymod");
     EXPECT_EQ(loc.path(), "textures/entity/custom_mob.png");
@@ -63,7 +68,8 @@ TEST_F(EntityTexturePathTest, CustomNamespace) {
 }
 
 // 测试路径解析
-TEST_F(EntityTexturePathTest, PathParsing) {
+TEST_F(EntityTexturePathTest, PathParsing)
+{
     // 测试 toString 和 toFilePath 的一致性
     ResourceLocation loc("minecraft:textures/entity/pig/pig.png");
 
@@ -75,7 +81,8 @@ TEST_F(EntityTexturePathTest, PathParsing) {
 }
 
 // 测试带扩展名的路径
-TEST_F(EntityTexturePathTest, WithExtension) {
+TEST_F(EntityTexturePathTest, WithExtension)
+{
     ResourceLocation loc("minecraft:textures/entity/pig/pig");
     EXPECT_EQ(loc.toFilePath("png"), "assets/minecraft/textures/entity/pig/pig.png");
 }

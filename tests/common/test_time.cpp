@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
+#include "client/renderer/trident/sky/CelestialCalculations.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/time/GameTime.hpp"
-#include "client/renderer/trident/sky/CelestialCalculations.hpp"
 
 using namespace mc;
 using namespace mc::time;
@@ -17,14 +17,16 @@ using namespace mc::client;
 // GameTime 测试
 // ============================================================================
 
-TEST(GameTimeTest, InitialState) {
+TEST(GameTimeTest, InitialState)
+{
     GameTime time;
     EXPECT_EQ(time.dayTime(), 0);
     EXPECT_EQ(time.gameTime(), 0);
     EXPECT_TRUE(time.daylightCycleEnabled());
 }
 
-TEST(GameTimeTest, TickIncrement) {
+TEST(GameTimeTest, TickIncrement)
+{
     GameTime time;
 
     time.tick();
@@ -36,7 +38,8 @@ TEST(GameTimeTest, TickIncrement) {
     EXPECT_EQ(time.gameTime(), 2);
 }
 
-TEST(GameTimeTest, DayTimeCycle) {
+TEST(GameTimeTest, DayTimeCycle)
+{
     GameTime time;
     time.setDayTime(23999);
     time.tick();
@@ -45,7 +48,8 @@ TEST(GameTimeTest, DayTimeCycle) {
     EXPECT_EQ(time.gameTime(), 1);
 }
 
-TEST(GameTimeTest, SetDayTimeNormalizesNegative) {
+TEST(GameTimeTest, SetDayTimeNormalizesNegative)
+{
     GameTime time;
 
     time.setDayTime(-100);
@@ -55,7 +59,8 @@ TEST(GameTimeTest, SetDayTimeNormalizesNegative) {
     EXPECT_EQ(time.dayTime(), 1000);
 }
 
-TEST(GameTimeTest, AddDayTime) {
+TEST(GameTimeTest, AddDayTime)
+{
     GameTime time;
 
     time.addDayTime(1000);
@@ -67,24 +72,26 @@ TEST(GameTimeTest, AddDayTime) {
     EXPECT_EQ(time.dayTime(), 0);
 }
 
-TEST(GameTimeTest, DaylightCycleDisabled) {
+TEST(GameTimeTest, DaylightCycleDisabled)
+{
     GameTime time;
     time.setDaylightCycleEnabled(false);
 
     EXPECT_FALSE(time.daylightCycleEnabled());
 
     time.tick();
-    EXPECT_EQ(time.dayTime(), 0); // dayTime 不递增
+    EXPECT_EQ(time.dayTime(), 0);  // dayTime 不递增
     EXPECT_EQ(time.gameTime(), 1); // gameTime 仍然递增
 }
 
-TEST(GameTimeTest, IsDayAndIsNight) {
+TEST(GameTimeTest, IsDayAndIsNight)
+{
     GameTime time;
 
-    time.setDayTime(0);    // 日出
+    time.setDayTime(0); // 日出
     EXPECT_TRUE(time.isDay());
 
-    time.setDayTime(6000);  // 正午
+    time.setDayTime(6000); // 正午
     EXPECT_TRUE(time.isDay());
 
     time.setDayTime(12000); // 日落
@@ -94,7 +101,8 @@ TEST(GameTimeTest, IsDayAndIsNight) {
     EXPECT_TRUE(time.isNight());
 }
 
-TEST(GameTimeTest, DayCount) {
+TEST(GameTimeTest, DayCount)
+{
     GameTime time;
 
     time.setGameTime(0);
@@ -107,7 +115,8 @@ TEST(GameTimeTest, DayCount) {
     EXPECT_EQ(time.dayCount(), 2);
 }
 
-TEST(GameTimeTest, DayTimeForNetwork) {
+TEST(GameTimeTest, DayTimeForNetwork)
+{
     GameTime time;
 
     time.setDayTime(1000);
@@ -121,19 +130,22 @@ TEST(GameTimeTest, DayTimeForNetwork) {
 // CelestialCalculations 测试
 // ============================================================================
 
-TEST(CelestialCalculationsTest, NoonCelestialAngleNearZero) {
+TEST(CelestialCalculationsTest, NoonCelestialAngleNearZero)
+{
     // 正午 = 6000 ticks
     f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
     EXPECT_NEAR(angle, 0.0f, 0.1f);
 }
 
-TEST(CelestialCalculationsTest, MidnightCelestialAngleNearHalf) {
+TEST(CelestialCalculationsTest, MidnightCelestialAngleNearHalf)
+{
     // 午夜 = 18000 ticks
     f32 angle = CelestialCalculations::calculateCelestialAngle(18000);
     EXPECT_NEAR(angle, 0.5f, 0.1f);
 }
 
-TEST(CelestialCalculationsTest, CelestialAngleInRange) {
+TEST(CelestialCalculationsTest, CelestialAngleInRange)
+{
     for (i64 t = 0; t <= 24000; t += 1000) {
         f32 angle = CelestialCalculations::calculateCelestialAngle(t);
         EXPECT_GE(angle, 0.0f);
@@ -141,35 +153,43 @@ TEST(CelestialCalculationsTest, CelestialAngleInRange) {
     }
 }
 
-TEST(CelestialCalculationsTest, MoonPhaseDay0FullMoon) {
+TEST(CelestialCalculationsTest, MoonPhaseDay0FullMoon)
+{
     EXPECT_EQ(CelestialCalculations::calculateMoonPhase(0), 0);
 }
 
-TEST(CelestialCalculationsTest, MoonPhaseDay1WaxingGibbous) {
+TEST(CelestialCalculationsTest, MoonPhaseDay1WaxingGibbous)
+{
     EXPECT_EQ(CelestialCalculations::calculateMoonPhase(24000), 1);
 }
 
-TEST(CelestialCalculationsTest, MoonPhaseDay7WaningGibbous) {
+TEST(CelestialCalculationsTest, MoonPhaseDay7WaningGibbous)
+{
     EXPECT_EQ(CelestialCalculations::calculateMoonPhase(24000 * 7), 7);
 }
 
-TEST(CelestialCalculationsTest, MoonPhaseDay8CycleBackToFullMoon) {
+TEST(CelestialCalculationsTest, MoonPhaseDay8CycleBackToFullMoon)
+{
     EXPECT_EQ(CelestialCalculations::calculateMoonPhase(24000 * 8), 0);
 }
 
-TEST(CelestialCalculationsTest, MoonPhaseFactorFullMoon) {
+TEST(CelestialCalculationsTest, MoonPhaseFactorFullMoon)
+{
     EXPECT_FLOAT_EQ(CelestialCalculations::getMoonPhaseFactor(0), 1.0f); // 满月
 }
 
-TEST(CelestialCalculationsTest, MoonPhaseFactorNewMoon) {
+TEST(CelestialCalculationsTest, MoonPhaseFactorNewMoon)
+{
     EXPECT_FLOAT_EQ(CelestialCalculations::getMoonPhaseFactor(4), 0.0f); // 新月
 }
 
-TEST(CelestialCalculationsTest, MoonPhaseFactorFirstQuarter) {
+TEST(CelestialCalculationsTest, MoonPhaseFactorFirstQuarter)
+{
     EXPECT_FLOAT_EQ(CelestialCalculations::getMoonPhaseFactor(2), 0.5f); // 上弦月
 }
 
-TEST(CelestialCalculationsTest, SunDirectionNoonUpward) {
+TEST(CelestialCalculationsTest, SunDirectionNoonUpward)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
     glm::vec3 dir = CelestialCalculations::calculateSunDirection(angle);
 
@@ -178,7 +198,8 @@ TEST(CelestialCalculationsTest, SunDirectionNoonUpward) {
     EXPECT_GT(dir.y, 0.9f);
 }
 
-TEST(CelestialCalculationsTest, SunDirectionMidnightDownward) {
+TEST(CelestialCalculationsTest, SunDirectionMidnightDownward)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(18000);
     glm::vec3 dir = CelestialCalculations::calculateSunDirection(angle);
 
@@ -187,7 +208,8 @@ TEST(CelestialCalculationsTest, SunDirectionMidnightDownward) {
     EXPECT_LT(dir.y, -0.9f);
 }
 
-TEST(CelestialCalculationsTest, SunDirectionNormalized) {
+TEST(CelestialCalculationsTest, SunDirectionNormalized)
+{
     for (i64 t = 0; t <= 24000; t += 2000) {
         f32 angle = CelestialCalculations::calculateCelestialAngle(t);
         glm::vec3 dir = CelestialCalculations::calculateSunDirection(angle);
@@ -196,19 +218,22 @@ TEST(CelestialCalculationsTest, SunDirectionNormalized) {
     }
 }
 
-TEST(CelestialCalculationsTest, SunIntensityNoonHighest) {
+TEST(CelestialCalculationsTest, SunIntensityNoonHighest)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
     f32 intensity = CelestialCalculations::calculateSunIntensity(angle);
     EXPECT_GT(intensity, 0.9f);
 }
 
-TEST(CelestialCalculationsTest, SunIntensityMidnightZero) {
+TEST(CelestialCalculationsTest, SunIntensityMidnightZero)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(18000);
     f32 intensity = CelestialCalculations::calculateSunIntensity(angle);
     EXPECT_LT(intensity, 0.1f);
 }
 
-TEST(CelestialCalculationsTest, SunIntensityInRange) {
+TEST(CelestialCalculationsTest, SunIntensityInRange)
+{
     for (i64 t = 0; t <= 24000; t += 1000) {
         f32 angle = CelestialCalculations::calculateCelestialAngle(t);
         f32 intensity = CelestialCalculations::calculateSunIntensity(angle);
@@ -217,7 +242,8 @@ TEST(CelestialCalculationsTest, SunIntensityInRange) {
     }
 }
 
-TEST(CelestialCalculationsTest, SkyColorNoonBlue) {
+TEST(CelestialCalculationsTest, SkyColorNoonBlue)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
     glm::vec4 color = CelestialCalculations::calculateSkyColor(angle);
 
@@ -228,7 +254,8 @@ TEST(CelestialCalculationsTest, SkyColorNoonBlue) {
     EXPECT_FLOAT_EQ(color.a, 1.0f);
 }
 
-TEST(CelestialCalculationsTest, SkyColorNoonMatchesOverworldDefault78A7FF) {
+TEST(CelestialCalculationsTest, SkyColorNoonMatchesOverworldDefault78A7FF)
+{
     const f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
     const glm::vec4 color = CelestialCalculations::calculateSkyColor(angle, 0.0f, 0.0f);
     const glm::vec3 base = CelestialCalculations::getOverworldBaseSkyColor();
@@ -238,7 +265,8 @@ TEST(CelestialCalculationsTest, SkyColorNoonMatchesOverworldDefault78A7FF) {
     EXPECT_NEAR(color.b, base.b, 0.01f);
 }
 
-TEST(CelestialCalculationsTest, SkyColorMidnightDark) {
+TEST(CelestialCalculationsTest, SkyColorMidnightDark)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(18000);
     glm::vec4 color = CelestialCalculations::calculateSkyColor(angle);
 
@@ -249,7 +277,8 @@ TEST(CelestialCalculationsTest, SkyColorMidnightDark) {
     EXPECT_LT(color.b, 0.2f);
 }
 
-TEST(CelestialCalculationsTest, SunriseSunsetColorAppearsNearHorizonAndPeaksThenFades) {
+TEST(CelestialCalculationsTest, SunriseSunsetColorAppearsNearHorizonAndPeaksThenFades)
+{
     f32 maxAlpha = 0.0f;
     i64 maxAlphaTime = -1;
 
@@ -272,7 +301,8 @@ TEST(CelestialCalculationsTest, SunriseSunsetColorAppearsNearHorizonAndPeaksThen
     EXPECT_LT(noonSunrise.a, 0.001f);
 }
 
-TEST(CelestialCalculationsTest, SunriseSunsetColorIsAttenuatedByWeather) {
+TEST(CelestialCalculationsTest, SunriseSunsetColorIsAttenuatedByWeather)
+{
     // 取一段接近晨昏的时间（靠近日落）。
     const f32 angle = CelestialCalculations::calculateCelestialAngle(12000);
     const glm::vec4 clear = CelestialCalculations::calculateSunriseSunsetColor(angle, 0.0f, 0.0f);
@@ -283,34 +313,36 @@ TEST(CelestialCalculationsTest, SunriseSunsetColorIsAttenuatedByWeather) {
     EXPECT_GE(clear.a, thunder.a);
 }
 
-TEST(CelestialCalculationsTest, SunriseFacingFactorUsesHorizontalDirectionOnly) {
+TEST(CelestialCalculationsTest, SunriseFacingFactorUsesHorizontalDirectionOnly)
+{
     const glm::vec3 sunriseDir(1.0f, 0.0f, 0.0f);
 
-    const f32 facing = CelestialCalculations::calculateSunriseFacingFactor(
-        glm::normalize(glm::vec3(1.0f, 0.8f, 0.0f)),
-        sunriseDir);
-    const f32 opposite = CelestialCalculations::calculateSunriseFacingFactor(
-        glm::normalize(glm::vec3(-1.0f, -0.2f, 0.0f)),
-        sunriseDir);
+    const f32 facing =
+        CelestialCalculations::calculateSunriseFacingFactor(glm::normalize(glm::vec3(1.0f, 0.8f, 0.0f)), sunriseDir);
+    const f32 opposite =
+        CelestialCalculations::calculateSunriseFacingFactor(glm::normalize(glm::vec3(-1.0f, -0.2f, 0.0f)), sunriseDir);
 
     EXPECT_GT(facing, 0.95f);
     EXPECT_LT(opposite, 0.05f);
 }
 
-TEST(CelestialCalculationsTest, StarBrightnessNoonZero) {
+TEST(CelestialCalculationsTest, StarBrightnessNoonZero)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
     f32 brightness = CelestialCalculations::calculateStarBrightness(angle);
     EXPECT_LT(brightness, 0.1f);
 }
 
-TEST(CelestialCalculationsTest, StarBrightnessMidnightVisible) {
+TEST(CelestialCalculationsTest, StarBrightnessMidnightVisible)
+{
     f32 angle = CelestialCalculations::calculateCelestialAngle(18000);
     f32 brightness = CelestialCalculations::calculateStarBrightness(angle);
     // 午夜时星星亮度应 >= 0.5
     EXPECT_GE(brightness, 0.5f);
 }
 
-TEST(CelestialCalculationsTest, StarBrightnessInRange) {
+TEST(CelestialCalculationsTest, StarBrightnessInRange)
+{
     for (i64 t = 0; t <= 24000; t += 1000) {
         f32 angle = CelestialCalculations::calculateCelestialAngle(t);
         f32 brightness = CelestialCalculations::calculateStarBrightness(angle);
@@ -319,7 +351,8 @@ TEST(CelestialCalculationsTest, StarBrightnessInRange) {
     }
 }
 
-TEST(CelestialCalculationsTest, InterpolatedCelestialAngleInRange) {
+TEST(CelestialCalculationsTest, InterpolatedCelestialAngleInRange)
+{
     f32 angle0 = CelestialCalculations::calculateCelestialAngleInterpolated(0, 0.0f);
     f32 angle0_5 = CelestialCalculations::calculateCelestialAngleInterpolated(0, 0.5f);
     f32 angle1 = CelestialCalculations::calculateCelestialAngleInterpolated(0, 1.0f);
@@ -332,10 +365,12 @@ TEST(CelestialCalculationsTest, InterpolatedCelestialAngleInRange) {
     EXPECT_LE(angle1, 1.0f);
 }
 
-TEST(CelestialCalculationsTest, StarSeed) {
+TEST(CelestialCalculationsTest, StarSeed)
+{
     EXPECT_EQ(CelestialCalculations::getStarSeed(), 10842L);
 }
 
-TEST(CelestialCalculationsTest, StarCount) {
+TEST(CelestialCalculationsTest, StarCount)
+{
     EXPECT_EQ(CelestialCalculations::getStarCount(), 1500);
 }

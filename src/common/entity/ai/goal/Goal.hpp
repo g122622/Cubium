@@ -1,7 +1,7 @@
 #pragma once
 
-#include "GoalFlag.hpp"
 #include "../../../core/Types.hpp"
+#include "GoalFlag.hpp"
 
 namespace mc::entity::ai {
 
@@ -35,9 +35,7 @@ public:
      *
      * @return true 如果应该继续执行
      */
-    [[nodiscard]] virtual bool shouldContinueExecuting() {
-        return shouldExecute();
-    }
+    [[nodiscard]] virtual bool shouldContinueExecuting() { return shouldExecute(); }
 
     /**
      * @brief 是否可以被抢占
@@ -47,9 +45,7 @@ public:
      *
      * @return true 如果可以被抢占
      */
-    [[nodiscard]] virtual bool isPreemptible() const {
-        return true;
-    }
+    [[nodiscard]] virtual bool isPreemptible() const { return true; }
 
     /**
      * @brief 开始执行
@@ -82,25 +78,19 @@ public:
      *
      * @param flags 互斥标志集合
      */
-    void setMutexFlags(const EnumSet<GoalFlag>& flags) {
-        m_flags = flags;
-    }
+    void setMutexFlags(const EnumSet<GoalFlag>& flags) { m_flags = flags; }
 
     /**
      * @brief 获取互斥标志
      *
      * @return 当前设置的互斥标志
      */
-    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const {
-        return m_flags;
-    }
+    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const { return m_flags; }
 
     /**
      * @brief 获取类型名称（用于调试）
      */
-    [[nodiscard]] virtual std::string getTypeName() const {
-        return "Goal";
-    }
+    [[nodiscard]] virtual std::string getTypeName() const { return "Goal"; }
 
 protected:
     Goal() = default;
@@ -108,9 +98,11 @@ protected:
     /**
      * @brief 构造并设置互斥标志
      */
-    explicit Goal(const EnumSet<GoalFlag>& flags) : m_flags(flags) {}
+    explicit Goal(const EnumSet<GoalFlag>& flags)
+        : m_flags(flags)
+    {}
 
-    EnumSet<GoalFlag> m_flags;  // 互斥标志
+    EnumSet<GoalFlag> m_flags; // 互斥标志
 };
 
 } // namespace mc::entity::ai

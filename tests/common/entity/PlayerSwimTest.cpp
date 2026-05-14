@@ -10,13 +10,13 @@
  * - 海豚恩惠效果
  */
 
-#include <gtest/gtest.h>
-#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/core/EntitySize.hpp"
-#include "common/physics/PhysicsConstants.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::physics;
@@ -28,14 +28,13 @@ using mc::entity::EntitySize;
  */
 class PlayerSwimTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建玩家
         player = std::make_unique<Player>(1, "TestPlayer");
     }
 
-    void TearDown() override {
-        player.reset();
-    }
+    void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
 };
@@ -44,12 +43,14 @@ protected:
 // 空气供应测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, InitialAirSupply) {
+TEST_F(PlayerSwimTest, InitialAirSupply)
+{
     // 玩家初始空气值应为 300 (15秒)
     EXPECT_EQ(player->air(), DEFAULT_MAX_AIR);
 }
 
-TEST_F(PlayerSwimTest, AirSupplyDecreasesInWater) {
+TEST_F(PlayerSwimTest, AirSupplyDecreasesInWater)
+{
     // 在水中时，空气应该逐渐减少
     // 设置水中状态（用于测试）
     player->setInWater(true);
@@ -64,7 +65,8 @@ TEST_F(PlayerSwimTest, AirSupplyDecreasesInWater) {
     EXPECT_LT(player->air(), initialAir);
 }
 
-TEST_F(PlayerSwimTest, AirRecoveryOutOfWater) {
+TEST_F(PlayerSwimTest, AirRecoveryOutOfWater)
+{
     // 消耗一些空气
     player->setAir(200);
 
@@ -76,7 +78,8 @@ TEST_F(PlayerSwimTest, AirRecoveryOutOfWater) {
     EXPECT_EQ(player->air(), 204);
 }
 
-TEST_F(PlayerSwimTest, AirRecoveryCapsAtMax) {
+TEST_F(PlayerSwimTest, AirRecoveryCapsAtMax)
+{
     // 空气接近最大值
     player->setAir(298);
 
@@ -91,7 +94,8 @@ TEST_F(PlayerSwimTest, AirRecoveryCapsAtMax) {
 // 溺水伤害测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, DrownDamageTriggersAtMinusTwenty) {
+TEST_F(PlayerSwimTest, DrownDamageTriggersAtMinusTwenty)
+{
     // 空气耗尽到 -20 时触发溺水
     player->setAir(-19);
     player->setHealth(20.0f);
@@ -114,12 +118,14 @@ TEST_F(PlayerSwimTest, DrownDamageTriggersAtMinusTwenty) {
     EXPECT_LT(player->health(), 20.0f);
 }
 
-TEST_F(PlayerSwimTest, DrownDamageAmount) {
+TEST_F(PlayerSwimTest, DrownDamageAmount)
+{
     // 溺水伤害量应为 2.0f
     EXPECT_EQ(DROWN_DAMAGE_AMOUNT, 2.0f);
 }
 
-TEST_F(PlayerSwimTest, CreativeModeNoDrowning) {
+TEST_F(PlayerSwimTest, CreativeModeNoDrowning)
+{
     // 创造模式下不应该溺水
     PlayerAbilities abilities;
     abilities.creativeMode = true;
@@ -137,14 +143,15 @@ TEST_F(PlayerSwimTest, CreativeModeNoDrowning) {
 
     // 创造模式下空气不应该消耗
     // 注意：updateAirSupply 会检查 abilities.invulnerable
-    EXPECT_EQ(player->health(), 20.0f);    // 不应该受到伤害
+    EXPECT_EQ(player->health(), 20.0f); // 不应该受到伤害
 }
 
 // ============================================================================
 // 水下呼吸效果测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, WaterBreathingPreventsAirConsumption) {
+TEST_F(PlayerSwimTest, WaterBreathingPreventsAirConsumption)
+{
     // 添加水下呼吸效果
     EffectInstance waterBreathing(EffectType::WaterBreathing, 200, 0);
     player->addEffect(waterBreathing);
@@ -163,7 +170,8 @@ TEST_F(PlayerSwimTest, WaterBreathingPreventsAirConsumption) {
     EXPECT_EQ(player->air(), initialAir);
 }
 
-TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption) {
+TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption)
+{
     // 添加潮涌能量效果
     EffectInstance conduitPower(EffectType::ConduitPower, 200, 0);
     player->addEffect(conduitPower);
@@ -182,7 +190,8 @@ TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption) {
     EXPECT_EQ(player->air(), initialAir);
 }
 
-TEST_F(PlayerSwimTest, EnteringWaterWithoutWorldDoesNotCrash) {
+TEST_F(PlayerSwimTest, EnteringWaterWithoutWorldDoesNotCrash)
+{
     player->setInWater(true);
 
     player->updateAirSupply();
@@ -193,7 +202,8 @@ TEST_F(PlayerSwimTest, EnteringWaterWithoutWorldDoesNotCrash) {
 // 游泳状态测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, IsActualSwimmingConditions) {
+TEST_F(PlayerSwimTest, IsActualSwimmingConditions)
+{
     // 默认不在游泳
     EXPECT_FALSE(player->isActualSwimming());
 
@@ -203,7 +213,8 @@ TEST_F(PlayerSwimTest, IsActualSwimmingConditions) {
     // 这里只是基础测试，完整测试需要模拟世界环境
 }
 
-TEST_F(PlayerSwimTest, SwimmingPoseDimensions) {
+TEST_F(PlayerSwimTest, SwimmingPoseDimensions)
+{
     // 游泳姿态的尺寸应该是 0.6 x 0.6
     EntitySize swimSize = player->getDimensions(EntityPose::Swimming);
     EXPECT_FLOAT_EQ(swimSize.width(), 0.6f);
@@ -211,7 +222,8 @@ TEST_F(PlayerSwimTest, SwimmingPoseDimensions) {
     EXPECT_FLOAT_EQ(swimSize.eyeHeight(), 0.4f);
 }
 
-TEST_F(PlayerSwimTest, StandingPoseDimensions) {
+TEST_F(PlayerSwimTest, StandingPoseDimensions)
+{
     // 站立姿态的尺寸应该是 0.6 x 1.8
     EntitySize standSize = player->getDimensions(EntityPose::Standing);
     EXPECT_FLOAT_EQ(standSize.width(), 0.6f);
@@ -219,7 +231,8 @@ TEST_F(PlayerSwimTest, StandingPoseDimensions) {
     EXPECT_FLOAT_EQ(standSize.eyeHeight(), 1.62f);
 }
 
-TEST_F(PlayerSwimTest, CrouchingPoseDimensions) {
+TEST_F(PlayerSwimTest, CrouchingPoseDimensions)
+{
     // 蹲下姿态的尺寸应该是 0.6 x 1.5
     EntitySize crouchSize = player->getDimensions(EntityPose::Crouching);
     EXPECT_FLOAT_EQ(crouchSize.width(), 0.6f);
@@ -231,7 +244,8 @@ TEST_F(PlayerSwimTest, CrouchingPoseDimensions) {
 // 物理常量测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, PhysicsConstantsCorrect) {
+TEST_F(PlayerSwimTest, PhysicsConstantsCorrect)
+{
     // 验证游泳相关物理常量与 MC 1.16.5 一致
     EXPECT_FLOAT_EQ(DEFAULT_MAX_AIR, 300);
     EXPECT_EQ(DROWN_DAMAGE_INTERVAL, 20);
@@ -251,19 +265,21 @@ TEST_F(PlayerSwimTest, PhysicsConstantsCorrect) {
 // 游泳动画测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, SwimAnimationUpdates) {
+TEST_F(PlayerSwimTest, SwimAnimationUpdates)
+{
     // 初始动画值为 0
     EXPECT_FLOAT_EQ(player->swimAnimation(), 0.0f);
 
     // 更新游泳状态（不游泳时动画应该减少）
     player->updateSwimming();
-    EXPECT_FLOAT_EQ(player->swimAnimation(), 0.0f);  // 已经是 0，不会变成负数
+    EXPECT_FLOAT_EQ(player->swimAnimation(), 0.0f); // 已经是 0，不会变成负数
 
     // 动画过渡速度应该是 0.09f
     // 这里只能测试接口，完整动画测试需要模拟 isInWater 状态
 }
 
-TEST_F(PlayerSwimTest, SwimAnimationTransitionSpeed) {
+TEST_F(PlayerSwimTest, SwimAnimationTransitionSpeed)
+{
     // MC 1.16.5: 动画过渡速度为 0.09f
     // 进入游泳时增加，退出游泳时减少
     f32 animationSpeed = 0.09f;
@@ -295,7 +311,8 @@ TEST_F(PlayerSwimTest, SwimAnimationTransitionSpeed) {
 // 效果移除测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, RemoveWaterBreathingEffect) {
+TEST_F(PlayerSwimTest, RemoveWaterBreathingEffect)
+{
     // 添加并移除水下呼吸效果
     EffectInstance waterBreathing(EffectType::WaterBreathing, 200, 0);
     player->addEffect(waterBreathing);
@@ -315,7 +332,8 @@ TEST_F(PlayerSwimTest, RemoveWaterBreathingEffect) {
 // 最大空气值测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, MaxAirDefaultValue) {
+TEST_F(PlayerSwimTest, MaxAirDefaultValue)
+{
     // 默认最大空气值为 300 tick (15 秒)
     EXPECT_EQ(player->maxAir(), 300);
 }
@@ -324,7 +342,8 @@ TEST_F(PlayerSwimTest, MaxAirDefaultValue) {
 // 水生生物对比测试
 // ============================================================================
 
-TEST_F(PlayerSwimTest, PlayerDrownDamageHigherThanWaterMob) {
+TEST_F(PlayerSwimTest, PlayerDrownDamageHigherThanWaterMob)
+{
     // 玩家溺水伤害为 2.0f
     // 水生生物溺水伤害通常为 1.0f
     EXPECT_FLOAT_EQ(DROWN_DAMAGE_AMOUNT, 2.0f);

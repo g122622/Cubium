@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../util/math/Vector3.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../util/math/Vector3.hpp"
 #include <functional>
 
 namespace mc {
@@ -30,23 +30,15 @@ public:
     /**
      * @brief 方向枚举，用于生成位置时的方向偏好
      */
-    enum class Direction : u8 {
-        None = 0,
-        North = 1,
-        South = 2,
-        East = 4,
-        West = 8,
-        Up = 16,
-        Down = 32
-    };
+    enum class Direction : u8 { None = 0, North = 1, South = 2, East = 4, West = 8, Up = 16, Down = 32 };
 
     /**
      * @brief 位置候选结构
      */
     struct PositionCandidate {
         Vector3 position;
-        f32 score;  // 评分，用于选择最佳位置
-        bool isSafe;  // 是否安全（非危险方块）
+        f32 score;   // 评分，用于选择最佳位置
+        bool isSafe; // 是否安全（非危险方块）
     };
 
     // ==================== 主要公开方法 ====================
@@ -77,12 +69,7 @@ public:
      * @return 是否找到有效位置
      */
     static bool findRandomTargetBlockAwayFrom(
-        CreatureEntity* creature,
-        i32 xzRange,
-        i32 yRange,
-        const Vector3& avoidPos,
-        Vector3& outPos
-    );
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& avoidPos, Vector3& outPos);
 
     /**
      * @brief 生成朝向指定位置的随机目标
@@ -97,12 +84,7 @@ public:
      * @return 是否找到有效位置
      */
     static bool findRandomTargetTowards(
-        CreatureEntity* creature,
-        i32 xzRange,
-        i32 yRange,
-        const Vector3& targetPos,
-        Vector3& outPos
-    );
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos);
 
     /**
      * @brief 获取陆地位置
@@ -115,12 +97,7 @@ public:
      * @param[out] outPos 输出位置
      * @return 是否找到有效的陆地位置
      */
-    static bool getLandPos(
-        CreatureEntity* creature,
-        i32 xzRange,
-        i32 yRange,
-        Vector3& outPos
-    );
+    static bool getLandPos(CreatureEntity* creature, i32 xzRange, i32 yRange, Vector3& outPos);
 
     /**
      * @brief 生成避开水域的随机位置
@@ -133,12 +110,7 @@ public:
      * @param[out] outPos 输出位置
      * @return 是否找到有效位置
      */
-    static bool findRandomTargetAvoidWater(
-        CreatureEntity* creature,
-        i32 xzRange,
-        i32 yRange,
-        Vector3& outPos
-    );
+    static bool findRandomTargetAvoidWater(CreatureEntity* creature, i32 xzRange, i32 yRange, Vector3& outPos);
 
     // ==================== 辅助方法 ====================
 
@@ -179,65 +151,45 @@ public:
 
 private:
     // 常量
-    static constexpr i32 MAX_ATTEMPTS = 10;  // 最大尝试次数
+    static constexpr i32 MAX_ATTEMPTS = 10;       // 最大尝试次数
     static constexpr i32 MAX_GROUND_SEARCH = 10;  // 地面搜索最大高度差
-    static constexpr f32 MIN_DISTANCE_SQ = 2.25f;  // 最小距离平方（1.5格）
+    static constexpr f32 MIN_DISTANCE_SQ = 2.25f; // 最小距离平方（1.5格）
 
     /**
      * @brief 生成随机偏移
      */
     static Vector3 generateRandomOffset(
-        CreatureEntity* creature,
-        i32 xzRange,
-        i32 yRange,
-        const Vector3& directionBias
-    );
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& directionBias);
 
     /**
      * @brief 验证并优化位置
      *
      * 检查位置是否有效，如果需要则寻找地面
      */
-    static bool validateAndAdjustPosition(
-        CreatureEntity* creature,
-        Vector3& pos
-    );
+    static bool validateAndAdjustPosition(CreatureEntity* creature, Vector3& pos);
 
     /**
      * @brief 生成多个候选位置并选择最佳
      */
     static bool findBestPosition(
-        CreatureEntity* creature,
-        i32 xzRange,
-        i32 yRange,
-        const Vector3& directionBias,
-        Vector3& outPos
-    );
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& directionBias, Vector3& outPos);
 };
 
 // Direction位运算支持
 inline RandomPositionGenerator::Direction operator|(
-    RandomPositionGenerator::Direction a,
-    RandomPositionGenerator::Direction b
-) {
-    return static_cast<RandomPositionGenerator::Direction>(
-        static_cast<u8>(a) | static_cast<u8>(b)
-    );
+    RandomPositionGenerator::Direction a, RandomPositionGenerator::Direction b)
+{
+    return static_cast<RandomPositionGenerator::Direction>(static_cast<u8>(a) | static_cast<u8>(b));
 }
 
 inline RandomPositionGenerator::Direction operator&(
-    RandomPositionGenerator::Direction a,
-    RandomPositionGenerator::Direction b
-) {
-    return static_cast<RandomPositionGenerator::Direction>(
-        static_cast<u8>(a) & static_cast<u8>(b)
-    );
+    RandomPositionGenerator::Direction a, RandomPositionGenerator::Direction b)
+{
+    return static_cast<RandomPositionGenerator::Direction>(static_cast<u8>(a) & static_cast<u8>(b));
 }
 
-inline bool hasDirection(
-    RandomPositionGenerator::Direction flags,
-    RandomPositionGenerator::Direction flag
-) {
+inline bool hasDirection(RandomPositionGenerator::Direction flags, RandomPositionGenerator::Direction flag)
+{
     return (static_cast<u8>(flags) & static_cast<u8>(flag)) != 0;
 }
 

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../util/cache/Long2IntLRUCache.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../gen/noise/ImprovedNoiseGenerator.hpp"
 #include "Layer.hpp"
 #include "LayerCacheConfig.hpp"
-#include "../../../util/cache/Long2IntLRUCache.hpp"
-#include "../../gen/noise/ImprovedNoiseGenerator.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include <memory>
 
 namespace mc {
@@ -60,9 +60,7 @@ public:
     /**
      * @brief 获取噪声生成器
      */
-    [[nodiscard]] ImprovedNoiseGenerator* getNoiseGenerator() override {
-        return &m_noise;
-    }
+    [[nodiscard]] ImprovedNoiseGenerator* getNoiseGenerator() override { return &m_noise; }
 
     // === IExtendedAreaContext 接口 ===
 
@@ -79,9 +77,8 @@ public:
     /**
      * @brief 创建延迟计算区域（双输入，持有所有权）
      */
-    [[nodiscard]] std::unique_ptr<IArea> makeArea(PixelFunc pixelFunc,
-                                                   std::unique_ptr<IArea> input1,
-                                                   std::unique_ptr<IArea> input2) override;
+    [[nodiscard]] std::unique_ptr<IArea> makeArea(
+        PixelFunc pixelFunc, std::unique_ptr<IArea> input1, std::unique_ptr<IArea> input2) override;
 
     // === 工厂方法 ===
 
@@ -105,8 +102,8 @@ public:
 private:
     i32 m_maxCacheSize;
     u64 m_worldSeed;
-    u64 m_layerSeed;      // 每层唯一的种子
-    u64 m_positionSeed;   // 当前位置的种子
+    u64 m_layerSeed;    // 每层唯一的种子
+    u64 m_positionSeed; // 当前位置的种子
     ImprovedNoiseGenerator m_noise;
     Long2IntLRUCache m_cache;
 
@@ -158,8 +155,8 @@ public:
      * @param pixelFunc 像素计算函数
      * @param ownedAreas 需要持有的输入区域
      */
-    LazyArea(Long2IntLRUCache& cache, i32 maxCacheSize, PixelFunc pixelFunc,
-             std::vector<std::unique_ptr<IArea>> ownedAreas);
+    LazyArea(
+        Long2IntLRUCache& cache, i32 maxCacheSize, PixelFunc pixelFunc, std::vector<std::unique_ptr<IArea>> ownedAreas);
 
     ~LazyArea() override = default;
 
@@ -176,8 +173,7 @@ public:
      * @param height 高度
      * @param output 输出数组（大小必须 >= width * height）
      */
-    void getValuesBatch(i32 startX, i32 startZ, i32 width, i32 height,
-                        i32* output) const override;
+    void getValuesBatch(i32 startX, i32 startZ, i32 width, i32 height, i32* output) const override;
 
     /**
      * @brief 获取最大缓存大小
@@ -189,7 +185,7 @@ private:
     std::unique_ptr<Long2IntLRUCache> m_ownCache;
     PixelFunc m_pixelFunc;
     i32 m_maxCacheSize;
-    std::vector<std::unique_ptr<IArea>> m_ownedAreas;  // 持有输入区域的所有权
+    std::vector<std::unique_ptr<IArea>> m_ownedAreas; // 持有输入区域的所有权
 };
 
 // ============================================================================
@@ -218,9 +214,8 @@ private:
  */
 class TransformFactory : public IAreaFactory {
 public:
-    TransformFactory(ITransformer1* transformer,
-                     std::shared_ptr<LayerContext> context,
-                     std::unique_ptr<IAreaFactory> input);
+    TransformFactory(
+        ITransformer1* transformer, std::shared_ptr<LayerContext> context, std::unique_ptr<IAreaFactory> input);
     [[nodiscard]] std::unique_ptr<IArea> create() const override;
 
 private:
@@ -237,9 +232,9 @@ private:
 class MergeFactory : public IAreaFactory {
 public:
     MergeFactory(ITransformer2* transformer,
-                 std::shared_ptr<LayerContext> context,
-                 std::unique_ptr<IAreaFactory> input1,
-                 std::unique_ptr<IAreaFactory> input2);
+        std::shared_ptr<LayerContext> context,
+        std::unique_ptr<IAreaFactory> input1,
+        std::unique_ptr<IAreaFactory> input2);
     [[nodiscard]] std::unique_ptr<IArea> create() const override;
 
 private:

@@ -6,11 +6,8 @@ namespace mc::client {
 // BiomeColorCacheEntry 实现
 // ============================================================================
 
-std::optional<u32> BiomeColorCacheEntry::getColor(
-    i32 localX,
-    i32 localZ,
-    size_t resolverId
-) const {
+std::optional<u32> BiomeColorCacheEntry::getColor(i32 localX, i32 localZ, size_t resolverId) const
+{
     if (m_fullyInvalid) {
         return {};
     }
@@ -26,12 +23,8 @@ std::optional<u32> BiomeColorCacheEntry::getColor(
     return m_caches[resolverId][index];
 }
 
-void BiomeColorCacheEntry::setColor(
-    i32 localX,
-    i32 localZ,
-    size_t resolverId,
-    u32 color
-) {
+void BiomeColorCacheEntry::setColor(i32 localX, i32 localZ, size_t resolverId, u32 color)
+{
     const i32 index = localZ * CACHE_SIZE + localX;
 
     m_caches[resolverId][index] = color;
@@ -39,12 +32,14 @@ void BiomeColorCacheEntry::setColor(
     m_fullyInvalid = false;
 }
 
-void BiomeColorCacheEntry::invalidate() {
+void BiomeColorCacheEntry::invalidate()
+{
     m_validBits.fill(0);
     m_fullyInvalid = true;
 }
 
-void BiomeColorCacheEntry::invalidatePosition(i32 localX, i32 localZ) {
+void BiomeColorCacheEntry::invalidatePosition(i32 localX, i32 localZ)
+{
     const i32 index = localZ * CACHE_SIZE + localX;
     m_validBits[index] = 0;
 }
@@ -53,7 +48,8 @@ void BiomeColorCacheEntry::invalidatePosition(i32 localX, i32 localZ) {
 // BiomeColorCache 实现
 // ============================================================================
 
-BiomeColorCacheEntry& BiomeColorCache::getOrCreateEntry(ChunkCoord chunkX, ChunkCoord chunkZ) {
+BiomeColorCacheEntry& BiomeColorCache::getOrCreateEntry(ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     const u64 key = makeKey(chunkX, chunkZ);
     auto it = m_entries.find(key);
 
@@ -65,7 +61,8 @@ BiomeColorCacheEntry& BiomeColorCache::getOrCreateEntry(ChunkCoord chunkX, Chunk
     return inserted->second;
 }
 
-void BiomeColorCache::invalidateChunk(ChunkCoord chunkX, ChunkCoord chunkZ) {
+void BiomeColorCache::invalidateChunk(ChunkCoord chunkX, ChunkCoord chunkZ)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     const u64 key = makeKey(chunkX, chunkZ);
@@ -117,7 +114,8 @@ void BiomeColorCache::invalidateChunk(ChunkCoord chunkX, ChunkCoord chunkZ) {
     }
 }
 
-void BiomeColorCache::invalidatePosition(i32 x, i32 z) {
+void BiomeColorCache::invalidatePosition(i32 x, i32 z)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     const ChunkCoord chunkX = x >> 4;
@@ -133,14 +131,16 @@ void BiomeColorCache::invalidatePosition(i32 x, i32 z) {
     }
 }
 
-void BiomeColorCache::clear() {
+void BiomeColorCache::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entries.clear();
     m_cacheHits = 0;
     m_cacheMisses = 0;
 }
 
-BiomeColorCache::Stats BiomeColorCache::getStats() const {
+BiomeColorCache::Stats BiomeColorCache::getStats() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     Stats stats;

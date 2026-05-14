@@ -1,8 +1,8 @@
 #pragma once
 
-#include "INoiseGenerator.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "INoiseGenerator.hpp"
 #include <array>
 
 namespace mc {
@@ -62,9 +62,8 @@ public:
      *
      * 参考 MC 的 func_215459_a 方法
      */
-    [[nodiscard]] f32 noiseRaw(i32 x, i32 y, i32 z,
-                                f32 deltaX, f32 deltaY, f32 deltaZ,
-                                f32 fadeX, f32 fadeY, f32 fadeZ) const;
+    [[nodiscard]] f32 noiseRaw(
+        i32 x, i32 y, i32 z, f32 deltaX, f32 deltaY, f32 deltaZ, f32 fadeX, f32 fadeY, f32 fadeZ) const;
 
     // 坐标偏移（参考 MC 的公开字段）
     [[nodiscard]] f32 xOffset() const { return m_xOffset; }
@@ -90,9 +89,7 @@ private:
     /**
      * @brief 获取排列值
      */
-    [[nodiscard]] u8 getPermut(i32 index) const {
-        return m_p[index & 255];
-    }
+    [[nodiscard]] u8 getPermut(i32 index) const { return m_p[index & 255]; }
 
     /**
      * @brief 梯度计算
@@ -102,16 +99,12 @@ private:
     /**
      * @brief 平滑插值（Perlin 的 fade 函数）
      */
-    [[nodiscard]] static f32 fade(f32 t) {
-        return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
-    }
+    [[nodiscard]] static f32 fade(f32 t) { return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f); }
 
     /**
      * @brief 线性插值
      */
-    [[nodiscard]] static f32 lerp(f32 a, f32 b, f32 t) {
-        return a + t * (b - a);
-    }
+    [[nodiscard]] static f32 lerp(f32 a, f32 b, f32 t) { return a + t * (b - a); }
 };
 
 // ============================================================================
@@ -123,11 +116,21 @@ private:
  *
  * 格式: {x, y, z}
  */
-constexpr f32 PERLIN_GRADIENTS[16][3] = {
-    { 1.0f,  1.0f,  0.0f}, {-1.0f,  1.0f,  0.0f}, { 1.0f, -1.0f,  0.0f}, {-1.0f, -1.0f,  0.0f},
-    { 1.0f,  0.0f,  1.0f}, {-1.0f,  0.0f,  1.0f}, { 1.0f,  0.0f, -1.0f}, {-1.0f,  0.0f, -1.0f},
-    { 0.0f,  1.0f,  1.0f}, { 0.0f, -1.0f,  1.0f}, { 0.0f,  1.0f, -1.0f}, { 0.0f, -1.0f, -1.0f},
-    { 1.0f,  1.0f,  0.0f}, {-1.0f,  1.0f,  0.0f}, { 0.0f, -1.0f,  1.0f}, { 0.0f,  1.0f, -1.0f}
-};
+constexpr f32 PERLIN_GRADIENTS[16][3] = {{1.0f, 1.0f, 0.0f},
+    {-1.0f, 1.0f, 0.0f},
+    {1.0f, -1.0f, 0.0f},
+    {-1.0f, -1.0f, 0.0f},
+    {1.0f, 0.0f, 1.0f},
+    {-1.0f, 0.0f, 1.0f},
+    {1.0f, 0.0f, -1.0f},
+    {-1.0f, 0.0f, -1.0f},
+    {0.0f, 1.0f, 1.0f},
+    {0.0f, -1.0f, 1.0f},
+    {0.0f, 1.0f, -1.0f},
+    {0.0f, -1.0f, -1.0f},
+    {1.0f, 1.0f, 0.0f},
+    {-1.0f, 1.0f, 0.0f},
+    {0.0f, -1.0f, 1.0f},
+    {0.0f, 1.0f, -1.0f}};
 
 } // namespace mc

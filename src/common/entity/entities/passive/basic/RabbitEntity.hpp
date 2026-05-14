@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AnimalEntity.hpp"
 #include <memory>
 #include <random>
 
@@ -32,14 +32,14 @@ public:
      * @brief 兔子皮肤类型
      */
     enum class RabbitType : u8 {
-        Brown = 0,      // 棕色兔子
-        White = 1,      // 白色兔子
-        Black = 2,      // 黑色兔子
-        WhiteSpotted = 3, // 黑白斑点兔子
-        Gold = 4,       // 金色兔子
+        Brown = 0,         // 棕色兔子
+        White = 1,         // 白色兔子
+        Black = 2,         // 黑色兔子
+        WhiteSpotted = 3,  // 黑白斑点兔子
+        Gold = 4,          // 金色兔子
         SaltAndPepper = 5, // 椒盐色兔子
-        Toast = 6,      // 吐司兔（命名彩蛋）
-        Killer = 99     // 杀手兔（敌对）
+        Toast = 6,         // 吐司兔（命名彩蛋）
+        Killer = 99        // 杀手兔（敌对）
     };
 
     /**

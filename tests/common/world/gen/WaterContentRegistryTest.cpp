@@ -9,14 +9,16 @@ using namespace mc;
 
 namespace {
 
-void expectRegisteredBlock(const char* id) {
+void expectRegisteredBlock(const char* id)
+{
     auto* block = BlockRegistry::instance().getBlock(ResourceLocation(id));
     EXPECT_NE(block, nullptr) << "missing block id: " << id;
 }
 
 } // namespace
 
-TEST(WaterContentRegistryTest, RegistersWaterUpdateRelatedBlocks) {
+TEST(WaterContentRegistryTest, RegistersWaterUpdateRelatedBlocks)
+{
     VanillaBlocks::initialize();
 
     // 水域方块
@@ -55,7 +57,8 @@ TEST(WaterContentRegistryTest, RegistersWaterUpdateRelatedBlocks) {
     expectRegisteredBlock("minecraft:stripped_oak_wood");
 }
 
-TEST(WaterContentRegistryTest, RegistersShipwreckAndOceanRuinStructures) {
+TEST(WaterContentRegistryTest, RegistersShipwreckAndOceanRuinStructures)
+{
     world::gen::structure::StructureRegistry::initialize();
 
     const auto* shipwreck = world::gen::structure::StructureRegistry::get("shipwreck");

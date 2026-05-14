@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "ServerCoreConfig.hpp"
+#include "common/core/Types.hpp"
 #include <vector>
 
 namespace mc::server::core {
@@ -125,8 +125,8 @@ public:
 
 private:
     PlayerManager& m_playerManager;
-    i32 m_keepAliveInterval;  ///< 心跳间隔（毫秒）
-    i32 m_keepAliveTimeout;   ///< 心跳超时（毫秒）
+    i32 m_keepAliveInterval; ///< 心跳间隔（毫秒）
+    i32 m_keepAliveTimeout;  ///< 心跳超时（毫秒）
 };
 
 } // namespace mc::server::core

@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/network/connection/LocalConnection.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::network;
 
@@ -10,19 +10,19 @@ using namespace mc::network;
 
 class LocalServerConnectionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_connectionPair = std::make_unique<LocalConnectionPair>();
         m_connectionPair->connect();
     }
 
-    void TearDown() override {
-        m_connectionPair.reset();
-    }
+    void TearDown() override { m_connectionPair.reset(); }
 
     std::unique_ptr<LocalConnectionPair> m_connectionPair;
 };
 
-TEST_F(LocalServerConnectionTest, BasicSendReceive) {
+TEST_F(LocalServerConnectionTest, BasicSendReceive)
+{
     // 创建服务端连接包装器
     LocalServerConnection serverConn(&m_connectionPair->serverEndpoint());
 
@@ -40,7 +40,8 @@ TEST_F(LocalServerConnectionTest, BasicSendReceive) {
     EXPECT_EQ(recvData.size(), static_cast<size_t>(5));
 }
 
-TEST_F(LocalServerConnectionTest, Disconnect) {
+TEST_F(LocalServerConnectionTest, Disconnect)
+{
     LocalServerConnection serverConn(&m_connectionPair->serverEndpoint());
     EXPECT_TRUE(serverConn.isConnected());
 
@@ -48,22 +49,25 @@ TEST_F(LocalServerConnectionTest, Disconnect) {
     EXPECT_FALSE(serverConn.isConnected());
 }
 
-TEST_F(LocalServerConnectionTest, Identifier) {
+TEST_F(LocalServerConnectionTest, Identifier)
+{
     LocalServerConnection serverConn(&m_connectionPair->serverEndpoint());
     std::string id = serverConn.identifier();
     EXPECT_TRUE(id.find("Local:") != std::string::npos);
 }
 
-TEST_F(LocalServerConnectionTest, SendWhenDisconnected) {
+TEST_F(LocalServerConnectionTest, SendWhenDisconnected)
+{
     LocalServerConnection serverConn(&m_connectionPair->serverEndpoint());
     serverConn.disconnect();
 
     // 发送到断开的连接不应崩溃
     mc::u8 data[] = {1, 2, 3};
-    serverConn.send(data, 3);  // 不应崩溃
+    serverConn.send(data, 3); // 不应崩溃
 }
 
-TEST_F(LocalServerConnectionTest, NullEndpoint) {
+TEST_F(LocalServerConnectionTest, NullEndpoint)
+{
     LocalServerConnection serverConn(nullptr);
     EXPECT_FALSE(serverConn.isConnected());
     // identifier 仍然会有一个 ID 号
@@ -72,10 +76,11 @@ TEST_F(LocalServerConnectionTest, NullEndpoint) {
 
     // 发送到 null endpoint 不应崩溃
     mc::u8 data[] = {1, 2, 3};
-    serverConn.send(data, 3);  // 不应崩溃
+    serverConn.send(data, 3); // 不应崩溃
 }
 
-TEST_F(LocalServerConnectionTest, UseThroughInterface) {
+TEST_F(LocalServerConnectionTest, UseThroughInterface)
+{
     // 测试通过接口使用
     ConnectionPtr conn = std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
 

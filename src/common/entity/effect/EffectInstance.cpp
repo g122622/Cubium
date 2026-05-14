@@ -1,7 +1,7 @@
 #include "EffectInstance.hpp"
-#include "EffectAttributeModifiers.hpp"
 #include "../core/LivingEntity.hpp"
 #include "../entities/player/Player.hpp"
+#include "EffectAttributeModifiers.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 namespace mc {
@@ -22,13 +22,13 @@ constexpr i32 HERO_DURATION = 48000;
 
 // NBT key constants
 namespace nbt_keys {
-    constexpr const char* ID = "Id";
-    constexpr const char* AMPLIFIER = "Amplifier";
-    constexpr const char* DURATION = "Duration";
-    constexpr const char* AMBIENT = "Ambient";
-    constexpr const char* SHOW_PARTICLES = "ShowParticles";
-    constexpr const char* SHOW_ICON = "ShowIcon";
-}
+constexpr const char* ID = "Id";
+constexpr const char* AMPLIFIER = "Amplifier";
+constexpr const char* DURATION = "Duration";
+constexpr const char* AMBIENT = "Ambient";
+constexpr const char* SHOW_PARTICLES = "ShowParticles";
+constexpr const char* SHOW_ICON = "ShowIcon";
+} // namespace nbt_keys
 
 } // namespace
 
@@ -36,22 +36,14 @@ namespace nbt_keys {
 // EffectInstance 实现
 // ============================================================================
 
-EffectInstance::EffectInstance(
-    EffectType type,
-    i32 duration,
-    i32 amplifier,
-    bool ambient,
-    bool visible,
-    bool showIcon
-)
+EffectInstance::EffectInstance(EffectType type, i32 duration, i32 amplifier, bool ambient, bool visible, bool showIcon)
     : m_type(type)
     , m_duration(duration)
     , m_amplifier(amplifier)
     , m_ambient(ambient)
     , m_visible(visible)
     , m_showIcon(showIcon)
-{
-}
+{}
 
 EffectInstance::EffectInstance(const EffectInstance& other)
     : m_type(other.m_type)
@@ -61,10 +53,10 @@ EffectInstance::EffectInstance(const EffectInstance& other)
     , m_visible(other.m_visible)
     , m_showIcon(other.m_showIcon)
     , m_applied(other.m_applied)
-{
-}
+{}
 
-EffectInstance& EffectInstance::operator=(const EffectInstance& other) {
+EffectInstance& EffectInstance::operator=(const EffectInstance& other)
+{
     if (this != &other) {
         m_type = other.m_type;
         m_duration = other.m_duration;
@@ -77,7 +69,8 @@ EffectInstance& EffectInstance::operator=(const EffectInstance& other) {
     return *this;
 }
 
-bool EffectInstance::tick(LivingEntity& entity) {
+bool EffectInstance::tick(LivingEntity& entity)
+{
     // 永久效果不减少持续时间
     if (!isPermanent()) {
         if (m_duration > 0) {
@@ -98,7 +91,8 @@ bool EffectInstance::tick(LivingEntity& entity) {
     return true;
 }
 
-bool EffectInstance::merge(const EffectInstance& other) {
+bool EffectInstance::merge(const EffectInstance& other)
+{
     // 只能合并相同类型的效果
     if (m_type != other.m_type) {
         return false;
@@ -126,7 +120,8 @@ bool EffectInstance::merge(const EffectInstance& other) {
     return false;
 }
 
-void EffectInstance::apply(LivingEntity& entity) {
+void EffectInstance::apply(LivingEntity& entity)
+{
     if (m_applied) {
         return;
     }
@@ -134,9 +129,7 @@ void EffectInstance::apply(LivingEntity& entity) {
     // 应用属性修改器
     const auto& modifiers = EffectAttributeModifiers::getEffectModifiers(m_type);
     for (const auto& modifierInfo : modifiers) {
-        attribute::AttributeModifier modifier = EffectAttributeModifiers::createModifier(
-            modifierInfo, m_amplifier
-        );
+        attribute::AttributeModifier modifier = EffectAttributeModifiers::createModifier(modifierInfo, m_amplifier);
         entity.attributes().addModifier(modifierInfo.attributeName, modifier);
     }
 
@@ -151,7 +144,8 @@ void EffectInstance::apply(LivingEntity& entity) {
     m_applied = true;
 }
 
-void EffectInstance::remove(LivingEntity& entity) {
+void EffectInstance::remove(LivingEntity& entity)
+{
     if (!m_applied) {
         return;
     }
@@ -173,7 +167,8 @@ void EffectInstance::remove(LivingEntity& entity) {
     m_applied = false;
 }
 
-void EffectInstance::applyEffect(LivingEntity& entity) {
+void EffectInstance::applyEffect(LivingEntity& entity)
+{
     // 根据效果类型执行每tick逻辑
     switch (m_type) {
         case EffectType::Regeneration: {
@@ -280,29 +275,29 @@ void EffectInstance::applyEffect(LivingEntity& entity) {
 // 静态工厂方法
 // ============================================================================
 
-EffectInstance EffectInstance::badOmen(i32 level) {
+EffectInstance EffectInstance::badOmen(i32 level)
+{
     // 不祥之兆等级范围 1-5
     i32 amplifier = std::max(0, std::min(level - 1, 4));
-    return EffectInstance(
-        EffectType::BadOmen,
+    return EffectInstance(EffectType::BadOmen,
         BAD_OMEN_DURATION,
         amplifier,
-        false,  // 不是环境效果
-        true,   // 显示粒子
-        true    // 显示图标
+        false, // 不是环境效果
+        true,  // 显示粒子
+        true   // 显示图标
     );
 }
 
-EffectInstance EffectInstance::heroOfTheVillage(i32 level) {
+EffectInstance EffectInstance::heroOfTheVillage(i32 level)
+{
     // 村庄英雄等级范围 1-5
     i32 amplifier = std::max(0, std::min(level - 1, 4));
-    return EffectInstance(
-        EffectType::HeroOfTheVillage,
+    return EffectInstance(EffectType::HeroOfTheVillage,
         HERO_DURATION,
         amplifier,
-        false,  // 不是环境效果
-        true,   // 显示粒子
-        true    // 显示图标
+        false, // 不是环境效果
+        true,  // 显示粒子
+        true   // 显示图标
     );
 }
 
@@ -310,7 +305,8 @@ EffectInstance EffectInstance::heroOfTheVillage(i32 level) {
 // 序列化
 // ============================================================================
 
-void EffectInstance::toNbt(nbt::tags::compound_tag& tag) const {
+void EffectInstance::toNbt(nbt::tags::compound_tag& tag) const
+{
     tag.put(nbt_keys::ID, static_cast<i8>(static_cast<i32>(m_type)));
     tag.put(nbt_keys::AMPLIFIER, static_cast<i8>(m_amplifier));
     tag.put(nbt_keys::DURATION, m_duration);
@@ -319,9 +315,10 @@ void EffectInstance::toNbt(nbt::tags::compound_tag& tag) const {
     tag.put(nbt_keys::SHOW_ICON, static_cast<i8>(m_showIcon ? 1 : 0));
 }
 
-EffectInstance EffectInstance::fromNbt(const nbt::tags::compound_tag& tag) {
+EffectInstance EffectInstance::fromNbt(const nbt::tags::compound_tag& tag)
+{
     // 读取效果类型
-    EffectType type = EffectType::Speed;  // 默认值
+    EffectType type = EffectType::Speed; // 默认值
     auto it = tag.value.find(nbt_keys::ID);
     if (it != tag.value.end()) {
         if (it->second->id() == nbt::TagId::Byte) {
@@ -343,7 +340,7 @@ EffectInstance EffectInstance::fromNbt(const nbt::tags::compound_tag& tag) {
     }
 
     // 读取持续时间
-    i32 duration = 600;  // 默认30秒
+    i32 duration = 600; // 默认30秒
     it = tag.value.find(nbt_keys::DURATION);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Int) {
         duration = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;

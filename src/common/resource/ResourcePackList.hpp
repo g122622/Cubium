@@ -1,18 +1,18 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/core/settings/ResourcePackListOption.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "common/resource/FolderResourcePack.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/resource/ZipResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 #include <filesystem>
-#include <vector>
-#include <memory>
 #include <functional>
+#include <memory>
 #include <shared_mutex>
+#include <vector>
 
 namespace mc {
 
@@ -51,13 +51,13 @@ public:
      * @brief 资源包信息结构
      */
     struct PackInfo {
-        std::string path;                      ///< 资源包路径
-        ResourcePackPtr pack;             ///< 资源包实例
-        bool enabled = true;              ///< 是否启用
-        i32 priority = 0;                 ///< 优先级（越大越优先）
-        bool isZip = false;               ///< 是否是 ZIP 文件
-        bool initialized = false;         ///< 是否已初始化
-        std::string error;                     ///< 初始化错误信息
+        std::string path;         ///< 资源包路径
+        ResourcePackPtr pack;     ///< 资源包实例
+        bool enabled = true;      ///< 是否启用
+        i32 priority = 0;         ///< 优先级（越大越优先）
+        bool isZip = false;       ///< 是否是 ZIP 文件
+        bool initialized = false; ///< 是否已初始化
+        std::string error;        ///< 初始化错误信息
     };
 
     /**
@@ -101,9 +101,7 @@ public:
      * @param priority 优先级
      * @return 添加的资源包信息，或错误
      */
-    [[nodiscard]] Result<PackInfo> addPack(const std::filesystem::path& path,
-                                           bool enabled = true,
-                                           i32 priority = 0);
+    [[nodiscard]] Result<PackInfo> addPack(const std::filesystem::path& path, bool enabled = true, i32 priority = 0);
 
     /**
      * @brief 移除资源包
@@ -249,8 +247,7 @@ public:
      * @return 资源路径列表
      */
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory,
-        std::string_view extension = "") const;
+        std::string_view directory, std::string_view extension = "") const;
 
     // ========================================================================
     // 设置同步

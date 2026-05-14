@@ -42,9 +42,7 @@ public:
      * @brief 获取最大渲染距离平方
      * @return 渲染距离平方（方块数），默认64（8格）
      */
-    [[nodiscard]] virtual f64 getMaxRenderDistanceSquared() const {
-        return 64.0;
-    }
+    [[nodiscard]] virtual f64 getMaxRenderDistanceSquared() const { return 64.0; }
 };
 
 /**
@@ -55,7 +53,7 @@ public:
  *
  * @tparam TEntity 方块实体类型
  */
-template<typename TEntity>
+template <typename TEntity>
 class BlockEntityRenderer : public BlockEntityRendererBase {
 public:
     /**
@@ -72,7 +70,8 @@ public:
      *
      * 执行类型安全转换后调用类型安全的render方法。
      */
-    bool render(const BlockEntity& entity, f32 partialTick, u32 light) override {
+    bool render(const BlockEntity& entity, f32 partialTick, u32 light) override
+    {
         const TEntity* typedEntity = dynamic_cast<const TEntity*>(&entity);
         if (typedEntity == nullptr) {
             return false;
@@ -82,5 +81,5 @@ public:
     }
 };
 
-} // namespace mc::client::renderer::trident::blockentity
+} // namespace client::renderer::trident::blockentity
 } // namespace mc

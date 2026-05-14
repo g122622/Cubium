@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
 #include <optional>
 #include <string_view>
@@ -26,18 +26,18 @@ namespace mc::sound {
  * @endcode
  */
 enum class SoundCategory : u8 {
-    Master,   ///< 主音量（影响所有声音）
-    Music,    ///< 背景音乐
-    Records,  ///< 唱片机音乐
-    Weather,  ///< 天气音效（雨、雷）
-    Blocks,   ///< 方块音效
-    Hostile,  ///< 敌对生物音效
-    Neutral,  ///< 中立生物音效
-    Players,  ///< 玩家音效
-    Ambient,  ///< 环境音效
-    Voice,    ///< 语音/字幕
+    Master,  ///< 主音量（影响所有声音）
+    Music,   ///< 背景音乐
+    Records, ///< 唱片机音乐
+    Weather, ///< 天气音效（雨、雷）
+    Blocks,  ///< 方块音效
+    Hostile, ///< 敌对生物音效
+    Neutral, ///< 中立生物音效
+    Players, ///< 玩家音效
+    Ambient, ///< 环境音效
+    Voice,   ///< 语音/字幕
 
-    Count     ///< 类别总数（用于数组大小）
+    Count ///< 类别总数（用于数组大小）
 };
 
 /**
@@ -93,7 +93,8 @@ enum class SoundCategory : u8 {
  * @param category 要检查的类别
  * @return true 如果是有效的声音类别
  */
-[[nodiscard]] constexpr bool isValidSoundCategory(SoundCategory category) noexcept {
+[[nodiscard]] constexpr bool isValidSoundCategory(SoundCategory category) noexcept
+{
     return category >= SoundCategory::Master && category < SoundCategory::Count;
 }
 

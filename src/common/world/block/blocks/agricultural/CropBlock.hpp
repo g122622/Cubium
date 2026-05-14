@@ -1,7 +1,7 @@
 #pragma once
 
-#include "BushBlock.hpp"
 #include "../../IGrowable.hpp"
+#include "BushBlock.hpp"
 #include <array>
 
 namespace mc {
@@ -66,9 +66,7 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 生长逻辑 ==========
 
@@ -86,9 +84,7 @@ public:
      * 注意：Block::ticksRandomly() 是无状态方法，无法检查作物是否成熟。
      * 成熟检查在 randomTick() 中进行。
      */
-    [[nodiscard]] bool ticksRandomly() const override {
-        return true;
-    }
+    [[nodiscard]] bool ticksRandomly() const override { return true; }
 
     // ========== IGrowable 接口实现 ==========
 
@@ -96,28 +92,18 @@ public:
      * @brief 检查是否可以生长（未成熟时可以）
      */
     [[nodiscard]] bool canGrow(
-        IBlockReader& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        bool isClientSide) const override;
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     /**
      * @brief 骨粉是否有效（总是有效）
      */
     [[nodiscard]] bool canUseBonemeal(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) const override;
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
     /**
      * @brief 使用骨粉生长
      */
-    void grow(
-        IWorld& world,
-        math::IRandom& random,
-        const BlockPos& pos,
-        const BlockState& state) override;
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     /**
      * @brief 使用骨粉生长（便捷方法，自动创建随机数）
@@ -126,9 +112,9 @@ public:
 
     /**
      * @brief 获取骨粉增加的年龄
-        *
-        * 增长值由世界种子和方块位置派生的确定性随机数生成，
-        * 不要使用全局 rand()，否则同一世界内的结果会不可复现。
+     *
+     * 增长值由世界种子和方块位置派生的确定性随机数生成，
+     * 不要使用全局 rand()，否则同一世界内的结果会不可复现。
      */
     [[nodiscard]] virtual int getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const;
 
@@ -153,9 +139,7 @@ protected:
      * @brief 检查下方是否可支撑
      */
     [[nodiscard]] bool canSustain(
-        const BlockState& groundState,
-        IWorld& world,
-        const BlockPos& groundPos) const override;
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
     /**
      * @brief 计算生长速度（静态方法，供 StemBlock 使用）
@@ -163,10 +147,7 @@ protected:
      * 参考 MC 1.16.5: CropsBlock.getGrowthChance
      * 考虑周围耕地湿润度和同类作物拥挤程度
      */
-    [[nodiscard]] static float getGrowthChance(
-        const Block& block,
-        IBlockReader& world,
-        const BlockPos& pos);
+    [[nodiscard]] static float getGrowthChance(const Block& block, IBlockReader& world, const BlockPos& pos);
 
     /// 各年龄阶段的形状缓存
     std::array<CollisionShape, 8> m_shapesByAge;

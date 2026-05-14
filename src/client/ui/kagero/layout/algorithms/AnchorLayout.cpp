@@ -2,7 +2,9 @@
 
 namespace mc::client::ui::kagero::layout {
 
-std::vector<LayoutResult> AnchorLayout::compute(const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children) const {
+std::vector<LayoutResult> AnchorLayout::compute(
+    const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children) const
+{
     std::vector<LayoutResult> results;
     results.reserve(children.size());
 
@@ -18,7 +20,8 @@ std::vector<LayoutResult> AnchorLayout::compute(const Rect& containerBounds, con
     return results;
 }
 
-Rect AnchorLayout::computeChildBounds(const Rect& containerBounds, const WidgetLayoutAdaptor& child) const {
+Rect AnchorLayout::computeChildBounds(const Rect& containerBounds, const WidgetLayoutAdaptor& child) const
+{
     const auto& c = child.constraints();
     const auto& anchor = c.anchor;
 

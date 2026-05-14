@@ -3,7 +3,8 @@
 
 namespace mc::text {
 
-std::unique_ptr<ITextComponent> TextParser::parse(std::string_view text) {
+std::unique_ptr<ITextComponent> TextParser::parse(std::string_view text)
+{
     ParseState state;
 
     size_t i = 0;
@@ -49,7 +50,8 @@ std::unique_ptr<ITextComponent> TextParser::parse(std::string_view text) {
     return std::move(state.root);
 }
 
-std::string TextParser::toLegacyFormat(const ITextComponent& component) {
+std::string TextParser::toLegacyFormat(const ITextComponent& component)
+{
     std::string result;
 
     // 添加当前组件的样式代码
@@ -70,7 +72,8 @@ std::string TextParser::toLegacyFormat(const ITextComponent& component) {
     return result;
 }
 
-bool TextParser::handleFormattingCode(ParseState& state, char code) {
+bool TextParser::handleFormattingCode(ParseState& state, char code)
+{
     // 转换为小写
     char lowerCode = static_cast<char>(std::tolower(static_cast<unsigned char>(code)));
 

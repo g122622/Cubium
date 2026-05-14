@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include "server/world/ServerWorld.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::server;
@@ -11,20 +11,27 @@ using namespace mc::server;
 class TestBlockEntity : public BlockEntity {
 public:
     TestBlockEntity(const BlockPos& pos)
-        : BlockEntity(BlockEntityType::Chest, pos) {}
+        : BlockEntity(BlockEntityType::Chest, pos)
+    {}
 
     void tick(IWorld& world) override { MC_UNUSED(world); }
     [[nodiscard]] bool needsTick() const override { return false; }
-    bool load(const nlohmann::json& data) override { MC_UNUSED(data); return true; }
+    bool load(const nlohmann::json& data) override
+    {
+        MC_UNUSED(data);
+        return true;
+    }
     void save(nlohmann::json& data) const override { MC_UNUSED(data); }
-    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override {
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override
+    {
         return std::make_unique<TestBlockEntity>(getPos());
     }
 };
 
 class ServerWorldBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块注册表（ServerWorld需要）
         VanillaBlocks::initialize();
 
@@ -38,16 +45,15 @@ protected:
         // 这样可以避免RocksDB ZSTD压缩链接问题
     }
 
-    void TearDown() override {
-        world.reset();
-    }
+    void TearDown() override { world.reset(); }
 
     std::unique_ptr<ServerWorld> world;
 };
 
 // ========== getBlockEntity 测试 ==========
 
-TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrWhenNotFound) {
+TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrWhenNotFound)
+{
     // 先创建区块
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -58,7 +64,8 @@ TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrWhenNotFound) {
     EXPECT_EQ(entity, nullptr);
 }
 
-TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrForUnloadedChunk) {
+TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrForUnloadedChunk)
+{
     // 不创建区块
 
     BlockPos pos(1000, 64, 1000);
@@ -69,7 +76,8 @@ TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrForUnloadedChunk
 
 // ========== setBlockEntity 测试 ==========
 
-TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_StoresEntity) {
+TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_StoresEntity)
+{
     // 创建区块
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -87,7 +95,8 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_StoresEntity) {
     EXPECT_EQ(retrieved, rawPtr);
 }
 
-TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_SetsWorldReference) {
+TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_SetsWorldReference)
+{
     // 创建区块
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -103,7 +112,8 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_SetsWorldReference) {
     EXPECT_EQ(retrieved->getWorld(), world.get());
 }
 
-TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_ReplacesExistingEntity) {
+TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_ReplacesExistingEntity)
+{
     // 创建区块
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -124,7 +134,8 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_ReplacesExistingEntity) {
     EXPECT_EQ(retrieved, rawPtr2);
 }
 
-TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_HandlesNullptr) {
+TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_HandlesNullptr)
+{
     // 创建区块
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -136,7 +147,8 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_HandlesNullptr) {
 
 // ========== removeBlockEntity 测试 ==========
 
-TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_RemovesExistingEntity) {
+TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_RemovesExistingEntity)
+{
     // 创建区块
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -152,7 +164,8 @@ TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_RemovesExistingEntity) {
     EXPECT_EQ(retrieved, nullptr);
 }
 
-TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesNonExistentEntity) {
+TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesNonExistentEntity)
+{
     // 创建区块
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -162,7 +175,8 @@ TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesNonExistentEntity) {
     EXPECT_NO_THROW(world->removeBlockEntity(pos));
 }
 
-TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesUnloadedChunk) {
+TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesUnloadedChunk)
+{
     // 不创建区块
 
     BlockPos pos(1000, 64, 1000);
@@ -173,7 +187,8 @@ TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesUnloadedChunk) {
 
 // ========== 边界情况测试 ==========
 
-TEST_F(ServerWorldBlockEntityTest, SetAndGetEntityAtWorldBoundary) {
+TEST_F(ServerWorldBlockEntityTest, SetAndGetEntityAtWorldBoundary)
+{
     // 创建区块（包含原点）
     world->chunkManager()->getChunkSync(0, 0);
 
@@ -187,7 +202,8 @@ TEST_F(ServerWorldBlockEntityTest, SetAndGetEntityAtWorldBoundary) {
     EXPECT_EQ(retrieved->getPos(), pos);
 }
 
-TEST_F(ServerWorldBlockEntityTest, MultipleBlockEntitiesInSameChunk) {
+TEST_F(ServerWorldBlockEntityTest, MultipleBlockEntitiesInSameChunk)
+{
     // 创建区块
     world->chunkManager()->getChunkSync(0, 0);
 

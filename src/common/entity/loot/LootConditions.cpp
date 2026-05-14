@@ -11,7 +11,8 @@ namespace loot {
 // SilkTouchCondition
 // ============================================================================
 
-bool SilkTouchCondition::test(LootContext& context) const {
+bool SilkTouchCondition::test(LootContext& context) const
+{
     // 检查是否有精准采集附魔
     // 使用 SILK_TOUCH_LEVEL 参数
     auto* silkTouchLevel = context.get<i32>(LootParams::SILK_TOUCH_LEVEL);
@@ -21,7 +22,8 @@ bool SilkTouchCondition::test(LootContext& context) const {
     return false;
 }
 
-std::unique_ptr<LootCondition> SilkTouchCondition::clone() const {
+std::unique_ptr<LootCondition> SilkTouchCondition::clone() const
+{
     return std::make_unique<SilkTouchCondition>();
 }
 
@@ -31,19 +33,21 @@ std::unique_ptr<LootCondition> SilkTouchCondition::clone() const {
 
 FortuneCondition::FortuneCondition(i32 minLevel)
     : m_minLevel(minLevel)
-{
-}
+{}
 
-bool FortuneCondition::test(LootContext& context) const {
+bool FortuneCondition::test(LootContext& context) const
+{
     i32 fortuneLevel = getFortuneLevel(context);
     return fortuneLevel >= m_minLevel;
 }
 
-std::unique_ptr<LootCondition> FortuneCondition::clone() const {
+std::unique_ptr<LootCondition> FortuneCondition::clone() const
+{
     return std::make_unique<FortuneCondition>(m_minLevel);
 }
 
-i32 FortuneCondition::getFortuneLevel(LootContext& context) {
+i32 FortuneCondition::getFortuneLevel(LootContext& context)
+{
     // 从上下文获取时运附魔等级
     auto* fortuneLevel = context.get<i32>(LootParams::FORTUNE_LEVEL);
     if (fortuneLevel && *fortuneLevel > 0) {
@@ -52,7 +56,8 @@ i32 FortuneCondition::getFortuneLevel(LootContext& context) {
     return 0;
 }
 
-i32 FortuneCondition::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) {
+i32 FortuneCondition::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random)
+{
     if (fortuneLevel <= 0) {
         return baseCount;
     }
@@ -78,10 +83,10 @@ i32 FortuneCondition::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::R
 RandomChanceCondition::RandomChanceCondition(f32 chance, bool affectedByLuck)
     : m_chance(chance)
     , m_affectedByLuck(affectedByLuck)
-{
-}
+{}
 
-bool RandomChanceCondition::test(LootContext& context) const {
+bool RandomChanceCondition::test(LootContext& context) const
+{
     f32 actualChance = m_chance;
 
     if (m_affectedByLuck) {
@@ -92,7 +97,8 @@ bool RandomChanceCondition::test(LootContext& context) const {
     return context.getRandom().nextFloat() < actualChance;
 }
 
-std::unique_ptr<LootCondition> RandomChanceCondition::clone() const {
+std::unique_ptr<LootCondition> RandomChanceCondition::clone() const
+{
     return std::make_unique<RandomChanceCondition>(m_chance, m_affectedByLuck);
 }
 
@@ -103,15 +109,16 @@ std::unique_ptr<LootCondition> RandomChanceCondition::clone() const {
 RandomChanceWithLuckCondition::RandomChanceWithLuckCondition(f32 baseChance, f32 luckCoefficient)
     : m_baseChance(baseChance)
     , m_luckCoefficient(luckCoefficient)
-{
-}
+{}
 
-bool RandomChanceWithLuckCondition::test(LootContext& context) const {
+bool RandomChanceWithLuckCondition::test(LootContext& context) const
+{
     f32 chance = m_baseChance + context.getLuck() * m_luckCoefficient;
     return context.getRandom().nextFloat() < chance;
 }
 
-std::unique_ptr<LootCondition> RandomChanceWithLuckCondition::clone() const {
+std::unique_ptr<LootCondition> RandomChanceWithLuckCondition::clone() const
+{
     return std::make_unique<RandomChanceWithLuckCondition>(m_baseChance, m_luckCoefficient);
 }
 
@@ -121,17 +128,18 @@ std::unique_ptr<LootCondition> RandomChanceWithLuckCondition::clone() const {
 
 NotCondition::NotCondition(std::unique_ptr<LootCondition> condition)
     : m_condition(std::move(condition))
-{
-}
+{}
 
-bool NotCondition::test(LootContext& context) const {
+bool NotCondition::test(LootContext& context) const
+{
     if (!m_condition) {
         return true;
     }
     return !m_condition->test(context);
 }
 
-std::unique_ptr<LootCondition> NotCondition::clone() const {
+std::unique_ptr<LootCondition> NotCondition::clone() const
+{
     if (m_condition) {
         return std::make_unique<NotCondition>(m_condition->clone());
     }
@@ -144,17 +152,17 @@ std::unique_ptr<LootCondition> NotCondition::clone() const {
 
 AndCondition::AndCondition(std::vector<std::unique_ptr<LootCondition>> conditions)
     : m_conditions(std::move(conditions))
+{}
+
+bool AndCondition::test(LootContext& context) const
 {
+    return std::all_of(m_conditions.begin(),
+        m_conditions.end(),
+        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
 }
 
-bool AndCondition::test(LootContext& context) const {
-    return std::all_of(m_conditions.begin(), m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) {
-            return cond && cond->test(context);
-        });
-}
-
-std::unique_ptr<LootCondition> AndCondition::clone() const {
+std::unique_ptr<LootCondition> AndCondition::clone() const
+{
     std::vector<std::unique_ptr<LootCondition>> cloned;
     for (const auto& cond : m_conditions) {
         if (cond) {
@@ -164,7 +172,8 @@ std::unique_ptr<LootCondition> AndCondition::clone() const {
     return std::make_unique<AndCondition>(std::move(cloned));
 }
 
-void AndCondition::addCondition(std::unique_ptr<LootCondition> condition) {
+void AndCondition::addCondition(std::unique_ptr<LootCondition> condition)
+{
     m_conditions.push_back(std::move(condition));
 }
 
@@ -174,17 +183,17 @@ void AndCondition::addCondition(std::unique_ptr<LootCondition> condition) {
 
 OrCondition::OrCondition(std::vector<std::unique_ptr<LootCondition>> conditions)
     : m_conditions(std::move(conditions))
+{}
+
+bool OrCondition::test(LootContext& context) const
 {
+    return std::any_of(m_conditions.begin(),
+        m_conditions.end(),
+        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
 }
 
-bool OrCondition::test(LootContext& context) const {
-    return std::any_of(m_conditions.begin(), m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) {
-            return cond && cond->test(context);
-        });
-}
-
-std::unique_ptr<LootCondition> OrCondition::clone() const {
+std::unique_ptr<LootCondition> OrCondition::clone() const
+{
     std::vector<std::unique_ptr<LootCondition>> cloned;
     for (const auto& cond : m_conditions) {
         if (cond) {
@@ -194,7 +203,8 @@ std::unique_ptr<LootCondition> OrCondition::clone() const {
     return std::make_unique<OrCondition>(std::move(cloned));
 }
 
-void OrCondition::addCondition(std::unique_ptr<LootCondition> condition) {
+void OrCondition::addCondition(std::unique_ptr<LootCondition> condition)
+{
     m_conditions.push_back(std::move(condition));
 }
 
@@ -205,16 +215,15 @@ void OrCondition::addCondition(std::unique_ptr<LootCondition> condition) {
 BlockStateCondition::BlockStateCondition(const std::string& blockId)
     : m_blockId(blockId)
     , m_properties()
-{
-}
+{}
 
 BlockStateCondition::BlockStateCondition(const std::string& blockId, StatePropertiesPredicate properties)
     : m_blockId(blockId)
     , m_properties(std::move(properties))
-{
-}
+{}
 
-bool BlockStateCondition::test(LootContext& context) const {
+bool BlockStateCondition::test(LootContext& context) const
+{
     // 从上下文获取 BLOCK_STATE 参数
     auto* blockState = context.get<BlockState>(LootParams::BLOCK_STATE);
     if (!blockState) {
@@ -234,7 +243,8 @@ bool BlockStateCondition::test(LootContext& context) const {
     return true;
 }
 
-std::unique_ptr<LootCondition> BlockStateCondition::clone() const {
+std::unique_ptr<LootCondition> BlockStateCondition::clone() const
+{
     return std::make_unique<BlockStateCondition>(m_blockId, m_properties);
 }
 
@@ -244,10 +254,10 @@ std::unique_ptr<LootCondition> BlockStateCondition::clone() const {
 
 ToolTypeCondition::ToolTypeCondition(u8 toolType)
     : m_toolType(toolType)
-{
-}
+{}
 
-bool ToolTypeCondition::test(LootContext& context) const {
+bool ToolTypeCondition::test(LootContext& context) const
+{
     // 从上下文获取工具参数
     auto* tool = context.get<ItemStack>(LootParams::TOOL);
     if (!tool || tool->isEmpty()) {
@@ -271,7 +281,8 @@ bool ToolTypeCondition::test(LootContext& context) const {
     return false;
 }
 
-std::unique_ptr<LootCondition> ToolTypeCondition::clone() const {
+std::unique_ptr<LootCondition> ToolTypeCondition::clone() const
+{
     return std::make_unique<ToolTypeCondition>(m_toolType);
 }
 
@@ -279,45 +290,54 @@ std::unique_ptr<LootCondition> ToolTypeCondition::clone() const {
 // LootConditionBuilder
 // ============================================================================
 
-std::unique_ptr<LootCondition> LootConditionBuilder::silkTouch() {
+std::unique_ptr<LootCondition> LootConditionBuilder::silkTouch()
+{
     return std::make_unique<SilkTouchCondition>();
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::fortune(i32 minLevel) {
+std::unique_ptr<LootCondition> LootConditionBuilder::fortune(i32 minLevel)
+{
     return std::make_unique<FortuneCondition>(minLevel);
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::randomChance(f32 chance) {
+std::unique_ptr<LootCondition> LootConditionBuilder::randomChance(f32 chance)
+{
     return std::make_unique<RandomChanceCondition>(chance);
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::randomChanceWithLuck(f32 baseChance, f32 luckCoefficient) {
+std::unique_ptr<LootCondition> LootConditionBuilder::randomChanceWithLuck(f32 baseChance, f32 luckCoefficient)
+{
     return std::make_unique<RandomChanceWithLuckCondition>(baseChance, luckCoefficient);
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::not_(std::unique_ptr<LootCondition> condition) {
+std::unique_ptr<LootCondition> LootConditionBuilder::not_(std::unique_ptr<LootCondition> condition)
+{
     return std::make_unique<NotCondition>(std::move(condition));
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::and_(std::vector<std::unique_ptr<LootCondition>> conditions) {
+std::unique_ptr<LootCondition> LootConditionBuilder::and_(std::vector<std::unique_ptr<LootCondition>> conditions)
+{
     return std::make_unique<AndCondition>(std::move(conditions));
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::or_(std::vector<std::unique_ptr<LootCondition>> conditions) {
+std::unique_ptr<LootCondition> LootConditionBuilder::or_(std::vector<std::unique_ptr<LootCondition>> conditions)
+{
     return std::make_unique<OrCondition>(std::move(conditions));
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::blockState(const std::string& blockId) {
+std::unique_ptr<LootCondition> LootConditionBuilder::blockState(const std::string& blockId)
+{
     return std::make_unique<BlockStateCondition>(blockId);
 }
 
 std::unique_ptr<LootCondition> LootConditionBuilder::blockState(
-    const std::string& blockId,
-    StatePropertiesPredicate properties) {
+    const std::string& blockId, StatePropertiesPredicate properties)
+{
     return std::make_unique<BlockStateCondition>(blockId, std::move(properties));
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::toolType(u8 toolType) {
+std::unique_ptr<LootCondition> LootConditionBuilder::toolType(u8 toolType)
+{
     return std::make_unique<ToolTypeCondition>(toolType);
 }
 

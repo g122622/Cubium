@@ -3,9 +3,9 @@
  * @brief MD5 哈希算法单元测试
  */
 
-#include <gtest/gtest.h>
 #include "common/util/crypto/Md5.hpp"
 #include <string>
+#include <gtest/gtest.h>
 
 namespace mc::util::crypto::test {
 
@@ -14,7 +14,8 @@ namespace mc::util::crypto::test {
  *
  * RFC 1321 测试向量：MD5("") = d41d8cd98f00b204e9800998ecf8427e
  */
-TEST(Md5Test, EmptyString) {
+TEST(Md5Test, EmptyString)
+{
     Md5::Digest hash = Md5::hash("");
     std::string hex = Md5::toHexString(hash);
 
@@ -26,7 +27,8 @@ TEST(Md5Test, EmptyString) {
  *
  * RFC 1321 测试向量：MD5("a") = 0cc175b9c0f1b6a831c399e269772661
  */
-TEST(Md5Test, SingleCharacter) {
+TEST(Md5Test, SingleCharacter)
+{
     Md5::Digest hash = Md5::hash("a");
     std::string hex = Md5::toHexString(hash);
 
@@ -38,7 +40,8 @@ TEST(Md5Test, SingleCharacter) {
  *
  * RFC 1321 测试向量：MD5("abc") = 900150983cd24fb0d6963f7d28e17f72
  */
-TEST(Md5Test, Abc) {
+TEST(Md5Test, Abc)
+{
     Md5::Digest hash = Md5::hash("abc");
     std::string hex = Md5::toHexString(hash);
 
@@ -50,7 +53,8 @@ TEST(Md5Test, Abc) {
  *
  * RFC 1321 测试向量：MD5("message digest") = f96b697d7cb7938d525a2f31aaf161d0
  */
-TEST(Md5Test, MessageDigest) {
+TEST(Md5Test, MessageDigest)
+{
     Md5::Digest hash = Md5::hash("message digest");
     std::string hex = Md5::toHexString(hash);
 
@@ -62,7 +66,8 @@ TEST(Md5Test, MessageDigest) {
  *
  * RFC 1321 测试向量：MD5("abcdefghijklmnopqrstuvwxyz") = c3fcd3d76192e4007dfb496cca67e13b
  */
-TEST(Md5Test, Alphabet) {
+TEST(Md5Test, Alphabet)
+{
     Md5::Digest hash = Md5::hash("abcdefghijklmnopqrstuvwxyz");
     std::string hex = Md5::toHexString(hash);
 
@@ -72,7 +77,8 @@ TEST(Md5Test, Alphabet) {
 /**
  * @brief 测试字节数组输入
  */
-TEST(Md5Test, ByteArray) {
+TEST(Md5Test, ByteArray)
+{
     std::vector<u8> data = {'a', 'b', 'c'};
     Md5::Digest hash = Md5::hash(std::span<const u8>(data.data(), data.size()));
     std::string hex = Md5::toHexString(hash);
@@ -85,7 +91,8 @@ TEST(Md5Test, ByteArray) {
  *
  * MD5 块大小是 512 位 = 64 字节
  */
-TEST(Md5Test, LongString) {
+TEST(Md5Test, LongString)
+{
     // 65 个 'a' 字符
     std::string longStr(65, 'a');
     Md5::Digest hash = Md5::hash(longStr);
@@ -100,7 +107,8 @@ TEST(Md5Test, LongString) {
 /**
  * @brief 测试输出长度
  */
-TEST(Md5Test, OutputLength) {
+TEST(Md5Test, OutputLength)
+{
     Md5::Digest hash = Md5::hash("test");
     EXPECT_EQ(hash.size(), 16u);
 

@@ -1,10 +1,10 @@
 #include "ProjectileEntity.hpp"
 
-#include "ProjectileHelper.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "ProjectileHelper.hpp"
 
 #include <cmath>
 
@@ -14,7 +14,8 @@ namespace entity {
 namespace {
 
 // 辅助函数：基于实体ID和tick创建随机数生成器
-math::Random createRandomFromEntity(const Entity& entity) {
+math::Random createRandomFromEntity(const Entity& entity)
+{
     // 使用实体ID和存活时间作为种子
     u64 seed = static_cast<u64>(entity.id()) << 32 | static_cast<u64>(entity.ticksExisted());
     return math::Random(seed);
@@ -116,13 +117,7 @@ void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
     m_prevPitch = m_pitch;
 }
 
-void ProjectileEntity::shootFrom(
-    Entity& shooter,
-    f32 pitch,
-    f32 yaw,
-    f32 pitchOffset,
-    f32 velocity,
-    f32 inaccuracy)
+void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy)
 {
     // 参考 MC 1.16.5 ProjectileEntity.func_234612_a_() 第106-113行
     const f32 radPitch = pitch * math::DEG_TO_RAD;
@@ -244,18 +239,10 @@ RayTraceResult ProjectileEntity::rayTraceEntities(const Vector3& start, const Ve
         return RayTraceResult::miss();
     }
 
-    const AxisAlignedBB searchBox =
-        ProjectileHelper::createMovementSearchBox(*this, end - start, 1.0f);
+    const AxisAlignedBB searchBox = ProjectileHelper::createMovementSearchBox(*this, end - start, 1.0f);
 
     return ProjectileHelper::rayTraceEntities(
-        *m_world,
-        *this,
-        start,
-        end,
-        searchBox,
-        [this](const Entity& candidate) {
-            return canHitEntity(candidate);
-        });
+        *m_world, *this, start, end, searchBox, [this](const Entity& candidate) { return canHitEntity(candidate); });
 }
 
 RayTraceResult ProjectileEntity::rayTraceBlocks(const Vector3& start, const Vector3& end)

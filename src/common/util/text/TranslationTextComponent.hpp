@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ITextComponent.hpp"
-#include <nlohmann/json.hpp>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::text {
 
@@ -55,7 +55,8 @@ public:
      * @param key 翻译键
      */
     explicit TranslationTextComponent(std::string key)
-        : m_key(std::move(key)) {}
+        : m_key(std::move(key))
+    {}
 
     /**
      * @brief 构造带参数的翻译组件
@@ -64,7 +65,8 @@ public:
      */
     TranslationTextComponent(std::string key, std::vector<std::unique_ptr<ITextComponent>> params)
         : m_key(std::move(key))
-        , m_params(std::move(params)) {}
+        , m_params(std::move(params))
+    {}
 
     // ========== ITextComponent 接口 ==========
 
@@ -72,7 +74,8 @@ public:
 
     [[nodiscard]] std::string getFormattedText() const override;
 
-    [[nodiscard]] std::unique_ptr<ITextComponent> deepCopy() const override {
+    [[nodiscard]] std::unique_ptr<ITextComponent> deepCopy() const override
+    {
         auto copy = std::make_unique<TranslationTextComponent>(m_key);
         for (const auto& param : m_params) {
             copy->m_params.push_back(param->deepCopy());
@@ -81,13 +84,15 @@ public:
         return copy;
     }
 
-    [[nodiscard]] std::unique_ptr<ITextComponent> shallowCopy() const override {
+    [[nodiscard]] std::unique_ptr<ITextComponent> shallowCopy() const override
+    {
         auto copy = std::make_unique<TranslationTextComponent>(m_key);
         copy->setStyle(m_style);
         return copy;
     }
 
-    [[nodiscard]] nlohmann::json toJson() const override {
+    [[nodiscard]] nlohmann::json toJson() const override
+    {
         nlohmann::json json = m_style.toJson();
         json["translate"] = m_key;
 
@@ -128,15 +133,14 @@ public:
      * @brief 获取参数列表
      * @return 参数列表的常量引用
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<ITextComponent>>& getParams() const noexcept {
-        return m_params;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<ITextComponent>>& getParams() const noexcept { return m_params; }
 
     /**
      * @brief 添加翻译参数
      * @param param 参数组件
      */
-    void addParam(std::unique_ptr<ITextComponent> param) {
+    void addParam(std::unique_ptr<ITextComponent> param)
+    {
         if (param) {
             m_params.push_back(std::move(param));
         }
@@ -154,7 +158,8 @@ private:
 
 // ========== 内联实现 ==========
 
-inline std::string TranslationTextComponent::getUnformattedText() const {
+inline std::string TranslationTextComponent::getUnformattedText() const
+{
     // 在翻译系统实现前，返回翻译键作为占位符
     // TODO: 集成翻译系统后，从翻译表获取翻译文本
     std::string result = "[" + m_key + "]";
@@ -180,7 +185,8 @@ inline std::string TranslationTextComponent::getUnformattedText() const {
     return result;
 }
 
-inline std::string TranslationTextComponent::getFormattedText() const {
+inline std::string TranslationTextComponent::getFormattedText() const
+{
     // 在翻译系统实现前，返回翻译键作为占位符
     std::string result = getStyleCodes(m_style);
     result += "[" + m_key + "]";

@@ -18,7 +18,8 @@ CreeperModel::CreeperModel(f32 scale)
     setupParts(scale);
 }
 
-void CreeperModel::setupParts(f32 scale) {
+void CreeperModel::setupParts(f32 scale)
+{
     // 参考 MC 1.16.5 CreeperModel
     // 纹理尺寸：64x32
 
@@ -81,19 +82,21 @@ void CreeperModel::setupParts(f32 scale) {
     m_parts.push_back(m_legBackLeft);
 }
 
-void CreeperModel::render(f64 scale) {
+void CreeperModel::render(f64 scale)
+{
     EntityModel::render(scale);
 }
 
-void CreeperModel::renderArmor(f64 scale) {
+void CreeperModel::renderArmor(f64 scale)
+{
     if (m_armorHead) {
         m_armorHead->render(scale);
     }
 }
 
-void CreeperModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void CreeperModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 参考 MC 1.16.5 CreeperModel.setRotationAngles
 
     // 头部旋转
@@ -115,13 +118,13 @@ void CreeperModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     f32 legSwing1 = static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount);
     f32 legSwing2 = static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmount);
 
-    m_legFrontRight->setRotateAngleX(legSwing1);  // leg1
-    m_legFrontLeft->setRotateAngleX(legSwing2);   // leg2
-    m_legBackRight->setRotateAngleX(legSwing2);   // leg3
-    m_legBackLeft->setRotateAngleX(legSwing1);    // leg4
+    m_legFrontRight->setRotateAngleX(legSwing1); // leg1
+    m_legFrontLeft->setRotateAngleX(legSwing2);  // leg2
+    m_legBackRight->setRotateAngleX(legSwing2);  // leg3
+    m_legBackLeft->setRotateAngleX(legSwing1);   // leg4
 
-    (void)ageInTicks;  // 苦力怕没有使用 ageInTicks 的动画
-    (void)scale;       // 已在 render() 中使用
+    (void)ageInTicks; // 苦力怕没有使用 ageInTicks 的动画
+    (void)scale;      // 已在 render() 中使用
 }
 
 } // namespace mc::client::renderer::entity::model::monster

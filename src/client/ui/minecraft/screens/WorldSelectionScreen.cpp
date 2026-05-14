@@ -1,18 +1,18 @@
 #include "WorldSelectionScreen.hpp"
 #include "../../kagero/event/EventBus.hpp"
 #include "../../kagero/state/StateStore.hpp"
+#include <algorithm>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
-#include <algorithm>
 
 namespace mc::client::ui::minecraft {
 
 WorldSelectionScreen::WorldSelectionScreen()
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
-          kagero::state::StateStore::instance(),
-          kagero::event::EventBus::instance()),
+                         kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
           "worldSelection")
-    , m_worldListService(world::storage::WorldStoragePaths::defaultPaths()) {
+    , m_worldListService(world::storage::WorldStoragePaths::defaultPaths())
+{
     expose("worlds.empty", &m_worldsEmpty);
     expose("worlds.selected", &m_hasSelection);
 
@@ -22,12 +22,14 @@ WorldSelectionScreen::WorldSelectionScreen()
     refreshWorldList();
 }
 
-void WorldSelectionScreen::onOpen() {
+void WorldSelectionScreen::onOpen()
+{
     TemplateScreen::onOpen();
     refreshWorldList();
 }
 
-void WorldSelectionScreen::registerCallbacks() {
+void WorldSelectionScreen::registerCallbacks()
+{
     exposeSimpleCallback("onPlay", [this]() {
         if (m_selectedWorld != nullptr && m_onSelectWorld) {
             m_onSelectWorld(*m_selectedWorld);
@@ -40,8 +42,7 @@ void WorldSelectionScreen::registerCallbacks() {
         }
     });
 
-    exposeSimpleCallback("onDelete", [this]() {
-    });
+    exposeSimpleCallback("onDelete", [this]() {});
 
     exposeSimpleCallback("onBack", [this]() {
         if (m_onBack) {
@@ -50,16 +51,16 @@ void WorldSelectionScreen::registerCallbacks() {
     });
 }
 
-void WorldSelectionScreen::cacheWidgets() {
+void WorldSelectionScreen::cacheWidgets()
+{
     if (auto* widget = findWidget("worldList")) {
         m_worldListWidget = dynamic_cast<kagero::widget::ListWidget*>(widget);
     }
 
     if (m_worldListWidget) {
         m_worldListWidget->setSelectionMode(kagero::widget::ListWidget::SelectionMode::Single);
-        m_worldListWidget->setOnSelect([this](size_t index, kagero::widget::IListItem*) {
-            updateSelection(static_cast<i32>(index));
-        });
+        m_worldListWidget->setOnSelect(
+            [this](size_t index, kagero::widget::IListItem*) { updateSelection(static_cast<i32>(index)); });
         m_worldListWidget->setOnDoubleClick([this](size_t index, kagero::widget::IListItem*) {
             updateSelection(static_cast<i32>(index));
             if (m_selectedWorld != nullptr && m_onSelectWorld) {
@@ -69,7 +70,8 @@ void WorldSelectionScreen::cacheWidgets() {
     }
 }
 
-void WorldSelectionScreen::updateSelection(i32 index) {
+void WorldSelectionScreen::updateSelection(i32 index)
+{
     if (index < 0 || static_cast<size_t>(index) >= m_worlds.size()) {
         m_selectedIndex = -1;
         m_selectedWorld = nullptr;
@@ -84,7 +86,8 @@ void WorldSelectionScreen::updateSelection(i32 index) {
     updateBindingValues();
 }
 
-void WorldSelectionScreen::publishWorldCollection() {
+void WorldSelectionScreen::publishWorldCollection()
+{
     if (auto* ctx = bindingContext()) {
         std::vector<kagero::tpl::binder::Value> values;
         values.reserve(m_worldNames.size());
@@ -95,13 +98,15 @@ void WorldSelectionScreen::publishWorldCollection() {
     }
 }
 
-void WorldSelectionScreen::updateBindingValues() {
+void WorldSelectionScreen::updateBindingValues()
+{
     expose("worlds.empty", &m_worldsEmpty);
     expose("worlds.selected", &m_hasSelection);
     refresh();
 }
 
-void WorldSelectionScreen::refreshWorldList() {
+void WorldSelectionScreen::refreshWorldList()
+{
     auto result = m_worldListService.listWorlds();
     if (result.success()) {
         m_worlds = std::move(result.value());
@@ -142,7 +147,8 @@ void WorldSelectionScreen::refreshWorldList() {
     }
 }
 
-bool WorldSelectionScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+bool WorldSelectionScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     (void)scanCode;
     (void)mods;
 

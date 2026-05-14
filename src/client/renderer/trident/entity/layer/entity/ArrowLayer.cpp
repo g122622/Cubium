@@ -1,7 +1,7 @@
 #include "ArrowLayer.hpp"
 #include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
@@ -10,12 +10,11 @@
 namespace mc::client::renderer::entity::layer::entity {
 
 // 静态成员定义
-template<typename TEntity>
+template <typename TEntity>
 std::unique_ptr<pipeline::EntityMesh> ArrowLayer<TEntity>::s_arrowMesh = nullptr;
 
-template<typename TEntity>
-void ArrowLayer<TEntity>::renderPipeline(
-    TEntity& entity,
+template <typename TEntity>
+void ArrowLayer<TEntity>::renderPipeline(TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -56,9 +55,8 @@ void ArrowLayer<TEntity>::renderPipeline(
     spdlog::trace("ArrowLayer: Rendered {} arrows on entity", arrowCount);
 }
 
-template<typename TEntity>
-void ArrowLayer<TEntity>::render(
-    TEntity& entity,
+template <typename TEntity>
+void ArrowLayer<TEntity>::render(TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -78,8 +76,9 @@ void ArrowLayer<TEntity>::render(
     (void)scale;
 }
 
-template<typename TEntity>
-bool ArrowLayer<TEntity>::shouldRender(const TEntity& entity) const {
+template <typename TEntity>
+bool ArrowLayer<TEntity>::shouldRender(const TEntity& entity) const
+{
     // 检查实体是否被箭射中
     // 参考 MC 1.16.5 StuckArrowsLayer.shouldRender()
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
@@ -88,10 +87,8 @@ bool ArrowLayer<TEntity>::shouldRender(const TEntity& entity) const {
     return false;
 }
 
-template<typename TEntity>
-void ArrowLayer<TEntity>::buildArrowMesh(
-    std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+template <typename TEntity>
+void ArrowLayer<TEntity>::buildArrowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 参考 MC 1.16.5 箭矢模型
     // 简化的箭矢网格
@@ -108,32 +105,35 @@ void ArrowLayer<TEntity>::buildArrowMesh(
 
     // 箭杆正面 - ModelVertex(x, y, z, u, v, nx, ny, nz)
     vertices.push_back(model::ModelVertex(-ARROW_RADIUS, -halfLength, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( ARROW_RADIUS, -halfLength, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(ARROW_RADIUS, -halfLength, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, 1.0f));
     vertices.push_back(model::ModelVertex(-ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f));
 
     // 箭杆背面
     vertices.push_back(model::ModelVertex(-ARROW_RADIUS, -halfLength, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex( ARROW_RADIUS, -halfLength, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex( ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, -1.0f));
-    vertices.push_back(model::ModelVertex(-ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(ARROW_RADIUS, -halfLength, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(
+        model::ModelVertex(-ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, -1.0f));
 
     // 箭头
     vertices.push_back(model::ModelVertex(-HEAD_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( HEAD_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, 1.0f));
-    vertices.push_back(model::ModelVertex( 0.0f, halfLength, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(HEAD_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(0.0f, halfLength, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f));
 
     // 索引
-    indices.insert(indices.end(), {0, 1, 2, 0, 2, 3});  // 箭杆正面
-    indices.insert(indices.end(), {4, 6, 5, 4, 7, 6});  // 箭杆背面
+    indices.insert(indices.end(), {0, 1, 2, 0, 2, 3}); // 箭杆正面
+    indices.insert(indices.end(), {4, 6, 5, 4, 7, 6}); // 箭杆背面
     indices.insert(indices.end(), {8, 9, 10});         // 箭头
 }
 
-template<typename TEntity>
-void ArrowLayer<TEntity>::renderArrowPipeline(
-    TEntity& entity,
-    f32 x, f32 y, f32 z,
-    f32 yaw, f32 pitch,
+template <typename TEntity>
+void ArrowLayer<TEntity>::renderArrowPipeline(TEntity& entity,
+    f32 x,
+    f32 y,
+    f32 z,
+    f32 yaw,
+    f32 pitch,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -173,11 +173,7 @@ void ArrowLayer<TEntity>::renderArrowPipeline(
     arrowTransform[14] = 0.0;
     arrowTransform[15] = 1.0;
 
-    Vector3f entityPos(
-        static_cast<f32>(entity.x()),
-        static_cast<f32>(entity.y()),
-        static_cast<f32>(entity.z())
-    );
+    Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     f32 hurtTime = 0.0f;
     f32 deathTime = 0.0f;
@@ -186,14 +182,15 @@ void ArrowLayer<TEntity>::renderArrowPipeline(
         deathTime = static_cast<f32>(entity.deathTime());
     }
 
-    pipeline.drawMesh(cmd, *mesh, arrowTransform, entityPos, 1.0,
-                      Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+    pipeline.drawMesh(
+        cmd, *mesh, arrowTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
     (void)context;
 }
 
-template<typename TEntity>
-pipeline::EntityMesh* ArrowLayer<TEntity>::getOrCreateArrowMesh(pipeline::EntityPipeline& pipeline) {
+template <typename TEntity>
+pipeline::EntityMesh* ArrowLayer<TEntity>::getOrCreateArrowMesh(pipeline::EntityPipeline& pipeline)
+{
     if (s_arrowMesh && s_arrowMesh->indexCount > 0) {
         return s_arrowMesh.get();
     }

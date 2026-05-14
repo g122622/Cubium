@@ -2,21 +2,20 @@
 
 #include "ParticleRenderType.hpp"
 #include "ParticleTypes.hpp"
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
-#include <vector>
+#include <functional>
 #include <memory>
-#include <functional>
-#include <functional>
+#include <vector>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class IWorld;
 class PhysicsEngine;
-}
+} // namespace mc
 
 namespace mc::client {
 class ClientWorld;
@@ -34,10 +33,7 @@ struct SpriteInfo;
  * 用于发射器粒子发射新粒子时调用。
  * 参考 MC 1.16.5 EmitterParticle
  */
-using ParticleEmitCallback = std::function<void(
-    ParticleTypeId type,
-    const glm::vec3& pos,
-    const glm::vec3& velocity)>;
+using ParticleEmitCallback = std::function<void(ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity)>;
 
 /**
  * @brief 粒子顶点数据
@@ -45,11 +41,11 @@ using ParticleEmitCallback = std::function<void(
  * 用于传递给 GPU 的顶点格式。
  */
 struct ParticleVertex {
-    glm::vec3 position;     ///< 粒子位置
-    glm::vec2 texCoord;     ///< 纹理坐标
-    glm::vec4 color;        ///< RGBA 颜色（含透明度）
-    f32 size;               ///< 粒子大小
-    f32 alpha;              ///< 额外的 alpha 值（用于淡出）
+    glm::vec3 position; ///< 粒子位置
+    glm::vec2 texCoord; ///< 纹理坐标
+    glm::vec4 color;    ///< RGBA 颜色（含透明度）
+    f32 size;           ///< 粒子大小
+    f32 alpha;          ///< 额外的 alpha 值（用于淡出）
 };
 
 /**
@@ -59,12 +55,13 @@ struct ParticleVertex {
  * 参考 MC 1.16.5 Entity.move() 中的碰撞处理逻辑。
  */
 struct ParticleCollisionContext {
-    bool collidedX = false;     ///< X 轴是否发生碰撞
-    bool collidedY = false;     ///< Y 轴是否发生碰撞
-    bool collidedZ = false;     ///< Z 轴是否发生碰撞
-    bool onGround = false;      ///< 是否在地面
+    bool collidedX = false; ///< X 轴是否发生碰撞
+    bool collidedY = false; ///< Y 轴是否发生碰撞
+    bool collidedZ = false; ///< Z 轴是否发生碰撞
+    bool onGround = false;  ///< 是否在地面
 
-    void reset() {
+    void reset()
+    {
         collidedX = false;
         collidedY = false;
         collidedZ = false;
@@ -168,7 +165,8 @@ public:
      *
      * @return 渲染类型
      */
-    [[nodiscard]] virtual ParticleRenderType getRenderType() const {
+    [[nodiscard]] virtual ParticleRenderType getRenderType() const
+    {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
@@ -183,8 +181,7 @@ public:
      * @param atlas 纹理图集（用于获取 UV 坐标）
      * @param outVertices 输出顶点数组（4 个顶点组成一个 quad）
      */
-    virtual void buildVertices(
-        const glm::vec3& cameraPos,
+    virtual void buildVertices(const glm::vec3& cameraPos,
         f64 partialTick,
         const ParticleTextureAtlas& atlas,
         std::vector<ParticleVertex>& outVertices) const;
@@ -288,64 +285,60 @@ public:
      *
      * @param callback 发射回调函数
      */
-    void setEmitCallback(ParticleEmitCallback callback) {
-        m_emitCallback = std::move(callback);
-    }
+    void setEmitCallback(ParticleEmitCallback callback) { m_emitCallback = std::move(callback); }
 
     /**
      * @brief 获取发射回调
      */
-    [[nodiscard]] const ParticleEmitCallback& emitCallback() const {
-        return m_emitCallback;
-    }
+    [[nodiscard]] const ParticleEmitCallback& emitCallback() const { return m_emitCallback; }
 
 protected:
     // ========================================================================
     // 位置和运动
     // ========================================================================
 
-    glm::vec3 m_position;       ///< 当前位置
-    glm::vec3 m_prevPosition;   ///< 上一帧位置（用于插值）
-    glm::vec3 m_velocity;       ///< 速度
+    glm::vec3 m_position;     ///< 当前位置
+    glm::vec3 m_prevPosition; ///< 上一帧位置（用于插值）
+    glm::vec3 m_velocity;     ///< 速度
 
     // ========================================================================
     // 外观
     // ========================================================================
 
-    glm::vec4 m_color = glm::vec4(1.0f);  ///< RGBA 颜色
-    f64 m_size = 0.1f;                    ///< 粒子大小
-    f64 m_roll = 0.0f;                    ///< 旋转角度（弧度）
-    f64 m_prevRoll = 0.0f;                ///< 上一帧旋转角度
+    glm::vec4 m_color = glm::vec4(1.0f); ///< RGBA 颜色
+    f64 m_size = 0.1f;                   ///< 粒子大小
+    f64 m_roll = 0.0f;                   ///< 旋转角度（弧度）
+    f64 m_prevRoll = 0.0f;               ///< 上一帧旋转角度
 
     // ========================================================================
     // 生命周期
     // ========================================================================
 
-    f64 m_age = 0.0f;           ///< 已存活时间（ticks）
-    f64 m_maxAge = 1.0f;        ///< 最大存活时间（ticks）
-    bool m_expired = false;     ///< 是否已过期
+    f64 m_age = 0.0f;       ///< 已存活时间（ticks）
+    f64 m_maxAge = 1.0f;    ///< 最大存活时间（ticks）
+    bool m_expired = false; ///< 是否已过期
 
     // ========================================================================
     // 物理
     // ========================================================================
 
-    f64 m_gravity = 0.0f;       ///< 重力加速度（方块/tick²）
-    f64 m_friction = 0.98f;     ///< 空气阻力系数
-    bool m_hasPhysics = true;   ///< 是否进行碰撞检测
+    f64 m_gravity = 0.0f;     ///< 重力加速度（方块/tick²）
+    f64 m_friction = 0.98f;   ///< 空气阻力系数
+    bool m_hasPhysics = true; ///< 是否进行碰撞检测
 
     // ========================================================================
     // 碰撞盒和碰撞状态
     // ========================================================================
 
-    f64 m_bboxWidth = 0.0f;     ///< 碰撞盒宽度
-    f64 m_bboxHeight = 0.0f;    ///< 碰撞盒高度
-    ParticleCollisionContext m_collisionContext;  ///< 碰撞上下文
+    f64 m_bboxWidth = 0.0f;                      ///< 碰撞盒宽度
+    f64 m_bboxHeight = 0.0f;                     ///< 碰撞盒高度
+    ParticleCollisionContext m_collisionContext; ///< 碰撞上下文
 
     // ========================================================================
     // 发射回调
     // ========================================================================
 
-    ParticleEmitCallback m_emitCallback;  ///< 发射回调（用于发射器粒子）
+    ParticleEmitCallback m_emitCallback; ///< 发射回调（用于发射器粒子）
 };
 
 /**
@@ -359,8 +352,6 @@ protected:
  * @return 粒子实例
  */
 using ParticleFactory = std::function<std::unique_ptr<Particle>(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)>;
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)>;
 
 } // namespace mc::client::renderer::trident::particle

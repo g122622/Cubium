@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../../core/ActionResult.hpp"
 #include "../../core/Item.hpp"
 #include "../../core/UseAction.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../../core/Types.hpp"
 #include <functional>
 
 namespace mc {
@@ -14,7 +14,7 @@ class World;
 class ItemStack;
 
 namespace entity {
-    class AbstractArrowEntity;
+class AbstractArrowEntity;
 }
 
 namespace item {
@@ -67,21 +67,14 @@ public:
      *
      * 检查玩家是否有箭矢或无限附魔，开始蓄力。
      */
-    [[nodiscard]] ItemActionResult onItemRightClick(
-        IWorld& world,
-        Player& player,
-        Hand hand) override;
+    [[nodiscard]] ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     /**
      * @brief 停止使用物品（松开右键）
      *
      * 发射箭矢。计算蓄力时间和速度。
      */
-    void onPlayerStoppedUsing(
-        ItemStack& stack,
-        IWorld& world,
-        LivingEntity& entity,
-        i32 timeLeft) override;
+    void onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft) override;
 
     /**
      * @brief 获取箭矢预测谓词
@@ -137,9 +130,7 @@ private:
      * @param player 玩家
      * @return 是否无限（不消耗）
      */
-    [[nodiscard]] bool isInfiniteArrow(const ItemStack& arrowStack,
-                                        const ItemStack& bowStack,
-                                        Player& player) const;
+    [[nodiscard]] bool isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const;
 };
 
 } // namespace item

@@ -43,33 +43,34 @@ public:
      * @brief 工厂方法
      */
     static std::unique_ptr<Particle> create(
-        const glm::vec3& pos,
-        const glm::vec3& velocity,
-        mc::client::ClientWorld* world);
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_LIT;  // 发光粒子
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::PARTICLE_SHEET_LIT; // 发光粒子
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
         return ResourceLocation("minecraft:particle/flame");
     }
 
-    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
+    {
         MC_UNUSED(world);
-        return 0xF0;  // 始终最大亮度
+        return 0xF0; // 始终最大亮度
     }
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.0f;  // 火焰不受重力
+    static constexpr f64 DEFAULT_GRAVITY = 0.0f; // 火焰不受重力
     static constexpr f64 DEFAULT_SIZE = 0.04f;
-    static constexpr f64 DEFAULT_LIFETIME = 30.0f;  // 约 1.5 秒
+    static constexpr f64 DEFAULT_LIFETIME = 30.0f; // 约 1.5 秒
 
-    f64 m_initialSize;  ///< 初始大小（用于缩放动画）
+    f64 m_initialSize; ///< 初始大小（用于缩放动画）
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

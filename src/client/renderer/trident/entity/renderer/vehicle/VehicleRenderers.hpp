@@ -4,14 +4,14 @@
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <memory>
 #include <array>
+#include <memory>
 
 // Forward declarations
 namespace mc {
 class BoatEntity;
 class AbstractMinecartEntity;
-}
+} // namespace mc
 
 namespace mc::client::renderer::entity {
 class EntityRendererManager;
@@ -22,14 +22,7 @@ namespace mc::client::renderer::entity::renderer::vehicle {
 /**
  * @brief 船类型枚举
  */
-enum class BoatType : u8 {
-    Oak = 0,
-    Spruce = 1,
-    Birch = 2,
-    Jungle = 3,
-    Acacia = 4,
-    DarkOak = 5
-};
+enum class BoatType : u8 { Oak = 0, Spruce = 1, Birch = 2, Jungle = 3, Acacia = 4, DarkOak = 5 };
 
 /**
  * @brief 船模型

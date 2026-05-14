@@ -3,13 +3,13 @@
  * @brief 云渲染器单元测试
  */
 
-#include <gtest/gtest.h>
-#include "common/world/dimension/DimensionRenderSettings.hpp"
 #include "client/renderer/trident/cloud/CloudRenderer.hpp"
-#include <glm/glm.hpp>
+#include "common/world/dimension/DimensionRenderSettings.hpp"
 #include <cmath>
-#include <limits>
 #include <cstddef>
+#include <limits>
+#include <glm/glm.hpp>
+#include <gtest/gtest.h>
 
 namespace mc::world {
 namespace test {
@@ -17,7 +17,8 @@ namespace test {
 /**
  * @brief 测试维度渲染设置 - 主世界
  */
-TEST(DimensionRenderSettingsTest, OverworldSettings) {
+TEST(DimensionRenderSettingsTest, OverworldSettings)
+{
     auto settings = DimensionRenderSettings::overworld();
 
     EXPECT_TRUE(settings.hasClouds());
@@ -31,7 +32,8 @@ TEST(DimensionRenderSettingsTest, OverworldSettings) {
 /**
  * @brief 测试维度渲染设置 - 下界
  */
-TEST(DimensionRenderSettingsTest, NetherSettings) {
+TEST(DimensionRenderSettingsTest, NetherSettings)
+{
     auto settings = DimensionRenderSettings::nether();
 
     EXPECT_FALSE(settings.hasClouds());
@@ -45,7 +47,8 @@ TEST(DimensionRenderSettingsTest, NetherSettings) {
 /**
  * @brief 测试维度渲染设置 - 末地
  */
-TEST(DimensionRenderSettingsTest, EndSettings) {
+TEST(DimensionRenderSettingsTest, EndSettings)
+{
     auto settings = DimensionRenderSettings::end();
 
     EXPECT_FALSE(settings.hasClouds());
@@ -59,7 +62,8 @@ TEST(DimensionRenderSettingsTest, EndSettings) {
 /**
  * @brief 测试 getDefault 返回主世界设置
  */
-TEST(DimensionRenderSettingsTest, DefaultSettings) {
+TEST(DimensionRenderSettingsTest, DefaultSettings)
+{
     auto settings = DimensionRenderSettings::getDefault();
 
     EXPECT_TRUE(settings.hasClouds());
@@ -70,7 +74,8 @@ TEST(DimensionRenderSettingsTest, DefaultSettings) {
 /**
  * @brief 测试 hasClouds 方法
  */
-TEST(DimensionRenderSettingsTest, HasCloudsMethod) {
+TEST(DimensionRenderSettingsTest, HasCloudsMethod)
+{
     auto overworld = DimensionRenderSettings::overworld();
     auto nether = DimensionRenderSettings::nether();
     auto end = DimensionRenderSettings::end();
@@ -83,7 +88,8 @@ TEST(DimensionRenderSettingsTest, HasCloudsMethod) {
 /**
  * @brief 测试雾类型枚举值
  */
-TEST(DimensionRenderSettingsTest, FogTypeEnumValues) {
+TEST(DimensionRenderSettingsTest, FogTypeEnumValues)
+{
     EXPECT_EQ(static_cast<u8>(FogType::None), 0);
     EXPECT_EQ(static_cast<u8>(FogType::Normal), 1);
     EXPECT_EQ(static_cast<u8>(FogType::End), 2);
@@ -98,7 +104,8 @@ namespace test {
 /**
  * @brief 测试 CloudMode 枚举值
  */
-TEST(CloudModeTest, EnumValues) {
+TEST(CloudModeTest, EnumValues)
+{
     EXPECT_EQ(static_cast<u8>(CloudMode::Off), 0);
     EXPECT_EQ(static_cast<u8>(CloudMode::Fast), 1);
     EXPECT_EQ(static_cast<u8>(CloudMode::Fancy), 2);
@@ -107,7 +114,8 @@ TEST(CloudModeTest, EnumValues) {
 /**
  * @brief 测试 CloudUBO 结构大小和对齐
  */
-TEST(CloudUBOTest, StructureSize) {
+TEST(CloudUBOTest, StructureSize)
+{
     // CloudUBO 需与 cloud.vert/cloud.frag 中的 std140 布局保持一致：
     // vec4 (16字节) + 6 * float (24字节) = 40 字节
     // std140 布局要求结构体大小是 16 字节的倍数，所以实际为 48 字节
@@ -137,7 +145,8 @@ TEST(CloudUBOTest, StructureSize) {
 /**
  * @brief 测试 CloudUBO 字段设置
  */
-TEST(CloudUBOTest, FieldAssignment) {
+TEST(CloudUBOTest, FieldAssignment)
+{
     CloudUBO ubo{};
     ubo.cloudColor = glm::vec4(1.0f, 0.9f, 0.8f, 1.0f);
     ubo.cloudHeight = 192.0f;

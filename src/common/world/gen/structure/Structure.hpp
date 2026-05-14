@@ -1,15 +1,15 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../../util/Direction.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../biome/Biome.hpp"
-#include "StructureBoundingBox.hpp"
 #include "../jigsaw/JigsawJunction.hpp"
+#include "StructureBoundingBox.hpp"
+#include <functional>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include <functional>
 
 namespace mc {
 
@@ -22,7 +22,7 @@ class BlockState;
 class BlockPos;
 
 namespace world::gen {
-    class StructureBoundingBox;
+class StructureBoundingBox;
 }
 
 namespace world::gen::structure {
@@ -33,31 +33,34 @@ namespace world::gen::structure {
  * @brief 结构类型枚举
  */
 enum class StructureType : u8 {
-    Temple,         ///< 神殿/神庙结构（沙漠神殿、丛林神庙等）
-    Monument,       ///< 海洋纪念碑
-    Stronghold,     ///< 要塞
-    Village,        ///< 村庄
-    Mineshaft,      ///< 废弃矿井
-    RuinedPortal,   ///< 废弃传送门
-    BuriedTreasure, ///< 埋藏宝藏
-    Shipwreck,      ///< 沉船
-    OceanRuin,      ///< 海洋废墟
-    WoodlandMansion,///< 林地府邸
-    Bastion,        ///< 堡垒遗迹
-    Fortress,       ///< 下界要塞
-    EndCity         ///< 末地城
+    Temple,          ///< 神殿/神庙结构（沙漠神殿、丛林神庙等）
+    Monument,        ///< 海洋纪念碑
+    Stronghold,      ///< 要塞
+    Village,         ///< 村庄
+    Mineshaft,       ///< 废弃矿井
+    RuinedPortal,    ///< 废弃传送门
+    BuriedTreasure,  ///< 埋藏宝藏
+    Shipwreck,       ///< 沉船
+    OceanRuin,       ///< 海洋废墟
+    WoodlandMansion, ///< 林地府邸
+    Bastion,         ///< 堡垒遗迹
+    Fortress,        ///< 下界要塞
+    EndCity          ///< 末地城
 };
 
 /**
  * @brief 结构间距设置
  */
 struct StructureSeparationSettings {
-    i32 spacing;      ///< 平均间距（区块）
-    i32 separation;   ///< 最小间距（区块）
-    i32 salt;         ///< 随机种子盐
+    i32 spacing;    ///< 平均间距（区块）
+    i32 separation; ///< 最小间距（区块）
+    i32 salt;       ///< 随机种子盐
 
     constexpr StructureSeparationSettings(i32 s = 1, i32 sep = 0, i32 st = 0)
-        : spacing(s), separation(sep), salt(st) {}
+        : spacing(s)
+        , separation(sep)
+        , salt(st)
+    {}
 };
 
 /**
@@ -75,7 +78,9 @@ public:
      */
     class BlockSelector {
     public:
-        BlockSelector() : m_blockState(nullptr) {}
+        BlockSelector()
+            : m_blockState(nullptr)
+        {}
         virtual ~BlockSelector() = default;
 
         /**
@@ -185,8 +190,8 @@ public:
      *
      * 参考 MC 1.16.5 StructurePiece.setBlockState
      */
-    void setBlockState(IWorldWriter& world, const BlockState* state,
-                       i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
+    void setBlockState(
+        IWorldWriter& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
 
     /**
      * @brief 从位置获取方块状态
@@ -198,22 +203,35 @@ public:
      * @return 方块状态，如果超出边界或位置无效返回 nullptr
      * @note 需要子类提供世界读取能力，默认实现返回 nullptr
      */
-    [[nodiscard]] const BlockState* getBlockStateFromPos(IWorld& world,
-                                                          i32 x, i32 y, i32 z,
-                                                          const StructureBoundingBox& bounds) const;
+    [[nodiscard]] const BlockState* getBlockStateFromPos(
+        IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const;
 
     /**
      * @brief 用空气填充区域
      */
-    void fillWithAir(IWorldWriter& world, const StructureBoundingBox& bounds,
-                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
+    void fillWithAir(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ);
 
     /**
      * @brief 用方块填充区域（边界和内部可以不同）
      */
-    void fillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
-                        i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                        const BlockState* boundaryBlock, const BlockState* insideBlock, bool excludeCorners = false);
+    void fillWithBlocks(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        const BlockState* boundaryBlock,
+        const BlockState* insideBlock,
+        bool excludeCorners = false);
 
     /**
      * @brief 用随机选择的方块填充区域
@@ -229,23 +247,42 @@ public:
      * @param rng 随机数生成器
      * @param selector 方块选择器
      */
-    void fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
-                                   i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                   bool alwaysReplace, math::Random& rng, BlockSelector& selector);
+    void fillWithRandomizedBlocks(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        bool alwaysReplace,
+        math::Random& rng,
+        BlockSelector& selector);
 
     /**
      * @brief 随机放置单个方块
      */
-    void randomlyPlaceBlock(IWorldWriter& world, const StructureBoundingBox& bounds,
-                            math::Random& rng, f32 chance, i32 x, i32 y, i32 z,
-                            const BlockState* state);
+    void randomlyPlaceBlock(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::Random& rng,
+        f32 chance,
+        i32 x,
+        i32 y,
+        i32 z,
+        const BlockState* state);
 
     /**
      * @brief 球形填充（用于矿井房间等）
      */
-    void randomlyRareFillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
-                                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                     const BlockState* state);
+    void randomlyRareFillWithBlocks(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        const BlockState* state);
 
     /**
      * @brief 向下替换空气和液体
@@ -257,8 +294,8 @@ public:
      * @param bounds 边界框
      * @note 需要子类提供世界读取能力
      */
-    void replaceAirAndLiquidDownwards(IWorld& world, const BlockState* state,
-                                       i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
+    void replaceAirAndLiquidDownwards(
+        IWorld& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
 
     // ========== 结构构建方法 ==========
 
@@ -267,7 +304,8 @@ public:
      *
      * 参考 MC 1.16.5 StructurePiece.buildComponent
      */
-    virtual void buildComponent(StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng);
+    virtual void buildComponent(
+        StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng);
 
     /**
      * @brief 在区块中生成片段
@@ -277,9 +315,8 @@ public:
      * @param chunkZ 区块 Z 坐标
      * @param chunkBounds 区块边界框
      */
-    virtual void generate(IWorldWriter& world, math::Random& rng,
-                          i32 chunkX, i32 chunkZ,
-                          const StructureBoundingBox& chunkBounds) = 0;
+    virtual void generate(
+        IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds) = 0;
 
     // ========== Jigsaw 结构支持 ==========
 
@@ -301,7 +338,8 @@ public:
      *
      * @return JigsawJunction 列表的常量引用，默认返回空列表
      */
-    [[nodiscard]] virtual const std::vector<jigsaw::JigsawJunction>& getJunctions() const {
+    [[nodiscard]] virtual const std::vector<jigsaw::JigsawJunction>& getJunctions() const
+    {
         static const std::vector<jigsaw::JigsawJunction> emptyJunctions;
         return emptyJunctions;
     }
@@ -321,8 +359,7 @@ public:
      * @brief 查找与边界框相交的片段
      */
     [[nodiscard]] static StructurePiece* findIntersecting(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        const StructureBoundingBox& bounds);
+        std::vector<std::unique_ptr<StructurePiece>>& pieces, const StructureBoundingBox& bounds);
 
 protected:
     i32 m_type;
@@ -394,7 +431,7 @@ private:
     StructureBoundingBox m_boundingBox;
     i32 m_chunkX;
     i32 m_chunkZ;
-    i32 m_references = 0;  ///< 引用计数，用于追踪多少个区块引用此结构
+    i32 m_references = 0; ///< 引用计数，用于追踪多少个区块引用此结构
 };
 
 /**
@@ -434,11 +471,7 @@ public:
      * @return 是否可以生成
      */
     [[nodiscard]] virtual bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ);
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ);
 
     /**
      * @brief 生成结构
@@ -450,11 +483,7 @@ public:
      * @return 生成的结构实例，如果无法生成则返回 nullptr
      */
     [[nodiscard]] virtual std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const;
 
     /**
      * @brief 在区块中放置结构片段
@@ -465,20 +494,20 @@ public:
      * @param chunkZ 区块 Z 坐标
      */
     virtual void placeInChunk(
-        IWorldWriter& world,
-        ChunkPrimer& chunk,
-        StructureStart& start,
-        i32 chunkX,
-        i32 chunkZ) const;
+        IWorldWriter& world, ChunkPrimer& chunk, StructureStart& start, i32 chunkX, i32 chunkZ) const;
 
-    [[nodiscard]] static bool findStructureStart(
-        i64 seed, i32 chunkX, i32 chunkZ,
+    [[nodiscard]] static bool findStructureStart(i64 seed,
+        i32 chunkX,
+        i32 chunkZ,
         const StructureSeparationSettings& settings,
-        i32& outStartX, i32& outStartZ,
+        i32& outStartX,
+        i32& outStartZ,
         bool useUniformSpacing = true);
 
 protected:
-    explicit Structure(StructureType type) : m_type(type) {}
+    explicit Structure(StructureType type)
+        : m_type(type)
+    {}
 
     [[nodiscard]] static math::Random createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
 
@@ -487,14 +516,14 @@ protected:
 
 // 片段类型常量
 namespace StructurePieceTypes {
-    constexpr i32 RUINED_PORTAL = 50;
-    constexpr i32 BURIED_TREASURE = 53;
-    // 废弃矿井片段
-    constexpr i32 MINESHAFT_ROOM = 60;
-    constexpr i32 MINESHAFT_CORRIDOR = 61;
-    constexpr i32 MINESHAFT_CROSS = 62;
-    constexpr i32 MINESHAFT_STAIRS = 63;
-}
+constexpr i32 RUINED_PORTAL = 50;
+constexpr i32 BURIED_TREASURE = 53;
+// 废弃矿井片段
+constexpr i32 MINESHAFT_ROOM = 60;
+constexpr i32 MINESHAFT_CORRIDOR = 61;
+constexpr i32 MINESHAFT_CROSS = 62;
+constexpr i32 MINESHAFT_STAIRS = 63;
+} // namespace StructurePieceTypes
 
-} // namespace mc::world::gen::structure
+} // namespace world::gen::structure
 } // namespace mc

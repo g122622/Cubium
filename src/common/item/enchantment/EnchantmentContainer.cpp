@@ -10,7 +10,8 @@ namespace enchant {
 // EnchantmentInstance 实现
 // ============================================================================
 
-const Enchantment* EnchantmentInstance::getEnchantment() const {
+const Enchantment* EnchantmentInstance::getEnchantment() const
+{
     return EnchantmentRegistry::get(enchantmentId);
 }
 
@@ -18,7 +19,8 @@ const Enchantment* EnchantmentInstance::getEnchantment() const {
 // EnchantmentContainer 实现
 // ============================================================================
 
-i32 EnchantmentContainer::getLevel(const std::string& enchantmentId) const {
+i32 EnchantmentContainer::getLevel(const std::string& enchantmentId) const
+{
     for (const auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
             return instance.level;
@@ -27,7 +29,8 @@ i32 EnchantmentContainer::getLevel(const std::string& enchantmentId) const {
     return 0;
 }
 
-bool EnchantmentContainer::has(const std::string& enchantmentId) const {
+bool EnchantmentContainer::has(const std::string& enchantmentId) const
+{
     for (const auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
             return true;
@@ -36,7 +39,8 @@ bool EnchantmentContainer::has(const std::string& enchantmentId) const {
     return false;
 }
 
-bool EnchantmentContainer::hasType(EnchantmentType type) const {
+bool EnchantmentContainer::hasType(EnchantmentType type) const
+{
     for (const auto& instance : m_enchantments) {
         const Enchantment* enchantment = instance.getEnchantment();
         if (enchantment && enchantment->type() == type) {
@@ -46,7 +50,8 @@ bool EnchantmentContainer::hasType(EnchantmentType type) const {
     return false;
 }
 
-void EnchantmentContainer::set(const std::string& enchantmentId, i32 level) {
+void EnchantmentContainer::set(const std::string& enchantmentId, i32 level)
+{
     // 查找现有附魔
     for (auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
@@ -59,7 +64,8 @@ void EnchantmentContainer::set(const std::string& enchantmentId, i32 level) {
     m_enchantments.emplace_back(enchantmentId, level);
 }
 
-bool EnchantmentContainer::remove(const std::string& enchantmentId) {
+bool EnchantmentContainer::remove(const std::string& enchantmentId)
+{
     for (auto it = m_enchantments.begin(); it != m_enchantments.end(); ++it) {
         if (it->enchantmentId == enchantmentId) {
             m_enchantments.erase(it);
@@ -69,7 +75,8 @@ bool EnchantmentContainer::remove(const std::string& enchantmentId) {
     return false;
 }
 
-bool EnchantmentContainer::canAdd(const std::string& enchantmentId) const {
+bool EnchantmentContainer::canAdd(const std::string& enchantmentId) const
+{
     const Enchantment* newEnchantment = EnchantmentRegistry::get(enchantmentId);
     if (!newEnchantment) {
         return false;
@@ -86,7 +93,8 @@ bool EnchantmentContainer::canAdd(const std::string& enchantmentId) const {
     return true;
 }
 
-void EnchantmentContainer::serialize(network::PacketSerializer& ser) const {
+void EnchantmentContainer::serialize(network::PacketSerializer& ser) const
+{
     // 格式: VarInt count, 然后每个附魔: std::string id, VarInt level
     ser.writeVarInt(static_cast<i32>(m_enchantments.size()));
     for (const auto& instance : m_enchantments) {
@@ -95,7 +103,8 @@ void EnchantmentContainer::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<EnchantmentContainer> EnchantmentContainer::deserialize(network::PacketDeserializer& deser) {
+Result<EnchantmentContainer> EnchantmentContainer::deserialize(network::PacketDeserializer& deser)
+{
     EnchantmentContainer container;
 
     auto countResult = deser.readVarInt();
@@ -122,7 +131,8 @@ Result<EnchantmentContainer> EnchantmentContainer::deserialize(network::PacketDe
     return container;
 }
 
-nlohmann::json EnchantmentContainer::toJson() const {
+nlohmann::json EnchantmentContainer::toJson() const
+{
     nlohmann::json json = nlohmann::json::array();
     for (const auto& instance : m_enchantments) {
         nlohmann::json enchJson;
@@ -133,7 +143,8 @@ nlohmann::json EnchantmentContainer::toJson() const {
     return json;
 }
 
-Result<EnchantmentContainer> EnchantmentContainer::fromJson(const nlohmann::json& json) {
+Result<EnchantmentContainer> EnchantmentContainer::fromJson(const nlohmann::json& json)
+{
     EnchantmentContainer container;
 
     if (!json.is_array()) {
@@ -160,7 +171,8 @@ Result<EnchantmentContainer> EnchantmentContainer::fromJson(const nlohmann::json
     return container;
 }
 
-std::unique_ptr<nbt::tags::list_tag> EnchantmentContainer::toNbt() const {
+std::unique_ptr<nbt::tags::list_tag> EnchantmentContainer::toNbt() const
+{
     auto list = std::make_unique<nbt::tags::compound_list_tag>();
     for (const auto& instance : m_enchantments) {
         nbt::tags::compound_tag enchTag;
@@ -171,7 +183,8 @@ std::unique_ptr<nbt::tags::list_tag> EnchantmentContainer::toNbt() const {
     return list;
 }
 
-EnchantmentContainer EnchantmentContainer::fromNbt(const nbt::tags::list_tag& list) {
+EnchantmentContainer EnchantmentContainer::fromNbt(const nbt::tags::list_tag& list)
+{
     EnchantmentContainer container;
 
     // 检查列表类型

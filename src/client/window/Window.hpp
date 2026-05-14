@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
-#include <string>
 #include <memory>
+#include <string>
 
 // 前向声明
 struct GLFWwindow;
@@ -83,10 +83,7 @@ public:
     /**
      * @brief 获取宽高比
      */
-    [[nodiscard]] f32 aspectRatio() const noexcept
-    {
-        return static_cast<f32>(m_width) / static_cast<f32>(m_height);
-    }
+    [[nodiscard]] f32 aspectRatio() const noexcept { return static_cast<f32>(m_width) / static_cast<f32>(m_height); }
 
     /**
      * @brief 设置窗口标题

@@ -5,17 +5,23 @@
 namespace mc {
 
 // EnumProperty Traits 实现 - 必须在 mc 命名空间
-template<>
-std::string EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const blocks::PistonHeadBlock::Type& value) {
+template <>
+std::string EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const blocks::PistonHeadBlock::Type& value)
+{
     switch (value) {
-        case blocks::PistonHeadBlock::Type::Normal: return "normal";
-        case blocks::PistonHeadBlock::Type::Sticky: return "sticky";
-        default: return "normal";
+        case blocks::PistonHeadBlock::Type::Normal:
+            return "normal";
+        case blocks::PistonHeadBlock::Type::Sticky:
+            return "sticky";
+        default:
+            return "normal";
     }
 }
 
-template<>
-std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(std::string_view name) {
+template <>
+std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(
+    std::string_view name)
+{
     if (name == "normal") return blocks::PistonHeadBlock::Type::Normal;
     if (name == "sticky") return blocks::PistonHeadBlock::Type::Sticky;
     return std::nullopt;
@@ -24,53 +30,59 @@ std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBloc
 namespace blocks {
 
 // 活塞头类型属性 - 使用静态函数返回引用
-const EnumProperty<PistonHeadBlock::Type>& TYPE_PROP() {
-    static auto prop = EnumProperty<PistonHeadBlock::Type>::create("type", {
-        PistonHeadBlock::Type::Normal,
-        PistonHeadBlock::Type::Sticky
-    });
+const EnumProperty<PistonHeadBlock::Type>& TYPE_PROP()
+{
+    static auto prop = EnumProperty<PistonHeadBlock::Type>::create(
+        "type", {PistonHeadBlock::Type::Normal, PistonHeadBlock::Type::Sticky});
     return *prop;
 }
 
 // 静态方法实现 - 返回类型属性
-const EnumProperty<PistonHeadBlock::Type>& PistonHeadBlock::getTypeProperty() {
+const EnumProperty<PistonHeadBlock::Type>& PistonHeadBlock::getTypeProperty()
+{
     return TYPE_PROP();
 }
 
 PistonHeadBlock::PistonHeadBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::FACING())
-        .add(TYPE_PROP())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::FACING())
+                         .add(TYPE_PROP())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING(), Direction::North)
-        .with(TYPE_PROP(), Type::Normal));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::FACING(), Direction::North).with(TYPE_PROP(), Type::Normal));
 }
 
-Direction PistonHeadBlock::getFacing(const BlockState& state) {
+Direction PistonHeadBlock::getFacing(const BlockState& state)
+{
     return state.get(BlockStateProperties::FACING());
 }
 
-PistonHeadBlock::Type PistonHeadBlock::getType(const BlockState& state) {
+PistonHeadBlock::Type PistonHeadBlock::getType(const BlockState& state)
+{
     return state.get(TYPE_PROP());
 }
 
-BlockState PistonHeadBlock::withType(BlockState state, Type type) {
+BlockState PistonHeadBlock::withType(BlockState state, Type type)
+{
     return state.with(TYPE_PROP(), type);
 }
 
-BlockState PistonHeadBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState PistonHeadBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(facingState);
     MC_UNUSED(currentPos);
 

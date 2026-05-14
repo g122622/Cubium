@@ -1,14 +1,14 @@
 #include "ConduitBlock.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/core/BlockEntityRegistry.hpp"
 #include "../../../blockentity/processing/ConduitEntity.hpp"
 #include "../../VanillaBlocks.hpp"
 #include "../../WaterLoggableHelpers.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/Direction.hpp"
 
 namespace mc {
 namespace blocks {
@@ -20,37 +20,37 @@ namespace blocks {
 namespace {
 /// 潮涌核心的碰撞箱形状 (5x5x5 到 11x11x11)
 static const CollisionShape CONDUIT_SHAPE = CollisionShape::box(5.0f, 5.0f, 5.0f, 11.0f, 11.0f, 11.0f);
-}
+} // namespace
 
 ConduitBlock::ConduitBlock(BlockProperties properties)
     : Block(std::move(properties))
 {
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::WATERLOGGED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), true));
 }
 
-bool ConduitBlock::isWaterlogged(const BlockState& state) const {
+bool ConduitBlock::isWaterlogged(const BlockState& state) const
+{
     return state.get(BlockStateProperties::WATERLOGGED());
 }
 
-BlockState ConduitBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState ConduitBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     // 检查放置位置是否在水中
     // MC 1.16.5: 默认含水
     return defaultState().with(BlockStateProperties::WATERLOGGED(), true);
 }
 
-void ConduitBlock::onBlockAdded(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state)
+void ConduitBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
 
@@ -64,10 +64,7 @@ void ConduitBlock::onBlockAdded(
     }
 }
 
-void ConduitBlock::onBlockRemoved(
-    IWorld& world,
-    const BlockPos& pos,
-    const BlockState& state)
+void ConduitBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
 
@@ -75,8 +72,7 @@ void ConduitBlock::onBlockRemoved(
     world.removeBlockEntity(pos);
 }
 
-BlockState ConduitBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState ConduitBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
@@ -97,7 +93,8 @@ BlockState ConduitBlock::updatePostPlacement(
     return state;
 }
 
-const CollisionShape& ConduitBlock::getShape(const BlockState& state) const {
+const CollisionShape& ConduitBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return CONDUIT_SHAPE;
 }

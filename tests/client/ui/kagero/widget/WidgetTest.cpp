@@ -3,10 +3,10 @@
  * @brief Widget基类单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/Widget.hpp"
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -18,9 +18,12 @@ using namespace mc;
 class TestWidget : public Widget {
 public:
     TestWidget() = default;
-    explicit TestWidget(std::string id) : Widget(std::move(id)) {}
+    explicit TestWidget(std::string id)
+        : Widget(std::move(id))
+    {}
 
-    void paint(PaintContext& ctx) override {
+    void paint(PaintContext& ctx) override
+    {
         (void)ctx;
         m_paintCalled = true;
     }
@@ -34,7 +37,8 @@ private:
 
 // ==================== 构造函数测试 ====================
 
-TEST(WidgetTest, DefaultConstructor) {
+TEST(WidgetTest, DefaultConstructor)
+{
     TestWidget widget;
     EXPECT_TRUE(widget.id().empty());
     EXPECT_TRUE(widget.isVisible());
@@ -47,14 +51,16 @@ TEST(WidgetTest, DefaultConstructor) {
     EXPECT_EQ(0, widget.height());
 }
 
-TEST(WidgetTest, ConstructorWithId) {
+TEST(WidgetTest, ConstructorWithId)
+{
     TestWidget widget("test_widget");
     EXPECT_EQ("test_widget", widget.id());
 }
 
 // ==================== 位置和尺寸测试 ====================
 
-TEST(WidgetTest, SetPosition) {
+TEST(WidgetTest, SetPosition)
+{
     TestWidget widget;
     widget.setPosition(10, 20);
 
@@ -62,7 +68,8 @@ TEST(WidgetTest, SetPosition) {
     EXPECT_EQ(20, widget.y());
 }
 
-TEST(WidgetTest, SetSize) {
+TEST(WidgetTest, SetSize)
+{
     TestWidget widget;
     widget.setSize(100, 200);
 
@@ -70,7 +77,8 @@ TEST(WidgetTest, SetSize) {
     EXPECT_EQ(200, widget.height());
 }
 
-TEST(WidgetTest, SetBounds) {
+TEST(WidgetTest, SetBounds)
+{
     TestWidget widget;
     widget.setBounds(Rect(10, 20, 100, 200));
 
@@ -84,7 +92,8 @@ TEST(WidgetTest, SetBounds) {
 
 // ==================== 可见性和状态测试 ====================
 
-TEST(WidgetTest, SetVisible) {
+TEST(WidgetTest, SetVisible)
+{
     TestWidget widget;
     EXPECT_TRUE(widget.isVisible());
 
@@ -95,7 +104,8 @@ TEST(WidgetTest, SetVisible) {
     EXPECT_TRUE(widget.isVisible());
 }
 
-TEST(WidgetTest, SetActive) {
+TEST(WidgetTest, SetActive)
+{
     TestWidget widget;
     EXPECT_TRUE(widget.isActive());
 
@@ -108,7 +118,8 @@ TEST(WidgetTest, SetActive) {
     EXPECT_FALSE(widget.isDisabled());
 }
 
-TEST(WidgetTest, SetFocused) {
+TEST(WidgetTest, SetFocused)
+{
     TestWidget widget;
     EXPECT_FALSE(widget.isFocused());
 
@@ -119,7 +130,8 @@ TEST(WidgetTest, SetFocused) {
     EXPECT_FALSE(widget.isFocused());
 }
 
-TEST(WidgetTest, SetHovered) {
+TEST(WidgetTest, SetHovered)
+{
     TestWidget widget;
     EXPECT_FALSE(widget.isHovered());
 
@@ -132,7 +144,8 @@ TEST(WidgetTest, SetHovered) {
 
 // ==================== 包含和碰撞测试 ====================
 
-TEST(WidgetTest, Contains) {
+TEST(WidgetTest, Contains)
+{
     TestWidget widget;
     widget.setBounds(Rect(10, 20, 100, 50));
 
@@ -144,7 +157,8 @@ TEST(WidgetTest, Contains) {
     EXPECT_FALSE(widget.contains(10, 19));  // 上边外
 }
 
-TEST(WidgetTest, IsMouseOver) {
+TEST(WidgetTest, IsMouseOver)
+{
     TestWidget widget;
     widget.setBounds(Rect(10, 20, 100, 50));
     widget.setActive(true);
@@ -165,14 +179,16 @@ TEST(WidgetTest, IsMouseOver) {
 
 // ==================== 锚点和边距测试 ====================
 
-TEST(WidgetTest, SetAnchor) {
+TEST(WidgetTest, SetAnchor)
+{
     TestWidget widget;
     widget.setAnchor(Anchor::Center);
 
     EXPECT_EQ(Anchor::Center, widget.anchor());
 }
 
-TEST(WidgetTest, SetMargin) {
+TEST(WidgetTest, SetMargin)
+{
     TestWidget widget;
     widget.setMargin(Margin(10, 20, 30, 40));
 
@@ -184,7 +200,8 @@ TEST(WidgetTest, SetMargin) {
     EXPECT_EQ(60, widget.margin().vertical());
 }
 
-TEST(WidgetTest, SetPadding) {
+TEST(WidgetTest, SetPadding)
+{
     TestWidget widget;
     widget.setPadding(Padding(10, 20, 30, 40));
 
@@ -198,7 +215,8 @@ TEST(WidgetTest, SetPadding) {
 
 // ==================== 透明度测试 ====================
 
-TEST(WidgetTest, SetAlpha) {
+TEST(WidgetTest, SetAlpha)
+{
     TestWidget widget;
     EXPECT_FLOAT_EQ(1.0f, widget.alpha());
 
@@ -211,7 +229,8 @@ TEST(WidgetTest, SetAlpha) {
 
 // ==================== Z索引测试 ====================
 
-TEST(WidgetTest, SetZIndex) {
+TEST(WidgetTest, SetZIndex)
+{
     TestWidget widget;
     EXPECT_EQ(0, widget.zIndex());
 
@@ -224,7 +243,8 @@ TEST(WidgetTest, SetZIndex) {
 
 // ==================== 父容器测试 ====================
 
-TEST(WidgetTest, SetParent) {
+TEST(WidgetTest, SetParent)
+{
     TestWidget widget;
     EXPECT_EQ(nullptr, widget.parent());
 
@@ -235,7 +255,8 @@ TEST(WidgetTest, SetParent) {
 
 // ==================== ID设置测试 ====================
 
-TEST(WidgetTest, SetId) {
+TEST(WidgetTest, SetId)
+{
     TestWidget widget;
     widget.setId("new_id");
 
@@ -244,7 +265,8 @@ TEST(WidgetTest, SetId) {
 
 // ==================== 事件处理测试 ====================
 
-TEST(WidgetTest, OnClickReturnsFalse) {
+TEST(WidgetTest, OnClickReturnsFalse)
+{
     TestWidget widget;
     widget.setBounds(Rect(0, 0, 100, 100));
 
@@ -252,34 +274,39 @@ TEST(WidgetTest, OnClickReturnsFalse) {
     EXPECT_FALSE(widget.onClick(50, 50, 0));
 }
 
-TEST(WidgetTest, OnReleaseReturnsFalse) {
+TEST(WidgetTest, OnReleaseReturnsFalse)
+{
     TestWidget widget;
     widget.setBounds(Rect(0, 0, 100, 100));
 
     EXPECT_FALSE(widget.onRelease(50, 50, 0));
 }
 
-TEST(WidgetTest, OnDragReturnsFalse) {
+TEST(WidgetTest, OnDragReturnsFalse)
+{
     TestWidget widget;
     widget.setBounds(Rect(0, 0, 100, 100));
 
     EXPECT_FALSE(widget.onDrag(50, 50, 10, 10));
 }
 
-TEST(WidgetTest, OnScrollReturnsFalse) {
+TEST(WidgetTest, OnScrollReturnsFalse)
+{
     TestWidget widget;
     widget.setBounds(Rect(0, 0, 100, 100));
 
     EXPECT_FALSE(widget.onScroll(50, 50, 1.0));
 }
 
-TEST(WidgetTest, OnKeyReturnsFalse) {
+TEST(WidgetTest, OnKeyReturnsFalse)
+{
     TestWidget widget;
 
     EXPECT_FALSE(widget.onKey(65, 0, 1, 0)); // 'A' key
 }
 
-TEST(WidgetTest, OnCharReturnsFalse) {
+TEST(WidgetTest, OnCharReturnsFalse)
+{
     TestWidget widget;
 
     EXPECT_FALSE(widget.onChar('A'));
@@ -287,7 +314,8 @@ TEST(WidgetTest, OnCharReturnsFalse) {
 
 // ==================== Rect测试 ====================
 
-TEST(RectTest, DefaultConstructor) {
+TEST(RectTest, DefaultConstructor)
+{
     Rect rect;
     EXPECT_EQ(0, rect.x);
     EXPECT_EQ(0, rect.y);
@@ -295,7 +323,8 @@ TEST(RectTest, DefaultConstructor) {
     EXPECT_EQ(0, rect.height);
 }
 
-TEST(RectTest, ParameterConstructor) {
+TEST(RectTest, ParameterConstructor)
+{
     Rect rect(10, 20, 100, 50);
 
     EXPECT_EQ(10, rect.x);
@@ -308,18 +337,20 @@ TEST(RectTest, ParameterConstructor) {
     EXPECT_EQ(45, rect.centerY());
 }
 
-TEST(RectTest, Contains) {
+TEST(RectTest, Contains)
+{
     Rect rect(10, 20, 100, 50);
 
-    EXPECT_TRUE(rect.contains(10, 20));   // 左上角
-    EXPECT_TRUE(rect.contains(50, 40));   // 中心
-    EXPECT_TRUE(rect.contains(109, 69));  // 右下角前一个像素
-    EXPECT_FALSE(rect.contains(110, 70)); // 右下角（不含）
-    EXPECT_FALSE(rect.contains(9, 20));   // 左边外
+    EXPECT_TRUE(rect.contains(10, 20));    // 左上角
+    EXPECT_TRUE(rect.contains(50, 40));    // 中心
+    EXPECT_TRUE(rect.contains(109, 69));   // 右下角前一个像素
+    EXPECT_FALSE(rect.contains(110, 70));  // 右下角（不含）
+    EXPECT_FALSE(rect.contains(9, 20));    // 左边外
     EXPECT_FALSE(rect.contains(200, 200)); // 远外
 }
 
-TEST(RectTest, Intersects) {
+TEST(RectTest, Intersects)
+{
     Rect rect1(0, 0, 100, 100);
     Rect rect2(50, 50, 100, 100);
     Rect rect3(200, 200, 100, 100);
@@ -328,7 +359,8 @@ TEST(RectTest, Intersects) {
     EXPECT_FALSE(rect1.intersects(rect3));
 }
 
-TEST(RectTest, Intersection) {
+TEST(RectTest, Intersection)
+{
     Rect rect1(0, 0, 100, 100);
     Rect rect2(50, 50, 100, 100);
 
@@ -339,7 +371,8 @@ TEST(RectTest, Intersection) {
     EXPECT_EQ(50, result.height);
 }
 
-TEST(RectTest, IsValid) {
+TEST(RectTest, IsValid)
+{
     Rect valid(0, 0, 100, 100);
     Rect invalid1(0, 0, 0, 100);
     Rect invalid2(0, 0, 100, 0);
@@ -351,7 +384,8 @@ TEST(RectTest, IsValid) {
 
 // ==================== Margin测试 ====================
 
-TEST(MarginTest, SingleValue) {
+TEST(MarginTest, SingleValue)
+{
     Margin margin(10);
 
     EXPECT_EQ(10, margin.left);
@@ -362,7 +396,8 @@ TEST(MarginTest, SingleValue) {
     EXPECT_EQ(20, margin.vertical());
 }
 
-TEST(MarginTest, TwoValues) {
+TEST(MarginTest, TwoValues)
+{
     Margin margin(10, 20);
 
     EXPECT_EQ(10, margin.left);
@@ -373,7 +408,8 @@ TEST(MarginTest, TwoValues) {
     EXPECT_EQ(40, margin.vertical());
 }
 
-TEST(MarginTest, FourValues) {
+TEST(MarginTest, FourValues)
+{
     Margin margin(10, 20, 30, 40);
 
     EXPECT_EQ(10, margin.left);
@@ -386,7 +422,8 @@ TEST(MarginTest, FourValues) {
 
 // ==================== Padding测试 ====================
 
-TEST(PaddingTest, SingleValue) {
+TEST(PaddingTest, SingleValue)
+{
     Padding padding(10);
 
     EXPECT_EQ(10, padding.left);
@@ -397,7 +434,8 @@ TEST(PaddingTest, SingleValue) {
     EXPECT_EQ(20, padding.vertical());
 }
 
-TEST(PaddingTest, TwoValues) {
+TEST(PaddingTest, TwoValues)
+{
     Padding padding(10, 20);
 
     EXPECT_EQ(10, padding.left);
@@ -408,7 +446,8 @@ TEST(PaddingTest, TwoValues) {
     EXPECT_EQ(40, padding.vertical());
 }
 
-TEST(PaddingTest, FourValues) {
+TEST(PaddingTest, FourValues)
+{
     Padding padding(10, 20, 30, 40);
 
     EXPECT_EQ(10, padding.left);
@@ -421,8 +460,8 @@ TEST(PaddingTest, FourValues) {
 
 // ==================== Anchor测试 ====================
 
-
-TEST(WidgetTest, VisualStyleProperties) {
+TEST(WidgetTest, VisualStyleProperties)
+{
     TestWidget widget;
 
     EXPECT_EQ(mc::client::Colors::fromARGB(0, 0, 0, 0), widget.backgroundColor());
@@ -437,7 +476,8 @@ TEST(WidgetTest, VisualStyleProperties) {
     EXPECT_EQ(mc::client::Colors::GREEN, widget.borderColor());
     EXPECT_EQ(6, widget.cornerRadius());
 }
-TEST(AnchorTest, AllAnchors) {
+TEST(AnchorTest, AllAnchors)
+{
     EXPECT_EQ(0, static_cast<u8>(Anchor::TopLeft));
     EXPECT_EQ(1, static_cast<u8>(Anchor::TopCenter));
     EXPECT_EQ(2, static_cast<u8>(Anchor::TopRight));
@@ -448,5 +488,3 @@ TEST(AnchorTest, AllAnchors) {
     EXPECT_EQ(7, static_cast<u8>(Anchor::BottomCenter));
     EXPECT_EQ(8, static_cast<u8>(Anchor::BottomRight));
 }
-
-

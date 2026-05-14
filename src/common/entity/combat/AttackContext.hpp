@@ -20,11 +20,11 @@ namespace entity::combat {
  * 参考 MC 1.16.5 攻击类型
  */
 enum class AttackType : u8 {
-    Melee,      // 近战攻击
-    Ranged,     // 远程攻击
-    Magic,      // 魔法攻击
-    Explosion,  // 爆炸攻击
-    Thorns      // 荆棘反伤
+    Melee,     // 近战攻击
+    Ranged,    // 远程攻击
+    Magic,     // 魔法攻击
+    Explosion, // 爆炸攻击
+    Thorns     // 荆棘反伤
 };
 
 /**
@@ -130,7 +130,7 @@ private:
     const ItemStack* m_weapon = nullptr;
 
     f32 m_baseDamage = 1.0f;
-    f32 m_enchantDamageBonus = 0.0f;  // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
+    f32 m_enchantDamageBonus = 0.0f; // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
     AttackType m_attackType = AttackType::Melee;
 
     bool m_critical = false;
@@ -142,7 +142,7 @@ private:
     bool m_bypassArmor = false;
 
     f32 m_cooldownProgress = 1.0f;
-    u32 m_damageFlags = 0;  // 伤害类型标志位，用于保护附魔计算
+    u32 m_damageFlags = 0; // 伤害类型标志位，用于保护附魔计算
 };
 
 } // namespace entity::combat

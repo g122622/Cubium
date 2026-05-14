@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../ConfiguredFeature.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../chunk/ChunkPos.hpp"
 #include "../../placement/Placement.hpp"
+#include "../ConfiguredFeature.hpp"
 #include <memory>
 
 namespace mc {
@@ -28,8 +28,7 @@ public:
      * @param config 矿石配置
      * @return 是否成功放置了任何方块
      */
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         math::Random& random,
         const BlockPos& origin,
@@ -60,14 +59,21 @@ private:
      * @param sizeZ 范围大小Z
      * @param placedCount 已放置计数（输出）
      */
-    void generateSphere(
-        ChunkPrimer& chunk,
+    void generateSphere(ChunkPrimer& chunk,
         math::Random& random,
         const OreFeatureConfig& config,
-        f32 x1, f32 y1, f32 z1,
-        f32 x2, f32 y2, f32 z2,
-        i32 minX, i32 minY, i32 minZ,
-        i32 sizeX, i32 sizeY, i32 sizeZ,
+        f32 x1,
+        f32 y1,
+        f32 z1,
+        f32 x2,
+        f32 y2,
+        f32 z2,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 sizeX,
+        i32 sizeY,
+        i32 sizeZ,
         i32& placedCount);
 };
 
@@ -79,16 +85,14 @@ private:
  */
 class ConfiguredOreFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredOreFeature(
-        std::unique_ptr<OreFeatureConfig> featureConfig,
+    ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> featureConfig,
         std::unique_ptr<ConfiguredPlacement> placement,
         const char* featureName = "ore");
 
     /**
      * @brief 在指定位置放置矿石（实现 ConfiguredFeatureBase 接口）
      */
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

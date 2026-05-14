@@ -1,22 +1,21 @@
 #include "ContainerManager.hpp"
 #include "InventoryManager.hpp"
-#include "server/menu/CraftingMenu.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
-#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/network/packet/ContainerPacketHandler.hpp"
+#include "server/menu/CraftingMenu.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server::interaction {
 
 ContainerManager::ContainerManager(core::PlayerManager& playerManager)
     : m_playerManager(playerManager)
-{
-}
+{}
 
 void ContainerManager::setInventoryManager(InventoryManager* inventoryManager)
 {
@@ -29,10 +28,7 @@ void ContainerManager::setMenuFactory(
     m_menuFactory = std::move(factory);
 }
 
-Result<mc::ContainerId> ContainerManager::openContainer(
-    PlayerId playerId,
-    mc::ContainerType type,
-    const BlockPos& pos)
+Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::ContainerType type, const BlockPos& pos)
 {
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
@@ -95,8 +91,8 @@ Result<mc::ContainerId> ContainerManager::openContainer(
         m_onContainerOpen(playerId, containerId, type, title, slotCount);
     }
 
-    spdlog::debug("Player {} opened container type {} at ({}, {}, {})",
-                  playerId, static_cast<i32>(type), pos.x, pos.y, pos.z);
+    spdlog::debug(
+        "Player {} opened container type {} at ({}, {}, {})", playerId, static_cast<i32>(type), pos.x, pos.y, pos.z);
 
     return containerId;
 }
@@ -132,12 +128,7 @@ void ContainerManager::closeContainer(PlayerId playerId)
 }
 
 Result<ContainerClickResult> ContainerManager::handleClick(
-    PlayerId playerId,
-    mc::ContainerId containerId,
-    i32 slot,
-    u8 button,
-    u8 mode,
-    const ItemStack& carriedItem)
+    PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode, const ItemStack& carriedItem)
 {
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
@@ -211,8 +202,7 @@ void ContainerManager::setOnContainerClose(
     m_onContainerClose = std::move(callback);
 }
 
-void ContainerManager::setOnContainerUpdate(
-    std::function<void(PlayerId, const AbstractContainerMenu&)> callback)
+void ContainerManager::setOnContainerUpdate(std::function<void(PlayerId, const AbstractContainerMenu&)> callback)
 {
     m_onContainerUpdate = std::move(callback);
 }

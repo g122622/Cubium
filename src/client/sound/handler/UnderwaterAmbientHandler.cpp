@@ -10,12 +10,12 @@ namespace mc::client::sound {
 
 UnderwaterAmbientHandler::UnderwaterAmbientHandler()
     : m_rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()))
-{
-}
+{}
 
 UnderwaterAmbientHandler::~UnderwaterAmbientHandler() = default;
 
-void UnderwaterAmbientHandler::setUnderwater(bool underwater) {
+void UnderwaterAmbientHandler::setUnderwater(bool underwater)
+{
     // 检测状态变化
     bool wasUnderwater = m_isUnderwater;
     m_isUnderwater = underwater;
@@ -25,19 +25,14 @@ void UnderwaterAmbientHandler::setUnderwater(bool underwater) {
     // 因为需要访问 SoundEngine
 }
 
-void UnderwaterAmbientHandler::tick(SoundEngine& engine) {
+void UnderwaterAmbientHandler::tick(SoundEngine& engine)
+{
     // 检测进入水状态变化
     if (m_isUnderwater && !m_wasUnderwater) {
         // 玩家刚进入水 - 播放入水音效
         // 参考: ClientPlayerEntity.updateEyesInWaterPlayer()
         auto enterSound = std::make_unique<SoundInstance>(
-            SoundInstance::createGlobal(
-                SoundEvents::AMBIENT_UNDERWATER_ENTER,
-                SoundCategory::Ambient,
-                1.0f,
-                1.0f
-            )
-        );
+            SoundInstance::createGlobal(SoundEvents::AMBIENT_UNDERWATER_ENTER, SoundCategory::Ambient, 1.0f, 1.0f));
         engine.play(std::move(enterSound));
 
         // 启动水下循环音效
@@ -49,13 +44,7 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine) {
     if (!m_isUnderwater && m_wasUnderwater) {
         // 玩家刚离开水 - 播放出书音效
         auto exitSound = std::make_unique<SoundInstance>(
-            SoundInstance::createGlobal(
-                SoundEvents::AMBIENT_UNDERWATER_EXIT,
-                SoundCategory::Ambient,
-                1.0f,
-                1.0f
-            )
-        );
+            SoundInstance::createGlobal(SoundEvents::AMBIENT_UNDERWATER_EXIT, SoundCategory::Ambient, 1.0f, 1.0f));
         engine.play(std::move(exitSound));
 
         // 水下循环音效会自动淡出（通过 setCanSwim(false)）
@@ -115,36 +104,18 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine) {
 
     if (f < 0.0001f) {
         // 超稀有音效: ambient.underwater.loop.additions.ultra_rare
-        auto sound = std::make_unique<SoundInstance>(
-            SoundInstance::createGlobal(
-                SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE,
-                SoundCategory::Ambient,
-                1.0f,
-                1.0f
-            )
-        );
+        auto sound = std::make_unique<SoundInstance>(SoundInstance::createGlobal(
+            SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE, SoundCategory::Ambient, 1.0f, 1.0f));
         engine.play(std::move(sound));
     } else if (f < 0.001f) {
         // 稀有音效: ambient.underwater.loop.additions.rare
-        auto sound = std::make_unique<SoundInstance>(
-            SoundInstance::createGlobal(
-                SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE,
-                SoundCategory::Ambient,
-                1.0f,
-                1.0f
-            )
-        );
+        auto sound = std::make_unique<SoundInstance>(SoundInstance::createGlobal(
+            SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE, SoundCategory::Ambient, 1.0f, 1.0f));
         engine.play(std::move(sound));
     } else if (f < 0.01f) {
         // 普通音效: ambient.underwater.loop.additions
-        auto sound = std::make_unique<SoundInstance>(
-            SoundInstance::createGlobal(
-                SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS,
-                SoundCategory::Ambient,
-                1.0f,
-                1.0f
-            )
-        );
+        auto sound = std::make_unique<SoundInstance>(SoundInstance::createGlobal(
+            SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS, SoundCategory::Ambient, 1.0f, 1.0f));
         engine.play(std::move(sound));
     }
 }

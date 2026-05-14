@@ -11,18 +11,18 @@
 
 #include <gtest/gtest.h>
 
-#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 
-using mc::command::EntitySelector;
-using mc::command::EntitySelectorType;
-using mc::command::EntitySelectorSort;
-using mc::command::EntityArgumentType;
-using mc::command::StringReader;
 using mc::command::CommandException;
+using mc::command::EntityArgumentType;
+using mc::command::EntitySelector;
+using mc::command::EntitySelectorSort;
+using mc::command::EntitySelectorType;
 using mc::command::FloatRange;
 using mc::command::IntRange;
+using mc::command::StringReader;
 
 // ========== FloatRange 测试 ==========
 
@@ -659,7 +659,7 @@ TEST_F(EntityArgumentRotationParseTest, YRotationWraparoundAngleTest)
 
     // 在范围内（接近正北）
     EXPECT_TRUE(selector.yRotation().testAngle(175.0f));
-    EXPECT_TRUE(selector.yRotation().testAngle(180.0f));   // 规范化为 -180
+    EXPECT_TRUE(selector.yRotation().testAngle(180.0f)); // 规范化为 -180
     EXPECT_TRUE(selector.yRotation().testAngle(-180.0f));
     EXPECT_TRUE(selector.yRotation().testAngle(-175.0f));
     EXPECT_TRUE(selector.yRotation().testAngle(170.0f));

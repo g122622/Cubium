@@ -1,7 +1,7 @@
 #pragma once
 
-#include "BlockPosTarget.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "BlockPosTarget.hpp"
 
 #include <utility>
 
@@ -28,28 +28,17 @@ public:
 
     WalkTarget(const BlockPos& blockPos, f32 speedModifier, i32 closeEnoughDist)
         : WalkTarget(std::make_shared<BlockPosTarget>(blockPos), speedModifier, closeEnoughDist)
-    {
-    }
+    {}
 
     WalkTarget(const Vector3& targetPos, f32 speedModifier, i32 closeEnoughDist)
         : WalkTarget(BlockPos(targetPos), speedModifier, closeEnoughDist)
-    {
-    }
+    {}
 
-    [[nodiscard]] const PositionTargetPtr& getTarget() const
-    {
-        return m_target;
-    }
+    [[nodiscard]] const PositionTargetPtr& getTarget() const { return m_target; }
 
-    [[nodiscard]] f32 getSpeed() const
-    {
-        return m_speedModifier;
-    }
+    [[nodiscard]] f32 getSpeed() const { return m_speedModifier; }
 
-    [[nodiscard]] i32 getDistance() const
-    {
-        return m_closeEnoughDist;
-    }
+    [[nodiscard]] i32 getDistance() const { return m_closeEnoughDist; }
 
 private:
     PositionTargetPtr m_target;

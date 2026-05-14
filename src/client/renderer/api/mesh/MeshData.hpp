@@ -17,7 +17,8 @@ struct MeshData {
     /**
      * @brief 清空网格数据
      */
-    void clear() {
+    void clear()
+    {
         vertices.clear();
         indices.clear();
     }
@@ -25,7 +26,8 @@ struct MeshData {
     /**
      * @brief 预分配空间
      */
-    void reserve(size_t vertexCount, size_t indexCount) {
+    void reserve(size_t vertexCount, size_t indexCount)
+    {
         vertices.reserve(vertexCount);
         indices.reserve(indexCount);
     }
@@ -33,30 +35,25 @@ struct MeshData {
     /**
      * @brief 检查是否为空
      */
-    [[nodiscard]] bool empty() const {
-        return vertices.empty();
-    }
+    [[nodiscard]] bool empty() const { return vertices.empty(); }
 
     /**
      * @brief 获取顶点数量
      */
-    [[nodiscard]] size_t vertexCount() const {
-        return vertices.size();
-    }
+    [[nodiscard]] size_t vertexCount() const { return vertices.size(); }
 
     /**
      * @brief 获取索引数量
      */
-    [[nodiscard]] size_t indexCount() const {
-        return indices.size();
-    }
+    [[nodiscard]] size_t indexCount() const { return indices.size(); }
 
     /**
      * @brief 添加一个面 (4个顶点 + 6个索引)
      * @param faceVertices 4个顶点
      * @param baseIndex 基础索引偏移
      */
-    void addFace(const std::array<Vertex, 4>& faceVertices, u32 baseIndex) {
+    void addFace(const std::array<Vertex, 4>& faceVertices, u32 baseIndex)
+    {
         // 添加顶点
         for (const auto& v : faceVertices) {
             vertices.push_back(v);
@@ -73,16 +70,12 @@ struct MeshData {
     /**
      * @brief 获取顶点数据大小（字节）
      */
-    [[nodiscard]] size_t vertexDataSize() const {
-        return vertices.size() * sizeof(Vertex);
-    }
+    [[nodiscard]] size_t vertexDataSize() const { return vertices.size() * sizeof(Vertex); }
 
     /**
      * @brief 获取索引数据大小（字节）
      */
-    [[nodiscard]] size_t indexDataSize() const {
-        return indices.size() * sizeof(u32);
-    }
+    [[nodiscard]] size_t indexDataSize() const { return indices.size() * sizeof(u32); }
 };
 
 /**
@@ -97,7 +90,8 @@ struct ChunkMeshData {
     /**
      * @brief 清空所有网格数据
      */
-    void clear() {
+    void clear()
+    {
         solidMesh.clear();
         translucentMesh.clear();
     }
@@ -105,23 +99,17 @@ struct ChunkMeshData {
     /**
      * @brief 检查是否为空
      */
-    [[nodiscard]] bool empty() const {
-        return solidMesh.empty() && translucentMesh.empty();
-    }
+    [[nodiscard]] bool empty() const { return solidMesh.empty() && translucentMesh.empty(); }
 
     /**
      * @brief 获取总顶点数
      */
-    [[nodiscard]] size_t totalVertexCount() const {
-        return solidMesh.vertexCount() + translucentMesh.vertexCount();
-    }
+    [[nodiscard]] size_t totalVertexCount() const { return solidMesh.vertexCount() + translucentMesh.vertexCount(); }
 
     /**
      * @brief 获取总索引数
      */
-    [[nodiscard]] size_t totalIndexCount() const {
-        return solidMesh.indexCount() + translucentMesh.indexCount();
-    }
+    [[nodiscard]] size_t totalIndexCount() const { return solidMesh.indexCount() + translucentMesh.indexCount(); }
 };
 
 } // namespace mc::client::renderer::api

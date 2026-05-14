@@ -26,21 +26,19 @@ public:
      * @param ttl 存活时间(ticks)，Long.MAX_VALUE表示永不过期
      */
     Memory(const T& value, i64 ttl = std::numeric_limits<i64>::max())
-        : m_value(value), m_ttl(ttl) {}
+        : m_value(value)
+        , m_ttl(ttl)
+    {}
 
     /**
      * @brief 创建一个永不过期的记忆
      */
-    static Memory<T> permanent(const T& value) {
-        return Memory<T>(value, std::numeric_limits<i64>::max());
-    }
+    static Memory<T> permanent(const T& value) { return Memory<T>(value, std::numeric_limits<i64>::max()); }
 
     /**
      * @brief 创建一个带TTL的记忆
      */
-    static Memory<T> timed(const T& value, i64 ttl) {
-        return Memory<T>(value, ttl);
-    }
+    static Memory<T> timed(const T& value, i64 ttl) { return Memory<T>(value, ttl); }
 
     /**
      * @brief 获取记忆值
@@ -55,7 +53,8 @@ public:
     /**
      * @brief 每tick调用，减少TTL
      */
-    void tick() {
+    void tick()
+    {
         if (hasTTL()) {
             m_ttl--;
         }
@@ -64,16 +63,12 @@ public:
     /**
      * @brief 检查记忆是否已过期
      */
-    [[nodiscard]] bool isExpired() const {
-        return m_ttl <= 0;
-    }
+    [[nodiscard]] bool isExpired() const { return m_ttl <= 0; }
 
     /**
      * @brief 检查是否有TTL限制
      */
-    [[nodiscard]] bool hasTTL() const {
-        return m_ttl != std::numeric_limits<i64>::max();
-    }
+    [[nodiscard]] bool hasTTL() const { return m_ttl != std::numeric_limits<i64>::max(); }
 
     /**
      * @brief 获取剩余TTL

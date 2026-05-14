@@ -30,7 +30,7 @@ public:
     [[nodiscard]] f32 width() const override { return 0.25f; }
     [[nodiscard]] f32 height() const override { return 0.25f; }
 
-    [[nodiscard]] f32 getGravity() const override { return 0.06f; }  // 更高的重力
+    [[nodiscard]] f32 getGravity() const override { return 0.06f; } // 更高的重力
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -50,10 +50,10 @@ public:
      * @brief 钓鱼状态
      */
     enum class State : u8 {
-        Flying,     // 飞行中
-        Hooked,     // 钩住实体
-        Bobbing,    // 浮在水面
-        Fishing     // 钓鱼中（咬钩状态）
+        Flying,  // 飞行中
+        Hooked,  // 钩住实体
+        Bobbing, // 浮在水面
+        Fishing  // 钓鱼中（咬钩状态）
     };
 
     /**
@@ -122,7 +122,8 @@ public:
      * @param luckBonus 海之眷顾附魔等级
      * @param speedBonus 饵钓附魔等级
      */
-    void setFishingBonus(i32 luckBonus, i32 speedBonus) {
+    void setFishingBonus(i32 luckBonus, i32 speedBonus)
+    {
         m_luckBonus = luckBonus;
         m_speedBonus = speedBonus;
     }
@@ -170,17 +171,17 @@ private:
      */
     void setWaitTime();
 
-    Player* m_angler = nullptr;           // 钓鱼者
-    State m_state = State::Flying;        // 当前状态
-    i32 m_ticksCaughtDelay = 0;           // 咬钩等待计时器
-    i32 m_ticksCatchableDelay = 0;        // 鱼接近计时器
-    i32 m_ticksCatchable = 0;             // 可捕获窗口期
-    f32 m_fishAngle = 0.0f;               // 鱼的角度（用于动画）
-    bool m_inOpenWater = false;           // 是否在开放水域
-    i32 m_luckBonus = 0;                  // 海之眷顾附魔等级
-    i32 m_speedBonus = 0;                 // 饵钓附魔等级
-    i32 m_outOfWaterTime = 0;             // 离开水的时间计数器
-    i32 m_lifetime = 0;                   // 存在时间
+    Player* m_angler = nullptr;    // 钓鱼者
+    State m_state = State::Flying; // 当前状态
+    i32 m_ticksCaughtDelay = 0;    // 咬钩等待计时器
+    i32 m_ticksCatchableDelay = 0; // 鱼接近计时器
+    i32 m_ticksCatchable = 0;      // 可捕获窗口期
+    f32 m_fishAngle = 0.0f;        // 鱼的角度（用于动画）
+    bool m_inOpenWater = false;    // 是否在开放水域
+    i32 m_luckBonus = 0;           // 海之眷顾附魔等级
+    i32 m_speedBonus = 0;          // 饵钓附魔等级
+    i32 m_outOfWaterTime = 0;      // 离开水的时间计数器
+    i32 m_lifetime = 0;            // 存在时间
 };
 
 /**
@@ -231,9 +232,9 @@ private:
      */
     void updateDirection();
 
-    Entity* m_target = nullptr;       // 目标实体
-    Vector3 m_direction;              // 飞行方向
-    i32 m_flightSteps = 0;            // 飞行步数
+    Entity* m_target = nullptr; // 目标实体
+    Vector3 m_direction;        // 飞行方向
+    i32 m_flightSteps = 0;      // 飞行步数
 };
 
 /**
@@ -275,10 +276,10 @@ public:
     [[nodiscard]] LivingEntity* owner() const { return m_owner; }
 
 private:
-    LivingEntity* m_owner = nullptr;   // 所有者
-    i32 m_warmupDelay = 0;              // 预热延迟
-    bool m_sentAttackEvent = false;     // 是否已发送攻击事件
-    i32 m_ticksExisted = 0;             // 存在时间
+    LivingEntity* m_owner = nullptr; // 所有者
+    i32 m_warmupDelay = 0;           // 预热延迟
+    bool m_sentAttackEvent = false;  // 是否已发送攻击事件
+    i32 m_ticksExisted = 0;          // 存在时间
 };
 
 /**
@@ -330,10 +331,10 @@ public:
     [[nodiscard]] bool shouldBreak() const { return m_break; }
 
 private:
-    BlockCoord m_targetX = 0;     // 目标X
-    BlockCoord m_targetZ = 0;     // 目标Z
-    i32 m_lifetime = 0;           // 存在时间
-    bool m_break = false;         // 是否碎裂
+    BlockCoord m_targetX = 0; // 目标X
+    BlockCoord m_targetZ = 0; // 目标Z
+    i32 m_lifetime = 0;       // 存在时间
+    bool m_break = false;     // 是否碎裂
 };
 
 /**

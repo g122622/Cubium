@@ -1,29 +1,29 @@
-#include <gtest/gtest.h>
-#include "common/world/gen/feature/Feature.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/feature/Feature.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
 class RuleTestTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // ============================================================================
 // AlwaysTrueRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, AlwaysTrueReturnsTrue) {
+TEST_F(RuleTestTest, AlwaysTrueReturnsTrue)
+{
     math::Random rng(12345);
     const BlockState* state = VanillaBlocks::getState(VanillaBlocks::STONE);
 
     EXPECT_TRUE(AlwaysTrueRuleTest::INSTANCE.test(*state, rng));
 }
 
-TEST_F(RuleTestTest, AlwaysTrueClone) {
+TEST_F(RuleTestTest, AlwaysTrueClone)
+{
     auto clone = AlwaysTrueRuleTest::INSTANCE.clone();
     EXPECT_NE(clone, nullptr);
     EXPECT_EQ(clone->name(), "always_true");
@@ -33,7 +33,8 @@ TEST_F(RuleTestTest, AlwaysTrueClone) {
 // BlockMatchRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, BlockMatchMatchesCorrectBlock) {
+TEST_F(RuleTestTest, BlockMatchMatchesCorrectBlock)
+{
     math::Random rng(12345);
     BlockMatchRuleTest test(VanillaBlocks::STONE);
 
@@ -44,7 +45,8 @@ TEST_F(RuleTestTest, BlockMatchMatchesCorrectBlock) {
     EXPECT_FALSE(test.test(*dirtState, rng));
 }
 
-TEST_F(RuleTestTest, BlockMatchClone) {
+TEST_F(RuleTestTest, BlockMatchClone)
+{
     BlockMatchRuleTest test(VanillaBlocks::STONE);
     auto clone = test.clone();
 
@@ -56,7 +58,8 @@ TEST_F(RuleTestTest, BlockMatchClone) {
     EXPECT_EQ(clonedTest->getBlock(), VanillaBlocks::STONE);
 }
 
-TEST_F(RuleTestTest, BlockMatchNullBlock) {
+TEST_F(RuleTestTest, BlockMatchNullBlock)
+{
     math::Random rng(12345);
     BlockMatchRuleTest test(nullptr);
 
@@ -68,7 +71,8 @@ TEST_F(RuleTestTest, BlockMatchNullBlock) {
 // BlockStateMatchRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, BlockStateMatchMatchesExactState) {
+TEST_F(RuleTestTest, BlockStateMatchMatchesExactState)
+{
     math::Random rng(12345);
 
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
@@ -82,7 +86,8 @@ TEST_F(RuleTestTest, BlockStateMatchMatchesExactState) {
     EXPECT_FALSE(test.test(*dirtState, rng));
 }
 
-TEST_F(RuleTestTest, BlockStateMatchClone) {
+TEST_F(RuleTestTest, BlockStateMatchClone)
+{
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
     BlockStateMatchRuleTest test(stoneState);
 
@@ -95,7 +100,8 @@ TEST_F(RuleTestTest, BlockStateMatchClone) {
 // RandomBlockMatchRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, RandomBlockMatchWithProbability1) {
+TEST_F(RuleTestTest, RandomBlockMatchWithProbability1)
+{
     math::Random rng(12345);
     RandomBlockMatchRuleTest test(VanillaBlocks::STONE, 1.0f);
 
@@ -107,7 +113,8 @@ TEST_F(RuleTestTest, RandomBlockMatchWithProbability1) {
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchWithProbability0) {
+TEST_F(RuleTestTest, RandomBlockMatchWithProbability0)
+{
     math::Random rng(12345);
     RandomBlockMatchRuleTest test(VanillaBlocks::STONE, 0.0f);
 
@@ -119,7 +126,8 @@ TEST_F(RuleTestTest, RandomBlockMatchWithProbability0) {
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchWrongBlock) {
+TEST_F(RuleTestTest, RandomBlockMatchWrongBlock)
+{
     math::Random rng(12345);
     RandomBlockMatchRuleTest test(VanillaBlocks::STONE, 1.0f);
 
@@ -129,7 +137,8 @@ TEST_F(RuleTestTest, RandomBlockMatchWrongBlock) {
     EXPECT_FALSE(test.test(*dirtState, rng));
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchProbabilityDistribution) {
+TEST_F(RuleTestTest, RandomBlockMatchProbabilityDistribution)
+{
     math::Random rng(12345);
     RandomBlockMatchRuleTest test(VanillaBlocks::STONE, 0.5f);
 
@@ -148,7 +157,8 @@ TEST_F(RuleTestTest, RandomBlockMatchProbabilityDistribution) {
     EXPECT_NEAR(actualProbability, 0.5f, 0.1f);
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchClone) {
+TEST_F(RuleTestTest, RandomBlockMatchClone)
+{
     RandomBlockMatchRuleTest test(VanillaBlocks::STONE, 0.7f);
     auto clone = test.clone();
 
@@ -165,7 +175,8 @@ TEST_F(RuleTestTest, RandomBlockMatchClone) {
 // RandomBlockStateMatchRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, RandomBlockStateMatchWithProbability1) {
+TEST_F(RuleTestTest, RandomBlockStateMatchWithProbability1)
+{
     math::Random rng(12345);
 
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
@@ -176,7 +187,8 @@ TEST_F(RuleTestTest, RandomBlockStateMatchWithProbability1) {
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockStateMatchWrongState) {
+TEST_F(RuleTestTest, RandomBlockStateMatchWrongState)
+{
     math::Random rng(12345);
 
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
@@ -190,7 +202,8 @@ TEST_F(RuleTestTest, RandomBlockStateMatchWrongState) {
 // StoneRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, StoneRuleTestMatchesStoneTypes) {
+TEST_F(RuleTestTest, StoneRuleTestMatchesStoneTypes)
+{
     math::Random rng(12345);
     StoneRuleTest test;
 
@@ -206,7 +219,8 @@ TEST_F(RuleTestTest, StoneRuleTestMatchesStoneTypes) {
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::BEDROCK), rng));
 }
 
-TEST_F(RuleTestTest, StoneRuleTestClone) {
+TEST_F(RuleTestTest, StoneRuleTestClone)
+{
     StoneRuleTest test;
     auto clone = test.clone();
 
@@ -218,14 +232,16 @@ TEST_F(RuleTestTest, StoneRuleTestClone) {
 // TagMatchRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, TagMatchRuleTestCreation) {
+TEST_F(RuleTestTest, TagMatchRuleTestCreation)
+{
     TagMatchRuleTest test("minecraft:stone_ores");
 
     EXPECT_EQ(test.getTagName(), "minecraft:stone_ores");
     EXPECT_EQ(test.name(), "tag_match");
 }
 
-TEST_F(RuleTestTest, TagMatchRuleTestClone) {
+TEST_F(RuleTestTest, TagMatchRuleTestClone)
+{
     TagMatchRuleTest test("minecraft:logs");
     auto clone = test.clone();
 
@@ -242,7 +258,8 @@ TEST_F(RuleTestTest, TagMatchRuleTestClone) {
 // createOreTarget 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, CreateOreTargetNaturalStone) {
+TEST_F(RuleTestTest, CreateOreTargetNaturalStone)
+{
     auto target = createOreTarget(OreTargetType::NaturalStone);
     EXPECT_NE(target, nullptr);
     EXPECT_EQ(target->name(), "stone");
@@ -251,7 +268,8 @@ TEST_F(RuleTestTest, CreateOreTargetNaturalStone) {
     EXPECT_TRUE(target->test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
 }
 
-TEST_F(RuleTestTest, CreateOreTargetNetherrack) {
+TEST_F(RuleTestTest, CreateOreTargetNetherrack)
+{
     auto target = createOreTarget(OreTargetType::Netherrack);
     EXPECT_NE(target, nullptr);
 
@@ -261,7 +279,8 @@ TEST_F(RuleTestTest, CreateOreTargetNetherrack) {
     }
 }
 
-TEST_F(RuleTestTest, CreateOreTargetBasalt) {
+TEST_F(RuleTestTest, CreateOreTargetBasalt)
+{
     auto target = createOreTarget(OreTargetType::Basalt);
     EXPECT_NE(target, nullptr);
 
@@ -275,7 +294,8 @@ TEST_F(RuleTestTest, CreateOreTargetBasalt) {
 // OreFeatureConfig 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, OreFeatureConfigCreation) {
+TEST_F(RuleTestTest, OreFeatureConfigCreation)
+{
     auto target = std::make_unique<StoneRuleTest>();
     const BlockState* oreState = VanillaBlocks::getState(VanillaBlocks::IRON_ORE);
 
@@ -286,7 +306,8 @@ TEST_F(RuleTestTest, OreFeatureConfigCreation) {
     EXPECT_NE(config.target, nullptr);
 }
 
-TEST_F(RuleTestTest, OreFeatureConfigNaturalStone) {
+TEST_F(RuleTestTest, OreFeatureConfigNaturalStone)
+{
     auto target = OreFeatureConfig::naturalStone();
     EXPECT_NE(target, nullptr);
     EXPECT_EQ(target->name(), "stone");
@@ -296,7 +317,8 @@ TEST_F(RuleTestTest, OreFeatureConfigNaturalStone) {
 // SimpleBlockStateProvider 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, SimpleBlockStateProvider) {
+TEST_F(RuleTestTest, SimpleBlockStateProvider)
+{
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
     SimpleBlockStateProvider provider(stoneState);
 

@@ -2,80 +2,58 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
+#include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/WhitelistManager.hpp"
-#include "server/core/ConnectionManager.hpp"
 
-#include <spdlog/spdlog.h>
-#include <sstream>
 #include <algorithm>
+#include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
 
-void WhitelistCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void WhitelistCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto whitelistNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("whitelist");
-    whitelistNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
-    support::applyMetadata(
-        whitelistNode,
+    whitelistNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    support::applyMetadata(whitelistNode,
         support::makeMetadata(
-            "Manages the server whitelist.",
-            "/whitelist <on|off|list|add|remove|reload>",
-            3,
-            {},
-            false));
+            "Manages the server whitelist.", "/whitelist <on|off|list|add|remove|reload>", 3, {}, false));
 
     // /whitelist on
     auto onNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("on");
-    onNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return whitelistOn(ctx);
-    });
+    onNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return whitelistOn(ctx); });
 
     // /whitelist off
     auto offNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("off");
-    offNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return whitelistOff(ctx);
-    });
+    offNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return whitelistOff(ctx); });
 
     // /whitelist list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return whitelistList(ctx);
-    });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return whitelistList(ctx); });
 
     // /whitelist add <player>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
-    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return whitelistAdd(ctx);
-    });
+        "player", EntityArgumentType::player());
+    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return whitelistAdd(ctx); });
     addNode->addChild(addPlayerArg);
 
     // /whitelist remove <player>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removePlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
-    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return whitelistRemove(ctx);
-    });
+        "player", EntityArgumentType::player());
+    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return whitelistRemove(ctx); });
     removeNode->addChild(removePlayerArg);
 
     // /whitelist reload
     auto reloadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reload");
-    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return whitelistReload(ctx);
-    });
+    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return whitelistReload(ctx); });
 
     whitelistNode->addChild(onNode);
     whitelistNode->addChild(offNode);
@@ -87,7 +65,8 @@ void WhitelistCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     dispatcher.registerCommand(whitelistNode);
 }
 
-i32 WhitelistCommand::whitelistOn(CommandContext<ServerCommandSource>& context) {
+i32 WhitelistCommand::whitelistOn(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -113,7 +92,8 @@ i32 WhitelistCommand::whitelistOn(CommandContext<ServerCommandSource>& context) 
     return 1;
 }
 
-i32 WhitelistCommand::whitelistOff(CommandContext<ServerCommandSource>& context) {
+i32 WhitelistCommand::whitelistOff(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -136,7 +116,8 @@ i32 WhitelistCommand::whitelistOff(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 WhitelistCommand::whitelistList(CommandContext<ServerCommandSource>& context) {
+i32 WhitelistCommand::whitelistList(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -170,7 +151,8 @@ i32 WhitelistCommand::whitelistList(CommandContext<ServerCommandSource>& context
     return static_cast<i32>(names.size());
 }
 
-i32 WhitelistCommand::whitelistAdd(CommandContext<ServerCommandSource>& context) {
+i32 WhitelistCommand::whitelistAdd(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -242,7 +224,8 @@ i32 WhitelistCommand::whitelistAdd(CommandContext<ServerCommandSource>& context)
     return 0;
 }
 
-i32 WhitelistCommand::whitelistRemove(CommandContext<ServerCommandSource>& context) {
+i32 WhitelistCommand::whitelistRemove(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -307,7 +290,8 @@ i32 WhitelistCommand::whitelistRemove(CommandContext<ServerCommandSource>& conte
     return 0;
 }
 
-i32 WhitelistCommand::whitelistReload(CommandContext<ServerCommandSource>& context) {
+i32 WhitelistCommand::whitelistReload(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
@@ -335,7 +319,8 @@ i32 WhitelistCommand::whitelistReload(CommandContext<ServerCommandSource>& conte
     return 1;
 }
 
-void WhitelistCommand::kickNonWhitelistedPlayers(ServerCommandSource& source) {
+void WhitelistCommand::kickNonWhitelistedPlayers(ServerCommandSource& source)
+{
     auto* server = source.server();
     if (server == nullptr) {
         return;
@@ -366,7 +351,8 @@ void WhitelistCommand::kickNonWhitelistedPlayers(ServerCommandSource& source) {
     }
 }
 
-std::string WhitelistCommand::generateUuidFromName(const std::string& name) {
+std::string WhitelistCommand::generateUuidFromName(const std::string& name)
+{
     // 生成基于名称的临时 UUID
     // 实际服务器应从 Mojang API 获取真实 UUID
     // 这里使用简单的哈希算法生成伪 UUID

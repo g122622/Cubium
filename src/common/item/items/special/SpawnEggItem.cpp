@@ -1,29 +1,27 @@
 #include "SpawnEggItem.hpp"
-#include "../../../world/IWorld.hpp"
+#include "../../../core/Direction.hpp"
 #include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/EntityType.hpp"
 #include "../../../entity/core/EntityRegistry.hpp"
+#include "../../../entity/core/EntityType.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../player/Player.hpp"
 #include "../../../util/math/Vector3.hpp"
+#include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "../../../core/Direction.hpp"
 
 namespace mc {
 namespace item {
 
 SpawnEggItem::SpawnEggItem(
-    entity::EntityType entityType,
-    u32 primaryColor,
-    u32 secondaryColor,
-    const ItemProperties& properties)
+    entity::EntityType entityType, u32 primaryColor, u32 secondaryColor, const ItemProperties& properties)
     : Item(properties)
     , m_entityType(entityType)
     , m_primaryColor(primaryColor)
-    , m_secondaryColor(secondaryColor) {
-}
+    , m_secondaryColor(secondaryColor)
+{}
 
-ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context) {
+ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
+{
     IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
     Direction face = context.getFace();
@@ -54,17 +52,15 @@ ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context) {
     return ActionResultType::Fail;
 }
 
-ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     // 在玩家位置生成实体
     if (world.isClientSide()) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 
     BlockPos spawnPos(
-        static_cast<i32>(player.getX()),
-        static_cast<i32>(player.getY()),
-        static_cast<i32>(player.getZ())
-    );
+        static_cast<i32>(player.getX()), static_cast<i32>(player.getY()), static_cast<i32>(player.getZ()));
 
     if (spawnEntity(world, spawnPos, entity::SpawnReason::SpawnEgg)) {
         if (!player.isCreative()) {
@@ -76,7 +72,8 @@ ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, H
     return ItemActionResult::pass(player.getHeldItem(hand));
 }
 
-bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, entity::SpawnReason spawnReason) const {
+bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, entity::SpawnReason spawnReason) const
+{
     // 通过实体注册表创建实体
     auto entity = entity::EntityRegistry::instance().createEntity(m_entityType, world);
     if (!entity) {

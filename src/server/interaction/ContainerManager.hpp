@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <functional>
 #include <memory>
 #include <unordered_map>
-#include <functional>
 
 namespace mc::server {
 
@@ -62,11 +62,9 @@ public:
     /**
      * @brief 设置菜单工厂
      */
-    void setMenuFactory(std::function<ContainerMenuCreateResult(
-        mc::ContainerId,
-        mc::ContainerType,
-        const BlockPos&,
-        PlayerInventory*)> factory);
+    void setMenuFactory(
+        std::function<ContainerMenuCreateResult(mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*)>
+            factory);
 
     /**
      * @brief 打开容器
@@ -75,9 +73,7 @@ public:
      * @param pos 方块位置（如果是方块容器）
      * @return 容器ID
      */
-    [[nodiscard]] Result<mc::ContainerId> openContainer(PlayerId playerId,
-                                                     mc::ContainerType type,
-                                                     const BlockPos& pos);
+    [[nodiscard]] Result<mc::ContainerId> openContainer(PlayerId playerId, mc::ContainerType type, const BlockPos& pos);
 
     /**
      * @brief 关闭容器
@@ -95,12 +91,8 @@ public:
      * @param carriedItem 手持物品
      * @return 点击结果
      */
-    [[nodiscard]] Result<ContainerClickResult> handleClick(PlayerId playerId,
-                                                            mc::ContainerId containerId,
-                                                            i32 slot,
-                                                            u8 button,
-                                                            u8 mode,
-                                                            const ItemStack& carriedItem);
+    [[nodiscard]] Result<ContainerClickResult> handleClick(
+        PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode, const ItemStack& carriedItem);
 
     /**
      * @brief 获取打开的菜单
@@ -127,12 +119,14 @@ public:
     /**
      * @brief 设置容器打开回调
      */
-    void setOnContainerOpen(std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> callback);
+    void setOnContainerOpen(
+        std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> callback);
 
     /**
      * @brief 设置容器关闭回调
      */
-    void setOnContainerClose(std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> callback);
+    void setOnContainerClose(
+        std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> callback);
 
     /**
      * @brief 设置容器内容更新回调
@@ -153,7 +147,8 @@ private:
     std::unordered_map<PlayerId, OpenContainer> m_openContainers;
     std::unordered_map<PlayerId, mc::ContainerId> m_nextContainerIds;
 
-    std::function<ContainerMenuCreateResult(mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*)> m_menuFactory;
+    std::function<ContainerMenuCreateResult(mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*)>
+        m_menuFactory;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> m_onContainerOpen;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> m_onContainerClose;
     std::function<void(PlayerId, const AbstractContainerMenu&)> m_onContainerUpdate;

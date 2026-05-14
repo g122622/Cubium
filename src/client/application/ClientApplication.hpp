@@ -1,39 +1,39 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
+#include "../input/InputManager.hpp"
+#include "../network/NetworkClient.hpp"
+#include "../renderer/Camera.hpp"
+#include "../renderer/trident/core/TridentEngine.hpp"
+#include "../renderer/trident/gui/GuiSpriteAtlas.hpp"
+#include "../renderer/trident/gui/GuiTextureManager.hpp"
+#include "../resource/BlockModelCache.hpp"
+#include "../resource/ResourceManager.hpp"
+#include "../skin/ClientSkinManager.hpp"
+#include "../ui/GuiScale.hpp"
+#include "../ui/TridentCanvas.hpp"
+#include "../ui/kagero/KageroEngine.hpp"
+#include "../window/Window.hpp"
+#include "../world/ClientWorld.hpp"
+#include "../world/player/ClientPlayerPredictor.hpp"
+#include "../world/player/LocalPlayerIdentity.hpp"
+#include "client/application/ClientAppStateMachine.hpp"
+#include "client/settings/ClientSettings.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/ResourcePackList.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "client/settings/ClientSettings.hpp"
-#include "client/application/ClientAppStateMachine.hpp"
-#include "../window/Window.hpp"
-#include "../input/InputManager.hpp"
-#include "../renderer/Camera.hpp"
-#include "../resource/ResourceManager.hpp"
-#include "../resource/BlockModelCache.hpp"
-#include "../renderer/trident/core/TridentEngine.hpp"
-#include "../ui/GuiScale.hpp"
-#include "../renderer/trident/gui/GuiSpriteAtlas.hpp"
-#include "../renderer/trident/gui/GuiTextureManager.hpp"
-#include "../world/ClientWorld.hpp"
-#include "../world/player/LocalPlayerIdentity.hpp"
-#include "../world/player/ClientPlayerPredictor.hpp"
-#include "../network/NetworkClient.hpp"
-#include "../skin/ClientSkinManager.hpp"
-#include "../ui/kagero/KageroEngine.hpp"
-#include "../ui/TridentCanvas.hpp"
 #include "server/application/IntegratedServer.hpp"
 
-#include <glm/glm.hpp>
-#include <string>
-#include <memory>
 #include <atomic>
 #include <filesystem>
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
+#include <glm/glm.hpp>
 
 namespace mc::client::command {
 class ClientCommandManager;
@@ -50,7 +50,7 @@ class LoadingScreen;
 namespace mc::client::ui::minecraft::widgets {
 class ChatWidget;
 class ScreenStackWidget;
-}
+} // namespace mc::client::ui::minecraft::widgets
 
 namespace mc::client {
 
@@ -71,12 +71,12 @@ struct ClientLaunchParams {
     std::optional<std::string> username;
 
     // 其他启动参数
-    std::optional<std::string> settingsPath;  // 自定义设置文件路径
-    bool skipIntegratedServer = false;  // 跳过内置服务器
+    std::optional<std::string> settingsPath; // 自定义设置文件路径
+    bool skipIntegratedServer = false;       // 跳过内置服务器
 
     // Quick-play 选项（跳过主菜单直接进入世界）
-    std::optional<std::string> quickPlayLevelId;  // 直接加载指定世界
-    bool quickPlayNew = false;               // 直接创建新世界
+    std::optional<std::string> quickPlayLevelId; // 直接加载指定世界
+    bool quickPlayNew = false;                   // 直接创建新世界
 };
 
 /**
@@ -289,9 +289,7 @@ private:
     void openCreativeScreen();
     void closeInventoryScreenIfModeMismatch();
     [[nodiscard]] bool isCreativeModeActive() const;
-    void sendBlockInteraction(network::BlockInteractionAction action,
-                              const BlockPos& pos,
-                              Direction face);
+    void sendBlockInteraction(network::BlockInteractionAction action, const BlockPos& pos, Direction face);
     void sendBlockPlacement(const BlockPos& pos, Direction face, const Vector3& hitPos);
 
     // 玩家位置同步
@@ -385,8 +383,8 @@ private:
     BlockModelCache m_modelCache;
 
     // GUI精灵图集（双图集架构：icons和widgets分离）
-    std::unique_ptr<renderer::trident::gui::GuiSpriteAtlas> m_iconsAtlas;   // 心形、饥饿、盔甲、经验条等
-    std::unique_ptr<renderer::trident::gui::GuiSpriteAtlas> m_widgetsAtlas; // 快捷栏、按钮等
+    std::unique_ptr<renderer::trident::gui::GuiSpriteAtlas> m_iconsAtlas;           // 心形、饥饿、盔甲、经验条等
+    std::unique_ptr<renderer::trident::gui::GuiSpriteAtlas> m_widgetsAtlas;         // 快捷栏、按钮等
     std::unique_ptr<renderer::trident::gui::GuiTextureManager> m_guiTextureManager; // GUI容器纹理管理器
 
     // 相机
@@ -443,7 +441,7 @@ private:
 
     // 方块放置冷却
     f32 m_placeCooldown = 0.0f;
-    static constexpr f32 PLACE_COOLDOWN_TIME = 0.05f;  // 50ms 放置冷却
+    static constexpr f32 PLACE_COOLDOWN_TIME = 0.05f; // 50ms 放置冷却
 
     // 内置服务端
     std::unique_ptr<server::IntegratedServer> m_integratedServer;
@@ -469,7 +467,7 @@ private:
     f32 m_positionSendAccumulator = 0.0f;
     f32 m_playerPhysicsAccumulator = 0.0f;
     static constexpr f32 PLAYER_PHYSICS_INTERVAL = constants::TICK_DURATION;
-    static constexpr f32 POSITION_SEND_INTERVAL = constants::TICK_DURATION;  // 20 TPS
+    static constexpr f32 POSITION_SEND_INTERVAL = constants::TICK_DURATION; // 20 TPS
 
     // 渲染时间（服务端时间不可用时使用本地回退）
     i64 m_renderGameTime = 0;

@@ -5,7 +5,8 @@
 namespace mc {
 namespace blockentity {
 
-bool LockableBlockEntity::canOpen(const Player* player, const ItemStack& heldItem) const {
+bool LockableBlockEntity::canOpen(const Player* player, const ItemStack& heldItem) const
+{
     // 未锁定的容器：所有人可打开
     if (!m_locked || m_lockKey.empty()) {
         return true;
@@ -27,21 +28,24 @@ bool LockableBlockEntity::canOpen(const Player* player, const ItemStack& heldIte
     return false;
 }
 
-void LockableBlockEntity::setCustomName(const std::string& name) {
+void LockableBlockEntity::setCustomName(const std::string& name)
+{
     if (m_customName != name) {
         m_customName = name;
         setChanged();
     }
 }
 
-std::string LockableBlockEntity::getDisplayName() const {
+std::string LockableBlockEntity::getDisplayName() const
+{
     if (!m_customName.empty()) {
         return m_customName;
     }
     return getDefaultName();
 }
 
-bool LockableBlockEntity::load(const nlohmann::json& data) {
+bool LockableBlockEntity::load(const nlohmann::json& data)
+{
     if (!ContainerBlockEntity::load(data)) {
         return false;
     }
@@ -60,7 +64,8 @@ bool LockableBlockEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void LockableBlockEntity::save(nlohmann::json& data) const {
+void LockableBlockEntity::save(nlohmann::json& data) const
+{
     ContainerBlockEntity::save(data);
 
     // 保存锁定状态

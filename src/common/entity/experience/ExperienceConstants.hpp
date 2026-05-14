@@ -113,9 +113,7 @@ constexpr f32 ORB_MERGE_DISTANCE = 1.0f;
  * 这11个值对应MC中11种经验球大小。
  * 参考: ExperienceOrbEntity.getXPSplit()
  */
-constexpr i32 XP_SPLIT_VALUES[] = {
-    2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1
-};
+constexpr i32 XP_SPLIT_VALUES[] = {2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1};
 
 /**
  * @brief 经验值分割表大小

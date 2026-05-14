@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../../FeatureSpread.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../chunk/ChunkPos.hpp"
-#include <vector>
-#include <set>
+#include "../../FeatureSpread.hpp"
 #include <memory>
+#include <set>
+#include <vector>
 
 namespace mc {
 
@@ -20,12 +20,15 @@ class BlockState;
  * 参考: net.minecraft.world.gen.foliageplacer.FoliagePlacer.Foliage
  */
 struct FoliagePosition {
-    BlockPos pos;           ///< 树叶中心位置
-    i32 radiusBonus;        ///< 树叶半径加成（MC: field_236761_b_）
-    bool trunkTop;          ///< 是否在树干顶部（MC: field_236762_c_）
+    BlockPos pos;    ///< 树叶中心位置
+    i32 radiusBonus; ///< 树叶半径加成（MC: field_236761_b_）
+    bool trunkTop;   ///< 是否在树干顶部（MC: field_236762_c_）
 
     FoliagePosition(const BlockPos& p, i32 radiusBonus = 0, bool top = false)
-        : pos(p), radiusBonus(radiusBonus), trunkTop(top) {}
+        : pos(p)
+        , radiusBonus(radiusBonus)
+        , trunkTop(top)
+    {}
 };
 
 /**
@@ -65,14 +68,12 @@ public:
      * @param trunkBlock 树干方块状态
      * @return 树叶位置列表
      */
-    virtual std::vector<FoliagePosition> placeTrunk(
-        WorldGenRegion& world,
+    virtual std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
         math::Random& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    ) = 0;
+        const BlockState* trunkBlock) = 0;
 
     /**
      * @brief 获取树干放置器类型名称
@@ -95,11 +96,7 @@ protected:
      * @param trunkBlock 树干方块状态
      */
     void placeBlock(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    );
+        WorldGenRegion& world, const BlockPos& pos, std::set<BlockPos>& trunkBlocks, const BlockState* trunkBlock);
 
     /**
      * @brief 检查位置是否可放置树干
@@ -127,11 +124,7 @@ protected:
      * @param trunkBlock 树干方块状态
      */
     void placeTrunkLayer2x2(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    );
+        WorldGenRegion& world, const BlockPos& pos, std::set<BlockPos>& trunkBlocks, const BlockState* trunkBlock);
 
     i32 m_baseHeight;
     i32 m_heightRandA;

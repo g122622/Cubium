@@ -50,38 +50,38 @@ const std::unordered_map<std::string, EffectType> s_effectResourceNameMap = {
 
 /// 效果类型到资源名称的映射
 const char* s_effectResourceNames[] = {
-    "",  // 0 - 无效
-    "speed",              // 1
-    "slowness",           // 2
-    "haste",              // 3
-    "mining_fatigue",     // 4
-    "strength",           // 5
-    "instant_health",     // 6
-    "instant_damage",     // 7
-    "jump_boost",         // 8
-    "nausea",             // 9
-    "regeneration",       // 10
-    "resistance",         // 11
-    "fire_resistance",    // 12
-    "water_breathing",    // 13
-    "invisibility",       // 14
-    "blindness",          // 15
-    "night_vision",       // 16
-    "hunger",             // 17
-    "weakness",           // 18
-    "poison",             // 19
-    "wither",             // 20
-    "health_boost",       // 21
-    "absorption",         // 22
-    "saturation",         // 23
-    "glowing",            // 24
-    "levitation",         // 25
-    "luck",               // 26
-    "bad_luck",           // 27
-    "slow_falling",       // 28
-    "conduit_power",      // 29
-    "dolphins_grace",     // 30
-    "bad_omen",           // 31
+    "",                    // 0 - 无效
+    "speed",               // 1
+    "slowness",            // 2
+    "haste",               // 3
+    "mining_fatigue",      // 4
+    "strength",            // 5
+    "instant_health",      // 6
+    "instant_damage",      // 7
+    "jump_boost",          // 8
+    "nausea",              // 9
+    "regeneration",        // 10
+    "resistance",          // 11
+    "fire_resistance",     // 12
+    "water_breathing",     // 13
+    "invisibility",        // 14
+    "blindness",           // 15
+    "night_vision",        // 16
+    "hunger",              // 17
+    "weakness",            // 18
+    "poison",              // 19
+    "wither",              // 20
+    "health_boost",        // 21
+    "absorption",          // 22
+    "saturation",          // 23
+    "glowing",             // 24
+    "levitation",          // 25
+    "luck",                // 26
+    "bad_luck",            // 27
+    "slow_falling",        // 28
+    "conduit_power",       // 29
+    "dolphins_grace",      // 30
+    "bad_omen",            // 31
     "hero_of_the_village", // 32
 };
 
@@ -94,45 +94,80 @@ constexpr i32 EFFECT_COUNT = 32;
 // 显示名称
 // ============================================================================
 
-const char* getEffectName(EffectType type) {
+const char* getEffectName(EffectType type)
+{
     switch (type) {
-        case EffectType::Speed: return "Speed";
-        case EffectType::Slowness: return "Slowness";
-        case EffectType::Haste: return "Haste";
-        case EffectType::MiningFatigue: return "Mining Fatigue";
-        case EffectType::Strength: return "Strength";
-        case EffectType::InstantHealth: return "Instant Health";
-        case EffectType::InstantDamage: return "Instant Damage";
-        case EffectType::JumpBoost: return "Jump Boost";
-        case EffectType::Nausea: return "Nausea";
-        case EffectType::Regeneration: return "Regeneration";
-        case EffectType::Resistance: return "Resistance";
-        case EffectType::FireResistance: return "Fire Resistance";
-        case EffectType::WaterBreathing: return "Water Breathing";
-        case EffectType::Invisibility: return "Invisibility";
-        case EffectType::Blindness: return "Blindness";
-        case EffectType::NightVision: return "Night Vision";
-        case EffectType::Hunger: return "Hunger";
-        case EffectType::Weakness: return "Weakness";
-        case EffectType::Poison: return "Poison";
-        case EffectType::Wither: return "Wither";
-        case EffectType::HealthBoost: return "Health Boost";
-        case EffectType::Absorption: return "Absorption";
-        case EffectType::Saturation: return "Saturation";
-        case EffectType::Glowing: return "Glowing";
-        case EffectType::Levitation: return "Levitation";
-        case EffectType::Luck: return "Luck";
-        case EffectType::BadLuck: return "Bad Luck";
-        case EffectType::SlowFalling: return "Slow Falling";
-        case EffectType::ConduitPower: return "Conduit Power";
-        case EffectType::DolphinsGrace: return "Dolphin's Grace";
-        case EffectType::BadOmen: return "Bad Omen";
-        case EffectType::HeroOfTheVillage: return "Hero of the Village";
-        default: return "Unknown";
+        case EffectType::Speed:
+            return "Speed";
+        case EffectType::Slowness:
+            return "Slowness";
+        case EffectType::Haste:
+            return "Haste";
+        case EffectType::MiningFatigue:
+            return "Mining Fatigue";
+        case EffectType::Strength:
+            return "Strength";
+        case EffectType::InstantHealth:
+            return "Instant Health";
+        case EffectType::InstantDamage:
+            return "Instant Damage";
+        case EffectType::JumpBoost:
+            return "Jump Boost";
+        case EffectType::Nausea:
+            return "Nausea";
+        case EffectType::Regeneration:
+            return "Regeneration";
+        case EffectType::Resistance:
+            return "Resistance";
+        case EffectType::FireResistance:
+            return "Fire Resistance";
+        case EffectType::WaterBreathing:
+            return "Water Breathing";
+        case EffectType::Invisibility:
+            return "Invisibility";
+        case EffectType::Blindness:
+            return "Blindness";
+        case EffectType::NightVision:
+            return "Night Vision";
+        case EffectType::Hunger:
+            return "Hunger";
+        case EffectType::Weakness:
+            return "Weakness";
+        case EffectType::Poison:
+            return "Poison";
+        case EffectType::Wither:
+            return "Wither";
+        case EffectType::HealthBoost:
+            return "Health Boost";
+        case EffectType::Absorption:
+            return "Absorption";
+        case EffectType::Saturation:
+            return "Saturation";
+        case EffectType::Glowing:
+            return "Glowing";
+        case EffectType::Levitation:
+            return "Levitation";
+        case EffectType::Luck:
+            return "Luck";
+        case EffectType::BadLuck:
+            return "Bad Luck";
+        case EffectType::SlowFalling:
+            return "Slow Falling";
+        case EffectType::ConduitPower:
+            return "Conduit Power";
+        case EffectType::DolphinsGrace:
+            return "Dolphin's Grace";
+        case EffectType::BadOmen:
+            return "Bad Omen";
+        case EffectType::HeroOfTheVillage:
+            return "Hero of the Village";
+        default:
+            return "Unknown";
     }
 }
 
-bool isBeneficialEffect(EffectType type) {
+bool isBeneficialEffect(EffectType type)
+{
     switch (type) {
         case EffectType::Speed:
         case EffectType::Haste:
@@ -159,42 +194,76 @@ bool isBeneficialEffect(EffectType type) {
     }
 }
 
-u32 getEffectColor(EffectType type) {
+u32 getEffectColor(EffectType type)
+{
     // 参考 MC 1.16.5 效果颜色
     switch (type) {
-        case EffectType::Speed: return 0x7CAFC6;
-        case EffectType::Slowness: return 0x5A6C81;
-        case EffectType::Haste: return 0xD9C043;
-        case EffectType::MiningFatigue: return 0x4A7210;
-        case EffectType::Strength: return 0x932423;
-        case EffectType::InstantHealth: return 0xF82423;
-        case EffectType::InstantDamage: return 0x430A09;
-        case EffectType::JumpBoost: return 0x22FF4C;
-        case EffectType::Nausea: return 0xC31C4D;
-        case EffectType::Regeneration: return 0xCD5CAB;
-        case EffectType::Resistance: return 0x99453A;
-        case EffectType::FireResistance: return 0xE49A3A;
-        case EffectType::WaterBreathing: return 0x2E5299;
-        case EffectType::Invisibility: return 0x7F8392;
-        case EffectType::Blindness: return 0x1F1F23;
-        case EffectType::NightVision: return 0x1F1FA1;
-        case EffectType::Hunger: return 0x587653;
-        case EffectType::Weakness: return 0x484D48;
-        case EffectType::Poison: return 0x4E9331;
-        case EffectType::Wither: return 0x352A27;
-        case EffectType::HealthBoost: return 0xF87D23;
-        case EffectType::Absorption: return 0x2552A5;
-        case EffectType::Saturation: return 0xF82423;
-        case EffectType::Glowing: return 0x94A061;  // MC 1.16.5: 9740385 (灰绿色)
-        case EffectType::Levitation: return 0xCEFFFF;
-        case EffectType::Luck: return 0x339900;
-        case EffectType::BadLuck: return 0xC0A44D;
-        case EffectType::SlowFalling: return 0xFFFBF1;  // MC 1.16.5: 16773073
-        case EffectType::ConduitPower: return 0x1DC2D1;
-        case EffectType::DolphinsGrace: return 0x8894C6;  // MC 1.16.5: 8954814
-        case EffectType::BadOmen: return 0x0B0B0B;
-        case EffectType::HeroOfTheVillage: return 0x44FF44;
-        default: return 0xFFFFFF;
+        case EffectType::Speed:
+            return 0x7CAFC6;
+        case EffectType::Slowness:
+            return 0x5A6C81;
+        case EffectType::Haste:
+            return 0xD9C043;
+        case EffectType::MiningFatigue:
+            return 0x4A7210;
+        case EffectType::Strength:
+            return 0x932423;
+        case EffectType::InstantHealth:
+            return 0xF82423;
+        case EffectType::InstantDamage:
+            return 0x430A09;
+        case EffectType::JumpBoost:
+            return 0x22FF4C;
+        case EffectType::Nausea:
+            return 0xC31C4D;
+        case EffectType::Regeneration:
+            return 0xCD5CAB;
+        case EffectType::Resistance:
+            return 0x99453A;
+        case EffectType::FireResistance:
+            return 0xE49A3A;
+        case EffectType::WaterBreathing:
+            return 0x2E5299;
+        case EffectType::Invisibility:
+            return 0x7F8392;
+        case EffectType::Blindness:
+            return 0x1F1F23;
+        case EffectType::NightVision:
+            return 0x1F1FA1;
+        case EffectType::Hunger:
+            return 0x587653;
+        case EffectType::Weakness:
+            return 0x484D48;
+        case EffectType::Poison:
+            return 0x4E9331;
+        case EffectType::Wither:
+            return 0x352A27;
+        case EffectType::HealthBoost:
+            return 0xF87D23;
+        case EffectType::Absorption:
+            return 0x2552A5;
+        case EffectType::Saturation:
+            return 0xF82423;
+        case EffectType::Glowing:
+            return 0x94A061; // MC 1.16.5: 9740385 (灰绿色)
+        case EffectType::Levitation:
+            return 0xCEFFFF;
+        case EffectType::Luck:
+            return 0x339900;
+        case EffectType::BadLuck:
+            return 0xC0A44D;
+        case EffectType::SlowFalling:
+            return 0xFFFBF1; // MC 1.16.5: 16773073
+        case EffectType::ConduitPower:
+            return 0x1DC2D1;
+        case EffectType::DolphinsGrace:
+            return 0x8894C6; // MC 1.16.5: 8954814
+        case EffectType::BadOmen:
+            return 0x0B0B0B;
+        case EffectType::HeroOfTheVillage:
+            return 0x44FF44;
+        default:
+            return 0xFFFFFF;
     }
 }
 
@@ -202,18 +271,21 @@ u32 getEffectColor(EffectType type) {
 // ID 转换函数
 // ============================================================================
 
-std::optional<EffectType> getEffectById(i32 id) noexcept {
+std::optional<EffectType> getEffectById(i32 id) noexcept
+{
     if (id < 1 || id > EFFECT_COUNT) {
         return std::nullopt;
     }
     return static_cast<EffectType>(id);
 }
 
-std::optional<EffectType> getEffectByResourceLocation(const ResourceLocation& id) noexcept {
+std::optional<EffectType> getEffectByResourceLocation(const ResourceLocation& id) noexcept
+{
     // 尝试直接匹配路径（不含命名空间）
     std::string path = id.path();
-    std::transform(path.begin(), path.end(), path.begin(),
-        [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+    std::transform(path.begin(), path.end(), path.begin(), [](char c) {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    });
 
     auto it = s_effectResourceNameMap.find(path);
     if (it != s_effectResourceNameMap.end()) {
@@ -225,12 +297,14 @@ std::optional<EffectType> getEffectByResourceLocation(const ResourceLocation& id
     return std::nullopt;
 }
 
-ResourceLocation getEffectResourceLocation(EffectType type) noexcept {
+ResourceLocation getEffectResourceLocation(EffectType type) noexcept
+{
     const char* name = getEffectResourceName(type);
     return ResourceLocation("minecraft", name);
 }
 
-const char* getEffectResourceName(EffectType type) noexcept {
+const char* getEffectResourceName(EffectType type) noexcept
+{
     const i32 id = static_cast<i32>(type);
     if (id < 1 || id > EFFECT_COUNT) {
         return "unknown";
@@ -238,11 +312,10 @@ const char* getEffectResourceName(EffectType type) noexcept {
     return s_effectResourceNames[id];
 }
 
-bool isInstantEffect(EffectType type) noexcept {
+bool isInstantEffect(EffectType type) noexcept
+{
     // MC 1.16.5: 瞬间效果包括瞬间治疗、瞬间伤害、饱和
-    return type == EffectType::InstantHealth ||
-           type == EffectType::InstantDamage ||
-           type == EffectType::Saturation;
+    return type == EffectType::InstantHealth || type == EffectType::InstantDamage || type == EffectType::Saturation;
 }
 
 } // namespace effect

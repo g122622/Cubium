@@ -12,14 +12,15 @@ namespace loot {
 LootPool::LootPool(const RandomValueRange& rolls, const RandomValueRange& bonusRolls)
     : m_rolls(rolls)
     , m_bonusRolls(bonusRolls)
-{
-}
+{}
 
-void LootPool::addEntry(std::unique_ptr<LootEntry> entry) {
+void LootPool::addEntry(std::unique_ptr<LootEntry> entry)
+{
     m_entries.push_back(std::move(entry));
 }
 
-std::unique_ptr<LootPool> LootPool::clone() const {
+std::unique_ptr<LootPool> LootPool::clone() const
+{
     auto pool = std::make_unique<LootPool>(m_rolls, m_bonusRolls);
     pool->setName(m_name);
     for (const auto& entry : m_entries) {
@@ -28,11 +29,12 @@ std::unique_ptr<LootPool> LootPool::clone() const {
     return pool;
 }
 
-void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const {
+void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     // 计算掷骰次数 = 基础次数 + 幸运值加成
     math::Random& random = context.getRandom();
-    i32 rollCount = m_rolls.generateInt(random) +
-                   static_cast<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
+    i32 rollCount =
+        m_rolls.generateInt(random) + static_cast<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
 
     // 执行每次掷骰
     for (i32 i = 0; i < rollCount; ++i) {
@@ -40,7 +42,8 @@ void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootCont
     }
 }
 
-void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const {
+void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
     if (m_entries.empty()) {
         return;
     }
@@ -92,18 +95,16 @@ void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, Loot
 // LootPoolBuilder
 // ============================================================================
 
-LootPoolBuilder& LootPoolBuilder::item(const std::string& itemId, i32 count, i32 weight) {
+LootPoolBuilder& LootPoolBuilder::item(const std::string& itemId, i32 count, i32 weight)
+{
     auto entry = std::make_unique<ItemLootEntry>(
-        itemId,
-        RandomValueRange(static_cast<f32>(count), static_cast<f32>(count)),
-        weight,
-        0
-    );
+        itemId, RandomValueRange(static_cast<f32>(count), static_cast<f32>(count)), weight, 0);
     m_entries.push_back(std::move(entry));
     return *this;
 }
 
-std::unique_ptr<LootPool> LootPoolBuilder::build() const {
+std::unique_ptr<LootPool> LootPoolBuilder::build() const
+{
     auto pool = std::make_unique<LootPool>(m_rolls, m_bonusRolls);
     pool->setName(m_name);
 

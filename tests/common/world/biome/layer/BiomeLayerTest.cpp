@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
+#include "world/biome/layer/BiomeValues.hpp"
 #include "world/biome/layer/Layer.hpp"
 #include "world/biome/layer/LayerContext.hpp"
-#include "world/biome/layer/BiomeValues.hpp"
 #include "world/biome/layer/transformers/BiomeLayers.hpp"
 #include "world/biome/layer/transformers/MergeLayers.hpp"
+#include <functional>
 #include <unordered_map>
 #include <vector>
-#include <functional>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::layer;
@@ -19,10 +19,16 @@ namespace {
 class MockArea : public IArea {
 public:
     MockArea() = default;
-    explicit MockArea(i32 constantValue) : m_constantValue(constantValue), m_useConstant(true) {}
-    explicit MockArea(std::function<i32(i32, i32)> func) : m_func(std::move(func)) {}
+    explicit MockArea(i32 constantValue)
+        : m_constantValue(constantValue)
+        , m_useConstant(true)
+    {}
+    explicit MockArea(std::function<i32(i32, i32)> func)
+        : m_func(std::move(func))
+    {}
 
-    [[nodiscard]] i32 getValue(i32 x, i32 z) const override {
+    [[nodiscard]] i32 getValue(i32 x, i32 z) const override
+    {
         if (m_useConstant) {
             return m_constantValue;
         }
@@ -45,12 +51,14 @@ class MockAreaContext : public IAreaContext {
 public:
     MockAreaContext() = default;
 
-    void setPosition(i64 x, i64 z) override {
+    void setPosition(i64 x, i64 z) override
+    {
         m_currentX = x;
         m_currentZ = z;
     }
 
-    [[nodiscard]] i32 nextInt(i32 bound) override {
+    [[nodiscard]] i32 nextInt(i32 bound) override
+    {
         if (m_useSequence && m_sequenceIndex < m_sequence.size()) {
             return m_sequence[m_sequenceIndex++] % bound;
         }
@@ -61,35 +69,36 @@ public:
         return static_cast<i32>((m_seed >> 32) % bound);
     }
 
-    [[nodiscard]] i32 pickRandom(i32 a, i32 b) override {
-        return nextInt(2) == 0 ? a : b;
-    }
+    [[nodiscard]] i32 pickRandom(i32 a, i32 b) override { return nextInt(2) == 0 ? a : b; }
 
-    [[nodiscard]] i32 pickRandom(i32 a, i32 b, i32 c, i32 d) override {
+    [[nodiscard]] i32 pickRandom(i32 a, i32 b, i32 c, i32 d) override
+    {
         i32 idx = nextInt(4);
         switch (idx) {
-            case 0: return a;
-            case 1: return b;
-            case 2: return c;
-            default: return d;
+            case 0:
+                return a;
+            case 1:
+                return b;
+            case 2:
+                return c;
+            default:
+                return d;
         }
     }
 
-    [[nodiscard]] ImprovedNoiseGenerator* getNoiseGenerator() override {
-        return nullptr;
-    }
+    [[nodiscard]] ImprovedNoiseGenerator* getNoiseGenerator() override { return nullptr; }
 
-    void setConstantRandom(i32 value) {
-        m_constantRandom = value;
-    }
+    void setConstantRandom(i32 value) { m_constantRandom = value; }
 
-    void setRandomSequence(const std::vector<i32>& sequence) {
+    void setRandomSequence(const std::vector<i32>& sequence)
+    {
         m_sequence = sequence;
         m_sequenceIndex = 0;
         m_useSequence = true;
     }
 
-    void reset() {
+    void reset()
+    {
         m_constantRandom = -1;
         m_useSequence = false;
         m_sequenceIndex = 0;
@@ -114,14 +123,16 @@ private:
 
 class BiomeLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         BiomeLayer::Config config;
         config.legacyDesertInit = false;
         m_biomeLayer = std::make_unique<BiomeLayer>(config);
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_context.reset();
         m_biomeLayer.reset();
     }
@@ -130,7 +141,8 @@ protected:
     std::unique_ptr<BiomeLayer> m_biomeLayer;
 };
 
-TEST_F(BiomeLayerTest, OceanValuePreserved) {
+TEST_F(BiomeLayerTest, OceanValuePreserved)
+{
     // 海洋值应该保持不变
     EXPECT_EQ(m_biomeLayer->apply(*m_context, BiomeValues::Ocean), BiomeValues::Ocean);
     EXPECT_EQ(m_biomeLayer->apply(*m_context, BiomeValues::DeepOcean), BiomeValues::DeepOcean);
@@ -138,12 +150,14 @@ TEST_F(BiomeLayerTest, OceanValuePreserved) {
     EXPECT_EQ(m_biomeLayer->apply(*m_context, BiomeValues::FrozenOcean), BiomeValues::FrozenOcean);
 }
 
-TEST_F(BiomeLayerTest, MushroomFieldsPreserved) {
+TEST_F(BiomeLayerTest, MushroomFieldsPreserved)
+{
     // 蘑菇岛应该保持不变
     EXPECT_EQ(m_biomeLayer->apply(*m_context, BiomeValues::MushroomFields), BiomeValues::MushroomFields);
 }
 
-TEST_F(BiomeLayerTest, WarmClimateProducesCorrectBiomes) {
+TEST_F(BiomeLayerTest, WarmClimateProducesCorrectBiomes)
+{
     // Warm 气候 (1) 应该产生: Desert, Savanna, Plains
     m_context->setRandomSequence({0, 1, 2, 3, 4, 5});
 
@@ -166,7 +180,8 @@ TEST_F(BiomeLayerTest, WarmClimateProducesCorrectBiomes) {
     EXPECT_EQ(result, BiomeValues::Plains); // index 5
 }
 
-TEST_F(BiomeLayerTest, WarmClimateWithSpecialBitsProducesBadlands) {
+TEST_F(BiomeLayerTest, WarmClimateWithSpecialBitsProducesBadlands)
+{
     // Warm 气候带特殊位应该产生恶地变体
     // 特殊位在 bits 8-11 (mask 0xF00)
 
@@ -182,7 +197,8 @@ TEST_F(BiomeLayerTest, WarmClimateWithSpecialBitsProducesBadlands) {
     EXPECT_EQ(result, BiomeValues::BadlandsPlateau);
 }
 
-TEST_F(BiomeLayerTest, MediumClimateProducesCorrectBiomes) {
+TEST_F(BiomeLayerTest, MediumClimateProducesCorrectBiomes)
+{
     // Medium 气候 (2) 应该产生: Forest, DarkForest, Mountains, Plains, BirchForest, Swamp
     m_context->setRandomSequence({0, 10, 20, 30, 40, 50});
 
@@ -205,14 +221,16 @@ TEST_F(BiomeLayerTest, MediumClimateProducesCorrectBiomes) {
     EXPECT_EQ(result, BiomeValues::Swamp); // 50-59
 }
 
-TEST_F(BiomeLayerTest, MediumClimateWithSpecialBitsProducesJungle) {
+TEST_F(BiomeLayerTest, MediumClimateWithSpecialBitsProducesJungle)
+{
     // Medium 气候带特殊位应该产生丛林 (21)
     i32 valueWithSpecial = BiomeValues::Climate::Medium | 0x100;
     i32 result = m_biomeLayer->apply(*m_context, valueWithSpecial);
     EXPECT_EQ(result, BiomeValues::Jungle);
 }
 
-TEST_F(BiomeLayerTest, CoolClimateProducesCorrectBiomes) {
+TEST_F(BiomeLayerTest, CoolClimateProducesCorrectBiomes)
+{
     // Cool 气候 (3) 应该产生: Forest, GiantTreeTaigaHills, Mountains, Plains, BirchForest, Swamp
     m_context->setRandomSequence({0, 1, 2, 3, 4, 5});
 
@@ -235,14 +253,16 @@ TEST_F(BiomeLayerTest, CoolClimateProducesCorrectBiomes) {
     EXPECT_EQ(result, BiomeValues::Swamp); // index 5
 }
 
-TEST_F(BiomeLayerTest, CoolClimateWithSpecialBitsProducesGiantTreeTaiga) {
+TEST_F(BiomeLayerTest, CoolClimateWithSpecialBitsProducesGiantTreeTaiga)
+{
     // Cool 气候带特殊位应该产生 GiantTreeTaiga (32)
     i32 valueWithSpecial = BiomeValues::Climate::Cool | 0x100;
     i32 result = m_biomeLayer->apply(*m_context, valueWithSpecial);
     EXPECT_EQ(result, BiomeValues::GiantTreeTaiga);
 }
 
-TEST_F(BiomeLayerTest, IcyClimateProducesCorrectBiomes) {
+TEST_F(BiomeLayerTest, IcyClimateProducesCorrectBiomes)
+{
     // Icy 气候 (4) 应该产生: SnowyPlains x3, WoodedMountains x1
     m_context->setRandomSequence({0, 1, 2, 3});
 
@@ -259,7 +279,8 @@ TEST_F(BiomeLayerTest, IcyClimateProducesCorrectBiomes) {
     EXPECT_EQ(result, BiomeValues::WoodedMountains);
 }
 
-TEST_F(BiomeLayerTest, UnknownValueReturnsMushroomFields) {
+TEST_F(BiomeLayerTest, UnknownValueReturnsMushroomFields)
+{
     // 未知值应该返回蘑菇岛
     EXPECT_EQ(m_biomeLayer->apply(*m_context, 999), BiomeValues::MushroomFields);
     EXPECT_EQ(m_biomeLayer->apply(*m_context, -1), BiomeValues::MushroomFields);
@@ -271,7 +292,8 @@ TEST_F(BiomeLayerTest, UnknownValueReturnsMushroomFields) {
 
 class RareBiomeLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_rareBiomeLayer = std::make_unique<RareBiomeLayer>();
     }
@@ -280,7 +302,8 @@ protected:
     std::unique_ptr<RareBiomeLayer> m_rareBiomeLayer;
 };
 
-TEST_F(RareBiomeLayerTest, PlainsToSunflowerPlains) {
+TEST_F(RareBiomeLayerTest, PlainsToSunflowerPlains)
+{
     // 平原有 1/57 概率变成向日葵平原
     m_context->setConstantRandom(0); // nextInt(57) == 0
 
@@ -288,7 +311,8 @@ TEST_F(RareBiomeLayerTest, PlainsToSunflowerPlains) {
     EXPECT_EQ(result, BiomeValues::SunflowerPlains);
 }
 
-TEST_F(RareBiomeLayerTest, PlainsStaysPlainsWhenNotLucky) {
+TEST_F(RareBiomeLayerTest, PlainsStaysPlainsWhenNotLucky)
+{
     // 平原不满足 1/57 概率时保持不变
     m_context->setConstantRandom(1); // nextInt(57) == 1
 
@@ -296,7 +320,8 @@ TEST_F(RareBiomeLayerTest, PlainsStaysPlainsWhenNotLucky) {
     EXPECT_EQ(result, BiomeValues::Plains);
 }
 
-TEST_F(RareBiomeLayerTest, OtherBiomesUnchanged) {
+TEST_F(RareBiomeLayerTest, OtherBiomesUnchanged)
+{
     // 其他生物群系应该保持不变
     m_context->setConstantRandom(0);
 
@@ -311,7 +336,8 @@ TEST_F(RareBiomeLayerTest, OtherBiomesUnchanged) {
 
 class SmoothLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_smoothLayer = std::make_unique<SmoothLayer>();
     }
@@ -320,58 +346,62 @@ protected:
     std::unique_ptr<SmoothLayer> m_smoothLayer;
 };
 
-TEST_F(SmoothLayerTest, AllEqualReturnsEither) {
+TEST_F(SmoothLayerTest, AllEqualReturnsEither)
+{
     // 所有邻居相等，随机选择
     m_context->setConstantRandom(0);
 
     i32 result = m_smoothLayer->apply(*m_context,
-        BiomeValues::Desert,  // north
-        BiomeValues::Desert,  // east
-        BiomeValues::Desert,  // south
-        BiomeValues::Desert,  // west
-        BiomeValues::Desert   // center
+        BiomeValues::Desert, // north
+        BiomeValues::Desert, // east
+        BiomeValues::Desert, // south
+        BiomeValues::Desert, // west
+        BiomeValues::Desert  // center
     );
     EXPECT_EQ(result, BiomeValues::Desert);
 }
 
-TEST_F(SmoothLayerTest, EastWestEqualReturnsEast) {
+TEST_F(SmoothLayerTest, EastWestEqualReturnsEast)
+{
     // 东西相等但南北不等，返回东
     m_context->setConstantRandom(0);
 
     i32 result = m_smoothLayer->apply(*m_context,
-        BiomeValues::Desert,  // north
-        BiomeValues::Forest,  // east
-        BiomeValues::Plains,  // south
-        BiomeValues::Forest,  // west
-        BiomeValues::Desert   // center
+        BiomeValues::Desert, // north
+        BiomeValues::Forest, // east
+        BiomeValues::Plains, // south
+        BiomeValues::Forest, // west
+        BiomeValues::Desert  // center
     );
     EXPECT_EQ(result, BiomeValues::Forest); // east
 }
 
-TEST_F(SmoothLayerTest, NorthSouthEqualReturnsNorth) {
+TEST_F(SmoothLayerTest, NorthSouthEqualReturnsNorth)
+{
     // 南北相等但东西不等，返回北
     m_context->setConstantRandom(0);
 
     i32 result = m_smoothLayer->apply(*m_context,
-        BiomeValues::Forest,  // north
-        BiomeValues::Desert,  // east
-        BiomeValues::Forest,  // south
-        BiomeValues::Plains,  // west
-        BiomeValues::Desert   // center
+        BiomeValues::Forest, // north
+        BiomeValues::Desert, // east
+        BiomeValues::Forest, // south
+        BiomeValues::Plains, // west
+        BiomeValues::Desert  // center
     );
     EXPECT_EQ(result, BiomeValues::Forest); // north
 }
 
-TEST_F(SmoothLayerTest, NoneEqualReturnsCenter) {
+TEST_F(SmoothLayerTest, NoneEqualReturnsCenter)
+{
     // 都不相等，返回中心
     m_context->setConstantRandom(0);
 
     i32 result = m_smoothLayer->apply(*m_context,
-        BiomeValues::Desert,  // north
-        BiomeValues::Forest,  // east
-        BiomeValues::Plains,  // south
-        BiomeValues::Jungle,  // west
-        BiomeValues::Swamp    // center
+        BiomeValues::Desert, // north
+        BiomeValues::Forest, // east
+        BiomeValues::Plains, // south
+        BiomeValues::Jungle, // west
+        BiomeValues::Swamp   // center
     );
     EXPECT_EQ(result, BiomeValues::Swamp); // center
 }
@@ -382,7 +412,8 @@ TEST_F(SmoothLayerTest, NoneEqualReturnsCenter) {
 
 class ShoreLayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         m_context = std::make_unique<MockAreaContext>();
         m_shoreLayer = std::make_unique<ShoreLayer>();
     }
@@ -391,31 +422,34 @@ protected:
     std::unique_ptr<ShoreLayer> m_shoreLayer;
 };
 
-TEST_F(ShoreLayerTest, MushroomFieldsAdjacentToShallowOceanBecomesShore) {
+TEST_F(ShoreLayerTest, MushroomFieldsAdjacentToShallowOceanBecomesShore)
+{
     // 蘑菇岛相邻浅海变成蘑菇岛海岸
     i32 result = m_shoreLayer->apply(*m_context,
-        BiomeValues::Ocean,      // north - shallow ocean
-        BiomeValues::Desert,     // east
-        BiomeValues::Desert,     // south
-        BiomeValues::Desert,     // west
-        BiomeValues::MushroomFields  // center
+        BiomeValues::Ocean,         // north - shallow ocean
+        BiomeValues::Desert,        // east
+        BiomeValues::Desert,        // south
+        BiomeValues::Desert,        // west
+        BiomeValues::MushroomFields // center
     );
     EXPECT_EQ(result, BiomeValues::MushroomFieldShore);
 }
 
-TEST_F(ShoreLayerTest, MushroomFieldsNotAdjacentToOceanStaysSame) {
+TEST_F(ShoreLayerTest, MushroomFieldsNotAdjacentToOceanStaysSame)
+{
     // 蘑菇岛不相邻海洋保持不变
     i32 result = m_shoreLayer->apply(*m_context,
-        BiomeValues::Desert,     // north
-        BiomeValues::Desert,     // east
-        BiomeValues::Desert,     // south
-        BiomeValues::Desert,     // west
-        BiomeValues::MushroomFields  // center
+        BiomeValues::Desert,        // north
+        BiomeValues::Desert,        // east
+        BiomeValues::Desert,        // south
+        BiomeValues::Desert,        // west
+        BiomeValues::MushroomFields // center
     );
     EXPECT_EQ(result, BiomeValues::MushroomFields);
 }
 
-TEST_F(ShoreLayerTest, SnowyBiomeAdjacentToOceanBecomesSnowyBeach) {
+TEST_F(ShoreLayerTest, SnowyBiomeAdjacentToOceanBecomesSnowyBeach)
+{
     // 雪地生物群系相邻海洋变成雪地海滩
     i32 result = m_shoreLayer->apply(*m_context,
         BiomeValues::Ocean,      // north - ocean
@@ -427,62 +461,67 @@ TEST_F(ShoreLayerTest, SnowyBiomeAdjacentToOceanBecomesSnowyBeach) {
     EXPECT_EQ(result, BiomeValues::SnowyBeach);
 }
 
-TEST_F(ShoreLayerTest, JungleAdjacentToIncompatibleBecomesJungleEdge) {
+TEST_F(ShoreLayerTest, JungleAdjacentToIncompatibleBecomesJungleEdge)
+{
     // 丛林相邻不兼容生物群系变成丛林边缘
     i32 result = m_shoreLayer->apply(*m_context,
-        BiomeValues::Desert,     // north - not jungle compatible
-        BiomeValues::Jungle,     // east
-        BiomeValues::Jungle,     // south
-        BiomeValues::Jungle,     // west
-        BiomeValues::Jungle      // center
+        BiomeValues::Desert, // north - not jungle compatible
+        BiomeValues::Jungle, // east
+        BiomeValues::Jungle, // south
+        BiomeValues::Jungle, // west
+        BiomeValues::Jungle  // center
     );
     EXPECT_EQ(result, BiomeValues::JungleEdge);
 }
 
-TEST_F(ShoreLayerTest, MountainsAdjacentToOceanBecomesStoneShore) {
+TEST_F(ShoreLayerTest, MountainsAdjacentToOceanBecomesStoneShore)
+{
     // 山地相邻海洋变成石岸
     i32 result = m_shoreLayer->apply(*m_context,
-        BiomeValues::Ocean,      // north - ocean
-        BiomeValues::Desert,     // east
-        BiomeValues::Desert,     // south
-        BiomeValues::Desert,     // west
-        BiomeValues::Mountains   // center
+        BiomeValues::Ocean,    // north - ocean
+        BiomeValues::Desert,   // east
+        BiomeValues::Desert,   // south
+        BiomeValues::Desert,   // west
+        BiomeValues::Mountains // center
     );
     EXPECT_EQ(result, BiomeValues::StoneShore);
 }
 
-TEST_F(ShoreLayerTest, NormalBiomeAdjacentToOceanBecomesBeach) {
+TEST_F(ShoreLayerTest, NormalBiomeAdjacentToOceanBecomesBeach)
+{
     // 普通生物群系相邻海洋变成海滩
     i32 result = m_shoreLayer->apply(*m_context,
-        BiomeValues::Ocean,      // north - ocean
-        BiomeValues::Desert,     // east
-        BiomeValues::Desert,     // south
-        BiomeValues::Desert,     // west
-        BiomeValues::Plains      // center
+        BiomeValues::Ocean,  // north - ocean
+        BiomeValues::Desert, // east
+        BiomeValues::Desert, // south
+        BiomeValues::Desert, // west
+        BiomeValues::Plains  // center
     );
     EXPECT_EQ(result, BiomeValues::Beach);
 }
 
-TEST_F(ShoreLayerTest, RiverNotAffected) {
+TEST_F(ShoreLayerTest, RiverNotAffected)
+{
     // 河流不受海岸层影响
     i32 result = m_shoreLayer->apply(*m_context,
-        BiomeValues::Ocean,      // north
-        BiomeValues::Desert,     // east
-        BiomeValues::Desert,     // south
-        BiomeValues::Desert,     // west
-        BiomeValues::River       // center
+        BiomeValues::Ocean,  // north
+        BiomeValues::Desert, // east
+        BiomeValues::Desert, // south
+        BiomeValues::Desert, // west
+        BiomeValues::River   // center
     );
     EXPECT_EQ(result, BiomeValues::River);
 }
 
-TEST_F(ShoreLayerTest, SwampNotAffected) {
+TEST_F(ShoreLayerTest, SwampNotAffected)
+{
     // 沼泽不受海岸层影响
     i32 result = m_shoreLayer->apply(*m_context,
-        BiomeValues::Ocean,      // north
-        BiomeValues::Desert,     // east
-        BiomeValues::Desert,     // south
-        BiomeValues::Desert,     // west
-        BiomeValues::Swamp       // center
+        BiomeValues::Ocean,  // north
+        BiomeValues::Desert, // east
+        BiomeValues::Desert, // south
+        BiomeValues::Desert, // west
+        BiomeValues::Swamp   // center
     );
     EXPECT_EQ(result, BiomeValues::Swamp);
 }
@@ -497,7 +536,8 @@ protected:
     void TearDown() override {}
 };
 
-TEST_F(BiomeValuesTest, IsOceanCorrect) {
+TEST_F(BiomeValuesTest, IsOceanCorrect)
+{
     EXPECT_TRUE(BiomeValues::isOcean(BiomeValues::Ocean));
     EXPECT_TRUE(BiomeValues::isOcean(BiomeValues::DeepOcean));
     EXPECT_TRUE(BiomeValues::isOcean(BiomeValues::WarmOcean));
@@ -514,7 +554,8 @@ TEST_F(BiomeValuesTest, IsOceanCorrect) {
     EXPECT_FALSE(BiomeValues::isOcean(BiomeValues::River));
 }
 
-TEST_F(BiomeValuesTest, IsShallowOceanCorrect) {
+TEST_F(BiomeValuesTest, IsShallowOceanCorrect)
+{
     EXPECT_TRUE(BiomeValues::isShallowOcean(BiomeValues::Ocean));
     EXPECT_TRUE(BiomeValues::isShallowOcean(BiomeValues::WarmOcean));
     EXPECT_TRUE(BiomeValues::isShallowOcean(BiomeValues::LukewarmOcean));
@@ -526,7 +567,8 @@ TEST_F(BiomeValuesTest, IsShallowOceanCorrect) {
     EXPECT_FALSE(BiomeValues::isShallowOcean(BiomeValues::Plains));
 }
 
-TEST_F(BiomeValuesTest, IsBadlandsCorrect) {
+TEST_F(BiomeValuesTest, IsBadlandsCorrect)
+{
     EXPECT_TRUE(BiomeValues::isBadlands(BiomeValues::Badlands));
     EXPECT_TRUE(BiomeValues::isBadlands(BiomeValues::WoodedBadlandsPlateau));
     EXPECT_TRUE(BiomeValues::isBadlands(BiomeValues::BadlandsPlateau));
@@ -538,7 +580,8 @@ TEST_F(BiomeValuesTest, IsBadlandsCorrect) {
     EXPECT_FALSE(BiomeValues::isBadlands(BiomeValues::Plains));
 }
 
-TEST_F(BiomeValuesTest, IsJungleCorrect) {
+TEST_F(BiomeValuesTest, IsJungleCorrect)
+{
     EXPECT_TRUE(BiomeValues::isJungle(BiomeValues::Jungle));
     EXPECT_TRUE(BiomeValues::isJungle(BiomeValues::JungleHills));
     EXPECT_TRUE(BiomeValues::isJungle(BiomeValues::JungleEdge));
@@ -551,7 +594,8 @@ TEST_F(BiomeValuesTest, IsJungleCorrect) {
     EXPECT_FALSE(BiomeValues::isJungle(BiomeValues::Desert));
 }
 
-TEST_F(BiomeValuesTest, IsJungleCompatibleCorrect) {
+TEST_F(BiomeValuesTest, IsJungleCompatibleCorrect)
+{
     // 丛林兼容：丛林类、森林、针叶林、海洋
     EXPECT_TRUE(BiomeValues::isJungleCompatible(BiomeValues::Jungle));
     EXPECT_TRUE(BiomeValues::isJungleCompatible(BiomeValues::Forest));
@@ -563,7 +607,8 @@ TEST_F(BiomeValuesTest, IsJungleCompatibleCorrect) {
     EXPECT_FALSE(BiomeValues::isJungleCompatible(BiomeValues::Plains));
 }
 
-TEST_F(BiomeValuesTest, IsSnowyCorrect) {
+TEST_F(BiomeValuesTest, IsSnowyCorrect)
+{
     EXPECT_TRUE(BiomeValues::isSnowy(BiomeValues::SnowyPlains));
     EXPECT_TRUE(BiomeValues::isSnowy(BiomeValues::SnowyMountains));
     EXPECT_TRUE(BiomeValues::isSnowy(BiomeValues::SnowyBeach));
@@ -580,7 +625,8 @@ TEST_F(BiomeValuesTest, IsSnowyCorrect) {
     EXPECT_FALSE(BiomeValues::isSnowy(BiomeValues::Taiga));
 }
 
-TEST_F(BiomeValuesTest, IsMountainCorrect) {
+TEST_F(BiomeValuesTest, IsMountainCorrect)
+{
     EXPECT_TRUE(BiomeValues::isMountain(BiomeValues::Mountains));
     EXPECT_TRUE(BiomeValues::isMountain(BiomeValues::WoodedMountains));
     EXPECT_TRUE(BiomeValues::isMountain(BiomeValues::GravellyMountains));
@@ -591,7 +637,8 @@ TEST_F(BiomeValuesTest, IsMountainCorrect) {
     EXPECT_FALSE(BiomeValues::isMountain(BiomeValues::Forest));
 }
 
-TEST_F(BiomeValuesTest, AreBiomesSimilarCorrect) {
+TEST_F(BiomeValuesTest, AreBiomesSimilarCorrect)
+{
     // 相同生物群系
     EXPECT_TRUE(BiomeValues::areBiomesSimilar(BiomeValues::Plains, BiomeValues::Plains));
     EXPECT_TRUE(BiomeValues::areBiomesSimilar(BiomeValues::Desert, BiomeValues::Desert));
@@ -609,7 +656,8 @@ TEST_F(BiomeValuesTest, AreBiomesSimilarCorrect) {
     EXPECT_FALSE(BiomeValues::areBiomesSimilar(BiomeValues::Forest, BiomeValues::Ocean));
 }
 
-TEST_F(BiomeValuesTest, SpecialBitsExtraction) {
+TEST_F(BiomeValuesTest, SpecialBitsExtraction)
+{
     // 测试特殊位提取
     i32 value = BiomeValues::Climate::Warm | 0x300; // special = 3
     EXPECT_EQ(BiomeValues::SpecialBits::extract(value), 3);
@@ -618,7 +666,8 @@ TEST_F(BiomeValuesTest, SpecialBitsExtraction) {
     EXPECT_EQ(BiomeValues::SpecialBits::extract(value), 0);
 }
 
-TEST_F(BiomeValuesTest, SpecialBitsSet) {
+TEST_F(BiomeValuesTest, SpecialBitsSet)
+{
     // 测试特殊位设置
     i32 value = BiomeValues::Climate::Warm;
     i32 result = BiomeValues::SpecialBits::set(value, 5);

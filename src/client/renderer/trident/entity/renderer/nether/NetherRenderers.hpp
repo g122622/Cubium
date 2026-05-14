@@ -18,11 +18,13 @@ public:
     GhastRenderer() { m_shadowSize = 0.0f; }
     ~GhastRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/ghast/ghast.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/ghast/ghast.png");
     }
@@ -36,11 +38,13 @@ public:
     GhastShootingRenderer() { m_shadowSize = 0.0f; }
     ~GhastShootingRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/ghast/ghast_shooting.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/ghast/ghast_shooting.png");
     }
@@ -54,11 +58,13 @@ public:
     MagmaCubeRenderer() { m_shadowSize = 0.0f; }
     ~MagmaCubeRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/magma_cube/magma_cube.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/magma_cube/magma_cube.png");
     }
@@ -72,11 +78,13 @@ public:
     PiglinRenderer() { m_shadowSize = 0.5f; }
     ~PiglinRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/piglin/piglin.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/piglin/piglin.png");
     }
@@ -90,11 +98,13 @@ public:
     PiglinBruteRenderer() { m_shadowSize = 0.5f; }
     ~PiglinBruteRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/piglin/piglin_brute.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/piglin/piglin_brute.png");
     }
@@ -108,11 +118,13 @@ public:
     HoglinRenderer() { m_shadowSize = 0.7f; }
     ~HoglinRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/hoglin/hoglin.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/hoglin/hoglin.png");
     }
@@ -126,11 +138,13 @@ public:
     ZoglinRenderer() { m_shadowSize = 0.7f; }
     ~ZoglinRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zoglin/zoglin.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zoglin/zoglin.png");
     }
@@ -144,11 +158,13 @@ public:
     StriderRenderer() { m_shadowSize = 0.0f; }
     ~StriderRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/strider/strider.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/strider/strider.png");
     }
@@ -162,11 +178,13 @@ public:
     StriderShiveringRenderer() { m_shadowSize = 0.0f; }
     ~StriderShiveringRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/strider/strider_cold.png");
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/strider/strider_cold.png");
     }

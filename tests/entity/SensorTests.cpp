@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/ai/brain/sensor/Sensor.hpp"
 #include "common/entity/ai/brain/Brain.hpp"
+#include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/memory/WalkTarget.hpp"
-#include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
+#include "common/entity/ai/brain/sensor/Sensor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
 
@@ -47,23 +47,24 @@ public:
     int updateCount = 0;
 
     // Public accessor for testing
-    std::unordered_set<const memory::MemoryModuleTypeBase*> testGetUsedMemories() const {
-        return getUsedMemories();
-    }
+    std::unordered_set<const memory::MemoryModuleTypeBase*> testGetUsedMemories() const { return getUsedMemories(); }
 
 protected:
-    void update(IWorld* world, MockTestEntity* entity) override {
+    void update(IWorld* world, MockTestEntity* entity) override
+    {
         (void)world;
         (void)entity;
         updateCount++;
     }
 
-    std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override {
-        return { memory::MemoryModuleTypes::DUMMY };
+    std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::DUMMY};
     }
 };
 
-TEST(SensorBaseTest, CounterDecrement) {
+TEST(SensorBaseTest, CounterDecrement)
+{
     memory::MemoryModuleTypes::initialize();
 
     TestableSensor sensor(5);
@@ -82,7 +83,8 @@ TEST(SensorBaseTest, CounterDecrement) {
     EXPECT_GE(sensor.updateCount, 1);
 }
 
-TEST(SensorBaseTest, CounterInitializedOnlyOnce) {
+TEST(SensorBaseTest, CounterInitializedOnlyOnce)
+{
     TestableSensor sensor(10);
     math::Random random1(12345);
     math::Random random2(54321);
@@ -96,8 +98,9 @@ TEST(SensorBaseTest, CounterInitializedOnlyOnce) {
     // No crash means the logic is working
 }
 
-TEST(SensorBaseTest, UpdateCalledAfterInterval) {
-    TestableSensor sensor(1);  // Interval 1 means update every tick
+TEST(SensorBaseTest, UpdateCalledAfterInterval)
+{
+    TestableSensor sensor(1); // Interval 1 means update every tick
     MockTestEntity entity;
 
     // With interval 1 and counter starting at 0, first tick should trigger update
@@ -108,7 +111,8 @@ TEST(SensorBaseTest, UpdateCalledAfterInterval) {
     EXPECT_EQ(sensor.updateCount, 2);
 }
 
-TEST(SensorBaseTest, IntervalConstructor) {
+TEST(SensorBaseTest, IntervalConstructor)
+{
     TestableSensor sensor1(10);
     TestableSensor sensor2(20);
     TestableSensor sensor3(100);
@@ -116,7 +120,8 @@ TEST(SensorBaseTest, IntervalConstructor) {
     // Sensors constructed successfully with different intervals
 }
 
-TEST(SensorBaseTest, GetUsedMemoriesReturnsCorrectSet) {
+TEST(SensorBaseTest, GetUsedMemoriesReturnsCorrectSet)
+{
     memory::MemoryModuleTypes::initialize();
 
     TestableSensor sensor;
@@ -130,7 +135,8 @@ TEST(SensorBaseTest, GetUsedMemoriesReturnsCorrectSet) {
 // Brain Memory Tests
 // ============================================================================
 
-TEST(BrainMemoryTest, RegisterAndSetMemory) {
+TEST(BrainMemoryTest, RegisterAndSetMemory)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -149,7 +155,8 @@ TEST(BrainMemoryTest, RegisterAndSetMemory) {
     EXPECT_EQ(value->getPos(), BlockPos(100, 64, 200));
 }
 
-TEST(BrainMemoryTest, HasMemory) {
+TEST(BrainMemoryTest, HasMemory)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -165,7 +172,8 @@ TEST(BrainMemoryTest, HasMemory) {
     EXPECT_TRUE(brain.hasMemory(memory::MemoryModuleTypes::ATTACK_COOLING_DOWN));
 }
 
-TEST(BrainMemoryTest, RemoveMemory) {
+TEST(BrainMemoryTest, RemoveMemory)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -181,7 +189,8 @@ TEST(BrainMemoryTest, RemoveMemory) {
     EXPECT_FALSE(brain.hasMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY));
 }
 
-TEST(BrainMemoryTest, ClearMemories) {
+TEST(BrainMemoryTest, ClearMemories)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -201,7 +210,8 @@ TEST(BrainMemoryTest, ClearMemories) {
     EXPECT_FALSE(brain.hasMemory(memory::MemoryModuleTypes::HOME));
 }
 
-TEST(BrainMemoryTest, MemoryStatusAbsent) {
+TEST(BrainMemoryTest, MemoryStatusAbsent)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -213,7 +223,8 @@ TEST(BrainMemoryTest, MemoryStatusAbsent) {
     EXPECT_TRUE(brain.hasMemory(memory::MemoryModuleTypes::HOME, memory::MemoryModuleStatus::REGISTERED));
 }
 
-TEST(BrainMemoryTest, UnregisteredMemoryReturnsFalse) {
+TEST(BrainMemoryTest, UnregisteredMemoryReturnsFalse)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -229,7 +240,8 @@ TEST(BrainMemoryTest, UnregisteredMemoryReturnsFalse) {
 // Brain Sensor Integration Tests
 // ============================================================================
 
-TEST(BrainSensorIntegrationTest, RegisterSensorAutoRegistersMemories) {
+TEST(BrainSensorIntegrationTest, RegisterSensorAutoRegistersMemories)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -242,7 +254,8 @@ TEST(BrainSensorIntegrationTest, RegisterSensorAutoRegistersMemories) {
     // This is tested indirectly - no exception means it worked
 }
 
-TEST(BrainSensorIntegrationTest, RegisterMultipleSensors) {
+TEST(BrainSensorIntegrationTest, RegisterMultipleSensors)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -258,7 +271,8 @@ TEST(BrainSensorIntegrationTest, RegisterMultipleSensors) {
 // MemoryModuleTypes Initialization Tests
 // ============================================================================
 
-TEST(MemoryModuleTypesTest, AllTypesInitialized) {
+TEST(MemoryModuleTypesTest, AllTypesInitialized)
+{
     memory::MemoryModuleTypes::initialize();
 
     // Verify key memory types are initialized
@@ -312,7 +326,8 @@ TEST(MemoryModuleTypesTest, AllTypesInitialized) {
 // WalkTarget and LookTarget Tests
 // ============================================================================
 
-TEST(WalkTargetTest, BlockPosConstructor) {
+TEST(WalkTargetTest, BlockPosConstructor)
+{
     BlockPos pos(10, 64, -5);
     memory::WalkTarget target(pos, 0.5f, 3);
 
@@ -322,7 +337,8 @@ TEST(WalkTargetTest, BlockPosConstructor) {
     EXPECT_EQ(target.getDistance(), 3);
 }
 
-TEST(WalkTargetTest, PositionCenter) {
+TEST(WalkTargetTest, PositionCenter)
+{
     // WalkTarget from BlockPos should use block center (x+0.5, y+0.5, z+0.5)
     BlockPos pos(0, 0, 0);
     memory::WalkTarget target(pos, 1.0f, 1);
@@ -336,7 +352,8 @@ TEST(WalkTargetTest, PositionCenter) {
     EXPECT_FLOAT_EQ(worldPos.z, 0.5f);
 }
 
-TEST(WalkTargetTest, InBrain) {
+TEST(WalkTargetTest, InBrain)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -352,7 +369,8 @@ TEST(WalkTargetTest, InBrain) {
     EXPECT_EQ(stored->getDistance(), 2);
 }
 
-TEST(BlockPosTargetTest, BasicOperations) {
+TEST(BlockPosTargetTest, BasicOperations)
+{
     BlockPos pos(100, 64, 200);
     memory::BlockPosTarget target(pos);
 
@@ -364,13 +382,15 @@ TEST(BlockPosTargetTest, BasicOperations) {
     EXPECT_FLOAT_EQ(worldPos.z, 200.5f);
 }
 
-TEST(LookTargetTest, InBrain) {
+TEST(LookTargetTest, InBrain)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
     brain.registerMemory(memory::MemoryModuleTypes::LOOK_TARGET);
 
-    std::shared_ptr<memory::IPositionTarget> lookTarget = std::make_shared<memory::BlockPosTarget>(BlockPos(10, 65, 10));
+    std::shared_ptr<memory::IPositionTarget> lookTarget =
+        std::make_shared<memory::BlockPosTarget>(BlockPos(10, 65, 10));
     brain.setMemory(memory::MemoryModuleTypes::LOOK_TARGET, lookTarget);
 
     auto stored = brain.getMemory<std::shared_ptr<memory::IPositionTarget>>(memory::MemoryModuleTypes::LOOK_TARGET);
@@ -382,7 +402,8 @@ TEST(LookTargetTest, InBrain) {
 // Brain Activity Tests
 // ============================================================================
 
-TEST(BrainActivityTest, DefaultActivity) {
+TEST(BrainActivityTest, DefaultActivity)
+{
     Brain<MockTestEntity> brain;
 
     brain.setDefaultActivities({schedule::Activity::IDLE});
@@ -391,7 +412,8 @@ TEST(BrainActivityTest, DefaultActivity) {
     // Activity should be set
 }
 
-TEST(BrainActivityTest, HasActivity) {
+TEST(BrainActivityTest, HasActivity)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;
@@ -405,7 +427,8 @@ TEST(BrainActivityTest, HasActivity) {
 // GlobalPos Tests
 // ============================================================================
 
-TEST(GlobalPosTest, ConstructionAndAccess) {
+TEST(GlobalPosTest, ConstructionAndAccess)
+{
     GlobalPos pos(DimensionId(0), BlockPos(100, 64, 200));
 
     EXPECT_EQ(pos.getDimensionId(), DimensionId(0));
@@ -415,7 +438,8 @@ TEST(GlobalPosTest, ConstructionAndAccess) {
     EXPECT_EQ(pos.z(), 200);
 }
 
-TEST(GlobalPosTest, Equality) {
+TEST(GlobalPosTest, Equality)
+{
     GlobalPos pos1(DimensionId(0), BlockPos(100, 64, 200));
     GlobalPos pos2(DimensionId(0), BlockPos(100, 64, 200));
     GlobalPos pos3(DimensionId(1), BlockPos(100, 64, 200));
@@ -426,7 +450,8 @@ TEST(GlobalPosTest, Equality) {
     EXPECT_FALSE(pos1 == pos4);
 }
 
-TEST(GlobalPosTest, SameDimension) {
+TEST(GlobalPosTest, SameDimension)
+{
     GlobalPos pos1(DimensionId(0), BlockPos(100, 64, 200));
     GlobalPos pos2(DimensionId(0), BlockPos(200, 64, 100));
     GlobalPos pos3(DimensionId(1), BlockPos(100, 64, 200));
@@ -435,7 +460,8 @@ TEST(GlobalPosTest, SameDimension) {
     EXPECT_FALSE(pos1.sameDimension(pos3));
 }
 
-TEST(GlobalPosTest, InBrainMemory) {
+TEST(GlobalPosTest, InBrainMemory)
+{
     memory::MemoryModuleTypes::initialize();
 
     Brain<MockTestEntity> brain;

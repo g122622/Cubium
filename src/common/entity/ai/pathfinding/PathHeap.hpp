@@ -2,8 +2,8 @@
 
 #include "../../../core/Types.hpp"
 #include "PathPoint.hpp"
-#include <vector>
 #include <functional>
+#include <vector>
 
 namespace mc::entity::ai::pathfinding {
 
@@ -22,9 +22,7 @@ public:
      * @brief 构造函数，预分配容量
      * @param capacity 初始容量
      */
-    explicit PathHeap(size_t capacity) {
-        m_heap.reserve(capacity);
-    }
+    explicit PathHeap(size_t capacity) { m_heap.reserve(capacity); }
 
     // ========== 堆操作 ==========
 
@@ -32,7 +30,8 @@ public:
      * @brief 将路径点插入堆中
      * @param point 要插入的路径点
      */
-    void insert(PathPoint* point) {
+    void insert(PathPoint* point)
+    {
         m_heap.push_back(point);
         const size_t index = m_heap.size() - 1;
         point->setHeapIndex(static_cast<i32>(index));
@@ -43,7 +42,8 @@ public:
      * @brief 弹出堆顶元素（最小代价）
      * @return 堆顶的路径点，如果堆为空返回nullptr
      */
-    PathPoint* pop() {
+    PathPoint* pop()
+    {
         if (m_heap.empty()) {
             return nullptr;
         }
@@ -80,7 +80,8 @@ public:
      *
      * @param point 要更新的路径点
      */
-    void update(PathPoint* point) {
+    void update(PathPoint* point)
+    {
         i32 index = point->heapIndex();
         if (index < 0 || index >= static_cast<i32>(m_heap.size())) {
             return;
@@ -94,41 +95,33 @@ public:
         siftDown(static_cast<size_t>(index));
     }
 
-
     /**
      * @brief 检查堆是否为空
      */
-    [[nodiscard]] bool empty() const {
-        return m_heap.empty();
-    }
+    [[nodiscard]] bool empty() const { return m_heap.empty(); }
 
     /**
      * @brief 获取堆中元素数量
      */
-    [[nodiscard]] size_t size() const {
-        return m_heap.size();
-    }
+    [[nodiscard]] size_t size() const { return m_heap.size(); }
 
     /**
      * @brief 清空堆
      */
-    void clear() {
-        m_heap.clear();
-    }
+    void clear() { m_heap.clear(); }
 
     /**
      * @brief 获取堆顶元素（不弹出）
      */
-    [[nodiscard]] PathPoint* peek() const {
-        return m_heap.empty() ? nullptr : m_heap[0];
-    }
+    [[nodiscard]] PathPoint* peek() const { return m_heap.empty() ? nullptr : m_heap[0]; }
 
     // ========== 调试方法 ==========
 
     /**
      * @brief 检查堆属性是否有效
      */
-    [[nodiscard]] bool isValidHeap() const {
+    [[nodiscard]] bool isValidHeap() const
+    {
         for (size_t i = 0; i < m_heap.size(); ++i) {
             size_t left = 2 * i + 1;
             size_t right = 2 * i + 2;
@@ -150,14 +143,16 @@ private:
      * @brief 比较两个路径点的代价
      * @return true 如果 a 的代价小于 b
      */
-    [[nodiscard]] static bool compare(const PathPoint* a, const PathPoint* b) {
+    [[nodiscard]] static bool compare(const PathPoint* a, const PathPoint* b)
+    {
         return a->totalCost() < b->totalCost();
     }
 
     /**
      * @brief 上浮调整
      */
-    void siftUp(size_t index) {
+    void siftUp(size_t index)
+    {
         while (index > 0) {
             size_t parent = (index - 1) / 2;
             if (compare(m_heap[index], m_heap[parent])) {
@@ -172,7 +167,8 @@ private:
     /**
      * @brief 下沉调整
      */
-    void siftDown(size_t index) {
+    void siftDown(size_t index)
+    {
         while (true) {
             size_t left = 2 * index + 1;
             size_t right = 2 * index + 2;
@@ -197,7 +193,8 @@ private:
     /**
      * @brief 交换两个元素
      */
-    void swap(size_t i, size_t j) {
+    void swap(size_t i, size_t j)
+    {
         PathPoint* temp = m_heap[i];
         m_heap[i] = m_heap[j];
         m_heap[j] = temp;

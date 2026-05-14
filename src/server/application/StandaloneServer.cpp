@@ -1,44 +1,44 @@
 #include "StandaloneServer.hpp"
-#include "minecraft-reborn/version.h"
-#include "common/network/packet/ProtocolPackets.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/ContainerPacketHandler.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
-#include "common/world/blockentity/storage/ChestEntity.hpp"
-#include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
-#include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
-#include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
-#include "common/entity/effect/EffectInstance.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/util/UuidUtils.hpp"
-#include "server/menu/CraftingMenu.hpp"
+#include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/network/packet/ContainerPacketHandler.hpp"
+#include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "server/network/TcpConnection.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
+#include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "server/core/TeleportManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
-#include "server/core/PositionTracker.hpp"
 #include "server/core/PacketHandler.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/PositionTracker.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/core/TimeManager.hpp"
+#include "server/menu/CraftingMenu.hpp"
+#include "server/network/TcpConnection.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "minecraft-reborn/version.h"
 
-#include <spdlog/spdlog.h>
 #include <thread>
+#include <spdlog/spdlog.h>
 
 namespace mc::server {
 
@@ -53,8 +53,7 @@ namespace {
 
 StandaloneServer::StandaloneServer()
     : MinecraftServer(ServerCoreConfig{})
-{
-}
+{}
 
 StandaloneServer::~StandaloneServer()
 {
@@ -75,12 +74,11 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     }
 
     // 加载设置
-    std::string settingsPath = params.settingsPath.value_or(
-        ServerSettings::getDefaultPath().string());
+    std::string settingsPath = params.settingsPath.value_or(ServerSettings::getDefaultPath().string());
     auto settingsResult = loadSettings(settingsPath);
     if (settingsResult.failed()) {
-        spdlog::warn("Failed to load settings from {}: {}. Using defaults.",
-                     settingsPath, settingsResult.error().toString());
+        spdlog::warn(
+            "Failed to load settings from {}: {}. Using defaults.", settingsPath, settingsResult.error().toString());
     }
 
     // 应用命令行覆盖
@@ -183,40 +181,33 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 创建世界
     ServerWorldConfig worldConfig;
     worldConfig.viewDistance = m_settings.viewDistance.get();
-    worldConfig.dimension = 0;  // 主世界
+    worldConfig.dimension = 0; // 主世界
     worldConfig.seed = static_cast<u64>(std::stoll(m_settings.levelSeed.get()));
     // 注意：isDebugWorld 现在通过检查 chunk generator 类型判断，不再需要在配置中设置
 
     m_world = std::make_unique<ServerWorld>(worldConfig);
     m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
-                                   sound::SoundCategory category,
-                                   const Vector3& position,
-                                   f32 volume,
-                                   f32 pitch) {
-        broadcastSound(soundEventId, category, position, volume, pitch);
-    });
-    m_world->setOnBroadcastParticle([this](
-        client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3& offset,
-        u32 count) {
-        broadcastParticleInRange(type, pos, velocity, offset, count);
-    });
+                                sound::SoundCategory category,
+                                const Vector3& position,
+                                f32 volume,
+                                f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
+    m_world->setOnBroadcastParticle([this](client::renderer::trident::particle::ParticleTypeId type,
+                                        const Vector3& pos,
+                                        const Vector3& velocity,
+                                        const Vector3& offset,
+                                        u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
     m_world->setOnBroadcastEntityStatus([this](EntityId entityId, u8 status) {
         Entity* entity = m_world->getEntity(entityId);
         if (entity) {
             broadcastEntityStatusInRange(entityId, status, entity->position());
         }
     });
-    m_world->setOnBroadcastWorldEvent([this](i32 eventId, i32 x, i32 y, i32 z, i32 data) {
-        broadcastWorldEventInRange(eventId, x, y, z, data);
-    });
-    m_world->setOnBroadcastExplosion([this](
-        const Vector3& position,
-        f32 strength,
-        const std::vector<BlockPos>& affectedBlocks,
-        const std::unordered_map<u64, Vector3>& playerKnockback) {
+    m_world->setOnBroadcastWorldEvent(
+        [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
+    m_world->setOnBroadcastExplosion([this](const Vector3& position,
+                                         f32 strength,
+                                         const std::vector<BlockPos>& affectedBlocks,
+                                         const std::unordered_map<u64, Vector3>& playerKnockback) {
         broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback);
     });
 
@@ -231,8 +222,8 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     auto worldInitResult = m_world->initialize();
     if (worldInitResult.failed()) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to initialize world: " + worldInitResult.error().message());
+        return Error(
+            ErrorCode::InitializationFailed, "Failed to initialize world: " + worldInitResult.error().message());
     }
 
     // 创建区块管理器（根据世界类型选择生成器）
@@ -249,9 +240,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             case LevelType::LargeBiomes:
                 spdlog::info("Using large biomes world settings");
                 chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                    seed,
-                    DimensionSettings::overworld(),
-                    std::make_unique<LayerBiomeProvider>(seed, true));
+                    seed, DimensionSettings::overworld(), std::make_unique<LayerBiomeProvider>(seed, true));
                 break;
             case LevelType::Amplified:
                 spdlog::info("Using amplified world settings");
@@ -277,8 +266,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         chunkManager->setViewDistance(m_settings.viewDistance.get());
         auto chunkManagerInitResult = chunkManager->initialize();
         if (chunkManagerInitResult.failed()) {
-            return Error(
-                ErrorCode::InitializationFailed,
+            return Error(ErrorCode::InitializationFailed,
                 "Failed to initialize chunk manager: " + chunkManagerInitResult.error().message());
         }
         m_world->setChunkManager(std::move(chunkManager));
@@ -297,8 +285,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 初始化世界
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to initialize world: " + worldResult.error().message());
+        return Error(ErrorCode::InitializationFailed, "Failed to initialize world: " + worldResult.error().message());
     }
 
     // 调试模式特殊初始化
@@ -310,14 +297,14 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
         // 禁用日光周期，设置时间为正午（6000）
         if (m_timeManager) {
-            m_timeManager->setDayTime(6000);  // 正午
+            m_timeManager->setDayTime(6000); // 正午
             m_timeManager->setDaylightCycleEnabled(false);
             spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
         }
 
         // 禁用天气（晴朗）
         if (m_world->weatherManager()) {
-            m_world->weatherManager()->setClear(999999999);  // 长时间晴天
+            m_world->weatherManager()->setClear(999999999); // 长时间晴天
             spdlog::info("Debug world: Weather set to clear");
         }
     }
@@ -325,149 +312,139 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 初始化交互管理器
     initializeInteractionManagers();
 
-    containerManager().setMenuFactory([this](ContainerId containerId,
-                                             mc::ContainerType type,
-                                             const BlockPos& pos,
-                                             PlayerInventory* playerInventory) {
-        ContainerMenuCreateResult result;
+    containerManager().setMenuFactory(
+        [this](ContainerId containerId, mc::ContainerType type, const BlockPos& pos, PlayerInventory* playerInventory) {
+            ContainerMenuCreateResult result;
 
-        if (m_world == nullptr || playerInventory == nullptr) {
-            return result;
-        }
-
-        switch (type) {
-            case mc::ContainerType::Crafting: {
-                auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory, nullptr);
-                menu->updateResult();
-                result.menu = std::move(menu);
+            if (m_world == nullptr || playerInventory == nullptr) {
                 return result;
             }
-            case mc::ContainerType::Generic9x3:
-            case mc::ContainerType::Generic9x6:
-            case mc::ContainerType::ShulkerBox: {
-                BlockEntity* blockEntity = m_world->getBlockEntity(pos);
-                if (blockEntity == nullptr) {
+
+            switch (type) {
+                case mc::ContainerType::Crafting: {
+                    auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory, nullptr);
+                    menu->updateResult();
+                    result.menu = std::move(menu);
                     return result;
                 }
-
-                if (blockEntity->getType() != BlockEntityType::Chest &&
-                    blockEntity->getType() != BlockEntityType::TrappedChest) {
-                    return result;
-                }
-
-                auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
-                if (chest->isDoubleChest(*m_world)) {
-                    auto doubleInventory = chest->getDoubleInventory(*m_world);
-                    if (!doubleInventory) {
+                case mc::ContainerType::Generic9x3:
+                case mc::ContainerType::Generic9x6:
+                case mc::ContainerType::ShulkerBox: {
+                    BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+                    if (blockEntity == nullptr) {
                         return result;
                     }
 
-                    result.inventoryOwner = std::shared_ptr<IInventory>(std::move(doubleInventory));
-                    result.menu = blockentity::ChestContainer::createDouble(containerId, playerInventory, result.inventoryOwner.get());
+                    if (blockEntity->getType() != BlockEntityType::Chest &&
+                        blockEntity->getType() != BlockEntityType::TrappedChest) {
+                        return result;
+                    }
+
+                    auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+                    if (chest->isDoubleChest(*m_world)) {
+                        auto doubleInventory = chest->getDoubleInventory(*m_world);
+                        if (!doubleInventory) {
+                            return result;
+                        }
+
+                        result.inventoryOwner = std::shared_ptr<IInventory>(std::move(doubleInventory));
+                        result.menu = blockentity::ChestContainer::createDouble(
+                            containerId, playerInventory, result.inventoryOwner.get());
+                        return result;
+                    }
+
+                    result.menu =
+                        blockentity::ChestContainer::createSingle(containerId, playerInventory, chest->getInventory());
                     return result;
                 }
+                case mc::ContainerType::Furnace:
+                case mc::ContainerType::BlastFurnace:
+                case mc::ContainerType::Smoker: {
+                    BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+                    if (blockEntity == nullptr) {
+                        return result;
+                    }
 
-                result.menu = blockentity::ChestContainer::createSingle(containerId, playerInventory, chest->getInventory());
-                return result;
-            }
-            case mc::ContainerType::Furnace:
-            case mc::ContainerType::BlastFurnace:
-            case mc::ContainerType::Smoker: {
-                BlockEntity* blockEntity = m_world->getBlockEntity(pos);
-                if (blockEntity == nullptr) {
+                    if (blockEntity->getType() != BlockEntityType::Furnace &&
+                        blockEntity->getType() != BlockEntityType::BlastFurnace &&
+                        blockEntity->getType() != BlockEntityType::Smoker) {
+                        return result;
+                    }
+
+                    auto* furnace = static_cast<blockentity::AbstractFurnaceEntity*>(blockEntity);
+                    result.menu = std::make_unique<blockentity::FurnaceContainer>(
+                        containerId, playerInventory, furnace->getInventory(), furnace);
                     return result;
                 }
-
-                if (blockEntity->getType() != BlockEntityType::Furnace &&
-                    blockEntity->getType() != BlockEntityType::BlastFurnace &&
-                    blockEntity->getType() != BlockEntityType::Smoker) {
+                case mc::ContainerType::Enchantment: {
+                    // MC 1.16.5: 附魔台容器创建
+                    // 参考: net.minecraft.inventory.container.EnchantmentContainer
+                    result.menu =
+                        std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, m_world.get());
                     return result;
                 }
-
-                auto* furnace = static_cast<blockentity::AbstractFurnaceEntity*>(blockEntity);
-                result.menu = std::make_unique<blockentity::FurnaceContainer>(containerId, playerInventory, furnace->getInventory(), furnace);
-                return result;
+                case mc::ContainerType::Player:
+                default:
+                    return result;
             }
-            case mc::ContainerType::Enchantment: {
-                // MC 1.16.5: 附魔台容器创建
-                // 参考: net.minecraft.inventory.container.EnchantmentContainer
-                result.menu = std::make_unique<mc::EnchantmentContainer>(
-                    containerId, playerInventory, pos, m_world.get());
-                return result;
-            }
-            case mc::ContainerType::Player:
-            default:
-                return result;
-        }
-    });
+        });
 
     // 容器网络回调：将 ContainerManager 事件转发为客户端协议包。
     containerManager().setOnContainerOpen([this](PlayerId playerId,
-                                                 ContainerId containerId,
-                                                 mc::ContainerType type,
-                                                 const std::string& title,
-                                                 i32 slotCount) {
-        (void)slotCount;  // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
-        const std::string resolvedTitle = title.empty()
-            ? std::string(ContainerTypes::getDefaultTitle(type))
-            : title;
+                                              ContainerId containerId,
+                                              mc::ContainerType type,
+                                              const std::string& title,
+                                              i32 slotCount) {
+        (void)slotCount; // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
+        const std::string resolvedTitle = title.empty() ? std::string(ContainerTypes::getDefaultTitle(type)) : title;
 
         network::PacketSerializer ser;
         auto packet = ContainerPacketHandler::createOpenContainerPacket(
-            containerId,
-            ContainerTypes::toNetworkType(type),
-            resolvedTitle);
+            containerId, ContainerTypes::toNetworkType(type), resolvedTitle);
         packet.serialize(ser);
 
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(
-            network::PacketType::OpenContainer,
-            ser.buffer());
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::OpenContainer, ser.buffer());
         sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
     });
 
-    containerManager().setOnContainerClose([this](PlayerId playerId,
-                                                 ContainerId containerId,
-                                                 mc::ContainerType type,
-                                                 const BlockPos& pos) {
-        if (m_world && (type == mc::ContainerType::Generic9x3 ||
-                        type == mc::ContainerType::Generic9x6 ||
-                        type == mc::ContainerType::ShulkerBox)) {
-            BlockEntity* blockEntity = m_world->getBlockEntity(pos);
-            if (blockEntity != nullptr &&
-                (blockEntity->getType() == BlockEntityType::Chest ||
-                 blockEntity->getType() == BlockEntityType::TrappedChest)) {
-                static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer(nullptr);
+    containerManager().setOnContainerClose(
+        [this](PlayerId playerId, ContainerId containerId, mc::ContainerType type, const BlockPos& pos) {
+            if (m_world &&
+                (type == mc::ContainerType::Generic9x3 || type == mc::ContainerType::Generic9x6 ||
+                    type == mc::ContainerType::ShulkerBox)) {
+                BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+                if (blockEntity != nullptr &&
+                    (blockEntity->getType() == BlockEntityType::Chest ||
+                        blockEntity->getType() == BlockEntityType::TrappedChest)) {
+                    static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer(nullptr);
+                }
             }
-        }
 
-        network::PacketSerializer ser;
-        CloseContainerPacket packet(containerId);
-        packet.serialize(ser);
+            network::PacketSerializer ser;
+            CloseContainerPacket packet(containerId);
+            packet.serialize(ser);
 
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(
-            network::PacketType::CloseContainer,
-            ser.buffer());
-        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-    });
+            auto fullPacket =
+                core::ConnectionManager::encapsulatePacket(network::PacketType::CloseContainer, ser.buffer());
+            sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+        });
 
     containerManager().setOnContainerUpdate([this](PlayerId playerId, const AbstractContainerMenu& menu) {
         network::PacketSerializer ser;
         auto packet = ContainerPacketHandler::createContentPacket(menu);
         packet.serialize(ser);
 
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(
-            network::PacketType::ContainerContent,
-            ser.buffer());
+        auto fullPacket =
+            core::ConnectionManager::encapsulatePacket(network::PacketType::ContainerContent, ser.buffer());
         sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
     });
 
     // 初始化维度管理器
     auto dimInitResult = m_dimensionManager->initialize(
-        static_cast<u64>(std::stoll(m_settings.levelSeed.get())),
-        m_settings.viewDistance.get());
+        static_cast<u64>(std::stoll(m_settings.levelSeed.get())), m_settings.viewDistance.get());
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
-                     "Failed to initialize dimension manager: " + dimInitResult.error().message());
+            "Failed to initialize dimension manager: " + dimInitResult.error().message());
     }
 
     // 初始化同步管理器
@@ -486,13 +463,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     m_tcpServer = std::make_unique<TcpServer>();
 
     // 设置网络回调
-    m_tcpServer->setOnConnect([this](TcpSession* session) {
-        onClientConnect(session);
-    });
+    m_tcpServer->setOnConnect([this](TcpSession* session) { onClientConnect(session); });
 
-    m_tcpServer->setOnDisconnect([this](TcpSession* session, const std::string& reason) {
-        onClientDisconnect(session, reason);
-    });
+    m_tcpServer->setOnDisconnect(
+        [this](TcpSession* session, const std::string& reason) { onClientDisconnect(session, reason); });
 
     m_tcpServer->setOnPacket([this](TcpSession* session, const u8* data, size_t size) {
         dispatchPacket(static_cast<u32>(session->id()), data, size);
@@ -505,8 +479,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     auto serverResult = m_tcpServer->start(serverConfig);
     if (serverResult.failed()) {
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to start server: " + serverResult.error().message());
+        return Error(ErrorCode::InitializationFailed, "Failed to start server: " + serverResult.error().message());
     }
 
     spdlog::info("Server initialized successfully");
@@ -542,9 +515,7 @@ void StandaloneServer::stop()
     }
 
     // 保存设置
-    const auto savePath = m_settingsPath.empty()
-        ? ServerSettings::getDefaultPath()
-        : m_settingsPath;
+    const auto savePath = m_settingsPath.empty() ? ServerSettings::getDefaultPath() : m_settingsPath;
     auto saveResult = m_settings.saveSettings(savePath);
     if (saveResult.failed()) {
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
@@ -591,7 +562,8 @@ Result<void> StandaloneServer::run()
 
     try {
         mainLoop();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         spdlog::critical("Server crashed: {}", e.what());
         m_running = false;
         return Error(ErrorCode::Unknown, e.what());
@@ -606,8 +578,8 @@ void StandaloneServer::mainLoop()
     using namespace std::chrono_literals;
 
     constexpr f64 targetTickTime = 1.0 / 20.0; // 20 TPS
-    constexpr auto tickDuration = std::chrono::duration_cast<clock::duration>(
-        std::chrono::duration<f64>(targetTickTime));
+    constexpr auto tickDuration =
+        std::chrono::duration_cast<clock::duration>(std::chrono::duration<f64>(targetTickTime));
 
     auto lastTickTime = clock::now();
 
@@ -634,7 +606,7 @@ void StandaloneServer::mainLoop()
             // 每秒输出一次统计信息
             u64 tickCount = currentTick();
             if (tickCount % 20 == 0) {
-                (void)tps;  // Avoid unused variable warning when SPDLOG_TRACE is disabled
+                (void)tps; // Avoid unused variable warning when SPDLOG_TRACE is disabled
                 SPDLOG_TRACE("TPS: {:.1f}, Tick: {}", tps, tickCount);
             }
         } else {
@@ -713,18 +685,15 @@ void StandaloneServer::applySettings()
 
 void StandaloneServer::onClientConnect(TcpSession* session)
 {
-    spdlog::info("Client connected: {}:{}",
-                 session->address(), session->port());
+    spdlog::info("Client connected: {}:{}", session->address(), session->port());
 }
 
 void StandaloneServer::onClientDisconnect(TcpSession* session, const std::string& reason)
 {
-    spdlog::info("Client disconnected: {}:{} - {}",
-                 session->address(), session->port(), reason);
+    spdlog::info("Client disconnected: {}:{} - {}", session->address(), session->port(), reason);
 
     // 移除玩家
-    PlayerId playerId = m_playerManager->getPlayerIdBySession(
-        static_cast<u32>(session->id()));
+    PlayerId playerId = m_playerManager->getPlayerIdBySession(static_cast<u32>(session->id()));
     if (playerId != 0) {
         m_playerManager->removePlayer(playerId);
     }
@@ -755,8 +724,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     auto& packet = result.value();
     std::string username = packet.username();
 
-    spdlog::info("Player '{}' attempting to join from {}:{}",
-                 username, session->address(), session->port());
+    spdlog::info("Player '{}' attempting to join from {}:{}", username, session->address(), session->port());
 
     // 封禁检查（在白名单检查之前执行）
     // 1. 检查玩家名封禁
@@ -783,7 +751,8 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 白名单检查（MC 1.16.5 行为：白名单启用时拒绝不在名单中的玩家）
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);
-        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
+        sendLoginResponse(
+            session.get(), false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
         session->disconnect("Not in whitelist");
         return;
     }
@@ -825,10 +794,12 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     setupInitialPlayerState(playerData, m_config.defaultGameMode);
 
     // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
-    Player* playerEntity = m_playerEntityManager.createPlayerEntity(
-        playerId, username, *m_world,
-        static_cast<f32>(playerData->x), static_cast<f32>(playerData->y), static_cast<f32>(playerData->z)
-    );
+    Player* playerEntity = m_playerEntityManager.createPlayerEntity(playerId,
+        username,
+        *m_world,
+        static_cast<f32>(playerData->x),
+        static_cast<f32>(playerData->y),
+        static_cast<f32>(playerData->z));
 
     if (!playerEntity) {
         spdlog::error("Failed to create player entity for {}", username);
@@ -897,35 +868,24 @@ void StandaloneServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
 
     if (heldStack.isEmpty()) {
         if (!tryOpenCraftingContainer()) {
-            (void)blockInteractionManager().handleBlockUse(
-                playerId,
-                pos,
-                hand,
-                packet.hitPosition(),
-                packet.face());
+            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, packet.hitPosition(), packet.face());
         }
         return;
     }
 
     const Item* heldItem = heldStack.getItem();
     const bool holdingBlockItem =
-        (heldItem != nullptr) &&
-        (BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr);
+        (heldItem != nullptr) && (BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr);
 
     if (!holdingBlockItem) {
         if (!tryOpenCraftingContainer()) {
-            (void)blockInteractionManager().handleBlockUse(
-                playerId,
-                pos,
-                hand,
-                packet.hitPosition(),
-                packet.face());
+            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, packet.hitPosition(), packet.face());
         }
         return;
     }
 
-    auto interactionResult = blockInteractionManager().handleBlockPlacement(
-        playerId, pos, packet.hitPosition(), packet.face(), heldStack);
+    auto interactionResult =
+        blockInteractionManager().handleBlockPlacement(playerId, pos, packet.hitPosition(), packet.face(), heldStack);
 
     if (interactionResult.success() && interactionResult.value().blockPlaced) {
         // 更新物品栏
@@ -962,8 +922,7 @@ void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
     network::PacketSerializer ser;
     response.serialize(ser);
 
-    const auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::HotbarSet, ser.buffer());
+    const auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::HotbarSet, ser.buffer());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
@@ -1004,8 +963,7 @@ void StandaloneServer::handleContainerClickPacket(PlayerId playerId, const u8* d
 
     // 使用 ContainerManager 处理容器点击
     const auto& packet = result.value();
-    auto clickResult = containerManager().handleClick(
-        playerId,
+    auto clickResult = containerManager().handleClick(playerId,
         packet.containerId(),
         packet.slotIndex(),
         static_cast<u8>(packet.button()),
@@ -1041,17 +999,19 @@ void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 // 数据包发送
 // ============================================================================
 
-void StandaloneServer::sendLoginResponse(TcpSession* session, bool success,
-                                          PlayerId playerId, EntityId entityId,
-                                          const std::string& username, const std::string& message)
+void StandaloneServer::sendLoginResponse(TcpSession* session,
+    bool success,
+    PlayerId playerId,
+    EntityId entityId,
+    const std::string& username,
+    const std::string& message)
 {
     bool isDebugWorld = m_world && m_world->isDebugWorld();
     network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::LoginResponse, ser.buffer());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LoginResponse, ser.buffer());
     session->send(fullPacket.data(), fullPacket.size());
 }
 
@@ -1062,7 +1022,8 @@ void StandaloneServer::sendLoginResponse(TcpSession* session, bool success,
 void StandaloneServer::setupChunkSendCallback()
 {
     // 设置区块发送回调 - 当区块数据准备好时发送给所有追踪的玩家
-    chunkSendManager().setOnChunkSend([this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
+    chunkSendManager().setOnChunkSend([this](
+                                          PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (player && player->loggedIn && player->hasConnection()) {
             DimensionId dimension = 0;
@@ -1076,8 +1037,7 @@ void StandaloneServer::setupChunkSendCallback()
             network::PacketSerializer ser;
             packet.serialize(ser);
 
-            auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                network::PacketType::ChunkData, ser.buffer());
+            auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::ChunkData, ser.buffer());
             player->send(fullPacket.data(), fullPacket.size());
             // spdlog::debug("StandaloneServer: Sent chunk ({}, {}) to player {}", x, z, playerId);
         }
@@ -1098,8 +1058,8 @@ void StandaloneServer::setupChunkSendCallback()
             network::PacketSerializer ser;
             packet.serialize(ser);
 
-            auto fullPacket = core::ConnectionManager::encapsulatePacket(
-                network::PacketType::UnloadChunk, ser.buffer());
+            auto fullPacket =
+                core::ConnectionManager::encapsulatePacket(network::PacketType::UnloadChunk, ser.buffer());
             player->send(fullPacket.data(), fullPacket.size());
             // spdlog::debug("StandaloneServer: Sent unload chunk ({}, {}) to player {}", x, z, playerId);
         }
@@ -1118,64 +1078,70 @@ void StandaloneServer::setupRaidManagerCallbacks()
     // 袭击开始回调：播放号角声
     callbacks.onRaidStarted = [this](const world::village::raid::Raid& raid, BlockPos center) {
         // 播放袭击号角声
-        broadcastSound(
-            SoundEvents::EVENT_RAID_HORN,
+        broadcastSound(SoundEvents::EVENT_RAID_HORN,
             sound::SoundCategory::Neutral,
             Vector3(static_cast<f32>(center.x) + 0.5f, static_cast<f32>(center.y), static_cast<f32>(center.z) + 0.5f),
-            64.0f,  // 广播范围
-            1.0f    // 音调
+            64.0f, // 广播范围
+            1.0f   // 音调
         );
 
-        spdlog::info("Raid {} started at village center ({}, {}, {})",
-                     raid.id(), center.x, center.y, center.z);
+        spdlog::info("Raid {} started at village center ({}, {}, {})", raid.id(), center.x, center.y, center.z);
     };
 
     // 袭击胜利回调：给予英雄效果
-    callbacks.onRaidVictory = [this](const world::village::raid::Raid& raid,
-                                      const std::vector<Uuid>& heroes,
-                                      i32 badOmenLevel) {
-        // 村庄英雄效果持续时间为 40 分钟 (48000 ticks)
-        // 等级 = 不祥之兆等级
-        constexpr i32 HERO_EFFECT_DURATION = 48000;
+    callbacks.onRaidVictory =
+        [this](const world::village::raid::Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel) {
+            // 村庄英雄效果持续时间为 40 分钟 (48000 ticks)
+            // 等级 = 不祥之兆等级
+            constexpr i32 HERO_EFFECT_DURATION = 48000;
 
-        for (const auto& heroUuid : heroes) {
-            // 通过 UUID 字符串查找玩家
-            const std::string heroUuidStr = util::uuidToString(heroUuid);
+            for (const auto& heroUuid : heroes) {
+                // 通过 UUID 字符串查找玩家
+                const std::string heroUuidStr = util::uuidToString(heroUuid);
 
-            // 遍历所有玩家查找匹配的 UUID
-            m_playerManager->forEachPlayer([this, &heroUuidStr, badOmenLevel, HERO_EFFECT_DURATION, &raid](ServerPlayerData& playerData) {
-                // 获取玩家实体
-                Player* player = m_playerEntityManager.getPlayerEntity(playerData.playerId, *m_world);
-                if (player == nullptr) {
-                    return;
-                }
+                // 遍历所有玩家查找匹配的 UUID
+                m_playerManager->forEachPlayer(
+                    [this, &heroUuidStr, badOmenLevel, HERO_EFFECT_DURATION, &raid](ServerPlayerData& playerData) {
+                        // 获取玩家实体
+                        Player* player = m_playerEntityManager.getPlayerEntity(playerData.playerId, *m_world);
+                        if (player == nullptr) {
+                            return;
+                        }
 
-                // 检查 UUID 是否匹配
-                if (player->uuid() != heroUuidStr) {
-                    return;
-                }
+                        // 检查 UUID 是否匹配
+                        if (player->uuid() != heroUuidStr) {
+                            return;
+                        }
 
-                // 给予村庄英雄效果
-                entity::effect::EffectInstance heroEffect = entity::effect::EffectInstance::heroOfTheVillage(badOmenLevel);
-                heroEffect = entity::effect::EffectInstance(
-                    entity::effect::EffectType::HeroOfTheVillage,
-                    HERO_EFFECT_DURATION,
-                    badOmenLevel - 1,  // amplifier = level - 1
-                    false,  // ambient
-                    true,   // visible
-                    true    // showIcon
-                );
-                player->addEffect(std::move(heroEffect));
+                        // 给予村庄英雄效果
+                        entity::effect::EffectInstance heroEffect =
+                            entity::effect::EffectInstance::heroOfTheVillage(badOmenLevel);
+                        heroEffect = entity::effect::EffectInstance(entity::effect::EffectType::HeroOfTheVillage,
+                            HERO_EFFECT_DURATION,
+                            badOmenLevel - 1, // amplifier = level - 1
+                            false,            // ambient
+                            true,             // visible
+                            true              // showIcon
+                        );
+                        player->addEffect(std::move(heroEffect));
 
-                spdlog::info("Player '{}' (UUID: {}) received Hero of the Village effect (level {}) for raid {} victory",
-                             playerData.username, heroUuidStr, badOmenLevel, raid.id());
-            });
-        }
+                        spdlog::info(
+                            "Player '{}' (UUID: {}) received Hero of the Village effect (level {}) for raid {} victory",
+                            playerData.username,
+                            heroUuidStr,
+                            badOmenLevel,
+                            raid.id());
+                    });
+            }
 
-        BlockPos center = raid.center();
-        spdlog::info("Raid {} victory at ({}, {}, {}) - {} heroes rewarded",
-                     raid.id(), center.x, center.y, center.z, heroes.size());
-    };
+            BlockPos center = raid.center();
+            spdlog::info("Raid {} victory at ({}, {}, {}) - {} heroes rewarded",
+                raid.id(),
+                center.x,
+                center.y,
+                center.z,
+                heroes.size());
+        };
 
     // 袭击失败回调
     callbacks.onRaidLoss = [this](const world::village::raid::Raid& raid) {
@@ -1185,35 +1151,36 @@ void StandaloneServer::setupRaidManagerCallbacks()
 
     // 波次开始回调
     callbacks.onWaveStarted = [this](const world::village::raid::Raid& raid, i32 wave, BlockPos spawnPos) {
-        spdlog::info("Raid {} wave {} started at ({}, {}, {})",
-                     raid.id(), wave, spawnPos.x, spawnPos.y, spawnPos.z);
+        spdlog::info("Raid {} wave {} started at ({}, {}, {})", raid.id(), wave, spawnPos.x, spawnPos.y, spawnPos.z);
     };
 
     raidManager->setCallbacks(std::move(callbacks));
 }
 
-void StandaloneServer::broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sectionY,
-                                             const std::vector<u8>& skyLight,
-                                             const std::vector<u8>& blockLight,
-                                             bool trustEdges)
+void StandaloneServer::broadcastLightUpdate(ChunkCoord x,
+    ChunkCoord z,
+    i32 sectionY,
+    const std::vector<u8>& skyLight,
+    const std::vector<u8>& blockLight,
+    bool trustEdges)
 {
-    MC_TRACE_EVENT("server.lighting", "BroadcastLightUpdate",
-               "Section", fmt::format("({}, {}, {})", x, sectionY, z),
-               "SkyLightSize", skyLight.size(),
-               "BlockLightSize", blockLight.size(),
-               [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](::perfetto::EventContext ctx) {
-                   flow(ctx);
-    });
+    MC_TRACE_EVENT("server.lighting",
+        "BroadcastLightUpdate",
+        "Section",
+        fmt::format("({}, {}, {})", x, sectionY, z),
+        "SkyLightSize",
+        skyLight.size(),
+        "BlockLightSize",
+        blockLight.size(),
+        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
-    network::LightUpdatePacket packet(x, z, sectionY,
-                                       std::vector<u8>(skyLight),
-                                       std::vector<u8>(blockLight),
-                                       trustEdges);
+    network::LightUpdatePacket packet(
+        x, z, sectionY, std::vector<u8>(skyLight), std::vector<u8>(blockLight), trustEdges);
     network::PacketSerializer ser;
     packet.serialize(ser);
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::LightUpdate, ser.buffer());
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LightUpdate, ser.buffer());
 
     // 发送给所有在线玩家
     m_playerManager->forEachPlayer([&fullPacket](ServerPlayerData& player) {

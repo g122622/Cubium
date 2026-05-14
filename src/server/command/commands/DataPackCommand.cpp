@@ -12,45 +12,29 @@ namespace command {
 void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto datapackNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("datapack");
-    datapackNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        datapackNode,
-        support::makeMetadata(
-            "Controls data packs.",
-            "/datapack <enable|disable|list> [name]",
-            2,
-            {},
-            true));
+    datapackNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(datapackNode,
+        support::makeMetadata("Controls data packs.", "/datapack <enable|disable|list> [name]", 2, {}, true));
 
     // /datapack enable <name>
     auto enableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
-    auto enableNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "name",
-        StringArgumentType::string());
-    enableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return enableDataPack(ctx);
-    });
+    auto enableNameArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    enableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enableDataPack(ctx); });
     enableNode->addChild(enableNameArg);
     datapackNode->addChild(enableNode);
 
     // /datapack disable <name>
     auto disableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("disable");
-    auto disableNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "name",
-        StringArgumentType::string());
-    disableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return disableDataPack(ctx);
-    });
+    auto disableNameArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    disableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return disableDataPack(ctx); });
     disableNode->addChild(disableNameArg);
     datapackNode->addChild(disableNode);
 
     // /datapack list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return listDataPacks(ctx);
-    });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listDataPacks(ctx); });
     datapackNode->addChild(listNode);
 
     dispatcher.registerCommand(datapackNode);

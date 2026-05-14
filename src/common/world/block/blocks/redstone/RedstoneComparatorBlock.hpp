@@ -1,10 +1,10 @@
 #pragma once
 
-#include "RedstoneDiodeBlock.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/core/ActionResult.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "RedstoneDiodeBlock.hpp"
 #include <memory>
 
 namespace mc {
@@ -17,14 +17,14 @@ namespace blocks {
  * @brief 红石比较器模式
  */
 enum class ComparatorMode : u8 {
-    Compare = 0,  ///< 比较模式
-    Subtract = 1  ///< 减法模式
+    Compare = 0, ///< 比较模式
+    Subtract = 1 ///< 减法模式
 };
 
 } // namespace blocks
 
 // 特化 EnumProperty::Traits for ComparatorMode
-template<>
+template <>
 struct EnumProperty<blocks::ComparatorMode>::Traits {
     static std::string toString(const blocks::ComparatorMode& value);
     static std::optional<blocks::ComparatorMode> fromName(std::string_view name);
@@ -81,11 +81,9 @@ public:
 
     [[nodiscard]] i32 getDelay(const BlockState& state) const override;
 
-    [[nodiscard]] bool shouldBePowered(IWorld& world, const BlockPos& pos,
-                                       const BlockState& state) const override;
+    [[nodiscard]] bool shouldBePowered(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 
-    [[nodiscard]] i32 calculateOutputSignal(IWorld& world, const BlockPos& pos,
-                                            const BlockState& state) const override;
+    [[nodiscard]] i32 calculateOutputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 
     /**
      * @brief 检查是否被锁定
@@ -95,8 +93,8 @@ public:
      *
      * @return false 比较器永远不被锁定
      */
-    [[nodiscard]] bool isLocked(IWorld& world, const BlockPos& pos,
-                                const BlockState& state) const override {
+    [[nodiscard]] bool isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const override
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
@@ -157,8 +155,7 @@ public:
      *
      * MC Java: 右键点击比较器可以在比较模式和减法模式之间切换。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -171,8 +168,7 @@ protected:
      *
      * 重写以在状态变化时更新 BlockEntity 中的输出信号。
      */
-    void onStateChanged(IWorld& world, const BlockPos& pos, const BlockState& oldState,
-                        const BlockState& newState);
+    void onStateChanged(IWorld& world, const BlockPos& pos, const BlockState& oldState, const BlockState& newState);
 
 private:
     /// 比较器延迟（固定2 tick）
@@ -189,8 +185,7 @@ private:
      * @param state 当前方块状态
      * @return i32 输入信号强度 0-15
      */
-    [[nodiscard]] i32 calculateInputStrength(IWorld& world, const BlockPos& pos,
-                                              const BlockState& state) const;
+    [[nodiscard]] i32 calculateInputStrength(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 计算输出信号强度
@@ -202,8 +197,7 @@ private:
      * @param sideInput 侧面输入信号（用于减法模式）
      * @return i32 计算后的输出信号强度
      */
-    [[nodiscard]] i32 calculateOutput(IWorld& world, const BlockPos& pos,
-                                       const BlockState& state) const;
+    [[nodiscard]] i32 calculateOutput(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 };
 
 } // namespace blocks

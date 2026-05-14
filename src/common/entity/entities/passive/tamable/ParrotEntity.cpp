@@ -1,8 +1,8 @@
 #include "ParrotEntity.hpp"
 
-#include "../../../attribute/Attributes.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
@@ -33,10 +33,8 @@ bool ParrotEntity::isTameItem(const ItemStack& itemStack) const
     if (item == nullptr) {
         return false;
     }
-    return item == Items::WHEAT_SEEDS
-        || item == Items::PUMPKIN_SEEDS
-        || item == Items::MELON_SEEDS
-        || item == Items::BEETROOT_SEEDS;
+    return item == Items::WHEAT_SEEDS || item == Items::PUMPKIN_SEEDS || item == Items::MELON_SEEDS ||
+        item == Items::BEETROOT_SEEDS;
 }
 
 void ParrotEntity::tick()

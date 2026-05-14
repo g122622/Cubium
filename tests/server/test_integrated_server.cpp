@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "server/application/IntegratedServer.hpp"
-#include "common/network/connection/LocalConnection.hpp"
 #include "common/entity/loot/LootConditions.hpp"
-#include <thread>
+#include "common/network/connection/LocalConnection.hpp"
+#include "server/application/IntegratedServer.hpp"
 #include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace mc::server;
@@ -15,12 +15,14 @@ using namespace mc;
 // IntegratedServer 基础测试
 // ============================================================================
 
-TEST(IntegratedServerTest, CreateServer) {
+TEST(IntegratedServerTest, CreateServer)
+{
     IntegratedServer server;
     EXPECT_FALSE(server.isRunning());
 }
 
-TEST(IntegratedServerTest, InitializeServer) {
+TEST(IntegratedServerTest, InitializeServer)
+{
     IntegratedServer server;
     IntegratedServerConfig config;
     config.worldName = "test_world";
@@ -35,7 +37,8 @@ TEST(IntegratedServerTest, InitializeServer) {
     EXPECT_FALSE(server.isRunning());
 }
 
-TEST(IntegratedServerTest, GetClientEndpoint) {
+TEST(IntegratedServerTest, GetClientEndpoint)
+{
     IntegratedServer server;
     IntegratedServerConfig config;
     config.seed = 1;
@@ -50,7 +53,8 @@ TEST(IntegratedServerTest, GetClientEndpoint) {
     server.stop();
 }
 
-TEST(IntegratedServerTest, DoubleInitializeFails) {
+TEST(IntegratedServerTest, DoubleInitializeFails)
+{
     IntegratedServer server;
     IntegratedServerConfig config;
 
@@ -64,14 +68,16 @@ TEST(IntegratedServerTest, DoubleInitializeFails) {
     server.stop();
 }
 
-TEST(IntegratedServerTest, StopWithoutInitialize) {
+TEST(IntegratedServerTest, StopWithoutInitialize)
+{
     IntegratedServer server;
     // 应该不崩溃
     server.stop();
     EXPECT_FALSE(server.isRunning());
 }
 
-TEST(IntegratedServerTest, ConfigValues) {
+TEST(IntegratedServerTest, ConfigValues)
+{
     IntegratedServer server;
     IntegratedServerConfig config;
     config.worldName = "my_world";
@@ -91,10 +97,11 @@ TEST(IntegratedServerTest, ConfigValues) {
     server.stop();
 }
 
-TEST(IntegratedServerTest, TickCountIncreases) {
+TEST(IntegratedServerTest, TickCountIncreases)
+{
     IntegratedServer server;
     IntegratedServerConfig config;
-    config.tickRate = 100;  // 100 TPS for faster testing
+    config.tickRate = 100; // 100 TPS for faster testing
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -110,7 +117,8 @@ TEST(IntegratedServerTest, TickCountIncreases) {
     server.stop();
 }
 
-TEST(IntegratedServerTest, RequestStopDisconnectsClientEndpoint) {
+TEST(IntegratedServerTest, RequestStopDisconnectsClientEndpoint)
+{
     IntegratedServer server;
     IntegratedServerConfig config;
     config.tickRate = 100;
@@ -136,11 +144,12 @@ TEST(IntegratedServerTest, RequestStopDisconnectsClientEndpoint) {
 
 class IntegratedServerCommunicationTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         config.worldName = "test_world";
         config.seed = 12345;
         config.viewDistance = 3;
-        config.tickRate = 100;  // Faster ticks for testing
+        config.tickRate = 100; // Faster ticks for testing
 
         auto result = server.initialize(config);
         ASSERT_TRUE(result.success());
@@ -149,15 +158,14 @@ protected:
         ASSERT_NE(clientEndpoint, nullptr);
     }
 
-    void TearDown() override {
-        server.stop();
-    }
+    void TearDown() override { server.stop(); }
 
     // 辅助函数：等待接收数据包
-    bool waitForPacket(std::vector<u8>& outData, int timeoutMs = 500) {
+    bool waitForPacket(std::vector<u8>& outData, int timeoutMs = 500)
+    {
         auto start = std::chrono::steady_clock::now();
-        while (std::chrono::duration_cast<std::chrono::milliseconds>(
-                   std::chrono::steady_clock::now() - start).count() < timeoutMs) {
+        while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() <
+            timeoutMs) {
             if (clientEndpoint->receive(outData)) {
                 return true;
             }
@@ -171,7 +179,8 @@ protected:
     LocalEndpoint* clientEndpoint = nullptr;
 };
 
-TEST_F(IntegratedServerCommunicationTest, ReceivePacketAfterStart) {
+TEST_F(IntegratedServerCommunicationTest, ReceivePacketAfterStart)
+{
     // 服务端启动后应该能够通信
     std::vector<u8> data;
 
@@ -186,7 +195,8 @@ TEST_F(IntegratedServerCommunicationTest, ReceivePacketAfterStart) {
     EXPECT_TRUE(server.isRunning());
 }
 
-TEST_F(IntegratedServerCommunicationTest, BidirectionalCommunication) {
+TEST_F(IntegratedServerCommunicationTest, BidirectionalCommunication)
+{
     // 客户端发送数据到服务端
     std::vector<u8> sendData = {0x01, 0x02, 0x03};
     clientEndpoint->send(sendData.data(), sendData.size());
@@ -198,7 +208,8 @@ TEST_F(IntegratedServerCommunicationTest, BidirectionalCommunication) {
     EXPECT_TRUE(server.isRunning());
 }
 
-TEST_F(IntegratedServerCommunicationTest, MultipleSends) {
+TEST_F(IntegratedServerCommunicationTest, MultipleSends)
+{
     // 发送多个数据包
     for (int i = 0; i < 10; ++i) {
         std::vector<u8> data = {static_cast<u8>(i)};
@@ -212,7 +223,8 @@ TEST_F(IntegratedServerCommunicationTest, MultipleSends) {
     EXPECT_TRUE(server.isRunning());
 }
 
-TEST_F(IntegratedServerCommunicationTest, LargePacket) {
+TEST_F(IntegratedServerCommunicationTest, LargePacket)
+{
     // 发送大数据包
     std::vector<u8> largeData(1024, 0xAB);
     clientEndpoint->send(largeData.data(), largeData.size());
@@ -224,7 +236,8 @@ TEST_F(IntegratedServerCommunicationTest, LargePacket) {
     EXPECT_TRUE(server.isRunning());
 }
 
-TEST_F(IntegratedServerCommunicationTest, ServerTicksWhileWaiting) {
+TEST_F(IntegratedServerCommunicationTest, ServerTicksWhileWaiting)
+{
     u64 initialTick = server.currentTick();
 
     // 等待一段时间
@@ -240,7 +253,8 @@ TEST_F(IntegratedServerCommunicationTest, ServerTicksWhileWaiting) {
 // 断开连接测试
 // ============================================================================
 
-TEST(IntegratedServerDisconnectTest, ClientDisconnect) {
+TEST(IntegratedServerDisconnectTest, ClientDisconnect)
+{
     IntegratedServer server;
     IntegratedServerConfig config;
 
@@ -262,7 +276,8 @@ TEST(IntegratedServerDisconnectTest, ClientDisconnect) {
     server.stop();
 }
 
-TEST(IntegratedServerDisconnectTest, ServerStopClosesEndpoint) {
+TEST(IntegratedServerDisconnectTest, ServerStopClosesEndpoint)
+{
     LocalEndpoint* client = nullptr;
 
     {

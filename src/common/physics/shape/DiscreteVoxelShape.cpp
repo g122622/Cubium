@@ -9,13 +9,16 @@ namespace mc {
 // ============================================================================
 
 DiscreteVoxelShape::DiscreteVoxelShape()
-    : m_xSize(0), m_ySize(0), m_zSize(0) {
-}
+    : m_xSize(0)
+    , m_ySize(0)
+    , m_zSize(0)
+{}
 
 DiscreteVoxelShape::DiscreteVoxelShape(i32 xSize, i32 ySize, i32 zSize)
-    : m_xSize(std::max(0, xSize)),
-      m_ySize(std::max(0, ySize)),
-      m_zSize(std::max(0, zSize)) {
+    : m_xSize(std::max(0, xSize))
+    , m_ySize(std::max(0, ySize))
+    , m_zSize(std::max(0, zSize))
+{
     if (m_xSize > 0 && m_ySize > 0 && m_zSize > 0) {
         m_storage.resize(static_cast<size_t>(m_xSize) * m_ySize * m_zSize, false);
     }
@@ -29,20 +32,21 @@ DiscreteVoxelShape::DiscreteVoxelShape(i32 xSize, i32 ySize, i32 zSize)
 }
 
 DiscreteVoxelShape::DiscreteVoxelShape(const DiscreteVoxelShape& other)
-    : m_xSize(other.m_xSize),
-      m_ySize(other.m_ySize),
-      m_zSize(other.m_zSize),
-      m_storage(other.m_storage),
-      m_xMin(other.m_xMin),
-      m_yMin(other.m_yMin),
-      m_zMin(other.m_zMin),
-      m_xMax(other.m_xMax),
-      m_yMax(other.m_yMax),
-      m_zMax(other.m_zMax),
-      m_boundsDirty(other.m_boundsDirty) {
-}
+    : m_xSize(other.m_xSize)
+    , m_ySize(other.m_ySize)
+    , m_zSize(other.m_zSize)
+    , m_storage(other.m_storage)
+    , m_xMin(other.m_xMin)
+    , m_yMin(other.m_yMin)
+    , m_zMin(other.m_zMin)
+    , m_xMax(other.m_xMax)
+    , m_yMax(other.m_yMax)
+    , m_zMax(other.m_zMax)
+    , m_boundsDirty(other.m_boundsDirty)
+{}
 
-DiscreteVoxelShape& DiscreteVoxelShape::operator=(const DiscreteVoxelShape& other) {
+DiscreteVoxelShape& DiscreteVoxelShape::operator=(const DiscreteVoxelShape& other)
+{
     if (this != &other) {
         m_xSize = other.m_xSize;
         m_ySize = other.m_ySize;
@@ -60,23 +64,25 @@ DiscreteVoxelShape& DiscreteVoxelShape::operator=(const DiscreteVoxelShape& othe
 }
 
 DiscreteVoxelShape::DiscreteVoxelShape(DiscreteVoxelShape&& other) noexcept
-    : m_xSize(other.m_xSize),
-      m_ySize(other.m_ySize),
-      m_zSize(other.m_zSize),
-      m_storage(std::move(other.m_storage)),
-      m_xMin(other.m_xMin),
-      m_yMin(other.m_yMin),
-      m_zMin(other.m_zMin),
-      m_xMax(other.m_xMax),
-      m_yMax(other.m_yMax),
-      m_zMax(other.m_zMax),
-      m_boundsDirty(other.m_boundsDirty) {
+    : m_xSize(other.m_xSize)
+    , m_ySize(other.m_ySize)
+    , m_zSize(other.m_zSize)
+    , m_storage(std::move(other.m_storage))
+    , m_xMin(other.m_xMin)
+    , m_yMin(other.m_yMin)
+    , m_zMin(other.m_zMin)
+    , m_xMax(other.m_xMax)
+    , m_yMax(other.m_yMax)
+    , m_zMax(other.m_zMax)
+    , m_boundsDirty(other.m_boundsDirty)
+{
     other.m_xSize = 0;
     other.m_ySize = 0;
     other.m_zSize = 0;
 }
 
-DiscreteVoxelShape& DiscreteVoxelShape::operator=(DiscreteVoxelShape&& other) noexcept {
+DiscreteVoxelShape& DiscreteVoxelShape::operator=(DiscreteVoxelShape&& other) noexcept
+{
     if (this != &other) {
         m_xSize = other.m_xSize;
         m_ySize = other.m_ySize;
@@ -100,11 +106,15 @@ DiscreteVoxelShape& DiscreteVoxelShape::operator=(DiscreteVoxelShape&& other) no
 // 尺寸查询
 // ============================================================================
 
-i32 DiscreteVoxelShape::getSize(Axis axis) const {
+i32 DiscreteVoxelShape::getSize(Axis axis) const
+{
     switch (axis) {
-        case Axis::X: return m_xSize;
-        case Axis::Y: return m_ySize;
-        case Axis::Z: return m_zSize;
+        case Axis::X:
+            return m_xSize;
+        case Axis::Y:
+            return m_ySize;
+        case Axis::Z:
+            return m_zSize;
     }
     return 0;
 }
@@ -113,14 +123,16 @@ i32 DiscreteVoxelShape::getSize(Axis axis) const {
 // 体素操作
 // ============================================================================
 
-bool DiscreteVoxelShape::isFull(i32 x, i32 y, i32 z) const {
+bool DiscreteVoxelShape::isFull(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || x >= m_xSize || y < 0 || y >= m_ySize || z < 0 || z >= m_zSize) {
         return false;
     }
     return m_storage[static_cast<size_t>(getIndex(x, y, z))];
 }
 
-bool DiscreteVoxelShape::isFullWide(i32 x, i32 y, i32 z) const {
+bool DiscreteVoxelShape::isFullWide(i32 x, i32 y, i32 z) const
+{
     if (x < 0 || y < 0 || z < 0) {
         return false;
     }
@@ -130,34 +142,35 @@ bool DiscreteVoxelShape::isFullWide(i32 x, i32 y, i32 z) const {
     return m_storage[static_cast<size_t>(getIndex(x, y, z))];
 }
 
-bool DiscreteVoxelShape::isFullWide(AxisCycle cycle, i32 x, i32 y, i32 z) const {
-    return isFullWide(
-        AxisCycles::cycle(cycle, x, y, z, Axis::X),
+bool DiscreteVoxelShape::isFullWide(AxisCycle cycle, i32 x, i32 y, i32 z) const
+{
+    return isFullWide(AxisCycles::cycle(cycle, x, y, z, Axis::X),
         AxisCycles::cycle(cycle, x, y, z, Axis::Y),
-        AxisCycles::cycle(cycle, x, y, z, Axis::Z)
-    );
+        AxisCycles::cycle(cycle, x, y, z, Axis::Z));
 }
 
-bool DiscreteVoxelShape::isFull(AxisCycle cycle, i32 x, i32 y, i32 z) const {
-    return isFull(
-        AxisCycles::cycle(cycle, x, y, z, Axis::X),
+bool DiscreteVoxelShape::isFull(AxisCycle cycle, i32 x, i32 y, i32 z) const
+{
+    return isFull(AxisCycles::cycle(cycle, x, y, z, Axis::X),
         AxisCycles::cycle(cycle, x, y, z, Axis::Y),
-        AxisCycles::cycle(cycle, x, y, z, Axis::Z)
-    );
+        AxisCycles::cycle(cycle, x, y, z, Axis::Z));
 }
 
-void DiscreteVoxelShape::fill(i32 x, i32 y, i32 z) {
+void DiscreteVoxelShape::fill(i32 x, i32 y, i32 z)
+{
     fillUpdateBounds(x, y, z, true);
 }
 
-void DiscreteVoxelShape::clear(i32 x, i32 y, i32 z) {
+void DiscreteVoxelShape::clear(i32 x, i32 y, i32 z)
+{
     if (x >= 0 && x < m_xSize && y >= 0 && y < m_ySize && z >= 0 && z < m_zSize) {
         m_storage[static_cast<size_t>(getIndex(x, y, z))] = false;
         m_boundsDirty = true;
     }
 }
 
-bool DiscreteVoxelShape::isEmpty() const {
+bool DiscreteVoxelShape::isEmpty() const
+{
     if (m_boundsDirty) {
         recalculateBounds();
     }
@@ -169,31 +182,40 @@ bool DiscreteVoxelShape::isEmpty() const {
 // 边界查询
 // ============================================================================
 
-i32 DiscreteVoxelShape::firstFull(Axis axis) const {
+i32 DiscreteVoxelShape::firstFull(Axis axis) const
+{
     if (m_boundsDirty) {
         recalculateBounds();
     }
     switch (axis) {
-        case Axis::X: return m_xMin;
-        case Axis::Y: return m_yMin;
-        case Axis::Z: return m_zMin;
+        case Axis::X:
+            return m_xMin;
+        case Axis::Y:
+            return m_yMin;
+        case Axis::Z:
+            return m_zMin;
     }
     return 0;
 }
 
-i32 DiscreteVoxelShape::lastFull(Axis axis) const {
+i32 DiscreteVoxelShape::lastFull(Axis axis) const
+{
     if (m_boundsDirty) {
         recalculateBounds();
     }
     switch (axis) {
-        case Axis::X: return m_xMax;
-        case Axis::Y: return m_yMax;
-        case Axis::Z: return m_zMax;
+        case Axis::X:
+            return m_xMax;
+        case Axis::Y:
+            return m_yMax;
+        case Axis::Z:
+            return m_zMax;
     }
     return 0;
 }
 
-i32 DiscreteVoxelShape::firstFull(Axis axis, i32 slice1, i32 slice2) const {
+i32 DiscreteVoxelShape::firstFull(Axis axis, i32 slice1, i32 slice2) const
+{
     const i32 size = getSize(axis);
     if (slice1 < 0 || slice2 < 0) {
         return size;
@@ -217,7 +239,8 @@ i32 DiscreteVoxelShape::firstFull(Axis axis, i32 slice1, i32 slice2) const {
     return size;
 }
 
-i32 DiscreteVoxelShape::lastFull(Axis axis, i32 slice1, i32 slice2) const {
+i32 DiscreteVoxelShape::lastFull(Axis axis, i32 slice1, i32 slice2) const
+{
     if (slice1 < 0 || slice2 < 0) {
         return 0;
     }
@@ -245,7 +268,8 @@ i32 DiscreteVoxelShape::lastFull(Axis axis, i32 slice1, i32 slice2) const {
 // Z轴线操作
 // ============================================================================
 
-bool DiscreteVoxelShape::isZAxisLineFull(i32 fromZ, i32 toZ, i32 x, i32 y) const {
+bool DiscreteVoxelShape::isZAxisLineFull(i32 fromZ, i32 toZ, i32 x, i32 y) const
+{
     // 边界检查
     if (x < 0 || x >= m_xSize || y < 0 || y >= m_ySize) {
         return false;
@@ -263,7 +287,8 @@ bool DiscreteVoxelShape::isZAxisLineFull(i32 fromZ, i32 toZ, i32 x, i32 y) const
     return true;
 }
 
-void DiscreteVoxelShape::setZAxisLine(i32 fromZ, i32 toZ, i32 x, i32 y, bool filled) {
+void DiscreteVoxelShape::setZAxisLine(i32 fromZ, i32 toZ, i32 x, i32 y, bool filled)
+{
     // 边界检查
     if (x < 0 || x >= m_xSize || y < 0 || y >= m_ySize) {
         return;
@@ -278,7 +303,8 @@ void DiscreteVoxelShape::setZAxisLine(i32 fromZ, i32 toZ, i32 x, i32 y, bool fil
     m_boundsDirty = true;
 }
 
-bool DiscreteVoxelShape::isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 toZ, i32 y) const {
+bool DiscreteVoxelShape::isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 toZ, i32 y) const
+{
     // 边界检查
     if (y < 0 || y >= m_ySize) {
         return false;
@@ -300,13 +326,15 @@ bool DiscreteVoxelShape::isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 to
 // 遍历
 // ============================================================================
 
-void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simplify) {
+void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simplify)
+{
     forAllAxisEdges(consumer, AxisCycle::NONE, simplify);
     forAllAxisEdges(consumer, AxisCycle::FORWARD, simplify);
     forAllAxisEdges(consumer, AxisCycle::BACKWARD, simplify);
 }
 
-void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify) {
+void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify)
+{
     // 空形状直接返回
     if (isEmpty()) {
         return;
@@ -336,7 +364,7 @@ void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simpl
     // 遍历所有x, y坐标
     for (i32 x = 0; x < m_xSize; ++x) {
         for (i32 y = 0; y < m_ySize; ++y) {
-            i32 zStart = -1;  // Z轴填充段起始位置
+            i32 zStart = -1; // Z轴填充段起始位置
 
             // 沿Z轴扫描
             for (i32 z = 0; z <= m_zSize; ++z) {
@@ -351,7 +379,7 @@ void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simpl
                     i32 xMax = x;
                     i32 yMin = y;
                     i32 yMax = y;
-                    const i32 zEnd = z;  // zStart 是包含的，zEnd 是不包含的
+                    const i32 zEnd = z; // zStart 是包含的，zEnd 是不包含的
 
                     // 清除中心Z轴线
                     copy.setZAxisLine(zStart, zEnd, x, y, false);
@@ -396,7 +424,8 @@ void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simpl
     }
 }
 
-void DiscreteVoxelShape::forAllFaces(const IntFaceConsumer& consumer) {
+void DiscreteVoxelShape::forAllFaces(const IntFaceConsumer& consumer)
+{
     forAllAxisFaces(consumer, AxisCycle::NONE);
     forAllAxisFaces(consumer, AxisCycle::FORWARD);
     forAllAxisFaces(consumer, AxisCycle::BACKWARD);
@@ -406,7 +435,8 @@ void DiscreteVoxelShape::forAllFaces(const IntFaceConsumer& consumer) {
 // 填充
 // ============================================================================
 
-void DiscreteVoxelShape::fillAll() {
+void DiscreteVoxelShape::fillAll()
+{
     std::fill(m_storage.begin(), m_storage.end(), true);
     m_xMin = 0;
     m_yMin = 0;
@@ -417,7 +447,8 @@ void DiscreteVoxelShape::fillAll() {
     m_boundsDirty = false;
 }
 
-void DiscreteVoxelShape::fillRange(i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ) {
+void DiscreteVoxelShape::fillRange(i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
+{
     for (i32 x = minX; x < maxX; ++x) {
         for (i32 y = minY; y < maxY; ++y) {
             for (i32 z = minZ; z < maxZ; ++z) {
@@ -439,9 +470,8 @@ void DiscreteVoxelShape::fillRange(i32 minX, i32 minY, i32 minZ, i32 maxX, i32 m
 // ============================================================================
 
 DiscreteVoxelShape DiscreteVoxelShape::withFilledBounds(
-    i32 xSize, i32 ySize, i32 zSize,
-    i32 minX, i32 minY, i32 minZ,
-    i32 maxX, i32 maxY, i32 maxZ) {
+    i32 xSize, i32 ySize, i32 zSize, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
+{
 
     DiscreteVoxelShape shape(xSize, ySize, zSize);
     shape.fillRange(minX, minY, minZ, maxX, maxY, maxZ);
@@ -452,11 +482,13 @@ DiscreteVoxelShape DiscreteVoxelShape::withFilledBounds(
 // 内部方法
 // ============================================================================
 
-i32 DiscreteVoxelShape::getIndex(i32 x, i32 y, i32 z) const {
+i32 DiscreteVoxelShape::getIndex(i32 x, i32 y, i32 z) const
+{
     return (x * m_ySize + y) * m_zSize + z;
 }
 
-void DiscreteVoxelShape::updateBounds(i32 x, i32 y, i32 z) {
+void DiscreteVoxelShape::updateBounds(i32 x, i32 y, i32 z)
+{
     m_xMin = std::min(m_xMin, x);
     m_yMin = std::min(m_yMin, y);
     m_zMin = std::min(m_zMin, z);
@@ -465,7 +497,8 @@ void DiscreteVoxelShape::updateBounds(i32 x, i32 y, i32 z) {
     m_zMax = std::max(m_zMax, z + 1);
 }
 
-void DiscreteVoxelShape::fillUpdateBounds(i32 x, i32 y, i32 z, bool updateBounds) {
+void DiscreteVoxelShape::fillUpdateBounds(i32 x, i32 y, i32 z, bool updateBounds)
+{
     if (x >= 0 && x < m_xSize && y >= 0 && y < m_ySize && z >= 0 && z < m_zSize) {
         m_storage[static_cast<size_t>(getIndex(x, y, z))] = true;
         if (updateBounds) {
@@ -474,7 +507,8 @@ void DiscreteVoxelShape::fillUpdateBounds(i32 x, i32 y, i32 z, bool updateBounds
     }
 }
 
-void DiscreteVoxelShape::recalculateBounds() const {
+void DiscreteVoxelShape::recalculateBounds() const
+{
     m_xMin = m_xSize;
     m_yMin = m_ySize;
     m_zMin = m_zSize;
@@ -500,7 +534,8 @@ void DiscreteVoxelShape::recalculateBounds() const {
     m_boundsDirty = false;
 }
 
-void DiscreteVoxelShape::forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify) {
+void DiscreteVoxelShape::forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify)
+{
     const AxisCycle invCycle = AxisCycles::inverse(cycle);
     const i32 jSize = getSize(AxisCycles::cycle(invCycle, Axis::X));
     const i32 kSize = getSize(AxisCycles::cycle(invCycle, Axis::Y));
@@ -530,24 +565,20 @@ void DiscreteVoxelShape::forAllAxisEdges(const IntLineConsumer& consumer, AxisCy
                             start = k1;
                         }
                     } else {
-                        consumer(
-                            AxisCycles::cycle(cycle, i1, j1, k1, Axis::X),
+                        consumer(AxisCycles::cycle(cycle, i1, j1, k1, Axis::X),
                             AxisCycles::cycle(cycle, i1, j1, k1, Axis::Y),
                             AxisCycles::cycle(cycle, i1, j1, k1, Axis::Z),
                             AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::X),
                             AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::Y),
-                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::Z)
-                        );
+                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::Z));
                     }
                 } else if (start != -1) {
-                    consumer(
-                        AxisCycles::cycle(cycle, i1, j1, start, Axis::X),
+                    consumer(AxisCycles::cycle(cycle, i1, j1, start, Axis::X),
                         AxisCycles::cycle(cycle, i1, j1, start, Axis::Y),
                         AxisCycles::cycle(cycle, i1, j1, start, Axis::Z),
                         AxisCycles::cycle(cycle, i1, j1, k1, Axis::X),
                         AxisCycles::cycle(cycle, i1, j1, k1, Axis::Y),
-                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::Z)
-                    );
+                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::Z));
                     start = -1;
                 }
             }
@@ -555,7 +586,8 @@ void DiscreteVoxelShape::forAllAxisEdges(const IntLineConsumer& consumer, AxisCy
     }
 }
 
-void DiscreteVoxelShape::forAllAxisFaces(const IntFaceConsumer& consumer, AxisCycle cycle) {
+void DiscreteVoxelShape::forAllAxisFaces(const IntFaceConsumer& consumer, AxisCycle cycle)
+{
     const AxisCycle invCycle = AxisCycles::inverse(cycle);
     const Axis zAxis = AxisCycles::cycle(invCycle, Axis::Z);
     const i32 iSize = getSize(AxisCycles::cycle(invCycle, Axis::X));
@@ -574,22 +606,18 @@ void DiscreteVoxelShape::forAllAxisFaces(const IntFaceConsumer& consumer, AxisCy
 
                 if (!wasFull && isFull) {
                     // 开始的面（负方向）
-                    consumer(
-                        negDir,
+                    consumer(negDir,
                         AxisCycles::cycle(cycle, i, j, k, Axis::X),
                         AxisCycles::cycle(cycle, i, j, k, Axis::Y),
-                        AxisCycles::cycle(cycle, i, j, k, Axis::Z)
-                    );
+                        AxisCycles::cycle(cycle, i, j, k, Axis::Z));
                 }
 
                 if (wasFull && !isFull) {
                     // 结束的面（正方向）
-                    consumer(
-                        posDir,
+                    consumer(posDir,
                         AxisCycles::cycle(cycle, i, j, k - 1, Axis::X),
                         AxisCycles::cycle(cycle, i, j, k - 1, Axis::Y),
-                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::Z)
-                    );
+                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::Z));
                 }
 
                 wasFull = isFull;

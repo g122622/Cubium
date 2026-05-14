@@ -1,16 +1,16 @@
 #pragma once
 
-#include "ExplosionMode.hpp"
-#include "ExplosionContext.hpp"
 #include "../../core/Types.hpp"
+#include "../../entity/damage/DamageSource.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../util/math/random/Random.hpp"
-#include "../../entity/damage/DamageSource.hpp"
 #include "../block/BlockPos.hpp"
-#include <vector>
-#include <unordered_map>
+#include "ExplosionContext.hpp"
+#include "ExplosionMode.hpp"
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 
@@ -60,13 +60,13 @@ public:
      * @param lootTableManager 掉落表管理器（可能为空，为空时不掉落物品）
      */
     Explosion(IWorld& world,
-              const Vector3& position,
-              f32 radius,
-              ExplosionMode mode = ExplosionMode::Destroy,
-              bool causesFire = false,
-              Entity* source = nullptr,
-              std::unique_ptr<DamageSource> damageSource = nullptr,
-              const loot::LootTableManager* lootTableManager = nullptr);
+        const Vector3& position,
+        f32 radius,
+        ExplosionMode mode = ExplosionMode::Destroy,
+        bool causesFire = false,
+        Entity* source = nullptr,
+        std::unique_ptr<DamageSource> damageSource = nullptr,
+        const loot::LootTableManager* lootTableManager = nullptr);
 
     /**
      * @brief 执行爆炸
@@ -86,17 +86,13 @@ public:
      * @brief 获取受影响的方块位置列表
      * @return 受影响方块的坐标列表
      */
-    [[nodiscard]] const std::vector<BlockPos>& affectedBlocks() const {
-        return m_affectedBlocks;
-    }
+    [[nodiscard]] const std::vector<BlockPos>& affectedBlocks() const { return m_affectedBlocks; }
 
     /**
      * @brief 获取玩家击退映射
      * @return 玩家ID到击退向量的映射
      */
-    [[nodiscard]] const std::unordered_map<u64, Vector3>& playerKnockback() const {
-        return m_playerKnockback;
-    }
+    [[nodiscard]] const std::unordered_map<u64, Vector3>& playerKnockback() const { return m_playerKnockback; }
 
     /**
      * @brief 获取爆炸半径
@@ -218,9 +214,7 @@ private:
      * @param state 方块状态
      * @return 生成的掉落物列表
      */
-    [[nodiscard]] std::vector<ItemStack> generateBlockDrops(
-        const BlockPos& pos,
-        const BlockState& state);
+    [[nodiscard]] std::vector<ItemStack> generateBlockDrops(const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 在世界中生成物品实体

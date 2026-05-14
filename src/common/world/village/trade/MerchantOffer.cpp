@@ -1,9 +1,9 @@
 #include "MerchantOffer.hpp"
-#include "Merchant.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/inventory/PlayerInventory.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../util/nbt/Nbt.hpp"
+#include "Merchant.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -11,28 +11,25 @@ namespace world {
 namespace village {
 namespace trade {
 
-MerchantOffer::MerchantOffer(ItemStack buyA, ItemStack sell,
-                              i32 maxUses, i32 xp, f32 priceMultiplier)
+MerchantOffer::MerchantOffer(ItemStack buyA, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier)
     : m_buyA(std::move(buyA))
     , m_sell(std::move(sell))
     , m_maxUses(maxUses)
     , m_xp(xp)
     , m_priceMultiplier(priceMultiplier)
-{
-}
+{}
 
-MerchantOffer::MerchantOffer(ItemStack buyA, ItemStack buyB, ItemStack sell,
-                              i32 maxUses, i32 xp, f32 priceMultiplier)
+MerchantOffer::MerchantOffer(ItemStack buyA, ItemStack buyB, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier)
     : m_buyA(std::move(buyA))
     , m_buyB(std::move(buyB))
     , m_sell(std::move(sell))
     , m_maxUses(maxUses)
     , m_xp(xp)
     , m_priceMultiplier(priceMultiplier)
-{
-}
+{}
 
-bool MerchantOffer::canAccept(const ItemStack& offeredA, const ItemStack& offeredB) const {
+bool MerchantOffer::canAccept(const ItemStack& offeredA, const ItemStack& offeredB) const
+{
     if (isOutOfStock()) {
         return false;
     }
@@ -52,11 +49,13 @@ bool MerchantOffer::canAccept(const ItemStack& offeredA, const ItemStack& offere
     return true;
 }
 
-bool MerchantOffer::canAccept(const ItemStack& offered) const {
+bool MerchantOffer::canAccept(const ItemStack& offered) const
+{
     return canAccept(offered, ItemStack());
 }
 
-bool MerchantOffer::apply(Player& player, IMerchant& merchant) {
+bool MerchantOffer::apply(Player& player, IMerchant& merchant)
+{
     // 检查是否已售罄
     if (isOutOfStock()) {
         return false;
@@ -79,7 +78,7 @@ bool MerchantOffer::apply(Player& player, IMerchant& merchant) {
         }
     }
     if (buyAAvailable < buyACount) {
-        return false;  // 物品A不足
+        return false; // 物品A不足
     }
 
     // 检查买入物品B（如果需要）
@@ -92,7 +91,7 @@ bool MerchantOffer::apply(Player& player, IMerchant& merchant) {
             }
         }
         if (buyBAvailable < buyBCount) {
-            return false;  // 物品B不足
+            return false; // 物品B不足
         }
     }
 
@@ -113,7 +112,7 @@ bool MerchantOffer::apply(Player& player, IMerchant& merchant) {
         }
     }
     if (sellCanFit < sellCount) {
-        return false;  // 背包空间不足
+        return false; // 背包空间不足
     }
 
     // 执行交易
@@ -154,34 +153,40 @@ bool MerchantOffer::apply(Player& player, IMerchant& merchant) {
     return true;
 }
 
-void MerchantOffer::restock() {
+void MerchantOffer::restock()
+{
     m_uses = 0;
     ++m_restocksToday;
 }
 
-bool MerchantOffer::isDisabled() const {
+bool MerchantOffer::isDisabled() const
+{
     return isOutOfStock() && m_restocksToday >= 2; // 每天最多补货2次
 }
 
-f32 MerchantOffer::getProgress() const {
+f32 MerchantOffer::getProgress() const
+{
     if (m_maxUses <= 0) return 0.0f;
     return static_cast<f32>(m_uses) / static_cast<f32>(m_maxUses);
 }
 
-void MerchantOffer::applyDemand(i32 demandBonus) {
+void MerchantOffer::applyDemand(i32 demandBonus)
+{
     m_demand += demandBonus;
     // 需求影响价格：需求越高，价格越高
     // m_specialPrice 会根据需求调整
     m_specialPrice = static_cast<i32>(m_demand * m_priceMultiplier);
 }
 
-i32 MerchantOffer::getAdjustedBuyPrice() const {
+i32 MerchantOffer::getAdjustedBuyPrice() const
+{
     i32 basePrice = m_buyA.getCount();
     i32 adjusted = basePrice + m_specialPrice;
     return std::max(1, adjusted);
 }
 
-void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const {
+void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const
+{
     // 序列化买入物品A
     nbt::tags::compound_tag buyATag;
     m_buyA.toNbt(buyATag);
@@ -210,7 +215,8 @@ void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const {
     tag.put("lastRestock", static_cast<std::int64_t>(m_lastRestockTime));
 }
 
-MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag) {
+MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag)
+{
     MerchantOffer offer;
 
     // 反序列化买入物品A

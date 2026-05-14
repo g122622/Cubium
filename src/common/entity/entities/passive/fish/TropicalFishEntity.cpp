@@ -1,7 +1,7 @@
 #include "TropicalFishEntity.hpp"
 
-#include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 

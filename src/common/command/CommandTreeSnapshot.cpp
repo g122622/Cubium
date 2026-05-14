@@ -6,7 +6,8 @@ namespace mc::command {
 
 namespace {
 
-[[nodiscard]] CommandTreeNodeSnapshot parseNodeSnapshot(const nlohmann::json& json) {
+[[nodiscard]] CommandTreeNodeSnapshot parseNodeSnapshot(const nlohmann::json& json)
+{
     CommandTreeNodeSnapshot snapshot;
 
     snapshot.id = json.at("id").get<u32>();
@@ -30,7 +31,8 @@ namespace {
 
 } // namespace
 
-nlohmann::json CommandTreeSnapshot::toJson() const {
+nlohmann::json CommandTreeSnapshot::toJson() const
+{
     nlohmann::json json;
     json["nodes"] = nlohmann::json::array();
 
@@ -54,11 +56,13 @@ nlohmann::json CommandTreeSnapshot::toJson() const {
     return json;
 }
 
-std::string CommandTreeSnapshot::toJsonString() const {
+std::string CommandTreeSnapshot::toJsonString() const
+{
     return toJson().dump();
 }
 
-Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& json) {
+Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& json)
+{
     if (!json.is_object()) {
         return Error(ErrorCode::InvalidData, "Command tree snapshot must be a JSON object");
     }
@@ -78,7 +82,8 @@ Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& 
 
         try {
             snapshot.nodes.push_back(parseNodeSnapshot(nodeJson));
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             return Error(ErrorCode::InvalidData, e.what());
         }
     }
@@ -96,11 +101,13 @@ Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& 
     return snapshot;
 }
 
-Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJsonString(std::string_view jsonText) {
+Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJsonString(std::string_view jsonText)
+{
     try {
         auto json = nlohmann::json::parse(jsonText.begin(), jsonText.end());
         return fromJson(json);
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         return Error(ErrorCode::InvalidData, e.what());
     }
 }

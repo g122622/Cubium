@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 namespace blocks {
@@ -41,15 +41,12 @@ public:
      * @brief 检查是否可以放置
      */
     [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     /**
      * @brief 邻居更新
      */
-    BlockState updatePostPlacement(
-        const BlockState& state,
+    BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -87,11 +84,11 @@ public:
      *
      * @return 始终返回 true
      */
-    [[nodiscard]] bool isLadder(
-        const BlockState& state,
+    [[nodiscard]] bool isLadder(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        const Entity* entity = nullptr) const override {
+        const Entity* entity = nullptr) const override
+    {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(entity);
@@ -109,7 +106,8 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 

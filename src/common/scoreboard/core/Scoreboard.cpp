@@ -1,6 +1,6 @@
 #include "Scoreboard.hpp"
-#include "ScoreCriteria.hpp"
 #include "../../util/text/StringTextComponent.hpp"
+#include "ScoreCriteria.hpp"
 #include <algorithm>
 #include <regex>
 
@@ -20,7 +20,8 @@ constexpr size_t MAX_PLAYER_NAME_LENGTH = 40;
 
 // ========== ScoreComparator ==========
 
-bool ScoreComparator::operator()(const Score* a, const Score* b) const {
+bool ScoreComparator::operator()(const Score* a, const Score* b) const
+{
     // 按分数降序排列
     if (a->getScorePoints() != b->getScorePoints()) {
         return a->getScorePoints() > b->getScorePoints();
@@ -31,16 +32,17 @@ bool ScoreComparator::operator()(const Score* a, const Score* b) const {
 
 // ========== 构造函数 ==========
 
-Scoreboard::Scoreboard() {
+Scoreboard::Scoreboard()
+{
     // 初始化显示槽位为 nullptr
     m_displaySlots.fill(nullptr);
 }
 
 // ========== 目标管理 ==========
 
-ScoreObjective* Scoreboard::addObjective(const std::string& name,
-                                          ScoreCriteria& criteria,
-                                          std::unique_ptr<text::ITextComponent> displayName) {
+ScoreObjective* Scoreboard::addObjective(
+    const std::string& name, ScoreCriteria& criteria, std::unique_ptr<text::ITextComponent> displayName)
+{
     // 验证名称
     if (name.empty() || name.length() > ScoreObjective::MAX_NAME_LENGTH) {
         return nullptr;
@@ -56,13 +58,11 @@ ScoreObjective* Scoreboard::addObjective(const std::string& name,
     }
 
     // 创建目标
-    auto objective = std::make_unique<ScoreObjective>(
-        *this,
+    auto objective = std::make_unique<ScoreObjective>(*this,
         name,
         criteria,
         displayName ? std::move(displayName) : std::make_unique<text::StringTextComponent>(name),
-        criteria.getDefaultRenderType()
-    );
+        criteria.getDefaultRenderType());
 
     ScoreObjective* ptr = objective.get();
 
@@ -76,31 +76,32 @@ ScoreObjective* Scoreboard::addObjective(const std::string& name,
     return ptr;
 }
 
-ScoreObjective* Scoreboard::getObjective(const std::string& name) {
+ScoreObjective* Scoreboard::getObjective(const std::string& name)
+{
     auto it = m_objectives.find(name);
     return it != m_objectives.end() ? it->second.get() : nullptr;
 }
 
-const ScoreObjective* Scoreboard::getObjective(const std::string& name) const {
+const ScoreObjective* Scoreboard::getObjective(const std::string& name) const
+{
     auto it = m_objectives.find(name);
     return it != m_objectives.end() ? it->second.get() : nullptr;
 }
 
-bool Scoreboard::hasObjective(const std::string& name) const {
+bool Scoreboard::hasObjective(const std::string& name) const
+{
     return m_objectives.find(name) != m_objectives.end();
 }
 
-void Scoreboard::removeObjective(ScoreObjective& objective) {
+void Scoreboard::removeObjective(ScoreObjective& objective)
+{
     const std::string& name = objective.getName();
 
     // 从判据映射中移除
     auto criteriaIt = m_objectivesByCriteria.find(&objective.getCriteria());
     if (criteriaIt != m_objectivesByCriteria.end()) {
         auto& objectives = criteriaIt->second;
-        objectives.erase(
-            std::remove(objectives.begin(), objectives.end(), &objective),
-            objectives.end()
-        );
+        objectives.erase(std::remove(objectives.begin(), objectives.end(), &objective), objectives.end());
     }
 
     // 从显示槽位中移除
@@ -127,7 +128,8 @@ void Scoreboard::removeObjective(ScoreObjective& objective) {
     m_objectives.erase(name);
 }
 
-std::vector<ScoreObjective*> Scoreboard::getObjectives() {
+std::vector<ScoreObjective*> Scoreboard::getObjectives()
+{
     std::vector<ScoreObjective*> result;
     result.reserve(m_objectives.size());
     for (auto& [name, objective] : m_objectives) {
@@ -136,7 +138,8 @@ std::vector<ScoreObjective*> Scoreboard::getObjectives() {
     return result;
 }
 
-std::vector<const ScoreObjective*> Scoreboard::getObjectives() const {
+std::vector<const ScoreObjective*> Scoreboard::getObjectives() const
+{
     std::vector<const ScoreObjective*> result;
     result.reserve(m_objectives.size());
     for (const auto& [name, objective] : m_objectives) {
@@ -145,7 +148,8 @@ std::vector<const ScoreObjective*> Scoreboard::getObjectives() const {
     return result;
 }
 
-std::vector<ScoreObjective*> Scoreboard::getObjectivesByCriteria(ScoreCriteria& criteria) {
+std::vector<ScoreObjective*> Scoreboard::getObjectivesByCriteria(ScoreCriteria& criteria)
+{
     auto it = m_objectivesByCriteria.find(&criteria);
     if (it != m_objectivesByCriteria.end()) {
         return it->second;
@@ -155,7 +159,8 @@ std::vector<ScoreObjective*> Scoreboard::getObjectivesByCriteria(ScoreCriteria& 
 
 // ========== 分数管理 ==========
 
-Score* Scoreboard::getOrCreateScore(const std::string& playerName, ScoreObjective& objective) {
+Score* Scoreboard::getOrCreateScore(const std::string& playerName, ScoreObjective& objective)
+{
     // 验证玩家名称
     if (playerName.empty() || playerName.length() > MAX_PLAYER_NAME_LENGTH) {
         return nullptr;
@@ -179,7 +184,8 @@ Score* Scoreboard::getOrCreateScore(const std::string& playerName, ScoreObjectiv
     return ptr;
 }
 
-Score* Scoreboard::getScore(const std::string& playerName, ScoreObjective& objective) {
+Score* Scoreboard::getScore(const std::string& playerName, ScoreObjective& objective)
+{
     auto playerIt = m_playerScores.find(playerName);
     if (playerIt == m_playerScores.end()) {
         return nullptr;
@@ -189,8 +195,8 @@ Score* Scoreboard::getScore(const std::string& playerName, ScoreObjective& objec
     return scoreIt != playerIt->second.end() ? scoreIt->second.get() : nullptr;
 }
 
-const Score* Scoreboard::getScore(const std::string& playerName,
-                                   ScoreObjective& objective) const {
+const Score* Scoreboard::getScore(const std::string& playerName, ScoreObjective& objective) const
+{
     auto playerIt = m_playerScores.find(playerName);
     if (playerIt == m_playerScores.end()) {
         return nullptr;
@@ -200,7 +206,8 @@ const Score* Scoreboard::getScore(const std::string& playerName,
     return scoreIt != playerIt->second.end() ? scoreIt->second.get() : nullptr;
 }
 
-void Scoreboard::removeScore(const std::string& playerName, ScoreObjective* objective) {
+void Scoreboard::removeScore(const std::string& playerName, ScoreObjective* objective)
+{
     auto playerIt = m_playerScores.find(playerName);
     if (playerIt == m_playerScores.end()) {
         return;
@@ -220,7 +227,8 @@ void Scoreboard::removeScore(const std::string& playerName, ScoreObjective* obje
     }
 }
 
-bool Scoreboard::entityHasObjective(const std::string& playerName, ScoreObjective& objective) const {
+bool Scoreboard::entityHasObjective(const std::string& playerName, ScoreObjective& objective) const
+{
     auto playerIt = m_playerScores.find(playerName);
     if (playerIt == m_playerScores.end()) {
         return false;
@@ -228,7 +236,8 @@ bool Scoreboard::entityHasObjective(const std::string& playerName, ScoreObjectiv
     return playerIt->second.find(objective.getName()) != playerIt->second.end();
 }
 
-std::vector<Score*> Scoreboard::getSortedScores(ScoreObjective& objective) {
+std::vector<Score*> Scoreboard::getSortedScores(ScoreObjective& objective)
+{
     std::vector<Score*> scores;
     const std::string& objName = objective.getName();
 
@@ -245,7 +254,8 @@ std::vector<Score*> Scoreboard::getSortedScores(ScoreObjective& objective) {
     return scores;
 }
 
-std::vector<std::string> Scoreboard::getPlayerObjectives(const std::string& playerName) const {
+std::vector<std::string> Scoreboard::getPlayerObjectives(const std::string& playerName) const
+{
     std::vector<std::string> result;
 
     auto playerIt = m_playerScores.find(playerName);
@@ -261,7 +271,8 @@ std::vector<std::string> Scoreboard::getPlayerObjectives(const std::string& play
 
 // ========== 显示槽位 ==========
 
-void Scoreboard::setObjectiveInDisplaySlot(DisplaySlot slot, ScoreObjective* objective) {
+void Scoreboard::setObjectiveInDisplaySlot(DisplaySlot slot, ScoreObjective* objective)
+{
     const size_t index = static_cast<size_t>(slot);
     if (index >= m_displaySlots.size()) {
         return;
@@ -273,7 +284,8 @@ void Scoreboard::setObjectiveInDisplaySlot(DisplaySlot slot, ScoreObjective* obj
     onDisplaySlotChanged(slot, objective);
 }
 
-ScoreObjective* Scoreboard::getObjectiveInDisplaySlot(DisplaySlot slot) {
+ScoreObjective* Scoreboard::getObjectiveInDisplaySlot(DisplaySlot slot)
+{
     const size_t index = static_cast<size_t>(slot);
     if (index >= m_displaySlots.size()) {
         return nullptr;
@@ -281,7 +293,8 @@ ScoreObjective* Scoreboard::getObjectiveInDisplaySlot(DisplaySlot slot) {
     return m_displaySlots[index];
 }
 
-const ScoreObjective* Scoreboard::getObjectiveInDisplaySlot(DisplaySlot slot) const {
+const ScoreObjective* Scoreboard::getObjectiveInDisplaySlot(DisplaySlot slot) const
+{
     const size_t index = static_cast<size_t>(slot);
     if (index >= m_displaySlots.size()) {
         return nullptr;
@@ -289,7 +302,8 @@ const ScoreObjective* Scoreboard::getObjectiveInDisplaySlot(DisplaySlot slot) co
     return m_displaySlots[index];
 }
 
-std::vector<DisplaySlot> Scoreboard::getDisplaySlotsForObject(ScoreObjective& objective) const {
+std::vector<DisplaySlot> Scoreboard::getDisplaySlotsForObject(ScoreObjective& objective) const
+{
     std::vector<DisplaySlot> slots;
     for (size_t i = 0; i < m_displaySlots.size(); ++i) {
         if (m_displaySlots[i] == &objective) {
@@ -301,7 +315,8 @@ std::vector<DisplaySlot> Scoreboard::getDisplaySlotsForObject(ScoreObjective& ob
 
 // ========== 队伍管理 ==========
 
-ScorePlayerTeam* Scoreboard::createTeam(const std::string& name) {
+ScorePlayerTeam* Scoreboard::createTeam(const std::string& name)
+{
     // 验证名称
     if (name.empty() || name.length() > ScorePlayerTeam::MAX_NAME_LENGTH) {
         return nullptr;
@@ -328,7 +343,8 @@ ScorePlayerTeam* Scoreboard::createTeam(const std::string& name) {
     return ptr;
 }
 
-void Scoreboard::removeTeam(ScorePlayerTeam& team) {
+void Scoreboard::removeTeam(ScorePlayerTeam& team)
+{
     const std::string& name = team.getName();
 
     // 清空队伍成员（从 m_teamMemberships 中移除）
@@ -345,25 +361,29 @@ void Scoreboard::removeTeam(ScorePlayerTeam& team) {
     onTeamRemoved(team);
 }
 
-ScorePlayerTeam* Scoreboard::getTeam(const std::string& name) {
+ScorePlayerTeam* Scoreboard::getTeam(const std::string& name)
+{
     auto it = m_teams.find(name);
     return it != m_teams.end() ? it->second.get() : nullptr;
 }
 
-const ScorePlayerTeam* Scoreboard::getTeam(const std::string& name) const {
+const ScorePlayerTeam* Scoreboard::getTeam(const std::string& name) const
+{
     auto it = m_teams.find(name);
     return it != m_teams.end() ? it->second.get() : nullptr;
 }
 
-bool Scoreboard::hasTeam(const std::string& name) const {
+bool Scoreboard::hasTeam(const std::string& name) const
+{
     return m_teams.find(name) != m_teams.end();
 }
 
-bool Scoreboard::addPlayerToTeam(const std::string& playerName, ScorePlayerTeam& team) {
+bool Scoreboard::addPlayerToTeam(const std::string& playerName, ScorePlayerTeam& team)
+{
     // 检查玩家是否已在其他队伍
     auto currentTeam = getPlayersTeam(playerName);
     if (currentTeam == &team) {
-        return false;  // 已经在该队伍
+        return false; // 已经在该队伍
     }
 
     // 如果已在其他队伍，先移出
@@ -380,7 +400,8 @@ bool Scoreboard::addPlayerToTeam(const std::string& playerName, ScorePlayerTeam&
     return false;
 }
 
-bool Scoreboard::removePlayerFromTeam(const std::string& playerName, ScorePlayerTeam& team) {
+bool Scoreboard::removePlayerFromTeam(const std::string& playerName, ScorePlayerTeam& team)
+{
     if (team.removeMember(playerName)) {
         m_teamMemberships.erase(playerName);
         return true;
@@ -388,12 +409,14 @@ bool Scoreboard::removePlayerFromTeam(const std::string& playerName, ScorePlayer
     return false;
 }
 
-ScorePlayerTeam* Scoreboard::getPlayersTeam(const std::string& playerName) const {
+ScorePlayerTeam* Scoreboard::getPlayersTeam(const std::string& playerName) const
+{
     auto it = m_teamMemberships.find(playerName);
     return it != m_teamMemberships.end() ? it->second : nullptr;
 }
 
-std::vector<ScorePlayerTeam*> Scoreboard::getTeams() {
+std::vector<ScorePlayerTeam*> Scoreboard::getTeams()
+{
     std::vector<ScorePlayerTeam*> result;
     result.reserve(m_teams.size());
     for (auto& [name, team] : m_teams) {
@@ -402,7 +425,8 @@ std::vector<ScorePlayerTeam*> Scoreboard::getTeams() {
     return result;
 }
 
-std::vector<const ScorePlayerTeam*> Scoreboard::getTeams() const {
+std::vector<const ScorePlayerTeam*> Scoreboard::getTeams() const
+{
     std::vector<const ScorePlayerTeam*> result;
     result.reserve(m_teams.size());
     for (const auto& [name, team] : m_teams) {
@@ -413,56 +437,66 @@ std::vector<const ScorePlayerTeam*> Scoreboard::getTeams() const {
 
 // ========== 回调默认实现 ==========
 
-void Scoreboard::onObjectiveAdded(ScoreObjective& /*objective*/) {
+void Scoreboard::onObjectiveAdded(ScoreObjective& /*objective*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onObjectiveRemoved(ScoreObjective& /*objective*/) {
+void Scoreboard::onObjectiveRemoved(ScoreObjective& /*objective*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onObjectiveChanged(ScoreObjective& /*objective*/) {
+void Scoreboard::onObjectiveChanged(ScoreObjective& /*objective*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onScoreChanged(Score& /*score*/) {
+void Scoreboard::onScoreChanged(Score& /*score*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onScoreRemoved(Score& /*score*/) {
+void Scoreboard::onScoreRemoved(Score& /*score*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onPlayerRemoved(const std::string& /*playerName*/) {
+void Scoreboard::onPlayerRemoved(const std::string& /*playerName*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onPlayerScoreRemoved(const std::string& /*playerName*/,
-                                       ScoreObjective& /*objective*/) {
+void Scoreboard::onPlayerScoreRemoved(const std::string& /*playerName*/, ScoreObjective& /*objective*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onTeamAdded(ScorePlayerTeam& /*team*/) {
+void Scoreboard::onTeamAdded(ScorePlayerTeam& /*team*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onTeamChanged(ScorePlayerTeam& /*team*/) {
+void Scoreboard::onTeamChanged(ScorePlayerTeam& /*team*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onTeamRemoved(ScorePlayerTeam& /*team*/) {
+void Scoreboard::onTeamRemoved(ScorePlayerTeam& /*team*/)
+{
     // 默认空实现
 }
 
-void Scoreboard::onDisplaySlotChanged(DisplaySlot /*slot*/, ScoreObjective* /*objective*/) {
+void Scoreboard::onDisplaySlotChanged(DisplaySlot /*slot*/, ScoreObjective* /*objective*/)
+{
     // 默认空实现
 }
 
 // ========== 批判据查询 ==========
 
-void Scoreboard::forAllObjectives(ScoreCriteria& criteria,
-                                   const std::string& playerName,
-                                   std::function<void(Score&)> action) {
+void Scoreboard::forAllObjectives(
+    ScoreCriteria& criteria, const std::string& playerName, std::function<void(Score&)> action)
+{
     auto it = m_objectivesByCriteria.find(&criteria);
     if (it == m_objectivesByCriteria.end()) {
         return;
@@ -478,11 +512,13 @@ void Scoreboard::forAllObjectives(ScoreCriteria& criteria,
 
 // ========== 静态辅助方法 ==========
 
-bool Scoreboard::isValidObjectiveName(const std::string& name) {
+bool Scoreboard::isValidObjectiveName(const std::string& name)
+{
     return std::regex_match(name, s_validNameRegex);
 }
 
-bool Scoreboard::isValidPlayerName(const std::string& name) {
+bool Scoreboard::isValidPlayerName(const std::string& name)
+{
     // 玩家名称可以包含更多字符
     return !name.empty() && name.length() <= MAX_PLAYER_NAME_LENGTH;
 }

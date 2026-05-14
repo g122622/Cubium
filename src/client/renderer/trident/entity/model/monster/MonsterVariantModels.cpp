@@ -18,7 +18,8 @@ ZombieVillagerModel::ZombieVillagerModel(f32 scale, bool slim)
     setupParts(scale, slim);
 }
 
-void ZombieVillagerModel::setupParts(f32 scale, bool slim) {
+void ZombieVillagerModel::setupParts(f32 scale, bool slim)
+{
     // 参考 MC 1.16.5 ZombieVillagerModel
     if (slim) {
         m_head->setTextureOffset(0, 0);
@@ -29,7 +30,7 @@ void ZombieVillagerModel::setupParts(f32 scale, bool slim) {
         m_head->setTextureOffset(0, 0);
         m_head->addBox(-4.0f, -10.0f, -4.0f, 8.0f, 10.0f, 8.0f, scale);
         m_head->setTextureOffset(24, 0);
-        m_head->addBox(-1.0f, -3.0f, -6.0f, 2.0f, 4.0f, 2.0f, scale);  // 鼻子
+        m_head->addBox(-1.0f, -3.0f, -6.0f, 2.0f, 4.0f, 2.0f, scale); // 鼻子
 
         m_villagerNose = std::make_shared<ModelRenderer>("villagerNose");
         m_villagerNose->setTextureOffset(30, 47);
@@ -43,13 +44,14 @@ void ZombieVillagerModel::setupParts(f32 scale, bool slim) {
     }
 }
 
-void ZombieVillagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                     f64 ageInTicks, f64 netHeadYaw,
-                                     f64 headPitch, f64 scale) {
+void ZombieVillagerModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 }
 
-void ZombieVillagerModel::setHeadVisible(bool visible) {
+void ZombieVillagerModel::setHeadVisible(bool visible)
+{
     m_head->setVisible(visible);
     m_headwear->setVisible(visible);
     if (m_villagerNose) {
@@ -72,7 +74,8 @@ DrownedModel::DrownedModel(f32 scale, bool slim)
     setupParts(scale, 0.0f, 64, 64);
 }
 
-void DrownedModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight) {
+void DrownedModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight)
+{
     // 参考 MC 1.16.5 DrownedModel
     (void)textureWidth;
     (void)textureHeight;
@@ -87,9 +90,9 @@ void DrownedModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 text
     m_rightLeg->setRotationPoint(-1.9f, 12.0f + yOffset, 0.0f);
 }
 
-void DrownedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                              f64 ageInTicks, f64 netHeadYaw,
-                              f64 headPitch, f64 scale) {
+void DrownedModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
     // 溺尸游泳动画
@@ -115,13 +118,14 @@ HuskModel::HuskModel()
 // ==================== CaveSpiderModel ====================
 
 CaveSpiderModel::CaveSpiderModel()
-    : SpiderModel()  // 继承 SpiderModel，模型结构完全相同
+    : SpiderModel() // 继承 SpiderModel，模型结构完全相同
 {
     // 洞穴蜘蛛模型与普通蜘蛛完全相同
     // 区别在于渲染时缩放 0.7 倍（在 render() 中处理）
 }
 
-void CaveSpiderModel::render(f64 scale) {
+void CaveSpiderModel::render(f64 scale)
+{
     // 参考 MC 1.16.5 CaveSpiderRenderer.preRenderCallback()
     // matrixStack.scale(0.7F, 0.7F, 0.7F);
     SpiderModel::render(scale * 0.7);

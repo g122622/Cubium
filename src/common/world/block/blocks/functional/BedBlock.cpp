@@ -1,14 +1,14 @@
 #include "BedBlock.hpp"
+#include "../../../../entity/player/SleepManager.hpp"
+#include "../../../../entity/player/SleepResult.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../sound/SoundCategory.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../dimension/DimensionType.hpp"
 #include "../../../explosion/ExplosionMode.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../entity/player/SleepManager.hpp"
-#include "../../../../entity/player/SleepResult.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -18,23 +18,24 @@ namespace blocks {
 
 BedBlock::BedBlock(u32 color, const BlockProperties& properties)
     : Block(properties)
-    , m_color(color) {
+    , m_color(color)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::BED_PART())
-        .add(BlockStateProperties::OCCUPIED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
+                         .add(BlockStateProperties::BED_PART())
+                         .add(BlockStateProperties::OCCUPIED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot)
-        .with(BlockStateProperties::OCCUPIED(), false));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot)
+            .with(BlockStateProperties::OCCUPIED(), false));
 
     // 预计算各朝向的形状
     // 床的形状：主体 + 四个床腿
@@ -51,46 +52,27 @@ BedBlock::BedBlock(u32 color, const BlockProperties& properties)
 
     // 北朝向形状 (头部在南)
     m_shapesByFacing[static_cast<size_t>(Direction::North)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::combine(baseShape, legNW),
-                legNE
-            ),
-            CollisionShape::combine(legSW, legSE)
-        );
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
+            CollisionShape::combine(legSW, legSE));
 
     // 南朝向形状 (头部在北)
     m_shapesByFacing[static_cast<size_t>(Direction::South)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::combine(baseShape, legNW),
-                legNE
-            ),
-            CollisionShape::combine(legSW, legSE)
-        );
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
+            CollisionShape::combine(legSW, legSE));
 
     // 西朝向形状 (头部在东)
     m_shapesByFacing[static_cast<size_t>(Direction::West)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::combine(baseShape, legNW),
-                legNE
-            ),
-            CollisionShape::combine(legSW, legSE)
-        );
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
+            CollisionShape::combine(legSW, legSE));
 
     // 东朝向形状 (头部在西)
     m_shapesByFacing[static_cast<size_t>(Direction::East)] =
-        CollisionShape::combine(
-            CollisionShape::combine(
-                CollisionShape::combine(baseShape, legNW),
-                legNE
-            ),
-            CollisionShape::combine(legSW, legSE)
-        );
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
+            CollisionShape::combine(legSW, legSE));
 }
 
-BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.horizontalDirection();
     BlockPos pos = context.blockPos();
     BlockPos headPos(pos.x + Directions::xOffset(facing), pos.y, pos.z + Directions::zOffset(facing));
@@ -105,13 +87,13 @@ BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState();
 }
 
-BlockState BedBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState BedBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
     Direction bedFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -133,20 +115,23 @@ BlockState BedBlock::updatePostPlacement(
     return state;
 }
 
-const CollisionShape& BedBlock::getShape(const BlockState& state) const {
+const CollisionShape& BedBlock::getShape(const BlockState& state) const
+{
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
     MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
 }
 
-void BedBlock::setOccupied(IWorld& world, const BlockPos& pos, BlockState& state, bool occupied) {
+void BedBlock::setOccupied(IWorld& world, const BlockPos& pos, BlockState& state, bool occupied)
+{
     if (state.hasProperty(BlockStateProperties::OCCUPIED())) {
         world.setBlockState(pos, &state.with(BlockStateProperties::OCCUPIED(), occupied), 2);
     }
 }
 
-bool BedBlock::isBed(IWorld& world, const BlockPos& pos) {
+bool BedBlock::isBed(IWorld& world, const BlockPos& pos)
+{
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
@@ -157,13 +142,13 @@ bool BedBlock::isBed(IWorld& world, const BlockPos& pos) {
     return state->hasProperty(BlockStateProperties::BED_PART());
 }
 
-ActionResultType BedBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType BedBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(hand);
     MC_UNUSED(hit);
@@ -196,11 +181,10 @@ ActionResultType BedBlock::onBlockActivated(
 
         // MC 1.16.5: 床爆炸强度为 5.0，破坏方块并生成火焰
         // 参考: net.minecraft.block.BedBlock.onBlockActivated
-        world.createExplosion(
-            pos.center(),
-            5.0f,  // 爆炸半径
+        world.createExplosion(pos.center(),
+            5.0f, // 爆炸半径
             world::explosion::ExplosionMode::Destroy,
-            true    // 生成火焰
+            true // 生成火焰
         );
 
         return ActionResultType::Success;
@@ -247,12 +231,7 @@ ActionResultType BedBlock::onBlockActivated(
 
         // 播放睡眠音效
         world.playSound(
-            ResourceLocation("minecraft:block.bed.use"),
-            sound::SoundCategory::Blocks,
-            pos.center(),
-            1.0f,
-            1.0f
-        );
+            ResourceLocation("minecraft:block.bed.use"), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 
         return ActionResultType::Success;
     } else {

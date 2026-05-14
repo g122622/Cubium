@@ -1,20 +1,21 @@
 #include "FogManager.hpp"
-#include <spdlog/spdlog.h>
-#include <cstring>
 #include <algorithm>
+#include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::fog {
 
 // 雾效果常量（参考 MC 1.16.5）
-static constexpr f64 WATER_FOG_DENSITY = 0.05;   // 水中雾密度
-static constexpr f64 LAVA_FOG_DENSITY = 0.25;    // 岩浆雾密度
-static constexpr f64 FOG_START_RATIO = 0.75;     // 雾起始距离比例（相对于远平面）
-static constexpr f64 FOG_END_RATIO = 1.0;        // 雾结束距离比例
-static constexpr f64 CHUNK_SIZE = 16.0;          // 区块大小（方块）
+static constexpr f64 WATER_FOG_DENSITY = 0.05; // 水中雾密度
+static constexpr f64 LAVA_FOG_DENSITY = 0.25;  // 岩浆雾密度
+static constexpr f64 FOG_START_RATIO = 0.75;   // 雾起始距离比例（相对于远平面）
+static constexpr f64 FOG_END_RATIO = 1.0;      // 雾结束距离比例
+static constexpr f64 CHUNK_SIZE = 16.0;        // 区块大小（方块）
 
 FogManager::FogManager() = default;
 
-FogManager::~FogManager() {
+FogManager::~FogManager()
+{
     destroy();
 }
 
@@ -39,7 +40,8 @@ FogManager::FogManager(FogManager&& other) noexcept
     other.m_initialized = false;
 }
 
-FogManager& FogManager::operator=(FogManager&& other) noexcept {
+FogManager& FogManager::operator=(FogManager&& other) noexcept
+{
     if (this != &other) {
         destroy();
 
@@ -65,8 +67,7 @@ FogManager& FogManager::operator=(FogManager&& other) noexcept {
     return *this;
 }
 
-Result<void> FogManager::initialize(
-    VkDevice device,
+Result<void> FogManager::initialize(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkDescriptorPool descriptorPool,
     VkDescriptorSetLayout layout,
@@ -108,7 +109,8 @@ Result<void> FogManager::initialize(
     return Result<void>::ok();
 }
 
-void FogManager::destroy() {
+void FogManager::destroy()
+{
     if (!m_initialized) {
         return;
     }
@@ -122,8 +124,7 @@ void FogManager::destroy() {
     spdlog::debug("FogManager destroyed");
 }
 
-void FogManager::update(
-    i32 renderDistanceChunks,
+void FogManager::update(i32 renderDistanceChunks,
     f64 rainStrength,
     f64 thunderStrength,
     f64 landFogDensity,
@@ -164,50 +165,55 @@ void FogManager::update(
     }
 }
 
-void FogManager::setFogMode(FogMode mode) {
+void FogManager::setFogMode(FogMode mode)
+{
     m_currentFogMode = mode;
     m_fogUBO.fogMode = static_cast<i32>(mode);
 }
 
-void FogManager::setUnderwater(u32 waterFogColor) {
+void FogManager::setUnderwater(u32 waterFogColor)
+{
     setFogMode(FogMode::Exp2);
     m_fogUBO.fogDensity = static_cast<f32>(WATER_FOG_DENSITY);
     // 从 RGB 格式转换为 glm::vec4
-    m_fogUBO.fogColor = glm::vec4(
-        static_cast<f32>((waterFogColor >> 16) & 0xFF) / 255.0f,  // R
-        static_cast<f32>((waterFogColor >> 8) & 0xFF) / 255.0f,   // G
-        static_cast<f32>(waterFogColor & 0xFF) / 255.0f,          // B
-        1.0f
-    );
+    m_fogUBO.fogColor = glm::vec4(static_cast<f32>((waterFogColor >> 16) & 0xFF) / 255.0f, // R
+        static_cast<f32>((waterFogColor >> 8) & 0xFF) / 255.0f,                            // G
+        static_cast<f32>(waterFogColor & 0xFF) / 255.0f,                                   // B
+        1.0f);
 }
 
-void FogManager::setInLava() {
+void FogManager::setInLava()
+{
     setFogMode(FogMode::Exp2);
     m_fogUBO.fogDensity = static_cast<f32>(LAVA_FOG_DENSITY);
     // 岩浆雾颜色是深橙红色
     m_fogUBO.fogColor = glm::vec4(0.6f, 0.1f, 0.0f, 1.0f);
 }
 
-void FogManager::resetToLand() {
+void FogManager::resetToLand()
+{
     setFogMode(FogMode::Linear);
     m_fogUBO.fogDensity = 0.0f;
 }
 
-VkDescriptorSet FogManager::descriptorSet(u32 frameIndex) const {
+VkDescriptorSet FogManager::descriptorSet(u32 frameIndex) const
+{
     if (frameIndex >= m_descriptorSets.size()) {
         return VK_NULL_HANDLE;
     }
     return m_descriptorSets[frameIndex];
 }
 
-void FogManager::calculateLinearFog(f64 renderDistance) {
+void FogManager::calculateLinearFog(f64 renderDistance)
+{
     // 参考 MC 1.16.5 FogRenderer.setupFog()
     // 线性雾：fogStart 和 fogEnd 控制雾的范围
     m_fogUBO.fogStart = static_cast<f32>(renderDistance * FOG_START_RATIO);
     m_fogUBO.fogEnd = static_cast<f32>(renderDistance * FOG_END_RATIO);
 }
 
-void FogManager::updateUniformBuffer(u32 frameIndex) {
+void FogManager::updateUniformBuffer(u32 frameIndex)
+{
     if (frameIndex >= m_uniformBuffers.size() || !m_mappedMemory[frameIndex]) {
         return;
     }
@@ -215,7 +221,8 @@ void FogManager::updateUniformBuffer(u32 frameIndex) {
     std::memcpy(m_mappedMemory[frameIndex], &m_fogUBO, sizeof(FogUBO));
 }
 
-Result<void> FogManager::createUniformBuffers() {
+Result<void> FogManager::createUniformBuffers()
+{
     m_uniformBuffers.resize(m_maxFramesInFlight);
     m_uniformMemory.resize(m_maxFramesInFlight);
     m_mappedMemory.resize(m_maxFramesInFlight, nullptr);
@@ -238,8 +245,7 @@ Result<void> FogManager::createUniformBuffers() {
         vkGetBufferMemoryRequirements(m_device, m_uniformBuffers[i], &memRequirements);
 
         auto memoryTypeResult = findMemoryType(
-            memRequirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         if (memoryTypeResult.failed()) {
             return memoryTypeResult.error();
@@ -267,7 +273,8 @@ Result<void> FogManager::createUniformBuffers() {
     return Result<void>::ok();
 }
 
-Result<void> FogManager::createDescriptorSets() {
+Result<void> FogManager::createDescriptorSets()
+{
     m_descriptorSets.resize(m_maxFramesInFlight);
 
     std::vector<VkDescriptorSetLayout> layouts(m_maxFramesInFlight, m_layout);
@@ -305,7 +312,8 @@ Result<void> FogManager::createDescriptorSets() {
     return Result<void>::ok();
 }
 
-void FogManager::destroyUniformBuffers() {
+void FogManager::destroyUniformBuffers()
+{
     for (u32 i = 0; i < m_maxFramesInFlight; ++i) {
         if (m_mappedMemory[i]) {
             vkUnmapMemory(m_device, m_uniformMemory[i]);
@@ -326,13 +334,13 @@ void FogManager::destroyUniformBuffers() {
     m_mappedMemory.clear();
 }
 
-Result<u32> FogManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> FogManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
 
     for (u32 i = 0; i < memProperties.memoryTypeCount; ++i) {
-        if ((typeFilter & (1 << i)) &&
-            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
         }
     }

@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
 #include "server/dimension/ServerDimensionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/connection/LocalConnection.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerCoreConfig.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::server;
 using namespace mc;
@@ -14,16 +14,15 @@ using namespace mc;
  */
 class ServerDimensionManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 };
 
 // ========== 常量测试 ==========
 
-TEST_F(ServerDimensionManagerTest, DimensionConstantsAreCorrect) {
+TEST_F(ServerDimensionManagerTest, DimensionConstantsAreCorrect)
+{
     // 验证维度 ID 常量
     EXPECT_EQ(DimensionManager::OVERWORLD, 0);
     EXPECT_EQ(DimensionManager::NETHER, -1);
@@ -32,7 +31,8 @@ TEST_F(ServerDimensionManagerTest, DimensionConstantsAreCorrect) {
 
 // ========== 构造函数测试 ==========
 
-TEST_F(ServerDimensionManagerTest, DefaultConstructor) {
+TEST_F(ServerDimensionManagerTest, DefaultConstructor)
+{
     // ServerDimensionManager 需要 MinecraftServer 指针
     // 这里验证常量可访问
     SUCCEED();
@@ -40,21 +40,25 @@ TEST_F(ServerDimensionManagerTest, DefaultConstructor) {
 
 // ========== 维度 ID 测试 ==========
 
-TEST_F(ServerDimensionManagerTest, OverworldDimensionId) {
+TEST_F(ServerDimensionManagerTest, OverworldDimensionId)
+{
     EXPECT_EQ(DimensionManager::OVERWORLD, 0);
 }
 
-TEST_F(ServerDimensionManagerTest, NetherDimensionId) {
+TEST_F(ServerDimensionManagerTest, NetherDimensionId)
+{
     EXPECT_EQ(DimensionManager::NETHER, -1);
 }
 
-TEST_F(ServerDimensionManagerTest, TheEndDimensionId) {
+TEST_F(ServerDimensionManagerTest, TheEndDimensionId)
+{
     EXPECT_EQ(DimensionManager::THE_END, 1);
 }
 
 // ========== GameMode 与维度切换测试 ==========
 
-TEST_F(ServerDimensionManagerTest, GameModePreservedInDimensionPacket) {
+TEST_F(ServerDimensionManagerTest, GameModePreservedInDimensionPacket)
+{
     // 此测试验证维度切换时游戏模式应该从玩家数据获取
     // 参考 ServerDimensionManager::sendDimensionChangePacket
     // MC 1.16.5: ServerPlayerEntity.changeDimension() 发送 RespawnPacket 时
@@ -70,7 +74,8 @@ TEST_F(ServerDimensionManagerTest, GameModePreservedInDimensionPacket) {
 
 // ========== ServerPlayerData 游戏模式测试 ==========
 
-TEST_F(ServerDimensionManagerTest, ServerPlayerDataGameMode) {
+TEST_F(ServerDimensionManagerTest, ServerPlayerDataGameMode)
+{
     // 验证 ServerPlayerData 的 gameMode 字段存在且有正确默认值
     ServerPlayerData playerData(1, "TestPlayer");
 
@@ -90,7 +95,8 @@ TEST_F(ServerDimensionManagerTest, ServerPlayerDataGameMode) {
 
 // ========== 维度类型 ID 映射测试 ==========
 
-TEST_F(ServerDimensionManagerTest, DimensionTypeIdMapping) {
+TEST_F(ServerDimensionManagerTest, DimensionTypeIdMapping)
+{
     // MC 1.16.5 维度类型 ID 映射
     // 0 = minecraft:overworld
     // 1 = minecraft:the_nether
@@ -111,7 +117,8 @@ TEST_F(ServerDimensionManagerTest, DimensionTypeIdMapping) {
 
 // ========== PlayerManager 与维度切换集成测试 ==========
 
-TEST_F(ServerDimensionManagerTest, PlayerManagerPlayerRetrieval) {
+TEST_F(ServerDimensionManagerTest, PlayerManagerPlayerRetrieval)
+{
     mc::server::core::PlayerManager manager;
 
     // PlayerManager 默认最大玩家数为 20

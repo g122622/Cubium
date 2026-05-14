@@ -35,18 +35,17 @@ public:
      * @param trunkBlock 树干方块状态
      * @return 树叶位置列表（只有一个树叶位置在树干顶部）
      */
-    std::vector<FoliagePosition> placeTrunk(
-        WorldGenRegion& world,
+    std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
         math::Random& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock
-    ) override;
+        const BlockState* trunkBlock) override;
 
     [[nodiscard]] const char* name() const override { return "StraightTrunkPlacer"; }
 
-    [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override {
+    [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override
+    {
         return std::make_unique<StraightTrunkPlacer>(m_baseHeight, m_heightRandA, m_heightRandB);
     }
 };

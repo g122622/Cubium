@@ -10,30 +10,23 @@ PoweredRailBlock::PoweredRailBlock(const BlockProperties& properties)
     : AbstractRailBlock(properties, true)
 {
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(SHAPE())
-        .add(POWERED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(SHAPE()).add(POWERED()).create(
+        [this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(SHAPE(), RailShape::NorthSouth)
-        .with(POWERED(), false));
+    setDefaultState(defaultState().with(SHAPE(), RailShape::NorthSouth).with(POWERED(), false));
 }
 
-void PoweredRailBlock::fillStateContainer(StateContainer<Block, BlockState>& container) {
+void PoweredRailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
+{
     // 状态容器在构造函数中创建，此方法留空
     MC_UNUSED(container);
 }
 
-i32 PoweredRailBlock::getWeakPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side) const
+i32 PoweredRailBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -44,11 +37,7 @@ i32 PoweredRailBlock::getWeakPower(
 }
 
 void PoweredRailBlock::neighborChanged(
-    IWorld& world,
-    const BlockPos& pos,
-    Block& neighborBlock,
-    const BlockPos& neighborPos,
-    bool isMoving)
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
@@ -65,7 +54,7 @@ void PoweredRailBlock::neighborChanged(
     // 如果没有直接充能，尝试从相邻的动力铁轨获取信号
     if (!shouldBePowered) {
         shouldBePowered = findPoweredRailSignal(world, pos, *currentState, true) ||
-                          findPoweredRailSignal(world, pos, *currentState, false);
+            findPoweredRailSignal(world, pos, *currentState, false);
     }
 
     bool isCurrentlyPowered = isPowered(*currentState);
@@ -79,10 +68,7 @@ void PoweredRailBlock::neighborChanged(
 }
 
 bool PoweredRailBlock::findPoweredRailSignal(
-    IWorld& world,
-    const BlockPos& startPos,
-    const BlockState& startState,
-    bool checkForward) const
+    IWorld& world, const BlockPos& startPos, const BlockState& startState, bool checkForward) const
 {
     // MC 1.16.5: 迭代搜索相连的动力铁轨，最大距离8格
     // 使用 visited 集合防止重复访问
@@ -146,7 +132,7 @@ bool PoweredRailBlock::findPoweredRailSignal(
 
         // 检查是否已访问过此位置
         if (visited.count(checkPos) > 0) {
-            return false;  // 防止循环
+            return false; // 防止循环
         }
         visited.insert(checkPos);
 
@@ -180,15 +166,18 @@ bool PoweredRailBlock::findPoweredRailSignal(
     return false;
 }
 
-RailShape PoweredRailBlock::getRailShape(const BlockState& state) const {
+RailShape PoweredRailBlock::getRailShape(const BlockState& state) const
+{
     return state.get(SHAPE());
 }
 
-BlockState PoweredRailBlock::withRailShape(const BlockState& state, RailShape shape) const {
+BlockState PoweredRailBlock::withRailShape(const BlockState& state, RailShape shape) const
+{
     return state.with(SHAPE(), shape);
 }
 
-bool PoweredRailBlock::isPowered(const BlockState& state) {
+bool PoweredRailBlock::isPowered(const BlockState& state)
+{
     return state.get(POWERED());
 }
 

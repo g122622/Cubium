@@ -8,16 +8,19 @@ namespace blocks {
 // FireInfoRegistry
 // ============================================================================
 
-FireInfoRegistry& FireInfoRegistry::instance() {
+FireInfoRegistry& FireInfoRegistry::instance()
+{
     static FireInfoRegistry s_instance;
     return s_instance;
 }
 
-void FireInfoRegistry::registerFireInfo(u32 blockId, i32 encouragement, i32 flammability) {
+void FireInfoRegistry::registerFireInfo(u32 blockId, i32 encouragement, i32 flammability)
+{
     m_fireInfos[blockId] = FireInfo(encouragement, flammability);
 }
 
-FireInfo FireInfoRegistry::getFireInfo(u32 blockId) const {
+FireInfo FireInfoRegistry::getFireInfo(u32 blockId) const
+{
     auto it = m_fireInfos.find(blockId);
     if (it != m_fireInfos.end()) {
         return it->second;
@@ -25,19 +28,23 @@ FireInfo FireInfoRegistry::getFireInfo(u32 blockId) const {
     return FireInfo(0, 0);
 }
 
-i32 FireInfoRegistry::getFlammability(u32 blockId) const {
+i32 FireInfoRegistry::getFlammability(u32 blockId) const
+{
     return getFireInfo(blockId).flammability;
 }
 
-i32 FireInfoRegistry::getEncouragement(u32 blockId) const {
+i32 FireInfoRegistry::getEncouragement(u32 blockId) const
+{
     return getFireInfo(blockId).encouragement;
 }
 
-void FireInfoRegistry::clear() {
+void FireInfoRegistry::clear()
+{
     m_fireInfos.clear();
 }
 
-void FireInfoRegistry::initializeVanillaFireInfos() {
+void FireInfoRegistry::initializeVanillaFireInfos()
+{
     // 参考 MC 1.16.5: net.minecraft.block.FireBlock.init()
     // 参数: encouragement (蔓延速度), flammability (可燃性)
     // 可燃性范围: 0-300，值越高越容易被点燃和烧毁

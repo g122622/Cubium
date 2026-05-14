@@ -33,10 +33,7 @@ public:
      * @param attackSpeed 攻击速度修正（通常为 -3.0）
      * @param properties 物品属性
      */
-    AxeItem(const tier::IItemTier& tier,
-            f32 attackDamage,
-            f32 attackSpeed,
-            ItemProperties properties);
+    AxeItem(const tier::IItemTier& tier, f32 attackDamage, f32 attackSpeed, ItemProperties properties);
 
     ~AxeItem() override = default;
 
@@ -62,8 +59,7 @@ public:
      * @param state 目标方块状态
      * @return 挖掘速度倍率
      */
-    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
-                                        const BlockState& state) const override;
+    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
 
     /**
      * @brief 获取去皮后的方块

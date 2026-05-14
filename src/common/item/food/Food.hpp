@@ -2,14 +2,14 @@
 
 #include "../../core/Types.hpp"
 #include "../../entity/effect/EffectType.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
 // Forward declarations
 namespace entity::effect {
-    class EffectInstance;
+class EffectInstance;
 }
 
 namespace item::food {
@@ -20,10 +20,10 @@ namespace item::food {
  * 描述食物可能给予的药水效果。
  */
 struct FoodEffect {
-    entity::effect::EffectType type;    ///< 效果类型
-    i32 duration = 0;                    ///< 持续时间（ticks）
-    i32 amplifier = 0;                   ///< 效果等级（0 = I, 1 = II, 等）
-    f32 probability = 1.0f;              ///< 触发概率 (0.0 - 1.0)
+    entity::effect::EffectType type; ///< 效果类型
+    i32 duration = 0;                ///< 持续时间（ticks）
+    i32 amplifier = 0;               ///< 效果等级（0 = I, 1 = II, 等）
+    f32 probability = 1.0f;          ///< 触发概率 (0.0 - 1.0)
 };
 
 /**
@@ -58,7 +58,8 @@ public:
      * @param isMeat 是否为肉类
      * @note 肉类食物可以喂给狼
      */
-    Food& setMeat(bool isMeat = true) {
+    Food& setMeat(bool isMeat = true)
+    {
         m_isMeat = isMeat;
         return *this;
     }
@@ -68,7 +69,8 @@ public:
      * @param fastEat 是否快速食用
      * @note 快速食用时间为16ticks，普通为32ticks
      */
-    Food& setFastEat(bool fastEat = true) {
+    Food& setFastEat(bool fastEat = true)
+    {
         m_fastEat = fastEat;
         return *this;
     }
@@ -78,7 +80,8 @@ public:
      * @param alwaysEdible 是否总是可食用
      * @note 金苹果等特殊食物需要此属性
      */
-    Food& setAlwaysEdible(bool alwaysEdible = true) {
+    Food& setAlwaysEdible(bool alwaysEdible = true)
+    {
         m_alwaysEdible = alwaysEdible;
         return *this;
     }
@@ -91,7 +94,8 @@ public:
      * @param probability 触发概率 (0.0 - 1.0)
      * @note 可以添加多个效果
      */
-    Food& addEffect(entity::effect::EffectType type, i32 duration, i32 amplifier, f32 probability) {
+    Food& addEffect(entity::effect::EffectType type, i32 duration, i32 amplifier, f32 probability)
+    {
         m_effects.push_back({type, duration, amplifier, probability});
         return *this;
     }
@@ -102,7 +106,8 @@ public:
      * @param duration 持续时间（ticks）
      * @param amplifier 效果等级（0 = I, 1 = II, 等）
      */
-    Food& addEffect(entity::effect::EffectType type, i32 duration, i32 amplifier) {
+    Food& addEffect(entity::effect::EffectType type, i32 duration, i32 amplifier)
+    {
         return addEffect(type, duration, amplifier, 1.0f);
     }
 
@@ -145,12 +150,12 @@ public:
     [[nodiscard]] bool hasEffects() const { return !m_effects.empty(); }
 
 private:
-    i32 m_hunger;                              ///< 恢复的饥饿值
-    f32 m_saturationModifier;                  ///< 饱和度修正值
-    bool m_isMeat = false;                     ///< 是否为肉类
-    bool m_fastEat = false;                    ///< 是否快速食用
-    bool m_alwaysEdible = false;               ///< 是否总是可食用
-    std::vector<FoodEffect> m_effects;         ///< 药水效果列表
+    i32 m_hunger;                      ///< 恢复的饥饿值
+    f32 m_saturationModifier;          ///< 饱和度修正值
+    bool m_isMeat = false;             ///< 是否为肉类
+    bool m_fastEat = false;            ///< 是否快速食用
+    bool m_alwaysEdible = false;       ///< 是否总是可食用
+    std::vector<FoodEffect> m_effects; ///< 药水效果列表
 };
 
 } // namespace item::food

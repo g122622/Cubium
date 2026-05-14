@@ -1,16 +1,17 @@
 #include "item/crafting/special/RepairItemRecipe.hpp"
-#include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/enchantment/EnchantmentContainer.hpp"
+#include "item/enchantment/EnchantmentHelper.hpp"
 #include <algorithm>
 
 namespace mc {
 namespace crafting {
 
 RepairItemRecipe::RepairItemRecipe(const ResourceLocation& id)
-    : SpecialRecipe(id) {
-}
+    : SpecialRecipe(id)
+{}
 
-bool RepairItemRecipe::matches(const CraftingInventory& inventory) const {
+bool RepairItemRecipe::matches(const CraftingInventory& inventory) const
+{
     // 收集所有非空的可修复物品
     std::vector<ItemStack> repairableItems;
 
@@ -19,7 +20,7 @@ bool RepairItemRecipe::matches(const CraftingInventory& inventory) const {
         if (!stack.isEmpty()) {
             // 检查物品是否可修复
             if (!stack.isDamageable() || stack.getCount() != 1) {
-                return false;  // 有不可修复的物品或堆叠数量不为1
+                return false; // 有不可修复的物品或堆叠数量不为1
             }
             repairableItems.push_back(stack);
         }
@@ -34,7 +35,8 @@ bool RepairItemRecipe::matches(const CraftingInventory& inventory) const {
     return repairableItems[0].getItem() == repairableItems[1].getItem();
 }
 
-ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const {
+ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const
+{
     // 收集所有非空的可修复物品
     std::vector<ItemStack> repairableItems;
 
@@ -65,7 +67,7 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const {
     i32 maxDamage = stack1.getMaxDamage();
     i32 remaining1 = maxDamage - stack1.getDamage();
     i32 remaining2 = maxDamage - stack2.getDamage();
-    i32 bonus = maxDamage * 5 / 100;  // 5% 额外修复
+    i32 bonus = maxDamage * 5 / 100; // 5% 额外修复
     i32 totalRemaining = remaining1 + remaining2 + bonus;
     i32 newDamage = std::max(0, maxDamage - totalRemaining);
 
@@ -83,8 +85,9 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const {
     for (const auto& [enchant, level] : enchants1) {
         if (enchant != nullptr && enchant->isCurse()) {
             // 检查是否已在列表中
-            auto it = std::find_if(combinedEnchants.begin(), combinedEnchants.end(),
-                [enchant](const EnchantEntry& e) { return e.first == enchant; });
+            auto it = std::find_if(combinedEnchants.begin(), combinedEnchants.end(), [enchant](const EnchantEntry& e) {
+                return e.first == enchant;
+            });
 
             if (it != combinedEnchants.end()) {
                 it->second = std::max(it->second, level);
@@ -96,8 +99,9 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const {
 
     for (const auto& [enchant, level] : enchants2) {
         if (enchant != nullptr && enchant->isCurse()) {
-            auto it = std::find_if(combinedEnchants.begin(), combinedEnchants.end(),
-                [enchant](const EnchantEntry& e) { return e.first == enchant; });
+            auto it = std::find_if(combinedEnchants.begin(), combinedEnchants.end(), [enchant](const EnchantEntry& e) {
+                return e.first == enchant;
+            });
 
             if (it != combinedEnchants.end()) {
                 it->second = std::max(it->second, level);
@@ -117,7 +121,8 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const {
     return result;
 }
 
-std::vector<ItemStack> RepairItemRecipe::getRemainingItems(const CraftingInventory& inventory) const {
+std::vector<ItemStack> RepairItemRecipe::getRemainingItems(const CraftingInventory& inventory) const
+{
     // 修复配方消耗所有输入物品，没有剩余物品
     return std::vector<ItemStack>(inventory.getContainerSize());
 }

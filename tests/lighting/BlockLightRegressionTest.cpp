@@ -1,15 +1,16 @@
 #include <gtest/gtest.h>
 
+#include "common/core/Constants.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/core/Constants.hpp"
 
 namespace {
 
-void ensureVanillaBlocksInitialized() {
+void ensureVanillaBlocksInitialized()
+{
     static bool initialized = false;
     if (!initialized) {
         mc::VanillaBlocks::initialize();
@@ -21,14 +22,13 @@ class BlockLightChunkProvider : public mc::StarLightLightingProvider {
 public:
     BlockLightChunkProvider(mc::i32 minBuildHeight, mc::i32 maxBuildHeight)
         : m_minBuildHeight(minBuildHeight)
-        , m_maxBuildHeight(maxBuildHeight) {
-    }
+        , m_maxBuildHeight(maxBuildHeight)
+    {}
 
-    void setChunk(mc::ChunkData* chunk) {
-        m_chunk = chunk;
-    }
+    void setChunk(mc::ChunkData* chunk) { m_chunk = chunk; }
 
-    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override {
+    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
+    {
         if (m_chunk == nullptr) {
             return nullptr;
         }
@@ -38,7 +38,8 @@ public:
         return m_chunk;
     }
 
-    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override {
+    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override
+    {
         if (m_chunk == nullptr) {
             return nullptr;
         }
@@ -48,7 +49,8 @@ public:
         return m_chunk;
     }
 
-    const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override {
+    const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override
+    {
         if (m_chunk == nullptr) {
             return nullptr;
         }
@@ -58,32 +60,19 @@ public:
         return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
 
-    mc::IWorld* getWorld() override {
-        return nullptr;
-    }
+    mc::IWorld* getWorld() override { return nullptr; }
 
-    const mc::IWorld* getWorld() const override {
-        return nullptr;
-    }
+    const mc::IWorld* getWorld() const override { return nullptr; }
 
-    void markLightChanged(mc::LightType, const mc::SectionPos&) override {
-    }
+    void markLightChanged(mc::LightType, const mc::SectionPos&) override {}
 
-    bool hasSkyLight() const override {
-        return false;
-    }
+    bool hasSkyLight() const override { return false; }
 
-    mc::i32 getMinBuildHeight() const override {
-        return m_minBuildHeight;
-    }
+    mc::i32 getMinBuildHeight() const override { return m_minBuildHeight; }
 
-    mc::i32 getMaxBuildHeight() const override {
-        return m_maxBuildHeight;
-    }
+    mc::i32 getMaxBuildHeight() const override { return m_maxBuildHeight; }
 
-    mc::i32 getSectionCount() const override {
-        return (m_maxBuildHeight - m_minBuildHeight) >> 4;
-    }
+    mc::i32 getSectionCount() const override { return (m_maxBuildHeight - m_minBuildHeight) >> 4; }
 
 private:
     mc::ChunkData* m_chunk = nullptr;
@@ -92,7 +81,8 @@ private:
 };
 
 // 测试1：发光方块传播光照到相邻方块
-TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors) {
+TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors)
+{
     ensureVanillaBlocksInitialized();
 
     BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
@@ -126,7 +116,8 @@ TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors) {
 }
 
 // 测试2：发光方块移除后光照变暗
-TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
+TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells)
+{
     ensureVanillaBlocksInitialized();
 
     BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
@@ -165,7 +156,8 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
 }
 
 // 测试3：插入不透明方块减少后方光照
-TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
+TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight)
+{
     ensureVanillaBlocksInitialized();
 
     BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
@@ -201,7 +193,8 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
 }
 
 // 测试4：移除不透明方块恢复后方光照
-TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
+TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight)
+{
     ensureVanillaBlocksInitialized();
 
     BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
@@ -238,7 +231,8 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
 }
 
 // 测试5：发光事件排队传播
-TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation) {
+TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation)
+{
     ensureVanillaBlocksInitialized();
 
     BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
@@ -265,7 +259,8 @@ TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation) {
 }
 
 // 测试6：验证 checkBlock 基本功能
-TEST(BlockLightRegressionTest, CheckBlockMatchesCheckBlock) {
+TEST(BlockLightRegressionTest, CheckBlockMatchesCheckBlock)
+{
     ensureVanillaBlocksInitialized();
 
     BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);

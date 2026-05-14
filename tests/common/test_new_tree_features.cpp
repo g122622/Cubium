@@ -7,24 +7,24 @@
  * 和 TrunkPlacer 的基本行为。
  */
 
-#include <gtest/gtest.h>
-#include "world/gen/feature/FeatureSpread.hpp"
-#include "world/gen/feature/FeatureIds.hpp"
-#include "world/gen/feature/tree/trunk/TrunkPlacer.hpp"
-#include "world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
-#include "world/gen/feature/tree/trunk/TrunkPlacers.hpp"
-#include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
-#include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
-#include "world/gen/feature/tree/foliage/FoliagePlacers.hpp"
-#include "world/gen/feature/tree/TreeFeature.hpp"
-#include "world/gen/feature/vegetation/BigMushroomFeature.hpp"
-#include "world/gen/feature/fungus/HugeFungusFeature.hpp"
-#include "world/gen/feature/ore/OreFeature.hpp"
-#include "world/gen/feature/ConfiguredFeature.hpp"
+#include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
-#include "util/math/MathUtils.hpp"
+#include "world/gen/feature/ConfiguredFeature.hpp"
+#include "world/gen/feature/FeatureIds.hpp"
+#include "world/gen/feature/FeatureSpread.hpp"
+#include "world/gen/feature/fungus/HugeFungusFeature.hpp"
+#include "world/gen/feature/ore/OreFeature.hpp"
+#include "world/gen/feature/tree/TreeFeature.hpp"
+#include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
+#include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
+#include "world/gen/feature/tree/foliage/FoliagePlacers.hpp"
+#include "world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
+#include "world/gen/feature/tree/trunk/TrunkPlacer.hpp"
+#include "world/gen/feature/tree/trunk/TrunkPlacers.hpp"
+#include "world/gen/feature/vegetation/BigMushroomFeature.hpp"
 #include <map>
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -34,12 +34,11 @@ using namespace mc;
 
 class NewTreeFeatureConfigTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
-        VanillaBlocks::initialize();
-    }
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(NewTreeFeatureConfigTest, FancyOakConfig) {
+TEST_F(NewTreeFeatureConfigTest, FancyOakConfig)
+{
     auto feature = TreeFeatures::createFancyOakTree();
     ASSERT_NE(feature, nullptr);
 
@@ -56,7 +55,8 @@ TEST_F(NewTreeFeatureConfigTest, FancyOakConfig) {
     EXPECT_STREQ(feature->name(), "fancy_oak_tree");
 }
 
-TEST_F(NewTreeFeatureConfigTest, PineConfig) {
+TEST_F(NewTreeFeatureConfigTest, PineConfig)
+{
     auto feature = TreeFeatures::createPineTree();
     ASSERT_NE(feature, nullptr);
 
@@ -73,7 +73,8 @@ TEST_F(NewTreeFeatureConfigTest, PineConfig) {
     EXPECT_STREQ(feature->name(), "pine_tree");
 }
 
-TEST_F(NewTreeFeatureConfigTest, JungleBushConfig) {
+TEST_F(NewTreeFeatureConfigTest, JungleBushConfig)
+{
     auto feature = TreeFeatures::createJungleBush();
     ASSERT_NE(feature, nullptr);
 
@@ -91,7 +92,8 @@ TEST_F(NewTreeFeatureConfigTest, JungleBushConfig) {
     EXPECT_STREQ(feature->name(), "jungle_bush");
 }
 
-TEST_F(NewTreeFeatureConfigTest, SwampTreeConfig) {
+TEST_F(NewTreeFeatureConfigTest, SwampTreeConfig)
+{
     auto feature = TreeFeatures::createSwampTree();
     ASSERT_NE(feature, nullptr);
 
@@ -110,7 +112,8 @@ TEST_F(NewTreeFeatureConfigTest, SwampTreeConfig) {
     EXPECT_STREQ(feature->name(), "swamp_tree");
 }
 
-TEST_F(NewTreeFeatureConfigTest, MegaPineConfig) {
+TEST_F(NewTreeFeatureConfigTest, MegaPineConfig)
+{
     auto feature = TreeFeatures::createMegaPineTree();
     ASSERT_NE(feature, nullptr);
 
@@ -127,7 +130,8 @@ TEST_F(NewTreeFeatureConfigTest, MegaPineConfig) {
     EXPECT_STREQ(feature->name(), "mega_pine_tree");
 }
 
-TEST_F(NewTreeFeatureConfigTest, TallBirchConfig) {
+TEST_F(NewTreeFeatureConfigTest, TallBirchConfig)
+{
     auto feature = TreeFeatures::createTallBirchTree();
     ASSERT_NE(feature, nullptr);
 
@@ -148,7 +152,8 @@ TEST_F(NewTreeFeatureConfigTest, TallBirchConfig) {
 // TreeFeatureConfig 深拷贝测试
 // ============================================================================
 
-TEST_F(NewTreeFeatureConfigTest, DeepCopyPreservesTrunkPlacer) {
+TEST_F(NewTreeFeatureConfigTest, DeepCopyPreservesTrunkPlacer)
+{
     auto feature = TreeFeatures::createFancyOakTree();
     ASSERT_NE(feature, nullptr);
     const TreeFeatureConfig& original = feature->getConfig();
@@ -173,215 +178,156 @@ TEST_F(NewTreeFeatureConfigTest, DeepCopyPreservesTrunkPlacer) {
 
 class NewFoliagePlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        random = std::make_unique<math::Random>(54321);
-    }
+    void SetUp() override { random = std::make_unique<math::Random>(54321); }
 
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(NewFoliagePlacerTest, PineFoliagePlacerName) {
-    PineFoliagePlacer placer(
-        FeatureSpread::spread(1, 1),
-        FeatureSpread::fixed(1),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, PineFoliagePlacerName)
+{
+    PineFoliagePlacer placer(FeatureSpread::spread(1, 1), FeatureSpread::fixed(1), 4);
     EXPECT_STREQ(placer.name(), "pine");
 }
 
-TEST_F(NewFoliagePlacerTest, PineFoliagePlacerHeight) {
-    PineFoliagePlacer placer(
-        FeatureSpread::spread(1, 1),
-        FeatureSpread::fixed(1),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, PineFoliagePlacerHeight)
+{
+    PineFoliagePlacer placer(FeatureSpread::spread(1, 1), FeatureSpread::fixed(1), 4);
     // Pine foliage height should be reasonable
     i32 height = placer.getFoliageHeight(*random, 6);
     EXPECT_GT(height, 0);
 }
 
-TEST_F(NewFoliagePlacerTest, PineFoliagePlacerClone) {
-    PineFoliagePlacer placer(
-        FeatureSpread::spread(1, 1),
-        FeatureSpread::fixed(1),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, PineFoliagePlacerClone)
+{
+    PineFoliagePlacer placer(FeatureSpread::spread(1, 1), FeatureSpread::fixed(1), 4);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "pine");
 }
 
-TEST_F(NewFoliagePlacerTest, SpruceFoliagePlacerName) {
-    SpruceFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        2
-    );
+TEST_F(NewFoliagePlacerTest, SpruceFoliagePlacerName)
+{
+    SpruceFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     EXPECT_STREQ(placer.name(), "spruce");
 }
 
-TEST_F(NewFoliagePlacerTest, SpruceFoliagePlacerHeight) {
-    SpruceFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        2
-    );
+TEST_F(NewFoliagePlacerTest, SpruceFoliagePlacerHeight)
+{
+    SpruceFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     i32 height = placer.getFoliageHeight(*random, 6);
     EXPECT_GT(height, 0);
 }
 
-TEST_F(NewFoliagePlacerTest, SpruceFoliagePlacerClone) {
-    SpruceFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        2
-    );
+TEST_F(NewFoliagePlacerTest, SpruceFoliagePlacerClone)
+{
+    SpruceFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "spruce");
 }
 
-TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerName) {
-    AcaciaFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerName)
+{
+    AcaciaFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     EXPECT_STREQ(placer.name(), "acacia");
 }
 
-TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerHeight) {
-    AcaciaFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerHeight)
+{
+    AcaciaFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     // MC 1.16.5: Acacia foliage is flat (getFoliageHeight returns 0)
     i32 height = placer.getFoliageHeight(*random, 6);
     EXPECT_EQ(height, 0);
 }
 
-TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerClone) {
-    AcaciaFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerClone)
+{
+    AcaciaFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "acacia");
 }
 
-TEST_F(NewFoliagePlacerTest, DarkOakFoliagePlacerName) {
-    DarkOakFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, DarkOakFoliagePlacerName)
+{
+    DarkOakFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 4);
     EXPECT_STREQ(placer.name(), "dark_oak");
 }
 
-TEST_F(NewFoliagePlacerTest, DarkOakFoliagePlacerClone) {
-    DarkOakFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, DarkOakFoliagePlacerClone)
+{
+    DarkOakFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 4);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "dark_oak");
 }
 
-TEST_F(NewFoliagePlacerTest, JungleFoliagePlacerName) {
-    JungleFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        2
-    );
+TEST_F(NewFoliagePlacerTest, JungleFoliagePlacerName)
+{
+    JungleFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     EXPECT_STREQ(placer.name(), "jungle");
 }
 
-TEST_F(NewFoliagePlacerTest, JungleFoliagePlacerClone) {
-    JungleFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        2
-    );
+TEST_F(NewFoliagePlacerTest, JungleFoliagePlacerClone)
+{
+    JungleFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "jungle");
 }
 
-TEST_F(NewFoliagePlacerTest, MegaPineFoliagePlacerName) {
-    MegaPineFoliagePlacer placer(
-        FeatureSpread::spread(3, 2),
-        FeatureSpread::fixed(0),
-        8
-    );
+TEST_F(NewFoliagePlacerTest, MegaPineFoliagePlacerName)
+{
+    MegaPineFoliagePlacer placer(FeatureSpread::spread(3, 2), FeatureSpread::fixed(0), 8);
     EXPECT_STREQ(placer.name(), "mega_pine");
 }
 
-TEST_F(NewFoliagePlacerTest, MegaPineFoliagePlacerClone) {
-    MegaPineFoliagePlacer placer(
-        FeatureSpread::spread(3, 2),
-        FeatureSpread::fixed(0),
-        8
-    );
+TEST_F(NewFoliagePlacerTest, MegaPineFoliagePlacerClone)
+{
+    MegaPineFoliagePlacer placer(FeatureSpread::spread(3, 2), FeatureSpread::fixed(0), 8);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "mega_pine");
 }
 
-TEST_F(NewFoliagePlacerTest, BushFoliagePlacerName) {
-    BushFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+TEST_F(NewFoliagePlacerTest, BushFoliagePlacerName)
+{
+    BushFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     EXPECT_STREQ(placer.name(), "bush");
 }
 
-TEST_F(NewFoliagePlacerTest, BushFoliagePlacerHeight) {
-    BushFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+TEST_F(NewFoliagePlacerTest, BushFoliagePlacerHeight)
+{
+    BushFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     // Bush foliage should be single-layer (height 1)
     i32 height = placer.getFoliageHeight(*random, 1);
     EXPECT_GE(height, 1);
 }
 
-TEST_F(NewFoliagePlacerTest, BushFoliagePlacerClone) {
-    BushFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0)
-    );
+TEST_F(NewFoliagePlacerTest, BushFoliagePlacerClone)
+{
+    BushFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0));
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "bush");
 }
 
-TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerName) {
-    FancyFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerName)
+{
+    FancyFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 4);
     EXPECT_STREQ(placer.name(), "fancy");
 }
 
-TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerHeight) {
-    FancyFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerHeight)
+{
+    FancyFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 4);
     i32 height = placer.getFoliageHeight(*random, 10);
     EXPECT_GT(height, 0);
 }
 
-TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerClone) {
-    FancyFoliagePlacer placer(
-        FeatureSpread::spread(2, 1),
-        FeatureSpread::fixed(0),
-        4
-    );
+TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerClone)
+{
+    FancyFoliagePlacer placer(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 4);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "fancy");
@@ -393,19 +339,19 @@ TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerClone) {
 
 class NewTrunkPlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        random = std::make_unique<math::Random>(99999);
-    }
+    void SetUp() override { random = std::make_unique<math::Random>(99999); }
 
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(NewTrunkPlacerTest, FancyTrunkPlacerName) {
+TEST_F(NewTrunkPlacerTest, FancyTrunkPlacerName)
+{
     FancyTrunkPlacer placer(3, 11, 0);
     EXPECT_STREQ(placer.name(), "fancy");
 }
 
-TEST_F(NewTrunkPlacerTest, FancyTrunkPlacerHeight) {
+TEST_F(NewTrunkPlacerTest, FancyTrunkPlacerHeight)
+{
     FancyTrunkPlacer placer(3, 11, 0);
     // Height range: 3 + [0,11] + [0,0] = 3-14
     for (int i = 0; i < 100; ++i) {
@@ -415,19 +361,22 @@ TEST_F(NewTrunkPlacerTest, FancyTrunkPlacerHeight) {
     }
 }
 
-TEST_F(NewTrunkPlacerTest, FancyTrunkPlacerClone) {
+TEST_F(NewTrunkPlacerTest, FancyTrunkPlacerClone)
+{
     FancyTrunkPlacer placer(3, 11, 0);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "fancy");
 }
 
-TEST_F(NewTrunkPlacerTest, ForkyTrunkPlacerName) {
+TEST_F(NewTrunkPlacerTest, ForkyTrunkPlacerName)
+{
     ForkyTrunkPlacer placer(5, 2, 1);
     EXPECT_STREQ(placer.name(), "forky");
 }
 
-TEST_F(NewTrunkPlacerTest, ForkyTrunkPlacerHeight) {
+TEST_F(NewTrunkPlacerTest, ForkyTrunkPlacerHeight)
+{
     ForkyTrunkPlacer placer(5, 2, 1);
     // Height range: 5 + [0,2] + [0,1] = 5-8
     for (int i = 0; i < 100; ++i) {
@@ -437,19 +386,22 @@ TEST_F(NewTrunkPlacerTest, ForkyTrunkPlacerHeight) {
     }
 }
 
-TEST_F(NewTrunkPlacerTest, ForkyTrunkPlacerClone) {
+TEST_F(NewTrunkPlacerTest, ForkyTrunkPlacerClone)
+{
     ForkyTrunkPlacer placer(5, 2, 1);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "forky");
 }
 
-TEST_F(NewTrunkPlacerTest, DarkOakTrunkPlacerName) {
+TEST_F(NewTrunkPlacerTest, DarkOakTrunkPlacerName)
+{
     DarkOakTrunkPlacer placer(6, 3, 1);
     EXPECT_STREQ(placer.name(), "dark_oak");
 }
 
-TEST_F(NewTrunkPlacerTest, DarkOakTrunkPlacerHeight) {
+TEST_F(NewTrunkPlacerTest, DarkOakTrunkPlacerHeight)
+{
     DarkOakTrunkPlacer placer(6, 3, 1);
     // Height range: 6 + [0,3] + [0,1] = 6-10
     for (int i = 0; i < 100; ++i) {
@@ -459,19 +411,22 @@ TEST_F(NewTrunkPlacerTest, DarkOakTrunkPlacerHeight) {
     }
 }
 
-TEST_F(NewTrunkPlacerTest, DarkOakTrunkPlacerClone) {
+TEST_F(NewTrunkPlacerTest, DarkOakTrunkPlacerClone)
+{
     DarkOakTrunkPlacer placer(6, 3, 1);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "dark_oak");
 }
 
-TEST_F(NewTrunkPlacerTest, GiantTrunkPlacerName) {
+TEST_F(NewTrunkPlacerTest, GiantTrunkPlacerName)
+{
     GiantTrunkPlacer placer(13, 5, 3);
     EXPECT_STREQ(placer.name(), "giant");
 }
 
-TEST_F(NewTrunkPlacerTest, GiantTrunkPlacerHeight) {
+TEST_F(NewTrunkPlacerTest, GiantTrunkPlacerHeight)
+{
     GiantTrunkPlacer placer(13, 5, 3);
     // Height range: 13 + [0,5] + [0,3] = 13-21
     for (int i = 0; i < 100; ++i) {
@@ -481,19 +436,22 @@ TEST_F(NewTrunkPlacerTest, GiantTrunkPlacerHeight) {
     }
 }
 
-TEST_F(NewTrunkPlacerTest, GiantTrunkPlacerClone) {
+TEST_F(NewTrunkPlacerTest, GiantTrunkPlacerClone)
+{
     GiantTrunkPlacer placer(13, 5, 3);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "giant");
 }
 
-TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerName) {
+TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerName)
+{
     MegaJungleTrunkPlacer placer(10, 8, 5);
     EXPECT_STREQ(placer.name(), "mega_jungle");
 }
 
-TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerHeight) {
+TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerHeight)
+{
     MegaJungleTrunkPlacer placer(10, 8, 5);
     // Height range: 10 + [0,8] + [0,5] = 10-23
     for (int i = 0; i < 100; ++i) {
@@ -503,7 +461,8 @@ TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerHeight) {
     }
 }
 
-TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerClone) {
+TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerClone)
+{
     MegaJungleTrunkPlacer placer(10, 8, 5);
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
@@ -516,19 +475,19 @@ TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerClone) {
 
 class TreeFeaturesRegistrationTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
-        VanillaBlocks::initialize();
-    }
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(TreeFeaturesRegistrationTest, InitializeCreates15Features) {
+TEST_F(TreeFeaturesRegistrationTest, InitializeCreates15Features)
+{
     TreeFeatures::initialize();
     const auto& features = TreeFeatures::getAllFeatures();
     EXPECT_EQ(features.size(), TreeFeatureIds::Count);
     EXPECT_EQ(features.size(), 15u);
 }
 
-TEST_F(TreeFeaturesRegistrationTest, FeatureNamesMatchRegistrationOrder) {
+TEST_F(TreeFeaturesRegistrationTest, FeatureNamesMatchRegistrationOrder)
+{
     TreeFeatures::initialize();
     const auto& features = TreeFeatures::getAllFeatures();
 
@@ -551,7 +510,8 @@ TEST_F(TreeFeaturesRegistrationTest, FeatureNamesMatchRegistrationOrder) {
     EXPECT_STREQ(features[TreeFeatureIds::TallBirchTree]->name(), "tall_birch_tree");
 }
 
-TEST_F(TreeFeaturesRegistrationTest, AllFeaturesHaveValidConfigs) {
+TEST_F(TreeFeaturesRegistrationTest, AllFeaturesHaveValidConfigs)
+{
     TreeFeatures::initialize();
     const auto& features = TreeFeatures::getAllFeatures();
 
@@ -566,7 +526,8 @@ TEST_F(TreeFeaturesRegistrationTest, AllFeaturesHaveValidConfigs) {
     }
 }
 
-TEST_F(TreeFeaturesRegistrationTest, AllFeaturesAreVegetalDecoration) {
+TEST_F(TreeFeaturesRegistrationTest, AllFeaturesAreVegetalDecoration)
+{
     TreeFeatures::initialize();
     const auto& features = TreeFeatures::getAllFeatures();
 
@@ -582,12 +543,11 @@ TEST_F(TreeFeaturesRegistrationTest, AllFeaturesAreVegetalDecoration) {
 
 class NewBlockRegistrationTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
-        VanillaBlocks::initialize();
-    }
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(NewBlockRegistrationTest, FlowerBlocks) {
+TEST_F(NewBlockRegistrationTest, FlowerBlocks)
+{
     EXPECT_NE(VanillaBlocks::LILY_OF_THE_VALLEY, nullptr);
     EXPECT_NE(VanillaBlocks::SUNFLOWER, nullptr);
     EXPECT_NE(VanillaBlocks::LILAC, nullptr);
@@ -597,18 +557,21 @@ TEST_F(NewBlockRegistrationTest, FlowerBlocks) {
     EXPECT_NE(VanillaBlocks::WITHER_ROSE, nullptr);
 }
 
-TEST_F(NewBlockRegistrationTest, MushroomBlocks) {
+TEST_F(NewBlockRegistrationTest, MushroomBlocks)
+{
     EXPECT_NE(VanillaBlocks::BROWN_MUSHROOM_BLOCK, nullptr);
     EXPECT_NE(VanillaBlocks::RED_MUSHROOM_BLOCK, nullptr);
     EXPECT_NE(VanillaBlocks::MUSHROOM_STEM, nullptr);
 }
 
-TEST_F(NewBlockRegistrationTest, UtilityBlocks) {
+TEST_F(NewBlockRegistrationTest, UtilityBlocks)
+{
     EXPECT_NE(VanillaBlocks::FARMLAND, nullptr);
     EXPECT_NE(VanillaBlocks::RED_SAND, nullptr);
 }
 
-TEST_F(NewBlockRegistrationTest, NetherBlocks) {
+TEST_F(NewBlockRegistrationTest, NetherBlocks)
+{
     EXPECT_NE(VanillaBlocks::CRIMSON_STEM, nullptr);
     EXPECT_NE(VanillaBlocks::WARPED_STEM, nullptr);
     EXPECT_NE(VanillaBlocks::CRIMSON_NYLIUM, nullptr);
@@ -620,7 +583,8 @@ TEST_F(NewBlockRegistrationTest, NetherBlocks) {
     EXPECT_NE(VanillaBlocks::TWISTING_VINES, nullptr);
 }
 
-TEST_F(NewBlockRegistrationTest, AllNewBlocksHaveDefaultState) {
+TEST_F(NewBlockRegistrationTest, AllNewBlocksHaveDefaultState)
+{
     // Flower blocks
     ASSERT_NE(VanillaBlocks::LILY_OF_THE_VALLEY, nullptr);
     EXPECT_NO_THROW(VanillaBlocks::LILY_OF_THE_VALLEY->defaultState());
@@ -652,24 +616,25 @@ TEST_F(NewBlockRegistrationTest, AllNewBlocksHaveDefaultState) {
 
 class BigMushroomFeatureTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
-        VanillaBlocks::initialize();
-    }
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(BigMushroomFeatureTest, BrownMushroomConfigUsesCorrectBlocks) {
+TEST_F(BigMushroomFeatureTest, BrownMushroomConfigUsesCorrectBlocks)
+{
     auto feature = BigMushroomFeatures::createBrownMushroom();
     ASSERT_NE(feature, nullptr);
     EXPECT_STREQ(feature->name(), "brown_mushroom");
 }
 
-TEST_F(BigMushroomFeatureTest, RedMushroomConfigUsesCorrectBlocks) {
+TEST_F(BigMushroomFeatureTest, RedMushroomConfigUsesCorrectBlocks)
+{
     auto feature = BigMushroomFeatures::createRedMushroom();
     ASSERT_NE(feature, nullptr);
     EXPECT_STREQ(feature->name(), "red_mushroom");
 }
 
-TEST_F(BigMushroomFeatureTest, InitializeCreatesTwoFeatures) {
+TEST_F(BigMushroomFeatureTest, InitializeCreatesTwoFeatures)
+{
     BigMushroomFeatures::initialize();
     const auto& features = BigMushroomFeatures::getAllFeatures();
     EXPECT_EQ(features.size(), MushroomFeatureIds::Count);
@@ -682,35 +647,38 @@ TEST_F(BigMushroomFeatureTest, InitializeCreatesTwoFeatures) {
 
 class HugeFungusFeatureTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
-        VanillaBlocks::initialize();
-    }
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(HugeFungusFeatureTest, CrimsonFungusConfig) {
+TEST_F(HugeFungusFeatureTest, CrimsonFungusConfig)
+{
     auto feature = HugeFungusFeatures::createCrimson();
     ASSERT_NE(feature, nullptr);
     EXPECT_STREQ(feature->name(), "crimson_fungus");
 }
 
-TEST_F(HugeFungusFeatureTest, WarpedFungusConfig) {
+TEST_F(HugeFungusFeatureTest, WarpedFungusConfig)
+{
     auto feature = HugeFungusFeatures::createWarped();
     ASSERT_NE(feature, nullptr);
     EXPECT_STREQ(feature->name(), "warped_fungus");
 }
 
-TEST_F(HugeFungusFeatureTest, InitializeCreatesTwoFeatures) {
+TEST_F(HugeFungusFeatureTest, InitializeCreatesTwoFeatures)
+{
     HugeFungusFeatures::initialize();
     const auto& features = HugeFungusFeatures::getAllFeatures();
     EXPECT_EQ(features.size(), 2u);
 }
 
-TEST_F(HugeFungusFeatureTest, FungusTypeEnum) {
+TEST_F(HugeFungusFeatureTest, FungusTypeEnum)
+{
     // Verify enum values exist
     EXPECT_NE(static_cast<int>(FungusType::Crimson), static_cast<int>(FungusType::Warped));
 }
 
-TEST_F(HugeFungusFeatureTest, FungusConfigDefaults) {
+TEST_F(HugeFungusFeatureTest, FungusConfigDefaults)
+{
     HugeFungusFeatureConfig config;
     EXPECT_EQ(config.fungusType, FungusType::Crimson);
     EXPECT_EQ(config.minHeight, 4);
@@ -719,7 +687,8 @@ TEST_F(HugeFungusFeatureTest, FungusConfigDefaults) {
     EXPECT_EQ(config.planted, false);
 }
 
-TEST_F(HugeFungusFeatureTest, FungusConfigExplicit) {
+TEST_F(HugeFungusFeatureTest, FungusConfigExplicit)
+{
     HugeFungusFeatureConfig config(FungusType::Warped, 5, 15, 3, true);
     EXPECT_EQ(config.fungusType, FungusType::Warped);
     EXPECT_EQ(config.minHeight, 5);
@@ -734,37 +703,40 @@ TEST_F(HugeFungusFeatureTest, FungusConfigExplicit) {
 
 class NetherOreFeatureTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
-        VanillaBlocks::initialize();
-    }
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(NetherOreFeatureTest, NetherQuartzOreCreation) {
+TEST_F(NetherOreFeatureTest, NetherQuartzOreCreation)
+{
     auto feature = OreFeatures::createNetherQuartzOre();
     ASSERT_NE(feature, nullptr);
     EXPECT_STREQ(feature->name(), "nether_quartz_ore");
 }
 
-TEST_F(NetherOreFeatureTest, NetherGoldOreCreation) {
+TEST_F(NetherOreFeatureTest, NetherGoldOreCreation)
+{
     auto feature = OreFeatures::createNetherGoldOre();
     ASSERT_NE(feature, nullptr);
     EXPECT_STREQ(feature->name(), "nether_gold_ore");
 }
 
-TEST_F(NetherOreFeatureTest, AncientDebrisCreation) {
+TEST_F(NetherOreFeatureTest, AncientDebrisCreation)
+{
     auto feature = OreFeatures::createAncientDebris();
     ASSERT_NE(feature, nullptr);
     EXPECT_STREQ(feature->name(), "ancient_debris");
 }
 
-TEST_F(NetherOreFeatureTest, InitializeCreatesAllOres) {
+TEST_F(NetherOreFeatureTest, InitializeCreatesAllOres)
+{
     OreFeatures::initialize();
     const auto& features = OreFeatures::getAllFeatures();
     EXPECT_EQ(features.size(), OreFeatureIds::Count);
     EXPECT_EQ(features.size(), 11u);
 }
 
-TEST_F(NetherOreFeatureTest, NetherOreIdsAreConsecutiveAfterOverworld) {
+TEST_F(NetherOreFeatureTest, NetherOreIdsAreConsecutiveAfterOverworld)
+{
     EXPECT_EQ(OreFeatureIds::NetherQuartzOre, 8u);
     EXPECT_EQ(OreFeatureIds::NetherGoldOre, 9u);
     EXPECT_EQ(OreFeatureIds::AncientDebris, 10u);
@@ -774,7 +746,8 @@ TEST_F(NetherOreFeatureTest, NetherOreIdsAreConsecutiveAfterOverworld) {
 // FeatureIds 偏移量级联测试
 // ============================================================================
 
-TEST(FeatureIdsCascadeTest, TreeCountUpdateCascadesToAllOffsets) {
+TEST(FeatureIdsCascadeTest, TreeCountUpdateCascadesToAllOffsets)
+{
     // After adding 6 new trees, TreeFeatureIds::Count is 15
     EXPECT_EQ(TreeFeatureIds::Count, 15u);
 
@@ -802,19 +775,20 @@ TEST(FeatureIdsCascadeTest, TreeCountUpdateCascadesToAllOffsets) {
 // BigMushroomFeatureConfig 测试
 // ============================================================================
 
-TEST(BigMushroomConfigTest, DefaultConfig) {
+TEST(BigMushroomConfigTest, DefaultConfig)
+{
     BigMushroomFeatureConfig config;
     EXPECT_EQ(config.capState, nullptr);
     EXPECT_EQ(config.stemState, nullptr);
     EXPECT_EQ(config.capRadius, 2);
 }
 
-TEST(BigMushroomConfigTest, ExplicitConfig) {
+TEST(BigMushroomConfigTest, ExplicitConfig)
+{
     VanillaBlocks::initialize();
-    const BlockState* cap = VanillaBlocks::BROWN_MUSHROOM_BLOCK ?
-        &VanillaBlocks::BROWN_MUSHROOM_BLOCK->defaultState() : nullptr;
-    const BlockState* stem = VanillaBlocks::MUSHROOM_STEM ?
-        &VanillaBlocks::MUSHROOM_STEM->defaultState() : nullptr;
+    const BlockState* cap =
+        VanillaBlocks::BROWN_MUSHROOM_BLOCK ? &VanillaBlocks::BROWN_MUSHROOM_BLOCK->defaultState() : nullptr;
+    const BlockState* stem = VanillaBlocks::MUSHROOM_STEM ? &VanillaBlocks::MUSHROOM_STEM->defaultState() : nullptr;
 
     BigMushroomFeatureConfig config(cap, stem, 3);
     EXPECT_EQ(config.capState, cap);
@@ -837,7 +811,8 @@ public:
     using BigRedMushroomFeature::getCapRadius;
 };
 
-TEST(BigMushroomHeightTest, BrownMushroomCapRadius) {
+TEST(BigMushroomHeightTest, BrownMushroomCapRadius)
+{
     TestBrownMushroom brownFeature;
     // For brown: height <= 3 returns 0, otherwise capRadius
     EXPECT_EQ(brownFeature.getCapRadius(-1, 6, 2, 2), 0);
@@ -846,7 +821,8 @@ TEST(BigMushroomHeightTest, BrownMushroomCapRadius) {
     EXPECT_EQ(brownFeature.getCapRadius(-1, 6, 2, 5), 2);
 }
 
-TEST(BigMushroomHeightTest, RedMushroomCapRadius) {
+TEST(BigMushroomHeightTest, RedMushroomCapRadius)
+{
     TestRedMushroom redFeature;
     // For red: height < totalHeight - 3 returns 0
     // height == totalHeight returns capRadius
@@ -863,7 +839,8 @@ TEST(BigMushroomHeightTest, RedMushroomCapRadius) {
 // TrunkPlacer 高度分布测试
 // ============================================================================
 
-TEST(TrunkPlacerDistributionTest, TallBirchTrunkHeight) {
+TEST(TrunkPlacerDistributionTest, TallBirchTrunkHeight)
+{
     math::Random rng(777);
     StraightTrunkPlacer placer(5, 2, 6);
 
@@ -880,7 +857,8 @@ TEST(TrunkPlacerDistributionTest, TallBirchTrunkHeight) {
     EXPECT_GE(distribution.size(), 5u);
 }
 
-TEST(TrunkPlacerDistributionTest, JungleBushTrunkHeight) {
+TEST(TrunkPlacerDistributionTest, JungleBushTrunkHeight)
+{
     math::Random rng(888);
     StraightTrunkPlacer placer(1, 0, 0);
 

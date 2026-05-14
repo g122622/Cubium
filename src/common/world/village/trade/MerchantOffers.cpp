@@ -1,6 +1,6 @@
+#include "../../../util/nbt/Nbt.hpp"
 #include "Merchant.hpp"
 #include "MerchantOffer.hpp"
-#include "../../../util/nbt/Nbt.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -10,33 +10,38 @@ namespace trade {
 
 // ========== MerchantOffers ==========
 
-void MerchantOffers::addOffer(std::unique_ptr<MerchantOffer> offer) {
+void MerchantOffers::addOffer(std::unique_ptr<MerchantOffer> offer)
+{
     if (offer) {
         m_offers.push_back(std::move(offer));
     }
 }
 
-void MerchantOffers::removeOffer(size_t index) {
+void MerchantOffers::removeOffer(size_t index)
+{
     if (index < m_offers.size()) {
         m_offers.erase(m_offers.begin() + static_cast<ptrdiff_t>(index));
     }
 }
 
-MerchantOffer* MerchantOffers::getOffer(size_t index) {
+MerchantOffer* MerchantOffers::getOffer(size_t index)
+{
     if (index < m_offers.size()) {
         return m_offers[index].get();
     }
     return nullptr;
 }
 
-const MerchantOffer* MerchantOffers::getOffer(size_t index) const {
+const MerchantOffer* MerchantOffers::getOffer(size_t index) const
+{
     if (index < m_offers.size()) {
         return m_offers[index].get();
     }
     return nullptr;
 }
 
-void MerchantOffers::restockAll() {
+void MerchantOffers::restockAll()
+{
     for (auto& offer : m_offers) {
         if (offer) {
             offer->restock();
@@ -44,7 +49,8 @@ void MerchantOffers::restockAll() {
     }
 }
 
-void MerchantOffers::updatePrices(f32 modifier) {
+void MerchantOffers::updatePrices(f32 modifier)
+{
     for (auto& offer : m_offers) {
         if (offer) {
             // 价格修正影响特殊价格
@@ -56,7 +62,8 @@ void MerchantOffers::updatePrices(f32 modifier) {
     }
 }
 
-void MerchantOffers::serialize(nbt::tags::compound_tag& tag) const {
+void MerchantOffers::serialize(nbt::tags::compound_tag& tag) const
+{
     auto offersList = std::make_unique<nbt::tags::compound_list_tag>();
     for (const auto& offer : m_offers) {
         if (offer) {
@@ -68,7 +75,8 @@ void MerchantOffers::serialize(nbt::tags::compound_tag& tag) const {
     tag.value["Offers"] = std::move(offersList);
 }
 
-MerchantOffers MerchantOffers::deserialize(const nbt::tags::compound_tag& tag) {
+MerchantOffers MerchantOffers::deserialize(const nbt::tags::compound_tag& tag)
+{
     MerchantOffers offers;
 
     auto offersIt = tag.value.find("Offers");

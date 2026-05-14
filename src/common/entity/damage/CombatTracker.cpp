@@ -4,13 +4,13 @@
  */
 
 #include "CombatTracker.hpp"
-#include "../core/LivingEntity.hpp"
-#include "../core/Entity.hpp"
+#include "../../resource/ResourceLocation.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../../world/block/VanillaBlocks.hpp"
-#include "../../resource/ResourceLocation.hpp"
+#include "../core/Entity.hpp"
+#include "../core/LivingEntity.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -18,10 +18,10 @@ namespace mc {
 
 CombatTracker::CombatTracker(LivingEntity* owner)
     : m_owner(owner)
-{
-}
+{}
 
-void CombatTracker::trackDamage(DamageSource& source, f32 health, f32 damage) {
+void CombatTracker::trackDamage(DamageSource& source, f32 health, f32 damage)
+{
     if (damage <= 0.0f || !m_owner) {
         return;
     }
@@ -35,14 +35,7 @@ void CombatTracker::trackDamage(DamageSource& source, f32 health, f32 damage) {
     calculateFallSuffix();
 
     // 创建战斗条目
-    m_entries.emplace_back(
-        source.clone(),
-        damage,
-        currentTime,
-        health,
-        m_fallSuffix,
-        m_owner->fallDistance()
-    );
+    m_entries.emplace_back(source.clone(), damage, currentTime, health, m_fallSuffix, m_owner->fallDistance());
 
     m_totalDamage += damage;
     m_lastDamageTime = currentTime;
@@ -62,7 +55,8 @@ void CombatTracker::trackDamage(DamageSource& source, f32 health, f32 damage) {
     }
 }
 
-void CombatTracker::reset() {
+void CombatTracker::reset()
+{
     if (!m_owner) {
         return;
     }
@@ -88,14 +82,16 @@ void CombatTracker::reset() {
     }
 }
 
-const CombatEntry* CombatTracker::getLastEntry() const {
+const CombatEntry* CombatTracker::getLastEntry() const
+{
     if (m_entries.empty()) {
         return nullptr;
     }
     return &m_entries.back();
 }
 
-const CombatEntry* CombatTracker::getBestEntry() const {
+const CombatEntry* CombatTracker::getBestEntry() const
+{
     if (m_entries.empty()) {
         return nullptr;
     }
@@ -105,7 +101,8 @@ const CombatEntry* CombatTracker::getBestEntry() const {
     return &m_entries[m_bestEntryIndex];
 }
 
-Entity* CombatTracker::getLastAttacker() const {
+Entity* CombatTracker::getLastAttacker() const
+{
     const CombatEntry* entry = getLastEntry();
     if (!entry || !entry->source()) {
         return nullptr;
@@ -113,7 +110,8 @@ Entity* CombatTracker::getLastAttacker() const {
     return entry->source()->getEntity();
 }
 
-Entity* CombatTracker::getBestAttacker() const {
+Entity* CombatTracker::getBestAttacker() const
+{
     // MC 1.16.5 CombatTracker.getBestAttacker()
     // 找到造成最多伤害的生物和玩家
     // 只有当玩家伤害 >= 生物总伤害的 1/3 时才返回玩家
@@ -160,7 +158,8 @@ Entity* CombatTracker::getBestAttacker() const {
     return bestMob;
 }
 
-LivingEntity* CombatTracker::getBestAttackerLiving() const {
+LivingEntity* CombatTracker::getBestAttackerLiving() const
+{
     // 直接调用 getBestAttacker() 并转换为 LivingEntity
     Entity* attacker = getBestAttacker();
     if (!attacker) {
@@ -170,7 +169,8 @@ LivingEntity* CombatTracker::getBestAttackerLiving() const {
     return dynamic_cast<LivingEntity*>(attacker);
 }
 
-std::string CombatTracker::getDeathMessage() const {
+std::string CombatTracker::getDeathMessage() const
+{
     if (!m_owner) {
         return "entity died";
     }
@@ -202,7 +202,8 @@ std::string CombatTracker::getDeathMessage() const {
         if (fallEntry && attackEntry && !fallEntry->fallSuffix().empty()) {
             Entity* attacker = attackEntry->source()->getEntity();
             if (attacker) {
-                return ownerName + " fell from a high place whilst trying to escape " + attacker->getDisplayName()->getUnformattedText();
+                return ownerName + " fell from a high place whilst trying to escape " +
+                    attacker->getDisplayName()->getUnformattedText();
             }
         }
     }
@@ -255,14 +256,16 @@ std::string CombatTracker::getDeathMessage() const {
     return ownerName + " died";
 }
 
-i32 CombatTracker::getCombatDuration() const {
+i32 CombatTracker::getCombatDuration() const
+{
     if (m_entries.empty()) {
         return 0;
     }
     return m_entries.back().timestamp() - m_entries.front().timestamp();
 }
 
-void CombatTracker::calculateFallSuffix() {
+void CombatTracker::calculateFallSuffix()
+{
     if (!m_owner) {
         m_fallSuffix.clear();
         return;
@@ -346,12 +349,12 @@ void CombatTracker::calculateFallSuffix() {
     // 没有攀爬位置也不在水中，保持空后缀
 }
 
-void CombatTracker::cleanupOldEntries(i32 currentTime) {
+void CombatTracker::cleanupOldEntries(i32 currentTime)
+{
     // 移除超过战斗超时时间的条目
-    auto it = std::remove_if(m_entries.begin(), m_entries.end(),
-        [currentTime, this](const CombatEntry& entry) {
-            return (currentTime - entry.timestamp()) > COMBAT_TIMEOUT;
-        });
+    auto it = std::remove_if(m_entries.begin(), m_entries.end(), [currentTime, this](const CombatEntry& entry) {
+        return (currentTime - entry.timestamp()) > COMBAT_TIMEOUT;
+    });
 
     // 计算移除的伤害
     for (auto removeIt = it; removeIt != m_entries.end(); ++removeIt) {
@@ -364,7 +367,8 @@ void CombatTracker::cleanupOldEntries(i32 currentTime) {
     updateBestEntry();
 }
 
-void CombatTracker::updateBestEntry() {
+void CombatTracker::updateBestEntry()
+{
     if (m_entries.empty()) {
         m_bestEntryIndex = 0;
         return;
@@ -383,7 +387,8 @@ void CombatTracker::updateBestEntry() {
     m_bestEntryIndex = bestIndex;
 }
 
-CombatEntry* CombatTracker::getBestCombatEntry() {
+CombatEntry* CombatTracker::getBestCombatEntry()
+{
     // MC 1.16.5 CombatTracker.getBestCombatEntry()
     // 找到最佳战斗条目，用于摔落组合死亡消息
 

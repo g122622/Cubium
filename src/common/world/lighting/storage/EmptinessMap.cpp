@@ -7,10 +7,11 @@ EmptinessMap::EmptinessMap(i32 minSection, i32 maxSection)
     : m_minSection(minSection)
     , m_maxSection(maxSection)
     , m_sectionCount(maxSection - minSection + 1)
-    , m_sectionEmpty(static_cast<size_t>(m_sectionCount), u8(0)) {
-}
+    , m_sectionEmpty(static_cast<size_t>(m_sectionCount), u8(0))
+{}
 
-void EmptinessMap::setHeightRange(i32 minSection, i32 maxSection) {
+void EmptinessMap::setHeightRange(i32 minSection, i32 maxSection)
+{
     m_minSection = minSection;
     m_maxSection = maxSection;
     m_sectionCount = maxSection - minSection + 1;
@@ -18,7 +19,8 @@ void EmptinessMap::setHeightRange(i32 minSection, i32 maxSection) {
     m_sectionEmpty.assign(static_cast<size_t>(m_sectionCount), u8(0));
 }
 
-bool EmptinessMap::updateFromChunk(const IChunk& chunk) {
+bool EmptinessMap::updateFromChunk(const IChunk& chunk)
+{
     bool changed = false;
 
     for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
@@ -42,11 +44,13 @@ bool EmptinessMap::updateFromChunk(const IChunk& chunk) {
     return changed;
 }
 
-void EmptinessMap::reset() {
+void EmptinessMap::reset()
+{
     m_sectionEmpty.assign(static_cast<size_t>(m_sectionCount), u8(0));
 }
 
-void EmptinessMap::setAllEmpty() {
+void EmptinessMap::setAllEmpty()
+{
     m_sectionEmpty.assign(static_cast<size_t>(m_sectionCount), u8(1));
 }
 

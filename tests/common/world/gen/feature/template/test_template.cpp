@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
-#include "common/world/gen/feature/template/Template.hpp"
-#include "common/world/gen/feature/template/RuleTest.hpp"
-#include "common/world/gen/feature/template/TemplateLoader.hpp"
-#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/feature/template/RuleTest.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::feature::template_;
@@ -18,7 +18,8 @@ using namespace mc::world::gen::feature::template_;
 
 class TemplateTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 确保原版方块已注册
         VanillaBlocks::initialize();
     }
@@ -26,16 +27,15 @@ protected:
 
 class RuleTestTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // ============================================================================
 // BlockInfo 测试
 // ============================================================================
 
-TEST_F(TemplateTest, BlockInfo_DefaultConstruction) {
+TEST_F(TemplateTest, BlockInfo_DefaultConstruction)
+{
     BlockInfo info;
     EXPECT_EQ(info.pos.x, 0);
     EXPECT_EQ(info.pos.y, 0);
@@ -44,7 +44,8 @@ TEST_F(TemplateTest, BlockInfo_DefaultConstruction) {
     EXPECT_EQ(info.nbt, nullptr);
 }
 
-TEST_F(TemplateTest, BlockInfo_ParameterizedConstruction) {
+TEST_F(TemplateTest, BlockInfo_ParameterizedConstruction)
+{
     BlockPos pos(10, 20, 30);
     BlockInfo info(pos, 42);
 
@@ -55,7 +56,8 @@ TEST_F(TemplateTest, BlockInfo_ParameterizedConstruction) {
     EXPECT_EQ(info.nbt, nullptr);
 }
 
-TEST_F(TemplateTest, BlockInfo_CopyConstruction) {
+TEST_F(TemplateTest, BlockInfo_CopyConstruction)
+{
     BlockPos pos(5, 10, 15);
     BlockInfo original(pos, 100);
     original.nbt = std::make_unique<nbt::CompoundTag>();
@@ -74,7 +76,8 @@ TEST_F(TemplateTest, BlockInfo_CopyConstruction) {
     EXPECT_EQ(intTag->value, 42);
 }
 
-TEST_F(TemplateTest, BlockInfo_MoveConstruction) {
+TEST_F(TemplateTest, BlockInfo_MoveConstruction)
+{
     BlockPos pos(1, 2, 3);
     BlockInfo original(pos, 50);
     original.nbt = std::make_unique<nbt::CompoundTag>();
@@ -88,7 +91,8 @@ TEST_F(TemplateTest, BlockInfo_MoveConstruction) {
     EXPECT_NE(moved.nbt, nullptr);
 }
 
-TEST_F(TemplateTest, BlockInfo_CopyAssignment) {
+TEST_F(TemplateTest, BlockInfo_CopyAssignment)
+{
     BlockInfo original(BlockPos(1, 2, 3), 10);
     original.nbt = std::make_unique<nbt::CompoundTag>();
 
@@ -100,7 +104,8 @@ TEST_F(TemplateTest, BlockInfo_CopyAssignment) {
     EXPECT_NE(assigned.nbt, nullptr);
 }
 
-TEST_F(TemplateTest, BlockInfo_MoveAssignment) {
+TEST_F(TemplateTest, BlockInfo_MoveAssignment)
+{
     BlockInfo original(BlockPos(1, 2, 3), 10);
     original.nbt = std::make_unique<nbt::CompoundTag>();
 
@@ -116,7 +121,8 @@ TEST_F(TemplateTest, BlockInfo_MoveAssignment) {
 // TemplateEntityInfo 测试
 // ============================================================================
 
-TEST_F(TemplateTest, EntityInfo_DefaultConstruction) {
+TEST_F(TemplateTest, EntityInfo_DefaultConstruction)
+{
     TemplateEntityInfo info;
     EXPECT_EQ(info.typeId, "");
     EXPECT_EQ(info.posx, 0.0);
@@ -128,7 +134,8 @@ TEST_F(TemplateTest, EntityInfo_DefaultConstruction) {
     EXPECT_EQ(info.nbt, nullptr);
 }
 
-TEST_F(TemplateTest, EntityInfo_CopyConstruction) {
+TEST_F(TemplateTest, EntityInfo_CopyConstruction)
+{
     TemplateEntityInfo original;
     original.typeId = "minecraft:zombie";
     original.posx = 1.5;
@@ -148,7 +155,8 @@ TEST_F(TemplateTest, EntityInfo_CopyConstruction) {
     EXPECT_NE(copy.nbt, nullptr);
 }
 
-TEST_F(TemplateTest, EntityInfo_MoveConstruction) {
+TEST_F(TemplateTest, EntityInfo_MoveConstruction)
+{
     TemplateEntityInfo original;
     original.typeId = "minecraft:skeleton";
     original.posx = 10.0;
@@ -169,7 +177,8 @@ TEST_F(TemplateTest, EntityInfo_MoveConstruction) {
 // PlacementSettings 测试
 // ============================================================================
 
-TEST_F(TemplateTest, PlacementSettings_DefaultValues) {
+TEST_F(TemplateTest, PlacementSettings_DefaultValues)
+{
     PlacementSettings settings;
 
     EXPECT_EQ(settings.getRotation(), Rotation::None);
@@ -184,7 +193,8 @@ TEST_F(TemplateTest, PlacementSettings_DefaultValues) {
     EXPECT_EQ(settings.getProcessors(), nullptr);
 }
 
-TEST_F(TemplateTest, PlacementSettings_ChainedSetters) {
+TEST_F(TemplateTest, PlacementSettings_ChainedSetters)
+{
     PlacementSettings settings;
     BlockPos offset(10, 20, 30);
     StructureProcessorList processorList;
@@ -197,7 +207,7 @@ TEST_F(TemplateTest, PlacementSettings_ChainedSetters) {
                        .setKeepLiquids(true)
                        .setProcessors(&processorList);
 
-    EXPECT_EQ(&result, &settings);  // 链式调用返回自身
+    EXPECT_EQ(&result, &settings); // 链式调用返回自身
     EXPECT_EQ(settings.getRotation(), Rotation::Clockwise90);
     EXPECT_EQ(settings.getMirror(), Mirror::LeftRight);
     EXPECT_EQ(settings.ignoreEntities(), true);
@@ -209,12 +219,13 @@ TEST_F(TemplateTest, PlacementSettings_ChainedSetters) {
     EXPECT_EQ(settings.getProcessors(), &processorList);
 }
 
-TEST_F(TemplateTest, PlacementSettings_Copy) {
+TEST_F(TemplateTest, PlacementSettings_Copy)
+{
     PlacementSettings original;
     original.setRotation(Rotation::Clockwise180)
-            .setMirror(Mirror::FrontBack)
-            .setIgnoreEntities(true)
-            .setBlockUpdateFlags(5);
+        .setMirror(Mirror::FrontBack)
+        .setIgnoreEntities(true)
+        .setBlockUpdateFlags(5);
 
     PlacementSettings copy = original.copy();
 
@@ -228,7 +239,8 @@ TEST_F(TemplateTest, PlacementSettings_Copy) {
 // Template 坐标变换测试
 // ============================================================================
 
-TEST_F(TemplateTest, TransformBlockPos_NoRotationNoMirror) {
+TEST_F(TemplateTest, TransformBlockPos_NoRotationNoMirror)
+{
     BlockPos pos(5, 10, 15);
     BlockPos center(0, 0, 0);
 
@@ -239,7 +251,8 @@ TEST_F(TemplateTest, TransformBlockPos_NoRotationNoMirror) {
     EXPECT_EQ(result.z, 15);
 }
 
-TEST_F(TemplateTest, TransformBlockPos_Rotation90) {
+TEST_F(TemplateTest, TransformBlockPos_Rotation90)
+{
     BlockPos pos(5, 10, 15);
     BlockPos center(0, 0, 0);
 
@@ -251,7 +264,8 @@ TEST_F(TemplateTest, TransformBlockPos_Rotation90) {
     EXPECT_EQ(result.z, 5);
 }
 
-TEST_F(TemplateTest, TransformBlockPos_Rotation180) {
+TEST_F(TemplateTest, TransformBlockPos_Rotation180)
+{
     BlockPos pos(5, 10, 15);
     BlockPos center(0, 0, 0);
 
@@ -263,7 +277,8 @@ TEST_F(TemplateTest, TransformBlockPos_Rotation180) {
     EXPECT_EQ(result.z, -15);
 }
 
-TEST_F(TemplateTest, TransformBlockPos_Rotation270) {
+TEST_F(TemplateTest, TransformBlockPos_Rotation270)
+{
     BlockPos pos(5, 10, 15);
     BlockPos center(0, 0, 0);
 
@@ -275,7 +290,8 @@ TEST_F(TemplateTest, TransformBlockPos_Rotation270) {
     EXPECT_EQ(result.z, -5);
 }
 
-TEST_F(TemplateTest, TransformBlockPos_MirrorLeftRight) {
+TEST_F(TemplateTest, TransformBlockPos_MirrorLeftRight)
+{
     BlockPos pos(5, 10, 15);
     BlockPos center(0, 0, 0);
 
@@ -287,7 +303,8 @@ TEST_F(TemplateTest, TransformBlockPos_MirrorLeftRight) {
     EXPECT_EQ(result.z, -15);
 }
 
-TEST_F(TemplateTest, TransformBlockPos_MirrorFrontBack) {
+TEST_F(TemplateTest, TransformBlockPos_MirrorFrontBack)
+{
     BlockPos pos(5, 10, 15);
     BlockPos center(0, 0, 0);
 
@@ -299,7 +316,8 @@ TEST_F(TemplateTest, TransformBlockPos_MirrorFrontBack) {
     EXPECT_EQ(result.z, 15);
 }
 
-TEST_F(TemplateTest, TransformBlockPos_MirrorAndRotation) {
+TEST_F(TemplateTest, TransformBlockPos_MirrorAndRotation)
+{
     BlockPos pos(5, 10, 15);
     BlockPos center(0, 0, 0);
 
@@ -313,7 +331,8 @@ TEST_F(TemplateTest, TransformBlockPos_MirrorAndRotation) {
     EXPECT_EQ(result.z, 5);
 }
 
-TEST_F(TemplateTest, TransformBlockPos_WithCenter) {
+TEST_F(TemplateTest, TransformBlockPos_WithCenter)
+{
     BlockPos pos(10, 5, 10);
     BlockPos center(5, 0, 5);
 
@@ -327,7 +346,8 @@ TEST_F(TemplateTest, TransformBlockPos_WithCenter) {
     EXPECT_EQ(result.z, 10);
 }
 
-TEST_F(TemplateTest, GetTransformedPosition_NoRotation) {
+TEST_F(TemplateTest, GetTransformedPosition_NoRotation)
+{
     BlockPos pos(5, 10, 15);
     BlockPos size(20, 10, 20);
 
@@ -338,8 +358,9 @@ TEST_F(TemplateTest, GetTransformedPosition_NoRotation) {
     EXPECT_EQ(result.z, 15);
 }
 
-TEST_F(TemplateTest, GetTransformedPosition_Rotation90) {
-    BlockPos size(10, 10, 20);  // x=10, z=20
+TEST_F(TemplateTest, GetTransformedPosition_Rotation90)
+{
+    BlockPos size(10, 10, 20); // x=10, z=20
     BlockPos pos(2, 5, 5);
 
     // 90度顺时针: (x, z) -> (size_z - 1 - z, x)
@@ -355,7 +376,8 @@ TEST_F(TemplateTest, GetTransformedPosition_Rotation90) {
 // Template 基本操作测试
 // ============================================================================
 
-TEST_F(TemplateTest, Template_DefaultConstruction) {
+TEST_F(TemplateTest, Template_DefaultConstruction)
+{
     Template templ;
 
     EXPECT_EQ(templ.getSize().x, 0);
@@ -366,7 +388,8 @@ TEST_F(TemplateTest, Template_DefaultConstruction) {
     EXPECT_EQ(templ.getEntities().size(), 0u);
 }
 
-TEST_F(TemplateTest, Template_SetSize) {
+TEST_F(TemplateTest, Template_SetSize)
+{
     Template templ;
     templ.setSize(BlockPos(10, 5, 15));
 
@@ -375,7 +398,8 @@ TEST_F(TemplateTest, Template_SetSize) {
     EXPECT_EQ(templ.getSize().z, 15);
 }
 
-TEST_F(TemplateTest, Template_AddBlock) {
+TEST_F(TemplateTest, Template_AddBlock)
+{
     Template templ;
 
     // 使用 Palette 添加方块
@@ -394,13 +418,14 @@ TEST_F(TemplateTest, Template_AddBlock) {
     EXPECT_EQ(paletteBlocks[2].pos.y, 1);
 }
 
-TEST_F(TemplateTest, Template_AddJigsawBlock) {
+TEST_F(TemplateTest, Template_AddJigsawBlock)
+{
     Template templ;
 
     templ.addJigsawBlock(TemplateJigsawBlockInfo(
         BlockPos(0, 0, 0), "minecraft:bottom", "minecraft:village/street", "minecraft:empty", 0));
-    templ.addJigsawBlock(TemplateJigsawBlockInfo(
-        BlockPos(5, 10, 5), "minecraft:top", "minecraft:village/houses", "minecraft:house", 1));
+    templ.addJigsawBlock(
+        TemplateJigsawBlockInfo(BlockPos(5, 10, 5), "minecraft:top", "minecraft:village/houses", "minecraft:house", 1));
 
     EXPECT_EQ(templ.getJigsawBlockCount(), 2u);
 
@@ -411,7 +436,8 @@ TEST_F(TemplateTest, Template_AddJigsawBlock) {
     EXPECT_EQ(jigsawBlocks[1].jointType, 1);
 }
 
-TEST_F(TemplateTest, Template_AddEntity) {
+TEST_F(TemplateTest, Template_AddEntity)
+{
     Template templ;
 
     TemplateEntityInfo entity1;
@@ -438,7 +464,8 @@ TEST_F(TemplateTest, Template_AddEntity) {
     EXPECT_EQ(entities[1].typeId, "minecraft:skeleton");
 }
 
-TEST_F(TemplateTest, Template_GetBoundingBox) {
+TEST_F(TemplateTest, Template_GetBoundingBox)
+{
     Template templ;
     templ.setSize(BlockPos(10, 5, 15));
 
@@ -450,12 +477,13 @@ TEST_F(TemplateTest, Template_GetBoundingBox) {
     EXPECT_EQ(bounds.minX(), 100);
     EXPECT_EQ(bounds.minY(), 50);
     EXPECT_EQ(bounds.minZ(), 200);
-    EXPECT_EQ(bounds.maxX(), 109);  // 100 + 10 - 1
-    EXPECT_EQ(bounds.maxY(), 54);   // 50 + 5 - 1
-    EXPECT_EQ(bounds.maxZ(), 214);  // 200 + 15 - 1
+    EXPECT_EQ(bounds.maxX(), 109); // 100 + 10 - 1
+    EXPECT_EQ(bounds.maxY(), 54);  // 50 + 5 - 1
+    EXPECT_EQ(bounds.maxZ(), 214); // 200 + 15 - 1
 }
 
-TEST_F(TemplateTest, Template_GetBoundingBox_WithRotation) {
+TEST_F(TemplateTest, Template_GetBoundingBox_WithRotation)
+{
     Template templ;
     templ.setSize(BlockPos(10, 5, 15));
 
@@ -469,16 +497,17 @@ TEST_F(TemplateTest, Template_GetBoundingBox_WithRotation) {
     EXPECT_EQ(bounds.minX(), 0);
     EXPECT_EQ(bounds.minY(), 0);
     EXPECT_EQ(bounds.minZ(), 0);
-    EXPECT_EQ(bounds.maxX(), 14);  // 0 + 15 - 1
-    EXPECT_EQ(bounds.maxY(), 4);   // 0 + 5 - 1
-    EXPECT_EQ(bounds.maxZ(), 9);   // 0 + 10 - 1
+    EXPECT_EQ(bounds.maxX(), 14); // 0 + 15 - 1
+    EXPECT_EQ(bounds.maxY(), 4);  // 0 + 5 - 1
+    EXPECT_EQ(bounds.maxZ(), 9);  // 0 + 10 - 1
 }
 
 // ============================================================================
 // StructureProcessor 测试
 // ============================================================================
 
-TEST_F(TemplateTest, StructureProcessor_DefaultProcess) {
+TEST_F(TemplateTest, StructureProcessor_DefaultProcess)
+{
     StructureProcessor processor;
     BlockInfo blockInfo(BlockPos(10, 20, 30), 42);
     PlacementSettings settings;
@@ -493,7 +522,8 @@ TEST_F(TemplateTest, StructureProcessor_DefaultProcess) {
     EXPECT_EQ(result->blockStateId, 42u);
 }
 
-TEST_F(TemplateTest, BlockIgnoreStructureProcessor_IgnoreBlock) {
+TEST_F(TemplateTest, BlockIgnoreStructureProcessor_IgnoreBlock)
+{
     std::vector<u32> ignoredBlocks = {1, 2, 3};
     BlockIgnoreStructureProcessor processor(ignoredBlocks);
 
@@ -512,8 +542,9 @@ TEST_F(TemplateTest, BlockIgnoreStructureProcessor_IgnoreBlock) {
     EXPECT_EQ(result2->blockStateId, 5u);
 }
 
-TEST_F(TemplateTest, IntegrityProcessor_FullIntegrity) {
-    IntegrityProcessor processor(1.0f);  // 100% 完整度
+TEST_F(TemplateTest, IntegrityProcessor_FullIntegrity)
+{
+    IntegrityProcessor processor(1.0f); // 100% 完整度
 
     BlockInfo block(BlockPos(100, 100, 100), 42);
     PlacementSettings settings;
@@ -522,13 +553,15 @@ TEST_F(TemplateTest, IntegrityProcessor_FullIntegrity) {
     // 100% 完整度应该保留所有方块
     for (int i = 0; i < 10; ++i) {
         BlockInfo testBlock(BlockPos(i, i * 10, i * 100), 42);
-        auto result = processor.process(BlockPos(0, 0, 0), BlockPos(i, i * 10, i * 100), testBlock, testBlock, settings);
+        auto result =
+            processor.process(BlockPos(0, 0, 0), BlockPos(i, i * 10, i * 100), testBlock, testBlock, settings);
         EXPECT_TRUE(result.has_value());
     }
 }
 
-TEST_F(TemplateTest, IntegrityProcessor_ZeroIntegrity) {
-    IntegrityProcessor processor(0.0f);  // 0% 完整度
+TEST_F(TemplateTest, IntegrityProcessor_ZeroIntegrity)
+{
+    IntegrityProcessor processor(0.0f); // 0% 完整度
 
     BlockInfo block(BlockPos(0, 0, 0), 42);
     PlacementSettings settings;
@@ -542,7 +575,8 @@ TEST_F(TemplateTest, IntegrityProcessor_ZeroIntegrity) {
     }
 }
 
-TEST_F(TemplateTest, IntegrityProcessor_Deterministic) {
+TEST_F(TemplateTest, IntegrityProcessor_Deterministic)
+{
     IntegrityProcessor processor(0.5f);
 
     PlacementSettings settings;
@@ -563,7 +597,8 @@ TEST_F(TemplateTest, IntegrityProcessor_Deterministic) {
 // IntegrityProcessor MC 1.16.5 算法对齐测试
 // ============================================================================
 
-TEST_F(TemplateTest, IntegrityProcessor_PositionSeededRandom) {
+TEST_F(TemplateTest, IntegrityProcessor_PositionSeededRandom)
+{
     // MC 1.16.5: IntegrityProcessor 使用位置种子随机
     // 算法: seed = hashBlockPos(x, y, z); Random rng(seed); rng.nextFloat() <= integrity
     // 这确保同一位置的结构完整度在不同生成中保持一致
@@ -582,7 +617,8 @@ TEST_F(TemplateTest, IntegrityProcessor_PositionSeededRandom) {
     EXPECT_EQ(result1.has_value(), result3.has_value());
 }
 
-TEST_F(TemplateTest, IntegrityProcessor_ProbabilityDistribution) {
+TEST_F(TemplateTest, IntegrityProcessor_ProbabilityDistribution)
+{
     // MC 1.16.5: 测试完整度概率分布
     // 使用 0.5 完整度，在大量方块中约 50% 应被保留
 
@@ -607,7 +643,8 @@ TEST_F(TemplateTest, IntegrityProcessor_ProbabilityDistribution) {
     EXPECT_LT(keepRate, 0.65f) << "Keep rate too high: " << keepRate;
 }
 
-TEST_F(TemplateTest, IntegrityProcessor_DifferentIntegrityValues) {
+TEST_F(TemplateTest, IntegrityProcessor_DifferentIntegrityValues)
+{
     // MC 1.16.5: 测试不同完整度值
     PlacementSettings settings;
 
@@ -642,7 +679,8 @@ TEST_F(TemplateTest, IntegrityProcessor_DifferentIntegrityValues) {
     }
 }
 
-TEST_F(TemplateTest, IntegrityProcessor_PositionSensitivity) {
+TEST_F(TemplateTest, IntegrityProcessor_PositionSensitivity)
+{
     // MC 1.16.5: 测试位置敏感性
     // 不同位置应该产生不同的结果（至少在某些情况下）
 
@@ -674,7 +712,8 @@ TEST_F(TemplateTest, IntegrityProcessor_PositionSensitivity) {
     EXPECT_GT(differentResult, 0) << "Position sensitivity test failed: all positions gave same result";
 }
 
-TEST_F(TemplateTest, IntegrityProcessor_MultipleProcessorsChained) {
+TEST_F(TemplateTest, IntegrityProcessor_MultipleProcessorsChained)
+{
     // MC 1.16.5: 测试处理器链中的 IntegrityProcessor
     StructureProcessorList list;
 
@@ -688,7 +727,7 @@ TEST_F(TemplateTest, IntegrityProcessor_MultipleProcessorsChained) {
     settings.setProcessors(&list);
 
     // 测试非空气方块
-    BlockInfo stoneInfo(BlockPos(10, 20, 30), 1);  // 假设石头 ID != 0
+    BlockInfo stoneInfo(BlockPos(10, 20, 30), 1); // 假设石头 ID != 0
     auto result = list.process(BlockPos(0, 0, 0), BlockPos(10, 20, 30), stoneInfo, stoneInfo, settings);
 
     // 结果可能是保留或移除，取决于随机
@@ -702,7 +741,8 @@ TEST_F(TemplateTest, IntegrityProcessor_MultipleProcessorsChained) {
 // StructureProcessorList 测试
 // ============================================================================
 
-TEST_F(TemplateTest, ProcessorList_Empty) {
+TEST_F(TemplateTest, ProcessorList_Empty)
+{
     StructureProcessorList list;
     EXPECT_TRUE(list.empty());
     EXPECT_EQ(list.size(), 0u);
@@ -716,7 +756,8 @@ TEST_F(TemplateTest, ProcessorList_Empty) {
     EXPECT_EQ(result->blockStateId, 42u);
 }
 
-TEST_F(TemplateTest, ProcessorList_AddProcessor) {
+TEST_F(TemplateTest, ProcessorList_AddProcessor)
+{
     StructureProcessorList list;
 
     list.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(std::vector<u32>{1}));
@@ -725,7 +766,8 @@ TEST_F(TemplateTest, ProcessorList_AddProcessor) {
     EXPECT_EQ(list.size(), 1u);
 }
 
-TEST_F(TemplateTest, ProcessorList_Chain) {
+TEST_F(TemplateTest, ProcessorList_Chain)
+{
     StructureProcessorList list;
 
     // 第一个处理器忽略方块ID为1的方块
@@ -749,17 +791,19 @@ TEST_F(TemplateTest, ProcessorList_Chain) {
 // RuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, AlwaysTrueRuleTest) {
+TEST_F(RuleTestTest, AlwaysTrueRuleTest)
+{
     AlwaysTrueRuleTest test;
     math::Random rng(12345);
 
     auto* state = BlockRegistry::instance().getBlockState(0);
     EXPECT_TRUE(test.test(state, rng));
-    EXPECT_TRUE(test.test(nullptr, rng));  // 总是返回true
+    EXPECT_TRUE(test.test(nullptr, rng)); // 总是返回true
     EXPECT_EQ(test.getTypeId(), 0u);
 }
 
-TEST_F(RuleTestTest, AlwaysTrueRuleTest_Clone) {
+TEST_F(RuleTestTest, AlwaysTrueRuleTest_Clone)
+{
     AlwaysTrueRuleTest original;
     auto clone = original.clone();
 
@@ -768,7 +812,8 @@ TEST_F(RuleTestTest, AlwaysTrueRuleTest_Clone) {
     EXPECT_TRUE(clone->test(nullptr, rng));
 }
 
-TEST_F(RuleTestTest, BlockMatchRuleTest) {
+TEST_F(RuleTestTest, BlockMatchRuleTest)
+{
     auto& registry = BlockRegistry::instance();
 
     // 获取石头的方块ID
@@ -797,7 +842,8 @@ TEST_F(RuleTestTest, BlockMatchRuleTest) {
     EXPECT_EQ(test.blockId(), stoneBlockId);
 }
 
-TEST_F(RuleTestTest, BlockMatchRuleTest_Clone) {
+TEST_F(RuleTestTest, BlockMatchRuleTest_Clone)
+{
     BlockMatchRuleTest original(10);
     auto clone = original.clone();
 
@@ -805,7 +851,8 @@ TEST_F(RuleTestTest, BlockMatchRuleTest_Clone) {
     EXPECT_EQ(static_cast<BlockMatchRuleTest*>(clone.get())->blockId(), 10u);
 }
 
-TEST_F(RuleTestTest, BlockStateMatchRuleTest) {
+TEST_F(RuleTestTest, BlockStateMatchRuleTest)
+{
     auto& registry = BlockRegistry::instance();
 
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
@@ -829,8 +876,9 @@ TEST_F(RuleTestTest, BlockStateMatchRuleTest) {
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchRuleTest_AlwaysMatch) {
-    RandomBlockMatchRuleTest test(1, 1.0f);  // 100% 概率
+TEST_F(RuleTestTest, RandomBlockMatchRuleTest_AlwaysMatch)
+{
+    RandomBlockMatchRuleTest test(1, 1.0f); // 100% 概率
     math::Random rng(12345);
 
     auto& registry = BlockRegistry::instance();
@@ -847,12 +895,13 @@ TEST_F(RuleTestTest, RandomBlockMatchRuleTest_AlwaysMatch) {
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchRuleTest_NeverMatch) {
+TEST_F(RuleTestTest, RandomBlockMatchRuleTest_NeverMatch)
+{
     auto& registry = BlockRegistry::instance();
     Block* block = registry.getBlock(ResourceLocation("minecraft:stone"));
     if (block) {
         u32 blockId = block->blockId();
-        RandomBlockMatchRuleTest test(blockId, 0.0f);  // 0% 概率
+        RandomBlockMatchRuleTest test(blockId, 0.0f); // 0% 概率
 
         const BlockState* state = &block->defaultState();
         math::Random rng(12345);
@@ -864,8 +913,9 @@ TEST_F(RuleTestTest, RandomBlockMatchRuleTest_NeverMatch) {
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchRuleTest_WrongBlock) {
-    RandomBlockMatchRuleTest test(999999, 1.0f);  // 不存在的方块ID，100%概率
+TEST_F(RuleTestTest, RandomBlockMatchRuleTest_WrongBlock)
+{
+    RandomBlockMatchRuleTest test(999999, 1.0f); // 不存在的方块ID，100%概率
     math::Random rng(12345);
 
     auto& registry = BlockRegistry::instance();
@@ -881,7 +931,8 @@ TEST_F(RuleTestTest, RandomBlockMatchRuleTest_WrongBlock) {
 // PosRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, AlwaysTruePosRuleTest) {
+TEST_F(RuleTestTest, AlwaysTruePosRuleTest)
+{
     AlwaysTruePosRuleTest test;
     math::Random rng(12345);
 
@@ -890,7 +941,8 @@ TEST_F(RuleTestTest, AlwaysTruePosRuleTest) {
     EXPECT_EQ(test.getTypeId(), 0u);
 }
 
-TEST_F(RuleTestTest, AlwaysTruePosRuleTest_Clone) {
+TEST_F(RuleTestTest, AlwaysTruePosRuleTest_Clone)
+{
     AlwaysTruePosRuleTest original;
     auto clone = original.clone();
 
@@ -899,7 +951,8 @@ TEST_F(RuleTestTest, AlwaysTruePosRuleTest_Clone) {
     EXPECT_TRUE(clone->test(BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_MinHeight) {
+TEST_F(RuleTestTest, LinearPosRuleTest_MinHeight)
+{
     // 在最小高度时使用最小概率
     LinearPosRuleTest test(0, 100, 0.0f, 1.0f);
     math::Random rng(12345);
@@ -914,7 +967,8 @@ TEST_F(RuleTestTest, LinearPosRuleTest_MinHeight) {
     EXPECT_EQ(test.getTypeId(), 1u);
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_Interpolation) {
+TEST_F(RuleTestTest, LinearPosRuleTest_Interpolation)
+{
     // 测试线性插值
     LinearPosRuleTest test(0, 100, 0.0f, 1.0f);
 
@@ -924,7 +978,8 @@ TEST_F(RuleTestTest, LinearPosRuleTest_Interpolation) {
     test.test(BlockPos(0, 50, 0), BlockPos(0, 50, 0), BlockPos(0, 0, 0), rng);
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_EqualHeights) {
+TEST_F(RuleTestTest, LinearPosRuleTest_EqualHeights)
+{
     // 当 minHeight == maxHeight 时，应该使用 minProbability
     LinearPosRuleTest test(50, 50, 0.5f, 1.0f);
     math::Random rng(12345);
@@ -935,7 +990,8 @@ TEST_F(RuleTestTest, LinearPosRuleTest_EqualHeights) {
     test.test(BlockPos(0, 100, 0), BlockPos(0, 100, 0), BlockPos(0, 0, 0), rng);
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_Clone) {
+TEST_F(RuleTestTest, LinearPosRuleTest_Clone)
+{
     LinearPosRuleTest original(10, 20, 0.3f, 0.7f);
     auto clone = original.clone();
 
@@ -946,32 +1002,26 @@ TEST_F(RuleTestTest, LinearPosRuleTest_Clone) {
 // RuleEntry 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, RuleEntry_AllTrue) {
+TEST_F(RuleTestTest, RuleEntry_AllTrue)
+{
     auto inputTest = std::make_unique<AlwaysTrueRuleTest>();
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
     auto posTest = std::make_unique<AlwaysTruePosRuleTest>();
 
-    RuleEntry entry(
-        std::move(inputTest),
-        std::move(locationTest),
-        std::move(posTest),
-        42);
+    RuleEntry entry(std::move(inputTest), std::move(locationTest), std::move(posTest), 42);
 
     math::Random rng(12345);
     EXPECT_TRUE(entry.matches(nullptr, nullptr, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
     EXPECT_EQ(entry.outputStateId(), 42u);
 }
 
-TEST_F(RuleTestTest, RuleEntry_InputPredicateFails) {
-    auto inputTest = std::make_unique<BlockMatchRuleTest>(999999);  // 不存在的方块ID
+TEST_F(RuleTestTest, RuleEntry_InputPredicateFails)
+{
+    auto inputTest = std::make_unique<BlockMatchRuleTest>(999999); // 不存在的方块ID
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
     auto posTest = std::make_unique<AlwaysTruePosRuleTest>();
 
-    RuleEntry entry(
-        std::move(inputTest),
-        std::move(locationTest),
-        std::move(posTest),
-        42);
+    RuleEntry entry(std::move(inputTest), std::move(locationTest), std::move(posTest), 42);
 
     math::Random rng(12345);
 
@@ -985,14 +1035,12 @@ TEST_F(RuleTestTest, RuleEntry_InputPredicateFails) {
     }
 }
 
-TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor) {
+TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor)
+{
     auto inputTest = std::make_unique<AlwaysTrueRuleTest>();
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
 
-    RuleEntry entry(
-        std::move(inputTest),
-        std::move(locationTest),
-        100);
+    RuleEntry entry(std::move(inputTest), std::move(locationTest), 100);
 
     // 使用两个参数的构造函数，posPredicate 应该默认为 AlwaysTruePosRuleTest
     math::Random rng(12345);
@@ -1005,16 +1053,14 @@ TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor) {
 // RuleStructureProcessor 测试
 // ============================================================================
 
-TEST_F(TemplateTest, RuleStructureProcessor_NoMatch) {
+TEST_F(TemplateTest, RuleStructureProcessor_NoMatch)
+{
     // 创建一个规则，匹配不存在的方块ID
     auto inputTest = std::make_unique<BlockMatchRuleTest>(999999);
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
 
     std::vector<std::unique_ptr<RuleEntry>> rules;
-    rules.push_back(std::make_unique<RuleEntry>(
-        std::move(inputTest),
-        std::move(locationTest),
-        42));
+    rules.push_back(std::make_unique<RuleEntry>(std::move(inputTest), std::move(locationTest), 42));
 
     RuleStructureProcessor processor(std::move(rules));
 
@@ -1036,7 +1082,8 @@ TEST_F(TemplateTest, RuleStructureProcessor_NoMatch) {
     EXPECT_EQ(result->blockStateId, stoneBlock->defaultState().stateId());
 }
 
-TEST_F(TemplateTest, RuleStructureProcessor_Match) {
+TEST_F(TemplateTest, RuleStructureProcessor_Match)
+{
     auto& registry = BlockRegistry::instance();
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
     Block* dirtBlock = registry.getBlock(ResourceLocation("minecraft:dirt"));
@@ -1053,10 +1100,7 @@ TEST_F(TemplateTest, RuleStructureProcessor_Match) {
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
 
     std::vector<std::unique_ptr<RuleEntry>> rules;
-    rules.push_back(std::make_unique<RuleEntry>(
-        std::move(inputTest),
-        std::move(locationTest),
-        dirtStateId));
+    rules.push_back(std::make_unique<RuleEntry>(std::move(inputTest), std::move(locationTest), dirtStateId));
 
     RuleStructureProcessor processor(std::move(rules));
 
@@ -1071,7 +1115,8 @@ TEST_F(TemplateTest, RuleStructureProcessor_Match) {
     EXPECT_EQ(result->blockStateId, dirtStateId);
 }
 
-TEST_F(TemplateTest, RuleStructureProcessor_MultipleRules) {
+TEST_F(TemplateTest, RuleStructureProcessor_MultipleRules)
+{
     auto& registry = BlockRegistry::instance();
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
     Block* dirtBlock = registry.getBlock(ResourceLocation("minecraft:dirt"));
@@ -1088,16 +1133,14 @@ TEST_F(TemplateTest, RuleStructureProcessor_MultipleRules) {
     std::vector<std::unique_ptr<RuleEntry>> rules;
 
     // 规则1：石头 -> 圆石
-    rules.push_back(std::make_unique<RuleEntry>(
-        std::make_unique<BlockMatchRuleTest>(stoneBlockId),
+    rules.push_back(std::make_unique<RuleEntry>(std::make_unique<BlockMatchRuleTest>(stoneBlockId),
         std::make_unique<AlwaysTrueRuleTest>(),
         cobblestoneStateId));
 
     // 规则2：泥土 -> 圆石（这条规则不会被执行到，因为规则1先匹配）
-    rules.push_back(std::make_unique<RuleEntry>(
-        std::make_unique<BlockMatchRuleTest>(dirtBlockId),
+    rules.push_back(std::make_unique<RuleEntry>(std::make_unique<BlockMatchRuleTest>(dirtBlockId),
         std::make_unique<AlwaysTrueRuleTest>(),
-        999));  // 不存在的状态ID
+        999)); // 不存在的状态ID
 
     RuleStructureProcessor processor(std::move(rules));
 
@@ -1105,12 +1148,7 @@ TEST_F(TemplateTest, RuleStructureProcessor_MultipleRules) {
     PlacementSettings settings;
     math::Random rng(12345);
 
-    auto result = processor.process(
-        BlockPos(0, 0, 0),
-        BlockPos(0, 0, 0),
-        stoneBlockInfo,
-        stoneBlockInfo,
-        settings);
+    auto result = processor.process(BlockPos(0, 0, 0), BlockPos(0, 0, 0), stoneBlockInfo, stoneBlockInfo, settings);
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result->blockStateId, cobblestoneStateId);
@@ -1120,7 +1158,8 @@ TEST_F(TemplateTest, RuleStructureProcessor_MultipleRules) {
 // ProcessorLists 测试
 // ============================================================================
 
-TEST_F(TemplateTest, ProcessorLists_Empty) {
+TEST_F(TemplateTest, ProcessorLists_Empty)
+{
     const auto& emptyList = ProcessorLists::empty();
 
     EXPECT_TRUE(emptyList.empty());
@@ -1131,7 +1170,8 @@ TEST_F(TemplateTest, ProcessorLists_Empty) {
 // TemplateJigsawBlockInfo 测试
 // ============================================================================
 
-TEST_F(TemplateTest, JigsawBlockInfo_DefaultConstruction) {
+TEST_F(TemplateTest, JigsawBlockInfo_DefaultConstruction)
+{
     TemplateJigsawBlockInfo info;
 
     EXPECT_EQ(info.pos.x, 0);
@@ -1143,13 +1183,10 @@ TEST_F(TemplateTest, JigsawBlockInfo_DefaultConstruction) {
     EXPECT_EQ(info.jointType, 0);
 }
 
-TEST_F(TemplateTest, JigsawBlockInfo_ParameterizedConstruction) {
+TEST_F(TemplateTest, JigsawBlockInfo_ParameterizedConstruction)
+{
     TemplateJigsawBlockInfo info(
-        BlockPos(10, 20, 30),
-        "minecraft:bottom",
-        "minecraft:village/street",
-        "minecraft:empty",
-        1);
+        BlockPos(10, 20, 30), "minecraft:bottom", "minecraft:village/street", "minecraft:empty", 1);
 
     EXPECT_EQ(info.pos.x, 10);
     EXPECT_EQ(info.pos.y, 20);
@@ -1164,7 +1201,8 @@ TEST_F(TemplateTest, JigsawBlockInfo_ParameterizedConstruction) {
 // 处理器链集成测试
 // ============================================================================
 
-TEST_F(TemplateTest, ProcessorChain_Integration) {
+TEST_F(TemplateTest, ProcessorChain_Integration)
+{
     auto& registry = BlockRegistry::instance();
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
 
@@ -1193,5 +1231,5 @@ TEST_F(TemplateTest, ProcessorChain_Integration) {
     // 测试空气方块
     BlockInfo airInfo(BlockPos(0, 0, 0), 0);
     result = list.process(BlockPos(0, 0, 0), BlockPos(0, 0, 0), airInfo, airInfo, settings);
-    EXPECT_FALSE(result.has_value());  // 被第一个处理器过滤
+    EXPECT_FALSE(result.has_value()); // 被第一个处理器过滤
 }

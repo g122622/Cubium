@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include "world/redstone/RedstoneHelper.hpp"
 #include "world/redstone/RedstonePower.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::world::redstone;
@@ -12,13 +12,13 @@ using namespace mc::world::redstone;
  */
 class RedstoneHelperTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 };
 
 // ========== 信号衰减测试 ==========
 
-TEST_F(RedstoneHelperTest, AttenuateBasic) {
+TEST_F(RedstoneHelperTest, AttenuateBasic)
+{
     // 信号衰减测试
     EXPECT_EQ(RedstoneHelper::attenuate(15, 1), 14);
     EXPECT_EQ(RedstoneHelper::attenuate(15, 5), 10);
@@ -26,21 +26,24 @@ TEST_F(RedstoneHelperTest, AttenuateBasic) {
     EXPECT_EQ(RedstoneHelper::attenuate(15, 16), 0); // 不会变成负数
 }
 
-TEST_F(RedstoneHelperTest, AttenuateFromLowStrength) {
+TEST_F(RedstoneHelperTest, AttenuateFromLowStrength)
+{
     // 从低强度开始衰减
     EXPECT_EQ(RedstoneHelper::attenuate(5, 1), 4);
     EXPECT_EQ(RedstoneHelper::attenuate(5, 5), 0);
     EXPECT_EQ(RedstoneHelper::attenuate(1, 1), 0);
 }
 
-TEST_F(RedstoneHelperTest, AttenuateZeroDistance) {
+TEST_F(RedstoneHelperTest, AttenuateZeroDistance)
+{
     // 零距离传输不衰减
     EXPECT_EQ(RedstoneHelper::attenuate(15, 0), 15);
     EXPECT_EQ(RedstoneHelper::attenuate(10, 0), 10);
     EXPECT_EQ(RedstoneHelper::attenuate(0, 0), 0);
 }
 
-TEST_F(RedstoneHelperTest, AttenuateZeroStrength) {
+TEST_F(RedstoneHelperTest, AttenuateZeroStrength)
+{
     // 零强度无论传输多远都是零
     EXPECT_EQ(RedstoneHelper::attenuate(0, 0), 0);
     EXPECT_EQ(RedstoneHelper::attenuate(0, 1), 0);
@@ -49,7 +52,8 @@ TEST_F(RedstoneHelperTest, AttenuateZeroStrength) {
 
 // ========== 信号限制测试 ==========
 
-TEST_F(RedstoneHelperTest, ClampInRange) {
+TEST_F(RedstoneHelperTest, ClampInRange)
+{
     // 在范围内的值不变
     EXPECT_EQ(RedstoneHelper::clamp(0), 0);
     EXPECT_EQ(RedstoneHelper::clamp(5), 5);
@@ -57,7 +61,8 @@ TEST_F(RedstoneHelperTest, ClampInRange) {
     EXPECT_EQ(RedstoneHelper::clamp(15), 15);
 }
 
-TEST_F(RedstoneHelperTest, ClampOutOfRange) {
+TEST_F(RedstoneHelperTest, ClampOutOfRange)
+{
     // 超出范围的值被限制
     EXPECT_EQ(RedstoneHelper::clamp(-1), 0);
     EXPECT_EQ(RedstoneHelper::clamp(-100), 0);
@@ -65,7 +70,8 @@ TEST_F(RedstoneHelperTest, ClampOutOfRange) {
     EXPECT_EQ(RedstoneHelper::clamp(100), 15);
 }
 
-TEST_F(RedstoneHelperTest, ClampBoundary) {
+TEST_F(RedstoneHelperTest, ClampBoundary)
+{
     // 边界值测试
     EXPECT_EQ(RedstoneHelper::clamp(-1), 0);
     EXPECT_EQ(RedstoneHelper::clamp(0), 0);
@@ -75,7 +81,8 @@ TEST_F(RedstoneHelperTest, ClampBoundary) {
 
 // ========== 常量测试 ==========
 
-TEST_F(RedstoneHelperTest, ConstantsCorrect) {
+TEST_F(RedstoneHelperTest, ConstantsCorrect)
+{
     // 红石信号范围是 0-15
     EXPECT_EQ(RedstoneHelper::MIN_POWER, 0);
     EXPECT_EQ(RedstoneHelper::MAX_POWER, 15);
@@ -85,7 +92,8 @@ TEST_F(RedstoneHelperTest, ConstantsCorrect) {
 
 // ========== 方向判断测试 ==========
 
-TEST_F(RedstoneHelperTest, IsHorizontal) {
+TEST_F(RedstoneHelperTest, IsHorizontal)
+{
     using namespace mc::Directions;
 
     EXPECT_TRUE(RedstoneHelper::isHorizontal(Direction::North));
@@ -97,7 +105,8 @@ TEST_F(RedstoneHelperTest, IsHorizontal) {
     EXPECT_FALSE(RedstoneHelper::isHorizontal(Direction::Down));
 }
 
-TEST_F(RedstoneHelperTest, IsVertical) {
+TEST_F(RedstoneHelperTest, IsVertical)
+{
     using namespace mc::Directions;
 
     EXPECT_TRUE(RedstoneHelper::isVertical(Direction::Up));
@@ -111,7 +120,8 @@ TEST_F(RedstoneHelperTest, IsVertical) {
 
 // ========== 组合衰减和限制测试 ==========
 
-TEST_F(RedstoneHelperTest, AttenuateThenClamp) {
+TEST_F(RedstoneHelperTest, AttenuateThenClamp)
+{
     // 典型使用场景：衰减后限制范围
     i32 strength = 10;
     i32 distance = 5;

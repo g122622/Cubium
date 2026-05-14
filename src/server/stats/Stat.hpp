@@ -1,10 +1,10 @@
 #pragma once
 
-#include "server/stats/StatType.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/core/Types.hpp"
-#include <string>
+#include "common/resource/ResourceLocation.hpp"
+#include "server/stats/StatType.hpp"
 #include <functional>
+#include <string>
 
 namespace mc {
 namespace server {
@@ -82,21 +82,21 @@ public:
      *
      * 基于类型和ID比较，不比较值
      */
-    [[nodiscard]] bool operator==(const Stat& other) const noexcept {
+    [[nodiscard]] bool operator==(const Stat& other) const noexcept
+    {
         return m_type == other.m_type && m_id == other.m_id;
     }
 
     /**
      * @brief 判断两个统计项是否不等
      */
-    [[nodiscard]] bool operator!=(const Stat& other) const noexcept {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator!=(const Stat& other) const noexcept { return !(*this == other); }
 
     /**
      * @brief 获取哈希值（用于 unordered_map/unordered_set）
      */
-    [[nodiscard]] size_t hash() const noexcept {
+    [[nodiscard]] size_t hash() const noexcept
+    {
         size_t h1 = std::hash<u8>{}(static_cast<u8>(m_type));
         size_t h2 = m_id.hash();
         return h1 ^ (h2 << 1);
@@ -117,11 +117,9 @@ namespace std {
 /**
  * @brief Stat 的 std::hash 特化
  */
-template<>
+template <>
 struct hash<mc::server::stats::Stat> {
-    size_t operator()(const mc::server::stats::Stat& stat) const noexcept {
-        return stat.hash();
-    }
+    size_t operator()(const mc::server::stats::Stat& stat) const noexcept { return stat.hash(); }
 };
 
 } // namespace std

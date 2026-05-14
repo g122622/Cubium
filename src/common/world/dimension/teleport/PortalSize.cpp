@@ -1,11 +1,11 @@
 #include "PortalSize.hpp"
+#include "../../../core/Constants.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/assert/AssertAll.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../IWorld.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/VanillaBlocks.hpp"
-#include "../../IWorld.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../../core/Constants.hpp"
 
 namespace mc {
 
@@ -13,7 +13,8 @@ namespace mc {
 // PortalSizeResult 方法
 // ============================================================================
 
-std::vector<BlockPos> PortalSizeResult::getPortalBlocks() const {
+std::vector<BlockPos> PortalSizeResult::getPortalBlocks() const
+{
     std::vector<BlockPos> blocks;
     if (!valid) return blocks;
 
@@ -38,10 +39,7 @@ std::vector<BlockPos> PortalSizeResult::getPortalBlocks() const {
 // PortalSize 方法
 // ============================================================================
 
-std::optional<PortalSizeResult> PortalSize::findNetherPortal(
-    IWorld& world,
-    const BlockPos& pos,
-    bool preferXAxis)
+std::optional<PortalSizeResult> PortalSize::findNetherPortal(IWorld& world, const BlockPos& pos, bool preferXAxis)
 {
     // MC 1.16.5 PortalSize.func_242964_a:
     // 先尝试 X 轴 (rightDir = WEST)，再尝试 Z 轴 (rightDir = SOUTH)
@@ -62,7 +60,8 @@ std::optional<PortalSizeResult> PortalSize::findNetherPortal(
     return std::nullopt;
 }
 
-bool PortalSize::lightNetherPortal(IWorld& world, const PortalSizeResult& portal) {
+bool PortalSize::lightNetherPortal(IWorld& world, const PortalSizeResult& portal)
+{
     if (!portal.valid) return false;
 
     auto blocks = portal.getPortalBlocks();
@@ -72,37 +71,36 @@ bool PortalSize::lightNetherPortal(IWorld& world, const PortalSizeResult& portal
 
     // 设置传送门方块轴向
     // MC 1.16.5: NetherPortalBlock.AXIS = portalSize.axis
-    const BlockState* portalState = &VanillaBlocks::NETHER_PORTAL->defaultState().with(
-        BlockStateProperties::HORIZONTAL_AXIS(), portal.axis);
+    const BlockState* portalState =
+        &VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), portal.axis);
 
     for (const BlockPos& pos : blocks) {
         // Block update flags: 2 = notify neighbors, 16 = prevent recursion
-    // Combined: 18 = notify neighbors without triggering recursive updates
-    constexpr i32 BLOCK_UPDATE_NOTIFY_NEIGHBORS = 2;
-    constexpr i32 BLOCK_UPDATE_NO_RECURSION = 16;
-    world.setBlockState(pos, portalState, BLOCK_UPDATE_NOTIFY_NEIGHBORS | BLOCK_UPDATE_NO_RECURSION);
+        // Combined: 18 = notify neighbors without triggering recursive updates
+        constexpr i32 BLOCK_UPDATE_NOTIFY_NEIGHBORS = 2;
+        constexpr i32 BLOCK_UPDATE_NO_RECURSION = 16;
+        world.setBlockState(pos, portalState, BLOCK_UPDATE_NOTIFY_NEIGHBORS | BLOCK_UPDATE_NO_RECURSION);
     }
 
     return true;
 }
 
-bool PortalSize::canConnect(const BlockState& state) {
+bool PortalSize::canConnect(const BlockState& state)
+{
     if (state.isAir()) return true;
     if (VanillaBlocks::FIRE != nullptr && state.is(VanillaBlocks::FIRE)) return true;
     if (VanillaBlocks::NETHER_PORTAL != nullptr && state.is(VanillaBlocks::NETHER_PORTAL)) return true;
     return false;
 }
 
-bool PortalSize::isPortalFrame(const BlockState& state) {
+bool PortalSize::isPortalFrame(const BlockState& state)
+{
     if (VanillaBlocks::OBSIDIAN != nullptr && state.is(VanillaBlocks::OBSIDIAN)) return true;
     // 未来可扩展支持模组自定义框架方块
     return false;
 }
 
-std::optional<PortalSizeResult> PortalSize::tryFindPortalOnAxis(
-    IWorld& world,
-    const BlockPos& pos,
-    Direction rightDir)
+std::optional<PortalSizeResult> PortalSize::tryFindPortalOnAxis(IWorld& world, const BlockPos& pos, Direction rightDir)
 {
     // MC 1.16.5 PortalSize 构造函数：
     // this.rightDir = axis == X ? WEST : SOUTH
@@ -133,10 +131,7 @@ std::optional<PortalSizeResult> PortalSize::tryFindPortalOnAxis(
     return result;
 }
 
-std::optional<BlockPos> PortalSize::findBottomLeft(
-    IWorld& world,
-    const BlockPos& pos,
-    Direction rightDir)
+std::optional<BlockPos> PortalSize::findBottomLeft(IWorld& world, const BlockPos& pos, Direction rightDir)
 {
     Direction leftDir = Directions::opposite(rightDir);
 
@@ -181,10 +176,7 @@ std::optional<BlockPos> PortalSize::findBottomLeft(
     return currentPos.offset(leftDir, leftDistance - 1);
 }
 
-i32 PortalSize::calculateWidth(
-    IWorld& world,
-    const BlockPos& bottomLeft,
-    Direction rightDir)
+i32 PortalSize::calculateWidth(IWorld& world, const BlockPos& bottomLeft, Direction rightDir)
 {
     for (i32 i = 0; i <= MAX_WIDTH; ++i) {
         BlockPos checkPos = bottomLeft.offset(rightDir, i);
@@ -205,11 +197,7 @@ i32 PortalSize::calculateWidth(
 }
 
 i32 PortalSize::calculateHeight(
-    IWorld& world,
-    const BlockPos& bottomLeft,
-    Direction rightDir,
-    i32 width,
-    i32& outPortalBlockCount)
+    IWorld& world, const BlockPos& bottomLeft, Direction rightDir, i32 width, i32& outPortalBlockCount)
 {
     outPortalBlockCount = 0;
     Direction leftDir = Directions::opposite(rightDir);
@@ -240,12 +228,7 @@ i32 PortalSize::calculateHeight(
     return MAX_HEIGHT;
 }
 
-bool PortalSize::checkTopFrame(
-    IWorld& world,
-    const BlockPos& bottomLeft,
-    Direction rightDir,
-    i32 width,
-    i32 height)
+bool PortalSize::checkTopFrame(IWorld& world, const BlockPos& bottomLeft, Direction rightDir, i32 width, i32 height)
 {
     BlockPos topFramePos = bottomLeft.offset(Direction::Up, height);
 

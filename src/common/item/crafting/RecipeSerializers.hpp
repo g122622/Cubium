@@ -1,14 +1,14 @@
 #pragma once
 
+#include "core/Result.hpp"
+#include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/ShapedRecipe.hpp"
 #include "item/crafting/ShapelessRecipe.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
-#include "item/crafting/StonecuttingRecipe.hpp"
 #include "item/crafting/SmithingRecipe.hpp"
-#include "item/crafting/RecipeManager.hpp"
-#include "core/Result.hpp"
-#include <nlohmann/json.hpp>
+#include "item/crafting/StonecuttingRecipe.hpp"
 #include <memory>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace crafting {
@@ -89,9 +89,7 @@ public:
      * @param json JSON数据
      * @return 解析的配方，或错误
      */
-    static Result<std::unique_ptr<CraftingRecipe>> fromJson(
-        const ResourceLocation& id,
-        const nlohmann::json& json);
+    static Result<std::unique_ptr<CraftingRecipe>> fromJson(const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 从JSON解析熔炼类配方
@@ -100,8 +98,7 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<SmeltingRecipe>> fromSmeltingJson(
-        const ResourceLocation& id,
-        const nlohmann::json& json);
+        const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 解析有序合成配方
@@ -110,8 +107,7 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<ShapedRecipe>> parseShapedRecipe(
-        const ResourceLocation& id,
-        const nlohmann::json& json);
+        const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 解析无序合成配方
@@ -120,8 +116,7 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<ShapelessRecipe>> parseShapelessRecipe(
-        const ResourceLocation& id,
-        const nlohmann::json& json);
+        const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 解析熔炉配方
@@ -131,9 +126,7 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<SmeltingRecipe>> parseSmeltingRecipe(
-        const ResourceLocation& id,
-        const nlohmann::json& json,
-        i32 defaultCookTime = DEFAULT_SMELTING_TIME);
+        const ResourceLocation& id, const nlohmann::json& json, i32 defaultCookTime = DEFAULT_SMELTING_TIME);
 
     /**
      * @brief 解析高炉配方
@@ -142,8 +135,7 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<SmeltingRecipe>> parseBlastingRecipe(
-        const ResourceLocation& id,
-        const nlohmann::json& json);
+        const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 解析烟熏炉配方
@@ -152,8 +144,7 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<SmeltingRecipe>> parseSmokingRecipe(
-        const ResourceLocation& id,
-        const nlohmann::json& json);
+        const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 解析营火烹饪配方
@@ -162,8 +153,7 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<SmeltingRecipe>> parseCampfireCookingRecipe(
-        const ResourceLocation& id,
-        const nlohmann::json& json);
+        const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 解析原料
@@ -221,8 +211,7 @@ private:
      * @return 解析的原料列表，或错误
      */
     static Result<std::vector<Ingredient>> parsePatternIngredients(
-        const std::vector<std::string>& pattern,
-        const nlohmann::json& key);
+        const std::vector<std::string>& pattern, const nlohmann::json& key);
 };
 
 } // namespace crafting

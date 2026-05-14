@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "trigger/CriterionTrigger.hpp"
-#include <nlohmann/json.hpp>
-#include <string>
 #include <memory>
+#include <string>
+#include <nlohmann/json.hpp>
 
 namespace mc::advancement {
 
@@ -38,14 +38,16 @@ public:
     /**
      * @brief 获取触发器实例
      */
-    [[nodiscard]] const std::shared_ptr<ICriterionInstance>& getTriggerInstance() const noexcept {
+    [[nodiscard]] const std::shared_ptr<ICriterionInstance>& getTriggerInstance() const noexcept
+    {
         return m_triggerInstance;
     }
 
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getTrigger() const noexcept {
+    [[nodiscard]] ResourceLocation getTrigger() const noexcept
+    {
         return m_triggerInstance ? m_triggerInstance->getId() : ResourceLocation();
     }
 

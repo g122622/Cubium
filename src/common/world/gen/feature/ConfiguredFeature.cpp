@@ -1,21 +1,21 @@
 #include "ConfiguredFeature.hpp"
-#include "lake/LakeFeature.hpp"
-#include "ore/OreFeature.hpp"
-#include "tree/TreeFeature.hpp"
-#include "vegetation/VegetationFeatures.hpp"
-#include "ocean/KelpFeature.hpp"
-#include "ocean/SeagrassFeature.hpp"
-#include "ocean/SeaPickleFeature.hpp"
-#include "ocean/CoralFeature.hpp"
-#include "ocean/OceanDecorationFeature.hpp"
-#include "ocean/BlueIceFeature.hpp"
-#include "nether/NetherFeatures.hpp"
-#include "spike/EndSpikeFeature.hpp"
-#include "gateway/EndGatewayFeature.hpp"
-#include "../chunk/IChunkGenerator.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
 #include "../../biome/Biome.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../chunk/ChunkPrimer.hpp"
+#include "../chunk/IChunkGenerator.hpp"
+#include "gateway/EndGatewayFeature.hpp"
+#include "lake/LakeFeature.hpp"
+#include "nether/NetherFeatures.hpp"
+#include "ocean/BlueIceFeature.hpp"
+#include "ocean/CoralFeature.hpp"
+#include "ocean/KelpFeature.hpp"
+#include "ocean/OceanDecorationFeature.hpp"
+#include "ocean/SeaPickleFeature.hpp"
+#include "ocean/SeagrassFeature.hpp"
+#include "ore/OreFeature.hpp"
+#include "spike/EndSpikeFeature.hpp"
+#include "tree/TreeFeature.hpp"
+#include "vegetation/VegetationFeatures.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -25,19 +25,22 @@ namespace mc {
 // FeatureRegistry 实现
 // ============================================================================
 
-FeatureRegistry& FeatureRegistry::instance() {
+FeatureRegistry& FeatureRegistry::instance()
+{
     static FeatureRegistry s_instance;
     return s_instance;
 }
 
-FeatureRegistry::FeatureRegistry() {
+FeatureRegistry::FeatureRegistry()
+{
     // 预分配阶段数量
     m_featuresByStage.resize(static_cast<size_t>(DecorationStage::Count));
 }
 
 FeatureRegistry::~FeatureRegistry() = default;
 
-void FeatureRegistry::initialize() {
+void FeatureRegistry::initialize()
+{
     clear();
 
     // 注册湖泊特征（LAKES 阶段）
@@ -215,7 +218,8 @@ void FeatureRegistry::initialize() {
     }
 }
 
-void FeatureRegistry::registerFeature(std::unique_ptr<ConfiguredFeatureBase> feature, DecorationStage stage) {
+void FeatureRegistry::registerFeature(std::unique_ptr<ConfiguredFeatureBase> feature, DecorationStage stage)
+{
     if (!feature) {
         return;
     }
@@ -230,7 +234,8 @@ void FeatureRegistry::registerFeature(std::unique_ptr<ConfiguredFeatureBase> fea
     m_featuresByStage[stageIndex].push_back(ptr);
 }
 
-const std::vector<ConfiguredFeatureBase*>& FeatureRegistry::getFeatures(DecorationStage stage) const {
+const std::vector<ConfiguredFeatureBase*>& FeatureRegistry::getFeatures(DecorationStage stage) const
+{
     const size_t stageIndex = static_cast<size_t>(stage);
     if (stageIndex >= m_featuresByStage.size()) {
         static const std::vector<ConfiguredFeatureBase*> empty;
@@ -239,7 +244,8 @@ const std::vector<ConfiguredFeatureBase*>& FeatureRegistry::getFeatures(Decorati
     return m_featuresByStage[stageIndex];
 }
 
-void FeatureRegistry::clear() {
+void FeatureRegistry::clear()
+{
     m_featuresByStage.clear();
     m_featuresByStage.resize(static_cast<size_t>(DecorationStage::Count));
     m_ownedFeatures.clear();
@@ -249,8 +255,7 @@ void FeatureRegistry::clear() {
 // FeatureGenerator 实现
 // ============================================================================
 
-void FeatureGenerator::placeFeatures(
-    WorldGenRegion& region,
+void FeatureGenerator::placeFeatures(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
     const Biome& biome,

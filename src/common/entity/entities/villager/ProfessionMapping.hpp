@@ -29,16 +29,14 @@ public:
      * @param profession 村民职业
      * @return 对应的工作站POI类型，如果无职业返回None
      */
-    [[nodiscard]] static world::village::poi::PointOfInterestType
-    getWorkstationPOI(VillagerProfession profession);
+    [[nodiscard]] static world::village::poi::PointOfInterestType getWorkstationPOI(VillagerProfession profession);
 
     /**
      * @brief 从工作站POI类型获取职业
      * @param poiType 工作站POI类型
      * @return 对应的村民职业，如果不是工作站返回None
      */
-    [[nodiscard]] static VillagerProfession
-    getProfessionFromPOI(world::village::poi::PointOfInterestType poiType);
+    [[nodiscard]] static VillagerProfession getProfessionFromPOI(world::village::poi::PointOfInterestType poiType);
 
     /**
      * @brief 检查职业是否有效（非None且非Nitwit）

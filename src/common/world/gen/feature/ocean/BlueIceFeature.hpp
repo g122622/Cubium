@@ -23,8 +23,7 @@ struct BlueIceFeatureConfig : public IFeatureConfig {
  */
 class BlueIceFeature {
 public:
-    bool place(
-        WorldGenRegion& world,
+    bool place(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         const BlueIceFeatureConfig& config,
@@ -34,9 +33,7 @@ private:
     [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
 
     [[nodiscard]] bool isReplaceableForSpread(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        const BlueIceFeatureConfig& config) const;
+        WorldGenRegion& world, const BlockPos& pos, const BlueIceFeatureConfig& config) const;
 
     [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const;
 };
@@ -46,12 +43,9 @@ private:
  */
 class ConfiguredBlueIceFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredBlueIceFeature(
-        std::unique_ptr<BlueIceFeatureConfig> config,
-        const char* featureName);
+    ConfiguredBlueIceFeature(std::unique_ptr<BlueIceFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

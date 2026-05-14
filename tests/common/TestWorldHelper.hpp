@@ -1,16 +1,16 @@
 #pragma once
 
-#include "common/world/tick/manager/TickManager.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/fluid/Fluid.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
-#include <unordered_map>
 #include <memory>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace mc {
 namespace test {
@@ -40,7 +40,8 @@ class BaseTestWorld : public IWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
         return fluid::Fluid::getFluidState(0);
     }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
@@ -50,15 +51,25 @@ public:
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] u64 seed() const override { return 0; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
@@ -67,26 +78,20 @@ public:
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
     [[nodiscard]] bool isClientSide() override { return false; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("BaseTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("BaseTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
-    }
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        return m_worldBorder;
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        return m_worldBorder;
-    }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
 protected:
     BaseTestWorld() = default;

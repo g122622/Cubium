@@ -1,10 +1,10 @@
 #include "TameableGoals.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
-#include "../../../../../item/core/ItemStack.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/math/random/Random.hpp"
 #include <cmath>
 
 using namespace mc::entity::ai;
@@ -15,7 +15,8 @@ namespace mc::entity::ai::goal {
 // FollowOwnerGoal
 // ============================================================================
 
-FollowOwnerGoal::FollowOwnerGoal(TameableEntity* entity, f64 speed, f32 minDistance, f32 maxDistance, f32 teleportDistance)
+FollowOwnerGoal::FollowOwnerGoal(
+    TameableEntity* entity, f64 speed, f32 minDistance, f32 maxDistance, f32 teleportDistance)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
     , m_entity(entity)
     , m_speed(speed)
@@ -26,7 +27,8 @@ FollowOwnerGoal::FollowOwnerGoal(TameableEntity* entity, f64 speed, f32 minDista
     MC_ASSERT(entity != nullptr);
 }
 
-bool FollowOwnerGoal::shouldExecute() {
+bool FollowOwnerGoal::shouldExecute()
+{
     // 只有驯服且未坐下时才跟随
     if (!m_entity->isTamed() || m_entity->isSitting()) {
         return false;
@@ -49,7 +51,8 @@ bool FollowOwnerGoal::shouldExecute() {
     return distance > m_minDistance;
 }
 
-bool FollowOwnerGoal::shouldContinueExecuting() {
+bool FollowOwnerGoal::shouldContinueExecuting()
+{
     // 如果不再驯服或坐下，停止跟随
     if (!m_entity->isTamed() || m_entity->isSitting()) {
         return false;
@@ -68,16 +71,19 @@ bool FollowOwnerGoal::shouldContinueExecuting() {
     return true;
 }
 
-void FollowOwnerGoal::startExecuting() {
+void FollowOwnerGoal::startExecuting()
+{
     m_timeToRecalcPath = 0;
 }
 
-void FollowOwnerGoal::resetTask() {
+void FollowOwnerGoal::resetTask()
+{
     m_owner = nullptr;
     m_entity->clearNavigation();
 }
 
-void FollowOwnerGoal::tick() {
+void FollowOwnerGoal::tick()
+{
     if (!m_owner) {
         return;
     }
@@ -102,7 +108,8 @@ void FollowOwnerGoal::tick() {
     }
 }
 
-bool FollowOwnerGoal::canFollowOwner() const {
+bool FollowOwnerGoal::canFollowOwner() const
+{
     if (!m_entity->isTamed() || m_entity->isSitting()) {
         return false;
     }
@@ -115,7 +122,8 @@ bool FollowOwnerGoal::canFollowOwner() const {
     return true;
 }
 
-bool FollowOwnerGoal::teleportToOwner() {
+bool FollowOwnerGoal::teleportToOwner()
+{
     if (!m_owner) {
         return false;
     }
@@ -145,14 +153,12 @@ bool FollowOwnerGoal::teleportToOwner() {
 
             // 检查脚部位置是否有碰撞
             AxisAlignedBB entityBox = m_entity->boundingBox();
-            AxisAlignedBB testBox(
-                targetX - entityBox.width() / 2.0f,
+            AxisAlignedBB testBox(targetX - entityBox.width() / 2.0f,
                 testY,
                 targetZ - entityBox.width() / 2.0f,
                 targetX + entityBox.width() / 2.0f,
                 testY + entityBox.height(),
-                targetZ + entityBox.width() / 2.0f
-            );
+                targetZ + entityBox.width() / 2.0f);
 
             // 检查是否有碰撞
             if (worldPtr->hasNoCollisions(testBox)) {
@@ -185,21 +191,25 @@ SitGoal::SitGoal(TameableEntity* entity)
     MC_ASSERT(entity != nullptr);
 }
 
-bool SitGoal::shouldExecute() {
+bool SitGoal::shouldExecute()
+{
     // 驯服状态下执行坐下
     return m_entity->isTamed() && m_entity->isSitting();
 }
 
-bool SitGoal::shouldContinueExecuting() {
+bool SitGoal::shouldContinueExecuting()
+{
     return m_entity->isTamed() && m_entity->isSitting();
 }
 
-void SitGoal::startExecuting() {
+void SitGoal::startExecuting()
+{
     // 坐下时停止移动
     m_entity->clearNavigation();
 }
 
-void SitGoal::resetTask() {
+void SitGoal::resetTask()
+{
     // 站起时无需特殊处理
 }
 
@@ -215,7 +225,8 @@ BegGoal::BegGoal(TameableEntity* entity, f32 maxDistance)
     MC_ASSERT(entity != nullptr);
 }
 
-bool BegGoal::shouldExecute() {
+bool BegGoal::shouldExecute()
+{
     // MC 1.16.5: BegGoal.shouldExecute()
     // 查找最近的手持食物的玩家
 
@@ -225,8 +236,7 @@ bool BegGoal::shouldExecute() {
     }
 
     // 获取范围内的所有实体
-    std::vector<Entity*> entities = worldPtr->getEntitiesInRange(
-        m_entity->position(), m_maxDistance, m_entity);
+    std::vector<Entity*> entities = worldPtr->getEntitiesInRange(m_entity->position(), m_maxDistance, m_entity);
 
     m_targetPlayer = nullptr;
     f32 closestDistance = m_maxDistance * m_maxDistance; // 使用平方距离比较
@@ -257,7 +267,8 @@ bool BegGoal::shouldExecute() {
     return m_targetPlayer != nullptr;
 }
 
-bool BegGoal::shouldContinueExecuting() {
+bool BegGoal::shouldContinueExecuting()
+{
     if (!m_targetPlayer) {
         return false;
     }
@@ -270,15 +281,18 @@ bool BegGoal::shouldContinueExecuting() {
     return isPlayerHoldingFood(m_targetPlayer);
 }
 
-void BegGoal::startExecuting() {
+void BegGoal::startExecuting()
+{
     m_begAngle = 0.0f;
 }
 
-void BegGoal::resetTask() {
+void BegGoal::resetTask()
+{
     m_targetPlayer = nullptr;
 }
 
-void BegGoal::tick() {
+void BegGoal::tick()
+{
     if (!m_targetPlayer) {
         return;
     }
@@ -293,7 +307,8 @@ void BegGoal::tick() {
     }
 }
 
-bool BegGoal::isPlayerHoldingFood(const Player* player) const {
+bool BegGoal::isPlayerHoldingFood(const Player* player) const
+{
     if (!player) {
         return false;
     }

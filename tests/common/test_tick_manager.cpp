@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
 #include <memory>
+#include <gtest/gtest.h>
 
-#include "common/world/tick/list/ServerTickList.hpp"
-#include "common/world/tick/list/EmptyTickList.hpp"
-#include "common/world/tick/base/TickPriority.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/list/EmptyTickList.hpp"
+#include "common/world/tick/list/ServerTickList.hpp"
 
 using namespace mc;
 using namespace mc::world::tick;
@@ -18,17 +18,15 @@ using namespace mc::world::tick;
 
 class MockBlock : public Block {
 public:
-    MockBlock() : Block(BlockProperties(Material::ROCK)) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .create([](const Block& block, auto values, u32 id) {
-                return std::make_unique<BlockState>(block, values, id);
-            });
+    MockBlock()
+        : Block(BlockProperties(Material::ROCK))
+    {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+            [](const Block& block, auto values, u32 id) { return std::make_unique<BlockState>(block, values, id); });
         createBlockState(std::move(container));
     }
 
-    bool isAir(const BlockState& state) const override {
-        return m_isAir;
-    }
+    bool isAir(const BlockState& state) const override { return m_isAir; }
 
     void setAir(bool air) { m_isAir = air; }
 
@@ -42,14 +40,13 @@ private:
 
 class TickPriorityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        block = std::make_unique<MockBlock>();
-    }
+    void SetUp() override { block = std::make_unique<MockBlock>(); }
 
     std::unique_ptr<MockBlock> block;
 };
 
-TEST_F(TickPriorityTest, FromToInt) {
+TEST_F(TickPriorityTest, FromToInt)
+{
     EXPECT_EQ(fromInt(-3), TickPriority::ExtremelyHigh);
     EXPECT_EQ(fromInt(-2), TickPriority::VeryHigh);
     EXPECT_EQ(fromInt(-1), TickPriority::High);
@@ -73,14 +70,13 @@ TEST_F(TickPriorityTest, FromToInt) {
 
 class ScheduledTickTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        block = std::make_unique<MockBlock>();
-    }
+    void SetUp() override { block = std::make_unique<MockBlock>(); }
 
     std::unique_ptr<MockBlock> block;
 };
 
-TEST_F(ScheduledTickTest, ComparisonByTime) {
+TEST_F(ScheduledTickTest, ComparisonByTime)
+{
     BlockPos pos(10, 64, 10);
 
     ScheduledTick<Block> tick1(pos, block.get(), 10, TickPriority::Normal, 1);
@@ -91,7 +87,8 @@ TEST_F(ScheduledTickTest, ComparisonByTime) {
     EXPECT_FALSE(tick2 < tick1);
 }
 
-TEST_F(ScheduledTickTest, ComparisonByPriority) {
+TEST_F(ScheduledTickTest, ComparisonByPriority)
+{
     BlockPos pos(10, 64, 10);
 
     ScheduledTick<Block> tick1(pos, block.get(), 10, TickPriority::Normal, 1);
@@ -102,7 +99,8 @@ TEST_F(ScheduledTickTest, ComparisonByPriority) {
     EXPECT_FALSE(tick1 < tick2);
 }
 
-TEST_F(ScheduledTickTest, ComparisonById) {
+TEST_F(ScheduledTickTest, ComparisonById)
+{
     BlockPos pos(10, 64, 10);
 
     ScheduledTick<Block> tick1(pos, block.get(), 10, TickPriority::Normal, 1);
@@ -113,7 +111,8 @@ TEST_F(ScheduledTickTest, ComparisonById) {
     EXPECT_FALSE(tick2 < tick1);
 }
 
-TEST_F(ScheduledTickTest, Equality) {
+TEST_F(ScheduledTickTest, Equality)
+{
     BlockPos pos1(10, 64, 10);
     BlockPos pos2(20, 64, 20);
 
@@ -124,10 +123,11 @@ TEST_F(ScheduledTickTest, Equality) {
     EXPECT_TRUE(tick1 == tick2);
 
     ScheduledTick<Block> tick3(pos2, block.get(), 10, TickPriority::Normal, 3);
-    EXPECT_FALSE(tick1 == tick3);  // 不同位置
+    EXPECT_FALSE(tick1 == tick3); // 不同位置
 }
 
-TEST_F(ScheduledTickTest, HashCode) {
+TEST_F(ScheduledTickTest, HashCode)
+{
     BlockPos pos(10, 64, 10);
 
     ScheduledTick<Block> tick1(pos, block.get(), 10, TickPriority::Normal, 1);
@@ -137,7 +137,8 @@ TEST_F(ScheduledTickTest, HashCode) {
     EXPECT_EQ(tick1.hashCode(), tick2.hashCode());
 }
 
-TEST_F(ScheduledTickTest, HashFunction) {
+TEST_F(ScheduledTickTest, HashFunction)
+{
     BlockPos pos(10, 64, 10);
 
     ScheduledTick<Block> tick(pos, block.get(), 10, TickPriority::Normal, 1);
@@ -153,14 +154,13 @@ TEST_F(ScheduledTickTest, HashFunction) {
 
 class EmptyTickListTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        block = std::make_unique<MockBlock>();
-    }
+    void SetUp() override { block = std::make_unique<MockBlock>(); }
 
     std::unique_ptr<MockBlock> block;
 };
 
-TEST_F(EmptyTickListTest, AllOperationsAreNoOp) {
+TEST_F(EmptyTickListTest, AllOperationsAreNoOp)
+{
     EmptyTickList<Block> emptyList;
 
     BlockPos pos(10, 64, 10);
@@ -174,14 +174,16 @@ TEST_F(EmptyTickListTest, AllOperationsAreNoOp) {
     EXPECT_EQ(emptyList.pendingCount(), 0);
 }
 
-TEST_F(EmptyTickListTest, CancelReturnsFalse) {
+TEST_F(EmptyTickListTest, CancelReturnsFalse)
+{
     EmptyTickList<Block> emptyList;
 
     BlockPos pos(10, 64, 10);
     EXPECT_FALSE(emptyList.cancelTick(pos, *block));
 }
 
-TEST_F(EmptyTickListTest, SingletonPattern) {
+TEST_F(EmptyTickListTest, SingletonPattern)
+{
     // 单例模式
     EmptyTickList<Block>& list1 = EmptyTickList<Block>::get();
     EmptyTickList<Block>& list2 = EmptyTickList<Block>::get();

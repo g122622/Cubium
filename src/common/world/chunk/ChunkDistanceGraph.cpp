@@ -1,12 +1,13 @@
 #include "ChunkDistanceGraph.hpp"
 #include "ChunkLoadTicket.hpp"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace mc::world {
 
 namespace {
-inline i32 clampLevel(i32 level) {
+inline i32 clampLevel(i32 level)
+{
     return std::clamp(level, 0, ChunkDistanceGraph::MAX_LEVEL);
 }
 } // namespace
@@ -15,7 +16,8 @@ inline i32 clampLevel(i32 level) {
 // ChunkDistanceGraph 实现
 // ============================================================================
 
-void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing) {
+void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
+{
     const u64 key = posToKey(x, z);
     const i32 clampedLevel = clampLevel(level);
 
@@ -45,7 +47,8 @@ void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level
     }
 }
 
-i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess) {
+i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
+{
     i32 processed = 0;
 
     while (!m_updateQueue.empty() && processed < maxToProcess) {
@@ -62,12 +65,14 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess) {
         // 重新计算该区块的最优级别：
         // min(自身源级别, 四邻居级别 + 1)
         i32 recomputedLevel = getSourceLevel(x, z);
-        struct Neighbor { ChunkCoord x, z; };
+        struct Neighbor {
+            ChunkCoord x, z;
+        };
         const Neighbor neighbors[4] = {
-            {x, z - 1},  // 北
-            {x, z + 1},  // 南
-            {x + 1, z},  // 东
-            {x - 1, z}   // 西
+            {x, z - 1}, // 北
+            {x, z + 1}, // 南
+            {x + 1, z}, // 东
+            {x - 1, z}  // 西
         };
 
         for (const auto& neighbor : neighbors) {
@@ -101,16 +106,18 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess) {
     return processed;
 }
 
-i32 ChunkDistanceGraph::getLevel(ChunkCoord x, ChunkCoord z) const {
+i32 ChunkDistanceGraph::getLevel(ChunkCoord x, ChunkCoord z) const
+{
     u64 key = posToKey(x, z);
     auto it = m_levels.find(key);
     if (it != m_levels.end()) {
         return it->second;
     }
-    return MAX_LEVEL;  // 未加载
+    return MAX_LEVEL; // 未加载
 }
 
-void ChunkDistanceGraph::clear() {
+void ChunkDistanceGraph::clear()
+{
     m_levels.clear();
     m_sourceLevels.clear();
     m_pendingKeys.clear();
@@ -119,7 +126,8 @@ void ChunkDistanceGraph::clear() {
     }
 }
 
-i32 ChunkDistanceGraph::getSourceLevel(ChunkCoord x, ChunkCoord z) const {
+i32 ChunkDistanceGraph::getSourceLevel(ChunkCoord x, ChunkCoord z) const
+{
     const u64 key = posToKey(x, z);
     auto it = m_sourceLevels.find(key);
     if (it != m_sourceLevels.end()) {
@@ -128,20 +136,24 @@ i32 ChunkDistanceGraph::getSourceLevel(ChunkCoord x, ChunkCoord z) const {
     return MAX_LEVEL;
 }
 
-void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
+{
     if (m_levelChangeCallback) {
         m_levelChangeCallback(x, z, oldLevel, newLevel);
     }
 }
 
-void ChunkDistanceGraph::propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing) {
+void ChunkDistanceGraph::propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
+{
     // 4个相邻区块：北、南、东、西
-    struct Neighbor { ChunkCoord x, z; };
+    struct Neighbor {
+        ChunkCoord x, z;
+    };
     Neighbor neighbors[4] = {
-        {x, z - 1},  // 北
-        {x, z + 1},  // 南
-        {x + 1, z},  // 东
-        {x - 1, z}   // 西
+        {x, z - 1}, // 北
+        {x, z + 1}, // 南
+        {x + 1, z}, // 东
+        {x - 1, z}  // 西
     };
 
     i32 propagatedLevel = computePropagatedLevel(level);
@@ -161,7 +173,8 @@ void ChunkDistanceGraph::propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 le
     }
 }
 
-void ChunkDistanceGraph::enqueueUpdate(ChunkCoord x, ChunkCoord z) {
+void ChunkDistanceGraph::enqueueUpdate(ChunkCoord x, ChunkCoord z)
+{
     const u64 key = posToKey(x, z);
     if (m_pendingKeys.insert(key).second) {
         m_updateQueue.push(key);
@@ -180,9 +193,10 @@ PlayerChunkTracker::PlayerChunkTracker(i32 viewDistance)
     updateChunksInRange();
 }
 
-void PlayerChunkTracker::setPlayerPosition(ChunkCoord x, ChunkCoord z) {
+void PlayerChunkTracker::setPlayerPosition(ChunkCoord x, ChunkCoord z)
+{
     if (m_playerX == x && m_playerZ == z && m_positionSet) {
-        return;  // 位置没变
+        return; // 位置没变
     }
 
     ChunkCoord oldX = m_playerX;
@@ -206,7 +220,8 @@ void PlayerChunkTracker::setPlayerPosition(ChunkCoord x, ChunkCoord z) {
     updateSourceLevel(m_playerX, m_playerZ, m_ticketLevel, true);
 }
 
-void PlayerChunkTracker::setViewDistance(i32 distance) {
+void PlayerChunkTracker::setViewDistance(i32 distance)
+{
     const i32 clampedDistance = std::clamp(distance, 2, 32);
 
     if (m_viewDistance == clampedDistance) {
@@ -227,12 +242,14 @@ void PlayerChunkTracker::setViewDistance(i32 distance) {
     updateChunksInRange();
 }
 
-bool PlayerChunkTracker::isChunkInRange(ChunkCoord x, ChunkCoord z) const {
+bool PlayerChunkTracker::isChunkInRange(ChunkCoord x, ChunkCoord z) const
+{
     u64 key = posToKey(x, z);
     return m_chunksInRange.count(key) > 0;
 }
 
-i32 PlayerChunkTracker::getSourceLevel(ChunkCoord x, ChunkCoord z) const {
+i32 PlayerChunkTracker::getSourceLevel(ChunkCoord x, ChunkCoord z) const
+{
     // 如果是玩家当前位置，返回票据级别
     if (x == m_playerX && z == m_playerZ) {
         return m_ticketLevel;
@@ -241,7 +258,8 @@ i32 PlayerChunkTracker::getSourceLevel(ChunkCoord x, ChunkCoord z) const {
     return MAX_LEVEL;
 }
 
-void PlayerChunkTracker::updateChunksInRange() {
+void PlayerChunkTracker::updateChunksInRange()
+{
     m_chunksInRange.clear();
 
     // 遍历视距范围内的所有区块

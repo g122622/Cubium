@@ -1,22 +1,24 @@
 #include "NetherPortalBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {
 
 NetherPortalBlock::NetherPortalBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_AXIS())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::HORIZONTAL_AXIS())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -27,21 +29,21 @@ NetherPortalBlock::NetherPortalBlock(const BlockProperties& properties)
     m_zAxisShape = CollisionShape::box(0.375f, 0.0f, 0.0f, 0.625f, 1.0f, 1.0f);
 }
 
-Axis NetherPortalBlock::getAxis(const BlockState& state) const {
+Axis NetherPortalBlock::getAxis(const BlockState& state) const
+{
     return state.get(BlockStateProperties::HORIZONTAL_AXIS());
 }
 
-BlockState NetherPortalBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState NetherPortalBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     Direction facing = context.horizontalDirection();
     Axis axis = Directions::getAxis(facing);
-    if (axis == Axis::Y) axis = Axis::X;  // 水平轴
+    if (axis == Axis::Y) axis = Axis::X; // 水平轴
     return defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
 }
 
-bool NetherPortalBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -51,13 +53,13 @@ bool NetherPortalBlock::isValidPosition(
     return true;
 }
 
-BlockState NetherPortalBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState NetherPortalBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
@@ -74,7 +76,8 @@ BlockState NetherPortalBlock::updatePostPlacement(
     return state;
 }
 
-void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
     // 参考 MC 1.16.5 NetherPortalBlock.onEntityCollision
     // 实体进入传送门后开始传送计时
     // 玩家需要站立在传送门中约 4 秒（80 ticks）才能传送
@@ -109,12 +112,14 @@ void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world
     // 其他实体的 getMaxInPortalTime() 返回 1 tick
 }
 
-const CollisionShape& NetherPortalBlock::getShape(const BlockState& state) const {
+const CollisionShape& NetherPortalBlock::getShape(const BlockState& state) const
+{
     Axis axis = getAxis(state);
     return (axis == Axis::X) ? m_xAxisShape : m_zAxisShape;
 }
 
-const CollisionShape& NetherPortalBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& NetherPortalBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;

@@ -1,15 +1,14 @@
 #include "AbstractFireballEntity.hpp"
 
-#include "../../damage/DamageSource.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../damage/DamageSource.hpp"
 
 namespace mc {
 namespace entity {
 
 AbstractFireballEntity::AbstractFireballEntity(LegacyEntityType type, EntityId id)
     : DamagingProjectileEntity(type, id)
-{
-}
+{}
 
 FireballEntity::FireballEntity(LegacyEntityType type, EntityId id)
     : AbstractFireballEntity(type, id)
@@ -31,11 +30,9 @@ void FireballEntity::onEntityHit(const RayTraceResult& result)
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
     if (shooter != nullptr) {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Fireball, shooter, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Fireball, shooter, this, false);
     } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Fireball, this, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Fireball, this, this, false);
     }
 
     (void)damageSource;
@@ -71,11 +68,9 @@ void SmallFireballEntity::onEntityHit(const RayTraceResult& result)
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
     if (shooter != nullptr) {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Fireball, shooter, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Fireball, shooter, this, false);
     } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Fireball, this, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Fireball, this, this, false);
     }
 
     (void)damageSource;
@@ -140,11 +135,9 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
     if (shooter != nullptr) {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Magic, shooter, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Magic, shooter, this, false);
     } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Magic, this, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Magic, this, this, false);
     }
 
     (void)damageSource;

@@ -1,17 +1,17 @@
 #include "MeleeAttackGoal.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../GoalConstants.hpp"
-#include "../../controller/LookController.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/CreatureEntity.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../entities/player/Player.hpp"
+#include "../../controller/LookController.hpp"
+#include "../../pathfinding/PathNavigator.hpp"
+#include "../GoalConstants.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -25,7 +25,8 @@ MeleeAttackGoal::MeleeAttackGoal(CreatureEntity* creature, f64 speed, bool useLo
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool MeleeAttackGoal::shouldExecute() {
+bool MeleeAttackGoal::shouldExecute()
+{
     if (!m_creature) return false;
 
     // MC 1.16.5: 游戏时间节流 - 每20 tick检查一次
@@ -56,7 +57,8 @@ bool MeleeAttackGoal::shouldExecute() {
     return distSq <= attackReachSq;
 }
 
-bool MeleeAttackGoal::shouldContinueExecuting() {
+bool MeleeAttackGoal::shouldContinueExecuting()
+{
     if (!m_creature || !m_attackTarget) return false;
 
     // 检查目标是否存活
@@ -108,7 +110,8 @@ bool MeleeAttackGoal::shouldContinueExecuting() {
     return shouldExecute();
 }
 
-void MeleeAttackGoal::startExecuting() {
+void MeleeAttackGoal::startExecuting()
+{
     m_attackCooldown = 0;
     m_pathRecalculateTimer = 0;
     m_failedPathFindingPenalty = 0;
@@ -128,7 +131,8 @@ void MeleeAttackGoal::startExecuting() {
     }
 }
 
-void MeleeAttackGoal::resetTask() {
+void MeleeAttackGoal::resetTask()
+{
     m_attackTarget = nullptr;
     m_failedPathFindingPenalty = 0;
 
@@ -137,7 +141,8 @@ void MeleeAttackGoal::resetTask() {
     }
 }
 
-void MeleeAttackGoal::tick() {
+void MeleeAttackGoal::tick()
+{
     if (!m_creature || !m_attackTarget) return;
 
     // MC 1.16.5: 使用 LookController 看向目标，参数为 (30.0F, 30.0F)
@@ -153,11 +158,10 @@ void MeleeAttackGoal::tick() {
     bool shouldRecalcPath = false;
 
     // 检查是否需要重新计算路径
-    if ((m_useLongMemory || m_creature->canSee(*m_attackTarget)) &&
-        m_pathRecalculateTimer <= 0 &&
+    if ((m_useLongMemory || m_creature->canSee(*m_attackTarget)) && m_pathRecalculateTimer <= 0 &&
         ((m_targetX == 0.0 && m_targetY == 0.0 && m_targetZ == 0.0) ||
-         m_attackTarget->distanceSqTo(m_targetX, m_targetY, m_targetZ) >= 1.0 ||
-         m_creature->getRandom().nextFloat() < 0.05f)) {
+            m_attackTarget->distanceSqTo(m_targetX, m_targetY, m_targetZ) >= 1.0 ||
+            m_creature->getRandom().nextFloat() < 0.05f)) {
 
         shouldRecalcPath = true;
     }
@@ -179,16 +183,16 @@ void MeleeAttackGoal::tick() {
         }
 
         // MC 1.16.5: 根据距离调整重算间隔
-        if (distSq > DISTANCE_FAR_THRESHOLD) {  // > 32格距离
+        if (distSq > DISTANCE_FAR_THRESHOLD) { // > 32格距离
             m_pathRecalculateTimer += PATH_RECALC_FAR_BONUS;
-        } else if (distSq > DISTANCE_MEDIUM_THRESHOLD) {  // > 16格距离
+        } else if (distSq > DISTANCE_MEDIUM_THRESHOLD) { // > 16格距离
             m_pathRecalculateTimer += PATH_RECALC_MEDIUM_BONUS;
         }
 
         // 移动到目标
         if (m_creature->navigator()) {
             if (!m_creature->navigator()->moveTo(*m_attackTarget, m_speed)) {
-                m_pathRecalculateTimer += 15;  // 路径失败惩罚
+                m_pathRecalculateTimer += 15; // 路径失败惩罚
             }
         }
     }
@@ -200,7 +204,8 @@ void MeleeAttackGoal::tick() {
     checkAndPerformAttack(m_attackTarget, distSq);
 }
 
-bool MeleeAttackGoal::canAttack(LivingEntity* target) const {
+bool MeleeAttackGoal::canAttack(LivingEntity* target) const
+{
     if (!m_creature || !target) return false;
 
     // MC 1.16.5: 检查是否在攻击范围内
@@ -210,7 +215,8 @@ bool MeleeAttackGoal::canAttack(LivingEntity* target) const {
     return distSq <= attackReachSq;
 }
 
-void MeleeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr) {
+void MeleeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr)
+{
     if (!m_creature || !target) return;
 
     f32 attackReachSq = getAttackReachSqr(target);
@@ -224,7 +230,8 @@ void MeleeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnem
     }
 }
 
-void MeleeAttackGoal::attackTarget(LivingEntity* target) {
+void MeleeAttackGoal::attackTarget(LivingEntity* target)
+{
     if (!m_creature || !target) return;
 
     // MC 1.16.5: 挥动手臂动画
@@ -245,8 +252,7 @@ void MeleeAttackGoal::attackTarget(LivingEntity* target) {
     m_creature->playAttackSound(*target);
 
     // 应用击退
-    f32 knockbackStrength = static_cast<f32>(
-        m_creature->getAttributeValue(Attributes::ATTACK_KNOCKBACK, 1.0));
+    f32 knockbackStrength = static_cast<f32>(m_creature->getAttributeValue(Attributes::ATTACK_KNOCKBACK, 1.0));
 
     if (knockbackStrength > 0.0f) {
         // 计算击退方向
@@ -270,7 +276,8 @@ void MeleeAttackGoal::attackTarget(LivingEntity* target) {
     // 注意：攻击冷却已在checkAndPerformAttack中设置，此处不再重复设置
 }
 
-f32 MeleeAttackGoal::getAttackReachSqr(LivingEntity* target) const {
+f32 MeleeAttackGoal::getAttackReachSqr(LivingEntity* target) const
+{
     // MC 1.16.5: (this.attacker.getWidth() * 2.0F) * (this.attacker.getWidth() * 2.0F) + target.getWidth()
     // 注意：原版公式是 (width * 2)^2 + targetWidth，而不是 width^2 + targetWidth
     f32 attackerWidth = m_creature->width();

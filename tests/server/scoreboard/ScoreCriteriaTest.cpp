@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "common/scoreboard/core/Scoreboard.hpp"
-#include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
-#include "common/scoreboard/criteria/DummyCriteria.hpp"
-#include "common/scoreboard/criteria/TriggerCriteria.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/criteria/DeathCountCriteria.hpp"
+#include "common/scoreboard/criteria/DummyCriteria.hpp"
 #include "common/scoreboard/criteria/KillCountCriteria.hpp"
 #include "common/scoreboard/criteria/ReadOnlyCriteria.hpp"
 #include "common/scoreboard/criteria/TeamKillCriteria.hpp"
+#include "common/scoreboard/criteria/TriggerCriteria.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 
@@ -29,12 +29,14 @@ using namespace mc::scoreboard;
  */
 class ScoreCriteriaTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置判据
         ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理判据注册表
         ScoreCriteriaRegistry::instance().clear();
     }
@@ -42,7 +44,8 @@ protected:
 
 // ========== DummyCriteria 测试 ==========
 
-TEST_F(ScoreCriteriaTest, DummyCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, DummyCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
     ASSERT_NE(criteria, nullptr);
 
@@ -51,7 +54,8 @@ TEST_F(ScoreCriteriaTest, DummyCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, DummyCriteria_ManualScore) {
+TEST_F(ScoreCriteriaTest, DummyCriteria_ManualScore)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
     auto* objective = scoreboard.addObjective("test", *criteria);
@@ -70,7 +74,8 @@ TEST_F(ScoreCriteriaTest, DummyCriteria_ManualScore) {
 
 // ========== TriggerCriteria 测试 ==========
 
-TEST_F(ScoreCriteriaTest, TriggerCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, TriggerCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("trigger");
     ASSERT_NE(criteria, nullptr);
 
@@ -79,7 +84,8 @@ TEST_F(ScoreCriteriaTest, TriggerCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, TriggerCriteria_Locked) {
+TEST_F(ScoreCriteriaTest, TriggerCriteria_Locked)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("trigger");
     auto* objective = scoreboard.addObjective("trigger_obj", *criteria);
@@ -95,7 +101,8 @@ TEST_F(ScoreCriteriaTest, TriggerCriteria_Locked) {
     EXPECT_TRUE(score->isLocked());
 }
 
-TEST_F(ScoreCriteriaTest, TriggerCriteria_UnlockAndModify) {
+TEST_F(ScoreCriteriaTest, TriggerCriteria_UnlockAndModify)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("trigger");
     auto* objective = scoreboard.addObjective("trigger_obj", *criteria);
@@ -114,7 +121,8 @@ TEST_F(ScoreCriteriaTest, TriggerCriteria_UnlockAndModify) {
 
 // ========== DeathCountCriteria 测试 ==========
 
-TEST_F(ScoreCriteriaTest, DeathCountCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, DeathCountCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("deathCount");
     ASSERT_NE(criteria, nullptr);
 
@@ -123,7 +131,8 @@ TEST_F(ScoreCriteriaTest, DeathCountCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, DeathCountCriteria_IncrementOnDeath) {
+TEST_F(ScoreCriteriaTest, DeathCountCriteria_IncrementOnDeath)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("deathCount");
     auto* objective = scoreboard.addObjective("deaths", *criteria);
@@ -143,7 +152,8 @@ TEST_F(ScoreCriteriaTest, DeathCountCriteria_IncrementOnDeath) {
     EXPECT_EQ(score->getScorePoints(), 2);
 }
 
-TEST_F(ScoreCriteriaTest, DeathCountCriteria_MultiplePlayers) {
+TEST_F(ScoreCriteriaTest, DeathCountCriteria_MultiplePlayers)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("deathCount");
     auto* objective = scoreboard.addObjective("deaths", *criteria);
@@ -169,7 +179,8 @@ TEST_F(ScoreCriteriaTest, DeathCountCriteria_MultiplePlayers) {
 
 // ========== KillCountCriteria 测试 ==========
 
-TEST_F(ScoreCriteriaTest, PlayerKillCountCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, PlayerKillCountCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("playerKillCount");
     ASSERT_NE(criteria, nullptr);
 
@@ -178,7 +189,8 @@ TEST_F(ScoreCriteriaTest, PlayerKillCountCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, PlayerKillCountCriteria_IncrementOnPlayerKill) {
+TEST_F(ScoreCriteriaTest, PlayerKillCountCriteria_IncrementOnPlayerKill)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("playerKillCount");
     auto* objective = scoreboard.addObjective("player_kills", *criteria);
@@ -190,10 +202,11 @@ TEST_F(ScoreCriteriaTest, PlayerKillCountCriteria_IncrementOnPlayerKill) {
 
     // 击杀非玩家实体不计入
     criteria->onPlayerKill("Steve", "zombie", false, scoreboard);
-    EXPECT_EQ(score->getScorePoints(), 1);  // 仍然是 1
+    EXPECT_EQ(score->getScorePoints(), 1); // 仍然是 1
 }
 
-TEST_F(ScoreCriteriaTest, TotalKillCountCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, TotalKillCountCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("totalKillCount");
     ASSERT_NE(criteria, nullptr);
 
@@ -202,7 +215,8 @@ TEST_F(ScoreCriteriaTest, TotalKillCountCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, TotalKillCountCriteria_IncrementOnAnyKill) {
+TEST_F(ScoreCriteriaTest, TotalKillCountCriteria_IncrementOnAnyKill)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("totalKillCount");
     auto* objective = scoreboard.addObjective("total_kills", *criteria);
@@ -223,16 +237,18 @@ TEST_F(ScoreCriteriaTest, TotalKillCountCriteria_IncrementOnAnyKill) {
 
 // ========== ReadOnlyCriteria 测试 ==========
 
-TEST_F(ScoreCriteriaTest, HealthCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, HealthCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("health");
     ASSERT_NE(criteria, nullptr);
 
     EXPECT_EQ(criteria->getName(), "health");
-    EXPECT_TRUE(criteria->isReadOnly());  // 只读
-    EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Hearts);  // 心形渲染
+    EXPECT_TRUE(criteria->isReadOnly());                             // 只读
+    EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Hearts); // 心形渲染
 }
 
-TEST_F(ScoreCriteriaTest, FoodCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, FoodCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("food");
     ASSERT_NE(criteria, nullptr);
 
@@ -241,7 +257,8 @@ TEST_F(ScoreCriteriaTest, FoodCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, AirCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, AirCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("air");
     ASSERT_NE(criteria, nullptr);
 
@@ -250,7 +267,8 @@ TEST_F(ScoreCriteriaTest, AirCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, ArmorCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, ArmorCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("armor");
     ASSERT_NE(criteria, nullptr);
 
@@ -259,7 +277,8 @@ TEST_F(ScoreCriteriaTest, ArmorCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, XpCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, XpCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("xp");
     ASSERT_NE(criteria, nullptr);
 
@@ -268,7 +287,8 @@ TEST_F(ScoreCriteriaTest, XpCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, LevelCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, LevelCriteria_Basic)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("level");
     ASSERT_NE(criteria, nullptr);
 
@@ -277,7 +297,8 @@ TEST_F(ScoreCriteriaTest, LevelCriteria_Basic) {
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, ReadOnlyCriteria_IgnoreScoreChange) {
+TEST_F(ScoreCriteriaTest, ReadOnlyCriteria_IgnoreScoreChange)
+{
     Scoreboard scoreboard;
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("health");
     auto* objective = scoreboard.addObjective("health_display", *criteria);
@@ -293,7 +314,8 @@ TEST_F(ScoreCriteriaTest, ReadOnlyCriteria_IgnoreScoreChange) {
 
 // ========== TeamKillCriteria 测试 ==========
 
-TEST_F(ScoreCriteriaTest, TeamKillCriteria_Basic) {
+TEST_F(ScoreCriteriaTest, TeamKillCriteria_Basic)
+{
     auto* redKill = ScoreCriteriaRegistry::instance().getCriteria("teamkill.red");
     ASSERT_NE(redKill, nullptr);
     EXPECT_EQ(redKill->getName(), "teamkill.red");
@@ -305,14 +327,25 @@ TEST_F(ScoreCriteriaTest, TeamKillCriteria_Basic) {
     EXPECT_FALSE(killedByBlue->isReadOnly());
 }
 
-TEST_F(ScoreCriteriaTest, TeamKillCriteria_AllColors) {
+TEST_F(ScoreCriteriaTest, TeamKillCriteria_AllColors)
+{
     // 验证所有 16 种颜色的队伍击杀判据都已注册
-    const std::vector<std::string> colors = {
-        "black", "dark_blue", "dark_green", "dark_aqua",
-        "dark_red", "dark_purple", "gold", "gray",
-        "dark_gray", "blue", "green", "aqua",
-        "red", "light_purple", "yellow", "white"
-    };
+    const std::vector<std::string> colors = {"black",
+        "dark_blue",
+        "dark_green",
+        "dark_aqua",
+        "dark_red",
+        "dark_purple",
+        "gold",
+        "gray",
+        "dark_gray",
+        "blue",
+        "green",
+        "aqua",
+        "red",
+        "light_purple",
+        "yellow",
+        "white"};
 
     for (const auto& color : colors) {
         std::string teamkillName = "teamkill." + color;
@@ -328,19 +361,22 @@ TEST_F(ScoreCriteriaTest, TeamKillCriteria_AllColors) {
 
 // ========== 判据渲染类型测试 ==========
 
-TEST_F(ScoreCriteriaTest, RenderType_Integer) {
+TEST_F(ScoreCriteriaTest, RenderType_Integer)
+{
     auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
     EXPECT_EQ(criteria->getDefaultRenderType(), RenderType::Integer);
 }
 
-TEST_F(ScoreCriteriaTest, RenderType_Hearts) {
+TEST_F(ScoreCriteriaTest, RenderType_Hearts)
+{
     auto* health = ScoreCriteriaRegistry::instance().getCriteria("health");
     EXPECT_EQ(health->getDefaultRenderType(), RenderType::Hearts);
 }
 
 // ========== 判据与目标关联测试 ==========
 
-TEST_F(ScoreCriteriaTest, ObjectiveWithCriteria) {
+TEST_F(ScoreCriteriaTest, ObjectiveWithCriteria)
+{
     Scoreboard scoreboard;
     auto* deathCount = ScoreCriteriaRegistry::instance().getCriteria("deathCount");
     auto* playerKillCount = ScoreCriteriaRegistry::instance().getCriteria("playerKillCount");
@@ -360,7 +396,7 @@ TEST_F(ScoreCriteriaTest, ObjectiveWithCriteria) {
 
     EXPECT_EQ(scoreboard.getScore("Steve", *deaths1)->getScorePoints(), 1);
     EXPECT_EQ(scoreboard.getScore("Steve", *deaths2)->getScorePoints(), 1);
-    EXPECT_EQ(scoreboard.getScore("Steve", *kills)->getScorePoints(), 0);  // 不受影响
+    EXPECT_EQ(scoreboard.getScore("Steve", *kills)->getScorePoints(), 0); // 不受影响
 
     // 按判据查询目标
     auto deathObjectives = scoreboard.getObjectivesByCriteria(*deathCount);
@@ -372,25 +408,26 @@ TEST_F(ScoreCriteriaTest, ObjectiveWithCriteria) {
 
 // ========== 判据注册测试 ==========
 
-TEST_F(ScoreCriteriaTest, RegisterCustomCriteria) {
+TEST_F(ScoreCriteriaTest, RegisterCustomCriteria)
+{
     // 创建自定义判据
     class CustomCriteria : public ScoreCriteria {
     public:
-        CustomCriteria() : ScoreCriteria() {}
+        CustomCriteria()
+            : ScoreCriteria()
+        {}
 
-        const std::string& getName() const noexcept override {
+        const std::string& getName() const noexcept override
+        {
             static const std::string name = "custom";
             return name;
         }
 
-        bool isReadOnly() const noexcept override {
-            return false;
-        }
+        bool isReadOnly() const noexcept override { return false; }
     };
 
     // 注册
-    auto result = ScoreCriteriaRegistry::instance().registerCriteria(
-        std::make_unique<CustomCriteria>());
+    auto result = ScoreCriteriaRegistry::instance().registerCriteria(std::make_unique<CustomCriteria>());
     EXPECT_TRUE(result.success());
 
     // 验证
@@ -400,33 +437,37 @@ TEST_F(ScoreCriteriaTest, RegisterCustomCriteria) {
     EXPECT_FALSE(criteria->isReadOnly());
 }
 
-TEST_F(ScoreCriteriaTest, RegisterDuplicateCriteria) {
+TEST_F(ScoreCriteriaTest, RegisterDuplicateCriteria)
+{
     // 尝试注册重复名称的判据
-    auto result = ScoreCriteriaRegistry::instance().registerCriteria(
-        std::make_unique<DummyCriteria>());
+    auto result = ScoreCriteriaRegistry::instance().registerCriteria(std::make_unique<DummyCriteria>());
     EXPECT_FALSE(result.success());
     EXPECT_EQ(result.error().code(), ErrorCode::AlreadyExists);
 }
 
-TEST_F(ScoreCriteriaTest, RegisterNullCriteria) {
+TEST_F(ScoreCriteriaTest, RegisterNullCriteria)
+{
     auto result = ScoreCriteriaRegistry::instance().registerCriteria(nullptr);
     EXPECT_FALSE(result.success());
     EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
 }
 
-TEST_F(ScoreCriteriaTest, RegisterEmptyNameCriteria) {
+TEST_F(ScoreCriteriaTest, RegisterEmptyNameCriteria)
+{
     class EmptyNameCriteria : public ScoreCriteria {
     public:
-        EmptyNameCriteria() : ScoreCriteria() {}
+        EmptyNameCriteria()
+            : ScoreCriteria()
+        {}
 
-        const std::string& getName() const noexcept override {
+        const std::string& getName() const noexcept override
+        {
             static const std::string name;
-            return name;  // 空名称
+            return name; // 空名称
         }
     };
 
-    auto result = ScoreCriteriaRegistry::instance().registerCriteria(
-        std::make_unique<EmptyNameCriteria>());
+    auto result = ScoreCriteriaRegistry::instance().registerCriteria(std::make_unique<EmptyNameCriteria>());
     EXPECT_FALSE(result.success());
     EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
 }

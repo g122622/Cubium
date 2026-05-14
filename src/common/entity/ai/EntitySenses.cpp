@@ -9,8 +9,7 @@ namespace mc::entity::ai {
 
 EntitySenses::EntitySenses(MobEntity* mob)
     : m_mob(mob)
-{
-}
+{}
 
 void EntitySenses::tick()
 {

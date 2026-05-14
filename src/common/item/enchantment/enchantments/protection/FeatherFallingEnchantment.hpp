@@ -19,20 +19,19 @@ namespace enchant {
  */
 class FeatherFallingEnchantment : public ProtectionEnchantment {
 public:
-    FeatherFallingEnchantment() : ProtectionEnchantment(Type::Fall) {}
+    FeatherFallingEnchantment()
+        : ProtectionEnchantment(Type::Fall)
+    {}
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:feather_falling";
-    }
+    [[nodiscard]] std::string id() const override { return "minecraft:feather_falling"; }
 
-    [[nodiscard]] std::string getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override
+    {
         (void)level;
         return "enchantment.minecraft.feather_falling";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Uncommon;
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 };
 
 } // namespace enchant

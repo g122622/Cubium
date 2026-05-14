@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../core/Types.hpp"
+#include "../../util/Direction.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../../world/GlobalPos.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/Direction.hpp"
-#include "../../core/Types.hpp"
 #include <optional>
 
 namespace mc {
@@ -68,10 +68,7 @@ public:
      * @return 验证结果
      */
     [[nodiscard]] static SpawnPointValidationResult validate(
-        IWorld& world,
-        const GlobalPos& spawnPoint,
-        bool spawnForced,
-        bool consumeCharge);
+        IWorld& world, const GlobalPos& spawnPoint, bool spawnForced, bool consumeCharge);
 
     /**
      * @brief 查找重生点的安全生成位置
@@ -85,10 +82,7 @@ public:
      * @return 安全生成位置，如果无效返回 nullopt
      */
     [[nodiscard]] static std::optional<Vector3> findSafeSpawnPosition(
-        IWorld& world,
-        const GlobalPos& spawnPoint,
-        bool spawnForced,
-        bool consumeCharge);
+        IWorld& world, const GlobalPos& spawnPoint, bool spawnForced, bool consumeCharge);
 
     /**
      * @brief 验证床重生点
@@ -114,9 +108,7 @@ public:
      * @param bedPos 床头位置
      * @return 安全生成位置，如果无返回 nullopt
      */
-    [[nodiscard]] static std::optional<Vector3> findBedSpawnPosition(
-        IWorld& world,
-        const BlockPos& bedPos);
+    [[nodiscard]] static std::optional<Vector3> findBedSpawnPosition(IWorld& world, const BlockPos& bedPos);
 
     /**
      * @brief 验证重生锚重生点
@@ -144,9 +136,7 @@ public:
      * @return 安全生成位置，如果无返回 nullopt
      */
     [[nodiscard]] static std::optional<Vector3> findRespawnAnchorSpawnPosition(
-        IWorld& world,
-        const BlockPos& anchorPos,
-        bool consumeCharge);
+        IWorld& world, const BlockPos& anchorPos, bool consumeCharge);
 
     /**
      * @brief 验证强制重生点
@@ -214,10 +204,7 @@ private:
      * @param requireSafe 是否要求位置安全（不会窒息）
      * @return 如果位置安全可站立返回 true
      */
-    [[nodiscard]] static bool isSafeSpawnPosition(
-        const IWorld& world,
-        const BlockPos& pos,
-        bool requireSafe);
+    [[nodiscard]] static bool isSafeSpawnPosition(const IWorld& world, const BlockPos& pos, bool requireSafe);
 };
 
 } // namespace mc

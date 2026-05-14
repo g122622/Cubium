@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../../../core/Types.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../interfaces/IAngerable.hpp"
-#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {

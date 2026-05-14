@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Potion.hpp"
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
+#include "Potion.hpp"
 #include <unordered_map>
 #include <vector>
 
@@ -51,9 +51,7 @@ public:
     /**
      * @brief 获取所有注册的药水
      */
-    [[nodiscard]] const std::vector<std::pair<ResourceLocation, Potion>>& getAllPotions() const {
-        return m_potions;
-    }
+    [[nodiscard]] const std::vector<std::pair<ResourceLocation, Potion>>& getAllPotions() const { return m_potions; }
 
     /**
      * @brief 获取药水数量

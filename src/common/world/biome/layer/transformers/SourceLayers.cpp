@@ -8,7 +8,8 @@ namespace layer {
 // IslandLayer 实现
 // ============================================================================
 
-i32 IslandLayer::apply(IAreaContext& ctx, i32 x, i32 z) {
+i32 IslandLayer::apply(IAreaContext& ctx, i32 x, i32 z)
+{
     // 参考 MC IslandLayer.apply:
     // if (p_215735_2_ == 0 && p_215735_3_ == 0) {
     //     return 1;
@@ -25,7 +26,8 @@ i32 IslandLayer::apply(IAreaContext& ctx, i32 x, i32 z) {
     return ctx.nextInt(10) == 0 ? 1 : 0;
 }
 
-std::unique_ptr<IAreaFactory> IslandLayer::apply(IExtendedAreaContext& context) {
+std::unique_ptr<IAreaFactory> IslandLayer::apply(IExtendedAreaContext& context)
+{
     auto sharedContext = std::dynamic_pointer_cast<LayerContext>(context.shared_from_this());
     return std::make_unique<SourceFactory>(this, sharedContext);
 }
@@ -34,11 +36,12 @@ std::unique_ptr<IAreaFactory> IslandLayer::apply(IExtendedAreaContext& context) 
 // OceanLayer 实现
 // ============================================================================
 
-i32 OceanLayer::apply(IAreaContext& ctx, i32 x, i32 z) {
+i32 OceanLayer::apply(IAreaContext& ctx, i32 x, i32 z)
+{
     // 参考 MC OceanLayer.apply:
     // ImprovedNoiseGenerator improvednoisegenerator = p_215735_1_.getNoiseGenerator();
-    // double d0 = improvednoisegenerator.func_215456_a((double)p_215735_2_ / 8.0D, (double)p_215735_3_ / 8.0D, 0.0D, 0.0D, 0.0D);
-    // if (d0 > 0.4D) {
+    // double d0 = improvednoisegenerator.func_215456_a((double)p_215735_2_ / 8.0D, (double)p_215735_3_ / 8.0D, 0.0D,
+    // 0.0D, 0.0D); if (d0 > 0.4D) {
     //     return 44;  // warm_ocean
     // } else if (d0 > 0.2D) {
     //     return 45;  // lukewarm_ocean
@@ -56,24 +59,23 @@ i32 OceanLayer::apply(IAreaContext& ctx, i32 x, i32 z) {
 
     // 使用噪声值决定海洋温度
     // 缩放坐标到 1/8
-    f32 value = noise->noise(static_cast<f32>(x) / 8.0f,
-                              0.0f,
-                              static_cast<f32>(z) / 8.0f);
+    f32 value = noise->noise(static_cast<f32>(x) / 8.0f, 0.0f, static_cast<f32>(z) / 8.0f);
 
     if (value > 0.4f) {
-        return BiomeValues::WarmOcean;        // 暖海洋
+        return BiomeValues::WarmOcean; // 暖海洋
     } else if (value > 0.2f) {
-        return BiomeValues::LukewarmOcean;    // 微温海洋
+        return BiomeValues::LukewarmOcean; // 微温海洋
     } else if (value < -0.4f) {
-        return BiomeValues::FrozenOcean;      // 冻结海洋
+        return BiomeValues::FrozenOcean; // 冻结海洋
     } else if (value < -0.2f) {
-        return BiomeValues::ColdOcean;        // 冷海洋
+        return BiomeValues::ColdOcean; // 冷海洋
     } else {
-        return BiomeValues::Ocean;            // 普通海洋
+        return BiomeValues::Ocean; // 普通海洋
     }
 }
 
-std::unique_ptr<IAreaFactory> OceanLayer::apply(IExtendedAreaContext& context) {
+std::unique_ptr<IAreaFactory> OceanLayer::apply(IExtendedAreaContext& context)
+{
     auto sharedContext = std::dynamic_pointer_cast<LayerContext>(context.shared_from_this());
     return std::make_unique<SourceFactory>(this, sharedContext);
 }

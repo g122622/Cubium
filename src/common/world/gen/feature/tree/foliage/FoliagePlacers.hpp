@@ -20,8 +20,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -29,15 +28,10 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;
@@ -63,8 +57,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -72,21 +65,15 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;
 
-    void placeFoliageLayer(
-        WorldGenRegion& world,
+    void placeFoliageLayer(WorldGenRegion& world,
         math::Random& random,
         const FoliagePosition& foliagePos,
         i32 radius,
@@ -111,8 +98,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -120,19 +106,13 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
-    void placeFoliageLayer(
-        WorldGenRegion& world,
+    void placeFoliageLayer(WorldGenRegion& world,
         math::Random& random,
         const FoliagePosition& foliagePos,
         i32 radius,
@@ -157,8 +137,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -166,21 +145,15 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;
 
-    void placeFoliageLayer(
-        WorldGenRegion& world,
+    void placeFoliageLayer(WorldGenRegion& world,
         math::Random& random,
         const FoliagePosition& foliagePos,
         i32 radius,
@@ -189,11 +162,7 @@ private:
         const BlockState* foliageBlock,
         bool trunkTop);
 
-    bool shouldSkipBase(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop) const;
+    bool shouldSkipBase(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const;
 };
 
 /**
@@ -211,8 +180,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -220,15 +188,10 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;
@@ -249,8 +212,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -258,15 +220,10 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;
@@ -287,8 +244,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -296,15 +252,10 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 };
 
 /**
@@ -322,8 +273,7 @@ public:
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
-    void placeFoliageInternal(
-        WorldGenRegion& world,
+    void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
@@ -331,15 +281,10 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock
-    ) override;
+        const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random,
-        i32 dx, i32 dy, i32 dz,
-        i32 radius,
-        bool trunkTop
-    ) const override;
+        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;

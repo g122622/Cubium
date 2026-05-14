@@ -1,22 +1,22 @@
 #include "ConduitEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/damage/DamageSource.hpp"
+#include "entity/effect/EffectInstance.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/interfaces/IMob.hpp"
+#include "util/assert/AssertAll.hpp"
+#include "util/math/MathConstants.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/VanillaBlocks.hpp"
-#include "entity/core/Entity.hpp"
-#include "entity/core/LivingEntity.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "entity/interfaces/IMob.hpp"
-#include "entity/effect/EffectInstance.hpp"
-#include "entity/damage/DamageSource.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/sound/SoundCategory.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "util/math/random/Random.hpp"
-#include "util/math/MathConstants.hpp"
-#include "util/assert/AssertAll.hpp"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 namespace blockentity {
@@ -56,25 +56,29 @@ constexpr i64 ATTACK_INTERVAL = 40;
 
 /// 计算效果范围
 /// MC 1.16.5: frameCount / 7 * 16
-[[nodiscard]] i32 calculateEffectRange(i32 frameCount) {
+[[nodiscard]] i32 calculateEffectRange(i32 frameCount)
+{
     return (frameCount / 7) * 16;
 }
 
 } // namespace
 
 ConduitEntity::ConduitEntity(const BlockPos& pos)
-    : BlockEntity(BlockEntityType::Conduit, pos) {
-}
+    : BlockEntity(BlockEntityType::Conduit, pos)
+{}
 
-f32 ConduitEntity::getActiveRotation(f32 partialTick) const {
+f32 ConduitEntity::getActiveRotation(f32 partialTick) const
+{
     return (m_activeRotation + partialTick) * -0.0375f;
 }
 
-i32 ConduitEntity::getEffectRange() const {
+i32 ConduitEntity::getEffectRange() const
+{
     return calculateEffectRange(static_cast<i32>(m_prismarinePositions.size()));
 }
 
-void ConduitEntity::tick(IWorld& world) {
+void ConduitEntity::tick(IWorld& world)
+{
     ++m_ticksExisted;
 
     const i64 gameTime = static_cast<i64>(world.getGameTime());
@@ -105,24 +109,19 @@ void ConduitEntity::tick(IWorld& world) {
         if (m_ambientSoundCounter <= 0) {
             // 播放环境音效
             world.playSound(
-                SoundEvents::BLOCK_CONDUIT_AMBIENT,
-                sound::SoundCategory::Blocks,
-                m_pos.center(),
-                1.0f,
-                1.0f
-            );
+                SoundEvents::BLOCK_CONDUIT_AMBIENT, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
             // 重置计数器为随机间隔
             m_ambientSoundCounter = AMBIENT_SOUND_INTERVAL_MIN +
                 world.getRandom().nextInt(
-                    static_cast<i32>(AMBIENT_SOUND_INTERVAL_MAX - AMBIENT_SOUND_INTERVAL_MIN + 1)
-                );
+                    static_cast<i32>(AMBIENT_SOUND_INTERVAL_MAX - AMBIENT_SOUND_INTERVAL_MIN + 1));
         } else {
             --m_ambientSoundCounter;
         }
     }
 }
 
-bool ConduitEntity::shouldBeActive(IWorld& world) {
+bool ConduitEntity::shouldBeActive(IWorld& world)
+{
     m_prismarinePositions.clear();
 
     // MC 1.16.5: 检测中心周围3x3x3是否全部是水
@@ -156,10 +155,8 @@ bool ConduitEntity::shouldBeActive(IWorld& world) {
                 }
 
                 // 检查是否为框架位置（在坐标轴上且距离为2）
-                const bool isFramePosition =
-                    (dx == 0 && (ady == 2 || adz == 2)) ||
-                    (dy == 0 && (adx == 2 || adz == 2)) ||
-                    (dz == 0 && (adx == 2 || ady == 2));
+                const bool isFramePosition = (dx == 0 && (ady == 2 || adz == 2)) ||
+                    (dy == 0 && (adx == 2 || adz == 2)) || (dz == 0 && (adx == 2 || ady == 2));
 
                 if (!isFramePosition) {
                     continue;
@@ -182,7 +179,8 @@ bool ConduitEntity::shouldBeActive(IWorld& world) {
     return frameCount >= MIN_FRAME_BLOCKS;
 }
 
-void ConduitEntity::addEffectsToPlayers(IWorld& world) {
+void ConduitEntity::addEffectsToPlayers(IWorld& world)
+{
     const i32 frameCount = static_cast<i32>(m_prismarinePositions.size());
     const i32 range = calculateEffectRange(frameCount);
 
@@ -190,10 +188,9 @@ void ConduitEntity::addEffectsToPlayers(IWorld& world) {
     const Vector3 center = m_pos.center();
 
     // 获取范围内的玩家
-    const std::vector<Entity*> entities = world.getEntitiesInRange(
-        center,
+    const std::vector<Entity*> entities = world.getEntitiesInRange(center,
         static_cast<f32>(range),
-        nullptr  // 不过滤类型，后面自己筛选
+        nullptr // 不过滤类型，后面自己筛选
     );
 
     for (Entity* entity : entities) {
@@ -209,19 +206,19 @@ void ConduitEntity::addEffectsToPlayers(IWorld& world) {
         }
 
         // 添加潮涌能量效果
-        const entity::effect::EffectInstance effect(
-            entity::effect::EffectType::ConduitPower,
+        const entity::effect::EffectInstance effect(entity::effect::EffectType::ConduitPower,
             EFFECT_DURATION,
             EFFECT_AMPLIFIER,
-            true,   // ambient
-            true,   // visible
-            true    // showIcon
+            true, // ambient
+            true, // visible
+            true  // showIcon
         );
         player->addEffect(effect);
     }
 }
 
-void ConduitEntity::attackMobs(IWorld& world) {
+void ConduitEntity::attackMobs(IWorld& world)
+{
     const i32 frameCount = static_cast<i32>(m_prismarinePositions.size());
 
     // 需要至少42个框架方块才能攻击
@@ -246,11 +243,7 @@ void ConduitEntity::attackMobs(IWorld& world) {
     if (m_target == nullptr) {
         const Vector3 center = m_pos.center();
 
-        const std::vector<Entity*> entities = world.getEntitiesInRange(
-            center,
-            ATTACK_RANGE,
-            nullptr
-        );
+        const std::vector<Entity*> entities = world.getEntitiesInRange(center, ATTACK_RANGE, nullptr);
 
         std::vector<LivingEntity*> hostileMobs;
         for (Entity* entity : entities) {
@@ -299,18 +292,17 @@ void ConduitEntity::attackMobs(IWorld& world) {
             m_target->hurt(magicDamage, ATTACK_DAMAGE);
 
             // 播放攻击音效
-            world.playSound(
-                SoundEvents::BLOCK_CONDUIT_ATTACK_TARGET,
+            world.playSound(SoundEvents::BLOCK_CONDUIT_ATTACK_TARGET,
                 sound::SoundCategory::Blocks,
                 m_target->position(),
                 1.0f,
-                1.0f
-            );
+                1.0f);
         }
     }
 }
 
-bool ConduitEntity::isWaterAt(IWorld& world, const BlockPos& pos) const {
+bool ConduitEntity::isWaterAt(IWorld& world, const BlockPos& pos) const
+{
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
@@ -322,7 +314,8 @@ bool ConduitEntity::isWaterAt(IWorld& world, const BlockPos& pos) const {
     return state->is(VanillaBlocks::WATER);
 }
 
-bool ConduitEntity::isValidFrameBlock(IWorld& world, const BlockPos& pos) const {
+bool ConduitEntity::isValidFrameBlock(IWorld& world, const BlockPos& pos) const
+{
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
@@ -332,13 +325,12 @@ bool ConduitEntity::isValidFrameBlock(IWorld& world, const BlockPos& pos) const 
 
     // MC 1.16.5: 有效框架方块
     // PRISMARINE, PRISMARINE_BRICKS, SEA_LANTERN, DARK_PRISMARINE
-    return block == VanillaBlocks::PRISMARINE ||
-           block == VanillaBlocks::PRISMARINE_BRICKS ||
-           block == VanillaBlocks::DARK_PRISMARINE ||
-           block == VanillaBlocks::SEA_LANTERN;
+    return block == VanillaBlocks::PRISMARINE || block == VanillaBlocks::PRISMARINE_BRICKS ||
+        block == VanillaBlocks::DARK_PRISMARINE || block == VanillaBlocks::SEA_LANTERN;
 }
 
-void ConduitEntity::setActive(IWorld& world, bool active) {
+void ConduitEntity::setActive(IWorld& world, bool active)
+{
     if (m_active != active) {
         m_active = active;
         setChanged();
@@ -346,32 +338,24 @@ void ConduitEntity::setActive(IWorld& world, bool active) {
         // 播放激活/取消激活音效
         if (active) {
             world.playSound(
-                SoundEvents::BLOCK_CONDUIT_ACTIVATE,
-                sound::SoundCategory::Blocks,
-                m_pos.center(),
-                1.0f,
-                1.0f
-            );
+                SoundEvents::BLOCK_CONDUIT_ACTIVATE, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
         } else {
             world.playSound(
-                SoundEvents::BLOCK_CONDUIT_DEACTIVATE,
-                sound::SoundCategory::Blocks,
-                m_pos.center(),
-                1.0f,
-                1.0f
-            );
+                SoundEvents::BLOCK_CONDUIT_DEACTIVATE, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
         }
     }
 }
 
-void ConduitEntity::setEyeOpen(bool eyeOpen) {
+void ConduitEntity::setEyeOpen(bool eyeOpen)
+{
     if (m_eyeOpen != eyeOpen) {
         m_eyeOpen = eyeOpen;
         setChanged();
     }
 }
 
-void ConduitEntity::spawnParticles(IWorld& world) {
+void ConduitEntity::spawnParticles(IWorld& world)
+{
     // 只在激活状态下生成粒子
     if (!m_active) {
         return;
@@ -389,10 +373,7 @@ void ConduitEntity::spawnParticles(IWorld& world) {
 
     // 粒子发射点位置：潮涌核心上方 1.5 格 + d0 的垂直偏移
     const Vector3 particleOrigin(
-        static_cast<f32>(m_pos.x) + 0.5f,
-        static_cast<f32>(m_pos.y) + 1.5f + d0,
-        static_cast<f32>(m_pos.z) + 0.5f
-    );
+        static_cast<f32>(m_pos.x) + 0.5f, static_cast<f32>(m_pos.y) + 1.5f + d0, static_cast<f32>(m_pos.z) + 0.5f);
 
     // 从框架方块向潮涌核心发射粒子
     for (const BlockPos& framePos : m_prismarinePositions) {
@@ -410,18 +391,12 @@ void ConduitEntity::spawnParticles(IWorld& world) {
         const BlockPos relativePos = framePos - m_pos;
 
         // 粒子速度方向：从潮涌核心向框架方块方向
-        const Vector3 velocity(
-            static_cast<f32>(relativePos.x) + offsetX,
+        const Vector3 velocity(static_cast<f32>(relativePos.x) + offsetX,
             static_cast<f32>(relativePos.y) + offsetY,
-            static_cast<f32>(relativePos.z) + offsetZ
-        );
+            static_cast<f32>(relativePos.z) + offsetZ);
 
         // 生成鹦鹉螺粒子
-        world.addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Nautilus,
-            particleOrigin,
-            velocity
-        );
+        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Nautilus, particleOrigin, velocity);
     }
 
     // 如果有攻击目标，在目标位置生成粒子
@@ -440,15 +415,12 @@ void ConduitEntity::spawnParticles(IWorld& world) {
         const Vector3 velocity(offsetX, offsetY, offsetZ);
 
         // 生成鹦鹉螺粒子
-        world.addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Nautilus,
-            targetEyePos,
-            velocity
-        );
+        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Nautilus, targetEyePos, velocity);
     }
 }
 
-LivingEntity* ConduitEntity::findExistingTarget(IWorld& world) {
+LivingEntity* ConduitEntity::findExistingTarget(IWorld& world)
+{
     // MC 1.16.5: ConduitTileEntity.findExistingTarget()
     // 在攻击范围内搜索匹配UUID的LivingEntity
     // 不使用全局UUID查找，因为潮涌核心只能攻击范围内的目标
@@ -459,11 +431,7 @@ LivingEntity* ConduitEntity::findExistingTarget(IWorld& world) {
 
     const Vector3 center = m_pos.center();
 
-    const std::vector<Entity*> entities = world.getEntitiesInRange(
-        center,
-        ATTACK_RANGE,
-        nullptr
-    );
+    const std::vector<Entity*> entities = world.getEntitiesInRange(center, ATTACK_RANGE, nullptr);
 
     for (Entity* entity : entities) {
         // 检查是否为 LivingEntity
@@ -481,7 +449,8 @@ LivingEntity* ConduitEntity::findExistingTarget(IWorld& world) {
     return nullptr;
 }
 
-bool ConduitEntity::load(const nlohmann::json& data) {
+bool ConduitEntity::load(const nlohmann::json& data)
+{
     if (!BlockEntity::load(data)) {
         return false;
     }
@@ -494,7 +463,8 @@ bool ConduitEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void ConduitEntity::save(nlohmann::json& data) const {
+void ConduitEntity::save(nlohmann::json& data) const
+{
     BlockEntity::save(data);
 
     // 保存目标UUID
@@ -503,7 +473,8 @@ void ConduitEntity::save(nlohmann::json& data) const {
     }
 }
 
-std::unique_ptr<BlockEntity> ConduitEntity::clone() const {
+std::unique_ptr<BlockEntity> ConduitEntity::clone() const
+{
     auto cloned = std::make_unique<ConduitEntity>(m_pos);
     cloned->m_active = m_active;
     cloned->m_eyeOpen = m_eyeOpen;

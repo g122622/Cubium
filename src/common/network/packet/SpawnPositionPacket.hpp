@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Packet.hpp"
-#include "../../world/block/BlockPos.hpp"
 #include "../../core/Types.hpp"
+#include "../../world/block/BlockPos.hpp"
+#include "Packet.hpp"
 #include <vector>
 
 namespace mc::network {
@@ -49,7 +49,7 @@ public:
 
 private:
     BlockPos m_position;
-    f32 m_angle = 0.0f;  // 出生点偏航角，用于指南针
+    f32 m_angle = 0.0f; // 出生点偏航角，用于指南针
 };
 
 } // namespace mc::network

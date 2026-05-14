@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../core/Types.hpp"
 #include "ChunkData.hpp"
 #include "ChunkLoadTicket.hpp"
 #include "ChunkPrimer.hpp"
 #include "ChunkStatus.hpp"
-#include "../../core/Types.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -26,11 +26,11 @@ public:
      * 用于把“存档恢复”与“生成调度”从架构上明确拆开。
      */
     enum class SourceState {
-        Unknown,            ///< 尚未判定该区块是否存在于存档中
-        ResolvingStorage,   ///< 正在执行一次性的存档来源解析
-        StorageMissing,     ///< 已确认存档中不存在该区块，后续只能走生成链路
-        LoadedFromStorage,  ///< 已从存档恢复出区块数据，但尚未发布到最终 Ready
-        Ready               ///< 区块已经在内存中可用，可直接满足请求
+        Unknown,           ///< 尚未判定该区块是否存在于存档中
+        ResolvingStorage,  ///< 正在执行一次性的存档来源解析
+        StorageMissing,    ///< 已确认存档中不存在该区块，后续只能走生成链路
+        LoadedFromStorage, ///< 已从存档恢复出区块数据，但尚未发布到最终 Ready
+        Ready              ///< 区块已经在内存中可用，可直接满足请求
     };
 
     /**
@@ -40,10 +40,10 @@ public:
      * 不负责表达区块来自存档还是生成。
      */
     enum class ExecutionState {
-        Idle,               ///< 当前没有待推进的执行动作
-        WaitingForNeighbors,///< 已知需要走生成，但被邻居依赖阻塞
-        Queued,             ///< 邻居条件满足，等待提交或已提交给 worker
-        Generating          ///< worker 已开始执行生成逻辑
+        Idle,                ///< 当前没有待推进的执行动作
+        WaitingForNeighbors, ///< 已知需要走生成，但被邻居依赖阻塞
+        Queued,              ///< 邻居条件满足，等待提交或已提交给 worker
+        Generating           ///< worker 已开始执行生成逻辑
     };
 
     /**
@@ -76,12 +76,12 @@ public:
      * 每次状态变化后，由 ServerChunkManager 读取该结构并执行对应副作用。
      */
     struct EnqueueDecision {
-        bool shouldResolveStorage = false;     ///< 是否需要执行一次存档来源解析
-        bool shouldQueueGeneration = false;    ///< 是否需要把当前请求提交给生成 worker
-        bool shouldWakeReadyWaiters = false;   ///< 是否应立即完成所有等待者
-        u64 generation = 0;                    ///< 当前请求代际，用于丢弃过期 worker 结果
-        i32 priority = 0;                      ///< 当前收敛后的最高优先级
-        const ChunkStatus* targetStatus = nullptr; ///< 当前请求目标状态
+        bool shouldResolveStorage = false;              ///< 是否需要执行一次存档来源解析
+        bool shouldQueueGeneration = false;             ///< 是否需要把当前请求提交给生成 worker
+        bool shouldWakeReadyWaiters = false;            ///< 是否应立即完成所有等待者
+        u64 generation = 0;                             ///< 当前请求代际，用于丢弃过期 worker 结果
+        i32 priority = 0;                               ///< 当前收敛后的最高优先级
+        const ChunkStatus* targetStatus = nullptr;      ///< 当前请求目标状态
         std::shared_ptr<std::atomic<bool>> cancelToken; ///< 当前代际对应的取消令牌
     };
 
@@ -277,8 +277,7 @@ public:
      * @param promise future 对应的 promise，可为空
      * @return 调度器下一步应执行的动作决策
      */
-    EnqueueDecision submitRequest(
-        const ChunkStatus& targetStatus,
+    EnqueueDecision submitRequest(const ChunkStatus& targetStatus,
         i32 priority,
         std::function<void(bool, ChunkData*)> callback,
         std::shared_ptr<std::promise<ChunkData*>> promise);

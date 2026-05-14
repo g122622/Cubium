@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../core/Result.hpp"
+#include "../../core/Types.hpp"
 #include "Packet.hpp"
 #include "PacketSerializer.hpp"
-#include "../../core/Types.hpp"
-#include "../../core/Result.hpp"
 
 namespace mc {
 
@@ -28,7 +28,9 @@ namespace network {
  */
 class SetExperiencePacket : public Packet {
 public:
-    SetExperiencePacket() : Packet(PacketType::SetExperience) {}
+    SetExperiencePacket()
+        : Packet(PacketType::SetExperience)
+    {}
 
     /**
      * @brief 从玩家对象构造
@@ -65,7 +67,8 @@ public:
      * @param totalXp 累计总经验值
      * @param level 当前等级
      */
-    void setExperience(f32 progress, i32 totalXp, i32 level) {
+    void setExperience(f32 progress, i32 totalXp, i32 level)
+    {
         m_progress = progress;
         m_totalXp = totalXp;
         m_level = level;
@@ -87,9 +90,9 @@ public:
     void setLevel(i32 level) { m_level = level; }
 
 private:
-    f32 m_progress = 0.0f;   // 当前等级进度 (0.0 - 1.0)
-    i32 m_totalXp = 0;       // 累计总经验值
-    i32 m_level = 0;         // 当前等级
+    f32 m_progress = 0.0f; // 当前等级进度 (0.0 - 1.0)
+    i32 m_totalXp = 0;     // 累计总经验值
+    i32 m_level = 0;       // 当前等级
 };
 
 /**
@@ -110,7 +113,9 @@ private:
  */
 class SpawnExperienceOrbPacket : public Packet {
 public:
-    SpawnExperienceOrbPacket() : Packet(PacketType::SpawnExperienceOrb) {}
+    SpawnExperienceOrbPacket()
+        : Packet(PacketType::SpawnExperienceOrb)
+    {}
 
     /**
      * @brief 构造经验球生成包
@@ -123,7 +128,9 @@ public:
     SpawnExperienceOrbPacket(i32 entityId, f64 x, f64 y, f64 z, i16 xpValue)
         : Packet(PacketType::SpawnExperienceOrb)
         , m_entityId(entityId)
-        , m_x(x), m_y(y), m_z(z)
+        , m_x(x)
+        , m_y(y)
+        , m_z(z)
         , m_xpValue(xpValue)
     {}
 
@@ -168,7 +175,8 @@ public:
     /**
      * @brief 设置位置
      */
-    void setPosition(f64 x, f64 y, f64 z) {
+    void setPosition(f64 x, f64 y, f64 z)
+    {
         m_x = x;
         m_y = y;
         m_z = z;
@@ -180,11 +188,11 @@ public:
     void setXpValue(i16 value) { m_xpValue = value; }
 
 private:
-    i32 m_entityId = 0;    // 实体ID
-    f64 m_x = 0.0;         // X坐标
-    f64 m_y = 0.0;         // Y坐标
-    f64 m_z = 0.0;         // Z坐标
-    i16 m_xpValue = 1;     // 经验值 (MC限制: 1-2477)
+    i32 m_entityId = 0; // 实体ID
+    f64 m_x = 0.0;      // X坐标
+    f64 m_y = 0.0;      // Y坐标
+    f64 m_z = 0.0;      // Z坐标
+    i16 m_xpValue = 1;  // 经验值 (MC限制: 1-2477)
 };
 
 } // namespace network

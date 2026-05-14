@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 
-#include <nlohmann/json.hpp>
-#include <vector>
 #include <optional>
 #include <string>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::client::sound {
 
@@ -112,10 +112,7 @@ struct SoundDefinition {
      * @param namespace 默认命名空间
      * @return 解析结果
      */
-    [[nodiscard]] static Result<SoundDefinition> parse(
-        const nlohmann::json& json,
-        std::string_view namespace_
-    );
+    [[nodiscard]] static Result<SoundDefinition> parse(const nlohmann::json& json, std::string_view namespace_);
 };
 
 /**
@@ -182,10 +179,7 @@ struct SoundEventDefinition {
      * @return 解析结果
      */
     [[nodiscard]] static Result<SoundEventDefinition> parse(
-        std::string_view eventId,
-        const nlohmann::json& json,
-        std::string_view namespace_
-    );
+        std::string_view eventId, const nlohmann::json& json, std::string_view namespace_);
 
     /**
      * @brief 计算总权重
@@ -200,9 +194,7 @@ struct SoundEventDefinition {
      * @param rng 随机数生成器
      * @return 选中的声音定义，如果列表为空返回 nullptr
      */
-    [[nodiscard]] const SoundDefinition* selectSound(
-        mc::math::Random& rng
-    ) const noexcept;
+    [[nodiscard]] const SoundDefinition* selectSound(mc::math::Random& rng) const noexcept;
 };
 
 } // namespace mc::client::sound

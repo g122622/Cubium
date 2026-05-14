@@ -33,18 +33,21 @@ public:
      * @param text 文本内容
      */
     explicit StringTextComponent(std::string text)
-        : m_text(std::move(text)) {}
+        : m_text(std::move(text))
+    {}
 
     /**
      * @brief 从 C 风格字符串构造
      * @param text 文本内容
      */
     explicit StringTextComponent(const char* text)
-        : m_text(text) {}
+        : m_text(text)
+    {}
 
     // ========== ITextComponent 接口 ==========
 
-    [[nodiscard]] std::string getUnformattedText() const override {
+    [[nodiscard]] std::string getUnformattedText() const override
+    {
         std::string result = m_text;
         for (const auto& sibling : m_siblings) {
             result += sibling->getUnformattedText();
@@ -52,7 +55,8 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string getFormattedText() const override {
+    [[nodiscard]] std::string getFormattedText() const override
+    {
         std::string result = getStyleCodes(m_style);
         result += m_text;
 
@@ -63,19 +67,22 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::unique_ptr<ITextComponent> deepCopy() const override {
+    [[nodiscard]] std::unique_ptr<ITextComponent> deepCopy() const override
+    {
         auto copy = std::make_unique<StringTextComponent>(m_text);
         copyBaseTo(*copy);
         return copy;
     }
 
-    [[nodiscard]] std::unique_ptr<ITextComponent> shallowCopy() const override {
+    [[nodiscard]] std::unique_ptr<ITextComponent> shallowCopy() const override
+    {
         auto copy = std::make_unique<StringTextComponent>(m_text);
         copy->setStyle(m_style);
         return copy;
     }
 
-    [[nodiscard]] nlohmann::json toJson() const override {
+    [[nodiscard]] nlohmann::json toJson() const override
+    {
         nlohmann::json json = m_style.toJson();
         json["text"] = m_text;
 
@@ -116,7 +123,8 @@ private:
  * @param json JSON 对象
  * @return 文本组件
  */
-inline std::unique_ptr<StringTextComponent> createStringFromJson(const nlohmann::json& json) {
+inline std::unique_ptr<StringTextComponent> createStringFromJson(const nlohmann::json& json)
+{
     std::string text;
     if (json.is_string()) {
         text = json.get<std::string>();

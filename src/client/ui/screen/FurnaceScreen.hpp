@@ -1,8 +1,8 @@
 #pragma once
 
 #include "client/ui/screen/AbstractContainerScreen.hpp"
-#include "common/world/blockentity/processing/FurnaceInventory.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/world/blockentity/processing/FurnaceInventory.hpp"
 #include "core/Types.hpp"
 
 namespace mc {
@@ -24,16 +24,14 @@ public:
      * @param closeSender 关闭发送器
      */
     FurnaceScreen(ContainerId containerId,
-                  mc::PlayerInventory* playerInventory,
-                  ContainerClickSender clickSender = {},
-                  ContainerCloseSender closeSender = {});
+        mc::PlayerInventory* playerInventory,
+        ContainerClickSender clickSender = {},
+        ContainerCloseSender closeSender = {});
 
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] std::string getTitle() const override {
-        return "Furnace";
-    }
+    [[nodiscard]] std::string getTitle() const override { return "Furnace"; }
 
 protected:
     void onInit() override;

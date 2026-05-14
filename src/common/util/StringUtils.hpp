@@ -43,7 +43,7 @@ namespace mc::util {
     if (allowSign && (text[0] == '+' || text[0] == '-')) {
         start = 1;
         if (text.size() == 1) {
-            return false;  // 只有符号
+            return false; // 只有符号
         }
     }
 

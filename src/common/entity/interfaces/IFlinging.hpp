@@ -23,10 +23,7 @@ public:
     /**
      * @brief 执行一次带撞飞语义的近战攻击
      */
-    [[nodiscard]] static bool attackWithFling(
-        LivingEntity& attacker,
-        LivingEntity& target,
-        bool attackerIsBaby);
+    [[nodiscard]] static bool attackWithFling(LivingEntity& attacker, LivingEntity& target, bool attackerIsBaby);
 
     /**
      * @brief 对目标施加撞飞

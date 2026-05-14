@@ -11,16 +11,17 @@ namespace template_ {
 
 TemplateManager::TemplateManager()
     : m_emptyTemplate(std::make_unique<Template>())
-{
-}
+{}
 
 TemplateManager::~TemplateManager() = default;
 
-void TemplateManager::setResourcePack(const IResourcePack* pack) {
+void TemplateManager::setResourcePack(const IResourcePack* pack)
+{
     m_resourcePack = pack;
 }
 
-const Template* TemplateManager::getTemplate(const ResourceLocation& location) {
+const Template* TemplateManager::getTemplate(const ResourceLocation& location)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_templates.find(location);
@@ -38,7 +39,8 @@ const Template* TemplateManager::getTemplate(const ResourceLocation& location) {
     return result;
 }
 
-const Template& TemplateManager::getTemplateDefaulted(const ResourceLocation& location) {
+const Template& TemplateManager::getTemplateDefaulted(const ResourceLocation& location)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_templates.find(location);
@@ -56,22 +58,26 @@ const Template& TemplateManager::getTemplateDefaulted(const ResourceLocation& lo
     return *m_emptyTemplate;
 }
 
-bool TemplateManager::hasTemplate(const ResourceLocation& location) const {
+bool TemplateManager::hasTemplate(const ResourceLocation& location) const
+{
     std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(m_mutex));
     return m_templates.find(location) != m_templates.end();
 }
 
-void TemplateManager::addTemplate(const ResourceLocation& location, std::unique_ptr<Template> templ) {
+void TemplateManager::addTemplate(const ResourceLocation& location, std::unique_ptr<Template> templ)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_templates[location] = std::move(templ);
 }
 
-void TemplateManager::clear() {
+void TemplateManager::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_templates.clear();
 }
 
-std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& location) {
+std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& location)
+{
     // 尝试从资源包加载
     if (m_resourcePack) {
         auto templ = TemplateLoader::loadFromResourcePack(*m_resourcePack, location);
@@ -81,11 +87,9 @@ std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& 
     }
 
     // 从文件系统加载（支持开发期目录和存档 generated 目录）
-    const std::vector<std::filesystem::path> baseDirs = {
-        std::filesystem::current_path(),
+    const std::vector<std::filesystem::path> baseDirs = {std::filesystem::current_path(),
         std::filesystem::current_path() / "generated",
-        std::filesystem::current_path() / "data"
-    };
+        std::filesystem::current_path() / "data"};
 
     for (const auto& baseDir : baseDirs) {
         std::filesystem::path path = baseDir / location.namespace_() / "structures" / (location.path() + ".nbt");
@@ -119,10 +123,7 @@ std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& 
 }
 
 std::unique_ptr<Template> TemplateManager::createProceduralTemplate(
-    const std::string& name,
-    i32 width,
-    i32 height,
-    i32 depth)
+    const std::string& name, i32 width, i32 height, i32 depth)
 {
     auto templ = std::make_unique<Template>();
     templ->setSize(BlockPos(width, height, depth));

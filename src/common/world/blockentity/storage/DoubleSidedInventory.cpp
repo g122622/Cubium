@@ -6,24 +6,29 @@ namespace blockentity {
 
 DoubleSidedInventory::DoubleSidedInventory(::mc::IInventory* upper, ::mc::IInventory* lower)
     : m_upper(upper)
-    , m_lower(lower) {
+    , m_lower(lower)
+{
     MC_ASSERT(upper != nullptr && "Upper inventory cannot be null");
     MC_ASSERT(lower != nullptr && "Lower inventory cannot be null");
 }
 
-i32 DoubleSidedInventory::getContainerSize() const {
+i32 DoubleSidedInventory::getContainerSize() const
+{
     return m_upper->getContainerSize() + m_lower->getContainerSize();
 }
 
-bool DoubleSidedInventory::isEmpty() const {
+bool DoubleSidedInventory::isEmpty() const
+{
     return m_upper->isEmpty() && m_lower->isEmpty();
 }
 
-i32 DoubleSidedInventory::getMaxStackSize() const {
+i32 DoubleSidedInventory::getMaxStackSize() const
+{
     return std::min(m_upper->getMaxStackSize(), m_lower->getMaxStackSize());
 }
 
-ItemStack DoubleSidedInventory::getItem(i32 slot) const {
+ItemStack DoubleSidedInventory::getItem(i32 slot) const
+{
     IInventory* container = nullptr;
     i32 localSlot = 0;
 
@@ -33,7 +38,8 @@ ItemStack DoubleSidedInventory::getItem(i32 slot) const {
     return ItemStack();
 }
 
-void DoubleSidedInventory::setItem(i32 slot, const ItemStack& stack) {
+void DoubleSidedInventory::setItem(i32 slot, const ItemStack& stack)
+{
     IInventory* container = nullptr;
     i32 localSlot = 0;
 
@@ -42,7 +48,8 @@ void DoubleSidedInventory::setItem(i32 slot, const ItemStack& stack) {
     }
 }
 
-ItemStack DoubleSidedInventory::removeItem(i32 slot, i32 count) {
+ItemStack DoubleSidedInventory::removeItem(i32 slot, i32 count)
+{
     IInventory* container = nullptr;
     i32 localSlot = 0;
 
@@ -52,7 +59,8 @@ ItemStack DoubleSidedInventory::removeItem(i32 slot, i32 count) {
     return ItemStack();
 }
 
-ItemStack DoubleSidedInventory::removeItemNoUpdate(i32 slot) {
+ItemStack DoubleSidedInventory::removeItemNoUpdate(i32 slot)
+{
     IInventory* container = nullptr;
     i32 localSlot = 0;
 
@@ -62,17 +70,20 @@ ItemStack DoubleSidedInventory::removeItemNoUpdate(i32 slot) {
     return ItemStack();
 }
 
-void DoubleSidedInventory::clear() {
+void DoubleSidedInventory::clear()
+{
     m_upper->clear();
     m_lower->clear();
 }
 
-void DoubleSidedInventory::setChanged() {
+void DoubleSidedInventory::setChanged()
+{
     m_upper->setChanged();
     m_lower->setChanged();
 }
 
-bool DoubleSidedInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
+bool DoubleSidedInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
+{
     IInventory* container = nullptr;
     i32 localSlot = 0;
 
@@ -82,20 +93,21 @@ bool DoubleSidedInventory::canPlaceItem(i32 slot, const ItemStack& stack) const 
     return false;
 }
 
-void DoubleSidedInventory::serialize(network::PacketSerializer& ser) const {
+void DoubleSidedInventory::serialize(network::PacketSerializer& ser) const
+{
     // 先序列化上半部分
     m_upper->serialize(ser);
     // 再序列化下半部分
     m_lower->serialize(ser);
 }
 
-bool DoubleSidedInventory::isPartOfLargeChest(const IInventory* inventory) const {
+bool DoubleSidedInventory::isPartOfLargeChest(const IInventory* inventory) const
+{
     return inventory == m_upper || inventory == m_lower;
 }
 
-bool DoubleSidedInventory::getContainerAndSlot(i32 globalSlot,
-                                               IInventory** outContainer,
-                                               i32& outLocalSlot) const {
+bool DoubleSidedInventory::getContainerAndSlot(i32 globalSlot, IInventory** outContainer, i32& outLocalSlot) const
+{
     const i32 upperSize = m_upper->getContainerSize();
 
     if (globalSlot < 0) {
@@ -120,7 +132,8 @@ bool DoubleSidedInventory::getContainerAndSlot(i32 globalSlot,
     return false;
 }
 
-i32 DoubleSidedInventory::getFirstEmptySlot() const {
+i32 DoubleSidedInventory::getFirstEmptySlot() const
+{
     // 先检查上半部分
     for (i32 i = 0; i < m_upper->getContainerSize(); ++i) {
         if (m_upper->getItem(i).isEmpty()) {
@@ -139,11 +152,13 @@ i32 DoubleSidedInventory::getFirstEmptySlot() const {
     return -1;
 }
 
-i32 DoubleSidedInventory::countItem(const Item& item) const {
+i32 DoubleSidedInventory::countItem(const Item& item) const
+{
     return m_upper->countItem(item) + m_lower->countItem(item);
 }
 
-bool DoubleSidedInventory::hasItem(const Item& item) const {
+bool DoubleSidedInventory::hasItem(const Item& item) const
+{
     return m_upper->hasItem(item) || m_lower->hasItem(item);
 }
 

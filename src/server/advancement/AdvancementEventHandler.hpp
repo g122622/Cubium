@@ -1,21 +1,20 @@
 #pragma once
 
+#include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "common/advancement/trigger/impl/BlockTriggers.hpp"
+#include "common/advancement/trigger/impl/EntityTriggers.hpp"
+#include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
+#include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
+#include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/advancement/PlayerAdvancements.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "common/advancement/trigger/CriterionTriggers.hpp"
-#include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
-#include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
-#include "common/advancement/trigger/impl/BlockTriggers.hpp"
-#include "common/advancement/trigger/impl/EntityTriggers.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
-#include "server/advancement/TriggerInstantiation.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
 namespace mc::server::advancement {
@@ -47,9 +46,7 @@ public:
      * 必须在 initialize() 之前调用。
      * IServer 提供访问 ServerPlayerEntityManager 和 ServerWorld 的能力。
      */
-    void setServer(IServer* server) {
-        m_server = server;
-    }
+    void setServer(IServer* server) { m_server = server; }
 
     /**
      * @brief 设置玩家管理器
@@ -58,55 +55,36 @@ public:
      * 用于通过 UUID 查找玩家数据。CuredZombieVillagerEvent 携带 UUID 而非 PlayerId，
      * 需要通过 PlayerManager::findByUuid() 转换为 PlayerId。
      */
-    void setPlayerManager(mc::server::core::PlayerManager* playerManager) {
-        m_playerManager = playerManager;
-    }
+    void setPlayerManager(mc::server::core::PlayerManager* playerManager) { m_playerManager = playerManager; }
 
     /**
      * @brief 初始化事件处理器
      *
      * 订阅所有相关的事件。
      */
-    void initialize() {
+    void initialize()
+    {
         // 订阅物品栏变化事件
         m_inventoryChangedSubscription =
             event::ServerEventBus::instance().makeSubscription<event::InventoryChangedEvent>(
-                [this](const event::InventoryChangedEvent& e) {
-                    onInventoryChanged(e);
-                }
-            );
+                [this](const event::InventoryChangedEvent& e) { onInventoryChanged(e); });
 
         // 订阅玩家击杀实体事件
-        m_playerKillSubscription =
-            event::ServerEventBus::instance().makeSubscription<event::PlayerKillEntityEvent>(
-                [this](const event::PlayerKillEntityEvent& e) {
-                    onPlayerKillEntity(e);
-                }
-            );
+        m_playerKillSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerKillEntityEvent>(
+            [this](const event::PlayerKillEntityEvent& e) { onPlayerKillEntity(e); });
 
         // 订阅玩家登录事件（初始化成就监听器）
-        m_playerLoginSubscription =
-            event::ServerEventBus::instance().makeSubscription<event::PlayerLoginEvent>(
-                [this](const event::PlayerLoginEvent& e) {
-                    onPlayerLogin(e);
-                }
-            );
+        m_playerLoginSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerLoginEvent>(
+            [this](const event::PlayerLoginEvent& e) { onPlayerLogin(e); });
 
         // 订阅方块放置事件
-        m_blockPlaceSubscription =
-            event::ServerEventBus::instance().makeSubscription<event::BlockPlaceEvent>(
-                [this](const event::BlockPlaceEvent& e) {
-                    onBlockPlaced(e);
-                }
-            );
+        m_blockPlaceSubscription = event::ServerEventBus::instance().makeSubscription<event::BlockPlaceEvent>(
+            [this](const event::BlockPlaceEvent& e) { onBlockPlaced(e); });
 
         // 订阅僵尸村民治愈事件
         m_curedZombieVillagerSubscription =
             event::ServerEventBus::instance().makeSubscription<event::CuredZombieVillagerEvent>(
-                [this](const event::CuredZombieVillagerEvent& e) {
-                    onCuredZombieVillager(e);
-                }
-            );
+                [this](const event::CuredZombieVillagerEvent& e) { onCuredZombieVillager(e); });
 
         initialized_ = true;
     }
@@ -116,7 +94,8 @@ public:
      *
      * 取消所有事件订阅。
      */
-    void shutdown() {
+    void shutdown()
+    {
         m_inventoryChangedSubscription.unsubscribe();
         m_playerKillSubscription.unsubscribe();
         m_playerLoginSubscription.unsubscribe();
@@ -137,10 +116,11 @@ private:
      * 触发 InventoryChangedTrigger。
      * 参考 MC 1.16.5: InventoryChangeListener.onInventoryChange
      */
-    void onInventoryChanged(const event::InventoryChangedEvent& e) {
+    void onInventoryChanged(const event::InventoryChangedEvent& e)
+    {
         // 获取触发器
-        auto* trigger = mc::advancement::CriterionTriggers::instance()
-            .getTrigger<mc::advancement::InventoryChangedTrigger>();
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::InventoryChangedTrigger>();
 
         if (trigger == nullptr) {
             return;
@@ -173,14 +153,11 @@ private:
 
         // 触发检测 - 使用 triggerWithPredicate 方法
         // 注意：triggerWithPredicate 内部会自动检查是否有监听器
-        trigger->triggerWithPredicate(*advancements, [&e](const mc::advancement::InventoryChangedTriggerInstance& instance) {
-            return instance.testWithInventory(
-                mc::PlayerInventory::TOTAL_SIZE,
-                [&e](i32 slot) -> mc::ItemStack {
-                    return e.inventory->getItem(slot);
-                }
-            );
-        });
+        trigger->triggerWithPredicate(
+            *advancements, [&e](const mc::advancement::InventoryChangedTriggerInstance& instance) {
+                return instance.testWithInventory(mc::PlayerInventory::TOTAL_SIZE,
+                    [&e](i32 slot) -> mc::ItemStack { return e.inventory->getItem(slot); });
+            });
     }
 
     /**
@@ -189,10 +166,11 @@ private:
      * 触发 PlayerKilledEntityTrigger。
      * 参考 MC 1.16.5: CriteriaTriggers.PLAYER_KILLED_ENTITY
      */
-    void onPlayerKillEntity(const event::PlayerKillEntityEvent& e) {
+    void onPlayerKillEntity(const event::PlayerKillEntityEvent& e)
+    {
         // 获取触发器
-        auto* trigger = mc::advancement::CriterionTriggers::instance()
-            .getTrigger<mc::advancement::PlayerKilledEntityTrigger>();
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::PlayerKilledEntityTrigger>();
 
         if (trigger == nullptr) {
             return;
@@ -218,11 +196,9 @@ private:
         // 使用基类的 trigger 模板方法触发检测
         // 参考 TriggerInstantiation.hpp
         trigger->AbstractCriterionTrigger<mc::advancement::PlayerKilledEntityTriggerInstance>::trigger(
-            *advancements,
-            [&e](const mc::advancement::PlayerKilledEntityTriggerInstance& instance) {
+            *advancements, [&e](const mc::advancement::PlayerKilledEntityTriggerInstance& instance) {
                 return instance.test(*e.victim, *e.cause);
-            }
-        );
+            });
     }
 
     /**
@@ -230,7 +206,8 @@ private:
      *
      * 初始化玩家的成就监听器。
      */
-    void onPlayerLogin(const event::PlayerLoginEvent& e) {
+    void onPlayerLogin(const event::PlayerLoginEvent& e)
+    {
         // 玩家登录时，PlayerAdvancements 已经在 ServerPlayer 构造函数中初始化
         // 这里可以做一些额外的初始化工作
         MC_UNUSED(e);
@@ -242,10 +219,11 @@ private:
      * 触发 PlacedBlockTrigger。
      * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
      */
-    void onBlockPlaced(const event::BlockPlaceEvent& e) {
+    void onBlockPlaced(const event::BlockPlaceEvent& e)
+    {
         // 获取触发器
-        auto* trigger = mc::advancement::CriterionTriggers::instance()
-            .getTrigger<mc::advancement::PlacedBlockTrigger>();
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::PlacedBlockTrigger>();
 
         if (trigger == nullptr) {
             return;
@@ -284,11 +262,9 @@ private:
 
         // 触发检测 - 使用基类模板方法
         trigger->AbstractCriterionTrigger<mc::advancement::PlacedBlockTriggerInstance>::trigger(
-            *advancements,
-            [&e, world, &item](const mc::advancement::PlacedBlockTriggerInstance& instance) {
+            *advancements, [&e, world, &item](const mc::advancement::PlacedBlockTriggerInstance& instance) {
                 return instance.test(*e.state, *world, e.pos, item);
-            }
-        );
+            });
     }
 
     /**
@@ -297,7 +273,8 @@ private:
      * 触发 CuredZombieVillagerTrigger。
      * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
      */
-    void onCuredZombieVillager(const event::CuredZombieVillagerEvent& e) {
+    void onCuredZombieVillager(const event::CuredZombieVillagerEvent& e)
+    {
         // 检查治愈发起者UUID是否有效
         if (e.starterUuid.empty()) {
             return;
@@ -322,8 +299,8 @@ private:
         }
 
         // 获取触发器
-        auto* trigger = mc::advancement::CriterionTriggers::instance()
-            .getTrigger<mc::advancement::CuredZombieVillagerTrigger>();
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::CuredZombieVillagerTrigger>();
 
         if (trigger == nullptr) {
             return;
@@ -342,11 +319,9 @@ private:
 
         // 触发检测 - 使用基类模板方法
         trigger->AbstractCriterionTrigger<mc::advancement::CuredZombieVillagerTriggerInstance>::trigger(
-            *advancements,
-            [&e](const mc::advancement::CuredZombieVillagerTriggerInstance& instance) {
+            *advancements, [&e](const mc::advancement::CuredZombieVillagerTriggerInstance& instance) {
                 return instance.test(*e.zombie, *e.villager);
-            }
-        );
+            });
     }
 
     /**
@@ -357,7 +332,8 @@ private:
      * 通过 ServerPlayerEntityManager 获取玩家实体。
      * 参考 MC 1.16.5: PlayerList.getPlayerByUUID()
      */
-    [[nodiscard]] mc::ServerPlayer* getServerPlayer(PlayerId playerId) {
+    [[nodiscard]] mc::ServerPlayer* getServerPlayer(PlayerId playerId)
+    {
         if (m_server == nullptr) {
             return nullptr;
         }

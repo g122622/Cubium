@@ -1,11 +1,11 @@
 #pragma once
 
-#include "IChunkGenerator.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../biome/provider/end/EndBiomeProvider.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
-#include "../../biome/provider/end/EndBiomeProvider.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "IChunkGenerator.hpp"
 #include <memory>
 
 namespace mc {
@@ -58,8 +58,8 @@ public:
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    i32 spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                          std::vector<SpawnedEntityData>& outEntities) override;
+    i32 spawnInitialMobs(
+        WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
 
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
@@ -85,8 +85,8 @@ public:
 
 private:
     // === 噪声生成器 ===
-    std::unique_ptr<SimplexNoiseGenerator> m_islandNoise;      // 岛屿噪声
-    std::unique_ptr<OctavesNoiseGenerator> m_densityNoise;     // 密度噪声
+    std::unique_ptr<SimplexNoiseGenerator> m_islandNoise;  // 岛屿噪声
+    std::unique_ptr<OctavesNoiseGenerator> m_densityNoise; // 密度噪声
 
     // === 生物群系提供者 ===
     std::unique_ptr<biome::end::EndBiomeProvider> m_biomeProvider;
@@ -95,9 +95,9 @@ private:
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
 
     // === 末地特有参数 ===
-    i32 m_mainIslandRadius = 256;  // 主岛半径（方块单位），MC 1.16.5 使用 sqrt(4096) * 4 = 256
-    i32 m_endIslandHeight = 64;    // 末地岛高度
-    f32 m_islandNoiseThreshold = 1.0f;  // 岛屿生成阈值
+    i32 m_mainIslandRadius = 256;      // 主岛半径（方块单位），MC 1.16.5 使用 sqrt(4096) * 4 = 256
+    i32 m_endIslandHeight = 64;        // 末地岛高度
+    f32 m_islandNoiseThreshold = 1.0f; // 岛屿生成阈值
 
     // === 缓存的噪声参数 ===
     i32 m_noiseSizeX;

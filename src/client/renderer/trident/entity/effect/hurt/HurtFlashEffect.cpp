@@ -6,7 +6,8 @@ namespace mc::client::renderer::entity::effect::hurt {
 
 bool HurtFlashEffect::s_initialized = false;
 
-void HurtFlashEffect::initialize() {
+void HurtFlashEffect::initialize()
+{
     if (s_initialized) {
         return;
     }
@@ -17,7 +18,8 @@ void HurtFlashEffect::initialize() {
     s_initialized = true;
 }
 
-void HurtFlashEffect::cleanup() {
+void HurtFlashEffect::cleanup()
+{
     if (!s_initialized) {
         return;
     }
@@ -28,7 +30,8 @@ void HurtFlashEffect::cleanup() {
     s_initialized = false;
 }
 
-i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlash) {
+i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlash)
+{
     // 参考 MC 1.16.5 OverlayTexture.java 和 LivingRenderer.java:146-148
     // getPackedUV(getU(uIn), getV(hurtTime > 0 || deathTime > 0))
     //
@@ -62,7 +65,8 @@ i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlas
     return packedU | (packedV << 16);
 }
 
-f64 HurtFlashEffect::getHurtProgress(::mc::LivingEntity& entity) {
+f64 HurtFlashEffect::getHurtProgress(::mc::LivingEntity& entity)
+{
     // 参考 MC 1.16.5 LivingEntity.hurtTime
     // hurtTime 从 10 递减到 0
     // 进度 = 1.0 - (hurtTime / 10.0)
@@ -77,13 +81,15 @@ f64 HurtFlashEffect::getHurtProgress(::mc::LivingEntity& entity) {
     return 1.0 - static_cast<f64>(hurtTime) / static_cast<f64>(maxHurtTime);
 }
 
-bool HurtFlashEffect::isHurt(::mc::LivingEntity& entity) {
+bool HurtFlashEffect::isHurt(::mc::LivingEntity& entity)
+{
     // 参考 MC 1.16.5 LivingEntity.isHurt()
     // 检查 hurtTime > 0
     return entity.hurtTime() > 0;
 }
 
-math::Vector4f HurtFlashEffect::applyHurtFlash(::mc::LivingEntity& entity, const math::Vector4f& baseColor) {
+math::Vector4f HurtFlashEffect::applyHurtFlash(::mc::LivingEntity& entity, const math::Vector4f& baseColor)
+{
     // 参考 MC 1.16.5 受伤闪烁效果
     // 受伤时叠加红色
 

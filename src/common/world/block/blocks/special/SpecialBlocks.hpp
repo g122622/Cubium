@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -31,7 +31,8 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -55,7 +56,8 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -104,8 +106,7 @@ public:
 
     // ========== 交互 ==========
 
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -130,8 +131,7 @@ public:
 
     // ========== 交互 ==========
 
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -168,14 +168,17 @@ public:
 
     // ========== 红石 ==========
 
-    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
 
-    [[nodiscard]] i32 getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     // ========== 旋转 ==========
 
@@ -185,8 +188,7 @@ public:
 
     // ========== 交互 ==========
 
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -314,7 +316,8 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }
@@ -382,9 +385,8 @@ public:
      * @param neighborPos 邻居位置
      * @param isMoving 是否正在移动
      */
-    void neighborChanged(IWorld& world, const BlockPos& pos,
-                         Block& neighborBlock, const BlockPos& neighborPos,
-                         bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
 private:
     /// 海绵吸水最大搜索深度（MC 1.16.5）
@@ -463,13 +465,15 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override {
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
+    {
         // 蜘蛛网无碰撞
         static CollisionShape emptyShape = CollisionShape::empty();
         return emptyShape;
     }
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

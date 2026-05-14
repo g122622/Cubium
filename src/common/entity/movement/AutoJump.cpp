@@ -1,11 +1,11 @@
 #include "AutoJump.hpp"
-#include "../entities/player/Player.hpp"
-#include "../../physics/PhysicsEngine.hpp"
 #include "../../physics/PhysicsConstants.hpp"
+#include "../../physics/PhysicsEngine.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/math/MathUtils.hpp"
-#include <cmath>
+#include "../entities/player/Player.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 namespace entity {
@@ -14,20 +14,20 @@ namespace movement {
 using namespace AutoJumpConstants;
 using namespace physics;
 
-void AutoJump::tick() {
+void AutoJump::tick()
+{
     if (m_autoJumpTime > 0) {
         m_autoJumpTime--;
     }
 }
 
-void AutoJump::resetCooldown() {
+void AutoJump::resetCooldown()
+{
     m_autoJumpTime = AUTO_JUMP_COOLDOWN;
 }
 
-AutoJumpResult AutoJump::check(
-    const Player& player,
-    PhysicsEngine& physicsEngine,
-    const Vector2& movementInput) {
+AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngine, const Vector2& movementInput)
+{
 
     AutoJumpResult result;
 
@@ -44,7 +44,7 @@ AutoJumpResult AutoJump::check(
     Vector3 movementDir = calculateMovementDirection(player, movementInput);
     f32 movementLength = std::sqrt(movementDir.x * movementDir.x + movementDir.z * movementDir.z);
     if (movementLength < 0.0001f) {
-        return result;  // 无有效移动方向
+        return result; // 无有效移动方向
     }
     movementDir.x /= movementLength;
     movementDir.z /= movementLength;
@@ -55,13 +55,13 @@ AutoJumpResult AutoJump::check(
     Vector3 forwardDir(-std::sin(yawRad), 0.0f, std::cos(yawRad));
 
     if (!isMovingForward(movementDir, forwardDir)) {
-        return result;  // 向后移动，不触发
+        return result; // 向后移动，不触发
     }
 
     // 5. 检查头部空间（玩家当前位置上方）
     Vector3 playerPos = player.position();
     if (!hasHeadSpace(player, physicsEngine, playerPos)) {
-        return result;  // 头部空间不足，不能跳
+        return result; // 头部空间不足，不能跳
     }
 
     // 6. 计算最大跳跃高度
@@ -115,7 +115,7 @@ AutoJumpResult AutoJump::check(
     physicsEngine.collectCollisionBoxes(searchBox, collisionBoxes);
 
     if (collisionBoxes.empty()) {
-        return result;  // 没有障碍物
+        return result; // 没有障碍物
     }
 
     // 11. 沿检测线查找障碍物
@@ -123,15 +123,11 @@ AutoJumpResult AutoJump::check(
 
     // 检查左检测线
     f32 leftHeight = detectObstacleHeight(
-        player, physicsEngine,
-        leftStart, movementDir, detectionDistance, maxJumpHeight,
-        collisionBoxes);
+        player, physicsEngine, leftStart, movementDir, detectionDistance, maxJumpHeight, collisionBoxes);
 
     // 检查右检测线
     f32 rightHeight = detectObstacleHeight(
-        player, physicsEngine,
-        rightStart, movementDir, detectionDistance, maxJumpHeight,
-        collisionBoxes);
+        player, physicsEngine, rightStart, movementDir, detectionDistance, maxJumpHeight, collisionBoxes);
 
     // 取两条检测线中检测到的最高障碍物
     obstacleHeight = std::max(leftHeight, rightHeight);
@@ -151,9 +147,8 @@ AutoJumpResult AutoJump::check(
     return result;
 }
 
-bool AutoJump::shouldCheckForAutoJump(
-    const Player& player,
-    bool hasMovementInput) const {
+bool AutoJump::shouldCheckForAutoJump(const Player& player, bool hasMovementInput) const
+{
 
     // 1. 检查是否启用
     if (!m_enabled) {
@@ -200,9 +195,8 @@ bool AutoJump::shouldCheckForAutoJump(
     return true;
 }
 
-Vector3 AutoJump::calculateMovementDirection(
-    const Player& player,
-    const Vector2& movementInput) {
+Vector3 AutoJump::calculateMovementDirection(const Player& player, const Vector2& movementInput)
+{
 
     Vector3 velocity = player.velocity();
 
@@ -226,7 +220,7 @@ Vector3 AutoJump::calculateMovementDirection(
 
     // 归一化输入
     f32 strafe = movementInput.x / inputLength;  // 左右
-    f32 forward = movementInput.y / inputLength;  // 前后
+    f32 forward = movementInput.y / inputLength; // 前后
 
     // MC 坐标系: yaw=0 看向 -Z, yaw=90 看向 +X
     f32 yawRad = player.yaw() * math::DEG_TO_RAD;
@@ -247,9 +241,8 @@ Vector3 AutoJump::calculateMovementDirection(
     return Vector3(moveX / length, 0.0f, moveZ / length);
 }
 
-bool AutoJump::isMovingForward(
-    const Vector3& movementDir,
-    const Vector3& forwardDir) {
+bool AutoJump::isMovingForward(const Vector3& movementDir, const Vector3& forwardDir)
+{
 
     // 计算点积（仅 XZ 平面）
     f32 dot = movementDir.x * forwardDir.x + movementDir.z * forwardDir.z;
@@ -258,14 +251,13 @@ bool AutoJump::isMovingForward(
     return dot > FORWARD_THRESHOLD;
 }
 
-f32 AutoJump::calculateMaxJumpHeight() const {
+f32 AutoJump::calculateMaxJumpHeight() const
+{
     return BASE_JUMP_HEIGHT + JUMP_BOOST_PER_LEVEL * static_cast<f32>(m_jumpBoostLevel);
 }
 
-bool AutoJump::hasHeadSpace(
-    const Player& player,
-    PhysicsEngine& physicsEngine,
-    const Vector3& testPos) {
+bool AutoJump::hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine, const Vector3& testPos)
+{
 
     // MC 检查玩家眼睛上方一格和两格位置是否有障碍物
     // 源码:
@@ -281,34 +273,32 @@ bool AutoJump::hasHeadSpace(
         f32 checkY = eyeY + static_cast<f32>(i + 1);
 
         // 创建检测碰撞箱
-        AxisAlignedBB checkBox(
-            testPos.x - player.width() * 0.5f,
+        AxisAlignedBB checkBox(testPos.x - player.width() * 0.5f,
             checkY,
             testPos.z - player.width() * 0.5f,
             testPos.x + player.width() * 0.5f,
-            checkY + 1.0f,  // 检查一格高度
-            testPos.z + player.width() * 0.5f
-        );
+            checkY + 1.0f, // 检查一格高度
+            testPos.z + player.width() * 0.5f);
 
         std::vector<AxisAlignedBB> boxes;
         physicsEngine.collectCollisionBoxes(checkBox, boxes);
 
         if (!boxes.empty()) {
-            return false;  // 有障碍物，头部空间不足
+            return false; // 有障碍物，头部空间不足
         }
     }
 
     return true;
 }
 
-f32 AutoJump::detectObstacleHeight(
-    const Player& player,
+f32 AutoJump::detectObstacleHeight(const Player& player,
     PhysicsEngine& physicsEngine,
     const Vector3& origin,
     const Vector3& direction,
     f32 distance,
     f32 maxJumpHeight,
-    std::vector<AxisAlignedBB>& collisionBoxes) {
+    std::vector<AxisAlignedBB>& collisionBoxes)
+{
 
     f32 playerY = player.position().y;
     f32 playerHeight = player.height();
@@ -326,7 +316,7 @@ f32 AutoJump::detectObstacleHeight(
         // 检查碰撞箱是否在检测范围内
         // AABB 的 Y 范围必须在 [playerY, playerY + maxJumpHeight + playerHeight] 内
         if (box.maxY < playerY || box.minY > playerY + maxJumpHeight + playerHeight) {
-            continue;  // 不在高度范围内
+            continue; // 不在高度范围内
         }
 
         // 检查检测线是否穿过碰撞箱的 XZ 投影
@@ -356,14 +346,12 @@ f32 AutoJump::detectObstacleHeight(
             // 玩家需要能站在障碍物上
 
             // 创建玩家站在障碍物上时的碰撞箱
-            AxisAlignedBB standingBox(
-                origin.x - player.width() * 0.5f,
+            AxisAlignedBB standingBox(origin.x - player.width() * 0.5f,
                 box.maxY,
                 origin.z - player.width() * 0.5f,
                 origin.x + player.width() * 0.5f,
                 box.maxY + playerHeight,
-                origin.z + player.width() * 0.5f
-            );
+                origin.z + player.width() * 0.5f);
 
             // 检查站立位置是否有碰撞
             std::vector<AxisAlignedBB> standingBoxes;

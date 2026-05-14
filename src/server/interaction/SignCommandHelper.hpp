@@ -35,9 +35,7 @@ public:
      * @param player 执行命令的服务端玩家
      * @return 如果成功执行了至少一个命令返回 true
      */
-    static bool executeSignCommands(
-        blockentity::SignEntity& signEntity,
-        mc::ServerPlayer& player);
+    static bool executeSignCommands(blockentity::SignEntity& signEntity, mc::ServerPlayer& player);
 
 private:
     /**
@@ -48,10 +46,7 @@ private:
      * @param signPos 告示牌位置（用于命令源位置）
      * @return 如果命令执行成功返回 true
      */
-    static bool executeCommand(
-        const std::string& command,
-        mc::ServerPlayer& player,
-        const BlockPos& signPos);
+    static bool executeCommand(const std::string& command, mc::ServerPlayer& player, const BlockPos& signPos);
 };
 
 } // namespace server

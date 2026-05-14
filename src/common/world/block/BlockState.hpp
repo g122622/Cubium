@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
 #include "../../physics/collision/CollisionShape.hpp"
+#include "../../resource/ResourceLocation.hpp"
 #include "../../util/property/StateHolder.hpp"
 #include <memory>
 #include <unordered_map>
@@ -29,7 +29,7 @@ class IRandom;
 namespace loot {
 class LootTableManager;
 class LootTable;
-}
+} // namespace loot
 
 namespace fluid {
 class FluidState;
@@ -37,17 +37,17 @@ class FluidState;
 
 namespace item {
 namespace tool {
-    // Tool type constants for harvest tool comparison
-    // These values must match ToolType enum in item/tool/ToolType.hpp
-    constexpr u8 TOOL_TYPE_NONE = 0;
-    constexpr u8 TOOL_TYPE_PICKAXE = 1;
-    constexpr u8 TOOL_TYPE_AXE = 2;
-    constexpr u8 TOOL_TYPE_SHOVEL = 3;
-    constexpr u8 TOOL_TYPE_HOE = 4;
-    constexpr u8 TOOL_TYPE_SWORD = 5;
-    constexpr u8 TOOL_TYPE_SHEARS = 6;
-}
-}
+// Tool type constants for harvest tool comparison
+// These values must match ToolType enum in item/tool/ToolType.hpp
+constexpr u8 TOOL_TYPE_NONE = 0;
+constexpr u8 TOOL_TYPE_PICKAXE = 1;
+constexpr u8 TOOL_TYPE_AXE = 2;
+constexpr u8 TOOL_TYPE_SHOVEL = 3;
+constexpr u8 TOOL_TYPE_HOE = 4;
+constexpr u8 TOOL_TYPE_SWORD = 5;
+constexpr u8 TOOL_TYPE_SHEARS = 6;
+} // namespace tool
+} // namespace item
 
 // Forward declaration for Direction (needed for method parameters)
 enum class Direction : u8;
@@ -74,9 +74,7 @@ public:
     /**
      * @brief 构造方块状态
      */
-    BlockState(const Block& block,
-               std::unordered_map<const IProperty*, size_t> values,
-               u32 stateId);
+    BlockState(const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 stateId);
 
     /**
      * @brief 是否为空气
@@ -123,17 +121,13 @@ public:
      * @param block 方块指针
      * @return 如果此状态的方块与给定方块相同则返回true
      */
-    [[nodiscard]] bool is(const Block* block) const {
-        return block != nullptr && &owner() == block;
-    }
+    [[nodiscard]] bool is(const Block* block) const { return block != nullptr && &owner() == block; }
 
     /**
      * @brief 获取此状态所属的方块
      * @return 方块引用
      */
-    [[nodiscard]] const Block& getBlock() const {
-        return owner();
-    }
+    [[nodiscard]] const Block& getBlock() const { return owner(); }
 
     /**
      * @brief 获取光照透明度 (0-15)
@@ -353,9 +347,7 @@ public:
      * @return 可燃性值 (0-300)
      */
     [[nodiscard]] i32 getFlammability(
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const;
+        IWorld* world = nullptr, const BlockPos* pos = nullptr, Direction face = static_cast<Direction>(255)) const;
 
     /**
      * @brief 获取方块的火焰蔓延速度
@@ -369,9 +361,7 @@ public:
      * @return 火焰蔓延速度
      */
     [[nodiscard]] i32 getFireSpreadSpeed(
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const;
+        IWorld* world = nullptr, const BlockPos* pos = nullptr, Direction face = static_cast<Direction>(255)) const;
 
     /**
      * @brief 检查方块是否为火焰源
@@ -397,8 +387,7 @@ public:
      * @param face 点燃面
      * @param igniter 点燃者（可能为空）
      */
-    void catchFire(
-        IWorld& world,
+    void catchFire(IWorld& world,
         const BlockPos& pos,
         Direction face = static_cast<Direction>(255),
         Entity* igniter = nullptr) const;
@@ -431,10 +420,10 @@ private:
     bool m_isLiquid = false;
     bool m_isFlammable = false;
     bool m_propagatesSkylightDown = false;
-    bool m_useShapeForLightOcclusion = false;  // 是否使用形状进行光照遮挡
+    bool m_useShapeForLightOcclusion = false; // 是否使用形状进行光照遮挡
     u8 m_lightLevel = 0;
-    u8 m_harvestTool = 0;  // HarvestTool::None
-    i32 m_opacity = 15;  // 默认完全不透明
+    u8 m_harvestTool = 0; // HarvestTool::None
+    i32 m_opacity = 15;   // 默认完全不透明
     i32 m_harvestLevel = 0;
     f32 m_hardness = 0.0f;
     f32 m_resistance = 0.0f;

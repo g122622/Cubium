@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../../core/Result.hpp"
 #include "../../world/chunk/ChunkData.hpp"
 #include "../../world/chunk/ChunkPos.hpp"
 #include "../packet/ProtocolPackets.hpp"
-#include "../../core/Result.hpp"
-#include <unordered_set>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace mc::network {
 
@@ -21,13 +21,8 @@ public:
     static std::vector<u8> serializeSection(const ChunkSection& section);
 
     // 反序列化区块数据
-    static Result<std::unique_ptr<ChunkData>> deserializeChunk(
-        ChunkCoord x, ChunkCoord z,
-        const std::vector<u8>& data
-    );
-    static Result<std::unique_ptr<ChunkSection>> deserializeChunkSection(
-        const u8* data, size_t size
-    );
+    static Result<std::unique_ptr<ChunkData>> deserializeChunk(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
+    static Result<std::unique_ptr<ChunkSection>> deserializeChunkSection(const u8* data, size_t size);
 
     // 计算序列化后的大小
     static size_t calculateChunkSize(const ChunkData& chunk);
@@ -44,17 +39,19 @@ public:
 struct ChunkView {
     ChunkCoord centerX = 0;
     ChunkCoord centerZ = 0;
-    i32 viewDistance = 10;  // 默认视距10个区块
+    i32 viewDistance = 10; // 默认视距10个区块
 
     // 检查区块是否在视距内
-    [[nodiscard]] bool isChunkInView(ChunkCoord x, ChunkCoord z) const {
+    [[nodiscard]] bool isChunkInView(ChunkCoord x, ChunkCoord z) const
+    {
         i32 dx = std::abs(x - centerX);
         i32 dz = std::abs(z - centerZ);
         return dx <= viewDistance && dz <= viewDistance;
     }
 
     // 获取所有在视距内的区块坐标
-    [[nodiscard]] std::vector<ChunkPos> getChunksInView() const {
+    [[nodiscard]] std::vector<ChunkPos> getChunksInView() const
+    {
         std::vector<ChunkPos> chunks;
         getChunksInView(chunks);
         return chunks;
@@ -64,7 +61,8 @@ struct ChunkView {
      * @brief 获取所有在视距内的区块坐标（输出参数版本，避免分配）
      * @param out 输出向量（会被清空并填充）
      */
-    void getChunksInView(std::vector<ChunkPos>& out) const {
+    void getChunksInView(std::vector<ChunkPos>& out) const
+    {
         out.clear();
         const size_t diameter = static_cast<size_t>(viewDistance) * 2 + 1;
         out.reserve(diameter * diameter);
@@ -77,11 +75,9 @@ struct ChunkView {
     }
 
     // 计算需要加载的新区块和需要卸载的旧区块
-    void calculateChunkDiff(
-        const std::unordered_set<ChunkId>& currentChunks,
+    void calculateChunkDiff(const std::unordered_set<ChunkId>& currentChunks,
         std::vector<ChunkPos>& chunksToLoad,
-        std::vector<ChunkPos>& chunksToUnload
-    ) const;
+        std::vector<ChunkPos>& chunksToUnload) const;
 };
 
 // ============================================================================
@@ -106,10 +102,7 @@ public:
     void updateCenter(ChunkCoord x, ChunkCoord z);
 
     // 计算需要的区块更新
-    void calculateChunkUpdates(
-        std::vector<ChunkPos>& chunksToLoad,
-        std::vector<ChunkPos>& chunksToUnload
-    );
+    void calculateChunkUpdates(std::vector<ChunkPos>& chunksToLoad, std::vector<ChunkPos>& chunksToUnload);
 
     // 设置视距
     void setViewDistance(i32 distance);
@@ -139,10 +132,7 @@ public:
 
     // 计算区块更新
     void calculateUpdates(
-        PlayerId playerId,
-        std::vector<ChunkPos>& chunksToLoad,
-        std::vector<ChunkPos>& chunksToUnload
-    );
+        PlayerId playerId, std::vector<ChunkPos>& chunksToLoad, std::vector<ChunkPos>& chunksToUnload);
 
     // 标记区块为已发送
     void markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord z);
@@ -151,7 +141,8 @@ public:
     void markChunkUnloaded(PlayerId playerId, ChunkCoord x, ChunkCoord z);
 
     // 获取区块订阅者（哪些玩家需要这个区块）
-    [[nodiscard]] std::vector<PlayerId> getChunkSubscribers(ChunkCoord x, ChunkCoord z) const {
+    [[nodiscard]] std::vector<PlayerId> getChunkSubscribers(ChunkCoord x, ChunkCoord z) const
+    {
         std::vector<PlayerId> subscribers;
         getChunkSubscribers(x, z, subscribers);
         return subscribers;
@@ -163,7 +154,8 @@ public:
      * @param z 区块Z坐标
      * @param out 输出向量（会被清空并填充）
      */
-    void getChunkSubscribers(ChunkCoord x, ChunkCoord z, std::vector<PlayerId>& out) const {
+    void getChunkSubscribers(ChunkCoord x, ChunkCoord z, std::vector<PlayerId>& out) const
+    {
         out.clear();
 
         ChunkId chunkId(x, z, 0);
@@ -181,9 +173,7 @@ public:
     [[nodiscard]] i32 defaultViewDistance() const { return m_defaultViewDistance; }
 
     // 区块坐标转换工具
-    static ChunkCoord blockToChunk(f64 blockCoord) {
-        return static_cast<ChunkCoord>(std::floor(blockCoord / 16.0));
-    }
+    static ChunkCoord blockToChunk(f64 blockCoord) { return static_cast<ChunkCoord>(std::floor(blockCoord / 16.0)); }
 
 private:
     std::unordered_map<PlayerId, std::shared_ptr<PlayerChunkTracker>> m_trackers;

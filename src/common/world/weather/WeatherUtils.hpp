@@ -37,7 +37,8 @@ namespace WeatherUtils {
  * @param temperature 生物群系温度
  * @return 1=降雨, 2=降雪
  */
-[[nodiscard]] inline i32 getPrecipitationType(f32 temperature) noexcept {
+[[nodiscard]] inline i32 getPrecipitationType(f32 temperature) noexcept
+{
     if (temperature < 0.15f) {
         return 2; // Snow
     }
@@ -130,7 +131,8 @@ namespace WeatherUtils {
  * @param thunderStrength 雷暴强度 (0.0-1.0)，注意MC中thunderStrength已经乘以rainStrength
  * @return 混合因子 (0.0=正常, 接近0.527=最暗)
  */
-[[nodiscard]] inline f32 calculateSkyDarkenFactor(f32 rainStrength, f32 thunderStrength) noexcept {
+[[nodiscard]] inline f32 calculateSkyDarkenFactor(f32 rainStrength, f32 thunderStrength) noexcept
+{
     // MC原版使用乘法组合: (1 - rain * 5/16) * (1 - thunder * 5/16)
     f32 rainFactor = rainStrength * (5.0f / 16.0f);
     f32 thunderFactor = thunderStrength * (5.0f / 16.0f);
@@ -143,7 +145,8 @@ namespace WeatherUtils {
  * @param rainStrength 降雨强度 (0.0-1.0)
  * @return 可见度 (0.0=不可见, 1.0=完全可见)
  */
-[[nodiscard]] inline f32 calculateCelestialVisibility(f32 rainStrength) noexcept {
+[[nodiscard]] inline f32 calculateCelestialVisibility(f32 rainStrength) noexcept
+{
     // 降雨时太阳/月亮不可见
     return 1.0f - rainStrength;
 }

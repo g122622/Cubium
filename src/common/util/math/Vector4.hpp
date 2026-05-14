@@ -14,7 +14,7 @@ namespace math {
  *
  * @tparam T 标量类型 (f32, f64, i32, u32 等)
  */
-template<typename T>
+template <typename T>
 class Vector4 {
 public:
     T x, y, z, w;
@@ -25,27 +25,27 @@ public:
         , y(static_cast<T>(0))
         , z(static_cast<T>(0))
         , w(static_cast<T>(0))
-    {
-    }
+    {}
 
     Vector4(T x, T y, T z, T w) noexcept
         : x(x)
         , y(y)
         , z(z)
         , w(w)
-    {
-    }
+    {}
 
     explicit Vector4(T value) noexcept
         : x(value)
         , y(value)
         , z(value)
         , w(value)
-    {
-    }
+    {}
 
     // 静态常量
-    static Vector4 zero() { return Vector4(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0), static_cast<T>(0)); }
+    static Vector4 zero()
+    {
+        return Vector4(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0), static_cast<T>(0));
+    }
     static Vector4 one() { return Vector4(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1), static_cast<T>(1)); }
 
     // 算术运算
@@ -81,32 +81,41 @@ public:
 
     Vector4& operator+=(const Vector4& other) noexcept
     {
-        x += other.x; y += other.y; z += other.z; w += other.w;
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        w += other.w;
         return *this;
     }
 
     Vector4& operator-=(const Vector4& other) noexcept
     {
-        x -= other.x; y -= other.y; z -= other.z; w -= other.w;
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        w -= other.w;
         return *this;
     }
 
     Vector4& operator*=(T scalar) noexcept
     {
-        x *= scalar; y *= scalar; z *= scalar; w *= scalar;
+        x *= scalar;
+        y *= scalar;
+        z *= scalar;
+        w *= scalar;
         return *this;
     }
 
     Vector4& operator/=(T scalar) noexcept
     {
-        x /= scalar; y /= scalar; z /= scalar; w /= scalar;
+        x /= scalar;
+        y /= scalar;
+        z /= scalar;
+        w /= scalar;
         return *this;
     }
 
-    [[nodiscard]] Vector4 operator-() const noexcept
-    {
-        return {-x, -y, -z, -w};
-    }
+    [[nodiscard]] Vector4 operator-() const noexcept { return {-x, -y, -z, -w}; }
 
     // 比较运算
     [[nodiscard]] bool operator==(const Vector4& other) const noexcept
@@ -114,25 +123,22 @@ public:
         return x == other.x && y == other.y && z == other.z && w == other.w;
     }
 
-    [[nodiscard]] bool operator!=(const Vector4& other) const noexcept
-    {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator!=(const Vector4& other) const noexcept { return !(*this == other); }
 
     // 向量运算 (仅浮点类型)
-    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] T length() const noexcept
     {
         return static_cast<T>(std::sqrt(static_cast<f64>(x * x + y * y + z * z + w * w)));
     }
 
-    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] T lengthSquared() const noexcept
     {
         return x * x + y * y + z * z + w * w;
     }
 
-    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector4 normalized() const noexcept
     {
         const T len = length();
@@ -143,7 +149,7 @@ public:
         return zero();
     }
 
-    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     void normalize() noexcept
     {
         *this = normalized();
@@ -154,53 +160,51 @@ public:
         return x * other.x + y * other.y + z * other.z + w * other.w;
     }
 
-    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector4 lerp(const Vector4& target, T t) const noexcept
     {
-        return {
-            x + (target.x - x) * t,
-            y + (target.y - y) * t,
-            z + (target.z - z) * t,
-            w + (target.w - w) * t
-        };
+        return {x + (target.x - x) * t, y + (target.y - y) * t, z + (target.z - z) * t, w + (target.w - w) * t};
     }
 
     // 访问器
     [[nodiscard]] T& operator[](size_t index) noexcept
     {
         switch (index) {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            default: return w;
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+            default:
+                return w;
         }
     }
 
     [[nodiscard]] const T& operator[](size_t index) const noexcept
     {
         switch (index) {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            default: return w;
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+            default:
+                return w;
         }
     }
 
     // 类型转换
-    template<typename U>
+    template <typename U>
     [[nodiscard]] Vector4<U> cast() const noexcept
     {
-        return {
-            static_cast<U>(x),
-            static_cast<U>(y),
-            static_cast<U>(z),
-            static_cast<U>(w)
-        };
+        return {static_cast<U>(x), static_cast<U>(y), static_cast<U>(z), static_cast<U>(w)};
     }
 };
 
 // 标量 * 向量
-template<typename T>
+template <typename T>
 [[nodiscard]] inline Vector4<T> operator*(T scalar, const Vector4<T>& vec) noexcept
 {
     return vec * scalar;

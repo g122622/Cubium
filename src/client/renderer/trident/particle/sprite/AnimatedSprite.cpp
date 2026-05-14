@@ -3,26 +3,23 @@
 
 namespace mc::client::renderer::trident::particle {
 
-AnimatedSprite::AnimatedSprite(
-    const glm::vec2& uvMin,
-    const glm::vec2& uvMax,
-    u32 frameCount,
-    f64 frameTime)
+AnimatedSprite::AnimatedSprite(const glm::vec2& uvMin, const glm::vec2& uvMax, u32 frameCount, f64 frameTime)
     : m_uvMin(uvMin)
     , m_uvMax(uvMax)
     , m_frameCount(std::max(1u, frameCount))
     , m_frameTime(frameTime)
-{
-}
+{}
 
-f64 AnimatedSprite::frameHeight() const {
+f64 AnimatedSprite::frameHeight() const
+{
     if (m_frameCount <= 1) {
         return m_uvMax.y - m_uvMin.y;
     }
     return (m_uvMax.y - m_uvMin.y) / static_cast<f64>(m_frameCount);
 }
 
-glm::vec4 AnimatedSprite::getFrameUV(f64 age, f64 maxAge) const {
+glm::vec4 AnimatedSprite::getFrameUV(f64 age, f64 maxAge) const
+{
     if (m_frameCount <= 1 || maxAge <= 0.0f) {
         return glm::vec4(m_uvMin.x, m_uvMin.y, m_uvMax.x, m_uvMax.y);
     }
@@ -35,7 +32,8 @@ glm::vec4 AnimatedSprite::getFrameUV(f64 age, f64 maxAge) const {
     return getFrameUVByIndex(clampedFrame);
 }
 
-glm::vec4 AnimatedSprite::getRandomFrameUV(u32 seed) const {
+glm::vec4 AnimatedSprite::getRandomFrameUV(u32 seed) const
+{
     if (m_frameCount <= 1) {
         return glm::vec4(m_uvMin.x, m_uvMin.y, m_uvMax.x, m_uvMax.y);
     }
@@ -44,7 +42,8 @@ glm::vec4 AnimatedSprite::getRandomFrameUV(u32 seed) const {
     return getFrameUVByIndex(frameIndex);
 }
 
-glm::vec4 AnimatedSprite::getFrameUVByIndex(u32 frameIndex) const {
+glm::vec4 AnimatedSprite::getFrameUVByIndex(u32 frameIndex) const
+{
     if (m_frameCount <= 1 || frameIndex >= m_frameCount) {
         return glm::vec4(m_uvMin.x, m_uvMin.y, m_uvMax.x, m_uvMax.y);
     }
@@ -52,11 +51,10 @@ glm::vec4 AnimatedSprite::getFrameUVByIndex(u32 frameIndex) const {
     const f64 height = frameHeight();
     const f64 frameV = m_uvMin.y + static_cast<f64>(frameIndex) * height;
 
-    return glm::vec4(
-        m_uvMin.x,      // minU
-        frameV,         // minV
-        m_uvMax.x,      // maxU
-        frameV + height // maxV
+    return glm::vec4(m_uvMin.x, // minU
+        frameV,                 // minV
+        m_uvMax.x,              // maxU
+        frameV + height         // maxV
     );
 }
 

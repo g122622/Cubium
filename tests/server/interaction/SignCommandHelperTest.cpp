@@ -9,21 +9,21 @@
  * - 子组件点击事件处理
  */
 
-#include <gtest/gtest.h>
 #include <memory>
+#include <gtest/gtest.h>
 
-#include "server/interaction/SignCommandHelper.hpp"
-#include "server/player/ServerPlayer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/core/BlockEntityRegistry.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
-#include "server/application/IServer.hpp"
-#include "common/world/blockentity/interactive/SignEntity.hpp"
-#include "common/world/blockentity/core/BlockEntityRegistry.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/util/text/StringTextComponent.hpp"
-#include "common/util/text/TextStyle.hpp"
-#include "common/util/text/TextEvents.hpp"
-#include "common/core/Types.hpp"
+#include "server/interaction/SignCommandHelper.hpp"
+#include "server/player/ServerPlayer.hpp"
 
 using namespace mc;
 using namespace mc::blockentity;
@@ -36,7 +36,8 @@ namespace {
  * @brief 创建带点击事件的文本组件
  */
 std::unique_ptr<StringTextComponent> createTextWithClickEvent(
-    const std::string& text, ClickAction action, const std::string& value) {
+    const std::string& text, ClickAction action, const std::string& value)
+{
     auto component = std::make_unique<StringTextComponent>(text);
     Style style;
     style.setClickEvent(ClickEvent(action, value));
@@ -52,22 +53,22 @@ std::unique_ptr<StringTextComponent> createTextWithClickEvent(
 
 class SignCommandHelperTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 注册内置方块实体类型
         BlockEntityRegistry::instance().registerBuiltinTypes();
         signEntity_ = std::make_unique<SignEntity>(BlockPos(10, 64, 20));
     }
 
-    void TearDown() override {
-        signEntity_.reset();
-    }
+    void TearDown() override { signEntity_.reset(); }
 
     std::unique_ptr<SignEntity> signEntity_;
 };
 
 // ========== 基础功能测试 ==========
 
-TEST_F(SignCommandHelperTest, EmptySign_DefaultLines) {
+TEST_F(SignCommandHelperTest, EmptySign_DefaultLines)
+{
     // 空告示牌默认有空文本组件
     // getLine 返回文本组件指针，即使内容为空
     for (int i = 0; i < 4; ++i) {
@@ -82,7 +83,8 @@ TEST_F(SignCommandHelperTest, EmptySign_DefaultLines) {
     }
 }
 
-TEST_F(SignCommandHelperTest, SignWithRunCommand_HasClickEvent) {
+TEST_F(SignCommandHelperTest, SignWithRunCommand_HasClickEvent)
+{
     // 设置带 RunCommand 点击事件的文本
     auto line = createTextWithClickEvent("Click me", ClickAction::RunCommand, "/help");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
@@ -98,7 +100,8 @@ TEST_F(SignCommandHelperTest, SignWithRunCommand_HasClickEvent) {
     EXPECT_EQ(clickEvent->getValue(), "/help");
 }
 
-TEST_F(SignCommandHelperTest, MultipleCommands_AllLinesWithCommands) {
+TEST_F(SignCommandHelperTest, MultipleCommands_AllLinesWithCommands)
+{
     // 在所有行设置命令
     signEntity_->setLine(0, createTextWithClickEvent("Help", ClickAction::RunCommand, "/help"));
     signEntity_->setLine(1, createTextWithClickEvent("Gamemode", ClickAction::RunCommand, "/gamemode creative"));
@@ -118,7 +121,8 @@ TEST_F(SignCommandHelperTest, MultipleCommands_AllLinesWithCommands) {
 
 // ========== ClickAction 类型测试 ==========
 
-TEST_F(SignCommandHelperTest, ClickAction_OpenUrl_NotRunCommand) {
+TEST_F(SignCommandHelperTest, ClickAction_OpenUrl_NotRunCommand)
+{
     // OpenUrl 不应该被服务端执行
     auto line = createTextWithClickEvent("Open URL", ClickAction::OpenUrl, "https://example.com");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
@@ -132,7 +136,8 @@ TEST_F(SignCommandHelperTest, ClickAction_OpenUrl_NotRunCommand) {
     EXPECT_NE(clickEvent->getAction(), ClickAction::RunCommand);
 }
 
-TEST_F(SignCommandHelperTest, ClickAction_SuggestCommand_NotRunCommand) {
+TEST_F(SignCommandHelperTest, ClickAction_SuggestCommand_NotRunCommand)
+{
     // SuggestCommand 不应该被服务端执行（客户端功能）
     auto line = createTextWithClickEvent("Suggest", ClickAction::SuggestCommand, "/gamemode");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
@@ -145,7 +150,8 @@ TEST_F(SignCommandHelperTest, ClickAction_SuggestCommand_NotRunCommand) {
     EXPECT_NE(clickEvent->getAction(), ClickAction::RunCommand);
 }
 
-TEST_F(SignCommandHelperTest, ClickAction_CopyToClipboard_NotRunCommand) {
+TEST_F(SignCommandHelperTest, ClickAction_CopyToClipboard_NotRunCommand)
+{
     // CopyToClipboard 不应该被服务端执行（客户端功能）
     auto line = createTextWithClickEvent("Copy", ClickAction::CopyToClipboard, "copied text");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
@@ -157,7 +163,8 @@ TEST_F(SignCommandHelperTest, ClickAction_CopyToClipboard_NotRunCommand) {
     EXPECT_EQ(clickEvent->getAction(), ClickAction::CopyToClipboard);
 }
 
-TEST_F(SignCommandHelperTest, ClickAction_OpenFile_NotRunCommand) {
+TEST_F(SignCommandHelperTest, ClickAction_OpenFile_NotRunCommand)
+{
     // OpenFile 不应该被服务端执行（安全原因）
     auto line = createTextWithClickEvent("File", ClickAction::OpenFile, "/path/to/file");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
@@ -171,7 +178,8 @@ TEST_F(SignCommandHelperTest, ClickAction_OpenFile_NotRunCommand) {
 
 // ========== 子组件点击事件测试 ==========
 
-TEST_F(SignCommandHelperTest, NestedComponent_ClickEvent) {
+TEST_F(SignCommandHelperTest, NestedComponent_ClickEvent)
+{
     // 创建带子组件的文本，子组件有点击事件
     auto mainText = std::make_unique<StringTextComponent>("Main ");
     auto childText = std::make_unique<StringTextComponent>("Child");
@@ -196,7 +204,8 @@ TEST_F(SignCommandHelperTest, NestedComponent_ClickEvent) {
     EXPECT_EQ(clickEvent->getValue(), "/child");
 }
 
-TEST_F(SignCommandHelperTest, MixedClickActions_SameLine) {
+TEST_F(SignCommandHelperTest, MixedClickActions_SameLine)
+{
     // 主文本有一个命令，子组件有另一个命令
     auto mainText = createTextWithClickEvent("First ", ClickAction::RunCommand, "/first");
     auto childText = createTextWithClickEvent("Second", ClickAction::RunCommand, "/second");
@@ -222,7 +231,8 @@ TEST_F(SignCommandHelperTest, MixedClickActions_SameLine) {
 
 // ========== 命令格式测试 ==========
 
-TEST_F(SignCommandHelperTest, CommandWithoutSlash_AddedSlash) {
+TEST_F(SignCommandHelperTest, CommandWithoutSlash_AddedSlash)
+{
     // 命令没有斜杠前缀应该自动添加
     // 这在 SignCommandHelper::executeCommand 中处理
     auto line = createTextWithClickEvent("Test", ClickAction::RunCommand, "help");
@@ -236,7 +246,8 @@ TEST_F(SignCommandHelperTest, CommandWithoutSlash_AddedSlash) {
     EXPECT_EQ(clickEvent->getValue(), "help");
 }
 
-TEST_F(SignCommandHelperTest, CommandWithSlash_Kept) {
+TEST_F(SignCommandHelperTest, CommandWithSlash_Kept)
+{
     // 命令已经有斜杠前缀应该保持不变
     auto line = createTextWithClickEvent("Test", ClickAction::RunCommand, "/help");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
@@ -250,7 +261,8 @@ TEST_F(SignCommandHelperTest, CommandWithSlash_Kept) {
 
 // ========== 序列化和克隆测试 ==========
 
-TEST_F(SignCommandHelperTest, Serialization_WithClickEvent) {
+TEST_F(SignCommandHelperTest, Serialization_WithClickEvent)
+{
     signEntity_->setLine(0, createTextWithClickEvent("Test", ClickAction::RunCommand, "/test"));
 
     nlohmann::json data;
@@ -267,7 +279,8 @@ TEST_F(SignCommandHelperTest, Serialization_WithClickEvent) {
     EXPECT_EQ(clickEvent->getValue(), "/test");
 }
 
-TEST_F(SignCommandHelperTest, Clone_WithClickEvent) {
+TEST_F(SignCommandHelperTest, Clone_WithClickEvent)
+{
     signEntity_->setLine(0, createTextWithClickEvent("Clone", ClickAction::RunCommand, "/clone"));
 
     auto cloned = signEntity_->clone();
@@ -286,12 +299,14 @@ TEST_F(SignCommandHelperTest, Clone_WithClickEvent) {
 
 // ========== 边界情况测试 ==========
 
-TEST_F(SignCommandHelperTest, EmptyClickEvent_NotValid) {
+TEST_F(SignCommandHelperTest, EmptyClickEvent_NotValid)
+{
     ClickEvent emptyEvent;
     EXPECT_FALSE(emptyEvent.isValid());
 }
 
-TEST_F(SignCommandHelperTest, InvalidLine_ReturnsNullptr) {
+TEST_F(SignCommandHelperTest, InvalidLine_ReturnsNullptr)
+{
     const auto* line = signEntity_->getLine(-1);
     EXPECT_EQ(line, nullptr);
 
@@ -299,7 +314,8 @@ TEST_F(SignCommandHelperTest, InvalidLine_ReturnsNullptr) {
     EXPECT_EQ(line, nullptr);
 }
 
-TEST_F(SignCommandHelperTest, TextWithoutClickEvent_NoClickEvent) {
+TEST_F(SignCommandHelperTest, TextWithoutClickEvent_NoClickEvent)
+{
     auto line = std::make_unique<StringTextComponent>("No click event");
     ASSERT_TRUE(signEntity_->setLine(0, std::move(line)));
 
@@ -309,7 +325,8 @@ TEST_F(SignCommandHelperTest, TextWithoutClickEvent_NoClickEvent) {
     EXPECT_EQ(clickEvent, nullptr);
 }
 
-TEST_F(SignCommandHelperTest, ClearLines_ClearsAllText) {
+TEST_F(SignCommandHelperTest, ClearLines_ClearsAllText)
+{
     signEntity_->setLine(0, createTextWithClickEvent("Test", ClickAction::RunCommand, "/test"));
     signEntity_->setLine(1, createTextWithClickEvent("Test2", ClickAction::RunCommand, "/test2"));
 

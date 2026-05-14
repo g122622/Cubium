@@ -1,6 +1,6 @@
 #include "GuiTextureAtlas.hpp"
-#include "GuiRenderer.hpp"
 #include "../util/VulkanUtils.hpp"
+#include "GuiRenderer.hpp"
 #include "common/core/Result.hpp"
 #include <cstring>
 #include <vector>
@@ -12,18 +12,18 @@ namespace mc::client::renderer::trident::gui {
 // ============================================================================
 
 namespace GuiColors {
-    // 槽位颜色
-    constexpr u32 SLOT_BG = 0xFF8B8B8B;       // 槽位背景灰色
-    constexpr u32 SLOT_BORDER = 0xFF373737;   // 槽位边框深灰
-    constexpr u32 SLOT_INNER = 0xFFC6C6C6;    // 槽位内部浅灰
+// 槽位颜色
+constexpr u32 SLOT_BG = 0xFF8B8B8B;     // 槽位背景灰色
+constexpr u32 SLOT_BORDER = 0xFF373737; // 槽位边框深灰
+constexpr u32 SLOT_INNER = 0xFFC6C6C6;  // 槽位内部浅灰
 
-    // 容器背景颜色
-    constexpr u32 CONTAINER_BG = 0xFFC6C6C6;  // 容器背景
-    constexpr u32 CONTAINER_BORDER = 0xFF555555; // 边框
+// 容器背景颜色
+constexpr u32 CONTAINER_BG = 0xFFC6C6C6;     // 容器背景
+constexpr u32 CONTAINER_BORDER = 0xFF555555; // 边框
 
-    // 默认颜色
-    constexpr u32 DEFAULT_BG = 0xFF404040;    // 默认背景
-}
+// 默认颜色
+constexpr u32 DEFAULT_BG = 0xFF404040; // 默认背景
+} // namespace GuiColors
 
 // ============================================================================
 // 构造函数 / 析构函数
@@ -31,7 +31,8 @@ namespace GuiColors {
 
 GuiTextureAtlas::GuiTextureAtlas() = default;
 
-GuiTextureAtlas::~GuiTextureAtlas() {
+GuiTextureAtlas::~GuiTextureAtlas()
+{
     destroy();
 }
 
@@ -39,10 +40,9 @@ GuiTextureAtlas::~GuiTextureAtlas() {
 // 初始化
 // ============================================================================
 
-Result<void> GuiTextureAtlas::initialize(VkDevice device,
-                                          VkPhysicalDevice physicalDevice,
-                                          VkCommandPool commandPool,
-                                          VkQueue graphicsQueue) {
+Result<void> GuiTextureAtlas::initialize(
+    VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
+{
     if (m_initialized) {
         return {};
     }
@@ -72,7 +72,8 @@ Result<void> GuiTextureAtlas::initialize(VkDevice device,
     return {};
 }
 
-void GuiTextureAtlas::destroy() {
+void GuiTextureAtlas::destroy()
+{
     if (!m_initialized) {
         return;
     }
@@ -109,7 +110,8 @@ void GuiTextureAtlas::destroy() {
 // 默认纹理创建
 // ============================================================================
 
-Result<void> GuiTextureAtlas::createDefaultTextures() {
+Result<void> GuiTextureAtlas::createDefaultTextures()
+{
     // 创建一个包含默认GUI纹理的小图集
     // 图集布局：
     // - (0,0) 到 (18,18): 槽位背景
@@ -178,7 +180,8 @@ Result<void> GuiTextureAtlas::createDefaultTextures() {
     return uploadTextureData(atlasData);
 }
 
-void GuiTextureAtlas::createSlotBackground(u8* data, i32 width, i32 height) {
+void GuiTextureAtlas::createSlotBackground(u8* data, i32 width, i32 height)
+{
     // 槽位背景尺寸：18x18像素
     // 边框：1像素深灰，内部：浅灰
 
@@ -186,15 +189,14 @@ void GuiTextureAtlas::createSlotBackground(u8* data, i32 width, i32 height) {
         for (i32 x = 0; x < DEFAULT_SLOT_SIZE && x < width; ++x) {
             i32 idx = (y * width + x) * 4;
 
-            bool isBorder = (x == 0 || x == DEFAULT_SLOT_SIZE - 1 ||
-                            y == 0 || y == DEFAULT_SLOT_SIZE - 1);
+            bool isBorder = (x == 0 || x == DEFAULT_SLOT_SIZE - 1 || y == 0 || y == DEFAULT_SLOT_SIZE - 1);
 
             if (isBorder) {
                 // 边框颜色
                 data[idx + 0] = (GuiColors::SLOT_BORDER >> 0) & 0xFF;  // R
                 data[idx + 1] = (GuiColors::SLOT_BORDER >> 8) & 0xFF;  // G
                 data[idx + 2] = (GuiColors::SLOT_BORDER >> 16) & 0xFF; // B
-                data[idx + 3] = 0xFF; // A
+                data[idx + 3] = 0xFF;                                  // A
             } else {
                 // 内部颜色
                 data[idx + 0] = (GuiColors::SLOT_BG >> 0) & 0xFF;
@@ -206,7 +208,8 @@ void GuiTextureAtlas::createSlotBackground(u8* data, i32 width, i32 height) {
     }
 }
 
-void GuiTextureAtlas::createContainerBackground(u8* data, i32 width, i32 height) {
+void GuiTextureAtlas::createContainerBackground(u8* data, i32 width, i32 height)
+{
     // 容器背景尺寸：176x166像素
     // 起始位置：(20, 0)
 
@@ -217,8 +220,7 @@ void GuiTextureAtlas::createContainerBackground(u8* data, i32 width, i32 height)
         for (i32 x = 0; x < DEFAULT_CONTAINER_WIDTH && (OFFSET_X + x) < width; ++x) {
             i32 idx = ((OFFSET_Y + y) * width + (OFFSET_X + x)) * 4;
 
-            bool isBorder = (x == 0 || x == DEFAULT_CONTAINER_WIDTH - 1 ||
-                            y == 0 || y == DEFAULT_CONTAINER_HEIGHT - 1);
+            bool isBorder = (x == 0 || x == DEFAULT_CONTAINER_WIDTH - 1 || y == 0 || y == DEFAULT_CONTAINER_HEIGHT - 1);
 
             if (isBorder) {
                 // 边框颜色
@@ -241,14 +243,16 @@ void GuiTextureAtlas::createContainerBackground(u8* data, i32 width, i32 height)
 // 纹理加载
 // ============================================================================
 
-Result<void> GuiTextureAtlas::loadGuiTexture(const ResourceLocation& location) {
+Result<void> GuiTextureAtlas::loadGuiTexture(const ResourceLocation& location)
+{
     // TODO: 从资源包加载GUI纹理
     // 暂时使用默认纹理
     (void)location;
     return {};
 }
 
-Result<void> GuiTextureAtlas::loadDefaultTextures() {
+Result<void> GuiTextureAtlas::loadDefaultTextures()
+{
     // 默认纹理已在 createDefaultTextures 中创建
     return {};
 }
@@ -257,8 +261,8 @@ Result<void> GuiTextureAtlas::loadDefaultTextures() {
 // 渲染
 // ============================================================================
 
-void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const std::string& textureId,
-                                   f64 x, f64 y, f64 width, f64 height) {
+void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const std::string& textureId, f64 x, f64 y, f64 width, f64 height)
+{
     const GuiTextureRegion* region = getRegion(textureId);
     if (region == nullptr) {
         // 使用默认颜色绘制
@@ -272,11 +276,17 @@ void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const std::string& textureId
     gui.drawRect(x, y, width, height, GuiColors::CONTAINER_BORDER);
 }
 
-void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui, const std::string& textureId,
-                                          f64 x, f64 y,
-                                          i32 regionX, i32 regionY,
-                                          i32 regionWidth, i32 regionHeight,
-                                          f64 width, f64 height) {
+void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui,
+    const std::string& textureId,
+    f64 x,
+    f64 y,
+    i32 regionX,
+    i32 regionY,
+    i32 regionWidth,
+    i32 regionHeight,
+    f64 width,
+    f64 height)
+{
     (void)regionX;
     (void)regionY;
     (void)regionWidth;
@@ -296,11 +306,13 @@ void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui, const std::string& tex
 // 查询
 // ============================================================================
 
-bool GuiTextureAtlas::hasTexture(const std::string& textureId) const {
+bool GuiTextureAtlas::hasTexture(const std::string& textureId) const
+{
     return m_regions.find(textureId) != m_regions.end();
 }
 
-const GuiTextureRegion* GuiTextureAtlas::getRegion(const std::string& textureId) const {
+const GuiTextureRegion* GuiTextureAtlas::getRegion(const std::string& textureId) const
+{
     auto it = m_regions.find(textureId);
     if (it != m_regions.end()) {
         return &it->second;
@@ -312,27 +324,30 @@ const GuiTextureRegion* GuiTextureAtlas::getRegion(const std::string& textureId)
 // 精灵管理
 // ============================================================================
 
-void GuiTextureAtlas::registerSprite(const GuiSprite& sprite) {
+void GuiTextureAtlas::registerSprite(const GuiSprite& sprite)
+{
     if (sprite.id.empty()) {
         return;
     }
     m_sprites[sprite.id] = sprite;
 }
 
-void GuiTextureAtlas::registerSprite(const std::string& id, i32 x, i32 y,
-                                      i32 width, i32 height,
-                                      i32 atlasWidth, i32 atlasHeight) {
+void GuiTextureAtlas::registerSprite(
+    const std::string& id, i32 x, i32 y, i32 width, i32 height, i32 atlasWidth, i32 atlasHeight)
+{
     GuiSprite sprite(id, x, y, width, height, atlasWidth, atlasHeight);
     m_sprites[id] = sprite;
 }
 
-void GuiTextureAtlas::registerSprites(const std::vector<GuiSprite>& sprites) {
+void GuiTextureAtlas::registerSprites(const std::vector<GuiSprite>& sprites)
+{
     for (const auto& sprite : sprites) {
         registerSprite(sprite);
     }
 }
 
-const GuiSprite* GuiTextureAtlas::getSprite(const std::string& id) const {
+const GuiSprite* GuiTextureAtlas::getSprite(const std::string& id) const
+{
     auto it = m_sprites.find(id);
     if (it != m_sprites.end()) {
         return &it->second;
@@ -340,15 +355,18 @@ const GuiSprite* GuiTextureAtlas::getSprite(const std::string& id) const {
     return nullptr;
 }
 
-bool GuiTextureAtlas::hasSprite(const std::string& id) const {
+bool GuiTextureAtlas::hasSprite(const std::string& id) const
+{
     return m_sprites.find(id) != m_sprites.end();
 }
 
-void GuiTextureAtlas::clearSprites() {
+void GuiTextureAtlas::clearSprites()
+{
     m_sprites.clear();
 }
 
-void GuiTextureAtlas::setAtlasSize(i32 width, i32 height) {
+void GuiTextureAtlas::setAtlasSize(i32 width, i32 height)
+{
     m_atlasWidth = width;
     m_atlasHeight = height;
 }
@@ -357,7 +375,8 @@ void GuiTextureAtlas::setAtlasSize(i32 width, i32 height) {
 // Vulkan 辅助方法
 // ============================================================================
 
-Result<void> GuiTextureAtlas::createImage(u32 width, u32 height) {
+Result<void> GuiTextureAtlas::createImage(u32 width, u32 height)
+{
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -384,8 +403,7 @@ Result<void> GuiTextureAtlas::createImage(u32 width, u32 height) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits,
-                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (memTypeResult.failed()) {
         vkDestroyImage(m_device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -403,7 +421,8 @@ Result<void> GuiTextureAtlas::createImage(u32 width, u32 height) {
     return {};
 }
 
-Result<void> GuiTextureAtlas::createImageView() {
+Result<void> GuiTextureAtlas::createImageView()
+{
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = m_image;
@@ -422,7 +441,8 @@ Result<void> GuiTextureAtlas::createImageView() {
     return {};
 }
 
-Result<void> GuiTextureAtlas::createSampler() {
+Result<void> GuiTextureAtlas::createSampler()
+{
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_NEAREST;
@@ -448,7 +468,8 @@ Result<void> GuiTextureAtlas::createSampler() {
     return {};
 }
 
-Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data) {
+Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data)
+{
     VkDeviceSize imageSize = data.size();
 
     // 创建暂存缓冲区
@@ -471,9 +492,8 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits,
-                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto memTypeResult = findMemoryType(
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
         return memTypeResult.error();
@@ -516,8 +536,8 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(
+        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     // 复制缓冲区到图像
     VkBufferImageCopy region{};
@@ -539,8 +559,16 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &barrier);
 
     endSingleTimeCommands(cmd);
 
@@ -551,15 +579,18 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data) {
     return {};
 }
 
-Result<u32> GuiTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) {
+Result<u32> GuiTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+{
     return mc::client::renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-VkCommandBuffer GuiTextureAtlas::beginSingleTimeCommands() {
+VkCommandBuffer GuiTextureAtlas::beginSingleTimeCommands()
+{
     return mc::client::renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void GuiTextureAtlas::endSingleTimeCommands(VkCommandBuffer cmd) {
+void GuiTextureAtlas::endSingleTimeCommands(VkCommandBuffer cmd)
+{
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     mc::client::renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);
 }

@@ -1,10 +1,10 @@
 #include "CampfireBlock.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../WaterLoggableHelpers.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -17,27 +17,28 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
 {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::LIT())
-        .add(BlockStateProperties::SIGNAL_FIRE())
-        .add(BlockStateProperties::WATERLOGGED())
-        .add(BlockStateProperties::AGE_0_4())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::LIT())
+                         .add(BlockStateProperties::SIGNAL_FIRE())
+                         .add(BlockStateProperties::WATERLOGGED())
+                         .add(BlockStateProperties::AGE_0_4())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::LIT(), true)
-        .with(BlockStateProperties::SIGNAL_FIRE(), false)
-        .with(BlockStateProperties::WATERLOGGED(), false)
-        .with(BlockStateProperties::AGE_0_4(), 0));
+            .with(BlockStateProperties::LIT(), true)
+            .with(BlockStateProperties::SIGNAL_FIRE(), false)
+            .with(BlockStateProperties::WATERLOGGED(), false)
+            .with(BlockStateProperties::AGE_0_4(), 0));
 
     // 营火形状（略小于完整方块）
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 7.0f, 16.0f);
 }
 
-BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
@@ -54,13 +55,13 @@ BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-BlockState CampfireBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState CampfireBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
@@ -74,7 +75,8 @@ BlockState CampfireBlock::updatePostPlacement(
     return state;
 }
 
-void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     // 如果被水淹没，熄灭
     if (state.get(BlockStateProperties::WATERLOGGED())) {
@@ -90,15 +92,13 @@ void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     // 需要方块实体支持
 }
 
-const CollisionShape& CampfireBlock::getShape(const BlockState& state) const {
+const CollisionShape& CampfireBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-u8 CampfireBlock::getLightLevel(
-    const BlockState& state,
-    IWorld* world,
-    const BlockPos* pos) const
+u8 CampfireBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -110,7 +110,8 @@ u8 CampfireBlock::getLightLevel(
     return 0;
 }
 
-void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state) {
+void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state)
+{
     if (!isLit(state) && !state.get(BlockStateProperties::WATERLOGGED())) {
         BlockState newState = state.with(BlockStateProperties::LIT(), true);
         world.setBlockState(pos, &newState, 3);
@@ -121,11 +122,10 @@ void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state)
     }
 }
 
-void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& state) {
+void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& state)
+{
     if (isLit(state)) {
-        BlockState newState = state
-            .with(BlockStateProperties::LIT(), false)
-            .with(BlockStateProperties::AGE_0_4(), 0);
+        BlockState newState = state.with(BlockStateProperties::LIT(), false).with(BlockStateProperties::AGE_0_4(), 0);
         world.setBlockState(pos, &newState, 3);
 
         // MC 1.16.5: 熄灭时播放音效
@@ -133,19 +133,15 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
         // 注: 原版使用 ENTITY_GENERIC_EXTINGUISH_FIRE 音效
         if (!world.isClientSide()) {
             world.playSound(
-                SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE,
-                sound::SoundCategory::Blocks,
-                pos.center(),
-                1.0f,
-                1.0f
-            );
+                SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
         }
     }
 }
 
 // ========== IWaterLoggable 接口实现 ==========
 
-const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) const {
+const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) const
+{
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
@@ -153,9 +149,8 @@ const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) c
 // ========== SoulCampfireBlock 实现 ==========
 
 SoulCampfireBlock::SoulCampfireBlock(BlockProperties properties)
-    : CampfireBlock(std::move(properties), 10)  // 灵魂营火光照等级为10
-{
-}
+    : CampfireBlock(std::move(properties), 10) // 灵魂营火光照等级为10
+{}
 
 } // namespace blocks
 } // namespace mc

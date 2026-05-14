@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include <atomic>
 #include <chrono>
 #include <mutex>
 #include <vector>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::util;
@@ -22,7 +22,8 @@ public:
         , m_executed(false)
     {}
 
-    bool execute(const std::atomic<bool>& cancelSignal) override {
+    bool execute(const std::atomic<bool>& cancelSignal) override
+    {
         if (cancelSignal.load(std::memory_order_acquire)) {
             return false;
         }
@@ -31,9 +32,7 @@ public:
     }
 
     TaskType type() const override { return TaskType::Custom; }
-    std::string description() const override {
-        return "SimpleTestTask(" + std::to_string(m_value) + ")";
-    }
+    std::string description() const override { return "SimpleTestTask(" + std::to_string(m_value) + ")"; }
 
     [[nodiscard]] bool wasExecuted() const { return m_executed; }
     [[nodiscard]] int value() const { return m_value; }
@@ -54,7 +53,8 @@ public:
         , m_mutex(mutex)
     {}
 
-    bool execute(const std::atomic<bool>& cancelSignal) override {
+    bool execute(const std::atomic<bool>& cancelSignal) override
+    {
         if (cancelSignal.load(std::memory_order_acquire)) {
             return false;
         }
@@ -65,9 +65,7 @@ public:
     }
 
     TaskType type() const override { return TaskType::Custom; }
-    std::string description() const override {
-        return "DelayedTask(" + std::to_string(m_value) + ")";
-    }
+    std::string description() const override { return "DelayedTask(" + std::to_string(m_value) + ")"; }
 
 private:
     int m_value;
@@ -80,7 +78,8 @@ private:
  */
 class ThrowingTask : public ITask {
 public:
-    bool execute(const std::atomic<bool>& cancelSignal) override {
+    bool execute(const std::atomic<bool>& cancelSignal) override
+    {
         (void)cancelSignal;
         throw std::runtime_error("Test exception");
     }
@@ -103,19 +102,22 @@ protected:
 // 构造和生命周期测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, DefaultConstructor) {
+TEST_F(ServerWorkerPoolTest, DefaultConstructor)
+{
     ServerWorkerPool pool;
     EXPECT_FALSE(pool.isRunning());
-    EXPECT_GT(pool.threadCount(), 0);  // 自动检测线程数
+    EXPECT_GT(pool.threadCount(), 0); // 自动检测线程数
 }
 
-TEST_F(ServerWorkerPoolTest, CustomThreadCount) {
+TEST_F(ServerWorkerPoolTest, CustomThreadCount)
+{
     ServerWorkerPool pool(4, "TestWorker");
     EXPECT_FALSE(pool.isRunning());
     EXPECT_EQ(pool.threadCount(), 4);
 }
 
-TEST_F(ServerWorkerPoolTest, StartStop) {
+TEST_F(ServerWorkerPoolTest, StartStop)
+{
     ServerWorkerPool pool(2, "TestWorker");
 
     EXPECT_FALSE(pool.isRunning());
@@ -127,7 +129,8 @@ TEST_F(ServerWorkerPoolTest, StartStop) {
     EXPECT_FALSE(pool.isRunning());
 }
 
-TEST_F(ServerWorkerPoolTest, DoubleStart) {
+TEST_F(ServerWorkerPoolTest, DoubleStart)
+{
     ServerWorkerPool pool(2, "TestWorker");
 
     pool.start();
@@ -140,7 +143,8 @@ TEST_F(ServerWorkerPoolTest, DoubleStart) {
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, DoubleShutdown) {
+TEST_F(ServerWorkerPoolTest, DoubleShutdown)
+{
     ServerWorkerPool pool(2, "TestWorker");
 
     pool.start();
@@ -156,7 +160,8 @@ TEST_F(ServerWorkerPoolTest, DoubleShutdown) {
 // 任务提交测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, SubmitSimpleTask) {
+TEST_F(ServerWorkerPoolTest, SubmitSimpleTask)
+{
     ServerWorkerPool pool(2, "TestWorker");
     pool.start();
 
@@ -164,7 +169,8 @@ TEST_F(ServerWorkerPoolTest, SubmitSimpleTask) {
     std::atomic<bool> success{false};
 
     auto task = std::make_unique<SimpleTestTask>(42);
-    pool.submit(std::move(task),
+    pool.submit(
+        std::move(task),
         [&](bool s, ITask* task) {
             completed = true;
             success = s;
@@ -182,7 +188,8 @@ TEST_F(ServerWorkerPoolTest, SubmitSimpleTask) {
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, SubmitMultipleTasks) {
+TEST_F(ServerWorkerPoolTest, SubmitMultipleTasks)
+{
     ServerWorkerPool pool(4, "TestWorker");
     pool.start();
 
@@ -191,11 +198,7 @@ TEST_F(ServerWorkerPoolTest, SubmitMultipleTasks) {
 
     for (int i = 0; i < numTasks; ++i) {
         auto task = std::make_unique<SimpleTestTask>(i);
-        pool.submit(std::move(task),
-            [&completedCount](bool, ITask*) {
-                completedCount++;
-            },
-            TaskPriority::Normal);
+        pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; }, TaskPriority::Normal);
     }
 
     // 等待所有完成
@@ -209,7 +212,8 @@ TEST_F(ServerWorkerPoolTest, SubmitMultipleTasks) {
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, SubmitTaskWhenNotRunning) {
+TEST_F(ServerWorkerPoolTest, SubmitTaskWhenNotRunning)
+{
     ServerWorkerPool pool(2, "TestWorker");
     // 不启动
 
@@ -217,7 +221,8 @@ TEST_F(ServerWorkerPoolTest, SubmitTaskWhenNotRunning) {
     std::atomic<bool> success{true};
 
     auto task = std::make_unique<SimpleTestTask>(42);
-    pool.submit(std::move(task),
+    pool.submit(
+        std::move(task),
         [&](bool s, ITask*) {
             completed = true;
             success = s;
@@ -234,7 +239,8 @@ TEST_F(ServerWorkerPoolTest, SubmitTaskWhenNotRunning) {
     pool.start();
 
     auto task2 = std::make_unique<SimpleTestTask>(43);
-    pool.submit(std::move(task2),
+    pool.submit(
+        std::move(task2),
         [&](bool s, ITask*) {
             completed = true;
             success = s;
@@ -255,8 +261,9 @@ TEST_F(ServerWorkerPoolTest, SubmitTaskWhenNotRunning) {
 // 优先级测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, PriorityOrdering) {
-    ServerWorkerPool pool(1, "TestWorker");  // 单线程确保顺序执行
+TEST_F(ServerWorkerPoolTest, PriorityOrdering)
+{
+    ServerWorkerPool pool(1, "TestWorker"); // 单线程确保顺序执行
     pool.start();
 
     std::vector<int> executionOrder;
@@ -267,9 +274,7 @@ TEST_F(ServerWorkerPoolTest, PriorityOrdering) {
     auto firstTask = std::make_unique<DelayedTask>(0, executionOrder, orderMutex);
 
     // 提交任务，优先级不同（数值越小优先级越高）
-    pool.submit(std::move(firstTask),
-        [&](bool, ITask*) { firstStarted = true; },
-        TaskPriority::Normal);
+    pool.submit(std::move(firstTask), [&](bool, ITask*) { firstStarted = true; }, TaskPriority::Normal);
 
     // 等待第一个任务开始
     for (int i = 0; i < 100 && !firstStarted; ++i) {
@@ -277,23 +282,22 @@ TEST_F(ServerWorkerPoolTest, PriorityOrdering) {
     }
 
     // 提交三个任务，优先级不同
-    pool.submit(std::make_unique<DelayedTask>(3, executionOrder, orderMutex),
-        nullptr, TaskPriority::Low);        // 低优先级
-    pool.submit(std::make_unique<DelayedTask>(1, executionOrder, orderMutex),
-        nullptr, TaskPriority::High);       // 高优先级
-    pool.submit(std::make_unique<DelayedTask>(2, executionOrder, orderMutex),
-        nullptr, TaskPriority::Normal);     // 普通优先级
+    pool.submit(std::make_unique<DelayedTask>(3, executionOrder, orderMutex), nullptr, TaskPriority::Low);  // 低优先级
+    pool.submit(std::make_unique<DelayedTask>(1, executionOrder, orderMutex), nullptr, TaskPriority::High); // 高优先级
+    pool.submit(
+        std::make_unique<DelayedTask>(2, executionOrder, orderMutex), nullptr, TaskPriority::Normal); // 普通优先级
 
     // 等待完成
     pool.waitForCompletion();
 
     // 第一个任务（值=0）先执行，然后是高优先级任务（值=1）
     ASSERT_GE(executionOrder.size(), 4);
-    EXPECT_EQ(executionOrder[0], 0);  // 第一个任务
-    EXPECT_EQ(executionOrder[1], 1);  // 高优先级第二个执行
+    EXPECT_EQ(executionOrder[0], 0); // 第一个任务
+    EXPECT_EQ(executionOrder[1], 1); // 高优先级第二个执行
 }
 
-TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest) {
+TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest)
+{
     ServerWorkerPool pool(1, "TestWorker");
     pool.start();
 
@@ -301,7 +305,8 @@ TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest) {
     std::mutex orderMutex;
 
     std::atomic<bool> firstStarted{false};
-    pool.submit(std::make_unique<DelayedTask>(0, executionOrder, orderMutex),
+    pool.submit(
+        std::make_unique<DelayedTask>(0, executionOrder, orderMutex),
         [&](bool, ITask*) { firstStarted = true; },
         TaskPriority::Normal);
 
@@ -311,24 +316,23 @@ TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest) {
     }
 
     // Critical 应该比 High 更优先
-    pool.submit(std::make_unique<DelayedTask>(2, executionOrder, orderMutex),
-        nullptr, TaskPriority::High);
-    pool.submit(std::make_unique<DelayedTask>(1, executionOrder, orderMutex),
-        nullptr, TaskPriority::Critical);
+    pool.submit(std::make_unique<DelayedTask>(2, executionOrder, orderMutex), nullptr, TaskPriority::High);
+    pool.submit(std::make_unique<DelayedTask>(1, executionOrder, orderMutex), nullptr, TaskPriority::Critical);
 
     pool.waitForCompletion();
 
     // 第一个任务（值=0）先执行，然后是 Critical 任务（值=1）
     ASSERT_GE(executionOrder.size(), 3);
-    EXPECT_EQ(executionOrder[0], 0);  // 第一个任务
-    EXPECT_EQ(executionOrder[1], 1);  // Critical 第二个执行
+    EXPECT_EQ(executionOrder[0], 0); // 第一个任务
+    EXPECT_EQ(executionOrder[1], 1); // Critical 第二个执行
 }
 
 // ============================================================================
 // 取消测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, CancelTokenSkipsExecution) {
+TEST_F(ServerWorkerPoolTest, CancelTokenSkipsExecution)
+{
     ServerWorkerPool pool(1, "TestWorker");
     pool.start();
 
@@ -337,7 +341,8 @@ TEST_F(ServerWorkerPoolTest, CancelTokenSkipsExecution) {
     std::atomic<bool> success{true};
 
     auto task = std::make_unique<SimpleTestTask>(42);
-    pool.submit(std::move(task),
+    pool.submit(
+        std::move(task),
         [&](bool s, ITask*) {
             completed = true;
             success = s;
@@ -350,19 +355,18 @@ TEST_F(ServerWorkerPoolTest, CancelTokenSkipsExecution) {
     }
 
     EXPECT_TRUE(completed);
-    EXPECT_FALSE(success);  // 应该因取消而失败
+    EXPECT_FALSE(success); // 应该因取消而失败
 
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, PruneCancelledTasks) {
+TEST_F(ServerWorkerPoolTest, PruneCancelledTasks)
+{
     ServerWorkerPool pool(1, "TestWorker");
     pool.start();
 
     std::atomic<bool> firstStarted{false};
-    pool.submit(std::make_unique<SimpleTestTask>(0),
-        [&](bool, ITask*) { firstStarted = true; },
-        TaskPriority::Normal);
+    pool.submit(std::make_unique<SimpleTestTask>(0), [&](bool, ITask*) { firstStarted = true; }, TaskPriority::Normal);
 
     // 等待第一个任务开始
     for (int i = 0; i < 100 && !firstStarted; ++i) {
@@ -370,8 +374,7 @@ TEST_F(ServerWorkerPoolTest, PruneCancelledTasks) {
     }
 
     auto cancelToken = std::make_shared<std::atomic<bool>>(true);
-    pool.submit(std::make_unique<SimpleTestTask>(1),
-        nullptr, TaskPriority::Low, cancelToken);
+    pool.submit(std::make_unique<SimpleTestTask>(1), nullptr, TaskPriority::Low, cancelToken);
 
     // 裁剪已取消的任务
     pool.pruneCancelledTasks();
@@ -386,7 +389,8 @@ TEST_F(ServerWorkerPoolTest, PruneCancelledTasks) {
 // 异常处理测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, TaskException) {
+TEST_F(ServerWorkerPoolTest, TaskException)
+{
     ServerWorkerPool pool(2, "TestWorker");
     pool.start();
 
@@ -394,7 +398,8 @@ TEST_F(ServerWorkerPoolTest, TaskException) {
     std::atomic<bool> success{true};
 
     auto task = std::make_unique<ThrowingTask>();
-    pool.submit(std::move(task),
+    pool.submit(
+        std::move(task),
         [&](bool s, ITask*) {
             completed = true;
             success = s;
@@ -406,7 +411,7 @@ TEST_F(ServerWorkerPoolTest, TaskException) {
     }
 
     EXPECT_TRUE(completed);
-    EXPECT_FALSE(success);  // 异常导致失败
+    EXPECT_FALSE(success); // 异常导致失败
 
     pool.shutdown();
 }
@@ -415,12 +420,14 @@ TEST_F(ServerWorkerPoolTest, TaskException) {
 // 统计测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, PendingTaskCount) {
-    ServerWorkerPool pool(1, "TestWorker");  // 单线程
+TEST_F(ServerWorkerPoolTest, PendingTaskCount)
+{
+    ServerWorkerPool pool(1, "TestWorker"); // 单线程
     pool.start();
 
     std::atomic<bool> firstStarted{false};
-    pool.submit(std::make_unique<SimpleTestTask>(0),
+    pool.submit(
+        std::make_unique<SimpleTestTask>(0),
         [&](bool, ITask*) {
             firstStarted = true;
             // 保持第一个任务运行一段时间
@@ -435,8 +442,7 @@ TEST_F(ServerWorkerPoolTest, PendingTaskCount) {
 
     // 提交更多任务
     for (int i = 1; i < 5; ++i) {
-        pool.submit(std::make_unique<SimpleTestTask>(i),
-            nullptr, TaskPriority::Normal);
+        pool.submit(std::make_unique<SimpleTestTask>(i), nullptr, TaskPriority::Normal);
     }
 
     // 应该有待处理任务（第一个任务正在执行，其余在队列中）
@@ -446,7 +452,8 @@ TEST_F(ServerWorkerPoolTest, PendingTaskCount) {
     EXPECT_EQ(pool.pendingTaskCount(), 0);
 }
 
-TEST_F(ServerWorkerPoolTest, RunningTaskCount) {
+TEST_F(ServerWorkerPoolTest, RunningTaskCount)
+{
     ServerWorkerPool pool(4, "TestWorker");
     pool.start();
 
@@ -456,7 +463,8 @@ TEST_F(ServerWorkerPoolTest, RunningTaskCount) {
 
     for (int i = 0; i < 8; ++i) {
         auto task = std::make_unique<SimpleTestTask>(i);
-        pool.submit(std::move(task),
+        pool.submit(
+            std::move(task),
             [&](bool, ITask*) {
                 runningCount++;
                 {
@@ -482,7 +490,8 @@ TEST_F(ServerWorkerPoolTest, RunningTaskCount) {
 // 等待完成测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, WaitForCompletion) {
+TEST_F(ServerWorkerPoolTest, WaitForCompletion)
+{
     ServerWorkerPool pool(4, "TestWorker");
     pool.start();
 
@@ -491,11 +500,7 @@ TEST_F(ServerWorkerPoolTest, WaitForCompletion) {
 
     for (int i = 0; i < numTasks; ++i) {
         auto task = std::make_unique<SimpleTestTask>(i);
-        pool.submit(std::move(task),
-            [&completedCount](bool, ITask*) {
-                completedCount++;
-            },
-            TaskPriority::Normal);
+        pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; }, TaskPriority::Normal);
     }
 
     pool.waitForCompletion();
@@ -511,7 +516,8 @@ TEST_F(ServerWorkerPoolTest, WaitForCompletion) {
 // 线程安全测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, ConcurrentSubmissions) {
+TEST_F(ServerWorkerPoolTest, ConcurrentSubmissions)
+{
     ServerWorkerPool pool(4, "TestWorker");
     pool.start();
 
@@ -523,10 +529,7 @@ TEST_F(ServerWorkerPoolTest, ConcurrentSubmissions) {
         threads.emplace_back([&pool, &completedCount, t]() {
             for (int i = 0; i < 10; ++i) {
                 auto task = std::make_unique<SimpleTestTask>(t * 10 + i);
-                pool.submit(std::move(task),
-                    [&completedCount](bool, ITask*) {
-                        completedCount++;
-                    });
+                pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; });
             }
         });
     }
@@ -541,7 +544,8 @@ TEST_F(ServerWorkerPoolTest, ConcurrentSubmissions) {
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, ShutdownWhileTasksRunning) {
+TEST_F(ServerWorkerPoolTest, ShutdownWhileTasksRunning)
+{
     ServerWorkerPool pool(4, "TestWorker");
     pool.start();
 
@@ -550,10 +554,7 @@ TEST_F(ServerWorkerPoolTest, ShutdownWhileTasksRunning) {
     // 提交一些任务
     for (int i = 0; i < 10; ++i) {
         auto task = std::make_unique<SimpleTestTask>(i);
-        pool.submit(std::move(task),
-            [&completedCount](bool, ITask*) {
-                completedCount++;
-            });
+        pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; });
     }
 
     // 立即关闭（不等待完成）
@@ -567,7 +568,8 @@ TEST_F(ServerWorkerPoolTest, ShutdownWhileTasksRunning) {
 // 任务类型和描述测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, TaskTypeAndDescription) {
+TEST_F(ServerWorkerPoolTest, TaskTypeAndDescription)
+{
     ServerWorkerPool pool(2, "TestWorker");
     pool.start();
 
@@ -576,15 +578,14 @@ TEST_F(ServerWorkerPoolTest, TaskTypeAndDescription) {
     std::string capturedDescription;
 
     auto task = std::make_unique<SimpleTestTask>(42);
-    pool.submit(std::move(task),
-        [&](bool, ITask* t) {
-            EXPECT_NE(t, nullptr);
-            if (t) {
-                capturedType = t->type();
-                capturedDescription = t->description();
-            }
-            completed = true;
-        });
+    pool.submit(std::move(task), [&](bool, ITask* t) {
+        EXPECT_NE(t, nullptr);
+        if (t) {
+            capturedType = t->type();
+            capturedDescription = t->description();
+        }
+        completed = true;
+    });
 
     for (int i = 0; i < 100 && !completed; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

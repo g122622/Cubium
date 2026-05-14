@@ -1,56 +1,45 @@
 #include "TellRawCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "server/core/PlayerManager.hpp"
 #include <sstream>
 #include <nlohmann/json.hpp>
 
 namespace mc {
 namespace command {
 
-void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto tellrawNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tellraw");
-    tellrawNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        tellrawNode,
+    tellrawNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(tellrawNode,
         support::makeMetadata(
-            "Sends a raw JSON message to a player.",
-            "/tellraw <player> <json message>",
-            2,
-            {},
-            true));
+            "Sends a raw JSON message to a player.", "/tellraw <player> <json message>", 2, {}, true));
 
     // /tellraw <player> <json>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
+        "player", EntityArgumentType::player());
 
     auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "json",
-        StringArgumentType::greedyString()
-    );
-    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return sendRawMessage(ctx);
-    });
+        "json", StringArgumentType::greedyString());
+    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return sendRawMessage(ctx); });
 
     playerNode->addChild(jsonNode);
     tellrawNode->addChild(playerNode);
     dispatcher.registerCommand(tellrawNode);
 }
 
-i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context) {
+i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -73,13 +62,15 @@ i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context)
         // 成功解析 JSON，直接使用原始 JSON 字符串发送
         // 客户端会自行解析 JSON 格式的聊天消息
         messageToSend = jsonMessage;
-    } catch (const nlohmann::json::exception&) {
+    }
+    catch (const nlohmann::json::exception&) {
         // JSON 解析失败，将其作为纯文本发送
         // 先尝试作为 JSON 字符串解析（带引号的字符串）
         try {
             nlohmann::json json = nlohmann::json::parse("\"" + jsonMessage + "\"");
-            messageToSend = jsonMessage;  // 纯文本，直接发送
-        } catch (...) {
+            messageToSend = jsonMessage; // 纯文本，直接发送
+        }
+        catch (...) {
             // 完全无法解析，发送错误信息
             source.sendError("Invalid JSON: " + jsonMessage);
             return 0;
@@ -100,9 +91,7 @@ i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context)
             chatPacket.serialize(payload);
 
             if (server->connectionManager().sendPacketToPlayer(
-                    playerId,
-                    network::PacketType::ChatBroadcast,
-                    payload.buffer())) {
+                    playerId, network::PacketType::ChatBroadcast, payload.buffer())) {
                 successCount++;
             }
         }

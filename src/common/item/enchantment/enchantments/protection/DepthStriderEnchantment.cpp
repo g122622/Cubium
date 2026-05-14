@@ -5,7 +5,8 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-bool DepthStriderEnchantment::isCompatibleWith(const Enchantment& other) const {
+bool DepthStriderEnchantment::isCompatibleWith(const Enchantment& other) const
+{
     // 与冰霜行者互斥
     if (other.id() == "minecraft:frost_walker") {
         return false;

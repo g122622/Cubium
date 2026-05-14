@@ -12,12 +12,12 @@ namespace mc::client {
  * 记录客户端发送给服务端的输入，用于服务端确认后的位置校正。
  */
 struct PendingInput {
-    u32 sequence;       ///< 输入序列号
-    Vector3 delta;      ///< 移动增量
-    f32 yaw;            ///< 偏航角
-    f32 pitch;          ///< 俯仰角
-    bool jumping;       ///< 是否跳跃
-    bool sneaking;      ///< 是否潜行
+    u32 sequence;  ///< 输入序列号
+    Vector3 delta; ///< 移动增量
+    f32 yaw;       ///< 偏航角
+    f32 pitch;     ///< 俯仰角
+    bool jumping;  ///< 是否跳跃
+    bool sneaking; ///< 是否潜行
 };
 
 /**
@@ -243,9 +243,9 @@ private:
     u32 m_inputSequence = 0;
 
     // 移动参数
-    f32 m_movementSpeed = 4.317f;  // MC 默认玩家移动速度（方块/秒）
-    f32 m_correctionThreshold = 0.1f;  // 校正阈值（方块）
-    f32 m_correctionRate = 0.2f;  // 校正速率（每秒校正的比例）
+    f32 m_movementSpeed = 4.317f;     // MC 默认玩家移动速度（方块/秒）
+    f32 m_correctionThreshold = 0.1f; // 校正阈值（方块）
+    f32 m_correctionRate = 0.2f;      // 校正速率（每秒校正的比例）
 
     // 校正状态
     bool m_isCorrecting = false;

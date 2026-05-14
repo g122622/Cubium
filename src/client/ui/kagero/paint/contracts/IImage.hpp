@@ -4,13 +4,7 @@
 
 namespace mc::client::ui::kagero::paint {
 
-enum class ImageFormat : u8 {
-    R8,
-    RG8,
-    RGB8,
-    RGBA8,
-    BGRA8
-};
+enum class ImageFormat : u8 { R8, RG8, RGB8, RGBA8, BGRA8 };
 
 /**
  * @brief 图像接口

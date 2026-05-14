@@ -1,34 +1,35 @@
 #include "item/crafting/special/ArmorDyeRecipe.hpp"
+#include "entity/entities/passive/basic/SheepEntity.hpp"
 #include "item/Items.hpp"
 #include "item/items/armor/DyeableArmorItem.hpp"
-#include "entity/entities/passive/basic/SheepEntity.hpp"
 #include "world/block/IBeaconBeamColorProvider.hpp"
 #include <algorithm>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 namespace crafting {
 
 // 染料物品集合（MC 1.16.5 共16种染料 + 墨囊 + 可可豆）
-static const std::unordered_set<const Item*>& getDyeItems() {
+static const std::unordered_set<const Item*>& getDyeItems()
+{
     static std::unordered_set<const Item*> dyeItems = {
-        Items::INK_SAC,           // 墨囊（黑色染料）
-        Items::RED_DYE,           // 红色染料
-        Items::GREEN_DYE,         // 绿色染料
-        Items::COCOA_BEANS,       // 可可豆（棕色染料）
-        Items::LAPIS_LAZULI_DYE,  // 青金石（蓝色染料）
-        Items::PURPLE_DYE,        // 紫色染料
-        Items::CYAN_DYE,          // 青色染料
-        Items::LIGHT_GRAY_DYE,    // 淡灰色染料
-        Items::GRAY_DYE,          // 灰色染料
-        Items::PINK_DYE,          // 粉红色染料
-        Items::LIME_DYE,          // 黄绿色染料
-        Items::YELLOW_DYE,        // 黄色染料
-        Items::LIGHT_BLUE_DYE,    // 淡蓝色染料
-        Items::MAGENTA_DYE,       // 品红色染料
-        Items::ORANGE_DYE,        // 橙色染料
-        Items::WHITE_DYE,         // 白色染料
+        Items::INK_SAC,          // 墨囊（黑色染料）
+        Items::RED_DYE,          // 红色染料
+        Items::GREEN_DYE,        // 绿色染料
+        Items::COCOA_BEANS,      // 可可豆（棕色染料）
+        Items::LAPIS_LAZULI_DYE, // 青金石（蓝色染料）
+        Items::PURPLE_DYE,       // 紫色染料
+        Items::CYAN_DYE,         // 青色染料
+        Items::LIGHT_GRAY_DYE,   // 淡灰色染料
+        Items::GRAY_DYE,         // 灰色染料
+        Items::PINK_DYE,         // 粉红色染料
+        Items::LIME_DYE,         // 黄绿色染料
+        Items::YELLOW_DYE,       // 黄色染料
+        Items::LIGHT_BLUE_DYE,   // 淡蓝色染料
+        Items::MAGENTA_DYE,      // 品红色染料
+        Items::ORANGE_DYE,       // 橙色染料
+        Items::WHITE_DYE,        // 白色染料
     };
     return dyeItems;
 }
@@ -41,24 +42,25 @@ static const std::unordered_set<const Item*>& getDyeItems() {
  * @param item 染料物品
  * @return DyeColor 枚举值，如果不是染料返回 White
  */
-static DyeColor getDyeColorFromItem(const Item* item) {
+static DyeColor getDyeColorFromItem(const Item* item)
+{
     static const std::unordered_map<const Item*, DyeColor> dyeColorMap = {
-        {Items::INK_SAC,           DyeColor::Black},
-        {Items::RED_DYE,           DyeColor::Red},
-        {Items::GREEN_DYE,         DyeColor::Green},
-        {Items::COCOA_BEANS,       DyeColor::Brown},
-        {Items::LAPIS_LAZULI_DYE,  DyeColor::Blue},
-        {Items::PURPLE_DYE,        DyeColor::Purple},
-        {Items::CYAN_DYE,          DyeColor::Cyan},
-        {Items::LIGHT_GRAY_DYE,    DyeColor::LightGray},
-        {Items::GRAY_DYE,          DyeColor::Gray},
-        {Items::PINK_DYE,          DyeColor::Pink},
-        {Items::LIME_DYE,          DyeColor::Lime},
-        {Items::YELLOW_DYE,        DyeColor::Yellow},
-        {Items::LIGHT_BLUE_DYE,    DyeColor::LightBlue},
-        {Items::MAGENTA_DYE,       DyeColor::Magenta},
-        {Items::ORANGE_DYE,        DyeColor::Orange},
-        {Items::WHITE_DYE,         DyeColor::White},
+        {Items::INK_SAC, DyeColor::Black},
+        {Items::RED_DYE, DyeColor::Red},
+        {Items::GREEN_DYE, DyeColor::Green},
+        {Items::COCOA_BEANS, DyeColor::Brown},
+        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
+        {Items::PURPLE_DYE, DyeColor::Purple},
+        {Items::CYAN_DYE, DyeColor::Cyan},
+        {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
+        {Items::GRAY_DYE, DyeColor::Gray},
+        {Items::PINK_DYE, DyeColor::Pink},
+        {Items::LIME_DYE, DyeColor::Lime},
+        {Items::YELLOW_DYE, DyeColor::Yellow},
+        {Items::LIGHT_BLUE_DYE, DyeColor::LightBlue},
+        {Items::MAGENTA_DYE, DyeColor::Magenta},
+        {Items::ORANGE_DYE, DyeColor::Orange},
+        {Items::WHITE_DYE, DyeColor::White},
     };
 
     auto it = dyeColorMap.find(item);
@@ -76,35 +78,54 @@ static DyeColor getDyeColorFromItem(const Item* item) {
  * @param color 染料颜色
  * @return RGB 整数值（0xRRGGBB 格式）
  */
-static u32 dyeColorToRGB(DyeColor color) {
+static u32 dyeColorToRGB(DyeColor color)
+{
     // MC 1.16.5 DyeColor 颜色值（整数格式）
     // 参考 net.minecraft.item.DyeColor#textColor
     switch (color) {
-        case DyeColor::White:      return 0xF9FFFE;  // #F9FFFE
-        case DyeColor::Orange:     return 0xF9801D;  // #F9801D
-        case DyeColor::Magenta:    return 0xC74EBD;  // #C74EBD
-        case DyeColor::LightBlue:  return 0x3AB3DA;  // #3AB3DA
-        case DyeColor::Yellow:     return 0xFED83D;  // #FED83D
-        case DyeColor::Lime:       return 0x80C71F;  // #80C71F
-        case DyeColor::Pink:       return 0xF38BAA;  // #F38BAA
-        case DyeColor::Gray:       return 0x474F52;  // #474F52
-        case DyeColor::LightGray:  return 0x9D9D97;  // #9D9D97
-        case DyeColor::Cyan:       return 0x169C9C;  // #169C9C
-        case DyeColor::Purple:     return 0x8932B8;  // #8932B8
-        case DyeColor::Blue:       return 0x3C44AA;  // #3C44AA
-        case DyeColor::Brown:      return 0x835432;  // #835432
-        case DyeColor::Green:      return 0x5E7C16;  // #5E7C16
-        case DyeColor::Red:        return 0xB02E26;  // #B02E26
-        case DyeColor::Black:      return 0x1D1D21;  // #1D1D21
-        default:                   return 0xF9FFFE;  // 默认白色
+        case DyeColor::White:
+            return 0xF9FFFE; // #F9FFFE
+        case DyeColor::Orange:
+            return 0xF9801D; // #F9801D
+        case DyeColor::Magenta:
+            return 0xC74EBD; // #C74EBD
+        case DyeColor::LightBlue:
+            return 0x3AB3DA; // #3AB3DA
+        case DyeColor::Yellow:
+            return 0xFED83D; // #FED83D
+        case DyeColor::Lime:
+            return 0x80C71F; // #80C71F
+        case DyeColor::Pink:
+            return 0xF38BAA; // #F38BAA
+        case DyeColor::Gray:
+            return 0x474F52; // #474F52
+        case DyeColor::LightGray:
+            return 0x9D9D97; // #9D9D97
+        case DyeColor::Cyan:
+            return 0x169C9C; // #169C9C
+        case DyeColor::Purple:
+            return 0x8932B8; // #8932B8
+        case DyeColor::Blue:
+            return 0x3C44AA; // #3C44AA
+        case DyeColor::Brown:
+            return 0x835432; // #835432
+        case DyeColor::Green:
+            return 0x5E7C16; // #5E7C16
+        case DyeColor::Red:
+            return 0xB02E26; // #B02E26
+        case DyeColor::Black:
+            return 0x1D1D21; // #1D1D21
+        default:
+            return 0xF9FFFE; // 默认白色
     }
 }
 
 ArmorDyeRecipe::ArmorDyeRecipe(const ResourceLocation& id)
-    : SpecialRecipe(id) {
-}
+    : SpecialRecipe(id)
+{}
 
-bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const {
+bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const
+{
     int armorCount = 0;
     int dyeCount = 0;
 
@@ -128,7 +149,8 @@ bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const {
     return armorCount == 1 && dyeCount >= 1;
 }
 
-ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const {
+ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const
+{
     ItemStack armorStack;
     std::vector<u32> colors;
 
@@ -153,7 +175,7 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const {
     }
 
     // 获取当前颜色（如果有）
-    u32 currentColor = 0xFFFFFF;  // 默认白色
+    u32 currentColor = 0xFFFFFF; // 默认白色
     const Item* item = armorStack.getItem();
     if (item != nullptr) {
         const auto* dyeableItem = dynamic_cast<const item::items::DyeableArmorItem*>(item);
@@ -177,14 +199,16 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const {
     return armorStack;
 }
 
-std::vector<ItemStack> ArmorDyeRecipe::getRemainingItems(const CraftingInventory& inventory) const {
+std::vector<ItemStack> ArmorDyeRecipe::getRemainingItems(const CraftingInventory& inventory) const
+{
     // 染色配方消耗所有染料，不消耗盔甲（盔甲变成染色结果）
     std::vector<ItemStack> remaining(inventory.getContainerSize());
     // 所有染料都被消耗
     return remaining;
 }
 
-bool ArmorDyeRecipe::isDyeableArmor(const ItemStack& stack) {
+bool ArmorDyeRecipe::isDyeableArmor(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -195,7 +219,8 @@ bool ArmorDyeRecipe::isDyeableArmor(const ItemStack& stack) {
     return dynamic_cast<const item::items::DyeableArmorItem*>(item) != nullptr;
 }
 
-bool ArmorDyeRecipe::isDye(const ItemStack& stack) {
+bool ArmorDyeRecipe::isDye(const ItemStack& stack)
+{
     if (stack.isEmpty()) {
         return false;
     }
@@ -207,7 +232,8 @@ bool ArmorDyeRecipe::isDye(const ItemStack& stack) {
     return getDyeItems().count(item) > 0;
 }
 
-u32 ArmorDyeRecipe::mixColors(u32 color1, u32 color2) {
+u32 ArmorDyeRecipe::mixColors(u32 color1, u32 color2)
+{
     // MC 原版的颜色混合算法：将 RGB 分量分别取平均
     i32 r1 = static_cast<i32>((color1 >> 16) & 0xFF);
     i32 g1 = static_cast<i32>((color1 >> 8) & 0xFF);

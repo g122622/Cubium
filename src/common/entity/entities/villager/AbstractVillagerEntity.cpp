@@ -13,21 +13,23 @@ VillagerData::VillagerData(VillagerType type, VillagerProfession profession, i32
     : m_type(type)
     , m_profession(profession)
     , m_level(level)
-{
-}
+{}
 
-void VillagerData::setProfession(VillagerProfession profession) {
+void VillagerData::setProfession(VillagerProfession profession)
+{
     m_profession = profession;
     // 改变职业时重置等级和经验
     m_level = 1;
     m_experience = 0;
 }
 
-void VillagerData::setLevel(i32 level) {
+void VillagerData::setLevel(i32 level)
+{
     m_level = std::clamp(level, 1, getMaxLevel());
 }
 
-void VillagerData::addExperience(i32 amount) {
+void VillagerData::addExperience(i32 amount)
+{
     m_experience += amount;
 
     // 检查升级
@@ -37,14 +39,20 @@ void VillagerData::addExperience(i32 amount) {
     }
 }
 
-i32 VillagerData::getExperienceForLevel(i32 level) {
+i32 VillagerData::getExperienceForLevel(i32 level)
+{
     // 参考 MC 1.16.5 升级经验表
     switch (level) {
-        case 1: return 10;
-        case 2: return 70;
-        case 3: return 150;
-        case 4: return 250;
-        default: return 0;
+        case 1:
+            return 10;
+        case 2:
+            return 70;
+        case 3:
+            return 150;
+        case 4:
+            return 250;
+        default:
+            return 0;
     }
 }
 
@@ -54,11 +62,11 @@ i32 VillagerData::getExperienceForLevel(i32 level) {
 
 AbstractVillagerEntity::AbstractVillagerEntity(LegacyEntityType type, EntityId id)
     : AgeableEntity(type, id)
-    , m_inventory(std::make_unique<blockentity::SimpleInventory>(8))  // 8格库存
-{
-}
+    , m_inventory(std::make_unique<blockentity::SimpleInventory>(8)) // 8格库存
+{}
 
-void AbstractVillagerEntity::tick() {
+void AbstractVillagerEntity::tick()
+{
     AgeableEntity::tick();
 
     // 更新交易状态
@@ -67,28 +75,34 @@ void AbstractVillagerEntity::tick() {
     }
 }
 
-void AbstractVillagerEntity::setOffers(std::unique_ptr<MerchantOffers> offers) {
+void AbstractVillagerEntity::setOffers(std::unique_ptr<MerchantOffers> offers)
+{
     m_offers = std::move(offers);
 }
 
-void AbstractVillagerEntity::updateOffers() {
+void AbstractVillagerEntity::updateOffers()
+{
     // 子类实现
 }
 
-void AbstractVillagerEntity::startTrading(Player* player) {
+void AbstractVillagerEntity::startTrading(Player* player)
+{
     m_tradingPlayer = player;
     // TODO: 打开交易界面
 }
 
-void AbstractVillagerEntity::stopTrading() {
+void AbstractVillagerEntity::stopTrading()
+{
     m_tradingPlayer = nullptr;
 }
 
-void AbstractVillagerEntity::addExperience(i32 amount) {
+void AbstractVillagerEntity::addExperience(i32 amount)
+{
     m_experience += amount;
 }
 
-f32 AbstractVillagerEntity::experienceProgress() const {
+f32 AbstractVillagerEntity::experienceProgress() const
+{
     // 村民最高等级为 5，已满级则进度为 0
     if (m_experience <= 0) {
         return 0.0f;
@@ -111,7 +125,8 @@ f32 AbstractVillagerEntity::experienceProgress() const {
     return static_cast<f32>(m_experience) / static_cast<f32>(requiredXp);
 }
 
-void AbstractVillagerEntity::resetBreedWillingness() {
+void AbstractVillagerEntity::resetBreedWillingness()
+{
     // 繁殖后重置繁殖意愿
     m_willingToBreed = false;
 }

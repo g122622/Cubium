@@ -55,7 +55,8 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取主世界渲染设置
      */
-    static DimensionRenderSettings overworld() {
+    static DimensionRenderSettings overworld()
+    {
         DimensionRenderSettings settings;
         settings.cloudHeight = 192.0f;
         settings.hasSky = true;
@@ -69,7 +70,8 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取下界渲染设置
      */
-    static DimensionRenderSettings nether() {
+    static DimensionRenderSettings nether()
+    {
         DimensionRenderSettings settings;
         settings.cloudHeight = std::numeric_limits<f32>::quiet_NaN();
         settings.hasSky = false;
@@ -83,7 +85,8 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取末地渲染设置
      */
-    static DimensionRenderSettings end() {
+    static DimensionRenderSettings end()
+    {
         DimensionRenderSettings settings;
         settings.cloudHeight = std::numeric_limits<f32>::quiet_NaN();
         settings.hasSky = false;
@@ -97,16 +100,12 @@ struct DimensionRenderSettings {
     /**
      * @brief 检查该维度是否有云
      */
-    [[nodiscard]] bool hasClouds() const {
-        return !std::isnan(cloudHeight);
-    }
+    [[nodiscard]] bool hasClouds() const { return !std::isnan(cloudHeight); }
 
     /**
      * @brief 获取默认维度设置 (主世界)
      */
-    static DimensionRenderSettings getDefault() {
-        return overworld();
-    }
+    static DimensionRenderSettings getDefault() { return overworld(); }
 };
 
 } // namespace mc::world

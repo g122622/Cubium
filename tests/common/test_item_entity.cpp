@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
 #include "entity/entities/item/ItemEntity.hpp"
-#include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -11,7 +11,8 @@ using namespace mc;
 
 class ItemEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     }
@@ -19,7 +20,8 @@ protected:
     Item* m_diamond = nullptr;
 };
 
-TEST_F(ItemEntityTest, Creation) {
+TEST_F(ItemEntityTest, Creation)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 10);
@@ -31,7 +33,8 @@ TEST_F(ItemEntityTest, Creation) {
     EXPECT_EQ(entity.getItemStack().getItem(), m_diamond);
 }
 
-TEST_F(ItemEntityTest, Position) {
+TEST_F(ItemEntityTest, Position)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 1);
@@ -42,7 +45,8 @@ TEST_F(ItemEntityTest, Position) {
     EXPECT_DOUBLE_EQ(entity.z(), 200.5);
 }
 
-TEST_F(ItemEntityTest, CreationWithVelocity) {
+TEST_F(ItemEntityTest, CreationWithVelocity)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 1);
@@ -53,7 +57,8 @@ TEST_F(ItemEntityTest, CreationWithVelocity) {
     EXPECT_DOUBLE_EQ(entity.velocityZ(), 3.0);
 }
 
-TEST_F(ItemEntityTest, Dimensions) {
+TEST_F(ItemEntityTest, Dimensions)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 1);
@@ -64,7 +69,8 @@ TEST_F(ItemEntityTest, Dimensions) {
     EXPECT_FLOAT_EQ(entity.eyeHeight(), 0.125f);
 }
 
-TEST_F(ItemEntityTest, PickupDelay) {
+TEST_F(ItemEntityTest, PickupDelay)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 1);
@@ -80,7 +86,8 @@ TEST_F(ItemEntityTest, PickupDelay) {
     EXPECT_TRUE(entity.canBePickedUp());
 }
 
-TEST_F(ItemEntityTest, Lifetime) {
+TEST_F(ItemEntityTest, Lifetime)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 1);
@@ -101,7 +108,8 @@ TEST_F(ItemEntityTest, Lifetime) {
     EXPECT_TRUE(entity.isExpired());
 }
 
-TEST_F(ItemEntityTest, Unpickable) {
+TEST_F(ItemEntityTest, Unpickable)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 1);
@@ -114,7 +122,8 @@ TEST_F(ItemEntityTest, Unpickable) {
     EXPECT_FALSE(entity.canBePickedUp());
 }
 
-TEST_F(ItemEntityTest, SetItemStack) {
+TEST_F(ItemEntityTest, SetItemStack)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 5);
@@ -127,7 +136,8 @@ TEST_F(ItemEntityTest, SetItemStack) {
     EXPECT_EQ(entity.getCount(), 32);
 }
 
-TEST_F(ItemEntityTest, MergeWith) {
+TEST_F(ItemEntityTest, MergeWith)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack1(*m_diamond, 10);
@@ -145,7 +155,8 @@ TEST_F(ItemEntityTest, MergeWith) {
     EXPECT_TRUE(entity2.isRemoved());
 }
 
-TEST_F(ItemEntityTest, CannotMergeDifferentItems) {
+TEST_F(ItemEntityTest, CannotMergeDifferentItems)
+{
     ASSERT_NE(m_diamond, nullptr);
     Item* stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
     ASSERT_NE(stick, nullptr);
@@ -159,7 +170,8 @@ TEST_F(ItemEntityTest, CannotMergeDifferentItems) {
     EXPECT_FALSE(entity1.canMergeWith(entity2));
 }
 
-TEST_F(ItemEntityTest, Owner) {
+TEST_F(ItemEntityTest, Owner)
+{
     ASSERT_NE(m_diamond, nullptr);
 
     ItemStack stack(*m_diamond, 1);

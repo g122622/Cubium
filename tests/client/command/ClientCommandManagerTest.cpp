@@ -11,7 +11,8 @@ using namespace mc::network;
 
 namespace {
 
-CommandTreeSnapshot buildSnapshot() {
+CommandTreeSnapshot buildSnapshot()
+{
     CommandTreeSnapshot snapshot;
     snapshot.nodes.resize(5);
 
@@ -52,7 +53,8 @@ CommandTreeSnapshot buildSnapshot() {
 
 } // namespace
 
-TEST(ClientCommandManagerTest, CommandTreePacketRoundTrip) {
+TEST(ClientCommandManagerTest, CommandTreePacketRoundTrip)
+{
     const auto snapshot = buildSnapshot();
     const auto json = snapshot.toJsonString();
 
@@ -63,9 +65,8 @@ TEST(ClientCommandManagerTest, CommandTreePacketRoundTrip) {
     const auto& serialized = serializedResult.value();
     ASSERT_EQ(serialized.size(), json.size() + sizeof(u16));
 
-    const u16 encodedLength = static_cast<u16>(
-        (static_cast<u16>(serialized[0]) << 8) |
-        static_cast<u16>(serialized[1]));
+    const u16 encodedLength =
+        static_cast<u16>((static_cast<u16>(serialized[0]) << 8) | static_cast<u16>(serialized[1]));
     EXPECT_EQ(encodedLength, json.size());
 
     const std::string encodedJson(reinterpret_cast<const char*>(serialized.data() + sizeof(u16)), encodedLength);
@@ -77,11 +78,10 @@ TEST(ClientCommandManagerTest, CommandTreePacketRoundTrip) {
     EXPECT_EQ(decodedPacket.treeJson(), json);
 }
 
-TEST(ClientCommandManagerTest, AppliesTreeAndBuildsSuggestions) {
+TEST(ClientCommandManagerTest, AppliesTreeAndBuildsSuggestions)
+{
     ClientCommandManager manager;
-    manager.setPlayerNameProvider([]() {
-        return std::vector<std::string>{"Steve", "Alex"};
-    });
+    manager.setPlayerNameProvider([]() { return std::vector<std::string>{"Steve", "Alex"}; });
 
     const auto snapshot = buildSnapshot();
     auto applyResult = manager.applyCommandTreeJson(snapshot.toJsonString());

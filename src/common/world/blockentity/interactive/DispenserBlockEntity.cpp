@@ -1,6 +1,6 @@
 #include "DispenserBlockEntity.hpp"
-#include "entity/loot/LootTable.hpp"
 #include "entity/loot/LootContext.hpp"
+#include "entity/loot/LootTable.hpp"
 #include "item/core/ItemStack.hpp"
 #include <random>
 
@@ -10,10 +10,11 @@ namespace blockentity {
 DispenserBlockEntity::DispenserBlockEntity(BlockEntityType type, const BlockPos& pos)
     : LootableContainerBlockEntity(type, pos)
     , m_inventory(INVENTORY_SIZE)
-    , m_rng(std::random_device{}()) {
-}
+    , m_rng(std::random_device{}())
+{}
 
-bool DispenserBlockEntity::load(const nlohmann::json& data) {
+bool DispenserBlockEntity::load(const nlohmann::json& data)
+{
     if (!LootableContainerBlockEntity::load(data)) {
         return false;
     }
@@ -37,7 +38,8 @@ bool DispenserBlockEntity::load(const nlohmann::json& data) {
     return true;
 }
 
-void DispenserBlockEntity::save(nlohmann::json& data) const {
+void DispenserBlockEntity::save(nlohmann::json& data) const
+{
     LootableContainerBlockEntity::save(data);
 
     // 保存库存
@@ -53,7 +55,8 @@ void DispenserBlockEntity::save(nlohmann::json& data) const {
     data["Items"] = itemsJson;
 }
 
-std::unique_ptr<BlockEntity> DispenserBlockEntity::clone() const {
+std::unique_ptr<BlockEntity> DispenserBlockEntity::clone() const
+{
     auto cloned = std::make_unique<DispenserBlockEntity>(m_type, m_pos);
 
     // 复制库存内容
@@ -67,12 +70,14 @@ std::unique_ptr<BlockEntity> DispenserBlockEntity::clone() const {
     return cloned;
 }
 
-void DispenserBlockEntity::clearContainer() {
+void DispenserBlockEntity::clearContainer()
+{
     m_inventory.clear();
     setChanged();
 }
 
-i32 DispenserBlockEntity::getRandomSlot() {
+i32 DispenserBlockEntity::getRandomSlot()
+{
     i32 nonEmptyCount = 0;
     for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
         if (!m_inventory.getItem(i).isEmpty()) {
@@ -98,7 +103,8 @@ i32 DispenserBlockEntity::getRandomSlot() {
     return -1;
 }
 
-i32 DispenserBlockEntity::getDispenseSlot() {
+i32 DispenserBlockEntity::getDispenseSlot()
+{
     // MC 储水池采样算法：每个非空槽位被选中的概率相等
     i32 selectedSlot = -1;
     i32 nonEmptyCount = 0;
@@ -116,7 +122,8 @@ i32 DispenserBlockEntity::getDispenseSlot() {
     return selectedSlot;
 }
 
-i32 DispenserBlockEntity::addItemStack(const ItemStack& stack) {
+i32 DispenserBlockEntity::addItemStack(const ItemStack& stack)
+{
     // MC 1.16.5: 查找第一个空槽位，将整个物品放入该槽位
     // 不尝试与现有堆叠合并
     if (stack.isEmpty()) {

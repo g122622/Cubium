@@ -8,15 +8,18 @@ namespace mc::math {
 // 默认实现
 // ============================================================================
 
-u32 IRandom::nextU32() {
+u32 IRandom::nextU32()
+{
     return static_cast<u32>(nextU64() >> 32);
 }
 
-i32 IRandom::nextInt() {
+i32 IRandom::nextInt()
+{
     return static_cast<i32>(nextU32());
 }
 
-i32 IRandom::nextInt(i32 bound) {
+i32 IRandom::nextInt(i32 bound)
+{
     MC_ASSERT_RELEASE(bound > 0);
 
     // MC 风格的无偏差随机数生成
@@ -38,36 +41,43 @@ i32 IRandom::nextInt(i32 bound) {
     return static_cast<i32>(u);
 }
 
-i32 IRandom::nextInt(i32 min, i32 max) {
+i32 IRandom::nextInt(i32 min, i32 max)
+{
     MC_ASSERT_RELEASE(min <= max);
     return min + nextInt(max - min + 1);
 }
 
-bool IRandom::nextBoolean() {
+bool IRandom::nextBoolean()
+{
     return (nextU64() & 1) != 0;
 }
 
-f32 IRandom::nextFloat() {
+f32 IRandom::nextFloat()
+{
     // 返回 [0.0, 1.0) 范围的浮点数
     // 使用 24 位精度（float 的尾数位）
     return static_cast<f32>(nextU64() >> 40) / static_cast<f32>(1ULL << 24);
 }
 
-f32 IRandom::nextFloat(f32 min, f32 max) {
+f32 IRandom::nextFloat(f32 min, f32 max)
+{
     return min + nextFloat() * (max - min);
 }
 
-f64 IRandom::nextDouble() {
+f64 IRandom::nextDouble()
+{
     // 返回 [0.0, 1.0) 范围的双精度浮点数
     // 使用 53 位精度（double 的尾数位）
     return static_cast<f64>((nextU64() >> 11)) / static_cast<f64>(1ULL << 53);
 }
 
-f64 IRandom::nextDouble(f64 min, f64 max) {
+f64 IRandom::nextDouble(f64 min, f64 max)
+{
     return min + nextDouble() * (max - min);
 }
 
-f32 IRandom::nextGaussian(f32 mean, f32 stddev) {
+f32 IRandom::nextGaussian(f32 mean, f32 stddev)
+{
     // Marsaglia polar method
     // 参考 MC Random.nextGaussian()
     if (m_hasGaussian) {
@@ -77,8 +87,8 @@ f32 IRandom::nextGaussian(f32 mean, f32 stddev) {
 
     f32 v1, v2, s;
     do {
-        v1 = 2.0f * nextFloat() - 1.0f;  // [-1, 1]
-        v2 = 2.0f * nextFloat() - 1.0f;  // [-1, 1]
+        v1 = 2.0f * nextFloat() - 1.0f; // [-1, 1]
+        v2 = 2.0f * nextFloat() - 1.0f; // [-1, 1]
         s = v1 * v1 + v2 * v2;
     } while (s >= 1.0f || s == 0.0f);
 
@@ -89,13 +99,15 @@ f32 IRandom::nextGaussian(f32 mean, f32 stddev) {
     return mean + stddev * v1 * multiplier;
 }
 
-i64 IRandom::nextLong() {
+i64 IRandom::nextLong()
+{
     // 返回随机 64 位长整数
     // 参考 MC Random.nextLong()
     return static_cast<i64>(nextU64());
 }
 
-i64 IRandom::nextLong(i64 bound) {
+i64 IRandom::nextLong(i64 bound)
+{
     MC_ASSERT_RELEASE(bound > 0);
 
     u64 r = nextU64();
@@ -117,7 +129,8 @@ i64 IRandom::nextLong(i64 bound) {
 // 工具方法
 // ============================================================================
 
-void IRandom::setSeedWithHash(i64 seed) {
+void IRandom::setSeedWithHash(i64 seed)
+{
     // MC 风格的种子哈希
     // 参考 MC Random.setSeed: seed = (seed ^ 0x5DEECE66DL) & ((1L << 48) - 1)
     u64 hashed = static_cast<u64>(seed) ^ 0x5DEECE66DULL;
@@ -125,9 +138,10 @@ void IRandom::setSeedWithHash(i64 seed) {
     m_hasGaussian = false;
 }
 
-void IRandom::skip(u64 count) {
+void IRandom::skip(u64 count)
+{
     for (u64 i = 0; i < count; ++i) {
-        (void)nextU64();  // 故意丢弃返回值，用于跳过随机数序列
+        (void)nextU64(); // 故意丢弃返回值，用于跳过随机数序列
     }
 }
 

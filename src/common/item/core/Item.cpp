@@ -1,16 +1,16 @@
 #include "Item.hpp"
-#include "ItemStack.hpp"
-#include "ItemRegistry.hpp"
-#include "ActionResult.hpp"
+#include "../../entity/core/Entity.hpp"
+#include "../../entity/core/LivingEntity.hpp"
+#include "../../entity/entities/player/Player.hpp"
+#include "../../world/IWorld.hpp"
+#include "../../world/block/Block.hpp"
+#include "../attribute/ItemAttributeModifiers.hpp"
 #include "../context/ItemUseContext.hpp"
 #include "../food/Food.hpp"
 #include "../tag/ItemTag.hpp"
-#include "../attribute/ItemAttributeModifiers.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../entity/core/LivingEntity.hpp"
-#include "../../entity/entities/player/Player.hpp"
+#include "ActionResult.hpp"
+#include "ItemRegistry.hpp"
+#include "ItemStack.hpp"
 #include <sstream>
 
 namespace mc {
@@ -19,7 +19,8 @@ namespace mc {
 // ItemProperties
 // ============================================================================
 
-ItemProperties& ItemProperties::maxStackSize(i32 maxStackSize) {
+ItemProperties& ItemProperties::maxStackSize(i32 maxStackSize)
+{
     if (m_maxDamage > 0) {
         // 有耐久度的物品不能堆叠
         m_maxStackSize = 1;
@@ -29,7 +30,8 @@ ItemProperties& ItemProperties::maxStackSize(i32 maxStackSize) {
     return *this;
 }
 
-ItemProperties& ItemProperties::maxDamage(i32 maxDamage) {
+ItemProperties& ItemProperties::maxDamage(i32 maxDamage)
+{
     m_maxDamage = std::max(0, maxDamage);
     if (m_maxDamage > 0) {
         // 有耐久度的物品不能堆叠
@@ -38,32 +40,38 @@ ItemProperties& ItemProperties::maxDamage(i32 maxDamage) {
     return *this;
 }
 
-ItemProperties& ItemProperties::containerItem(const Item* containerItem) {
+ItemProperties& ItemProperties::containerItem(const Item* containerItem)
+{
     m_containerItem = containerItem;
     return *this;
 }
 
-ItemProperties& ItemProperties::rarity(ItemRarity rarity) {
+ItemProperties& ItemProperties::rarity(ItemRarity rarity)
+{
     m_rarity = rarity;
     return *this;
 }
 
-ItemProperties& ItemProperties::burnable(bool value) {
+ItemProperties& ItemProperties::burnable(bool value)
+{
     m_burnable = value;
     return *this;
 }
 
-ItemProperties& ItemProperties::repairable(bool value) {
+ItemProperties& ItemProperties::repairable(bool value)
+{
     m_repairable = value;
     return *this;
 }
 
-ItemProperties& ItemProperties::food(const item::food::Food* food) {
+ItemProperties& ItemProperties::food(const item::food::Food* food)
+{
     m_food = food;
     return *this;
 }
 
-ItemProperties& ItemProperties::group(const ItemGroup* group) {
+ItemProperties& ItemProperties::group(const ItemGroup* group)
+{
     m_creativeTab = group;
     return *this;
 }
@@ -80,26 +88,31 @@ Item::Item(ItemProperties properties)
     , m_burnable(properties.isBurnable())
     , m_repairable(properties.isRepairable())
     , m_food(properties.food())
-    , m_creativeTab(properties.group()) {
-}
+    , m_creativeTab(properties.group())
+{}
 
-Item* Item::getItem(ItemId itemId) {
+Item* Item::getItem(ItemId itemId)
+{
     return ItemRegistry::instance().getItem(itemId);
 }
 
-Item* Item::getItem(const ResourceLocation& id) {
+Item* Item::getItem(const ResourceLocation& id)
+{
     return ItemRegistry::instance().getItem(id);
 }
 
-void Item::forEachItem(std::function<void(Item&)> callback) {
+void Item::forEachItem(std::function<void(Item&)> callback)
+{
     ItemRegistry::instance().forEachItem(callback);
 }
 
-ItemStack Item::getDefaultInstance() const {
+ItemStack Item::getDefaultInstance() const
+{
     return ItemStack(*this, 1);
 }
 
-f32 Item::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
+f32 Item::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
+{
     // 默认挖掘速度为1.0
     // 工具类物品会重写此方法
     (void)stack;
@@ -107,28 +120,33 @@ f32 Item::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
     return 1.0f;
 }
 
-bool Item::canHarvestBlock(const BlockState& state) const {
+bool Item::canHarvestBlock(const BlockState& state) const
+{
     // 默认不能采集需要工具的方块
     // 工具类物品会重写此方法
     (void)state;
     return false;
 }
 
-std::string Item::getTranslationKey() const {
+std::string Item::getTranslationKey() const
+{
     return "item." + m_itemLocation.toString();
 }
 
-std::string Item::getTranslationKey(const ItemStack& stack) const {
+std::string Item::getTranslationKey(const ItemStack& stack) const
+{
     (void)stack;
     return getTranslationKey();
 }
 
-std::string Item::getName() const {
+std::string Item::getName() const
+{
     // 默认返回翻译键，未来可支持语言文件
     return getTranslationKey();
 }
 
-i32 Item::getUseDuration(const ItemStack& stack) const {
+i32 Item::getUseDuration(const ItemStack& stack) const
+{
     (void)stack;
     // MC 1.16.5: 如果物品是食物，返回 32（正常）或 16（快速食用）
     if (isFood() && m_food != nullptr) {
@@ -141,13 +159,15 @@ i32 Item::getUseDuration(const ItemStack& stack) const {
 // 物品使用 - 新增虚方法实现
 // ============================================================================
 
-ActionResultType Item::onItemUse(ItemUseContext& context) {
+ActionResultType Item::onItemUse(ItemUseContext& context)
+{
     // 默认实现：不做任何操作，传递给下一个处理器
     (void)context;
     return ActionResultType::Pass;
 }
 
-ItemActionResult Item::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult Item::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
     // MC 1.16.5: 食物自动处理逻辑
     // 参考: Item.onItemRightClick
     if (isFood()) {
@@ -166,8 +186,8 @@ ItemActionResult Item::onItemRightClick(IWorld& world, Player& player, Hand hand
     return ItemActionResult::pass(ItemStack());
 }
 
-bool Item::itemInteractionForEntity(ItemStack& stack, Player& player,
-                                     LivingEntity& target, Hand hand) {
+bool Item::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
+{
     // 默认实现：不做任何操作
     (void)stack;
     (void)player;
@@ -176,7 +196,8 @@ bool Item::itemInteractionForEntity(ItemStack& stack, Player& player,
     return false;
 }
 
-ItemStack Item::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) {
+ItemStack Item::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
+{
     // 默认实现：返回原物品堆
     // 食物类物品会重写此方法来应用食物效果
     (void)world;
@@ -184,8 +205,8 @@ ItemStack Item::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
     return stack;
 }
 
-void Item::onPlayerStoppedUsing(ItemStack& stack, IWorld& world,
-                                 LivingEntity& entity, i32 timeLeft) {
+void Item::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft)
+{
     // 默认实现：不做任何操作
     // 弓、三叉戟等会重写此方法
     (void)stack;
@@ -198,8 +219,8 @@ void Item::onPlayerStoppedUsing(ItemStack& stack, IWorld& world,
 // 物品Tick与提示
 // ============================================================================
 
-void Item::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
-                          i32 itemSlot, bool isSelected) const {
+void Item::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity, i32 itemSlot, bool isSelected) const
+{
     // 默认实现：不做任何操作
     // 地图、时钟等会重写此方法
     (void)stack;
@@ -209,7 +230,8 @@ void Item::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
     (void)isSelected;
 }
 
-void Item::onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) const {
+void Item::onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) const
+{
     // 默认实现：不做任何操作
     // 鞘翅等特殊护甲会重写此方法
     (void)stack;
@@ -217,8 +239,8 @@ void Item::onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) co
     (void)player;
 }
 
-void Item::addInformation(const ItemStack& stack, IWorld& world,
-                           std::vector<std::string>& tooltip, bool advanced) const {
+void Item::addInformation(const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
+{
     // 默认实现：不做任何操作
     // 子类可重写以添加自定义提示
     (void)stack;
@@ -227,7 +249,8 @@ void Item::addInformation(const ItemStack& stack, IWorld& world,
     (void)advanced;
 }
 
-bool Item::hasEffect(const ItemStack& stack) const {
+bool Item::hasEffect(const ItemStack& stack) const
+{
     // 默认实现：检查是否有附魔
     return stack.hasEnchantments();
 }
@@ -236,7 +259,8 @@ bool Item::hasEffect(const ItemStack& stack) const {
 // 标签与分类
 // ============================================================================
 
-bool Item::isIn(const item::tag::ItemTag& tag) const {
+bool Item::isIn(const item::tag::ItemTag& tag) const
+{
     // MC 1.16.5: 检查物品是否在标签中
     // 参考: net.minecraft.item.Item#isIn(Tag)
     return tag.contains(this);
@@ -246,7 +270,8 @@ bool Item::isIn(const item::tag::ItemTag& tag) const {
 // 食物相关
 // ============================================================================
 
-bool Item::canEat(const ItemStack& stack, const Player& player) const {
+bool Item::canEat(const ItemStack& stack, const Player& player) const
+{
     // 默认实现：如果不是食物，返回false
     // FoodItem会重写此方法
     (void)stack;
@@ -258,7 +283,8 @@ bool Item::canEat(const ItemStack& stack, const Player& player) const {
 // 耐久度与修复
 // ============================================================================
 
-void Item::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity) {
+void Item::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity)
+{
     // 默认实现：不做任何操作
     // 子类可重写以播放破坏音效等
     (void)stack;
@@ -270,7 +296,8 @@ void Item::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity) {
 // 工具相关
 // ============================================================================
 
-bool Item::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker) {
+bool Item::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker)
+{
     // 默认实现：不造成耐久消耗
     // 工具类物品（剑、斧等）会重写此方法
     (void)stack;
@@ -279,8 +306,9 @@ bool Item::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attac
     return false;
 }
 
-bool Item::onBlockDestroyed(ItemStack& stack, IWorld& world, const BlockState& state,
-                            const BlockPos& pos, LivingEntity& breaker) {
+bool Item::onBlockDestroyed(
+    ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& breaker)
+{
     // 默认实现：不造成耐久消耗
     // 工具类物品（镐、斧、铲、锄等）会重写此方法
     (void)stack;
@@ -291,21 +319,24 @@ bool Item::onBlockDestroyed(ItemStack& stack, IWorld& world, const BlockState& s
     return false;
 }
 
-bool Item::isSuitableFor(const BlockState& state) const {
+bool Item::isSuitableFor(const BlockState& state) const
+{
     // 默认实现：不适用于任何方块
     // 工具类物品会重写此方法以匹配工具类型
     (void)state;
     return false;
 }
 
-void Item::fillItemGroup(const ItemGroup& group, std::vector<ItemStack>& items) const {
+void Item::fillItemGroup(const ItemGroup& group, std::vector<ItemStack>& items) const
+{
     // 默认实现：如果物品属于该组，添加一个默认物品堆
     if (isInGroup(group)) {
         items.push_back(getDefaultInstance());
     }
 }
 
-bool Item::isInGroup(const ItemGroup& group) const {
+bool Item::isInGroup(const ItemGroup& group) const
+{
     // 默认实现：检查物品的创造模式组是否匹配
     return m_creativeTab == &group;
 }
@@ -314,7 +345,8 @@ bool Item::isInGroup(const ItemGroup& group) const {
 // 新增方法实现 (MC 1.16.5 对齐)
 // ============================================================================
 
-ItemRarity Item::getRarity(const ItemStack& stack) const {
+ItemRarity Item::getRarity(const ItemStack& stack) const
+{
     // MC 1.16.5: 附魔物品稀有度提升
     // 参考: net.minecraft.item.Item#getRarity(ItemStack)
     if (stack.hasEnchantments()) {
@@ -332,14 +364,16 @@ ItemRarity Item::getRarity(const ItemStack& stack) const {
     return m_rarity;
 }
 
-bool Item::isEnchantable(const ItemStack& stack) const {
+bool Item::isEnchantable(const ItemStack& stack) const
+{
     // MC 1.16.5: 物品可附魔当且仅当堆叠数为1且可损坏
     // 参考: net.minecraft.item.Item#isEnchantable(ItemStack)
     (void)stack;
     return m_maxStackSize == 1 && isDamageable();
 }
 
-bool Item::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const {
+bool Item::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const
+{
     // 默认实现：检查修复材料是否是容器物品
     // 子类（如ArmorItem、ToolItem）会重写此方法检查特定材料
     // 参考: net.minecraft.item.Item#getIsRepairable(ItemStack, ItemStack)
@@ -350,7 +384,8 @@ bool Item::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) c
     return false;
 }
 
-item::ItemAttributeModifiers Item::getAttributeModifiers(i32 equipmentSlot) const {
+item::ItemAttributeModifiers Item::getAttributeModifiers(i32 equipmentSlot) const
+{
     // 默认实现：返回空的属性修饰符
     // 子类（如SwordItem、ArmorItem）会重写此方法添加特定属性
     // 参考: net.minecraft.item.Item#getAttributeModifiers(EquipmentSlot)

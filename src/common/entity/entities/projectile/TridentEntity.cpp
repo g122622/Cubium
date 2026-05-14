@@ -1,14 +1,14 @@
 #include "TridentEntity.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../entities/player/Player.hpp"
-#include "../../entities/effect/EffectEntities.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../core/LivingEntity.hpp"
+#include "../../entities/effect/EffectEntities.hpp"
+#include "../../entities/player/Player.hpp"
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
@@ -19,7 +19,8 @@ namespace entity {
 namespace {
 
 // 辅助函数：基于实体ID和tick创建随机数生成器
-math::Random createRandomFromEntity(const Entity& entity) {
+math::Random createRandomFromEntity(const Entity& entity)
+{
     u64 seed = static_cast<u64>(entity.id()) << 32 | static_cast<u64>(entity.ticksExisted());
     return math::Random(seed);
 }
@@ -29,15 +30,17 @@ math::Random createRandomFromEntity(const Entity& entity) {
 TridentEntity::TridentEntity(LegacyEntityType type, EntityId id)
     : AbstractArrowEntity(type, id)
 {
-    m_damage = 8.0f;  // 三叉戟伤害更高
+    m_damage = 8.0f; // 三叉戟伤害更高
     setPickupStatus(PickupStatus::Allowed);
 }
 
-std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<TridentEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void TridentEntity::tick() {
+void TridentEntity::tick()
+{
     // 参考 MC 1.16.5 TridentEntity.tick() 第60-93行
     // 检查是否应该开始返回
     if (m_timeInGround > 4) {
@@ -67,7 +70,8 @@ void TridentEntity::tick() {
     AbstractArrowEntity::tick();
 }
 
-bool TridentEntity::shouldReturnToThrower() {
+bool TridentEntity::shouldReturnToThrower()
+{
     // 参考 MC 1.16.5 TridentEntity.shouldReturnToThrower() 第95-102行
     Entity* shooter = getShooter();
     if (shooter != nullptr && shooter->isAlive()) {
@@ -81,7 +85,8 @@ bool TridentEntity::shouldReturnToThrower() {
     return false;
 }
 
-void TridentEntity::tickReturning() {
+void TridentEntity::tickReturning()
+{
     // 参考 MC 1.16.5 TridentEntity.tick() 第76-88行
     Entity* shooter = getShooter();
     if (!shooter || !shooter->isAlive()) {
@@ -91,11 +96,9 @@ void TridentEntity::tickReturning() {
     }
 
     // 计算到射手的方向
-    Vector3 direction(
-        shooter->x() - m_position.x,
+    Vector3 direction(shooter->x() - m_position.x,
         shooter->y() + shooter->eyeHeight() * 0.5f - m_position.y,
-        shooter->z() - m_position.z
-    );
+        shooter->z() - m_position.z);
 
     // 更新旋转朝向运动方向
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
@@ -113,11 +116,9 @@ void TridentEntity::tickReturning() {
     // 设置速度：当前速度缩放 0.95 后加上朝向射手的方向
     Vector3 currentVel = m_velocity;
     direction = direction.normalized();
-    m_velocity = Vector3(
-        currentVel.x * 0.95f + direction.x * speed,
+    m_velocity = Vector3(currentVel.x * 0.95f + direction.x * speed,
         currentVel.y * 0.95f + direction.y * speed,
-        currentVel.z * 0.95f + direction.z * speed
-    );
+        currentVel.z * 0.95f + direction.z * speed);
 
     // 更新位置
     m_prevPosition = m_position;
@@ -147,21 +148,16 @@ void TridentEntity::tickReturning() {
     if (isInWater() && m_world) {
         for (int i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
-            Vector3 pos(
-                x() - m_velocity.x * offset,
-                y() - m_velocity.y * offset,
-                z() - m_velocity.z * offset
-            );
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Bubble,
-                pos, m_velocity);
+            Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble, pos, m_velocity);
         }
     }
 
     Entity::tick();
 }
 
-void TridentEntity::onEntityHit(const RayTraceResult& result) {
+void TridentEntity::onEntityHit(const RayTraceResult& result)
+{
     if (!result.hitEntity) {
         return;
     }
@@ -179,10 +175,8 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
         // 获取目标的生物属性类型
         CreatureAttribute creatureType = livingTarget->getCreatureAttribute();
         // 使用附魔助手的 getTotalDamageBonus 方法计算额外伤害
-        damage += mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(
-            m_tridentStack,
-            static_cast<u32>(creatureType)
-        );
+        damage +=
+            mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(m_tridentStack, static_cast<u32>(creatureType));
     }
 
     // 获取射击者
@@ -191,11 +185,10 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     // 创建伤害来源
     std::unique_ptr<DamageSource> damageSource;
     if (shooter != nullptr) {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Trident, shooter, this, shooter != nullptr);
+        damageSource =
+            std::make_unique<IndirectEntityDamageSource>(DamageType::Trident, shooter, this, shooter != nullptr);
     } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(
-            DamageType::Trident, this, this, false);
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Trident, this, this, false);
     }
 
     // 标记已造成伤害
@@ -225,9 +218,8 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
             // 检查是否在雷暴天气
             // MC 1.16.5: world.isThundering() && world.canSeeSky(pos)
             // 需要检查天气系统和天空可见性
-            BlockPos targetPos(static_cast<i32>(target->x()),
-                              static_cast<i32>(target->y()),
-                              static_cast<i32>(target->z()));
+            BlockPos targetPos(
+                static_cast<i32>(target->x()), static_cast<i32>(target->y()), static_cast<i32>(target->z()));
             bool isThundering = m_world->isThundering();
             bool canSeeSky = m_world->canSeeSky(targetPos);
 
@@ -252,17 +244,14 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     }
 
     // 速度反转为轻微反弹
-    m_velocity = Vector3(
-        m_velocity.x * -0.01f,
-        m_velocity.y * -0.1f,
-        m_velocity.z * -0.01f
-    );
+    m_velocity = Vector3(m_velocity.x * -0.01f, m_velocity.y * -0.1f, m_velocity.z * -0.01f);
 
     // 三叉戟不移除，而是等待返回
     // 如果没有忠诚附魔，会进入 m_inGround 状态
 }
 
-void TridentEntity::onBlockHit(const RayTraceResult& result) {
+void TridentEntity::onBlockHit(const RayTraceResult& result)
+{
     // 参考 MC 1.16.5 三叉戟命中方块的行为
     m_inGround = true;
     m_hitBlock = true;
@@ -270,8 +259,7 @@ void TridentEntity::onBlockHit(const RayTraceResult& result) {
 
     // 保存方块状态
     if (m_world && result.type == RayTraceResultType::Block) {
-        const BlockState* state = m_world->getBlockState(
-            result.blockPos.x, result.blockPos.y, result.blockPos.z);
+        const BlockState* state = m_world->getBlockState(result.blockPos.x, result.blockPos.y, result.blockPos.z);
         if (state != nullptr) {
             m_inBlockState = *state;
         }
@@ -286,13 +274,15 @@ void TridentEntity::onBlockHit(const RayTraceResult& result) {
     playSound(SoundEvents::ITEM_TRIDENT_HIT_GROUND, 1.0f, 1.0f);
 }
 
-f32 TridentEntity::getWaterDrag() const {
+f32 TridentEntity::getWaterDrag() const
+{
     // 参考 MC 1.16.5 TridentEntity.getWaterDrag() 第213-215行
     // 三叉戟在水中阻力很小
     return 0.99f;
 }
 
-void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity) {
+void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity)
+{
     // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity()
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
@@ -306,15 +296,17 @@ void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVel
     (void)shooter;
 }
 
-void TridentEntity::setItemStack(const ItemStack& stack) {
+void TridentEntity::setItemStack(const ItemStack& stack)
+{
     m_tridentStack = stack;
     // 参考 MC 1.16.5 TridentEntity 构造函数第42-43行
     // 从物品堆获取忠诚附魔等级
-    m_loyaltyLevel = static_cast<u8>(
-        mc::item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, "minecraft:loyalty"));
+    m_loyaltyLevel =
+        static_cast<u8>(mc::item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, "minecraft:loyalty"));
 }
 
-bool TridentEntity::onPlayerPickup(Player& player) {
+bool TridentEntity::onPlayerPickup(Player& player)
+{
     // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
     // 必须在服务端执行
     if (m_world && m_world->isClientSide()) {
@@ -333,9 +325,8 @@ bool TridentEntity::onPlayerPickup(Player& player) {
 
     // 检查拾取权限
     bool canPickup = (pickupStatus() == PickupStatus::Allowed) ||
-                     (pickupStatus() == PickupStatus::CreativeOnly && player.isCreative()) ||
-                     (noClip() && getShooter() != nullptr &&
-                      getShooter()->uuid() == player.uuid());
+        (pickupStatus() == PickupStatus::CreativeOnly && player.isCreative()) ||
+        (noClip() && getShooter() != nullptr && getShooter()->uuid() == player.uuid());
 
     if (!canPickup) {
         return false;
@@ -347,7 +338,7 @@ bool TridentEntity::onPlayerPickup(Player& player) {
         i32 added = player.inventory().add(m_tridentStack);
         // 三叉戟只能有一个，检查是否成功添加
         if (m_tridentStack.getCount() > 0) {
-            return false;  // 背包满了
+            return false; // 背包满了
         }
     }
 
@@ -360,7 +351,8 @@ bool TridentEntity::onPlayerPickup(Player& player) {
     return true;
 }
 
-void TridentEntity::tickInGroundTrident() {
+void TridentEntity::tickInGroundTrident()
+{
     // 三叉戟特殊的地面tick逻辑
     // 参考 MC 1.16.5 TridentEntity.func_225516_i_() 第205-209行
     // 如果不允许拾取或没有忠诚附魔，则使用普通超时逻辑

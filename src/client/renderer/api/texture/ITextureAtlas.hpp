@@ -11,10 +11,10 @@ namespace mc::client::renderer::api {
  * @brief 纹理图集构建结果
  */
 struct AtlasBuildResult {
-    std::vector<u8> pixelData;  // 图集像素数据
-    u32 width = 0;              // 图集宽度
-    u32 height = 0;             // 图集高度
-    u32 tileSize = 16;          // 瓦片大小
+    std::vector<u8> pixelData; // 图集像素数据
+    u32 width = 0;             // 图集宽度
+    u32 height = 0;            // 图集高度
+    u32 tileSize = 16;         // 瓦片大小
 
     // 纹理位置到UV区域的映射
     std::map<ResourceLocation, TextureRegion> regions;
@@ -38,10 +38,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] virtual Result<void> addTexture(
-        const ResourceLocation& location,
-        const u8* data,
-        u32 width,
-        u32 height) = 0;
+        const ResourceLocation& location, const u8* data, u32 width, u32 height) = 0;
 
     /**
      * @brief 构建图集

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ScoreCriteriaRenderType.hpp"
 #include "../../util/text/ITextComponentFwd.hpp"
-#include <string>
+#include "ScoreCriteriaRenderType.hpp"
 #include <memory>
+#include <string>
 
 namespace mc::scoreboard {
 
@@ -36,10 +36,10 @@ public:
      * @param renderType 渲染类型
      */
     ScoreObjective(Scoreboard& scoreboard,
-                   const std::string& name,
-                   ScoreCriteria& criteria,
-                   std::unique_ptr<text::ITextComponent> displayName,
-                   RenderType renderType);
+        const std::string& name,
+        ScoreCriteria& criteria,
+        std::unique_ptr<text::ITextComponent> displayName,
+        RenderType renderType);
 
     // 禁止拷贝
     ScoreObjective(const ScoreObjective&) = delete;

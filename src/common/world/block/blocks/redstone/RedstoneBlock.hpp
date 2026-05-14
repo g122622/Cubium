@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Block.hpp"
 #include "../../../redstone/RedstonePower.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -34,7 +34,8 @@ public:
      * @brief 检查是否可以提供红石信号
      * @return 始终返回true
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return true;
     }
@@ -51,11 +52,7 @@ public:
      * @return 信号强度15
      */
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 
     /**
      * @brief 获取强红石信号
@@ -69,11 +66,7 @@ public:
      * @return 信号强度15
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state,
-        IWorld& world,
-        const BlockPos& pos,
-        Direction side
-    ) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
 };
 
 } // namespace blocks

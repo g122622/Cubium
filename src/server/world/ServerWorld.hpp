@@ -1,31 +1,31 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/CollisionCache.hpp"
+#include "common/physics/PhysicsEngine.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConfig.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include "common/world/entity/EntityManager.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/dimension/DimensionType.hpp"
-#include "common/world/village/VillageManager.hpp"
-#include "common/world/village/raid/RaidManager.hpp"
-#include "server/world/spawn/VillageSiege.hpp"
 #include "common/world/storage/WorldStorageService.hpp"
 #include "common/world/storage/save/SaveManager.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/world/gamerule/GameRules.hpp"
-#include "common/physics/PhysicsEngine.hpp"
-#include "common/physics/CollisionCache.hpp"
-#include "common/world/WorldConfig.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/spawn/VillageSiege.hpp"
 #include "server/world/weather/WeatherManager.hpp"
-#include <memory>
 #include <functional>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -39,11 +39,11 @@ enum class ParticleTypeId : u16;
 }
 
 namespace server::core {
-class TimeManager;  // 前向声明
+class TimeManager; // 前向声明
 }
 
 namespace loot {
-class LootTableManager;  // 前向声明
+class LootTableManager; // 前向声明
 }
 
 namespace server {
@@ -59,10 +59,10 @@ namespace server {
  * 世界类型通过 chunkGenerator 动态判断，不在此存储。
  */
 struct ServerWorldConfig {
-    i32 viewDistance = 10;              ///< 视距（区块数）
-    DimensionId dimension = 0;          ///< 维度ID（0=主世界，1=下界，2=末地）
-    u64 seed = 114514;                  ///< 世界种子
-    std::string worldName = "world";    ///< 世界名称（用于存档目录）
+    i32 viewDistance = 10;           ///< 视距（区块数）
+    DimensionId dimension = 0;       ///< 维度ID（0=主世界，1=下界，2=末地）
+    u64 seed = 114514;               ///< 世界种子
+    std::string worldName = "world"; ///< 世界名称（用于存档目录）
 };
 
 // ============================================================================
@@ -90,12 +90,12 @@ public:
     explicit ServerWorld(const ServerWorldConfig& config);
     ~ServerWorld() override;
 
-    using IWorld::setBlockState;
+    using IWorld::getBlockLight;
     using IWorld::getBlockState;
     using IWorld::getFluidState;
-    using IWorld::getBlockLight;
     using IWorld::getSkyLight;
     using IWorld::isWithinWorldBounds;
+    using IWorld::setBlockState;
 
     // 初始化
     [[nodiscard]] Result<void> initialize();
@@ -214,7 +214,6 @@ private:
     [[nodiscard]] BlockPos getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ);
 
 public:
-
     // ========== 统计 ==========
 
     [[nodiscard]] size_t chunkCount() const;
@@ -276,18 +275,14 @@ public:
      *
      * @return GameRules 常引用
      */
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override {
-        return m_gameRules;
-    }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
 
     /**
      * @brief 获取游戏规则管理器（可变）
      *
      * @return GameRules 引用
      */
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override {
-        return m_gameRules;
-    }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
 
     // ========== 类型转换 ==========
 
@@ -304,7 +299,9 @@ public:
 
     // ========== 声音播放 ==========
 
-    void setOnPlaySound(std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> callback) {
+    void setOnPlaySound(
+        std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> callback)
+    {
         if (m_onPlaySound) {
             throw std::runtime_error("Sound callback already set");
         }
@@ -313,10 +310,10 @@ public:
     }
 
     void playSound(const ResourceLocation& soundEventId,
-                   sound::SoundCategory category,
-                   const Vector3& position,
-                   f32 volume,
-                   f32 pitch) override;
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override;
 
     // ========== 世界事件 ==========
 
@@ -326,7 +323,8 @@ public:
 
     using OpenContainerCallback = std::function<bool(ContainerType, const BlockPos&, Player&)>;
 
-    void setOnOpenContainer(OpenContainerCallback callback) {
+    void setOnOpenContainer(OpenContainerCallback callback)
+    {
         if (m_onOpenContainer) {
             throw std::runtime_error("Open container callback already set");
         }
@@ -343,16 +341,13 @@ public:
      * 当服务端需要广播粒子给玩家时调用。
      * 参数：粒子类型、位置、速度、偏移、数量
      */
-    using ParticleBroadcastCallback = std::function<void(
-        client::renderer::trident::particle::ParticleTypeId type,
+    using ParticleBroadcastCallback = std::function<void(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
         u32 count)>;
 
-    void setOnBroadcastParticle(ParticleBroadcastCallback callback) {
-        m_onBroadcastParticle = std::move(callback);
-    }
+    void setOnBroadcastParticle(ParticleBroadcastCallback callback) { m_onBroadcastParticle = std::move(callback); }
 
     // ========== 实体状态广播回调 ==========
 
@@ -364,9 +359,7 @@ public:
      */
     using EntityStatusCallback = std::function<void(EntityId entityId, u8 status)>;
 
-    void setOnBroadcastEntityStatus(EntityStatusCallback callback) {
-        m_onBroadcastEntityStatus = std::move(callback);
-    }
+    void setOnBroadcastEntityStatus(EntityStatusCallback callback) { m_onBroadcastEntityStatus = std::move(callback); }
 
     // ========== 世界事件回调 ==========
 
@@ -378,9 +371,7 @@ public:
      */
     using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
 
-    void setOnBroadcastWorldEvent(WorldEventCallback callback) {
-        m_onBroadcastWorldEvent = std::move(callback);
-    }
+    void setOnBroadcastWorldEvent(WorldEventCallback callback) { m_onBroadcastWorldEvent = std::move(callback); }
 
     // ========== 爆炸广播回调 ==========
 
@@ -390,15 +381,12 @@ public:
      * 当服务端需要广播爆炸事件给玩家时调用。
      * 参数：爆炸位置、威力、受影响方块列表、玩家击退映射
      */
-    using ExplosionBroadcastCallback = std::function<void(
-        const Vector3& position,
+    using ExplosionBroadcastCallback = std::function<void(const Vector3& position,
         f32 strength,
         const std::vector<BlockPos>& affectedBlocks,
         const std::unordered_map<u64, Vector3>& playerKnockback)>;
 
-    void setOnBroadcastExplosion(ExplosionBroadcastCallback callback) {
-        m_onBroadcastExplosion = std::move(callback);
-    }
+    void setOnBroadcastExplosion(ExplosionBroadcastCallback callback) { m_onBroadcastExplosion = std::move(callback); }
 
     // ========== 袭击事件回调 ==========
 
@@ -407,34 +395,26 @@ public:
      *
      * 当袭击发生特定事件时调用，用于通知玩家。
      */
-    using RaidEventCallback = std::function<void(
-        i32 raidId,                ///< 袭击 ID
-        i32 eventType,             ///< 事件类型 (0=开始, 1=胜利, 2=失败, 3=波次开始)
-        const BlockPos& pos,       ///< 相关位置
-        i32 data                   ///< 额外数据
-    )>;
+    using RaidEventCallback = std::function<void(i32 raidId, ///< 袭击 ID
+        i32 eventType,                                       ///< 事件类型 (0=开始, 1=胜利, 2=失败, 3=波次开始)
+        const BlockPos& pos,                                 ///< 相关位置
+        i32 data                                             ///< 额外数据
+        )>;
 
-    void setOnRaidEvent(RaidEventCallback callback) {
-        m_onRaidEvent = std::move(callback);
-    }
+    void setOnRaidEvent(RaidEventCallback callback) { m_onRaidEvent = std::move(callback); }
 
     // ========== IWorld 接口实现 ==========
 
     void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity) override;
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override;
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
         u32 count) override;
 
-    [[nodiscard]] bool shouldSpawnParticleAt(
-        const Vector3& pos,
-        f32 maxDistance = 256.0f) const override;
+    [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const override;
 
     // ========== 实体状态广播 (IWorld override) ==========
 
@@ -442,8 +422,7 @@ public:
 
     // ========== 爆炸 ==========
 
-    void createExplosion(
-        const Vector3& position,
+    void createExplosion(const Vector3& position,
         f32 radius,
         world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy,
         bool causesFire = false,
@@ -457,9 +436,7 @@ public:
      *
      * @param lootTableManager 掉落表管理器指针（非拥有）
      */
-    void setLootTableManager(const loot::LootTableManager* lootTableManager) {
-        m_lootTableManager = lootTableManager;
-    }
+    void setLootTableManager(const loot::LootTableManager* lootTableManager) { m_lootTableManager = lootTableManager; }
 
     /**
      * @brief 获取战利品表管理器（IWorld 接口实现）
@@ -471,9 +448,7 @@ public:
      *
      * @return LootTableManager指针，如果不存在返回nullptr
      */
-    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override {
-        return m_lootTableManager;
-    }
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override { return m_lootTableManager; }
 
     // ========== 物理引擎 ==========
 
@@ -492,9 +467,7 @@ public:
 
     // ========== ICollisionWorld 接口实现 ==========
 
-    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord x, ChunkCoord z) const override {
-        return getChunk(x, z);
-    }
+    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord x, ChunkCoord z) const override { return getChunk(x, z); }
 
     // ========== 实体管理 ==========
 
@@ -556,7 +529,8 @@ public:
 
     // ========== 光照变化回调 ==========
 
-    void setOnLightChanged(std::function<void(LightType, const SectionPos&)> callback) {
+    void setOnLightChanged(std::function<void(LightType, const SectionPos&)> callback)
+    {
         if (m_onLightChanged) {
             throw std::runtime_error("Light change callback already set");
         }
@@ -565,7 +539,8 @@ public:
 
     // ========== 方块变化回调 ==========
 
-    void setOnBlockChanged(std::function<void(const BlockPos&, u32)> callback) {
+    void setOnBlockChanged(std::function<void(const BlockPos&, u32)> callback)
+    {
         if (m_onBlockChanged) {
             throw std::runtime_error("Block change callback already set");
         }
@@ -627,7 +602,10 @@ public:
     // ========== 村庄管理 ==========
 
     [[nodiscard]] ::mc::world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
-    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const override { return m_villageManager.get(); }
+    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const override
+    {
+        return m_villageManager.get();
+    }
 
     // ========== 袭击管理 ==========
 
@@ -680,9 +658,7 @@ public:
      *
      * 重写 IWorld::onPlayerSleepingChanged()，调用 updateAllPlayersSleepingFlag()。
      */
-    void onPlayerSleepingChanged() override {
-        updateAllPlayersSleepingFlag();
-    }
+    void onPlayerSleepingChanged() override { updateAllPlayersSleepingFlag(); }
 
     /**
      * @brief 通知世界方块被放置
@@ -690,8 +666,7 @@ public:
      * 重写 IWorld::onBlockPlaced()，发布 BlockPlaceEvent 用于进度触发。
      * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
      */
-    void onBlockPlaced(PlayerId playerId, const BlockPos& pos,
-                       const BlockState* state, const ItemStack* item) override;
+    void onBlockPlaced(PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack* item) override;
 
     /**
      * @brief 通知世界僵尸村民被治愈
@@ -725,8 +700,8 @@ private:
 
 private:
     ServerWorldConfig m_config;
-    world::storage::WorldStorageService m_storage;  ///< 存储服务（唯一对外接口）
-    std::unique_ptr<world::storage::SaveManager> m_saveManager;  ///< 保存协调器
+    world::storage::WorldStorageService m_storage;              ///< 存储服务（唯一对外接口）
+    std::unique_ptr<world::storage::SaveManager> m_saveManager; ///< 保存协调器
     std::unique_ptr<ServerChunkManager> m_chunkManager;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;
@@ -736,10 +711,10 @@ private:
     std::unique_ptr<WorldLightManager> m_lightManager;
     std::unique_ptr<WeatherManager> m_weatherManager;
     server::ItemPickupManager m_itemPickupManager;
-    core::TimeManager* m_timeManager = nullptr;  // 外部引用，不拥有
+    core::TimeManager* m_timeManager = nullptr; // 外部引用，不拥有
     bool m_initialized = false;
-    bool m_allPlayersSleeping = false;  // 全员睡眠标志
-    Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0};  // 世界出生点
+    bool m_allPlayersSleeping = false;                                              // 全员睡眠标志
+    Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0}; // 世界出生点
 
     OpenContainerCallback m_onOpenContainer;
 
@@ -757,17 +732,17 @@ private:
     EntityStatusCallback m_onBroadcastEntityStatus;
     WorldEventCallback m_onBroadcastWorldEvent;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
-    RaidEventCallback m_onRaidEvent;  ///< 袭击事件回调
+    RaidEventCallback m_onRaidEvent; ///< 袭击事件回调
 
     // 随机刻系统
-    math::Random m_random;            ///< 世界随机数生成器
-    i64 m_updateLCG = 0;              ///< 用于随机刻位置的 LCG 状态
+    math::Random m_random; ///< 世界随机数生成器
+    i64 m_updateLCG = 0;   ///< 用于随机刻位置的 LCG 状态
 
     // 游戏规则
-    world::gamerule::GameRules m_gameRules;  ///< 游戏规则管理器
+    world::gamerule::GameRules m_gameRules; ///< 游戏规则管理器
 
     // 世界边界
-    world::border::WorldBorder m_worldBorder;  ///< 世界边界
+    world::border::WorldBorder m_worldBorder; ///< 世界边界
 
     // 掉落表管理器（非拥有，由 MinecraftServer 持有）
     const loot::LootTableManager* m_lootTableManager = nullptr;

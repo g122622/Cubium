@@ -13,9 +13,9 @@
 #include "TridentSwapchain.hpp"
 
 // 渲染管理器
-#include "render/RenderPassManager.hpp"
-#include "render/FrameManager.hpp"
 #include "render/DescriptorManager.hpp"
+#include "render/FrameManager.hpp"
+#include "render/RenderPassManager.hpp"
 #include "render/UniformManager.hpp"
 
 // API 接口
@@ -33,10 +33,10 @@ constexpr u32 TRIDENT_VERSION_PATCH = 0;
 /**
  * @brief 获取 Trident 版本字符串
  */
-inline std::string getTridentVersion() {
-    return std::to_string(TRIDENT_VERSION_MAJOR) + "." +
-           std::to_string(TRIDENT_VERSION_MINOR) + "." +
-           std::to_string(TRIDENT_VERSION_PATCH);
+inline std::string getTridentVersion()
+{
+    return std::to_string(TRIDENT_VERSION_MAJOR) + "." + std::to_string(TRIDENT_VERSION_MINOR) + "." +
+        std::to_string(TRIDENT_VERSION_PATCH);
 }
 
 } // namespace mc::client::renderer::trident

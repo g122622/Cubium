@@ -1,17 +1,17 @@
 #include "InMemoryResourcePack.hpp"
 #include <algorithm>
-#include <spdlog/spdlog.h>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
 InMemoryResourcePack::InMemoryResourcePack(std::string name)
     : m_name(std::move(name))
-    , m_metadata(3, "Built-in resources")  // pack_format 3 for 1.16.x
-{
-}
+    , m_metadata(3, "Built-in resources") // pack_format 3 for 1.16.x
+{}
 
-void InMemoryResourcePack::addResource(std::string path, std::string content) {
+void InMemoryResourcePack::addResource(std::string path, std::string content)
+{
     std::string normalized = normalizePath(path);
     std::vector<u8> data(content.begin(), content.end());
     m_resources[normalized] = std::move(data);
@@ -31,7 +31,8 @@ void InMemoryResourcePack::addResource(std::string path, std::string content) {
     }
 }
 
-void InMemoryResourcePack::addResource(std::string path, std::vector<u8> data) {
+void InMemoryResourcePack::addResource(std::string path, std::vector<u8> data)
+{
     std::string normalized = normalizePath(path);
     m_resources[normalized] = std::move(data);
 
@@ -50,23 +51,26 @@ void InMemoryResourcePack::addResource(std::string path, std::vector<u8> data) {
     }
 }
 
-void InMemoryResourcePack::addDirectory(std::string directory) {
+void InMemoryResourcePack::addDirectory(std::string directory)
+{
     std::string normalized = normalizePath(directory);
     m_directories.insert(normalized);
 }
 
-Result<void> InMemoryResourcePack::initialize() {
-    spdlog::info("In-memory resource pack '{}' initialized: {} resources",
-                 m_name, m_resources.size());
+Result<void> InMemoryResourcePack::initialize()
+{
+    spdlog::info("In-memory resource pack '{}' initialized: {} resources", m_name, m_resources.size());
     return Result<void>::ok();
 }
 
-bool InMemoryResourcePack::hasResource(std::string_view resourcePath) const {
+bool InMemoryResourcePack::hasResource(std::string_view resourcePath) const
+{
     std::string normalized = normalizePath(resourcePath);
     return m_resources.find(normalized) != m_resources.end();
 }
 
-Result<std::vector<u8>> InMemoryResourcePack::readResource(std::string_view resourcePath) const {
+Result<std::vector<u8>> InMemoryResourcePack::readResource(std::string_view resourcePath) const
+{
     std::string normalized = normalizePath(resourcePath);
 
     auto it = m_resources.find(normalized);
@@ -80,8 +84,7 @@ Result<std::vector<u8>> InMemoryResourcePack::readResource(std::string_view reso
 }
 
 Result<std::vector<std::string>> InMemoryResourcePack::listResources(
-    std::string_view directory,
-    std::string_view extension) const
+    std::string_view directory, std::string_view extension) const
 {
     std::vector<std::string> resources;
     std::string normalizedDir = normalizePath(directory);
@@ -93,15 +96,13 @@ Result<std::vector<std::string>> InMemoryResourcePack::listResources(
 
     for (const auto& [path, data] : m_resources) {
         // 检查是否在指定目录下
-        if (path.size() > normalizedDir.size() &&
-            path.substr(0, normalizedDir.size()) == normalizedDir) {
+        if (path.size() > normalizedDir.size() && path.substr(0, normalizedDir.size()) == normalizedDir) {
 
             // 检查扩展名
             if (extension.empty()) {
                 resources.push_back(path);
             } else {
-                if (path.size() >= extension.size() &&
-                    path.substr(path.size() - extension.size()) == extension) {
+                if (path.size() >= extension.size() && path.substr(path.size() - extension.size()) == extension) {
                     resources.push_back(path);
                 }
             }
@@ -114,7 +115,8 @@ Result<std::vector<std::string>> InMemoryResourcePack::listResources(
     return resources;
 }
 
-std::string InMemoryResourcePack::normalizePath(std::string_view path) {
+std::string InMemoryResourcePack::normalizePath(std::string_view path)
+{
     std::string result(path);
 
     // 统一使用正斜杠

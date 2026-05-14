@@ -46,14 +46,22 @@ public:
      * MC 1.16.5: totalPathDistance
      */
     [[nodiscard]] f32 costFromStart() const { return m_costFromStart; }
-    void setCostFromStart(f32 cost) { m_costFromStart = cost; updateTotalCost(); }
+    void setCostFromStart(f32 cost)
+    {
+        m_costFromStart = cost;
+        updateTotalCost();
+    }
 
     /**
      * @brief 获取启发式代价（h值，到目标的估算代价）
      * MC 1.16.5: distanceToTarget 实际上是 f值，但内部计算使用 h值
      */
     [[nodiscard]] f32 heuristic() const { return m_heuristic; }
-    void setHeuristic(f32 h) { m_heuristic = h; updateTotalCost(); }
+    void setHeuristic(f32 h)
+    {
+        m_heuristic = h;
+        updateTotalCost();
+    }
 
     /**
      * @brief 获取总代价（f值 = g + h）
@@ -111,7 +119,8 @@ public:
      * @brief 计算到另一个点的直线距离（欧几里得距离）
      * MC 1.16.5: distanceTo() 使用直线距离作为启发式函数
      */
-    [[nodiscard]] f32 distanceTo(const PathPoint& other) const {
+    [[nodiscard]] f32 distanceTo(const PathPoint& other) const
+    {
         f32 dx = static_cast<f32>(m_x - other.m_x);
         f32 dy = static_cast<f32>(m_y - other.m_y);
         f32 dz = static_cast<f32>(m_z - other.m_z);
@@ -122,14 +131,16 @@ public:
      * @brief 计算到另一个点的曼哈顿距离
      * MC 1.16.5: func_224757_c() 使用曼哈顿距离
      */
-    [[nodiscard]] i32 distanceManhattan(const PathPoint& other) const {
+    [[nodiscard]] i32 distanceManhattan(const PathPoint& other) const
+    {
         return std::abs(m_x - other.m_x) + std::abs(m_y - other.m_y) + std::abs(m_z - other.m_z);
     }
 
     /**
      * @brief 计算到另一个点的直线距离平方
      */
-    [[nodiscard]] f32 distanceToSq(const PathPoint& other) const {
+    [[nodiscard]] f32 distanceToSq(const PathPoint& other) const
+    {
         f32 dx = static_cast<f32>(m_x - other.m_x);
         f32 dy = static_cast<f32>(m_y - other.m_y);
         f32 dz = static_cast<f32>(m_z - other.m_z);
@@ -140,7 +151,8 @@ public:
      * @brief 计算到指定坐标的直线距离平方
      * 避免创建临时 PathPoint 对象
      */
-    [[nodiscard]] f32 distanceToSq(i32 x, i32 y, i32 z) const {
+    [[nodiscard]] f32 distanceToSq(i32 x, i32 y, i32 z) const
+    {
         f32 dx = static_cast<f32>(m_x - x);
         f32 dy = static_cast<f32>(m_y - y);
         f32 dz = static_cast<f32>(m_z - z);
@@ -150,7 +162,8 @@ public:
     /**
      * @brief 检查是否与另一个点位置相同
      */
-    [[nodiscard]] bool equals(const PathPoint& other) const {
+    [[nodiscard]] bool equals(const PathPoint& other) const
+    {
         return m_x == other.m_x && m_y == other.m_y && m_z == other.m_z;
     }
 
@@ -158,7 +171,8 @@ public:
      * @brief 克隆此节点（不复制寻路状态）
      * MC 1.16.5 clone()
      */
-    [[nodiscard]] PathPoint clone() const {
+    [[nodiscard]] PathPoint clone() const
+    {
         PathPoint copy(m_x, m_y, m_z);
         copy.m_nodeType = m_nodeType;
         copy.m_costMalus = m_costMalus;
@@ -179,7 +193,8 @@ public:
      * - costMalus
      * - nodeType
      */
-    [[nodiscard]] PathPoint cloneMove(i32 newX, i32 newY, i32 newZ) const {
+    [[nodiscard]] PathPoint cloneMove(i32 newX, i32 newY, i32 newZ) const
+    {
         PathPoint copy(newX, newY, newZ);
         copy.m_heapIndex = m_heapIndex;
         copy.m_costFromStart = m_costFromStart;
@@ -198,7 +213,8 @@ public:
      * @brief 创建一个哈希值用于缓存
      * MC 1.16.5 hash: y & (MAX_BUILD_HEIGHT - 1) | (x & 32767) << 8 | (z & 32767) << 24 | sign bits
      */
-    [[nodiscard]] u32 hash() const {
+    [[nodiscard]] u32 hash() const
+    {
         // Y 坐标掩码：假设世界高度范围在 0 到 MAX_BUILD_HEIGHT-1
         constexpr u32 Y_MASK = static_cast<u32>(world::MAX_BUILD_HEIGHT - 1);
         u32 hash = static_cast<u32>(m_y) & Y_MASK;
@@ -214,16 +230,16 @@ private:
     i32 m_x;
     i32 m_y;
     i32 m_z;
-    f32 m_costMalus = 0.0f;        // 代价惩罚（来自节点类型）
-    f32 m_costFromStart = 0.0f;    // 从起点的代价（g值），MC: totalPathDistance
-    f32 m_heuristic = 0.0f;        // 启发式代价（h值），MC: distanceToNext 存储启发式*1.5
-    f32 m_totalCost = 0.0f;        // 总代价（f值 = g + h），MC: distanceToTarget
-    f32 m_walkedDistance = 0.0f;   // MC field_222861_j: 行走距离
-    f32 m_distanceToNext = 0.0f;   // 到下一个路径点的距离
-    PathNodeType m_nodeType = PathNodeType::Blocked;  // MC 1.16.5: 默认BLOCKED
-    bool m_visited = false;        // 是否已访问（在闭合列表中）
-    PathPoint* m_parent = nullptr; // 父节点（用于重建路径），MC 1.16.5: previous
-    i32 m_heapIndex = -1;          // 在堆中的索引（用于优先队列）
+    f32 m_costMalus = 0.0f;                          // 代价惩罚（来自节点类型）
+    f32 m_costFromStart = 0.0f;                      // 从起点的代价（g值），MC: totalPathDistance
+    f32 m_heuristic = 0.0f;                          // 启发式代价（h值），MC: distanceToNext 存储启发式*1.5
+    f32 m_totalCost = 0.0f;                          // 总代价（f值 = g + h），MC: distanceToTarget
+    f32 m_walkedDistance = 0.0f;                     // MC field_222861_j: 行走距离
+    f32 m_distanceToNext = 0.0f;                     // 到下一个路径点的距离
+    PathNodeType m_nodeType = PathNodeType::Blocked; // MC 1.16.5: 默认BLOCKED
+    bool m_visited = false;                          // 是否已访问（在闭合列表中）
+    PathPoint* m_parent = nullptr;                   // 父节点（用于重建路径），MC 1.16.5: previous
+    i32 m_heapIndex = -1;                            // 在堆中的索引（用于优先队列）
 };
 
 } // namespace mc::entity::ai::pathfinding

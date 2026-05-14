@@ -1,9 +1,9 @@
 #pragma once
 
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include <memory>
 
 namespace mc {
@@ -72,11 +72,7 @@ private:
     /**
      * @brief 生成发光轮廓网格
      */
-    static void generateGlowMesh(
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices,
-        f64 scale
-    );
+    static void generateGlowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale);
 
     static bool s_initialized;
 };

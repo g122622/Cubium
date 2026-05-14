@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
-#include "server/world/entity/ItemPickupManager.hpp"
-#include "server/world/ServerWorld.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/entity/ItemPickupManager.hpp"
 
 using namespace mc;
 using namespace mc::server;
@@ -15,7 +15,8 @@ using namespace mc::server;
 // Test fixture for ItemPickupManager
 class ItemPickupManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块和物品系统
         VanillaBlocks::initialize();
         Items::initialize();
@@ -26,7 +27,8 @@ protected:
 // 常量测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, ConstantsAreCorrect) {
+TEST_F(ItemPickupManagerTest, ConstantsAreCorrect)
+{
     // 参考 MC 1.16.5 EntityItem 常量
     EXPECT_FLOAT_EQ(ItemPickupManager::PICKUP_RANGE, 1.0f);
     EXPECT_FLOAT_EQ(ItemPickupManager::PICKUP_RANGE_EXTENDED, 1.5f);
@@ -41,7 +43,8 @@ TEST_F(ItemPickupManagerTest, ConstantsAreCorrect) {
 // 构造函数测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, DefaultConstructor) {
+TEST_F(ItemPickupManagerTest, DefaultConstructor)
+{
     ItemPickupManager manager;
     // 验证默认构造不抛出异常
     (void)manager;
@@ -51,7 +54,8 @@ TEST_F(ItemPickupManagerTest, DefaultConstructor) {
 // 拾取范围计算测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, CalculatePickupRange_Normal) {
+TEST_F(ItemPickupManagerTest, CalculatePickupRange_Normal)
+{
     // 普通玩家拾取范围应为 1.0
     // 由于 Player 需要 World，这里只能间接测试
     // 实际测试在集成测试中进行
@@ -62,7 +66,8 @@ TEST_F(ItemPickupManagerTest, CalculatePickupRange_Normal) {
 // ItemEntity 拾取测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, ItemEntity_CanBePickedUp) {
+TEST_F(ItemPickupManagerTest, ItemEntity_CanBePickedUp)
+{
     // 创建物品实体
     ItemStack stack(Items::DIAMOND, 1);
     ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
@@ -79,7 +84,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_CanBePickedUp) {
     EXPECT_FALSE(entity.canBePickedUp());
 }
 
-TEST_F(ItemPickupManagerTest, ItemEntity_PickupDelay) {
+TEST_F(ItemPickupManagerTest, ItemEntity_PickupDelay)
+{
     ItemStack stack(Items::DIAMOND, 1);
     ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
 
@@ -91,7 +97,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_PickupDelay) {
     EXPECT_EQ(entity.getPickupDelay(), 0);
 }
 
-TEST_F(ItemPickupManagerTest, ItemEntity_Age) {
+TEST_F(ItemPickupManagerTest, ItemEntity_Age)
+{
     ItemStack stack(Items::DIAMOND, 1);
     ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
 
@@ -110,7 +117,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_Age) {
 // 物品合并测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, ItemEntity_CanMergeWith) {
+TEST_F(ItemPickupManagerTest, ItemEntity_CanMergeWith)
+{
     // 创建两个相同物品的实体
     ItemStack stack1(Items::DIAMOND, 32);
     ItemStack stack2(Items::DIAMOND, 16);
@@ -131,7 +139,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_CanMergeWith) {
     EXPECT_FALSE(entity1.canMergeWith(entity3));
 }
 
-TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith) {
+TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith)
+{
     // 创建两个相同物品的实体
     ItemStack stack1(Items::DIAMOND, 32);
     ItemStack stack2(Items::DIAMOND, 16);
@@ -150,7 +159,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith) {
     EXPECT_EQ(entity1.getCount(), 48);
 }
 
-TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith_FullStack) {
+TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith_FullStack)
+{
     // 创建两个满堆叠的实体
     ItemStack stack1(Items::DIAMOND, 64);
     ItemStack stack2(Items::DIAMOND, 64);
@@ -166,7 +176,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith_FullStack) {
 // 物品过期测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, ItemEntity_Expiration) {
+TEST_F(ItemPickupManagerTest, ItemEntity_Expiration)
+{
     ItemStack stack(Items::DIAMOND, 1);
     ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
 
@@ -185,7 +196,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_Expiration) {
     EXPECT_TRUE(entity.isExpired());
 }
 
-TEST_F(ItemPickupManagerTest, ItemEntity_InfiniteLifetime) {
+TEST_F(ItemPickupManagerTest, ItemEntity_InfiniteLifetime)
+{
     ItemStack stack(Items::DIAMOND, 1);
     ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
 
@@ -203,7 +215,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_InfiniteLifetime) {
 // 所有者测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, ItemEntity_Owner) {
+TEST_F(ItemPickupManagerTest, ItemEntity_Owner)
+{
     ItemStack stack(Items::DIAMOND, 1);
     ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
 
@@ -218,7 +231,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_Owner) {
 // 物品数量修改测试
 // ============================================================================
 
-TEST_F(ItemPickupManagerTest, ItemEntity_SetItemStack) {
+TEST_F(ItemPickupManagerTest, ItemEntity_SetItemStack)
+{
     ItemStack stack1(Items::DIAMOND, 10);
     ItemEntity entity(1, stack1, 0.0f, 0.0f, 0.0f);
 
@@ -238,13 +252,15 @@ TEST_F(ItemPickupManagerTest, ItemEntity_SetItemStack) {
 
 class PlayerInventoryPickupTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
     }
 };
 
-TEST_F(PlayerInventoryPickupTest, AddItem_EmptyInventory) {
+TEST_F(PlayerInventoryPickupTest, AddItem_EmptyInventory)
+{
     PlayerInventory inventory(nullptr);
 
     // 添加一个物品
@@ -256,7 +272,8 @@ TEST_F(PlayerInventoryPickupTest, AddItem_EmptyInventory) {
     EXPECT_TRUE(stack.isEmpty());
 }
 
-TEST_F(PlayerInventoryPickupTest, AddItem_ExistingStack) {
+TEST_F(PlayerInventoryPickupTest, AddItem_ExistingStack)
+{
     PlayerInventory inventory(nullptr);
 
     // 先添加一些物品
@@ -268,12 +285,13 @@ TEST_F(PlayerInventoryPickupTest, AddItem_ExistingStack) {
     i32 added = inventory.add(stack);
 
     // 应该合并到已有堆叠
-    EXPECT_EQ(added, 16);  // 添加了 16 个
-    EXPECT_TRUE(stack.isEmpty());  // 原堆叠应该为空
-    EXPECT_EQ(inventory.getItem(0).getCount(), 48);  // 32 + 16 = 48
+    EXPECT_EQ(added, 16);                           // 添加了 16 个
+    EXPECT_TRUE(stack.isEmpty());                   // 原堆叠应该为空
+    EXPECT_EQ(inventory.getItem(0).getCount(), 48); // 32 + 16 = 48
 }
 
-TEST_F(PlayerInventoryPickupTest, AddItem_FullInventory) {
+TEST_F(PlayerInventoryPickupTest, AddItem_FullInventory)
+{
     PlayerInventory inventory(nullptr);
 
     // 填满背包（快捷栏 + 主背包 = 36 槽位，每个堆叠 64）
@@ -288,10 +306,11 @@ TEST_F(PlayerInventoryPickupTest, AddItem_FullInventory) {
 
     // 背包已满，无法添加
     EXPECT_EQ(added, 0);
-    EXPECT_EQ(stack.getCount(), 16);  // 原堆叠未改变
+    EXPECT_EQ(stack.getCount(), 16); // 原堆叠未改变
 }
 
-TEST_F(PlayerInventoryPickupTest, AddItem_DifferentItems) {
+TEST_F(PlayerInventoryPickupTest, AddItem_DifferentItems)
+{
     PlayerInventory inventory(nullptr);
 
     // 添加钻石
@@ -303,6 +322,6 @@ TEST_F(PlayerInventoryPickupTest, AddItem_DifferentItems) {
     i32 added = inventory.add(iron);
 
     EXPECT_EQ(added, 16);
-    EXPECT_EQ(inventory.getItem(0).getCount(), 32);  // 钻石
-    EXPECT_EQ(inventory.getItem(1).getCount(), 16);  // 铁锭
+    EXPECT_EQ(inventory.getItem(0).getCount(), 32); // 钻石
+    EXPECT_EQ(inventory.getItem(1).getCount(), 16); // 铁锭
 }

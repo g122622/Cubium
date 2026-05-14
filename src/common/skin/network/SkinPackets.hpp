@@ -5,9 +5,9 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
-#include <vector>
-#include <optional>
 #include <memory>
+#include <optional>
+#include <vector>
 
 namespace mc::skin {
 
@@ -17,11 +17,11 @@ namespace mc::skin {
  * 参考 MC 1.16.5 SPlayerListItemPacket.Action
  */
 enum class PlayerListAction : u8 {
-    AddPlayer = 0,      // 添加玩家
-    UpdateGameMode = 1, // 更新游戏模式
-    UpdateLatency = 2,  // 更新延迟
+    AddPlayer = 0,         // 添加玩家
+    UpdateGameMode = 1,    // 更新游戏模式
+    UpdateLatency = 2,     // 更新延迟
     UpdateDisplayName = 3, // 更新显示名
-    RemovePlayer = 4    // 移除玩家
+    RemovePlayer = 4       // 移除玩家
 };
 
 /**
@@ -36,12 +36,12 @@ enum class PlayerListAction : u8 {
  * - 使用 getDisplayNameAsText() 方法解析为 ITextComponent
  */
 struct PlayerListEntry {
-    std::array<u8, 16> uuid;                            // 玩家UUID
-    std::string name;                                   // 玩家名称
-    std::vector<GameProfileProperty> properties;        // 档案属性（皮肤等）
-    GameMode gameMode = GameMode::Survival;             // 游戏模式
-    i32 ping = 0;                                       // 延迟（毫秒）
-    std::optional<std::string> displayName;             // 显示名（JSON格式的ITextComponent）
+    std::array<u8, 16> uuid;                     // 玩家UUID
+    std::string name;                            // 玩家名称
+    std::vector<GameProfileProperty> properties; // 档案属性（皮肤等）
+    GameMode gameMode = GameMode::Survival;      // 游戏模式
+    i32 ping = 0;                                // 延迟（毫秒）
+    std::optional<std::string> displayName;      // 显示名（JSON格式的ITextComponent）
 
     PlayerListEntry() = default;
 
@@ -51,9 +51,7 @@ struct PlayerListEntry {
      * @param gameMode 游戏模式
      * @param ping 延迟
      */
-    static PlayerListEntry createAdd(const GameProfile& profile,
-                                     GameMode gameMode,
-                                     i32 ping);
+    static PlayerListEntry createAdd(const GameProfile& profile, GameMode gameMode, i32 ping);
 
     /**
      * @brief 创建移除玩家条目
@@ -80,8 +78,8 @@ struct PlayerListEntry {
      * @param uuid 玩家UUID
      * @param displayName 显示名（JSON格式的ITextComponent），std::nullopt表示清除显示名
      */
-    static PlayerListEntry createUpdateDisplayName(const std::array<u8, 16>& uuid,
-                                                    const std::optional<std::string>& displayName);
+    static PlayerListEntry createUpdateDisplayName(
+        const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName);
 
     /**
      * @brief 从ITextComponent设置显示名

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
+#include "common/entity/entities/player/Player.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "server/world/ServerWorld.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
-#include "common/entity/entities/player/Player.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 using namespace mc;
 using namespace mc::server;
@@ -21,18 +21,21 @@ using namespace mc::server::advancement;
  */
 class AdvancementEventHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 每个测试初始化
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理
     }
 };
 
 // ========== setServer() 测试 ==========
 
-TEST_F(AdvancementEventHandlerTest, SetServerNotNull) {
+TEST_F(AdvancementEventHandlerTest, SetServerNotNull)
+{
     AdvancementEventHandler handler;
 
     // 设置服务器接口
@@ -42,7 +45,8 @@ TEST_F(AdvancementEventHandlerTest, SetServerNotNull) {
     SUCCEED();
 }
 
-TEST_F(AdvancementEventHandlerTest, SetServerNullptr) {
+TEST_F(AdvancementEventHandlerTest, SetServerNullptr)
+{
     AdvancementEventHandler handler;
 
     // 设置为 nullptr 不应崩溃
@@ -51,7 +55,8 @@ TEST_F(AdvancementEventHandlerTest, SetServerNullptr) {
     SUCCEED();
 }
 
-TEST_F(AdvancementEventHandlerTest, SetServerMultipleTimes) {
+TEST_F(AdvancementEventHandlerTest, SetServerMultipleTimes)
+{
     AdvancementEventHandler handler;
 
     // 多次设置不应崩溃
@@ -64,7 +69,8 @@ TEST_F(AdvancementEventHandlerTest, SetServerMultipleTimes) {
 
 // ========== getServerPlayer() 边界测试 ==========
 
-TEST_F(AdvancementEventHandlerTest, GetServerPlayerWithoutServer) {
+TEST_F(AdvancementEventHandlerTest, GetServerPlayerWithoutServer)
+{
     AdvancementEventHandler handler;
     // 未设置 server，应返回 nullptr
 
@@ -76,7 +82,8 @@ TEST_F(AdvancementEventHandlerTest, GetServerPlayerWithoutServer) {
     SUCCEED();
 }
 
-TEST_F(AdvancementEventHandlerTest, GetServerPlayerWithNullServer) {
+TEST_F(AdvancementEventHandlerTest, GetServerPlayerWithNullServer)
+{
     AdvancementEventHandler handler;
     handler.setServer(nullptr);
 
@@ -89,7 +96,8 @@ TEST_F(AdvancementEventHandlerTest, GetServerPlayerWithNullServer) {
 
 // ========== 生命周期测试 ==========
 
-TEST_F(AdvancementEventHandlerTest, InitializeShutdown) {
+TEST_F(AdvancementEventHandlerTest, InitializeShutdown)
+{
     AdvancementEventHandler handler;
 
     EXPECT_FALSE(handler.isInitialized());
@@ -101,7 +109,8 @@ TEST_F(AdvancementEventHandlerTest, InitializeShutdown) {
     EXPECT_FALSE(handler.isInitialized());
 }
 
-TEST_F(AdvancementEventHandlerTest, InitializeMultipleTimes) {
+TEST_F(AdvancementEventHandlerTest, InitializeMultipleTimes)
+{
     AdvancementEventHandler handler;
 
     // 多次初始化
@@ -115,7 +124,8 @@ TEST_F(AdvancementEventHandlerTest, InitializeMultipleTimes) {
     EXPECT_FALSE(handler.isInitialized());
 }
 
-TEST_F(AdvancementEventHandlerTest, ShutdownWithoutInitialize) {
+TEST_F(AdvancementEventHandlerTest, ShutdownWithoutInitialize)
+{
     AdvancementEventHandler handler;
 
     // 未初始化时关闭不应崩溃
@@ -125,7 +135,8 @@ TEST_F(AdvancementEventHandlerTest, ShutdownWithoutInitialize) {
 
 // ========== setPlayerManager 向后兼容测试 ==========
 
-TEST_F(AdvancementEventHandlerTest, SetPlayerManagerCompat) {
+TEST_F(AdvancementEventHandlerTest, SetPlayerManagerCompat)
+{
     AdvancementEventHandler handler;
 
     // setPlayerManager 保留用于向后兼容
@@ -134,7 +145,8 @@ TEST_F(AdvancementEventHandlerTest, SetPlayerManagerCompat) {
     SUCCEED();
 }
 
-TEST_F(AdvancementEventHandlerTest, SetBothServerAndPlayerManager) {
+TEST_F(AdvancementEventHandlerTest, SetBothServerAndPlayerManager)
+{
     AdvancementEventHandler handler;
 
     // 可以同时设置两个
@@ -146,7 +158,8 @@ TEST_F(AdvancementEventHandlerTest, SetBothServerAndPlayerManager) {
 
 // ========== 架构验证测试 ==========
 
-TEST_F(AdvancementEventHandlerTest, ArchitectureGetServerPlayerPath) {
+TEST_F(AdvancementEventHandlerTest, ArchitectureGetServerPlayerPath)
+{
     // 验证调用链：
     // IServer::playerEntityManager() → ServerPlayerEntityManager
     // ServerPlayerEntityManager::getPlayerEntity(playerId, world) → Player*
@@ -156,7 +169,7 @@ TEST_F(AdvancementEventHandlerTest, ArchitectureGetServerPlayerPath) {
     // 实际的功能测试需要完整的 ServerWorld 和 ServerPlayer 实例
 
     AdvancementEventHandler handler;
-    handler.setServer(nullptr);  // 无服务器
+    handler.setServer(nullptr); // 无服务器
 
     // 初始化/关闭验证事件订阅机制正常
     handler.initialize();
@@ -167,7 +180,8 @@ TEST_F(AdvancementEventHandlerTest, ArchitectureGetServerPlayerPath) {
 
 // ========== 事件订阅测试 ==========
 
-TEST_F(AdvancementEventHandlerTest, EventSubscriptionLifecycle) {
+TEST_F(AdvancementEventHandlerTest, EventSubscriptionLifecycle)
+{
     AdvancementEventHandler handler;
 
     // 初始化时订阅事件

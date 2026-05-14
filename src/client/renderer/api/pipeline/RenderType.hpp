@@ -3,8 +3,8 @@
 #include "RenderState.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <string>
 #include <functional>
+#include <string>
 
 namespace mc::client::renderer::api {
 
@@ -69,51 +69,43 @@ public:
         : m_name(name)
         , m_state(state)
         , m_sortIndex(sortIndex)
-        , m_valid(true) {}
+        , m_valid(true)
+    {}
 
     // 预定义的方块渲染类型
 
     /**
      * @brief 不透明方块
      */
-    static RenderType solid() {
-        return RenderType(NAME_SOLID, RenderState::solid(), 0);
-    }
+    static RenderType solid() { return RenderType(NAME_SOLID, RenderState::solid(), 0); }
 
     /**
      * @brief 镂空方块 (无 mipmap)
      */
-    static RenderType cutout() {
-        return RenderType(NAME_CUTOUT, RenderState::cutout(), 1);
-    }
+    static RenderType cutout() { return RenderType(NAME_CUTOUT, RenderState::cutout(), 1); }
 
     /**
      * @brief 镂空方块 (有 mipmap)
      */
-    static RenderType cutoutMipped() {
-        return RenderType(NAME_CUTOUT_MIPPED, RenderState::cutoutMipped(), 2);
-    }
+    static RenderType cutoutMipped() { return RenderType(NAME_CUTOUT_MIPPED, RenderState::cutoutMipped(), 2); }
 
     /**
      * @brief 半透明方块
      */
-    static RenderType translucent() {
-        return RenderType(NAME_TRANSLUCENT, RenderState::translucent(), 100);
-    }
+    static RenderType translucent() { return RenderType(NAME_TRANSLUCENT, RenderState::translucent(), 100); }
 
     /**
      * @brief 线条
      */
-    static RenderType lines() {
-        return RenderType(NAME_LINES, RenderState::lines(), 200);
-    }
+    static RenderType lines() { return RenderType(NAME_LINES, RenderState::lines(), 200); }
 
     // 实体渲染类型
 
     /**
      * @brief 不透明实体
      */
-    static RenderType entitySolid(const ResourceLocation& texture = ResourceLocation()) {
+    static RenderType entitySolid(const ResourceLocation& texture = ResourceLocation())
+    {
         RenderType rt(NAME_ENTITY_SOLID, RenderState::solid(), 50);
         rt.m_texture = texture;
         return rt;
@@ -122,7 +114,8 @@ public:
     /**
      * @brief 镂空实体
      */
-    static RenderType entityCutout(const ResourceLocation& texture = ResourceLocation()) {
+    static RenderType entityCutout(const ResourceLocation& texture = ResourceLocation())
+    {
         RenderType rt(NAME_ENTITY_CUTOUT, RenderState::cutout(), 51);
         rt.m_texture = texture;
         return rt;
@@ -131,7 +124,8 @@ public:
     /**
      * @brief 半透明实体
      */
-    static RenderType entityTranslucent(const ResourceLocation& texture = ResourceLocation()) {
+    static RenderType entityTranslucent(const ResourceLocation& texture = ResourceLocation())
+    {
         RenderType rt(NAME_ENTITY_TRANSLUCENT, RenderState::translucent(), 150);
         rt.m_texture = texture;
         return rt;
@@ -142,21 +136,18 @@ public:
     /**
      * @brief 天空
      */
-    static RenderType sky() {
-        return RenderType(NAME_SKY, RenderState::solid(), -100);
-    }
+    static RenderType sky() { return RenderType(NAME_SKY, RenderState::solid(), -100); }
 
     /**
      * @brief 云
      */
-    static RenderType clouds() {
-        return RenderType(NAME_CLOUDS, RenderState::translucent(), 90);
-    }
+    static RenderType clouds() { return RenderType(NAME_CLOUDS, RenderState::translucent(), 90); }
 
     /**
      * @brief 粒子
      */
-    static RenderType particle(const ResourceLocation& texture = ResourceLocation()) {
+    static RenderType particle(const ResourceLocation& texture = ResourceLocation())
+    {
         RenderType rt(NAME_PARTICLE, RenderState::translucent(), 180);
         rt.m_texture = texture;
         return rt;
@@ -165,16 +156,12 @@ public:
     /**
      * @brief GUI
      */
-    static RenderType gui() {
-        return RenderType(NAME_GUI, RenderState::translucent(), 1000);
-    }
+    static RenderType gui() { return RenderType(NAME_GUI, RenderState::translucent(), 1000); }
 
     /**
      * @brief 闪电
      */
-    static RenderType lightning() {
-        return RenderType(NAME_LIGHTNING, RenderState::additive(), 190);
-    }
+    static RenderType lightning() { return RenderType(NAME_LIGHTNING, RenderState::additive(), 190); }
 
     // 访问器
 
@@ -206,29 +193,19 @@ public:
     /**
      * @brief 检查是否需要排序
      */
-    [[nodiscard]] bool needsSorting() const {
-        return m_state.blend.enabled;
-    }
+    [[nodiscard]] bool needsSorting() const { return m_state.blend.enabled; }
 
     /**
      * @brief 比较排序顺序
      * @return 如果 this 应该先于 other 渲染则返回 true
      */
-    [[nodiscard]] bool shouldRenderBefore(const RenderType& other) const {
-        return m_sortIndex < other.m_sortIndex;
-    }
+    [[nodiscard]] bool shouldRenderBefore(const RenderType& other) const { return m_sortIndex < other.m_sortIndex; }
 
-    bool operator==(const RenderType& other) const {
-        return m_name == other.m_name && m_state == other.m_state;
-    }
+    bool operator==(const RenderType& other) const { return m_name == other.m_name && m_state == other.m_state; }
 
-    bool operator!=(const RenderType& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const RenderType& other) const { return !(*this == other); }
 
-    bool operator<(const RenderType& other) const {
-        return m_sortIndex < other.m_sortIndex;
-    }
+    bool operator<(const RenderType& other) const { return m_sortIndex < other.m_sortIndex; }
 
 private:
     std::string m_name;
@@ -242,9 +219,7 @@ private:
  * @brief 渲染类型哈希
  */
 struct RenderTypeHash {
-    size_t operator()(const RenderType& rt) const {
-        return std::hash<std::string>{}(rt.name());
-    }
+    size_t operator()(const RenderType& rt) const { return std::hash<std::string>{}(rt.name()); }
 };
 
 } // namespace mc::client::renderer::api

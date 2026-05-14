@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Block.hpp"
-#include "../Material.hpp"
-#include "../BlockPos.hpp"
-#include "../../../util/property/Properties.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../Block.hpp"
+#include "../BlockPos.hpp"
+#include "../Material.hpp"
 #include <memory>
 
 namespace mc {
@@ -61,9 +61,8 @@ public:
      * @param neighborPos 邻居位置
      * @param isMoving 是否正在移动
      */
-    void neighborChanged(IWorld& world, const BlockPos& pos,
-                         Block& neighborBlock, const BlockPos& neighborPos,
-                         bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     /**
      * @brief 方块更新后处理
@@ -75,14 +74,12 @@ public:
      * @param facingPos 邻居位置
      * @return 更新后的状态
      */
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
         const BlockPos& currentPos,
-        const BlockPos& facingPos
-    ) override;
+        const BlockPos& facingPos) override;
 
     // ========== 交互 ==========
 
@@ -96,14 +93,12 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
-        const BlockRaycastResult& hit
-    ) override;
+        const BlockRaycastResult& hit) override;
 
     // ========== 形状 ==========
 
@@ -136,10 +131,7 @@ public:
      * @param rotation 旋转
      * @return 旋转后的状态
      */
-    [[nodiscard]] const BlockState& rotate(
-        const BlockState& state,
-        Rotation rotation
-    ) const override;
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
 
     /**
      * @brief 镜像方块状态
@@ -147,17 +139,15 @@ public:
      * @param mirror 镜像
      * @return 镜像后的状态
      */
-    [[nodiscard]] const BlockState& mirror(
-        const BlockState& state,
-        Mirror mirror
-    ) const override;
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     // ========== 红石 ==========
 
     /**
      * @brief 检查是否可以提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return false;
     }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractHorseEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "AbstractHorseEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -59,7 +59,8 @@ public:
      * @brief 检查物品是否可用于繁殖
      * 骷髅马不能繁殖
      */
-    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override {
+    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override
+    {
         (void)itemStack;
         return false;
     }
@@ -68,7 +69,8 @@ public:
      * @brief 生成幼体
      * 骷髅马不能繁殖
      */
-    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override {
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override
+    {
         (void)partner;
         return nullptr;
     }
@@ -136,9 +138,9 @@ protected:
     void registerAttributes() override;
 
 private:
-    bool m_trap = false;          // 是否为陷阱马
-    i32 m_trapTime = 0;           // 陷阱存活时间 (ticks)
-    static constexpr i32 TRAP_MAX_TIME = 18000;  // 陷阱最大存活时间 (15分钟)
+    bool m_trap = false;                        // 是否为陷阱马
+    i32 m_trapTime = 0;                         // 陷阱存活时间 (ticks)
+    static constexpr i32 TRAP_MAX_TIME = 18000; // 陷阱最大存活时间 (15分钟)
 };
 
 } // namespace mc

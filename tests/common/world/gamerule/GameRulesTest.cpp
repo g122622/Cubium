@@ -3,9 +3,9 @@
  * @brief GameRules 系统单元测试
  */
 
-#include <gtest/gtest.h>
-#include "common/world/gamerule/GameRule.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/gamerule/GameRule.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::world::gamerule;
 
@@ -13,14 +13,16 @@ using namespace mc::world::gamerule;
 // GameRuleKey Tests
 // ============================================================================
 
-TEST(GameRuleKeyTest, Construction) {
+TEST(GameRuleKeyTest, Construction)
+{
     BooleanGameRuleKey key("mobGriefing", GameRuleCategory::Mobs);
     EXPECT_EQ(key.getName(), "mobGriefing");
     EXPECT_EQ(key.getCategory(), GameRuleCategory::Mobs);
     EXPECT_EQ(key.getTranslationKey(), "gamerule.mobGriefing");
 }
 
-TEST(GameRuleKeyTest, Equality) {
+TEST(GameRuleKeyTest, Equality)
+{
     BooleanGameRuleKey key1("testRule", GameRuleCategory::Misc);
     BooleanGameRuleKey key2("testRule", GameRuleCategory::Player);
     BooleanGameRuleKey key3("otherRule", GameRuleCategory::Misc);
@@ -29,18 +31,20 @@ TEST(GameRuleKeyTest, Equality) {
     EXPECT_FALSE(key1 == key3); // Different name = not equal
 }
 
-TEST(GameRuleKeyTest, Hash) {
+TEST(GameRuleKeyTest, Hash)
+{
     BooleanGameRuleKey key1("testRule", GameRuleCategory::Misc);
     BooleanGameRuleKey key2("testRule", GameRuleCategory::Player);
 
-    EXPECT_EQ(key1.hashCode(), key2.hashCode());  // Same name = same hash
+    EXPECT_EQ(key1.hashCode(), key2.hashCode()); // Same name = same hash
 }
 
 // ============================================================================
 // GameRuleValue Tests
 // ============================================================================
 
-TEST(GameRuleValueTest, BooleanDefaultValue) {
+TEST(GameRuleValueTest, BooleanDefaultValue)
+{
     BooleanGameRuleType type(true);
     BooleanGameRuleValue value(type);
 
@@ -48,7 +52,8 @@ TEST(GameRuleValueTest, BooleanDefaultValue) {
     EXPECT_TRUE(value.isDefault());
 }
 
-TEST(GameRuleValueTest, BooleanSetAndGet) {
+TEST(GameRuleValueTest, BooleanSetAndGet)
+{
     BooleanGameRuleType type(true);
     BooleanGameRuleValue value(type);
 
@@ -61,7 +66,8 @@ TEST(GameRuleValueTest, BooleanSetAndGet) {
     EXPECT_TRUE(value.isDefault());
 }
 
-TEST(GameRuleValueTest, BooleanReset) {
+TEST(GameRuleValueTest, BooleanReset)
+{
     BooleanGameRuleType type(false);
     BooleanGameRuleValue value(type);
 
@@ -73,7 +79,8 @@ TEST(GameRuleValueTest, BooleanReset) {
     EXPECT_TRUE(value.isDefault());
 }
 
-TEST(GameRuleValueTest, BooleanToString) {
+TEST(GameRuleValueTest, BooleanToString)
+{
     BooleanGameRuleType type(true);
     BooleanGameRuleValue value(type);
 
@@ -83,7 +90,8 @@ TEST(GameRuleValueTest, BooleanToString) {
     EXPECT_EQ(value.toString(), "false");
 }
 
-TEST(GameRuleValueTest, BooleanFromString) {
+TEST(GameRuleValueTest, BooleanFromString)
+{
     BooleanGameRuleType type(false);
     BooleanGameRuleValue value(type);
 
@@ -103,7 +111,8 @@ TEST(GameRuleValueTest, BooleanFromString) {
     EXPECT_EQ(value.get(), false);
 }
 
-TEST(GameRuleValueTest, IntegerDefaultValue) {
+TEST(GameRuleValueTest, IntegerDefaultValue)
+{
     IntegerGameRuleType type(10);
     IntegerGameRuleValue value(type);
 
@@ -111,7 +120,8 @@ TEST(GameRuleValueTest, IntegerDefaultValue) {
     EXPECT_TRUE(value.isDefault());
 }
 
-TEST(GameRuleValueTest, IntegerSetAndGet) {
+TEST(GameRuleValueTest, IntegerSetAndGet)
+{
     IntegerGameRuleType type(0);
     IntegerGameRuleValue value(type);
 
@@ -124,7 +134,8 @@ TEST(GameRuleValueTest, IntegerSetAndGet) {
     EXPECT_TRUE(value.isDefault());
 }
 
-TEST(GameRuleValueTest, IntegerToString) {
+TEST(GameRuleValueTest, IntegerToString)
+{
     IntegerGameRuleType type(0);
     IntegerGameRuleValue value(type);
 
@@ -135,7 +146,8 @@ TEST(GameRuleValueTest, IntegerToString) {
     EXPECT_EQ(value.toString(), "-10");
 }
 
-TEST(GameRuleValueTest, IntegerFromString) {
+TEST(GameRuleValueTest, IntegerFromString)
+{
     IntegerGameRuleType type(0);
     IntegerGameRuleValue value(type);
 
@@ -148,7 +160,8 @@ TEST(GameRuleValueTest, IntegerFromString) {
     EXPECT_FALSE(value.fromString("not_a_number"));
 }
 
-TEST(GameRuleValueTest, Clone) {
+TEST(GameRuleValueTest, Clone)
+{
     IntegerGameRuleType type(10);
     IntegerGameRuleValue original(type);
     original.set(50, nullptr);
@@ -167,7 +180,8 @@ TEST(GameRuleValueTest, Clone) {
 // GameRules Tests
 // ============================================================================
 
-TEST(GameRulesTest, HasKnownRule) {
+TEST(GameRulesTest, HasKnownRule)
+{
     GameRules rules;
 
     EXPECT_TRUE(GameRules::hasRule("mobGriefing"));
@@ -176,19 +190,22 @@ TEST(GameRulesTest, HasKnownRule) {
     EXPECT_TRUE(GameRules::hasRule("doDaylightCycle"));
 }
 
-TEST(GameRulesTest, HasUnknownRule) {
+TEST(GameRulesTest, HasUnknownRule)
+{
     EXPECT_FALSE(GameRules::hasRule("nonExistentRule"));
     EXPECT_FALSE(GameRules::hasRule(""));
 }
 
-TEST(GameRulesTest, GetRuleType) {
+TEST(GameRulesTest, GetRuleType)
+{
     EXPECT_EQ(GameRules::getRuleType("mobGriefing"), GameRuleValueType::Boolean);
     EXPECT_EQ(GameRules::getRuleType("naturalRegeneration"), GameRuleValueType::Boolean);
     EXPECT_EQ(GameRules::getRuleType("randomTickSpeed"), GameRuleValueType::Integer);
     EXPECT_EQ(GameRules::getRuleType("maxEntityCramming"), GameRuleValueType::Integer);
 }
 
-TEST(GameRulesTest, GetRuleNames) {
+TEST(GameRulesTest, GetRuleNames)
+{
     auto names = GameRules::getRuleNames();
 
     // Should have many rules
@@ -205,7 +222,8 @@ TEST(GameRulesTest, GetRuleNames) {
     EXPECT_TRUE(hasRandomTickSpeed);
 }
 
-TEST(GameRulesTest, BooleanRuleDefaultValues) {
+TEST(GameRulesTest, BooleanRuleDefaultValues)
+{
     GameRules rules;
 
     // Test known default values (from MC 1.16.5)
@@ -213,12 +231,13 @@ TEST(GameRulesTest, BooleanRuleDefaultValues) {
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::NATURAL_REGENERATION));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_DAYLIGHT_CYCLE));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_WEATHER_CYCLE));
-    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::KEEP_INVENTORY));  // Default false in 1.16.5
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_MOB_SPAWNING));   // Default true in 1.16.5
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_TILE_DROPS));     // Default true in 1.16.5
+    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::KEEP_INVENTORY)); // Default false in 1.16.5
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_MOB_SPAWNING)); // Default true in 1.16.5
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_TILE_DROPS));   // Default true in 1.16.5
 }
 
-TEST(GameRulesTest, IntegerRuleDefaultValues) {
+TEST(GameRulesTest, IntegerRuleDefaultValues)
+{
     GameRules rules;
 
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 3);
@@ -227,7 +246,8 @@ TEST(GameRulesTest, IntegerRuleDefaultValues) {
     EXPECT_EQ(rules.getInt(GameRuleKeys::MAX_COMMAND_CHAIN_LENGTH), 65536);
 }
 
-TEST(GameRulesTest, SetBooleanRule) {
+TEST(GameRulesTest, SetBooleanRule)
+{
     GameRules rules;
 
     // Change value
@@ -239,7 +259,8 @@ TEST(GameRulesTest, SetBooleanRule) {
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
 }
 
-TEST(GameRulesTest, SetIntegerRule) {
+TEST(GameRulesTest, SetIntegerRule)
+{
     GameRules rules;
 
     rules.setInt(GameRuleKeys::RANDOM_TICK_SPEED, 100, nullptr);
@@ -248,11 +269,12 @@ TEST(GameRulesTest, SetIntegerRule) {
     rules.setInt(GameRuleKeys::RANDOM_TICK_SPEED, 0, nullptr);
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 0);
 
-    rules.setInt(GameRuleKeys::RANDOM_TICK_SPEED, -1, nullptr);  // Negative is valid
+    rules.setInt(GameRuleKeys::RANDOM_TICK_SPEED, -1, nullptr); // Negative is valid
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), -1);
 }
 
-TEST(GameRulesTest, SetFromString) {
+TEST(GameRulesTest, SetFromString)
+{
     GameRules rules;
 
     // Boolean from string
@@ -267,7 +289,7 @@ TEST(GameRulesTest, SetFromString) {
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 50);
 
     // Invalid boolean value - only "true"/"false"/"1"/"0" are valid
-    EXPECT_FALSE(rules.setFromString("mobGriefing", "yes", nullptr));  // "yes" is not valid
+    EXPECT_FALSE(rules.setFromString("mobGriefing", "yes", nullptr)); // "yes" is not valid
 
     // Invalid integer value
     EXPECT_FALSE(rules.setFromString("randomTickSpeed", "not_a_number", nullptr));
@@ -276,7 +298,8 @@ TEST(GameRulesTest, SetFromString) {
     EXPECT_FALSE(rules.setFromString("unknownRule", "value", nullptr));
 }
 
-TEST(GameRulesTest, WriteAndReadNBT) {
+TEST(GameRulesTest, WriteAndReadNBT)
+{
     GameRules original;
 
     // Set some custom values
@@ -304,7 +327,8 @@ TEST(GameRulesTest, WriteAndReadNBT) {
     EXPECT_EQ(loaded.getInt(GameRuleKeys::MAX_ENTITY_CRAMMING), 24);
 }
 
-TEST(GameRulesTest, WriteOnlyNonDefaultValues) {
+TEST(GameRulesTest, WriteOnlyNonDefaultValues)
+{
     GameRules rules;
 
     // Don't change anything - NBT should be minimal
@@ -315,7 +339,8 @@ TEST(GameRulesTest, WriteOnlyNonDefaultValues) {
     // (implementation detail - just ensure it doesn't crash)
 }
 
-TEST(GameRulesTest, Categories) {
+TEST(GameRulesTest, Categories)
+{
     // Verify that all keys have correct categories
     EXPECT_EQ(GameRuleKeys::MOB_GRIEFING.getCategory(), GameRuleCategory::Mobs);
     EXPECT_EQ(GameRuleKeys::NATURAL_REGENERATION.getCategory(), GameRuleCategory::Player);
@@ -327,7 +352,8 @@ TEST(GameRulesTest, Categories) {
 // GameRuleType Tests
 // ============================================================================
 
-TEST(GameRuleTypeTest, CreateValue) {
+TEST(GameRuleTypeTest, CreateValue)
+{
     BooleanGameRuleType boolType(true);
     auto boolValue = boolType.createValue();
     EXPECT_EQ(boolValue.get(), true);
@@ -337,7 +363,8 @@ TEST(GameRuleTypeTest, CreateValue) {
     EXPECT_EQ(intValue.get(), 42);
 }
 
-TEST(GameRuleTypeTest, GetDefaultValue) {
+TEST(GameRuleTypeTest, GetDefaultValue)
+{
     BooleanGameRuleType boolType(false);
     EXPECT_EQ(boolType.getDefaultValue(), false);
 
@@ -349,7 +376,8 @@ TEST(GameRuleTypeTest, GetDefaultValue) {
 // Integration Tests
 // ============================================================================
 
-TEST(GameRulesIntegrationTest, AllRulesAreAccessible) {
+TEST(GameRulesIntegrationTest, AllRulesAreAccessible)
+{
     GameRules rules;
     auto names = GameRules::getRuleNames();
 
@@ -360,7 +388,8 @@ TEST(GameRulesIntegrationTest, AllRulesAreAccessible) {
     }
 }
 
-TEST(GameRulesIntegrationTest, AllKeysWorkWithGameRules) {
+TEST(GameRulesIntegrationTest, AllKeysWorkWithGameRules)
+{
     GameRules rules;
 
     // All predefined keys should work

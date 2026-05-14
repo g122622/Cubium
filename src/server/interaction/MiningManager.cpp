@@ -1,21 +1,21 @@
 #include "MiningManager.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "InventoryManager.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/GameModeUtils.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
-#include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/world/fluid/FluidTags.hpp"
-#include "common/core/Constants.hpp"
-#include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc::server::interaction {
 
@@ -43,18 +43,17 @@ constexpr size_t MINING_FATIGUE_MULTIPLIERS_COUNT = 4;
 // 构造函数
 // ============================================================================
 
-MiningManager::MiningManager(core::PlayerManager& playerManager,
-                             core::ConnectionManager& connectionManager)
+MiningManager::MiningManager(core::PlayerManager& playerManager, core::ConnectionManager& connectionManager)
     : m_playerManager(playerManager)
     , m_connectionManager(connectionManager)
-{
-}
+{}
 
 // ============================================================================
 // 设置依赖
 // ============================================================================
 
-void MiningManager::setInventoryManager(InventoryManager* inventoryManager) {
+void MiningManager::setInventoryManager(InventoryManager* inventoryManager)
+{
     m_inventoryManager = inventoryManager;
 }
 
@@ -62,32 +61,37 @@ void MiningManager::setInventoryManager(InventoryManager* inventoryManager) {
 // 核心方法
 // ============================================================================
 
-void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId) {
+void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId)
+{
     auto& state = m_miningStates[playerId];
     state.position = pos;
     state.progress = 0.0f;
     state.lastStage = 255;
     state.active = true;
-    state.startTick = 0;  // 将在 tick 中设置
+    state.startTick = 0; // 将在 tick 中设置
     state.breakerId = entityId;
 
-    spdlog::debug("[Mining] Player {} started mining at ({}, {}, {})",
-                  playerId, pos.x, pos.y, pos.z);
+    spdlog::debug("[Mining] Player {} started mining at ({}, {}, {})", playerId, pos.x, pos.y, pos.z);
 }
 
-void MiningManager::abortMining(PlayerId playerId) {
+void MiningManager::abortMining(PlayerId playerId)
+{
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end()) {
         if (it->second.active) {
             spdlog::debug("[Mining] Player {} aborted mining at ({}, {}, {})",
-                          playerId, it->second.position.x, it->second.position.y, it->second.position.z);
+                playerId,
+                it->second.position.x,
+                it->second.position.y,
+                it->second.position.z);
         }
         m_miningStates.erase(it);
     }
 }
 
-void MiningManager::handleBlockInteraction(PlayerId playerId, const BlockPos& pos,
-                                           network::BlockInteractionAction action) {
+void MiningManager::handleBlockInteraction(
+    PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action)
+{
     switch (action) {
         case network::BlockInteractionAction::StartDestroyBlock:
             startMining(playerId, pos, static_cast<EntityId>(playerId));
@@ -104,7 +108,8 @@ void MiningManager::handleBlockInteraction(PlayerId playerId, const BlockPos& po
     }
 }
 
-void MiningManager::tick(ServerWorld& world) {
+void MiningManager::tick(ServerWorld& world)
+{
     MC_TRACE_EVENT("server.world.mining", "MiningManager::tick", "phase", "tick");
 
     for (auto& [playerId, state] : m_miningStates) {
@@ -120,8 +125,7 @@ void MiningManager::tick(ServerWorld& world) {
         }
 
         // 检查方块是否仍然存在
-        const BlockState* blockState = world.getBlockState(
-            state.position.x, state.position.y, state.position.z);
+        const BlockState* blockState = world.getBlockState(state.position.x, state.position.y, state.position.z);
 
         if (!blockState || blockState->isAir()) {
             // 方块已被破坏（可能是其他玩家）
@@ -153,7 +157,8 @@ void MiningManager::tick(ServerWorld& world) {
     }
 }
 
-f32 MiningManager::getMiningProgress(PlayerId playerId) const {
+f32 MiningManager::getMiningProgress(PlayerId playerId) const
+{
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end() && it->second.active) {
         return it->second.progress;
@@ -161,12 +166,14 @@ f32 MiningManager::getMiningProgress(PlayerId playerId) const {
     return 0.0f;
 }
 
-bool MiningManager::isMining(PlayerId playerId) const {
+bool MiningManager::isMining(PlayerId playerId) const
+{
     auto it = m_miningStates.find(playerId);
     return it != m_miningStates.end() && it->second.active;
 }
 
-std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) const {
+std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) const
+{
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end() && it->second.active) {
         return it->second.position;
@@ -174,13 +181,13 @@ std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) cons
     return std::nullopt;
 }
 
-void MiningManager::setOnBreakAnimBroadcast(
-    std::function<void(PlayerId, i32, i32, i32, i8)> callback) {
+void MiningManager::setOnBreakAnimBroadcast(std::function<void(PlayerId, i32, i32, i32, i8)> callback)
+{
     m_onBreakAnimBroadcast = std::move(callback);
 }
 
-void MiningManager::setOnMiningComplete(
-    std::function<void(PlayerId, const BlockPos&)> callback) {
+void MiningManager::setOnMiningComplete(std::function<void(PlayerId, const BlockPos&)> callback)
+{
     m_onMiningComplete = std::move(callback);
 }
 
@@ -188,19 +195,18 @@ void MiningManager::setOnMiningComplete(
 // 挖掘速度计算（MC 1.16.5 算法）
 // ============================================================================
 
-f32 MiningManager::calculateMiningSpeed(ServerWorld& world,
-                                         const BlockPos& pos,
-                                         PlayerId playerId) const {
+f32 MiningManager::calculateMiningSpeed(ServerWorld& world, const BlockPos& pos, PlayerId playerId) const
+{
     // 1. 获取方块状态
     const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
-        return 1.0f;  // 方块不存在，快速完成
+        return 1.0f; // 方块不存在，快速完成
     }
 
     // 2. 获取方块硬度
     f32 hardness = state->hardness();
     if (hardness < 0.0f) {
-        return 0.0f;  // 不可破坏（基岩等）
+        return 0.0f; // 不可破坏（基岩等）
     }
 
     // 3. 获取玩家数据
@@ -211,7 +217,7 @@ f32 MiningManager::calculateMiningSpeed(ServerWorld& world,
 
     // 4. 创造模式瞬间破坏
     if (playerData->gameMode == GameMode::Creative) {
-        return 1.0f;  // 创造模式一 tick 破坏任何方块
+        return 1.0f; // 创造模式一 tick 破坏任何方块
     }
 
     // 5. 硬度为 0 的方块瞬间破坏
@@ -250,9 +256,10 @@ f32 MiningManager::calculateMiningSpeed(ServerWorld& world,
 }
 
 f32 MiningManager::calculateDigSpeedMultiplier(ServerWorld& world,
-                                                const ItemStack& heldItem,
-                                                const BlockState& blockState,
-                                                const ServerPlayerData& playerData) const {
+    const ItemStack& heldItem,
+    const BlockState& blockState,
+    const ServerPlayerData& playerData) const
+{
     // MC 1.16.5 PlayerEntity.getDigSpeed() 实现
 
     // 1. 获取工具基础挖掘速度
@@ -290,17 +297,18 @@ f32 MiningManager::calculateDigSpeedMultiplier(ServerWorld& world,
     return speed;
 }
 
-f32 MiningManager::calculateHasteMultiplier(const ServerPlayerData& playerData) const {
+f32 MiningManager::calculateHasteMultiplier(const ServerPlayerData& playerData) const
+{
     // MC 1.16.5 EffectUtils.getMiningSpeedup()
     // 急迫和潮涌能量都可以增加挖掘速度，取最大值
 
-    i32 hasteLevel = -1;   // -1 表示没有效果
+    i32 hasteLevel = -1; // -1 表示没有效果
     i32 conduitLevel = -1;
 
     // 检查急迫效果
     const auto* hasteEffect = playerData.getEffect(entity::effect::EffectType::Haste);
     if (hasteEffect) {
-        hasteLevel = hasteEffect->amplifier();  // amplifier = level - 1
+        hasteLevel = hasteEffect->amplifier(); // amplifier = level - 1
     }
 
     // 检查潮涌能量效果
@@ -320,7 +328,8 @@ f32 MiningManager::calculateHasteMultiplier(const ServerPlayerData& playerData) 
     return 1.0f + static_cast<f32>(maxLevel + 1) * 0.2f;
 }
 
-f32 MiningManager::calculateMiningFatigueMultiplier(const ServerPlayerData& playerData) const {
+f32 MiningManager::calculateMiningFatigueMultiplier(const ServerPlayerData& playerData) const
+{
     // MC 1.16.5 PlayerEntity.getDigSpeed() 中的挖掘疲劳处理
     const auto* fatigueEffect = playerData.getEffect(entity::effect::EffectType::MiningFatigue);
     if (!fatigueEffect) {
@@ -338,7 +347,8 @@ f32 MiningManager::calculateMiningFatigueMultiplier(const ServerPlayerData& play
     return MINING_FATIGUE_MULTIPLIERS[MINING_FATIGUE_MULTIPLIERS_COUNT - 1];
 }
 
-bool MiningManager::hasAquaAffinity(const ServerPlayerData& playerData) const {
+bool MiningManager::hasAquaAffinity(const ServerPlayerData& playerData) const
+{
     // MC 1.16.5 EnchantmentHelper.hasAquaAffinity()
     // 检查头盔是否有水下速掘附魔
     // 需要通过 InventoryManager 获取头盔
@@ -363,7 +373,8 @@ bool MiningManager::hasAquaAffinity(const ServerPlayerData& playerData) const {
     return item::enchant::EnchantmentHelper::hasAquaAffinity(helmet);
 }
 
-bool MiningManager::areEyesInWater(ServerWorld& world, const ServerPlayerData& playerData) const {
+bool MiningManager::areEyesInWater(ServerWorld& world, const ServerPlayerData& playerData) const
+{
     // MC 1.16.5 Entity.updateEyesInWater() 实现
     // 检测玩家眼睛是否在水中
 
@@ -400,7 +411,8 @@ bool MiningManager::areEyesInWater(ServerWorld& world, const ServerPlayerData& p
     return fluidSurfaceY > eyeY;
 }
 
-void MiningManager::broadcastBreakAnim(PlayerId playerId, const BlockPos& pos, i8 stage) {
+void MiningManager::broadcastBreakAnim(PlayerId playerId, const BlockPos& pos, i8 stage)
+{
     if (m_onBreakAnimBroadcast) {
         m_onBreakAnimBroadcast(playerId, pos.x, pos.y, pos.z, stage);
     }

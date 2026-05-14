@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/combat/CombatRules.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/Items.hpp"
-#include "common/entity/damage/DamageSource.hpp"
 
 using namespace mc;
 using namespace mc::entity::combat;
@@ -17,47 +17,52 @@ using namespace mc::item::enchant;
 
 class CombatRulesEPFTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
         Items::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
 // ========== getDamageAfterMagicAbsorb 测试 ==========
 
-TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_ZeroEPF) {
+TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_ZeroEPF)
+{
     // EPF = 0 时，伤害不变
     EXPECT_FLOAT_EQ(CombatRules::getDamageAfterMagicAbsorb(10.0f, 0.0f), 10.0f);
     EXPECT_FLOAT_EQ(CombatRules::getDamageAfterMagicAbsorb(100.0f, 0.0f), 100.0f);
 }
 
-TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_EPF10) {
+TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_EPF10)
+{
     // EPF = 10 时，减伤 10/25 = 40%，伤害 × 0.6
     EXPECT_FLOAT_EQ(CombatRules::getDamageAfterMagicAbsorb(100.0f, 10.0f), 60.0f);
 }
 
-TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_EPF20) {
+TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_EPF20)
+{
     // EPF = 20 时，减伤 20/25 = 80%，伤害 × 0.2
     EXPECT_FLOAT_EQ(CombatRules::getDamageAfterMagicAbsorb(100.0f, 20.0f), 20.0f);
 }
 
-TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_EPFOver20Clamped) {
+TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_EPFOver20Clamped)
+{
     // EPF > 20 时，被限制为 20
     // EPF = 32 时，仍然按 EPF=20 计算
     EXPECT_FLOAT_EQ(CombatRules::getDamageAfterMagicAbsorb(100.0f, 32.0f), 20.0f);
 }
 
-TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_NegativeEPFClamped) {
+TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_NegativeEPFClamped)
+{
     // 负数 EPF 被限制为 0
     EXPECT_FLOAT_EQ(CombatRules::getDamageAfterMagicAbsorb(100.0f, -5.0f), 100.0f);
 }
 
-TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_ZeroDamage) {
+TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_ZeroDamage)
+{
     // 0 伤害返回 0
     EXPECT_FLOAT_EQ(CombatRules::getDamageAfterMagicAbsorb(0.0f, 20.0f), 0.0f);
 }
@@ -68,20 +73,20 @@ TEST_F(CombatRulesEPFTest, GetDamageAfterMagicAbsorb_ZeroDamage) {
 
 class EnchantmentHelperEPFTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
         Items::initialize();
     }
 
-    void TearDown() override {
-        EnchantmentRegistry::clear();
-    }
+    void TearDown() override { EnchantmentRegistry::clear(); }
 };
 
 // ========== 单物品保护附魔测试 ==========
 
-TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_All) {
+TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_All)
+{
     // 创建一个保护 IV 的物品（使用钻石胸甲）
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     ASSERT_NE(diamondChestplate, nullptr) << "DIAMOND_CHESTPLATE should be registered";
@@ -95,7 +100,8 @@ TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_All) {
     EXPECT_EQ(epf, 4);
 }
 
-TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Fire) {
+TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Fire)
+{
     // 创建一个火焰保护 IV 的物品
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     ASSERT_NE(diamondChestplate, nullptr);
@@ -112,7 +118,8 @@ TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Fire) {
     EXPECT_EQ(epf, 0);
 }
 
-TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Fall) {
+TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Fall)
+{
     // 创建一个摔落保护 IV 的物品（使用靴子）
     const mc::Item* diamondBoots = mc::Items::DIAMOND_BOOTS;
     ASSERT_NE(diamondBoots, nullptr);
@@ -129,7 +136,8 @@ TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Fall) {
     EXPECT_EQ(epf, 0);
 }
 
-TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Explosion) {
+TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Explosion)
+{
     // 创建一个爆炸保护 IV 的物品
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     ASSERT_NE(diamondChestplate, nullptr);
@@ -146,7 +154,8 @@ TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Explosion) {
     EXPECT_EQ(epf, 0);
 }
 
-TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Projectile) {
+TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Projectile)
+{
     // 创建一个弹射物保护 IV 的物品
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     ASSERT_NE(diamondChestplate, nullptr);
@@ -165,7 +174,8 @@ TEST_F(EnchantmentHelperEPFTest, SingleProtectionItem_Projectile) {
 
 // ========== 多物品护甲 EPF 总和测试 ==========
 
-TEST_F(EnchantmentHelperEPFTest, FullArmorProtection4) {
+TEST_F(EnchantmentHelperEPFTest, FullArmorProtection4)
+{
     const mc::Item* diamondHelmet = mc::Items::DIAMOND_HELMET;
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     const mc::Item* diamondLeggings = mc::Items::DIAMOND_LEGGINGS;
@@ -186,16 +196,15 @@ TEST_F(EnchantmentHelperEPFTest, FullArmorProtection4) {
     leggings.addEnchantment("minecraft:protection", 4);
     boots.addEnchantment("minecraft:protection", 4);
 
-    std::array<const ItemStack*, 4> armorSlots = {
-        &helmet, &chestplate, &leggings, &boots
-    };
+    std::array<const ItemStack*, 4> armorSlots = {&helmet, &chestplate, &leggings, &boots};
 
     // 总 EPF = 4 + 4 + 4 + 4 = 16
     i32 totalEPF = EnchantmentHelper::getTotalArmorProtection(armorSlots, 0);
     EXPECT_EQ(totalEPF, 16);
 }
 
-TEST_F(EnchantmentHelperEPFTest, FullArmorBlastProtection4) {
+TEST_F(EnchantmentHelperEPFTest, FullArmorBlastProtection4)
+{
     const mc::Item* diamondHelmet = mc::Items::DIAMOND_HELMET;
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     const mc::Item* diamondLeggings = mc::Items::DIAMOND_LEGGINGS;
@@ -213,16 +222,15 @@ TEST_F(EnchantmentHelperEPFTest, FullArmorBlastProtection4) {
     leggings.addEnchantment("minecraft:blast_protection", 4);
     boots.addEnchantment("minecraft:blast_protection", 4);
 
-    std::array<const ItemStack*, 4> armorSlots = {
-        &helmet, &chestplate, &leggings, &boots
-    };
+    std::array<const ItemStack*, 4> armorSlots = {&helmet, &chestplate, &leggings, &boots};
 
     // 总 EPF = 8 + 8 + 8 + 8 = 32，但上限为 20
     i32 totalEPF = EnchantmentHelper::getTotalArmorProtection(armorSlots, DamageFlags::EXPLOSION);
     EXPECT_EQ(totalEPF, 20);
 }
 
-TEST_F(EnchantmentHelperEPFTest, MixedProtection) {
+TEST_F(EnchantmentHelperEPFTest, MixedProtection)
+{
     const mc::Item* diamondHelmet = mc::Items::DIAMOND_HELMET;
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     const mc::Item* diamondLeggings = mc::Items::DIAMOND_LEGGINGS;
@@ -240,9 +248,7 @@ TEST_F(EnchantmentHelperEPFTest, MixedProtection) {
     leggings.addEnchantment("minecraft:protection", 4);
     boots.addEnchantment("minecraft:feather_falling", 4);
 
-    std::array<const ItemStack*, 4> armorSlots = {
-        &helmet, &chestplate, &leggings, &boots
-    };
+    std::array<const ItemStack*, 4> armorSlots = {&helmet, &chestplate, &leggings, &boots};
 
     // 对火焰伤害：
     // 头盔保护 IV = 4，胸甲火焰保护 IV = 8，护腿保护 IV = 4，靴子摔落保护对火焰无效 = 0
@@ -263,22 +269,20 @@ TEST_F(EnchantmentHelperEPFTest, MixedProtection) {
     EXPECT_EQ(genericEPF, 8);
 }
 
-TEST_F(EnchantmentHelperEPFTest, EmptyArmorSlots) {
+TEST_F(EnchantmentHelperEPFTest, EmptyArmorSlots)
+{
     // 空护甲槽位
     ItemStack empty;
-    std::array<const ItemStack*, 4> armorSlots = {
-        &empty, &empty, &empty, &empty
-    };
+    std::array<const ItemStack*, 4> armorSlots = {&empty, &empty, &empty, &empty};
 
     i32 totalEPF = EnchantmentHelper::getTotalArmorProtection(armorSlots, 0);
     EXPECT_EQ(totalEPF, 0);
 }
 
-TEST_F(EnchantmentHelperEPFTest, NullArmorSlots) {
+TEST_F(EnchantmentHelperEPFTest, NullArmorSlots)
+{
     // 空指针槽位
-    std::array<const ItemStack*, 4> armorSlots = {
-        nullptr, nullptr, nullptr, nullptr
-    };
+    std::array<const ItemStack*, 4> armorSlots = {nullptr, nullptr, nullptr, nullptr};
 
     i32 totalEPF = EnchantmentHelper::getTotalArmorProtection(armorSlots, 0);
     EXPECT_EQ(totalEPF, 0);
@@ -286,7 +290,8 @@ TEST_F(EnchantmentHelperEPFTest, NullArmorSlots) {
 
 // ========== 保护等级测试 ==========
 
-TEST_F(EnchantmentHelperEPFTest, ProtectionLevels) {
+TEST_F(EnchantmentHelperEPFTest, ProtectionLevels)
+{
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     ASSERT_NE(diamondChestplate, nullptr);
 
@@ -313,7 +318,8 @@ TEST_F(EnchantmentHelperEPFTest, ProtectionLevels) {
 
 // ========== 多附魔叠加测试 ==========
 
-TEST_F(EnchantmentHelperEPFTest, MultipleEnchantmentsOnSameItem) {
+TEST_F(EnchantmentHelperEPFTest, MultipleEnchantmentsOnSameItem)
+{
     const mc::Item* diamondChestplate = mc::Items::DIAMOND_CHESTPLATE;
     ASSERT_NE(diamondChestplate, nullptr);
 
@@ -333,12 +339,13 @@ TEST_F(EnchantmentHelperEPFTest, MultipleEnchantmentsOnSameItem) {
 
 // ========== 完整伤害计算测试 ==========
 
-TEST_F(CombatRulesEPFTest, FullDamageCalculation) {
+TEST_F(CombatRulesEPFTest, FullDamageCalculation)
+{
     // 100 点伤害，EPF = 16 (64% 减伤)
     f32 damage = CombatRules::getDamageAfterMagicAbsorb(100.0f, 16.0f);
-    EXPECT_FLOAT_EQ(damage, 36.0f);  // 100 * (1 - 16/25) = 100 * 0.36 = 36
+    EXPECT_FLOAT_EQ(damage, 36.0f); // 100 * (1 - 16/25) = 100 * 0.36 = 36
 
     // 100 点伤害，EPF = 20 (80% 减伤)
     damage = CombatRules::getDamageAfterMagicAbsorb(100.0f, 20.0f);
-    EXPECT_FLOAT_EQ(damage, 20.0f);  // 100 * (1 - 20/25) = 100 * 0.2 = 20
+    EXPECT_FLOAT_EQ(damage, 20.0f); // 100 * (1 - 20/25) = 100 * 0.2 = 20
 }

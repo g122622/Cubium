@@ -4,17 +4,15 @@ namespace mc {
 
 StraightTrunkPlacer::StraightTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     : TrunkPlacer(baseHeight, heightRandA, heightRandB)
-{
-}
+{}
 
-std::vector<FoliagePosition> StraightTrunkPlacer::placeTrunk(
-    WorldGenRegion& world,
+std::vector<FoliagePosition> StraightTrunkPlacer::placeTrunk(WorldGenRegion& world,
     math::Random& /*random*/,
     i32 height,
     const BlockPos& startPos,
     std::set<BlockPos>& trunkBlocks,
-    const BlockState* trunkBlock
-) {
+    const BlockState* trunkBlock)
+{
     // 在起始位置下方放置泥土
     placeDirtUnder(world, startPos);
 

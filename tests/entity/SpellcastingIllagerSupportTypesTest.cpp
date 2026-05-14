@@ -35,9 +35,7 @@ TEST(SpellcastingIllagerSupportTypesTest, IllusionerSpellcastingAndAttributesAre
     illusioner.castBlindnessSpell();
     EXPECT_TRUE(illusioner.isCasting());
     EXPECT_EQ(illusioner.spellType(), SpellcastingIllagerEntity::SpellType::Blindness);
-    EXPECT_EQ(
-        illusioner.getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 0.0),
-        18.0);
+    EXPECT_EQ(illusioner.getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 0.0), 18.0);
 }
 
 } // namespace

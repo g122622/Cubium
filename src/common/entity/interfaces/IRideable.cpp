@@ -1,17 +1,18 @@
 #include "IRideable.hpp"
-#include "../core/BoostHelper.hpp"
-#include "../core/MobEntity.hpp"
-#include "../core/Entity.hpp"
-#include "../entities/player/Player.hpp"
-#include "../../world/IWorld.hpp"
 #include "../../util/math/MathConstants.hpp"
 #include "../../util/math/MathUtils.hpp"
+#include "../../world/IWorld.hpp"
+#include "../core/BoostHelper.hpp"
+#include "../core/Entity.hpp"
+#include "../core/MobEntity.hpp"
+#include "../entities/player/Player.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
 
-bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& travelVec) {
+bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& travelVec)
+{
     // MC 1.16.5: IRideable.ride(MobEntity, BoostHelper, Vector3d)
     if (!mount.isAlive()) {
         return false;
@@ -19,7 +20,8 @@ bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& trave
 
     // 获取第一个乘客
     const auto& passengerList = mount.getPassengers();
-    Entity* controllingPassenger = passengerList.empty() ? nullptr : (mount.world() ? mount.world()->getEntity(passengerList[0]) : nullptr);
+    Entity* controllingPassenger =
+        passengerList.empty() ? nullptr : (mount.world() ? mount.world()->getEntity(passengerList[0]) : nullptr);
 
     // MC 1.16.5: if (mount.isBeingRidden() && mount.canBeSteered() && entity instanceof PlayerEntity)
     if (mount.isBeingRidden() && canBeSteered() && controllingPassenger != nullptr) {
@@ -58,7 +60,8 @@ bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& trave
 
                 // MC 1.16.5: 加速计算
                 // if (helper.saddledRaw) {
-                //     f += f * 1.15F * MathHelper.sin((float)helper.field_233611_b_ / (float)helper.boostTimeRaw * (float)Math.PI);
+                //     f += f * 1.15F * MathHelper.sin((float)helper.field_233611_b_ / (float)helper.boostTimeRaw *
+                //     (float)Math.PI);
                 // }
                 if (helper.saddledRaw) {
                     f32 progress = static_cast<f32>(helper.field_233611_b_) / static_cast<f32>(helper.boostTimeRaw);

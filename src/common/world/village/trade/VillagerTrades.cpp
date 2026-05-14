@@ -18,7 +18,8 @@ bool VillagerTrades::s_initialized = false;
 // 初始化
 // ============================================================================
 
-void VillagerTrades::initialize() {
+void VillagerTrades::initialize()
+{
     if (s_initialized) {
         return;
     }
@@ -45,11 +46,8 @@ void VillagerTrades::initialize() {
 }
 
 std::unique_ptr<MerchantOffers> VillagerTrades::generateOffers(
-    entity::VillagerProfession profession,
-    entity::VillagerType type,
-    i32 level,
-    i32 demand,
-    u64 seed) {
+    entity::VillagerProfession profession, entity::VillagerType type, i32 level, i32 demand, u64 seed)
+{
 
     auto offers = std::make_unique<MerchantOffers>();
 
@@ -87,11 +85,13 @@ std::unique_ptr<MerchantOffers> VillagerTrades::generateOffers(
     return offers;
 }
 
-bool VillagerTrades::hasTrades(entity::VillagerProfession profession) {
+bool VillagerTrades::hasTrades(entity::VillagerProfession profession)
+{
     return s_trades.find(profession) != s_trades.end();
 }
 
-i32 VillagerTrades::getTradeLevelCount(entity::VillagerProfession profession) {
+i32 VillagerTrades::getTradeLevelCount(entity::VillagerProfession profession)
+{
     auto it = s_trades.find(profession);
     if (it == s_trades.end()) {
         return 0;
@@ -104,12 +104,11 @@ i32 VillagerTrades::getTradeLevelCount(entity::VillagerProfession profession) {
 // ============================================================================
 
 TradeFactory VillagerTrades::simpleTrade(
-    const char* buyItem, i32 buyCount,
-    const char* sellItem, i32 sellCount,
-    i32 maxUses, i32 xp, f32 priceMultiplier) {
+    const char* buyItem, i32 buyCount, const char* sellItem, i32 sellCount, i32 maxUses, i32 xp, f32 priceMultiplier)
+{
 
-    return [buyItem, buyCount, sellItem, sellCount, maxUses, xp, priceMultiplier]
-           (i32 demand, u64 seed) -> std::unique_ptr<MerchantOffer> {
+    return [buyItem, buyCount, sellItem, sellCount, maxUses, xp, priceMultiplier](
+               i32 demand, u64 seed) -> std::unique_ptr<MerchantOffer> {
         (void)seed;
 
         // 获取物品
@@ -124,8 +123,7 @@ TradeFactory VillagerTrades::simpleTrade(
         ItemStack buyStack(*buy, buyCount);
         ItemStack sellStack(*sell, sellCount);
 
-        auto offer = std::make_unique<MerchantOffer>(
-            buyStack, sellStack, maxUses, xp, priceMultiplier);
+        auto offer = std::make_unique<MerchantOffer>(buyStack, sellStack, maxUses, xp, priceMultiplier);
 
         // 应用需求调整
         if (demand != 0) {
@@ -136,14 +134,19 @@ TradeFactory VillagerTrades::simpleTrade(
     };
 }
 
-TradeFactory VillagerTrades::twoItemTrade(
-    const char* buyItemA, i32 buyCountA,
-    const char* buyItemB, i32 buyCountB,
-    const char* sellItem, i32 sellCount,
-    i32 maxUses, i32 xp, f32 priceMultiplier) {
+TradeFactory VillagerTrades::twoItemTrade(const char* buyItemA,
+    i32 buyCountA,
+    const char* buyItemB,
+    i32 buyCountB,
+    const char* sellItem,
+    i32 sellCount,
+    i32 maxUses,
+    i32 xp,
+    f32 priceMultiplier)
+{
 
-    return [buyItemA, buyCountA, buyItemB, buyCountB, sellItem, sellCount, maxUses, xp, priceMultiplier]
-           (i32 demand, u64 seed) -> std::unique_ptr<MerchantOffer> {
+    return [buyItemA, buyCountA, buyItemB, buyCountB, sellItem, sellCount, maxUses, xp, priceMultiplier](
+               i32 demand, u64 seed) -> std::unique_ptr<MerchantOffer> {
         (void)seed;
 
         const Item* buyA = ItemRegistry::instance().getItem(ResourceLocation(buyItemA));
@@ -158,8 +161,7 @@ TradeFactory VillagerTrades::twoItemTrade(
         ItemStack buyStackB(*buyB, buyCountB);
         ItemStack sellStack(*sell, sellCount);
 
-        auto offer = std::make_unique<MerchantOffer>(
-            buyStackA, buyStackB, sellStack, maxUses, xp, priceMultiplier);
+        auto offer = std::make_unique<MerchantOffer>(buyStackA, buyStackB, sellStack, maxUses, xp, priceMultiplier);
 
         if (demand != 0) {
             offer->applyDemand(demand);
@@ -169,14 +171,17 @@ TradeFactory VillagerTrades::twoItemTrade(
     };
 }
 
-TradeFactory VillagerTrades::demandTrade(
-    i32 baseBuyCount,
+TradeFactory VillagerTrades::demandTrade(i32 baseBuyCount,
     const char* buyItem,
-    const char* sellItem, i32 sellCount,
-    i32 maxUses, i32 xp, f32 priceMultiplier) {
+    const char* sellItem,
+    i32 sellCount,
+    i32 maxUses,
+    i32 xp,
+    f32 priceMultiplier)
+{
 
-    return [baseBuyCount, buyItem, sellItem, sellCount, maxUses, xp, priceMultiplier]
-           (i32 demand, u64 seed) -> std::unique_ptr<MerchantOffer> {
+    return [baseBuyCount, buyItem, sellItem, sellCount, maxUses, xp, priceMultiplier](
+               i32 demand, u64 seed) -> std::unique_ptr<MerchantOffer> {
         (void)seed;
 
         const Item* buy = ItemRegistry::instance().getItem(ResourceLocation(buyItem));
@@ -193,15 +198,12 @@ TradeFactory VillagerTrades::demandTrade(
         ItemStack buyStack(*buy, adjustedCount);
         ItemStack sellStack(*sell, sellCount);
 
-        return std::make_unique<MerchantOffer>(
-            buyStack, sellStack, maxUses, xp, priceMultiplier);
+        return std::make_unique<MerchantOffer>(buyStack, sellStack, maxUses, xp, priceMultiplier);
     };
 }
 
-void VillagerTrades::registerTrade(
-    entity::VillagerProfession profession,
-    i32 level,
-    TradeFactory factory) {
+void VillagerTrades::registerTrade(entity::VillagerProfession profession, i32 level, TradeFactory factory)
+{
 
     s_trades[profession][level].push_back(std::move(factory));
 }
@@ -210,7 +212,8 @@ void VillagerTrades::registerTrade(
 // 盔甲匠交易
 // ============================================================================
 
-void VillagerTrades::registerArmorerTrades() {
+void VillagerTrades::registerArmorerTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -238,7 +241,8 @@ void VillagerTrades::registerArmorerTrades() {
 // 屠夫交易
 // ============================================================================
 
-void VillagerTrades::registerButcherTrades() {
+void VillagerTrades::registerButcherTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -266,7 +270,8 @@ void VillagerTrades::registerButcherTrades() {
 // 制图师交易
 // ============================================================================
 
-void VillagerTrades::registerCartographerTrades() {
+void VillagerTrades::registerCartographerTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -291,7 +296,8 @@ void VillagerTrades::registerCartographerTrades() {
 // 牧师交易
 // ============================================================================
 
-void VillagerTrades::registerClericTrades() {
+void VillagerTrades::registerClericTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -318,7 +324,8 @@ void VillagerTrades::registerClericTrades() {
 // 农民交易
 // ============================================================================
 
-void VillagerTrades::registerFarmerTrades() {
+void VillagerTrades::registerFarmerTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -347,7 +354,8 @@ void VillagerTrades::registerFarmerTrades() {
 // 渔夫交易
 // ============================================================================
 
-void VillagerTrades::registerFishermanTrades() {
+void VillagerTrades::registerFishermanTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -374,7 +382,8 @@ void VillagerTrades::registerFishermanTrades() {
 // 制箭师交易
 // ============================================================================
 
-void VillagerTrades::registerFletcherTrades() {
+void VillagerTrades::registerFletcherTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -402,7 +411,8 @@ void VillagerTrades::registerFletcherTrades() {
 // 皮革匠交易
 // ============================================================================
 
-void VillagerTrades::registerLeatherworkerTrades() {
+void VillagerTrades::registerLeatherworkerTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -428,7 +438,8 @@ void VillagerTrades::registerLeatherworkerTrades() {
 // 图书管理员交易
 // ============================================================================
 
-void VillagerTrades::registerLibrarianTrades() {
+void VillagerTrades::registerLibrarianTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -455,7 +466,8 @@ void VillagerTrades::registerLibrarianTrades() {
 // 石匠交易
 // ============================================================================
 
-void VillagerTrades::registerMasonTrades() {
+void VillagerTrades::registerMasonTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -482,7 +494,8 @@ void VillagerTrades::registerMasonTrades() {
 // 牧羊人交易
 // ============================================================================
 
-void VillagerTrades::registerShepherdTrades() {
+void VillagerTrades::registerShepherdTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -509,7 +522,8 @@ void VillagerTrades::registerShepherdTrades() {
 // 工具匠交易
 // ============================================================================
 
-void VillagerTrades::registerToolsmithTrades() {
+void VillagerTrades::registerToolsmithTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -536,7 +550,8 @@ void VillagerTrades::registerToolsmithTrades() {
 // 武器匠交易
 // ============================================================================
 
-void VillagerTrades::registerWeaponsmithTrades() {
+void VillagerTrades::registerWeaponsmithTrades()
+{
     using Profession = entity::VillagerProfession;
 
     // 等级1 - 新手
@@ -563,7 +578,8 @@ void VillagerTrades::registerWeaponsmithTrades() {
 // 傻子村民交易（无交易）
 // ============================================================================
 
-void VillagerTrades::registerNitwitTrades() {
+void VillagerTrades::registerNitwitTrades()
+{
     // 傻子村民没有任何交易
 }
 

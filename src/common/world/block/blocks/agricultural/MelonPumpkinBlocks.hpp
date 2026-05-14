@@ -1,7 +1,7 @@
 #pragma once
 
-#include "StemBlock.hpp"
 #include "../HorizontalBlock.hpp"
+#include "StemBlock.hpp"
 
 namespace mc {
 
@@ -69,7 +69,8 @@ public:
      * @param carvedPumpkin 刻过的南瓜方块
      * @param properties 方块属性
      */
-    PumpkinBlock(const Block* stem, const Block* attachedStem, const Block* carvedPumpkin, const BlockProperties& properties);
+    PumpkinBlock(
+        const Block* stem, const Block* attachedStem, const Block* carvedPumpkin, const BlockProperties& properties);
 
     ~PumpkinBlock() override = default;
 
@@ -107,8 +108,7 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果类型
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -188,10 +188,7 @@ private:
      * @param outBodyPos 输出铁傀儡身体位置（模式匹配时填充）
      * @return 是否匹配铁傀儡模式
      */
-    [[nodiscard]] bool checkIronGolemPattern(
-        IWorld& world,
-        const BlockPos& pos,
-        BlockPos& outBodyPos) const;
+    [[nodiscard]] bool checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos) const;
 
     /**
      * @brief 检查方块是否为南瓜类型（雕刻南瓜或南瓜灯）

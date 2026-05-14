@@ -1,17 +1,17 @@
 #include "WallOrFloorItem.hpp"
+#include "../../../util/Direction.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../util/Direction.hpp"
 
 namespace mc {
 
 WallOrFloorItem::WallOrFloorItem(const Block& floorBlock, const Block& wallBlock, ItemProperties properties)
     : BlockItem(floorBlock, properties)
     , m_wallBlock(&wallBlock)
-{
-}
+{}
 
-const BlockState* WallOrFloorItem::getStateForPlacement(const BlockItemUseContext& context) const {
+const BlockState* WallOrFloorItem::getStateForPlacement(const BlockItemUseContext& context) const
+{
     // 获取玩家视线方向的优先级列表
     const std::vector<Direction> nearestDirections = context.getNearestLookingDirections();
 

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "LootPool.hpp"
 #include "LootContext.hpp"
+#include "LootPool.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace loot {
@@ -63,9 +63,7 @@ public:
     /**
      * @brief 获取所有池
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootPool>>& getPools() const {
-        return m_pools;
-    }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootPool>>& getPools() const { return m_pools; }
 
     /**
      * @brief 根据名称获取池
@@ -162,7 +160,8 @@ public:
     /**
      * @brief 设置掉落表ID
      */
-    LootTableBuilder& id(const std::string& id) {
+    LootTableBuilder& id(const std::string& id)
+    {
         m_id = id;
         return *this;
     }
@@ -170,7 +169,8 @@ public:
     /**
      * @brief 设置参数集
      */
-    LootTableBuilder& paramSet(const LootParameterSet& paramSet) {
+    LootTableBuilder& paramSet(const LootParameterSet& paramSet)
+    {
         m_paramSet = paramSet;
         return *this;
     }
@@ -178,7 +178,8 @@ public:
     /**
      * @brief 添加池
      */
-    LootTableBuilder& pool(std::unique_ptr<LootPool> pool) {
+    LootTableBuilder& pool(std::unique_ptr<LootPool> pool)
+    {
         m_pools.push_back(std::move(pool));
         return *this;
     }

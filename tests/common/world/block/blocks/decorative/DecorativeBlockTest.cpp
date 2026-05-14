@@ -9,14 +9,14 @@
  * - 邻居更新
  */
 
-#include <gtest/gtest.h>
-#include "world/block/blocks/decorative/LadderBlock.hpp"
-#include "world/block/blocks/decorative/CarpetBlock.hpp"
-#include "world/block/blocks/decorative/FlowerPotBlock.hpp"
-#include "world/block/blocks/decorative/LanternBlock.hpp"
+#include "util/property/Properties.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
-#include "util/property/Properties.hpp"
+#include "world/block/blocks/decorative/CarpetBlock.hpp"
+#include "world/block/blocks/decorative/FlowerPotBlock.hpp"
+#include "world/block/blocks/decorative/LadderBlock.hpp"
+#include "world/block/blocks/decorative/LanternBlock.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::blocks;
@@ -25,50 +25,54 @@ using namespace mc::blocks;
 
 class LadderBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        ladder_ = std::make_unique<LadderBlock>(
-            BlockProperties(Material::WOOD)
-                .hardness(0.4f)
-                .resistance(0.4f)
-        );
+    void SetUp() override
+    {
+        ladder_ = std::make_unique<LadderBlock>(BlockProperties(Material::WOOD).hardness(0.4f).resistance(0.4f));
     }
 
     std::unique_ptr<LadderBlock> ladder_;
 };
 
-TEST_F(LadderBlockTest, Create_HasCorrectProperties) {
+TEST_F(LadderBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(ladder_, nullptr);
 }
 
-TEST_F(LadderBlockTest, DefaultState_FacingNorth) {
+TEST_F(LadderBlockTest, DefaultState_FacingNorth)
+{
     const auto& state = ladder_->defaultState();
     EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
 }
 
-TEST_F(LadderBlockTest, DefaultState_NotWaterlogged) {
+TEST_F(LadderBlockTest, DefaultState_NotWaterlogged)
+{
     const auto& state = ladder_->defaultState();
     EXPECT_FALSE(state.get(BlockStateProperties::WATERLOGGED()));
 }
 
-TEST_F(LadderBlockTest, IsLadder_ReturnsTrue) {
+TEST_F(LadderBlockTest, IsLadder_ReturnsTrue)
+{
     const auto& state = ladder_->defaultState();
     EXPECT_TRUE(ladder_->isLadder(state, nullptr, nullptr, nullptr));
 }
 
-TEST_F(LadderBlockTest, GetShape_ReturnsValidShape) {
+TEST_F(LadderBlockTest, GetShape_ReturnsValidShape)
+{
     const auto& state = ladder_->defaultState();
     const auto& shape = ladder_->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(LadderBlockTest, GetCollisionShape_ReturnsEmpty) {
+TEST_F(LadderBlockTest, GetCollisionShape_ReturnsEmpty)
+{
     const auto& state = ladder_->defaultState();
     const auto& shape = ladder_->getCollisionShape(state);
     // 梯子没有碰撞箱
     EXPECT_TRUE(shape.isEmpty());
 }
 
-TEST_F(LadderBlockTest, Rotate_ChangesFacing) {
+TEST_F(LadderBlockTest, Rotate_ChangesFacing)
+{
     const auto& state = ladder_->defaultState();
 
     // 旋转 90 度
@@ -84,28 +88,28 @@ TEST_F(LadderBlockTest, Rotate_ChangesFacing) {
 
 class CarpetBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        carpet_ = std::make_unique<CarpetBlock>(
-            BlockProperties(Material::WOOL)
-                .hardness(0.1f)
-                .resistance(0.5f)
-        );
+    void SetUp() override
+    {
+        carpet_ = std::make_unique<CarpetBlock>(BlockProperties(Material::WOOL).hardness(0.1f).resistance(0.5f));
     }
 
     std::unique_ptr<CarpetBlock> carpet_;
 };
 
-TEST_F(CarpetBlockTest, Create_HasCorrectProperties) {
+TEST_F(CarpetBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(carpet_, nullptr);
 }
 
-TEST_F(CarpetBlockTest, GetShape_ReturnsValidShape) {
+TEST_F(CarpetBlockTest, GetShape_ReturnsValidShape)
+{
     const auto& state = carpet_->defaultState();
     const auto& shape = carpet_->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(CarpetBlockTest, GetCollisionShape_ReturnsEmpty) {
+TEST_F(CarpetBlockTest, GetCollisionShape_ReturnsEmpty)
+{
     const auto& state = carpet_->defaultState();
     const auto& shape = carpet_->getCollisionShape(state);
     // 地毯没有碰撞箱
@@ -116,38 +120,42 @@ TEST_F(CarpetBlockTest, GetCollisionShape_ReturnsEmpty) {
 
 class FlowerPotBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建空花盆
-        flowerPot_ = std::make_unique<FlowerPotBlock>(
-            BlockProperties(Material::DECORATION)
-                .hardness(0.0f)
-                .resistance(0.0f),
-            0  // content = 0 (空花盆)
-        );
+        flowerPot_ =
+            std::make_unique<FlowerPotBlock>(BlockProperties(Material::DECORATION).hardness(0.0f).resistance(0.0f),
+                0 // content = 0 (空花盆)
+            );
     }
 
     std::unique_ptr<FlowerPotBlock> flowerPot_;
 };
 
-TEST_F(FlowerPotBlockTest, Create_HasCorrectProperties) {
+TEST_F(FlowerPotBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(flowerPot_, nullptr);
 }
 
-TEST_F(FlowerPotBlockTest, GetContent_ReturnsZeroForEmptyPot) {
+TEST_F(FlowerPotBlockTest, GetContent_ReturnsZeroForEmptyPot)
+{
     EXPECT_EQ(flowerPot_->getContent(), 0u);
 }
 
-TEST_F(FlowerPotBlockTest, IsEmpty_ReturnsTrueForEmptyPot) {
+TEST_F(FlowerPotBlockTest, IsEmpty_ReturnsTrueForEmptyPot)
+{
     EXPECT_TRUE(flowerPot_->isEmpty());
 }
 
-TEST_F(FlowerPotBlockTest, GetShape_ReturnsValidShape) {
+TEST_F(FlowerPotBlockTest, GetShape_ReturnsValidShape)
+{
     const auto& state = flowerPot_->defaultState();
     const auto& shape = flowerPot_->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(FlowerPotBlockTest, GetCollisionShape_ReturnsValidShape) {
+TEST_F(FlowerPotBlockTest, GetCollisionShape_ReturnsValidShape)
+{
     const auto& state = flowerPot_->defaultState();
     const auto& shape = flowerPot_->getCollisionShape(state);
     EXPECT_FALSE(shape.isEmpty());
@@ -157,40 +165,41 @@ TEST_F(FlowerPotBlockTest, GetCollisionShape_ReturnsValidShape) {
 
 class LanternBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         lantern_ = std::make_unique<LanternBlock>(
-            BlockProperties(Material::IRON)
-                .hardness(3.5f)
-                .resistance(3.5f)
-                .lightLevel(15),
-            15
-        );
+            BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f).lightLevel(15), 15);
     }
 
     std::unique_ptr<LanternBlock> lantern_;
 };
 
-TEST_F(LanternBlockTest, Create_HasCorrectProperties) {
+TEST_F(LanternBlockTest, Create_HasCorrectProperties)
+{
     EXPECT_NE(lantern_, nullptr);
 }
 
-TEST_F(LanternBlockTest, DefaultState_NotHanging) {
+TEST_F(LanternBlockTest, DefaultState_NotHanging)
+{
     const auto& state = lantern_->defaultState();
     EXPECT_FALSE(state.get(BlockStateProperties::HANGING()));
 }
 
-TEST_F(LanternBlockTest, DefaultState_NotWaterlogged) {
+TEST_F(LanternBlockTest, DefaultState_NotWaterlogged)
+{
     const auto& state = lantern_->defaultState();
     EXPECT_FALSE(state.get(BlockStateProperties::WATERLOGGED()));
 }
 
-TEST_F(LanternBlockTest, GetShape_ReturnsValidShape) {
+TEST_F(LanternBlockTest, GetShape_ReturnsValidShape)
+{
     const auto& state = lantern_->defaultState();
     const auto& shape = lantern_->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(LanternBlockTest, GetShape_DifferentForHanging) {
+TEST_F(LanternBlockTest, GetShape_DifferentForHanging)
+{
     const auto& standingState = lantern_->defaultState();
     const auto& hangingState = standingState.with(BlockStateProperties::HANGING(), true);
 
@@ -203,6 +212,7 @@ TEST_F(LanternBlockTest, GetShape_DifferentForHanging) {
     EXPECT_FALSE(hangingShape.isEmpty());
 }
 
-TEST_F(LanternBlockTest, LightLevel_ReturnsCorrectValue) {
+TEST_F(LanternBlockTest, LightLevel_ReturnsCorrectValue)
+{
     EXPECT_EQ(lantern_->lightLevel(), 15u);
 }

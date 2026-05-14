@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "../renderer/MeshTypes.hpp"
-#include <vector>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <map>
 #include <set>
+#include <vector>
 
 namespace mc {
 
@@ -16,9 +16,9 @@ class IResourcePack;
  * @brief 纹理图集构建结果
  */
 struct AtlasBuildResult {
-    std::vector<u8> pixels;                          // RGBA8像素数据
-    u32 width = 0;                                    // 图集宽度
-    u32 height = 0;                                   // 图集高度
+    std::vector<u8> pixels;                            // RGBA8像素数据
+    u32 width = 0;                                     // 图集宽度
+    u32 height = 0;                                    // 图集高度
     std::map<ResourceLocation, TextureRegion> regions; // 纹理位置映射
 };
 
@@ -48,20 +48,13 @@ public:
     void setPadding(u32 padding);
 
     // 添加纹理
-    [[nodiscard]] Result<void> addTexture(
-        IResourcePack& resourcePack,
-        const ResourceLocation& location);
+    [[nodiscard]] Result<void> addTexture(IResourcePack& resourcePack, const ResourceLocation& location);
 
     // 添加纹理 (直接提供像素数据)
-    void addTexture(
-        const ResourceLocation& location,
-        const std::vector<u8>& pixels,
-        u32 width,
-        u32 height);
+    void addTexture(const ResourceLocation& location, const std::vector<u8>& pixels, u32 width, u32 height);
 
     // 添加纹理并按动画首帧尺寸裁剪（用于MC动画长条贴图）
-    void addTextureFrame(
-        const ResourceLocation& location,
+    void addTextureFrame(const ResourceLocation& location,
         const std::vector<u8>& pixels,
         u32 width,
         u32 height,
@@ -92,8 +85,7 @@ private:
         u32 x, y, width;
     };
 
-    [[nodiscard]] bool canPlace(
-        const std::vector<SkylineNode>& skyline,
+    [[nodiscard]] bool canPlace(const std::vector<SkylineNode>& skyline,
         u32 width,
         u32 height,
         u32 maxWidth,
@@ -102,13 +94,7 @@ private:
         u32& outY,
         size_t& outIndex) const;
 
-    void placeTexture(
-        std::vector<SkylineNode>& skyline,
-        u32 x,
-        u32 y,
-        u32 width,
-        u32 height,
-        size_t index);
+    void placeTexture(std::vector<SkylineNode>& skyline, u32 x, u32 y, u32 width, u32 height, size_t index);
 };
 
 } // namespace mc

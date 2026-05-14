@@ -37,52 +37,51 @@ struct SectionKey {
     SectionKey() = default;
 
     SectionKey(i32 cx, i32 cz, i8 sy, DimensionId dim)
-        : chunkX(cx), chunkZ(cz), sectionY(sy), dimension(dim) {}
+        : chunkX(cx)
+        , chunkZ(cz)
+        , sectionY(sy)
+        , dimension(dim)
+    {}
 
     /**
      * @brief 从区块坐标和Section Y创建
      */
-    static SectionKey fromChunk(i32 cx, i32 cz, i8 sy, DimensionId dim = 0) {
-        return SectionKey(cx, cz, sy, dim);
-    }
+    static SectionKey fromChunk(i32 cx, i32 cz, i8 sy, DimensionId dim = 0) { return SectionKey(cx, cz, sy, dim); }
 
     /**
      * @brief 从方块坐标创建
      */
-    static SectionKey fromBlock(i32 x, i32 y, i32 z, DimensionId dim = 0) {
-        return SectionKey(
-            x >> 4,           // chunkX
-            z >> 4,           // chunkZ
+    static SectionKey fromBlock(i32 x, i32 y, i32 z, DimensionId dim = 0)
+    {
+        return SectionKey(x >> 4,    // chunkX
+            z >> 4,                  // chunkZ
             static_cast<i8>(y >> 4), // sectionY
-            dim
-        );
+            dim);
     }
 
     /**
      * @brief 从ChunkPos创建
      */
-    static SectionKey fromChunkPos(const ChunkPos& pos, i8 sy, DimensionId dim = 0) {
+    static SectionKey fromChunkPos(const ChunkPos& pos, i8 sy, DimensionId dim = 0)
+    {
         return SectionKey(pos.x, pos.z, sy, dim);
     }
 
     /**
      * @brief 获取Section在世界中的最小Y坐标
      */
-    [[nodiscard]] i32 minY() const noexcept {
-        return static_cast<i32>(sectionY) * 16;
-    }
+    [[nodiscard]] i32 minY() const noexcept { return static_cast<i32>(sectionY) * 16; }
 
     /**
      * @brief 获取Section在世界中的最大Y坐标
      */
-    [[nodiscard]] i32 maxY() const noexcept {
-        return minY() + 15;
-    }
+    [[nodiscard]] i32 maxY() const noexcept { return minY() + 15; }
 
     /**
      * @brief 序列化为二进制（13字节）
      */
-    [[nodiscard]] std::array<u8, 13> serialize() const {
+    [[nodiscard]] std::array<u8, 13> serialize() const
+    {
         std::array<u8, 13> data{};
 
         // dimensionId (2字节, 大端序)
@@ -114,27 +113,20 @@ struct SectionKey {
     /**
      * @brief 从二进制反序列化
      */
-    static SectionKey deserialize(const u8* data) {
+    static SectionKey deserialize(const u8* data)
+    {
         SectionKey key;
 
         // dimensionId
-        key.dimension = static_cast<DimensionId>(
-            (static_cast<i32>(data[0]) << 8) | data[1]
-        );
+        key.dimension = static_cast<DimensionId>((static_cast<i32>(data[0]) << 8) | data[1]);
 
         // chunkX
-        key.chunkX =
-            (static_cast<i32>(data[2]) << 24) |
-            (static_cast<i32>(data[3]) << 16) |
-            (static_cast<i32>(data[4]) << 8) |
-            static_cast<i32>(data[5]);
+        key.chunkX = (static_cast<i32>(data[2]) << 24) | (static_cast<i32>(data[3]) << 16) |
+            (static_cast<i32>(data[4]) << 8) | static_cast<i32>(data[5]);
 
         // chunkZ
-        key.chunkZ =
-            (static_cast<i32>(data[6]) << 24) |
-            (static_cast<i32>(data[7]) << 16) |
-            (static_cast<i32>(data[8]) << 8) |
-            static_cast<i32>(data[9]);
+        key.chunkZ = (static_cast<i32>(data[6]) << 24) | (static_cast<i32>(data[7]) << 16) |
+            (static_cast<i32>(data[8]) << 8) | static_cast<i32>(data[9]);
 
         // sectionY
         key.sectionY = static_cast<i8>(data[10]);
@@ -145,7 +137,8 @@ struct SectionKey {
     /**
      * @brief 序列化为RocksDB键（vector形式）
      */
-    [[nodiscard]] std::vector<u8> toKey() const {
+    [[nodiscard]] std::vector<u8> toKey() const
+    {
         auto arr = serialize();
         return std::vector<u8>(arr.begin(), arr.end());
     }
@@ -153,18 +146,16 @@ struct SectionKey {
     /**
      * @brief 比较运算符
      */
-    bool operator==(const SectionKey& other) const {
-        return chunkX == other.chunkX &&
-               chunkZ == other.chunkZ &&
-               sectionY == other.sectionY &&
-               dimension == other.dimension;
+    bool operator==(const SectionKey& other) const
+    {
+        return chunkX == other.chunkX && chunkZ == other.chunkZ && sectionY == other.sectionY &&
+            dimension == other.dimension;
     }
 
-    bool operator!=(const SectionKey& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const SectionKey& other) const { return !(*this == other); }
 
-    bool operator<(const SectionKey& other) const {
+    bool operator<(const SectionKey& other) const
+    {
         if (dimension != other.dimension) return dimension < other.dimension;
         if (chunkX != other.chunkX) return chunkX < other.chunkX;
         if (chunkZ != other.chunkZ) return chunkZ < other.chunkZ;
@@ -175,7 +166,8 @@ struct SectionKey {
      * @brief 计算哈希值（用于unordered_map/unordered_set）
      */
     struct Hash {
-        size_t operator()(const SectionKey& key) const noexcept {
+        size_t operator()(const SectionKey& key) const noexcept
+        {
             size_t h = 0;
             h ^= std::hash<i32>{}(key.chunkX) + 0x9e3779b9 + (h << 6) + (h >> 2);
             h ^= std::hash<i32>{}(key.chunkZ) + 0x9e3779b9 + (h << 6) + (h >> 2);

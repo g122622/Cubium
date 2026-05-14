@@ -1,14 +1,14 @@
 #pragma once
 
 #include "../Types.hpp"
+#include <any>
 #include <cstdint>
-#include <memory>
-#include <typeindex>
-#include <type_traits>
 #include <functional>
+#include <memory>
+#include <type_traits>
+#include <typeindex>
 #include <unordered_map>
 #include <vector>
-#include <any>
 
 namespace mc::client::ui::kagero::event {
 
@@ -138,7 +138,7 @@ public:
     void setCurrentTarget(void* target) { m_currentTarget = target; }
 
 protected:
-    mutable bool m_cancelled = false;  // mutable to allow cancellation in const context
+    mutable bool m_cancelled = false; // mutable to allow cancellation in const context
     u64 m_timestamp = 0;
     void* m_target = nullptr;
     void* m_currentTarget = nullptr;
@@ -152,28 +152,43 @@ protected:
  * @tparam T 数据类型
  * @tparam Type 事件类型
  */
-template<typename T, EventType Type>
+template <typename T, EventType Type>
 class SimpleEvent : public Event {
 public:
-    explicit SimpleEvent(T data) : m_data(std::move(data)) {}
+    explicit SimpleEvent(T data)
+        : m_data(std::move(data))
+    {}
 
     [[nodiscard]] EventType getType() const override { return Type; }
 
-    [[nodiscard]] const char* getName() const override {
+    [[nodiscard]] const char* getName() const override
+    {
         static const char* name = []() {
             switch (Type) {
-                case EventType::MouseClick: return "MouseClick";
-                case EventType::MouseRelease: return "MouseRelease";
-                case EventType::MouseDrag: return "MouseDrag";
-                case EventType::MouseScroll: return "MouseScroll";
-                case EventType::KeyPress: return "KeyPress";
-                case EventType::KeyRelease: return "KeyRelease";
-                case EventType::CharInput: return "CharInput";
-                case EventType::FocusGained: return "FocusGained";
-                case EventType::FocusLost: return "FocusLost";
-                case EventType::ValueChange: return "ValueChange";
-                case EventType::TextChange: return "TextChange";
-                default: return "Unknown";
+                case EventType::MouseClick:
+                    return "MouseClick";
+                case EventType::MouseRelease:
+                    return "MouseRelease";
+                case EventType::MouseDrag:
+                    return "MouseDrag";
+                case EventType::MouseScroll:
+                    return "MouseScroll";
+                case EventType::KeyPress:
+                    return "KeyPress";
+                case EventType::KeyRelease:
+                    return "KeyRelease";
+                case EventType::CharInput:
+                    return "CharInput";
+                case EventType::FocusGained:
+                    return "FocusGained";
+                case EventType::FocusLost:
+                    return "FocusLost";
+                case EventType::ValueChange:
+                    return "ValueChange";
+                case EventType::TextChange:
+                    return "TextChange";
+                default:
+                    return "Unknown";
             }
         }();
         return name;
@@ -193,15 +208,17 @@ private:
  * @brief 事件处理结果
  */
 struct EventResult {
-    bool handled = false;       ///< 是否被处理
-    bool cancelled = false;     ///< 是否被取消
+    bool handled = false;   ///< 是否被处理
+    bool cancelled = false; ///< 是否被取消
 
-    EventResult& setHandled(bool value = true) {
+    EventResult& setHandled(bool value = true)
+    {
         handled = value;
         return *this;
     }
 
-    EventResult& setCancelled(bool value = true) {
+    EventResult& setCancelled(bool value = true)
+    {
         cancelled = value;
         return *this;
     }
@@ -210,7 +227,7 @@ struct EventResult {
 /**
  * @brief 事件处理器类型
  */
-template<typename EventT>
+template <typename EventT>
 using EventHandler = std::function<void(const EventT&)>;
 
 /**

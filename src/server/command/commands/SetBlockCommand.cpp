@@ -1,16 +1,16 @@
 #include "SetBlockCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/IWorld.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/entity/loot/LootTable.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
@@ -30,7 +30,8 @@ namespace {
  * @param doDrop destroy模式：破坏原有方块并掉落物品
  * @return 成功放置返回1，失败返回0
  */
-i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir, bool doDrop) {
+i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir, bool doDrop)
+{
     auto& source = context.getSource();
     Vector3i position = context.getArgument<Vector3i>("pos");
     BlockStateInput blockInput = context.getArgument<BlockStateInput>("block");
@@ -80,8 +81,8 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
 
                 // 生成掉落物列表
                 // 注意：destroy 模式不使用工具，所以 tool = nullptr
-                std::vector<ItemStack> drops = BlockDropHandler::generateDrops(
-                    *world, pos, *oldState, nullptr, nullptr, *lootTableManager);
+                std::vector<ItemStack> drops =
+                    BlockDropHandler::generateDrops(*world, pos, *oldState, nullptr, nullptr, *lootTableManager);
 
                 // 生成物品实体
                 if (!drops.empty()) {
@@ -111,51 +112,33 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
 
 } // namespace
 
-void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto setblockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("setblock");
-    setblockNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        setblockNode,
+    setblockNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(setblockNode,
         support::makeMetadata(
-            "Changes a block to another block.",
-            "/setblock <pos> <block> [destroy|keep|replace]",
-            2,
-            {},
-            false));
+            "Changes a block to another block.", "/setblock <pos> <block> [destroy|keep|replace]", 2, {}, false));
 
     // /setblock <pos> <block> - 默认replace模式
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos",
-        BlockPosArgumentType::blockPos()
-    );
+    auto posArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
 
     auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
-        "block",
-        BlockStateArgumentType::blockState()
-    );
-    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setBlockState(ctx);
-    });
+        "block", BlockStateArgumentType::blockState());
+    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockState(ctx); });
 
     // /setblock <pos> <block> destroy
     auto destroyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("destroy");
-    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setBlockDestroy(ctx);
-    });
+    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockDestroy(ctx); });
 
     // /setblock <pos> <block> keep
     auto keepNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("keep");
-    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setBlockKeep(ctx);
-    });
+    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockKeep(ctx); });
 
     // /setblock <pos> <block> replace
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setBlockReplace(ctx);
-    });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockReplace(ctx); });
 
     blockArg->addChild(destroyNode);
     blockArg->addChild(keepNode);
@@ -166,22 +149,26 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     dispatcher.registerCommand(setblockNode);
 }
 
-i32 SetBlockCommand::setBlockState(CommandContext<ServerCommandSource>& context) {
+i32 SetBlockCommand::setBlockState(CommandContext<ServerCommandSource>& context)
+{
     // 默认replace模式
     return executeSetBlock(context, false, false);
 }
 
-i32 SetBlockCommand::setBlockDestroy(CommandContext<ServerCommandSource>& context) {
+i32 SetBlockCommand::setBlockDestroy(CommandContext<ServerCommandSource>& context)
+{
     // destroy模式：先破坏再放置
     return executeSetBlock(context, false, true);
 }
 
-i32 SetBlockCommand::setBlockKeep(CommandContext<ServerCommandSource>& context) {
+i32 SetBlockCommand::setBlockKeep(CommandContext<ServerCommandSource>& context)
+{
     // keep模式：仅当目标位置为空气时放置
     return executeSetBlock(context, true, false);
 }
 
-i32 SetBlockCommand::setBlockReplace(CommandContext<ServerCommandSource>& context) {
+i32 SetBlockCommand::setBlockReplace(CommandContext<ServerCommandSource>& context)
+{
     // replace模式：直接替换
     return executeSetBlock(context, false, false);
 }

@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "DamageSource.hpp"
 #include "../../core/Types.hpp"
+#include "DamageSource.hpp"
 #include <memory>
 
 namespace mc {
@@ -37,8 +37,12 @@ public:
      * @param fallSuffix 摔落后缀（如 "fall" 或 "ladder"）
      * @param fallDistance 摔落距离
      */
-    CombatEntry(std::unique_ptr<DamageSource> source, f32 damage, i32 timestamp,
-                f32 health = 0.0f, const std::string& fallSuffix = "", f32 fallDistance = 0.0f);
+    CombatEntry(std::unique_ptr<DamageSource> source,
+        f32 damage,
+        i32 timestamp,
+        f32 health = 0.0f,
+        const std::string& fallSuffix = "",
+        f32 fallDistance = 0.0f);
 
     /**
      * @brief 获取伤害来源
@@ -91,9 +95,9 @@ private:
     std::unique_ptr<DamageSource> m_source;
     f32 m_damage;
     i32 m_timestamp;
-    f32 m_health;           // 受伤前生命值
-    std::string m_fallSuffix;    // 摔落后缀（如 "fall", "ladder"）
-    f32 m_fallDistance;     // 摔落距离
+    f32 m_health;             // 受伤前生命值
+    std::string m_fallSuffix; // 摔落后缀（如 "fall", "ladder"）
+    f32 m_fallDistance;       // 摔落距离
 };
 
 } // namespace mc

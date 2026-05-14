@@ -1,11 +1,11 @@
 #include "NoteBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
-#include "../../Material.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
 #include "../../BlockTags.hpp"
+#include "../../Material.hpp"
 #include "../../VanillaBlocks.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
@@ -31,7 +31,8 @@ using Instrument = BlockStateProperties::NoteBlockInstrument;
  *
  * 根据 NoteBlockInstrument 枚举值返回对应的声音事件。
  */
-const ResourceLocation& getSoundEventForInstrument(Instrument instrument) {
+const ResourceLocation& getSoundEventForInstrument(Instrument instrument)
+{
     switch (instrument) {
         case Instrument::Harp:
             return SoundEvents::BLOCK_NOTE_BLOCK_HARP;
@@ -81,7 +82,8 @@ const ResourceLocation& getSoundEventForInstrument(Instrument instrument) {
  *
  * 参考: net.minecraft.block.NoteBlock.eventReceived
  */
-f32 calculatePitch(i32 note) {
+f32 calculatePitch(i32 note)
+{
     return static_cast<f32>(std::pow(2.0, static_cast<f64>(note - 12) / 12.0));
 }
 
@@ -90,7 +92,8 @@ f32 calculatePitch(i32 note) {
  *
  * 使用方块指针比较，避免字符串比较。
  */
-bool isBlock(const BlockState* state, Block* targetBlock) {
+bool isBlock(const BlockState* state, Block* targetBlock)
+{
     if (state == nullptr || targetBlock == nullptr) {
         return false;
     }
@@ -104,41 +107,45 @@ bool isBlock(const BlockState* state, Block* targetBlock) {
 // ============================================================================
 
 NoteBlock::NoteBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::NOTE_0_24())
-        .add(BlockStateProperties::POWERED())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::NOTE_0_24())
+                         .add(BlockStateProperties::POWERED())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::NOTE_0_24(), 0)
-        .with(BlockStateProperties::POWERED(), false));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::NOTE_0_24(), 0).with(BlockStateProperties::POWERED(), false));
 }
 
-i32 NoteBlock::getNote(const BlockState& state) {
+i32 NoteBlock::getNote(const BlockState& state)
+{
     return state.get(BlockStateProperties::NOTE_0_24());
 }
 
-BlockState NoteBlock::withNote(BlockState state, i32 note) {
+BlockState NoteBlock::withNote(BlockState state, i32 note)
+{
     // 确保在范围内
     note = std::max(0, std::min(note, NOTE_RANGE - 1));
     return state.with(BlockStateProperties::NOTE_0_24(), note);
 }
 
-BlockState NoteBlock::cycleNote(BlockState state) {
+BlockState NoteBlock::cycleNote(BlockState state)
+{
     i32 currentNote = getNote(state);
     i32 nextNote = (currentNote + 1) % NOTE_RANGE;
     return withNote(state, nextNote);
 }
 
-void NoteBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                 const BlockPos& neighborPos, bool isMoving) {
+void NoteBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -161,10 +168,13 @@ void NoteBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neigh
     }
 }
 
-BlockState NoteBlock::updatePostPlacement(
-    const BlockState& state, Direction facing,
-    const BlockState& facingState, IWorld& world,
-    const BlockPos& currentPos, const BlockPos& facingPos) {
+BlockState NoteBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
     MC_UNUSED(world);
@@ -174,7 +184,8 @@ BlockState NoteBlock::updatePostPlacement(
     return state;
 }
 
-void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     i32 note = getNote(state);
     i32 instrument = getInstrumentType(world, pos);
 
@@ -182,7 +193,8 @@ void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState
     playNote(world, pos, instrument, note);
 }
 
-i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const {
+i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const
+{
     // 根据音符盒下方的方块类型确定乐器
     // 参考: net.minecraft.state.properties.NoteBlockInstrument.byState
 
@@ -286,7 +298,8 @@ i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const {
     return static_cast<i32>(Instrument::Harp);
 }
 
-void NoteBlock::playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note) {
+void NoteBlock::playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note)
+{
     // 转换乐器类型
     auto instrumentEnum = static_cast<Instrument>(instrument);
 
@@ -299,31 +312,22 @@ void NoteBlock::playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32
     // 播放声音
     // 参考 MC 1.16.5: 音量为 3.0f，声音类别为 RECORDS
     Vector3 soundPos = pos.center();
-    world.playSound(
-        soundEvent,
+    world.playSound(soundEvent,
         sound::SoundCategory::Records,
         soundPos,
-        3.0f,   // 音量 (MC 原版固定为 3.0)
-        pitch   // 音高 (根据音符值计算)
+        3.0f, // 音量 (MC 原版固定为 3.0)
+        pitch // 音高 (根据音符值计算)
     );
 
     // 生成音符粒子效果
     // 粒子类型: NOTE
     // 位置: 方块上方中心
     // 颜色数据: note / 24.0 (用于确定粒子颜色)
-    world.addParticle(
-        client::renderer::trident::particle::ParticleTypeId::Note,
-        Vector3(
-            static_cast<f32>(pos.x) + 0.5f,
-            static_cast<f32>(pos.y) + 1.2f,
-            static_cast<f32>(pos.z) + 0.5f
-        ),
-        Vector3(
-            static_cast<f32>(note) / 24.0f,  // 颜色数据
+    world.addParticle(client::renderer::trident::particle::ParticleTypeId::Note,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 1.2f, static_cast<f32>(pos.z) + 0.5f),
+        Vector3(static_cast<f32>(note) / 24.0f, // 颜色数据
             0.0f,
-            0.0f
-        )
-    );
+            0.0f));
 }
 
 } // namespace blocks

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
 #include "client/renderer/trident/gui/GuiSprite.hpp"
 #include "client/ui/kagero/paint/TextureImage.hpp"
-#include <vulkan/vulkan.h>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident::gui {
 
@@ -65,10 +65,8 @@ public:
      * @param graphicsQueue 图形队列
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(VkDevice device,
-                                           VkPhysicalDevice physicalDevice,
-                                           VkCommandPool commandPool,
-                                           VkQueue graphicsQueue);
+    [[nodiscard]] Result<void> initialize(
+        VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue);
 
     /**
      * @brief 销毁资源
@@ -102,9 +100,8 @@ public:
      * @param atlasHeight 图集高度
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadTextureAtlas(const std::string& filePath,
-                                                 i32 atlasWidth = 256,
-                                                 i32 atlasHeight = 256);
+    [[nodiscard]] Result<void> loadTextureAtlas(
+        const std::string& filePath, i32 atlasWidth = 256, i32 atlasHeight = 256);
 
     /**
      * @brief 从内存数据加载纹理
@@ -116,9 +113,7 @@ public:
      * @param height 纹理高度
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadTextureFromMemory(const std::vector<u8>& pixels,
-                                                      i32 width,
-                                                      i32 height);
+    [[nodiscard]] Result<void> loadTextureFromMemory(const std::vector<u8>& pixels, i32 width, i32 height);
 
     /**
      * @brief 检查纹理是否已加载
@@ -147,8 +142,8 @@ public:
      * @param atlasWidth 图集总宽度（像素），默认使用当前图集宽度
      * @param atlasHeight 图集总高度（像素），默认使用当前图集高度
      */
-    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height,
-                        i32 atlasWidth = 0, i32 atlasHeight = 0);
+    void registerSprite(
+        const std::string& id, i32 x, i32 y, i32 width, i32 height, i32 atlasWidth = 0, i32 atlasHeight = 0);
 
     /**
      * @brief 批量注册精灵
@@ -249,16 +244,15 @@ public:
      * @param customHeight 自定义绘制高度
      * @return TextureImage对象
      */
-    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(const std::string& spriteId,
-                                                                      i32 customWidth,
-                                                                      i32 customHeight) const;
+    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(
+        const std::string& spriteId, i32 customWidth, i32 customHeight) const;
 
 private:
     class Impl;
     std::unique_ptr<Impl> m_impl;
 
     bool m_initialized = false;
-    u8 m_atlasSlot = 2;  ///< 图集槽位ID（默认使用槽位2，GUI图集起始槽位）
+    u8 m_atlasSlot = 2; ///< 图集槽位ID（默认使用槽位2，GUI图集起始槽位）
 };
 
 } // namespace mc::client::renderer::trident::gui

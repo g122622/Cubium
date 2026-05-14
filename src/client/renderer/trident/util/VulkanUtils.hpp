@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
+#include "common/core/Types.hpp"
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer {
 
@@ -19,11 +19,10 @@ struct VulkanContextHandles {
     VkCommandPool commandPool = VK_NULL_HANDLE;
     VkQueue graphicsQueue = VK_NULL_HANDLE;
 
-    [[nodiscard]] bool isValid() const {
-        return device != VK_NULL_HANDLE &&
-               physicalDevice != VK_NULL_HANDLE &&
-               commandPool != VK_NULL_HANDLE &&
-               graphicsQueue != VK_NULL_HANDLE;
+    [[nodiscard]] bool isValid() const
+    {
+        return device != VK_NULL_HANDLE && physicalDevice != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE &&
+            graphicsQueue != VK_NULL_HANDLE;
     }
 };
 
@@ -44,16 +43,13 @@ namespace VulkanUtils {
  * @return 内存类型索引或错误
  */
 [[nodiscard]] inline Result<u32> findMemoryType(
-    VkPhysicalDevice physicalDevice,
-    u32 typeFilter,
-    VkMemoryPropertyFlags properties)
+    VkPhysicalDevice physicalDevice, u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
     for (u32 i = 0; i < memProperties.memoryTypeCount; ++i) {
-        if ((typeFilter & (1 << i)) &&
-            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
         }
     }
@@ -73,8 +69,7 @@ namespace VulkanUtils {
  * @param outMemory [out] 分配的内存
  * @return 成功或错误
  */
-[[nodiscard]] inline Result<void> createBuffer(
-    VkDevice device,
+[[nodiscard]] inline Result<void> createBuffer(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkDeviceSize size,
     VkBufferUsageFlags usage,
@@ -147,8 +142,7 @@ namespace VulkanUtils {
  * @param outMemory [out] 分配的内存
  * @return 成功或错误
  */
-[[nodiscard]] inline Result<void> createImage(
-    VkDevice device,
+[[nodiscard]] inline Result<void> createImage(VkDevice device,
     VkPhysicalDevice physicalDevice,
     u32 width,
     u32 height,
@@ -224,11 +218,7 @@ namespace VulkanUtils {
  * @return 成功或错误
  */
 [[nodiscard]] inline Result<void> createImageView(
-    VkDevice device,
-    VkImage image,
-    VkFormat format,
-    VkImageAspectFlags aspectMask,
-    VkImageView& outView)
+    VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectMask, VkImageView& outView)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -256,9 +246,7 @@ namespace VulkanUtils {
  * @param commandPool 命令池
  * @return 命令缓冲区
  */
-[[nodiscard]] inline VkCommandBuffer beginSingleTimeCommands(
-    VkDevice device,
-    VkCommandPool commandPool)
+[[nodiscard]] inline VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -291,8 +279,7 @@ namespace VulkanUtils {
  * @param fence 可选的 fence（如果提供则使用，否则创建临时 fence）
  * @note 如果 fence 为 VK_NULL_HANDLE，会创建临时 fence 并等待
  */
-inline void endSingleTimeCommands(
-    VkDevice device,
+inline void endSingleTimeCommands(VkDevice device,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
     VkCommandBuffer commandBuffer,
@@ -338,11 +325,7 @@ inline void endSingleTimeCommands(
  * @param fence 用于同步的 fence
  */
 inline void endSingleTimeCommandsAsync(
-    VkDevice device,
-    VkCommandPool commandPool,
-    VkQueue graphicsQueue,
-    VkCommandBuffer commandBuffer,
-    VkFence fence)
+    VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkCommandBuffer commandBuffer, VkFence fence)
 {
     vkEndCommandBuffer(commandBuffer);
 
@@ -366,8 +349,7 @@ inline void endSingleTimeCommandsAsync(
  * @param dstStage 目标管线阶段
  * @param aspectMask 方面掩码（默认为颜色）
  */
-inline void transitionImageLayout(
-    VkCommandBuffer commandBuffer,
+inline void transitionImageLayout(VkCommandBuffer commandBuffer,
     VkImage image,
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
@@ -389,27 +371,24 @@ inline void transitionImageLayout(
     barrier.subresourceRange.layerCount = 1;
 
     // 设置访问掩码
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-        newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-               newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-               newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-               newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-               newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+        newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
         barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     } else {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = 0;
@@ -428,11 +407,7 @@ inline void transitionImageLayout(
  * @param height 图像高度
  */
 inline void copyBufferToImage(
-    VkCommandBuffer commandBuffer,
-    VkBuffer srcBuffer,
-    VkImage dstImage,
-    u32 width,
-    u32 height)
+    VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, u32 width, u32 height)
 {
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -445,8 +420,7 @@ inline void copyBufferToImage(
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {width, height, 1};
 
-    vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
-                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
 /**
@@ -460,8 +434,7 @@ inline void copyBufferToImage(
  * @param outSampler [out] 创建的采样器
  * @return 成功或错误
  */
-[[nodiscard]] inline Result<void> createSampler(
-    VkDevice device,
+[[nodiscard]] inline Result<void> createSampler(VkDevice device,
     VkFilter magFilter,
     VkFilter minFilter,
     VkSamplerAddressMode addressModeU,
@@ -501,10 +474,7 @@ inline void copyBufferToImage(
  * @param buffer 缓冲区句柄（会被置为 VK_NULL_HANDLE）
  * @param memory 内存句柄（会被置为 VK_NULL_HANDLE）
  */
-inline void destroyBuffer(
-    VkDevice device,
-    VkBuffer& buffer,
-    VkDeviceMemory& memory)
+inline void destroyBuffer(VkDevice device, VkBuffer& buffer, VkDeviceMemory& memory)
 {
     if (buffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(device, buffer, nullptr);
@@ -524,11 +494,7 @@ inline void destroyBuffer(
  * @param memory 内存句柄（会被置为 VK_NULL_HANDLE）
  * @param view 图像视图句柄（会被置为 VK_NULL_HANDLE，可选）
  */
-inline void destroyImage(
-    VkDevice device,
-    VkImage& image,
-    VkDeviceMemory& memory,
-    VkImageView& view)
+inline void destroyImage(VkDevice device, VkImage& image, VkDeviceMemory& memory, VkImageView& view)
 {
     if (view != VK_NULL_HANDLE) {
         vkDestroyImageView(device, view, nullptr);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Packet.hpp"
 #include "../../core/Types.hpp"
+#include "Packet.hpp"
 
 namespace mc::network {
 
@@ -11,20 +11,20 @@ namespace mc::network {
  * 参考 MC 1.16.5 SChangeGameStatePacket
  */
 enum class GameStateChangeReason : u8 {
-    InvalidBed = 0,          // 床无效（在白天或非主维度使用）
-    EndRaining = 1,          // 雨停
-    BeginRaining = 2,        // 开始下雨
-    ChangeGameMode = 3,      // 游戏模式改变
-    WinGame = 4,             // 胜利（进入终末之诗）
-    DemoEvent = 5,           // 演示事件
-    ArrowHitPlayer = 6,      // 箭击中玩家
-    RainStrengthChange = 7,  // 降雨强度变化
-    ThunderStrengthChange = 8, // 雷暴强度变化
-    PlayPufferFishSting = 9, // 河豚刺痛
+    InvalidBed = 0,              // 床无效（在白天或非主维度使用）
+    EndRaining = 1,              // 雨停
+    BeginRaining = 2,            // 开始下雨
+    ChangeGameMode = 3,          // 游戏模式改变
+    WinGame = 4,                 // 胜利（进入终末之诗）
+    DemoEvent = 5,               // 演示事件
+    ArrowHitPlayer = 6,          // 箭击中玩家
+    RainStrengthChange = 7,      // 降雨强度变化
+    ThunderStrengthChange = 8,   // 雷暴强度变化
+    PlayPufferFishSting = 9,     // 河豚刺痛
     PlayElderGuardianCurse = 10, // 远古守卫者诅咒
-    EnableRespawnScreen = 11, // 启用重生屏幕
-    LimitedCrafting = 12,    // 限制合成
-    StartWaitingChunks = 13  // 开始等待区块
+    EnableRespawnScreen = 11,    // 启用重生屏幕
+    LimitedCrafting = 12,        // 限制合成
+    StartWaitingChunks = 13      // 开始等待区块
 };
 
 /**
@@ -46,14 +46,13 @@ public:
     /**
      * @brief 创建雨停包
      */
-    static GameStateChangePacket endRain() {
-        return GameStateChangePacket(GameStateChangeReason::EndRaining, 0.0f);
-    }
+    static GameStateChangePacket endRain() { return GameStateChangePacket(GameStateChangeReason::EndRaining, 0.0f); }
 
     /**
      * @brief 创建开始下雨包
      */
-    static GameStateChangePacket beginRain() {
+    static GameStateChangePacket beginRain()
+    {
         return GameStateChangePacket(GameStateChangeReason::BeginRaining, 0.0f);
     }
 
@@ -62,7 +61,8 @@ public:
      *
      * @param strength 降雨强度 (0.0 - 1.0)
      */
-    static GameStateChangePacket rainStrength(f32 strength) {
+    static GameStateChangePacket rainStrength(f32 strength)
+    {
         return GameStateChangePacket(GameStateChangeReason::RainStrengthChange, strength);
     }
 
@@ -71,7 +71,8 @@ public:
      *
      * @param strength 雷暴强度 (0.0 - 1.0)
      */
-    static GameStateChangePacket thunderStrength(f32 strength) {
+    static GameStateChangePacket thunderStrength(f32 strength)
+    {
         return GameStateChangePacket(GameStateChangeReason::ThunderStrengthChange, strength);
     }
 
@@ -80,7 +81,8 @@ public:
      *
      * @param mode 新的游戏模式
      */
-    static GameStateChangePacket gameModeChange(GameMode mode) {
+    static GameStateChangePacket gameModeChange(GameMode mode)
+    {
         return GameStateChangePacket(GameStateChangeReason::ChangeGameMode, static_cast<f32>(mode));
     }
 

@@ -7,9 +7,9 @@
 
 // 前向声明
 namespace mc {
-    class Entity;
-    class DamageSource;
-}
+class Entity;
+class DamageSource;
+} // namespace mc
 
 namespace mc::advancement {
 
@@ -33,9 +33,7 @@ public:
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     /**
      * @brief 从JSON反序列化实例
@@ -48,11 +46,7 @@ public:
      * @param entity 被击杀的实体
      * @param source 伤害源
      */
-    void trigger(
-        class ServerPlayer& player,
-        const Entity& entity,
-        const DamageSource& source
-    );
+    void trigger(class ServerPlayer& player, const Entity& entity, const DamageSource& source);
 
     // ========== 静态工厂方法 ==========
 
@@ -109,17 +103,11 @@ class EntityKilledPlayerTrigger : public AbstractCriterionTrigger<EntityKilledPl
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:entity_killed_player";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
-    void trigger(
-        class ServerPlayer& player,
-        const Entity& entity,
-        const DamageSource& source
-    );
+    void trigger(class ServerPlayer& player, const Entity& entity, const DamageSource& source);
 };
 
 /**

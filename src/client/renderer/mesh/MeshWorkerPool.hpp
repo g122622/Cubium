@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../MeshTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/chunk/ChunkData.hpp"
-#include "../MeshTypes.hpp"
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -64,10 +64,7 @@ public:
 
     void submit(MeshWorkerTask task);
 
-    void drainCompleted(
-        const std::function<void(MeshWorkerResult&&)>& callback,
-        u32 maxCount
-    );
+    void drainCompleted(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount);
 
     [[nodiscard]] size_t queuedTaskCount() const;
     [[nodiscard]] size_t runningTaskCount() const;

@@ -1,17 +1,17 @@
 #pragma once
 
-#include "../../api/IRenderEngine.hpp"
-#include "TridentContext.hpp"
 #include "../../../resource/ItemTextureAtlas.hpp"
 #include "../../../resource/ResourceManager.hpp"
 #include "../../../resource/TextureAtlasBuilder.hpp"
+#include "../../api/IRenderEngine.hpp"
 #include "../entity/pipeline/EntityTextureAtlas.hpp"
+#include "TridentContext.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
-#include <vulkan/vulkan.h>
-#include <memory>
 #include <functional>
 #include <map>
+#include <memory>
+#include <vulkan/vulkan.h>
 
 // 前置声明
 struct GLFWwindow;
@@ -23,7 +23,7 @@ struct TextureRegion;
 namespace mc::client {
 class ChunkRenderer;
 class Font;
-}
+} // namespace mc::client
 
 namespace mc::client::renderer::entity {
 class EntityRendererManager;
@@ -32,13 +32,13 @@ namespace pipeline {
 class EntityPipeline;
 }
 
-}
+} // namespace mc::client::renderer::entity
 
 namespace mc::client::renderer::trident {
 
 // 导入实体纹理图集类型
-using entity::pipeline::EntityTextureAtlas;
 using entity::pipeline::EntityPipeline;
+using entity::pipeline::EntityTextureAtlas;
 
 // 前置声明
 class TridentSwapchain;
@@ -64,7 +64,7 @@ class FogManager;
 namespace cloud {
 enum class CloudMode : u8;
 class CloudRenderer;
-}
+} // namespace cloud
 
 namespace particle {
 class ParticleManager;
@@ -150,7 +150,8 @@ public:
     [[nodiscard]] Result<std::unique_ptr<api::IIndexBuffer>> createIndexBuffer(u64 size, api::IndexType type) override;
     [[nodiscard]] Result<std::unique_ptr<api::IUniformBuffer>> createUniformBuffer(u64 size, u32 frameCount) override;
     [[nodiscard]] Result<std::unique_ptr<api::ITexture>> createTexture(const api::TextureDesc& desc) override;
-    [[nodiscard]] Result<std::unique_ptr<api::ITextureAtlas>> createTextureAtlas(u32 width, u32 height, u32 tileSize) override;
+    [[nodiscard]] Result<std::unique_ptr<api::ITextureAtlas>> createTextureAtlas(
+        u32 width, u32 height, u32 tileSize) override;
 
     void setRenderType(const api::RenderType& type) override;
     [[nodiscard]] const api::RenderType& currentRenderType() const override;
@@ -160,7 +161,8 @@ public:
 
     void drawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset) override;
     void draw(u32 vertexCount, u32 firstVertex) override;
-    void drawIndexedInstanced(u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) override;
+    void drawIndexedInstanced(
+        u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) override;
 
     [[nodiscard]] bool isInitialized() const override;
     [[nodiscard]] u32 currentFrameIndex() const override;
@@ -706,7 +708,7 @@ private:
     // 液体状态（用于雾效果）
     bool m_inWater = false;
     bool m_inLava = false;
-    u32 m_waterFogColor = 0x050533;  // 默认水下雾颜色
+    u32 m_waterFogColor = 0x050533; // 默认水下雾颜色
 
     // 视锥体（用于视锥剔除）
     mc::math::frustum::Frustum m_frustum;

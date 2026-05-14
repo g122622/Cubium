@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
-#include "../../util/math/Vector3.hpp"
+#include "../../core/Types.hpp"
 #include "../../util/Direction.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "PacketSerializer.hpp"
 #include <memory>
@@ -15,38 +15,33 @@ namespace mc::network {
 // ============================================================================
 
 namespace protocol {
-    // Minecraft 1.16.5 协议版本 (754)
-    // 注意：753 是 1.16.4，754 才是 1.16.5
-    constexpr i32 VERSION = 754;
-    constexpr i32 MIN_VERSION = 754;
-    constexpr i32 MAX_VERSION = 754;
+// Minecraft 1.16.5 协议版本 (754)
+// 注意：753 是 1.16.4，754 才是 1.16.5
+constexpr i32 VERSION = 754;
+constexpr i32 MIN_VERSION = 754;
+constexpr i32 MAX_VERSION = 754;
 
-    // 字符串长度限制
-    constexpr size_t MAX_USERNAME_LENGTH = 16;
-    constexpr size_t MAX_CHAT_LENGTH = 256;
-    constexpr size_t MAX_REASON_LENGTH = 1024;
+// 字符串长度限制
+constexpr size_t MAX_USERNAME_LENGTH = 16;
+constexpr size_t MAX_CHAT_LENGTH = 256;
+constexpr size_t MAX_REASON_LENGTH = 1024;
 
-    // 位置精度
-    constexpr f32 POSITION_SCALE = 4096.0f; // 用于delta位置编码
-    constexpr f32 ANGLE_SCALE = 256.0f / 360.0f; // 角度编码
+// 位置精度
+constexpr f32 POSITION_SCALE = 4096.0f;      // 用于delta位置编码
+constexpr f32 ANGLE_SCALE = 256.0f / 360.0f; // 角度编码
 
-    // 传送确认超时
-    constexpr u32 TELEPORT_TIMEOUT_MS = 5000;
+// 传送确认超时
+constexpr u32 TELEPORT_TIMEOUT_MS = 5000;
 
-    // 区块数据限制
-    constexpr size_t MAX_CHUNK_DATA_SIZE = 1024 * 1024; // 1MB
-}
+// 区块数据限制
+constexpr size_t MAX_CHUNK_DATA_SIZE = 1024 * 1024; // 1MB
+} // namespace protocol
 
 // ============================================================================
 // 协议状态
 // ============================================================================
 
-enum class ProtocolState : u8 {
-    Handshaking = 0,
-    Status = 1,
-    Login = 2,
-    Play = 3
-};
+enum class ProtocolState : u8 { Handshaking = 0, Status = 1, Login = 2, Play = 3 };
 
 // ============================================================================
 // 玩家位置数据
@@ -62,11 +57,21 @@ struct PlayerPosition {
 
     PlayerPosition() = default;
     PlayerPosition(f64 x, f64 y, f64 z, f32 yaw = 0.0f, f32 pitch = 0.0f, bool ground = true)
-        : x(x), y(y), z(z), yaw(yaw), pitch(pitch), onGround(ground) {}
+        : x(x)
+        , y(y)
+        , z(z)
+        , yaw(yaw)
+        , pitch(pitch)
+        , onGround(ground)
+    {}
 
-    [[nodiscard]] Vector3 toVector3() const { return Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)); }
+    [[nodiscard]] Vector3 toVector3() const
+    {
+        return Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+    }
 
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeF64(x);
         ser.writeF64(y);
         ser.writeF64(z);
@@ -75,7 +80,8 @@ struct PlayerPosition {
         ser.writeBool(onGround);
     }
 
-    [[nodiscard]] static Result<PlayerPosition> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<PlayerPosition> deserialize(PacketDeserializer& deser)
+    {
         PlayerPosition pos;
         auto xResult = deser.readF64();
         if (xResult.failed()) return xResult.error();
@@ -126,12 +132,14 @@ public:
     void setProtocolVersion(i32 version) { m_protocolVersion = version; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeVarInt(m_protocolVersion);
         ser.writeString(m_username);
     }
 
-    [[nodiscard]] static Result<LoginRequestPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<LoginRequestPacket> deserialize(PacketDeserializer& deser)
+    {
         LoginRequestPacket packet;
 
         auto versionResult = deser.readVarInt();
@@ -178,7 +186,13 @@ private:
 class LoginResponsePacket {
 public:
     LoginResponsePacket() = default;
-    LoginResponsePacket(bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message = "", bool isDebugWorld = false, DimensionId dimension = 0)
+    LoginResponsePacket(bool success,
+        PlayerId playerId,
+        EntityId entityId,
+        const std::string& username,
+        const std::string& message = "",
+        bool isDebugWorld = false,
+        DimensionId dimension = 0)
         : m_success(success)
         , m_playerId(playerId)
         , m_entityId(entityId)
@@ -207,7 +221,8 @@ public:
     void setDimension(DimensionId dimension) { m_dimension = dimension; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeBool(m_success);
         ser.writeU64(m_playerId);
         ser.writeU64(m_entityId);
@@ -217,7 +232,8 @@ public:
         ser.writeI32(m_dimension);
     }
 
-    [[nodiscard]] static Result<LoginResponsePacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<LoginResponsePacket> deserialize(PacketDeserializer& deser)
+    {
         LoginResponsePacket packet;
 
         auto successResult = deser.readBool();
@@ -270,10 +286,10 @@ private:
 class PlayerMovePacket {
 public:
     enum class MoveType : u8 {
-        Full = 0,           // 位置 + 旋转 + 地面
-        Position = 1,       // 仅位置 + 地面
-        Rotation = 2,       // 仅旋转 + 地面
-        GroundOnly = 3      // 仅地面状态
+        Full = 0,      // 位置 + 旋转 + 地面
+        Position = 1,  // 仅位置 + 地面
+        Rotation = 2,  // 仅旋转 + 地面
+        GroundOnly = 3 // 仅地面状态
     };
 
     PlayerMovePacket() = default;
@@ -297,7 +313,8 @@ public:
     void setType(MoveType type) { m_type = type; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeU8(static_cast<u8>(m_type));
 
         switch (m_type) {
@@ -321,7 +338,8 @@ public:
         }
     }
 
-    [[nodiscard]] static Result<PlayerMovePacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<PlayerMovePacket> deserialize(PacketDeserializer& deser)
+    {
         PlayerMovePacket packet;
 
         auto typeResult = deser.readU8();
@@ -389,11 +407,7 @@ private:
 // 方块交互包 (客户端 -> 服务端)
 // ============================================================================
 
-enum class BlockInteractionAction : u8 {
-    StartDestroyBlock = 0,
-    AbortDestroyBlock = 1,
-    StopDestroyBlock = 2
-};
+enum class BlockInteractionAction : u8 { StartDestroyBlock = 0, AbortDestroyBlock = 1, StopDestroyBlock = 2 };
 
 class BlockInteractionPacket {
 public:
@@ -412,7 +426,8 @@ public:
     [[nodiscard]] i32 z() const { return m_z; }
     [[nodiscard]] Direction face() const { return m_face; }
 
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeU8(static_cast<u8>(m_action));
         ser.writeI32(m_x);
         ser.writeI32(m_y);
@@ -420,7 +435,8 @@ public:
         ser.writeU8(static_cast<u8>(m_face));
     }
 
-    [[nodiscard]] static Result<BlockInteractionPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<BlockInteractionPacket> deserialize(PacketDeserializer& deser)
+    {
         BlockInteractionPacket packet;
 
         auto actionResult = deser.readU8();
@@ -485,11 +501,14 @@ public:
      * @param hitZ 点击点在方块内的Z坐标 (0-1)
      * @param hand 手 (0=主手, 1=副手)
      */
-    PlayerTryUseItemOnBlockPacket(i32 x, i32 y, i32 z, Direction face,
-                                   f32 hitX, f32 hitY, f32 hitZ, u8 hand)
-        : m_x(x), m_y(y), m_z(z)
+    PlayerTryUseItemOnBlockPacket(i32 x, i32 y, i32 z, Direction face, f32 hitX, f32 hitY, f32 hitZ, u8 hand)
+        : m_x(x)
+        , m_y(y)
+        , m_z(z)
         , m_face(face)
-        , m_hitX(hitX), m_hitY(hitY), m_hitZ(hitZ)
+        , m_hitX(hitX)
+        , m_hitY(hitY)
+        , m_hitZ(hitZ)
         , m_hand(hand)
     {}
 
@@ -521,14 +540,14 @@ public:
     /**
      * @brief 获取击中点（世界坐标）
      */
-    [[nodiscard]] Vector3 hitPosition() const {
-        return Vector3(static_cast<f32>(m_x) + m_hitX,
-                       static_cast<f32>(m_y) + m_hitY,
-                       static_cast<f32>(m_z) + m_hitZ);
+    [[nodiscard]] Vector3 hitPosition() const
+    {
+        return Vector3(static_cast<f32>(m_x) + m_hitX, static_cast<f32>(m_y) + m_hitY, static_cast<f32>(m_z) + m_hitZ);
     }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeI32(m_x);
         ser.writeI32(m_y);
         ser.writeI32(m_z);
@@ -539,7 +558,8 @@ public:
         ser.writeU8(m_hand);
     }
 
-    [[nodiscard]] static Result<PlayerTryUseItemOnBlockPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<PlayerTryUseItemOnBlockPacket> deserialize(PacketDeserializer& deser)
+    {
         PlayerTryUseItemOnBlockPacket packet;
 
         auto xResult = deser.readI32();
@@ -575,12 +595,8 @@ public:
         packet.m_hand = handResult.value();
 
         // 验证面方向
-        if (packet.m_face != Direction::Down &&
-            packet.m_face != Direction::Up &&
-            packet.m_face != Direction::North &&
-            packet.m_face != Direction::South &&
-            packet.m_face != Direction::West &&
-            packet.m_face != Direction::East) {
+        if (packet.m_face != Direction::Down && packet.m_face != Direction::Up && packet.m_face != Direction::North &&
+            packet.m_face != Direction::South && packet.m_face != Direction::West && packet.m_face != Direction::East) {
             return Error(ErrorCode::InvalidData, "Invalid face direction for block placement");
         }
 
@@ -595,7 +611,7 @@ private:
     f32 m_hitX = 0.5f;
     f32 m_hitY = 0.5f;
     f32 m_hitZ = 0.5f;
-    u8 m_hand = 0;  // 0=主手, 1=副手
+    u8 m_hand = 0; // 0=主手, 1=副手
 };
 
 // ============================================================================
@@ -606,7 +622,12 @@ class TeleportPacket {
 public:
     TeleportPacket() = default;
     TeleportPacket(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)
-        : m_x(x), m_y(y), m_z(z), m_yaw(yaw), m_pitch(pitch), m_teleportId(teleportId)
+        : m_x(x)
+        , m_y(y)
+        , m_z(z)
+        , m_yaw(yaw)
+        , m_pitch(pitch)
+        , m_teleportId(teleportId)
     {}
 
     // Getters
@@ -626,7 +647,8 @@ public:
     void setTeleportId(u32 id) { m_teleportId = id; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeF64(m_x);
         ser.writeF64(m_y);
         ser.writeF64(m_z);
@@ -635,7 +657,8 @@ public:
         ser.writeVarUInt(m_teleportId);
     }
 
-    [[nodiscard]] static Result<TeleportPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<TeleportPacket> deserialize(PacketDeserializer& deser)
+    {
         TeleportPacket packet;
 
         auto xResult = deser.readF64();
@@ -692,11 +715,10 @@ public:
     void setTeleportId(u32 id) { m_teleportId = id; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
-        ser.writeVarUInt(m_teleportId);
-    }
+    void serialize(PacketSerializer& ser) const { ser.writeVarUInt(m_teleportId); }
 
-    [[nodiscard]] static Result<TeleportConfirmPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<TeleportConfirmPacket> deserialize(PacketDeserializer& deser)
+    {
         TeleportConfirmPacket packet;
 
         auto idResult = deser.readVarUInt();
@@ -729,11 +751,10 @@ public:
     void setId(u64 id) { m_id = id; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
-        ser.writeU64(m_id);
-    }
+    void serialize(PacketSerializer& ser) const { ser.writeU64(m_id); }
 
-    [[nodiscard]] static Result<SimpleKeepAlive> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<SimpleKeepAlive> deserialize(PacketDeserializer& deser)
+    {
         SimpleKeepAlive packet;
 
         auto idResult = deser.readU64();
@@ -776,7 +797,8 @@ public:
     void setData(std::vector<u8>&& data) { m_data = std::move(data); }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeI32(m_x);
         ser.writeI32(m_z);
         ser.writeI32(m_dimension);
@@ -784,7 +806,8 @@ public:
         ser.writeBytes(m_data);
     }
 
-    [[nodiscard]] static Result<ChunkDataPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<ChunkDataPacket> deserialize(PacketDeserializer& deser)
+    {
         ChunkDataPacket packet;
 
         auto xResult = deser.readI32();
@@ -817,7 +840,7 @@ public:
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
-    DimensionId m_dimension = 0;  // 主世界=0, 下界=1, 末地=2
+    DimensionId m_dimension = 0; // 主世界=0, 下界=1, 末地=2
     std::vector<u8> m_data;
 };
 
@@ -829,7 +852,9 @@ class UnloadChunkPacket {
 public:
     UnloadChunkPacket() = default;
     UnloadChunkPacket(ChunkCoord x, ChunkCoord z, DimensionId dimension)
-        : m_x(x), m_z(z), m_dimension(dimension)
+        : m_x(x)
+        , m_z(z)
+        , m_dimension(dimension)
     {}
 
     // Getters
@@ -843,13 +868,15 @@ public:
     void setDimension(DimensionId dimension) { m_dimension = dimension; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeI32(m_x);
         ser.writeI32(m_z);
         ser.writeI32(m_dimension);
     }
 
-    [[nodiscard]] static Result<UnloadChunkPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<UnloadChunkPacket> deserialize(PacketDeserializer& deser)
+    {
         UnloadChunkPacket packet;
 
         auto xResult = deser.readI32();
@@ -870,7 +897,7 @@ public:
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
-    DimensionId m_dimension = 0;  // 主世界=0, 下界=1, 末地=2
+    DimensionId m_dimension = 0; // 主世界=0, 下界=1, 末地=2
 };
 
 // ============================================================================
@@ -897,13 +924,15 @@ public:
     void setPosition(const PlayerPosition& pos) { m_position = pos; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeU64(m_playerId);
         ser.writeString(m_username);
         m_position.serialize(ser);
     }
 
-    [[nodiscard]] static Result<PlayerSpawnPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<PlayerSpawnPacket> deserialize(PacketDeserializer& deser)
+    {
         PlayerSpawnPacket packet;
 
         auto idResult = deser.readU64();
@@ -945,11 +974,10 @@ public:
     void setPlayerId(PlayerId id) { m_playerId = id; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
-        ser.writeU64(m_playerId);
-    }
+    void serialize(PacketSerializer& ser) const { ser.writeU64(m_playerId); }
 
-    [[nodiscard]] static Result<PlayerDespawnPacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<PlayerDespawnPacket> deserialize(PacketDeserializer& deser)
+    {
         PlayerDespawnPacket packet;
 
         auto idResult = deser.readU64();
@@ -971,7 +999,9 @@ class BlockUpdatePacket {
 public:
     BlockUpdatePacket() = default;
     BlockUpdatePacket(i32 x, i32 y, i32 z, u32 blockStateId)
-        : m_x(x), m_y(y), m_z(z)
+        : m_x(x)
+        , m_y(y)
+        , m_z(z)
         , m_blockStateId(blockStateId)
     {}
 
@@ -988,14 +1018,16 @@ public:
     void setBlockStateId(u32 id) { m_blockStateId = id; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeI32(m_x);
         ser.writeI32(m_y);
         ser.writeI32(m_z);
         ser.writeVarUInt(m_blockStateId);
     }
 
-    [[nodiscard]] static Result<BlockUpdatePacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<BlockUpdatePacket> deserialize(PacketDeserializer& deser)
+    {
         BlockUpdatePacket packet;
 
         auto xResult = deser.readI32();
@@ -1021,7 +1053,7 @@ private:
     i32 m_x = 0;
     i32 m_y = 0;
     i32 m_z = 0;
-    u32 m_blockStateId = 0;  // 使用状态ID替代旧的BlockId
+    u32 m_blockStateId = 0; // 使用状态ID替代旧的BlockId
 };
 
 // ============================================================================
@@ -1045,12 +1077,14 @@ public:
     void setSenderId(PlayerId id) { m_senderId = id; }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeString(m_message);
         ser.writeU64(m_senderId);
     }
 
-    [[nodiscard]] static Result<ChatMessagePacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<ChatMessagePacket> deserialize(PacketDeserializer& deser)
+    {
         ChatMessagePacket packet;
 
         auto msgResult = deser.readString();
@@ -1107,7 +1141,8 @@ public:
      * 注意: MC 协议中，dayTime 为负数时表示日光周期被禁用
      * 实际的 dayTime 值为 |dayTime|
      */
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeI64(m_gameTime);
         // MC协议: 负数表示日光周期禁用
         ser.writeI64(m_daylightCycleEnabled ? m_dayTime : -m_dayTime);
@@ -1117,7 +1152,8 @@ public:
      * @brief 反序列化时间更新包
      * @return 解析结果
      */
-    [[nodiscard]] static Result<TimeUpdatePacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<TimeUpdatePacket> deserialize(PacketDeserializer& deser)
+    {
         TimeUpdatePacket packet;
 
         auto gameTimeResult = deser.readI64();
@@ -1180,10 +1216,12 @@ public:
      * @param blockLight 方块光照数据 (可选)
      * @param trustEdges 是否信任边缘光照
      */
-    LightUpdatePacket(i32 chunkX, i32 chunkZ, i32 sectionY,
-                      std::vector<u8>&& skyLight,
-                      std::vector<u8>&& blockLight,
-                      bool trustEdges = false)
+    LightUpdatePacket(i32 chunkX,
+        i32 chunkZ,
+        i32 sectionY,
+        std::vector<u8>&& skyLight,
+        std::vector<u8>&& blockLight,
+        bool trustEdges = false)
         : m_chunkX(chunkX)
         , m_chunkZ(chunkZ)
         , m_sectionY(sectionY)
@@ -1214,15 +1252,16 @@ public:
      * @brief 获取区块段位置编码
      * @return 区块段位置 (用于索引光照数据)
      */
-    [[nodiscard]] i64 sectionPos() const {
+    [[nodiscard]] i64 sectionPos() const
+    {
         // SectionPos 编码: (x & 0x3FFFFF) << 42 | (y & 0xFFFFF) << 20 | (z & 0x3FFFFF)
-        return (static_cast<i64>(m_chunkX) & 0x3FFFFFLL) << 42 |
-               (static_cast<i64>(m_sectionY) & 0xFFFFFLL) << 20 |
-               (static_cast<i64>(m_chunkZ) & 0x3FFFFFLL);
+        return (static_cast<i64>(m_chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(m_sectionY) & 0xFFFFFLL) << 20 |
+            (static_cast<i64>(m_chunkZ) & 0x3FFFFFLL);
     }
 
     // 序列化
-    void serialize(PacketSerializer& ser) const {
+    void serialize(PacketSerializer& ser) const
+    {
         ser.writeI32(m_chunkX);
         ser.writeI32(m_chunkZ);
         ser.writeI32(m_sectionY);
@@ -1247,7 +1286,8 @@ public:
         }
     }
 
-    [[nodiscard]] static Result<LightUpdatePacket> deserialize(PacketDeserializer& deser) {
+    [[nodiscard]] static Result<LightUpdatePacket> deserialize(PacketDeserializer& deser)
+    {
         LightUpdatePacket packet;
 
         auto xResult = deser.readI32();
@@ -1274,7 +1314,7 @@ public:
             if (skySizeResult.failed()) return skySizeResult.error();
             u32 skySize = skySizeResult.value();
 
-            if (skySize > 4096) {  // 最大 2048 字节 (4096 个 nibble)
+            if (skySize > 4096) { // 最大 2048 字节 (4096 个 nibble)
                 return Error(ErrorCode::InvalidData, "Sky light data too large");
             }
 

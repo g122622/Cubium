@@ -6,11 +6,11 @@
  * 以及 PathNavigator::trimPath 的基本功能。
  */
 
-#include <gtest/gtest.h>
-#include "common/entity/ai/pathfinding/Path.hpp"
-#include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/PathPoint.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity::ai::pathfinding;
@@ -20,7 +20,8 @@ namespace {
 /**
  * @brief 测试 Path::setPoint 方法 - 基本功能
  */
-TEST(PathSetPointTest, SetPointModifiesPath) {
+TEST(PathSetPointTest, SetPointModifiesPath)
+{
     // 创建路径点数组
     std::vector<PathPoint> points;
     points.emplace_back(0, 0, 0);
@@ -59,7 +60,8 @@ TEST(PathSetPointTest, SetPointModifiesPath) {
 /**
  * @brief 测试 Path::setPoint 方法 - 边界检查
  */
-TEST(PathSetPointTest, SetPointIndexOutOfRangeDoesNotCrash) {
+TEST(PathSetPointTest, SetPointIndexOutOfRangeDoesNotCrash)
+{
     // 创建路径点数组
     std::vector<PathPoint> points;
     points.emplace_back(0, 0, 0);
@@ -69,8 +71,8 @@ TEST(PathSetPointTest, SetPointIndexOutOfRangeDoesNotCrash) {
 
     // 尝试设置超出范围的索引 - 不应该崩溃
     PathPoint newPoint(10, 10, 10);
-    EXPECT_NO_THROW(path.setPoint(5, newPoint));  // 索引 5 超出范围
-    EXPECT_NO_THROW(path.setPoint(100, newPoint));  // 更大的索引
+    EXPECT_NO_THROW(path.setPoint(5, newPoint));   // 索引 5 超出范围
+    EXPECT_NO_THROW(path.setPoint(100, newPoint)); // 更大的索引
 
     // 验证原路径点未改变
     const PathPoint* p0 = path.getPoint(0);
@@ -83,7 +85,8 @@ TEST(PathSetPointTest, SetPointIndexOutOfRangeDoesNotCrash) {
 /**
  * @brief 测试 Path::setPoint 方法 - 移动语义
  */
-TEST(PathSetPointTest, SetPointWithMoveSemantics) {
+TEST(PathSetPointTest, SetPointWithMoveSemantics)
+{
     // 创建路径点数组
     std::vector<PathPoint> points;
     points.emplace_back(0, 0, 0);
@@ -106,7 +109,8 @@ TEST(PathSetPointTest, SetPointWithMoveSemantics) {
 /**
  * @brief 测试 Path::setPoint 方法 - 空路径
  */
-TEST(PathSetPointTest, SetPointOnEmptyPath) {
+TEST(PathSetPointTest, SetPointOnEmptyPath)
+{
     // 创建空路径
     Path path;
 
@@ -118,7 +122,8 @@ TEST(PathSetPointTest, SetPointOnEmptyPath) {
 /**
  * @brief 测试 PathPoint::cloneMove 方法 - 保留状态
  */
-TEST(PathPointCloneMoveTest, CloneMovePreservesState) {
+TEST(PathPointCloneMoveTest, CloneMovePreservesState)
+{
     // 创建原始路径点
     PathPoint original(10, 20, 30);
     original.setCostMalus(2.5f);
@@ -145,7 +150,8 @@ TEST(PathPointCloneMoveTest, CloneMovePreservesState) {
 /**
  * @brief 测试 PathPoint::cloneMove 方法 - 多次克隆
  */
-TEST(PathPointCloneMoveTest, MultipleCloneMoves) {
+TEST(PathPointCloneMoveTest, MultipleCloneMoves)
+{
     // 创建原始路径点
     PathPoint original(0, 0, 0);
     original.setNodeType(PathNodeType::Water);
@@ -168,7 +174,8 @@ TEST(PathPointCloneMoveTest, MultipleCloneMoves) {
 /**
  * @brief 测试 PathPoint::cloneMove 方法 - 负坐标
  */
-TEST(PathPointCloneMoveTest, CloneMoveWithNegativeCoordinates) {
+TEST(PathPointCloneMoveTest, CloneMoveWithNegativeCoordinates)
+{
     PathPoint original(0, 0, 0);
     original.setCostMalus(1.0f);
 
@@ -187,13 +194,14 @@ TEST(PathPointCloneMoveTest, CloneMoveWithNegativeCoordinates) {
  * 模拟 trimPath 对炼药锅的处理场景：
  * 当路径点位于炼药锅位置时，需要将其 Y 坐标 +1
  */
-TEST(PathTrimPathScenarioTest, SimulateTrimPathCauldronScenario) {
+TEST(PathTrimPathScenarioTest, SimulateTrimPathCauldronScenario)
+{
     // 创建一个穿过炼药锅的路径
     // 假设 (5, 10, 5) 是炼药锅位置
     std::vector<PathPoint> points;
-    points.emplace_back(5, 9, 5);   // 炼药锅下方
-    points.emplace_back(5, 10, 5);  // 炼药锅位置 - 需要上移
-    points.emplace_back(5, 11, 5);  // 炼药锅上方
+    points.emplace_back(5, 9, 5);  // 炼药锅下方
+    points.emplace_back(5, 10, 5); // 炼药锅位置 - 需要上移
+    points.emplace_back(5, 11, 5); // 炼药锅上方
 
     Path path(std::move(points));
 
@@ -204,11 +212,9 @@ TEST(PathTrimPathScenarioTest, SimulateTrimPathCauldronScenario) {
     EXPECT_EQ(cauldronPoint->y(), 10);
 
     // 使用 cloneMove 创建新的路径点
-    PathPoint newPoint = cauldronPoint->cloneMove(
-        cauldronPoint->x(),
-        cauldronPoint->y() + 1,  // Y+1
-        cauldronPoint->z()
-    );
+    PathPoint newPoint = cauldronPoint->cloneMove(cauldronPoint->x(),
+        cauldronPoint->y() + 1, // Y+1
+        cauldronPoint->z());
 
     // 设置新路径点
     path.setPoint(1, newPoint);
@@ -217,14 +223,15 @@ TEST(PathTrimPathScenarioTest, SimulateTrimPathCauldronScenario) {
     const PathPoint* modified = path.getPoint(1);
     ASSERT_NE(modified, nullptr);
     EXPECT_EQ(modified->x(), 5);
-    EXPECT_EQ(modified->y(), 11);  // Y 已上移
+    EXPECT_EQ(modified->y(), 11); // Y 已上移
     EXPECT_EQ(modified->z(), 5);
 }
 
 /**
  * @brief 测试 Path::length 方法
  */
-TEST(PathBasicTest, LengthMethod) {
+TEST(PathBasicTest, LengthMethod)
+{
     // 空路径
     Path emptyPath;
     EXPECT_EQ(emptyPath.length(), 0);
@@ -242,7 +249,8 @@ TEST(PathBasicTest, LengthMethod) {
 /**
  * @brief 测试 Path::empty 方法
  */
-TEST(PathBasicTest, EmptyMethod) {
+TEST(PathBasicTest, EmptyMethod)
+{
     Path emptyPath;
     EXPECT_TRUE(emptyPath.empty());
 
@@ -255,7 +263,8 @@ TEST(PathBasicTest, EmptyMethod) {
 /**
  * @brief 测试 PathNavigator 基本构造
  */
-TEST(PathNavigatorBasicTest, ConstructorWithNullPathFinder) {
+TEST(PathNavigatorBasicTest, ConstructorWithNullPathFinder)
+{
     // 使用空寻路器构造
     PathNavigator navigator(nullptr);
     EXPECT_FALSE(navigator.hasPath());
@@ -265,7 +274,8 @@ TEST(PathNavigatorBasicTest, ConstructorWithNullPathFinder) {
 /**
  * @brief 测试 PathNavigator 基本状态
  */
-TEST(PathNavigatorBasicTest, BasicState) {
+TEST(PathNavigatorBasicTest, BasicState)
+{
     PathNavigator navigator(nullptr);
 
     // 初始状态检查

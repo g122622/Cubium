@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include "common/command/arguments/BlockStateArgument.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/util/property/Properties.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace command {
@@ -19,29 +19,33 @@ namespace test {
  */
 class BlockStateArgumentTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 初始化方块注册表
         VanillaBlocks::initialize();
     }
 
-    void SetUp() override {
+    void SetUp() override
+    {
         // 每个测试前的设置
     }
 };
 
 // ========== 基本参数类型测试 ==========
 
-TEST_F(BlockStateArgumentTest, GetTypeName) {
+TEST_F(BlockStateArgumentTest, GetTypeName)
+{
     BlockStateArgumentType argType;
     EXPECT_EQ(argType.getTypeName(), "block_state");
 }
 
-TEST_F(BlockStateArgumentTest, GetExamples) {
+TEST_F(BlockStateArgumentTest, GetExamples)
+{
     BlockStateArgumentType argType;
     auto examples = argType.getExamples();
 
     EXPECT_FALSE(examples.empty());
-    EXPECT_EQ(examples.size(), 4);  // 4 个示例
+    EXPECT_EQ(examples.size(), 4); // 4 个示例
 
     // 检查示例格式
     bool hasSimpleExample = false;
@@ -59,7 +63,8 @@ TEST_F(BlockStateArgumentTest, GetExamples) {
 
 // ========== 简单方块ID解析测试 ==========
 
-TEST_F(BlockStateArgumentTest, ParseSimpleBlockId) {
+TEST_F(BlockStateArgumentTest, ParseSimpleBlockId)
+{
     StringReader reader("stone");
     BlockStateArgumentType argType;
 
@@ -69,7 +74,8 @@ TEST_F(BlockStateArgumentTest, ParseSimpleBlockId) {
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::STONE);
 }
 
-TEST_F(BlockStateArgumentTest, ParseBlockIdWithNamespace) {
+TEST_F(BlockStateArgumentTest, ParseBlockIdWithNamespace)
+{
     StringReader reader("minecraft:stone");
     BlockStateArgumentType argType;
 
@@ -79,7 +85,8 @@ TEST_F(BlockStateArgumentTest, ParseBlockIdWithNamespace) {
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::STONE);
 }
 
-TEST_F(BlockStateArgumentTest, ParseUnknownBlockThrowsError) {
+TEST_F(BlockStateArgumentTest, ParseUnknownBlockThrowsError)
+{
     StringReader reader("minecraft:nonexistent_block_xyz");
     BlockStateArgumentType argType;
 
@@ -88,7 +95,8 @@ TEST_F(BlockStateArgumentTest, ParseUnknownBlockThrowsError) {
 
 // ========== 方块状态属性解析测试 ==========
 
-TEST_F(BlockStateArgumentTest, ParseBlockWithSingleProperty) {
+TEST_F(BlockStateArgumentTest, ParseBlockWithSingleProperty)
+{
     // 跳过测试如果 oak_door 方块未注册
     if (VanillaBlocks::OAK_DOOR == nullptr) {
         GTEST_SKIP() << "OAK_DOOR block not registered";
@@ -103,7 +111,8 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithSingleProperty) {
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_DOOR);
 }
 
-TEST_F(BlockStateArgumentTest, ParseBlockWithMultipleProperties) {
+TEST_F(BlockStateArgumentTest, ParseBlockWithMultipleProperties)
+{
     // 跳过测试如果 oak_stairs 方块未注册
     if (VanillaBlocks::OAK_STAIRS == nullptr) {
         GTEST_SKIP() << "OAK_STAIRS block not registered";
@@ -119,7 +128,8 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithMultipleProperties) {
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);
 }
 
-TEST_F(BlockStateArgumentTest, ParseBlockWithThreeProperties) {
+TEST_F(BlockStateArgumentTest, ParseBlockWithThreeProperties)
+{
     // 跳过测试如果 oak_stairs 方块未注册
     if (VanillaBlocks::OAK_STAIRS == nullptr) {
         GTEST_SKIP() << "OAK_STAIRS block not registered";
@@ -135,7 +145,8 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithThreeProperties) {
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);
 }
 
-TEST_F(BlockStateArgumentTest, ParseBlockWithNamespaceAndProperties) {
+TEST_F(BlockStateArgumentTest, ParseBlockWithNamespaceAndProperties)
+{
     // 跳过测试如果 oak_door 方块未注册
     if (VanillaBlocks::OAK_DOOR == nullptr) {
         GTEST_SKIP() << "OAK_DOOR block not registered";
@@ -152,7 +163,8 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithNamespaceAndProperties) {
 
 // ========== 错误处理测试 ==========
 
-TEST_F(BlockStateArgumentTest, InvalidPropertyThrowsError) {
+TEST_F(BlockStateArgumentTest, InvalidPropertyThrowsError)
+{
     // 跳过测试如果 stone 方块未注册
     if (VanillaBlocks::STONE == nullptr) {
         GTEST_SKIP() << "STONE block not registered";
@@ -165,7 +177,8 @@ TEST_F(BlockStateArgumentTest, InvalidPropertyThrowsError) {
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
-TEST_F(BlockStateArgumentTest, InvalidPropertyValueThrowsError) {
+TEST_F(BlockStateArgumentTest, InvalidPropertyValueThrowsError)
+{
     // 跳过测试如果 oak_door 方块未注册
     if (VanillaBlocks::OAK_DOOR == nullptr) {
         GTEST_SKIP() << "OAK_DOOR block not registered";
@@ -178,7 +191,8 @@ TEST_F(BlockStateArgumentTest, InvalidPropertyValueThrowsError) {
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
-TEST_F(BlockStateArgumentTest, DuplicatePropertyThrowsError) {
+TEST_F(BlockStateArgumentTest, DuplicatePropertyThrowsError)
+{
     // 跳过测试如果 oak_door 方块未注册
     if (VanillaBlocks::OAK_DOOR == nullptr) {
         GTEST_SKIP() << "OAK_DOOR block not registered";
@@ -191,21 +205,24 @@ TEST_F(BlockStateArgumentTest, DuplicatePropertyThrowsError) {
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
-TEST_F(BlockStateArgumentTest, MissingPropertyValueThrowsError) {
+TEST_F(BlockStateArgumentTest, MissingPropertyValueThrowsError)
+{
     StringReader reader("oak_door[facing=]");
     BlockStateArgumentType argType;
 
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
-TEST_F(BlockStateArgumentTest, MissingPropertyNameThrowsError) {
+TEST_F(BlockStateArgumentTest, MissingPropertyNameThrowsError)
+{
     StringReader reader("oak_door[=north]");
     BlockStateArgumentType argType;
 
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
-TEST_F(BlockStateArgumentTest, MissingClosingBracketReturnsDefaultState) {
+TEST_F(BlockStateArgumentTest, MissingClosingBracketReturnsDefaultState)
+{
     // 当缺少闭合括号时，解析器会返回方块的默认状态
     // 因为它会读取整个字符串作为方块名
     StringReader reader("oak_door[facing=north");
@@ -216,7 +233,8 @@ TEST_F(BlockStateArgumentTest, MissingClosingBracketReturnsDefaultState) {
     EXPECT_TRUE(input.isValid());
 }
 
-TEST_F(BlockStateArgumentTest, EmptyBracketsReturnsDefaultState) {
+TEST_F(BlockStateArgumentTest, EmptyBracketsReturnsDefaultState)
+{
     // 空括号返回方块的默认状态
     if (VanillaBlocks::OAK_DOOR == nullptr) {
         GTEST_SKIP() << "OAK_DOOR block not registered";
@@ -230,7 +248,8 @@ TEST_F(BlockStateArgumentTest, EmptyBracketsReturnsDefaultState) {
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_DOOR);
 }
 
-TEST_F(BlockStateArgumentTest, TrailingCommaInBracketsReturnsValidState) {
+TEST_F(BlockStateArgumentTest, TrailingCommaInBracketsReturnsValidState)
+{
     // 尾随逗号是允许的，解析器会忽略它
     if (VanillaBlocks::OAK_DOOR == nullptr) {
         GTEST_SKIP() << "OAK_DOOR block not registered";
@@ -246,19 +265,22 @@ TEST_F(BlockStateArgumentTest, TrailingCommaInBracketsReturnsValidState) {
 
 // ========== BlockStateInput 测试 ==========
 
-TEST_F(BlockStateArgumentTest, BlockStateInputDefaultState) {
+TEST_F(BlockStateArgumentTest, BlockStateInputDefaultState)
+{
     BlockStateInput input;
     EXPECT_FALSE(input.isValid());
     EXPECT_EQ(input.state(), nullptr);
 }
 
-TEST_F(BlockStateArgumentTest, BlockStateInputWithNullState) {
+TEST_F(BlockStateArgumentTest, BlockStateInputWithNullState)
+{
     BlockStateInput input(nullptr);
     EXPECT_FALSE(input.isValid());
     EXPECT_EQ(input.state(), nullptr);
 }
 
-TEST_F(BlockStateArgumentTest, BlockStateInputWithValidState) {
+TEST_F(BlockStateArgumentTest, BlockStateInputWithValidState)
+{
     // 跳过测试如果 stone 方块未注册
     if (VanillaBlocks::STONE == nullptr) {
         GTEST_SKIP() << "STONE block not registered";
@@ -273,7 +295,8 @@ TEST_F(BlockStateArgumentTest, BlockStateInputWithValidState) {
 
 // ========== StringReader 集成测试 ==========
 
-TEST_F(BlockStateArgumentTest, StringReaderIntegration) {
+TEST_F(BlockStateArgumentTest, StringReaderIntegration)
+{
     // 测试 StringReader 的基本读取功能
     StringReader reader("stone");
     EXPECT_TRUE(reader.canRead());
@@ -281,12 +304,13 @@ TEST_F(BlockStateArgumentTest, StringReaderIntegration) {
 
     std::string result = reader.readString();
     EXPECT_EQ(result, "stone");
-    EXPECT_FALSE(reader.canRead());  // 读取完毕
+    EXPECT_FALSE(reader.canRead()); // 读取完毕
 }
 
 // ========== 静态工厂方法测试 ==========
 
-TEST_F(BlockStateArgumentTest, StaticFactoryMethod) {
+TEST_F(BlockStateArgumentTest, StaticFactoryMethod)
+{
     auto argType = BlockStateArgumentType::blockState();
     EXPECT_NE(argType, nullptr);
     EXPECT_EQ(argType->getTypeName(), "block_state");
@@ -294,14 +318,16 @@ TEST_F(BlockStateArgumentTest, StaticFactoryMethod) {
 
 // ========== 边界情况测试 ==========
 
-TEST_F(BlockStateArgumentTest, EmptyStringThrowsError) {
+TEST_F(BlockStateArgumentTest, EmptyStringThrowsError)
+{
     StringReader reader("");
     BlockStateArgumentType argType;
 
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
-TEST_F(BlockStateArgumentTest, OnlyNamespaceThrowsError) {
+TEST_F(BlockStateArgumentTest, OnlyNamespaceThrowsError)
+{
     StringReader reader("minecraft:");
     BlockStateArgumentType argType;
 
@@ -310,7 +336,8 @@ TEST_F(BlockStateArgumentTest, OnlyNamespaceThrowsError) {
 
 // ========== 更多方块解析测试 ==========
 
-TEST_F(BlockStateArgumentTest, ParseMultipleBlockTypes) {
+TEST_F(BlockStateArgumentTest, ParseMultipleBlockTypes)
+{
     BlockStateArgumentType argType;
 
     // 测试各种方块
@@ -342,7 +369,8 @@ TEST_F(BlockStateArgumentTest, ParseMultipleBlockTypes) {
     }
 }
 
-TEST_F(BlockStateArgumentTest, ParseBlockStateId) {
+TEST_F(BlockStateArgumentTest, ParseBlockStateId)
+{
     // 跳过测试如果 oak_stairs 方块未注册
     if (VanillaBlocks::OAK_STAIRS == nullptr) {
         GTEST_SKIP() << "OAK_STAIRS block not registered";

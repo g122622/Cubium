@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/skin/core/SkinTextures.hpp"
-#include <vector>
 #include <functional>
+#include <vector>
 
 namespace mc::skin {
 
@@ -12,9 +12,9 @@ namespace mc::skin {
  * @brief 皮肤加载结果
  */
 struct SkinLoadResult {
-    std::vector<u8> pngData;    // PNG 数据
-    SkinTextures textures;       // 解析出的纹理信息
-    std::string hash;                 // 文件哈希（用于缓存）
+    std::vector<u8> pngData; // PNG 数据
+    SkinTextures textures;   // 解析出的纹理信息
+    std::string hash;        // 文件哈希（用于缓存）
 };
 
 /**
@@ -61,8 +61,7 @@ public:
      * @param url 皮肤 URL 或路径
      * @param callback 完成回调
      */
-    virtual void loadAsync(const std::string& url,
-                          std::function<void(Result<SkinLoadResult>)> callback) = 0;
+    virtual void loadAsync(const std::string& url, std::function<void(Result<SkinLoadResult>)> callback) = 0;
 
     /**
      * @brief 取消加载

@@ -1,30 +1,33 @@
 #include "ScoreboardDataManager.hpp"
-#include "../../world/storage/db/RocksDBDatabase.hpp"
 #include "../../util/nbt/Nbt.hpp"
-#include <spdlog/spdlog.h>
+#include "../../world/storage/db/RocksDBDatabase.hpp"
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc::scoreboard {
 
 // ========== 键生成 ==========
 
-std::vector<u8> ScoreboardDataManager::makeObjectiveKey(const std::string& name) {
+std::vector<u8> ScoreboardDataManager::makeObjectiveKey(const std::string& name)
+{
     std::string key = std::string(KEY_PREFIX_OBJECTIVES) + name;
     return std::vector<u8>(key.begin(), key.end());
 }
 
-std::vector<u8> ScoreboardDataManager::makeScoreKey(const std::string& objectiveName,
-                                                     const std::string& playerName) {
+std::vector<u8> ScoreboardDataManager::makeScoreKey(const std::string& objectiveName, const std::string& playerName)
+{
     std::string key = std::string(KEY_PREFIX_SCORES) + objectiveName + ":" + playerName;
     return std::vector<u8>(key.begin(), key.end());
 }
 
-std::vector<u8> ScoreboardDataManager::makeTeamKey(const std::string& name) {
+std::vector<u8> ScoreboardDataManager::makeTeamKey(const std::string& name)
+{
     std::string key = std::string(KEY_PREFIX_TEAMS) + name;
     return std::vector<u8>(key.begin(), key.end());
 }
 
-Result<std::pair<std::string, std::string>> ScoreboardDataManager::parseScoreKey(const std::vector<u8>& key) {
+Result<std::pair<std::string, std::string>> ScoreboardDataManager::parseScoreKey(const std::vector<u8>& key)
+{
     std::string keyStr(key.begin(), key.end());
 
     // 格式: "score:objective:player"
@@ -47,7 +50,8 @@ Result<std::pair<std::string, std::string>> ScoreboardDataManager::parseScoreKey
 
 // ========== 辅助函数：NBT序列化 ==========
 
-static Result<std::vector<u8>> serializeNbtToBytes(const nbt::tags::compound_tag& tag) {
+static Result<std::vector<u8>> serializeNbtToBytes(const nbt::tags::compound_tag& tag)
+{
     std::ostringstream oss(std::ios::binary);
     oss << nbt::Contexts::java;
     nbt::operator<<(oss, tag);
@@ -58,7 +62,8 @@ static Result<std::vector<u8>> serializeNbtToBytes(const nbt::tags::compound_tag
     return std::vector<u8>(str.begin(), str.end());
 }
 
-static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector<u8>& data) {
+static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector<u8>& data)
+{
     try {
         std::istringstream iss(std::string(data.begin(), data.end()), std::ios::binary);
         iss >> nbt::Contexts::java;
@@ -67,7 +72,8 @@ static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector
             return Error(ErrorCode::InvalidData, "Failed to parse NBT");
         }
         return std::move(*root);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("Failed to deserialize NBT: ") + e.what());
     }
 }
@@ -76,10 +82,10 @@ static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector
 
 ScoreboardDataManager::ScoreboardDataManager(world::storage::RocksDBDatabase& db)
     : m_db(db)
-{
-}
+{}
 
-ScoreboardDataManager::~ScoreboardDataManager() {
+ScoreboardDataManager::~ScoreboardDataManager()
+{
     // 自动保存脏数据
     if (dirtyCount() > 0) {
         auto result = saveAllDirty();
@@ -91,7 +97,8 @@ ScoreboardDataManager::~ScoreboardDataManager() {
 
 // ========== 目标操作 ==========
 
-Result<void> ScoreboardDataManager::saveObjective(const ScoreboardSaveData::ObjectiveData& objective) {
+Result<void> ScoreboardDataManager::saveObjective(const ScoreboardSaveData::ObjectiveData& objective)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 序列化
@@ -114,7 +121,8 @@ Result<void> ScoreboardDataManager::saveObjective(const ScoreboardSaveData::Obje
     return {};
 }
 
-Result<std::optional<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::loadObjective(const std::string& name) {
+Result<std::optional<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::loadObjective(const std::string& name)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 检查缓存
@@ -151,7 +159,8 @@ Result<std::optional<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::
     return objResult.value();
 }
 
-Result<void> ScoreboardDataManager::deleteObjective(const std::string& name) {
+Result<void> ScoreboardDataManager::deleteObjective(const std::string& name)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 从数据库删除
@@ -172,7 +181,8 @@ Result<void> ScoreboardDataManager::deleteObjective(const std::string& name) {
     return {};
 }
 
-Result<std::vector<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::loadAllObjectives() {
+Result<std::vector<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::loadAllObjectives()
+{
     std::vector<ScoreboardSaveData::ObjectiveData> objectives;
 
     std::lock_guard<std::mutex> lock(m_cacheMutex);
@@ -184,9 +194,7 @@ Result<std::vector<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::lo
     }
 
     const std::string prefix(KEY_PREFIX_OBJECTIVES);
-    for (iter->Seek(prefix);
-         iter->Valid() && iter->key().starts_with(prefix);
-         iter->Next()) {
+    for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         // 解析键
         std::string keyStr(iter->key().ToString());
         std::string name = keyStr.substr(prefix.size());
@@ -223,10 +231,9 @@ Result<std::vector<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::lo
 
 // ========== 分数操作 ==========
 
-Result<void> ScoreboardDataManager::saveScore(const std::string& objectiveName,
-                                               const std::string& playerName,
-                                               i32 score,
-                                               bool locked) {
+Result<void> ScoreboardDataManager::saveScore(
+    const std::string& objectiveName, const std::string& playerName, i32 score, bool locked)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 创建分数数据
@@ -257,8 +264,8 @@ Result<void> ScoreboardDataManager::saveScore(const std::string& objectiveName,
 }
 
 Result<std::optional<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::loadScore(
-    const std::string& objectiveName,
-    const std::string& playerName) {
+    const std::string& objectiveName, const std::string& playerName)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 检查缓存
@@ -298,8 +305,8 @@ Result<std::optional<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::load
     return scoreResult.value();
 }
 
-Result<void> ScoreboardDataManager::deleteScore(const std::string& objectiveName,
-                                                 const std::string& playerName) {
+Result<void> ScoreboardDataManager::deleteScore(const std::string& objectiveName, const std::string& playerName)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 从数据库删除
@@ -319,7 +326,8 @@ Result<void> ScoreboardDataManager::deleteScore(const std::string& objectiveName
     return {};
 }
 
-Result<void> ScoreboardDataManager::deletePlayerScores(const std::string& playerName) {
+Result<void> ScoreboardDataManager::deletePlayerScores(const std::string& playerName)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 遍历所有目标的分数
@@ -340,9 +348,7 @@ Result<void> ScoreboardDataManager::deletePlayerScores(const std::string& player
     const std::string prefix(KEY_PREFIX_SCORES);
     std::vector<std::vector<u8>> keysToDelete;
 
-    for (iter->Seek(prefix);
-         iter->Valid() && iter->key().starts_with(prefix);
-         iter->Next()) {
+    for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         auto parseResult = parseScoreKey(std::vector<u8>(iter->key().data(), iter->key().data() + iter->key().size()));
         if (parseResult.success() && parseResult.value().second == playerName) {
             keysToDelete.push_back(std::vector<u8>(iter->key().data(), iter->key().data() + iter->key().size()));
@@ -361,7 +367,8 @@ Result<void> ScoreboardDataManager::deletePlayerScores(const std::string& player
 }
 
 Result<std::vector<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::loadScoresForObjective(
-    const std::string& objectiveName) {
+    const std::string& objectiveName)
+{
     std::vector<ScoreboardSaveData::ScoreData> scores;
 
     std::lock_guard<std::mutex> lock(m_cacheMutex);
@@ -382,9 +389,7 @@ Result<std::vector<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::loadSc
     }
 
     const std::string prefix(std::string(KEY_PREFIX_SCORES) + objectiveName + ":");
-    for (iter->Seek(prefix);
-         iter->Valid() && iter->key().starts_with(prefix);
-         iter->Next()) {
+    for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         auto value = iter->value();
         std::vector<u8> data(value.data(), value.data() + value.size());
         auto nbtResult = deserializeNbtFromBytes(data);
@@ -409,7 +414,8 @@ Result<std::vector<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::loadSc
 
 // ========== 队伍操作 ==========
 
-Result<void> ScoreboardDataManager::saveTeam(const ScoreboardSaveData::TeamData& team) {
+Result<void> ScoreboardDataManager::saveTeam(const ScoreboardSaveData::TeamData& team)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 序列化
@@ -432,7 +438,8 @@ Result<void> ScoreboardDataManager::saveTeam(const ScoreboardSaveData::TeamData&
     return {};
 }
 
-Result<std::optional<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadTeam(const std::string& name) {
+Result<std::optional<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadTeam(const std::string& name)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 检查缓存
@@ -469,7 +476,8 @@ Result<std::optional<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadT
     return teamResult.value();
 }
 
-Result<void> ScoreboardDataManager::deleteTeam(const std::string& name) {
+Result<void> ScoreboardDataManager::deleteTeam(const std::string& name)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 从数据库删除
@@ -486,7 +494,8 @@ Result<void> ScoreboardDataManager::deleteTeam(const std::string& name) {
     return {};
 }
 
-Result<std::vector<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadAllTeams() {
+Result<std::vector<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadAllTeams()
+{
     std::vector<ScoreboardSaveData::TeamData> teams;
 
     std::lock_guard<std::mutex> lock(m_cacheMutex);
@@ -498,9 +507,7 @@ Result<std::vector<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadAll
     }
 
     const std::string prefix(KEY_PREFIX_TEAMS);
-    for (iter->Seek(prefix);
-         iter->Valid() && iter->key().starts_with(prefix);
-         iter->Next()) {
+    for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         // 解析键
         std::string keyStr(iter->key().ToString());
         std::string name = keyStr.substr(prefix.size());
@@ -537,7 +544,8 @@ Result<std::vector<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadAll
 
 // ========== 显示槽位操作 ==========
 
-Result<void> ScoreboardDataManager::saveDisplaySlot(i32 slot, const std::string& objectiveName) {
+Result<void> ScoreboardDataManager::saveDisplaySlot(i32 slot, const std::string& objectiveName)
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 更新缓存中的显示槽位
@@ -585,7 +593,8 @@ Result<void> ScoreboardDataManager::saveDisplaySlot(i32 slot, const std::string&
     return {};
 }
 
-Result<std::vector<ScoreboardSaveData::DisplaySlotData>> ScoreboardDataManager::loadDisplaySlots() {
+Result<std::vector<ScoreboardSaveData::DisplaySlotData>> ScoreboardDataManager::loadDisplaySlots()
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     if (m_displaySlotsLoaded) {
@@ -634,7 +643,8 @@ Result<std::vector<ScoreboardSaveData::DisplaySlotData>> ScoreboardDataManager::
 
 // ========== 批量操作 ==========
 
-Result<void> ScoreboardDataManager::saveScoreboard(const Scoreboard& scoreboard) {
+Result<void> ScoreboardDataManager::saveScoreboard(const Scoreboard& scoreboard)
+{
     auto data = ScoreboardSaveData::fromScoreboard(scoreboard);
 
     // 保存所有目标
@@ -672,7 +682,8 @@ Result<void> ScoreboardDataManager::saveScoreboard(const Scoreboard& scoreboard)
     return {};
 }
 
-Result<void> ScoreboardDataManager::loadScoreboard(Scoreboard& scoreboard) {
+Result<void> ScoreboardDataManager::loadScoreboard(Scoreboard& scoreboard)
+{
     // 加载所有目标
     auto objectivesResult = loadAllObjectives();
     if (objectivesResult.failed()) {
@@ -717,7 +728,8 @@ Result<void> ScoreboardDataManager::loadScoreboard(Scoreboard& scoreboard) {
     return data.applyToScoreboard(scoreboard);
 }
 
-Result<size_t> ScoreboardDataManager::saveAllDirty() {
+Result<size_t> ScoreboardDataManager::saveAllDirty()
+{
     size_t savedCount = 0;
 
     // 保存脏目标
@@ -749,8 +761,7 @@ Result<size_t> ScoreboardDataManager::saveAllDirty() {
             if (objIt != m_scoreCache.end()) {
                 auto playerIt = objIt->second.find(playerName);
                 if (playerIt != objIt->second.end()) {
-                    auto result = saveScore(objectiveName, playerName,
-                                             playerIt->second.score, playerIt->second.locked);
+                    auto result = saveScore(objectiveName, playerName, playerIt->second.score, playerIt->second.locked);
                     if (result.success()) {
                         ++savedCount;
                     }
@@ -789,7 +800,8 @@ Result<size_t> ScoreboardDataManager::saveAllDirty() {
     return savedCount;
 }
 
-void ScoreboardDataManager::clearCache() {
+void ScoreboardDataManager::clearCache()
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     m_objectiveCache.clear();
     m_scoreCache.clear();
@@ -802,7 +814,8 @@ void ScoreboardDataManager::clearCache() {
     m_displaySlotsLoaded = false;
 }
 
-size_t ScoreboardDataManager::cacheSize() const {
+size_t ScoreboardDataManager::cacheSize() const
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     size_t size = m_objectiveCache.size() + m_teamCache.size() + m_displaySlotCache.size();
     for (const auto& [obj, scores] : m_scoreCache) {
@@ -811,10 +824,10 @@ size_t ScoreboardDataManager::cacheSize() const {
     return size;
 }
 
-size_t ScoreboardDataManager::dirtyCount() const {
+size_t ScoreboardDataManager::dirtyCount() const
+{
     std::lock_guard<std::mutex> lock(m_cacheMutex);
-    return m_dirtyObjectives.size() + m_dirtyScores.size() + m_dirtyTeams.size() +
-           (m_dirtyDisplaySlots ? 1 : 0);
+    return m_dirtyObjectives.size() + m_dirtyScores.size() + m_dirtyTeams.size() + (m_dirtyDisplaySlots ? 1 : 0);
 }
 
 } // namespace mc::scoreboard

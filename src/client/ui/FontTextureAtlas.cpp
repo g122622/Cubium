@@ -6,7 +6,8 @@ namespace mc::client {
 
 FontTextureAtlas::FontTextureAtlas() = default;
 
-FontTextureAtlas::~FontTextureAtlas() {
+FontTextureAtlas::~FontTextureAtlas()
+{
     destroy();
 }
 
@@ -15,12 +16,14 @@ FontTextureAtlas::FontTextureAtlas(FontTextureAtlas&& other) noexcept
     , m_pixels(std::move(other.m_pixels))
     , m_glyphs(std::move(other.m_glyphs))
     , m_root(other.m_root)
-    , m_padding(other.m_padding) {
+    , m_padding(other.m_padding)
+{
     other.m_root = nullptr;
     other.m_textureSize = 0;
 }
 
-FontTextureAtlas& FontTextureAtlas::operator=(FontTextureAtlas&& other) noexcept {
+FontTextureAtlas& FontTextureAtlas::operator=(FontTextureAtlas&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_textureSize = other.m_textureSize;
@@ -34,7 +37,8 @@ FontTextureAtlas& FontTextureAtlas::operator=(FontTextureAtlas&& other) noexcept
     return *this;
 }
 
-Result<void> FontTextureAtlas::create(u32 textureSize) {
+Result<void> FontTextureAtlas::create(u32 textureSize)
+{
     if (textureSize == 0) {
         return Error(ErrorCode::InvalidArgument, "Texture size must be positive");
     }
@@ -48,7 +52,8 @@ Result<void> FontTextureAtlas::create(u32 textureSize) {
     return {};
 }
 
-void FontTextureAtlas::destroy() {
+void FontTextureAtlas::destroy()
+{
     delete m_root;
     m_root = nullptr;
     m_pixels.clear();
@@ -56,7 +61,8 @@ void FontTextureAtlas::destroy() {
     m_textureSize = 0;
 }
 
-FontTextureAtlas::Node* FontTextureAtlas::findNode(Node* node, u32 width, u32 height) {
+FontTextureAtlas::Node* FontTextureAtlas::findNode(Node* node, u32 width, u32 height)
+{
     if (node == nullptr) {
         return nullptr;
     }
@@ -78,7 +84,8 @@ FontTextureAtlas::Node* FontTextureAtlas::findNode(Node* node, u32 width, u32 he
     return nullptr;
 }
 
-FontTextureAtlas::Node* FontTextureAtlas::splitNode(Node* node, u32 width, u32 height) {
+FontTextureAtlas::Node* FontTextureAtlas::splitNode(Node* node, u32 width, u32 height)
+{
     // 标记节点为已使用
     node->used = true;
 
@@ -91,28 +98,19 @@ FontTextureAtlas::Node* FontTextureAtlas::splitNode(Node* node, u32 width, u32 h
     // 下边：下方剩余高度区域（宽度为节点原始宽度）
 
     if (remainingWidth > 0) {
-        node->left = new Node(
-            node->x + width,
-            node->y,
-            remainingWidth,
-            height
-        );
+        node->left = new Node(node->x + width, node->y, remainingWidth, height);
     }
 
     if (remainingHeight > 0) {
-        node->right = new Node(
-            node->x,
-            node->y + height,
-            node->width,
-            remainingHeight
-        );
+        node->right = new Node(node->x, node->y + height, node->width, remainingHeight);
     }
 
     // 返回原节点，其 (x, y) 就是分配区域的起点
     return node;
 }
 
-void FontTextureAtlas::copyPixels(u32 x, u32 y, u32 width, u32 height, const u8* pixels) {
+void FontTextureAtlas::copyPixels(u32 x, u32 y, u32 width, u32 height, const u8* pixels)
+{
     for (u32 row = 0; row < height; ++row) {
         u32 dstOffset = (y + row) * m_textureSize + x;
         u32 srcOffset = row * width;
@@ -120,12 +118,9 @@ void FontTextureAtlas::copyPixels(u32 x, u32 y, u32 width, u32 height, const u8*
     }
 }
 
-Result<Glyph> FontTextureAtlas::addGlyph(u32 codepoint,
-                                          const u8* pixels,
-                                          u32 width, u32 height,
-                                          f32 advance,
-                                          f32 bearingX,
-                                          f32 bearingY) {
+Result<Glyph> FontTextureAtlas::addGlyph(
+    u32 codepoint, const u8* pixels, u32 width, u32 height, f32 advance, f32 bearingX, f32 bearingY)
+{
     if (!isValid()) {
         return Error(ErrorCode::NotInitialized, "FontTextureAtlas not initialized");
     }
@@ -166,8 +161,8 @@ Result<Glyph> FontTextureAtlas::addGlyph(u32 codepoint,
     f32 v1 = static_cast<f32>(drawY + height) / texSize;
 
     // 创建字形
-    Glyph glyph(codepoint, u0, v0, u1, v1, advance, bearingX, bearingY,
-                static_cast<f32>(width), static_cast<f32>(height));
+    Glyph glyph(
+        codepoint, u0, v0, u1, v1, advance, bearingX, bearingY, static_cast<f32>(width), static_cast<f32>(height));
 
     // 存储字形
     m_glyphs[codepoint] = glyph;
@@ -175,7 +170,8 @@ Result<Glyph> FontTextureAtlas::addGlyph(u32 codepoint,
     return glyph;
 }
 
-const Glyph* FontTextureAtlas::getGlyph(u32 codepoint) const {
+const Glyph* FontTextureAtlas::getGlyph(u32 codepoint) const
+{
     auto it = m_glyphs.find(codepoint);
     if (it != m_glyphs.end()) {
         return &it->second;
@@ -183,7 +179,8 @@ const Glyph* FontTextureAtlas::getGlyph(u32 codepoint) const {
     return nullptr;
 }
 
-bool FontTextureAtlas::hasGlyph(u32 codepoint) const {
+bool FontTextureAtlas::hasGlyph(u32 codepoint) const
+{
     return m_glyphs.find(codepoint) != m_glyphs.end();
 }
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "SurfaceBuilder.hpp"
-#include "../noise/OctavesNoiseGenerator.hpp"
 #include "../../../util/math/random/IRandom.hpp"
+#include "../noise/OctavesNoiseGenerator.hpp"
+#include "SurfaceBuilder.hpp"
 #include <array>
 #include <memory>
 
@@ -18,11 +18,11 @@ class DefaultSurfaceBuilder : public SurfaceBuilder {
 public:
     DefaultSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -55,11 +55,11 @@ class MountainSurfaceBuilder : public SurfaceBuilder {
 public:
     MountainSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -84,11 +84,11 @@ class GravellyMountainSurfaceBuilder : public SurfaceBuilder {
 public:
     GravellyMountainSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -113,11 +113,11 @@ class ShatteredSavannaSurfaceBuilder : public SurfaceBuilder {
 public:
     ShatteredSavannaSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -142,11 +142,11 @@ class GiantTreeTaigaSurfaceBuilder : public SurfaceBuilder {
 public:
     GiantTreeTaigaSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -168,11 +168,11 @@ class SwampSurfaceBuilder : public SurfaceBuilder {
 public:
     SwampSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -196,11 +196,11 @@ class FrozenOceanSurfaceBuilder : public SurfaceBuilder {
 public:
     FrozenOceanSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -231,11 +231,11 @@ class BadlandsSurfaceBuilder : public SurfaceBuilder {
 public:
     BadlandsSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -274,11 +274,11 @@ class ErodedBadlandsSurfaceBuilder : public SurfaceBuilder {
 public:
     ErodedBadlandsSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -300,11 +300,11 @@ class WoodedBadlandsSurfaceBuilder : public SurfaceBuilder {
 public:
     WoodedBadlandsSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -325,11 +325,11 @@ class NetherSurfaceBuilder : public SurfaceBuilder {
 public:
     NetherSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -351,11 +351,11 @@ class NetherForestsSurfaceBuilder : public SurfaceBuilder {
 public:
     NetherForestsSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -383,11 +383,11 @@ class SoulSandValleySurfaceBuilder : public SurfaceBuilder {
 public:
     SoulSandValleySurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -408,11 +408,11 @@ class BasaltDeltasSurfaceBuilder : public SurfaceBuilder {
 public:
     BasaltDeltasSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -434,11 +434,11 @@ class NoopSurfaceBuilder : public SurfaceBuilder {
 public:
     NoopSurfaceBuilder() = default;
 
-    void buildSurface(
-        math::Random& random,
+    void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -447,9 +447,18 @@ public:
         u64 worldSeed,
         const SurfaceBuilderConfig& config) override
     {
-        (void)random; (void)chunk; (void)biome; (void)x; (void)z;
-        (void)startHeight; (void)surfaceNoise; (void)defaultBlock; (void)defaultFluid;
-        (void)seaLevel; (void)worldSeed; (void)config;
+        (void)random;
+        (void)chunk;
+        (void)biome;
+        (void)x;
+        (void)z;
+        (void)startHeight;
+        (void)surfaceNoise;
+        (void)defaultBlock;
+        (void)defaultFluid;
+        (void)seaLevel;
+        (void)worldSeed;
+        (void)config;
         // 空操作
     }
 

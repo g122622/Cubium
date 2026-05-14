@@ -84,7 +84,8 @@ enum class ParticleRenderType : u8 {
  * @param type 渲染类型
  * @return 渲染顺序索引（0 最先渲染）
  */
-[[nodiscard]] constexpr u32 getRenderOrder(ParticleRenderType type) {
+[[nodiscard]] constexpr u32 getRenderOrder(ParticleRenderType type)
+{
     return static_cast<u32>(type);
 }
 
@@ -94,9 +95,9 @@ enum class ParticleRenderType : u8 {
  * @param type 渲染类型
  * @return 是否需要深度写入
  */
-[[nodiscard]] constexpr bool needsDepthWrite(ParticleRenderType type) {
-    return type == ParticleRenderType::TERRAIN_SHEET ||
-           type == ParticleRenderType::PARTICLE_SHEET_OPAQUE;
+[[nodiscard]] constexpr bool needsDepthWrite(ParticleRenderType type)
+{
+    return type == ParticleRenderType::TERRAIN_SHEET || type == ParticleRenderType::PARTICLE_SHEET_OPAQUE;
 }
 
 /**
@@ -105,9 +106,9 @@ enum class ParticleRenderType : u8 {
  * @param type 渲染类型
  * @return 是否需要 Alpha 混合
  */
-[[nodiscard]] constexpr bool needsBlending(ParticleRenderType type) {
-    return type == ParticleRenderType::PARTICLE_SHEET_LIT ||
-           type == ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+[[nodiscard]] constexpr bool needsBlending(ParticleRenderType type)
+{
+    return type == ParticleRenderType::PARTICLE_SHEET_LIT || type == ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
 }
 
 /**
@@ -116,7 +117,8 @@ enum class ParticleRenderType : u8 {
  * @param type 渲染类型
  * @return 是否使用最大亮度
  */
-[[nodiscard]] constexpr bool isAlwaysLit(ParticleRenderType type) {
+[[nodiscard]] constexpr bool isAlwaysLit(ParticleRenderType type)
+{
     return type == ParticleRenderType::PARTICLE_SHEET_LIT;
 }
 
@@ -126,7 +128,8 @@ enum class ParticleRenderType : u8 {
  * @param type 渲染类型
  * @return 是否使用方块纹理图集
  */
-[[nodiscard]] constexpr bool usesTerrainAtlas(ParticleRenderType type) {
+[[nodiscard]] constexpr bool usesTerrainAtlas(ParticleRenderType type)
+{
     return type == ParticleRenderType::TERRAIN_SHEET;
 }
 
@@ -136,7 +139,8 @@ enum class ParticleRenderType : u8 {
  * @param type 渲染类型
  * @return 是否需要渲染
  */
-[[nodiscard]] constexpr bool shouldRender(ParticleRenderType type) {
+[[nodiscard]] constexpr bool shouldRender(ParticleRenderType type)
+{
     return type != ParticleRenderType::NO_RENDER;
 }
 

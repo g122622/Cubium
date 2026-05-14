@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Block.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/property/Properties.hpp"
+#include "../Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -20,9 +20,7 @@ public:
     /**
      * @brief 获取 FACING 属性
      */
-    static const DirectionProperty& FACING() {
-        return BlockStateProperties::FACING();
-    }
+    static const DirectionProperty& FACING() { return BlockStateProperties::FACING(); }
 
     /**
      * @brief 构造函数

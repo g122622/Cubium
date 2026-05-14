@@ -3,8 +3,8 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
@@ -45,9 +45,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
     packet.serialize(payload);
 
     (void)server->connectionManager().sendPacketToPlayer(
-        playerId,
-        network::PacketType::PlayerInventory,
-        payload.buffer());
+        playerId, network::PacketType::PlayerInventory, payload.buffer());
 }
 
 /**
@@ -56,7 +54,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 [[nodiscard]] i32 getMaxStackSize(const Item* item)
 {
     if (item == nullptr) {
-        return 64;  // 默认最大堆叠数
+        return 64; // 默认最大堆叠数
     }
     return item->maxStackSize();
 }
@@ -74,10 +72,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
  * @return 成功给予物品的玩家数量
  */
 [[nodiscard]] i32 giveItemToPlayers(
-    ServerCommandSource& source,
-    const std::vector<PlayerId>& targetPlayerIds,
-    const Item* item,
-    i32 count)
+    ServerCommandSource& source, const std::vector<PlayerId>& targetPlayerIds, const Item* item, i32 count)
 {
     if (item == nullptr || count <= 0) {
         return 0;
@@ -129,15 +124,16 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
                 // 在玩家位置掉落物品
                 // 参考 MC 1.16.5: player.dropItem(stack, false) 并设置 noPickupDelay 和 owner
                 math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
-                ItemEntity* droppedItem = ItemDropHelper::spawnItemEntity(
-                    &server->world(),
+                ItemEntity* droppedItem = ItemDropHelper::spawnItemEntity(&server->world(),
                     dropStack,
-                    player->x(), player->y() + 0.5, player->z(),
+                    player->x(),
+                    player->y() + 0.5,
+                    player->z(),
                     rng,
-                    0,  // noPickupDelay - 立即可拾取
-                    player->uuid()  // owner UUID
+                    0,             // noPickupDelay - 立即可拾取
+                    player->uuid() // owner UUID
                 );
-                (void)droppedItem;  // 避免未使用警告
+                (void)droppedItem; // 避免未使用警告
             }
 
             remaining -= added;
@@ -154,14 +150,12 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             //              ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.0F) * 2.0F)
             math::Random rng(static_cast<u64>(playerId) * static_cast<u64>(count));
             const f32 pitch = (rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.0f;
-            server->sendSoundToPlayer(
-                playerId,
+            server->sendSoundToPlayer(playerId,
                 SoundEvents::ENTITY_ITEM_PICKUP,
                 sound::SoundCategory::Players,
                 Vector3(player->x(), player->y(), player->z()),
                 0.2f,
-                pitch * 2.0f
-            );
+                pitch * 2.0f);
         }
 
         successCount++;
@@ -173,7 +167,8 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 /**
  * @brief 描述目标玩家
  */
-[[nodiscard]] std::string describeTargets(const ServerCommandSource& source, const std::vector<PlayerId>& targetPlayerIds)
+[[nodiscard]] std::string describeTargets(
+    const ServerCommandSource& source, const std::vector<PlayerId>& targetPlayerIds)
 {
     if (targetPlayerIds.size() == 1 && source.server() != nullptr) {
         const auto* playerData = source.server()->playerManager().getPlayer(targetPlayerIds.front());
@@ -187,43 +182,27 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 
 } // namespace
 
-void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     using namespace mc::command;
 
     auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
-    giveNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    giveNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(
-        giveNode,
-        support::makeMetadata(
-            "Give items to players.",
-            "/give <targets> <item> [<count>]",
-            2,
-            {},
-            false));
+        giveNode, support::makeMetadata("Give items to players.", "/give <targets> <item> [<count>]", 2, {}, false));
 
     // /give <targets> <item> [count]
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::players()
-    );
+        "targets", EntityArgumentType::players());
 
-    auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>(
-        "item",
-        ItemArgumentType::item()
-    );
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return giveItem(ctx);
-    });
+    auto itemArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return giveItem(ctx); });
 
     auto countArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "count",
-        IntegerArgumentType::integer(1, 64)  // MC 1.16.5 限制为 1-64
+        "count", IntegerArgumentType::integer(1, 64) // MC 1.16.5 限制为 1-64
     );
-    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return giveItem(ctx);
-    });
+    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return giveItem(ctx); });
 
     itemArg->addChild(countArg);
     targetsArg->addChild(itemArg);
@@ -232,7 +211,8 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     dispatcher.registerCommand(giveNode);
 }
 
-i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context) {
+i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
 
     // 获取目标玩家

@@ -6,13 +6,11 @@ namespace mc {
 ResourceLocation::ResourceLocation()
     : m_namespace("minecraft")
     , m_path("")
-{
-}
+{}
 
 ResourceLocation::ResourceLocation(std::string_view fullPath)
     : ResourceLocation(parse(fullPath))
-{
-}
+{}
 
 ResourceLocation::ResourceLocation(std::string namespace_, std::string path)
     : m_namespace(std::move(namespace_))
@@ -23,7 +21,8 @@ ResourceLocation::ResourceLocation(std::string namespace_, std::string path)
     }
 }
 
-ResourceLocation ResourceLocation::parse(std::string_view fullPath) {
+ResourceLocation ResourceLocation::parse(std::string_view fullPath)
+{
     auto colonPos = fullPath.find(':');
 
     if (colonPos == std::string_view::npos) {
@@ -41,15 +40,18 @@ ResourceLocation ResourceLocation::parse(std::string_view fullPath) {
     return ResourceLocation(std::move(namespace_), std::move(path));
 }
 
-std::string ResourceLocation::toString() const {
+std::string ResourceLocation::toString() const
+{
     return m_namespace + ":" + m_path;
 }
 
-std::string ResourceLocation::toFilePath() const {
+std::string ResourceLocation::toFilePath() const
+{
     return "assets/" + m_namespace + "/" + m_path;
 }
 
-std::string ResourceLocation::toFilePath(std::string_view extension) const {
+std::string ResourceLocation::toFilePath(std::string_view extension) const
+{
     std::string result = "assets/" + m_namespace + "/" + m_path;
     if (!extension.empty()) {
         if (extension[0] != '.') {
@@ -60,22 +62,26 @@ std::string ResourceLocation::toFilePath(std::string_view extension) const {
     return result;
 }
 
-bool ResourceLocation::operator==(const ResourceLocation& other) const {
+bool ResourceLocation::operator==(const ResourceLocation& other) const
+{
     return m_namespace == other.m_namespace && m_path == other.m_path;
 }
 
-bool ResourceLocation::operator!=(const ResourceLocation& other) const {
+bool ResourceLocation::operator!=(const ResourceLocation& other) const
+{
     return !(*this == other);
 }
 
-bool ResourceLocation::operator<(const ResourceLocation& other) const {
+bool ResourceLocation::operator<(const ResourceLocation& other) const
+{
     if (m_namespace != other.m_namespace) {
         return m_namespace < other.m_namespace;
     }
     return m_path < other.m_path;
 }
 
-size_t ResourceLocation::hash() const {
+size_t ResourceLocation::hash() const
+{
     size_t h1 = std::hash<std::string>{}(m_namespace);
     size_t h2 = std::hash<std::string>{}(m_path);
     return h1 ^ (h2 << 1);

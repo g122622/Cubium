@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../BiomeProvider.hpp"
 #include "../../../gen/noise/OctavesNoiseGenerator.hpp"
+#include "../../BiomeProvider.hpp"
 #include <memory>
 
 namespace mc {
@@ -79,10 +79,7 @@ private:
     /**
      * @brief 原版末地岛屿高度函数（func_235317_a_）
      */
-    [[nodiscard]] static f32 computeIslandHeight(
-        const SimplexNoiseGenerator& noise,
-        i32 x,
-        i32 z);
+    [[nodiscard]] static f32 computeIslandHeight(const SimplexNoiseGenerator& noise, i32 x, i32 z);
 };
 
 } // namespace end

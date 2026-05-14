@@ -5,17 +5,20 @@ namespace mc::advancement {
 
 // ========== CriterionProgress ==========
 
-void CriterionProgress::obtain() {
+void CriterionProgress::obtain()
+{
     auto now = std::chrono::system_clock::now();
     auto duration = now.time_since_epoch();
     m_obtainedTime = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 }
 
-void CriterionProgress::reset() {
+void CriterionProgress::reset()
+{
     m_obtainedTime = std::nullopt;
 }
 
-CriterionProgress CriterionProgress::fromJson(const nlohmann::json& json) {
+CriterionProgress CriterionProgress::fromJson(const nlohmann::json& json)
+{
     CriterionProgress progress;
     if (json.is_string()) {
         // 旧格式：时间字符串 "2024-01-15 10:30:45 +0800"
@@ -29,7 +32,8 @@ CriterionProgress CriterionProgress::fromJson(const nlohmann::json& json) {
     return progress;
 }
 
-nlohmann::json CriterionProgress::toJson() const {
+nlohmann::json CriterionProgress::toJson() const
+{
     if (!isObtained()) {
         return nullptr;
     }
@@ -39,7 +43,8 @@ nlohmann::json CriterionProgress::toJson() const {
 // ========== AdvancementProgress ==========
 
 AdvancementProgress::AdvancementProgress(Advancement::Ptr advancement)
-    : m_advancement(std::move(advancement)) {
+    : m_advancement(std::move(advancement))
+{
     if (m_advancement) {
         // 初始化所有条件
         for (const auto& [name, _] : m_advancement->getCriteria()) {
@@ -49,39 +54,43 @@ AdvancementProgress::AdvancementProgress(Advancement::Ptr advancement)
     }
 }
 
-bool AdvancementProgress::grantCriterion(const std::string& criterion) {
+bool AdvancementProgress::grantCriterion(const std::string& criterion)
+{
     auto it = m_criteria.find(criterion);
     if (it == m_criteria.end()) {
         return false;
     }
 
     if (it->second.isObtained()) {
-        return false;  // 已经完成
+        return false; // 已经完成
     }
 
     it->second.obtain();
     return true;
 }
 
-bool AdvancementProgress::revokeCriterion(const std::string& criterion) {
+bool AdvancementProgress::revokeCriterion(const std::string& criterion)
+{
     auto it = m_criteria.find(criterion);
     if (it == m_criteria.end()) {
         return false;
     }
 
     if (!it->second.isObtained()) {
-        return false;  // 已经未完成
+        return false; // 已经未完成
     }
 
     it->second.reset();
     return true;
 }
 
-bool AdvancementProgress::isDone() const {
+bool AdvancementProgress::isDone() const
+{
     return computeDone();
 }
 
-bool AdvancementProgress::computeDone() const {
+bool AdvancementProgress::computeDone() const
+{
     if (m_requirements.empty()) {
         return false;
     }
@@ -103,7 +112,8 @@ bool AdvancementProgress::computeDone() const {
     return true;
 }
 
-bool AdvancementProgress::hasProgress() const {
+bool AdvancementProgress::hasProgress() const
+{
     for (const auto& [_, progress] : m_criteria) {
         if (progress.isObtained()) {
             return true;
@@ -112,7 +122,8 @@ bool AdvancementProgress::hasProgress() const {
     return false;
 }
 
-f32 AdvancementProgress::getPercent() const {
+f32 AdvancementProgress::getPercent() const
+{
     if (m_requirements.empty()) {
         return 0.0f;
     }
@@ -121,7 +132,8 @@ f32 AdvancementProgress::getPercent() const {
     return static_cast<f32>(completed) / static_cast<f32>(m_requirements.size());
 }
 
-std::string AdvancementProgress::getProgressText() const {
+std::string AdvancementProgress::getProgressText() const
+{
     size_t completed = countCompletedRequirements();
     size_t total = m_requirements.size();
 
@@ -131,7 +143,8 @@ std::string AdvancementProgress::getProgressText() const {
     return std::to_string(completed) + "/" + std::to_string(total);
 }
 
-size_t AdvancementProgress::countCompletedCriteria() const {
+size_t AdvancementProgress::countCompletedCriteria() const
+{
     size_t count = 0;
     for (const auto& [_, progress] : m_criteria) {
         if (progress.isObtained()) {
@@ -141,11 +154,13 @@ size_t AdvancementProgress::countCompletedCriteria() const {
     return count;
 }
 
-size_t AdvancementProgress::countUncompletedCriteria() const {
+size_t AdvancementProgress::countUncompletedCriteria() const
+{
     return m_criteria.size() - countCompletedCriteria();
 }
 
-size_t AdvancementProgress::countRemainingRequirements() const {
+size_t AdvancementProgress::countRemainingRequirements() const
+{
     size_t count = 0;
     for (const auto& group : m_requirements) {
         bool groupSatisfied = false;
@@ -163,7 +178,8 @@ size_t AdvancementProgress::countRemainingRequirements() const {
     return count;
 }
 
-size_t AdvancementProgress::countCompletedRequirements() const {
+size_t AdvancementProgress::countCompletedRequirements() const
+{
     if (m_requirements.empty()) {
         return 0;
     }
@@ -185,17 +201,20 @@ size_t AdvancementProgress::countCompletedRequirements() const {
     return count;
 }
 
-CriterionProgress* AdvancementProgress::getCriterion(const std::string& name) {
+CriterionProgress* AdvancementProgress::getCriterion(const std::string& name)
+{
     auto it = m_criteria.find(name);
     return it != m_criteria.end() ? &it->second : nullptr;
 }
 
-const CriterionProgress* AdvancementProgress::getCriterion(const std::string& name) const {
+const CriterionProgress* AdvancementProgress::getCriterion(const std::string& name) const
+{
     auto it = m_criteria.find(name);
     return it != m_criteria.end() ? &it->second : nullptr;
 }
 
-void AdvancementProgress::update(Advancement::Ptr advancement) {
+void AdvancementProgress::update(Advancement::Ptr advancement)
+{
     m_advancement = std::move(advancement);
     if (!m_advancement) {
         m_criteria.clear();
@@ -210,7 +229,7 @@ void AdvancementProgress::update(Advancement::Ptr advancement) {
     }
 
     // 移除不存在的条件
-    for (auto it = m_criteria.begin(); it != m_criteria.end(); ) {
+    for (auto it = m_criteria.begin(); it != m_criteria.end();) {
         if (newCriteriaNames.find(it->first) == newCriteriaNames.end()) {
             it = m_criteria.erase(it);
         } else {
@@ -229,8 +248,8 @@ void AdvancementProgress::update(Advancement::Ptr advancement) {
     m_requirements = m_advancement->getRequirements();
 }
 
-Result<AdvancementProgress> AdvancementProgress::fromJson(const nlohmann::json& json,
-                                                           Advancement::Ptr advancement) {
+Result<AdvancementProgress> AdvancementProgress::fromJson(const nlohmann::json& json, Advancement::Ptr advancement)
+{
     if (!json.is_object()) {
         return Error(ErrorCode::ResourceParseError, "AdvancementProgress must be a JSON object");
     }
@@ -247,7 +266,8 @@ Result<AdvancementProgress> AdvancementProgress::fromJson(const nlohmann::json& 
     return progress;
 }
 
-nlohmann::json AdvancementProgress::toJson() const {
+nlohmann::json AdvancementProgress::toJson() const
+{
     nlohmann::json json;
 
     // 序列化条件进度

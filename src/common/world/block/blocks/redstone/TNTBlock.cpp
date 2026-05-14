@@ -1,14 +1,14 @@
 #include "TNTBlock.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
+#include "../../../../entity/core/EntityRegistry.hpp"
+#include "../../../../entity/entities/misc/MiscEntities.hpp"
+#include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../explosion/Explosion.hpp"
 #include "../../../explosion/ExplosionMode.hpp"
-#include "../../../../entity/entities/misc/MiscEntities.hpp"
-#include "../../../../entity/core/EntityRegistry.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../sound/SoundCategory.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
 #include "../../VanillaBlocks.hpp"
 #include <unordered_map>
 
@@ -18,25 +18,28 @@ namespace blocks {
 using namespace mc; // Bring BlockStateProperties into scope
 
 TNTBlock::TNTBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::UNSTABLE())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::UNSTABLE())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::UNSTABLE(), false));
 }
 
-bool TNTBlock::isUnstable(const BlockState& state) {
+bool TNTBlock::isUnstable(const BlockState& state)
+{
     return state.get(BlockStateProperties::UNSTABLE());
 }
 
-void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     // 检查是否有红石信号或火焰
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
     bool hasFire = hasFlammableNeighbor(world, pos);
@@ -46,8 +49,9 @@ void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState
     }
 }
 
-void TNTBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                const BlockPos& neighborPos, bool isMoving) {
+void TNTBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -72,7 +76,8 @@ void TNTBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighb
     }
 }
 
-void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& state) {
+void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
     MC_UNUSED(state);
 
     // 仅服务端执行
@@ -121,16 +126,15 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
     }
 
     // MC 1.16.5: 播放点燃音效
-    world.playSound(
-        SoundEvents::ENTITY_TNT_PRIMED,
+    world.playSound(SoundEvents::ENTITY_TNT_PRIMED,
         sound::SoundCategory::Blocks,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
         1.0f,
-        1.0f
-    );
+        1.0f);
 }
 
-void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power) {
+void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
+{
     // 移除TNT方块
     world.setBlockState(pos, nullptr, 11);
 
@@ -145,17 +149,17 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power) {
     );
 }
 
-bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const {
+bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const
+{
     // 检查六个方向是否有火焰或熔岩
-    for (Direction dir : {Direction::North, Direction::East, Direction::South,
-                          Direction::West, Direction::Up, Direction::Down}) {
+    for (Direction dir :
+        {Direction::North, Direction::East, Direction::South, Direction::West, Direction::Up, Direction::Down}) {
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (neighborState != nullptr) {
             // 检查是否是火焰（包括灵魂火）
-            if (neighborState->is(VanillaBlocks::FIRE) ||
-                neighborState->is(VanillaBlocks::SOUL_FIRE)) {
+            if (neighborState->is(VanillaBlocks::FIRE) || neighborState->is(VanillaBlocks::SOUL_FIRE)) {
                 return true;
             }
             // 检查是否是熔岩

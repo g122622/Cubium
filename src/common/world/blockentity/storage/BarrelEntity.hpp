@@ -102,8 +102,8 @@ private:
      */
     void updateBlockState(IWorld& world, bool open);
 
-    SimpleInventory m_inventory;      ///< 27格物品存储
-    i32 m_ticksSinceSync = 0;         ///< 同步计数器
+    SimpleInventory m_inventory; ///< 27格物品存储
+    i32 m_ticksSinceSync = 0;    ///< 同步计数器
 };
 
 } // namespace blockentity

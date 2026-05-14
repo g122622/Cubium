@@ -1,10 +1,10 @@
 #pragma once
 
-#include "world/blockentity/BlockEntity.hpp"
 #include "world/block/BlockPos.hpp"
-#include <vector>
+#include "world/blockentity/BlockEntity.hpp"
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace mc {
 
@@ -75,9 +75,7 @@ public:
      * @brief 获取海晶石框架位置列表
      * @return 框架方块位置列表
      */
-    [[nodiscard]] const std::vector<BlockPos>& getPrismarinePositions() const {
-        return m_prismarinePositions;
-    }
+    [[nodiscard]] const std::vector<BlockPos>& getPrismarinePositions() const { return m_prismarinePositions; }
 
     /**
      * @brief 获取当前攻击目标
@@ -175,16 +173,16 @@ protected:
 
     // ========== 状态数据 ==========
 
-    bool m_active = false;              ///< 是否激活
-    bool m_eyeOpen = false;             ///< 眼睛是否睁开
-    i32 m_ticksExisted = 0;             ///< 存在时间（tick）
-    f32 m_activeRotation = 0.0f;        ///< 激活时的旋转角度
-    i64 m_ambientSoundCounter = 0;      ///< 环境音效计数器
+    bool m_active = false;                       ///< 是否激活
+    bool m_eyeOpen = false;                      ///< 眼睛是否睁开
+    i32 m_ticksExisted = 0;                      ///< 存在时间（tick）
+    f32 m_activeRotation = 0.0f;                 ///< 激活时的旋转角度
+    i64 m_ambientSoundCounter = 0;               ///< 环境音效计数器
     std::vector<BlockPos> m_prismarinePositions; ///< 海晶石框架位置
 
     // ========== 目标追踪 ==========
 
-    LivingEntity* m_target = nullptr;   ///< 当前攻击目标
+    LivingEntity* m_target = nullptr;        ///< 当前攻击目标
     std::optional<std::string> m_targetUuid; ///< 目标的UUID（用于持久化）
 };
 

@@ -2,10 +2,10 @@
 
 #include "TextStyle.hpp"
 #include "common/core/Types.hpp"
-#include <nlohmann/json.hpp>
 #include <memory>
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc::text {
 
@@ -91,7 +91,8 @@ public:
      * @param parentStyle 父组件样式
      * @return 合并后的样式
      */
-    [[nodiscard]] Style getMergedStyle(const Style& parentStyle) const {
+    [[nodiscard]] Style getMergedStyle(const Style& parentStyle) const
+    {
         return getStyle().mergeWithParent(parentStyle);
     }
 
@@ -181,11 +182,13 @@ public:
 
     // ========== 子组件 ==========
 
-    [[nodiscard]] const std::vector<std::unique_ptr<ITextComponent>>& getSiblings() const override {
+    [[nodiscard]] const std::vector<std::unique_ptr<ITextComponent>>& getSiblings() const override
+    {
         return m_siblings;
     }
 
-    void append(std::unique_ptr<ITextComponent> sibling) override {
+    void append(std::unique_ptr<ITextComponent> sibling) override
+    {
         if (sibling) {
             m_siblings.push_back(std::move(sibling));
         }
@@ -198,7 +201,8 @@ protected:
      * @brief 拷贝基类成员
      * @param target 目标组件
      */
-    void copyBaseTo(BaseTextComponent& target) const {
+    void copyBaseTo(BaseTextComponent& target) const
+    {
         target.m_style = m_style;
         for (const auto& sibling : m_siblings) {
             target.m_siblings.push_back(sibling->deepCopy());
@@ -211,11 +215,11 @@ protected:
 
 // ========== 内联实现 ==========
 
-inline bool ITextComponent::operator==(const ITextComponent& other) const {
+inline bool ITextComponent::operator==(const ITextComponent& other) const
+{
     // 比较文本内容和样式
-    return getUnformattedText() == other.getUnformattedText() &&
-           getStyle() == other.getStyle() &&
-           getSiblings().size() == other.getSiblings().size();
+    return getUnformattedText() == other.getUnformattedText() && getStyle() == other.getStyle() &&
+        getSiblings().size() == other.getSiblings().size();
 }
 
 } // namespace mc::text

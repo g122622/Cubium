@@ -1,6 +1,6 @@
 #include "PlayerManager.hpp"
-#include <spdlog/spdlog.h>
 #include <cctype>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::core {
 
@@ -10,10 +10,9 @@ PlayerManager::PlayerManager(const ServerCoreConfig& config)
     m_chunkSyncManager.setDefaultViewDistance(config.viewDistance);
 }
 
-ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
-                                            const std::string& uuid,
-                                            const std::string& username,
-                                            network::ConnectionPtr connection) {
+ServerPlayerData* PlayerManager::addPlayer(
+    PlayerId playerId, const std::string& uuid, const std::string& username, network::ConnectionPtr connection)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     // 使用 try_emplace 避免双重查找
@@ -52,7 +51,8 @@ ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
     return &player;
 }
 
-void PlayerManager::removePlayer(PlayerId playerId) {
+void PlayerManager::removePlayer(PlayerId playerId)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     auto it = m_players.find(playerId);
@@ -73,7 +73,8 @@ void PlayerManager::removePlayer(PlayerId playerId) {
     spdlog::debug("PlayerManager: Player {} ({}) removed", username, playerId);
 }
 
-void PlayerManager::removePlayerBySessionId(u32 sessionId) {
+void PlayerManager::removePlayerBySessionId(u32 sessionId)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     auto it = m_sessionToPlayer.find(sessionId);
@@ -92,11 +93,11 @@ void PlayerManager::removePlayerBySessionId(u32 sessionId) {
     m_players.erase(playerIt);
     m_chunkSyncManager.removeTracker(playerId);
 
-    spdlog::debug("PlayerManager: Player {} ({}) removed by session {}",
-                  username, playerId, sessionId);
+    spdlog::debug("PlayerManager: Player {} ({}) removed by session {}", username, playerId, sessionId);
 }
 
-ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId) {
+ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_sessionToPlayer.find(sessionId);
     if (it == m_sessionToPlayer.end()) return nullptr;
@@ -104,7 +105,8 @@ ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId) {
     return playerIt != m_players.end() ? &playerIt->second : nullptr;
 }
 
-const ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId) const {
+const ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_sessionToPlayer.find(sessionId);
     if (it == m_sessionToPlayer.end()) return nullptr;
@@ -112,34 +114,40 @@ const ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId) const {
     return playerIt != m_players.end() ? &playerIt->second : nullptr;
 }
 
-ServerPlayerData* PlayerManager::getPlayer(PlayerId playerId) {
+ServerPlayerData* PlayerManager::getPlayer(PlayerId playerId)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_players.find(playerId);
     return it != m_players.end() ? &it->second : nullptr;
 }
 
-const ServerPlayerData* PlayerManager::getPlayer(PlayerId playerId) const {
+const ServerPlayerData* PlayerManager::getPlayer(PlayerId playerId) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_players.find(playerId);
     return it != m_players.end() ? &it->second : nullptr;
 }
 
-bool PlayerManager::hasPlayer(PlayerId playerId) const {
+bool PlayerManager::hasPlayer(PlayerId playerId) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_players.find(playerId) != m_players.end();
 }
 
-size_t PlayerManager::playerCount() const {
+size_t PlayerManager::playerCount() const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_players.size();
 }
 
-bool PlayerManager::isFull() const {
+bool PlayerManager::isFull() const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return static_cast<i32>(m_players.size()) >= m_maxPlayers;
 }
 
-std::vector<PlayerId> PlayerManager::getPlayerIds() const {
+std::vector<PlayerId> PlayerManager::getPlayerIds() const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<PlayerId> ids;
     ids.reserve(m_players.size());
@@ -149,7 +157,8 @@ std::vector<PlayerId> PlayerManager::getPlayerIds() const {
     return ids;
 }
 
-void PlayerManager::mapSessionToPlayer(u32 sessionId, PlayerId playerId) {
+void PlayerManager::mapSessionToPlayer(u32 sessionId, PlayerId playerId)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_sessionToPlayer[sessionId] = playerId;
 
@@ -159,7 +168,8 @@ void PlayerManager::mapSessionToPlayer(u32 sessionId, PlayerId playerId) {
     }
 }
 
-void PlayerManager::unmapSession(u32 sessionId) {
+void PlayerManager::unmapSession(u32 sessionId)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     auto it = m_sessionToPlayer.find(sessionId);
@@ -174,13 +184,15 @@ void PlayerManager::unmapSession(u32 sessionId) {
     }
 }
 
-PlayerId PlayerManager::getPlayerIdBySession(u32 sessionId) const {
+PlayerId PlayerManager::getPlayerIdBySession(u32 sessionId) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_sessionToPlayer.find(sessionId);
     return it != m_sessionToPlayer.end() ? it->second : 0;
 }
 
-std::vector<PlayerId> PlayerManager::getPlayerIdsByAddress(const std::string& ipAddress) const {
+std::vector<PlayerId> PlayerManager::getPlayerIdsByAddress(const std::string& ipAddress) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<PlayerId> result;
     for (const auto& [id, player] : m_players) {
@@ -191,7 +203,8 @@ std::vector<PlayerId> PlayerManager::getPlayerIdsByAddress(const std::string& ip
     return result;
 }
 
-ServerPlayerData* PlayerManager::findByUsername(const std::string& username) {
+ServerPlayerData* PlayerManager::findByUsername(const std::string& username)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     for (auto& [id, player] : m_players) {
         // 不区分大小写比较
@@ -211,7 +224,8 @@ ServerPlayerData* PlayerManager::findByUsername(const std::string& username) {
     return nullptr;
 }
 
-const ServerPlayerData* PlayerManager::findByUsername(const std::string& username) const {
+const ServerPlayerData* PlayerManager::findByUsername(const std::string& username) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     for (const auto& [id, player] : m_players) {
         // 不区分大小写比较
@@ -231,7 +245,8 @@ const ServerPlayerData* PlayerManager::findByUsername(const std::string& usernam
     return nullptr;
 }
 
-ServerPlayerData* PlayerManager::findByUuid(const std::string& uuid) {
+ServerPlayerData* PlayerManager::findByUuid(const std::string& uuid)
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     for (auto& [id, player] : m_players) {
         if (player.uuid == uuid) {
@@ -241,7 +256,8 @@ ServerPlayerData* PlayerManager::findByUuid(const std::string& uuid) {
     return nullptr;
 }
 
-const ServerPlayerData* PlayerManager::findByUuid(const std::string& uuid) const {
+const ServerPlayerData* PlayerManager::findByUuid(const std::string& uuid) const
+{
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     for (const auto& [id, player] : m_players) {
         if (player.uuid == uuid) {

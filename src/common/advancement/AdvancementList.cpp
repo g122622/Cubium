@@ -2,14 +2,15 @@
 
 namespace mc::advancement {
 
-bool AdvancementList::add(Advancement::Ptr advancement) {
+bool AdvancementList::add(Advancement::Ptr advancement)
+{
     if (!advancement) {
         return false;
     }
 
     const auto& id = advancement->getId();
     if (m_advancements.find(id) != m_advancements.end()) {
-        return false;  // 已存在
+        return false; // 已存在
     }
 
     m_advancements[id] = advancement;
@@ -40,7 +41,8 @@ bool AdvancementList::add(Advancement::Ptr advancement) {
     return true;
 }
 
-bool AdvancementList::remove(const ResourceLocation& id) {
+bool AdvancementList::remove(const ResourceLocation& id)
+{
     auto it = m_advancements.find(id);
     if (it == m_advancements.end()) {
         return false;
@@ -68,23 +70,27 @@ bool AdvancementList::remove(const ResourceLocation& id) {
     return true;
 }
 
-void AdvancementList::clear() {
+void AdvancementList::clear()
+{
     m_advancements.clear();
     m_roots.clear();
     m_nonRoots.clear();
     m_waitingForParent.clear();
 }
 
-Advancement::Ptr AdvancementList::get(const ResourceLocation& id) const {
+Advancement::Ptr AdvancementList::get(const ResourceLocation& id) const
+{
     auto it = m_advancements.find(id);
     return it != m_advancements.end() ? it->second : nullptr;
 }
 
-bool AdvancementList::contains(const ResourceLocation& id) const {
+bool AdvancementList::contains(const ResourceLocation& id) const
+{
     return m_advancements.find(id) != m_advancements.end();
 }
 
-void AdvancementList::forEach(std::function<bool(Advancement::Ptr)> callback) const {
+void AdvancementList::forEach(std::function<bool(Advancement::Ptr)> callback) const
+{
     for (const auto& [_, advancement] : m_advancements) {
         if (!callback(advancement)) {
             break;
@@ -92,7 +98,8 @@ void AdvancementList::forEach(std::function<bool(Advancement::Ptr)> callback) co
     }
 }
 
-void AdvancementList::forEachRoot(std::function<bool(Advancement::Ptr)> callback) const {
+void AdvancementList::forEachRoot(std::function<bool(Advancement::Ptr)> callback) const
+{
     for (const auto& root : m_roots) {
         if (!callback(root)) {
             break;
@@ -100,20 +107,23 @@ void AdvancementList::forEachRoot(std::function<bool(Advancement::Ptr)> callback
     }
 }
 
-void AdvancementList::addListener(IListener* listener) {
+void AdvancementList::addListener(IListener* listener)
+{
     if (listener && std::find(m_listeners.begin(), m_listeners.end(), listener) == m_listeners.end()) {
         m_listeners.push_back(listener);
     }
 }
 
-void AdvancementList::removeListener(IListener* listener) {
+void AdvancementList::removeListener(IListener* listener)
+{
     auto it = std::find(m_listeners.begin(), m_listeners.end(), listener);
     if (it != m_listeners.end()) {
         m_listeners.erase(it);
     }
 }
 
-void AdvancementList::rebuildRelations() {
+void AdvancementList::rebuildRelations()
+{
     // 清空当前分类
     m_roots.clear();
     m_nonRoots.clear();
@@ -135,9 +145,10 @@ void AdvancementList::rebuildRelations() {
     }
 }
 
-bool AdvancementList::trySetParent(Advancement::Ptr advancement) {
+bool AdvancementList::trySetParent(Advancement::Ptr advancement)
+{
     if (!advancement->getParent().has_value()) {
-        return true;  // 根成就
+        return true; // 根成就
     }
 
     auto parent = get(advancement->getParent().value());
@@ -148,19 +159,22 @@ bool AdvancementList::trySetParent(Advancement::Ptr advancement) {
     return false;
 }
 
-void AdvancementList::notifyAdvancementAdded(Advancement::Ptr advancement) {
+void AdvancementList::notifyAdvancementAdded(Advancement::Ptr advancement)
+{
     for (auto* listener : m_listeners) {
         listener->onAdvancementAdded(advancement);
     }
 }
 
-void AdvancementList::notifyAdvancementRemoved(Advancement::Ptr advancement) {
+void AdvancementList::notifyAdvancementRemoved(Advancement::Ptr advancement)
+{
     for (auto* listener : m_listeners) {
         listener->onAdvancementRemoved(advancement);
     }
 }
 
-void AdvancementList::notifyAdvancementUpdated(Advancement::Ptr advancement) {
+void AdvancementList::notifyAdvancementUpdated(Advancement::Ptr advancement)
+{
     for (auto* listener : m_listeners) {
         listener->onAdvancementUpdated(advancement);
     }

@@ -8,7 +8,7 @@ namespace mc::client::renderer::entity::model {
 
 // 前向声明
 namespace entity {
-    class LivingEntity;
+class LivingEntity;
 }
 
 /**
@@ -16,25 +16,14 @@ namespace entity {
  *
  * 参考 MC 1.16.5 HandSide
  */
-enum class HandSide {
-    Left,
-    Right
-};
+enum class HandSide { Left, Right };
 
 /**
  * @brief 手臂姿态枚举
  *
  * 参考 MC 1.16.5 BipedModel.ArmPose
  */
-enum class ArmPose {
-    Empty,
-    Item,
-    Block,
-    BowAndArrow,
-    ThrowSpear,
-    CrossbowCharge,
-    CrossbowHold
-};
+enum class ArmPose { Empty, Item, Block, BowAndArrow, ThrowSpear, CrossbowCharge, CrossbowHold };
 
 /**
  * @brief 双足动物模型基类
@@ -57,9 +46,8 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置生物动画状态（每帧调用）

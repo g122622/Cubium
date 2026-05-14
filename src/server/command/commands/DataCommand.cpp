@@ -12,13 +12,9 @@ namespace command {
 void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto dataNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("data");
-    dataNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        dataNode,
-        support::makeMetadata(
-            "Gets, merges, modifies, or removes block entity and entity NBT data.",
+    dataNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(dataNode,
+        support::makeMetadata("Gets, merges, modifies, or removes block entity and entity NBT data.",
             "/data <get|set|merge|remove> <target> [<path>]",
             2,
             {},
@@ -26,53 +22,39 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data get
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "target",
-        StringArgumentType::string());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return getData(ctx);
-    });
+    auto targetArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getData(ctx); });
     getNode->addChild(targetArg);
     dataNode->addChild(getNode);
 
     // /data set
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "target",
-        StringArgumentType::string());
+    auto setTargetArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
     auto setValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "value",
-        StringArgumentType::greedyString());
-    setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setData(ctx);
-    });
+        "value", StringArgumentType::greedyString());
+    setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setData(ctx); });
     setTargetArg->addChild(setValueArg);
     setNode->addChild(setTargetArg);
     dataNode->addChild(setNode);
 
     // /data merge
     auto mergeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("merge");
-    auto mergeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "target",
-        StringArgumentType::string());
+    auto mergeTargetArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
     auto mergeValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "value",
-        StringArgumentType::greedyString());
-    mergeValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return mergeData(ctx);
-    });
+        "value", StringArgumentType::greedyString());
+    mergeValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mergeData(ctx); });
     mergeTargetArg->addChild(mergeValueArg);
     mergeNode->addChild(mergeTargetArg);
     dataNode->addChild(mergeNode);
 
     // /data remove
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "target",
-        StringArgumentType::string());
-    removeTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return removeData(ctx);
-    });
+    auto removeTargetArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
+    removeTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeData(ctx); });
     removeNode->addChild(removeTargetArg);
     dataNode->addChild(removeNode);
 

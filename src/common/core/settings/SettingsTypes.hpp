@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
-#include <nlohmann/json.hpp>
 #include <functional>
-#include <variant>
 #include <map>
-#include <vector>
 #include <optional>
+#include <variant>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -35,7 +35,7 @@ using SettingsValue = std::variant<bool, i32, f32, std::string>;
  * 当设置值变更时调用的回调函数类型。
  * @tparam T 设置值的类型
  */
-template<typename T>
+template <typename T>
 using SettingsCallback = std::function<void(T newValue)>;
 
 // ============================================================================
@@ -124,14 +124,14 @@ public:
         : m_key(std::move(key))
         , m_value(defaultValue)
         , m_default(defaultValue)
-    {
-    }
+    {}
 
     [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
-    bool setValue(const SettingsValue& value) override {
+    bool setValue(const SettingsValue& value) override
+    {
         if (std::holds_alternative<bool>(value)) {
             set(std::get<bool>(value));
             return true;
@@ -139,23 +139,18 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override {
-        j[m_key] = m_value;
-    }
+    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
 
-    void deserialize(const nlohmann::json& j) override {
+    void deserialize(const nlohmann::json& j) override
+    {
         if (j.contains(m_key) && j[m_key].is_boolean()) {
             set(j[m_key].get<bool>());
         }
     }
 
-    void reset() override {
-        set(m_default);
-    }
+    void reset() override { set(m_default); }
 
-    [[nodiscard]] bool isDefault() const override {
-        return m_value == m_default;
-    }
+    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
 
     // 便捷方法
 
@@ -168,7 +163,8 @@ public:
      * @brief 设置布尔值
      * @param value 新值
      */
-    void set(bool value) {
+    void set(bool value)
+    {
         if (m_value != value) {
             m_value = value;
             if (m_callback) {
@@ -186,9 +182,7 @@ public:
      * @brief 设置变更回调
      * @param callback 变更时调用的函数
      */
-    void onChange(SettingsCallback<bool> callback) {
-        m_callback = std::move(callback);
-    }
+    void onChange(SettingsCallback<bool> callback) { m_callback = std::move(callback); }
 
 private:
     std::string m_key;
@@ -232,14 +226,14 @@ public:
         , m_max(max)
         , m_value(clamp(defaultValue))
         , m_default(clamp(defaultValue))
-    {
-    }
+    {}
 
     [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
-    bool setValue(const SettingsValue& value) override {
+    bool setValue(const SettingsValue& value) override
+    {
         if (std::holds_alternative<i32>(value)) {
             set(std::get<i32>(value));
             return true;
@@ -252,11 +246,10 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override {
-        j[m_key] = m_value;
-    }
+    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
 
-    void deserialize(const nlohmann::json& j) override {
+    void deserialize(const nlohmann::json& j) override
+    {
         if (j.contains(m_key)) {
             if (j[m_key].is_number_integer()) {
                 set(j[m_key].get<i32>());
@@ -266,13 +259,9 @@ public:
         }
     }
 
-    void reset() override {
-        set(m_default);
-    }
+    void reset() override { set(m_default); }
 
-    [[nodiscard]] bool isDefault() const override {
-        return m_value == m_default;
-    }
+    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
 
     // 便捷方法
 
@@ -285,7 +274,8 @@ public:
      * @brief 设置整数值
      * @param value 新值（自动 clamp 到有效范围）
      */
-    void set(i32 value) {
+    void set(i32 value)
+    {
         i32 newValue = clamp(value);
         if (m_value != newValue) {
             m_value = newValue;
@@ -318,9 +308,7 @@ public:
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<i32> callback) {
-        m_callback = std::move(callback);
-    }
+    void onChange(SettingsCallback<i32> callback) { m_callback = std::move(callback); }
 
 private:
     std::string m_key;
@@ -330,7 +318,8 @@ private:
     i32 m_default;
     SettingsCallback<i32> m_callback;
 
-    [[nodiscard]] i32 clamp(i32 value) const {
+    [[nodiscard]] i32 clamp(i32 value) const
+    {
         if (value < m_min) return m_min;
         if (value > m_max) return m_max;
         return value;
@@ -369,14 +358,14 @@ public:
         , m_max(max)
         , m_value(clamp(defaultValue))
         , m_default(clamp(defaultValue))
-    {
-    }
+    {}
 
     [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
-    bool setValue(const SettingsValue& value) override {
+    bool setValue(const SettingsValue& value) override
+    {
         if (std::holds_alternative<f32>(value)) {
             set(std::get<f32>(value));
             return true;
@@ -389,21 +378,19 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override {
-        j[m_key] = m_value;
-    }
+    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
 
-    void deserialize(const nlohmann::json& j) override {
+    void deserialize(const nlohmann::json& j) override
+    {
         if (j.contains(m_key) && j[m_key].is_number()) {
             set(j[m_key].get<f32>());
         }
     }
 
-    void reset() override {
-        set(m_default);
-    }
+    void reset() override { set(m_default); }
 
-    [[nodiscard]] bool isDefault() const override {
+    [[nodiscard]] bool isDefault() const override
+    {
         // 使用 epsilon 比较浮点数
         constexpr f32 epsilon = 0.0001f;
         return std::abs(m_value - m_default) < epsilon;
@@ -420,7 +407,8 @@ public:
      * @brief 设置浮点值
      * @param value 新值（自动 clamp 到有效范围）
      */
-    void set(f32 value) {
+    void set(f32 value)
+    {
         f32 newValue = clamp(value);
         // 使用 epsilon 比较
         constexpr f32 epsilon = 0.0001f;
@@ -455,9 +443,7 @@ public:
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<f32> callback) {
-        m_callback = std::move(callback);
-    }
+    void onChange(SettingsCallback<f32> callback) { m_callback = std::move(callback); }
 
 private:
     std::string m_key;
@@ -467,7 +453,8 @@ private:
     f32 m_default;
     SettingsCallback<f32> m_callback;
 
-    [[nodiscard]] f32 clamp(f32 value) const {
+    [[nodiscard]] f32 clamp(f32 value) const
+    {
         if (value < m_min) return m_min;
         if (value > m_max) return m_max;
         return value;
@@ -494,7 +481,7 @@ private:
  * const char* name = graphics.getName();  // "fancy"
  * @endcode
  */
-template<typename T>
+template <typename T>
 class EnumOption : public IOption {
     static_assert(std::is_integral_v<T>, "T must be an integral type");
 
@@ -521,11 +508,10 @@ public:
 
     [[nodiscard]] std::string getKey() const override { return m_key; }
 
-    [[nodiscard]] SettingsValue getValue() const override {
-        return static_cast<i32>(m_value);
-    }
+    [[nodiscard]] SettingsValue getValue() const override { return static_cast<i32>(m_value); }
 
-    bool setValue(const SettingsValue& value) override {
+    bool setValue(const SettingsValue& value) override
+    {
         if (std::holds_alternative<i32>(value)) {
             set(static_cast<T>(std::get<i32>(value)));
             return true;
@@ -533,11 +519,10 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override {
-        j[m_key] = getName();
-    }
+    void serialize(nlohmann::json& j) const override { j[m_key] = getName(); }
 
-    void deserialize(const nlohmann::json& j) override {
+    void deserialize(const nlohmann::json& j) override
+    {
         if (j.contains(m_key)) {
             if (j[m_key].is_string()) {
                 setByName(j[m_key].template get<std::string>());
@@ -547,13 +532,9 @@ public:
         }
     }
 
-    void reset() override {
-        set(m_default);
-    }
+    void reset() override { set(m_default); }
 
-    [[nodiscard]] bool isDefault() const override {
-        return m_value == m_default;
-    }
+    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
 
     // 便捷方法
 
@@ -566,7 +547,8 @@ public:
      * @brief 设置枚举值
      * @param value 新值（必须是允许值列表中的值）
      */
-    void set(T value) {
+    void set(T value)
+    {
         // 验证值是否有效
         bool valid = false;
         for (const auto& v : m_values) {
@@ -590,7 +572,8 @@ public:
      * @param name 值名称
      * @return 是否设置成功
      */
-    bool setByName(const std::string& name) {
+    bool setByName(const std::string& name)
+    {
         auto it = m_nameToValue.find(name);
         if (it != m_nameToValue.end()) {
             set(it->second);
@@ -603,7 +586,8 @@ public:
      * @brief 获取当前值的名称
      * @return 值名称，如果找不到则返回空字符串
      */
-    [[nodiscard]] std::string getName() const {
+    [[nodiscard]] std::string getName() const
+    {
         for (size_t i = 0; i < m_values.size() && i < m_names.size(); ++i) {
             if (m_values[i] == m_value) {
                 return m_names[i];
@@ -630,9 +614,7 @@ public:
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<T> callback) {
-        m_callback = std::move(callback);
-    }
+    void onChange(SettingsCallback<T> callback) { m_callback = std::move(callback); }
 
 private:
     std::string m_key;
@@ -664,14 +646,14 @@ public:
         : m_key(std::move(key))
         , m_value(std::move(defaultValue))
         , m_default(m_value)
-    {
-    }
+    {}
 
     [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
-    bool setValue(const SettingsValue& value) override {
+    bool setValue(const SettingsValue& value) override
+    {
         if (std::holds_alternative<std::string>(value)) {
             set(std::get<std::string>(value));
             return true;
@@ -679,23 +661,18 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override {
-        j[m_key] = m_value;
-    }
+    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
 
-    void deserialize(const nlohmann::json& j) override {
+    void deserialize(const nlohmann::json& j) override
+    {
         if (j.contains(m_key) && j[m_key].is_string()) {
             set(j[m_key].get<std::string>());
         }
     }
 
-    void reset() override {
-        set(m_default);
-    }
+    void reset() override { set(m_default); }
 
-    [[nodiscard]] bool isDefault() const override {
-        return m_value == m_default;
-    }
+    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
 
     // 便捷方法
 
@@ -707,7 +684,8 @@ public:
     /**
      * @brief 设置字符串值
      */
-    void set(std::string value) {
+    void set(std::string value)
+    {
         if (m_value != value) {
             m_value = std::move(value);
             if (m_callback) {
@@ -729,9 +707,7 @@ public:
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<std::string> callback) {
-        m_callback = std::move(callback);
-    }
+    void onChange(SettingsCallback<std::string> callback) { m_callback = std::move(callback); }
 
 private:
     std::string m_key;

@@ -1,14 +1,15 @@
 #include "RenderPassManager.hpp"
 #include "../TridentContext.hpp"
 #include "../TridentSwapchain.hpp"
-#include <spdlog/spdlog.h>
 #include <array>
+#include <spdlog/spdlog.h>
 
 using namespace mc;
 
 namespace {
 
-[[nodiscard]] VkImageAspectFlags depthAspectMask(VkFormat format) {
+[[nodiscard]] VkImageAspectFlags depthAspectMask(VkFormat format)
+{
     switch (format) {
         case VK_FORMAT_D32_SFLOAT_S8_UINT:
         case VK_FORMAT_D24_UNORM_S8_UINT:
@@ -18,8 +19,7 @@ namespace {
     }
 }
 
-[[nodiscard]] Result<void> createAttachmentImage(
-    mc::client::renderer::trident::TridentContext* context,
+[[nodiscard]] Result<void> createAttachmentImage(mc::client::renderer::trident::TridentContext* context,
     VkExtent2D extent,
     VkFormat format,
     VkImageUsageFlags usage,
@@ -54,9 +54,8 @@ namespace {
     VkMemoryRequirements memRequirements{};
     vkGetImageMemoryRequirements(device, outImage, &memRequirements);
 
-    auto memoryTypeResult = context->findMemoryType(
-        memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memoryTypeResult =
+        context->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (memoryTypeResult.failed()) {
         vkDestroyImage(device, outImage, nullptr);
         outImage = VK_NULL_HANDLE;
@@ -117,7 +116,8 @@ namespace mc::client::renderer::trident {
 
 RenderPassManager::RenderPassManager() = default;
 
-RenderPassManager::~RenderPassManager() {
+RenderPassManager::~RenderPassManager()
+{
     destroy();
 }
 
@@ -149,7 +149,8 @@ RenderPassManager::RenderPassManager(RenderPassManager&& other) noexcept
     other.m_initialized = false;
 }
 
-RenderPassManager& RenderPassManager::operator=(RenderPassManager&& other) noexcept {
+RenderPassManager& RenderPassManager::operator=(RenderPassManager&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_context = other.m_context;
@@ -185,7 +186,9 @@ RenderPassManager& RenderPassManager::operator=(RenderPassManager&& other) noexc
 // 初始化
 // ============================================================================
 
-Result<void> RenderPassManager::initialize(TridentContext* context, TridentSwapchain* swapchain, VkSampleCountFlagBits sampleCount) {
+Result<void> RenderPassManager::initialize(
+    TridentContext* context, TridentSwapchain* swapchain, VkSampleCountFlagBits sampleCount)
+{
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "RenderPassManager already initialized");
     }
@@ -232,7 +235,8 @@ Result<void> RenderPassManager::initialize(TridentContext* context, TridentSwapc
     return {};
 }
 
-void RenderPassManager::destroy() {
+void RenderPassManager::destroy()
+{
     if (!m_initialized) return;
 
     destroyFramebuffers();
@@ -248,7 +252,8 @@ void RenderPassManager::destroy() {
     spdlog::info("RenderPassManager destroyed");
 }
 
-Result<void> RenderPassManager::recreate(u32 width, u32 height) {
+Result<void> RenderPassManager::recreate(u32 width, u32 height)
+{
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "RenderPassManager not initialized");
     }
@@ -279,7 +284,8 @@ Result<void> RenderPassManager::recreate(u32 width, u32 height) {
     return {};
 }
 
-VkFramebuffer RenderPassManager::framebuffer(u32 index) const {
+VkFramebuffer RenderPassManager::framebuffer(u32 index) const
+{
     if (index >= m_framebuffers.size()) {
         return VK_NULL_HANDLE;
     }
@@ -290,7 +296,8 @@ VkFramebuffer RenderPassManager::framebuffer(u32 index) const {
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> RenderPassManager::createRenderPass() {
+Result<void> RenderPassManager::createRenderPass()
+{
     // 查找深度格式
     auto depthFormatResult = m_context->findDepthFormat();
     if (depthFormatResult.failed()) {
@@ -343,13 +350,12 @@ Result<void> RenderPassManager::createRenderPass() {
 
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.srcStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependency.dstStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         attachments[0] = colorAttachment;
         attachments[1] = depthAttachment;
@@ -404,13 +410,12 @@ Result<void> RenderPassManager::createRenderPass() {
 
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.srcStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependency.dstStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         attachments[0] = colorAttachment;
         attachments[1] = depthAttachment;
@@ -431,13 +436,13 @@ Result<void> RenderPassManager::createRenderPass() {
     return {};
 }
 
-Result<void> RenderPassManager::createColorResources() {
+Result<void> RenderPassManager::createColorResources()
+{
     if (m_sampleCount == VK_SAMPLE_COUNT_1_BIT) {
         return Result<void>::ok();
     }
 
-    return createAttachmentImage(
-        m_context,
+    return createAttachmentImage(m_context,
         m_swapchain->extent(),
         m_swapchain->imageFormat(),
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -448,9 +453,9 @@ Result<void> RenderPassManager::createColorResources() {
         m_colorImageView);
 }
 
-Result<void> RenderPassManager::createDepthResources() {
-    return createAttachmentImage(
-        m_context,
+Result<void> RenderPassManager::createDepthResources()
+{
+    return createAttachmentImage(m_context,
         m_swapchain->extent(),
         m_depthFormat,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -461,7 +466,8 @@ Result<void> RenderPassManager::createDepthResources() {
         m_depthImageView);
 }
 
-Result<void> RenderPassManager::createFramebuffers() {
+Result<void> RenderPassManager::createFramebuffers()
+{
     VkExtent2D extent = m_swapchain->extent();
     const auto& imageViews = m_swapchain->imageViews();
 
@@ -473,10 +479,7 @@ Result<void> RenderPassManager::createFramebuffers() {
         }
 
         if (m_sampleCount == VK_SAMPLE_COUNT_1_BIT) {
-            std::array<VkImageView, 2> attachments = {
-                imageViews[i],
-                m_depthImageView
-            };
+            std::array<VkImageView, 2> attachments = {imageViews[i], m_depthImageView};
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -487,11 +490,7 @@ Result<void> RenderPassManager::createFramebuffers() {
             framebufferInfo.height = extent.height;
             framebufferInfo.layers = 1;
 
-            VkResult result = vkCreateFramebuffer(
-                m_context->device(),
-                &framebufferInfo,
-                nullptr,
-                &m_framebuffers[i]);
+            VkResult result = vkCreateFramebuffer(m_context->device(), &framebufferInfo, nullptr, &m_framebuffers[i]);
 
             if (result != VK_SUCCESS) {
                 // 清理已创建的帧缓冲区
@@ -505,11 +504,7 @@ Result<void> RenderPassManager::createFramebuffers() {
             continue;
         }
 
-        std::array<VkImageView, 3> attachments = {
-            m_colorImageView,
-            m_depthImageView,
-            imageViews[i]
-        };
+        std::array<VkImageView, 3> attachments = {m_colorImageView, m_depthImageView, imageViews[i]};
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -520,11 +515,7 @@ Result<void> RenderPassManager::createFramebuffers() {
         framebufferInfo.height = extent.height;
         framebufferInfo.layers = 1;
 
-        VkResult result = vkCreateFramebuffer(
-            m_context->device(),
-            &framebufferInfo,
-            nullptr,
-            &m_framebuffers[i]);
+        VkResult result = vkCreateFramebuffer(m_context->device(), &framebufferInfo, nullptr, &m_framebuffers[i]);
 
         if (result != VK_SUCCESS) {
             // 清理已创建的帧缓冲区
@@ -543,14 +534,16 @@ Result<void> RenderPassManager::createFramebuffers() {
 // 私有方法 - 销毁
 // ============================================================================
 
-void RenderPassManager::destroyRenderPass() {
+void RenderPassManager::destroyRenderPass()
+{
     if (m_renderPass != VK_NULL_HANDLE && m_context) {
         vkDestroyRenderPass(m_context->device(), m_renderPass, nullptr);
         m_renderPass = VK_NULL_HANDLE;
     }
 }
 
-void RenderPassManager::destroyColorResources() {
+void RenderPassManager::destroyColorResources()
+{
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
 
     if (m_colorImageView != VK_NULL_HANDLE && device != VK_NULL_HANDLE) {
@@ -569,7 +562,8 @@ void RenderPassManager::destroyColorResources() {
     }
 }
 
-void RenderPassManager::destroyDepthResources() {
+void RenderPassManager::destroyDepthResources()
+{
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
 
     if (m_depthImageView != VK_NULL_HANDLE && device != VK_NULL_HANDLE) {
@@ -588,7 +582,8 @@ void RenderPassManager::destroyDepthResources() {
     }
 }
 
-void RenderPassManager::destroyFramebuffers() {
+void RenderPassManager::destroyFramebuffers()
+{
     if (!m_context) return;
 
     VkDevice device = m_context->device();

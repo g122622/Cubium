@@ -1,12 +1,12 @@
 #pragma once
 
-#include "IChunkGenerator.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../biome/provider/nether/NetherBiomeProvider.hpp"
+#include "../carver/NetherCaveCarver.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
-#include "../carver/NetherCaveCarver.hpp"
-#include "../../biome/provider/nether/NetherBiomeProvider.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "IChunkGenerator.hpp"
 #include <memory>
 
 namespace mc {
@@ -58,8 +58,8 @@ public:
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    i32 spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                          std::vector<SpawnedEntityData>& outEntities) override;
+    i32 spawnInitialMobs(
+        WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
 
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
@@ -102,12 +102,12 @@ private:
 
     // === 雕刻器 ===
     std::unique_ptr<NetherCaveCarver> m_caveCarver;
-    ProbabilityConfig m_caveConfig{0.2f};  // 下界洞穴概率较高
+    ProbabilityConfig m_caveConfig{0.2f}; // 下界洞穴概率较高
 
     // === 下界特有参数 ===
-    i32 m_lavaLevel = 31;        // 熔岩海高度
-    i32 m_bedrockCeiling = 127;  // 基岩天花板
-    i32 m_bedrockFloor = 0;      // 基岩地板
+    i32 m_lavaLevel = 31;       // 熔岩海高度
+    i32 m_bedrockCeiling = 127; // 基岩天花板
+    i32 m_bedrockFloor = 0;     // 基岩地板
 
     // === 缓存的噪声参数 ===
     i32 m_noiseSizeX;

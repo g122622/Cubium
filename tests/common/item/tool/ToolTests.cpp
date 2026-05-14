@@ -1,17 +1,17 @@
-#include <gtest/gtest.h>
+#include "item/Items.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
-#include "item/Items.hpp"
-#include "item/tier/ItemTiers.hpp"
-#include "item/items/tool/ToolType.hpp"
-#include "item/items/tool/PickaxeItem.hpp"
 #include "item/items/tool/AxeItem.hpp"
-#include "item/items/tool/ShovelItem.hpp"
 #include "item/items/tool/HoeItem.hpp"
+#include "item/items/tool/PickaxeItem.hpp"
+#include "item/items/tool/ShovelItem.hpp"
 #include "item/items/tool/SwordItem.hpp"
+#include "item/items/tool/ToolType.hpp"
+#include "item/tier/ItemTiers.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::item;
@@ -24,14 +24,16 @@ using namespace mc::item::tool;
 
 class ItemTierTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // Initialize items first (needed for repair materials)
         Items::initialize();
         ItemTiers::initialize();
     }
 };
 
-TEST_F(ItemTierTest, WoodTierValues) {
+TEST_F(ItemTierTest, WoodTierValues)
+{
     const auto& tier = ItemTiers::WOOD();
     EXPECT_EQ(tier.getMaxUses(), 59);
     EXPECT_FLOAT_EQ(tier.getEfficiency(), 2.0f);
@@ -40,7 +42,8 @@ TEST_F(ItemTierTest, WoodTierValues) {
     EXPECT_EQ(tier.getEnchantability(), 15);
 }
 
-TEST_F(ItemTierTest, StoneTierValues) {
+TEST_F(ItemTierTest, StoneTierValues)
+{
     const auto& tier = ItemTiers::STONE();
     EXPECT_EQ(tier.getMaxUses(), 131);
     EXPECT_FLOAT_EQ(tier.getEfficiency(), 4.0f);
@@ -49,7 +52,8 @@ TEST_F(ItemTierTest, StoneTierValues) {
     EXPECT_EQ(tier.getEnchantability(), 5);
 }
 
-TEST_F(ItemTierTest, IronTierValues) {
+TEST_F(ItemTierTest, IronTierValues)
+{
     const auto& tier = ItemTiers::IRON();
     EXPECT_EQ(tier.getMaxUses(), 250);
     EXPECT_FLOAT_EQ(tier.getEfficiency(), 6.0f);
@@ -58,7 +62,8 @@ TEST_F(ItemTierTest, IronTierValues) {
     EXPECT_EQ(tier.getEnchantability(), 14);
 }
 
-TEST_F(ItemTierTest, DiamondTierValues) {
+TEST_F(ItemTierTest, DiamondTierValues)
+{
     const auto& tier = ItemTiers::DIAMOND();
     EXPECT_EQ(tier.getMaxUses(), 1561);
     EXPECT_FLOAT_EQ(tier.getEfficiency(), 8.0f);
@@ -67,21 +72,23 @@ TEST_F(ItemTierTest, DiamondTierValues) {
     EXPECT_EQ(tier.getEnchantability(), 10);
 }
 
-TEST_F(ItemTierTest, GoldTierValues) {
+TEST_F(ItemTierTest, GoldTierValues)
+{
     const auto& tier = ItemTiers::GOLD();
-    EXPECT_EQ(tier.getMaxUses(), 32);  // Very low durability
-    EXPECT_FLOAT_EQ(tier.getEfficiency(), 12.0f);  // Highest efficiency
+    EXPECT_EQ(tier.getMaxUses(), 32);             // Very low durability
+    EXPECT_FLOAT_EQ(tier.getEfficiency(), 12.0f); // Highest efficiency
     EXPECT_FLOAT_EQ(tier.getAttackDamage(), 0.0f);
-    EXPECT_EQ(tier.getHarvestLevel(), 0);  // Same as wood
-    EXPECT_EQ(tier.getEnchantability(), 22);  // Highest enchantability
+    EXPECT_EQ(tier.getHarvestLevel(), 0);    // Same as wood
+    EXPECT_EQ(tier.getEnchantability(), 22); // Highest enchantability
 }
 
-TEST_F(ItemTierTest, NetheriteTierValues) {
+TEST_F(ItemTierTest, NetheriteTierValues)
+{
     const auto& tier = ItemTiers::NETHERITE();
-    EXPECT_EQ(tier.getMaxUses(), 2031);  // Highest durability
+    EXPECT_EQ(tier.getMaxUses(), 2031); // Highest durability
     EXPECT_FLOAT_EQ(tier.getEfficiency(), 9.0f);
     EXPECT_FLOAT_EQ(tier.getAttackDamage(), 4.0f);
-    EXPECT_EQ(tier.getHarvestLevel(), 4);  // Highest harvest level
+    EXPECT_EQ(tier.getHarvestLevel(), 4); // Highest harvest level
     EXPECT_EQ(tier.getEnchantability(), 15);
 }
 
@@ -91,14 +98,16 @@ TEST_F(ItemTierTest, NetheriteTierValues) {
 
 class ToolItemTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         Items::initialize();
         ItemTiers::initialize();
         VanillaBlocks::initialize();
     }
 };
 
-TEST_F(ToolItemTest, DiamondPickaxeDurability) {
+TEST_F(ToolItemTest, DiamondPickaxeDurability)
+{
     auto* pickaxe = Items::DIAMOND_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -106,7 +115,8 @@ TEST_F(ToolItemTest, DiamondPickaxeDurability) {
     EXPECT_EQ(pickaxe->maxDamage(), 1561);
 }
 
-TEST_F(ToolItemTest, IronPickaxeDurability) {
+TEST_F(ToolItemTest, IronPickaxeDurability)
+{
     auto* pickaxe = Items::IRON_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -114,7 +124,8 @@ TEST_F(ToolItemTest, IronPickaxeDurability) {
     EXPECT_EQ(pickaxe->maxDamage(), 250);
 }
 
-TEST_F(ToolItemTest, StonePickaxeDurability) {
+TEST_F(ToolItemTest, StonePickaxeDurability)
+{
     auto* pickaxe = Items::STONE_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -122,7 +133,8 @@ TEST_F(ToolItemTest, StonePickaxeDurability) {
     EXPECT_EQ(pickaxe->maxDamage(), 131);
 }
 
-TEST_F(ToolItemTest, WoodenPickaxeDurability) {
+TEST_F(ToolItemTest, WoodenPickaxeDurability)
+{
     auto* pickaxe = Items::WOODEN_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -130,7 +142,8 @@ TEST_F(ToolItemTest, WoodenPickaxeDurability) {
     EXPECT_EQ(pickaxe->maxDamage(), 59);
 }
 
-TEST_F(ToolItemTest, GoldenPickaxeDurability) {
+TEST_F(ToolItemTest, GoldenPickaxeDurability)
+{
     auto* pickaxe = Items::GOLDEN_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -138,24 +151,27 @@ TEST_F(ToolItemTest, GoldenPickaxeDurability) {
     EXPECT_EQ(pickaxe->maxDamage(), 32);
 }
 
-TEST_F(ToolItemTest, PickaxeIsTieredItem) {
+TEST_F(ToolItemTest, PickaxeIsTieredItem)
+{
     auto* pickaxe = Items::DIAMOND_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
     // Should have enchantability from tier
-    EXPECT_EQ(pickaxe->getItemEnchantability(), 10);  // Diamond enchantability
+    EXPECT_EQ(pickaxe->getItemEnchantability(), 10); // Diamond enchantability
 }
 
-TEST_F(ToolItemTest, SwordDamage) {
+TEST_F(ToolItemTest, SwordDamage)
+{
     auto* sword = Items::DIAMOND_SWORD;
     ASSERT_NE(sword, nullptr);
 
     // Diamond sword: base 3 + tier 3 = 6 damage (stored as attackDamage)
     // Max damage is durability
-    EXPECT_EQ(sword->maxDamage(), 1561);  // Diamond durability
+    EXPECT_EQ(sword->maxDamage(), 1561); // Diamond durability
 }
 
-TEST_F(ToolItemTest, PickaxeEnchantability) {
+TEST_F(ToolItemTest, PickaxeEnchantability)
+{
     // Gold tools have highest enchantability (22)
     EXPECT_EQ(Items::GOLDEN_PICKAXE->getItemEnchantability(), 22);
 
@@ -166,7 +182,8 @@ TEST_F(ToolItemTest, PickaxeEnchantability) {
     EXPECT_EQ(Items::IRON_PICKAXE->getItemEnchantability(), 14);
 }
 
-TEST_F(ToolItemTest, ToolTypeConstants) {
+TEST_F(ToolItemTest, ToolTypeConstants)
+{
     EXPECT_EQ(TOOL_TYPE_NONE, 0);
     EXPECT_EQ(TOOL_TYPE_PICKAXE, 1);
     EXPECT_EQ(TOOL_TYPE_AXE, 2);
@@ -182,7 +199,8 @@ TEST_F(ToolItemTest, ToolTypeConstants) {
 
 class ToolHarvestTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         // 必须先初始化方块，因为工具注册时需要有效的方块指针
         VanillaBlocks::initialize();
         Items::initialize();
@@ -190,7 +208,8 @@ protected:
     }
 };
 
-TEST_F(ToolHarvestTest, PickaxeSpeedOnStone) {
+TEST_F(ToolHarvestTest, PickaxeSpeedOnStone)
+{
     auto* pickaxe = Items::DIAMOND_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -205,7 +224,8 @@ TEST_F(ToolHarvestTest, PickaxeSpeedOnStone) {
     EXPECT_FLOAT_EQ(speed, 8.0f);
 }
 
-TEST_F(ToolHarvestTest, WoodenPickaxeCannotHarvestDiamondOre) {
+TEST_F(ToolHarvestTest, WoodenPickaxeCannotHarvestDiamondOre)
+{
     auto* pickaxe = Items::WOODEN_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -220,7 +240,8 @@ TEST_F(ToolHarvestTest, WoodenPickaxeCannotHarvestDiamondOre) {
     EXPECT_FALSE(pickaxe->canHarvestBlock(state));
 }
 
-TEST_F(ToolHarvestTest, IronPickaxeCanHarvestDiamondOre) {
+TEST_F(ToolHarvestTest, IronPickaxeCanHarvestDiamondOre)
+{
     auto* pickaxe = Items::IRON_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -235,7 +256,8 @@ TEST_F(ToolHarvestTest, IronPickaxeCanHarvestDiamondOre) {
     EXPECT_TRUE(pickaxe->canHarvestBlock(state));
 }
 
-TEST_F(ToolHarvestTest, DiamondPickaxeCanHarvestDiamondOre) {
+TEST_F(ToolHarvestTest, DiamondPickaxeCanHarvestDiamondOre)
+{
     auto* pickaxe = Items::DIAMOND_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -250,7 +272,8 @@ TEST_F(ToolHarvestTest, DiamondPickaxeCanHarvestDiamondOre) {
     EXPECT_TRUE(pickaxe->canHarvestBlock(state));
 }
 
-TEST_F(ToolHarvestTest, PickaxeSpeedOnDirt) {
+TEST_F(ToolHarvestTest, PickaxeSpeedOnDirt)
+{
     auto* pickaxe = Items::DIAMOND_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
 
@@ -265,7 +288,8 @@ TEST_F(ToolHarvestTest, PickaxeSpeedOnDirt) {
     EXPECT_FLOAT_EQ(speed, 1.0f);
 }
 
-TEST_F(ToolHarvestTest, ShovelSpeedOnDirt) {
+TEST_F(ToolHarvestTest, ShovelSpeedOnDirt)
+{
     auto* shovel = Items::DIAMOND_SHOVEL;
     ASSERT_NE(shovel, nullptr);
 
@@ -280,7 +304,8 @@ TEST_F(ToolHarvestTest, ShovelSpeedOnDirt) {
     EXPECT_FLOAT_EQ(speed, 8.0f);
 }
 
-TEST_F(ToolHarvestTest, AxeSpeedOnOakLog) {
+TEST_F(ToolHarvestTest, AxeSpeedOnOakLog)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -299,7 +324,8 @@ TEST_F(ToolHarvestTest, AxeSpeedOnOakLog) {
 // BlockState Harvest Tests
 // ============================================================================
 
-TEST_F(ToolHarvestTest, BlockStateHarvestProperties) {
+TEST_F(ToolHarvestTest, BlockStateHarvestProperties)
+{
     // Check that stone block has correct harvest properties
     auto* stone = VanillaBlocks::STONE;
     ASSERT_NE(stone, nullptr);
@@ -312,7 +338,8 @@ TEST_F(ToolHarvestTest, BlockStateHarvestProperties) {
     EXPECT_EQ(state.getHarvestLevel(), 0);
 }
 
-TEST_F(ToolHarvestTest, BlockStateRequiresTool) {
+TEST_F(ToolHarvestTest, BlockStateRequiresTool)
+{
     auto* stone = VanillaBlocks::STONE;
     ASSERT_NE(stone, nullptr);
 
@@ -322,7 +349,8 @@ TEST_F(ToolHarvestTest, BlockStateRequiresTool) {
     EXPECT_TRUE(state.requiresTool());
 }
 
-TEST_F(ToolHarvestTest, ToolEffectiveCheck) {
+TEST_F(ToolHarvestTest, ToolEffectiveCheck)
+{
     auto* stone = VanillaBlocks::STONE;
     ASSERT_NE(stone, nullptr);
 
@@ -344,7 +372,8 @@ TEST_F(ToolHarvestTest, ToolEffectiveCheck) {
 
 class ToolSpecialFunctionTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         VanillaBlocks::initialize();
         Items::initialize();
 
@@ -355,7 +384,8 @@ protected:
 
 // ========== AxeItem Stripping Tests ==========
 
-TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakLog) {
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakLog)
+{
     auto* oakLog = VanillaBlocks::OAK_LOG;
     auto* strippedOakLog = VanillaBlocks::STRIPPED_OAK_LOG;
 
@@ -367,7 +397,8 @@ TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakLog) {
     EXPECT_EQ(result, strippedOakLog) << "Axe should strip OAK_LOG to STRIPPED_OAK_LOG";
 }
 
-TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakWood) {
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakWood)
+{
     auto* oakWood = VanillaBlocks::OAK_WOOD;
     auto* strippedOakWood = VanillaBlocks::STRIPPED_OAK_WOOD;
 
@@ -378,7 +409,8 @@ TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakWood) {
     EXPECT_EQ(result, strippedOakWood) << "Axe should strip OAK_WOOD to STRIPPED_OAK_WOOD";
 }
 
-TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockAllWoodTypes) {
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockAllWoodTypes)
+{
     // Test all 6 wood types
     struct WoodPair {
         const Block* log;
@@ -396,7 +428,7 @@ TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockAllWoodTypes) {
 
     for (const auto& pair : woodTypes) {
         if (pair.log == nullptr || pair.strippedLog == nullptr) {
-            continue;  // Skip if not registered
+            continue; // Skip if not registered
         }
         const Block* result = AxeItem::getStrippedBlock(pair.log);
         EXPECT_EQ(result, pair.strippedLog)
@@ -404,7 +436,8 @@ TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockAllWoodTypes) {
     }
 }
 
-TEST_F(ToolSpecialFunctionTest, AxeCannotStripStone) {
+TEST_F(ToolSpecialFunctionTest, AxeCannotStripStone)
+{
     auto* stone = VanillaBlocks::STONE;
     ASSERT_NE(stone, nullptr);
 
@@ -412,7 +445,8 @@ TEST_F(ToolSpecialFunctionTest, AxeCannotStripStone) {
     EXPECT_EQ(result, nullptr) << "Axe should not be able to strip stone";
 }
 
-TEST_F(ToolSpecialFunctionTest, AxeCannotStripDirt) {
+TEST_F(ToolSpecialFunctionTest, AxeCannotStripDirt)
+{
     auto* dirt = VanillaBlocks::DIRT;
     ASSERT_NE(dirt, nullptr);
 
@@ -420,14 +454,16 @@ TEST_F(ToolSpecialFunctionTest, AxeCannotStripDirt) {
     EXPECT_EQ(result, nullptr) << "Axe should not be able to strip dirt";
 }
 
-TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockNullInput) {
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockNullInput)
+{
     const Block* result = AxeItem::getStrippedBlock(nullptr);
     EXPECT_EQ(result, nullptr) << "getStrippedBlock should return nullptr for null input";
 }
 
 // ========== ShovelItem Path Creation Tests ==========
 
-TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockGrassBlock) {
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockGrassBlock)
+{
     auto* grassBlock = VanillaBlocks::GRASS_BLOCK;
     auto* grassPath = VanillaBlocks::GRASS_PATH;
 
@@ -438,7 +474,8 @@ TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockGrassBlock) {
     EXPECT_EQ(result, grassPath) << "Shovel should convert GRASS_BLOCK to GRASS_PATH";
 }
 
-TEST_F(ToolSpecialFunctionTest, ShovelCannotPathDirt) {
+TEST_F(ToolSpecialFunctionTest, ShovelCannotPathDirt)
+{
     auto* dirt = VanillaBlocks::DIRT;
     ASSERT_NE(dirt, nullptr);
 
@@ -446,7 +483,8 @@ TEST_F(ToolSpecialFunctionTest, ShovelCannotPathDirt) {
     EXPECT_EQ(result, nullptr) << "Shovel should not be able to create path from dirt";
 }
 
-TEST_F(ToolSpecialFunctionTest, ShovelCannotPathStone) {
+TEST_F(ToolSpecialFunctionTest, ShovelCannotPathStone)
+{
     auto* stone = VanillaBlocks::STONE;
     ASSERT_NE(stone, nullptr);
 
@@ -454,7 +492,8 @@ TEST_F(ToolSpecialFunctionTest, ShovelCannotPathStone) {
     EXPECT_EQ(result, nullptr) << "Shovel should not be able to create path from stone";
 }
 
-TEST_F(ToolSpecialFunctionTest, ShovelCannotPathGrassPath) {
+TEST_F(ToolSpecialFunctionTest, ShovelCannotPathGrassPath)
+{
     auto* grassPath = VanillaBlocks::GRASS_PATH;
     if (grassPath == nullptr) {
         GTEST_SKIP() << "GRASS_PATH not registered yet";
@@ -464,14 +503,16 @@ TEST_F(ToolSpecialFunctionTest, ShovelCannotPathGrassPath) {
     EXPECT_EQ(result, nullptr) << "Shovel should not be able to convert GRASS_PATH to anything";
 }
 
-TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockNullInput) {
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockNullInput)
+{
     const Block* result = ShovelItem::getPathBlock(nullptr);
     EXPECT_EQ(result, nullptr) << "getPathBlock should return nullptr for null input";
 }
 
 // ========== HoeItem Tilling Tests ==========
 
-TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassBlock) {
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassBlock)
+{
     auto* grassBlock = VanillaBlocks::GRASS_BLOCK;
     auto* farmland = VanillaBlocks::FARMLAND;
 
@@ -482,7 +523,8 @@ TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassBlock) {
     EXPECT_EQ(result, farmland) << "Hoe should convert GRASS_BLOCK to FARMLAND";
 }
 
-TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockDirt) {
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockDirt)
+{
     auto* dirt = VanillaBlocks::DIRT;
     auto* farmland = VanillaBlocks::FARMLAND;
 
@@ -493,7 +535,8 @@ TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockDirt) {
     EXPECT_EQ(result, farmland) << "Hoe should convert DIRT to FARMLAND";
 }
 
-TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassPath) {
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassPath)
+{
     auto* grassPath = VanillaBlocks::GRASS_PATH;
     auto* farmland = VanillaBlocks::FARMLAND;
 
@@ -505,7 +548,8 @@ TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassPath) {
     EXPECT_EQ(result, farmland) << "Hoe should convert GRASS_PATH to FARMLAND";
 }
 
-TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockCoarseDirtToDirt) {
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockCoarseDirtToDirt)
+{
     auto* coarseDirt = VanillaBlocks::COARSE_DIRT;
     auto* dirt = VanillaBlocks::DIRT;
 
@@ -518,7 +562,8 @@ TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockCoarseDirtToDirt) {
     EXPECT_EQ(result, dirt) << "Hoe should convert COARSE_DIRT to DIRT (not FARMLAND)";
 }
 
-TEST_F(ToolSpecialFunctionTest, HoeCannotTillStone) {
+TEST_F(ToolSpecialFunctionTest, HoeCannotTillStone)
+{
     auto* stone = VanillaBlocks::STONE;
     ASSERT_NE(stone, nullptr);
 
@@ -526,7 +571,8 @@ TEST_F(ToolSpecialFunctionTest, HoeCannotTillStone) {
     EXPECT_EQ(result, nullptr) << "Hoe should not be able to till stone";
 }
 
-TEST_F(ToolSpecialFunctionTest, HoeCannotTillFarmland) {
+TEST_F(ToolSpecialFunctionTest, HoeCannotTillFarmland)
+{
     auto* farmland = VanillaBlocks::FARMLAND;
     if (farmland == nullptr) {
         GTEST_SKIP() << "FARMLAND not registered yet";
@@ -536,36 +582,41 @@ TEST_F(ToolSpecialFunctionTest, HoeCannotTillFarmland) {
     EXPECT_EQ(result, nullptr) << "Hoe should not be able to convert FARMLAND to anything";
 }
 
-TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockNullInput) {
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockNullInput)
+{
     const Block* result = HoeItem::getTilledBlock(nullptr);
     EXPECT_EQ(result, nullptr) << "getTilledBlock should return nullptr for null input";
 }
 
 // ========== Tool Enchantability Tests ==========
 
-TEST_F(ToolItemTest, AxeEnchantability) {
+TEST_F(ToolItemTest, AxeEnchantability)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
-    EXPECT_EQ(axe->getItemEnchantability(), 10);  // Diamond enchantability
+    EXPECT_EQ(axe->getItemEnchantability(), 10); // Diamond enchantability
 }
 
-TEST_F(ToolItemTest, ShovelEnchantability) {
+TEST_F(ToolItemTest, ShovelEnchantability)
+{
     auto* shovel = Items::DIAMOND_SHOVEL;
     ASSERT_NE(shovel, nullptr);
-    EXPECT_EQ(shovel->getItemEnchantability(), 10);  // Diamond enchantability
+    EXPECT_EQ(shovel->getItemEnchantability(), 10); // Diamond enchantability
 }
 
-TEST_F(ToolItemTest, HoeEnchantability) {
+TEST_F(ToolItemTest, HoeEnchantability)
+{
     auto* hoe = Items::DIAMOND_HOE;
     ASSERT_NE(hoe, nullptr);
-    EXPECT_EQ(hoe->getItemEnchantability(), 10);  // Diamond enchantability
+    EXPECT_EQ(hoe->getItemEnchantability(), 10); // Diamond enchantability
 }
 
 // ============================================================================
 // Axe Effective Blocks Tests - Wood Buttons
 // ============================================================================
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnOakButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnOakButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -578,7 +629,8 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnOakButton) {
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on OAK_BUTTON";
 }
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnSpruceButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnSpruceButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -593,7 +645,8 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnSpruceButton) {
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on SPRUCE_BUTTON";
 }
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnBirchButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnBirchButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -608,7 +661,8 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnBirchButton) {
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on BIRCH_BUTTON";
 }
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnJungleButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnJungleButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -623,7 +677,8 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnJungleButton) {
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on JUNGLE_BUTTON";
 }
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnAcaciaButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnAcaciaButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -638,7 +693,8 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnAcaciaButton) {
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on ACACIA_BUTTON";
 }
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnDarkOakButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnDarkOakButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -653,7 +709,8 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnDarkOakButton) {
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on DARK_OAK_BUTTON";
 }
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnCrimsonButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnCrimsonButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 
@@ -668,7 +725,8 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnCrimsonButton) {
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on CRIMSON_BUTTON";
 }
 
-TEST_F(ToolHarvestTest, AxeEffectiveOnWarpedButton) {
+TEST_F(ToolHarvestTest, AxeEffectiveOnWarpedButton)
+{
     auto* axe = Items::DIAMOND_AXE;
     ASSERT_NE(axe, nullptr);
 

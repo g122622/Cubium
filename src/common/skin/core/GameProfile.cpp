@@ -1,9 +1,9 @@
 #include "GameProfile.hpp"
 #include "SkinTypes.hpp"
-#include <sstream>
-#include <iomanip>
 #include <algorithm>
 #include <cctype>
+#include <iomanip>
+#include <sstream>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {
@@ -12,7 +12,8 @@ namespace mc::skin {
 // GameProfileProperty 实现
 // ============================================================================
 
-void GameProfileProperty::serialize(network::PacketSerializer& ser) const {
+void GameProfileProperty::serialize(network::PacketSerializer& ser) const
+{
     ser.writeString(name);
     ser.writeString(value);
 
@@ -24,7 +25,8 @@ void GameProfileProperty::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<GameProfileProperty> GameProfileProperty::deserialize(network::PacketDeserializer& deser) {
+Result<GameProfileProperty> GameProfileProperty::deserialize(network::PacketDeserializer& deser)
+{
     GameProfileProperty prop;
 
     auto nameResult = deser.readString();
@@ -60,15 +62,16 @@ Result<GameProfileProperty> GameProfileProperty::deserialize(network::PacketDese
 // ============================================================================
 
 GameProfile::GameProfile(const std::array<u8, 16>& uuid, const std::string& name)
-    : m_uuid(uuid), m_name(name) {
-}
+    : m_uuid(uuid)
+    , m_name(name)
+{}
 
-void GameProfile::addProperty(const GameProfileProperty& property) {
+void GameProfile::addProperty(const GameProfileProperty& property)
+{
     // 检查是否已存在同名属性
-    auto it = std::find_if(m_properties.begin(), m_properties.end(),
-        [&property](const GameProfileProperty& p) {
-            return p.name == property.name;
-        });
+    auto it = std::find_if(m_properties.begin(), m_properties.end(), [&property](const GameProfileProperty& p) {
+        return p.name == property.name;
+    });
 
     if (it != m_properties.end()) {
         // 替换现有属性
@@ -79,12 +82,12 @@ void GameProfile::addProperty(const GameProfileProperty& property) {
     }
 }
 
-void GameProfile::addProperty(GameProfileProperty&& property) {
+void GameProfile::addProperty(GameProfileProperty&& property)
+{
     // 检查是否已存在同名属性
-    auto it = std::find_if(m_properties.begin(), m_properties.end(),
-        [&property](const GameProfileProperty& p) {
-            return p.name == property.name;
-        });
+    auto it = std::find_if(m_properties.begin(), m_properties.end(), [&property](const GameProfileProperty& p) {
+        return p.name == property.name;
+    });
 
     if (it != m_properties.end()) {
         // 替换现有属性
@@ -95,24 +98,26 @@ void GameProfile::addProperty(GameProfileProperty&& property) {
     }
 }
 
-const GameProfileProperty* GameProfile::getProperty(const std::string& name) const {
-    auto it = std::find_if(m_properties.begin(), m_properties.end(),
-        [&name](const GameProfileProperty& p) {
-            return p.name == name;
-        });
+const GameProfileProperty* GameProfile::getProperty(const std::string& name) const
+{
+    auto it = std::find_if(
+        m_properties.begin(), m_properties.end(), [&name](const GameProfileProperty& p) { return p.name == name; });
 
     return it != m_properties.end() ? &(*it) : nullptr;
 }
 
-bool GameProfile::hasTextures() const {
+bool GameProfile::hasTextures() const
+{
     return getProperty("textures") != nullptr;
 }
 
-const GameProfileProperty* GameProfile::getTexturesProperty() const {
+const GameProfileProperty* GameProfile::getTexturesProperty() const
+{
     return getProperty("textures");
 }
 
-std::string GameProfile::uuidToString() const {
+std::string GameProfile::uuidToString() const
+{
     // 格式: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     std::ostringstream oss;
     oss << std::hex << std::setfill('0');
@@ -149,7 +154,8 @@ std::string GameProfile::uuidToString() const {
     return oss.str();
 }
 
-std::string GameProfile::uuidToStringNoDashes() const {
+std::string GameProfile::uuidToStringNoDashes() const
+{
     std::ostringstream oss;
     oss << std::hex << std::setfill('0');
 
@@ -160,7 +166,8 @@ std::string GameProfile::uuidToStringNoDashes() const {
     return oss.str();
 }
 
-std::array<u8, 16> GameProfile::parseUUID(const std::string& str) {
+std::array<u8, 16> GameProfile::parseUUID(const std::string& str)
+{
     std::array<u8, 16> uuid = {};
 
     // 移除连字符
@@ -175,7 +182,7 @@ std::array<u8, 16> GameProfile::parseUUID(const std::string& str) {
     // 检查长度
     if (cleanStr.length() != 32) {
         spdlog::warn("GameProfile::parseUUID: Invalid UUID length: {}", cleanStr.length());
-        return uuid;  // 返回全零
+        return uuid; // 返回全零
     }
 
     // 解析十六进制
@@ -185,21 +192,23 @@ std::array<u8, 16> GameProfile::parseUUID(const std::string& str) {
         try {
             unsigned int byte = std::stoul(byteStr, nullptr, 16);
             uuid[i] = static_cast<u8>(byte);
-        } catch (const std::exception& e) {
-            spdlog::warn("GameProfile::parseUUID: Failed to parse byte at position {}: {}",
-                         i, byteStr);
-            return std::array<u8, 16>{};  // 返回全零
+        }
+        catch (const std::exception& e) {
+            spdlog::warn("GameProfile::parseUUID: Failed to parse byte at position {}: {}", i, byteStr);
+            return std::array<u8, 16>{}; // 返回全零
         }
     }
 
     return uuid;
 }
 
-i32 GameProfile::uuidHashCode() const {
+i32 GameProfile::uuidHashCode() const
+{
     return calculateUUIDHashCode(m_uuid);
 }
 
-bool GameProfile::hasValidUUID() const {
+bool GameProfile::hasValidUUID() const
+{
     for (size_t i = 0; i < 16; ++i) {
         if (m_uuid[i] != 0) {
             return true;
@@ -208,7 +217,8 @@ bool GameProfile::hasValidUUID() const {
     return false;
 }
 
-void GameProfile::serialize(network::PacketSerializer& ser) const {
+void GameProfile::serialize(network::PacketSerializer& ser) const
+{
     // UUID: 16字节
     for (size_t i = 0; i < 16; ++i) {
         ser.writeU8(m_uuid[i]);
@@ -226,7 +236,8 @@ void GameProfile::serialize(network::PacketSerializer& ser) const {
     }
 }
 
-Result<GameProfile> GameProfile::deserialize(network::PacketDeserializer& deser) {
+Result<GameProfile> GameProfile::deserialize(network::PacketDeserializer& deser)
+{
     GameProfile profile;
 
     // UUID: 16字节

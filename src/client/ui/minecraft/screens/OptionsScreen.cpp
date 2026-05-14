@@ -3,9 +3,11 @@
 namespace mc::client::ui::minecraft {
 
 OptionsScreen::OptionsScreen()
-    : Screen("options") {}
+    : Screen("options")
+{}
 
-void OptionsScreen::paint(kagero::widget::PaintContext& ctx) {
+void OptionsScreen::paint(kagero::widget::PaintContext& ctx)
+{
     ctx.drawFilledRect(bounds(), Colors::fromARGB(220, 18, 18, 26));
 }
 

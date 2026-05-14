@@ -1,7 +1,7 @@
 #include "ServerSettings.hpp"
 
-#include <spdlog/spdlog.h>
 #include <fstream>
+#include <spdlog/spdlog.h>
 
 namespace mc::server {
 
@@ -19,21 +19,21 @@ ServerSettings::ServerSettings()
     , levelName("levelName", "Minecraft Reborn Server")
     , levelSeed("levelSeed", "")
     , levelType("levelType",
-                {LevelType::Default, LevelType::Flat, LevelType::LargeBiomes, LevelType::Amplified, LevelType::Debug},
-                LevelType::Default,
-                {"default", "flat", "largeBiomes", "amplified", "debug_all_block_states"})
+          {LevelType::Default, LevelType::Flat, LevelType::LargeBiomes, LevelType::Amplified, LevelType::Debug},
+          LevelType::Default,
+          {"default", "flat", "largeBiomes", "amplified", "debug_all_block_states"})
     , generateStructures("generateStructures", true)
     , enableCommandBlock("enableCommandBlock", false)
 
     // 游戏设置
     , defaultGameMode("defaultGameMode",
-                      {GameModeValue::Survival, GameModeValue::Creative, GameModeValue::Adventure, GameModeValue::Spectator},
-                      GameModeValue::Survival,
-                      {"survival", "creative", "adventure", "spectator"})
+          {GameModeValue::Survival, GameModeValue::Creative, GameModeValue::Adventure, GameModeValue::Spectator},
+          GameModeValue::Survival,
+          {"survival", "creative", "adventure", "spectator"})
     , difficulty("difficulty",
-                 {DifficultyValue::Peaceful, DifficultyValue::Easy, DifficultyValue::Normal, DifficultyValue::Hard},
-                 DifficultyValue::Normal,
-                 {"peaceful", "easy", "normal", "hard"})
+          {DifficultyValue::Peaceful, DifficultyValue::Easy, DifficultyValue::Normal, DifficultyValue::Hard},
+          DifficultyValue::Normal,
+          {"peaceful", "easy", "normal", "hard"})
     , hardcore("hardcore", false)
     , pvpEnabled("pvpEnabled", true)
     , allowFlight("allowFlight", false)
@@ -50,7 +50,7 @@ ServerSettings::ServerSettings()
     , whiteList("whiteList", false)
     , blackList("blackList", true)
     , maxTickTime("maxTickTime", 1000, 60000, 60000)
-    , maxPacketSize("maxPacketSize", 1024, 16777216, 2097152)  // 2MB
+    , maxPacketSize("maxPacketSize", 1024, 16777216, 2097152) // 2MB
 
     // 日志设置
     , logLevel("logLevel", "info")

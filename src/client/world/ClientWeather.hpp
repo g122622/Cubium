@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/weather/WeatherConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/weather/WeatherConstants.hpp"
 #include <cmath>
 
 namespace mc {
@@ -35,7 +35,8 @@ public:
      *
      * @param strength 目标降雨强度 (0.0 - 1.0)
      */
-    void setRainStrength(f32 strength) {
+    void setRainStrength(f32 strength)
+    {
         m_prevRainStrength = strength;
         m_rainStrength = strength;
     }
@@ -52,7 +53,8 @@ public:
      *
      * @param strength 目标雷暴强度 (0.0 - 1.0)
      */
-    void setThunderStrength(f32 strength) {
+    void setThunderStrength(f32 strength)
+    {
         m_prevThunderStrength = strength;
         m_thunderStrength = strength;
     }
@@ -64,7 +66,8 @@ public:
      *
      * 注意：MC 中 BeginRaining 只是通知下雨开始，实际强度由后续 RainStrengthChange 包同步
      */
-    void beginRain() {
+    void beginRain()
+    {
         // 开始下雨时，服务端会随后发送 RainStrengthChange 包来设置具体强度
         // 这里可以预先设置一个初始强度，用于渲染平滑过渡
         // 如果之前没有下雨，可以开始渐变
@@ -75,7 +78,8 @@ public:
      *
      * 由 GameStateChangePacket (EndRaining) 调用
      */
-    void endRain() {
+    void endRain()
+    {
         // 雨停时，设置当前强度为 0，并保留 prev 用于插值
         m_prevRainStrength = m_rainStrength;
         m_rainStrength = 0.0f;
@@ -89,7 +93,8 @@ public:
      * 客户端本地调用，使 prev 值渐变到当前值
      * 实际上 MC 服务端每 tick 发送强度更新，客户端只需接收
      */
-    void tick() {
+    void tick()
+    {
         // 可选：如果需要客户端本地平滑过渡，可以在这里实现
         // 当前实现：prev 值在 setXXX 时设置，渲染时使用 partialTick 插值
     }
@@ -99,9 +104,7 @@ public:
     /**
      * @brief 是否正在下雨（强度检查）
      */
-    [[nodiscard]] bool isRaining() const {
-        return m_rainStrength > weather::WeatherConstants::RAIN_THRESHOLD;
-    }
+    [[nodiscard]] bool isRaining() const { return m_rainStrength > weather::WeatherConstants::RAIN_THRESHOLD; }
 
     /**
      * @brief 是否正在雷暴（强度检查）
@@ -110,7 +113,8 @@ public:
      * return (double)this.getThunderStrength(1.0F) > 0.9D;
      * 使用 thunderStrength() 方法（已乘以 rainStrength）
      */
-    [[nodiscard]] bool isThundering() const {
+    [[nodiscard]] bool isThundering() const
+    {
         return thunderStrength(1.0f) > weather::WeatherConstants::THUNDER_THRESHOLD;
     }
 
@@ -120,7 +124,8 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 rainStrength(f32 partialTick) const {
+    [[nodiscard]] f32 rainStrength(f32 partialTick) const
+    {
         return math::lerp(m_prevRainStrength, m_rainStrength, partialTick);
     }
 
@@ -134,7 +139,8 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 thunderStrength(f32 partialTick) const {
+    [[nodiscard]] f32 thunderStrength(f32 partialTick) const
+    {
         return math::lerp(m_prevThunderStrength, m_thunderStrength, partialTick) * rainStrength(partialTick);
     }
 
@@ -158,7 +164,8 @@ public:
      * @param partialTick 部分 tick
      * @return 暗化因子 (0.0=正常亮度, 约0.527=最大暗化)
      */
-    [[nodiscard]] f32 skyDarkenFactor(f32 partialTick) const {
+    [[nodiscard]] f32 skyDarkenFactor(f32 partialTick) const
+    {
         f32 rain = rainStrength(partialTick);
         f32 thunder = thunderStrength(partialTick);
         // MC原版使用乘法组合: (1 - rain * 5/16) * (1 - thunder * 5/16)
@@ -174,16 +181,15 @@ public:
      * @param partialTick 部分 tick
      * @return 可见度 (0.0=不可见, 1.0=完全可见)
      */
-    [[nodiscard]] f32 celestialVisibility(f32 partialTick) const {
-        return 1.0f - rainStrength(partialTick);
-    }
+    [[nodiscard]] f32 celestialVisibility(f32 partialTick) const { return 1.0f - rainStrength(partialTick); }
 
     /**
      * @brief 计算天空光照上限
      *
      * @return 天空光照上限 (0-15)，0表示无限制
      */
-    [[nodiscard]] u8 skyLightLimit() const {
+    [[nodiscard]] u8 skyLightLimit() const
+    {
         if (isThundering()) {
             return weather::WeatherConstants::THUNDER_SKY_LIGHT_LIMIT;
         }

@@ -5,7 +5,8 @@ namespace blockentity {
 
 // ========== 静态工具方法 ==========
 
-AxisAlignedBB IHopper::getCollectionArea(const IHopper& hopper) {
+AxisAlignedBB IHopper::getCollectionArea(const IHopper& hopper)
+{
     // 收集区域包括两部分:
     // 1. 漏斗内部碗状区域 (2, 11, 2) -> (14, 16, 14)
     // 2. 上方一格方块区域 (0, 16, 0) -> (16, 32, 16)
@@ -30,14 +31,12 @@ AxisAlignedBB IHopper::getCollectionArea(const IHopper& hopper) {
 
     // 使用最简单的实现：上方一格完整区域
     // 因为碗状区域在方块内部，物品主要从上方进入
-    return AxisAlignedBB(
-        static_cast<f32>(x - 0.5),
-        static_cast<f32>(y - 0.5 + 11.0 / 16.0),  // 碗底部
+    return AxisAlignedBB(static_cast<f32>(x - 0.5),
+        static_cast<f32>(y - 0.5 + 11.0 / 16.0), // 碗底部
         static_cast<f32>(z - 0.5),
         static_cast<f32>(x + 0.5),
-        static_cast<f32>(y + 1.5),  // 上方一格顶部
-        static_cast<f32>(z + 0.5)
-    );
+        static_cast<f32>(y + 1.5), // 上方一格顶部
+        static_cast<f32>(z + 0.5));
 }
 
 } // namespace blockentity

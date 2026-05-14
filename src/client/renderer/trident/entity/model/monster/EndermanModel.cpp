@@ -4,11 +4,11 @@
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    // 末影人 Y 偏移：-14（比普通生物高）
-    constexpr f32 ENDERMAN_Y_OFFSET = -14.0f;
-    // 手臂/腿角度限制：±0.4 弧度
-    constexpr f32 ARM_LEG_ANGLE_LIMIT = 0.4f;
-}
+// 末影人 Y 偏移：-14（比普通生物高）
+constexpr f32 ENDERMAN_Y_OFFSET = -14.0f;
+// 手臂/腿角度限制：±0.4 弧度
+constexpr f32 ARM_LEG_ANGLE_LIMIT = 0.4f;
+} // namespace
 
 EndermanModel::EndermanModel()
     : BipedModel()
@@ -19,7 +19,8 @@ EndermanModel::EndermanModel()
     setupParts();
 }
 
-void EndermanModel::setupParts() {
+void EndermanModel::setupParts()
+{
     // 参考 MC 1.16.5 EndermanModel 构造函数
     // super(0.0F, -14.0F, 64, 32)
     // 末影人有独特的身体比例：手臂和腿非常长
@@ -113,9 +114,9 @@ void EndermanModel::setupParts() {
     }
 }
 
-void EndermanModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                               f64 ageInTicks, f64 netHeadYaw,
-                               f64 headPitch, f64 scale) {
+void EndermanModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
@@ -240,8 +241,8 @@ void EndermanModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_leftArm->setRotationPoint(5.0f, -12.0f, 0.0f);
     }
 
-    (void)ageInTicks;  // 末影人不使用 ageInTicks
-    (void)scale;       // 已在 render() 中使用
+    (void)ageInTicks; // 末影人不使用 ageInTicks
+    (void)scale;      // 已在 render() 中使用
 }
 
 } // namespace mc::client::renderer::entity::model::monster

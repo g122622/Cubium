@@ -1,11 +1,11 @@
 #pragma once
 
-#include "NoiseSettings.hpp"
 #include "../../block/Block.hpp"
+#include "NoiseSettings.hpp"
 
 // 前向声明
 namespace mc {
-    class BlockState;
+class BlockState;
 }
 
 namespace mc {
@@ -20,11 +20,11 @@ namespace mc {
  */
 struct DimensionSettings {
     NoiseSettings noise;
-    const BlockState* defaultBlock = nullptr;   ///< 默认方块（石头等）
-    const BlockState* defaultFluid = nullptr;   ///< 默认流体（水/熔岩）
+    const BlockState* defaultBlock = nullptr; ///< 默认方块（石头等）
+    const BlockState* defaultFluid = nullptr; ///< 默认流体（水/熔岩）
     i32 seaLevel = 63;
-    i32 bedrockRoof = -10;     ///< 基岩顶部（下界用）
-    i32 bedrockFloor = 0;      ///< 基岩底部
+    i32 bedrockRoof = -10; ///< 基岩顶部（下界用）
+    i32 bedrockFloor = 0;  ///< 基岩底部
 
     // === 预设 ===
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../basic/AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
 #include <optional>
 
@@ -37,8 +37,8 @@ public:
      * @brief 狐狸皮肤类型
      */
     enum class FoxType : u8 {
-        Red = 0,    // 红色狐狸
-        Snow = 1    // 白色狐狸（雪地变种）
+        Red = 0, // 红色狐狸
+        Snow = 1 // 白色狐狸（雪地变种）
     };
 
     /**

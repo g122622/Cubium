@@ -29,27 +29,21 @@ public:
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] std::string id() const override {
-        return "minecraft:silk_touch";
+    [[nodiscard]] std::string id() const override { return "minecraft:silk_touch"; }
+
+    [[nodiscard]] i32 minLevel() const override { return 1; }
+
+    [[nodiscard]] i32 maxLevel() const override
+    {
+        return 1; // 精准采集只有 I 级
     }
 
-    [[nodiscard]] i32 minLevel() const override {
-        return 1;
-    }
+    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Digger; }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 1;  // 精准采集只有 I 级
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::VeryRare; }
 
-    [[nodiscard]] EnchantmentType type() const override {
-        return EnchantmentType::Digger;
-    }
-
-    [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::VeryRare;
-    }
-
-    [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override {
+    [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override
+    {
         // 与时运互斥
         if (other.id() == "minecraft:fortune") {
             return false;
@@ -57,13 +51,15 @@ public:
         return Enchantment::isCompatibleWith(other);
     }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override {
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
         // 参考 MC 1.16.5: 15
         (void)level;
         return 15;
     }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override {
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
         // 参考 MC 1.16.5: super.getMinEnchantability(level) + 50
         // = 1 + level * 10 + 50 = 61 (等级1)
         return 1 + level * 10 + 50;

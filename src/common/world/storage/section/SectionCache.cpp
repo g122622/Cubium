@@ -1,6 +1,6 @@
 #include "SectionCache.hpp"
-#include "../db/SectionCodec.hpp"
 #include "../../../util/TimeUtils.hpp"
+#include "../db/SectionCodec.hpp"
 #include <mutex>
 
 namespace mc::world::storage {
@@ -19,7 +19,8 @@ SectionCache::SectionCache(size_t capacity)
 // 缓存操作
 // ============================================================================
 
-std::shared_ptr<SectionData> SectionCache::get(const SectionKey& key) {
+std::shared_ptr<SectionData> SectionCache::get(const SectionKey& key)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_cacheMap.find(key);
@@ -38,11 +39,8 @@ std::shared_ptr<SectionData> SectionCache::get(const SectionKey& key) {
     return it->second->entry.data;
 }
 
-std::shared_ptr<SectionData> SectionCache::put(
-    const SectionKey& key,
-    std::shared_ptr<SectionData> data,
-    bool dirty
-) {
+std::shared_ptr<SectionData> SectionCache::put(const SectionKey& key, std::shared_ptr<SectionData> data, bool dirty)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 检查是否已存在
@@ -72,12 +70,14 @@ std::shared_ptr<SectionData> SectionCache::put(
     return evicted;
 }
 
-bool SectionCache::contains(const SectionKey& key) const {
+bool SectionCache::contains(const SectionKey& key) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_cacheMap.find(key) != m_cacheMap.end();
 }
 
-std::shared_ptr<SectionData> SectionCache::evict(const SectionKey& key) {
+std::shared_ptr<SectionData> SectionCache::evict(const SectionKey& key)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_cacheMap.find(key);
@@ -93,7 +93,8 @@ std::shared_ptr<SectionData> SectionCache::evict(const SectionKey& key) {
     return data;
 }
 
-std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> SectionCache::clear() {
+std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> SectionCache::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> dirtySections;
@@ -116,7 +117,8 @@ std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> SectionCache::c
 // 脏标记管理
 // ============================================================================
 
-bool SectionCache::markDirty(const SectionKey& key) {
+bool SectionCache::markDirty(const SectionKey& key)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_cacheMap.find(key);
@@ -128,7 +130,8 @@ bool SectionCache::markDirty(const SectionKey& key) {
     return true;
 }
 
-bool SectionCache::markClean(const SectionKey& key) {
+bool SectionCache::markClean(const SectionKey& key)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_cacheMap.find(key);
@@ -140,7 +143,8 @@ bool SectionCache::markClean(const SectionKey& key) {
     return true;
 }
 
-bool SectionCache::isDirty(const SectionKey& key) const {
+bool SectionCache::isDirty(const SectionKey& key) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_cacheMap.find(key);
@@ -151,7 +155,8 @@ bool SectionCache::isDirty(const SectionKey& key) const {
     return it->second->entry.dirty;
 }
 
-std::vector<SectionKey> SectionCache::getDirtyKeys() const {
+std::vector<SectionKey> SectionCache::getDirtyKeys() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<SectionKey> keys;
@@ -166,8 +171,8 @@ std::vector<SectionKey> SectionCache::getDirtyKeys() const {
     return keys;
 }
 
-std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>>
-SectionCache::getDirtySections() const {
+std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> SectionCache::getDirtySections() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> sections;
@@ -182,8 +187,8 @@ SectionCache::getDirtySections() const {
     return sections;
 }
 
-std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>>
-SectionCache::getAllSections() const {
+std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> SectionCache::getAllSections() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> sections;
@@ -202,7 +207,8 @@ SectionCache::getAllSections() const {
 // 缓存管理
 // ============================================================================
 
-void SectionCache::setCapacity(size_t capacity) {
+void SectionCache::setCapacity(size_t capacity)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     m_capacity = capacity;
@@ -216,18 +222,21 @@ void SectionCache::setCapacity(size_t capacity) {
     m_stats.currentSize = m_lruList.size();
 }
 
-size_t SectionCache::size() const noexcept {
+size_t SectionCache::size() const noexcept
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_lruList.size();
 }
 
-SectionCache::CacheStats SectionCache::getStats() const {
+SectionCache::CacheStats SectionCache::getStats() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_stats.currentSize = m_lruList.size();
     return m_stats;
 }
 
-void SectionCache::resetStats() {
+void SectionCache::resetStats()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_stats.hits = 0;
     m_stats.misses = 0;
@@ -238,12 +247,14 @@ void SectionCache::resetStats() {
 // 内部方法
 // ============================================================================
 
-void SectionCache::updateAccessOrder(LRUIterator it) {
+void SectionCache::updateAccessOrder(LRUIterator it)
+{
     // 移动到列表最前
     m_lruList.splice(m_lruList.begin(), m_lruList, it);
 }
 
-std::shared_ptr<SectionData> SectionCache::evictLRU() {
+std::shared_ptr<SectionData> SectionCache::evictLRU()
+{
     if (m_lruList.empty()) {
         return nullptr;
     }
@@ -262,10 +273,11 @@ std::shared_ptr<SectionData> SectionCache::evictLRU() {
     return data;
 }
 
-u64 SectionCache::getCurrentTimeMs() {
-    return static_cast<u64>(std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()
-    ).count());
+u64 SectionCache::getCurrentTimeMs()
+{
+    return static_cast<u64>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+            .count());
 }
 
 } // namespace mc::world::storage

@@ -3,11 +3,11 @@
  * @brief TextWidget单元测试
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/widget/TextWidget.hpp"
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
@@ -16,14 +16,16 @@ using namespace mc;
 
 // ==================== 构造函数测试 ====================
 
-TEST(TextWidgetTest, DefaultConstructor) {
+TEST(TextWidgetTest, DefaultConstructor)
+{
     TextWidget text;
     EXPECT_TRUE(text.id().empty());
     EXPECT_TRUE(text.text().empty());
     EXPECT_EQ(TextAlignment::Left, text.alignment());
 }
 
-TEST(TextWidgetTest, ConstructorWithBounds) {
+TEST(TextWidgetTest, ConstructorWithBounds)
+{
     TextWidget text("lbl_title", 10, 20, 200, 30);
 
     EXPECT_EQ("lbl_title", text.id());
@@ -34,7 +36,8 @@ TEST(TextWidgetTest, ConstructorWithBounds) {
     EXPECT_TRUE(text.text().empty());
 }
 
-TEST(TextWidgetTest, ConstructorWithText) {
+TEST(TextWidgetTest, ConstructorWithText)
+{
     TextWidget text("lbl_title", 10, 20, 200, 30, "Hello World");
 
     EXPECT_EQ("lbl_title", text.id());
@@ -43,7 +46,8 @@ TEST(TextWidgetTest, ConstructorWithText) {
 
 // ==================== 文本属性测试 ====================
 
-TEST(TextWidgetTest, SetText) {
+TEST(TextWidgetTest, SetText)
+{
     TextWidget text("test", 0, 0, 100, 20);
     EXPECT_TRUE(text.text().empty());
 
@@ -54,14 +58,16 @@ TEST(TextWidgetTest, SetText) {
     EXPECT_EQ("World", text.text());
 }
 
-TEST(TextWidgetTest, SetColor) {
+TEST(TextWidgetTest, SetColor)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     text.setColor(RED);
     EXPECT_EQ(RED, text.color());
 }
 
-TEST(TextWidgetTest, SetShadow) {
+TEST(TextWidgetTest, SetShadow)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     EXPECT_TRUE(text.hasShadow()); // 默认有阴影
@@ -73,14 +79,16 @@ TEST(TextWidgetTest, SetShadow) {
     EXPECT_TRUE(text.hasShadow());
 }
 
-TEST(TextWidgetTest, SetShadowColor) {
+TEST(TextWidgetTest, SetShadowColor)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     text.setShadowColor(BLACK);
     EXPECT_EQ(BLACK, text.shadowColor());
 }
 
-TEST(TextWidgetTest, SetAlignment) {
+TEST(TextWidgetTest, SetAlignment)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     EXPECT_EQ(TextAlignment::Left, text.alignment());
@@ -94,7 +102,8 @@ TEST(TextWidgetTest, SetAlignment) {
 
 // ==================== 换行和行数测试 ====================
 
-TEST(TextWidgetTest, SetMaxLines) {
+TEST(TextWidgetTest, SetMaxLines)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     EXPECT_EQ(0, text.maxLines()); // 默认无限制
@@ -103,7 +112,8 @@ TEST(TextWidgetTest, SetMaxLines) {
     EXPECT_EQ(3, text.maxLines());
 }
 
-TEST(TextWidgetTest, SetWordWrap) {
+TEST(TextWidgetTest, SetWordWrap)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     EXPECT_FALSE(text.wordWrap()); // 默认不换行
@@ -115,7 +125,8 @@ TEST(TextWidgetTest, SetWordWrap) {
     EXPECT_FALSE(text.wordWrap());
 }
 
-TEST(TextWidgetTest, SetLineHeight) {
+TEST(TextWidgetTest, SetLineHeight)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     EXPECT_EQ(9, text.lineHeight()); // 默认MC字体高度
@@ -124,7 +135,8 @@ TEST(TextWidgetTest, SetLineHeight) {
     EXPECT_EQ(12, text.lineHeight());
 }
 
-TEST(TextWidgetTest, SetScale) {
+TEST(TextWidgetTest, SetScale)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     EXPECT_FLOAT_EQ(1.0f, text.scale());
@@ -138,7 +150,8 @@ TEST(TextWidgetTest, SetScale) {
 
 // ==================== 文本尺寸测试 ====================
 
-TEST(TextWidgetTest, GetTextWidth) {
+TEST(TextWidgetTest, GetTextWidth)
+{
     TextWidget text("test", 0, 0, 100, 20);
     text.setText("Hello");
 
@@ -151,7 +164,8 @@ TEST(TextWidgetTest, GetTextWidth) {
     EXPECT_FLOAT_EQ(5.0f * 8.0f * 2.0f, width);
 }
 
-TEST(TextWidgetTest, GetTextWidthWithFont) {
+TEST(TextWidgetTest, GetTextWidthWithFont)
+{
     mc::client::Font font;
     TextWidget text("test", 0, 0, 100, 20);
     text.setFont(&font);
@@ -160,7 +174,8 @@ TEST(TextWidgetTest, GetTextWidthWithFont) {
     EXPECT_FLOAT_EQ(5.0f * 4.0f, text.getTextWidth());
 }
 
-TEST(TextWidgetTest, GetTextHeight) {
+TEST(TextWidgetTest, GetTextHeight)
+{
     TextWidget text("test", 0, 0, 100, 20);
     text.setText("Hello");
     text.setLineHeight(10);
@@ -173,7 +188,8 @@ TEST(TextWidgetTest, GetTextHeight) {
     EXPECT_FLOAT_EQ(20.0f, height);
 }
 
-TEST(TextWidgetTest, GetLineCount) {
+TEST(TextWidgetTest, GetLineCount)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     text.setText("Hello");
@@ -189,7 +205,8 @@ TEST(TextWidgetTest, GetLineCount) {
     EXPECT_EQ(0, text.getLineCount());
 }
 
-TEST(TextWidgetTest, GetLine) {
+TEST(TextWidgetTest, GetLine)
+{
     TextWidget text("test", 0, 0, 100, 20);
     text.setText("Hello\nWorld\nTest");
 
@@ -201,7 +218,8 @@ TEST(TextWidgetTest, GetLine) {
 
 // ==================== 可见性测试 ====================
 
-TEST(TextWidgetTest, InvisibleNotRendered) {
+TEST(TextWidgetTest, InvisibleNotRendered)
+{
     TextWidget text("test", 0, 0, 100, 20, "Hello");
     text.setVisible(false);
 
@@ -212,7 +230,8 @@ TEST(TextWidgetTest, InvisibleNotRendered) {
 
 // ==================== 字体测试 ====================
 
-TEST(TextWidgetTest, SetFont) {
+TEST(TextWidgetTest, SetFont)
+{
     TextWidget text("test", 0, 0, 100, 20);
 
     EXPECT_EQ(nullptr, text.font());
@@ -224,13 +243,15 @@ TEST(TextWidgetTest, SetFont) {
 
 // ==================== TextAlignment枚举测试 ====================
 
-TEST(TextAlignmentTest, EnumValues) {
+TEST(TextAlignmentTest, EnumValues)
+{
     EXPECT_EQ(0, static_cast<u8>(TextAlignment::Left));
     EXPECT_EQ(1, static_cast<u8>(TextAlignment::Center));
     EXPECT_EQ(2, static_cast<u8>(TextAlignment::Right));
 }
 
-TEST(TextWidgetTest, GetLineCountWithWordWrap) {
+TEST(TextWidgetTest, GetLineCountWithWordWrap)
+{
     mc::client::Font font;
     TextWidget text("test", 0, 0, 8, 20);
     text.setFont(&font);

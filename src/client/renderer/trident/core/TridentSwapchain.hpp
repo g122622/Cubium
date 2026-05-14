@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../api/TridentApi.hpp"
-#include <vulkan/vulkan.h>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -15,7 +15,7 @@ class TridentContext;
 struct SwapChainConfig {
     u32 width = 800;
     u32 height = 600;
-    u32 imageCount = 3;         // 三缓冲
+    u32 imageCount = 3; // 三缓冲
     bool vsync = true;
     VkFormat preferredFormat = VK_FORMAT_B8G8R8A8_SRGB;
     VkColorSpaceKHR preferredColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
@@ -74,7 +74,7 @@ public:
     // 访问器
     [[nodiscard]] VkSwapchainKHR swapchain() const { return m_swapchain; }
     [[nodiscard]] VkFormat imageFormat() const { return m_imageFormat; }
-    [[nodiscard]] VkFormat format() const { return m_imageFormat; }  // 别名
+    [[nodiscard]] VkFormat format() const { return m_imageFormat; } // 别名
     [[nodiscard]] VkColorSpaceKHR colorSpace() const { return m_colorSpace; }
     [[nodiscard]] VkExtent2D extent() const { return m_extent; }
     [[nodiscard]] const std::vector<VkImage>& images() const { return m_images; }

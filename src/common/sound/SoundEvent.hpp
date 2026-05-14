@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundTypes.hpp"
 
@@ -62,15 +62,9 @@ public:
     SoundEvent& operator=(SoundEvent&&) = default;
 
     // 比较
-    [[nodiscard]] bool operator==(const SoundEvent& other) const {
-        return m_id == other.m_id;
-    }
-    [[nodiscard]] bool operator!=(const SoundEvent& other) const {
-        return m_id != other.m_id;
-    }
-    [[nodiscard]] bool operator<(const SoundEvent& other) const {
-        return m_id < other.m_id;
-    }
+    [[nodiscard]] bool operator==(const SoundEvent& other) const { return m_id == other.m_id; }
+    [[nodiscard]] bool operator!=(const SoundEvent& other) const { return m_id != other.m_id; }
+    [[nodiscard]] bool operator<(const SoundEvent& other) const { return m_id < other.m_id; }
 
     // ========================================================================
     // 属性访问
@@ -139,10 +133,8 @@ private:
 
 // std::hash 特化
 namespace std {
-template<>
+template <>
 struct hash<mc::sound::SoundEvent> {
-    size_t operator()(const mc::sound::SoundEvent& event) const noexcept {
-        return event.getId().hash();
-    }
+    size_t operator()(const mc::sound::SoundEvent& event) const noexcept { return event.getId().hash(); }
 };
 } // namespace std

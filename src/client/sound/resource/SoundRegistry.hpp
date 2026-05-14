@@ -3,9 +3,9 @@
 #include "client/sound/resource/SoundDefinition.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
+#include <mutex>
 #include <unordered_map>
 #include <vector>
-#include <mutex>
 
 namespace mc::client::sound {
 
@@ -80,9 +80,7 @@ public:
      * @param id 声音事件ID
      * @return 声音事件定义，不存在返回 nullptr
      */
-    [[nodiscard]] const SoundEventDefinition* getSoundEvent(
-        const ResourceLocation& id
-    ) const;
+    [[nodiscard]] const SoundEventDefinition* getSoundEvent(const ResourceLocation& id) const;
 
     /**
      * @brief 检查声音事件是否存在

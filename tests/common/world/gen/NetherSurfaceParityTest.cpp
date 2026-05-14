@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NetherChunkGenerator.hpp"
@@ -15,7 +15,8 @@ namespace {
 
 class NetherSurfaceParityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
 
@@ -36,7 +37,8 @@ protected:
     std::unique_ptr<WorldGenRegion> m_region;
 };
 
-TEST_F(NetherSurfaceParityTest, BedrockUsesConfiguredRoofAndFloorAnchors) {
+TEST_F(NetherSurfaceParityTest, BedrockUsesConfiguredRoofAndFloorAnchors)
+{
     ASSERT_NE(m_region, nullptr);
 
     auto* centerChunk = dynamic_cast<ChunkPrimer*>(m_chunks[4]);

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "SkinTypes.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
 
@@ -15,9 +15,9 @@ namespace mc::skin {
  * 参考 MC 1.16.5 MinecraftProfileTexture.Type
  */
 enum class TextureType : u8 {
-    Skin,    // 皮肤
-    Cape,    // 披风
-    Elytra   // 鞘翅
+    Skin,  // 皮肤
+    Cape,  // 披风
+    Elytra // 鞘翅
 };
 
 /**
@@ -26,9 +26,9 @@ enum class TextureType : u8 {
  * 从 textures 属性的 Base64 JSON 中解析。
  */
 struct TextureMetadata {
-    std::string url;                          // 下载URL
-    std::optional<std::string> hash;          // 纹理哈希（用于缓存文件名）
-    std::optional<SkinType> skinType;    // 仅皮肤：模型类型（default/slim）
+    std::string url;                  // 下载URL
+    std::optional<std::string> hash;  // 纹理哈希（用于缓存文件名）
+    std::optional<SkinType> skinType; // 仅皮肤：模型类型（default/slim）
 
     TextureMetadata() = default;
 
@@ -141,9 +141,7 @@ public:
     /**
      * @brief 是否有任何纹理
      */
-    [[nodiscard]] bool hasAnyTexture() const {
-        return hasSkin() || hasCape() || hasElytra();
-    }
+    [[nodiscard]] bool hasAnyTexture() const { return hasSkin() || hasCape() || hasElytra(); }
 
     // ========== 缓存键生成 ==========
 

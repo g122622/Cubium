@@ -1,10 +1,10 @@
 #pragma once
 
-#include "DimensionType.hpp"
-#include "../gen/chunk/IChunkGenerator.hpp"
-#include "../biome/BiomeProvider.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "../biome/BiomeProvider.hpp"
+#include "../gen/chunk/IChunkGenerator.hpp"
+#include "DimensionType.hpp"
 #include <memory>
 
 namespace mc {
@@ -40,9 +40,9 @@ public:
      * @param biomeProvider 生物群系提供者
      */
     Dimension(DimensionId id,
-              DimensionType type,
-              std::unique_ptr<IChunkGenerator> generator,
-              std::unique_ptr<BiomeProvider> biomeProvider);
+        DimensionType type,
+        std::unique_ptr<IChunkGenerator> generator,
+        std::unique_ptr<BiomeProvider> biomeProvider);
 
     virtual ~Dimension() = default;
 
@@ -126,16 +126,12 @@ public:
     /**
      * @brief 从主世界坐标转换到当前维度
      */
-    [[nodiscard]] Vector3d fromOverworld(const Vector3d& pos) const {
-        return m_type.scaleFromOverworld(pos);
-    }
+    [[nodiscard]] Vector3d fromOverworld(const Vector3d& pos) const { return m_type.scaleFromOverworld(pos); }
 
     /**
      * @brief 从当前维度转换到主世界坐标
      */
-    [[nodiscard]] Vector3d toOverworld(const Vector3d& pos) const {
-        return m_type.scaleToOverworld(pos);
-    }
+    [[nodiscard]] Vector3d toOverworld(const Vector3d& pos) const { return m_type.scaleToOverworld(pos); }
 
     // ========== 维度特性 ==========
 

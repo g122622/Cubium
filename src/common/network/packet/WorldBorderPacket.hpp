@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Packet.hpp"
 #include "../../core/Types.hpp"
 #include "../../world/border/WorldBorder.hpp"
+#include "Packet.hpp"
 
 namespace mc::network {
 

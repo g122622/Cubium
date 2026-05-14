@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Screen.hpp"
-#include "../../kagero/template/compiler/TemplateCompiler.hpp"
-#include "../../kagero/template/runtime/TemplateInstance.hpp"
 #include "../../kagero/state/ReactiveState.hpp"
 #include "../../kagero/template/binder/BindingContext.hpp"
+#include "../../kagero/template/compiler/TemplateCompiler.hpp"
+#include "../../kagero/template/runtime/TemplateInstance.hpp"
+#include "Screen.hpp"
 #include <functional>
 #include <memory>
 #include <utility>
@@ -19,15 +19,13 @@ namespace mc::client::ui::minecraft {
 class TemplateScreen : public Screen {
 public:
     TemplateScreen(const std::string& templateSource,
-                   kagero::tpl::binder::BindingContext& context,
-                   const std::string& screenId = "template-screen");
-    TemplateScreen(std::unique_ptr<kagero::tpl::binder::BindingContext> context,
-                   const std::string& screenId = "template-screen");
-    TemplateScreen(kagero::tpl::binder::BindingContext& context,
-                   const std::string& screenId = "template-screen");
+        kagero::tpl::binder::BindingContext& context,
+        const std::string& screenId = "template-screen");
+    TemplateScreen(
+        std::unique_ptr<kagero::tpl::binder::BindingContext> context, const std::string& screenId = "template-screen");
+    TemplateScreen(kagero::tpl::binder::BindingContext& context, const std::string& screenId = "template-screen");
 
-    static std::unique_ptr<TemplateScreen> fromFile(
-        const std::string& templatePath,
+    static std::unique_ptr<TemplateScreen> fromFile(const std::string& templatePath,
         kagero::tpl::binder::BindingContext& context,
         const std::string& screenId = "template-screen");
 
@@ -43,35 +41,39 @@ public:
     void tick(f32 dt) override;
     void onResize(i32 width, i32 height) override;
 
-    template<typename T>
-    void expose(const std::string& path, const T* value) {
+    template <typename T>
+    void expose(const std::string& path, const T* value)
+    {
         if (m_context) {
             m_context->expose(path, value);
         }
     }
 
-    template<typename T>
-    void exposeWritable(const std::string& path, T* value) {
+    template <typename T>
+    void exposeWritable(const std::string& path, T* value)
+    {
         if (m_context) {
             m_context->exposeWritable(path, value);
         }
     }
 
-    template<typename T>
-    void exposeReactive(const std::string& path, kagero::state::Reactive<T>& reactive) {
+    template <typename T>
+    void exposeReactive(const std::string& path, kagero::state::Reactive<T>& reactive)
+    {
         if (m_context) {
             m_context->exposeReactive(path, reactive);
         }
     }
 
-    void exposeSimpleCallback(const std::string& name, std::function<void()> callback) {
+    void exposeSimpleCallback(const std::string& name, std::function<void()> callback)
+    {
         if (m_context) {
             m_context->exposeSimpleCallback(name, std::move(callback));
         }
     }
 
-    void exposeCallback(const std::string& name,
-                        kagero::tpl::binder::BindingContext::Callback callback) {
+    void exposeCallback(const std::string& name, kagero::tpl::binder::BindingContext::Callback callback)
+    {
         if (m_context) {
             m_context->exposeCallback(name, std::move(callback));
         }

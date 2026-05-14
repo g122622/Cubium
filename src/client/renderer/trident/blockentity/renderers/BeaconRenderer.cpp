@@ -1,7 +1,7 @@
 #include "BeaconRenderer.hpp"
-#include "common/world/blockentity/processing/BeaconEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/blockentity/processing/BeaconEntity.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::blockentity {
@@ -9,13 +9,10 @@ namespace mc::client::renderer::trident::blockentity {
 BeaconRenderer::BeaconRenderer()
     : BlockEntityRenderer<mc::blockentity::BeaconEntity>()
     , m_beamModel()
-    , m_helper() {
-}
+    , m_helper()
+{}
 
-void BeaconRenderer::render(
-    const mc::blockentity::BeaconEntity& entity,
-    f32 partialTick,
-    u32 light)
+void BeaconRenderer::render(const mc::blockentity::BeaconEntity& entity, f32 partialTick, u32 light)
 {
     const BlockPos& pos = entity.getPos();
 
@@ -43,7 +40,8 @@ void BeaconRenderer::render(
     renderBeam(pos, segments, gameTime, partialTick, light);
 }
 
-void BeaconRenderer::renderBeaconBase(const BlockPos& pos, u32 light) {
+void BeaconRenderer::renderBeaconBase(const BlockPos& pos, u32 light)
+{
     // 信标基座使用普通方块模型渲染
     // 由 BlockModelCache 和区块渲染器处理
     // 此处无需额外处理
@@ -51,8 +49,7 @@ void BeaconRenderer::renderBeaconBase(const BlockPos& pos, u32 light) {
     (void)light;
 }
 
-void BeaconRenderer::renderBeam(
-    const BlockPos& pos,
+void BeaconRenderer::renderBeam(const BlockPos& pos,
     const std::vector<mc::blockentity::BeaconBeamSegment>& segments,
     i64 gameTime,
     f32 partialTick,

@@ -3,15 +3,15 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/entity/attribute/AttributeMap.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/attribute/AttributeMap.hpp"
 #include <sstream>
 #include <unordered_set>
 
@@ -21,13 +21,9 @@ namespace command {
 void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto attributeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("attribute");
-    attributeNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(
-        attributeNode,
-        support::makeMetadata(
-            "Gets, sets, or resets an entity attribute.",
+    attributeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(attributeNode,
+        support::makeMetadata("Gets, sets, or resets an entity attribute.",
             "/attribute <target> <attribute> (get|set|base|modifier)",
             2,
             {},
@@ -35,27 +31,20 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /attribute <target> <attribute>
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target",
-        EntityArgumentType::entity());
+        "target", EntityArgumentType::entity());
 
     auto attributeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "attribute",
-        StringArgumentType::string());
+        "attribute", StringArgumentType::string());
 
     // /attribute <target> <attribute> get
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return getAttribute(ctx);
-    });
+    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getAttribute(ctx); });
 
     // /attribute <target> <attribute> set <value>
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto valueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "value",
-        FloatArgumentType::floatArg());
-    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setAttributeBase(ctx);
-    });
+    auto valueArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("value", FloatArgumentType::floatArg());
+    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setAttributeBase(ctx); });
     setNode->addChild(valueArg);
 
     attributeArg->addChild(getNode);
@@ -194,8 +183,7 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
     player->attributes().setBaseValue(normalizedAttrName, static_cast<f64>(value));
 
     std::ostringstream ss;
-    ss << "Set base value of " << normalizedAttrName << " to " << value
-       << " for " << player->username();
+    ss << "Set base value of " << normalizedAttrName << " to " << value << " for " << player->username();
     source.sendMessage(ss.str());
 
     return 1;
@@ -213,13 +201,20 @@ std::string AttributeCommand::normalizeAttributeName(const std::string& name)
     // 添加 generic. 前缀（如果需要）
     if (normalized.find("generic.") != 0 && normalized.find("horse.") != 0) {
         // 常见的通用属性需要 generic. 前缀
-        static const std::vector<std::string> genericAttrs = {
-            "max_health", "follow_range", "knockback_resistance",
-            "movement_speed", "flying_speed", "attack_damage",
-            "attack_knockback", "attack_speed", "armor",
-            "armor_toughness", "luck", "max_absorption",
-            "breath_max", "jump_boost"
-        };
+        static const std::vector<std::string> genericAttrs = {"max_health",
+            "follow_range",
+            "knockback_resistance",
+            "movement_speed",
+            "flying_speed",
+            "attack_damage",
+            "attack_knockback",
+            "attack_speed",
+            "armor",
+            "armor_toughness",
+            "luck",
+            "max_absorption",
+            "breath_max",
+            "jump_boost"};
 
         for (const auto& attr : genericAttrs) {
             if (normalized == attr) {
@@ -265,7 +260,7 @@ f64 AttributeCommand::getAttributeDefaultValue(const std::string& name) noexcept
         {Attributes::MAX_HEALTH, 20.0},
         {Attributes::FOLLOW_RANGE, 32.0},
         {Attributes::KNOCKBACK_RESISTANCE, 0.0},
-        {Attributes::MOVEMENT_SPEED, 0.1},  // 玩家默认
+        {Attributes::MOVEMENT_SPEED, 0.1}, // 玩家默认
         {Attributes::FLYING_SPEED, 0.4},
         {Attributes::ATTACK_DAMAGE, 2.0},
         {Attributes::ATTACK_KNOCKBACK, 0.0},
@@ -312,7 +307,7 @@ std::pair<f64, f64> AttributeCommand::getAttributeRange(const std::string& name)
     if (it != ranges.end()) {
         return it->second;
     }
-    return {0.0, 1024.0};  // 默认范围
+    return {0.0, 1024.0}; // 默认范围
 }
 
 } // namespace command

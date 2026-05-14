@@ -7,27 +7,24 @@ namespace blocks {
 
 // ========== FlowerBlock ==========
 
-FlowerBlock::FlowerBlock(
-    const BlockProperties& properties,
-    u32 suspiciousStewEffect,
-    i32 effectDuration)
+FlowerBlock::FlowerBlock(const BlockProperties& properties, u32 suspiciousStewEffect, i32 effectDuration)
     : BushBlock(properties)
     , m_suspiciousStewEffect(suspiciousStewEffect)
-    , m_effectDuration(effectDuration) {
+    , m_effectDuration(effectDuration)
+{
 
     // 花朵形状：小型，偏移中心
     m_shape = CollisionShape::box(0.3125f, 0.0f, 0.3125f, 0.6875f, 0.375f, 0.6875f);
 }
 
-const CollisionShape& FlowerBlock::getShape(const BlockState& state) const {
+const CollisionShape& FlowerBlock::getShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     return m_shape;
 }
 
-bool FlowerBlock::canSustain(
-    const BlockState& groundState,
-    IWorld& world,
-    const BlockPos& groundPos) const {
+bool FlowerBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
@@ -40,26 +37,26 @@ bool FlowerBlock::canSustain(
 // ========== LilacBlock ==========
 
 LilacBlock::LilacBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties) {
-}
+    : DoublePlantBlock(properties)
+{}
 
 // ========== RoseBushBlock ==========
 
 RoseBushBlock::RoseBushBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties) {
-}
+    : DoublePlantBlock(properties)
+{}
 
 // ========== PeonyBlock ==========
 
 PeonyBlock::PeonyBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties) {
-}
+    : DoublePlantBlock(properties)
+{}
 
 // ========== SunflowerBlock ==========
 
 SunflowerBlock::SunflowerBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties) {
-}
+    : DoublePlantBlock(properties)
+{}
 
 } // namespace blocks
 } // namespace mc

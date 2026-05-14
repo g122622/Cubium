@@ -1,21 +1,21 @@
 #include "SnowBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
 #include <unordered_map>
 
 namespace mc::blocks {
 
 SnowBlock::SnowBlock(BlockProperties properties)
-    : Block(std::move(properties)) {
+    : Block(std::move(properties))
+{
     // 注册 LAYERS 属性（1-8层）
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(LAYERS())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+    auto container = StateContainer<Block, BlockState>::Builder(*this).add(LAYERS()).create(
+        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -24,13 +24,10 @@ SnowBlock::SnowBlock(BlockProperties properties)
     setDefaultState(getDefaultState().with(LAYERS(), 1));
 }
 
-void SnowBlock::randomTick(
-    IWorld& world,
-    const BlockPos& pos,
-    BlockState& state,
-    math::IRandom& random) {
+void SnowBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
 
-    (void)random;  // 雪融化不需要随机数
+    (void)random; // 雪融化不需要随机数
 
     // 参考: MC 1.16.5 SnowBlock.randomTick()
     // 如果方块光照 > 11，融化
@@ -49,7 +46,8 @@ void SnowBlock::randomTick(
         if (layers > 0 && Items::SNOWBALL != nullptr) {
             ItemStack dropStack(*Items::SNOWBALL, layers);
             math::Random rng;
-            ItemDropHelper::spawnItemEntity(&world, dropStack,
+            ItemDropHelper::spawnItemEntity(&world,
+                dropStack,
                 static_cast<f64>(pos.x) + 0.5,
                 static_cast<f64>(pos.y) + 0.5,
                 static_cast<f64>(pos.z) + 0.5,

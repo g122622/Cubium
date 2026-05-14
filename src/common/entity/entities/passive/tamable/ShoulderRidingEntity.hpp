@@ -19,8 +19,7 @@ public:
      */
     ShoulderRidingEntity(LegacyEntityType type, EntityId id)
         : TameableEntity(type, id)
-    {
-    }
+    {}
 
     ~ShoulderRidingEntity() override = default;
 

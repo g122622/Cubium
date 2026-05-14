@@ -11,7 +11,8 @@ using namespace mc;
 // PacketSerializer 测试
 // ============================================================================
 
-TEST(PacketSerializer, WriteReadU8) {
+TEST(PacketSerializer, WriteReadU8)
+{
     PacketSerializer serializer;
     serializer.writeU8(0x12);
     serializer.writeU8(0xFF);
@@ -27,7 +28,8 @@ TEST(PacketSerializer, WriteReadU8) {
     EXPECT_EQ(result2.value(), 0xFF);
 }
 
-TEST(PacketSerializer, WriteReadU16) {
+TEST(PacketSerializer, WriteReadU16)
+{
     PacketSerializer serializer;
     serializer.writeU16(0x1234);
     serializer.writeU16(0xFFFF);
@@ -43,7 +45,8 @@ TEST(PacketSerializer, WriteReadU16) {
     EXPECT_EQ(result2.value(), 0xFFFF);
 }
 
-TEST(PacketSerializer, WriteReadU32) {
+TEST(PacketSerializer, WriteReadU32)
+{
     PacketSerializer serializer;
     serializer.writeU32(0x12345678);
     serializer.writeU32(0xFFFFFFFF);
@@ -57,7 +60,8 @@ TEST(PacketSerializer, WriteReadU32) {
     EXPECT_EQ(result2.value(), 0xFFFFFFFFu);
 }
 
-TEST(PacketSerializer, WriteReadU64) {
+TEST(PacketSerializer, WriteReadU64)
+{
     PacketSerializer serializer;
     serializer.writeU64(0x0123456789ABCDEF);
     serializer.writeU64(0xFFFFFFFFFFFFFFFF);
@@ -71,7 +75,8 @@ TEST(PacketSerializer, WriteReadU64) {
     EXPECT_EQ(result2.value(), 0xFFFFFFFFFFFFFFFFull);
 }
 
-TEST(PacketSerializer, WriteReadFloat) {
+TEST(PacketSerializer, WriteReadFloat)
+{
     PacketSerializer serializer;
     serializer.writeF32(3.14159f);
     serializer.writeF32(-1234.5f);
@@ -85,7 +90,8 @@ TEST(PacketSerializer, WriteReadFloat) {
     EXPECT_NEAR(result2.value(), -1234.5f, 0.0001f);
 }
 
-TEST(PacketSerializer, WriteReadDouble) {
+TEST(PacketSerializer, WriteReadDouble)
+{
     PacketSerializer serializer;
     serializer.writeF64(3.14159265358979);
     serializer.writeF64(-1234.5678);
@@ -99,7 +105,8 @@ TEST(PacketSerializer, WriteReadDouble) {
     EXPECT_NEAR(result2.value(), -1234.5678, 0.0001);
 }
 
-TEST(PacketSerializer, WriteReadBool) {
+TEST(PacketSerializer, WriteReadBool)
+{
     PacketSerializer serializer;
     serializer.writeBool(true);
     serializer.writeBool(false);
@@ -113,7 +120,8 @@ TEST(PacketSerializer, WriteReadBool) {
     EXPECT_FALSE(result2.value());
 }
 
-TEST(PacketSerializer, WriteReadString) {
+TEST(PacketSerializer, WriteReadString)
+{
     PacketSerializer serializer;
     serializer.writeString("Hello");
     serializer.writeString("World");
@@ -127,7 +135,8 @@ TEST(PacketSerializer, WriteReadString) {
     EXPECT_EQ(result2.value(), "World");
 }
 
-TEST(PacketSerializer, WriteReadBytes) {
+TEST(PacketSerializer, WriteReadBytes)
+{
     PacketSerializer serializer;
     std::vector<mc::u8> data = {0x01, 0x02, 0x03, 0x04, 0x05};
     serializer.writeBytes(data);
@@ -139,7 +148,8 @@ TEST(PacketSerializer, WriteReadBytes) {
     EXPECT_EQ(result.value()[4], 0x05);
 }
 
-TEST(PacketSerializer, OutOfBounds) {
+TEST(PacketSerializer, OutOfBounds)
+{
     PacketSerializer serializer;
     serializer.writeU8(0x12);
 
@@ -153,7 +163,8 @@ TEST(PacketSerializer, OutOfBounds) {
     EXPECT_EQ(result2.error().code(), mc::ErrorCode::OutOfBounds);
 }
 
-TEST(PacketSerializer, ResetRead) {
+TEST(PacketSerializer, ResetRead)
+{
     PacketSerializer serializer;
     serializer.writeU8(0x12);
     serializer.writeU8(0x34);
@@ -176,7 +187,8 @@ TEST(PacketSerializer, ResetRead) {
 // KeepAlivePacket 测试
 // ============================================================================
 
-TEST(KeepAlivePacket, SerializeDeserialize) {
+TEST(KeepAlivePacket, SerializeDeserialize)
+{
     KeepAlivePacket original;
     original.setTimestamp(1234567890);
     original.setFlags(0x0001);
@@ -194,7 +206,8 @@ TEST(KeepAlivePacket, SerializeDeserialize) {
     EXPECT_EQ(deserialized.flags(), 0x0001);
 }
 
-TEST(KeepAlivePacket, PacketTooSmall) {
+TEST(KeepAlivePacket, PacketTooSmall)
+{
     std::vector<mc::u8> smallData(PACKET_HEADER_SIZE - 1, 0x00);
 
     KeepAlivePacket packet;
@@ -203,11 +216,9 @@ TEST(KeepAlivePacket, PacketTooSmall) {
     EXPECT_EQ(result.error().code(), mc::ErrorCode::InvalidArgument);
 }
 
-TEST(PlayerTryUseItemOnBlockPacket, SerializeDeserialize) {
-    PlayerTryUseItemOnBlockPacket original(10, 64, -3,
-                                           Direction::Up,
-                                           0.25f, 0.75f, 0.5f,
-                                           0);
+TEST(PlayerTryUseItemOnBlockPacket, SerializeDeserialize)
+{
+    PlayerTryUseItemOnBlockPacket original(10, 64, -3, Direction::Up, 0.25f, 0.75f, 0.5f, 0);
 
     PacketSerializer serializer;
     original.serialize(serializer);
@@ -231,7 +242,8 @@ TEST(PlayerTryUseItemOnBlockPacket, SerializeDeserialize) {
 // DisconnectPacket 测试
 // ============================================================================
 
-TEST(DisconnectPacket, SerializeDeserialize) {
+TEST(DisconnectPacket, SerializeDeserialize)
+{
     DisconnectPacket original;
     original.setReason("Server shutdown");
     original.setFlags(0x0002);
@@ -253,7 +265,8 @@ TEST(DisconnectPacket, SerializeDeserialize) {
 // PacketDeserializer 测试
 // ============================================================================
 
-TEST(PacketDeserializer, ReadOperations) {
+TEST(PacketDeserializer, ReadOperations)
+{
     PacketSerializer serializer;
     serializer.writeU8(0x12);
     serializer.writeU16(0x1234);
@@ -274,7 +287,8 @@ TEST(PacketDeserializer, ReadOperations) {
     EXPECT_EQ(result3.value(), 0x12345678u);
 }
 
-TEST(PacketDeserializer, HasRemaining) {
+TEST(PacketDeserializer, HasRemaining)
+{
     PacketSerializer serializer;
     serializer.writeU32(0x12345678);
 
@@ -292,7 +306,8 @@ TEST(PacketDeserializer, HasRemaining) {
 // VarInt/VarLong 测试
 // ============================================================================
 
-TEST(PacketSerializer, WriteReadVarInt) {
+TEST(PacketSerializer, WriteReadVarInt)
+{
     PacketSerializer serializer;
 
     // 测试各种值
@@ -305,7 +320,7 @@ TEST(PacketSerializer, WriteReadVarInt) {
     serializer.writeVarInt(2097151);
     serializer.writeVarInt(2097152);
     serializer.writeVarInt(-1);
-    serializer.writeVarInt(-2147483648);  // INT_MIN
+    serializer.writeVarInt(-2147483648); // INT_MIN
 
     auto result0 = serializer.readVarInt();
     EXPECT_TRUE(result0.success());
@@ -348,7 +363,8 @@ TEST(PacketSerializer, WriteReadVarInt) {
     EXPECT_EQ(resultMin.value(), -2147483647 - 1);
 }
 
-TEST(PacketSerializer, VarIntSize) {
+TEST(PacketSerializer, VarIntSize)
+{
     // VarInt 编码后的大小应该是可变的
     PacketSerializer serializer;
 
@@ -380,13 +396,14 @@ TEST(PacketSerializer, VarIntSize) {
     EXPECT_EQ(serializer.size() - start, 3u);
 }
 
-TEST(PacketSerializer, WriteReadVarLong) {
+TEST(PacketSerializer, WriteReadVarLong)
+{
     PacketSerializer serializer;
 
     serializer.writeVarLong(0);
-    serializer.writeVarLong(9223372036854775807LL);  // LONG_MAX
+    serializer.writeVarLong(9223372036854775807LL); // LONG_MAX
     serializer.writeVarLong(-1);
-    serializer.writeVarLong(-9223372036854775807LL - 1);  // LONG_MIN
+    serializer.writeVarLong(-9223372036854775807LL - 1); // LONG_MIN
 
     auto result0 = serializer.readVarLong();
     EXPECT_TRUE(result0.success());
@@ -409,7 +426,8 @@ TEST(PacketSerializer, WriteReadVarLong) {
 // ProtocolPackets 测试
 // ============================================================================
 
-TEST(PlayerPosition, SerializeDeserialize) {
+TEST(PlayerPosition, SerializeDeserialize)
+{
     PlayerPosition pos1(100.5, 64.0, -200.25, 90.0f, 45.0f, true);
 
     PacketSerializer ser;
@@ -427,7 +445,8 @@ TEST(PlayerPosition, SerializeDeserialize) {
     EXPECT_TRUE(result.value().onGround);
 }
 
-TEST(LoginRequestPacket, SerializeDeserialize) {
+TEST(LoginRequestPacket, SerializeDeserialize)
+{
     LoginRequestPacket original("TestPlayer", 753);
 
     PacketSerializer ser;
@@ -441,7 +460,8 @@ TEST(LoginRequestPacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().protocolVersion(), 753);
 }
 
-TEST(LoginRequestPacket, InvalidUsername) {
+TEST(LoginRequestPacket, InvalidUsername)
+{
     // 空用户名
     LoginRequestPacket emptyUsername("", 753);
     PacketSerializer ser;
@@ -451,7 +471,8 @@ TEST(LoginRequestPacket, InvalidUsername) {
     EXPECT_FALSE(result.success());
 }
 
-TEST(LoginResponsePacket, SerializeDeserialize) {
+TEST(LoginResponsePacket, SerializeDeserialize)
+{
     LoginResponsePacket original(true, 12345, 100, "TestPlayer", "Welcome!");
 
     PacketSerializer ser;
@@ -468,7 +489,8 @@ TEST(LoginResponsePacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().message(), "Welcome!");
 }
 
-TEST(PlayerMovePacket, FullPosition) {
+TEST(PlayerMovePacket, FullPosition)
+{
     PlayerPosition pos(100.0, 64.0, 200.0, 45.0f, 30.0f, true);
     PlayerMovePacket original(pos, PlayerMovePacket::MoveType::Full);
 
@@ -488,7 +510,8 @@ TEST(PlayerMovePacket, FullPosition) {
     EXPECT_TRUE(result.value().onGround());
 }
 
-TEST(PlayerMovePacket, PositionOnly) {
+TEST(PlayerMovePacket, PositionOnly)
+{
     PlayerMovePacket original;
     original.setPosition(PlayerPosition(50.0, 70.0, 100.0, 0.0f, 0.0f, false));
     original.setType(PlayerMovePacket::MoveType::Position);
@@ -507,7 +530,8 @@ TEST(PlayerMovePacket, PositionOnly) {
     EXPECT_FALSE(result.value().onGround());
 }
 
-TEST(PlayerMovePacket, RotationOnly) {
+TEST(PlayerMovePacket, RotationOnly)
+{
     PlayerMovePacket original;
     original.setPosition(PlayerPosition(0.0, 0.0, 0.0, 180.0f, 90.0f, true));
     original.setType(PlayerMovePacket::MoveType::Rotation);
@@ -525,7 +549,8 @@ TEST(PlayerMovePacket, RotationOnly) {
     EXPECT_TRUE(result.value().onGround());
 }
 
-TEST(TeleportPacket, SerializeDeserialize) {
+TEST(TeleportPacket, SerializeDeserialize)
+{
     TeleportPacket original(100.0, 64.0, -50.0, 0.0f, 0.0f, 42);
 
     PacketSerializer ser;
@@ -543,7 +568,8 @@ TEST(TeleportPacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().teleportId(), 42u);
 }
 
-TEST(TeleportConfirmPacket, SerializeDeserialize) {
+TEST(TeleportConfirmPacket, SerializeDeserialize)
+{
     TeleportConfirmPacket original(12345);
 
     PacketSerializer ser;
@@ -556,7 +582,8 @@ TEST(TeleportConfirmPacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().teleportId(), 12345u);
 }
 
-TEST(SimpleKeepAlive, SerializeDeserialize) {
+TEST(SimpleKeepAlive, SerializeDeserialize)
+{
     SimpleKeepAlive original(9876543210ULL);
 
     PacketSerializer ser;
@@ -569,9 +596,10 @@ TEST(SimpleKeepAlive, SerializeDeserialize) {
     EXPECT_EQ(result.value().id(), 9876543210ULL);
 }
 
-TEST(ChunkDataPacket, SerializeDeserialize) {
+TEST(ChunkDataPacket, SerializeDeserialize)
+{
     std::vector<u8> chunkData(1024, 0xAB);
-    ChunkDataPacket original(10, -5, 0, std::move(chunkData));  // dimension=0 (主世界)
+    ChunkDataPacket original(10, -5, 0, std::move(chunkData)); // dimension=0 (主世界)
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -586,8 +614,9 @@ TEST(ChunkDataPacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().size(), 1024u);
 }
 
-TEST(UnloadChunkPacket, SerializeDeserialize) {
-    UnloadChunkPacket original(15, -20, 0);  // dimension=0 (主世界)
+TEST(UnloadChunkPacket, SerializeDeserialize)
+{
+    UnloadChunkPacket original(15, -20, 0); // dimension=0 (主世界)
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -601,7 +630,8 @@ TEST(UnloadChunkPacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().dimension(), 0);
 }
 
-TEST(PlayerSpawnPacket, SerializeDeserialize) {
+TEST(PlayerSpawnPacket, SerializeDeserialize)
+{
     PlayerPosition pos(100.0, 64.0, 200.0, 0.0f, 0.0f, true);
     PlayerSpawnPacket original(12345, "OtherPlayer", pos);
 
@@ -617,7 +647,8 @@ TEST(PlayerSpawnPacket, SerializeDeserialize) {
     EXPECT_DOUBLE_EQ(result.value().position().x, 100.0);
 }
 
-TEST(PlayerDespawnPacket, SerializeDeserialize) {
+TEST(PlayerDespawnPacket, SerializeDeserialize)
+{
     PlayerDespawnPacket original(12345);
 
     PacketSerializer ser;
@@ -630,8 +661,9 @@ TEST(PlayerDespawnPacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().playerId(), 12345u);
 }
 
-TEST(BlockUpdatePacket, SerializeDeserialize) {
-    BlockUpdatePacket original(100, 64, -200, 42u);  // 使用 blockStateId
+TEST(BlockUpdatePacket, SerializeDeserialize)
+{
+    BlockUpdatePacket original(100, 64, -200, 42u); // 使用 blockStateId
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -646,13 +678,9 @@ TEST(BlockUpdatePacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().blockStateId(), 42u);
 }
 
-TEST(BlockInteractionPacket, SerializeDeserialize) {
-    BlockInteractionPacket original(
-        BlockInteractionAction::StartDestroyBlock,
-        12,
-        70,
-        -5,
-        Direction::North);
+TEST(BlockInteractionPacket, SerializeDeserialize)
+{
+    BlockInteractionPacket original(BlockInteractionAction::StartDestroyBlock, 12, 70, -5, Direction::North);
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -668,7 +696,8 @@ TEST(BlockInteractionPacket, SerializeDeserialize) {
     EXPECT_EQ(result.value().face(), Direction::North);
 }
 
-TEST(ChatMessagePacket, SerializeDeserialize) {
+TEST(ChatMessagePacket, SerializeDeserialize)
+{
     ChatMessagePacket original("Hello, world!", 12345);
 
     PacketSerializer ser;

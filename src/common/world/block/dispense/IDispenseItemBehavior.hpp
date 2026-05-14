@@ -51,8 +51,7 @@ public:
      * @param stack 要发射的物品堆（会被修改，如减少数量）
      * @return ItemStack 发射后的物品堆（可能为空或减少数量）
      */
-    virtual ItemStack dispense(IWorld& world, const BlockPos& pos,
-                               const BlockState& state, ItemStack& stack) = 0;
+    virtual ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) = 0;
 
     /**
      * @brief 是否成功发射
@@ -75,8 +74,7 @@ public:
  */
 class DefaultDispenseItemBehavior : public IDispenseItemBehavior {
 public:
-    ItemStack dispense(IWorld& world, const BlockPos& pos,
-                       const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
 
 protected:
     /**
@@ -91,9 +89,13 @@ protected:
      * @param inaccuracy 发射偏差（MC默认为6.0，用于高斯扰动）
      * @return ItemStack 投掷后的物品堆
      */
-    virtual ItemStack doDispense(IWorld& world, const BlockPos& pos, const BlockState& state,
-                                  ItemStack& stack, Direction direction,
-                                  f32 speed = 6.0f, f32 inaccuracy = 6.0f);
+    virtual ItemStack doDispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        Direction direction,
+        f32 speed = 6.0f,
+        f32 inaccuracy = 6.0f);
 
     /**
      * @brief 播放发射音效
@@ -130,7 +132,9 @@ protected:
  */
 class OptionalDispenseItemBehavior : public DefaultDispenseItemBehavior {
 public:
-    OptionalDispenseItemBehavior() : m_success(true) {}
+    OptionalDispenseItemBehavior()
+        : m_success(true)
+    {}
 
     [[nodiscard]] bool isSuccess() const override { return m_success; }
 
@@ -173,8 +177,7 @@ public:
      * @param stack 物品堆（可能包含药水效果等信息）
      * @return 创建的投掷物实体
      */
-    using ProjectileFactory = std::function<std::unique_ptr<mc::Entity>(
-        IWorld&, const Vector3&, const ItemStack&)>;
+    using ProjectileFactory = std::function<std::unique_ptr<mc::Entity>(IWorld&, const Vector3&, const ItemStack&)>;
 
     /**
      * @brief 构造函数
@@ -182,13 +185,9 @@ public:
      * @param velocity 发射速度（默认1.1，与MC一致）
      * @param inaccuracy 发射偏差（默认6.0，与MC一致）
      */
-    explicit ProjectileDispenseBehavior(
-        ProjectileFactory createProjectile,
-        f32 velocity = 1.1f,
-        f32 inaccuracy = 6.0f);
+    explicit ProjectileDispenseBehavior(ProjectileFactory createProjectile, f32 velocity = 1.1f, f32 inaccuracy = 6.0f);
 
-    ItemStack dispense(IWorld& world, const BlockPos& pos,
-                       const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
 
 protected:
     /**

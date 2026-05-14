@@ -1,19 +1,19 @@
 #include <gtest/gtest.h>
 
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/IGrowable.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/blocks/ocean/SeagrassBlock.hpp"
 #include "common/world/block/blocks/ocean/TallSeagrassBlock.hpp"
-#include "common/world/block/IGrowable.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/damage/DamageSource.hpp"
-#include "world/IWorld.hpp"
-#include "world/tick/manager/TickManager.hpp"
-#include "world/border/WorldBorder.hpp"
 #include "core/Constants.hpp"
+#include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 #include <map>
 #include <memory>
@@ -32,13 +32,15 @@ namespace {
  */
 class SeagrassTestWorld final : public IBlockReader {
 public:
-    SeagrassTestWorld() {
+    SeagrassTestWorld()
+    {
         // 初始化流体注册表
         fluid::FluidRegistry::instance().initialize();
     }
 
     // 延迟初始化 TickManager（首次调用时初始化）
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
@@ -46,7 +48,8 @@ public:
 
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -55,7 +58,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -77,7 +81,8 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_fluids.find(pos);
         if (it != m_fluids.end()) {
@@ -104,15 +109,25 @@ public:
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
@@ -123,11 +138,10 @@ public:
 
     void setSeed(u64 seed) { m_seed = seed; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
-    void setWaterAt(const BlockPos& pos) {
+    void setWaterAt(const BlockPos& pos)
+    {
         // 设置水方块（使用 WATER 方块）
         if (VanillaBlocks::WATER != nullptr) {
             m_blocks[pos] = &VanillaBlocks::WATER->defaultState();
@@ -139,41 +153,32 @@ public:
         }
     }
 
-    void clearWaterAt(const BlockPos& pos) {
-        m_fluids.erase(pos);
-    }
+    void clearWaterAt(const BlockPos& pos) { m_fluids.erase(pos); }
 
-    [[nodiscard]] bool hasBlockAt(const BlockPos& pos) const {
-        return m_blocks.find(pos) != m_blocks.end();
-    }
+    [[nodiscard]] bool hasBlockAt(const BlockPos& pos) const { return m_blocks.find(pos) != m_blocks.end(); }
 
-    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const {
+    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const
+    {
         const auto it = m_blocks.find(pos);
         return it != m_blocks.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<SeagrassTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
-    }
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        return m_worldBorder;
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        return m_worldBorder;
-    }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
@@ -193,7 +198,8 @@ private:
  */
 class SeagrassBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
     }
@@ -205,7 +211,8 @@ protected:
 // SeagrassBlock isValidPosition 测试
 // ============================================================================
 
-TEST_F(SeagrassBlockTest, IsValidPosition_RequiresSolidGround) {
+TEST_F(SeagrassBlockTest, IsValidPosition_RequiresSolidGround)
+{
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockPos pos(5, 10, 5);
@@ -226,7 +233,8 @@ TEST_F(SeagrassBlockTest, IsValidPosition_RequiresSolidGround) {
     EXPECT_TRUE(seagrass.isValidPosition(seagrass.defaultState(), static_cast<IBlockReader&>(world), pos));
 }
 
-TEST_F(SeagrassBlockTest, IsValidPosition_RequiresWater) {
+TEST_F(SeagrassBlockTest, IsValidPosition_RequiresWater)
+{
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockPos pos(5, 10, 5);
@@ -248,7 +256,8 @@ TEST_F(SeagrassBlockTest, IsValidPosition_RequiresWater) {
 // SeagrassBlock IGrowable 接口测试
 // ============================================================================
 
-TEST_F(SeagrassBlockTest, CanGrow_ReturnsTrueWhenWaterAbove) {
+TEST_F(SeagrassBlockTest, CanGrow_ReturnsTrueWhenWaterAbove)
+{
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockPos pos(5, 10, 5);
@@ -268,7 +277,8 @@ TEST_F(SeagrassBlockTest, CanGrow_ReturnsTrueWhenWaterAbove) {
     EXPECT_TRUE(seagrass.canGrow(static_cast<IBlockReader&>(world), pos, seagrass.defaultState(), false));
 }
 
-TEST_F(SeagrassBlockTest, CanUseBonemeal_AlwaysReturnsTrue) {
+TEST_F(SeagrassBlockTest, CanUseBonemeal_AlwaysReturnsTrue)
+{
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockPos pos(5, 10, 5);
@@ -278,7 +288,8 @@ TEST_F(SeagrassBlockTest, CanUseBonemeal_AlwaysReturnsTrue) {
     EXPECT_TRUE(seagrass.canUseBonemeal(world, random, pos, seagrass.defaultState()));
 }
 
-TEST_F(SeagrassBlockTest, Grow_TransformsToTallSeagrass) {
+TEST_F(SeagrassBlockTest, Grow_TransformsToTallSeagrass)
+{
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockPos pos(5, 10, 5);
@@ -300,23 +311,20 @@ TEST_F(SeagrassBlockTest, Grow_TransformsToTallSeagrass) {
     // 检查是否变成高海草
     const BlockState* lowerState = world.getBlockAt(pos);
     ASSERT_NE(lowerState, nullptr) << "Lower block should not be null";
-    EXPECT_TRUE(lowerState->is(VanillaBlocks::TALL_SEAGRASS))
-        << "Lower block should be tall seagrass";
+    EXPECT_TRUE(lowerState->is(VanillaBlocks::TALL_SEAGRASS)) << "Lower block should be tall seagrass";
 
     // 检查下半部分
-    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-              BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
 
     // 检查上半部分
     const BlockState* upperState = world.getBlockAt(abovePos);
     ASSERT_NE(upperState, nullptr) << "Upper block should not be null";
-    EXPECT_TRUE(upperState->is(VanillaBlocks::TALL_SEAGRASS))
-        << "Upper block should be tall seagrass";
-    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-              BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_TRUE(upperState->is(VanillaBlocks::TALL_SEAGRASS)) << "Upper block should be tall seagrass";
+    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
 }
 
-TEST_F(SeagrassBlockTest, Grow_DoesNothingWithoutWaterAbove) {
+TEST_F(SeagrassBlockTest, Grow_DoesNothingWithoutWaterAbove)
+{
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockPos pos(5, 10, 5);
@@ -341,7 +349,8 @@ TEST_F(SeagrassBlockTest, Grow_DoesNothingWithoutWaterAbove) {
 // SeagrassBlock 流体状态测试
 // ============================================================================
 
-TEST_F(SeagrassBlockTest, GetFluidState_ReturnsWater) {
+TEST_F(SeagrassBlockTest, GetFluidState_ReturnsWater)
+{
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockState& state = seagrass.defaultState();
@@ -349,33 +358,35 @@ TEST_F(SeagrassBlockTest, GetFluidState_ReturnsWater) {
 
     // 海草应该返回水的流体状态
     ASSERT_NE(fluidState, nullptr) << "Fluid state should not be null";
-    EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()))
-        << "Fluid should be water";
+    EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER())) << "Fluid should be water";
 }
 
 // ============================================================================
 // TallSeagrassBlock 测试
 // ============================================================================
 
-TEST_F(SeagrassBlockTest, TallSeagrass_HasCorrectHalfProperty) {
+TEST_F(SeagrassBlockTest, TallSeagrass_HasCorrectHalfProperty)
+{
     // 检查高海草是否正确设置了 HALF 属性
     ASSERT_NE(VanillaBlocks::TALL_SEAGRASS, nullptr) << "TALL_SEAGRASS should be initialized";
 
     const BlockState& defaultState = VanillaBlocks::TALL_SEAGRASS->defaultState();
-    EXPECT_EQ(defaultState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-              BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(
+        defaultState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
 }
 
 // ============================================================================
 // VanillaBlocks 海草注册测试
 // ============================================================================
 
-TEST_F(SeagrassBlockTest, VanillaBlocks_SeagrassIsRegistered) {
+TEST_F(SeagrassBlockTest, VanillaBlocks_SeagrassIsRegistered)
+{
     ASSERT_NE(VanillaBlocks::SEAGRASS, nullptr) << "SEAGRASS should be registered";
     EXPECT_NE(VanillaBlocks::SEAGRASS->blockId(), 0u) << "SEAGRASS should have non-zero block ID";
 }
 
-TEST_F(SeagrassBlockTest, VanillaBlocks_TallSeagrassIsRegistered) {
+TEST_F(SeagrassBlockTest, VanillaBlocks_TallSeagrassIsRegistered)
+{
     ASSERT_NE(VanillaBlocks::TALL_SEAGRASS, nullptr) << "TALL_SEAGRASS should be registered";
     EXPECT_NE(VanillaBlocks::TALL_SEAGRASS->blockId(), 0u) << "TALL_SEAGRASS should have non-zero block ID";
 }

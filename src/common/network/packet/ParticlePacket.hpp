@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Packet.hpp"
-#include "PacketSerializer.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "Packet.hpp"
+#include "PacketSerializer.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <vector>
 
@@ -38,7 +38,9 @@ namespace mc::network {
  */
 class ParticlePacket : public Packet {
 public:
-    ParticlePacket() : Packet(PacketType::Particle) {}
+    ParticlePacket()
+        : Packet(PacketType::Particle)
+    {}
 
     /**
      * @brief 从参数构造粒子包
@@ -48,8 +50,7 @@ public:
      * @param offset 偏移范围
      * @param count 粒子数量
      */
-    ParticlePacket(
-        client::renderer::trident::particle::ParticleTypeId type,
+    ParticlePacket(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -61,14 +62,15 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId particleType() const {
-        return m_particleType;
-    }
+    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId particleType() const { return m_particleType; }
 
     [[nodiscard]] f64 x() const { return m_x; }
     [[nodiscard]] f64 y() const { return m_y; }
     [[nodiscard]] f64 z() const { return m_z; }
-    [[nodiscard]] Vector3 position() const { return Vector3(static_cast<f32>(m_x), static_cast<f32>(m_y), static_cast<f32>(m_z)); }
+    [[nodiscard]] Vector3 position() const
+    {
+        return Vector3(static_cast<f32>(m_x), static_cast<f32>(m_y), static_cast<f32>(m_z));
+    }
 
     [[nodiscard]] f32 velocityX() const { return m_velocityX; }
     [[nodiscard]] f32 velocityY() const { return m_velocityY; }
@@ -86,57 +88,55 @@ public:
 
     // ========== Setters ==========
 
-    void setParticleType(client::renderer::trident::particle::ParticleTypeId type) {
-        m_particleType = type;
-    }
+    void setParticleType(client::renderer::trident::particle::ParticleTypeId type) { m_particleType = type; }
 
-    void setPosition(f64 x, f64 y, f64 z) {
+    void setPosition(f64 x, f64 y, f64 z)
+    {
         m_x = x;
         m_y = y;
         m_z = z;
     }
 
-    void setPosition(const Vector3& pos) {
+    void setPosition(const Vector3& pos)
+    {
         m_x = pos.x;
         m_y = pos.y;
         m_z = pos.z;
     }
 
-    void setVelocity(f32 vx, f32 vy, f32 vz) {
+    void setVelocity(f32 vx, f32 vy, f32 vz)
+    {
         m_velocityX = vx;
         m_velocityY = vy;
         m_velocityZ = vz;
     }
 
-    void setVelocity(const Vector3& vel) {
+    void setVelocity(const Vector3& vel)
+    {
         m_velocityX = vel.x;
         m_velocityY = vel.y;
         m_velocityZ = vel.z;
     }
 
-    void setOffset(f32 ox, f32 oy, f32 oz) {
+    void setOffset(f32 ox, f32 oy, f32 oz)
+    {
         m_offsetX = ox;
         m_offsetY = oy;
         m_offsetZ = oz;
     }
 
-    void setOffset(const Vector3& off) {
+    void setOffset(const Vector3& off)
+    {
         m_offsetX = off.x;
         m_offsetY = off.y;
         m_offsetZ = off.z;
     }
 
-    void setCount(u32 count) {
-        m_count = count;
-    }
+    void setCount(u32 count) { m_count = count; }
 
-    void setOptionalData(const std::vector<u8>& data) {
-        m_optionalData = data;
-    }
+    void setOptionalData(const std::vector<u8>& data) { m_optionalData = data; }
 
-    void setOptionalData(std::vector<u8>&& data) {
-        m_optionalData = std::move(data);
-    }
+    void setOptionalData(std::vector<u8>&& data) { m_optionalData = std::move(data); }
 
     // ========== 便捷工厂方法 ==========
 
@@ -148,8 +148,7 @@ public:
      * @param offset 偏移范围
      * @param count 粒子数量
      */
-    static ParticlePacket create(
-        client::renderer::trident::particle::ParticleTypeId type,
+    static ParticlePacket create(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -162,9 +161,7 @@ public:
      * @param velocity 速度
      */
     static ParticlePacket createSingle(
-        client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity);
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
 
 private:
     client::renderer::trident::particle::ParticleTypeId m_particleType =

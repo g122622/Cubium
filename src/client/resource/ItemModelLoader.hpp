@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "client/resource/BlockModelLoader.hpp"
-#include <glm/glm.hpp>
-#include <nlohmann/json.hpp>
-#include <string>
-#include <vector>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <map>
 #include <memory>
+#include <string>
+#include <vector>
+#include <glm/glm.hpp>
+#include <nlohmann/json.hpp>
 
 namespace mc::client::resource {
 
@@ -19,15 +19,15 @@ namespace mc::client::resource {
  * 定义物品在不同场景下的显示变换
  */
 enum class ItemDisplayContext : u8 {
-    ThirdPersonRightHand,  // 第三人称右手
-    ThirdPersonLeftHand,   // 第三人称左手
-    FirstPersonRightHand,  // 第一人称右手
-    FirstPersonLeftHand,   // 第一人称左手
-    Head,                  // 头部（头盔等）
-    Gui,                   // GUI 界面
-    Ground,                // 地面掉落物
-    Fixed,                 // 物品展示框
-    Count                  // 数量
+    ThirdPersonRightHand, // 第三人称右手
+    ThirdPersonLeftHand,  // 第三人称左手
+    FirstPersonRightHand, // 第一人称右手
+    FirstPersonLeftHand,  // 第一人称左手
+    Head,                 // 头部（头盔等）
+    Gui,                  // GUI 界面
+    Ground,               // 地面掉落物
+    Fixed,                // 物品展示框
+    Count                 // 数量
 };
 
 /**
@@ -72,8 +72,8 @@ struct ItemTransform {
  * 定义基于物品状态的模型替换规则
  */
 struct ItemModelOverride {
-    std::map<std::string, f32> predicates;  // 条件谓词，如 {"damage": 0.25}
-    ResourceLocation model;             // 替换模型
+    std::map<std::string, f32> predicates; // 条件谓词，如 {"damage": 0.25}
+    ResourceLocation model;                // 替换模型
 
     /**
      * @brief 从 JSON 解析覆盖条件
@@ -85,32 +85,30 @@ struct ItemModelOverride {
  * @brief 物品模型类型
  */
 enum class ItemModelType : u8 {
-    Generated,  // item/generated - 平面图标（大多数物品）
-    Handheld,   // item/handheld - 手持工具
-    Block,      // 方块物品（继承方块模型）
-    Custom      // 自定义 3D 模型（有 elements 字段）
+    Generated, // item/generated - 平面图标（大多数物品）
+    Handheld,  // item/handheld - 手持工具
+    Block,     // 方块物品（继承方块模型）
+    Custom     // 自定义 3D 模型（有 elements 字段）
 };
 
 /**
  * @brief 未烘焙的物品模型
  */
 struct UnbakedItemModel {
-    ResourceLocation location;                   // 模型位置
-    ResourceLocation parentLocation;             // 父模型位置
-    std::vector<ModelElement> elements;          // 3D 元素（可选）
-    std::map<std::string, std::string> textures;           // 纹理变量 -> 路径
-    std::map<ItemDisplayContext, ItemTransform> display;  // 显示变换
-    std::vector<ItemModelOverride> overrides;    // 模型覆盖条件
+    ResourceLocation location;                           // 模型位置
+    ResourceLocation parentLocation;                     // 父模型位置
+    std::vector<ModelElement> elements;                  // 3D 元素（可选）
+    std::map<std::string, std::string> textures;         // 纹理变量 -> 路径
+    std::map<ItemDisplayContext, ItemTransform> display; // 显示变换
+    std::vector<ItemModelOverride> overrides;            // 模型覆盖条件
     ItemModelType type = ItemModelType::Generated;
     bool ambientOcclusion = true;
-    std::string name;                                 // 模型名称（调试用）
+    std::string name; // 模型名称（调试用）
 
     /**
      * @brief 检查是否有父模型
      */
-    [[nodiscard]] bool hasParent() const {
-        return !parentLocation.path().empty();
-    }
+    [[nodiscard]] bool hasParent() const { return !parentLocation.path().empty(); }
 };
 
 /**

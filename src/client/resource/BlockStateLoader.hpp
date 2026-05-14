@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "BlockModelLoader.hpp"
-#include <memory>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <map>
+#include <memory>
 
 namespace mc {
 
@@ -28,14 +28,11 @@ public:
 
     // 获取方块状态的模型变体
     // stateStr格式: "axis=y,facing=north" 或 "normal"
-    [[nodiscard]] const BlockStateVariant* getVariant(
-        const ResourceLocation& blockId,
-        std::string_view stateStr) const;
+    [[nodiscard]] const BlockStateVariant* getVariant(const ResourceLocation& blockId, std::string_view stateStr) const;
 
     // 根据方块属性获取模型变体
     [[nodiscard]] const BlockStateVariant* getVariant(
-        const ResourceLocation& blockId,
-        const std::map<std::string, std::string>& properties) const;
+        const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const;
 
     // 清除缓存
     void clearCache();

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/model/BeaconBeamModel.hpp"
 #include <memory>
 #include <vector>
@@ -11,7 +11,7 @@ namespace mc {
 namespace blockentity {
 class BeaconEntity;
 struct BeaconBeamSegment;
-}
+} // namespace blockentity
 
 namespace client::renderer::trident::blockentity {
 
@@ -65,8 +65,8 @@ public:
     [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 65536.0; }
 
 private:
-    mc::client::renderer::blockentity::model::BeaconBeamModel m_beamModel;  ///< 光束模型
-    BlockEntityRendererHelper m_helper;  ///< 渲染辅助工具
+    mc::client::renderer::blockentity::model::BeaconBeamModel m_beamModel; ///< 光束模型
+    BlockEntityRendererHelper m_helper;                                    ///< 渲染辅助工具
 
     /**
      * @brief 渲染信标基座
@@ -85,13 +85,12 @@ private:
      * @param partialTick 部分tick
      * @param light 组合光照
      */
-    void renderBeam(
-        const BlockPos& pos,
+    void renderBeam(const BlockPos& pos,
         const std::vector<mc::blockentity::BeaconBeamSegment>& segments,
         i64 gameTime,
         f32 partialTick,
         u32 light);
 };
 
-} // namespace mc::client::renderer::trident::blockentity
+} // namespace client::renderer::trident::blockentity
 } // namespace mc

@@ -10,10 +10,10 @@
  * - generateLevelIdFromDisplayName: 从显示名生成目录名
  */
 
-#include <gtest/gtest.h>
+#include "world/storage/list/WorldNameSanitizer.hpp"
 #include <filesystem>
 #include <fstream>
-#include "world/storage/list/WorldNameSanitizer.hpp"
+#include <gtest/gtest.h>
 
 namespace mc::world::storage {
 namespace {
@@ -89,7 +89,7 @@ TEST(WorldNameSanitizerTest, SanitizeName_WindowsReservedName_AddsUnderscore)
 {
     // CON, PRN, AUX, NUL
     EXPECT_EQ(WorldNameSanitizer::sanitizeName("CON"), "_CON_");
-    EXPECT_EQ(WorldNameSanitizer::sanitizeName("con"), "_con_");  // 大小写不敏感
+    EXPECT_EQ(WorldNameSanitizer::sanitizeName("con"), "_con_"); // 大小写不敏感
     EXPECT_EQ(WorldNameSanitizer::sanitizeName("PRN"), "_PRN_");
     EXPECT_EQ(WorldNameSanitizer::sanitizeName("AUX"), "_AUX_");
     EXPECT_EQ(WorldNameSanitizer::sanitizeName("NUL"), "_NUL_");
@@ -142,7 +142,7 @@ TEST(WorldNameSanitizerTest, SanitizeName_MixedContent)
 TEST(WorldNameSanitizerTest, IsReservedName_ReservedNames_ReturnsTrue)
 {
     EXPECT_TRUE(WorldNameSanitizer::isReservedName("CON"));
-    EXPECT_TRUE(WorldNameSanitizer::isReservedName("con"));  // 大小写不敏感
+    EXPECT_TRUE(WorldNameSanitizer::isReservedName("con")); // 大小写不敏感
     EXPECT_TRUE(WorldNameSanitizer::isReservedName("PRN"));
     EXPECT_TRUE(WorldNameSanitizer::isReservedName("AUX"));
     EXPECT_TRUE(WorldNameSanitizer::isReservedName("NUL"));
@@ -164,9 +164,9 @@ TEST(WorldNameSanitizerTest, IsReservedName_NormalNames_ReturnsFalse)
     EXPECT_FALSE(WorldNameSanitizer::isReservedName("World"));
     EXPECT_FALSE(WorldNameSanitizer::isReservedName("Test"));
     EXPECT_FALSE(WorldNameSanitizer::isReservedName("MyWorld"));
-    EXPECT_FALSE(WorldNameSanitizer::isReservedName("CONFIG"));  // 不是保留名
-    EXPECT_FALSE(WorldNameSanitizer::isReservedName("COM10"));   // COM10 不是保留名
-    EXPECT_FALSE(WorldNameSanitizer::isReservedName("LPT10"));   // LPT10 不是保留名
+    EXPECT_FALSE(WorldNameSanitizer::isReservedName("CONFIG")); // 不是保留名
+    EXPECT_FALSE(WorldNameSanitizer::isReservedName("COM10"));  // COM10 不是保留名
+    EXPECT_FALSE(WorldNameSanitizer::isReservedName("LPT10"));  // LPT10 不是保留名
 }
 
 // ============================================================================
@@ -181,8 +181,7 @@ TEST(WorldNameSanitizerTest, IsReservedName_NormalNames_ReturnsFalse)
 // findAvailableLevelId 测试（需要临时目录）
 // ============================================================================
 
-class WorldNameSanitizerFileTest : public ::testing::Test
-{
+class WorldNameSanitizerFileTest : public ::testing::Test {
 protected:
     std::filesystem::path m_tempDir;
 
@@ -200,10 +199,7 @@ protected:
         std::filesystem::remove_all(m_tempDir, ec);
     }
 
-    void createDirectory(const std::string& name)
-    {
-        std::filesystem::create_directories(m_tempDir / name);
-    }
+    void createDirectory(const std::string& name) { std::filesystem::create_directories(m_tempDir / name); }
 };
 
 TEST_F(WorldNameSanitizerFileTest, FindAvailableLevelId_NoConflict_ReturnsSameName)
@@ -237,11 +233,11 @@ TEST_F(WorldNameSanitizerFileTest, FindAvailableLevelId_GapInNumbers_FillsGap)
 {
     createDirectory("TestWorld");
     createDirectory("TestWorld (1)");
-    createDirectory("TestWorld (3)");  // 跳过了 (2)
+    createDirectory("TestWorld (3)"); // 跳过了 (2)
 
     auto result = WorldNameSanitizer::findAvailableLevelId(m_tempDir, "TestWorld");
     ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), "TestWorld (2)");  // 填补空缺
+    EXPECT_EQ(result.value(), "TestWorld (2)"); // 填补空缺
 }
 
 TEST_F(WorldNameSanitizerFileTest, FindAvailableLevelId_IllegalChars_Sanitized)

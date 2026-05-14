@@ -2,39 +2,48 @@
 
 namespace mc::client::ui::kagero::layout {
 
-void GridLayout::setColumns(i32 columns) {
+void GridLayout::setColumns(i32 columns)
+{
     m_config.columns = std::max(1, columns);
 }
 
-i32 GridLayout::columns() const {
+i32 GridLayout::columns() const
+{
     return m_config.columns;
 }
 
-void GridLayout::setRows(i32 rows) {
+void GridLayout::setRows(i32 rows)
+{
     m_config.rows = std::max(0, rows);
 }
 
-i32 GridLayout::rows() const {
+i32 GridLayout::rows() const
+{
     return m_config.rows;
 }
 
-void GridLayout::setColumnGap(i32 gap) {
+void GridLayout::setColumnGap(i32 gap)
+{
     m_config.columnGap = std::max(0, gap);
 }
 
-i32 GridLayout::columnGap() const {
+i32 GridLayout::columnGap() const
+{
     return m_config.columnGap;
 }
 
-void GridLayout::setRowGap(i32 gap) {
+void GridLayout::setRowGap(i32 gap)
+{
     m_config.rowGap = std::max(0, gap);
 }
 
-i32 GridLayout::rowGap() const {
+i32 GridLayout::rowGap() const
+{
     return m_config.rowGap;
 }
 
-void GridLayout::setConfig(const GridConfig& config) {
+void GridLayout::setConfig(const GridConfig& config)
+{
     m_config = config;
     m_config.columns = std::max(1, m_config.columns);
     m_config.rows = std::max(0, m_config.rows);
@@ -42,11 +51,14 @@ void GridLayout::setConfig(const GridConfig& config) {
     m_config.rowGap = std::max(0, m_config.rowGap);
 }
 
-const GridConfig& GridLayout::config() const {
+const GridConfig& GridLayout::config() const
+{
     return m_config;
 }
 
-std::vector<LayoutResult> GridLayout::compute(const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children) {
+std::vector<LayoutResult> GridLayout::compute(
+    const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children)
+{
     std::vector<LayoutResult> results;
     results.resize(children.size());
     if (children.empty()) {
@@ -102,7 +114,8 @@ std::vector<LayoutResult> GridLayout::compute(const Rect& containerBounds, const
     return results;
 }
 
-i32 GridLayout::resolveRows(i32 childCount) const {
+i32 GridLayout::resolveRows(i32 childCount) const
+{
     if (m_config.rows > 0) {
         return m_config.rows;
     }

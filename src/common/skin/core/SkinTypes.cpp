@@ -4,7 +4,8 @@
 
 namespace mc::skin {
 
-SkinType parseSkinType(const std::string& typeStr) {
+SkinType parseSkinType(const std::string& typeStr)
+{
     // 转换为小写进行比较
     std::string lower;
     lower.reserve(typeStr.size());
@@ -19,7 +20,8 @@ SkinType parseSkinType(const std::string& typeStr) {
     return SkinType::Default;
 }
 
-std::string skinTypeToString(SkinType type) {
+std::string skinTypeToString(SkinType type)
+{
     switch (type) {
         case SkinType::Slim:
             return "slim";
@@ -29,7 +31,8 @@ std::string skinTypeToString(SkinType type) {
     }
 }
 
-i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid) {
+i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid)
+{
     // UUID 格式: mostSigBits(8字节) + leastSigBits(8字节)
     // Java UUID.hashCode(): (int)(mostSigBits >> 32) ^ (int)mostSigBits ^
     //                       (int)(leastSigBits >> 32) ^ (int)leastSigBits
@@ -59,7 +62,8 @@ i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid) {
     return mostHigh ^ mostLow ^ leastHigh ^ leastLow;
 }
 
-SkinType getDefaultSkinTypeForUUID(const std::array<u8, 16>& uuid) {
+SkinType getDefaultSkinTypeForUUID(const std::array<u8, 16>& uuid)
+{
     // MC 1.16.5 DefaultPlayerSkin.isSlimSkin(UUID):
     // return (playerUUID.hashCode() & 1) == 1;
 

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
-#include "PacketSerializer.hpp"
-#include "../../resource/ResourceLocation.hpp"
+#include "../../core/Types.hpp"
 #include "../../item/core/ItemStack.hpp"
-#include <vector>
+#include "../../resource/ResourceLocation.hpp"
+#include "PacketSerializer.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -26,9 +26,7 @@ public:
      * @param recipeType 配方类型
      * @param recipeData 序列化的配方数据
      */
-    RecipeSyncPacket(const ResourceLocation& recipeId,
-                     const std::string& recipeType,
-                     const std::string& recipeData)
+    RecipeSyncPacket(const ResourceLocation& recipeId, const std::string& recipeType, const std::string& recipeData)
         : m_recipeId(recipeId)
         , m_recipeType(recipeType)
         , m_recipeData(recipeData)
@@ -45,14 +43,16 @@ public:
     void setRecipeData(const std::string& data) { m_recipeData = data; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeString(m_recipeId.toString());
         ser.writeString(m_recipeType);
         ser.writeString(m_recipeData);
     }
 
     // 反序列化
-    [[nodiscard]] static Result<RecipeSyncPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<RecipeSyncPacket> deserialize(network::PacketDeserializer& deser)
+    {
         RecipeSyncPacket packet;
 
         auto idResult = deser.readString();
@@ -104,7 +104,8 @@ public:
     void addRecipe(const RecipeSyncPacket& recipe) { m_recipes.push_back(recipe); }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeVarUInt(static_cast<u32>(m_recipes.size()));
         for (const auto& recipe : m_recipes) {
             recipe.serialize(ser);
@@ -112,7 +113,8 @@ public:
     }
 
     // 反序列化
-    [[nodiscard]] static Result<RecipeListSyncPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<RecipeListSyncPacket> deserialize(network::PacketDeserializer& deser)
+    {
         RecipeListSyncPacket packet;
 
         auto countResult = deser.readVarUInt();
@@ -162,13 +164,15 @@ public:
     void setDisplay(bool display) { m_display = display; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeString(m_recipeId.toString());
         ser.writeU8(m_display ? 1 : 0);
     }
 
     // 反序列化
-    [[nodiscard]] static Result<RecipeUnlockPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<RecipeUnlockPacket> deserialize(network::PacketDeserializer& deser)
+    {
         RecipeUnlockPacket packet;
 
         auto idResult = deser.readString();
@@ -203,8 +207,8 @@ public:
      * @param resultItem 结果物品（可以为空）
      * @param recipeId 匹配的配方ID（可选）
      */
-    CraftResultPreviewPacket(i32 containerId, const ItemStack& resultItem,
-                              const ResourceLocation& recipeId = ResourceLocation())
+    CraftResultPreviewPacket(
+        i32 containerId, const ItemStack& resultItem, const ResourceLocation& recipeId = ResourceLocation())
         : m_containerId(containerId)
         , m_resultItem(resultItem)
         , m_recipeId(recipeId)
@@ -222,14 +226,16 @@ public:
     void setRecipeId(const ResourceLocation& id) { m_recipeId = id; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeVarInt(m_containerId);
         m_resultItem.serialize(ser);
         ser.writeString(m_recipeId.toString());
     }
 
     // 反序列化
-    [[nodiscard]] static Result<CraftResultPreviewPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<CraftResultPreviewPacket> deserialize(network::PacketDeserializer& deser)
+    {
         CraftResultPreviewPacket packet;
 
         auto idResult = deser.readVarInt();

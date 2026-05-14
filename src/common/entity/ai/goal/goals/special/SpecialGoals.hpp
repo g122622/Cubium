@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../util/math/Vector3.hpp"
+#include "../../Goal.hpp"
 
 namespace mc {
 
@@ -52,8 +52,8 @@ private:
     LivingEntity* m_attackTarget = nullptr;
 
     // MC 1.16.5 常量
-    static constexpr f32 SWELL_TRIGGER_DISTANCE_SQ = 9.0f;   // 3.0 * 3.0
-    static constexpr f32 SWELL_CANCEL_DISTANCE_SQ = 49.0f;  // 7.0 * 7.0
+    static constexpr f32 SWELL_TRIGGER_DISTANCE_SQ = 9.0f; // 3.0 * 3.0
+    static constexpr f32 SWELL_CANCEL_DISTANCE_SQ = 49.0f; // 7.0 * 7.0
 };
 
 /**
@@ -65,7 +65,9 @@ private:
  */
 class EndermanTeleportGoal : public Goal {
 public:
-    explicit EndermanTeleportGoal(void* enderman) : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
+    explicit EndermanTeleportGoal(void* enderman)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -81,7 +83,9 @@ public:
  */
 class LlamaFollowCaravanGoal : public Goal {
 public:
-    LlamaFollowCaravanGoal(void* llama, f32 speed) : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
+    LlamaFollowCaravanGoal(void* llama, f32 speed)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
@@ -127,8 +131,8 @@ private:
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
 
-    static constexpr i32 MIN_RUN_TICKS = 20;   // 最少运行时间
-    static constexpr i32 MAX_RUN_TICKS = 100;  // 最多运行时间
+    static constexpr i32 MIN_RUN_TICKS = 20;  // 最少运行时间
+    static constexpr i32 MAX_RUN_TICKS = 100; // 最多运行时间
 };
 
 /**
@@ -140,7 +144,9 @@ private:
  */
 class DolphinJumpGoal : public Goal {
 public:
-    explicit DolphinJumpGoal(void* dolphin) : Goal(EnumSet<GoalFlag>{GoalFlag::Jump}) {}
+    explicit DolphinJumpGoal(void* dolphin)
+        : Goal(EnumSet<GoalFlag>{GoalFlag::Jump})
+    {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}

@@ -1,12 +1,12 @@
 #include "StrongholdStructure.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathConstants.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../IWorldWriter.hpp"
+#include "../../jigsaw/JigsawManager.hpp"
+#include "../../jigsaw/JigsawPattern.hpp"
 #include "../StructureBoundingBox.hpp"
 #include <cmath>
 
@@ -32,28 +32,55 @@ StrongholdStructure::StrongholdStructure(const Config& config)
     initializeBiomes();
 }
 
-void StrongholdStructure::initializeBiomes() {
+void StrongholdStructure::initializeBiomes()
+{
     // 要塞可以在大多数主世界生物群系生成
-    m_validBiomes = {
-        Plains, SunflowerPlains, Forest, FlowerForest, BirchForest, BirchForestHills,
-        DarkForest, DarkForestHills, Taiga, TaigaHills, TaigaMountains,
-        GiantTreeTaiga, GiantTreeTaigaHills, GiantSpruceTaiga, GiantSpruceTaigaHills,
-        Mountains, WoodedMountains, GravellyMountains, MountainEdge,
-        Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge,
-        Desert, DesertHills, DesertLakes, Badlands, BadlandsPlateau, WoodedBadlandsPlateau,
-        Savanna, SavannaPlateau, ShatteredSavanna,
-        Swamp, SwampHills,
-        SnowyPlains, SnowyMountains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains,
-        SnowyPlains, SnowyBeach
-    };
+    m_validBiomes = {Plains,
+        SunflowerPlains,
+        Forest,
+        FlowerForest,
+        BirchForest,
+        BirchForestHills,
+        DarkForest,
+        DarkForestHills,
+        Taiga,
+        TaigaHills,
+        TaigaMountains,
+        GiantTreeTaiga,
+        GiantTreeTaigaHills,
+        GiantSpruceTaiga,
+        GiantSpruceTaigaHills,
+        Mountains,
+        WoodedMountains,
+        GravellyMountains,
+        MountainEdge,
+        Jungle,
+        JungleHills,
+        JungleEdge,
+        ModifiedJungle,
+        ModifiedJungleEdge,
+        Desert,
+        DesertHills,
+        DesertLakes,
+        Badlands,
+        BadlandsPlateau,
+        WoodedBadlandsPlateau,
+        Savanna,
+        SavannaPlateau,
+        ShatteredSavanna,
+        Swamp,
+        SwampHills,
+        SnowyPlains,
+        SnowyMountains,
+        SnowyTaiga,
+        SnowyTaigaHills,
+        SnowyTaigaMountains,
+        SnowyPlains,
+        SnowyBeach};
 }
 
 bool StrongholdStructure::canGenerate(
-    IWorld& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     // 要塞位置由种子决定，不能随机生成
     // 需要检查当前位置是否是预计算的要塞位置
@@ -61,11 +88,7 @@ bool StrongholdStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> StrongholdStructure::generate(
-    IWorldWriter& world,
-    IChunkGenerator& generator,
-    math::Random& rng,
-    i32 chunkX,
-    i32 chunkZ) const
+    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -85,14 +108,12 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
 
     if (startPool && !startPool->isEmpty()) {
         // 使用 Jigsaw 系统生成要塞
-        jigsaw::JigsawManager::assembleAndPlace(
-            world,
+        jigsaw::JigsawManager::assembleAndPlace(world,
             patternRegistry,
             *startPool,
-            8,  // 要塞深度较大
+            8, // 要塞深度较大
             startPos,
-            rng
-        );
+            rng);
     } else {
         // 回退：生成简单的要塞入口
         generateFallbackEntrance(world, rng, startPos);
@@ -102,9 +123,7 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
 }
 
 void StrongholdStructure::generateFallbackEntrance(
-    IWorldWriter& world,
-    math::Random& rng,
-    const BlockPos& startPos) const
+    IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* mossyStoneBricks = VanillaBlocks::getState(VanillaBlocks::MOSSY_STONE_BRICKS);
@@ -148,8 +167,8 @@ void StrongholdStructure::generateFallbackEntrance(
     i32 roomSize = 10;
 
     // 地板
-    for (i32 x = -roomSize/2; x <= roomSize/2; ++x) {
-        for (i32 z = -roomSize/2; z <= roomSize/2; ++z) {
+    for (i32 x = -roomSize / 2; x <= roomSize / 2; ++x) {
+        for (i32 z = -roomSize / 2; z <= roomSize / 2; ++z) {
             world.setBlockState(baseX + x, portalRoomY, baseZ + z, stoneBricks, 18);
         }
     }
@@ -157,19 +176,19 @@ void StrongholdStructure::generateFallbackEntrance(
     // 墙壁
     i32 roomHeight = 6;
     for (i32 y = 1; y <= roomHeight; ++y) {
-        for (i32 x = -roomSize/2; x <= roomSize/2; ++x) {
-            world.setBlockState(baseX + x, portalRoomY + y, baseZ - roomSize/2, randomBrick(), 18);
-            world.setBlockState(baseX + x, portalRoomY + y, baseZ + roomSize/2, randomBrick(), 18);
+        for (i32 x = -roomSize / 2; x <= roomSize / 2; ++x) {
+            world.setBlockState(baseX + x, portalRoomY + y, baseZ - roomSize / 2, randomBrick(), 18);
+            world.setBlockState(baseX + x, portalRoomY + y, baseZ + roomSize / 2, randomBrick(), 18);
         }
-        for (i32 z = -roomSize/2; z <= roomSize/2; ++z) {
-            world.setBlockState(baseX - roomSize/2, portalRoomY + y, baseZ + z, randomBrick(), 18);
-            world.setBlockState(baseX + roomSize/2, portalRoomY + y, baseZ + z, randomBrick(), 18);
+        for (i32 z = -roomSize / 2; z <= roomSize / 2; ++z) {
+            world.setBlockState(baseX - roomSize / 2, portalRoomY + y, baseZ + z, randomBrick(), 18);
+            world.setBlockState(baseX + roomSize / 2, portalRoomY + y, baseZ + z, randomBrick(), 18);
         }
     }
 
     // 天花板
-    for (i32 x = -roomSize/2; x <= roomSize/2; ++x) {
-        for (i32 z = -roomSize/2; z <= roomSize/2; ++z) {
+    for (i32 x = -roomSize / 2; x <= roomSize / 2; ++x) {
+        for (i32 z = -roomSize / 2; z <= roomSize / 2; ++z) {
             world.setBlockState(baseX + x, portalRoomY + roomHeight + 1, baseZ + z, stoneBricks, 18);
         }
     }
@@ -180,9 +199,7 @@ void StrongholdStructure::generateFallbackEntrance(
     for (i32 x = -1; x <= 1; ++x) {
         for (i32 z = -1; z <= 1; ++z) {
             // 框架位置（四边）
-            bool isFrame = (std::abs(x) == 1 && z == 0) ||
-                          (std::abs(z) == 1 && x == 0) ||
-                          (x == 0 && z == 0);
+            bool isFrame = (std::abs(x) == 1 && z == 0) || (std::abs(z) == 1 && x == 0) || (x == 0 && z == 0);
             if (isFrame) {
                 // 使用金块作为传送门框架占位符（末地传送门框架方块尚未实现）
                 world.setBlockState(baseX + x, portalY, baseZ + z, goldBlock ? goldBlock : chiseledStoneBricks, 18);
@@ -191,7 +208,8 @@ void StrongholdStructure::generateFallbackEntrance(
     }
 }
 
-std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 worldSeed) {
+std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 worldSeed)
+{
     // 要塞分布算法（参考 MC 1.16.5: StrongholdStructure.java）
     // 8 个环，每个环有不同数量的要塞
     // 环 0: 3 个要塞，距离 1408-2688
@@ -242,7 +260,8 @@ std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 w
     return {x >> 4, z >> 4}; // 转换为区块坐标
 }
 
-i32 StrongholdStructure::getRing(i32 index) {
+i32 StrongholdStructure::getRing(i32 index)
+{
     // MC 1.16.5: 3+3+3+4+6+10+15+21 = 65 个要塞
     static const i32 ringCounts[] = {3, 3, 3, 4, 6, 10, 15, 21};
     i32 cumulative = 0;

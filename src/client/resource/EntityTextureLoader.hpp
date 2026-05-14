@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace mc {
 class IResourcePack;
@@ -14,7 +14,7 @@ class IResourcePack;
 namespace entity {
 enum class EntityClassification : u8;
 }
-}
+} // namespace mc
 
 namespace mc::client {
 
@@ -50,8 +50,7 @@ public:
      * @return 加载的纹理数量
      */
     [[nodiscard]] Result<u32> loadAllEntityTextures(
-        const std::vector<IResourcePack*>& packs,
-        EntityTextureAtlas& atlas);
+        const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas);
 
     /**
      * @brief 加载默认实体纹理（向后兼容）
@@ -69,9 +68,8 @@ public:
      * @param entityTypeId 实体类型ID（如 "minecraft:pig"）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadEntityTexture(mc::IResourcePack& pack,
-                                                  EntityTextureAtlas& atlas,
-                                                  const std::string& entityTypeId);
+    [[nodiscard]] Result<void> loadEntityTexture(
+        mc::IResourcePack& pack, EntityTextureAtlas& atlas, const std::string& entityTypeId);
 
     /**
      * @brief 获取实体纹理路径
@@ -101,9 +99,7 @@ private:
      * @param atlas 纹理图集
      * @return 加载的纹理数量
      */
-    [[nodiscard]] u32 loadAdditionalTextures(
-        const std::vector<IResourcePack*>& packs,
-        EntityTextureAtlas& atlas);
+    [[nodiscard]] u32 loadAdditionalTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas);
 };
 
 } // namespace mc::client

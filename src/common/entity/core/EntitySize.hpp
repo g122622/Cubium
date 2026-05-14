@@ -1,17 +1,17 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "../../util/AxisAlignedBB.hpp"
+#include "../../util/math/Vector3.hpp"
 
 namespace mc::entity {
 
 // 引入 mc 命名空间的类型
+using mc::AxisAlignedBB;
 using mc::f32;
 using mc::f64;
 using mc::Vector3;
 using mc::Vector3d;
-using mc::AxisAlignedBB;
 
 /**
  * @brief 实体尺寸类
@@ -77,21 +77,22 @@ public:
      * @param z 实体Z坐标
      * @return AABB碰撞箱
      */
-    [[nodiscard]] AxisAlignedBB createBoundingBox(f64 x, f64 y, f64 z) const {
-        return makeBoundingBox(x, y, z);
-    }
+    [[nodiscard]] AxisAlignedBB createBoundingBox(f64 x, f64 y, f64 z) const { return makeBoundingBox(x, y, z); }
 
     /**
      * @brief 创建碰撞箱
      * @param x, y, z 实体脚底位置
      * @return 以脚底为基准的AABB碰撞箱
      */
-    [[nodiscard]] AxisAlignedBB makeBoundingBox(f64 x, f64 y, f64 z) const {
+    [[nodiscard]] AxisAlignedBB makeBoundingBox(f64 x, f64 y, f64 z) const
+    {
         f32 halfWidth = m_width / 2.0f;
-        return AxisAlignedBB(
-            static_cast<f32>(x) - halfWidth, static_cast<f32>(y), static_cast<f32>(z) - halfWidth,
-            static_cast<f32>(x) + halfWidth, static_cast<f32>(y) + m_height, static_cast<f32>(z) + halfWidth
-        );
+        return AxisAlignedBB(static_cast<f32>(x) - halfWidth,
+            static_cast<f32>(y),
+            static_cast<f32>(z) - halfWidth,
+            static_cast<f32>(x) + halfWidth,
+            static_cast<f32>(y) + m_height,
+            static_cast<f32>(z) + halfWidth);
     }
 
     /**
@@ -99,7 +100,8 @@ public:
      * @param pos 实体位置
      * @return AABB碰撞箱
      */
-    [[nodiscard]] AxisAlignedBB createBoundingBox(const Vector3& pos) const {
+    [[nodiscard]] AxisAlignedBB createBoundingBox(const Vector3& pos) const
+    {
         return makeBoundingBox(pos.x, pos.y, pos.z);
     }
 
@@ -108,7 +110,8 @@ public:
      * @param pos 实体位置（双精度）
      * @return AABB碰撞箱
      */
-    [[nodiscard]] AxisAlignedBB createBoundingBox(const Vector3d& pos) const {
+    [[nodiscard]] AxisAlignedBB createBoundingBox(const Vector3d& pos) const
+    {
         return makeBoundingBox(pos.x, pos.y, pos.z);
     }
 
@@ -117,7 +120,8 @@ public:
      * @param eyeHeight 新的眼睛高度
      * @return 复制后的尺寸对象
      */
-    [[nodiscard]] EntitySize withEyeHeight(f32 eyeHeight) const {
+    [[nodiscard]] EntitySize withEyeHeight(f32 eyeHeight) const
+    {
         return EntitySize(m_width, m_height, eyeHeight, m_fixed);
     }
 
@@ -128,9 +132,7 @@ public:
      *
      * 如果是固定尺寸，返回原尺寸。
      */
-    [[nodiscard]] EntitySize scale(f32 factor) const {
-        return scale(factor, factor);
-    }
+    [[nodiscard]] EntitySize scale(f32 factor) const { return scale(factor, factor); }
 
     /**
      * @brief 分别缩放宽度和高度
@@ -140,50 +142,37 @@ public:
      *
      * 如果是固定尺寸，返回原尺寸。
      */
-    [[nodiscard]] EntitySize scale(f32 widthFactor, f32 heightFactor) const {
+    [[nodiscard]] EntitySize scale(f32 widthFactor, f32 heightFactor) const
+    {
         if (m_fixed || (widthFactor == 1.0f && heightFactor == 1.0f)) {
             return *this;
         }
-        return EntitySize(
-            m_width * widthFactor,
-            m_height * heightFactor,
-            m_eyeHeight * heightFactor,
-            false
-        );
+        return EntitySize(m_width * widthFactor, m_height * heightFactor, m_eyeHeight * heightFactor, false);
     }
 
     /**
      * @brief 创建可变尺寸
      */
-    static constexpr EntitySize flexible(f32 width, f32 height) {
-        return EntitySize(width, height, false);
-    }
+    static constexpr EntitySize flexible(f32 width, f32 height) { return EntitySize(width, height, false); }
 
     /**
      * @brief 创建固定尺寸
      */
-    static constexpr EntitySize fixed(f32 width, f32 height) {
-        return EntitySize(width, height, true);
-    }
+    static constexpr EntitySize fixed(f32 width, f32 height) { return EntitySize(width, height, true); }
 
     /**
      * @brief 比较操作符
      */
-    bool operator==(const EntitySize& other) const {
-        return m_width == other.m_width &&
-               m_height == other.m_height &&
-               m_eyeHeight == other.m_eyeHeight &&
-               m_fixed == other.m_fixed;
+    bool operator==(const EntitySize& other) const
+    {
+        return m_width == other.m_width && m_height == other.m_height && m_eyeHeight == other.m_eyeHeight &&
+            m_fixed == other.m_fixed;
     }
 
-    bool operator!=(const EntitySize& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const EntitySize& other) const { return !(*this == other); }
 
 private:
-    [[nodiscard]] static constexpr f32 defaultEyeHeight(f32 height) {
-        return height * 0.85f;
-    }
+    [[nodiscard]] static constexpr f32 defaultEyeHeight(f32 height) { return height * 0.85f; }
 
     f32 m_width;
     f32 m_height;

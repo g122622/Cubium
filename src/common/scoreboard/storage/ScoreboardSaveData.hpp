@@ -2,15 +2,15 @@
 
 #include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
-#include "../core/Scoreboard.hpp"
+#include "../../util/nbt/Nbt.hpp"
+#include "../core/ScoreCriteriaRenderType.hpp"
 #include "../core/ScoreObjective.hpp"
 #include "../core/ScorePlayerTeam.hpp"
+#include "../core/Scoreboard.hpp"
 #include "../core/TeamEnums.hpp"
-#include "../core/ScoreCriteriaRenderType.hpp"
-#include "../../util/nbt/Nbt.hpp"
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace mc::scoreboard {
 
@@ -30,8 +30,8 @@ public:
     struct ObjectiveData {
         std::string name;
         std::string criteriaName;
-        std::string displayName;      // JSON 格式
-        std::string renderType;       // "integer" 或 "hearts"
+        std::string displayName; // JSON 格式
+        std::string renderType;  // "integer" 或 "hearts"
 
         [[nodiscard]] nbt::tags::compound_tag toNbt() const;
         static Result<ObjectiveData> fromNbt(const nbt::tags::compound_tag& tag);
@@ -46,7 +46,7 @@ public:
         std::string playerName;
         std::string objectiveName;
         i32 score = 0;
-        bool locked = false;          // 用于 trigger 判据
+        bool locked = false; // 用于 trigger 判据
 
         [[nodiscard]] nbt::tags::compound_tag toNbt() const;
         static Result<ScoreData> fromNbt(const nbt::tags::compound_tag& tag);
@@ -59,10 +59,10 @@ public:
      */
     struct TeamData {
         std::string name;
-        std::string displayName;      // JSON 格式
-        std::string prefix;           // JSON 格式
-        std::string suffix;           // JSON 格式
-        std::string color;            // 颜色名称
+        std::string displayName; // JSON 格式
+        std::string prefix;      // JSON 格式
+        std::string suffix;      // JSON 格式
+        std::string color;       // 颜色名称
         std::string nameTagVisibility;
         std::string deathMessageVisibility;
         std::string collisionRule;
@@ -141,7 +141,8 @@ public:
     void addTeam(TeamData data) { m_teams.push_back(std::move(data)); }
     void addDisplaySlot(DisplaySlotData data) { m_displaySlots.push_back(std::move(data)); }
 
-    void clear() {
+    void clear()
+    {
         m_objectives.clear();
         m_scores.clear();
         m_teams.clear();

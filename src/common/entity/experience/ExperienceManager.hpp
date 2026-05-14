@@ -2,8 +2,8 @@
 
 #include "../../core/Types.hpp"
 #include "../../util/math/random/Random.hpp"
-#include <functional>
 #include "common/util/assert/AssertAll.hpp"
+#include <functional>
 
 namespace mc {
 
@@ -242,7 +242,8 @@ public:
      *
      * @param callback 回调函数
      */
-    void setLevelChangeCallback(LevelChangeCallback callback) {
+    void setLevelChangeCallback(LevelChangeCallback callback)
+    {
         MC_ASSERT_RELEASE(!m_levelChangeCallback);
         m_levelChangeCallback = std::move(callback);
     }
@@ -259,7 +260,8 @@ public:
      *
      * @param callback 回调函数
      */
-    void setExperienceChangeCallback(ExperienceChangeCallback callback) {
+    void setExperienceChangeCallback(ExperienceChangeCallback callback)
+    {
         MC_ASSERT_RELEASE(!m_experienceChangeCallback);
         m_experienceChangeCallback = std::move(callback);
     }
@@ -295,12 +297,12 @@ private:
 
     Player& m_player;
 
-    i32 m_level = 0;              // 当前等级
-    f32 m_progress = 0.0f;        // 当前等级进度 (0.0 - 1.0)
-    i32 m_totalExperience = 0;    // 累计总经验值
-    i32 m_xpSeed = 0;             // 附魔随机种子
+    i32 m_level = 0;           // 当前等级
+    f32 m_progress = 0.0f;     // 当前等级进度 (0.0 - 1.0)
+    i32 m_totalExperience = 0; // 累计总经验值
+    i32 m_xpSeed = 0;          // 附魔随机种子
 
-    bool m_dirty = false;         // 是否需要同步到客户端
+    bool m_dirty = false; // 是否需要同步到客户端
 
     LevelChangeCallback m_levelChangeCallback;
     ExperienceChangeCallback m_experienceChangeCallback;

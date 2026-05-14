@@ -4,7 +4,8 @@
 
 namespace mc::client::sound {
 
-void SoundRegistry::registerSoundEvent(SoundEventDefinition definition) {
+void SoundRegistry::registerSoundEvent(SoundEventDefinition definition)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (!definition.location.path().empty()) {
@@ -31,9 +32,8 @@ void SoundRegistry::registerSoundEvent(SoundEventDefinition definition) {
     }
 }
 
-const SoundEventDefinition* SoundRegistry::getSoundEvent(
-    const ResourceLocation& id
-) const {
+const SoundEventDefinition* SoundRegistry::getSoundEvent(const ResourceLocation& id) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_soundEvents.find(id);
@@ -43,12 +43,14 @@ const SoundEventDefinition* SoundRegistry::getSoundEvent(
     return nullptr;
 }
 
-bool SoundRegistry::hasSoundEvent(const ResourceLocation& id) const {
+bool SoundRegistry::hasSoundEvent(const ResourceLocation& id) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_soundEvents.find(id) != m_soundEvents.end();
 }
 
-std::vector<ResourceLocation> SoundRegistry::getAllSoundEventIds() const {
+std::vector<ResourceLocation> SoundRegistry::getAllSoundEventIds() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<ResourceLocation> ids;
@@ -64,12 +66,14 @@ std::vector<ResourceLocation> SoundRegistry::getAllSoundEventIds() const {
     return ids;
 }
 
-size_t SoundRegistry::getSoundEventCount() const {
+size_t SoundRegistry::getSoundEventCount() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_soundEvents.size();
 }
 
-void SoundRegistry::merge(const SoundRegistry& other) {
+void SoundRegistry::merge(const SoundRegistry& other)
+{
     if (this == &other) {
         return;
     }
@@ -96,12 +100,14 @@ void SoundRegistry::merge(const SoundRegistry& other) {
     }
 }
 
-void SoundRegistry::clear() {
+void SoundRegistry::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_soundEvents.clear();
 }
 
-std::vector<ResourceLocation> SoundRegistry::getPreloadSounds() const {
+std::vector<ResourceLocation> SoundRegistry::getPreloadSounds() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<ResourceLocation> preloadList;

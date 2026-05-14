@@ -1,6 +1,6 @@
 #include "IChunk.hpp"
-#include "ChunkData.hpp"
 #include "../block/Block.hpp"
+#include "ChunkData.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -31,7 +31,7 @@ BiomeId BiomeContainer::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z
     // 将方块坐标映射到生物群系采样点
     // 16 个方块对应 4 个采样点，所以每 4 个方块对应一个采样点
     const i32 biomeX = std::clamp(x >> 2, 0, BIOME_WIDTH - 1);
-    const i32 biomeY = std::clamp(y >> 4, 0, BIOME_HEIGHT - 1);  // Y 轴每段 16 方块
+    const i32 biomeY = std::clamp(y >> 4, 0, BIOME_HEIGHT - 1); // Y 轴每段 16 方块
     const i32 biomeZ = std::clamp(z >> 2, 0, BIOME_DEPTH - 1);
     return getBiome(biomeX, biomeY, biomeZ);
 }
@@ -84,7 +84,7 @@ bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockStat
 
     // 只有当新方块高于当前高度且是阻挡方块时才更新
     if (y >= currentHeight && isOpaque(state)) {
-        m_heights[static_cast<size_t>(index)] = y + 1;  // 高度图存储的是 Y+1（即上方空气方块的位置）
+        m_heights[static_cast<size_t>(index)] = y + 1; // 高度图存储的是 Y+1（即上方空气方块的位置）
         return true;
     }
 
@@ -131,8 +131,8 @@ bool Heightmap::isOpaque(const BlockState* state) const
 
         case HeightmapType::MotionBlockingNoLeaves:
             // 阻挡运动但不包括树叶
-            return (block.isSolid(*state) || state->isLiquid()) &&
-                   (&block.material() != &Material::LEAVES) && (&block.material() != &Material::PLANT);
+            return (block.isSolid(*state) || state->isLiquid()) && (&block.material() != &Material::LEAVES) &&
+                (&block.material() != &Material::PLANT);
 
         case HeightmapType::LightBlocking:
             // 阻挡光照的方块（不透明方块，透明度 > 0）

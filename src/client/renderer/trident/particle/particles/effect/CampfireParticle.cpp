@@ -26,8 +26,8 @@ CampfireParticle::CampfireParticle(const glm::vec3& pos, const glm::vec3& veloci
 
     // MC 1.16.5: 重力为 3.0E-6（实际上使粒子缓慢上升）
     setGravity(GRAVITY);
-    setFriction(1.0);  // 无摩擦
-    setHasPhysics(false);  // 不做碰撞检测
+    setFriction(1.0);     // 无摩擦
+    setHasPhysics(false); // 不做碰撞检测
 
     // MC 1.16.5: Y速度增加随机量
     m_velocity.y += rng.nextFloat() / 500.0f;
@@ -37,24 +37,21 @@ CampfireParticle::CampfireParticle(const glm::vec3& pos, const glm::vec3& veloci
 }
 
 std::unique_ptr<Particle> CampfireParticle::createCozy(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<CampfireParticle>(pos, velocity, CampfireType::Cozy);
 }
 
 std::unique_ptr<Particle> CampfireParticle::createSignal(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<CampfireParticle>(pos, velocity, CampfireType::Signal);
 }
 
-void CampfireParticle::tick(mc::client::ClientWorld* world) {
+void CampfireParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     // 保存上一帧位置
@@ -87,7 +84,8 @@ void CampfireParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-f64 CampfireParticle::getScale(f64 partialTick) const {
+f64 CampfireParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     // MC 1.16.5: 缩放倍数为 3.0
     return SCALE_MULTIPLIER;

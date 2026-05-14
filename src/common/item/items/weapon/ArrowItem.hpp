@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../../core/Types.hpp"
 #include "../../core/Item.hpp"
 #include "../../core/ItemStack.hpp"
-#include "../../../core/Types.hpp"
 
 namespace mc {
 
@@ -12,7 +12,7 @@ class Player;
 class LivingEntity;
 
 namespace entity {
-    class AbstractArrowEntity;
+class AbstractArrowEntity;
 }
 
 namespace item {
@@ -51,9 +51,7 @@ public:
      * @return 箭矢实体指针（调用者负责管理）
      */
     [[nodiscard]] virtual entity::AbstractArrowEntity* createArrow(
-        IWorld& world,
-        const ItemStack& stack,
-        LivingEntity& shooter) const;
+        IWorld& world, const ItemStack& stack, LivingEntity& shooter) const;
 
     /**
      * @brief 检查箭矢是否无限
@@ -66,10 +64,7 @@ public:
      * @param player 玩家
      * @return 是否无限（不被消耗）
      */
-    [[nodiscard]] virtual bool isInfinite(
-        const ItemStack& arrowStack,
-        const ItemStack& bowStack,
-        Player& player) const;
+    [[nodiscard]] virtual bool isInfinite(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const;
 };
 
 } // namespace item

@@ -1,12 +1,12 @@
 #include "BannedPlayerList.hpp"
 
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <spdlog/spdlog.h>
 #include <algorithm>
-#include <iomanip>
 #include <ctime>
+#include <fstream>
+#include <iomanip>
 #include <sstream>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::core {
 
@@ -17,7 +17,8 @@ BannedPlayerList::BannedPlayerList() = default;
 
 // ========== 条目管理 ==========
 
-bool BannedPlayerList::addEntry(const BannedPlayerEntry& entry) {
+bool BannedPlayerList::addEntry(const BannedPlayerEntry& entry)
+{
     if (!entry.isValid()) {
         return false;
     }
@@ -40,7 +41,8 @@ bool BannedPlayerList::addEntry(const BannedPlayerEntry& entry) {
     return true;
 }
 
-bool BannedPlayerList::removeEntry(const std::string& uuid) {
+bool BannedPlayerList::removeEntry(const std::string& uuid)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_entriesByUuid.find(uuid);
@@ -59,7 +61,8 @@ bool BannedPlayerList::removeEntry(const std::string& uuid) {
     return true;
 }
 
-bool BannedPlayerList::removeEntryByName(const std::string& name) {
+bool BannedPlayerList::removeEntryByName(const std::string& name)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 查找名称映射
@@ -80,7 +83,8 @@ bool BannedPlayerList::removeEntryByName(const std::string& name) {
     return true;
 }
 
-bool BannedPlayerList::isBanned(const std::string& uuid) const {
+bool BannedPlayerList::isBanned(const std::string& uuid) const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -88,7 +92,8 @@ bool BannedPlayerList::isBanned(const std::string& uuid) const {
     return m_entriesByUuid.contains(uuid);
 }
 
-bool BannedPlayerList::isNameBanned(const std::string& name) const {
+bool BannedPlayerList::isNameBanned(const std::string& name) const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -111,7 +116,8 @@ bool BannedPlayerList::isNameBanned(const std::string& name) const {
     return !entryIt->second.hasExpired();
 }
 
-std::optional<BannedPlayerEntry> BannedPlayerList::getEntry(const std::string& uuid) const {
+std::optional<BannedPlayerEntry> BannedPlayerList::getEntry(const std::string& uuid) const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -130,7 +136,8 @@ std::optional<BannedPlayerEntry> BannedPlayerList::getEntry(const std::string& u
     return it->second;
 }
 
-std::optional<BannedPlayerEntry> BannedPlayerList::getEntryByName(const std::string& name) const {
+std::optional<BannedPlayerEntry> BannedPlayerList::getEntryByName(const std::string& name) const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -157,7 +164,8 @@ std::optional<BannedPlayerEntry> BannedPlayerList::getEntryByName(const std::str
     return entryIt->second;
 }
 
-std::vector<BannedPlayerEntry> BannedPlayerList::getAllEntries() const {
+std::vector<BannedPlayerEntry> BannedPlayerList::getAllEntries() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -175,7 +183,8 @@ std::vector<BannedPlayerEntry> BannedPlayerList::getAllEntries() const {
     return entries;
 }
 
-std::vector<std::string> BannedPlayerList::getAllBannedNames() const {
+std::vector<std::string> BannedPlayerList::getAllBannedNames() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -193,7 +202,8 @@ std::vector<std::string> BannedPlayerList::getAllBannedNames() const {
     return names;
 }
 
-size_t BannedPlayerList::size() const {
+size_t BannedPlayerList::size() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -201,7 +211,8 @@ size_t BannedPlayerList::size() const {
     return m_entriesByUuid.size();
 }
 
-bool BannedPlayerList::empty() const {
+bool BannedPlayerList::empty() const
+{
     // 先清理过期条目
     removeExpired();
 
@@ -209,7 +220,8 @@ bool BannedPlayerList::empty() const {
     return m_entriesByUuid.empty();
 }
 
-void BannedPlayerList::clear() {
+void BannedPlayerList::clear()
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entriesByUuid.clear();
     m_nameToUuid.clear();
@@ -217,7 +229,8 @@ void BannedPlayerList::clear() {
 
 // ========== 文件操作 ==========
 
-Result<void> BannedPlayerList::load(const std::filesystem::path& path) {
+Result<void> BannedPlayerList::load(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     m_filePath = path;
@@ -233,9 +246,9 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path) {
         try {
             std::ofstream file(path);
             file << "[]";
-        } catch (const std::exception& e) {
-            return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to create banned players file: {}", e.what()));
+        }
+        catch (const std::exception& e) {
+            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create banned players file: {}", e.what()));
         }
         return {};
     }
@@ -244,16 +257,15 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path) {
     try {
         std::ifstream file(path);
         if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed,
-                        fmt::format("Failed to open banned players file: {}", path.string()));
+            return Error(
+                ErrorCode::FileOpenFailed, fmt::format("Failed to open banned players file: {}", path.string()));
         }
 
         nlohmann::json json;
         file >> json;
 
         if (!json.is_array()) {
-            return Error(ErrorCode::FileCorrupted,
-                        "Banned players file must be a JSON array");
+            return Error(ErrorCode::FileCorrupted, "Banned players file must be a JSON array");
         }
 
         for (const auto& item : json) {
@@ -310,8 +322,7 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path) {
 
             // 验证条目
             if (!entry.isValid()) {
-                spdlog::warn("Skipping invalid ban entry: uuid={}, name={}",
-                            entry.uuid, entry.name);
+                spdlog::warn("Skipping invalid ban entry: uuid={}, name={}", entry.uuid, entry.name);
                 continue;
             }
 
@@ -323,8 +334,7 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path) {
 
             // 跳过已过期的条目
             if (entry.hasExpired()) {
-                spdlog::debug("Skipping expired ban entry: uuid={}, name={}",
-                             entry.uuid, entry.name);
+                spdlog::debug("Skipping expired ban entry: uuid={}, name={}", entry.uuid, entry.name);
                 continue;
             }
 
@@ -339,17 +349,17 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path) {
 
         spdlog::info("Loaded {} banned player entries from {}", m_entriesByUuid.size(), path.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileCorrupted,
-                    fmt::format("Failed to parse banned players JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed,
-                    fmt::format("Failed to read banned players file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse banned players JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read banned players file: {}", e.what()));
     }
 }
 
-Result<void> BannedPlayerList::save(const std::filesystem::path& path) {
+Result<void> BannedPlayerList::save(const std::filesystem::path& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::filesystem::path savePath = path.empty() ? m_filePath : path;
@@ -389,24 +399,24 @@ Result<void> BannedPlayerList::save(const std::filesystem::path& path) {
         std::ofstream file(savePath);
         if (!file.is_open()) {
             return Error(ErrorCode::FileWriteFailed,
-                        fmt::format("Failed to open banned players file for writing: {}", savePath.string()));
+                fmt::format("Failed to open banned players file for writing: {}", savePath.string()));
         }
 
         file << json.dump(2);
 
         spdlog::info("Saved {} banned player entries to {}", json.size(), savePath.string());
         return {};
-
-    } catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to serialize banned players JSON: {}", e.what()));
-    } catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed,
-                    fmt::format("Failed to save banned players file: {}", e.what()));
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to serialize banned players JSON: {}", e.what()));
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save banned players file: {}", e.what()));
     }
 }
 
-Result<void> BannedPlayerList::reload() {
+Result<void> BannedPlayerList::reload()
+{
     if (m_filePath.empty()) {
         return Error(ErrorCode::InvalidArgument, "No file path to reload banned players from");
     }
@@ -416,7 +426,8 @@ Result<void> BannedPlayerList::reload() {
 
 // ========== 私有方法 ==========
 
-void BannedPlayerList::removeExpired() const {
+void BannedPlayerList::removeExpired() const
+{
     // 注意：此方法在持锁状态下由其他公共方法调用
     // 所以这里不需要再加锁
 
@@ -440,7 +451,8 @@ void BannedPlayerList::removeExpired() const {
     }
 }
 
-std::string BannedPlayerList::getCurrentTimeString() {
+std::string BannedPlayerList::getCurrentTimeString()
+{
     auto now = std::chrono::system_clock::now();
     auto now_time = std::chrono::system_clock::to_time_t(now);
 
@@ -458,7 +470,8 @@ std::string BannedPlayerList::getCurrentTimeString() {
 
 // ========== BannedPlayerEntry 方法 ==========
 
-bool BannedPlayerEntry::hasExpired() const {
+bool BannedPlayerEntry::hasExpired() const
+{
     if (expires.empty() || expires == "forever") {
         return false;
     }

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "LootContext.hpp"
 #include "StatePropertiesPredicate.hpp"
+#include "common/core/Types.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc {
 
@@ -417,8 +417,7 @@ public:
      * @param properties 属性匹配谓词
      */
     [[nodiscard]] static std::unique_ptr<LootCondition> blockState(
-        const std::string& blockId,
-        StatePropertiesPredicate properties);
+        const std::string& blockId, StatePropertiesPredicate properties);
 
     /**
      * @brief 创建工具类型条件

@@ -1,23 +1,23 @@
-#include <gtest/gtest.h>
-#include "server/world/ServerChunkManager.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include <atomic>
 #include <memory>
 #include <vector>
-#include <atomic>
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::server;
 
 // 噪声区块生成器所在的命名空间
 namespace mc::gen {
-    class NoiseChunkGenerator;
-    struct DimensionSettings;
-}
+class NoiseChunkGenerator;
+struct DimensionSettings;
+} // namespace mc::gen
 
 /**
  * @brief ServerChunkManager 实体生成回调测试
@@ -26,7 +26,8 @@ namespace mc::gen {
  */
 class ServerChunkManagerCallbackTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化实体注册表
         mc::entity::VanillaEntities::registerAll();
 
@@ -47,7 +48,8 @@ protected:
         m_workerPool->start();
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_manager->shutdown();
         m_workerPool->shutdown();
         m_manager.reset();
@@ -62,7 +64,8 @@ protected:
 // 回调设置测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerCallbackTest, SetEntitySpawnCallback) {
+TEST_F(ServerChunkManagerCallbackTest, SetEntitySpawnCallback)
+{
     bool callbackCalled = false;
 
     m_manager->setEntitySpawnCallback([&callbackCalled](const std::vector<mc::SpawnedEntityData>& entities) {
@@ -75,12 +78,12 @@ TEST_F(ServerChunkManagerCallbackTest, SetEntitySpawnCallback) {
     EXPECT_FALSE(callbackCalled);
 }
 
-TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities) {
+TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities)
+{
     std::vector<mc::SpawnedEntityData> receivedEntities;
 
-    m_manager->setEntitySpawnCallback([&receivedEntities](const std::vector<mc::SpawnedEntityData>& entities) {
-        receivedEntities = entities;
-    });
+    m_manager->setEntitySpawnCallback(
+        [&receivedEntities](const std::vector<mc::SpawnedEntityData>& entities) { receivedEntities = entities; });
 
     // 同步生成一个区块（会触发实体生成）
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
@@ -102,7 +105,8 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities) {
 // 多区块生成测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerCallbackTest, MultipleChunksGenerate) {
+TEST_F(ServerChunkManagerCallbackTest, MultipleChunksGenerate)
+{
     std::atomic<int> totalEntities{0};
 
     m_manager->setEntitySpawnCallback([&totalEntities](const std::vector<mc::SpawnedEntityData>& entities) {
@@ -129,16 +133,18 @@ TEST_F(ServerChunkManagerCallbackTest, MultipleChunksGenerate) {
 // 异步生成测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerCallbackTest, AsyncGenerateWithCallback) {
+TEST_F(ServerChunkManagerCallbackTest, AsyncGenerateWithCallback)
+{
     std::vector<mc::SpawnedEntityData> receivedEntities;
     std::atomic<bool> callbackCompleted{false};
 
-    m_manager->setEntitySpawnCallback([&receivedEntities, &callbackCompleted](const std::vector<mc::SpawnedEntityData>& entities) {
-        for (const auto& e : entities) {
-            receivedEntities.push_back(e);
-        }
-        callbackCompleted = true;
-    });
+    m_manager->setEntitySpawnCallback(
+        [&receivedEntities, &callbackCompleted](const std::vector<mc::SpawnedEntityData>& entities) {
+            for (const auto& e : entities) {
+                receivedEntities.push_back(e);
+            }
+            callbackCompleted = true;
+        });
 
     // 异步生成
     auto future = m_manager->getChunkAsync(5, 5);
@@ -159,7 +165,8 @@ TEST_F(ServerChunkManagerCallbackTest, AsyncGenerateWithCallback) {
 // 空区块测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerCallbackTest, EmptyChunkDoesNotCallCallback) {
+TEST_F(ServerChunkManagerCallbackTest, EmptyChunkDoesNotCallCallback)
+{
     bool callbackCalled = false;
 
     m_manager->setEntitySpawnCallback([&callbackCalled](const std::vector<mc::SpawnedEntityData>& entities) {
@@ -176,12 +183,11 @@ TEST_F(ServerChunkManagerCallbackTest, EmptyChunkDoesNotCallCallback) {
 // 回调重置测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerCallbackTest, ResetCallback) {
+TEST_F(ServerChunkManagerCallbackTest, ResetCallback)
+{
     int callCount = 0;
 
-    m_manager->setEntitySpawnCallback([&callCount](const std::vector<mc::SpawnedEntityData>&) {
-        callCount++;
-    });
+    m_manager->setEntitySpawnCallback([&callCount](const std::vector<mc::SpawnedEntityData>&) { callCount++; });
 
     // 重置为空回调
     m_manager->setEntitySpawnCallback(nullptr);
@@ -203,7 +209,8 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback) {
 // 统计测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
+TEST_F(ServerChunkManagerCallbackTest, ChunkCount)
+{
     EXPECT_EQ(m_manager->loadedChunkCount(), 0u);
 
     static_cast<void>(m_manager->getChunkSync(0, 0));
@@ -214,7 +221,8 @@ TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
     EXPECT_EQ(m_manager->loadedChunkCount(), 3u);
 }
 
-TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount) {
+TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount)
+{
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
 
     static_cast<void>(m_manager->getChunkSync(0, 0));

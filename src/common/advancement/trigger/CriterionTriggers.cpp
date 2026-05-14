@@ -1,21 +1,23 @@
 #include "CriterionTriggers.hpp"
-#include "impl/ImpossibleTrigger.hpp"
-#include "impl/InventoryChangedTrigger.hpp"
-#include "impl/TickTrigger.hpp"
+#include "impl/BlockTriggers.hpp"
 #include "impl/EffectTriggers.hpp"
 #include "impl/EntityTriggers.hpp"
+#include "impl/ImpossibleTrigger.hpp"
+#include "impl/InventoryChangedTrigger.hpp"
 #include "impl/PlayerKilledEntityTrigger.hpp"
-#include "impl/BlockTriggers.hpp"
+#include "impl/TickTrigger.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::advancement {
 
-CriterionTriggers& CriterionTriggers::instance() {
+CriterionTriggers& CriterionTriggers::instance()
+{
     static CriterionTriggers instance;
     return instance;
 }
 
-void CriterionTriggers::registerTrigger(std::unique_ptr<ICriterionTriggerBase> trigger) {
+void CriterionTriggers::registerTrigger(std::unique_ptr<ICriterionTriggerBase> trigger)
+{
     if (!trigger) {
         return;
     }
@@ -28,16 +30,19 @@ void CriterionTriggers::registerTrigger(std::unique_ptr<ICriterionTriggerBase> t
     m_triggers[id] = std::move(trigger);
 }
 
-ICriterionTriggerBase* CriterionTriggers::getTrigger(const ResourceLocation& id) {
+ICriterionTriggerBase* CriterionTriggers::getTrigger(const ResourceLocation& id)
+{
     auto it = m_triggers.find(id);
     return it != m_triggers.end() ? it->second.get() : nullptr;
 }
 
-bool CriterionTriggers::hasTrigger(const ResourceLocation& id) const {
+bool CriterionTriggers::hasTrigger(const ResourceLocation& id) const
+{
     return m_triggers.find(id) != m_triggers.end();
 }
 
-std::vector<ResourceLocation> CriterionTriggers::getAllTriggerIds() const {
+std::vector<ResourceLocation> CriterionTriggers::getAllTriggerIds() const
+{
     std::vector<ResourceLocation> ids;
     ids.reserve(m_triggers.size());
     for (const auto& [id, _] : m_triggers) {
@@ -46,11 +51,13 @@ std::vector<ResourceLocation> CriterionTriggers::getAllTriggerIds() const {
     return ids;
 }
 
-void CriterionTriggers::clear() {
+void CriterionTriggers::clear()
+{
     m_triggers.clear();
 }
 
-void CriterionTriggers::registerBuiltinTriggers() {
+void CriterionTriggers::registerBuiltinTriggers()
+{
     // 注册基础触发器
     registerTrigger(std::make_unique<ImpossibleTrigger>());
     registerTrigger(std::make_unique<InventoryChangedTrigger>());

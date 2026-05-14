@@ -27,31 +27,31 @@ class AbstractFurnaceEntity;
  * - 40: 副手 (Offhand)
  */
 namespace InventorySlots {
-    // 快捷栏
-    constexpr i32 HOTBAR_START = 0;
-    constexpr i32 HOTBAR_END = 8;
-    constexpr i32 HOTBAR_SIZE = 9;
+// 快捷栏
+constexpr i32 HOTBAR_START = 0;
+constexpr i32 HOTBAR_END = 8;
+constexpr i32 HOTBAR_SIZE = 9;
 
-    // 主背包
-    constexpr i32 MAIN_START = 9;
-    constexpr i32 MAIN_END = 35;
-    constexpr i32 MAIN_SIZE = 27;
+// 主背包
+constexpr i32 MAIN_START = 9;
+constexpr i32 MAIN_END = 35;
+constexpr i32 MAIN_SIZE = 27;
 
-    // 护甲
-    constexpr i32 ARMOR_START = 36;
-    constexpr i32 ARMOR_END = 39;
-    constexpr i32 ARMOR_SIZE = 4;
-    constexpr i32 ARMOR_HEAD = 36;     // 头盔
-    constexpr i32 ARMOR_CHEST = 37;    // 胸甲
-    constexpr i32 ARMOR_LEGS = 38;     // 护腿
-    constexpr i32 ARMOR_FEET = 39;     // 靴子
+// 护甲
+constexpr i32 ARMOR_START = 36;
+constexpr i32 ARMOR_END = 39;
+constexpr i32 ARMOR_SIZE = 4;
+constexpr i32 ARMOR_HEAD = 36;  // 头盔
+constexpr i32 ARMOR_CHEST = 37; // 胸甲
+constexpr i32 ARMOR_LEGS = 38;  // 护腿
+constexpr i32 ARMOR_FEET = 39;  // 靴子
 
-    // 副手
-    constexpr i32 OFFHAND = 40;
+// 副手
+constexpr i32 OFFHAND = 40;
 
-    // 总大小
-    constexpr i32 TOTAL_SIZE = 41;
-}
+// 总大小
+constexpr i32 TOTAL_SIZE = 41;
+} // namespace InventorySlots
 
 /**
  * @brief 槽位背景图标
@@ -59,8 +59,8 @@ namespace InventorySlots {
  * 用于在空槽位显示轮廓图标（如护甲槽的护甲轮廓）。
  */
 struct SlotBackground {
-    ResourceLocation atlas;   ///< 图集位置
-    ResourceLocation sprite;  ///< 精灵位置
+    ResourceLocation atlas;  ///< 图集位置
+    ResourceLocation sprite; ///< 精灵位置
 
     bool isValid() const { return !atlas.path().empty() && !sprite.path().empty(); }
 };
@@ -272,8 +272,8 @@ public:
     [[nodiscard]] bool isSameInventory(const Slot& other) const;
 
 protected:
-    i32 m_slotNumber = -1;     ///< 槽位编号（在容器中的索引）
-    bool m_active = false;     ///< 激活状态
+    i32 m_slotNumber = -1;       ///< 槽位编号（在容器中的索引）
+    bool m_active = false;       ///< 激活状态
     SlotBackground m_background; ///< 背景图标
 
 private:
@@ -295,10 +295,10 @@ public:
      * @brief 护甲类型
      */
     enum class ArmorType : u8 {
-        Head = 0,   // 头盔
-        Chest = 1,  // 胸甲
-        Legs = 2,   // 护腿
-        Feet = 3    // 靴子
+        Head = 0,  // 头盔
+        Chest = 1, // 胸甲
+        Legs = 2,  // 护腿
+        Feet = 3   // 靴子
     };
 
     ArmorSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y, ArmorType armorType);
@@ -343,13 +343,14 @@ public:
      * @param craftingGrid 关联的合成网格
      * @param player 玩家（用于触发成就）
      */
-    ResultSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y,
-               CraftingInventory* craftingGrid, Player* player = nullptr);
+    ResultSlot(
+        IInventory* inventory, i32 slotIndex, i32 x, i32 y, CraftingInventory* craftingGrid, Player* player = nullptr);
 
     /**
      * @brief 结果槽位不能放置物品
      */
-    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override {
+    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override
+    {
         (void)stack;
         return false;
     }
@@ -391,7 +392,7 @@ public:
 private:
     CraftingInventory* m_craftingGrid;
     Player* m_player;
-    i32 m_amountCrafted = 0;  ///< 已合成数量（用于成就追踪）
+    i32 m_amountCrafted = 0; ///< 已合成数量（用于成就追踪）
 };
 
 /**
@@ -459,13 +460,18 @@ public:
      * @param y 显示位置Y
      * @param furnaceEntity 熔炉实体（用于提取累积经验）
      */
-    FurnaceResultSlot(Player* player, IInventory* inventory, i32 slotIndex, i32 x, i32 y,
-                       blockentity::AbstractFurnaceEntity* furnaceEntity = nullptr);
+    FurnaceResultSlot(Player* player,
+        IInventory* inventory,
+        i32 slotIndex,
+        i32 x,
+        i32 y,
+        blockentity::AbstractFurnaceEntity* furnaceEntity = nullptr);
 
     /**
      * @brief 输出槽不能放入物品
      */
-    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override {
+    [[nodiscard]] bool mayPlace(const ItemStack& stack) const override
+    {
         (void)stack;
         return false;
     }
@@ -484,16 +490,12 @@ public:
      * @brief 设置熔炉实体
      * @param furnaceEntity 熔炉实体指针
      */
-    void setFurnaceEntity(blockentity::AbstractFurnaceEntity* furnaceEntity) {
-        m_furnaceEntity = furnaceEntity;
-    }
+    void setFurnaceEntity(blockentity::AbstractFurnaceEntity* furnaceEntity) { m_furnaceEntity = furnaceEntity; }
 
     /**
      * @brief 获取熔炉实体
      */
-    [[nodiscard]] blockentity::AbstractFurnaceEntity* getFurnaceEntity() const {
-        return m_furnaceEntity;
-    }
+    [[nodiscard]] blockentity::AbstractFurnaceEntity* getFurnaceEntity() const { return m_furnaceEntity; }
 
 protected:
     /**
@@ -508,8 +510,8 @@ protected:
 
 private:
     Player* m_player;
-    i32 m_removeCount = 0;  ///< 已取出数量（用于经验计算）
-    blockentity::AbstractFurnaceEntity* m_furnaceEntity = nullptr;  ///< 熔炉实体（用于提取经验）
+    i32 m_removeCount = 0;                                         ///< 已取出数量（用于经验计算）
+    blockentity::AbstractFurnaceEntity* m_furnaceEntity = nullptr; ///< 熔炉实体（用于提取经验）
 };
 
 } // namespace mc

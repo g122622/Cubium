@@ -10,27 +10,27 @@
  * - 剪刀耐久度消耗
  */
 
-#include <gtest/gtest.h>
-#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/tick/manager/TickManager.hpp"
-#include "world/fluid/Fluid.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "entity/entities/item/ItemEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/BlockRaycastResult.hpp"
+#include "core/Constants.hpp"
 #include "entity/core/VanillaEntities.hpp"
+#include "entity/entities/item/ItemEntity.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
-#include "item/core/ItemStack.hpp"
 #include "item/core/ItemRegistry.hpp"
-#include "util/property/Properties.hpp"
+#include "item/core/ItemStack.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "core/BlockRaycastResult.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/WorldEvents.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/tick/manager/TickManager.hpp"
+#include <gtest/gtest.h>
 
 #include <memory>
 #include <unordered_map>
@@ -48,14 +48,16 @@ namespace {
  */
 class PumpkinCarveTestWorld final : public test::BaseTestWorld {
 public:
-    PumpkinCarveTestWorld() {
+    PumpkinCarveTestWorld()
+    {
         // 初始化 VanillaBlocks
         VanillaBlocks::initialize();
         // 初始化 VanillaEntities
         entity::VanillaEntities::registerAll();
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -67,7 +69,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         if (state == nullptr) {
             m_blocks.erase(BlockPos(x, y, z));
         } else {
@@ -76,12 +79,14 @@ public:
         return true;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
         MC_UNUSED(flags);
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
@@ -93,7 +98,8 @@ public:
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
     [[nodiscard]] bool isThundering() const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         Entity* rawPtr = entity.get();
         EntityId id = static_cast<EntityId>(m_spawnedEntities.size() + 1);
         m_spawnedEntities.push_back(std::move(entity));
@@ -101,7 +107,12 @@ public:
         return id;
     }
 
-    void playSound(const ResourceLocation& soundId, sound::SoundCategory category, const Vector3& pos, f32 volume, f32 pitch) override {
+    void playSound(const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const Vector3& pos,
+        f32 volume,
+        f32 pitch) override
+    {
         m_soundPlayed = true;
         m_lastSoundId = soundId;
         m_lastSoundPos = pos;
@@ -110,7 +121,8 @@ public:
         MC_UNUSED(category);
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override {
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
         m_lastEventId = eventId;
         m_lastEventPos = pos;
         m_lastEventData = data;
@@ -118,11 +130,13 @@ public:
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         static world::tick::TickManager dummy(*static_cast<IWorld*>(nullptr));
         return dummy;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         static world::tick::TickManager dummy(*const_cast<PumpkinCarveTestWorld*>(this));
         return dummy;
     }
@@ -132,7 +146,8 @@ public:
     void incrementTick() { m_currentTick++; }
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
         if (state == nullptr) {
             m_blocks.erase(pos);
         } else {
@@ -140,20 +155,20 @@ public:
         }
     }
 
-    void clearBlocks() {
-        m_blocks.clear();
-    }
+    void clearBlocks() { m_blocks.clear(); }
 
     [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
 
-    [[nodiscard]] Entity* getSpawnedEntity(size_t index) const {
+    [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
+    {
         if (index < m_spawnedEntityPtrs.size()) {
             return m_spawnedEntityPtrs[index];
         }
         return nullptr;
     }
 
-    void clearSpawnedEntities() {
+    void clearSpawnedEntities()
+    {
         m_spawnedEntities.clear();
         m_spawnedEntityPtrs.clear();
     }
@@ -165,7 +180,11 @@ public:
     [[nodiscard]] f32 lastSoundPitch() const { return m_lastSoundPitch; }
     [[nodiscard]] i32 getLastEventId() const { return m_lastEventId; }
     [[nodiscard]] i32 getEventCount() const { return m_eventCount; }
-    void resetEventCount() { m_eventCount = 0; m_soundPlayed = false; }
+    void resetEventCount()
+    {
+        m_eventCount = 0;
+        m_soundPlayed = false;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -192,7 +211,8 @@ private:
 
 class PumpkinCarveTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化 Items
         Items::initialize();
 
@@ -200,16 +220,12 @@ protected:
         world_ = std::make_unique<PumpkinCarveTestWorld>();
 
         // 创建南瓜方块（需要先注册雕刻南瓜）
-        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
 
-        pumpkin_ = std::make_unique<PumpkinBlock>(
-            nullptr,  // stem
-            nullptr,  // attachedStem
-            carvedPumpkin_.get(),  // carvedPumpkin
-            BlockProperties(Material::EARTH).hardness(1.0f)
-        );
+        pumpkin_ = std::make_unique<PumpkinBlock>(nullptr, // stem
+            nullptr,                                       // attachedStem
+            carvedPumpkin_.get(),                          // carvedPumpkin
+            BlockProperties(Material::EARTH).hardness(1.0f));
     }
 
     std::unique_ptr<PumpkinCarveTestWorld> world_;
@@ -221,7 +237,8 @@ protected:
 // 基础功能测试
 // ============================================================================
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_WithoutShears_ReturnsPass) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_WithoutShears_ReturnsPass)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -230,17 +247,14 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithoutShears_ReturnsPass) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 创建射线检测结果
-    BlockRaycastResult hit(
-        Vector3(0.5f, 64.5f, 1.0f),  // hitPos
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 1.0f), // hitPos
         pos,
-        Direction::South,  // face
-        1.0f
-    );
+        Direction::South, // face
+        1.0f);
 
     // 执行交互（空手）
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -251,7 +265,8 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithoutShears_ReturnsPass) {
     EXPECT_FALSE(currentState->isAir());
 }
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_WithNonShearsItem_ReturnsPass) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_WithNonShearsItem_ReturnsPass)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -265,23 +280,18 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithNonShearsItem_ReturnsPass) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 创建射线检测结果
-    BlockRaycastResult hit(
-        Vector3(0.5f, 64.5f, 1.0f),
-        pos,
-        Direction::South,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 1.0f), pos, Direction::South, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
 }
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_CarvesPumpkin) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_CarvesPumpkin)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -295,17 +305,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_CarvesPumpkin) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 创建射线检测结果（从南面点击）
-    BlockRaycastResult hit(
-        Vector3(10.5f, 64.5f, 11.0f),
-        pos,
-        Direction::South,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(10.5f, 64.5f, 11.0f), pos, Direction::South, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -325,7 +329,8 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_CarvesPumpkin) {
     EXPECT_EQ(world_->lastSoundId(), SoundEvents::BLOCK_PUMPKIN_CARVE);
 }
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DropsPumpkinSeeds) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DropsPumpkinSeeds)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -339,17 +344,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DropsPumpkinSeeds) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 创建射线检测结果
-    BlockRaycastResult hit(
-        Vector3(20.5f, 64.5f, 21.0f),
-        pos,
-        Direction::South,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(20.5f, 64.5f, 21.0f), pos, Direction::South, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -370,7 +369,8 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DropsPumpkinSeeds) {
     }
 }
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DamagesShears) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DamagesShears)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -390,17 +390,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DamagesShears) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 创建射线检测结果
-    BlockRaycastResult hit(
-        Vector3(30.5f, 64.5f, 31.0f),
-        pos,
-        Direction::South,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(30.5f, 64.5f, 31.0f), pos, Direction::South, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -415,11 +409,12 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DamagesShears) {
 // 朝向计算测试
 // ============================================================================
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_SideClick_SetsCorrectFacing) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_SideClick_SetsCorrectFacing)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
-    player.setRotation(0.0f, 0.0f);  // 面向南方（yaw=0）
+    player.setRotation(0.0f, 0.0f); // 面向南方（yaw=0）
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -431,17 +426,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SideClick_SetsCorrectFacing) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 从北面点击（玩家在南面，看向北面）
-    BlockRaycastResult hit(
-        Vector3(5.5f, 64.5f, 4.0f),
-        pos,
-        Direction::North,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(5.5f, 64.5f, 4.0f), pos, Direction::North, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -453,11 +442,12 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SideClick_SetsCorrectFacing) {
     EXPECT_EQ(facing.value(), Direction::North);
 }
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_TopClick_UsesPlayerFacing) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_TopClick_UsesPlayerFacing)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
     player.setPosition(0.0f, 65.0f, 0.0f);
-    player.setRotation(90.0f, 0.0f);  // 面向西方（yaw=90）
+    player.setRotation(90.0f, 0.0f); // 面向西方（yaw=90）
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -469,17 +459,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_TopClick_UsesPlayerFacing) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 从顶面点击
-    BlockRaycastResult hit(
-        Vector3(0.5f, 65.0f, 0.5f),
-        pos,
-        Direction::Up,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(0.5f, 65.0f, 0.5f), pos, Direction::Up, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -492,11 +476,12 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_TopClick_UsesPlayerFacing) {
     EXPECT_EQ(facing.value(), Direction::East);
 }
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_BottomClick_UsesPlayerFacing) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_BottomClick_UsesPlayerFacing)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
     player.setPosition(0.0f, 63.0f, 0.0f);
-    player.setRotation(180.0f, 0.0f);  // 面向北方（yaw=180）
+    player.setRotation(180.0f, 0.0f); // 面向北方（yaw=180）
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -508,17 +493,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_BottomClick_UsesPlayerFacing) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 从底面点击
-    BlockRaycastResult hit(
-        Vector3(0.5f, 64.0f, 0.5f),
-        pos,
-        Direction::Down,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(0.5f, 64.0f, 0.5f), pos, Direction::Down, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -535,14 +514,13 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_BottomClick_UsesPlayerFacing) {
 // 边界条件测试
 // ============================================================================
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_NullCarvedPumpkin_ReturnsPass) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_NullCarvedPumpkin_ReturnsPass)
+{
     // 创建没有雕刻南瓜引用的南瓜
-    auto pumpkinWithoutCarved = std::make_unique<PumpkinBlock>(
-        nullptr,  // stem
-        nullptr,  // attachedStem
-        nullptr,  // carvedPumpkin 为 nullptr
-        BlockProperties(Material::EARTH).hardness(1.0f)
-    );
+    auto pumpkinWithoutCarved = std::make_unique<PumpkinBlock>(nullptr, // stem
+        nullptr,                                                        // attachedStem
+        nullptr,                                                        // carvedPumpkin 为 nullptr
+        BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 创建玩家
     Player player(1, "TestPlayer");
@@ -557,17 +535,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_NullCarvedPumpkin_ReturnsPass) {
     world_->setBlockAt(pos, &pumpkinWithoutCarved->defaultState());
 
     // 创建射线检测结果
-    BlockRaycastResult hit(
-        Vector3(0.5f, 64.5f, 1.0f),
-        pos,
-        Direction::South,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 1.0f), pos, Direction::South, 1.0f);
 
     // 执行交互
     const auto& state = pumpkinWithoutCarved->defaultState();
-    ActionResultType result = pumpkinWithoutCarved->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkinWithoutCarved->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Pass（因为没有雕刻南瓜）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -578,7 +550,8 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_NullCarvedPumpkin_ReturnsPass) {
     EXPECT_EQ(&currentState->getBlock(), pumpkinWithoutCarved.get());
 }
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_OffHandShears_Works) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_OffHandShears_Works)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -592,17 +565,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_OffHandShears_Works) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 创建射线检测结果
-    BlockRaycastResult hit(
-        Vector3(40.5f, 64.5f, 41.0f),
-        pos,
-        Direction::South,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(40.5f, 64.5f, 41.0f), pos, Direction::South, 1.0f);
 
     // 使用副手交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::OffHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::OffHand, hit);
 
     // 应该成功
     EXPECT_EQ(result, ActionResultType::Success);
@@ -617,7 +584,8 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_OffHandShears_Works) {
 // 种子掉落位置测试
 // ============================================================================
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -631,17 +599,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 从东面点击
-    BlockRaycastResult hit(
-        Vector3(51.0f, 64.5f, 50.5f),
-        pos,
-        Direction::East,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(51.0f, 64.5f, 50.5f), pos, Direction::East, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -655,7 +617,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition) {
     // pos.x + 0.5 + xOffset * 0.65
     // 东面 xOffset = 1，所以应该是 50 + 0.5 + 0.65 = 51.15
     EXPECT_NEAR(seedPos.x, 51.15, 0.1);
-    EXPECT_NEAR(seedPos.y, 64.1, 0.1);  // y = 64 + 0.1
+    EXPECT_NEAR(seedPos.y, 64.1, 0.1); // y = 64 + 0.1
     EXPECT_NEAR(seedPos.z, 50.5, 0.1);
 }
 
@@ -663,7 +625,8 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition) {
 // 音效测试
 // ============================================================================
 
-TEST_F(PumpkinCarveTest, OnBlockActivated_PlaysCorrectSound) {
+TEST_F(PumpkinCarveTest, OnBlockActivated_PlaysCorrectSound)
+{
     // 创建玩家
     Player player(1, "TestPlayer");
 
@@ -677,17 +640,11 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_PlaysCorrectSound) {
     world_->setBlockAt(pos, &pumpkin_->defaultState());
 
     // 创建射线检测结果
-    BlockRaycastResult hit(
-        Vector3(60.5f, 64.5f, 61.0f),
-        pos,
-        Direction::South,
-        1.0f
-    );
+    BlockRaycastResult hit(Vector3(60.5f, 64.5f, 61.0f), pos, Direction::South, 1.0f);
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(
-        state, *world_, pos, player, Hand::MainHand, hit);
+    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 

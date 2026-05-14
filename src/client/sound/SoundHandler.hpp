@@ -1,28 +1,28 @@
 #pragma once
 
 #include "client/sound/resource/SoundRegistry.hpp"
-#include "common/resource/ResourcePackList.hpp"
 #include "common/core/Result.hpp"
+#include "common/resource/ResourcePackList.hpp"
 
-#include <memory>
 #include <functional>
+#include <memory>
 
 namespace mc::client::sound {
 
 // 从 mc::sound 引入类型
-using ::mc::sound::SoundInstanceId;
 using ::mc::sound::AttenuationType;
 using ::mc::sound::DEFAULT_ATTENUATION_DISTANCE;
+using ::mc::sound::SoundInstanceId;
 
 /**
  * @brief 声音资源加载进度回调
  */
 struct SoundLoadProgress {
-    size_t totalPacks = 0;      ///< 总资源包数量
-    size_t currentPack = 0;     ///< 当前处理的资源包索引
-    std::string currentPackName;     ///< 当前资源包名称
-    size_t totalEvents = 0;     ///< 总声音事件数量
-    size_t loadedEvents = 0;    ///< 已加载的声音事件数量
+    size_t totalPacks = 0;       ///< 总资源包数量
+    size_t currentPack = 0;      ///< 当前处理的资源包索引
+    std::string currentPackName; ///< 当前资源包名称
+    size_t totalEvents = 0;      ///< 总声音事件数量
+    size_t loadedEvents = 0;     ///< 已加载的声音事件数量
 };
 
 /**
@@ -123,9 +123,7 @@ public:
      * @param id 声音事件ID
      * @return 声音事件定义，不存在返回 nullptr
      */
-    [[nodiscard]] const SoundEventDefinition* getSoundEvent(
-        const ResourceLocation& id
-    ) const;
+    [[nodiscard]] const SoundEventDefinition* getSoundEvent(const ResourceLocation& id) const;
 
     /**
      * @brief 检查声音事件是否存在
@@ -144,10 +142,7 @@ public:
      * @param rng 随机数生成器
      * @return 选中的声音定义，不存在返回 nullptr
      */
-    [[nodiscard]] const SoundDefinition* getRandomSound(
-        const ResourceLocation& id,
-        mc::math::Random& rng
-    ) const;
+    [[nodiscard]] const SoundDefinition* getRandomSound(const ResourceLocation& id, mc::math::Random& rng) const;
 
     /**
      * @brief 获取所有已注册的声音事件ID
@@ -179,9 +174,7 @@ public:
      *
      * @param callback 进度回调函数
      */
-    void setProgressCallback(ProgressCallback callback) {
-        m_progressCallback = std::move(callback);
-    }
+    void setProgressCallback(ProgressCallback callback) { m_progressCallback = std::move(callback); }
 
     // ========================================================================
     // 统计信息
@@ -229,10 +222,7 @@ private:
      * @param namespace 命名空间
      * @return 加载的声音事件数量，或错误
      */
-    [[nodiscard]] Result<size_t> loadSoundsJson(
-        const IResourcePack& pack,
-        std::string_view namespace_
-    );
+    [[nodiscard]] Result<size_t> loadSoundsJson(const IResourcePack& pack, std::string_view namespace_);
 
     /**
      * @brief 解析 sounds.json 内容
@@ -241,10 +231,7 @@ private:
      * @param namespace 命名空间
      * @return 解析的声音事件数量，或错误
      */
-    [[nodiscard]] Result<size_t> parseSoundsJson(
-        std::string_view content,
-        std::string_view namespace_
-    );
+    [[nodiscard]] Result<size_t> parseSoundsJson(std::string_view content, std::string_view namespace_);
 
     /**
      * @brief 通知进度

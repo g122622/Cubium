@@ -38,9 +38,7 @@ public:
     [[nodiscard]] const GridConfig& config() const;
 
     [[nodiscard]] std::vector<LayoutResult> compute(
-        const Rect& containerBounds,
-        const std::vector<WidgetLayoutAdaptor*>& children
-    );
+        const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children);
 
 private:
     [[nodiscard]] i32 resolveRows(i32 childCount) const;

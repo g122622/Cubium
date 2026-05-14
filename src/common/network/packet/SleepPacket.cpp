@@ -6,17 +6,19 @@ namespace mc::network {
 SleepPacket::SleepPacket(u32 entityId, const BlockPos& bedPos)
     : Packet(PacketType::Sleep)
     , m_entityId(entityId)
-    , m_bedPos(bedPos) {
-}
+    , m_bedPos(bedPos)
+{}
 
-SleepPacket SleepPacket::createWakeUp(u32 entityId) {
+SleepPacket SleepPacket::createWakeUp(u32 entityId)
+{
     SleepPacket packet;
     packet.setEntityId(entityId);
     // bedPos 默认为空，表示离开睡眠
     return packet;
 }
 
-Result<std::vector<u8>> SleepPacket::serialize() const {
+Result<std::vector<u8>> SleepPacket::serialize() const
+{
     PacketSerializer ser;
 
     // 写入实体ID
@@ -35,7 +37,8 @@ Result<std::vector<u8>> SleepPacket::serialize() const {
     return ser.buffer();
 }
 
-Result<void> SleepPacket::deserialize(const u8* data, size_t size) {
+Result<void> SleepPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deser(data, size);
 
     // 读取实体ID

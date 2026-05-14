@@ -73,9 +73,9 @@ private:
 
     // 平台特定的文件句柄
 #ifdef _WIN32
-    void* m_fileHandle;  // HANDLE
+    void* m_fileHandle; // HANDLE
 #else
-    int m_fd;  // file descriptor
+    int m_fd; // file descriptor
 #endif
 
     std::filesystem::path m_worldDir;

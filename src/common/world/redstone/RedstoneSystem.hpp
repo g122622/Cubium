@@ -1,14 +1,14 @@
 #pragma once
 
-#include "RedstoneContext.hpp"
-#include "RedstonePower.hpp"
 #include "../../core/Types.hpp"
 #include "../block/BlockPos.hpp"
 #include "../tick/base/TickPriority.hpp"
-#include <unordered_set>
-#include <unordered_map>
-#include <vector>
+#include "RedstoneContext.hpp"
+#include "RedstonePower.hpp"
 #include <deque>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace mc {
 
@@ -106,8 +106,7 @@ public:
      * @param block 信号源方块
      * @param skipDirection 跳过的方向
      */
-    void updateNeighborsExcept(IWorld& world, const BlockPos& pos,
-                               Block& block, Direction skipDirection);
+    void updateNeighborsExcept(IWorld& world, const BlockPos& pos, Block& block, Direction skipDirection);
 
     /**
      * @brief 更新水平和下方的方块
@@ -144,8 +143,11 @@ public:
      * @param delay 延迟tick数
      * @param priority tick优先级（默认High）
      */
-    void scheduleUpdate(IWorld& world, const BlockPos& pos, Block& block,
-                       i32 delay, tick::TickPriority priority = tick::TickPriority::High);
+    void scheduleUpdate(IWorld& world,
+        const BlockPos& pos,
+        Block& block,
+        i32 delay,
+        tick::TickPriority priority = tick::TickPriority::High);
 
     /**
      * @brief 调度极优先更新
@@ -158,8 +160,7 @@ public:
      * @param block 方块引用
      * @param delay 延迟tick数
      */
-    void scheduleExtremelyHighPriorityUpdate(IWorld& world, const BlockPos& pos,
-                                              Block& block, i32 delay);
+    void scheduleExtremelyHighPriorityUpdate(IWorld& world, const BlockPos& pos, Block& block, i32 delay);
 
     // ========== 递归保护 ==========
 
@@ -169,48 +170,36 @@ public:
      * @param pos 检查位置
      * @return true 如果位置正在更新中
      */
-    [[nodiscard]] bool isUpdating(const BlockPos& pos) const {
-        return m_context.isUpdating(pos);
-    }
+    [[nodiscard]] bool isUpdating(const BlockPos& pos) const { return m_context.isUpdating(pos); }
 
     /**
      * @brief 开始更新某个位置
      *
      * @param pos 更新位置
      */
-    void beginUpdate(const BlockPos& pos) {
-        m_context.beginUpdate(pos);
-    }
+    void beginUpdate(const BlockPos& pos) { m_context.beginUpdate(pos); }
 
     /**
      * @brief 结束更新某个位置
      *
      * @param pos 更新位置
      */
-    void endUpdate(const BlockPos& pos) {
-        m_context.endUpdate(pos);
-    }
+    void endUpdate(const BlockPos& pos) { m_context.endUpdate(pos); }
 
     /**
      * @brief 检查是否可以增加更新深度
      */
-    [[nodiscard]] bool canPushDepth() const {
-        return m_context.canPushDepth();
-    }
+    [[nodiscard]] bool canPushDepth() const { return m_context.canPushDepth(); }
 
     /**
      * @brief 增加更新深度
      */
-    void pushDepth() {
-        m_context.pushDepth();
-    }
+    void pushDepth() { m_context.pushDepth(); }
 
     /**
      * @brief 减少更新深度
      */
-    void popDepth() {
-        m_context.popDepth();
-    }
+    void popDepth() { m_context.popDepth(); }
 
     // ========== 信号查询 ==========
 
@@ -223,7 +212,8 @@ public:
      * @param pos 方块位置
      * @return i32 最大信号强度 0-15
      */
-    [[nodiscard]] i32 getIndirectPower(IWorld& world, const BlockPos& pos) const {
+    [[nodiscard]] i32 getIndirectPower(IWorld& world, const BlockPos& pos) const
+    {
         return RedstonePower::getRedstonePowerFromNeighbors(world, pos);
     }
 
@@ -234,7 +224,8 @@ public:
      * @param pos 方块位置
      * @return true 如果被充能
      */
-    [[nodiscard]] bool isBlockPowered(IWorld& world, const BlockPos& pos) const {
+    [[nodiscard]] bool isBlockPowered(IWorld& world, const BlockPos& pos) const
+    {
         return RedstonePower::isPowered(world, pos);
     }
 
@@ -304,7 +295,8 @@ public:
      *
      * 在世界卸载时调用。
      */
-    void clear() {
+    void clear()
+    {
         m_context.clear();
         m_torchRecords.clear();
     }
@@ -327,9 +319,11 @@ private:
      * @param sourceBlock 触发更新的源方块
      * @param sourcePos 源方块位置
      */
-    void notifyNeighbor(IWorld& world, const BlockPos& neighborPos,
-                        const BlockState& neighborState,
-                        Block& sourceBlock, const BlockPos& sourcePos);
+    void notifyNeighbor(IWorld& world,
+        const BlockPos& neighborPos,
+        const BlockState& neighborState,
+        Block& sourceBlock,
+        const BlockPos& sourcePos);
 
     /**
      * @brief 内部方法：更新指定方向列表的邻居
@@ -340,9 +334,8 @@ private:
      * @param directions 方向列表
      * @param directionCount 方向数量
      */
-    void updateNeighborsInDirections(IWorld& world, const BlockPos& pos,
-                                      Block& block,
-                                      const Direction* directions, size_t directionCount);
+    void updateNeighborsInDirections(
+        IWorld& world, const BlockPos& pos, Block& block, const Direction* directions, size_t directionCount);
 };
 
 } // namespace redstone

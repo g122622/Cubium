@@ -1,9 +1,9 @@
 #include "GrassFeature.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../WorldConstants.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../chunk/ChunkPrimer.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -11,7 +11,8 @@ namespace mc {
 // GrassFeatureConfig 实现
 // ============================================================================
 
-const BlockState* GrassFeatureConfig::getRandomState(math::Random& random) const {
+const BlockState* GrassFeatureConfig::getRandomState(math::Random& random) const
+{
     if (states.empty()) {
         return nullptr;
     }
@@ -23,10 +24,7 @@ const BlockState* GrassFeatureConfig::getRandomState(math::Random& random) const
 // ============================================================================
 
 bool GrassFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const GrassFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const GrassFeatureConfig& config)
 {
     if (config.states.empty()) {
         return false;
@@ -69,10 +67,7 @@ bool GrassFeature::place(
     return placedCount > 0;
 }
 
-bool GrassFeature::canPlaceAt(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    const GrassFeatureConfig& config) const
+bool GrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const GrassFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
 
@@ -117,32 +112,23 @@ bool GrassFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) con
     u32 blockId = state->blockId();
 
     // 草丛可以生长在草方块、泥土、砂土、灰化土、菌丝上
-    return blockId == VanillaBlocks::GRASS_BLOCK->blockId() ||
-           blockId == VanillaBlocks::DIRT->blockId() ||
-           blockId == VanillaBlocks::COARSE_DIRT->blockId() ||
-           blockId == VanillaBlocks::PODZOL->blockId() ||
-           blockId == VanillaBlocks::MYCELIUM->blockId() ||
-           (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
+    return blockId == VanillaBlocks::GRASS_BLOCK->blockId() || blockId == VanillaBlocks::DIRT->blockId() ||
+        blockId == VanillaBlocks::COARSE_DIRT->blockId() || blockId == VanillaBlocks::PODZOL->blockId() ||
+        blockId == VanillaBlocks::MYCELIUM->blockId() ||
+        (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
 }
 
 // ============================================================================
 // ConfiguredGrassFeature 实现
 // ============================================================================
 
-ConfiguredGrassFeature::ConfiguredGrassFeature(
-    std::unique_ptr<GrassFeatureConfig> config,
-    const char* featureName)
+ConfiguredGrassFeature::ConfiguredGrassFeature(std::unique_ptr<GrassFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredGrassFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     (void)chunk;
     (void)generator;

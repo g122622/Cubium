@@ -1,21 +1,21 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/items/weapon/BowItem.hpp"
-#include "common/item/items/weapon/CrossbowItem.hpp"
-#include "common/item/items/weapon/ArrowItem.hpp"
-#include "common/item/items/weapon/TridentItem.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"
-#include "common/entity/entities/player/Player.hpp"
+#include "common/item/items/weapon/ArrowItem.hpp"
+#include "common/item/items/weapon/BowItem.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/item/items/weapon/TridentItem.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
 
 namespace mc {
 namespace {
@@ -25,30 +25,35 @@ namespace {
  */
 class WeaponTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("WeaponTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("WeaponTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));
         return ++m_lastEntityId;
     }
 
     void addParticle(client::renderer::trident::particle::ParticleTypeId,
-                     const Vector3&,
-                     const Vector3&,
-                     const Vector3& = Vector3(0, 0, 0),
-                     u32 = 1) override {
+        const Vector3&,
+        const Vector3&,
+        const Vector3& = Vector3(0, 0, 0),
+        u32 = 1) override
+    {
         // 测试中忽略粒子效果
     }
 
     [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
 
-    void clearSpawnedEntities() {
+    void clearSpawnedEntities()
+    {
         m_spawnedEntities.clear();
         m_ownedEntities.clear();
     }
@@ -61,11 +66,10 @@ private:
 
 class WeaponItemTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // Items 清理由静态析构处理
     }
 
@@ -76,21 +80,24 @@ protected:
 // BowItem 测试
 // ============================================================================
 
-TEST_F(WeaponItemTest, BowItem_Registered_HasCorrectProperties) {
+TEST_F(WeaponItemTest, BowItem_Registered_HasCorrectProperties)
+{
     ASSERT_NE(Items::BOW, nullptr);
     EXPECT_EQ(Items::BOW->maxStackSize(), 1);
-    EXPECT_GT(Items::BOW->maxDamage(), 0);  // 弓有耐久度
+    EXPECT_GT(Items::BOW->maxDamage(), 0); // 弓有耐久度
 }
 
-TEST_F(WeaponItemTest, BowItem_GetUseDuration) {
+TEST_F(WeaponItemTest, BowItem_GetUseDuration)
+{
     auto* bow = dynamic_cast<const item::BowItem*>(Items::BOW);
     ASSERT_NE(bow, nullptr);
 
     ItemStack stack(Items::BOW, 1);
-    EXPECT_EQ(bow->getUseDuration(stack), 72000);  // MC 1.16.5: 几乎无限制
+    EXPECT_EQ(bow->getUseDuration(stack), 72000); // MC 1.16.5: 几乎无限制
 }
 
-TEST_F(WeaponItemTest, BowItem_GetUseAction) {
+TEST_F(WeaponItemTest, BowItem_GetUseAction)
+{
     auto* bow = dynamic_cast<const item::BowItem*>(Items::BOW);
     ASSERT_NE(bow, nullptr);
 
@@ -98,7 +105,8 @@ TEST_F(WeaponItemTest, BowItem_GetUseAction) {
     EXPECT_EQ(bow->getUseAction(stack), UseAction::Bow);
 }
 
-TEST_F(WeaponItemTest, BowItem_GetArrowVelocity) {
+TEST_F(WeaponItemTest, BowItem_GetArrowVelocity)
+{
     // MC 1.16.5 公式: f = charge / 20.0, velocity = (f * f + f * 2.0) / 3.0
 
     // 0 tick: 速度 0
@@ -121,7 +129,8 @@ TEST_F(WeaponItemTest, BowItem_GetArrowVelocity) {
     EXPECT_FLOAT_EQ(item::BowItem::getArrowVelocity(100), 1.0f);
 }
 
-TEST_F(WeaponItemTest, BowItem_GetAmmoPredicate) {
+TEST_F(WeaponItemTest, BowItem_GetAmmoPredicate)
+{
     auto* bow = dynamic_cast<const item::BowItem*>(Items::BOW);
     ASSERT_NE(bow, nullptr);
 
@@ -143,13 +152,15 @@ TEST_F(WeaponItemTest, BowItem_GetAmmoPredicate) {
 // CrossbowItem 测试
 // ============================================================================
 
-TEST_F(WeaponItemTest, CrossbowItem_Registered_HasCorrectProperties) {
+TEST_F(WeaponItemTest, CrossbowItem_Registered_HasCorrectProperties)
+{
     ASSERT_NE(Items::CROSSBOW, nullptr);
     EXPECT_EQ(Items::CROSSBOW->maxStackSize(), 1);
-    EXPECT_GT(Items::CROSSBOW->maxDamage(), 0);  // 弩有耐久度
+    EXPECT_GT(Items::CROSSBOW->maxDamage(), 0); // 弩有耐久度
 }
 
-TEST_F(WeaponItemTest, CrossbowItem_GetUseDuration) {
+TEST_F(WeaponItemTest, CrossbowItem_GetUseDuration)
+{
     auto* crossbow = dynamic_cast<const item::CrossbowItem*>(Items::CROSSBOW);
     ASSERT_NE(crossbow, nullptr);
 
@@ -158,7 +169,8 @@ TEST_F(WeaponItemTest, CrossbowItem_GetUseDuration) {
     EXPECT_EQ(crossbow->getUseDuration(stack), 28);
 }
 
-TEST_F(WeaponItemTest, CrossbowItem_GetUseAction) {
+TEST_F(WeaponItemTest, CrossbowItem_GetUseAction)
+{
     auto* crossbow = dynamic_cast<const item::CrossbowItem*>(Items::CROSSBOW);
     ASSERT_NE(crossbow, nullptr);
 
@@ -166,7 +178,8 @@ TEST_F(WeaponItemTest, CrossbowItem_GetUseAction) {
     EXPECT_EQ(crossbow->getUseAction(stack), UseAction::Crossbow);
 }
 
-TEST_F(WeaponItemTest, CrossbowItem_GetChargeTime) {
+TEST_F(WeaponItemTest, CrossbowItem_GetChargeTime)
+{
     auto* crossbow = dynamic_cast<const item::CrossbowItem*>(Items::CROSSBOW);
     ASSERT_NE(crossbow, nullptr);
 
@@ -191,7 +204,8 @@ TEST_F(WeaponItemTest, CrossbowItem_GetChargeTime) {
     EXPECT_EQ(item::CrossbowItem::getChargeTime(stack), 10);
 }
 
-TEST_F(WeaponItemTest, CrossbowItem_IsCharged) {
+TEST_F(WeaponItemTest, CrossbowItem_IsCharged)
+{
     auto* crossbow = dynamic_cast<const item::CrossbowItem*>(Items::CROSSBOW);
     ASSERT_NE(crossbow, nullptr);
 
@@ -209,7 +223,8 @@ TEST_F(WeaponItemTest, CrossbowItem_IsCharged) {
     EXPECT_FALSE(item::CrossbowItem::isCharged(stack));
 }
 
-TEST_F(WeaponItemTest, CrossbowItem_GetAmmoPredicate) {
+TEST_F(WeaponItemTest, CrossbowItem_GetAmmoPredicate)
+{
     auto* crossbow = dynamic_cast<const item::CrossbowItem*>(Items::CROSSBOW);
     ASSERT_NE(crossbow, nullptr);
 
@@ -233,7 +248,8 @@ TEST_F(WeaponItemTest, CrossbowItem_GetAmmoPredicate) {
     EXPECT_FALSE(predicate(stone));
 }
 
-TEST_F(WeaponItemTest, CrossbowItem_GetInventoryAmmoPredicate) {
+TEST_F(WeaponItemTest, CrossbowItem_GetInventoryAmmoPredicate)
+{
     auto* crossbow = dynamic_cast<const item::CrossbowItem*>(Items::CROSSBOW);
     ASSERT_NE(crossbow, nullptr);
 
@@ -257,12 +273,14 @@ TEST_F(WeaponItemTest, CrossbowItem_GetInventoryAmmoPredicate) {
 // ArrowItem 测试
 // ============================================================================
 
-TEST_F(WeaponItemTest, ArrowItem_Registered_HasCorrectProperties) {
+TEST_F(WeaponItemTest, ArrowItem_Registered_HasCorrectProperties)
+{
     ASSERT_NE(Items::ARROW, nullptr);
-    EXPECT_EQ(Items::ARROW->maxStackSize(), 64);  // 箭矢可堆叠到 64
+    EXPECT_EQ(Items::ARROW->maxStackSize(), 64); // 箭矢可堆叠到 64
 }
 
-TEST_F(WeaponItemTest, ArrowItem_IsInfinite) {
+TEST_F(WeaponItemTest, ArrowItem_IsInfinite)
+{
     auto* arrow = dynamic_cast<const item::ArrowItem*>(Items::ARROW);
     ASSERT_NE(arrow, nullptr);
 
@@ -277,26 +295,30 @@ TEST_F(WeaponItemTest, ArrowItem_IsInfinite) {
 // 耐久度测试
 // ============================================================================
 
-TEST_F(WeaponItemTest, BowItem_HasDurability) {
+TEST_F(WeaponItemTest, BowItem_HasDurability)
+{
     ASSERT_NE(Items::BOW, nullptr);
-    EXPECT_EQ(Items::BOW->maxDamage(), 384);  // MC 1.16.5: 弓有 384 点耐久
+    EXPECT_EQ(Items::BOW->maxDamage(), 384); // MC 1.16.5: 弓有 384 点耐久
 }
 
-TEST_F(WeaponItemTest, CrossbowItem_HasDurability) {
+TEST_F(WeaponItemTest, CrossbowItem_HasDurability)
+{
     ASSERT_NE(Items::CROSSBOW, nullptr);
-    EXPECT_EQ(Items::CROSSBOW->maxDamage(), 326);  // MC 1.16.5: 弩有 326 点耐久
+    EXPECT_EQ(Items::CROSSBOW->maxDamage(), 326); // MC 1.16.5: 弩有 326 点耐久
 }
 
-TEST_F(WeaponItemTest, TridentItem_HasDurability) {
+TEST_F(WeaponItemTest, TridentItem_HasDurability)
+{
     ASSERT_NE(Items::TRIDENT, nullptr);
-    EXPECT_EQ(Items::TRIDENT->maxDamage(), 250);  // MC 1.16.5: 三叉戟有 250 点耐久
+    EXPECT_EQ(Items::TRIDENT->maxDamage(), 250); // MC 1.16.5: 三叉戟有 250 点耐久
 }
 
 // ============================================================================
 // 使用动作测试
 // ============================================================================
 
-TEST_F(WeaponItemTest, TridentItem_GetUseAction) {
+TEST_F(WeaponItemTest, TridentItem_GetUseAction)
+{
     auto* trident = dynamic_cast<const item::TridentItem*>(Items::TRIDENT);
     ASSERT_NE(trident, nullptr);
 
@@ -304,12 +326,13 @@ TEST_F(WeaponItemTest, TridentItem_GetUseAction) {
     EXPECT_EQ(trident->getUseAction(stack), UseAction::Spear);
 }
 
-TEST_F(WeaponItemTest, TridentItem_GetUseDuration) {
+TEST_F(WeaponItemTest, TridentItem_GetUseDuration)
+{
     auto* trident = dynamic_cast<const item::TridentItem*>(Items::TRIDENT);
     ASSERT_NE(trident, nullptr);
 
     ItemStack stack(Items::TRIDENT, 1);
-    EXPECT_EQ(trident->getUseDuration(stack), 72000);  // MC 1.16.5: 几乎无限制
+    EXPECT_EQ(trident->getUseDuration(stack), 72000); // MC 1.16.5: 几乎无限制
 }
 
 } // namespace

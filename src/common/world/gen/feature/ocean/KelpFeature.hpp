@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 
 namespace mc {
 
@@ -51,19 +51,13 @@ public:
      * @param config 海带配置
      * @return 是否成功放置
      */
-    bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const KelpFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const KelpFeatureConfig& config);
 
 private:
     /**
      * @brief 检查海带是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos) const;
+    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查位置是否为水
@@ -76,12 +70,9 @@ private:
  */
 class ConfiguredKelpFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredKelpFeature(
-        std::unique_ptr<KelpFeatureConfig> config,
-        const char* featureName);
+    ConfiguredKelpFeature(std::unique_ptr<KelpFeatureConfig> config, const char* featureName);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

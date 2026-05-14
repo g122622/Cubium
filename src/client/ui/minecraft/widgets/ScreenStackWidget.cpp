@@ -13,7 +13,8 @@ ScreenStackWidget::ScreenStackWidget()
     setActive(true);
 }
 
-void ScreenStackWidget::push(std::unique_ptr<Screen> screen) {
+void ScreenStackWidget::push(std::unique_ptr<Screen> screen)
+{
     if (screen == nullptr) {
         return;
     }
@@ -22,7 +23,7 @@ void ScreenStackWidget::push(std::unique_ptr<Screen> screen) {
     wrapper.item = std::move(screen);
     wrapper.visible = true;
     wrapper.active = true;
-    wrapper.modal = true;  // 默认模态
+    wrapper.modal = true; // 默认模态
 
     onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
@@ -30,7 +31,8 @@ void ScreenStackWidget::push(std::unique_ptr<Screen> screen) {
     spdlog::debug("ScreenStackWidget::push(Screen): screen count = {}", m_screens.size());
 }
 
-void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen) {
+void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
+{
     if (screen == nullptr) {
         return;
     }
@@ -39,7 +41,7 @@ void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen) {
     wrapper.item = std::move(screen);
     wrapper.visible = true;
     wrapper.active = true;
-    wrapper.modal = true;  // IScreen 默认模态
+    wrapper.modal = true; // IScreen 默认模态
 
     onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
@@ -47,7 +49,8 @@ void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen) {
     spdlog::debug("ScreenStackWidget::pushIScreen: screen count = {}", m_screens.size());
 }
 
-void ScreenStackWidget::pop() {
+void ScreenStackWidget::pop()
+{
     if (m_screens.empty()) {
         return;
     }
@@ -58,7 +61,8 @@ void ScreenStackWidget::pop() {
     spdlog::debug("ScreenStackWidget::pop: screen count = {}", m_screens.size());
 }
 
-void ScreenStackWidget::clear() {
+void ScreenStackWidget::clear()
+{
     while (!m_screens.empty()) {
         onCloseScreen(m_screens.back());
         m_screens.pop_back();
@@ -67,7 +71,8 @@ void ScreenStackWidget::clear() {
     spdlog::debug("ScreenStackWidget::clear: all screens closed");
 }
 
-Screen* ScreenStackWidget::top() {
+Screen* ScreenStackWidget::top()
+{
     if (m_screens.empty()) {
         return nullptr;
     }
@@ -78,7 +83,8 @@ Screen* ScreenStackWidget::top() {
     return nullptr;
 }
 
-const Screen* ScreenStackWidget::top() const {
+const Screen* ScreenStackWidget::top() const
+{
     if (m_screens.empty()) {
         return nullptr;
     }
@@ -89,7 +95,8 @@ const Screen* ScreenStackWidget::top() const {
     return nullptr;
 }
 
-IScreen* ScreenStackWidget::topIScreen() {
+IScreen* ScreenStackWidget::topIScreen()
+{
     if (m_screens.empty()) {
         return nullptr;
     }
@@ -100,7 +107,8 @@ IScreen* ScreenStackWidget::topIScreen() {
     return nullptr;
 }
 
-const IScreen* ScreenStackWidget::topIScreen() const {
+const IScreen* ScreenStackWidget::topIScreen() const
+{
     if (m_screens.empty()) {
         return nullptr;
     }
@@ -111,7 +119,8 @@ const IScreen* ScreenStackWidget::topIScreen() const {
     return nullptr;
 }
 
-void ScreenStackWidget::onOpenScreen(ScreenWrapper& wrapper) {
+void ScreenStackWidget::onOpenScreen(ScreenWrapper& wrapper)
+{
     if (wrapper.isWidgetScreen()) {
         auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
         if (screen) {
@@ -126,7 +135,8 @@ void ScreenStackWidget::onOpenScreen(ScreenWrapper& wrapper) {
     }
 }
 
-void ScreenStackWidget::onCloseScreen(ScreenWrapper& wrapper) {
+void ScreenStackWidget::onCloseScreen(ScreenWrapper& wrapper)
+{
     if (wrapper.isWidgetScreen()) {
         auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
         if (screen) {
@@ -140,12 +150,14 @@ void ScreenStackWidget::onCloseScreen(ScreenWrapper& wrapper) {
     }
 }
 
-bool ScreenStackWidget::isScreenModal(const ScreenWrapper& wrapper) const {
+bool ScreenStackWidget::isScreenModal(const ScreenWrapper& wrapper) const
+{
     // 直接使用缓存的 modal 值（在 onOpenScreen 中初始化）
     return wrapper.modal;
 }
 
-void ScreenStackWidget::paint(kagero::widget::PaintContext& ctx) {
+void ScreenStackWidget::paint(kagero::widget::PaintContext& ctx)
+{
     // 从底层到顶层渲染所有屏幕
     for (const auto& wrapper : m_screens) {
         if (!wrapper.visible) {
@@ -168,7 +180,8 @@ void ScreenStackWidget::paint(kagero::widget::PaintContext& ctx) {
     }
 }
 
-void ScreenStackWidget::tick(f32 dt) {
+void ScreenStackWidget::tick(f32 dt)
+{
     // 更新所有屏幕
     for (const auto& wrapper : m_screens) {
         if (!wrapper.visible || !wrapper.active) {
@@ -189,7 +202,8 @@ void ScreenStackWidget::tick(f32 dt) {
     }
 }
 
-bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button) {
+bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
+{
     // 从顶层开始处理
     for (auto it = m_screens.rbegin(); it != m_screens.rend(); ++it) {
         const auto& wrapper = *it;
@@ -226,7 +240,8 @@ bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button) {
     return false;
 }
 
-bool ScreenStackWidget::onRelease(i32 mouseX, i32 mouseY, i32 button) {
+bool ScreenStackWidget::onRelease(i32 mouseX, i32 mouseY, i32 button)
+{
     if (m_isDragging && m_dragButton == button) {
         m_isDragging = false;
         m_dragButton = 0;
@@ -252,7 +267,8 @@ bool ScreenStackWidget::onRelease(i32 mouseX, i32 mouseY, i32 button) {
     return false;
 }
 
-bool ScreenStackWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) {
+bool ScreenStackWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+{
     if (m_isDragging && !m_screens.empty()) {
         const auto& wrapper = m_screens.back();
         if (wrapper.visible && wrapper.active) {
@@ -272,7 +288,8 @@ bool ScreenStackWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) {
     return false;
 }
 
-bool ScreenStackWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta) {
+bool ScreenStackWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta)
+{
     // 从顶层开始处理
     for (auto it = m_screens.rbegin(); it != m_screens.rend(); ++it) {
         const auto& wrapper = *it;
@@ -303,7 +320,8 @@ bool ScreenStackWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta) {
     return false;
 }
 
-bool ScreenStackWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
+bool ScreenStackWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
     // 从顶层开始处理
     for (auto it = m_screens.rbegin(); it != m_screens.rend(); ++it) {
         const auto& wrapper = *it;
@@ -334,7 +352,8 @@ bool ScreenStackWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
     return false;
 }
 
-bool ScreenStackWidget::onChar(u32 codePoint) {
+bool ScreenStackWidget::onChar(u32 codePoint)
+{
     // 从顶层开始处理
     for (auto it = m_screens.rbegin(); it != m_screens.rend(); ++it) {
         const auto& wrapper = *it;
@@ -365,7 +384,8 @@ bool ScreenStackWidget::onChar(u32 codePoint) {
     return false;
 }
 
-void ScreenStackWidget::onResize(i32 width, i32 height) {
+void ScreenStackWidget::onResize(i32 width, i32 height)
+{
     // 通知所有屏幕尺寸变化
     for (const auto& wrapper : m_screens) {
         if (wrapper.isWidgetScreen()) {
@@ -382,7 +402,8 @@ void ScreenStackWidget::onResize(i32 width, i32 height) {
     }
 }
 
-bool ScreenStackWidget::shouldPauseGame() const {
+bool ScreenStackWidget::shouldPauseGame() const
+{
     // 检查是否有暂停屏幕
     for (const auto& wrapper : m_screens) {
         if (!wrapper.isWidgetScreen()) {

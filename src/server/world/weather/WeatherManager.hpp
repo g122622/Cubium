@@ -1,27 +1,27 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/weather/WeatherState.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/util/math/Vector3.hpp"
-#include "common/util/AxisAlignedBB.hpp"
-#include <memory>
 #include <functional>
+#include <memory>
 
 // 前向声明
 namespace mc {
 class BlockPos;
 class IWorld;
-}
+} // namespace mc
 
 namespace mc::server {
 
 // 从 weather 命名空间导入类型
-using mc::weather::WeatherType;
 using mc::weather::WeatherState;
+using mc::weather::WeatherType;
 
 /**
  * @brief 闪电生成回调类型
@@ -126,9 +126,7 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 rainStrength(f32 partialTick = 0.0f) const {
-        return m_state.getRainStrength(partialTick);
-    }
+    [[nodiscard]] f32 rainStrength(f32 partialTick = 0.0f) const { return m_state.getRainStrength(partialTick); }
 
     /**
      * @brief 获取雷暴强度
@@ -136,9 +134,7 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 thunderStrength(f32 partialTick = 0.0f) const {
-        return m_state.getThunderStrength(partialTick);
-    }
+    [[nodiscard]] f32 thunderStrength(f32 partialTick = 0.0f) const { return m_state.getThunderStrength(partialTick); }
 
     /**
      * @brief 获取当前天气类型
@@ -239,18 +235,14 @@ public:
      *
      * @param callback 闪电生成时调用的回调函数
      */
-    void setLightningCallback(LightningSpawnCallback callback) {
-        m_lightningCallback = std::move(callback);
-    }
+    void setLightningCallback(LightningSpawnCallback callback) { m_lightningCallback = std::move(callback); }
 
     /**
      * @brief 设置天气变化回调
      *
      * @param callback 天气变化时调用的回调函数
      */
-    void setWeatherChangeCallback(WeatherChangeCallback callback) {
-        m_weatherChangeCallback = std::move(callback);
-    }
+    void setWeatherChangeCallback(WeatherChangeCallback callback) { m_weatherChangeCallback = std::move(callback); }
 
     // ========== 序列化 ==========
 
@@ -316,9 +308,9 @@ private:
     void checkWeatherChange();
 
 private:
-    WeatherState m_state;                              ///< 天气状态
-    std::unique_ptr<mc::math::IRandom> m_random;       ///< 随机数生成器
-    mc::IWorld* m_world = nullptr;                     ///< 关联的世界（不拥有）
+    WeatherState m_state;                        ///< 天气状态
+    std::unique_ptr<mc::math::IRandom> m_random; ///< 随机数生成器
+    mc::IWorld* m_world = nullptr;               ///< 关联的世界（不拥有）
 
     // 变化标志（每tick后重置）
     bool m_weatherChanged = false;  ///< 降雨/雷暴状态是否变化
@@ -329,10 +321,10 @@ private:
     WeatherChangeCallback m_weatherChangeCallback;
 
     // 天气变化检测状态
-    bool m_lastRaining = false;  ///< 上一帧的降雨状态
+    bool m_lastRaining = false; ///< 上一帧的降雨状态
 
     // LCG 状态（用于随机位置生成）
-    i64 m_updateLCG = 0;  ///< 线性同余生成器状态
+    i64 m_updateLCG = 0; ///< 线性同余生成器状态
 };
 
 } // namespace mc::server

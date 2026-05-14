@@ -1,21 +1,17 @@
 #include "BlueIceFeature.hpp"
 
+#include "../../../../util/Direction.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../WorldConstants.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include "../../../../util/Direction.hpp"
 
 #include <algorithm>
 
 namespace mc {
 
 bool BlueIceFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const BlueIceFeatureConfig& config,
-    i32 seaLevel)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BlueIceFeatureConfig& config, i32 seaLevel)
 {
     if (config.blueIceState == nullptr || config.packedIceState == nullptr) {
         return false;
@@ -71,8 +67,7 @@ bool BlueIceFeature::place(
             continue;
         }
 
-        const BlockPos targetPos(
-            startPos.x + random.nextInt(range) - random.nextInt(range),
+        const BlockPos targetPos(startPos.x + random.nextInt(range) - random.nextInt(range),
             startPos.y + dy,
             startPos.z + random.nextInt(range) - random.nextInt(range));
 
@@ -104,9 +99,7 @@ bool BlueIceFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 }
 
 bool BlueIceFeature::isReplaceableForSpread(
-    WorldGenRegion& world,
-    const BlockPos& pos,
-    const BlueIceFeatureConfig& config) const
+    WorldGenRegion& world, const BlockPos& pos, const BlueIceFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
@@ -152,19 +145,13 @@ i32 BlueIceFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const
 }
 
 ConfiguredBlueIceFeature::ConfiguredBlueIceFeature(
-    std::unique_ptr<BlueIceFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<BlueIceFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredBlueIceFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
     return m_feature.place(region, random, pos, *m_config, generator.seaLevel());

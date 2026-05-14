@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Glyph.hpp"
 #include "FontTextureAtlas.hpp"
+#include "Glyph.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <vector>
-#include <unordered_map>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 class IResourcePack;
@@ -37,11 +37,12 @@ public:
      * @return 是否找到字形
      */
     [[nodiscard]] virtual bool getGlyphData(u32 codepoint,
-                                             std::vector<u8>& outPixels,
-                                             u32& outWidth, u32& outHeight,
-                                             f32& outAdvance,
-                                             f32& outBearingX,
-                                             f32& outBearingY) const = 0;
+        std::vector<u8>& outPixels,
+        u32& outWidth,
+        u32& outHeight,
+        f32& outAdvance,
+        f32& outBearingX,
+        f32& outBearingY) const = 0;
 
     /**
      * @brief 获取提供的码点集合
@@ -89,20 +90,20 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> load(IResourcePack& pack,
-                                     const std::string& texturePath,
-                                     u32 height, u32 ascent,
-                                     const std::vector<std::string>& charRows);
+        const std::string& texturePath,
+        u32 height,
+        u32 ascent,
+        const std::vector<std::string>& charRows);
 
     [[nodiscard]] bool getGlyphData(u32 codepoint,
-                                    std::vector<u8>& outPixels,
-                                    u32& outWidth, u32& outHeight,
-                                    f32& outAdvance,
-                                    f32& outBearingX,
-                                    f32& outBearingY) const override;
+        std::vector<u8>& outPixels,
+        u32& outWidth,
+        u32& outHeight,
+        f32& outAdvance,
+        f32& outBearingX,
+        f32& outBearingY) const override;
 
-    [[nodiscard]] const std::vector<u32>& getCodepoints() const override {
-        return m_codepoints;
-    }
+    [[nodiscard]] const std::vector<u32>& getCodepoints() const override { return m_codepoints; }
 
     [[nodiscard]] u32 getFontHeight() const override { return m_height; }
     [[nodiscard]] u32 getAscent() const override { return m_ascent; }
@@ -116,16 +117,15 @@ private:
      * @param charHeight 字符单元格高度
      * @return 实际宽度
      */
-    [[nodiscard]] u32 calculateCharWidth(u32 charX, u32 charY,
-                                          u32 charWidth, u32 charHeight) const;
+    [[nodiscard]] u32 calculateCharWidth(u32 charX, u32 charY, u32 charWidth, u32 charHeight) const;
 
-    std::vector<u8> m_pixels;           // 纹理像素数据 (RGBA)
-    u32 m_textureWidth = 0;             // 纹理宽度
-    u32 m_textureHeight = 0;            // 纹理高度
-    u32 m_height = 8;                   // 字符高度
-    u32 m_ascent = 7;                   // 基线到顶部距离
-    u32 m_charWidth = 8;                // 单元格宽度
-    std::vector<u32> m_codepoints;      // 支持的码点列表
+    std::vector<u8> m_pixels;                        // 纹理像素数据 (RGBA)
+    u32 m_textureWidth = 0;                          // 纹理宽度
+    u32 m_textureHeight = 0;                         // 纹理高度
+    u32 m_height = 8;                                // 字符高度
+    u32 m_ascent = 7;                                // 基线到顶部距离
+    u32 m_charWidth = 8;                             // 单元格宽度
+    std::vector<u32> m_codepoints;                   // 支持的码点列表
     std::unordered_map<u32, u32> m_codepointToIndex; // 码点到索引的映射
 };
 
@@ -210,10 +210,10 @@ public:
     [[nodiscard]] bool isValid() const { return m_atlas.isValid(); }
 
 private:
-    FontTextureAtlas m_atlas;                           // 字形纹理图集
+    FontTextureAtlas m_atlas;                                 // 字形纹理图集
     std::vector<std::unique_ptr<IGlyphProvider>> m_providers; // 字形提供者列表
-    u32 m_fontHeight = 9;                               // 默认字体高度 (MC默认为9)
-    EmptyGlyph m_emptyGlyph;                            // 空字形缓存
+    u32 m_fontHeight = 9;                                     // 默认字体高度 (MC默认为9)
+    EmptyGlyph m_emptyGlyph;                                  // 空字形缓存
 };
 
 } // namespace mc::client

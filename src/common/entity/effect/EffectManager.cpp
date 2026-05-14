@@ -9,7 +9,8 @@ namespace effect {
 // EffectManager 实现
 // ============================================================================
 
-bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity) {
+bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
+{
     // 查找是否已存在相同类型的效果
     i32 index = findEffectIndex(effect.type());
 
@@ -24,7 +25,8 @@ bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity) {
     }
 }
 
-void EffectManager::removeEffect(EffectType type, LivingEntity& entity) {
+void EffectManager::removeEffect(EffectType type, LivingEntity& entity)
+{
     i32 index = findEffectIndex(type);
     if (index >= 0) {
         m_effects[index].remove(entity);
@@ -32,33 +34,39 @@ void EffectManager::removeEffect(EffectType type, LivingEntity& entity) {
     }
 }
 
-void EffectManager::removeAllEffects(LivingEntity& entity) {
+void EffectManager::removeAllEffects(LivingEntity& entity)
+{
     for (auto& effect : m_effects) {
         effect.remove(entity);
     }
     m_effects.clear();
 }
 
-const EffectInstance* EffectManager::getEffect(EffectType type) const {
+const EffectInstance* EffectManager::getEffect(EffectType type) const
+{
     i32 index = findEffectIndex(type);
     return index >= 0 ? &m_effects[index] : nullptr;
 }
 
-EffectInstance* EffectManager::getEffect(EffectType type) {
+EffectInstance* EffectManager::getEffect(EffectType type)
+{
     i32 index = findEffectIndex(type);
     return index >= 0 ? &m_effects[index] : nullptr;
 }
 
-bool EffectManager::hasEffect(EffectType type) const {
+bool EffectManager::hasEffect(EffectType type) const
+{
     return findEffectIndex(type) >= 0;
 }
 
-i32 EffectManager::getEffectLevel(EffectType type) const {
+i32 EffectManager::getEffectLevel(EffectType type) const
+{
     const EffectInstance* effect = getEffect(type);
     return effect ? effect->getEffectLevel() : 0;
 }
 
-void EffectManager::tick(LivingEntity& entity) {
+void EffectManager::tick(LivingEntity& entity)
+{
     // 从后向前遍历，以便安全移除过期效果
     for (i32 i = static_cast<i32>(m_effects.size()) - 1; i >= 0; --i) {
         if (!m_effects[i].tick(entity)) {
@@ -68,7 +76,8 @@ void EffectManager::tick(LivingEntity& entity) {
     }
 }
 
-bool EffectManager::hasBeneficialEffect() const {
+bool EffectManager::hasBeneficialEffect() const
+{
     for (const auto& effect : m_effects) {
         if (isBeneficialEffect(effect.type())) {
             return true;
@@ -77,7 +86,8 @@ bool EffectManager::hasBeneficialEffect() const {
     return false;
 }
 
-bool EffectManager::hasHarmfulEffect() const {
+bool EffectManager::hasHarmfulEffect() const
+{
     for (const auto& effect : m_effects) {
         if (!isBeneficialEffect(effect.type())) {
             return true;
@@ -86,7 +96,8 @@ bool EffectManager::hasHarmfulEffect() const {
     return false;
 }
 
-i32 EffectManager::findEffectIndex(EffectType type) const {
+i32 EffectManager::findEffectIndex(EffectType type) const
+{
     for (size_t i = 0; i < m_effects.size(); ++i) {
         if (m_effects[i].type() == type) {
             return static_cast<i32>(i);

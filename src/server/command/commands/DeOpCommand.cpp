@@ -2,46 +2,36 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/core/OpListManager.hpp"
 
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-void DeOpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void DeOpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto deopNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("deop");
-    deopNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
+    deopNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
     support::applyMetadata(
-        deopNode,
-        support::makeMetadata(
-            "Revokes operator status from a player.",
-            "/deop <player>",
-            3,
-            {},
-            false));
+        deopNode, support::makeMetadata("Revokes operator status from a player.", "/deop <player>", 3, {}, false));
 
     // /deop <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player()
-    );
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return deopPlayer(ctx);
-    });
+        "player", EntityArgumentType::player());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return deopPlayer(ctx); });
 
     deopNode->addChild(playerArg);
     dispatcher.registerCommand(deopNode);
 }
 
-i32 DeOpCommand::deopPlayer(CommandContext<ServerCommandSource>& context) {
+i32 DeOpCommand::deopPlayer(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 

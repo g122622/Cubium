@@ -1,23 +1,23 @@
 #include <gtest/gtest.h>
 
-#include "world/block/blocks/decorative/PaneBlock.hpp"
-#include "world/block/blocks/building/WallBlock.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/fluid/Fluid.hpp"
-#include "world/fluid/FluidRegistry.hpp"
-#include "world/fluid/FluidTags.hpp"
-#include "world/tick/manager/TickManager.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/building/WallBlock.hpp"
+#include "world/block/blocks/decorative/PaneBlock.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidRegistry.hpp"
+#include "world/fluid/FluidTags.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -32,13 +32,15 @@ public:
     PaneTestWorld() = default;
 
     // 延迟初始化 TickManager（首次调用时初始化）
-    void ensureTickManager() {
+    void ensureTickManager()
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(packPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second;
@@ -47,16 +49,19 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
 
-    bool setBlockState(const BlockPos& pos, const BlockState* state) {
+    bool setBlockState(const BlockPos& pos, const BlockState* state)
+    {
         return setBlockState(pos.x, pos.y, pos.z, state);
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         if (state != nullptr) {
             const fluid::FluidState* fluidState = state->getFluidState();
@@ -72,23 +77,27 @@ public:
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         MC_UNUSED(entity);
         return 0;
     }
 
     // TickManager interface
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<PaneTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
 private:
-    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z) {
+    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z)
+    {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
     }
 
@@ -97,10 +106,10 @@ private:
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
 };
 
-BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
+BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw)
+{
     static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
-    return BlockItemUseContext(
-        world,
+    return BlockItemUseContext(world,
         nullptr,
         EMPTY_STACK,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
@@ -112,9 +121,10 @@ BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Dir
 class TestSolidBlock final : public Block {
 public:
     explicit TestSolidBlock(const BlockProperties& properties)
-        : Block(properties) {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        : Block(properties)
+    {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+            [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
             });
         createBlockState(std::move(container));
@@ -125,12 +135,11 @@ public:
 
 class PaneBlockTestFixture : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(PaneBlockTestFixture, Placement_ConnectsToSolidPaneAndWallAndWaterlogs) {
+TEST_F(PaneBlockTestFixture, Placement_ConnectsToSolidPaneAndWallAndWaterlogs)
+{
     PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
     WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
     TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
@@ -157,22 +166,24 @@ TEST_F(PaneBlockTestFixture, Placement_ConnectsToSolidPaneAndWallAndWaterlogs) {
     EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(PaneBlockTestFixture, Shape_CombinesCenterAndConnectedSides) {
+TEST_F(PaneBlockTestFixture, Shape_CombinesCenterAndConnectedSides)
+{
     PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
 
     const BlockState state = pane.defaultState()
-        .with(BlockStateProperties::NORTH(), true)
-        .with(BlockStateProperties::EAST(), true)
-        .with(BlockStateProperties::SOUTH(), false)
-        .with(BlockStateProperties::WEST(), true)
-        .with(BlockStateProperties::WATERLOGGED(), false);
+                                 .with(BlockStateProperties::NORTH(), true)
+                                 .with(BlockStateProperties::EAST(), true)
+                                 .with(BlockStateProperties::SOUTH(), false)
+                                 .with(BlockStateProperties::WEST(), true)
+                                 .with(BlockStateProperties::WATERLOGGED(), false);
 
     const CollisionShape& shape = pane.getShape(state);
     EXPECT_FALSE(shape.isEmpty());
     EXPECT_EQ(shape.boxCount(), 4u);
 }
 
-TEST_F(PaneBlockTestFixture, UpdatePostPlacement_RecomputesFaceAndSchedulesWaterTick) {
+TEST_F(PaneBlockTestFixture, UpdatePostPlacement_RecomputesFaceAndSchedulesWaterTick)
+{
     PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
     TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
 
@@ -180,13 +191,14 @@ TEST_F(PaneBlockTestFixture, UpdatePostPlacement_RecomputesFaceAndSchedulesWater
     const BlockPos pos(12, 70, 3);
 
     const BlockState state = pane.defaultState()
-        .with(BlockStateProperties::NORTH(), false)
-        .with(BlockStateProperties::EAST(), false)
-        .with(BlockStateProperties::SOUTH(), false)
-        .with(BlockStateProperties::WEST(), false)
-        .with(BlockStateProperties::WATERLOGGED(), true);
+                                 .with(BlockStateProperties::NORTH(), false)
+                                 .with(BlockStateProperties::EAST(), false)
+                                 .with(BlockStateProperties::SOUTH(), false)
+                                 .with(BlockStateProperties::WEST(), false)
+                                 .with(BlockStateProperties::WATERLOGGED(), true);
 
-    const BlockState updated = pane.updatePostPlacement(state, Direction::North, solid.defaultState(), world, pos, pos.north());
+    const BlockState updated =
+        pane.updatePostPlacement(state, Direction::North, solid.defaultState(), world, pos, pos.north());
 
     EXPECT_TRUE(updated.get(BlockStateProperties::NORTH()));
 }

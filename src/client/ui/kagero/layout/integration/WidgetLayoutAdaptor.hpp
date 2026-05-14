@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../core/LayoutResult.hpp"
-#include "../constraints/LayoutConstraints.hpp"
-#include "../../widget/Widget.hpp"
 #include "../../widget/IWidgetContainer.hpp"
-#include <optional>
-#include <memory>
-#include <vector>
+#include "../../widget/Widget.hpp"
+#include "../constraints/LayoutConstraints.hpp"
+#include "../core/LayoutResult.hpp"
 #include <functional>
+#include <memory>
+#include <optional>
+#include <vector>
 
 namespace mc::client::ui::kagero::layout {
 

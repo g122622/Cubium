@@ -4,25 +4,27 @@
 namespace mc::network {
 
 WorldBorderPacket::WorldBorderPacket()
-    : Packet(PacketType::WorldBorder) {
-}
+    : Packet(PacketType::WorldBorder)
+{}
 
 WorldBorderPacket::WorldBorderPacket(WorldBorderAction action)
     : Packet(PacketType::WorldBorder)
-    , m_action(action) {
-}
+    , m_action(action)
+{}
 
 // ============================================================================
 // 静态工厂方法
 // ============================================================================
 
-WorldBorderPacket WorldBorderPacket::setSize(double size) {
+WorldBorderPacket WorldBorderPacket::setSize(double size)
+{
     WorldBorderPacket packet(WorldBorderAction::SetSize);
     packet.m_size = size;
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::lerpSize(double oldSize, double newSize, u64 timeMs) {
+WorldBorderPacket WorldBorderPacket::lerpSize(double oldSize, double newSize, u64 timeMs)
+{
     WorldBorderPacket packet(WorldBorderAction::LerpSize);
     packet.m_oldSize = oldSize;
     packet.m_newSize = newSize;
@@ -30,14 +32,16 @@ WorldBorderPacket WorldBorderPacket::lerpSize(double oldSize, double newSize, u6
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setCenter(double x, double z) {
+WorldBorderPacket WorldBorderPacket::setCenter(double x, double z)
+{
     WorldBorderPacket packet(WorldBorderAction::SetCenter);
     packet.m_centerX = x;
     packet.m_centerZ = z;
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::initialize(const world::border::WorldBorder& border) {
+WorldBorderPacket WorldBorderPacket::initialize(const world::border::WorldBorder& border)
+{
     WorldBorderPacket packet(WorldBorderAction::Initialize);
     packet.m_centerX = border.getCenterX();
     packet.m_centerZ = border.getCenterZ();
@@ -51,25 +55,29 @@ WorldBorderPacket WorldBorderPacket::initialize(const world::border::WorldBorder
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setWarningTime(i32 warningTime) {
+WorldBorderPacket WorldBorderPacket::setWarningTime(i32 warningTime)
+{
     WorldBorderPacket packet(WorldBorderAction::SetWarningTime);
     packet.m_warningTime = warningTime;
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setWarningDistance(i32 warningDistance) {
+WorldBorderPacket WorldBorderPacket::setWarningDistance(i32 warningDistance)
+{
     WorldBorderPacket packet(WorldBorderAction::SetWarningDistance);
     packet.m_warningDistance = warningDistance;
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setDamageBuffer(double damageBuffer) {
+WorldBorderPacket WorldBorderPacket::setDamageBuffer(double damageBuffer)
+{
     WorldBorderPacket packet(WorldBorderAction::SetDamageBuffer);
     packet.m_damageBuffer = damageBuffer;
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setDamagePerBlock(double damagePerBlock) {
+WorldBorderPacket WorldBorderPacket::setDamagePerBlock(double damagePerBlock)
+{
     WorldBorderPacket packet(WorldBorderAction::SetDamagePerBlock);
     packet.m_damagePerBlock = damagePerBlock;
     return packet;
@@ -79,7 +87,8 @@ WorldBorderPacket WorldBorderPacket::setDamagePerBlock(double damagePerBlock) {
 // 序列化
 // ============================================================================
 
-Result<std::vector<u8>> WorldBorderPacket::serialize() const {
+Result<std::vector<u8>> WorldBorderPacket::serialize() const
+{
     PacketSerializer serializer;
     serializer.writeU8(static_cast<u8>(m_action));
 
@@ -102,8 +111,8 @@ Result<std::vector<u8>> WorldBorderPacket::serialize() const {
         case WorldBorderAction::Initialize:
             serializer.writeF64(m_centerX);
             serializer.writeF64(m_centerZ);
-            serializer.writeF64(m_oldSize);  // 当前大小
-            serializer.writeF64(m_newSize);  // 目标大小
+            serializer.writeF64(m_oldSize); // 当前大小
+            serializer.writeF64(m_newSize); // 目标大小
             serializer.writeVarLong(static_cast<i64>(m_timeMs));
             serializer.writeVarLong(static_cast<i64>(m_warningTime));
             serializer.writeVarLong(static_cast<i64>(m_warningDistance));
@@ -133,7 +142,8 @@ Result<std::vector<u8>> WorldBorderPacket::serialize() const {
     return result;
 }
 
-Result<void> WorldBorderPacket::deserialize(const u8* data, size_t size) {
+Result<void> WorldBorderPacket::deserialize(const u8* data, size_t size)
+{
     if (size < 1) {
         return Error(ErrorCode::InvalidPacket, "WorldBorderPacket: data too short");
     }
@@ -251,30 +261,31 @@ Result<void> WorldBorderPacket::deserialize(const u8* data, size_t size) {
     return Result<void>();
 }
 
-size_t WorldBorderPacket::expectedSize() const {
+size_t WorldBorderPacket::expectedSize() const
+{
     // 动作类型 (1) + 数据
     size_t base = sizeof(PacketHeader) + 1;
 
     switch (m_action) {
         case WorldBorderAction::SetSize:
-            return base + 8;  // f64
+            return base + 8; // f64
 
         case WorldBorderAction::LerpSize:
-            return base + 8 + 8 + 10;  // f64 + f64 + varlong (最多10字节)
+            return base + 8 + 8 + 10; // f64 + f64 + varlong (最多10字节)
 
         case WorldBorderAction::SetCenter:
-            return base + 8 + 8;  // f64 + f64
+            return base + 8 + 8; // f64 + f64
 
         case WorldBorderAction::Initialize:
-            return base + 8 + 8 + 8 + 8 + 10 + 10 + 10 + 8 + 8;  // 所有字段
+            return base + 8 + 8 + 8 + 8 + 10 + 10 + 10 + 8 + 8; // 所有字段
 
         case WorldBorderAction::SetWarningTime:
         case WorldBorderAction::SetWarningDistance:
-            return base + 10;  // varlong (最多10字节)
+            return base + 10; // varlong (最多10字节)
 
         case WorldBorderAction::SetDamageBuffer:
         case WorldBorderAction::SetDamagePerBlock:
-            return base + 8;  // f64
+            return base + 8; // f64
     }
 
     return base;

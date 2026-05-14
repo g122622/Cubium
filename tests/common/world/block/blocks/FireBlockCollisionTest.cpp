@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/core/EntityType.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/damage/DamageSource.hpp"
+#include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
-#include "world/IWorld.hpp"
-#include "world/tick/manager/TickManager.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "entity/core/Entity.hpp"
-#include "entity/core/LivingEntity.hpp"
-#include "entity/core/EntityType.hpp"
-#include "entity/damage/DamageSource.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
@@ -33,7 +33,8 @@ public:
     {}
 
     // 重写 hurt 方法以追踪伤害
-    bool hurt(DamageSource& source, f32 amount) override {
+    bool hurt(DamageSource& source, f32 amount) override
+    {
         m_hurtCount++;
         m_lastDamage = amount;
         m_lastDamageType = source.type();
@@ -44,7 +45,8 @@ public:
     [[nodiscard]] f32 lastDamage() const { return m_lastDamage; }
     [[nodiscard]] DamageType lastDamageType() const { return m_lastDamageType; }
 
-    void resetHurtStats() {
+    void resetHurtStats()
+    {
         m_hurtCount = 0;
         m_lastDamage = 0.0f;
         m_lastDamageType = static_cast<DamageType>(-1);
@@ -66,13 +68,9 @@ public:
         , m_immuneToFire(true)
     {}
 
-    [[nodiscard]] bool isImmuneToFire() const override {
-        return m_immuneToFire;
-    }
+    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
 
-    void setImmuneToFire(bool immune) {
-        m_immuneToFire = immune;
-    }
+    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
 private:
     bool m_immuneToFire;
@@ -85,7 +83,8 @@ class FireTestWorld final : public test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -94,7 +93,8 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -106,21 +106,22 @@ public:
 
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlockState(pos.x, pos.y, pos.z, state);
-    }
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         const_cast<FireTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
 private:
-    void ensureTickManager() const {
+    void ensureTickManager() const
+    {
         if (!m_tickManagerPtr) {
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(const_cast<FireTestWorld&>(*this));
         }
@@ -132,14 +133,13 @@ private:
 
 class FireBlockCollisionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
 // ========== Entity 火焰方法测试 ==========
 
-TEST_F(FireBlockCollisionTest, Entity_GetFireTimer_EqualsFire) {
+TEST_F(FireBlockCollisionTest, Entity_GetFireTimer_EqualsFire)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
@@ -148,7 +148,7 @@ TEST_F(FireBlockCollisionTest, Entity_GetFireTimer_EqualsFire) {
     EXPECT_EQ(entity.getFireTimer(), 0);
 
     // 设置火焰（setFire 接收 ticks）
-    entity.setFire(100);  // 100 ticks = 5 秒
+    entity.setFire(100); // 100 ticks = 5 秒
     EXPECT_EQ(entity.fire(), 100);
     EXPECT_EQ(entity.getFireTimer(), 100);
 
@@ -158,24 +158,26 @@ TEST_F(FireBlockCollisionTest, Entity_GetFireTimer_EqualsFire) {
     EXPECT_EQ(entity.getFireTimer(), 50);
 }
 
-TEST_F(FireBlockCollisionTest, Entity_SetFire_OnlyIncreases) {
+TEST_F(FireBlockCollisionTest, Entity_SetFire_OnlyIncreases)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
     // 设置初始火焰
-    entity.setFire(100);  // 100 ticks
+    entity.setFire(100); // 100 ticks
     EXPECT_EQ(entity.fire(), 100);
 
     // 尝试设置更小的值，不应改变
-    entity.setFire(60);   // 60 ticks < 100 ticks
-    EXPECT_EQ(entity.fire(), 100);  // 保持 100
+    entity.setFire(60);            // 60 ticks < 100 ticks
+    EXPECT_EQ(entity.fire(), 100); // 保持 100
 
     // 设置更大的值，应该更新
-    entity.setFire(200);  // 200 ticks > 100 ticks
-    EXPECT_EQ(entity.fire(), 200);  // 更新为 200
+    entity.setFire(200);           // 200 ticks > 100 ticks
+    EXPECT_EQ(entity.fire(), 200); // 更新为 200
 }
 
-TEST_F(FireBlockCollisionTest, Entity_ForceFireTicks_SetsDirectly) {
+TEST_F(FireBlockCollisionTest, Entity_ForceFireTicks_SetsDirectly)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
@@ -195,7 +197,8 @@ TEST_F(FireBlockCollisionTest, Entity_ForceFireTicks_SetsDirectly) {
     EXPECT_EQ(entity.fire(), 0);
 }
 
-TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_DefaultFalse) {
+TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_DefaultFalse)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
@@ -204,7 +207,8 @@ TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_DefaultFalse) {
     EXPECT_FALSE(entity.isImmuneToFire());
 }
 
-TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_Overrideable) {
+TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_Overrideable)
+{
     FireTestWorld world;
     FireImmuneTestEntity immuneEntity(LegacyEntityType::Blaze, EntityId(1), &world);
 
@@ -222,7 +226,8 @@ TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_Overrideable) {
 
 // ========== FireBlock::onEntityCollision 测试 ==========
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmuneEntity_NoDamage) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmuneEntity_NoDamage)
+{
     FireTestWorld world;
     FireImmuneTestEntity entity(LegacyEntityType::Blaze, EntityId(1), &world);
     entity.setImmuneToFire(true);
@@ -235,13 +240,14 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmuneEntity_NoDamage) {
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
 
     EXPECT_EQ(entity.hurtCount(), 0);
-    EXPECT_EQ(entity.fire(), 0);  // 火焰计时器不变
+    EXPECT_EQ(entity.fire(), 0); // 火焰计时器不变
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_NormalEntity_TakesDamage) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_NormalEntity_TakesDamage)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
-    entity.setHealth(20.0f);  // 设置生命值
+    entity.setHealth(20.0f); // 设置生命值
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
@@ -251,11 +257,12 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NormalEntity_TakesDamage) {
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
 
     EXPECT_EQ(entity.hurtCount(), 1);
-    EXPECT_EQ(entity.lastDamage(), 1.0f);  // 普通火焰伤害 1.0
+    EXPECT_EQ(entity.lastDamage(), 1.0f); // 普通火焰伤害 1.0
     EXPECT_EQ(entity.lastDamageType(), DamageType::InFire);
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
@@ -275,7 +282,8 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer) {
     EXPECT_EQ(entity.getFireTimer(), 2);
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmunityEndIgnitesEntity) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmunityEndIgnitesEntity)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
@@ -299,7 +307,8 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmunityEndIgnitesEntity) {
     EXPECT_EQ(entity.fire(), 160);
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_NegativeTimerIgnites) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_NegativeTimerIgnites)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
@@ -322,7 +331,8 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NegativeTimerIgnites) {
     EXPECT_EQ(entity.fire(), 160);
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionNotIgnite) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionNotIgnite)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
 
@@ -341,7 +351,8 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionNotIgnite) {
     // fire() 不会被设置为 160，因为 timer != 0
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_SoulFire_HigherDamage) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_SoulFire_HigherDamage)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
     entity.setHealth(20.0f);
@@ -356,11 +367,12 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_SoulFire_HigherDamage) {
     soulFireBlock->onEntityCollision(soulFireState, world, pos, entity);
 
     EXPECT_EQ(entity.hurtCount(), 1);
-    EXPECT_EQ(entity.lastDamage(), 2.0f);  // 灵魂火伤害 2.0
+    EXPECT_EQ(entity.lastDamage(), 2.0f); // 灵魂火伤害 2.0
     EXPECT_EQ(entity.lastDamageType(), DamageType::InFire);
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_NonLivingEntity_TimerIncreases) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_NonLivingEntity_TimerIncreases)
+{
     FireTestWorld world;
 
     // Entity 基类不是 LivingEntity，不会受到伤害
@@ -374,15 +386,16 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NonLivingEntity_TimerIncreases)
     // 但火焰计时器仍然增加
     EXPECT_EQ(entity.getFireTimer(), 0);
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
-    EXPECT_EQ(entity.getFireTimer(), 1);  // 计时器增加
+    EXPECT_EQ(entity.getFireTimer(), 1); // 计时器增加
     // isOnFire() 检查 fire > 0，fireTimer 变为 1 所以点燃了
     EXPECT_TRUE(entity.isOnFire());
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_MultipleCollisions_EachTick) {
+TEST_F(FireBlockCollisionTest, OnEntityCollision_MultipleCollisions_EachTick)
+{
     FireTestWorld world;
     TestLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world);
-    entity.setHealth(100.0f);  // 高生命值以承受多次伤害
+    entity.setHealth(100.0f); // 高生命值以承受多次伤害
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState& fireState = VanillaBlocks::FIRE->defaultState();

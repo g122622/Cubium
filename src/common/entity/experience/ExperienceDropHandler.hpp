@@ -5,8 +5,8 @@
 #include "../../util/math/random/Random.hpp"
 #include "ExperienceConstants.hpp"
 #include "ExperienceUtils.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -52,7 +52,8 @@ public:
      * @param rng 随机数生成器（可选）
      * @return 生成的经验球数量
      */
-    static i32 spawnExperienceOrbs(IWorld* world, const Vector3& pos, i32 totalXp, math::Random* rng = nullptr) {
+    static i32 spawnExperienceOrbs(IWorld* world, const Vector3& pos, i32 totalXp, math::Random* rng = nullptr)
+    {
         return spawnExperienceOrbs(world, pos.x, pos.y, pos.z, totalXp, rng);
     }
 
@@ -146,11 +147,7 @@ private:
      * @return 创建的经验球实体指针
      */
     static ExperienceOrbEntity* createExperienceOrb(
-        IWorld* world,
-        f64 x, f64 y, f64 z,
-        i32 xpValue,
-        f32 vx, f32 vy, f32 vz
-    );
+        IWorld* world, f64 x, f64 y, f64 z, i32 xpValue, f32 vx, f32 vy, f32 vz);
 };
 
 } // namespace entity

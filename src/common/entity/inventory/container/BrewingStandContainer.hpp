@@ -66,9 +66,9 @@ public:
      * @param brewingStandEntity 酿造台实体（可选，用于同步酿造进度）
      */
     BrewingStandContainer(ContainerId id,
-                         PlayerInventory* playerInventory,
-                         IInventory* brewingStandInventory,
-                         blockentity::BrewingStandEntity* brewingStandEntity = nullptr);
+        PlayerInventory* playerInventory,
+        IInventory* brewingStandInventory,
+        blockentity::BrewingStandEntity* brewingStandEntity = nullptr);
 
     /**
      * @brief 析构函数
@@ -128,10 +128,10 @@ private:
     void initSlots(PlayerInventory* playerInventory);
 
 private:
-    IInventory* m_brewingStandInventory;             ///< 酿造台背包
-    blockentity::BrewingStandEntity* m_brewingStandEntity;  ///< 酿造台实体
-    i32 m_brewTime = 0;                              ///< 酿造时间
-    i32 m_fuel = 0;                                  ///< 燃料等级
+    IInventory* m_brewingStandInventory;                   ///< 酿造台背包
+    blockentity::BrewingStandEntity* m_brewingStandEntity; ///< 酿造台实体
+    i32 m_brewTime = 0;                                    ///< 酿造时间
+    i32 m_fuel = 0;                                        ///< 燃料等级
 };
 
 } // namespace mc

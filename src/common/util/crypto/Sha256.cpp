@@ -11,7 +11,8 @@ namespace mc {
 namespace util {
 namespace crypto {
 
-Sha256::Digest Sha256::hash(std::span<const u8> data) {
+Sha256::Digest Sha256::hash(std::span<const u8> data)
+{
     // 初始化哈希状态
     std::array<u32, 8> state = INITIAL_HASH;
 
@@ -26,7 +27,7 @@ Sha256::Digest Sha256::hash(std::span<const u8> data) {
     // 生成最终哈希（大端序输出）
     Digest result;
     for (std::size_t i = 0; i < 8; ++i) {
-        result[i * 4]     = static_cast<u8>((state[i] >> 24) & 0xFF);
+        result[i * 4] = static_cast<u8>((state[i] >> 24) & 0xFF);
         result[i * 4 + 1] = static_cast<u8>((state[i] >> 16) & 0xFF);
         result[i * 4 + 2] = static_cast<u8>((state[i] >> 8) & 0xFF);
         result[i * 4 + 3] = static_cast<u8>(state[i] & 0xFF);
@@ -35,14 +36,13 @@ Sha256::Digest Sha256::hash(std::span<const u8> data) {
     return result;
 }
 
-Sha256::Digest Sha256::hash(std::string_view str) {
-    return hash(std::span<const u8>(
-        reinterpret_cast<const u8*>(str.data()),
-        str.size()
-    ));
+Sha256::Digest Sha256::hash(std::string_view str)
+{
+    return hash(std::span<const u8>(reinterpret_cast<const u8*>(str.data()), str.size()));
 }
 
-Sha256::Digest Sha256::hashUint64(u64 value) {
+Sha256::Digest Sha256::hashUint64(u64 value)
+{
     // Guava Hashing.sha256().hashLong() 使用大端序
     std::array<u8, 8> bytes;
     bytes[0] = static_cast<u8>((value >> 56) & 0xFF);
@@ -57,7 +57,8 @@ Sha256::Digest Sha256::hashUint64(u64 value) {
     return hash(std::span<const u8>(bytes.data(), bytes.size()));
 }
 
-u64 Sha256::hashWorldSeed(u64 worldSeed) {
+u64 Sha256::hashWorldSeed(u64 worldSeed)
+{
     // 计算 SHA-256 哈希
     Digest digest = hashUint64(worldSeed);
 
@@ -67,7 +68,8 @@ u64 Sha256::hashWorldSeed(u64 worldSeed) {
     return bytesToU64LE(std::span<const u8, 8>(digest.data(), 8));
 }
 
-std::string Sha256::toHexString(const Digest& digest) {
+std::string Sha256::toHexString(const Digest& digest)
+{
     static constexpr char HEX_CHARS[] = "0123456789abcdef";
 
     std::string result;
@@ -81,38 +83,29 @@ std::string Sha256::toHexString(const Digest& digest) {
     return result;
 }
 
-u64 Sha256::bytesToU64LE(std::span<const u8, 8> bytes) {
-    return static_cast<u64>(bytes[0]) |
-           (static_cast<u64>(bytes[1]) << 8) |
-           (static_cast<u64>(bytes[2]) << 16) |
-           (static_cast<u64>(bytes[3]) << 24) |
-           (static_cast<u64>(bytes[4]) << 32) |
-           (static_cast<u64>(bytes[5]) << 40) |
-           (static_cast<u64>(bytes[6]) << 48) |
-           (static_cast<u64>(bytes[7]) << 56);
+u64 Sha256::bytesToU64LE(std::span<const u8, 8> bytes)
+{
+    return static_cast<u64>(bytes[0]) | (static_cast<u64>(bytes[1]) << 8) | (static_cast<u64>(bytes[2]) << 16) |
+        (static_cast<u64>(bytes[3]) << 24) | (static_cast<u64>(bytes[4]) << 32) | (static_cast<u64>(bytes[5]) << 40) |
+        (static_cast<u64>(bytes[6]) << 48) | (static_cast<u64>(bytes[7]) << 56);
 }
 
-u64 Sha256::bytesToU64BE(std::span<const u8, 8> bytes) {
-    return (static_cast<u64>(bytes[0]) << 56) |
-           (static_cast<u64>(bytes[1]) << 48) |
-           (static_cast<u64>(bytes[2]) << 40) |
-           (static_cast<u64>(bytes[3]) << 32) |
-           (static_cast<u64>(bytes[4]) << 24) |
-           (static_cast<u64>(bytes[5]) << 16) |
-           (static_cast<u64>(bytes[6]) << 8) |
-           static_cast<u64>(bytes[7]);
+u64 Sha256::bytesToU64BE(std::span<const u8, 8> bytes)
+{
+    return (static_cast<u64>(bytes[0]) << 56) | (static_cast<u64>(bytes[1]) << 48) |
+        (static_cast<u64>(bytes[2]) << 40) | (static_cast<u64>(bytes[3]) << 32) | (static_cast<u64>(bytes[4]) << 24) |
+        (static_cast<u64>(bytes[5]) << 16) | (static_cast<u64>(bytes[6]) << 8) | static_cast<u64>(bytes[7]);
 }
 
-void Sha256::processBlock(const u8* block, std::array<u32, 8>& state) {
+void Sha256::processBlock(const u8* block, std::array<u32, 8>& state)
+{
     // 准备消息调度数组 W
     std::array<u32, 64> W;
 
     // 前 16 个字来自输入块（大端序）
     for (std::size_t i = 0; i < 16; ++i) {
-        W[i] = (static_cast<u32>(block[i * 4]) << 24) |
-               (static_cast<u32>(block[i * 4 + 1]) << 16) |
-               (static_cast<u32>(block[i * 4 + 2]) << 8) |
-               static_cast<u32>(block[i * 4 + 3]);
+        W[i] = (static_cast<u32>(block[i * 4]) << 24) | (static_cast<u32>(block[i * 4 + 1]) << 16) |
+            (static_cast<u32>(block[i * 4 + 2]) << 8) | static_cast<u32>(block[i * 4 + 3]);
     }
 
     // 扩展剩余 48 个字
@@ -156,12 +149,13 @@ void Sha256::processBlock(const u8* block, std::array<u32, 8>& state) {
     state[7] += h;
 }
 
-std::vector<u8> Sha256::padMessage(std::span<const u8> message) {
+std::vector<u8> Sha256::padMessage(std::span<const u8> message)
+{
     // 计算填充后的长度
     // 填充格式：消息 + 1 bit + 0 bits + 64 bit 长度
     // 最终长度必须是 512 位（64 字节）的倍数
     std::size_t messageLen = message.size();
-    std::size_t paddedLen = messageLen + 1 + 8;  // 消息 + 0x80 + 8 字节长度
+    std::size_t paddedLen = messageLen + 1 + 8; // 消息 + 0x80 + 8 字节长度
 
     // 计算需要添加多少 0 字节
     std::size_t paddingZeros = 0;
@@ -183,7 +177,7 @@ std::vector<u8> Sha256::padMessage(std::span<const u8> message) {
     // 注意：SHA-256 使用位数，不是字节数
     u64 messageBits = static_cast<u64>(messageLen) * 8;
     std::size_t lenPos = paddedLen - 8;
-    padded[lenPos]     = static_cast<u8>((messageBits >> 56) & 0xFF);
+    padded[lenPos] = static_cast<u8>((messageBits >> 56) & 0xFF);
     padded[lenPos + 1] = static_cast<u8>((messageBits >> 48) & 0xFF);
     padded[lenPos + 2] = static_cast<u8>((messageBits >> 40) & 0xFF);
     padded[lenPos + 3] = static_cast<u8>((messageBits >> 32) & 0xFF);

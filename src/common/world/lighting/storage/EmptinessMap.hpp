@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "../../../core/Constants.hpp"
-#include <vector>
+#include "../../../core/Types.hpp"
 #include <cstring>
+#include <vector>
 
 namespace mc {
 
@@ -117,50 +117,53 @@ private:
     i32 m_minSection = world::MIN_BUILD_HEIGHT >> 4;
     i32 m_maxSection = (world::MAX_BUILD_HEIGHT - 1) >> 4;
     i32 m_sectionCount = ((world::MAX_BUILD_HEIGHT - 1) >> 4) - (world::MIN_BUILD_HEIGHT >> 4) + 1;
-    std::vector<u8> m_sectionEmpty;  // 0 = 有方块，1 = 空（使用 u8 代替 bool 以支持 data()）
+    std::vector<u8> m_sectionEmpty; // 0 = 有方块，1 = 空（使用 u8 代替 bool 以支持 data()）
 
     /**
      * @brief 检查区块段索引是否有效
      */
-    [[nodiscard]] bool isValidSectionIndex(i32 sectionIndex) const {
+    [[nodiscard]] bool isValidSectionIndex(i32 sectionIndex) const
+    {
         return sectionIndex >= 0 && sectionIndex < m_sectionCount;
     }
 
     /**
      * @brief 区块段Y转索引
      */
-    [[nodiscard]] i32 sectionYToIndex(i32 sectionY) const {
-        return sectionY - m_minSection;
-    }
+    [[nodiscard]] i32 sectionYToIndex(i32 sectionY) const { return sectionY - m_minSection; }
 };
 
 // ============================================================================
 // 内联实现
 // ============================================================================
 
-inline bool EmptinessMap::isSectionEmpty(i32 sectionY) const {
+inline bool EmptinessMap::isSectionEmpty(i32 sectionY) const
+{
     i32 index = sectionYToIndex(sectionY);
     if (!isValidSectionIndex(index)) {
-        return true;  // 超出范围视为空
+        return true; // 超出范围视为空
     }
     return m_sectionEmpty[static_cast<size_t>(index)] != 0;
 }
 
-inline bool EmptinessMap::isSectionEmptyByIndex(i32 sectionIndex) const {
+inline bool EmptinessMap::isSectionEmptyByIndex(i32 sectionIndex) const
+{
     if (!isValidSectionIndex(sectionIndex)) {
         return true;
     }
     return m_sectionEmpty[static_cast<size_t>(sectionIndex)] != 0;
 }
 
-inline void EmptinessMap::setSectionEmpty(i32 sectionY, bool empty) {
+inline void EmptinessMap::setSectionEmpty(i32 sectionY, bool empty)
+{
     i32 index = sectionYToIndex(sectionY);
     if (isValidSectionIndex(index)) {
         m_sectionEmpty[static_cast<size_t>(index)] = empty ? 1 : 0;
     }
 }
 
-inline bool EmptinessMap::isChunkEmpty() const {
+inline bool EmptinessMap::isChunkEmpty() const
+{
     for (u8 empty : m_sectionEmpty) {
         if (empty == 0) {
             return false;

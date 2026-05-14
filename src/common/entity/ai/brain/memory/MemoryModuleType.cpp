@@ -1,8 +1,8 @@
 #include "MemoryModuleType.hpp"
-#include "IPositionTarget.hpp"
-#include "WalkTarget.hpp"
 #include "../../../../world/GlobalPos.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "IPositionTarget.hpp"
+#include "WalkTarget.hpp"
 
 namespace mc {
 namespace entity {
@@ -124,7 +124,8 @@ const MemoryModuleType<Entity*>* MemoryModuleTypes::RAM_TARGET = nullptr;
 const MemoryModuleType<BlockPos>* MemoryModuleTypes::SNIFFER_SNIFFING_TARGET = nullptr;
 const MemoryModuleType<bool>* MemoryModuleTypes::SNIFFER_DIGGING = nullptr;
 
-void MemoryModuleTypes::initialize() {
+void MemoryModuleTypes::initialize()
+{
     // ========== 基础类型 ==========
     s_types["dummy"] = std::make_unique<MemoryModuleType<void>>("dummy");
     DUMMY = static_cast<const MemoryModuleType<void>*>(s_types["dummy"].get());
@@ -155,7 +156,8 @@ void MemoryModuleTypes::initialize() {
     NEAREST_REPELLENT = static_cast<const MemoryModuleType<BlockPos>*>(s_types["nearest_repellent"].get());
 
     s_types["secondary_job_site"] = std::make_unique<MemoryModuleType<std::vector<GlobalPos>>>("secondary_job_site");
-    SECONDARY_JOB_SITE = static_cast<const MemoryModuleType<std::vector<GlobalPos>>*>(s_types["secondary_job_site"].get());
+    SECONDARY_JOB_SITE =
+        static_cast<const MemoryModuleType<std::vector<GlobalPos>>*>(s_types["secondary_job_site"].get());
 
     // ========== 实体列表相关 ==========
     s_types["mobs"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("mobs");
@@ -164,8 +166,10 @@ void MemoryModuleTypes::initialize() {
     s_types["visible_mobs"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("visible_mobs");
     VISIBLE_MOBS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["visible_mobs"].get());
 
-    s_types["visible_villager_babies"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("visible_villager_babies");
-    VISIBLE_VILLAGER_BABIES = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["visible_villager_babies"].get());
+    s_types["visible_villager_babies"] =
+        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("visible_villager_babies");
+    VISIBLE_VILLAGER_BABIES =
+        static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["visible_villager_babies"].get());
 
     s_types["nearest_players"] = std::make_unique<MemoryModuleType<std::vector<Player*>>>("nearest_players");
     NEAREST_PLAYERS = static_cast<const MemoryModuleType<std::vector<Player*>>*>(s_types["nearest_players"].get());
@@ -173,8 +177,10 @@ void MemoryModuleTypes::initialize() {
     s_types["nearest_visible_player"] = std::make_unique<MemoryModuleType<Player*>>("nearest_visible_player");
     NEAREST_VISIBLE_PLAYER = static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_visible_player"].get());
 
-    s_types["nearest_visible_targetable_player"] = std::make_unique<MemoryModuleType<Player*>>("nearest_visible_targetable_player");
-    NEAREST_VISIBLE_TARGETABLE_PLAYER = static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_visible_targetable_player"].get());
+    s_types["nearest_visible_targetable_player"] =
+        std::make_unique<MemoryModuleType<Player*>>("nearest_visible_targetable_player");
+    NEAREST_VISIBLE_TARGETABLE_PLAYER =
+        static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_visible_targetable_player"].get());
 
     s_types["attack_target"] = std::make_unique<MemoryModuleType<LivingEntity*>>("attack_target");
     ATTACK_TARGET = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["attack_target"].get());
@@ -191,23 +197,29 @@ void MemoryModuleTypes::initialize() {
     s_types["nearest_hostile"] = std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_hostile");
     NEAREST_HOSTILE = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_hostile"].get());
 
-    s_types["nearest_visible_zombified"] = std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_zombified");
-    NEAREST_VISIBLE_ZOMBIFIED = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_zombified"].get());
+    s_types["nearest_visible_zombified"] =
+        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_zombified");
+    NEAREST_VISIBLE_ZOMBIFIED =
+        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_zombified"].get());
 
     s_types["breed_target"] = std::make_unique<MemoryModuleType<AgeableEntity*>>("breed_target");
     BREED_TARGET = static_cast<const MemoryModuleType<AgeableEntity*>*>(s_types["breed_target"].get());
 
     s_types["nearest_visible_adult"] = std::make_unique<MemoryModuleType<AgeableEntity*>>("nearest_visible_adult");
-    NEAREST_VISIBLE_ADULT = static_cast<const MemoryModuleType<AgeableEntity*>*>(s_types["nearest_visible_adult"].get());
+    NEAREST_VISIBLE_ADULT =
+        static_cast<const MemoryModuleType<AgeableEntity*>*>(s_types["nearest_visible_adult"].get());
 
     s_types["ride_target"] = std::make_unique<MemoryModuleType<Entity*>>("ride_target");
     RIDE_TARGET = static_cast<const MemoryModuleType<Entity*>*>(s_types["ride_target"].get());
 
     s_types["nearest_visible_nemesis"] = std::make_unique<MemoryModuleType<MobEntity*>>("nearest_visible_nemesis");
-    NEAREST_VISIBLE_NEMESIS = static_cast<const MemoryModuleType<MobEntity*>*>(s_types["nearest_visible_nemesis"].get());
+    NEAREST_VISIBLE_NEMESIS =
+        static_cast<const MemoryModuleType<MobEntity*>*>(s_types["nearest_visible_nemesis"].get());
 
-    s_types["nearest_visible_wanted_item"] = std::make_unique<MemoryModuleType<ItemEntity*>>("nearest_visible_wanted_item");
-    NEAREST_VISIBLE_WANTED_ITEM = static_cast<const MemoryModuleType<ItemEntity*>*>(s_types["nearest_visible_wanted_item"].get());
+    s_types["nearest_visible_wanted_item"] =
+        std::make_unique<MemoryModuleType<ItemEntity*>>("nearest_visible_wanted_item");
+    NEAREST_VISIBLE_WANTED_ITEM =
+        static_cast<const MemoryModuleType<ItemEntity*>*>(s_types["nearest_visible_wanted_item"].get());
 
     // ========== 移动相关 ==========
     s_types["path"] = std::make_unique<MemoryModuleType<Path>>("path");
@@ -221,7 +233,8 @@ void MemoryModuleTypes::initialize() {
 
     // ========== 门相关 ==========
     s_types["interactable_doors"] = std::make_unique<MemoryModuleType<std::vector<GlobalPos>>>("interactable_doors");
-    INTERACTABLE_DOORS = static_cast<const MemoryModuleType<std::vector<GlobalPos>>*>(s_types["interactable_doors"].get());
+    INTERACTABLE_DOORS =
+        static_cast<const MemoryModuleType<std::vector<GlobalPos>>*>(s_types["interactable_doors"].get());
 
     s_types["doors_to_close"] = std::make_unique<MemoryModuleType<std::unordered_set<GlobalPos>>>("doors_to_close");
     OPENED_DOORS = static_cast<const MemoryModuleType<std::unordered_set<GlobalPos>>*>(s_types["doors_to_close"].get());
@@ -238,7 +251,8 @@ void MemoryModuleTypes::initialize() {
     HEARD_BELL_TIME = static_cast<const MemoryModuleType<i64>*>(s_types["heard_bell_time"].get());
 
     s_types["cant_reach_walk_target_since"] = std::make_unique<MemoryModuleType<i64>>("cant_reach_walk_target_since");
-    CANT_REACH_WALK_TARGET_SINCE = static_cast<const MemoryModuleType<i64>*>(s_types["cant_reach_walk_target_since"].get());
+    CANT_REACH_WALK_TARGET_SINCE =
+        static_cast<const MemoryModuleType<i64>*>(s_types["cant_reach_walk_target_since"].get());
 
     s_types["last_slept"] = std::make_unique<MemoryModuleType<i64>>("last_slept");
     LAST_SLEPT = static_cast<const MemoryModuleType<i64>*>(s_types["last_slept"].get());
@@ -275,44 +289,63 @@ void MemoryModuleTypes::initialize() {
     UNIVERSAL_ANGER = static_cast<const MemoryModuleType<bool>*>(s_types["universal_anger"].get());
 
     // ========== 计时器相关 ==========
-    s_types["time_trying_to_reach_admire_item"] = std::make_unique<MemoryModuleType<i32>>("time_trying_to_reach_admire_item");
-    TIME_TRYING_TO_REACH_ADMIRE_ITEM = static_cast<const MemoryModuleType<i32>*>(s_types["time_trying_to_reach_admire_item"].get());
+    s_types["time_trying_to_reach_admire_item"] =
+        std::make_unique<MemoryModuleType<i32>>("time_trying_to_reach_admire_item");
+    TIME_TRYING_TO_REACH_ADMIRE_ITEM =
+        static_cast<const MemoryModuleType<i32>*>(s_types["time_trying_to_reach_admire_item"].get());
 
     s_types["disable_walk_to_admire_item"] = std::make_unique<MemoryModuleType<bool>>("disable_walk_to_admire_item");
-    DISABLE_WALK_TO_ADMIRE_ITEM = static_cast<const MemoryModuleType<bool>*>(s_types["disable_walk_to_admire_item"].get());
+    DISABLE_WALK_TO_ADMIRE_ITEM =
+        static_cast<const MemoryModuleType<bool>*>(s_types["disable_walk_to_admire_item"].get());
 
     // ========== 玩家相关 ==========
     s_types["tempting_player"] = std::make_unique<MemoryModuleType<Player*>>("tempting_player");
     TEMPTING_PLAYER = static_cast<const MemoryModuleType<Player*>*>(s_types["tempting_player"].get());
 
-    s_types["nearest_player_holding_wanted_item"] = std::make_unique<MemoryModuleType<Player*>>("nearest_player_holding_wanted_item");
-    NEAREST_PLAYER_HOLDING_WANTED_ITEM = static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_player_holding_wanted_item"].get());
+    s_types["nearest_player_holding_wanted_item"] =
+        std::make_unique<MemoryModuleType<Player*>>("nearest_player_holding_wanted_item");
+    NEAREST_PLAYER_HOLDING_WANTED_ITEM =
+        static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_player_holding_wanted_item"].get());
 
     // ========== UUID 相关 ==========
     s_types["angry_at"] = std::make_unique<MemoryModuleType<u64>>("angry_at");
     ANGRY_AT = static_cast<const MemoryModuleType<u64>*>(s_types["angry_at"].get());
 
     // ========== 猪灵/猪灵相关 (MC 1.16.5) ==========
-    s_types["nearest_visible_huntable_hoglin"] = std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_huntable_hoglin");
-    NEAREST_VISIBLE_HUNTABLE_HOGLIN = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_huntable_hoglin"].get());
+    s_types["nearest_visible_huntable_hoglin"] =
+        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_huntable_hoglin");
+    NEAREST_VISIBLE_HUNTABLE_HOGLIN =
+        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_huntable_hoglin"].get());
 
-    s_types["nearest_visible_baby_hoglin"] = std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_baby_hoglin");
-    NEAREST_VISIBLE_BABY_HOGLIN = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_baby_hoglin"].get());
+    s_types["nearest_visible_baby_hoglin"] =
+        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_baby_hoglin");
+    NEAREST_VISIBLE_BABY_HOGLIN =
+        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_baby_hoglin"].get());
 
-    s_types["nearest_targetable_player_not_wearing_gold"] = std::make_unique<MemoryModuleType<Player*>>("nearest_targetable_player_not_wearing_gold");
-    NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_targetable_player_not_wearing_gold"].get());
+    s_types["nearest_targetable_player_not_wearing_gold"] =
+        std::make_unique<MemoryModuleType<Player*>>("nearest_targetable_player_not_wearing_gold");
+    NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD =
+        static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_targetable_player_not_wearing_gold"].get());
 
-    s_types["nearby_adult_piglins"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearby_adult_piglins");
-    NEAREST_ADULT_PIGLINS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["nearby_adult_piglins"].get());
+    s_types["nearby_adult_piglins"] =
+        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearby_adult_piglins");
+    NEAREST_ADULT_PIGLINS =
+        static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["nearby_adult_piglins"].get());
 
-    s_types["nearest_visible_adult_piglins"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearest_visible_adult_piglins");
-    NEAREST_VISIBLE_ADULT_PIGLINS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["nearest_visible_adult_piglins"].get());
+    s_types["nearest_visible_adult_piglins"] =
+        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearest_visible_adult_piglins");
+    NEAREST_VISIBLE_ADULT_PIGLINS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(
+        s_types["nearest_visible_adult_piglins"].get());
 
-    s_types["nearest_visible_adult_hoglins"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearest_visible_adult_hoglins");
-    NEAREST_VISIBLE_ADULT_HOGLINS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["nearest_visible_adult_hoglins"].get());
+    s_types["nearest_visible_adult_hoglins"] =
+        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearest_visible_adult_hoglins");
+    NEAREST_VISIBLE_ADULT_HOGLINS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(
+        s_types["nearest_visible_adult_hoglins"].get());
 
-    s_types["nearest_visible_adult_piglin"] = std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_adult_piglin");
-    NEAREST_VISIBLE_ADULT_PIGLIN = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_adult_piglin"].get());
+    s_types["nearest_visible_adult_piglin"] =
+        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_adult_piglin");
+    NEAREST_VISIBLE_ADULT_PIGLIN =
+        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_adult_piglin"].get());
 
     s_types["visible_adult_piglin_count"] = std::make_unique<MemoryModuleType<i32>>("visible_adult_piglin_count");
     VISIBLE_ADULT_PIGLIN_COUNT = static_cast<const MemoryModuleType<i32>*>(s_types["visible_adult_piglin_count"].get());
@@ -363,8 +396,10 @@ void MemoryModuleTypes::initialize() {
     s_types["last_attacked_by_player"] = std::make_unique<MemoryModuleType<i64>>("last_attacked_by_player");
     LAST_ATTACKED_BY_PLAYER = static_cast<const MemoryModuleType<i64>*>(s_types["last_attacked_by_player"].get());
 
-    s_types["doors_to_close_ext"] = std::make_unique<MemoryModuleType<std::unordered_set<GlobalPos>>>("doors_to_close_ext");
-    DOORS_TO_CLOSE = static_cast<const MemoryModuleType<std::unordered_set<GlobalPos>>*>(s_types["doors_to_close_ext"].get());
+    s_types["doors_to_close_ext"] =
+        std::make_unique<MemoryModuleType<std::unordered_set<GlobalPos>>>("doors_to_close_ext");
+    DOORS_TO_CLOSE =
+        static_cast<const MemoryModuleType<std::unordered_set<GlobalPos>>*>(s_types["doors_to_close_ext"].get());
 
     s_types["owner_hurt_by"] = std::make_unique<MemoryModuleType<LivingEntity*>>("owner_hurt_by");
     OWNER_HURT_BY = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["owner_hurt_by"].get());
@@ -379,11 +414,15 @@ void MemoryModuleTypes::initialize() {
     s_types["listening_noteblock"] = std::make_unique<MemoryModuleType<GlobalPos>>("listening_noteblock");
     LISTENING_NOTEBLOCK = static_cast<const MemoryModuleType<GlobalPos>*>(s_types["listening_noteblock"].get());
 
-    s_types["liked_noteblock_cooldown_ticks"] = std::make_unique<MemoryModuleType<i32>>("liked_noteblock_cooldown_ticks");
-    LIKED_NOTEBLOCK_COOLDOWN_TICKS = static_cast<const MemoryModuleType<i32>*>(s_types["liked_noteblock_cooldown_ticks"].get());
+    s_types["liked_noteblock_cooldown_ticks"] =
+        std::make_unique<MemoryModuleType<i32>>("liked_noteblock_cooldown_ticks");
+    LIKED_NOTEBLOCK_COOLDOWN_TICKS =
+        static_cast<const MemoryModuleType<i32>*>(s_types["liked_noteblock_cooldown_ticks"].get());
 
-    s_types["listening_noteblock_cooldown_ticks"] = std::make_unique<MemoryModuleType<i32>>("listening_noteblock_cooldown_ticks");
-    LISTENING_NOTEBLOCK_COOLDOWN_TICKS = static_cast<const MemoryModuleType<i32>*>(s_types["listening_noteblock_cooldown_ticks"].get());
+    s_types["listening_noteblock_cooldown_ticks"] =
+        std::make_unique<MemoryModuleType<i32>>("listening_noteblock_cooldown_ticks");
+    LISTENING_NOTEBLOCK_COOLDOWN_TICKS =
+        static_cast<const MemoryModuleType<i32>*>(s_types["listening_noteblock_cooldown_ticks"].get());
 
     // 1.17+ 青蛙/山羊
     s_types["tongue_target"] = std::make_unique<MemoryModuleType<BlockPos>>("tongue_target");

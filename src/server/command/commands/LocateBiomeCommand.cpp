@@ -2,17 +2,17 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "server/application/IServer.hpp"
-#include "server/command/support/CommandMetadata.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeProvider.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/biome/BiomeProvider.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/util/math/Vector3.hpp"
-#include <sstream>
+#include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <chrono>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -20,24 +20,13 @@ namespace command {
 void LocateBiomeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto locateBiomeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("locatebiome");
-    locateBiomeNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(0);
-    });
+    locateBiomeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
     support::applyMetadata(
-        locateBiomeNode,
-        support::makeMetadata(
-            "Locates the closest biome.",
-            "/locatebiome <biome>",
-            0,
-            {},
-            true));
+        locateBiomeNode, support::makeMetadata("Locates the closest biome.", "/locatebiome <biome>", 0, {}, true));
 
-    auto biomeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "biome",
-        StringArgumentType::string());
-    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return locateBiome(ctx);
-    });
+    auto biomeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("biome", StringArgumentType::string());
+    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return locateBiome(ctx); });
     locateBiomeNode->addChild(biomeArg);
 
     dispatcher.registerCommand(locateBiomeNode);
@@ -83,21 +72,16 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    BlockPos searchCenter(
-        static_cast<BlockCoord>(playerPos.x),
+    BlockPos searchCenter(static_cast<BlockCoord>(playerPos.x),
         static_cast<BlockCoord>(playerPos.y),
-        static_cast<BlockCoord>(playerPos.z)
-    );
+        static_cast<BlockCoord>(playerPos.z));
 
     std::ostringstream ss;
-    ss << "Searching for biome '" << biomeName << "' near ("
-       << searchCenter.x << ", " << searchCenter.z << ")...";
+    ss << "Searching for biome '" << biomeName << "' near (" << searchCenter.x << ", " << searchCenter.z << ")...";
     source.sendMessage(ss.str());
 
     // 创建生物群系匹配谓词
-    auto predicate = [targetBiome = biomeId.value()](BiomeId biome) {
-        return biome == targetBiome;
-    };
+    auto predicate = [targetBiome = biomeId.value()](BiomeId biome) { return biome == targetBiome; };
 
     // 创建随机数生成器
     math::Random random(static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
@@ -113,15 +97,14 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    auto result = biomeProvider->findBiome(
-        searchCenter.x,
+    auto result = biomeProvider->findBiome(searchCenter.x,
         searchCenter.y,
         searchCenter.z,
         SEARCH_RADIUS,
         SEARCH_STEP,
         predicate,
         random,
-        true  // stopOnFirst - 找到第一个即返回
+        true // stopOnFirst - 找到第一个即返回
     );
 
     if (result.has_value()) {

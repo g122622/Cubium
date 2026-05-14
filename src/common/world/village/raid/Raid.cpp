@@ -1,15 +1,15 @@
 ﻿#include "Raid.hpp"
 
-#include "../Village.hpp"
-#include "../../IWorld.hpp"
-#include "../../../entity/core/Entity.hpp"
 #include "../../../entity/combat/DifficultyHelper.hpp"
+#include "../../../entity/core/Entity.hpp"
 #include "../../../entity/entities/monster/illager/EvokerEntity.hpp"
 #include "../../../entity/entities/monster/illager/IllagerEntities.hpp"
 #include "../../../entity/entities/monster/illager/RavagerEntity.hpp"
 #include "../../../entity/entities/monster/illager/WitchEntity.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../IWorld.hpp"
+#include "../Village.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -26,8 +26,7 @@ Raid::Raid(RaidId id, village::Village* village)
     : m_id(id)
     , m_village(village)
     , m_center(village != nullptr ? village->getCenter() : BlockPos::zero())
-{
-}
+{}
 
 /**
  * @brief 根据难度返回基础波次数。
@@ -35,7 +34,8 @@ Raid::Raid(RaidId id, village::Village* village)
  * @param difficulty 世界难度。
  * @return 基础波次数。
  */
-i32 Raid::maxWaves(Difficulty difficulty) const {
+i32 Raid::maxWaves(Difficulty difficulty) const
+{
     return entity::combat::DifficultyHelper::getRaidWaves(difficulty);
 }
 
@@ -44,7 +44,8 @@ i32 Raid::maxWaves(Difficulty difficulty) const {
  *
  * @return 袭击者数量。
  */
-i32 Raid::getAliveRaidersCount() const {
+i32 Raid::getAliveRaidersCount() const
+{
     return static_cast<i32>(m_raiders.size());
 }
 
@@ -53,7 +54,8 @@ i32 Raid::getAliveRaidersCount() const {
  *
  * @param raider 袭击者实体 ID。
  */
-void Raid::addRaider(EntityId raider) {
+void Raid::addRaider(EntityId raider)
+{
     if (std::find(m_raiders.begin(), m_raiders.end(), raider) == m_raiders.end()) {
         m_raiders.push_back(raider);
     }
@@ -64,7 +66,8 @@ void Raid::addRaider(EntityId raider) {
  *
  * @param raider 袭击者实体 ID。
  */
-void Raid::removeRaider(EntityId raider) {
+void Raid::removeRaider(EntityId raider)
+{
     const auto it = std::find(m_raiders.begin(), m_raiders.end(), raider);
     if (it != m_raiders.end()) {
         m_raiders.erase(it);
@@ -77,7 +80,8 @@ void Raid::removeRaider(EntityId raider) {
  * @param raider 死亡的袭击者实体 ID。
  * @param world 所属世界。
  */
-void Raid::onRaiderDeath(EntityId raider, IWorld& world) {
+void Raid::onRaiderDeath(EntityId raider, IWorld& world)
+{
     removeRaider(raider);
 
     if (isWaveDefeated()) {
@@ -94,7 +98,8 @@ void Raid::onRaiderDeath(EntityId raider, IWorld& world) {
  *
  * @param world 所属世界。
  */
-void Raid::startNextWave(IWorld& world) {
+void Raid::startNextWave(IWorld& world)
+{
     ++m_wave;
     spawnRaiders(world);
 }
@@ -104,7 +109,8 @@ void Raid::startNextWave(IWorld& world) {
  *
  * @param world 所属世界。
  */
-void Raid::spawnRaiders(IWorld& world) {
+void Raid::spawnRaiders(IWorld& world)
+{
     if (m_wave <= 0) {
         m_wave = 1;
     }
@@ -133,9 +139,7 @@ void Raid::spawnRaiders(IWorld& world) {
         const f32 offsetX = (rng.nextFloat() - 0.5f) * 10.0f;
         const f32 offsetZ = (rng.nextFloat() - 0.5f) * 10.0f;
         const BlockPos pos(
-            static_cast<BlockCoord>(basePos.x + offsetX),
-            basePos.y,
-            static_cast<BlockCoord>(basePos.z + offsetZ));
+            static_cast<BlockCoord>(basePos.x + offsetX), basePos.y, static_cast<BlockCoord>(basePos.z + offsetZ));
 
         const EntityId raider = spawnRaider(world, type, pos);
         if (raider != 0) {
@@ -157,7 +161,8 @@ void Raid::spawnRaiders(IWorld& world) {
  *
  * @return 当前波是否已无追踪袭击者。
  */
-bool Raid::isWaveDefeated() const {
+bool Raid::isWaveDefeated() const
+{
     return m_raiders.empty();
 }
 
@@ -166,7 +171,8 @@ bool Raid::isWaveDefeated() const {
  *
  * @return 是否还应继续生成下一波。
  */
-bool Raid::hasMoreWaves() const {
+bool Raid::hasMoreWaves() const
+{
     const i32 extraWaves = std::max(0, m_badOmenLevel - 1) * RaidConfig::BAD_OMEN_WAVE_BONUS;
     const i32 targetWaves = maxWaves(m_difficulty) + extraWaves;
     return targetWaves > 0 && m_wave < targetWaves;
@@ -177,7 +183,8 @@ bool Raid::hasMoreWaves() const {
  *
  * @param world 所属世界。
  */
-void Raid::tick(IWorld& world) {
+void Raid::tick(IWorld& world)
+{
     if (m_status != RaidStatus::Ongoing) {
         return;
     }
@@ -222,14 +229,16 @@ void Raid::tick(IWorld& world) {
  *
  * @return 关联村庄存在时返回 true。
  */
-bool Raid::isValid() const {
+bool Raid::isValid() const
+{
     return m_village != nullptr;
 }
 
 /**
  * @brief 停止袭击并清空追踪状态。
  */
-void Raid::stop() {
+void Raid::stop()
+{
     m_status = RaidStatus::Stopped;
     m_raiders.clear();
 }
@@ -237,7 +246,8 @@ void Raid::stop() {
 /**
  * @brief 标记袭击为胜利。
  */
-void Raid::setVictory() {
+void Raid::setVictory()
+{
     m_status = RaidStatus::Victory;
     m_raiders.clear();
 }
@@ -245,7 +255,8 @@ void Raid::setVictory() {
 /**
  * @brief 标记袭击为失败。
  */
-void Raid::setLoss() {
+void Raid::setLoss()
+{
     m_status = RaidStatus::Loss;
     m_raiders.clear();
 }
@@ -255,7 +266,8 @@ void Raid::setLoss() {
  *
  * @return 标题文本。
  */
-std::string Raid::getBossBarTitle() const {
+std::string Raid::getBossBarTitle() const
+{
     switch (m_status) {
         case RaidStatus::Victory:
             return "Raid - Victory";
@@ -273,15 +285,16 @@ std::string Raid::getBossBarTitle() const {
  *
  * @return 归一化进度值。
  */
-f32 Raid::getBossBarProgress() const {
+f32 Raid::getBossBarProgress() const
+{
     if (m_status != RaidStatus::Ongoing) {
         return 0.0f;
     }
 
     const i32 totalWaves = std::max(1, maxWaves(m_difficulty) + std::max(0, m_badOmenLevel - 1));
     const f32 waveProgress = static_cast<f32>(m_wave) / static_cast<f32>(totalWaves);
-    const f32 raiderProgress = 1.0f - static_cast<f32>(getAliveRaidersCount()) /
-        static_cast<f32>(RaidConfig::MAX_RAIDERS_PER_WAVE);
+    const f32 raiderProgress =
+        1.0f - static_cast<f32>(getAliveRaidersCount()) / static_cast<f32>(RaidConfig::MAX_RAIDERS_PER_WAVE);
     return std::clamp(waveProgress + raiderProgress / static_cast<f32>(totalWaves), 0.0f, 1.0f);
 }
 
@@ -290,8 +303,7 @@ f32 Raid::getBossBarProgress() const {
  *
  * @note 当前暂无同步目标，因此此处保持空实现。
  */
-void Raid::updateBossBar() {
-}
+void Raid::updateBossBar() {}
 
 /**
  * @brief 显式生成指定波次。
@@ -299,7 +311,8 @@ void Raid::updateBossBar() {
  * @param world 所属世界。
  * @param waveNum 波次编号。
  */
-void Raid::spawnWave(IWorld& world, i32 waveNum) {
+void Raid::spawnWave(IWorld& world, i32 waveNum)
+{
     MC_ASSERT_RELEASE(waveNum > 0);
     m_wave = waveNum;
     spawnRaiders(world);
@@ -312,7 +325,8 @@ void Raid::spawnWave(IWorld& world, i32 waveNum) {
  * @param difficulty 世界难度。
  * @return 该波次应生成的袭击者数量。
  */
-i32 Raid::calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const {
+i32 Raid::calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const
+{
     MC_ASSERT_RELEASE(waveNum > 0);
 
     i32 baseCount = RaidConfig::MIN_RAIDERS_PER_WAVE;
@@ -331,7 +345,8 @@ i32 Raid::calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const {
  * @param total 本波总数。
  * @return 选择结果。
  */
-RaiderType Raid::selectRaiderType(i32 waveNum, i32 index, i32 total) const {
+RaiderType Raid::selectRaiderType(i32 waveNum, i32 index, i32 total) const
+{
     MC_ASSERT_RELEASE(waveNum > 0);
     MC_ASSERT_RELEASE(index >= 0);
     MC_ASSERT_RELEASE(total > 0);
@@ -363,7 +378,8 @@ RaiderType Raid::selectRaiderType(i32 waveNum, i32 index, i32 total) const {
  * @param pos 生成位置。
  * @return 实体 ID，失败返回 0。
  */
-EntityId Raid::spawnRaider(IWorld& world, RaiderType type, BlockPos pos) {
+EntityId Raid::spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
+{
     std::unique_ptr<Entity> entity;
 
     switch (type) {
@@ -390,10 +406,7 @@ EntityId Raid::spawnRaider(IWorld& world, RaiderType type, BlockPos pos) {
         return 0;
     }
 
-    entity->setPosition(
-        static_cast<f32>(pos.x) + 0.5f,
-        static_cast<f32>(pos.y),
-        static_cast<f32>(pos.z) + 0.5f);
+    entity->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
 
     const EntityId id = world.spawnEntity(std::move(entity));
     if (id != 0) {
@@ -412,7 +425,8 @@ EntityId Raid::spawnRaider(IWorld& world, RaiderType type, BlockPos pos) {
  * @param world 所属世界。
  * @return 生成点；若当前没有可用村庄则返回空值。
  */
-std::optional<BlockPos> Raid::findSpawnPosition(IWorld& world) const {
+std::optional<BlockPos> Raid::findSpawnPosition(IWorld& world) const
+{
     if (m_village == nullptr) {
         return std::nullopt;
     }
@@ -435,7 +449,8 @@ std::optional<BlockPos> Raid::findSpawnPosition(IWorld& world) const {
  *
  * 参考 MC 1.16.5 Raid.addHero()
  */
-void Raid::addHero(Uuid playerUuid, EntityId entityId) {
+void Raid::addHero(Uuid playerUuid, EntityId entityId)
+{
     if (m_heroes.find(playerUuid) == m_heroes.end()) {
         m_heroes.insert(playerUuid);
         m_participants.emplace_back(playerUuid, entityId);
@@ -445,14 +460,16 @@ void Raid::addHero(Uuid playerUuid, EntityId entityId) {
 /**
  * @brief 检查玩家是否为英雄。
  */
-bool Raid::isHero(Uuid playerUuid) const {
+bool Raid::isHero(Uuid playerUuid) const
+{
     return m_heroes.find(playerUuid) != m_heroes.end();
 }
 
 /**
  * @brief 增加玩家贡献值。
  */
-void Raid::addContribution(Uuid playerUuid, i32 amount) {
+void Raid::addContribution(Uuid playerUuid, i32 amount)
+{
     for (auto& participant : m_participants) {
         if (participant.uuid == playerUuid) {
             participant.contribution += amount;
@@ -465,7 +482,8 @@ void Raid::addContribution(Uuid playerUuid, i32 amount) {
 /**
  * @brief 获取玩家贡献值。
  */
-i32 Raid::getContribution(Uuid playerUuid) const {
+i32 Raid::getContribution(Uuid playerUuid) const
+{
     for (const auto& participant : m_participants) {
         if (participant.uuid == playerUuid) {
             return participant.contribution;

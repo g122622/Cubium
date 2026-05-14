@@ -1,6 +1,6 @@
 #include "VanillaResources.hpp"
-#include <spdlog/spdlog.h>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -170,7 +170,8 @@ const char* VanillaResources::MODEL_AIR = R"({
 // 创建资源包
 // ============================================================================
 
-std::unique_ptr<InMemoryResourcePack> VanillaResources::createResourcePack() {
+std::unique_ptr<InMemoryResourcePack> VanillaResources::createResourcePack()
+{
     auto pack = std::make_unique<InMemoryResourcePack>("vanilla");
 
     registerBaseModels(*pack);
@@ -183,7 +184,8 @@ std::unique_ptr<InMemoryResourcePack> VanillaResources::createResourcePack() {
 // 注册基础模型
 // ============================================================================
 
-void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
+void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
+{
     // 基础方块模型（无父模型）
     pack.addResource("assets/minecraft/models/block/cube.json", MODEL_CUBE);
 
@@ -682,9 +684,22 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
         }
     })";
 
-    const char* woolColors[] = {"white", "orange", "magenta", "light_blue", "yellow",
-                                 "lime", "pink", "gray", "light_gray", "cyan",
-                                 "purple", "blue", "brown", "green", "red", "black"};
+    const char* woolColors[] = {"white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red",
+        "black"};
     for (const auto& color : woolColors) {
         std::string model = std::string(woolTemplate);
         size_t pos = model.find("%s");
@@ -779,9 +794,18 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
         }
     })";
 
-    const char* flowers[] = {"dandelion", "poppy", "blue_orchid", "allium", "azure_bluet",
-                             "red_tulip", "orange_tulip", "white_tulip", "pink_tulip", "oxeye_daisy",
-                             "brown_mushroom", "red_mushroom"};
+    const char* flowers[] = {"dandelion",
+        "poppy",
+        "blue_orchid",
+        "allium",
+        "azure_bluet",
+        "red_tulip",
+        "orange_tulip",
+        "white_tulip",
+        "pink_tulip",
+        "oxeye_daisy",
+        "brown_mushroom",
+        "red_mushroom"};
     for (const auto& flower : flowers) {
         std::string model = std::string(flowerTemplate);
         size_t pos = model.find("%s");
@@ -836,7 +860,8 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
 // Register Blockstates
 // ============================================================================
 
-void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
+void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
+{
     // Most simple blocks use "normal" variant
     const char* simpleBlockstate = R"({
         "variants": {
@@ -845,23 +870,81 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
     })";
 
     // 注册所有简单方块的 blockstates
-    const char* simpleBlocks[] = {
-        "stone", "dirt", "grass_block", "bedrock", "sand", "gravel",
-        "cobblestone", "mossy_cobblestone", "oak_planks",
-        "coal_ore", "iron_ore", "gold_ore", "diamond_ore", "emerald_ore", "lapis_ore", "redstone_ore",
-        "diamond_block", "gold_block", "iron_block", "emerald_block", "lapis_block", "redstone_block",
-        "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite",
-        "sandstone", "chiseled_sandstone", "cut_sandstone", "red_sandstone",
-        "bricks", "bookshelf", "tnt", "sponge", "wet_sponge",
-        "netherrack", "glowstone", "end_stone", "obsidian",
-        "soul_sand", "soul_soil", "basalt", "polished_basalt", "blackstone", "polished_blackstone", "crying_obsidian",
-        "ice", "snow", "water", "lava",
-        "coarse_dirt", "podzol",
-        "spruce_planks", "birch_planks", "jungle_planks", "acacia_planks", "dark_oak_planks",
-        "white_wool", "orange_wool", "magenta_wool", "light_blue_wool", "yellow_wool",
-        "lime_wool", "pink_wool", "gray_wool", "light_gray_wool", "cyan_wool",
-        "purple_wool", "blue_wool", "brown_wool", "green_wool", "red_wool", "black_wool"
-    };
+    const char* simpleBlocks[] = {"stone",
+        "dirt",
+        "grass_block",
+        "bedrock",
+        "sand",
+        "gravel",
+        "cobblestone",
+        "mossy_cobblestone",
+        "oak_planks",
+        "coal_ore",
+        "iron_ore",
+        "gold_ore",
+        "diamond_ore",
+        "emerald_ore",
+        "lapis_ore",
+        "redstone_ore",
+        "diamond_block",
+        "gold_block",
+        "iron_block",
+        "emerald_block",
+        "lapis_block",
+        "redstone_block",
+        "granite",
+        "polished_granite",
+        "diorite",
+        "polished_diorite",
+        "andesite",
+        "polished_andesite",
+        "sandstone",
+        "chiseled_sandstone",
+        "cut_sandstone",
+        "red_sandstone",
+        "bricks",
+        "bookshelf",
+        "tnt",
+        "sponge",
+        "wet_sponge",
+        "netherrack",
+        "glowstone",
+        "end_stone",
+        "obsidian",
+        "soul_sand",
+        "soul_soil",
+        "basalt",
+        "polished_basalt",
+        "blackstone",
+        "polished_blackstone",
+        "crying_obsidian",
+        "ice",
+        "snow",
+        "water",
+        "lava",
+        "coarse_dirt",
+        "podzol",
+        "spruce_planks",
+        "birch_planks",
+        "jungle_planks",
+        "acacia_planks",
+        "dark_oak_planks",
+        "white_wool",
+        "orange_wool",
+        "magenta_wool",
+        "light_blue_wool",
+        "yellow_wool",
+        "lime_wool",
+        "pink_wool",
+        "gray_wool",
+        "light_gray_wool",
+        "cyan_wool",
+        "purple_wool",
+        "blue_wool",
+        "brown_wool",
+        "green_wool",
+        "red_wool",
+        "black_wool"};
 
     for (const auto& block : simpleBlocks) {
         std::string json = std::string(simpleBlockstate);
@@ -956,9 +1039,21 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
         }
     })";
 
-    const char* flowerBlockstates[] = {"dandelion", "poppy", "blue_orchid", "allium", "azure_bluet",
-                                        "red_tulip", "orange_tulip", "white_tulip", "pink_tulip", "oxeye_daisy",
-                                        "brown_mushroom", "red_mushroom", "short_grass", "fern", "tall_grass"};
+    const char* flowerBlockstates[] = {"dandelion",
+        "poppy",
+        "blue_orchid",
+        "allium",
+        "azure_bluet",
+        "red_tulip",
+        "orange_tulip",
+        "white_tulip",
+        "pink_tulip",
+        "oxeye_daisy",
+        "brown_mushroom",
+        "red_mushroom",
+        "short_grass",
+        "fern",
+        "tall_grass"};
     for (const auto& flower : flowerBlockstates) {
         std::string json = std::string(flowerBlockstateTemplate);
         size_t pos = json.find("%s");

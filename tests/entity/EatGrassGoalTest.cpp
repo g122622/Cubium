@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -12,12 +12,11 @@ using namespace mc;
 
 class SheepColorMixingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(SheepColorMixingTest, SameColorReturnsSameColor) {
+TEST_F(SheepColorMixingTest, SameColorReturnsSameColor)
+{
     math::Random rng(42);
 
     // 相同颜色应该返回相同颜色
@@ -26,7 +25,8 @@ TEST_F(SheepColorMixingTest, SameColorReturnsSameColor) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Black, DyeColor::Black, rng), DyeColor::Black);
 }
 
-TEST_F(SheepColorMixingTest, WhiteAndRedMakesPink) {
+TEST_F(SheepColorMixingTest, WhiteAndRedMakesPink)
+{
     math::Random rng(42);
 
     // 白色 + 红色 = 粉红色
@@ -34,7 +34,8 @@ TEST_F(SheepColorMixingTest, WhiteAndRedMakesPink) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Red, DyeColor::White, rng), DyeColor::Pink);
 }
 
-TEST_F(SheepColorMixingTest, RedAndYellowMakesOrange) {
+TEST_F(SheepColorMixingTest, RedAndYellowMakesOrange)
+{
     math::Random rng(42);
 
     // 红色 + 黄色 = 橙色
@@ -42,7 +43,8 @@ TEST_F(SheepColorMixingTest, RedAndYellowMakesOrange) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Yellow, DyeColor::Red, rng), DyeColor::Orange);
 }
 
-TEST_F(SheepColorMixingTest, WhiteAndBlueMakesLightBlue) {
+TEST_F(SheepColorMixingTest, WhiteAndBlueMakesLightBlue)
+{
     math::Random rng(42);
 
     // 白色 + 蓝色 = 淡蓝色
@@ -50,7 +52,8 @@ TEST_F(SheepColorMixingTest, WhiteAndBlueMakesLightBlue) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Blue, DyeColor::White, rng), DyeColor::LightBlue);
 }
 
-TEST_F(SheepColorMixingTest, BlueAndGreenMakesCyan) {
+TEST_F(SheepColorMixingTest, BlueAndGreenMakesCyan)
+{
     math::Random rng(42);
 
     // 蓝色 + 绿色 = 青色
@@ -58,7 +61,8 @@ TEST_F(SheepColorMixingTest, BlueAndGreenMakesCyan) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Green, DyeColor::Blue, rng), DyeColor::Cyan);
 }
 
-TEST_F(SheepColorMixingTest, BlueAndRedMakesPurple) {
+TEST_F(SheepColorMixingTest, BlueAndRedMakesPurple)
+{
     math::Random rng(42);
 
     // 蓝色 + 红色 = 紫色
@@ -66,7 +70,8 @@ TEST_F(SheepColorMixingTest, BlueAndRedMakesPurple) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Red, DyeColor::Blue, rng), DyeColor::Purple);
 }
 
-TEST_F(SheepColorMixingTest, WhiteAndGreenMakesLime) {
+TEST_F(SheepColorMixingTest, WhiteAndGreenMakesLime)
+{
     math::Random rng(42);
 
     // 白色 + 绿色 = 黄绿色
@@ -74,7 +79,8 @@ TEST_F(SheepColorMixingTest, WhiteAndGreenMakesLime) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Green, DyeColor::White, rng), DyeColor::Lime);
 }
 
-TEST_F(SheepColorMixingTest, WhiteAndBlackMakesGray) {
+TEST_F(SheepColorMixingTest, WhiteAndBlackMakesGray)
+{
     math::Random rng(42);
 
     // 白色 + 黑色 = 灰色
@@ -82,7 +88,8 @@ TEST_F(SheepColorMixingTest, WhiteAndBlackMakesGray) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::Black, DyeColor::White, rng), DyeColor::Gray);
 }
 
-TEST_F(SheepColorMixingTest, GrayAndWhiteMakesLightGray) {
+TEST_F(SheepColorMixingTest, GrayAndWhiteMakesLightGray)
+{
     math::Random rng(42);
 
     // 灰色 + 白色 = 淡灰色
@@ -90,7 +97,8 @@ TEST_F(SheepColorMixingTest, GrayAndWhiteMakesLightGray) {
     EXPECT_EQ(SheepEntity::getDyeColorMixFromParents(DyeColor::White, DyeColor::Gray, rng), DyeColor::LightGray);
 }
 
-TEST_F(SheepColorMixingTest, NoMixingResultReturnsParentColor) {
+TEST_F(SheepColorMixingTest, NoMixingResultReturnsParentColor)
+{
     // 当没有混合配方时，应该随机返回父母颜色之一
     // 使用固定种子的随机数生成器，nextBoolean() 返回确定性结果
     math::Random rng(12345);
@@ -108,12 +116,11 @@ TEST_F(SheepColorMixingTest, NoMixingResultReturnsParentColor) {
 
 class SheepEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(SheepEntityTest, InitialState) {
+TEST_F(SheepEntityTest, InitialState)
+{
     SheepEntity sheep(LegacyEntityType::Unknown, 1);
 
     // 初始状态
@@ -122,7 +129,8 @@ TEST_F(SheepEntityTest, InitialState) {
     EXPECT_FALSE(sheep.isChild());
 }
 
-TEST_F(SheepEntityTest, SetFleeceColor) {
+TEST_F(SheepEntityTest, SetFleeceColor)
+{
     SheepEntity sheep(LegacyEntityType::Unknown, 1);
 
     sheep.setFleeceColor(DyeColor::Red);
@@ -132,7 +140,8 @@ TEST_F(SheepEntityTest, SetFleeceColor) {
     EXPECT_EQ(sheep.getFleeceColor(), DyeColor::Black);
 }
 
-TEST_F(SheepEntityTest, SetSheared) {
+TEST_F(SheepEntityTest, SetSheared)
+{
     SheepEntity sheep(LegacyEntityType::Unknown, 1);
 
     EXPECT_FALSE(sheep.isSheared());
@@ -147,14 +156,16 @@ TEST_F(SheepEntityTest, SetSheared) {
     EXPECT_TRUE(sheep.isShearable());
 }
 
-TEST_F(SheepEntityTest, ChildCannotBeSheared) {
+TEST_F(SheepEntityTest, ChildCannotBeSheared)
+{
     SheepEntity sheep(LegacyEntityType::Unknown, 1);
     sheep.setChild(true);
 
     EXPECT_FALSE(sheep.isShearable());
 }
 
-TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool) {
+TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool)
+{
     SheepEntity sheep(LegacyEntityType::Unknown, 1);
     sheep.setSheared(true);
 
@@ -165,10 +176,11 @@ TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool) {
     EXPECT_FALSE(sheep.isSheared());
 }
 
-TEST_F(SheepEntityTest, EatGrassBonusAcceleratesChildGrowth) {
+TEST_F(SheepEntityTest, EatGrassBonusAcceleratesChildGrowth)
+{
     SheepEntity sheep(LegacyEntityType::Unknown, 1);
     sheep.setChild(true);
-    sheep.setGrowingAge(-24000);  // 幼羊，-24000 ticks
+    sheep.setGrowingAge(-24000); // 幼羊，-24000 ticks
 
     EXPECT_TRUE(sheep.isChild());
 
@@ -180,7 +192,8 @@ TEST_F(SheepEntityTest, EatGrassBonusAcceleratesChildGrowth) {
     EXPECT_EQ(ageAfter - ageBefore, 60);
 }
 
-TEST_F(SheepEntityTest, GetRandomSheepColor) {
+TEST_F(SheepEntityTest, GetRandomSheepColor)
+{
     // 测试随机颜色生成的分布
     math::Random rng(42);
     int whiteCount = 0;
@@ -194,13 +207,26 @@ TEST_F(SheepEntityTest, GetRandomSheepColor) {
     for (int i = 0; i < iterations; ++i) {
         DyeColor color = SheepEntity::getRandomSheepColor(rng);
         switch (color) {
-            case DyeColor::White: ++whiteCount; break;
-            case DyeColor::Black: ++blackCount; break;
-            case DyeColor::Gray: ++grayCount; break;
-            case DyeColor::LightGray: ++lightGrayCount; break;
-            case DyeColor::Brown: ++brownCount; break;
-            case DyeColor::Pink: ++pinkCount; break;
-            default: break;
+            case DyeColor::White:
+                ++whiteCount;
+                break;
+            case DyeColor::Black:
+                ++blackCount;
+                break;
+            case DyeColor::Gray:
+                ++grayCount;
+                break;
+            case DyeColor::LightGray:
+                ++lightGrayCount;
+                break;
+            case DyeColor::Brown:
+                ++brownCount;
+                break;
+            case DyeColor::Pink:
+                ++pinkCount;
+                break;
+            default:
+                break;
         }
     }
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../core/EntityModel.hpp"
-#include "../core/AgeableModel.hpp"
 #include "../base/QuadrupedModel.hpp"
+#include "../core/AgeableModel.hpp"
+#include "../core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {
 
@@ -16,9 +16,8 @@ public:
     PigModel();
     ~PigModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 };
 
 /**
@@ -31,9 +30,8 @@ public:
     CowModel();
     ~CowModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
 };
@@ -48,9 +46,8 @@ public:
     SheepModel();
     ~SheepModel() override = default;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
      * @brief 设置生物动画状态（每帧调用）
@@ -70,7 +67,8 @@ public:
      * @param isEating 是否正在吃草
      * @param eatingTimer 吃草计时器 (0-40)
      */
-    void setEatingGrass(bool isEating, i32 eatingTimer) {
+    void setEatingGrass(bool isEating, i32 eatingTimer)
+    {
         m_isEating = isEating;
         m_eatingTimer = eatingTimer;
     }
@@ -80,7 +78,8 @@ public:
      * @param headRotationPointY 头部 Y 旋转点偏移 (来自实体)
      * @param headRotationAngleX 头部 X 旋转角度 (来自实体)
      */
-    void setHeadRotation(f32 headRotationPointY, f32 headRotationAngleX) {
+    void setHeadRotation(f32 headRotationPointY, f32 headRotationAngleX)
+    {
         m_headRotationPointY = headRotationPointY;
         m_headRotationAngleX = headRotationAngleX;
     }
@@ -89,8 +88,8 @@ private:
     bool m_hasWool = true;
     bool m_isEating = false;
     i32 m_eatingTimer = 0;
-    f32 m_headRotationPointY = 0.0f;   // 来自实体的头部 Y 偏移
-    f32 m_headRotationAngleX = 0.0f;   // 来自实体的头部 X 旋转角度
+    f32 m_headRotationPointY = 0.0f; // 来自实体的头部 Y 偏移
+    f32 m_headRotationAngleX = 0.0f; // 来自实体的头部 X 旋转角度
 };
 
 /**
@@ -106,9 +105,8 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 protected:
     std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
@@ -121,9 +119,9 @@ private:
     std::shared_ptr<ModelRenderer> m_leftWing;
     std::shared_ptr<ModelRenderer> m_rightLeg;
     std::shared_ptr<ModelRenderer> m_leftLeg;
-    std::shared_ptr<ModelRenderer> m_beak;      // 喙
-    std::shared_ptr<ModelRenderer> m_wattle;    // 肉垂（下巴下面的红肉）
-    std::shared_ptr<ModelRenderer> m_comb;      // 鸡冠
+    std::shared_ptr<ModelRenderer> m_beak;   // 喙
+    std::shared_ptr<ModelRenderer> m_wattle; // 肉垂（下巴下面的红肉）
+    std::shared_ptr<ModelRenderer> m_comb;   // 鸡冠
 };
 
 } // namespace mc::client::renderer::entity::model::animal

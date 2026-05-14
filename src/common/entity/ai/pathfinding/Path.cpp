@@ -3,7 +3,8 @@
 
 namespace mc::entity::ai::pathfinding {
 
-Vector3d Path::getVectorFromIndex(const Entity* entity, i32 index) const {
+Vector3d Path::getVectorFromIndex(const Entity* entity, i32 index) const
+{
     if (index < 0 || index >= static_cast<i32>(m_points.size())) {
         return Vector3d(0.0, 0.0, 0.0);
     }
@@ -17,21 +18,15 @@ Vector3d Path::getVectorFromIndex(const Entity* entity, i32 index) const {
         // 这确保宽实体能够正确导航通过狭窄空间
         f32 halfWidth = entity->width() / 2.0f;
         return Vector3d(
-            static_cast<f64>(point.x()) + 0.5,
-            static_cast<f64>(point.y()),
-            static_cast<f64>(point.z()) + 0.5
-        );
+            static_cast<f64>(point.x()) + 0.5, static_cast<f64>(point.y()), static_cast<f64>(point.z()) + 0.5);
     }
 
     // 普通实体：返回路径点中心位置
-    return Vector3d(
-        static_cast<f64>(point.x()) + 0.5,
-        static_cast<f64>(point.y()),
-        static_cast<f64>(point.z()) + 0.5
-    );
+    return Vector3d(static_cast<f64>(point.x()) + 0.5, static_cast<f64>(point.y()), static_cast<f64>(point.z()) + 0.5);
 }
 
-Vector3d Path::getPosition(const Entity* entity) const {
+Vector3d Path::getPosition(const Entity* entity) const
+{
     const PathPoint* currentTarget = getCurrentTarget();
     if (!currentTarget) {
         return Vector3d(0.0, 0.0, 0.0);

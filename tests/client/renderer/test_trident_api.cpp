@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include "client/renderer/api/TridentApi.hpp"
+#include <gtest/gtest.h>
 
 #undef EXPECT_FLOAT_EQ
 #define EXPECT_FLOAT_EQ EXPECT_DOUBLE_EQ
@@ -16,7 +16,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TypesTest, VertexDefaultValues) {
+TEST_F(TypesTest, VertexDefaultValues)
+{
     Vertex v;
     EXPECT_FLOAT_EQ(v.x, 0.0f);
     EXPECT_FLOAT_EQ(v.y, 0.0f);
@@ -30,7 +31,8 @@ TEST_F(TypesTest, VertexDefaultValues) {
     EXPECT_EQ(v.light, 255u);
 }
 
-TEST_F(TypesTest, VertexParameterizedConstructor) {
+TEST_F(TypesTest, VertexParameterizedConstructor)
+{
     Vertex v(1.0f, 2.0f, 3.0f, 0.0f, 1.0f, 0.0f, 0.5f, 0.5f, 0x80808080, 128);
     EXPECT_FLOAT_EQ(v.x, 1.0f);
     EXPECT_FLOAT_EQ(v.y, 2.0f);
@@ -44,12 +46,14 @@ TEST_F(TypesTest, VertexParameterizedConstructor) {
     EXPECT_EQ(v.light, 128u);
 }
 
-TEST_F(TypesTest, VertexStride) {
+TEST_F(TypesTest, VertexStride)
+{
     // Vertex 应该有固定的大小，用于顶点缓冲区布局
     EXPECT_EQ(Vertex::stride(), sizeof(Vertex));
 }
 
-TEST_F(TypesTest, FaceEnumValues) {
+TEST_F(TypesTest, FaceEnumValues)
+{
     EXPECT_EQ(static_cast<u8>(Face::Bottom), 0u);
     EXPECT_EQ(static_cast<u8>(Face::Top), 1u);
     EXPECT_EQ(static_cast<u8>(Face::North), 2u);
@@ -68,12 +72,14 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(BlockGeometryTest, Constants) {
+TEST_F(BlockGeometryTest, Constants)
+{
     EXPECT_EQ(BlockGeometry::VERTICES_PER_FACE, 4u);
     EXPECT_EQ(BlockGeometry::INDICES_PER_FACE, 6u);
 }
 
-TEST_F(BlockGeometryTest, GetFaceNormal) {
+TEST_F(BlockGeometryTest, GetFaceNormal)
+{
     // 测试每个面的法线
     auto bottomNormal = BlockGeometry::getFaceNormal(Face::Bottom);
     EXPECT_FLOAT_EQ(bottomNormal[0], 0.0f);
@@ -106,10 +112,11 @@ TEST_F(BlockGeometryTest, GetFaceNormal) {
     EXPECT_FLOAT_EQ(eastNormal[2], 0.0f);
 }
 
-TEST_F(BlockGeometryTest, GetFaceVertices) {
+TEST_F(BlockGeometryTest, GetFaceVertices)
+{
     // 测试顶面顶点 (Y+)
     auto topVertices = BlockGeometry::getFaceVertices(Face::Top);
-    EXPECT_EQ(topVertices.size(), 12u);  // 4 vertices * 3 components
+    EXPECT_EQ(topVertices.size(), 12u); // 4 vertices * 3 components
 
     // 顶面应该在 Y=1 平面
     EXPECT_FLOAT_EQ(topVertices[1], 1.0f);  // v0.y
@@ -118,7 +125,8 @@ TEST_F(BlockGeometryTest, GetFaceVertices) {
     EXPECT_FLOAT_EQ(topVertices[10], 1.0f); // v3.y
 }
 
-TEST_F(BlockGeometryTest, GetFaceIndices) {
+TEST_F(BlockGeometryTest, GetFaceIndices)
+{
     auto indices = BlockGeometry::getFaceIndices();
     EXPECT_EQ(indices.size(), 6u);
 
@@ -131,7 +139,8 @@ TEST_F(BlockGeometryTest, GetFaceIndices) {
     EXPECT_EQ(indices[5], 3u);
 }
 
-TEST_F(BlockGeometryTest, GetFaceDirection) {
+TEST_F(BlockGeometryTest, GetFaceDirection)
+{
     auto bottomDir = BlockGeometry::getFaceDirection(Face::Bottom);
     EXPECT_EQ(bottomDir[0], 0);
     EXPECT_EQ(bottomDir[1], -1);
@@ -143,7 +152,8 @@ TEST_F(BlockGeometryTest, GetFaceDirection) {
     EXPECT_EQ(topDir[2], 0);
 }
 
-TEST_F(BlockGeometryTest, ShouldRenderFace) {
+TEST_F(BlockGeometryTest, ShouldRenderFace)
+{
     // 如果邻居不透明，不渲染该面
     EXPECT_FALSE(BlockGeometry::shouldRenderFace(Face::Top, true));
 
@@ -160,33 +170,38 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(BlendStateTest, DisabledState) {
+TEST_F(BlendStateTest, DisabledState)
+{
     auto state = BlendState::disabled();
     EXPECT_FALSE(state.enabled);
 }
 
-TEST_F(BlendStateTest, AlphaBlend) {
+TEST_F(BlendStateTest, AlphaBlend)
+{
     auto state = BlendState::alpha();
     EXPECT_TRUE(state.enabled);
     EXPECT_EQ(state.srcColor, BlendFactor::SrcAlpha);
     EXPECT_EQ(state.dstColor, BlendFactor::OneMinusSrcAlpha);
 }
 
-TEST_F(BlendStateTest, AdditiveBlend) {
+TEST_F(BlendStateTest, AdditiveBlend)
+{
     auto state = BlendState::additive();
     EXPECT_TRUE(state.enabled);
     EXPECT_EQ(state.srcColor, BlendFactor::SrcAlpha);
     EXPECT_EQ(state.dstColor, BlendFactor::One);
 }
 
-TEST_F(BlendStateTest, PremultipliedBlend) {
+TEST_F(BlendStateTest, PremultipliedBlend)
+{
     auto state = BlendState::premultiplied();
     EXPECT_TRUE(state.enabled);
     EXPECT_EQ(state.srcColor, BlendFactor::One);
     EXPECT_EQ(state.dstColor, BlendFactor::OneMinusSrcAlpha);
 }
 
-TEST_F(BlendStateTest, EqualityComparison) {
+TEST_F(BlendStateTest, EqualityComparison)
+{
     auto state1 = BlendState::alpha();
     auto state2 = BlendState::alpha();
     auto state3 = BlendState::additive();
@@ -204,27 +219,31 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(DepthStateTest, DisabledState) {
+TEST_F(DepthStateTest, DisabledState)
+{
     auto state = DepthState::disabled();
     EXPECT_FALSE(state.testEnabled);
     EXPECT_FALSE(state.writeEnabled);
 }
 
-TEST_F(DepthStateTest, ReadOnlyState) {
+TEST_F(DepthStateTest, ReadOnlyState)
+{
     auto state = DepthState::readOnly();
     EXPECT_TRUE(state.testEnabled);
     EXPECT_FALSE(state.writeEnabled);
     EXPECT_EQ(state.compareOp, CompareOp::Less);
 }
 
-TEST_F(DepthStateTest, ReadWriteState) {
+TEST_F(DepthStateTest, ReadWriteState)
+{
     auto state = DepthState::readWrite();
     EXPECT_TRUE(state.testEnabled);
     EXPECT_TRUE(state.writeEnabled);
     EXPECT_EQ(state.compareOp, CompareOp::Less);
 }
 
-TEST_F(DepthStateTest, EqualState) {
+TEST_F(DepthStateTest, EqualState)
+{
     auto state = DepthState::equal();
     EXPECT_TRUE(state.testEnabled);
     EXPECT_FALSE(state.writeEnabled);
@@ -240,19 +259,22 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(RasterizerStateTest, DefaultState) {
+TEST_F(RasterizerStateTest, DefaultState)
+{
     auto state = RasterizerState::defaults();
     EXPECT_EQ(state.cullMode, CullMode::Back);
     EXPECT_EQ(state.frontFace, FrontFace::Clockwise);
     EXPECT_EQ(state.polygonMode, PolygonMode::Fill);
 }
 
-TEST_F(RasterizerStateTest, DoubleSidedState) {
+TEST_F(RasterizerStateTest, DoubleSidedState)
+{
     auto state = RasterizerState::doubleSided();
     EXPECT_EQ(state.cullMode, CullMode::None);
 }
 
-TEST_F(RasterizerStateTest, WireframeState) {
+TEST_F(RasterizerStateTest, WireframeState)
+{
     auto state = RasterizerState::wireframe();
     EXPECT_EQ(state.polygonMode, PolygonMode::Line);
     EXPECT_EQ(state.cullMode, CullMode::None);
@@ -267,7 +289,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(RenderStateTest, SolidState) {
+TEST_F(RenderStateTest, SolidState)
+{
     auto state = RenderState::solid();
     EXPECT_FALSE(state.blend.enabled);
     EXPECT_TRUE(state.depth.testEnabled);
@@ -275,7 +298,8 @@ TEST_F(RenderStateTest, SolidState) {
     EXPECT_EQ(state.rasterizer.cullMode, CullMode::Back);
 }
 
-TEST_F(RenderStateTest, TranslucentState) {
+TEST_F(RenderStateTest, TranslucentState)
+{
     auto state = RenderState::translucent();
     EXPECT_TRUE(state.blend.enabled);
     EXPECT_TRUE(state.depth.testEnabled);
@@ -283,7 +307,8 @@ TEST_F(RenderStateTest, TranslucentState) {
     EXPECT_EQ(state.rasterizer.cullMode, CullMode::None);
 }
 
-TEST_F(RenderStateTest, LinesState) {
+TEST_F(RenderStateTest, LinesState)
+{
     auto state = RenderState::lines();
     EXPECT_TRUE(state.blend.enabled);
     EXPECT_TRUE(state.depth.testEnabled);
@@ -300,7 +325,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(RenderTypeTest, SolidRenderType) {
+TEST_F(RenderTypeTest, SolidRenderType)
+{
     auto rt = RenderType::solid();
     EXPECT_TRUE(rt.isValid());
     EXPECT_EQ(rt.name(), std::string("solid"));
@@ -308,7 +334,8 @@ TEST_F(RenderTypeTest, SolidRenderType) {
     EXPECT_FALSE(rt.needsSorting());
 }
 
-TEST_F(RenderTypeTest, TranslucentRenderType) {
+TEST_F(RenderTypeTest, TranslucentRenderType)
+{
     auto rt = RenderType::translucent();
     EXPECT_TRUE(rt.isValid());
     EXPECT_EQ(rt.name(), std::string("translucent"));
@@ -316,7 +343,8 @@ TEST_F(RenderTypeTest, TranslucentRenderType) {
     EXPECT_TRUE(rt.needsSorting());
 }
 
-TEST_F(RenderTypeTest, RenderTypeComparison) {
+TEST_F(RenderTypeTest, RenderTypeComparison)
+{
     auto solid = RenderType::solid();
     auto cutout = RenderType::cutout();
     auto translucent = RenderType::translucent();
@@ -326,7 +354,8 @@ TEST_F(RenderTypeTest, RenderTypeComparison) {
     EXPECT_TRUE(solid.shouldRenderBefore(translucent));
 }
 
-TEST_F(RenderTypeTest, EntityRenderType) {
+TEST_F(RenderTypeTest, EntityRenderType)
+{
     auto rt = RenderType::entitySolid(mc::ResourceLocation("minecraft:textures/entity/pig.png"));
     EXPECT_TRUE(rt.isValid());
     EXPECT_EQ(rt.name(), std::string("entity_solid"));
@@ -342,7 +371,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(TextureRegionTest, DefaultValues) {
+TEST_F(TextureRegionTest, DefaultValues)
+{
     TextureRegion region;
     EXPECT_FLOAT_EQ(region.u0, 0.0f);
     EXPECT_FLOAT_EQ(region.v0, 0.0f);
@@ -350,7 +380,8 @@ TEST_F(TextureRegionTest, DefaultValues) {
     EXPECT_FLOAT_EQ(region.v1, 1.0f);
 }
 
-TEST_F(TextureRegionTest, ParameterizedConstructor) {
+TEST_F(TextureRegionTest, ParameterizedConstructor)
+{
     TextureRegion region(0.25f, 0.5f, 0.75f, 1.0f);
     EXPECT_FLOAT_EQ(region.u0, 0.25f);
     EXPECT_FLOAT_EQ(region.v0, 0.5f);
@@ -358,13 +389,15 @@ TEST_F(TextureRegionTest, ParameterizedConstructor) {
     EXPECT_FLOAT_EQ(region.v1, 1.0f);
 }
 
-TEST_F(TextureRegionTest, WidthHeight) {
+TEST_F(TextureRegionTest, WidthHeight)
+{
     TextureRegion region(0.0f, 0.0f, 0.5f, 0.5f);
     EXPECT_FLOAT_EQ(region.width(), 0.5f);
     EXPECT_FLOAT_EQ(region.height(), 0.5f);
 }
 
-TEST_F(TextureRegionTest, FullRegion) {
+TEST_F(TextureRegionTest, FullRegion)
+{
     auto region = TextureRegion::full();
     EXPECT_FLOAT_EQ(region.u0, 0.0f);
     EXPECT_FLOAT_EQ(region.v0, 0.0f);
@@ -372,7 +405,8 @@ TEST_F(TextureRegionTest, FullRegion) {
     EXPECT_FLOAT_EQ(region.v1, 1.0f);
 }
 
-TEST_F(TextureRegionTest, EqualityComparison) {
+TEST_F(TextureRegionTest, EqualityComparison)
+{
     TextureRegion r1(0.0f, 0.0f, 1.0f, 1.0f);
     TextureRegion r2(0.0f, 0.0f, 1.0f, 1.0f);
     TextureRegion r3(0.5f, 0.5f, 1.0f, 1.0f);
@@ -390,7 +424,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(MeshDataTest, Clear) {
+TEST_F(MeshDataTest, Clear)
+{
     MeshData mesh;
     mesh.vertices.push_back(Vertex());
     mesh.indices.push_back(0);
@@ -400,7 +435,8 @@ TEST_F(MeshDataTest, Clear) {
     EXPECT_TRUE(mesh.indices.empty());
 }
 
-TEST_F(MeshDataTest, Reserve) {
+TEST_F(MeshDataTest, Reserve)
+{
     MeshData mesh;
     mesh.reserve(100, 200);
     // reserve 不改变 size，只改变 capacity
@@ -408,21 +444,21 @@ TEST_F(MeshDataTest, Reserve) {
     EXPECT_TRUE(mesh.indices.empty());
 }
 
-TEST_F(MeshDataTest, AddFace) {
+TEST_F(MeshDataTest, AddFace)
+{
     MeshData mesh;
-    std::array<Vertex, 4> faceVertices = {
-        Vertex(0, 0, 0, 0, 1, 0, 0, 0),
+    std::array<Vertex, 4> faceVertices = {Vertex(0, 0, 0, 0, 1, 0, 0, 0),
         Vertex(1, 0, 0, 0, 1, 0, 1, 0),
         Vertex(1, 1, 0, 0, 1, 0, 1, 1),
-        Vertex(0, 1, 0, 0, 1, 0, 0, 1)
-    };
+        Vertex(0, 1, 0, 0, 1, 0, 0, 1)};
 
     mesh.addFace(faceVertices, 0);
     EXPECT_EQ(mesh.vertexCount(), 4u);
     EXPECT_EQ(mesh.indexCount(), 6u);
 }
 
-TEST_F(MeshDataTest, VertexIndexDataSize) {
+TEST_F(MeshDataTest, VertexIndexDataSize)
+{
     MeshData mesh;
     mesh.vertices.resize(100);
     mesh.indices.resize(300);
@@ -440,7 +476,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(CameraConfigTest, DefaultValues) {
+TEST_F(CameraConfigTest, DefaultValues)
+{
     CameraConfig config;
     EXPECT_FLOAT_EQ(config.fov, 70.0f);
     EXPECT_FLOAT_EQ(config.aspectRatio, 16.0f / 9.0f);
@@ -458,7 +495,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(ChunkMeshDataTest, Clear) {
+TEST_F(ChunkMeshDataTest, Clear)
+{
     ChunkMeshData chunkMesh;
     chunkMesh.solidMesh.vertices.push_back(Vertex());
     chunkMesh.translucentMesh.vertices.push_back(Vertex());
@@ -468,7 +506,8 @@ TEST_F(ChunkMeshDataTest, Clear) {
     EXPECT_TRUE(chunkMesh.translucentMesh.empty());
 }
 
-TEST_F(ChunkMeshDataTest, TotalCounts) {
+TEST_F(ChunkMeshDataTest, TotalCounts)
+{
     ChunkMeshData chunkMesh;
     chunkMesh.solidMesh.vertices.resize(100);
     chunkMesh.solidMesh.indices.resize(200);

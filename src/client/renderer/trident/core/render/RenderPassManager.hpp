@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <vulkan/vulkan.h>
-#include <vector>
+#include "common/core/Types.hpp"
 #include <memory>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
 
@@ -35,10 +35,11 @@ public:
      * @brief 初始化渲染通道管理器
      * @param context Trident 上下文
      * @param swapchain 交换链
-        * @param sampleCount 主渲染通道使用的多重采样等级
+     * @param sampleCount 主渲染通道使用的多重采样等级
      * @return 成功或错误
      */
-        [[nodiscard]] Result<void> initialize(TridentContext* context, TridentSwapchain* swapchain, VkSampleCountFlagBits sampleCount);
+    [[nodiscard]] Result<void> initialize(
+        TridentContext* context, TridentSwapchain* swapchain, VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 销毁所有资源

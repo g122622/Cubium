@@ -1,22 +1,22 @@
-#include <gtest/gtest.h>
 #include <map>
-#include <vector>
 #include <tuple>
+#include <vector>
+#include <gtest/gtest.h>
 
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -56,7 +56,8 @@ public:
     // 粒子和声音记录
     std::vector<ParticleRecord>& particles() { return m_particles; }
     std::vector<SoundRecord>& sounds() { return m_sounds; }
-    void clearRecords() {
+    void clearRecords()
+    {
         m_particles.clear();
         m_sounds.clear();
     }
@@ -69,7 +70,8 @@ public:
     [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
     [[nodiscard]] bool isDaytime() const override { return m_dayTime < 12000; }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         if (m_inWater) {
             // 返回水流体状态（使用 FluidRegistry 获取）
             return fluid::Fluid::getFluidState(fluid::FluidRegistry::WATER_ID);
@@ -78,24 +80,26 @@ public:
     }
 
     void playSound(const ResourceLocation& soundEvent,
-                   sound::SoundCategory category,
-                   const Vector3& position,
-                   f32 volume,
-                   f32 pitch) override {
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
+    {
         m_sounds.push_back({soundEvent, category, position, volume, pitch});
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
-                     const Vector3& pos,
-                     const Vector3& velocity) override {
+    void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    {
         m_particles.push_back({type, pos, velocity});
     }
 
     void addParticle(client::renderer::trident::particle::ParticleTypeId type,
-                     const Vector3& pos,
-                     const Vector3& velocity,
-                     const Vector3&,
-                     u32) override {
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3&,
+        u32) override
+    {
         m_particles.push_back({type, pos, velocity});
     }
 
@@ -104,10 +108,12 @@ public:
     [[nodiscard]] const Entity* getEntity(EntityId) const override { return nullptr; }
     EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(1); }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("WaterSplashTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("WaterSplashTestWorld::tickManager not implemented");
     }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
@@ -141,13 +147,9 @@ public:
         m_velocity = Vector3(0.0f, 0.0f, 0.0f);
     }
 
-    void setTestVelocity(const Vector3& vel) {
-        m_velocity = vel;
-    }
+    void setTestVelocity(const Vector3& vel) { m_velocity = vel; }
 
-    void setTestPosition(const Vector3& pos) {
-        m_position = pos;
-    }
+    void setTestPosition(const Vector3& pos) { m_position = pos; }
 
     // 暴露受保护的方法用于测试
     using Entity::doWaterSplashEffect;
@@ -165,13 +167,9 @@ public:
         m_position = Vector3(100.0f, 64.0f, 200.0f);
     }
 
-    void setTestVelocity(const Vector3& vel) {
-        m_velocity = vel;
-    }
+    void setTestVelocity(const Vector3& vel) { m_velocity = vel; }
 
-    void setTestPosition(const Vector3& pos) {
-        m_position = pos;
-    }
+    void setTestPosition(const Vector3& pos) { m_position = pos; }
 };
 
 } // namespace
@@ -180,7 +178,8 @@ public:
 // Entity::getSplashSound / getHighspeedSplashSound 测试
 // ============================================================================
 
-TEST(WaterSplashTest, EntityGetSplashSoundReturnsGenericSplash) {
+TEST(WaterSplashTest, EntityGetSplashSoundReturnsGenericSplash)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 
@@ -189,7 +188,8 @@ TEST(WaterSplashTest, EntityGetSplashSoundReturnsGenericSplash) {
     EXPECT_EQ(entity.getHighspeedSplashSound(), SoundEvents::ENTITY_GENERIC_SPLASH);
 }
 
-TEST(WaterSplashTest, PlayerGetSplashSoundReturnsPlayerSplash) {
+TEST(WaterSplashTest, PlayerGetSplashSoundReturnsPlayerSplash)
+{
     WaterSplashTestWorld world;
     TestPlayer player(&world);
 
@@ -202,7 +202,8 @@ TEST(WaterSplashTest, PlayerGetSplashSoundReturnsPlayerSplash) {
 // Entity::doWaterSplashEffect 粒子测试
 // ============================================================================
 
-TEST(WaterSplashTest, DoWaterSplashEffectGeneratesParticles) {
+TEST(WaterSplashTest, DoWaterSplashEffectGeneratesParticles)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 
@@ -241,12 +242,13 @@ TEST(WaterSplashTest, DoWaterSplashEffectGeneratesParticles) {
     EXPECT_EQ(bubbleCount, expectedCount);
 }
 
-TEST(WaterSplashTest, DoWaterSplashEffectPlaysSound) {
+TEST(WaterSplashTest, DoWaterSplashEffectPlaysSound)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 
     entity.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));
-    entity.setTestVelocity(Vector3(0.0f, 0.0f, 0.0f));  // 低速
+    entity.setTestVelocity(Vector3(0.0f, 0.0f, 0.0f)); // 低速
 
     world.clearRecords();
     entity.doWaterSplashEffect();
@@ -262,7 +264,8 @@ TEST(WaterSplashTest, DoWaterSplashEffectPlaysSound) {
     EXPECT_LT(sounds[0].volume, 0.25f);
 }
 
-TEST(WaterSplashTest, DoWaterSplashEffectHighSpeedPlaysHighSpeedSound) {
+TEST(WaterSplashTest, DoWaterSplashEffectHighSpeedPlaysHighSpeedSound)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 
@@ -282,7 +285,8 @@ TEST(WaterSplashTest, DoWaterSplashEffectHighSpeedPlaysHighSpeedSound) {
     EXPECT_GE(sounds[0].volume, 0.25f);
 }
 
-TEST(WaterSplashTest, DoWaterSplashEffectParticlePosition) {
+TEST(WaterSplashTest, DoWaterSplashEffectParticlePosition)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 
@@ -303,7 +307,8 @@ TEST(WaterSplashTest, DoWaterSplashEffectParticlePosition) {
     }
 }
 
-TEST(WaterSplashTest, DoWaterSplashEffectSoundPitchRandomized) {
+TEST(WaterSplashTest, DoWaterSplashEffectSoundPitchRandomized)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 
@@ -339,7 +344,8 @@ TEST(WaterSplashTest, DoWaterSplashEffectSoundPitchRandomized) {
 // Player::doWaterSplashEffect 测试
 // ============================================================================
 
-TEST(WaterSplashTest, PlayerDoWaterSplashEffectGeneratesParticles) {
+TEST(WaterSplashTest, PlayerDoWaterSplashEffectGeneratesParticles)
+{
     WaterSplashTestWorld world;
     TestPlayer player(&world);
 
@@ -359,13 +365,14 @@ TEST(WaterSplashTest, PlayerDoWaterSplashEffectGeneratesParticles) {
     EXPECT_EQ(sounds[0].soundEvent, SoundEvents::ENTITY_PLAYER_SPLASH);
 }
 
-TEST(WaterSplashTest, SpectatorPlayerDoesNotGenerateSplash) {
+TEST(WaterSplashTest, SpectatorPlayerDoesNotGenerateSplash)
+{
     WaterSplashTestWorld world;
     TestPlayer player(&world);
 
     player.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));
     player.setTestVelocity(Vector3(0.0f, -10.0f, 0.0f));
-    player.setGameMode(GameMode::Spectator);  // 设置为观察者模式
+    player.setGameMode(GameMode::Spectator); // 设置为观察者模式
 
     world.clearRecords();
     player.doWaterSplashEffect();
@@ -379,7 +386,8 @@ TEST(WaterSplashTest, SpectatorPlayerDoesNotGenerateSplash) {
 // 速度因子 f1 计算测试
 // ============================================================================
 
-TEST(WaterSplashTest, VelocityFactorCalculation) {
+TEST(WaterSplashTest, VelocityFactorCalculation)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 
@@ -395,13 +403,13 @@ TEST(WaterSplashTest, VelocityFactorCalculation) {
     EXPECT_LT(world.sounds()[0].volume, 0.25f);
 
     // 中速
-    entity.setTestVelocity(Vector3(0.0f, -2.0f, 0.0f));  // f1 = sqrt(4) * 0.2 = 0.4
+    entity.setTestVelocity(Vector3(0.0f, -2.0f, 0.0f)); // f1 = sqrt(4) * 0.2 = 0.4
     world.clearRecords();
     entity.doWaterSplashEffect();
     EXPECT_GE(world.sounds()[0].volume, 0.25f);
 
     // 高速（限制在 1.0）
-    entity.setTestVelocity(Vector3(0.0f, -50.0f, 0.0f));  // f1 会被限制在 1.0
+    entity.setTestVelocity(Vector3(0.0f, -50.0f, 0.0f)); // f1 会被限制在 1.0
     world.clearRecords();
     entity.doWaterSplashEffect();
     EXPECT_FLOAT_EQ(world.sounds()[0].volume, 1.0f);
@@ -411,7 +419,8 @@ TEST(WaterSplashTest, VelocityFactorCalculation) {
 // 粒子速度继承测试
 // ============================================================================
 
-TEST(WaterSplashTest, ParticleVelocityInheritance) {
+TEST(WaterSplashTest, ParticleVelocityInheritance)
+{
     WaterSplashTestWorld world;
     TestEntity entity(&world);
 

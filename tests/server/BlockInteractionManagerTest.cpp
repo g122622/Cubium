@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
+#include "server/core/PlayerManager.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include "common/entity/loot/LootTable.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/network/connection/LocalConnection.hpp"
+#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -19,7 +19,8 @@ namespace {
 
 class BlockInteractionManagerPlacementTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
@@ -39,7 +40,10 @@ protected:
 
         m_playerManager = std::make_unique<server::core::PlayerManager>();
         auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
-        m_player = m_playerManager->addPlayer(m_playerId, mc::util::uuidToString(mc::util::generateOfflineUuid("PlacementTester")), "PlacementTester", connection);
+        m_player = m_playerManager->addPlayer(m_playerId,
+            mc::util::uuidToString(mc::util::generateOfflineUuid("PlacementTester")),
+            "PlacementTester",
+            connection);
         ASSERT_NE(m_player, nullptr);
         m_player->x = 0.5f;
         m_player->y = 64.0f;
@@ -56,7 +60,8 @@ protected:
         m_blockInteractionManager->setInventoryManager(m_inventoryManager.get());
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         m_blockInteractionManager.reset();
         m_inventoryManager.reset();
         m_playerManager.reset();
@@ -68,7 +73,8 @@ protected:
         }
     }
 
-    void setHeldBlockItem(const Block& block, i32 count) {
+    void setHeldBlockItem(const Block& block, i32 count)
+    {
         const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(block.blockId());
         ASSERT_NE(blockItem, nullptr);
 
@@ -79,9 +85,7 @@ protected:
         inventory->setItem(0, ItemStack(*blockItem, count));
     }
 
-    [[nodiscard]] ItemStack heldItem() const {
-        return m_inventoryManager->getHeldItem(m_playerId);
-    }
+    [[nodiscard]] ItemStack heldItem() const { return m_inventoryManager->getHeldItem(m_playerId); }
 
 protected:
     static constexpr PlayerId m_playerId = 1;
@@ -100,7 +104,8 @@ protected:
 // 辅助方法测试
 // ============================================================================
 
-TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsValidPointer) {
+TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsValidPointer)
+{
     // 已登录的玩家应该返回有效指针
     m_player->loggedIn = true;
 
@@ -114,7 +119,8 @@ TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsValidPointer) 
     EXPECT_TRUE(result.success() || !result.success());
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsNullForInvalidPlayer) {
+TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsNullForInvalidPlayer)
+{
     // 使用无效的玩家ID
     constexpr PlayerId invalidPlayerId = 99999;
 
@@ -125,7 +131,8 @@ TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsNullForInvalid
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsNullForNotLoggedIn) {
+TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsNullForNotLoggedIn)
+{
     // 玩家未登录
     m_player->loggedIn = false;
 
@@ -136,7 +143,8 @@ TEST_F(BlockInteractionManagerPlacementTest, ValidatePlayerReturnsNullForNotLogg
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsDistanceCheck) {
+TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsDistanceCheck)
+{
     m_player->loggedIn = true;
     m_player->x = 0.5f;
     m_player->y = 64.0f;
@@ -154,7 +162,8 @@ TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsDis
     EXPECT_FALSE(resultFar.success());
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsYRangeCheck) {
+TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsYRangeCheck)
+{
     m_player->loggedIn = true;
     m_player->x = 0.5f;
     m_player->y = 64.0f;
@@ -172,7 +181,8 @@ TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsYRa
     EXPECT_FALSE(resultAbove.success());
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, GetNonAirBlockStateReturnsNullForAir) {
+TEST_F(BlockInteractionManagerPlacementTest, GetNonAirBlockStateReturnsNullForAir)
+{
     // 空气方块应该返回 nullptr（通过 getBlockState）
     const BlockState* airState = m_world->getBlockState(0, 100, 0);
     if (airState && airState->isAir()) {
@@ -182,7 +192,8 @@ TEST_F(BlockInteractionManagerPlacementTest, GetNonAirBlockStateReturnsNullForAi
     }
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, GetNonAirBlockStateReturnsStateForSolidBlock) {
+TEST_F(BlockInteractionManagerPlacementTest, GetNonAirBlockStateReturnsStateForSolidBlock)
+{
     m_player->loggedIn = true;
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
@@ -192,7 +203,8 @@ TEST_F(BlockInteractionManagerPlacementTest, GetNonAirBlockStateReturnsStateForS
     EXPECT_TRUE(result.success() || !result.success());
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, CheckWorldModificationAllowedForNormalWorld) {
+TEST_F(BlockInteractionManagerPlacementTest, CheckWorldModificationAllowedForNormalWorld)
+{
     m_player->loggedIn = true;
     // 非调试世界（config.isDebugWorld = false）
 
@@ -200,24 +212,22 @@ TEST_F(BlockInteractionManagerPlacementTest, CheckWorldModificationAllowedForNor
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId,
-        BlockPos(0, 63, 0),
-        Vector3(0.5f, 63.99f, 0.5f),
-        Direction::Up,
-        heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
 
     // 在非调试世界应该能尝试放置（可能成功或失败取决于碰撞检测）
     EXPECT_TRUE(result.success() || !result.success());
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, GetHeldToolReturnsEmptyForNoInventoryManager) {
+TEST_F(BlockInteractionManagerPlacementTest, GetHeldToolReturnsEmptyForNoInventoryManager)
+{
     // 这个测试验证当 InventoryManager 为空时的行为
     // 通过创建没有设置 InventoryManager 的 BlockInteractionManager 来测试
     // 但由于已经在 SetUp 中设置了，这里跳过
     // 实际上，getHeldTool 方法在 m_inventoryManager 为空时返回空 ItemStack
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, GetHeldToolReturnsCorrectItem) {
+TEST_F(BlockInteractionManagerPlacementTest, GetHeldToolReturnsCorrectItem)
+{
     m_player->loggedIn = true;
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
@@ -230,16 +240,13 @@ TEST_F(BlockInteractionManagerPlacementTest, GetHeldToolReturnsCorrectItem) {
 // 原有测试
 // ============================================================================
 
-TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersectsPlayer) {
+TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersectsPlayer)
+{
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId,
-        BlockPos(0, 63, 0),
-        Vector3(0.5f, 63.99f, 0.5f),
-        Direction::Up,
-        heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
 
     ASSERT_TRUE(result.success());
 
@@ -262,7 +269,8 @@ TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersects
     EXPECT_EQ(inventory->getSelectedStack().getCount(), 16);
 }
 
-TEST_F(BlockInteractionManagerPlacementTest, PlacesBlockWhenNoPlayerCollision) {
+TEST_F(BlockInteractionManagerPlacementTest, PlacesBlockWhenNoPlayerCollision)
+{
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
@@ -271,11 +279,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlacesBlockWhenNoPlayerCollision) {
     m_player->z = 0.5f;
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId,
-        BlockPos(0, 63, 0),
-        Vector3(0.5f, 63.99f, 0.5f),
-        Direction::Up,
-        heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
 
     ASSERT_TRUE(result.success());
 

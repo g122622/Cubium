@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../util/math/Vector3.hpp"
+#include "../Goal.hpp"
 
 namespace mc {
 

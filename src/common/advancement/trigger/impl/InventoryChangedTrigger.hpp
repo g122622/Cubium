@@ -2,16 +2,16 @@
 
 #include "../CriterionTrigger.hpp"
 #include "../conditions/ItemPredicate.hpp"
-#include <vector>
 #include <functional>
 #include <memory>
+#include <vector>
 
 // Forward declarations
 namespace mc {
 class ItemStack;
 class ServerPlayer;
 class PlayerInventory;
-}
+} // namespace mc
 
 namespace mc::server {
 class PlayerAdvancements;
@@ -38,9 +38,7 @@ public:
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     /**
      * @brief 从JSON反序列化实例
@@ -63,9 +61,11 @@ public:
      * @param advancements 玩家成就进度
      * @param predicate 检测谓词
      */
-    template<typename PredicateT>
-    void triggerWithPredicate(::mc::server::PlayerAdvancements& advancements, PredicateT&& predicate) {
-        AbstractCriterionTrigger<InventoryChangedTriggerInstance>::trigger(advancements, std::forward<PredicateT>(predicate));
+    template <typename PredicateT>
+    void triggerWithPredicate(::mc::server::PlayerAdvancements& advancements, PredicateT&& predicate)
+    {
+        AbstractCriterionTrigger<InventoryChangedTriggerInstance>::trigger(
+            advancements, std::forward<PredicateT>(predicate));
     }
 
     // 静态工厂方法
@@ -93,11 +93,7 @@ public:
      * @param items 物品谓词列表
      */
     InventoryChangedTriggerInstance(
-        IntBounds slotsOccupied,
-        IntBounds slotsFull,
-        IntBounds slotsEmpty,
-        std::vector<ItemPredicate> items
-    );
+        IntBounds slotsOccupied, IntBounds slotsFull, IntBounds slotsEmpty, std::vector<ItemPredicate> items);
 
     /**
      * @brief 使用槽位访问器检查条件是否满足
@@ -109,10 +105,7 @@ public:
      * @param getSlot 获取指定槽位物品的函数（返回值类型）
      * @return 是否满足
      */
-    [[nodiscard]] bool testWithInventory(
-        i32 totalSlots,
-        const std::function<mc::ItemStack(i32)>& getSlot
-    ) const;
+    [[nodiscard]] bool testWithInventory(i32 totalSlots, const std::function<mc::ItemStack(i32)>& getSlot) const;
 
     /**
      * @brief 从JSON解析

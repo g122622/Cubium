@@ -1,27 +1,24 @@
 #include "BlockPredicate.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
 
 // ========== BlockPredicate ==========
 
 BlockPredicate::BlockPredicate(
-    std::optional<ResourceLocation> block,
-    std::optional<ResourceLocation> tag,
-    StatePropertiesPredicate state
-)
+    std::optional<ResourceLocation> block, std::optional<ResourceLocation> tag, StatePropertiesPredicate state)
     : m_block(std::move(block))
     , m_tag(std::move(tag))
     , m_state(std::move(state))
     , m_isAny(!m_block.has_value() && !m_tag.has_value() && m_state.isEmpty())
-{
-}
+{}
 
-bool BlockPredicate::test(const BlockState& state) const {
+bool BlockPredicate::test(const BlockState& state) const
+{
     if (m_isAny) {
         return true;
     }
@@ -60,7 +57,8 @@ bool BlockPredicate::test(const BlockState& state) const {
     return true;
 }
 
-Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json) {
+Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return BlockPredicate{};
     }
@@ -95,7 +93,8 @@ Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json) {
     return BlockPredicate(std::move(block), std::move(tag), std::move(state));
 }
 
-nlohmann::json BlockPredicate::toJson() const {
+nlohmann::json BlockPredicate::toJson() const
+{
     if (m_isAny) {
         return nullptr;
     }
@@ -115,7 +114,8 @@ nlohmann::json BlockPredicate::toJson() const {
 
 // ========== FluidPredicate ==========
 
-bool FluidPredicate::test(const BlockState& state) const {
+bool FluidPredicate::test(const BlockState& state) const
+{
     if (m_isAny) {
         return true;
     }
@@ -145,7 +145,8 @@ bool FluidPredicate::test(const BlockState& state) const {
     return true;
 }
 
-Result<FluidPredicate> FluidPredicate::fromJson(const nlohmann::json& json) {
+Result<FluidPredicate> FluidPredicate::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return FluidPredicate{};
     }
@@ -172,7 +173,8 @@ Result<FluidPredicate> FluidPredicate::fromJson(const nlohmann::json& json) {
     return predicate;
 }
 
-nlohmann::json FluidPredicate::toJson() const {
+nlohmann::json FluidPredicate::toJson() const
+{
     if (m_isAny) {
         return nullptr;
     }

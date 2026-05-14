@@ -1,31 +1,25 @@
 #include "AxeItem.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/IWorld.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/ItemUseContext.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
-AxeItem::AxeItem(const tier::IItemTier& tier,
-                 f32 attackDamage,
-                 f32 attackSpeed,
-                 ItemProperties properties)
-    : ToolItem(attackDamage,
-               attackSpeed,
-               tier,
-               initializeEffectiveBlocks(),
-               ToolType::Axe,
-               properties) {
+AxeItem::AxeItem(const tier::IItemTier& tier, f32 attackDamage, f32 attackSpeed, ItemProperties properties)
+    : ToolItem(attackDamage, attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Axe, properties)
+{
     // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
-ActionResultType AxeItem::onItemUse(ItemUseContext& context) {
+ActionResultType AxeItem::onItemUse(ItemUseContext& context)
+{
     // MC 1.16.5: 斧头去皮逻辑
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
@@ -58,7 +52,8 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context) {
     return ActionResultType::Success;
 }
 
-const Block* AxeItem::getStrippedBlock(const Block* original) {
+const Block* AxeItem::getStrippedBlock(const Block* original)
+{
     if (original == nullptr) {
         return nullptr;
     }
@@ -70,7 +65,8 @@ const Block* AxeItem::getStrippedBlock(const Block* original) {
     return nullptr;
 }
 
-f32 AxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
+f32 AxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
+{
     // 斧对木材、植物、葫芦、竹子材质有高效率
     if (isEffectiveMaterial(state.getMaterial())) {
         return m_efficiency;
@@ -84,18 +80,16 @@ f32 AxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) co
     return 1.0f;
 }
 
-bool AxeItem::isEffectiveMaterial(const Material& material) const {
+bool AxeItem::isEffectiveMaterial(const Material& material) const
+{
     // MC 1.16.5: 斧对木材、下界木材、植物、高植物、葫芦、竹子材质有高效率
-    return material == Material::WOOD ||
-           material == Material::NETHER_WOOD ||
-           material == Material::PLANT ||
-           material == Material::REPLACEABLE_PLANT ||
-           material == Material::TALL_PLANTS ||
-           material == Material::GOURD ||
-           material == Material::BAMBOO;
+    return material == Material::WOOD || material == Material::NETHER_WOOD || material == Material::PLANT ||
+        material == Material::REPLACEABLE_PLANT || material == Material::TALL_PLANTS || material == Material::GOURD ||
+        material == Material::BAMBOO;
 }
 
-std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks() {
+std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks()
+{
     std::unordered_set<const Block*> blocks;
 
     // 木板
@@ -201,7 +195,8 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks() {
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*>& AxeItem::getStrippingMap() {
+std::unordered_map<const Block*, const Block*>& AxeItem::getStrippingMap()
+{
     // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
     static std::unordered_map<const Block*, const Block*> map = []() {
         std::unordered_map<const Block*, const Block*> m;

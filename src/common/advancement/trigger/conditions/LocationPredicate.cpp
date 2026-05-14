@@ -1,13 +1,14 @@
 #include "LocationPredicate.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/biome/Biome.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc::advancement {
 
-bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const {
+bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
+{
     if (m_isAny) {
         return true;
     }
@@ -41,15 +42,13 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const {
     return true;
 }
 
-bool LocationPredicate::test(const IWorld& world, const BlockPos& pos) const {
-    return test(world,
-        static_cast<f64>(pos.x) + 0.5,
-        static_cast<f64>(pos.y) + 0.5,
-        static_cast<f64>(pos.z) + 0.5
-    );
+bool LocationPredicate::test(const IWorld& world, const BlockPos& pos) const
+{
+    return test(world, static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.5, static_cast<f64>(pos.z) + 0.5);
 }
 
-Result<LocationPredicate> LocationPredicate::fromJson(const nlohmann::json& json) {
+Result<LocationPredicate> LocationPredicate::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return LocationPredicate{};
     }
@@ -96,15 +95,13 @@ Result<LocationPredicate> LocationPredicate::fromJson(const nlohmann::json& json
     predicate.m_x = std::move(x);
     predicate.m_y = std::move(y);
     predicate.m_z = std::move(z);
-    predicate.m_isAny = !predicate.m_biome.has_value() &&
-                        !predicate.m_dimension.has_value() &&
-                        predicate.m_x.isUnbounded() &&
-                        predicate.m_y.isUnbounded() &&
-                        predicate.m_z.isUnbounded();
+    predicate.m_isAny = !predicate.m_biome.has_value() && !predicate.m_dimension.has_value() &&
+        predicate.m_x.isUnbounded() && predicate.m_y.isUnbounded() && predicate.m_z.isUnbounded();
     return predicate;
 }
 
-nlohmann::json LocationPredicate::toJson() const {
+nlohmann::json LocationPredicate::toJson() const
+{
     if (m_isAny) {
         return nullptr;
     }
@@ -137,7 +134,8 @@ nlohmann::json LocationPredicate::toJson() const {
 
 // ========== DistancePredicate ==========
 
-bool DistancePredicate::test(f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) const {
+bool DistancePredicate::test(f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) const
+{
     if (m_isAny) {
         return true;
     }
@@ -150,7 +148,8 @@ bool DistancePredicate::test(f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) con
     return testSquared(distanceSq);
 }
 
-bool DistancePredicate::testSquared(f64 distanceSq) const {
+bool DistancePredicate::testSquared(f64 distanceSq) const
+{
     if (m_isAny) {
         return true;
     }
@@ -159,7 +158,8 @@ bool DistancePredicate::testSquared(f64 distanceSq) const {
     return m_range.test(distance);
 }
 
-Result<DistancePredicate> DistancePredicate::fromJson(const nlohmann::json& json) {
+Result<DistancePredicate> DistancePredicate::fromJson(const nlohmann::json& json)
+{
     if (json.is_null()) {
         return DistancePredicate{};
     }
@@ -167,7 +167,8 @@ Result<DistancePredicate> DistancePredicate::fromJson(const nlohmann::json& json
     return DistancePredicate(DoubleBounds::fromJson(json));
 }
 
-nlohmann::json DistancePredicate::toJson() const {
+nlohmann::json DistancePredicate::toJson() const
+{
     if (m_isAny) {
         return nullptr;
     }

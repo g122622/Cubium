@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Block.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 
@@ -34,12 +34,7 @@ public:
      *
      * 在光照过亮时退化为下界岩。
      */
-    void randomTick(
-        IWorld& world,
-        const BlockPos& pos,
-        BlockState& state,
-        math::IRandom& random
-    ) override;
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 是否响应随机刻
@@ -55,11 +50,7 @@ private:
      * @param state 方块状态
      * @return true 如果足够暗（不会退化）
      */
-    [[nodiscard]] static bool isDarkEnough(
-        IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state
-    );
+    [[nodiscard]] static bool isDarkEnough(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

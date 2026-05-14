@@ -1,18 +1,18 @@
 #include "BowItem.hpp"
-#include "ArrowItem.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../Items.hpp"
-#include "../../enchantment/EnchantmentHelper.hpp"
-#include "../../enchantment/enchantments/AllEnchantments.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/PlayerInventory.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../world/IWorld.hpp"
+#include "../../../entity/inventory/PlayerInventory.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../../sound/SoundEvents.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../Items.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../core/ItemStack.hpp"
+#include "../../enchantment/EnchantmentHelper.hpp"
+#include "../../enchantment/enchantments/AllEnchantments.hpp"
+#include "ArrowItem.hpp"
 #include <cmath>
 
 namespace mc {
@@ -20,35 +20,37 @@ namespace item {
 
 // ========== 常量 ==========
 namespace {
-    constexpr i32 MAX_USE_DURATION = 72000;   // MC 1.16.5: 几乎无限制
-    constexpr f32 MIN_VELOCITY = 0.1f;         // 最小发射速度
-    constexpr i32 FULL_CHARGE_TICKS = 20;      // 满蓄力 tick 数
-}
+constexpr i32 MAX_USE_DURATION = 72000; // MC 1.16.5: 几乎无限制
+constexpr f32 MIN_VELOCITY = 0.1f;      // 最小发射速度
+constexpr i32 FULL_CHARGE_TICKS = 20;   // 满蓄力 tick 数
+} // namespace
 
 // ========== 构造函数 ==========
 
 BowItem::BowItem(const ItemProperties& properties)
     : Item(properties)
-{
-}
+{}
 
 // ========== Item 接口重写 ==========
 
-i32 BowItem::getUseDuration(const ItemStack& /*stack*/) const {
+i32 BowItem::getUseDuration(const ItemStack& /*stack*/) const
+{
     return MAX_USE_DURATION;
 }
 
-UseAction BowItem::getUseAction(const ItemStack& /*stack*/) const {
+UseAction BowItem::getUseAction(const ItemStack& /*stack*/) const
+{
     return UseAction::Bow;
 }
 
-ItemActionResult BowItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
+ItemActionResult BowItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand)
+{
 
     ItemStack bowStack = player.getHeldItem(hand);
 
     // 检查是否有箭矢或无限附魔
     bool hasInfinity = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        bowStack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
+                           bowStack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
     bool isCreative = player.isCreative();
 
     ItemStack ammoStack = findAmmo(player, bowStack);
@@ -63,11 +65,7 @@ ItemActionResult BowItem::onItemRightClick(IWorld& /*world*/, Player& player, Ha
     return ItemActionResult::fail(bowStack);
 }
 
-void BowItem::onPlayerStoppedUsing(
-    ItemStack& stack,
-    IWorld& world,
-    LivingEntity& entity,
-    i32 timeLeft)
+void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft)
 {
     // 检查是否是玩家
     Player* player = dynamic_cast<Player*>(&entity);
@@ -90,7 +88,7 @@ void BowItem::onPlayerStoppedUsing(
 
     // 检查是否有无限附魔
     bool hasInfinity = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        stack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
+                           stack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
     bool isCreative = player->isCreative();
 
     // 查找箭矢
@@ -103,7 +101,7 @@ void BowItem::onPlayerStoppedUsing(
             // 使用普通箭
             ammoStack = ItemStack(Items::ARROW, 1);
         } else {
-            return;  // 无箭矢可用
+            return; // 无箭矢可用
         }
     }
 
@@ -120,7 +118,7 @@ void BowItem::onPlayerStoppedUsing(
 
             // 设置发射参数
             // MC 1.16.5: func_234612_a_ = shoot()
-            f32 actualVelocity = velocity * 3.0f;  // 最大速度 3.0
+            f32 actualVelocity = velocity * 3.0f; // 最大速度 3.0
             arrow->shootFrom(*player, player->pitch(), player->yaw(), 0.0f, actualVelocity, 1.0f);
 
             // 满蓄力时暴击
@@ -129,8 +127,8 @@ void BowItem::onPlayerStoppedUsing(
             }
 
             // 力量附魔
-            i32 powerLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-                stack, &item::enchant::AllEnchantments::POWER);
+            i32 powerLevel =
+                item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, &item::enchant::AllEnchantments::POWER);
             if (powerLevel > 0) {
                 // 每级增加 0.5 伤害 + 0.5 基础
                 f32 bonusDamage = static_cast<f32>(powerLevel) * 0.5f + 0.5f;
@@ -138,16 +136,16 @@ void BowItem::onPlayerStoppedUsing(
             }
 
             // 冲击附魔
-            i32 punchLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-                stack, &item::enchant::AllEnchantments::PUNCH);
+            i32 punchLevel =
+                item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, &item::enchant::AllEnchantments::PUNCH);
             if (punchLevel > 0) {
                 arrow->setKnockbackStrength(punchLevel);
             }
 
             // 火矢附魔
-            if (item::enchant::EnchantmentHelper::getEnchantmentLevel(
-                stack, &item::enchant::AllEnchantments::FLAME) > 0) {
-                arrow->setFire(100);  // 5秒燃烧
+            if (item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, &item::enchant::AllEnchantments::FLAME) >
+                0) {
+                arrow->setFire(100); // 5秒燃烧
             }
 
             // 消耗耐久度（非创造模式）
@@ -183,7 +181,8 @@ void BowItem::onPlayerStoppedUsing(
 
 // ========== 弓特有方法 ==========
 
-std::function<bool(const ItemStack&)> BowItem::getAmmoPredicate() const {
+std::function<bool(const ItemStack&)> BowItem::getAmmoPredicate() const
+{
     return [](const ItemStack& stack) -> bool {
         if (stack.isEmpty()) {
             return false;
@@ -193,11 +192,13 @@ std::function<bool(const ItemStack&)> BowItem::getAmmoPredicate() const {
     };
 }
 
-std::function<bool(const ItemStack&)> BowItem::getInventoryAmmoPredicate() const {
+std::function<bool(const ItemStack&)> BowItem::getInventoryAmmoPredicate() const
+{
     return getAmmoPredicate();
 }
 
-f32 BowItem::getArrowVelocity(i32 chargeTicks) {
+f32 BowItem::getArrowVelocity(i32 chargeTicks)
+{
     // MC 1.16.5 BowItem.getArrowVelocity()
     // f = charge / 20.0
     // f = (f * f + f * 2.0) / 3.0
@@ -212,13 +213,15 @@ f32 BowItem::getArrowVelocity(i32 chargeTicks) {
     return math::clamp(f, 0.0f, 1.0f);
 }
 
-entity::AbstractArrowEntity* BowItem::customArrow(entity::AbstractArrowEntity* arrow) {
+entity::AbstractArrowEntity* BowItem::customArrow(entity::AbstractArrowEntity* arrow)
+{
     return arrow;
 }
 
 // ========== 私有方法 ==========
 
-ItemStack BowItem::findAmmo(Player& player, const ItemStack& /*bowStack*/) const {
+ItemStack BowItem::findAmmo(Player& player, const ItemStack& /*bowStack*/) const
+{
 
     // 检查副手
     ItemStack offhand = player.getHeldItem(Hand::OffHand);
@@ -244,9 +247,8 @@ ItemStack BowItem::findAmmo(Player& player, const ItemStack& /*bowStack*/) const
     return ItemStack();
 }
 
-bool BowItem::isInfiniteArrow(const ItemStack& arrowStack,
-                               const ItemStack& bowStack,
-                               Player& player) const {
+bool BowItem::isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const
+{
     // 创造模式总是无限
     if (player.isCreative()) {
         return true;

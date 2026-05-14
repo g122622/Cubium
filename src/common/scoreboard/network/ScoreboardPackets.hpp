@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../network/packet/PacketSerializer.hpp"
 #include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
+#include "../../network/packet/PacketSerializer.hpp"
 #include <string>
 #include <vector>
 
@@ -87,9 +87,9 @@ public:
      * @param renderType 渲染类型（"integer" 或 "hearts"）
      */
     ScoreboardObjectivePacket(const std::string& objectiveName,
-                              ObjectiveAction action,
-                              const std::string& displayName,
-                              const std::string& renderType);
+        ObjectiveAction action,
+        const std::string& displayName,
+        const std::string& renderType);
 
     // ========== Getters ==========
 
@@ -148,10 +148,7 @@ public:
      * @param score 分数值
      * @param action 操作类型
      */
-    UpdateScorePacket(const std::string& playerName,
-                      const std::string& objectiveName,
-                      i32 score,
-                      ScoreAction action);
+    UpdateScorePacket(const std::string& playerName, const std::string& objectiveName, i32 score, ScoreAction action);
 
     // ========== Getters ==========
 
@@ -294,7 +291,7 @@ private:
     std::string m_nameTagVisibility = "always";
     std::string m_collisionRule = "always";
     std::string m_color = "white";
-    u8 m_friendlyFlags = 0x03;  // 默认允许友军伤害 + 能看到隐身队友
+    u8 m_friendlyFlags = 0x03; // 默认允许友军伤害 + 能看到隐身队友
 
     // Create/AddMember/RemoveMember 时有效
     std::vector<std::string> m_players;

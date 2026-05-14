@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
-#include "PacketSerializer.hpp"
-#include "../../item/core/ItemStack.hpp"
+#include "../../core/Types.hpp"
 #include "../../entity/inventory/ContainerTypes.hpp"
-#include <vector>
+#include "../../item/core/ItemStack.hpp"
+#include "PacketSerializer.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -18,18 +18,18 @@ class PlayerInventory;
 // ============================================================================
 
 namespace inventory {
-    // 最大槽位数
-    constexpr i32 MAX_SLOTS = 256;
+// 最大槽位数
+constexpr i32 MAX_SLOTS = 256;
 
-    // 最大物品堆叠数
-    constexpr i32 MAX_STACK_SIZE = 64;
+// 最大物品堆叠数
+constexpr i32 MAX_STACK_SIZE = 64;
 
-    // 玩家背包槽位数
-    constexpr i32 PLAYER_INVENTORY_SIZE = 41;
+// 玩家背包槽位数
+constexpr i32 PLAYER_INVENTORY_SIZE = 41;
 
-    // 玩家容器ID
-    constexpr ContainerId PLAYER_CONTAINER_ID = 0;
-}
+// 玩家容器ID
+constexpr ContainerId PLAYER_CONTAINER_ID = 0;
+} // namespace inventory
 
 // ============================================================================
 // 容器内容同步包 (服务端 -> 客户端)
@@ -65,7 +65,8 @@ public:
     void setItems(std::vector<ItemStack> items) { m_items = std::move(items); }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
         // MC 1.16.5: count 是 i16 (short)，不是 VarUInt
         ser.writeI16(static_cast<i16>(m_items.size()));
@@ -76,7 +77,8 @@ public:
     }
 
     // 反序列化
-    [[nodiscard]] static Result<ContainerContentPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<ContainerContentPacket> deserialize(network::PacketDeserializer& deser)
+    {
         ContainerContentPacket packet;
 
         auto idResult = deser.readU8();
@@ -144,14 +146,16 @@ public:
     void setItem(ItemStack item) { m_item = std::move(item); }
 
     // 序列化 (参考 MC 1.16.5 SPacketSetSlot)
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
         ser.writeI16(static_cast<i16>(m_slotIndex));
         m_item.serialize(ser);
     }
 
     // 反序列化
-    [[nodiscard]] static Result<ContainerSlotPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<ContainerSlotPacket> deserialize(network::PacketDeserializer& deser)
+    {
         ContainerSlotPacket packet;
 
         auto idResult = deser.readU8();
@@ -238,8 +242,7 @@ public:
     CreativeInventoryActionPacket(i32 slotIndex, ItemStack item)
         : m_slotIndex(slotIndex)
         , m_item(std::move(item))
-    {
-    }
+    {}
 
     // Getters
     [[nodiscard]] i32 slotIndex() const { return m_slotIndex; }
@@ -250,13 +253,15 @@ public:
     void setItem(ItemStack item) { m_item = std::move(item); }
 
     // 序列化 (MC 1.16.5 对齐: slotId 是 i16)
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeI16(static_cast<i16>(m_slotIndex));
         m_item.serialize(ser);
     }
 
     // 反序列化
-    [[nodiscard]] static Result<CreativeInventoryActionPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<CreativeInventoryActionPacket> deserialize(network::PacketDeserializer& deser)
+    {
         CreativeInventoryActionPacket packet;
 
         auto slotResult = deser.readI16();
@@ -299,8 +304,8 @@ public:
      * @param action 点击类型
      * @param cursorItem 点击后的鼠标物品
      */
-    ContainerClickPacket(ContainerId containerId, i32 slotIndex, i32 button,
-                         i16 transactionId, ClickAction action, ItemStack cursorItem)
+    ContainerClickPacket(
+        ContainerId containerId, i32 slotIndex, i32 button, i16 transactionId, ClickAction action, ItemStack cursorItem)
         : m_containerId(containerId)
         , m_slotIndex(slotIndex)
         , m_button(button)
@@ -326,7 +331,8 @@ public:
     void setCursorItem(ItemStack item) { m_cursorItem = std::move(item); }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
         ser.writeI16(static_cast<i16>(m_slotIndex));
         ser.writeU8(static_cast<u8>(m_button));
@@ -336,7 +342,8 @@ public:
     }
 
     // 反序列化
-    [[nodiscard]] static Result<ContainerClickPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<ContainerClickPacket> deserialize(network::PacketDeserializer& deser)
+    {
         ContainerClickPacket packet;
 
         auto idResult = deser.readU8();
@@ -404,12 +411,11 @@ public:
     void setContainerId(ContainerId id) { m_containerId = id; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
-        ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
-    }
+    void serialize(network::PacketSerializer& ser) const { ser.writeU8(static_cast<ContainerIdU8>(m_containerId)); }
 
     // 反序列化
-    [[nodiscard]] static Result<CloseContainerPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<CloseContainerPacket> deserialize(network::PacketDeserializer& deser)
+    {
         CloseContainerPacket packet;
 
         auto idResult = deser.readU8();
@@ -461,14 +467,16 @@ public:
     void setTitle(const std::string& title) { m_title = title; }
 
     // 序列化 (MC 1.16.5 对齐: VarInt windowId, VarInt type, Component title)
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeVarInt(m_containerId);
         ser.writeVarInt(m_type);
         ser.writeString(m_title);
     }
 
     // 反序列化
-    [[nodiscard]] static Result<OpenContainerPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<OpenContainerPacket> deserialize(network::PacketDeserializer& deser)
+    {
         OpenContainerPacket packet;
 
         auto idResult = deser.readVarInt();
@@ -522,12 +530,11 @@ public:
     void setSlot(i32 slot) { m_slot = slot; }
 
     // 序列化 (MC 1.16.5 对齐: slotId 是 i16)
-    void serialize(network::PacketSerializer& ser) const {
-        ser.writeI16(static_cast<i16>(m_slot));
-    }
+    void serialize(network::PacketSerializer& ser) const { ser.writeI16(static_cast<i16>(m_slot)); }
 
     // 反序列化
-    [[nodiscard]] static Result<HotbarSelectPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<HotbarSelectPacket> deserialize(network::PacketDeserializer& deser)
+    {
         HotbarSelectPacket packet;
 
         auto slotResult = deser.readI16();
@@ -575,12 +582,11 @@ public:
     void setSlot(i32 slot) { m_slot = slot; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
-        ser.writeU8(static_cast<u8>(m_slot));
-    }
+    void serialize(network::PacketSerializer& ser) const { ser.writeU8(static_cast<u8>(m_slot)); }
 
     // 反序列化
-    [[nodiscard]] static Result<HotbarSetPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<HotbarSetPacket> deserialize(network::PacketDeserializer& deser)
+    {
         HotbarSetPacket packet;
 
         auto slotResult = deser.readU8();
@@ -637,14 +643,16 @@ public:
     void setAccepted(bool accepted) { m_accepted = accepted; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
         ser.writeI16(m_actionNumber);
         ser.writeBool(m_accepted);
     }
 
     // 反序列化
-    [[nodiscard]] static Result<ServerConfirmTransactionPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<ServerConfirmTransactionPacket> deserialize(network::PacketDeserializer& deser)
+    {
         ServerConfirmTransactionPacket packet;
 
         auto idResult = deser.readU8();
@@ -706,14 +714,16 @@ public:
     void setAccepted(bool accepted) { m_accepted = accepted; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeI8(m_containerId);
         ser.writeI16(m_uid);
-        ser.writeU8(m_accepted ? 1 : 0);  // MC 1.16.5 使用 u8 而非 bool
+        ser.writeU8(m_accepted ? 1 : 0); // MC 1.16.5 使用 u8 而非 bool
     }
 
     // 反序列化
-    [[nodiscard]] static Result<ClientConfirmTransactionPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<ClientConfirmTransactionPacket> deserialize(network::PacketDeserializer& deser)
+    {
         ClientConfirmTransactionPacket packet;
 
         auto idResult = deser.readI8();
@@ -775,14 +785,16 @@ public:
     void setValue(i16 value) { m_value = value; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
+    void serialize(network::PacketSerializer& ser) const
+    {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
         ser.writeI16(m_property);
         ser.writeI16(m_value);
     }
 
     // 反序列化
-    [[nodiscard]] static Result<WindowPropertyPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<WindowPropertyPacket> deserialize(network::PacketDeserializer& deser)
+    {
         WindowPropertyPacket packet;
 
         auto idResult = deser.readU8();
@@ -836,12 +848,11 @@ public:
     void setPickIndex(i32 index) { m_pickIndex = index; }
 
     // 序列化
-    void serialize(network::PacketSerializer& ser) const {
-        ser.writeVarInt(m_pickIndex);
-    }
+    void serialize(network::PacketSerializer& ser) const { ser.writeVarInt(m_pickIndex); }
 
     // 反序列化
-    [[nodiscard]] static Result<PickItemPacket> deserialize(network::PacketDeserializer& deser) {
+    [[nodiscard]] static Result<PickItemPacket> deserialize(network::PacketDeserializer& deser)
+    {
         PickItemPacket packet;
 
         auto indexResult = deser.readVarInt();

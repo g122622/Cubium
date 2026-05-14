@@ -3,7 +3,8 @@
 
 namespace mc::client::ui::kagero::widget {
 
-void ListWidget::setItemsFromValue(const tpl::binder::Value& array) {
+void ListWidget::setItemsFromValue(const tpl::binder::Value& array)
+{
     if (!array.isArray()) {
         clearItems();
         return;
@@ -27,7 +28,8 @@ void ListWidget::setItemsFromValue(const tpl::binder::Value& array) {
     }
 }
 
-void ListWidget::refreshItems() {
+void ListWidget::refreshItems()
+{
     // 刷新当前项目（如果数据源仍然可用）
     // 这需要外部重新调用 setItemsFromValue
     updateContentHeight();

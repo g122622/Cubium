@@ -3,28 +3,28 @@
 #include "LootContext.hpp"
 #include "LootEntry.hpp"
 #include "RandomRanges.hpp"
-#include "common/item/core/ItemStack.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/enchantment/EnchantmentHelper.hpp"
-#include "common/item/enchantment/Enchantment.hpp"
-#include "common/item/enchantment/EnchantmentRegistry.hpp"
-#include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/SmeltingRecipe.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/property/IProperty.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/effect/EffectType.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/util/property/IProperty.hpp"
-#include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <cmath>
-#include <sstream>
 #include <random>
+#include <sstream>
 
 namespace mc {
 namespace loot {
@@ -50,7 +50,8 @@ namespace {
  */
 nlohmann::json nbtToJson(const nbt::tags::tag& tag);
 
-nlohmann::json nbtListToJson(const nbt::tags::list_tag& list) {
+nlohmann::json nbtListToJson(const nbt::tags::list_tag& list)
+{
     nlohmann::json result = nlohmann::json::array();
     for (size_t i = 0; i < list.size(); ++i) {
         auto elem = list[i];
@@ -61,7 +62,8 @@ nlohmann::json nbtListToJson(const nbt::tags::list_tag& list) {
     return result;
 }
 
-nlohmann::json nbtToJson(const nbt::tags::tag& tag) {
+nlohmann::json nbtToJson(const nbt::tags::tag& tag)
+{
     using namespace nbt::tags;
 
     switch (tag.id()) {
@@ -143,15 +145,16 @@ nlohmann::json nbtToJson(const nbt::tags::tag& tag) {
 // LootFunction 基类
 // ============================================================================
 
-void LootFunction::addCondition(std::unique_ptr<LootCondition> condition) {
+void LootFunction::addCondition(std::unique_ptr<LootCondition> condition)
+{
     m_conditions.push_back(std::move(condition));
 }
 
-bool LootFunction::testConditions(LootContext& context) const {
-    return std::all_of(m_conditions.begin(), m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) {
-            return cond && cond->test(context);
-        });
+bool LootFunction::testConditions(LootContext& context) const
+{
+    return std::all_of(m_conditions.begin(),
+        m_conditions.end(),
+        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
 }
 
 // ============================================================================
@@ -161,10 +164,10 @@ bool LootFunction::testConditions(LootContext& context) const {
 SetCountFunction::SetCountFunction(const RandomValueRange& count, bool add)
     : m_count(count)
     , m_add(add)
-{
-}
+{}
 
-ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -179,7 +182,8 @@ ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const {
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetCountFunction::clone() const {
+std::unique_ptr<LootFunction> SetCountFunction::clone() const
+{
     auto func = std::make_unique<SetCountFunction>(m_count, m_add);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -196,10 +200,10 @@ ApplyBonusFunction::ApplyBonusFunction(BonusType bonusType, i32 bonusMultiplier,
     , m_bonusMultiplier(bonusMultiplier)
     , m_extra(extra)
     , m_probability(probability)
-{
-}
+{}
 
-ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -239,7 +243,8 @@ ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const {
+std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const
+{
     auto func = std::make_unique<ApplyBonusFunction>(m_bonusType, m_bonusMultiplier, m_extra, m_probability);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -247,7 +252,8 @@ std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const {
     return func;
 }
 
-i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::Random& random) {
+i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::Random& random)
+{
     // MC 1.16.5 OreDropsFormula:
     // if (fortune > 0) {
     //     int i = random.nextInt(fortune + 2) - 1;
@@ -272,7 +278,9 @@ i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math:
     return baseCount * (i + 1);
 }
 
-i32 ApplyBonusFunction::calculateUniformBonus(i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random) {
+i32 ApplyBonusFunction::calculateUniformBonus(
+    i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random)
+{
     // MC 1.16.5 UniformBonusCountFormula:
     // count + random.nextInt(bonusMultiplier * fortune + 1)
     if (fortuneLevel <= 0) {
@@ -283,7 +291,9 @@ i32 ApplyBonusFunction::calculateUniformBonus(i32 baseCount, i32 fortuneLevel, i
     return baseCount + bonus;
 }
 
-i32 ApplyBonusFunction::calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random) {
+i32 ApplyBonusFunction::calculateBinomialBonus(
+    i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random)
+{
     // MC 1.16.5 BinomialWithBonusCountFormula:
     // for (int i = 0; i < fortune + extra; ++i) {
     //     if (random.nextFloat() < probability) {
@@ -309,10 +319,10 @@ i32 ApplyBonusFunction::calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, 
 LootingEnchantBonusFunction::LootingEnchantBonusFunction(const RandomValueRange& count, i32 limit)
     : m_count(count)
     , m_limit(limit)
-{
-}
+{}
 
-ItemStack LootingEnchantBonusFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack LootingEnchantBonusFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -336,7 +346,8 @@ ItemStack LootingEnchantBonusFunction::apply(ItemStack stack, LootContext& conte
     return stack;
 }
 
-std::unique_ptr<LootFunction> LootingEnchantBonusFunction::clone() const {
+std::unique_ptr<LootFunction> LootingEnchantBonusFunction::clone() const
+{
     auto func = std::make_unique<LootingEnchantBonusFunction>(m_count, m_limit);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -351,10 +362,10 @@ std::unique_ptr<LootFunction> LootingEnchantBonusFunction::clone() const {
 SetDamageFunction::SetDamageFunction(const RandomValueRange& durability, bool add)
     : m_durability(durability)
     , m_add(add)
-{
-}
+{}
 
-ItemStack SetDamageFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetDamageFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty() || !stack.isDamageable()) {
         return stack;
     }
@@ -385,7 +396,8 @@ ItemStack SetDamageFunction::apply(ItemStack stack, LootContext& context) const 
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetDamageFunction::clone() const {
+std::unique_ptr<LootFunction> SetDamageFunction::clone() const
+{
     auto func = std::make_unique<SetDamageFunction>(m_durability, m_add);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -400,10 +412,10 @@ std::unique_ptr<LootFunction> SetDamageFunction::clone() const {
 SetNameFunction::SetNameFunction(const std::string& name, bool replace)
     : m_name(name)
     , m_replace(replace)
-{
-}
+{}
 
-ItemStack SetNameFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetNameFunction::apply(ItemStack stack, LootContext& context) const
+{
     MC_UNUSED(context);
 
     if (stack.isEmpty()) {
@@ -419,7 +431,8 @@ ItemStack SetNameFunction::apply(ItemStack stack, LootContext& context) const {
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetNameFunction::clone() const {
+std::unique_ptr<LootFunction> SetNameFunction::clone() const
+{
     auto func = std::make_unique<SetNameFunction>(m_name, m_replace);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -434,10 +447,10 @@ std::unique_ptr<LootFunction> SetNameFunction::clone() const {
 SetLoreFunction::SetLoreFunction(const std::vector<std::string>& lore, bool replace)
     : m_lore(lore)
     , m_replace(replace)
-{
-}
+{}
 
-ItemStack SetLoreFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetLoreFunction::apply(ItemStack stack, LootContext& context) const
+{
     MC_UNUSED(context);
 
     if (stack.isEmpty()) {
@@ -455,7 +468,8 @@ ItemStack SetLoreFunction::apply(ItemStack stack, LootContext& context) const {
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetLoreFunction::clone() const {
+std::unique_ptr<LootFunction> SetLoreFunction::clone() const
+{
     auto func = std::make_unique<SetLoreFunction>(m_lore, m_replace);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -470,10 +484,10 @@ std::unique_ptr<LootFunction> SetLoreFunction::clone() const {
 LimitCountFunction::LimitCountFunction(i32 min, i32 max)
     : m_min(min)
     , m_max(max)
-{
-}
+{}
 
-ItemStack LimitCountFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack LimitCountFunction::apply(ItemStack stack, LootContext& context) const
+{
     MC_UNUSED(context);
 
     if (stack.isEmpty()) {
@@ -493,7 +507,8 @@ ItemStack LimitCountFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> LimitCountFunction::clone() const {
+std::unique_ptr<LootFunction> LimitCountFunction::clone() const
+{
     auto func = std::make_unique<LimitCountFunction>(m_min, m_max);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -505,7 +520,8 @@ std::unique_ptr<LootFunction> LimitCountFunction::clone() const {
 // FurnaceSmeltFunction
 // ============================================================================
 
-ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -513,8 +529,7 @@ ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) con
     // 参考 MC 1.16.5 net.minecraft.loot.functions.Smelting.doApply
     // 从 RecipeManager 查找熔炼配方
     const auto& recipeManager = crafting::RecipeManager::instance();
-    const crafting::SmeltingRecipe* recipe = recipeManager.getSmeltingRecipe(
-        stack, crafting::RecipeType::Smelting);
+    const crafting::SmeltingRecipe* recipe = recipeManager.getSmeltingRecipe(stack, crafting::RecipeType::Smelting);
 
     if (recipe != nullptr) {
         // 获取熔炼结果物品
@@ -535,7 +550,8 @@ ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) con
     return stack;
 }
 
-std::unique_ptr<LootFunction> FurnaceSmeltFunction::clone() const {
+std::unique_ptr<LootFunction> FurnaceSmeltFunction::clone() const
+{
     auto func = std::make_unique<FurnaceSmeltFunction>();
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -550,10 +566,10 @@ std::unique_ptr<LootFunction> FurnaceSmeltFunction::clone() const {
 EnchantWithLevelsFunction::EnchantWithLevelsFunction(const RandomValueRange& levels, bool treasure)
     : m_levels(levels)
     , m_treasure(treasure)
-{
-}
+{}
 
-ItemStack EnchantWithLevelsFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack EnchantWithLevelsFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -565,7 +581,8 @@ ItemStack EnchantWithLevelsFunction::apply(ItemStack stack, LootContext& context
         context.getRandom(), std::move(stack), level, m_treasure);
 }
 
-std::unique_ptr<LootFunction> EnchantWithLevelsFunction::clone() const {
+std::unique_ptr<LootFunction> EnchantWithLevelsFunction::clone() const
+{
     auto func = std::make_unique<EnchantWithLevelsFunction>(m_levels, m_treasure);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -580,10 +597,10 @@ std::unique_ptr<LootFunction> EnchantWithLevelsFunction::clone() const {
 EnchantRandomlyFunction::EnchantRandomlyFunction(const std::vector<std::string>& enchantments, bool treasure)
     : m_enchantments(enchantments)
     , m_treasure(treasure)
-{
-}
+{}
 
-ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -644,9 +661,8 @@ ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) 
     }
 
     // 随机选择等级（从最小到最大）
-    i32 level = random.nextInt(
-        selectedEnchantment->maxLevel() - selectedEnchantment->minLevel() + 1
-    ) + selectedEnchantment->minLevel();
+    i32 level = random.nextInt(selectedEnchantment->maxLevel() - selectedEnchantment->minLevel() + 1) +
+        selectedEnchantment->minLevel();
 
     // 检查是否是书
     bool isBook = stack.getItem() == Items::BOOK;
@@ -668,7 +684,8 @@ ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) 
     return stack;
 }
 
-std::unique_ptr<LootFunction> EnchantRandomlyFunction::clone() const {
+std::unique_ptr<LootFunction> EnchantRandomlyFunction::clone() const
+{
     auto func = std::make_unique<EnchantRandomlyFunction>(m_enchantments, m_treasure);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -680,7 +697,8 @@ std::unique_ptr<LootFunction> EnchantRandomlyFunction::clone() const {
 // ExplosionDecayFunction
 // ============================================================================
 
-ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -706,7 +724,8 @@ ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) c
     return stack;
 }
 
-std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const {
+std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const
+{
     auto func = std::make_unique<ExplosionDecayFunction>();
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -720,10 +739,10 @@ std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const {
 
 SetNbtFunction::SetNbtFunction(const std::string& nbtString)
     : m_nbtString(nbtString)
-{
-}
+{}
 
-ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const
+{
     MC_UNUSED(context);
 
     if (stack.isEmpty() || m_nbtString.empty()) {
@@ -755,8 +774,8 @@ ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const {
         if (jsonTag.is_object() && !jsonTag.empty()) {
             stack.mergeTag(jsonTag);
         }
-
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         // 解析异常，返回原始物品
         // 在实际游戏中可能需要记录日志
         MC_UNUSED(e);
@@ -766,7 +785,8 @@ ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const {
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetNbtFunction::clone() const {
+std::unique_ptr<LootFunction> SetNbtFunction::clone() const
+{
     auto func = std::make_unique<SetNbtFunction>(m_nbtString);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -780,10 +800,10 @@ std::unique_ptr<LootFunction> SetNbtFunction::clone() const {
 
 CopyNameFunction::CopyNameFunction(Source source)
     : m_source(source)
-{
-}
+{}
 
-ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -845,7 +865,8 @@ ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const {
     return stack;
 }
 
-std::unique_ptr<LootFunction> CopyNameFunction::clone() const {
+std::unique_ptr<LootFunction> CopyNameFunction::clone() const
+{
     auto func = std::make_unique<CopyNameFunction>(m_source);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -857,14 +878,13 @@ std::unique_ptr<LootFunction> CopyNameFunction::clone() const {
 // CopyBlockStateFunction
 // ============================================================================
 
-CopyBlockStateFunction::CopyBlockStateFunction(const std::string& blockId,
-                                               const std::vector<std::string>& properties)
+CopyBlockStateFunction::CopyBlockStateFunction(const std::string& blockId, const std::vector<std::string>& properties)
     : m_blockId(blockId)
     , m_properties(properties)
-{
-}
+{}
 
-ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -917,7 +937,8 @@ ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) c
     return stack;
 }
 
-std::unique_ptr<LootFunction> CopyBlockStateFunction::clone() const {
+std::unique_ptr<LootFunction> CopyBlockStateFunction::clone() const
+{
     auto func = std::make_unique<CopyBlockStateFunction>(m_blockId, m_properties);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -931,14 +952,15 @@ std::unique_ptr<LootFunction> CopyBlockStateFunction::clone() const {
 
 CopyNbtFunction::CopyNbtFunction(Source source)
     : m_source(source)
-{
-}
+{}
 
-void CopyNbtFunction::addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation) {
+void CopyNbtFunction::addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation)
+{
     m_operations.push_back({sourcePath, targetPath, operation});
 }
 
-ItemStack CopyNbtFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack CopyNbtFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty() || m_operations.empty()) {
         return stack;
     }
@@ -951,7 +973,8 @@ ItemStack CopyNbtFunction::apply(ItemStack stack, LootContext& context) const {
     return stack;
 }
 
-std::unique_ptr<LootFunction> CopyNbtFunction::clone() const {
+std::unique_ptr<LootFunction> CopyNbtFunction::clone() const
+{
     auto func = std::make_unique<CopyNbtFunction>(m_source);
     func->m_operations = m_operations;
     for (const auto& cond : m_conditions) {
@@ -966,10 +989,10 @@ std::unique_ptr<LootFunction> CopyNbtFunction::clone() const {
 
 FillPlayerHeadFunction::FillPlayerHeadFunction(CopyNameFunction::Source source)
     : m_source(source)
-{
-}
+{}
 
-ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -982,7 +1005,8 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
     return stack;
 }
 
-std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const {
+std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const
+{
     auto func = std::make_unique<FillPlayerHeadFunction>(m_source);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -994,11 +1018,13 @@ std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const {
 // SetAttributesFunction
 // ============================================================================
 
-void SetAttributesFunction::addModifier(const Modifier& modifier) {
+void SetAttributesFunction::addModifier(const Modifier& modifier)
+{
     m_modifiers.push_back(modifier);
 }
 
-ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty() || m_modifiers.empty()) {
         return stack;
     }
@@ -1022,7 +1048,7 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
         std::string uuid = modifier.uuid.empty() ? generateUUID() : modifier.uuid;
 
         // 随机选择槽位
-        i32 equipmentSlot = static_cast<i32>(EquipmentSlot::MainHand);  // 默认主手
+        i32 equipmentSlot = static_cast<i32>(EquipmentSlot::MainHand); // 默认主手
         if (!modifier.slots.empty()) {
             size_t slotIndex = static_cast<size_t>(random.nextInt(static_cast<i32>(modifier.slots.size())));
             equipmentSlot = parseSlotName(modifier.slots[slotIndex]);
@@ -1047,7 +1073,8 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetAttributesFunction::clone() const {
+std::unique_ptr<LootFunction> SetAttributesFunction::clone() const
+{
     auto func = std::make_unique<SetAttributesFunction>();
     func->m_modifiers = m_modifiers;
     for (const auto& cond : m_conditions) {
@@ -1056,7 +1083,8 @@ std::unique_ptr<LootFunction> SetAttributesFunction::clone() const {
     return func;
 }
 
-i32 SetAttributesFunction::parseSlotName(const std::string& slotName) {
+i32 SetAttributesFunction::parseSlotName(const std::string& slotName)
+{
     // 参考 MC 1.16.5 EquipmentSlotType.byName()
     if (slotName == "mainhand") {
         return static_cast<i32>(EquipmentSlot::MainHand);
@@ -1075,7 +1103,8 @@ i32 SetAttributesFunction::parseSlotName(const std::string& slotName) {
     return static_cast<i32>(EquipmentSlot::MainHand);
 }
 
-std::string SetAttributesFunction::generateUUID() {
+std::string SetAttributesFunction::generateUUID()
+{
     // 生成随机 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
     // 使用 std::mt19937_64 生成 64 位随机数
     static std::mt19937_64 gen(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
@@ -1085,11 +1114,13 @@ std::string SetAttributesFunction::generateUUID() {
 
     // 格式化为 UUID v4 格式
     char buf[64];
-    std::snprintf(buf, sizeof(buf), "%08x-%04x-%04x-%04x-%012llx",
-        static_cast<u32>(part1 >> 32),                           // 8 hex digits
+    std::snprintf(buf,
+        sizeof(buf),
+        "%08x-%04x-%04x-%04x-%012llx",
+        static_cast<u32>(part1 >> 32),                            // 8 hex digits
         static_cast<u16>((part1 >> 16) & 0xFFFF),                 // 4 hex digits
-        static_cast<u16>((part1 & 0x0FFF) | 0x4000),             // 4 hex digits (version 4 UUID)
-        static_cast<u16>(((part2 >> 48) & 0x3FFF) | 0x8000),     // 4 hex digits (variant 1)
+        static_cast<u16>((part1 & 0x0FFF) | 0x4000),              // 4 hex digits (version 4 UUID)
+        static_cast<u16>(((part2 >> 48) & 0x3FFF) | 0x8000),      // 4 hex digits (variant 1)
         static_cast<unsigned long long>(part2 & 0xFFFFFFFFFFFF)); // 12 hex digits
     return std::string(buf);
 }
@@ -1100,13 +1131,15 @@ std::string SetAttributesFunction::generateUUID() {
 
 SetContentsFunction::~SetContentsFunction() = default;
 
-void SetContentsFunction::addEntry(std::unique_ptr<LootEntry> entry) {
+void SetContentsFunction::addEntry(std::unique_ptr<LootEntry> entry)
+{
     if (entry) {
         m_entries.push_back(std::move(entry));
     }
 }
 
-ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) const
+{
     // 参考 MC 1.16.5 net.minecraft.loot.functions.SetContents.doApply()
     if (stack.isEmpty() || m_entries.empty()) {
         return stack;
@@ -1129,25 +1162,27 @@ ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) cons
 
         // 使用 generate() 方法生成物品
         // 参考 MC: ILootGenerator.func_216188_a(Consumer<ItemStack>, LootContext)
-        entry->generate([&generatedItems](const ItemStack& item) {
-            if (!item.isEmpty()) {
-                // 参考 MC LootTable.capStackSizes():
-                // 如果物品数量超过最大堆叠数，需要拆分成多个堆
-                if (item.getCount() <= item.getMaxStackSize()) {
-                    generatedItems.push_back(item);
-                } else {
-                    // 拆分超限堆叠
-                    i32 remaining = item.getCount();
-                    while (remaining > 0) {
-                        ItemStack splitItem = item.copy();
-                        i32 splitCount = std::min(remaining, splitItem.getMaxStackSize());
-                        splitItem.setCount(splitCount);
-                        remaining -= splitCount;
-                        generatedItems.push_back(std::move(splitItem));
+        entry->generate(
+            [&generatedItems](const ItemStack& item) {
+                if (!item.isEmpty()) {
+                    // 参考 MC LootTable.capStackSizes():
+                    // 如果物品数量超过最大堆叠数，需要拆分成多个堆
+                    if (item.getCount() <= item.getMaxStackSize()) {
+                        generatedItems.push_back(item);
+                    } else {
+                        // 拆分超限堆叠
+                        i32 remaining = item.getCount();
+                        while (remaining > 0) {
+                            ItemStack splitItem = item.copy();
+                            i32 splitCount = std::min(remaining, splitItem.getMaxStackSize());
+                            splitItem.setCount(splitCount);
+                            remaining -= splitCount;
+                            generatedItems.push_back(std::move(splitItem));
+                        }
                     }
                 }
-            }
-        }, context);
+            },
+            context);
     }
 
     // 如果没有生成任何物品，直接返回原堆
@@ -1195,7 +1230,8 @@ ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) cons
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetContentsFunction::clone() const {
+std::unique_ptr<LootFunction> SetContentsFunction::clone() const
+{
     auto func = std::make_unique<SetContentsFunction>();
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -1213,10 +1249,10 @@ std::unique_ptr<LootFunction> SetContentsFunction::clone() const {
 SetLootTableFunction::SetLootTableFunction(const std::string& lootTableId, u64 seed)
     : m_lootTableId(lootTableId)
     , m_seed(seed)
-{
-}
+{}
 
-ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) const
+{
     MC_UNUSED(context);
 
     if (stack.isEmpty() || m_lootTableId.empty()) {
@@ -1241,7 +1277,8 @@ ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) con
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetLootTableFunction::clone() const {
+std::unique_ptr<LootFunction> SetLootTableFunction::clone() const
+{
     auto func = std::make_unique<SetLootTableFunction>(m_lootTableId, m_seed);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -1255,10 +1292,10 @@ std::unique_ptr<LootFunction> SetLootTableFunction::clone() const {
 
 ExplorationMapFunction::ExplorationMapFunction(Destination destination)
     : m_destination(destination)
-{
-}
+{}
 
-ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty()) {
         return stack;
     }
@@ -1271,7 +1308,8 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
     return stack;
 }
 
-std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const {
+std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const
+{
     auto func = std::make_unique<ExplorationMapFunction>(m_destination);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
@@ -1283,11 +1321,13 @@ std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const {
 // SetStewEffectFunction
 // ============================================================================
 
-void SetStewEffectFunction::addEffect(const std::string& effectId, const RandomValueRange& duration) {
+void SetStewEffectFunction::addEffect(const std::string& effectId, const RandomValueRange& duration)
+{
     m_effects.push_back({effectId, duration});
 }
 
-ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) const {
+ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) const
+{
     if (stack.isEmpty() || m_effects.empty()) {
         return stack;
     }
@@ -1352,7 +1392,8 @@ ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) co
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetStewEffectFunction::clone() const {
+std::unique_ptr<LootFunction> SetStewEffectFunction::clone() const
+{
     auto func = std::make_unique<SetStewEffectFunction>();
     func->m_effects = m_effects;
     for (const auto& cond : m_conditions) {
@@ -1365,105 +1406,115 @@ std::unique_ptr<LootFunction> SetStewEffectFunction::clone() const {
 // LootFunctionBuilder
 // ============================================================================
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setCount(const RandomValueRange& count, bool add) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setCount(const RandomValueRange& count, bool add)
+{
     return std::make_unique<SetCountFunction>(count, add);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setCount(i32 count, bool add) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setCount(i32 count, bool add)
+{
     return std::make_unique<SetCountFunction>(RandomValueRange(static_cast<f32>(count)), add);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::applyBonus(
-    ApplyBonusFunction::BonusType bonusType,
-    i32 bonusMultiplier,
-    i32 extra,
-    f32 probability)
+    ApplyBonusFunction::BonusType bonusType, i32 bonusMultiplier, i32 extra, f32 probability)
 {
     return std::make_unique<ApplyBonusFunction>(bonusType, bonusMultiplier, extra, probability);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::lootingEnchantBonus(
-    const RandomValueRange& count,
-    i32 limit)
+std::unique_ptr<LootFunction> LootFunctionBuilder::lootingEnchantBonus(const RandomValueRange& count, i32 limit)
 {
     return std::make_unique<LootingEnchantBonusFunction>(count, limit);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setDamage(const RandomValueRange& durability, bool add) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setDamage(const RandomValueRange& durability, bool add)
+{
     return std::make_unique<SetDamageFunction>(durability, add);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setName(const std::string& name, bool replace) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setName(const std::string& name, bool replace)
+{
     return std::make_unique<SetNameFunction>(name, replace);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setLore(const std::vector<std::string>& lore, bool replace) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setLore(const std::vector<std::string>& lore, bool replace)
+{
     return std::make_unique<SetLoreFunction>(lore, replace);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::limitCount(i32 min, i32 max) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::limitCount(i32 min, i32 max)
+{
     return std::make_unique<LimitCountFunction>(min, max);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::furnaceSmelt() {
+std::unique_ptr<LootFunction> LootFunctionBuilder::furnaceSmelt()
+{
     return std::make_unique<FurnaceSmeltFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::enchantWithLevels(
-    const RandomValueRange& levels,
-    bool treasure)
+std::unique_ptr<LootFunction> LootFunctionBuilder::enchantWithLevels(const RandomValueRange& levels, bool treasure)
 {
     return std::make_unique<EnchantWithLevelsFunction>(levels, treasure);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::enchantRandomly(
-    const std::vector<std::string>& enchantments,
-    bool treasure)
+    const std::vector<std::string>& enchantments, bool treasure)
 {
     return std::make_unique<EnchantRandomlyFunction>(enchantments, treasure);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay() {
+std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay()
+{
     return std::make_unique<ExplosionDecayFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const std::string& nbtString) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const std::string& nbtString)
+{
     return std::make_unique<SetNbtFunction>(nbtString);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::Source source) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::Source source)
+{
     return std::make_unique<CopyNameFunction>(source);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::copyBlockState(const std::string& blockId) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyBlockState(const std::string& blockId)
+{
     return std::make_unique<CopyBlockStateFunction>(blockId);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::copyNbt(CopyNbtFunction::Source source) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyNbt(CopyNbtFunction::Source source)
+{
     return std::make_unique<CopyNbtFunction>(source);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::fillPlayerHead() {
+std::unique_ptr<LootFunction> LootFunctionBuilder::fillPlayerHead()
+{
     return std::make_unique<FillPlayerHeadFunction>(CopyNameFunction::Source::KillerPlayer);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setAttributes() {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setAttributes()
+{
     return std::make_unique<SetAttributesFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setContents() {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setContents()
+{
     return std::make_unique<SetContentsFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setLootTable(const std::string& lootTableId) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setLootTable(const std::string& lootTableId)
+{
     return std::make_unique<SetLootTableFunction>(lootTableId);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::explorationMap() {
+std::unique_ptr<LootFunction> LootFunctionBuilder::explorationMap()
+{
     return std::make_unique<ExplorationMapFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setStewEffect() {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setStewEffect()
+{
     return std::make_unique<SetStewEffectFunction>();
 }
 

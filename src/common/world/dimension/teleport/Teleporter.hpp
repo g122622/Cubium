@@ -2,8 +2,8 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../util/math/Vector3.hpp"
-#include "../../block/BlockPos.hpp"
 #include "../../IWorld.hpp"
+#include "../../block/BlockPos.hpp"
 #include <optional>
 
 namespace mc {
@@ -19,10 +19,10 @@ class DimensionType;
  * 包含传送目标位置和朝向。
  */
 struct PortalInfo {
-    Vector3d position;      ///< 目标位置
-    f32 yaw = 0.0f;         ///< 目标偏航角
-    f32 pitch = 0.0f;       ///< 目标俯仰角
-    bool valid = false;     ///< 是否有效
+    Vector3d position;  ///< 目标位置
+    f32 yaw = 0.0f;     ///< 目标偏航角
+    f32 pitch = 0.0f;   ///< 目标俯仰角
+    bool valid = false; ///< 是否有效
 };
 
 /**
@@ -92,9 +92,7 @@ public:
      * @return 转换后的位置
      */
     [[nodiscard]] static Vector3d transformPosition(
-        const Vector3d& pos,
-        const DimensionType& from,
-        const DimensionType& to);
+        const Vector3d& pos, const DimensionType& from, const DimensionType& to);
 
     // ========== 传送门搜索半径 ==========
 
@@ -112,9 +110,7 @@ public:
     /// 末地传送门固定位置
     /// MC 1.16.5 ServerWorld.field_241108_a_ = new BlockPos(100, 50, 0)
     /// 玩家出生在方块中心，所以加 0.5
-    [[nodiscard]] static Vector3d getEndSpawnPosition() {
-        return Vector3d(100.5, 50.0, 0.5);
-    }
+    [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.5, 50.0, 0.5); }
 
 protected:
     /**
@@ -125,10 +121,7 @@ protected:
      * @param radius 搜索半径
      * @return 找到的传送门位置列表
      */
-    [[nodiscard]] static std::vector<BlockPos> searchPortalBlocks(
-        IWorld& world,
-        const BlockPos& center,
-        i32 radius);
+    [[nodiscard]] static std::vector<BlockPos> searchPortalBlocks(IWorld& world, const BlockPos& center, i32 radius);
 
     /**
      * @brief 放置传送门方块
@@ -139,12 +132,7 @@ protected:
      * @param height 高度
      * @param axis 轴向
      */
-    static void placePortalBlocks(
-        IWorld& world,
-        const BlockPos& corner,
-        i32 width,
-        i32 height,
-        Direction axis);
+    static void placePortalBlocks(IWorld& world, const BlockPos& corner, i32 width, i32 height, Direction axis);
 };
 
 /**
@@ -187,12 +175,7 @@ private:
     /**
      * @brief 放置黑曜石框架
      */
-    static void placeObsidianFrame(
-        IWorld& world,
-        const BlockPos& corner,
-        i32 width,
-        i32 height,
-        Direction axis);
+    static void placeObsidianFrame(IWorld& world, const BlockPos& corner, i32 width, i32 height, Direction axis);
 };
 
 /**
@@ -240,9 +223,7 @@ public:
     /**
      * @brief 获取末地出生位置
      */
-    [[nodiscard]] static Vector3d getEndSpawnPosition() {
-        return Vector3d(100.0, 49.0, 0.0);
-    }
+    [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.0, 49.0, 0.0); }
 
 private:
     /**

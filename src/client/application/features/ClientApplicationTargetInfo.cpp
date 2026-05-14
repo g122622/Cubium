@@ -1,11 +1,11 @@
 #include "../ClientApplication.hpp"
 
-#include "common/world/IWorld.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
-#include "common/world/fluid/Fluid.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/util/math/ray/Raycast.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/ray/Raycast.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc::client {
 
@@ -21,8 +21,7 @@ class ClientWorldBlockReader final : public mc::IBlockReader {
 public:
     explicit ClientWorldBlockReader(const ClientWorld& world)
         : m_world(world)
-    {
-    }
+    {}
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -36,7 +35,10 @@ public:
 
     // IWorld 接口实现 - 委托到 ClientWorld
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return fluid::Fluid::getFluidState(0); }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return fluid::Fluid::getFluidState(0);
+    }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
@@ -45,11 +47,20 @@ public:
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
     [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
     [[nodiscard]] u64 seed() const override { return 0; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
@@ -59,28 +70,28 @@ public:
     [[nodiscard]] bool isClientSide() override { return true; }
 
     // tickManager 不适用于只读的客户端世界适配器
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support tickManager");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support tickManager");
     }
 
     // getRandom 不适用于只读的客户端世界适配器
-    [[nodiscard]] math::Random& getRandom() override {
+    [[nodiscard]] math::Random& getRandom() override
+    {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }
-    [[nodiscard]] const math::Random& getRandom() const override {
+    [[nodiscard]] const math::Random& getRandom() const override
+    {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }
 
     // WorldBorder 接口
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        return m_worldBorder;
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        return m_worldBorder;
-    }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
 private:
     const ClientWorld& m_world;
@@ -105,7 +116,7 @@ void ClientApplication::updateRaycastResult()
         mc::Ray ray(origin, direction);
 
         // 执行射线检测（创造模式使用更远的距离）
-        mc::RaycastContext context(ray, 5.0f);  // 生存模式5格
+        mc::RaycastContext context(ray, 5.0f); // 生存模式5格
         ClientWorldBlockReader blockReader(m_world);
         m_raycastResult = mc::raycastBlocks(context, blockReader);
     } else {

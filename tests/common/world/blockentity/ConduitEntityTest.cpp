@@ -1,21 +1,21 @@
 #include <gtest/gtest.h>
 
-#include "entity/interfaces/IMob.hpp"
-#include "entity/entities/monster/MonsterEntity.hpp"
-#include "entity/core/LivingEntity.hpp"
-#include "entity/damage/DamageSource.hpp"
-#include "world/blockentity/processing/ConduitEntity.hpp"
-#include "world/IWorld.hpp"
-#include "world/border/WorldBorder.hpp"
-#include "world/WorldConstants.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/chunk/ChunkData.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/command/ICommandSource.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/command/ICommandSource.hpp"
-#include "common/TestWorldHelper.hpp"
-#include <unordered_set>
+#include "entity/core/LivingEntity.hpp"
+#include "entity/damage/DamageSource.hpp"
+#include "entity/entities/monster/MonsterEntity.hpp"
+#include "entity/interfaces/IMob.hpp"
+#include "world/IWorld.hpp"
+#include "world/WorldConstants.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/blockentity/processing/ConduitEntity.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/chunk/ChunkData.hpp"
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace mc;
 
@@ -26,7 +26,8 @@ class ConduitTestWorld final : public test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const BlockPos pos(x, y, z);
         const auto it = m_statesByPos.find(pos);
         if (it != m_statesByPos.end()) {
@@ -35,52 +36,54 @@ public:
         return &VanillaBlocks::WATER->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_statesByPos[BlockPos(x, y, z)] = state;
         return true;
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
         MC_UNUSED(flags);
         return setBlockState(x, y, z, state);
     }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
         return m_entitiesInAabb;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
         return m_entitiesInRange;
     }
 
-    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override {
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
         const auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second;
     }
 
-    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override {
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
         const auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override {
-        m_blockEntities[pos] = entity;
-    }
+    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override { m_blockEntities[pos] = entity; }
 
-    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) {
-        m_entitiesInRange = entities;
-    }
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
 
-    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) {
-        m_entitiesInAabb = entities;
-    }
+    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) { m_entitiesInAabb = entities; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ConduitTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ConduitTestWorld::tickManager not implemented");
     }
 
@@ -101,7 +104,8 @@ protected:
 };
 
 // 测试 IMob 接口可以被继承
-TEST_F(IMobInterfaceTest, IMobCanBeInherited) {
+TEST_F(IMobInterfaceTest, IMobCanBeInherited)
+{
     // 创建一个简单的测试类继承 IMob
     class TestMob : public entity::IMob {
     public:
@@ -123,7 +127,8 @@ protected:
 };
 
 // 测试魔法伤害源创建
-TEST_F(MagicDamageTest, CreateMagicDamageSource) {
+TEST_F(MagicDamageTest, CreateMagicDamageSource)
+{
     EnvironmentalDamage magicDamage = DamageSources::magic();
 
     // 验证伤害类型
@@ -131,12 +136,13 @@ TEST_F(MagicDamageTest, CreateMagicDamageSource) {
 
     // 验证魔法伤害属性
     EXPECT_TRUE(magicDamage.isMagic());
-    EXPECT_TRUE(magicDamage.bypassesArmor());  // 魔法伤害绕过护甲
-    EXPECT_FALSE(magicDamage.isDamageAbsolute());  // 不是绝对伤害
+    EXPECT_TRUE(magicDamage.bypassesArmor());     // 魔法伤害绕过护甲
+    EXPECT_FALSE(magicDamage.isDamageAbsolute()); // 不是绝对伤害
 }
 
 // 测试魔法伤害不是物理伤害
-TEST_F(MagicDamageTest, MagicDamageIsNotPhysical) {
+TEST_F(MagicDamageTest, MagicDamageIsNotPhysical)
+{
     EnvironmentalDamage magicDamage = DamageSources::magic();
 
     EXPECT_FALSE(magicDamage.isFire());
@@ -146,7 +152,8 @@ TEST_F(MagicDamageTest, MagicDamageIsNotPhysical) {
 }
 
 // 测试凋零伤害也是魔法伤害
-TEST_F(MagicDamageTest, WitherDamageIsMagic) {
+TEST_F(MagicDamageTest, WitherDamageIsMagic)
+{
     EnvironmentalDamage witherDamage = DamageSources::wither();
 
     EXPECT_TRUE(witherDamage.isMagic());
@@ -155,7 +162,8 @@ TEST_F(MagicDamageTest, WitherDamageIsMagic) {
 }
 
 // 测试魔法伤害类型判断
-TEST_F(MagicDamageTest, MagicDamageType) {
+TEST_F(MagicDamageTest, MagicDamageType)
+{
     EnvironmentalDamage magicDamage = DamageSources::magic();
 
     // 魔法伤害应该绕过护甲但不穿透无敌
@@ -174,10 +182,11 @@ protected:
 };
 
 // 测试 UUID 字符串与字节数组转换
-TEST_F(UuidTest, UuidConversionWorks) {
+TEST_F(UuidTest, UuidConversionWorks)
+{
     // 创建一个已知的 UUID
-    Uuid originalUuid = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-                          0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
+    Uuid originalUuid = {
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
 
     // 转换为字符串
     std::string uuidStr = util::uuidToString(originalUuid);
@@ -189,7 +198,8 @@ TEST_F(UuidTest, UuidConversionWorks) {
 }
 
 // 测试 uuidFromString 处理无效输入
-TEST_F(UuidTest, UuidFromStringHandlesInvalidInput) {
+TEST_F(UuidTest, UuidFromStringHandlesInvalidInput)
+{
     // 空字符串应该返回全零 UUID
     Uuid emptyUuid = util::uuidFromString("");
     for (u8 byte : emptyUuid) {
@@ -204,12 +214,11 @@ TEST_F(UuidTest, UuidFromStringHandlesInvalidInput) {
 }
 
 // 测试 UUID 唯一性
-TEST_F(UuidTest, UuidUniqueness) {
+TEST_F(UuidTest, UuidUniqueness)
+{
     // 创建两个不同的 UUID
-    Uuid uuid1 = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-                   0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
-    Uuid uuid2 = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
-                   0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00};
+    Uuid uuid1 = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
+    Uuid uuid2 = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00};
 
     EXPECT_NE(uuid1, uuid2);
 
@@ -220,11 +229,10 @@ TEST_F(UuidTest, UuidUniqueness) {
 }
 
 // 测试 UUID 哈希
-TEST_F(UuidTest, UuidHashWorks) {
-    Uuid uuid1 = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-                   0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
-    Uuid uuid2 = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-                   0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
+TEST_F(UuidTest, UuidHashWorks)
+{
+    Uuid uuid1 = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
+    Uuid uuid2 = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
 
     // 相同 UUID 应该有相同哈希
     UuidHash hashFunc;
@@ -234,7 +242,7 @@ TEST_F(UuidTest, UuidHashWorks) {
     std::unordered_set<Uuid, UuidHash> uuidSet;
     uuidSet.insert(uuid1);
     EXPECT_EQ(uuidSet.count(uuid1), 1u);
-    EXPECT_EQ(uuidSet.count(uuid2), 1u);  // 相同 UUID
+    EXPECT_EQ(uuidSet.count(uuid2), 1u); // 相同 UUID
 }
 
 // ============================================================================
@@ -247,21 +255,24 @@ protected:
 };
 
 // 测试攻击伤害值
-TEST_F(ConduitLogicTest, AttackDamageValue) {
+TEST_F(ConduitLogicTest, AttackDamageValue)
+{
     // 潮涌核心攻击伤害为 4.0F（2颗心）
     constexpr f32 CONDUIT_ATTACK_DAMAGE = 4.0f;
     EXPECT_FLOAT_EQ(CONDUIT_ATTACK_DAMAGE, 4.0f);
 }
 
 // 测试攻击范围
-TEST_F(ConduitLogicTest, AttackRangeValue) {
+TEST_F(ConduitLogicTest, AttackRangeValue)
+{
     // 潮涌核心攻击范围为 8.0 格
     constexpr f32 CONDUIT_ATTACK_RANGE = 8.0f;
     EXPECT_FLOAT_EQ(CONDUIT_ATTACK_RANGE, 8.0f);
 }
 
 // 测试激活框架数
-TEST_F(ConduitLogicTest, ActivationRequirements) {
+TEST_F(ConduitLogicTest, ActivationRequirements)
+{
     // 激活需要至少 16 个框架方块
     constexpr i32 MIN_FRAME_BLOCKS = 16;
     // 攻击需要至少 42 个框架方块
@@ -272,17 +283,19 @@ TEST_F(ConduitLogicTest, ActivationRequirements) {
 }
 
 // 测试敌对生物检测通过 IMob 接口
-TEST_F(ConduitLogicTest, HostileMobDetectionByIMob) {
+TEST_F(ConduitLogicTest, HostileMobDetectionByIMob)
+{
     // MonsterEntity 继承自 IMob
     // 这个测试验证 IMob 接口存在于类型系统中
 
     // 检查 MonsterEntity 是否可以转换为 IMob*
     // 由于 MonsterEntity 继承自 IMob，这个转换应该成功
-    EXPECT_TRUE(true);  // 如果编译通过，说明 IMob 接口正确集成
+    EXPECT_TRUE(true); // 如果编译通过，说明 IMob 接口正确集成
 }
 
 // 测试魔法伤害应用于敌对生物
-TEST_F(ConduitLogicTest, MagicDamageBypassesArmor) {
+TEST_F(ConduitLogicTest, MagicDamageBypassesArmor)
+{
     // 魔法伤害绕过护甲
     EnvironmentalDamage magicDamage = DamageSources::magic();
     EXPECT_TRUE(magicDamage.bypassesArmor());
@@ -291,9 +304,9 @@ TEST_F(ConduitLogicTest, MagicDamageBypassesArmor) {
 }
 
 // 测试不同长度 UUID 字符串
-TEST_F(UuidTest, UuidStringFormat) {
-    Uuid uuid = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
-                  0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
+TEST_F(UuidTest, UuidStringFormat)
+{
+    Uuid uuid = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
     std::string str = util::uuidToString(uuid);
 
     // UUID 字符串应该是 32 字符（16 字节 = 32 十六进制字符）
@@ -313,7 +326,8 @@ TEST_F(UuidTest, UuidStringFormat) {
 class MockLivingEntityForConduit : public LivingEntity {
 public:
     explicit MockLivingEntityForConduit(EntityId id)
-        : LivingEntity(LegacyEntityType::Player, id, nullptr) {
+        : LivingEntity(LegacyEntityType::Player, id, nullptr)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -323,7 +337,8 @@ public:
 class MockMobEntityForConduit : public LivingEntity, public entity::IMob {
 public:
     explicit MockMobEntityForConduit(EntityId id)
-        : LivingEntity(LegacyEntityType::Zombie, id, nullptr) {
+        : LivingEntity(LegacyEntityType::Zombie, id, nullptr)
+    {
         registerAttributes();
         setHealth(maxHealth());
     }
@@ -333,21 +348,22 @@ public:
 class MockNonLivingEntityForConduit : public Entity {
 public:
     explicit MockNonLivingEntityForConduit(EntityId id)
-        : Entity(LegacyEntityType::Item, id, nullptr) {
-    }
+        : Entity(LegacyEntityType::Item, id, nullptr)
+    {}
 };
 
 // Test ConduitEntity that exposes protected methods
 class TestConduitEntity : public blockentity::ConduitEntity {
 public:
-    explicit TestConduitEntity(const BlockPos& pos) : ConduitEntity(pos) {}
+    explicit TestConduitEntity(const BlockPos& pos)
+        : ConduitEntity(pos)
+    {}
 
     // Expose protected method for testing
-    LivingEntity* testFindExistingTarget(IWorld& world) {
-        return findExistingTarget(world);
-    }
+    LivingEntity* testFindExistingTarget(IWorld& world) { return findExistingTarget(world); }
 
-    void setTargetUuidForTest(const std::string& uuid) {
+    void setTargetUuidForTest(const std::string& uuid)
+    {
         nlohmann::json data;
         data["target_uuid"] = uuid;
         load(data);
@@ -355,7 +371,8 @@ public:
 };
 
 // Test: findExistingTarget returns nullptr when no target UUID is set
-TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoTargetUuid) {
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoTargetUuid)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(0, 0, 0));
 
@@ -367,7 +384,8 @@ TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoTargetUuid) {
 }
 
 // Test: findExistingTarget returns nullptr when UUID doesn't match any entity
-TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenUuidNotMatch) {
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenUuidNotMatch)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(0, 0, 0));
 
@@ -381,7 +399,8 @@ TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenUuidNotMatch) {
 }
 
 // Test: findExistingTarget returns nullptr when entity is not LivingEntity
-TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenEntityNotLivingEntity) {
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenEntityNotLivingEntity)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(0, 0, 0));
 
@@ -397,7 +416,8 @@ TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenEntityNotLivingEntity) {
 }
 
 // Test: findExistingTarget returns correct LivingEntity when UUID matches
-TEST(ConduitEntityFindTargetTest, ReturnsEntityWhenUuidMatchesLivingEntity) {
+TEST(ConduitEntityFindTargetTest, ReturnsEntityWhenUuidMatchesLivingEntity)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(0, 0, 0));
 
@@ -414,7 +434,8 @@ TEST(ConduitEntityFindTargetTest, ReturnsEntityWhenUuidMatchesLivingEntity) {
 }
 
 // Test: findExistingTarget returns correct entity among multiple entities
-TEST(ConduitEntityFindTargetTest, ReturnsCorrectEntityAmongMultiple) {
+TEST(ConduitEntityFindTargetTest, ReturnsCorrectEntityAmongMultiple)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(0, 0, 0));
 
@@ -438,7 +459,8 @@ TEST(ConduitEntityFindTargetTest, ReturnsCorrectEntityAmongMultiple) {
 }
 
 // Test: findExistingTarget returns nullptr when no entities in range
-TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoEntitiesInRange) {
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoEntitiesInRange)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(0, 0, 0));
 
@@ -449,7 +471,8 @@ TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoEntitiesInRange) {
 }
 
 // Test: findExistingTarget works with non-IMob LivingEntity
-TEST(ConduitEntityFindTargetTest, WorksWithNonMobLivingEntity) {
+TEST(ConduitEntityFindTargetTest, WorksWithNonMobLivingEntity)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(0, 0, 0));
 
@@ -467,7 +490,8 @@ TEST(ConduitEntityFindTargetTest, WorksWithNonMobLivingEntity) {
 }
 
 // Test: load correctly restores target UUID from saved data
-TEST(ConduitEntityFindTargetTest, LoadRestoresTargetUuid) {
+TEST(ConduitEntityFindTargetTest, LoadRestoresTargetUuid)
+{
     TestConduitEntity conduit(BlockPos(10, 20, 30));
 
     // Simulate loading data with target_uuid
@@ -490,7 +514,8 @@ TEST(ConduitEntityFindTargetTest, LoadRestoresTargetUuid) {
 }
 
 // Test: save writes target_uuid when target exists
-TEST(ConduitEntityFindTargetTest, SaveWritesTargetUuidWhenTargetExists) {
+TEST(ConduitEntityFindTargetTest, SaveWritesTargetUuidWhenTargetExists)
+{
     ConduitTestWorld world;
     TestConduitEntity conduit(BlockPos(10, 20, 30));
 
@@ -520,7 +545,8 @@ TEST(ConduitEntityFindTargetTest, SaveWritesTargetUuidWhenTargetExists) {
 }
 
 // Test: save does not write target_uuid when target is null
-TEST(ConduitEntityFindTargetTest, SaveDoesNotWriteTargetUuidWhenNull) {
+TEST(ConduitEntityFindTargetTest, SaveDoesNotWriteTargetUuidWhenNull)
+{
     TestConduitEntity conduit(BlockPos(10, 20, 30));
 
     // No target set (m_target is nullptr)

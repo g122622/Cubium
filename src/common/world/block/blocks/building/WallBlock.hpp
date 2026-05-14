@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -45,8 +45,7 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
         IWorld& world,
@@ -76,7 +75,8 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
@@ -106,9 +106,7 @@ private:
      * @param neighborSide 邻居相对于墙的方向
      * @return 连接高度
      */
-    [[nodiscard]] BlockStateProperties::WallHeight getWallHeight(
-        const BlockState& state,
-        Direction neighborSide) const;
+    [[nodiscard]] BlockStateProperties::WallHeight getWallHeight(const BlockState& state, Direction neighborSide) const;
 
     /**
      * @brief 判断方块是否为栅栏门
@@ -126,8 +124,7 @@ private:
      * @param west 西面高度
      * @return 形状索引
      */
-    [[nodiscard]] static size_t getShapeIndex(
-        bool up,
+    [[nodiscard]] static size_t getShapeIndex(bool up,
         BlockStateProperties::WallHeight north,
         BlockStateProperties::WallHeight east,
         BlockStateProperties::WallHeight south,
@@ -140,7 +137,7 @@ private:
     CollisionShape m_pillarShape;
 
     /// 预计算的形状缓存
-    std::array<CollisionShape, 162> m_shapes;  // 2(up) * 3(north) * 3(east) * 3(south) * 3(west)
+    std::array<CollisionShape, 162> m_shapes; // 2(up) * 3(north) * 3(east) * 3(south) * 3(west)
 };
 
 } // namespace blocks

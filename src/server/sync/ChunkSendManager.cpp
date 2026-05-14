@@ -1,22 +1,21 @@
 #include "ChunkSendManager.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/network/sync/ChunkSync.hpp"
-#include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::sync {
 
-ChunkSendManager::ChunkSendManager(ServerChunkManager& chunkManager,
-                                   world::ChunkLoadTicketManager& ticketManager)
+ChunkSendManager::ChunkSendManager(ServerChunkManager& chunkManager, world::ChunkLoadTicketManager& ticketManager)
     : m_chunkManager(chunkManager)
     , m_ticketManager(ticketManager)
-{
-}
+{}
 
-void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players,
-                                          bool validateTracking) {
+void ChunkSendManager::sendChunkToPlayers(
+    ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players, bool validateTracking)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::sendChunkToPlayers");
 
     if (players.empty()) {
@@ -38,34 +37,37 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
     } else {
         // 区块未加载，触发异步加载
         // 注意：玩家列表需要复制到回调中
-        m_chunkManager.requestChunkAsync(x, z, ChunkStatuses::FULL, [this, x, z, players, validateTracking](bool success, ChunkData* chunk) {
-            if (success && chunk) {
-                auto loadedChunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
-                if (!loadedChunk) {
-                    spdlog::warn("Failed to get shared chunk ({}, {}) for sending", x, z);
-                    return;
-                }
+        m_chunkManager.requestChunkAsync(
+            x, z, ChunkStatuses::FULL, [this, x, z, players, validateTracking](bool success, ChunkData* chunk) {
+                if (success && chunk) {
+                    auto loadedChunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
+                    if (!loadedChunk) {
+                        spdlog::warn("Failed to get shared chunk ({}, {}) for sending", x, z);
+                        return;
+                    }
 
-                auto result = network::ChunkSerializer::serializeChunk(*loadedChunk);
-                if (result.success()) {
-                    submitChunkData(x, z, std::move(result.value()), players, validateTracking);
-                    // spdlog::info("Chunk ({}, {}) loaded async, serialized for {} players", x, z, players.size());
+                    auto result = network::ChunkSerializer::serializeChunk(*loadedChunk);
+                    if (result.success()) {
+                        submitChunkData(x, z, std::move(result.value()), players, validateTracking);
+                        // spdlog::info("Chunk ({}, {}) loaded async, serialized for {} players", x, z, players.size());
+                    }
+                } else {
+                    spdlog::warn("Failed to load chunk ({}, {}) for sending", x, z);
                 }
-            } else {
-                spdlog::warn("Failed to load chunk ({}, {}) for sending", x, z);
-            }
-        });
+            });
     }
 }
 
-void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z) {
+void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::sendChunkToTrackingPlayers");
 
     auto players = m_ticketManager.getTrackingPlayers(x, z);
     sendChunkToPlayers(x, z, players, true);
 }
 
-void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players) {
+void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::unloadChunkFromPlayers");
 
     for (PlayerId player : players) {
@@ -78,14 +80,16 @@ void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const 
     }
 }
 
-void ChunkSendManager::unloadChunkFromTrackingPlayers(ChunkCoord x, ChunkCoord z) {
+void ChunkSendManager::unloadChunkFromTrackingPlayers(ChunkCoord x, ChunkCoord z)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::unloadChunkFromTrackingPlayers");
 
     auto players = m_ticketManager.getTrackingPlayers(x, z);
     unloadChunkFromPlayers(x, z, players);
 }
 
-void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
+void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::onPlayerTrackingChange");
 
     if (isTracking) {
@@ -103,14 +107,16 @@ void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, Chu
     }
 }
 
-void ChunkSendManager::onChunkPreUnload(ChunkCoord x, ChunkCoord z) {
+void ChunkSendManager::onChunkPreUnload(ChunkCoord x, ChunkCoord z)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::onChunkPreUnload");
 
     // 向所有追踪该区块的玩家发送卸载通知
     unloadChunkFromTrackingPlayers(x, z);
 }
 
-void ChunkSendManager::removePlayer(PlayerId playerId) {
+void ChunkSendManager::removePlayer(PlayerId playerId)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::removePlayer", "playerId", playerId);
 
     // 追踪状态由 ChunkLoadTicketManager 管理。
@@ -130,8 +136,9 @@ void ChunkSendManager::removePlayer(PlayerId playerId) {
     }
 }
 
-void ChunkSendManager::submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8> data,
-                                       std::vector<PlayerId> players, bool validateTracking) {
+void ChunkSendManager::submitChunkData(
+    ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players, bool validateTracking)
+{
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::submitChunkData");
 
     std::sort(players.begin(), players.end());
@@ -150,7 +157,8 @@ void ChunkSendManager::submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u
     m_readyChunks.emplace_back(std::move(ready));
 }
 
-void ChunkSendManager::processPendingSends() {
+void ChunkSendManager::processPendingSends()
+{
     MC_TRACE_EVENT("server.chunk", "processPendingSends");
 
     // 取出准备好的区块数据
@@ -179,11 +187,14 @@ void ChunkSendManager::processPendingSends() {
     }
 }
 
-void ChunkSendManager::setOnChunkSend(std::function<void(PlayerId, ChunkCoord, ChunkCoord, const std::vector<u8>&)> callback) {
+void ChunkSendManager::setOnChunkSend(
+    std::function<void(PlayerId, ChunkCoord, ChunkCoord, const std::vector<u8>&)> callback)
+{
     m_onChunkSend = std::move(callback);
 }
 
-void ChunkSendManager::setOnChunkUnload(std::function<void(PlayerId, ChunkCoord, ChunkCoord)> callback) {
+void ChunkSendManager::setOnChunkUnload(std::function<void(PlayerId, ChunkCoord, ChunkCoord)> callback)
+{
     m_onChunkUnload = std::move(callback);
 }
 

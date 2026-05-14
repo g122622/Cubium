@@ -51,6 +51,6 @@
 
 #pragma once
 
-#include "BiomeColorCache.hpp"
 #include "BiomeColorBlender.hpp"
+#include "BiomeColorCache.hpp"
 #include "ChunkBiomeAccessor.hpp"

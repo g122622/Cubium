@@ -1,22 +1,22 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/damage/DamageSource.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/border/WorldBorder.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/fluid/Fluid.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
+#include <cmath>
 #include <memory>
 #include <unordered_map>
-#include <cmath>
 
 namespace mc {
 namespace {
@@ -28,7 +28,8 @@ namespace {
  */
 class SlimeTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -36,17 +37,20 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         // 记录生成的史莱姆
         if (auto* slime = dynamic_cast<SlimeEntity*>(entity.get())) {
             m_spawnedSlimeSizes.push_back(slime->getSlimeSize());
@@ -57,17 +61,20 @@ public:
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
     }
 
     // 测试辅助方法
     [[nodiscard]] size_t spawnedSlimeCount() const { return m_spawnedSlimeCount; }
     [[nodiscard]] const std::vector<i32>& spawnedSlimeSizes() const { return m_spawnedSlimeSizes; }
-    void clearSpawnedEntities() {
+    void clearSpawnedEntities()
+    {
         m_spawnedEntities.clear();
         m_spawnedSlimeSizes.clear();
         m_spawnedSlimeCount = 0;
@@ -82,16 +89,15 @@ private:
 
 class SlimeEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     SlimeTestWorld m_world;
 };
 
 // ==================== 尺寸系统测试 ====================
 
-TEST_F(SlimeEntityTest, SetSlimeSize_UpdatesAttributes) {
+TEST_F(SlimeEntityTest, SetSlimeSize_UpdatesAttributes)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
 
@@ -103,26 +109,29 @@ TEST_F(SlimeEntityTest, SetSlimeSize_UpdatesAttributes) {
     // HP = size * size = 16
     EXPECT_FLOAT_EQ(static_cast<f32>(slime.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0)), 16.0f);
     // Speed = 0.2 + 0.1 * size = 0.6
-    EXPECT_FLOAT_EQ(static_cast<f32>(slime.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0)), 0.6f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(slime.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0)), 0.6f);
     // AttackDamage = size = 4
     EXPECT_FLOAT_EQ(static_cast<f32>(slime.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 4.0f);
     // 生命值应该被重置为最大值
     EXPECT_FLOAT_EQ(slime.health(), slime.maxHealth());
 }
 
-TEST_F(SlimeEntityTest, SetSlimeSize_ClampsToValidRange) {
+TEST_F(SlimeEntityTest, SetSlimeSize_ClampsToValidRange)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     // 测试下限
     slime.setSlimeSize(0, false);
-    EXPECT_EQ(slime.getSlimeSize(), 1);  // 最小为 1
+    EXPECT_EQ(slime.getSlimeSize(), 1); // 最小为 1
 
     // 测试上限
     slime.setSlimeSize(100, false);
-    EXPECT_EQ(slime.getSlimeSize(), 4);  // 最大为 4
+    EXPECT_EQ(slime.getSlimeSize(), 4); // 最大为 4
 }
 
-TEST_F(SlimeEntityTest, IsSmallSlime_ReturnsTrueForSizeOne) {
+TEST_F(SlimeEntityTest, IsSmallSlime_ReturnsTrueForSizeOne)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     slime.setSlimeSize(1, false);
@@ -135,7 +144,8 @@ TEST_F(SlimeEntityTest, IsSmallSlime_ReturnsTrueForSizeOne) {
     EXPECT_FALSE(slime.isSmallSlime());
 }
 
-TEST_F(SlimeEntityTest, CanSplit_ReturnsTrueForSizeGreaterThanOne) {
+TEST_F(SlimeEntityTest, CanSplit_ReturnsTrueForSizeGreaterThanOne)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     slime.setSlimeSize(1, false);
@@ -150,10 +160,11 @@ TEST_F(SlimeEntityTest, CanSplit_ReturnsTrueForSizeGreaterThanOne) {
 
 // ==================== 分裂测试 ====================
 
-TEST_F(SlimeEntityTest, PerformSplit_CreatesCorrectNumberOfSmallSlimes) {
+TEST_F(SlimeEntityTest, PerformSplit_CreatesCorrectNumberOfSmallSlimes)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
-    slime.setSlimeSize(4, true);  // 大史莱姆
+    slime.setSlimeSize(4, true); // 大史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
 
     // 设置为死亡状态
@@ -173,10 +184,11 @@ TEST_F(SlimeEntityTest, PerformSplit_CreatesCorrectNumberOfSmallSlimes) {
     }
 }
 
-TEST_F(SlimeEntityTest, PerformSplit_SmallSlimeDoesNotSplit) {
+TEST_F(SlimeEntityTest, PerformSplit_SmallSlimeDoesNotSplit)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
-    slime.setSlimeSize(1, true);  // 小史莱姆
+    slime.setSlimeSize(1, true); // 小史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
 
     // 设置为死亡状态
@@ -190,7 +202,8 @@ TEST_F(SlimeEntityTest, PerformSplit_SmallSlimeDoesNotSplit) {
     EXPECT_EQ(m_world.spawnedSlimeCount(), 0u);
 }
 
-TEST_F(SlimeEntityTest, PerformSplit_InheritsCustomName) {
+TEST_F(SlimeEntityTest, PerformSplit_InheritsCustomName)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
@@ -208,7 +221,8 @@ TEST_F(SlimeEntityTest, PerformSplit_InheritsCustomName) {
     EXPECT_GE(m_world.spawnedSlimeCount(), 2u);
 }
 
-TEST_F(SlimeEntityTest, PerformSplit_InheritsInvulnerability) {
+TEST_F(SlimeEntityTest, PerformSplit_InheritsInvulnerability)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
@@ -226,10 +240,11 @@ TEST_F(SlimeEntityTest, PerformSplit_InheritsInvulnerability) {
     EXPECT_GE(m_world.spawnedSlimeCount(), 2u);
 }
 
-TEST_F(SlimeEntityTest, PerformSplit_MediumSlimeCreatesTinySlimes) {
+TEST_F(SlimeEntityTest, PerformSplit_MediumSlimeCreatesTinySlimes)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
-    slime.setSlimeSize(2, true);  // 中型史莱姆
+    slime.setSlimeSize(2, true); // 中型史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
 
     // 设置为死亡状态
@@ -247,7 +262,8 @@ TEST_F(SlimeEntityTest, PerformSplit_MediumSlimeCreatesTinySlimes) {
 
 // ==================== 声音测试 ====================
 
-TEST_F(SlimeEntityTest, GetHurtSound_ReturnsCorrectSoundForSize) {
+TEST_F(SlimeEntityTest, GetHurtSound_ReturnsCorrectSoundForSize)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     // 小史莱姆
@@ -264,7 +280,8 @@ TEST_F(SlimeEntityTest, GetHurtSound_ReturnsCorrectSoundForSize) {
     EXPECT_EQ(sound->toString(), "minecraft:entity.slime.hurt");
 }
 
-TEST_F(SlimeEntityTest, GetDeathSound_ReturnsCorrectSoundForSize) {
+TEST_F(SlimeEntityTest, GetDeathSound_ReturnsCorrectSoundForSize)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     // 小史莱姆
@@ -280,7 +297,8 @@ TEST_F(SlimeEntityTest, GetDeathSound_ReturnsCorrectSoundForSize) {
     EXPECT_EQ(sound->toString(), "minecraft:entity.slime.death");
 }
 
-TEST_F(SlimeEntityTest, GetSquishSound_ReturnsCorrectSoundForSize) {
+TEST_F(SlimeEntityTest, GetSquishSound_ReturnsCorrectSoundForSize)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     // 小史莱姆
@@ -298,7 +316,8 @@ TEST_F(SlimeEntityTest, GetSquishSound_ReturnsCorrectSoundForSize) {
 
 // ==================== 维度测试 ====================
 
-TEST_F(SlimeEntityTest, GetDimensions_ScalesWithSize) {
+TEST_F(SlimeEntityTest, GetDimensions_ScalesWithSize)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     // size = 1: 0.6 * 0.255 = 0.153
@@ -314,7 +333,8 @@ TEST_F(SlimeEntityTest, GetDimensions_ScalesWithSize) {
     EXPECT_FLOAT_EQ(dims.height(), 0.6f * 0.255f * 4.0f);
 }
 
-TEST_F(SlimeEntityTest, EyeHeight_ScalesWithSize) {
+TEST_F(SlimeEntityTest, EyeHeight_ScalesWithSize)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     slime.setSlimeSize(1, false);
@@ -323,7 +343,7 @@ TEST_F(SlimeEntityTest, EyeHeight_ScalesWithSize) {
     // 而实际的尺寸计算在 getDimensions() 中，
     // SlimeEntity::eyeHeight() 使用 EYE_HEIGHT_FACTOR * height()
     // 这里我们测试的是 eyeHeight 方法的实现正确性
-    f32 expectedEyeHeight1 = 0.625f * slime.height();  // 依赖基类 height()
+    f32 expectedEyeHeight1 = 0.625f * slime.height(); // 依赖基类 height()
     EXPECT_FLOAT_EQ(slime.eyeHeight(), expectedEyeHeight1);
 
     slime.setSlimeSize(4, false);
@@ -333,7 +353,8 @@ TEST_F(SlimeEntityTest, EyeHeight_ScalesWithSize) {
 
 // ==================== 伤害测试 ====================
 
-TEST_F(SlimeEntityTest, CanDamagePlayer_ReturnsFalseForSmallSlime) {
+TEST_F(SlimeEntityTest, CanDamagePlayer_ReturnsFalseForSmallSlime)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
 
@@ -346,7 +367,8 @@ TEST_F(SlimeEntityTest, CanDamagePlayer_ReturnsFalseForSmallSlime) {
     EXPECT_TRUE(slime.canDamagePlayer());
 }
 
-TEST_F(SlimeEntityTest, GetSoundVolume_ScalesWithSize) {
+TEST_F(SlimeEntityTest, GetSoundVolume_ScalesWithSize)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
 
     // 体积 = 0.4 * size
@@ -359,7 +381,8 @@ TEST_F(SlimeEntityTest, GetSoundVolume_ScalesWithSize) {
 
 // ==================== 经验值测试 ====================
 
-TEST_F(SlimeEntityTest, ExperienceValue_EqualsSize) {
+TEST_F(SlimeEntityTest, ExperienceValue_EqualsSize)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     slime.setWorld(&m_world);
 
@@ -387,7 +410,8 @@ class ParticleTestWorld final : public test::BaseTestWorld {
 public:
     ParticleTestWorld() = default;
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second.get();
@@ -395,12 +419,14 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
@@ -409,16 +435,19 @@ public:
     [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
     void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
     // TickManager interface
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("ParticleTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("ParticleTestWorld::tickManager not implemented");
     }
 
@@ -430,18 +459,17 @@ public:
     };
 
     void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity) override {
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
-        u32 count) override {
+        u32 count) override
+    {
         (void)offset;
         (void)count;
         m_particles.push_back({type, pos, velocity});
@@ -461,14 +489,13 @@ private:
 
 class SlimeParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     ParticleTestWorld m_world;
 };
 
-TEST_F(SlimeParticleTest, LandingGeneratesParticles_ClientSide) {
+TEST_F(SlimeParticleTest, LandingGeneratesParticles_ClientSide)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
     m_world.setClientSide(true);
     slime.setWorld(&m_world);
@@ -489,9 +516,10 @@ TEST_F(SlimeParticleTest, LandingGeneratesParticles_ClientSide) {
     // 这里我们主要验证粒子系统在客户端正确工作
 }
 
-TEST_F(SlimeParticleTest, NoParticles_ServerSide) {
+TEST_F(SlimeParticleTest, NoParticles_ServerSide)
+{
     SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
-    m_world.setClientSide(false);  // 服务端
+    m_world.setClientSide(false); // 服务端
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
     slime.setPosition(100.0, 64.0, 100.0);
@@ -505,7 +533,8 @@ TEST_F(SlimeParticleTest, NoParticles_ServerSide) {
     EXPECT_EQ(m_world.particleCount(), 0u);
 }
 
-TEST_F(SlimeParticleTest, ParticleCount_ScalesWithSize) {
+TEST_F(SlimeParticleTest, ParticleCount_ScalesWithSize)
+{
     // 验证粒子数量公式：particleCount = size * 8
     // 参考 MC 1.16.5 SlimeEntity.tick()
 
@@ -519,7 +548,8 @@ TEST_F(SlimeParticleTest, ParticleCount_ScalesWithSize) {
     EXPECT_EQ(4 * 8, 32);
 }
 
-TEST_F(SlimeParticleTest, ParticleType_IsItemSlime) {
+TEST_F(SlimeParticleTest, ParticleType_IsItemSlime)
+{
     // 验证粒子类型是 ItemSlime
     // 参考 MC 1.16.5 SlimeEntity.tick() 使用 ParticleTypes.ITEM_SLIME
     using namespace client::renderer::trident::particle;

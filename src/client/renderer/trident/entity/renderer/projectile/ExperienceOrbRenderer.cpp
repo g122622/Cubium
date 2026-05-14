@@ -15,19 +15,22 @@ ExperienceOrbRenderer::ExperienceOrbRenderer()
     m_shadowAlpha = 0.75f;
 }
 
-void ExperienceOrbRenderer::render(Entity& entity, f64 partialTicks) {
+void ExperienceOrbRenderer::render(Entity& entity, f64 partialTicks)
+{
     // 经验球渲染由 EntityRendererManager::renderWithPipeline 处理
     // 这里是传统渲染路径，暂时不实现
     (void)entity;
     (void)partialTicks;
 }
 
-void ExperienceOrbRenderer::renderShadow(Entity& entity, f64 partialTicks) {
+void ExperienceOrbRenderer::renderShadow(Entity& entity, f64 partialTicks)
+{
     // MC 1.16.5: 经验球有阴影
     core::EntityRenderer::renderShadow(entity, partialTicks);
 }
 
-i32 ExperienceOrbRenderer::getSizeByValue(i32 xpValue) {
+i32 ExperienceOrbRenderer::getSizeByValue(i32 xpValue)
+{
     // MC 1.16.5 ExperienceOrbEntity.sizeByValue
     // 根据经验值返回大小等级 (0-10)
     if (xpValue >= 2477) {
@@ -55,7 +58,8 @@ i32 ExperienceOrbRenderer::getSizeByValue(i32 xpValue) {
     }
 }
 
-f64 ExperienceOrbRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick) const {
+f64 ExperienceOrbRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick) const
+{
     // MC 1.16.5 ExperienceOrbRenderer:
     // 经验球上下浮动动画
     // 基础浮动频率比 ItemEntity 慢（/20.0 而非 /10.0）
@@ -65,12 +69,14 @@ f64 ExperienceOrbRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick)
     return std::sin(ticks * BOB_FREQUENCY) * BOB_AMPLITUDE + BOB_BASE;
 }
 
-f64 ExperienceOrbRenderer::calculateColorPhase(u32 ticksExisted, f64 partialTick) const {
+f64 ExperienceOrbRenderer::calculateColorPhase(u32 ticksExisted, f64 partialTick) const
+{
     f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
     return std::fmod(ticks * COLOR_SPEED, 1.0);
 }
 
-math::Vector4f ExperienceOrbRenderer::calculateColor(f64 phase) const {
+math::Vector4f ExperienceOrbRenderer::calculateColor(f64 phase) const
+{
     // MC 1.16.5 经验球颜色：绿色系渐变
     // 颜色随时间变化，从深绿到亮绿
     //
@@ -88,9 +94,9 @@ math::Vector4f ExperienceOrbRenderer::calculateColor(f64 phase) const {
     // - 高值 (17+): RGB(124, 197, 46)
 
     // 简化实现：使用绿色渐变
-    f32 r = static_cast<f32>(0.25 + phase * 0.2);  // 0.25 - 0.45
-    f32 g = static_cast<f32>(0.8 + phase * 0.15);  // 0.8 - 0.95
-    f32 b = static_cast<f32>(0.2 + phase * 0.1);   // 0.2 - 0.3
+    f32 r = static_cast<f32>(0.25 + phase * 0.2); // 0.25 - 0.45
+    f32 g = static_cast<f32>(0.8 + phase * 0.15); // 0.8 - 0.95
+    f32 b = static_cast<f32>(0.2 + phase * 0.1);  // 0.2 - 0.3
 
     return math::Vector4f(r, g, b, 1.0f);
 }

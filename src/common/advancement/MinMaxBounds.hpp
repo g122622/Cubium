@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Types.hpp"
 #include <optional>
+#include <nlohmann/json.hpp>
 
 namespace mc::advancement {
 
@@ -15,7 +15,7 @@ namespace mc::advancement {
  *
  * @tparam T 数值类型（i32, f32, i64等）
  */
-template<typename T>
+template <typename T>
 class MinMaxBounds {
 public:
     using ValueType = T;
@@ -31,14 +31,17 @@ public:
      * @param max 最大值（包含）
      */
     MinMaxBounds(std::optional<T> min, std::optional<T> max)
-        : m_min(min), m_max(max) {}
+        : m_min(min)
+        , m_max(max)
+    {}
 
     /**
      * @brief 检查值是否在范围内
      * @param value 要检查的值
      * @return 是否在范围内
      */
-    [[nodiscard]] bool test(T value) const noexcept {
+    [[nodiscard]] bool test(T value) const noexcept
+    {
         if (m_min.has_value() && value < m_min.value()) {
             return false;
         }
@@ -53,7 +56,8 @@ public:
      * @param value 平方值
      * @return 是否在范围内
      */
-    [[nodiscard]] bool testSquared(T value) const noexcept {
+    [[nodiscard]] bool testSquared(T value) const noexcept
+    {
         if (m_min.has_value() && value < m_min.value() * m_min.value()) {
             return false;
         }
@@ -76,16 +80,15 @@ public:
     /**
      * @brief 是否为无边界（任何值都满足）
      */
-    [[nodiscard]] bool isUnbounded() const noexcept {
-        return !m_min.has_value() && !m_max.has_value();
-    }
+    [[nodiscard]] bool isUnbounded() const noexcept { return !m_min.has_value() && !m_max.has_value(); }
 
     /**
      * @brief 从JSON解析
      * @param json JSON对象
      * @return 范围谓词
      */
-    static MinMaxBounds<T> fromJson(const nlohmann::json& json) {
+    static MinMaxBounds<T> fromJson(const nlohmann::json& json)
+    {
         std::optional<T> min;
         std::optional<T> max;
 
@@ -109,7 +112,8 @@ public:
     /**
      * @brief 序列化为JSON
      */
-    [[nodiscard]] nlohmann::json toJson() const {
+    [[nodiscard]] nlohmann::json toJson() const
+    {
         nlohmann::json json;
         if (m_min.has_value() && m_max.has_value() && m_min.value() == m_max.value()) {
             // 精确匹配，用单个数值表示
@@ -129,42 +133,32 @@ public:
     /**
      * @brief 创建无边界范围
      */
-    static MinMaxBounds<T> unbounded() {
-        return MinMaxBounds<T>();
-    }
+    static MinMaxBounds<T> unbounded() { return MinMaxBounds<T>(); }
 
     /**
      * @brief 创建精确匹配
      * @param value 精确值
      */
-    static MinMaxBounds<T> exactly(T value) {
-        return MinMaxBounds<T>(value, value);
-    }
+    static MinMaxBounds<T> exactly(T value) { return MinMaxBounds<T>(value, value); }
 
     /**
      * @brief 创建至少范围
      * @param min 最小值
      */
-    static MinMaxBounds<T> atLeast(T min) {
-        return MinMaxBounds<T>(min, std::nullopt);
-    }
+    static MinMaxBounds<T> atLeast(T min) { return MinMaxBounds<T>(min, std::nullopt); }
 
     /**
      * @brief 创建至多范围
      * @param max 最大值
      */
-    static MinMaxBounds<T> atMost(T max) {
-        return MinMaxBounds<T>(std::nullopt, max);
-    }
+    static MinMaxBounds<T> atMost(T max) { return MinMaxBounds<T>(std::nullopt, max); }
 
     /**
      * @brief 创建范围
      * @param min 最小值
      * @param max 最大值
      */
-    static MinMaxBounds<T> between(T min, T max) {
-        return MinMaxBounds<T>(min, max);
-    }
+    static MinMaxBounds<T> between(T min, T max) { return MinMaxBounds<T>(min, max); }
 
 private:
     std::optional<T> m_min;

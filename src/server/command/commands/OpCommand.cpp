@@ -2,45 +2,36 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/core/OpListManager.hpp"
 
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
     auto opNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("op");
-    opNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(3);
-    });
+    opNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
     support::applyMetadata(
-        opNode,
-        support::makeMetadata(
-            "Grants operator status to a player.",
-            "/op <player>",
-            3,
-            {},
-            false));
+        opNode, support::makeMetadata("Grants operator status to a player.", "/op <player>", 3, {}, false));
 
     // /op <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player",
-        EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return opPlayer(ctx);
-    });
+        "player", EntityArgumentType::player());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return opPlayer(ctx); });
 
     opNode->addChild(playerArg);
     dispatcher.registerCommand(opNode);
 }
 
-i32 OpCommand::opPlayer(CommandContext<ServerCommandSource>& context) {
+i32 OpCommand::opPlayer(CommandContext<ServerCommandSource>& context)
+{
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 
@@ -82,11 +73,10 @@ i32 OpCommand::opPlayer(CommandContext<ServerCommandSource>& context) {
     // 创建 OP 条目
     // MC 1.16.5 默认 OP 等级为 2（GameMaster）
     // 但可以通过服务器配置设置默认等级
-    server::core::OpEntry entry(
-        playerData->uuid,
+    server::core::OpEntry entry(playerData->uuid,
         playerData->username,
-        server::core::OpLevel::GameMaster,  // 默认等级 2
-        false  // bypassesPlayerLimit
+        server::core::OpLevel::GameMaster, // 默认等级 2
+        false                              // bypassesPlayerLimit
     );
 
     // 添加到 OP 列表

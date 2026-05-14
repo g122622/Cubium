@@ -1,23 +1,23 @@
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "../../MinMaxBounds.hpp"
-#include <nlohmann/json.hpp>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
+#include <nlohmann/json.hpp>
 
 // 前向声明
 namespace mc {
-    class BlockState;
-    class ItemStack;
-    namespace nbt {
-        namespace tags {
-            struct compound_tag;
-        }
-    }
+class BlockState;
+class ItemStack;
+namespace nbt {
+namespace tags {
+struct compound_tag;
 }
+} // namespace nbt
+} // namespace mc
 
 namespace mc::advancement {
 
@@ -37,13 +37,11 @@ public:
     /**
      * @brief 构造物品谓词
      */
-    ItemPredicate(
-        std::optional<ResourceLocation> item,
+    ItemPredicate(std::optional<ResourceLocation> item,
         std::optional<i32> count,
         IntBounds durability,
         std::optional<ResourceLocation> potion,
-        const nbt::tags::compound_tag* nbt
-    );
+        const nbt::tags::compound_tag* nbt);
 
     /**
      * @brief 检查物品是否匹配
@@ -75,12 +73,12 @@ public:
     [[nodiscard]] const std::optional<ResourceLocation>& getPotion() const noexcept { return m_potion; }
 
 private:
-    std::optional<ResourceLocation> m_item;      ///< 物品ID
-    std::optional<i32> m_count;                   ///< 数量
-    IntBounds m_durability;                       ///< 耐久范围
-    std::optional<ResourceLocation> m_potion;     ///< 药水类型
+    std::optional<ResourceLocation> m_item;   ///< 物品ID
+    std::optional<i32> m_count;               ///< 数量
+    IntBounds m_durability;                   ///< 耐久范围
+    std::optional<ResourceLocation> m_potion; ///< 药水类型
     // TODO: NBT匹配、附魔匹配等
-    bool m_isAny = true;                          ///< 是否匹配任意物品
+    bool m_isAny = true; ///< 是否匹配任意物品
 };
 
 } // namespace mc::advancement

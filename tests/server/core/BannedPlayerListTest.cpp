@@ -1,23 +1,25 @@
-#include <gtest/gtest.h>
 #include "server/core/BannedPlayerList.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <thread>
 #include <vector>
-#include <algorithm>
+#include <gtest/gtest.h>
 
 using namespace mc::server::core;
 
 class BannedPlayerListTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 创建临时测试目录
         testDir_ = std::filesystem::temp_directory_path() / "banned_players_test";
         std::filesystem::create_directories(testDir_);
         testFile_ = testDir_ / "banned-players.json";
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // 清理临时目录
         if (std::filesystem::exists(testDir_)) {
             std::filesystem::remove_all(testDir_);
@@ -30,14 +32,16 @@ protected:
 
 // ========== 基本功能测试 ==========
 
-TEST_F(BannedPlayerListTest, DefaultState) {
+TEST_F(BannedPlayerListTest, DefaultState)
+{
     BannedPlayerList banList;
 
     EXPECT_TRUE(banList.empty());
     EXPECT_EQ(banList.size(), 0);
 }
 
-TEST_F(BannedPlayerListTest, AddEntry) {
+TEST_F(BannedPlayerListTest, AddEntry)
+{
     BannedPlayerList banList;
 
     BannedPlayerEntry entry("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "Griefing");
@@ -45,10 +49,11 @@ TEST_F(BannedPlayerListTest, AddEntry) {
     EXPECT_EQ(banList.size(), 1);
     EXPECT_TRUE(banList.isBanned("uuid-123"));
     EXPECT_TRUE(banList.isNameBanned("Player1"));
-    EXPECT_TRUE(banList.isNameBanned("player1"));  // 大小写不敏感
+    EXPECT_TRUE(banList.isNameBanned("player1")); // 大小写不敏感
 }
 
-TEST_F(BannedPlayerListTest, AddDuplicateEntry) {
+TEST_F(BannedPlayerListTest, AddDuplicateEntry)
+{
     BannedPlayerList banList;
 
     BannedPlayerEntry entry1("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "Griefing");
@@ -60,7 +65,8 @@ TEST_F(BannedPlayerListTest, AddDuplicateEntry) {
     EXPECT_EQ(banList.size(), 1);
 }
 
-TEST_F(BannedPlayerListTest, RemoveEntryByUuid) {
+TEST_F(BannedPlayerListTest, RemoveEntryByUuid)
+{
     BannedPlayerList banList;
 
     BannedPlayerEntry entry("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "Griefing");
@@ -72,7 +78,8 @@ TEST_F(BannedPlayerListTest, RemoveEntryByUuid) {
     EXPECT_FALSE(banList.isNameBanned("Player1"));
 }
 
-TEST_F(BannedPlayerListTest, RemoveEntryByName) {
+TEST_F(BannedPlayerListTest, RemoveEntryByName)
+{
     BannedPlayerList banList;
 
     BannedPlayerEntry entry("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "Griefing");
@@ -87,14 +94,16 @@ TEST_F(BannedPlayerListTest, RemoveEntryByName) {
     EXPECT_EQ(banList.size(), 0);
 }
 
-TEST_F(BannedPlayerListTest, RemoveNonExistentEntry) {
+TEST_F(BannedPlayerListTest, RemoveNonExistentEntry)
+{
     BannedPlayerList banList;
 
     EXPECT_FALSE(banList.removeEntry("non-existent-uuid"));
     EXPECT_FALSE(banList.removeEntryByName("NonExistentPlayer"));
 }
 
-TEST_F(BannedPlayerListTest, GetEntry) {
+TEST_F(BannedPlayerListTest, GetEntry)
+{
     BannedPlayerList banList;
 
     BannedPlayerEntry entry("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "Griefing");
@@ -112,7 +121,8 @@ TEST_F(BannedPlayerListTest, GetEntry) {
     EXPECT_FALSE(result2.has_value());
 }
 
-TEST_F(BannedPlayerListTest, GetEntryByName) {
+TEST_F(BannedPlayerListTest, GetEntryByName)
+{
     BannedPlayerList banList;
 
     BannedPlayerEntry entry("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "ServerAdmin", "forever", "Griefing");
@@ -128,18 +138,23 @@ TEST_F(BannedPlayerListTest, GetEntryByName) {
     EXPECT_TRUE(result2.has_value());
 }
 
-TEST_F(BannedPlayerListTest, GetAllEntries) {
+TEST_F(BannedPlayerListTest, GetAllEntries)
+{
     BannedPlayerList banList;
 
-    banList.addEntry(BannedPlayerEntry("uuid-1", "Player1", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "Reason1"));
-    banList.addEntry(BannedPlayerEntry("uuid-2", "Player2", "2024-01-15 11:00:00 +0800", "Admin2", "forever", "Reason2"));
-    banList.addEntry(BannedPlayerEntry("uuid-3", "Player3", "2024-01-15 12:00:00 +0800", "Admin3", "forever", "Reason3"));
+    banList.addEntry(
+        BannedPlayerEntry("uuid-1", "Player1", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "Reason1"));
+    banList.addEntry(
+        BannedPlayerEntry("uuid-2", "Player2", "2024-01-15 11:00:00 +0800", "Admin2", "forever", "Reason2"));
+    banList.addEntry(
+        BannedPlayerEntry("uuid-3", "Player3", "2024-01-15 12:00:00 +0800", "Admin3", "forever", "Reason3"));
 
     auto entries = banList.getAllEntries();
     EXPECT_EQ(entries.size(), 3);
 }
 
-TEST_F(BannedPlayerListTest, GetAllBannedNames) {
+TEST_F(BannedPlayerListTest, GetAllBannedNames)
+{
     BannedPlayerList banList;
 
     banList.addEntry(BannedPlayerEntry("uuid-1", "Player1", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Reason"));
@@ -153,7 +168,8 @@ TEST_F(BannedPlayerListTest, GetAllBannedNames) {
     EXPECT_NE(std::find(names.begin(), names.end(), "Player2"), names.end());
 }
 
-TEST_F(BannedPlayerListTest, Clear) {
+TEST_F(BannedPlayerListTest, Clear)
+{
     BannedPlayerList banList;
 
     banList.addEntry(BannedPlayerEntry("uuid-1", "Player1", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Reason"));
@@ -166,7 +182,8 @@ TEST_F(BannedPlayerListTest, Clear) {
 
 // ========== 条目有效性测试 ==========
 
-TEST_F(BannedPlayerListTest, InvalidEntry) {
+TEST_F(BannedPlayerListTest, InvalidEntry)
+{
     BannedPlayerList banList;
 
     // 空 UUID
@@ -180,7 +197,8 @@ TEST_F(BannedPlayerListTest, InvalidEntry) {
     EXPECT_FALSE(banList.addEntry(entry2));
 }
 
-TEST_F(BannedPlayerListTest, EntryGetDisplayName) {
+TEST_F(BannedPlayerListTest, EntryGetDisplayName)
+{
     // 有名称时返回名称
     BannedPlayerEntry entry1("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Reason");
     EXPECT_EQ(entry1.getDisplayName(), "Player1");
@@ -192,13 +210,17 @@ TEST_F(BannedPlayerListTest, EntryGetDisplayName) {
 
 // ========== 文件操作测试 ==========
 
-TEST_F(BannedPlayerListTest, SaveAndLoad) {
+TEST_F(BannedPlayerListTest, SaveAndLoad)
+{
     // 创建并保存
     {
         BannedPlayerList banList;
-        banList.addEntry(BannedPlayerEntry("uuid-1", "Player1", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "Griefing"));
-        banList.addEntry(BannedPlayerEntry("uuid-2", "Player2", "2024-01-15 11:00:00 +0800", "Admin2", "2024-02-15 00:00:00 +0800", "Temporary ban"));
-        banList.addEntry(BannedPlayerEntry("uuid-3", "Player3", "2024-01-15 12:00:00 +0800", "Admin3", "forever", "Hacking"));
+        banList.addEntry(
+            BannedPlayerEntry("uuid-1", "Player1", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "Griefing"));
+        banList.addEntry(BannedPlayerEntry(
+            "uuid-2", "Player2", "2024-01-15 11:00:00 +0800", "Admin2", "2024-02-15 00:00:00 +0800", "Temporary ban"));
+        banList.addEntry(
+            BannedPlayerEntry("uuid-3", "Player3", "2024-01-15 12:00:00 +0800", "Admin3", "forever", "Hacking"));
 
         auto result = banList.save(testFile_);
         EXPECT_TRUE(result.success()) << result.error().message();
@@ -231,15 +253,17 @@ TEST_F(BannedPlayerListTest, SaveAndLoad) {
     }
 }
 
-TEST_F(BannedPlayerListTest, LoadNonExistentFile) {
+TEST_F(BannedPlayerListTest, LoadNonExistentFile)
+{
     BannedPlayerList banList;
 
     auto result = banList.load(testDir_ / "non_existent.json");
-    EXPECT_TRUE(result.success());  // 应该成功，创建空列表
+    EXPECT_TRUE(result.success()); // 应该成功，创建空列表
     EXPECT_TRUE(banList.empty());
 }
 
-TEST_F(BannedPlayerListTest, Reload) {
+TEST_F(BannedPlayerListTest, Reload)
+{
     BannedPlayerList banList;
 
     // 初始保存
@@ -262,7 +286,8 @@ TEST_F(BannedPlayerListTest, Reload) {
     EXPECT_FALSE(banList.isBanned("uuid-1"));
 }
 
-TEST_F(BannedPlayerListTest, LoadInvalidJson) {
+TEST_F(BannedPlayerListTest, LoadInvalidJson)
+{
     // 创建无效 JSON 文件
     std::ofstream file(testFile_);
     file << "not a valid json";
@@ -273,7 +298,8 @@ TEST_F(BannedPlayerListTest, LoadInvalidJson) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(BannedPlayerListTest, LoadNonArrayJson) {
+TEST_F(BannedPlayerListTest, LoadNonArrayJson)
+{
     // 创建非数组 JSON 文件
     std::ofstream file(testFile_);
     file << R"({"uuid": "uuid-1", "name": "Player1"})";
@@ -284,7 +310,8 @@ TEST_F(BannedPlayerListTest, LoadNonArrayJson) {
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(BannedPlayerListTest, LoadWithMissingFields) {
+TEST_F(BannedPlayerListTest, LoadWithMissingFields)
+{
     // 创建缺少字段的 JSON 文件
     std::ofstream file(testFile_);
     file << R"([
@@ -295,17 +322,19 @@ TEST_F(BannedPlayerListTest, LoadWithMissingFields) {
 
     BannedPlayerList banList;
     auto result = banList.load(testFile_);
-    EXPECT_TRUE(result.success());  // 缺少可选字段应该被接受
+    EXPECT_TRUE(result.success()); // 缺少可选字段应该被接受
     EXPECT_EQ(banList.size(), 2);
 }
 
 // ========== 过期测试 ==========
 
-TEST_F(BannedPlayerListTest, ExpiredEntryIsNotBanned) {
+TEST_F(BannedPlayerListTest, ExpiredEntryIsNotBanned)
+{
     BannedPlayerList banList;
 
     // 创建一个已过期的封禁条目（过期时间为过去）
-    BannedPlayerEntry entry("uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "Admin", "2024-01-16 10:00:00 +0800", "Temporary");
+    BannedPlayerEntry entry(
+        "uuid-123", "Player1", "2024-01-15 10:00:00 +0800", "Admin", "2024-01-16 10:00:00 +0800", "Temporary");
 
     // 直接检查条目的过期状态
     // 注意：由于时间解析的实现细节，这个测试可能需要根据实际实现调整
@@ -322,7 +351,8 @@ TEST_F(BannedPlayerListTest, ExpiredEntryIsNotBanned) {
 
 // ========== 线程安全测试 ==========
 
-TEST_F(BannedPlayerListTest, ThreadSafety) {
+TEST_F(BannedPlayerListTest, ThreadSafety)
+{
     BannedPlayerList banList;
     constexpr int numThreads = 4;
     constexpr int entriesPerThread = 100;
@@ -334,7 +364,8 @@ TEST_F(BannedPlayerListTest, ThreadSafety) {
             for (int i = 0; i < entriesPerThread; ++i) {
                 std::string uuid = "uuid-" + std::to_string(t) + "-" + std::to_string(i);
                 std::string name = "Player" + std::to_string(t) + "_" + std::to_string(i);
-                banList.addEntry(BannedPlayerEntry(uuid, name, "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test"));
+                banList.addEntry(
+                    BannedPlayerEntry(uuid, name, "2024-01-15 10:00:00 +0800", "Admin", "forever", "Test"));
             }
         });
     }
@@ -349,7 +380,8 @@ TEST_F(BannedPlayerListTest, ThreadSafety) {
 
 // ========== 大小写不敏感测试 ==========
 
-TEST_F(BannedPlayerListTest, CaseInsensitiveNameCheck) {
+TEST_F(BannedPlayerListTest, CaseInsensitiveNameCheck)
+{
     BannedPlayerList banList;
 
     BannedPlayerEntry entry("uuid-123", "PlayerName", "2024-01-15 10:00:00 +0800", "Admin", "forever", "Reason");
@@ -368,7 +400,8 @@ TEST_F(BannedPlayerListTest, CaseInsensitiveNameCheck) {
 
 // ========== 复杂场景测试 ==========
 
-TEST_F(BannedPlayerListTest, AddRemoveMultiple) {
+TEST_F(BannedPlayerListTest, AddRemoveMultiple)
+{
     BannedPlayerList banList;
 
     // 添加多个
@@ -386,12 +419,14 @@ TEST_F(BannedPlayerListTest, AddRemoveMultiple) {
     EXPECT_TRUE(banList.isBanned("uuid-3"));
 
     // 再次添加已删除的
-    EXPECT_TRUE(banList.addEntry(BannedPlayerEntry("uuid-2", "Player2", "2024-01-15 13:00:00 +0800", "Admin", "forever", "R2-new")));
+    EXPECT_TRUE(banList.addEntry(
+        BannedPlayerEntry("uuid-2", "Player2", "2024-01-15 13:00:00 +0800", "Admin", "forever", "R2-new")));
     EXPECT_EQ(banList.size(), 3);
     EXPECT_TRUE(banList.isBanned("uuid-2"));
 }
 
-TEST_F(BannedPlayerListTest, FilePathTracking) {
+TEST_F(BannedPlayerListTest, FilePathTracking)
+{
     BannedPlayerList banList;
 
     banList.load(testFile_);
@@ -399,7 +434,8 @@ TEST_F(BannedPlayerListTest, FilePathTracking) {
 
     // reload 应该使用上次加载的路径
     std::ofstream file(testFile_);
-    file << R"([{"uuid": "uuid-1", "name": "Player1", "created": "2024-01-15 10:00:00 +0800", "source": "Admin", "expires": "forever", "reason": "Test"}])";
+    file
+        << R"([{"uuid": "uuid-1", "name": "Player1", "created": "2024-01-15 10:00:00 +0800", "source": "Admin", "expires": "forever", "reason": "Test"}])";
     file.close();
 
     auto result = banList.reload();

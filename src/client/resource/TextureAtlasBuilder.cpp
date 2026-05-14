@@ -17,16 +17,10 @@ namespace mc {
 namespace {
 
 [[nodiscard]] std::vector<u8> extractTopLeftFrameRgba(
-    const std::vector<u8>& pixels,
-    u32 imageWidth,
-    u32 imageHeight,
-    u32 frameWidth,
-    u32 frameHeight)
+    const std::vector<u8>& pixels, u32 imageWidth, u32 imageHeight, u32 frameWidth, u32 frameHeight)
 {
-    if (frameWidth == 0 || frameHeight == 0
-        || frameWidth > imageWidth
-        || frameHeight > imageHeight
-        || pixels.size() < static_cast<size_t>(imageWidth) * static_cast<size_t>(imageHeight) * 4) {
+    if (frameWidth == 0 || frameHeight == 0 || frameWidth > imageWidth || frameHeight > imageHeight ||
+        pixels.size() < static_cast<size_t>(imageWidth) * static_cast<size_t>(imageHeight) * 4) {
         return pixels;
     }
 
@@ -34,9 +28,7 @@ namespace {
         return pixels;
     }
 
-    std::vector<u8> framePixels(
-        static_cast<size_t>(frameWidth) * static_cast<size_t>(frameHeight) * 4,
-        0);
+    std::vector<u8> framePixels(static_cast<size_t>(frameWidth) * static_cast<size_t>(frameHeight) * 4, 0);
 
     for (u32 y = 0; y < frameHeight; ++y) {
         const u8* src = pixels.data() + (static_cast<size_t>(y) * imageWidth * 4);
@@ -53,21 +45,20 @@ TextureAtlasBuilder::TextureAtlasBuilder()
     : m_maxWidth(4096)
     , m_maxHeight(4096)
     , m_padding(0)
-{
-}
+{}
 
-void TextureAtlasBuilder::setMaxSize(u32 width, u32 height) {
+void TextureAtlasBuilder::setMaxSize(u32 width, u32 height)
+{
     m_maxWidth = width;
     m_maxHeight = height;
 }
 
-void TextureAtlasBuilder::setPadding(u32 padding) {
+void TextureAtlasBuilder::setPadding(u32 padding)
+{
     m_padding = padding;
 }
 
-Result<void> TextureAtlasBuilder::addTexture(
-    IResourcePack& resourcePack,
-    const ResourceLocation& location)
+Result<void> TextureAtlasBuilder::addTexture(IResourcePack& resourcePack, const ResourceLocation& location)
 {
     // 检查是否已添加
     if (m_addedLocations.count(location) > 0) {
@@ -87,8 +78,7 @@ Result<void> TextureAtlasBuilder::addTexture(
 
     // 解析PNG
     int width, height, channels;
-    stbi_uc* pixels = stbi_load_from_memory(
-        data.data(),
+    stbi_uc* pixels = stbi_load_from_memory(data.data(),
         static_cast<int>(data.size()),
         &width,
         &height,
@@ -96,8 +86,7 @@ Result<void> TextureAtlasBuilder::addTexture(
         4); // 强制RGBA
 
     if (!pixels) {
-        return Error(ErrorCode::TextureLoadFailed,
-                     std::string("Failed to decode PNG: ") + location.toString());
+        return Error(ErrorCode::TextureLoadFailed, std::string("Failed to decode PNG: ") + location.toString());
     }
 
     // 复制像素数据
@@ -111,16 +100,12 @@ Result<void> TextureAtlasBuilder::addTexture(
 }
 
 void TextureAtlasBuilder::addTexture(
-    const ResourceLocation& location,
-    const std::vector<u8>& pixels,
-    u32 width,
-    u32 height)
+    const ResourceLocation& location, const std::vector<u8>& pixels, u32 width, u32 height)
 {
     addTextureFrame(location, pixels, width, height, width, height);
 }
 
-void TextureAtlasBuilder::addTextureFrame(
-    const ResourceLocation& location,
+void TextureAtlasBuilder::addTextureFrame(const ResourceLocation& location,
     const std::vector<u8>& pixels,
     u32 width,
     u32 height,
@@ -140,20 +125,15 @@ void TextureAtlasBuilder::addTextureFrame(
     const u32 normalizedFrameHeight = (frameHeight == 0) ? height : frameHeight;
 
     // 仅当帧尺寸合法且与整图不同才裁剪首帧。
-    const bool canUseFrameSize =
-        normalizedFrameWidth <= width
-        && normalizedFrameHeight <= height
-        && (width % normalizedFrameWidth == 0)
-        && (height % normalizedFrameHeight == 0);
+    const bool canUseFrameSize = normalizedFrameWidth <= width && normalizedFrameHeight <= height &&
+        (width % normalizedFrameWidth == 0) && (height % normalizedFrameHeight == 0);
 
     const u32 storedWidth = canUseFrameSize ? normalizedFrameWidth : width;
     const u32 storedHeight = canUseFrameSize ? normalizedFrameHeight : height;
 
     TextureInfo info;
     info.location = location;
-    info.pixels = canUseFrameSize
-        ? extractTopLeftFrameRgba(pixels, width, height, storedWidth, storedHeight)
-        : pixels;
+    info.pixels = canUseFrameSize ? extractTopLeftFrameRgba(pixels, width, height, storedWidth, storedHeight) : pixels;
     info.width = storedWidth;
     info.height = storedHeight;
 
@@ -161,7 +141,8 @@ void TextureAtlasBuilder::addTextureFrame(
     m_addedLocations.insert(location);
 }
 
-Result<AtlasBuildResult> TextureAtlasBuilder::build() {
+Result<AtlasBuildResult> TextureAtlasBuilder::build()
+{
     if (m_textures.empty()) {
         AtlasBuildResult empty;
         empty.width = 1;
@@ -176,12 +157,11 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build() {
         indices[i] = i;
     }
 
-    std::sort(indices.begin(), indices.end(),
-        [this](size_t a, size_t b) {
-            u32 areaA = m_textures[a].width * m_textures[a].height;
-            u32 areaB = m_textures[b].width * m_textures[b].height;
-            return areaA > areaB;
-        });
+    std::sort(indices.begin(), indices.end(), [this](size_t a, size_t b) {
+        u32 areaA = m_textures[a].width * m_textures[a].height;
+        u32 areaB = m_textures[b].width * m_textures[b].height;
+        return areaA > areaB;
+    });
 
     // Skyline打包算法
     std::vector<SkylineNode> skyline;
@@ -200,8 +180,10 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build() {
     // 从最小可行尺寸开始尝试（2 的幂）
     u32 tryWidth = 64;
     u32 tryHeight = 64;
-    while (tryWidth < atlasWidth && tryWidth < m_maxWidth) tryWidth *= 2;
-    while (tryHeight < atlasHeight && tryHeight < m_maxHeight) tryHeight *= 2;
+    while (tryWidth < atlasWidth && tryWidth < m_maxWidth)
+        tryWidth *= 2;
+    while (tryHeight < atlasHeight && tryHeight < m_maxHeight)
+        tryHeight *= 2;
 
     tryWidth = std::min(tryWidth, m_maxWidth);
     tryHeight = std::min(tryHeight, m_maxHeight);
@@ -263,13 +245,13 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build() {
     }
 
     if (!success) {
-        return Error(ErrorCode::TextureAtlasFull,
-                     "Texture atlas is full, cannot fit all textures");
+        return Error(ErrorCode::TextureAtlasFull, "Texture atlas is full, cannot fit all textures");
     }
 
     // 计算实际高度 (使用2的幂次)
     u32 finalHeight = 1;
-    while (finalHeight < atlasHeight) finalHeight *= 2;
+    while (finalHeight < atlasHeight)
+        finalHeight *= 2;
     finalHeight = std::min(finalHeight, actualHeight);
 
     // 创建图集像素缓冲区
@@ -283,9 +265,7 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build() {
         const auto& tex = m_textures[p.index];
 
         if (p.x + tex.width > actualWidth || p.y + tex.height > finalHeight) {
-            return Error(
-                ErrorCode::InvalidState,
-                "Texture placement exceeds atlas bounds");
+            return Error(ErrorCode::InvalidState, "Texture placement exceeds atlas bounds");
         }
 
         // 复制像素
@@ -308,12 +288,14 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build() {
     return result;
 }
 
-void TextureAtlasBuilder::clear() {
+void TextureAtlasBuilder::clear()
+{
     m_textures.clear();
     m_addedLocations.clear();
 }
 
-std::vector<ResourceLocation> TextureAtlasBuilder::getTextureLocations() const {
+std::vector<ResourceLocation> TextureAtlasBuilder::getTextureLocations() const
+{
     std::vector<ResourceLocation> locations;
     locations.reserve(m_textures.size());
     for (const auto& tex : m_textures) {
@@ -322,8 +304,7 @@ std::vector<ResourceLocation> TextureAtlasBuilder::getTextureLocations() const {
     return locations;
 }
 
-bool TextureAtlasBuilder::canPlace(
-    const std::vector<SkylineNode>& skyline,
+bool TextureAtlasBuilder::canPlace(const std::vector<SkylineNode>& skyline,
     u32 width,
     u32 height,
     u32 maxWidth,
@@ -393,12 +374,7 @@ bool TextureAtlasBuilder::canPlace(
 }
 
 void TextureAtlasBuilder::placeTexture(
-    std::vector<SkylineNode>& skyline,
-    u32 x,
-    u32 y,
-    u32 width,
-    u32 height,
-    size_t index)
+    std::vector<SkylineNode>& skyline, u32 x, u32 y, u32 width, u32 height, size_t index)
 {
     // 创建新节点
     SkylineNode newNode;
@@ -410,7 +386,7 @@ void TextureAtlasBuilder::placeTexture(
     skyline.insert(skyline.begin() + index, newNode);
 
     // 移除被覆盖的节点
-    for (size_t i = index + 1; i < skyline.size(); ) {
+    for (size_t i = index + 1; i < skyline.size();) {
         if (skyline[i].x < x + width) {
             // 这个节点被部分或完全覆盖
             u32 overlapEnd = skyline[i].x + skyline[i].width;
@@ -431,9 +407,8 @@ void TextureAtlasBuilder::placeTexture(
     }
 
     // 合并相邻的相同高度节点
-    for (size_t i = 0; i + 1 < skyline.size(); ) {
-        if (skyline[i].y == skyline[i + 1].y &&
-            skyline[i].x + skyline[i].width == skyline[i + 1].x) {
+    for (size_t i = 0; i + 1 < skyline.size();) {
+        if (skyline[i].y == skyline[i + 1].y && skyline[i].x + skyline[i].width == skyline[i + 1].x) {
             skyline[i].width += skyline[i + 1].width;
             skyline.erase(skyline.begin() + i + 1);
         } else {

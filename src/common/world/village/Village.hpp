@@ -1,20 +1,20 @@
 #pragma once
 
+#include "../../core/Types.hpp"
+#include "../block/BlockPos.hpp"
 #include "VillageGossip.hpp"
 #include "poi/PointOfInterestStorage.hpp"
-#include "../block/BlockPos.hpp"
-#include "../../core/Types.hpp"
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
 #include <optional>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace mc {
 namespace nbt {
 namespace tags {
 struct compound_tag;
 }
-}
+} // namespace nbt
 
 // 前向声明
 class IWorld;
@@ -213,23 +213,20 @@ public:
     /**
      * @brief 添加流言（便捷方法）
      */
-    void addGossip(u64 playerId, VillageGossipType type, i32 value = 1) {
+    void addGossip(u64 playerId, VillageGossipType type, i32 value = 1)
+    {
         m_gossipManager.addGossip(playerId, type, value);
     }
 
     /**
      * @brief 获取玩家声誉
      */
-    [[nodiscard]] i32 getPlayerReputation(u64 playerId) const {
-        return m_gossipManager.getReputation(playerId);
-    }
+    [[nodiscard]] i32 getPlayerReputation(u64 playerId) const { return m_gossipManager.getReputation(playerId); }
 
     /**
      * @brief 获取价格修正因子
      */
-    [[nodiscard]] f32 getPriceModifier(u64 playerId) const {
-        return m_gossipManager.getPriceModifier(playerId);
-    }
+    [[nodiscard]] f32 getPriceModifier(u64 playerId) const { return m_gossipManager.getPriceModifier(playerId); }
 
     // ========== 袭击状态 ==========
 

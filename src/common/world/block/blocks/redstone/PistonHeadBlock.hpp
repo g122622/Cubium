@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../util/property/EnumProperty.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../util/property/EnumProperty.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../Block.hpp"
 
 namespace mc {
 
 namespace util {
-    template<typename T>
-    class EnumProperty;
+template <typename T>
+class EnumProperty;
 }
 
 namespace blocks {
@@ -32,8 +32,8 @@ public:
      * @brief 活塞头类型
      */
     enum class Type : u8 {
-        Normal = 0,  ///< 普通活塞头
-        Sticky = 1   ///< 粘性活塞头
+        Normal = 0, ///< 普通活塞头
+        Sticky = 1  ///< 粘性活塞头
     };
 
     /**
@@ -44,12 +44,15 @@ public:
 
     // ========== Block 接口实现 ==========
 
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state, Direction facing,
-        const BlockState& facingState, IWorld& world,
-        const BlockPos& currentPos, const BlockPos& facingPos) override;
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    {
         MC_UNUSED(state);
         return Material::PushReaction::Block;
     }

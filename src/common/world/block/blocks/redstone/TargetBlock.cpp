@@ -1,11 +1,11 @@
 #include "TargetBlock.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
-#include "../../../IWorld.hpp"
 #include "../../../tick/manager/TickManager.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include <unordered_map>
 #include <cmath>
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -13,30 +13,34 @@ namespace blocks {
 using namespace mc; // Bring BlockStateProperties into scope
 
 TargetBlock::TargetBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::POWER_0_15())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::POWER_0_15())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::POWER_0_15(), 0));
 }
 
-i32 TargetBlock::getPower(const BlockState& state) {
+i32 TargetBlock::getPower(const BlockState& state)
+{
     return state.get(BlockStateProperties::POWER_0_15());
 }
 
-BlockState TargetBlock::withPower(BlockState state, i32 power) {
+BlockState TargetBlock::withPower(BlockState state, i32 power)
+{
     power = std::max(0, std::min(power, 15));
     return state.with(BlockStateProperties::POWER_0_15(), power);
 }
 
-i32 TargetBlock::calculatePower(f32 hitX, f32 hitY, f32 hitZ) {
+i32 TargetBlock::calculatePower(f32 hitX, f32 hitY, f32 hitZ)
+{
     // 计算命中点到方块中心（0.5, 0.5, 0.5）的距离
     f32 dx = hitX - 0.5f;
     f32 dy = hitY - 0.5f;
@@ -56,8 +60,9 @@ i32 TargetBlock::calculatePower(f32 hitX, f32 hitY, f32 hitZ) {
     return std::max(0, std::min(power, 15));
 }
 
-void TargetBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                   const BlockPos& neighborPos, bool isMoving) {
+void TargetBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
@@ -67,7 +72,8 @@ void TargetBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& nei
     MC_UNUSED(pos);
 }
 
-void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     // 信号持续时间结束，重置为0
     i32 currentPower = getPower(state);
@@ -80,8 +86,8 @@ void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     }
 }
 
-i32 TargetBlock::getWeakPower(const BlockState& state, IWorld& world,
-                               const BlockPos& pos, Direction side) const {
+i32 TargetBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -89,8 +95,8 @@ i32 TargetBlock::getWeakPower(const BlockState& state, IWorld& world,
     return getPower(state);
 }
 
-i32 TargetBlock::getStrongPower(const BlockState& state, IWorld& world,
-                                 const BlockPos& pos, Direction side) const {
+i32 TargetBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -98,8 +104,9 @@ i32 TargetBlock::getStrongPower(const BlockState& state, IWorld& world,
     return getPower(state);
 }
 
-void TargetBlock::onHitByArrow(IWorld& world, const BlockPos& pos, const BlockState& state,
-                                f32 hitX, f32 hitY, f32 hitZ) {
+void TargetBlock::onHitByArrow(
+    IWorld& world, const BlockPos& pos, const BlockState& state, f32 hitX, f32 hitY, f32 hitZ)
+{
     // 计算输出信号强度
     i32 power = calculatePower(hitX, hitY, hitZ);
 

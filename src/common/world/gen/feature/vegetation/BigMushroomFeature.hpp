@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Feature.hpp"
 #include "../ConfiguredFeature.hpp"
+#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
@@ -23,10 +23,7 @@ struct BigMushroomFeatureConfig : public IFeatureConfig {
 
     BigMushroomFeatureConfig() = default;
 
-    BigMushroomFeatureConfig(
-        const BlockState* cap,
-        const BlockState* stem,
-        i32 radius = 2)
+    BigMushroomFeatureConfig(const BlockState* cap, const BlockState* stem, i32 radius = 2)
         : capState(cap)
         , stemState(stem)
         , capRadius(radius)
@@ -51,10 +48,7 @@ public:
      * @return 是否成功放置
      */
     bool place(
-        WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        const BigMushroomFeatureConfig& config);
+        WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BigMushroomFeatureConfig& config);
 
 protected:
     /**
@@ -65,17 +59,12 @@ protected:
      * @param currentHeight 当前高度
      * @return 当前高度的半径
      */
-    [[nodiscard]] virtual i32 getCapRadius(
-        i32 baseRadius,
-        i32 totalHeight,
-        i32 capRadius,
-        i32 currentHeight) const = 0;
+    [[nodiscard]] virtual i32 getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const = 0;
 
     /**
      * @brief 生成蘑菇盖
      */
-    virtual void generateCap(
-        WorldGenRegion& world,
+    virtual void generateCap(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         i32 height,
@@ -84,8 +73,7 @@ protected:
     /**
      * @brief 生成蘑菇柄
      */
-    void generateStem(
-        WorldGenRegion& world,
+    void generateStem(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         const BigMushroomFeatureConfig& config,
@@ -100,10 +88,7 @@ protected:
      * @brief 检查是否可以放置蘑菇
      */
     [[nodiscard]] bool canPlaceAt(
-        WorldGenRegion& world,
-        const BlockPos& pos,
-        i32 height,
-        const BigMushroomFeatureConfig& config) const;
+        WorldGenRegion& world, const BlockPos& pos, i32 height, const BigMushroomFeatureConfig& config) const;
 };
 
 /**
@@ -117,14 +102,9 @@ public:
     ~BigBrownMushroomFeature() override = default;
 
 protected:
-    [[nodiscard]] i32 getCapRadius(
-        i32 baseRadius,
-        i32 totalHeight,
-        i32 capRadius,
-        i32 currentHeight) const override;
+    [[nodiscard]] i32 getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const override;
 
-    void generateCap(
-        WorldGenRegion& world,
+    void generateCap(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         i32 height,
@@ -142,14 +122,9 @@ public:
     ~BigRedMushroomFeature() override = default;
 
 protected:
-    [[nodiscard]] i32 getCapRadius(
-        i32 baseRadius,
-        i32 totalHeight,
-        i32 capRadius,
-        i32 currentHeight) const override;
+    [[nodiscard]] i32 getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const override;
 
-    void generateCap(
-        WorldGenRegion& world,
+    void generateCap(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         i32 height,
@@ -162,12 +137,9 @@ protected:
 class ConfiguredBigMushroomFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredBigMushroomFeature(
-        std::unique_ptr<BigMushroomFeatureConfig> config,
-        const char* featureName,
-        bool isBrown);
+        std::unique_ptr<BigMushroomFeatureConfig> config, const char* featureName, bool isBrown);
 
-    bool place(
-        WorldGenRegion& region,
+    bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,

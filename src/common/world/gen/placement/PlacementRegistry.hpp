@@ -2,8 +2,8 @@
 
 #include "Placement.hpp"
 #include "Placements.hpp"
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {

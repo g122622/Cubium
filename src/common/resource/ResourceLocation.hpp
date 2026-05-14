@@ -56,10 +56,8 @@ private:
 
 // std::hash特化
 namespace std {
-template<>
+template <>
 struct hash<mc::ResourceLocation> {
-    size_t operator()(const mc::ResourceLocation& loc) const noexcept {
-        return loc.hash();
-    }
+    size_t operator()(const mc::ResourceLocation& loc) const noexcept { return loc.hash(); }
 };
-}
+} // namespace std

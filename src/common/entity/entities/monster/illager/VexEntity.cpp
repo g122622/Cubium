@@ -14,11 +14,13 @@ VexEntity::VexEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<VexEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void VexEntity::tick() {
+void VexEntity::tick()
+{
     // MC 1.16.5: 恼鬼在 tick 期间可以穿墙
     // 参考 VexEntity.tick() 行 62-71
     setNoClip(true);
@@ -35,14 +37,15 @@ void VexEntity::tick() {
         // 生命结束时造成饥饿伤害
         // MC 1.16.5: limitedLifeTicks <= 0 时攻击自己造成 1.0 饥饿伤害
         if (m_lifeTime <= 0) {
-            m_lifeTime = 20;  // 重置为 20 tick 防止连续伤害
+            m_lifeTime = 20; // 重置为 20 tick 防止连续伤害
             auto damageSource = DamageSources::starve();
             hurt(damageSource, 1.0f);
         }
     }
 }
 
-void VexEntity::registerGoals() {
+void VexEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
 
     // TODO: 恼鬼特有 AI 目标
@@ -51,13 +54,14 @@ void VexEntity::registerGoals() {
     // - VexMoveGoal (穿墙移动)
 }
 
-void VexEntity::registerAttributes() {
+void VexEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     // MC 1.16.5 VexEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0f);
     // MOVEMENT_SPEED: 使用默认值（恼鬼飞行速度由移动控制器控制）
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f);  // MC 1.16.5: 铁剑伤害为 4.0
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f); // MC 1.16.5: 铁剑伤害为 4.0
     // FOLLOW_RANGE: 使用默认值
 }
 

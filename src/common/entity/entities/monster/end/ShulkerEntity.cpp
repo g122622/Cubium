@@ -1,9 +1,9 @@
 #include "ShulkerEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
@@ -15,34 +15,40 @@ ShulkerEntity::ShulkerEntity(LegacyEntityType type, EntityId id)
     // TODO: 禁用移动控制器
 }
 
-std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<ShulkerEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void ShulkerEntity::openShell() {
+void ShulkerEntity::openShell()
+{
     if (m_shellState == ShellState::Closed) {
         m_shellState = ShellState::Opening;
         m_shellStateTime = OPEN_DURATION;
     }
 }
 
-void ShulkerEntity::closeShell() {
+void ShulkerEntity::closeShell()
+{
     if (m_shellState == ShellState::Open) {
         m_shellState = ShellState::Closing;
         m_shellStateTime = CLOSE_DURATION;
     }
 }
 
-bool ShulkerEntity::isImmuneToDamage() const {
+bool ShulkerEntity::isImmuneToDamage() const
+{
     return m_shellState == ShellState::Closed;
 }
 
-void ShulkerEntity::teleport() {
+void ShulkerEntity::teleport()
+{
     // TODO: 实现瞬移逻辑
     // 随机选择附近的一个有效位置
 }
 
-void ShulkerEntity::shootBullet() {
+void ShulkerEntity::shootBullet()
+{
     if (m_attackCooldown > 0) {
         return;
     }
@@ -57,7 +63,8 @@ void ShulkerEntity::shootBullet() {
     m_attacking = true;
 }
 
-void ShulkerEntity::updateShellState() {
+void ShulkerEntity::updateShellState()
+{
     if (m_shellStateTime > 0) {
         m_shellStateTime--;
 
@@ -76,7 +83,8 @@ void ShulkerEntity::updateShellState() {
     }
 }
 
-void ShulkerEntity::tick() {
+void ShulkerEntity::tick()
+{
     MonsterEntity::tick();
 
     // 更新贝壳状态
@@ -91,7 +99,8 @@ void ShulkerEntity::tick() {
     // TODO: 检测伤害并瞬移
 }
 
-void ShulkerEntity::registerGoals() {
+void ShulkerEntity::registerGoals()
+{
     MonsterEntity::registerGoals();
 
     // TODO: 潜影贝特有 AI 目标
@@ -100,20 +109,23 @@ void ShulkerEntity::registerGoals() {
     // - ShulkerTeleportGoal (受伤瞬移)
 }
 
-void ShulkerEntity::registerAttributes() {
+void ShulkerEntity::registerAttributes()
+{
     MonsterEntity::registerAttributes();
 
     // 潜影贝属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f);  // 不移动
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f); // 不移动
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);
 }
 
-std::optional<ResourceLocation> ShulkerEntity::getAmbientSound() const {
+std::optional<ResourceLocation> ShulkerEntity::getAmbientSound() const
+{
     return SoundEvents::ENTITY_SHULKER_AMBIENT;
 }
 
-std::optional<ResourceLocation> ShulkerEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> ShulkerEntity::getHurtSound(DamageSource& /*source*/) const
+{
     // MC 1.16.5: 贝壳闭合时使用不同的受伤音效
     if (isShellClosed()) {
         return SoundEvents::ENTITY_SHULKER_HURT_CLOSED;
@@ -121,23 +133,28 @@ std::optional<ResourceLocation> ShulkerEntity::getHurtSound(DamageSource& /*sour
     return SoundEvents::ENTITY_SHULKER_HURT;
 }
 
-std::optional<ResourceLocation> ShulkerEntity::getDeathSound() const {
+std::optional<ResourceLocation> ShulkerEntity::getDeathSound() const
+{
     return SoundEvents::ENTITY_SHULKER_DEATH;
 }
 
-void ShulkerEntity::playOpenSound() {
+void ShulkerEntity::playOpenSound()
+{
     playSound(SoundEvents::ENTITY_SHULKER_OPEN, 1.0f, 1.0f);
 }
 
-void ShulkerEntity::playCloseSound() {
+void ShulkerEntity::playCloseSound()
+{
     playSound(SoundEvents::ENTITY_SHULKER_CLOSE, 1.0f, 1.0f);
 }
 
-void ShulkerEntity::playShootSound() {
+void ShulkerEntity::playShootSound()
+{
     playSound(SoundEvents::ENTITY_SHULKER_SHOOT, 1.0f, 1.0f);
 }
 
-void ShulkerEntity::playTeleportSound() {
+void ShulkerEntity::playTeleportSound()
+{
     playSound(SoundEvents::ENTITY_SHULKER_TELEPORT, 1.0f, 1.0f);
 }
 

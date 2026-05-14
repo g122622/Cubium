@@ -10,7 +10,7 @@ NautilusParticle::NautilusParticle(const glm::vec3& pos, const glm::vec3& veloci
 {
     mc::math::Random rng;
 
-    setGravity(0.0f);  // 无重力
+    setGravity(0.0f); // 无重力
     setSize(0.04 * (0.8 + rng.nextFloat() * 0.4));
     m_initialSize = size();
 
@@ -20,20 +20,19 @@ NautilusParticle::NautilusParticle(const glm::vec3& pos, const glm::vec3& veloci
     setColor(glm::vec4(brightness, brightness, 1.0f, 1.0f));
 
     setFriction(0.95f);
-    setHasPhysics(false);  // 无碰撞检测
+    setHasPhysics(false); // 无碰撞检测
     setMaxAge(DEFAULT_LIFETIME * (0.7 + rng.nextFloat() * 0.6));
 }
 
 std::unique_ptr<Particle> NautilusParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<NautilusParticle>(pos, velocity);
 }
 
-void NautilusParticle::tick(mc::client::ClientWorld* world) {
+void NautilusParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -69,7 +68,8 @@ void NautilusParticle::tick(mc::client::ClientWorld* world) {
     }
 }
 
-f64 NautilusParticle::getScale(f64 partialTick) const {
+f64 NautilusParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
 
     // 根据年龄缩放：开始时小，中间大，结束时淡出

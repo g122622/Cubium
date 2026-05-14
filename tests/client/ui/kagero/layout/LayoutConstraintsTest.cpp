@@ -5,10 +5,10 @@
  * 测试覆盖率目标：95%+
  */
 
-#include <gtest/gtest.h>
 #include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
 #include "client/ui/kagero/layout/core/MeasureSpec.hpp"
 #include <limits>
+#include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::layout;
@@ -24,12 +24,13 @@ protected:
 // 默认构造测试
 // ============================================================================
 
-TEST_F(LayoutConstraintsTest, DefaultConstruction) {
+TEST_F(LayoutConstraintsTest, DefaultConstruction)
+{
     LayoutConstraints c;
 
     EXPECT_EQ(c.minWidth, 0);
     EXPECT_EQ(c.minHeight, 0);
-    EXPECT_EQ(c.preferredWidth, -1);  // -1 表示无偏好
+    EXPECT_EQ(c.preferredWidth, -1); // -1 表示无偏好
     EXPECT_EQ(c.preferredHeight, -1);
     EXPECT_EQ(c.maxWidth, std::numeric_limits<i32>::max());
     EXPECT_EQ(c.maxHeight, std::numeric_limits<i32>::max());
@@ -41,7 +42,8 @@ TEST_F(LayoutConstraintsTest, DefaultConstruction) {
 // 工厂方法测试
 // ============================================================================
 
-TEST_F(LayoutConstraintsTest, Fixed) {
+TEST_F(LayoutConstraintsTest, Fixed)
+{
     LayoutConstraints c = LayoutConstraints::fixed(100, 200);
 
     EXPECT_EQ(c.preferredWidth, 100);
@@ -52,7 +54,8 @@ TEST_F(LayoutConstraintsTest, Fixed) {
     EXPECT_EQ(c.maxHeight, 200);
 }
 
-TEST_F(LayoutConstraintsTest, Flexible) {
+TEST_F(LayoutConstraintsTest, Flexible)
+{
     LayoutConstraints c = LayoutConstraints::flexible(50, 30);
 
     EXPECT_EQ(c.minWidth, 50);
@@ -62,7 +65,8 @@ TEST_F(LayoutConstraintsTest, Flexible) {
     EXPECT_FLOAT_EQ(c.flex.grow, 1.0f);
 }
 
-TEST_F(LayoutConstraintsTest, WrapContent) {
+TEST_F(LayoutConstraintsTest, WrapContent)
+{
     LayoutConstraints c = LayoutConstraints::wrapContent();
 
     EXPECT_EQ(c.minWidth, 0);
@@ -72,7 +76,8 @@ TEST_F(LayoutConstraintsTest, WrapContent) {
     EXPECT_FLOAT_EQ(c.flex.grow, 0.0f);
 }
 
-TEST_F(LayoutConstraintsTest, FillParent) {
+TEST_F(LayoutConstraintsTest, FillParent)
+{
     LayoutConstraints c = LayoutConstraints::fillParent();
 
     EXPECT_FLOAT_EQ(c.flex.grow, 1.0f);
@@ -83,7 +88,8 @@ TEST_F(LayoutConstraintsTest, FillParent) {
 // resolveWidth/resolveHeight 测试
 // ============================================================================
 
-TEST_F(LayoutConstraintsTest, ResolveWidthExactly) {
+TEST_F(LayoutConstraintsTest, ResolveWidthExactly)
+{
     LayoutConstraints c;
     c.preferredWidth = 100;
     MeasureSpec spec = MeasureSpec::MakeExactly(200);
@@ -91,13 +97,14 @@ TEST_F(LayoutConstraintsTest, ResolveWidthExactly) {
     // Exactly模式：返回规格尺寸，但受约束限制
     MeasureSpec result = c.resolveWidth(spec);
     EXPECT_TRUE(result.isExactly());
-    EXPECT_EQ(result.size, 200);  // 减去边距后
+    EXPECT_EQ(result.size, 200); // 减去边距后
 }
 
-TEST_F(LayoutConstraintsTest, ResolveWidthExactlyWithMargin) {
+TEST_F(LayoutConstraintsTest, ResolveWidthExactlyWithMargin)
+{
     LayoutConstraints c;
     c.preferredWidth = 100;
-    c.margin = Margin(10, 5);  // 左右各10，共20
+    c.margin = Margin(10, 5); // 左右各10，共20
 
     MeasureSpec spec = MeasureSpec::MakeExactly(200);
     MeasureSpec result = c.resolveWidth(spec);
@@ -107,7 +114,8 @@ TEST_F(LayoutConstraintsTest, ResolveWidthExactlyWithMargin) {
     EXPECT_EQ(result.size, 180);
 }
 
-TEST_F(LayoutConstraintsTest, ResolveWidthAtMost) {
+TEST_F(LayoutConstraintsTest, ResolveWidthAtMost)
+{
     LayoutConstraints c;
     c.preferredWidth = 100;
 
@@ -118,10 +126,11 @@ TEST_F(LayoutConstraintsTest, ResolveWidthAtMost) {
     EXPECT_EQ(result.size, 100);
 }
 
-TEST_F(LayoutConstraintsTest, ResolveWidthAtMostWithConstraint) {
+TEST_F(LayoutConstraintsTest, ResolveWidthAtMostWithConstraint)
+{
     LayoutConstraints c;
     c.preferredWidth = 150;
-    c.maxWidth = 120;  // 最大宽度限制
+    c.maxWidth = 120; // 最大宽度限制
 
     MeasureSpec spec = MeasureSpec::MakeAtMost(200);
     MeasureSpec result = c.resolveWidth(spec);
@@ -131,7 +140,8 @@ TEST_F(LayoutConstraintsTest, ResolveWidthAtMostWithConstraint) {
     EXPECT_EQ(result.size, 120);
 }
 
-TEST_F(LayoutConstraintsTest, ResolveWidthUnspecified) {
+TEST_F(LayoutConstraintsTest, ResolveWidthUnspecified)
+{
     LayoutConstraints c;
     c.preferredWidth = 100;
 
@@ -142,7 +152,8 @@ TEST_F(LayoutConstraintsTest, ResolveWidthUnspecified) {
     EXPECT_EQ(result.size, 100);
 }
 
-TEST_F(LayoutConstraintsTest, ResolveHeightExactly) {
+TEST_F(LayoutConstraintsTest, ResolveHeightExactly)
+{
     LayoutConstraints c;
     c.preferredHeight = 150;
 
@@ -153,7 +164,8 @@ TEST_F(LayoutConstraintsTest, ResolveHeightExactly) {
     EXPECT_EQ(result.size, 300);
 }
 
-TEST_F(LayoutConstraintsTest, ResolveHeightAtMost) {
+TEST_F(LayoutConstraintsTest, ResolveHeightAtMost)
+{
     LayoutConstraints c;
     c.preferredHeight = 100;
 
@@ -168,19 +180,21 @@ TEST_F(LayoutConstraintsTest, ResolveHeightAtMost) {
 // 辅助方法测试
 // ============================================================================
 
-TEST_F(LayoutConstraintsTest, HasPreferredSize) {
+TEST_F(LayoutConstraintsTest, HasPreferredSize)
+{
     LayoutConstraints c1;
     EXPECT_FALSE(c1.hasPreferredSize());
 
     LayoutConstraints c2;
     c2.preferredWidth = 100;
-    EXPECT_FALSE(c2.hasPreferredSize());  // 还需要 preferredHeight
+    EXPECT_FALSE(c2.hasPreferredSize()); // 还需要 preferredHeight
 
     c2.preferredHeight = 50;
     EXPECT_TRUE(c2.hasPreferredSize());
 }
 
-TEST_F(LayoutConstraintsTest, HasMinConstraints) {
+TEST_F(LayoutConstraintsTest, HasMinConstraints)
+{
     LayoutConstraints c;
     EXPECT_FALSE(c.hasMinConstraints());
 
@@ -192,7 +206,8 @@ TEST_F(LayoutConstraintsTest, HasMinConstraints) {
     EXPECT_TRUE(c.hasMinConstraints());
 }
 
-TEST_F(LayoutConstraintsTest, HasMaxConstraints) {
+TEST_F(LayoutConstraintsTest, HasMaxConstraints)
+{
     LayoutConstraints c;
     EXPECT_FALSE(c.hasMaxConstraints());
 
@@ -204,7 +219,8 @@ TEST_F(LayoutConstraintsTest, HasMaxConstraints) {
     EXPECT_TRUE(c.hasMaxConstraints());
 }
 
-TEST_F(LayoutConstraintsTest, ClampWidth) {
+TEST_F(LayoutConstraintsTest, ClampWidth)
+{
     LayoutConstraints c;
     c.minWidth = 50;
     c.maxWidth = 200;
@@ -214,7 +230,8 @@ TEST_F(LayoutConstraintsTest, ClampWidth) {
     EXPECT_EQ(c.clampWidth(300), 200); // 超过最大值
 }
 
-TEST_F(LayoutConstraintsTest, ClampHeight) {
+TEST_F(LayoutConstraintsTest, ClampHeight)
+{
     LayoutConstraints c;
     c.minHeight = 30;
     c.maxHeight = 150;
@@ -224,21 +241,24 @@ TEST_F(LayoutConstraintsTest, ClampHeight) {
     EXPECT_EQ(c.clampHeight(200), 150);
 }
 
-TEST_F(LayoutConstraintsTest, TotalWidth) {
+TEST_F(LayoutConstraintsTest, TotalWidth)
+{
     LayoutConstraints c;
-    c.margin = Margin(10, 20);  // 左右各10
+    c.margin = Margin(10, 20); // 左右各10
 
-    EXPECT_EQ(c.totalWidth(100), 120);  // 100 + 20
+    EXPECT_EQ(c.totalWidth(100), 120); // 100 + 20
 }
 
-TEST_F(LayoutConstraintsTest, TotalHeight) {
+TEST_F(LayoutConstraintsTest, TotalHeight)
+{
     LayoutConstraints c;
-    c.margin = Margin(0, 15);  // 上下各15
+    c.margin = Margin(0, 15); // 上下各15
 
-    EXPECT_EQ(c.totalHeight(100), 130);  // 100 + 30
+    EXPECT_EQ(c.totalHeight(100), 130); // 100 + 30
 }
 
-TEST_F(LayoutConstraintsTest, IsLayoutEnabled) {
+TEST_F(LayoutConstraintsTest, IsLayoutEnabled)
+{
     LayoutConstraints c;
     EXPECT_TRUE(c.isLayoutEnabled());
 
@@ -255,7 +275,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(FlexItemTest, DefaultValues) {
+TEST_F(FlexItemTest, DefaultValues)
+{
     FlexItem item;
 
     EXPECT_FLOAT_EQ(item.grow, 0.0f);
@@ -268,7 +289,8 @@ TEST_F(FlexItemTest, DefaultValues) {
     EXPECT_EQ(item.maxHeight, std::numeric_limits<i32>::max());
 }
 
-TEST_F(FlexItemTest, CanGrow) {
+TEST_F(FlexItemTest, CanGrow)
+{
     FlexItem item;
     EXPECT_FALSE(item.canGrow());
 
@@ -279,7 +301,8 @@ TEST_F(FlexItemTest, CanGrow) {
     EXPECT_TRUE(item.canGrow());
 }
 
-TEST_F(FlexItemTest, CanShrink) {
+TEST_F(FlexItemTest, CanShrink)
+{
     FlexItem item;
     EXPECT_TRUE(item.canShrink());
 
@@ -287,7 +310,8 @@ TEST_F(FlexItemTest, CanShrink) {
     EXPECT_FALSE(item.canShrink());
 }
 
-TEST_F(FlexItemTest, HasWidthConstraints) {
+TEST_F(FlexItemTest, HasWidthConstraints)
+{
     FlexItem item;
     EXPECT_FALSE(item.hasWidthConstraints());
 
@@ -299,7 +323,8 @@ TEST_F(FlexItemTest, HasWidthConstraints) {
     EXPECT_TRUE(item.hasWidthConstraints());
 }
 
-TEST_F(FlexItemTest, HasHeightConstraints) {
+TEST_F(FlexItemTest, HasHeightConstraints)
+{
     FlexItem item;
     EXPECT_FALSE(item.hasHeightConstraints());
 
@@ -307,7 +332,8 @@ TEST_F(FlexItemTest, HasHeightConstraints) {
     EXPECT_TRUE(item.hasHeightConstraints());
 }
 
-TEST_F(FlexItemTest, ClampWidth) {
+TEST_F(FlexItemTest, ClampWidth)
+{
     FlexItem item;
     item.minWidth = 50;
     item.maxWidth = 200;
@@ -317,7 +343,8 @@ TEST_F(FlexItemTest, ClampWidth) {
     EXPECT_EQ(item.clampWidth(300), 200);
 }
 
-TEST_F(FlexItemTest, ClampHeight) {
+TEST_F(FlexItemTest, ClampHeight)
+{
     FlexItem item;
     item.minHeight = 30;
     item.maxHeight = 150;
@@ -336,7 +363,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(GridItemTest, DefaultValues) {
+TEST_F(GridItemTest, DefaultValues)
+{
     GridItem item;
 
     // 默认值为 -1 表示需要自动放置
@@ -347,7 +375,8 @@ TEST_F(GridItemTest, DefaultValues) {
     EXPECT_EQ(item.alignSelf, Align::Stretch);
 }
 
-TEST_F(GridItemTest, IsSingleCell) {
+TEST_F(GridItemTest, IsSingleCell)
+{
     GridItem item;
     EXPECT_TRUE(item.isSingleCell());
 
@@ -359,7 +388,8 @@ TEST_F(GridItemTest, IsSingleCell) {
     EXPECT_FALSE(item.isSingleCell());
 }
 
-TEST_F(GridItemTest, ColumnEnd) {
+TEST_F(GridItemTest, ColumnEnd)
+{
     GridItem item;
     item.column = 1;
     item.columnSpan = 3;
@@ -367,7 +397,8 @@ TEST_F(GridItemTest, ColumnEnd) {
     EXPECT_EQ(item.columnEnd(), 4);
 }
 
-TEST_F(GridItemTest, RowEnd) {
+TEST_F(GridItemTest, RowEnd)
+{
     GridItem item;
     item.row = 2;
     item.rowSpan = 2;
@@ -384,7 +415,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(AnchorConstraintsTest, DefaultValues) {
+TEST_F(AnchorConstraintsTest, DefaultValues)
+{
     AnchorConstraints ac;
 
     EXPECT_FALSE(ac.left.has_value());
@@ -397,7 +429,8 @@ TEST_F(AnchorConstraintsTest, DefaultValues) {
     EXPECT_EQ(ac.offsetY, 0);
 }
 
-TEST_F(AnchorConstraintsTest, IsTopLeft) {
+TEST_F(AnchorConstraintsTest, IsTopLeft)
+{
     AnchorConstraints ac;
     EXPECT_FALSE(ac.isTopLeft());
 
@@ -408,10 +441,11 @@ TEST_F(AnchorConstraintsTest, IsTopLeft) {
     EXPECT_TRUE(ac.isTopLeft());
 
     ac.right = 100;
-    EXPECT_FALSE(ac.isTopLeft());  // 有right约束，不是纯左上角
+    EXPECT_FALSE(ac.isTopLeft()); // 有right约束，不是纯左上角
 }
 
-TEST_F(AnchorConstraintsTest, IsStretchHorizontal) {
+TEST_F(AnchorConstraintsTest, IsStretchHorizontal)
+{
     AnchorConstraints ac;
     EXPECT_FALSE(ac.isStretchHorizontal());
 
@@ -422,7 +456,8 @@ TEST_F(AnchorConstraintsTest, IsStretchHorizontal) {
     EXPECT_TRUE(ac.isStretchHorizontal());
 }
 
-TEST_F(AnchorConstraintsTest, IsStretchVertical) {
+TEST_F(AnchorConstraintsTest, IsStretchVertical)
+{
     AnchorConstraints ac;
     EXPECT_FALSE(ac.isStretchVertical());
 
@@ -431,7 +466,8 @@ TEST_F(AnchorConstraintsTest, IsStretchVertical) {
     EXPECT_TRUE(ac.isStretchVertical());
 }
 
-TEST_F(AnchorConstraintsTest, HasPercentPosition) {
+TEST_F(AnchorConstraintsTest, HasPercentPosition)
+{
     AnchorConstraints ac;
     EXPECT_FALSE(ac.hasPercentPosition());
 
@@ -447,7 +483,8 @@ TEST_F(AnchorConstraintsTest, HasPercentPosition) {
 // 枚举类型测试
 // ============================================================================
 
-TEST(LayoutEnumTest, AlignValues) {
+TEST(LayoutEnumTest, AlignValues)
+{
     // 确保枚举值正确
     EXPECT_EQ(static_cast<int>(Align::Start), 0);
     EXPECT_EQ(static_cast<int>(Align::Center), 1);
@@ -456,14 +493,16 @@ TEST(LayoutEnumTest, AlignValues) {
     EXPECT_EQ(static_cast<int>(Align::Baseline), 4);
 }
 
-TEST(LayoutEnumTest, DirectionValues) {
+TEST(LayoutEnumTest, DirectionValues)
+{
     EXPECT_EQ(static_cast<int>(Direction::Row), 0);
     EXPECT_EQ(static_cast<int>(Direction::RowReverse), 1);
     EXPECT_EQ(static_cast<int>(Direction::Column), 2);
     EXPECT_EQ(static_cast<int>(Direction::ColumnReverse), 3);
 }
 
-TEST(LayoutEnumTest, JustifyContentValues) {
+TEST(LayoutEnumTest, JustifyContentValues)
+{
     EXPECT_EQ(static_cast<int>(JustifyContent::Start), 0);
     EXPECT_EQ(static_cast<int>(JustifyContent::Center), 1);
     EXPECT_EQ(static_cast<int>(JustifyContent::End), 2);
@@ -472,7 +511,8 @@ TEST(LayoutEnumTest, JustifyContentValues) {
     EXPECT_EQ(static_cast<int>(JustifyContent::SpaceEvenly), 5);
 }
 
-TEST(LayoutEnumTest, WrapValues) {
+TEST(LayoutEnumTest, WrapValues)
+{
     EXPECT_EQ(static_cast<int>(Wrap::NoWrap), 0);
     EXPECT_EQ(static_cast<int>(Wrap::Wrap), 1);
     EXPECT_EQ(static_cast<int>(Wrap::WrapReverse), 2);

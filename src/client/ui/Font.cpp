@@ -14,17 +14,19 @@ namespace mc::client {
 
 Font::Font() = default;
 
-Font::~Font() {
+Font::~Font()
+{
     destroy();
 }
 
 Font::Font(Font&& other) noexcept
     : m_atlas(std::move(other.m_atlas))
     , m_providers(std::move(other.m_providers))
-    , m_fontHeight(other.m_fontHeight) {
-}
+    , m_fontHeight(other.m_fontHeight)
+{}
 
-Font& Font::operator=(Font&& other) noexcept {
+Font& Font::operator=(Font&& other) noexcept
+{
     if (this != &other) {
         destroy();
         m_atlas = std::move(other.m_atlas);
@@ -34,17 +36,20 @@ Font& Font::operator=(Font&& other) noexcept {
     return *this;
 }
 
-Result<void> Font::initialize(u32 textureSize) {
+Result<void> Font::initialize(u32 textureSize)
+{
     return m_atlas.create(textureSize);
 }
 
-void Font::destroy() {
+void Font::destroy()
+{
     m_providers.clear();
     m_atlas.destroy();
     m_fontHeight = 9;
 }
 
-void Font::addProvider(std::unique_ptr<IGlyphProvider> provider) {
+void Font::addProvider(std::unique_ptr<IGlyphProvider> provider)
+{
     if (provider) {
         // 更新字体高度
         u32 providerHeight = provider->getFontHeight();
@@ -55,7 +60,8 @@ void Font::addProvider(std::unique_ptr<IGlyphProvider> provider) {
     }
 }
 
-const Glyph* Font::getGlyph(u32 codepoint) {
+const Glyph* Font::getGlyph(u32 codepoint)
+{
     // 空格特殊处理
     if (codepoint == ' ') {
         return &m_emptyGlyph;
@@ -73,12 +79,9 @@ const Glyph* Font::getGlyph(u32 codepoint) {
         u32 width, height;
         f32 advance, bearingX, bearingY;
 
-        if (provider->getGlyphData(codepoint, pixels, width, height,
-                                    advance, bearingX, bearingY)) {
+        if (provider->getGlyphData(codepoint, pixels, width, height, advance, bearingX, bearingY)) {
             // 添加到图集
-            auto result = m_atlas.addGlyph(codepoint, pixels.data(),
-                                            width, height, advance,
-                                            bearingX, bearingY);
+            auto result = m_atlas.addGlyph(codepoint, pixels.data(), width, height, advance, bearingX, bearingY);
             if (result.success()) {
                 return m_atlas.getGlyph(codepoint);
             }
@@ -89,7 +92,8 @@ const Glyph* Font::getGlyph(u32 codepoint) {
     return nullptr;
 }
 
-f32 Font::getStringWidth(const std::string& text) {
+f32 Font::getStringWidth(const std::string& text)
+{
     f32 width = 0.0f;
     for (char c : text) {
         const Glyph* glyph = getGlyph(static_cast<u32>(static_cast<u8>(c)));
@@ -103,7 +107,8 @@ f32 Font::getStringWidth(const std::string& text) {
     return width;
 }
 
-f32 Font::getStringWidthUTF8(const std::string& text) {
+f32 Font::getStringWidthUTF8(const std::string& text)
+{
     f32 width = 0.0f;
     size_t i = 0;
 
@@ -119,23 +124,19 @@ f32 Font::getStringWidthUTF8(const std::string& text) {
         } else if ((byte & 0xE0) == 0xC0) {
             // 双字节字符
             if (i + 1 >= text.size()) break;
-            codepoint = ((byte & 0x1F) << 6) |
-                        (static_cast<u8>(text[i + 1]) & 0x3F);
+            codepoint = ((byte & 0x1F) << 6) | (static_cast<u8>(text[i + 1]) & 0x3F);
             i += 2;
         } else if ((byte & 0xF0) == 0xE0) {
             // 三字节字符
             if (i + 2 >= text.size()) break;
-            codepoint = ((byte & 0x0F) << 12) |
-                        ((static_cast<u8>(text[i + 1]) & 0x3F) << 6) |
-                        (static_cast<u8>(text[i + 2]) & 0x3F);
+            codepoint = ((byte & 0x0F) << 12) | ((static_cast<u8>(text[i + 1]) & 0x3F) << 6) |
+                (static_cast<u8>(text[i + 2]) & 0x3F);
             i += 3;
         } else if ((byte & 0xF8) == 0xF0) {
             // 四字节字符
             if (i + 3 >= text.size()) break;
-            codepoint = ((byte & 0x07) << 18) |
-                        ((static_cast<u8>(text[i + 1]) & 0x3F) << 12) |
-                        ((static_cast<u8>(text[i + 2]) & 0x3F) << 6) |
-                        (static_cast<u8>(text[i + 3]) & 0x3F);
+            codepoint = ((byte & 0x07) << 18) | ((static_cast<u8>(text[i + 1]) & 0x3F) << 12) |
+                ((static_cast<u8>(text[i + 2]) & 0x3F) << 6) | (static_cast<u8>(text[i + 3]) & 0x3F);
             i += 4;
         } else {
             // 无效的UTF-8序列
@@ -154,7 +155,8 @@ f32 Font::getStringWidthUTF8(const std::string& text) {
     return width;
 }
 
-u32 Font::getFontHeight() const {
+u32 Font::getFontHeight() const
+{
     return m_fontHeight;
 }
 
@@ -163,9 +165,11 @@ u32 Font::getFontHeight() const {
 // ============================================================================
 
 Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
-                                        const std::string& texturePath,
-                                        u32 height, u32 ascent,
-                                        const std::vector<std::string>& charRows) {
+    const std::string& texturePath,
+    u32 height,
+    u32 ascent,
+    const std::vector<std::string>& charRows)
+{
     // 构建完整资源路径
     std::string fullPath = "textures/";
     fullPath += texturePath;
@@ -173,8 +177,7 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
     // 加载纹理
     auto dataResult = pack.readResource(fullPath);
     if (!dataResult.success()) {
-        return Error(ErrorCode::FileReadFailed,
-                     "Failed to load font texture: " + fullPath);
+        return Error(ErrorCode::FileReadFailed, "Failed to load font texture: " + fullPath);
     }
 
     auto& data = dataResult.value();
@@ -184,8 +187,7 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
 
     // 使用stb_image加载PNG
     int texWidth, texHeight, channels;
-    u8* pixels = stbi_load_from_memory(data.data(), static_cast<int>(data.size()),
-                                        &texWidth, &texHeight, &channels, 4);
+    u8* pixels = stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &texWidth, &texHeight, &channels, 4);
     if (pixels == nullptr) {
         return Error(ErrorCode::TextureLoadFailed, "Failed to decode font texture");
     }
@@ -219,8 +221,7 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
             u32 codepoint = static_cast<u32>(static_cast<u8>(chars[col]));
             if (codepoint != 0 && codepoint != ' ') {
                 m_codepoints.push_back(codepoint);
-                m_codepointToIndex[codepoint] =
-                    static_cast<u32>(m_codepoints.size() - 1);
+                m_codepointToIndex[codepoint] = static_cast<u32>(m_codepoints.size() - 1);
             }
         }
     }
@@ -228,8 +229,8 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
     return {};
 }
 
-u32 BitmapGlyphProvider::calculateCharWidth(u32 charX, u32 charY,
-                                             u32 charWidth, u32 charHeight) const {
+u32 BitmapGlyphProvider::calculateCharWidth(u32 charX, u32 charY, u32 charWidth, u32 charHeight) const
+{
     // 从右向左扫描，找到最右边的非透明像素
     for (i32 x = static_cast<i32>(charWidth) - 1; x >= 0; --x) {
         for (u32 y = 0; y < charHeight; ++y) {
@@ -247,11 +248,13 @@ u32 BitmapGlyphProvider::calculateCharWidth(u32 charX, u32 charY,
 }
 
 bool BitmapGlyphProvider::getGlyphData(u32 codepoint,
-                                        std::vector<u8>& outPixels,
-                                        u32& outWidth, u32& outHeight,
-                                        f32& outAdvance,
-                                        f32& outBearingX,
-                                        f32& outBearingY) const {
+    std::vector<u8>& outPixels,
+    u32& outWidth,
+    u32& outHeight,
+    f32& outAdvance,
+    f32& outBearingX,
+    f32& outBearingY) const
+{
     auto it = m_codepointToIndex.find(codepoint);
     if (it == m_codepointToIndex.end()) {
         return false;

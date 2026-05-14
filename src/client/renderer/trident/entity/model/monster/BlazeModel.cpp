@@ -5,18 +5,20 @@
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    // 烟雾棒的旋转偏移（每根棒间隔30度）
-    constexpr f64 ROD_ANGLE_OFFSET = mc::math::PI_DOUBLE / 6.0;
-    // 棒的浮动偏移角度增量
-    constexpr f64 ROD_FLOAT_SPEED = 0.5;
-}
+// 烟雾棒的旋转偏移（每根棒间隔30度）
+constexpr f64 ROD_ANGLE_OFFSET = mc::math::PI_DOUBLE / 6.0;
+// 棒的浮动偏移角度增量
+constexpr f64 ROD_FLOAT_SPEED = 0.5;
+} // namespace
 
-BlazeModel::BlazeModel() {
+BlazeModel::BlazeModel()
+{
     setTextureSize(64, 64);
     setupParts();
 }
 
-void BlazeModel::setupParts() {
+void BlazeModel::setupParts()
+{
     // 参考 MC 1.16.5 BlazeModel
     // 头部（主体）- Java原版没有调用setRotationPoint，默认是(0,0,0)
     m_head = std::make_shared<model::ModelRenderer>("head");
@@ -42,7 +44,8 @@ void BlazeModel::setupParts() {
     }
 }
 
-void BlazeModel::render(f64 scale) {
+void BlazeModel::render(f64 scale)
+{
     // 渲染头部
     if (m_head) {
         m_head->render(scale);
@@ -56,9 +59,9 @@ void BlazeModel::render(f64 scale) {
     }
 }
 
-void BlazeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                           f64 ageInTicks, f64 netHeadYaw,
-                           f64 headPitch, f64 /*scale*/) {
+void BlazeModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
+{
     m_ageInTicks = ageInTicks;
     (void)limbSwing;
     (void)limbSwingAmount;

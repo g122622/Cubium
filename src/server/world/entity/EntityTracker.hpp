@@ -3,10 +3,10 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <mutex>
 
 namespace mc::server {
 
@@ -20,12 +20,12 @@ class IServer;
  */
 struct TrackedEntity {
     EntityId entityId;
-    std::unordered_set<PlayerId> trackingPlayers;  // 正在追踪此实体的玩家
-    Vector3 lastPosition;                           // 上次同步的位置
-    f32 lastYaw = 0.0f;                            // 上次同步的偏航角
-    f32 lastPitch = 0.0f;                          // 上次同步的俯仰角
-    u32 updateCounter = 0;                          // 更新计数器
-    bool needsFullUpdate = true;                    // 是否需要完整更新
+    std::unordered_set<PlayerId> trackingPlayers; // 正在追踪此实体的玩家
+    Vector3 lastPosition;                         // 上次同步的位置
+    f32 lastYaw = 0.0f;                           // 上次同步的偏航角
+    f32 lastPitch = 0.0f;                         // 上次同步的俯仰角
+    u32 updateCounter = 0;                        // 更新计数器
+    bool needsFullUpdate = true;                  // 是否需要完整更新
 };
 
 /**

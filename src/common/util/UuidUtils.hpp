@@ -10,10 +10,10 @@
  */
 #pragma once
 
-#include "common/command/ICommandSource.hpp"  // for Uuid and UuidHash
-#include <string>
-#include <sstream>
+#include "common/command/ICommandSource.hpp" // for Uuid and UuidHash
 #include <iomanip>
+#include <sstream>
+#include <string>
 
 namespace mc {
 namespace util {
@@ -27,7 +27,8 @@ namespace util {
  * @param uuidStr 十六进制格式的 UUID 字符串（32 个字符）
  * @return 16 字节的 UUID 数组，如果解析失败则返回全零数组
  */
-inline Uuid uuidFromString(const std::string& uuidStr) {
+inline Uuid uuidFromString(const std::string& uuidStr)
+{
     Uuid result{};
     if (uuidStr.length() < 32) {
         return result;
@@ -37,7 +38,8 @@ inline Uuid uuidFromString(const std::string& uuidStr) {
         std::string byteStr = uuidStr.substr(i * 2, 2);
         try {
             result[i] = static_cast<u8>(std::stoul(byteStr, nullptr, 16));
-        } catch (...) {
+        }
+        catch (...) {
             return Uuid{};
         }
     }
@@ -50,7 +52,8 @@ inline Uuid uuidFromString(const std::string& uuidStr) {
  * @param uuid 16 字节的 UUID 数组
  * @return 十六进制格式的 UUID 字符串（32 个小写字符）
  */
-inline std::string uuidToString(const Uuid& uuid) {
+inline std::string uuidToString(const Uuid& uuid)
+{
     std::ostringstream oss;
     for (const auto& byte : uuid) {
         oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
@@ -64,7 +67,8 @@ inline std::string uuidToString(const Uuid& uuid) {
  * @param uuid 16 字节的 UUID 数组
  * @return 带连字符的 UUID 字符串（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
  */
-inline std::string uuidToStringWithDashes(const Uuid& uuid) {
+inline std::string uuidToStringWithDashes(const Uuid& uuid)
+{
     std::ostringstream oss;
     oss << std::hex << std::setfill('0');
 
@@ -111,7 +115,8 @@ inline std::string uuidToStringWithDashes(const Uuid& uuid) {
  * @param md5Hash MD5 哈希结果（16 字节）
  * @return UUID v3 数组
  */
-inline Uuid uuidFromMd5(const std::array<u8, 16>& md5Hash) {
+inline Uuid uuidFromMd5(const std::array<u8, 16>& md5Hash)
+{
     Uuid uuid = md5Hash;
 
     // 设置版本号为 3 (name-based UUID using MD5)
@@ -138,7 +143,8 @@ inline Uuid uuidFromMd5(const std::array<u8, 16>& md5Hash) {
  * @param username 玩家用户名
  * @return 离线模式 UUID（16 字节数组）
  */
-inline Uuid generateOfflineUuid(const std::string& username) {
+inline Uuid generateOfflineUuid(const std::string& username)
+{
     // 前向声明 MD5 哈希函数（实际实现在 Md5.hpp 中）
     // 这里需要包含 Md5.hpp，但为了保持头文件独立性，我们使用外部函数
     extern std::array<u8, 16> computeMd5Hash(const std::string& data);
@@ -154,7 +160,8 @@ inline Uuid generateOfflineUuid(const std::string& username) {
  * @param uuid 16 字节的 UUID 数组
  * @return 32 个十六进制字符的小写字符串
  */
-inline std::string uuidToHexString(const Uuid& uuid) {
+inline std::string uuidToHexString(const Uuid& uuid)
+{
     return uuidToString(uuid);
 }
 

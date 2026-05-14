@@ -9,7 +9,8 @@ namespace mc::fluid {
 // FluidTag 实现
 // ============================================================================
 
-bool FluidTag::contains(const Fluid& fluid) const {
+bool FluidTag::contains(const Fluid& fluid) const
+{
     return m_fluids.find(fluid.fluidLocation()) != m_fluids.end();
 }
 
@@ -19,12 +20,14 @@ bool FluidTag::contains(const Fluid& fluid) const {
 
 bool FluidTags::s_initialized = false;
 
-std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>>& FluidTags::getTags() {
+std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>>& FluidTags::getTags()
+{
     static std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>> tags;
     return tags;
 }
 
-FluidTag& FluidTags::WATER() {
+FluidTag& FluidTags::WATER()
+{
     static FluidTag* waterTag = nullptr;
     if (waterTag == nullptr) {
         auto tag = std::make_unique<FluidTag>(ResourceLocation("minecraft:water"));
@@ -34,7 +37,8 @@ FluidTag& FluidTags::WATER() {
     return *waterTag;
 }
 
-FluidTag& FluidTags::LAVA() {
+FluidTag& FluidTags::LAVA()
+{
     static FluidTag* lavaTag = nullptr;
     if (lavaTag == nullptr) {
         auto tag = std::make_unique<FluidTag>(ResourceLocation("minecraft:lava"));
@@ -44,7 +48,8 @@ FluidTag& FluidTags::LAVA() {
     return *lavaTag;
 }
 
-void FluidTags::initialize() {
+void FluidTags::initialize()
+{
     if (s_initialized) {
         return;
     }
@@ -55,27 +60,23 @@ void FluidTags::initialize() {
 
     // 添加流体到标签
     // 水标签包含：water, flowing_water
-    WATER().addAll({
-        ResourceLocation("minecraft:water"),
-        ResourceLocation("minecraft:flowing_water")
-    });
+    WATER().addAll({ResourceLocation("minecraft:water"), ResourceLocation("minecraft:flowing_water")});
 
     // 岩浆标签包含：lava, flowing_lava
-    LAVA().addAll({
-        ResourceLocation("minecraft:lava"),
-        ResourceLocation("minecraft:flowing_lava")
-    });
+    LAVA().addAll({ResourceLocation("minecraft:lava"), ResourceLocation("minecraft:flowing_lava")});
 
     s_initialized = true;
 }
 
-FluidTag* FluidTags::getTag(const ResourceLocation& id) {
+FluidTag* FluidTags::getTag(const ResourceLocation& id)
+{
     auto& tags = getTags();
     auto it = tags.find(id);
     return it != tags.end() ? it->second.get() : nullptr;
 }
 
-void FluidTags::forEachTag(std::function<void(FluidTag&)> callback) {
+void FluidTags::forEachTag(std::function<void(FluidTag&)> callback)
+{
     for (auto& [id, tag] : getTags()) {
         callback(*tag);
     }

@@ -1,19 +1,19 @@
-#include <gtest/gtest.h>
-#include "entity/loot/LootFunctions.hpp"
-#include "entity/loot/LootContext.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "core/Constants.hpp"
 #include "entity/effect/EffectType.hpp"
-#include "item/core/ItemStack.hpp"
+#include "entity/loot/LootContext.hpp"
+#include "entity/loot/LootFunctions.hpp"
 #include "item/Items.hpp"
+#include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
-#include "world/block/Block.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "util/math/random/Random.hpp"
-#include "core/Constants.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::loot;
@@ -22,15 +22,19 @@ using namespace mc::entity::effect;
 // Test implementation of IWorld for loot testing
 class SetStewEffectTestWorld : public test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
-        throw std::runtime_error("SetStewEffectTestWorld::tickManager not implemented");
-    }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
-        throw std::runtime_error("SetStewEffectTestWorld::tickManager not implemented");
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("SetStewEffectTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("SetStewEffectTestWorld::tickManager not implemented");
+    }
 };
 
 /**
@@ -41,14 +45,13 @@ public:
  */
 class SetStewEffectTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         Items::initialize();
         m_random = std::make_unique<math::Random>(12345);
     }
 
-    void TearDown() override {
-        m_random.reset();
-    }
+    void TearDown() override { m_random.reset(); }
 
     SetStewEffectTestWorld m_world;
     std::unique_ptr<math::Random> m_random;
@@ -58,7 +61,8 @@ protected:
 // 基本功能测试
 // ============================================================================
 
-TEST_F(SetStewEffectTest, EmptyEffects_NoChange) {
+TEST_F(SetStewEffectTest, EmptyEffects_NoChange)
+{
     // 空效果列表不应该修改物品
     SetStewEffectFunction func;
     ItemStack stack(Items::SUSPICIOUS_STEW, 1);
@@ -68,32 +72,35 @@ TEST_F(SetStewEffectTest, EmptyEffects_NoChange) {
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(SetStewEffectTest, EmptyStack_NoChange) {
+TEST_F(SetStewEffectTest, EmptyStack_NoChange)
+{
     // 空物品堆应该返回空
     SetStewEffectFunction func;
     func.addEffect("minecraft:poison", RandomValueRange(5.0f, 10.0f));
-    ItemStack stack;  // 空堆
+    ItemStack stack; // 空堆
     LootContext context(m_world, *m_random);
 
     ItemStack result = func.apply(stack, context);
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(SetStewEffectTest, WrongItemType_NoChange) {
+TEST_F(SetStewEffectTest, WrongItemType_NoChange)
+{
     // 对非谜之炖菜物品不应该添加效果
     SetStewEffectFunction func;
     func.addEffect("minecraft:poison", RandomValueRange(5.0f, 10.0f));
-    ItemStack stack(Items::APPLE, 1);  // 不是谜之炖菜
+    ItemStack stack(Items::APPLE, 1); // 不是谜之炖菜
     LootContext context(m_world, *m_random);
 
     ItemStack result = func.apply(stack, context);
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(SetStewEffectTest, SingleEffect_AppliedToStew) {
+TEST_F(SetStewEffectTest, SingleEffect_AppliedToStew)
+{
     // 测试单个效果应用到谜之炖菜
     SetStewEffectFunction func;
-    func.addEffect("minecraft:poison", RandomValueRange(5.0f));  // 5秒 = 100 ticks
+    func.addEffect("minecraft:poison", RandomValueRange(5.0f)); // 5秒 = 100 ticks
     ItemStack stack(Items::SUSPICIOUS_STEW, 1);
     LootContext context(m_world, *m_random);
 
@@ -112,7 +119,8 @@ TEST_F(SetStewEffectTest, SingleEffect_AppliedToStew) {
     EXPECT_EQ(100, effect["EffectDuration"].get<i32>());
 }
 
-TEST_F(SetStewEffectTest, MultipleEffects_RandomSelection) {
+TEST_F(SetStewEffectTest, MultipleEffects_RandomSelection)
+{
     // 测试多个效果时随机选择一个
     SetStewEffectFunction func;
     func.addEffect("minecraft:poison", RandomValueRange(5.0f));
@@ -124,7 +132,7 @@ TEST_F(SetStewEffectTest, MultipleEffects_RandomSelection) {
 
     for (int i = 0; i < 100; ++i) {
         ItemStack stack(Items::SUSPICIOUS_STEW, 1);
-        m_random = std::make_unique<math::Random>(i + 1000);  // 不同的种子
+        m_random = std::make_unique<math::Random>(i + 1000); // 不同的种子
         LootContext context(m_world, *m_random);
 
         ItemStack result = func.apply(stack, context);
@@ -145,10 +153,11 @@ TEST_F(SetStewEffectTest, MultipleEffects_RandomSelection) {
     }
 }
 
-TEST_F(SetStewEffectTest, DurationRange) {
+TEST_F(SetStewEffectTest, DurationRange)
+{
     // 测试持续时间范围
     SetStewEffectFunction func;
-    func.addEffect("minecraft:regeneration", RandomValueRange(3.0f, 8.0f));  // 3-8秒
+    func.addEffect("minecraft:regeneration", RandomValueRange(3.0f, 8.0f)); // 3-8秒
 
     bool sawMin = false;
     bool sawMax = false;
@@ -179,7 +188,8 @@ TEST_F(SetStewEffectTest, DurationRange) {
 // 效果类型解析测试
 // ============================================================================
 
-TEST_F(SetStewEffectTest, ResourceLocationFormat) {
+TEST_F(SetStewEffectTest, ResourceLocationFormat)
+{
     // 测试完整资源位置格式
     SetStewEffectFunction func;
     func.addEffect("minecraft:night_vision", RandomValueRange(5.0f));
@@ -192,7 +202,8 @@ TEST_F(SetStewEffectTest, ResourceLocationFormat) {
     EXPECT_EQ(static_cast<i8>(static_cast<i32>(EffectType::NightVision)), effectId);
 }
 
-TEST_F(SetStewEffectTest, ShortNameFormat) {
+TEST_F(SetStewEffectTest, ShortNameFormat)
+{
     // 测试简写格式
     SetStewEffectFunction func;
     func.addEffect("wither", RandomValueRange(5.0f));
@@ -205,7 +216,8 @@ TEST_F(SetStewEffectTest, ShortNameFormat) {
     EXPECT_EQ(static_cast<i8>(static_cast<i32>(EffectType::Wither)), effectId);
 }
 
-TEST_F(SetStewEffectTest, InvalidEffectName_NoEffect) {
+TEST_F(SetStewEffectTest, InvalidEffectName_NoEffect)
+{
     // 测试无效效果名称
     SetStewEffectFunction func;
     func.addEffect("minecraft:invalid_effect", RandomValueRange(5.0f));
@@ -221,10 +233,11 @@ TEST_F(SetStewEffectTest, InvalidEffectName_NoEffect) {
 // 瞬间效果测试
 // ============================================================================
 
-TEST_F(SetStewEffectTest, InstantEffect_NoTickMultiplication) {
+TEST_F(SetStewEffectTest, InstantEffect_NoTickMultiplication)
+{
     // 瞬间效果的持续时间不应该乘以20
     SetStewEffectFunction func;
-    func.addEffect("minecraft:instant_health", RandomValueRange(1.0f));  // 瞬间治疗
+    func.addEffect("minecraft:instant_health", RandomValueRange(1.0f)); // 瞬间治疗
     ItemStack stack(Items::SUSPICIOUS_STEW, 1);
     LootContext context(m_world, *m_random);
 
@@ -236,7 +249,8 @@ TEST_F(SetStewEffectTest, InstantEffect_NoTickMultiplication) {
     EXPECT_EQ(1, duration) << "Instant effects should not have duration multiplied by 20";
 }
 
-TEST_F(SetStewEffectTest, SaturationEffect_NoTickMultiplication) {
+TEST_F(SetStewEffectTest, SaturationEffect_NoTickMultiplication)
+{
     // 饱和效果是瞬间效果
     SetStewEffectFunction func;
     func.addEffect("minecraft:saturation", RandomValueRange(2.0f));
@@ -255,14 +269,15 @@ TEST_F(SetStewEffectTest, SaturationEffect_NoTickMultiplication) {
 // 多次应用测试
 // ============================================================================
 
-TEST_F(SetStewEffectTest, MultipleApplications_AppendEffects) {
+TEST_F(SetStewEffectTest, MultipleApplications_AppendEffects)
+{
     // 多次应用应该追加效果到数组
     SetStewEffectFunction func;
     func.addEffect("minecraft:poison", RandomValueRange(5.0f));
 
     ItemStack stack(Items::SUSPICIOUS_STEW, 1);
     LootContext context1(m_world, *m_random);
-    stack = func.apply(stack, context1);  // 注意：apply 返回修改后的拷贝
+    stack = func.apply(stack, context1); // 注意：apply 返回修改后的拷贝
 
     // 再次应用（使用相同的效果）
     m_random = std::make_unique<math::Random>(54321);
@@ -279,7 +294,8 @@ TEST_F(SetStewEffectTest, MultipleApplications_AppendEffects) {
 // Clone 测试
 // ============================================================================
 
-TEST_F(SetStewEffectTest, Clone) {
+TEST_F(SetStewEffectTest, Clone)
+{
     // 测试克隆功能
     SetStewEffectFunction original;
     original.addEffect("minecraft:poison", RandomValueRange(5.0f, 10.0f));
@@ -308,7 +324,8 @@ TEST_F(SetStewEffectTest, Clone) {
 // getType 测试
 // ============================================================================
 
-TEST_F(SetStewEffectTest, GetType) {
+TEST_F(SetStewEffectTest, GetType)
+{
     SetStewEffectFunction func;
     EXPECT_EQ("set_stew_effect", func.getType());
 }

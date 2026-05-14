@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../core/ItemStack.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../world/block/Material.hpp"
+#include "../../core/Item.hpp"
+#include "../../core/ItemStack.hpp"
 #include <unordered_set>
 
 namespace mc {
@@ -50,8 +50,7 @@ public:
      * @param state 目标方块状态
      * @return 挖掘速度倍率
      */
-    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
-                                       const BlockState& state) const override;
+    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
 
     /**
      * @brief 检查是否能采集方块
@@ -81,11 +80,8 @@ public:
      * @param entity 破坏者实体
      * @return 是否成功
      */
-    bool onBlockDestroyed(ItemStack& stack,
-                          IWorld& world,
-                          const BlockState& state,
-                          const BlockPos& pos,
-                          LivingEntity& entity) override;
+    bool onBlockDestroyed(
+        ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& entity) override;
 
     /**
      * @brief 与实体交互
@@ -99,10 +95,7 @@ public:
      * @param hand 使用的手
      * @return 是否成功交互
      */
-    bool itemInteractionForEntity(ItemStack& stack,
-                                   Player& player,
-                                   LivingEntity& target,
-                                   Hand hand) override;
+    bool itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand) override;
 };
 
 } // namespace tool

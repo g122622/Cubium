@@ -1,19 +1,19 @@
-#include <gtest/gtest.h>
-#include "entity/entities/player/Player.hpp"
-#include "entity/entities/player/GameModeUtils.hpp"
-#include "entity/damage/DamageSource.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "entity/damage/DamageSource.hpp"
+#include "entity/entities/player/GameModeUtils.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "physics/PhysicsEngine.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
-#include "common/core/Constants.hpp"
 #include <cmath>
-#include "common/resource/ResourceLocation.hpp"
-#include "common/TestWorldHelper.hpp"
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
@@ -26,7 +26,8 @@ namespace {
  */
 class PlayerMovementTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化方块和流体注册表
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
@@ -38,9 +39,7 @@ protected:
         m_player->setGameMode(GameMode::Creative);
     }
 
-    void TearDown() override {
-        m_player.reset();
-    }
+    void TearDown() override { m_player.reset(); }
 
     std::unique_ptr<Player> m_player;
 };
@@ -60,7 +59,8 @@ public:
     [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
     [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         if (m_supportEnabled && y == 0 && x >= -1 && x <= 1 && z >= -1 && z <= 1) {
             return &VanillaBlocks::STONE->defaultState();
         }
@@ -68,17 +68,18 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
         if (!m_supportEnabled) {
             return false;
         }
 
-        return box.maxX > -1.0f && box.minX < 2.0f &&
-               box.maxY > 0.0f && box.minY < 1.0f &&
-               box.maxZ > -1.0f && box.minZ < 2.0f;
+        return box.maxX > -1.0f && box.minX < 2.0f && box.maxY > 0.0f && box.minY < 1.0f && box.maxZ > -1.0f &&
+            box.minZ < 2.0f;
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override {
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
+    {
         if (!hasBlockCollision(box)) {
             return {};
         }
@@ -87,18 +88,21 @@ public:
     }
 
     void playSound(const ResourceLocation& soundEventId,
-                   sound::SoundCategory category,
-                   const Vector3& position,
-                   f32 volume,
-                   f32 pitch) override {
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
+    {
         m_lastSound = SoundRecord{soundEventId, category, position, volume, pitch};
     }
 
     // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
 
@@ -120,28 +124,33 @@ public:
 // 飞行速度测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, FlySpeedDefaultValue_IsCorrect) {
+TEST_F(PlayerMovementTest, FlySpeedDefaultValue_IsCorrect)
+{
     // MC中flySpeed默认值是0.05F
     EXPECT_FLOAT_EQ(m_player->abilities().flySpeed, physics::FLY_SPEED);
 }
 
-TEST_F(PlayerMovementTest, WalkSpeedDefaultValue_IsCorrect) {
+TEST_F(PlayerMovementTest, WalkSpeedDefaultValue_IsCorrect)
+{
     // MC中walkSpeed默认值是0.1F
     EXPECT_FLOAT_EQ(m_player->abilities().walkSpeed, physics::WALK_SPEED);
 }
 
-TEST_F(PlayerMovementTest, CreativeMode_HasFlyAbility) {
+TEST_F(PlayerMovementTest, CreativeMode_HasFlyAbility)
+{
     EXPECT_TRUE(m_player->abilities().canFly);
     EXPECT_TRUE(m_player->abilities().creativeMode);
 }
 
-TEST_F(PlayerMovementTest, SurvivalMode_NoFlyAbility) {
+TEST_F(PlayerMovementTest, SurvivalMode_NoFlyAbility)
+{
     m_player->setGameMode(GameMode::Survival);
     EXPECT_FALSE(m_player->abilities().canFly);
     EXPECT_FALSE(m_player->abilities().creativeMode);
 }
 
-TEST_F(PlayerMovementTest, DamagePlaysHurtSound) {
+TEST_F(PlayerMovementTest, DamagePlaysHurtSound)
+{
     GroundSupportWorld world;
     m_player->setWorld(&world);
     m_player->setGameMode(GameMode::Survival);
@@ -156,7 +165,8 @@ TEST_F(PlayerMovementTest, DamagePlaysHurtSound) {
     EXPECT_FLOAT_EQ(world.lastSound().volume, 1.0f);
 }
 
-TEST_F(PlayerMovementTest, LethalDamagePlaysDeathSound) {
+TEST_F(PlayerMovementTest, LethalDamagePlaysDeathSound)
+{
     GroundSupportWorld world;
     m_player->setWorld(&world);
     m_player->setGameMode(GameMode::Survival);
@@ -174,7 +184,8 @@ TEST_F(PlayerMovementTest, LethalDamagePlaysDeathSound) {
 // 飞行水平移动测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, Flying_HorizontalMovement_AddsToVelocity) {
+TEST_F(PlayerMovementTest, Flying_HorizontalMovement_AddsToVelocity)
+{
     // 开启飞行
     m_player->abilities().flying = true;
 
@@ -187,14 +198,13 @@ TEST_F(PlayerMovementTest, Flying_HorizontalMovement_AddsToVelocity) {
     m_player->updatePhysics();
 
     // 飞行速度 = flySpeed * 1.0 = 0.05，随后应用水平阻力 0.91
-    f32 speed = std::sqrt(
-        m_player->velocity().x * m_player->velocity().x +
-        m_player->velocity().z * m_player->velocity().z
-    );
+    f32 speed =
+        std::sqrt(m_player->velocity().x * m_player->velocity().x + m_player->velocity().z * m_player->velocity().z);
     EXPECT_NEAR(speed, physics::FLY_SPEED * physics::FLY_HORIZONTAL_DRAG, 0.001f);
 }
 
-TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed) {
+TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed)
+{
     m_player->abilities().flying = true;
     m_player->setSprinting(true);
 
@@ -202,10 +212,8 @@ TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed) {
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
     m_player->updatePhysics();
 
-    f32 sprintSpeed = std::sqrt(
-        m_player->velocity().x * m_player->velocity().x +
-        m_player->velocity().z * m_player->velocity().z
-    );
+    f32 sprintSpeed =
+        std::sqrt(m_player->velocity().x * m_player->velocity().x + m_player->velocity().z * m_player->velocity().z);
 
     // 重置
     m_player->setSprinting(false);
@@ -214,10 +222,8 @@ TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed) {
     // 非冲刺
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
     m_player->updatePhysics();
-    f32 normalSpeed = std::sqrt(
-        m_player->velocity().x * m_player->velocity().x +
-        m_player->velocity().z * m_player->velocity().z
-    );
+    f32 normalSpeed =
+        std::sqrt(m_player->velocity().x * m_player->velocity().x + m_player->velocity().z * m_player->velocity().z);
 
     // 冲刺速度应该约为非冲刺的两倍
     EXPECT_NEAR(sprintSpeed, normalSpeed * 2.0f, 0.001f);
@@ -227,7 +233,8 @@ TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed) {
 // 飞行垂直移动测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, Flying_Jump_IncreasesVerticalVelocity) {
+TEST_F(PlayerMovementTest, Flying_Jump_IncreasesVerticalVelocity)
+{
     m_player->abilities().flying = true;
 
     // 初始Y速度为零
@@ -238,10 +245,13 @@ TEST_F(PlayerMovementTest, Flying_Jump_IncreasesVerticalVelocity) {
     m_player->updatePhysics();
 
     // Y速度应该增加后应用飞行垂直阻力 0.6
-    EXPECT_NEAR(m_player->velocity().y, physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
+    EXPECT_NEAR(m_player->velocity().y,
+        physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG,
+        0.001f);
 }
 
-TEST_F(PlayerMovementTest, Flying_Sneak_DecreasesVerticalVelocity) {
+TEST_F(PlayerMovementTest, Flying_Sneak_DecreasesVerticalVelocity)
+{
     m_player->abilities().flying = true;
 
     // 初始Y速度为零
@@ -252,10 +262,13 @@ TEST_F(PlayerMovementTest, Flying_Sneak_DecreasesVerticalVelocity) {
     m_player->updatePhysics();
 
     // Y速度应该减少后应用飞行垂直阻力 0.6
-    EXPECT_NEAR(m_player->velocity().y, -physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
+    EXPECT_NEAR(m_player->velocity().y,
+        -physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG,
+        0.001f);
 }
 
-TEST_F(PlayerMovementTest, Flying_JumpAndSneak_CancelOut) {
+TEST_F(PlayerMovementTest, Flying_JumpAndSneak_CancelOut)
+{
     m_player->abilities().flying = true;
 
     // 同时按跳跃和潜行应该抵消
@@ -266,7 +279,8 @@ TEST_F(PlayerMovementTest, Flying_JumpAndSneak_CancelOut) {
     EXPECT_NEAR(m_player->velocity().y, 0.0f, 0.001f);
 }
 
-TEST_F(PlayerMovementTest, Flying_VerticalSpeed_SprintDoubles) {
+TEST_F(PlayerMovementTest, Flying_VerticalSpeed_SprintDoubles)
+{
     m_player->abilities().flying = true;
     m_player->setSprinting(true);
 
@@ -275,14 +289,18 @@ TEST_F(PlayerMovementTest, Flying_VerticalSpeed_SprintDoubles) {
     m_player->updatePhysics();
 
     // verticalSpeed = flySpeed * 3.0 * 2.0 (冲刺) = 0.3，再乘飞行垂直阻力 0.6
-    EXPECT_NEAR(m_player->velocity().y, physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::SPRINT_FLY_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
+    EXPECT_NEAR(m_player->velocity().y,
+        physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::SPRINT_FLY_MULTIPLIER *
+            physics::FLY_VERTICAL_DRAG,
+        0.001f);
 }
 
 // ============================================================================
 // 飞行物理更新测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, Flying_YVelocityDrag_AppliedInUpdatePhysics) {
+TEST_F(PlayerMovementTest, Flying_YVelocityDrag_AppliedInUpdatePhysics)
+{
     m_player->abilities().flying = true;
     m_player->setVelocity(Vector3(0.0f, 1.0f, 0.0f));
 
@@ -295,7 +313,8 @@ TEST_F(PlayerMovementTest, Flying_YVelocityDrag_AppliedInUpdatePhysics) {
     EXPECT_NEAR(m_player->velocity().y, 0.6f, 0.001f);
 }
 
-TEST_F(PlayerMovementTest, Flying_HorizontalDrag_AppliedInUpdatePhysics) {
+TEST_F(PlayerMovementTest, Flying_HorizontalDrag_AppliedInUpdatePhysics)
+{
     m_player->abilities().flying = true;
     m_player->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
 
@@ -306,7 +325,8 @@ TEST_F(PlayerMovementTest, Flying_HorizontalDrag_AppliedInUpdatePhysics) {
     EXPECT_NEAR(m_player->velocity().z, 0.91f, 0.001f);
 }
 
-TEST_F(PlayerMovementTest, NotFlying_AirDrag_AppliedInUpdatePhysics) {
+TEST_F(PlayerMovementTest, NotFlying_AirDrag_AppliedInUpdatePhysics)
+{
     m_player->abilities().flying = false;
     m_player->setVelocity(Vector3(1.0f, 1.0f, 1.0f));
     m_player->setOnGround(false);
@@ -323,7 +343,8 @@ TEST_F(PlayerMovementTest, NotFlying_AirDrag_AppliedInUpdatePhysics) {
 // 非飞行移动测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, Walking_HorizontalMovement_AddsToVelocity) {
+TEST_F(PlayerMovementTest, Walking_HorizontalMovement_AddsToVelocity)
+{
     GroundSupportWorld world;
     m_player->setWorld(&world);
     m_player->abilities().flying = false;
@@ -333,17 +354,16 @@ TEST_F(PlayerMovementTest, Walking_HorizontalMovement_AddsToVelocity) {
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
     m_player->updatePhysics();
 
-    f32 speed = std::sqrt(
-        m_player->velocity().x * m_player->velocity().x +
-        m_player->velocity().z * m_player->velocity().z
-    );
+    f32 speed =
+        std::sqrt(m_player->velocity().x * m_player->velocity().x + m_player->velocity().z * m_player->velocity().z);
 
     const f32 expectedInput = physics::getGroundMoveFactor(physics::WALK_SPEED, physics::SLIPPERINESS_DEFAULT);
     const f32 expectedDrag = physics::SLIPPERINESS_DEFAULT * physics::DRAG_GROUND;
     EXPECT_NEAR(speed, expectedInput * expectedDrag, 0.01f);
 }
 
-TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
+TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed)
+{
     GroundSupportWorld world;
     m_player->setWorld(&world);
     m_player->abilities().flying = false;
@@ -354,10 +374,8 @@ TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
     m_player->handleMovementInput(1.0f, 0.0f, false, true);
     m_player->updatePhysics();
 
-    f32 sneakSpeed = std::sqrt(
-        m_player->velocity().x * m_player->velocity().x +
-        m_player->velocity().z * m_player->velocity().z
-    );
+    f32 sneakSpeed =
+        std::sqrt(m_player->velocity().x * m_player->velocity().x + m_player->velocity().z * m_player->velocity().z);
 
     // 重置
     m_player->setVelocity(Vector3(0.0f, 0.0f, 0.0f));
@@ -367,10 +385,8 @@ TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
     // 正常行走
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
     m_player->updatePhysics();
-    f32 normalSpeed = std::sqrt(
-        m_player->velocity().x * m_player->velocity().x +
-        m_player->velocity().z * m_player->velocity().z
-    );
+    f32 normalSpeed =
+        std::sqrt(m_player->velocity().x * m_player->velocity().x + m_player->velocity().z * m_player->velocity().z);
 
     // 潜行速度应该是正常速度的约30%
     EXPECT_NEAR(sneakSpeed, normalSpeed * physics::SNEAK_SPEED_MULTIPLIER, 0.01f);
@@ -380,7 +396,8 @@ TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
 // 移动距离累计测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, UpdateMoveDistance_ResamplesCurrentPosition) {
+TEST_F(PlayerMovementTest, UpdateMoveDistance_ResamplesCurrentPosition)
+{
     m_player->setOnGround(true);
     m_player->setVelocity(Vector3(0.2f, 0.0f, 0.0f));
 
@@ -409,7 +426,8 @@ TEST_F(PlayerMovementTest, UpdateMoveDistance_ResamplesCurrentPosition) {
     EXPECT_FLOAT_EQ(m_player->prevCameraYaw(), 0.0f);
 }
 
-TEST_F(PlayerMovementTest, UpdateMoveDistance_DecaysCameraYawWhenAirborne) {
+TEST_F(PlayerMovementTest, UpdateMoveDistance_DecaysCameraYawWhenAirborne)
+{
     m_player->setOnGround(true);
     m_player->setVelocity(Vector3(0.2f, 0.0f, 0.0f));
     m_player->move(2.0f, 0.0f, 0.0f);
@@ -428,7 +446,8 @@ TEST_F(PlayerMovementTest, UpdateMoveDistance_DecaysCameraYawWhenAirborne) {
 // 跳跃测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, Jump_OnGround_SetsJumpVelocity) {
+TEST_F(PlayerMovementTest, Jump_OnGround_SetsJumpVelocity)
+{
     m_player->abilities().flying = false;
     m_player->setOnGround(true);
 
@@ -439,7 +458,8 @@ TEST_F(PlayerMovementTest, Jump_OnGround_SetsJumpVelocity) {
     EXPECT_FALSE(m_player->onGround());
 }
 
-TEST_F(PlayerMovementTest, Jump_InAir_DoesNothing) {
+TEST_F(PlayerMovementTest, Jump_InAir_DoesNothing)
+{
     m_player->abilities().flying = false;
     m_player->setOnGround(false);
 
@@ -450,7 +470,8 @@ TEST_F(PlayerMovementTest, Jump_InAir_DoesNothing) {
     EXPECT_FLOAT_EQ(m_player->velocity().y, prevY);
 }
 
-TEST_F(PlayerMovementTest, Jump_WhileFlying_UsesFlyUpInstead) {
+TEST_F(PlayerMovementTest, Jump_WhileFlying_UsesFlyUpInstead)
+{
     // 飞行模式下在地面上
     m_player->abilities().flying = true;
     m_player->setOnGround(true);
@@ -461,10 +482,13 @@ TEST_F(PlayerMovementTest, Jump_WhileFlying_UsesFlyUpInstead) {
     m_player->updatePhysics();
 
     // 飞行上升速度 = flySpeed * 3.0 * 飞行垂直阻力 0.6，而不是普通跳跃速度 0.42
-    EXPECT_NEAR(m_player->velocity().y, physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
+    EXPECT_NEAR(m_player->velocity().y,
+        physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG,
+        0.001f);
 }
 
-TEST_F(PlayerMovementTest, HandleMovementInput_WithPhysicsWorldOnly_DoesNotCrash) {
+TEST_F(PlayerMovementTest, HandleMovementInput_WithPhysicsWorldOnly_DoesNotCrash)
+{
     EmptyCollisionWorld collisionWorld;
     PhysicsEngine physicsEngine(collisionWorld);
 
@@ -478,7 +502,8 @@ TEST_F(PlayerMovementTest, HandleMovementInput_WithPhysicsWorldOnly_DoesNotCrash
     EXPECT_FALSE(m_player->isInLava());
 }
 
-TEST_F(PlayerMovementTest, FallingAfterSupportRemovalRefreshesGroundState) {
+TEST_F(PlayerMovementTest, FallingAfterSupportRemovalRefreshesGroundState)
+{
     GroundSupportWorld world;
     m_player->setWorld(&world);
     m_player->setGameMode(GameMode::Survival);
@@ -497,8 +522,8 @@ TEST_F(PlayerMovementTest, FallingAfterSupportRemovalRefreshesGroundState) {
     EXPECT_FALSE(m_player->isOnGround());
 }
 
-
-TEST_F(PlayerMovementTest, SetPosition_ResetsInterpolationHistory) {
+TEST_F(PlayerMovementTest, SetPosition_ResetsInterpolationHistory)
+{
     m_player->setPosition(0.0f, 64.0f, 0.0f);
     m_player->move(2.0f, 0.0f, 0.0f);
     ASSERT_FLOAT_EQ(m_player->prevX(), 0.0f);
@@ -514,7 +539,8 @@ TEST_F(PlayerMovementTest, SetPosition_ResetsInterpolationHistory) {
     EXPECT_FLOAT_EQ(m_player->z(), -5.0f);
 }
 
-TEST_F(PlayerMovementTest, UpdatePhysics_SnapshotsPreviousTickPosition) {
+TEST_F(PlayerMovementTest, UpdatePhysics_SnapshotsPreviousTickPosition)
+{
     m_player->abilities().flying = true;
     m_player->setPosition(0.0f, 64.0f, 0.0f);
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
@@ -539,7 +565,8 @@ TEST_F(PlayerMovementTest, UpdatePhysics_SnapshotsPreviousTickPosition) {
 // 阻力衰减测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, VelocityDecays_WithDrag) {
+TEST_F(PlayerMovementTest, VelocityDecays_WithDrag)
+{
     m_player->abilities().flying = true;
     m_player->setVelocity(Vector3(1.0f, 1.0f, 1.0f));
 
@@ -558,7 +585,8 @@ TEST_F(PlayerMovementTest, VelocityDecays_WithDrag) {
 // 游戏模式能力测试
 // ============================================================================
 
-TEST_F(PlayerMovementTest, GameModeUtils_Creative_HasAllAbilities) {
+TEST_F(PlayerMovementTest, GameModeUtils_Creative_HasAllAbilities)
+{
     auto abilities = entity::GameModeUtils::getAbilitiesForGameMode(GameMode::Creative);
 
     EXPECT_TRUE(abilities.creativeMode);
@@ -569,7 +597,8 @@ TEST_F(PlayerMovementTest, GameModeUtils_Creative_HasAllAbilities) {
     EXPECT_FLOAT_EQ(abilities.walkSpeed, physics::WALK_SPEED);
 }
 
-TEST_F(PlayerMovementTest, GameModeUtils_Survival_NoFlyNoInvulnerable) {
+TEST_F(PlayerMovementTest, GameModeUtils_Survival_NoFlyNoInvulnerable)
+{
     auto abilities = entity::GameModeUtils::getAbilitiesForGameMode(GameMode::Survival);
 
     EXPECT_FALSE(abilities.creativeMode);
@@ -578,7 +607,8 @@ TEST_F(PlayerMovementTest, GameModeUtils_Survival_NoFlyNoInvulnerable) {
     EXPECT_TRUE(abilities.allowEdit);
 }
 
-TEST_F(PlayerMovementTest, GameModeUtils_Spectator_CanFlyFlying) {
+TEST_F(PlayerMovementTest, GameModeUtils_Spectator_CanFlyFlying)
+{
     auto abilities = entity::GameModeUtils::getAbilitiesForGameMode(GameMode::Spectator);
 
     EXPECT_FALSE(abilities.creativeMode);

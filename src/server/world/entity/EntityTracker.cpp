@@ -1,24 +1,24 @@
 #include "EntityTracker.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/EntityMetadataSerializer.hpp"
-#include "common/network/packet/ExperiencePackets.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/item/core/Item.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "common/world/entity/EntityManager.hpp"
+#include "common/network/packet/EntityMetadataSerializer.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/packet/ExperiencePackets.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
 #include "common/util/UuidUtils.hpp"
-#include <spdlog/spdlog.h>
+#include "common/world/entity/EntityManager.hpp"
+#include "server/application/IServer.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::server {
 
@@ -26,17 +26,17 @@ EntityTracker::EntityTracker()
     : m_trackingDistance(10)
     , m_positionUpdateThreshold(0.1f)
     , m_rotationUpdateThreshold(1.0f)
-{
-}
+{}
 
-void EntityTracker::trackEntity(Entity* entity) {
+void EntityTracker::trackEntity(Entity* entity)
+{
     if (!entity) return;
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
     EntityId entityId = entity->id();
     if (m_trackedEntities.find(entityId) != m_trackedEntities.end()) {
-        return;  // 已经在追踪
+        return; // 已经在追踪
     }
 
     TrackedEntity tracked;
@@ -48,11 +48,11 @@ void EntityTracker::trackEntity(Entity* entity) {
 
     m_trackedEntities[entityId] = tracked;
 
-    spdlog::debug("EntityTracker: Started tracking entity {} ({})",
-                  entityId, entity->getTypeId());
+    spdlog::debug("EntityTracker: Started tracking entity {} ({})", entityId, entity->getTypeId());
 }
 
-void EntityTracker::untrackEntity(EntityId entityId) {
+void EntityTracker::untrackEntity(EntityId entityId)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_trackedEntities.find(entityId);
@@ -72,17 +72,20 @@ void EntityTracker::untrackEntity(EntityId entityId) {
     spdlog::debug("EntityTracker: Stopped tracking entity {}", entityId);
 }
 
-bool EntityTracker::isTracking(EntityId entityId) const {
+bool EntityTracker::isTracking(EntityId entityId) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_trackedEntities.find(entityId) != m_trackedEntities.end();
 }
 
-size_t EntityTracker::trackedEntityCount() const {
+size_t EntityTracker::trackedEntityCount() const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_trackedEntities.size();
 }
 
-void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, const Vector3& playerPos) {
+void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, const Vector3& playerPos)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 获取玩家当前追踪的实体集合
@@ -126,7 +129,8 @@ void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, con
     }
 }
 
-void EntityTracker::removePlayer(PlayerId playerId) {
+void EntityTracker::removePlayer(PlayerId playerId)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto trackedSet = m_playerTrackedEntities.find(playerId);
@@ -146,7 +150,8 @@ void EntityTracker::removePlayer(PlayerId playerId) {
     spdlog::debug("EntityTracker: Removed player {} from tracking", playerId);
 }
 
-std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId) const {
+std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId) const
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     std::vector<EntityId> result;
@@ -160,7 +165,8 @@ std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId)
     return result;
 }
 
-void EntityTracker::tick(IServer& server) {
+void EntityTracker::tick(IServer& server)
+{
     std::vector<std::pair<EntityId, std::vector<PlayerId>>> removedEntities;
     std::vector<EntityId> entitiesToErase;
 
@@ -183,17 +189,22 @@ void EntityTracker::tick(IServer& server) {
             f32 currentPitch = entity->pitch();
 
             bool positionChanged = (currentPos - tracked.lastPosition).lengthSquared() >
-                                  m_positionUpdateThreshold * m_positionUpdateThreshold;
+                m_positionUpdateThreshold * m_positionUpdateThreshold;
             bool rotationChanged = std::abs(currentYaw - tracked.lastYaw) > m_rotationUpdateThreshold ||
-                                  std::abs(currentPitch - tracked.lastPitch) > m_rotationUpdateThreshold;
+                std::abs(currentPitch - tracked.lastPitch) > m_rotationUpdateThreshold;
 
             if (tracked.needsFullUpdate || positionChanged || rotationChanged) {
                 if (!tracked.trackingPlayers.empty()) {
-                    spdlog::debug("EntityTracker: Entity {} moved from ({:.1f},{:.1f},{:.1f}) to ({:.1f},{:.1f},{:.1f}), sending to {} players",
-                                  entityId,
-                                  tracked.lastPosition.x, tracked.lastPosition.y, tracked.lastPosition.z,
-                                  currentPos.x, currentPos.y, currentPos.z,
-                                  tracked.trackingPlayers.size());
+                    spdlog::debug("EntityTracker: Entity {} moved from ({:.1f},{:.1f},{:.1f}) to "
+                                  "({:.1f},{:.1f},{:.1f}), sending to {} players",
+                        entityId,
+                        tracked.lastPosition.x,
+                        tracked.lastPosition.y,
+                        tracked.lastPosition.z,
+                        currentPos.x,
+                        currentPos.y,
+                        currentPos.z,
+                        tracked.trackingPlayers.size());
                 }
 
                 for (PlayerId playerId : tracked.trackingPlayers) {
@@ -201,7 +212,8 @@ void EntityTracker::tick(IServer& server) {
                 }
 
                 if (entity->dataManager().hasDirtyData() && !tracked.trackingPlayers.empty()) {
-                    std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
+                    std::vector<u8> metadata =
+                        network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
                     if (metadata.size() > 1) {
                         for (PlayerId playerId : tracked.trackingPlayers) {
                             sendMetadataPacket(server, playerId, entity, metadata);
@@ -232,7 +244,8 @@ void EntityTracker::tick(IServer& server) {
     }
 }
 
-bool EntityTracker::shouldTrack(const Vector3& playerPos, const Vector3& entityPos, i32 trackingRange) const {
+bool EntityTracker::shouldTrack(const Vector3& playerPos, const Vector3& entityPos, i32 trackingRange) const
+{
     f32 dx = playerPos.x - entityPos.x;
     f32 dz = playerPos.z - entityPos.z;
     f32 distanceSq = dx * dx + dz * dz;
@@ -241,7 +254,8 @@ bool EntityTracker::shouldTrack(const Vector3& playerPos, const Vector3& entityP
     return distanceSq <= rangeBlocks * rangeBlocks;
 }
 
-void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity) {
+void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity)
+{
     if (!entity) return;
 
     // 获取玩家数据
@@ -268,11 +282,9 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
 
         // 转换速度（m/tick -> 1/8000 block/tick）
         auto velocity = entity->velocity();
-        packet.setVelocity(
-            static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+        packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
             static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-            static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f))
-        );
+            static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
 
         packet.setMetadata(network::EntityMetadataSerializer::serialize(entity->dataManager(), false));
 
@@ -297,13 +309,11 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
         ExperienceOrbEntity* xpOrb = dynamic_cast<ExperienceOrbEntity*>(entity);
         if (xpOrb != nullptr) {
             // 经验球使用 SpawnExperienceOrbPacket
-            network::SpawnExperienceOrbPacket packet(
-                static_cast<i32>(entity->id()),
+            network::SpawnExperienceOrbPacket packet(static_cast<i32>(entity->id()),
                 entity->x(),
                 entity->y(),
                 entity->z(),
-                static_cast<i16>(xpOrb->getXpValue())
-            );
+                static_cast<i16>(xpOrb->getXpValue()));
 
             auto result = packet.serialize();
             if (result.success()) {
@@ -317,7 +327,9 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
 
                 player->send(fullPacket.data(), fullPacket.size());
                 spdlog::debug("Sent SpawnExperienceOrb packet for entity {} (xp: {}) to player {}",
-                              entity->id(), xpOrb->getXpValue(), playerId);
+                    entity->id(),
+                    xpOrb->getXpValue(),
+                    playerId);
             }
         } else {
             // 其他非生物实体，使用 SpawnEntityPacket
@@ -333,11 +345,9 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
 
             // 转换速度（m/tick -> 1/8000 block/tick）
             auto velocity = entity->velocity();
-            packet.setVelocity(
-                static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+            packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
                 static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-                static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f))
-            );
+                static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
 
             // 检查是否是 ItemEntity，如果是则序列化 ItemStack 数据
             ItemEntity* itemEntity = dynamic_cast<ItemEntity*>(entity);
@@ -345,8 +355,8 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
                 packet.setItemStack(itemEntity->getItemStack());
                 const auto& stack = itemEntity->getItemStack();
                 spdlog::debug("SpawnEntity packet includes ItemStack: {} x{}",
-                              stack.getItem() ? std::to_string(stack.getItem()->itemId()) : "null",
-                              stack.getCount());
+                    stack.getItem() ? std::to_string(stack.getItem()->itemId()) : "null",
+                    stack.getCount());
             }
 
             auto result = packet.serialize();
@@ -362,13 +372,17 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
 
                 player->send(fullPacket.data(), fullPacket.size());
                 spdlog::debug("Sent SpawnEntity packet for entity {} (type: {}) to player {}",
-                              entity->id(), entity->getTypeId(), playerId);
+                    entity->id(),
+                    entity->getTypeId(),
+                    playerId);
             }
         }
     }
 }
 
-void EntityTracker::sendMetadataPacket(IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata) {
+void EntityTracker::sendMetadataPacket(
+    IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata)
+{
     if (!entity || metadata.empty()) return;
 
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
@@ -392,12 +406,13 @@ void EntityTracker::sendMetadataPacket(IServer& server, PlayerId playerId, Entit
     }
 }
 
-void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId) {
+void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId)
+{
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
     network::EntityDestroyPacket packet;
-    packet.addEntityId(static_cast<u32>(entityId));  // EntityId 转 u32（协议限制）
+    packet.addEntityId(static_cast<u32>(entityId)); // EntityId 转 u32（协议限制）
 
     auto result = packet.serialize();
     if (result.success()) {
@@ -414,7 +429,8 @@ void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, Entity
     }
 }
 
-void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* entity) {
+void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* entity)
+{
     if (!entity) return;
 
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
@@ -422,7 +438,7 @@ void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* e
 
     // 发送传送包（完整位置）
     network::EntityTeleportPacket packet;
-    packet.setEntityId(static_cast<u32>(entity->id()));  // EntityId 转 u32（协议限制）
+    packet.setEntityId(static_cast<u32>(entity->id())); // EntityId 转 u32（协议限制）
     packet.setPosition(entity->x(), entity->y(), entity->z());
     packet.setRotation(entity->yaw(), entity->pitch());
     packet.setOnGround(entity->onGround());

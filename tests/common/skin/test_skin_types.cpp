@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
-#include "common/skin/core/SkinTypes.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/core/Types.hpp"
+#include "common/skin/core/SkinTypes.hpp"
 #include <array>
+#include <gtest/gtest.h>
 
 using namespace mc::skin;
 
@@ -13,7 +13,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(SkinTypesTest, ParseSkinType) {
+TEST_F(SkinTypesTest, ParseSkinType)
+{
     EXPECT_EQ(SkinType::Default, parseSkinType("default"));
     EXPECT_EQ(SkinType::Slim, parseSkinType("slim"));
     EXPECT_EQ(SkinType::Default, parseSkinType("DEFAULT"));
@@ -21,29 +22,28 @@ TEST_F(SkinTypesTest, ParseSkinType) {
     EXPECT_EQ(SkinType::Default, parseSkinType(""));
 }
 
-TEST_F(SkinTypesTest, SkinTypeToString) {
+TEST_F(SkinTypesTest, SkinTypeToString)
+{
     EXPECT_EQ("default", skinTypeToString(SkinType::Default));
     EXPECT_EQ("slim", skinTypeToString(SkinType::Slim));
 }
 
-TEST_F(SkinTypesTest, GetDefaultSkinTypeForUUID) {
+TEST_F(SkinTypesTest, GetDefaultSkinTypeForUUID)
+{
     std::array<mc::u8, 16> zeroUUID = {};
     SkinType zeroType = getDefaultSkinTypeForUUID(zeroUUID);
     EXPECT_TRUE(zeroType == SkinType::Default || zeroType == SkinType::Slim);
 
     std::array<mc::u8, 16> testUUID1 = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
     SkinType type1 = getDefaultSkinTypeForUUID(testUUID1);
     EXPECT_TRUE(type1 == SkinType::Default || type1 == SkinType::Slim);
 }
 
-TEST_F(SkinTypesTest, CalculateUUIDHashCode) {
+TEST_F(SkinTypesTest, CalculateUUIDHashCode)
+{
     std::array<mc::u8, 16> uuid = {
-        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
-        0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
-    };
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
 
     mc::i32 hash1 = calculateUUIDHashCode(uuid);
     mc::i32 hash2 = calculateUUIDHashCode(uuid);
@@ -59,7 +59,8 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(SkinTexturesTest, DefaultConstruction) {
+TEST_F(SkinTexturesTest, DefaultConstruction)
+{
     SkinTextures textures;
     EXPECT_FALSE(textures.hasSkin());
     EXPECT_FALSE(textures.hasCape());
@@ -68,7 +69,8 @@ TEST_F(SkinTexturesTest, DefaultConstruction) {
     EXPECT_EQ(SkinType::Default, textures.skinType());
 }
 
-TEST_F(SkinTexturesTest, SetSkin) {
+TEST_F(SkinTexturesTest, SetSkin)
+{
     SkinTextures textures;
 
     mc::ResourceLocation location("minecraft:skins/test");
@@ -80,7 +82,8 @@ TEST_F(SkinTexturesTest, SetSkin) {
     EXPECT_EQ(location, textures.getSkin().value());
 }
 
-TEST_F(SkinTexturesTest, SetCape) {
+TEST_F(SkinTexturesTest, SetCape)
+{
     SkinTextures textures;
 
     mc::ResourceLocation location("minecraft:capes/test");
@@ -92,7 +95,8 @@ TEST_F(SkinTexturesTest, SetCape) {
     EXPECT_EQ(location, textures.getCape().value());
 }
 
-TEST_F(SkinTexturesTest, SetSkinType) {
+TEST_F(SkinTexturesTest, SetSkinType)
+{
     SkinTextures textures;
 
     textures.setSkinType(SkinType::Slim);
@@ -102,7 +106,8 @@ TEST_F(SkinTexturesTest, SetSkinType) {
     EXPECT_EQ(SkinType::Default, textures.skinType());
 }
 
-TEST_F(SkinTexturesTest, URLsAndHashes) {
+TEST_F(SkinTexturesTest, URLsAndHashes)
+{
     SkinTextures textures;
 
     textures.setSkinUrl("http://textures.minecraft.net/texture/abc123");
@@ -114,7 +119,8 @@ TEST_F(SkinTexturesTest, URLsAndHashes) {
     EXPECT_EQ("abc123", textures.skinHash().value());
 }
 
-TEST_F(SkinTexturesTest, ExtractHashFromUrl) {
+TEST_F(SkinTexturesTest, ExtractHashFromUrl)
+{
     std::string url = "http://textures.minecraft.net/texture/abc123def456";
     std::string hash = SkinTextures::extractHashFromUrl(url);
     EXPECT_EQ("abc123def456", hash);

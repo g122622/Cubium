@@ -59,7 +59,8 @@ VanishingCurseEnchantment AllEnchantments::VANISHING_CURSE;
 BindingCurseEnchantment AllEnchantments::BINDING_CURSE;
 SoulSpeedEnchantment AllEnchantments::SOUL_SPEED;
 
-void AllEnchantments::registerAll() {
+void AllEnchantments::registerAll()
+{
     // 保护类
     EnchantmentRegistry::registerEnchantment(std::make_unique<AllProtectionEnchantment>());
     EnchantmentRegistry::registerEnchantment(std::make_unique<FireProtectionEnchantment>());

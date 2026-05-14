@@ -31,7 +31,10 @@ struct SurfaceBuilderConfig {
     SurfaceBuilderConfig() = default;
 
     SurfaceBuilderConfig(const BlockState* top, const BlockState* under, const BlockState* underWater)
-        : topBlock(top), underBlock(under), underWaterBlock(underWater) {}
+        : topBlock(top)
+        , underBlock(under)
+        , underWaterBlock(underWater)
+    {}
 
     /**
      * @brief 创建草地配置
@@ -147,11 +150,11 @@ public:
      * @param worldSeed 世界种子（用于初始化噪声生成器）
      * @param config 地表配置
      */
-    virtual void buildSurface(
-        math::Random& random,
+    virtual void buildSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,
@@ -168,9 +171,7 @@ public:
      *
      * @param seed 世界种子
      */
-    virtual void setSeed(u64 seed) {
-        (void)seed;
-    }
+    virtual void setSeed(u64 seed) { (void)seed; }
 
     /**
      * @brief 获取地表构建器名称
@@ -184,11 +185,11 @@ protected:
      * 参考 MC DefaultSurfaceBuilder，提供标准的地表构建逻辑。
      * 其他构建器可以委托调用此方法。
      */
-    static void buildDefaultSurface(
-        math::Random& random,
+    static void buildDefaultSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
-        i32 x, i32 z,
+        i32 x,
+        i32 z,
         i32 startHeight,
         f64 surfaceNoise,
         const BlockState* defaultBlock,

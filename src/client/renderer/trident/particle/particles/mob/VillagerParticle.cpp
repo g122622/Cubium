@@ -32,15 +32,14 @@ AngryVillagerParticle::AngryVillagerParticle(const glm::vec3& pos, const glm::ve
 }
 
 std::unique_ptr<Particle> AngryVillagerParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<AngryVillagerParticle>(pos, velocity);
 }
 
-void AngryVillagerParticle::tick(mc::client::ClientWorld* world) {
+void AngryVillagerParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -66,7 +65,8 @@ void AngryVillagerParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.8f * (1.0f - lifeRatio));
 }
 
-f64 AngryVillagerParticle::getScale(f64 partialTick) const {
+f64 AngryVillagerParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -99,15 +99,14 @@ HappyVillagerParticle::HappyVillagerParticle(const glm::vec3& pos, const glm::ve
 }
 
 std::unique_ptr<Particle> HappyVillagerParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<HappyVillagerParticle>(pos, velocity);
 }
 
-void HappyVillagerParticle::tick(mc::client::ClientWorld* world) {
+void HappyVillagerParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -131,7 +130,8 @@ void HappyVillagerParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.9f * (1.0f - lifeRatio));
 }
 
-f64 HappyVillagerParticle::getScale(f64 partialTick) const {
+f64 HappyVillagerParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }
@@ -164,15 +164,14 @@ SneezeParticle::SneezeParticle(const glm::vec3& pos, const glm::vec3& velocity)
 }
 
 std::unique_ptr<Particle> SneezeParticle::create(
-    const glm::vec3& pos,
-    const glm::vec3& velocity,
-    mc::client::ClientWorld* world)
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SneezeParticle>(pos, velocity);
 }
 
-void SneezeParticle::tick(mc::client::ClientWorld* world) {
+void SneezeParticle::tick(mc::client::ClientWorld* world)
+{
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
@@ -194,7 +193,8 @@ void SneezeParticle::tick(mc::client::ClientWorld* world) {
     m_color.a = static_cast<f32>(0.8f * (1.0f - lifeRatio));
 }
 
-f64 SneezeParticle::getScale(f64 partialTick) const {
+f64 SneezeParticle::getScale(f64 partialTick) const
+{
     MC_UNUSED(partialTick);
     return 1.0f;
 }

@@ -13,7 +13,7 @@ namespace mc {
  *
  * @tparam E 枚举类型
  */
-template<typename E>
+template <typename E>
 class EnumSet {
 public:
     static_assert(std::is_enum_v<E>, "EnumSet requires an enum type");
@@ -25,12 +25,16 @@ public:
     /**
      * @brief 默认构造，创建空集合
      */
-    EnumSet() : m_bits{} {}
+    EnumSet()
+        : m_bits{}
+    {}
 
     /**
      * @brief 从初始化列表构造
      */
-    EnumSet(std::initializer_list<E> values) : m_bits{} {
+    EnumSet(std::initializer_list<E> values)
+        : m_bits{}
+    {
         for (E value : values) {
             set(value);
         }
@@ -39,7 +43,8 @@ public:
     /**
      * @brief 设置一个枚举值
      */
-    EnumSet& set(E value) {
+    EnumSet& set(E value)
+    {
         m_bits.set(static_cast<size_t>(value));
         return *this;
     }
@@ -47,7 +52,8 @@ public:
     /**
      * @brief 清除一个枚举值
      */
-    EnumSet& reset(E value) {
+    EnumSet& reset(E value)
+    {
         m_bits.reset(static_cast<size_t>(value));
         return *this;
     }
@@ -55,7 +61,8 @@ public:
     /**
      * @brief 切换一个枚举值
      */
-    EnumSet& flip(E value) {
+    EnumSet& flip(E value)
+    {
         m_bits.flip(static_cast<size_t>(value));
         return *this;
     }
@@ -63,21 +70,18 @@ public:
     /**
      * @brief 检查是否包含某个枚举值
      */
-    [[nodiscard]] bool test(E value) const {
-        return m_bits.test(static_cast<size_t>(value));
-    }
+    [[nodiscard]] bool test(E value) const { return m_bits.test(static_cast<size_t>(value)); }
 
     /**
      * @brief 检查是否包含某个枚举值（运算符版本）
      */
-    [[nodiscard]] bool operator[](E value) const {
-        return m_bits[static_cast<size_t>(value)];
-    }
+    [[nodiscard]] bool operator[](E value) const { return m_bits[static_cast<size_t>(value)]; }
 
     /**
      * @brief 清空所有值
      */
-    EnumSet& clear() {
+    EnumSet& clear()
+    {
         m_bits.reset();
         return *this;
     }
@@ -85,7 +89,8 @@ public:
     /**
      * @brief 设置所有值
      */
-    EnumSet& setAll() {
+    EnumSet& setAll()
+    {
         m_bits.set();
         return *this;
     }
@@ -93,42 +98,33 @@ public:
     /**
      * @brief 检查是否为空
      */
-    [[nodiscard]] bool empty() const {
-        return m_bits.none();
-    }
+    [[nodiscard]] bool empty() const { return m_bits.none(); }
 
     /**
      * @brief 检查是否有任何值
      */
-    [[nodiscard]] bool any() const {
-        return m_bits.any();
-    }
+    [[nodiscard]] bool any() const { return m_bits.any(); }
 
     /**
      * @brief 检查是否包含所有值
      */
-    [[nodiscard]] bool all() const {
-        return m_bits.all();
-    }
+    [[nodiscard]] bool all() const { return m_bits.all(); }
 
     /**
      * @brief 计算值的数量
      */
-    [[nodiscard]] size_t count() const {
-        return m_bits.count();
-    }
+    [[nodiscard]] size_t count() const { return m_bits.count(); }
 
     /**
      * @brief 获取大小
      */
-    [[nodiscard]] constexpr size_t size() const {
-        return Size;
-    }
+    [[nodiscard]] constexpr size_t size() const { return Size; }
 
     /**
      * @brief 并集运算
      */
-    EnumSet& operator|=(const EnumSet& other) {
+    EnumSet& operator|=(const EnumSet& other)
+    {
         m_bits |= other.m_bits;
         return *this;
     }
@@ -136,7 +132,8 @@ public:
     /**
      * @brief 交集运算
      */
-    EnumSet& operator&=(const EnumSet& other) {
+    EnumSet& operator&=(const EnumSet& other)
+    {
         m_bits &= other.m_bits;
         return *this;
     }
@@ -144,7 +141,8 @@ public:
     /**
      * @brief 差集运算
      */
-    EnumSet& operator-=(const EnumSet& other) {
+    EnumSet& operator-=(const EnumSet& other)
+    {
         m_bits &= ~other.m_bits;
         return *this;
     }
@@ -152,7 +150,8 @@ public:
     /**
      * @brief 异或运算
      */
-    EnumSet& operator^=(const EnumSet& other) {
+    EnumSet& operator^=(const EnumSet& other)
+    {
         m_bits ^= other.m_bits;
         return *this;
     }
@@ -160,7 +159,8 @@ public:
     /**
      * @brief 并集
      */
-    [[nodiscard]] EnumSet operator|(const EnumSet& other) const {
+    [[nodiscard]] EnumSet operator|(const EnumSet& other) const
+    {
         EnumSet result = *this;
         result |= other;
         return result;
@@ -169,7 +169,8 @@ public:
     /**
      * @brief 交集
      */
-    [[nodiscard]] EnumSet operator&(const EnumSet& other) const {
+    [[nodiscard]] EnumSet operator&(const EnumSet& other) const
+    {
         EnumSet result = *this;
         result &= other;
         return result;
@@ -178,7 +179,8 @@ public:
     /**
      * @brief 差集
      */
-    [[nodiscard]] EnumSet operator-(const EnumSet& other) const {
+    [[nodiscard]] EnumSet operator-(const EnumSet& other) const
+    {
         EnumSet result = *this;
         result -= other;
         return result;
@@ -187,7 +189,8 @@ public:
     /**
      * @brief 异或
      */
-    [[nodiscard]] EnumSet operator^(const EnumSet& other) const {
+    [[nodiscard]] EnumSet operator^(const EnumSet& other) const
+    {
         EnumSet result = *this;
         result ^= other;
         return result;
@@ -196,7 +199,8 @@ public:
     /**
      * @brief 取反
      */
-    [[nodiscard]] EnumSet operator~() const {
+    [[nodiscard]] EnumSet operator~() const
+    {
         EnumSet result;
         result.m_bits = ~m_bits;
         return result;
@@ -205,38 +209,31 @@ public:
     /**
      * @brief 相等比较
      */
-    [[nodiscard]] bool operator==(const EnumSet& other) const {
-        return m_bits == other.m_bits;
-    }
+    [[nodiscard]] bool operator==(const EnumSet& other) const { return m_bits == other.m_bits; }
 
     /**
      * @brief 不等比较
      */
-    [[nodiscard]] bool operator!=(const EnumSet& other) const {
-        return m_bits != other.m_bits;
-    }
+    [[nodiscard]] bool operator!=(const EnumSet& other) const { return m_bits != other.m_bits; }
 
     /**
      * @brief 检查是否与另一个集合有交集
      */
-    [[nodiscard]] bool intersects(const EnumSet& other) const {
-        return (m_bits & other.m_bits).any();
-    }
+    [[nodiscard]] bool intersects(const EnumSet& other) const { return (m_bits & other.m_bits).any(); }
 
     /**
      * @brief 检查是否包含另一个集合
      */
-    [[nodiscard]] bool contains(const EnumSet& other) const {
-        return (m_bits & other.m_bits) == other.m_bits;
-    }
+    [[nodiscard]] bool contains(const EnumSet& other) const { return (m_bits & other.m_bits) == other.m_bits; }
 
     /**
      * @brief 遍历所有设置的枚举值
      * @tparam Func 可调用类型
      * @param func 对每个枚举值调用的函数
      */
-    template<typename Func>
-    void forEach(Func&& func) const {
+    template <typename Func>
+    void forEach(Func&& func) const
+    {
         for (size_t i = 0; i < Size; ++i) {
             if (m_bits[i]) {
                 func(static_cast<E>(i));
@@ -247,9 +244,7 @@ public:
     /**
      * @brief 转换为底层位集
      */
-    [[nodiscard]] const std::bitset<Size>& bits() const {
-        return m_bits;
-    }
+    [[nodiscard]] const std::bitset<Size>& bits() const { return m_bits; }
 
 private:
     std::bitset<Size> m_bits;
@@ -259,10 +254,11 @@ private:
 
 // 为标准库提供 EnumSet 的哈希支持
 namespace std {
-template<typename E>
+template <typename E>
 struct hash<mc::EnumSet<E>> {
-    size_t operator()(const mc::EnumSet<E>& set) const noexcept {
+    size_t operator()(const mc::EnumSet<E>& set) const noexcept
+    {
         return std::hash<std::bitset<mc::EnumSet<E>::Size>>{}(set.bits());
     }
 };
-}
+} // namespace std

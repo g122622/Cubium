@@ -1,14 +1,14 @@
 #include "ComposterBlock.hpp"
-#include "CompostableItems.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "CompostableItems.hpp"
 
 namespace mc {
 namespace blocks {
@@ -16,14 +16,15 @@ namespace blocks {
 // ========== ComposterBlock 实现 ==========
 
 ComposterBlock::ComposterBlock(const BlockProperties& properties)
-    : Block(properties) {
+    : Block(properties)
+{
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::LEVEL_0_8())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
+                         .add(BlockStateProperties::LEVEL_0_8())
+                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -44,19 +45,19 @@ ComposterBlock::ComposterBlock(const BlockProperties& properties)
         f32 fillHeight = static_cast<f32>(std::max(2, 1 + i * 2)) * P;
         // 形状 = 完整方块 - 内部空洞
         // 简化实现：只计算填充部分的形状
-        m_shapesByLevel[i] = CollisionShape::box(
-            2.0f * P, fillHeight, 2.0f * P,
-            14.0f * P, 16.0f * P, 14.0f * P);
+        m_shapesByLevel[i] = CollisionShape::box(2.0f * P, fillHeight, 2.0f * P, 14.0f * P, 16.0f * P, 14.0f * P);
     }
     // 等级7和8形状相同
     m_shapesByLevel[8] = m_shapesByLevel[7];
 }
 
-BlockState ComposterBlock::getStateForPlacement(BlockItemUseContext& context) {
+BlockState ComposterBlock::getStateForPlacement(BlockItemUseContext& context)
+{
     return defaultState();
 }
 
-void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(random);
     int level = getLevel(state);
     if (level == 7) {
@@ -66,18 +67,13 @@ void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state,
 
         // MC 1.16.5: 播放堆肥完成音效
         if (!world.isClientSide()) {
-            world.playSound(
-                SoundEvents::BLOCK_COMPOSTER_READY,
-                sound::SoundCategory::Blocks,
-                pos.center(),
-                1.0f,
-                1.0f
-            );
+            world.playSound(SoundEvents::BLOCK_COMPOSTER_READY, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
         }
     }
 }
 
-const CollisionShape& ComposterBlock::getShape(const BlockState& state) const {
+const CollisionShape& ComposterBlock::getShape(const BlockState& state) const
+{
     int level = getLevel(state);
     MC_ASSERT(level >= 0 && level <= 8);
     // 等级0时返回完整方块形状
@@ -87,16 +83,15 @@ const CollisionShape& ComposterBlock::getShape(const BlockState& state) const {
     return m_shapesByLevel[level];
 }
 
-const CollisionShape& ComposterBlock::getCollisionShape(const BlockState& state) const {
+const CollisionShape& ComposterBlock::getCollisionShape(const BlockState& state) const
+{
     MC_UNUSED(state);
     // 碰撞箱始终是完整方块
     return m_collisionShape;
 }
 
-int ComposterBlock::getComparatorInputOverride(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos) const {
+int ComposterBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -106,15 +101,12 @@ int ComposterBlock::getComparatorInputOverride(
 }
 
 BlockState ComposterBlock::attemptCompost(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Block& block,
-    u32 itemId) {
+    const BlockState& state, IWorld& world, const BlockPos& pos, Block& block, u32 itemId)
+{
 
     int level = getLevel(state);
     if (level >= 7) {
-        return state;  // 已满或正在完成
+        return state; // 已满或正在完成
     }
 
     // 从 CompostableItems 注册表获取堆肥概率
@@ -125,7 +117,7 @@ BlockState ComposterBlock::attemptCompost(
 
     float chance = CompostableItems::getCompostChance(item);
     if (chance <= 0.0f) {
-        return state;  // 不可堆肥
+        return state; // 不可堆肥
     }
 
     // 概率性增加等级
@@ -138,12 +130,7 @@ BlockState ComposterBlock::attemptCompost(
         // MC 1.16.5: 播放成功音效
         if (!world.isClientSide()) {
             world.playSound(
-                SoundEvents::BLOCK_COMPOSTER_FILL_SUCCESS,
-                sound::SoundCategory::Blocks,
-                pos.center(),
-                1.0f,
-                1.0f
-            );
+                SoundEvents::BLOCK_COMPOSTER_FILL_SUCCESS, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
         }
 
         // 如果达到等级7，调度 20 tick 后的转变
@@ -156,19 +143,14 @@ BlockState ComposterBlock::attemptCompost(
 
     // MC 1.16.5: 播放失败音效（尝试堆肥但没增加等级）
     if (!world.isClientSide()) {
-        world.playSound(
-            SoundEvents::BLOCK_COMPOSTER_FILL,
-            sound::SoundCategory::Blocks,
-            pos.center(),
-            1.0f,
-            1.0f
-        );
+        world.playSound(SoundEvents::BLOCK_COMPOSTER_FILL, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
     }
 
     return state;
 }
 
-BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState& state) {
+BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState& state)
+{
     // MC 1.16.5: 生成骨粉物品
     // 只有等级为 8 时才能收获
     int level = getLevel(state);
@@ -183,15 +165,14 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
 
         // 使用 ItemDropHelper 生成物品实体
         math::Random random;
-        ItemDropHelper::spawnItemEntity(
-            &world,
+        ItemDropHelper::spawnItemEntity(&world,
             boneMealStack,
             static_cast<f64>(pos.x) + 0.5,
-            static_cast<f64>(pos.y) + 1.0,  // 在堆肥桶上方生成
+            static_cast<f64>(pos.y) + 1.0, // 在堆肥桶上方生成
             static_cast<f64>(pos.z) + 0.5,
             random,
             ItemDropHelper::DEFAULT_PICKUP_DELAY,
-            ""  // 无所有者
+            "" // 无所有者
         );
     }
 
@@ -201,35 +182,31 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
 
     // MC 1.16.5: 播放清空音效
     if (!world.isClientSide()) {
-        world.playSound(
-            SoundEvents::BLOCK_COMPOSTER_EMPTY,
-            sound::SoundCategory::Blocks,
-            pos.center(),
-            1.0f,
-            1.0f
-        );
+        world.playSound(SoundEvents::BLOCK_COMPOSTER_EMPTY, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
     }
 
     return newState;
 }
 
-bool ComposterBlock::isCompostable(u32 itemId) {
+bool ComposterBlock::isCompostable(u32 itemId)
+{
     const Item* item = Item::getItem(static_cast<ItemId>(itemId));
     return CompostableItems::isCompostable(item);
 }
 
-float ComposterBlock::getCompostChance(u32 itemId) {
+float ComposterBlock::getCompostChance(u32 itemId)
+{
     const Item* item = Item::getItem(static_cast<ItemId>(itemId));
     return CompostableItems::getCompostChance(item);
 }
 
-ActionResultType ComposterBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
-    const BlockRaycastResult& hit) {
+    const BlockRaycastResult& hit)
+{
 
     MC_UNUSED(hand);
     MC_UNUSED(hit);

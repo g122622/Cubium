@@ -131,8 +131,7 @@ void Schedule::initialize()
 
 ScheduleBuilder::ScheduleBuilder(Schedule& schedule)
     : m_schedule(schedule)
-{
-}
+{}
 
 ScheduleBuilder& ScheduleBuilder::add(i32 dayTime, const Activity& activity)
 {

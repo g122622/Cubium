@@ -7,13 +7,12 @@ namespace mc {
 namespace blocks {
 
 SoulFireBlock::SoulFireBlock(const BlockProperties& properties)
-    : FireBlock(properties, 2) {  // 灵魂火伤害更高 (2)
+    : FireBlock(properties, 2)
+{ // 灵魂火伤害更高 (2)
 }
 
-bool SoulFireBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
+bool SoulFireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
 
     MC_UNUSED(state);
 
@@ -23,13 +22,13 @@ bool SoulFireBlock::isValidPosition(
     return belowState != nullptr && isSoulFireBase(&belowState->getBlock());
 }
 
-BlockState SoulFireBlock::updatePostPlacement(
-    const BlockState& state,
+BlockState SoulFireBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
     IWorld& world,
     const BlockPos& currentPos,
-    const BlockPos& facingPos) {
+    const BlockPos& facingPos)
+{
 
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
@@ -47,13 +46,15 @@ BlockState SoulFireBlock::updatePostPlacement(
     return state;
 }
 
-bool SoulFireBlock::isSoulFireBase(const Block* block) {
+bool SoulFireBlock::isSoulFireBase(const Block* block)
+{
     // MC 1.16.5: SoulFireBlock.func_235577_c_
     // 检查方块是否在 soul_fire_base_blocks 标签中
     return block != nullptr && BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(block);
 }
 
-bool SoulFireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const {
+bool SoulFireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // 灵魂火不会蔓延燃烧其他方块

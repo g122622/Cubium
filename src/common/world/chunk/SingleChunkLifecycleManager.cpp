@@ -21,8 +21,7 @@ namespace {
 SingleChunkLifecycleManager::SingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z)
     : m_x(x)
     , m_z(z)
-{
-}
+{}
 
 const ChunkStatus& SingleChunkLifecycleManager::status() const
 {
@@ -83,15 +82,11 @@ void SingleChunkLifecycleManager::addTicket(const ChunkLoadTicket& ticket)
 void SingleChunkLifecycleManager::removeTicket(const ChunkLoadTicket& ticket)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = std::find_if(
-        m_tickets.begin(),
-        m_tickets.end(),
-        [&ticket](const ChunkLoadTicket& current) {
-            // 使用现有票据三元组判等，保持与旧行为一致。
-            return current.typeName() == ticket.typeName() &&
-                   current.chunkValue() == ticket.chunkValue() &&
-                   current.level() == ticket.level();
-        });
+    auto it = std::find_if(m_tickets.begin(), m_tickets.end(), [&ticket](const ChunkLoadTicket& current) {
+        // 使用现有票据三元组判等，保持与旧行为一致。
+        return current.typeName() == ticket.typeName() && current.chunkValue() == ticket.chunkValue() &&
+            current.level() == ticket.level();
+    });
 
     if (it != m_tickets.end()) {
         m_tickets.erase(it);
@@ -138,8 +133,7 @@ bool SingleChunkLifecycleManager::hasTrackingPlayers() const
 // 请求状态机
 // ============================================================================
 
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submitRequest(
-    const ChunkStatus& targetStatus,
+SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submitRequest(const ChunkStatus& targetStatus,
     i32 priority,
     std::function<void(bool, ChunkData*)> callback,
     std::shared_ptr<std::promise<ChunkData*>> promise)
@@ -201,8 +195,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNe
         return buildDecisionLocked();
     }
 
-    if (m_executionState != ExecutionState::WaitingForNeighbors &&
-        m_executionState != ExecutionState::Idle) {
+    if (m_executionState != ExecutionState::WaitingForNeighbors && m_executionState != ExecutionState::Idle) {
         return buildDecisionLocked();
     }
 
@@ -251,8 +244,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGenerationFinished(
-    u64 generation,
-    CompletionState completionState)
+    u64 generation, CompletionState completionState)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (generation != m_requestGeneration) {
@@ -408,8 +400,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::buildD
     }
 
     // 存档缺失后，只有在邻居条件已满足且尚未进入 worker 时，才允许排队生成。
-    if (m_sourceState == SourceState::StorageMissing &&
-        m_executionState == ExecutionState::Queued &&
+    if (m_sourceState == SourceState::StorageMissing && m_executionState == ExecutionState::Queued &&
         m_cancelToken != nullptr) {
         decision.shouldQueueGeneration = true;
     }

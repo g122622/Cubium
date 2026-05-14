@@ -1,11 +1,11 @@
 #include "OceanDecorationFeature.hpp"
 
+#include "../../../../util/Direction.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
-#include "../../../WorldConstants.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../util/Direction.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -14,10 +14,7 @@
 namespace mc {
 
 bool OceanDecorationFeature::place(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& pos,
-    const OceanDecorationFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const OceanDecorationFeatureConfig& config)
 {
     if (config.tries <= 0) {
         return false;
@@ -85,10 +82,7 @@ i32 OceanDecorationFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
 }
 
 bool OceanDecorationFeature::placeSingleDecoration(
-    WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& centerPos,
-    const OceanDecorationFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, const BlockPos& centerPos, const OceanDecorationFeatureConfig& config)
 {
     bool placed = false;
 
@@ -128,7 +122,8 @@ bool OceanDecorationFeature::placeSingleDecoration(
         const i32 dz = random.nextInt(5) - 2;
         const BlockPos kelpPos(centerPos.x + dx, centerPos.y, centerPos.z + dz);
 
-        if (config.driedKelpBlockState == nullptr || !isWater(world, kelpPos) || !hasSolidSupport(world, kelpPos.down())) {
+        if (config.driedKelpBlockState == nullptr || !isWater(world, kelpPos) ||
+            !hasSolidSupport(world, kelpPos.down())) {
             continue;
         }
 
@@ -175,19 +170,13 @@ bool OceanDecorationFeature::placeSingleDecoration(
 }
 
 ConfiguredOceanDecorationFeature::ConfiguredOceanDecorationFeature(
-    std::unique_ptr<OceanDecorationFeatureConfig> config,
-    const char* featureName)
+    std::unique_ptr<OceanDecorationFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
-{
-}
+{}
 
 bool ConfiguredOceanDecorationFeature::place(
-    WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    math::Random& random,
-    const BlockPos& pos)
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);

@@ -85,9 +85,9 @@ Result<void> ClientApplication::initializeResources()
             spdlog::warn("Failed to build texture atlas: {}", atlasResult.error().toString());
         } else {
             spdlog::info("Built texture atlas: {}x{}, {} textures",
-                        atlasResult.value().width,
-                        atlasResult.value().height,
-                        atlasResult.value().regions.size());
+                atlasResult.value().width,
+                atlasResult.value().height,
+                atlasResult.value().regions.size());
         }
     } else {
         spdlog::info("No resource packs found, using default resources (missing model)");
@@ -95,8 +95,7 @@ Result<void> ClientApplication::initializeResources()
 
     // 7. 初始化 BlockModelCache（即使没有资源包也要初始化，使用缺失模型）
     if (m_modelCache.initialize(*m_resourceManager)) {
-        spdlog::info("Block model cache initialized with {} appearances",
-                    m_modelCache.cachedAppearanceCount());
+        spdlog::info("Block model cache initialized with {} appearances", m_modelCache.cachedAppearanceCount());
         // 设置 ChunkMesher 使用 BlockModelCache
         ChunkMesher::setModelCache(&m_modelCache);
     } else {
@@ -167,27 +166,24 @@ void ClientApplication::reloadResources()
 
         // 重建模型缓存
         if (m_modelCache.rebuild(*m_resourceManager)) {
-            spdlog::info("Reloaded resources: {} appearances cached",
-                        m_modelCache.cachedAppearanceCount());
+            spdlog::info("Reloaded resources: {} appearances cached", m_modelCache.cachedAppearanceCount());
         }
 
         if (m_renderer) {
             auto atlasUpdateResult = m_renderer->updateTextureAtlas(atlasResult.value());
             if (atlasUpdateResult.failed()) {
-                spdlog::error("Failed to update renderer texture atlas after reload: {}",
-                              atlasUpdateResult.error().toString());
+                spdlog::error(
+                    "Failed to update renderer texture atlas after reload: {}", atlasUpdateResult.error().toString());
             }
 
             auto reloadCloudResult = m_renderer->reloadCloudTexture(m_resourceManager.get());
             if (reloadCloudResult.failed()) {
-                spdlog::warn("Failed to reload cloud texture after resource reload: {}",
-                             reloadCloudResult.error().toString());
+                spdlog::warn(
+                    "Failed to reload cloud texture after resource reload: {}", reloadCloudResult.error().toString());
             }
         }
 
-        m_world.forEachChunk([](const ChunkId&, ClientChunk& chunk) {
-            chunk.needsMeshUpdate = true;
-        });
+        m_world.forEachChunk([](const ChunkId&, ClientChunk& chunk) { chunk.needsMeshUpdate = true; });
         spdlog::info("Marked loaded chunks dirty after resource reload");
     }
 }

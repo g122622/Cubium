@@ -40,10 +40,8 @@ public:
      * @return 易燃等级（0-100，越高越易燃）
      */
     [[nodiscard]] i32 getFlammability(
-        const BlockState& state,
-        IWorld* world,
-        const BlockPos* pos,
-        Direction face) const override {
+        const BlockState& state, IWorld* world, const BlockPos* pos, Direction face) const override
+    {
         MC_UNUSED(state);
         MC_UNUSED(world);
         MC_UNUSED(pos);

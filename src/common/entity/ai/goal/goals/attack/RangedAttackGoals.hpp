@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../Goal.hpp"
 
 namespace mc {
 
@@ -53,11 +53,11 @@ protected:
     i32 m_attackIntervalMin;
     i32 m_attackIntervalMax;
     f32 m_attackRadius;
-    f32 m_maxAttackDistanceSq;  // MC 1.16.5: 缓存的平方距离
-    i32 m_attackTime = -1;      // MC 1.16.5: 初始值为 -1
-    i32 m_seenTime = 0;         // MC 1.16.5: 能看到目标的时间
+    f32 m_maxAttackDistanceSq; // MC 1.16.5: 缓存的平方距离
+    i32 m_attackTime = -1;     // MC 1.16.5: 初始值为 -1
+    i32 m_seenTime = 0;        // MC 1.16.5: 能看到目标的时间
 
-    static constexpr i32 MIN_SEEN_TIME = 20;  // MC 1.16.5: 停止移动前需要看到的tick数 (原版是20)
+    static constexpr i32 MIN_SEEN_TIME = 20; // MC 1.16.5: 停止移动前需要看到的tick数 (原版是20)
 };
 
 /**
@@ -91,11 +91,11 @@ protected:
 
 private:
     // MC 1.16.5: 走位相关字段
-    bool m_strafingClockwise = false;    // 是否顺时针走位
-    bool m_strafingBackwards = false;    // 是否向后走位
-    i32 m_strafingTime = -1;              // 走位时间计数器
+    bool m_strafingClockwise = false; // 是否顺时针走位
+    bool m_strafingBackwards = false; // 是否向后走位
+    i32 m_strafingTime = -1;          // 走位时间计数器
 
-    static constexpr i32 STRAFE_THRESHOLD = 20;     // 走位方向变化阈值（MC 1.16.5）
+    static constexpr i32 STRAFE_THRESHOLD = 20; // 走位方向变化阈值（MC 1.16.5）
 };
 
 } // namespace entity::ai::goal

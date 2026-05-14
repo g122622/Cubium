@@ -6,16 +6,17 @@ namespace mc::network {
 SpawnPositionPacket::SpawnPositionPacket()
     : Packet(PacketType::SpawnPosition)
     , m_position(0, 0, 0)
-    , m_angle(0.0f) {
-}
+    , m_angle(0.0f)
+{}
 
 SpawnPositionPacket::SpawnPositionPacket(const BlockPos& pos, f32 angle)
     : Packet(PacketType::SpawnPosition)
     , m_position(pos)
-    , m_angle(angle) {
-}
+    , m_angle(angle)
+{}
 
-Result<std::vector<u8>> SpawnPositionPacket::serialize() const {
+Result<std::vector<u8>> SpawnPositionPacket::serialize() const
+{
     PacketSerializer ser;
 
     // 写入出生点坐标 (MC 1.16.5 协议格式)
@@ -29,7 +30,8 @@ Result<std::vector<u8>> SpawnPositionPacket::serialize() const {
     return ser.buffer();
 }
 
-Result<void> SpawnPositionPacket::deserialize(const u8* data, size_t size) {
+Result<void> SpawnPositionPacket::deserialize(const u8* data, size_t size)
+{
     PacketDeserializer deser(data, size);
 
     // 读取出生点坐标
@@ -62,7 +64,8 @@ Result<void> SpawnPositionPacket::deserialize(const u8* data, size_t size) {
     return Result<void>::ok();
 }
 
-size_t SpawnPositionPacket::expectedSize() const {
+size_t SpawnPositionPacket::expectedSize() const
+{
     // 12字节包头 + 12字节数据 (3个i32) + 4字节 (f32 angle) = 16字节数据
     return sizeof(PacketHeader) + sizeof(i32) * 3 + sizeof(f32);
 }

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Widget.hpp"
-#include "IWidgetContainer.hpp"
-#include "../paint/PaintContext.hpp"
 #include "../layout/algorithms/FlexLayout.hpp"
 #include "../layout/algorithms/GridLayout.hpp"
+#include "../paint/PaintContext.hpp"
+#include "IWidgetContainer.hpp"
+#include "Widget.hpp"
 #include <memory>
 
 namespace mc::client::ui::kagero::widget {
@@ -13,10 +13,10 @@ namespace mc::client::ui::kagero::widget {
  * @brief 容器布局类型
  */
 enum class ContainerLayoutType : u8 {
-    None,   ///< 无布局（绝对定位）
-    Flex,   ///< 弹性布局
-    Grid,   ///< 网格布局
-    Anchor  ///< 锚点布局
+    None,  ///< 无布局（绝对定位）
+    Flex,  ///< 弹性布局
+    Grid,  ///< 网格布局
+    Anchor ///< 锚点布局
 };
 
 /**
@@ -29,7 +29,8 @@ class ContainerWidget : public Widget, public WidgetContainerMixin<ContainerWidg
 public:
     ContainerWidget() = default;
     explicit ContainerWidget(std::string id)
-        : Widget(std::move(id)) {}
+        : Widget(std::move(id))
+    {}
 
     // ========== 绘制和更新 ==========
 

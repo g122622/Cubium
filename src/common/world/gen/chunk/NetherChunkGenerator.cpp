@@ -1,15 +1,15 @@
 #include "NetherChunkGenerator.hpp"
-#include "../spawn/WorldGenSpawner.hpp"
-#include "../structure/StructureManager.hpp"
-#include "../structure/Structure.hpp"
-#include "../feature/ConfiguredFeature.hpp"
-#include "../carver/WorldCarver.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
-#include "../../biome/BiomeRegistry.hpp"
-#include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../biome/BiomeGenerationSettings.hpp"
+#include "../../biome/BiomeRegistry.hpp"
+#include "../../block/BlockRegistry.hpp"
+#include "../../block/VanillaBlocks.hpp"
+#include "../carver/WorldCarver.hpp"
+#include "../feature/ConfiguredFeature.hpp"
+#include "../spawn/WorldGenSpawner.hpp"
+#include "../structure/Structure.hpp"
+#include "../structure/StructureManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
@@ -81,7 +81,8 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed, DimensionSettings settings)
 // 初始化
 // ============================================================================
 
-void NetherChunkGenerator::initSettings() {
+void NetherChunkGenerator::initSettings()
+{
     // 下界特有设置
     m_lavaLevel = m_settings.seaLevel; // 使用 seaLevel 作为熔岩高度
     m_bedrockCeiling = m_settings.bedrockRoof;
@@ -96,7 +97,8 @@ void NetherChunkGenerator::initSettings() {
     }
 }
 
-void NetherChunkGenerator::initNoiseGenerators() {
+void NetherChunkGenerator::initNoiseGenerators()
+{
     const NoiseSettings& noise = m_settings.noise;
 
     // 计算噪声尺寸
@@ -129,19 +131,22 @@ void NetherChunkGenerator::initNoiseGenerators() {
 // 生成阶段
 // ============================================================================
 
-void NetherChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk) {
+void NetherChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     MC_TRACE_EVENT("world.gen.nether", "GenerateStructureStarts");
     // 下界结构：堡垒、废弃传送门等
     // 目前使用基类实现
     BaseChunkGenerator::generateStructureStarts(region, chunk);
 }
 
-void NetherChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk) {
+void NetherChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     MC_TRACE_EVENT("world.gen.nether", "GenerateStructureReferences");
     BaseChunkGenerator::generateStructureReferences(region, chunk);
 }
 
-void NetherChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) {
+void NetherChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     MC_TRACE_EVENT("world.gen.nether", "GenerateBiomes");
 
     // 使用 NetherBiomeProvider 填充生物群系
@@ -152,7 +157,8 @@ void NetherChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& c
     chunk.setChunkStatus(ChunkStatuses::BIOMES);
 }
 
-void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) {
+void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     MC_TRACE_EVENT("world.gen.nether", "GenerateNoise");
     MC_UNUSED(region);
 
@@ -227,9 +233,11 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
                             const i32 localBlockZ = worldZ & 15;
                             chunk.setBlockState(localBlockX, worldY, localBlockZ, blockState);
 
-                            chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, localBlockX, worldY, localBlockZ, blockState);
+                            chunk.updateHeightmap(
+                                HeightmapType::WorldSurfaceWG, localBlockX, worldY, localBlockZ, blockState);
                             if (blockState->isSolid()) {
-                                chunk.updateHeightmap(HeightmapType::OceanFloorWG, localBlockX, worldY, localBlockZ, blockState);
+                                chunk.updateHeightmap(
+                                    HeightmapType::OceanFloorWG, localBlockX, worldY, localBlockZ, blockState);
                             }
                         }
                     }
@@ -243,15 +251,15 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
     chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
-void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) {
+void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     MC_TRACE_EVENT("world.gen.nether", "BuildSurface");
     MC_UNUSED(region);
 
     // 下界地表生成
     // 主要处理基岩层
-    math::Random bedrockRng(static_cast<u64>(chunk.x()) * 341873128712ULL +
-                            static_cast<u64>(chunk.z()) * 132897987541ULL +
-                            m_seed);
+    math::Random bedrockRng(
+        static_cast<u64>(chunk.x()) * 341873128712ULL + static_cast<u64>(chunk.z()) * 132897987541ULL + m_seed);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -275,7 +283,8 @@ void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chu
     chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
-void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) {
+void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid)
+{
     MC_TRACE_EVENT("world.gen.nether", "ApplyCarvers");
     MC_UNUSED(region);
 
@@ -293,14 +302,13 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
 }
 
-void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) {
+void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
+{
     MC_TRACE_EVENT("world.gen.nether", "PlaceFeatures");
 
     // 线程安全初始化特征注册表（包含下界特征）
     static std::once_flag s_featureRegistryInitFlag;
-    std::call_once(s_featureRegistryInitFlag, []() {
-        FeatureRegistry::instance().initialize();
-    });
+    std::call_once(s_featureRegistryInitFlag, []() { FeatureRegistry::instance().initialize(); });
 
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
     const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
@@ -314,8 +322,9 @@ void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& ch
     chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }
 
-i32 NetherChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
-                                            std::vector<SpawnedEntityData>& outEntities) {
+i32 NetherChunkGenerator::spawnInitialMobs(
+    WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities)
+{
     // 下界生物生成
     // 暂时不生成初始生物
     MC_UNUSED(region);
@@ -328,21 +337,24 @@ i32 NetherChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& 
 // 生物群系
 // ============================================================================
 
-BiomeId NetherChunkGenerator::getBiome(i32 x, i32 y, i32 z) const {
+BiomeId NetherChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
+{
     if (m_biomeProvider) {
         return m_biomeProvider->getBiome(x, y, z);
     }
     return m_defaultBiome;
 }
 
-BiomeId NetherChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
+BiomeId NetherChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
+{
     if (m_biomeProvider) {
         return m_biomeProvider->getNoiseBiome(noiseX, noiseY, noiseZ);
     }
     return m_defaultBiome;
 }
 
-i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
+i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
+{
     const i32 horizontalNoiseGranularity = 16 / m_noiseSizeX;
     const i32 verticalNoiseGranularity = NETHER_HEIGHT / m_noiseSizeY;
 
@@ -388,9 +400,8 @@ i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
                 return block.isSolid(*state) || state->isLiquid();
 
             case HeightmapType::MotionBlockingNoLeaves:
-                return (block.isSolid(*state) || state->isLiquid()) &&
-                       (&block.material() != &Material::LEAVES) &&
-                       (&block.material() != &Material::PLANT);
+                return (block.isSolid(*state) || state->isLiquid()) && (&block.material() != &Material::LEAVES) &&
+                    (&block.material() != &Material::PLANT);
 
             case HeightmapType::LightBlocking:
                 return block.isSolid(*state) && state->getOpacity() > 0;
@@ -432,7 +443,8 @@ i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
 // 核心生成方法
 // ============================================================================
 
-void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const {
+void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const
+{
     column.resize(m_noiseSizeY + 1);
 
     for (i32 y = 0; y <= m_noiseSizeY; ++y) {
@@ -457,9 +469,10 @@ void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX,
     }
 }
 
-f32 NetherChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const {
+f32 NetherChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const
+{
     // 缩放因子
-    constexpr f32 SCALE_X = 0.0625f;  // 1/16
+    constexpr f32 SCALE_X = 0.0625f; // 1/16
     constexpr f32 SCALE_Y = 0.0625f;
     constexpr f32 SCALE_Z = 0.0625f;
 
@@ -476,7 +489,8 @@ f32 NetherChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 nois
     return density;
 }
 
-const BlockState* NetherChunkGenerator::getBlockForDensity(f32 density, i32 y) const {
+const BlockState* NetherChunkGenerator::getBlockForDensity(f32 density, i32 y) const
+{
     // 密度 > 0 表示实心方块
     if (density > 0.0f) {
         return &VanillaBlocks::NETHERRACK->getDefaultState();
@@ -489,7 +503,8 @@ const BlockState* NetherChunkGenerator::getBlockForDensity(f32 density, i32 y) c
     return nullptr;
 }
 
-void NetherChunkGenerator::generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const {
+void NetherChunkGenerator::generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const
+{
     const BlockState* bedrock = &VanillaBlocks::BEDROCK->getDefaultState();
 
     // 对齐 MC makeBedrock：底部/顶部各 5 层，按 nextInt(5) 决定每层是否放置。

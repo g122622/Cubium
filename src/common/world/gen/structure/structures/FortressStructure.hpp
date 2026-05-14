@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include <vector>
+#include "../Structure.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace world {
@@ -29,12 +29,12 @@ public:
      * @brief 下界要塞配置
      */
     struct Config {
-        i32 spacing = 27;           ///< 区块间距
-        i32 separation = 4;         ///< 最小分离区块
-        i32 salt = 30084232;        ///< 随机种子盐
-        i32 minY = 64;              ///< 最低 Y 坐标
-        i32 maxY = 128;             ///< 最高 Y 坐标
-        i32 maxRange = 112;         ///< 最大扩展范围
+        i32 spacing = 27;    ///< 区块间距
+        i32 separation = 4;  ///< 最小分离区块
+        i32 salt = 30084232; ///< 随机种子盐
+        i32 minY = 64;       ///< 最低 Y 坐标
+        i32 maxY = 128;      ///< 最高 Y 坐标
+        i32 maxRange = 112;  ///< 最大扩展范围
     };
 
     FortressStructure();
@@ -48,21 +48,13 @@ public:
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成下界要塞
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ) const override;
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     void initializeBiomes();
@@ -79,27 +71,27 @@ private:
 // ============================================================================
 
 namespace FortressPieceTypes {
-    // 主要片段（桥）
-    constexpr i32 STRAIGHT = 100;       ///< 直桥段 (5x10x19)
-    constexpr i32 CROSSING3 = 101;      ///< 大型十字交叉 (19x10x19)
-    constexpr i32 CROSSING = 102;       ///< 普通十字交叉 (7x9x7)
-    constexpr i32 STAIRS = 103;         ///< 楼梯 (7x11x7)
-    constexpr i32 THRONE = 104;         ///< 王座房间（烈焰人刷怪笼）(7x8x9)
-    constexpr i32 ENTRANCE = 105;       ///< 入口 (13x14x13)
+// 主要片段（桥）
+constexpr i32 STRAIGHT = 100;  ///< 直桥段 (5x10x19)
+constexpr i32 CROSSING3 = 101; ///< 大型十字交叉 (19x10x19)
+constexpr i32 CROSSING = 102;  ///< 普通十字交叉 (7x9x7)
+constexpr i32 STAIRS = 103;    ///< 楼梯 (7x11x7)
+constexpr i32 THRONE = 104;    ///< 王座房间（烈焰人刷怪笼）(7x8x9)
+constexpr i32 ENTRANCE = 105;  ///< 入口 (13x14x13)
 
-    // 次要片段（走廊）
-    constexpr i32 CORRIDOR5 = 106;      ///< 基础走廊 (5x7x5)
-    constexpr i32 CROSSING2 = 107;      ///< 小型十字交叉 (5x7x5)
-    constexpr i32 CORRIDOR2 = 108;      ///< 带箱子走廊 (5x7x5)
-    constexpr i32 CORRIDOR = 109;       ///< 带箱子走廊 (5x7x5)
-    constexpr i32 CORRIDOR3 = 110;      ///< 下沉走廊（带楼梯）(5x14x10)
-    constexpr i32 CORRIDOR4 = 111;      ///< 带桥走廊 (9x7x9)
-    constexpr i32 NETHER_STALK_ROOM = 112; ///< 地狱疣房间 (13x14x13)
+// 次要片段（走廊）
+constexpr i32 CORRIDOR5 = 106;         ///< 基础走廊 (5x7x5)
+constexpr i32 CROSSING2 = 107;         ///< 小型十字交叉 (5x7x5)
+constexpr i32 CORRIDOR2 = 108;         ///< 带箱子走廊 (5x7x5)
+constexpr i32 CORRIDOR = 109;          ///< 带箱子走廊 (5x7x5)
+constexpr i32 CORRIDOR3 = 110;         ///< 下沉走廊（带楼梯）(5x14x10)
+constexpr i32 CORRIDOR4 = 111;         ///< 带桥走廊 (9x7x9)
+constexpr i32 NETHER_STALK_ROOM = 112; ///< 地狱疣房间 (13x14x13)
 
-    // 特殊片段
-    constexpr i32 START = 113;          ///< 起始片段
-    constexpr i32 END = 114;            ///< 终止片段 (5x10x8)
-}
+// 特殊片段
+constexpr i32 START = 113; ///< 起始片段
+constexpr i32 END = 114;   ///< 终止片段 (5x10x8)
+} // namespace FortressPieceTypes
 
 } // namespace structure
 } // namespace gen

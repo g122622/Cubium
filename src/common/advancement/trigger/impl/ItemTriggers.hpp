@@ -22,9 +22,7 @@ class ConsumeItemTrigger : public AbstractCriterionTrigger<ConsumeItemTriggerIns
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:consume_item";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ConsumeItemTriggerInstance>> fromJson(const nlohmann::json& json);
 
@@ -61,9 +59,7 @@ class ItemDurabilityTrigger : public AbstractCriterionTrigger<ItemDurabilityTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:item_durability_changed";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<ItemDurabilityTriggerInstance>> fromJson(const nlohmann::json& json);
 
@@ -100,9 +96,7 @@ class EnchantedItemTrigger : public AbstractCriterionTrigger<EnchantedItemTrigge
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:enchanted_item";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<EnchantedItemTriggerInstance>> fromJson(const nlohmann::json& json);
 
@@ -138,9 +132,7 @@ class FilledBucketTrigger : public AbstractCriterionTrigger<FilledBucketTriggerI
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:filled_bucket";
 
-    [[nodiscard]] ResourceLocation getId() const override {
-        return ResourceLocation(TRIGGER_ID);
-    }
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
     [[nodiscard]] Result<std::shared_ptr<FilledBucketTriggerInstance>> fromJson(const nlohmann::json& json);
 

@@ -11,18 +11,18 @@
 
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/boss/WitherEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/boss/WitherEntity.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/entity/core/Entity.hpp"
-#include "common/entity/core/MobEntity.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/border/WorldBorder.hpp"
-#include "common/sound/SoundCategory.hpp"
-#include "common/core/Types.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace {
@@ -32,14 +32,16 @@ namespace {
  */
 class WitherTestWorld final : public test::BaseTestWorld {
 public:
-    WitherTestWorld() {
+    WitherTestWorld()
+    {
         // 初始化方块
         VanillaBlocks::initialize();
     }
 
     // ========== IWorld 接口实现 ==========
 
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
         BlockPos pos(x, y, z);
         auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
@@ -48,7 +50,8 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
         BlockPos pos(x, y, z);
         if (state) {
             m_blocks[pos] = std::make_unique<BlockState>(*state);
@@ -58,15 +61,16 @@ public:
         return true;
     }
 
-    [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const override {
+    [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const override
+    {
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override {
-        return true;
-    }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& aabb, const Entity* exclude) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
+        const AxisAlignedBB& aabb, const Entity* exclude) const override
+    {
         std::vector<Entity*> result;
         for (auto& entity : m_entities) {
             if (entity.get() != exclude && entity->boundingBox().intersects(aabb)) {
@@ -76,11 +80,13 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
         return {};
     }
 
-    Entity* getEntity(EntityId id) override {
+    Entity* getEntity(EntityId id) override
+    {
         for (auto& entity : m_entities) {
             if (entity->id() == id) {
                 return entity.get();
@@ -89,7 +95,8 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override {
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
                 return entity.get();
@@ -98,7 +105,8 @@ public:
         return nullptr;
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
         if (!entity) return EntityId(0);
         EntityId id = m_nextEntityId;
         m_nextEntityId = EntityId(static_cast<u32>(m_nextEntityId) + 1);
@@ -108,27 +116,21 @@ public:
         return id;
     }
 
-    [[nodiscard]] u64 currentTick() const override {
-        return m_currentTick;
-    }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    void setCurrentTick(u64 tick) {
-        m_currentTick = tick;
-    }
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
-    [[nodiscard]] i64 dayTime() const override {
-        return 6000;
-    }
+    [[nodiscard]] i64 dayTime() const override { return 6000; }
 
-    [[nodiscard]] Difficulty difficulty() const override {
-        return Difficulty::Normal;
-    }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override {
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
         throw std::runtime_error("WitherTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
         throw std::runtime_error("WitherTestWorld::tickManager not implemented");
     }
 
@@ -144,30 +146,31 @@ private:
  */
 class WitherEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         VanillaBlocks::initialize();
         m_world = std::make_unique<WitherTestWorld>();
     }
 
-    void TearDown() override {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<WitherTestWorld> m_world;
 };
 
 // ========== 数据参数测试 ==========
 
-TEST_F(WitherEntityTest, DataParameter_InitialState_IsZero) {
+TEST_F(WitherEntityTest, DataParameter_InitialState_IsZero)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 所有头部目标初始值应该为 0（无目标）
-    EXPECT_EQ(wither.getWatchedTargetId(0), 0);  // 主头
-    EXPECT_EQ(wither.getWatchedTargetId(1), 0);  // 左头
-    EXPECT_EQ(wither.getWatchedTargetId(2), 0);  // 右头
+    EXPECT_EQ(wither.getWatchedTargetId(0), 0); // 主头
+    EXPECT_EQ(wither.getWatchedTargetId(1), 0); // 左头
+    EXPECT_EQ(wither.getWatchedTargetId(2), 0); // 右头
 }
 
-TEST_F(WitherEntityTest, DataParameter_SetAndGet_HeadTarget) {
+TEST_F(WitherEntityTest, DataParameter_SetAndGet_HeadTarget)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 设置主头目标
@@ -183,7 +186,8 @@ TEST_F(WitherEntityTest, DataParameter_SetAndGet_HeadTarget) {
     EXPECT_EQ(wither.getWatchedTargetId(2), 300);
 }
 
-TEST_F(WitherEntityTest, DataParameter_IndependentHeadTargets) {
+TEST_F(WitherEntityTest, DataParameter_IndependentHeadTargets)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 设置不同头的不同目标
@@ -203,7 +207,8 @@ TEST_F(WitherEntityTest, DataParameter_IndependentHeadTargets) {
     EXPECT_EQ(wither.getWatchedTargetId(2), 333);
 }
 
-TEST_F(WitherEntityTest, DataParameter_ClearHeadTarget) {
+TEST_F(WitherEntityTest, DataParameter_ClearHeadTarget)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 设置并清除目标
@@ -214,7 +219,8 @@ TEST_F(WitherEntityTest, DataParameter_ClearHeadTarget) {
     EXPECT_EQ(wither.getWatchedTargetId(0), 0);
 }
 
-TEST_F(WitherEntityTest, DataParameter_InvalidHeadIndex_ReturnsZero) {
+TEST_F(WitherEntityTest, DataParameter_InvalidHeadIndex_ReturnsZero)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 无效索引应该返回 0
@@ -225,7 +231,8 @@ TEST_F(WitherEntityTest, DataParameter_InvalidHeadIndex_ReturnsZero) {
 
 // ========== 无敌时间测试 ==========
 
-TEST_F(WitherEntityTest, Invulnerability_GetAndSet) {
+TEST_F(WitherEntityTest, Invulnerability_GetAndSet)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     EXPECT_EQ(wither.getInvulTime(), 0);
@@ -240,7 +247,8 @@ TEST_F(WitherEntityTest, Invulnerability_GetAndSet) {
     EXPECT_FALSE(wither.isInvulnerablePhase());
 }
 
-TEST_F(WitherEntityTest, Invulnerability_Ignite) {
+TEST_F(WitherEntityTest, Invulnerability_Ignite)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
     wither.setWorld(m_world.get());
 
@@ -249,13 +257,14 @@ TEST_F(WitherEntityTest, Invulnerability_Ignite) {
 
     // 点燃
     wither.ignite();
-    EXPECT_EQ(wither.getInvulTime(), 220);  // MC 1.16.5: 11秒 = 220 ticks
+    EXPECT_EQ(wither.getInvulTime(), 220); // MC 1.16.5: 11秒 = 220 ticks
     EXPECT_TRUE(wither.isInvulnerablePhase());
 }
 
 // ========== 充能状态测试 ==========
 
-TEST_F(WitherEntityTest, Charged_WhenHealthBelowHalf) {
+TEST_F(WitherEntityTest, Charged_WhenHealthBelowHalf)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
     wither.setWorld(m_world.get());
 
@@ -277,7 +286,8 @@ TEST_F(WitherEntityTest, Charged_WhenHealthBelowHalf) {
 
 // ========== 远程攻击测试 ==========
 
-TEST_F(WitherEntityTest, RangedAttack_DisabledDuringInvulnerability) {
+TEST_F(WitherEntityTest, RangedAttack_DisabledDuringInvulnerability)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 无敌阶段不能远程攻击
@@ -291,7 +301,8 @@ TEST_F(WitherEntityTest, RangedAttack_DisabledDuringInvulnerability) {
 
 // ========== 属性测试 ==========
 
-TEST_F(WitherEntityTest, Attributes_DefaultValues) {
+TEST_F(WitherEntityTest, Attributes_DefaultValues)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
     wither.setWorld(m_world.get());
 
@@ -304,14 +315,16 @@ TEST_F(WitherEntityTest, Attributes_DefaultValues) {
 
 // ========== 生物属性测试 ==========
 
-TEST_F(WitherEntityTest, CreatureAttribute_IsUndead) {
+TEST_F(WitherEntityTest, CreatureAttribute_IsUndead)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 凋灵是亡灵生物
     EXPECT_EQ(wither.getCreatureAttribute(), CreatureAttribute::Undead);
 }
 
-TEST_F(WitherEntityTest, IsNonBoss_ReturnsFalse) {
+TEST_F(WitherEntityTest, IsNonBoss_ReturnsFalse)
+{
     entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
 
     // 凋灵是 Boss

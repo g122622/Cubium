@@ -1,9 +1,9 @@
 #pragma once
 
-#include "TieredItem.hpp"
-#include "ToolType.hpp"
 #include "../../../world/block/Material.hpp"
 #include "../../attribute/ItemAttributeModifiers.hpp"
+#include "TieredItem.hpp"
+#include "ToolType.hpp"
 #include <unordered_set>
 
 namespace mc {
@@ -44,11 +44,11 @@ public:
      * @param properties 物品属性
      */
     ToolItem(f32 attackDamage,
-             f32 attackSpeed,
-             const tier::IItemTier& tier,
-             std::unordered_set<const Block*> effectiveBlocks,
-             ToolType toolType,
-             ItemProperties properties);
+        f32 attackSpeed,
+        const tier::IItemTier& tier,
+        std::unordered_set<const Block*> effectiveBlocks,
+        ToolType toolType,
+        ItemProperties properties);
 
     ~ToolItem() override = default;
 
@@ -64,8 +64,7 @@ public:
      * @param state 目标方块状态
      * @return 挖掘速度倍率
      */
-    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
-                                        const BlockState& state) const override;
+    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
 
     /**
      * @brief 检查是否能采集方块
@@ -91,9 +90,7 @@ public:
      * @param attacker 攻击者实体
      * @return 是否成功
      */
-    bool hitEntity(ItemStack& stack,
-                   LivingEntity& target,
-                   LivingEntity& attacker) override;
+    bool hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker) override;
 
     /**
      * @brief 破坏方块时调用
@@ -107,11 +104,8 @@ public:
      * @param entity 破坏者实体
      * @return 是否成功
      */
-    bool onBlockDestroyed(ItemStack& stack,
-                          IWorld& world,
-                          const BlockState& state,
-                          const BlockPos& pos,
-                          LivingEntity& entity) override;
+    bool onBlockDestroyed(
+        ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& entity) override;
 
     /**
      * @brief 获取工具类型
@@ -136,9 +130,7 @@ public:
     /**
      * @brief 获取有效方块集合
      */
-    [[nodiscard]] const std::unordered_set<const Block*>& getEffectiveBlocks() const {
-        return m_effectiveBlocks;
-    }
+    [[nodiscard]] const std::unordered_set<const Block*>& getEffectiveBlocks() const { return m_effectiveBlocks; }
 
     /**
      * @brief 获取属性修饰符
@@ -150,8 +142,7 @@ public:
      * @param equipmentSlot 装备槽位
      * @return 属性修饰符
      */
-    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(
-        i32 equipmentSlot) const override;
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
 
 protected:
     /**

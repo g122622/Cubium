@@ -1,20 +1,20 @@
 #include "AnimalEntity.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../core/EntityDataManager.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../util/math/random/Random.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityDataManager.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
@@ -30,13 +30,15 @@ AnimalEntity::AnimalEntity(LegacyEntityType type, EntityId id)
     // setPathPriority(PathNodeType.DAMAGE_FIRE, -1.0F);
 }
 
-bool AnimalEntity::isBreedingItem(const ItemStack& itemStack) const {
+bool AnimalEntity::isBreedingItem(const ItemStack& itemStack) const
+{
     // MC 1.16.5: 默认检查是否为小麦
     // 子类应该重写此方法来定义特定的繁殖物品
     return !itemStack.isEmpty() && itemStack.getItem() == Items::WHEAT;
 }
 
-bool AnimalEntity::canMateWith(const AnimalEntity& other) const {
+bool AnimalEntity::canMateWith(const AnimalEntity& other) const
+{
     // MC 1.16.5: 检查双方都是成体、都处于爱心状态、是同类
     if (this == &other) {
         return false;
@@ -51,12 +53,14 @@ bool AnimalEntity::canMateWith(const AnimalEntity& other) const {
     return isInLove() && other.isInLove();
 }
 
-bool AnimalEntity::canBreed() const {
+bool AnimalEntity::canBreed() const
+{
     // MC 1.16.5: 年龄为0且不处于爱心状态
     return getGrowingAge() == 0 && !isInLove();
 }
 
-void AnimalEntity::setInLove(u64 playerUuid) {
+void AnimalEntity::setInLove(u64 playerUuid)
+{
     // MC 1.16.5: 设置爱心状态持续 600 ticks（30秒）
     // 调用 AgeableEntity::setInLove() 设置计时器
     AgeableEntity::setInLove(playerUuid);
@@ -68,19 +72,22 @@ void AnimalEntity::setInLove(u64 playerUuid) {
     // world->setEntityState(this, static_cast<u8>(18));
 }
 
-void AnimalEntity::resetInLove() {
+void AnimalEntity::resetInLove()
+{
     // 清空爱心计时器
     resetLove();
     m_loveCause = 0;
 }
 
-i32 AnimalEntity::getExperiencePoints() const {
+i32 AnimalEntity::getExperiencePoints() const
+{
     // MC 1.16.5: 返回 1-3 经验
     math::Random rng = getRandom();
     return 1 + rng.nextInt(3);
 }
 
-void AnimalEntity::tick() {
+void AnimalEntity::tick()
+{
     AgeableEntity::tick();
 
     updateInLove();
@@ -89,7 +96,8 @@ void AnimalEntity::tick() {
     // updateAITasks() 中会检查年龄并清空爱心
 }
 
-void AnimalEntity::registerGoals() {
+void AnimalEntity::registerGoals()
+{
     // 调用父类方法
     AgeableEntity::registerGoals();
 
@@ -110,7 +118,8 @@ void AnimalEntity::registerGoals() {
     // 以继承 AgeableEntity 的目标（如 FollowParentGoal 对幼体很重要）
 }
 
-void AnimalEntity::registerAttributes() {
+void AnimalEntity::registerAttributes()
+{
     // 调用父类方法
     AgeableEntity::registerAttributes();
 
@@ -120,7 +129,8 @@ void AnimalEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }
 
-void AnimalEntity::updateInLove() {
+void AnimalEntity::updateInLove()
+{
     // 快速路径：使用 AgeableEntity 的爱心计时器
     // AgeableEntity::updateLove() 已经处理了爱心计时器递减
     // 这里只需要处理粒子效果
@@ -143,7 +153,8 @@ void AnimalEntity::updateInLove() {
     }
 }
 
-void AnimalEntity::spawnHeartParticles() {
+void AnimalEntity::spawnHeartParticles()
+{
     // MC 1.16.5: 生成心形粒子
     if (!m_world) {
         return;
@@ -157,12 +168,11 @@ void AnimalEntity::spawnHeartParticles() {
     Vector3 pos(x() + ox, y() + oy, z() + oz);
     Vector3 vel(0.0f, 0.0f, 0.0f);
 
-    m_world->addParticle(
-        client::renderer::trident::particle::ParticleTypeId::Heart,
-        pos, vel);
+    m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Heart, pos, vel);
 }
 
-bool AnimalEntity::hurt(DamageSource& source, f32 amount) {
+bool AnimalEntity::hurt(DamageSource& source, f32 amount)
+{
     // MC 1.16.5: 受伤时清空爱心状态（不重置繁殖冷却）
     resetInLove();
 
@@ -171,7 +181,8 @@ bool AnimalEntity::hurt(DamageSource& source, f32 amount) {
 
 // ========== 寻路权重 ==========
 
-f32 AnimalEntity::getPathWeight(f32 x, f32 y, f32 z) const {
+f32 AnimalEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
     // MC 1.16.5: AnimalEntity.getBlockPathWeight()
     // 参考: net.minecraft.entity.passive.AnimalEntity.getBlockPathWeight()
     const IWorld* worldPtr = this->world();

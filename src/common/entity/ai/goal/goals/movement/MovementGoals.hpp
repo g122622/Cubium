@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../Goal.hpp"
 
 namespace mc {
 
@@ -103,8 +103,8 @@ private:
     f32 m_leapHeight;
     bool m_leaped = false;
 
-    static constexpr f32 MIN_DISTANCE = 4.0f;  // 最小跳跃距离
-    static constexpr f32 MAX_DISTANCE = 8.0f;  // 最大跳跃距离
+    static constexpr f32 MIN_DISTANCE = 4.0f; // 最小跳跃距离
+    static constexpr f32 MAX_DISTANCE = 8.0f; // 最大跳跃距离
 };
 
 } // namespace entity::ai::goal

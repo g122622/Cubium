@@ -1,22 +1,21 @@
 #include "SignCommandHelper.hpp"
-#include "common/world/blockentity/interactive/SignEntity.hpp"
-#include "common/util/text/ITextComponent.hpp"
-#include "common/util/text/TextStyle.hpp"
-#include "common/util/text/TextEvents.hpp"
 #include "common/util/math/Vector2.hpp"
-#include "server/player/ServerPlayer.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "server/application/IServer.hpp"
-#include "server/command/ServerCommandSource.hpp"
 #include "server/command/CommandRegistry.hpp"
+#include "server/command/ServerCommandSource.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
 namespace server {
 
-bool SignCommandHelper::executeSignCommands(
-    blockentity::SignEntity& signEntity,
-    mc::ServerPlayer& player) {
+bool SignCommandHelper::executeSignCommands(blockentity::SignEntity& signEntity, mc::ServerPlayer& player)
+{
 
     // MC 1.16.5: 参考 SignTileEntity.executeCommand()
     // 遍历所有行文本，检查并执行点击事件
@@ -88,10 +87,8 @@ bool SignCommandHelper::executeSignCommands(
     return executedAny;
 }
 
-bool SignCommandHelper::executeCommand(
-    const std::string& command,
-    mc::ServerPlayer& player,
-    const BlockPos& signPos) {
+bool SignCommandHelper::executeCommand(const std::string& command, mc::ServerPlayer& player, const BlockPos& signPos)
+{
 
     // 检查服务器引用
     if (player.getServer() == nullptr) {
@@ -107,20 +104,15 @@ bool SignCommandHelper::executeCommand(
 
     // 创建命令源
     // MC 1.16.5: 告示牌命令源的权限级别为 2，位置为告示牌位置
-    command::ServerCommandSource source(
-        player.getServer(),
+    command::ServerCommandSource source(player.getServer(),
         &player,
         player.getWorld(),
         Vector3d(
-            static_cast<f64>(signPos.x) + 0.5,
-            static_cast<f64>(signPos.y) + 0.5,
-            static_cast<f64>(signPos.z) + 0.5
-        ),
+            static_cast<f64>(signPos.x) + 0.5, static_cast<f64>(signPos.y) + 0.5, static_cast<f64>(signPos.z) + 0.5),
         Vector2f(0.0f, 0.0f),
-        2,  // 权限级别 2（相当于 OP 级别）
+        2, // 权限级别 2（相当于 OP 级别）
         player.playerId(),
-        player.username()
-    );
+        player.username());
 
     // 执行命令
     auto result = player.getServer()->commandRegistry().execute(cmd, source);

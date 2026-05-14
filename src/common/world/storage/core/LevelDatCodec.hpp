@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../list/WorldListEntry.hpp"
-#include "../request/WorldRequests.hpp"
 #include "../../../core/Result.hpp"
 #include "../../../util/nbt/Nbt.hpp"
+#include "../list/WorldListEntry.hpp"
+#include "../request/WorldRequests.hpp"
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -28,12 +28,7 @@ struct LevelVersionInfo {
     /// 是否为快照版本
     bool snapshot;
 
-    LevelVersionInfo(
-        i32 storageVersion,
-        i32 dataVersion,
-        std::string versionName,
-        bool snapshot
-    );
+    LevelVersionInfo(i32 storageVersion, i32 dataVersion, std::string versionName, bool snapshot);
 
     // 禁止默认构造
     LevelVersionInfo() = delete;
@@ -87,8 +82,7 @@ struct LevelSummaryData {
     /**
      * @brief 构造摘要数据
      */
-    LevelSummaryData(
-        std::string displayName,
+    LevelSummaryData(std::string displayName,
         i64 lastPlayedMs,
         GameMode gameMode,
         Difficulty difficulty,
@@ -100,8 +94,7 @@ struct LevelSummaryData {
         i32 storageVersion,
         i32 dataVersion,
         WorldCompatibility compatibility,
-        std::string errorMessage
-    );
+        std::string errorMessage);
 
     LevelSummaryData() = delete;
 };
@@ -157,8 +150,7 @@ struct LevelRuntimeData {
     /**
      * @brief 构造运行时数据
      */
-    LevelRuntimeData(
-        LevelSummaryData summary,
+    LevelRuntimeData(LevelSummaryData summary,
         i32 spawnX,
         i32 spawnY,
         i32 spawnZ,
@@ -171,8 +163,7 @@ struct LevelRuntimeData {
         i32 thunderTime,
         bool thundering,
         bool initialized,
-        bool difficultyLocked
-    );
+        bool difficultyLocked);
 
     LevelRuntimeData() = delete;
 };
@@ -226,10 +217,7 @@ public:
      * @param request 创建世界请求
      * @return 成功返回空，失败返回错误
      */
-    static Result<void> writeInitial(
-        const std::filesystem::path& worldDir,
-        const CreateWorldRequest& request
-    );
+    static Result<void> writeInitial(const std::filesystem::path& worldDir, const CreateWorldRequest& request);
 
     /**
      * @brief 更新 level.dat 中的显示名称
@@ -238,10 +226,7 @@ public:
      * @param newDisplayName 新的显示名称
      * @return 成功返回空，失败返回错误
      */
-    static Result<void> updateDisplayName(
-        const std::filesystem::path& worldDir,
-        const std::string& newDisplayName
-    );
+    static Result<void> updateDisplayName(const std::filesystem::path& worldDir, const std::string& newDisplayName);
 
     /**
      * @brief 更新 level.dat 中的最后游玩时间
@@ -250,10 +235,7 @@ public:
      * @param lastPlayedMs 最后游玩时间（毫秒时间戳）
      * @return 成功返回空，失败返回错误
      */
-    static Result<void> updateLastPlayed(
-        const std::filesystem::path& worldDir,
-        i64 lastPlayedMs
-    );
+    static Result<void> updateLastPlayed(const std::filesystem::path& worldDir, i64 lastPlayedMs);
 
     /**
      * @brief 读取完整运行时数据
@@ -270,33 +252,23 @@ private:
     /**
      * @brief 从 gzip 文件读取 NBT
      */
-    static Result<std::unique_ptr<nbt::tags::compound_tag>> readGzipNbt(
-        const std::filesystem::path& filePath
-    );
+    static Result<std::unique_ptr<nbt::tags::compound_tag>> readGzipNbt(const std::filesystem::path& filePath);
 
     /**
      * @brief 将 NBT 写入 gzip 文件
      */
-    static Result<void> writeGzipNbt(
-        const std::filesystem::path& filePath,
-        const nbt::tags::compound_tag& root
-    );
+    static Result<void> writeGzipNbt(const std::filesystem::path& filePath, const nbt::tags::compound_tag& root);
 
     /**
      * @brief 构建最小 level.dat NBT 结构
      */
     static std::unique_ptr<nbt::tags::compound_tag> buildInitialNbt(
-        const CreateWorldRequest& request,
-        i64 lastPlayedMs
-    );
+        const CreateWorldRequest& request, i64 lastPlayedMs);
 
     /**
      * @brief 原子写入：临时文件 -> level.dat_old 备份 -> 替换 level.dat
      */
-    static Result<void> atomicWrite(
-        const std::filesystem::path& worldDir,
-        const nbt::tags::compound_tag& root
-    );
+    static Result<void> atomicWrite(const std::filesystem::path& worldDir, const nbt::tags::compound_tag& root);
 
     /**
      * @brief 读取 Data 复合标签
@@ -308,11 +280,9 @@ private:
      * @param outData 输出的 Data 复合标签
      * @return 成功返回 true，失败返回错误
      */
-    static Result<void> readDataCompound(
-        const std::filesystem::path& worldDir,
+    static Result<void> readDataCompound(const std::filesystem::path& worldDir,
         std::unique_ptr<nbt::tags::compound_tag>& outRoot,
-        nbt::tags::compound_tag*& outData
-    );
+        nbt::tags::compound_tag*& outData);
 
     /**
      * @brief 从 NBT 解析世界类型
@@ -347,10 +317,7 @@ private:
     /**
      * @brief 判断兼容性状态
      */
-    static WorldCompatibility determineCompatibility(
-        i32 storageVersion,
-        i32 dataVersion
-    );
+    static WorldCompatibility determineCompatibility(i32 storageVersion, i32 dataVersion);
 };
 
 } // namespace mc::world::storage

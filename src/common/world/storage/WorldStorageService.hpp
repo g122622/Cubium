@@ -1,20 +1,20 @@
 #pragma once
 
-#include "world/storage/db/ConsistencyMode.hpp"
-#include "world/storage/db/RocksDBConfig.hpp"
-#include "world/storage/section/SectionManager.hpp"
-#include "world/storage/task/StorageTaskManager.hpp"
-#include "world/storage/list/WorldListService.hpp"
-#include "world/storage/core/WorldSessionLock.hpp"
-#include "world/storage/core/WorldStoragePaths.hpp"
-#include "world/storage/snapshot/BackupManager.hpp"
-#include "world/storage/player/PlayerDataManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "world/storage/core/WorldSessionLock.hpp"
+#include "world/storage/core/WorldStoragePaths.hpp"
+#include "world/storage/db/ConsistencyMode.hpp"
+#include "world/storage/db/RocksDBConfig.hpp"
+#include "world/storage/list/WorldListService.hpp"
+#include "world/storage/player/PlayerDataManager.hpp"
+#include "world/storage/section/SectionManager.hpp"
+#include "world/storage/snapshot/BackupManager.hpp"
+#include "world/storage/task/StorageTaskManager.hpp"
 #include <filesystem>
 #include <memory>
-#include <unordered_map>
 #include <optional>
+#include <unordered_map>
 
 namespace mc::world::storage {
 
@@ -106,8 +106,7 @@ public:
      * @param config 配置选项
      * @return 成功或错误
      */
-    Result<void> open(const std::filesystem::path& worldPath,
-                      const WorldStorageConfig& config);
+    Result<void> open(const std::filesystem::path& worldPath, const WorldStorageConfig& config);
 
     /**
      * @brief 关闭世界存储
@@ -182,8 +181,14 @@ public:
      *
      * @return 会话锁指针，可能为空
      */
-    [[nodiscard]] WorldSessionLock* sessionLock() { return m_sessionLock.has_value() ? &m_sessionLock.value() : nullptr; }
-    [[nodiscard]] const WorldSessionLock* sessionLock() const { return m_sessionLock.has_value() ? &m_sessionLock.value() : nullptr; }
+    [[nodiscard]] WorldSessionLock* sessionLock()
+    {
+        return m_sessionLock.has_value() ? &m_sessionLock.value() : nullptr;
+    }
+    [[nodiscard]] const WorldSessionLock* sessionLock() const
+    {
+        return m_sessionLock.has_value() ? &m_sessionLock.value() : nullptr;
+    }
 
     /**
      * @brief 获取备份管理器（如果可用）
@@ -232,8 +237,7 @@ public:
      * @param description 可选描述
      * @return 备份ID，或错误
      */
-    Result<BackupID> createBackup(const std::string& name,
-                                   const std::string& description = "");
+    Result<BackupID> createBackup(const std::string& name, const std::string& description = "");
 
     /**
      * @brief 清理旧备份

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "screen/IScreen.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
+#include "screen/IScreen.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace mc::client {
 
@@ -66,10 +66,9 @@ public:
      * @brief 获取当前屏幕
      * @return 栈顶屏幕，如果栈空返回nullptr
      */
-    [[nodiscard]] IScreen* getCurrentScreen() {
-        return m_stackWidget ? m_stackWidget->topIScreen() : nullptr;
-    }
-    [[nodiscard]] const IScreen* getCurrentScreen() const {
+    [[nodiscard]] IScreen* getCurrentScreen() { return m_stackWidget ? m_stackWidget->topIScreen() : nullptr; }
+    [[nodiscard]] const IScreen* getCurrentScreen() const
+    {
         return m_stackWidget ? m_stackWidget->topIScreen() : nullptr;
     }
 
@@ -77,17 +76,13 @@ public:
      * @brief 检查是否有打开的屏幕
      * @return 如果有屏幕返回true
      */
-    [[nodiscard]] bool hasScreen() const {
-        return m_stackWidget ? m_stackWidget->hasScreen() : false;
-    }
+    [[nodiscard]] bool hasScreen() const { return m_stackWidget ? m_stackWidget->hasScreen() : false; }
 
     /**
      * @brief 获取屏幕栈深度
      * @return 屏幕数量
      */
-    [[nodiscard]] size_t getScreenCount() const {
-        return m_stackWidget ? m_stackWidget->screenCount() : 0;
-    }
+    [[nodiscard]] size_t getScreenCount() const { return m_stackWidget ? m_stackWidget->screenCount() : 0; }
 
     /**
      * @brief 每帧更新
@@ -174,9 +169,7 @@ public:
      * @brief 设置屏幕变化回调
      * @param callback 回调函数
      */
-    void setScreenChangeCallback(std::function<void(IScreen*)> callback) {
-        m_onScreenChange = std::move(callback);
-    }
+    void setScreenChangeCallback(std::function<void(IScreen*)> callback) { m_onScreenChange = std::move(callback); }
 
 private:
     ScreenManager() = default;

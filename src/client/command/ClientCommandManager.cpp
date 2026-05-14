@@ -11,11 +11,13 @@ namespace mc::client::command {
 
 ClientCommandManager::ClientCommandManager() = default;
 
-void ClientCommandManager::clear() {
+void ClientCommandManager::clear()
+{
     m_snapshot.nodes.clear();
 }
 
-Result<void> ClientCommandManager::applyCommandTreeJson(std::string_view jsonText) {
+Result<void> ClientCommandManager::applyCommandTreeJson(std::string_view jsonText)
+{
     auto snapshotResult = mc::command::CommandTreeSnapshot::fromJsonString(jsonText);
     if (snapshotResult.failed()) {
         clear();
@@ -28,11 +30,13 @@ Result<void> ClientCommandManager::applyCommandTreeJson(std::string_view jsonTex
     return Result<void>::ok();
 }
 
-bool ClientCommandManager::hasCommandTree() const noexcept {
+bool ClientCommandManager::hasCommandTree() const noexcept
+{
     return !m_snapshot.empty();
 }
 
-std::vector<std::string> ClientCommandManager::getCommandNames() const {
+std::vector<std::string> ClientCommandManager::getCommandNames() const
+{
     std::vector<std::string> names;
     if (m_snapshot.nodes.empty()) {
         return names;
@@ -52,7 +56,8 @@ std::vector<std::string> ClientCommandManager::getCommandNames() const {
     return names;
 }
 
-mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view input, i32 cursor) const {
+mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view input, i32 cursor) const
+{
     if (!hasCommandTree() || cursor <= 0 || input.empty()) {
         return mc::command::Suggestions::empty();
     }
@@ -125,31 +130,35 @@ mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view i
     }
 }
 
-void ClientCommandManager::setPlayerNameProvider(CandidateProvider provider) {
+void ClientCommandManager::setPlayerNameProvider(CandidateProvider provider)
+{
     m_playerNameProvider = std::move(provider);
 }
 
-void ClientCommandManager::setEntityNameProvider(CandidateProvider provider) {
+void ClientCommandManager::setEntityNameProvider(CandidateProvider provider)
+{
     m_entityNameProvider = std::move(provider);
 }
 
-void ClientCommandManager::setItemNameProvider(CandidateProvider provider) {
+void ClientCommandManager::setItemNameProvider(CandidateProvider provider)
+{
     m_itemNameProvider = std::move(provider);
 }
 
-const mc::command::CommandTreeNodeSnapshot* ClientCommandManager::getNode(u32 nodeId) const {
+const mc::command::CommandTreeNodeSnapshot* ClientCommandManager::getNode(u32 nodeId) const
+{
     if (nodeId >= m_snapshot.nodes.size()) {
         return nullptr;
     }
     return &m_snapshot.nodes[nodeId];
 }
 
-mc::command::Suggestions ClientCommandManager::collectSuggestions(
-    const mc::command::CommandTreeNodeSnapshot& node,
+mc::command::Suggestions ClientCommandManager::collectSuggestions(const mc::command::CommandTreeNodeSnapshot& node,
     std::string_view fullInput,
     i32 start,
     i32 end,
-    std::string_view tokenPrefix) const {
+    std::string_view tokenPrefix) const
+{
     mc::command::SuggestionsBuilder builder(fullInput, start, end);
 
     for (u32 childId : node.children) {
@@ -180,8 +189,8 @@ mc::command::Suggestions ClientCommandManager::collectSuggestions(
     return builder.build();
 }
 
-std::vector<std::string> ClientCommandManager::getCandidates(
-    const mc::command::CommandTreeNodeSnapshot& node) const {
+std::vector<std::string> ClientCommandManager::getCandidates(const mc::command::CommandTreeNodeSnapshot& node) const
+{
     std::vector<std::string> candidates;
 
     switch (node.suggestionKind) {
@@ -217,9 +226,7 @@ std::vector<std::string> ClientCommandManager::getCandidates(
             if (m_itemNameProvider) {
                 candidates = m_itemNameProvider();
             } else {
-                Item::forEachItem([&candidates](Item& item) {
-                    candidates.push_back(item.itemLocation().toString());
-                });
+                Item::forEachItem([&candidates](Item& item) { candidates.push_back(item.itemLocation().toString()); });
             }
             if (candidates.empty()) {
                 candidates = node.examples;
@@ -233,8 +240,8 @@ std::vector<std::string> ClientCommandManager::getCandidates(
 }
 
 bool ClientCommandManager::matchesFixedCandidate(
-    const mc::command::CommandTreeNodeSnapshot& node,
-    std::string_view token) const {
+    const mc::command::CommandTreeNodeSnapshot& node, std::string_view token) const
+{
     switch (node.suggestionKind) {
         case mc::command::CommandTreeSuggestionKind::Fixed:
         case mc::command::CommandTreeSuggestionKind::CommandNames:
@@ -253,11 +260,13 @@ bool ClientCommandManager::matchesFixedCandidate(
     return !token.empty();
 }
 
-bool ClientCommandManager::isCommandInput(std::string_view input) {
+bool ClientCommandManager::isCommandInput(std::string_view input)
+{
     return !input.empty() && input.front() == '/';
 }
 
-std::string ClientCommandManager::toLower(std::string_view input) {
+std::string ClientCommandManager::toLower(std::string_view input)
+{
     std::string result(input.begin(), input.end());
     for (char& character : result) {
         character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
@@ -265,7 +274,8 @@ std::string ClientCommandManager::toLower(std::string_view input) {
     return result;
 }
 
-bool ClientCommandManager::startsWithIgnoreCase(std::string_view value, std::string_view prefix) {
+bool ClientCommandManager::startsWithIgnoreCase(std::string_view value, std::string_view prefix)
+{
     if (prefix.size() > value.size()) {
         return false;
     }
